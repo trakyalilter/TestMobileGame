@@ -13,6 +13,7 @@ var racks = {} # {category_name: GridContainer}
 
 func _ready():
 	manager = GameState.gathering_manager
+	$VBoxContainer/ScrollContainer.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_ALWAYS
 	call_deferred("refresh_actions")
 
 func refresh_actions():
@@ -53,10 +54,12 @@ func _create_rack(id: String, title: String, color: Color, parent: Node):
 	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	rack_vbox.add_child(header)
 	
+	# Use GridContainer with 5 columns for a stable layout
 	var rack_grid = GridContainer.new()
-	rack_grid.columns = 4
-	rack_grid.add_theme_constant_override("h_separation", 20)
-	rack_grid.add_theme_constant_override("v_separation", 20)
+	rack_grid.columns = 5
+	rack_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rack_grid.add_theme_constant_override("h_separation", 15)
+	rack_grid.add_theme_constant_override("v_separation", 15)
 	rack_vbox.add_child(rack_grid)
 	
 	var sep = HSeparator.new()

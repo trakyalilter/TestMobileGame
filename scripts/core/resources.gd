@@ -11,14 +11,48 @@ var currencies: Dictionary = {}
 var energy: float = 0.0
 var max_energy: float = 0.0
 var lifetime_credits: float = 0.0
+var base_cap: float = 20000.0 # Audit v5.0: Fixed undefined variable
 
 func _ready():
-	pass
+	# Initial Starter Kit if elements are empty (New Game)
+	if elements.is_empty() and currencies.is_empty():
+		add_currency("credits", 100)
+		add_element("Dirt", 50)
+		add_element("Water", 50)
+
+func get_max_capacity() -> float:
+	var extra = 0.0
+	if GameState.infrastructure_manager:
+		extra = GameState.infrastructure_manager.get_building_count("inventory_bay") * 10000.0
+	return base_cap + extra
+
+func get_resource_mass(symbol: String) -> float:
+	# Audit v12.0: Bulk resources can be compressed
+	var bulk = ["Dirt", "Water", "Fe", "Si", "Scrap", "Wood", "Stone"]
+	if symbol in bulk:
+		# Logistics Level 25 Milestone: 50% Compression
+		# We use GatheringManager as the proxy for terrestrial logistics here
+		if GameState.gathering_manager and GameState.gathering_manager.get_level() >= 25:
+			return 0.5
+		return 1.0
+	return 1.0
 
 func add_element(symbol: String, amount: float):
 	if not elements.has(symbol):
 		elements[symbol] = 0.0
-	elements[symbol] += amount
+	
+	var max_cap = get_max_capacity()
+	var mass = get_resource_mass(symbol)
+	var current_qty = elements[symbol]
+	var current_vol = current_qty * mass
+	
+	if amount > 0:
+		# Enforce cap based on VOLUME (qty * mass)
+		var available_vol = max(0, max_cap - current_vol)
+		var max_addable_qty = available_vol / mass
+		amount = min(amount, max_addable_qty)
+	
+	elements[symbol] = current_qty + amount
 	element_added.emit(symbol, amount)
 	
 	if elements[symbol] < 0:

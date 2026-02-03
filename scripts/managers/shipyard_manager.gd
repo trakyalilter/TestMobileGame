@@ -1,6 +1,7 @@
-extends Skill
+extends RefCounted
 
 signal module_crafted(module_id)
+signal hull_constructed(hull_id)
 
 # Stats
 var max_hp = 100
@@ -28,6 +29,7 @@ var module_inventory: Dictionary = {}
 var hulls: Dictionary = {
 	"corvette_hull": {
 		"name": "Mining Corvette",
+		"tier": 1,  # Audit v1.0: Added for fleet mission requirements
 		"stats": {"hp": 100, "atk": 5},
 		"cost": {"credits": 50, "Fe": 10, "Wood": 10},
 		"slots": ["weapon", "shield", "engine", "battery"],
@@ -35,14 +37,16 @@ var hulls: Dictionary = {
 	},
 	"frigate_hull": {
 		"name": "Industrial Frigate",
-		"stats": {"hp": 800, "atk": 15},
-		"cost": {"credits": 50000, "Steel": 2000, "Bronze": 50, "Circuit": 100, "Chip": 10},
+		"tier": 2,  # Audit v1.0: Added for fleet mission requirements
+		"stats": {"hp": 800, "atk": 25},
+		"cost": {"credits": 50000, "Steel": 1200, "Bronze": 50, "Circuit": 100, "Chip": 10},
 		"slots": ["weapon", "weapon", "shield", "shield", "engine", "battery", "battery"],
 		"research_req": "shipwright_1",
 		"visual": "res://assets/ships/2.png"
 	},
 	"destroyer_hull": {
 		"name": "Escort Destroyer",
+		"tier": 3,  # Audit v1.0: Added for fleet mission requirements
 		"stats": {"hp": 3000, "atk": 40, "energy_capacity": 600},
 		"cost": {"credits": 500000, "Steel": 25000, "Ti": 250, "Circuit": 500, "Chip": 100, "Superalloy": 10, "AdvCircuit": 10},
 		"slots": ["weapon", "weapon", "weapon", "shield", "shield", "engine", "engine", "battery", "battery", "battery"],
@@ -51,6 +55,7 @@ var hulls: Dictionary = {
 	},
 	"battlecruiser_hull": {
 		"name": "Battlecruiser",
+		"tier": 4,  # Audit v1.0: Added for fleet mission requirements
 		"stats": {"hp": 9000, "atk": 100, "energy_capacity": 1500},
 		"cost": {"credits": 5000000, "Steel": 100000, "Ti": 1500, "Circuit": 1000, "Chip": 250, "Superalloy": 50, "AdvCircuit": 50, "VoidArtifact": 10},
 		"slots": ["weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "engine", "battery", "battery", "battery", "battery"],
@@ -59,6 +64,7 @@ var hulls: Dictionary = {
 	},
 	"dreadnought_hull": {
 		"name": "Dreadnought",
+		"tier": 5,  # Audit v1.0: Added for fleet mission requirements
 		"stats": {"hp": 20000, "atk": 250, "energy_capacity": 4000},
 		"cost": {"credits": 25000000, "Steel": 500000, "Ti": 5000, "Circuit": 2500, "Chip": 500, "Superalloy": 200, "AdvCircuit": 200, "QuantumCore": 20, "VoidArtifact": 50},
 		"slots": ["weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "shield", "shield", "shield", "engine", "battery", "battery", "battery", "battery", "battery", "battery"],
@@ -113,7 +119,7 @@ var modules: Dictionary = {
 		"name": "Basic Battery Module",
 		"slot_type": "battery",
 		"stats": {"energy_capacity": 50},
-		"cost": {"BatteryT1": 10},
+		"cost": {"BatteryT1": 5},
 		"desc": "Standard Energy Storage.",
 		"research_req": "power_systems"
 	},
@@ -138,7 +144,7 @@ var modules: Dictionary = {
 		"name": "Deflector Shield", 
 		"slot_type": "shield", 
 		"stats": {"max_shield": 50, "shield_regen": 2, "energy_load": 10}, 
-		"cost": {"credits": 2500, "Si": 50, "Circuit": 2},
+		"cost": {"credits": 1500, "Si": 50, "Circuit": 2},
 		"desc": "Generates a regenerative energy field.",
 		"research_req": "energy_shields"
 	},
@@ -420,12 +426,83 @@ var modules: Dictionary = {
 		"desc": "(Legendary) Heart of the Titan. +2000 Energy, +25% ATK Speed, +25% Shield Regen.",
 		"research_req": "void_navigation",
 		"unique_id": "primordial_power"
+	},
+	# ========== ULTIMATE MODULES (P0-6: Endgame Crafted Item Sinks) ==========
+	"void_battery_array": {
+		"name": "★ Void Battery Array ★",
+		"slot_type": "battery",
+		"stats": {"energy_capacity": 3000, "energy_gen": 30, "shield_regen_mult": 0.75},
+		"cost": {"credits": 50000000, "VoidBattery": 5},
+		"desc": "(Legendary) Pinnacle of void engineering. +3000 Energy, +30 Passive Regen, +75% Shield Regen.",
+		"research_req": "void_navigation"
+	},
+	"temporal_drive": {
+		"name": "★ Temporal Drive ★",
+		"slot_type": "engine",
+		"stats": {"eva": 120, "atk_speed_mult": 0.75, "energy_load": 75},
+		"cost": {"credits": 75000000, "TemporalModule": 3},
+		"desc": "(Legendary) Bends time itself. +120 EVA, +75% Attack Speed.",
+		"research_req": "void_navigation"
+	},
+	"primordial_fortification": {
+		"name": "★ Primordial Fortification ★",
+		"slot_type": "shield",
+		"stats": {"hp": 15000, "def": 300, "max_shield": 1000, "shield_regen": 30},
+		"cost": {"credits": 100000000, "PrimordialArmor": 3},
+		"desc": "(Legendary) Invincible titan shell. +15000 HP, +300 DEF, +1000 Shield.",
+		"research_req": "void_navigation"
+	},
+	"omega_singularity": {
+		"name": "★★ Omega Singularity ★★",
+		"slot_type": "battery",
+		"stats": {"energy_capacity": 5000, "energy_gen": 100, "atk_speed_mult": 0.50, "shield_regen_mult": 1.0},
+		"cost": {"credits": 250000000, "OmegaAccelerator": 2},
+		"desc": "(Mythic) Reality-bending power source. THE ultimate module.",
+		"research_req": "void_navigation"
+	},
+	# ========== AUDIT v20.0: DEAD RESOURCE ACTIVATION ==========
+	# T5 Fix: AICore
+	"ai_targeting_system": {
+		"name": "AI Targeting System",
+		"slot_type": "weapon",
+		"stats": {"atk_kinetic": 10, "atk_energy": 10, "crit_chance": 0.20, "accuracy": 25},
+		"cost": {"credits": 50000, "AICore": 3, "AdvCircuit": 10},
+		"desc": "(Unique) Neural network targeting. +20% Crit Chance, +25 Accuracy.",
+		"research_req": "industrial_automation",
+		"unique_id": "ai_targeting_effect"
+	},
+	# T6 Fix: ExoticIsotope
+	"exotic_shield_matrix": {
+		"name": "Exotic Shield Matrix",
+		"slot_type": "shield",
+		"stats": {"max_shield": 300, "shield_regen": 15, "def": 30},
+		"cost": {"credits": 100000, "ExoticIsotope": 5, "Superalloy": 20},
+		"desc": "(Unique) Radiation-hardened shields. Reduces Gamma zone damage by 30%.",
+		"research_req": "radiation_shielding",
+		"unique_id": "exotic_shield_effect"
+	},
+	# T7 Fix: Diamond
+	"diamond_edge_railgun": {
+		"name": "Diamond-Edge Railgun",
+		"slot_type": "weapon",
+		"stats": {"atk_kinetic": 150, "energy_load": 40},
+		"cost": {"credits": 200000, "Diamond": 10, "W": 50, "Steel": 200},
+		"desc": "Hyper-velocity penetrator. Best-in-class kinetic damage.",
+		"research_req": "exotic_matter_analysis"
+	},
+	# T7 Fix: SyntheticCrystal
+	"crystal_lens_laser": {
+		"name": "Crystal Lens Laser",
+		"slot_type": "weapon",
+		"stats": {"atk_energy": 180, "energy_load": 50},
+		"cost": {"credits": 250000, "SyntheticCrystal": 10, "Si": 500, "AdvCircuit": 30},
+		"desc": "Focused coherent light. Best-in-class energy damage.",
+		"research_req": "exotic_matter_analysis"
 	}
 }
 
 
 func _init():
-	super._init("Shipyard")
 	recalc_stats()
 
 func construct_hull(hull_id: String) -> bool:
@@ -463,6 +540,8 @@ func construct_hull(hull_id: String) -> bool:
 	# Recalculate to get new max_hp
 	recalc_stats()
 	current_hp = max_hp # Explicitly force full health for the new hull
+	
+	hull_constructed.emit(hull_id) # Audit v11.0: Signal for missions
 	return true
 
 func unequip_all():
@@ -564,25 +643,31 @@ func recalc_stats():
 		atk_k += h.get("atk", 0)
 		defe += h.get("def", 0)
 		eva += h.get("eva", 0)
-		e_cap += h.get("energy_capacity", 0)
-		
+	# Audit v7.0: Merged Shipyard bonus into Engineering (Processing) skill
+	var engineering_lvl = 1
+	if GameState.processing_manager:
+		engineering_lvl = GameState.processing_manager.get_level()
+	var skill_mult = 1.0 + (engineering_lvl * 0.01)
+	
 	for mid in loadout.values():
 		if mid and mid in modules:
 			var m = modules[mid]["stats"]
-			hp += m.get("hp", 0)
-			shield += m.get("max_shield", 0)
-			s_reg += m.get("shield_regen", 0)
-			atk_k += m.get("atk_kinetic", 0)
-			atk_e += m.get("atk_energy", 0)
-			defe += m.get("def", 0)
-			eva += m.get("eva", 0)
-			e_cap += m.get("energy_capacity", 0)
+			hp += m.get("hp", 0) * skill_mult
+			shield += m.get("max_shield", 0) * skill_mult
+			s_reg += m.get("shield_regen", 0) * skill_mult
+			atk_k += m.get("atk_kinetic", 0) * skill_mult
+			atk_e += m.get("atk_energy", 0) * skill_mult
+			defe += m.get("def", 0) * skill_mult
+			eva += m.get("eva", 0) * skill_mult
+			e_cap += m.get("energy_capacity", 0) * skill_mult
 			e_load += m.get("energy_load", 0)
 			
 	var rm = GameState.research_manager
 	var hp_mult = 1.0
 	if rm:
 		hp_mult += rm.get_efficiency_bonus("max_hp_mult")
+		# Audit v8.0 P1-25: Materials Science Hub Bonus (+10% Hull HP)
+		hp_mult += rm.get_efficiency_bonus("materials_science")
 	
 	max_hp = int(hp * hp_mult)
 	if max_hp <= 0: max_hp = 10
@@ -596,6 +681,10 @@ func recalc_stats():
 	evasion = eva
 	energy_used = e_load
 	
+	# Audit v8.0 P1-25: Applied Physics Hub Bonus (+10% Energy Capacity)
+	if rm:
+		e_cap *= (1.0 + rm.get_efficiency_bonus("applied_physics"))
+	
 	current_hp = min(current_hp, max_hp)
 	
 	# Update Global Resources
@@ -604,7 +693,7 @@ func recalc_stats():
 
 
 func get_save_data_manager() -> Dictionary:
-	var data = get_save_data()
+	var data = {}
 	data["active_hull"] = active_hull
 	data["loadout"] = loadout
 	data["inventory"] = module_inventory
@@ -613,7 +702,6 @@ func get_save_data_manager() -> Dictionary:
 	return data
 
 func load_save_data_manager(data: Dictionary):
-	load_save_data(data)
 	if data.is_empty(): return
 	
 	active_hull = data.get("active_hull", "corvette_hull")
@@ -692,4 +780,3 @@ func reset(decay_factor: float = 1.0) -> void:
 		for i in range(hulls[active_hull]["slots"].size()):
 			loadout[i] = null
 	recalc_stats()
-	super.reset(decay_factor)

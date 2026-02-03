@@ -470,9 +470,9 @@ func trigger_tab_alert(tabs: TabContainer, tab_idx: int, active: bool = true, co
 	if not tabs or tab_idx < 0 or tab_idx >= tabs.get_tab_count(): return
 	
 	var title = tabs.get_tab_title(tab_idx)
-	var marker = "🚥 "
+	var marker = "(!) "
 	
-	# Handle Title Prefixing
+	# Handle Title Prefixing (Audit v16.4: Clean text marker)
 	if active:
 		if not title.begins_with(marker):
 			tabs.set_tab_title(tab_idx, marker + title)
@@ -480,7 +480,7 @@ func trigger_tab_alert(tabs: TabContainer, tab_idx: int, active: bool = true, co
 		if title.begins_with(marker):
 			tabs.set_tab_title(tab_idx, title.replace(marker, ""))
 	
-	# Manage Active Alerts List
+	# 1. Manage Active Alerts List
 	var active_alerts = tabs.get_meta("active_tab_alerts", [])
 	if active:
 		if not tab_idx in active_alerts:
@@ -489,23 +489,10 @@ func trigger_tab_alert(tabs: TabContainer, tab_idx: int, active: bool = true, co
 		active_alerts.erase(tab_idx)
 	tabs.set_meta("active_tab_alerts", active_alerts)
 	
-	# Manage Centralized Pulse Tween on TabBar (Not the whole container!)
+	# 2. Global Pulse Disabled (Audit v16.4: Reduced noise)
 	var bar = tabs.get_tab_bar()
-	var pulse_key = "tabbar_pulse_tween"
-	
-	if not active_alerts.is_empty():
-		if not tabs.has_meta(pulse_key):
-			var tween = tabs.create_tween().set_loops()
-			tabs.set_meta(pulse_key, tween)
-			# Subtle sine wave on the tab bar only
-			tween.tween_property(bar, "modulate", color.lightened(0.3), 1.2).set_trans(Tween.TRANS_SINE)
-			tween.tween_property(bar, "modulate", Color.WHITE, 1.2).set_trans(Tween.TRANS_SINE)
-	else:
-		if tabs.has_meta(pulse_key):
-			var old_tween = tabs.get_meta(pulse_key)
-			if old_tween: old_tween.kill()
-			tabs.remove_meta(pulse_key)
-		bar.modulate = Color.WHITE
+	bar.modulate = Color.WHITE
+	# Removed pulse_key / tween logic entirely
 # --- PHASE 47: DIEGETIC & HOLOGRAPHIC HELPERS ---
 
 ## apply_holographic_projection: Minimalist border-only HUD style

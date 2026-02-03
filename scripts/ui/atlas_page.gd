@@ -9,6 +9,7 @@ extends Control
 @onready var desc_label = $HBoxContainer/RightPanel/MarginContainer/VBoxContainer/ScrollContainer/Details/DescLabel
 @onready var sources_list = $HBoxContainer/RightPanel/MarginContainer/VBoxContainer/ScrollContainer/Details/SourcesList
 @onready var uses_list = $HBoxContainer/RightPanel/MarginContainer/VBoxContainer/ScrollContainer/Details/UsesList
+@onready var net_label = $HBoxContainer/RightPanel/MarginContainer/VBoxContainer/ScrollContainer/Details/NetLabel # Needs to be added to scene or handled
 
 var current_filter = "all"
 var material_db = {}  # {material_id: {name, sources: [], uses: []}}
@@ -233,6 +234,22 @@ func _on_material_selected(mat_id: String):
 	
 	name_label.text = mat["name"]
 	desc_label.text = "ID: %s" % mat_id
+	
+	# Update Net Rate
+	var im = GameState.infrastructure_manager
+	var net_rates = im.get_total_resource_rates()
+	var rate = net_rates.get(mat_id, 0.0)
+	
+	if net_label:
+		if rate == 0:
+			net_label.text = "NET GROWTH: 0.00 /min"
+			net_label.modulate = Color(0.7, 0.7, 0.7)
+		elif rate > 0:
+			net_label.text = "NET GROWTH: +%.2f /min" % rate
+			net_label.modulate = Color(0.4, 1.0, 0.4)
+		else:
+			net_label.text = "NET GROWTH: %.2f /min" % rate
+			net_label.modulate = Color(1.0, 0.4, 0.4)
 	
 	# Clear old entries
 	for child in sources_list.get_children():

@@ -134,6 +134,12 @@ theme_override_font_sizes/font_size = 14
 text = "Select a material from the list to view its sources and uses."
 autowrap_mode = 2
 
+[node name="NetLabel" type="Label" parent="HBoxContainer/RightPanel/MarginContainer/VBoxContainer/ScrollContainer/Details"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "NET GROWTH: 0.00 /min"
+horizontal_alignment = 1
+
 [node name="SourcesTitle" type="Label" parent="HBoxContainer/RightPanel/MarginContainer/VBoxContainer/ScrollContainer/Details"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.4, 1, 0.6, 1)

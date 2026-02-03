@@ -11,7 +11,9 @@ var parent_ui: Node
 @onready var cost_lbl = $MarginContainer/VBoxContainer/CostLabel
 @onready var count_lbl = $MarginContainer/VBoxContainer/CountLabel
 @onready var buy_btn = $MarginContainer/VBoxContainer/BuyButton
-var overclock_btn: CheckButton
+@onready var oc_container = $MarginContainer/VBoxContainer/OverclockContainer
+@onready var oc_lbl = $MarginContainer/VBoxContainer/OverclockContainer/OCLabel
+@onready var oc_slider = $MarginContainer/VBoxContainer/OverclockContainer/OCSlider
 
 var production_timer: float = 0.0
 var production_interval: float = 1.0
@@ -48,15 +50,9 @@ func setup(p_bid: String, p_data: Dictionary, p_manager, p_parent):
 		cost_str += "%d %s\n" % [data["cost"][res], display_name]
 	cost_lbl.text = cost_str.strip_edges()
 	
-	# PHASE 47: Nitrogen Overclock Toggle
-	overclock_btn = CheckButton.new()
-	overclock_btn.text = "CRYO-OVERCLOCK"
-	overclock_btn.add_theme_font_size_override("font_size", 8)
-	overclock_btn.button_pressed = manager.is_overclocked(bid)
-	overclock_btn.toggled.connect(_on_overclock_toggled)
-	$MarginContainer/VBoxContainer.add_child(overclock_btn)
-	# Insert before BuyButton
-	$MarginContainer/VBoxContainer.move_child(overclock_btn, $MarginContainer/VBoxContainer.get_child_count() - 2)
+	oc_slider.value = manager.get_overclock_level(bid)
+	oc_lbl.text = "Overclock: %.1fx" % oc_slider.value
+	oc_slider.value_changed.connect(_on_oc_slider_changed)
 
 func _process(delta):
 	# Refresh buildability
@@ -155,13 +151,15 @@ func update_state():
 			_stop_pulse()
 			
 	# Update Overclock Visibility
-	var n_cost = log(count + 1) * 5.0
-	var has_nitrogen = GameState.resources.get_element_amount("N") > 1.0
+	var oc_level = manager.get_overclock_level(bid)
+	oc_lbl.text = "Overclock: %.1fx" % oc_level
+	oc_slider.value = oc_level
 	
-	overclock_btn.visible = has_nitrogen or manager.is_overclocked(bid)
-	if manager.is_overclocked(bid):
-		overclock_btn.text = "CRYO-OVERCLOCK (%.1f N/s)" % n_cost
-		overclock_btn.modulate = Color.CYAN if GameState.resources.get_element_amount("N") >= 1.0 else Color.RED
+	# Optional: Show warnings if efficiency is low
+	if manager.energy_efficiency < 1.0:
+		oc_lbl.add_theme_color_override("font_color", Color.YELLOW)
+	else:
+		oc_lbl.add_theme_color_override("font_color", Color.CYAN)
 
 var pulse_tween: Tween
 func _start_pulse():
@@ -185,6 +183,7 @@ func _on_buy_button_pressed():
 		tween.tween_property(self, "scale", Vector2(1.0, 1.0), 0.1)
 		parent_ui.update_ui()
 
-func _on_overclock_toggled(button_pressed: bool):
-	manager.toggle_overclock(bid, button_pressed)
-	UITheme.trigger_ui_thud(self, 2.0)
+func _on_oc_slider_changed(value: float):
+	manager.set_overclock_level(bid, value)
+	oc_lbl.text = "Overclock: %.1fx" % value
+	UITheme.trigger_ui_thud(self, 1.5)

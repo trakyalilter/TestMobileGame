@@ -89,8 +89,9 @@ theme_override_colors/font_color = Color(1.0, 0.8, 0.2, 0.5)
 theme_override_font_sizes/font_size = 12
 text = "[ POWER SYSTEMS ]"
 
-[node name="Grid" type="HFlowContainer" parent="VBoxContainer/ScrollContainer/BladeContainer/EnergyRack"]
+[node name="Grid" type="GridContainer" parent="VBoxContainer/ScrollContainer/BladeContainer/EnergyRack"]
 layout_mode = 2
+columns = 5
 theme_override_constants/h_separation = 15
 theme_override_constants/v_separation = 15
 
@@ -108,8 +109,9 @@ theme_override_colors/font_color = Color(1.0, 0.6, 0.2, 0.5)
 theme_override_font_sizes/font_size = 12
 text = "[ EXTRACTION RACKS ]"
 
-[node name="Grid" type="HFlowContainer" parent="VBoxContainer/ScrollContainer/BladeContainer/MiningRack"]
+[node name="Grid" type="GridContainer" parent="VBoxContainer/ScrollContainer/BladeContainer/MiningRack"]
 layout_mode = 2
+columns = 5
 theme_override_constants/h_separation = 15
 theme_override_constants/v_separation = 15
 
@@ -127,7 +129,8 @@ theme_override_colors/font_color = Color(0.2, 0.8, 1.0, 0.5)
 theme_override_font_sizes/font_size = 12
 text = "[ LOGISTICS & FABRICATION ]"
 
-[node name="Grid" type="HFlowContainer" parent="VBoxContainer/ScrollContainer/BladeContainer/ProductionRack"]
+[node name="Grid" type="GridContainer" parent="VBoxContainer/ScrollContainer/BladeContainer/ProductionRack"]
 layout_mode = 2
+columns = 5
 theme_override_constants/h_separation = 15
 theme_override_constants/v_separation = 15

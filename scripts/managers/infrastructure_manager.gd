@@ -6,7 +6,10 @@ var buildings: Dictionary = {}
 var generation: float = 0.0
 var consumption: float = 0.0
 var net_energy: float = 0.0
-var overclocked_buildings: Array = [] # List of building IDs enabled for overclocking
+var overclock_levels: Dictionary = {} # {building_id: float_level} 1.0 = base
+var energy_efficiency: float = 1.0 # Current grid stability (0.0 to 1.0)
+var grid_warning_sent: bool = false
+var events: Array = []
 
 
 var building_db: Dictionary = {
@@ -16,6 +19,15 @@ var building_db: Dictionary = {
 		"cost": {"credits": 50, "Si": 5}, 
 		"energy_gen": 10.0, 
 		"energy_cons": 0.0,
+		"category": "power"
+	},
+	"fusion_reactor": {
+		"name": "Fusion Core",
+		"description": "Harnesses stellar-level energy. Generates massive power.",
+		"cost": {"credits": 1000000, "Superalloy": 200, "AdvCircuit": 100, "VoidEssence": 20},
+		"energy_gen": 1500.0,
+		"energy_cons": 0.0,
+		"research_req": "quantum_dynamics",
 		"category": "power"
 	},
 	"coal_burner": {
@@ -32,7 +44,7 @@ var building_db: Dictionary = {
 		"description": "Massive automated drill. Excavates 10 Dirt every 5s.",
 		"cost": {"credits": 500, "Si": 50, "Fe": 20},
 		"energy_gen": 0.0,
-		"energy_cons": 20.0,
+		"energy_cons": 15.0,  # Audit v1.0: Reduced from 20 for better early-game energy balance
 		"yield": {"Dirt": 10},
 		"interval": 5.0,
 		"category": "extraction"
@@ -49,7 +61,7 @@ var building_db: Dictionary = {
 	},
 	"drone_bay": {
 		"name": "Drone Recovery Bay",
-		"description": "Automated drones scavenge unlocked zones (10% Efficiency).",
+		"description": "Automated drones scavenge unlocked zones (20% Efficiency). Generates 1 Scrap/10s.",
 		"cost": {"credits": 2000, "Circuit": 10, "Ti": 20},
 		"energy_gen": 0.0,
 		"energy_cons": 50.0,
@@ -61,7 +73,7 @@ var building_db: Dictionary = {
 	"fabricator": {
 		"name": "Molecular Fabricator",
 		"description": "Advanced 3D printer. Reduces Crafting Time by 20%.",
-		"cost": {"credits": 5000, "Circuit": 50, "Fiber": 20},
+		"cost": {"credits": 5000, "Circuit": 50, "Fiber": 20, "Ti": 50},
 		"energy_gen": 0.0,
 		"energy_cons": 100.0,
 		"max": 1,
@@ -105,12 +117,12 @@ var building_db: Dictionary = {
 	},
 	"matter_deconstructor": {
 		"name": "Matter De-constructor",
-		"description": "Mass-converts Scrap into advanced components via molecular restructuring.",
+		"description": "Converts Scrap into advanced components via molecular restructuring.",
 		"cost": {"credits": 100000, "Ti": 1000, "AdvCircuit": 50},
 		"energy_gen": 0.0,
 		"energy_cons": 250.0,
-		"input": {"Scrap": 100000},
-		"yield": {"Circuit": 5, "Superalloy": 1},
+		"input": {"Scrap": 10000},  # Audit v9.0: Lowered from 100K for usability
+		"yield": {"Circuit": 1, "Superalloy": 0.2},  # Scaled proportionally
 		"interval": 10.0,
 		"research_req": "molecular_recycling",
 		"category": "industry"
@@ -201,9 +213,10 @@ var building_db: Dictionary = {
 		"energy_gen": 0.0,
 		"energy_cons": 120.0,
 		"yield": {"Circuit": 2},
-		"input": {"Si": 4, "DroneCore": 2},
+		"yield": {"Circuit": 2},
+		"input": {"Si": 4, "Cu": 4, "Resin": 2}, # Audit v18.0: Industrial Input (No DroneCore)
 		"interval": 8.0,
-		"max": 1,
+		# "max": 1, # Audit v19.0: Removed max cap to allow infinite scaling for late game
 		"research_req": "industrial_automation",
 		"category": "industry"
 	},
@@ -268,6 +281,24 @@ var building_db: Dictionary = {
 		"research_req": "industrial_logistics",
 		"special": "gather_speed_buff",
 		"category": "logistics"
+	},
+	"inventory_bay": {
+		"name": "Inventory Bay",
+		"description": "Expanded localized storage. Increases maximum capacity for all resources by 10,000.",
+		"cost": {"credits": 5000, "Steel": 100, "Si": 50},
+		"energy_gen": 0.0,
+		"energy_cons": 5.0,
+		"category": "logistics"
+	},
+	"repair_gantry": {
+		"name": "Automated Repair Gantry",
+		"description": "Advanced automated maintenance. Passive repairs for the fleet.",
+		"cost": {"credits": 250000, "AdvCircuit": 50, "Superalloy": 50},
+		"energy_gen": 0.0,
+		"energy_cons": 200.0,
+		"max": 5,
+		"research_req": "fleet_logistics_2",
+		"category": "logistics"
 	}
 }
 
@@ -278,6 +309,54 @@ func _init():
 
 func get_building_count(building_id: String) -> int:
 	return buildings.get(building_id, 0)
+
+func get_total_resource_rates() -> Dictionary:
+	var rates = {} # {id: net_per_minute}
+	
+	var prod_mult = 1.0
+	if GameState.warp_manager:
+		prod_mult = GameState.warp_manager.get_production_multiplier()
+	
+	# Global Yield Bonuses Pass
+	var global_yield_bonuses = {} # {resource: total_mult_bonus}
+	for other_bid in buildings:
+		var other_data = building_db.get(other_bid)
+		if other_data and other_data.has("yield_bonus"):
+			for res in other_data["yield_bonus"]:
+				global_yield_bonuses[res] = global_yield_bonuses.get(res, 0.0) + (other_data["yield_bonus"][res] * buildings[other_bid])
+
+	for bid in buildings:
+		var count = buildings[bid]
+		var data = building_db.get(bid)
+		if not data: continue
+		
+		var interval = data.get("interval", 1.0)
+		var efficiency = energy_efficiency
+		
+		# Yields
+		if "yield" in data:
+			for res in data["yield"]:
+				var base_qty = float(data["yield"][res])
+				
+				# Apply Skill Scaling (Mirroring process_tick logic)
+				if bid == "auto_smelter" or bid == "hydro_plant" or bid == "industrial_centrifuge":
+					var eng_lvl = GameState.processing_manager.get_level()
+					base_qty = base_qty * (1.0 + (log(1.0 + eng_lvl) / log(10.0)) * 5.0)
+				
+				var total_yield_mult = 1.0 + global_yield_bonuses.get(res, 0.0)
+				var qty = base_qty * count * total_yield_mult * prod_mult
+				
+				var rate_per_min = (qty / interval) * 60.0 * efficiency
+				rates[res] = rates.get(res, 0.0) + rate_per_min
+		
+		# Consumptions
+		if "input" in data:
+			for res in data["input"]:
+				var qty = float(data["input"][res]) * count
+				var rate_per_min = (qty / interval) * 60.0 * efficiency
+				rates[res] = rates.get(res, 0.0) - rate_per_min
+				
+	return rates
 
 func get_building_cost(building_id: String) -> Dictionary:
 	"""Calculates exponential cost scaling: Base * (1.15 ^ current_count)"""
@@ -347,12 +426,27 @@ func recalc_energy():
 		var count = buildings[bid]
 		if bid in building_db:
 			var data = building_db[bid]
-			gen += data.get("energy_gen", 0.0) * count
-			cons += data.get("energy_cons", 0.0) * count
+			var level = overclock_levels.get(bid, 1.0)
+			
+			# Overclock Formula (Audit v12.0):
+			# Yield/Gen scales by LEVEL
+			# Consumption scales by LEVEL^2
+			var gen_mult = level
+			var cons_mult = level * level
+			
+			gen += data.get("energy_gen", 0.0) * count * gen_mult
+			cons += data.get("energy_cons", 0.0) * count * cons_mult
 	
+	# Audit v4.0: Milestone Level 10 (+10% Grid Efficiency)
+	if is_milestone_unlocked(10):
+		gen *= 1.10
+		
 	generation = gen
 	consumption = cons
 	net_energy = gen - cons
+	
+	# Reset warning on recalc
+	if gen >= cons: grid_warning_sent = false
 
 func process_tick(delta: float):
 	# Energy Management
@@ -365,7 +459,12 @@ func process_tick(delta: float):
 	var can_run_full = (net_energy >= 0 or current_energy > 0)
 	
 	# 3. Calculate energy efficiency (0.0 to 1.0)
-	var energy_efficiency = 1.0
+	energy_efficiency = 1.0
+	
+	if net_energy < 0 and not grid_warning_sent:
+		events.append(["log", "CRITICAL: Power Grid unstable! Efficiency drop detected.", "power"])
+		grid_warning_sent = true
+		
 	if net_energy < 0:
 		# Negative net energy - running on battery
 		var deficit = abs(net_energy) * delta
@@ -418,18 +517,25 @@ func process_tick(delta: float):
 			var data = building_db.get(bid)
 			if not data: continue
 			
-			# NITROGEN OVERCLOCKING (Audit Phase v4.0 - Logarithmic Scaling)
-			var speed_multiplier = 1.0
-			if bid in overclocked_buildings and count > 0:
-				var n_cost = log(count + 1) * 5.0 * delta
-				if GameState.resources.get_element_amount("N") >= n_cost:
-					GameState.resources.remove_element("N", n_cost)
-					speed_multiplier = 2.0
+			var overclock_mult = overclock_levels.get(bid, 1.0)
 			
 			if "yield" in data:
 				if not bid in production_timers: production_timers[bid] = 0.0
+				
+				# Fleet Auto-Repair Logic (special case)
+				if bid == "repair_gantry":
+					_process_fleet_repairs(delta * energy_efficiency * count)
+					
 				var warp_mult = GameState.warp_manager.get_production_multiplier()
-				production_timers[bid] += delta * energy_efficiency * speed_multiplier * warp_mult
+				# Audit v7.0 P1-24: Infrastructure Skill Yield Bonus (+1% per Level)
+				var skill_yield_mult = 1.0 + (get_level() * 0.01)
+				
+				# Audit v8.0 P1-25: Industrial Logistics Hub Bonus (+10% Production Speed)
+				var hub_bonus = 0.0
+				if GameState.research_manager:
+					hub_bonus = GameState.research_manager.get_efficiency_bonus("industrial_logistics")
+				
+				production_timers[bid] += delta * energy_efficiency * (1.0 + hub_bonus) * warp_mult * skill_yield_mult
 				
 				var interval = data.get("interval", 5.0)
 				if production_timers[bid] >= interval:
@@ -437,7 +543,7 @@ func process_tick(delta: float):
 					var can_produce = true
 					if "input" in data:
 						for res in data["input"]:
-							var qty_needed = data["input"][res] * count
+							var qty_needed = data["input"][res] * count * overclock_mult
 							if GameState.resources.get_element_amount(res) < qty_needed:
 								can_produce = false
 								break
@@ -446,7 +552,7 @@ func process_tick(delta: float):
 						# Consume inputs if required
 						if "input" in data:
 							for res in data["input"]:
-								var qty = data["input"][res] * count
+								var qty = data["input"][res] * count * overclock_mult
 								GameState.resources.remove_element(res, qty)
 						
 						# Production complete
@@ -467,7 +573,7 @@ func process_tick(delta: float):
 									if res in other_data["yield_bonus"]:
 										yield_mult += other_data["yield_bonus"][res] * buildings[other_bid]
 							
-							GameState.resources.add_element(res, qty * count * yield_mult)
+							GameState.resources.add_element(res, qty * count * yield_mult * overclock_mult)
 						
 						# Statistical expectation (Audit v5.0 - O(1) Performance Foundation)
 						if bid == "hydro_plant":
@@ -506,8 +612,9 @@ func process_tick(delta: float):
 							if res_req and not GameState.research_manager.is_tech_unlocked(res_req):
 								continue
 							
-							# 25% chance to trigger this action per 10s tick
-							if randf() < 0.25:
+						
+							# 50% chance to trigger this action per 10s tick (Audit v8.0 Buff)
+							if randf() < 0.50:
 								var loot_table = action.get("loot_table", [])
 								for entry in loot_table:
 									var element = entry[0]
@@ -517,9 +624,13 @@ func process_tick(delta: float):
 									
 									if randf() < chance:
 										var amount = randi_range(min_amt, max_amt)
-										# Forensic 3: Drone Bay Buff (5x increase from 10% to 50%)
-										amount = max(1, int(amount * 0.5))
+										# Audit v8.0: Full amount (100% yield per success)
+										amount = max(1, int(amount * 1.0))
 										GameState.resources.add_element(element, amount)
+					
+					# Audit v8.0: Passive Scrap Logic
+					# Always generate 1 Scrap per 10s per Drone Bay
+					GameState.resources.add_element("Scrap", 1 * count)
 					
 					production_timers[bid] = 0.0
 
@@ -605,14 +716,21 @@ func calculate_offline(delta: float) -> String:
 	if not loot_summary.is_empty():
 		report += "Infrastructure Production (Offline):\n"
 		for item in loot_summary:
-			report += " + %s: %d\n" % [item, loot_summary[item]]
+			report += " + %s: %s\n" % [item, FormatUtils.format_number(loot_summary[item])]
+			
+	# Audit v9.0 P2-23: Special Buff Reporting
+	if get_building_count("crew_quarters") > 0:
+		report += " + Crew Quarters: +10% XP Active\n"
+	if get_building_count("biosphere_dome") > 0:
+		var bonus = get_building_count("biosphere_dome") * 5
+		report += " + Biosphere Domes: +%d%% Gather Speed Active\n" % bonus
 			
 	return report
 
 func get_save_data_manager() -> Dictionary:
 	var data = get_save_data()
 	data["buildings"] = buildings
-	data["overclocked_buildings"] = overclocked_buildings
+	data["overclock_levels"] = overclock_levels
 	return data
 
 func load_save_data_manager(data: Dictionary):
@@ -620,28 +738,48 @@ func load_save_data_manager(data: Dictionary):
 	if data.is_empty(): return
 	
 	buildings = data.get("buildings", {})
-	overclocked_buildings = data.get("overclocked_buildings", [])
+	overclock_levels = data.get("overclock_levels", {})
 	# Fix types if json loaded strings
 	for k in buildings: buildings[k] = int(buildings[k])
+	for k in overclock_levels: overclock_levels[k] = float(overclock_levels[k])
 	
 	recalc_energy()
 
 func reset(decay_factor: float = 1.0) -> void:
 	super.reset(decay_factor)
 	buildings.clear()
-	overclocked_buildings.clear()
+	overclock_levels.clear()
 	generation = 0.0
 	consumption = 0.0
 	net_energy = 0.0
+	energy_efficiency = 1.0
 	production_timers.clear()
 	recalc_energy()
 
-func toggle_overclock(building_id: String, enabled: bool):
-	if enabled:
-		if not building_id in overclocked_buildings:
-			overclocked_buildings.append(building_id)
-	else:
-		overclocked_buildings.erase(building_id)
+func _process_fleet_repairs(repair_power: float):
+	# repair_power is delta * efficiency * count
+	# Repairs 1% of damage per minute per gantry
+	# 1% per 60s = 0.016% per second
+	var fm = GameState.fleet_manager
+	if not fm or fm.pending_repairs.is_empty(): return
+	
+	var repair_pct = 0.00016 * repair_power # approx 1% per minute
+	for hull_id in fm.pending_repairs.keys():
+		var total_damaged = fm.pending_repairs[hull_id]
+		if total_damaged <= 0: continue
+		
+		# For "auto-repair", we treat it as structural mending (doesn't cost credits)
+		# but it's slow. This rewards high-end infrastructure.
+		var mended = int(total_damaged * repair_pct)
+		if mended < 1: mended = 1 # Minimum 1 cr per tick if damaged
+		
+		fm.pending_repairs[hull_id] = max(0, total_damaged - mended)
+		if fm.pending_repairs[hull_id] == 0:
+			fm.pending_repairs.erase(hull_id)
 
-func is_overclocked(building_id: String) -> bool:
-	return building_id in overclocked_buildings
+func set_overclock_level(building_id: String, level: float):
+	overclock_levels[building_id] = clamp(level, 1.0, 10.0)
+	recalc_energy()
+
+func get_overclock_level(building_id: String) -> float:
+	return overclock_levels.get(building_id, 1.0)

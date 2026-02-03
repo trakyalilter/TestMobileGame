@@ -153,6 +153,14 @@ theme_override_colors/font_color = Color(0, 0.8, 1, 1)
 theme_override_font_sizes/font_size = 10
 text = "SHD: 0 / 0"
 
+[node name="HeatBar" type="ProgressBar" parent="Dashboard/Visualizer/HUD/Overlays/SectorOverlay/VBox/PlayerStats"]
+custom_minimum_size = Vector2(0, 4)
+layout_mode = 2
+theme_override_styles/background = SubResource("StyleBoxFlat_hp_bg")
+theme_override_styles/fill = SubResource("StyleBoxFlat_hp_fill")
+value = 50.0
+show_percentage = false
+
 [node name="WeaponBattery" type="VBoxContainer" parent="Dashboard/Visualizer/HUD/Overlays/SectorOverlay/VBox/PlayerStats"]
 layout_mode = 2
 theme_override_constants/separation = 2

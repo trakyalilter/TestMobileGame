@@ -13,14 +13,13 @@ var manager: RefCounted
 var building_widget_scene = preload("res://scenes/ui/building_widget.tscn")
 var widgets = []
 
-var category_tabs: TabBar
-var logistics_grid: HFlowContainer
+var logistics_grid: GridContainer
 var logistics_rack: VBoxContainer
 
 func _ready():
 	manager = GameState.infrastructure_manager
+	$VBoxContainer/ScrollContainer.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_ALWAYS
 	_setup_logistics_rack()
-	_setup_tabs()
 	call_deferred("refresh_list")
 
 func _setup_logistics_rack():
@@ -35,34 +34,18 @@ func _setup_logistics_rack():
 	header.add_theme_color_override("font_color", Color(0.6, 0.4, 1.0, 0.5))
 	logistics_rack.add_child(header)
 	
-	logistics_grid = HFlowContainer.new()
+	logistics_grid = GridContainer.new()
+	logistics_grid.columns = 5
+	logistics_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	logistics_grid.add_theme_constant_override("h_separation", 15)
 	logistics_grid.add_theme_constant_override("v_separation", 15)
 	logistics_rack.add_child(logistics_grid)
 	
+	var sep = HSeparator.new()
+	sep.modulate = Color(1, 1, 1, 0.2)
+	logistics_rack.add_child(sep)
+	
 	blade_container.add_child(logistics_rack)
-
-func _setup_tabs():
-	category_tabs = TabBar.new()
-	category_tabs.add_tab("Power")
-	category_tabs.add_tab("Extraction")
-	category_tabs.add_tab("Industry")
-	category_tabs.add_tab("Command")
-	category_tabs.tab_changed.connect(_on_tab_changed)
-	
-	var container = $VBoxContainer
-	container.add_child(category_tabs)
-	container.move_child(category_tabs, 2) # After Title and EnergyDash
-
-func _on_tab_changed(index):
-	# Toggle rack visibility
-	energy_grid.get_parent().visible = (index == 0)
-	mining_grid.get_parent().visible = (index == 1)
-	production_grid.get_parent().visible = (index == 2)
-	logistics_rack.visible = (index == 3)
-	
-	# Scroll back to top
-	$VBoxContainer/ScrollContainer.scroll_vertical = 0
 
 func refresh_list():
 	for grid in [energy_grid, mining_grid, production_grid, logistics_grid]:
@@ -86,9 +69,6 @@ func refresh_list():
 		target_grid.add_child(w)
 		w.setup(bid, data, manager, self)
 		widgets.append(w)
-	
-	# Set initial visibility
-	_on_tab_changed(0)
 
 func _process(delta):
 	# Update UI elements

@@ -8,6 +8,7 @@ var is_active = false
 var action_progress = 0.0
 
 var unlocked_techs = []
+var repeatable_techs = {} # {id: level}
 
 signal tech_unlocked(tech_id)
 
@@ -25,21 +26,21 @@ var tech_tree = {
 	"applied_physics": {
 		"name": "Applied Physics",
 		"description": "Fundamental theory of energy and mass.\nFirst tier accessible with Credits.",
-		"cost": 100,
+		"cost": 250,
 		"type": "technology",
 		"parent": "basic_engineering"
 	},
 	"materials_science": {
 		"name": "Materials Science",
 		"description": "Elementary studies of matter and chemical bonding.\nFirst tier accessible with Credits.",
-		"cost": 100,
+		"cost": 250,
 		"type": "technology",
 		"parent": "basic_engineering"
 	},
 	"industrial_logistics": {
 		"name": "Industrial Logistics",
 		"description": "Efficiency frameworks and sorting algorithms.\nFirst tier accessible with Credits.",
-		"cost": 100,
+		"cost": 250,
 		"type": "technology",
 		"parent": "basic_engineering"
 	},
@@ -380,10 +381,10 @@ var tech_tree = {
 	"oxygen_blast_furnace": {
 		"name": "Oxygen-Blast Furnaces",
 		"description": "Industrial optimization for Steel production. Increases Steel yield from 1 to 5 per cycle.",
-		"cost": 10000,
-		"cost_items": {"Steel": 500, "O": 500},
+		"cost": 5000,
+		"cost_items": {"Steel": 100, "O": 200},
 		"type": "technology",
-		"parent": "automated_smelting"
+		"parent": "blast_furnace"
 	},
 	"industrial_electrolysis": {
 		"name": "Industrial Electrolysis",
@@ -447,7 +448,7 @@ var tech_tree = {
 		"name": "Capital Ship Doctrine",
 		"description": "Unlocks:\n• Battlecruiser (T4)\n• Coil Cannon\n• Antimatter Engine",
 		"cost": 500000,
-		"cost_items": {"VoidArtifact": 5, "Ti": 200, "Res3": 100},
+		"cost_items": {"VoidArtifact": 5, "Ti": 200, "Res3": 100, "ColonyDataCore": 5}, # Audit v20.0: Added ColonyDataCore (Overseer Drop)
 		"type": "construction",
 		"parent": "shipwright_2"
 	},
@@ -716,6 +717,33 @@ var tech_tree = {
 	}
 }
 
+var repeatable_tech_db = {
+	"production_focus": {
+		"name": "Recursive Optimization (Industry)",
+		"description": "Infinite scaling: +1% Global Processing Speed per level.",
+		"base_cost": 100000,
+		"base_items": {"VoidArtifact": 5, "AdvCircuit": 50},
+		"bonus_type": "processing_speed",
+		"bonus_value": 0.01
+	},
+	"combat_focus": {
+		"name": "Recursive Calibration (Combat)",
+		"description": "Infinite scaling: +1% Total Ship Damage per level.",
+		"base_cost": 100000,
+		"base_items": {"VoidArtifact": 5, "QuantumCore": 5},
+		"bonus_type": "combat_damage",
+		"bonus_value": 0.01
+	},
+	"gathering_focus": {
+		"name": "Recursive Logistics (Gathering)",
+		"description": "Infinite scaling: +1% Global Gathering Yield per level.",
+		"base_cost": 100000,
+		"base_items": {"VoidArtifact": 5, "DroneCore": 50},
+		"bonus_type": "gathering_yield_mult",
+		"bonus_value": 0.01
+	}
+}
+
 
 func _init():
 	super._init("Astrophysics")
@@ -761,6 +789,44 @@ func is_tech_unlocked(tech_id):
 	if tech_id == null: return true
 	return tech_id in unlocked_techs
 
+func get_repeatable_level(tech_id: String) -> int:
+	return repeatable_techs.get(tech_id, 0)
+
+func get_repeatable_cost(tech_id: String) -> Dictionary:
+	if not tech_id in repeatable_tech_db: return {}
+	var data = repeatable_tech_db[tech_id]
+	var lvl = get_repeatable_level(tech_id)
+	
+	var cost_cr = data["base_cost"] * pow(1.5, lvl)
+	var costs = {"credits": int(cost_cr)}
+	for res in data["base_items"]:
+		costs[res] = int(data["base_items"][res] * pow(1.2, lvl))
+	return costs
+
+func can_unlock_repeatable(tech_id: String) -> bool:
+	if not tech_id in repeatable_tech_db: return false
+	var costs = get_repeatable_cost(tech_id)
+	
+	if GameState.resources.get_currency("credits") < costs["credits"]: return false
+	for res in costs:
+		if res == "credits": continue
+		if GameState.resources.get_element_amount(res) < costs[res]: return false
+	return true
+
+func unlock_repeatable_tech(tech_id: String) -> bool:
+	if can_unlock_repeatable(tech_id):
+		var costs = get_repeatable_cost(tech_id)
+		for res in costs:
+			if res == "credits":
+				GameState.resources.remove_currency("credits", costs[res])
+			else:
+				GameState.resources.remove_element(res, costs[res])
+		
+		repeatable_techs[tech_id] = get_repeatable_level(tech_id) + 1
+		activity_occurred.emit()
+		return true
+	return false
+
 func get_efficiency_bonus(bonus_type: String) -> float:
 	match bonus_type:
 		"scrap_rolls":
@@ -797,9 +863,27 @@ func get_efficiency_bonus(bonus_type: String) -> float:
 			return float(slots)
 		"fleet_speed":
 			return 0.25 if "automated_expeditions" in unlocked_techs else 0.0
-	return 0.0
+	# Audit v8.0 P1-25: Hub Node Passive Bonuses
+	if bonus_type == "applied_physics" and is_tech_unlocked("applied_physics"):
+		return 0.10 # +10% Energy Capacity
+	if bonus_type == "materials_science" and is_tech_unlocked("materials_science"):
+		return 0.10 # +10% Max Hull HP
+	if bonus_type == "industrial_logistics" and is_tech_unlocked("industrial_logistics"):
+		return 0.10 # +10% Global Production Speed
+		
+	# Audit v10.0: Infinite Sinks
+	var repeatable_bonus = 0.0
+	for rid in repeatable_techs:
+		var lvl = int(repeatable_techs[rid])
+		var r_data = repeatable_tech_db.get(rid)
+		if r_data and r_data["bonus_type"] == bonus_type:
+			repeatable_bonus += lvl * r_data["bonus_value"]
+			
+	return repeatable_bonus
 
-func get_available_researches_count() -> int:
+func get_research_speed_multiplier() -> float:
+	# Audit v8.0 P2-20: +1% Research Speed per Level
+	return 1.0 + (get_level() * 0.01)
 	var count = 0
 	for tid in tech_tree:
 		if not is_tech_unlocked(tid) and can_unlock(tid):
@@ -820,14 +904,22 @@ func reset(decay_factor: float = 1.0) -> void:
 	unlocked_techs = []
 	stop_action()
 
+# Audit v2.0 P1-6: Soft reset preserves unlocked techs, only clears in-progress
+func soft_reset():
+	# Keep unlocked_techs intact!
+	stop_action()
+	# XP is also preserved through soft reset
+
 func get_save_data_manager() -> Dictionary:
 	var data = get_save_data()
 	data["unlocked_techs"] = unlocked_techs
+	data["repeatable_techs"] = repeatable_techs
 	return data
 
 func load_save_data_manager(data: Dictionary):
 	load_save_data(data)
 	unlocked_techs = data.get("unlocked_techs", [])
+	repeatable_techs = data.get("repeatable_techs", {})
 
 # Action Logic (Scanning)
 
@@ -844,18 +936,24 @@ func stop_action():
 	current_action = ""
 	action_progress = 0.0
 
+func get_data_yield_multiplier() -> float:
+	# astrophysics level bonus: +10% per level
+	return 1.0 + (get_level() * 0.1)
+
 func complete_action():
 	var base_yield = 15
 	if "eff_scanning_1" in unlocked_techs:
 		base_yield = int(base_yield * 1.5)
 	
-	GameState.resources.add_currency("data", base_yield)
+	var scaled_yield = int(base_yield * get_data_yield_multiplier())
+	GameState.resources.add_currency("data", scaled_yield)
 	add_xp(25)
 
 func process_tick(delta: float):
 	if not is_active or current_action == "": return
 	
-	var speed_mult = 1.0 + get_efficiency_bonus("research_speed")
+	# Audit v8.0: Combine hub bonuses, research unlocks, and Skill Level
+	var speed_mult = (1.0 + get_efficiency_bonus("research_speed")) * get_research_speed_multiplier()
 	action_progress += delta * speed_mult
 	
 	if action_progress >= action_duration:
@@ -865,7 +963,7 @@ func process_tick(delta: float):
 func calculate_offline(delta: float):
 	if not is_active or current_action == "": return null
 	
-	var speed_mult = 1.0 + get_efficiency_bonus("research_speed")
+	var speed_mult = (1.0 + get_efficiency_bonus("research_speed")) * get_research_speed_multiplier()
 	var effective_duration = action_duration / speed_mult
 	
 	var actions = int(delta / effective_duration)
@@ -875,8 +973,8 @@ func calculate_offline(delta: float):
 	if "eff_scanning_1" in unlocked_techs: 
 		base_yield = int(base_yield * 1.5)
 		
-	var total_data = base_yield * actions
-	var total_xp = 25 * actions
+	var total_data = int(base_yield * actions * speed_mult * get_data_yield_multiplier())
+	var total_xp = int(25 * actions * speed_mult)
 	
 	GameState.resources.add_currency("data", total_data)
 	add_xp(total_xp)

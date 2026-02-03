@@ -8,6 +8,18 @@ var action_progress: float = 0.0
 var events: Array = []
 
 var recipes: Dictionary = {
+	"sift_dirt_dry": {
+		"name": "Dry Sifting",
+		"description": "Manually sift through dirt for metallic fragments. No water required.",
+		"input": { "Dirt": 10 },
+		# Low efficiency but early access
+		"output": { "Fe": 1 },
+		"output_table": [ ["Si", 0.2, 1, 1] ],
+		"duration": 5.0,
+		"level_req": 1,
+		"xp": 3,
+		"research_req": "basic_engineering"
+	},
 	"charcoal_burning": {
 		"name": "Charcoal Kiln",
 		"description": "Burn Wood to produce Carbon.",
@@ -52,7 +64,7 @@ var recipes: Dictionary = {
 		"description": "Foundry smelting of Iron and Carbon into Steel.",
 		"input": { "Fe": 5, "C": 2 },
 		"output": { "Steel": 1 },
-		"duration": 10.0,
+		"duration": 7.0,
 		"level_req": 12,
 		"research_req": "smelting"
 	},
@@ -160,13 +172,25 @@ var recipes: Dictionary = {
 			# RARE (10% combined) - Components
 			["Circuit", 0.06, 1, 1],  # Basic Circuit (+2%)
 			["Chip", 0.02, 1, 1],     # Microprocessor (+1%)
-			["Res1", 0.02, 1, 1],     # Research Fragment
-			["DroneCore", 0.02, 1, 1], # NEW: DroneCore Bridge (2% chance)
+			["Res1", 0.05, 1, 2],     # Audit v1.0: Increased from 2% to 5%, provides non-combat research path
+			["DroneCore", 0.02, 1, 1], # DroneCore Bridge (2% chance)
 		],
 		"duration": 20.0,
 		"level_req": 4, 
 		"xp": 12, # Reduced from 15
 		"research_req": "basic_engineering"
+	},
+	# Audit v1.0: Guaranteed Circuit path for players frustrated by RNG
+	"recycle_scrap_bulk": {
+		"name": "Bulk Scrap Salvage",
+		"description": "Efficiently process large quantities of scrap. Guaranteed Circuit output.",
+		"input": { "Scrap": 50 },
+		"output": { "Circuit": 2, "Fe": 5, "Si": 2 },
+		"duration": 30.0,
+		"level_req": 10,
+		"xp": 25,
+		"research_req": "basic_engineering",
+		"category": "recycling"
 	},
 	# Research Fragment Upgrade Chain
 	"upgrade_rare_artifact": {
@@ -236,6 +260,27 @@ var recipes: Dictionary = {
 		"level_req": 30,
 		"xp": 60,
 		"research_req": "metallurgy_advanced"
+	},
+	# Audit v2.0: Early consumables for combat accessibility
+	"craft_emergency_patch": {
+		"name": "Emergency Hull Patch",
+		"description": "Quick patch from scrap. Restores 50 HP in combat.",
+		"input": { "Scrap": 5, "Fe": 2 },
+		"output": { "EmergencyPatch": 2 },
+		"duration": 10.0,
+		"level_req": 5,
+		"xp": 10,
+		"category": "consumables"
+	},
+	"craft_basic_booster": {
+		"name": "Basic Shield Booster",
+		"description": "Crude energy cells. Restores 30 Shield in combat.",
+		"input": { "Si": 3, "C": 2 },
+		"output": { "BasicBooster": 2 },
+		"duration": 10.0,
+		"level_req": 6,
+		"xp": 10,
+		"category": "consumables"
 	},
 	"craft_nanoweave": {
 		"name": "Nanoweave Mesh",
@@ -353,6 +398,18 @@ var recipes: Dictionary = {
 		"xp": 50,
 		"research_req": "automated_logistics"
 	},
+	# Audit v18.0: Industrial Path (No combat required)
+	"assemble_circuit_standard": {
+		"name": "Standard Circuit Assembly",
+		"description": "Fabricate circuits from raw conductive materials. No Drone Core required.",
+		"input": { "Cu": 2, "Si": 2, "Resin": 1 },
+		"output": { "Circuit": 1 },
+		"duration": 8.0, 
+		"level_req": 12,
+		"xp": 40,
+		"research_req": "basic_electronics"
+	},
+
 	"craft_hydraulics": {
 		"name": "Hydraulic Servo",
 		"description": "Precision machined actuator.",
@@ -587,6 +644,186 @@ var recipes: Dictionary = {
 		"level_req": 26,
 		"xp": 250,
 		"research_req": "iridium_metallurgy"
+	},
+	# ========== ENDGAME RECIPES (P1-12: Sector Epsilon Resource Uses) ==========
+	"craft_void_battery": {
+		"name": "Void Battery",
+		"description": "Ultimate power storage using void essence compression.",
+		"input": { "VoidEssence": 10, "ExoticMatter": 5, "QuantumCore": 2 },
+		"output": { "VoidBattery": 1 },
+		"duration": 60.0,
+		"level_req": 80,
+		"xp": 2000,
+		"research_req": "exotic_metallurgy",
+		"category": "endgame"
+	},
+	"craft_temporal_module": {
+		"name": "Temporal Stabilizer",
+		"description": "Manipulates local time flow. Grants massive combat speed boost.",
+		"input": { "ChronoCore": 5, "QuantumCore": 10, "AdvCircuit": 20 },
+		"output": { "TemporalModule": 1 },
+		"duration": 90.0,
+		"level_req": 85,
+		"xp": 3000,
+		"research_req": "exotic_metallurgy",
+		"category": "endgame"
+	},
+	"craft_primordial_armor": {
+		"name": "Primordial Forge",
+		"description": "Legendary armor forged from titan remains. Best-in-slot defense.",
+		"input": { "PrimordialShard": 3, "OmegaPlating": 10, "IrPlate": 5 },
+		"output": { "PrimordialArmor": 1 },
+		"duration": 120.0,
+		"level_req": 90,
+		"xp": 5000,
+		"research_req": "exotic_metallurgy",
+		"category": "endgame"
+	},
+	"craft_omega_accelerator": {
+		"name": "Omega Accelerator",
+		"description": "Massively increases all production rates. Ultimate prestige item.",
+		"input": { "OmegaPlating": 5, "ChronoCore": 3, "VoidEssence": 5, "QuantumCore": 5 },
+		"output": { "OmegaAccelerator": 1 },
+		"duration": 180.0,
+		"level_req": 95,
+		"xp": 10000,
+		"research_req": "exotic_metallurgy",
+		"category": "endgame"
+	},
+	"distill_void_essence": {
+		"name": "Void Distillation",
+		"description": "Concentrate void energy into pure exotic matter.",
+		"input": { "VoidEssence": 20 },
+		"output": { "ExoticMatter": 10 },
+		"duration": 45.0,
+		"level_req": 75,
+		"xp": 1500,
+		"category": "endgame"
+	},
+	# ========== AUDIT v20.0: DEAD RESOURCE ACTIVATION ==========
+	# T2 Fix: PirateManifest
+	"decode_manifest": {
+		"name": "Decode Pirate Manifest",
+		"description": "Decrypt stolen shipping data. Reveals hidden coordinates and bounty.",
+		"input": { "PirateManifest": 1 },
+		"output": { "NavData": 1 },
+		"credits_output": 5000,
+		"duration": 15.0,
+		"level_req": 15,
+		"xp": 30,
+		"category": "salvage"
+	},
+	# T5 Fix: ColonySalvage
+	"process_colony_salvage": {
+		"name": "Process Colony Salvage",
+		"description": "Extract advanced components from colonial wreckage.",
+		"input": { "ColonySalvage": 10, "Circuit": 5 },
+		"output": { "AdvCircuit": 3 },
+		"duration": 30.0,
+		"level_req": 40,
+		"xp": 150,
+		"research_req": "deep_space_nav",
+		"category": "salvage"
+	},
+	# T6 Fix: RadIsotope
+	"process_rad_isotope": {
+		"name": "Refine Radioactive Isotopes",
+		"description": "Process unstable isotopes into concentrated nuclear fuel.",
+		"input": { "RadIsotope": 5, "H": 20, "Steel": 10 },
+		"output": { "NuclearFuel": 2 },
+		"duration": 45.0,
+		"level_req": 55,
+		"xp": 200,
+		"research_req": "radiation_shielding",
+		"category": "endgame"
+	},
+	# T7 Fix: AncientTech
+	"decode_ancient_tech": {
+		"name": "Decode Ancient Technology",
+		"description": "Reverse engineer alien tech into quantum components.",
+		"input": { "AncientTech": 3, "VoidArtifact": 5 },
+		"output": { "QuantumCore": 2 },
+		"duration": 90.0,
+		"level_req": 70,
+		"xp": 500,
+		"research_req": "exotic_matter_analysis",
+		"category": "endgame"
+	},
+	# ========== AUDIT v20.0 EXTENSION: ALL ENEMIES UNIQUE DROPS ==========
+	# T1: dust_mite -> MiteChitin
+	"craft_chitin_patch": {
+		"name": "Chitin Hull Patch",
+		"description": "Organic sealant from space mite exoskeletons. Emergency repair.",
+		"input": { "MiteChitin": 3, "Scrap": 5 },
+		"output": { "ChitinPatch": 2 },
+		"duration": 8.0,
+		"level_req": 1,
+		"xp": 5,
+		"category": "consumables"
+	},
+	# T2: claim_jumper -> StolenCargo
+	"fence_stolen_cargo": {
+		"name": "Fence Stolen Cargo",
+		"description": "Offload stolen goods through black market contacts.",
+		"input": { "StolenCargo": 1 },
+		"output": { },
+		"credits_output": 2000,
+		"output_table": [
+			["NavData", 0.3, 1, 2],
+			["Chip", 0.2, 1, 1],
+			["Ti", 0.25, 5, 15],
+			["W", 0.15, 5, 10]
+		],
+		"duration": 10.0,
+		"level_req": 10,
+		"xp": 20,
+		"category": "salvage"
+	},
+	# T3: salvage_swarm -> SwarmFragment
+	"assemble_drone_core": {
+		"name": "Assemble Drone Core",
+		"description": "Reconstruct a functional drone processor from swarm fragments.",
+		"input": { "SwarmFragment": 5, "Si": 5 },
+		"output": { "DroneCore": 2 },
+		"duration": 15.0,
+		"level_req": 8,
+		"xp": 25,
+		"category": "salvage"
+	},
+	# T4: cryo_drone -> CryoCell
+	"craft_cryo_coolant": {
+		"name": "Cryogenic Coolant",
+		"description": "Extract supercooled fluid from cryo drone cells.",
+		"input": { "CryoCell": 3, "Water": 10 },
+		"output": { "NitroCoolant": 5 },
+		"duration": 12.0,
+		"level_req": 20,
+		"xp": 30,
+		"category": "processing"
+	},
+	# T5: defense_turret -> TurretCore
+	"craft_turret_targeting": {
+		"name": "Salvage Targeting Array",
+		"description": "Extract the targeting computer from colonial turrets.",
+		"input": { "TurretCore": 2, "Circuit": 10 },
+		"output": { "TargetingChip": 1 },
+		"duration": 20.0,
+		"level_req": 45,
+		"xp": 100,
+		"research_req": "deep_space_nav",
+		"category": "salvage"
+	},
+	# T8: energy_wraith -> AntimatterParticle
+	"craft_antimatter_fuel": {
+		"name": "Antimatter Containment",
+		"description": "Stabilize antimatter into usable fuel cells.",
+		"input": { "AntimatterParticle": 5, "ExoticMatter": 10, "Steel": 50 },
+		"output": { "AntimatterFuel": 1 },
+		"duration": 60.0,
+		"level_req": 65,
+		"xp": 300,
+		"research_req": "exotic_matter_analysis",
+		"category": "endgame"
 	}
 }
 
@@ -627,6 +864,21 @@ func get_recipe_speed_multiplier(recipe_id: String) -> float:
 		# Platinum Catalyst Chamber (Global Processing Speed +25%)
 		if GameState.infrastructure_manager.get_building_count("catalyst_chamber") > 0:
 			multiplier += 0.25
+	
+	# Audit v8.0 P1-25: Industrial Logistics Hub Bonus (+10% Speed)
+	if GameState.research_manager:
+		multiplier += GameState.research_manager.get_efficiency_bonus("industrial_logistics")
+	
+	# Audit v7.0 P1-21: Engineering Skill Bonus (+1% Speed per Level)
+	multiplier += (get_level() * 0.01)
+	
+	# Audit v4.0: Milestone Level 10 (+10% Speed)
+	if is_milestone_unlocked(10):
+		multiplier *= 1.10
+	
+	# Audit v12.0: Milestone Level 25 (-10% Duration = 1.11x speed effectively)
+	if is_milestone_unlocked(25):
+		multiplier *= 1.11
 	
 	return multiplier
 
@@ -703,8 +955,14 @@ func complete_process():
 			if item == "Steel" and GameState.research_manager.is_tech_unlocked("oxygen_blast_furnace"):
 				qty *= 5
 				
+			# Audit v12.0: Milestone Level 50 (5% chance for double output)
+			if is_milestone_unlocked(50) and randf() < 0.05:
+				qty *= 2
+				events.append(["loot", "CRITICAL SUCCESS! +%d %s" % [qty, item], current_recipe_id])
+			else:
+				events.append(["loot", "+%d %s" % [qty, item], current_recipe_id])
+				
 			GameState.resources.add_element(item, qty)
-			events.append(["loot", "+%d %s" % [qty, item], current_recipe_id])
 			
 	if "output_table" in current_recipe:
 		var roll_count = current_recipe.get("roll_count", 1)  # Default 1 roll

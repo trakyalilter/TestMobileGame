@@ -15,6 +15,13 @@ var enemy_max_hp = 100
 var enemy_shield = 0.0
 var enemy_max_shield = 0.0
 
+# Thermal State (Audit v12.0)
+var player_heat = 0.0
+var player_max_heat = 100.0
+var player_vent_rate = 5.0 # Units per second
+var overheat_lock = 0.0 # Timer when overheat occurs
+signal heat_changed(current, maximum)
+
 
 # Battery State
 var player_weapon_states: Array = [] # {name, type, timer, interval, dmg_k, dmg_e, slot_idx}
@@ -45,6 +52,11 @@ var coolant_flush_timer = 0.0
 
 # Forensic 3: Logic Fixes
 var shield_regen_accumulator = 0.0
+
+# Audit v9.0: HoT & Jamming
+var nanite_hot_timer = 0.0
+var nanite_hot_duration = 15.0
+var is_jammed = false
 
 var zones = {
 	"lunar_orbit": {
@@ -114,13 +126,13 @@ var enemy_db = {
 	"dust_mite": {
 		"name": "Space Dust Mite",
 		"stats": {"hp": 50, "max_shield": 0, "atk": 3, "def": 0, "atk_interval": 2.5, "accuracy": 0},
-		"loot": [["Scrap", 1, 2]],  # Primary scrap source for recycling
+		"loot": [["Scrap", 1, 2], ["MiteChitin", 1, 1]],  # Audit v20.0: Added MiteChitin unique
 		"xp": 8
 	},
 	"lunar_drone": {
 		"name": "Lunar Drone",
-		"stats": {"hp": 75, "max_shield": 0, "atk": 5, "def": 3, "atk_interval": 2.5, "accuracy": 5},
-		"loot": [["Scrap", 2, 3], ["Fe", 4, 10], ["DroneCore", 1, 1]],  # EXCLUSIVE: DroneCore
+		"stats": {"hp": 60, "max_shield": 0, "atk": 5, "def": 1, "atk_interval": 2.5, "accuracy": 5},
+		"loot": [["Scrap", 3, 5], ["Fe", 4, 10], ["DroneCore", 1, 1]],  # EXCLUSIVE: DroneCore
 		"rare_loot": [["Cu", 0.3, 1, 2], ["Chip", 0.08, 1, 1], ["SalvageData", 0.20, 1, 1]], 
 		"xp": 12
 	},
@@ -135,7 +147,7 @@ var enemy_db = {
 	"survey_probe": {
 		"name": "Derelict Survey Probe",
 		"stats": {"hp": 600, "max_shield": 50, "atk": 35, "def": 18, "atk_interval": 2.5, "accuracy": 15},
-		"loot": [["Si", 5, 8], ["Cu", 1, 2], ["SalvageData", 1, 1], ["NavData", 1, 1]],  # P0 FIX: Guaranteed NavData
+		"loot": [["Si", 5, 8], ["Cu", 1, 2], ["SalvageData", 1, 1], ["NavData", 2, 2]],  # P0 FIX: Guaranteed NavData (Audit 3.0: 2x)
 		"rare_loot": [["Chip", 0.15, 2, 3]],
 		"xp": 25
 	},
@@ -144,7 +156,7 @@ var enemy_db = {
 	"claim_jumper": {
 		"name": "Claim Jumper",
 		"stats": {"hp": 2500, "max_shield": 100, "atk": 45, "def": 25, "atk_interval": 2.2, "accuracy": 20},
-		"loot": [["credits", 250, 450], ["Cu", 15, 30]],
+		"loot": [["credits", 250, 450], ["Cu", 15, 30], ["StolenCargo", 1, 1]],  # Audit v20.0: Added StolenCargo unique
 		"rare_loot": [["NavData", 0.15, 2, 5]],
 		"xp": 50
 	},
@@ -166,7 +178,7 @@ var enemy_db = {
 	"salvage_swarm": {
 		"name": "Salvage Swarm",
 		"stats": {"hp": 2500, "max_shield": 0, "atk": 60, "def": 10, "atk_interval": 0.6, "accuracy": 35},
-		"loot": [["Scrap", 10, 20]],  # Glass cannon, massive Scrap
+		"loot": [["Scrap", 10, 20], ["SwarmFragment", 1, 2]],  # Audit v20.0: Added SwarmFragment unique
 		"rare_loot": [["Resin", 0.3, 1, 2], ["Cu", 0.2, 1, 2]],
 		"xp": 35
 	},
@@ -187,7 +199,7 @@ var enemy_db = {
 	},
 	"pirate_skiff": {
 		"name": "Pirate Skiff",
-		"stats": {"hp": 3000, "max_shield": 200, "atk": 50, "def": 30, "atk_interval": 1.75, "accuracy": 50},
+		"stats": {"hp": 3000, "max_shield": 200, "atk": 35, "def": 30, "atk_interval": 1.75, "accuracy": 50},
 		"loot": [["credits", 2000, 6000], ["Scrap", 3, 6], ["PirateManifest", 1, 1], ["NavData", 1, 2], ["Cu", 100, 200]],
 		"rare_loot": [["W", 0.40, 10, 20], ["Ti", 0.30, 40, 50]],
 		"xp": 30
@@ -195,16 +207,17 @@ var enemy_db = {
 
 	"rock_golem": {
 		"name": "Silicate Golem",
-		"stats": {"hp": 1500, "max_shield": 0, "atk": 8, "def": 12, "accuracy": 20},
+		"stats": {"hp": 4500, "max_shield": 0, "atk": 60, "def": 12, "accuracy": 20},
 		"loot": [["Si", 100, 200]],
-		"rare_loot": [["Ti", 0.3, 10, 20]],
+		"rare_loot": [["Ti", 0.4, 10, 20]], # Audit v17.0: The Titanium Bridge
+
 		"xp": 30
 	},
 	"scavenger_mech": {
 		"name": "Scavenger Mech",
 		"stats": {"hp": 4000, "max_shield": 100, "atk": 25, "def": 60, "accuracy": 40},
 		"loot": [["Cu", 5, 10], ["Scrap", 5, 10]],
-		"rare_loot": [["W", 0.3, 5, 10], ["Res2", 0.20, 1, 1]],
+		"rare_loot": [["W", 0.3, 5, 10], ["Res2", 0.20, 1, 1], ["NavData", 0.25, 1, 2]],  # Audit v1.0: Added NavData
 		"xp": 55
 	},
 	"martian_sentry": {
@@ -217,7 +230,7 @@ var enemy_db = {
 	"cryo_drone": {
 		"name": "Cryo Drone",
 		"stats": {"hp": 300, "max_shield": 400, "atk": 20, "def": 20, "accuracy": 60},
-		"loot": [["H", 5, 15], ["Water", 5, 10]],
+		"loot": [["H", 5, 15], ["Water", 5, 10], ["CryoCell", 1, 1]],  # Audit v20.0: Added CryoCell unique
 		"rare_loot": [["Mesh", 0.05, 1, 1]],
 		"xp": 75
 	},
@@ -230,7 +243,8 @@ var enemy_db = {
 	},
 	"alien_frigate": {
 		"name": "Xenon Patrol Frigate",
-		"stats": {"hp": 15000, "max_shield": 8000, "atk": 250, "def": 50, "atk_interval": 3.0, "accuracy": 70},
+		"stats": {"hp": 12000, "max_shield": 8000, "atk": 120, "def": 50, "atk_interval": 3.0, "accuracy": 45},
+
 		"loot": [["Ti", 15, 30], ["Scrap", 30, 60]],
 		"rare_loot": [["NavData", 0.3, 2, 5], ["Chip", 0.3, 2, 5], ["VoidArtifact", 0.15, 1, 2], ["Co", 0.15, 2, 4], ["Ni", 0.15, 2, 4], ["Res3", 0.30, 5, 10]], 
 		"xp": 500
@@ -252,7 +266,7 @@ var enemy_db = {
 	# Sector Beta Enemies (Difficulty 6) - HP ~8k-15k
 	"mining_sentinel": {
 		"name": "Mining Sentinel MK-VII",
-		"stats": {"hp": 60000, "max_shield": 25000, "atk": 800, "def": 120, "atk_interval": 3.0, "accuracy": 90},
+		"stats": {"hp": 60000, "max_shield": 25000, "atk": 800, "def": 120, "atk_interval": 3.0, "accuracy": 90, "jammer": true},
 		"loot": [["ColonySalvage", 10, 20], ["Steel", 50, 100]],
 		"rare_loot": [["Co", 0.3, 5, 15], ["Ni", 0.3, 5, 15], ["Circuit", 0.3, 10, 25]],
 		"xp": 8000
@@ -261,14 +275,14 @@ var enemy_db = {
 	"defense_turret": {
 		"name": "Automated Defense Turret",
 		"stats": {"hp": 100000, "max_shield": 0, "atk": 1500, "def": 250, "atk_interval": 2.5, "accuracy": 100},
-		"loot": [["ColonySalvage", 25, 50], ["Circuit", 20, 50], ["Hydraulics", 10, 20]],
+		"loot": [["ColonySalvage", 25, 50], ["Circuit", 20, 50], ["TurretCore", 1, 1]],  # Audit v20.0: Added TurretCore unique
 		"rare_loot": [["Cr", 0.3, 5, 10], ["AdvCircuit", 0.4, 5, 10]],
 		"xp": 15000
 	},
 
 	"colony_overseer": {
 		"name": "Colony Overseer AI",
-		"stats": {"hp": 80000, "max_shield": 40000, "atk": 1000, "def": 150, "atk_interval": 3.5, "accuracy": 120},
+		"stats": {"hp": 80000, "max_shield": 40000, "atk": 1000, "def": 150, "atk_interval": 3.5, "accuracy": 120, "jammer": true},
 		"loot": [["AdvCircuit", 10, 20], ["ColonySalvage", 20, 40], ["ColonyDataCore", 1, 1]],
 		"rare_loot": [["Pd", 0.3, 2, 5], ["AICore", 0.25, 1, 1], ["Chip", 0.25, 5, 10]],
 		"xp": 20000
@@ -291,7 +305,7 @@ var enemy_db = {
 	},
 	"gamma_colossus": {
 		"name": "GAMMA COLOSSUS",
-		"stats": {"hp": 500000, "max_shield": 200000, "atk": 3000, "def": 400, "atk_interval": 5.0, "accuracy": 130},
+		"stats": {"hp": 500000, "max_shield": 200000, "atk": 3000, "def": 400, "atk_interval": 5.0, "accuracy": 130, "jammer": true},
 		"loot": [["RadIsotope", 50, 100], ["Pt", 25, 50], ["QuantumCore", 5, 10], ["ExoticIsotope", 1, 3]],
 		"rare_loot": [["Ir", 0.5, 5, 15]],
 		"xp": 30000  # ITER3 FIX: Reduced from 150k (was 5x higher than intended)
@@ -417,8 +431,12 @@ func spawn_enemy():
 		"max_shield": e_data["stats"].get("max_shield", 0),
 		"loot": e_data["loot"],
 		"rare_loot": e_data.get("rare_loot", []),
-		"xp": e_data["xp"]
+		"xp": e_data["xp"],
+		"jammer": e_data["stats"].get("jammer", false)
 	}
+	
+	is_jammed = current_enemy.get("jammer", false)
+	nanite_hot_timer = 0.0
 	
 	enemy_hp = current_enemy["max_hp"]
 	enemy_max_hp = current_enemy["max_hp"]
@@ -491,16 +509,33 @@ func stop_action():
 func process_tick(delta: float):
 	if not in_combat or not current_enemy: return
 	
+	var sm = GameState.shipyard_manager
 	var rm = GameState.research_manager
 	var p_speed_mult = 1.0 + rm.get_efficiency_bonus("attack_speed")
 	p_speed_mult *= GameState.warp_manager.get_combat_multiplier()
 	
+	# Audit v12.0: Thermal Stress Logic
+	if overheat_lock > 0:
+		overheat_lock -= delta
+		# Overheat Penalty: Minor Hull Damage (2.5% per sec)
+		sm.current_hp -= sm.max_hp * 0.025 * delta
+		if overheat_lock <= 0:
+			log_msg("SYSTEMS RECOVERED: Weapons online.")
+	
+	# Vent Heat
+	if player_heat > 0:
+		player_heat = max(0, player_heat - player_vent_rate * delta)
+		heat_changed.emit(player_heat, player_max_heat)
+	
+	# High Heat Penalty: 80% Heat = 50% Speed
+	if player_heat > 80.0:
+		p_speed_mult *= 0.5
+		
 	# Global Regen (Enemy)
 	if enemy_shield < enemy_max_shield:
 		enemy_shield = min(enemy_max_shield, enemy_shield + (enemy_max_shield * 0.02 * delta))
 	
 	# Warp Stabilizer check
-	var sm = GameState.shipyard_manager
 	for slot in sm.loadout:
 		if sm.loadout[slot] == "warp_stabilizer":
 			p_speed_mult += 0.15 # 15% Faster combat
@@ -525,6 +560,12 @@ func process_tick(delta: float):
 	# Cooldowns tick per second conceptually
 	if consumable_cooldown > 0:
 		consumable_cooldown -= delta
+		
+	# Audit v9.0: Nanite HoT Logic
+	if nanite_hot_timer > 0:
+		nanite_hot_timer -= delta
+		var heal_tick = (sm.max_hp * 0.02) * delta
+		sm.current_hp = min(sm.max_hp, sm.current_hp + heal_tick)
 		
 	# Balanced Phase 2: Coolant Flush
 	if coolant_flush_timer > 0:
@@ -557,12 +598,22 @@ func _execute_player_attack(weapon_idx: int = 0):
 	var w = player_weapon_states[weapon_idx]
 	var sm = GameState.shipyard_manager
 	
+	# Audit v12.0: Overheat check
+	if overheat_lock > 0:
+		return
+		
 	# Forensic 3: Energy Enforcement
 	var e_cost = w.get("energy_load", 0) * 0.1 # Concept: 10% of load per shot
 	if GameState.resources.get_energy() < e_cost:
 		log_msg("LACK OF ENERGY: Weapon Offline!")
 		return
 	GameState.resources.add_energy(-e_cost)
+	
+	# Audit v9.0 P1-29: Targeting Jammer (25% Miss Chance)
+	if is_jammed and randf() < 0.25:
+		log_msg("JAMMED: Targeting computer failed!")
+		combat_events.append({"type": "miss", "text": "JAMMED", "color": Color.ORANGE, "side": "enemy"})
+		return
 
 	# --- Periodic Maintenance (Only on first weapon or special tick?) ---
 	# We perform shield regen and buff decay once per "firing cycle" of the hull if possible
@@ -577,6 +628,19 @@ func _execute_player_attack(weapon_idx: int = 0):
 			var s_thresh = auto_consume_threshold * player_max_shield
 			if player_shield < s_thresh:
 				use_consumable()
+
+	# Audit v12.0: Heat Generation
+	# Formula: Base 2.0 + small fraction of total damage
+	var heat_gen = 2.0 + ((w["dmg_k"] + w["dmg_e"]) / 100.0)
+	player_heat += heat_gen
+	heat_changed.emit(player_heat, player_max_heat)
+	
+	if player_heat >= player_max_heat:
+		player_heat = player_max_heat
+		overheat_lock = 5.0 # 5 Second lockout
+		log_msg("CRITICAL OVERHEAT! Systems rebooting...")
+		combat_events.append({"type": "miss", "text": "OVERHEAT", "color": Color.RED, "side": "enemy"})
+		return # This shot fails due to emergency shutdown
 
 	# Buff Duration Logic
 	if "dmg_bonus_duration" in active_buffs:
@@ -630,16 +694,14 @@ func _execute_player_attack(weapon_idx: int = 0):
 		combat_events.append({"type": "miss", "text": "OFFLINE", "color": Color.GRAY, "side": "enemy"})
 		return
 		
-	# Buff Application (Global)
-	p_atk_k += active_buffs.get("dmg_bonus_k", 0)
-	p_atk_e += active_buffs.get("dmg_bonus_e", 0)
-	
-	var e_def = current_enemy.get("def", 0)
-	# ITER3: Apply ammo armor bypass to enemy defense
-	if ammo_armor_bypass > 0:
-		e_def = int(e_def * (1.0 - ammo_armor_bypass))
-		
+	var e_def = current_enemy["def"]
 	var difficulty = current_zone.get("difficulty", 1)
+	
+	# Audit v7.0 P1-22: Combat Skill Damage Bonus (+0.5% per Level)
+	var skill_dmg_mult = 1.0 + (get_level() * 0.005)
+	p_atk_k *= skill_dmg_mult
+	p_atk_e *= skill_dmg_mult
+	
 	var res = resolve_damage(p_atk_k, p_atk_e, enemy_shield, e_def, difficulty)
 	# res = [shield_dmg, hull_dmg, is_crit]
 	
@@ -689,6 +751,8 @@ func _execute_enemy_attack():
 	# Dodge - ITER7: Diminishing Returns Formula with Enemy Accuracy Layer
 	var e_acc = current_enemy.get("accuracy", 0)
 	var dodge_chance = float(sm.evasion) / (float(sm.evasion) + 150.0 * (1.0 + float(e_acc) / 100.0))
+	# Deferred P2-9: Hard cap evasion at 75% to prevent god-mode builds
+	dodge_chance = min(dodge_chance, 0.75)
 	
 	var roll = randf()
 	if roll < dodge_chance:
@@ -934,6 +998,28 @@ func use_consumable():
 		coolant_flush_timer = 10.0
 		log_msg("NITROGEN FLUSH: Attack speed doubled for 10s!")
 		combat_events.append({"type": "buff", "text": "SPEED BOOST", "color": Color.AQUA, "side": "player"})
+
+	elif equipped_consumable_id == "nanite_swarm":
+		# Nanite Repair Swarm - HoT
+		nanite_hot_timer = nanite_hot_duration
+		log_msg("NANITE SWARM: Rapid hull repair active (15s)!")
+		combat_events.append({"type": "heal", "text": "NANITES ON", "color": Color.SPRING_GREEN, "side": "player"})
+
+	# Audit v2.0: Early consumables
+	elif equipped_consumable_id == "EmergencyPatch":
+		# Emergency Hull Patch - Basic healing
+		var sm = GameState.shipyard_manager
+		var heal_amount = 50
+		sm.current_hp = min(sm.max_hp, sm.current_hp + heal_amount)
+		combat_events.append({"type": "heal", "text": "+%d HP" % heal_amount, "color": Color.GREEN, "side": "player"})
+		log_msg("EMERGENCY PATCH: +%d Hull" % heal_amount)
+		
+	elif equipped_consumable_id == "BasicBooster":
+		# Basic Shield Booster - Early shield restore
+		var restored = 30
+		player_shield = min(player_max_shield, player_shield + restored)
+		combat_events.append({"type": "heal", "text": "+%d Shield" % restored, "color": Color.CYAN, "side": "player"})
+		log_msg("SHIELD BOOST: +%d Shield" % restored)
 
 	else:
 		# Unknown consumable - just consume it silently

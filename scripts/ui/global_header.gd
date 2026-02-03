@@ -4,6 +4,8 @@ extends PanelContainer
 @onready var mission_lbl = $MarginContainer/HBoxContainer/MissionLabel
 @onready var task_lbl = $MarginContainer/HBoxContainer/TaskLabel
 
+var stability_lbl: Label # Added dynamically in _ready if not in scene
+
 @onready var infra_led = $MarginContainer/HBoxContainer/StatusCluster/InfraLed
 @onready var fleet_led = $MarginContainer/HBoxContainer/StatusCluster/FleetLed
 @onready var research_led = $MarginContainer/HBoxContainer/StatusCluster/ResearchLed
@@ -17,6 +19,23 @@ func _ready():
 	UITheme.apply_segmented_font(credits_lbl, UITheme.COLORS["warning"])
 	UITheme.apply_segmented_font(mission_lbl, Color(0.2, 0.8, 1.0)) # Cyan
 	UITheme.apply_segmented_font(task_lbl, UITheme.COLORS["text_main"])
+	
+	# Add Stability Label dynamically to avoid tscn surgery
+	stability_lbl = Label.new()
+	stability_lbl.name = "StabilityLabel"
+	stability_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	stability_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	stability_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	stability_lbl.clip_text = true
+	stability_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	$MarginContainer/HBoxContainer.add_child(stability_lbl)
+	$MarginContainer/HBoxContainer.move_child(stability_lbl, 3) # After TaskLabel
+	UITheme.apply_segmented_font(stability_lbl, Color.WHITE)
+	
+	# Prevent layout expansion from text
+	for lbl in [credits_lbl, mission_lbl, task_lbl]:
+		lbl.clip_text = true
+		lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	
 	UITheme.packet_landed.connect(_on_packet_landed)
 	
@@ -42,6 +61,9 @@ func _ready():
 	if GameState.research_manager:
 		GameState.research_manager.activity_occurred.connect(func(): flash_led(research_led, UITheme.CATEGORY_COLORS["research"]))
 
+var last_mission_id: String = ""
+var last_completed_state: bool = false
+
 func _update_mission_display():
 	if not GameState.mission_manager: return
 	
@@ -56,6 +78,22 @@ func _update_mission_display():
 	
 	# Compact representation for the header
 	mission_lbl.text = "OBJ: %s (%d%%)" % [m["name"].to_upper(), int(prog_pct)]
+	
+	# SENSORY FEEDBACK LOGIC (Audit v13.0)
+	# Case 1: Mission Completed (Transition from Incomplete -> Complete)
+	if m["completed"] and not last_completed_state:
+		# TACTILE: Heavy thud to signify job done
+		UITheme.trigger_ui_thud(mission_lbl, 6.0) 
+		# VISUAL: Gold Pulse
+		UITheme.add_pulse_glow(mission_lbl, "inventory") # Gold color
+		
+	# Case 2: New Mission Started (ID changed)
+	if mid != last_mission_id:
+		# VISUAL: Circuit Surge (New orders received)
+		UITheme.trigger_circuit_surge(mission_lbl, Color(0.2, 0.8, 1.0))
+		
+	last_mission_id = mid
+	last_completed_state = m["completed"]
 	
 	if m["completed"]:
 		mission_lbl.add_theme_color_override("font_color", Color.GOLD)
@@ -77,6 +115,24 @@ func flash_led(led: ColorRect, color: Color):
 func _process(_delta):
 	# Poll for task status
 	update_task_status()
+	update_stability()
+
+func update_stability():
+	if not GameState.infrastructure_manager: return
+	
+	var stability = GameState.infrastructure_manager.energy_efficiency * 100.0
+	stability_lbl.text = "STABILITY: %d%%" % int(stability)
+	
+	if stability < 100.0:
+		stability_lbl.add_theme_color_override("font_color", UITheme.COLORS["negative"])
+		# Visual flicker if stability is critical
+		if stability < 50.0 and Engine.get_frames_drawn() % 30 < 10:
+			stability_lbl.modulate.a = 0.3
+		else:
+			stability_lbl.modulate.a = 1.0
+	else:
+		stability_lbl.add_theme_color_override("font_color", Color(0.4, 1.0, 0.4)) # Green
+		stability_lbl.modulate.a = 1.0
 
 func update_hud():
 	update_credits()

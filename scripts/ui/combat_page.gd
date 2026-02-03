@@ -16,6 +16,7 @@ extends Control
 @onready var p_stat_lbl = $Dashboard/Visualizer/HUD/Overlays/SectorOverlay/VBox/PlayerStats/StatsLabel
 @onready var p_hp_lbl = $Dashboard/Visualizer/HUD/Overlays/SectorOverlay/VBox/PlayerStats/HealthLabel
 @onready var p_sh_lbl = $Dashboard/Visualizer/HUD/Overlays/SectorOverlay/VBox/PlayerStats/ShieldLabel
+@onready var p_heat_bar = $Dashboard/Visualizer/HUD/Overlays/SectorOverlay/VBox/PlayerStats/HeatBar
 @onready var weapon_battery = $Dashboard/Visualizer/HUD/Overlays/SectorOverlay/VBox/PlayerStats/WeaponBattery
 @onready var p_buff_container = $Dashboard/Visualizer/HUD/Overlays/SectorOverlay/VBox/PlayerStats/BuffContainer
 
@@ -92,6 +93,8 @@ func _ready():
 	if not cons_btn.is_connected("pressed", _on_use_btn_pressed): cons_btn.pressed.connect(_on_use_btn_pressed)
 	if not cons_opt.is_connected("item_selected", _on_option_button_item_selected): cons_opt.item_selected.connect(_on_option_button_item_selected)
 	if not auto_btn.is_connected("toggled", _on_auto_btn_toggled): auto_btn.toggled.connect(_on_auto_btn_toggled)
+	
+	manager.heat_changed.connect(_on_heat_changed)
 
 func refresh_zones():
 	zone_list.clear()
@@ -183,6 +186,16 @@ func update_ui():
 	p_stat_lbl.text = "ATK: %s | DEF: %s | EVA: %.1f%%" % [UITheme.format_num(sm.attack), UITheme.format_num(sm.defense), sm.evasion]
 	p_hp_lbl.text = "HULL: %s / %s" % [UITheme.format_num(sm.current_hp), UITheme.format_num(sm.max_hp)]
 	p_sh_lbl.text = "SHD: %s / %s" % [UITheme.format_num(manager.player_shield), UITheme.format_num(manager.player_max_shield)]
+	
+	# Update Heat Bar Modulate
+	var heat_pct = manager.player_heat / manager.player_max_heat
+	if manager.overheat_lock > 0:
+		p_heat_bar.modulate = Color.RED
+		p_heat_bar.modulate.a = 0.5 + (sin(Time.get_ticks_msec() * 0.02) * 0.5)
+	elif heat_pct > 0.8:
+		p_heat_bar.modulate = Color(1.0, 0.5, 0) # Warning Orange
+	else:
+		p_heat_bar.modulate = Color.WHITE
 	
 	# Enemy Stats
 	if manager.in_combat and manager.current_enemy:
@@ -572,3 +585,7 @@ func _on_option_button_item_selected(index):
 
 func _on_auto_btn_toggled(button_pressed):
 	manager.toggle_auto_consume(button_pressed)
+func _on_heat_changed(current: float, maximum: float):
+	if p_heat_bar:
+		p_heat_bar.max_value = maximum
+		p_heat_bar.value = current

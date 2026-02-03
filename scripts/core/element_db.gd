@@ -81,6 +81,8 @@ var ELEMENT_NAMES = {
 	# Consumables
 	"Mesh": "Nanoweave Mesh",
 	"Seal": "Hull Sealant",
+	"EmergencyPatch": "Emergency Patch",   # Audit v3.0
+	"BasicBooster": "Shield Booster",       # Audit v3.0
 	"Resin": "Polymer Resin",
 	"Fiber": "Carbon Fiber",
 	
@@ -128,7 +130,13 @@ var ELEMENT_NAMES = {
 	"VoidEssence": "Void Essence",
 	"ChronoCore": "Chrono Core",
 	"OmegaPlating": "Omega Plating",
-	"PrimordialShard": "Primordial Shard"
+	"PrimordialShard": "Primordial Shard",
+	
+	# P1-12: Endgame Crafted Items
+	"VoidBattery": "Void Battery",
+	"TemporalModule": "Temporal Stabilizer",
+	"PrimordialArmor": "Primordial Armor",
+	"OmegaAccelerator": "Omega Accelerator"
 }
 
 ## Category mappings for inventory filtering
@@ -140,13 +148,16 @@ var CATEGORIES = {
 	"alloys": ["Steel", "Bronze", "Graphite", "StainlessSteel", "GalvanizedSteel", "Superalloy", "AlMgAlloy", "IrWAlloy"],
 	"components": ["Circuit", "AdvCircuit", "Chip", "Hydraulics", "AlWire", "Resin", "Fiber"],
 	"batteries": ["BatteryT1", "BatteryT2", "BatteryT3", "CoBattery", "MgBattery", "PdFuelCell"],
-	"consumables": ["Mesh", "Seal"],
+	"consumables": ["Mesh", "Seal", "EmergencyPatch", "BasicBooster"],  # Audit v2.0: Early consumables
 	"ammo": ["SlugT1", "SlugT2", "SlugT3", "CellT1", "CellT2", "CellT3"],
 	"special": ["VoidArtifact", "QuantumCore", "ExoticMatter", "VoidCrystal", "Diamond", "SyntheticCrystal", 
 				"Neutronium", "AntimatterParticle", "ExoticIsotope", "ReactiveCore", "AICore", "AncientTech",
 				"NavData", "IrPlate", "OsCore", "PtCatalyst",
 				"Res1", "Res2", "Res3"],
-	"basic": ["H", "He", "C", "O", "Si", "S", "Li", "Wood", "Water"]
+	"basic": ["H", "He", "C", "O", "Si", "S", "Li", "Wood", "Water"],
+	# Audit v4.0: Endgame category for ultimate items
+	"endgame": ["VoidEssence", "ChronoCore", "OmegaPlating", "PrimordialShard", 
+				"VoidBattery", "TemporalModule", "PrimordialArmor", "OmegaAccelerator"]
 }
 
 ## Get display name for an element

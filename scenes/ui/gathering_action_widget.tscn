@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://scripts/ui/gathering_action_widget.gd" id="1_script"]
 
 [node name="GatheringActionWidget" type="PanelContainer"]
-custom_minimum_size = Vector2(200, 240)
+custom_minimum_size = Vector2(180, 260)
 script = ExtResource("1_script")
 
 [node name="MarginContainer" type="MarginContainer" parent="."]
@@ -35,13 +35,14 @@ layout_mode = 2
 size_flags_vertical = 3
 
 [node name="LootLabel" type="RichTextLabel" parent="MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(180, 0)
 layout_mode = 2
 theme_override_font_sizes/normal_font_size = 12
 bbcode_enabled = true
 text = "Loot Info"
 fit_content = true
 scroll_active = false
-autowrap_mode = 0
+autowrap_mode = 3
 
 [node name="Control2" type="Control" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -51,6 +52,8 @@ size_flags_vertical = 3
 custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 text = "Start"
+clip_text = true
+autowrap_mode = 2
 
 [node name="TimeLabel" type="Label" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -64,6 +67,7 @@ layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.321569, 0.321569, 1)
 theme_override_font_sizes/font_size = 11
 horizontal_alignment = 1
+autowrap_mode = 2
 
 [node name="ProgressBar" type="ProgressBar" parent="MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(0, 10)

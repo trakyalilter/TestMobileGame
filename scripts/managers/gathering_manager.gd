@@ -16,14 +16,15 @@ var actions: Dictionary = {
 	"gather_dirt": {
 		"name": "Excavate Soil",
 		"loot_table": [["Dirt", 1.0, 8, 10]],
-		"xp": 5,
+		"xp": 8,
 		"level_req": 1,
-		"category": "terrestrial"
+		"category": "terrestrial",
+		"duration": 3.0
 	},
 	"collect_water": {
 		"name": "Pump Water",
 		"loot_table": [["Water", 1.0, 8, 10]],
-		"xp": 8,
+		"xp": 12,
 		"level_req": 3,
 		"research_req": "fluid_dynamics",
 		"category": "terrestrial"
@@ -31,7 +32,7 @@ var actions: Dictionary = {
 	"mine_cassiterite": {
 		"name": "Mine Cassiterite (Tin Ore)",
 		"loot_table": [["Cassiterite", 1.0, 1, 2]],
-		"xp": 12,
+		"xp": 20,
 		"level_req": 8,
 		"research_req": "basic_engineering",
 		"category": "terrestrial"
@@ -83,6 +84,14 @@ var actions: Dictionary = {
 		"research_req": "basic_engineering",
 		"category": "terrestrial"
 	},
+	"gather_scrap_derelict": {
+		"name": "Salvage Derelict",
+		"loot_table": [["Scrap", 1.0, 5, 8], ["Cu", 0.2, 1, 2]],
+		"xp": 15,
+		"level_req": 10,
+		"category": "terrestrial",
+		"duration": 4.0
+	},
 	"mine_quartz": {
 		"name": "Collect Quartz Clusters",
 		"loot_table": [["Quartz", 1.0, 1, 3]],
@@ -124,11 +133,34 @@ var actions: Dictionary = {
 		"level_req": 75,
 		"research_req": "exotic_metallurgy",
 		"category": "void"
+	},
+	# Audit v6.0 P1-20: Endgame Gathering Actions
+	"harvest_void_essence": {
+		"name": "Harvest Void Essence",
+		"loot_table": [["VoidEssence", 1.0, 1, 2]],
+		"xp": 500,
+		"level_req": 85,
+		"research_req": "void_navigation",
+		"category": "void"
+	},
+	"extract_chrono_crystals": {
+		"name": "Extract Chrono Crystals",
+		"loot_table": [["ChronoCore", 1.0, 1, 1], ["VoidEssence", 0.3, 1, 1]],
+		"xp": 800,
+		"level_req": 92,
+		"research_req": "void_navigation",
+		"category": "void"
 	}
 }
 
 func _init():
 	super._init("Planetary Operations")
+
+# Audit v6.0 P1-19: Planetary Operations skill bonus - +1% yield per level
+func get_yield_multiplier() -> float:
+	var mult = 1.0 + (get_level() * 0.01)
+	if is_milestone_unlocked(10): mult *= 1.10 # +10% Yield
+	return mult
 
 func get_action_speed_multiplier(action_id: String) -> float:
 	var multiplier = 1.0
@@ -203,6 +235,9 @@ func process_tick(delta_time: float):
 	action_progress += delta_time
 	
 	var speed_mult = get_action_speed_multiplier(current_action_id)
+	# Audit v2.0 P1-9: Apply prestige gathering multiplier
+	if GameState.warp_manager:
+		speed_mult *= GameState.warp_manager.get_gathering_multiplier()
 	var required_time = action_duration / speed_mult
 	
 	if action_progress >= required_time:
@@ -223,9 +258,12 @@ func complete_action():
 		if randf() < chance:
 			var amount = randi_range(min_amt, max_amt)
 			
-			# Apply Yield Bonus
+			# Apply Yield Bonus from research
 			if GameState.research_manager:
 				amount += int(GameState.research_manager.get_efficiency_bonus("gathering_yield"))
+			
+			# Audit v6.0 P1-19: Apply skill yield multiplier
+			amount = int(float(amount) * get_yield_multiplier())
 				
 			GameState.resources.add_element(element, amount)
 			events.append(["loot", "+%d %s" % [amount, element], current_action_id])

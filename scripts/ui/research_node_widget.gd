@@ -37,8 +37,22 @@ func setup(p_nid: String, p_data: Dictionary, p_manager, p_parent):
 	update_state()
 
 func update_state():
-	var is_unlocked = manager.is_tech_unlocked(nid)
-	var can_unlock = manager.can_unlock(nid)
+	var is_repeatable = manager.repeatable_tech_db.has(nid)
+	var is_unlocked = manager.is_tech_unlocked(nid) if not is_repeatable else false
+	var can_unlock = manager.can_unlock(nid) if not is_repeatable else manager.can_unlock_repeatable(nid)
+	
+	if is_repeatable:
+		var lvl = manager.get_repeatable_level(nid)
+		name_lbl.text = manager.repeatable_tech_db[nid]["name"] + " (Lvl %d)" % lvl
+		var costs = manager.get_repeatable_cost(nid)
+		var cost_parts = []
+		for res in costs:
+			var req_qty = costs[res]
+			var inv_qty = GameState.resources.get_currency("credits") if res == "credits" else GameState.resources.get_element_amount(res)
+			var color = "lime" if inv_qty >= req_qty else "gray"
+			var display_name = "Cr" if res == "credits" else ElementDB.get_display_name(res)
+			cost_parts.append("[color=%s]%s %s[/color]" % [color, FormatUtils.format_number(req_qty), display_name])
+		cost_lbl.text = "[center]" + "\n".join(cost_parts) + "[/center]"
 	
 	name_lbl.add_theme_color_override("font_color", UITheme.CATEGORY_COLORS["research"])
 	var style = UITheme.apply_card_style(self, "research")
@@ -80,7 +94,13 @@ func update_state():
 
 func _on_gui_input(event):
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		if not manager.is_tech_unlocked(nid):
+		var is_repeatable = manager.repeatable_tech_db.has(nid)
+		if is_repeatable:
+			if manager.unlock_repeatable_tech(nid):
+				update_state()
+				# Local effect
+				UITheme.trigger_circuit_surge(self, Color.LIME)
+		elif not manager.is_tech_unlocked(nid):
 			if manager.unlock_tech(nid):
 				parent_graph.refresh_all()
 

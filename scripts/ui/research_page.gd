@@ -111,6 +111,15 @@ var graphs = {
 			"quantum_dynamics": Vector2(840, 40)
 		},
 		"container": null
+	},
+	"Recursion": {
+		"nodes": ["production_focus", "combat_focus", "gathering_focus"],
+		"pos": {
+			"production_focus": Vector2(40, 40),
+			"combat_focus": Vector2(40, 180),
+			"gathering_focus": Vector2(40, 320)
+		},
+		"container": null
 	}
 }
 
@@ -126,10 +135,22 @@ func _ready():
 		GameState.resources.element_added.connect(_on_resource_changed)
 		GameState.resources.currency_added.connect(_on_resource_changed)
 	
+	# Dynamic tab creation for Recursion
+	var rec_tab = Control.new()
+	rec_tab.name = "Recursion"
+	tabs.add_child(rec_tab)
+	var scroll = ScrollContainer.new()
+	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	rec_tab.add_child(scroll)
+	var area = Control.new()
+	area.name = "GraphArea"
+	scroll.add_child(area)
+	
 	# Graphs are Panels inside TabContainer
 	graphs["Operations"]["container"] = $VBoxContainer/TabContainer/Operations/ScrollContainer/GraphArea
 	graphs["Engineering"]["container"] = $VBoxContainer/TabContainer/Engineering/ScrollContainer/GraphArea
 	graphs["Ships"]["container"] = $VBoxContainer/TabContainer/Ships/ScrollContainer/GraphArea
+	graphs["Recursion"]["container"] = area
 	
 	call_deferred("build_graphs")
 	call_deferred("_on_mission_updated") # Initial check
@@ -140,31 +161,63 @@ func _on_resource_changed(_a=null, _b=null):
 func _on_mission_updated():
 	_update_tab_alerts()
 
-func _update_tab_alerts():
+func on_page_enter():
+	# SMART NAVIGATION: Auto-focus tab based on active mission
 	var mm = GameState.mission_manager
 	if not mm: return
 	
-	# Reset all first (Standardizing UI logic)
-	for i in range(tabs.get_tab_count()):
-		UITheme.trigger_tab_alert(tabs, i, false)
-		
-	# Check active missions for research targets
 	for mid in mm.active_missions:
 		var m = mm.missions[mid]
 		if m["type"] == "research":
 			var tech_id = m["target"]
-			# Find which tab this tech belongs to
+			
+			# Find which tab holds this tech
 			for tab_name in graphs:
 				if tech_id in graphs[tab_name]["nodes"]:
-					var tab_idx = -1
-					# Manual index search for TabContainer
+					# Switch to this tab immediately
 					for i in range(tabs.get_tab_count()):
-						if tabs.get_tab_title(i) == tab_name:
-							tab_idx = i
+						# Audit v16.2: Use Node Name (immutable) instead of Title
+						if tabs.get_tab_control(i).name == tab_name:
+							tabs.current_tab = i
+							return # Found our target, stop searching
+
+var active_alert_indices: Array = []
+
+func _update_tab_alerts():
+	var mm = GameState.mission_manager
+	if not mm: return
+	
+	# 1. Calculate Desired State
+	var desired_indices = []
+	
+	for mid in mm.active_missions:
+		var m = mm.missions[mid]
+		if m["type"] == "research":
+			var tech_id = m["target"]
+			
+			for tab_name in graphs:
+				if tech_id in graphs[tab_name]["nodes"]:
+					# Find index
+					for i in range(tabs.get_tab_count()):
+						# Audit v16.3: Use Node Name (immutable) for matching
+						if tabs.get_tab_control(i).name == tab_name:
+							if not i in desired_indices:
+								desired_indices.append(i)
 							break
-					
-					if tab_idx != -1:
-						UITheme.trigger_tab_alert(tabs, tab_idx, true)
+	
+	# 2. Apply Diff (Anti-Disco Logic)
+	# Turn OFF indicators no longer needed
+	for idx in active_alert_indices:
+		if not idx in desired_indices:
+			UITheme.trigger_tab_alert(tabs, idx, false)
+			
+	# Turn ON new indicators
+	for idx in desired_indices:
+		if not idx in active_alert_indices:
+			UITheme.trigger_tab_alert(tabs, idx, true)
+			
+	# 3. Update State Cache
+	active_alert_indices = desired_indices.duplicate()
 
 func build_graphs():
 	for tab_name in graphs:

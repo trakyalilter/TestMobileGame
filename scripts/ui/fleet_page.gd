@@ -72,6 +72,22 @@ func update_ui():
 	
 	var active_count = manager.active_expeditions.size()
 	var max_slots = manager.max_slots
-	stats_lbl.text = "Active Fleets: %d / %d" % [active_count, max_slots]
+	
+	# P2-10: Show pending repairs in fleet stats
+	var pending_total = manager.get_total_pending_repairs()
+	if pending_total > 0:
+		stats_lbl.text = "Active: %d/%d | REPAIRS NEEDED: %d Cr" % [active_count, max_slots, pending_total]
+		stats_lbl.add_theme_color_override("font_color", Color.ORANGE)
+	else:
+		stats_lbl.text = "Active Fleets: %d / %d" % [active_count, max_slots]
+		stats_lbl.add_theme_color_override("font_color", Color.WHITE)
 	
 	# Widgets poll their own status in their _process
+
+# P2-10: Fleet repair function called from UI
+func _on_repair_all_pressed():
+	if manager:
+		var repaired = manager.repair_all_ships()
+		if repaired > 0:
+			refresh_list()
+

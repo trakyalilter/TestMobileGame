@@ -48,8 +48,25 @@ var missions = {
 var active_expeditions: Dictionary = {}
 var max_slots: int = 1 # Increasable via research
 
+# Audit v9.0: Damage Buffer System - No auto-deduct, player repairs on return
+var pending_repairs: Dictionary = {} # {hull_id: accumulated_damage_cost}
+
 func _init():
 	super._init("Administration")
+	# Audit v5.0 P2-15: Add early fleet mission
+	missions["local_salvage"] = {
+		"name": "Local Debris Salvage",
+		"desc": "Passive yield of Iron and Scrap from nearby debris.",
+		"yield": {"Fe": 2.0, "Cu": 1.0, "Scrap": 3.0},
+		"interval": 8.0,
+		"risk": 0.02,
+		"min_tier": 1,
+		"research_req": "fleet_logistics_1"
+	}
+
+# Audit v5.0 P2-16: Administration skill bonus - +1% yield per level
+func get_yield_multiplier() -> float:
+	return 1.0 + (get_level() * 0.01)
 
 # --- CORE LOGIC ---
 
@@ -117,16 +134,26 @@ func _resolve_mission_tick(slot: int):
 	var exp = active_expeditions[slot]
 	var data = missions[exp["mission_id"]]
 	
-	# Current Ship tier helps mitigate risk? (Future polish)
+	# Audit v5.0 P1-18: Apply ship efficiency (damaged ships work slower)
+	var efficiency = get_ship_efficiency(exp["hull_id"])
 	
 	# Risk Check (Structural Damage)
 	if randf() < data["risk"] * 0.1: # Scaled risk per tick
 		var damage = randi_range(50, 200)
 		_apply_structural_damage(exp["hull_id"], damage)
 		
-	# Payout
+	# Audit v5.0 P1-16: Apply prestige production multiplier
+	var prod_mult = 1.0
+	if GameState.warp_manager:
+		prod_mult = GameState.warp_manager.get_production_multiplier()
+	
+	# Audit v5.0 P2-16: Apply Administration skill bonus
+	var skill_mult = get_yield_multiplier()
+	
+	# Payout with all multipliers
+	var final_mult = efficiency * prod_mult * skill_mult
 	for res in data["yield"]:
-		var qty = data["yield"][res]
+		var qty = data["yield"][res] * final_mult
 		if res == "credits":
 			GameState.resources.add_currency("credits", qty)
 		else:
@@ -134,12 +161,15 @@ func _resolve_mission_tick(slot: int):
 		
 		exp["total_earned"][res] = exp["total_earned"].get(res, 0.0) + qty
 	
-	# Skill XP
-	add_xp(5)
+	# Audit v5.0 P0-7: Scale XP by mission tier (20/40/60/80)
+	var base_xp = data["min_tier"] * 20
+	add_xp(base_xp)
 	activity_occurred.emit()
 
 func _apply_structural_damage(hull_id, amount):
-	# Risk Mitigation: Repair Docks infrastructure reduces cost
+	# Audit v9.0: Damage Buffer System
+	# Damage accumulates in pending_repairs instead of auto-deducting
+	# Player chooses when to repair - ships run at reduced efficiency when damaged
 	var reduction = 1.0
 	if GameState.infrastructure_manager:
 		var docks = GameState.infrastructure_manager.get_building_count("repair_docks")
@@ -148,15 +178,44 @@ func _apply_structural_damage(hull_id, amount):
 	var base_cost = amount * 10
 	var final_cost = int(base_cost * reduction)
 	
-	# Safety: Negative Balance Protection
-	var current_credits = GameState.resources.get_currency("credits")
-	var actual_deduction = min(current_credits, final_cost)
+	# Buffer damage instead of auto-deduct
+	pending_repairs[hull_id] = pending_repairs.get(hull_id, 0) + final_cost
+	print("[Fleet] Ship %s sustained damage! Pending repair cost: %d Cr" % [hull_id, pending_repairs[hull_id]])
+
+func get_pending_repair_cost(hull_id: String) -> int:
+	return pending_repairs.get(hull_id, 0)
+
+func get_total_pending_repairs() -> int:
+	var total = 0
+	for hull_id in pending_repairs:
+		total += pending_repairs[hull_id]
+	return total
+
+func repair_ship(hull_id: String) -> bool:
+	var cost = pending_repairs.get(hull_id, 0)
+	if cost <= 0: return true
 	
-	if actual_deduction > 0:
-		GameState.resources.add_currency("credits", -actual_deduction)
-		print("[Fleet] Ship %s sustained damage! Repaired for %d Cr (Reduced by docks: %d%%)" % [hull_id, actual_deduction, int((1.0-reduction)*100)])
-	else:
-		print("[Fleet] Ship %s sustained damage! Repairs waived/bankrupt safety triggered." % hull_id)
+	var current = GameState.resources.get_currency("credits")
+	if current >= cost:
+		GameState.resources.add_currency("credits", -cost)
+		pending_repairs.erase(hull_id)
+		print("[Fleet] Ship %s repaired for %d Cr" % [hull_id, cost])
+		return true
+	return false
+
+func repair_all_ships() -> int:
+	var repaired = 0
+	for hull_id in pending_repairs.keys():
+		if repair_ship(hull_id):
+			repaired += 1
+	return repaired
+
+func get_ship_efficiency(hull_id: String) -> float:
+	# Ships with pending repairs operate at reduced efficiency
+	var damage = pending_repairs.get(hull_id, 0)
+	if damage <= 0: return 1.0
+	# Efficiency drops by 1% per 1000 credits of damage, min 50%
+	return max(0.5, 1.0 - (damage / 100000.0))
 
 # Offline Support
 func calculate_offline(delta: float) -> String:
@@ -208,14 +267,17 @@ func get_save_data_manager() -> Dictionary:
 	var data = get_save_data()
 	data["active_expeditions"] = active_expeditions
 	data["max_slots"] = max_slots
+	data["pending_repairs"] = pending_repairs
 	return data
 
 func load_save_data_manager(data: Dictionary):
 	load_save_data(data)
 	active_expeditions = data.get("active_expeditions", {})
 	max_slots = data.get("max_slots", 1)
+	pending_repairs = data.get("pending_repairs", {})
 
 func reset(decay_factor: float = 1.0) -> void:
 	super.reset(decay_factor)
 	active_expeditions.clear()
+	pending_repairs.clear()
 	max_slots = 1

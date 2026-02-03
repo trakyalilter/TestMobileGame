@@ -16,9 +16,12 @@ func _process(_delta):
 func _update_ui():
 	var wm = GameState.warp_manager
 	shard_count.text = "EXOTIC MATTER: %.1f Shards" % wm.warp_shards
-	shard_desc.text = "Global Buff: +%.0f%% Production, +%.0f%% Combat Speed" % [
+	# Audit v3.0: Show all 4 prestige multipliers
+	shard_desc.text = "+%.0f%% Production | +%.0f%% Combat | +%.0f%% Gathering | +%.0f%% XP" % [
 		(wm.get_production_multiplier() - 1.0) * 100.0,
-		(wm.get_combat_multiplier() - 1.0) * 100.0
+		(wm.get_combat_multiplier() - 1.0) * 100.0,
+		(wm.get_gathering_multiplier() - 1.0) * 100.0,
+		(wm.get_xp_multiplier() - 1.0) * 100.0
 	]
 
 func _update_dynamic_values():

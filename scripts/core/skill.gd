@@ -10,6 +10,9 @@ var xp_table: Dictionary = {}
 # Signals for UI updates can be added here or in the manager
 signal level_up(new_level)
 signal xp_gained(amount)
+signal milestone_unlocked(milestone_level)
+
+var unlocked_milestones: Array[int] = []
 
 func _init(p_name: String = "Skill"):
 	skill_name = p_name
@@ -39,8 +42,12 @@ func get_level() -> int:
 	return level
 
 func add_xp(amount: float):
-	xp += amount
-	xp_gained.emit(amount)
+	# Audit v2.0 P1-9: Apply prestige XP multiplier
+	var xp_mult = 1.0
+	if GameState and GameState.warp_manager:
+		xp_mult = GameState.warp_manager.get_xp_multiplier()
+	xp += amount * xp_mult
+	xp_gained.emit(amount * xp_mult)
 	check_level_up()
 
 func check_level_up():
@@ -51,10 +58,20 @@ func check_level_up():
 			level += 1
 			next_level += 1
 			level_up.emit(level)
+			_check_milestones(level)
 			if next_level > max_level:
 				break
 			if next_level in xp_table:
 				req_xp = xp_table[next_level]
+
+func _check_milestones(new_lvl: int):
+	for m in [10, 25, 50, 75]:
+		if new_lvl >= m and not m in unlocked_milestones:
+			unlocked_milestones.append(m)
+			milestone_unlocked.emit(m)
+
+func is_milestone_unlocked(m_lvl: int) -> bool:
+	return m_lvl in unlocked_milestones
 
 func get_progress_to_next_level() -> float:
 	if level >= max_level:

@@ -126,11 +126,37 @@ func switch_to(page_name):
 		pages[p_name].visible = (p_name == page_name)
 		
 	if page_name in pages:
+		# Guard: Don't switch to pages that are currently hidden (gated)
+		var btn = _get_btn_for_page(page_name)
+		if btn and not btn.visible:
+			return
+
 		current_page_name = page_name
 		_update_sidebar_styling()
 		
 		# INTERACTION: Tactile feedback on switch
 		UITheme.trigger_ui_thud(sidebar_list, 2.0)
+		
+		# SMART NAVIGATION: Notify page it's been opened
+		if pages[page_name].has_method("on_page_enter"):
+			pages[page_name].on_page_enter()
+
+func _get_btn_for_page(page_name: String) -> Button:
+	match page_name:
+		"gathering": return gathering_btn
+		"processing": return processing_btn
+		"infrastructure": return infrastructure_btn
+		"shipyard": return shipyard_btn
+		"research": return research_btn
+		"combat": return combat_btn
+		"mission": return mission_btn
+		"designer": return designer_btn
+		"inventory": return inventory_btn
+		"atlas": return atlas_btn
+		"options": return options_btn
+		"fleet": return fleet_btn
+		"warp": return warp_btn
+	return null
 
 func _update_sidebar_styling():
 	UITheme.apply_sidebar_button_style(gathering_btn, current_page_name == "gathering")
@@ -150,13 +176,21 @@ func _update_sidebar_styling():
 	var has_basic_eng = GameState.research_manager.is_tech_unlocked("applied_physics")
 	var has_shipwright = GameState.research_manager.is_tech_unlocked("shipwright_1")
 	
-	# Early Game: Ship management becomes available at Applied Physics
+	# 1. Ship management & Combat become available at Applied Physics
 	shipyard_btn.visible = has_basic_eng
 	designer_btn.visible = has_basic_eng
+	combat_btn.visible = has_basic_eng
 	$HBoxContainer/Sidebar/VBoxContainer/EngHeader.visible = true # Engineering is core
 	
-	# Mid Game: Fleet Command unlocks at Shipwright 1
+	# 2. Mid Game: Fleet Command unlocks at Shipwright 1
 	fleet_btn.visible = has_shipwright
+	
+	# 3. Late Game: Warp Core unlocks at Warp Drive Theory
+	var has_warp = GameState.research_manager.is_tech_unlocked("warp_drive")
+	warp_btn.visible = has_warp
+	
+	# Tactical Category Header gating
+	$HBoxContainer/Sidebar/VBoxContainer/CombatHeader.visible = has_basic_eng or has_warp
 	
 	# Command Cluster Header: Always visible (Missions are day 1)
 	$HBoxContainer/Sidebar/VBoxContainer/CmdHeader.visible = true
@@ -236,11 +270,6 @@ func _update_navigation_hints():
 			if widget and not (pm.is_active and pm.current_recipe_id == "centrifuge_dirt"):
 				target_to_pulse = widget.btn
 				
-	elif "m006" in mm.active_missions:
-		# Research: Applied Physics Hub
-		if current_page_name != "research": target_to_pulse = research_btn
-		else:
-			var widget = pages["research"].get_node_widget("applied_physics")
 			if widget: target_to_pulse = widget
 			
 	elif "m007" in mm.active_missions:
@@ -440,13 +469,53 @@ func _update_navigation_hints():
 			page.focus_module_tab("titanium_armor")
 			target_to_pulse = page.get_module_widget("titanium_armor")
 
+			target_to_pulse = page.get_module_widget("titanium_armor")
+
 	elif "m030" in mm.active_missions:
-		# Combat: Gathering NavData
-		if current_page_name != "combat": target_to_pulse = combat_btn
+		# Research: Shipwright II (Audit v15.0)
+		if current_page_name != "research": target_to_pulse = research_btn
 		else:
-			var page = pages["combat"]
-			page.focus_zone("lunar_orbit")
-			target_to_pulse = page.get_enemy_card("lunar_drone")
+			var widget = pages["research"].get_node_widget("shipwright_2")
+			if widget: target_to_pulse = widget
+			
+	elif "m030b" in mm.active_missions:
+		# Infrastructure: Fabricator (Audit v15.0)
+		if current_page_name != "infrastructure": target_to_pulse = infrastructure_btn
+		else:
+			var widget = pages["infrastructure"].get_building_widget("fabricator")
+			if widget: target_to_pulse = widget.btn
+			
+	elif "m030c" in mm.active_missions:
+		# Shipyard: Escort Destroyer
+		if current_page_name != "shipyard": target_to_pulse = shipyard_btn
+		else:
+			target_to_pulse = pages["shipyard"].get_hull_widget("destroyer_hull")
+
+	elif "m032b" in mm.active_missions:
+		# Research: Deep Space Nav (Sector Beta)
+		if current_page_name != "research": target_to_pulse = research_btn
+		else:
+			var widget = pages["research"].get_node_widget("deep_space_nav")
+			if widget: target_to_pulse = widget
+			
+	elif "m032c" in mm.active_missions:
+		# Shipyard: Battlecruiser
+		if current_page_name != "shipyard": target_to_pulse = shipyard_btn
+		else:
+			target_to_pulse = pages["shipyard"].get_hull_widget("battlecruiser_hull")
+			
+	elif "m033b" in mm.active_missions:
+		# Research: Radiation Shielding (Sector Gamma)
+		if current_page_name != "research": target_to_pulse = research_btn
+		else:
+			var widget = pages["research"].get_node_widget("radiation_shielding")
+			if widget: target_to_pulse = widget
+			
+	elif "m033c" in mm.active_missions:
+		# Shipyard: Dreadnought
+		if current_page_name != "shipyard": target_to_pulse = shipyard_btn
+		else:
+			target_to_pulse = pages["shipyard"].get_hull_widget("dreadnought_hull")
 
 	elif "m031" in mm.active_missions:
 		# Research: Warp Drive
