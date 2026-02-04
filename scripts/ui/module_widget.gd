@@ -49,12 +49,14 @@ func update_state():
 	
 	if not tech_unlocked:
 		var tech_name = GameState.research_manager.tech_tree.get(req_id, {}).get("name", req_id)
+		UITheme.apply_locked_overlay(self, data["name"], "RESEARCH: %s" % tech_name, true)
 		research_lbl.text = "Req: %s" % tech_name
 		research_lbl.show()
 		btn.disabled = true
 		cost_lbl.hide()
 		return
 	else:
+		UITheme.apply_locked_overlay(self, data["name"], "", false)
 		research_lbl.hide()
 		cost_lbl.show()
 

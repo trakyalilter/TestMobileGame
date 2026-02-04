@@ -135,17 +135,20 @@ func rebuild_storage():
 	# Ammo
 	if active_filter in ["all", "ord"]:
 		var ammo_list = [
-			{"name": "Ferrite Rounds", "id": "SlugT1"},
-			{"name": "Tungsten Sabot", "id": "SlugT2"},
-			{"name": "Focus Crystal", "id": "CellT1"},
-			{"name": "Plasma Cell", "id": "CellT2"}
+			{"id": "SlugT1"},
+			{"id": "SlugT2"},
+			{"id": "SlugT3"},
+			{"id": "CellT1"},
+			{"id": "CellT2"},
+			{"id": "CellT3"}
 		]
 		for ammo in ammo_list:
 			var qty = GameState.resources.get_element_amount(ammo["id"])
 			if qty > 0:
 				var card = draggable_icon_scene.instantiate()
 				storage_grid.add_child(card)
-				var fake_data = {"name": ammo["name"], "slot_type": "ammo", "stats": {}}
+				var dname = ElementDB.get_display_name(ammo["id"])
+				var fake_data = {"name": dname, "slot_type": "ammo", "stats": {}}
 				card.setup(ammo["id"], fake_data, qty)
 
 func rebuild_ammo_storage():

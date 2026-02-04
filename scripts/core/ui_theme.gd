@@ -381,7 +381,7 @@ func apply_instrument_style(button: Button, category: String = "ops"):
 func apply_segmented_font(label: Control, color: Color = Color.CYAN):
 	if label is Label or label is RichTextLabel:
 		label.add_theme_color_override("font_color", color)
-		label.add_theme_font_size_override("font_size", 16)
+		label.add_theme_font_size_override("font_size", 13) # UI FIX: Reduced from 16 to fit long mission names
 		# Simulating glow via modulate/shadow
 		label.modulate = color.lightened(0.3)
 		
@@ -519,6 +519,66 @@ func apply_holographic_projection(panel: Control, category: String = "ops"):
 	
 	panel.add_theme_stylebox_override("panel", style)
 	return style
+
+## apply_locked_overlay: Creates and manages a visual "LOCKED" state for Cards
+func apply_locked_overlay(card: Control, item_name: String, message: String, is_locked: bool):
+	if not card: return
+	
+	var overlay_name = "LockedOverlay"
+	var overlay = card.get_node_or_null(overlay_name)
+	
+	if not is_locked:
+		if overlay: overlay.hide()
+		return
+	
+	if not overlay:
+		# 1. Create Transparent Shadow Panel
+		overlay = ColorRect.new()
+		overlay.name = overlay_name
+		overlay.color = Color(0, 0, 0, 1.0) # Full dark overlay
+		overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		overlay.mouse_filter = Control.MOUSE_FILTER_STOP # Block clicks
+		card.add_child(overlay)
+		
+		# 2. Add Centered Containers
+		var center = CenterContainer.new()
+		center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		overlay.add_child(center)
+		
+		var vbox = VBoxContainer.new()
+		center.add_child(vbox)
+		
+		# 3. Add Labels
+		var name_lbl = Label.new()
+		name_lbl.name = "ItemNameLabel"
+		name_lbl.text = item_name.to_upper()
+		name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		name_lbl.add_theme_font_size_override("font_size", 12)
+		name_lbl.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7)) # Dim gray for the name
+		vbox.add_child(name_lbl)
+		
+		var lock_lbl = Label.new()
+		lock_lbl.name = "LockHeading"
+		lock_lbl.text = "LOCKED"
+		lock_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lock_lbl.add_theme_font_size_override("font_size", 18)
+		lock_lbl.add_theme_color_override("font_color", Color.WHITE)
+		vbox.add_child(lock_lbl)
+		
+		var req_lbl = Label.new()
+		req_lbl.name = "ReqLabel"
+		req_lbl.text = message
+		req_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		req_lbl.add_theme_font_size_override("font_size", 11)
+		req_lbl.add_theme_color_override("font_color", Color(1.0, 0.4, 0.4)) # Reddish for warning
+		vbox.add_child(req_lbl)
+	else:
+		overlay.show()
+		var name_lbl = overlay.find_child("ItemNameLabel", true, false)
+		if name_lbl: name_lbl.text = item_name.to_upper()
+		
+		var req_lbl = overlay.find_child("ReqLabel", true, false)
+		if req_lbl: req_lbl.text = message
 
 func _process(delta):
 	# Global UI animations or packet handling can go here

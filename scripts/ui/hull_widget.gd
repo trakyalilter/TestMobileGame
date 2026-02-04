@@ -19,11 +19,15 @@ func setup(p_hid: String, p_data: Dictionary, p_manager, p_parent):
 	parent_ui = p_parent
 	
 	name_lbl.text = data["name"]
+	if data.get("tier"):
+		name_lbl.text += " (TIER %d)" % data["tier"]
+	
 	name_lbl.add_theme_color_override("font_color", UITheme.CATEGORY_COLORS["shipyard"])
-	slot_lbl.text = "Slots: %d" % data["slots"].size()
 	
 	UITheme.apply_card_style(self, "shipyard")
 	UITheme.apply_premium_button_style(btn, "shipyard")
+	
+	slot_lbl.text = "HP: %d | ATK: %d\nSlots: %d" % [data["stats"].get("hp",0), data["stats"].get("atk",0), data["slots"].size()]
 	
 	if data.has("visual"):
 		ship_icon.texture = load(data["visual"])
@@ -50,12 +54,14 @@ func update_state():
 		
 		if not tech_unlocked:
 			var tech_name = GameState.research_manager.tech_tree.get(req_id, {}).get("name", req_id)
+			UITheme.apply_locked_overlay(self, data["name"], "RESEARCH: %s" % tech_name, true)
 			research_lbl.text = "Req: %s" % tech_name
 			research_lbl.show()
 			btn.disabled = true
 			cost_lbl.hide()
 			return
 		else:
+			UITheme.apply_locked_overlay(self, data["name"], "", false)
 			research_lbl.hide()
 			cost_lbl.show()
 

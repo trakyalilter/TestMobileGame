@@ -1,28 +1,6 @@
-[gd_scene load_steps=5 format=3 uid="uid://kygvoa4m8lte"]
+[gd_scene load_steps=2 format=3 uid="uid://kygvoa4m8lte"]
 
 [ext_resource type="Script" uid="uid://cyduyo76hmat6" path="res://scripts/ui/shipyard_page.gd" id="1_script"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tab_panel"]
-bg_color = Color(0.1, 0.1, 0.1, 1)
-border_width_left = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.3, 0.3, 0.3, 1)
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tab_unsel"]
-bg_color = Color(0.1, 0.1, 0.1, 1)
-border_width_bottom = 1
-border_color = Color(0.3, 0.3, 0.3, 1)
-corner_radius_top_left = 5
-corner_radius_top_right = 5
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tab_sel"]
-bg_color = Color(0.2, 0.2, 0.2, 1)
-border_width_top = 2
-border_color = Color(0, 0.8, 1, 1)
-corner_radius_top_left = 5
-corner_radius_top_right = 5
-expand_margin_bottom = 2.0
 
 [node name="ShipyardPage" type="Control"]
 layout_mode = 3

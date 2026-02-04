@@ -23,7 +23,8 @@ func setup(p_eid, p_data, p_parent):
 	
 	var loot_txt = "Drops: "
 	for entry in data["loot"]:
-		loot_txt += entry[0] + ", "
+		var d_name = ElementDB.get_display_name(entry[0])
+		loot_txt += d_name + ", "
 	loot_lbl.text = loot_txt.trim_suffix(", ")
 
 func _on_fight_btn_pressed():

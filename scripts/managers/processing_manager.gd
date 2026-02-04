@@ -598,11 +598,33 @@ var recipes: Dictionary = {
 		"name": "Palladium Fuel Cell",
 		"description": "Pd-H2 fuel cell. High efficiency energy generation.",
 		"input": { "Pd": 5, "H": 20, "Circuit": 3 },
+		"credits_cost": 8000,
 		"output": { "PdFuelCell": 1 },
 		"duration": 15.0,
-		"level_req": 22,
-		"xp": 200,
+		"level_req": 30,
+		"xp": 100,
 		"research_req": "fuel_cell_tech"
+	},
+	# ========== AUDIT v24.0: RARE METAL REFINING ==========
+	"refine_platinum": {
+		"name": "Platinum Refining",
+		"description": "Purify Pt ore into industrial grade Platinum.",
+		"input": { "PtOre": 2, "C": 5 },
+		"output": { "Pt": 1 },
+		"duration": 20.0,
+		"level_req": 40,
+		"xp": 150,
+		"research_req": "precious_metal_refining"
+	},
+	"refine_iridium": {
+		"name": "Iridium Compaction",
+		"description": "Forge raw Iridium into reinforced Armor Plates.",
+		"input": { "Ir": 5, "Steel": 10 },
+		"output": { "IrPlate": 1 },
+		"duration": 25.0,
+		"level_req": 45,
+		"xp": 200,
+		"research_req": "iridium_metallurgy"
 	},
 	"craft_iridium_plate": {
 		"name": "Iridium Armor Plating",

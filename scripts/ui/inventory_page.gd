@@ -84,11 +84,26 @@ func refresh_inventory():
 	var slot_count = 0
 	
 	# 1. Show Filtered Owned Items
-	for el in elements_db:
-		var symbol = el["symbol"]
-		var amt = GameState.resources.get_element_amount(symbol)
+	var owned_elements = GameState.resources.elements.keys()
+	for symbol in owned_elements:
+		var amt = GameState.resources.elements[symbol]
 		
 		if amt <= 0: continue
+		
+		# Find metadata in elements_db or create fallback
+		var el_meta = null
+		for e in elements_db:
+			if e["symbol"] == symbol:
+				el_meta = e
+				break
+		
+		if el_meta == null:
+			el_meta = {
+				"symbol": symbol,
+				"name": ElementDB.get_display_name(symbol),
+				"description": "Material discovered in the field. Properties unknown.",
+				"category": "other"
+			}
 		
 		# Filter Check
 		if current_filter != "all":
@@ -96,12 +111,17 @@ func refresh_inventory():
 			if current_filter == "metals":
 				if item_cat != "basic_metals" and item_cat != "advanced_metals" and item_cat != "rare_metals":
 					continue
+			elif current_filter == "other":
+				# 'other' is a catch-all for anything not in the specific filters
+				var specific_cats = ["ores", "basic_metals", "advanced_metals", "rare_metals", "alloys", "components"]
+				if item_cat in specific_cats:
+					continue
 			elif item_cat != current_filter:
 				continue
 		
 		var card = card_scene.instantiate()
 		grid.add_child(card)
-		card.setup(el, amt)
+		card.setup(el_meta, amt)
 		card.clicked.connect(_on_item_clicked)
 		cards[symbol] = card
 		slot_count += 1

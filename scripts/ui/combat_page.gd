@@ -81,12 +81,7 @@ func _ready():
 	
 	$Dashboard/Visualizer/HUD/Overlays/BottomRegion/LogOverlay/VBox/Header.add_theme_color_override("font_color", Color(0.2, 1.0, 0.4)) # Terminal Green
 	
-	cons_opt.clear()
-	cons_opt.add_item("Select Item...", 0)
-	cons_opt.add_item("Nanoweave (Shield)", 1)
-	cons_opt.set_item_metadata(1, "Mesh")
-	cons_opt.add_item("Sealant (Hull)", 2)
-	cons_opt.set_item_metadata(2, "Seal")
+	_refresh_consumable_options()
 
 	# Explicit Signal Connections (Defensive)
 	if not btn_retreat.is_connected("pressed", _on_retreat_btn_pressed): btn_retreat.pressed.connect(_on_retreat_btn_pressed)
@@ -251,6 +246,11 @@ func update_ui():
 		# Ammo Tracking
 		_update_ammo_display()
 		ammo_overlay.visible = true
+		
+		# Periodically refresh consumable options? Or just when count changes.
+		# For now, let's refresh if the first item (idle) is selected and we might have items now.
+		if cons_opt.item_count <= 1:
+			_refresh_consumable_options()
 	else:
 		for pb in player_weapon_bars: pb.visible = false
 		e_attack_pb.visible = false
@@ -422,8 +422,10 @@ func _update_ammo_display():
 	var ammo_list = [
 		{"name": "Slug", "id": "SlugT1", "col": Color("#ffcc00"), "type": "kinetic"},
 		{"name": "Sabot", "id": "SlugT2", "col": Color("#ffaa00"), "type": "kinetic"},
+		{"name": "Titan", "id": "SlugT3", "col": Color("#ff8800"), "type": "kinetic"},
 		{"name": "Focus", "id": "CellT1", "col": Color("#00ccff"), "type": "energy"},
-		{"name": "Plasma", "id": "CellT2", "col": Color("#0099ff"), "type": "energy"}
+		{"name": "Plasma", "id": "CellT2", "col": Color("#0099ff"), "type": "energy"},
+		{"name": "Vapor", "id": "CellT3", "col": Color("#0066ff"), "type": "energy"}
 	]
 	
 	var has_any = false
@@ -522,8 +524,26 @@ func _rebuild_weapon_battery(w_states):
 		sb_bg.set_corner_radius_all(2)
 		pb.add_theme_stylebox_override("background", sb_bg)
 		
+		pb.tooltip_text = w["name"]
+		
 		weapon_battery.add_child(pb)
 		player_weapon_bars.append(pb)
+
+func _refresh_consumable_options():
+	var current_sel = cons_opt.get_item_metadata(cons_opt.selected) if cons_opt.selected > 0 else null
+	cons_opt.clear()
+	cons_opt.add_item("OFF / SELECT", 0)
+	
+	var items = ["EmergencyPatch", "BasicBooster", "Mesh", "Seal", "NitroCoolant", "nanite_swarm"]
+	for id in items:
+		var count = GameState.resources.get_element_amount(id)
+		if count > 0:
+			var idx = cons_opt.item_count
+			var dname = ElementDB.get_display_name(id)
+			cons_opt.add_item("%s (%d)" % [dname, count])
+			cons_opt.set_item_metadata(idx, id)
+			if id == current_sel:
+				cons_opt.select(idx)
 
 func _update_atmosphere(delta):
 	# Pulse scanning label

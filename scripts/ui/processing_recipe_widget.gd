@@ -62,20 +62,23 @@ func update_state():
 	# Rebuild Ingredient String with Colors
 	# We do this every update to reflect real-time amounts
 	var in_str = "[center]"
-	var inputs = recipe["input"]
+	var inputs = recipe.get("input", {})
 	var missing_any = false
 	
-	for item in inputs:
-		var req_qty = inputs[item]
-		var avail_qty = GameState.resources.get_element_amount(item)
-		var color = "gray" 
-		
-		if avail_qty >= req_qty:
-			color = "lime"
-		else:
-			missing_any = true
+	if inputs.is_empty():
+		in_str += "None\n"
+	else:
+		for item in inputs:
+			var req_qty = inputs[item]
+			var avail_qty = GameState.resources.get_element_amount(item)
+			var color = "gray" 
 			
-		in_str += "[color=%s]%s %s[/color]\n" % [color, FormatUtils.format_number(req_qty), ElementDB.get_display_name(item)]
+			if avail_qty >= req_qty:
+				color = "lime"
+			else:
+				missing_any = true
+				
+			in_str += "[color=%s]%s %s[/color]\n" % [color, FormatUtils.format_number(req_qty), ElementDB.get_display_name(item)]
 	
 	in_str += "[/center]"
 	in_lbl.text = in_str
@@ -92,6 +95,7 @@ func update_state():
 			has_research = GameState.research_manager.is_tech_unlocked(recipe["research_req"])
 	
 	if is_this_active:
+		UITheme.apply_locked_overlay(self, recipe["name"], "", false)
 		btn.text = "Stop"
 		btn.disabled = false
 		modulate = Color(1.2, 1, 1)
@@ -107,14 +111,19 @@ func update_state():
 		modulate = Color(1, 1, 1)
 		
 		if not has_research:
+			var tech_name = GameState.research_manager.tech_tree.get(recipe["research_req"], {}).get("name", "Unknown Tech")
+			UITheme.apply_locked_overlay(self, recipe["name"], "RESEARCH: %s" % tech_name, true)
 			btn.text = "Research Required"
 			btn.disabled = true
 		elif not has_level:
+			UITheme.apply_locked_overlay(self, recipe["name"], "LEVEL %d REQUIRED" % lvl_req, true)
 			btn.text = "Requires Lv %d" % lvl_req
 			btn.disabled = true
 		elif not has_ingredients:
+			UITheme.apply_locked_overlay(self, recipe["name"], "", false)
 			btn.text = "Missing Materials"
 			btn.disabled = true
 		else:
+			UITheme.apply_locked_overlay(self, recipe["name"], "", false)
 			btn.text = "Start"
 			btn.disabled = false

@@ -18,7 +18,7 @@ func _on_research_completed(active_tech_id):
 var tech_tree = {
 	"basic_engineering": {
 		"name": "Basic Engineering",
-		"description": "Unlocks:\n• Mineral Washing\n• Scrap Recycling\n• Lithium Refining",
+		"description": "Unlocks:\n• Mineral Washing\n• Scrap Recycling\n• Lithium Refining\n• Lithium Brine Well (Auto)\n• Deep-Crust Drill (Auto)",
 		"cost": 50,
 		"type": "technology",
 		"parent": null
@@ -85,7 +85,7 @@ var tech_tree = {
 	},
 	"adv_materials": {
 		"name": "Advanced Materials",
-		"description": "Unlocks:\n• Graphite Press\n• Semiconductor Wafer\n• Graphene Battery",
+		"description": "Unlocks:\n• Graphite Press\n• Semiconductor Wafer\n• Graphene Battery\n• Bauxite Strip Miner (Auto)\n• Quartz Resonator (Auto)\n• Heavy Tungsten Drill (Auto)",
 		"cost": 2000,
 		"cost_items": {"Res2": 10},
 		"type": "technology",
@@ -147,6 +147,7 @@ var tech_tree = {
 		"type": "technology",
 		"parent": "fluid_dynamics"
 	},
+
 	"power_systems": {
 		"name": "Power Systems",
 		"description": "Unlocks:\n• Basic Battery Module",
@@ -339,9 +340,9 @@ var tech_tree = {
 	},
 	"energy_metrics": {
 		"name": "Energy Metrics",
-		"description": "Unlocks:\n• Vaporizer Cells (T3)\n• Plasma Lance Mk.III",
+		"description": "High-capacity storage and generation theory.\nUnlocks:\n• Hydrogen Reactor\n• Vaporizer Cells (T3)\n• Plasma Lance Mk.III\n• Orbital Gas Siphon (Auto)\n• Uranium Centrifuge (Auto)",
 		"cost": 5000,
-		"cost_items": {"Res2": 15, "AdvCircuit": 10},
+		"cost_items": {"Res2": 20, "AdvCircuit": 10},
 		"type": "technology",
 		"parent": "fluid_dynamics"
 	},
@@ -521,8 +522,8 @@ var tech_tree = {
 	# Late-Game Rare Metal Technologies
 	"precious_metal_refining": {
 		"name": "Precious Metal Refining",
-		"description": "Unlocks:\n• Platinum Extraction\n• Palladium Refining",
-		"cost": 150000,
+		"description": "Unlocks:\n• Platinum Extraction\n• Palladium Refining\n• Precious Metal Dredge (Auto)",
+		"cost": 1500,
 		"cost_items": {"Ti": 200, "Res2": 25},
 		"type": "technology",
 		"parent": "deep_space_nav"
@@ -587,7 +588,7 @@ var tech_tree = {
 	# ENDGAME - Sector Epsilon unlock
 	"void_navigation": {
 		"name": "Void Navigation",
-		"description": "Unlocks:\n• Sector Epsilon - The Void\n• Endgame enemies and materials",
+		"description": "Unlocks:\n• Sector Epsilon - The Void\n• Void Rift Anchor (Auto)\n• Chrono-Siphon (Auto)",
 		"cost": 50000000,
 		"cost_items": {"QuantumCore": 30, "VoidCrystal": 50, "ExoticMatter": 20, "AncientTech": 5},
 		"type": "technology",

@@ -45,7 +45,7 @@ func init_missions():
 		["m002b", "Applied Physics", "Research the 'Applied Physics' hub.", "research", "applied_physics", 1, 300, 100, "m003"],
 		["m003", "Pump Master", "Research 'Fluid Dynamics' to unlock water collection.", "research", "fluid_dynamics", 1, 300, 50, "m004"],
 		["m004", "Hydration", "Gather 350 units of Water.", "gather", "Water", 350, 500, 100, "m005"],
-		["m005", "Mineral Washing", "Recover 75 Silicon and 75 Iron from Dirt.", "gather_multi", {"Si": 75, "Fe": 75}, 200, 1000, 200, "m007"],
+		["m005", "Mineral Washing", "Recover 75 Silicon and 75 Iron from Dirt.", "gather_multi", {"Si": 75, "Fe": 75}, 150, 1000, 200, "m007"],
 		# m006 Removed (Moved to m002b)
 		["m007", "Mobility Check", "Craft 'Ion Thrusters' in the Shipyard.", "craft", "basic_thruster", 1, 1000, 100, "m008"],
 		["m008", "Materials Science", "Research the 'Materials Science' hub.", "research", "materials_science", 1, 300, 100, "m009"],
@@ -300,7 +300,7 @@ func sync_progress():
 					var mod = sm.modules[mid_equipped]
 					if mod.get("slot_type") == "weapon":
 						has_weapon = true
-					elif mod.get("slot_type") == "defense":
+					elif mod.get("slot_type") == "shield":
 						has_shield = true
 			if has_weapon and has_shield:
 				m["current_qty"] = 1

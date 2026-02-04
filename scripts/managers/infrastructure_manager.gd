@@ -6,7 +6,6 @@ var buildings: Dictionary = {}
 var generation: float = 0.0
 var consumption: float = 0.0
 var net_energy: float = 0.0
-var overclock_levels: Dictionary = {} # {building_id: float_level} 1.0 = base
 var energy_efficiency: float = 1.0 # Current grid stability (0.0 to 1.0)
 var grid_warning_sent: bool = false
 var events: Array = []
@@ -17,7 +16,7 @@ var building_db: Dictionary = {
 		"name": "Solar Array",
 		"description": "Generates clean energy from the local star.",
 		"cost": {"credits": 50, "Si": 5}, 
-		"energy_gen": 10.0, 
+		"energy_gen": 5.0, # REBALANCE v23.0: Reduced from 10 to discourage low-tier spam
 		"energy_cons": 0.0,
 		"category": "power"
 	},
@@ -25,7 +24,7 @@ var building_db: Dictionary = {
 		"name": "Fusion Core",
 		"description": "Harnesses stellar-level energy. Generates massive power.",
 		"cost": {"credits": 1000000, "Superalloy": 200, "AdvCircuit": 100, "VoidEssence": 20},
-		"energy_gen": 1500.0,
+		"energy_gen": 5000.0, # REBALANCE v23.0: Buffed from 1500 for endgame density
 		"energy_cons": 0.0,
 		"research_req": "quantum_dynamics",
 		"category": "power"
@@ -187,9 +186,9 @@ var building_db: Dictionary = {
 		"name": "Hydrogen Reactor",
 		"description": "Fuses Hydrogen for high energy output. Perfect mid-game power source.",
 		"cost": {"credits": 50000, "Steel": 200, "Circuit": 50, "NavData": 5},
-		"energy_gen": 100.0,
+		"energy_gen": 500.0, # REBALANCE v23.0: Buffed from 100 for mid-game density
 		"energy_cons": 0.0,
-		"input": {"H": 5},
+		"input": {"H": 10}, # REBALANCE v23.0: Increased from 5
 		"interval": 10.0,
 		"research_req": "energy_metrics",
 		"category": "power"
@@ -212,7 +211,6 @@ var building_db: Dictionary = {
 		"cost": {"credits": 25000, "Ti": 50, "Circuit": 100, "SalvageData": 20},
 		"energy_gen": 0.0,
 		"energy_cons": 120.0,
-		"yield": {"Circuit": 2},
 		"yield": {"Circuit": 2},
 		"input": {"Si": 4, "Cu": 4, "Resin": 2}, # Audit v18.0: Industrial Input (No DroneCore)
 		"interval": 8.0,
@@ -299,6 +297,130 @@ var building_db: Dictionary = {
 		"max": 5,
 		"research_req": "fleet_logistics_2",
 		"category": "logistics"
+	},
+	# ========== AUDIT v21.0: EXTRACTION EXPANSION ==========
+	"brine_extractor": {
+		"name": "Lithium Brine Well",
+		"description": "Extracts Lithium-rich brine from deep reservoirs. Yields 2 Spodumene every 6s.",
+		"cost": {"credits": 2500, "Si": 100, "Steel": 50},
+		"energy_gen": 0.0,
+		"energy_cons": 35.0,
+		"yield": {"Spodumene": 2},
+		"interval": 6.0,
+		"research_req": "basic_engineering",
+		"category": "extraction"
+	},
+	"deep_crust_drill": {
+		"name": "Deep-Crust Drill",
+		"description": "Automated shaft for copper ore extraction. Yields 2 Malachite every 6s.",
+		"cost": {"credits": 2500, "Si": 50, "Steel": 100},
+		"energy_gen": 0.0,
+		"energy_cons": 40.0,
+		"yield": {"Malachite": 2},
+		"interval": 6.0,
+		"research_req": "basic_engineering",
+		"category": "extraction"
+	},
+	"bauxite_miner": {
+		"name": "Bauxite Strip Miner",
+		"description": "Heavy-duty surface harvester for aluminum ore. Yields 4 Bauxite every 8s.",
+		"cost": {"credits": 10000, "Steel": 250, "Hydraulics": 10},
+		"energy_gen": 0.0,
+		"energy_cons": 60.0,
+		"yield": {"Bauxite": 4},
+		"interval": 8.0,
+		"research_req": "adv_materials",
+		"category": "extraction"
+	},
+	"quartz_excavator": {
+		"name": "Quartz Resonator",
+		"description": "Sonic excavator for crystal silicate clusters. Yields 4 Quartz every 8s.",
+		"cost": {"credits": 12000, "Ti": 100, "Circuit": 20},
+		"energy_gen": 0.0,
+		"energy_cons": 75.0,
+		"yield": {"Quartz": 4},
+		"interval": 8.0,
+		"research_req": "adv_materials",
+		"category": "extraction"
+	},
+	"orbital_siphon": {
+		"name": "Orbital Gas Siphon",
+		"description": "Atmospheric scoops for nebula gases. Yields 2 H, 1 He, 1 N every 5s.",
+		"cost": {"credits": 50000, "Ti": 200, "AdvCircuit": 10},
+		"energy_gen": 0.0,
+		"energy_cons": 150.0,
+		"yield": {"H": 2, "He": 1, "N": 1},
+		"interval": 5.0,
+		"research_req": "energy_metrics",
+		"category": "extraction"
+	},
+	"precious_dredge": {
+		"name": "Precious Metal Dredge",
+		"description": "Sifts through exotic slag for rare minerals. Yields 2 PtOre, 1 Ir every 10s.",
+		"cost": {"credits": 150000, "Superalloy": 50, "AdvCircuit": 25},
+		"energy_gen": 0.0,
+		"energy_cons": 300.0,
+		"yield": {"PtOre": 2, "Ir": 1},
+		"interval": 10.0,
+		"research_req": "precious_metal_refining",
+		"category": "extraction"
+	},
+	"void_anchor": {
+		"name": "Void Rift Anchor",
+		"description": "Stabilizes localized void rifts to bleed essence. Yields 2 VoidEssence every 15s.",
+		"cost": {"credits": 5000000, "Superalloy": 500, "QuantumCore": 10},
+		"energy_gen": 0.0,
+		"energy_cons": 1000.0,
+		"yield": {"VoidEssence": 2},
+		"interval": 15.0,
+		"research_req": "void_navigation",
+		"category": "extraction"
+	},
+	"chrono_siphon": {
+		"name": "Chrono-Siphon",
+		"description": "Harnesses temporal anomalies for crystal growth. Yields 1 ChronoCore every 30s.",
+		"cost": {"credits": 25000000, "Superalloy": 1000, "AntimatterFuel": 10},
+		"energy_gen": 0.0,
+		"energy_cons": 2500.0,
+		"yield": {"ChronoCore": 1},
+		"interval": 30.0,
+		"research_req": "void_navigation",
+		"category": "extraction"
+	},
+	# ========== AUDIT v24.0: INDUSTRIAL COMPLETION ==========
+	"uranium_centrifuge": {
+		"name": "Uranium Isotope Centrifuge",
+		"description": "Extracts and enriches Uranium (U) from radioactive slag. Yields 2 U every 10s.",
+		"cost": {"credits": 50000, "Steel": 500, "Si": 250, "AdvCircuit": 5},
+		"energy_gen": 0.0,
+		"energy_cons": 150.0,
+		"yield": {"U": 2},
+		"interval": 10.0,
+		"research_req": "energy_metrics",
+		"category": "extraction"
+	},
+	"tungsten_drill": {
+		"name": "Heavy Tungsten Drill",
+		"description": "Deep-core thermal drill for Tungsten (W) extraction. Yields 4 W every 10s.",
+		"cost": {"credits": 45000, "Ti": 300, "Steel": 500, "Hydraulics": 15},
+		"energy_gen": 0.0,
+		"energy_cons": 120.0,
+		"yield": {"W": 4},
+		"interval": 10.0,
+		"research_req": "adv_materials",
+		"category": "extraction"
+	},
+	"void_crystallizer": {
+		"name": "Void Crystallizer",
+		"description": "Compresses Void Essence into stable Void Crystals. Converts 5 Essence -> 2 Crystals every 20s.",
+		"cost": {"credits": 10000000, "Superalloy": 1000, "QuantumCore": 25},
+		"energy_gen": 0.0,
+		"energy_cons": 2000.0,
+		"input": {"VoidEssence": 5},
+		"yield": {"VoidCrystal": 2},
+		"interval": 20.0,
+		"research_req": "void_navigation",
+		"category": "industry"
 	}
 }
 
@@ -426,16 +548,10 @@ func recalc_energy():
 		var count = buildings[bid]
 		if bid in building_db:
 			var data = building_db[bid]
-			var level = overclock_levels.get(bid, 1.0)
 			
-			# Overclock Formula (Audit v12.0):
-			# Yield/Gen scales by LEVEL
-			# Consumption scales by LEVEL^2
-			var gen_mult = level
-			var cons_mult = level * level
-			
-			gen += data.get("energy_gen", 0.0) * count * gen_mult
-			cons += data.get("energy_cons", 0.0) * count * cons_mult
+			# No Overclocking - Scaling is purely count-based
+			gen += data.get("energy_gen", 0.0) * count
+			cons += data.get("energy_cons", 0.0) * count
 	
 	# Audit v4.0: Milestone Level 10 (+10% Grid Efficiency)
 	if is_milestone_unlocked(10):
@@ -517,8 +633,6 @@ func process_tick(delta: float):
 			var data = building_db.get(bid)
 			if not data: continue
 			
-			var overclock_mult = overclock_levels.get(bid, 1.0)
-			
 			if "yield" in data:
 				if not bid in production_timers: production_timers[bid] = 0.0
 				
@@ -543,7 +657,7 @@ func process_tick(delta: float):
 					var can_produce = true
 					if "input" in data:
 						for res in data["input"]:
-							var qty_needed = data["input"][res] * count * overclock_mult
+							var qty_needed = data["input"][res] * count
 							if GameState.resources.get_element_amount(res) < qty_needed:
 								can_produce = false
 								break
@@ -552,7 +666,7 @@ func process_tick(delta: float):
 						# Consume inputs if required
 						if "input" in data:
 							for res in data["input"]:
-								var qty = data["input"][res] * count * overclock_mult
+								var qty = data["input"][res] * count
 								GameState.resources.remove_element(res, qty)
 						
 						# Production complete
@@ -573,7 +687,7 @@ func process_tick(delta: float):
 									if res in other_data["yield_bonus"]:
 										yield_mult += other_data["yield_bonus"][res] * buildings[other_bid]
 							
-							GameState.resources.add_element(res, qty * count * yield_mult * overclock_mult)
+							GameState.resources.add_element(res, qty * count * yield_mult)
 						
 						# Statistical expectation (Audit v5.0 - O(1) Performance Foundation)
 						if bid == "hydro_plant":
@@ -730,7 +844,7 @@ func calculate_offline(delta: float) -> String:
 func get_save_data_manager() -> Dictionary:
 	var data = get_save_data()
 	data["buildings"] = buildings
-	data["overclock_levels"] = overclock_levels
+
 	return data
 
 func load_save_data_manager(data: Dictionary):
@@ -738,17 +852,16 @@ func load_save_data_manager(data: Dictionary):
 	if data.is_empty(): return
 	
 	buildings = data.get("buildings", {})
-	overclock_levels = data.get("overclock_levels", {})
+
 	# Fix types if json loaded strings
 	for k in buildings: buildings[k] = int(buildings[k])
-	for k in overclock_levels: overclock_levels[k] = float(overclock_levels[k])
+
 	
 	recalc_energy()
 
 func reset(decay_factor: float = 1.0) -> void:
 	super.reset(decay_factor)
 	buildings.clear()
-	overclock_levels.clear()
 	generation = 0.0
 	consumption = 0.0
 	net_energy = 0.0
@@ -776,10 +889,3 @@ func _process_fleet_repairs(repair_power: float):
 		fm.pending_repairs[hull_id] = max(0, total_damaged - mended)
 		if fm.pending_repairs[hull_id] == 0:
 			fm.pending_repairs.erase(hull_id)
-
-func set_overclock_level(building_id: String, level: float):
-	overclock_levels[building_id] = clamp(level, 1.0, 10.0)
-	recalc_energy()
-
-func get_overclock_level(building_id: String) -> float:
-	return overclock_levels.get(building_id, 1.0)

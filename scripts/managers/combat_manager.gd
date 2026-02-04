@@ -908,7 +908,8 @@ func win_fight():
 		
 		# Track Session Loot
 		session_loot[item] = session_loot.get(item, 0) + qty
-		log_msg("Looted: %d %s" % [qty, item])
+		var item_name = ElementDB.get_display_name(item)
+		log_msg("Looted: %d %s" % [qty, item_name])
 		
 	# Rare Loot
 	var rare = current_enemy["rare_loot"]
@@ -921,7 +922,8 @@ func win_fight():
 			# Track Session Loot
 			var item = entry[0]
 			session_loot[item] = session_loot.get(item, 0) + qty
-			log_msg("RARE DROP: %d %s!" % [qty, entry[0]])
+			var item_name = ElementDB.get_display_name(item)
+			log_msg("RARE DROP: %d %s!" % [qty, item_name])
 			
 	# Bonus DroneCore (Scavenger Protocol)
 	if current_enemy["id"] == "lunar_drone":
@@ -969,7 +971,8 @@ func use_consumable():
 	if consumable_cooldown > 0: return
 	
 	if GameState.resources.get_element_amount(equipped_consumable_id) < 1:
-		log_msg("Out of %s!" % equipped_consumable_id)
+		var item_name = ElementDB.get_display_name(equipped_consumable_id)
+		log_msg("Out of %s!" % item_name)
 		return
 		
 	GameState.resources.remove_element(equipped_consumable_id, 1)
@@ -1023,7 +1026,8 @@ func use_consumable():
 
 	else:
 		# Unknown consumable - just consume it silently
-		log_msg("Used %s (no effect)" % equipped_consumable_id)
+		var item_name = ElementDB.get_display_name(equipped_consumable_id)
+		log_msg("Used %s (no effect)" % item_name)
 
 func _execute_broadside_burst():
 	var total_kinetic_dps = 0.0

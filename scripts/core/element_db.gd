@@ -115,6 +115,20 @@ var ELEMENT_NAMES = {
 	"IrPlate": "Iridium Plating",
 	"OsCore": "Osmium Core",
 	
+	# Combat Loot & Artifacts
+	"Scrap": "Recycled Scrap",
+	"MiteChitin": "Mite Chitin",
+	"DroneCore": "Drone Core",
+	"SalvageData": "Salvage Data",
+	"StolenCargo": "Stolen Cargo",
+	"SwarmFragment": "Swarm Fragment",
+	"PirateManifest": "Pirate Manifest",
+	"ColonySalvage": "Colony Salvage",
+	"TurretCore": "Turret Core",
+	"ColonyDataCore": "Colony Data Core",
+	"RadIsotope": "Radiation Isotope",
+	"CryoCell": "Cryogenic Cell",
+	
 	# New Research Artifacts
 	"Res1": "Common Artifact",
 	"Res2": "Rare Artifact",
@@ -153,8 +167,11 @@ var CATEGORIES = {
 	"special": ["VoidArtifact", "QuantumCore", "ExoticMatter", "VoidCrystal", "Diamond", "SyntheticCrystal", 
 				"Neutronium", "AntimatterParticle", "ExoticIsotope", "ReactiveCore", "AICore", "AncientTech",
 				"NavData", "IrPlate", "OsCore", "PtCatalyst",
-				"Res1", "Res2", "Res3"],
-	"basic": ["H", "He", "C", "O", "Si", "S", "Li", "Wood", "Water"],
+				"Res1", "Res2", "Res3",
+				"Scrap", "MiteChitin", "DroneCore", "SalvageData", "StolenCargo", 
+				"SwarmFragment", "PirateManifest", "ColonySalvage", "TurretCore", 
+				"ColonyDataCore", "RadIsotope", "CryoCell"],
+	"basic": ["H", "He", "C", "O", "Si", "S", "Li", "Wood", "Water", "N", "Food", "FertileSoil", "CompositeWeave"],
 	# Audit v4.0: Endgame category for ultimate items
 	"endgame": ["VoidEssence", "ChronoCore", "OmegaPlating", "PrimordialShard", 
 				"VoidBattery", "TemporalModule", "PrimordialArmor", "OmegaAccelerator"]

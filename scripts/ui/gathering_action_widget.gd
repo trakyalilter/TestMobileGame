@@ -73,6 +73,7 @@ func update_state():
 			status_msg = "Research Locked"
 	
 	if unlocked:
+		UITheme.apply_locked_overlay(self, data["name"], "", false)
 		status_lbl.text = ""
 		btn.disabled = false
 		if is_this_active:
@@ -93,6 +94,7 @@ func update_state():
 			var speed_mult = manager.get_action_speed_multiplier(aid)
 			time_lbl.text = "0.0s / %s" % FormatUtils.format_time(manager.action_duration / speed_mult)
 	else:
+		UITheme.apply_locked_overlay(self, data["name"], status_msg, true)
 		btn.text = "Locked"
 		btn.disabled = true
 		status_lbl.text = status_msg

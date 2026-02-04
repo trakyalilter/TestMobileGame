@@ -39,7 +39,7 @@ var hulls: Dictionary = {
 		"name": "Industrial Frigate",
 		"tier": 2,  # Audit v1.0: Added for fleet mission requirements
 		"stats": {"hp": 800, "atk": 25},
-		"cost": {"credits": 50000, "Steel": 1200, "Bronze": 50, "Circuit": 100, "Chip": 10},
+		"cost": {"credits": 50000, "Steel": 120, "Bronze": 50, "Circuit": 100, "Chip": 10},
 		"slots": ["weapon", "weapon", "shield", "shield", "engine", "battery", "battery"],
 		"research_req": "shipwright_1",
 		"visual": "res://assets/ships/2.png"
@@ -110,7 +110,7 @@ var modules: Dictionary = {
 		"name": "Cryo-Cooled Laser Mk.III",
 		"slot_type": "weapon",
 		"stats": {"atk_energy": 60, "energy_load": 25},
-		"cost": {"credits": 25000, "Ti": 30, "CoolantCell": 5, "AdvCircuit": 3},
+		"cost": {"credits": 450000, "Ti": 30, "CoolantCell": 5, "AdvCircuit": 3},
 		"desc": "Helium-cooled beam. Extreme shield damage.",
 		"research_req": "cryogenic_systems"
 	},
@@ -144,7 +144,7 @@ var modules: Dictionary = {
 		"name": "Deflector Shield", 
 		"slot_type": "shield", 
 		"stats": {"max_shield": 50, "shield_regen": 2, "energy_load": 10}, 
-		"cost": {"credits": 1500, "Si": 50, "Circuit": 2},
+		"cost": {"credits": 1500, "Si": 50},
 		"desc": "Generates a regenerative energy field.",
 		"research_req": "energy_shields"
 	},
@@ -160,7 +160,7 @@ var modules: Dictionary = {
 		"name": "Titanium Plating",
 		"slot_type": "shield",
 		"stats": {"def": 15, "hp": 100},
-		"cost": {"credits": 20000, "Ti": 20},
+		"cost": {"credits": 75000, "Ti": 20},
 		"desc": "Heavy-duty alloy armor.",
 		"research_req": "shipwright_1"
 	},
@@ -193,7 +193,7 @@ var modules: Dictionary = {
 		"name": "Plasma Lance Mk.III",
 		"slot_type": "weapon",
 		"stats": {"atk_energy": 50, "energy_load": 30},
-		"cost": {"credits": 2000, "Si": 50, "Ti": 20, "AdvCircuit": 10},
+		"cost": {"credits": 85000, "Si": 50, "Ti": 20, "AdvCircuit": 10},
 		"desc": "Cutting-edge beam weapon. Devastates shields.",
 		"research_req": "shipwright_2"
 	},
@@ -209,7 +209,7 @@ var modules: Dictionary = {
 		"name": "Coil Cannon",
 		"slot_type": "weapon",
 		"stats": {"atk_kinetic": 100, "energy_load": 25},
-		"cost": {"credits": 5000, "Steel": 100, "U": 5, "AdvCircuit": 5},
+		"cost": {"credits": 150000, "Steel": 100, "U": 5, "AdvCircuit": 5},
 		"desc": "Devastating kinetic damage. Hull shredder.",
 		"research_req": "capital_ship_engineering"
 	},
@@ -268,7 +268,7 @@ var modules: Dictionary = {
 		"name": "Stainless Steel Armor",
 		"slot_type": "shield",
 		"stats": {"def": 30, "hp": 180},
-		"cost": {"credits": 1500, "StainlessSteel": 25},
+		"cost": {"credits": 12000, "StainlessSteel": 25},
 		"desc": "Superior corrosion resistance. Excellent mid-tier protection.",
 		"research_req": "metallurgy_advanced"
 	},
@@ -292,7 +292,7 @@ var modules: Dictionary = {
 		"name": "Superalloy Engine Core",
 		"slot_type": "engine",
 		"stats": {"eva": 45, "energy_load": 20},
-		"cost": {"credits": 3500, "Superalloy": 20, "Circuit": 15},
+		"cost": {"credits": 350000, "Superalloy": 20, "Circuit": 15},
 		"desc": "Heat-resistant alloy engine. High performance between Plasma and Antimatter.",
 		"research_req": "superalloy_engineering"
 	},
@@ -310,7 +310,7 @@ var modules: Dictionary = {
 		"name": "Iridium Armor Plating",
 		"slot_type": "shield",
 		"stats": {"def": 100, "hp": 500},
-		"cost": {"credits": 10000, "IrPlate": 15},
+		"cost": {"credits": 8500000, "IrPlate": 15},
 		"desc": "Nearly indestructible. Ultimate defensive module.",
 		"research_req": "iridium_metallurgy"
 	},
@@ -318,7 +318,7 @@ var modules: Dictionary = {
 		"name": "Osmium Reactor Core",
 		"slot_type": "shield",
 		"stats": {"hp": 5000, "def": 50},
-		"cost": {"credits": 25000, "OsCore": 3},
+		"cost": {"credits": 12500000, "OsCore": 3},
 		"desc": "Densest material. Massive HP boost. Immunity to armor piercing.",
 		"research_req": "exotic_metallurgy"
 	},
@@ -342,7 +342,7 @@ var modules: Dictionary = {
 		"name": "Platinum-Enhanced Laser",
 		"slot_type": "weapon",
 		"stats": {"atk_energy": 80, "energy_load": 35},
-		"cost": {"credits": 10000, "Pt": 20, "Si": 100, "AdvCircuit": 15},
+		"cost": {"credits": 5000000, "Pt": 20, "Si": 100, "AdvCircuit": 15},
 		"desc": "Pt-coated optics. Superior energy damage.",
 		"research_req": "industrial_catalysis"
 	},
@@ -351,7 +351,7 @@ var modules: Dictionary = {
 		"name": "Reactive Plate Alpha",
 		"slot_type": "shield",
 		"stats": {"hp": 1000, "def": 20},
-		"cost": {"credits": 250000, "Superalloy": 50, "AdvCircuit": 10, "AncientComponent": 5},
+		"cost": {"credits": 1500000, "Superalloy": 50, "AdvCircuit": 10, "AncientComponent": 5},
 		"desc": "(Unique) Adaptive plating. Reduces incoming damage as Hull decreases.",
 		"research_req": "superalloy_engineering",
 		"unique_id": "reactive_armor_effect"
