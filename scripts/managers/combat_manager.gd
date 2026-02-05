@@ -132,8 +132,8 @@ var enemy_db = {
 	"lunar_drone": {
 		"name": "Lunar Drone",
 		"stats": {"hp": 60, "max_shield": 0, "atk": 5, "def": 1, "atk_interval": 2.5, "accuracy": 5},
-		"loot": [["Scrap", 3, 5], ["Fe", 4, 10], ["DroneCore", 1, 1]],  # EXCLUSIVE: DroneCore
-		"rare_loot": [["Cu", 0.3, 1, 2], ["Chip", 0.08, 1, 1], ["SalvageData", 0.20, 1, 1]], 
+		"loot": [["Scrap", 3, 5], ["Fe", 4, 10]],
+		"rare_loot": [["Cu", 0.3, 1, 2], ["Chip", 0.08, 1, 1], ["SalvageData", 0.20, 1, 1], ["DroneCore", 0.40, 1, 1]], 
 		"xp": 12
 	},
 	"scrap_collector": {
@@ -251,7 +251,7 @@ var enemy_db = {
 	},
 	"xenon_corvette": {
 		"name": "Xenon Corvette",
-		"stats": {"hp": 25000, "max_shield": 15000, "atk": 400, "def": 80, "atk_interval": 2.5, "accuracy": 80},
+		"stats": {"hp": 25000, "max_shield": 15000, "atk": 250, "def": 80, "atk_interval": 2.5, "accuracy": 80},
 		"loot": [["Ti", 20, 50], ["U", 5, 15]],
 		"rare_loot": [["NavData", 0.4, 3, 7], ["VoidArtifact", 0.3, 2, 4], ["Cr", 0.10, 1, 3], ["Res3", 0.25, 5, 8]],  # TIER FIX: Cr for Superalloy
 		"xp": 800
@@ -266,7 +266,7 @@ var enemy_db = {
 	# Sector Beta Enemies (Difficulty 6) - HP ~8k-15k
 	"mining_sentinel": {
 		"name": "Mining Sentinel MK-VII",
-		"stats": {"hp": 60000, "max_shield": 25000, "atk": 800, "def": 120, "atk_interval": 3.0, "accuracy": 90, "jammer": true},
+		"stats": {"hp": 45000, "max_shield": 25000, "atk": 500, "def": 120, "atk_interval": 3.0, "accuracy": 90, "jammer": true},
 		"loot": [["ColonySalvage", 10, 20], ["Steel", 50, 100]],
 		"rare_loot": [["Co", 0.3, 5, 15], ["Ni", 0.3, 5, 15], ["Circuit", 0.3, 10, 25]],
 		"xp": 8000
@@ -282,7 +282,7 @@ var enemy_db = {
 
 	"colony_overseer": {
 		"name": "Colony Overseer AI",
-		"stats": {"hp": 80000, "max_shield": 40000, "atk": 1000, "def": 150, "atk_interval": 3.5, "accuracy": 120, "jammer": true},
+		"stats": {"hp": 80000, "max_shield": 40000, "atk": 600, "def": 150, "atk_interval": 3.5, "accuracy": 120, "jammer": true},
 		"loot": [["AdvCircuit", 10, 20], ["ColonySalvage", 20, 40], ["ColonyDataCore", 1, 1]],
 		"rare_loot": [["Pd", 0.3, 2, 5], ["AICore", 0.25, 1, 1], ["Chip", 0.25, 5, 10]],
 		"xp": 20000
@@ -339,7 +339,7 @@ var enemy_db = {
 		"name": "Void Stalker",
 		"stats": {"hp": 200000, "max_shield": 150000, "atk": 600, "def": 300, "atk_interval": 2.0, "accuracy": 150},
 		"loot": [["credits", 100000, 200000], ["VoidCrystal", 10, 20], ["ExoticMatter", 5, 10]],
-		"rare_loot": [["VoidEssence", 0.30, 1, 2], ["QuantumCore", 0.5, 2, 4]],
+		"rare_loot": [["VoidEssence", 0.50, 1, 2], ["QuantumCore", 0.5, 2, 4]],
 		"xp": 8000
 	},
 	"temporal_phantom": {
@@ -352,7 +352,7 @@ var enemy_db = {
 	"omega_sentinel": {
 		"name": "OMEGA SENTINEL",
 		"stats": {"hp": 500000, "max_shield": 300000, "atk": 1000, "def": 500, "atk_interval": 3.0, "accuracy": 180},
-		"loot": [["credits", 300000, 600000], ["VoidCrystal", 20, 40], ["QuantumCore", 5, 10], ["Ir", 20, 40]],
+		"loot": [["credits", 300000, 600000], ["VoidCrystal", 50, 100], ["QuantumCore", 5, 10], ["Ir", 20, 40]],
 		"rare_loot": [["OmegaPlating", 0.40, 1, 2], ["ChronoCore", 0.3, 1, 1], ["Os", 0.25, 2, 4]],
 		"xp": 25000
 	},
@@ -792,6 +792,24 @@ func _execute_enemy_attack():
 			# Sector Epsilon enemies have 60% AP (endgame)
 			elif eid in ["void_stalker", "temporal_phantom", "omega_sentinel", "primordial_titan"]:
 				armor_piercing = 0.60
+		
+		# Audit v32.0: 'Hardened' Armor Logic
+		# If player has a module with 'hardened': true, AP is reduced by 50%.
+		# If player has 'primordial_fortification', AP is reduced by 100%.
+		var hardened_level = 0 # 0=None, 1=Hardened, 2=Super-Hardened
+		for slot in sm.loadout:
+			var mid = sm.loadout[slot]
+			if mid and mid in sm.modules:
+				var m_data = sm.modules[mid]
+				if m_data.get("hardened", false):
+					hardened_level = max(hardened_level, 1)
+				if mid == "primordial_fortification":
+					hardened_level = 2
+		
+		if hardened_level == 1:
+			armor_piercing *= 0.5 # 60% becomes 30%
+		elif hardened_level == 2:
+			armor_piercing = 0.0 # Immunity
 		
 		# Apply AP reduction to player defense
 		var effective_def = p_def * (1.0 - armor_piercing)

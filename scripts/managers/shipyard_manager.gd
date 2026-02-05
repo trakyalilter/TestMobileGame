@@ -38,8 +38,8 @@ var hulls: Dictionary = {
 	"frigate_hull": {
 		"name": "Industrial Frigate",
 		"tier": 2,  # Audit v1.0: Added for fleet mission requirements
-		"stats": {"hp": 800, "atk": 25},
-		"cost": {"credits": 50000, "Steel": 120, "Bronze": 50, "Circuit": 100, "Chip": 10},
+		"stats": {"hp": 1200, "atk": 25},
+		"cost": {"credits": 50000, "Steel": 120, "Bronze": 50, "Circuit": 25, "Chip": 10},
 		"slots": ["weapon", "weapon", "shield", "shield", "engine", "battery", "battery"],
 		"research_req": "shipwright_1",
 		"visual": "res://assets/ships/2.png"
@@ -47,8 +47,8 @@ var hulls: Dictionary = {
 	"destroyer_hull": {
 		"name": "Escort Destroyer",
 		"tier": 3,  # Audit v1.0: Added for fleet mission requirements
-		"stats": {"hp": 3000, "atk": 40, "energy_capacity": 600},
-		"cost": {"credits": 500000, "Steel": 25000, "Ti": 250, "Circuit": 500, "Chip": 100, "Superalloy": 10, "AdvCircuit": 10},
+		"stats": {"hp": 7500, "atk": 40, "max_shield": 500, "energy_capacity": 600},
+		"cost": {"credits": 500000, "Steel": 5000, "Ti": 250, "Circuit": 500, "Chip": 100, "Superalloy": 10, "AdvCircuit": 10},
 		"slots": ["weapon", "weapon", "weapon", "shield", "shield", "engine", "engine", "battery", "battery", "battery"],
 		"research_req": "shipwright_2",
 		"visual": "res://assets/ships/3.png"
@@ -57,7 +57,7 @@ var hulls: Dictionary = {
 		"name": "Battlecruiser",
 		"tier": 4,  # Audit v1.0: Added for fleet mission requirements
 		"stats": {"hp": 9000, "atk": 100, "energy_capacity": 1500},
-		"cost": {"credits": 5000000, "Steel": 100000, "Ti": 1500, "Circuit": 1000, "Chip": 250, "Superalloy": 50, "AdvCircuit": 50, "VoidArtifact": 10},
+		"cost": {"credits": 5000000, "Steel": 50000, "Ti": 1500, "Circuit": 1000, "Chip": 250, "Superalloy": 50, "AdvCircuit": 50, "VoidArtifact": 10},
 		"slots": ["weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "engine", "battery", "battery", "battery", "battery"],
 		"research_req": "capital_ship_engineering",
 		"visual": "res://assets/ships/4.png"
@@ -65,7 +65,7 @@ var hulls: Dictionary = {
 	"dreadnought_hull": {
 		"name": "Dreadnought",
 		"tier": 5,  # Audit v1.0: Added for fleet mission requirements
-		"stats": {"hp": 20000, "atk": 250, "energy_capacity": 4000},
+		"stats": {"hp": 50000, "atk": 250, "energy_capacity": 4000},
 		"cost": {"credits": 25000000, "Steel": 500000, "Ti": 5000, "Circuit": 2500, "Chip": 500, "Superalloy": 200, "AdvCircuit": 200, "QuantumCore": 20, "VoidArtifact": 50},
 		"slots": ["weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "shield", "shield", "shield", "engine", "battery", "battery", "battery", "battery", "battery", "battery"],
 		"research_req": "quantum_dynamics",
@@ -151,15 +151,15 @@ var modules: Dictionary = {
 	"thermal_tile": {
 		"name": "Graphite Armor",
 		"slot_type": "shield", 
-		"stats": {"def": 12, "hp": 50}, 
+		"stats": {"def": 35, "hp": 250}, 
 		"cost": {"credits": 5000, "Graphite": 20},
 		"desc": "Ablative carbon armor. Increases Hull & Armor.",
 		"research_req": "adv_materials"
 	},
 	"titanium_armor": {
 		"name": "Titanium Plating",
-		"slot_type": "shield",
-		"stats": {"def": 15, "hp": 100},
+		"slot_type": "shield", 
+		"stats": {"def": 50, "hp": 400},
 		"cost": {"credits": 75000, "Ti": 20},
 		"desc": "Heavy-duty alloy armor.",
 		"research_req": "shipwright_1"
@@ -225,7 +225,7 @@ var modules: Dictionary = {
 	"composite_armor": {
 		"name": "Composite Plating",
 		"slot_type": "shield",
-		"stats": {"def": 25, "hp": 200},
+		"stats": {"def": 45, "hp": 350},
 		"cost": {"credits": 2000, "Ti": 50, "Graphite": 20},
 		"desc": "Layered titanium-carbon armor.",
 		"research_req": "shipwright_2"
@@ -311,16 +311,18 @@ var modules: Dictionary = {
 		"slot_type": "shield",
 		"stats": {"def": 100, "hp": 500},
 		"cost": {"credits": 8500000, "IrPlate": 15},
-		"desc": "Nearly indestructible. Ultimate defensive module.",
-		"research_req": "iridium_metallurgy"
+		"desc": "Nearly indestructible. Ultimate defensive module. (Hardened)",
+		"research_req": "iridium_metallurgy",
+		"hardened": true
 	},
 	"osmium_core_module": {
 		"name": "Osmium Reactor Core",
 		"slot_type": "shield",
 		"stats": {"hp": 5000, "def": 50},
 		"cost": {"credits": 12500000, "OsCore": 3},
-		"desc": "Densest material. Massive HP boost. Immunity to armor piercing.",
-		"research_req": "exotic_metallurgy"
+		"desc": "Densest material. Massive HP boost. Immunity to armor piercing. (Hardened)",
+		"research_req": "exotic_metallurgy",
+		"hardened": true
 	},
 	"palladium_fuel_cell": {
 		"name": "Palladium Fuel Cell Array",
@@ -333,7 +335,7 @@ var modules: Dictionary = {
 	"iridium_penetrator": {
 		"name": "Iridium-Tungsten Penetrator",
 		"slot_type": "weapon",
-		"stats": {"atk_kinetic": 100, "energy_load": 30},
+		"stats": {"atk_kinetic": 350, "energy_load": 30},
 		"cost": {"credits": 12000, "IrWAlloy": 30, "Circuit": 20},
 		"desc": "Armor-piercing penetrator. Ignores 50% of enemy armor.",
 		"research_req": "iridium_metallurgy"
@@ -341,7 +343,7 @@ var modules: Dictionary = {
 	"platinum_laser": {
 		"name": "Platinum-Enhanced Laser",
 		"slot_type": "weapon",
-		"stats": {"atk_energy": 80, "energy_load": 35},
+		"stats": {"atk_energy": 300, "energy_load": 35},
 		"cost": {"credits": 5000000, "Pt": 20, "Si": 100, "AdvCircuit": 15},
 		"desc": "Pt-coated optics. Superior energy damage.",
 		"research_req": "industrial_catalysis"
@@ -415,8 +417,9 @@ var modules: Dictionary = {
 		"slot_type": "shield",
 		"stats": {"def": 450, "hp": 3000}, # ITER7: 450 = ~47% mitigation in Sector Epsilon
 		"cost": {"credits": 10000000, "OmegaPlating": 10, "Ir": 50, "Superalloy": 100},
-		"desc": "(Endgame) Ultimate defensive module. +450 DEF, +3000 HP.",
-		"research_req": "void_navigation"
+		"desc": "(Endgame) Ultimate defensive module. +450 DEF, +3000 HP. (Hardened)",
+		"research_req": "void_navigation",
+		"hardened": true
 	},
 	"primordial_core": {
 		"name": "★ Primordial Core ★",
@@ -426,6 +429,14 @@ var modules: Dictionary = {
 		"desc": "(Legendary) Heart of the Titan. +2000 Energy, +25% ATK Speed, +25% Shield Regen.",
 		"research_req": "void_navigation",
 		"unique_id": "primordial_power"
+	},
+	"omega_beam": {
+		"name": "★ Omega Beam ★",
+		"slot_type": "weapon",
+		"stats": {"atk_energy": 1200, "energy_load": 100},
+		"cost": {"credits": 25000000, "OmegaPlating": 5, "VoidEssence": 5},
+		"desc": "(Endgame) Concentrated void energy stream. Deletes matter.",
+		"research_req": "void_navigation"
 	},
 	# ========== ULTIMATE MODULES (P0-6: Endgame Crafted Item Sinks) ==========
 	"void_battery_array": {
@@ -449,8 +460,9 @@ var modules: Dictionary = {
 		"slot_type": "shield",
 		"stats": {"hp": 15000, "def": 300, "max_shield": 1000, "shield_regen": 30},
 		"cost": {"credits": 100000000, "PrimordialArmor": 3},
-		"desc": "(Legendary) Invincible titan shell. +15000 HP, +300 DEF, +1000 Shield.",
-		"research_req": "void_navigation"
+		"desc": "(Legendary) Invincible titan shell. +15000 HP, +300 DEF, +1000 Shield. (Super-Hardened)",
+		"research_req": "void_navigation",
+		"hardened": true # Logic in Combat Manager will check for this ID specifically for 100% resist
 	},
 	"omega_singularity": {
 		"name": "★★ Omega Singularity ★★",
@@ -485,7 +497,7 @@ var modules: Dictionary = {
 	"diamond_edge_railgun": {
 		"name": "Diamond-Edge Railgun",
 		"slot_type": "weapon",
-		"stats": {"atk_kinetic": 150, "energy_load": 40},
+		"stats": {"atk_kinetic": 600, "energy_load": 40},
 		"cost": {"credits": 200000, "Diamond": 10, "W": 50, "Steel": 200},
 		"desc": "Hyper-velocity penetrator. Best-in-class kinetic damage.",
 		"research_req": "exotic_matter_analysis"
@@ -494,7 +506,7 @@ var modules: Dictionary = {
 	"crystal_lens_laser": {
 		"name": "Crystal Lens Laser",
 		"slot_type": "weapon",
-		"stats": {"atk_energy": 180, "energy_load": 50},
+		"stats": {"atk_energy": 700, "energy_load": 50},
 		"cost": {"credits": 250000, "SyntheticCrystal": 10, "Si": 500, "AdvCircuit": 30},
 		"desc": "Focused coherent light. Best-in-class energy damage.",
 		"research_req": "exotic_matter_analysis"

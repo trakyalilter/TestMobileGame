@@ -150,6 +150,18 @@ var building_db: Dictionary = {
 		"research_req": "mass_production_tactics",
 		"category": "industry"
 	},
+	"adv_munitions_factory": {
+		"name": "Advanced Munitions Factory",
+		"description": "Precision automated assembly for T2 Ammunition (Slugs/Cells).",
+		"cost": {"credits": 150000, "Steel": 50, "AdvCircuit": 50},
+		"energy_gen": 0.0,
+		"energy_cons": 150.0,
+		"yield": {"SlugT2": 5, "CellT2": 5},
+		"input": {"Steel": 5, "Al": 5, "Si": 5},
+		"interval": 8.0,
+		"research_req": "ballistics_optimization",
+		"category": "industry"
+	},
 	"repair_docks": {
 		"name": "Fleet Repair Docks",
 		"description": "Automated maintenance for the fleet. Reduces mission repair costs by 10% per level.",
@@ -733,6 +745,11 @@ func process_tick(delta: float):
 								for entry in loot_table:
 									var element = entry[0]
 									var chance = entry[1]
+									
+									# Audit v33.0: Scavenger Protocol Bonus
+									if GameState.research_manager.is_tech_unlocked("scavenger_protocol"):
+										chance += 0.15
+									
 									var min_amt = entry[2]
 									var max_amt = entry[3]
 									
