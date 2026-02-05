@@ -35,6 +35,8 @@ var building_db: Dictionary = {
 		"cost": {"credits": 150, "Fe": 10},
 		"energy_gen": 50.0, 
 		"energy_cons": 0.0,
+		"input": {"C": 1},
+		"interval": 10.0,
 		"research_req": "combustion",
 		"category": "power"
 	},
@@ -480,6 +482,46 @@ func get_total_resource_rates() -> Dictionary:
 				
 	return rates
 
+func get_building_adjusted_rate(building_id: String) -> Dictionary:
+	"""Calculates real-world production rate for a single building of this type, including all multipliers."""
+	if not building_id in building_db: return {}
+	var data = building_db[building_id]
+	var interval = data.get("interval", 1.0)
+	var efficiency = energy_efficiency
+	
+	var warp_mult = 1.0
+	if GameState.warp_manager:
+		warp_mult = GameState.warp_manager.get_production_multiplier()
+		
+	var skill_yield_mult = 1.0 + (get_level() * 0.01)
+	
+	var global_yield_bonuses = {}
+	for other_bid in buildings:
+		var other_data = building_db.get(other_bid)
+		if other_data and other_data.has("yield_bonus"):
+			for res in other_data["yield_bonus"]:
+				global_yield_bonuses[res] = global_yield_bonuses.get(res, 0.0) + (other_data["yield_bonus"][res] * buildings[other_bid])
+
+	var results = {"yield": {}, "input": {}}
+	
+	if "yield" in data:
+		for res in data["yield"]:
+			var base_qty = float(data["yield"][res])
+			if building_id == "auto_smelter" or building_id == "hydro_plant" or building_id == "industrial_centrifuge":
+				var eng_lvl = GameState.processing_manager.get_level()
+				base_qty = base_qty * (1.0 + (log(1.0 + eng_lvl) / log(10.0)) * 5.0)
+			
+			var total_yield_mult = 1.0 + global_yield_bonuses.get(res, 0.0)
+			var qty = base_qty * total_yield_mult * warp_mult * skill_yield_mult
+			results["yield"][res] = (qty / interval) * 60.0 * efficiency
+			
+	if "input" in data:
+		for res in data["input"]:
+			var qty = float(data["input"][res])
+			results["input"][res] = (qty / interval) * 60.0 * efficiency
+			
+	return results
+
 func get_building_cost(building_id: String) -> Dictionary:
 	"""Calculates exponential cost scaling: Base * (1.15 ^ current_count)"""
 	if not building_id in building_db: return {}
@@ -552,6 +594,10 @@ func recalc_energy():
 			# No Overclocking - Scaling is purely count-based
 			gen += data.get("energy_gen", 0.0) * count
 			cons += data.get("energy_cons", 0.0) * count
+	
+	# Forensic 3: Ship Systems Load (Integrate ship power draw into global grid)
+	if GameState.shipyard_manager:
+		cons += GameState.shipyard_manager.energy_used
 	
 	# Audit v4.0: Milestone Level 10 (+10% Grid Efficiency)
 	if is_milestone_unlocked(10):

@@ -29,45 +29,37 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 24
 text = "Base Infrastructure"
 
-[node name="EnergyDash" type="PanelContainer" parent="VBoxContainer"]
-custom_minimum_size = Vector2(0, 80)
-layout_mode = 2
-
-[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/EnergyDash"]
+[node name="Header" type="HBoxContainer" parent="VBoxContainer"]
 layout_mode = 2
 theme_override_constants/separation = 20
-alignment = 0
 
-[node name="NetLabel" type="Label" parent="VBoxContainer/EnergyDash/HBoxContainer"]
+[node name="NetLabel" type="Label" parent="VBoxContainer/Header"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0, 0.898039, 1, 1)
-theme_override_font_sizes/font_size = 24
+theme_override_font_sizes/font_size = 18
 text = "NET: +0.0 kW"
-vertical_alignment = 1
 
-[node name="Control" type="Control" parent="VBoxContainer/EnergyDash/HBoxContainer"]
+[node name="Control" type="Control" parent="VBoxContainer/Header"]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/EnergyDash/HBoxContainer"]
+[node name="StatsVBox" type="VBoxContainer" parent="VBoxContainer/Header"]
 layout_mode = 2
 alignment = 1
 
-[node name="GenLabel" type="Label" parent="VBoxContainer/EnergyDash/HBoxContainer/VBoxContainer"]
+[node name="GenLabel" type="Label" parent="VBoxContainer/Header/StatsVBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.411765, 0.941176, 0.682353, 1)
+theme_override_font_sizes/font_size = 12
 text = "GEN: 0.0 kW"
 horizontal_alignment = 2
 
-[node name="ConsLabel" type="Label" parent="VBoxContainer/EnergyDash/HBoxContainer/VBoxContainer"]
+[node name="ConsLabel" type="Label" parent="VBoxContainer/Header/StatsVBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.321569, 0.321569, 1)
+theme_override_font_sizes/font_size = 12
 text = "CONS: 0.0 kW"
 horizontal_alignment = 2
-
-[node name="HSeparator" type="HSeparator" parent="VBoxContainer"]
-layout_mode = 2
-theme_override_constants/separation = 20
 
 [node name="ScrollContainer" type="ScrollContainer" parent="VBoxContainer"]
 layout_mode = 2
@@ -89,15 +81,10 @@ theme_override_colors/font_color = Color(1.0, 0.8, 0.2, 0.5)
 theme_override_font_sizes/font_size = 12
 text = "[ POWER SYSTEMS ]"
 
-[node name="Grid" type="GridContainer" parent="VBoxContainer/ScrollContainer/BladeContainer/EnergyRack"]
+[node name="Grid" type="HFlowContainer" parent="VBoxContainer/ScrollContainer/BladeContainer/EnergyRack"]
 layout_mode = 2
-columns = 5
 theme_override_constants/h_separation = 15
 theme_override_constants/v_separation = 15
-
-[node name="HSeparator" type="HSeparator" parent="VBoxContainer/ScrollContainer/BladeContainer/EnergyRack"]
-modulate = Color(1, 1, 1, 0.2)
-layout_mode = 2
 
 [node name="MiningRack" type="VBoxContainer" parent="VBoxContainer/ScrollContainer/BladeContainer"]
 layout_mode = 2
@@ -109,15 +96,10 @@ theme_override_colors/font_color = Color(1.0, 0.6, 0.2, 0.5)
 theme_override_font_sizes/font_size = 12
 text = "[ EXTRACTION RACKS ]"
 
-[node name="Grid" type="GridContainer" parent="VBoxContainer/ScrollContainer/BladeContainer/MiningRack"]
+[node name="Grid" type="HFlowContainer" parent="VBoxContainer/ScrollContainer/BladeContainer/MiningRack"]
 layout_mode = 2
-columns = 5
 theme_override_constants/h_separation = 15
 theme_override_constants/v_separation = 15
-
-[node name="HSeparator" type="HSeparator" parent="VBoxContainer/ScrollContainer/BladeContainer/MiningRack"]
-modulate = Color(1, 1, 1, 0.2)
-layout_mode = 2
 
 [node name="ProductionRack" type="VBoxContainer" parent="VBoxContainer/ScrollContainer/BladeContainer"]
 layout_mode = 2
@@ -129,8 +111,7 @@ theme_override_colors/font_color = Color(0.2, 0.8, 1.0, 0.5)
 theme_override_font_sizes/font_size = 12
 text = "[ LOGISTICS & FABRICATION ]"
 
-[node name="Grid" type="GridContainer" parent="VBoxContainer/ScrollContainer/BladeContainer/ProductionRack"]
+[node name="Grid" type="HFlowContainer" parent="VBoxContainer/ScrollContainer/BladeContainer/ProductionRack"]
 layout_mode = 2
-columns = 5
 theme_override_constants/h_separation = 15
 theme_override_constants/v_separation = 15

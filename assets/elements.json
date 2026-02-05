@@ -374,6 +374,16 @@
     "description": "Armor-piercing heavy slugs. +15 Kinetic Dmg (20s)."
   },
   {
+    "atomic_number": -505,
+    "symbol": "SlugT1S",
+    "name": "Steel Slugs",
+    "mass": 0.2,
+    "category": "Ammo",
+    "tier": 2,
+    "base_value": 25,
+    "description": "Armor-piercing heavy slugs. +15 Kinetic Dmg (20s)."
+  },
+  {
     "atomic_number": -82,
     "symbol": "CellT1",
     "name": "Focus Crystal",
@@ -667,5 +677,28 @@
     "tier": 2,
     "base_value": 35,
     "description": "Super-cooled nitrogen for industrial cooling systems."
+  },
+  {
+    "atomic_number": -71,
+    "symbol": "MiteChitin",
+    "name": "Mite Chitin",
+    "mass": 0.1,
+    "category": "Raw Material",
+    "tier": 1,
+    "base_value": 5,
+    "description": "Exoskeleton fragments from space mites. Used in basic repairs."
+  },
+  {
+    "atomic_number": -70,
+    "symbol": "ChitinPatch",
+    "name": "Chitin Hull Patch",
+    "mass": 0.2,
+    "category": "Consumable",
+    "tier": 1,
+    "base_value": 10,
+    "effect": "heal_hull",
+    "value": 40,
+    "description": "Organic sealant. cheaper than iron patches.",
+    "research_req": "basic_engineering"
   }
 ]

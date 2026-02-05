@@ -29,7 +29,7 @@ var player_weapon_bars = []
 @onready var e_attack_pb = $Dashboard/Visualizer/HUD/Overlays/TargetingOverlay/VBox/EnemyStats/E_AttackBar
 
 @onready var scanner_overlay = $Dashboard/Visualizer/HUD/Overlays/BottomRegion/StatusRow/ScannerOverlay
-@onready var loot_lbl = $Dashboard/Visualizer/HUD/Overlays/BottomRegion/StatusRow/ScannerOverlay/VBox/LootText
+@onready var loot_lbl = $Dashboard/Visualizer/HUD/Overlays/BottomRegion/StatusRow/ScannerOverlay/VBox/Scroll/LootText
 
 @onready var ammo_overlay = $Dashboard/Visualizer/HUD/Overlays/BottomRegion/StatusRow/AmmoOverlay
 @onready var ammo_vbox = $Dashboard/Visualizer/HUD/Overlays/BottomRegion/StatusRow/AmmoOverlay/VBox/AmmoGroupVBox
@@ -54,16 +54,8 @@ func _ready():
 	GameState.game_loaded.connect(refresh_zones)
 	
 	# HUD Stress & Console Interaction
-	$Dashboard/Visualizer/HUD/Overlays/SectorOverlay.mouse_entered.connect(func(): p_hp_lbl.visible = true; p_sh_lbl.visible = true)
-	$Dashboard/Visualizer/HUD/Overlays/SectorOverlay.mouse_exited.connect(func(): p_hp_lbl.visible = false; p_sh_lbl.visible = false)
-	$Dashboard/Visualizer/HUD/Overlays/TargetingOverlay.mouse_entered.connect(func(): e_hp_lbl.visible = true; e_sh_lbl.visible = true)
-	$Dashboard/Visualizer/HUD/Overlays/TargetingOverlay.mouse_exited.connect(func(): e_hp_lbl.visible = false; e_sh_lbl.visible = false)
 	
 	# Initial Suppression
-	p_hp_lbl.visible = false
-	p_sh_lbl.visible = false
-	e_hp_lbl.visible = false
-	e_sh_lbl.visible = false
 	
 	UITheme.apply_premium_button_style(btn_retreat, "combat")
 	UITheme.apply_premium_button_style(cons_btn, "engineering")
@@ -88,6 +80,8 @@ func _ready():
 	if not cons_btn.is_connected("pressed", _on_use_btn_pressed): cons_btn.pressed.connect(_on_use_btn_pressed)
 	if not cons_opt.is_connected("item_selected", _on_option_button_item_selected): cons_opt.item_selected.connect(_on_option_button_item_selected)
 	if not auto_btn.is_connected("toggled", _on_auto_btn_toggled): auto_btn.toggled.connect(_on_auto_btn_toggled)
+	
+	cons_opt.get_popup().about_to_popup.connect(_on_consumable_popup_about_to_show)
 	
 	manager.heat_changed.connect(_on_heat_changed)
 
@@ -529,12 +523,13 @@ func _rebuild_weapon_battery(w_states):
 		weapon_battery.add_child(pb)
 		player_weapon_bars.append(pb)
 
+
 func _refresh_consumable_options():
 	var current_sel = cons_opt.get_item_metadata(cons_opt.selected) if cons_opt.selected > 0 else null
 	cons_opt.clear()
 	cons_opt.add_item("OFF / SELECT", 0)
 	
-	var items = ["EmergencyPatch", "BasicBooster", "Mesh", "Seal", "NitroCoolant", "nanite_swarm"]
+	var items = ElementDB.get_elements_in_category("consumables")
 	for id in items:
 		var count = GameState.resources.get_element_amount(id)
 		if count > 0:
@@ -598,10 +593,22 @@ func _on_retreat_btn_pressed():
 
 func _on_use_btn_pressed():
 	manager.use_consumable()
+	_refresh_consumable_options()
 
 func _on_option_button_item_selected(index):
 	var id = cons_opt.get_item_metadata(index)
 	manager.equip_consumable(id)
+
+func _on_consumable_popup_about_to_show():
+	var popup = cons_opt.get_popup()
+	# Calculate position to show above the button
+	# We use global_position of the button and subtract the popup height
+	# Popup size might not be updated until shown, so we use min size as fallback
+	var p_size = popup.get_contents_minimum_size()
+	if p_size.y < 10: p_size.y = 150 # Fallback for expected height
+	
+	var global_pos = cons_opt.global_position
+	popup.set_position(global_pos - Vector2(0, p_size.y + 4))
 
 func _on_auto_btn_toggled(button_pressed):
 	manager.toggle_auto_consume(button_pressed)

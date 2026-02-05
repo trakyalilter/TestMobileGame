@@ -17,6 +17,8 @@ var attack_kinetic = 0
 
 var attack_energy = 0
 var energy_used = 0.0
+var attack_speed_bonus = 0.0
+var shield_regen_bonus = 0.0
 
 # Active Ship State
 var active_hull: String = "corvette_hull"
@@ -78,9 +80,9 @@ var modules: Dictionary = {
 	"mining_laser_mk1": {
 		"name": "Mining Laser Mk.I", 
 		"slot_type": "weapon", 
-		"stats": {"atk_energy": 10, "energy_load": 5}, 
+		"stats": {"atk_energy": 10, "energy_load": 5, "atk_interval": 1.5}, 
 		"cost": {"credits": 50, "Si": 5},
-		"desc": "Energy Beam. Effective vs Shields."
+		"desc": "Fast-firing Energy Beam. Effective vs Shields."
 	},
 	"mining_laser_mk2": {
 		"name": "Focused Laser Mk.II", 
@@ -93,9 +95,9 @@ var modules: Dictionary = {
 	"railgun_mk1": {
 		"name": "Mass Driver", 
 		"slot_type": "weapon", 
-		"stats": {"atk_kinetic": 25, "energy_load": 5}, 
+		"stats": {"atk_kinetic": 25, "energy_load": 5, "atk_interval": 3.0}, 
 		"cost": {"credits": 1000, "Fe": 50},
-		"desc": "Magnetic projectile. Crushes armor.",
+		"desc": "Heavy magnetic projectile. Slow but powerful.",
 		"research_req": "kinetics_101"
 	},
 	"targeting_computer": {
@@ -612,6 +614,15 @@ func equip_module(slot_idx: int, module_id: String) -> bool:
 	loadout[slot_idx] = module_id
 	
 	recalc_stats()
+	
+	# Auto-Equip Ammo if slot is empty (QoL Fix)
+	if mod_data["slot_type"] == "weapon" and not ammo_loadout.get(slot_idx):
+		var stats = mod_data.get("stats", {})
+		if stats.get("atk_kinetic", 0) > 0:
+			ammo_loadout[slot_idx] = "SlugT1"
+		elif stats.get("atk_energy", 0) > 0:
+			ammo_loadout[slot_idx] = "CellT1"
+			
 	return true
 
 func unequip_slot(slot_idx: int):
@@ -635,6 +646,8 @@ func recalc_stats():
 	var eva = 0.0
 	var e_cap = 0.0
 	var e_load = 0.0
+	var atk_speed_bon = 0.0
+	var s_reg_bon = 0.0
 	
 	if active_hull in hulls:
 		var h = hulls[active_hull]["stats"]
@@ -661,6 +674,8 @@ func recalc_stats():
 			eva += m.get("eva", 0) * skill_mult
 			e_cap += m.get("energy_capacity", 0) * skill_mult
 			e_load += m.get("energy_load", 0)
+			atk_speed_bon += m.get("atk_speed_mult", 0.0)
+			s_reg_bon += m.get("shield_regen_mult", 0.0)
 			
 	var rm = GameState.research_manager
 	var hp_mult = 1.0
@@ -680,6 +695,8 @@ func recalc_stats():
 	defense = defe
 	evasion = eva
 	energy_used = e_load
+	attack_speed_bonus = atk_speed_bon
+	shield_regen_bonus = s_reg_bon
 	
 	# Audit v8.0 P1-25: Applied Physics Hub Bonus (+10% Energy Capacity)
 	if rm:

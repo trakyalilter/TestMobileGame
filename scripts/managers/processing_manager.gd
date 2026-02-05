@@ -298,7 +298,20 @@ var recipes: Dictionary = {
 		"output": { "Seal": 1 },
 		"duration": 15.0,
 		"level_req": 28, # Increased from 3
-		"xp": 25, # Reduced from 30
+		"xp": 30, # Reduced from 40
+		"research_req": "metallurgy_advanced",
+		"category": "consumables"
+	},
+	"craft_chitin_patch": {
+		"name": "Biosynthetic Hull Patch",
+		"description": "Utilize mite chitin for emergency hull repairs. Purely organic.",
+		"input": { "MiteChitin": 10 },
+		"output": { "ChitinPatch": 2 },
+		"duration": 8.0,
+		"level_req": 3,
+		"xp": 8,
+		"research_req": "basic_engineering",
+		"category": "consumables"
 	},
 	"craft_slug_t1": {
 		"name": "Ferrite Rounds",
@@ -327,6 +340,15 @@ var recipes: Dictionary = {
 		"level_req": 32, # Increased from 4
 		"xp": 40, # Increased from 20
 		"research_req": "processing_tungsten"
+	},
+	"craft_slug_t1s": {
+		"name": "Steel Slugs",
+		"description": "Armor-piercing heavy slugs.",
+		"input": { "Steel": 2},
+		"output": { "SlugT1S": 10 },
+		"duration": 10.0,
+		"level_req": 24,
+		"xp": 20
 	},
 	"craft_cell_t2": {
 		"name": "Plasma Cell",
@@ -772,17 +794,6 @@ var recipes: Dictionary = {
 		"category": "endgame"
 	},
 	# ========== AUDIT v20.0 EXTENSION: ALL ENEMIES UNIQUE DROPS ==========
-	# T1: dust_mite -> MiteChitin
-	"craft_chitin_patch": {
-		"name": "Chitin Hull Patch",
-		"description": "Organic sealant from space mite exoskeletons. Emergency repair.",
-		"input": { "MiteChitin": 3, "Scrap": 5 },
-		"output": { "ChitinPatch": 2 },
-		"duration": 8.0,
-		"level_req": 1,
-		"xp": 5,
-		"category": "consumables"
-	},
 	# T2: claim_jumper -> StolenCargo
 	"fence_stolen_cargo": {
 		"name": "Fence Stolen Cargo",

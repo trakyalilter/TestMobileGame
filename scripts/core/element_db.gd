@@ -118,6 +118,7 @@ var ELEMENT_NAMES = {
 	# Combat Loot & Artifacts
 	"Scrap": "Recycled Scrap",
 	"MiteChitin": "Mite Chitin",
+	"ChitinPatch": "Chitin Hull Patch",
 	"DroneCore": "Drone Core",
 	"SalvageData": "Salvage Data",
 	"StolenCargo": "Stolen Cargo",
@@ -128,6 +129,7 @@ var ELEMENT_NAMES = {
 	"ColonyDataCore": "Colony Data Core",
 	"RadIsotope": "Radiation Isotope",
 	"CryoCell": "Cryogenic Cell",
+	"NitroCoolant": "Liquid Nitrogen Coolant",
 	
 	# New Research Artifacts
 	"Res1": "Common Artifact",
@@ -162,7 +164,7 @@ var CATEGORIES = {
 	"alloys": ["Steel", "Bronze", "Graphite", "StainlessSteel", "GalvanizedSteel", "Superalloy", "AlMgAlloy", "IrWAlloy"],
 	"components": ["Circuit", "AdvCircuit", "Chip", "Hydraulics", "AlWire", "Resin", "Fiber"],
 	"batteries": ["BatteryT1", "BatteryT2", "BatteryT3", "CoBattery", "MgBattery", "PdFuelCell"],
-	"consumables": ["Mesh", "Seal", "EmergencyPatch", "BasicBooster"],  # Audit v2.0: Early consumables
+	"consumables": ["Mesh", "Seal", "EmergencyPatch", "BasicBooster", "ChitinPatch", "NitroCoolant"],  # Audit v2.0: Early/Mid consumables
 	"ammo": ["SlugT1", "SlugT2", "SlugT3", "CellT1", "CellT2", "CellT3"],
 	"special": ["VoidArtifact", "QuantumCore", "ExoticMatter", "VoidCrystal", "Diamond", "SyntheticCrystal", 
 				"Neutronium", "AntimatterParticle", "ExoticIsotope", "ReactiveCore", "AICore", "AncientTech",

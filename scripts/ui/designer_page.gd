@@ -3,10 +3,7 @@ extends Control
 @onready var ship_name_lbl = $VBoxContainer/MainLayout/LeftPanel/InfoPanel/Margin/VBox/ShipNameLabel
 @onready var stats_lbl = $VBoxContainer/MainLayout/LeftPanel/InfoPanel/Margin/VBox/StatsLabel
 
-# Spatial Boxes
-@onready var w_box = $VBoxContainer/MainLayout/SchematicArea/SlotMap/WeaponBox
-@onready var util_box = $VBoxContainer/MainLayout/SchematicArea/SlotMap/UtilityBox
-@onready var ammo_slot_box = $VBoxContainer/MainLayout/SchematicArea/SlotMap/AmmoSlotBox
+
 
 # Storage
 @onready var storage_grid = $VBoxContainer/MainLayout/RightPanel/Scroll/UnifiedStorageGrid
@@ -70,26 +67,78 @@ func update_header():
 		stats_lbl.text = "Escape Pod Active"
 
 func rebuild_slots():
-	for box in [w_box, util_box]:
-		if box:
-			for child in box.get_children(): child.queue_free()
+	var s_cont = $VBoxContainer/MainLayout/SchematicArea/SlotMap/SchematicContainer
+	if s_cont:
+		for child in s_cont.get_children():
+			child.queue_free()
 			
 	if not manager.active_hull in manager.hulls: return
 	
 	var h_data = manager.hulls[manager.active_hull]
 	var slots = h_data["slots"]
+	
+	# Categorize Slots
+	var blades = {
+		"Weapons": [],
+		"Defense": [],
+		"Systems": [],
+		"Utility": [],
+		"Ammunition": []
+	}
+	
 	for i in range(slots.size()):
 		var s_type = slots[i]
-		var w = slot_widget_scene.instantiate()
-		var target = util_box # Default to utility
-		
-		# Spatially route weapons to the top-box
 		if s_type == "weapon":
-			target = w_box
-		
-		if target:
-			target.add_child(w)
-			w.setup(i, s_type, self, manager)
+			blades["Weapons"].append({"idx": i, "type": s_type})
+			# Add ammo slot for every weapon slot
+			blades["Ammunition"].append({"idx": i, "type": "ammo"})
+		elif s_type == "shield" or s_type == "armor":
+			blades["Defense"].append({"idx": i, "type": s_type})
+		elif s_type == "engine" or s_type == "reactor" or s_type == "battery":
+			blades["Systems"].append({"idx": i, "type": s_type})
+		else:
+			blades["Utility"].append({"idx": i, "type": s_type})
+			
+	# Create Blades in Order
+	_create_blade("Weapons", blades["Weapons"], s_cont)
+	_create_blade("Ammunition", blades["Ammunition"], s_cont, true)
+	_create_blade("Defense", blades["Defense"], s_cont)
+	_create_blade("Systems", blades["Systems"], s_cont)
+	_create_blade("Utility", blades["Utility"], s_cont)
+
+func _create_blade(title: String, slot_list: Array, parent: Node, is_ammo: bool = false):
+	if slot_list.is_empty(): return
+	
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 5)
+	parent.add_child(vbox)
+	
+	var label = Label.new()
+	label.text = "[ %s ]" % title.to_upper()
+	label.add_theme_font_size_override("font_size", 10)
+	label.add_theme_color_override("font_color", Color(1, 1, 1, 0.5))
+	vbox.add_child(label)
+	
+	var flow = HFlowContainer.new()
+	flow.add_theme_constant_override("h_separation", 10)
+	flow.add_theme_constant_override("v_separation", 10)
+	vbox.add_child(flow)
+	
+	for s_data in slot_list:
+		var w
+		if is_ammo:
+			w = ammo_slot_scene.instantiate()
+			flow.add_child(w)
+			w.setup(s_data["idx"], self, manager)
+		else:
+			w = slot_widget_scene.instantiate()
+			flow.add_child(w)
+			w.setup(s_data["idx"], s_data["type"], self, manager)
+			
+	# Add Spacer
+	var sep = Control.new()
+	sep.custom_minimum_size = Vector2(0, 10)
+	parent.add_child(sep)
 
 func sync_silhouette():
 	if not manager.active_hull: return
@@ -98,18 +147,7 @@ func sync_silhouette():
 		silhouette.texture = load(h["visual"])
 
 func rebuild_ammo_slots():
-	for child in ammo_slot_box.get_children(): child.queue_free()
-	
-	if not manager.active_hull in manager.hulls: return
-	
-	var h_data = manager.hulls[manager.active_hull]
-	var slots = h_data["slots"]
-	
-	for i in range(slots.size()):
-		if slots[i] == "weapon":
-			var slot = ammo_slot_scene.instantiate()
-			ammo_slot_box.add_child(slot)
-			slot.setup(i, self, manager)
+	pass # Integrated into blade system
 
 func rebuild_storage():
 	for child in storage_grid.get_children(): child.queue_free()
@@ -173,10 +211,19 @@ func get_module_widget(module_id: String) -> Control:
 func _on_circuit_draw():
 	# Draw glowing lines between slots that are next to each other
 	var accent = UITheme.COLORS["accent_bright"]
-	var boxes = [w_box, util_box]
+	var s_cont = $VBoxContainer/MainLayout/SchematicArea/SlotMap/SchematicContainer
+	if not s_cont: return
 	
-	for box in boxes:
-		var children = box.get_children()
+	for blade_vbox in s_cont.get_children():
+		if not blade_vbox is VBoxContainer: continue
+		var flow = null
+		for child in blade_vbox.get_children():
+			if child is HFlowContainer:
+				flow = child
+				break
+		
+		if not flow: continue
+		var children = flow.get_children()
 		if children.size() < 2: continue
 		
 		for i in range(children.size() - 1):

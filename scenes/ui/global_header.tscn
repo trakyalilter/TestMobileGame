@@ -28,13 +28,6 @@ theme_override_colors/font_color = Color(1, 0.843137, 0, 1)
 text = "Credits: 0"
 vertical_alignment = 1
 
-[node name="MissionLabel" type="Label" parent="MarginContainer/HBoxContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Mission: ---"
-horizontal_alignment = 1
-vertical_alignment = 1
-
 [node name="TaskLabel" type="Label" parent="MarginContainer/HBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 3

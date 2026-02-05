@@ -1,7 +1,6 @@
 extends PanelContainer
 
-@onready var credits_lbl = $MarginContainer/HBoxContainer/CreditsLabel
-@onready var mission_lbl = $MarginContainer/HBoxContainer/MissionLabel
+@onready var credits_lbl = $MarginContainer/HBoxContainer/CreditsLabel	
 @onready var task_lbl = $MarginContainer/HBoxContainer/TaskLabel
 
 var stability_lbl: Label # Added dynamically in _ready if not in scene
@@ -17,7 +16,6 @@ func _ready():
 	self.modulate.a = 0.9
 	UITheme.add_hover_scale(task_lbl, 1.02)
 	UITheme.apply_segmented_font(credits_lbl, UITheme.COLORS["warning"])
-	UITheme.apply_segmented_font(mission_lbl, Color(0.2, 0.8, 1.0)) # Cyan
 	UITheme.apply_segmented_font(task_lbl, UITheme.COLORS["text_main"])
 	
 	# Add Stability Label dynamically to avoid tscn surgery
@@ -33,7 +31,7 @@ func _ready():
 	UITheme.apply_segmented_font(stability_lbl, Color.WHITE)
 	
 	# Prevent layout expansion from text
-	for lbl in [credits_lbl, mission_lbl, task_lbl]:
+	for lbl in [credits_lbl, task_lbl]:
 		lbl.clip_text = true
 		lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	
@@ -50,9 +48,6 @@ func _ready():
 		GameState.resources.currency_added.connect(func(t, a): update_credits())
 		GameState.resources.currency_removed.connect(func(t, a): update_credits())
 	
-	if GameState.mission_manager:
-		GameState.mission_manager.mission_updated.connect(_update_mission_display)
-		_update_mission_display()
 	
 	if GameState.infrastructure_manager:
 		GameState.infrastructure_manager.activity_occurred.connect(func(): flash_led(infra_led, UITheme.CATEGORY_COLORS["infrastructure"]))
@@ -64,42 +59,6 @@ func _ready():
 var last_mission_id: String = ""
 var last_completed_state: bool = false
 
-func _update_mission_display():
-	if not GameState.mission_manager: return
-	
-	var mm = GameState.mission_manager
-	if mm.active_missions.is_empty():
-		mission_lbl.text = "MISSION: NONE"
-		return
-		
-	var mid = mm.active_missions[0]
-	var m = mm.missions[mid]
-	var prog_pct = (m["current_qty"] / float(max(1, m["target_qty"]))) * 100.0
-	
-	# Compact representation for the header
-	mission_lbl.text = "OBJ: %s (%d%%)" % [m["name"].to_upper(), int(prog_pct)]
-	
-	# SENSORY FEEDBACK LOGIC (Audit v13.0)
-	# Case 1: Mission Completed (Transition from Incomplete -> Complete)
-	if m["completed"] and not last_completed_state:
-		# TACTILE: Heavy thud to signify job done
-		UITheme.trigger_ui_thud(mission_lbl, 6.0) 
-		# VISUAL: Gold Pulse
-		UITheme.add_pulse_glow(mission_lbl, "inventory") # Gold color
-		
-	# Case 2: New Mission Started (ID changed)
-	if mid != last_mission_id:
-		# VISUAL: Circuit Surge (New orders received)
-		UITheme.trigger_circuit_surge(mission_lbl, Color(0.2, 0.8, 1.0))
-		
-	last_mission_id = mid
-	last_completed_state = m["completed"]
-	
-	if m["completed"]:
-		mission_lbl.add_theme_color_override("font_color", Color.GOLD)
-		mission_lbl.text = "OBJ: [ %s READY ]" % m["name"].to_upper()
-	else:
-		mission_lbl.add_theme_color_override("font_color", Color(0.2, 0.8, 1.0))
 
 func _setup_leds():
 	# Make them circular (or rounded squares for mechanical look)

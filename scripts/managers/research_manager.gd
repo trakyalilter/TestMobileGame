@@ -592,7 +592,6 @@ var tech_tree = {
 		"cost": 50000000,
 		"cost_items": {"QuantumCore": 30, "VoidCrystal": 50, "ExoticMatter": 20, "AncientTech": 5},
 		"type": "technology",
-		"parent": "singularity_engine"
 	},
 	# ENDGAME SINKS - Iteration 7
 	"void_weaponry_1": {

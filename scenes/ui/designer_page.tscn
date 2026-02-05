@@ -110,71 +110,20 @@ grow_vertical = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="SlotMap" type="Control" parent="VBoxContainer/MainLayout/SchematicArea"]
+[node name="SlotMap" type="ScrollContainer" parent="VBoxContainer/MainLayout/SchematicArea"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 2
+horizontal_scroll_mode = 0
 
-[node name="WeaponBox" type="HBoxContainer" parent="VBoxContainer/MainLayout/SchematicArea/SlotMap"]
-layout_mode = 1
-anchors_preset = -1
-anchor_left = 0.5
-anchor_top = 0.2
-anchor_right = 0.5
-anchor_bottom = 0.2
-offset_left = -250.0
-offset_top = -50.0
-offset_right = 250.0
-offset_bottom = 50.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_constants/separation = 10
-alignment = 1
-
-[node name="Label" type="Label" parent="VBoxContainer/MainLayout/SchematicArea/SlotMap/WeaponBox"]
+[node name="SchematicContainer" type="VBoxContainer" parent="VBoxContainer/MainLayout/SchematicArea/SlotMap"]
 layout_mode = 2
-size_flags_vertical = 0
-theme_override_colors/font_color = Color(0, 0.8, 1, 0.5)
-theme_override_font_sizes/font_size = 10
-text = "[ PRIMARY WEAPONRY ]"
-
-[node name="UtilityBox" type="HFlowContainer" parent="VBoxContainer/MainLayout/SchematicArea/SlotMap"]
-layout_mode = 1
-anchors_preset = -1
-anchor_left = 0.5
-anchor_top = 0.85
-anchor_right = 0.5
-anchor_bottom = 0.85
-offset_left = -300.0
-offset_top = -60.0
-offset_right = 300.0
-offset_bottom = 60.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_constants/h_separation = 10
-theme_override_constants/v_separation = 10
-alignment = 1
-
-[node name="Label" type="Label" parent="VBoxContainer/MainLayout/SchematicArea/SlotMap/UtilityBox"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.411765, 0.941176, 0.682353, 0.5)
-theme_override_font_sizes/font_size = 10
-text = "[ SHIP SYSTEMS // UTILITIES ]"
-
-[node name="AmmoSlotBox" type="VBoxContainer" parent="VBoxContainer/MainLayout/SchematicArea/SlotMap"]
-layout_mode = 1
-anchors_preset = -1
-anchor_top = 0.5
-anchor_bottom = 0.5
-offset_left = 20.0
-offset_right = 140.0
-grow_vertical = 2
-theme_override_constants/separation = 5
-alignment = 1
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 20
 
 [node name="RightPanel" type="VBoxContainer" parent="VBoxContainer/MainLayout"]
 custom_minimum_size = Vector2(300, 0)

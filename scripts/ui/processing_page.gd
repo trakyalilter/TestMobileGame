@@ -48,6 +48,7 @@ func refresh_recipes():
 	_create_rack("electronics", "Electronics & Components", Color(0.2, 0.8, 1.0, 0.5), rack_container)
 	_create_rack("batteries", "Power Cells & Batteries", Color(1.0, 1.0, 0.3, 0.5), rack_container)
 	_create_rack("munitions", "Munitions Factory", Color(1.0, 0.4, 0.3, 0.5), rack_container)
+	_create_rack("consumables", "Field Consumables", Color(0.2, 1.0, 0.5, 0.5), rack_container)
 	_create_rack("research", "Research & Artifacts", Color(0.8, 0.4, 1.0, 0.5), rack_container)
 	
 	var sorted_keys = manager.recipes.keys()
@@ -70,6 +71,10 @@ func refresh_recipes():
 			widgets.append(w)
 
 func _get_recipe_category(rid: String, data: Dictionary) -> String:
+	# Priority: Explicit Category
+	if data.get("category") == "consumables":
+		return "consumables"
+
 	# Munitions - ammo for weapons
 	if "slug" in rid or "cell_t" in rid or "craft_cell" in rid or "rounds" in rid:
 		return "munitions"

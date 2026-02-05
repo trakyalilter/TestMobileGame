@@ -203,3 +203,9 @@ func load_elements_db():
 			print("Failed to parse elements.json: ", json.get_error_message())
 	else:
 		print("Failed to open res://assets/elements.json")
+
+func get_element_data(symbol: String) -> Dictionary:
+	for element in elements_db:
+		if element.get("symbol") == symbol:
+			return element
+	return {}
