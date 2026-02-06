@@ -7,6 +7,7 @@ signal warped(shards_gained)
 
 var total_warps: int = 0
 var warp_shards: float = 0.0 # Permanent prestige currency
+var credits_at_warp_start: float = 0.0 # To prevent infinite shard loop
 
 func get_warp_tier() -> int:
 	# Tier increases every 5 warps
@@ -18,7 +19,7 @@ func _init():
 func calculate_warp_gains() -> int:
 	# Formula based on LIFETIME credits earned + total buildings
 	# Log2 scaling: More generous early, natural soft cap late
-	var total_credits = GameState.resources.lifetime_credits
+	var total_credits = GameState.resources.lifetime_credits - credits_at_warp_start
 	var building_count = 0
 	for bid in GameState.infrastructure_manager.buildings:
 		building_count += GameState.infrastructure_manager.buildings[bid]
@@ -38,6 +39,7 @@ func execute_warp():
 	
 	warp_shards += gains
 	total_warps += 1
+	credits_at_warp_start = GameState.resources.lifetime_credits
 	
 	# Cache shard count for post-reset bonuses
 	var current_bonus_shards = warp_shards
@@ -89,10 +91,12 @@ func get_save_data_manager() -> Dictionary:
 	var data = get_save_data()
 	data["total_warps"] = total_warps
 	data["warp_shards"] = warp_shards
+	data["credits_at_warp_start"] = credits_at_warp_start
 	return data
 
 func load_save_data_manager(data: Dictionary):
 	load_save_data(data)
 	total_warps = data.get("total_warps", 0)
 	warp_shards = data.get("warp_shards", 0.0)
+	credits_at_warp_start = data.get("credits_at_warp_start", 0.0)
 

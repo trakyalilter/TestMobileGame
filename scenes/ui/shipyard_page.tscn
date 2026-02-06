@@ -62,24 +62,6 @@ layout_mode = 2
 theme_override_colors/font_color = Color(1, 1, 0.2, 1)
 text = "Energy: 0/0"
 
-[node name="FocalHull" type="PanelContainer" parent="VBoxContainer"]
-custom_minimum_size = Vector2(0, 150)
-layout_mode = 2
-
-[node name="Silhouette" type="TextureRect" parent="VBoxContainer/FocalHull"]
-modulate = Color(0, 1, 1, 0.2)
-layout_mode = 2
-expand_mode = 1
-stretch_mode = 5
-
-[node name="Info" type="Label" parent="VBoxContainer/FocalHull"]
-layout_mode = 2
-size_flags_vertical = 8
-theme_override_colors/font_color = Color(0, 0.8, 1, 0.5)
-theme_override_font_sizes/font_size = 12
-text = " [ READY FOR DEPLOYMENT ]"
-horizontal_alignment = 1
-
 [node name="ScrollContainer" type="ScrollContainer" parent="VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3

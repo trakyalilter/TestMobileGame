@@ -31,57 +31,48 @@ anchors_preset = -1
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 20.0
-offset_top = 20.0
+offset_top = 10.0
 offset_right = -20.0
-offset_bottom = -20.0
+offset_bottom = -10.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 20
+theme_override_constants/separation = 10
 
 [node name="Label" type="Label" parent="VBoxContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 24
-text = "Ship Designer"
+theme_override_colors/font_color = Color(0, 0.9, 1, 1)
+theme_override_font_sizes/font_size = 20
+text = "⚙ SHIP DESIGNER"
+
+[node name="InfoPanel" type="PanelContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="InfoHBox" type="HBoxContainer" parent="VBoxContainer/InfoPanel"]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="ShipNameLabel" type="Label" parent="VBoxContainer/InfoPanel/InfoHBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0.9, 1, 1)
+theme_override_font_sizes/font_size = 14
+text = "CORVETTE"
+
+[node name="StatsLabel" type="Label" parent="VBoxContainer/InfoPanel/InfoHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 11
+text = "HP: 500 | SHIELD: 200 | ATK: 125 | DEF: 50 | ACC: 75 | CRIT: 10% | EVA: 35 | DPS: 48.5 | PWR: 45/100"
 
 [node name="MainLayout" type="HBoxContainer" parent="VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_constants/separation = 20
-
-[node name="LeftPanel" type="VBoxContainer" parent="VBoxContainer/MainLayout"]
-custom_minimum_size = Vector2(250, 0)
-layout_mode = 2
-theme_override_constants/separation = 10
-
-[node name="InfoPanel" type="PanelContainer" parent="VBoxContainer/MainLayout/LeftPanel"]
-layout_mode = 2
-
-[node name="Margin" type="MarginContainer" parent="VBoxContainer/MainLayout/LeftPanel/InfoPanel"]
-layout_mode = 2
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 10
-
-[node name="VBox" type="VBoxContainer" parent="VBoxContainer/MainLayout/LeftPanel/InfoPanel/Margin"]
-layout_mode = 2
-
-[node name="ShipNameLabel" type="Label" parent="VBoxContainer/MainLayout/LeftPanel/InfoPanel/Margin/VBox"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0, 0.737255, 0.831373, 1)
-theme_override_font_sizes/font_size = 18
-text = "Active Class"
-
-[node name="StatsLabel" type="Label" parent="VBoxContainer/MainLayout/LeftPanel/InfoPanel/Margin/VBox"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.666667, 0.666667, 0.666667, 1)
-theme_override_font_sizes/font_size = 12
-text = "Stats..."
-autowrap_mode = 2
+theme_override_constants/separation = 15
 
 [node name="SchematicArea" type="Control" parent="VBoxContainer/MainLayout"]
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_stretch_ratio = 3.0
 
 [node name="CircuitBackground" type="Control" parent="VBoxContainer/MainLayout/SchematicArea"]
 show_behind_parent = true
@@ -94,17 +85,17 @@ grow_vertical = 2
 mouse_filter = 2
 
 [node name="Silhouette" type="TextureRect" parent="VBoxContainer/MainLayout/SchematicArea"]
-modulate = Color(0, 1, 1, 0.4)
+modulate = Color(0, 1, 1, 0.3)
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -200.0
-offset_top = -200.0
-offset_right = 200.0
-offset_bottom = 200.0
+offset_left = -150.0
+offset_top = -150.0
+offset_right = 150.0
+offset_bottom = 150.0
 grow_horizontal = 2
 grow_vertical = 2
 expand_mode = 1
@@ -123,18 +114,19 @@ horizontal_scroll_mode = 0
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_constants/separation = 20
+theme_override_constants/separation = 10
 
 [node name="RightPanel" type="VBoxContainer" parent="VBoxContainer/MainLayout"]
-custom_minimum_size = Vector2(300, 0)
+custom_minimum_size = Vector2(250, 0)
 layout_mode = 2
-theme_override_constants/separation = 10
+size_flags_stretch_ratio = 1.0
+theme_override_constants/separation = 8
 
 [node name="Label" type="Label" parent="VBoxContainer/MainLayout/RightPanel"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.8, 0.2, 1)
-theme_override_font_sizes/font_size = 14
-text = "ENGINEERING BAY INVENTORY"
+theme_override_font_sizes/font_size = 12
+text = "INVENTORY"
 horizontal_alignment = 1
 
 [node name="FilterConsole" type="PanelContainer" parent="VBoxContainer/MainLayout/RightPanel"]
@@ -143,35 +135,35 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_recessed")
 
 [node name="FilterStrip" type="HBoxContainer" parent="VBoxContainer/MainLayout/RightPanel/FilterConsole"]
 layout_mode = 2
-theme_override_constants/separation = 5
+theme_override_constants/separation = 3
 alignment = 1
 
 [node name="AllBtn" type="Button" parent="VBoxContainer/MainLayout/RightPanel/FilterConsole/FilterStrip"]
-custom_minimum_size = Vector2(50, 28)
+custom_minimum_size = Vector2(40, 24)
 layout_mode = 2
-theme_override_font_sizes/font_size = 10
+theme_override_font_sizes/font_size = 9
 toggle_mode = true
 button_pressed = true
 text = "ALL"
 
 [node name="WpnBtn" type="Button" parent="VBoxContainer/MainLayout/RightPanel/FilterConsole/FilterStrip"]
-custom_minimum_size = Vector2(50, 28)
+custom_minimum_size = Vector2(40, 24)
 layout_mode = 2
-theme_override_font_sizes/font_size = 10
+theme_override_font_sizes/font_size = 9
 toggle_mode = true
 text = "WPN"
 
 [node name="SysBtn" type="Button" parent="VBoxContainer/MainLayout/RightPanel/FilterConsole/FilterStrip"]
-custom_minimum_size = Vector2(50, 28)
+custom_minimum_size = Vector2(40, 24)
 layout_mode = 2
-theme_override_font_sizes/font_size = 10
+theme_override_font_sizes/font_size = 9
 toggle_mode = true
 text = "SYS"
 
 [node name="OrdBtn" type="Button" parent="VBoxContainer/MainLayout/RightPanel/FilterConsole/FilterStrip"]
-custom_minimum_size = Vector2(50, 28)
+custom_minimum_size = Vector2(40, 24)
 layout_mode = 2
-theme_override_font_sizes/font_size = 10
+theme_override_font_sizes/font_size = 9
 toggle_mode = true
 text = "ORD"
 
@@ -184,7 +176,7 @@ horizontal_scroll_mode = 0
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_constants/h_separation = 10
-theme_override_constants/v_separation = 10
-columns = 3
+theme_override_constants/h_separation = 6
+theme_override_constants/v_separation = 6
+columns = 2
 script = ExtResource("2_script")

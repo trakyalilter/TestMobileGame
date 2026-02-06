@@ -18,7 +18,7 @@ func _on_research_completed(active_tech_id):
 var tech_tree = {
 	"basic_engineering": {
 		"name": "Basic Engineering",
-		"description": "Unlocks:\n• Mineral Washing\n• Scrap Recycling\n• Lithium Refining\n• Lithium Brine Well (Auto)\n• Deep-Crust Drill (Auto)",
+		"description": "Unlocks:\n• Mineral Washing\n• Scrap Recycling\n• Lithium Refining",
 		"cost": 50,
 		"type": "technology",
 		"parent": null
@@ -53,7 +53,7 @@ var tech_tree = {
 	},
 	"combustion": {
 		"name": "Organic Combustion",
-		"description": "Unlocks:\n• Charcoal Kiln\n• Fly Ash Separation",
+		"description": "Unlocks:\n• Charcoal Kiln\n• Fly Ash Separation\n• HE Missile (Ammo)\n• Micro-Missile Launcher",
 		"cost": 50,
 		"type": "technology",
 		"parent": "materials_science"
@@ -71,7 +71,7 @@ var tech_tree = {
 		"description": "Unlocks:\n• Industrial Frigate (T2)\n• Titanium Plating",
 		"cost": 2000,
 		"cost_items": {"Res1": 20},
-		"type": "construction",
+		"type": "technology",
 		"parent": "smelting"
 	},
 
@@ -80,12 +80,12 @@ var tech_tree = {
 		"description": "Unlocks:\n• Escort Destroyer (T3)",
 		"cost": 2000,
 		"cost_items": {"Res2": 10},
-		"type": "construction",
+		"type": "technology",
 		"parent": "shipwright_1"
 	},
 	"adv_materials": {
 		"name": "Advanced Materials",
-		"description": "Unlocks:\n• Graphite Press\n• Semiconductor Wafer\n• Graphene Battery\n• Bauxite Strip Miner (Auto)\n• Quartz Resonator (Auto)\n• Heavy Tungsten Drill (Auto)",
+		"description": "Unlocks:\n• Graphite Press\n• Semiconductor Wafer\n• Graphene Battery\n• Quartz Resonator (Auto)\n• Heavy Tungsten Drill (Auto)",
 		"cost": 2000,
 		"cost_items": {"Res2": 10},
 		"type": "technology",
@@ -98,6 +98,13 @@ var tech_tree = {
 		"type": "technology",
 		"parent": "applied_physics"
 	},
+	"eff_scanning_1": {
+		"name": "Sensor Calibration",
+		"description": "Optimizes sensor arrays for better data retrieval.\nBonus: +50% Scanning Yield",
+		"cost": 150,
+		"type": "technology",
+		"parent": "applied_physics"
+	},
 
 	"automation": {
 		"name": "Factory Automation",
@@ -105,14 +112,21 @@ var tech_tree = {
 		"cost": 5000,
 		"cost_items": {"Res2": 25, "Circuit": 20},
 		"type": "technology",
-		"parent": "shipwright_2"
+		"parent": "adv_materials"
+	},
+	"advanced_rocketry": {
+		"name": "Advanced Rocketry",
+		"description": "Unlocks:\n• Seeker Missile Mk.II\n• Seeker Missile (Ammo)",
+		"cost": 15000,
+		"cost_items": {"Steel": 100, "Circuit": 50},
+		"type": "technology",
+		"parent": "automation"
 	},
 	"sector_alpha_decryption": {
 		"name": "Sector Scanning (Alpha)",
-		"description": "Unlocks:\n• Sector Alpha (Titanium)",
-		"cost": 15000,  # ITER2 FIX: Credit gate to slow NavData rush
-		"cost_items": {"NavData": 10, "PirateManifest": 10},
-		"type": "discovery",
+		"description": "Unlocks:\n• Sector Alpha (Titanium)\n\nRequires Titan Clearance from Titan Overseer.",
+		"cost_items": {"NavData": 10, "PirateManifest": 10, "TitanClearance": 1},
+		"type": "technology",
 		"parent": "shipwright_1"
 	},
 	"xeno_archaeology": {
@@ -120,14 +134,14 @@ var tech_tree = {
 		"description": "Unlocks:\n• Analyze Void Artifact",
 		"cost": 2000,
 		"cost_items": {"VoidArtifact": 1, "NavData": 5},
-		"type": "discovery",
+		"type": "technology",
 		"parent": "sector_alpha_decryption"
 	},
 	"warp_drive": {
 		"name": "Warp Drive Theory",
 		"description": "Unlocks:\n• Galaxy Map",
 		"cost": 5000,
-		"cost_items": {"NavData": 20, "Ti": 100, "Res3": 10},
+		"cost_items": {"NavData": 50, "Ti": 200},
 		"type": "technology",
 		"parent": "shipwright_2"
 	},
@@ -155,25 +169,26 @@ var tech_tree = {
 		"type": "technology",
 		"parent": "applied_physics"
 	},
-	"bronze_smithing": {
-		"name": "Bronze Smithing",
-		"description": "Unlocks:\n• Bronze Plating",
-		"cost": 100,
-		"type": "technology",
-		"parent": "materials_science"
-	},
 	"lightweight_alloys": {
 		"name": "Lightweight Alloys",
-		"description": "Unlocks:\n• Aluminum Hull Patch",
+		"description": "Unlocks:\n• Aluminum Smelting\n• Aluminum-Magnesium Alloy",
 		"cost": 200,
 		"cost_items": {"Res1": 3},
 		"type": "technology",
 		"parent": "materials_science"
 	},
+	"basic_electronics": {
+		"name": "Basic Electronics",
+		"description": "Unlocks:\n• Standard Circuit Assembly (Industrial)",
+		"cost": 800,
+		"cost_items": {"Cu": 20, "Si": 20},
+		"type": "technology",
+		"parent": "industrial_logistics"
+	},
 	# --- GATHERING UPGRADES ---
 	"diamond_drills": {
 		"name": "Diamond Tipped Drills",
-		"description": "Bonus:\n• +25% Excavate Soil speed",
+		"description": "Bonus:\n• +50% Excavate Soil speed",
 		"cost": 200,
 		"cost_items": {"Res1": 2},
 		"type": "technology",
@@ -181,7 +196,7 @@ var tech_tree = {
 	},
 	"high_flow_pumps": {
 		"name": "High-Flow Pumps",
-		"description": "Bonus:\n• +25% Pump Water speed",
+		"description": "Bonus:\n• +50% Pump Water speed",
 		"cost": 250,
 		"cost_items": {"Res1": 2},
 		"type": "technology",
@@ -189,7 +204,7 @@ var tech_tree = {
 	},
 	"laser_cutters": {
 		"name": "Laser Cutters",
-		"description": "Bonus:\n• +25% Deforest Zone speed",
+		"description": "Bonus:\n• +50% Deforest Zone speed",
 		"cost": 300,
 		"cost_items": {"Res1": 2},
 		"type": "technology",
@@ -359,7 +374,7 @@ var tech_tree = {
 		"name": "Automated Logistics",
 		"description": "Unlocks:\n• Drone Bay",
 		"cost": 3000,
-		"type": "construction",
+		"type": "technology",
 		"parent": "industrial_logistics"
 	},
 	"molecular_printing": {
@@ -367,7 +382,7 @@ var tech_tree = {
 		"description": "Unlocks:\n• Fabricator (+20% crafting)",
 		"cost": 5000,
 		"cost_items": {"Circuit": 50, "Fiber": 20},
-		"type": "construction",
+		"type": "technology",
 		"parent": "shipwright_2"
 	},
 	# --- END-GAME AUTOMATION (NEW) ---
@@ -450,15 +465,23 @@ var tech_tree = {
 		"description": "Unlocks:\n• Battlecruiser (T4)\n• Coil Cannon\n• Antimatter Engine",
 		"cost": 500000,
 		"cost_items": {"VoidArtifact": 5, "Ti": 200, "Res3": 100, "ColonyDataCore": 5}, # Audit v20.0: Added ColonyDataCore (Overseer Drop)
-		"type": "construction",
+		"type": "technology",
 		"parent": "shipwright_2"
+	},
+	"capital_ship_armament": {
+		"name": "Capital Ship Armament",
+		"description": "Unlocks:\n• Heavy Torpedo Launcher\n• Photon Torpedo (Ammo)",
+		"cost": 1000000,
+		"cost_items": {"VoidArtifact": 10, "Superalloy": 50, "AdvCircuit": 50},
+		"type": "technology",
+		"parent": "capital_ship_engineering"
 	},
 	"quantum_dynamics": {
 		"name": "Quantum Dynamics",
 		"description": "Unlocks:\n• Dreadnought (T5)",
 		"cost": 5000000,
 		"cost_items": {"QuantumCore": 20, "VoidArtifact": 50, "Res3": 500},
-		"type": "construction",
+		"type": "technology",
 		"parent": "capital_ship_engineering"
 	},
 	"broadside_tactics": {
@@ -474,8 +497,8 @@ var tech_tree = {
 		"name": "Deep Space Navigation",
 		"description": "Unlocks:\n• Sector Beta (Mining Colony)",
 		"cost": 100000,
-		"cost_items": {"NavData": 30, "Ti": 150, "Res3": 10},
-		"type": "discovery",
+		"cost_items": {"NavData": 25, "Ti": 150, "Res3": 10},
+		"type": "technology",
 		"parent": "warp_drive"
 	},
 	"radiation_shielding": {
@@ -491,7 +514,7 @@ var tech_tree = {
 		"description": "Unlocks:\n• Sector Delta (Crystalline)",
 		"cost": 1000000,
 		"cost_items": {"Pt": 20, "ExoticMatter": 10, "QuantumCore": 3},
-		"type": "discovery",
+		"type": "technology",
 		"parent": "radiation_shielding"
 	},
 	# Mid-Game Technology
@@ -592,6 +615,7 @@ var tech_tree = {
 		"cost": 50000000,
 		"cost_items": {"QuantumCore": 30, "VoidCrystal": 50, "ExoticMatter": 20, "AncientTech": 5},
 		"type": "technology",
+		"parent": "void_physics"
 	},
 	# ENDGAME SINKS - Iteration 7
 	"void_weaponry_1": {
@@ -720,27 +744,27 @@ var tech_tree = {
 var repeatable_tech_db = {
 	"production_focus": {
 		"name": "Recursive Optimization (Industry)",
-		"description": "Infinite scaling: +1% Global Processing Speed per level.",
+		"description": "Infinite scaling: +5% Global Processing Speed per level.",
 		"base_cost": 100000,
 		"base_items": {"VoidArtifact": 5, "AdvCircuit": 50},
 		"bonus_type": "processing_speed",
-		"bonus_value": 0.01
+		"bonus_value": 0.05
 	},
 	"combat_focus": {
 		"name": "Recursive Calibration (Combat)",
-		"description": "Infinite scaling: +1% Total Ship Damage per level.",
+		"description": "Infinite scaling: +5% Total Ship Damage per level.",
 		"base_cost": 100000,
 		"base_items": {"VoidArtifact": 5, "QuantumCore": 5},
 		"bonus_type": "combat_damage",
-		"bonus_value": 0.01
+		"bonus_value": 0.05
 	},
 	"gathering_focus": {
 		"name": "Recursive Logistics (Gathering)",
-		"description": "Infinite scaling: +1% Global Gathering Yield per level.",
+		"description": "Infinite scaling: +5% Global Gathering Yield per level.",
 		"base_cost": 100000,
 		"base_items": {"VoidArtifact": 5, "DroneCore": 50},
 		"bonus_type": "gathering_yield_mult",
-		"bonus_value": 0.01
+		"bonus_value": 0.05
 	}
 }
 

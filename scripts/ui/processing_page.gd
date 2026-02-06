@@ -120,9 +120,8 @@ func _create_rack(id: String, title: String, color: Color, parent: Node):
 	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	rack_vbox.add_child(header)
 	
-	# Use GridContainer with 5 columns for a stable layout
-	var rack_grid = GridContainer.new()
-	rack_grid.columns = 5
+	# Use HFlowContainer for responsive layout
+	var rack_grid = HFlowContainer.new()
 	rack_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	rack_grid.add_theme_constant_override("h_separation", 15)
 	rack_grid.add_theme_constant_override("v_separation", 15)

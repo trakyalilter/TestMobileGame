@@ -112,6 +112,7 @@ func deploy_fleet(slot_idx: int, mission_id: String, hull_id: String) -> bool:
 func recall_fleet(slot_idx: int):
 	if active_expeditions.has(slot_idx):
 		active_expeditions.erase(slot_idx)
+		print("[Fleet] Recalled fleet from slot %d" % slot_idx)
 
 func process_tick(delta: float):
 	var speed_bonus = 0.0
@@ -123,7 +124,7 @@ func process_tick(delta: float):
 		var data = missions[exp["mission_id"]]
 		
 		# Effective Interval: Base / (1.0 + bonus)
-		var effective_interval = data["interval"] / (1.0 + speed_bonus)
+		var effective_interval = data["interval"] / max(0.1, 1.0 + speed_bonus)
 		
 		exp["progress"] += delta
 		if exp["progress"] >= effective_interval:
@@ -252,7 +253,8 @@ func calculate_offline(delta: float) -> String:
 			# Use the protected function to handle docks and protection
 			_apply_structural_damage(exp["hull_id"], randi_range(500, 2000))
 			
-		add_xp(5 * cycles)
+		var xp_per_cycle = data["min_tier"] * 20
+		add_xp(xp_per_cycle * cycles)
 
 	if total_loot.is_empty(): return ""
 	

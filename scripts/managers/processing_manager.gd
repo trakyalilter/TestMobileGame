@@ -49,16 +49,6 @@ var recipes: Dictionary = {
 		"xp": 5,
 		"research_req": "basic_engineering"
 	},
-	"craft_bronze": {
-		"name": "Bronze Alloy",
-		"description": "Ancient but effective Cu-Tin alloy. Cheaper than Steel.",
-		"input": { "Cu": 3, "Sn": 1 },
-		"output": { "Bronze": 2 },
-		"duration": 3.0,
-		"level_req": 10,
-		"xp": 15,
-		"research_req": "bronze_smithing"
-	},
 	"smelt_steel_basic": {
 		"name": "Basic Steel Smelting",
 		"description": "Foundry smelting of Iron and Carbon into Steel.",
@@ -67,16 +57,6 @@ var recipes: Dictionary = {
 		"duration": 7.0,
 		"level_req": 12,
 		"research_req": "smelting"
-	},
-	"smelt_cassiterite": {
-		"name": "Tin Smelting",
-		"description": "Reduce Cassiterite ore to pure Tin.",
-		"input": { "Cassiterite": 2, "C": 1 },
-		"output": { "Sn": 1 },
-		"duration": 4.0,
-		"level_req": 14,
-		"xp": 15,
-		"research_req": "basic_engineering"
 	},
 	"smelt_copper": {
 		"name": "Copper Smelting",
@@ -109,9 +89,9 @@ var recipes: Dictionary = {
 	"smelt_steel_oxygen": {
 		"name": "Oxygen-Enriched Smelting",
 		"description": "Use Oxygen to blast smelt Steel efficiently.",
-		"input": { "Fe": 2, "C": 1, "O": 2 },
+		"input": { "Fe": 5, "C": 2, "O": 2 },
 		"output": { "Steel": 2 },
-		"duration": 4.0,
+		"duration": 3.0,
 		"level_req": 22,
 		"xp": 25,
 		"research_req": "smelting"
@@ -239,7 +219,7 @@ var recipes: Dictionary = {
 		"duration": 5.0,
 		"level_req": 24,
 		"xp": 30,
-		"research_req": "adv_materials"
+		"research_req": "lightweight_alloys"
 	},
 	"galvanize_steel": {
 		"name": "Galvanized Steel",
@@ -408,6 +388,36 @@ var recipes: Dictionary = {
 		"level_req": 58, # Increased from 8
 		"xp": 120, # Increased from 50
 		"research_req": "energy_metrics"
+	},
+	"craft_he_missile": {
+		"name": "HE Missile",
+		"description": "Standard high-explosive ordnance.",
+		"input": { "Fe": 5, "C": 2 },
+		"output": { "HE_Missile": 5 },
+		"duration": 12.0,
+		"level_req": 5,
+		"xp": 20,
+		"research_req": "combustion"
+	},
+	"craft_seeker_missile": {
+		"name": "Seeker Missile",
+		"description": "Guided missile with logic circuits.",
+		"input": { "Steel": 2, "Circuit": 1 },
+		"output": { "Seeker_Missile": 5 },
+		"duration": 20.0,
+		"level_req": 25,
+		"xp": 50,
+		"research_req": "advanced_rocketry"
+	},
+	"craft_photon_torpedo": {
+		"name": "Photon Torpedo",
+		"description": "Antimatter-infused capital buster.",
+		"input": { "Superalloy": 2, "VolatileMatter": 1 }, # Assuming VolatileMatter exists or similar high tier
+		"output": { "Photon_Torpedo": 2 },
+		"duration": 45.0,
+		"level_req": 60,
+		"xp": 200,
+		"research_req": "capital_ship_armament"
 	},
 	# Components
 	"craft_circuit": {

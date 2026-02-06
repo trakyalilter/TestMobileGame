@@ -5,7 +5,6 @@ extends Control
 @onready var def_lbl = $VBoxContainer/StatsPanel/HBoxContainer/DefLabel
 @onready var eva_lbl = $VBoxContainer/StatsPanel/HBoxContainer/EvaLabel
 @onready var energy_lbl = $VBoxContainer/StatsPanel/HBoxContainer/EnergyLabel
-@onready var silhouette = $VBoxContainer/FocalHull/Silhouette
 @onready var rack_container = $VBoxContainer/ScrollContainer/RackContainer
 
 var repair_btn: Button
@@ -43,7 +42,6 @@ func _ready():
 func _process(_delta):
 	_update_repair_button()
 	_update_stats_display()
-	sync_silhouette()
 
 func _on_mission_updated():
 	pass # No tab alerts needed with blade architecture
@@ -52,20 +50,6 @@ func _on_resource_changed(_a=null, _b=null):
 	for w in widgets:
 		if w.has_method("update_state"):
 			w.update_state()
-
-func sync_silhouette():
-	if not manager.active_hull: return
-	if not silhouette: return
-	
-	var hdata = manager.hulls.get(manager.active_hull)
-	if hdata and hdata.has("visual"):
-		var tex = load(hdata["visual"])
-		if silhouette.texture != tex:
-			silhouette.texture = tex
-			# Visual "Birth" pulse
-			var tween = create_tween()
-			silhouette.modulate.a = 0
-			tween.tween_property(silhouette, "modulate:a", 0.2, 0.5)
 
 func _update_repair_button():
 	if not repair_btn: return
@@ -125,12 +109,6 @@ func refresh_list():
 		racks["hulls"].add_child(w)
 		w.setup(hid, manager.hulls[hid], manager, self)
 		widgets.append(w)
-		
-		# Sync Silhouette with current active ship
-		if manager.active_hull == hid:
-			var hdata = manager.hulls[hid]
-			if hdata.has("visual"):
-				silhouette.texture = load(hdata["visual"])
 		
 	# Modules Categorization
 	var sorted_mods = manager.modules.keys()

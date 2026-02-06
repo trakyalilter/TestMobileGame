@@ -83,7 +83,7 @@ func _ready():
 	
 	cons_opt.get_popup().about_to_popup.connect(_on_consumable_popup_about_to_show)
 	
-	manager.heat_changed.connect(_on_heat_changed)
+
 
 func refresh_zones():
 	zone_list.clear()
@@ -172,8 +172,12 @@ func update_ui():
 	
 	# Player Stats
 	var sm = GameState.shipyard_manager
-	p_stat_lbl.text = "ATK: %s | DEF: %s | EVA: %.1f%%" % [UITheme.format_num(sm.attack), UITheme.format_num(sm.defense), sm.evasion]
-	p_hp_lbl.text = "HULL: %s / %s" % [UITheme.format_num(sm.current_hp), UITheme.format_num(sm.max_hp)]
+	var eva_bonus = manager.get_milestone_evasion_bonus()
+	var crit_bonus = manager.get_milestone_crit_bonus()
+	var total_eva = sm.evasion + eva_bonus
+	var total_crit = (sm.crit_chance + crit_bonus) * 100.0
+	p_stat_lbl.text = "ATK: %s | DEF: %s | EVA: %.0f | CRIT: %.0f%%" % [UITheme.format_num(sm.attack), UITheme.format_num(sm.defense), total_eva, total_crit]
+	p_hp_lbl.text = "HULL: %s / %s  [Lv.%d +%.1f%% DMG]" % [UITheme.format_num(sm.current_hp), UITheme.format_num(sm.max_hp), manager.get_level(), manager.get_level() * 0.5]
 	p_sh_lbl.text = "SHD: %s / %s" % [UITheme.format_num(manager.player_shield), UITheme.format_num(manager.player_max_shield)]
 	
 	# Update Heat Bar Modulate

@@ -676,7 +676,25 @@
     "category": "Component",
     "tier": 2,
     "base_value": 35,
+    "traits": [
+      "coolant"
+    ],
     "description": "Super-cooled nitrogen for industrial cooling systems."
+  },
+  {
+    "atomic_number": -502,
+    "symbol": "nanite_swarm",
+    "name": "Nanite Repair Swarm",
+    "mass": 0.5,
+    "category": "Consumable",
+    "tier": 3,
+    "base_value": 500,
+    "effect": "heal_hull",
+    "value": 10,
+    "traits": [
+      "hot"
+    ],
+    "description": "Autonomous repair drones. Provides immediate hull repair and a heal-over-time effect."
   },
   {
     "atomic_number": -71,

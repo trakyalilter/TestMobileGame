@@ -1,9 +1,11 @@
 extends Control
 
-@onready var ship_name_lbl = $VBoxContainer/MainLayout/LeftPanel/InfoPanel/Margin/VBox/ShipNameLabel
-@onready var stats_lbl = $VBoxContainer/MainLayout/LeftPanel/InfoPanel/Margin/VBox/StatsLabel
+# PHASE 22: Ship Designer UI Overhaul
+# Premium sci-fi aesthetic with expanded stats and module comparison
 
-
+# Top info bar (full width, 1-line)
+@onready var ship_name_lbl = $VBoxContainer/InfoPanel/InfoHBox/ShipNameLabel
+@onready var stats_lbl = $VBoxContainer/InfoPanel/InfoHBox/StatsLabel
 
 # Storage
 @onready var storage_grid = $VBoxContainer/MainLayout/RightPanel/Scroll/UnifiedStorageGrid
@@ -28,7 +30,7 @@ func _ready():
 	GameState.game_loaded.connect(trigger_refresh)
 	
 	# Premium Styling
-	UITheme.apply_card_style($VBoxContainer/MainLayout/LeftPanel/InfoPanel, "shipyard")
+	UITheme.apply_card_style($VBoxContainer/InfoPanel, "shipyard")
 	UITheme.apply_card_style($VBoxContainer/MainLayout/RightPanel, "engineering")
 	
 	$VBoxContainer/Label.add_theme_color_override("font_color", UITheme.CATEGORY_COLORS["shipyard"])
@@ -52,19 +54,77 @@ func trigger_refresh():
 	rebuild_slots()
 	rebuild_ammo_slots()
 	rebuild_storage()
-	# rebuild_ammo_storage() -> Consolidated into rebuild_storage
+
+# ─────────────────────────────────────────────────
+# EXPANDED STATS DISPLAY (PHASE 22)
+# ─────────────────────────────────────────────────
 
 func update_header():
 	if manager.active_hull and manager.active_hull in manager.hulls:
 		var h = manager.hulls[manager.active_hull]
-		ship_name_lbl.text = h["name"]
-		var e_max = GameState.resources.max_energy
+		ship_name_lbl.text = h["name"].to_upper()
+		
+		# Calculate energy capacity (hull + battery modules)
+		var hull_data = manager.hulls.get(manager.active_hull, {})
+		var e_cap = hull_data.get("stats", {}).get("energy_capacity", 100)
+		for idx in manager.loadout:
+			var mid = manager.loadout[idx]
+			if mid and mid in manager.modules:
+				e_cap += manager.modules[mid].get("stats", {}).get("energy_capacity", 0)
 		var e_used = manager.energy_used
-		stats_lbl.text = "HP: %d | SHIELD: %d\nENERGY: %d/%d\nATK: %d | DEF: %d" % [manager.max_hp, manager.max_shield, e_used, e_max, manager.attack, manager.defense]
-		stats_lbl.modulate = Color(1, 0.3, 0.3) if e_used > e_max else Color(0.8, 0.8, 0.8)
+		
+		# Calculate DPS
+		var total_dps = _calculate_total_dps()
+		
+		# Get milestone bonuses from combat manager
+		var cm = GameState.combat_manager
+		var total_eva = manager.evasion + cm.get_milestone_evasion_bonus()
+		var total_crit = (manager.crit_chance + cm.get_milestone_crit_bonus()) * 100.0
+		
+		# Build single-line stats display
+		var stats_text = "HP: %d | SH: %s | ATK: %s | DEF: %s | ACC: %.0f | CRIT: %.0f%% | EVA: %.0f | DPS: %s | PWR: %d/%d" % [
+			manager.max_hp,
+			UITheme.format_num(manager.max_shield),
+			UITheme.format_num(manager.attack),
+			UITheme.format_num(manager.defense),
+			manager.accuracy,
+			total_crit,
+			total_eva,
+			UITheme.format_num(total_dps),
+			e_used,
+			e_cap
+		]
+		
+		stats_lbl.text = stats_text
+		
+		# Power grid warning colors
+		if e_used > e_cap:
+			stats_lbl.modulate = Color(1, 0.3, 0.3)  # Red - overloaded
+		elif e_used > e_cap * 0.8:
+			stats_lbl.modulate = Color(1, 0.7, 0.2)  # Orange - nearing limit
+		else:
+			stats_lbl.modulate = Color(0.7, 0.7, 0.7)  # Normal
 	else:
-		ship_name_lbl.text = "No Structure"
+		ship_name_lbl.text = "NO HULL"
 		stats_lbl.text = "Escape Pod Active"
+
+func _calculate_total_dps() -> float:
+	var total = 0.0
+	for s_idx in manager.loadout:
+		var mid = manager.loadout[s_idx]
+		if mid and mid in manager.modules:
+			var m_data = manager.modules[mid]
+			if m_data.get("slot_type") == "weapon":
+				var stats = m_data.get("stats", {})
+				var dmg = stats.get("atk_kinetic", 0) + stats.get("atk_energy", 0) + stats.get("atk_explosive", 0)
+				var interval = stats.get("atk_interval", 2.5)
+				if interval > 0:
+					total += float(dmg) / interval
+	return total
+
+# ─────────────────────────────────────────────────
+# SLOT BLADES
+# ─────────────────────────────────────────────────
 
 func rebuild_slots():
 	var s_cont = $VBoxContainer/MainLayout/SchematicArea/SlotMap/SchematicContainer
@@ -99,14 +159,14 @@ func rebuild_slots():
 		else:
 			blades["Utility"].append({"idx": i, "type": s_type})
 			
-	# Create Blades in Order
-	_create_blade("Weapons", blades["Weapons"], s_cont)
-	_create_blade("Ammunition", blades["Ammunition"], s_cont, true)
-	_create_blade("Defense", blades["Defense"], s_cont)
-	_create_blade("Systems", blades["Systems"], s_cont)
-	_create_blade("Utility", blades["Utility"], s_cont)
+	# Create Blades in Order with premium colors
+	_create_blade("🔥 Weapons", blades["Weapons"], s_cont, Color(1.0, 0.4, 0.4, 0.8))
+	_create_blade("💥 Ammunition", blades["Ammunition"], s_cont, Color(1.0, 0.6, 0.3, 0.8), true)
+	_create_blade("🛡 Defense", blades["Defense"], s_cont, Color(0.4, 0.6, 1.0, 0.8))
+	_create_blade("⚡ Systems", blades["Systems"], s_cont, Color(0.8, 1.0, 0.2, 0.8))
+	_create_blade("🔧 Utility", blades["Utility"], s_cont, Color(0.6, 0.6, 0.6, 0.8))
 
-func _create_blade(title: String, slot_list: Array, parent: Node, is_ammo: bool = false):
+func _create_blade(title: String, slot_list: Array, parent: Node, color: Color = Color.WHITE, is_ammo: bool = false):
 	if slot_list.is_empty(): return
 	
 	var vbox = VBoxContainer.new()
@@ -115,39 +175,56 @@ func _create_blade(title: String, slot_list: Array, parent: Node, is_ammo: bool 
 	
 	var label = Label.new()
 	label.text = "[ %s ]" % title.to_upper()
-	label.add_theme_font_size_override("font_size", 10)
-	label.add_theme_color_override("font_color", Color(1, 1, 1, 0.5))
+	label.add_theme_font_size_override("font_size", 11)
+	label.add_theme_color_override("font_color", color)
 	vbox.add_child(label)
 	
-	var flow = HFlowContainer.new()
-	flow.add_theme_constant_override("h_separation", 10)
-	flow.add_theme_constant_override("v_separation", 10)
-	vbox.add_child(flow)
+	# Horizontal scroll container for slots
+	var scroll = ScrollContainer.new()
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	scroll.custom_minimum_size.y = 90
+	vbox.add_child(scroll)
+	
+	# HBox for horizontal slot layout
+	var hbox = HBoxContainer.new()
+	hbox.add_theme_constant_override("separation", 10)
+	scroll.add_child(hbox)
 	
 	for s_data in slot_list:
 		var w
 		if is_ammo:
 			w = ammo_slot_scene.instantiate()
-			flow.add_child(w)
+			hbox.add_child(w)
 			w.setup(s_data["idx"], self, manager)
 		else:
 			w = slot_widget_scene.instantiate()
-			flow.add_child(w)
+			hbox.add_child(w)
 			w.setup(s_data["idx"], s_data["type"], self, manager)
 			
-	# Add Spacer
-	var sep = Control.new()
-	sep.custom_minimum_size = Vector2(0, 10)
-	parent.add_child(sep)
+	# Add separator
+	var sep = HSeparator.new()
+	sep.modulate = Color(color.r, color.g, color.b, 0.3)
+	vbox.add_child(sep)
 
 func sync_silhouette():
 	if not manager.active_hull: return
 	var h = manager.hulls.get(manager.active_hull)
 	if h and h.has("visual"):
-		silhouette.texture = load(h["visual"])
+		var tex = load(h["visual"])
+		if silhouette.texture != tex:
+			silhouette.texture = tex
+			# Holographic pulse effect
+			var tween = create_tween()
+			silhouette.modulate.a = 0.1
+			tween.tween_property(silhouette, "modulate:a", 0.4, 0.5)
 
 func rebuild_ammo_slots():
 	pass # Integrated into blade system
+
+# ─────────────────────────────────────────────────
+# STORAGE GRID
+# ─────────────────────────────────────────────────
 
 func rebuild_storage():
 	for child in storage_grid.get_children(): child.queue_free()
@@ -207,6 +284,10 @@ func get_module_widget(module_id: String) -> Control:
 		if child.get("mid") == module_id:
 			return child
 	return null
+
+# ─────────────────────────────────────────────────
+# CIRCUIT LINES
+# ─────────────────────────────────────────────────
 
 func _on_circuit_draw():
 	# Draw glowing lines between slots that are next to each other

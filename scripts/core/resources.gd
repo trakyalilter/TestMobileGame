@@ -59,6 +59,7 @@ func add_element(symbol: String, amount: float):
 		elements[symbol] = 0.0
 
 func remove_element(symbol: String, amount: float) -> bool:
+	if amount <= 0: return false # Safety: Cannot "remove" negative or zero
 	var current = elements.get(symbol, 0.0)
 	if current >= amount:
 		elements[symbol] = current - amount
@@ -78,6 +79,7 @@ func add_currency(currency_type: String, amount: float):
 	currency_added.emit(currency_type, amount)
 
 func remove_currency(currency_type: String, amount: float) -> bool:
+	if amount <= 0: return false # Safety: Cannot "remove" negative or zero
 	var current = currencies.get(currency_type, 0.0)
 	if current >= amount:
 		currencies[currency_type] = current - amount

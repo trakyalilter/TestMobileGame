@@ -18,7 +18,6 @@ var ELEMENT_NAMES = {
 	"Al": "Aluminum",
 	"Mg": "Magnesium",
 	"Zn": "Zinc",
-	"Sn": "Tin",
 	
 	# Industrial Metals
 	"Ti": "Titanium",
@@ -93,6 +92,9 @@ var ELEMENT_NAMES = {
 	"CellT1": "Focus Crystal",
 	"CellT2": "Plasma Cell",
 	"CellT3": "Vaporizer Cell",
+	"HE_Missile": "High-Explosive Missile",
+	"Seeker_Missile": "Seeker Missile",
+	"Photon_Torpedo": "Photon Torpedo",
 	
 	# Special/Exotic
 	"VoidArtifact": "Void Artifact",
@@ -127,7 +129,8 @@ var ELEMENT_NAMES = {
 	"ColonySalvage": "Colony Salvage",
 	"TurretCore": "Turret Core",
 	"ColonyDataCore": "Colony Data Core",
-	"RadIsotope": "Radiation Isotope",
+	"TitanClearance": "Titan Clearance",
+
 	"CryoCell": "Cryogenic Cell",
 	"NitroCoolant": "Liquid Nitrogen Coolant",
 	
@@ -165,7 +168,7 @@ var CATEGORIES = {
 	"components": ["Circuit", "AdvCircuit", "Chip", "Hydraulics", "AlWire", "Resin", "Fiber"],
 	"batteries": ["BatteryT1", "BatteryT2", "BatteryT3", "CoBattery", "MgBattery", "PdFuelCell"],
 	"consumables": ["Mesh", "Seal", "EmergencyPatch", "BasicBooster", "ChitinPatch", "NitroCoolant"],  # Audit v2.0: Early/Mid consumables
-	"ammo": ["SlugT1", "SlugT2", "SlugT3", "CellT1", "CellT2", "CellT3"],
+	"ammo": ["SlugT1", "SlugT2", "SlugT3", "CellT1", "CellT2", "CellT3", "HE_Missile", "Seeker_Missile", "Photon_Torpedo"],
 	"special": ["VoidArtifact", "QuantumCore", "ExoticMatter", "VoidCrystal", "Diamond", "SyntheticCrystal", 
 				"Neutronium", "AntimatterParticle", "ExoticIsotope", "ReactiveCore", "AICore", "AncientTech",
 				"NavData", "IrPlate", "OsCore", "PtCatalyst",
