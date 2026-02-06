@@ -1,20 +1,6 @@
-[gd_scene load_steps=6 format=3 uid="uid://dcm3k7i0ktfkt"]
+[gd_scene load_steps=4 format=3 uid="uid://dcm3k7i0ktfkt"]
 
 [ext_resource type="Script" uid="uid://dmvtu0vmbrdqj" path="res://scripts/ui/combat_page.gd" id="1_script"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_shield_bg"]
-bg_color = Color(0.1, 0.1, 0.2, 1)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_shield_fill"]
-bg_color = Color(0, 0.8, 1, 1)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hp_bg"]
 bg_color = Color(0.2, 0.1, 0.1, 1)
@@ -106,10 +92,10 @@ layout_mode = 2
 mouse_filter = 2
 
 [node name="SectorOverlay" type="PanelContainer" parent="Dashboard/Visualizer/HUD/Overlays"]
-custom_minimum_size = Vector2(250, 320)
+custom_minimum_size = Vector2(250, 250)
 layout_mode = 0
 offset_right = 250.0
-offset_bottom = 320.0
+offset_bottom = 250.0
 mouse_filter = 2
 
 [node name="VBox" type="VBoxContainer" parent="Dashboard/Visualizer/HUD/Overlays/SectorOverlay"]
@@ -178,13 +164,13 @@ layout_mode = 2
 size_flags_vertical = 3
 
 [node name="TargetingOverlay" type="PanelContainer" parent="Dashboard/Visualizer/HUD/Overlays"]
-custom_minimum_size = Vector2(250, 320)
+custom_minimum_size = Vector2(250, 250)
 layout_mode = 1
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
 offset_left = -250.0
-offset_bottom = 320.0
+offset_bottom = 250.0
 grow_horizontal = 0
 mouse_filter = 2
 
@@ -251,26 +237,6 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
-[node name="CenterInfo" type="VBoxContainer" parent="Dashboard/Visualizer/HUD"]
-layout_mode = 2
-size_flags_horizontal = 4
-size_flags_vertical = 0
-mouse_filter = 2
-
-[node name="SectorThreat" type="Label" parent="Dashboard/Visualizer/HUD/CenterInfo"]
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.843137, 0, 0.501961)
-theme_override_font_sizes/font_size = 10
-text = "SECTOR THREAT: NOMINAL"
-horizontal_alignment = 1
-
-[node name="ScanningStatus" type="Label" parent="Dashboard/Visualizer/HUD/CenterInfo"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0, 0.8, 1, 0.392157)
-theme_override_font_sizes/font_size = 9
-text = "SCANNING FOR ANOMALIES..."
-horizontal_alignment = 1
-
 [node name="BottomRegion" type="VBoxContainer" parent="Dashboard/Visualizer/HUD/Overlays"]
 layout_mode = 1
 anchors_preset = 12
@@ -310,11 +276,6 @@ size_flags_vertical = 3
 mouse_filter = 2
 theme_override_constants/separation = 4
 
-[node name="Spacer" type="Control" parent="Dashboard/Visualizer/HUD/Overlays/BottomRegion/StatusRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-mouse_filter = 2
-
 [node name="ScannerOverlay" type="PanelContainer" parent="Dashboard/Visualizer/HUD/Overlays/BottomRegion/StatusRow"]
 custom_minimum_size = Vector2(160, 110)
 layout_mode = 2
@@ -332,14 +293,25 @@ theme_override_font_sizes/font_size = 9
 text = "[ EXPEDITION YIELD ]"
 horizontal_alignment = 1
 
-[node name="LootText" type="RichTextLabel" parent="Dashboard/Visualizer/HUD/Overlays/BottomRegion/StatusRow/ScannerOverlay/VBox"]
+[node name="Scroll" type="ScrollContainer" parent="Dashboard/Visualizer/HUD/Overlays/BottomRegion/StatusRow/ScannerOverlay/VBox"]
 layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="LootText" type="RichTextLabel" parent="Dashboard/Visualizer/HUD/Overlays/BottomRegion/StatusRow/ScannerOverlay/VBox/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
 mouse_filter = 2
 theme_override_colors/default_color = Color(0.196078, 0.8, 0.196078, 1)
 theme_override_font_sizes/normal_font_size = 9
 bbcode_enabled = true
 text = "[center]Searching for loot paths...[/center]"
 fit_content = true
+
+[node name="Spacer" type="Control" parent="Dashboard/Visualizer/HUD/Overlays/BottomRegion/StatusRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
 
 [node name="LogOverlay" type="PanelContainer" parent="Dashboard/Visualizer/HUD/Overlays/BottomRegion"]
 custom_minimum_size = Vector2(0, 100)
@@ -361,6 +333,35 @@ layout_mode = 2
 size_flags_vertical = 3
 theme_override_colors/font_color = Color(0.666667, 0.666667, 0.666667, 0.5)
 theme_override_font_sizes/font_size = 10
+
+[node name="CenterInfo" type="VBoxContainer" parent="Dashboard/Visualizer/HUD"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 0
+mouse_filter = 2
+
+[node name="SectorThreat" type="Label" parent="Dashboard/Visualizer/HUD/CenterInfo"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.843137, 0, 0.501961)
+theme_override_font_sizes/font_size = 10
+text = "SECTOR THREAT: NOMINAL"
+horizontal_alignment = 1
+
+[node name="ScanningStatus" type="Label" parent="Dashboard/Visualizer/HUD/CenterInfo"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0.8, 1, 0.392157)
+theme_override_font_sizes/font_size = 9
+text = "SCANNING FOR ANOMALIES..."
+horizontal_alignment = 1
+
+[node name="ScanLine" type="ColorRect" parent="Dashboard/Visualizer"]
+modulate = Color(1, 1, 1, 0.05)
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 2.0
+grow_horizontal = 2
+mouse_filter = 2
 
 [node name="ViewportFooter" type="PanelContainer" parent="Dashboard"]
 layout_mode = 1
@@ -402,7 +403,7 @@ theme_override_constants/separation = 10
 layout_mode = 2
 theme_override_colors/font_color = Color(0.4, 0.4, 0.4, 1)
 theme_override_font_sizes/font_size = 10
-text = "BAY SLOT:"
+text = "Consumables:"
 vertical_alignment = 1
 
 [node name="OptionButton" type="OptionButton" parent="Dashboard/ViewportFooter/Margin/HBox/ConsumableBay"]
@@ -419,15 +420,6 @@ custom_minimum_size = Vector2(60, 32)
 layout_mode = 2
 toggle_mode = true
 text = "AUTO"
-
-[node name="ScanLine" type="ColorRect" parent="Dashboard/Visualizer"]
-modulate = Color(1, 1, 1, 0.05)
-layout_mode = 1
-anchors_preset = 10
-anchor_right = 1.0
-offset_bottom = 2.0
-grow_horizontal = 2
-mouse_filter = 2
 
 [connection signal="item_selected" from="Dashboard/Visualizer/HUD/Overlays/SectorOverlay/VBox/ZoneList" to="." method="_on_zone_list_item_selected"]
 [connection signal="pressed" from="Dashboard/ViewportFooter/Margin/HBox/RetreatBtn" to="." method="_on_retreat_btn_pressed"]

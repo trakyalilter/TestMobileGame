@@ -49,16 +49,6 @@ var recipes: Dictionary = {
 		"xp": 5,
 		"research_req": "basic_engineering"
 	},
-	"craft_bronze": {
-		"name": "Bronze Alloy",
-		"description": "Ancient but effective Cu-Tin alloy. Cheaper than Steel.",
-		"input": { "Cu": 3, "Sn": 1 },
-		"output": { "Bronze": 2 },
-		"duration": 3.0,
-		"level_req": 10,
-		"xp": 15,
-		"research_req": "bronze_smithing"
-	},
 	"smelt_steel_basic": {
 		"name": "Basic Steel Smelting",
 		"description": "Foundry smelting of Iron and Carbon into Steel.",
@@ -67,16 +57,6 @@ var recipes: Dictionary = {
 		"duration": 7.0,
 		"level_req": 12,
 		"research_req": "smelting"
-	},
-	"smelt_cassiterite": {
-		"name": "Tin Smelting",
-		"description": "Reduce Cassiterite ore to pure Tin.",
-		"input": { "Cassiterite": 2, "C": 1 },
-		"output": { "Sn": 1 },
-		"duration": 4.0,
-		"level_req": 14,
-		"xp": 15,
-		"research_req": "basic_engineering"
 	},
 	"smelt_copper": {
 		"name": "Copper Smelting",
@@ -109,9 +89,9 @@ var recipes: Dictionary = {
 	"smelt_steel_oxygen": {
 		"name": "Oxygen-Enriched Smelting",
 		"description": "Use Oxygen to blast smelt Steel efficiently.",
-		"input": { "Fe": 2, "C": 1, "O": 2 },
+		"input": { "Fe": 5, "C": 2, "O": 2 },
 		"output": { "Steel": 2 },
-		"duration": 4.0,
+		"duration": 3.0,
 		"level_req": 22,
 		"xp": 25,
 		"research_req": "smelting"
@@ -239,7 +219,7 @@ var recipes: Dictionary = {
 		"duration": 5.0,
 		"level_req": 24,
 		"xp": 30,
-		"research_req": "adv_materials"
+		"research_req": "lightweight_alloys"
 	},
 	"galvanize_steel": {
 		"name": "Galvanized Steel",
@@ -298,7 +278,20 @@ var recipes: Dictionary = {
 		"output": { "Seal": 1 },
 		"duration": 15.0,
 		"level_req": 28, # Increased from 3
-		"xp": 25, # Reduced from 30
+		"xp": 30, # Reduced from 40
+		"research_req": "metallurgy_advanced",
+		"category": "consumables"
+	},
+	"craft_chitin_patch": {
+		"name": "Biosynthetic Hull Patch",
+		"description": "Utilize mite chitin for emergency hull repairs. Purely organic.",
+		"input": { "MiteChitin": 10 },
+		"output": { "ChitinPatch": 2 },
+		"duration": 8.0,
+		"level_req": 3,
+		"xp": 8,
+		"research_req": "basic_engineering",
+		"category": "consumables"
 	},
 	"craft_slug_t1": {
 		"name": "Ferrite Rounds",
@@ -327,6 +320,15 @@ var recipes: Dictionary = {
 		"level_req": 32, # Increased from 4
 		"xp": 40, # Increased from 20
 		"research_req": "processing_tungsten"
+	},
+	"craft_slug_t1s": {
+		"name": "Steel Slugs",
+		"description": "Armor-piercing heavy slugs.",
+		"input": { "Steel": 2},
+		"output": { "SlugT1S": 10 },
+		"duration": 10.0,
+		"level_req": 24,
+		"xp": 20
 	},
 	"craft_cell_t2": {
 		"name": "Plasma Cell",
@@ -386,6 +388,36 @@ var recipes: Dictionary = {
 		"level_req": 58, # Increased from 8
 		"xp": 120, # Increased from 50
 		"research_req": "energy_metrics"
+	},
+	"craft_he_missile": {
+		"name": "HE Missile",
+		"description": "Standard high-explosive ordnance.",
+		"input": { "Fe": 5, "C": 2 },
+		"output": { "HE_Missile": 5 },
+		"duration": 12.0,
+		"level_req": 5,
+		"xp": 20,
+		"research_req": "combustion"
+	},
+	"craft_seeker_missile": {
+		"name": "Seeker Missile",
+		"description": "Guided missile with logic circuits.",
+		"input": { "Steel": 2, "Circuit": 1 },
+		"output": { "Seeker_Missile": 5 },
+		"duration": 20.0,
+		"level_req": 25,
+		"xp": 50,
+		"research_req": "advanced_rocketry"
+	},
+	"craft_photon_torpedo": {
+		"name": "Photon Torpedo",
+		"description": "Antimatter-infused capital buster.",
+		"input": { "Superalloy": 2, "VolatileMatter": 1 }, # Assuming VolatileMatter exists or similar high tier
+		"output": { "Photon_Torpedo": 2 },
+		"duration": 45.0,
+		"level_req": 60,
+		"xp": 200,
+		"research_req": "capital_ship_armament"
 	},
 	# Components
 	"craft_circuit": {
@@ -772,17 +804,6 @@ var recipes: Dictionary = {
 		"category": "endgame"
 	},
 	# ========== AUDIT v20.0 EXTENSION: ALL ENEMIES UNIQUE DROPS ==========
-	# T1: dust_mite -> MiteChitin
-	"craft_chitin_patch": {
-		"name": "Chitin Hull Patch",
-		"description": "Organic sealant from space mite exoskeletons. Emergency repair.",
-		"input": { "MiteChitin": 3, "Scrap": 5 },
-		"output": { "ChitinPatch": 2 },
-		"duration": 8.0,
-		"level_req": 1,
-		"xp": 5,
-		"category": "consumables"
-	},
 	# T2: claim_jumper -> StolenCargo
 	"fence_stolen_cargo": {
 		"name": "Fence Stolen Cargo",

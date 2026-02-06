@@ -12,103 +12,209 @@ var node_scene = preload("res://scenes/ui/research_node_widget.tscn")
 var graphs = {
 	"Operations": {
 		"nodes": [
+			# Early Game - Mining & Drilling
 			"energy_shields", "industrial_logistics",
 			"diamond_drills", "ultrasonic_drills", "plasma_bore",
+			
+			# Liquids
 			"high_flow_pumps", "superfluid_intake", "hydro_vortex",
+			
+			# Deforestation
 			"laser_cutters", "mono_filament", "molecular_disassembler",
-			"magnetic_funnels", "deep_core_optics"
+			
+			# Gases / Nebula
+			"magnetic_funnels", "deep_core_optics",
+			
+			# Exploration / Sectors
+			"sector_alpha_decryption", "deep_space_nav", "radiation_shielding", 
+			"exotic_matter_analysis", "void_physics", "void_navigation"
 		],
 		"pos": {
+			# Branch 1: Liquids (Pumps)
 			"high_flow_pumps": Vector2(40, 40),
 			"superfluid_intake": Vector2(240, 40),
 			"hydro_vortex": Vector2(440, 40),
 			
+			# Branch 2: Deforestation (Lasers)
 			"laser_cutters": Vector2(40, 150),
 			"mono_filament": Vector2(240, 150),
 			"molecular_disassembler": Vector2(440, 150),
 			
-			"energy_shields": Vector2(40, 260),
-			"magnetic_funnels": Vector2(240, 260),
+			# Branch 3: Excavation (Drills) - Moved down
+			"diamond_drills": Vector2(40, 260),
+			"ultrasonic_drills": Vector2(240, 260),
+			"plasma_bore": Vector2(440, 260),
+
+			# Branch 4: Utility & Gases
+			"energy_shields": Vector2(40, 370),
+			"magnetic_funnels": Vector2(240, 370),
+			"deep_core_optics": Vector2(40, 480), # Standalone upgrade
 			
-			"diamond_drills": Vector2(40, 370),
-			"ultrasonic_drills": Vector2(240, 370),
-			"plasma_bore": Vector2(440, 370)
+			# Branch 5: Exploration (The Path to the Void)
+			"sector_alpha_decryption": Vector2(40, 600),
+			"deep_space_nav": Vector2(240, 600),
+			"radiation_shielding": Vector2(440, 600),
+			"exotic_matter_analysis": Vector2(640, 600),
+			"void_physics": Vector2(840, 600),
+			"void_navigation": Vector2(1040, 600)
 		},
 		"container": null # Assigned in _ready
 	},
 	"Engineering": {
 		"nodes": [
+			# Layout 0
 			"basic_engineering", "applied_physics", "materials_science", "industrial_logistics",
-			"fluid_dynamics", "combustion", "smelting", "adv_materials",
-			"fast_centrifuges", "maglev_bearings", "quantum_separators",
-			"catalytic_electrodes", "ion_exchange", "resonance_splitters",
-			"pyrolysis_control", "blast_furnace", "hydraulic_press",
-			"automated_logistics", "processing_tungsten", "ballistics_optimization", "energy_metrics",
-			"automated_smelting", "industrial_electrolysis", "molecular_compression", "mass_production_tactics",
-			"kinetics_101", "laser_optics", "power_systems", "bronze_smithing", "lightweight_alloys",
-			"salvage_heuristics", "scavenger_protocol", "combat_heuristics", "shield_harmonics", "hull_hardening", 
-			"core_overclocking", "nano_fabrication", "data_clustering"
+			
+			# Layout 1: Fluids & Electro
+			"fluid_dynamics", "catalytic_electrodes", "ion_exchange", "resonance_splitters",
+			"industrial_electrolysis", "energy_metrics", "cryogenic_systems", "cryogenic_storage",
+			
+			# Layout 2: Combustion & Smelting
+			"combustion", "pyrolysis_control", "smelting", "blast_furnace", "automated_smelting", 
+			"oxygen_blast_furnace", "metallurgy_advanced", "superalloy_engineering", "iridium_metallurgy", "exotic_metallurgy",
+			
+			# Layout 3: Materials
+			"adv_materials", "hydraulic_press", "molecular_compression",
+			"kinetics_101", "laser_optics", "power_systems", "lightweight_alloys",
+			
+			# Layout 4: High Tech & Automation
+			"fast_centrifuges", "maglev_bearings", "quantum_separators", "advanced_mineralogy",
+			"automation", "automated_logistics", "industrial_automation", "molecular_recycling", "xeno_engineering",
+			"mass_production_tactics", "nano_fabrication", "data_clustering",
+			"precious_metal_refining", "industrial_catalysis", "fuel_cell_tech",
+			"colony_automation", "perfect_automation"
 		],
 		"pos": {
-			"basic_engineering": Vector2(40, 350),
+			"basic_engineering": Vector2(40, 400),
 			
-			# Upper Branch: Fluid Dynamics
+			# Upper Branch: Fluid Dynamics -> Electrolysis -> Cryo
 			"fluid_dynamics": Vector2(240, 100),
 			"catalytic_electrodes": Vector2(440, 40),
 			"ion_exchange": Vector2(640, 40),
 			"resonance_splitters": Vector2(840, 40),
-			"energy_metrics": Vector2(440, 140),
-			"industrial_electrolysis": Vector2(640, 140),
+			"industrial_electrolysis": Vector2(640, 110),
 			
-			# Mid-Upper: Combustion
-			"combustion": Vector2(240, 250),
-			"pyrolysis_control": Vector2(440, 250),
+			"energy_metrics": Vector2(440, 180),
+			"cryogenic_systems": Vector2(640, 180),
+			"cryogenic_storage": Vector2(840, 180),
 			
-			# Mid: Alloy Synthesis (Major Hub)
-			"smelting": Vector2(440, 350),
-			"blast_furnace": Vector2(640, 350),
-			"automated_smelting": Vector2(840, 350),
-			"processing_tungsten": Vector2(640, 430),
-			"ballistics_optimization": Vector2(840, 430),
+			# Mid-Upper: Combustion -> Smelting Chain (The Backbone)
+			"combustion": Vector2(240, 300),
+			"pyrolysis_control": Vector2(440, 300),
 			
-			# Mid-Lower: Advanced Materials (Child of Alloy)
-			"adv_materials": Vector2(640, 520),
-			"hydraulic_press": Vector2(840, 520),
-			"molecular_compression": Vector2(1040, 520),
+			"smelting": Vector2(240, 400),
+			"blast_furnace": Vector2(440, 400),
+			"automated_smelting": Vector2(640, 400),
+			"oxygen_blast_furnace": Vector2(840, 400),
 			
-			# Lower: Centrifuges
-			"fast_centrifuges": Vector2(240, 620), # Moved down significantly
-			"maglev_bearings": Vector2(440, 620), 
-			"quantum_separators": Vector2(640, 620),
+			"metallurgy_advanced": Vector2(640, 330),
+			"superalloy_engineering": Vector2(840, 330),
+			"iridium_metallurgy": Vector2(1040, 330),
+			"exotic_metallurgy": Vector2(1240, 330),
 			
-			# Bottom: Logistics
-			"automated_logistics": Vector2(240, 720),
-			"mass_production_tactics": Vector2(440, 720),
+			"precious_metal_refining": Vector2(1040, 250), # From Deep Space Nav (handled in graph logic or floating?)
+			# Actually precious_metal_refining parent is deep_space_nav which is in Operations. 
+			# We'll rely on cross-tab logic or just visualize it here as a root/floating node if parent missing
+			"industrial_catalysis": Vector2(1240, 250),
+			"fuel_cell_tech": Vector2(1240, 180),
 			
-			# New Early Game Gates
-			"kinetics_101": Vector2(40, 460),
-			"power_systems": Vector2(40, 540),
-			"lightweight_alloys": Vector2(40, 620),
-			"laser_optics": Vector2(440, 180),
-			"bronze_smithing": Vector2(640, 260)
+			# Mid: Materials
+			"materials_science": Vector2(240, 500),
+			"lightweight_alloys": Vector2(440, 500),
+			"adv_materials": Vector2(440, 580),
+			"hydraulic_press": Vector2(640, 580),
+			"molecular_compression": Vector2(840, 580),
+			"advanced_batteries": Vector2(640, 650),
+			"automation": Vector2(440, 650), # Added Factory Automation
+
+			# Lower: Logistics & Centrifuges
+			"industrial_logistics": Vector2(240, 750),
+			"fast_centrifuges": Vector2(440, 750),
+			"maglev_bearings": Vector2(640, 750),
+			"quantum_separators": Vector2(840, 750),
+			"advanced_mineralogy": Vector2(640, 820),
+			
+			"automated_logistics": Vector2(440, 900),
+			"mass_production_tactics": Vector2(640, 900),
+			"xeno_engineering": Vector2(640, 970),
+			"industrial_automation": Vector2(640, 1040),
+			"molecular_recycling": Vector2(840, 1040),
+			
+			"colony_automation": Vector2(840, 1120),
+			"perfect_automation": Vector2(1040, 1120),
+			
+			"nano_fabrication": Vector2(640, 1190),
+			"data_clustering": Vector2(440, 1190),
 		},
 		"container": null
 	},
 	"Ships": {
 		"nodes": [
-			"smelting",
-			"shipwright_1", "shipwright_2", "sector_alpha_decryption", "warp_drive",
-			"molecular_printing", "capital_ship_engineering", "quantum_dynamics"
+			# Early Gates (from Applied Physics)
+			"kinetics_101", "power_systems", "laser_optics",
+			
+			# Shipwright Chain
+			"shipwright_1", "shipwright_2", "molecular_printing", 
+			"capital_ship_engineering", "capital_ship_armament", "quantum_dynamics", "broadside_tactics",
+			
+			# Warp & Navigation
+			"warp_drive", "warp_stabilizer", 
+			
+			# Military Techs (Processing Tungsten -> Ballistics)
+			"processing_tungsten", "ballistics_optimization", "advanced_rocketry",
+			"gamma_optics",
+			
+			# Fleet
+			"fleet_logistics_1", "fleet_logistics_2", "automated_expeditions",
+			
+			# Void / Endgame
+			"void_weaponry_1", "void_shielding_1",
+			
+			# Efficiency
+			"salvage_heuristics", "scavenger_protocol", 
+			"combat_heuristics", "shield_harmonics", "hull_hardening", "core_overclocking"
 		],
 		"pos": {
-			"smelting": Vector2(40, 150),
-			"shipwright_1": Vector2(240, 150),
-			"shipwright_2": Vector2(440, 150),
-			"sector_alpha_decryption": Vector2(440, 40),
-			"warp_drive": Vector2(640, 150),
-			"molecular_printing": Vector2(640, 260),
-			"capital_ship_engineering": Vector2(640, 40),
-			"quantum_dynamics": Vector2(840, 40)
+			# Column 1: Basics
+			"kinetics_101": Vector2(40, 40),
+			"power_systems": Vector2(40, 120),
+			"laser_optics": Vector2(40, 200),
+			
+			# Column 2: Early Shipwright
+			"shipwright_1": Vector2(240, 200),
+			"shipwright_2": Vector2(440, 200),
+			"molecular_printing": Vector2(640, 200),
+			
+			# Column 3: Advanced Ships
+			"capital_ship_engineering": Vector2(440, 320),
+			"capital_ship_armament": Vector2(640, 320),
+			"quantum_dynamics": Vector2(840, 320),
+			"broadside_tactics": Vector2(640, 400),
+			
+			# Column 4: Weapons Tech (Lower Branch)
+			"processing_tungsten": Vector2(40, 500),
+			"ballistics_optimization": Vector2(240, 500),
+			"advanced_rocketry": Vector2(440, 500), # Sits under automation usually, moved here for mil-tech coherence
+			"gamma_optics": Vector2(840, 500),
+			
+			# Column 5: Warp & Fleet
+			"warp_drive": Vector2(440, 80),
+			"warp_stabilizer": Vector2(640, 80),
+			"fleet_logistics_1": Vector2(640, 0),
+			"fleet_logistics_2": Vector2(840, 0),
+			"automated_expeditions": Vector2(840, 80),
+			
+			# Column 6: Void High-End
+			"void_weaponry_1": Vector2(1040, 320),
+			"void_shielding_1": Vector2(1040, 400),
+			
+			# Passives / Utilities
+			"shield_harmonics": Vector2(240, 600),
+			"hull_hardening": Vector2(240, 680),
+			"core_overclocking": Vector2(240, 760),
+			"salvage_heuristics": Vector2(40, 840),
+			"scavenger_protocol": Vector2(240, 840),
+			"combat_heuristics": Vector2(40, 920)
 		},
 		"container": null
 	},
@@ -152,6 +258,12 @@ func _ready():
 	graphs["Ships"]["container"] = $VBoxContainer/TabContainer/Ships/ScrollContainer/GraphArea
 	graphs["Recursion"]["container"] = area
 	
+	# Add panning support to all graph areas
+	_setup_panning($VBoxContainer/TabContainer/Operations/ScrollContainer)
+	_setup_panning($VBoxContainer/TabContainer/Engineering/ScrollContainer)
+	_setup_panning($VBoxContainer/TabContainer/Ships/ScrollContainer)
+	_setup_panning(scroll)
+	
 	call_deferred("build_graphs")
 	call_deferred("_on_mission_updated") # Initial check
 
@@ -160,6 +272,40 @@ func _on_resource_changed(_a=null, _b=null):
 
 func _on_mission_updated():
 	_update_tab_alerts()
+
+# ─────────────────────────────────────────────────
+# PANNING SUPPORT (PHASE 22)
+# ─────────────────────────────────────────────────
+
+var _pan_containers: Array = []
+var _is_panning: bool = false
+var _pan_start_scroll: Vector2 = Vector2.ZERO
+var _pan_start_mouse: Vector2 = Vector2.ZERO
+var _active_scroll: ScrollContainer = null
+
+func _setup_panning(scroll_container: ScrollContainer):
+	_pan_containers.append(scroll_container)
+	scroll_container.gui_input.connect(_on_scroll_gui_input.bind(scroll_container))
+
+func _on_scroll_gui_input(event: InputEvent, scroll: ScrollContainer):
+	# Left-click drag for panning
+	if event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			if event.pressed:
+				_is_panning = true
+				_active_scroll = scroll
+				_pan_start_scroll = Vector2(scroll.scroll_horizontal, scroll.scroll_vertical)
+				_pan_start_mouse = event.global_position
+				scroll.mouse_default_cursor_shape = Control.CURSOR_DRAG
+			else:
+				_is_panning = false
+				_active_scroll = null
+				scroll.mouse_default_cursor_shape = Control.CURSOR_ARROW
+				
+	elif event is InputEventMouseMotion and _is_panning and _active_scroll == scroll:
+		var delta = _pan_start_mouse - event.global_position
+		scroll.scroll_horizontal = int(_pan_start_scroll.x + delta.x)
+		scroll.scroll_vertical = int(_pan_start_scroll.y + delta.y)
 
 func on_page_enter():
 	# SMART NAVIGATION: Auto-focus tab based on active mission

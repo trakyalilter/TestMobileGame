@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://c5r6t7y8vap0"]
 
-[ext_resource type="Script" path="res://scripts/ui/fleet_page.gd" id="1_fleet"]
+[ext_resource type="Script" uid="uid://dcobbru74lj5u" path="res://scripts/ui/fleet_page.gd" id="1_fleet"]
 
 [node name="FleetPage" type="Control"]
 layout_mode = 3

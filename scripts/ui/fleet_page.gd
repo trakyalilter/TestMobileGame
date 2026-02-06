@@ -90,4 +90,3 @@ func _on_repair_all_pressed():
 		var repaired = manager.repair_all_ships()
 		if repaired > 0:
 			refresh_list()
-

@@ -1,8 +1,9 @@
 extends Control
 
-@onready var net_lbl = $VBoxContainer/EnergyDash/HBoxContainer/NetLabel
-@onready var gen_lbl = $VBoxContainer/EnergyDash/HBoxContainer/VBoxContainer/GenLabel
-@onready var cons_lbl = $VBoxContainer/EnergyDash/HBoxContainer/VBoxContainer/ConsLabel
+@onready var net_lbl = $VBoxContainer/Header/NetLabel
+@onready var gen_lbl = $VBoxContainer/Header/StatsVBox/GenLabel
+@onready var cons_lbl = $VBoxContainer/Header/StatsVBox/ConsLabel
+
 @onready var energy_grid = $VBoxContainer/ScrollContainer/BladeContainer/EnergyRack/Grid
 @onready var mining_grid = $VBoxContainer/ScrollContainer/BladeContainer/MiningRack/Grid
 @onready var production_grid = $VBoxContainer/ScrollContainer/BladeContainer/ProductionRack/Grid
@@ -13,8 +14,8 @@ var manager: RefCounted
 var building_widget_scene = preload("res://scenes/ui/building_widget.tscn")
 var widgets = []
 
-var logistics_grid: GridContainer
 var logistics_rack: VBoxContainer
+var logistics_grid: HFlowContainer
 
 func _ready():
 	manager = GameState.infrastructure_manager
@@ -23,7 +24,7 @@ func _ready():
 	call_deferred("refresh_list")
 
 func _setup_logistics_rack():
-	# Create a new rack for Command/Logistics since it's missing in .tscn
+	# Create a new rack for Command/Logistics since it was dynamically added
 	logistics_rack = VBoxContainer.new()
 	logistics_rack.name = "LogisticsRack"
 	logistics_rack.add_theme_constant_override("separation", 10)
@@ -34,21 +35,18 @@ func _setup_logistics_rack():
 	header.add_theme_color_override("font_color", Color(0.6, 0.4, 1.0, 0.5))
 	logistics_rack.add_child(header)
 	
-	logistics_grid = GridContainer.new()
-	logistics_grid.columns = 5
+	logistics_grid = HFlowContainer.new()
 	logistics_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	logistics_grid.add_theme_constant_override("h_separation", 15)
 	logistics_grid.add_theme_constant_override("v_separation", 15)
 	logistics_rack.add_child(logistics_grid)
 	
-	var sep = HSeparator.new()
-	sep.modulate = Color(1, 1, 1, 0.2)
-	logistics_rack.add_child(sep)
-	
+	# Cleaner look (no separator)
 	blade_container.add_child(logistics_rack)
 
 func refresh_list():
 	for grid in [energy_grid, mining_grid, production_grid, logistics_grid]:
+		if not grid: continue
 		for child in grid.get_children():
 			child.queue_free()
 	widgets.clear()
@@ -66,33 +64,41 @@ func refresh_list():
 			"industry": target_grid = production_grid
 			"logistics": target_grid = logistics_grid
 		
-		target_grid.add_child(w)
-		w.setup(bid, data, manager, self)
-		widgets.append(w)
+		if target_grid:
+			target_grid.add_child(w)
+			w.setup(bid, data, manager, self)
+			widgets.append(w)
 
-func _process(delta):
+func _process(_delta):
 	# Update UI elements
 	update_ui()
-	# Manager ticks handled by GameState process
 
 func update_ui():
 	if not manager: return
 	
-	manager.recalc_energy() # Ensure fresh stats? Process loop handles actual logic
+	manager.recalc_energy()
 	
 	var net = manager.net_energy
 	var gen = manager.generation
 	var cons = manager.consumption
 	
-	net_lbl.text = "NET: %+.1f kW" % net
-	gen_lbl.text = "GEN: %.1f kW" % gen
-	cons_lbl.text = "CONS: %.1f kW" % cons
+	if net_lbl:
+		net_lbl.text = "NET: %+.1f kW" % net
+		if net >= 0:
+			net_lbl.add_theme_color_override("font_color", Color.CYAN)
+		else:
+			net_lbl.add_theme_color_override("font_color", Color.ORANGE_RED)
 	
-	if net >= 0:
-		net_lbl.add_theme_color_override("font_color", Color.CYAN)
-	else:
-		net_lbl.add_theme_color_override("font_color", Color.ORANGE_RED)
+	if gen_lbl:
+		gen_lbl.text = "GEN: %.1f kW" % gen
 	
-	# Widgets update themselves in _process usually, or we can force it
+	if cons_lbl:
+		# Forensic 3: Efficiency Visibility
+		var eff = manager.energy_efficiency
+		if eff < 1.0:
+			cons_lbl.text = "CONS: %.1f kW [color=#ff6666](Grid Stalled: %d%%)[/color]" % [cons, int(eff * 100)]
+		else:
+			cons_lbl.text = "CONS: %.1f kW" % cons
+
 	for w in widgets:
 		w.update_state()

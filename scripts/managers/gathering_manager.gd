@@ -168,17 +168,17 @@ func get_action_speed_multiplier(action_id: String) -> float:
 	# Structure: action_id: [{tech_id: "xxx", bonus: 0.25}, ...]
 	var upgrades_db = {
 		"gather_dirt": [
-			{"id": "diamond_drills", "bonus": 0.25},
+			{"id": "diamond_drills", "bonus": 0.50},
 			{"id": "ultrasonic_drills", "bonus": 0.50},
 			{"id": "plasma_bore", "bonus": 0.75}
 		],
 		"collect_water": [
-			{"id": "high_flow_pumps", "bonus": 0.25},
+			{"id": "high_flow_pumps", "bonus": 0.50},
 			{"id": "superfluid_intake", "bonus": 0.50},
 			{"id": "hydro_vortex", "bonus": 0.75}
 		],
 		"gather_wood": [
-			{"id": "laser_cutters", "bonus": 0.25},
+			{"id": "laser_cutters", "bonus": 0.50},
 			{"id": "mono_filament", "bonus": 0.50},
 			{"id": "molecular_disassembler", "bonus": 0.75}
 		],

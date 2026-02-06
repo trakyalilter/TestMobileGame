@@ -1,72 +1,68 @@
-extends RefCounted
 
-signal module_crafted(module_id)
-signal hull_constructed(hull_id)
 
-# Stats
+var active_hull: String = "corvette_hull"
+var module_inventory: Dictionary = {}
+var loadout: Dictionary = {} # {slot_index: module_id}
+var ammo_loadout: Dictionary = {} # {slot_index: ammo_id}
+
+# Calculated Stats
 var max_hp = 100
 var current_hp = 100
-var attack = 10
-var defense = 0
-var evasion = 0.0
-
-# Components
-var max_shield = 0.0
-var shield_regen = 0.0
+var active_shield = 0
+var max_shield = 0
+var shield_regen = 0
 var attack_kinetic = 0
-
 var attack_energy = 0
-var energy_used = 0.0
+var attack_explosive = 0 # Phase 9
+var attack = 0 # Combined
+var defense = 0
+var evasion = 0
+var accuracy = 0
+var crit_chance = 0.05 # 5% base
+var energy_used = 0
+var attack_speed_bonus = 0.0
+var shield_regen_bonus = 0.0
+var ship_energy_gen = 0.0 # Phase 6: Reactor integration
 
-# Active Ship State
-var active_hull: String = "corvette_hull"
-var ammo_loadout: Dictionary = {} # {slot_idx: ammo_id}
-var loadout: Dictionary = {} # {slot_index: module_id}
-
-# Inventory
-var module_inventory: Dictionary = {}
+signal hull_constructed(hull_id)
+signal module_crafted(module_id)
 
 var hulls: Dictionary = {
 	"corvette_hull": {
-		"name": "Mining Corvette",
-		"tier": 1,  # Audit v1.0: Added for fleet mission requirements
-		"stats": {"hp": 100, "atk": 5},
-		"cost": {"credits": 50, "Fe": 10, "Wood": 10},
-		"slots": ["weapon", "shield", "engine", "battery"],
+		"name": "Corvette Hull",
+		"stats": {"hp": 100, "atk": 10, "energy_capacity": 100},
+		"cost": {"credits": 0},
+		"slots": ["weapon", "weapon", "shield", "shield", "engine", "battery", "battery"], # 7 Slots
 		"visual": "res://assets/ships/1.png"
 	},
 	"frigate_hull": {
 		"name": "Industrial Frigate",
-		"tier": 2,  # Audit v1.0: Added for fleet mission requirements
-		"stats": {"hp": 1200, "atk": 25},
-		"cost": {"credits": 50000, "Steel": 120, "Bronze": 50, "Circuit": 25, "Chip": 10},
-		"slots": ["weapon", "weapon", "shield", "shield", "engine", "battery", "battery"],
+		"stats": {"hp": 800, "atk": 25, "energy_capacity": 250},
+		"cost": {"credits": 2000, "Res1": 20},
+		"slots": ["weapon", "weapon", "weapon", "shield", "shield", "shield", "engine", "battery", "battery", "battery"], # 10 Slots
 		"research_req": "shipwright_1",
 		"visual": "res://assets/ships/2.png"
 	},
 	"destroyer_hull": {
-		"name": "Escort Destroyer",
-		"tier": 3,  # Audit v1.0: Added for fleet mission requirements
-		"stats": {"hp": 7500, "atk": 40, "max_shield": 500, "energy_capacity": 600},
-		"cost": {"credits": 500000, "Steel": 5000, "Ti": 250, "Circuit": 500, "Chip": 100, "Superalloy": 10, "AdvCircuit": 10},
-		"slots": ["weapon", "weapon", "weapon", "shield", "shield", "engine", "engine", "battery", "battery", "battery"],
+		"name": "Destroyer Class",
+		"stats": {"hp": 2500, "atk": 60, "energy_capacity": 600},
+		"cost": {"credits": 15000, "Ti": 50, "Circuit": 25, "Res2": 10},
+		"slots": ["weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "engine", "battery", "battery", "battery", "battery"], # 13 Slots
 		"research_req": "shipwright_2",
 		"visual": "res://assets/ships/3.png"
 	},
 	"battlecruiser_hull": {
-		"name": "Battlecruiser",
-		"tier": 4,  # Audit v1.0: Added for fleet mission requirements
-		"stats": {"hp": 9000, "atk": 100, "energy_capacity": 1500},
-		"cost": {"credits": 5000000, "Steel": 50000, "Ti": 1500, "Circuit": 1000, "Chip": 250, "Superalloy": 50, "AdvCircuit": 50, "VoidArtifact": 10},
-		"slots": ["weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "engine", "battery", "battery", "battery", "battery"],
+		"name": "Battlecruiser Class",
+		"stats": {"hp": 8000, "atk": 120, "energy_capacity": 1500},
+		"cost": {"credits": 150000, "Steel": 500, "AdvCircuit": 50, "VoidArtifact": 5, "Res3": 15},
+		"slots": ["weapon", "weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "shield", "engine", "battery", "battery", "battery", "battery", "battery"], # 16 Slots
 		"research_req": "capital_ship_engineering",
 		"visual": "res://assets/ships/4.png"
 	},
 	"dreadnought_hull": {
-		"name": "Dreadnought",
-		"tier": 5,  # Audit v1.0: Added for fleet mission requirements
-		"stats": {"hp": 50000, "atk": 250, "energy_capacity": 4000},
-		"cost": {"credits": 25000000, "Steel": 500000, "Ti": 5000, "Circuit": 2500, "Chip": 500, "Superalloy": 200, "AdvCircuit": 200, "QuantumCore": 20, "VoidArtifact": 50},
+		"name": "Dreadnought Class",
+		"stats": {"hp": 20000, "atk": 250, "energy_capacity": 4000},
+		"cost": {"credits": 10000000, "Steel": 100000, "Ti": 2500, "Circuit": 1000, "Chip": 250, "Superalloy": 100, "AdvCircuit": 100, "QuantumCore": 10, "VoidArtifact": 25},
 		"slots": ["weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "shield", "shield", "shield", "engine", "battery", "battery", "battery", "battery", "battery", "battery"],
 		"research_req": "quantum_dynamics",
 		"visual": "res://assets/ships/5.png"
@@ -76,16 +72,16 @@ var hulls: Dictionary = {
 var modules: Dictionary = {
 	# Weapons
 	"mining_laser_mk1": {
-		"name": "Mining Laser Mk.I", 
+		"name": "Pulse Laser Mk.I", 
 		"slot_type": "weapon", 
-		"stats": {"atk_energy": 10, "energy_load": 5}, 
+		"stats": {"atk_energy": 12, "energy_load": 5, "atk_interval": 1.5}, 
 		"cost": {"credits": 50, "Si": 5},
-		"desc": "Energy Beam. Effective vs Shields."
+		"desc": "Fast-firing Energy Beam. Effective vs Shields."
 	},
 	"mining_laser_mk2": {
-		"name": "Focused Laser Mk.II", 
+		"name": "Pulse Laser Mk.II", 
 		"slot_type": "weapon", 
-		"stats": {"atk_energy": 25, "energy_load": 15}, 
+		"stats": {"atk_energy": 40, "energy_load": 15}, 
 		"cost": {"credits": 5000, "Si": 20, "Ti": 10, "Circuit": 10, "Chip": 10},
 		"desc": "High intensity beam. Melts shields.",
 		"research_req": "laser_optics"
@@ -93,26 +89,50 @@ var modules: Dictionary = {
 	"railgun_mk1": {
 		"name": "Mass Driver", 
 		"slot_type": "weapon", 
-		"stats": {"atk_kinetic": 25, "energy_load": 5}, 
+		"stats": {"atk_kinetic": 25, "energy_load": 5, "atk_interval": 3.0}, 
 		"cost": {"credits": 1000, "Fe": 50},
-		"desc": "Magnetic projectile. Crushes armor.",
+		"desc": "Heavy magnetic projectile. Slow but powerful.",
 		"research_req": "kinetics_101"
 	},
 	"targeting_computer": {
 		"name": "Targeting Computer",
 		"slot_type": "weapon",
-		"stats": {"atk_kinetic": 5, "atk_energy": 5, "energy_load": 5},
+		"stats": {"atk_kinetic": 5, "atk_energy": 5, "accuracy": 25, "energy_load": 5},
 		"cost": {"credits": 300, "Chip": 10, "Si": 20},
-		"desc": "Advanced analytics. Improves all weapon tracking.",
+		"desc": "Advanced analytics. +25 Accuracy for all weapons.",
 		"research_req": "automated_logistics"
 	},
 	"cryo_laser_mk3": {
 		"name": "Cryo-Cooled Laser Mk.III",
 		"slot_type": "weapon",
-		"stats": {"atk_energy": 60, "energy_load": 25},
+		"stats": {"atk_energy": 80, "energy_load": 20},
 		"cost": {"credits": 450000, "Ti": 30, "CoolantCell": 5, "AdvCircuit": 3},
 		"desc": "Helium-cooled beam. Extreme shield damage.",
 		"research_req": "cryogenic_systems"
+	},
+	"micro_missile_launcher": {
+		"name": "Micro-Missile Launcher",
+		"slot_type": "weapon",
+		"stats": {"atk_explosive": 40, "energy_load": 10, "atk_interval": 4.0},
+		"cost": {"credits": 5000, "Ti": 20, "C": 50},
+		"desc": "Explosive payload. High Armor Penetration.",
+		"research_req": "combustion"
+	},
+	"missile_launcher_mk2": {
+		"name": "Seeker Missile Mk.II",
+		"slot_type": "weapon",
+		"stats": {"atk_explosive": 120, "energy_load": 20, "atk_interval": 5.5},
+		"cost": {"credits": 120000, "Steel": 200, "AdvCircuit": 20, "Res2": 10},
+		"desc": "Advanced tracking missiles. Devastates armored hulls.",
+		"research_req": "advanced_rocketry"
+	},
+	"torpedo_launcher": {
+		"name": "Heavy Torpedo",
+		"slot_type": "weapon",
+		"stats": {"atk_explosive": 450, "energy_load": 60, "atk_interval": 12.0},
+		"cost": {"credits": 5000000, "Superalloy": 50, "Chip": 50, "VoidArtifact": 5},
+		"desc": "Capital-class warhead. Massive armor penetration.",
+		"research_req": "capital_ship_armament"
 	},
 	# Batteries
 	"battery_t1": {
@@ -192,7 +212,7 @@ var modules: Dictionary = {
 	"mining_laser_mk3": {
 		"name": "Plasma Lance Mk.III",
 		"slot_type": "weapon",
-		"stats": {"atk_energy": 50, "energy_load": 30},
+		"stats": {"atk_energy": 75, "energy_load": 25},
 		"cost": {"credits": 85000, "Si": 50, "Ti": 20, "AdvCircuit": 10},
 		"desc": "Cutting-edge beam weapon. Devastates shields.",
 		"research_req": "shipwright_2"
@@ -200,7 +220,7 @@ var modules: Dictionary = {
 	"railgun_mk2": {
 		"name": "Heavy Railgun",
 		"slot_type": "weapon",
-		"stats": {"atk_kinetic": 50, "energy_load": 15},
+		"stats": {"atk_kinetic": 75, "energy_load": 20},
 		"cost": {"credits": 1500, "Steel": 50, "W": 10},
 		"desc": "Magnetic accelerator. Armor penetration.",
 		"research_req": "ballistics_optimization"
@@ -231,14 +251,6 @@ var modules: Dictionary = {
 		"research_req": "shipwright_2"
 	},
 	# Early Game Budget Modules
-	"bronze_plating": {
-		"name": "Bronze Plating",
-		"slot_type": "shield",
-		"stats": {"def": 8, "hp": 30},
-		"cost": {"credits": 100, "Bronze": 10},
-		"desc": "Ancient alloy. Cheap early armor alternative to Graphite.",
-		"research_req": "bronze_smithing"
-	},
 	"aluminum_hull_patch": {
 		"name": "Aluminum Hull Patch",
 		"slot_type": "shield",
@@ -615,8 +627,32 @@ func equip_module(slot_idx: int, module_id: String) -> bool:
 		print("Equip Fail: No inventory.")
 		return false
 	
-	# Unequip existing
+	# Design Constraint: Enforce Energy Load (Audit Phase 18)
+	var potential_load = energy_used
 	var existing = loadout.get(slot_idx)
+	if existing:
+		potential_load -= modules[existing]["stats"].get("energy_load", 0)
+	potential_load += mod_data["stats"].get("energy_load", 0)
+	
+	# Note: Energy Capacity is hull + modules. We need to check against TOTAL capacity.
+	# Since capacity can change based on module being equipped/unequipped, 
+	# we do a simple check: is the new module adding more load than the ship currently has room for?
+	# However, it's safer to allow the equip and let recalc_stats() handle the "Grid Overloaded" state 
+	# or just block after calculation. Let's stick to blocking if total load > current capacity.
+	var current_cap = hulls[active_hull]["stats"].get("energy_capacity", 100.0)
+	for s_idx in loadout:
+		if s_idx == slot_idx: continue
+		var mid = loadout[s_idx]
+		if mid and modules.has(mid):
+			current_cap += modules[mid]["stats"].get("energy_capacity", 0)
+	if mod_data["slot_type"] == "battery":
+		current_cap += mod_data["stats"].get("energy_capacity", 0)
+	
+	if potential_load > current_cap:
+		print("Equip Fail: Grid Overloaded. Needs more battery modules.")
+		return false
+
+	# Unequip existing
 	if existing:
 		module_inventory[existing] += 1
 		
@@ -624,6 +660,15 @@ func equip_module(slot_idx: int, module_id: String) -> bool:
 	loadout[slot_idx] = module_id
 	
 	recalc_stats()
+	
+	# Auto-Equip Ammo if slot is empty (QoL Fix)
+	if mod_data["slot_type"] == "weapon" and not ammo_loadout.get(slot_idx):
+		var stats = mod_data.get("stats", {})
+		if stats.get("atk_kinetic", 0) > 0:
+			ammo_loadout[slot_idx] = "SlugT1"
+		elif stats.get("atk_energy", 0) > 0:
+			ammo_loadout[slot_idx] = "CellT1"
+			
 	return true
 
 func unequip_slot(slot_idx: int):
@@ -643,10 +688,15 @@ func recalc_stats():
 	var s_reg = 0.0
 	var atk_k = 0
 	var atk_e = 0
+	var atk_x = 0
 	var defe = 0
 	var eva = 0.0
+	var acc = 100.0 # 100% base accuracy
+	var crit = 0.05 # 5% base crit
 	var e_cap = 0.0
 	var e_load = 0.0
+	var atk_speed_bon = 0.0
+	var s_reg_bon = 0.0
 	
 	if active_hull in hulls:
 		var h = hulls[active_hull]["stats"]
@@ -662,17 +712,26 @@ func recalc_stats():
 	var skill_mult = 1.0 + (engineering_lvl * 0.01)
 	
 	for mid in loadout.values():
-		if mid and mid in modules:
+		if mid:
+			if not mid in modules:
+				print("ShipyardManager: Found invalid module in loadout: ", mid, ". Ignoring.")
+				continue
+				
 			var m = modules[mid]["stats"]
 			hp += m.get("hp", 0) * skill_mult
 			shield += m.get("max_shield", 0) * skill_mult
 			s_reg += m.get("shield_regen", 0) * skill_mult
 			atk_k += m.get("atk_kinetic", 0) * skill_mult
 			atk_e += m.get("atk_energy", 0) * skill_mult
+			atk_x += m.get("atk_explosive", 0) * skill_mult
 			defe += m.get("def", 0) * skill_mult
 			eva += m.get("eva", 0) * skill_mult
+			acc += m.get("accuracy", 0)
+			crit += m.get("crit_chance", 0.0)
 			e_cap += m.get("energy_capacity", 0) * skill_mult
 			e_load += m.get("energy_load", 0)
+			atk_speed_bon += m.get("atk_speed_mult", 0.0)
+			s_reg_bon += m.get("shield_regen_mult", 0.0)
 			
 	var rm = GameState.research_manager
 	var hp_mult = 1.0
@@ -688,16 +747,27 @@ func recalc_stats():
 	shield_regen = s_reg
 	attack_kinetic = atk_k
 	attack_energy = atk_e
-	attack = atk_k + atk_e
+	attack_explosive = atk_x
+	attack = atk_k + atk_e + atk_x
 	defense = defe
 	evasion = eva
+	accuracy = acc
+	crit_chance = crit
 	energy_used = e_load
+	attack_speed_bonus = atk_speed_bon
+	shield_regen_bonus = s_reg_bon
 	
 	# Audit v8.0 P1-25: Applied Physics Hub Bonus (+10% Energy Capacity)
 	if rm:
 		e_cap *= (1.0 + rm.get_efficiency_bonus("applied_physics"))
 	
 	current_hp = min(current_hp, max_hp)
+	
+	# Phase 6: Expose Ship Generation for Grid Integration
+	ship_energy_gen = 0.0
+	for mid in loadout.values():
+		if mid and mid in modules:
+			ship_energy_gen += modules[mid]["stats"].get("energy_gen", 0.0)
 	
 	# Update Global Resources
 	if GameState.resources:

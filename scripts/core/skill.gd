@@ -45,7 +45,12 @@ func add_xp(amount: float):
 	# Audit v2.0 P1-9: Apply prestige XP multiplier
 	var xp_mult = 1.0
 	if GameState and GameState.warp_manager:
-		xp_mult = GameState.warp_manager.get_xp_multiplier()
+		xp_mult *= GameState.warp_manager.get_xp_multiplier()
+	
+	# Phase 17: Apply infrastructure XP multiplier (Crew Quarters)
+	if GameState and GameState.infrastructure_manager:
+		xp_mult *= GameState.infrastructure_manager.get_xp_multiplier()
+
 	xp += amount * xp_mult
 	xp_gained.emit(amount * xp_mult)
 	check_level_up()

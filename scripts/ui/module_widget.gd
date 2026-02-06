@@ -4,6 +4,7 @@ var mid: String
 var data: Dictionary
 var manager: RefCounted
 var parent_ui: Node
+var target_slot_idx: int = -1
 
 @onready var name_lbl = $MarginContainer/VBoxContainer/NameLabel
 @onready var stats_lbl = $MarginContainer/VBoxContainer/StatsLabel
@@ -24,6 +25,16 @@ func setup(p_mid: String, p_data: Dictionary, p_manager, p_parent):
 	UITheme.apply_card_style(self, "shipyard")
 	UITheme.apply_premium_button_style(btn, "shipyard")
 	
+	_update_stats_text()
+	
+	cost_lbl.text = ""
+	research_lbl.hide()
+	
+	# Comparison tooltip on hover
+	mouse_entered.connect(_on_hover_enter)
+	mouse_exited.connect(_on_hover_exit)
+
+func _update_stats_text():
 	var s_txt = ""
 	var stats = data.get("stats", {})
 	for k in stats:
@@ -31,10 +42,6 @@ func setup(p_mid: String, p_data: Dictionary, p_manager, p_parent):
 		var val = stats[k]
 		s_txt += "%s: %s\n" % [label, FormatUtils.format_stat_value(k, val)]
 	stats_lbl.text = s_txt.strip_edges()
-	
-	# Cost text handled dynamically in update_state
-	cost_lbl.text = ""
-	research_lbl.hide()
 
 func _process(delta):
 	update_state()
@@ -43,7 +50,6 @@ func update_state():
 	var owned = manager.module_inventory.get(mid, 0)
 	owned_lbl.text = "In Storage: %d" % owned
 	
-	# Check Research Requirements
 	var req_id = data.get("research_req")
 	var tech_unlocked = GameState.research_manager.is_tech_unlocked(req_id)
 	
@@ -88,5 +94,87 @@ func update_state():
 	btn.disabled = not affordable
 
 func _on_button_pressed():
-	if manager.craft_module(mid):
-		UITheme.trigger_ui_thud(self, 8.0) # Manufacturing Thud
+	if target_slot_idx >= 0:
+		# Equip to specific slot
+		if manager.module_inventory.get(mid, 0) > 0:
+			if manager.equip_module(target_slot_idx, mid):
+				UITheme.trigger_ui_thud(self, 10.0)
+				if parent_ui.has_method("_build_slot_grid"):
+					parent_ui._build_slot_grid()
+		target_slot_idx = -1
+		_reset_highlight()
+	else:
+		# Craft module
+		if manager.craft_module(mid):
+			UITheme.trigger_ui_thud(self, 8.0)
+
+# ─────────────────────────────────────────────────
+# SLOT HIGHLIGHTING
+# ─────────────────────────────────────────────────
+
+func highlight_for_slot(slot_idx: int, req_type: String):
+	var my_type = data.get("slot_type", "")
+	if my_type == req_type and manager.module_inventory.get(mid, 0) > 0:
+		target_slot_idx = slot_idx
+		modulate = Color(0.5, 1.0, 0.5, 1.0)  # Green highlight
+		btn.text = "EQUIP"
+	else:
+		_reset_highlight()
+
+func _reset_highlight():
+	target_slot_idx = -1
+	modulate = Color.WHITE
+	btn.text = "Craft"
+
+# ─────────────────────────────────────────────────
+# COMPARISON TOOLTIP
+# ─────────────────────────────────────────────────
+
+func _on_hover_enter():
+	tooltip_text = _build_comparison_tooltip()
+
+func _on_hover_exit():
+	pass
+
+func _build_comparison_tooltip() -> String:
+	var tt = data["name"] + "\n"
+	tt += "─────────────────\n"
+	
+	var my_stats = data.get("stats", {})
+	var slot_type = data.get("slot_type", "weapon")
+	
+	# Find currently equipped module of same type for comparison
+	var equipped_mid = null
+	for idx in manager.loadout:
+		var m = manager.loadout[idx]
+		if m and m in manager.modules:
+			var m_data = manager.modules[m]
+			if m_data.get("slot_type") == slot_type:
+				equipped_mid = m
+				break
+	
+	for k in my_stats:
+		var label = FormatUtils.format_stat_label(k)
+		var val = my_stats[k]
+		var delta_str = ""
+		
+		if equipped_mid and equipped_mid != mid:
+			var eq_stats = manager.modules[equipped_mid].get("stats", {})
+			var eq_val = eq_stats.get(k, 0)
+			var diff = val - eq_val
+			if diff > 0:
+				delta_str = " [color=lime](+%s ↑)[/color]" % FormatUtils.format_stat_value(k, diff)
+			elif diff < 0:
+				delta_str = " [color=red](%s ↓)[/color]" % FormatUtils.format_stat_value(k, diff)
+		
+		tt += "%s: %s%s\n" % [label, FormatUtils.format_stat_value(k, val), delta_str]
+	
+	if equipped_mid and equipped_mid != mid:
+		tt += "─────────────────\n"
+		tt += "Compared to: %s" % manager.modules[equipped_mid]["name"]
+	
+	if data.has("desc"):
+		tt += "\n─────────────────\n"
+		tt += data["desc"]
+	
+	return tt

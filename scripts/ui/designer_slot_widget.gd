@@ -44,6 +44,15 @@ func refresh_state():
 	# Current Item Display
 	if equipped_id:
 		var m_data = manager.modules.get(equipped_id)
+		if not m_data:
+			# Safety: Module ID exists in loadout but not in database (removed/deprecated)
+			name_lbl.text = "INVALID ID"
+			icon_lbl.text = "?"
+			tooltip_text = "Module data not found for ID: %s" % equipped_id
+			option_btn.add_item("Unequip (Invalid)", 1)
+			option_btn.set_item_metadata(1, "unequip")
+			return
+
 		var en_load = m_data["stats"].get("energy_load", 0)
 		
 		if en_load > 0:
@@ -55,6 +64,9 @@ func refresh_state():
 		icon_lbl.text = "▣"
 		icon_lbl.modulate = Color(0, 0.73, 0.83)
 		
+		# Build tooltip with module stats
+		tooltip_text = _build_module_tooltip(m_data)
+		
 		# Option to Unequip
 		option_btn.add_item("Unequip", 1)
 		option_btn.set_item_metadata(1, "unequip")
@@ -63,6 +75,7 @@ func refresh_state():
 		name_lbl.modulate = Color(0.33, 0.33, 0.33) # Dark Gray
 		icon_lbl.text = "⛝"
 		icon_lbl.modulate = Color(0.33, 0.33, 0.33)
+		tooltip_text = "Empty %s Slot\nDrag a module here to equip" % slot_type.capitalize()
 
 	# Populate Inventory Options
 	var inv = manager.module_inventory
@@ -122,9 +135,38 @@ func _on_option_button_item_selected(index):
 	
 	option_btn.select(0)
 
-# Optional: Handing unequip via right click
 func _gui_input(event):
 	if event is InputEventMouseButton and event.pressed:
 		if event.button_index == MOUSE_BUTTON_RIGHT:
 			manager.unequip_slot(slot_idx)
 			parent_ui.trigger_refresh()
+
+# ─────────────────────────────────────────────────
+# MODULE TOOLTIP (PHASE 22)
+# ─────────────────────────────────────────────────
+
+func _build_module_tooltip(m_data: Dictionary) -> String:
+	var tt = m_data["name"] + "\n"
+	tt += "─────────────────\n"
+	
+	var stats = m_data.get("stats", {})
+	for k in stats:
+		var label = FormatUtils.format_stat_label(k)
+		var val = stats[k]
+		tt += "%s: %s\n" % [label, FormatUtils.format_stat_value(k, val)]
+	
+	# Add DPS if it's a weapon
+	if m_data.get("slot_type") == "weapon":
+		var dmg = stats.get("atk_kinetic", 0) + stats.get("atk_energy", 0) + stats.get("atk_explosive", 0)
+		var interval = stats.get("atk_interval", 2.5)
+		if interval > 0:
+			var dps = float(dmg) / interval
+			tt += "─────────────────\n"
+			tt += "DPS: %.1f\n" % dps
+	
+	if m_data.has("desc"):
+		tt += "─────────────────\n"
+		tt += m_data["desc"]
+	
+	tt += "\n[Right-click to unequip]"
+	return tt

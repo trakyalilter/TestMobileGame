@@ -33,11 +33,19 @@ func setup(p_bid: String, p_data: Dictionary, p_manager, p_parent):
 	var gen = data.get("energy_gen", 0.0)
 	var cons = data.get("energy_cons", 0.0)
 	var stats_text = ""
+	
+	# Forensic 3: Real-time Rate Display (Show adjusted yield/output)
+	var rates = manager.get_building_adjusted_rate(bid)
+	var yield_text = ""
+	if not rates["yield"].is_empty():
+		for res in rates["yield"]:
+			yield_text += "+%.1f %s/m " % [rates["yield"][res], res]
+	
 	if gen > 0: 
 		stats_text = "+%.1f kW" % gen
 		stats_lbl.add_theme_color_override("font_color", Color.YELLOW)
 	elif cons > 0:
-		stats_text = "-%.1f kW" % cons
+		stats_text = "-%.1f kW %s" % [cons, yield_text]
 		stats_lbl.add_theme_color_override("font_color", Color.TOMATO)
 	stats_lbl.text = stats_text
 	
@@ -45,8 +53,6 @@ func setup(p_bid: String, p_data: Dictionary, p_manager, p_parent):
 	for res in data["cost"]:
 		var display_name = ElementDB.get_display_name(res)
 		cost_str += "%d %s\n" % [data["cost"][res], display_name]
-	cost_lbl.text = cost_str.strip_edges()
-	
 	cost_lbl.text = cost_str.strip_edges()
 
 func _process(delta):

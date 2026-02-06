@@ -35,6 +35,8 @@ var building_db: Dictionary = {
 		"cost": {"credits": 150, "Fe": 10},
 		"energy_gen": 50.0, 
 		"energy_cons": 0.0,
+		"input": {"C": 1},
+		"interval": 10.0,
 		"research_req": "combustion",
 		"category": "power"
 	},
@@ -444,12 +446,43 @@ func _init():
 func get_building_count(building_id: String) -> int:
 	return buildings.get(building_id, 0)
 
+func get_xp_multiplier() -> float:
+	# Crew Quarters: +10% per building, max 3 (+30%)
+	return 1.0 + (get_building_count("crew_quarters") * 0.10)
+
+func get_effective_yield(building_id: String, resource_symbol: String) -> float:
+	var data = building_db.get(building_id)
+	if not data or not "yield" in data or not resource_symbol in data["yield"]: return 0.0
+	
+	var base_qty = float(data["yield"][resource_symbol])
+	
+	# Engineering Level Scaling
+	var scaled_buildings = ["auto_smelter", "hydro_plant", "industrial_centrifuge", "munitions_factory"]
+	if building_id in scaled_buildings:
+		var eng_lvl = GameState.processing_manager.get_level()
+		base_qty *= (1.0 + (log(1.0 + eng_lvl) / log(10.0)) * 5.0)
+	
+	# Industrial Logistics Hub Bonus (Direct Yield buff instead of speed if specified? 
+	# No, let's keep it as speed bonus per plan, but standardize the formula here)
+	return base_qty
+
+func get_effective_interval(building_id: String) -> float:
+	var data = building_db.get(building_id)
+	if not data: return 1.0
+	var interval = data.get("interval", 1.0)
+	
+	# Production Speed Bonuses
+	var warp_mult = GameState.warp_manager.get_production_multiplier() if GameState.warp_manager else 1.0
+	var skill_speed_mult = 1.0 + (get_level() * 0.01)
+	var hub_bonus = 0.0
+	if GameState.research_manager:
+		hub_bonus = GameState.research_manager.get_efficiency_bonus("industrial_logistics")
+	
+	# Interval decreases as speed increases
+	return interval / (warp_mult * skill_speed_mult * (1.0 + hub_bonus))
+
 func get_total_resource_rates() -> Dictionary:
 	var rates = {} # {id: net_per_minute}
-	
-	var prod_mult = 1.0
-	if GameState.warp_manager:
-		prod_mult = GameState.warp_manager.get_production_multiplier()
 	
 	# Global Yield Bonuses Pass
 	var global_yield_bonuses = {} # {resource: total_mult_bonus}
@@ -461,36 +494,73 @@ func get_total_resource_rates() -> Dictionary:
 
 	for bid in buildings:
 		var count = buildings[bid]
+		if count <= 0: continue
 		var data = building_db.get(bid)
 		if not data: continue
 		
-		var interval = data.get("interval", 1.0)
+		var eff_interval = get_effective_interval(bid)
 		var efficiency = energy_efficiency
 		
 		# Yields
 		if "yield" in data:
 			for res in data["yield"]:
-				var base_qty = float(data["yield"][res])
-				
-				# Apply Skill Scaling (Mirroring process_tick logic)
-				if bid == "auto_smelter" or bid == "hydro_plant" or bid == "industrial_centrifuge":
-					var eng_lvl = GameState.processing_manager.get_level()
-					base_qty = base_qty * (1.0 + (log(1.0 + eng_lvl) / log(10.0)) * 5.0)
-				
+				var base_qty = get_effective_yield(bid, res)
 				var total_yield_mult = 1.0 + global_yield_bonuses.get(res, 0.0)
-				var qty = base_qty * count * total_yield_mult * prod_mult
+				var qty = base_qty * count * total_yield_mult
 				
-				var rate_per_min = (qty / interval) * 60.0 * efficiency
+				var rate_per_min = (qty / eff_interval) * 60.0 * efficiency
 				rates[res] = rates.get(res, 0.0) + rate_per_min
 		
 		# Consumptions
 		if "input" in data:
 			for res in data["input"]:
 				var qty = float(data["input"][res]) * count
-				var rate_per_min = (qty / interval) * 60.0 * efficiency
+				# Power generators consume at full speed regardless of grid efficiency to jumpstart
+				var consumption_eff = 1.0 if data.get("category") == "power" else efficiency
+				var rate_per_min = (qty / eff_interval) * 60.0 * consumption_eff
 				rates[res] = rates.get(res, 0.0) - rate_per_min
 				
 	return rates
+
+func get_building_adjusted_rate(building_id: String) -> Dictionary:
+	"""Calculates real-world production rate for a single building of this type, including all multipliers."""
+	if not building_id in building_db: return {}
+	var data = building_db[building_id]
+	var interval = data.get("interval", 1.0)
+	var efficiency = energy_efficiency
+	
+	var warp_mult = 1.0
+	if GameState.warp_manager:
+		warp_mult = GameState.warp_manager.get_production_multiplier()
+		
+	var skill_yield_mult = 1.0 + (get_level() * 0.01)
+	
+	var global_yield_bonuses = {}
+	for other_bid in buildings:
+		var other_data = building_db.get(other_bid)
+		if other_data and other_data.has("yield_bonus"):
+			for res in other_data["yield_bonus"]:
+				global_yield_bonuses[res] = global_yield_bonuses.get(res, 0.0) + (other_data["yield_bonus"][res] * buildings[other_bid])
+
+	var results = {"yield": {}, "input": {}}
+	
+	if "yield" in data:
+		for res in data["yield"]:
+			var base_qty = float(data["yield"][res])
+			if building_id == "auto_smelter" or building_id == "hydro_plant" or building_id == "industrial_centrifuge":
+				var eng_lvl = GameState.processing_manager.get_level()
+				base_qty = base_qty * (1.0 + (log(1.0 + eng_lvl) / log(10.0)) * 5.0)
+			
+			var total_yield_mult = 1.0 + global_yield_bonuses.get(res, 0.0)
+			var qty = base_qty * total_yield_mult * warp_mult * skill_yield_mult
+			results["yield"][res] = (qty / interval) * 60.0 * efficiency
+			
+	if "input" in data:
+		for res in data["input"]:
+			var qty = float(data["input"][res])
+			results["input"][res] = (qty / interval) * 60.0 * efficiency
+			
+	return results
 
 func get_building_cost(building_id: String) -> Dictionary:
 	"""Calculates exponential cost scaling: Base * (1.15 ^ current_count)"""
@@ -565,6 +635,11 @@ func recalc_energy():
 			gen += data.get("energy_gen", 0.0) * count
 			cons += data.get("energy_cons", 0.0) * count
 	
+	# Phase 6: Ship Reactor Link (Ship Gen adds to Grid, Load does NOT drain Grid)
+	if GameState.shipyard_manager:
+		gen += GameState.shipyard_manager.ship_energy_gen # Reactors power the base
+		# cons += GameState.shipyard_manager.energy_used # REMOVED: Gun Tax (Passive Drain)
+	
 	# Audit v4.0: Milestone Level 10 (+10% Grid Efficiency)
 	if is_milestone_unlocked(10):
 		gen *= 1.10
@@ -608,7 +683,7 @@ func process_tick(delta: float):
 			# No battery - complete shutdown
 			energy_efficiency = 0.0
 	
-	# 4. Handle Fuel-Based Generation (Forensic 3: Consumption logic)
+	# 4. Handle Fuel-Based Generation (Jumpstart Fix: Running generators ignore GRID efficiency)
 	for bid in buildings:
 		var count = buildings[bid]
 		if count <= 0: continue
@@ -616,9 +691,10 @@ func process_tick(delta: float):
 		if data.get("energy_gen", 0.0) > 0 and "input" in data:
 			# This is a fuel-based generator (Coal Burner, H Reactor)
 			var can_fuel = true
+			var eff_interval = get_effective_interval(bid)
 			for res in data["input"]:
-				# Concept: input qty is per cycle (scaled by delta)
-				var needed = data["input"][res] * count * (delta / data.get("interval", 10.0))
+				# Generators run at 100% efficiency regardless of grid status to jumpstart
+				var needed = data["input"][res] * count * (delta / eff_interval)
 				if GameState.resources.get_element_amount(res) < needed:
 					can_fuel = false
 					break
@@ -626,13 +702,10 @@ func process_tick(delta: float):
 			if can_fuel:
 				# Consume Fuel
 				for res in data["input"]:
-					var qty = data["input"][res] * count * (delta / data.get("interval", 10.0))
+					var qty = data["input"][res] * count * (delta / eff_interval)
 					GameState.resources.remove_element(res, qty)
-				# Generation is already handled in net_energy * delta calculation
 			else:
 				# Generator stalls - decrease energy_efficiency for subsequent logic
-				# For simplicity, we just reduce the effective net_energy or skip adding it
-				# Re-calculating net_energy locally to properly stall generator:
 				var stall_gen = data.get("energy_gen") * count
 				GameState.resources.add_energy(-stall_gen * delta) # Reverse the generation
 	
@@ -652,19 +725,10 @@ func process_tick(delta: float):
 				if bid == "repair_gantry":
 					_process_fleet_repairs(delta * energy_efficiency * count)
 					
-				var warp_mult = GameState.warp_manager.get_production_multiplier()
-				# Audit v7.0 P1-24: Infrastructure Skill Yield Bonus (+1% per Level)
-				var skill_yield_mult = 1.0 + (get_level() * 0.01)
+				var eff_interval = get_effective_interval(bid)
+				production_timers[bid] += delta * energy_efficiency
 				
-				# Audit v8.0 P1-25: Industrial Logistics Hub Bonus (+10% Production Speed)
-				var hub_bonus = 0.0
-				if GameState.research_manager:
-					hub_bonus = GameState.research_manager.get_efficiency_bonus("industrial_logistics")
-				
-				production_timers[bid] += delta * energy_efficiency * (1.0 + hub_bonus) * warp_mult * skill_yield_mult
-				
-				var interval = data.get("interval", 5.0)
-				if production_timers[bid] >= interval:
+				if production_timers[bid] >= eff_interval:
 					# Check if building needs inputs
 					var can_produce = true
 					if "input" in data:
@@ -684,12 +748,7 @@ func process_tick(delta: float):
 						# Production complete
 						activity_occurred.emit()
 						for res in data["yield"]:
-							var qty = data["yield"][res]
-							
-							# ITER8: Munitions Factory Scaling - Logarithmic Yield Curve
-							if bid == "munitions_factory":
-								var eng_lvl = GameState.processing_manager.get_level()
-								qty = int(qty * (1.0 + (log(1.0 + eng_lvl) / log(10.0)) * 5.0))
+							var qty = get_effective_yield(bid, res)
 							
 							# Audit v4.0: Global Yield Bonuses (e.g., Nitrogen Pressurization)
 							var yield_mult = 1.0
@@ -739,25 +798,17 @@ func process_tick(delta: float):
 								continue
 							
 						
-							# 50% chance to trigger this action per 10s tick (Audit v8.0 Buff)
-							if randf() < 0.50:
+							# Drone Bay Balance: One random roll from unlocked actions per bay per 10s
+							# Instead of checking EVERYTHING, we pick ONE random unlocked action per tick.
+							if randf() < 0.25: # 25% chance per bay to get something
 								var loot_table = action.get("loot_table", [])
-								for entry in loot_table:
+								if not loot_table.is_empty():
+									var entry = loot_table.pick_random()
 									var element = entry[0]
 									var chance = entry[1]
-									
-									# Audit v33.0: Scavenger Protocol Bonus
-									if GameState.research_manager.is_tech_unlocked("scavenger_protocol"):
-										chance += 0.15
-									
-									var min_amt = entry[2]
-									var max_amt = entry[3]
-									
 									if randf() < chance:
-										var amount = randi_range(min_amt, max_amt)
-										# Audit v8.0: Full amount (100% yield per success)
-										amount = max(1, int(amount * 1.0))
-										GameState.resources.add_element(element, amount)
+										var amount = randi_range(entry[2], entry[3])
+										GameState.resources.add_element(element, max(1, amount))
 					
 					# Audit v8.0: Passive Scrap Logic
 					# Always generate 1 Scrap per 10s per Drone Bay
@@ -783,8 +834,8 @@ func calculate_offline(delta: float) -> String:
 		var count = buildings[bid]
 		var data = building_db.get(bid)
 		if "yield" in data:
-			var interval = data.get("interval", 5.0)
-			var cycles = int(delta / interval)
+			var eff_interval = get_effective_interval(bid)
+			var cycles = int(delta / eff_interval)
 			if "input" in data:
 				var max_cycles = cycles
 				for res in data["input"]:
@@ -799,9 +850,10 @@ func calculate_offline(delta: float) -> String:
 					for res in data["input"]:
 						GameState.resources.remove_element(res, data["input"][res] * count * cycles)
 				for res in data["yield"]:
-					var total = data["yield"][res] * count * cycles
+					var qty = get_effective_yield(bid, res)
+					var total = qty * count * cycles
 					GameState.resources.add_element(res, total)
-					loot_summary[res] = loot_summary.get(res, 0) + total
+					loot_summary[res] = loot_summary.get(res, 0.0) + total
 
 	# Pass 2: General Production
 	for bid in buildings:
@@ -810,8 +862,8 @@ func calculate_offline(delta: float) -> String:
 		if count <= 0: continue
 		var data = building_db.get(bid)
 		if "yield" in data:
-			var interval = data.get("interval", 5.0)
-			var cycles = int(delta / interval)
+			var eff_interval = get_effective_interval(bid)
+			var cycles = int(delta / eff_interval)
 			
 			# If building has input requirements, calculate max possible cycles
 			if "input" in data:
@@ -832,16 +884,10 @@ func calculate_offline(delta: float) -> String:
 				
 				# Produce outputs
 				for res in data["yield"]:
-					var qty = data["yield"][res]
-					
-					# Re-apply scaling for Munitions in offline too
-					if bid == "munitions_factory":
-						var eng_lvl = GameState.processing_manager.get_level()
-						qty = int(qty * (1.0 + (log(1.0 + eng_lvl) / log(10.0)) * 5.0))
-						
+					var qty = get_effective_yield(bid, res)
 					var total = qty * count * cycles
 					GameState.resources.add_element(res, total)
-					loot_summary[res] = loot_summary.get(res, 0) + total
+					loot_summary[res] = loot_summary.get(res, 0.0) + total
 
 	
 	if not loot_summary.is_empty():
