@@ -3,6 +3,12 @@ extends Label
 func setup(text_val: String, color: Color, start_pos: Vector2):
 	text = text_val
 	modulate = color
+	
+	# v55.1: Add random offset to prevent text overlapping
+	var x_offset = randf_range(-40, 40)
+	var y_offset = randf_range(-20, 20)
+	start_pos += Vector2(x_offset, y_offset)
+	
 	position = start_pos
 	
 	# Rich Aesthetics: Scaling based on impact

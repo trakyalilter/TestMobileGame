@@ -5,6 +5,8 @@ const SUFFIXES = ["", "K", "M", "B", "T", "q", "Q", "s", "S", "O", "N", "d"]
 
 static func format_number(val: float) -> String:
 	if val < 1000:
+		if val > 0.0 and val < 1.0:
+			return "%.2f" % val
 		return str(int(val))
 	
 	# PHASE 47: Scientific Diegesis (Sensor Reading Logic)

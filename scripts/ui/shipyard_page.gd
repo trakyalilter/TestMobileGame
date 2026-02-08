@@ -157,7 +157,7 @@ func _create_rack(id: String, title: String, color: Color, parent: Node, horizon
 		# Create a horizontal scroll for hulls
 		var scroll = ScrollContainer.new()
 		scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-		scroll.custom_minimum_size.y = 180
+		scroll.custom_minimum_size.y = 145  # Reduced 20% from 180
 		rack_vbox.add_child(scroll)
 		
 		rack_grid = HBoxContainer.new()

@@ -28,6 +28,11 @@ var was_resetted: bool = false
 var offline_report: String = ""
 var elements_db: Array = []
 
+# v52.1: Game Settings (opt-in features)
+var game_settings: Dictionary = {
+	"offline_combat": false  # Disabled by default
+}
+
 # Auto-save
 var time_since_save: float = 0.0
 const PROD_SAVE_INTERVAL: float = 60.0
@@ -94,6 +99,7 @@ func save_game():
 		"mission": mission_manager.get_save_data_manager(),
 		"fleet": fleet_manager.get_save_data_manager(),
 		"prestige": warp_manager.get_save_data_manager(),
+		"game_settings": game_settings,  # v52.1
 		"last_save_time": Time.get_unix_time_from_system()
 	}
 	
@@ -125,6 +131,11 @@ func load_game():
 		mission_manager.load_save_data_manager(data.get("mission", {}))
 		fleet_manager.load_save_data_manager(data.get("fleet", {}))
 		warp_manager.load_save_data_manager(data.get("prestige", {}))
+		
+		# v52.1: Load game settings
+		var saved_settings = data.get("game_settings", {})
+		for key in saved_settings:
+			game_settings[key] = saved_settings[key]
 		
 		# Restore Active Manager
 		if gathering_manager.is_active:
@@ -166,6 +177,11 @@ func process_offline_progress(delta: float):
 	
 	var fl_report = fleet_manager.calculate_offline(delta)
 	if fl_report: reports.append(fl_report)
+	
+	# v52.1: Optional offline combat
+	if game_settings.get("offline_combat", false):
+		var c_report = combat_manager.calculate_offline(delta)
+		if c_report: reports.append(c_report)
 	
 	if not reports.is_empty():
 		offline_report = "\n\n".join(reports)

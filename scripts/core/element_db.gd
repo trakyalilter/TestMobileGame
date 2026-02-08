@@ -18,6 +18,7 @@ var ELEMENT_NAMES = {
 	"Al": "Aluminum",
 	"Mg": "Magnesium",
 	"Zn": "Zinc",
+	"Sn": "Tin",  # Audit v50.0
 	
 	# Industrial Metals
 	"Ti": "Titanium",
@@ -60,6 +61,9 @@ var ELEMENT_NAMES = {
 	"ZincOre": "Zinc Ore",
 	"Spodumene": "Lithium Ore",
 	"PtOre": "Platinum Ore",
+	"Quartz": "Quartz Crystal",  # Audit v50.0
+	"Pentlandite": "Pentlandite Ore",  # Audit v50.0
+	"Chromite": "Chromite Ore",  # Audit v50.0
 	
 	# Components
 	"Circuit": "Circuit Board",
@@ -67,6 +71,7 @@ var ELEMENT_NAMES = {
 	"Chip": "Microchip",
 	"Hydraulics": "Hydraulic System",
 	"AlWire": "Aluminum Wiring",
+	"LaserSight": "Laser Sight",  # Audit v51.0
 	
 	# Batteries
 	"BatteryT1": "Basic Battery",
@@ -133,6 +138,19 @@ var ELEMENT_NAMES = {
 
 	"CryoCell": "Cryogenic Cell",
 	"NitroCoolant": "Liquid Nitrogen Coolant",
+	"RadIsotope": "Radioactive Isotope",  # Audit v50.0
+	"nanite_swarm": "Nanite Repair Swarm",  # Audit v50.0
+	
+	# v57.0: Sector Zeta & Late Sector Loot
+	"BiohazardSample": "Biohazard Sample",
+	"PathogenCore": "Pathogen Core",
+	"MutatedTissue": "Mutated Tissue",
+	"AIMatrix": "AI Matrix",
+	"QuarantineClearance": "Quarantine Clearance",
+	"BioWeaponCoating": "Biological Weapon Coating",
+	"AIProcessor": "AI Processor Array",
+	"RegenPlating": "Regenerative Hull Plating",
+	"PurifiedCompound": "Purified Compound",
 	
 	# New Research Artifacts
 	"Res1": "Common Artifact",

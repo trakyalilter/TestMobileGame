@@ -224,6 +224,18 @@ func calculate_offline(delta: float) -> String:
 	if GameState.research_manager:
 		speed_bonus = GameState.research_manager.get_efficiency_bonus("fleet_speed")
 
+	# v64.0 Fix: Apply Warp Multiplier
+	if GameState.warp_manager:
+		speed_bonus += (GameState.warp_manager.get_combat_multiplier() - 1.0)
+	
+	# v62.0 Fix: Apply warp production multiplier like online does
+	var prod_mult = 1.0
+	if GameState.warp_manager:
+		prod_mult = GameState.warp_manager.get_production_multiplier()
+	
+	# v62.0 Fix: Apply skill yield multiplier like online does
+	var skill_mult = get_yield_multiplier()
+
 	var report = "Fleet Command Offline Gains:\n"
 	var total_loot = {}
 	var ships_damaged = 0
@@ -236,9 +248,19 @@ func calculate_offline(delta: float) -> String:
 		var cycles = int(delta / effective_interval)
 		if cycles <= 0: continue
 		
+		# v62.0 Fix: Apply efficiency based on ship damage like online
+		var efficiency = 1.0
+		var hull_id = exp["hull_id"]
+		if pending_repairs.has(hull_id):
+			var repair_cost = pending_repairs[hull_id]
+			efficiency = max(0.5, 1.0 - (repair_cost * 0.00001))
+		
+		# v62.0 Fix: Apply all multipliers to loot
+		var final_mult = efficiency * prod_mult * skill_mult
+		
 		# Loot
 		for res in data["yield"]:
-			var total = data["yield"][res] * cycles
+			var total = data["yield"][res] * cycles * final_mult
 			if res == "credits":
 				GameState.resources.add_currency("credits", total)
 			else:

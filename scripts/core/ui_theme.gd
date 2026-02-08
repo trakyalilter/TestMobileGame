@@ -546,22 +546,23 @@ func apply_locked_overlay(card: Control, item_name: String, message: String, is_
 		overlay.add_child(center)
 		
 		var vbox = VBoxContainer.new()
+		vbox.custom_minimum_size.x = card.custom_minimum_size.x - 16  # Fit within card with padding
 		center.add_child(vbox)
 		
-		# 3. Add Labels
 		var name_lbl = Label.new()
 		name_lbl.name = "ItemNameLabel"
 		name_lbl.text = item_name.to_upper()
 		name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		name_lbl.add_theme_font_size_override("font_size", 12)
-		name_lbl.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7)) # Dim gray for the name
+		name_lbl.add_theme_font_size_override("font_size", 10)  # Reduced from 12
+		name_lbl.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+		name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		vbox.add_child(name_lbl)
 		
 		var lock_lbl = Label.new()
 		lock_lbl.name = "LockHeading"
 		lock_lbl.text = "LOCKED"
 		lock_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		lock_lbl.add_theme_font_size_override("font_size", 18)
+		lock_lbl.add_theme_font_size_override("font_size", 14)  # Reduced from 18
 		lock_lbl.add_theme_color_override("font_color", Color.WHITE)
 		vbox.add_child(lock_lbl)
 		
@@ -569,8 +570,9 @@ func apply_locked_overlay(card: Control, item_name: String, message: String, is_
 		req_lbl.name = "ReqLabel"
 		req_lbl.text = message
 		req_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		req_lbl.add_theme_font_size_override("font_size", 11)
-		req_lbl.add_theme_color_override("font_color", Color(1.0, 0.4, 0.4)) # Reddish for warning
+		req_lbl.add_theme_font_size_override("font_size", 9)  # Reduced from 11
+		req_lbl.add_theme_color_override("font_color", Color(1.0, 0.4, 0.4))
+		req_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		vbox.add_child(req_lbl)
 	else:
 		overlay.show()

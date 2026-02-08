@@ -122,7 +122,7 @@ var building_db: Dictionary = {
 		"cost": {"credits": 100000, "Ti": 1000, "AdvCircuit": 50},
 		"energy_gen": 0.0,
 		"energy_cons": 250.0,
-		"input": {"Scrap": 10000},  # Audit v9.0: Lowered from 100K for usability
+		"input": {"Scrap": 5000},  # Audit v38.0: Reduced from 10K for usability
 		"yield": {"Circuit": 1, "Superalloy": 0.2},  # Scaled proportionally
 		"interval": 10.0,
 		"research_req": "molecular_recycling",
@@ -189,7 +189,7 @@ var building_db: Dictionary = {
 		"name": "Palladium Fuel Cell Generator",
 		"description": "Pd-H2 fuel cells. Passive energy generation from hydrogen.",
 		"cost": {"credits": 250000, "PdFuelCell": 20, "Circuit": 40},
-		"energy_gen": 200.0,
+		"energy_gen": 350.0,  # Audit v38.0: Buffed from 200 to be viable vs H Reactor
 		"energy_cons": 0.0,
 		"input": {"H": 1},  # Consumes 1 H per cycle
 		"interval": 10.0,
@@ -421,7 +421,7 @@ var building_db: Dictionary = {
 		"energy_cons": 120.0,
 		"yield": {"W": 4},
 		"interval": 10.0,
-		"research_req": "adv_materials",
+		"research_req": "smelting",  # Audit v38.0: Changed from adv_materials for earlier T2 ammo access
 		"category": "extraction"
 	},
 	"void_crystallizer": {
@@ -718,12 +718,12 @@ func process_tick(delta: float):
 			var data = building_db.get(bid)
 			if not data: continue
 			
+			# Fleet Auto-Repair Logic (special case)
+			if bid == "repair_gantry":
+				_process_fleet_repairs(delta * energy_efficiency * count)
+
 			if "yield" in data:
 				if not bid in production_timers: production_timers[bid] = 0.0
-				
-				# Fleet Auto-Repair Logic (special case)
-				if bid == "repair_gantry":
-					_process_fleet_repairs(delta * energy_efficiency * count)
 					
 				var eff_interval = get_effective_interval(bid)
 				production_timers[bid] += delta * energy_efficiency

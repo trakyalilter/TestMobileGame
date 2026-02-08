@@ -13,7 +13,7 @@
     "atomic_number": -2,
     "symbol": "Dirt",
     "name": "Dirt",
-    "mass": 100.0,
+    "mass": 5.0,
     "category": "Raw Material",
     "tier": 0,
     "base_value": 0,
@@ -32,7 +32,7 @@
   {
     "atomic_number": -4,
     "symbol": "Spodumene",
-    "name": "Spodumene",
+    "name": "Lithium Ore",
     "mass": 10.0,
     "category": "Raw Material",
     "tier": 0,
@@ -42,7 +42,7 @@
   {
     "atomic_number": -5,
     "symbol": "Quartz",
-    "name": "Quartz Cluster",
+    "name": "Quartz Crystal",
     "mass": 25.0,
     "category": "Raw Material",
     "tier": 1,
@@ -182,7 +182,7 @@
   {
     "atomic_number": -306,
     "symbol": "AdvCircuit",
-    "name": "Advanced Circuitry",
+    "name": "Advanced Circuit",
     "mass": 0.2,
     "category": "Component",
     "tier": 3,
@@ -202,7 +202,7 @@
   {
     "atomic_number": -10,
     "symbol": "Steel",
-    "name": "Steel Ingot",
+    "name": "Steel",
     "mass": 55.0,
     "category": "Alloy",
     "tier": 2,
@@ -212,7 +212,7 @@
   {
     "atomic_number": -11,
     "symbol": "Graphite",
-    "name": "Graphite Plate",
+    "name": "Graphite",
     "mass": 12.0,
     "category": "Refined Material",
     "tier": 3,
@@ -222,7 +222,7 @@
   {
     "atomic_number": -20,
     "symbol": "Scrap",
-    "name": "Metal Scrap",
+    "name": "Recycled Scrap",
     "mass": 10.0,
     "category": "Raw Material",
     "tier": 1,
@@ -272,7 +272,7 @@
   {
     "atomic_number": -30,
     "symbol": "NavData",
-    "name": "Encrypted Nav-Data",
+    "name": "Navigation Data",
     "mass": 0.0,
     "category": "Data",
     "tier": 5,
@@ -282,7 +282,7 @@
   {
     "atomic_number": -36,
     "symbol": "Hydraulics",
-    "name": "Hydraulic Servo",
+    "name": "Hydraulic System",
     "mass": 5.0,
     "category": "Component",
     "tier": 3,
@@ -292,7 +292,7 @@
   {
     "atomic_number": -40,
     "symbol": "Circuit",
-    "name": "Basic Circuitry",
+    "name": "Circuit Board",
     "mass": 0.1,
     "category": "Component",
     "tier": 2,
@@ -361,7 +361,7 @@
     "category": "Ammo",
     "tier": 1,
     "base_value": 15,
-    "description": "Standard iron slugs. +5 Kinetic Dmg (20s)."
+    "description": "Standard iron slugs. +5 Kinetic Dmg per shot."
   },
   {
     "atomic_number": -81,
@@ -371,7 +371,7 @@
     "category": "Ammo",
     "tier": 2,
     "base_value": 35,
-    "description": "Armor-piercing heavy slugs. +15 Kinetic Dmg (20s)."
+    "description": "Armor-piercing heavy slugs. +15 Kinetic Dmg per shot."
   },
   {
     "atomic_number": -505,
@@ -381,7 +381,7 @@
     "category": "Ammo",
     "tier": 2,
     "base_value": 25,
-    "description": "Armor-piercing heavy slugs. +15 Kinetic Dmg (20s)."
+    "description": "Armor-piercing heavy slugs. +15 Kinetic Dmg per shot."
   },
   {
     "atomic_number": -82,
@@ -391,7 +391,7 @@
     "category": "Ammo",
     "tier": 1,
     "base_value": 15,
-    "description": "Lenses for beam cohesion. +5 Energy Dmg (20s)."
+    "description": "Lenses for beam cohesion. +5 Energy Dmg per shot."
   },
   {
     "atomic_number": -83,
@@ -401,7 +401,7 @@
     "category": "Ammo",
     "tier": 2,
     "base_value": 35,
-    "description": "Superheated gas canister. +15 Energy Dmg (20s)."
+    "description": "Superheated gas canister. +15 Energy Dmg per shot."
   },
   {
     "atomic_number": 92,
@@ -421,7 +421,7 @@
     "category": "Ammo",
     "tier": 3,
     "base_value": 60,
-    "description": "Self-sharpening penetrator. +30 Kinetic Dmg (20s)."
+    "description": "Self-sharpening penetrator. +30 Kinetic Dmg per shot."
   },
   {
     "atomic_number": -85,
@@ -431,7 +431,7 @@
     "category": "Ammo",
     "tier": 3,
     "base_value": 60,
-    "description": "Unstable singularity core. +30 Energy Dmg (20s)."
+    "description": "Unstable singularity core. +30 Energy Dmg per shot."
   },
   {
     "atomic_number": -90,
@@ -509,56 +509,6 @@
     "description": "Unidentifiable machinery from a lost civilization. Highly valuable."
   },
   {
-    "atomic_number": -202,
-    "symbol": "SlugT2",
-    "name": "Tungsten Slug",
-    "mass": 0.8,
-    "category": "Ammo",
-    "tier": 2,
-    "base_value": 5,
-    "description": "Heavy kinetic rounds. (+2 Kinetic Dmg)"
-  },
-  {
-    "atomic_number": -203,
-    "symbol": "SlugT3",
-    "name": "Depleted Uranium Slug",
-    "mass": 1.2,
-    "category": "Ammo",
-    "tier": 3,
-    "base_value": 15,
-    "description": "Advanced kinetic rounds. (+5 Kinetic Dmg)"
-  },
-  {
-    "atomic_number": -211,
-    "symbol": "CellT1",
-    "name": "Power Cell",
-    "mass": 0.2,
-    "category": "Ammo",
-    "tier": 1,
-    "base_value": 2,
-    "description": "Standard energy battery. (+0 Bonus)"
-  },
-  {
-    "atomic_number": -212,
-    "symbol": "CellT2",
-    "name": "Plasma Cell",
-    "mass": 0.2,
-    "category": "Ammo",
-    "tier": 2,
-    "base_value": 5,
-    "description": "High-capacity energy cell. (+2 Energy Dmg)"
-  },
-  {
-    "atomic_number": -213,
-    "symbol": "CellT3",
-    "name": "Antimatter Cell",
-    "mass": 0.2,
-    "category": "Ammo",
-    "tier": 3,
-    "base_value": 15,
-    "description": "Unstable energy source. (+5 Energy Dmg)"
-  },
-  {
     "atomic_number": -301,
     "symbol": "BatteryT1",
     "name": "Basic Battery",
@@ -571,7 +521,7 @@
   {
     "atomic_number": -302,
     "symbol": "BatteryT2",
-    "name": "Graphene Matrix Battery",
+    "name": "Improved Battery",
     "mass": 4.0,
     "category": "Component",
     "tier": 2,
@@ -718,5 +668,109 @@
     "value": 40,
     "description": "Organic sealant. cheaper than iron patches.",
     "research_req": "basic_engineering"
+  },
+  {
+    "atomic_number": -308,
+    "symbol": "EmergencyPatch",
+    "name": "Emergency Patch",
+    "mass": 0.5,
+    "category": "Consumable",
+    "tier": 2,
+    "base_value": 40,
+    "effect": "heal_hull",
+    "value": 50,
+    "description": "Rapid-deployment patch. Repairs 50 Hull Integrity instantly."
+  },
+  {
+    "atomic_number": -309,
+    "symbol": "BasicBooster",
+    "name": "Shield Booster",
+    "mass": 0.5,
+    "category": "Consumable",
+    "tier": 2,
+    "base_value": 40,
+    "effect": "heal_shield",
+    "value": 30,
+    "description": "Capacitor discharge. Restores 30 Shield Integrity instantly."
+  },
+  {
+    "atomic_number": 13,
+    "symbol": "Al",
+    "name": "Aluminum",
+    "mass": 26.98,
+    "category": "Metal",
+    "tier": 1,
+    "base_value": 10,
+    "description": "Lightweight metal used in aerospace construction."
+  },
+  {
+    "atomic_number": 25,
+    "symbol": "Mn",
+    "name": "Manganese",
+    "mass": 54.93,
+    "category": "Transition Metal",
+    "tier": 2,
+    "base_value": 12,
+    "description": "Used in steel production and alloys."
+  },
+  {
+    "atomic_number": 24,
+    "symbol": "Cr",
+    "name": "Chromium",
+    "mass": 51.99,
+    "category": "Transition Metal",
+    "tier": 2,
+    "base_value": 15,
+    "description": "Hard metal used in stainless steel and plating."
+  },
+  {
+    "atomic_number": 28,
+    "symbol": "Ni",
+    "name": "Nickel",
+    "mass": 58.69,
+    "category": "Transition Metal",
+    "tier": 2,
+    "base_value": 14,
+    "description": "Versatile metal used in batteries and superalloys."
+  },
+  {
+    "atomic_number": 50,
+    "symbol": "Sn",
+    "name": "Tin",
+    "mass": 118.71,
+    "category": "Post-Transition Metal",
+    "tier": 1,
+    "base_value": 8,
+    "description": "Used in soldering and bronze alloys."
+  },
+  {
+    "atomic_number": -510,
+    "symbol": "Pentlandite",
+    "name": "Pentlandite Ore",
+    "mass": 20.0,
+    "category": "Raw Material",
+    "tier": 2,
+    "base_value": 8,
+    "description": "Iron-nickel sulfide mineral. Primary source of Nickel."
+  },
+  {
+    "atomic_number": -511,
+    "symbol": "Chromite",
+    "name": "Chromite Ore",
+    "mass": 25.0,
+    "category": "Raw Material",
+    "tier": 2,
+    "base_value": 10,
+    "description": "Iron chromium oxide. Primary source of Chromium."
+  },
+  {
+    "atomic_number": -320,
+    "symbol": "AlWire",
+    "name": "Aluminum Wire",
+    "mass": 0.1,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 20,
+    "description": "Conductive writing for lightweight electronics."
   }
 ]

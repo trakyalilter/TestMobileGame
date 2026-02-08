@@ -2,9 +2,17 @@ extends Control
 
 @onready var reset_btn = $CenterContainer/VBoxContainer/ResetBtn
 @onready var save_btn = $CenterContainer/VBoxContainer/SaveBtn
+@onready var offline_combat_check = $CenterContainer/VBoxContainer/OfflineCombatCheck
 
 func _ready():
-	pass
+	# v52.1: Sync checkbox with game settings
+	if offline_combat_check:
+		offline_combat_check.button_pressed = GameState.game_settings.get("offline_combat", false)
+		offline_combat_check.toggled.connect(_on_offline_combat_toggled)
+
+func _on_offline_combat_toggled(pressed: bool):
+	GameState.game_settings["offline_combat"] = pressed
+	print("[Options] Offline Combat: ", pressed)
 
 func _on_reset_btn_pressed():
 	# Confirmation Dialog? 
@@ -37,4 +45,6 @@ func _on_confirmation_dialog_confirmed():
 	get_tree().reload_current_scene()
 
 func update_ui():
-	pass # No dynamic UI here
+	# v52.1: Refresh checkbox state
+	if offline_combat_check:
+		offline_combat_check.button_pressed = GameState.game_settings.get("offline_combat", false)

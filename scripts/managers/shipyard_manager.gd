@@ -33,15 +33,17 @@ var hulls: Dictionary = {
 		"stats": {"hp": 100, "atk": 10, "energy_capacity": 100},
 		"cost": {"credits": 0},
 		"slots": ["weapon", "weapon", "shield", "shield", "engine", "battery", "battery"], # 7 Slots
-		"visual": "res://assets/ships/1.png"
+		"visual": "res://assets/ships/1.png",
+		"tier": 0  # v61.0: Added for mission gating
 	},
 	"frigate_hull": {
 		"name": "Industrial Frigate",
 		"stats": {"hp": 800, "atk": 25, "energy_capacity": 250},
 		"cost": {"credits": 2000, "Res1": 20},
-		"slots": ["weapon", "weapon", "weapon", "shield", "shield", "shield", "engine", "battery", "battery", "battery"], # 10 Slots
+		"slots": ["weapon", "weapon", "weapon", "shield", "shield", "shield", "engine", "battery", "battery", "battery", "sensor"], # 11 Slots (Added Sensor)
 		"research_req": "shipwright_1",
-		"visual": "res://assets/ships/2.png"
+		"visual": "res://assets/ships/2.png",
+		"tier": 1  # v61.0
 	},
 	"destroyer_hull": {
 		"name": "Destroyer Class",
@@ -49,7 +51,8 @@ var hulls: Dictionary = {
 		"cost": {"credits": 15000, "Ti": 50, "Circuit": 25, "Res2": 10},
 		"slots": ["weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "engine", "battery", "battery", "battery", "battery"], # 13 Slots
 		"research_req": "shipwright_2",
-		"visual": "res://assets/ships/3.png"
+		"visual": "res://assets/ships/3.png",
+		"tier": 2  # v61.0
 	},
 	"battlecruiser_hull": {
 		"name": "Battlecruiser Class",
@@ -57,7 +60,8 @@ var hulls: Dictionary = {
 		"cost": {"credits": 150000, "Steel": 500, "AdvCircuit": 50, "VoidArtifact": 5, "Res3": 15},
 		"slots": ["weapon", "weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "shield", "engine", "battery", "battery", "battery", "battery", "battery"], # 16 Slots
 		"research_req": "capital_ship_engineering",
-		"visual": "res://assets/ships/4.png"
+		"visual": "res://assets/ships/4.png",
+		"tier": 3  # v61.0
 	},
 	"dreadnought_hull": {
 		"name": "Dreadnought Class",
@@ -65,7 +69,8 @@ var hulls: Dictionary = {
 		"cost": {"credits": 10000000, "Steel": 100000, "Ti": 2500, "Circuit": 1000, "Chip": 250, "Superalloy": 100, "AdvCircuit": 100, "QuantumCore": 10, "VoidArtifact": 25},
 		"slots": ["weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "shield", "shield", "shield", "engine", "battery", "battery", "battery", "battery", "battery", "battery"],
 		"research_req": "quantum_dynamics",
-		"visual": "res://assets/ships/5.png"
+		"visual": "res://assets/ships/5.png",
+		"tier": 4  # v61.0
 	}
 }
 
@@ -97,7 +102,7 @@ var modules: Dictionary = {
 	"targeting_computer": {
 		"name": "Targeting Computer",
 		"slot_type": "weapon",
-		"stats": {"atk_kinetic": 5, "atk_energy": 5, "accuracy": 25, "energy_load": 5},
+		"stats": {"atk_kinetic": 15, "atk_energy": 15, "accuracy": 25, "energy_load": 5},  # Audit v40.0: Buffed ATK 5→15
 		"cost": {"credits": 300, "Chip": 10, "Si": 20},
 		"desc": "Advanced analytics. +25 Accuracy for all weapons.",
 		"research_req": "automated_logistics"
@@ -212,7 +217,7 @@ var modules: Dictionary = {
 	"mining_laser_mk3": {
 		"name": "Plasma Lance Mk.III",
 		"slot_type": "weapon",
-		"stats": {"atk_energy": 75, "energy_load": 25},
+		"stats": {"atk_energy": 75, "energy_load": 25, "atk_interval": 1.2},
 		"cost": {"credits": 85000, "Si": 50, "Ti": 20, "AdvCircuit": 10},
 		"desc": "Cutting-edge beam weapon. Devastates shields.",
 		"research_req": "shipwright_2"
@@ -220,15 +225,15 @@ var modules: Dictionary = {
 	"railgun_mk2": {
 		"name": "Heavy Railgun",
 		"slot_type": "weapon",
-		"stats": {"atk_kinetic": 75, "energy_load": 20},
-		"cost": {"credits": 1500, "Steel": 50, "W": 10},
+		"stats": {"atk_kinetic": 75, "energy_load": 20, "atk_interval": 3.5},
+		"cost": {"credits": 25000, "Steel": 50, "W": 10, "AlWire": 20},  # v62.0 Fix: Added AlWire sink
 		"desc": "Magnetic accelerator. Armor penetration.",
 		"research_req": "ballistics_optimization"
 	},
 	"railgun_mk3": {
 		"name": "Coil Cannon",
 		"slot_type": "weapon",
-		"stats": {"atk_kinetic": 100, "energy_load": 25},
+		"stats": {"atk_kinetic": 100, "energy_load": 25, "atk_interval": 4.0},
 		"cost": {"credits": 150000, "Steel": 100, "U": 5, "AdvCircuit": 5},
 		"desc": "Devastating kinetic damage. Hull shredder.",
 		"research_req": "capital_ship_engineering"
@@ -344,6 +349,15 @@ var modules: Dictionary = {
 		"desc": "Pd-H2 fuel cell. Generates energy passively.",
 		"research_req": "fuel_cell_tech"
 	},
+	# Audit v45.0: ReactiveCore sink
+	"reactive_core_battery": {
+		"name": "Reactive Core Battery",
+		"slot_type": "battery",
+		"stats": {"energy_capacity": 150, "shield_regen": 5},
+		"cost": {"credits": 75000, "ReactiveCore": 5, "RadIsotope": 20, "Circuit": 30},
+		"desc": "Radioactive core. Boosts shield regeneration. (Sector Gamma drop)",
+		"research_req": "radiation_shielding"
+	},
 	"iridium_penetrator": {
 		"name": "Iridium-Tungsten Penetrator",
 		"slot_type": "weapon",
@@ -373,7 +387,7 @@ var modules: Dictionary = {
 	"plasma_overcharger": {
 		"name": "Plasma Overcharger",
 		"slot_type": "weapon",
-		"stats": {"atk_energy": 20, "energy_load": 50},
+		"stats": {"atk_energy": 100, "energy_load": 50},  # Audit v40.0: Buffed ATK 20→100
 		"cost": {"credits": 100000, "AdvCircuit": 20, "He": 100},
 		"desc": "(Unique) Heavily boosts Energy Damage but consumes massive Reactor power.",
 		"research_req": "energy_metrics",
@@ -445,7 +459,7 @@ var modules: Dictionary = {
 	"omega_beam": {
 		"name": "★ Omega Beam ★",
 		"slot_type": "weapon",
-		"stats": {"atk_energy": 1200, "energy_load": 100},
+		"stats": {"atk_energy": 1200, "energy_load": 100, "atk_interval": 0.5},
 		"cost": {"credits": 25000000, "OmegaPlating": 5, "VoidEssence": 5},
 		"desc": "(Endgame) Concentrated void energy stream. Deletes matter.",
 		"research_req": "void_navigation"
@@ -583,7 +597,7 @@ func craft_module(module_id: String) -> bool:
 		if not GameState.research_manager.is_tech_unlocked(mod_data["research_req"]):
 			return false
 	
-	# Check Costs
+	# Check Cost
 	for res in mod_data["cost"]:
 		var qty = mod_data["cost"][res]
 		if res == "credits":
@@ -598,7 +612,7 @@ func craft_module(module_id: String) -> bool:
 			GameState.resources.remove_currency("credits", qty)
 		else:
 			GameState.resources.remove_element(res, qty)
-	
+			
 	module_inventory[module_id] = module_inventory.get(module_id, 0) + 1
 	module_crafted.emit(module_id)
 	return true
@@ -622,6 +636,13 @@ func equip_module(slot_idx: int, module_id: String) -> bool:
 	if mod_data["slot_type"] != req_type: 
 		print("Equip Fail: Slot Type Mismatch. Req: ", req_type, " Got: ", mod_data["slot_type"])
 		return false
+		
+	# v64.0 Fix: Enforce Uniqueness
+	if mod_data.get("unique", false):
+		for slot in loadout:
+			if slot != slot_idx and loadout[slot] == module_id:
+				print("Equip Fail: Module is unique and already equipped.")
+				return false
 	
 	if module_inventory.get(module_id, 0) <= 0: 
 		print("Equip Fail: No inventory.")
@@ -668,6 +689,15 @@ func equip_module(slot_idx: int, module_id: String) -> bool:
 			ammo_loadout[slot_idx] = "SlugT1"
 		elif stats.get("atk_energy", 0) > 0:
 			ammo_loadout[slot_idx] = "CellT1"
+		# v65.0 Fix: Auto-equip for Explosive weapons mismatch
+		elif stats.get("atk_explosive", 0) > 0:
+			# For explosive, we use "missile" (HE Missiles)
+			# Note: Ammo is a RESOURCE, not a MODULE. Check GameState.resources.
+			if GameState.resources.get_element_amount("missile") > 0:
+				ammo_loadout[slot_idx] = "missile"
+			# Fallback if no specific explosive ammo is found
+			else:
+				print("Equip: No explosive ammo (missile) found in resources for auto-equip.")
 			
 	return true
 

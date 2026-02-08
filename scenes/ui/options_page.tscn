@@ -53,6 +53,20 @@ theme_override_colors/font_pressed_color = Color(1, 0.5, 0.5, 1)
 theme_override_font_sizes/font_size = 20
 text = "HARD RESET GAME"
 
+[node name="HSeparator" type="HSeparator" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="SettingsLabel" type="Label" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Gameplay Settings"
+horizontal_alignment = 1
+
+[node name="OfflineCombatCheck" type="CheckBox" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Enable Offline Combat"
+
 [node name="ConfirmationDialog" type="ConfirmationDialog" parent="."]
 title = "Confirm Hard Reset"
 initial_position = 2

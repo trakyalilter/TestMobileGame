@@ -12,6 +12,7 @@ var energy: float = 0.0
 var max_energy: float = 0.0
 var lifetime_credits: float = 0.0
 var base_cap: float = 20000.0 # Audit v5.0: Fixed undefined variable
+var storage_upgrades: int = 0 # Feature P65-X: Manual Storage Upgrade
 
 func _ready():
 	# Initial Starter Kit if elements are empty (New Game)
@@ -24,7 +25,26 @@ func get_max_capacity() -> float:
 	var extra = 0.0
 	if GameState.infrastructure_manager:
 		extra = GameState.infrastructure_manager.get_building_count("inventory_bay") * 10000.0
+	# 2. Manual Storage Upgrades (Feature Request)
+	extra += storage_upgrades * 5000.0
+	
 	return base_cap + extra
+
+# Feature: Manual Storage Upgrade
+func upgrade_storage() -> bool:
+	var cost = 1000.0 * pow(1.5, storage_upgrades)
+	cost = floor(cost)
+	
+	if get_currency("credits") >= cost:
+		remove_currency("credits", cost)
+		storage_upgrades += 1
+		# Force update capacity signal if needed, or rely on UI polling
+		# Since max_capacity is calculated dynamically, we just need UI to refresh
+		return true
+	return false
+
+func get_storage_upgrade_cost() -> float:
+	return floor(1000.0 * pow(1.5, storage_upgrades))
 
 func get_resource_mass(symbol: String) -> float:
 	# Audit v12.0: Bulk resources can be compressed
@@ -37,32 +57,41 @@ func get_resource_mass(symbol: String) -> float:
 		return 1.0
 	return 1.0
 
+func get_total_volume() -> float:
+	var total_vol = 0.0
+	for sym in elements:
+		var mass = get_resource_mass(sym)
+		total_vol += elements[sym] * mass
+	return total_vol
+
 func add_element(symbol: String, amount: float):
 	if not elements.has(symbol):
 		elements[symbol] = 0.0
 	
 	var max_cap = get_max_capacity()
 	var mass = get_resource_mass(symbol)
-	var current_qty = elements[symbol]
-	var current_vol = current_qty * mass
+	var current_total_vol = get_total_volume()
 	
 	if amount > 0:
-		# Enforce cap based on VOLUME (qty * mass)
-		var available_vol = max(0, max_cap - current_vol)
+		# Enforce GLOBAL cap based on VOLUME
+		var available_vol = max(0.0, max_cap - current_total_vol)
 		var max_addable_qty = available_vol / mass
 		amount = min(amount, max_addable_qty)
 	
-	elements[symbol] = current_qty + amount
-	element_added.emit(symbol, amount)
+	if amount <= 0: return # Cap reached
 	
-	if elements[symbol] < 0:
-		elements[symbol] = 0.0
+	elements[symbol] = elements[symbol] + amount
+	element_added.emit(symbol, amount)
 
 func remove_element(symbol: String, amount: float) -> bool:
 	if amount <= 0: return false # Safety: Cannot "remove" negative or zero
 	var current = elements.get(symbol, 0.0)
 	if current >= amount:
 		elements[symbol] = current - amount
+		# Cleanup empty keys
+		if elements[symbol] <= 0:
+			elements.erase(symbol)
+		
 		element_removed.emit(symbol, amount)
 		return true
 	return false
@@ -98,6 +127,13 @@ func add_energy(amount: float):
 		energy = 0.0
 	energy_changed.emit(energy, max_energy)
 
+func remove_energy(amount: float) -> bool:
+	if energy >= amount:
+		energy -= amount
+		energy_changed.emit(energy, max_energy)
+		return true
+	return false
+
 func get_energy() -> float:
 	return energy
 
@@ -114,7 +150,8 @@ func get_save_data() -> Dictionary:
 		"currencies": currencies,
 		"energy": energy,
 		"max_energy": max_energy,
-		"lifetime_credits": lifetime_credits
+		"lifetime_credits": lifetime_credits,
+		"storage_upgrades": storage_upgrades
 	}
 
 func load_save_data(data: Dictionary):
@@ -124,6 +161,7 @@ func load_save_data(data: Dictionary):
 	energy = data.get("energy", 0.0)
 	max_energy = data.get("max_energy", 0.0)
 	lifetime_credits = data.get("lifetime_credits", 0.0)
+	storage_upgrades = int(data.get("storage_upgrades", 0))
 	
 	# Fix types if JSON loaded ints
 	for k in elements: elements[k] = float(elements[k])
@@ -133,6 +171,7 @@ func reset():
 	elements.clear()
 	currencies.clear()
 	energy = 0.0
+	storage_upgrades = 0
 
 # Resource Discovery System
 func get_resource_info(symbol: String) -> Dictionary:

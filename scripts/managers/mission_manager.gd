@@ -91,13 +91,15 @@ func init_missions():
 		# P0-28: Construct Battlecruiser
 		["m032c", "Capital Doctrine", "Construct a 'Battlecruiser' in the Shipyard.", "construct", "battlecruiser_hull", 1, 250000, 25000, "m033"],
 		
-		["m033", "Beta Sector Expansion", "Defeat 5 Hive Guards in Sector Beta to expand your influence.", "defeat", "hive_guard", 5, 150000, 25000, "m033b"],
+		# v61.0 Fix: hive_guard doesn't exist, replaced with ore_guardian
+		["m033", "Beta Sector Expansion", "Defeat 5 Ore Guardians in Sector Beta to expand your influence.", "defeat", "ore_guardian", 5, 150000, 25000, "m033b"],
 		# P0-27: Unlock Sector Gamma
 		["m033b", "Deep Space Signals", "Research 'Radiation Shielding Theory' to unlock Sector Gamma.", "research", "radiation_shielding", 1, 100000, 10000, "m033c"],
 		# P0-28: Construct Dreadnought
 		["m033c", "Titan Construction", "Construct a 'Dreadnought' in the Shipyard.", "construct", "dreadnought_hull", 1, 1000000, 50000, "m034"],
 		
-		["m034", "Gamma Sector Control", "Defeat 3 Colossus Servants in Sector Gamma to finalize supremacy.", "defeat", "colossus_servant", 3, 300000, 50000, ""],
+		# v61.0 Fix: colossus_servant doesn't exist, replaced with gamma_colossus
+		["m034", "Gamma Sector Control", "Defeat 3 Gamma Colossus in Sector Gamma to finalize supremacy.", "defeat", "gamma_colossus", 3, 300000, 50000, ""],
 		["goal_001", "THE GREAT EXPEDITION", "Reach Sector Epsilon and discover the Primordial Core.", "discover", "sector_epsilon", 1, 0, 1000000, ""]
 	]
 	

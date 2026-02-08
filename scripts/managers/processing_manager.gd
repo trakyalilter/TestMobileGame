@@ -77,6 +77,37 @@ var recipes: Dictionary = {
 		"level_req": 18,
 		"xp": 12
 	},
+	# ========== AUDIT v39.0: MISSING ORE REFINING ==========
+	"refine_cassiterite": {
+		"name": "Tin Smelting",
+		"description": "Smelt Cassiterite to extract Tin (Sn).",
+		"input": { "Cassiterite": 3, "C": 1 },
+		"output": { "Sn": 2 },
+		"duration": 6.0,
+		"level_req": 20,
+		"xp": 25,
+		"research_req": "smelting"
+	},
+	"refine_pentlandite": {
+		"name": "Nickel Extraction",
+		"description": "Process Pentlandite for Nickel (Ni).",
+		"input": { "Pentlandite": 3, "C": 1 },
+		"output": { "Ni": 2 },
+		"duration": 6.0,
+		"level_req": 22,
+		"xp": 30,
+		"research_req": "smelting"
+	},
+	"refine_chromite": {
+		"name": "Chromium Reduction",
+		"description": "Reduce Chromite to Chromium (Cr) via aluminum thermite.",
+		"input": { "Chromite": 3, "Al": 1 },
+		"output": { "Cr": 2 },
+		"duration": 8.0,
+		"level_req": 25,
+		"xp": 35,
+		"research_req": "metallurgy_advanced"
+	},
 	"smelt_quartz": {
 		"name": "Silicon Smelting",
 		"description": "Refine Quartz into industrial Silicon.",
@@ -135,7 +166,7 @@ var recipes: Dictionary = {
 	},
 	"recycle_scrap": {
 		"name": "Scrap Recycling",
-		"description": "Disassemble salvage into components. Rolls 5 items.",
+		"description": "Disassemble salvage into components. Rolls on loot table 5 times (Chance for multiple items).",
 		"input": { "Scrap": 20 },
 		"roll_count": 5,  # Roll 5 times from the table
 		"output_table": [
@@ -250,6 +281,18 @@ var recipes: Dictionary = {
 		"duration": 10.0,
 		"level_req": 5,
 		"xp": 10,
+		"category": "consumables"
+	},
+	# v62.0 Fix: Added Consumer for AlWire and Circuit
+	"craft_adv_maintenance_kit": {
+		"name": "Adv. Maintenance Kit",
+		"description": "High-tech repair kit. Restores 200 HP.",
+		"input": { "AlWire": 5, "Circuit": 2, "Steel": 2 },
+		"output": { "AdvMaintenanceKit": 2 },
+		"duration": 15.0,
+		"level_req": 20,
+		"xp": 40,
+		"research_req": "basic_electronics",
 		"category": "consumables"
 	},
 	"craft_basic_booster": {
@@ -402,7 +445,7 @@ var recipes: Dictionary = {
 	"craft_seeker_missile": {
 		"name": "Seeker Missile",
 		"description": "Guided missile with logic circuits.",
-		"input": { "Steel": 2, "Circuit": 1 },
+		"input": { "Steel": 2, "Circuit": 1, "TargetingChip": 1 },
 		"output": { "Seeker_Missile": 5 },
 		"duration": 20.0,
 		"level_req": 25,
@@ -412,7 +455,8 @@ var recipes: Dictionary = {
 	"craft_photon_torpedo": {
 		"name": "Photon Torpedo",
 		"description": "Antimatter-infused capital buster.",
-		"input": { "Superalloy": 2, "VolatileMatter": 1 }, # Assuming VolatileMatter exists or similar high tier
+		# v61.0 Fix: VolatileMatter doesn't exist, replaced with ExoticMatter
+		"input": { "Superalloy": 2, "ExoticMatter": 1 },
 		"output": { "Photon_Torpedo": 2 },
 		"duration": 45.0,
 		"level_req": 60,
@@ -429,6 +473,17 @@ var recipes: Dictionary = {
 		"level_req": 6,
 		"xp": 50,
 		"research_req": "automated_logistics"
+	},
+	# v62.0 Fix: Added AlWire source (Component)
+	"craft_aluminum_wire": {
+		"name": "Aluminum Wiring",
+		"description": "High-conductivity cables.",
+		"input": { "Cu": 2, "Resin": 1 },
+		"output": { "AlWire": 2 },
+		"duration": 5.0,
+		"level_req": 8,
+		"xp": 35,
+		"research_req": "basic_electronics"
 	},
 	# Audit v18.0: Industrial Path (No combat required)
 	"assemble_circuit_standard": {
@@ -638,16 +693,7 @@ var recipes: Dictionary = {
 		"research_req": "fuel_cell_tech"
 	},
 	# ========== AUDIT v24.0: RARE METAL REFINING ==========
-	"refine_platinum": {
-		"name": "Platinum Refining",
-		"description": "Purify Pt ore into industrial grade Platinum.",
-		"input": { "PtOre": 2, "C": 5 },
-		"output": { "Pt": 1 },
-		"duration": 20.0,
-		"level_req": 40,
-		"xp": 150,
-		"research_req": "precious_metal_refining"
-	},
+	# Audit v39.0: Removed duplicate refine_platinum (kept refine_platinum_ore which has Pd byproduct)
 	"refine_iridium": {
 		"name": "Iridium Compaction",
 		"description": "Forge raw Iridium into reinforced Armor Plates.",
@@ -752,6 +798,52 @@ var recipes: Dictionary = {
 		"duration": 45.0,
 		"level_req": 75,
 		"xp": 1500,
+		"category": "endgame"
+	},
+	# ========== v57.1: SECTOR ZETA RECIPES ==========
+	"synthesize_bioweapon": {
+		"name": "Bio-Agent Synthesis",
+		"description": "Synthesize pathogen samples into biological weapon coating.",
+		"input": { "BiohazardSample": 10, "PathogenCore": 2, "MutatedTissue": 5 },
+		"output": { "BioWeaponCoating": 3 },
+		"duration": 30.0,
+		"level_req": 70,
+		"xp": 1200,
+		"research_req": "quarantine_protocols",
+		"category": "endgame"
+	},
+	"craft_ai_processor": {
+		"name": "AI Processor Array",
+		"description": "Advanced AI processing unit for autonomous combat support.",
+		"input": { "AIMatrix": 2, "AdvCircuit": 20, "QuantumCore": 1 },
+		"output": { "AIProcessor": 1 },
+		"duration": 45.0,
+		"level_req": 75,
+		"xp": 1800,
+		"research_req": "quarantine_protocols",
+		"category": "endgame"
+	},
+	"craft_regenerative_plating": {
+		"name": "Regenerative Hull Plating",
+		"description": "Self-healing armor using mutated tissue samples.",
+		"input": { "MutatedTissue": 10, "IrPlate": 3, "PathogenCore": 1 },
+		"output": { "RegenPlating": 2 },
+		"duration": 40.0,
+		"level_req": 72,
+		"xp": 1500,
+		"research_req": "quarantine_protocols",
+		"category": "endgame"
+	},
+	"purify_biohazard": {
+		"name": "Pathogen Purification",
+		"description": "Extract valuable compounds from hazardous samples.",
+		"input": { "BiohazardSample": 20 },
+		"output": { "PurifiedCompound": 5 },
+		"output_table": [["PathogenCore", 0.2, 1, 1]],
+		"duration": 20.0,
+		"level_req": 65,
+		"xp": 800,
+		"research_req": "quarantine_protocols",
 		"category": "endgame"
 	},
 	# ========== AUDIT v20.0: DEAD RESOURCE ACTIVATION ==========
@@ -1042,6 +1134,12 @@ func complete_process():
 	add_xp(current_recipe.get("xp", 0))
 	events.append(["xp", "+%d XP" % current_recipe.get("xp", 0), current_recipe_id])
 	
+	# v61.0 Fix: Grant credits_output if present
+	if "credits_output" in current_recipe:
+		var cr_out = current_recipe["credits_output"]
+		GameState.resources.add_currency("credits", cr_out)
+		events.append(["loot", "+%d Credits" % cr_out, current_recipe_id])
+	
 	# 5. Loop
 	action_progress = 0.0
 	
@@ -1071,7 +1169,6 @@ func calculate_offline(delta: float):
 	var time_actions = int(delta / effective_duration)
 	if time_actions <= 0: return null
 	
-	# Max based on inputs
 	var input_reqs = current_recipe.get("input", {})
 	var min_by_input = 99999999999.0
 	
@@ -1086,7 +1183,15 @@ func calculate_offline(delta: float):
 				min_by_input = possible
 	else:
 		min_by_input = time_actions
-		
+	
+	# v61.0 Fix: Include credits_cost in offline calculation
+	var credits_cost = current_recipe.get("credits_cost", 0)
+	if credits_cost > 0:
+		var credits_avail = GameState.resources.get_currency("credits")
+		var possible_by_credits = int(credits_avail / credits_cost)
+		if possible_by_credits < min_by_input:
+			min_by_input = possible_by_credits
+	
 	var actions = min(time_actions, int(min_by_input))
 	
 	if actions <= 0:
@@ -1100,6 +1205,10 @@ func calculate_offline(delta: float):
 	for item in input_reqs:
 		var qty = input_reqs[item]
 		GameState.resources.remove_element(item, qty * actions)
+	
+	# v61.0 Fix: Deduct credits_cost for offline processing
+	if credits_cost > 0:
+		GameState.resources.remove_currency("credits", credits_cost * actions)
 		
 	# Produce
 	if "output" in current_recipe:
@@ -1134,10 +1243,18 @@ func calculate_offline(delta: float):
 						GameState.resources.add_element(item, qty)
 						loot_summary[item] = loot_summary.get(item, 0) + qty
 
+	# v61.0 Fix: Award credits_output for offline processing
+	var total_credits = 0
+	if "credits_output" in current_recipe:
+		total_credits = current_recipe["credits_output"] * actions
+		GameState.resources.add_currency("credits", total_credits)
+
 	var report = "Engineering (%s):\n" % current_recipe['name']
 	report += "Time Adjusted: %dm\n" % int(delta/60)
 	report += "Actions Completed: %d\n" % actions
 	report += "XP Gained: %d\n" % total_xp
+	if total_credits > 0:
+		report += "Credits Earned: %d\n" % total_credits
 	report += "Produced:\n"
 	
 	for item in loot_summary:

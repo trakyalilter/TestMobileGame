@@ -110,31 +110,39 @@ var zones = {
 		"name": "Sector Alpha",
 		"desc": "Uncharted region rich in Titanium. High threat.",
 		"difficulty": 5,
-		"enemies": ["alien_frigate", "xenon_corvette", "xenon_mothership"],
+		"enemies": ["alien_frigate", "xenon_corvette", "xenon_mothership", "xenon_scout", "alien_probe"],  # v57.0: +2
 		"research_req": "sector_alpha_decryption"
 	},
 	"sector_beta": {
 		"name": "Sector Beta - Mining Colony Ruins",
 		"desc": "Abandoned mining colony. Automated defense systems hostile. Rich in industrial metals.",
 		"difficulty": 6,
-		"enemies": ["mining_sentinel", "defense_turret", "colony_overseer"],
+		"enemies": ["mining_sentinel", "defense_turret", "colony_overseer", "repair_drone", "ore_guardian"],  # v57.0: +2
 		"research_req": "deep_space_nav"
 	},
 	"sector_gamma": {
 		"name": "Sector Gamma - Radioactive Nebula",
 		"desc": "Radioactive nebula. Mutated organisms detected. Extreme danger.",
 		"difficulty": 7,
-		"enemies": ["radiation_beast", "nebula_leviathan", "gamma_colossus"],
+		"enemies": ["radiation_beast", "nebula_leviathan", "gamma_colossus", "irradiated_hulk", "plasma_wraith"],  # v57.0: +2
 		"research_req": "radiation_shielding"
 	},
 	"sector_delta": {
 		"name": "Sector Delta - Crystalline Fields",
 		"desc": "Crystalline asteroid field. Unknown energy signatures. Ultimate challenge.",
 		"difficulty": 8,
-		"enemies": ["crystal_golem", "energy_wraith", "sentinel_prime"],
+		"enemies": ["crystal_golem", "energy_wraith", "sentinel_prime", "shard_swarm", "prism_guardian"],  # v57.0: +2
 		"research_req": "exotic_matter_analysis"
 	},
 	# ENDGAME ZONE - Added to address retention cliff after Dreadnought
+	# v57.0: Added Sector Zeta (Difficulty 9) to bridge Delta → Epsilon gap
+	"sector_zeta": {
+		"name": "Sector Zeta - Quarantine Zone",
+		"desc": "Sealed sector containing ancient alien pathogens and rogue AI. Extreme biohazard.",
+		"difficulty": 9,
+		"enemies": ["plague_drone", "bio_horror", "rogue_ai_core", "quarantine_warden"],
+		"research_req": "quarantine_protocols"
+	},
 	"sector_epsilon": {
 		"name": "Sector Epsilon - The Void",
 		"desc": "Beyond known space. Primordial entities and temporal anomalies. Requires Dreadnought-class vessel.",
@@ -293,7 +301,7 @@ var enemy_db = {
 	},
 	"defense_turret": {
 		"name": "Automated Defense Turret",
-		"stats": {"hp": 100000, "max_shield": 0, "atk": 1500, "def": 250, "atk_interval": 2.5, "accuracy": 100},
+		"stats": {"hp": 100000, "max_shield": 0, "atk": 800, "def": 250, "atk_interval": 4.0, "accuracy": 100},
 		"loot": [["ColonySalvage", 25, 50], ["Circuit", 20, 50], ["TurretCore", 1, 1]],
 		"rare_loot": [["Cr", 0.3, 5, 10], ["AdvCircuit", 0.4, 5, 10]],
 		"xp": 15000
@@ -328,14 +336,14 @@ var enemy_db = {
 	},
 	"crystal_golem": {
 		"name": "Crystalline Golem",
-		"stats": {"hp": 50000, "max_shield": 0, "atk": 180, "def": 200, "accuracy": 120},
+		"stats": {"hp": 50000, "max_shield": 0, "atk": 400, "def": 200, "accuracy": 120},
 		"loot": [["VoidCrystal", 1, 3], ["Si", 50, 100], ["Diamond", 1, 3]],
 		"rare_loot": [["Ir", 0.2, 1, 2], ["SyntheticCrystal", 0.15, 1, 1]],
 		"xp": 1500
 	},
 	"energy_wraith": {
 		"name": "Energy Wraith",
-		"stats": {"hp": 30000, "max_shield": 50000, "atk": 250, "def": 50, "accuracy": 130},
+		"stats": {"hp": 30000, "max_shield": 50000, "atk": 500, "def": 50, "accuracy": 130},
 		"loot": [["ExoticMatter", 2, 5], ["VoidCrystal", 2, 4], ["H", 20, 40]],
 		"rare_loot": [["AntimatterParticle", 0.1, 1, 1], ["VoidCrystal", 0.25, 2, 3]],
 		"xp": 1800
@@ -374,6 +382,95 @@ var enemy_db = {
 		"loot": [["credits", 5000000, 15000000], ["VoidCrystal", 100, 200], ["QuantumCore", 20, 40], ["OmegaPlating", 5, 10], ["PrimordialShard", 1, 3], ["ChronoCore", 2, 4], ["VoidEssence", 5, 10]],
 		"rare_loot": [],
 		"xp": 100000
+	},
+	# v57.0: SECTOR ZETA ENEMIES (Difficulty 9)
+	"plague_drone": {
+		"name": "Plague Drone",
+		"stats": {"hp": 120000, "max_shield": 60000, "atk": 350, "def": 150, "atk_interval": 1.8, "accuracy": 130, "eva": 35},
+		"loot": [["credits", 50000, 100000], ["BiohazardSample", 2, 5], ["Ti", 30, 60]],
+		"rare_loot": [["PathogenCore", 0.25, 1, 2], ["Res3", 0.3, 5, 10]],
+		"xp": 3500
+	},
+	"bio_horror": {
+		"name": "Bio-Horror",
+		"stats": {"hp": 250000, "max_shield": 100000, "atk": 500, "def": 200, "atk_interval": 2.5, "accuracy": 140, "eva": 25},
+		"loot": [["credits", 80000, 150000], ["BiohazardSample", 5, 10], ["MutatedTissue", 2, 4]],
+		"rare_loot": [["PathogenCore", 0.4, 1, 3], ["VoidCrystal", 0.2, 2, 4]],
+		"xp": 5000
+	},
+	"rogue_ai_core": {
+		"name": "Rogue AI Core",
+		"stats": {"hp": 180000, "max_shield": 200000, "atk": 400, "def": 250, "atk_interval": 1.5, "accuracy": 160, "eva": 45},
+		"loot": [["credits", 100000, 200000], ["AdvCircuit", 10, 20], ["QuantumCore", 1, 2]],
+		"rare_loot": [["AIMatrix", 0.3, 1, 1], ["Chip", 0.5, 5, 10]],
+		"xp": 6000
+	},
+	"quarantine_warden": {
+		"name": "QUARANTINE WARDEN",
+		"stats": {"hp": 400000, "max_shield": 250000, "atk": 700, "def": 350, "atk_interval": 3.0, "accuracy": 170, "eva": 30},
+		"loot": [["credits", 200000, 400000], ["BiohazardSample", 10, 20], ["PathogenCore", 2, 4], ["MutatedTissue", 5, 10]],
+		"rare_loot": [["QuarantineClearance", 0.5, 1, 1], ["AIMatrix", 0.25, 1, 2]],
+		"xp": 15000
+	},
+	# v57.0: Late Sector Expansion - Sector Alpha (+2)
+	"xenon_scout": {
+		"name": "Xenon Scout",
+		"stats": {"hp": 5000, "max_shield": 2000, "atk": 80, "def": 40, "atk_interval": 1.5, "accuracy": 50, "eva": 40},
+		"loot": [["credits", 1500, 3000], ["Ti", 10, 20], ["Scrap", 5, 10]],
+		"rare_loot": [["NavData", 0.3, 1, 3], ["Res2", 0.2, 1, 2]],
+		"xp": 350
+	},
+	"alien_probe": {
+		"name": "Alien Probe",
+		"stats": {"hp": 3000, "max_shield": 5000, "atk": 60, "def": 30, "atk_interval": 2.0, "accuracy": 70, "eva": 50},
+		"loot": [["credits", 2000, 4000], ["SalvageData", 2, 4], ["Circuit", 3, 6]],
+		"rare_loot": [["VoidArtifact", 0.1, 1, 1], ["Chip", 0.25, 1, 2]],
+		"xp": 400
+	},
+	# v57.0: Late Sector Expansion - Sector Beta (+2)
+	"repair_drone": {
+		"name": "Repair Drone",
+		"stats": {"hp": 8000, "max_shield": 3000, "atk": 50, "def": 100, "atk_interval": 2.5, "accuracy": 40, "eva": 30},
+		"loot": [["credits", 3000, 6000], ["Cu", 20, 40], ["Circuit", 5, 10]],
+		"rare_loot": [["AdvCircuit", 0.2, 1, 2], ["Mesh", 0.15, 1, 2]],
+		"xp": 500
+	},
+	"ore_guardian": {
+		"name": "Ore Guardian",
+		"stats": {"hp": 20000, "max_shield": 5000, "atk": 120, "def": 200, "atk_interval": 3.0, "accuracy": 60, "eva": 15},
+		"loot": [["Fe", 100, 200], ["Ti", 30, 60], ["W", 20, 40]],
+		"rare_loot": [["Pt", 0.2, 1, 3], ["Ir", 0.1, 1, 2]],
+		"xp": 700
+	},
+	# v57.0: Late Sector Expansion - Sector Gamma (+2)
+	"irradiated_hulk": {
+		"name": "Irradiated Hulk",
+		"stats": {"hp": 35000, "max_shield": 10000, "atk": 180, "def": 120, "atk_interval": 4.0, "accuracy": 80, "eva": 10},
+		"loot": [["credits", 10000, 20000], ["U", 10, 20], ["RadIsotope", 5, 10]],
+		"rare_loot": [["Res3", 0.3, 2, 4], ["VoidCrystal", 0.1, 1, 2]],
+		"xp": 1200
+	},
+	"plasma_wraith": {
+		"name": "Plasma Wraith",
+		"stats": {"hp": 25000, "max_shield": 30000, "atk": 250, "def": 80, "atk_interval": 1.8, "accuracy": 100, "eva": 45},
+		"loot": [["credits", 15000, 30000], ["H", 50, 100], ["He", 30, 60]],
+		"rare_loot": [["QuantumCore", 0.15, 1, 1], ["ExoticMatter", 0.1, 1, 2]],
+		"xp": 1500
+	},
+	# v57.0: Late Sector Expansion - Sector Delta (+2)
+	"shard_swarm": {
+		"name": "Shard Swarm",
+		"stats": {"hp": 40000, "max_shield": 15000, "atk": 200, "def": 100, "atk_interval": 0.8, "accuracy": 90, "eva": 35},
+		"loot": [["credits", 20000, 40000], ["VoidCrystal", 3, 6], ["Si", 50, 100]],
+		"rare_loot": [["Ir", 0.2, 1, 3], ["QuantumCore", 0.1, 1, 1]],
+		"xp": 2000
+	},
+	"prism_guardian": {
+		"name": "Prism Guardian",
+		"stats": {"hp": 60000, "max_shield": 40000, "atk": 300, "def": 150, "atk_interval": 2.5, "accuracy": 120, "eva": 25},
+		"loot": [["credits", 30000, 60000], ["VoidCrystal", 5, 10], ["ExoticMatter", 2, 4]],
+		"rare_loot": [["AncientTech", 0.15, 1, 1], ["Os", 0.1, 1, 2]],
+		"xp": 2500
 	}
 }
 
@@ -394,6 +491,14 @@ func get_available_zones() -> Array:
 
 func start_expedition(zone_id: String):
 	if not zone_id in zones: return
+	
+	# v63.0 Fix: Enforce research requirements
+	var data = zones[zone_id]
+	if data.get("research_req"):
+		if not GameState.research_manager.is_tech_unlocked(data["research_req"]):
+			log_msg("ACCESS DENIED: Requires %s" % data["research_req"]) # Should rely on UI, but safe guard here
+			return
+			
 	if current_zone == zones[zone_id] and in_combat: return
 	GameState.set_active_manager(self)
 	current_zone = zones[zone_id]
@@ -408,6 +513,10 @@ func start_expedition(zone_id: String):
 	log_msg("Warped to %s." % current_zone["name"])
 
 func set_target_enemy(enemy_id):
+	# v62.0 Fix: Prevent crash if current_zone is null
+	if current_zone == null:
+		return
+
 	if enemy_id and enemy_id in enemy_db:
 		GameState.set_active_manager(self)
 		target_enemy_id = enemy_id
@@ -436,7 +545,9 @@ func spawn_enemy():
 		"rare_loot": e_data.get("rare_loot", []),
 		"xp": e_data["xp"],
 		"jammer": e_data["stats"].get("jammer", false),
-		"eva": e_data["stats"].get("eva", 0)
+		"eva": e_data["stats"].get("eva", 0),
+		# v62.0 Fix: Copy atk_interval so enemy attack speed is used
+		"atk_interval": e_data["stats"].get("atk_interval", 3.0)
 	}
 	is_jammed = current_enemy["jammer"]
 	
@@ -498,7 +609,7 @@ func stop_action():
 	retreat()
 
 func process_tick(delta: float):
-	if not in_combat or not current_enemy: return
+	if not in_combat or not current_enemy or not current_zone: return
 	var sm = GameState.shipyard_manager
 	var rm = GameState.research_manager
 	var p_speed_mult = (1.0 + rm.get_efficiency_bonus("attack_speed") + sm.attack_speed_bonus) * GameState.warp_manager.get_combat_multiplier()
@@ -511,13 +622,16 @@ func process_tick(delta: float):
 		heat_changed.emit(player_heat, player_max_heat)
 	if player_heat > 80.0: p_speed_mult *= 0.5
 	
-	if enemy_shield < enemy_max_shield:
-		enemy_shield = min(enemy_max_shield, enemy_shield + (enemy_max_shield * 0.02 * delta))
+	# v65.0 Fix: Enemy Shield Regen moved to generic accumulator and Capped (Removed old logic)
 	
 	for slot in sm.loadout:
 		if sm.loadout[slot] == "warp_stabilizer":
 			p_speed_mult += 0.15
 			break
+
+	if coolant_flush_timer > 0:
+		coolant_flush_timer -= delta
+		p_speed_mult *= 2.0
 			
 	for w_idx in range(player_weapon_states.size()):
 		var w = player_weapon_states[w_idx]
@@ -526,17 +640,16 @@ func process_tick(delta: float):
 			_execute_player_attack(w_idx)
 			w["timer"] = 0.0
 		
+	# v65.0 Fix: Use enemy's actual attack interval (was hardcoded 3.0)
 	enemy_attack_timer += delta * enemy_speed_mult
 	if enemy_attack_timer >= current_enemy.get("atk_interval", 3.0):
 		_execute_enemy_attack()
 		enemy_attack_timer = 0.0
+		
 	if consumable_cooldown > 0: consumable_cooldown -= delta
 	if nanite_hot_timer > 0:
 		nanite_hot_timer -= delta
 		sm.current_hp = min(sm.max_hp, sm.current_hp + (sm.max_hp * 0.02) * delta)
-	if coolant_flush_timer > 0:
-		coolant_flush_timer -= delta
-		p_speed_mult *= 2.0
 		
 	var has_broadside = false
 	for slot in sm.loadout:
@@ -553,6 +666,15 @@ func process_tick(delta: float):
 	if shield_regen_accumulator >= 1.0:
 		if player_shield < player_max_shield:
 			player_shield = min(player_max_shield, player_shield + (sm.shield_regen * (1.0 + rm.get_efficiency_bonus("shield_regen") + sm.shield_regen_bonus)))
+		
+		# v65.0 Fix: Cap enemy shield regen to prevent softlocks on high-HP enemies
+		if enemy_shield < enemy_max_shield:
+			# Cap regen at 5% of max or 50 flat, whichever is lower/safer context dependent?
+			# Audit suggestion: 2% is too high for 10k shields (200/sec).
+			# New Logic: 1% per sec, max 50 per sec.
+			var regen_amt = min(enemy_max_shield * 0.01, 50.0)
+			enemy_shield = min(enemy_max_shield, enemy_shield + regen_amt)
+			
 		shield_regen_accumulator = 0.0
 
 func _execute_player_attack(weapon_idx: int):
@@ -649,7 +771,8 @@ func _execute_enemy_attack():
 			combat_events.append({"type": "reflect", "text": "REFL %d" % reflected, "color": Color.WHITE, "side": "enemy"})
 		
 		# Exotic Shield Matrix Logic (Sector Gamma Protection)
-		if has_exotic_matrix and current_zone.get("id") == "sector_gamma":
+		# v61.0 Fix: Use current_zone_id instead of current_zone.get("id")
+		if has_exotic_matrix and current_zone_id == "sector_gamma":
 			eres[1] = int(eres[1] * 0.7) # 30% reduction
 			
 		player_shield = max(0, player_shield - eres[0])
@@ -797,3 +920,65 @@ func load_save_data_manager(data: Dictionary):
 func reset(decay_factor: float = 1.0) -> void:
 	super.reset(decay_factor)
 	retreat()
+
+# v52.1: Offline Combat (opt-in via game_settings)
+func calculate_offline(delta: float) -> String:
+	if not in_combat or not current_zone or not current_enemy:
+		return ""
+	
+	# Estimate kills based on average combat duration
+	var avg_kill_time = 10.0  # Approximate seconds per kill
+	var num_kills = int(delta / avg_kill_time)
+	if num_kills <= 0: return ""
+	
+	var loot_summary = {}
+	var total_xp = 0
+	var credits_earned = 0
+	
+	for i in range(num_kills):
+		# Award loot from current enemy
+		var enemy_data = current_enemy
+		for entry in enemy_data.get("loot", []):
+			var item = entry[0]
+			var min_amt = entry[1]
+			var max_amt = entry[2]
+			var amount = randi_range(min_amt, max_amt)
+			# v61.0 Fix: credits in loot should be treated as currency
+			if item == "credits":
+				GameState.resources.add_currency("credits", amount)
+				credits_earned += amount
+			else:
+				GameState.resources.add_element(item, amount)
+				loot_summary[item] = loot_summary.get(item, 0) + amount
+		
+		# Check rare loot
+		for entry in enemy_data.get("rare_loot", []):
+			var item = entry[0]
+			var chance = entry[1]
+			var min_amt = entry[2]
+			var max_amt = entry[3]
+			if randf() < chance:
+				var amount = randi_range(min_amt, max_amt)
+				# v61.0 Fix: handle credits in rare_loot too
+				if item == "credits":
+					GameState.resources.add_currency("credits", amount)
+					credits_earned += amount
+				else:
+					GameState.resources.add_element(item, amount)
+					loot_summary[item] = loot_summary.get(item, 0) + amount
+		
+		# XP (removed defunct enemy_data.get("credits") - credits come from loot)
+		var xp = enemy_data.get("xp", 10)
+		total_xp += xp
+	
+	add_xp(total_xp)
+	
+	# Build report
+	var report = "Combat Offline Gains (%d kills):\n" % num_kills
+	for item in loot_summary:
+		report += " + %d %s\n" % [loot_summary[item], item]
+	if credits_earned > 0:
+		report += " + %d Credits\n" % credits_earned
+	report += " + %d XP" % total_xp
+	
+	return report

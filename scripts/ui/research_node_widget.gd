@@ -65,17 +65,21 @@ func update_state():
 		# Build cost string with met/unmet color coding
 		var cost_parts = []
 		var total_credits = GameState.resources.get_currency("credits")
-		var credit_cost = data.get("cost", 0)
+		var raw_credit_cost = data.get("cost", 0)
+		# v61.0 Fix: Apply COST_MULTIPLIER to match research_manager.gd
+		var credit_cost = int(raw_credit_cost * manager.COST_MULTIPLIER)
 		
 		# Credits check
 		if credit_cost > 0:
 			var color = "lime" if total_credits >= credit_cost else "gray"
 			cost_parts.append("[color=%s]%s Cr[/color]" % [color, FormatUtils.format_number(credit_cost)])
 		
-		# Items check
+		# Items check - apply MATERIAL_MULTIPLIER
 		if "cost_items" in data:
 			for item in data["cost_items"]:
-				var req_qty = data["cost_items"][item]
+				var raw_qty = data["cost_items"][item]
+				# v61.0 Fix: Apply MATERIAL_MULTIPLIER to match research_manager.gd
+				var req_qty = int(raw_qty * manager.MATERIAL_MULTIPLIER)
 				var inv_qty = GameState.resources.get_element_amount(item)
 				var color = "lime" if inv_qty >= req_qty else "gray"
 				var display_name = ElementDB.get_display_name(item)

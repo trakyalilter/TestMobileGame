@@ -7,6 +7,11 @@ var current_action = ""
 var is_active = false
 var action_progress = 0.0
 
+# v56.0: Progression Pacing Extension - 2.5x credit costs for 30-40h playtime
+const COST_MULTIPLIER = 2.5
+# v56.1: 2x material requirements for progression extension
+const MATERIAL_MULTIPLIER = 2.0
+
 var unlocked_techs = []
 var repeatable_techs = {} # {id: level}
 
@@ -60,8 +65,9 @@ var tech_tree = {
 	},
 	"smelting": {
 		"name": "Efficient Smelting",
-		"description": "Unlocks:\n• Steel Foundry\n• Bronze Alloy",
-		"cost": 3000,
+		# v61.0 Fix: Bronze Alloy doesn't exist, corrected to Galvanized Steel
+		"description": "Unlocks:\n• Steel Foundry\n• Galvanized Steel",
+		"cost": 1500,  # Audit v41.0: Reduced from 3000 to smooth progression
 		"cost_items": {"Res1": 7, "Circuit": 15},
 		"type": "technology",
 		"parent": "combustion"
@@ -141,9 +147,51 @@ var tech_tree = {
 		"name": "Warp Drive Theory",
 		"description": "Unlocks:\n• Galaxy Map",
 		"cost": 5000,
-		"cost_items": {"NavData": 50, "Ti": 200},
+		"cost_items": {"NavData": 50, "Ti": 200, "Res3": 10},
 		"type": "technology",
 		"parent": "shipwright_2"
+	},
+	# --- v56.1: CONTENT GATES (Intermediate milestones) ---
+	"asteroid_clearance": {
+		"name": "Asteroid Belt Clearance",
+		"description": "Official mining license for Asteroid Belt operations.\nUnlocks:\n• Asteroid Belt zone\n• Claim Jumper enemy",
+		"cost": 2500,
+		"cost_items": {"PirateManifest": 3, "NavData": 5, "Fe": 100},
+		"type": "technology",
+		"parent": "shipwright_1"
+	},
+	"mars_license": {
+		"name": "Mars Sector License",
+		"description": "Authorization for Mars Debris Field salvage operations.\nUnlocks:\n• Mars Debris Field zone\n• Derelict Frigate enemy",
+		"cost": 10000,
+		"cost_items": {"StolenCargo": 5, "NavData": 15, "Steel": 50},
+		"type": "technology",
+		"parent": "asteroid_clearance"
+	},
+	"outer_system_auth": {
+		"name": "Outer System Authorization",
+		"description": "Permits exploration beyond the inner planets.\nUnlocks:\n• Titan's Halo zone\n• Pirate Gunship enemy",
+		"cost": 25000,
+		"cost_items": {"ColonySalvage": 3, "Ti": 100, "Res2": 20},
+		"type": "technology",
+		"parent": "mars_license"
+	},
+	"deep_space_expedition": {
+		"name": "Deep Space Expedition",
+		"description": "Full authorization for deep space operations.\nUnlocks:\n• Sector Beta, Gamma, Delta zones\n• Endgame enemies",
+		"cost": 100000,
+		"cost_items": {"VoidArtifact": 3, "Res3": 25, "AdvCircuit": 25},
+		"type": "technology",
+		"parent": "outer_system_auth"
+	},
+	# v57.1: Sector Zeta research requirement
+	"quarantine_protocols": {
+		"name": "Quarantine Protocols",
+		"description": "Biohazard containment and pathogen research.\nUnlocks:\n• Sector Zeta zone\n• Bio-Agent Synthesis\n• AI Processor Array\n• Regenerative Plating",
+		"cost": 150000,
+		"cost_items": {"Res3": 40, "VoidCrystal": 10, "AdvCircuit": 30},
+		"type": "technology",
+		"parent": "deep_space_expedition"
 	},
 	# --- NEW EARLY GAME GATES ---
 	"kinetics_101": {
@@ -155,7 +203,8 @@ var tech_tree = {
 	},
 	"laser_optics": {
 		"name": "Laser Optics",
-		"description": "Unlocks:\n• Focused Laser Mk.II",
+		# v61.0 Fix: Module is named Pulse Laser, not Focused Laser
+		"description": "Unlocks:\n• Pulse Laser Mk.II",
 		"cost": 300,
 		"cost_items": {"Res1": 5},
 		"type": "technology",
@@ -188,7 +237,7 @@ var tech_tree = {
 	# --- GATHERING UPGRADES ---
 	"diamond_drills": {
 		"name": "Diamond Tipped Drills",
-		"description": "Bonus:\n• +50% Excavate Soil speed",
+		"description": "Bonus:\n• +25% Excavate Soil speed",
 		"cost": 200,
 		"cost_items": {"Res1": 2},
 		"type": "technology",
@@ -428,7 +477,7 @@ var tech_tree = {
 	},
 	"xeno_engineering": {
 		"name": "Xeno-Engineering",
-		"description": "Integrates alien salvage data. Increases Drone Recovery efficiency by 50%.",
+		"description": "Unlocks:\n• Alien Flora Cultivation\n• Analyzing Xeno-Materials",
 		"cost": 10000,
 		"cost_items": {"SalvageData": 10, "Circuit": 50},
 		"type": "technology",
@@ -586,7 +635,7 @@ var tech_tree = {
 	# --- NEW LATE-GAME TECH (Expansion) ---
 	"colony_automation": {
 		"name": "Colony AI Integration",
-		"description": "Unlocks:\n• Colonial Auto-Extractor (+25% all gathering yield)",
+		"description": "Unlocks:\n• Colonial Auto-Extractor (Grants +5 Base Gathering Yield)",
 		"cost": 50000,
 		"cost_items": {"ColonyDataCore": 1, "ColonySalvage": 100, "AdvCircuit": 50},
 		"type": "technology",
@@ -594,7 +643,7 @@ var tech_tree = {
 	},
 	"gamma_optics": {
 		"name": "High-Energy Gamma Optics",
-		"description": "Unlocks:\n• Gamma Pulse Battery (+100 Energy Capacity)",
+		"description": "Unlocks:\n• Gamma Pulse Battery (Ship Module)\n• Advanced Laser Tech",
 		"cost": 75000,
 		"cost_items": {"RadIsotope": 50, "Pt": 100},
 		"type": "technology",
@@ -602,7 +651,7 @@ var tech_tree = {
 	},
 	"void_physics": {
 		"name": "Extreme Void Physics",
-		"description": "Unlocks:\n• Singularity Engine (75% Evasion)",
+		"description": "Unlocks:\n• Void Phase Engine (Ship Module)\n• Void Shielding",
 		"cost": 5000000,
 		"cost_items": {"VoidCrystal": 20, "QuantumCore": 10, "AntimatterParticle": 5},
 		"type": "technology",
@@ -611,9 +660,9 @@ var tech_tree = {
 	# ENDGAME - Sector Epsilon unlock
 	"void_navigation": {
 		"name": "Void Navigation",
-		"description": "Unlocks:\n• Sector Epsilon - The Void\n• Void Rift Anchor (Auto)\n• Chrono-Siphon (Auto)",
+		"description": "Unlocks:\n• Sector Epsilon - The Void\n• Void Rift Anchor (Auto)\n• Chrono-Siphon (Auto)\n\nRequires Quarantine Clearance from Quarantine Warden.",
 		"cost": 50000000,
-		"cost_items": {"QuantumCore": 30, "VoidCrystal": 50, "ExoticMatter": 20, "AncientTech": 5},
+		"cost_items": {"QuantumCore": 30, "VoidCrystal": 50, "ExoticMatter": 20, "AncientTech": 5, "QuarantineClearance": 1},  # v58.0: Added clearance req
 		"type": "technology",
 		"parent": "void_physics"
 	},
@@ -636,7 +685,7 @@ var tech_tree = {
 	},
 	"perfect_automation": {
 		"name": "Omni-Fabrication",
-		"description": "Bonus:\n• -30% All action durations (Global)",
+		"description": "Bonus:\n• +30% Processing & Research Speed (Global)",
 		"cost": 10000000,
 		"cost_items": {"AICore": 5, "AncientTech": 5, "AdvCircuit": 200},
 		"type": "technology",
@@ -777,14 +826,14 @@ func can_unlock(tech_id: String) -> bool:
 	if tech_id in unlocked_techs: return false
 	
 	var node = tech_tree[tech_id]
-	var cost = node.get("cost", 0)
+	var cost = int(node.get("cost", 0) * COST_MULTIPLIER)  # v56.0
 	var parent = node.get("parent")
 	
 	if GameState.resources.get_currency("credits") < cost: return false
 	
 	if "cost_items" in node:
 		for item in node["cost_items"]:
-			var qty = node["cost_items"][item]
+			var qty = int(node["cost_items"][item] * MATERIAL_MULTIPLIER)  # v56.1
 			if GameState.resources.get_element_amount(item) < qty: return false
 	
 	if parent and not parent in unlocked_techs: return false
@@ -797,11 +846,13 @@ func unlock_tech(tech_id: String) -> bool:
 		
 		# Pay
 		if node.get("cost", 0) > 0:
-			GameState.resources.remove_currency("credits", node["cost"])
+			var scaled_cost = int(node["cost"] * COST_MULTIPLIER)  # v56.0
+			GameState.resources.remove_currency("credits", scaled_cost)
 		
 		if "cost_items" in node:
 			for item in node["cost_items"]:
-				GameState.resources.remove_element(item, node["cost_items"][item])
+				var scaled_qty = int(node["cost_items"][item] * MATERIAL_MULTIPLIER)  # v56.1
+				GameState.resources.remove_element(item, scaled_qty)
 				
 		unlocked_techs.append(tech_id)
 		tech_unlocked.emit(tech_id)
@@ -821,7 +872,7 @@ func get_repeatable_cost(tech_id: String) -> Dictionary:
 	var data = repeatable_tech_db[tech_id]
 	var lvl = get_repeatable_level(tech_id)
 	
-	var cost_cr = data["base_cost"] * pow(1.5, lvl)
+	var cost_cr = data["base_cost"] * pow(1.5, lvl) * COST_MULTIPLIER  # v56.0
 	var costs = {"credits": int(cost_cr)}
 	for res in data["base_items"]:
 		costs[res] = int(data["base_items"][res] * pow(1.2, lvl))
@@ -895,6 +946,12 @@ func get_efficiency_bonus(bonus_type: String) -> float:
 	if bonus_type == "industrial_logistics" and is_tech_unlocked("industrial_logistics"):
 		return 0.10 # +10% Global Production Speed
 		
+	# Audit v64.0 Fix: Dead Techs Wired Up
+	if bonus_type == "industrial_catalysis" and is_tech_unlocked("industrial_catalysis"):
+		return 0.15 # +15% Global Production Speed
+	if bonus_type == "xeno_engineering" and is_tech_unlocked("xeno_engineering"):
+		return 0.25 # +25% Rare Loot Chance (Used by Combat/Gathering)
+		
 	# Audit v10.0: Infinite Sinks
 	var repeatable_bonus = 0.0
 	for rid in repeatable_techs:
@@ -908,11 +965,6 @@ func get_efficiency_bonus(bonus_type: String) -> float:
 func get_research_speed_multiplier() -> float:
 	# Audit v8.0 P2-20: +1% Research Speed per Level
 	return 1.0 + (get_level() * 0.01)
-	var count = 0
-	for tid in tech_tree:
-		if not is_tech_unlocked(tid) and can_unlock(tid):
-			count += 1
-	return count
 
 func get_affordable_researches_count() -> int:
 	"""Phase 2.1: Checks if tech is available AND player has specific items/credits"""
@@ -996,9 +1048,10 @@ func calculate_offline(delta: float):
 	var base_yield = 15
 	if "eff_scanning_1" in unlocked_techs: 
 		base_yield = int(base_yield * 1.5)
-		
-	var total_data = int(base_yield * actions * speed_mult * get_data_yield_multiplier())
-	var total_xp = int(25 * actions * speed_mult)
+	
+	# v61.0 Fix: Remove duplicate speed_mult - actions count already factors in speed via effective_duration
+	var total_data = int(base_yield * actions * get_data_yield_multiplier())
+	var total_xp = int(25 * actions)
 	
 	GameState.resources.add_currency("data", total_data)
 	add_xp(total_xp)

@@ -21,6 +21,15 @@ var actions: Dictionary = {
 		"category": "terrestrial",
 		"duration": 3.0
 	},
+	# v62.0 Fix: Added Manganese source (Gathering)
+	"extract_manganese": {
+		"name": "Extract Manganese",
+		"loot_table": [["Mn", 1.0, 1, 2], ["Fe", 0.5, 1, 2]],
+		"xp": 18,
+		"level_req": 15,
+		"research_req": "adv_materials",
+		"category": "terrestrial"
+	},
 	"collect_water": {
 		"name": "Pump Water",
 		"loot_table": [["Water", 1.0, 8, 10]],
@@ -60,6 +69,24 @@ var actions: Dictionary = {
 		"research_req": "adv_materials",
 		"category": "terrestrial"
 	},
+	# v62.0 Fix: Added Pentlandite source (Gathering)
+	"extract_pentlandite": {
+		"name": "Extract Pentlandite",
+		"loot_table": [["Pentlandite", 1.0, 1, 2], ["Fe", 0.5, 1, 2]],
+		"xp": 25,
+		"level_req": 25,
+		"research_req": "adv_materials",
+		"category": "terrestrial"
+	},
+	# v62.0 Fix: Added Chromite source (Gathering)
+	"extract_chromite": {
+		"name": "Extract Chromite",
+		"loot_table": [["Chromite", 1.0, 1, 2], ["Fe", 0.5, 1, 2]],
+		"xp": 30,
+		"level_req": 30,
+		"research_req": "adv_materials", 
+		"category": "terrestrial"
+	},
 	"extract_salts": {
 		"name": "Extract Lithium Salt",
 		"loot_table": [["Spodumene", 1.0, 1, 3]],
@@ -97,6 +124,7 @@ var actions: Dictionary = {
 		"loot_table": [["Quartz", 1.0, 1, 3]],
 		"xp": 22,
 		"level_req": 22,
+		"research_req": "adv_materials",  # Audit v43.0: Added missing research gate
 		"category": "terrestrial"
 	},
 	"harvest_nebula": {
@@ -215,6 +243,8 @@ func start_action(action_id: String):
 		current_action_id = action_id
 		action_progress = 0.0
 		is_active = true
+		# v61.0 Fix: Use per-action duration instead of fixed 4.0
+		action_duration = action.get("duration", 4.0)
 
 func stop_action():
 	is_active = false
@@ -286,6 +316,9 @@ func calculate_offline(delta: float):
 		return null
 		
 	var speed_mult = get_action_speed_multiplier(current_action_id)
+	# v62.0 Fix: Apply warp multiplier to match online behavior
+	if GameState.warp_manager:
+		speed_mult *= GameState.warp_manager.get_gathering_multiplier()
 	var effective_duration = action_duration / speed_mult
 	
 	var num_actions = int(delta / effective_duration)
@@ -297,6 +330,9 @@ func calculate_offline(delta: float):
 	
 	var total_xp = num_actions * xp_per_action
 	add_xp(total_xp)
+	
+	# v62.0 Fix: Get yield multiplier once for offline (same as online)
+	var yield_mult = get_yield_multiplier()
 	
 	for i in range(num_actions):
 		var dropped_any = false
@@ -311,6 +347,9 @@ func calculate_offline(delta: float):
 				
 				if GameState.research_manager:
 					amount += int(GameState.research_manager.get_efficiency_bonus("gathering_yield"))
+				
+				# v62.0 Fix: Apply yield multiplier like online does
+				amount = int(float(amount) * yield_mult)
 					
 				GameState.resources.add_element(element, amount)
 				loot_summary[element] = loot_summary.get(element, 0) + amount
@@ -325,6 +364,9 @@ func calculate_offline(delta: float):
 			
 			if GameState.research_manager:
 				amount += int(GameState.research_manager.get_efficiency_bonus("gathering_yield"))
+			
+			# v62.0 Fix: Apply yield multiplier for fallback drops too
+			amount = int(float(amount) * yield_mult)
 				
 			GameState.resources.add_element(element, amount)
 			loot_summary[element] = loot_summary.get(element, 0) + amount

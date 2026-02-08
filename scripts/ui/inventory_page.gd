@@ -29,6 +29,8 @@ var selected_element = null
 var price_val = 0
 var current_filter = "all"
 
+var storage_btn: Button = null
+
 func _ready():
 	_init_filter_buttons()
 	
@@ -38,11 +40,49 @@ func _ready():
 	UITheme.apply_premium_button_style(sell_btn, "inventory")
 	UITheme.apply_premium_button_style(sell_all_btn, "inventory")
 	
+	# Inject Storage Upgrade Button (P65 Feature)
+	storage_btn = Button.new()
+	$HBoxContainer/LeftPanel/MarginContainer/VBoxContainer.add_child(storage_btn)
+	# Move to top or bottom? Default is bottom.
+	UITheme.apply_premium_button_style(storage_btn, "inventory")
+	storage_btn.pressed.connect(_on_expand_storage_pressed)
+	
 	call_deferred("refresh_inventory")
 	update_credits()
 	GameState.resources.element_added.connect(_on_inventory_changed)
 	GameState.resources.element_removed.connect(_on_inventory_changed)
 	GameState.resources.currency_added.connect(func(t, a): update_credits())
+
+func _on_expand_storage_pressed():
+	if GameState.resources.upgrade_storage():
+		# Play sound if available in UITheme, or just update
+		update_credits()
+		refresh_inventory()
+
+# ... (Previous code)
+
+func update_credits():
+	# Update Capacity Display
+	var vol = GameState.resources.get_total_volume()
+	var cap = GameState.resources.get_max_capacity()
+	if credits_lbl:
+		credits_lbl.text = "Storage: %s / %s m3" % [UITheme.format_num(vol), UITheme.format_num(cap)]
+		if vol >= cap:
+			credits_lbl.modulate = Color(1, 0.3, 0.3) # Red if full
+		else:
+			credits_lbl.modulate = Color.WHITE
+			
+	# Update Storage Button
+	if storage_btn:
+		var cost = GameState.resources.get_storage_upgrade_cost()
+		storage_btn.text = "Expand Storage (+5k) - %s Cr" % UITheme.format_num(cost)
+		var current_cr = GameState.resources.get_currency("credits")
+		if current_cr >= cost:
+			storage_btn.disabled = false
+			storage_btn.modulate = Color.WHITE
+		else:
+			storage_btn.disabled = true
+			storage_btn.modulate = Color(0.7, 0.7, 0.7)
 
 func _init_filter_buttons():
 	var filter_btns = [filter_all, filter_ores, filter_metals, filter_alloys, filter_comp, filter_other]
@@ -71,6 +111,8 @@ func set_filter(category):
 
 func _on_inventory_changed(symbol, amount):
 	if visible:
+		# Update Capacity Display (just in case)
+		update_credits()
 		refresh_inventory()
 
 func refresh_inventory():
@@ -86,7 +128,7 @@ func refresh_inventory():
 	# 1. Show Filtered Owned Items
 	var owned_elements = GameState.resources.elements.keys()
 	for symbol in owned_elements:
-		var amt = GameState.resources.elements[symbol]
+		var amt = GameState.resources.elements.get(symbol, 0)
 		
 		if amt <= 0: continue
 		
@@ -222,9 +264,7 @@ func perform_sale(symbol, qty):
 		GameState.resources.add_currency("credits", total)
 		refresh_inventory()
 
-func update_credits():
-	# Credits now handled by GlobalHeader
-	pass
+
 
 func _process(delta):
 	# Poll for inventory changes?

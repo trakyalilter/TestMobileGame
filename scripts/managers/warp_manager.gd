@@ -46,7 +46,7 @@ func execute_warp():
 	
 	# RESET WORLD
 	GameState.resources.reset()
-	GameState.infrastructure_manager.reset()
+	# Audit v42.0: Removed duplicate infrastructure_manager.reset() - handled below with decay
 	
 	# Reset Skill Levels with Partial Decay (Prestige Tier 1: Keep 30% XP)
 	var decay = 0.7
