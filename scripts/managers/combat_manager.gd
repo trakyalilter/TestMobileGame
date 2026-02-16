@@ -33,9 +33,6 @@ var combat_log: Array[String] = []
 var combat_events: Array[Dictionary] = [] # [{type, text, color, side}]
 
 # Consumables
-var equipped_consumable_id = null
-var auto_consume_enabled = false
-var auto_consume_threshold = 0.3
 var consumable_cooldown = 0.0
 var consumable_cooldown_max = 10.0
 
@@ -92,19 +89,22 @@ var zones = {
 		"name": "Asteroid Belt",
 		"desc": "Dense field with pirate skiffs and kinetic hazards.",
 		"difficulty": 2,
-		"enemies": ["pirate_skiff", "rock_golem", "claim_jumper", "ore_hauler"]
+		"enemies": ["pirate_skiff", "rock_golem", "claim_jumper", "ore_hauler"],
+		"research_req": "asteroid_clearance"
 	},
 	"mars_debris": {
 		"name": "Mars Debris Field",
 		"desc": "Wreckage of the old Martian shipyards. Scavengers abound.",
 		"difficulty": 3,
-		"enemies": ["scavenger_mech", "martian_sentry", "derelict_frigate", "salvage_swarm"]
+		"enemies": ["scavenger_mech", "martian_sentry", "derelict_frigate", "salvage_swarm"],
+		"research_req": "mars_license"
 	},
 	"titan_halo": {
 		"name": "Titan's Halo",
 		"desc": "Frozen rings around the gas giant. Extreme cold and pirate lords.",
 		"difficulty": 4,
-		"enemies": ["cryo_drone", "pirate_gunship", "frozen_hulk", "smuggler_cutter", "titan_overseer"]
+		"enemies": ["cryo_drone", "pirate_gunship", "frozen_hulk", "smuggler_cutter", "titan_overseer"],
+		"research_req": "outer_system_auth"
 	},
 	"sector_alpha": {
 		"name": "Sector Alpha",
@@ -190,14 +190,14 @@ var enemy_db = {
 	"ore_hauler": {
 		"name": "Ore Hauler Wreck",
 		"stats": {"hp": 4500, "max_shield": 0, "atk": 80, "def": 40, "atk_interval": 5.0, "accuracy": 25},
-		"loot": [["Fe", 150, 300], ["W", 100, 200], ["Scrap", 10, 20]],
-		"rare_loot": [["U", 0.20, 2, 5]], 
+		"loot": [["Fe", 40, 50], ["W", 15, 20], ["Scrap", 10, 20]],
+		"rare_loot": [["U", 0.20, 2, 5], ["Ag", 0.15, 1, 3]], 
 		"xp": 80
 	},
 	"derelict_frigate": {
 		"name": "Derelict Frigate",
 		"stats": {"hp": 12000, "max_shield": 500, "atk": 150, "def": 65, "atk_interval": 4.0, "accuracy": 30},
-		"loot": [["Steel", 5, 12], ["Scrap", 20, 40], ["Res2", 5, 10]],
+		"loot": [["Steel", 5, 10], ["Scrap", 20, 40], ["Res2", 5, 10]],
 		"rare_loot": [["Circuit", 0.35, 2, 4], ["Chip", 0.20, 2, 2]],
 		"xp": 250
 	},
@@ -247,7 +247,7 @@ var enemy_db = {
 		"name": "Martian Sentry",
 		"stats": {"hp": 150, "max_shield": 600, "atk": 30, "def": 10, "accuracy": 50}, # High Shield
 		"loot": [["C", 5, 10]],
-		"rare_loot": [["Resin", 0.1, 1, 2], ["Chip", 0.25, 1, 2]],
+		"rare_loot": [["Resin", 0.1, 1, 2], ["Chip", 0.25, 1, 2], ["Rh", 0.10, 1, 2]],
 		"xp": 60
 	},
 	"cryo_drone": {
@@ -275,14 +275,14 @@ var enemy_db = {
 		"name": "Xenon Patrol Frigate",
 		"stats": {"hp": 7500, "max_shield": 3000, "atk": 120, "def": 50, "atk_interval": 3.0, "accuracy": 45},
 		"loot": [["Ti", 30, 60], ["Scrap", 30, 60]],
-		"rare_loot": [["NavData", 0.3, 2, 5], ["Chip", 0.3, 2, 5], ["VoidArtifact", 0.15, 1, 2], ["Co", 0.25, 2, 4], ["Ni", 0.25, 2, 4], ["Res3", 0.40, 5, 10]], 
+		"rare_loot": [["NavData", 0.3, 2, 5], ["Chip", 0.3, 2, 5], ["VoidArtifact", 0.3, 2, 3], ["Co", 0.25, 2, 4], ["Ni", 0.25, 2, 4], ["Res3", 0.30, 1, 2]], 
 		"xp": 500
 	},
 	"xenon_corvette": {
 		"name": "Xenon Corvette",
 		"stats": {"hp": 14000, "max_shield": 6000, "atk": 400, "def": 80, "atk_interval": 2.5, "accuracy": 80, "eva": 25},
-		"loot": [["Ti", 50, 100], ["U", 5, 15]],
-		"rare_loot": [["NavData", 0.4, 4, 8], ["VoidArtifact", 0.3, 2, 4], ["Cr", 0.25, 1, 3], ["Res3", 0.25, 5, 8]],
+		"loot": [["VoidArtifact", 2, 4],["NavData", 4, 8],["Res3", 2, 3],["Ti", 50, 100], ["U", 5, 15]],
+		"rare_loot": [],
 		"xp": 800
 	},
 	"xenon_mothership": {
@@ -373,7 +373,7 @@ var enemy_db = {
 		"name": "OMEGA SENTINEL",
 		"stats": {"hp": 500000, "max_shield": 300000, "atk": 1000, "def": 500, "atk_interval": 3.0, "accuracy": 180, "eva": 40},
 		"loot": [["credits", 300000, 600000], ["VoidCrystal", 20, 40], ["QuantumCore", 5, 10], ["Ir", 20, 40]],
-		"rare_loot": [["OmegaPlating", 0.40, 1, 2], ["ChronoCore", 0.3, 1, 1], ["Os", 0.25, 2, 4]],
+		"rare_loot": [["OmegaPlating", 0.40, 1, 2], ["ChronoCore", 0.3, 1, 1], ["Os", 0.25, 2, 4], ["Neutronium", 0.15, 1, 2]],
 		"xp": 25000
 	},
 	"primordial_titan": {
@@ -395,7 +395,7 @@ var enemy_db = {
 		"name": "Bio-Horror",
 		"stats": {"hp": 250000, "max_shield": 100000, "atk": 500, "def": 200, "atk_interval": 2.5, "accuracy": 140, "eva": 25},
 		"loot": [["credits", 80000, 150000], ["BiohazardSample", 5, 10], ["MutatedTissue", 2, 4]],
-		"rare_loot": [["PathogenCore", 0.4, 1, 3], ["VoidCrystal", 0.2, 2, 4]],
+		"rare_loot": [["PathogenCore", 0.4, 1, 3], ["VoidCrystal", 0.2, 2, 4], ["S", 0.30, 2, 5]],
 		"xp": 5000
 	},
 	"rogue_ai_core": {
@@ -510,6 +510,7 @@ func start_expedition(zone_id: String):
 	shield_regen_accumulator = 0.0
 	player_heat = 0.0
 	overheat_lock = 0.0
+	heat_changed.emit(player_heat, player_max_heat)
 	log_msg("Warped to %s." % current_zone["name"])
 
 func set_target_enemy(enemy_id):
@@ -526,6 +527,7 @@ func set_target_enemy(enemy_id):
 		shield_regen_accumulator = 0.0
 		player_heat = 0.0
 		overheat_lock = 0.0
+		heat_changed.emit(player_heat, player_max_heat)
 		log_msg("Targeting: %s" % enemy_db[enemy_id]["name"])
 	else:
 		target_enemy_id = null
@@ -572,6 +574,13 @@ func spawn_enemy():
 	player_max_shield = sm.max_shield
 	player_weapon_states.clear()
 	var equipped_weapons = []
+	
+	# v65.4: Engineering skill_mult applied to weapon damage
+	var engineering_lvl = 1
+	if GameState.processing_manager:
+		engineering_lvl = GameState.processing_manager.get_level()
+	var weapon_skill_mult = 1.0 + (engineering_lvl * 0.01)
+	
 	for s_idx in sm.loadout:
 		var mid = sm.loadout[s_idx]
 		if mid and mid in sm.modules:
@@ -587,9 +596,9 @@ func spawn_enemy():
 					"type": w_type,
 					"timer": randf_range(0.0, 0.5),
 					"interval": m_stats.get("atk_interval", 2.5),
-					"dmg_k": m_stats.get("atk_kinetic", 0),
-					"dmg_e": m_stats.get("atk_energy", 0),
-					"dmg_x": m_stats.get("atk_explosive", 0),
+					"dmg_k": m_stats.get("atk_kinetic", 0) * weapon_skill_mult,
+					"dmg_e": m_stats.get("atk_energy", 0) * weapon_skill_mult,
+					"dmg_x": m_stats.get("atk_explosive", 0) * weapon_skill_mult,
 					"slot_idx": int(s_idx),
 					"energy_load": m_data.get("energy_load", 0)
 				})
@@ -609,14 +618,25 @@ func stop_action():
 	retreat()
 
 func process_tick(delta: float):
-	if not in_combat or not current_enemy or not current_zone: return
 	var sm = GameState.shipyard_manager
+	if sm:
+		player_max_shield = sm.max_shield
+		
+	if not in_combat or not current_enemy or not current_zone: 
+		_process_regeneration(delta)
+		return
+		
 	var rm = GameState.research_manager
-	var p_speed_mult = (1.0 + rm.get_efficiency_bonus("attack_speed") + sm.attack_speed_bonus) * GameState.warp_manager.get_combat_multiplier()
+	# v65.4 Fix: Removed sm.attack_speed_bonus here — it's already applied via cooling_mult per-weapon
+	var p_speed_mult = (1.0 + rm.get_efficiency_bonus("attack_speed")) * GameState.warp_manager.get_combat_multiplier()
+	
+	# Safety: Ensure HP never exceeds Max
+	if sm.current_hp > sm.max_hp:
+		sm.current_hp = sm.max_hp
 	
 	if overheat_lock > 0:
 		overheat_lock -= delta
-		sm.current_hp -= sm.max_hp * 0.025 * delta
+		# sm.current_hp -= sm.max_hp * 0.025 * delta # Removed per user request
 	if player_heat > 0:
 		player_heat = max(0, player_heat - player_vent_rate * delta)
 		heat_changed.emit(player_heat, player_max_heat)
@@ -635,21 +655,39 @@ func process_tick(delta: float):
 			
 	for w_idx in range(player_weapon_states.size()):
 		var w = player_weapon_states[w_idx]
-		w["timer"] += delta * p_speed_mult
+		# Audit v70.0: Cooling Systems Implementation
+		# Base interval is reduced by attack_speed_bonus (e.g., +10% speed = 1.1x faster tick)
+		# Or better: timer increments faster. 
+		var cooling_mult = 1.0 + sm.attack_speed_bonus
+		w["timer"] += delta * p_speed_mult * cooling_mult
+		
 		if w["timer"] >= w["interval"]:
 			_execute_player_attack(w_idx)
-			w["timer"] = 0.0
+			w["timer"] -= w["interval"]
 		
 	# v65.0 Fix: Use enemy's actual attack interval (was hardcoded 3.0)
-	enemy_attack_timer += delta * enemy_speed_mult
-	if enemy_attack_timer >= current_enemy.get("atk_interval", 3.0):
+	# Audit v70.0: Electronic Warfare Implementation
+	# Enemy attack timer increments slower based on jamming_strength
+	var jamming_mult = max(0.2, 1.0 - sm.jamming_strength) # Cap slow at 80%
+	var e_interval = current_enemy.get("atk_interval", 3.0)
+	
+	enemy_attack_timer += delta * enemy_speed_mult * jamming_mult
+	if enemy_attack_timer >= e_interval:
 		_execute_enemy_attack()
-		enemy_attack_timer = 0.0
+		enemy_attack_timer -= e_interval
 		
-	if consumable_cooldown > 0: consumable_cooldown -= delta
+	if consumable_cooldown > 0: 
+		consumable_cooldown -= delta
+	else:
+		_check_auto_consume(delta)
 	if nanite_hot_timer > 0:
 		nanite_hot_timer -= delta
-		sm.current_hp = min(sm.max_hp, sm.current_hp + (sm.max_hp * 0.02) * delta)
+		# Fix: Explicit clamp to prevent overflow
+		var heal = sm.max_hp * 0.02 * delta
+		if sm.current_hp + heal > sm.max_hp:
+			sm.current_hp = sm.max_hp
+		else:
+			sm.current_hp += heal
 		
 	var has_broadside = false
 	for slot in sm.loadout:
@@ -662,20 +700,22 @@ func process_tick(delta: float):
 			_execute_broadside_burst()
 			broadside_timer = 0.0
 			
-	shield_regen_accumulator += delta
-	if shield_regen_accumulator >= 1.0:
-		if player_shield < player_max_shield:
-			player_shield = min(player_max_shield, player_shield + (sm.shield_regen * (1.0 + rm.get_efficiency_bonus("shield_regen") + sm.shield_regen_bonus)))
-		
-		# v65.0 Fix: Cap enemy shield regen to prevent softlocks on high-HP enemies
-		if enemy_shield < enemy_max_shield:
-			# Cap regen at 5% of max or 50 flat, whichever is lower/safer context dependent?
-			# Audit suggestion: 2% is too high for 10k shields (200/sec).
-			# New Logic: 1% per sec, max 50 per sec.
-			var regen_amt = min(enemy_max_shield * 0.01, 50.0)
-			enemy_shield = min(enemy_max_shield, enemy_shield + regen_amt)
-			
-		shield_regen_accumulator = 0.0
+	_process_regeneration(delta)
+
+func _process_regeneration(delta: float):
+	var sm = GameState.shipyard_manager
+	var rm = GameState.research_manager
+	if not sm: return
+	
+	# Player Shield Regen
+	if player_shield < player_max_shield:
+		var regen_base = (sm.shield_regen * (1.0 + (rm.get_efficiency_bonus("shield_regen") if rm else 0.0) + sm.shield_regen_bonus))
+		player_shield = min(player_max_shield, player_shield + (regen_base * delta))
+	
+	# Enemy Shield Regen (1% per second, Combat Only)
+	if in_combat and current_enemy and enemy_shield < enemy_max_shield:
+		var regen_amt = min(enemy_max_shield * 0.01, 50.0)
+		enemy_shield = min(enemy_max_shield, enemy_shield + (regen_amt * delta))
 
 func _execute_player_attack(weapon_idx: int):
 	var w = player_weapon_states[weapon_idx]
@@ -690,9 +730,7 @@ func _execute_player_attack(weapon_idx: int):
 		combat_events.append({"type": "miss", "text": "JAMMED", "color": Color.ORANGE, "side": "enemy"})
 		return
 
-	if auto_consume_enabled and equipped_consumable_id:
-		if sm.current_hp < auto_consume_threshold * sm.max_hp: use_consumable()
-		elif equipped_consumable_id == "Mesh" and player_shield < auto_consume_threshold * player_max_shield: use_consumable()
+	# Manual consume check removed (Auto-only now)
 
 	player_heat += 2.0 + ((w["dmg_k"] + w["dmg_e"] + w["dmg_x"]) / 100.0)
 	heat_changed.emit(player_heat, player_max_heat)
@@ -719,6 +757,8 @@ func _execute_player_attack(weapon_idx: int):
 				break
 	
 	var ammo_id = sm.ammo_loadout.get(w["slot_idx"])
+	var requires_ammo = (w["type"] == "kinetic" and w["slot_idx"] != -1)
+	
 	if ammo_id and ammo_id != "":
 		if GameState.resources.get_element_amount(ammo_id) > 0:
 			GameState.resources.remove_element(ammo_id, 1)
@@ -729,19 +769,23 @@ func _execute_player_attack(weapon_idx: int):
 				var bonus = 5.0
 				if "T2" in ammo_id: bonus = 15.0
 				elif "T3" in ammo_id: bonus = 30.0
+				elif "T4" in ammo_id: bonus = 60.0
 				p_atk_k += bonus
 			elif ammo_id.begins_with("Cell"): 
 				var bonus = 5.0
 				if "T2" in ammo_id: bonus = 15.0
 				elif "T3" in ammo_id: bonus = 30.0
+				elif "T4" in ammo_id: bonus = 60.0
 				p_atk_e += bonus
 			elif "Missile" in ammo_id or "Torpedo" in ammo_id:
 				var bonus = 10.0
 				if "Seeker" in ammo_id: bonus = 25.0
 				elif "Torpedo" in ammo_id: bonus = 60.0
 				p_atk_x += bonus
-		else: return
-	else: return
+		elif requires_ammo:
+			return # Ammo equipped but empty
+	elif requires_ammo:
+		return # No ammo equipped for kinetic weapon
 		
 	var skill_dmg_mult = 1.0 + (get_level() * 0.005)
 	var total_crit = sm.crit_chance + get_milestone_crit_bonus()
@@ -832,34 +876,53 @@ func lose_fight():
 	GameState.resources.add_currency("credits", -cost)
 	retreat()
 
-func equip_consumable(item_id):
-	equipped_consumable_id = item_id
-
-func toggle_auto_consume(enabled):
-	auto_consume_enabled = enabled
-
-func use_consumable():
-	if not in_combat or not equipped_consumable_id or consumable_cooldown > 0: return
-	if GameState.resources.get_element_amount(equipped_consumable_id) < 1: return
-	GameState.resources.remove_element(equipped_consumable_id, 1)
-	consumable_cooldown = consumable_cooldown_max
-	var edata = GameState.get_element_data(equipped_consumable_id)
-	var effect = edata.get("effect", "")
-	var value = edata.get("value", 0)
-	if effect == "heal_hull" and value > 0:
-		var sm = GameState.shipyard_manager
-		sm.current_hp = min(sm.max_hp, sm.current_hp + value)
-		combat_events.append({"type": "heal", "text": "+%d HP" % value, "color": Color.GREEN, "side": "player"})
-	elif effect == "heal_shield" and value > 0:
-		player_shield = min(player_max_shield, player_shield + value)
-		combat_events.append({"type": "heal", "text": "+%d Shield" % value, "color": Color.CYAN, "side": "player"})
+# v66.0: Auto-Consume System
+func _check_auto_consume(delta: float):
+	if not in_combat: return
 	
-	# Trait-based effects (Phase 19)
-	var traits = edata.get("traits", [])
-	if "coolant" in traits: 
-		coolant_flush_timer = 10.0
-	if "hot" in traits:
-		nanite_hot_timer = 15.0
+	# Get Research Threshold
+	var threshold = GameState.research_manager.get_auto_consume_threshold()
+	if threshold <= 0.0: return # No research unlocked
+	
+	var sm = GameState.shipyard_manager
+	
+	# 1. Check Hull
+	if sm.consumable_hull_slot != "":
+		var hp_pct = float(sm.current_hp) / float(sm.max_hp)
+		if hp_pct <= threshold:
+			_trigger_consumable(sm.consumable_hull_slot, sm)
+			return # One per tick
+			
+	# 2. Check Shield
+	if sm.consumable_shield_slot != "":
+		var sh_pct = player_shield / player_max_shield
+		if sh_pct <= threshold and player_max_shield > 0:
+			_trigger_consumable(sm.consumable_shield_slot, sm)
+			return
+
+func _trigger_consumable(item_id: String, sm: Object):
+	if GameState.resources.get_element_amount(item_id) < 1: return
+	
+	var data = ElementDB.get_consumable_data(item_id)
+	if data.is_empty(): return
+	
+	GameState.resources.remove_element(item_id, 1)
+	consumable_cooldown = consumable_cooldown_max
+	
+	var heal_pct = data.get("heal_pct", 0.0)
+	var type = data.get("type", "hull")
+	var dname = data.get("name", "Consumable")
+	
+	if type == "hull":
+		var amt = int(sm.max_hp * heal_pct)
+		sm.current_hp = min(sm.max_hp, sm.current_hp + amt)
+		combat_events.append({"type": "heal", "text": "+%d HP" % amt, "color": Color.GREEN, "side": "player"})
+		log_msg("Used %s: Repaired %d HP" % [dname, amt])
+	elif type == "shield":
+		var amt = int(player_max_shield * heal_pct)
+		player_shield = min(player_max_shield, player_shield + amt)
+		combat_events.append({"type": "heal", "text": "+%d SHIELD" % amt, "color": Color.CYAN, "side": "player"})
+		log_msg("Used %s: Boosted %d Shield" % [dname, amt])
 
 func _execute_broadside_burst():
 	var e_cost = 100.0
@@ -917,6 +980,10 @@ func load_save_data_manager(data: Dictionary):
 		if eid:
 			target_enemy_id = eid
 			spawn_enemy() # This will reset weapons/timers but keep flow
+	
+	# Ensure max shield is set even if not in combat
+	if GameState.shipyard_manager:
+		player_max_shield = GameState.shipyard_manager.max_shield
 func reset(decay_factor: float = 1.0) -> void:
 	super.reset(decay_factor)
 	retreat()

@@ -62,12 +62,13 @@ func _on_expand_storage_pressed():
 # ... (Previous code)
 
 func update_credits():
-	# Update Capacity Display
-	var vol = GameState.resources.get_total_volume()
-	var cap = GameState.resources.get_max_capacity()
+	# Update Capacity Display (Slots)
+	var slots_used = GameState.resources.get_used_slots()
+	var slots_max = GameState.resources.get_max_slots()
+	
 	if credits_lbl:
-		credits_lbl.text = "Storage: %s / %s m3" % [UITheme.format_num(vol), UITheme.format_num(cap)]
-		if vol >= cap:
+		credits_lbl.text = "Slots: %d / %d" % [slots_used, slots_max]
+		if slots_used >= slots_max:
 			credits_lbl.modulate = Color(1, 0.3, 0.3) # Red if full
 		else:
 			credits_lbl.modulate = Color.WHITE
@@ -75,7 +76,7 @@ func update_credits():
 	# Update Storage Button
 	if storage_btn:
 		var cost = GameState.resources.get_storage_upgrade_cost()
-		storage_btn.text = "Expand Storage (+5k) - %s Cr" % UITheme.format_num(cost)
+		storage_btn.text = "Expand Storage (+1 Slot) - %s Cr" % UITheme.format_num(cost)
 		var current_cr = GameState.resources.get_currency("credits")
 		if current_cr >= cost:
 			storage_btn.disabled = false
@@ -127,6 +128,7 @@ func refresh_inventory():
 	
 	# 1. Show Filtered Owned Items
 	var owned_elements = GameState.resources.elements.keys()
+	owned_elements.sort()
 	for symbol in owned_elements:
 		var amt = GameState.resources.elements.get(symbol, 0)
 		
@@ -169,7 +171,8 @@ func refresh_inventory():
 		slot_count += 1
 			
 	# 2. Fill remaining with Empty Slots
-	var needed = max(0, min_slots - slot_count)
+	var target_slots = max(min_slots, GameState.resources.get_max_slots())
+	var needed = max(0, target_slots - slot_count)
 	for i in range(needed):
 		var empty = empty_slot_scene.instantiate()
 		grid.add_child(empty)
@@ -177,19 +180,29 @@ func refresh_inventory():
 	update_credits()
 	
 	# Re-apply selection highlight if it exists in the new list
-	if selected_element and selected_element["symbol"] in cards:
-		selected_card = cards[selected_element["symbol"]]
-		selected_card.set_selected(true)
+	if selected_element:
+		var symbol = selected_element["symbol"]
+		if symbol in cards:
+			selected_card = cards[symbol]
+			selected_card.set_selected(true)
+			
+			# v65.2 Fix: Do NOT reset SpinBox if we are just refreshing existing selection
+			# unless the amount changed and current value is higher than new max
+			var amt = GameState.resources.get_element_amount(symbol)
+			if amt > 0:
+				qty_spin.max_value = amt
+				if qty_spin.value > amt:
+					qty_spin.value = amt
+			else:
+				selected_element = null
+				clear_selection()
+		else:
+			# Item gone (sold or used up)
+			selected_element = null
+			selected_card = null
+			clear_selection()
 	else:
 		selected_card = null
-	
-	if selected_element:
-		var amt = GameState.resources.get_element_amount(selected_element["symbol"])
-		if amt > 0:
-			update_selection_view(selected_element, amt)
-		else:
-			selected_element = null
-			clear_selection()
 
 func _on_item_clicked(data):
 	# Clear old highlight
@@ -249,6 +262,14 @@ func _on_qty_spin_box_value_changed(value):
 
 func _on_sell_btn_pressed():
 	if not selected_element: return
+	
+	# v65.1 Fix: Force SpinBox to commit current text to value before reading
+	# This handles cases where user types a number but doesn't press Enter/Shift Focus before clicking
+	if qty_spin.has_method("apply"):
+		qty_spin.apply() # Some versions
+	else:
+		qty_spin.value = float(qty_spin.get_line_edit().text)
+		
 	var qty = int(qty_spin.value)
 	perform_sale(selected_element["symbol"], qty)
 
@@ -259,10 +280,27 @@ func _on_sell_all_btn_pressed():
 	perform_sale(symbol, qty)
 
 func perform_sale(symbol, qty):
+	if qty <= 0:
+		spawn_floating_text("Invalid Qty", Color.RED, sell_btn)
+		return
+		
 	var total = qty * price_val
 	if GameState.resources.remove_element(symbol, qty):
 		GameState.resources.add_currency("credits", total)
-		refresh_inventory()
+		spawn_floating_text("+%s Cr" % UITheme.format_num(total), Color.GOLD, sell_btn)
+		# refresh_inventory() # v65.1 Cleanup: Redundant, handled by signals
+	else:
+		spawn_floating_text("Sale Failed", Color.RED, sell_btn)
+
+func spawn_floating_text(text, color, target_widget):
+	# Using local float text logic similar to processing_page.gd
+	var ft_scene = preload("res://scenes/ui/floating_text.tscn")
+	var ft = ft_scene.instantiate()
+	# Add to main UI so it's not clipped by panels
+	get_tree().root.add_child(ft)
+	
+	var center = target_widget.global_position + target_widget.size / 2.0
+	ft.setup(text, color, center)
 
 
 

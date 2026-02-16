@@ -1,7 +1,7 @@
 extends Control
 
 @onready var tabs = $VBoxContainer/TabContainer
-@onready var credits_lbl = $VBoxContainer/Header/CreditsLabel
+
 
 var manager: RefCounted
 
@@ -27,7 +27,11 @@ var graphs = {
 			
 			# Exploration / Sectors
 			"sector_alpha_decryption", "deep_space_nav", "radiation_shielding", 
-			"exotic_matter_analysis", "void_physics", "void_navigation"
+			"exotic_matter_analysis", "void_physics", "void_navigation",
+			
+			# Missing Techs Restored (Audit)
+			"eff_scanning_1", "xeno_archaeology",
+			"asteroid_clearance", "mars_license", "outer_system_auth", "deep_space_expedition", "quarantine_protocols"
 		],
 		"pos": {
 			# Branch 1: Liquids (Pumps)
@@ -48,15 +52,25 @@ var graphs = {
 			# Branch 4: Utility & Gases
 			"energy_shields": Vector2(40, 370),
 			"magnetic_funnels": Vector2(240, 370),
-			"deep_core_optics": Vector2(40, 480), # Standalone upgrade
+			"eff_scanning_1": Vector2(40, 480), # Restored
+			"deep_core_optics": Vector2(240, 480), # Shifted right
 			
 			# Branch 5: Exploration (The Path to the Void)
 			"sector_alpha_decryption": Vector2(40, 600),
+			"xeno_archaeology": Vector2(40, 700), # Restored (Child of Sector Alpha)
+			
 			"deep_space_nav": Vector2(240, 600),
 			"radiation_shielding": Vector2(440, 600),
 			"exotic_matter_analysis": Vector2(640, 600),
 			"void_physics": Vector2(840, 600),
-			"void_navigation": Vector2(1040, 600)
+			"void_navigation": Vector2(1040, 600),
+			
+			# Branch 6: Progression Gates (Restored Chain)
+			"asteroid_clearance": Vector2(40, 850),
+			"mars_license": Vector2(240, 850),
+			"outer_system_auth": Vector2(440, 850),
+			"deep_space_expedition": Vector2(640, 850),
+			"quarantine_protocols": Vector2(840, 850)
 		},
 		"container": null # Assigned in _ready
 	},
@@ -82,7 +96,8 @@ var graphs = {
 			"automation", "automated_logistics", "industrial_automation", "molecular_recycling", "xeno_engineering",
 			"mass_production_tactics", "nano_fabrication", "data_clustering",
 			"precious_metal_refining", "industrial_catalysis", "fuel_cell_tech",
-			"colony_automation", "perfect_automation"
+			"colony_automation", "perfect_automation",
+			"basic_electronics"
 		],
 		"pos": {
 			"basic_engineering": Vector2(40, 400),
@@ -129,6 +144,7 @@ var graphs = {
 
 			# Lower: Logistics & Centrifuges
 			"industrial_logistics": Vector2(240, 750),
+			"basic_electronics": Vector2(440, 820), # Restored Node
 			"fast_centrifuges": Vector2(440, 750),
 			"maglev_bearings": Vector2(640, 750),
 			"quantum_separators": Vector2(840, 750),
@@ -172,7 +188,10 @@ var graphs = {
 			
 			# Efficiency
 			"salvage_heuristics", "scavenger_protocol", 
-			"combat_heuristics", "shield_harmonics", "hull_hardening", "core_overclocking"
+			"combat_heuristics", "shield_harmonics", "hull_hardening", "core_overclocking",
+			
+			# Auto-Repair (Audit v66.0)
+			"auto_repair_20", "auto_repair_40", "auto_repair_60", "auto_repair_80"
 		],
 		"pos": {
 			# Column 1: Basics
@@ -212,6 +231,12 @@ var graphs = {
 			"shield_harmonics": Vector2(240, 600),
 			"hull_hardening": Vector2(240, 680),
 			"core_overclocking": Vector2(240, 760),
+			
+			# Auto-Repair Branch (Right of Hull Hardening)
+			"auto_repair_20": Vector2(440, 680),
+			"auto_repair_40": Vector2(640, 680),
+			"auto_repair_60": Vector2(840, 680),
+			"auto_repair_80": Vector2(1040, 680),
 			"salvage_heuristics": Vector2(40, 840),
 			"scavenger_protocol": Vector2(240, 840),
 			"combat_heuristics": Vector2(40, 920)

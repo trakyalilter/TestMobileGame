@@ -36,11 +36,6 @@ text = "Research Network"
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="CreditsLabel" type="Label" parent="VBoxContainer/Header"]
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.8, 0, 1)
-text = "Credits: 0"
-
 [node name="TabContainer" type="TabContainer" parent="VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3

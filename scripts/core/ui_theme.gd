@@ -381,7 +381,7 @@ func apply_instrument_style(button: Button, category: String = "ops"):
 func apply_segmented_font(label: Control, color: Color = Color.CYAN):
 	if label is Label or label is RichTextLabel:
 		label.add_theme_color_override("font_color", color)
-		label.add_theme_font_size_override("font_size", 13) # UI FIX: Reduced from 16 to fit long mission names
+		label.add_theme_font_size_override("font_size", 10)
 		# Simulating glow via modulate/shadow
 		label.modulate = color.lightened(0.3)
 		

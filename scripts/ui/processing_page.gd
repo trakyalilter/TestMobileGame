@@ -42,13 +42,16 @@ func refresh_recipes():
 	racks.clear()
 	
 	# Create racks for each category
-	_create_rack("smelting", "Ore Smelting & Refining", Color(0.9, 0.5, 0.2, 0.5), rack_container)
+	_create_rack("basics", "Basic Operations", Color(0.8, 0.8, 0.8, 0.5), rack_container) # NEW
+	_create_rack("smelting", "Refining", Color(0.9, 0.5, 0.2, 0.5), rack_container)
 	_create_rack("alloys", "Alloy Fabrication", Color(0.7, 0.7, 0.7, 0.5), rack_container)
 	_create_rack("materials", "Advanced Materials", Color(0.4, 0.8, 0.6, 0.5), rack_container)
 	_create_rack("electronics", "Electronics & Components", Color(0.2, 0.8, 1.0, 0.5), rack_container)
 	_create_rack("batteries", "Power Cells & Batteries", Color(1.0, 1.0, 0.3, 0.5), rack_container)
 	_create_rack("munitions", "Munitions Factory", Color(1.0, 0.4, 0.3, 0.5), rack_container)
-	_create_rack("consumables", "Field Consumables", Color(0.2, 1.0, 0.5, 0.5), rack_container)
+	# Split Consumables
+	_create_rack("consumables_hull", "Hull Repair Kits", Color(0.2, 1.0, 0.5, 0.5), rack_container)
+	_create_rack("consumables_shield", "Shield Repair Kits", Color(0.2, 0.6, 1.0, 0.5), rack_container)
 	_create_rack("research", "Research & Artifacts", Color(0.8, 0.4, 1.0, 0.5), rack_container)
 	
 	var sorted_keys = manager.recipes.keys()
@@ -72,8 +75,8 @@ func refresh_recipes():
 
 func _get_recipe_category(rid: String, data: Dictionary) -> String:
 	# Priority: Explicit Category
-	if data.get("category") == "consumables":
-		return "consumables"
+	if data.get("category"):
+		return data.get("category")
 
 	# Munitions - ammo for weapons
 	if "slug" in rid or "cell_t" in rid or "craft_cell" in rid or "rounds" in rid:
@@ -98,6 +101,10 @@ func _get_recipe_category(rid: String, data: Dictionary) -> String:
 	# Ore Smelting - extracting pure elements from ores
 	if "smelt" in rid or "refine" in rid or "extract" in rid or "centrifuge" in rid or "electrolysis" in rid or "leach" in rid or "process_" in rid or "panning" in rid:
 		return "smelting"
+	
+	# Basics check (before materials fallback)
+	if "sift" in rid or "charcoal" in rid or "burn" in rid or "wash" in rid:
+		return "basics"
 	
 	# Advanced Materials - composites, polymers, fibers
 	if "fiber" in rid or "polymer" in rid or "graphite" in rid or "nanoweave" in rid or "mesh" in rid or "sealant" in rid or "coolant" in rid or "charcoal" in rid or "carbon" in rid or "scrap" in rid:

@@ -11,7 +11,7 @@ var currencies: Dictionary = {}
 var energy: float = 0.0
 var max_energy: float = 0.0
 var lifetime_credits: float = 0.0
-var base_cap: float = 20000.0 # Audit v5.0: Fixed undefined variable
+var base_slots: int = 48 # User requested minimum
 var storage_upgrades: int = 0 # Feature P65-X: Manual Storage Upgrade
 
 func _ready():
@@ -20,66 +20,37 @@ func _ready():
 		add_currency("credits", 100)
 		add_element("Dirt", 50)
 		add_element("Water", 50)
-
-func get_max_capacity() -> float:
-	var extra = 0.0
-	if GameState.infrastructure_manager:
-		extra = GameState.infrastructure_manager.get_building_count("inventory_bay") * 10000.0
-	# 2. Manual Storage Upgrades (Feature Request)
-	extra += storage_upgrades * 5000.0
 	
-	return base_cap + extra
+	cleanup_inventory()
+
+func get_max_slots() -> int:
+	return base_slots + storage_upgrades
 
 # Feature: Manual Storage Upgrade
 func upgrade_storage() -> bool:
-	var cost = 1000.0 * pow(1.5, storage_upgrades)
-	cost = floor(cost)
+	var cost = get_storage_upgrade_cost()
 	
 	if get_currency("credits") >= cost:
 		remove_currency("credits", cost)
 		storage_upgrades += 1
-		# Force update capacity signal if needed, or rely on UI polling
-		# Since max_capacity is calculated dynamically, we just need UI to refresh
 		return true
 	return false
 
 func get_storage_upgrade_cost() -> float:
+	# Cost scales with upgrades: 1000 * 1.5^level
 	return floor(1000.0 * pow(1.5, storage_upgrades))
 
-func get_resource_mass(symbol: String) -> float:
-	# Audit v12.0: Bulk resources can be compressed
-	var bulk = ["Dirt", "Water", "Fe", "Si", "Scrap", "Wood", "Stone"]
-	if symbol in bulk:
-		# Logistics Level 25 Milestone: 50% Compression
-		# We use GatheringManager as the proxy for terrestrial logistics here
-		if GameState.gathering_manager and GameState.gathering_manager.get_level() >= 25:
-			return 0.5
-		return 1.0
-	return 1.0
-
-func get_total_volume() -> float:
-	var total_vol = 0.0
-	for sym in elements:
-		var mass = get_resource_mass(sym)
-		total_vol += elements[sym] * mass
-	return total_vol
-
 func add_element(symbol: String, amount: float):
+	if amount <= 0: return
+	
+	# Slot Check
 	if not elements.has(symbol):
+		if elements.size() >= get_max_slots():
+			# Inventory Full (Slots)
+			return
 		elements[symbol] = 0.0
 	
-	var max_cap = get_max_capacity()
-	var mass = get_resource_mass(symbol)
-	var current_total_vol = get_total_volume()
-	
-	if amount > 0:
-		# Enforce GLOBAL cap based on VOLUME
-		var available_vol = max(0.0, max_cap - current_total_vol)
-		var max_addable_qty = available_vol / mass
-		amount = min(amount, max_addable_qty)
-	
-	if amount <= 0: return # Cap reached
-	
+	# No quantity limit per slot
 	elements[symbol] = elements[symbol] + amount
 	element_added.emit(symbol, amount)
 
@@ -166,6 +137,23 @@ func load_save_data(data: Dictionary):
 	# Fix types if JSON loaded ints
 	for k in elements: elements[k] = float(elements[k])
 	for k in currencies: currencies[k] = float(currencies[k])
+	
+	cleanup_inventory()
+
+func cleanup_inventory():
+	var to_remove = []
+	for k in elements:
+		if elements[k] <= 0:
+			to_remove.append(k)
+	
+	for k in to_remove:
+		elements.erase(k)
+
+func get_used_slots() -> int:
+	# Ensure accurate count by cleaning first? 
+	# Or just trust cleanup_inventory was called.
+	# Let's do a soft check or just return size
+	return elements.size()
 
 func reset():
 	elements.clear()

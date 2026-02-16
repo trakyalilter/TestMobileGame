@@ -21,14 +21,60 @@ func setup(p_bid: String, p_data: Dictionary, p_manager, p_parent):
 	manager = p_manager
 	parent_ui = p_parent
 	
+	custom_minimum_size = Vector2(250, 220)
+	
 	name_lbl.text = data["name"]
 	name_lbl.add_theme_color_override("font_color", UITheme.CATEGORY_COLORS["infrastructure"])
+	name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	
 	desc_lbl.text = data["description"]
+	desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	
+	stats_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	cost_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	
 	UITheme.apply_card_style(self, "infrastructure")
 	UITheme.apply_premium_button_style(buy_btn, "infrastructure")
 	
+	# Hide unused overclocking UI
+	if has_node("MarginContainer/VBoxContainer/OverclockContainer"):
+		get_node("MarginContainer/VBoxContainer/OverclockContainer").hide()
+	
 	production_interval = data.get("interval", 2.0)
+	
+	# Efficiency Slider (Throttle)
+	var throttle_container = VBoxContainer.new()
+	$MarginContainer/VBoxContainer.add_child(throttle_container)
+	# Move slider above Buy Button
+	$MarginContainer/VBoxContainer.move_child(throttle_container, buy_btn.get_index())
+	
+	var throttle_header = HBoxContainer.new()
+	throttle_container.add_child(throttle_header)
+	
+	var throttle_title = Label.new()
+	throttle_title.text = "Efficiency"
+	throttle_title.add_theme_font_size_override("font_size", 10)
+	throttle_header.add_child(throttle_title)
+	
+	var throttle_val_lbl = Label.new()
+	var current_throttle = manager.get_building_throttle(bid)
+	throttle_val_lbl.text = "%d%%" % (current_throttle * 100)
+	throttle_val_lbl.add_theme_font_size_override("font_size", 10)
+	throttle_val_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	throttle_val_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	throttle_header.add_child(throttle_val_lbl)
+	
+	var slider = HSlider.new()
+	slider.min_value = 0
+	slider.max_value = 100
+	slider.step = 5
+	slider.value = current_throttle * 100
+	throttle_container.add_child(slider)
+	
+	slider.value_changed.connect(func(val):
+		manager.set_building_throttle(bid, val / 100.0)
+		throttle_val_lbl.text = "%d%%" % val
+	)
 	
 	var gen = data.get("energy_gen", 0.0)
 	var cons = data.get("energy_cons", 0.0)
@@ -149,12 +195,17 @@ func update_state():
 	var has_level = manager.get_level() >= lvl_req
 	
 	if not has_research:
-		var tech_name = GameState.research_manager.tech_tree.get(req_id, {}).get("name", "Unknown Tech")
-		UITheme.apply_locked_overlay(self, data["name"], "RESEARCH: %s" % tech_name, true)
+		var tech_data = GameState.research_manager.tech_tree.get(req_id, {})
+		var tech_name = tech_data.get("name", "Unknown Tech")
+		# Force strict formatting
+		var lock_msg = "RESEARCH: %s" % tech_name
+		UITheme.apply_locked_overlay(self, data["name"], lock_msg, true)
+		buy_btn.text = "RESEARCH REQUIRED" # All Caps for emphasis
 		buy_btn.disabled = true
 		return
 	elif not has_level:
 		UITheme.apply_locked_overlay(self, data["name"], "LEVEL %d REQUIRED" % lvl_req, true)
+		buy_btn.text = "Requires Lv %d" % lvl_req
 		buy_btn.disabled = true
 		return
 	else:

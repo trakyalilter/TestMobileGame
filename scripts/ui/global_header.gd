@@ -5,16 +5,13 @@ extends PanelContainer
 
 var stability_lbl: Label # Added dynamically in _ready if not in scene
 
-@onready var infra_led = $MarginContainer/HBoxContainer/StatusCluster/InfraLed
-@onready var fleet_led = $MarginContainer/HBoxContainer/StatusCluster/FleetLed
-@onready var research_led = $MarginContainer/HBoxContainer/StatusCluster/ResearchLed
 
 func _ready():
 	UITheme.apply_panel_style(self)
 	
 	# Premium Glassmorphism Feel
 	self.modulate.a = 0.9
-	UITheme.add_hover_scale(task_lbl, 1.02)
+	UITheme.add_hover_scale(task_lbl, 0.75)
 	UITheme.apply_segmented_font(credits_lbl, UITheme.COLORS["warning"])
 	UITheme.apply_segmented_font(task_lbl, UITheme.COLORS["text_main"])
 	
@@ -37,8 +34,6 @@ func _ready():
 	
 	UITheme.packet_landed.connect(_on_packet_landed)
 	
-	# Initial LED setup
-	_setup_leds()
 	
 	# Initial sync
 	update_hud()
@@ -49,22 +44,13 @@ func _ready():
 		GameState.resources.currency_removed.connect(func(t, a): update_credits())
 	
 	
-	if GameState.infrastructure_manager:
-		GameState.infrastructure_manager.activity_occurred.connect(func(): flash_led(infra_led, UITheme.CATEGORY_COLORS["infrastructure"]))
-	if GameState.fleet_manager:
-		GameState.fleet_manager.activity_occurred.connect(func(): flash_led(fleet_led, UITheme.CATEGORY_COLORS["mission"]))
-	if GameState.research_manager:
-		GameState.research_manager.activity_occurred.connect(func(): flash_led(research_led, UITheme.CATEGORY_COLORS["research"]))
+
 
 var last_mission_id: String = ""
 var last_completed_state: bool = false
 
 
-func _setup_leds():
-	# Make them circular (or rounded squares for mechanical look)
-	for led in [infra_led, fleet_led, research_led]:
-		led.custom_minimum_size = Vector2(6, 6)
-		led.color = Color(0.1, 0.1, 0.1)
+
 
 func flash_led(led: ColorRect, color: Color):
 	var tween = create_tween()
@@ -121,7 +107,10 @@ func update_task_status():
 		
 	elif GameState.combat_manager and GameState.combat_manager.in_combat:
 		var cm = GameState.combat_manager
-		status_text = "Combat: %s" % cm.current_enemy.get("name", "Unknown")
+		var enemy_name = "Unknown"
+		if cm.current_enemy:
+			enemy_name = cm.current_enemy.get("name", "Unknown")
+		status_text = "Combat: %s" % enemy_name
 		
 	elif GameState.research_manager and GameState.research_manager.is_active:
 		var rm = GameState.research_manager
@@ -129,7 +118,7 @@ func update_task_status():
 		var prog = (rm.action_progress / rm.calculate_effective_duration(rm.active_tech_id)) * 100.0
 		status_text = "Researching: %s (%d%%)" % [tech_name, int(prog)]
 	
-	task_lbl.text = "System Action: %s" % status_text
+	task_lbl.text = "%s" % status_text
 	if status_text == "Idle":
 		task_lbl.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
 	else:

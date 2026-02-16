@@ -395,34 +395,6 @@ layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
 
-[node name="ConsumableBay" type="HBoxContainer" parent="Dashboard/ViewportFooter/Margin/HBox"]
-layout_mode = 2
-theme_override_constants/separation = 10
-
-[node name="SelectionLabel" type="Label" parent="Dashboard/ViewportFooter/Margin/HBox/ConsumableBay"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.4, 0.4, 0.4, 1)
-theme_override_font_sizes/font_size = 10
-text = "Consumables:"
-vertical_alignment = 1
-
-[node name="OptionButton" type="OptionButton" parent="Dashboard/ViewportFooter/Margin/HBox/ConsumableBay"]
-custom_minimum_size = Vector2(140, 32)
-layout_mode = 2
-
-[node name="UseBtn" type="Button" parent="Dashboard/ViewportFooter/Margin/HBox/ConsumableBay"]
-custom_minimum_size = Vector2(80, 32)
-layout_mode = 2
-text = "USE"
-
-[node name="AutoToggle" type="Button" parent="Dashboard/ViewportFooter/Margin/HBox/ConsumableBay"]
-custom_minimum_size = Vector2(60, 32)
-layout_mode = 2
-toggle_mode = true
-text = "AUTO"
 
 [connection signal="item_selected" from="Dashboard/Visualizer/HUD/Overlays/SectorOverlay/VBox/ZoneList" to="." method="_on_zone_list_item_selected"]
 [connection signal="pressed" from="Dashboard/ViewportFooter/Margin/HBox/RetreatBtn" to="." method="_on_retreat_btn_pressed"]
-[connection signal="item_selected" from="Dashboard/ViewportFooter/Margin/HBox/ConsumableBay/OptionButton" to="." method="_on_option_button_item_selected"]
-[connection signal="pressed" from="Dashboard/ViewportFooter/Margin/HBox/ConsumableBay/UseBtn" to="." method="_on_use_btn_pressed"]
-[connection signal="toggled" from="Dashboard/ViewportFooter/Margin/HBox/ConsumableBay/AutoToggle" to="." method="_on_auto_btn_toggled"]

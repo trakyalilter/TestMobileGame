@@ -18,7 +18,8 @@ var recipes: Dictionary = {
 		"duration": 5.0,
 		"level_req": 1,
 		"xp": 3,
-		"research_req": "basic_engineering"
+		"research_req": "basic_engineering",
+		"category": "basics"
 	},
 	"charcoal_burning": {
 		"name": "Charcoal Kiln",
@@ -27,7 +28,8 @@ var recipes: Dictionary = {
 		"output": { "C": 3 },
 		"duration": 4.0,
 		"level_req": 3,
-		"xp": 5
+		"xp": 5,
+		"category": "basics"
 	},
 	"electrolysis": {
 		"name": "Water Electrolysis",
@@ -37,7 +39,8 @@ var recipes: Dictionary = {
 		"duration": 2.0,
 		"level_req": 2,
 		"xp": 5,
-		"research_req": "fluid_dynamics"
+		"research_req": "fluid_dynamics",
+		"category": "basics"
 	},
 	"centrifuge_dirt": {
 		"name": "Mineral Washing",
@@ -47,7 +50,8 @@ var recipes: Dictionary = {
 		"duration": 3.0,
 		"level_req": 1,
 		"xp": 5,
-		"research_req": "basic_engineering"
+		"research_req": "basic_engineering",
+		"category": "basics"
 	},
 	"smelt_steel_basic": {
 		"name": "Basic Steel Smelting",
@@ -56,6 +60,7 @@ var recipes: Dictionary = {
 		"output": { "Steel": 1 },
 		"duration": 7.0,
 		"level_req": 12,
+		"xp": 20,
 		"research_req": "smelting"
 	},
 	"smelt_copper": {
@@ -189,7 +194,8 @@ var recipes: Dictionary = {
 		"duration": 20.0,
 		"level_req": 4, 
 		"xp": 12, # Reduced from 15
-		"research_req": "basic_engineering"
+		"research_req": "basic_engineering",
+		"category": "basics"
 	},
 	# Audit v1.0: Guaranteed Circuit path for players frustrated by RNG
 	"recycle_scrap_bulk": {
@@ -201,7 +207,7 @@ var recipes: Dictionary = {
 		"level_req": 10,
 		"xp": 25,
 		"research_req": "basic_engineering",
-		"category": "recycling"
+		"category": "basics"
 	},
 	# Research Fragment Upgrade Chain
 	"upgrade_rare_artifact": {
@@ -275,66 +281,67 @@ var recipes: Dictionary = {
 	# Audit v2.0: Early consumables for combat accessibility
 	"craft_emergency_patch": {
 		"name": "Emergency Hull Patch",
-		"description": "Quick patch from scrap. Restores 50 HP in combat.",
+		"description": "Quick patch from scrap. Restores 25% Hull Integrity.",
 		"input": { "Scrap": 5, "Fe": 2 },
 		"output": { "EmergencyPatch": 2 },
 		"duration": 10.0,
 		"level_req": 5,
 		"xp": 10,
-		"category": "consumables"
+		"category": "consumables_hull"
 	},
 	# v62.0 Fix: Added Consumer for AlWire and Circuit
 	"craft_adv_maintenance_kit": {
 		"name": "Adv. Maintenance Kit",
-		"description": "High-tech repair kit. Restores 200 HP.",
+		"description": "High-tech repair kit. Restores 35% Hull Integrity.",
 		"input": { "AlWire": 5, "Circuit": 2, "Steel": 2 },
 		"output": { "AdvMaintenanceKit": 2 },
 		"duration": 15.0,
 		"level_req": 20,
 		"xp": 40,
 		"research_req": "basic_electronics",
-		"category": "consumables"
+		"category": "consumables_hull"
 	},
 	"craft_basic_booster": {
 		"name": "Basic Shield Booster",
-		"description": "Crude energy cells. Restores 30 Shield in combat.",
+		"description": "Crude energy cells. Restores 20% Shield Integrity.",
 		"input": { "Si": 3, "C": 2 },
 		"output": { "BasicBooster": 2 },
 		"duration": 10.0,
 		"level_req": 6,
 		"xp": 10,
-		"category": "consumables"
+		"category": "consumables_shield"
 	},
 	"craft_nanoweave": {
 		"name": "Nanoweave Mesh",
-		"description": "Weave fiber for shield repairs.",
+		"description": "Weave fiber for hull reinforcement. Restores 15% Hull Integrity.",
 		"input": { "Fiber": 2, "Si": 1 },
 		"output": { "Mesh": 1 },
 		"duration": 15.0,
 		"level_req": 26, # Increased from 3
 		"xp": 25, # Reduced from 30
+		"category": "consumables_hull"
 	},
 	"craft_sealant": {
 		"name": "Hull Sealant",
-		"description": "Mix polymer for rapid hull patching.",
+		"description": "Mix polymer for rapid hull patching. Restores 10% Hull Integrity.",
 		"input": { "Resin": 2, "Fe": 1 },
 		"output": { "Seal": 1 },
 		"duration": 15.0,
 		"level_req": 28, # Increased from 3
 		"xp": 30, # Reduced from 40
 		"research_req": "metallurgy_advanced",
-		"category": "consumables"
+		"category": "consumables_hull"
 	},
 	"craft_chitin_patch": {
 		"name": "Biosynthetic Hull Patch",
-		"description": "Utilize mite chitin for emergency hull repairs. Purely organic.",
+		"description": "Utilize mite chitin for emergency hull repairs. Restores 20% Hull Integrity.",
 		"input": { "MiteChitin": 10 },
 		"output": { "ChitinPatch": 2 },
 		"duration": 8.0,
 		"level_req": 3,
 		"xp": 8,
 		"research_req": "basic_engineering",
-		"category": "consumables"
+		"category": "consumables_hull"
 	},
 	"craft_slug_t1": {
 		"name": "Ferrite Rounds",
@@ -404,13 +411,14 @@ var recipes: Dictionary = {
 	},
 	"nitrogen_coolant": {
 		"name": "Nitrogen Coolant",
-		"description": "Synthesize liquid nitrogen for cooling systems.",
+		"description": "Synthesize liquid nitrogen. Restores 30% Shield Integrity.",
 		"input": { "N": 10, "Water": 2 },
 		"output": { "NitroCoolant": 5 },
 		"duration": 15.0,
 		"level_req": 26,
 		"xp": 35,
-		"research_req": "fluid_dynamics"
+		"research_req": "fluid_dynamics",
+		"category": "consumables_shield"
 	},
 	"craft_slug_t3": {
 		"name": "Depleted Uranium Round",
@@ -422,6 +430,16 @@ var recipes: Dictionary = {
 		"xp": 120, # Increased from 50
 		"research_req": "ballistics_optimization"
 	},
+	"craft_slug_t4": {
+		"name": "Hyper-Velocity Slug",
+		"description": "Tungsten-Superalloy sabot for railguns. Extreme kinetic impact.",
+		"input": { "W": 10, "U": 3, "Superalloy": 1 },
+		"output": { "SlugT4": 5 },
+		"duration": 20.0,
+		"level_req": 65,
+		"xp": 180,
+		"research_req": "ballistics_optimization"
+	},
 	"craft_cell_t3": {
 		"name": "Vaporizer Cell",
 		"description": "Matter-disintegrating energy.",
@@ -430,6 +448,16 @@ var recipes: Dictionary = {
 		"duration": 15.0,
 		"level_req": 58, # Increased from 8
 		"xp": 120, # Increased from 50
+		"research_req": "energy_metrics"
+	},
+	"craft_cell_t4": {
+		"name": "Heavy Plasma Cell",
+		"description": "Unstable fusion plasma containment. Extreme damage.",
+		"input": { "He": 10, "U": 3, "Superalloy": 1 },
+		"output": { "CellT4": 5 },
+		"duration": 20.0,
+		"level_req": 65,
+		"xp": 180,
 		"research_req": "energy_metrics"
 	},
 	"craft_he_missile": {
@@ -478,7 +506,7 @@ var recipes: Dictionary = {
 	"craft_aluminum_wire": {
 		"name": "Aluminum Wiring",
 		"description": "High-conductivity cables.",
-		"input": { "Cu": 2, "Resin": 1 },
+		"input": { "Al": 2, "Resin": 1 },
 		"output": { "AlWire": 2 },
 		"duration": 5.0,
 		"level_req": 8,
@@ -489,9 +517,9 @@ var recipes: Dictionary = {
 	"assemble_circuit_standard": {
 		"name": "Standard Circuit Assembly",
 		"description": "Fabricate circuits from raw conductive materials. No Drone Core required.",
-		"input": { "Cu": 2, "Si": 2, "Resin": 1 },
-		"output": { "Circuit": 1 },
-		"duration": 8.0, 
+		"input": { "Cu": 2, "Si": 3,"DroneCore": 2, "Resin": 1 },
+		"output": { "Circuit": 3 },
+		"duration": 6.0, 
 		"level_req": 12,
 		"xp": 40,
 		"research_req": "basic_electronics"
@@ -520,10 +548,10 @@ var recipes: Dictionary = {
 	# Basic metallurgy moved to top
 	# Germanium / Advanced Electronics
 	"extract_germanium": {
-		"name": "Fly Ash Separation",
-		"description": "Extract trace Germanium from Carbon ash.",
-		"input": { "C": 10 },
-		"output": { "Ge": 1 },
+		"name": "Germanite Smelting",
+		"description": "Refine Germanite Mineral into pure Germanium.",
+		"input": { "Germanit": 5 },
+		"output": { "Germanium": 1 },
 		"duration": 8.0,
 		"level_req": 36, # Increased from 5
 		"xp": 40, # Increased from 25
@@ -532,7 +560,7 @@ var recipes: Dictionary = {
 	"craft_semiconductor": {
 		"name": "Semiconductor Wafer",
 		"description": "Dope Silicon with Germanium for conductivity.",
-		"input": { "Si": 2, "Ge": 1 },
+		"input": { "Si": 2, "Germanium": 1 },
 		"output": { "Semiconductor": 1 },
 		"duration": 10.0,
 		"level_req": 38, # Increased from 6
@@ -590,8 +618,8 @@ var recipes: Dictionary = {
 	},
 	"craft_battery_t2": {
 		"name": "Graphene Matrix Battery",
-		"description": "Advanced high-density battery.",
-		"input": { "BatteryT1": 1, "Graphite": 5, "AdvCircuit": 5 },
+		"description": "Advanced high-density battery. Requires Sulfur for electrolyte.",
+		"input": { "BatteryT1": 1, "Graphite": 5, "AdvCircuit": 5, "S": 10 },
 		"output": { "BatteryT2": 1 },
 		"duration": 20.0,
 		"level_req": 55, # Increased from 15
@@ -680,6 +708,26 @@ var recipes: Dictionary = {
 		"level_req": 25,
 		"xp": 300,
 		"research_req": "industrial_catalysis"
+	},
+	"craft_silver_catalyst": {
+		"name": "Silver Catalyst",
+		"description": "High-efficiency chemical catalyst. +15% Processing Speed.",
+		"input": { "Ag": 10, "Si": 20, "Circuit": 5 },
+		"output": { "AgCatalyst": 1 },
+		"duration": 15.0,
+		"level_req": 30,
+		"xp": 150,
+		"research_req": "industrial_catalysis"
+	},
+	"craft_magnet": {
+		"name": "Superconducting Magnet",
+		"description": "Sn-Nb alloy magnets for advanced shielding and engines.",
+		"input": { "Sn": 20, "Fe": 10, "Cu": 10 },
+		"output": { "SuperconductingMagnet": 1 },
+		"duration": 15.0,
+		"level_req": 35,
+		"xp": 200,
+		"research_req": "metallurgy_advanced"
 	},
 	"craft_palladium_cell": {
 		"name": "Palladium Fuel Cell",
@@ -999,6 +1047,10 @@ func get_recipe_speed_multiplier(recipe_id: String) -> float:
 		# Platinum Catalyst Chamber (Global Processing Speed +25%)
 		if GameState.infrastructure_manager.get_building_count("catalyst_chamber") > 0:
 			multiplier += 0.25
+			
+		# Silver Catalyst Bay (Global Processing Speed +15%)
+		if GameState.infrastructure_manager.get_building_count("silver_catalyst_bay") > 0:
+			multiplier += 0.15
 	
 	# Audit v8.0 P1-25: Industrial Logistics Hub Bonus (+10% Speed)
 	if GameState.research_manager:
@@ -1144,7 +1196,7 @@ func complete_process():
 	action_progress = 0.0
 	
 	# Check for next cycle
-	if not has_ingredients(current_recipe["input"]):
+	if not has_ingredients(current_recipe["input"], c_cost):
 		stop_action()
 
 func has_ingredients(inputs: Dictionary, credits: int = 0) -> bool:

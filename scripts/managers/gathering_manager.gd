@@ -130,13 +130,20 @@ var actions: Dictionary = {
 	"harvest_nebula": {
 		"name": "Harvest Nebula (Orbital)",
 		"loot_table": [
-			["H", 0.7, 1, 2],
-			["He", 0.3, 1, 1]
+			["H", 1.0, 1, 2],
+			["He", 1.0, 1, 1]
 		],
 		"xp": 15,  # ITER3 FIX: Reduced from 60 (was 4x higher than intended)
 		"level_req": 40,
 		"research_req": "energy_metrics",
 		"category": "orbital"
+	},
+	"mine_germanit": {
+		"name": "Excavate Germanite Deposits",
+		"loot_table": [["Germanit", 1.0, 1, 2]],
+		"xp": 35,
+		"level_req": 35,
+		"category": "terrestrial"
 	},
 	"extract_platinum": {
 		"name": "Extract Platinum samples",

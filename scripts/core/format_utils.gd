@@ -7,17 +7,16 @@ static func format_number(val: float) -> String:
 	if val < 1000:
 		if val > 0.0 and val < 1.0:
 			return "%.2f" % val
-		return str(int(val))
+		return str(round(val))
 	
-	# PHASE 47: Scientific Diegesis (Sensor Reading Logic)
-	# Use standard suffixes for K, shift to scientific for M+
-	if val >= 1000000.0:
+	# 1.25M instead of 1.25e6 per User Request
+	var exp = int(floor(log(val) / log(1000)))
+	
+	# Fallback to scientific only if we exceed supported suffixes (e.g. > 1e36)
+	if exp >= SUFFIXES.size():
 		var exponent = floor(log(val) / log(10.0))
 		var base = val / pow(10, exponent)
-		# Format: 1.25e6
 		return "%.2fe%d" % [base, int(exponent)]
-		
-	var exp = int(floor(log(val) / log(1000)))
 	var suffix = SUFFIXES[min(exp, SUFFIXES.size() - 1)]
 	var scaled = val / pow(1000, exp)
 	
@@ -40,7 +39,9 @@ const STAT_LABELS = {
 	"energy_capacity": "CAPACITY",
 	"atk_speed_mult": "SPEED",
 	"shield_regen_mult": "REGEN+",
-	"energy_gen": "GEN"
+	"energy_gen": "GEN",
+	"jamming_strength": "JAMMING",
+	"atk_speed_bonus": "COOLING"
 }
 
 static func format_stat_label(key: String) -> String:
@@ -48,7 +49,8 @@ static func format_stat_label(key: String) -> String:
 	return STAT_LABELS.get(key_lower, key.replace("_", " ").to_upper())
 
 static func format_stat_value(key: String, val: float) -> String:
-	if key.to_lower().ends_with("_mult"):
+	var k_low = key.to_lower()
+	if k_low.ends_with("_mult") or k_low.ends_with("_bonus") or k_low == "jamming_strength" or k_low == "crit_chance":
 		return "+%d%%" % int(val * 100)
 	return format_number(val)
 

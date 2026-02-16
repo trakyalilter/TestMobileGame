@@ -36,6 +36,7 @@ var ELEMENT_NAMES = {
 	"Ir": "Iridium",
 	"Os": "Osmium",
 	"Rh": "Rhodium",
+	"Germanium": "Germanium",
 	
 	# Radioactive
 	"U": "Uranium",
@@ -64,6 +65,7 @@ var ELEMENT_NAMES = {
 	"Quartz": "Quartz Crystal",  # Audit v50.0
 	"Pentlandite": "Pentlandite Ore",  # Audit v50.0
 	"Chromite": "Chromite Ore",  # Audit v50.0
+	"Germanit": "Germanite Mineral",
 	
 	# Components
 	"Circuit": "Circuit Board",
@@ -92,11 +94,14 @@ var ELEMENT_NAMES = {
 	
 	# Ammo
 	"SlugT1": "Ferrite Rounds",
+	"SlugT1S": "Heavy Steel Slugs",
 	"SlugT2": "Tungsten Sabot",
 	"SlugT3": "Depleted Uranium Rounds",
+	"SlugT4": "Hyper-Velocity Slug",
 	"CellT1": "Focus Crystal",
 	"CellT2": "Plasma Cell",
 	"CellT3": "Vaporizer Cell",
+	"CellT4": "Heavy Plasma Cell",
 	"HE_Missile": "High-Explosive Missile",
 	"Seeker_Missile": "Seeker Missile",
 	"Photon_Torpedo": "Photon Torpedo",
@@ -178,15 +183,15 @@ var ELEMENT_NAMES = {
 
 ## Category mappings for inventory filtering
 var CATEGORIES = {
-	"ores": ["Dirt", "Bauxite", "Dolomite", "Cassiterite", "ZincOre", "Spodumene", "PtOre"],
+	"ores": ["Dirt", "Bauxite", "Dolomite", "Cassiterite", "ZincOre", "Spodumene", "PtOre", "Germanit"],
 	"basic_metals": ["Fe", "Cu", "Al", "Mg", "Sn", "Zn"],
 	"advanced_metals": ["Ti", "Co", "Ni", "Cr", "Mn", "W"],
-	"rare_metals": ["Au", "Ag", "Pt", "Pd", "Ir", "Os", "Rh", "U"],
+	"rare_metals": ["Au", "Ag", "Pt", "Pd", "Ir", "Os", "Rh", "U", "Germanium"],
 	"alloys": ["Steel", "Bronze", "Graphite", "StainlessSteel", "GalvanizedSteel", "Superalloy", "AlMgAlloy", "IrWAlloy"],
 	"components": ["Circuit", "AdvCircuit", "Chip", "Hydraulics", "AlWire", "Resin", "Fiber"],
 	"batteries": ["BatteryT1", "BatteryT2", "BatteryT3", "CoBattery", "MgBattery", "PdFuelCell"],
-	"consumables": ["Mesh", "Seal", "EmergencyPatch", "BasicBooster", "ChitinPatch", "NitroCoolant"],  # Audit v2.0: Early/Mid consumables
-	"ammo": ["SlugT1", "SlugT2", "SlugT3", "CellT1", "CellT2", "CellT3", "HE_Missile", "Seeker_Missile", "Photon_Torpedo"],
+	"consumables": ["Mesh", "Seal", "EmergencyPatch", "BasicBooster", "ChitinPatch", "NitroCoolant", "AdvMaintenanceKit"],  # Audit v2.0: Early/Mid consumables
+	"ammo": ["SlugT1", "SlugT1S", "SlugT2", "SlugT3", "SlugT4", "CellT1", "CellT2", "CellT3", "CellT4", "HE_Missile", "Seeker_Missile", "Photon_Torpedo"],
 	"special": ["VoidArtifact", "QuantumCore", "ExoticMatter", "VoidCrystal", "Diamond", "SyntheticCrystal", 
 				"Neutronium", "AntimatterParticle", "ExoticIsotope", "ReactiveCore", "AICore", "AncientTech",
 				"NavData", "IrPlate", "OsCore", "PtCatalyst",
@@ -194,10 +199,22 @@ var CATEGORIES = {
 				"Scrap", "MiteChitin", "DroneCore", "SalvageData", "StolenCargo", 
 				"SwarmFragment", "PirateManifest", "ColonySalvage", "TurretCore", 
 				"ColonyDataCore", "RadIsotope", "CryoCell"],
-	"basic": ["H", "He", "C", "O", "Si", "S", "Li", "Wood", "Water", "N", "Food", "FertileSoil", "CompositeWeave"],
 	# Audit v4.0: Endgame category for ultimate items
 	"endgame": ["VoidEssence", "ChronoCore", "OmegaPlating", "PrimordialShard", 
 				"VoidBattery", "TemporalModule", "PrimordialArmor", "OmegaAccelerator"]
+}
+
+# v66.0: Consumable Slot System Data
+var CONSUMABLE_DATA = {
+	# Hull Consumables (restore HP % of Max Hull)
+	"Mesh":           {"type": "hull",   "heal_pct": 0.15, "name": "Nanoweave Mesh"},
+	"Seal":           {"type": "hull",   "heal_pct": 0.10, "name": "Hull Sealant"},
+	"EmergencyPatch": {"type": "hull",   "heal_pct": 0.25, "name": "Emergency Patch"},
+	"ChitinPatch":    {"type": "hull",   "heal_pct": 0.20, "name": "Chitin Hull Patch"},
+	"AdvMaintenanceKit": {"type": "hull", "heal_pct": 0.35, "name": "Adv. Maintenance Kit"},
+	# Shield Consumables (restore Shield % of Max Shield)
+	"BasicBooster":   {"type": "shield", "heal_pct": 0.20, "name": "Shield Booster"},
+	"NitroCoolant":   {"type": "shield", "heal_pct": 0.30, "name": "Nitrogen Coolant"},
 }
 
 ## Get display name for an element
@@ -221,3 +238,7 @@ func get_category(symbol: String) -> String:
 ## Get all elements in a category
 func get_elements_in_category(category: String) -> Array:
 	return CATEGORIES.get(category, [])
+
+## Get consumable data (type, heal_pct)
+func get_consumable_data(id: String) -> Dictionary:
+	return CONSUMABLE_DATA.get(id, {})

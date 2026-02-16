@@ -97,6 +97,9 @@ func _init_pages():
 	page_container.add_child(p_atlas)
 	p_atlas.visible = false
 	pages["atlas"] = p_atlas
+	
+	# v1.0 Feature: Renamed to generic "Atlas" for Enemies + Materials
+	atlas_btn.text = "Atlas"
 
 	var p_fleet = preload("res://scenes/ui/fleet_page.tscn").instantiate()
 	page_container.add_child(p_fleet)

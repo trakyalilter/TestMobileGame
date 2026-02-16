@@ -5,6 +5,10 @@ var module_inventory: Dictionary = {}
 var loadout: Dictionary = {} # {slot_index: module_id}
 var ammo_loadout: Dictionary = {} # {slot_index: ammo_id}
 
+# v66.0: Consumable Slots
+var consumable_hull_slot: String = ""    # e.g. "Mesh"
+var consumable_shield_slot: String = ""  # e.g. "BasicBooster"
+
 # Calculated Stats
 var max_hp = 100
 var current_hp = 100
@@ -22,6 +26,7 @@ var crit_chance = 0.05 # 5% base
 var energy_used = 0
 var attack_speed_bonus = 0.0
 var shield_regen_bonus = 0.0
+var jamming_strength = 0.0 # New: EW Enemy Slow % (0.0 to 1.0)
 var ship_energy_gen = 0.0 # Phase 6: Reactor integration
 
 signal hull_constructed(hull_id)
@@ -49,7 +54,7 @@ var hulls: Dictionary = {
 		"name": "Destroyer Class",
 		"stats": {"hp": 2500, "atk": 60, "energy_capacity": 600},
 		"cost": {"credits": 15000, "Ti": 50, "Circuit": 25, "Res2": 10},
-		"slots": ["weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "engine", "battery", "battery", "battery", "battery"], # 13 Slots
+		"slots": ["weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "engine", "battery", "battery", "battery", "battery", "sensor", "cooling"], # 15 Slots (+Sensor, +Cooling)
 		"research_req": "shipwright_2",
 		"visual": "res://assets/ships/3.png",
 		"tier": 2  # v61.0
@@ -58,7 +63,7 @@ var hulls: Dictionary = {
 		"name": "Battlecruiser Class",
 		"stats": {"hp": 8000, "atk": 120, "energy_capacity": 1500},
 		"cost": {"credits": 150000, "Steel": 500, "AdvCircuit": 50, "VoidArtifact": 5, "Res3": 15},
-		"slots": ["weapon", "weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "shield", "engine", "battery", "battery", "battery", "battery", "battery"], # 16 Slots
+		"slots": ["weapon", "weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "shield", "engine", "battery", "battery", "battery", "battery", "battery", "sensor", "sensor", "cooling", "cooling"], # 20 Slots (+2 Sensor, +2 Cooling)
 		"research_req": "capital_ship_engineering",
 		"visual": "res://assets/ships/4.png",
 		"tier": 3  # v61.0
@@ -66,13 +71,18 @@ var hulls: Dictionary = {
 	"dreadnought_hull": {
 		"name": "Dreadnought Class",
 		"stats": {"hp": 20000, "atk": 250, "energy_capacity": 4000},
-		"cost": {"credits": 10000000, "Steel": 100000, "Ti": 2500, "Circuit": 1000, "Chip": 250, "Superalloy": 100, "AdvCircuit": 100, "QuantumCore": 10, "VoidArtifact": 25},
-		"slots": ["weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "shield", "shield", "shield", "engine", "battery", "battery", "battery", "battery", "battery", "battery"],
+		"cost": {"credits": 10000000, "Steel": 100000, "Ti": 2500, "Neutronium": 50, "Circuit": 1000, "Chip": 250, "Superalloy": 100, "AdvCircuit": 100, "QuantumCore": 10, "VoidArtifact": 25},
+		"slots": ["weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "shield", "shield", "shield", "engine", "battery", "battery", "battery", "battery", "battery", "battery", "sensor", "sensor", "sensor", "cooling", "cooling", "cooling"], # +3 Sensor, +3 Cooling
 		"research_req": "quantum_dynamics",
 		"visual": "res://assets/ships/5.png",
 		"tier": 4  # v61.0
 	}
 }
+
+func get_ship_name() -> String:
+	if active_hull in hulls:
+		return hulls[active_hull].get("name", "Unknown Ship")
+	return "No Ship"
 
 var modules: Dictionary = {
 	# Weapons
@@ -138,6 +148,81 @@ var modules: Dictionary = {
 		"cost": {"credits": 5000000, "Superalloy": 50, "Chip": 50, "VoidArtifact": 5},
 		"desc": "Capital-class warhead. Massive armor penetration.",
 		"research_req": "capital_ship_armament"
+	},
+	# Cooling Systems
+	"heatsink_array": {
+		"name": "Heatsink Array",
+		"slot_type": "cooling",
+		"stats": {"atk_speed_bonus": 0.10, "energy_load": 5},
+		"cost": {"credits": 5000, "Al": 20, "Graphite": 10},
+		"desc": "Dissipates heat. +10% Attack Speed.",
+		"research_req": "adv_materials"
+	},
+	"cryo_vent": {
+		"name": "Cryo-Vent System",
+		"slot_type": "cooling",
+		"stats": {"atk_speed_bonus": 0.15, "energy_load": 15},
+		"cost": {"credits": 25000, "CryoCell": 10, "Ti": 20},
+		"desc": "Active cooling. +15% Attack Speed.",
+		"research_req": "cryogenic_systems"
+	},
+	"quantum_dissipator": {
+		"name": "Quantum Dissipator",
+		"slot_type": "cooling",
+		"stats": {"atk_speed_bonus": 0.25, "energy_load": 50},
+		"cost": {"credits": 5000000, "QuantumCore": 5, "Superalloy": 50},
+		"desc": "Vents heat into subspace. +25% Attack Speed.",
+		"research_req": "quantum_dynamics"
+	},
+	# Sensor Suites
+	"lidar_array": {
+		"name": "LIDAR Array",
+		"slot_type": "sensor",
+		"stats": {"accuracy": 15, "energy_load": 10},
+		"cost": {"credits": 5000, "Si": 20, "Circuit": 10},
+		"desc": "Laser imaging. +15 Accuracy.",
+		"research_req": "basic_electronics"
+	},
+	"targeting_matrix": {
+		"name": "Targeting Matrix",
+		"slot_type": "sensor",
+		"stats": {"accuracy": 20, "crit_chance": 0.05, "energy_load": 25},
+		"cost": {"credits": 30000, "AdvCircuit": 10, "NavData": 5},
+		"desc": "Advanced tracking. +20 Accuracy, +5% Crit.",
+		"research_req": "automated_logistics"
+	},
+	"omni_scanner": {
+		"name": "Omni-Scanner",
+		"slot_type": "sensor",
+		"stats": {"accuracy": 40, "crit_chance": 0.10, "energy_load": 60},
+		"cost": {"credits": 2000000, "AICore": 5, "VoidCrystal": 20},
+		"desc": "All-seeing eye. +40 Accuracy, +10% Crit.",
+		"research_req": "xeno_engineering"
+	},
+	# Electronic Warfare
+	"signal_jammer": {
+		"name": "Signal Jammer",
+		"slot_type": "sensor",
+		"stats": {"jamming_strength": 0.10, "energy_load": 15},
+		"cost": {"credits": 8000, "Circuit": 15, "Magnet": 5},
+		"desc": "Disrupts comms. Slows enemies by 10%.",
+		"research_req": "basic_electronics"
+	},
+	"stasis_web": {
+		"name": "Stasis Web",
+		"slot_type": "sensor",
+		"stats": {"jamming_strength": 0.20, "energy_load": 40},
+		"cost": {"credits": 50000, "AdvCircuit": 20, "Res3": 10},
+		"desc": "Local time dilation. Slows enemies by 20%.",
+		"research_req": "field_theory"
+	},
+	"temporal_scrambler": {
+		"name": "Temporal Scrambler",
+		"slot_type": "sensor",
+		"stats": {"jamming_strength": 0.40, "energy_load": 100},
+		"cost": {"credits": 10000000, "ChronoCore": 5, "VoidEssence": 50},
+		"desc": "Rewrites causality. Slows enemies by 40%.",
+		"research_req": "void_physics"
 	},
 	# Batteries
 	"battery_t1": {
@@ -218,7 +303,7 @@ var modules: Dictionary = {
 		"name": "Plasma Lance Mk.III",
 		"slot_type": "weapon",
 		"stats": {"atk_energy": 75, "energy_load": 25, "atk_interval": 1.2},
-		"cost": {"credits": 85000, "Si": 50, "Ti": 20, "AdvCircuit": 10},
+		"cost": {"credits": 25000, "Si": 50, "Ti": 20, "AdvCircuit": 10},
 		"desc": "Cutting-edge beam weapon. Devastates shields.",
 		"research_req": "shipwright_2"
 	},
@@ -234,7 +319,7 @@ var modules: Dictionary = {
 		"name": "Coil Cannon",
 		"slot_type": "weapon",
 		"stats": {"atk_kinetic": 100, "energy_load": 25, "atk_interval": 4.0},
-		"cost": {"credits": 150000, "Steel": 100, "U": 5, "AdvCircuit": 5},
+		"cost": {"credits": 1000000, "Steel":300, "AdvCircuit": 100, "Superalloy": 75},
 		"desc": "Devastating kinetic damage. Hull shredder.",
 		"research_req": "capital_ship_engineering"
 	},
@@ -388,7 +473,7 @@ var modules: Dictionary = {
 		"name": "Plasma Overcharger",
 		"slot_type": "weapon",
 		"stats": {"atk_energy": 100, "energy_load": 50},  # Audit v40.0: Buffed ATK 20→100
-		"cost": {"credits": 100000, "AdvCircuit": 20, "He": 100},
+		"cost": {"credits": 1000000, "AdvCircuit": 50, "Superalloy":75},
 		"desc": "(Unique) Heavily boosts Energy Damage but consumes massive Reactor power.",
 		"research_req": "energy_metrics",
 		"unique_id": "plasma_overload_effect"
@@ -721,12 +806,13 @@ func recalc_stats():
 	var atk_x = 0
 	var defe = 0
 	var eva = 0.0
-	var acc = 100.0 # 100% base accuracy
-	var crit = 0.05 # 5% base crit
+	var acc = 100.0
+	var crit = 0.05
 	var e_cap = 0.0
 	var e_load = 0.0
 	var atk_speed_bon = 0.0
 	var s_reg_bon = 0.0
+	var jam_str = 0.0
 	
 	if active_hull in hulls:
 		var h = hulls[active_hull]["stats"]
@@ -735,6 +821,8 @@ func recalc_stats():
 		atk_k += h.get("atk", 0)
 		defe += h.get("def", 0)
 		eva += h.get("eva", 0)
+		e_cap += h.get("energy_capacity", 0)
+		
 	# Audit v7.0: Merged Shipyard bonus into Engineering (Processing) skill
 	var engineering_lvl = 1
 	if GameState.processing_manager:
@@ -744,7 +832,6 @@ func recalc_stats():
 	for mid in loadout.values():
 		if mid:
 			if not mid in modules:
-				print("ShipyardManager: Found invalid module in loadout: ", mid, ". Ignoring.")
 				continue
 				
 			var m = modules[mid]["stats"]
@@ -755,19 +842,22 @@ func recalc_stats():
 			atk_e += m.get("atk_energy", 0) * skill_mult
 			atk_x += m.get("atk_explosive", 0) * skill_mult
 			defe += m.get("def", 0) * skill_mult
-			eva += m.get("eva", 0) * skill_mult
+			eva += m.get("eva", 0) # v65.3 Fix: Flat stat, no skill_mult
 			acc += m.get("accuracy", 0)
 			crit += m.get("crit_chance", 0.0)
 			e_cap += m.get("energy_capacity", 0) * skill_mult
 			e_load += m.get("energy_load", 0)
 			atk_speed_bon += m.get("atk_speed_mult", 0.0)
+			atk_speed_bon += m.get("atk_speed_bonus", 0.0)
 			s_reg_bon += m.get("shield_regen_mult", 0.0)
+			s_reg_bon += m.get("shield_regen_bonus", 0.0)
+			jam_str += m.get("jamming_strength", 0.0)
+
 			
 	var rm = GameState.research_manager
 	var hp_mult = 1.0
 	if rm:
 		hp_mult += rm.get_efficiency_bonus("max_hp_mult")
-		# Audit v8.0 P1-25: Materials Science Hub Bonus (+10% Hull HP)
 		hp_mult += rm.get_efficiency_bonus("materials_science")
 	
 	max_hp = int(hp * hp_mult)
@@ -786,10 +876,14 @@ func recalc_stats():
 	energy_used = e_load
 	attack_speed_bonus = atk_speed_bon
 	shield_regen_bonus = s_reg_bon
+	jamming_strength = jam_str
 	
 	# Audit v8.0 P1-25: Applied Physics Hub Bonus (+10% Energy Capacity)
 	if rm:
 		e_cap *= (1.0 + rm.get_efficiency_bonus("applied_physics"))
+	
+	if GameState.resources:
+		GameState.resources.set_max_energy(e_cap)
 	
 	current_hp = min(current_hp, max_hp)
 	
@@ -811,6 +905,8 @@ func get_save_data_manager() -> Dictionary:
 	data["inventory"] = module_inventory
 	data["hp"] = current_hp
 	data["ammo_loadout"] = ammo_loadout
+	data["consumable_hull_slot"] = consumable_hull_slot
+	data["consumable_shield_slot"] = consumable_shield_slot
 	return data
 
 func load_save_data_manager(data: Dictionary):
@@ -818,6 +914,9 @@ func load_save_data_manager(data: Dictionary):
 	
 	active_hull = data.get("active_hull", "corvette_hull")
 	var saved_load = data.get("loadout", {})
+	
+	if data.has("consumable_hull_slot"): consumable_hull_slot = data["consumable_hull_slot"]
+	if data.has("consumable_shield_slot"): consumable_shield_slot = data["consumable_shield_slot"]
 	
 	# Convert JSON string keys back to int if needed or handle direct
 	loadout = {}
@@ -861,12 +960,22 @@ func get_repair_cost() -> int:
 	return cost
 
 func can_repair() -> bool:
+	# Audit v68.0: Prevent repairs during active combat
+	if GameState.combat_manager and GameState.combat_manager.in_combat:
+		return false
+		
 	var has_damage = current_hp < max_hp
 	var can_afford = GameState.resources.get_currency("credits") >= get_repair_cost()
 	return has_damage and can_afford
 
 func repair_hull() -> bool:
 	print("[Repair] Attempting repair...")
+	
+	# Audit v68.0: Prevent repairs during active combat
+	if GameState.combat_manager and GameState.combat_manager.in_combat:
+		print("[Repair] Failed: Combat in progress.")
+		return false
+		
 	if current_hp >= max_hp:
 		print("[Repair] Failed: Already at max HP (%f/%d)" % [current_hp, max_hp])
 		return false
@@ -892,3 +1001,32 @@ func reset(decay_factor: float = 1.0) -> void:
 		for i in range(hulls[active_hull]["slots"].size()):
 			loadout[i] = null
 	recalc_stats()
+
+# v66.0: Consumable Management
+func equip_consumable(slot_type: String, item_id: String):
+	print("Equipping consumable: %s -> %s" % [slot_type, item_id])
+	# slot_type: "hull" or "shield"
+	var data = ElementDB.get_consumable_data(item_id)
+	if data.is_empty(): 
+		print("Invalid consumable data for %s" % item_id)
+		return # Invalid item
+	
+	if data.get("type") != slot_type:
+		print("Type mismatch: %s != %s" % [data.get("type"), slot_type])
+		return # Mismatch
+		
+	if slot_type == "hull":
+		consumable_hull_slot = item_id
+	elif slot_type == "shield":
+		consumable_shield_slot = item_id
+
+func unequip_consumable(slot_type: String):
+	if slot_type == "hull":
+		consumable_hull_slot = ""
+	elif slot_type == "shield":
+		consumable_shield_slot = ""
+
+func get_consumable(slot_type: String) -> String:
+	if slot_type == "hull": return consumable_hull_slot
+	if slot_type == "shield": return consumable_shield_slot
+	return ""

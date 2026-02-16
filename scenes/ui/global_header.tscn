@@ -31,29 +31,7 @@ vertical_alignment = 1
 [node name="TaskLabel" type="Label" parent="MarginContainer/HBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 12
 text = "Idle"
 horizontal_alignment = 1
 vertical_alignment = 1
-
-[node name="StatusCluster" type="HBoxContainer" parent="MarginContainer/HBoxContainer"]
-layout_mode = 2
-theme_override_constants/separation = 10
-alignment = 2
-
-[node name="InfraLed" type="ColorRect" parent="MarginContainer/HBoxContainer/StatusCluster"]
-custom_minimum_size = Vector2(8, 8)
-layout_mode = 2
-size_flags_vertical = 4
-color = Color(0.2, 0.2, 0.2, 1)
-
-[node name="FleetLed" type="ColorRect" parent="MarginContainer/HBoxContainer/StatusCluster"]
-custom_minimum_size = Vector2(8, 8)
-layout_mode = 2
-size_flags_vertical = 4
-color = Color(0.2, 0.2, 0.2, 1)
-
-[node name="ResearchLed" type="ColorRect" parent="MarginContainer/HBoxContainer/StatusCluster"]
-custom_minimum_size = Vector2(8, 8)
-layout_mode = 2
-size_flags_vertical = 4
-color = Color(0.2, 0.2, 0.2, 1)

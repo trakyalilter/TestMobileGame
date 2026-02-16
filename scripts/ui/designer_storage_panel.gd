@@ -5,7 +5,7 @@ extends GridContainer
 func _can_drop_data(_at_position, data):
 	if typeof(data) != TYPE_DICTIONARY: return false
 	var type = data.get("type", "")
-	return type == "unequip_module" or type == "unequip_ammo"
+	return type == "unequip_module" or type == "unequip_ammo" or type == "unequip_consumable"
 
 func _drop_data(_at_position, data):
 	var type = data.get("type", "")
@@ -22,6 +22,12 @@ func _drop_data(_at_position, data):
 		var slot_idx = data.get("slot_idx", -1)
 		if slot_idx != -1:
 			shipyard_manager.set_slot_ammo(slot_idx, "")
+			_refresh_designer()
+	
+	elif type == "unequip_consumable":
+		var s_type = data.get("slot_type", "")
+		if s_type != "":
+			shipyard_manager.unequip_consumable(s_type)
 			_refresh_designer()
 
 func _refresh_designer():

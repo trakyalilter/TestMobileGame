@@ -146,11 +146,17 @@ func _build_comparison_tooltip_bbcode() -> String:
 func _get_drag_data(_at_position):
 	if not data or not mid: return null
 	
+	var st = data.get("slot_type", "")
+	var dtype = "module"
+	if st == "ammo": dtype = "ammo"
+	elif st == "consumable": dtype = "consumable"
+	
 	var drag_data = {
-		"type": "ammo" if data.get("slot_type") == "ammo" else "module",
+		"type": dtype,
 		"mid": mid,
 		"ammo_id": mid, # For ease of use in drop
-		"slot_type": data.get("slot_type", "")
+		"slot_type": st,
+		"consumable_type": data.get("consumable_type", ""), # hull or shield
 	}
 	
 	# Visual Preview: Use a real card instance

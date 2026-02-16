@@ -70,7 +70,8 @@ func update_state():
 	if "research_req" in data and data["research_req"]:
 		if GameState.research_manager and not GameState.research_manager.is_tech_unlocked(data["research_req"]):
 			unlocked = false
-			status_msg = "Research Locked"
+			var tech_name = GameState.research_manager.tech_tree.get(data["research_req"], {}).get("name", "Unknown Tech")
+			status_msg = "RESEARCH: %s" % tech_name.to_upper()
 	
 	if unlocked:
 		UITheme.apply_locked_overlay(self, data["name"], "", false)
@@ -95,7 +96,15 @@ func update_state():
 			time_lbl.text = "0.0s / %s" % FormatUtils.format_time(manager.action_duration / speed_mult)
 	else:
 		UITheme.apply_locked_overlay(self, data["name"], status_msg, true)
-		btn.text = "Locked"
+		
+		# Context-sensitive Button Text
+		if "RESEARCH:" in status_msg:
+			btn.text = "RESEARCH REQUIRED"
+		elif "Level" in status_msg:
+			btn.text = "LEVEL %d REQUIRED" % req
+		else:
+			btn.text = "LOCKED"
+			
 		btn.disabled = true
 		status_lbl.text = status_msg
 		modulate = Color(0.7, 0.7, 0.7)

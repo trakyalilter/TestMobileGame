@@ -36,9 +36,6 @@ var player_weapon_bars = []
 
 # Controls
 @onready var btn_retreat = $Dashboard/ViewportFooter/Margin/HBox/RetreatBtn
-@onready var cons_opt = $Dashboard/ViewportFooter/Margin/HBox/ConsumableBay/OptionButton
-@onready var cons_btn = $Dashboard/ViewportFooter/Margin/HBox/ConsumableBay/UseBtn
-@onready var auto_btn = $Dashboard/ViewportFooter/Margin/HBox/ConsumableBay/AutoToggle
 
 var manager: RefCounted
 
@@ -52,13 +49,14 @@ func _ready():
 	manager = GameState.combat_manager
 	call_deferred("refresh_zones")
 	GameState.game_loaded.connect(refresh_zones)
+	if GameState.research_manager:
+		GameState.research_manager.tech_unlocked.connect(func(_id): refresh_zones())
 	
 	# HUD Stress & Console Interaction
 	
 	# Initial Suppression
 	
 	UITheme.apply_premium_button_style(btn_retreat, "combat")
-	UITheme.apply_premium_button_style(cons_btn, "engineering")
 	
 	UITheme.apply_progress_bar_style(e_attack_pb, "combat")
 	
@@ -73,17 +71,47 @@ func _ready():
 	
 	$Dashboard/Visualizer/HUD/Overlays/BottomRegion/LogOverlay/VBox/Header.add_theme_color_override("font_color", Color(0.2, 1.0, 0.4)) # Terminal Green
 	
-	_refresh_consumable_options()
+	# PHASE 22: Inject XP Bar programmatically
+	_setup_xp_bar()
 
 	# Explicit Signal Connections (Defensive)
 	if not btn_retreat.is_connected("pressed", _on_retreat_btn_pressed): btn_retreat.pressed.connect(_on_retreat_btn_pressed)
-	if not cons_btn.is_connected("pressed", _on_use_btn_pressed): cons_btn.pressed.connect(_on_use_btn_pressed)
-	if not cons_opt.is_connected("item_selected", _on_option_button_item_selected): cons_opt.item_selected.connect(_on_option_button_item_selected)
-	if not auto_btn.is_connected("toggled", _on_auto_btn_toggled): auto_btn.toggled.connect(_on_auto_btn_toggled)
 	
-	cons_opt.get_popup().about_to_popup.connect(_on_consumable_popup_about_to_show)
+	if not manager.heat_changed.is_connected(_on_heat_changed):
+		manager.heat_changed.connect(_on_heat_changed)
+	
+	# Initial Sync
+	_on_heat_changed(manager.player_heat, manager.player_max_heat)
 	
 
+var p_xp_bar: ProgressBar
+
+func _setup_xp_bar():
+	# Create bar
+	p_xp_bar = ProgressBar.new()
+	p_xp_bar.custom_minimum_size = Vector2(0, 6) # Thin but visible
+	p_xp_bar.show_percentage = false
+	
+	# Premium Style
+	var sb_bg = StyleBoxFlat.new()
+	sb_bg.bg_color = Color(0.1, 0.1, 0.1, 0.8)
+	sb_bg.border_width_bottom = 1
+	sb_bg.border_color = Color(0, 0, 0)
+	
+	var sb_fill = StyleBoxFlat.new()
+	sb_fill.bg_color = Color(0.7, 0.4, 1.0) # Combat Purple/Veterancy
+	sb_fill.set_corner_radius_all(1)
+	
+	p_xp_bar.add_theme_stylebox_override("background", sb_bg)
+	p_xp_bar.add_theme_stylebox_override("fill", sb_fill)
+	
+	# Add to HUD
+	var container = $Dashboard/Visualizer/HUD/Overlays/SectorOverlay/VBox/PlayerStats
+	container.add_child(p_xp_bar)
+	# Move to be under the name/stats, maybe before HP bar?
+	# Order: Name, Stats, HP, Shield, Heat, Battery, Buffs.
+	# Let's put it after NameLabel (index 0) so it sits between Name and Stats.
+	container.move_child(p_xp_bar, 1)
 
 func refresh_zones():
 	zone_list.clear()
@@ -177,8 +205,35 @@ func update_ui():
 	var total_eva = sm.evasion + eva_bonus
 	var total_crit = (sm.crit_chance + crit_bonus) * 100.0
 	p_stat_lbl.text = "ATK: %s | DEF: %s | EVA: %.0f | CRIT: %.0f%%" % [UITheme.format_num(sm.attack), UITheme.format_num(sm.defense), total_eva, total_crit]
-	p_hp_lbl.text = "HULL: %s / %s  [Lv.%d +%.1f%% DMG]" % [UITheme.format_num(sm.current_hp), UITheme.format_num(sm.max_hp), manager.get_level(), manager.get_level() * 0.5]
+	
+	# Simplified Level Info (since we have a bar now)
+	var lvl_info = "[Lv.%d]" % manager.get_level()
+	if manager.get_level() > 0:
+		lvl_info += " +%.1f%% DMG" % (manager.get_level() * 0.5)
+		
+	p_hp_lbl.text = "HULL: %s / %s" % [UITheme.format_num(sm.current_hp), UITheme.format_num(sm.max_hp)]
 	p_sh_lbl.text = "SHD: %s / %s" % [UITheme.format_num(manager.player_shield), UITheme.format_num(manager.player_max_shield)]
+	
+	# Update XP Bar
+	if p_xp_bar:
+		var current_lvl = manager.get_level()
+		var xp_current_lvl = manager.get_xp_for_level(current_lvl)
+		var xp_next_lvl = manager.get_xp_for_level(current_lvl + 1)
+		
+		# Set range for current level progress
+		p_xp_bar.min_value = xp_current_lvl
+		p_xp_bar.max_value = xp_next_lvl
+		p_xp_bar.value = manager.xp
+		
+		p_xp_bar.tooltip_text = "Combat Rank: %d\nXP: %s / %s\nDamage Bonus: +%.1f%%" % [
+			current_lvl, 
+			UITheme.format_num(manager.xp), 
+			UITheme.format_num(xp_next_lvl),
+			current_lvl * 0.5
+		]
+		
+		# Optional: Add level text near bar - dealt with by moving to name label
+		p_name_lbl.text = "%s %s" % [sm.get_ship_name(), lvl_info]
 	
 	# Update Heat Bar Modulate
 	var heat_pct = manager.player_heat / manager.player_max_heat
@@ -245,10 +300,6 @@ func update_ui():
 		_update_ammo_display()
 		ammo_overlay.visible = true
 		
-		# Periodically refresh consumable options? Or just when count changes.
-		# For now, let's refresh if the first item (idle) is selected and we might have items now.
-		if cons_opt.item_count <= 1:
-			_refresh_consumable_options()
 	else:
 		for pb in player_weapon_bars: pb.visible = false
 		e_attack_pb.visible = false
@@ -270,21 +321,6 @@ func update_ui():
 	# Retreat Btn
 	btn_retreat.disabled = not manager.in_combat
 
-	# Consumables
-	if manager.consumable_cooldown > 0:
-		cons_btn.disabled = true
-		cons_btn.text = "%.1fs" % manager.consumable_cooldown
-	else:
-		cons_btn.disabled = false
-		cons_btn.text = "USE"
-
-	# Auto Toggle Styling (The "Lamp" Effect)
-	if manager.auto_consume_enabled:
-		auto_btn.text = "AUTO [ON]"
-		auto_btn.modulate = Color(0, 1, 1) # Cyan glow
-	else:
-		auto_btn.text = "AUTO [OFF]"
-		auto_btn.modulate = Color(0.5, 0.5, 0.5) # Dim grey
 
 	# Process Combat Events (Floating Text + Haptics)
 	while manager.combat_events.size() > 0:
@@ -342,20 +378,20 @@ func _on_radar_draw():
 	var p_hp_pct = float(sm.current_hp) / max(1.0, sm.max_hp)
 	var p_sh_pct = float(manager.player_shield) / max(1.0, manager.player_max_shield)
 	
-	# HP Arc (Reddish)
-	radar_display.draw_arc(center, 120, deg_to_rad(110), deg_to_rad(110 + (250-110)*p_hp_pct), 32, Color(1, 0.3, 0.3, 0.8), 5.0, true)
-	# Shield Arc (Cyan)
-	radar_display.draw_arc(center, 135, deg_to_rad(110), deg_to_rad(110 + (250-110)*p_sh_pct), 32, Color(0, 0.8, 1, 0.6), 4.0, true)
+	# Player HP Arc (Reddish) - Radius 120-126
+	_draw_arc_poly(center, 120, 126, 110, 250, Color(1, 0, 0, 0.1), Color(1, 0.3, 0.3, 0.8), p_hp_pct)
+	# Player Shield Arc (Cyan) - Radius 132-138
+	_draw_arc_poly(center, 132, 138, 110, 250, Color(0, 0.8, 1, 0.1), Color(0, 0.8, 1, 0.6), p_sh_pct)
 
 	# --- ENEMY ARCS (Right) ---
 	if manager.in_combat and manager.current_enemy:
 		var e_hp_pct = float(manager.enemy_hp) / max(1.0, manager.enemy_max_hp)
 		var e_sh_pct = float(manager.enemy_shield) / max(1.0, manager.enemy_max_shield)
 		
-		# Enemy HP Arc
-		_draw_arc_poly(center, 120, 130, -70, 70, Color(1, 0, 0, 0.2), Color(1, 0, 0, 0.8), e_hp_pct)
-		# Enemy Shield Arc
-		_draw_arc_poly(center, 135, 140, -70, 70, Color(0, 0.8, 1, 0.1), Color(0, 0.8, 1, 0.6), e_sh_pct)
+		# Enemy HP Arc - Radius 120-126 (Symmetrical)
+		_draw_arc_poly(center, 120, 126, -70, 70, Color(1, 0, 0, 0.1), Color(1, 0, 0, 0.8), e_hp_pct)
+		# Enemy Shield Arc - Radius 132-138 (Symmetrical)
+		_draw_arc_poly(center, 132, 138, -70, 70, Color(0, 0.8, 1, 0.1), Color(0, 0.8, 1, 0.6), e_sh_pct)
 		
 	# --- RETICLE & DECORATION ---
 	radar_display.draw_circle(center, 5, Color(1, 1, 1, 0.1)) # Center dot
@@ -372,6 +408,11 @@ func _draw_arc_poly(center: Vector2, inner_radius: float, outer_radius: float, s
 	# Draw Fill
 	var fill_end_rad = start_rad + (end_rad - start_rad) * percent
 	_draw_arc_section(center, inner_radius, outer_radius, start_rad, fill_end_rad, segments, fill_color)
+	
+	# SHARPNESS: Add thin lines on edges of fill for anti-aliasing feel
+	if percent > 0.01:
+		radar_display.draw_arc(center, outer_radius, start_rad, fill_end_rad, segments, fill_color.lightened(0.2), 1.0, true)
+		radar_display.draw_arc(center, inner_radius, start_rad, fill_end_rad, segments, fill_color.lightened(0.2), 1.0, true)
 
 func _draw_arc_section(center: Vector2, r_inner: float, r_outer: float, angle_start: float, angle_end: float, segments: int, color: Color):
 	var points = PackedVector2Array()
@@ -419,11 +460,14 @@ func _update_ammo_display():
 	
 	var ammo_list = [
 		{"name": "Slug", "id": "SlugT1", "col": Color("#ffcc00"), "type": "kinetic"},
+		{"name": "Steel", "id": "SlugT1S", "col": Color("#ffeebb"), "type": "kinetic"},
 		{"name": "Sabot", "id": "SlugT2", "col": Color("#ffaa00"), "type": "kinetic"},
 		{"name": "Titan", "id": "SlugT3", "col": Color("#ff8800"), "type": "kinetic"},
+		{"name": "Hyper", "id": "SlugT4", "col": Color("#cc0000"), "type": "kinetic"},
 		{"name": "Focus", "id": "CellT1", "col": Color("#00ccff"), "type": "energy"},
 		{"name": "Plasma", "id": "CellT2", "col": Color("#0099ff"), "type": "energy"},
-		{"name": "Vapor", "id": "CellT3", "col": Color("#0066ff"), "type": "energy"}
+		{"name": "Vapor", "id": "CellT3", "col": Color("#0066ff"), "type": "energy"},
+		{"name": "Heavy", "id": "CellT4", "col": Color("#aa00ff"), "type": "energy"}
 	]
 	
 	var has_any = false
@@ -435,8 +479,8 @@ func _update_ammo_display():
 				is_equipped = true
 				break
 		
-		# We show if equipped OR has quantity (Stock)
-		if is_equipped or qty > 0:
+		# We show only if equipped (User Request)
+		if is_equipped:
 			has_any = true
 			var group = VBoxContainer.new()
 			group.add_theme_constant_override("separation", 1)
@@ -528,21 +572,6 @@ func _rebuild_weapon_battery(w_states):
 		player_weapon_bars.append(pb)
 
 
-func _refresh_consumable_options():
-	var current_sel = cons_opt.get_item_metadata(cons_opt.selected) if cons_opt.selected > 0 else null
-	cons_opt.clear()
-	cons_opt.add_item("OFF / SELECT", 0)
-	
-	var items = ElementDB.get_elements_in_category("consumables")
-	for id in items:
-		var count = GameState.resources.get_element_amount(id)
-		if count > 0:
-			var idx = cons_opt.item_count
-			var dname = ElementDB.get_display_name(id)
-			cons_opt.add_item("%s (%d)" % [dname, count])
-			cons_opt.set_item_metadata(idx, id)
-			if id == current_sel:
-				cons_opt.select(idx)
 
 func _update_atmosphere(delta):
 	# Pulse scanning label
@@ -573,12 +602,13 @@ func _update_atmosphere(delta):
 		
 		# Gearing Tip: Warn if Accuracy is making Evasion useless
 		var sm = GameState.shipyard_manager
-		var e_acc = manager.current_enemy.get("accuracy", 0)
-		if e_acc > 10: # Only warn outside Tier 1
-			var dodge_chance = float(sm.evasion) / (float(sm.evasion) + 150.0 * (1.0 + float(e_acc) / 100.0))
-			if dodge_chance < 0.2 and sm.max_shield < 100:
-				scan_lbl.text = "CAUTION: EVASION COMPROMISED - SHIELDS REQUIRED"
-				scan_lbl.modulate = Color(1.0, 0.5, 0.0) # Warning Orange
+		if manager.current_enemy:
+			var e_acc = manager.current_enemy.get("accuracy", 0)
+			if e_acc > 10: # Only warn outside Tier 1
+				var dodge_chance = float(sm.evasion) / (float(sm.evasion) + 150.0 * (1.0 + float(e_acc) / 100.0))
+				if dodge_chance < 0.2 and sm.max_shield < 100:
+					scan_lbl.text = "CAUTION: EVASION COMPROMISED - SHIELDS REQUIRED"
+					scan_lbl.modulate = Color(1.0, 0.5, 0.0) # Warning Orange
 		
 		# TACTICAL: ScanLine Sweep
 		var view_h = visualizer.size.y
@@ -594,28 +624,6 @@ func _update_atmosphere(delta):
 
 func _on_retreat_btn_pressed():
 	manager.retreat()
-
-func _on_use_btn_pressed():
-	manager.use_consumable()
-	_refresh_consumable_options()
-
-func _on_option_button_item_selected(index):
-	var id = cons_opt.get_item_metadata(index)
-	manager.equip_consumable(id)
-
-func _on_consumable_popup_about_to_show():
-	var popup = cons_opt.get_popup()
-	# Calculate position to show above the button
-	# We use global_position of the button and subtract the popup height
-	# Popup size might not be updated until shown, so we use min size as fallback
-	var p_size = popup.get_contents_minimum_size()
-	if p_size.y < 10: p_size.y = 150 # Fallback for expected height
-	
-	var global_pos = cons_opt.global_position
-	popup.set_position(global_pos - Vector2(0, p_size.y + 4))
-
-func _on_auto_btn_toggled(button_pressed):
-	manager.toggle_auto_consume(button_pressed)
 func _on_heat_changed(current: float, maximum: float):
 	if p_heat_bar:
 		p_heat_bar.max_value = maximum

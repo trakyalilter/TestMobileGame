@@ -22,6 +22,7 @@ var manager: RefCounted
 var active_filter = "all"
 var slot_widget_scene = preload("res://scenes/ui/designer_slot_widget.tscn")
 var ammo_slot_scene = preload("res://scenes/ui/designer_ammo_slot_widget.tscn")
+var consumable_slot_scene = preload("res://scenes/ui/designer_consumable_slot.tscn")
 var draggable_icon_scene = preload("res://scenes/ui/module_card.tscn") 
 
 func _ready():
@@ -165,6 +166,7 @@ func rebuild_slots():
 	_create_blade("🛡 Defense", blades["Defense"], s_cont, Color(0.4, 0.6, 1.0, 0.8))
 	_create_blade("⚡ Systems", blades["Systems"], s_cont, Color(0.8, 1.0, 0.2, 0.8))
 	_create_blade("🔧 Utility", blades["Utility"], s_cont, Color(0.6, 0.6, 0.6, 0.8))
+	_create_consumable_blade(s_cont)
 
 func _create_blade(title: String, slot_list: Array, parent: Node, color: Color = Color.WHITE, is_ammo: bool = false):
 	if slot_list.is_empty(): return
@@ -205,6 +207,42 @@ func _create_blade(title: String, slot_list: Array, parent: Node, color: Color =
 	# Add separator
 	var sep = HSeparator.new()
 	sep.modulate = Color(color.r, color.g, color.b, 0.3)
+	vbox.add_child(sep)
+
+func _create_consumable_blade(parent: Node):
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 5)
+	parent.add_child(vbox)
+	
+	var label = Label.new()
+	label.text = "[ 💊 CONSUMABLES ]"
+	label.add_theme_font_size_override("font_size", 11)
+	label.add_theme_color_override("font_color", Color(1.0, 0.5, 0.8, 0.8))
+	vbox.add_child(label)
+	
+	var scroll = ScrollContainer.new()
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	scroll.custom_minimum_size.y = 90
+	vbox.add_child(scroll)
+	
+	var hbox = HBoxContainer.new()
+	hbox.add_theme_constant_override("separation", 10)
+	scroll.add_child(hbox)
+	
+	# Hull Slot
+	var w1 = consumable_slot_scene.instantiate()
+	hbox.add_child(w1)
+	w1.setup("hull", self, manager)
+	
+	# Shield Slot
+	var w2 = consumable_slot_scene.instantiate()
+	hbox.add_child(w2)
+	w2.setup("shield", self, manager)
+	
+	# Separator
+	var sep = HSeparator.new()
+	sep.modulate = Color(1.0, 0.5, 0.8, 0.3)
 	vbox.add_child(sep)
 
 func sync_silhouette():
@@ -251,6 +289,7 @@ func rebuild_storage():
 	if active_filter in ["all", "ord"]:
 		var ammo_list = [
 			{"id": "SlugT1"},
+			{"id": "SlugT1S"},
 			{"id": "SlugT2"},
 			{"id": "SlugT3"},
 			{"id": "CellT1"},
@@ -265,6 +304,20 @@ func rebuild_storage():
 				var dname = ElementDB.get_display_name(ammo["id"])
 				var fake_data = {"name": dname, "slot_type": "ammo", "stats": {}}
 				card.setup(ammo["id"], fake_data, qty)
+
+	# Consumables
+	if active_filter in ["all", "ord"]:
+		var consumables = ElementDB.get_elements_in_category("consumables")
+		for cid in consumables:
+			var qty = GameState.resources.get_element_amount(cid)
+			if qty > 0:
+				var card = draggable_icon_scene.instantiate()
+				storage_grid.add_child(card)
+				var c_data = ElementDB.get_consumable_data(cid)
+				var dname = c_data.get("name", cid)
+				var c_type = c_data.get("type", "hull") # hull or shield
+				var fake_data = {"name": dname, "slot_type": "consumable", "consumable_type": c_type, "stats": {"heal_pct": c_data.get("heal_pct", 0)}}
+				card.setup(cid, fake_data, qty)
 
 func rebuild_ammo_storage():
 	pass # Unified into rebuild_storage

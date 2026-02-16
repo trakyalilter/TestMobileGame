@@ -47,11 +47,17 @@ theme_override_font_sizes/font_size = 18
 text = "SYSTEM RESTORE COMPLETE"
 horizontal_alignment = 1
 
-[node name="LootGrid" type="GridContainer" parent="CenterContainer/VBox"]
+[node name="Scroll" type="ScrollContainer" parent="CenterContainer/VBox"]
+custom_minimum_size = Vector2(0, 200)
 layout_mode = 2
-theme_override_constants/h_separation = 20
-theme_override_constants/v_separation = 5
-columns = 2
+horizontal_scroll_mode = 0
+
+[node name="LootGrid" type="GridContainer" parent="CenterContainer/VBox/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/h_separation = 40
+theme_override_constants/v_separation = 12
+columns = 1
 
 [node name="Footer" type="Label" parent="CenterContainer/VBox"]
 layout_mode = 2

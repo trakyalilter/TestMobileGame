@@ -3,7 +3,7 @@ extends Control
 @onready var bg = $ColorRect
 @onready var boot_log = $CenterContainer/VBox/BootLog
 @onready var yield_title = $CenterContainer/VBox/YieldTitle
-@onready var loot_grid = $CenterContainer/VBox/LootGrid
+@onready var loot_grid = $CenterContainer/VBox/Scroll/LootGrid
 @onready var footer = $CenterContainer/VBox/Footer
 @onready var continue_btn = $CenterContainer/VBox/ContinueBtn
 
@@ -14,6 +14,11 @@ func _ready():
 	bg.color = Color(0, 0, 0, 1)
 	UITheme.apply_premium_button_style(continue_btn, "ops")
 	continue_btn.pressed.connect(_on_continue_pressed)
+	
+	# Layout refinement for high-loot reports
+	loot_grid.columns = 1 # Use single column for better stability
+	loot_grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	loot_grid.add_theme_constant_override("v_separation", 10)
 
 func check_and_show():
 	if GameState.offline_report and GameState.offline_report != "":
@@ -78,16 +83,43 @@ func _parse_and_display_report():
 				_add_loot_item(item_name, amount)
 
 func _add_loot_item(item_name: String, amount: String):
-	var label = Label.new()
-	label.text = "[ %s ] : %s" % [item_name.to_upper(), amount]
-	label.add_theme_font_size_override("font_size", 12)
-	label.add_theme_color_override("font_color", Color(0, 1, 1))
-	loot_grid.add_child(label)
+	# Using a PanelContainer as a 'Row' to ensure no overlap and provide backing
+	var row_panel = PanelContainer.new()
+	row_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	
-	label.modulate.a = 0
+	# Add a slight border/background style
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.1, 0.1, 0.15, 0.6)
+	style.border_width_left = 2
+	style.border_color = Color(0, 0.8, 1, 0.3)
+	style.content_margin_left = 10
+	style.content_margin_right = 10
+	style.content_margin_top = 8
+	style.content_margin_bottom = 8
+	row_panel.add_theme_stylebox_override("panel", style)
+	
+	var h_box = HBoxContainer.new()
+	row_panel.add_child(h_box)
+	
+	var name_lbl = Label.new()
+	name_lbl.text = "> %s" % item_name.to_upper()
+	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_lbl.add_theme_color_override("font_color", Color(0.7, 0.7, 0.8))
+	name_lbl.add_theme_font_size_override("font_size", 12)
+	h_box.add_child(name_lbl)
+	
+	var amount_lbl = Label.new()
+	amount_lbl.text = amount
+	amount_lbl.add_theme_color_override("font_color", Color(0, 1, 1))
+	amount_lbl.add_theme_font_size_override("font_size", 13)
+	h_box.add_child(amount_lbl)
+	
+	loot_grid.add_child(row_panel)
+	
+	row_panel.modulate.a = 0
 	var t = create_tween()
-	t.tween_property(label, "modulate:a", 1.0, 0.2)
-	UITheme.trigger_ui_thud(label, 2.0)
+	t.tween_property(row_panel, "modulate:a", 1.0, 0.2)
+	UITheme.trigger_ui_thud(row_panel, 1.5)
 
 func _on_continue_pressed():
 	var t = create_tween()

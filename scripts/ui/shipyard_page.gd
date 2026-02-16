@@ -54,7 +54,12 @@ func _on_resource_changed(_a=null, _b=null):
 func _update_repair_button():
 	if not repair_btn: return
 	var cost = manager.get_repair_cost()
-	if cost == 0:
+	
+	# Audit v68.0: Combat awareness for repairing
+	if GameState.combat_manager and GameState.combat_manager.in_combat:
+		repair_btn.text = "In Combat (Blocked)"
+		repair_btn.disabled = true
+	elif cost == 0:
 		repair_btn.text = "Hull OK"
 		repair_btn.disabled = true
 	else:
@@ -98,6 +103,8 @@ func refresh_list():
 	_create_rack("shield", "Shield Generators", Color(0.4, 0.6, 1.0, 0.5), rack_container)
 	_create_rack("engine", "Engine Systems", Color(0.8, 1.0, 0.2, 0.5), rack_container)
 	_create_rack("battery", "Power Cores", Color(1.0, 1.0, 0.2, 0.5), rack_container)
+	_create_rack("cooling", "Cooling Systems", Color(0.0, 0.5, 1.0, 0.5), rack_container)
+	_create_rack("sensor", "Sensor & EW Suites", Color(0.6, 0.2, 1.0, 0.5), rack_container)
 	_create_rack("ammo", "Ordnance", Color(1.0, 0.6, 0.3, 0.5), rack_container)
 	
 	# Hulls
@@ -129,6 +136,8 @@ func refresh_list():
 			"shield": cat = "shield"
 			"engine": cat = "engine"
 			"battery": cat = "battery"
+			"cooling": cat = "cooling"
+			"sensor": cat = "sensor"
 			"ammo", "slug": cat = "ammo"
 			_: cat = "energy" # Default
 		

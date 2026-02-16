@@ -1,7 +1,7 @@
 extends Control
 
-## Material Atlas Page
-## Shows all materials in the game with their sources and uses
+## Atlas Page
+## Shows allMaterials and Enemies in the game
 
 @onready var item_list = $HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/ScrollContainer/ItemList
 @onready var search_box = $HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/SearchBox
@@ -9,19 +9,105 @@ extends Control
 @onready var desc_label = $HBoxContainer/RightPanel/MarginContainer/VBoxContainer/ScrollContainer/Details/DescLabel
 @onready var sources_list = $HBoxContainer/RightPanel/MarginContainer/VBoxContainer/ScrollContainer/Details/SourcesList
 @onready var uses_list = $HBoxContainer/RightPanel/MarginContainer/VBoxContainer/ScrollContainer/Details/UsesList
-@onready var net_label = $HBoxContainer/RightPanel/MarginContainer/VBoxContainer/ScrollContainer/Details/NetLabel # Needs to be added to scene or handled
+@onready var net_label = $HBoxContainer/RightPanel/MarginContainer/VBoxContainer/ScrollContainer/Details/NetLabel
 
+# UI Components
+var mode_switch_container: HBoxContainer
+var btn_materials: Button
+var btn_enemies: Button
+
+var current_mode = "materials" # "materials" or "enemies"
 var current_filter = "all"
 var material_db = {}  # {material_id: {name, sources: [], uses: []}}
-var selected_material = ""
+var enemy_db = {} # {enemy_id: {name, zone, stats, loot}}
+var selected_id = ""
 
 func _ready():
-	build_material_database()
+	_setup_mode_switch()
+	build_databases()
+
+func _setup_mode_switch():
+	# Inject Mode Switcher at top of Left Panel
+	var left_vbox = $HBoxContainer/LeftPanel/MarginContainer/VBoxContainer
+	
+	mode_switch_container = HBoxContainer.new()
+	mode_switch_container.name = "ModeSwitch"
+	
+	btn_materials = Button.new()
+	btn_materials.text = "MATERIALS"
+	btn_materials.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn_materials.toggle_mode = true
+	btn_materials.button_pressed = true
+	btn_materials.connect("pressed", _on_mode_materials)
+	
+	btn_enemies = Button.new()
+	btn_enemies.text = "ENEMIES"
+	btn_enemies.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn_enemies.toggle_mode = true
+	btn_enemies.connect("pressed", _on_mode_enemies)
+	
+	mode_switch_container.add_child(btn_materials)
+	mode_switch_container.add_child(btn_enemies)
+	
+	left_vbox.add_child(mode_switch_container)
+	left_vbox.move_child(mode_switch_container, 0)
 
 func _on_visibility_changed():
 	if visible:
-		build_material_database()
+		build_databases()
 		refresh_list()
+
+func _on_mode_materials():
+	current_mode = "materials"
+	_update_mode_buttons()
+	refresh_list()
+
+func _on_mode_enemies():
+	current_mode = "enemies"
+	_update_mode_buttons()
+	refresh_list()
+
+func _update_mode_buttons():
+	btn_materials.button_pressed = (current_mode == "materials")
+	btn_enemies.button_pressed = (current_mode == "enemies")
+	
+	# Hide/Show Filters based on mode (Only meaningful for materials currently)
+	var filter_container = $HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/CategoryFilter
+	filter_container.visible = (current_mode == "materials")
+	
+	# Clear details panel
+	name_label.text = "Select an Item"
+	desc_label.text = ""
+	_clear_list(sources_list)
+	_clear_list(uses_list)
+	if net_label: net_label.text = ""
+
+func build_databases():
+	build_material_database()
+	build_enemy_database()
+
+func build_enemy_database():
+	enemy_db.clear()
+	var cm = GameState.combat_manager
+	if not cm: return
+	
+	# Map enemies to zones first
+	var enemy_to_zone = {}
+	for zid in cm.zones:
+		var zdata = cm.zones[zid]
+		for eid in zdata["enemies"]:
+			enemy_to_zone[eid] = zdata["name"]
+	
+	for eid in cm.enemy_db:
+		var e_data = cm.enemy_db[eid]
+		enemy_db[eid] = {
+			"name": e_data["name"],
+			"zone": enemy_to_zone.get(eid, "Unknown Region"),
+			"stats": e_data["stats"],
+			"loot": e_data["loot"],
+			"rare_loot": e_data.get("rare_loot", []),
+			"xp": e_data.get("xp", 0)
+		}
 
 func build_material_database():
 	material_db.clear()
@@ -188,15 +274,18 @@ func ensure_material(mat_id: String):
 		}
 
 func refresh_list():
-	# Guard against null nodes
-	if not item_list or not search_box:
-		return
+	if not item_list: return
 	
-	# Clear existing
-	for child in item_list.get_children():
-		child.queue_free()
+	_clear_list(item_list)
 	
 	var search_term = search_box.text.to_lower()
+	
+	if current_mode == "materials":
+		_populate_materials_list(search_term)
+	else:
+		_populate_enemies_list(search_term)
+
+func _populate_materials_list(search_term):
 	var sorted_keys = material_db.keys()
 	sorted_keys.sort()
 	
@@ -205,7 +294,7 @@ func refresh_list():
 		var mat_name = mat["name"]
 		
 		# Filter by search
-		if search_term != "" and not mat_name.to_lower().contains(search_term) and not mat_id.to_lower().contains(search_term):
+		if search_term != "" and not mat_name.to_lower().contains(search_term):
 			continue
 		
 		# Filter by category
@@ -221,15 +310,53 @@ func refresh_list():
 		var btn = Button.new()
 		btn.text = mat_name
 		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		btn.connect("pressed", _on_material_selected.bind(mat_id))
+		btn.connect("pressed", _on_item_selected.bind(mat_id))
 		item_list.add_child(btn)
 
-func _on_material_selected(mat_id: String):
-	# Guard against null nodes
-	if not name_label or not desc_label or not sources_list or not uses_list:
-		return
+func _populate_enemies_list(search_term):
+	# Sort by HP/Difficulty implicitly (often defined in order) or explicitly
+	# Let's group by Zone for better UX
+	var enemies_by_zone = {} # {ZoneName: [eid, eid]}
 	
-	selected_material = mat_id
+	for eid in enemy_db:
+		var e = enemy_db[eid]
+		var zone = e["zone"]
+		
+		if search_term != "" and not e["name"].to_lower().contains(search_term):
+			continue
+			
+		if not zone in enemies_by_zone:
+			enemies_by_zone[zone] = []
+		enemies_by_zone[zone].append(eid)
+	
+	# Create Headers for Zones
+	var sorted_zones = enemies_by_zone.keys()
+	sorted_zones.sort() # Alphabetical sort for now
+	
+	for zone in sorted_zones:
+		var header = Label.new()
+		header.text = "--- %s ---" % zone
+		header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		header.add_theme_color_override("font_color", UITheme.COLORS["text_accent"])
+		item_list.add_child(header)
+		
+		for eid in enemies_by_zone[zone]:
+			var e = enemy_db[eid]
+			var btn = Button.new()
+			btn.text = e["name"]
+			btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+			btn.connect("pressed", _on_item_selected.bind(eid))
+			item_list.add_child(btn)
+
+func _on_item_selected(id: String):
+	selected_id = id
+	
+	if current_mode == "materials":
+		_display_material_details(id)
+	else:
+		_display_enemy_details(id)
+
+func _display_material_details(mat_id):
 	var mat = material_db[mat_id]
 	
 	name_label.text = mat["name"]
@@ -251,39 +378,77 @@ func _on_material_selected(mat_id: String):
 			net_label.text = "NET GROWTH: %.2f /min" % rate
 			net_label.modulate = Color(1.0, 0.4, 0.4)
 	
-	# Clear old entries
-	for child in sources_list.get_children():
-		child.queue_free()
-	for child in uses_list.get_children():
-		child.queue_free()
+	_clear_list(sources_list)
+	_clear_list(uses_list)
 	
-	# Populate sources
-	if mat["sources"].is_empty():
-		var lbl = Label.new()
-		lbl.text = "No sources found"
-		lbl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
-		sources_list.add_child(lbl)
+	if mat["sources"].is_empty(): _add_label(sources_list, "No sources found", Color(0.5, 0.5, 0.5))
 	else:
 		for source in mat["sources"]:
-			var lbl = Label.new()
 			var icon = _get_type_icon(source["type"])
-			lbl.text = "%s %s (%s)" % [icon, source["name"], source["rate"]]
-			lbl.add_theme_color_override("font_color", _get_type_color(source["type"]))
-			sources_list.add_child(lbl)
+			_add_label(sources_list, "%s %s (%s)" % [icon, source["name"], source["rate"]], _get_type_color(source["type"]))
 	
-	# Populate uses
-	if mat["uses"].is_empty():
-		var lbl = Label.new()
-		lbl.text = "No uses found"
-		lbl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
-		uses_list.add_child(lbl)
+	if mat["uses"].is_empty(): _add_label(uses_list, "No uses found", Color(0.5, 0.5, 0.5))
 	else:
 		for use in mat["uses"]:
-			var lbl = Label.new()
 			var icon = _get_type_icon(use["type"])
-			lbl.text = "%s %s (%s)" % [icon, use["name"], use["rate"]]
-			lbl.add_theme_color_override("font_color", _get_type_color(use["type"]))
-			uses_list.add_child(lbl)
+			_add_label(uses_list, "%s %s (%s)" % [icon, use["name"], use["rate"]], _get_type_color(use["type"]))
+
+func _display_enemy_details(eid):
+	var e = enemy_db.get(eid)
+	if not e: return
+	
+	name_label.text = e["name"]
+	desc_label.text = "Zone: %s" % e["zone"]
+	if net_label: net_label.text = "XP Value: %d" % e["xp"]
+	
+	_clear_list(sources_list)
+	_clear_list(uses_list)
+	
+	# Use "Sources List" for Stats
+	var stats_header = Label.new()
+	stats_header.text = "COMBAT STATISTICS"
+	stats_header.add_theme_font_size_override("font_size", 16)
+	sources_list.add_child(stats_header)
+	
+	_add_stat_row(sources_list, "Health", e["stats"]["hp"])
+	_add_stat_row(sources_list, "Shield", e["stats"]["max_shield"])
+	_add_stat_row(sources_list, "Attack", e["stats"]["atk"])
+	_add_stat_row(sources_list, "Defense", e["stats"]["def"])
+	_add_stat_row(sources_list, "Accuracy", e["stats"].get("accuracy", 0))
+	_add_stat_row(sources_list, "Evasion", e["stats"].get("eva", 0))
+	
+	# Use "Uses List" for Loot Table
+	var loot_header = Label.new()
+	loot_header.text = "DROPS"
+	loot_header.add_theme_font_size_override("font_size", 16)
+	uses_list.add_child(loot_header)
+	
+	for entry in e["loot"]:
+		var mat_name = ElementDB.get_display_name(entry[0])
+		var qty = "%d-%d" % [entry[1], entry[2]]
+		_add_label(uses_list, "• %s (%s)" % [mat_name, qty], Color.WHITE)
+		
+	if not e["rare_loot"].is_empty():
+		_add_label(uses_list, "-- RARE DROPS --", UITheme.COLORS["warning"])
+		for entry in e["rare_loot"]:
+			var mat_name = ElementDB.get_display_name(entry[0])
+			var chance = "%.1f%%" % (entry[1] * 100)
+			_add_label(uses_list, "★ %s (%s)" % [mat_name, chance], UITheme.COLORS["warning"])
+
+func _add_stat_row(parent, label, value):
+	var lbl = Label.new()
+	lbl.text = "%s: %s" % [label, str(value)]
+	parent.add_child(lbl)
+
+func _clear_list(node):
+	for child in node.get_children():
+		child.queue_free()
+
+func _add_label(parent, text, color):
+	var lbl = Label.new()
+	lbl.text = text
+	lbl.add_theme_color_override("font_color", color)
+	parent.add_child(lbl)
 
 func _get_type_icon(type: String) -> String:
 	match type:
