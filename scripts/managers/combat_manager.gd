@@ -19,7 +19,7 @@ var enemy_max_shield = 0.0
 # Thermal State (Audit v12.0)
 var player_heat = 0.0
 var player_max_heat = 100.0
-var player_vent_rate = 5.0 # Units per second
+var player_vent_rate = 8.0 # Units per second
 var overheat_lock = 0.0 # Timer when overheat occurs
 signal heat_changed(current, maximum)
 
@@ -635,10 +635,12 @@ func process_tick(delta: float):
 		sm.current_hp = sm.max_hp
 	
 	if overheat_lock > 0:
-		overheat_lock -= delta
-		# sm.current_hp -= sm.max_hp * 0.025 * delta # Removed per user request
+		# User Request: Wait for heat to reach 0% before unlocking
+		if player_heat <= 0:
+			overheat_lock = 0.0
 	if player_heat > 0:
-		player_heat = max(0, player_heat - player_vent_rate * delta)
+		var current_vent_rate = player_vent_rate * get_milestone_heat_mult()
+		player_heat = max(0, player_heat - current_vent_rate * delta)
 		heat_changed.emit(player_heat, player_max_heat)
 	if player_heat > 80.0: p_speed_mult *= 0.5
 	
@@ -736,7 +738,8 @@ func _execute_player_attack(weapon_idx: int):
 	heat_changed.emit(player_heat, player_max_heat)
 	if player_heat >= player_max_heat:
 		player_heat = player_max_heat
-		overheat_lock = 5.0
+		player_heat = player_max_heat
+		overheat_lock = 1.0 # Logic changed: Locks until heat == 0
 		return
 	
 	# Hit Resolution (Accuracy vs Evasion)

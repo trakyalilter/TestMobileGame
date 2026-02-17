@@ -47,11 +47,33 @@ func _ready():
 	UITheme.apply_premium_button_style(storage_btn, "inventory")
 	storage_btn.pressed.connect(_on_expand_storage_pressed)
 	
+	# Inject Search Bar (User Request)
+	_setup_search_bar()
+	
 	call_deferred("refresh_inventory")
 	update_credits()
 	GameState.resources.element_added.connect(_on_inventory_changed)
 	GameState.resources.element_removed.connect(_on_inventory_changed)
 	GameState.resources.currency_added.connect(func(t, a): update_credits())
+
+var search_bar: LineEdit
+
+func _setup_search_bar():
+	search_bar = LineEdit.new()
+	search_bar.placeholder_text = "Search..."
+	
+	# Use new UITheme method
+	UITheme.apply_input_style(search_bar, "inventory")
+	
+	# Add to top of Left Panel
+	var container = $HBoxContainer/LeftPanel/MarginContainer/VBoxContainer
+	container.add_child(search_bar)
+	container.move_child(search_bar, 0)
+	
+	search_bar.text_changed.connect(_on_search_text_changed)
+
+func _on_search_text_changed(new_text):
+	refresh_inventory()
 
 func _on_expand_storage_pressed():
 	if GameState.resources.upgrade_storage():
@@ -125,6 +147,7 @@ func refresh_inventory():
 	
 	var elements_db = GameState.elements_db
 	var slot_count = 0
+	var search_txt = search_bar.text.to_lower() if search_bar else ""
 	
 	# 1. Show Filtered Owned Items
 	var owned_elements = GameState.resources.elements.keys()
@@ -148,6 +171,11 @@ func refresh_inventory():
 				"description": "Material discovered in the field. Properties unknown.",
 				"category": "other"
 			}
+			
+		# SEARCH FILTER
+		if search_txt != "":
+			if not (search_txt in el_meta["name"].to_lower() or search_txt in symbol.to_lower()):
+				continue
 		
 		# Filter Check
 		if current_filter != "all":

@@ -69,10 +69,16 @@ func _ready():
 	
 	radar_display.draw.connect(_on_radar_draw)
 	
-	$Dashboard/Visualizer/HUD/Overlays/BottomRegion/LogOverlay/VBox/Header.add_theme_color_override("font_color", Color(0.2, 1.0, 0.4)) # Terminal Green
+
+	
+
 	
 	# PHASE 22: Inject XP Bar programmatically
 	_setup_xp_bar()
+	
+	# Create Label for Heat Bar (which is already in scene)
+	if p_heat_bar:
+		p_heat_label = _create_centered_label(p_heat_bar)
 
 	# Explicit Signal Connections (Defensive)
 	if not btn_retreat.is_connected("pressed", _on_retreat_btn_pressed): btn_retreat.pressed.connect(_on_retreat_btn_pressed)
@@ -85,6 +91,8 @@ func _ready():
 	
 
 var p_xp_bar: ProgressBar
+var p_xp_label: Label
+var p_heat_label: Label
 
 func _setup_xp_bar():
 	# Create bar
@@ -108,9 +116,15 @@ func _setup_xp_bar():
 	# Add to HUD
 	var container = $Dashboard/Visualizer/HUD/Overlays/SectorOverlay/VBox/PlayerStats
 	container.add_child(p_xp_bar)
+	
+	# Create Label for XP Bar
+	p_xp_label = _create_centered_label(p_xp_bar)
 	# Move to be under the name/stats, maybe before HP bar?
 	# Order: Name, Stats, HP, Shield, Heat, Battery, Buffs.
 	# Let's put it after NameLabel (index 0) so it sits between Name and Stats.
+	# Limit font size for small bar
+	if p_xp_label: p_xp_label.add_theme_font_size_override("font_size", 8)
+
 	container.move_child(p_xp_bar, 1)
 
 func refresh_zones():
@@ -225,6 +239,15 @@ func update_ui():
 		p_xp_bar.max_value = xp_next_lvl
 		p_xp_bar.value = manager.xp
 		
+		# Update Label
+		if p_xp_label:
+			var range_diff = xp_next_lvl - xp_current_lvl
+			var current_progress = manager.xp - xp_current_lvl
+			var pct = 0.0
+			if range_diff > 0:
+				pct = (float(current_progress) / float(range_diff)) * 100.0
+			p_xp_label.text = "%.0f%%" % pct
+		
 		p_xp_bar.tooltip_text = "Combat Rank: %d\nXP: %s / %s\nDamage Bonus: +%.1f%%" % [
 			current_lvl, 
 			UITheme.format_num(manager.xp), 
@@ -307,16 +330,14 @@ func update_ui():
 		ammo_overlay.visible = false
 		scan_lbl.text = "SCANNING FOR ANOMALIES..."
 
-	# Log
-	# Inefficient to clear every frame, check size or dirty flag?
-	# Using delta check or just simple dirty check
-	if log_list.item_count != manager.combat_log.size():
-		log_list.clear() # Primitive sync
-		for msg in manager.combat_log:
-			log_list.add_item(msg)
-		log_list.ensure_current_is_visible() # scroll to bottom roughly
-		if log_list.item_count > 0:
-			log_list.select(log_list.item_count - 1)
+	# Log - DISABLED (User Request)
+	# if log_list.item_count != manager.combat_log.size():
+	# 	log_list.clear() 
+	# 	for msg in manager.combat_log:
+	# 		log_list.add_item(msg)
+	# 	log_list.ensure_current_is_visible() 
+	# 	if log_list.item_count > 0:
+	# 		log_list.select(log_list.item_count - 1)
 
 	# Retreat Btn
 	btn_retreat.disabled = not manager.in_combat
@@ -624,7 +645,29 @@ func _update_atmosphere(delta):
 
 func _on_retreat_btn_pressed():
 	manager.retreat()
+
 func _on_heat_changed(current: float, maximum: float):
 	if p_heat_bar:
 		p_heat_bar.max_value = maximum
 		p_heat_bar.value = current
+		
+		# Update Heat Label
+		if p_heat_label:
+			var pct = 0.0
+			if maximum > 0:
+				pct = (current / maximum) * 100.0
+			p_heat_label.text = "%.0f%%" % pct
+
+func _create_centered_label(parent: Control) -> Label:
+	var lbl = Label.new()
+	lbl.layout_mode = 1 # Anchors
+	lbl.anchors_preset = 15 # Full Rect
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	lbl.add_theme_font_size_override("font_size", 8) # Small font for bars
+	lbl.add_theme_color_override("font_shadow_color", Color.BLACK)
+	lbl.add_theme_constant_override("shadow_offset_x", 1)
+	lbl.add_theme_constant_override("shadow_offset_y", 1)
+	lbl.add_theme_constant_override("shadow_outline_size", 2)
+	parent.add_child(lbl)
+	return lbl

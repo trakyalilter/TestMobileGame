@@ -22,7 +22,7 @@ var manager: RefCounted
 var active_filter = "all"
 var slot_widget_scene = preload("res://scenes/ui/designer_slot_widget.tscn")
 var ammo_slot_scene = preload("res://scenes/ui/designer_ammo_slot_widget.tscn")
-var consumable_slot_scene = preload("res://scenes/ui/designer_consumable_slot.tscn")
+
 var draggable_icon_scene = preload("res://scenes/ui/module_card.tscn") 
 
 func _ready():
@@ -231,14 +231,14 @@ func _create_consumable_blade(parent: Node):
 	scroll.add_child(hbox)
 	
 	# Hull Slot
-	var w1 = consumable_slot_scene.instantiate()
+	var w1 = slot_widget_scene.instantiate()
 	hbox.add_child(w1)
-	w1.setup("hull", self, manager)
+	w1.setup(-1, "consumable_hull", self, manager)
 	
 	# Shield Slot
-	var w2 = consumable_slot_scene.instantiate()
+	var w2 = slot_widget_scene.instantiate()
 	hbox.add_child(w2)
-	w2.setup("shield", self, manager)
+	w2.setup(-1, "consumable_shield", self, manager)
 	
 	# Separator
 	var sep = HSeparator.new()
@@ -292,9 +292,12 @@ func rebuild_storage():
 			{"id": "SlugT1S"},
 			{"id": "SlugT2"},
 			{"id": "SlugT3"},
+			{"id": "SlugT4"},
 			{"id": "CellT1"},
 			{"id": "CellT2"},
-			{"id": "CellT3"}
+			{"id": "CellT3"},
+			{"id": "CellT4"},
+			{"id": "Photon_Torpedo"}
 		]
 		for ammo in ammo_list:
 			var qty = GameState.resources.get_element_amount(ammo["id"])

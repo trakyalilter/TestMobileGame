@@ -31,6 +31,11 @@ func refresh_state():
 	if not manager: manager = GameState.shipyard_manager
 	if not manager: return
 	
+	# CONSUMABLE LOGIC
+	if slot_type.begins_with("consumable_"):
+		_refresh_consumable_state()
+		return
+
 	type_lbl.text = "SLOT %d: %s" % [slot_idx + 1, slot_type.to_upper()]
 	type_lbl.add_theme_color_override("font_color", UITheme.CATEGORY_COLORS["shipyard"])
 	
@@ -89,7 +94,62 @@ func refresh_state():
 				option_btn.set_item_metadata(option_btn.item_count - 1, mid)
 				idx_counter += 1
 
-func _get_drag_data(_at_position):
+func _refresh_consumable_state():
+	var c_type = "hull" if slot_type == "consumable_hull" else "shield"
+	var label_txt = "HULL REPAIR" if c_type == "hull" else "SHIELD REPAIR"
+	
+	type_lbl.text = label_txt
+	type_lbl.add_theme_color_override("font_color", UITheme.CATEGORY_COLORS["shipyard"])
+	
+	option_btn.clear()
+	option_btn.add_item("Change...", 0)
+	
+	var equipped_id = manager.get_consumable(c_type)
+	if equipped_id != "":
+		var data = ElementDB.get_consumable_data(equipped_id)
+		var dname = data.get("name", equipped_id)
+		var qty = GameState.resources.get_element_amount(equipped_id)
+		
+		name_lbl.text = "%s (x%d)" % [dname, qty]
+		name_lbl.modulate = Color(0, 0.73, 0.83) # Cyan
+		icon_lbl.text = "💊"
+		icon_lbl.modulate = Color(0, 0.73, 0.83)
+		
+		tooltip_text = "%s\nRestores %d%% %s" % [dname, int(data.get("heal_pct", 0)*100), c_type.capitalize()]
+		
+		option_btn.add_item("Unequip", 1)
+		option_btn.set_item_metadata(1, "unequip")
+	else:
+		name_lbl.text = "EMPTY SLOT"
+		name_lbl.modulate = Color(0.33, 0.33, 0.33)
+		icon_lbl.text = "⛝"
+		icon_lbl.modulate = Color(0.33, 0.33, 0.33)
+		tooltip_text = "Drag a Consumable here"
+
+	# Inventory Options
+	var items = ElementDB.get_elements_in_category("consumables")
+	var idx = 2
+	for id in items:
+		var data = ElementDB.get_consumable_data(id)
+		if data.get("type") == c_type:
+			var qty = GameState.resources.get_element_amount(id)
+			if qty > 0:
+				option_btn.add_item("%s (x%d)" % [data.get("name", id), qty], idx)
+				option_btn.set_item_metadata(idx, id)
+				idx += 1
+
+func _get_drag_data(at_position):
+	if slot_type.begins_with("consumable_"):
+		var c_type = "hull" if slot_type == "consumable_hull" else "shield"
+		var equipped_id = manager.get_consumable(c_type)
+		if equipped_id == "": return null
+		
+		return {
+			"type": "unequip_consumable",
+			"slot_type": c_type,
+			"id": equipped_id
+		}
+	
 	var equipped_id = manager.loadout.get(slot_idx)
 	if not equipped_id: return null
 	
@@ -106,17 +166,37 @@ func _get_drag_data(_at_position):
 	var preview = load("res://scenes/ui/designer_slot_widget.tscn").instantiate()
 	preview.setup(slot_idx, slot_type, parent_ui, manager)
 	preview.modulate = Color(1, 0.5, 0.5, 0.8) # Reddish tint for unequip
-	preview.custom_minimum_size = Vector2(100, 100) # Slightly smaller than original
+	preview.custom_minimum_size = Vector2(80, 80)
 	
 	set_drag_preview(preview)
 	return drag_data
 
 func _can_drop_data(at_position, data):
-	if typeof(data) == TYPE_DICTIONARY and data.get("type") == "module":
+	if typeof(data) != TYPE_DICTIONARY: return false
+	
+	if slot_type.begins_with("consumable_"):
+		var c_type = "hull" if slot_type == "consumable_hull" else "shield"
+		if data.get("type") == "consumable":
+			return data.get("consumable_type") == c_type
+		return false
+		
+	if data.get("type") == "module":
 		return data.get("slot_type") == slot_type
 	return false
 
 func _drop_data(at_position, data):
+	if slot_type.begins_with("consumable_"):
+		var c_type = "hull" if slot_type == "consumable_hull" else "shield"
+		var item_id = data.get("mid", "") # Consumable ID from card
+		
+		# If coming from another slot (unequip_consumable?) - usually we drag FROM inventory
+		if data.get("type") == "consumable":
+			# From inventory card
+			manager.equip_consumable(c_type, item_id)
+			UITheme.trigger_circuit_surge(self)
+			parent_ui.trigger_refresh()
+		return
+
 	var mid = data.get("mid")
 	if manager.equip_module(slot_idx, mid):
 		UITheme.trigger_circuit_surge(self)
@@ -125,6 +205,16 @@ func _drop_data(at_position, data):
 func _on_option_button_item_selected(index):
 	var data = option_btn.get_item_metadata(index)
 	
+	if slot_type.begins_with("consumable_"):
+		var c_type = "hull" if slot_type == "consumable_hull" else "shield"
+		if data == "unequip":
+			manager.unequip_consumable(c_type)
+		elif data:
+			manager.equip_consumable(c_type, data)
+		parent_ui.trigger_refresh()
+		option_btn.select(0)
+		return
+
 	if data == "unequip":
 		manager.unequip_slot(slot_idx)
 		parent_ui.trigger_refresh()
@@ -138,7 +228,11 @@ func _on_option_button_item_selected(index):
 func _gui_input(event):
 	if event is InputEventMouseButton and event.pressed:
 		if event.button_index == MOUSE_BUTTON_RIGHT:
-			manager.unequip_slot(slot_idx)
+			if slot_type.begins_with("consumable_"):
+				var c_type = "hull" if slot_type == "consumable_hull" else "shield"
+				manager.unequip_consumable(c_type)
+			else:
+				manager.unequip_slot(slot_idx)
 			parent_ui.trigger_refresh()
 
 # ─────────────────────────────────────────────────

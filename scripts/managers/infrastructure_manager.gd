@@ -16,7 +16,7 @@ var building_db: Dictionary = {
 	"solar_panel": {
 		"name": "Solar Array",
 		"description": "+5.0 kW",
-		"cost": {"credits": 50, "Si": 5}, 
+		"cost": {"credits": 125, "Si": 5}, 
 		"energy_gen": 5.0, # REBALANCE v23.0: Reduced from 10 to discourage low-tier spam
 		"energy_cons": 0.0,
 		"category": "power"
@@ -24,7 +24,7 @@ var building_db: Dictionary = {
 	"fusion_reactor": {
 		"name": "Fusion Core",
 		"description": "+5000.0 kW",
-		"cost": {"credits": 1000000, "Superalloy": 200, "AdvCircuit": 100, "VoidEssence": 20},
+		"cost": {"credits": 2500000, "Superalloy": 200, "AdvCircuit": 100, "VoidEssence": 20},
 		"energy_gen": 5000.0, # REBALANCE v23.0: Buffed from 1500 for endgame density
 		"energy_cons": 0.0,
 		"research_req": "quantum_dynamics",
@@ -33,7 +33,7 @@ var building_db: Dictionary = {
 	"coal_burner": {
 		"name": "Carbon Generator",
 		"description": "+50.0 kW (-1 C)",
-		"cost": {"credits": 150, "Fe": 10},
+		"cost": {"credits": 375, "Fe": 10},
 		"energy_gen": 50.0, 
 		"energy_cons": 0.0,
 		"input": {"C": 1},
@@ -44,7 +44,7 @@ var building_db: Dictionary = {
 	"auto_excavator": {
 		"name": "Auto-Excavator (XL)",
 		"description": "+10 Dirt",
-		"cost": {"credits": 500, "Si": 50, "Fe": 20},
+		"cost": {"credits": 1250, "Si": 50, "Fe": 20},
 		"energy_gen": 0.0,
 		"energy_cons": 15.0,  # Audit v1.0: Reduced from 20 for better early-game energy balance
 		"yield": {"Dirt": 10},
@@ -54,7 +54,7 @@ var building_db: Dictionary = {
 	"industrial_pump": {
 		"name": "Industrial Pump",
 		"description": "+10 Water",
-		"cost": {"credits": 500, "Si": 20, "Fe": 50}, 
+		"cost": {"credits": 1250, "Si": 20, "Fe": 50}, 
 		"energy_gen": 0.0,
 		"energy_cons": 25.0,
 		"yield": {"Water": 10},
@@ -64,7 +64,7 @@ var building_db: Dictionary = {
 	"drone_bay": {
 		"name": "Drone Recovery Bay",
 		"description": "+Scrap (Zone Scavenging)",
-		"cost": {"credits": 2000, "Circuit": 10, "Ti": 20},
+		"cost": {"credits": 5000, "Circuit": 10, "Ti": 20},
 		"energy_gen": 0.0,
 		"energy_cons": 50.0,
 		"max": 1,
@@ -75,7 +75,7 @@ var building_db: Dictionary = {
 	"fabricator": {
 		"name": "Molecular Fabricator",
 		"description": "-20% Crafting Time",
-		"cost": {"credits": 5000, "Circuit": 50, "Fiber": 20, "Ti": 50},
+		"cost": {"credits": 12500, "Circuit": 50, "Fiber": 20, "Ti": 50},
 		"energy_gen": 0.0,
 		"energy_cons": 100.0,
 		"max": 1,
@@ -86,7 +86,7 @@ var building_db: Dictionary = {
 	"auto_smelter": {
 		"name": "Automated Smelter",
 		"description": "+2 Steel",
-		"cost": {"credits": 2500, "Ti": 20, "Circuit": 5},
+		"cost": {"credits": 6250, "Ti": 20, "Circuit": 5},
 		"energy_gen": 0.0,
 		"energy_cons": 50.0,
 		"yield": {"Steel": 2},
@@ -98,7 +98,7 @@ var building_db: Dictionary = {
 	"hydro_plant": {
 		"name": "Industrial Electrolysis Plant",
 		"description": "+2 H, +1 O (-1 Water)",
-		"cost": {"credits": 2500, "Si": 50, "Circuit": 10},
+		"cost": {"credits": 6250, "Si": 50, "Circuit": 10},
 		"energy_gen": 0.0,
 		"energy_cons": 40.0,
 		"yield": {"H": 2, "O": 1},
@@ -110,7 +110,7 @@ var building_db: Dictionary = {
 	"nitrogen_tank": {
 		"name": "Cryo-Storage Array",
 		"description": "+10% Nitrogen Yield",
-		"cost": {"credits": 5000, "Ti": 100, "Circuit": 25},
+		"cost": {"credits": 12500, "Ti": 100, "Circuit": 25},
 		"energy_gen": 0.0,
 		"energy_cons": 20.0,
 		"yield_bonus": {"N": 0.10},
@@ -120,7 +120,7 @@ var building_db: Dictionary = {
 	"matter_deconstructor": {
 		"name": "Matter De-constructor",
 		"description": "+1 Circuit",
-		"cost": {"credits": 100000, "Ti": 1000, "AdvCircuit": 50},
+		"cost": {"credits": 250000, "Ti": 1000, "AdvCircuit": 50},
 		"energy_gen": 0.0,
 		"energy_cons": 250.0,
 		"input": {"Scrap": 5000},  # Audit v38.0: Reduced from 10K for usability
@@ -132,7 +132,7 @@ var building_db: Dictionary = {
 	"auto_press": {
 		"name": "Automated Carbon Press",
 		"description": "+1 Graphite",
-		"cost": {"credits": 3000, "Fe": 100, "Hydraulics": 5},
+		"cost": {"credits": 7500, "Fe": 100, "Hydraulics": 5},
 		"energy_gen": 0.0,
 		"energy_cons": 60.0,
 		"yield": {"Graphite": 1},
@@ -144,7 +144,7 @@ var building_db: Dictionary = {
 	"basic_kinetic_foundry": {
 		"name": "Basic Kinetic Foundry",
 		"description": "+10 Slug T1",
-		"cost": {"credits": 5000, "Fe": 100, "Si": 50},
+		"cost": {"credits": 12500, "Fe": 100, "Si": 50},
 		"energy_gen": 0.0,
 		"energy_cons": 40.0,
 		"yield": {"SlugT1": 10},
@@ -156,7 +156,7 @@ var building_db: Dictionary = {
 	"basic_cell_factory": {
 		"name": "Basic Cell Factory",
 		"description": "+10 Cell T1",
-		"cost": {"credits": 5000, "Si": 100, "Cu": 20},
+		"cost": {"credits": 12500, "Si": 100, "Cu": 20},
 		"energy_gen": 0.0,
 		"energy_cons": 40.0,
 		"yield": {"CellT1": 10},
@@ -168,7 +168,7 @@ var building_db: Dictionary = {
 	"advanced_ballistics_plant": {
 		"name": "Advanced Ballistics Plant",
 		"description": "+5 Slug T2",
-		"cost": {"credits": 50000, "Steel": 100, "Al": 50},
+		"cost": {"credits": 125000, "Steel": 100, "Al": 50},
 		"energy_gen": 0.0,
 		"energy_cons": 100.0,
 		"yield": {"SlugT2": 5},
@@ -180,7 +180,7 @@ var building_db: Dictionary = {
 	"high_energy_cell_plant": {
 		"name": "High-Energy Cell Plant",
 		"description": "+5 Cell T2",
-		"cost": {"credits": 50000, "Si": 100, "Resin": 50},
+		"cost": {"credits": 125000, "Si": 100, "Resin": 50},
 		"energy_gen": 0.0,
 		"energy_cons": 100.0,
 		"yield": {"CellT2": 5},
@@ -192,7 +192,7 @@ var building_db: Dictionary = {
 	"heavy_ordnance_works": {
 		"name": "Heavy Ordnance Works",
 		"description": "+2 Slug T3",
-		"cost": {"credits": 1000000, "Superalloy": 50, "U": 20},
+		"cost": {"credits": 2500000, "Superalloy": 50, "U": 20},
 		"energy_gen": 0.0,
 		"energy_cons": 250.0,
 		"yield": {"SlugT3": 2},

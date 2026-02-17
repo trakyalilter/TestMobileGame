@@ -91,6 +91,9 @@ var ELEMENT_NAMES = {
 	"BasicBooster": "Shield Booster",       # Audit v3.0
 	"Resin": "Polymer Resin",
 	"Fiber": "Carbon Fiber",
+	"CapacitorShard": "Capacitor Shard",
+	"IonField": "Ion Field Projector",
+	"ZeroPoint": "Zero-Point Injector",
 	
 	# Ammo
 	"SlugT1": "Ferrite Rounds",
@@ -190,7 +193,7 @@ var CATEGORIES = {
 	"alloys": ["Steel", "Bronze", "Graphite", "StainlessSteel", "GalvanizedSteel", "Superalloy", "AlMgAlloy", "IrWAlloy"],
 	"components": ["Circuit", "AdvCircuit", "Chip", "Hydraulics", "AlWire", "Resin", "Fiber"],
 	"batteries": ["BatteryT1", "BatteryT2", "BatteryT3", "CoBattery", "MgBattery", "PdFuelCell"],
-	"consumables": ["Mesh", "Seal", "EmergencyPatch", "BasicBooster", "ChitinPatch", "NitroCoolant", "AdvMaintenanceKit"],  # Audit v2.0: Early/Mid consumables
+	"consumables": ["Mesh", "Seal", "EmergencyPatch", "BasicBooster", "ChitinPatch", "NitroCoolant", "AdvMaintenanceKit", "CapacitorShard", "IonField", "ZeroPoint"],  # Audit v2.0: Early/Mid consumables
 	"ammo": ["SlugT1", "SlugT1S", "SlugT2", "SlugT3", "SlugT4", "CellT1", "CellT2", "CellT3", "CellT4", "HE_Missile", "Seeker_Missile", "Photon_Torpedo"],
 	"special": ["VoidArtifact", "QuantumCore", "ExoticMatter", "VoidCrystal", "Diamond", "SyntheticCrystal", 
 				"Neutronium", "AntimatterParticle", "ExoticIsotope", "ReactiveCore", "AICore", "AncientTech",
@@ -207,14 +210,18 @@ var CATEGORIES = {
 # v66.0: Consumable Slot System Data
 var CONSUMABLE_DATA = {
 	# Hull Consumables (restore HP % of Max Hull)
-	"Mesh":           {"type": "hull",   "heal_pct": 0.15, "name": "Nanoweave Mesh"},
-	"Seal":           {"type": "hull",   "heal_pct": 0.10, "name": "Hull Sealant"},
-	"EmergencyPatch": {"type": "hull",   "heal_pct": 0.25, "name": "Emergency Patch"},
-	"ChitinPatch":    {"type": "hull",   "heal_pct": 0.20, "name": "Chitin Hull Patch"},
-	"AdvMaintenanceKit": {"type": "hull", "heal_pct": 0.35, "name": "Adv. Maintenance Kit"},
+	"Mesh":           {"type": "hull",   "heal_pct": 0.25, "name": "Nanoweave Mesh"},
+	"Seal":           {"type": "hull",   "heal_pct": 0.35, "name": "Hull Sealant"},
+	"EmergencyPatch": {"type": "hull",   "heal_pct": 0.10, "name": "Emergency Patch"},
+	"ChitinPatch":    {"type": "hull",   "heal_pct": 0.15, "name": "Chitin Hull Patch"},
+	"AdvMaintenanceKit": {"type": "hull", "heal_pct": 0.50, "name": "Adv. Maintenance Kit"},
 	# Shield Consumables (restore Shield % of Max Shield)
-	"BasicBooster":   {"type": "shield", "heal_pct": 0.20, "name": "Shield Booster"},
-	"NitroCoolant":   {"type": "shield", "heal_pct": 0.30, "name": "Nitrogen Coolant"},
+	# Shield Consumables (restore Shield % of Max Shield)
+	"CapacitorShard": {"type": "shield", "heal_pct": 0.10, "name": "Capacitor Shard"},
+	"BasicBooster":   {"type": "shield", "heal_pct": 0.15, "name": "Shield Booster"},
+	"IonField":       {"type": "shield", "heal_pct": 0.25, "name": "Ion Field Projector"},
+	"NitroCoolant":   {"type": "shield", "heal_pct": 0.35, "name": "Nitrogen Coolant"},
+	"ZeroPoint":      {"type": "shield", "heal_pct": 0.50, "name": "Zero-Point Injector"},
 }
 
 ## Get display name for an element

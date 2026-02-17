@@ -95,7 +95,7 @@ mouse_filter = 2
 custom_minimum_size = Vector2(250, 250)
 layout_mode = 0
 offset_right = 250.0
-offset_bottom = 250.0
+offset_bottom = 350.0
 mouse_filter = 2
 
 [node name="VBox" type="VBoxContainer" parent="Dashboard/Visualizer/HUD/Overlays/SectorOverlay"]
@@ -162,6 +162,7 @@ layout_mode = 2
 [node name="ZoneList" type="ItemList" parent="Dashboard/Visualizer/HUD/Overlays/SectorOverlay/VBox"]
 layout_mode = 2
 size_flags_vertical = 3
+theme_override_font_sizes/font_size = 12
 
 [node name="TargetingOverlay" type="PanelContainer" parent="Dashboard/Visualizer/HUD/Overlays"]
 custom_minimum_size = Vector2(250, 250)
@@ -170,7 +171,7 @@ anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
 offset_left = -250.0
-offset_bottom = 250.0
+offset_bottom = 590.0
 grow_horizontal = 0
 mouse_filter = 2
 
@@ -313,27 +314,6 @@ layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
 
-[node name="LogOverlay" type="PanelContainer" parent="Dashboard/Visualizer/HUD/Overlays/BottomRegion"]
-custom_minimum_size = Vector2(0, 100)
-layout_mode = 2
-mouse_filter = 2
-
-[node name="VBox" type="VBoxContainer" parent="Dashboard/Visualizer/HUD/Overlays/BottomRegion/LogOverlay"]
-layout_mode = 2
-mouse_filter = 2
-
-[node name="Header" type="Label" parent="Dashboard/Visualizer/HUD/Overlays/BottomRegion/LogOverlay/VBox"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0, 1, 0, 0.5)
-theme_override_font_sizes/font_size = 9
-text = "  > TACTICAL DIAGNOSTIC FEED"
-
-[node name="LogList" type="ItemList" parent="Dashboard/Visualizer/HUD/Overlays/BottomRegion/LogOverlay/VBox"]
-layout_mode = 2
-size_flags_vertical = 3
-theme_override_colors/font_color = Color(0.666667, 0.666667, 0.666667, 0.5)
-theme_override_font_sizes/font_size = 10
-
 [node name="CenterInfo" type="VBoxContainer" parent="Dashboard/Visualizer/HUD"]
 layout_mode = 2
 size_flags_horizontal = 4
@@ -394,7 +374,6 @@ text = "RETREAT"
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
-
 
 [connection signal="item_selected" from="Dashboard/Visualizer/HUD/Overlays/SectorOverlay/VBox/ZoneList" to="." method="_on_zone_list_item_selected"]
 [connection signal="pressed" from="Dashboard/ViewportFooter/Margin/HBox/RetreatBtn" to="." method="_on_retreat_btn_pressed"]

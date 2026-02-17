@@ -281,64 +281,85 @@ var recipes: Dictionary = {
 	# Audit v2.0: Early consumables for combat accessibility
 	"craft_emergency_patch": {
 		"name": "Emergency Hull Patch",
-		"description": "Quick patch from scrap. Restores 25% Hull Integrity.",
-		"input": { "Scrap": 5, "Fe": 2 },
-		"output": { "EmergencyPatch": 2 },
+		"description": "Quick patch from scrap. Restores 10% Hull Integrity.",
+		"input": { "Scrap": 100, "Fe": 50 },
+		"output": { "EmergencyPatch": 1 },
 		"duration": 10.0,
-		"level_req": 5,
+		"level_req": 1,
 		"xp": 10,
 		"category": "consumables_hull"
 	},
 	# v62.0 Fix: Added Consumer for AlWire and Circuit
 	"craft_adv_maintenance_kit": {
 		"name": "Adv. Maintenance Kit",
-		"description": "High-tech repair kit. Restores 35% Hull Integrity.",
-		"input": { "AlWire": 5, "Circuit": 2, "Steel": 2 },
-		"output": { "AdvMaintenanceKit": 2 },
+		"description": "High-tech repair kit. Restores 50% Hull Integrity.",
+		"input": { "AlWire": 3, "Circuit": 5, "Steel": 25 },
+		"output": { "AdvMaintenanceKit": 1 },
 		"duration": 15.0,
-		"level_req": 20,
+		"level_req": 40,
 		"xp": 40,
 		"research_req": "basic_electronics",
 		"category": "consumables_hull"
 	},
+	"craft_capacitor_shard": {
+		"name": "Capacitor Shard",
+		"description": "Basic energy storage. Restores 10% Shield Integrity.",
+		"input": { "Si": 5, "Al": 2 },
+		"output": { "CapacitorShard": 1 },
+		"duration": 5.0,
+		"level_req": 2,
+		"xp": 5,
+		"category": "consumables_shield"
+	},
 	"craft_basic_booster": {
 		"name": "Basic Shield Booster",
-		"description": "Crude energy cells. Restores 20% Shield Integrity.",
-		"input": { "Si": 3, "C": 2 },
-		"output": { "BasicBooster": 2 },
+		"description": "Crude energy cells. Restores 15% Shield Integrity.",
+		"input": { "Si": 20, "BatteryT1": 1 },
+		"output": { "BasicBooster": 1 },
 		"duration": 10.0,
-		"level_req": 6,
+		"level_req": 8,
 		"xp": 10,
+		"category": "consumables_shield"
+	},
+	"craft_ion_field": {
+		"name": "Ion Field Projector",
+		"description": "Projected ion barrier. Restores 25% Shield Integrity.",
+		"input": { "AlWire": 5, "MgBattery": 1 },
+		"output": { "IonField": 1 },
+		"duration": 15.0,
+		"level_req": 18,
+		"xp": 25,
+		"research_req": "basic_electronics",
 		"category": "consumables_shield"
 	},
 	"craft_nanoweave": {
 		"name": "Nanoweave Mesh",
-		"description": "Weave fiber for hull reinforcement. Restores 15% Hull Integrity.",
-		"input": { "Fiber": 2, "Si": 1 },
+		"description": "Weave fiber for hull reinforcement. Restores 25% Hull Integrity.",
+		"input": { "Fiber": 5, "Si": 10 },
 		"output": { "Mesh": 1 },
 		"duration": 15.0,
-		"level_req": 26, # Increased from 3
+		"level_req": 15, # Rebalanced
 		"xp": 25, # Reduced from 30
 		"category": "consumables_hull"
 	},
 	"craft_sealant": {
 		"name": "Hull Sealant",
-		"description": "Mix polymer for rapid hull patching. Restores 10% Hull Integrity.",
+		"description": "Mix polymer for rapid hull patching. Restores 35% Hull Integrity.",
 		"input": { "Resin": 2, "Fe": 1 },
 		"output": { "Seal": 1 },
 		"duration": 15.0,
-		"level_req": 28, # Increased from 3
+		"level_req": 25, # Rebalanced
 		"xp": 30, # Reduced from 40
 		"research_req": "metallurgy_advanced",
 		"category": "consumables_hull"
 	},
 	"craft_chitin_patch": {
 		"name": "Biosynthetic Hull Patch",
-		"description": "Utilize mite chitin for emergency hull repairs. Restores 20% Hull Integrity.",
-		"input": { "MiteChitin": 10 },
-		"output": { "ChitinPatch": 2 },
+		"description": "Utilize mite chitin for emergency hull repairs. Restores 15% Hull Integrity.",
+		"input": { "MiteChitin": 50 },
+		"output": { "ChitinPatch": 1 },
 		"duration": 8.0,
-		"level_req": 3,
+		"level_req": 5,
 		"xp": 8,
 		"research_req": "basic_engineering",
 		"category": "consumables_hull"
@@ -411,13 +432,24 @@ var recipes: Dictionary = {
 	},
 	"nitrogen_coolant": {
 		"name": "Nitrogen Coolant",
-		"description": "Synthesize liquid nitrogen. Restores 30% Shield Integrity.",
-		"input": { "N": 10, "Water": 2 },
-		"output": { "NitroCoolant": 5 },
+		"description": "Synthesize liquid nitrogen. Restores 35% Shield Integrity.",
+		"input": {  "Water": 1000 ,"N": 500},
+		"output": { "NitroCoolant": 1 },
 		"duration": 15.0,
-		"level_req": 26,
+		"level_req": 28,
 		"xp": 35,
 		"research_req": "fluid_dynamics",
+		"category": "consumables_shield"
+	},
+	"craft_zero_point": {
+		"name": "Zero-Point Injector",
+		"description": "Vacuum energy extraction. Restores 50% Shield Integrity.",
+		"input": { "BatteryT3": 1, "Superalloy": 2 },
+		"output": { "ZeroPoint": 1 },
+		"duration": 20.0,
+		"level_req": 42,
+		"xp": 60,
+		"research_req": "quantum_field_theory", # Assumed research for late game
 		"category": "consumables_shield"
 	},
 	"craft_slug_t3": {
@@ -733,7 +765,7 @@ var recipes: Dictionary = {
 		"name": "Palladium Fuel Cell",
 		"description": "Pd-H2 fuel cell. High efficiency energy generation.",
 		"input": { "Pd": 5, "H": 20, "Circuit": 3 },
-		"credits_cost": 8000,
+		"credits_cost": 20000,
 		"output": { "PdFuelCell": 1 },
 		"duration": 15.0,
 		"level_req": 30,
@@ -901,7 +933,7 @@ var recipes: Dictionary = {
 		"description": "Decrypt stolen shipping data. Reveals hidden coordinates and bounty.",
 		"input": { "PirateManifest": 1 },
 		"output": { "NavData": 1 },
-		"credits_output": 5000,
+		"credits_output": 12500,
 		"duration": 15.0,
 		"level_req": 15,
 		"xp": 30,
@@ -950,7 +982,7 @@ var recipes: Dictionary = {
 		"description": "Offload stolen goods through black market contacts.",
 		"input": { "StolenCargo": 1 },
 		"output": { },
-		"credits_output": 2000,
+		"credits_output": 5000,
 		"output_table": [
 			["NavData", 0.3, 1, 2],
 			["Chip", 0.2, 1, 1],

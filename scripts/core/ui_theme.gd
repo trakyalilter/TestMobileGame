@@ -198,6 +198,26 @@ func apply_modal_style(panel: PanelContainer):
 	
 	panel.add_theme_stylebox_override("panel", style)
 
+func apply_input_style(input: Control, category: String = "ops"):
+	if not input: return
+	var accent = CATEGORY_COLORS.get(category, COLORS["accent"])
+	
+	var style_normal = StyleBoxFlat.new()
+	style_normal.bg_color = COLORS["panel_bg"].darkened(0.3)
+	style_normal.set_border_width_all(1)
+	style_normal.border_color = COLORS["sidebar"]
+	style_normal.corner_radius_top_left = 4
+	style_normal.corner_radius_top_right = 4
+	style_normal.corner_radius_bottom_right = 4
+	style_normal.corner_radius_bottom_left = 4
+	
+	var style_focus = style_normal.duplicate()
+	style_focus.border_color = accent
+	style_focus.bg_color = COLORS["panel_bg"].darkened(0.2)
+	
+	input.add_theme_stylebox_override("normal", style_normal)
+	input.add_theme_stylebox_override("focus", style_focus)
+
 func apply_tab_style(tabs: TabContainer, category: String = "ops"):
 	if not tabs: return
 	var accent = CATEGORY_COLORS.get(category, COLORS["accent"])

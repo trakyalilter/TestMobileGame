@@ -44,7 +44,7 @@ var hulls: Dictionary = {
 	"frigate_hull": {
 		"name": "Industrial Frigate",
 		"stats": {"hp": 800, "atk": 25, "energy_capacity": 250},
-		"cost": {"credits": 2000, "Res1": 20},
+		"cost": {"credits": 5000, "Res1": 20},
 		"slots": ["weapon", "weapon", "weapon", "shield", "shield", "shield", "engine", "battery", "battery", "battery", "sensor"], # 11 Slots (Added Sensor)
 		"research_req": "shipwright_1",
 		"visual": "res://assets/ships/2.png",
@@ -53,7 +53,7 @@ var hulls: Dictionary = {
 	"destroyer_hull": {
 		"name": "Destroyer Class",
 		"stats": {"hp": 2500, "atk": 60, "energy_capacity": 600},
-		"cost": {"credits": 15000, "Ti": 50, "Circuit": 25, "Res2": 10},
+		"cost": {"credits": 37500, "Ti": 50, "Circuit": 25, "Res2": 10},
 		"slots": ["weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "engine", "battery", "battery", "battery", "battery", "sensor", "cooling"], # 15 Slots (+Sensor, +Cooling)
 		"research_req": "shipwright_2",
 		"visual": "res://assets/ships/3.png",
@@ -62,7 +62,7 @@ var hulls: Dictionary = {
 	"battlecruiser_hull": {
 		"name": "Battlecruiser Class",
 		"stats": {"hp": 8000, "atk": 120, "energy_capacity": 1500},
-		"cost": {"credits": 150000, "Steel": 500, "AdvCircuit": 50, "VoidArtifact": 5, "Res3": 15},
+		"cost": {"credits": 375000, "Steel": 500, "AdvCircuit": 50, "VoidArtifact": 5, "Res3": 15},
 		"slots": ["weapon", "weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "shield", "engine", "battery", "battery", "battery", "battery", "battery", "sensor", "sensor", "cooling", "cooling"], # 20 Slots (+2 Sensor, +2 Cooling)
 		"research_req": "capital_ship_engineering",
 		"visual": "res://assets/ships/4.png",
@@ -71,7 +71,7 @@ var hulls: Dictionary = {
 	"dreadnought_hull": {
 		"name": "Dreadnought Class",
 		"stats": {"hp": 20000, "atk": 250, "energy_capacity": 4000},
-		"cost": {"credits": 10000000, "Steel": 100000, "Ti": 2500, "Neutronium": 50, "Circuit": 1000, "Chip": 250, "Superalloy": 100, "AdvCircuit": 100, "QuantumCore": 10, "VoidArtifact": 25},
+		"cost": {"credits": 25000000, "Steel": 100000, "Ti": 2500, "Neutronium": 50, "Circuit": 1000, "Chip": 250, "Superalloy": 100, "AdvCircuit": 100, "QuantumCore": 10, "VoidArtifact": 25},
 		"slots": ["weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "shield", "shield", "shield", "engine", "battery", "battery", "battery", "battery", "battery", "battery", "sensor", "sensor", "sensor", "cooling", "cooling", "cooling"], # +3 Sensor, +3 Cooling
 		"research_req": "quantum_dynamics",
 		"visual": "res://assets/ships/5.png",
@@ -90,14 +90,14 @@ var modules: Dictionary = {
 		"name": "Pulse Laser Mk.I", 
 		"slot_type": "weapon", 
 		"stats": {"atk_energy": 12, "energy_load": 5, "atk_interval": 1.5}, 
-		"cost": {"credits": 50, "Si": 5},
+		"cost": {"credits": 125, "Si": 5},
 		"desc": "Fast-firing Energy Beam. Effective vs Shields."
 	},
 	"mining_laser_mk2": {
 		"name": "Pulse Laser Mk.II", 
 		"slot_type": "weapon", 
 		"stats": {"atk_energy": 40, "energy_load": 15}, 
-		"cost": {"credits": 5000, "Si": 20, "Ti": 10, "Circuit": 10, "Chip": 10},
+		"cost": {"credits": 12500, "Si": 20, "Ti": 10, "Circuit": 10, "Chip": 10},
 		"desc": "High intensity beam. Melts shields.",
 		"research_req": "laser_optics"
 	},
@@ -105,7 +105,7 @@ var modules: Dictionary = {
 		"name": "Mass Driver", 
 		"slot_type": "weapon", 
 		"stats": {"atk_kinetic": 25, "energy_load": 5, "atk_interval": 3.0}, 
-		"cost": {"credits": 1000, "Fe": 50},
+		"cost": {"credits": 2500, "Fe": 50},
 		"desc": "Heavy magnetic projectile. Slow but powerful.",
 		"research_req": "kinetics_101"
 	},
@@ -113,7 +113,7 @@ var modules: Dictionary = {
 		"name": "Targeting Computer",
 		"slot_type": "weapon",
 		"stats": {"atk_kinetic": 15, "atk_energy": 15, "accuracy": 25, "energy_load": 5},  # Audit v40.0: Buffed ATK 5→15
-		"cost": {"credits": 300, "Chip": 10, "Si": 20},
+		"cost": {"credits": 750, "Chip": 10, "Si": 20},
 		"desc": "Advanced analytics. +25 Accuracy for all weapons.",
 		"research_req": "automated_logistics"
 	},
@@ -121,7 +121,7 @@ var modules: Dictionary = {
 		"name": "Cryo-Cooled Laser Mk.III",
 		"slot_type": "weapon",
 		"stats": {"atk_energy": 80, "energy_load": 20},
-		"cost": {"credits": 450000, "Ti": 30, "CoolantCell": 5, "AdvCircuit": 3},
+		"cost": {"credits": 1125000, "Ti": 30, "CoolantCell": 5, "AdvCircuit": 3},
 		"desc": "Helium-cooled beam. Extreme shield damage.",
 		"research_req": "cryogenic_systems"
 	},
@@ -129,7 +129,7 @@ var modules: Dictionary = {
 		"name": "Micro-Missile Launcher",
 		"slot_type": "weapon",
 		"stats": {"atk_explosive": 40, "energy_load": 10, "atk_interval": 4.0},
-		"cost": {"credits": 5000, "Ti": 20, "C": 50},
+		"cost": {"credits": 12500, "Ti": 20, "C": 50},
 		"desc": "Explosive payload. High Armor Penetration.",
 		"research_req": "combustion"
 	},
@@ -137,7 +137,7 @@ var modules: Dictionary = {
 		"name": "Seeker Missile Mk.II",
 		"slot_type": "weapon",
 		"stats": {"atk_explosive": 120, "energy_load": 20, "atk_interval": 5.5},
-		"cost": {"credits": 120000, "Steel": 200, "AdvCircuit": 20, "Res2": 10},
+		"cost": {"credits": 300000, "Steel": 200, "AdvCircuit": 20, "Res2": 10},
 		"desc": "Advanced tracking missiles. Devastates armored hulls.",
 		"research_req": "advanced_rocketry"
 	},
@@ -145,7 +145,7 @@ var modules: Dictionary = {
 		"name": "Heavy Torpedo",
 		"slot_type": "weapon",
 		"stats": {"atk_explosive": 450, "energy_load": 60, "atk_interval": 12.0},
-		"cost": {"credits": 5000000, "Superalloy": 50, "Chip": 50, "VoidArtifact": 5},
+		"cost": {"credits": 12500000, "Superalloy": 50, "Chip": 50, "VoidArtifact": 5},
 		"desc": "Capital-class warhead. Massive armor penetration.",
 		"research_req": "capital_ship_armament"
 	},
@@ -154,7 +154,7 @@ var modules: Dictionary = {
 		"name": "Heatsink Array",
 		"slot_type": "cooling",
 		"stats": {"atk_speed_bonus": 0.10, "energy_load": 5},
-		"cost": {"credits": 5000, "Al": 20, "Graphite": 10},
+		"cost": {"credits": 12500, "Al": 20, "Graphite": 10},
 		"desc": "Dissipates heat. +10% Attack Speed.",
 		"research_req": "adv_materials"
 	},
@@ -162,7 +162,7 @@ var modules: Dictionary = {
 		"name": "Cryo-Vent System",
 		"slot_type": "cooling",
 		"stats": {"atk_speed_bonus": 0.15, "energy_load": 15},
-		"cost": {"credits": 25000, "CryoCell": 10, "Ti": 20},
+		"cost": {"credits": 62500, "CryoCell": 10, "Ti": 20},
 		"desc": "Active cooling. +15% Attack Speed.",
 		"research_req": "cryogenic_systems"
 	},
@@ -170,7 +170,7 @@ var modules: Dictionary = {
 		"name": "Quantum Dissipator",
 		"slot_type": "cooling",
 		"stats": {"atk_speed_bonus": 0.25, "energy_load": 50},
-		"cost": {"credits": 5000000, "QuantumCore": 5, "Superalloy": 50},
+		"cost": {"credits": 12500000, "QuantumCore": 5, "Superalloy": 50},
 		"desc": "Vents heat into subspace. +25% Attack Speed.",
 		"research_req": "quantum_dynamics"
 	},
@@ -179,7 +179,7 @@ var modules: Dictionary = {
 		"name": "LIDAR Array",
 		"slot_type": "sensor",
 		"stats": {"accuracy": 15, "energy_load": 10},
-		"cost": {"credits": 5000, "Si": 20, "Circuit": 10},
+		"cost": {"credits": 12500, "Si": 20, "Circuit": 10},
 		"desc": "Laser imaging. +15 Accuracy.",
 		"research_req": "basic_electronics"
 	},
@@ -187,7 +187,7 @@ var modules: Dictionary = {
 		"name": "Targeting Matrix",
 		"slot_type": "sensor",
 		"stats": {"accuracy": 20, "crit_chance": 0.05, "energy_load": 25},
-		"cost": {"credits": 30000, "AdvCircuit": 10, "NavData": 5},
+		"cost": {"credits": 75000, "AdvCircuit": 10, "NavData": 5},
 		"desc": "Advanced tracking. +20 Accuracy, +5% Crit.",
 		"research_req": "automated_logistics"
 	},
@@ -195,7 +195,7 @@ var modules: Dictionary = {
 		"name": "Omni-Scanner",
 		"slot_type": "sensor",
 		"stats": {"accuracy": 40, "crit_chance": 0.10, "energy_load": 60},
-		"cost": {"credits": 2000000, "AICore": 5, "VoidCrystal": 20},
+		"cost": {"credits": 5000000, "AICore": 5, "VoidCrystal": 20},
 		"desc": "All-seeing eye. +40 Accuracy, +10% Crit.",
 		"research_req": "xeno_engineering"
 	},

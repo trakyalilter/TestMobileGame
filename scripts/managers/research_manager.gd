@@ -8,7 +8,7 @@ var is_active = false
 var action_progress = 0.0
 
 # v56.0: Progression Pacing Extension - 2.5x credit costs for 30-40h playtime
-const COST_MULTIPLIER = 2.5
+const COST_MULTIPLIER = 1.0 # Applied manually now
 # v56.1: 2x material requirements for progression extension
 const MATERIAL_MULTIPLIER = 2.0
 
@@ -24,42 +24,42 @@ var tech_tree = {
 	"basic_engineering": {
 		"name": "Basic Engineering",
 		"description": "Unlocks:\n• Mineral Washing\n• Scrap Recycling\n• Lithium Refining",
-		"cost": 50,
+		"cost": 125,
 		"type": "technology",
 		"parent": null
 	},
 	"applied_physics": {
 		"name": "Applied Physics",
 		"description": "Fundamental theory of energy and mass.\n• Unlocks: Energy Fields, Sensor Calibration (Operations), Reactor Overclocking (Ships)",
-		"cost": 250,
+		"cost": 625,
 		"type": "technology",
 		"parent": "basic_engineering"
 	},
 	"materials_science": {
 		"name": "Materials Science",
 		"description": "Elementary studies of matter and chemical bonding.",
-		"cost": 250,
+		"cost": 625,
 		"type": "technology",
 		"parent": "basic_engineering"
 	},
 	"industrial_logistics": {
 		"name": "Industrial Logistics",
 		"description": "Efficiency frameworks and sorting algorithms.",
-		"cost": 250,
+		"cost": 625,
 		"type": "technology",
 		"parent": "basic_engineering"
 	},
 	"fluid_dynamics": {
 		"name": "Fluid Dynamics",
 		"description": "Unlocks:\n• Water Pumping\n• Electrolysis\n• High-Flow Pumps (Operations)",
-		"cost": 50,
+		"cost": 125,
 		"type": "technology",
 		"parent": "applied_physics"
 	},
 	"combustion": {
 		"name": "Organic Combustion",
 		"description": "Unlocks:\n• Charcoal Kiln\n• Fly Ash Separation\n• HE Missile (Ammo)\n• Micro-Missile Launcher\n• Laser Cutters (Operations)\n• Carbon Hull Lattice (Ships)",
-		"cost": 50,
+		"cost": 125,
 		"type": "technology",
 		"parent": "materials_science"
 	},
@@ -67,7 +67,7 @@ var tech_tree = {
 		"name": "Efficient Smelting",
 		# v61.0 Fix: Bronze Alloy doesn't exist, corrected to Galvanized Steel
 		"description": "Unlocks:\n• Steel Foundry\n• Galvanized Steel\n• Shipwright I, Processing Tungsten, Salvage Heuristics (Ships)",
-		"cost": 1500,  # Audit v41.0: Reduced from 3000 to smooth progression
+		"cost": 3750,  # Audit v41.0: Reduced from 3000 to smooth progression
 		"cost_items": {"Res1": 7, "Circuit": 15},
 		"type": "technology",
 		"parent": "combustion"
@@ -75,7 +75,7 @@ var tech_tree = {
 	"shipwright_1": {
 		"name": "Shipwright I",
 		"description": "Unlocks:\n• Industrial Frigate (T2)\n• Titanium Plating\n• Sector Scanning, Asteroid Belt Clearance (Operations)\n• [Requires: Efficient Smelting (Engineering)]",
-		"cost": 2000,
+		"cost": 5000,
 		"cost_items": {"Res1": 20},
 		"type": "technology",
 		"parent": "smelting"
@@ -84,7 +84,7 @@ var tech_tree = {
 	"shipwright_2": {
 		"name": "Shipwright II",
 		"description": "Unlocks:\n• Escort Destroyer (T3)",
-		"cost": 2000,
+		"cost": 5000,
 		"cost_items": {"Res2": 10},
 		"type": "technology",
 		"parent": "shipwright_1"
@@ -92,7 +92,7 @@ var tech_tree = {
 	"adv_materials": {
 		"name": "Advanced Materials",
 		"description": "Unlocks:\n• Graphite Press\n• Factory Automation branch\n• Hydraulic Press branch",
-		"cost": 2000,
+		"cost": 5000,
 		"cost_items": {"Res2": 10},
 		"type": "technology",
 		"parent": "smelting"
@@ -100,14 +100,14 @@ var tech_tree = {
 	"energy_shields": {
 		"name": "Energy Fields",
 		"description": "Unlocks:\n• Deflector Shield\n• Shield Harmonics (Ships)\n• [Requires: Applied Physics (Engineering)]",
-		"cost": 500,
+		"cost": 1250,
 		"type": "technology",
 		"parent": "applied_physics"
 	},
 	"field_theory": {
 		"name": "Field Theory",
 		"description": "Unlocks:\n• Stasis Web",
-		"cost": 15000,
+		"cost": 37500,
 		"cost_items": {"Res2": 15},
 		"type": "technology",
 		"parent": "energy_shields"
@@ -115,7 +115,7 @@ var tech_tree = {
 	"eff_scanning_1": {
 		"name": "Sensor Calibration",
 		"description": "Bonus: +50% Scanning Yield\n• [Requires: Applied Physics (Engineering)]",
-		"cost": 150,
+		"cost": 375,
 		"type": "technology",
 		"parent": "applied_physics"
 	},
@@ -123,7 +123,7 @@ var tech_tree = {
 	"automation": {
 		"name": "Factory Automation",
 		"description": "Unlocks:\n• Advanced Circuitry\n• Automated Assembly Line\n• Advanced Rocketry (Ships)",
-		"cost": 5000,
+		"cost": 12500,
 		"cost_items": {"Res2": 25, "Circuit": 20},
 		"type": "technology",
 		"parent": "adv_materials"
@@ -131,7 +131,7 @@ var tech_tree = {
 	"advanced_rocketry": {
 		"name": "Advanced Rocketry",
 		"description": "Unlocks:\n• Seeker Missile Mk.II\n• Seeker Missile (Ammo)\n• [Requires: Factory Automation (Engineering)]",
-		"cost": 15000,
+		"cost": 37500,
 		"cost_items": {"Steel": 100, "Circuit": 50},
 		"type": "technology",
 		"parent": "automation"
@@ -146,7 +146,7 @@ var tech_tree = {
 	"xeno_archaeology": {
 		"name": "Xeno-Archaeology",
 		"description": "Unlocks:\n• Analyze Void Artifact",
-		"cost": 2000,
+		"cost": 5000,
 		"cost_items": {"VoidArtifact": 1, "NavData": 5},
 		"type": "technology",
 		"parent": "sector_alpha_decryption"
@@ -154,7 +154,7 @@ var tech_tree = {
 	"warp_drive": {
 		"name": "Warp Drive Theory",
 		"description": "Unlocks:\n• Galaxy Map\n• Deep Space Navigation (Operations)",
-		"cost": 5000,
+		"cost": 12500,
 		"cost_items": {"NavData": 50, "Ti": 200, "Res3": 10},
 		"type": "technology",
 		"parent": "shipwright_2"
@@ -163,7 +163,7 @@ var tech_tree = {
 	"asteroid_clearance": {
 		"name": "Asteroid Belt Clearance",
 		"description": "Unlocks:\n• Asteroid Belt zone\n• Claim Jumper enemy\n• [Requires: Shipwright I (Ships)]",
-		"cost": 2500,
+		"cost": 6250,
 		# Cost Fix: PirateManifest replaced with Credits/Material, as Manifest drops IN zone
 		"cost_items": {"Scrap": 50, "Fe": 200, "Si": 100},
 		"type": "technology",
@@ -172,7 +172,7 @@ var tech_tree = {
 	"mars_license": {
 		"name": "Mars Sector License",
 		"description": "Unlocks:\n• Mars Debris Field zone\n• Derelict Frigate enemy",
-		"cost": 10000,
+		"cost": 25000,
 		# Cost Fix: StolenCargo is fine (Asteroid drop), NavData (Belt Rare)
 		"cost_items": {"StolenCargo": 5, "NavData": 5, "Steel": 50},
 		"type": "technology",
@@ -181,7 +181,7 @@ var tech_tree = {
 	"outer_system_auth": {
 		"name": "Outer System Authorization",
 		"description": "Unlocks:\n• Titan's Halo zone\n• Pirate Gunship enemy",
-		"cost": 25000,
+		"cost": 62500,
 		# Cost Fix: ColonySalvage replaced with Res2 (Mars drop) - ColonySalvage is Sector Beta
 		"cost_items": {"Res2": 10, "Steel": 100, "Circuit": 20},
 		"type": "technology",
@@ -190,7 +190,7 @@ var tech_tree = {
 	"deep_space_expedition": {
 		"name": "Deep Space Expedition",
 		"description": "Unlocks:\n• Sector Beta, Gamma, Delta zones\n• Endgame enemies",
-		"cost": 100000,
+		"cost": 250000,
 		"cost_items": {"VoidArtifact": 3, "Res3": 25, "AdvCircuit": 25},
 		"type": "technology",
 		"parent": "outer_system_auth"
