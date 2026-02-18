@@ -89,6 +89,7 @@ func set_active_manager(manager):
 
 func save_game():
 	var save_data = {
+		"version": 1, # Audit v1.0: Added versioning
 		"resources": resources.get_save_data(),
 		"gathering": gathering_manager.get_save_data_manager(),
 		"processing": processing_manager.get_save_data_manager(),
@@ -103,12 +104,39 @@ func save_game():
 		"last_save_time": Time.get_unix_time_from_system()
 	}
 	
-	var file = FileAccess.open("user://savegame.json", FileAccess.WRITE)
+	# P0 Fix: Atomic Save Pattern
+	var path_final = "user://savegame.json"
+	var path_temp = "user://savegame.tmp"
+	var path_bak = "user://savegame.bak"
+	
+	var file = FileAccess.open(path_temp, FileAccess.WRITE)
 	if file:
 		file.store_string(JSON.stringify(save_data, "\t"))
-		print("Game Saved.")
+		file.close() # Ensure flush
+		
+		# Verify temp file exists
+		if FileAccess.file_exists(path_temp):
+			# Backup existing save
+			if FileAccess.file_exists(path_final):
+				var err = DirAccess.copy_absolute(path_final, path_bak)
+				if err != OK: print("Warning: Backup failed.")
+			
+			# Atomic Rename
+			var err = DirAccess.rename_absolute(path_temp, path_final)
+			if err == OK:
+				print("Game Saved Atomically.")
+			else:
+				print("CRITICAL: Failed to rename temp save file. Error: ", err)
+		else:
+			print("CRITICAL: Temp save file creation failed.")
 	else:
-		print("Failed to save game.")
+		print("Failed to open temp save file.")
+
+func migrate_save(data: Dictionary, from_version: int) -> Dictionary:
+	print("Migrating save from v%d..." % from_version)
+	# v0 -> v1 (Initial Versioning)
+	data["version"] = 1
+	return data
 
 func load_game():
 	if not FileAccess.file_exists("user://savegame.json"):
@@ -121,12 +149,19 @@ func load_game():
 	
 	if error == OK:
 		var data = json.data
+		
+		# Version Check & Migration
+		var ver = data.get("version", 0)
+		if ver < 1:
+			data = migrate_save(data, ver)
+			
 		resources.load_save_data(data.get("resources", {}))
 		gathering_manager.load_save_data_manager(data.get("gathering", {}))
-		processing_manager.load_save_data_manager(data.get("processing", {}))
 		infrastructure_manager.load_save_data_manager(data.get("infrastructure", {}))
 		shipyard_manager.load_save_data_manager(data.get("shipyard", {}))
 		research_manager.load_save_data_manager(data.get("research", {}))
+		# processing_manager load moved below to fix potential dependency order if needed
+		processing_manager.load_save_data_manager(data.get("processing", {}))
 		combat_manager.load_save_data_manager(data.get("combat", {}))
 		mission_manager.load_save_data_manager(data.get("mission", {}))
 		fleet_manager.load_save_data_manager(data.get("fleet", {}))

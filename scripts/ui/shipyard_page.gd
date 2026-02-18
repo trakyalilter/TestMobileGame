@@ -99,6 +99,7 @@ func refresh_list():
 	# Create racks - Hulls use HBoxContainer for horizontal slider feel
 	_create_rack("hulls", "Capital Hulls", Color(0.4, 0.9, 0.6, 0.5), rack_container, true)
 	_create_rack("kinetic", "Kinetic Weapons", Color(1.0, 0.32, 0.32, 0.5), rack_container)
+	_create_rack("explosive", "Explosive Weapons", Color(1.0, 0.5, 0.0, 0.5), rack_container) # Added
 	_create_rack("energy", "Energy Weapons", Color(0.0, 0.9, 1.0, 0.5), rack_container)
 	_create_rack("shield", "Shield Generators", Color(0.4, 0.6, 1.0, 0.5), rack_container)
 	_create_rack("engine", "Engine Systems", Color(0.8, 1.0, 0.2, 0.5), rack_container)
@@ -129,7 +130,9 @@ func refresh_list():
 		match type:
 			"weapon":
 				var stats = data.get("stats", {})
-				if stats.get("atk_kinetic", 0) > stats.get("atk_energy", 0):
+				if stats.get("atk_explosive", 0) > 0:
+					cat = "explosive"
+				elif stats.get("atk_kinetic", 0) > stats.get("atk_energy", 0):
 					cat = "kinetic"
 				else:
 					cat = "energy"

@@ -74,7 +74,7 @@ var tech_tree = {
 	},
 	"shipwright_1": {
 		"name": "Shipwright I",
-		"description": "Unlocks:\n• Industrial Frigate (T2)\n• Titanium Plating\n• Sector Scanning, Asteroid Belt Clearance (Operations)\n• [Requires: Efficient Smelting (Engineering)]",
+		"description": "Unlocks:\n• Industrial Frigate \n• Titanium Plating\n• Sector Scanning, Asteroid Belt Clearance (Operations)\n• [Requires: Efficient Smelting (Engineering)]",
 		"cost": 5000,
 		"cost_items": {"Res1": 20},
 		"type": "technology",
@@ -83,7 +83,7 @@ var tech_tree = {
 
 	"shipwright_2": {
 		"name": "Shipwright II",
-		"description": "Unlocks:\n• Escort Destroyer (T3)",
+		"description": "Unlocks:\n• Destroyer Class",
 		"cost": 5000,
 		"cost_items": {"Res2": 10},
 		"type": "technology",
@@ -122,7 +122,7 @@ var tech_tree = {
 
 	"automation": {
 		"name": "Factory Automation",
-		"description": "Unlocks:\n• Advanced Circuitry\n• Automated Assembly Line\n• Advanced Rocketry (Ships)",
+		"description": "Unlocks:\n• Advanced Circuit\n• Automated Assembly Line\n• Advanced Rocketry (Ships)",
 		"cost": 12500,
 		"cost_items": {"Res2": 25, "Circuit": 20},
 		"type": "technology",
@@ -139,9 +139,18 @@ var tech_tree = {
 	"sector_alpha_decryption": {
 		"name": "Sector Scanning (Alpha)",
 		"description": "Unlocks:\n• Sector Alpha\n• [Requires: Shipwright I (Ships)]",
-		"cost_items": {"NavData": 10, "PirateManifest": 10, "TitanClearance": 1},
+		# P0 Fix: Removed TitanClearance (Zone 4) dependency to allow progression
+		"cost_items": {"NavData": 10, "PirateManifest": 10},
 		"type": "technology",
 		"parent": "shipwright_1"
+	},
+	"advanced_batteries": {
+		"name": "Advanced Battery Tech",
+		"description": "Unlocks:\n• Cobalt-Lithium Battery\n• Magnesium-Ion Cell\n• [Requires: Advanced Materials (Engineering)]",
+		"cost": 7500,
+		"cost_items": {"Co": 25, "Mg": 25, "Li": 25},
+		"type": "technology",
+		"parent": "adv_materials"
 	},
 	"xeno_archaeology": {
 		"name": "Xeno-Archaeology",
@@ -189,7 +198,7 @@ var tech_tree = {
 	},
 	"deep_space_expedition": {
 		"name": "Deep Space Expedition",
-		"description": "Unlocks:\n• Sector Beta, Gamma, Delta zones\n• Endgame enemies",
+		"description": "Unlocks:\n• [Requires: Outer System Authorization]\n• Prerequisite for Sector Zeta access",
 		"cost": 250000,
 		"cost_items": {"VoidArtifact": 3, "Res3": 25, "AdvCircuit": 25},
 		"type": "technology",
@@ -198,7 +207,7 @@ var tech_tree = {
 	# v57.1: Sector Zeta research requirement
 	"quarantine_protocols": {
 		"name": "Quarantine Protocols",
-		"description": "Unlocks:\n• Sector Zeta zone",
+		"description": "Unlocks:\n• Sector Zeta zone\n• [Requires: Deep Space Expedition]",
 		"cost": 150000,
 		"cost_items": {"Res3": 40, "VoidCrystal": 10, "AdvCircuit": 30},
 		"type": "technology",
@@ -522,7 +531,7 @@ var tech_tree = {
 	# --- END-GAME SHIPS (NEW) ---
 	"capital_ship_engineering": {
 		"name": "Capital Ship Doctrine",
-		"description": "Unlocks:\n• Battlecruiser (T4)\n• Coil Cannon\n• Antimatter Engine",
+		"description": "Unlocks:\n• Battlecruiser Class \n• Coil Cannon\n• Antimatter Engine",
 		"cost": 500000,
 		"cost_items": {"VoidArtifact": 20,"NavData": 75, "Res3":75}, # Audit v20.0: Added ColonyDataCore (Overseer Drop)
 		"type": "technology",
@@ -538,7 +547,7 @@ var tech_tree = {
 	},
 	"quantum_dynamics": {
 		"name": "Quantum Dynamics",
-		"description": "Unlocks:\n• Dreadnought (T5)",
+		"description": "Unlocks:\n• Dreadnought Class ",
 		"cost": 5000000,
 		"cost_items": {"QuantumCore": 20, "VoidArtifact": 50, "ColonyDataCore": 50,"Res3": 500},
 		"type": "technology",
@@ -548,7 +557,7 @@ var tech_tree = {
 		"name": "Broadside Tactics",
 		"description": "Unlocks:\n• Broadside Integrated Array (Burst Module)",
 		"cost": 250000,
-		"cost_items": {"Res3": 25, "AdvCircuit": 50},
+		"cost_items": {"Res3": 25, "AdvCircuit": 50, "TurretCore": 1},
 		"type": "technology",
 		"parent": "capital_ship_engineering"
 	},
@@ -565,7 +574,7 @@ var tech_tree = {
 		"name": "Radiation Shielding Theory",
 		"description": "Unlocks:\n• Sector Gamma (Radioactive)\n• High-Energy Gamma Optics (Ships)",
 		"cost": 250000,
-		"cost_items": {"Co": 50, "Al": 100, "Rh": 5, "Circuit": 30},
+		"cost_items": {"Co": 50, "Al": 100, "Superalloy": 25, "AdvCircuit": 15},
 		"type": "technology",
 		"parent": "deep_space_nav"
 	},
@@ -586,17 +595,10 @@ var tech_tree = {
 		"type": "technology",
 		"parent": "smelting"
 	},
-	"advanced_batteries": {
-		"name": "Advanced Battery Technology",
-		"description": "Unlocks:\n• Li-Co Battery\n• Mg-Ion Battery\n• [Requires: Applied Physics (Engineering)]",
-		"cost": 8000,
-		"cost_items": {"Co": 30, "Li": 50, "Circuit": 15},
-		"type": "technology",
-		"parent": "applied_physics"
-	},
+
 	"superalloy_engineering": {
 		"name": "Superalloy Engineering",
-		"description": "Unlocks:\n• Cobalt Superalloy",
+		"description": "Unlocks:\n• Superalloy",
 		"cost": 100000,
 		"cost_items": {"Co": 100, "Ni": 100, "Cr": 50, "Ti": 100},
 		"type": "technology",
@@ -629,7 +631,7 @@ var tech_tree = {
 	},
 	"iridium_metallurgy": {
 		"name": "Iridium Metallurgy",
-		"description": "Unlocks:\n• Iridium Mining\n• Iridium Armor",
+		"description": "Unlocks:\n• Iridium Extraction\n• Iridium Armor Plating",
 		"cost": 40000,
 		"cost_items": {"Pt": 50, "Res3": 10},
 		"type": "technology",
@@ -637,7 +639,7 @@ var tech_tree = {
 	},
 	"exotic_metallurgy": {
 		"name": "Exotic Metallurgy",
-		"description": "Unlocks:\n• Osmium Harvesting\n• Osmium Armor",
+		"description": "Unlocks:\n• Osmium Harvesting\n• Osmium Armor Plating",
 		"cost": 2000000,
 		"cost_items": {"Ir": 100, "Res3": 50},
 		"type": "technology",
@@ -673,7 +675,7 @@ var tech_tree = {
 		"name": "Void Navigation",
 		"description": "Unlocks:\n• Sector Epsilon - The Void\n• Void Rift Anchor (Auto)\n• Chrono-Siphon (Auto)\n• Void Weaponry/Shielding Optimization (Ships)",
 		"cost": 50000000,
-		"cost_items": {"QuantumCore": 30, "VoidCrystal": 50, "ExoticMatter": 20, "AncientTech": 5, "QuarantineClearance": 1},  # v58.0: Added clearance req
+		"cost_items": {"QuantumCore": 30, "VoidCrystal": 50, "ExoticMatter": 20, "AncientTech": 5, "QuarantineClearance": 1, "BiohazardSample": 20},  # v58.0: Added clearance req
 		"type": "technology",
 		"parent": "void_physics"
 	},
@@ -682,7 +684,7 @@ var tech_tree = {
 		"name": "Void Weaponry Optimization",
 		"description": "Bonus:\n• +20% Total Ship Damage\n• [Requires: Void Navigation (Operations)]",
 		"cost": 100000000,
-		"cost_items": {"VoidEssence": 50, "ChronoCore": 20, "PrimordialShard": 5},
+		"cost_items": {"VoidEssence": 50, "ChronoCore": 20, "PrimordialShard": 5, "MutatedTissue": 10},
 		"type": "technology",
 		"parent": "void_navigation"
 	},
@@ -690,7 +692,7 @@ var tech_tree = {
 		"name": "Void Shielding Optimization",
 		"description": "Bonus:\n• +20% Total Ship Shields\n• [Requires: Void Navigation (Operations)]",
 		"cost": 100000000,
-		"cost_items": {"OmegaPlating": 50, "VoidEssence": 20, "PrimordialShard": 5},
+		"cost_items": {"OmegaPlating": 50, "VoidEssence": 20, "PrimordialShard": 5, "Os": 25, "MutatedTissue": 10},
 		"type": "technology",
 		"parent": "void_navigation"
 	},
@@ -739,7 +741,7 @@ var tech_tree = {
 		"name": "Carbon Hull Lattice",
 		"description": "Bonus:\n• +15% Ship Max HP\n• [Requires: Organic Combustion (Engineering)]",
 		"cost": 1200,
-		"cost_items": {"Res1": 5},
+		"cost_items": {"Res1": 5, "MiteChitin": 50},
 		"type": "technology",
 		"parent": "combustion"
 	},
@@ -804,7 +806,7 @@ var tech_tree = {
 		"name": "Emergency Auto-Repair I",
 		"description": "Automatically uses equipped hull/shield consumables when integrity drops below 20%.",
 		"cost": 5000,
-		"cost_items": {"Res1": 10},
+		"cost_items": {"Res1": 10, "MiteChitin": 25, "Mesh": 5},
 		"type": "technology",
 		"parent": "hull_hardening"
 	},
@@ -812,7 +814,7 @@ var tech_tree = {
 		"name": "Emergency Auto-Repair II",
 		"description": "Increases auto-repair threshold to 40%.",
 		"cost": 15000,
-		"cost_items": {"Res2": 5},
+		"cost_items": {"Res2": 5, "Seal": 10, "Mesh": 10},
 		"type": "technology",
 		"parent": "auto_repair_20"
 	},

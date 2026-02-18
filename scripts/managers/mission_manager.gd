@@ -76,16 +76,19 @@ func init_missions():
 		["m026", "Master Constructor", "Research 'Shipwright I' for hull reinforcement.", "research", "shipwright_1", 1, 5000, 500, "m026b"],
 		# P0-25: Missing Beepings - Fleet Modernization I
 		["m026b", "Fleet Modernization I", "Construct an 'Industrial Frigate' in the Shipyard.", "construct", "frigate_hull", 1, 10000, 1000, "m027"],
-		["m027", "Scanning Horizon", "Unlock 'Sector Alpha' via decryption.", "research", "sector_alpha_decryption", 1, 5000, 500, "m028"],
-		["m028", "Deep Field Mining", "Mine 1000 Cassiterite in Sector Alpha.", "gather", "Cassiterite", 1000, 10000, 2000, "m029"],
+		# P0 Fix: Progression Deadlock Re-alignment
+		["m027", "Scanning Horizon", "Unlock 'Asteroid Belt' to expand operations.", "research", "asteroid_clearance", 1, 5000, 500, "m028"],
+		["m028", "Belt Mining", "Mine 1000 Cassiterite in the Asteroid Belt.", "gather", "Cassiterite", 1000, 10000, 2000, "m029"],
 		["m029", "Hardened Shell", "Craft 'Titanium Plating' in the Shipyard.", "craft", "titanium_armor", 1, 15000, 5000, "m030"],
 		# P0-31: Fabricator Paradox Fix - Shipwright II moved before Fabricator
 		["m030", "Naval Expansion", "Research 'Shipwright II' to unlock Destroyer-class hulls.", "research", "shipwright_2", 1, 4000, 1000, "m030b"],
 		["m030b", "Deep Space Comms", "Build a 'Fabricator' to prepare for the long journey.", "build", "fabricator", 1, 30000, 5000, "m030c"],
 		# P0-25: Missing Beepings - Fleet Modernization II
 		["m030c", "Fleet Modernization II", "Construct an 'Escort Destroyer' in the Shipyard.", "construct", "destroyer_hull", 1, 25000, 2000, "m031"],
-		["m031", "Belt Bound", "Research 'Warp Drive Theory' to reach the Belt.", "research", "warp_drive", 1, 50000, 10000, "m032"],
-		["m032", "Alpha Sector Dominance", "Defeat 10 Pirate Skiffs in Sector Alpha to secure the region.", "defeat", "pirate_skiff", 10, 75000, 15000, "m032b"],
+		
+		# P0 Fix: Sector Alpha Push
+		["m031", "Deep Space Signal", "Unlock 'Sector Alpha' via decryption.", "research", "sector_alpha_decryption", 1, 50000, 10000, "m032"],
+		["m032", "Alpha Sector Dominance", "Defeat 3 Xenon Patrol Frigates in Sector Alpha.", "defeat", "alien_frigate", 3, 75000, 15000, "m032b"],
 		# P0-27: Unlock Sector Beta
 		["m032b", "Expanding Horizons", "Research 'Deep Space Navigation' to unlock Sector Beta.", "research", "deep_space_nav", 1, 50000, 5000, "m032c"],
 		# P0-28: Construct Battlecruiser

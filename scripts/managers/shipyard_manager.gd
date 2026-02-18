@@ -31,6 +31,7 @@ var ship_energy_gen = 0.0 # Phase 6: Reactor integration
 
 signal hull_constructed(hull_id)
 signal module_crafted(module_id)
+signal inventory_updated() # New signal for UI refresh
 
 var hulls: Dictionary = {
 	"corvette_hull": {
@@ -96,8 +97,8 @@ var modules: Dictionary = {
 	"mining_laser_mk2": {
 		"name": "Pulse Laser Mk.II", 
 		"slot_type": "weapon", 
-		"stats": {"atk_energy": 40, "energy_load": 15}, 
-		"cost": {"credits": 12500, "Si": 20, "Ti": 10, "Circuit": 10, "Chip": 10},
+		"stats": {"atk_energy": 40, "energy_load": 15, "atk_interval": 1.5}, 
+		"cost": {"credits": 25000, "Si": 40, "Ti": 15, "Circuit": 15, "Chip": 10},
 		"desc": "High intensity beam. Melts shields.",
 		"research_req": "laser_optics"
 	},
@@ -112,7 +113,7 @@ var modules: Dictionary = {
 	"targeting_computer": {
 		"name": "Targeting Computer",
 		"slot_type": "weapon",
-		"stats": {"atk_kinetic": 15, "atk_energy": 15, "accuracy": 25, "energy_load": 5},  # Audit v40.0: Buffed ATK 5→15
+		"stats": {"atk_kinetic": 15, "atk_energy": 15, "accuracy": 25, "energy_load": 5, "atk_interval": 2.5},  # Audit v40.0: Buffed ATK 5215
 		"cost": {"credits": 750, "Chip": 10, "Si": 20},
 		"desc": "Advanced analytics. +25 Accuracy for all weapons.",
 		"research_req": "automated_logistics"
@@ -120,8 +121,8 @@ var modules: Dictionary = {
 	"cryo_laser_mk3": {
 		"name": "Cryo-Cooled Laser Mk.III",
 		"slot_type": "weapon",
-		"stats": {"atk_energy": 80, "energy_load": 20},
-		"cost": {"credits": 1125000, "Ti": 30, "CoolantCell": 5, "AdvCircuit": 3},
+		"stats": {"atk_energy": 80, "energy_load": 20, "atk_interval": 1.0},
+		"cost": {"credits": 2500000, "Ti": 50, "CoolantCell": 10, "AdvCircuit": 5},
 		"desc": "Helium-cooled beam. Extreme shield damage.",
 		"research_req": "cryogenic_systems"
 	},
@@ -201,11 +202,11 @@ var modules: Dictionary = {
 	},
 	# Electronic Warfare
 	"signal_jammer": {
-		"name": "Signal Jammer",
-		"slot_type": "sensor",
-		"stats": {"jamming_strength": 0.10, "energy_load": 15},
-		"cost": {"credits": 8000, "Circuit": 15, "Magnet": 5},
-		"desc": "Disrupts comms. Slows enemies by 10%.",
+		"name": "Signal Jammer", 
+		"slot_type": "sensor", 
+		"stats": {"jamming_strength": 0.15, "energy_load": 25}, 
+		"cost": {"credits": 50000, "SuperconductingMagnet": 5, "Circuit": 25},
+		"desc": "Disrupts enemy targeting. Reduces enemy attack speed by 15%.",
 		"research_req": "basic_electronics"
 	},
 	"stasis_web": {
@@ -262,7 +263,7 @@ var modules: Dictionary = {
 		"name": "Graphite Armor",
 		"slot_type": "shield", 
 		"stats": {"def": 35, "hp": 250}, 
-		"cost": {"credits": 5000, "Graphite": 20},
+		"cost": {"credits": 8000, "Graphite": 50, "Ti": 10},
 		"desc": "Ablative carbon armor. Increases Hull & Armor.",
 		"research_req": "adv_materials"
 	},
@@ -319,7 +320,7 @@ var modules: Dictionary = {
 		"name": "Coil Cannon",
 		"slot_type": "weapon",
 		"stats": {"atk_kinetic": 100, "energy_load": 25, "atk_interval": 4.0},
-		"cost": {"credits": 1000000, "Steel":300, "AdvCircuit": 100, "Superalloy": 75},
+		"cost": {"credits": 2000000, "Steel": 500, "AdvCircuit": 150, "Superalloy": 100, "Diamond": 5},
 		"desc": "Devastating kinetic damage. Hull shredder.",
 		"research_req": "capital_ship_engineering"
 	},
@@ -369,7 +370,7 @@ var modules: Dictionary = {
 	"stainless_armor": {
 		"name": "Stainless Steel Armor",
 		"slot_type": "shield",
-		"stats": {"def": 30, "hp": 180},
+		"stats": {"def": 50, "hp": 350},
 		"cost": {"credits": 12000, "StainlessSteel": 25},
 		"desc": "Superior corrosion resistance. Excellent mid-tier protection.",
 		"research_req": "metallurgy_advanced"
@@ -418,10 +419,10 @@ var modules: Dictionary = {
 		"hardened": true
 	},
 	"osmium_core_module": {
-		"name": "Osmium Reactor Core",
+		"name": "Osmium Armor Plating",
 		"slot_type": "shield",
 		"stats": {"hp": 5000, "def": 50},
-		"cost": {"credits": 12500000, "OsCore": 3},
+		"cost": {"credits": 12500000, "OsCore": 3, "Os": 25},
 		"desc": "Densest material. Massive HP boost. Immunity to armor piercing. (Hardened)",
 		"research_req": "exotic_metallurgy",
 		"hardened": true
@@ -446,16 +447,16 @@ var modules: Dictionary = {
 	"iridium_penetrator": {
 		"name": "Iridium-Tungsten Penetrator",
 		"slot_type": "weapon",
-		"stats": {"atk_kinetic": 350, "energy_load": 30},
-		"cost": {"credits": 12000, "IrWAlloy": 30, "Circuit": 20},
+		"stats": {"atk_kinetic": 350, "energy_load": 30, "atk_interval": 3.0},
+		"cost": {"credits": 12000000, "IrWAlloy": 30, "Circuit": 20},
 		"desc": "Armor-piercing penetrator. Ignores 50% of enemy armor.",
 		"research_req": "iridium_metallurgy"
 	},
 	"platinum_laser": {
 		"name": "Platinum-Enhanced Laser",
 		"slot_type": "weapon",
-		"stats": {"atk_energy": 300, "energy_load": 35},
-		"cost": {"credits": 5000000, "Pt": 20, "Si": 100, "AdvCircuit": 15},
+		"stats": {"atk_energy": 300, "energy_load": 35, "atk_interval": 2.0},
+		"cost": {"credits": 5000000, "Pt": 20, "Si": 100, "AdvCircuit": 15, "SyntheticCrystal": 5},
 		"desc": "Pt-coated optics. Superior energy damage.",
 		"research_req": "industrial_catalysis"
 	},
@@ -464,7 +465,7 @@ var modules: Dictionary = {
 		"name": "Reactive Plate Alpha",
 		"slot_type": "shield",
 		"stats": {"hp": 1000, "def": 20},
-		"cost": {"credits": 1500000, "Superalloy": 50, "AdvCircuit": 10, "AncientComponent": 5},
+		"cost": {"credits": 1500000, "Superalloy": 50, "AdvCircuit": 10, "AncientComponent": 5, "ReactiveCore": 2},
 		"desc": "(Unique) Adaptive plating. Reduces incoming damage as Hull decreases.",
 		"research_req": "superalloy_engineering",
 		"unique_id": "reactive_armor_effect"
@@ -472,7 +473,7 @@ var modules: Dictionary = {
 	"plasma_overcharger": {
 		"name": "Plasma Overcharger",
 		"slot_type": "weapon",
-		"stats": {"atk_energy": 100, "energy_load": 50},  # Audit v40.0: Buffed ATK 20→100
+		"stats": {"atk_energy": 100, "energy_load": 50, "atk_interval": 2.5},  # Audit v40.0: Buffed ATK 202100
 		"cost": {"credits": 1000000, "AdvCircuit": 50, "Superalloy":75},
 		"desc": "(Unique) Heavily boosts Energy Damage but consumes massive Reactor power.",
 		"research_req": "energy_metrics",
@@ -518,7 +519,7 @@ var modules: Dictionary = {
 		"name": "Chrono Stabilizer",
 		"slot_type": "shield",
 		"stats": {"max_shield": 800, "shield_regen": 20},
-		"cost": {"credits": 8000000, "ChronoCore": 5, "QuantumCore": 15, "AdvCircuit": 30},
+		"cost": {"credits": 8000000, "ChronoCore": 5, "QuantumCore": 15, "AdvCircuit": 30, "ExoticIsotope": 10},
 		"desc": "(Endgame) Temporal field. Slows enemy attack speed by 20%.",
 		"research_req": "void_navigation",
 		"unique_id": "chrono_slow_effect"
@@ -588,8 +589,8 @@ var modules: Dictionary = {
 	"ai_targeting_system": {
 		"name": "AI Targeting System",
 		"slot_type": "weapon",
-		"stats": {"atk_kinetic": 10, "atk_energy": 10, "crit_chance": 0.20, "accuracy": 25},
-		"cost": {"credits": 50000, "AICore": 3, "AdvCircuit": 10},
+		"stats": {"atk_kinetic": 10, "atk_energy": 10, "crit_chance": 0.20, "accuracy": 25, "atk_interval": 2.5},
+		"cost": {"credits": 50000, "AICore": 3, "AdvCircuit": 10, "TurretCore": 1},
 		"desc": "(Unique) Neural network targeting. +20% Crit Chance, +25 Accuracy.",
 		"research_req": "industrial_automation",
 		"unique_id": "ai_targeting_effect"
@@ -608,7 +609,7 @@ var modules: Dictionary = {
 	"diamond_edge_railgun": {
 		"name": "Diamond-Edge Railgun",
 		"slot_type": "weapon",
-		"stats": {"atk_kinetic": 600, "energy_load": 40},
+		"stats": {"atk_kinetic": 600, "energy_load": 40, "atk_interval": 4.0},
 		"cost": {"credits": 200000, "Diamond": 10, "W": 50, "Steel": 200},
 		"desc": "Hyper-velocity penetrator. Best-in-class kinetic damage.",
 		"research_req": "exotic_matter_analysis"
@@ -617,8 +618,8 @@ var modules: Dictionary = {
 	"crystal_lens_laser": {
 		"name": "Crystal Lens Laser",
 		"slot_type": "weapon",
-		"stats": {"atk_energy": 700, "energy_load": 50},
-		"cost": {"credits": 250000, "SyntheticCrystal": 10, "Si": 500, "AdvCircuit": 30},
+		"stats": {"atk_energy": 800, "energy_load": 50, "atk_interval": 1.0},
+		"cost": {"credits": 15000000, "SyntheticCrystal": 25, "VoidCrystal": 10, "AdvCircuit": 50},
 		"desc": "Focused coherent light. Best-in-class energy damage.",
 		"research_req": "exotic_matter_analysis"
 	}
@@ -700,6 +701,7 @@ func craft_module(module_id: String) -> bool:
 			
 	module_inventory[module_id] = module_inventory.get(module_id, 0) + 1
 	module_crafted.emit(module_id)
+	inventory_updated.emit() # Fix: Signal for UI update
 	return true
 
 func equip_module(slot_idx: int, module_id: String) -> bool:
@@ -741,10 +743,6 @@ func equip_module(slot_idx: int, module_id: String) -> bool:
 	potential_load += mod_data["stats"].get("energy_load", 0)
 	
 	# Note: Energy Capacity is hull + modules. We need to check against TOTAL capacity.
-	# Since capacity can change based on module being equipped/unequipped, 
-	# we do a simple check: is the new module adding more load than the ship currently has room for?
-	# However, it's safer to allow the equip and let recalc_stats() handle the "Grid Overloaded" state 
-	# or just block after calculation. Let's stick to blocking if total load > current capacity.
 	var current_cap = hulls[active_hull]["stats"].get("energy_capacity", 100.0)
 	for s_idx in loadout:
 		if s_idx == slot_idx: continue
@@ -766,6 +764,7 @@ func equip_module(slot_idx: int, module_id: String) -> bool:
 	loadout[slot_idx] = module_id
 	
 	recalc_stats()
+	inventory_updated.emit() # Fix: Signal for UI update
 	
 	# Auto-Equip Ammo if slot is empty (QoL Fix)
 	if mod_data["slot_type"] == "weapon" and not ammo_loadout.get(slot_idx):
@@ -777,21 +776,21 @@ func equip_module(slot_idx: int, module_id: String) -> bool:
 		# v65.0 Fix: Auto-equip for Explosive weapons mismatch
 		elif stats.get("atk_explosive", 0) > 0:
 			# For explosive, we use "missile" (HE Missiles)
-			# Note: Ammo is a RESOURCE, not a MODULE. Check GameState.resources.
 			if GameState.resources.get_element_amount("missile") > 0:
 				ammo_loadout[slot_idx] = "missile"
-			# Fallback if no specific explosive ammo is found
 			else:
 				print("Equip: No explosive ammo (missile) found in resources for auto-equip.")
-			
 	return true
 
 func unequip_slot(slot_idx: int):
 	var existing = loadout.get(slot_idx)
 	if existing:
 		module_inventory[existing] = module_inventory.get(existing, 0) + 1
-		loadout[slot_idx] = null
+		loadout.erase(slot_idx)
+		# Fix Medium: Clear ammo slot on unequip
+		ammo_loadout.erase(slot_idx)
 		recalc_stats()
+		inventory_updated.emit() # Fix: Signal for UI update
 
 func set_slot_ammo(slot_idx: int, ammo_id: String):
 	ammo_loadout[slot_idx] = ammo_id

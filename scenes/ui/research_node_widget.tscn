@@ -69,10 +69,13 @@ theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
 
-[node name="Label" type="Label" parent="TooltipPanel/MarginContainer"]
+[node name="Label" type="RichTextLabel" parent="TooltipPanel/MarginContainer"]
 custom_minimum_size = Vector2(160, 0)
 layout_mode = 2
 text = "Description..."
+bbcode_enabled = true
+fit_content = true
+scroll_active = false
 autowrap_mode = 2
 
 [connection signal="gui_input" from="." to="." method="_on_gui_input"]

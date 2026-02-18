@@ -309,7 +309,7 @@ var enemy_db = {
 	"colony_overseer": {
 		"name": "Colony Overseer AI",
 		"stats": {"hp": 80000, "max_shield": 40000, "atk": 600, "def": 150, "atk_interval": 3.5, "accuracy": 120, "jammer": true},
-		"loot": [["AdvCircuit", 10, 20], ["ColonySalvage", 20, 40], ["ColonyDataCore", 1, 1]],
+		"loot": [["AdvCircuit", 20, 30], ["ColonySalvage", 20, 40], ["ColonyDataCore", 5, 7]],
 		"rare_loot": [["Pd", 0.3, 2, 5], ["AICore", 0.25, 1, 1], ["Chip", 0.25, 5, 10]],
 		"xp": 20000
 	},
@@ -600,7 +600,7 @@ func spawn_enemy():
 					"dmg_e": m_stats.get("atk_energy", 0) * weapon_skill_mult,
 					"dmg_x": m_stats.get("atk_explosive", 0) * weapon_skill_mult,
 					"slot_idx": int(s_idx),
-					"energy_load": m_data.get("energy_load", 0)
+					"energy_load": m_stats.get("energy_load", 0)
 				})
 	if equipped_weapons.is_empty():
 		var h_stats = sm.hulls[sm.active_hull]["stats"]
@@ -723,11 +723,6 @@ func _execute_player_attack(weapon_idx: int):
 	var w = player_weapon_states[weapon_idx]
 	var sm = GameState.shipyard_manager
 	if overheat_lock > 0: return
-	var e_cost = w.get("energy_load", 0) * 0.1
-	if GameState.resources.get_energy() < e_cost:
-		log_msg("LACK OF ENERGY: Weapon Offline!")
-		return
-	GameState.resources.add_energy(-e_cost)
 	if is_jammed and randf() < 0.25:
 		combat_events.append({"type": "miss", "text": "JAMMED", "color": Color.ORANGE, "side": "enemy"})
 		return
@@ -760,7 +755,7 @@ func _execute_player_attack(weapon_idx: int):
 				break
 	
 	var ammo_id = sm.ammo_loadout.get(w["slot_idx"])
-	var requires_ammo = (w["type"] == "kinetic" and w["slot_idx"] != -1)
+	var requires_ammo = (w["type"] == "kinetic" or w["type"] == "explosive") and w["slot_idx"] != -1
 	
 	if ammo_id and ammo_id != "":
 		if GameState.resources.get_element_amount(ammo_id) > 0:
@@ -928,10 +923,6 @@ func _trigger_consumable(item_id: String, sm: Object):
 		log_msg("Used %s: Boosted %d Shield" % [dname, amt])
 
 func _execute_broadside_burst():
-	var e_cost = 100.0
-	if GameState.resources.get_energy() < e_cost: return
-	GameState.resources.add_energy(-e_cost)
-	
 	var total_atk_k = 0.0
 	for w in player_weapon_states:
 		if w["type"] == "kinetic": total_atk_k += w["dmg_k"]

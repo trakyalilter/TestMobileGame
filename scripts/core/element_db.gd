@@ -249,3 +249,37 @@ func get_elements_in_category(category: String) -> Array:
 ## Get consumable data (type, heal_pct)
 func get_consumable_data(id: String) -> Dictionary:
 	return CONSUMABLE_DATA.get(id, {})
+
+# v62.0: Dynamic Data Loading
+var ELEMENT_DATA = {}
+
+func _ready():
+	_load_element_data()
+
+func _load_element_data():
+	var file = FileAccess.open("res://assets/elements.json", FileAccess.READ)
+	if not file:
+		push_error("ElementDB: Could not open elements.json")
+		return
+	
+	var json = JSON.new()
+	var error = json.parse(file.get_as_text())
+	if error == OK:
+		var data = json.get_data()
+		if typeof(data) == TYPE_ARRAY:
+			for item in data:
+				if "symbol" in item:
+					ELEMENT_DATA[item["symbol"]] = item
+	else:
+		push_error("ElementDB: JSON Parse Error")
+
+func get_element_value(symbol: String) -> int:
+	if symbol in ELEMENT_DATA:
+		return int(ELEMENT_DATA[symbol].get("base_value", 0))
+	# Fallback for hardcoded categories if needed, but mostly should be in JSON
+	return 0
+
+func get_element_description(symbol: String) -> String:
+	if symbol in ELEMENT_DATA:
+		return ELEMENT_DATA[symbol].get("description", "")
+	return ""

@@ -28,6 +28,7 @@ var graphs = {
 			# Exploration / Sectors
 			"sector_alpha_decryption", "deep_space_nav", "radiation_shielding", 
 			"exotic_matter_analysis", "void_physics", "void_navigation",
+			"field_theory", # Added missing node
 			
 			# Missing Techs Restored (Audit)
 			"eff_scanning_1", "xeno_archaeology",
@@ -51,6 +52,7 @@ var graphs = {
 
 			# Branch 4: Utility & Gases
 			"energy_shields": Vector2(40, 370),
+			"field_theory": Vector2(40, 430), # Restored (Child of Energy Fields)
 			"magnetic_funnels": Vector2(240, 370),
 			"eff_scanning_1": Vector2(40, 480), # Restored
 			"deep_core_optics": Vector2(240, 480), # Shifted right
@@ -97,7 +99,7 @@ var graphs = {
 			"mass_production_tactics", "nano_fabrication", "data_clustering",
 			"precious_metal_refining", "industrial_catalysis", "fuel_cell_tech",
 			"colony_automation", "perfect_automation",
-			"basic_electronics"
+			"basic_electronics", "advanced_batteries" # Added advanced_batteries
 		],
 		"pos": {
 			"basic_engineering": Vector2(40, 400),
@@ -520,7 +522,6 @@ func refresh_all():
 		for child in container.get_children():
 			if child.has_method("update_state"):
 				child.update_state()
-	update_ui()
 
 func get_node_widget(tech_id: String) -> Control:
 	for tab_name in graphs:
@@ -530,13 +531,3 @@ func get_node_widget(tech_id: String) -> Control:
 			if child.get("nid") == tech_id:
 				return child
 	return null
-
-func _process(delta):
-	# Poll for currency upates
-	update_ui()
-
-func update_ui():
-	# Update text
-	if not manager: return
-	# Credits now handled by GlobalHeader
-	pass

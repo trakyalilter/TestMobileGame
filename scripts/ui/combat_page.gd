@@ -2,7 +2,7 @@ extends Control
 
 @onready var zone_list = $Dashboard/Visualizer/HUD/Overlays/SectorOverlay/VBox/ZoneList
 @onready var enemy_container = $Dashboard/Visualizer/HUD/Overlays/TargetingOverlay/VBox/Scroll/EnemyList
-@onready var log_list = $Dashboard/Visualizer/HUD/Overlays/BottomRegion/LogOverlay/VBox/LogList
+
 
 # Arena Refs
 @onready var visualizer = $Dashboard/Visualizer
@@ -63,7 +63,7 @@ func _ready():
 	# PHASE 47: DIEGETIC DE-BOXING
 	UITheme.apply_holographic_projection($Dashboard/Visualizer/HUD/Overlays/SectorOverlay, "shipyard")
 	UITheme.apply_holographic_projection($Dashboard/Visualizer/HUD/Overlays/TargetingOverlay, "combat")
-	UITheme.apply_holographic_projection($Dashboard/Visualizer/HUD/Overlays/BottomRegion/LogOverlay, "ops")
+	UITheme.apply_holographic_projection($Dashboard/Visualizer/HUD/Overlays/TargetingOverlay, "combat")
 	UITheme.apply_holographic_projection(ammo_overlay, "inventory")
 	UITheme.apply_holographic_projection(scanner_overlay, "research")
 	
@@ -331,13 +331,7 @@ func update_ui():
 		scan_lbl.text = "SCANNING FOR ANOMALIES..."
 
 	# Log - DISABLED (User Request)
-	# if log_list.item_count != manager.combat_log.size():
-	# 	log_list.clear() 
-	# 	for msg in manager.combat_log:
-	# 		log_list.add_item(msg)
-	# 	log_list.ensure_current_is_visible() 
-	# 	if log_list.item_count > 0:
-	# 		log_list.select(log_list.item_count - 1)
+	# Log Removed
 
 	# Retreat Btn
 	btn_retreat.disabled = not manager.in_combat

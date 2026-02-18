@@ -43,8 +43,7 @@ func _update_stats_text():
 		s_txt += "%s: %s\n" % [label, FormatUtils.format_stat_value(k, val)]
 	stats_lbl.text = s_txt.strip_edges()
 
-func _process(delta):
-	update_state()
+
 
 func update_state():
 	var owned = manager.module_inventory.get(mid, 0)
