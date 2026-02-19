@@ -24,7 +24,7 @@ var card_scene = preload("res://scenes/ui/element_card.tscn")
 var empty_slot_scene = preload("res://scenes/ui/empty_slot.tscn")
 var cards = {} # {symbol: widget}
 var selected_card = null
-var min_slots = 48 # Increased from 40 for better grid
+var min_slots = 28
 var selected_element = null
 var price_val = 0
 var current_filter = "all"
@@ -262,7 +262,7 @@ func update_selection_view(data, amount):
 			
 	sel_desc.text = desc
 	
-	price_val = data.get("base_value", 1) 
+	price_val = data.get("base_value", 1)
 	price_lbl.text = "Unit Price: %s Cr" % UITheme.format_num(price_val)
 	
 	qty_spin.max_value = amount
@@ -329,7 +329,6 @@ func spawn_floating_text(text, color, target_widget):
 	
 	var center = target_widget.global_position + target_widget.size / 2.0
 	ft.setup(text, color, center)
-
 
 
 func _process(delta):

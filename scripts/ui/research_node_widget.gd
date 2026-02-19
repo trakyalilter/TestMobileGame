@@ -292,4 +292,3 @@ func _update_tooltip_position():
 func _on_mouse_exited():
 	desc_tip.visible = false
 	z_index = 0
-

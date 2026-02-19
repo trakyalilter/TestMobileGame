@@ -97,7 +97,8 @@ func _on_button_pressed():
 		# Equip to specific slot
 		if manager.module_inventory.get(mid, 0) > 0:
 			if manager.equip_module(target_slot_idx, mid):
-				UITheme.trigger_ui_thud(self, 10.0)
+				UITheme.trigger_ui_thud(btn, 6.0)
+				update_state()
 				if parent_ui.has_method("_build_slot_grid"):
 					parent_ui._build_slot_grid()
 		target_slot_idx = -1
@@ -105,7 +106,8 @@ func _on_button_pressed():
 	else:
 		# Craft module
 		if manager.craft_module(mid):
-			UITheme.trigger_ui_thud(self, 8.0)
+			UITheme.trigger_ui_thud(btn, 5.0)
+			update_state()
 
 # ─────────────────────────────────────────────────
 # SLOT HIGHLIGHTING

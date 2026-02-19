@@ -20,8 +20,16 @@ func _ready():
 	# Mission & Resource Integration
 	GameState.mission_manager.mission_updated.connect(_on_mission_updated)
 	if GameState.resources:
-		GameState.resources.element_added.connect(_on_resource_changed)
-		GameState.resources.currency_added.connect(_on_resource_changed)
+		if not GameState.resources.element_added.is_connected(_on_resource_changed):
+			GameState.resources.element_added.connect(_on_resource_changed)
+		if not GameState.resources.currency_added.is_connected(_on_resource_changed):
+			GameState.resources.currency_added.connect(_on_resource_changed)
+		if not GameState.resources.element_removed.is_connected(_on_resource_changed):
+			GameState.resources.element_removed.connect(_on_resource_changed)
+		if not GameState.resources.currency_removed.is_connected(_on_resource_changed):
+			GameState.resources.currency_removed.connect(_on_resource_changed)
+	if manager and not manager.inventory_updated.is_connected(_on_inventory_updated):
+		manager.inventory_updated.connect(_on_inventory_updated)
 	
 	# UI Robustness: Ensure parent containers don't block mouse events
 	$VBoxContainer/StatsPanel.mouse_filter = Control.MOUSE_FILTER_PASS
@@ -50,6 +58,9 @@ func _on_resource_changed(_a=null, _b=null):
 	for w in widgets:
 		if w.has_method("update_state"):
 			w.update_state()
+
+func _on_inventory_updated():
+	_on_resource_changed()
 
 func _update_repair_button():
 	if not repair_btn: return
@@ -149,6 +160,7 @@ func refresh_list():
 		var w = module_widget_scene.instantiate()
 		racks[cat].add_child(w)
 		w.setup(mid, data, manager, self)
+		w.update_state()
 		widgets.append(w)
 
 func _create_rack(id: String, title: String, color: Color, parent: Node, horizontal: bool = false):

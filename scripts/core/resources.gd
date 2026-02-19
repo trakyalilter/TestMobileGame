@@ -11,7 +11,7 @@ var currencies: Dictionary = {}
 var energy: float = 0.0
 var max_energy: float = 0.0
 var lifetime_credits: float = 0.0
-var base_slots: int = 48 # User requested minimum
+var base_slots: int = 28
 var storage_upgrades: int = 0 # Feature P65-X: Manual Storage Upgrade
 
 func _ready():

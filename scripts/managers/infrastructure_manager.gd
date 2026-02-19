@@ -1,6 +1,7 @@
 extends Skill
 
 signal activity_occurred
+signal building_constructed(building_id)
 
 var buildings: Dictionary = {}
 var building_throttles: Dictionary = {} # {building_id: 0.0 to 1.0}
@@ -685,6 +686,7 @@ func build(building_id: String) -> bool:
 		var count = get_building_count(building_id)
 		buildings[building_id] = count + 1
 		recalc_energy()
+		building_constructed.emit(building_id)
 		return true
 	return false
 

@@ -24,10 +24,16 @@ func connect_signals():
 			GameState.shipyard_manager.module_crafted.connect(_on_module_crafted)
 		if not GameState.shipyard_manager.hull_constructed.is_connected(_on_hull_constructed):
 			GameState.shipyard_manager.hull_constructed.connect(_on_hull_constructed)
+		if not GameState.shipyard_manager.inventory_updated.is_connected(_on_shipyard_updated):
+			GameState.shipyard_manager.inventory_updated.connect(_on_shipyard_updated)
 			
 	if GameState.combat_manager:
 		if not GameState.combat_manager.enemy_defeated.is_connected(_on_enemy_defeated):
 			GameState.combat_manager.enemy_defeated.connect(_on_enemy_defeated)
+			
+	if GameState.infrastructure_manager:
+		if not GameState.infrastructure_manager.building_constructed.is_connected(_on_building_constructed):
+			GameState.infrastructure_manager.building_constructed.connect(_on_building_constructed)
 			
 	sync_progress()
 
@@ -52,10 +58,10 @@ func init_missions():
 		# m006 Removed (Moved to m002b)
 		["m007", "Mobility Check", "Craft 'Ion Thrusters' in the Shipyard.", "craft", "basic_thruster", 1, 1000, 100, "m008"],
 		["m008", "Materials Science", "Research the 'Materials Science' hub.", "research", "materials_science", 1, 300, 100, "m009"],
-		["m009", "Deforestation", "Gather 100 units of Wood from the orbital debris.", "gather", "Wood", 100, 500, 100, "m010"],
+		["m009", "Deforestation", "Gather 100 units of Wood.", "gather", "Wood", 100, 500, 100, "m010"],
 		["m010", "Organic Combustion", "Research 'Organic Combustion' to unlock the Kiln.", "research", "combustion", 1, 500, 150, "m011"],
 		["m011", "Essential Carbon", "Use the Charcoal Kiln to produce 50 Carbon.", "gather", "C", 50, 600, 150, "m012"],
-		["m012", "Lithium Discovery", "Gather 60 Spodumene. (Hint: Build a Lithium Brine Well for efficiency).", "gather", "Spodumene", 60, 800, 200, "m013"],
+		["m012", "Lithium Discovery", "Gather 60 Lithium Ore. (Hint: Build a Lithium Brine Well for efficiency).", "gather", "Spodumene", 60, 800, 200, "m013"],
 		["m013", "Voltaic Storage", "Refine 30 Lithium in the Engineering tab.", "gather", "Li", 30, 1000, 250, "m020"],
 		["m014", "Ballistics Theory", "Research 'Kinetics 101' for weapons technology.", "research", "kinetics_101", 1, 1200, 100, "m015"],
 		["m015", "Prototype Arsenal", "Craft a 'Mass Driver' in the Shipyard.", "craft", "railgun_mk1", 1, 1500, 200, "m016"],
@@ -165,6 +171,12 @@ func _on_hull_constructed(hull_id):
 
 func _on_enemy_defeated(enemy_id):
 	_update_progress("defeat", enemy_id, 1)
+
+func _on_building_constructed(building_id):
+	_update_progress("build", building_id, 1)
+
+func _on_shipyard_updated():
+	sync_progress()
 
 func _update_progress(type, target, amount):
 	for mid in active_missions:
@@ -297,19 +309,32 @@ func sync_progress():
 			if current_tier >= target_tier:
 				m["current_qty"] = 1
 
+		elif m["type"] == "build":
+			if GameState.infrastructure_manager:
+				var count = GameState.infrastructure_manager.get_building_count(m["target"])
+				m["current_qty"] = max(m["current_qty"], min(count, m["target_qty"]))
+
 		# P2-12: Combat readiness checkpoint - checks loadout for weapon AND shield
 		elif m["type"] == "loadout_check" and m["target"] == "combat_ready":
 			var has_weapon = false
 			var has_shield = false
 			var sm = GameState.shipyard_manager
-			for slot in sm.loadout:
-				var mid_equipped = sm.loadout[slot]
+			for mid_equipped in sm.loadout.values():
 				if mid_equipped and mid_equipped in sm.modules:
 					var mod = sm.modules[mid_equipped]
-					if mod.get("slot_type") == "weapon":
-						has_weapon = true
-					elif mod.get("slot_type") == "shield":
-						has_shield = true
+					var st = mod.get("slot_type", "")
+					if st == "weapon": has_weapon = true
+					elif st == "shield": has_shield = true
+			
+			# Fail-safe: Check calculated stats (Base Corvette has 0 shield, >0 means shield equipped)
+			if sm.max_shield > 0: has_shield = true
+			# Base Corvette has 10 atk. If total attack > base, they have a weapon.
+			var base_atk = 0
+			if sm.active_hull in sm.hulls:
+				base_atk = sm.hulls[sm.active_hull]["stats"].get("atk", 0)
+			if (sm.attack_kinetic + sm.attack_energy + sm.attack_explosive) > base_atk:
+				has_weapon = true
+				
 			if has_weapon and has_shield:
 				m["current_qty"] = 1
 

@@ -75,8 +75,8 @@ var tech_tree = {
 	"shipwright_1": {
 		"name": "Shipwright I",
 		"description": "Unlocks:\n• Industrial Frigate \n• Titanium Plating\n• Sector Scanning, Asteroid Belt Clearance (Operations)\n• [Requires: Efficient Smelting (Engineering)]",
-		"cost": 5000,
-		"cost_items": {"Res1": 20},
+		"cost": 100000,
+		"cost_items": {"Steel":100,"Res1": 20,"Circuit": 10},
 		"type": "technology",
 		"parent": "smelting"
 	},
@@ -84,7 +84,7 @@ var tech_tree = {
 	"shipwright_2": {
 		"name": "Shipwright II",
 		"description": "Unlocks:\n• Destroyer Class",
-		"cost": 5000,
+		"cost": 1000000,
 		"cost_items": {"Res2": 10},
 		"type": "technology",
 		"parent": "shipwright_1"
