@@ -113,6 +113,7 @@ func refresh_list():
 	_create_rack("explosive", "Explosive Weapons", Color(1.0, 0.5, 0.0, 0.5), rack_container) # Added
 	_create_rack("energy", "Energy Weapons", Color(0.0, 0.9, 1.0, 0.5), rack_container)
 	_create_rack("shield", "Shield Generators", Color(0.4, 0.6, 1.0, 0.5), rack_container)
+	_create_rack("armor", "Hull Armor", Color(0.6, 0.6, 0.6, 0.5), rack_container)
 	_create_rack("engine", "Engine Systems", Color(0.8, 1.0, 0.2, 0.5), rack_container)
 	_create_rack("battery", "Power Cores", Color(1.0, 1.0, 0.2, 0.5), rack_container)
 	_create_rack("cooling", "Cooling Systems", Color(0.0, 0.5, 1.0, 0.5), rack_container)
@@ -129,15 +130,20 @@ func refresh_list():
 		w.setup(hid, manager.hulls[hid], manager, self)
 		widgets.append(w)
 		
-	# Modules Categorization
+	# Modules Categorization & Sorting (Audit v70.0)
 	var sorted_mods = manager.modules.keys()
-	sorted_mods.sort()
+	
+	# Custom Sort: Sort by "Power Score" (Tier) ascending
+	sorted_mods.sort_custom(func(a, b):
+		return _get_module_power_score(a, manager.modules[a]) < _get_module_power_score(b, manager.modules[b])
+	)
 	
 	for mid in sorted_mods:
 		var data = manager.modules[mid]
 		var type = data.get("slot_type", "weapon")
 		var cat = "kinetic"
 		
+		# Category Logic
 		match type:
 			"weapon":
 				var stats = data.get("stats", {})
@@ -148,6 +154,7 @@ func refresh_list():
 				else:
 					cat = "energy"
 			"shield": cat = "shield"
+			"armor": cat = "armor" # Added armor mapping
 			"engine": cat = "engine"
 			"battery": cat = "battery"
 			"cooling": cat = "cooling"
@@ -162,6 +169,44 @@ func refresh_list():
 		w.setup(mid, data, manager, self)
 		w.update_state()
 		widgets.append(w)
+
+func _get_module_power_score(id: String, data: Dictionary) -> int:
+	# Tier Heuristic: Calculate a "Power Score" based on primary stat or cost
+	# Used for sorting modules from Weakest -> Strongest
+	
+	var score = 0
+	var stats = data.get("stats", {})
+	
+	# 1. Base Score from Cost (Expensive = Better)
+	# Logarithmic scale prevents late game items from dwarfing everything
+	var cost = data.get("cost", {})
+	var credits = cost.get("credits", 0)
+	if credits > 0:
+		score += int(log(credits) * 10)
+	else:
+		# Battery T1/T2 have 0 credits cost, check material rarity manually
+		if "BatteryT1" in cost: score += 10
+		elif "BatteryT2" in cost: score += 20
+		elif "BatteryT3" in cost: score += 30
+		else: score += 5 # Fallback
+		
+	# 2. Stat Bonus
+	# Add raw stats to differentiate items with verify similar costs
+	if stats.get("atk_kinetic", 0) > 0: score += stats["atk_kinetic"]
+	if stats.get("atk_energy", 0) > 0: score += stats["atk_energy"]
+	if stats.get("atk_explosive", 0) > 0: score += stats["atk_explosive"]
+	if stats.get("max_shield", 0) > 0: score += stats["max_shield"] / 5
+	if stats.get("hp", 0) > 0: score += stats["hp"] / 10
+	if stats.get("energy_capacity", 0) > 0: score += stats["energy_capacity"]
+	if stats.get("eva", 0) > 0: score += stats["eva"] * 2
+	if stats.get("atk_speed_bonus", 0) > 0: score += int(stats["atk_speed_bonus"] * 100)
+	
+	# 3. Explicit Overrides for known oddities
+	if id == "mining_laser_mk1": score = 10
+	if id == "mining_laser_mk2": score = 50
+	if id == "railgun_mk1": score = 20
+	
+	return score
 
 func _create_rack(id: String, title: String, color: Color, parent: Node, horizontal: bool = false):
 	var rack_vbox = VBoxContainer.new()

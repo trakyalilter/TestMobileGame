@@ -238,6 +238,7 @@ var recipes: Dictionary = {
 		"duration": 5.0,
 		"level_req": 8, # Increased from 2
 		"xp": 10, # Reduced from 15
+		"research_req": "combustion"
 	},
 	"craft_polymer": {
 		"name": "Polymer Resin",
@@ -293,7 +294,7 @@ var recipes: Dictionary = {
 	"craft_adv_maintenance_kit": {
 		"name": "Adv. Maintenance Kit",
 		"description": "High-tech repair kit. Restores 50% Hull Integrity.",
-		"input": { "AlWire": 3, "Circuit": 5, "Steel": 25 },
+		"input": { "AlWire": 3, "Circuit": 5,"Superalloy":1, "Steel": 50, "Ti":15 },
 		"output": { "AdvMaintenanceKit": 1 },
 		"duration": 15.0,
 		"level_req": 40,
@@ -345,7 +346,7 @@ var recipes: Dictionary = {
 	"craft_sealant": {
 		"name": "Hull Sealant",
 		"description": "Mix polymer for rapid hull patching. Restores 35% Hull Integrity.",
-		"input": { "Resin": 2, "Fe": 1 },
+		"input": { "Resin": 10, "Steel": 8 },
 		"output": { "Seal": 1 },
 		"duration": 15.0,
 		"level_req": 25, # Rebalanced
@@ -431,13 +432,13 @@ var recipes: Dictionary = {
 		"research_req": "fluid_dynamics"
 	},
 	"nitrogen_coolant": {
-		"name": "Nitrogen Coolant",
-		"description": "Synthesize liquid nitrogen. Restores 35% Shield Integrity.",
-		"input": {  "Water": 1000 ,"N": 500},
+		"name": "Cryo-Shield Matrix",
+		"description": "Supercools shield generators for rapid integrity restoration. Restores 35% Shield.",
+		"input": { "Circuit": 5, "AlMgAlloy": 10, "N": 250, "Li": 5 },
 		"output": { "NitroCoolant": 1 },
 		"duration": 15.0,
-		"level_req": 28,
-		"xp": 35,
+		"level_req": 32,
+		"xp": 60,
 		"research_req": "fluid_dynamics",
 		"category": "consumables_shield"
 	},
@@ -449,7 +450,7 @@ var recipes: Dictionary = {
 		"duration": 20.0,
 		"level_req": 42,
 		"xp": 60,
-		"research_req": "quantum_field_theory", # Assumed research for late game
+		"research_req": "energy_metrics", # Assumed research for late game
 		"category": "consumables_shield"
 	},
 	"craft_slug_t3": {
@@ -541,7 +542,7 @@ var recipes: Dictionary = {
 		"input": { "Al": 2, "Resin": 1 },
 		"output": { "AlWire": 2 },
 		"duration": 5.0,
-		"level_req": 8,
+		"level_req": 30,
 		"xp": 35,
 		"research_req": "basic_electronics"
 	},
@@ -549,7 +550,7 @@ var recipes: Dictionary = {
 	"assemble_circuit_standard": {
 		"name": "Standard Circuit Assembly",
 		"description": "Fabricate circuits from raw conductive materials. No Drone Core required.",
-		"input": { "Cu": 2, "Si": 3,"DroneCore": 2, "Resin": 1 },
+		"input": { "Cu": 2, "Si": 3, "Resin": 1 },
 		"output": { "Circuit": 3 },
 		"duration": 6.0, 
 		"level_req": 12,
@@ -564,7 +565,8 @@ var recipes: Dictionary = {
 		"output": { "Hydraulics": 1 },
 		"duration": 10.0,
 		"level_req": 10,
-		"xp": 40
+		"xp": 40,
+		"research_req": "industrial_logistics"
 	},
 	# Lithium Chain
 	"refine_lithium": {
@@ -647,11 +649,12 @@ var recipes: Dictionary = {
 		"duration": 10.0,
 		"level_req": 6,
 		"xp": 60, # Increased from 50
+		"research_req": "basic_electronics"
 	},
 	"craft_battery_t2": {
 		"name": "Graphene Matrix Battery",
 		"description": "Advanced high-density battery. Requires Sulfur for electrolyte.",
-		"input": { "BatteryT1": 1, "Graphite": 5, "AdvCircuit": 5, "S": 10 },
+		"input": { "BatteryT1": 10,"Chip":5, "Graphite": 5, "AdvCircuit": 5 },
 		"output": { "BatteryT2": 1 },
 		"duration": 20.0,
 		"level_req": 55, # Increased from 15
@@ -713,21 +716,21 @@ var recipes: Dictionary = {
 	"electrolysis_nickel_catalyst": {
 		"name": "Nickel-Catalyzed Electrolysis",
 		"description": "Ni catalyst speeds H2 production. More efficient.",
-		"input": { "Water": 1, "Ni": 0.1 },
-		"output": { "H": 3, "O": 2 },
-		"duration": 2.0,
+		"input": { "Water": 10, "Ni": 1 },
+		"output": { "H": 30, "O": 20 },
+		"duration": 20.0,
 		"level_req": 12,
-		"xp": 30,
+		"xp": 300,
 		"research_req": "catalytic_electrodes"
 	},
 	"craft_superalloy": {
-		"name": "Cobalt Superalloy",
-		"description": "Co-Ni-Cr heat-resistant alloy for engines and reactors.",
-		"input": { "Co": 2, "Ni": 2, "Cr": 1, "Ti": 1 },
-		"output": { "Superalloy": 3 },
-		"duration": 12.0,
+		"name": "Superalloy",
+		"description": "Heat-resistant alloy for engines and reactors.",
+		"input": { "Fe": 2,"Al": 2, "Co": 2, "Ni": 2, "Cr": 1, "Ti": 1 },
+		"output": { "Superalloy": 1 },
+		"duration": 10.0,
 		"level_req": 18,
-		"xp": 150,
+		"xp": 200,
 		"research_req": "superalloy_engineering"
 	},
 	# Late-Game Rare Metal Processing
@@ -774,16 +777,7 @@ var recipes: Dictionary = {
 	},
 	# ========== AUDIT v24.0: RARE METAL REFINING ==========
 	# Audit v39.0: Removed duplicate refine_platinum (kept refine_platinum_ore which has Pd byproduct)
-	"refine_iridium": {
-		"name": "Iridium Compaction",
-		"description": "Forge raw Iridium into reinforced Armor Plates.",
-		"input": { "Ir": 5, "Steel": 10 },
-		"output": { "IrPlate": 1 },
-		"duration": 25.0,
-		"level_req": 45,
-		"xp": 200,
-		"research_req": "iridium_metallurgy"
-	},
+
 	"craft_iridium_plate": {
 		"name": "Iridium Armor Plating",
 		"description": "Nearly indestructible Ir plating. Ultimate defense.",
@@ -878,6 +872,7 @@ var recipes: Dictionary = {
 		"duration": 45.0,
 		"level_req": 75,
 		"xp": 1500,
+		"research_req": "exotic_matter_analysis",
 		"category": "endgame"
 	},
 	# ========== v57.1: SECTOR ZETA RECIPES ==========
@@ -1009,9 +1004,9 @@ var recipes: Dictionary = {
 	"craft_cryo_coolant": {
 		"name": "Cryogenic Coolant",
 		"description": "Extract supercooled fluid from cryo drone cells.",
-		"input": { "CryoCell": 3, "Water": 10 },
-		"output": { "NitroCoolant": 5 },
-		"duration": 12.0,
+		"input": { "CryoCell": 1, "Water": 5 },
+		"output": { "NitroCoolant": 1 },
+		"duration": 10.0,
 		"level_req": 20,
 		"xp": 30,
 		"category": "processing"

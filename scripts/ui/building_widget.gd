@@ -216,7 +216,8 @@ func update_state():
 		buy_btn.disabled = true
 		_stop_pulse()
 	else:
-		buy_btn.text = "Build"
+		var mult = manager.buy_multiplier
+		buy_btn.text = "Build x%d" % mult if mult > 1 else "Build"
 		buy_btn.disabled = not can_afford_all
 		if can_afford_all:
 			_start_pulse()

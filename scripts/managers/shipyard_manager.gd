@@ -38,7 +38,7 @@ var hulls: Dictionary = {
 		"name": "Corvette Hull",
 		"stats": {"hp": 100, "atk": 10, "energy_capacity": 100},
 		"cost": {"credits": 0},
-		"slots": ["weapon", "weapon", "shield", "shield", "engine", "battery", "battery"], # 7 Slots
+		"slots": ["weapon", "weapon", "shield", "shield", "engine", "battery", "battery", "armor"], # 8 Slots (+1 Armor)
 		"visual": "res://assets/ships/1.png",
 		"tier": 0  # v61.0: Added for mission gating
 	},
@@ -46,7 +46,7 @@ var hulls: Dictionary = {
 		"name": "Industrial Frigate",
 		"stats": {"hp": 800, "atk": 25, "energy_capacity": 250},
 		"cost": {"credits": 5000, "Res1": 20},
-		"slots": ["weapon", "weapon", "weapon", "shield", "shield", "shield", "engine", "battery", "battery", "battery", "sensor"], # 11 Slots (Added Sensor)
+		"slots": ["weapon", "weapon", "weapon", "shield", "shield", "shield", "engine", "battery", "battery", "battery", "sensor", "armor", "armor"], # 13 Slots (+2 Armor)
 		"research_req": "shipwright_1",
 		"visual": "res://assets/ships/2.png",
 		"tier": 1  # v61.0
@@ -55,7 +55,7 @@ var hulls: Dictionary = {
 		"name": "Destroyer Class",
 		"stats": {"hp": 2500, "atk": 60, "energy_capacity": 600},
 		"cost": {"credits": 37500, "Ti": 50, "Circuit": 25, "Res2": 10},
-		"slots": ["weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "engine", "battery", "battery", "battery", "battery", "sensor", "cooling"], # 15 Slots (+Sensor, +Cooling)
+		"slots": ["weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "engine", "battery", "battery", "battery", "battery", "sensor", "cooling", "armor", "armor", "armor"], # 18 Slots (+3 Armor)
 		"research_req": "shipwright_2",
 		"visual": "res://assets/ships/3.png",
 		"tier": 2  # v61.0
@@ -64,7 +64,7 @@ var hulls: Dictionary = {
 		"name": "Battlecruiser Class",
 		"stats": {"hp": 8000, "atk": 120, "energy_capacity": 1500},
 		"cost": {"credits": 375000, "Steel": 500, "AdvCircuit": 50, "VoidArtifact": 5, "Res3": 15},
-		"slots": ["weapon", "weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "shield", "engine", "battery", "battery", "battery", "battery", "battery", "sensor", "sensor", "cooling", "cooling"], # 20 Slots (+2 Sensor, +2 Cooling)
+		"slots": ["weapon", "weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "shield", "engine", "battery", "battery", "battery", "battery", "battery", "sensor", "sensor", "cooling", "cooling", "armor", "armor", "armor", "armor"], # 24 Slots (+4 Armor)
 		"research_req": "capital_ship_engineering",
 		"visual": "res://assets/ships/4.png",
 		"tier": 3  # v61.0
@@ -73,7 +73,7 @@ var hulls: Dictionary = {
 		"name": "Dreadnought Class",
 		"stats": {"hp": 20000, "atk": 250, "energy_capacity": 4000},
 		"cost": {"credits": 25000000, "Steel": 100000, "Ti": 2500, "Neutronium": 50, "Circuit": 1000, "Chip": 250, "Superalloy": 100, "AdvCircuit": 100, "QuantumCore": 10, "VoidArtifact": 25},
-		"slots": ["weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "shield", "shield", "shield", "engine", "battery", "battery", "battery", "battery", "battery", "battery", "sensor", "sensor", "sensor", "cooling", "cooling", "cooling"], # +3 Sensor, +3 Cooling
+		"slots": ["weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "shield", "shield", "shield", "engine", "battery", "battery", "battery", "battery", "battery", "battery", "sensor", "sensor", "sensor", "cooling", "cooling", "cooling", "armor", "armor", "armor", "armor", "armor"], # +5 Armor
 		"research_req": "quantum_dynamics",
 		"visual": "res://assets/ships/5.png",
 		"tier": 4  # v61.0
@@ -109,14 +109,6 @@ var modules: Dictionary = {
 		"cost": {"credits": 2500, "Fe": 50},
 		"desc": "Heavy magnetic projectile. Slow but powerful.",
 		"research_req": "kinetics_101"
-	},
-	"targeting_computer": {
-		"name": "Targeting Computer",
-		"slot_type": "weapon",
-		"stats": {"atk_kinetic": 15, "atk_energy": 15, "accuracy": 25, "energy_load": 5, "atk_interval": 2.5},  # Audit v40.0: Buffed ATK 5215
-		"cost": {"credits": 750, "Chip": 10, "Si": 20},
-		"desc": "Advanced analytics. +25 Accuracy for all weapons.",
-		"research_req": "automated_logistics"
 	},
 	"cryo_laser_mk3": {
 		"name": "Cryo-Cooled Laser Mk.III",
@@ -261,7 +253,7 @@ var modules: Dictionary = {
 	},
 	"thermal_tile": {
 		"name": "Graphite Armor",
-		"slot_type": "shield", 
+		"slot_type": "armor", 
 		"stats": {"def": 35, "hp": 250}, 
 		"cost": {"credits": 8000, "Graphite": 50, "Ti": 10},
 		"desc": "Ablative carbon armor. Increases Hull & Armor.",
@@ -269,7 +261,7 @@ var modules: Dictionary = {
 	},
 	"titanium_armor": {
 		"name": "Titanium Plating",
-		"slot_type": "shield", 
+		"slot_type": "armor", 
 		"stats": {"def": 50, "hp": 400},
 		"cost": {"credits": 75000, "Ti": 20},
 		"desc": "Heavy-duty alloy armor.",
@@ -294,7 +286,7 @@ var modules: Dictionary = {
 	"antimatter_engine": {
 		"name": "Antimatter Engine",
 		"slot_type": "engine",
-		"stats": {"eva": 70, "energy_load": 30},
+		"stats": {"eva": 70, "energy_load": 200},
 		"cost": {"credits": 5000, "VoidArtifact": 1, "AdvCircuit": 5},
 		"desc": "Experimental FTL-capable drive.",
 		"research_req": "capital_ship_engineering"
@@ -328,14 +320,14 @@ var modules: Dictionary = {
 	"advanced_shield": {
 		"name": "Hardened Deflectors",
 		"slot_type": "shield",
-		"stats": {"max_shield": 150, "shield_regen": 5, "energy_load": 25},
+		"stats": {"max_shield": 150, "shield_regen": 5, "energy_load": 200},
 		"cost": {"credits": 3000, "Si": 200, "Circuit": 10},
 		"desc": "Enhanced shield projectors with rapid regeneration.",
 		"research_req": "shipwright_1"
 	},
 	"composite_armor": {
 		"name": "Composite Plating",
-		"slot_type": "shield",
+		"slot_type": "armor",
 		"stats": {"def": 45, "hp": 350},
 		"cost": {"credits": 2000, "Ti": 50, "Graphite": 20},
 		"desc": "Layered titanium-carbon armor.",
@@ -344,7 +336,7 @@ var modules: Dictionary = {
 	# Early Game Budget Modules
 	"aluminum_hull_patch": {
 		"name": "Aluminum Hull Patch",
-		"slot_type": "shield",
+		"slot_type": "armor",
 		"stats": {"hp": 50, "eva": 5},
 		"cost": {"credits": 150, "Al": 15},
 		"desc": "Lightweight plating. Less protection but improved maneuverability.",
@@ -352,7 +344,7 @@ var modules: Dictionary = {
 	},
 	"mg_al_frame": {
 		"name": "Magnesium-Aluminum Frame",
-		"slot_type": "shield",
+		"slot_type": "armor",
 		"stats": {"hp": 80, "eva": 10},
 		"cost": {"credits": 400, "AlMgAlloy": 10},
 		"desc": "Aerospace alloy. High strength-to-weight ratio increases evasion.",
@@ -360,7 +352,7 @@ var modules: Dictionary = {
 	},
 	"galvanized_plating": {
 		"name": "Galvanized Plating",
-		"slot_type": "shield",
+		"slot_type": "armor",
 		"stats": {"def": 18, "hp": 100},
 		"cost": {"credits": 600, "GalvanizedSteel": 15},
 		"desc": "Corrosion-proof steel. Reliable mid-tier armor.",
@@ -369,7 +361,7 @@ var modules: Dictionary = {
 	# Mid-Game Advanced Modules
 	"stainless_armor": {
 		"name": "Stainless Steel Armor",
-		"slot_type": "shield",
+		"slot_type": "armor",
 		"stats": {"def": 50, "hp": 350},
 		"cost": {"credits": 12000, "StainlessSteel": 25},
 		"desc": "Superior corrosion resistance. Excellent mid-tier protection.",
@@ -402,7 +394,7 @@ var modules: Dictionary = {
 	# ITER5 FIX: CompositeWeave use
 	"composite_armor_mk2": {
 		"name": "Composite Armor Mk.II",
-		"slot_type": "shield",
+		"slot_type": "armor",
 		"stats": {"hp": 300, "def": 40, "eva": 15},
 		"cost": {"credits": 8000, "CompositeWeave": 15, "Ti": 20},
 		"desc": "Advanced woven armor. Balanced HP, DEF, and evasion.",
@@ -411,7 +403,7 @@ var modules: Dictionary = {
 	# Late-Game Rare Metal Modules
 	"iridium_armor": {
 		"name": "Iridium Armor Plating",
-		"slot_type": "shield",
+		"slot_type": "armor",
 		"stats": {"def": 100, "hp": 500},
 		"cost": {"credits": 8500000, "IrPlate": 15},
 		"desc": "Nearly indestructible. Ultimate defensive module. (Hardened)",
@@ -420,7 +412,7 @@ var modules: Dictionary = {
 	},
 	"osmium_core_module": {
 		"name": "Osmium Armor Plating",
-		"slot_type": "shield",
+		"slot_type": "armor",
 		"stats": {"hp": 5000, "def": 50},
 		"cost": {"credits": 12500000, "OsCore": 3, "Os": 25},
 		"desc": "Densest material. Massive HP boost. Immunity to armor piercing. (Hardened)",
@@ -463,7 +455,7 @@ var modules: Dictionary = {
 	# UNIQUE MODULES (Mid-Late Game)
 	"reactive_armor": {
 		"name": "Reactive Plate Alpha",
-		"slot_type": "shield",
+		"slot_type": "armor",
 		"stats": {"hp": 1000, "def": 20},
 		"cost": {"credits": 1500000, "Superalloy": 50, "AdvCircuit": 10, "AncientComponent": 5, "ReactiveCore": 2},
 		"desc": "(Unique) Adaptive plating. Reduces incoming damage as Hull decreases.",
@@ -473,7 +465,7 @@ var modules: Dictionary = {
 	"plasma_overcharger": {
 		"name": "Plasma Overcharger",
 		"slot_type": "weapon",
-		"stats": {"atk_energy": 100, "energy_load": 50, "atk_interval": 2.5},  # Audit v40.0: Buffed ATK 202100
+		"stats": {"atk_energy": 100, "energy_load": 400, "atk_interval": 0.8},  # Audit v40.0: Buffed ATK 202100
 		"cost": {"credits": 1000000, "AdvCircuit": 50, "Superalloy":75},
 		"desc": "(Unique) Heavily boosts Energy Damage but consumes massive Reactor power.",
 		"research_req": "energy_metrics",
@@ -526,7 +518,7 @@ var modules: Dictionary = {
 	},
 	"omega_armor": {
 		"name": "Omega Plating Array",
-		"slot_type": "shield",
+		"slot_type": "armor",
 		"stats": {"def": 450, "hp": 3000}, # ITER7: 450 = ~47% mitigation in Sector Epsilon
 		"cost": {"credits": 10000000, "OmegaPlating": 10, "Ir": 50, "Superalloy": 100},
 		"desc": "(Endgame) Ultimate defensive module. +450 DEF, +3000 HP. (Hardened)",
@@ -569,7 +561,7 @@ var modules: Dictionary = {
 	},
 	"primordial_fortification": {
 		"name": "★ Primordial Fortification ★",
-		"slot_type": "shield",
+		"slot_type": "armor",
 		"stats": {"hp": 15000, "def": 300, "max_shield": 1000, "shield_regen": 30},
 		"cost": {"credits": 100000000, "PrimordialArmor": 3},
 		"desc": "(Legendary) Invincible titan shell. +15000 HP, +300 DEF, +1000 Shield. (Super-Hardened)",
@@ -743,18 +735,64 @@ func equip_module(slot_idx: int, module_id: String) -> bool:
 	potential_load += mod_data["stats"].get("energy_load", 0)
 	
 	# Note: Energy Capacity is hull + modules. We need to check against TOTAL capacity.
+	var engineering_lvl = 1
+	if GameState.processing_manager:
+		engineering_lvl = GameState.processing_manager.get_level()
+	var skill_mult = 1.0 + (engineering_lvl * 0.01)
+	
+	var rm = GameState.research_manager
+	var phys_mult = 1.0
+	if rm:
+		phys_mult = 1.0 + rm.get_efficiency_bonus("applied_physics")
+		
 	var current_cap = hulls[active_hull]["stats"].get("energy_capacity", 100.0)
 	for s_idx in loadout:
 		if s_idx == slot_idx: continue
 		var mid = loadout[s_idx]
 		if mid and modules.has(mid):
-			current_cap += modules[mid]["stats"].get("energy_capacity", 0)
+			current_cap += modules[mid]["stats"].get("energy_capacity", 0) * skill_mult
 	if mod_data["slot_type"] == "battery":
-		current_cap += mod_data["stats"].get("energy_capacity", 0)
+		current_cap += mod_data["stats"].get("energy_capacity", 0) * skill_mult
+	current_cap *= phys_mult
 	
+	# ------------------------------------------------------------------
+	# Grid Safety Logic (Redesigned v2.0)
+	# ------------------------------------------------------------------
+	
+	# 1. Calc Old Capacity (Local Source of Truth)
+	var old_cap = hulls[active_hull]["stats"].get("energy_capacity", 100.0)
+	for s_idx in loadout:
+		var mid = loadout[s_idx]
+		if mid and mid in modules:
+			old_cap += modules[mid]["stats"].get("energy_capacity", 0) * skill_mult
+	old_cap *= phys_mult
+			
+	# 2. Check Overload
 	if potential_load > current_cap:
-		print("Equip Fail: Grid Overloaded. Needs more battery modules.")
-		return false
+		# We are entering (or staying in) an Overloaded state.
+		# Strict Rule: Generally Forbidden.
+		
+		# Exception A: Battery Upgrade (Anti-Softlock)
+		# If we are adding more capacity (upgrading battery), ALWAYS allow it.
+		
+		# Using slightly relaxed comparison for float precision
+		if current_cap > (old_cap + 0.1):
+			print("Equip Warning: Grid Overloaded, but Capacity Improved (%f > %f). Allowed." % [current_cap, old_cap])
+			# Allow fallthrough
+		
+		# Exception B: Margin Improvement
+		# If we aren't adding capacity, but we are reducing load MORE than we are losing capacity?
+		# new_margin > old_margin
+		else:
+			var old_margin = old_cap - energy_used
+			var new_margin = current_cap - potential_load
+			
+			if new_margin > (old_margin + 0.1):
+				print("Equip Warning: Grid Overloaded, but Margin Improved (%f > %f). Allowed." % [new_margin, old_margin])
+				# Allow fallthrough
+			else:
+				print("Equip Fail: Grid Overloaded. Needs more battery modules. Potential: %f, Cap: %f (Old Cap: %f, Old Margin: %f, New Margin: %f)" % [potential_load, current_cap, old_cap, old_margin, new_margin])
+				return false
 
 	# Unequip existing
 	if existing:

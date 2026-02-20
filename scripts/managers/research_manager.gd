@@ -30,21 +30,21 @@ var tech_tree = {
 	},
 	"applied_physics": {
 		"name": "Applied Physics",
-		"description": "Fundamental theory of energy and mass.\n• Unlocks: Energy Fields, Sensor Calibration (Operations), Reactor Overclocking (Ships)",
+		"description": "Unlocks: Energy Fields, Sensor Calibration (Operations), Reactor Overclocking (Ships)",
 		"cost": 625,
 		"type": "technology",
 		"parent": "basic_engineering"
 	},
 	"materials_science": {
 		"name": "Materials Science",
-		"description": "Elementary studies of matter and chemical bonding.",
+		"description": "Unlocks:\n• Advanced Technologies",
 		"cost": 625,
 		"type": "technology",
 		"parent": "basic_engineering"
 	},
 	"industrial_logistics": {
 		"name": "Industrial Logistics",
-		"description": "Efficiency frameworks and sorting algorithms.",
+		"description": "Unlocks:\n• Advanced Technologies",
 		"cost": 625,
 		"type": "technology",
 		"parent": "basic_engineering"
@@ -140,6 +140,7 @@ var tech_tree = {
 		"name": "Sector Scanning (Alpha)",
 		"description": "Unlocks:\n• Sector Alpha\n• [Requires: Shipwright I (Ships)]",
 		# P0 Fix: Removed TitanClearance (Zone 4) dependency to allow progression
+		"cost": 50000,
 		"cost_items": {"NavData": 10, "PirateManifest": 10},
 		"type": "technology",
 		"parent": "shipwright_1"
@@ -424,7 +425,7 @@ var tech_tree = {
 	},
 	"energy_metrics": {
 		"name": "Energy Metrics",
-		"description": "\nUnlocks:\n• Hydrogen Reactor\n• Vaporizer Cells (T3)\n• Plasma Lance Mk.III\n• Orbital Gas Siphon (Auto)\n• Uranium Centrifuge (Auto)",
+		"description": "Unlocks:\n• Hydrogen Reactor\n• Vaporizer Cells (T3)\n• Plasma Lance Mk.III\n• Orbital Gas Siphon (Auto)\n• Uranium Centrifuge (Auto)",
 		"cost": 5000,
 		"cost_items": {"Res2": 20, "AdvCircuit": 10},
 		"type": "technology",
@@ -684,7 +685,7 @@ var tech_tree = {
 		"name": "Void Weaponry Optimization",
 		"description": "Bonus:\n• +20% Total Ship Damage\n• [Requires: Void Navigation (Operations)]",
 		"cost": 100000000,
-		"cost_items": {"VoidEssence": 50, "ChronoCore": 20, "PrimordialShard": 5, "MutatedTissue": 10},
+		"cost_items": {"VoidEssence": 50, "ChronoCore": 20, "PrimordialShard": 5, "MutatedTissue": 10, "BioWeaponCoating": 10},
 		"type": "technology",
 		"parent": "void_navigation"
 	},
@@ -692,7 +693,7 @@ var tech_tree = {
 		"name": "Void Shielding Optimization",
 		"description": "Bonus:\n• +20% Total Ship Shields\n• [Requires: Void Navigation (Operations)]",
 		"cost": 100000000,
-		"cost_items": {"OmegaPlating": 50, "VoidEssence": 20, "PrimordialShard": 5, "Os": 25, "MutatedTissue": 10},
+		"cost_items": {"OmegaPlating": 50, "VoidEssence": 20, "PrimordialShard": 5, "Os": 25, "MutatedTissue": 10, "RegenPlating": 8},
 		"type": "technology",
 		"parent": "void_navigation"
 	},
@@ -700,7 +701,7 @@ var tech_tree = {
 		"name": "Omni-Fabrication",
 		"description": "Bonus:\n• +30% Processing & Research Speed (Global)",
 		"cost": 10000000,
-		"cost_items": {"AICore": 5, "AncientTech": 5, "AdvCircuit": 200},
+		"cost_items": {"AICore": 5, "AncientTech": 5, "AdvCircuit": 200, "AIProcessor": 5},
 		"type": "technology",
 		"parent": "colony_automation"
 	},
@@ -841,7 +842,7 @@ var repeatable_tech_db = {
 		"name": "Recursive Optimization (Industry)",
 		"description": "Infinite scaling: +5% Global Processing Speed per level.",
 		"base_cost": 100000,
-		"base_items": {"VoidArtifact": 5, "AdvCircuit": 50},
+		"base_items": {"VoidArtifact": 5, "AdvCircuit": 50, "Bauxite": 100, "Quartz": 100, "PtOre": 25},
 		"bonus_type": "processing_speed",
 		"bonus_value": 0.05
 	},
@@ -849,7 +850,7 @@ var repeatable_tech_db = {
 		"name": "Recursive Calibration (Combat)",
 		"description": "Infinite scaling: +5% Total Ship Damage per level.",
 		"base_cost": 100000,
-		"base_items": {"VoidArtifact": 5, "QuantumCore": 5},
+		"base_items": {"VoidArtifact": 5, "QuantumCore": 5, "Malachite": 100},
 		"bonus_type": "combat_damage",
 		"bonus_value": 0.05
 	},
@@ -857,7 +858,7 @@ var repeatable_tech_db = {
 		"name": "Recursive Logistics (Gathering)",
 		"description": "Infinite scaling: +5% Global Gathering Yield per level.",
 		"base_cost": 100000,
-		"base_items": {"VoidArtifact": 5, "DroneCore": 50},
+		"base_items": {"VoidArtifact": 5, "DroneCore": 50, "Spodumene": 100},
 		"bonus_type": "gathering_yield_mult",
 		"bonus_value": 0.05
 	}

@@ -14,21 +14,13 @@ var events: Array = []
 
 
 var building_db: Dictionary = {
+	# ========== CATEGORY: POWER ==========
 	"solar_panel": {
 		"name": "Solar Array",
 		"description": "+5.0 kW",
 		"cost": {"credits": 125, "Si": 5}, 
-		"energy_gen": 5.0, # REBALANCE v23.0: Reduced from 10 to discourage low-tier spam
+		"energy_gen": 5.0, 
 		"energy_cons": 0.0,
-		"category": "power"
-	},
-	"fusion_reactor": {
-		"name": "Fusion Core",
-		"description": "+5000.0 kW",
-		"cost": {"credits": 2500000, "Superalloy": 200, "AdvCircuit": 100, "VoidEssence": 20},
-		"energy_gen": 5000.0, # REBALANCE v23.0: Buffed from 1500 for endgame density
-		"energy_cons": 0.0,
-		"research_req": "quantum_dynamics",
 		"category": "power"
 	},
 	"coal_burner": {
@@ -42,12 +34,106 @@ var building_db: Dictionary = {
 		"research_req": "combustion",
 		"category": "power"
 	},
+	"geothermal_well": {
+		"name": "Geothermal Well",
+		"description": "+150.0 kW (Stable)",
+		"cost": {"credits": 400000, "Ti": 100, "Hydraulics": 50},
+		"energy_gen": 150.0,
+		"energy_cons": 0.0,
+		"research_req": "fluid_dynamics",
+		"category": "power"
+	},
+	"biomass_plant": {
+		"name": "Biomass Plant",
+		"description": "+250.0 kW (-5 Wood)",
+		"cost": {"credits": 150000, "Steel": 200, "Circuit": 20},
+		"energy_gen": 250.0,
+		"energy_cons": 0.0,
+		"input": {"Wood": 5},
+		"interval": 10.0,
+		"research_req": "combustion",
+		"category": "power"
+	},
+	"palladium_generator": {
+		"name": "Palladium Fuel Cell Generator",
+		"description": "+350.0 kW",
+		"cost": {"credits": 250000, "PdFuelCell": 20, "Circuit": 40},
+		"energy_gen": 350.0,
+		"energy_cons": 0.0,
+		"input": {"H": 1},
+		"interval": 10.0,
+		"research_req": "fuel_cell_tech",
+		"category": "power"
+	},
+	"hydrogen_reactor": {
+		"name": "Hydrogen Reactor",
+		"description": "+500.0 kW",
+		"cost": {"credits": 50000, "Steel": 200, "Circuit": 50, "NavData": 5},
+		"energy_gen": 500.0,
+		"energy_cons": 0.0,
+		"input": {"H": 10},
+		"interval": 10.0,
+		"research_req": "energy_metrics",
+		"category": "power"
+	},
+	"adv_fuel_cell_array": {
+		"name": "Advanced Fuel Cell Array",
+		"description": "+800.0 kW (-2 Pd-Cells)",
+		"cost": {"credits": 800000, "Ti": 150, "AdvCircuit": 80},
+		"energy_gen": 800.0,
+		"energy_cons": 0.0,
+		"input": {"PdFuelCell": 2},
+		"interval": 10.0,
+		"research_req": "fuel_cell_tech",
+		"category": "power"
+	},
+	"fission_reactor": {
+		"name": "Fission Reactor",
+		"description": "+1200.0 kW (-5 Uranium)",
+		"cost": {"credits": 1200000, "Ti": 200, "AdvCircuit": 50},
+		"energy_gen": 1200.0,
+		"energy_cons": 0.0,
+		"input": {"U": 5},
+		"interval": 10.0,
+		"research_req": "radiation_shielding",
+		"category": "power"
+	},
+	"orbital_solar_relay": {
+		"name": "Orbital Solar Relay",
+		"description": "+2500.0 kW (Constant)",
+		"cost": {"credits": 5000000, "W": 200, "Chip": 150},
+		"energy_gen": 2500.0,
+		"energy_cons": 0.0,
+		"research_req": "energy_metrics",
+		"category": "power"
+	},
+	"fusion_reactor": {
+		"name": "Fusion Core",
+		"description": "+5000.0 kW",
+		"cost": {"credits": 25000000, "Superalloy": 200, "AdvCircuit": 100, "VoidEssence": 20},
+		"energy_gen": 5000.0,
+		"energy_cons": 0.0,
+		"research_req": "quantum_dynamics",
+		"category": "power"
+	},
+	"antimatter_generator": {
+		"name": "Antimatter Generator",
+		"description": "+12500.0 kW (-1 AM-Cell)",
+		"cost": {"credits": 25000000, "VoidArtifact": 50, "QuantumCore": 10},
+		"energy_gen": 12500.0,
+		"energy_cons": 0.0,
+		"input": {"AntimatterFuel": 1},
+		"interval": 20.0,
+		"research_req": "quantum_dynamics",
+		"category": "power"
+	},
+	# ========== CATEGORY: EXTRACTION ==========
 	"auto_excavator": {
 		"name": "Auto-Excavator (XL)",
 		"description": "+10 Dirt",
-		"cost": {"credits": 1250, "Si": 50, "Fe": 20},
+		"cost": {"credits": 250000, "Si": 5000, "Fe": 2000},
 		"energy_gen": 0.0,
-		"energy_cons": 15.0,  # Audit v1.0: Reduced from 20 for better early-game energy balance
+		"energy_cons": 15.0,
 		"yield": {"Dirt": 10},
 		"interval": 5.0,
 		"category": "extraction"
@@ -55,33 +141,312 @@ var building_db: Dictionary = {
 	"industrial_pump": {
 		"name": "Industrial Pump",
 		"description": "+10 Water",
-		"cost": {"credits": 1250, "Si": 20, "Fe": 50}, 
+		"cost": {"credits": 250000, "Si": 5000, "Fe": 2000}, 
 		"energy_gen": 0.0,
 		"energy_cons": 25.0,
 		"yield": {"Water": 10},
 		"interval": 5.0,
 		"category": "extraction"
 	},
-	"drone_bay": {
-		"name": "Drone Recovery Bay",
-		"description": "+Scrap (Zone Scavenging)",
-		"cost": {"credits": 5000, "Circuit": 10, "Ti": 20},
+	"bio_harvester": {
+		"name": "Bio-Harvester",
+		"description": "Automated wood collection.",
+		"cost": {"credits": 250000, "Steel": 500, "Circuit": 50},
+		"energy_gen": 0.0,
+		"energy_cons": 40.0,
+		"yield": {"Wood": 10},
+		"interval": 5.0,
+		"research_req": "laser_cutters",
+		"category": "extraction"
+	},
+	"lithium_extractor": {
+		"name": "Lithium Extractor",
+		"description": "Basic spodumene extraction.",
+		"cost": {"credits": 400000, "Steel": 750, "Circuit": 100},
+		"energy_gen": 0.0,
+		"energy_cons": 60.0,
+		"yield": {"Spodumene": 1},
+		"interval": 10.0,
+		"research_req": "basic_electronics",
+		"category": "extraction"
+	},
+	"brine_extractor": {
+		"name": "Lithium Brine Well",
+		"description": "+2 Spodumene (Efficient)",
+		"cost": {"credits": 1000000, "Ti": 500,"Superalloy":100},
+		"energy_gen": 0.0,
+		"energy_cons": 35.0,
+		"yield": {"Spodumene": 2},
+		"interval": 6.0,
+		"research_req": "basic_engineering",
+		"category": "extraction"
+	},
+	"copper_mine": {
+		"name": "Copper Mine",
+		"description": "Basic malachite extraction.",
+		"cost": {"credits": 350000, "Steel": 600, "Circuit": 80},
 		"energy_gen": 0.0,
 		"energy_cons": 50.0,
-		"max": 1,
-		"research_req": "automated_logistics",
-		"special": "passive_gather",
-		"category": "logistics"
+		"yield": {"Malachite": 1},
+		"interval": 14.0,
+		"research_req": "basic_electronics",
+		"category": "extraction"
 	},
-	"fabricator": {
-		"name": "Molecular Fabricator",
-		"description": "-20% Crafting Time",
-		"cost": {"credits": 12500, "Circuit": 50, "Fiber": 20, "Ti": 50},
+	"deep_crust_drill": {
+		"name": "Deep-Crust Drill",
+		"description": "+2 Malachite (Heavy)",
+		"cost": {"credits": 1000000, "Ti": 500,"Superalloy":100},
+		"energy_gen": 0.0,
+		"energy_cons": 40.0,
+		"yield": {"Malachite": 2},
+		"interval": 6.0,
+		"research_req": "basic_engineering",
+		"category": "extraction"
+	},
+	"tin_mine": {
+		"name": "Tin Mine",
+		"description": "Cassiterite extraction.",
+		"cost": {"credits": 500000, "Steel": 800, "Ti": 50, "Circuit": 100},
+		"energy_gen": 0.0,
+		"energy_cons": 80.0,
+		"yield": {"Cassiterite": 1},
+		"interval": 12.0,
+		"research_req": "basic_electronics",
+		"category": "extraction"
+	},
+	"quartz_mine": {
+		"name": "Quartz Mine",
+		"description": "Basic silica excavation.",
+		"cost": {"credits": 600000, "Steel": 1000, "Ti": 100, "Circuit": 150},
 		"energy_gen": 0.0,
 		"energy_cons": 100.0,
-		"max": 1,
-		"research_req": "molecular_printing",
-		"special": "craft_buff",
+		"yield": {"Quartz": 1},
+		"interval": 15.0,
+		"research_req": "basic_electronics",
+		"category": "extraction"
+	},
+	"quartz_excavator": {
+		"name": "Quartz Resonator",
+		"description": "+4 Quartz (High Speed)",
+		"cost": {"credits": 1000000, "Ti": 500,"Superalloy":100},
+		"energy_gen": 0.0,
+		"energy_cons": 75.0,
+		"yield": {"Quartz": 4},
+		"interval": 8.0,
+		"research_req": "adv_materials",
+		"category": "extraction"
+	},
+	"uranium_centrifuge": {
+		"name": "Uranium Isotope Centrifuge",
+		"description": "+2 Uranium",
+		"cost": {"credits": 50000, "Steel": 500, "Si": 250, "AdvCircuit": 5},
+		"energy_gen": 0.0,
+		"energy_cons": 150.0,
+		"yield": {"U": 2},
+		"interval": 10.0,
+		"research_req": "energy_metrics",
+		"category": "extraction"
+	},
+	"tungsten_drill": {
+		"name": "Heavy Tungsten Drill",
+		"description": "+4 Tungsten",
+		"cost": {"credits": 45000, "Ti": 300, "Steel": 500, "Hydraulics": 15},
+		"energy_gen": 0.0,
+		"energy_cons": 120.0,
+		"yield": {"W": 4},
+		"interval": 10.0,
+		"research_req": "smelting",
+		"category": "extraction"
+	},
+	"zinc_mine": {
+		"name": "Zinc Mine",
+		"description": "Zinc ore extraction.",
+		"cost": {"credits": 750000, "Steel": 1500, "AdvCircuit": 100},
+		"energy_gen": 0.0,
+		"energy_cons": 120.0,
+		"yield": {"ZincOre": 1},
+		"interval": 14.0,
+		"research_req": "metallurgy_advanced",
+		"category": "extraction"
+	},
+	"bauxite_mine": {
+		"name": "Bauxite Mine",
+		"description": "Basic aluminum ore extraction.",
+		"cost": {"credits": 800000, "Steel": 1500, "AdvCircuit": 120},
+		"energy_gen": 0.0,
+		"energy_cons": 130.0,
+		"yield": {"Bauxite": 2},
+		"interval": 10.0,
+		"research_req": "metallurgy_advanced",
+		"category": "extraction"
+	},
+	"bauxite_miner": {
+		"name": "Bauxite Strip Miner",
+		"description": "+4 Bauxite (Industrial)",
+		"cost": {"credits": 1000000, "Ti": 500,"Superalloy":100},
+		"energy_gen": 0.0,
+		"energy_cons": 60.0,
+		"yield": {"Bauxite": 4},
+		"interval": 8.0,
+		"research_req": "adv_materials",
+		"category": "extraction"
+	},
+	"dolomite_quarry": {
+		"name": "Dolomite Quarry",
+		"description": "Magnesium source extraction.",
+		"cost": {"credits": 700000, "Steel": 1200, "AdvCircuit": 80},
+		"energy_gen": 0.0,
+		"energy_cons": 100.0,
+		"yield": {"Dolomite": 2},
+		"interval": 12.0,
+		"research_req": "metallurgy_advanced",
+		"category": "extraction"
+	},
+	"manganese_dredge": {
+		"name": "Manganese Dredge",
+		"description": "+2 Manganese (Seafloor Mining)",
+		"cost": {"credits": 850000, "Ti": 400, "AdvCircuit": 100},
+		"energy_gen": 0.0,
+		"energy_cons": 140.0,
+		"yield": {"Mn": 2},
+		"interval": 8.0,
+		"research_req": "metallurgy_advanced",
+		"category": "extraction"
+	},
+	"nickel_mine": {
+		"name": "Nickel Mine",
+		"description": "Pentlandite extraction.",
+		"cost": {"credits": 900000, "Steel": 2000, "Superalloy": 50, "AdvCircuit": 150},
+		"energy_gen": 0.0,
+		"energy_cons": 150.0,
+		"yield": {"Pentlandite": 1},
+		"interval": 18.0,
+		"research_req": "superalloy_engineering",
+		"category": "extraction"
+	},
+	"chromite_excavator": {
+		"name": "Chromite Excavator",
+		"description": "Chromium ore extraction.",
+		"cost": {"credits": 1000000, "Steel": 2500, "Superalloy": 100, "AdvCircuit": 200},
+		"energy_gen": 0.0,
+		"energy_cons": 180.0,
+		"yield": {"Chromite": 1},
+		"interval": 25.0,
+		"research_req": "superalloy_engineering",
+		"category": "extraction"
+	},
+	"platinum_drill": {
+		"name": "Platinum Drill",
+		"description": "Precious metal extraction.",
+		"cost": {"credits": 2000000, "Steel": 3000, "Ti": 300, "Chip": 150},
+		"energy_gen": 0.0,
+		"energy_cons": 250.0,
+		"yield": {"PtOre": 2},
+		"interval": 20.0,
+		"research_req": "precious_metal_refining",
+		"category": "extraction"
+	},
+	"germanite_excavator": {
+		"name": "Germanite Excavator",
+		"description": "Sulfide ore excavation.",
+		"cost": {"credits": 1200000, "Steel": 2000, "Ti": 150, "Chip": 100},
+		"energy_gen": 0.0,
+		"energy_cons": 150.0,
+		"yield": {"Germanit": 1},
+		"interval": 14.0,
+		"research_req": "basic_electronics",
+		"category": "extraction"
+	},
+	"iridium_drill": {
+		"name": "Iridium Drill",
+		"description": "Deep-void crystal extraction.",
+		"cost": {"credits": 3000000, "Steel": 4000, "Ti": 500, "Chip": 200},
+		"energy_gen": 0.0,
+		"energy_cons": 400.0,
+		"yield": {"Ir": 1},
+		"interval": 25.0,
+		"research_req": "iridium_metallurgy",
+		"category": "extraction"
+	},
+	"osmium_condenser": {
+		"name": "Osmium Condenser",
+		"description": "Heavy metal recovery.",
+		"cost": {"credits": 5000000, "Steel": 5000, "Ti": 800, "W": 100, "Chip": 300},
+		"energy_gen": 0.0,
+		"energy_cons": 600.0,
+		"yield": {"Os": 1},
+		"interval": 30.0,
+		"research_req": "exotic_metallurgy",
+		"category": "extraction"
+	},
+	"orbital_siphon": {
+		"name": "Orbital Gas Siphon",
+		"description": "+2 H, +1 He, +1 N",
+		"cost": {"credits": 1000000, "Ti": 500,"Superalloy":100},
+		"energy_gen": 0.0,
+		"energy_cons": 150.0,
+		"yield": {"H": 2, "He": 1, "N": 1},
+		"interval": 5.0,
+		"research_req": "energy_metrics",
+		"category": "extraction"
+	},
+	"precious_dredge": {
+		"name": "Precious Metal Dredge",
+		"description": "+2 Pt, +1 Ir",
+		"cost": {"credits": 1000000, "Ti": 500,"QuantumCore": 10,"Superalloy":100},
+		"energy_gen": 0.0,
+		"energy_cons": 300.0,
+		"yield": {"PtOre": 2, "Ir": 1},
+		"interval": 10.0,
+		"research_req": "precious_metal_refining",
+		"category": "extraction"
+	},
+	"void_anchor": {
+		"name": "Void Rift Anchor",
+		"description": "+2 Void Essence",
+		"cost": {"credits": 5000000, "Superalloy": 500, "QuantumCore": 10},
+		"energy_gen": 0.0,
+		"energy_cons": 1000.0,
+		"yield": {"VoidEssence": 2},
+		"interval": 15.0,
+		"research_req": "void_navigation",
+		"category": "extraction"
+	},
+	"chrono_siphon": {
+		"name": "Chrono-Siphon",
+		"description": "+1 Chrono Core",
+		"cost": {"credits": 25000000, "Superalloy": 1000, "AntimatterFuel": 10},
+		"energy_gen": 0.0,
+		"energy_cons": 2500.0,
+		"yield": {"ChronoCore": 1},
+		"interval": 30.0,
+		"research_req": "void_navigation",
+		"category": "extraction"
+	},
+	"industrial_centrifuge": {
+		"name": "Industrial Centrifuge",
+		"description": "+3 Fe, +1 Si (-5 Dirt, -5 Water)",
+		"cost": {"credits": 500000, "Steel": 1000, "Si": 2000, "DroneCore": 100},
+		"energy_gen": 0.0,
+		"energy_cons": 45.0,
+		"yield": {"Fe": 3, "Si": 1},
+		"input": {"Dirt": 5, "Water": 5},
+		"interval": 3.0,
+		"research_req": "automated_logistics",
+		"category": "industry"
+	},
+
+	# ========== CATEGORY: INDUSTRY ==========
+	"industrial_kiln": {
+		"name": "Industrial Kiln",
+		"description": "Automated wood carbonization.",
+		"cost": {"credits": 150000, "Steel": 300, "Hydraulics": 20},
+		"energy_gen": 0.0,
+		"energy_cons": 30.0,
+		"yield": {"C": 3},
+		"input": {"Wood": 1},
+		"interval": 4.0,
+		"research_req": "combustion",
 		"category": "industry"
 	},
 	"auto_smelter": {
@@ -96,6 +461,102 @@ var building_db: Dictionary = {
 		"research_req": "automated_smelting",
 		"category": "industry"
 	},
+	"copper_smelter": {
+		"name": "Copper Smelter",
+		"description": "Automated copper smelting.",
+		"cost": {"credits": 250000, "Ti": 200, "Circuit": 50},
+		"energy_gen": 0.0,
+		"energy_cons": 50.0,
+		"yield": {"Cu": 1},
+		"input": {"Malachite": 2, "C": 1},
+		"interval": 5.0,
+		"research_req": "basic_electronics",
+		"category": "industry"
+	},
+	"tin_smelter": {
+		"name": "Tin Smelter",
+		"description": "Automated tin smelting.",
+		"cost": {"credits": 400000, "Steel": 400, "Ti": 100, "Hydraulics": 50},
+		"energy_gen": 0.0,
+		"energy_cons": 60.0,
+		"yield": {"Sn": 2},
+		"input": {"Cassiterite": 3, "C": 1},
+		"interval": 5.0,
+		"research_req": "basic_electronics",
+		"category": "industry"
+	},
+	"zinc_smelter": {
+		"name": "Zinc Smelter",
+		"description": "Automated zinc reduction.",
+		"cost": {"credits": 600000, "Steel": 1000, "AdvCircuit": 50},
+		"energy_gen": 0.0,
+		"energy_cons": 80.0,
+		"yield": {"Zn": 2},
+		"input": {"ZincOre": 3, "C": 1},
+		"interval": 4.0,
+		"research_req": "metallurgy_advanced",
+		"category": "industry"
+	},
+	"silicon_furnace": {
+		"name": "Silicon Furnace",
+		"description": "Automated silicon refining.",
+		"cost": {"credits": 500000, "Steel": 500, "Ti": 100, "Hydraulics": 100},
+		"energy_gen": 0.0,
+		"energy_cons": 60.0,
+		"yield": {"Si": 1},
+		"input": {"Quartz": 2, "C": 1},
+		"interval": 5.0,
+		"research_req": "basic_electronics",
+		"category": "industry"
+	},
+	"lithium_refinery": {
+		"name": "Lithium Refinery",
+		"description": "Automated lithium purification.",
+		"cost": {"credits": 450000, "Steel": 500, "Hydraulics": 50},
+		"energy_gen": 0.0,
+		"energy_cons": 50.0,
+		"yield": {"Li": 1},
+		"input": {"Spodumene": 2},
+		"interval": 5.0,
+		"research_req": "basic_electronics",
+		"category": "industry"
+	},
+	"nickel_refinery": {
+		"name": "Nickel Refinery",
+		"description": "Automated nickel extraction.",
+		"cost": {"credits": 800000, "Steel": 1500, "Superalloy": 30, "AdvCircuit": 100},
+		"energy_gen": 0.0,
+		"energy_cons": 100.0,
+		"yield": {"Ni": 2},
+		"input": {"Pentlandite": 3, "C": 1},
+		"interval": 6.0,
+		"research_req": "superalloy_engineering",
+		"category": "industry"
+	},
+	"chromium_forge": {
+		"name": "Chromium Forge",
+		"description": "Advanced alloys forge.",
+		"cost": {"credits": 900000, "Steel": 2000, "Superalloy": 50, "AdvCircuit": 150},
+		"energy_gen": 0.0,
+		"energy_cons": 120.0,
+		"yield": {"Cr": 2},
+		"input": {"Chromite": 3, "Al": 1},
+		"interval": 8.0,
+		"research_req": "superalloy_engineering",
+		"category": "industry"
+	},
+	"germanium_smelter": {
+		"name": "Germanium Smelter",
+		"description": "Automated germanium refining.",
+		"cost": {"credits": 1500000, "Steel": 1500, "Ti": 200, "Chip": 100},
+		"energy_gen": 0.0,
+		"energy_cons": 120.0,
+		"yield": {"Germanium": 1},
+		"input": {"Germanit": 5},
+		"interval": 8.0,
+		"research_req": "basic_electronics",
+		"category": "industry"
+	},
 	"hydro_plant": {
 		"name": "Industrial Electrolysis Plant",
 		"description": "+2 H, +1 O (-1 Water)",
@@ -108,28 +569,6 @@ var building_db: Dictionary = {
 		"research_req": "industrial_electrolysis",
 		"category": "industry"
 	},
-	"nitrogen_tank": {
-		"name": "Cryo-Storage Array",
-		"description": "+10% Nitrogen Yield",
-		"cost": {"credits": 12500, "Ti": 100, "Circuit": 25},
-		"energy_gen": 0.0,
-		"energy_cons": 20.0,
-		"yield_bonus": {"N": 0.10},
-		"research_req": "cryogenic_storage",
-		"category": "logistics"
-	},
-	"matter_deconstructor": {
-		"name": "Matter De-constructor",
-		"description": "+1 Circuit",
-		"cost": {"credits": 250000, "Ti": 1000, "AdvCircuit": 50},
-		"energy_gen": 0.0,
-		"energy_cons": 250.0,
-		"input": {"Scrap": 5000},  # Audit v38.0: Reduced from 10K for usability
-		"yield": {"Circuit": 1, "Superalloy": 0.2},  # Scaled proportionally
-		"interval": 10.0,
-		"research_req": "molecular_recycling",
-		"category": "industry"
-	},
 	"auto_press": {
 		"name": "Automated Carbon Press",
 		"description": "+1 Graphite",
@@ -140,6 +579,66 @@ var building_db: Dictionary = {
 		"input": {"C": 5},
 		"interval": 6.0,
 		"research_req": "molecular_compression",
+		"category": "industry"
+	},
+	"composite_loom": {
+		"name": "Composite Loom",
+		"description": "+1 Composite Weave",
+		"cost": {"credits": 15000, "Steel": 75, "Fiber": 20},
+		"energy_gen": 0.0,
+		"energy_cons": 40.0,
+		"yield": {"CompositeWeave": 1},
+		"input": {"Fiber": 10, "Resin": 2},
+		"interval": 8.0,
+		"research_req": "adv_materials",
+		"category": "industry"
+	},
+	"electronics_assembler": {
+		"name": "Electronics Assembler",
+		"description": "+2 Circuit",
+		"cost": {"credits": 25000, "Ti": 50, "Circuit": 100, "SalvageData": 20},
+		"energy_gen": 0.0,
+		"energy_cons": 120.0,
+		"yield": {"Circuit": 2},
+		"input": {"Si": 4, "Cu": 4, "Resin": 2},
+		"interval": 8.0,
+		"research_req": "industrial_automation",
+		"category": "industry"
+	},
+	"matter_deconstructor": {
+		"name": "Matter De-constructor",
+		"description": "+1 Circuit (Scrap processing)",
+		"cost": {"credits": 250000, "Ti": 1000, "AdvCircuit": 50},
+		"energy_gen": 0.0,
+		"energy_cons": 250.0,
+		"input": {"Scrap": 5000},
+		"yield": {"Circuit": 1, "Superalloy": 0.2},
+		"interval": 10.0,
+		"research_req": "molecular_recycling",
+		"category": "industry"
+	},
+	"zero_point_cell_synthesizer": {
+		"name": "Zero-Point Cell Synthesizer",
+		"description": "+2 Cell T3",
+		"cost": {"credits": 1000000, "QuantumCore": 10, "ExoticMatter": 20},
+		"energy_gen": 0.0,
+		"energy_cons": 500.0,
+		"yield": {"CellT3": 2},
+		"input": {"ExoticMatter": 2, "QuantumCore": 2},
+		"interval": 15.0,
+		"research_req": "exotic_metallurgy",
+		"category": "industry"
+	},
+	"void_crystallizer": {
+		"name": "Void Crystallizer",
+		"description": "+2 Void Crystal (-5 Essence)",
+		"cost": {"credits": 10000000, "Superalloy": 1000, "QuantumCore": 25},
+		"energy_gen": 0.0,
+		"energy_cons": 2000.0,
+		"input": {"VoidEssence": 5},
+		"yield": {"VoidCrystal": 2},
+		"interval": 20.0,
+		"research_req": "void_navigation",
 		"category": "industry"
 	},
 	"basic_kinetic_foundry": {
@@ -202,26 +701,74 @@ var building_db: Dictionary = {
 		"research_req": "capital_ship_armament",
 		"category": "industry"
 	},
-	"zero_point_cell_synthesizer": {
-		"name": "Zero-Point Cell Synthesizer",
-		"description": "+2 Cell T3",
-		"cost": {"credits": 1000000, "QuantumCore": 10, "ExoticMatter": 20},
+
+	# ========== CATEGORY: LOGISTICS ==========
+	"drone_bay": {
+		"name": "Drone Recovery Bay",
+		"description": "+Scrap (Zone Scavenging)",
+		"cost": {"credits": 5000, "Circuit": 10, "Ti": 20},
 		"energy_gen": 0.0,
-		"energy_cons": 500.0,
-		"yield": {"CellT3": 2},
-		"input": {"ExoticMatter": 2, "QuantumCore": 2},
-		"interval": 15.0,
-		"research_req": "exotic_metallurgy",
+		"energy_cons": 50.0,
+		"max": 1,
+		"research_req": "automated_logistics",
+		"special": "passive_gather",
+		"category": "logistics"
+	},
+	"fabricator": {
+		"name": "Molecular Fabricator",
+		"description": "-20% Crafting Time",
+		"cost": {"credits": 12500, "Circuit": 50, "Fiber": 20, "Ti": 50},
+		"energy_gen": 0.0,
+		"energy_cons": 100.0,
+		"max": 1,
+		"research_req": "molecular_printing",
+		"special": "craft_buff",
 		"category": "industry"
 	},
-	"repair_docks": {
-		"name": "Fleet Repair Docks",
-		"description": "-10% Repair Cost",
-		"cost": {"credits": 100000, "AdvCircuit": 20, "Steel": 100},
+	"nitrogen_tank": {
+		"name": "Cryo-Storage Array",
+		"description": "+10% Nitrogen Yield",
+		"cost": {"credits": 12500, "Ti": 100, "Circuit": 25},
 		"energy_gen": 0.0,
-		"energy_cons": 60.0,
-		"max": 10, # Cap at 10 for 100% reduction potential? Or additive/multiplicative check later.
-		"research_req": "fleet_logistics_1",
+		"energy_cons": 20.0,
+		"yield_bonus": {"N": 0.10},
+		"research_req": "cryogenic_storage",
+		"category": "logistics"
+	},
+	"terraforming_processor": {
+		"name": "Terraforming Processor",
+		"description": "+1 Fertile Soil (+5% Gather Speed)",
+		"cost": {"credits": 20000, "Steel": 100, "Circuit": 20},
+		"energy_gen": 0.0,
+		"energy_cons": 50.0,
+		"yield": {"FertileSoil": 1},
+		"input": {"Dirt": 25, "Water": 5},
+		"interval": 10.0,
+		"research_req": "industrial_logistics",
+		"category": "logistics"
+	},
+	"biosphere_dome": {
+		"name": "Biosphere Dome",
+		"description": "+5% Gather Speed",
+		"cost": {"credits": 30000, "Steel": 150, "Si": 50, "FertileSoil": 10},
+		"energy_gen": 0.0,
+		"energy_cons": 15.0,
+		"max": 5,
+		"research_req": "industrial_logistics",
+		"special": "gather_speed_buff",
+		"category": "logistics"
+	},
+	"crew_quarters": {
+		"name": "Crew Quarters",
+		"description": "+10% XP Gain",
+		"cost": {"credits": 25000, "Steel": 100, "Circuit": 20},
+		"energy_gen": 0.0,
+		"energy_cons": 20.0,
+		"input": {"Food": 1},
+		"interval": 30.0,
+		"max": 3,
+		"research_req": "industrial_logistics",
+		"special": "xp_buff",
 		"category": "logistics"
 	},
 	"catalyst_chamber": {
@@ -246,113 +793,14 @@ var building_db: Dictionary = {
 		"special": "global_catalyst",
 		"category": "logistics"
 	},
-	"palladium_generator": {
-		"name": "Palladium Fuel Cell Generator",
-		"description": "+350.0 kW",
-		"cost": {"credits": 250000, "PdFuelCell": 20, "Circuit": 40},
-		"energy_gen": 350.0,  # Audit v38.0: Buffed from 200 to be viable vs H Reactor
-		"energy_cons": 0.0,
-		"input": {"H": 1},  # Consumes 1 H per cycle
-		"interval": 10.0,
-		"research_req": "fuel_cell_tech",
-		"category": "power"
-	},
-	"hydrogen_reactor": {
-		"name": "Hydrogen Reactor",
-		"description": "+500.0 kW",
-		"cost": {"credits": 50000, "Steel": 200, "Circuit": 50, "NavData": 5},
-		"energy_gen": 500.0, # REBALANCE v23.0: Buffed from 100 for mid-game density
-		"energy_cons": 0.0,
-		"input": {"H": 10}, # REBALANCE v23.0: Increased from 5
-		"interval": 10.0,
-		"research_req": "energy_metrics",
-		"category": "power"
-	},
-	"industrial_centrifuge": {
-		"name": "Industrial Centrifuge",
-		"description": "+3 Fe, +1 Si (-5 Dirt, -5 Water)",
-		"cost": {"credits": 25000, "Steel": 100, "Si": 20, "DroneCore": 10},
+	"repair_docks": {
+		"name": "Fleet Repair Docks",
+		"description": "-10% Repair Cost",
+		"cost": {"credits": 100000, "AdvCircuit": 20, "Steel": 100},
 		"energy_gen": 0.0,
-		"energy_cons": 45.0,
-		"yield": {"Fe": 3, "Si": 1},
-		"input": {"Dirt": 5, "Water": 5},
-		"interval": 3.0,
-		"research_req": "automated_logistics",
-		"category": "extraction"
-	},
-	"electronics_assembler": {
-		"name": "Electronics Assembler",
-		"description": "+2 Circuit",
-		"cost": {"credits": 25000, "Ti": 50, "Circuit": 100, "SalvageData": 20},
-		"energy_gen": 0.0,
-		"energy_cons": 120.0,
-		"yield": {"Circuit": 2},
-		"input": {"Si": 4, "Cu": 4, "Resin": 2}, # Audit v18.0: Industrial Input (No DroneCore)
-		"interval": 8.0,
-		# "max": 1, # Audit v19.0: Removed max cap to allow infinite scaling for late game
-		"research_req": "industrial_automation",
-		"category": "industry"
-	},
-	# ITER2 P1: Dead Resource Sinks
-	"hydroponics_bay": {
-		"name": "Hydroponics Bay",
-		"description": "+3 O, +1 Food (-10 Water)",
-		"cost": {"credits": 10000, "Steel": 50, "Si": 30, "Resin": 10},
-		"energy_gen": 0.0,
-		"energy_cons": 30.0,
-		"yield": {"O": 3, "Food": 1},
-		"input": {"Water": 10},
-		"interval": 5.0,
-		"research_req": "fluid_dynamics",
-		"category": "extraction"
-	},
-	"terraforming_processor": {
-		"name": "Terraforming Processor",
-		"description": "+1 Fertile Soil (+5% Gather Speed)",
-		"cost": {"credits": 20000, "Steel": 100, "Circuit": 20},
-		"energy_gen": 0.0,
-		"energy_cons": 50.0,
-		"yield": {"FertileSoil": 1},
-		"input": {"Dirt": 25, "Water": 5},
-		"interval": 10.0,
-		"research_req": "industrial_logistics",
-		"category": "logistics"
-	},
-	"composite_loom": {
-		"name": "Composite Loom",
-		"description": "+1 Composite Weave",
-		"cost": {"credits": 15000, "Steel": 75, "Fiber": 20},
-		"energy_gen": 0.0,
-		"energy_cons": 40.0,
-		"yield": {"CompositeWeave": 1},
-		"input": {"Fiber": 10, "Resin": 2},
-		"interval": 8.0,
-		"research_req": "adv_materials",
-		"category": "industry"
-	},
-	# ITER5 FIX: Food/FertileSoil uses
-	"crew_quarters": {
-		"name": "Crew Quarters",
-		"description": "+10% XP Gain",
-		"cost": {"credits": 25000, "Steel": 100, "Circuit": 20},
-		"energy_gen": 0.0,
-		"energy_cons": 20.0,
-		"input": {"Food": 1},
-		"interval": 30.0,
-		"max": 3,
-		"research_req": "industrial_logistics",
-		"special": "xp_buff",
-		"category": "logistics"
-	},
-	"biosphere_dome": {
-		"name": "Biosphere Dome",
-		"description": "+5% Gather Speed",
-		"cost": {"credits": 30000, "Steel": 150, "Si": 50, "FertileSoil": 10},
-		"energy_gen": 0.0,
-		"energy_cons": 15.0,
-		"max": 5,
-		"research_req": "industrial_logistics",
-		"special": "gather_speed_buff",
+		"energy_cons": 60.0,
+		"max": 10,
+		"research_req": "fleet_logistics_1",
 		"category": "logistics"
 	},
 	"repair_gantry": {
@@ -364,130 +812,6 @@ var building_db: Dictionary = {
 		"max": 5,
 		"research_req": "fleet_logistics_2",
 		"category": "logistics"
-	},
-	# ========== AUDIT v21.0: EXTRACTION EXPANSION ==========
-	"brine_extractor": {
-		"name": "Lithium Brine Well",
-		"description": "+2 Spodumene",
-		"cost": {"credits": 2500, "Si": 100, "Steel": 50},
-		"energy_gen": 0.0,
-		"energy_cons": 35.0,
-		"yield": {"Spodumene": 2},
-		"interval": 6.0,
-		"research_req": "basic_engineering",
-		"category": "extraction"
-	},
-	"deep_crust_drill": {
-		"name": "Deep-Crust Drill",
-		"description": "+2 Malachite",
-		"cost": {"credits": 2500, "Si": 50, "Steel": 100},
-		"energy_gen": 0.0,
-		"energy_cons": 40.0,
-		"yield": {"Malachite": 2},
-		"interval": 6.0,
-		"research_req": "basic_engineering",
-		"category": "extraction"
-	},
-	"bauxite_miner": {
-		"name": "Bauxite Strip Miner",
-		"description": "+4 Bauxite",
-		"cost": {"credits": 10000, "Steel": 250, "Hydraulics": 10},
-		"energy_gen": 0.0,
-		"energy_cons": 60.0,
-		"yield": {"Bauxite": 4},
-		"interval": 8.0,
-		"research_req": "adv_materials",
-		"category": "extraction"
-	},
-	"quartz_excavator": {
-		"name": "Quartz Resonator",
-		"description": "+4 Quartz",
-		"cost": {"credits": 12000, "Ti": 100, "Circuit": 20},
-		"energy_gen": 0.0,
-		"energy_cons": 75.0,
-		"yield": {"Quartz": 4},
-		"interval": 8.0,
-		"research_req": "adv_materials",
-		"category": "extraction"
-	},
-	"orbital_siphon": {
-		"name": "Orbital Gas Siphon",
-		"description": "+2 H, +1 He, +1 N",
-		"cost": {"credits": 50000, "Ti": 200, "AdvCircuit": 10},
-		"energy_gen": 0.0,
-		"energy_cons": 150.0,
-		"yield": {"H": 2, "He": 1, "N": 1},
-		"interval": 5.0,
-		"research_req": "energy_metrics",
-		"category": "extraction"
-	},
-	"precious_dredge": {
-		"name": "Precious Metal Dredge",
-		"description": "+2 Pt, +1 Ir",
-		"cost": {"credits": 150000, "Superalloy": 50, "AdvCircuit": 25},
-		"energy_gen": 0.0,
-		"energy_cons": 300.0,
-		"yield": {"PtOre": 2, "Ir": 1},
-		"interval": 10.0,
-		"research_req": "precious_metal_refining",
-		"category": "extraction"
-	},
-	"void_anchor": {
-		"name": "Void Rift Anchor",
-		"description": "+2 Void Essence",
-		"cost": {"credits": 5000000, "Superalloy": 500, "QuantumCore": 10},
-		"energy_gen": 0.0,
-		"energy_cons": 1000.0,
-		"yield": {"VoidEssence": 2},
-		"interval": 15.0,
-		"research_req": "void_navigation",
-		"category": "extraction"
-	},
-	"chrono_siphon": {
-		"name": "Chrono-Siphon",
-		"description": "+1 Chrono Core",
-		"cost": {"credits": 25000000, "Superalloy": 1000, "AntimatterFuel": 10},
-		"energy_gen": 0.0,
-		"energy_cons": 2500.0,
-		"yield": {"ChronoCore": 1},
-		"interval": 30.0,
-		"research_req": "void_navigation",
-		"category": "extraction"
-	},
-	# ========== AUDIT v24.0: INDUSTRIAL COMPLETION ==========
-	"uranium_centrifuge": {
-		"name": "Uranium Isotope Centrifuge",
-		"description": "+2 Uranium",
-		"cost": {"credits": 50000, "Steel": 500, "Si": 250, "AdvCircuit": 5},
-		"energy_gen": 0.0,
-		"energy_cons": 150.0,
-		"yield": {"U": 2},
-		"interval": 10.0,
-		"research_req": "energy_metrics",
-		"category": "extraction"
-	},
-	"tungsten_drill": {
-		"name": "Heavy Tungsten Drill",
-		"description": "+4 Tungsten",
-		"cost": {"credits": 45000, "Ti": 300, "Steel": 500, "Hydraulics": 15},
-		"energy_gen": 0.0,
-		"energy_cons": 120.0,
-		"yield": {"W": 4},
-		"interval": 10.0,
-		"research_req": "smelting",  # Audit v38.0: Changed from adv_materials for earlier T2 ammo access
-		"category": "extraction"
-	},
-	"void_crystallizer": {
-		"name": "Void Crystallizer",
-		"description": "+2 Void Crystal (-5 Essence)",
-		"cost": {"credits": 10000000, "Superalloy": 1000, "QuantumCore": 25},
-		"energy_gen": 0.0,
-		"energy_cons": 2000.0,
-		"input": {"VoidEssence": 5},
-		"yield": {"VoidCrystal": 2},
-		"interval": 20.0,
-		"research_req": "void_navigation",
-		"category": "industry"
 	}
 }
 
@@ -629,19 +953,82 @@ func get_building_adjusted_rate(building_id: String) -> Dictionary:
 			
 	return results
 
+func _get_credit_cost_multiplier(count: int) -> float:
+	# Keep early pacing intact, then ramp aggressively in late game.
+	if count < 10:
+		return pow(1.15, float(count))
+	if count < 25:
+		return pow(1.15, 10.0) * pow(1.24, float(count - 10))
+	return pow(1.15, 10.0) * pow(1.24, 15.0) * pow(1.32, float(count - 25))
+
+func _get_passive_item_cost_multiplier(count: int) -> float:
+	# Passively generated inputs can scale harder than rare bottlenecks.
+	if count < 10:
+		return pow(1.15, float(count))
+	if count < 25:
+		return pow(1.15, 10.0) * pow(1.20, float(count - 10))
+	return pow(1.15, 10.0) * pow(1.20, 15.0) * pow(1.26, float(count - 25))
+
+func _get_non_passive_item_cost_multiplier(count: int) -> float:
+	# Protect non-passive bottlenecks from exploding requirements.
+	var mult: float
+	if count < 10:
+		mult = pow(1.12, float(count))
+	elif count < 25:
+		mult = pow(1.12, 10.0) * pow(1.08, float(count - 10))
+	else:
+		mult = pow(1.12, 10.0) * pow(1.08, 15.0) * pow(1.05, float(count - 25))
+	return min(mult, 5.0)
+
+func _is_resource_passively_produced(resource_symbol: String) -> bool:
+	for bid in building_db:
+		var b = building_db.get(bid)
+		if not b: continue
+		if not ("yield" in b and resource_symbol in b["yield"]):
+			continue
+		var req = b.get("research_req")
+		if req:
+			if not GameState.research_manager:
+				continue
+			if not GameState.research_manager.is_tech_unlocked(req):
+				continue
+		return true
+	# Drone bay yields Scrap via special runtime logic.
+	if resource_symbol == "Scrap":
+		return GameState.research_manager and GameState.research_manager.is_tech_unlocked("automated_logistics")
+	return false
+
+var buy_multiplier: int = 1
+
+func set_buy_multiplier(mult: int):
+	buy_multiplier = max(1, mult)
+
 func get_building_cost(building_id: String) -> Dictionary:
-	"""Calculates exponential cost scaling: Base * (1.15 ^ current_count)"""
+	"""Calculates progressive late-game scaling with bottleneck protection for N multi-buys."""
 	if not building_id in building_db: return {}
 	
 	var data = building_db[building_id]
-	var count = get_building_count(building_id)
-	var multiplier = pow(1.15, float(count))
+	var current_count = get_building_count(building_id)
 	
-	var scaled_cost = {}
-	for res in data["cost"]:
-		scaled_cost[res] = int(data["cost"][res] * multiplier)
+	var total_scaled_cost = {}
+	
+	# Iterate for the number of buildings we are buying to sum up the progressive cost
+	for i in range(buy_multiplier):
+		var theoretical_count = current_count + i
+		var credit_multiplier = _get_credit_cost_multiplier(theoretical_count)
+		var passive_item_multiplier = _get_passive_item_cost_multiplier(theoretical_count)
+		var non_passive_item_multiplier = _get_non_passive_item_cost_multiplier(theoretical_count)
 		
-	return scaled_cost
+		for res in data["cost"]:
+			var base_cost = float(data["cost"][res])
+			var mult = credit_multiplier
+			if res != "credits":
+				mult = passive_item_multiplier if _is_resource_passively_produced(res) else non_passive_item_multiplier
+			
+			var cycle_cost = int(ceil(base_cost * mult))
+			total_scaled_cost[res] = total_scaled_cost.get(res, 0) + cycle_cost
+			
+	return total_scaled_cost
 
 func can_afford(building_id: String) -> bool:
 	if not building_id in building_db: return false
@@ -684,7 +1071,7 @@ func build(building_id: String) -> bool:
 		
 		# Add
 		var count = get_building_count(building_id)
-		buildings[building_id] = count + 1
+		buildings[building_id] = count + buy_multiplier
 		recalc_energy()
 		building_constructed.emit(building_id)
 		return true

@@ -1,4 +1,4 @@
-[gd_scene load_steps=2 format=3 uid="uid://y0ltnewtc2c8"]
+[gd_scene load_steps=3 format=3 uid="uid://y0ltnewtc2c8"]
 
 [ext_resource type="Script" uid="uid://b7ukcy14b3op3" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="PackedScene" uid="uid://dlopyuj5irvct" path="res://scenes/ui/screen_overlay.tscn" id="1_overlay"]
@@ -51,7 +51,7 @@ text = " [ 🛰 COMMAND ]"
 
 [node name="MissionBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
-text = "  ⌘  Mission Control"
+text = "  ⌘  Missions"
 alignment = 0
 
 [node name="FleetBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
@@ -67,7 +67,7 @@ text = " [ ⌬ LOGISTICS ]"
 
 [node name="GatheringBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
-text = "  ◓  Planetary Ops"
+text = "  ◓  Mine"
 alignment = 0
 
 [node name="InfrastructureBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
@@ -83,22 +83,22 @@ text = " [ ⚙ ENGINEERING ]"
 
 [node name="ProcessingBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
-text = "  ⚙  Automated Prod"
+text = "  ⚙ Engineering"
 alignment = 0
 
 [node name="ResearchBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
-text = "  🔬  R&D Lab"
+text = "  🔬  Research Lab"
 alignment = 0
 
 [node name="ShipyardBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
-text = "  ⚓  Shipyard"
+text = "  ⚓ Shipyard"
 alignment = 0
 
 [node name="DesignerBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
-text = "  ⌬  Blueprint Designer"
+text = "  ⌬   Ship Designer"
 alignment = 0
 
 [node name="CombatHeader" type="Label" parent="HBoxContainer/Sidebar/VBoxContainer"]
@@ -109,7 +109,7 @@ text = " [ ⚔ TACTICAL ]"
 
 [node name="CombatBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
-text = "  ⚔  Live Excursions"
+text = "  ⚔  Combat"
 alignment = 0
 
 [node name="WarpBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
@@ -120,7 +120,7 @@ alignment = 0
 
 [node name="InventoryBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
-text = " 📦 Manifest / Market"
+text = " 📦 Inventory"
 alignment = 0
 
 [node name="DataHeader" type="Label" parent="HBoxContainer/Sidebar/VBoxContainer"]
@@ -135,8 +135,8 @@ text = " 📖 Material Atlas"
 alignment = 0
 
 [node name="Spacer" type="Control" parent="HBoxContainer/Sidebar/VBoxContainer"]
-size_flags_vertical = 3
 layout_mode = 2
+size_flags_vertical = 3
 
 [node name="OptionsBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
@@ -155,16 +155,16 @@ layout_mode = 2
 size_flags_vertical = 3
 mouse_filter = 2
 
-[connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/GatheringBtn" to="." method="_on_gathering_btn_pressed"]
-[connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/ProcessingBtn" to="." method="_on_processing_btn_pressed"]
-[connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/InfrastructureBtn" to="." method="_on_infrastructure_btn_pressed"]
-[connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/ShipyardBtn" to="." method="_on_shipyard_btn_pressed"]
-[connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/ResearchBtn" to="." method="_on_research_btn_pressed"]
-[connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/CombatBtn" to="." method="_on_combat_btn_pressed"]
-[connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/FleetBtn" to="." method="_on_fleet_btn_pressed"]
 [connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/MissionBtn" to="." method="_on_mission_btn_pressed"]
+[connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/FleetBtn" to="." method="_on_fleet_btn_pressed"]
+[connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/GatheringBtn" to="." method="_on_gathering_btn_pressed"]
+[connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/InfrastructureBtn" to="." method="_on_infrastructure_btn_pressed"]
+[connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/ProcessingBtn" to="." method="_on_processing_btn_pressed"]
+[connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/ResearchBtn" to="." method="_on_research_btn_pressed"]
+[connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/ShipyardBtn" to="." method="_on_shipyard_btn_pressed"]
 [connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/DesignerBtn" to="." method="_on_designer_btn_pressed"]
+[connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/CombatBtn" to="." method="_on_combat_btn_pressed"]
+[connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/WarpBtn" to="." method="_on_warp_btn_pressed"]
 [connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/InventoryBtn" to="." method="_on_inventory_btn_pressed"]
 [connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/AtlasBtn" to="." method="_on_atlas_btn_pressed"]
-[connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/WarpBtn" to="." method="_on_warp_btn_pressed"]
 [connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/OptionsBtn" to="." method="_on_options_btn_pressed"]

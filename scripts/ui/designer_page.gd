@@ -41,6 +41,12 @@ func _ready():
 	f_sys.pressed.connect(func(): _on_filter_changed("sys"))
 	f_ord.pressed.connect(func(): _on_filter_changed("ord"))
 	
+	var filter_strip = $VBoxContainer/MainLayout/RightPanel/FilterConsole/FilterStrip
+	if filter_strip.has_node("ExplosiveBtn"):
+		filter_strip.get_node("ExplosiveBtn").pressed.connect(func(): _on_filter_changed("explosive"))
+	if filter_strip.has_node("ArmorBtn"):
+		filter_strip.get_node("ArmorBtn").pressed.connect(func(): _on_filter_changed("armor"))
+	
 	circuit_bg.draw.connect(_on_circuit_draw)
 	
 	trigger_refresh()
@@ -65,13 +71,10 @@ func update_header():
 		var h = manager.hulls[manager.active_hull]
 		ship_name_lbl.text = h["name"].to_upper()
 		
-		# Calculate energy capacity (hull + battery modules)
-		var hull_data = manager.hulls.get(manager.active_hull, {})
-		var e_cap = hull_data.get("stats", {}).get("energy_capacity", 100)
-		for idx in manager.loadout:
-			var mid = manager.loadout[idx]
-			if mid and mid in manager.modules:
-				e_cap += manager.modules[mid].get("stats", {}).get("energy_capacity", 0)
+		# Calculate energy capacity (use unified global value to respect multipliers)
+		var e_cap = 100
+		if GameState.resources:
+			e_cap = GameState.resources.max_energy
 		var e_used = manager.energy_used
 		
 		# Calculate DPS
@@ -142,6 +145,7 @@ func rebuild_slots():
 	var blades = {
 		"Weapons": [],
 		"Defense": [],
+		"Armor": [],
 		"Systems": [],
 		"Utility": [],
 		"Ammunition": []
@@ -153,8 +157,10 @@ func rebuild_slots():
 			blades["Weapons"].append({"idx": i, "type": s_type})
 			# Add ammo slot for every weapon slot
 			blades["Ammunition"].append({"idx": i, "type": "ammo"})
-		elif s_type == "shield" or s_type == "armor":
+		elif s_type == "shield":
 			blades["Defense"].append({"idx": i, "type": s_type})
+		elif s_type == "armor":
+			blades["Armor"].append({"idx": i, "type": s_type})
 		elif s_type == "engine" or s_type == "reactor" or s_type == "battery":
 			blades["Systems"].append({"idx": i, "type": s_type})
 		else:
@@ -164,6 +170,7 @@ func rebuild_slots():
 	_create_blade("🔥 Weapons", blades["Weapons"], s_cont, Color(1.0, 0.4, 0.4, 0.8))
 	_create_blade("💥 Ammunition", blades["Ammunition"], s_cont, Color(1.0, 0.6, 0.3, 0.8), true)
 	_create_blade("🛡 Defense", blades["Defense"], s_cont, Color(0.4, 0.6, 1.0, 0.8))
+	_create_blade("🧱 Armor", blades["Armor"], s_cont, Color(0.6, 0.6, 0.6, 0.8))
 	_create_blade("⚡ Systems", blades["Systems"], s_cont, Color(0.8, 1.0, 0.2, 0.8))
 	_create_blade("🔧 Utility", blades["Utility"], s_cont, Color(0.6, 0.6, 0.6, 0.8))
 	_create_consumable_blade(s_cont)
@@ -267,9 +274,16 @@ func rebuild_ammo_slots():
 func rebuild_storage():
 	for child in storage_grid.get_children(): child.queue_free()
 	
-	# Modules
+	# Modules Categorization & Sorting
 	var inv = manager.module_inventory
-	for mid in inv:
+	var sorted_mids = inv.keys()
+	sorted_mids.sort_custom(func(a, b):
+		var data_a = manager.modules.get(a, {})
+		var data_b = manager.modules.get(b, {})
+		return _get_module_power_score(a, data_a) < _get_module_power_score(b, data_b)
+	)
+	
+	for mid in sorted_mids:
 		var count = inv[mid]
 		if count > 0 and mid in manager.modules:
 			var data = manager.modules[mid]
@@ -279,6 +293,8 @@ func rebuild_storage():
 			if active_filter == "all": show = true
 			elif active_filter == "wpn" and type == "weapon": show = true
 			elif active_filter == "sys" and type in ["shield", "engine", "battery"]: show = true
+			elif active_filter == "explosive" and type == "weapon" and data.get("stats", {}).get("atk_explosive", 0) > 0: show = true
+			elif active_filter == "armor" and type == "armor": show = true
 			
 			if show:
 				var item = draggable_icon_scene.instantiate()
@@ -340,6 +356,35 @@ func get_module_widget(module_id: String) -> Control:
 		if child.get("mid") == module_id:
 			return child
 	return null
+
+func _get_module_power_score(id: String, data: Dictionary) -> int:
+	var score = 0
+	var stats = data.get("stats", {})
+	
+	var cost = data.get("cost", {})
+	var credits = cost.get("credits", 0)
+	if credits > 0:
+		score += int(log(credits) * 10)
+	else:
+		if "BatteryT1" in cost: score += 10
+		elif "BatteryT2" in cost: score += 20
+		elif "BatteryT3" in cost: score += 30
+		else: score += 5
+		
+	if stats.get("atk_kinetic", 0) > 0: score += stats["atk_kinetic"]
+	if stats.get("atk_energy", 0) > 0: score += stats["atk_energy"]
+	if stats.get("atk_explosive", 0) > 0: score += stats["atk_explosive"]
+	if stats.get("max_shield", 0) > 0: score += stats["max_shield"] / 5
+	if stats.get("hp", 0) > 0: score += stats["hp"] / 10
+	if stats.get("energy_capacity", 0) > 0: score += stats["energy_capacity"]
+	if stats.get("eva", 0) > 0: score += stats["eva"] * 2
+	if stats.get("atk_speed_bonus", 0) > 0: score += int(stats["atk_speed_bonus"] * 100)
+	
+	if id == "mining_laser_mk1": score = 10
+	if id == "mining_laser_mk2": score = 50
+	if id == "railgun_mk1": score = 20
+	
+	return score
 
 # ─────────────────────────────────────────────────
 # CIRCUIT LINES

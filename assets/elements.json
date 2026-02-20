@@ -116,7 +116,7 @@
     "mass": 6.94,
     "category": "Alkali Metal",
     "tier": 2,
-    "base_value": 5,
+    "base_value": 20,
     "description": "Lightweight metal used in advanced batteries."
   },
   {
@@ -671,7 +671,7 @@
   {
     "atomic_number": -63,
     "symbol": "NitroCoolant",
-    "name": "Liquid Nitrogen Coolant",
+    "name": "Cryo-Shield Matrix",
     "mass": 0.4,
     "category": "Component",
     "tier": 2,
@@ -1292,5 +1292,265 @@
     "tier": 2,
     "base_value": 20,
     "description": "Conductive writing for lightweight electronics."
+  },
+  {
+    "atomic_number": -909,
+    "symbol": "AIMatrix",
+    "name": "AI Matrix",
+    "mass": 100.0,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 100,
+    "description": "Advanced industrial or operational component."
+  },
+  {
+    "atomic_number": -910,
+    "symbol": "AdvMaintenanceKit",
+    "name": "Adv. Maintenance Kit",
+    "mass": 100.0,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 100,
+    "description": "Advanced industrial or operational component."
+  },
+  {
+    "atomic_number": -911,
+    "symbol": "CapacitorShard",
+    "name": "Capacitor Shard",
+    "mass": 100.0,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 100,
+    "description": "Advanced industrial or operational component."
+  },
+  {
+    "atomic_number": -912,
+    "symbol": "CellT4",
+    "name": "Heavy Plasma Cell",
+    "mass": 100.0,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 100,
+    "description": "Advanced industrial or operational component."
+  },
+  {
+    "atomic_number": -913,
+    "symbol": "CompositeWeave",
+    "name": "Composite Weave",
+    "mass": 100.0,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 100,
+    "description": "Advanced industrial or operational component."
+  },
+  {
+    "atomic_number": -914,
+    "symbol": "ExoticMatter",
+    "name": "Exotic Matter",
+    "mass": 100.0,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 100,
+    "description": "Advanced industrial or operational component."
+  },
+  {
+    "atomic_number": -915,
+    "symbol": "FertileSoil",
+    "name": "Fertile Soil",
+    "mass": 100.0,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 100,
+    "description": "Advanced industrial or operational component."
+  },
+  {
+    "atomic_number": -916,
+    "symbol": "Food",
+    "name": "Hydroponic Food",
+    "mass": 100.0,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 100,
+    "description": "Advanced industrial or operational component."
+  },
+  {
+    "atomic_number": -917,
+    "symbol": "GalvanizedSteel",
+    "name": "Galvanized Steel",
+    "mass": 100.0,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 100,
+    "description": "Advanced industrial or operational component."
+  },
+  {
+    "atomic_number": -918,
+    "symbol": "Germanium",
+    "name": "Germanium",
+    "mass": 100.0,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 100,
+    "description": "Advanced industrial or operational component."
+  },
+  {
+    "atomic_number": -919,
+    "symbol": "Gold",
+    "name": "Gold",
+    "mass": 100.0,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 100,
+    "description": "Advanced industrial or operational component."
+  },
+  {
+    "atomic_number": -920,
+    "symbol": "HE_Missile",
+    "name": "High-Explosive Missile",
+    "mass": 100.0,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 100,
+    "description": "Advanced industrial or operational component."
+  },
+  {
+    "atomic_number": -921,
+    "symbol": "IonField",
+    "name": "Ion Field Projector",
+    "mass": 100.0,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 100,
+    "description": "Advanced industrial or operational component."
+  },
+  {
+    "atomic_number": -922,
+    "symbol": "NuclearFuel",
+    "name": "Nuclear Fuel",
+    "mass": 100.0,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 100,
+    "description": "Advanced industrial or operational component."
+  },
+  {
+    "atomic_number": -923,
+    "symbol": "OmegaAccelerator",
+    "name": "Omega Accelerator",
+    "mass": 100.0,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 100,
+    "description": "Advanced industrial or operational component."
+  },
+  {
+    "atomic_number": -924,
+    "symbol": "Photon_Torpedo",
+    "name": "Photon Torpedo",
+    "mass": 100.0,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 100,
+    "description": "Advanced industrial or operational component."
+  },
+  {
+    "atomic_number": -925,
+    "symbol": "PrimordialArmor",
+    "name": "Primordial Armor",
+    "mass": 100.0,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 100,
+    "description": "Advanced industrial or operational component."
+  },
+  {
+    "atomic_number": -926,
+    "symbol": "PurifiedCompound",
+    "name": "Purified Compound",
+    "mass": 100.0,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 100,
+    "description": "Advanced industrial or operational component."
+  },
+  {
+    "atomic_number": -927,
+    "symbol": "QuarantineClearance",
+    "name": "Quarantine Clearance",
+    "mass": 100.0,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 100,
+    "description": "Advanced industrial or operational component."
+  },
+  {
+    "atomic_number": -928,
+    "symbol": "Seeker_Missile",
+    "name": "Seeker Missile",
+    "mass": 100.0,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 100,
+    "description": "Advanced industrial or operational component."
+  },
+  {
+    "atomic_number": -929,
+    "symbol": "SlugT4",
+    "name": "Hyper-Velocity Slug",
+    "mass": 100.0,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 100,
+    "description": "Advanced industrial or operational component."
+  },
+  {
+    "atomic_number": -930,
+    "symbol": "StainlessSteel",
+    "name": "Stainless Steel",
+    "mass": 100.0,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 100,
+    "description": "Advanced industrial or operational component."
+  },
+  {
+    "atomic_number": -931,
+    "symbol": "TemporalModule",
+    "name": "Temporal Stabilizer",
+    "mass": 100.0,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 100,
+    "description": "Advanced industrial or operational component."
+  },
+  {
+    "atomic_number": -932,
+    "symbol": "VoidBattery",
+    "name": "Void Battery",
+    "mass": 100.0,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 100,
+    "description": "Advanced industrial or operational component."
+  },
+  {
+    "atomic_number": -933,
+    "symbol": "ZeroPoint",
+    "name": "Zero-Point Injector",
+    "mass": 100.0,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 100,
+    "description": "Advanced industrial or operational component."
+  },
+  {
+    "atomic_number": -934,
+    "symbol": "Zn",
+    "name": "Zinc",
+    "mass": 100.0,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 100,
+    "description": "Advanced industrial or operational component."
   }
 ]

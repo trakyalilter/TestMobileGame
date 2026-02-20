@@ -21,7 +21,55 @@ func _ready():
 	manager = GameState.infrastructure_manager
 	$VBoxContainer/ScrollContainer.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_ALWAYS
 	_setup_logistics_rack()
+	_setup_multi_buy_toggles()
 	call_deferred("refresh_list")
+
+var btn_x1: Button
+var btn_x10: Button
+var btn_x100: Button
+
+func _setup_multi_buy_toggles():
+	var header = $VBoxContainer/Header
+	var toggle_box = HBoxContainer.new()
+	toggle_box.add_theme_constant_override("separation", 10)
+	toggle_box.alignment = BoxContainer.ALIGNMENT_CENTER
+	# Insert below StatsVBox
+	header.add_child(toggle_box)
+	
+	btn_x1 = Button.new()
+	btn_x1.text = "BUY x1"
+	btn_x1.toggle_mode = true
+	btn_x1.button_pressed = true
+	
+	btn_x10 = Button.new()
+	btn_x10.text = "BUY x10"
+	btn_x10.toggle_mode = true
+	
+	btn_x100 = Button.new()
+	btn_x100.text = "BUY x100"
+	btn_x100.toggle_mode = true
+	
+	toggle_box.add_child(btn_x1)
+	toggle_box.add_child(btn_x10)
+	toggle_box.add_child(btn_x100)
+	
+	UITheme.apply_sharp_button_style(btn_x1, "infrastructure")
+	UITheme.apply_sharp_button_style(btn_x10, "infrastructure")
+	UITheme.apply_sharp_button_style(btn_x100, "infrastructure")
+	
+	btn_x1.pressed.connect(func(): _set_multiplier(1))
+	btn_x10.pressed.connect(func(): _set_multiplier(10))
+	btn_x100.pressed.connect(func(): _set_multiplier(100))
+
+func _set_multiplier(mult: int):
+	manager.set_buy_multiplier(mult)
+	btn_x1.button_pressed = (mult == 1)
+	btn_x10.button_pressed = (mult == 10)
+	btn_x100.button_pressed = (mult == 100)
+	
+	# Force refresh cost labels immediately
+	for w in widgets:
+		w.update_state()
 
 func _setup_logistics_rack():
 	# Create a new rack for Command/Logistics since it was dynamically added
@@ -96,7 +144,7 @@ func update_ui():
 		# Forensic 3: Efficiency Visibility
 		var eff = manager.energy_efficiency
 		if eff < 1.0:
-			cons_lbl.text = "CONS: %.1f kW [color=#ff6666](Grid Stalled: %d%%)[/color]" % [cons, int(eff * 100)]
+			cons_lbl.text = "CONS: %.1f kW (Grid Stalled: %d%%)" % [cons, int(eff * 100)]
 		else:
 			cons_lbl.text = "CONS: %.1f kW" % cons
 

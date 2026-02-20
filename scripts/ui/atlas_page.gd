@@ -1,7 +1,7 @@
 extends Control
 
-## Atlas Page
-## Shows allMaterials and Enemies in the game
+## Atlas Page — Game Wiki
+## Detailed encyclopedia of all Materials and Enemies
 
 @onready var item_list = $HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/ScrollContainer/ItemList
 @onready var search_box = $HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/SearchBox
@@ -19,7 +19,7 @@ var btn_enemies: Button
 var current_mode = "materials" # "materials" or "enemies"
 var current_filter = "all"
 var material_db = {}  # {material_id: {name, sources: [], uses: []}}
-var enemy_db = {} # {enemy_id: {name, zone, stats, loot}}
+var enemy_db = {} # {enemy_id: {name, zone, zone_difficulty, stats, loot}}
 var selected_id = ""
 
 func _ready():
@@ -27,7 +27,6 @@ func _ready():
 	build_databases()
 
 func _setup_mode_switch():
-	# Inject Mode Switcher at top of Left Panel
 	var left_vbox = $HBoxContainer/LeftPanel/MarginContainer/VBoxContainer
 	
 	mode_switch_container = HBoxContainer.new()
@@ -71,11 +70,9 @@ func _update_mode_buttons():
 	btn_materials.button_pressed = (current_mode == "materials")
 	btn_enemies.button_pressed = (current_mode == "enemies")
 	
-	# Hide/Show Filters based on mode (Only meaningful for materials currently)
 	var filter_container = $HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/CategoryFilter
 	filter_container.visible = (current_mode == "materials")
 	
-	# Clear details panel
 	name_label.text = "Select an Item"
 	desc_label.text = ""
 	_clear_list(sources_list)
@@ -91,18 +88,21 @@ func build_enemy_database():
 	var cm = GameState.combat_manager
 	if not cm: return
 	
-	# Map enemies to zones first
+	# Map enemies to zones with difficulty
 	var enemy_to_zone = {}
+	var enemy_to_zone_diff = {}
 	for zid in cm.zones:
 		var zdata = cm.zones[zid]
 		for eid in zdata["enemies"]:
 			enemy_to_zone[eid] = zdata["name"]
+			enemy_to_zone_diff[eid] = zdata.get("difficulty", 0)
 	
 	for eid in cm.enemy_db:
 		var e_data = cm.enemy_db[eid]
 		enemy_db[eid] = {
 			"name": e_data["name"],
 			"zone": enemy_to_zone.get(eid, "Unknown Region"),
+			"zone_difficulty": enemy_to_zone_diff.get(eid, 0),
 			"stats": e_data["stats"],
 			"loot": e_data["loot"],
 			"rare_loot": e_data.get("rare_loot", []),
@@ -134,7 +134,6 @@ func build_material_database():
 			var recipe = pm.recipes[recipe_id]
 			var recipe_name = recipe.get("name", recipe_id)
 			
-			# Outputs = Sources
 			if "output" in recipe:
 				for mat_id in recipe["output"]:
 					ensure_material(mat_id)
@@ -144,7 +143,6 @@ func build_material_database():
 						"rate": "%d per cycle" % recipe["output"][mat_id]
 					})
 			
-			# Inputs = Uses
 			if "input" in recipe:
 				for mat_id in recipe["input"]:
 					ensure_material(mat_id)
@@ -161,7 +159,6 @@ func build_material_database():
 			var enemy = cm.enemy_db[enemy_id]
 			var enemy_name = enemy.get("name", enemy_id)
 			
-			# Base loot
 			for entry in enemy.get("loot", []):
 				var mat_id = entry[0]
 				ensure_material(mat_id)
@@ -171,7 +168,6 @@ func build_material_database():
 					"rate": "%d-%d per kill" % [entry[1], entry[2]]
 				})
 			
-			# Rare loot
 			for entry in enemy.get("rare_loot", []):
 				var mat_id = entry[0]
 				ensure_material(mat_id)
@@ -188,7 +184,6 @@ func build_material_database():
 			var bdata = im.building_db[bid]
 			var bname = bdata.get("name", bid)
 			
-			# Yield = Sources
 			if "yield" in bdata:
 				for mat_id in bdata["yield"]:
 					ensure_material(mat_id)
@@ -198,7 +193,6 @@ func build_material_database():
 						"rate": "%d per cycle" % bdata["yield"][mat_id]
 					})
 			
-			# Input = Uses
 			if "input" in bdata:
 				for mat_id in bdata["input"]:
 					ensure_material(mat_id)
@@ -208,7 +202,6 @@ func build_material_database():
 						"rate": "%d per cycle" % bdata["input"][mat_id]
 					})
 			
-			# Construction costs = Uses
 			if "cost" in bdata:
 				for mat_id in bdata["cost"]:
 					if mat_id == "credits": continue
@@ -222,7 +215,6 @@ func build_material_database():
 	# --- SHIPYARD USES ---
 	var sm = GameState.shipyard_manager
 	if sm:
-		# Hulls
 		for hull_id in sm.hulls:
 			var hull = sm.hulls[hull_id]
 			var hull_name = hull.get("name", hull_id)
@@ -236,7 +228,6 @@ func build_material_database():
 						"rate": "%d required" % hull["cost"][mat_id]
 					})
 		
-		# Modules
 		for mod_id in sm.modules:
 			var mod = sm.modules[mod_id]
 			var mod_name = mod.get("name", mod_id)
@@ -263,6 +254,22 @@ func build_material_database():
 						"type": "research",
 						"name": tech_name,
 						"rate": "%d required" % tech["cost_items"][mat_id]
+					})
+	
+	# --- FLEET EXPEDITION SOURCES ---
+	var fm = GameState.fleet_manager
+	if fm:
+		for mid in fm.missions:
+			var mission = fm.missions[mid]
+			var mission_name = mission.get("name", mid)
+			if "yield" in mission:
+				for mat_id in mission["yield"]:
+					if mat_id == "credits": continue
+					ensure_material(mat_id)
+					material_db[mat_id]["sources"].append({
+						"type": "fleet",
+						"name": mission_name,
+						"rate": "%.1f per cycle" % mission["yield"][mat_id]
 					})
 
 func ensure_material(mat_id: String):
@@ -293,17 +300,20 @@ func _populate_materials_list(search_term):
 		var mat = material_db[mat_id]
 		var mat_name = mat["name"]
 		
-		# Filter by search
 		if search_term != "" and not mat_name.to_lower().contains(search_term):
 			continue
 		
-		# Filter by category
 		if current_filter != "all":
 			var has_match = false
 			for source in mat["sources"]:
 				if source["type"] == current_filter:
 					has_match = true
 					break
+			if not has_match:
+				for use in mat["uses"]:
+					if use["type"] == current_filter:
+						has_match = true
+						break
 			if not has_match:
 				continue
 		
@@ -314,9 +324,9 @@ func _populate_materials_list(search_term):
 		item_list.add_child(btn)
 
 func _populate_enemies_list(search_term):
-	# Sort by HP/Difficulty implicitly (often defined in order) or explicitly
-	# Let's group by Zone for better UX
+	# Group by Zone, sort by difficulty (ascending)
 	var enemies_by_zone = {} # {ZoneName: [eid, eid]}
+	var zone_difficulty = {} # {ZoneName: difficulty_int}
 	
 	for eid in enemy_db:
 		var e = enemy_db[eid]
@@ -327,15 +337,17 @@ func _populate_enemies_list(search_term):
 			
 		if not zone in enemies_by_zone:
 			enemies_by_zone[zone] = []
+			zone_difficulty[zone] = e["zone_difficulty"]
 		enemies_by_zone[zone].append(eid)
 	
-	# Create Headers for Zones
+	# Sort zones by difficulty (ascending)
 	var sorted_zones = enemies_by_zone.keys()
-	sorted_zones.sort() # Alphabetical sort for now
+	sorted_zones.sort_custom(func(a, b): return zone_difficulty.get(a, 0) < zone_difficulty.get(b, 0))
 	
 	for zone in sorted_zones:
 		var header = Label.new()
-		header.text = "--- %s ---" % zone
+		var diff = zone_difficulty.get(zone, 0)
+		header.text = "— %s (★%d) —" % [zone, diff]
 		header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		header.add_theme_color_override("font_color", UITheme.COLORS["text_accent"])
 		item_list.add_child(header)
@@ -360,11 +372,31 @@ func _display_material_details(mat_id):
 	var mat = material_db[mat_id]
 	
 	name_label.text = mat["name"]
-	desc_label.text = "ID: %s" % mat_id
 	
-	# Update Net Rate
-	var im = GameState.infrastructure_manager
-	var net_rates = im.get_total_resource_rates()
+	# Wiki-style description block
+	var desc_parts = []
+	desc_parts.append("ID: %s" % mat_id)
+	
+	# Element description from JSON
+	var elem_desc = ElementDB.get_element_description(mat_id)
+	if elem_desc != "":
+		desc_parts.append(elem_desc)
+	
+	# Market value
+	var market_value = ElementDB.get_element_value(mat_id)
+	if market_value > 0:
+		desc_parts.append("Market Value: %d Cr" % market_value)
+	
+	# Current inventory
+	var owned = GameState.resources.get_element_amount(mat_id)
+	if owned > 0:
+		desc_parts.append("In Inventory: %d" % owned)
+	
+	desc_label.text = "\n".join(desc_parts)
+	
+	# Net Rate
+	var im_mgr = GameState.infrastructure_manager
+	var net_rates = im_mgr.get_total_resource_rates()
 	var rate = net_rates.get(mat_id, 0.0)
 	
 	if net_label:
@@ -398,8 +430,25 @@ func _display_enemy_details(eid):
 	if not e: return
 	
 	name_label.text = e["name"]
-	desc_label.text = "Zone: %s" % e["zone"]
-	if net_label: net_label.text = "XP Value: %d" % e["xp"]
+	
+	# Wiki-style description block
+	var desc_parts = []
+	desc_parts.append("Zone: %s" % e["zone"])
+	desc_parts.append("Zone Difficulty: ★%d" % e["zone_difficulty"])
+	desc_parts.append("XP Value: %d" % e["xp"])
+	
+	# Compute effective DPS
+	var atk = e["stats"]["atk"]
+	var interval = e["stats"].get("atk_interval", 2.0)
+	if interval > 0:
+		desc_parts.append("Effective DPS: %.1f" % (float(atk) / interval))
+	
+	# Compute effective HP (HP + Shield)
+	var total_ehp = e["stats"]["hp"] + e["stats"]["max_shield"]
+	desc_parts.append("Effective HP: %d" % total_ehp)
+	
+	desc_label.text = "\n".join(desc_parts)
+	if net_label: net_label.text = ""
 	
 	_clear_list(sources_list)
 	_clear_list(uses_list)
@@ -408,12 +457,14 @@ func _display_enemy_details(eid):
 	var stats_header = Label.new()
 	stats_header.text = "COMBAT STATISTICS"
 	stats_header.add_theme_font_size_override("font_size", 16)
+	stats_header.add_theme_color_override("font_color", UITheme.COLORS["text_accent"])
 	sources_list.add_child(stats_header)
 	
 	_add_stat_row(sources_list, "Health", e["stats"]["hp"])
 	_add_stat_row(sources_list, "Shield", e["stats"]["max_shield"])
 	_add_stat_row(sources_list, "Attack", e["stats"]["atk"])
 	_add_stat_row(sources_list, "Defense", e["stats"]["def"])
+	_add_stat_row(sources_list, "Attack Interval", "%.1fs" % e["stats"].get("atk_interval", 2.0))
 	_add_stat_row(sources_list, "Accuracy", e["stats"].get("accuracy", 0))
 	_add_stat_row(sources_list, "Evasion", e["stats"].get("eva", 0))
 	
@@ -421,6 +472,7 @@ func _display_enemy_details(eid):
 	var loot_header = Label.new()
 	loot_header.text = "DROPS"
 	loot_header.add_theme_font_size_override("font_size", 16)
+	loot_header.add_theme_color_override("font_color", UITheme.COLORS["text_accent"])
 	uses_list.add_child(loot_header)
 	
 	for entry in e["loot"]:
@@ -433,7 +485,8 @@ func _display_enemy_details(eid):
 		for entry in e["rare_loot"]:
 			var mat_name = ElementDB.get_display_name(entry[0])
 			var chance = "%.1f%%" % (entry[1] * 100)
-			_add_label(uses_list, "★ %s (%s)" % [mat_name, chance], UITheme.COLORS["warning"])
+			var qty = "%d-%d" % [entry[2], entry[3]]
+			_add_label(uses_list, "★ %s (%s, %s)" % [mat_name, chance, qty], UITheme.COLORS["warning"])
 
 func _add_stat_row(parent, label, value):
 	var lbl = Label.new()
@@ -458,6 +511,7 @@ func _get_type_icon(type: String) -> String:
 		"building": return "🏭"
 		"shipyard": return "🚀"
 		"research": return "🔬"
+		"fleet": return "🛸"
 		_: return "📦"
 
 func _get_type_color(type: String) -> Color:
@@ -468,6 +522,7 @@ func _get_type_color(type: String) -> Color:
 		"building": return Color(0.4, 0.7, 0.4)
 		"shipyard": return Color(0.3, 0.7, 0.9)
 		"research": return Color(0.8, 0.6, 0.9)
+		"fleet": return Color(0.9, 0.7, 0.3)
 		_: return Color(0.7, 0.7, 0.7)
 
 func _on_search_changed(_text):
@@ -496,6 +551,21 @@ func _on_filter_combat():
 func _on_filter_building():
 	current_filter = "building"
 	_update_filter_buttons("BuildingBtn")
+	refresh_list()
+
+func _on_filter_shipyard():
+	current_filter = "shipyard"
+	_update_filter_buttons("ShipyardBtn")
+	refresh_list()
+
+func _on_filter_research():
+	current_filter = "research"
+	_update_filter_buttons("ResearchBtn")
+	refresh_list()
+
+func _on_filter_fleet():
+	current_filter = "fleet"
+	_update_filter_buttons("FleetBtn")
 	refresh_list()
 
 func _update_filter_buttons(active_btn: String):

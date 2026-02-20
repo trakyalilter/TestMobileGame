@@ -81,6 +81,21 @@ layout_mode = 2
 toggle_mode = true
 text = "Buildings"
 
+[node name="ShipyardBtn" type="Button" parent="HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/CategoryFilter"]
+layout_mode = 2
+toggle_mode = true
+text = "Shipyard"
+
+[node name="ResearchBtn" type="Button" parent="HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/CategoryFilter"]
+layout_mode = 2
+toggle_mode = true
+text = "Research"
+
+[node name="FleetBtn" type="Button" parent="HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/CategoryFilter"]
+layout_mode = 2
+toggle_mode = true
+text = "Fleet"
+
 [node name="ScrollContainer" type="ScrollContainer" parent="HBoxContainer/LeftPanel/MarginContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
@@ -88,7 +103,6 @@ size_flags_vertical = 3
 [node name="ItemList" type="VBoxContainer" parent="HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/ScrollContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_vertical = 3
 theme_override_constants/separation = 5
 
 [node name="RightPanel" type="PanelContainer" parent="HBoxContainer"]
@@ -167,3 +181,6 @@ theme_override_constants/separation = 5
 [connection signal="pressed" from="HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/CategoryFilter/ProcessBtn" to="." method="_on_filter_process"]
 [connection signal="pressed" from="HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/CategoryFilter/CombatBtn" to="." method="_on_filter_combat"]
 [connection signal="pressed" from="HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/CategoryFilter/BuildingBtn" to="." method="_on_filter_building"]
+[connection signal="pressed" from="HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/CategoryFilter/ShipyardBtn" to="." method="_on_filter_shipyard"]
+[connection signal="pressed" from="HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/CategoryFilter/ResearchBtn" to="." method="_on_filter_research"]
+[connection signal="pressed" from="HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/CategoryFilter/FleetBtn" to="." method="_on_filter_fleet"]

@@ -155,230 +155,230 @@ var zones = {
 var enemy_db = {
 	"dust_mite": {
 		"name": "Space Dust Mite",
-		"stats": {"hp": 50, "max_shield": 0, "atk": 3, "def": 0, "atk_interval": 2.5, "accuracy": 0},
+		"stats": {"hp": 50, "max_shield": 0, "atk": 5, "def": 0, "atk_interval": 2.5, "accuracy": 0},
 		"loot": [["Scrap", 1, 2], ["MiteChitin", 1, 1]],
 		"xp": 8
 	},
 	"lunar_drone": {
 		"name": "Lunar Drone",
-		"stats": {"hp": 60, "max_shield": 0, "atk": 5, "def": 1, "atk_interval": 2.5, "accuracy": 5},
+		"stats": {"hp": 60, "max_shield": 0, "atk": 7, "def": 1, "atk_interval": 2.5, "accuracy": 5},
 		"loot": [["Scrap", 3, 5], ["Fe", 4, 10], ["DroneCore", 1, 1]],
 		"rare_loot": [["Cu", 0.3, 1, 2], ["Chip", 0.08, 1, 1], ["SalvageData", 0.20, 1, 1]], 
 		"xp": 12
 	},
 	"scrap_collector": {
 		"name": "Scrap Collector",
-		"stats": {"hp": 350, "max_shield": 0, "atk": 20, "def": 5, "atk_interval": 2.2, "accuracy": 10},
+		"stats": {"hp": 350, "max_shield": 0, "atk": 30, "def": 5, "atk_interval": 2.2, "accuracy": 10},
 		"loot": [["Scrap", 7, 12], ["Res1", 2, 5]],
 		"rare_loot": [["DroneCore", 0.30, 1, 2]],
 		"xp": 10
 	},
 	"survey_probe": {
 		"name": "Survey Probe",
-		"stats": {"hp": 300, "max_shield": 400, "atk": 15, "def": 5, "atk_interval": 1.0, "accuracy": 60}, # High Shield
+		"stats": {"hp": 300, "max_shield": 400, "atk": 23, "def": 5, "atk_interval": 1.0, "accuracy": 60}, # High Shield
 		"loot": [["credits", 100, 250], ["Si", 10, 20]],
 		"rare_loot": [["Circuit", 0.1, 1, 1], ["NavData", 0.05, 1, 1]],
 		"xp": 25
 	},
 	"claim_jumper": {
 		"name": "Claim Jumper",
-		"stats": {"hp": 1500, "max_shield": 100, "atk": 4, "def": 250, "atk_interval": 2.2, "accuracy": 20}, # High Armor
+		"stats": {"hp": 1500, "max_shield": 100, "atk": 6, "def": 250, "atk_interval": 2.2, "accuracy": 20}, # High Armor
 		"loot": [["credits", 250, 450], ["Cu", 15, 30], ["StolenCargo", 1, 1]],
 		"rare_loot": [["NavData", 0.15, 2, 5]],
 		"xp": 50
 	},
 	"ore_hauler": {
 		"name": "Ore Hauler Wreck",
-		"stats": {"hp": 4500, "max_shield": 0, "atk": 80, "def": 40, "atk_interval": 5.0, "accuracy": 25},
+		"stats": {"hp": 4500, "max_shield": 0, "atk": 120, "def": 40, "atk_interval": 5.0, "accuracy": 25},
 		"loot": [["Fe", 40, 50], ["W", 15, 20], ["Scrap", 10, 20]],
 		"rare_loot": [["U", 0.20, 2, 5], ["Ag", 0.15, 1, 3]], 
 		"xp": 80
 	},
 	"derelict_frigate": {
 		"name": "Derelict Frigate",
-		"stats": {"hp": 12000, "max_shield": 500, "atk": 150, "def": 65, "atk_interval": 4.0, "accuracy": 30},
+		"stats": {"hp": 12000, "max_shield": 500, "atk": 225, "def": 65, "atk_interval": 4.0, "accuracy": 30},
 		"loot": [["Steel", 5, 10], ["Scrap", 20, 40], ["Res2", 5, 10]],
 		"rare_loot": [["Circuit", 0.35, 2, 4], ["Chip", 0.20, 2, 2]],
 		"xp": 250
 	},
 	"salvage_swarm": {
 		"name": "Salvage Swarm",
-		"stats": {"hp": 2500, "max_shield": 0, "atk": 60, "def": 10, "atk_interval": 0.6, "accuracy": 35},
+		"stats": {"hp": 2500, "max_shield": 0, "atk": 90, "def": 10, "atk_interval": 0.6, "accuracy": 35},
 		"loot": [["Scrap", 10, 20], ["SwarmFragment", 1, 2]],
 		"rare_loot": [["Resin", 0.3, 1, 2], ["Cu", 0.2, 1, 2]],
 		"xp": 35
 	},
 	"frozen_hulk": {
 		"name": "Frozen Hulk",
-		"stats": {"hp": 6500, "max_shield": 250, "atk": 18, "def": 70, "atk_interval": 6.0, "accuracy": 40},
+		"stats": {"hp": 6500, "max_shield": 250, "atk": 27, "def": 70, "atk_interval": 6.0, "accuracy": 40},
 		"loot": [["C", 10, 20]],
 		"rare_loot": [["Graphite", 0.35, 1, 3], ["W", 0.15, 1, 2]],
 		"xp": 75
 	},
 	"smuggler_cutter": {
 		"name": "Smuggler Cutter",
-		"stats": {"hp": 300, "max_shield": 1000, "atk": 32, "def": 25, "accuracy": 45}, # High Shield
+		"stats": {"hp": 300, "max_shield": 1000, "atk": 48, "def": 25, "accuracy": 45}, # High Shield
 		"loot": [["credits", 100, 200]],
 		"rare_loot": [["Li", 0.25, 1, 3], ["Ti", 0.2, 1, 2]],
 		"xp": 95
 	},
 	"pirate_skiff": {
 		"name": "Pirate Skiff",
-		"stats": {"hp": 1400, "max_shield": 150, "atk": 25, "def": 22, "atk_interval": 1.75, "accuracy": 50},
+		"stats": {"hp": 1400, "max_shield": 150, "atk": 38, "def": 22, "atk_interval": 1.75, "accuracy": 50},
 		"loot": [["credits", 2000, 6000], ["Scrap", 3, 6], ["PirateManifest", 1, 1], ["NavData", 1, 2], ["Cu", 100, 200]],
 		"rare_loot": [["W", 0.40, 10, 20], ["Ti", 0.30, 40, 50]],
 		"xp": 30
 	},
 	"rock_golem": {
 		"name": "Silicate Golem",
-		"stats": {"hp": 300, "max_shield": 0, "atk": 60, "def": 500, "accuracy": 20}, # High Armor
+		"stats": {"hp": 300, "max_shield": 0, "atk": 90, "def": 500, "accuracy": 20}, # High Armor
 		"loot": [["Si", 100, 200], ["Fe", 10, 20]], # Added Fe for Ammo Sustenance (Audit Round 2)
 		"rare_loot": [["Ti", 0.4, 10, 20]],
 		"xp": 30
 	},
 	"scavenger_mech": {
 		"name": "Scavenger Mech",
-		"stats": {"hp": 3000, "max_shield": 100, "atk": 25, "def": 350, "accuracy": 40}, # High Armor
+		"stats": {"hp": 3000, "max_shield": 100, "atk": 38, "def": 350, "accuracy": 40}, # High Armor
 		"loot": [["Cu", 5, 10], ["Scrap", 5, 10]],
 		"rare_loot": [["W", 0.3, 5, 10], ["Res2", 0.20, 1, 1], ["NavData", 0.25, 1, 2]],
 		"xp": 55
 	},
 	"martian_sentry": {
 		"name": "Martian Sentry",
-		"stats": {"hp": 150, "max_shield": 600, "atk": 30, "def": 10, "accuracy": 50}, # High Shield
+		"stats": {"hp": 150, "max_shield": 600, "atk": 45, "def": 10, "accuracy": 50}, # High Shield
 		"loot": [["C", 5, 10]],
 		"rare_loot": [["Resin", 0.1, 1, 2], ["Chip", 0.25, 1, 2], ["Rh", 0.10, 1, 2]],
 		"xp": 60
 	},
 	"cryo_drone": {
 		"name": "Cryo Drone",
-		"stats": {"hp": 300, "max_shield": 400, "atk": 20, "def": 20, "accuracy": 60},
+		"stats": {"hp": 300, "max_shield": 400, "atk": 30, "def": 20, "accuracy": 60},
 		"loot": [["H", 5, 15], ["Water", 5, 10], ["CryoCell", 1, 1]],
 		"rare_loot": [["Mesh", 0.05, 1, 1]],
 		"xp": 75
 	},
 	"pirate_gunship": {
 		"name": "Pirate Gunship",
-		"stats": {"hp": 800, "max_shield": 300, "atk": 45, "def": 40, "accuracy": 65},
+		"stats": {"hp": 800, "max_shield": 300, "atk": 68, "def": 40, "accuracy": 65},
 		"loot": [["credits", 50, 150], ["Ti", 1, 3]],
 		"rare_loot": [["Seal", 0.05, 1, 1], ["NavData", 0.2, 1, 3], ["Res2", 0.30, 1, 2]],
 		"xp": 120
 	},
 	"titan_overseer": {
 		"name": "TITAN OVERSEER",
-		"stats": {"hp": 6000, "max_shield": 2000, "atk": 80, "def": 50, "accuracy": 70},
+		"stats": {"hp": 6000, "max_shield": 2000, "atk": 120, "def": 50, "accuracy": 70},
 		"loot": [["TitanClearance", 1, 1], ["Ti", 50, 100]],
 		"rare_loot": [["CryoCell", 0.50, 1, 2], ["Res2", 0.50, 2, 4]],
 		"xp": 300
 	},
 	"alien_frigate": {
 		"name": "Xenon Patrol Frigate",
-		"stats": {"hp": 7500, "max_shield": 3000, "atk": 120, "def": 50, "atk_interval": 3.0, "accuracy": 45},
-		"loot": [["Ti", 30, 60], ["Scrap", 30, 60]],
-		"rare_loot": [["NavData", 0.3, 2, 5], ["Chip", 0.3, 2, 5], ["VoidArtifact", 0.3, 2, 3], ["Co", 0.25, 2, 4], ["Ni", 0.25, 2, 4], ["Res3", 0.30, 1, 2]], 
+		"stats": {"hp": 7500, "max_shield": 3000, "atk": 180, "def": 50, "atk_interval": 3.0, "accuracy": 45},
+		"loot": [["credits", 15000, 20000],["Ti", 30, 60]],
+		"rare_loot": [["NavData", 0.35, 2, 5], ["Chip", 0.35, 2, 5], ["VoidArtifact", 0.3, 2, 3], ["Co", 0.35, 2, 4], ["Ni", 0.35, 2, 4], ["Res3", 0.35, 1, 2]], 
 		"xp": 500
 	},
 	"xenon_corvette": {
 		"name": "Xenon Corvette",
-		"stats": {"hp": 14000, "max_shield": 6000, "atk": 400, "def": 80, "atk_interval": 2.5, "accuracy": 80, "eva": 25},
-		"loot": [["VoidArtifact", 2, 4],["NavData", 4, 8],["Res3", 2, 3],["Ti", 50, 100], ["U", 5, 15]],
+		"stats": {"hp": 14000, "max_shield": 6000, "atk": 600, "def": 80, "atk_interval": 2.5, "accuracy": 80, "eva": 25},
+		"loot": [["credits", 40000, 60000],["Superalloy", 1, 2],["VoidArtifact", 2, 4],["NavData", 4, 8],["Res3", 2, 3],["Ti", 50, 100], ["U", 5, 15]],
 		"rare_loot": [],
 		"xp": 800
 	},
 	"xenon_mothership": {
 		"name": "XENON MOTHERSHIP",
-		"stats": {"hp": 150000, "max_shield": 80000, "atk": 1200, "def": 250, "atk_interval": 6.0, "accuracy": 100, "eva": 30},
-		"loot": [["Ti", 200, 500], ["Chip", 25, 50], ["AdvCircuit", 10, 20], ["QuantumCore", 5, 10], ["VoidArtifact", 10, 25], ["Res3", 50, 100]],
+		"stats": {"hp": 150000, "max_shield": 80000, "atk": 1800, "def": 250, "atk_interval": 6.0, "accuracy": 100, "eva": 30},	
+		"loot": [["credits", 700000, 1000000],["Superalloy", 30, 50], ["Chip", 30,	50], ["AdvCircuit", 10, 20], ["QuantumCore", 5, 10], ["VoidArtifact", 10, 25], ["Res3", 50, 100]],
 		"rare_loot": [],
 		"xp": 5000
 	},
 	"mining_sentinel": {
 		"name": "Mining Sentinel MK-VII",
-		"stats": {"hp": 45000, "max_shield": 25000, "atk": 500, "def": 120, "atk_interval": 3.0, "accuracy": 90, "jammer": true},
+		"stats": {"hp": 45000, "max_shield": 25000, "atk": 750, "def": 120, "atk_interval": 3.0, "accuracy": 90, "jammer": true},
 		"loot": [["ColonySalvage", 10, 20], ["Steel", 50, 100]],
 		"rare_loot": [["Co", 0.3, 5, 15], ["Ni", 0.3, 5, 15], ["Circuit", 0.3, 10, 25]],
 		"xp": 8000
 	},
 	"defense_turret": {
 		"name": "Automated Defense Turret",
-		"stats": {"hp": 100000, "max_shield": 0, "atk": 800, "def": 250, "atk_interval": 4.0, "accuracy": 100},
+		"stats": {"hp": 100000, "max_shield": 0, "atk": 1200, "def": 250, "atk_interval": 4.0, "accuracy": 100},
 		"loot": [["ColonySalvage", 25, 50], ["Circuit", 20, 50], ["TurretCore", 1, 1]],
 		"rare_loot": [["Cr", 0.3, 5, 10], ["AdvCircuit", 0.4, 5, 10]],
 		"xp": 15000
 	},
 	"colony_overseer": {
 		"name": "Colony Overseer AI",
-		"stats": {"hp": 80000, "max_shield": 40000, "atk": 600, "def": 150, "atk_interval": 3.5, "accuracy": 120, "jammer": true},
+		"stats": {"hp": 80000, "max_shield": 40000, "atk": 900, "def": 150, "atk_interval": 3.5, "accuracy": 120, "jammer": true},
 		"loot": [["AdvCircuit", 20, 30], ["ColonySalvage", 20, 40], ["ColonyDataCore", 5, 7]],
 		"rare_loot": [["Pd", 0.3, 2, 5], ["AICore", 0.25, 1, 1], ["Chip", 0.25, 5, 10]],
 		"xp": 20000
 	},
 	"radiation_beast": {
 		"name": "Gamma Radiation Beast",
-		"stats": {"hp": 20000, "max_shield": 12000, "atk": 150, "def": 70, "accuracy": 90},
+		"stats": {"hp": 20000, "max_shield": 12000, "atk": 225, "def": 70, "accuracy": 90},
 		"loot": [["RadIsotope", 1, 3], ["U", 5, 10], ["Zn", 3, 6]],
 		"rare_loot": [["Pt", 0.15, 1, 2], ["ReactiveCore", 0.2, 1, 1]],
 		"xp": 500
 	},
 	"nebula_leviathan": {
 		"name": "Nebula Leviathan",
-		"stats": {"hp": 35000, "max_shield": 20000, "atk": 200, "def": 90, "accuracy": 100},
+		"stats": {"hp": 35000, "max_shield": 20000, "atk": 300, "def": 90, "accuracy": 100},
 		"loot": [["RadIsotope", 3, 5], ["U", 10, 20], ["Graphite", 15, 25]],
 		"rare_loot": [["Pt", 0.25, 1, 3], ["Pd", 0.2, 1, 2], ["ExoticMatter", 0.1, 1, 1]],
 		"xp": 800
 	},
 	"gamma_colossus": {
 		"name": "GAMMA COLOSSUS",
-		"stats": {"hp": 500000, "max_shield": 200000, "atk": 3000, "def": 400, "atk_interval": 5.0, "accuracy": 130, "jammer": true},
+		"stats": {"hp": 500000, "max_shield": 200000, "atk": 4500, "def": 400, "atk_interval": 5.0, "accuracy": 130, "jammer": true},
 		"loot": [["RadIsotope", 50, 100], ["Pt", 25, 50], ["QuantumCore", 5, 10], ["ExoticIsotope", 1, 3]],
 		"rare_loot": [["Ir", 0.5, 5, 15]],
 		"xp": 30000
 	},
 	"crystal_golem": {
 		"name": "Crystalline Golem",
-		"stats": {"hp": 50000, "max_shield": 0, "atk": 400, "def": 200, "accuracy": 120},
+		"stats": {"hp": 50000, "max_shield": 0, "atk": 600, "def": 200, "accuracy": 120},
 		"loot": [["VoidCrystal", 1, 3], ["Si", 50, 100], ["Diamond", 1, 3]],
 		"rare_loot": [["Ir", 0.2, 1, 2], ["SyntheticCrystal", 0.15, 1, 1]],
 		"xp": 1500
 	},
 	"energy_wraith": {
 		"name": "Energy Wraith",
-		"stats": {"hp": 30000, "max_shield": 50000, "atk": 500, "def": 50, "accuracy": 130},
+		"stats": {"hp": 30000, "max_shield": 50000, "atk": 750, "def": 50, "accuracy": 130},
 		"loot": [["ExoticMatter", 2, 5], ["VoidCrystal", 2, 4], ["H", 20, 40]],
 		"rare_loot": [["AntimatterParticle", 0.1, 1, 1], ["VoidCrystal", 0.25, 2, 3]],
 		"xp": 1800
 	},
 	"sentinel_prime": {
 		"name": "SENTINEL PRIME",
-		"stats": {"hp": 150000, "max_shield": 80000, "atk": 400, "def": 180, "accuracy": 150},
+		"stats": {"hp": 150000, "max_shield": 80000, "atk": 600, "def": 180, "accuracy": 150},
 		"loot": [["VoidCrystal", 5, 10], ["Ir", 10, 20], ["QuantumCore", 2, 4]],
 		"rare_loot": [["Os", 0.25, 1, 3], ["AncientTech", 0.2, 1, 1]],
 		"xp": 5000
 	},
 	"void_stalker": {
 		"name": "Void Stalker",
-		"stats": {"hp": 200000, "max_shield": 150000, "atk": 600, "def": 300, "atk_interval": 2.0, "accuracy": 150, "eva": 60},
+		"stats": {"hp": 200000, "max_shield": 150000, "atk": 900, "def": 300, "atk_interval": 2.0, "accuracy": 150, "eva": 60},
 		"loot": [["credits", 100000, 200000], ["VoidCrystal", 10, 20], ["ExoticMatter", 5, 10]],
 		"rare_loot": [["VoidEssence", 0.50, 1, 2], ["QuantumCore", 0.5, 2, 4]],
 		"xp": 8000
 	},
 	"temporal_phantom": {
 		"name": "Temporal Phantom",
-		"stats": {"hp": 150000, "max_shield": 250000, "atk": 500, "def": 200, "atk_interval": 1.5, "accuracy": 160, "eva": 80},
+		"stats": {"hp": 150000, "max_shield": 250000, "atk": 750, "def": 200, "atk_interval": 1.5, "accuracy": 160, "eva": 80},
 		"loot": [["credits", 150000, 300000], ["ExoticMatter", 8, 15], ["VoidCrystal", 5, 10], ["AntimatterParticle", 1, 2]],
 		"rare_loot": [["ChronoCore", 0.25, 1, 1], ["VoidEssence", 0.2, 1, 2]],
 		"xp": 10000
 	},
 	"omega_sentinel": {
 		"name": "OMEGA SENTINEL",
-		"stats": {"hp": 500000, "max_shield": 300000, "atk": 1000, "def": 500, "atk_interval": 3.0, "accuracy": 180, "eva": 40},
+		"stats": {"hp": 500000, "max_shield": 300000, "atk": 1500, "def": 500, "atk_interval": 3.0, "accuracy": 180, "eva": 40},
 		"loot": [["credits", 300000, 600000], ["VoidCrystal", 20, 40], ["QuantumCore", 5, 10], ["Ir", 20, 40]],
 		"rare_loot": [["OmegaPlating", 0.40, 1, 2], ["ChronoCore", 0.3, 1, 1], ["Os", 0.25, 2, 4], ["Neutronium", 0.15, 1, 2]],
 		"xp": 25000
 	},
 	"primordial_titan": {
 		"name": "★ PRIMORDIAL TITAN ★",
-		"stats": {"hp": 2000000, "max_shield": 1000000, "atk": 2500, "def": 800, "atk_interval": 5.0, "accuracy": 200, "eva": 50},
+		"stats": {"hp": 2000000, "max_shield": 1000000, "atk": 3750, "def": 800, "atk_interval": 5.0, "accuracy": 200, "eva": 50},
 		"loot": [["credits", 5000000, 15000000], ["VoidCrystal", 100, 200], ["QuantumCore", 20, 40], ["OmegaPlating", 5, 10], ["PrimordialShard", 1, 3], ["ChronoCore", 2, 4], ["VoidEssence", 5, 10]],
 		"rare_loot": [],
 		"xp": 100000
@@ -386,28 +386,28 @@ var enemy_db = {
 	# v57.0: SECTOR ZETA ENEMIES (Difficulty 9)
 	"plague_drone": {
 		"name": "Plague Drone",
-		"stats": {"hp": 120000, "max_shield": 60000, "atk": 350, "def": 150, "atk_interval": 1.8, "accuracy": 130, "eva": 35},
+		"stats": {"hp": 120000, "max_shield": 60000, "atk": 525, "def": 150, "atk_interval": 1.8, "accuracy": 130, "eva": 35},
 		"loot": [["credits", 50000, 100000], ["BiohazardSample", 2, 5], ["Ti", 30, 60]],
 		"rare_loot": [["PathogenCore", 0.25, 1, 2], ["Res3", 0.3, 5, 10]],
 		"xp": 3500
 	},
 	"bio_horror": {
 		"name": "Bio-Horror",
-		"stats": {"hp": 250000, "max_shield": 100000, "atk": 500, "def": 200, "atk_interval": 2.5, "accuracy": 140, "eva": 25},
+		"stats": {"hp": 250000, "max_shield": 100000, "atk": 750, "def": 200, "atk_interval": 2.5, "accuracy": 140, "eva": 25},
 		"loot": [["credits", 80000, 150000], ["BiohazardSample", 5, 10], ["MutatedTissue", 2, 4]],
 		"rare_loot": [["PathogenCore", 0.4, 1, 3], ["VoidCrystal", 0.2, 2, 4], ["S", 0.30, 2, 5]],
 		"xp": 5000
 	},
 	"rogue_ai_core": {
 		"name": "Rogue AI Core",
-		"stats": {"hp": 180000, "max_shield": 200000, "atk": 400, "def": 250, "atk_interval": 1.5, "accuracy": 160, "eva": 45},
+		"stats": {"hp": 180000, "max_shield": 200000, "atk": 600, "def": 250, "atk_interval": 1.5, "accuracy": 160, "eva": 45},
 		"loot": [["credits", 100000, 200000], ["AdvCircuit", 10, 20], ["QuantumCore", 1, 2]],
 		"rare_loot": [["AIMatrix", 0.3, 1, 1], ["Chip", 0.5, 5, 10]],
 		"xp": 6000
 	},
 	"quarantine_warden": {
 		"name": "QUARANTINE WARDEN",
-		"stats": {"hp": 400000, "max_shield": 250000, "atk": 700, "def": 350, "atk_interval": 3.0, "accuracy": 170, "eva": 30},
+		"stats": {"hp": 400000, "max_shield": 250000, "atk": 1050, "def": 350, "atk_interval": 3.0, "accuracy": 170, "eva": 30},
 		"loot": [["credits", 200000, 400000], ["BiohazardSample", 10, 20], ["PathogenCore", 2, 4], ["MutatedTissue", 5, 10]],
 		"rare_loot": [["QuarantineClearance", 0.5, 1, 1], ["AIMatrix", 0.25, 1, 2]],
 		"xp": 15000
@@ -415,14 +415,14 @@ var enemy_db = {
 	# v57.0: Late Sector Expansion - Sector Alpha (+2)
 	"xenon_scout": {
 		"name": "Xenon Scout",
-		"stats": {"hp": 5000, "max_shield": 2000, "atk": 80, "def": 40, "atk_interval": 1.5, "accuracy": 50, "eva": 40},
-		"loot": [["credits", 1500, 3000], ["Ti", 10, 20], ["Scrap", 5, 10]],
+		"stats": {"hp": 5000, "max_shield": 2000, "atk": 120, "def": 40, "atk_interval": 1.5, "accuracy": 50, "eva": 40},
+		"loot": [["credits", 5000, 10000], ["Ti", 10, 20], ["Scrap", 5, 10]],
 		"rare_loot": [["NavData", 0.3, 1, 3], ["Res2", 0.2, 1, 2]],
 		"xp": 350
 	},
 	"alien_probe": {
 		"name": "Alien Probe",
-		"stats": {"hp": 3000, "max_shield": 5000, "atk": 60, "def": 30, "atk_interval": 2.0, "accuracy": 70, "eva": 50},
+		"stats": {"hp": 3000, "max_shield": 5000, "atk": 90, "def": 30, "atk_interval": 2.0, "accuracy": 70, "eva": 50},
 		"loot": [["credits", 2000, 4000], ["SalvageData", 2, 4], ["Circuit", 3, 6]],
 		"rare_loot": [["VoidArtifact", 0.1, 1, 1], ["Chip", 0.25, 1, 2]],
 		"xp": 400
@@ -430,14 +430,14 @@ var enemy_db = {
 	# v57.0: Late Sector Expansion - Sector Beta (+2)
 	"repair_drone": {
 		"name": "Repair Drone",
-		"stats": {"hp": 8000, "max_shield": 3000, "atk": 50, "def": 100, "atk_interval": 2.5, "accuracy": 40, "eva": 30},
+		"stats": {"hp": 8000, "max_shield": 3000, "atk": 75, "def": 100, "atk_interval": 2.5, "accuracy": 40, "eva": 30},
 		"loot": [["credits", 3000, 6000], ["Cu", 20, 40], ["Circuit", 5, 10]],
 		"rare_loot": [["AdvCircuit", 0.2, 1, 2], ["Mesh", 0.15, 1, 2]],
 		"xp": 500
 	},
 	"ore_guardian": {
 		"name": "Ore Guardian",
-		"stats": {"hp": 20000, "max_shield": 5000, "atk": 120, "def": 200, "atk_interval": 3.0, "accuracy": 60, "eva": 15},
+		"stats": {"hp": 20000, "max_shield": 5000, "atk": 180, "def": 200, "atk_interval": 3.0, "accuracy": 60, "eva": 15},
 		"loot": [["Fe", 100, 200], ["Ti", 30, 60], ["W", 20, 40]],
 		"rare_loot": [["Pt", 0.2, 1, 3], ["Ir", 0.1, 1, 2]],
 		"xp": 700
@@ -445,14 +445,14 @@ var enemy_db = {
 	# v57.0: Late Sector Expansion - Sector Gamma (+2)
 	"irradiated_hulk": {
 		"name": "Irradiated Hulk",
-		"stats": {"hp": 35000, "max_shield": 10000, "atk": 180, "def": 120, "atk_interval": 4.0, "accuracy": 80, "eva": 10},
+		"stats": {"hp": 35000, "max_shield": 10000, "atk": 270, "def": 120, "atk_interval": 4.0, "accuracy": 80, "eva": 10},
 		"loot": [["credits", 10000, 20000], ["U", 10, 20], ["RadIsotope", 5, 10]],
 		"rare_loot": [["Res3", 0.3, 2, 4], ["VoidCrystal", 0.1, 1, 2]],
 		"xp": 1200
 	},
 	"plasma_wraith": {
 		"name": "Plasma Wraith",
-		"stats": {"hp": 25000, "max_shield": 30000, "atk": 250, "def": 80, "atk_interval": 1.8, "accuracy": 100, "eva": 45},
+		"stats": {"hp": 25000, "max_shield": 30000, "atk": 375, "def": 80, "atk_interval": 1.8, "accuracy": 100, "eva": 45},
 		"loot": [["credits", 15000, 30000], ["H", 50, 100], ["He", 30, 60]],
 		"rare_loot": [["QuantumCore", 0.15, 1, 1], ["ExoticMatter", 0.1, 1, 2]],
 		"xp": 1500
@@ -460,14 +460,14 @@ var enemy_db = {
 	# v57.0: Late Sector Expansion - Sector Delta (+2)
 	"shard_swarm": {
 		"name": "Shard Swarm",
-		"stats": {"hp": 40000, "max_shield": 15000, "atk": 200, "def": 100, "atk_interval": 0.8, "accuracy": 90, "eva": 35},
+		"stats": {"hp": 40000, "max_shield": 15000, "atk": 300, "def": 100, "atk_interval": 0.8, "accuracy": 90, "eva": 35},
 		"loot": [["credits", 20000, 40000], ["VoidCrystal", 3, 6], ["Si", 50, 100]],
 		"rare_loot": [["Ir", 0.2, 1, 3], ["QuantumCore", 0.1, 1, 1]],
 		"xp": 2000
 	},
 	"prism_guardian": {
 		"name": "Prism Guardian",
-		"stats": {"hp": 60000, "max_shield": 40000, "atk": 300, "def": 150, "atk_interval": 2.5, "accuracy": 120, "eva": 25},
+		"stats": {"hp": 60000, "max_shield": 40000, "atk": 450, "def": 150, "atk_interval": 2.5, "accuracy": 120, "eva": 25},
 		"loot": [["credits", 30000, 60000], ["VoidCrystal", 5, 10], ["ExoticMatter", 2, 4]],
 		"rare_loot": [["AncientTech", 0.15, 1, 1], ["Os", 0.1, 1, 2]],
 		"xp": 2500
@@ -640,7 +640,13 @@ func process_tick(delta: float):
 			overheat_lock = 0.0
 	if player_heat > 0:
 		var current_vent_rate = player_vent_rate * get_milestone_heat_mult()
-		player_heat = max(0, player_heat - current_vent_rate * delta)
+		
+		# Healing until 100% vs after 100% logic
+		var frame_vent_rate = current_vent_rate
+		if player_heat > player_max_heat:
+			frame_vent_rate *= 4.0 # 4x faster vent when critically overloaded
+			
+		player_heat = max(0, player_heat - frame_vent_rate * delta)
 		heat_changed.emit(player_heat, player_max_heat)
 	if player_heat > 80.0: p_speed_mult *= 0.5
 	
@@ -723,6 +729,17 @@ func _execute_player_attack(weapon_idx: int):
 	var w = player_weapon_states[weapon_idx]
 	var sm = GameState.shipyard_manager
 	if overheat_lock > 0: return
+	
+	# P0 Hotfix: Grid Safety Check (Prevent Overload Exploit)
+	var max_energy = 0
+	if GameState.resources: max_energy = GameState.resources.max_energy
+	
+	if sm.energy_used > max_energy:
+		# 10% chance to spam log (anti-spam)
+		if randf() < 0.1:
+			combat_events.append({"type": "miss", "text": "LOW POWER", "color": Color.RED, "side": "player"})
+		return # Weapon fails to fire
+		
 	if is_jammed and randf() < 0.25:
 		combat_events.append({"type": "miss", "text": "JAMMED", "color": Color.ORANGE, "side": "enemy"})
 		return
@@ -732,8 +749,7 @@ func _execute_player_attack(weapon_idx: int):
 	player_heat += 2.0 + ((w["dmg_k"] + w["dmg_e"] + w["dmg_x"]) / 100.0)
 	heat_changed.emit(player_heat, player_max_heat)
 	if player_heat >= player_max_heat:
-		player_heat = player_max_heat
-		player_heat = player_max_heat
+		# Allowed to exceed max_heat numerically for dynamic high-speed cooling phase
 		overheat_lock = 1.0 # Logic changed: Locks until heat == 0
 		return
 	

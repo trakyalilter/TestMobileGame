@@ -7,7 +7,16 @@ static func format_number(val: float) -> String:
 	if val < 1000:
 		if val > 0.0 and val < 1.0:
 			return "%.2f" % val
-		return str(round(val))
+		
+		# Prevent deceptive rounding (e.g. 4.8 displayed as 5)
+		# Add tiny epsilon to bypass float point precision loss
+		var diff = abs(val - round(val))
+		if diff > 0.01 and diff < 0.99:
+			# Use floor with epsilon to chop off purely partial fractions over .01
+			var safe_val = val + 0.000001
+			return "%.1f" % (floor(safe_val * 10.0) / 10.0)
+			
+		return str(int(round(val)))
 	
 	# 1.25M instead of 1.25e6 per User Request
 	var exp = int(floor(log(val) / log(1000)))
@@ -17,15 +26,16 @@ static func format_number(val: float) -> String:
 		var exponent = floor(log(val) / log(10.0))
 		var base = val / pow(10, exponent)
 		return "%.2fe%d" % [base, int(exponent)]
+		
 	var suffix = SUFFIXES[min(exp, SUFFIXES.size() - 1)]
-	var scaled = val / pow(1000, exp)
+	var scaled = (val / pow(1000, exp)) + 0.000001
 	
 	if scaled >= 100:
-		return "%.0f%s" % [scaled, suffix]
+		return "%.0f%s" % [floor(scaled), suffix]
 	elif scaled >= 10:
-		return "%.1f%s" % [scaled, suffix]
+		return "%.1f%s" % [floor(scaled * 10.0) / 10.0, suffix]
 	else:
-		return "%.2f%s" % [scaled, suffix]
+		return "%.2f%s" % [floor(scaled * 100.0) / 100.0, suffix]
 
 const STAT_LABELS = {
 	"atk_energy": "ENERGY ATK",

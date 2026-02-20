@@ -145,7 +145,7 @@ var ELEMENT_NAMES = {
 	"TitanClearance": "Titan Clearance",
 
 	"CryoCell": "Cryogenic Cell",
-	"NitroCoolant": "Liquid Nitrogen Coolant",
+	"NitroCoolant": "Cryo-Shield Matrix",
 	"RadIsotope": "Radioactive Isotope",  # Audit v50.0
 	"nanite_swarm": "Nanite Repair Swarm",  # Audit v50.0
 	
@@ -220,7 +220,7 @@ var CONSUMABLE_DATA = {
 	"CapacitorShard": {"type": "shield", "heal_pct": 0.10, "name": "Capacitor Shard"},
 	"BasicBooster":   {"type": "shield", "heal_pct": 0.15, "name": "Shield Booster"},
 	"IonField":       {"type": "shield", "heal_pct": 0.25, "name": "Ion Field Projector"},
-	"NitroCoolant":   {"type": "shield", "heal_pct": 0.35, "name": "Nitrogen Coolant"},
+	"NitroCoolant":   {"type": "shield", "heal_pct": 0.35, "name": "Cryo-Shield Matrix"},
 	"ZeroPoint":      {"type": "shield", "heal_pct": 0.50, "name": "Zero-Point Injector"},
 }
 

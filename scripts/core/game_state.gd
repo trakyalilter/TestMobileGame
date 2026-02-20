@@ -158,10 +158,12 @@ func load_game():
 		resources.load_save_data(data.get("resources", {}))
 		gathering_manager.load_save_data_manager(data.get("gathering", {}))
 		infrastructure_manager.load_save_data_manager(data.get("infrastructure", {}))
-		shipyard_manager.load_save_data_manager(data.get("shipyard", {}))
 		research_manager.load_save_data_manager(data.get("research", {}))
-		# processing_manager load moved below to fix potential dependency order if needed
 		processing_manager.load_save_data_manager(data.get("processing", {}))
+		
+		# Shipyard depends on research and processing for capacity scaling!
+		shipyard_manager.load_save_data_manager(data.get("shipyard", {}))
+		
 		combat_manager.load_save_data_manager(data.get("combat", {}))
 		mission_manager.load_save_data_manager(data.get("mission", {}))
 		fleet_manager.load_save_data_manager(data.get("fleet", {}))

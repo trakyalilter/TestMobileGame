@@ -51,10 +51,8 @@ func init_missions():
 		["m002b", "Applied Physics", "Research the 'Applied Physics' hub.", "research", "applied_physics", 1, 300, 100, "m003"],
 		["m003", "Pump Master", "Research 'Fluid Dynamics' to unlock water collection.", "research", "fluid_dynamics", 1, 300, 50, "m004"],
 		["m004", "Hydration", "Gather 350 units of Water.", "gather", "Water", 350, 500, 100, "m005"],
-		["m005", "Mineral Washing", "Recover 75 Silicon and 75 Iron from Dirt.", "gather_multi", {"Si": 75, "Fe": 75}, 150, 1000, 200, "m005b"],
+		["m005", "Mineral Washing", "Recover 75 Silicon and 75 Iron from Dirt.", "gather_multi", {"Si": 75, "Fe": 75}, 150, 1000, 200, "m007"],
 		
-		# Audit v35.0: The Automation Era - Teaching players to build infrastructure
-		["m005b", "The Automation Era", "Manual labor is inefficient. Construct an Auto-Excavator in the Infrastructure tab.", "build", "auto_excavator", 1, 600, 100, "m007"],
 		# m006 Removed (Moved to m002b)
 		["m007", "Mobility Check", "Craft 'Ion Thrusters' in the Shipyard.", "craft", "basic_thruster", 1, 1000, 100, "m008"],
 		["m008", "Materials Science", "Research the 'Materials Science' hub.", "research", "materials_science", 1, 300, 100, "m009"],
