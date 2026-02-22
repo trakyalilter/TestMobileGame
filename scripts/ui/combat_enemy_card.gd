@@ -25,6 +25,17 @@ func setup(p_eid, p_data, p_parent):
 	for entry in data["loot"]:
 		var d_name = ElementDB.get_display_name(entry[0])
 		loot_txt += d_name + ", "
+	
+	# v71.4: Include modules in drop summary
+	var m_pool = data.get("module_drop_pool", [])
+	if m_pool.size() > 0:
+		var sm = GameState.shipyard_manager
+		loot_txt = loot_txt.trim_suffix(", ") + " + "
+		for mid in m_pool:
+			var m_data = sm.modules.get(mid, {}) if sm else {}
+			var m_name = m_data.get("name", mid)
+			loot_txt += m_name + ", "
+			
 	loot_lbl.text = loot_txt.trim_suffix(", ")
 
 func _on_fight_btn_pressed():

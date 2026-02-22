@@ -15,7 +15,7 @@ var building_widget_scene = preload("res://scenes/ui/building_widget.tscn")
 var widgets = []
 
 var logistics_rack: VBoxContainer
-var logistics_grid: HFlowContainer
+var logistics_grid: GridContainer
 
 func _ready():
 	manager = GameState.infrastructure_manager
@@ -37,16 +37,16 @@ func _setup_multi_buy_toggles():
 	header.add_child(toggle_box)
 	
 	btn_x1 = Button.new()
-	btn_x1.text = "BUY x1"
+	btn_x1.text = "BUILD x1"
 	btn_x1.toggle_mode = true
 	btn_x1.button_pressed = true
 	
 	btn_x10 = Button.new()
-	btn_x10.text = "BUY x10"
+	btn_x10.text = "BUILD x10"
 	btn_x10.toggle_mode = true
 	
 	btn_x100 = Button.new()
-	btn_x100.text = "BUY x100"
+	btn_x100.text = "BUILD x100"
 	btn_x100.toggle_mode = true
 	
 	toggle_box.add_child(btn_x1)
@@ -83,10 +83,11 @@ func _setup_logistics_rack():
 	header.add_theme_color_override("font_color", Color(0.6, 0.4, 1.0, 0.5))
 	logistics_rack.add_child(header)
 	
-	logistics_grid = HFlowContainer.new()
+	logistics_grid = GridContainer.new()
+	logistics_grid.columns = 4
 	logistics_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	logistics_grid.add_theme_constant_override("h_separation", 15)
-	logistics_grid.add_theme_constant_override("v_separation", 15)
+	logistics_grid.add_theme_constant_override("h_separation", 10)
+	logistics_grid.add_theme_constant_override("v_separation", 10)
 	logistics_rack.add_child(logistics_grid)
 	
 	# Cleaner look (no separator)

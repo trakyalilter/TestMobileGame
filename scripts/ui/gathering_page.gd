@@ -56,10 +56,10 @@ func _create_rack(id: String, title: String, color: Color, parent: Node):
 	
 	# Use GridContainer with 4 columns for a stable layout
 	var rack_grid = GridContainer.new()
-	rack_grid.columns = 4
+	rack_grid.columns = 5
 	rack_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	rack_grid.add_theme_constant_override("h_separation", 15)
-	rack_grid.add_theme_constant_override("v_separation", 15)
+	rack_grid.add_theme_constant_override("h_separation", 10)
+	rack_grid.add_theme_constant_override("v_separation", 10)
 	rack_vbox.add_child(rack_grid)
 	
 	var sep = HSeparator.new()
@@ -110,19 +110,4 @@ func update_ui():
 			var color = Color(0.4, 0.9, 0.6) # Default Green (Loot)
 			if type == "xp": color = Color(1.0, 0.8, 0.15) # Gold
 			
-			spawn_floating_text(text, color, target_w)
-
-var floating_text_scene = preload("res://scenes/ui/floating_text.tscn")
-
-func spawn_floating_text(text, color, target_widget):
-	var ft = floating_text_scene.instantiate()
-	self.add_child(ft)
-	
-	# Calc position relative to this control
-	var center = target_widget.global_position + target_widget.size / 2.0
-	var local_pos = center - self.global_position
-	
-	# Random offset
-	local_pos += Vector2(randf_range(-20, 20), randf_range(-20, 20))
-	
-	ft.setup(text, color, local_pos)
+			UITheme.show_notification(text, color)

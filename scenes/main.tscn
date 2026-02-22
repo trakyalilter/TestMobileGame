@@ -43,27 +43,20 @@ layout_mode = 2
 layout_mode = 2
 theme_override_constants/separation = 5
 
-[node name="CmdHeader" type="Label" parent="HBoxContainer/Sidebar/VBoxContainer"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.4, 0.4, 0.6, 1)
-theme_override_font_sizes/font_size = 11
-text = " [ 🛰 COMMAND ]"
-
 [node name="MissionBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
 text = "  ⌘  Missions"
+alignment = 0
+
+[node name="BountyBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
+layout_mode = 2
+text = "  🎯  Bounty Board"
 alignment = 0
 
 [node name="FleetBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
 text = "  🛰  Fleet Command"
 alignment = 0
-
-[node name="LogHeader" type="Label" parent="HBoxContainer/Sidebar/VBoxContainer"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.4, 0.4, 0.6, 1)
-theme_override_font_sizes/font_size = 11
-text = " [ ⌬ LOGISTICS ]"
 
 [node name="GatheringBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
@@ -74,12 +67,6 @@ alignment = 0
 layout_mode = 2
 text = "  ⌬  Infrastructure"
 alignment = 0
-
-[node name="EngHeader" type="Label" parent="HBoxContainer/Sidebar/VBoxContainer"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.4, 0.4, 0.6, 1)
-theme_override_font_sizes/font_size = 11
-text = " [ ⚙ ENGINEERING ]"
 
 [node name="ProcessingBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
@@ -101,12 +88,6 @@ layout_mode = 2
 text = "  ⌬   Ship Designer"
 alignment = 0
 
-[node name="CombatHeader" type="Label" parent="HBoxContainer/Sidebar/VBoxContainer"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.4, 0.4, 0.6, 1)
-theme_override_font_sizes/font_size = 11
-text = " [ ⚔ TACTICAL ]"
-
 [node name="CombatBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
 text = "  ⚔  Combat"
@@ -122,12 +103,6 @@ alignment = 0
 layout_mode = 2
 text = " 📦 Inventory"
 alignment = 0
-
-[node name="DataHeader" type="Label" parent="HBoxContainer/Sidebar/VBoxContainer"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.4, 0.4, 0.6, 1)
-theme_override_font_sizes/font_size = 11
-text = " [ 📖 DATA ]"
 
 [node name="AtlasBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
@@ -156,6 +131,7 @@ size_flags_vertical = 3
 mouse_filter = 2
 
 [connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/MissionBtn" to="." method="_on_mission_btn_pressed"]
+[connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/BountyBtn" to="." method="_on_bounty_btn_pressed"]
 [connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/FleetBtn" to="." method="_on_fleet_btn_pressed"]
 [connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/GatheringBtn" to="." method="_on_gathering_btn_pressed"]
 [connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/InfrastructureBtn" to="." method="_on_infrastructure_btn_pressed"]

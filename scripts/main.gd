@@ -13,6 +13,7 @@ extends Control
 @onready var inventory_btn = $HBoxContainer/Sidebar/VBoxContainer/InventoryBtn
 @onready var atlas_btn = $HBoxContainer/Sidebar/VBoxContainer/AtlasBtn
 @onready var options_btn = $HBoxContainer/Sidebar/VBoxContainer/OptionsBtn
+@onready var bounty_btn = $HBoxContainer/Sidebar/VBoxContainer/BountyBtn
 @onready var fleet_btn = $HBoxContainer/Sidebar/VBoxContainer/FleetBtn
 @onready var warp_btn = $HBoxContainer/Sidebar/VBoxContainer/WarpBtn
 @onready var sidebar_list = $HBoxContainer/Sidebar/VBoxContainer
@@ -29,6 +30,10 @@ var header_widget: Control
 func _ready():
 	_init_pages()
 	_apply_global_styles()
+	_init_notifications() # Feature 66.1
+	
+	# v71.1: Connect to shipyard alerts
+	GameState.shipyard_manager.alert_changed.connect(_on_shipyard_alert_changed)
 	
 	GameState.game_resetted.connect(_on_game_resetted)
 	
@@ -106,6 +111,11 @@ func _init_pages():
 	p_fleet.visible = false
 	pages["fleet"] = p_fleet
 	
+	var p_bounty = preload("res://scenes/ui/bounty_page.tscn").instantiate()
+	page_container.add_child(p_bounty)
+	p_bounty.visible = false
+	pages["bounty"] = p_bounty
+	
 	var p_warp = preload("res://scenes/ui/warp_page.tscn").instantiate()
 	page_container.add_child(p_warp)
 	p_warp.visible = false
@@ -122,6 +132,74 @@ func _init_pages():
 	$HBoxContainer/Content.add_child(header_widget)
 	$HBoxContainer/Content.move_child(header_widget, 0) # Top of VBox
 
+# Feature 66.1: Global Notification Stack (Melvor-style)
+var notification_container: VBoxContainer
+
+func _init_notifications():
+	var margin = MarginContainer.new()
+	margin.set_anchors_and_offsets_preset(Control.PRESET_RIGHT_WIDE)
+	margin.grow_horizontal = Control.GROW_DIRECTION_BEGIN # Grow leftwards
+	margin.add_theme_constant_override("margin_right", 50)
+	margin.add_theme_constant_override("margin_top", 100) # Below top HUD
+	margin.add_theme_constant_override("margin_bottom", 50)
+	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	
+	notification_container = VBoxContainer.new()
+	notification_container.alignment = BoxContainer.ALIGNMENT_END # Stack from bottom up
+	notification_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	margin.add_child(notification_container)
+	
+	$ModalLayer.add_child(margin)
+	UITheme.notification_requested.connect(_spawn_notification)
+
+func _spawn_notification(text: String, color: Color):
+	var panel = PanelContainer.new()
+	var style = StyleBoxFlat.new()
+	style.bg_color = UITheme.COLORS["panel_bg"]
+	style.bg_color.a = 0.95
+	style.set_border_width_all(1)
+	style.border_color = color.lerp(Color.WHITE, 0.4)
+	style.corner_radius_top_left = 6
+	style.corner_radius_top_right = 6
+	style.corner_radius_bottom_right = 6
+	style.corner_radius_bottom_left = 6
+	style.shadow_color = Color(0, 0, 0, 0.5)
+	style.shadow_size = 4
+	panel.add_theme_stylebox_override("panel", style)
+	
+	var margin = MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 15)
+	margin.add_theme_constant_override("margin_right", 15)
+	margin.add_theme_constant_override("margin_top", 5)
+	margin.add_theme_constant_override("margin_bottom", 5)
+	panel.add_child(margin)
+	
+	var msg = Label.new()
+	msg.text = text
+	msg.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	msg.add_theme_color_override("font_color", color)
+	msg.add_theme_font_size_override("font_size", 14)
+	UITheme.apply_segmented_font(msg, color)
+	margin.add_child(msg)
+	# Right-align the notification to form a neat column
+	panel.size_flags_horizontal = Control.SIZE_SHRINK_END
+	notification_container.add_child(panel)
+	# Max 5 notifications visibly tracking
+	if notification_container.get_child_count() > 6:
+		var oldest = notification_container.get_child(0)
+		if is_instance_valid(oldest) and not oldest.is_queued_for_deletion():
+			oldest.queue_free()
+	
+	# Tween Flow: Fade In (0.2s) -> Hold (1.5s) -> Fade Out (0.3s)
+	panel.modulate.a = 0.0
+	var tween = panel.create_tween()
+	tween.tween_property(panel, "modulate:a", 1.0, 0.2).set_trans(Tween.TRANS_SINE)
+	tween.tween_interval(1.5)
+	
+	# Drift right while fading out
+	tween.tween_property(panel, "modulate:a", 0.0, 0.3)
+	tween.tween_callback(panel.queue_free)
+
 func switch_to(page_name):
 	if current_page_name == page_name: return
 	
@@ -137,12 +215,13 @@ func switch_to(page_name):
 		current_page_name = page_name
 		_update_sidebar_styling()
 		
-		# INTERACTION: Tactile feedback on switch
-		UITheme.trigger_ui_thud(sidebar_list, 2.0)
-		
 		# SMART NAVIGATION: Notify page it's been opened
 		if pages[page_name].has_method("on_page_enter"):
 			pages[page_name].on_page_enter()
+		
+		# v71.1: Clear shipyard alert when entering designer
+		if page_name == "designer":
+			GameState.shipyard_manager.new_drops_alert = false
 
 func _get_btn_for_page(page_name: String) -> Button:
 	match page_name:
@@ -158,8 +237,16 @@ func _get_btn_for_page(page_name: String) -> Button:
 		"atlas": return atlas_btn
 		"options": return options_btn
 		"fleet": return fleet_btn
+		"bounty": return bounty_btn
 		"warp": return warp_btn
 	return null
+
+func _on_shipyard_alert_changed(state: bool):
+	if state and current_page_name != "designer":
+		start_hint_pulse(designer_btn)
+	elif not state:
+		if pulsing_button == designer_btn:
+			stop_hint_pulse()
 
 func _update_sidebar_styling():
 	UITheme.apply_sidebar_button_style(gathering_btn, current_page_name == "gathering")
@@ -174,6 +261,7 @@ func _update_sidebar_styling():
 	UITheme.apply_sidebar_button_style(atlas_btn, current_page_name == "atlas")
 	UITheme.apply_sidebar_button_style(options_btn, current_page_name == "options")
 	UITheme.apply_sidebar_button_style(fleet_btn, current_page_name == "fleet")
+	UITheme.apply_sidebar_button_style(bounty_btn, current_page_name == "bounty")
 	
 	# THEMATIC: Progressive Disclosure (Early & Mid-Game Gates)
 	var has_basic_eng = GameState.research_manager.is_tech_unlocked("applied_physics")
@@ -183,20 +271,23 @@ func _update_sidebar_styling():
 	shipyard_btn.visible = has_basic_eng
 	designer_btn.visible = has_basic_eng
 	combat_btn.visible = has_basic_eng
-	$HBoxContainer/Sidebar/VBoxContainer/EngHeader.visible = true # Engineering is core
+
 	
 	# 2. Mid Game: Fleet Command unlocks at Shipwright 1
 	fleet_btn.visible = has_shipwright
+	
+	# v72.0: Bounty Board unlocks at Asteroid Clearance (first real combat sector)
+	var has_asteroid_clearance = GameState.research_manager.is_tech_unlocked("asteroid_clearance")
+	bounty_btn.visible = has_asteroid_clearance
 	
 	# 3. Late Game: Warp Core unlocks at Warp Drive Theory
 	var has_warp = GameState.research_manager.is_tech_unlocked("warp_drive")
 	warp_btn.visible = has_warp
 	
-	# Tactical Category Header gating
-	$HBoxContainer/Sidebar/VBoxContainer/CombatHeader.visible = has_basic_eng or has_warp
+
+
 	
-	# Command Cluster Header: Always visible (Missions are day 1)
-	$HBoxContainer/Sidebar/VBoxContainer/CmdHeader.visible = true
+
 	
 	# Apply Physical Switch Styling
 	for child in sidebar_list.get_children():
@@ -450,10 +541,10 @@ func _update_navigation_hints():
 			if widget: target_to_pulse = widget
 
 	elif "m027" in mm.active_missions:
-		# Research: Sector Alpha Case
+		# Research: Asteroid Belt Clearance
 		if current_page_name != "research": target_to_pulse = research_btn
 		else:
-			var widget = pages["research"].get_node_widget("sector_alpha_decryption")
+			var widget = pages["research"].get_node_widget("asteroid_clearance")
 			if widget: target_to_pulse = widget
 
 	elif "m028" in mm.active_missions:
@@ -521,11 +612,35 @@ func _update_navigation_hints():
 			target_to_pulse = pages["shipyard"].get_hull_widget("dreadnought_hull")
 
 	elif "m031" in mm.active_missions:
-		# Research: Warp Drive
+		# Research: Sector Alpha Decryption
 		if current_page_name != "research": target_to_pulse = research_btn
 		else:
-			var widget = pages["research"].get_node_widget("warp_drive")
+			var widget = pages["research"].get_node_widget("sector_alpha_decryption")
 			if widget: target_to_pulse = widget
+			
+	elif "m032" in mm.active_missions:
+		# Combat: Alpha Sector Dominance (Alien Frigate)
+		if current_page_name != "combat": target_to_pulse = combat_btn
+		else:
+			var page = pages["combat"]
+			page.focus_zone("sector_alpha")
+			target_to_pulse = page.get_enemy_card("alien_frigate")
+
+	elif "m033" in mm.active_missions:
+		# Combat: Beta Sector Expansion (Ore Guardian)
+		if current_page_name != "combat": target_to_pulse = combat_btn
+		else:
+			var page = pages["combat"]
+			page.focus_zone("sector_beta")
+			target_to_pulse = page.get_enemy_card("ore_guardian")
+
+	elif "m034" in mm.active_missions:
+		# Combat: Gamma Sector Control (Gamma Colossus)
+		if current_page_name != "combat": target_to_pulse = combat_btn
+		else:
+			var page = pages["combat"]
+			page.focus_zone("sector_gamma")
+			target_to_pulse = page.get_enemy_card("gamma_colossus")
 
 	# Apply final decision
 	if target_to_pulse:
@@ -581,6 +696,7 @@ func _on_warp_btn_pressed():
 	switch_to("warp")
 func _on_options_btn_pressed(): switch_to("options")
 func _on_fleet_btn_pressed(): switch_to("fleet")
+func _on_bounty_btn_pressed(): switch_to("bounty")
 
 func _on_game_resetted():
 	switch_to("mission")

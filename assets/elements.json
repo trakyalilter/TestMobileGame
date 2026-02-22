@@ -649,6 +649,106 @@
     "description": "Xenon technology data cores. Essential for capital ship engineering."
   },
   {
+    "atomic_number": -2001,
+    "symbol": "Trophy_Lunar",
+    "name": "Lunar Command Trophy",
+    "mass": 1.0,
+    "category": "Trophy",
+    "tier": 1,
+    "base_value": 5000,
+    "description": "Evidence of Lunar dominance. Level up Gathering faster while held."
+  },
+  {
+    "atomic_number": -2002,
+    "symbol": "Trophy_Belt",
+    "name": "Belt Warden Trophy",
+    "mass": 1.0,
+    "category": "Trophy",
+    "tier": 2,
+    "base_value": 15000,
+    "description": "Evidence of Belt dominance. Increases all Mining yields while held."
+  },
+  {
+    "atomic_number": -2003,
+    "symbol": "Trophy_Mars",
+    "name": "Martian Sovereign Trophy",
+    "mass": 1.0,
+    "category": "Trophy",
+    "tier": 3,
+    "base_value": 35000,
+    "description": "Evidence of Martian dominance. Reduces Processing heat buildup while held."
+  },
+  {
+    "atomic_number": -2004,
+    "symbol": "Trophy_Titan",
+    "name": "Titan Overlord Trophy",
+    "mass": 1.0,
+    "category": "Trophy",
+    "tier": 4,
+    "base_value": 75000,
+    "description": "Evidence of Titan dominance. Boosts Ship Speed in all sectors while held."
+  },
+  {
+    "atomic_number": -2005,
+    "symbol": "Trophy_Alpha",
+    "name": "Alpha Vanguard Trophy",
+    "mass": 1.0,
+    "category": "Trophy",
+    "tier": 5,
+    "base_value": 150000,
+    "description": "Evidence of Alpha dominance. Increases Research speed while held."
+  },
+  {
+    "atomic_number": -2006,
+    "symbol": "Trophy_Beta",
+    "name": "Beta Governor Trophy",
+    "mass": 1.0,
+    "category": "Trophy",
+    "tier": 6,
+    "base_value": 300000,
+    "description": "Evidence of Beta dominance. Increases Infrastructure output while held."
+  },
+  {
+    "atomic_number": -2007,
+    "symbol": "Trophy_Gamma",
+    "name": "Gamma Ravager Trophy",
+    "mass": 1.0,
+    "category": "Trophy",
+    "tier": 7,
+    "base_value": 600000,
+    "description": "Evidence of Gamma dominance. Boosts Energy Weapon damage while held."
+  },
+  {
+    "atomic_number": -2008,
+    "symbol": "Trophy_Delta",
+    "name": "Delta Sentinel Trophy",
+    "mass": 1.0,
+    "category": "Trophy",
+    "tier": 8,
+    "base_value": 1200000,
+    "description": "Evidence of Delta dominance. Boosts Kinetic Weapon damage while held."
+  },
+  {
+    "atomic_number": -2009,
+    "symbol": "Trophy_Zeta",
+    "name": "Zeta Purifier Trophy",
+    "mass": 1.0,
+    "category": "Trophy",
+    "tier": 9,
+    "base_value": 2500000,
+    "description": "Evidence of Zeta dominance. Boosts Ship Evasion while held."
+  },
+  {
+    "atomic_number": -2010,
+    "symbol": "Trophy_Epsilon",
+    "name": "Void Conqueror Trophy",
+    "mass": 1.0,
+    "category": "Trophy",
+    "tier": 10,
+    "base_value": 10000000,
+    "description": "Evidence of Void dominance. Boosts ALL Ship Stats while held."
+  },
+  {
     "atomic_number": -500,
     "symbol": "ColonySalvage",
     "name": "Colony Salvage",

@@ -309,26 +309,16 @@ func _on_sell_all_btn_pressed():
 
 func perform_sale(symbol, qty):
 	if qty <= 0:
-		spawn_floating_text("Invalid Qty", Color.RED, sell_btn)
+		UITheme.show_notification("Invalid Qty", Color.RED)
 		return
 		
 	var total = qty * price_val
 	if GameState.resources.remove_element(symbol, qty):
 		GameState.resources.add_currency("credits", total)
-		spawn_floating_text("+%s Cr" % UITheme.format_num(total), Color.GOLD, sell_btn)
+		UITheme.show_notification("+%s Cr" % UITheme.format_num(total), Color.GOLD)
 		# refresh_inventory() # v65.1 Cleanup: Redundant, handled by signals
 	else:
-		spawn_floating_text("Sale Failed", Color.RED, sell_btn)
-
-func spawn_floating_text(text, color, target_widget):
-	# Using local float text logic similar to processing_page.gd
-	var ft_scene = preload("res://scenes/ui/floating_text.tscn")
-	var ft = ft_scene.instantiate()
-	# Add to main UI so it's not clipped by panels
-	get_tree().root.add_child(ft)
-	
-	var center = target_widget.global_position + target_widget.size / 2.0
-	ft.setup(text, color, center)
+		UITheme.show_notification("Sale Failed", Color.RED)
 
 
 func _process(delta):

@@ -101,6 +101,7 @@ var tech_tree = {
 		"name": "Energy Fields",
 		"description": "Unlocks:\n• Deflector Shield\n• Shield Harmonics (Ships)\n• [Requires: Applied Physics (Engineering)]",
 		"cost": 1250,
+		"cost_items": {"Res1": 10},
 		"type": "technology",
 		"parent": "applied_physics"
 	},
@@ -116,6 +117,7 @@ var tech_tree = {
 		"name": "Sensor Calibration",
 		"description": "Bonus: +50% Scanning Yield\n• [Requires: Applied Physics (Engineering)]",
 		"cost": 375,
+		"cost_items": {"Res1": 5},
 		"type": "technology",
 		"parent": "applied_physics"
 	},
@@ -301,6 +303,7 @@ var tech_tree = {
 		"name": "Plasma Bore",
 		"description": "Bonus:\n• +75% Excavate Soil speed",
 		"cost": 5000,
+		"cost_items": {"Res2": 20},
 		"type": "technology",
 		"parent": "ultrasonic_drills"
 	},
@@ -308,6 +311,7 @@ var tech_tree = {
 		"name": "Superfluid Intake",
 		"description": "Bonus:\n• +50% Pump Water speed",
 		"cost": 1500,
+		"cost_items": {"Res2": 15},
 		"type": "technology",
 		"parent": "high_flow_pumps"
 	},
@@ -315,6 +319,7 @@ var tech_tree = {
 		"name": "Hydro-Vortex Arrays",
 		"description": "Bonus:\n• +75% Pump Water speed",
 		"cost": 7500,
+		"cost_items": {"Res3": 5, "AdvCircuit": 10},
 		"type": "technology",
 		"parent": "superfluid_intake"
 	},
@@ -322,6 +327,7 @@ var tech_tree = {
 		"name": "Mono-Filament Wire",
 		"description": "Bonus:\n• +50% Deforest Zone speed",
 		"cost": 2000,
+		"cost_items": {"Res2": 15},
 		"type": "technology",
 		"parent": "laser_cutters"
 	},
@@ -329,6 +335,7 @@ var tech_tree = {
 		"name": "Molecular Disassembler",
 		"description": "Bonus:\n• +75% Deforest Zone speed",
 		"cost": 10000,
+		"cost_items": {"Res3": 10, "AdvCircuit": 15},
 		"type": "technology",
 		"parent": "mono_filament"
 	},
@@ -367,6 +374,7 @@ var tech_tree = {
 		"name": "Hydraulic Press",
 		"description": "Bonus:\n• +25% Graphite Press speed",
 		"cost": 1500,
+		"cost_items": {"Res1": 10},
 		"type": "technology",
 		"parent": "adv_materials"
 	},
@@ -375,6 +383,7 @@ var tech_tree = {
 		"name": "Mag-Lev Bearings",
 		"description": "Bonus:\n• +50% Mineral Washing speed",
 		"cost": 1000,
+		"cost_items": {"Res2": 15},
 		"type": "technology",
 		"parent": "fast_centrifuges"
 	},
@@ -382,6 +391,7 @@ var tech_tree = {
 		"name": "Quantum Separators",
 		"description": "Bonus:\n• +75% Mineral Washing speed",
 		"cost": 5000,
+		"cost_items": {"Res3": 10, "AdvCircuit": 10},
 		"type": "technology",
 		"parent": "maglev_bearings"
 	},
@@ -397,6 +407,7 @@ var tech_tree = {
 		"name": "Ion-Exchange Membranes",
 		"description": "Bonus:\n• +50% Electrolysis speed",
 		"cost": 1500,
+		"cost_items": {"Res2": 15},
 		"type": "technology",
 		"parent": "catalytic_electrodes"
 	},
@@ -404,6 +415,7 @@ var tech_tree = {
 		"name": "Resonance Splitters",
 		"description": "Bonus:\n• +75% Electrolysis speed",
 		"cost": 7500,
+		"cost_items": {"Res3": 10, "AdvCircuit": 10},
 		"type": "technology",
 		"parent": "ion_exchange"
 	},
@@ -420,6 +432,7 @@ var tech_tree = {
 		"name": "Ballistics Optimization", 
 		"description": "Unlocks:\n• Depleted Uranium Rounds (T3)\n• Heavy Railgun",
 		"cost": 1500,
+		"cost_items": {"Res2": 15},
 		"type": "technology",
 		"parent": "processing_tungsten"
 	},
@@ -444,6 +457,7 @@ var tech_tree = {
 		"name": "Automated Logistics",
 		"description": "Unlocks:\n• Drone Bay\n• Fleet Logistics I (Ships)",
 		"cost": 3000,
+		"cost_items": {"Steel": 30},
 		"type": "technology",
 		"parent": "industrial_logistics"
 	},
@@ -1075,8 +1089,15 @@ func complete_action():
 func process_tick(delta: float):
 	if not is_active or current_action == "": return
 	
-	# Audit v8.0: Combine hub bonuses, research unlocks, and Skill Level
-	var speed_mult = (1.0 + get_efficiency_bonus("research_speed")) * get_research_speed_multiplier()
+	# Audit v8.0: Combine hub bonuses,	# v54.0: Research speed efficiency (Multiplicative)
+	var speed_mult = 1.0 + get_efficiency_bonus("research_speed")
+	
+	# v72.8: Trophy Buffs
+	if GameState.bounty_manager:
+		speed_mult *= GameState.bounty_manager.get_trophy_buff("research_speed")
+		
+	var required_time = action_duration / speed_mult
+	speed_mult *= get_research_speed_multiplier() # Re-added skill level multiplier
 	action_progress += delta * speed_mult
 	
 	if action_progress >= action_duration:
@@ -1086,7 +1107,13 @@ func process_tick(delta: float):
 func calculate_offline(delta: float):
 	if not is_active or current_action == "": return null
 	
-	var speed_mult = (1.0 + get_efficiency_bonus("research_speed")) * get_research_speed_multiplier()
+	var speed_mult = 1.0 + get_efficiency_bonus("research_speed")
+	
+	# v72.8: Trophy Buffs
+	if GameState.bounty_manager:
+		speed_mult *= GameState.bounty_manager.get_trophy_buff("research_speed")
+		
+	speed_mult *= get_research_speed_multiplier() # Re-added skill level multiplier
 	var effective_duration = action_duration / speed_mult
 	
 	var actions = int(delta / effective_duration)

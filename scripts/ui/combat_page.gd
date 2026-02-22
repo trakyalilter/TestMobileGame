@@ -1,48 +1,44 @@
 extends Control
 
-@onready var zone_list = $Dashboard/Visualizer/HUD/Overlays/SectorOverlay/VBox/ZoneList
-@onready var enemy_container = $Dashboard/Visualizer/HUD/Overlays/TargetingOverlay/VBox/Scroll/EnemyList
-
+@onready var zone_list = $Dashboard/HUD/TopHUD/NavPanel/VBox/ZoneList
+@onready var enemy_container = $Dashboard/HUD/TopHUD/TargetPanel/VBox/Scroll/EnemyList
 
 # Arena Refs
 @onready var visualizer = $Dashboard/Visualizer
 @onready var radar_lines = $Dashboard/Visualizer/Background/RadarLines
 @onready var radar_display = $Dashboard/Visualizer/RadarDisplay
-@onready var threat_lbl = $Dashboard/Visualizer/HUD/CenterInfo/SectorThreat
-@onready var scan_lbl = $Dashboard/Visualizer/HUD/CenterInfo/ScanningStatus
-@onready var scan_line = $Dashboard/Visualizer/ScanLine
+@onready var threat_lbl = $Dashboard/HUD/TopHUD/CenterInfo/SectorThreat
+@onready var scan_lbl = $Dashboard/HUD/TopHUD/CenterInfo/ScanningStatus
 
-@onready var p_name_lbl = $Dashboard/Visualizer/HUD/Overlays/SectorOverlay/VBox/PlayerStats/NameLabel
-@onready var p_stat_lbl = $Dashboard/Visualizer/HUD/Overlays/SectorOverlay/VBox/PlayerStats/StatsLabel
-@onready var p_hp_lbl = $Dashboard/Visualizer/HUD/Overlays/SectorOverlay/VBox/PlayerStats/HealthLabel
-@onready var p_sh_lbl = $Dashboard/Visualizer/HUD/Overlays/SectorOverlay/VBox/PlayerStats/ShieldLabel
-@onready var p_heat_bar = $Dashboard/Visualizer/HUD/Overlays/SectorOverlay/VBox/PlayerStats/HeatBar
-@onready var weapon_battery = $Dashboard/Visualizer/HUD/Overlays/SectorOverlay/VBox/PlayerStats/WeaponBattery
-@onready var p_buff_container = $Dashboard/Visualizer/HUD/Overlays/SectorOverlay/VBox/PlayerStats/BuffContainer
+@onready var p_name_lbl = $Dashboard/HUD/MidHUD/PlayerStatsOverlay/Margin/VBox/NameLabel
+@onready var p_stat_lbl = $Dashboard/HUD/MidHUD/PlayerStatsOverlay/Margin/VBox/StatsLabel
+@onready var p_hp_lbl = $Dashboard/HUD/MidHUD/PlayerStatsOverlay/Margin/VBox/Grid/HealthLabel
+@onready var p_sh_lbl = $Dashboard/HUD/MidHUD/PlayerStatsOverlay/Margin/VBox/Grid/ShieldLabel
+@onready var p_heat_bar = $Dashboard/HUD/MidHUD/PlayerStatsOverlay/Margin/VBox/HeatBar
+@onready var weapon_battery = $Dashboard/HUD/MidHUD/PlayerStatsOverlay/Margin/VBox/WeaponBattery
+@onready var p_buff_container = $Dashboard/HUD/MidHUD/PlayerStatsOverlay/Margin/VBox/BuffContainer
 
 var player_weapon_bars = []
 
-@onready var e_name_lbl = $Dashboard/Visualizer/HUD/Overlays/TargetingOverlay/VBox/EnemyStats/NameLabel
-@onready var e_stat_lbl = $Dashboard/Visualizer/HUD/Overlays/TargetingOverlay/VBox/EnemyStats/StatsLabel
-@onready var e_hp_lbl = $Dashboard/Visualizer/HUD/Overlays/TargetingOverlay/VBox/EnemyStats/HealthLabel
-@onready var e_sh_lbl = $Dashboard/Visualizer/HUD/Overlays/TargetingOverlay/VBox/EnemyStats/ShieldLabel
-@onready var e_attack_pb = $Dashboard/Visualizer/HUD/Overlays/TargetingOverlay/VBox/EnemyStats/E_AttackBar
+@onready var e_name_lbl = $Dashboard/HUD/MidHUD/EnemyStatsOverlay/Margin/VBox/NameLabel
+@onready var e_stat_lbl = $Dashboard/HUD/MidHUD/EnemyStatsOverlay/Margin/VBox/StatsLabel
+@onready var e_hp_lbl = $Dashboard/HUD/MidHUD/EnemyStatsOverlay/Margin/VBox/Grid/HealthLabel
+@onready var e_sh_lbl = $Dashboard/HUD/MidHUD/EnemyStatsOverlay/Margin/VBox/Grid/ShieldLabel
+@onready var e_attack_pb = $Dashboard/HUD/MidHUD/EnemyStatsOverlay/Margin/VBox/E_AttackBar
 
-@onready var scanner_overlay = $Dashboard/Visualizer/HUD/Overlays/BottomRegion/StatusRow/ScannerOverlay
-@onready var loot_lbl = $Dashboard/Visualizer/HUD/Overlays/BottomRegion/StatusRow/ScannerOverlay/VBox/Scroll/LootText
+@onready var scanner_overlay = $Dashboard/HUD/BottomHUD/ScannerOverlay
+@onready var loot_lbl = $Dashboard/HUD/BottomHUD/ScannerOverlay/Margin/VBox/Scroll/LootText
 
-@onready var ammo_overlay = $Dashboard/Visualizer/HUD/Overlays/BottomRegion/StatusRow/AmmoOverlay
-@onready var ammo_vbox = $Dashboard/Visualizer/HUD/Overlays/BottomRegion/StatusRow/AmmoOverlay/VBox/AmmoGroupVBox
+@onready var ammo_overlay = $Dashboard/HUD/BottomHUD/AmmoOverlay
+@onready var ammo_vbox = $Dashboard/HUD/BottomHUD/AmmoOverlay/Margin/VBox/AmmoGroupVBox
 
 # Controls
-@onready var btn_retreat = $Dashboard/ViewportFooter/Margin/HBox/RetreatBtn
+@onready var btn_retreat = $Dashboard/HUD/BottomHUD/RetreatContainer/RetreatBtn
 
 var manager: RefCounted
 
 # Enemy List Item Prefab
-# Enemy List Item Prefab
 var enemy_card_scene = preload("res://scenes/ui/combat_enemy_card.tscn")
-var floating_text_scene = preload("res://scenes/ui/floating_text.tscn")
 var enemy_info_scene = preload("res://scenes/ui/enemy_info_modal.tscn")
 
 func _ready():
@@ -60,19 +56,16 @@ func _ready():
 	
 	UITheme.apply_progress_bar_style(e_attack_pb, "combat")
 	
-	# PHASE 47: DIEGETIC DE-BOXING
-	UITheme.apply_holographic_projection($Dashboard/Visualizer/HUD/Overlays/SectorOverlay, "shipyard")
-	UITheme.apply_holographic_projection($Dashboard/Visualizer/HUD/Overlays/TargetingOverlay, "combat")
-	UITheme.apply_holographic_projection($Dashboard/Visualizer/HUD/Overlays/TargetingOverlay, "combat")
-	UITheme.apply_holographic_projection(ammo_overlay, "inventory")
-	UITheme.apply_holographic_projection(scanner_overlay, "research")
+	UITheme.apply_card_style($Dashboard/HUD/TopHUD/NavPanel, "ops")
+	UITheme.apply_card_style($Dashboard/HUD/TopHUD/TargetPanel, "combat")
+	UITheme.apply_card_style($Dashboard/HUD/MidHUD/PlayerStatsOverlay, "shipyard")
+	UITheme.apply_card_style($Dashboard/HUD/MidHUD/EnemyStatsOverlay, "combat")
+	UITheme.apply_card_style(ammo_overlay, "inventory")
+	UITheme.apply_card_style(scanner_overlay, "research")
 	
 	radar_display.draw.connect(_on_radar_draw)
 	
 
-	
-
-	
 	# PHASE 22: Inject XP Bar programmatically
 	_setup_xp_bar()
 	
@@ -114,7 +107,7 @@ func _setup_xp_bar():
 	p_xp_bar.add_theme_stylebox_override("fill", sb_fill)
 	
 	# Add to HUD
-	var container = $Dashboard/Visualizer/HUD/Overlays/SectorOverlay/VBox/PlayerStats
+	var container = $Dashboard/HUD/MidHUD/PlayerStatsOverlay/Margin/VBox
 	container.add_child(p_xp_bar)
 	
 	# Create Label for XP Bar
@@ -153,11 +146,21 @@ func refresh_enemies(zone_id):
 	
 	var enemies = manager.zones[zone_id]["enemies"].duplicate()
 	
-	# Sort by HP (weakest to strongest)
+	# Sort by Threat Score (weakest to strongest)
+	# Heuristic: (HP + Shield) * (1 + Def/100) * (1 + Atk/50)
 	enemies.sort_custom(func(a, b):
-		var hp_a = manager.enemy_db[a]["stats"].get("hp", 0)
-		var hp_b = manager.enemy_db[b]["stats"].get("hp", 0)
-		return hp_a < hp_b
+		var e_a = manager.enemy_db[a]
+		var e_b = manager.enemy_db[b]
+		
+		var score_a = (e_a["stats"].get("hp", 0) + e_a["stats"].get("max_shield", 0)) \
+			* (1.0 + e_a["stats"].get("def", 0) / 100.0) \
+			* (1.0 + e_a["stats"].get("atk", 0) / 50.0)
+			
+		var score_b = (e_b["stats"].get("hp", 0) + e_b["stats"].get("max_shield", 0)) \
+			* (1.0 + e_b["stats"].get("def", 0) / 100.0) \
+			* (1.0 + e_b["stats"].get("atk", 0) / 50.0)
+			
+		return score_a < score_b
 	)
 	
 	for eid in enemies:
@@ -218,15 +221,18 @@ func update_ui():
 	var crit_bonus = manager.get_milestone_crit_bonus()
 	var total_eva = sm.evasion + eva_bonus
 	var total_crit = (sm.crit_chance + crit_bonus) * 100.0
+	
 	p_stat_lbl.text = "ATK: %s | DEF: %s | EVA: %.0f | CRIT: %.0f%%" % [UITheme.format_num(sm.attack), UITheme.format_num(sm.defense), total_eva, total_crit]
 	
-	# Simplified Level Info (since we have a bar now)
+	# Simplified Level Info
 	var lvl_info = "[Lv.%d]" % manager.get_level()
 	if manager.get_level() > 0:
 		lvl_info += " +%.1f%% DMG" % (manager.get_level() * 0.5)
 		
-	p_hp_lbl.text = "HULL: %s / %s" % [UITheme.format_num(sm.current_hp), UITheme.format_num(sm.max_hp)]
-	p_sh_lbl.text = "SHD: %s / %s" % [UITheme.format_num(manager.player_shield), UITheme.format_num(manager.player_max_shield)]
+	p_name_lbl.text = "%s %s" % [sm.active_hull.to_upper() if sm.active_hull else "USS HORIZON", lvl_info]
+	
+	p_hp_lbl.text = "HULL: %s/%s" % [UITheme.format_num(sm.current_hp), UITheme.format_num(sm.max_hp)]
+	p_sh_lbl.text = "SHD: %s/%s" % [UITheme.format_num(manager.player_shield), UITheme.format_num(manager.player_max_shield)]
 	
 	# Update XP Bar
 	if p_xp_bar:
@@ -249,8 +255,8 @@ func update_ui():
 			p_xp_label.text = "%.0f%%" % pct
 		
 		p_xp_bar.tooltip_text = "Combat Rank: %d\nXP: %s / %s\nDamage Bonus: +%.1f%%" % [
-			current_lvl, 
-			UITheme.format_num(manager.xp), 
+			current_lvl,
+			UITheme.format_num(manager.xp),
 			UITheme.format_num(xp_next_lvl),
 			current_lvl * 0.5
 		]
@@ -272,15 +278,15 @@ func update_ui():
 	if manager.in_combat and manager.current_enemy:
 		var enemy = manager.current_enemy
 		e_name_lbl.text = enemy["name"]
-		e_stat_lbl.text = "ATK: %s | DEF: %s" % [UITheme.format_num(enemy.get("atk",0)), UITheme.format_num(enemy.get("def",0))]
-		e_hp_lbl.text = "HULL: %s / %s" % [UITheme.format_num(manager.enemy_hp), UITheme.format_num(manager.enemy_max_hp)]
-		e_sh_lbl.text = "SHD: %s / %s" % [UITheme.format_num(manager.enemy_shield), UITheme.format_num(manager.enemy_max_shield)]
+		e_stat_lbl.text = "DMG: %s | DEF: %s" % [UITheme.format_num(enemy.get("atk", 0)), UITheme.format_num(enemy.get("def", 0))]
+		e_hp_lbl.text = "HULL: %s/%s" % [UITheme.format_num(manager.enemy_hp), UITheme.format_num(manager.enemy_max_hp)]
+		e_sh_lbl.text = "SHD: %s/%s" % [UITheme.format_num(manager.enemy_shield), UITheme.format_num(manager.enemy_max_shield)]
 		btn_retreat.disabled = false
 	else:
-		e_name_lbl.text = "No Target"
-		e_stat_lbl.text = "ATK: - | DEF: -"
-		e_hp_lbl.text = "HULL: - / -"
-		e_sh_lbl.text = "SHD: - / -"
+		e_name_lbl.text = "NO TARGET"
+		e_stat_lbl.text = "DMG: 0 | DEF: 0"
+		e_hp_lbl.text = "HULL: 0/0"
+		e_sh_lbl.text = "SHD: 0/0"
 		btn_retreat.disabled = true
 	
 	# Attack Timers
@@ -340,7 +346,7 @@ func update_ui():
 	# Process Combat Events (Floating Text + Haptics)
 	while manager.combat_events.size() > 0:
 		var ev = manager.combat_events.pop_front()
-		spawn_floating_text(ev)
+		UITheme.show_notification(ev["text"], ev["color"])
 		
 		# TACTILE: Damage-induced System Glitch
 		if ev.get("side") == "player" and ev.get("type", "") == "damage":
@@ -354,7 +360,7 @@ func update_ui():
 			UITheme.trigger_ui_thud(self, 4.0)
 
 func _apply_hud_stress():
-	var hud = $Dashboard/Visualizer/HUD
+	var hud = $Dashboard/HUD
 	# PHASE 47: Visceral System Glitch
 	UITheme.trigger_system_glitch(hud, 12.0)
 	UITheme.trigger_ui_thud(self, 8.0)
@@ -363,27 +369,6 @@ func show_enemy_info(data):
 	var dlg = enemy_info_scene.instantiate()
 	self.add_child(dlg)
 	dlg.setup(data)
-
-func spawn_floating_text(ev):
-	var txt = floating_text_scene.instantiate()
-	# Parent to Visualizer to keep it contained in the middle area
-	visualizer.add_child(txt)
-	
-	var local_pos = Vector2.ZERO
-	if ev["side"] == "player":
-		# Centralized Radar focus
-		local_pos = visualizer.size / 2.0 + Vector2(-60, 20)
-	else:
-		if manager.in_combat:
-			local_pos = visualizer.size / 2.0 + Vector2(60, -20)
-		else:
-			local_pos = Vector2(visualizer.size.x / 2, visualizer.size.y / 2)
-	
-	# Randomize slightly
-	local_pos += Vector2(randf_range(-20, 20), randf_range(-20, 20))
-	
-	txt.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	txt.setup(ev["text"], ev["color"], local_pos)
 
 func _on_radar_draw():
 	var center = Vector2.ZERO # Local space of RadarDisplay (it's centered)
@@ -453,8 +438,16 @@ func _update_session_loot():
 	else:
 		for item_id in manager.session_loot:
 			var qty = manager.session_loot[item_id]
-			var item_name = ElementDB.get_display_name(item_id)
-			tt += "[color=#32cd32]%s[/color] x %s\n" % [item_name, UITheme.format_num(qty)]
+			var sm = GameState.shipyard_manager
+			# v71.1: Custom modules use shipyard name + rarity color
+			if item_id.begins_with("custom_") and item_id in sm.modules:
+				var m_data = sm.modules[item_id]
+				var rarity = m_data.get("rarity", sm.Rarity.COMMON)
+				var rarity_hex = sm.RARITY_COLORS.get(rarity, Color.WHITE).to_html(false)
+				tt += "[color=#%s]★ %s[/color] x %s\n" % [rarity_hex, m_data["name"], UITheme.format_num(qty)]
+			else:
+				var item_name = ElementDB.get_display_name(item_id)
+				tt += "[color=#32cd32]%s[/color] x %s\n" % [item_name, UITheme.format_num(qty)]
 			
 	tt += "[/center]"
 	loot_lbl.text = tt
@@ -469,7 +462,7 @@ func _update_ammo_display():
 	sb_ghost.bg_color = Color(0.1, 0.1, 0.1, 0.6)
 	sb_ghost.border_width_left = 1
 	sb_ghost.border_width_top = 1
-	sb_ghost.border_color = Color(0,0,0)
+	sb_ghost.border_color = Color(0, 0, 0)
 	sb_ghost.corner_radius_top_left = 2
 	sb_ghost.corner_radius_bottom_right = 2
 	
@@ -505,7 +498,7 @@ func _update_ammo_display():
 			var lbl = Label.new()
 			lbl.add_theme_font_size_override("font_size", 8)
 			lbl.text = ammo["name"].to_upper()
-			lbl.modulate = Color(0.6,0.6,0.6)
+			lbl.modulate = Color(0.6, 0.6, 0.6)
 			group.add_child(lbl)
 			
 			var flow = HFlowContainer.new()
@@ -587,7 +580,6 @@ func _rebuild_weapon_battery(w_states):
 		player_weapon_bars.append(pb)
 
 
-
 func _update_atmosphere(delta):
 	# Pulse scanning label
 	var time_ms = Time.get_ticks_msec()
@@ -615,6 +607,7 @@ func _update_atmosphere(delta):
 		threat_lbl.text = "SECTOR THREAT: ENGAGED"
 		threat_lbl.modulate = Color(1, 0.3, 0.3, 0.8) # Red alert
 		
+		
 		# Gearing Tip: Warn if Accuracy is making Evasion useless
 		var sm = GameState.shipyard_manager
 		if manager.current_enemy:
@@ -624,18 +617,10 @@ func _update_atmosphere(delta):
 				if dodge_chance < 0.2 and sm.max_shield < 100:
 					scan_lbl.text = "CAUTION: EVASION COMPROMISED - SHIELDS REQUIRED"
 					scan_lbl.modulate = Color(1.0, 0.5, 0.0) # Warning Orange
-		
-		# TACTICAL: ScanLine Sweep
-		var view_h = visualizer.size.y
-		scan_line.visible = true
-		scan_line.position.y += delta * 600.0 # High speed sweep
-		if scan_line.position.y > view_h:
-			scan_line.position.y = 0
 	else:
 		threat_lbl.text = "SCANNING SECTOR..."
 		threat_lbl.text = "SECTOR THREAT: NOMINAL"
 		threat_lbl.modulate = Color(1, 0.8, 0, 0.5) # Yellow cautious
-		scan_line.visible = false
 
 func _on_retreat_btn_pressed():
 	manager.retreat()

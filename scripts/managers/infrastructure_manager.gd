@@ -1220,6 +1220,10 @@ func process_tick(delta: float):
 									if res in other_data["yield_bonus"]:
 										yield_mult += other_data["yield_bonus"][res] * buildings[other_bid]
 							
+							# v72.8: Trophy Buffs
+							if GameState.bounty_manager:
+								yield_mult *= GameState.bounty_manager.get_trophy_buff("infrastructure_yield")
+							
 							GameState.resources.add_element(res, qty * count * throttle * yield_mult)
 						
 						# Statistical expectation (Audit v5.0 - O(1) Performance Foundation)

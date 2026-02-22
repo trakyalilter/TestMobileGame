@@ -140,6 +140,8 @@ func refresh_list():
 	
 	for mid in sorted_mods:
 		var data = manager.modules[mid]
+		if data.get("is_custom", false): continue # Skip dropped loot in Shipyard (Crafting)
+		
 		var type = data.get("slot_type", "weapon")
 		var cat = "kinetic"
 		

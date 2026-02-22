@@ -74,7 +74,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="HUD" type="MarginContainer" parent="Dashboard/Visualizer"]
+[node name="HUD" type="MarginContainer" parent="Dashboard"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -85,61 +85,150 @@ mouse_filter = 2
 theme_override_constants/margin_left = 20
 theme_override_constants/margin_top = 20
 theme_override_constants/margin_right = 20
-theme_override_constants/margin_bottom = 80
+theme_override_constants/margin_bottom = 20
 
-[node name="Overlays" type="Control" parent="Dashboard/Visualizer/HUD"]
+[node name="TopHUD" type="HBoxContainer" parent="Dashboard/HUD"]
+layout_mode = 2
+size_flags_vertical = 0
+mouse_filter = 2
+theme_override_constants/separation = 20
+
+[node name="NavPanel" type="PanelContainer" parent="Dashboard/HUD/TopHUD"]
+custom_minimum_size = Vector2(200, 200)
 layout_mode = 2
 mouse_filter = 2
 
-[node name="SectorOverlay" type="PanelContainer" parent="Dashboard/Visualizer/HUD/Overlays"]
-custom_minimum_size = Vector2(250, 250)
-layout_mode = 0
-offset_right = 250.0
-offset_bottom = 350.0
+[node name="VBox" type="VBoxContainer" parent="Dashboard/HUD/TopHUD/NavPanel"]
+layout_mode = 2
 mouse_filter = 2
 
-[node name="VBox" type="VBoxContainer" parent="Dashboard/Visualizer/HUD/Overlays/SectorOverlay"]
+[node name="Header" type="Label" parent="Dashboard/HUD/TopHUD/NavPanel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0.737, 0.831, 1)
+theme_override_font_sizes/font_size = 12
+text = "[ SECTORS ]"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="Dashboard/HUD/TopHUD/NavPanel/VBox"]
+layout_mode = 2
+modulate = Color(0, 0.737, 0.831, 0.4)
+
+[node name="ZoneList" type="ItemList" parent="Dashboard/HUD/TopHUD/NavPanel/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_font_sizes/font_size = 12
+
+[node name="CenterInfo" type="VBoxContainer" parent="Dashboard/HUD/TopHUD"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+alignment = 0
+
+[node name="SectorThreat" type="Label" parent="Dashboard/HUD/TopHUD/CenterInfo"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.843, 0, 0.5)
+theme_override_font_sizes/font_size = 10
+text = "SECTOR THREAT: NOMINAL"
+horizontal_alignment = 1
+
+[node name="ScanningStatus" type="Label" parent="Dashboard/HUD/TopHUD/CenterInfo"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0.8, 1, 0.4)
+theme_override_font_sizes/font_size = 9
+text = "SCANNING FOR ANOMALIES..."
+horizontal_alignment = 1
+
+[node name="TargetPanel" type="PanelContainer" parent="Dashboard/HUD/TopHUD"]
+custom_minimum_size = Vector2(250, 200)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="VBox" type="VBoxContainer" parent="Dashboard/HUD/TopHUD/TargetPanel"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Header" type="Label" parent="Dashboard/HUD/TopHUD/TargetPanel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.32, 0.32, 1)
+theme_override_font_sizes/font_size = 12
+text = "[ TARGETING DATA ]"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="Dashboard/HUD/TopHUD/TargetPanel/VBox"]
+layout_mode = 2
+modulate = Color(1, 0.32, 0.32, 0.4)
+
+[node name="Scroll" type="ScrollContainer" parent="Dashboard/HUD/TopHUD/TargetPanel/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="EnemyList" type="VBoxContainer" parent="Dashboard/HUD/TopHUD/TargetPanel/VBox/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="MidHUD" type="HBoxContainer" parent="Dashboard/HUD"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_constants/separation = 20
+
+[node name="PlayerStatsOverlay" type="PanelContainer" parent="Dashboard/HUD/MidHUD"]
+custom_minimum_size = Vector2(220, 150)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Margin" type="MarginContainer" parent="Dashboard/HUD/MidHUD/PlayerStatsOverlay"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VBox" type="VBoxContainer" parent="Dashboard/HUD/MidHUD/PlayerStatsOverlay/Margin"]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 8
 
-[node name="Header" type="Label" parent="Dashboard/Visualizer/HUD/Overlays/SectorOverlay/VBox"]
+[node name="NameLabel" type="Label" parent="Dashboard/HUD/MidHUD/PlayerStatsOverlay/Margin/VBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0, 0.737255, 0.831373, 1)
-theme_override_font_sizes/font_size = 12
-text = "[ NAV / SHIP STATUS ]"
+theme_override_colors/font_color = Color(0, 0.737, 0.831, 1)
+theme_override_font_sizes/font_size = 16
+text = "USS Horizon"
 horizontal_alignment = 1
 
-[node name="PlayerStats" type="VBoxContainer" parent="Dashboard/Visualizer/HUD/Overlays/SectorOverlay/VBox"]
+[node name="Grid" type="GridContainer" parent="Dashboard/HUD/MidHUD/PlayerStatsOverlay/Margin/VBox"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/separation = 2
+theme_override_constants/h_separation = 10
+theme_override_constants/v_separation = 4
+columns = 2
 
-[node name="NameLabel" type="Label" parent="Dashboard/Visualizer/HUD/Overlays/SectorOverlay/VBox/PlayerStats"]
+[node name="HealthLabel" type="Label" parent="Dashboard/HUD/MidHUD/PlayerStatsOverlay/Margin/VBox/Grid"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0, 0.737255, 0.831373, 1)
-theme_override_font_sizes/font_size = 14
-text = "USS Horizon"
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.4, 0.9, 0.4, 1)
+theme_override_font_sizes/font_size = 11
+text = "HULL: 0 / 0"
 
-[node name="StatsLabel" type="Label" parent="Dashboard/Visualizer/HUD/Overlays/SectorOverlay/VBox/PlayerStats"]
+[node name="ShieldLabel" type="Label" parent="Dashboard/HUD/MidHUD/PlayerStatsOverlay/Margin/VBox/Grid"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0, 0.8, 1, 1)
+theme_override_font_sizes/font_size = 11
+text = "SHD: 0 / 0"
+horizontal_alignment = 2
+
+[node name="StatsLabel" type="Label" parent="Dashboard/HUD/MidHUD/PlayerStatsOverlay/Margin/VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
 theme_override_font_sizes/font_size = 11
 text = "ATK: 0 | DEF: 0"
+horizontal_alignment = 1
 
-[node name="HealthLabel" type="Label" parent="Dashboard/Visualizer/HUD/Overlays/SectorOverlay/VBox/PlayerStats"]
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.3, 0.3, 1)
-theme_override_font_sizes/font_size = 10
-text = "HULL: 0 / 0"
-
-[node name="ShieldLabel" type="Label" parent="Dashboard/Visualizer/HUD/Overlays/SectorOverlay/VBox/PlayerStats"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0, 0.8, 1, 1)
-theme_override_font_sizes/font_size = 10
-text = "SHD: 0 / 0"
-
-[node name="HeatBar" type="ProgressBar" parent="Dashboard/Visualizer/HUD/Overlays/SectorOverlay/VBox/PlayerStats"]
+[node name="HeatBar" type="ProgressBar" parent="Dashboard/HUD/MidHUD/PlayerStatsOverlay/Margin/VBox"]
 custom_minimum_size = Vector2(0, 4)
 layout_mode = 2
 theme_override_styles/background = SubResource("StyleBoxFlat_hp_bg")
@@ -147,233 +236,172 @@ theme_override_styles/fill = SubResource("StyleBoxFlat_hp_fill")
 value = 50.0
 show_percentage = false
 
-[node name="WeaponBattery" type="VBoxContainer" parent="Dashboard/Visualizer/HUD/Overlays/SectorOverlay/VBox/PlayerStats"]
+[node name="WeaponBattery" type="VBoxContainer" parent="Dashboard/HUD/MidHUD/PlayerStatsOverlay/Margin/VBox"]
 layout_mode = 2
 theme_override_constants/separation = 2
 
-[node name="BuffContainer" type="HBoxContainer" parent="Dashboard/Visualizer/HUD/Overlays/SectorOverlay/VBox/PlayerStats"]
+[node name="BuffContainer" type="HBoxContainer" parent="Dashboard/HUD/MidHUD/PlayerStatsOverlay/Margin/VBox"]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 4
 
-[node name="HSeparator" type="HSeparator" parent="Dashboard/Visualizer/HUD/Overlays/SectorOverlay/VBox"]
+[node name="Spacer" type="Control" parent="Dashboard/HUD/MidHUD"]
 layout_mode = 2
-
-[node name="ZoneList" type="ItemList" parent="Dashboard/Visualizer/HUD/Overlays/SectorOverlay/VBox"]
-layout_mode = 2
-size_flags_vertical = 3
-theme_override_font_sizes/font_size = 12
-
-[node name="TargetingOverlay" type="PanelContainer" parent="Dashboard/Visualizer/HUD/Overlays"]
-custom_minimum_size = Vector2(250, 250)
-layout_mode = 1
-anchors_preset = 1
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -250.0
-offset_bottom = 590.0
-grow_horizontal = 0
+size_flags_horizontal = 3
 mouse_filter = 2
 
-[node name="VBox" type="VBoxContainer" parent="Dashboard/Visualizer/HUD/Overlays/TargetingOverlay"]
+[node name="EnemyStatsOverlay" type="PanelContainer" parent="Dashboard/HUD/MidHUD"]
+custom_minimum_size = Vector2(220, 150)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Margin" type="MarginContainer" parent="Dashboard/HUD/MidHUD/EnemyStatsOverlay"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VBox" type="VBoxContainer" parent="Dashboard/HUD/MidHUD/EnemyStatsOverlay/Margin"]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 8
 
-[node name="Header" type="Label" parent="Dashboard/Visualizer/HUD/Overlays/TargetingOverlay/VBox"]
+[node name="NameLabel" type="Label" parent="Dashboard/HUD/MidHUD/EnemyStatsOverlay/Margin/VBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.321569, 0.321569, 1)
-theme_override_font_sizes/font_size = 12
-text = "[ TARGETING DATA ]"
+theme_override_colors/font_color = Color(1, 0.32, 0.32, 1)
+theme_override_font_sizes/font_size = 16
+text = "Target Acquired"
 horizontal_alignment = 1
 
-[node name="EnemyStats" type="VBoxContainer" parent="Dashboard/Visualizer/HUD/Overlays/TargetingOverlay/VBox"]
+[node name="Grid" type="GridContainer" parent="Dashboard/HUD/MidHUD/EnemyStatsOverlay/Margin/VBox"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/separation = 2
+theme_override_constants/h_separation = 10
+theme_override_constants/v_separation = 4
+columns = 2
 
-[node name="NameLabel" type="Label" parent="Dashboard/Visualizer/HUD/Overlays/TargetingOverlay/VBox/EnemyStats"]
+[node name="HealthLabel" type="Label" parent="Dashboard/HUD/MidHUD/EnemyStatsOverlay/Margin/VBox/Grid"]
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.321569, 0.321569, 1)
-theme_override_font_sizes/font_size = 14
-text = "Target Acquired"
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.3, 0.3, 1)
+theme_override_font_sizes/font_size = 11
+text = "HULL: 0 / 0"
+
+[node name="ShieldLabel" type="Label" parent="Dashboard/HUD/MidHUD/EnemyStatsOverlay/Margin/VBox/Grid"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0, 0.8, 1, 1)
+theme_override_font_sizes/font_size = 11
+text = "SHD: 0 / 0"
 horizontal_alignment = 2
 
-[node name="StatsLabel" type="Label" parent="Dashboard/Visualizer/HUD/Overlays/TargetingOverlay/VBox/EnemyStats"]
+[node name="StatsLabel" type="Label" parent="Dashboard/HUD/MidHUD/EnemyStatsOverlay/Margin/VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
 theme_override_font_sizes/font_size = 11
 text = "DNG: 0 | DEF: 0"
-horizontal_alignment = 2
+horizontal_alignment = 1
 
-[node name="HealthLabel" type="Label" parent="Dashboard/Visualizer/HUD/Overlays/TargetingOverlay/VBox/EnemyStats"]
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.3, 0.3, 1)
-theme_override_font_sizes/font_size = 10
-text = "HULL: 0 / 0"
-horizontal_alignment = 2
-
-[node name="ShieldLabel" type="Label" parent="Dashboard/Visualizer/HUD/Overlays/TargetingOverlay/VBox/EnemyStats"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0, 0.8, 1, 1)
-theme_override_font_sizes/font_size = 10
-text = "SHD: 0 / 0"
-horizontal_alignment = 2
-
-[node name="E_AttackBar" type="ProgressBar" parent="Dashboard/Visualizer/HUD/Overlays/TargetingOverlay/VBox/EnemyStats"]
+[node name="E_AttackBar" type="ProgressBar" parent="Dashboard/HUD/MidHUD/EnemyStatsOverlay/Margin/VBox"]
 custom_minimum_size = Vector2(0, 3)
 layout_mode = 2
 value = 50.0
 show_percentage = false
 
-[node name="HSeparator" type="HSeparator" parent="Dashboard/Visualizer/HUD/Overlays/TargetingOverlay/VBox"]
+[node name="BottomHUD" type="HBoxContainer" parent="Dashboard/HUD"]
 layout_mode = 2
-
-[node name="Scroll" type="ScrollContainer" parent="Dashboard/Visualizer/HUD/Overlays/TargetingOverlay/VBox"]
-layout_mode = 2
-size_flags_vertical = 3
-
-[node name="EnemyList" type="VBoxContainer" parent="Dashboard/Visualizer/HUD/Overlays/TargetingOverlay/VBox/Scroll"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 8
-
-[node name="BottomRegion" type="VBoxContainer" parent="Dashboard/Visualizer/HUD/Overlays"]
-layout_mode = 1
-anchors_preset = 12
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_top = -140.0
-grow_horizontal = 2
-grow_vertical = 0
+size_flags_vertical = 8
 mouse_filter = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 20
 
-[node name="StatusRow" type="HBoxContainer" parent="Dashboard/Visualizer/HUD/Overlays/BottomRegion"]
+[node name="ScannerOverlay" type="PanelContainer" parent="Dashboard/HUD/BottomHUD"]
+custom_minimum_size = Vector2(250, 110)
 layout_mode = 2
 mouse_filter = 2
 
-[node name="AmmoOverlay" type="PanelContainer" parent="Dashboard/Visualizer/HUD/Overlays/BottomRegion/StatusRow"]
-custom_minimum_size = Vector2(160, 110)
+[node name="Margin" type="MarginContainer" parent="Dashboard/HUD/BottomHUD/ScannerOverlay"]
 layout_mode = 2
 mouse_filter = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
 
-[node name="VBox" type="VBoxContainer" parent="Dashboard/Visualizer/HUD/Overlays/BottomRegion/StatusRow/AmmoOverlay"]
+[node name="VBox" type="VBoxContainer" parent="Dashboard/HUD/BottomHUD/ScannerOverlay/Margin"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/separation = 2
+theme_override_constants/separation = 5
 
-[node name="Header" type="Label" parent="Dashboard/Visualizer/HUD/Overlays/BottomRegion/StatusRow/AmmoOverlay/VBox"]
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.4, 0, 1)
-theme_override_font_sizes/font_size = 9
-text = "[ AMMUNITION STATUS ]"
-horizontal_alignment = 1
-
-[node name="AmmoGroupVBox" type="VBoxContainer" parent="Dashboard/Visualizer/HUD/Overlays/BottomRegion/StatusRow/AmmoOverlay/VBox"]
-layout_mode = 2
-size_flags_vertical = 3
-mouse_filter = 2
-theme_override_constants/separation = 4
-
-[node name="ScannerOverlay" type="PanelContainer" parent="Dashboard/Visualizer/HUD/Overlays/BottomRegion/StatusRow"]
-custom_minimum_size = Vector2(160, 110)
-layout_mode = 2
-mouse_filter = 2
-
-[node name="VBox" type="VBoxContainer" parent="Dashboard/Visualizer/HUD/Overlays/BottomRegion/StatusRow/ScannerOverlay"]
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/separation = 2
-
-[node name="Header" type="Label" parent="Dashboard/Visualizer/HUD/Overlays/BottomRegion/StatusRow/ScannerOverlay/VBox"]
+[node name="Header" type="Label" parent="Dashboard/HUD/BottomHUD/ScannerOverlay/Margin/VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0, 0.8, 1, 1)
-theme_override_font_sizes/font_size = 9
+theme_override_font_sizes/font_size = 10
 text = "[ EXPEDITION YIELD ]"
 horizontal_alignment = 1
 
-[node name="Scroll" type="ScrollContainer" parent="Dashboard/Visualizer/HUD/Overlays/BottomRegion/StatusRow/ScannerOverlay/VBox"]
+[node name="Scroll" type="ScrollContainer" parent="Dashboard/HUD/BottomHUD/ScannerOverlay/Margin/VBox"]
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="LootText" type="RichTextLabel" parent="Dashboard/Visualizer/HUD/Overlays/BottomRegion/StatusRow/ScannerOverlay/VBox/Scroll"]
+[node name="LootText" type="RichTextLabel" parent="Dashboard/HUD/BottomHUD/ScannerOverlay/Margin/VBox/Scroll"]
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
-theme_override_colors/default_color = Color(0.196078, 0.8, 0.196078, 1)
+theme_override_colors/default_color = Color(0.2, 0.8, 0.2, 1)
 theme_override_font_sizes/normal_font_size = 9
 bbcode_enabled = true
 text = "[center]Searching for loot paths...[/center]"
 fit_content = true
 
-[node name="Spacer" type="Control" parent="Dashboard/Visualizer/HUD/Overlays/BottomRegion/StatusRow"]
+[node name="Spacer" type="Control" parent="Dashboard/HUD/BottomHUD"]
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
 
-[node name="CenterInfo" type="VBoxContainer" parent="Dashboard/Visualizer/HUD"]
+[node name="RetreatContainer" type="VBoxContainer" parent="Dashboard/HUD/BottomHUD"]
 layout_mode = 2
-size_flags_horizontal = 4
-size_flags_vertical = 0
 mouse_filter = 2
+alignment = 2
 
-[node name="SectorThreat" type="Label" parent="Dashboard/Visualizer/HUD/CenterInfo"]
+[node name="RetreatBtn" type="Button" parent="Dashboard/HUD/BottomHUD/RetreatContainer"]
+custom_minimum_size = Vector2(120, 32)
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.843137, 0, 0.501961)
-theme_override_font_sizes/font_size = 10
-text = "SECTOR THREAT: NOMINAL"
-horizontal_alignment = 1
-
-[node name="ScanningStatus" type="Label" parent="Dashboard/Visualizer/HUD/CenterInfo"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0, 0.8, 1, 0.392157)
-theme_override_font_sizes/font_size = 9
-text = "SCANNING FOR ANOMALIES..."
-horizontal_alignment = 1
-
-[node name="ScanLine" type="ColorRect" parent="Dashboard/Visualizer"]
-modulate = Color(1, 1, 1, 0.05)
-layout_mode = 1
-anchors_preset = 10
-anchor_right = 1.0
-offset_bottom = 2.0
-grow_horizontal = 2
-mouse_filter = 2
-
-[node name="ViewportFooter" type="PanelContainer" parent="Dashboard"]
-layout_mode = 1
-anchors_preset = 12
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_top = -42.0
-grow_horizontal = 2
-grow_vertical = 0
-
-[node name="Margin" type="MarginContainer" parent="Dashboard/ViewportFooter"]
-layout_mode = 2
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 5
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 5
-
-[node name="HBox" type="HBoxContainer" parent="Dashboard/ViewportFooter/Margin"]
-layout_mode = 2
-theme_override_constants/separation = 40
-
-[node name="RetreatBtn" type="Button" parent="Dashboard/ViewportFooter/Margin/HBox"]
-custom_minimum_size = Vector2(100, 32)
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.352941, 0.352941, 1)
+theme_override_colors/font_color = Color(1, 0.35, 0.35, 1)
 text = "RETREAT"
 
-[node name="ConsoleSpacer" type="Control" parent="Dashboard/ViewportFooter/Margin/HBox"]
+[node name="AmmoOverlay" type="PanelContainer" parent="Dashboard/HUD/BottomHUD"]
+custom_minimum_size = Vector2(250, 110)
 layout_mode = 2
-size_flags_horizontal = 3
 mouse_filter = 2
 
-[connection signal="item_selected" from="Dashboard/Visualizer/HUD/Overlays/SectorOverlay/VBox/ZoneList" to="." method="_on_zone_list_item_selected"]
-[connection signal="pressed" from="Dashboard/ViewportFooter/Margin/HBox/RetreatBtn" to="." method="_on_retreat_btn_pressed"]
+[node name="Margin" type="MarginContainer" parent="Dashboard/HUD/BottomHUD/AmmoOverlay"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VBox" type="VBoxContainer" parent="Dashboard/HUD/BottomHUD/AmmoOverlay/Margin"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 5
+
+[node name="Header" type="Label" parent="Dashboard/HUD/BottomHUD/AmmoOverlay/Margin/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.6, 0.2, 1)
+theme_override_font_sizes/font_size = 10
+text = "[ ORDNANCE FEED ]"
+horizontal_alignment = 1
+
+[node name="AmmoGroupVBox" type="VBoxContainer" parent="Dashboard/HUD/BottomHUD/AmmoOverlay/Margin/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[connection signal="item_selected" from="Dashboard/HUD/TopHUD/NavPanel/VBox/ZoneList" to="." method="_on_zone_list_item_selected"]
+[connection signal="pressed" from="Dashboard/HUD/BottomHUD/RetreatContainer/RetreatBtn" to="." method="_on_retreat_btn_pressed"]

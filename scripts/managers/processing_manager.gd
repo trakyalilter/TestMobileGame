@@ -11,10 +11,10 @@ var recipes: Dictionary = {
 	"sift_dirt_dry": {
 		"name": "Dry Sifting",
 		"description": "Manually sift through dirt for metallic fragments. No water required.",
-		"input": { "Dirt": 10 },
+		"input": {"Dirt": 10},
 		# Low efficiency but early access
-		"output": { "Fe": 1 },
-		"output_table": [ ["Si", 0.2, 1, 1] ],
+		"output": {"Fe": 1},
+		"output_table": [["Si", 0.2, 1, 1]],
 		"duration": 5.0,
 		"level_req": 1,
 		"xp": 3,
@@ -24,8 +24,8 @@ var recipes: Dictionary = {
 	"charcoal_burning": {
 		"name": "Charcoal Kiln",
 		"description": "Burn Wood to produce Carbon.",
-		"input": { "Wood": 1 },
-		"output": { "C": 3 },
+		"input": {"Wood": 1},
+		"output": {"C": 3},
 		"duration": 4.0,
 		"level_req": 3,
 		"xp": 5,
@@ -35,7 +35,7 @@ var recipes: Dictionary = {
 		"name": "Water Electrolysis",
 		"description": "Split Water into Hydrogen and Oxygen.",
 		"input": {"Water": 1},
-		"output": { "H": 2, "O": 1 },
+		"output": {"H": 2, "O": 1},
 		"duration": 2.0,
 		"level_req": 2,
 		"xp": 5,
@@ -46,7 +46,7 @@ var recipes: Dictionary = {
 		"name": "Mineral Washing",
 		"description": "Wash Dirt with Water to extract Iron more efficiently.",
 		"input": {"Dirt": 5, "Water": 5},
-		"output": { "Fe": 3, "Si": 1 }, 
+		"output": {"Fe": 3, "Si": 1},
 		"duration": 3.0,
 		"level_req": 1,
 		"xp": 5,
@@ -56,8 +56,8 @@ var recipes: Dictionary = {
 	"smelt_steel_basic": {
 		"name": "Basic Steel Smelting",
 		"description": "Foundry smelting of Iron and Carbon into Steel.",
-		"input": { "Fe": 5, "C": 2 },
-		"output": { "Steel": 1 },
+		"input": {"Fe": 5, "C": 2},
+		"output": {"Steel": 1},
 		"duration": 7.0,
 		"level_req": 12,
 		"xp": 20,
@@ -66,8 +66,8 @@ var recipes: Dictionary = {
 	"smelt_copper": {
 		"name": "Copper Smelting",
 		"description": "Refine Malachite ore into pure Copper.",
-		"input": { "Malachite": 2, "C": 1 },
-		"output": { "Cu": 1 },
+		"input": {"Malachite": 2, "C": 1},
+		"output": {"Cu": 1},
 		"duration": 5.0,
 		"level_req": 15,
 		"xp": 15,
@@ -76,8 +76,8 @@ var recipes: Dictionary = {
 	"smelt_zinc": {
 		"name": "Zinc Reduction",
 		"description": "Extract Zinc from ore via carbon reduction.",
-		"input": { "ZincOre": 3, "C": 1 },
-		"output": { "Zn": 2 },
+		"input": {"ZincOre": 3, "C": 1},
+		"output": {"Zn": 2},
 		"duration": 4.0,
 		"level_req": 18,
 		"xp": 12
@@ -86,8 +86,8 @@ var recipes: Dictionary = {
 	"refine_cassiterite": {
 		"name": "Tin Smelting",
 		"description": "Smelt Cassiterite to extract Tin (Sn).",
-		"input": { "Cassiterite": 3, "C": 1 },
-		"output": { "Sn": 2 },
+		"input": {"Cassiterite": 3, "C": 1},
+		"output": {"Sn": 2},
 		"duration": 6.0,
 		"level_req": 20,
 		"xp": 25,
@@ -96,8 +96,8 @@ var recipes: Dictionary = {
 	"refine_pentlandite": {
 		"name": "Nickel Extraction",
 		"description": "Process Pentlandite for Nickel (Ni).",
-		"input": { "Pentlandite": 3, "C": 1 },
-		"output": { "Ni": 2 },
+		"input": {"Pentlandite": 3, "C": 1},
+		"output": {"Ni": 2},
 		"duration": 6.0,
 		"level_req": 22,
 		"xp": 30,
@@ -106,8 +106,8 @@ var recipes: Dictionary = {
 	"refine_chromite": {
 		"name": "Chromium Reduction",
 		"description": "Reduce Chromite to Chromium (Cr) via aluminum thermite.",
-		"input": { "Chromite": 3, "Al": 1 },
-		"output": { "Cr": 2 },
+		"input": {"Chromite": 3, "Al": 1},
+		"output": {"Cr": 2},
 		"duration": 8.0,
 		"level_req": 25,
 		"xp": 35,
@@ -116,8 +116,8 @@ var recipes: Dictionary = {
 	"smelt_quartz": {
 		"name": "Silicon Smelting",
 		"description": "Refine Quartz into industrial Silicon.",
-		"input": { "Quartz": 2, "C": 1 },
-		"output": { "Si": 1 },
+		"input": {"Quartz": 2, "C": 1},
+		"output": {"Si": 1},
 		"duration": 6.0,
 		"level_req": 20,
 		"xp": 20
@@ -125,8 +125,8 @@ var recipes: Dictionary = {
 	"smelt_steel_oxygen": {
 		"name": "Oxygen-Enriched Smelting",
 		"description": "Use Oxygen to blast smelt Steel efficiently.",
-		"input": { "Fe": 5, "C": 2, "O": 2 },
-		"output": { "Steel": 2 },
+		"input": {"Fe": 5, "C": 2, "O": 2},
+		"output": {"Steel": 2},
 		"duration": 3.0,
 		"level_req": 22,
 		"xp": 25,
@@ -135,8 +135,8 @@ var recipes: Dictionary = {
 	"press_graphite": {
 		"name": "Graphite Press",
 		"description": "Compress Carbon into high-density Graphite.",
-		"input": { "C": 5 },
-		"output": { "Graphite": 1 },
+		"input": {"C": 5},
+		"output": {"Graphite": 1},
 		"duration": 6.0,
 		"level_req": 25, # Increased from 5
 		"xp": 20, # Reduced from 25
@@ -145,7 +145,7 @@ var recipes: Dictionary = {
 	"analyze_artifact": {
 		"name": "Analyze Void Artifact",
 		"description": "Decipher the secrets of the artifact.",
-		"input": { "VoidArtifact": 1 },
+		"input": {"VoidArtifact": 1},
 		# Dynamic Output
 		"output_table": [
 			["Scrap", 1.0, 1, 5],
@@ -161,9 +161,9 @@ var recipes: Dictionary = {
 	"decrypt_nav_data": {
 		"name": "Decrypt Nav-Data",
 		"description": "Synthesize navigation data from salvaged schematics and credits.",
-		"input": { "SalvageData": 5 },
+		"input": {"SalvageData": 5},
 		"credits_cost": 500, # Manual check in implementation or handled via logic
-		"output": { "NavData": 1 },
+		"output": {"NavData": 1},
 		"duration": 30.0,
 		"level_req": 20,
 		"xp": 50,
@@ -172,27 +172,27 @@ var recipes: Dictionary = {
 	"recycle_scrap": {
 		"name": "Scrap Recycling",
 		"description": "Disassemble salvage into components. Rolls on loot table 5 times (Chance for multiple items).",
-		"input": { "Scrap": 20 },
-		"roll_count": 5,  # Roll 5 times from the table
+		"input": {"Scrap": 20},
+		"roll_count": 5, # Roll 5 times from the table
 		"output_table": [
 			# COMMON (70% combined) - Basic materials
-			["Fe", 0.30, 1, 3],       # Iron - most common
-			["C", 0.20, 1, 2],        # Carbon
-			["Si", 0.15, 1, 2],       # Silicon
-			["Dirt", 0.05, 1, 2],     # Junk filler
+			["Fe", 0.30, 1, 3], # Iron - most common
+			["C", 0.20, 1, 2], # Carbon
+			["Si", 0.15, 1, 2], # Silicon
+			["Dirt", 0.05, 1, 2], # Junk filler
 			# UNCOMMON (25% combined) - Useful materials
-			["Cu", 0.10, 1, 2],       # Copper - valuable for circuits
-			["Steel", 0.08, 1, 1],    # Pre-refined steel (+2%)
-			["Fiber", 0.05, 1, 1],    # Carbon Fiber (+1%)
-			["Resin", 0.02, 1, 1],    # Polymer Resin
+			["Cu", 0.10, 1, 2], # Copper - valuable for circuits
+			["Steel", 0.08, 1, 1], # Pre-refined steel (+2%)
+			["Fiber", 0.05, 1, 1], # Carbon Fiber (+1%)
+			["Resin", 0.02, 1, 1], # Polymer Resin
 			# RARE (10% combined) - Components
-			["Circuit", 0.06, 1, 1],  # Basic Circuit (+2%)
-			["Chip", 0.02, 1, 1],     # Microprocessor (+1%)
-			["Res1", 0.05, 1, 2],     # Audit v1.0: Increased from 2% to 5%, provides non-combat research path
+			["Circuit", 0.06, 1, 1], # Basic Circuit (+2%)
+			["Chip", 0.02, 1, 1], # Microprocessor (+1%)
+			["Res1", 0.05, 1, 2], # Audit v1.0: Increased from 2% to 5%, provides non-combat research path
 			["DroneCore", 0.02, 1, 1], # DroneCore Bridge (2% chance)
 		],
 		"duration": 20.0,
-		"level_req": 4, 
+		"level_req": 4,
 		"xp": 12, # Reduced from 15
 		"research_req": "basic_engineering",
 		"category": "basics"
@@ -201,8 +201,8 @@ var recipes: Dictionary = {
 	"recycle_scrap_bulk": {
 		"name": "Bulk Scrap Salvage",
 		"description": "Efficiently process large quantities of scrap. Guaranteed Circuit output.",
-		"input": { "Scrap": 50 },
-		"output": { "Circuit": 2, "Fe": 5, "Si": 2 },
+		"input": {"Scrap": 50},
+		"output": {"Circuit": 2, "Fe": 5, "Si": 2},
 		"duration": 30.0,
 		"level_req": 10,
 		"xp": 25,
@@ -213,8 +213,8 @@ var recipes: Dictionary = {
 	"upgrade_rare_artifact": {
 		"name": "Synthesize Rare Artifact",
 		"description": "Combine Common artifacts with circuits to create Rare research data.",
-		"input": { "Res1": 5, "Circuit": 2 },
-		"output": { "Res2": 1 },
+		"input": {"Res1": 5, "Circuit": 2},
+		"output": {"Res2": 1},
 		"duration": 30.0,
 		"level_req": 35, # Increased from 8
 		"xp": 100, # Increased from 50
@@ -223,8 +223,8 @@ var recipes: Dictionary = {
 	"upgrade_exotic_artifact": {
 		"name": "Compile Exotic Artifact",
 		"description": "Merge Rare artifacts with advanced tech to unlock capital-class research.",
-		"input": { "Res2": 5, "AdvCircuit": 2, "NavData": 5 },
-		"output": { "Res3": 1 },
+		"input": {"Res2": 5, "AdvCircuit": 2, "NavData": 5},
+		"output": {"Res3": 1},
 		"duration": 60.0,
 		"level_req": 60, # Increased from 15
 		"xp": 300, # Increased from 150
@@ -233,8 +233,8 @@ var recipes: Dictionary = {
 	"craft_carbon_fiber": {
 		"name": "Carbon Fiber",
 		"description": "Reinforce Carbon strands.",
-		"input": { "C": 3 },
-		"output": { "Fiber": 1 },
+		"input": {"C": 3},
+		"output": {"Fiber": 1},
 		"duration": 5.0,
 		"level_req": 8, # Increased from 2
 		"xp": 10, # Reduced from 15
@@ -243,8 +243,8 @@ var recipes: Dictionary = {
 	"craft_polymer": {
 		"name": "Polymer Resin",
 		"description": "Synthesize resin from hydrocarbons.",
-		"input": { "C": 1, "H": 2, "O": 1 },
-		"output": { "Resin": 1 },
+		"input": {"C": 1, "H": 2, "O": 1},
+		"output": {"Resin": 1},
 		"duration": 5.0,
 		"level_req": 10, # Increased from 2
 		"xp": 10, # Reduced from 15
@@ -252,8 +252,8 @@ var recipes: Dictionary = {
 	"craft_aluminum_alloy": {
 		"name": "Aluminum-Magnesium Alloy",
 		"description": "Lightweight aerospace alloy. High strength-to-weight ratio.",
-		"input": { "Al": 3, "Mg": 1 },
-		"output": { "AlMgAlloy": 2 },
+		"input": {"Al": 3, "Mg": 1},
+		"output": {"AlMgAlloy": 2},
 		"duration": 5.0,
 		"level_req": 24,
 		"xp": 30,
@@ -262,8 +262,8 @@ var recipes: Dictionary = {
 	"galvanize_steel": {
 		"name": "Galvanized Steel",
 		"description": "Zinc-coated steel. Corrosion resistant.",
-		"input": { "Steel": 2, "Zn": 1 },
-		"output": { "GalvanizedSteel": 2 },
+		"input": {"Steel": 2, "Zn": 1},
+		"output": {"GalvanizedSteel": 2},
 		"duration": 4.0,
 		"level_req": 25,
 		"xp": 40,
@@ -272,8 +272,8 @@ var recipes: Dictionary = {
 	"craft_stainless_steel": {
 		"name": "Stainless Steel Alloy",
 		"description": "Fe-Cr-Ni alloy. Superior corrosion resistance and strength.",
-		"input": { "Fe": 5, "Cr": 2, "Ni": 1 },
-		"output": { "StainlessSteel": 4 },
+		"input": {"Fe": 5, "Cr": 2, "Ni": 1},
+		"output": {"StainlessSteel": 4},
 		"duration": 8.0,
 		"level_req": 30,
 		"xp": 60,
@@ -283,8 +283,8 @@ var recipes: Dictionary = {
 	"craft_emergency_patch": {
 		"name": "Emergency Hull Patch",
 		"description": "Quick patch from scrap. Restores 10% Hull Integrity.",
-		"input": { "Scrap": 100, "Fe": 50 },
-		"output": { "EmergencyPatch": 1 },
+		"input": {"Scrap": 10, "Fe": 10},
+		"output": {"EmergencyPatch": 1},
 		"duration": 10.0,
 		"level_req": 1,
 		"xp": 10,
@@ -294,8 +294,8 @@ var recipes: Dictionary = {
 	"craft_adv_maintenance_kit": {
 		"name": "Adv. Maintenance Kit",
 		"description": "High-tech repair kit. Restores 50% Hull Integrity.",
-		"input": { "AlWire": 3, "Circuit": 5,"Superalloy":1, "Steel": 50, "Ti":15 },
-		"output": { "AdvMaintenanceKit": 1 },
+		"input": {"AlWire": 3, "Circuit": 5, "Superalloy": 1, "Steel": 50, "Ti": 15},
+		"output": {"AdvMaintenanceKit": 1},
 		"duration": 15.0,
 		"level_req": 40,
 		"xp": 40,
@@ -305,8 +305,8 @@ var recipes: Dictionary = {
 	"craft_capacitor_shard": {
 		"name": "Capacitor Shard",
 		"description": "Basic energy storage. Restores 10% Shield Integrity.",
-		"input": { "Si": 5, "Al": 2 },
-		"output": { "CapacitorShard": 1 },
+		"input": {"Si": 5, "Al": 2},
+		"output": {"CapacitorShard": 1},
 		"duration": 5.0,
 		"level_req": 2,
 		"xp": 5,
@@ -315,8 +315,8 @@ var recipes: Dictionary = {
 	"craft_basic_booster": {
 		"name": "Basic Shield Booster",
 		"description": "Crude energy cells. Restores 15% Shield Integrity.",
-		"input": { "Si": 20, "BatteryT1": 1 },
-		"output": { "BasicBooster": 1 },
+		"input": {"Si": 20, "BatteryT1": 1},
+		"output": {"BasicBooster": 1},
 		"duration": 10.0,
 		"level_req": 8,
 		"xp": 10,
@@ -325,8 +325,8 @@ var recipes: Dictionary = {
 	"craft_ion_field": {
 		"name": "Ion Field Projector",
 		"description": "Projected ion barrier. Restores 25% Shield Integrity.",
-		"input": { "AlWire": 5, "MgBattery": 1 },
-		"output": { "IonField": 1 },
+		"input": {"AlWire": 5, "MgBattery": 1},
+		"output": {"IonField": 1},
 		"duration": 15.0,
 		"level_req": 18,
 		"xp": 25,
@@ -336,8 +336,8 @@ var recipes: Dictionary = {
 	"craft_nanoweave": {
 		"name": "Nanoweave Mesh",
 		"description": "Weave fiber for hull reinforcement. Restores 25% Hull Integrity.",
-		"input": { "Fiber": 5, "Si": 10 },
-		"output": { "Mesh": 1 },
+		"input": {"Fiber": 5, "Si": 10},
+		"output": {"Mesh": 1},
 		"duration": 15.0,
 		"level_req": 15, # Rebalanced
 		"xp": 25, # Reduced from 30
@@ -346,8 +346,8 @@ var recipes: Dictionary = {
 	"craft_sealant": {
 		"name": "Hull Sealant",
 		"description": "Mix polymer for rapid hull patching. Restores 35% Hull Integrity.",
-		"input": { "Resin": 10, "Steel": 8 },
-		"output": { "Seal": 1 },
+		"input": {"Resin": 10, "Steel": 8},
+		"output": {"Seal": 1},
 		"duration": 15.0,
 		"level_req": 25, # Rebalanced
 		"xp": 30, # Reduced from 40
@@ -357,8 +357,8 @@ var recipes: Dictionary = {
 	"craft_chitin_patch": {
 		"name": "Biosynthetic Hull Patch",
 		"description": "Utilize mite chitin for emergency hull repairs. Restores 15% Hull Integrity.",
-		"input": { "MiteChitin": 50 },
-		"output": { "ChitinPatch": 1 },
+		"input": {"MiteChitin": 10, "Steel": 7},
+		"output": {"ChitinPatch": 1},
 		"duration": 8.0,
 		"level_req": 5,
 		"xp": 8,
@@ -368,8 +368,8 @@ var recipes: Dictionary = {
 	"craft_slug_t1": {
 		"name": "Ferrite Rounds",
 		"description": "Mass produce iron slugs.",
-		"input": { "Fe": 2 },
-		"output": { "SlugT1": 10 },
+		"input": {"Fe": 2},
+		"output": {"SlugT1": 10},
 		"duration": 10.0,
 		"level_req": 1,
 		"xp": 5 # Reduced from 10
@@ -377,17 +377,17 @@ var recipes: Dictionary = {
 	"craft_cell_t1": {
 		"name": "Focus Crystal",
 		"description": "Cut silicate for lenses.",
-		"input": { "Si": 2 },
-		"output": { "CellT1": 10 },
-		"duration":10.0,
+		"input": {"Si": 2},
+		"output": {"CellT1": 10},
+		"duration": 10.0,
 		"level_req": 2, # Increased from 1
 		"xp": 5 # Reduced from 10
 	},
 	"craft_slug_t2": {
 		"name": "Tungsten Sabot",
 		"description": "Heavy kinetic penetrators.",
-		"input": { "Steel": 2, "W": 1 },
-		"output": { "SlugT2": 10 },
+		"input": {"Steel": 2, "W": 1},
+		"output": {"SlugT2": 10},
 		"duration": 10.0,
 		"level_req": 32, # Increased from 4
 		"xp": 40, # Increased from 20
@@ -396,8 +396,8 @@ var recipes: Dictionary = {
 	"craft_slug_t1s": {
 		"name": "Steel Slugs",
 		"description": "Armor-piercing heavy slugs.",
-		"input": { "Steel": 2},
-		"output": { "SlugT1S": 10 },
+		"input": {"Steel": 2},
+		"output": {"SlugT1S": 10},
 		"duration": 10.0,
 		"level_req": 24,
 		"xp": 20
@@ -405,8 +405,8 @@ var recipes: Dictionary = {
 	"craft_cell_t2": {
 		"name": "Plasma Cell",
 		"description": "Contain superheated gas.",
-		"input": { "H": 5, "Resin": 1 },
-		"output": { "CellT2": 10 },
+		"input": {"H": 5, "Resin": 1},
+		"output": {"CellT2": 10},
 		"duration": 10.0,
 		"level_req": 34, # Increased from 4
 		"xp": 40, # Increased from 20
@@ -414,8 +414,8 @@ var recipes: Dictionary = {
 	"craft_coolant_cell": {
 		"name": "Helium Coolant Cell",
 		"description": "Pressurized helium and nitrogen for weapon cooling.",
-		"input": { "He": 10, "NitroCoolant": 5, "Steel": 2 },
-		"output": { "CoolantCell": 1 },
+		"input": {"He": 10, "NitroCoolant": 5, "Steel": 2},
+		"output": {"CoolantCell": 1},
 		"duration": 15.0,
 		"level_req": 42, # Increased from 12
 		"xp": 80, # Increased from 60
@@ -424,8 +424,8 @@ var recipes: Dictionary = {
 	"cryogenic_distillation": {
 		"name": "Cryogenic Distillation",
 		"description": "Extract Nitrogen from liquid Hydrogen/Oxygen mix.",
-		"input": { "H": 10, "O": 10 },
-		"output": { "N": 5 },
+		"input": {"H": 10, "O": 10},
+		"output": {"N": 5},
 		"duration": 20.0,
 		"level_req": 25,
 		"xp": 30,
@@ -434,8 +434,8 @@ var recipes: Dictionary = {
 	"nitrogen_coolant": {
 		"name": "Cryo-Shield Matrix",
 		"description": "Supercools shield generators for rapid integrity restoration. Restores 35% Shield.",
-		"input": { "Circuit": 5, "AlMgAlloy": 10, "N": 250, "Li": 5 },
-		"output": { "NitroCoolant": 1 },
+		"input": {"Circuit": 5, "AlMgAlloy": 10, "N": 250, "Li": 5},
+		"output": {"NitroCoolant": 1},
 		"duration": 15.0,
 		"level_req": 32,
 		"xp": 60,
@@ -445,8 +445,8 @@ var recipes: Dictionary = {
 	"craft_zero_point": {
 		"name": "Zero-Point Injector",
 		"description": "Vacuum energy extraction. Restores 50% Shield Integrity.",
-		"input": { "BatteryT3": 1, "Superalloy": 2 },
-		"output": { "ZeroPoint": 1 },
+		"input": {"BatteryT3": 1, "Superalloy": 2},
+		"output": {"ZeroPoint": 1},
 		"duration": 20.0,
 		"level_req": 42,
 		"xp": 60,
@@ -456,8 +456,8 @@ var recipes: Dictionary = {
 	"craft_slug_t3": {
 		"name": "Depleted Uranium Round",
 		"description": "Armor-shredding heavy rounds.",
-		"input": { "SlugT2": 5, "U": 1 },
-		"output": { "SlugT3": 5 },
+		"input": {"SlugT2": 5, "U": 1},
+		"output": {"SlugT3": 5},
 		"duration": 15.0,
 		"level_req": 55, # Increased from 8
 		"xp": 120, # Increased from 50
@@ -466,8 +466,8 @@ var recipes: Dictionary = {
 	"craft_slug_t4": {
 		"name": "Hyper-Velocity Slug",
 		"description": "Tungsten-Superalloy sabot for railguns. Extreme kinetic impact.",
-		"input": { "W": 10, "U": 3, "Superalloy": 1 },
-		"output": { "SlugT4": 5 },
+		"input": {"W": 10, "U": 3, "Superalloy": 1},
+		"output": {"SlugT4": 5},
 		"duration": 20.0,
 		"level_req": 65,
 		"xp": 180,
@@ -476,8 +476,8 @@ var recipes: Dictionary = {
 	"craft_cell_t3": {
 		"name": "Vaporizer Cell",
 		"description": "Matter-disintegrating energy.",
-		"input": { "CellT2": 5, "U": 1 },
-		"output": { "CellT3": 5 },
+		"input": {"CellT2": 5, "U": 1},
+		"output": {"CellT3": 5},
 		"duration": 15.0,
 		"level_req": 58, # Increased from 8
 		"xp": 120, # Increased from 50
@@ -486,8 +486,8 @@ var recipes: Dictionary = {
 	"craft_cell_t4": {
 		"name": "Heavy Plasma Cell",
 		"description": "Unstable fusion plasma containment. Extreme damage.",
-		"input": { "He": 10, "U": 3, "Superalloy": 1 },
-		"output": { "CellT4": 5 },
+		"input": {"He": 10, "U": 3, "Superalloy": 1},
+		"output": {"CellT4": 5},
 		"duration": 20.0,
 		"level_req": 65,
 		"xp": 180,
@@ -496,8 +496,8 @@ var recipes: Dictionary = {
 	"craft_he_missile": {
 		"name": "HE Missile",
 		"description": "Standard high-explosive ordnance.",
-		"input": { "Fe": 5, "C": 2 },
-		"output": { "HE_Missile": 5 },
+		"input": {"Fe": 5, "C": 2},
+		"output": {"HE_Missile": 5},
 		"duration": 12.0,
 		"level_req": 5,
 		"xp": 20,
@@ -506,8 +506,8 @@ var recipes: Dictionary = {
 	"craft_seeker_missile": {
 		"name": "Seeker Missile",
 		"description": "Guided missile with logic circuits.",
-		"input": { "Steel": 2, "Circuit": 1, "TargetingChip": 1 },
-		"output": { "Seeker_Missile": 5 },
+		"input": {"Steel": 2, "Circuit": 1, "TargetingChip": 1},
+		"output": {"Seeker_Missile": 5},
 		"duration": 20.0,
 		"level_req": 25,
 		"xp": 50,
@@ -517,8 +517,8 @@ var recipes: Dictionary = {
 		"name": "Photon Torpedo",
 		"description": "Antimatter-infused capital buster.",
 		# v61.0 Fix: VolatileMatter doesn't exist, replaced with ExoticMatter
-		"input": { "Superalloy": 2, "ExoticMatter": 1 },
-		"output": { "Photon_Torpedo": 2 },
+		"input": {"Superalloy": 2, "ExoticMatter": 1},
+		"output": {"Photon_Torpedo": 2},
 		"duration": 45.0,
 		"level_req": 60,
 		"xp": 200,
@@ -528,8 +528,8 @@ var recipes: Dictionary = {
 	"craft_circuit": {
 		"name": "Basic Circuitry",
 		"description": "Integrate salvaged drone processor with silicon.",
-		"input": { "Si": 2, "DroneCore": 1 }, 
-		"output": { "Circuit": 1 },
+		"input": {"Si": 2, "DroneCore": 1},
+		"output": {"Circuit": 1},
 		"duration": 6.0,
 		"level_req": 6,
 		"xp": 50,
@@ -539,8 +539,8 @@ var recipes: Dictionary = {
 	"craft_aluminum_wire": {
 		"name": "Aluminum Wiring",
 		"description": "High-conductivity cables.",
-		"input": { "Al": 2, "Resin": 1 },
-		"output": { "AlWire": 2 },
+		"input": {"Al": 2, "Resin": 1},
+		"output": {"AlWire": 2},
 		"duration": 5.0,
 		"level_req": 30,
 		"xp": 35,
@@ -550,9 +550,9 @@ var recipes: Dictionary = {
 	"assemble_circuit_standard": {
 		"name": "Standard Circuit Assembly",
 		"description": "Fabricate circuits from raw conductive materials. No Drone Core required.",
-		"input": { "Cu": 2, "Si": 3, "Resin": 1 },
-		"output": { "Circuit": 3 },
-		"duration": 6.0, 
+		"input": {"Cu": 2, "Si": 3, "Resin": 1},
+		"output": {"Circuit": 3},
+		"duration": 6.0,
 		"level_req": 12,
 		"xp": 40,
 		"research_req": "basic_electronics"
@@ -561,8 +561,8 @@ var recipes: Dictionary = {
 	"craft_hydraulics": {
 		"name": "Hydraulic Servo",
 		"description": "Precision machined actuator.",
-		"input": { "Steel": 2, "Resin": 1 },
-		"output": { "Hydraulics": 1 },
+		"input": {"Steel": 2, "Resin": 1},
+		"output": {"Hydraulics": 1},
 		"duration": 10.0,
 		"level_req": 10,
 		"xp": 40,
@@ -572,8 +572,8 @@ var recipes: Dictionary = {
 	"refine_lithium": {
 		"name": "Refine Lithium",
 		"description": "Extract Lithium from Spodumene crystals.",
-		"input": { "Spodumene": 2 },
-		"output": { "Li": 1 },
+		"input": {"Spodumene": 2},
+		"output": {"Li": 1},
 		"duration": 5.0,
 		"level_req": 3,
 		"xp": 7,
@@ -584,8 +584,8 @@ var recipes: Dictionary = {
 	"extract_germanium": {
 		"name": "Germanite Smelting",
 		"description": "Refine Germanite Mineral into pure Germanium.",
-		"input": { "Germanit": 5 },
-		"output": { "Germanium": 1 },
+		"input": {"Germanit": 5},
+		"output": {"Germanium": 1},
 		"duration": 8.0,
 		"level_req": 36, # Increased from 5
 		"xp": 40, # Increased from 25
@@ -594,8 +594,8 @@ var recipes: Dictionary = {
 	"craft_semiconductor": {
 		"name": "Semiconductor Wafer",
 		"description": "Dope Silicon with Germanium for conductivity.",
-		"input": { "Si": 2, "Germanium": 1 },
-		"output": { "Semiconductor": 1 },
+		"input": {"Si": 2, "Germanium": 1},
+		"output": {"Semiconductor": 1},
 		"duration": 10.0,
 		"level_req": 38, # Increased from 6
 		"xp": 50, # Increased from 35
@@ -604,8 +604,8 @@ var recipes: Dictionary = {
 	"refine_gold": {
 		"name": "Gold Panning",
 		"description": "Sift large amounts of dirt for Gold flakes.",
-		"input": { "Dirt": 100, "Water": 100 },
-		"output": { "Au": 1 },
+		"input": {"Dirt": 100, "Water": 100},
+		"output": {"Au": 1},
 		"duration": 12.0,
 		"level_req": 20, # Increased from 6
 		"xp": 30,
@@ -614,8 +614,8 @@ var recipes: Dictionary = {
 	"gold_leaching": {
 		"name": "Chemical Leaching",
 		"description": "Dissolve gold from soil using chemical solvents.",
-		"input": { "Dirt": 70, "Water": 30, "H": 10 },
-		"output": { "Au": 5 },
+		"input": {"Dirt": 70, "Water": 30, "H": 10},
+		"output": {"Au": 5},
 		"duration": 20.0,
 		"level_req": 48, # Increased from 15
 		"xp": 100,
@@ -624,8 +624,8 @@ var recipes: Dictionary = {
 	"craft_adv_circuit": {
 		"name": "Advanced Circuitry",
 		"description": "High-performance integrated circuit.",
-		"input": { "Semiconductor": 1, "Au": 1 },
-		"output": { "AdvCircuit": 1 },
+		"input": {"Semiconductor": 1, "Au": 1},
+		"output": {"AdvCircuit": 1},
 		"duration": 15.0,
 		"level_req": 45, # Increased from 8
 		"xp": 80, # Increased from 50
@@ -634,8 +634,8 @@ var recipes: Dictionary = {
 	"craft_chip": {
 		"name": "Chip Fabrication",
 		"description": "High-precision logic unit. Requires nitrogen cooling for etching.",
-		"input": { "Semiconductor": 2, "Au": 1, "N": 5 },
-		"output": { "Chip": 1 },
+		"input": {"Semiconductor": 2, "Au": 1, "N": 5},
+		"output": {"Chip": 1},
 		"duration": 20.0,
 		"level_req": 40,
 		"xp": 60,
@@ -644,18 +644,18 @@ var recipes: Dictionary = {
 	"craft_battery_t1": {
 		"name": "Assemble Basic Battery",
 		"description": "Basic energy storage for ships.",
-		"input": { "Li": 5, "Fe": 2 },
-		"output": { "BatteryT1": 1 },
+		"input": {"Li": 5, "Fe": 2},
+		"output": {"BatteryT1": 1},
 		"duration": 10.0,
 		"level_req": 6,
 		"xp": 60, # Increased from 50
-		"research_req": "basic_electronics"
+		"research_req": "power_systems"
 	},
 	"craft_battery_t2": {
 		"name": "Graphene Matrix Battery",
 		"description": "Advanced high-density battery. Requires Sulfur for electrolyte.",
-		"input": { "BatteryT1": 10,"Chip":5, "Graphite": 5, "AdvCircuit": 5 },
-		"output": { "BatteryT2": 1 },
+		"input": {"BatteryT1": 10, "Chip": 5, "Graphite": 5, "AdvCircuit": 5},
+		"output": {"BatteryT2": 1},
 		"duration": 20.0,
 		"level_req": 55, # Increased from 15
 		"xp": 200, # Increased from 150
@@ -664,8 +664,8 @@ var recipes: Dictionary = {
 	"craft_battery_t3": {
 		"name": "Zero-Point Module",
 		"description": "Experimental infinite energy containment.",
-		"input": { "BatteryT2": 1, "VoidArtifact": 1, "Circuit": 20 },
-		"output": { "BatteryT3": 1 },
+		"input": {"BatteryT2": 1, "VoidArtifact": 1, "Circuit": 20},
+		"output": {"BatteryT3": 1},
 		"duration": 60.0,
 		"level_req": 80, # Increased from 30
 		"xp": 800, # Increased from 500
@@ -675,8 +675,8 @@ var recipes: Dictionary = {
 	"smelt_bauxite": {
 		"name": "Bauxite Smelting",
 		"description": "Extract Aluminum from Bauxite ore using oxygen.",
-		"input": { "Bauxite": 3, "O": 2 },
-		"output": { "Al": 2 },
+		"input": {"Bauxite": 3, "O": 2},
+		"output": {"Al": 2},
 		"duration": 3.0,
 		"level_req": 16, # Increased from 4
 		"xp": 15, # Reduced from 20
@@ -685,8 +685,8 @@ var recipes: Dictionary = {
 	"process_dolomite": {
 		"name": "Dolomite Calcination",
 		"description": "Extract Magnesium from Dolomite through heating.",
-		"input": { "Dolomite": 4, "C": 1 },
-		"output": { "Mg": 1, "C": 1 },  # C is returned as CO2 → C cycle
+		"input": {"Dolomite": 4, "C": 1},
+		"output": {"Mg": 1, "C": 1}, # C is returned as CO2 → C cycle
 		"duration": 6.0,
 		"level_req": 15, # Increased from 4
 		"xp": 15, # Reduced from 25
@@ -696,8 +696,8 @@ var recipes: Dictionary = {
 	"craft_cobalt_battery": {
 		"name": "Lithium-Cobalt Battery",
 		"description": "Advanced battery tech. High energy density.",
-		"input": { "Li": 2, "Co": 3, "Al": 2, "Circuit": 1 },
-		"output": { "CoBattery": 1 },
+		"input": {"Li": 2, "Co": 3, "Al": 2, "Circuit": 1},
+		"output": {"CoBattery": 1},
 		"duration": 10.0,
 		"level_req": 15,
 		"xp": 100,
@@ -706,8 +706,8 @@ var recipes: Dictionary = {
 	"craft_mg_ion_battery": {
 		"name": "Magnesium-Ion Battery",
 		"description": "Lightweight alternative to Li-ion. Fast charging.",
-		"input": { "Mg": 4, "Mn": 2, "AlWire": 2 },
-		"output": { "MgBattery": 1 },
+		"input": {"Mg": 4, "Mn": 2, "AlWire": 2},
+		"output": {"MgBattery": 1},
 		"duration": 8.0,
 		"level_req": 14,
 		"xp": 80,
@@ -716,8 +716,8 @@ var recipes: Dictionary = {
 	"electrolysis_nickel_catalyst": {
 		"name": "Nickel-Catalyzed Electrolysis",
 		"description": "Ni catalyst speeds H2 production. More efficient.",
-		"input": { "Water": 10, "Ni": 1 },
-		"output": { "H": 30, "O": 20 },
+		"input": {"Water": 10, "Ni": 1},
+		"output": {"H": 30, "O": 20},
 		"duration": 20.0,
 		"level_req": 12,
 		"xp": 300,
@@ -726,8 +726,8 @@ var recipes: Dictionary = {
 	"craft_superalloy": {
 		"name": "Superalloy",
 		"description": "Heat-resistant alloy for engines and reactors.",
-		"input": { "Fe": 2,"Al": 2, "Co": 2, "Ni": 2, "Cr": 1, "Ti": 1 },
-		"output": { "Superalloy": 1 },
+		"input": {"Fe": 2, "Al": 2, "Co": 2, "Ni": 2, "Cr": 1, "Ti": 1},
+		"output": {"Superalloy": 1},
 		"duration": 10.0,
 		"level_req": 18,
 		"xp": 200,
@@ -737,8 +737,8 @@ var recipes: Dictionary = {
 	"craft_platinum_catalyst": {
 		"name": "Platinum Catalyst Matrix",
 		"description": "Pt-ceramic catalyst. Increases ALL processing speed by 25%.",
-		"input": { "Pt": 10, "Si": 50, "AdvCircuit": 5 },
-		"output": { "PtCatalyst": 1 },
+		"input": {"Pt": 10, "Si": 50, "AdvCircuit": 5},
+		"output": {"PtCatalyst": 1},
 		"duration": 20.0,
 		"level_req": 25,
 		"xp": 300,
@@ -747,8 +747,8 @@ var recipes: Dictionary = {
 	"craft_silver_catalyst": {
 		"name": "Silver Catalyst",
 		"description": "High-efficiency chemical catalyst. +15% Processing Speed.",
-		"input": { "Ag": 10, "Si": 20, "Circuit": 5 },
-		"output": { "AgCatalyst": 1 },
+		"input": {"Ag": 10, "Si": 20, "Circuit": 5},
+		"output": {"AgCatalyst": 1},
 		"duration": 15.0,
 		"level_req": 30,
 		"xp": 150,
@@ -757,8 +757,8 @@ var recipes: Dictionary = {
 	"craft_magnet": {
 		"name": "Superconducting Magnet",
 		"description": "Sn-Nb alloy magnets for advanced shielding and engines.",
-		"input": { "Sn": 20, "Fe": 10, "Cu": 10 },
-		"output": { "SuperconductingMagnet": 1 },
+		"input": {"Sn": 20, "Fe": 10, "Cu": 10},
+		"output": {"SuperconductingMagnet": 1},
 		"duration": 15.0,
 		"level_req": 35,
 		"xp": 200,
@@ -767,9 +767,9 @@ var recipes: Dictionary = {
 	"craft_palladium_cell": {
 		"name": "Palladium Fuel Cell",
 		"description": "Pd-H2 fuel cell. High efficiency energy generation.",
-		"input": { "Pd": 5, "H": 20, "Circuit": 3 },
+		"input": {"Pd": 5, "H": 20, "Circuit": 3},
 		"credits_cost": 20000,
-		"output": { "PdFuelCell": 1 },
+		"output": {"PdFuelCell": 1},
 		"duration": 15.0,
 		"level_req": 30,
 		"xp": 100,
@@ -781,8 +781,8 @@ var recipes: Dictionary = {
 	"craft_iridium_plate": {
 		"name": "Iridium Armor Plating",
 		"description": "Nearly indestructible Ir plating. Ultimate defense.",
-		"input": { "Ir": 8, "Ti": 20, "Graphite": 10 },
-		"output": { "IrPlate": 5 },
+		"input": {"Ir": 8, "Ti": 20, "Graphite": 10},
+		"output": {"IrPlate": 5},
 		"duration": 25.0,
 		"level_req": 28,
 		"xp": 400,
@@ -791,8 +791,8 @@ var recipes: Dictionary = {
 	"craft_osmium_core": {
 		"name": "Osmium Reactor Core",
 		"description": "Densest material. Extreme HP and mass.",
-		"input": { "Os": 5, "VoidCrystal": 2, "QuantumCore": 1 },
-		"output": { "OsCore": 1 },
+		"input": {"Os": 5, "VoidCrystal": 2, "QuantumCore": 1},
+		"output": {"OsCore": 1},
 		"duration": 30.0,
 		"level_req": 30,
 		"xp": 800,
@@ -801,9 +801,9 @@ var recipes: Dictionary = {
 	"refine_platinum_ore": {
 		"name": "Platinum Extraction",
 		"description": "Extract pure Pt from asteroid samples.",
-		"input": { "PtOre": 10 },
-		"output": { "Pt": 2 },
-		"output_table": [["Pd", 0.3, 1, 2]],  # 30% chance for Pd byproduct
+		"input": {"PtOre": 10},
+		"output": {"Pt": 2},
+		"output_table": [["Pd", 0.3, 1, 2]], # 30% chance for Pd byproduct
 		"duration": 8.0,
 		"level_req": 20,
 		"xp": 100,
@@ -812,8 +812,8 @@ var recipes: Dictionary = {
 	"craft_iridium_tungsten_alloy": {
 		"name": "Iridium-Tungsten Alloy",
 		"description": "Ir-W armor-piercing penetrator cores.",
-		"input": { "Ir": 3, "W": 5 },
-		"output": { "IrWAlloy": 4 },
+		"input": {"Ir": 3, "W": 5},
+		"output": {"IrWAlloy": 4},
 		"duration": 12.0,
 		"level_req": 26,
 		"xp": 250,
@@ -823,8 +823,8 @@ var recipes: Dictionary = {
 	"craft_void_battery": {
 		"name": "Void Battery",
 		"description": "Ultimate power storage using void essence compression.",
-		"input": { "VoidEssence": 10, "ExoticMatter": 5, "QuantumCore": 2 },
-		"output": { "VoidBattery": 1 },
+		"input": {"VoidEssence": 10, "ExoticMatter": 5, "QuantumCore": 2},
+		"output": {"VoidBattery": 1},
 		"duration": 60.0,
 		"level_req": 80,
 		"xp": 2000,
@@ -834,8 +834,8 @@ var recipes: Dictionary = {
 	"craft_temporal_module": {
 		"name": "Temporal Stabilizer",
 		"description": "Manipulates local time flow. Grants massive combat speed boost.",
-		"input": { "ChronoCore": 5, "QuantumCore": 10, "AdvCircuit": 20 },
-		"output": { "TemporalModule": 1 },
+		"input": {"ChronoCore": 5, "QuantumCore": 10, "AdvCircuit": 20},
+		"output": {"TemporalModule": 1},
 		"duration": 90.0,
 		"level_req": 85,
 		"xp": 3000,
@@ -845,8 +845,8 @@ var recipes: Dictionary = {
 	"craft_primordial_armor": {
 		"name": "Primordial Forge",
 		"description": "Legendary armor forged from titan remains. Best-in-slot defense.",
-		"input": { "PrimordialShard": 3, "OmegaPlating": 10, "IrPlate": 5 },
-		"output": { "PrimordialArmor": 1 },
+		"input": {"PrimordialShard": 3, "OmegaPlating": 10, "IrPlate": 5},
+		"output": {"PrimordialArmor": 1},
 		"duration": 120.0,
 		"level_req": 90,
 		"xp": 5000,
@@ -856,8 +856,8 @@ var recipes: Dictionary = {
 	"craft_omega_accelerator": {
 		"name": "Omega Accelerator",
 		"description": "Massively increases all production rates. Ultimate prestige item.",
-		"input": { "OmegaPlating": 5, "ChronoCore": 3, "VoidEssence": 5, "QuantumCore": 5 },
-		"output": { "OmegaAccelerator": 1 },
+		"input": {"OmegaPlating": 5, "ChronoCore": 3, "VoidEssence": 5, "QuantumCore": 5},
+		"output": {"OmegaAccelerator": 1},
 		"duration": 180.0,
 		"level_req": 95,
 		"xp": 10000,
@@ -867,8 +867,8 @@ var recipes: Dictionary = {
 	"distill_void_essence": {
 		"name": "Void Distillation",
 		"description": "Concentrate void energy into pure exotic matter.",
-		"input": { "VoidEssence": 20 },
-		"output": { "ExoticMatter": 10 },
+		"input": {"VoidEssence": 20},
+		"output": {"ExoticMatter": 10},
 		"duration": 45.0,
 		"level_req": 75,
 		"xp": 1500,
@@ -879,8 +879,8 @@ var recipes: Dictionary = {
 	"synthesize_bioweapon": {
 		"name": "Bio-Agent Synthesis",
 		"description": "Synthesize pathogen samples into biological weapon coating.",
-		"input": { "BiohazardSample": 10, "PathogenCore": 2, "MutatedTissue": 5 },
-		"output": { "BioWeaponCoating": 3 },
+		"input": {"BiohazardSample": 10, "PathogenCore": 2, "MutatedTissue": 5},
+		"output": {"BioWeaponCoating": 3},
 		"duration": 30.0,
 		"level_req": 70,
 		"xp": 1200,
@@ -890,8 +890,8 @@ var recipes: Dictionary = {
 	"craft_ai_processor": {
 		"name": "AI Processor Array",
 		"description": "Advanced AI processing unit for autonomous combat support.",
-		"input": { "AIMatrix": 2, "AdvCircuit": 20, "QuantumCore": 1 },
-		"output": { "AIProcessor": 1 },
+		"input": {"AIMatrix": 2, "AdvCircuit": 20, "QuantumCore": 1},
+		"output": {"AIProcessor": 1},
 		"duration": 45.0,
 		"level_req": 75,
 		"xp": 1800,
@@ -901,8 +901,8 @@ var recipes: Dictionary = {
 	"craft_regenerative_plating": {
 		"name": "Regenerative Hull Plating",
 		"description": "Self-healing armor using mutated tissue samples.",
-		"input": { "MutatedTissue": 10, "IrPlate": 3, "PathogenCore": 1 },
-		"output": { "RegenPlating": 2 },
+		"input": {"MutatedTissue": 10, "IrPlate": 3, "PathogenCore": 1},
+		"output": {"RegenPlating": 2},
 		"duration": 40.0,
 		"level_req": 72,
 		"xp": 1500,
@@ -912,8 +912,8 @@ var recipes: Dictionary = {
 	"purify_biohazard": {
 		"name": "Pathogen Purification",
 		"description": "Extract valuable compounds from hazardous samples.",
-		"input": { "BiohazardSample": 20 },
-		"output": { "PurifiedCompound": 5 },
+		"input": {"BiohazardSample": 20},
+		"output": {"PurifiedCompound": 5},
 		"output_table": [["PathogenCore", 0.2, 1, 1]],
 		"duration": 20.0,
 		"level_req": 65,
@@ -926,8 +926,8 @@ var recipes: Dictionary = {
 	"decode_manifest": {
 		"name": "Decode Pirate Manifest",
 		"description": "Decrypt stolen shipping data. Reveals hidden coordinates and bounty.",
-		"input": { "PirateManifest": 1 },
-		"output": { "NavData": 1 },
+		"input": {"PirateManifest": 1},
+		"output": {"NavData": 1},
 		"credits_output": 12500,
 		"duration": 15.0,
 		"level_req": 15,
@@ -938,8 +938,8 @@ var recipes: Dictionary = {
 	"process_colony_salvage": {
 		"name": "Process Colony Salvage",
 		"description": "Extract advanced components from colonial wreckage.",
-		"input": { "ColonySalvage": 10, "Circuit": 5 },
-		"output": { "AdvCircuit": 3 },
+		"input": {"ColonySalvage": 10, "Circuit": 5},
+		"output": {"AdvCircuit": 3},
 		"duration": 30.0,
 		"level_req": 40,
 		"xp": 150,
@@ -950,8 +950,8 @@ var recipes: Dictionary = {
 	"process_rad_isotope": {
 		"name": "Refine Radioactive Isotopes",
 		"description": "Process unstable isotopes into concentrated nuclear fuel.",
-		"input": { "RadIsotope": 5, "H": 20, "Steel": 10 },
-		"output": { "NuclearFuel": 2 },
+		"input": {"RadIsotope": 5, "H": 20, "Steel": 10},
+		"output": {"NuclearFuel": 2},
 		"duration": 45.0,
 		"level_req": 55,
 		"xp": 200,
@@ -962,8 +962,8 @@ var recipes: Dictionary = {
 	"decode_ancient_tech": {
 		"name": "Decode Ancient Technology",
 		"description": "Reverse engineer alien tech into quantum components.",
-		"input": { "AncientTech": 3, "VoidArtifact": 5 },
-		"output": { "QuantumCore": 2 },
+		"input": {"AncientTech": 3, "VoidArtifact": 5},
+		"output": {"QuantumCore": 2},
 		"duration": 90.0,
 		"level_req": 70,
 		"xp": 500,
@@ -975,8 +975,8 @@ var recipes: Dictionary = {
 	"fence_stolen_cargo": {
 		"name": "Fence Stolen Cargo",
 		"description": "Offload stolen goods through black market contacts.",
-		"input": { "StolenCargo": 1 },
-		"output": { },
+		"input": {"StolenCargo": 1},
+		"output": {},
 		"credits_output": 5000,
 		"output_table": [
 			["NavData", 0.3, 1, 2],
@@ -993,8 +993,8 @@ var recipes: Dictionary = {
 	"assemble_drone_core": {
 		"name": "Assemble Drone Core",
 		"description": "Reconstruct a functional drone processor from swarm fragments.",
-		"input": { "SwarmFragment": 5, "Si": 5 },
-		"output": { "DroneCore": 2 },
+		"input": {"SwarmFragment": 5, "Si": 5},
+		"output": {"DroneCore": 2},
 		"duration": 15.0,
 		"level_req": 8,
 		"xp": 25,
@@ -1004,8 +1004,8 @@ var recipes: Dictionary = {
 	"craft_cryo_coolant": {
 		"name": "Cryogenic Coolant",
 		"description": "Extract supercooled fluid from cryo drone cells.",
-		"input": { "CryoCell": 1, "Water": 5 },
-		"output": { "NitroCoolant": 1 },
+		"input": {"CryoCell": 1, "Water": 5},
+		"output": {"NitroCoolant": 1},
 		"duration": 10.0,
 		"level_req": 20,
 		"xp": 30,
@@ -1015,8 +1015,8 @@ var recipes: Dictionary = {
 	"craft_turret_targeting": {
 		"name": "Salvage Targeting Array",
 		"description": "Extract the targeting computer from colonial turrets.",
-		"input": { "TurretCore": 2, "Circuit": 10 },
-		"output": { "TargetingChip": 1 },
+		"input": {"TurretCore": 2, "Circuit": 10},
+		"output": {"TargetingChip": 1},
 		"duration": 20.0,
 		"level_req": 45,
 		"xp": 100,
@@ -1027,8 +1027,8 @@ var recipes: Dictionary = {
 	"craft_antimatter_fuel": {
 		"name": "Antimatter Containment",
 		"description": "Stabilize antimatter into usable fuel cells.",
-		"input": { "AntimatterParticle": 5, "ExoticMatter": 10, "Steel": 50 },
-		"output": { "AntimatterFuel": 1 },
+		"input": {"AntimatterParticle": 5, "ExoticMatter": 10, "Steel": 50},
+		"output": {"AntimatterFuel": 1},
 		"duration": 60.0,
 		"level_req": 65,
 		"xp": 300,
@@ -1055,10 +1055,10 @@ func get_recipe_speed_multiplier(recipe_id: String) -> float:
 			{"id": "ion_exchange", "bonus": 0.50},
 			{"id": "resonance_splitters", "bonus": 0.75}
 		],
-		"charcoal_burning": [{"id": "pyrolysis_control", "bonus": 0.25}],
-		"smelt_steel_basic": [{"id": "blast_furnace", "bonus": 0.25}],
-		"smelt_steel_oxygen": [{"id": "blast_furnace", "bonus": 0.25}],
-		"press_graphite": [{"id": "hydraulic_press", "bonus": 0.25}]
+		"charcoal_burning": [ {"id": "pyrolysis_control", "bonus": 0.25}],
+		"smelt_steel_basic": [ {"id": "blast_furnace", "bonus": 0.25}],
+		"smelt_steel_oxygen": [ {"id": "blast_furnace", "bonus": 0.25}],
+		"press_graphite": [ {"id": "hydraulic_press", "bonus": 0.25}]
 	}
 	
 	# Global Speed Bonus (Nano-Fabrication)
@@ -1179,13 +1179,13 @@ func complete_process():
 			GameState.resources.add_element(item, qty)
 			
 	if "output_table" in current_recipe:
-		var roll_count = current_recipe.get("roll_count", 1)  # Default 1 roll
+		var roll_count = current_recipe.get("roll_count", 1) # Default 1 roll
 		
 		# Apply Scrap Recycling Bonus
 		if current_recipe_id == "recycle_scrap":
 			roll_count += int(GameState.research_manager.get_efficiency_bonus("scrap_rolls"))
 			
-		var results = {}  # Accumulate results: {item: total_qty}
+		var results = {} # Accumulate results: {item: total_qty}
 		
 		for i in range(roll_count):
 			for entry in current_recipe["output_table"]:
@@ -1210,8 +1210,12 @@ func complete_process():
 				events.append(["loot", "+%d %s" % [qty, ElementDB.get_display_name(item)], current_recipe_id])
 					
 	# 4. XP
-	add_xp(current_recipe.get("xp", 0))
-	events.append(["xp", "+%d XP" % current_recipe.get("xp", 0), current_recipe_id])
+	var xp_reward = current_recipe.get("xp", 0)
+	if GameState.bounty_manager:
+		xp_reward = int(xp_reward * GameState.bounty_manager.get_trophy_buff("processing_xp"))
+		
+	add_xp(xp_reward)
+	events.append(["xp", "+%d XP" % xp_reward, current_recipe_id])
 	
 	# v61.0 Fix: Grant credits_output if present
 	if "credits_output" in current_recipe:
@@ -1277,7 +1281,11 @@ func calculate_offline(delta: float):
 		return "Engineering (%s):\nStopped (Missing Resources)." % current_recipe['name']
 		
 	var loot_summary = {}
-	var total_xp = actions * current_recipe.get("xp", 0)
+	var xp_base = current_recipe.get("xp", 0)
+	var total_xp = actions * xp_base
+	if GameState.bounty_manager:
+		total_xp = int(total_xp * GameState.bounty_manager.get_trophy_buff("processing_xp"))
+		
 	add_xp(total_xp)
 	
 	# Consume
@@ -1329,7 +1337,7 @@ func calculate_offline(delta: float):
 		GameState.resources.add_currency("credits", total_credits)
 
 	var report = "Engineering (%s):\n" % current_recipe['name']
-	report += "Time Adjusted: %dm\n" % int(delta/60)
+	report += "Time Adjusted: %dm\n" % int(delta / 60)
 	report += "Actions Completed: %d\n" % actions
 	report += "XP Gained: %d\n" % total_xp
 	if total_credits > 0:

@@ -29,7 +29,7 @@ func _ready():
 func _on_mission_updated():
 	pass # Tab alerts no longer needed with blade architecture
 
-func _on_resource_changed(_a=null, _b=null):
+func _on_resource_changed(_a = null, _b = null):
 	for w in widgets:
 		if w.has_method("update_state"):
 			w.update_state()
@@ -55,7 +55,7 @@ func refresh_recipes():
 	_create_rack("research", "Research & Artifacts", Color(0.8, 0.4, 1.0, 0.5), rack_container)
 	
 	var sorted_keys = manager.recipes.keys()
-	sorted_keys.sort_custom(func(a, b): 
+	sorted_keys.sort_custom(func(a, b):
 		var ra = manager.recipes[a]
 		var rb = manager.recipes[b]
 		if ra["level_req"] != rb["level_req"]:
@@ -127,11 +127,12 @@ func _create_rack(id: String, title: String, color: Color, parent: Node):
 	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	rack_vbox.add_child(header)
 	
-	# Use HFlowContainer for responsive layout
-	var rack_grid = HFlowContainer.new()
+	# Use GridContainer with 4 columns for uniform stretch
+	var rack_grid = GridContainer.new()
+	rack_grid.columns = 5
 	rack_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	rack_grid.add_theme_constant_override("h_separation", 15)
-	rack_grid.add_theme_constant_override("v_separation", 15)
+	rack_grid.add_theme_constant_override("h_separation", 10)
+	rack_grid.add_theme_constant_override("v_separation", 10)
 	rack_vbox.add_child(rack_grid)
 	
 	var sep = HSeparator.new()
@@ -178,16 +179,4 @@ func update_ui():
 			var color = Color(0.4, 0.9, 0.6)
 			if type == "xp": color = Color(1.0, 0.8, 0.15)
 			
-			spawn_floating_text(text, color, target_w)
-
-var floating_text_scene = preload("res://scenes/ui/floating_text.tscn")
-
-func spawn_floating_text(text, color, target_widget):
-	var ft = floating_text_scene.instantiate()
-	self.add_child(ft)
-	
-	var center = target_widget.global_position + target_widget.size / 2.0
-	var local_pos = center - self.global_position
-	local_pos += Vector2(randf_range(-20, 20), randf_range(-20, 20))
-	
-	ft.setup(text, color, local_pos)
+			UITheme.show_notification(text, color)

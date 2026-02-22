@@ -23,7 +23,7 @@ func setup(idx: int, s_type: String, p_ui, p_manager):
 func _ready():
 	UITheme.apply_card_style(self, "shipyard")
 	# We'll hide the option button in setup to favor Drag & Drop
-	option_btn.visible = false 
+	option_btn.visible = false
 	refresh_state()
 
 func refresh_state():
@@ -31,6 +31,9 @@ func refresh_state():
 	if not manager: manager = GameState.shipyard_manager
 	if not manager: return
 	
+	# Reset style to base shipyard theme during refresh
+	UITheme.apply_card_style(self, "shipyard")
+
 	# CONSUMABLE LOGIC
 	if slot_type.begins_with("consumable_"):
 		_refresh_consumable_state()
@@ -59,15 +62,30 @@ func refresh_state():
 			return
 
 		var en_load = m_data["stats"].get("energy_load", 0)
-		
 		if en_load > 0:
 			name_lbl.text = "%s (-%d En)" % [m_data["name"], en_load]
 		else:
 			name_lbl.text = m_data["name"]
-			
-		name_lbl.modulate = Color(0, 0.73, 0.83) # Cyan
+		
+		# v71.0: Use rarity color for equipped modules
+		var rarity = manager.get_module_rarity(equipped_id)
+		var rarity_color = manager.RARITY_COLORS.get(rarity, Color(0, 0.73, 0.83))
+		name_lbl.modulate = rarity_color
 		icon_lbl.text = "▣"
-		icon_lbl.modulate = Color(0, 0.73, 0.83)
+		icon_lbl.modulate = rarity_color
+		
+		# v71.2: Left accent bar for rarity on equipped slots
+		if rarity >= manager.Rarity.UNCOMMON:
+			var slot_style = StyleBoxFlat.new()
+			slot_style.bg_color = Color(0.08, 0.08, 0.12, 0.95)
+			slot_style.border_width_left = 8
+			slot_style.border_width_top = 4
+			slot_style.border_width_right = 1
+			slot_style.border_width_bottom = 1
+			slot_style.border_color = rarity_color
+			slot_style.set_corner_radius_all(4)
+			slot_style.set_content_margin_all(6)
+			add_theme_stylebox_override("panel", slot_style)
 		
 		# Build tooltip with module stats
 		tooltip_text = _build_module_tooltip(m_data)
@@ -90,11 +108,25 @@ func refresh_state():
 		if count > 0 and mid in manager.modules:
 			var m_data = manager.modules[mid]
 			if m_data["slot_type"] == slot_type:
-				option_btn.add_item("%s (x%d)" % [m_data["name"], count], idx_counter)
-				option_btn.set_item_metadata(option_btn.item_count - 1, mid)
+				var item_idx = option_btn.item_count
+				var m_rarity = manager.get_module_rarity(mid)
+				var r_label = manager.RARITY_LABELS.get(m_rarity, "COMMON").to_upper()
+				
+				# v71.5: Identify locked modules with a lock prefix
+				var status = manager.can_equip_module(mid)
+				var lock_icon = "🔒 " if not status["can_equip"] else ""
+				
+				# v71.3: Use rarity prefix instead of color function to avoid crashes
+				var display_name = "%s[%s] %s (x%d)" % [lock_icon, r_label, m_data["name"], count]
+				if m_rarity == manager.Rarity.COMMON:
+					display_name = "%s%s (x%d)" % [lock_icon, m_data["name"], count]
+					
+				option_btn.add_item(display_name, idx_counter)
+				option_btn.set_item_metadata(item_idx, mid)
 				idx_counter += 1
 
 func _refresh_consumable_state():
+	UITheme.apply_card_style(self, "shipyard")
 	var c_type = "hull" if slot_type == "consumable_hull" else "shield"
 	var label_txt = "HULL REPAIR" if c_type == "hull" else "SHIELD REPAIR"
 	
@@ -115,7 +147,7 @@ func _refresh_consumable_state():
 		icon_lbl.text = "💊"
 		icon_lbl.modulate = Color(0, 0.73, 0.83)
 		
-		tooltip_text = "%s\nRestores %d%% %s" % [dname, int(data.get("heal_pct", 0)*100), c_type.capitalize()]
+		tooltip_text = "%s\nRestores %d%% %s" % [dname, int(data.get("heal_pct", 0) * 100), c_type.capitalize()]
 		
 		option_btn.add_item("Unequip", 1)
 		option_btn.set_item_metadata(1, "unequip")
@@ -165,10 +197,30 @@ func _get_drag_data(at_position):
 	# Visual Preview: Use a real slot instance
 	var preview = load("res://scenes/ui/designer_slot_widget.tscn").instantiate()
 	preview.setup(slot_idx, slot_type, parent_ui, manager)
-	preview.modulate = Color(1, 0.5, 0.5, 0.8) # Reddish tint for unequip
-	preview.custom_minimum_size = Vector2(80, 80)
 	
-	set_drag_preview(preview)
+	var preview_container = Control.new()
+	preview_container.add_child(preview)
+	
+	preview.scale = Vector2(1.05, 1.05)
+	preview.modulate = Color(1.0, 0.7, 0.7, 0.95) # Reddish tint but mostly solid
+	
+	var shadow = Panel.new()
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0, 0, 0, 0.5)
+	style.set_corner_radius_all(4)
+	style.shadow_color = Color(0, 0, 0, 0.4)
+	style.shadow_size = 15
+	style.shadow_offset = Vector2(0, 10)
+	shadow.add_theme_stylebox_override("panel", style)
+	shadow.custom_minimum_size = Vector2(120, 120)
+	
+	preview_container.add_child(shadow)
+	preview_container.move_child(shadow, 0)
+	
+	preview.position = Vector2(-60, -60)
+	shadow.position = Vector2(-55, -55)
+	
+	set_drag_preview(preview_container)
 	return drag_data
 
 func _can_drop_data(at_position, data):
@@ -234,6 +286,19 @@ func _gui_input(event):
 			else:
 				manager.unequip_slot(slot_idx)
 			parent_ui.trigger_refresh()
+		elif event.button_index == MOUSE_BUTTON_LEFT:
+			# Smart Filter mapping
+			if parent_ui and parent_ui.has_method("_on_filter_changed"):
+				var target_filter = "all"
+				if slot_type == "weapon": target_filter = "wpn"
+				elif slot_type in ["engine", "reactor", "battery", "shield"]: target_filter = "sys"
+				elif slot_type == "armor": target_filter = "armor"
+				elif slot_type.begins_with("consumable_"): target_filter = "ord"
+				
+				parent_ui._on_filter_changed(target_filter)
+				
+				# Tactile feedback
+				UITheme.trigger_ui_thud(self, 1.0)
 
 # ─────────────────────────────────────────────────
 # MODULE TOOLTIP (PHASE 22)

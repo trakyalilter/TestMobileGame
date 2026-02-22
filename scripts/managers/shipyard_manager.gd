@@ -1,4 +1,42 @@
+# v71.0: Module Rarity System
+enum Rarity {COMMON, UNCOMMON, RARE, LEGENDARY}
 
+const RARITY_COLORS = {
+	Rarity.COMMON: Color(0.7, 0.7, 0.7), # Light Gray
+	Rarity.UNCOMMON: Color(0.2, 1.0, 0.2), # Sharp Green
+	Rarity.RARE: Color(0.0, 0.6, 1.0), # Vivid Electric Blue
+	Rarity.LEGENDARY: Color(1.0, 0.8, 0.0), # Vivid Gold
+}
+
+const RARITY_LABELS = {
+	Rarity.COMMON: "",
+	Rarity.UNCOMMON: "Uncommon",
+	Rarity.RARE: "Rare",
+	Rarity.LEGENDARY: "Legendary",
+}
+
+const RARITY_STAT_RANGE = {
+	Rarity.UNCOMMON: [0.05, 0.15],
+	Rarity.RARE: [0.15, 0.30],
+	Rarity.LEGENDARY: [0.30, 0.50],
+}
+
+# Stats that get rarity bonuses (damage, defense, HP, etc.)
+const BOOSTABLE_STATS = [
+	"atk_kinetic", "atk_energy", "atk_explosive",
+	"hp", "def", "eva", "accuracy", "crit_chance",
+	"max_shield", "shield_regen", "energy_capacity",
+	"atk_speed_bonus", "shield_regen_mult", "atk_speed_mult",
+	"jamming_strength"
+]
+
+# v71.1: Alert System for new drops
+signal alert_changed(state: bool)
+var new_drops_alert: bool = false:
+	set(val):
+		if new_drops_alert != val:
+			new_drops_alert = val
+			alert_changed.emit(val)
 
 var active_hull: String = "corvette_hull"
 var module_inventory: Dictionary = {}
@@ -6,8 +44,30 @@ var loadout: Dictionary = {} # {slot_index: module_id}
 var ammo_loadout: Dictionary = {} # {slot_index: ammo_id}
 
 # v66.0: Consumable Slots
-var consumable_hull_slot: String = ""    # e.g. "Mesh"
-var consumable_shield_slot: String = ""  # e.g. "BasicBooster"
+var consumable_hull_slot: String = "" # e.g. "Mesh"
+var consumable_shield_slot: String = "" # e.g. "BasicBooster"
+
+# v72.3: Research Requirements for non-module equipment (Ammo, Consumables)
+const ELEMENT_RESEARCH_REQS = {
+	"SlugT1": "kinetics_101",
+	"SlugT2": "ballistics_optimization",
+	"SlugT3": "high_energy_munitions",
+	"SlugT4": "high_energy_munitions",
+	"CellT2": "laser_optics",
+	"CellT3": "cryogenic_systems",
+	"CellT4": "cryogenic_systems",
+	"HE_Missile": "combustion",
+	"Seeker_Missile": "advanced_rocketry",
+	"Photon_Torpedo": "capital_ship_armament",
+	"EmergencyPatch": "basic_engineering", # Early game
+	"Mesh": "adv_materials",
+	"Seal": "adv_materials",
+	"BasicBooster": "energy_shields",
+	"IonField": "field_theory",
+	"NitroCoolant": "cryogenic_systems",
+	"ZeroPoint": "quantum_dynamics"
+}
+var custom_modules: Dictionary = {} # Feature v66.0: Random Rare Drops
 
 # Calculated Stats
 var max_hp = 100
@@ -40,7 +100,7 @@ var hulls: Dictionary = {
 		"cost": {"credits": 0},
 		"slots": ["weapon", "weapon", "shield", "shield", "engine", "battery", "battery", "armor"], # 8 Slots (+1 Armor)
 		"visual": "res://assets/ships/1.png",
-		"tier": 0  # v61.0: Added for mission gating
+		"tier": 0 # v61.0: Added for mission gating
 	},
 	"frigate_hull": {
 		"name": "Industrial Frigate",
@@ -49,7 +109,7 @@ var hulls: Dictionary = {
 		"slots": ["weapon", "weapon", "weapon", "shield", "shield", "shield", "engine", "battery", "battery", "battery", "sensor", "armor", "armor"], # 13 Slots (+2 Armor)
 		"research_req": "shipwright_1",
 		"visual": "res://assets/ships/2.png",
-		"tier": 1  # v61.0
+		"tier": 1 # v61.0
 	},
 	"destroyer_hull": {
 		"name": "Destroyer Class",
@@ -58,7 +118,7 @@ var hulls: Dictionary = {
 		"slots": ["weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "engine", "battery", "battery", "battery", "battery", "sensor", "cooling", "armor", "armor", "armor"], # 18 Slots (+3 Armor)
 		"research_req": "shipwright_2",
 		"visual": "res://assets/ships/3.png",
-		"tier": 2  # v61.0
+		"tier": 2 # v61.0
 	},
 	"battlecruiser_hull": {
 		"name": "Battlecruiser Class",
@@ -67,7 +127,7 @@ var hulls: Dictionary = {
 		"slots": ["weapon", "weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "shield", "engine", "battery", "battery", "battery", "battery", "battery", "sensor", "sensor", "cooling", "cooling", "armor", "armor", "armor", "armor"], # 24 Slots (+4 Armor)
 		"research_req": "capital_ship_engineering",
 		"visual": "res://assets/ships/4.png",
-		"tier": 3  # v61.0
+		"tier": 3 # v61.0
 	},
 	"dreadnought_hull": {
 		"name": "Dreadnought Class",
@@ -76,7 +136,7 @@ var hulls: Dictionary = {
 		"slots": ["weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "shield", "shield", "shield", "engine", "battery", "battery", "battery", "battery", "battery", "battery", "sensor", "sensor", "sensor", "cooling", "cooling", "cooling", "armor", "armor", "armor", "armor", "armor"], # +5 Armor
 		"research_req": "quantum_dynamics",
 		"visual": "res://assets/ships/5.png",
-		"tier": 4  # v61.0
+		"tier": 4 # v61.0
 	}
 }
 
@@ -88,24 +148,24 @@ func get_ship_name() -> String:
 var modules: Dictionary = {
 	# Weapons
 	"mining_laser_mk1": {
-		"name": "Pulse Laser Mk.I", 
-		"slot_type": "weapon", 
-		"stats": {"atk_energy": 12, "energy_load": 5, "atk_interval": 1.5}, 
+		"name": "Pulse Laser Mk.I",
+		"slot_type": "weapon",
+		"stats": {"atk_energy": 12, "energy_load": 5, "atk_interval": 1.5},
 		"cost": {"credits": 125, "Si": 5},
 		"desc": "Fast-firing Energy Beam. Effective vs Shields."
 	},
 	"mining_laser_mk2": {
-		"name": "Pulse Laser Mk.II", 
-		"slot_type": "weapon", 
-		"stats": {"atk_energy": 40, "energy_load": 15, "atk_interval": 1.5}, 
+		"name": "Pulse Laser Mk.II",
+		"slot_type": "weapon",
+		"stats": {"atk_energy": 40, "energy_load": 15, "atk_interval": 1.5},
 		"cost": {"credits": 25000, "Si": 40, "Ti": 15, "Circuit": 15, "Chip": 10},
 		"desc": "High intensity beam. Melts shields.",
 		"research_req": "laser_optics"
 	},
 	"railgun_mk1": {
-		"name": "Mass Driver", 
-		"slot_type": "weapon", 
-		"stats": {"atk_kinetic": 25, "energy_load": 5, "atk_interval": 3.0}, 
+		"name": "Mass Driver",
+		"slot_type": "weapon",
+		"stats": {"atk_kinetic": 25, "energy_load": 5, "atk_interval": 3.0},
 		"cost": {"credits": 2500, "Fe": 50},
 		"desc": "Heavy magnetic projectile. Slow but powerful.",
 		"research_req": "kinetics_101"
@@ -194,9 +254,9 @@ var modules: Dictionary = {
 	},
 	# Electronic Warfare
 	"signal_jammer": {
-		"name": "Signal Jammer", 
-		"slot_type": "sensor", 
-		"stats": {"jamming_strength": 0.15, "energy_load": 25}, 
+		"name": "Signal Jammer",
+		"slot_type": "sensor",
+		"stats": {"jamming_strength": 0.15, "energy_load": 25},
 		"cost": {"credits": 50000, "SuperconductingMagnet": 5, "Circuit": 25},
 		"desc": "Disrupts enemy targeting. Reduces enemy attack speed by 15%.",
 		"research_req": "basic_electronics"
@@ -229,7 +289,7 @@ var modules: Dictionary = {
 	"battery_t2": {
 		"name": "Graphene Matrix",
 		"slot_type": "battery",
-		"stats": {"energy_capacity": 150, "atk_speed_mult": 0.10},  # ITER4: +10% attack speed
+		"stats": {"energy_capacity": 150, "atk_speed_mult": 0.10}, # ITER4: +10% attack speed
 		"cost": {"BatteryT2": 10},
 		"desc": "High-density Storage. +10% Attack Speed.",
 		"research_req": "adv_materials"
@@ -237,31 +297,31 @@ var modules: Dictionary = {
 	"battery_t3": {
 		"name": "Zero-Point Module",
 		"slot_type": "battery",
-		"stats": {"energy_capacity": 500, "shield_regen_mult": 0.20},  # ITER4: +20% shield regen
+		"stats": {"energy_capacity": 500, "shield_regen_mult": 0.20}, # ITER4: +20% shield regen
 		"cost": {"BatteryT3": 10},
 		"desc": "Infinite Void Energy. +20% Shield Regen.",
 		"research_req": "warp_drive"
 	},
 	# Shields
 	"basic_shield": {
-		"name": "Deflector Shield", 
-		"slot_type": "shield", 
-		"stats": {"max_shield": 50, "shield_regen": 2, "energy_load": 10}, 
+		"name": "Deflector Shield",
+		"slot_type": "shield",
+		"stats": {"max_shield": 50, "shield_regen": 2, "energy_load": 10},
 		"cost": {"credits": 1500, "Si": 50},
 		"desc": "Generates a regenerative energy field.",
 		"research_req": "energy_shields"
 	},
 	"thermal_tile": {
 		"name": "Graphite Armor",
-		"slot_type": "armor", 
-		"stats": {"def": 35, "hp": 250}, 
+		"slot_type": "armor",
+		"stats": {"def": 35, "hp": 250},
 		"cost": {"credits": 8000, "Graphite": 50, "Ti": 10},
 		"desc": "Ablative carbon armor. Increases Hull & Armor.",
 		"research_req": "adv_materials"
 	},
 	"titanium_armor": {
 		"name": "Titanium Plating",
-		"slot_type": "armor", 
+		"slot_type": "armor",
 		"stats": {"def": 50, "hp": 400},
 		"cost": {"credits": 75000, "Ti": 20},
 		"desc": "Heavy-duty alloy armor.",
@@ -270,7 +330,7 @@ var modules: Dictionary = {
 	# Engines
 	"basic_thruster": {
 		"name": "Ion Thrusters",
-		"slot_type": "engine", 
+		"slot_type": "engine",
 		"stats": {"eva": 10, "energy_load": 5},
 		"cost": {"credits": 50, "Fe": 5},
 		"desc": "Slow but reliable."
@@ -304,7 +364,7 @@ var modules: Dictionary = {
 		"name": "Heavy Railgun",
 		"slot_type": "weapon",
 		"stats": {"atk_kinetic": 75, "energy_load": 20, "atk_interval": 3.5},
-		"cost": {"credits": 25000, "Steel": 50, "W": 10, "AlWire": 20},  # v62.0 Fix: Added AlWire sink
+		"cost": {"credits": 25000, "Steel": 50, "W": 10, "AlWire": 20}, # v62.0 Fix: Added AlWire sink
 		"desc": "Magnetic accelerator. Armor penetration.",
 		"research_req": "ballistics_optimization"
 	},
@@ -465,8 +525,8 @@ var modules: Dictionary = {
 	"plasma_overcharger": {
 		"name": "Plasma Overcharger",
 		"slot_type": "weapon",
-		"stats": {"atk_energy": 100, "energy_load": 400, "atk_interval": 0.8},  # Audit v40.0: Buffed ATK 202100
-		"cost": {"credits": 1000000, "AdvCircuit": 50, "Superalloy":75},
+		"stats": {"atk_energy": 100, "energy_load": 400, "atk_interval": 0.8}, # Audit v40.0: Buffed ATK 202100
+		"cost": {"credits": 1000000, "AdvCircuit": 50, "Superalloy": 75},
 		"desc": "(Unique) Heavily boosts Energy Damage but consumes massive Reactor power.",
 		"research_req": "energy_metrics",
 		"unique_id": "plasma_overload_effect"
@@ -614,6 +674,15 @@ var modules: Dictionary = {
 		"cost": {"credits": 15000000, "SyntheticCrystal": 25, "VoidCrystal": 10, "AdvCircuit": 50},
 		"desc": "Focused coherent light. Best-in-class energy damage.",
 		"research_req": "exotic_matter_analysis"
+	},
+	# v66.0: Unique Boss Gating Weapon
+	"void_breaker_laser": {
+		"name": "Void Breaker Laser",
+		"slot_type": "weapon",
+		"stats": {"atk_energy": 1200, "energy_load": 80, "atk_interval": 2.5},
+		"cost": {"credits": 50000000, "VoidArtifact": 5, "VoidCrystal": 50, "QuantumCore": 10},
+		"desc": "[UNIQUE] Emits a frequency capable of shattering temporal shielding.",
+		"research_req": "void_navigation"
 	}
 }
 
@@ -671,6 +740,9 @@ func craft_module(module_id: String) -> bool:
 	if not module_id in modules: return false
 	
 	var mod_data = modules[module_id]
+	if mod_data.get("is_custom", false):
+		print("Craft Fail: Dropped modules cannot be crafted.")
+		return false
 	if mod_data.get("research_req"):
 		if not GameState.research_manager.is_tech_unlocked(mod_data["research_req"]):
 			return false
@@ -698,21 +770,29 @@ func craft_module(module_id: String) -> bool:
 
 func equip_module(slot_idx: int, module_id: String) -> bool:
 	# Used by Designer UI
-	if not active_hull in hulls: 
+	if not active_hull in hulls:
 		print("Equip Fail: Active hull not found or invalid.")
 		return false
 	var hull_data = hulls[active_hull]
 	
-	if slot_idx >= hull_data["slots"].size(): 
+	if slot_idx >= hull_data["slots"].size():
 		print("Equip Fail: Slot index out of bounds.")
 		return false
 	var req_type = hull_data["slots"][slot_idx]
 	
-	if not module_id in modules: 
+	if not module_id in modules:
 		print("Equip Fail: Module ID not found.")
 		return false
+	
+	# v71.5: Enforce Research Prerequisites
+	var status = can_equip_module(module_id)
+	if not status["can_equip"]:
+		print("Equip Fail: ", status["reason"])
+		UITheme.show_notification(status["reason"], Color.RED)
+		return false
+		
 	var mod_data = modules[module_id]
-	if mod_data["slot_type"] != req_type: 
+	if mod_data["slot_type"] != req_type:
 		print("Equip Fail: Slot Type Mismatch. Req: ", req_type, " Got: ", mod_data["slot_type"])
 		return false
 		
@@ -723,7 +803,7 @@ func equip_module(slot_idx: int, module_id: String) -> bool:
 				print("Equip Fail: Module is unique and already equipped.")
 				return false
 	
-	if module_inventory.get(module_id, 0) <= 0: 
+	if module_inventory.get(module_id, 0) <= 0:
 		print("Equip Fail: No inventory.")
 		return false
 	
@@ -771,10 +851,8 @@ func equip_module(slot_idx: int, module_id: String) -> bool:
 	if potential_load > current_cap:
 		# We are entering (or staying in) an Overloaded state.
 		# Strict Rule: Generally Forbidden.
-		
 		# Exception A: Battery Upgrade (Anti-Softlock)
 		# If we are adding more capacity (upgrading battery), ALWAYS allow it.
-		
 		# Using slightly relaxed comparison for float precision
 		if current_cap > (old_cap + 0.1):
 			print("Equip Warning: Grid Overloaded, but Capacity Improved (%f > %f). Allowed." % [current_cap, old_cap])
@@ -905,13 +983,25 @@ func recalc_stats():
 	attack_kinetic = atk_k
 	attack_energy = atk_e
 	attack_explosive = atk_x
-	attack = atk_k + atk_e + atk_x
+	
+	# v72.8: Trophy Buffs (Global & Type Specific)
+	if GameState.bounty_manager:
+		attack_kinetic *= GameState.bounty_manager.get_trophy_buff("kinetic_dmg")
+		attack_energy *= GameState.bounty_manager.get_trophy_buff("energy_dmg")
+	
+	attack = attack_kinetic + attack_energy + attack_explosive
 	defense = defe
 	evasion = eva
+	if GameState.bounty_manager:
+		evasion *= GameState.bounty_manager.get_trophy_buff("evasion")
+		
 	accuracy = acc
 	crit_chance = crit
 	energy_used = e_load
 	attack_speed_bonus = atk_speed_bon
+	if GameState.bounty_manager:
+		attack_speed_bonus += (GameState.bounty_manager.get_trophy_buff("ship_speed") - 1.0)
+		
 	shield_regen_bonus = s_reg_bon
 	jamming_strength = jam_str
 	
@@ -944,6 +1034,7 @@ func get_save_data_manager() -> Dictionary:
 	data["ammo_loadout"] = ammo_loadout
 	data["consumable_hull_slot"] = consumable_hull_slot
 	data["consumable_shield_slot"] = consumable_shield_slot
+	data["custom_modules"] = custom_modules
 	return data
 
 func load_save_data_manager(data: Dictionary):
@@ -954,6 +1045,10 @@ func load_save_data_manager(data: Dictionary):
 	
 	if data.has("consumable_hull_slot"): consumable_hull_slot = data["consumable_hull_slot"]
 	if data.has("consumable_shield_slot"): consumable_shield_slot = data["consumable_shield_slot"]
+	
+	custom_modules = data.get("custom_modules", {})
+	for cm_id in custom_modules:
+		modules[cm_id] = custom_modules[cm_id]
 	
 	# Convert JSON string keys back to int if needed or handle direct
 	loadout = {}
@@ -1034,6 +1129,7 @@ func reset(decay_factor: float = 1.0) -> void:
 	module_inventory = {}
 	loadout = {}
 	ammo_loadout = {}
+	custom_modules = {}
 	if active_hull in hulls:
 		for i in range(hulls[active_hull]["slots"].size()):
 			loadout[i] = null
@@ -1044,7 +1140,7 @@ func equip_consumable(slot_type: String, item_id: String):
 	print("Equipping consumable: %s -> %s" % [slot_type, item_id])
 	# slot_type: "hull" or "shield"
 	var data = ElementDB.get_consumable_data(item_id)
-	if data.is_empty(): 
+	if data.is_empty():
 		print("Invalid consumable data for %s" % item_id)
 		return # Invalid item
 	
@@ -1067,3 +1163,162 @@ func get_consumable(slot_type: String) -> String:
 	if slot_type == "hull": return consumable_hull_slot
 	if slot_type == "shield": return consumable_shield_slot
 	return ""
+
+# v71.0: Generate a rarity-boosted module drop from a base module ID
+func generate_module_drop(base_module_id: String, rarity: int = Rarity.UNCOMMON) -> String:
+	if base_module_id not in modules:
+		print("generate_module_drop: Unknown base module '%s'" % base_module_id)
+		return ""
+	
+	# Common modules are just base — no custom needed
+	if rarity == Rarity.COMMON:
+		GameState.resources.add_element(base_module_id, 1)
+		inventory_updated.emit()
+		return base_module_id
+	
+	var base = modules[base_module_id]
+	var custom_id = "custom_%s_%d" % [base_module_id, Time.get_ticks_msec()]
+	
+	# Apply stat bonuses based on rarity tier
+	var stat_range = RARITY_STAT_RANGE.get(rarity, [0.05, 0.15])
+	var custom_stats = {}
+	for stat_key in base.get("stats", {}):
+		var base_val = base["stats"][stat_key]
+		if stat_key in BOOSTABLE_STATS:
+			# Boost "good" stats by the rarity range
+			var bonus = randf_range(stat_range[0], stat_range[1])
+			if base_val is float:
+				custom_stats[stat_key] = base_val * (1.0 + bonus)
+			else:
+				custom_stats[stat_key] = int(base_val * (1.0 + bonus))
+		else:
+			# Non-boostable stats (energy_load, atk_interval) stay at base
+			custom_stats[stat_key] = base_val
+	
+	var rarity_label = RARITY_LABELS.get(rarity, "")
+	var suffix = " (%s)" % rarity_label if rarity_label != "" else ""
+	
+	var custom_module = {
+		"name": "%s%s" % [base.get("name", "Unknown"), suffix],
+		"slot_type": base.get("slot_type", "weapon"),
+		"stats": custom_stats,
+		"cost": {},
+		"desc": base.get("desc", ""),
+		"is_custom": true,
+		"rarity": rarity,
+		"base_module": base_module_id
+	}
+	
+	# Legendary: add extra flavor
+	if rarity == Rarity.LEGENDARY:
+		custom_module["desc"] = "★ " + custom_module["desc"] + " (Legendary variant)"
+	
+	modules[custom_id] = custom_module
+	custom_modules[custom_id] = custom_module
+	
+	module_inventory[custom_id] = module_inventory.get(custom_id, 0) + 1
+	new_drops_alert = true
+	inventory_updated.emit()
+	return custom_id
+
+# Backward compat wrapper
+func generate_custom_weapon(base_weapon_id: String) -> String:
+	return generate_module_drop(base_weapon_id, Rarity.RARE)
+
+# v71.0: Get rarity of any module (with name-based fallback for legacy items)
+func get_module_rarity(module_id: String) -> int:
+	var m = modules.get(module_id, {})
+	if m.has("rarity"):
+		return m["rarity"]
+	# Fallback: parse from name for modules created before rarity system
+	var name_str = m.get("name", "")
+	if "(Legendary)" in name_str: return Rarity.LEGENDARY
+	if "(Rare)" in name_str: return Rarity.RARE
+	if "(Uncommon)" in name_str: return Rarity.UNCOMMON
+	return Rarity.COMMON
+
+# v71.5: Check if module can be equipped (Prerequisite check)
+# Returns: {"can_equip": bool, "reason": String}
+func can_equip_module(module_id: String) -> Dictionary:
+	var m = modules.get(module_id, {})
+	if not m:
+		# Check if it's an ammo or consumable
+		var is_ammo = module_id in ElementDB.CATEGORIES.get("ammo", [])
+		var is_consumable = module_id in ElementDB.CATEGORIES.get("consumables", [])
+		
+		if is_ammo or is_consumable:
+			var req = ELEMENT_RESEARCH_REQS.get(module_id, "")
+			if req != "" and GameState.research_manager and not GameState.research_manager.is_tech_unlocked(req):
+				var tech_name = GameState.research_manager.tech_tree.get(req, {"name": req}).get("name", req)
+				return {"can_equip": false, "reason": "Requires Research: " + tech_name}
+			return {"can_equip": true, "reason": ""}
+			
+		return {"can_equip": false, "reason": "Module not found"}
+	
+	var req = m.get("research_req", "")
+	
+	# If it's a dropped module, check the base module's requirement too
+	if m.get("is_custom") and m.has("base_module"):
+		var base_id = m["base_module"]
+		var base_data = modules.get(base_id, {})
+		if base_data.has("research_req"):
+			req = base_data["research_req"]
+	
+	if req != "" and not GameState.research_manager.is_tech_unlocked(req):
+		# Get human readable tech name
+		var tech_name = GameState.research_manager.tech_tree.get(req, {"name": req}).get("name", req)
+		return {"can_equip": false, "reason": "Requires Research: " + tech_name}
+		
+	return {"can_equip": true, "reason": ""}
+
+# v71.0: Roll rarity tier for a combat drop
+func roll_rarity(is_boss: bool = false) -> int:
+	var roll = randf()
+	var legendary_chance = 0.05 if is_boss else 0.02
+	if roll < legendary_chance:
+		return Rarity.LEGENDARY
+	elif roll < legendary_chance + 0.10:
+		return Rarity.RARE
+	elif roll < legendary_chance + 0.10 + 0.30:
+		return Rarity.UNCOMMON
+	else:
+		return Rarity.COMMON
+
+# v71.2: Sell module for credits
+const RARITY_SELL_PRICES = {
+	Rarity.COMMON: 100,
+	Rarity.UNCOMMON: 500,
+	Rarity.RARE: 2500,
+	Rarity.LEGENDARY: 15000,
+}
+
+func get_sell_price(module_id: String) -> int:
+	var m = modules.get(module_id, {})
+	# Crafted modules: sell for 25% of credit cost
+	var cost_credits = m.get("cost", {}).get("credits", 0)
+	if cost_credits > 0:
+		return max(50, int(cost_credits * 0.25))
+	# Dropped modules: sell based on rarity
+	var rarity = m.get("rarity", Rarity.COMMON)
+	return RARITY_SELL_PRICES.get(rarity, 100)
+
+func sell_module(module_id: String) -> bool:
+	if module_id not in module_inventory or module_inventory[module_id] <= 0:
+		return false
+	# Don't sell currently equipped modules
+	for idx in loadout:
+		if loadout[idx] == module_id:
+			return false
+	
+	var price = get_sell_price(module_id)
+	module_inventory[module_id] -= 1
+	if module_inventory[module_id] <= 0:
+		module_inventory.erase(module_id)
+		# Clean up custom modules
+		if module_id in custom_modules:
+			custom_modules.erase(module_id)
+			modules.erase(module_id)
+	
+	GameState.resources.add_currency("credits", price)
+	inventory_updated.emit()
+	return true

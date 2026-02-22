@@ -63,10 +63,10 @@ var actions: Dictionary = {
 	},
 	"mine_bauxite": {
 		"name": "Strip Mine Bauxite",
-		"loot_table": [["Bauxite", 1.0, 2, 4], ["Fe", 0.3, 1, 2]],
-		"xp": 20,
-		"level_req": 18,
-		"research_req": "adv_materials",
+		"loot_table": [["Bauxite", 1.0, 1, 2]],
+		"xp": 11,
+		"level_req": 12,
+		"research_req": "lightweight_alloys",
 		"category": "terrestrial"
 	},
 	# v62.0 Fix: Added Pentlandite source (Gathering)
@@ -84,7 +84,7 @@ var actions: Dictionary = {
 		"loot_table": [["Chromite", 1.0, 1, 2], ["Fe", 0.5, 1, 2]],
 		"xp": 30,
 		"level_req": 30,
-		"research_req": "adv_materials", 
+		"research_req": "adv_materials",
 		"category": "terrestrial"
 	},
 	"extract_salts": {
@@ -124,7 +124,7 @@ var actions: Dictionary = {
 		"loot_table": [["Quartz", 1.0, 1, 3]],
 		"xp": 22,
 		"level_req": 22,
-		"research_req": "adv_materials",  # Audit v43.0: Added missing research gate
+		"research_req": "adv_materials", # Audit v43.0: Added missing research gate
 		"category": "terrestrial"
 	},
 	"harvest_nebula": {
@@ -133,7 +133,7 @@ var actions: Dictionary = {
 			["H", 1.0, 1, 2],
 			["He", 1.0, 1, 1]
 		],
-		"xp": 15,  # ITER3 FIX: Reduced from 60 (was 4x higher than intended)
+		"xp": 15, # ITER3 FIX: Reduced from 60 (was 4x higher than intended)
 		"level_req": 40,
 		"research_req": "energy_metrics",
 		"category": "orbital"
@@ -195,6 +195,11 @@ func _init():
 func get_yield_multiplier() -> float:
 	var mult = 1.0 + (get_level() * 0.01)
 	if is_milestone_unlocked(10): mult *= 1.10 # +10% Yield
+	
+	# v72.8: Trophy Buffs
+	if GameState.bounty_manager:
+		mult *= GameState.bounty_manager.get_trophy_buff("mining_yield")
+		
 	return mult
 
 func get_action_speed_multiplier(action_id: String) -> float:
@@ -315,6 +320,9 @@ func complete_action():
 		GameState.resources.add_element(element, amount)
 		events.append(["loot", "+%d %s" % [amount, element], current_action_id])
 	
+	if GameState.bounty_manager:
+		xp_reward = int(xp_reward * GameState.bounty_manager.get_trophy_buff("gathering_xp"))
+		
 	add_xp(xp_reward)
 	events.append(["xp", "+%d XP" % xp_reward, current_action_id])
 
@@ -336,6 +344,9 @@ func calculate_offline(delta: float):
 	var xp_per_action = current_action.get("xp", 0)
 	
 	var total_xp = num_actions * xp_per_action
+	if GameState.bounty_manager:
+		total_xp = int(total_xp * GameState.bounty_manager.get_trophy_buff("gathering_xp"))
+		
 	add_xp(total_xp)
 	
 	# v62.0 Fix: Get yield multiplier once for offline (same as online)
@@ -379,7 +390,7 @@ func calculate_offline(delta: float):
 			loot_summary[element] = loot_summary.get(element, 0) + amount
 	
 	var report = "Off-World Operations (%s):\n" % current_action['name']
-	report += "Time: %dm %ds\n" % [int(delta/60), int(delta) % 60]
+	report += "Time: %dm %ds\n" % [int(delta / 60), int(delta) % 60]
 	report += "Actions Completed: %d\n" % num_actions
 	report += "XP Gained: %d\n" % total_xp
 	report += "Loot Gathered:\n"

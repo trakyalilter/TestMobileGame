@@ -66,7 +66,7 @@ func init_missions():
 		["m016", "Kinetic Munitions", "Produce 40 Ferrite Rounds for your weapon.", "gather", "SlugT1", 40, 1000, 100, "m023"],
 		# Shield Section Moved Here (m023 -> m024)
 		# P2-12: Combat Readiness Checkpoint - ensure player is equipped before first combat
-		["m016b", "Combat Ready", "Equip a WEAPON and SHIELD in your Shipyard loadout before battle.", "loadout_check", "combat_ready", 1, 300, 100, "m017"],
+		["m016b", "Combat Ready", "Equip a WEAPON and SHIELD in your Ship Designer.", "loadout_check", "combat_ready", 1, 300, 100, "m017"],
 		["m017", "Target Locked", "Defeat 1 Lunar Drone in Lunar Orbit.", "defeat", "lunar_drone", 1, 2500, 500, "m018"],
 		["m018", "Industrial Logistics", "Research the 'Industrial Logistics' hub.", "research", "industrial_logistics", 1, 500, 100, "m018b"],
 		["m018b", "Automated Intelligence", "Research 'Automated Logistics' for circuitry.", "research", "automated_logistics", 1, 1000, 200, "m019"],
@@ -124,7 +124,7 @@ func init_missions():
 		
 		# Cutoff Enforcement: m034 ends the linear progression chain
 		var next_id = entry[8]
-		if mid == "m034": next_id = "" 
+		if mid == "m034": next_id = ""
 		
 		var m_name = entry[1]
 		if mid.begins_with("m"): m_name = "[TUTORIAL] " + m_name
@@ -369,4 +369,3 @@ func has_progress() -> bool:
 		if m["claimed"] or m["completed"]:
 			return true
 	return false
-	

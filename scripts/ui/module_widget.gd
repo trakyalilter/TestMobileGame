@@ -64,6 +64,12 @@ func update_state():
 		UITheme.apply_locked_overlay(self, data["name"], "", false)
 		research_lbl.hide()
 		cost_lbl.show()
+	
+	if data.get("is_custom", false):
+		cost_lbl.text = "[center][color=orange]Drop-only module[/color][/center]"
+		btn.text = "DROP ONLY"
+		btn.disabled = true
+		return
 
 	var affordable = true
 	var cost_str = "[center]"
@@ -119,13 +125,18 @@ func highlight_for_slot(slot_idx: int, req_type: String):
 		target_slot_idx = slot_idx
 		modulate = Color(0.5, 1.0, 0.5, 1.0)  # Green highlight
 		btn.text = "EQUIP"
+		btn.disabled = false
 	else:
 		_reset_highlight()
 
 func _reset_highlight():
 	target_slot_idx = -1
 	modulate = Color.WHITE
-	btn.text = "Craft"
+	if data.get("is_custom", false):
+		btn.text = "DROP ONLY"
+		btn.disabled = true
+	else:
+		btn.text = "Craft"
 
 # ─────────────────────────────────────────────────
 # COMPARISON TOOLTIP

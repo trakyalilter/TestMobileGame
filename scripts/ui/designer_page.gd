@@ -4,31 +4,32 @@ extends Control
 # Premium sci-fi aesthetic with expanded stats and module comparison
 
 # Top info bar (full width, 1-line)
-@onready var ship_name_lbl = $VBoxContainer/InfoPanel/InfoHBox/ShipNameLabel
-@onready var stats_lbl = $VBoxContainer/InfoPanel/InfoHBox/StatsLabel
+@onready var ship_name_lbl = $VBoxContainer/InfoPanel/MarginContainer/InfoHBox/ShipSpecs/ShipNameLabel
+@onready var power_bar = $VBoxContainer/InfoPanel/MarginContainer/InfoHBox/ShipSpecs/SystemLoad/PowerBar
+@onready var power_lbl = $VBoxContainer/InfoPanel/MarginContainer/InfoHBox/ShipSpecs/SystemLoad/PowerLabel
+@onready var stats_grid = $VBoxContainer/InfoPanel/MarginContainer/InfoHBox/StatsGrid
 
 # Storage
-@onready var storage_grid = $VBoxContainer/MainLayout/RightPanel/Scroll/UnifiedStorageGrid
-@onready var silhouette = $VBoxContainer/MainLayout/SchematicArea/Silhouette
-@onready var circuit_bg = $VBoxContainer/MainLayout/SchematicArea/CircuitBackground
+@onready var storage_grid = $VBoxContainer/MainLayout/RightPanel/Margin/VBox/Scroll/UnifiedStorageGrid
 
 # Filter Buttons
-@onready var f_all = $VBoxContainer/MainLayout/RightPanel/FilterConsole/FilterStrip/AllBtn
-@onready var f_wpn = $VBoxContainer/MainLayout/RightPanel/FilterConsole/FilterStrip/WpnBtn
-@onready var f_sys = $VBoxContainer/MainLayout/RightPanel/FilterConsole/FilterStrip/SysBtn
-@onready var f_ord = $VBoxContainer/MainLayout/RightPanel/FilterConsole/FilterStrip/OrdBtn
+@onready var f_all = $VBoxContainer/MainLayout/RightPanel/Margin/VBox/FilterStrip/AllBtn
+@onready var f_wpn = $VBoxContainer/MainLayout/RightPanel/Margin/VBox/FilterStrip/WpnBtn
+@onready var f_sys = $VBoxContainer/MainLayout/RightPanel/Margin/VBox/FilterStrip/SysBtn
+@onready var f_ord = $VBoxContainer/MainLayout/RightPanel/Margin/VBox/FilterStrip/OrdBtn
 
 var manager: RefCounted
 var active_filter = "all"
 var slot_widget_scene = preload("res://scenes/ui/designer_slot_widget.tscn")
 var ammo_slot_scene = preload("res://scenes/ui/designer_ammo_slot_widget.tscn")
 
-var draggable_icon_scene = preload("res://scenes/ui/module_card.tscn") 
+var draggable_icon_scene = preload("res://scenes/ui/module_card.tscn")
 
 func _ready():
 	manager = GameState.shipyard_manager
 	visibility_changed.connect(_on_visibility_changed)
 	GameState.game_loaded.connect(trigger_refresh)
+	manager.inventory_updated.connect(_on_inventory_updated)
 	
 	# Premium Styling
 	UITheme.apply_card_style($VBoxContainer/InfoPanel, "shipyard")
@@ -41,13 +42,6 @@ func _ready():
 	f_sys.pressed.connect(func(): _on_filter_changed("sys"))
 	f_ord.pressed.connect(func(): _on_filter_changed("ord"))
 	
-	var filter_strip = $VBoxContainer/MainLayout/RightPanel/FilterConsole/FilterStrip
-	if filter_strip.has_node("ExplosiveBtn"):
-		filter_strip.get_node("ExplosiveBtn").pressed.connect(func(): _on_filter_changed("explosive"))
-	if filter_strip.has_node("ArmorBtn"):
-		filter_strip.get_node("ArmorBtn").pressed.connect(func(): _on_filter_changed("armor"))
-	
-	circuit_bg.draw.connect(_on_circuit_draw)
 	
 	trigger_refresh()
 
@@ -55,9 +49,13 @@ func _on_visibility_changed():
 	if visible:
 		trigger_refresh()
 
+func _on_inventory_updated():
+	if visible:
+		rebuild_storage()
+		update_header()
+
 func trigger_refresh():
 	update_header()
-	sync_silhouette()
 	rebuild_slots()
 	rebuild_ammo_slots()
 	rebuild_storage()
@@ -71,46 +69,71 @@ func update_header():
 		var h = manager.hulls[manager.active_hull]
 		ship_name_lbl.text = h["name"].to_upper()
 		
-		# Calculate energy capacity (use unified global value to respect multipliers)
+		# Calculate energy capacity
 		var e_cap = 100
 		if GameState.resources:
 			e_cap = GameState.resources.max_energy
 		var e_used = manager.energy_used
 		
-		# Calculate DPS
-		var total_dps = _calculate_total_dps()
+		# Update Power Bar
+		power_bar.max_value = e_cap
+		power_bar.value = e_used
+		power_lbl.text = "%d / %d" % [e_used, e_cap]
 		
-		# Get milestone bonuses from combat manager
+		if e_used > e_cap:
+			power_bar.modulate = Color(1.0, 0.3, 0.3)
+			power_lbl.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3))
+		elif e_used > e_cap * 0.8:
+			power_bar.modulate = Color(1.0, 0.7, 0.2)
+			power_lbl.add_theme_color_override("font_color", Color(1.0, 0.7, 0.2))
+		else:
+			power_bar.modulate = UITheme.CATEGORY_COLORS.get("shipyard", Color.WHITE)
+			power_lbl.add_theme_color_override("font_color", Color.WHITE)
+			
+		# Populate discrete stats grid
+		var total_dps = _calculate_total_dps()
 		var cm = GameState.combat_manager
 		var total_eva = manager.evasion + cm.get_milestone_evasion_bonus()
 		var total_crit = (manager.crit_chance + cm.get_milestone_crit_bonus()) * 100.0
 		
-		# Build single-line stats display
-		var stats_text = "HP: %d | SH: %s | ATK: %s | DEF: %s | ACC: %.0f | CRIT: %.0f%% | EVA: %.0f | DPS: %s | PWR: %d/%d" % [
-			manager.max_hp,
-			UITheme.format_num(manager.max_shield),
-			UITheme.format_num(manager.attack),
-			UITheme.format_num(manager.defense),
-			manager.accuracy,
-			total_crit,
-			total_eva,
-			UITheme.format_num(total_dps),
-			e_used,
-			e_cap
+		var stats = [
+			{"label": "HP", "val": str(manager.max_hp), "color": Color(0.4, 0.9, 0.4)},
+			{"label": "SHIELD", "val": UITheme.format_num(manager.max_shield), "color": Color(0, 0.8, 1)},
+			{"label": "ATK", "val": UITheme.format_num(manager.attack), "color": Color(1, 0.6, 0.2)},
+			{"label": "DEF", "val": UITheme.format_num(manager.defense), "color": Color(0.6, 0.6, 0.6)},
+			{"label": "ACC", "val": str(manager.accuracy), "color": Color(0.8, 0.8, 1.0)},
+			{"label": "CRIT", "val": "%.0f%%" % total_crit, "color": Color(1, 0.4, 0.4)},
+			{"label": "EVA", "val": "%.0f" % total_eva, "color": Color(0.8, 1, 0.2)},
+			{"label": "DPS", "val": UITheme.format_num(total_dps), "color": Color(1.0, 0.8, 0.2)}
 		]
 		
-		stats_lbl.text = stats_text
-		
-		# Power grid warning colors
-		if e_used > e_cap:
-			stats_lbl.modulate = Color(1, 0.3, 0.3)  # Red - overloaded
-		elif e_used > e_cap * 0.8:
-			stats_lbl.modulate = Color(1, 0.7, 0.2)  # Orange - nearing limit
-		else:
-			stats_lbl.modulate = Color(0.7, 0.7, 0.7)  # Normal
+		for child in stats_grid.get_children():
+			child.queue_free()
+			
+		for stat_data in stats:
+			var stat_box = HBoxContainer.new()
+			stat_box.add_theme_constant_override("separation", 5)
+			
+			var lbl_k = Label.new()
+			lbl_k.text = stat_data["label"]
+			lbl_k.add_theme_font_size_override("font_size", 10)
+			lbl_k.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
+			lbl_k.custom_minimum_size.x = 45 # Alignment
+			
+			var lbl_v = Label.new()
+			lbl_v.text = stat_data["val"]
+			lbl_v.add_theme_font_size_override("font_size", 11)
+			lbl_v.add_theme_color_override("font_color", stat_data["color"])
+			
+			stat_box.add_child(lbl_k)
+			stat_box.add_child(lbl_v)
+			stats_grid.add_child(stat_box)
+			
 	else:
-		ship_name_lbl.text = "NO HULL"
-		stats_lbl.text = "Escape Pod Active"
+		ship_name_lbl.text = "NO HULL SELECTED"
+		power_lbl.text = "0 / 0"
+		for child in stats_grid.get_children():
+			child.queue_free()
 
 func _calculate_total_dps() -> float:
 	var total = 0.0
@@ -131,7 +154,7 @@ func _calculate_total_dps() -> float:
 # ─────────────────────────────────────────────────
 
 func rebuild_slots():
-	var s_cont = $VBoxContainer/MainLayout/SchematicArea/SlotMap/SchematicContainer
+	var s_cont = $VBoxContainer/MainLayout/SchematicArea/LayoutSplit/SlotListPanel/SlotScroll/SchematicContainer
 	if s_cont:
 		for child in s_cont.get_children():
 			child.queue_free()
@@ -188,27 +211,21 @@ func _create_blade(title: String, slot_list: Array, parent: Node, color: Color =
 	label.add_theme_color_override("font_color", color)
 	vbox.add_child(label)
 	
-	# Horizontal scroll container for slots
-	var scroll = ScrollContainer.new()
-	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	scroll.custom_minimum_size.y = 90
-	vbox.add_child(scroll)
-	
-	# HBox for horizontal slot layout
-	var hbox = HBoxContainer.new()
-	hbox.add_theme_constant_override("separation", 10)
-	scroll.add_child(hbox)
+	# Wrap slots inside an HFlowContainer rather than horizontal scrolling
+	var flow = HFlowContainer.new()
+	flow.add_theme_constant_override("h_separation", 10)
+	flow.add_theme_constant_override("v_separation", 10)
+	vbox.add_child(flow)
 	
 	for s_data in slot_list:
 		var w
 		if is_ammo:
 			w = ammo_slot_scene.instantiate()
-			hbox.add_child(w)
+			flow.add_child(w)
 			w.setup(s_data["idx"], self, manager)
 		else:
 			w = slot_widget_scene.instantiate()
-			hbox.add_child(w)
+			flow.add_child(w)
 			w.setup(s_data["idx"], s_data["type"], self, manager)
 			
 	# Add separator
@@ -227,24 +244,20 @@ func _create_consumable_blade(parent: Node):
 	label.add_theme_color_override("font_color", Color(1.0, 0.5, 0.8, 0.8))
 	vbox.add_child(label)
 	
-	var scroll = ScrollContainer.new()
-	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	scroll.custom_minimum_size.y = 90
-	vbox.add_child(scroll)
-	
-	var hbox = HBoxContainer.new()
-	hbox.add_theme_constant_override("separation", 10)
-	scroll.add_child(hbox)
+	# Wrap slots inside an HFlowContainer
+	var flow = HFlowContainer.new()
+	flow.add_theme_constant_override("h_separation", 10)
+	flow.add_theme_constant_override("v_separation", 10)
+	vbox.add_child(flow)
 	
 	# Hull Slot
 	var w1 = slot_widget_scene.instantiate()
-	hbox.add_child(w1)
+	flow.add_child(w1)
 	w1.setup(-1, "consumable_hull", self, manager)
 	
 	# Shield Slot
 	var w2 = slot_widget_scene.instantiate()
-	hbox.add_child(w2)
+	flow.add_child(w2)
 	w2.setup(-1, "consumable_shield", self, manager)
 	
 	# Separator
@@ -252,17 +265,6 @@ func _create_consumable_blade(parent: Node):
 	sep.modulate = Color(1.0, 0.5, 0.8, 0.3)
 	vbox.add_child(sep)
 
-func sync_silhouette():
-	if not manager.active_hull: return
-	var h = manager.hulls.get(manager.active_hull)
-	if h and h.has("visual"):
-		var tex = load(h["visual"])
-		if silhouette.texture != tex:
-			silhouette.texture = tex
-			# Holographic pulse effect
-			var tween = create_tween()
-			silhouette.modulate.a = 0.1
-			tween.tween_property(silhouette, "modulate:a", 0.4, 0.5)
 
 func rebuild_ammo_slots():
 	pass # Integrated into blade system
@@ -386,42 +388,4 @@ func _get_module_power_score(id: String, data: Dictionary) -> int:
 	
 	return score
 
-# ─────────────────────────────────────────────────
-# CIRCUIT LINES
-# ─────────────────────────────────────────────────
-
-func _on_circuit_draw():
-	# Draw glowing lines between slots that are next to each other
-	var accent = UITheme.COLORS["accent_bright"]
-	var s_cont = $VBoxContainer/MainLayout/SchematicArea/SlotMap/SchematicContainer
-	if not s_cont: return
-	
-	for blade_vbox in s_cont.get_children():
-		if not blade_vbox is VBoxContainer: continue
-		var flow = null
-		for child in blade_vbox.get_children():
-			if child is HFlowContainer:
-				flow = child
-				break
-		
-		if not flow: continue
-		var children = flow.get_children()
-		if children.size() < 2: continue
-		
-		for i in range(children.size() - 1):
-			var s1 = children[i]
-			var s2 = children[i+1]
-			
-			# Only draw if BOTH are occupied
-			if s1.get("is_occupied") and s2.get("is_occupied"):
-				var p1 = s1.global_position + (s1.size / 2.0) - circuit_bg.global_position
-				var p2 = s2.global_position + (s2.size / 2.0) - circuit_bg.global_position
-				
-				# Glow line (thick blurred behind)
-				circuit_bg.draw_line(p1, p2, Color(accent, 0.3), 6.0, true)
-				# Core line (thin bright)
-				circuit_bg.draw_line(p1, p2, accent, 1.5, true)
-
-func _process(_delta):
-	# Refresh circuit lines
-	circuit_bg.queue_redraw()
+# Circuit lines removed in redesign

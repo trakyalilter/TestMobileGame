@@ -1,6 +1,10 @@
 extends Node
 
 signal packet_landed(color)
+signal notification_requested(text: String, color: Color) # Feature v66.1
+
+func show_notification(text: String, color: Color = Color.WHITE):
+	notification_requested.emit(text, color)
 
 # Color Palette
 const COLORS = {
@@ -18,14 +22,14 @@ const COLORS = {
 }
 
 const CATEGORY_COLORS = {
-	"ops": Color(1.0, 0.6, 0.2),         # Orange
-	"engineering": Color(0.2, 0.8, 1.0),   # Cyan
-	"infrastructure": Color(0.4, 0.9, 0.4),# Green
-	"combat": Color(1.0, 0.3, 0.3),        # Red
-	"inventory": Color(1.0, 0.8, 0.2),     # Gold
-	"research": Color(0.9, 0.4, 1.0),      # Pink/Purple
-	"shipyard": Color(0.3, 0.5, 1.0),      # Blue
-	"mission": Color(0.2, 1.0, 0.6)        # Teal/Emerald
+	"ops": Color(1.0, 0.6, 0.2), # Orange
+	"engineering": Color(0.2, 0.8, 1.0), # Cyan
+	"infrastructure": Color(0.4, 0.9, 0.4), # Green
+	"combat": Color(1.0, 0.3, 0.3), # Red
+	"inventory": Color(1.0, 0.8, 0.2), # Gold
+	"research": Color(0.9, 0.4, 1.0), # Pink/Purple
+	"shipyard": Color(0.3, 0.5, 1.0), # Blue
+	"mission": Color(0.2, 1.0, 0.6) # Teal/Emerald
 }
 
 func setup_page_background(page: Control):
@@ -36,33 +40,25 @@ func apply_card_style(panel: Control, category: String = "ops") -> StyleBoxFlat:
 	var accent = CATEGORY_COLORS.get(category, COLORS["accent"])
 	
 	var style = StyleBoxFlat.new()
-	style.bg_color = COLORS["panel_bg"]
-	style.bg_color.a = 0.85 # Slight transparency for glass feel
+	# Blend 5% of accent into the panel background
+	style.bg_color = COLORS["panel_bg"].lerp(accent, 0.05)
+	style.bg_color.a = 0.90
 	style.draw_center = true
 	
-	# THEMATIC: No even borders. Left and Right are thin, Top is accented.
+	# Uniform 1px crisp border
 	style.set_border_width_all(1)
-	style.border_width_left = 2
-	style.border_width_top = 4 # Heavy top bar
-	style.border_color = accent.lerp(Color.BLACK, 0.4)
+	var border_col = accent
+	border_col.a = 0.3 # Subtle 30% alpha
+	style.border_color = border_col
+	style.border_blend = false
 	
-	# Corner Braces Simulation (using border_blend and colors)
-	style.border_blend = true
-	style.border_color = accent
+	# Uniform modern rounded corners
+	style.set_corner_radius_all(6)
 	
-	# Rounded but sharp (Mechanical feel)
-	style.corner_radius_top_left = 0
-	style.corner_radius_top_right = 8
-	style.corner_radius_bottom_right = 0
-	style.corner_radius_bottom_left = 4
-	
-	# Shadow for depth
-	style.shadow_color = Color(0, 0, 0, 0.4)
-	style.shadow_size = 8
-	style.shadow_offset = Vector2(4, 4)
-	
-	# Subtle Skew for "Screen" feel
-	# style.skew = Vector2(0.02, 0) # Removed as it can cause layout issues in deep sub-panels
+	# Softer, diffused shadow
+	style.shadow_color = Color(0, 0, 0, 0.25)
+	style.shadow_size = 12
+	style.shadow_offset = Vector2(0, 4)
 	
 	panel.add_theme_stylebox_override("panel", style)
 	return style
@@ -81,28 +77,30 @@ func apply_premium_button_style(button: Button, category: String = "ops"):
 	var accent = CATEGORY_COLORS.get(category, COLORS["accent"])
 	
 	var style_normal = StyleBoxFlat.new()
-	style_normal.bg_color = accent.lerp(Color.BLACK, 0.6)
+	style_normal.bg_color = COLORS["sidebar"].lerp(accent, 0.05)
 	style_normal.set_border_width_all(1)
-	style_normal.border_color = accent
-	style_normal.corner_radius_top_left = 4
-	style_normal.corner_radius_top_right = 4
-	style_normal.corner_radius_bottom_right = 4
-	style_normal.corner_radius_bottom_left = 4
+	var normal_border = accent
+	normal_border.a = 0.4
+	style_normal.border_color = normal_border
+	style_normal.set_corner_radius_all(4)
 	
 	var style_hover = style_normal.duplicate()
-	style_hover.bg_color = accent.lerp(Color.BLACK, 0.4)
-	style_hover.border_color = accent.lightened(0.2)
-	style_hover.shadow_color = accent.lerp(Color.BLACK, 0.5)
-	style_hover.shadow_size = 2
+	style_hover.bg_color = accent.lerp(Color.BLACK, 0.3)
+	style_hover.border_color = accent
+	style_hover.shadow_color = Color(0, 0, 0, 0.2)
+	style_hover.shadow_size = 4
+	style_hover.shadow_offset = Vector2(0, 2)
 	
 	var style_pressed = style_normal.duplicate()
 	style_pressed.bg_color = accent
+	style_pressed.border_color = Color.WHITE
 	
 	button.add_theme_stylebox_override("normal", style_normal)
 	button.add_theme_stylebox_override("hover", style_hover)
 	button.add_theme_stylebox_override("pressed", style_pressed)
 	var style_disabled = style_normal.duplicate()
-	style_disabled.bg_color = Color(0.2, 0.2, 0.2)
+	style_disabled.bg_color = Color(0.15, 0.15, 0.15, 0.8)
+	style_disabled.border_color = Color(0.3, 0.3, 0.3, 0.5)
 	button.add_theme_stylebox_override("disabled", style_disabled)
 	button.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 	
@@ -115,30 +113,19 @@ func apply_progress_bar_style(pb: ProgressBar, category: String = "ops"):
 	var accent = CATEGORY_COLORS.get(category, COLORS["accent"])
 	
 	var style_bg = StyleBoxFlat.new()
-	style_bg.bg_color = COLORS["background"].lightened(0.05)
-	style_bg.corner_radius_top_left = 2
-	style_bg.corner_radius_top_right = 2
-	style_bg.corner_radius_bottom_right = 2
-	style_bg.corner_radius_bottom_left = 2
-	style_bg.set_border_width_all(1)
-	style_bg.border_color = Color(0,0,0,0.5)
+	style_bg.bg_color = Color(0, 0, 0, 0.3)
+	style_bg.set_corner_radius_all(3)
+	style_bg.set_border_width_all(0) # Clean track
 	
 	var style_fill = StyleBoxFlat.new()
 	style_fill.bg_color = accent
-	# Subtle Glossy Gradient
-	style_fill.bg_color = accent.lerp(Color.WHITE, 0.1)
-	style_fill.border_width_top = 1
-	style_fill.border_color = Color(1, 1, 1, 0.3) # Highlight
-	
-	style_fill.corner_radius_top_left = 2
-	style_fill.corner_radius_top_right = 2
-	style_fill.corner_radius_bottom_right = 2
-	style_fill.corner_radius_bottom_left = 2
+	style_fill.set_border_width_all(0)
+	style_fill.set_corner_radius_all(3)
 	
 	pb.add_theme_stylebox_override("background", style_bg)
 	pb.add_theme_stylebox_override("fill", style_fill)
 
-static func format_num(val: float) -> String:
+func format_num(val: float) -> String:
 	return FormatUtils.format_number(val)
 
 func apply_panel_style(panel: PanelContainer):
@@ -155,17 +142,28 @@ func apply_panel_style(panel: PanelContainer):
 
 func apply_sidebar_button_style(button: Button, is_active: bool):
 	if not button: return
+	
 	var style_normal = StyleBoxFlat.new()
-	style_normal.bg_color = COLORS["sidebar"] if not is_active else COLORS["accent"]
+	style_normal.bg_color = COLORS["sidebar"].lerp(COLORS["accent"], 0.03) if not is_active else COLORS["accent"]
+	if is_active: style_normal.bg_color.a = 0.6
+	
 	style_normal.draw_center = true
-	style_normal.set_border_width_all(1)
-	style_normal.border_color = COLORS["accent"] if is_active else Color.TRANSPARENT
+	style_normal.set_border_width_all(0)
 	style_normal.content_margin_left = 15
+	
+	if is_active:
+		style_normal.border_width_left = 3
+		style_normal.border_color = COLORS["accent"].lightened(0.2)
+	
+	# Clean edge blending
+	style_normal.corner_radius_top_right = 2
+	style_normal.corner_radius_bottom_right = 2
 	
 	button.add_theme_stylebox_override("normal", style_normal)
 	
 	var style_hover = style_normal.duplicate()
-	style_hover.bg_color = COLORS["accent"].lerp(Color.BLACK, 0.5)
+	style_hover.bg_color = COLORS["accent"]
+	style_hover.bg_color.a = 0.3
 	button.add_theme_stylebox_override("hover", style_hover)
 	
 	var style_pressed = style_normal.duplicate()
@@ -181,19 +179,23 @@ func apply_sidebar_button_style(button: Button, is_active: bool):
 func apply_modal_style(panel: PanelContainer):
 	if not panel: return
 	var style = StyleBoxFlat.new()
-	style.bg_color = COLORS["background"].lightened(0.02)
-	style.set_border_width_all(2)
-	style.border_color = COLORS["accent"]
-	style.border_blend = true
+	# Softer background
+	style.bg_color = COLORS["background"].lightened(0.02).lerp(COLORS["accent"], 0.05)
 	
-	style.corner_radius_top_left = 10
-	style.corner_radius_top_right = 10
-	style.corner_radius_bottom_right = 10
-	style.corner_radius_bottom_left = 10
+	# Crisp thin border
+	style.set_border_width_all(1)
+	var modal_border = COLORS["accent"]
+	modal_border.a = 0.4
+	style.border_color = modal_border
 	
-	# Heavy Shadow for depth
-	style.shadow_color = Color(0, 0, 0, 0.6)
-	style.shadow_size = 20
+	style.corner_radius_top_left = 8
+	style.corner_radius_top_right = 8
+	style.corner_radius_bottom_right = 8
+	style.corner_radius_bottom_left = 8
+	
+	# Large soft diffused shadow
+	style.shadow_color = Color(0, 0, 0, 0.4)
+	style.shadow_size = 24
 	style.shadow_offset = Vector2(0, 10)
 	
 	panel.add_theme_stylebox_override("panel", style)
@@ -204,12 +206,10 @@ func apply_input_style(input: Control, category: String = "ops"):
 	
 	var style_normal = StyleBoxFlat.new()
 	style_normal.bg_color = COLORS["panel_bg"].darkened(0.3)
+	style_normal.bg_color.a = 0.8
 	style_normal.set_border_width_all(1)
-	style_normal.border_color = COLORS["sidebar"]
-	style_normal.corner_radius_top_left = 4
-	style_normal.corner_radius_top_right = 4
-	style_normal.corner_radius_bottom_right = 4
-	style_normal.corner_radius_bottom_left = 4
+	style_normal.border_color = style_normal.bg_color # Hidden border natively
+	style_normal.set_corner_radius_all(4)
 	
 	var style_focus = style_normal.duplicate()
 	style_focus.border_color = accent
@@ -222,50 +222,49 @@ func apply_tab_style(tabs: TabContainer, category: String = "ops"):
 	if not tabs: return
 	var accent = CATEGORY_COLORS.get(category, COLORS["accent"])
 	
-	# Tab Selected (Matches panel background)
+	# Content Panel (Matches new apply_card_style)
+	var style_panel = StyleBoxFlat.new()
+	style_panel.bg_color = COLORS["panel_bg"].lerp(accent, 0.05)
+	style_panel.bg_color.a = 0.90
+	style_panel.set_border_width_all(1)
+	var border_col = accent
+	border_col.a = 0.3
+	style_panel.border_color = border_col
+	style_panel.set_corner_radius_all(6)
+	style_panel.shadow_color = Color(0, 0, 0, 0.25)
+	style_panel.shadow_size = 12
+	style_panel.shadow_offset = Vector2(0, 4)
+	
+	# Tab Selected (Matches panel background to look seamless)
 	var style_selected = StyleBoxFlat.new()
-	style_selected.bg_color = COLORS["panel_bg"]
+	style_selected.bg_color = style_panel.bg_color
 	style_selected.set_border_width_all(1)
-	style_selected.border_color = COLORS["panel_bg"] # Seamless
+	style_selected.border_color = style_selected.bg_color # Seamless blend
 	style_selected.border_width_top = 2
 	style_selected.border_color = accent
 	style_selected.corner_radius_top_left = 4
 	style_selected.corner_radius_top_right = 4
-	style_selected.content_margin_left = 12
-	style_selected.content_margin_right = 12
+	style_selected.content_margin_left = 16
+	style_selected.content_margin_right = 16
 	
 	# Tab Unselected
 	var style_unselected = StyleBoxFlat.new()
-	style_unselected.bg_color = COLORS["sidebar"].lerp(Color.BLACK, 0.2)
-	style_unselected.set_border_width_all(1)
-	style_unselected.border_color = Color.TRANSPARENT
+	style_unselected.bg_color = COLORS["sidebar"].darkened(0.1)
+	style_unselected.set_border_width_all(0)
 	style_unselected.corner_radius_top_left = 4
 	style_unselected.corner_radius_top_right = 4
-	style_unselected.content_margin_left = 10
-	style_unselected.content_margin_right = 10
+	style_unselected.content_margin_left = 12
+	style_unselected.content_margin_right = 12
 	
-	# Tab Hover - Enhanced Tactile Glow
+	# Tab Hover
 	var style_hover = style_unselected.duplicate()
 	style_hover.bg_color = COLORS["sidebar"].lightened(0.05)
 	style_hover.border_width_top = 2
-	style_hover.border_color = accent.lerp(Color.WHITE, 0.3)
-	style_hover.border_blend = true
+	style_hover.border_color = accent.lightened(0.3)
 	
 	# Tab Focus/Disabled (Safety)
 	var style_focus = style_selected.duplicate()
-	style_focus.draw_center = false # No double-center
-	
-	# Content Panel (The dashboard background)
-	var style_panel = StyleBoxFlat.new()
-	style_panel.bg_color = COLORS["panel_bg"]
-	style_panel.set_border_width_all(1)
-	style_panel.border_color = accent.lerp(Color.BLACK, 0.5)
-	style_panel.border_width_top = 2
-	style_panel.border_color = accent
-	style_panel.border_blend = true
-	style_panel.shadow_color = Color(0, 0, 0, 0.3)
-	style_panel.shadow_size = 10
-	style_panel.shadow_offset = Vector2(0, 4)
+	style_focus.draw_center = false
 	
 	tabs.add_theme_stylebox_override("tab_selected", style_selected)
 	tabs.add_theme_stylebox_override("tab_unselected", style_unselected)
@@ -276,11 +275,10 @@ func apply_tab_style(tabs: TabContainer, category: String = "ops"):
 	
 	tabs.add_theme_color_override("font_selected_color", Color.WHITE)
 	tabs.add_theme_color_override("font_hovered_color", Color.WHITE)
-	tabs.add_theme_color_override("font_unselected_color", Color(0.7, 0.7, 0.7))
+	tabs.add_theme_color_override("font_unselected_color", COLORS["text_dim"])
 	
 	# Tab Sizing
 	tabs.add_theme_constant_override("side_margin", 10)
-	tabs.add_theme_color_override("font_unselected_color", COLORS["text_dim"])
 	tabs.add_theme_font_size_override("font_size", 13)
 
 func apply_sharp_button_style(button: Button, category: String = "ops"):
@@ -288,13 +286,12 @@ func apply_sharp_button_style(button: Button, category: String = "ops"):
 	var accent = CATEGORY_COLORS.get(category, COLORS["accent"])
 	
 	var style_normal = StyleBoxFlat.new()
-	style_normal.bg_color = accent.lerp(Color.BLACK, 0.7)
+	style_normal.bg_color = COLORS["sidebar"].lerp(accent, 0.05)
 	style_normal.set_border_width_all(1)
-	style_normal.border_color = accent.lerp(Color.BLACK, 0.3)
-	style_normal.corner_radius_top_left = 0
-	style_normal.corner_radius_top_right = 0
-	style_normal.corner_radius_bottom_right = 0
-	style_normal.corner_radius_bottom_left = 0
+	var normal_border = accent
+	normal_border.a = 0.4
+	style_normal.border_color = normal_border
+	style_normal.set_corner_radius_all(0) # Keep it sharp!
 	
 	# Added Padding to increase size
 	style_normal.content_margin_left = 16
@@ -303,7 +300,7 @@ func apply_sharp_button_style(button: Button, category: String = "ops"):
 	style_normal.content_margin_bottom = 8
 	
 	var style_hover = style_normal.duplicate()
-	style_hover.bg_color = accent.lerp(Color.BLACK, 0.5)
+	style_hover.bg_color = accent.lerp(Color.BLACK, 0.3)
 	style_hover.border_color = accent
 	
 	var style_pressed = style_normal.duplicate()
@@ -311,8 +308,8 @@ func apply_sharp_button_style(button: Button, category: String = "ops"):
 	style_pressed.border_color = Color.WHITE
 	
 	var style_disabled = style_normal.duplicate()
-	style_disabled.bg_color = Color(0.1, 0.1, 0.1)
-	style_disabled.border_color = Color(0.2, 0.2, 0.2)
+	style_disabled.bg_color = Color(0.15, 0.15, 0.15, 0.8)
+	style_disabled.border_color = Color(0.3, 0.3, 0.3, 0.5)
 	
 	button.add_theme_stylebox_override("normal", style_normal)
 	button.add_theme_stylebox_override("hover", style_hover)
@@ -566,14 +563,14 @@ func apply_locked_overlay(card: Control, item_name: String, message: String, is_
 		overlay.add_child(center)
 		
 		var vbox = VBoxContainer.new()
-		vbox.custom_minimum_size.x = card.custom_minimum_size.x - 16  # Fit within card with padding
+		vbox.custom_minimum_size.x = card.custom_minimum_size.x - 16 # Fit within card with padding
 		center.add_child(vbox)
 		
 		var name_lbl = Label.new()
 		name_lbl.name = "ItemNameLabel"
 		name_lbl.text = item_name.to_upper()
 		name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		name_lbl.add_theme_font_size_override("font_size", 10)  # Reduced from 12
+		name_lbl.add_theme_font_size_override("font_size", 10) # Reduced from 12
 		name_lbl.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
 		name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		vbox.add_child(name_lbl)
@@ -582,7 +579,7 @@ func apply_locked_overlay(card: Control, item_name: String, message: String, is_
 		lock_lbl.name = "LockHeading"
 		lock_lbl.text = "LOCKED"
 		lock_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		lock_lbl.add_theme_font_size_override("font_size", 14)  # Reduced from 18
+		lock_lbl.add_theme_font_size_override("font_size", 14) # Reduced from 18
 		lock_lbl.add_theme_color_override("font_color", Color.WHITE)
 		vbox.add_child(lock_lbl)
 		
@@ -590,7 +587,7 @@ func apply_locked_overlay(card: Control, item_name: String, message: String, is_
 		req_lbl.name = "ReqLabel"
 		req_lbl.text = message
 		req_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		req_lbl.add_theme_font_size_override("font_size", 9)  # Reduced from 11
+		req_lbl.add_theme_font_size_override("font_size", 9) # Reduced from 11
 		req_lbl.add_theme_color_override("font_color", Color(1.0, 0.4, 0.4))
 		req_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		vbox.add_child(req_lbl)

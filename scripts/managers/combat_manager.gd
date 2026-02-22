@@ -37,6 +37,7 @@ var consumable_cooldown = 0.0
 var consumable_cooldown_max = 10.0
 
 signal enemy_defeated(enemy_id)
+signal combat_started() # v72.8: For Elite bounty detection
 
 # Buffs
 var active_buffs = {} # {buff_name: duration}
@@ -61,6 +62,30 @@ var enemy_speed_mult = 1.0
 var has_reflective = false
 var has_reactive = false
 var has_exotic_matrix = false
+var next_spawn_elite = false # v72.8: Flag for elite hunt contracts
+
+func _module_matches(module_id, base_module_id: String) -> bool:
+	if not (module_id is String):
+		return false
+	if module_id == "" or base_module_id == "":
+		return false
+	if module_id == base_module_id:
+		return true
+	var sm = GameState.shipyard_manager
+	if not sm:
+		return false
+	if module_id not in sm.modules:
+		return false
+	return sm.modules[module_id].get("base_module", "") == base_module_id
+
+func _loadout_has_module(sm: Object, base_module_id: String) -> bool:
+	if not sm:
+		return false
+	for slot in sm.loadout:
+		var mid = sm.loadout[slot]
+		if _module_matches(mid, base_module_id):
+			return true
+	return false
 
 # Combat Milestone Bonuses (Phase 21)
 func get_milestone_crit_bonus() -> float:
@@ -110,28 +135,28 @@ var zones = {
 		"name": "Sector Alpha",
 		"desc": "Uncharted region rich in Titanium. High threat.",
 		"difficulty": 5,
-		"enemies": ["alien_frigate", "xenon_corvette", "xenon_mothership", "xenon_scout", "alien_probe"],  # v57.0: +2
+		"enemies": ["alien_frigate", "xenon_corvette", "xenon_mothership", "xenon_scout", "alien_probe"], # v57.0: +2
 		"research_req": "sector_alpha_decryption"
 	},
 	"sector_beta": {
 		"name": "Sector Beta - Mining Colony Ruins",
 		"desc": "Abandoned mining colony. Automated defense systems hostile. Rich in industrial metals.",
 		"difficulty": 6,
-		"enemies": ["mining_sentinel", "defense_turret", "colony_overseer", "repair_drone", "ore_guardian"],  # v57.0: +2
+		"enemies": ["mining_sentinel", "defense_turret", "colony_overseer", "repair_drone", "ore_guardian"], # v57.0: +2
 		"research_req": "deep_space_nav"
 	},
 	"sector_gamma": {
 		"name": "Sector Gamma - Radioactive Nebula",
 		"desc": "Radioactive nebula. Mutated organisms detected. Extreme danger.",
 		"difficulty": 7,
-		"enemies": ["radiation_beast", "nebula_leviathan", "gamma_colossus", "irradiated_hulk", "plasma_wraith"],  # v57.0: +2
+		"enemies": ["radiation_beast", "nebula_leviathan", "gamma_colossus", "irradiated_hulk", "plasma_wraith"], # v57.0: +2
 		"research_req": "radiation_shielding"
 	},
 	"sector_delta": {
 		"name": "Sector Delta - Crystalline Fields",
 		"desc": "Crystalline asteroid field. Unknown energy signatures. Ultimate challenge.",
 		"difficulty": 8,
-		"enemies": ["crystal_golem", "energy_wraith", "sentinel_prime", "shard_swarm", "prism_guardian"],  # v57.0: +2
+		"enemies": ["crystal_golem", "energy_wraith", "sentinel_prime", "shard_swarm", "prism_guardian"], # v57.0: +2
 		"research_req": "exotic_matter_analysis"
 	},
 	# ENDGAME ZONE - Added to address retention cliff after Dreadnought
@@ -147,7 +172,7 @@ var zones = {
 		"name": "Sector Epsilon - The Void",
 		"desc": "Beyond known space. Primordial entities and temporal anomalies. Requires Dreadnought-class vessel.",
 		"difficulty": 10,
-		"enemies": ["void_stalker", "temporal_phantom", "omega_sentinel", "primordial_titan"],
+		"enemies": ["void_stalker", "temporal_phantom", "omega_sentinel", "primordial_titan", "void_leviathan"],
 		"research_req": "void_navigation"
 	}
 }
@@ -162,15 +187,17 @@ var enemy_db = {
 	"lunar_drone": {
 		"name": "Lunar Drone",
 		"stats": {"hp": 60, "max_shield": 0, "atk": 7, "def": 1, "atk_interval": 2.5, "accuracy": 5},
-		"loot": [["Scrap", 3, 5], ["Fe", 4, 10], ["DroneCore", 1, 1]],
-		"rare_loot": [["Cu", 0.3, 1, 2], ["Chip", 0.08, 1, 1], ["SalvageData", 0.20, 1, 1]], 
+		"loot": [["Scrap", 3, 5], ["Fe", 1, 2], ["DroneCore", 1, 1]],
+		"rare_loot": [["Cu", 0.3, 1, 2], ["Chip", 0.08, 1, 1], ["SalvageData", 0.20, 1, 1]],
+		"module_drop_chance": 0.01,
+		"module_drop_pool": ["railgun_mk1", "basic_shield", "galvanized_plating"],
 		"xp": 12
 	},
 	"scrap_collector": {
 		"name": "Scrap Collector",
 		"stats": {"hp": 350, "max_shield": 0, "atk": 30, "def": 5, "atk_interval": 2.2, "accuracy": 10},
-		"loot": [["Scrap", 7, 12], ["Res1", 2, 5]],
-		"rare_loot": [["DroneCore", 0.30, 1, 2]],
+		"loot": [["Scrap", 7, 12], ["Res1", 2, 5], ["DroneCore", 2, 5]],
+		"rare_loot": [["NavData", 0.33, 1, 2]],
 		"xp": 10
 	},
 	"survey_probe": {
@@ -191,7 +218,7 @@ var enemy_db = {
 		"name": "Ore Hauler Wreck",
 		"stats": {"hp": 4500, "max_shield": 0, "atk": 120, "def": 40, "atk_interval": 5.0, "accuracy": 25},
 		"loot": [["Fe", 40, 50], ["W", 15, 20], ["Scrap", 10, 20]],
-		"rare_loot": [["U", 0.20, 2, 5], ["Ag", 0.15, 1, 3]], 
+		"rare_loot": [["U", 0.20, 2, 5], ["Ag", 0.15, 1, 3]],
 		"xp": 80
 	},
 	"derelict_frigate": {
@@ -199,6 +226,8 @@ var enemy_db = {
 		"stats": {"hp": 12000, "max_shield": 500, "atk": 225, "def": 65, "atk_interval": 4.0, "accuracy": 30},
 		"loot": [["Steel", 5, 10], ["Scrap", 20, 40], ["Res2", 5, 10]],
 		"rare_loot": [["Circuit", 0.35, 2, 4], ["Chip", 0.20, 2, 2]],
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["railgun_mk1", "heatsink_array", "basic_shield", "thermal_tile"],
 		"xp": 250
 	},
 	"salvage_swarm": {
@@ -227,6 +256,8 @@ var enemy_db = {
 		"stats": {"hp": 1400, "max_shield": 150, "atk": 38, "def": 22, "atk_interval": 1.75, "accuracy": 50},
 		"loot": [["credits", 2000, 6000], ["Scrap", 3, 6], ["PirateManifest", 1, 1], ["NavData", 1, 2], ["Cu", 100, 200]],
 		"rare_loot": [["W", 0.40, 10, 20], ["Ti", 0.30, 40, 50]],
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["mining_laser_mk1", "railgun_mk1", "basic_shield", "titanium_armor"],
 		"xp": 30
 	},
 	"rock_golem": {
@@ -274,22 +305,29 @@ var enemy_db = {
 	"alien_frigate": {
 		"name": "Xenon Patrol Frigate",
 		"stats": {"hp": 7500, "max_shield": 3000, "atk": 180, "def": 50, "atk_interval": 3.0, "accuracy": 45},
-		"loot": [["credits", 15000, 20000],["Ti", 30, 60]],
-		"rare_loot": [["NavData", 0.35, 2, 5], ["Chip", 0.35, 2, 5], ["VoidArtifact", 0.3, 2, 3], ["Co", 0.35, 2, 4], ["Ni", 0.35, 2, 4], ["Res3", 0.35, 1, 2]], 
+		"loot": [["credits", 15000, 20000], ["Ti", 30, 60]],
+		"rare_loot": [["NavData", 0.35, 2, 5], ["Chip", 0.35, 2, 5], ["VoidArtifact", 0.3, 2, 3], ["Co", 0.35, 2, 4], ["Ni", 0.35, 2, 4], ["Res3", 0.35, 1, 2]],
+		"module_drop_chance": 0.03,
+		"module_drop_pool": ["missile_launcher_mk2", "cryo_laser_mk3", "advanced_shield", "composite_armor"],
 		"xp": 500
 	},
 	"xenon_corvette": {
 		"name": "Xenon Corvette",
 		"stats": {"hp": 14000, "max_shield": 6000, "atk": 600, "def": 80, "atk_interval": 2.5, "accuracy": 80, "eva": 25},
-		"loot": [["credits", 40000, 60000],["Superalloy", 1, 2],["VoidArtifact", 2, 4],["NavData", 4, 8],["Res3", 2, 3],["Ti", 50, 100], ["U", 5, 15]],
+		"loot": [["credits", 40000, 60000], ["Superalloy", 1, 2], ["VoidArtifact", 2, 4], ["NavData", 4, 8], ["Res3", 2, 3], ["Ti", 50, 100], ["U", 5, 15]],
 		"rare_loot": [],
+		"module_drop_chance": 0.03,
+		"module_drop_pool": ["missile_launcher_mk2", "cryo_laser_mk3", "railgun_mk2", "advanced_shield", "stainless_armor"],
 		"xp": 800
 	},
 	"xenon_mothership": {
 		"name": "XENON MOTHERSHIP",
-		"stats": {"hp": 150000, "max_shield": 80000, "atk": 1800, "def": 250, "atk_interval": 6.0, "accuracy": 100, "eva": 30},	
-		"loot": [["credits", 700000, 1000000],["Superalloy", 30, 50], ["Chip", 30,	50], ["AdvCircuit", 10, 20], ["QuantumCore", 5, 10], ["VoidArtifact", 10, 25], ["Res3", 50, 100]],
+		"stats": {"hp": 150000, "max_shield": 80000, "atk": 1800, "def": 250, "atk_interval": 6.0, "accuracy": 100, "eva": 30},
+		"loot": [["credits", 700000, 1000000], ["Superalloy", 30, 50], ["Chip", 30, 50], ["AdvCircuit", 10, 20], ["QuantumCore", 5, 10], ["VoidArtifact", 10, 25], ["Res3", 50, 100]],
 		"rare_loot": [],
+		"module_drop_chance": 0.10,
+		"module_drop_pool": ["torpedo_launcher", "cryo_laser_mk3", "railgun_mk3", "advanced_shield", "composite_armor_mk2"],
+		"is_boss": true,
 		"xp": 5000
 	},
 	"mining_sentinel": {
@@ -353,6 +391,9 @@ var enemy_db = {
 		"stats": {"hp": 150000, "max_shield": 80000, "atk": 600, "def": 180, "accuracy": 150},
 		"loot": [["VoidCrystal", 5, 10], ["Ir", 10, 20], ["QuantumCore", 2, 4]],
 		"rare_loot": [["Os", 0.25, 1, 3], ["AncientTech", 0.2, 1, 1]],
+		"module_drop_chance": 0.08,
+		"module_drop_pool": ["railgun_mk3", "cryo_laser_mk3", "exotic_shield_matrix", "omega_armor"],
+		"is_boss": true,
 		"xp": 5000
 	},
 	"void_stalker": {
@@ -374,6 +415,9 @@ var enemy_db = {
 		"stats": {"hp": 500000, "max_shield": 300000, "atk": 1500, "def": 500, "atk_interval": 3.0, "accuracy": 180, "eva": 40},
 		"loot": [["credits", 300000, 600000], ["VoidCrystal", 20, 40], ["QuantumCore", 5, 10], ["Ir", 20, 40]],
 		"rare_loot": [["OmegaPlating", 0.40, 1, 2], ["ChronoCore", 0.3, 1, 1], ["Os", 0.25, 2, 4], ["Neutronium", 0.15, 1, 2]],
+		"module_drop_chance": 0.12,
+		"module_drop_pool": ["torpedo_launcher", "chrono_stabilizer", "omega_armor", "iridium_armor"],
+		"is_boss": true,
 		"xp": 25000
 	},
 	"primordial_titan": {
@@ -381,7 +425,21 @@ var enemy_db = {
 		"stats": {"hp": 2000000, "max_shield": 1000000, "atk": 3750, "def": 800, "atk_interval": 5.0, "accuracy": 200, "eva": 50},
 		"loot": [["credits", 5000000, 15000000], ["VoidCrystal", 100, 200], ["QuantumCore", 20, 40], ["OmegaPlating", 5, 10], ["PrimordialShard", 1, 3], ["ChronoCore", 2, 4], ["VoidEssence", 5, 10]],
 		"rare_loot": [],
+		"module_drop_chance": 0.15,
+		"module_drop_pool": ["torpedo_launcher", "plasma_overcharger", "railgun_mk3", "chrono_stabilizer", "omega_armor", "osmium_core_module"],
+		"is_boss": true,
 		"xp": 100000
+	},
+	"void_leviathan": {
+		"name": "VOID LEVIATHAN",
+		"stats": {"hp": 5000000, "max_shield": 3000000, "atk": 5000, "def": 1200, "atk_interval": 6.0, "accuracy": 250, "eva": 60, "jammer": true},
+		"loot": [["credits", 15000000, 30000000], ["VoidEssence", 10, 20], ["PrimordialShard", 5, 10]],
+		"rare_loot": [],
+		"requires_weapon": "void_breaker_laser",
+		"module_drop_chance": 0.20,
+		"module_drop_pool": ["plasma_overcharger", "torpedo_launcher", "railgun_mk3", "chrono_stabilizer", "omega_armor", "osmium_core_module"],
+		"is_boss": true,
+		"xp": 500000
 	},
 	# v57.0: SECTOR ZETA ENEMIES (Difficulty 9)
 	"plague_drone": {
@@ -545,13 +603,41 @@ func spawn_enemy():
 		"max_shield": e_data["stats"].get("max_shield", 0),
 		"loot": e_data["loot"],
 		"rare_loot": e_data.get("rare_loot", []),
+		"module_drop_chance": e_data.get("module_drop_chance", 0.0),
+		"module_drop_pool": e_data.get("module_drop_pool", []),
+		"is_boss": e_data.get("is_boss", false),
 		"xp": e_data["xp"],
 		"jammer": e_data["stats"].get("jammer", false),
 		"eva": e_data["stats"].get("eva", 0),
 		# v62.0 Fix: Copy atk_interval so enemy attack speed is used
-		"atk_interval": e_data["stats"].get("atk_interval", 3.0)
+		"atk_interval": e_data["stats"].get("atk_interval", 3.0),
+		"is_elite": false # Default
 	}
+	
+	# Apply Elite logic if requested by bounty_manager or random chance (5%)
+	var elite_chance = 0.05
+	# The bounty_manager will signal is_elite through target_enemy_id if it's a specific elite hunt
+	# For simplicity, we can check a temporary flag or just let bounty_manager handle it.
+	# Let's add a global flag for the next spawn.
+	if next_spawn_elite:
+		current_enemy["is_elite"] = true
+		next_spawn_elite = false
+	elif randf() < elite_chance:
+		current_enemy["is_elite"] = true
+		
+	if current_enemy["is_elite"]:
+		current_enemy["name"] = "★ ELITE ★ " + current_enemy["name"]
+		current_enemy["max_hp"] *= 2.5
+		current_enemy["atk"] *= 1.8
+		current_enemy["xp"] *= 3.0
+		# Elite loot buff
+		current_enemy["loot"] = current_enemy["loot"].duplicate()
+		for item in current_enemy["loot"]:
+			item[1] = int(item[1] * 2.5)
+			item[2] = int(item[2] * 2.5)
+			
 	is_jammed = current_enemy["jammer"]
+	combat_started.emit()
 	
 	# Unique Module Check (Phase 19)
 	var sm = GameState.shipyard_manager
@@ -560,12 +646,11 @@ func spawn_enemy():
 	has_exotic_matrix = false
 	enemy_speed_mult = 1.0
 	
-	for slot in sm.loadout:
-		var mid = sm.loadout[slot]
-		if mid == "reflective_sheath": has_reflective = true
-		elif mid == "reactive_armor": has_reactive = true
-		elif mid == "exotic_shield_matrix": has_exotic_matrix = true
-		elif mid == "chrono_stabilizer": enemy_speed_mult *= 0.8
+	has_reflective = _loadout_has_module(sm, "reflective_sheath")
+	has_reactive = _loadout_has_module(sm, "reactive_armor")
+	has_exotic_matrix = _loadout_has_module(sm, "exotic_shield_matrix")
+	if _loadout_has_module(sm, "chrono_stabilizer"):
+		enemy_speed_mult *= 0.8
 	enemy_hp = current_enemy["max_hp"]
 	enemy_max_hp = enemy_hp
 	enemy_shield = float(current_enemy["max_shield"])
@@ -604,7 +689,7 @@ func spawn_enemy():
 				})
 	if equipped_weapons.is_empty():
 		var h_stats = sm.hulls[sm.active_hull]["stats"]
-		player_weapon_states.append({"name": "Standard Cannon", "type": "kinetic", "timer": 0.0, "interval": 3.0, "dmg_k": h_stats["atk"], "dmg_e": 0, "dmg_x": 0, "slot_idx": -1, "energy_load": 0})
+		player_weapon_states.append({"name": "Standard Cannon", "type": "kinetic", "timer": 0.0, "interval": 3.0, "dmg_k": h_stats["atk"], "dmg_e": 0, "dmg_x": 0, "slot_idx": - 1, "energy_load": 0})
 	else:
 		player_weapon_states.append_array(equipped_weapons)
 	log_msg("Readying Weapon Battery: %d systems online." % player_weapon_states.size())
@@ -622,7 +707,7 @@ func process_tick(delta: float):
 	if sm:
 		player_max_shield = sm.max_shield
 		
-	if not in_combat or not current_enemy or not current_zone: 
+	if not in_combat or not current_enemy or not current_zone:
 		_process_regeneration(delta)
 		return
 		
@@ -652,16 +737,16 @@ func process_tick(delta: float):
 	
 	# v65.0 Fix: Enemy Shield Regen moved to generic accumulator and Capped (Removed old logic)
 	
-	for slot in sm.loadout:
-		if sm.loadout[slot] == "warp_stabilizer":
-			p_speed_mult += 0.15
-			break
+	if _loadout_has_module(sm, "warp_stabilizer"):
+		p_speed_mult += 0.15
 
 	if coolant_flush_timer > 0:
 		coolant_flush_timer -= delta
 		p_speed_mult *= 2.0
 			
 	for w_idx in range(player_weapon_states.size()):
+		if w_idx >= player_weapon_states.size():
+			break # Array was resized (e.g., enemy died and new one spawned)
 		var w = player_weapon_states[w_idx]
 		# Audit v70.0: Cooling Systems Implementation
 		# Base interval is reduced by attack_speed_bonus (e.g., +10% speed = 1.1x faster tick)
@@ -671,6 +756,8 @@ func process_tick(delta: float):
 		
 		if w["timer"] >= w["interval"]:
 			_execute_player_attack(w_idx)
+			if w_idx >= player_weapon_states.size():
+				break # win_fight() may have rebuilt weapon states
 			w["timer"] -= w["interval"]
 		
 	# v65.0 Fix: Use enemy's actual attack interval (was hardcoded 3.0)
@@ -684,7 +771,7 @@ func process_tick(delta: float):
 		_execute_enemy_attack()
 		enemy_attack_timer -= e_interval
 		
-	if consumable_cooldown > 0: 
+	if consumable_cooldown > 0:
 		consumable_cooldown -= delta
 	else:
 		_check_auto_consume(delta)
@@ -697,12 +784,7 @@ func process_tick(delta: float):
 		else:
 			sm.current_hp += heal
 		
-	var has_broadside = false
-	for slot in sm.loadout:
-		if sm.loadout[slot] == "broadside_array":
-			has_broadside = true
-			break
-	if has_broadside and in_combat:
+	if _loadout_has_module(sm, "broadside_array") and in_combat:
 		broadside_timer += delta
 		if broadside_timer >= 20.0:
 			_execute_broadside_burst()
@@ -764,11 +846,8 @@ func _execute_player_attack(weapon_idx: int):
 	var p_atk_k = w["dmg_k"]
 	var p_atk_e = w["dmg_e"]
 	var p_atk_x = w["dmg_x"]
-	if w["type"] == "energy":
-		for slot in sm.loadout:
-			if sm.loadout[slot] == "plasma_overcharger":
-				p_atk_e *= 2.0
-				break
+	if w["type"] == "energy" and _loadout_has_module(sm, "plasma_overcharger"):
+		p_atk_e *= 2.0
 	
 	var ammo_id = sm.ammo_loadout.get(w["slot_idx"])
 	var requires_ammo = (w["type"] == "kinetic" or w["type"] == "explosive") and w["slot_idx"] != -1
@@ -779,13 +858,13 @@ func _execute_player_attack(weapon_idx: int):
 			
 			# Audit Phase 19: Use flat bonuses from elements.json where possible, or standardized flat tiers
 			# Descriptions say: +5, +15, +30
-			if ammo_id.begins_with("Slug"): 
+			if ammo_id.begins_with("Slug"):
 				var bonus = 5.0
 				if "T2" in ammo_id: bonus = 15.0
 				elif "T3" in ammo_id: bonus = 30.0
 				elif "T4" in ammo_id: bonus = 60.0
 				p_atk_k += bonus
-			elif ammo_id.begins_with("Cell"): 
+			elif ammo_id.begins_with("Cell"):
 				var bonus = 5.0
 				if "T2" in ammo_id: bonus = 15.0
 				elif "T3" in ammo_id: bonus = 30.0
@@ -801,6 +880,14 @@ func _execute_player_attack(weapon_idx: int):
 	elif requires_ammo:
 		return # No ammo equipped for kinetic weapon
 		
+	# Feature 66.0: Boss Gating System
+	if current_enemy.has("requires_weapon"):
+		var req_w = current_enemy["requires_weapon"]
+		if not _loadout_has_module(sm, req_w):
+			if randf() < 0.2:
+				combat_events.append({"type": "miss", "text": "REQUIRES " + req_w.replace("_", " ").to_upper(), "color": Color.RED, "side": "enemy"})
+			return # Deals 0 damage and skips calculation
+			
 	var skill_dmg_mult = 1.0 + (get_level() * 0.005)
 	var total_crit = sm.crit_chance + get_milestone_crit_bonus()
 	var res = resolve_damage(p_atk_k * skill_dmg_mult, p_atk_e * skill_dmg_mult, p_atk_x * skill_dmg_mult, enemy_shield, current_enemy["def"], current_zone.get("difficulty", 1), total_crit)
@@ -857,16 +944,16 @@ func resolve_damage(atk_k, atk_e, atk_x, c_shield, c_armor, difficulty = 1, crit
 		# If HP is low, effectively double the K-scale for better mitigation
 		k *= (1.0 + (1.0 - hp_ratio))
 
-	var hull_dmg_k = atk_k * 1.2 * (1.0 - arm_k/(arm_k+k))
-	var hull_dmg_e = atk_e * 0.9 * (1.0 - arm_e/(arm_e+k))
-	var hull_dmg_x = atk_x * 1.0 * (1.0 - arm_x/(arm_x+k))
+	var hull_dmg_k = atk_k * 1.2 * (1.0 - arm_k / (arm_k + k))
+	var hull_dmg_e = atk_e * 0.9 * (1.0 - arm_e / (arm_e + k))
+	var hull_dmg_x = atk_x * 1.0 * (1.0 - arm_x / (arm_x + k))
 	
 	var total_hull_dmg = (hull_dmg_k + hull_dmg_e + hull_dmg_x) * bleed_ratio
 	
 	var variance = randf_range(0.9, 1.1)
 	var is_crit = randf() < crit_chance
 	if is_crit: variance *= 1.5
-	return [int(damage_to_shield * variance), int(max(1.0 if (atk_k+atk_e+atk_x)>0 else 0, total_hull_dmg * variance)), is_crit]
+	return [int(damage_to_shield * variance), int(max(1.0 if (atk_k + atk_e + atk_x) > 0 else 0, total_hull_dmg * variance)), is_crit]
 
 func win_fight():
 	log_msg("Destroyed %s!" % current_enemy["name"])
@@ -880,6 +967,26 @@ func win_fight():
 			var qty = randi_range(entry[2], entry[3])
 			GameState.resources.add_element(entry[0], qty)
 			session_loot[entry[0]] = session_loot.get(entry[0], 0) + qty
+	
+	# v71.0: Module Rarity Drop System
+	var drop_chance = current_enemy.get("module_drop_chance", 0.0)
+	var drop_pool = current_enemy.get("module_drop_pool", [])
+	if drop_chance > 0 and drop_pool.size() > 0 and randf() < drop_chance:
+		var sm = GameState.shipyard_manager
+		var is_boss = current_enemy.get("is_boss", false)
+		var rarity = sm.roll_rarity(is_boss)
+		# Common rolls don't produce module drops (just materials)
+		if rarity != sm.Rarity.COMMON:
+			var base_id = drop_pool[randi() % drop_pool.size()]
+			var custom_id = sm.generate_module_drop(base_id, rarity)
+			if custom_id != "":
+				var w_name = sm.modules[custom_id]["name"]
+				var rarity_color = sm.RARITY_COLORS[rarity]
+				var rarity_label = sm.RARITY_LABELS[rarity]
+				combat_events.append({"type": "loot", "text": "%s DROP" % rarity_label.to_upper(), "color": rarity_color, "side": "enemy"})
+				log_msg("Looted %s Module: %s" % [rarity_label, w_name])
+				session_loot[custom_id] = 1
+
 	add_xp(int(current_enemy["xp"] * (1.0 + GameState.research_manager.get_efficiency_bonus("combat_xp"))))
 	enemy_defeated.emit(current_enemy["id"])
 	spawn_enemy()
@@ -1004,7 +1111,7 @@ func calculate_offline(delta: float) -> String:
 		return ""
 	
 	# Estimate kills based on average combat duration
-	var avg_kill_time = 10.0  # Approximate seconds per kill
+	var avg_kill_time = 10.0 # Approximate seconds per kill
 	var num_kills = int(delta / avg_kill_time)
 	if num_kills <= 0: return ""
 	
