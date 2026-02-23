@@ -22,12 +22,25 @@ func setup(data: Dictionary, p_parent, mode: String = "available"):
 	progress_bar.visible = (mode == "active")
 	
 	# Reward preview
-	var reward_txt = "Reward: %s CR" % UITheme.format_num(data["reward_credits"])
+	var sm = GameState.shipyard_manager
+	var negotiation = sm.affix_bonuses.get("contract_negotiation", 0.0)
+	var final_reward = int(data["reward_credits"] * (1.0 + negotiation))
+	
+	var reward_txt = "Reward: %s CR" % UITheme.format_num(final_reward)
+	if negotiation > 0:
+		reward_txt += " (+%d%%)" % int(negotiation * 100)
+		
 	if data.get("reward_module_pool", []).size() > 0:
 		reward_txt += " + Module Drop"
-	if data.get("is_elite", false):
-		reward_txt += " + TROPHY"
 	reward_lbl.text = reward_txt
+	
+	# v74.0: Logistician's Edge UI
+	if data["type"] == "delivery" and mode == "available":
+		var logi_edge = sm.affix_bonuses.get("logistician_edge", 0.0)
+		if logi_edge > 0:
+			var eff_qty = int(data["target_qty"] * (1.0 - logi_edge))
+			var d_name = ElementDB.get_display_name(data["target"])
+			desc_lbl.text = "Deliver %d %s (Discounted: -%d%%)" % [eff_qty, d_name, int(logi_edge * 100)]
 	
 	# Action button
 	match mode:
@@ -51,16 +64,12 @@ func _apply_style(data: Dictionary, mode: String):
 	style.set_corner_radius_all(6)
 	style.set_border_width_all(1)
 	
-	if data.get("is_elite", false):
-		style.border_color = Color(0.8, 0.2, 1.0, 1.0) # Vibrant Purple
-		style.set_border_width_all(2) # Thicker border for Elites
-		UITheme.apply_premium_button_style(action_btn, "boss")
-	elif data.get("completed", false) and mode == "active":
+	if data.get("completed", false) and mode == "active":
 		style.border_color = Color.GOLD
 		UITheme.apply_premium_button_style(action_btn, "combat")
 	elif mode == "available":
 		style.border_color = Color(0.2, 0.5, 0.8, 0.6)
-		UITheme.apply_premium_button_style(action_btn, "combat")
+		UITheme.apply_premium_button_style(action_btn, "combat") # Standardized to Combat
 	else:
 		style.border_color = Color(0.3, 0.3, 0.4, 0.4)
 		action_btn.modulate = Color(0.7, 0.4, 0.4)

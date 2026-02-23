@@ -70,6 +70,9 @@ func remove_element(symbol: String, amount: float) -> bool:
 func get_element_amount(symbol: String) -> float:
 	return elements.get(symbol, 0.0)
 
+func has_element(symbol: String, amount: float) -> bool:
+	return get_element_amount(symbol) >= amount
+
 func add_currency(currency_type: String, amount: float):
 	if not currencies.has(currency_type):
 		currencies[currency_type] = 0.0

@@ -42,6 +42,19 @@ func _update_stats_text():
 		var val = stats[k]
 		s_txt += "%s: %s\n" % [label, FormatUtils.format_stat_value(k, val)]
 	stats_lbl.text = s_txt.strip_edges()
+	
+	# v74.0: Display Affixes
+	if data.get("affixes", {}).size() > 0:
+		var a_txt = "\n"
+		var sm = GameState.shipyard_manager
+		var affixes = data["affixes"]
+		for aid in affixes:
+			if aid in sm.AFFIX_DB:
+				var cfg = sm.AFFIX_DB[aid]
+				var val = int(affixes[aid] * 100)
+				var a_desc = cfg["desc"] % val
+				a_txt += "\n[ %s ]\n" % a_desc
+		stats_lbl.text += a_txt
 
 
 
@@ -148,45 +161,127 @@ func _on_hover_enter():
 func _on_hover_exit():
 	pass
 
-func _build_comparison_tooltip() -> String:
-	var tt = data["name"] + "\n"
-	tt += "─────────────────\n"
+func _make_custom_tooltip(_for_text: String) -> Control:
+	var panel = PanelContainer.new()
+	var sm = GameState.shipyard_manager
+	var rarity = data.get("rarity", sm.Rarity.COMMON)
+	var r_color = sm.RARITY_COLORS.get(rarity, Color(0.2, 0.2, 0.2))
 	
-	var my_stats = data.get("stats", {})
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.05, 0.05, 0.07, 0.98)
+	style.border_color = r_color
+	style.border_color.a = 0.8
+	style.set_border_width_all(1)
+	style.border_width_top = 4
+	style.set_corner_radius_all(2)
+	style.set_content_margin_all(12)
+	panel.add_theme_stylebox_override("panel", style)
+	
+	var rtl = RichTextLabel.new()
+	rtl.bbcode_enabled = true
+	rtl.fit_content = true
+	rtl.scroll_active = false
+	rtl.custom_minimum_size = Vector2(320, 0)
+	rtl.add_theme_color_override("default_color", Color(0.9, 0.9, 0.9))
+	
+	rtl.text = _build_comparison_tooltip()
+	panel.add_child(rtl)
+	
+	return panel
+
+func _build_comparison_tooltip() -> String:
+	if not data: return ""
+	
+	var sm = GameState.shipyard_manager
+	var rarity = data.get("rarity", sm.Rarity.COMMON)
+	var rarity_label = sm.RARITY_LABELS.get(rarity, "Common")
+	if rarity == sm.Rarity.COMMON: rarity_label = "Common"
+	
+	var rarity_color_hex = sm.RARITY_COLORS.get(rarity, Color.GRAY).to_html(false)
 	var slot_type = data.get("slot_type", "weapon")
 	
-	# Find currently equipped module of same type for comparison
+	var tt = ""
+	
+	# 1. HEADER
+	var display_name = data.get("name", "Item").to_upper()
+	for suffix in [" (COMMON)", " (UNCOMMON)", " (RARE)", " (LEGENDARY)"]:
+		display_name = display_name.replace(suffix, "")
+		
+	tt += "[center][b][font_size=16][color=#%s]%s[/color][/font_size][/b]\n" % [rarity_color_hex, display_name]
+	tt += "[i][font_size=10][color=gray]%s %s[/color][/font_size][/i][/center]\n" % [rarity_label, slot_type.capitalize()]
+	tt += "[color=gray]──────────────────────────────────[/color]\n"
+	
+	var my_stats = data.get("stats", {})
+	
+	# 2. PRIMARY STAT
+	if slot_type == "weapon":
+		var dmg = my_stats.get("atk_kinetic", 0) + my_stats.get("atk_energy", 0) + my_stats.get("atk_explosive", 0)
+		var interval = my_stats.get("atk_interval", 2.5)
+		if interval > 0:
+			var dps = float(dmg) / interval
+			tt += "[center][font_size=20][b]%.1f[/b][/font_size] [font_size=10][color=gray]Damage Per Second[/color][/font_size][/center]\n" % dps
+			tt += "[center][font_size=10][color=silver]• %s Damage  • %.2f Attacks per Second[/color][/font_size][/center]\n" % [UITheme.format_num(dmg), 1.0/interval]
+			tt += "[color=gray]──────────────────────────────────[/color]\n"
+	elif slot_type == "shield":
+		var m_shield = my_stats.get("max_shield", 0)
+		tt += "[center][font_size=20][b]%s[/b][/font_size] [font_size=10][color=gray]Shield Capacity[/color][/font_size][/center]\n" % UITheme.format_num(m_shield)
+		tt += "[color=gray]──────────────────────────────────[/color]\n"
+	elif slot_type == "armor":
+		var hp_val = my_stats.get("hp", 0)
+		tt += "[center][font_size=20][b]%s[/b][/font_size] [font_size=10][color=gray]Integrity Reinforcement[/color][/font_size][/center]\n" % UITheme.format_num(hp_val)
+		tt += "[color=gray]──────────────────────────────────[/color]\n"
+
+	# 3. STAT COMPARISON
 	var equipped_mid = null
+	var equipped_stats = {}
 	for idx in manager.loadout:
 		var m = manager.loadout[idx]
 		if m and m in manager.modules:
 			var m_data = manager.modules[m]
 			if m_data.get("slot_type") == slot_type:
 				equipped_mid = m
+				equipped_stats = m_data.get("stats", {})
 				break
 	
 	for k in my_stats:
+		# Filter out structural and redundant stats
+		if k == "energy_load" or k == "atk_interval": continue
+		if slot_type == "weapon" and (k == "atk_kinetic" or k == "atk_energy" or k == "atk_explosive"): continue
+		if slot_type == "shield" and k == "max_shield": continue
+		if slot_type == "armor" and k == "hp": continue
+		
 		var label = FormatUtils.format_stat_label(k)
 		var val = my_stats[k]
 		var delta_str = ""
 		
 		if equipped_mid and equipped_mid != mid:
-			var eq_stats = manager.modules[equipped_mid].get("stats", {})
-			var eq_val = eq_stats.get(k, 0)
+			var eq_val = equipped_stats.get(k, 0)
 			var diff = val - eq_val
 			if diff > 0:
-				delta_str = " [color=lime](+%s ↑)[/color]" % FormatUtils.format_stat_value(k, diff)
+				delta_str = " [color=lime][font_size=9](+%s ↑)[/font_size][/color]" % FormatUtils.format_stat_value(k, diff)
 			elif diff < 0:
-				delta_str = " [color=red](%s ↓)[/color]" % FormatUtils.format_stat_value(k, diff)
+				delta_str = " [color=red][font_size=9](%s ↓)[/font_size][/color]" % FormatUtils.format_stat_value(k, diff)
 		
-		tt += "%s: %s%s\n" % [label, FormatUtils.format_stat_value(k, val), delta_str]
+		tt += "[color=silver]⋄ %s: [color=white]%s[/color][/color]%s\n" % [label, FormatUtils.format_stat_value(k, val), delta_str]
 	
+	# 4. RANDOM AFFIXES
+	var affixes = data.get("affixes", {})
+	if affixes.size() > 0:
+		tt += "[color=gray]──────────────────────────────────[/color]\n"
+		for aid in affixes:
+			if aid in sm.AFFIX_DB:
+				var cfg = sm.AFFIX_DB[aid]
+				var val = int(affixes[aid] * 100)
+				if rarity == sm.Rarity.LEGENDARY:
+					tt += "[color=orange]★ [b]%s[/b][/color]\n" % (cfg["desc"] % val)
+				else:
+					tt += "[color=cyan]⋄ %s[/color]\n" % (cfg["desc"] % val)
+
+	# 5. FOOTER
+	tt += "[color=gray]──────────────────────────────────[/color]\n"
 	if equipped_mid and equipped_mid != mid:
-		tt += "─────────────────\n"
-		tt += "Compared to: %s" % manager.modules[equipped_mid]["name"]
-	
-	if data.has("desc"):
-		tt += "\n─────────────────\n"
-		tt += data["desc"]
-	
+		tt += "[font_size=9][color=yellow]Comparing with: %s[/color][/font_size]" % manager.modules[equipped_mid]["name"]
+	else:
+		tt += "[font_size=9][color=gray](Currently equipped module)[/color][/font_size]" if equipped_mid == mid else ""
+
 	return tt

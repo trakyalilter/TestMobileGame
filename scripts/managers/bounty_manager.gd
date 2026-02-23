@@ -110,18 +110,20 @@ func get_player_max_difficulty() -> int:
 func generate_contract_pool():
 	available_contracts.clear()
 	var max_diff = get_player_max_difficulty()
+	var min_diff = max(1, max_diff - 1) # Smart Loot: Keep only top 2 tiers
 	
 	# Generate a mix of hunt and delivery contracts
 	var attempts = 0
-	while available_contracts.size() < MAX_AVAILABLE and attempts < 50:
+	while available_contracts.size() < MAX_AVAILABLE and attempts < 100:
 		attempts += 1
 		var contract = {}
-		if randf() < 0.4:
-			contract = _generate_hunt_contract(max_diff)
-		elif randf() < 0.7:
-			contract = _generate_delivery_contract(max_diff)
+		var roll = randf()
+		if roll < 0.4:
+			contract = _generate_hunt_contract(min_diff, max_diff)
+		elif roll < 0.7:
+			contract = _generate_delivery_contract(min_diff, max_diff)
 		else:
-			contract = _generate_elite_contract(max_diff)
+			contract = _generate_elite_contract(max_diff) # Elites always at max
 		
 		if contract.size() > 0:
 			# Check for duplicates
@@ -146,18 +148,18 @@ func force_refresh() -> bool:
 		UITheme.show_notification("Not enough credits to refresh!", Color.RED)
 		return false
 	
-	GameState.resources.add_currency("credits", -cost)
+	GameState.resources.remove_currency("credits", cost)
 	generate_contract_pool()
 	UITheme.show_notification("Bounty Board Refreshed", Color.CYAN)
 	return true
 
-func _generate_hunt_contract(max_diff: int) -> Dictionary:
+func _generate_hunt_contract(min_diff: int, max_diff: int) -> Dictionary:
 	var cm = GameState.combat_manager
-	# Pick a random zone at or below player's level
+	# Pick a random zone within relevance range
 	var valid_zones = []
 	for zid in cm.zones:
 		var z = cm.zones[zid]
-		if z["difficulty"] <= max_diff:
+		if z["difficulty"] >= min_diff and z["difficulty"] <= max_diff:
 			valid_zones.append({"id": zid, "data": z})
 	
 	if valid_zones.is_empty():
@@ -174,7 +176,10 @@ func _generate_hunt_contract(max_diff: int) -> Dictionary:
 	var is_boss = enemy_data.get("is_boss", false)
 	var qty = randi_range(1, 3) if is_boss else randi_range(5, 20)
 	var base_xp = enemy_data.get("xp", 10)
-	var credit_reward = int(base_xp * qty * 0.5)
+	
+	# v73.0: Exponential Credit Scaling
+	var diff_mult = pow(zone["data"]["difficulty"], 1.5)
+	var credit_reward = int(base_xp * qty * 0.5 * diff_mult)
 	
 	# Module reward: pick from the zone's enemies' module pools
 	var module_pool = _get_zone_module_pool(zone["id"])
@@ -215,7 +220,10 @@ func _generate_elite_contract(max_diff: int) -> Dictionary:
 	
 	var qty = 1 # Elites are 1v1 duels
 	var base_xp = enemy_data.get("xp", 10)
-	var credit_reward = int(base_xp * 50 * zone["data"]["difficulty"]) # Massive payout
+	
+	# v73.0: Elite Jackpot Scaling
+	var diff_mult = pow(zone["data"]["difficulty"], 1.2)
+	var credit_reward = int(base_xp * 75 * diff_mult)
 	
 	return {
 		"id": _gen_id(),
@@ -234,9 +242,9 @@ func _generate_elite_contract(max_diff: int) -> Dictionary:
 		"is_elite": true
 	}
 
-func _generate_delivery_contract(max_diff: int) -> Dictionary:
-	# Pick a difficulty tier at or below player level
-	var tier = randi_range(1, max_diff)
+func _generate_delivery_contract(min_diff: int, max_diff: int) -> Dictionary:
+	# Pick a difficulty tier within relevance range
+	var tier = randi_range(min_diff, max_diff)
 	var templates = delivery_materials.get(tier, [])
 	if templates.is_empty():
 		return {}
@@ -310,13 +318,17 @@ func accept_contract(contract_id: String) -> bool:
 	
 	# Delivery contracts: Check and consume materials on acceptance
 	if contract["type"] == "delivery":
-		var has_mats = GameState.resources.has_element(contract["target"], contract["target_qty"])
+		var sm = GameState.shipyard_manager
+		var logi_edge = sm.affix_bonuses.get("logistician_edge", 0.0)
+		var effective_qty = int(contract["target_qty"] * (1.0 - logi_edge))
+		
+		var has_mats = GameState.resources.has_element(contract["target"], effective_qty)
 		if not has_mats:
 			var d_name = ElementDB.get_display_name(contract["target"])
-			UITheme.show_notification("Not enough %s!" % d_name, Color.RED)
+			UITheme.show_notification("Not enough %s! (Need %d)" % [d_name, effective_qty], Color.RED)
 			return false
-		GameState.resources.add_element(contract["target"], -contract["target_qty"])
-		contract["current_qty"] = contract["target_qty"]
+		GameState.resources.remove_element(contract["target"], effective_qty)
+		contract["current_qty"] = effective_qty # Track what was actually spent
 		contract["completed"] = true
 	
 	available_contracts.remove_at(idx)
@@ -339,51 +351,33 @@ func claim_contract(contract_id: String) -> bool:
 		return false
 	
 	# Award credits
-	GameState.resources.add_currency("credits", contract["reward_credits"])
-	UITheme.show_notification("+%s Credits" % UITheme.format_num(contract["reward_credits"]), Color.GOLD)
+	var sm = GameState.shipyard_manager
+	var bonus_mult = 1.0 + sm.affix_bonuses.get("contract_negotiation", 0.0)
+	var final_reward = int(contract["reward_credits"] * bonus_mult)
+	
+	GameState.resources.add_currency("credits", final_reward)
+	UITheme.show_notification("+%s Credits" % UITheme.format_num(final_reward), Color.GOLD)
 	
 	# Award module (if pool exists)
 	var pool = contract["reward_module_pool"]
 	if pool.size() > 0:
-		var sm = GameState.shipyard_manager
 		var base_id = pool[randi() % pool.size()]
-		var rarity = sm.roll_rarity(contract["difficulty"] >= 8) # Boss-tier odds for high difficulty
 		
-		if rarity > sm.Rarity.COMMON:
-			var custom_id = sm.create_custom_module(base_id, rarity)
-			sm.module_inventory[custom_id] = sm.module_inventory.get(custom_id, 0) + 1
+		# v74.0: Bounty High-Tier Rarity Floor (Rare+)
+		var is_boss = contract["difficulty"] >= 8
+		var leg_chance = 0.25 if is_boss else 0.10
+		var rarity = sm.Rarity.LEGENDARY if randf() < leg_chance else sm.Rarity.RARE
+		
+		var custom_id = sm.generate_module_drop(base_id, rarity)
+		if custom_id != "":
 			var m_name = sm.modules[custom_id]["name"]
-			UITheme.show_notification("Module Received: %s" % m_name, sm.RARITY_COLORS.get(rarity, Color.WHITE))
-			sm.new_drops_alert = true
-		else:
-			sm.module_inventory[base_id] = sm.module_inventory.get(base_id, 0) + 1
-			var m_name = sm.modules[base_id]["name"]
-			UITheme.show_notification("Module Received: %s" % m_name, Color.WHITE)
-			sm.new_drops_alert = true
+			var r_color = sm.RARITY_COLORS.get(rarity, Color.WHITE)
+			UITheme.show_notification("Module Received: %s" % m_name, r_color)
+		
 		sm.inventory_updated.emit()
 	
 	contract["claimed"] = true
 	
-	# Award Trophy for Elites (Tiered by zone)
-	if contract.get("is_elite", false):
-		var zone_id = contract["zone_id"]
-		var trophy_map = {
-			"lunar_orbit": "Trophy_Lunar",
-			"asteroid_belt": "Trophy_Belt",
-			"mars_debris": "Trophy_Mars",
-			"titan_halo": "Trophy_Titan",
-			"sector_alpha": "Trophy_Alpha",
-			"sector_beta": "Trophy_Beta",
-			"sector_gamma": "Trophy_Gamma",
-			"sector_delta": "Trophy_Delta",
-			"sector_zeta": "Trophy_Zeta",
-			"sector_epsilon": "Trophy_Epsilon"
-		}
-		var t_id = trophy_map.get(zone_id, "")
-		if t_id != "" and GameState.resources:
-			GameState.resources.add_element(t_id, 1)
-			UITheme.show_notification("TROPHY AWARDED: %s" % ElementDB.get_display_name(t_id), Color.GOLD)
-
 	active_contracts.remove_at(idx)
 	total_completed += 1
 	
@@ -404,7 +398,7 @@ func abandon_contract(contract_id: String) -> bool:
 	
 	# Refund materials for delivery contracts
 	if contract["type"] == "delivery" and contract["current_qty"] > 0:
-		GameState.resources.add_element(contract["target"], contract["target_qty"])
+		GameState.resources.add_element(contract["target"], contract["current_qty"])
 		UITheme.show_notification("Materials refunded.", Color.YELLOW)
 	
 	active_contracts.remove_at(idx)

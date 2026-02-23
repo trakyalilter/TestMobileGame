@@ -130,21 +130,26 @@ func _start_legendary_pulse():
 
 func _make_custom_tooltip(_for_text: String) -> Control:
 	var panel = PanelContainer.new()
+	var sm = GameState.shipyard_manager
+	var rarity = data.get("rarity", sm.Rarity.COMMON)
+	var r_color = sm.RARITY_COLORS.get(rarity, Color(0.2, 0.2, 0.2))
+	
 	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.08, 0.08, 0.12, 0.95)
-	style.border_color = Color(0, 0.7, 0.9, 0.8)
+	style.bg_color = Color(0.05, 0.05, 0.07, 0.98)
+	style.border_color = r_color
+	style.border_color.a = 0.8
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(4)
-	style.set_content_margin_all(10)
+	style.border_width_top = 4 # Thick top border for rarity identity
+	style.set_corner_radius_all(2)
+	style.set_content_margin_all(12)
 	panel.add_theme_stylebox_override("panel", style)
 	
 	var rtl = RichTextLabel.new()
 	rtl.bbcode_enabled = true
 	rtl.fit_content = true
 	rtl.scroll_active = false
-	rtl.custom_minimum_size = Vector2(280, 0)
+	rtl.custom_minimum_size = Vector2(320, 0)
 	rtl.add_theme_color_override("default_color", Color(0.9, 0.9, 0.9))
-	rtl.add_theme_font_size_override("normal_font_size", 12)
 	
 	rtl.text = _build_comparison_tooltip_bbcode()
 	panel.add_child(rtl)
@@ -154,22 +159,49 @@ func _make_custom_tooltip(_for_text: String) -> Control:
 func _build_comparison_tooltip_bbcode() -> String:
 	if not data: return ""
 	
-	# v71.0: Rarity header
 	var sm = GameState.shipyard_manager
 	var rarity = data.get("rarity", sm.Rarity.COMMON)
-	var rarity_label = sm.RARITY_LABELS.get(rarity, "")
+	var rarity_label = sm.RARITY_LABELS.get(rarity, "Common")
+	if rarity == sm.Rarity.COMMON: rarity_label = "Common"
+	
 	var rarity_color_hex = sm.RARITY_COLORS.get(rarity, Color.GRAY).to_html(false)
-	
-	var tt = ""
-	if rarity_label != "":
-		tt += "[b][color=#%s][ %s ][/color][/b]\n" % [rarity_color_hex, rarity_label.to_upper()]
-	tt += "[b][color=#%s]%s[/color][/b]\n" % [rarity_color_hex, data.get("name", "Item")]
-	tt += "[color=gray]─────────────────[/color]\n"
-	
-	var my_stats = data.get("stats", {})
 	var slot_type = data.get("slot_type", "weapon")
 	
-	# Find currently equipped module of same slot_type for comparison
+	var tt = ""
+	
+	# 1. HEADER (Structured)
+	var display_name = data.get("name", "Item").to_upper()
+	for suffix in [" (COMMON)", " (UNCOMMON)", " (RARE)", " (LEGENDARY)"]:
+		display_name = display_name.replace(suffix, "")
+		
+	tt += "[center][b][font_size=16][color=#%s]%s[/color][/font_size][/b]\n" % [rarity_color_hex, display_name]
+	tt += "[i][font_size=10][color=gray]%s %s[/color][/font_size][/i][/center]\n" % [rarity_label, slot_type.capitalize()]
+	tt += "[color=gray]──────────────────────────────────[/color]\n"
+	
+	var my_stats = data.get("stats", {})
+	
+	# 2. PRIMARY STAT (Large Type)
+	if slot_type == "weapon":
+		var dmg = my_stats.get("atk_kinetic", 0) + my_stats.get("atk_energy", 0) + my_stats.get("atk_explosive", 0)
+		var interval = my_stats.get("atk_interval", 2.5)
+		if interval > 0:
+			var dps = float(dmg) / interval
+			tt += "[center][font_size=20][b]%.1f[/b][/font_size] [font_size=10][color=gray]Damage Per Second[/color][/font_size][/center]\n" % dps
+			
+			# Indented weapon details
+			tt += "[center][font_size=10][color=silver]• %s Damage  • %.2f Attacks per Second[/color][/font_size][/center]\n" % [UITheme.format_num(dmg), 1.0/interval]
+			tt += "[color=gray]──────────────────────────────────[/color]\n"
+	elif slot_type == "shield":
+		var m_shield = my_stats.get("max_shield", 0)
+		tt += "[center][font_size=20][b]%s[/b][/font_size] [font_size=10][color=gray]Shield Capacity[/color][/font_size][/center]\n" % UITheme.format_num(m_shield)
+		tt += "[color=gray]──────────────────────────────────[/color]\n"
+	elif slot_type == "armor":
+		var hp_val = my_stats.get("hp", 0)
+		tt += "[center][font_size=20][b]%s[/b][/font_size] [font_size=10][color=gray]Integrity Reinforcement[/color][/font_size][/center]\n" % UITheme.format_num(hp_val)
+		tt += "[color=gray]──────────────────────────────────[/color]\n"
+
+	# 3. STATS & AFFIXES (Diablo Style)
+	# Find comparison target
 	var equipped_mid = null
 	var equipped_stats = {}
 	for idx in sm.loadout:
@@ -181,60 +213,52 @@ func _build_comparison_tooltip_bbcode() -> String:
 				equipped_stats = m_data.get("stats", {})
 				break
 	
-	# Show stats with colored delta comparison
 	for k in my_stats:
+		# Energy load/interval are structural, not "affix" stats
+		# Filter out stats already shown in Primary Stat section
+		if k == "energy_load" or k == "atk_interval": continue
+		if slot_type == "weapon" and (k == "atk_kinetic" or k == "atk_energy" or k == "atk_explosive"): continue
+		if slot_type == "shield" and k == "max_shield": continue
+		if slot_type == "armor" and k == "hp": continue
+		
 		var label = FormatUtils.format_stat_label(k)
 		var val = my_stats[k]
 		var delta_str = ""
 		
+		# Comparison deltas
 		if equipped_mid and equipped_mid != mid:
 			var eq_val = equipped_stats.get(k, 0)
 			var diff = val - eq_val
 			if diff > 0:
-				delta_str = " [color=lime](+%s ↑)[/color]" % FormatUtils.format_stat_value(k, diff)
+				delta_str = " [color=lime][font_size=9](+%s ↑)[/font_size][/color]" % FormatUtils.format_stat_value(k, diff)
 			elif diff < 0:
-				delta_str = " [color=red](%s ↓)[/color]" % FormatUtils.format_stat_value(k, diff)
+				delta_str = " [color=red][font_size=9](%s ↓)[/font_size][/color]" % FormatUtils.format_stat_value(k, diff)
 		
-		tt += "%s: %s%s\n" % [label, FormatUtils.format_stat_value(k, val), delta_str]
+		tt += "[color=silver]⋄ %s: [color=white]%s[/color][/color]%s\n" % [label, FormatUtils.format_stat_value(k, val), delta_str]
 	
-	# Add DPS if it's a weapon
-	if slot_type == "weapon":
-		var dmg = my_stats.get("atk_kinetic", 0) + my_stats.get("atk_energy", 0) + my_stats.get("atk_explosive", 0)
-		var interval = my_stats.get("atk_interval", 2.5)
-		if interval > 0:
-			var dps = float(dmg) / interval
-			tt += "[color=gray]─────────────────[/color]\n"
-			tt += "[b]DPS: %.1f[/b]" % dps
-			
-			# Compare DPS
-			if equipped_mid and equipped_mid != mid:
-				var eq_dmg = equipped_stats.get("atk_kinetic", 0) + equipped_stats.get("atk_energy", 0) + equipped_stats.get("atk_explosive", 0)
-				var eq_int = equipped_stats.get("atk_interval", 2.5)
-				if eq_int > 0:
-					var eq_dps = float(eq_dmg) / eq_int
-					var dps_diff = dps - eq_dps
-					if dps_diff > 0:
-						tt += " [color=lime](+%.1f ↑)[/color]" % dps_diff
-					elif dps_diff < 0:
-						tt += " [color=red](%.1f ↓)[/color]" % dps_diff
-			tt += "\n"
+	# 4. RANDOM AFFIXES (with Ranges)
+	var affixes = data.get("affixes", {})
+	if affixes.size() > 0:
+		tt += "[color=gray]──────────────────────────────────[/color]\n"
+		for aid in affixes:
+			if aid in sm.AFFIX_DB:
+				var cfg = sm.AFFIX_DB[aid]
+				var val = int(affixes[aid] * 100)
+				
+				# Legendary coloring
+				if rarity == sm.Rarity.LEGENDARY:
+					tt += "[color=orange]★ [b]%s[/b][/color]\n" % (cfg["desc"] % val)
+				else:
+					tt += "[color=cyan]⋄ %s[/color]\n" % (cfg["desc"] % val)
 	
-	# Show comparison target
-	if equipped_mid and equipped_mid != mid:
-		tt += "[color=gray]─────────────────[/color]\n"
-		tt += "[color=yellow]vs: %s[/color]" % sm.modules[equipped_mid]["name"]
-	elif not equipped_mid:
-		tt += "[color=gray]─────────────────[/color]\n"
-		tt += "[color=gray](No %s equipped)[/color]" % slot_type.capitalize()
-	
-	# Description if available
-	if data.has("desc"):
-		tt += "\n[color=gray]─────────────────[/color]\n"
-		tt += "[color=silver]%s[/color]" % data["desc"]
-	
-	# Sell price info
+	# 5. FOOTER
+	tt += "[color=gray]──────────────────────────────────[/color]\n"
 	var sell_price = sm.get_sell_price(mid)
-	tt += "\n[color=gray][Drag to slot to equip | Right-click to sell (%s ¢)][/color]" % UITheme.format_num(sell_price)
+	tt += "[font_size=10][color=gray]Sell Value:[/color] [color=gold]%s ¢[/color][/font_size]" % UITheme.format_num(sell_price)
+	
+	if equipped_mid and equipped_mid != mid:
+		tt += "\n[font_size=9][color=yellow]Comparing with: %s[/color][/font_size]" % sm.modules[equipped_mid]["name"]
+	
 	return tt
 
 func _get_drag_data(_at_position):

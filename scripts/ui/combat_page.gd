@@ -346,11 +346,13 @@ func update_ui():
 	# Process Combat Events (Floating Text + Haptics)
 	while manager.combat_events.size() > 0:
 		var ev = manager.combat_events.pop_front()
-		UITheme.show_notification(ev["text"], ev["color"])
+		if is_visible_in_tree():
+			UITheme.show_notification(ev["text"], ev["color"])
 		
-		# TACTILE: Damage-induced System Glitch
+		# TACTILE: Damage-induced System Glitch (Still apply glitch if hidden? Usually yes, for weight, but let's gate it too to reduce noise)
 		if ev.get("side") == "player" and ev.get("type", "") == "damage":
-			_apply_hud_stress()
+			if is_visible_in_tree():
+				_apply_hud_stress()
 			if manager.haptics_enabled:
 				Input.vibrate_handheld(100)
 		

@@ -30,6 +30,77 @@ const BOOSTABLE_STATS = [
 	"jamming_strength"
 ]
 
+# v74.0: Module Affix System (Diablo/PoE Style)
+# Categories: tactical, industrial, economy
+const AFFIX_DB = {
+	"static_burst": {
+		"name": "Static Burst",
+		"type": "tactical",
+		"range": [0.10, 0.30],
+		"desc": "%d%% shock chance on hit to reset enemy attack timer."
+	},
+	"capacitor_pulse": {
+		"name": "Capacitor Pulse",
+		"type": "tactical",
+		"range": [0.05, 0.15],
+		"desc": "Instantly restore %d%% Max Shield on every enemy kill."
+	},
+	"void_strike": {
+		"name": "Void Strike",
+		"type": "tactical",
+		"range": [0.05, 0.20],
+		"desc": "%d%% chance to bypass Shield and deal Hull damage directly."
+	},
+	"heat_sync_focus": {
+		"name": "Heat-Sync Focus",
+		"type": "tactical",
+		"range": [0.10, 0.40],
+		"desc": "+%d%% Attack Speed while Heat is above 40%%."
+	},
+	"refinery_link": {
+		"name": "Refinery Link",
+		"type": "industrial",
+		"range": [0.05, 0.20],
+		"desc": "+%d%% Global Processing Speed."
+	},
+	"extractor_efficiency": {
+		"name": "Extractor Efficiency",
+		"type": "industrial",
+		"range": [0.10, 0.30],
+		"desc": "+%d%% Auto-Miner Yield."
+	},
+	"nano_scavenger": {
+		"name": "Nano-Scavenger",
+		"type": "industrial",
+		"range": [0.10, 0.25],
+		"desc": "%d%% chance to loot processed materials from kills."
+	},
+	"contract_negotiation": {
+		"name": "Contract Negotiation",
+		"type": "economy",
+		"range": [0.10, 0.30],
+		"desc": "+%d%% Bounty Credit rewards."
+	},
+	"logistician_edge": {
+		"name": "Logistician's Edge",
+		"type": "economy",
+		"range": [0.10, 0.40],
+		"desc": "-%d%% material requirements for Delivery Contracts."
+	}
+}
+
+var affix_bonuses = {
+	"static_burst": 0.0,
+	"capacitor_pulse": 0.0,
+	"void_strike": 0.0,
+	"heat_sync_focus": 0.0,
+	"refinery_link": 0.0,
+	"extractor_efficiency": 0.0,
+	"nano_scavenger": 0.0,
+	"contract_negotiation": 0.0,
+	"logistician_edge": 0.0
+}
+
 # v71.1: Alert System for new drops
 signal alert_changed(state: bool)
 var new_drops_alert: bool = false:
@@ -525,7 +596,7 @@ var modules: Dictionary = {
 	"plasma_overcharger": {
 		"name": "Plasma Overcharger",
 		"slot_type": "weapon",
-		"stats": {"atk_energy": 100, "energy_load": 400, "atk_interval": 0.8}, # Audit v40.0: Buffed ATK 202100
+		"stats": {"atk_energy": 100, "energy_load": 300, "atk_interval": 0.8}, # Audit v40.0: Buffed ATK 202100
 		"cost": {"credits": 1000000, "AdvCircuit": 50, "Superalloy": 75},
 		"desc": "(Unique) Heavily boosts Energy Damage but consumes massive Reactor power.",
 		"research_req": "energy_metrics",
@@ -968,6 +1039,18 @@ func recalc_stats():
 			s_reg_bon += m.get("shield_regen_bonus", 0.0)
 			jam_str += m.get("jamming_strength", 0.0)
 
+	# Reset Affix Bonuses
+	for key in affix_bonuses:
+		affix_bonuses[key] = 0.0
+		
+	# Aggregate Affixes from Custom Modules
+	for mid in loadout.values():
+		if mid and mid in custom_modules:
+			var affixes = custom_modules[mid].get("affixes", {})
+			for affix_id in affixes:
+				if affix_id in affix_bonuses:
+					affix_bonuses[affix_id] += affixes[affix_id]
+
 			
 	var rm = GameState.research_manager
 	var hp_mult = 1.0
@@ -1195,6 +1278,22 @@ func generate_module_drop(base_module_id: String, rarity: int = Rarity.UNCOMMON)
 			# Non-boostable stats (energy_load, atk_interval) stay at base
 			custom_stats[stat_key] = base_val
 	
+	# v74.0: Affix Generation
+	var custom_affixes = {}
+	var affix_pool = AFFIX_DB.keys()
+	
+	var num_affixes = 0
+	if rarity == Rarity.RARE: num_affixes = 1
+	elif rarity == Rarity.LEGENDARY: num_affixes = 2
+	
+	if num_affixes > 0:
+		affix_pool.shuffle()
+		for i in range(num_affixes):
+			var affix_id = affix_pool[i]
+			var cfg = AFFIX_DB[affix_id]
+			var val = randf_range(cfg["range"][0], cfg["range"][1])
+			custom_affixes[affix_id] = val
+	
 	var rarity_label = RARITY_LABELS.get(rarity, "")
 	var suffix = " (%s)" % rarity_label if rarity_label != "" else ""
 	
@@ -1206,7 +1305,8 @@ func generate_module_drop(base_module_id: String, rarity: int = Rarity.UNCOMMON)
 		"desc": base.get("desc", ""),
 		"is_custom": true,
 		"rarity": rarity,
-		"base_module": base_module_id
+		"base_module": base_module_id,
+		"affixes": custom_affixes # Add affixes here
 	}
 	
 	# Legendary: add extra flavor

@@ -110,4 +110,5 @@ func update_ui():
 			var color = Color(0.4, 0.9, 0.6) # Default Green (Loot)
 			if type == "xp": color = Color(1.0, 0.8, 0.15) # Gold
 			
-			UITheme.show_notification(text, color)
+			if is_visible_in_tree():
+				UITheme.show_notification(text, color)

@@ -720,8 +720,8 @@ func process_tick(delta: float):
 		sm.current_hp = sm.max_hp
 	
 	if overheat_lock > 0:
-		# User Request: Wait for heat to reach 0% before unlocking
-		if player_heat <= 0:
+		# Nerf: Unlock at 50% heat instead of waiting for 0%
+		if player_heat <= player_max_heat * 0.5:
 			overheat_lock = 0.0
 	if player_heat > 0:
 		var current_vent_rate = player_vent_rate * get_milestone_heat_mult()
@@ -739,6 +739,10 @@ func process_tick(delta: float):
 	
 	if _loadout_has_module(sm, "warp_stabilizer"):
 		p_speed_mult += 0.15
+		
+	# v74.0: Heat-Sync Focus (Threshold: 40%)
+	if sm.affix_bonuses.get("heat_sync_focus", 0.0) > 0 and player_heat >= (player_max_heat * 0.4):
+		p_speed_mult += sm.affix_bonuses["heat_sync_focus"]
 
 	if coolant_flush_timer > 0:
 		coolant_flush_timer -= delta
@@ -843,6 +847,12 @@ func _execute_player_attack(weapon_idx: int):
 		combat_events.append({"type": "miss", "text": "MISS", "color": Color.WHITE, "side": "enemy"})
 		return
 
+	# v74.0: Static Burst (Reset enemy attack timer)
+	var static_burst_chance = sm.affix_bonuses.get("static_burst", 0.0)
+	if static_burst_chance > 0 and randf() < static_burst_chance:
+		enemy_attack_timer = 0.0
+		combat_events.append({"type": "shock", "text": "SHOCKED", "color": Color.YELLOW, "side": "enemy"})
+
 	var p_atk_k = w["dmg_k"]
 	var p_atk_e = w["dmg_e"]
 	var p_atk_x = w["dmg_x"]
@@ -890,7 +900,7 @@ func _execute_player_attack(weapon_idx: int):
 			
 	var skill_dmg_mult = 1.0 + (get_level() * 0.005)
 	var total_crit = sm.crit_chance + get_milestone_crit_bonus()
-	var res = resolve_damage(p_atk_k * skill_dmg_mult, p_atk_e * skill_dmg_mult, p_atk_x * skill_dmg_mult, enemy_shield, current_enemy["def"], current_zone.get("difficulty", 1), total_crit)
+	var res = resolve_damage(p_atk_k * skill_dmg_mult, p_atk_e * skill_dmg_mult, p_atk_x * skill_dmg_mult, enemy_shield, current_enemy["def"], current_zone.get("difficulty", 1), total_crit, true)
 	enemy_shield = max(0, enemy_shield - res[0])
 	enemy_hp -= res[1]
 	if res[0] > 0: combat_events.append({"type": "dmg_shield", "text": "-%d" % res[0], "color": Color.CYAN, "side": "enemy"})
@@ -907,7 +917,7 @@ func _execute_enemy_attack():
 	else:
 		var difficulty = current_zone.get("difficulty", 1)
 		# Enemy uses base crit 5%
-		var eres = resolve_damage(current_enemy["atk"], 0, 0, player_shield, sm.defense, difficulty, 0.05)
+		var eres = resolve_damage(current_enemy["atk"], 0, 0, player_shield, sm.defense, difficulty, 0.05, false)
 		
 		# Reflective Sheath Logic
 		if has_reflective and randf() < 0.20:
@@ -926,9 +936,21 @@ func _execute_enemy_attack():
 		if eres[1] > 0: combat_events.append({"type": "dmg_hull", "text": "-%d" % eres[1], "color": Color.RED, "side": "player"})
 	if sm.current_hp <= 0: lose_fight()
 
-func resolve_damage(atk_k, atk_e, atk_x, c_shield, c_armor, difficulty = 1, crit_chance = 0.05):
+func resolve_damage(atk_k, atk_e, atk_x, c_shield, c_armor, difficulty = 1, crit_chance = 0.05, is_player_attacker = false):
 	var shield_dmg_pot = (atk_k * 0.5) + (atk_e * 1.5) + (atk_x * 1.1)
+	
+	# v74.0: Void Strike (Shield Bypass) - Player Only
+	var void_strike_chance = 0.0
+	if is_player_attacker:
+		void_strike_chance = GameState.shipyard_manager.affix_bonuses.get("void_strike", 0.0)
+		
+	var is_void_strike = void_strike_chance > 0 and randf() < void_strike_chance
+	
 	var damage_to_shield = min(c_shield, shield_dmg_pot)
+	if is_void_strike and c_shield > 0:
+		damage_to_shield = 0 # All damage bleeds to hull
+		combat_events.append({"type": "void", "text": "VOID STRIKE", "color": Color.PURPLE, "side": "enemy" if is_player_attacker else "player"})
+		
 	var bleed_ratio = (shield_dmg_pot - damage_to_shield) / shield_dmg_pot if shield_dmg_pot > 0 else 1.0
 	
 	var k = max(20.0, float(difficulty) * 50.0)
@@ -968,11 +990,31 @@ func win_fight():
 			GameState.resources.add_element(entry[0], qty)
 			session_loot[entry[0]] = session_loot.get(entry[0], 0) + qty
 	
+	var sm = GameState.shipyard_manager
+	
+	# v74.0: Capacitor Pulse (Shield Restore on Kill)
+	var cap_pulse = sm.affix_bonuses.get("capacitor_pulse", 0.0)
+	if cap_pulse > 0:
+		var restore_amt = player_max_shield * cap_pulse
+		player_shield = min(player_max_shield, player_shield + restore_amt)
+		combat_events.append({"type": "heal", "text": "+%d SHIELD" % int(restore_amt), "color": Color.CYAN, "side": "player"})
+		
+	# v74.0: Nano-Scavenger (Loot Processed Materials)
+	var nano_chance = sm.affix_bonuses.get("nano_scavenger", 0.0)
+	if nano_chance > 0 and randf() < nano_chance:
+		var extra_materials = ["Circuit", "Chip", "AdvCircuit", "QuantumCore"]
+		var drop = extra_materials[randi() % extra_materials.size()]
+		# Scale extra loot by difficulty
+		var diff = current_zone.get("difficulty", 1)
+		var qty = randi_range(1, 1 + int(diff / 3))
+		GameState.resources.add_element(drop, qty)
+		combat_events.append({"type": "loot", "text": "SCAVENGED %s" % drop, "color": Color.AQUA, "side": "enemy"})
+		log_msg("Nano-Scavenger triggered: Found %d %s" % [qty, drop])
+	
 	# v71.0: Module Rarity Drop System
 	var drop_chance = current_enemy.get("module_drop_chance", 0.0)
 	var drop_pool = current_enemy.get("module_drop_pool", [])
 	if drop_chance > 0 and drop_pool.size() > 0 and randf() < drop_chance:
-		var sm = GameState.shipyard_manager
 		var is_boss = current_enemy.get("is_boss", false)
 		var rarity = sm.roll_rarity(is_boss)
 		# Common rolls don't produce module drops (just materials)
@@ -1053,7 +1095,7 @@ func _execute_broadside_burst():
 	# Broadside delivers a massive kinetic salvo (5x base kinetic attack)
 	# subject to standard armor/shield resolution
 	var skill_dmg_mult = 1.0 + (get_level() * 0.005)
-	var res = resolve_damage(total_atk_k * 5.0 * skill_dmg_mult, 0, 0, enemy_shield, current_enemy["def"], current_zone.get("difficulty", 1), 0.1) # 10% base crit for volley
+	var res = resolve_damage(total_atk_k * 5.0 * skill_dmg_mult, 0, 0, enemy_shield, current_enemy["def"], current_zone.get("difficulty", 1), 0.1, true) # 10% base crit for volley
 	
 	enemy_shield = max(0, enemy_shield - res[0])
 	enemy_hp -= res[1]

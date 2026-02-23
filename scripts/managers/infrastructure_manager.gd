@@ -943,6 +943,11 @@ func get_building_adjusted_rate(building_id: String) -> Dictionary:
 				base_qty = base_qty * (1.0 + (log(1.0 + eng_lvl) / log(10.0)) * 5.0)
 			
 			var total_yield_mult = 1.0 + global_yield_bonuses.get(res, 0.0)
+			
+			# v74.0: Extractor Efficiency (Module Affix)
+			if GameState.shipyard_manager:
+				total_yield_mult *= (1.0 + GameState.shipyard_manager.affix_bonuses.get("extractor_efficiency", 0.0))
+				
 			var qty = base_qty * total_yield_mult * warp_mult * skill_yield_mult
 			results["yield"][res] = (qty / interval) * 60.0 * efficiency
 			
@@ -1223,6 +1228,10 @@ func process_tick(delta: float):
 							# v72.8: Trophy Buffs
 							if GameState.bounty_manager:
 								yield_mult *= GameState.bounty_manager.get_trophy_buff("infrastructure_yield")
+							
+							# v74.0: Extractor Efficiency (Module Affix)
+							if GameState.shipyard_manager:
+								yield_mult *= (1.0 + GameState.shipyard_manager.affix_bonuses.get("extractor_efficiency", 0.0))
 							
 							GameState.resources.add_element(res, qty * count * throttle * yield_mult)
 						
