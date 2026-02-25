@@ -28,21 +28,7 @@ func setup(p_aid: String, p_data: Dictionary, p_manager, p_parent):
 	UITheme.apply_premium_button_style(btn, "ops")
 	UITheme.apply_progress_bar_style(prog_bar, "ops")
 	
-	var loot_text = "[center]"
-	var rates = manager.get_current_rate() if manager.is_active and manager.current_action_id == aid else {}
-	
-	for entry in data["loot_table"]:
-		var symbol = entry[0]
-		var display_name = ElementDB.get_display_name(symbol)
-		var base_loot = "%s: %d-%d" % [display_name, entry[2], entry[3]]
-		
-		if symbol in rates:
-			loot_text += "%s [color=#55ff55](%s/m)[/color]\n" % [base_loot, FormatUtils.format_number(rates[symbol])]
-		else:
-			loot_text += "%s\n" % base_loot
-			
-	loot_text += "[/center]"
-	loot_lbl.text = loot_text.strip_edges()
+	# Moved loot text compilation to update_state()
 
 func _on_button_pressed():
 	if manager.is_active and manager.current_action_id == aid:
@@ -58,6 +44,31 @@ func update_state():
 	
 	var lvl = manager.get_level()
 	var req = data.get("level_req", 1)
+	
+	# Rebuild Loot String with Colors & Multipliers dynamically
+	var loot_text = "[center]"
+	var rates = manager.get_current_rate() if is_this_active else {}
+	
+	var eff_mult = 1.0
+	if GameState.research_manager:
+		eff_mult = GameState.research_manager.get_efficiency_multiplier()
+		
+	for entry in data["loot_table"]:
+		var symbol = entry[0]
+		var display_name = ElementDB.get_display_name(symbol)
+		var base_loot = "%s: %s-%s" % [
+			display_name, 
+			FormatUtils.format_number(float(entry[2]) * eff_mult), 
+			FormatUtils.format_number(float(entry[3]) * eff_mult)
+		]
+		
+		if symbol in rates:
+			loot_text += "%s [color=#55ff55](%s/m)[/color]\n" % [base_loot, FormatUtils.format_number(rates[symbol])]
+		else:
+			loot_text += "%s\n" % base_loot
+			
+	loot_text += "[/center]"
+	loot_lbl.text = loot_text.strip_edges()
 	
 	var unlocked = true
 	var status_msg = ""

@@ -39,7 +39,7 @@ var actions: Dictionary = {
 		"category": "terrestrial"
 	},
 	"mine_cassiterite": {
-		"name": "Mine Cassiterite (Tin Ore)",
+		"name": "Mine Cassiterite",
 		"loot_table": [["Cassiterite", 1.0, 1, 2]],
 		"xp": 20,
 		"level_req": 8,
@@ -104,20 +104,12 @@ var actions: Dictionary = {
 		"category": "terrestrial"
 	},
 	"mine_malachite": {
-		"name": "Extract Malachite (Copper Ore)",
+		"name": "Extract Malachite",
 		"loot_table": [["Malachite", 1.0, 1, 2]],
 		"xp": 14,
 		"level_req": 10,
 		"research_req": "basic_engineering",
 		"category": "terrestrial"
-	},
-	"gather_scrap_derelict": {
-		"name": "Salvage Derelict",
-		"loot_table": [["Scrap", 1.0, 5, 8], ["Cu", 0.2, 1, 2]],
-		"xp": 15,
-		"level_req": 10,
-		"category": "terrestrial",
-		"duration": 4.0
 	},
 	"mine_quartz": {
 		"name": "Collect Quartz Clusters",
@@ -125,10 +117,10 @@ var actions: Dictionary = {
 		"xp": 22,
 		"level_req": 22,
 		"research_req": "adv_materials", # Audit v43.0: Added missing research gate
-		"category": "terrestrial"
-	},
+			"category": "terrestrial"
+		},
 	"harvest_nebula": {
-		"name": "Harvest Nebula (Orbital)",
+		"name": "Harvest Nebula",
 		"loot_table": [
 			["H", 1.0, 1, 2],
 			["He", 1.0, 1, 1]
@@ -200,6 +192,10 @@ func get_yield_multiplier() -> float:
 	if GameState.bounty_manager:
 		mult *= GameState.bounty_manager.get_trophy_buff("mining_yield")
 		
+	# Efficiency Research Branch
+	if GameState.research_manager:
+		mult *= GameState.research_manager.get_efficiency_multiplier()
+		
 	return mult
 
 func get_action_speed_multiplier(action_id: String) -> float:
@@ -231,6 +227,10 @@ func get_action_speed_multiplier(action_id: String) -> float:
 		for upgrade in upgrades_db[action_id]:
 			if GameState.research_manager and GameState.research_manager.is_tech_unlocked(upgrade["id"]):
 				multiplier += upgrade["bonus"]
+	
+	# Audit v2.0 P1-9: Apply prestige gathering multiplier globally so UI can see it
+	if GameState.warp_manager:
+		multiplier *= GameState.warp_manager.get_gathering_multiplier()
 	
 	return multiplier
 
@@ -277,9 +277,6 @@ func process_tick(delta_time: float):
 	action_progress += delta_time
 	
 	var speed_mult = get_action_speed_multiplier(current_action_id)
-	# Audit v2.0 P1-9: Apply prestige gathering multiplier
-	if GameState.warp_manager:
-		speed_mult *= GameState.warp_manager.get_gathering_multiplier()
 	var required_time = action_duration / speed_mult
 	
 	if action_progress >= required_time:

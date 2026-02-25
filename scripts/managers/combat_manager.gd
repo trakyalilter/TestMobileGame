@@ -34,7 +34,7 @@ var combat_events: Array[Dictionary] = [] # [{type, text, color, side}]
 
 # Consumables
 var consumable_cooldown = 0.0
-var consumable_cooldown_max = 10.0
+var consumable_cooldown_max = 1.5
 
 signal enemy_defeated(enemy_id)
 signal combat_started() # v72.8: For Elite bounty detection
@@ -139,21 +139,21 @@ var zones = {
 		"research_req": "sector_alpha_decryption"
 	},
 	"sector_beta": {
-		"name": "Sector Beta - Mining Colony Ruins",
+		"name": "Sector Beta",
 		"desc": "Abandoned mining colony. Automated defense systems hostile. Rich in industrial metals.",
 		"difficulty": 6,
 		"enemies": ["mining_sentinel", "defense_turret", "colony_overseer", "repair_drone", "ore_guardian"], # v57.0: +2
 		"research_req": "deep_space_nav"
 	},
 	"sector_gamma": {
-		"name": "Sector Gamma - Radioactive Nebula",
+		"name": "Sector Gamma",
 		"desc": "Radioactive nebula. Mutated organisms detected. Extreme danger.",
 		"difficulty": 7,
 		"enemies": ["radiation_beast", "nebula_leviathan", "gamma_colossus", "irradiated_hulk", "plasma_wraith"], # v57.0: +2
 		"research_req": "radiation_shielding"
 	},
 	"sector_delta": {
-		"name": "Sector Delta - Crystalline Fields",
+		"name": "Sector Delta",
 		"desc": "Crystalline asteroid field. Unknown energy signatures. Ultimate challenge.",
 		"difficulty": 8,
 		"enemies": ["crystal_golem", "energy_wraith", "sentinel_prime", "shard_swarm", "prism_guardian"], # v57.0: +2
@@ -162,14 +162,14 @@ var zones = {
 	# ENDGAME ZONE - Added to address retention cliff after Dreadnought
 	# v57.0: Added Sector Zeta (Difficulty 9) to bridge Delta → Epsilon gap
 	"sector_zeta": {
-		"name": "Sector Zeta - Quarantine Zone",
+		"name": "Sector Zeta",
 		"desc": "Sealed sector containing ancient alien pathogens and rogue AI. Extreme biohazard.",
 		"difficulty": 9,
 		"enemies": ["plague_drone", "bio_horror", "rogue_ai_core", "quarantine_warden"],
 		"research_req": "quarantine_protocols"
 	},
 	"sector_epsilon": {
-		"name": "Sector Epsilon - The Void",
+		"name": "Sector Epsilon",
 		"desc": "Beyond known space. Primordial entities and temporal anomalies. Requires Dreadnought-class vessel.",
 		"difficulty": 10,
 		"enemies": ["void_stalker", "temporal_phantom", "omega_sentinel", "primordial_titan", "void_leviathan"],
@@ -180,354 +180,429 @@ var zones = {
 var enemy_db = {
 	"dust_mite": {
 		"name": "Space Dust Mite",
-		"stats": {"hp": 50, "max_shield": 0, "atk": 5, "def": 0, "atk_interval": 2.5, "accuracy": 0},
-		"loot": [["Scrap", 1, 2], ["MiteChitin", 1, 1]],
+		"stats": {"hp": 158, "atk": 20, "def": 5, "atk_interval": 2.5, "accuracy": 9},
+		"loot": [["Fe", 1, 3], ["MiteChitin", 1, 1]],
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["mining_laser_mk1", "railgun_mk1", "battery_t1", "basic_shield", "basic_thruster", "lidar_array"],
 		"xp": 8
 	},
 	"lunar_drone": {
 		"name": "Lunar Drone",
-		"stats": {"hp": 60, "max_shield": 0, "atk": 7, "def": 1, "atk_interval": 2.5, "accuracy": 5},
-		"loot": [["Scrap", 3, 5], ["Fe", 1, 2], ["DroneCore", 1, 1]],
+		"stats": {"hp": 164, "atk": 27, "def": 6, "atk_interval": 2.5, "accuracy": 9},
+		"loot": [["Cu", 2, 4], ["Fe", 3, 6], ["DroneCore", 1, 1]],
 		"rare_loot": [["Cu", 0.3, 1, 2], ["Chip", 0.08, 1, 1], ["SalvageData", 0.20, 1, 1]],
-		"module_drop_chance": 0.01,
-		"module_drop_pool": ["railgun_mk1", "basic_shield", "galvanized_plating"],
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["mining_laser_mk1", "railgun_mk1", "battery_t1", "basic_shield", "basic_thruster", "lidar_array"],
 		"xp": 12
 	},
 	"scrap_collector": {
 		"name": "Scrap Collector",
-		"stats": {"hp": 350, "max_shield": 0, "atk": 30, "def": 5, "atk_interval": 2.2, "accuracy": 10},
-		"loot": [["Scrap", 7, 12], ["Res1", 2, 5], ["DroneCore", 2, 5]],
+		"stats": {"hp": 145, "atk": 18, "def": 4, "atk_interval": 2.2, "accuracy": 10},
+		"loot": [["Cu", 5, 10], ["Res1", 2, 5], ["DroneCore", 2, 5]],
 		"rare_loot": [["NavData", 0.33, 1, 2]],
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["mining_laser_mk1", "railgun_mk1", "battery_t1", "basic_shield", "basic_thruster", "lidar_array"],
 		"xp": 10
 	},
 	"survey_probe": {
 		"name": "Survey Probe",
-		"stats": {"hp": 300, "max_shield": 400, "atk": 23, "def": 5, "atk_interval": 1.0, "accuracy": 60}, # High Shield
+		"stats": {"hp": 52, "max_shield": 69, "atk": 9, "def": 5, "atk_interval": 1.0, "accuracy": 10}, # High Shield
 		"loot": [["credits", 100, 250], ["Si", 10, 20]],
 		"rare_loot": [["Circuit", 0.1, 1, 1], ["NavData", 0.05, 1, 1]],
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["mining_laser_mk1", "railgun_mk1", "battery_t1", "basic_shield", "basic_thruster", "lidar_array"],
 		"xp": 25
 	},
 	"claim_jumper": {
 		"name": "Claim Jumper",
-		"stats": {"hp": 1500, "max_shield": 100, "atk": 6, "def": 250, "atk_interval": 2.2, "accuracy": 20}, # High Armor
+		"stats": {"hp": 375, "max_shield": 25, "atk": 36, "def": 10, "atk_interval": 2.2, "accuracy": 27}, # High Armor
 		"loot": [["credits", 250, 450], ["Cu", 15, 30], ["StolenCargo", 1, 1]],
 		"rare_loot": [["NavData", 0.15, 2, 5]],
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["mining_laser_mk1", "railgun_mk1", "battery_t1", "basic_shield", "basic_thruster", "lidar_array"],
 		"xp": 50
 	},
 	"ore_hauler": {
 		"name": "Ore Hauler Wreck",
-		"stats": {"hp": 4500, "max_shield": 0, "atk": 120, "def": 40, "atk_interval": 5.0, "accuracy": 25},
-		"loot": [["Fe", 40, 50], ["W", 15, 20], ["Scrap", 10, 20]],
+		"stats": {"hp": 505, "atk": 86, "def": 8, "atk_interval": 5.0, "accuracy": 28},
+		"loot": [["Fe", 50, 70], ["W", 15, 20]],
 		"rare_loot": [["U", 0.20, 2, 5], ["Ag", 0.15, 1, 3]],
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["mining_laser_mk1", "railgun_mk1", "battery_t1", "basic_shield", "basic_thruster", "lidar_array"],
 		"xp": 80
 	},
 	"derelict_frigate": {
 		"name": "Derelict Frigate",
-		"stats": {"hp": 12000, "max_shield": 500, "atk": 225, "def": 65, "atk_interval": 4.0, "accuracy": 30},
-		"loot": [["Steel", 5, 10], ["Scrap", 20, 40], ["Res2", 5, 10]],
+		"stats": {"hp": 4599, "max_shield": 192, "atk": 144, "def": 20, "atk_interval": 4.0, "accuracy": 55},
+		"loot": [["Steel", 5, 10], ["Fe", 20, 40], ["Res2", 5, 10]],
 		"rare_loot": [["Circuit", 0.35, 2, 4], ["Chip", 0.20, 2, 2]],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["railgun_mk1", "heatsink_array", "basic_shield", "thermal_tile"],
+		"module_drop_chance": 0.15,
+		"module_drop_pool": ["mining_laser_mk1", "railgun_mk1", "battery_t1", "basic_shield", "basic_thruster", "lidar_array"],
+		"is_boss": true,
 		"xp": 250
 	},
 	"salvage_swarm": {
 		"name": "Salvage Swarm",
-		"stats": {"hp": 2500, "max_shield": 0, "atk": 90, "def": 10, "atk_interval": 0.6, "accuracy": 35},
-		"loot": [["Scrap", 10, 20], ["SwarmFragment", 1, 2]],
+		"stats": {"hp": 1538, "atk": 16, "def": 18, "atk_interval": 0.6, "accuracy": 52},
+		"loot": [["Cu", 10, 20], ["SwarmFragment", 1, 2]],
 		"rare_loot": [["Resin", 0.3, 1, 2], ["Cu", 0.2, 1, 2]],
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["mining_laser_mk1", "railgun_mk1", "battery_t1", "basic_shield", "basic_thruster", "lidar_array"],
 		"xp": 35
 	},
 	"frozen_hulk": {
 		"name": "Frozen Hulk",
-		"stats": {"hp": 6500, "max_shield": 250, "atk": 27, "def": 70, "atk_interval": 6.0, "accuracy": 40},
+		"stats": {"hp": 3957, "max_shield": 152, "atk": 292, "def": 28, "atk_interval": 6.0, "accuracy": 71},
 		"loot": [["C", 10, 20]],
 		"rare_loot": [["Graphite", 0.35, 1, 3], ["W", 0.15, 1, 2]],
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["mining_laser_mk1", "railgun_mk1", "battery_t1", "basic_shield", "basic_thruster", "lidar_array"],
 		"xp": 75
 	},
 	"smuggler_cutter": {
 		"name": "Smuggler Cutter",
-		"stats": {"hp": 300, "max_shield": 1000, "atk": 48, "def": 25, "accuracy": 45}, # High Shield
+		"stats": {"hp": 1058, "max_shield": 3526, "atk": 129, "def": 33, "accuracy": 71}, # High Shield
 		"loot": [["credits", 100, 200]],
 		"rare_loot": [["Li", 0.25, 1, 3], ["Ti", 0.2, 1, 2]],
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["mining_laser_mk1", "railgun_mk1", "battery_t1", "basic_shield", "basic_thruster", "lidar_array"],
 		"xp": 95
 	},
 	"pirate_skiff": {
 		"name": "Pirate Skiff",
-		"stats": {"hp": 1400, "max_shield": 150, "atk": 38, "def": 22, "atk_interval": 1.75, "accuracy": 50},
-		"loot": [["credits", 2000, 6000], ["Scrap", 3, 6], ["PirateManifest", 1, 1], ["NavData", 1, 2], ["Cu", 100, 200]],
+		"stats": {"hp": 440, "max_shield": 47, "atk": 23, "def": 8, "atk_interval": 1.8, "accuracy": 29},
+		"loot": [["credits", 2000, 6000], ["Fe", 10, 20], ["PirateManifest", 1, 1], ["NavData", 1, 2], ["Cu", 100, 200]],
 		"rare_loot": [["W", 0.40, 10, 20], ["Ti", 0.30, 40, 50]],
 		"module_drop_chance": 0.02,
-		"module_drop_pool": ["mining_laser_mk1", "railgun_mk1", "basic_shield", "titanium_armor"],
+		"module_drop_pool": ["mining_laser_mk2", "micro_missile_launcher", "heatsink_array", "battery_t2", "thermal_tile", "titanium_armor", "aluminum_hull_patch", "plasma_drive", "stasis_web"],
 		"xp": 30
 	},
 	"rock_golem": {
 		"name": "Silicate Golem",
-		"stats": {"hp": 300, "max_shield": 0, "atk": 90, "def": 500, "accuracy": 20}, # High Armor
+		"stats": {"hp": 374, "atk": 43, "def": 8, "accuracy": 29}, # High Armor
 		"loot": [["Si", 100, 200], ["Fe", 10, 20]], # Added Fe for Ammo Sustenance (Audit Round 2)
 		"rare_loot": [["Ti", 0.4, 10, 20]],
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["mining_laser_mk2", "micro_missile_launcher", "heatsink_array", "battery_t2", "thermal_tile", "titanium_armor", "aluminum_hull_patch", "plasma_drive", "stasis_web"],
 		"xp": 30
 	},
 	"scavenger_mech": {
 		"name": "Scavenger Mech",
-		"stats": {"hp": 3000, "max_shield": 100, "atk": 38, "def": 350, "accuracy": 40}, # High Armor
-		"loot": [["Cu", 5, 10], ["Scrap", 5, 10]],
+		"stats": {"hp": 1377, "max_shield": 46, "atk": 73, "def": 15, "accuracy": 47}, # High Armor
+		"loot": [["Cu", 10, 20]],
 		"rare_loot": [["W", 0.3, 5, 10], ["Res2", 0.20, 1, 1], ["NavData", 0.25, 1, 2]],
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["mining_laser_mk2", "micro_missile_launcher", "heatsink_array", "battery_t2", "thermal_tile", "titanium_armor", "aluminum_hull_patch", "plasma_drive", "stasis_web"],
 		"xp": 55
 	},
 	"martian_sentry": {
 		"name": "Martian Sentry",
-		"stats": {"hp": 150, "max_shield": 600, "atk": 45, "def": 10, "accuracy": 50}, # High Shield
+		"stats": {"hp": 245, "max_shield": 979, "atk": 90, "def": 17, "accuracy": 51}, # High Shield
 		"loot": [["C", 5, 10]],
 		"rare_loot": [["Resin", 0.1, 1, 2], ["Chip", 0.25, 1, 2], ["Rh", 0.10, 1, 2]],
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["mining_laser_mk2", "micro_missile_launcher", "heatsink_array", "battery_t2", "thermal_tile", "titanium_armor", "aluminum_hull_patch", "plasma_drive", "stasis_web"],
 		"xp": 60
 	},
 	"cryo_drone": {
 		"name": "Cryo Drone",
-		"stats": {"hp": 300, "max_shield": 400, "atk": 30, "def": 20, "accuracy": 60},
+		"stats": {"hp": 1507, "max_shield": 2010, "atk": 134, "def": 25, "accuracy": 68},
 		"loot": [["H", 5, 15], ["Water", 5, 10], ["CryoCell", 1, 1]],
 		"rare_loot": [["Mesh", 0.05, 1, 1]],
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["mining_laser_mk2", "micro_missile_launcher", "heatsink_array", "battery_t2", "thermal_tile", "titanium_armor", "aluminum_hull_patch", "plasma_drive", "stasis_web"],
 		"xp": 75
 	},
 	"pirate_gunship": {
 		"name": "Pirate Gunship",
-		"stats": {"hp": 800, "max_shield": 300, "atk": 68, "def": 40, "accuracy": 65},
+		"stats": {"hp": 10567, "max_shield": 3962, "atk": 195, "def": 45, "accuracy": 87},
 		"loot": [["credits", 50, 150], ["Ti", 1, 3]],
 		"rare_loot": [["Seal", 0.05, 1, 1], ["NavData", 0.2, 1, 3], ["Res2", 0.30, 1, 2]],
+		"module_drop_chance": 0.15,
+		"module_drop_pool": ["mining_laser_mk2", "micro_missile_launcher", "heatsink_array", "battery_t2", "thermal_tile", "titanium_armor", "aluminum_hull_patch", "plasma_drive", "stasis_web"],
+		"is_boss": true,
 		"xp": 120
 	},
 	"titan_overseer": {
 		"name": "TITAN OVERSEER",
-		"stats": {"hp": 6000, "max_shield": 2000, "atk": 120, "def": 50, "accuracy": 70},
+		"stats": {"hp": 3454, "max_shield": 1151, "atk": 136, "def": 26, "accuracy": 63},
 		"loot": [["TitanClearance", 1, 1], ["Ti", 50, 100]],
 		"rare_loot": [["CryoCell", 0.50, 1, 2], ["Res2", 0.50, 2, 4]],
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["missile_launcher_mk2", "cryo_vent", "targeting_matrix", "railgun_mk2", "advanced_shield", "composite_armor", "mg_al_frame", "galvanized_plating", "battery_t3"],
 		"xp": 300
 	},
 	"alien_frigate": {
 		"name": "Xenon Patrol Frigate",
-		"stats": {"hp": 7500, "max_shield": 3000, "atk": 180, "def": 50, "atk_interval": 3.0, "accuracy": 45},
+		"stats": {"hp": 8038, "max_shield": 3215, "atk": 178, "def": 46, "accuracy": 98},
 		"loot": [["credits", 15000, 20000], ["Ti", 30, 60]],
 		"rare_loot": [["NavData", 0.35, 2, 5], ["Chip", 0.35, 2, 5], ["VoidArtifact", 0.3, 2, 3], ["Co", 0.35, 2, 4], ["Ni", 0.35, 2, 4], ["Res3", 0.35, 1, 2]],
-		"module_drop_chance": 0.03,
-		"module_drop_pool": ["missile_launcher_mk2", "cryo_laser_mk3", "advanced_shield", "composite_armor"],
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["railgun_mk3", "mining_laser_mk3", "composite_armor_mk2", "stainless_armor", "superalloy_engine", "ai_targeting_system", "broadside_array"],
 		"xp": 500
 	},
 	"xenon_corvette": {
 		"name": "Xenon Corvette",
-		"stats": {"hp": 14000, "max_shield": 6000, "atk": 600, "def": 80, "atk_interval": 2.5, "accuracy": 80, "eva": 25},
+		"stats": {"hp": 9785, "max_shield": 4194, "atk": 152, "def": 56, "atk_interval": 2.5, "accuracy": 88, "eva": 25},
 		"loot": [["credits", 40000, 60000], ["Superalloy", 1, 2], ["VoidArtifact", 2, 4], ["NavData", 4, 8], ["Res3", 2, 3], ["Ti", 50, 100], ["U", 5, 15]],
 		"rare_loot": [],
-		"module_drop_chance": 0.03,
-		"module_drop_pool": ["missile_launcher_mk2", "cryo_laser_mk3", "railgun_mk2", "advanced_shield", "stainless_armor"],
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["railgun_mk3", "mining_laser_mk3", "composite_armor_mk2", "stainless_armor", "superalloy_engine", "ai_targeting_system", "signal_jammer"],
 		"xp": 800
 	},
 	"xenon_mothership": {
 		"name": "XENON MOTHERSHIP",
-		"stats": {"hp": 150000, "max_shield": 80000, "atk": 1800, "def": 250, "atk_interval": 6.0, "accuracy": 100, "eva": 30},
+		"stats": {"hp": 9238, "max_shield": 4927, "atk": 387, "def": 48, "atk_interval": 6.0, "accuracy": 85, "eva": 30},
 		"loot": [["credits", 700000, 1000000], ["Superalloy", 30, 50], ["Chip", 30, 50], ["AdvCircuit", 10, 20], ["QuantumCore", 5, 10], ["VoidArtifact", 10, 25], ["Res3", 50, 100]],
 		"rare_loot": [],
-		"module_drop_chance": 0.10,
-		"module_drop_pool": ["torpedo_launcher", "cryo_laser_mk3", "railgun_mk3", "advanced_shield", "composite_armor_mk2"],
+		"module_drop_chance": 0.15,
+		"module_drop_pool": ["railgun_mk3", "mining_laser_mk3", "composite_armor_mk2", "stainless_armor", "superalloy_engine", "ai_targeting_system", "broadside_array"],
 		"is_boss": true,
 		"xp": 5000
 	},
 	"mining_sentinel": {
 		"name": "Mining Sentinel MK-VII",
-		"stats": {"hp": 45000, "max_shield": 25000, "atk": 750, "def": 120, "atk_interval": 3.0, "accuracy": 90, "jammer": true},
+		"stats": {"hp": 24007, "max_shield": 13337, "atk": 285, "def": 98, "accuracy": 119, "jammer": true},
 		"loot": [["ColonySalvage", 10, 20], ["Steel", 50, 100]],
 		"rare_loot": [["Co", 0.3, 5, 15], ["Ni", 0.3, 5, 15], ["Circuit", 0.3, 10, 25]],
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["railgun_mk3", "mining_laser_mk3", "composite_armor_mk2", "stainless_armor", "superalloy_engine", "ai_targeting_system", "signal_jammer"],
 		"xp": 8000
 	},
 	"defense_turret": {
 		"name": "Automated Defense Turret",
-		"stats": {"hp": 100000, "max_shield": 0, "atk": 1200, "def": 250, "atk_interval": 4.0, "accuracy": 100},
+		"stats": {"hp": 34983, "atk": 372, "def": 113, "atk_interval": 4.0, "accuracy": 110},
 		"loot": [["ColonySalvage", 25, 50], ["Circuit", 20, 50], ["TurretCore", 1, 1]],
 		"rare_loot": [["Cr", 0.3, 5, 10], ["AdvCircuit", 0.4, 5, 10]],
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["railgun_mk3", "mining_laser_mk3", "composite_armor_mk2", "stainless_armor", "superalloy_engine", "ai_targeting_system", "broadside_array"],
 		"xp": 15000
 	},
 	"colony_overseer": {
 		"name": "Colony Overseer AI",
-		"stats": {"hp": 80000, "max_shield": 40000, "atk": 900, "def": 150, "atk_interval": 3.5, "accuracy": 120, "jammer": true},
+		"stats": {"hp": 20324, "max_shield": 10162, "atk": 301, "def": 80, "atk_interval": 3.5, "accuracy": 113, "jammer": true},
 		"loot": [["AdvCircuit", 20, 30], ["ColonySalvage", 20, 40], ["ColonyDataCore", 5, 7]],
 		"rare_loot": [["Pd", 0.3, 2, 5], ["AICore", 0.25, 1, 1], ["Chip", 0.25, 5, 10]],
+		"module_drop_chance": 0.15,
+		"module_drop_pool": ["railgun_mk3", "mining_laser_mk3", "composite_armor_mk2", "stainless_armor", "superalloy_engine", "ai_targeting_system", "broadside_array"],
+		"is_boss": true,
 		"xp": 20000
 	},
 	"radiation_beast": {
 		"name": "Gamma Radiation Beast",
-		"stats": {"hp": 20000, "max_shield": 12000, "atk": 225, "def": 70, "accuracy": 90},
-		"loot": [["RadIsotope", 1, 3], ["U", 5, 10], ["Zn", 3, 6]],
-		"rare_loot": [["Pt", 0.15, 1, 2], ["ReactiveCore", 0.2, 1, 1]],
+		"stats": {"hp": 76328, "max_shield": 45797, "atk": 488, "def": 140, "accuracy": 127},
+		"loot": [["credits", 750000, 1000000], ["RadIsotope", 1, 3], ["U", 100, 150]],
+		"rare_loot": [["ReactiveCore", 0.2, 1, 1]],
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["cryo_laser_mk3", "antimatter_engine", "iridium_armor", "reactive_core_battery", "iridium_penetrator", "platinum_laser", "reactive_armor", "plasma_overcharger", "exotic_shield_matrix"],
 		"xp": 500
 	},
 	"nebula_leviathan": {
 		"name": "Nebula Leviathan",
-		"stats": {"hp": 35000, "max_shield": 20000, "atk": 300, "def": 90, "accuracy": 100},
-		"loot": [["RadIsotope", 3, 5], ["U", 10, 20], ["Graphite", 15, 25]],
-		"rare_loot": [["Pt", 0.25, 1, 3], ["Pd", 0.2, 1, 2], ["ExoticMatter", 0.1, 1, 1]],
+		"stats": {"hp": 83396, "max_shield": 47655, "atk": 509, "def": 202, "accuracy": 139},
+		"loot": [["credits", 3000000, 5000000], ["Pd", 100, 200], ["RadIsotope", 3, 5], ["U", 700, 1000]],
+		"rare_loot": [["ExoticMatter", 0.1, 1, 1]],
+		"module_drop_chance": 0.15,
+		"module_drop_pool": ["cryo_laser_mk3", "antimatter_engine", "iridium_armor", "reactive_core_battery", "iridium_penetrator", "platinum_laser", "reactive_armor", "plasma_overcharger", "exotic_shield_matrix"],
+		"is_boss": true,
 		"xp": 800
 	},
 	"gamma_colossus": {
 		"name": "GAMMA COLOSSUS",
-		"stats": {"hp": 500000, "max_shield": 200000, "atk": 4500, "def": 400, "atk_interval": 5.0, "accuracy": 130, "jammer": true},
+		"stats": {"hp": 62844, "max_shield": 25138, "atk": 456, "def": 182, "atk_interval": 2.5, "accuracy": 131, "jammer": true},
 		"loot": [["RadIsotope", 50, 100], ["Pt", 25, 50], ["QuantumCore", 5, 10], ["ExoticIsotope", 1, 3]],
 		"rare_loot": [["Ir", 0.5, 5, 15]],
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["cryo_laser_mk3", "antimatter_engine", "iridium_armor", "reactive_core_battery", "iridium_penetrator", "platinum_laser", "reactive_armor", "plasma_overcharger", "exotic_shield_matrix"],
 		"xp": 30000
 	},
 	"crystal_golem": {
 		"name": "Crystalline Golem",
-		"stats": {"hp": 50000, "max_shield": 0, "atk": 600, "def": 200, "accuracy": 120},
+		"stats": {"hp": 297453, "atk": 851, "def": 259, "accuracy": 148},
 		"loot": [["VoidCrystal", 1, 3], ["Si", 50, 100], ["Diamond", 1, 3]],
 		"rare_loot": [["Ir", 0.2, 1, 2], ["SyntheticCrystal", 0.15, 1, 1]],
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["quantum_dissipator", "omni_scanner", "torpedo_launcher", "osmium_core_module", "palladium_fuel_cell", "reflective_sheath", "diamond_edge_railgun", "crystal_lens_laser"],
 		"xp": 1500
 	},
 	"energy_wraith": {
 		"name": "Energy Wraith",
-		"stats": {"hp": 30000, "max_shield": 50000, "atk": 750, "def": 50, "accuracy": 130},
+		"stats": {"hp": 120742, "max_shield": 201236, "atk": 951, "def": 352, "accuracy": 143},
 		"loot": [["ExoticMatter", 2, 5], ["VoidCrystal", 2, 4], ["H", 20, 40]],
 		"rare_loot": [["AntimatterParticle", 0.1, 1, 1], ["VoidCrystal", 0.25, 2, 3]],
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["quantum_dissipator", "omni_scanner", "torpedo_launcher", "osmium_core_module", "palladium_fuel_cell", "reflective_sheath", "diamond_edge_railgun", "crystal_lens_laser"],
 		"xp": 1800
 	},
 	"sentinel_prime": {
 		"name": "SENTINEL PRIME",
-		"stats": {"hp": 150000, "max_shield": 80000, "atk": 600, "def": 180, "accuracy": 150},
+		"stats": {"hp": 213996, "max_shield": 114131, "atk": 702, "def": 357, "accuracy": 161},
 		"loot": [["VoidCrystal", 5, 10], ["Ir", 10, 20], ["QuantumCore", 2, 4]],
 		"rare_loot": [["Os", 0.25, 1, 3], ["AncientTech", 0.2, 1, 1]],
-		"module_drop_chance": 0.08,
-		"module_drop_pool": ["railgun_mk3", "cryo_laser_mk3", "exotic_shield_matrix", "omega_armor"],
+		"module_drop_chance": 0.15,
+		"module_drop_pool": ["quantum_dissipator", "omni_scanner", "torpedo_launcher", "osmium_core_module", "palladium_fuel_cell", "reflective_sheath", "diamond_edge_railgun", "crystal_lens_laser"],
 		"is_boss": true,
 		"xp": 5000
 	},
 	"void_stalker": {
 		"name": "Void Stalker",
-		"stats": {"hp": 200000, "max_shield": 150000, "atk": 900, "def": 300, "atk_interval": 2.0, "accuracy": 150, "eva": 60},
+		"stats": {"hp": 1551096, "max_shield": 1163322, "atk": 1451, "def": 1035, "atk_interval": 2.0, "accuracy": 177, "eva": 60},
 		"loot": [["credits", 100000, 200000], ["VoidCrystal", 10, 20], ["ExoticMatter", 5, 10]],
 		"rare_loot": [["VoidEssence", 0.50, 1, 2], ["QuantumCore", 0.5, 2, 4]],
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["omega_armor", "primordial_core", "omega_beam", "void_battery_array", "temporal_drive", "primordial_fortification", "omega_singularity", "void_breaker_laser"],
 		"xp": 8000
 	},
 	"temporal_phantom": {
 		"name": "Temporal Phantom",
-		"stats": {"hp": 150000, "max_shield": 250000, "atk": 750, "def": 200, "atk_interval": 1.5, "accuracy": 160, "eva": 80},
+		"stats": {"hp": 1223426, "max_shield": 2039044, "atk": 1047, "def": 1102, "atk_interval": 1.5, "accuracy": 191, "eva": 80},
 		"loot": [["credits", 150000, 300000], ["ExoticMatter", 8, 15], ["VoidCrystal", 5, 10], ["AntimatterParticle", 1, 2]],
 		"rare_loot": [["ChronoCore", 0.25, 1, 1], ["VoidEssence", 0.2, 1, 2]],
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["omega_armor", "primordial_core", "omega_beam", "void_battery_array", "temporal_drive", "primordial_fortification", "omega_singularity", "void_breaker_laser"],
 		"xp": 10000
 	},
 	"omega_sentinel": {
 		"name": "OMEGA SENTINEL",
-		"stats": {"hp": 500000, "max_shield": 300000, "atk": 1500, "def": 500, "atk_interval": 3.0, "accuracy": 180, "eva": 40},
+		"stats": {"hp": 1476647, "max_shield": 885988, "atk": 1917, "def": 801, "accuracy": 206, "eva": 40},
 		"loot": [["credits", 300000, 600000], ["VoidCrystal", 20, 40], ["QuantumCore", 5, 10], ["Ir", 20, 40]],
 		"rare_loot": [["OmegaPlating", 0.40, 1, 2], ["ChronoCore", 0.3, 1, 1], ["Os", 0.25, 2, 4], ["Neutronium", 0.15, 1, 2]],
-		"module_drop_chance": 0.12,
-		"module_drop_pool": ["torpedo_launcher", "chrono_stabilizer", "omega_armor", "iridium_armor"],
-		"is_boss": true,
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["omega_armor", "primordial_core", "omega_beam", "void_battery_array", "temporal_drive", "primordial_fortification", "omega_singularity", "void_breaker_laser"],
 		"xp": 25000
 	},
 	"primordial_titan": {
 		"name": "★ PRIMORDIAL TITAN ★",
-		"stats": {"hp": 2000000, "max_shield": 1000000, "atk": 3750, "def": 800, "atk_interval": 5.0, "accuracy": 200, "eva": 50},
+		"stats": {"hp": 2266475, "max_shield": 1133238, "atk": 3892, "def": 915, "atk_interval": 5.0, "accuracy": 173, "eva": 50},
 		"loot": [["credits", 5000000, 15000000], ["VoidCrystal", 100, 200], ["QuantumCore", 20, 40], ["OmegaPlating", 5, 10], ["PrimordialShard", 1, 3], ["ChronoCore", 2, 4], ["VoidEssence", 5, 10]],
 		"rare_loot": [],
-		"module_drop_chance": 0.15,
-		"module_drop_pool": ["torpedo_launcher", "plasma_overcharger", "railgun_mk3", "chrono_stabilizer", "omega_armor", "osmium_core_module"],
-		"is_boss": true,
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["omega_armor", "primordial_core", "omega_beam", "void_battery_array", "temporal_drive", "primordial_fortification", "omega_singularity", "void_breaker_laser"],
 		"xp": 100000
 	},
 	"void_leviathan": {
 		"name": "VOID LEVIATHAN",
-		"stats": {"hp": 5000000, "max_shield": 3000000, "atk": 5000, "def": 1200, "atk_interval": 6.0, "accuracy": 250, "eva": 60, "jammer": true},
+		"stats": {"hp": 2124295, "max_shield": 1274577, "atk": 4860, "def": 827, "atk_interval": 6.0, "accuracy": 189, "jammer": true, "eva": 60},
 		"loot": [["credits", 15000000, 30000000], ["VoidEssence", 10, 20], ["PrimordialShard", 5, 10]],
 		"rare_loot": [],
 		"requires_weapon": "void_breaker_laser",
-		"module_drop_chance": 0.20,
-		"module_drop_pool": ["plasma_overcharger", "torpedo_launcher", "railgun_mk3", "chrono_stabilizer", "omega_armor", "osmium_core_module"],
+		"module_drop_chance": 0.15,
+		"module_drop_pool": ["omega_armor", "primordial_core", "omega_beam", "void_battery_array", "temporal_drive", "primordial_fortification", "omega_singularity", "void_breaker_laser"],
 		"is_boss": true,
 		"xp": 500000
 	},
 	# v57.0: SECTOR ZETA ENEMIES (Difficulty 9)
 	"plague_drone": {
 		"name": "Plague Drone",
-		"stats": {"hp": 120000, "max_shield": 60000, "atk": 525, "def": 150, "atk_interval": 1.8, "accuracy": 130, "eva": 35},
+		"stats": {"hp": 543044, "max_shield": 271522, "atk": 854, "def": 610, "atk_interval": 1.8, "accuracy": 157, "eva": 35},
 		"loot": [["credits", 50000, 100000], ["BiohazardSample", 2, 5], ["Ti", 30, 60]],
 		"rare_loot": [["PathogenCore", 0.25, 1, 2], ["Res3", 0.3, 5, 10]],
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["temporal_scrambler", "warp_stabilizer"],
 		"xp": 3500
 	},
 	"bio_horror": {
 		"name": "Bio-Horror",
-		"stats": {"hp": 250000, "max_shield": 100000, "atk": 750, "def": 200, "atk_interval": 2.5, "accuracy": 140, "eva": 25},
+		"stats": {"hp": 696014, "max_shield": 278406, "atk": 1095, "def": 499, "atk_interval": 2.5, "accuracy": 183, "eva": 25},
 		"loot": [["credits", 80000, 150000], ["BiohazardSample", 5, 10], ["MutatedTissue", 2, 4]],
 		"rare_loot": [["PathogenCore", 0.4, 1, 3], ["VoidCrystal", 0.2, 2, 4], ["S", 0.30, 2, 5]],
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["void_engine", "chrono_stabilizer"],
 		"xp": 5000
 	},
 	"rogue_ai_core": {
 		"name": "Rogue AI Core",
-		"stats": {"hp": 180000, "max_shield": 200000, "atk": 600, "def": 250, "atk_interval": 1.5, "accuracy": 160, "eva": 45},
+		"stats": {"hp": 451844, "max_shield": 502049, "atk": 570, "def": 560, "atk_interval": 1.5, "accuracy": 178, "eva": 45},
 		"loot": [["credits", 100000, 200000], ["AdvCircuit", 10, 20], ["QuantumCore", 1, 2]],
 		"rare_loot": [["AIMatrix", 0.3, 1, 1], ["Chip", 0.5, 5, 10]],
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["temporal_scrambler", "warp_stabilizer", "void_engine", "chrono_stabilizer"],
 		"xp": 6000
 	},
 	"quarantine_warden": {
 		"name": "QUARANTINE WARDEN",
-		"stats": {"hp": 400000, "max_shield": 250000, "atk": 1050, "def": 350, "atk_interval": 3.0, "accuracy": 170, "eva": 30},
+		"stats": {"hp": 533234, "max_shield": 333271, "atk": 1191, "def": 660, "accuracy": 175, "eva": 30},
 		"loot": [["credits", 200000, 400000], ["BiohazardSample", 10, 20], ["PathogenCore", 2, 4], ["MutatedTissue", 5, 10]],
 		"rare_loot": [["QuarantineClearance", 0.5, 1, 1], ["AIMatrix", 0.25, 1, 2]],
+		"module_drop_chance": 0.15,
+		"module_drop_pool": ["temporal_scrambler", "warp_stabilizer", "void_engine", "chrono_stabilizer"],
+		"is_boss": true,
 		"xp": 15000
 	},
 	# v57.0: Late Sector Expansion - Sector Alpha (+2)
 	"xenon_scout": {
 		"name": "Xenon Scout",
-		"stats": {"hp": 5000, "max_shield": 2000, "atk": 120, "def": 40, "atk_interval": 1.5, "accuracy": 50, "eva": 40},
-		"loot": [["credits", 5000, 10000], ["Ti", 10, 20], ["Scrap", 5, 10]],
+		"stats": {"hp": 8464, "max_shield": 3385, "atk": 99, "def": 45, "atk_interval": 1.5, "accuracy": 85, "eva": 40},
+		"loot": [["credits", 5000, 10000], ["Ti", 10, 20], ["Fe", 25, 50]],
 		"rare_loot": [["NavData", 0.3, 1, 3], ["Res2", 0.2, 1, 2]],
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["railgun_mk3", "mining_laser_mk3", "composite_armor_mk2", "stainless_armor", "cobalt_battery_module"],
 		"xp": 350
 	},
 	"alien_probe": {
 		"name": "Alien Probe",
-		"stats": {"hp": 3000, "max_shield": 5000, "atk": 90, "def": 30, "atk_interval": 2.0, "accuracy": 70, "eva": 50},
+		"stats": {"hp": 4261, "max_shield": 7102, "atk": 136, "def": 47, "atk_interval": 2.0, "accuracy": 85, "eva": 50},
 		"loot": [["credits", 2000, 4000], ["SalvageData", 2, 4], ["Circuit", 3, 6]],
 		"rare_loot": [["VoidArtifact", 0.1, 1, 1], ["Chip", 0.25, 1, 2]],
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["railgun_mk3", "mining_laser_mk3", "composite_armor_mk2", "stainless_armor", "mg_battery_module"],
 		"xp": 400
 	},
 	# v57.0: Late Sector Expansion - Sector Beta (+2)
 	"repair_drone": {
 		"name": "Repair Drone",
-		"stats": {"hp": 8000, "max_shield": 3000, "atk": 75, "def": 100, "atk_interval": 2.5, "accuracy": 40, "eva": 30},
+		"stats": {"hp": 21960, "max_shield": 8235, "atk": 276, "def": 84, "atk_interval": 2.5, "accuracy": 119, "eva": 30},
 		"loot": [["credits", 3000, 6000], ["Cu", 20, 40], ["Circuit", 5, 10]],
 		"rare_loot": [["AdvCircuit", 0.2, 1, 2], ["Mesh", 0.15, 1, 2]],
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["railgun_mk3", "mining_laser_mk3", "composite_armor_mk2", "stainless_armor", "cobalt_battery_module"],
 		"xp": 500
 	},
 	"ore_guardian": {
 		"name": "Ore Guardian",
-		"stats": {"hp": 20000, "max_shield": 5000, "atk": 180, "def": 200, "atk_interval": 3.0, "accuracy": 60, "eva": 15},
+		"stats": {"hp": 33355, "max_shield": 8339, "atk": 261, "def": 85, "accuracy": 114, "eva": 15},
 		"loot": [["Fe", 100, 200], ["Ti", 30, 60], ["W", 20, 40]],
 		"rare_loot": [["Pt", 0.2, 1, 3], ["Ir", 0.1, 1, 2]],
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["railgun_mk3", "mining_laser_mk3", "composite_armor_mk2", "stainless_armor", "mg_battery_module"],
 		"xp": 700
 	},
 	# v57.0: Late Sector Expansion - Sector Gamma (+2)
 	"irradiated_hulk": {
 		"name": "Irradiated Hulk",
-		"stats": {"hp": 35000, "max_shield": 10000, "atk": 270, "def": 120, "atk_interval": 4.0, "accuracy": 80, "eva": 10},
-		"loot": [["credits", 10000, 20000], ["U", 10, 20], ["RadIsotope", 5, 10]],
+		"stats": {"hp": 75328, "max_shield": 21522, "atk": 572, "def": 200, "atk_interval": 4.0, "accuracy": 132, "eva": 10},
+		"loot": [["credits", 3000000, 5000000], ["U", 400, 500], ["RadIsotope", 5, 10]],
 		"rare_loot": [["Res3", 0.3, 2, 4], ["VoidCrystal", 0.1, 1, 2]],
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["cryo_laser_mk3", "antimatter_engine", "iridium_armor", "reactive_core_battery"],
 		"xp": 1200
 	},
 	"plasma_wraith": {
 		"name": "Plasma Wraith",
-		"stats": {"hp": 25000, "max_shield": 30000, "atk": 375, "def": 80, "atk_interval": 1.8, "accuracy": 100, "eva": 45},
-		"loot": [["credits", 15000, 30000], ["H", 50, 100], ["He", 30, 60]],
+		"stats": {"hp": 49161, "max_shield": 58993, "atk": 336, "def": 191, "atk_interval": 1.8, "accuracy": 122, "eva": 45},
+		"loot": [["credits", 1500000, 2000000]],
 		"rare_loot": [["QuantumCore", 0.15, 1, 1], ["ExoticMatter", 0.1, 1, 2]],
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["iridium_penetrator", "platinum_laser", "reactive_armor", "plasma_overcharger", "exotic_shield_matrix"],
 		"xp": 1500
 	},
 	# v57.0: Late Sector Expansion - Sector Delta (+2)
 	"shard_swarm": {
 		"name": "Shard Swarm",
-		"stats": {"hp": 40000, "max_shield": 15000, "atk": 300, "def": 100, "atk_interval": 0.8, "accuracy": 90, "eva": 35},
+		"stats": {"hp": 200116, "max_shield": 75043, "atk": 209, "def": 297, "atk_interval": 0.8, "accuracy": 149, "eva": 35},
 		"loot": [["credits", 20000, 40000], ["VoidCrystal", 3, 6], ["Si", 50, 100]],
 		"rare_loot": [["Ir", 0.2, 1, 3], ["QuantumCore", 0.1, 1, 1]],
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["quantum_dissipator", "omni_scanner", "torpedo_launcher", "osmium_core_module", "palladium_fuel_cell"],
 		"xp": 2000
 	},
 	"prism_guardian": {
 		"name": "Prism Guardian",
-		"stats": {"hp": 60000, "max_shield": 40000, "atk": 450, "def": 150, "atk_interval": 2.5, "accuracy": 120, "eva": 25},
+		"stats": {"hp": 214866, "max_shield": 143244, "atk": 718, "def": 365, "atk_interval": 2.5, "accuracy": 138, "eva": 25},
 		"loot": [["credits", 30000, 60000], ["VoidCrystal", 5, 10], ["ExoticMatter", 2, 4]],
 		"rare_loot": [["AncientTech", 0.15, 1, 1], ["Os", 0.1, 1, 2]],
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["reflective_sheath", "diamond_edge_railgun", "crystal_lens_laser"],
 		"xp": 2500
 	}
 }
@@ -549,6 +624,11 @@ func get_available_zones() -> Array:
 
 func start_expedition(zone_id: String):
 	if not zone_id in zones: return
+	
+	var sm = GameState.shipyard_manager
+	if sm and sm.current_hp <= 0:
+		log_msg("SYSTEM CRITICAL: Hull integrity at 0%. Repairs required before engaging.")
+		return
 	
 	# v63.0 Fix: Enforce research requirements
 	var data = zones[zone_id]
@@ -574,6 +654,11 @@ func start_expedition(zone_id: String):
 func set_target_enemy(enemy_id):
 	# v62.0 Fix: Prevent crash if current_zone is null
 	if current_zone == null:
+		return
+
+	var sm = GameState.shipyard_manager
+	if sm and sm.current_hp <= 0:
+		log_msg("SYSTEM CRITICAL: Hull integrity at 0%. Repairs required before engaging.")
 		return
 
 	if enemy_id and enemy_id in enemy_db:
@@ -713,27 +798,27 @@ func process_tick(delta: float):
 		
 	var rm = GameState.research_manager
 	# v65.4 Fix: Removed sm.attack_speed_bonus here — it's already applied via cooling_mult per-weapon
-	var p_speed_mult = (1.0 + rm.get_efficiency_bonus("attack_speed")) * GameState.warp_manager.get_combat_multiplier()
+	var p_speed_mult = (1.0 + rm.get_efficiency_bonus("attack_speed"))
 	
 	# Safety: Ensure HP never exceeds Max
 	if sm.current_hp > sm.max_hp:
 		sm.current_hp = sm.max_hp
 	
 	if overheat_lock > 0:
-		# Nerf: Unlock at 50% heat instead of waiting for 0%
-		if player_heat <= player_max_heat * 0.5:
+		# Require 0% purge to resume fire
+		if player_heat <= 0.0:
 			overheat_lock = 0.0
 	if player_heat > 0:
 		var current_vent_rate = player_vent_rate * get_milestone_heat_mult()
 		
-		# Healing until 100% vs after 100% logic
+		# Turbo Cooling: 4x vent when overloaded or during overheat lock
 		var frame_vent_rate = current_vent_rate
-		if player_heat > player_max_heat:
-			frame_vent_rate *= 4.0 # 4x faster vent when critically overloaded
+		if player_heat > player_max_heat or overheat_lock > 0:
+			frame_vent_rate *= 4.0
 			
 		player_heat = max(0, player_heat - frame_vent_rate * delta)
 		heat_changed.emit(player_heat, player_max_heat)
-	if player_heat > 80.0: p_speed_mult *= 0.5
+	# 80% speed penalty removed per user request for full performance until overheat
 	
 	# v65.0 Fix: Enemy Shield Regen moved to generic accumulator and Capped (Removed old logic)
 	
@@ -870,7 +955,8 @@ func _execute_player_attack(weapon_idx: int):
 			# Descriptions say: +5, +15, +30
 			if ammo_id.begins_with("Slug"):
 				var bonus = 5.0
-				if "T2" in ammo_id: bonus = 15.0
+				if "T1S" in ammo_id: bonus = 10.0 # Heavy Steel Slugs
+				elif "T2" in ammo_id: bonus = 15.0
 				elif "T3" in ammo_id: bonus = 30.0
 				elif "T4" in ammo_id: bonus = 60.0
 				p_atk_k += bonus
@@ -898,7 +984,7 @@ func _execute_player_attack(weapon_idx: int):
 				combat_events.append({"type": "miss", "text": "REQUIRES " + req_w.replace("_", " ").to_upper(), "color": Color.RED, "side": "enemy"})
 			return # Deals 0 damage and skips calculation
 			
-	var skill_dmg_mult = 1.0 + (get_level() * 0.005)
+	var skill_dmg_mult = (1.0 + (get_level() * 0.005)) * GameState.warp_manager.get_combat_multiplier()
 	var total_crit = sm.crit_chance + get_milestone_crit_bonus()
 	var res = resolve_damage(p_atk_k * skill_dmg_mult, p_atk_e * skill_dmg_mult, p_atk_x * skill_dmg_mult, enemy_shield, current_enemy["def"], current_zone.get("difficulty", 1), total_crit, true)
 	enemy_shield = max(0, enemy_shield - res[0])
@@ -1014,12 +1100,20 @@ func win_fight():
 	# v71.0: Module Rarity Drop System
 	var drop_chance = current_enemy.get("module_drop_chance", 0.0)
 	var drop_pool = current_enemy.get("module_drop_pool", [])
-	if drop_chance > 0 and drop_pool.size() > 0 and randf() < drop_chance:
+	
+	# Only drop unlocked modules
+	var unlocked_pool = []
+	for mod_id in drop_pool:
+		var req = sm.modules.get(mod_id, {}).get("research_req", "")
+		if req == "" or GameState.research_manager.is_tech_unlocked(req):
+			unlocked_pool.append(mod_id)
+			
+	if drop_chance > 0 and unlocked_pool.size() > 0 and randf() < drop_chance:
 		var is_boss = current_enemy.get("is_boss", false)
 		var rarity = sm.roll_rarity(is_boss)
 		# Common rolls don't produce module drops (just materials)
 		if rarity != sm.Rarity.COMMON:
-			var base_id = drop_pool[randi() % drop_pool.size()]
+			var base_id = unlocked_pool[randi() % unlocked_pool.size()]
 			var custom_id = sm.generate_module_drop(base_id, rarity)
 			if custom_id != "":
 				var w_name = sm.modules[custom_id]["name"]
@@ -1036,6 +1130,9 @@ func win_fight():
 func lose_fight():
 	var sm = GameState.shipyard_manager
 	var cost = sm.get_full_repair_cost(sm.active_hull)
+	var current_credits = GameState.resources.get_currency("credits")
+	if cost > current_credits:
+		cost = current_credits
 	GameState.resources.add_currency("credits", -cost)
 	retreat()
 

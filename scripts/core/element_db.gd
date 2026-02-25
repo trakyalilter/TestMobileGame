@@ -131,7 +131,6 @@ var ELEMENT_NAMES = {
 	"OsCore": "Osmium Core",
 	
 	# Combat Loot & Artifacts
-	"Scrap": "Recycled Scrap",
 	"MiteChitin": "Mite Chitin",
 	"ChitinPatch": "Chitin Hull Patch",
 	"DroneCore": "Drone Core",
@@ -199,7 +198,7 @@ var CATEGORIES = {
 				"Neutronium", "AntimatterParticle", "ExoticIsotope", "ReactiveCore", "AICore", "AncientTech",
 				"NavData", "IrPlate", "OsCore", "PtCatalyst",
 				"Res1", "Res2", "Res3",
-				"Scrap", "MiteChitin", "DroneCore", "SalvageData", "StolenCargo", 
+				"MiteChitin", "DroneCore", "SalvageData", "StolenCargo", 
 				"SwarmFragment", "PirateManifest", "ColonySalvage", "TurretCore", 
 				"ColonyDataCore", "RadIsotope", "CryoCell"],
 	# Audit v4.0: Endgame category for ultimate items

@@ -29,6 +29,7 @@ func _ready():
 	manager = GameState.shipyard_manager
 	visibility_changed.connect(_on_visibility_changed)
 	GameState.game_loaded.connect(trigger_refresh)
+	if GameState.warp_manager: GameState.warp_manager.warped.connect(_on_warp_refresh)
 	manager.inventory_updated.connect(_on_inventory_updated)
 	
 	# Premium Styling
@@ -53,6 +54,9 @@ func _on_inventory_updated():
 	if visible:
 		rebuild_storage()
 		update_header()
+
+func _on_warp_refresh(_gains):
+	trigger_refresh()
 
 func trigger_refresh():
 	update_header()
@@ -137,13 +141,24 @@ func update_header():
 
 func _calculate_total_dps() -> float:
 	var total = 0.0
+	
+	var has_plasma_overcharger = false
+	for s_idx in manager.loadout:
+		if manager.loadout[s_idx] == "plasma_overcharger":
+			has_plasma_overcharger = true
+			break
+			
 	for s_idx in manager.loadout:
 		var mid = manager.loadout[s_idx]
 		if mid and mid in manager.modules:
 			var m_data = manager.modules[mid]
 			if m_data.get("slot_type") == "weapon":
 				var stats = m_data.get("stats", {})
-				var dmg = stats.get("atk_kinetic", 0) + stats.get("atk_energy", 0) + stats.get("atk_explosive", 0)
+				var e_dmg = stats.get("atk_energy", 0)
+				if has_plasma_overcharger:
+					e_dmg *= 2.0
+					
+				var dmg = stats.get("atk_kinetic", 0) + e_dmg + stats.get("atk_explosive", 0)
 				var interval = stats.get("atk_interval", 2.5)
 				if interval > 0:
 					total += float(dmg) / interval

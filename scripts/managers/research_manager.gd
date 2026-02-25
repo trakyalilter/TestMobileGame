@@ -78,14 +78,15 @@ var tech_tree = {
 		"cost": 100000,
 		"cost_items": {"Steel":100,"Res1": 20,"Circuit": 10},
 		"type": "technology",
-		"parent": "smelting"
+		"parent": "power_systems",
+		"req_tech": "smelting"
 	},
 
 	"shipwright_2": {
 		"name": "Shipwright II",
 		"description": "Unlocks:\n• Destroyer Class",
 		"cost": 1000000,
-		"cost_items": {"Res2": 10},
+		"cost_items": {"Res2": 100},
 		"type": "technology",
 		"parent": "shipwright_1"
 	},
@@ -93,7 +94,7 @@ var tech_tree = {
 		"name": "Advanced Materials",
 		"description": "Unlocks:\n• Graphite Press\n• Factory Automation branch\n• Hydraulic Press branch",
 		"cost": 5000,
-		"cost_items": {"Res2": 10},
+		"cost_items": {"Res2": 5},
 		"type": "technology",
 		"parent": "smelting"
 	},
@@ -101,9 +102,10 @@ var tech_tree = {
 		"name": "Energy Fields",
 		"description": "Unlocks:\n• Deflector Shield\n• Shield Harmonics (Ships)\n• [Requires: Applied Physics (Engineering)]",
 		"cost": 1250,
-		"cost_items": {"Res1": 10},
+		"cost_items": {"Res1": 5},
 		"type": "technology",
-		"parent": "applied_physics"
+		"parent": "eff_scanning_1",
+		"req_tech": "applied_physics"
 	},
 	"field_theory": {
 		"name": "Field Theory",
@@ -119,7 +121,8 @@ var tech_tree = {
 		"cost": 375,
 		"cost_items": {"Res1": 5},
 		"type": "technology",
-		"parent": "applied_physics"
+		"parent": null,
+		"req_tech": "applied_physics"
 	},
 
 	"automation": {
@@ -145,7 +148,8 @@ var tech_tree = {
 		"cost": 50000,
 		"cost_items": {"NavData": 10, "PirateManifest": 10},
 		"type": "technology",
-		"parent": "shipwright_1"
+		"parent": "eff_scanning_1",
+		"req_tech": "shipwright_1"
 	},
 	"advanced_batteries": {
 		"name": "Advanced Battery Tech",
@@ -176,10 +180,10 @@ var tech_tree = {
 		"name": "Asteroid Belt Clearance",
 		"description": "Unlocks:\n• Asteroid Belt zone\n• Claim Jumper enemy\n• [Requires: Shipwright I (Ships)]",
 		"cost": 6250,
-		# Cost Fix: PirateManifest replaced with Credits/Material, as Manifest drops IN zone
-		"cost_items": {"Scrap": 50, "Fe": 200, "Si": 100},
+		"cost_items": {"Cu": 50, "Fe": 200, "Si": 100},
 		"type": "technology",
-		"parent": "shipwright_1"
+		"parent": "sector_alpha_decryption",
+		"req_tech": "shipwright_1"
 	},
 	"mars_license": {
 		"name": "Mars Sector License",
@@ -222,7 +226,8 @@ var tech_tree = {
 		"description": "Unlocks:\n• Mass Driver\n• [Requires: Applied Physics (Engineering)]",
 		"cost": 50,
 		"type": "technology",
-		"parent": "applied_physics"
+		"parent": null,
+		"req_tech": "applied_physics"
 	},
 	"laser_optics": {
 		"name": "Laser Optics",
@@ -231,7 +236,8 @@ var tech_tree = {
 		"cost": 300,
 		"cost_items": {"Res1": 5},
 		"type": "technology",
-		"parent": "fluid_dynamics"
+		"parent": "power_systems",
+		"req_tech": "fluid_dynamics"
 	},
 
 	"power_systems": {
@@ -239,7 +245,8 @@ var tech_tree = {
 		"description": "Unlocks:\n• Basic Battery Module\n• [Requires: Applied Physics (Engineering)]",
 		"cost": 300,
 		"type": "technology",
-		"parent": "applied_physics"
+		"parent": "kinetics_101",
+		"req_tech": "applied_physics"
 	},
 	"lightweight_alloys": {
 		"name": "Lightweight Alloys",
@@ -260,11 +267,12 @@ var tech_tree = {
 	# --- GATHERING UPGRADES ---
 	"diamond_drills": {
 		"name": "Diamond Tipped Drills",
-		"description": "Bonus:\n• +25% Excavate Soil speed",
+		"description": "Bonus:\n• +25% Excavate Soil speed\n• [Requires: Industrial Logistics (Engineering)]",
 		"cost": 200,
 		"cost_items": {"Res1": 2},
 		"type": "technology",
-		"parent": "industrial_logistics"
+		"parent": null,
+		"req_tech": "industrial_logistics"
 	},
 	"high_flow_pumps": {
 		"name": "High-Flow Pumps",
@@ -272,7 +280,8 @@ var tech_tree = {
 		"cost": 250,
 		"cost_items": {"Res1": 2},
 		"type": "technology",
-		"parent": "fluid_dynamics"
+		"parent": null,
+		"req_tech": "fluid_dynamics"
 	},
 	"laser_cutters": {
 		"name": "Laser Cutters",
@@ -280,7 +289,8 @@ var tech_tree = {
 		"cost": 300,
 		"cost_items": {"Res1": 2},
 		"type": "technology",
-		"parent": "combustion"
+		"parent": null,
+		"req_tech": "combustion"
 	},
 	"magnetic_funnels": {
 		"name": "Magnetic Funnels",
@@ -525,7 +535,8 @@ var tech_tree = {
 		"cost": 25000,
 		"cost_items": {"Circuit": 100, "Ti": 100},
 		"type": "technology",
-		"parent": "automated_logistics"
+		"parent": "warp_drive",
+		"req_tech": "automated_logistics"
 	},
 	"fleet_logistics_2": {
 		"name": "Fleet Logistics II",
@@ -564,7 +575,7 @@ var tech_tree = {
 		"name": "Quantum Dynamics",
 		"description": "Unlocks:\n• Dreadnought Class ",
 		"cost": 5000000,
-		"cost_items": {"QuantumCore": 20, "VoidArtifact": 50, "ColonyDataCore": 50,"Res3": 500},
+		"cost_items": {"QuantumCore": 20, "VoidArtifact": 50, "ColonyDataCore": 50,"RadIsotope": 1000,"Res3": 500,"ExoticIsotope": 20},
 		"type": "technology",
 		"parent": "capital_ship_engineering"
 	},
@@ -583,7 +594,8 @@ var tech_tree = {
 		"cost": 100000,
 		"cost_items": {"NavData": 25, "Ti": 150, "Res3": 10},
 		"type": "technology",
-		"parent": "warp_drive"
+		"parent": null,
+		"req_tech": "warp_drive"
 	},
 	"radiation_shielding": {
 		"name": "Radiation Shielding Theory",
@@ -600,6 +612,47 @@ var tech_tree = {
 		"cost_items": {"Pt": 20, "RadIsotope": 50, "QuantumCore": 3},
 		"type": "technology",
 		"parent": "radiation_shielding"
+	},
+	# --- EFFICIENCY BRANCH (MULTIPLIED YIELDS) ---
+	"efficiency_1": {
+		"name": "Efficiency I",
+		"description": "Yield Bonus:\n• x2 Output (Gathering & Processing)",
+		"cost": 250000,
+		"cost_items": {"Circuit": 250, "Steel": 500, "Res2": 25},
+		"type": "technology",
+		"parent": "industrial_logistics"
+	},
+	"efficiency_2": {
+		"name": "Efficiency II",
+		"description": "Yield Bonus:\n• x4 Output (Gathering & Processing)",
+		"cost": 1000000,
+		"cost_items": {"AdvCircuit": 100, "Ti": 1000, "Res3": 50},
+		"type": "technology",
+		"parent": "efficiency_1"
+	},
+	"efficiency_3": {
+		"name": "Efficiency III",
+		"description": "Yield Bonus:\n• x8 Output (Gathering & Processing)",
+		"cost": 5000000,
+		"cost_items": {"QuantumCore": 10, "U": 500, "Platinum": 250},
+		"type": "technology",
+		"parent": "efficiency_2"
+	},
+	"efficiency_4": {
+		"name": "Efficiency IV",
+		"description": "Yield Bonus:\n• x16 Output (Gathering & Processing)",
+		"cost": 25000000,
+		"cost_items": {"ExoticMatter": 5, "Osmium": 100, "VoidCrystal": 50},
+		"type": "technology",
+		"parent": "efficiency_3"
+	},
+	"efficiency_5": {
+		"name": "Efficiency V",
+		"description": "Yield Bonus:\n• x32 Output (Gathering & Processing)",
+		"cost": 100000000,
+		"cost_items": {"ExoticIsotope": 25, "Neutronium": 5, "QuantumCore": 50},
+		"type": "technology",
+		"parent": "efficiency_4"
 	},
 	# Mid-Game Technology
 	"metallurgy_advanced": {
@@ -626,7 +679,8 @@ var tech_tree = {
 		"cost": 15000, # Audit v64.1: Adjusted from 1500 to match Res2 tier
 		"cost_items": {"Ti": 200, "Res2": 25},
 		"type": "technology",
-		"parent": "deep_space_nav"
+		"parent": null,
+		"req_tech": "deep_space_nav"
 	},
 	"industrial_catalysis": {
 		"name": "Industrial Catalysis",
@@ -667,7 +721,8 @@ var tech_tree = {
 		"cost": 50000,
 		"cost_items": {"ColonyDataCore": 1, "ColonySalvage": 100, "AdvCircuit": 50},
 		"type": "technology",
-		"parent": "deep_space_nav"
+		"parent": null,
+		"req_tech": "deep_space_nav"
 	},
 	"gamma_optics": {
 		"name": "High-Energy Gamma Optics",
@@ -675,7 +730,8 @@ var tech_tree = {
 		"cost": 75000,
 		"cost_items": {"RadIsotope": 50, "Pt": 100},
 		"type": "technology",
-		"parent": "radiation_shielding"
+		"parent": "advanced_rocketry",
+		"req_tech": "radiation_shielding"
 	},
 	"void_physics": {
 		"name": "Extreme Void Physics",
@@ -701,7 +757,8 @@ var tech_tree = {
 		"cost": 100000000,
 		"cost_items": {"VoidEssence": 50, "ChronoCore": 20, "PrimordialShard": 5, "MutatedTissue": 10, "BioWeaponCoating": 10},
 		"type": "technology",
-		"parent": "void_navigation"
+		"parent": null,
+		"req_tech": "void_navigation"
 	},
 	"void_shielding_1": {
 		"name": "Void Shielding Optimization",
@@ -709,7 +766,8 @@ var tech_tree = {
 		"cost": 100000000,
 		"cost_items": {"OmegaPlating": 50, "VoidEssence": 20, "PrimordialShard": 5, "Os": 25, "MutatedTissue": 10, "RegenPlating": 8},
 		"type": "technology",
-		"parent": "void_navigation"
+		"parent": null,
+		"req_tech": "void_navigation"
 	},
 	"perfect_automation": {
 		"name": "Omni-Fabrication",
@@ -758,7 +816,8 @@ var tech_tree = {
 		"cost": 1200,
 		"cost_items": {"Res1": 5, "MiteChitin": 50},
 		"type": "technology",
-		"parent": "combustion"
+		"parent": "shield_harmonics",
+		"req_tech": "combustion"
 	},
 	"core_overclocking": {
 		"name": "Reactor Overclocking",
@@ -889,6 +948,7 @@ func can_unlock(tech_id: String) -> bool:
 	var node = tech_tree[tech_id]
 	var cost = int(node.get("cost", 0) * COST_MULTIPLIER)  # v56.0
 	var parent = node.get("parent")
+	var req_tech = node.get("req_tech")
 	
 	if GameState.resources.get_currency("credits") < cost: return false
 	
@@ -898,6 +958,7 @@ func can_unlock(tech_id: String) -> bool:
 			if GameState.resources.get_element_amount(item) < qty: return false
 	
 	if parent and not parent in unlocked_techs: return false
+	if req_tech and not req_tech in unlocked_techs: return false
 	
 	return true
 
@@ -962,6 +1023,14 @@ func unlock_repeatable_tech(tech_id: String) -> bool:
 		activity_occurred.emit()
 		return true
 	return false
+
+func get_efficiency_multiplier() -> float:
+	if is_tech_unlocked("efficiency_5"): return 32.0
+	if is_tech_unlocked("efficiency_4"): return 16.0
+	if is_tech_unlocked("efficiency_3"): return 8.0
+	if is_tech_unlocked("efficiency_2"): return 4.0
+	if is_tech_unlocked("efficiency_1"): return 2.0
+	return 1.0
 
 func get_efficiency_bonus(bonus_type: String) -> float:
 	match bonus_type:

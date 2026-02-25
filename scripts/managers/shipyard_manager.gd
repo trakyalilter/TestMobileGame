@@ -167,7 +167,7 @@ signal inventory_updated() # New signal for UI refresh
 var hulls: Dictionary = {
 	"corvette_hull": {
 		"name": "Corvette Hull",
-		"stats": {"hp": 100, "atk": 10, "energy_capacity": 100},
+		"stats": {"hp": 100, "atk": 10, "energy_capacity": 25},
 		"cost": {"credits": 0},
 		"slots": ["weapon", "weapon", "shield", "shield", "engine", "battery", "battery", "armor"], # 8 Slots (+1 Armor)
 		"visual": "res://assets/ships/1.png",
@@ -175,7 +175,7 @@ var hulls: Dictionary = {
 	},
 	"frigate_hull": {
 		"name": "Industrial Frigate",
-		"stats": {"hp": 800, "atk": 25, "energy_capacity": 250},
+		"stats": {"hp": 800, "atk": 25, "energy_capacity": 60},
 		"cost": {"credits": 5000, "Res1": 20},
 		"slots": ["weapon", "weapon", "weapon", "shield", "shield", "shield", "engine", "battery", "battery", "battery", "sensor", "armor", "armor"], # 13 Slots (+2 Armor)
 		"research_req": "shipwright_1",
@@ -184,7 +184,7 @@ var hulls: Dictionary = {
 	},
 	"destroyer_hull": {
 		"name": "Destroyer Class",
-		"stats": {"hp": 2500, "atk": 60, "energy_capacity": 600},
+		"stats": {"hp": 2500, "atk": 60, "energy_capacity": 150},
 		"cost": {"credits": 37500, "Ti": 50, "Circuit": 25, "Res2": 10},
 		"slots": ["weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "engine", "battery", "battery", "battery", "battery", "sensor", "cooling", "armor", "armor", "armor"], # 18 Slots (+3 Armor)
 		"research_req": "shipwright_2",
@@ -193,7 +193,7 @@ var hulls: Dictionary = {
 	},
 	"battlecruiser_hull": {
 		"name": "Battlecruiser Class",
-		"stats": {"hp": 8000, "atk": 120, "energy_capacity": 1500},
+		"stats": {"hp": 8000, "atk": 120, "energy_capacity": 350},
 		"cost": {"credits": 375000, "Steel": 500, "AdvCircuit": 50, "VoidArtifact": 5, "Res3": 15},
 		"slots": ["weapon", "weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "shield", "engine", "battery", "battery", "battery", "battery", "battery", "sensor", "sensor", "cooling", "cooling", "armor", "armor", "armor", "armor"], # 24 Slots (+4 Armor)
 		"research_req": "capital_ship_engineering",
@@ -202,7 +202,7 @@ var hulls: Dictionary = {
 	},
 	"dreadnought_hull": {
 		"name": "Dreadnought Class",
-		"stats": {"hp": 20000, "atk": 250, "energy_capacity": 4000},
+		"stats": {"hp": 20000, "atk": 250, "energy_capacity": 1000},
 		"cost": {"credits": 25000000, "Steel": 100000, "Ti": 2500, "Neutronium": 50, "Circuit": 1000, "Chip": 250, "Superalloy": 100, "AdvCircuit": 100, "QuantumCore": 10, "VoidArtifact": 25},
 		"slots": ["weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "shield", "shield", "shield", "engine", "battery", "battery", "battery", "battery", "battery", "battery", "sensor", "sensor", "sensor", "cooling", "cooling", "cooling", "armor", "armor", "armor", "armor", "armor"], # +5 Armor
 		"research_req": "quantum_dynamics",
@@ -268,7 +268,7 @@ var modules: Dictionary = {
 	"torpedo_launcher": {
 		"name": "Heavy Torpedo",
 		"slot_type": "weapon",
-		"stats": {"atk_explosive": 450, "energy_load": 60, "atk_interval": 12.0},
+		"stats": {"atk_explosive": 1500, "energy_load": 60, "atk_interval": 12.0},
 		"cost": {"credits": 12500000, "Superalloy": 50, "Chip": 50, "VoidArtifact": 5},
 		"desc": "Capital-class warhead. Massive armor penetration.",
 		"research_req": "capital_ship_armament"
@@ -442,7 +442,7 @@ var modules: Dictionary = {
 	"railgun_mk3": {
 		"name": "Coil Cannon",
 		"slot_type": "weapon",
-		"stats": {"atk_kinetic": 100, "energy_load": 25, "atk_interval": 4.0},
+		"stats": {"atk_kinetic": 280, "energy_load": 25, "atk_interval": 4.0},
 		"cost": {"credits": 2000000, "Steel": 500, "AdvCircuit": 150, "Superalloy": 100, "Diamond": 5},
 		"desc": "Devastating kinetic damage. Hull shredder.",
 		"research_req": "capital_ship_engineering"
@@ -570,16 +570,16 @@ var modules: Dictionary = {
 	"iridium_penetrator": {
 		"name": "Iridium-Tungsten Penetrator",
 		"slot_type": "weapon",
-		"stats": {"atk_kinetic": 350, "energy_load": 30, "atk_interval": 3.0},
-		"cost": {"credits": 12000000, "IrWAlloy": 30, "Circuit": 20},
+		"stats": {"atk_kinetic": 500, "energy_load": 30, "atk_interval": 3.0},
+		"cost": {"credits": 12000000, "IrWAlloy": 30, "AdvCircuit": 30,"SyntheticCrystal":5},
 		"desc": "Armor-piercing penetrator. Ignores 50% of enemy armor.",
 		"research_req": "iridium_metallurgy"
 	},
 	"platinum_laser": {
 		"name": "Platinum-Enhanced Laser",
 		"slot_type": "weapon",
-		"stats": {"atk_energy": 300, "energy_load": 35, "atk_interval": 2.0},
-		"cost": {"credits": 5000000, "Pt": 20, "Si": 100, "AdvCircuit": 15, "SyntheticCrystal": 5},
+		"stats": {"atk_energy": 350, "energy_load": 35, "atk_interval": 2.0},
+		"cost": {"credits": 5000000, "PtCatalyst": 20, "AdvCircuit": 30, "SyntheticCrystal": 5},
 		"desc": "Pt-coated optics. Superior energy damage.",
 		"research_req": "industrial_catalysis"
 	},
@@ -732,7 +732,7 @@ var modules: Dictionary = {
 	"diamond_edge_railgun": {
 		"name": "Diamond-Edge Railgun",
 		"slot_type": "weapon",
-		"stats": {"atk_kinetic": 600, "energy_load": 40, "atk_interval": 4.0},
+		"stats": {"atk_kinetic": 2400, "energy_load": 40, "atk_interval": 4.0},
 		"cost": {"credits": 200000, "Diamond": 10, "W": 50, "Steel": 200},
 		"desc": "Hyper-velocity penetrator. Best-in-class kinetic damage.",
 		"research_req": "exotic_matter_analysis"
@@ -941,6 +941,7 @@ func equip_module(slot_idx: int, module_id: String) -> bool:
 				# Allow fallthrough
 			else:
 				print("Equip Fail: Grid Overloaded. Needs more battery modules. Potential: %f, Cap: %f (Old Cap: %f, Old Margin: %f, New Margin: %f)" % [potential_load, current_cap, old_cap, old_margin, new_margin])
+				UITheme.show_notification("Grid Overload: Insufficient Power", Color.RED)
 				return false
 
 	# Unequip existing
@@ -1270,10 +1271,16 @@ func generate_module_drop(base_module_id: String, rarity: int = Rarity.UNCOMMON)
 		if stat_key in BOOSTABLE_STATS:
 			# Boost "good" stats by the rarity range
 			var bonus = randf_range(stat_range[0], stat_range[1])
+			var boosted = base_val * (1.0 + bonus)
+			
 			if base_val is float:
-				custom_stats[stat_key] = base_val * (1.0 + bonus)
+				custom_stats[stat_key] = boosted
 			else:
-				custom_stats[stat_key] = int(base_val * (1.0 + bonus))
+				# Audit v76.0: Prevent integer truncation from deleting rarity bonuses on low-stat modules
+				if base_val < 50:
+					custom_stats[stat_key] = snappedf(boosted, 0.1)
+				else:
+					custom_stats[stat_key] = int(round(boosted))
 		else:
 			# Non-boostable stats (energy_load, atk_interval) stay at base
 			custom_stats[stat_key] = base_val
@@ -1405,10 +1412,6 @@ func get_sell_price(module_id: String) -> int:
 func sell_module(module_id: String) -> bool:
 	if module_id not in module_inventory or module_inventory[module_id] <= 0:
 		return false
-	# Don't sell currently equipped modules
-	for idx in loadout:
-		if loadout[idx] == module_id:
-			return false
 	
 	var price = get_sell_price(module_id)
 	module_inventory[module_id] -= 1

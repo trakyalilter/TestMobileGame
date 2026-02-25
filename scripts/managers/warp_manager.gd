@@ -57,6 +57,7 @@ func execute_warp():
 	GameState.research_manager.soft_reset()
 	GameState.fleet_manager.reset(decay)
 	GameState.combat_manager.reset(decay)
+	GameState.shipyard_manager.reset(decay)
 	
 	# Audit v2.0 P1-5: Improved Starting Bonus (5x credits + resource package)
 	GameState.resources.add_currency("credits", current_bonus_shards * 5000.0)

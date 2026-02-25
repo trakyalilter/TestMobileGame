@@ -185,10 +185,13 @@ func _spawn_notification(text: String, color: Color):
 	panel.size_flags_horizontal = Control.SIZE_SHRINK_END
 	notification_container.add_child(panel)
 	# Max 5 notifications visibly tracking
-	if notification_container.get_child_count() > 6:
-		var oldest = notification_container.get_child(0)
-		if is_instance_valid(oldest) and not oldest.is_queued_for_deletion():
-			oldest.queue_free()
+	var active_nodes = []
+	for c in notification_container.get_children():
+		if not c.is_queued_for_deletion():
+			active_nodes.append(c)
+	while active_nodes.size() > 5:
+		var oldest = active_nodes.pop_front()
+		oldest.queue_free()
 	
 	# Tween Flow: Fade In (0.2s) -> Hold (1.5s) -> Fade Out (0.3s)
 	panel.modulate.a = 0.0
@@ -577,7 +580,7 @@ func _update_navigation_hints():
 		if current_page_name != "infrastructure": target_to_pulse = infrastructure_btn
 		else:
 			var widget = pages["infrastructure"].get_building_widget("fabricator")
-			if widget: target_to_pulse = widget.btn
+			if widget: target_to_pulse = widget.buy_btn
 			
 	elif "m030c" in mm.active_missions:
 		# Shipyard: Escort Destroyer

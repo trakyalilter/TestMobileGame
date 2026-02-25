@@ -81,3 +81,73 @@ func _gui_input(event):
 		if event.button_index == MOUSE_BUTTON_RIGHT:
 			manager.set_slot_ammo(slot_idx, "")
 			parent_ui.trigger_refresh()
+
+# ─────────────────────────────────────────────────
+# CUSTOM RICH TOOLTIP
+# ─────────────────────────────────────────────────
+
+func _make_custom_tooltip(_for_text: String) -> Control:
+	var active_ammo = manager.ammo_loadout.get(slot_idx, "")
+	if active_ammo == "": return null
+	
+	var panel = PanelContainer.new()
+	
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.05, 0.05, 0.07, 0.98)
+	style.border_color = Color.GRAY
+	style.border_color.a = 0.8
+	style.set_border_width_all(1)
+	style.border_width_top = 4
+	style.set_corner_radius_all(2)
+	style.set_content_margin_all(12)
+	panel.add_theme_stylebox_override("panel", style)
+	
+	var rtl = RichTextLabel.new()
+	rtl.bbcode_enabled = true
+	rtl.fit_content = true
+	rtl.scroll_active = false
+	rtl.custom_minimum_size = Vector2(320, 0)
+	rtl.add_theme_color_override("default_color", Color(0.9, 0.9, 0.9))
+	
+	var a_name = ElementDB.get_display_name(active_ammo).to_upper()
+	var tt = "[center][b][font_size=16][color=#aaaaaa]%s[/color][/font_size][/b]\n" % a_name
+	tt += "[i][font_size=10][color=gray]Common Ammo[/color][/font_size][/i][/center]\n"
+	tt += "[color=gray]──────────────────────────────────[/color]\n"
+	
+	var bonus = 0.0
+	var type_label = "Damage"
+	var color_label = "white"
+	
+	if active_ammo.begins_with("Slug"):
+		bonus = 5.0
+		if "T1S" in active_ammo: bonus = 10.0
+		elif "T2" in active_ammo: bonus = 15.0
+		elif "T3" in active_ammo: bonus = 30.0
+		elif "T4" in active_ammo: bonus = 60.0
+		type_label = "Kinetic Damage"
+		color_label = "red"
+	elif active_ammo.begins_with("Cell"):
+		bonus = 5.0
+		if "T2" in active_ammo: bonus = 15.0
+		elif "T3" in active_ammo: bonus = 30.0
+		elif "T4" in active_ammo: bonus = 60.0
+		type_label = "Energy Damage"
+		color_label = "cyan"
+	elif "Missile" in active_ammo or "Torpedo" in active_ammo:
+		bonus = 10.0
+		if "Seeker" in active_ammo: bonus = 25.0
+		elif "Torpedo" in active_ammo: bonus = 60.0
+		type_label = "Explosive Damage"
+		color_label = "orange"
+		
+	if bonus > 0:
+		tt += "[center][font_size=20][b][color=%s]+%.1f[/color][/b][/font_size] [font_size=10][color=gray]%s Bonus[/color][/font_size][/center]\n" % [color_label, bonus, type_label]
+		tt += "[color=gray]──────────────────────────────────[/color]\n"
+		
+	tt += "[center][font_size=10][color=gray][Right-click to unequip][/color][/font_size][/center]"
+	
+	rtl.text = tt
+	panel.add_child(rtl)
+	
+	return panel
+

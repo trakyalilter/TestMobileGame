@@ -107,7 +107,7 @@ func _get_recipe_category(rid: String, data: Dictionary) -> String:
 		return "basics"
 	
 	# Advanced Materials - composites, polymers, fibers
-	if "fiber" in rid or "polymer" in rid or "graphite" in rid or "nanoweave" in rid or "mesh" in rid or "sealant" in rid or "coolant" in rid or "charcoal" in rid or "carbon" in rid or "scrap" in rid:
+	if "fiber" in rid or "polymer" in rid or "graphite" in rid or "nanoweave" in rid or "mesh" in rid or "sealant" in rid or "coolant" in rid or "charcoal" in rid or "carbon" in rid:
 		return "materials"
 	
 	# Default to materials if no match

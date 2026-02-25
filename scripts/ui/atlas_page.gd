@@ -475,18 +475,30 @@ func _display_enemy_details(eid):
 	loot_header.add_theme_color_override("font_color", UITheme.COLORS["text_accent"])
 	uses_list.add_child(loot_header)
 	
-	for entry in e["loot"]:
+	for entry in e.get("loot", []):
 		var mat_name = ElementDB.get_display_name(entry[0])
 		var qty = "%d-%d" % [entry[1], entry[2]]
 		_add_label(uses_list, "• %s (%s)" % [mat_name, qty], Color.WHITE)
 		
-	if not e["rare_loot"].is_empty():
+	var rare_loot = e.get("rare_loot", [])
+	if not rare_loot.is_empty():
 		_add_label(uses_list, "-- RARE DROPS --", UITheme.COLORS["warning"])
-		for entry in e["rare_loot"]:
+		for entry in rare_loot:
 			var mat_name = ElementDB.get_display_name(entry[0])
 			var chance = "%.1f%%" % (entry[1] * 100)
 			var qty = "%d-%d" % [entry[2], entry[3]]
 			_add_label(uses_list, "★ %s (%s, %s)" % [mat_name, chance, qty], UITheme.COLORS["warning"])
+
+	# Module Drops
+	var drop_chance = e.get("module_drop_chance", 0.0)
+	var drop_pool = e.get("module_drop_pool", [])
+	if drop_chance > 0.0 and not drop_pool.is_empty() and GameState.shipyard_manager:
+		_add_label(uses_list, "-- MODULE DROPS --", UITheme.CATEGORY_COLORS["shipyard"])
+		_add_label(uses_list, "Drop Chance: %.1f%%" % (drop_chance * 100), UITheme.COLORS["text_accent"])
+		for mod_id in drop_pool:
+			var mod = GameState.shipyard_manager.modules.get(mod_id, {})
+			var mod_name = mod.get("name", mod_id)
+			_add_label(uses_list, "• %s" % mod_name, Color.WHITE)
 
 func _add_stat_row(parent, label, value):
 	var lbl = Label.new()

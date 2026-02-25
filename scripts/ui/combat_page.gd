@@ -408,15 +408,19 @@ func _draw_arc_poly(center: Vector2, inner_radius: float, outer_radius: float, s
 	_draw_arc_section(center, inner_radius, outer_radius, start_rad, end_rad, segments, bg_color)
 	
 	# Draw Fill
-	var fill_end_rad = start_rad + (end_rad - start_rad) * percent
-	_draw_arc_section(center, inner_radius, outer_radius, start_rad, fill_end_rad, segments, fill_color)
-	
-	# SHARPNESS: Add thin lines on edges of fill for anti-aliasing feel
 	if percent > 0.01:
+		var fill_end_rad = start_rad + (end_rad - start_rad) * percent
+		_draw_arc_section(center, inner_radius, outer_radius, start_rad, fill_end_rad, segments, fill_color)
+		
+		# SHARPNESS: Add thin lines on edges of fill for anti-aliasing feel
 		radar_display.draw_arc(center, outer_radius, start_rad, fill_end_rad, segments, fill_color.lightened(0.2), 1.0, true)
 		radar_display.draw_arc(center, inner_radius, start_rad, fill_end_rad, segments, fill_color.lightened(0.2), 1.0, true)
 
 func _draw_arc_section(center: Vector2, r_inner: float, r_outer: float, angle_start: float, angle_end: float, segments: int, color: Color):
+	# Safely skip zero-width polygons to prevent triangulation collapse
+	if abs(angle_end - angle_start) < 0.05:
+		return
+		
 	var points = PackedVector2Array()
 	var angle_delta = (angle_end - angle_start) / segments
 	
@@ -442,13 +446,24 @@ func _update_session_loot():
 			var qty = manager.session_loot[item_id]
 			var sm = GameState.shipyard_manager
 			# v71.1: Custom modules use shipyard name + rarity color
-			if item_id.begins_with("custom_") and item_id in sm.modules:
-				var m_data = sm.modules[item_id]
-				var rarity = m_data.get("rarity", sm.Rarity.COMMON)
-				var rarity_hex = sm.RARITY_COLORS.get(rarity, Color.WHITE).to_html(false)
-				tt += "[color=#%s]★ %s[/color] x %s\n" % [rarity_hex, m_data["name"], UITheme.format_num(qty)]
+			var str_id = str(item_id)
+			if str_id.begins_with("custom_"):
+				if sm.modules.has(str_id):
+					var m_data = sm.modules[str_id]
+					var rarity = m_data.get("rarity", sm.Rarity.COMMON)
+					var rarity_hex = sm.RARITY_COLORS.get(rarity, Color.WHITE).to_html(false)
+					tt += "[color=#%s]★ %s[/color] x %s\n" % [rarity_hex, m_data["name"], UITheme.format_num(qty)]
+				else:
+					# Fallback: Parse the base module name out of 'custom_basemodule_1234'
+					var parts = str_id.split("_")
+					var base_id = str_id.trim_prefix("custom_")
+					# Remove the trailing timestamp number
+					if parts.size() > 2 and parts[-1].is_valid_int():
+						base_id = base_id.trim_suffix("_" + parts[-1])
+					var base_name = sm.modules.get(base_id, {"name": base_id}).get("name", base_id)
+					tt += "[color=#aaaaaa]★ %s (Data Lost)[/color] x %s\n" % [base_name, UITheme.format_num(qty)]
 			else:
-				var item_name = ElementDB.get_display_name(item_id)
+				var item_name = ElementDB.get_display_name(str_id)
 				tt += "[color=#32cd32]%s[/color] x %s\n" % [item_name, UITheme.format_num(qty)]
 			
 	tt += "[/center]"

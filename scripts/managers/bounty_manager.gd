@@ -17,7 +17,7 @@ var total_completed: int = 0        # Lifetime stat
 # Format: {type, zone_id, target, target_qty, reward_credits, reward_module_pool}
 var delivery_materials = {
 	# zone_difficulty: [[material_id, min_qty, max_qty, credit_reward]]
-	1: [["Scrap", 500, 1000, 5000], ["Fe", 300, 600, 8000], ["Si", 200, 400, 6000]],
+	1: [["Cu", 500, 1000, 5000], ["Fe", 300, 600, 8000], ["Si", 200, 400, 6000]],
 	2: [["Fe", 800, 1500, 20000], ["Cu", 300, 600, 15000], ["Steel", 100, 250, 30000]],
 	3: [["Steel", 250, 500, 50000], ["Ti", 100, 250, 80000], ["Circuit", 100, 200, 60000]],
 	4: [["Ti", 300, 600, 120000], ["W", 150, 300, 100000], ["Graphite", 200, 400, 80000]],
@@ -284,13 +284,16 @@ func _generate_delivery_contract(min_diff: int, max_diff: int) -> Dictionary:
 
 func _get_zone_module_pool(zone_id: String) -> Array:
 	var cm = GameState.combat_manager
+	var sm = GameState.shipyard_manager
 	var zone = cm.zones.get(zone_id, {})
 	var pool = []
 	for eid in zone.get("enemies", []):
 		var e = cm.enemy_db.get(eid, {})
 		for mid in e.get("module_drop_pool", []):
 			if mid not in pool:
-				pool.append(mid)
+				var req = sm.modules.get(mid, {}).get("research_req", "")
+				if req == "" or (GameState.research_manager and GameState.research_manager.is_tech_unlocked(req)):
+					pool.append(mid)
 	return pool
 
 var _id_counter = 0

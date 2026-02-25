@@ -148,7 +148,7 @@ var recipes: Dictionary = {
 		"input": {"VoidArtifact": 1},
 		# Dynamic Output
 		"output_table": [
-			["Scrap", 1.0, 1, 5],
+			["Cu", 1.0, 10, 20],
 			["Chip", 0.3, 1, 2],
 			["NavData", 0.2, 1, 2],
 			["AncientComponent", 0.05, 1, 1]
@@ -169,46 +169,8 @@ var recipes: Dictionary = {
 		"xp": 50,
 		"research_req": "basic_engineering"
 	},
-	"recycle_scrap": {
-		"name": "Scrap Recycling",
-		"description": "Disassemble salvage into components. Rolls on loot table 5 times (Chance for multiple items).",
-		"input": {"Scrap": 20},
-		"roll_count": 5, # Roll 5 times from the table
-		"output_table": [
-			# COMMON (70% combined) - Basic materials
-			["Fe", 0.30, 1, 3], # Iron - most common
-			["C", 0.20, 1, 2], # Carbon
-			["Si", 0.15, 1, 2], # Silicon
-			["Dirt", 0.05, 1, 2], # Junk filler
-			# UNCOMMON (25% combined) - Useful materials
-			["Cu", 0.10, 1, 2], # Copper - valuable for circuits
-			["Steel", 0.08, 1, 1], # Pre-refined steel (+2%)
-			["Fiber", 0.05, 1, 1], # Carbon Fiber (+1%)
-			["Resin", 0.02, 1, 1], # Polymer Resin
-			# RARE (10% combined) - Components
-			["Circuit", 0.06, 1, 1], # Basic Circuit (+2%)
-			["Chip", 0.02, 1, 1], # Microprocessor (+1%)
-			["Res1", 0.05, 1, 2], # Audit v1.0: Increased from 2% to 5%, provides non-combat research path
-			["DroneCore", 0.02, 1, 1], # DroneCore Bridge (2% chance)
-		],
-		"duration": 20.0,
-		"level_req": 4,
-		"xp": 12, # Reduced from 15
-		"research_req": "basic_engineering",
-		"category": "basics"
-	},
-	# Audit v1.0: Guaranteed Circuit path for players frustrated by RNG
-	"recycle_scrap_bulk": {
-		"name": "Bulk Scrap Salvage",
-		"description": "Efficiently process large quantities of scrap. Guaranteed Circuit output.",
-		"input": {"Scrap": 50},
-		"output": {"Circuit": 2, "Fe": 5, "Si": 2},
-		"duration": 30.0,
-		"level_req": 10,
-		"xp": 25,
-		"research_req": "basic_engineering",
-		"category": "basics"
-	},
+
+
 	# Research Fragment Upgrade Chain
 	"upgrade_rare_artifact": {
 		"name": "Synthesize Rare Artifact",
@@ -282,8 +244,8 @@ var recipes: Dictionary = {
 	# Audit v2.0: Early consumables for combat accessibility
 	"craft_emergency_patch": {
 		"name": "Emergency Hull Patch",
-		"description": "Quick patch from scrap. Restores 10% Hull Integrity.",
-		"input": {"Scrap": 10, "Fe": 10},
+		"description": "Quick patch from basic metals. Restores 10% Hull Integrity.",
+		"input": {"Fe": 20,},
 		"output": {"EmergencyPatch": 1},
 		"duration": 10.0,
 		"level_req": 1,
@@ -686,7 +648,7 @@ var recipes: Dictionary = {
 		"name": "Dolomite Calcination",
 		"description": "Extract Magnesium from Dolomite through heating.",
 		"input": {"Dolomite": 4, "C": 1},
-		"output": {"Mg": 1, "C": 1}, # C is returned as CO2 → C cycle
+		"output": {"Mg": 1},
 		"duration": 6.0,
 		"level_req": 15, # Increased from 4
 		"xp": 15, # Reduced from 25
@@ -1173,6 +1135,10 @@ func complete_process():
 			if item == "Steel" and GameState.research_manager.is_tech_unlocked("oxygen_blast_furnace"):
 				qty *= 5
 				
+			# Efficiency Research Multiplier
+			if GameState.research_manager:
+				qty *= GameState.research_manager.get_efficiency_multiplier()
+				
 			# Audit v12.0: Milestone Level 50 (5% chance for double output)
 			if is_milestone_unlocked(50) and randf() < 0.05:
 				qty *= 2
@@ -1200,6 +1166,11 @@ func complete_process():
 				
 				if randf() < chance:
 					var qty = randi_range(min_q, max_q)
+					
+					# Efficiency Research Multiplier
+					if GameState.research_manager:
+						qty *= GameState.research_manager.get_efficiency_multiplier()
+						
 					results[item] = results.get(item, 0) + qty
 		
 		# Grant accumulated loot
@@ -1310,6 +1281,10 @@ func calculate_offline(delta: float):
 			if item == "Steel" and GameState.research_manager.is_tech_unlocked("oxygen_blast_furnace"):
 				qty *= 5
 				
+			# Efficiency Research Multiplier
+			if GameState.research_manager:
+				qty *= GameState.research_manager.get_efficiency_multiplier()
+				
 			var total = qty * actions
 			GameState.resources.add_element(item, total)
 			loot_summary[item] = loot_summary.get(item, 0) + total
@@ -1331,6 +1306,11 @@ func calculate_offline(delta: float):
 					
 					if randf() < chance:
 						var qty = randi_range(min_q, max_q)
+						
+						# Efficiency Research Multiplier
+						if GameState.research_manager:
+							qty *= GameState.research_manager.get_efficiency_multiplier()
+							
 						GameState.resources.add_element(item, qty)
 						loot_summary[item] = loot_summary.get(item, 0) + qty
 
@@ -1387,7 +1367,13 @@ func get_current_rate() -> Dictionary:
 	# Fixed Outputs
 	if "output" in recipe:
 		for item in recipe["output"]:
-			rates[item] = recipe["output"][item] * actions_per_min
+			var rate = recipe["output"][item] * actions_per_min
+			
+			# Efficiency Research Multiplier
+			if GameState.research_manager:
+				rate *= GameState.research_manager.get_efficiency_multiplier()
+				
+			rates[item] = rate
 			
 	# Probability Outputs
 	if "output_table" in recipe:
@@ -1403,6 +1389,11 @@ func get_current_rate() -> Dictionary:
 			var avg = (min_q + max_q) / 2.0
 			
 			var rate = avg * chance * roll_count * actions_per_min
+			
+			# Efficiency Research Multiplier
+			if GameState.research_manager:
+				rate *= GameState.research_manager.get_efficiency_multiplier()
+				
 			rates[item] = rates.get(item, 0.0) + rate
 			
 	return rates

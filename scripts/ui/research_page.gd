@@ -32,7 +32,10 @@ var graphs = {
 			
 			# Missing Techs Restored (Audit)
 			"eff_scanning_1", "xeno_archaeology",
-			"asteroid_clearance", "mars_license", "outer_system_auth", "deep_space_expedition", "quarantine_protocols"
+			"asteroid_clearance", "mars_license", "outer_system_auth", "deep_space_expedition", "quarantine_protocols",
+			
+			# Efficiency Branch
+			"efficiency_1", "efficiency_2", "efficiency_3", "efficiency_4", "efficiency_5"
 		],
 		"pos": {
 			# Branch 1: Liquids (Pumps)
@@ -72,7 +75,14 @@ var graphs = {
 			"mars_license": Vector2(240, 850),
 			"outer_system_auth": Vector2(440, 850),
 			"deep_space_expedition": Vector2(640, 850),
-			"quarantine_protocols": Vector2(840, 850)
+			"quarantine_protocols": Vector2(840, 850),
+			
+			# Branch 7: Efficiency (Yield Boosts)
+			"efficiency_1": Vector2(240, 370),
+			"efficiency_2": Vector2(440, 370),
+			"efficiency_3": Vector2(640, 370),
+			"efficiency_4": Vector2(840, 370),
+			"efficiency_5": Vector2(1040, 370)
 		},
 		"container": null # Assigned in _ready
 	},

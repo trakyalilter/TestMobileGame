@@ -35,6 +35,39 @@ func _setup_item(id: String):
 	var cat = ElementDB.get_category(id)
 	desc_lbl.text = "Category: %s" % cat.capitalize()
 	
+	# Special Stats for Ammo
+	if cat == "ammo":
+		var bonus = 0.0
+		var type_label = "Damage"
+		if id.begins_with("Slug"):
+			bonus = 5.0
+			if "T1S" in id: bonus = 10.0
+			elif "T2" in id: bonus = 15.0
+			elif "T3" in id: bonus = 30.0
+			elif "T4" in id: bonus = 60.0
+			type_label = "Kinetic Damage"
+		elif id.begins_with("Cell"):
+			bonus = 5.0
+			if "T2" in id: bonus = 15.0
+			elif "T3" in id: bonus = 30.0
+			elif "T4" in id: bonus = 60.0
+			type_label = "Energy Damage"
+		elif "Missile" in id or "Torpedo" in id:
+			bonus = 10.0
+			if "Seeker" in id: bonus = 25.0
+			elif "Torpedo" in id: bonus = 60.0
+			type_label = "Explosive Damage"
+		if bonus > 0:
+			_add_stat(type_label, "+%.1f" % bonus)
+			
+	# Special Stats for Consumables
+	if cat == "consumables":
+		var c_data = ElementDB.get_consumable_data(id)
+		if c_data:
+			var heal_pct = c_data.get("heal_pct", 0.0) * 100.0
+			var c_type = c_data.get("type", "hull").capitalize()
+			_add_stat("%s Restoration" % c_type, "+%d%%" % heal_pct)
+	
 	# Value
 	var val = ElementDB.get_element_value(id)
 	_add_stat("Base Value", "%d Cr" % val)

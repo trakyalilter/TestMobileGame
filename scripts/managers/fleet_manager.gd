@@ -8,7 +8,7 @@ var missions = {
 	"scavenge_alpha": {
 		"name": "Alpha Sector Scavenging",
 		"desc": "Passive yield of Titanium and Iron.",
-		"yield": {"Ti": 1.0, "Fe": 5.0, "Scrap": 2.0},
+		"yield": {"Ti": 1.0, "Fe": 6.0, "Cu": 1.0},
 		"interval": 10.0,
 		"risk": 0.05,
 		"min_tier": 1,
@@ -56,8 +56,8 @@ func _init():
 	# Audit v5.0 P2-15: Add early fleet mission
 	missions["local_salvage"] = {
 		"name": "Local Debris Salvage",
-		"desc": "Passive yield of Iron and Scrap from nearby debris.",
-		"yield": {"Fe": 2.0, "Cu": 1.0, "Scrap": 3.0},
+		"desc": "Passive yield of Iron and Copper from nearby debris.",
+		"yield": {"Fe": 5.0, "Cu": 1.0},
 		"interval": 8.0,
 		"risk": 0.02,
 		"min_tier": 1,

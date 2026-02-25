@@ -319,11 +319,11 @@ theme_override_constants/separation = 20
 [node name="ScannerOverlay" type="PanelContainer" parent="Dashboard/HUD/BottomHUD"]
 custom_minimum_size = Vector2(250, 110)
 layout_mode = 2
-mouse_filter = 2
+mouse_filter = 0
 
 [node name="Margin" type="MarginContainer" parent="Dashboard/HUD/BottomHUD/ScannerOverlay"]
 layout_mode = 2
-mouse_filter = 2
+mouse_filter = 0
 theme_override_constants/margin_left = 10
 theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
@@ -331,7 +331,7 @@ theme_override_constants/margin_bottom = 10
 
 [node name="VBox" type="VBoxContainer" parent="Dashboard/HUD/BottomHUD/ScannerOverlay/Margin"]
 layout_mode = 2
-mouse_filter = 2
+mouse_filter = 0
 theme_override_constants/separation = 5
 
 [node name="Header" type="Label" parent="Dashboard/HUD/BottomHUD/ScannerOverlay/Margin/VBox"]
@@ -345,6 +345,7 @@ horizontal_alignment = 1
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
+mouse_filter = 0
 
 [node name="LootText" type="RichTextLabel" parent="Dashboard/HUD/BottomHUD/ScannerOverlay/Margin/VBox/Scroll"]
 layout_mode = 2
@@ -355,6 +356,7 @@ theme_override_font_sizes/normal_font_size = 9
 bbcode_enabled = true
 text = "[center]Searching for loot paths...[/center]"
 fit_content = true
+scroll_active = false
 
 [node name="Spacer" type="Control" parent="Dashboard/HUD/BottomHUD"]
 layout_mode = 2

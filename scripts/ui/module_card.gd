@@ -96,11 +96,11 @@ func _gui_input(event):
 
 func _show_sell_menu():
 	var sm = GameState.shipyard_manager
-	# Check if this module is currently equipped
-	for idx in sm.loadout:
-		if sm.loadout[idx] == mid:
-			UITheme.show_notification("Cannot sell equipped module", Color.RED)
-			return
+	# Check if this module is exclusively equipped (no spares in inventory)
+	var in_storage = sm.module_inventory.get(mid, 0)
+	if in_storage <= 0:
+		UITheme.show_notification("Cannot sell equipped module", Color.RED)
+		return
 	
 	var price = sm.get_sell_price(mid)
 	var popup = PopupMenu.new()
@@ -199,6 +199,37 @@ func _build_comparison_tooltip_bbcode() -> String:
 		var hp_val = my_stats.get("hp", 0)
 		tt += "[center][font_size=20][b]%s[/b][/font_size] [font_size=10][color=gray]Integrity Reinforcement[/color][/font_size][/center]\n" % UITheme.format_num(hp_val)
 		tt += "[color=gray]──────────────────────────────────[/color]\n"
+	elif slot_type == "ammo":
+		var bonus = 0.0
+		var type_label = "Damage"
+		var color_label = "white"
+		
+		# Parse ammo damage from ID (matching combat_manager.gd logic)
+		if mid.begins_with("Slug"):
+			bonus = 5.0
+			if "T1S" in mid: bonus = 10.0
+			elif "T2" in mid: bonus = 15.0
+			elif "T3" in mid: bonus = 30.0
+			elif "T4" in mid: bonus = 60.0
+			type_label = "Kinetic Damage"
+			color_label = "red"
+		elif mid.begins_with("Cell"):
+			bonus = 5.0
+			if "T2" in mid: bonus = 15.0
+			elif "T3" in mid: bonus = 30.0
+			elif "T4" in mid: bonus = 60.0
+			type_label = "Energy Damage"
+			color_label = "cyan"
+		elif "Missile" in mid or "Torpedo" in mid:
+			bonus = 10.0
+			if "Seeker" in mid: bonus = 25.0
+			elif "Torpedo" in mid: bonus = 60.0
+			type_label = "Explosive Damage"
+			color_label = "orange"
+			
+		if bonus > 0:
+			tt += "[center][font_size=20][b][color=%s]+%.1f[/color][/b][/font_size] [font_size=10][color=gray]%s Bonus[/color][/font_size][/center]\n" % [color_label, bonus, type_label]
+			tt += "[color=gray]──────────────────────────────────[/color]\n"
 
 	# 3. STATS & AFFIXES (Diablo Style)
 	# Find comparison target
@@ -214,9 +245,9 @@ func _build_comparison_tooltip_bbcode() -> String:
 				break
 	
 	for k in my_stats:
-		# Energy load/interval are structural, not "affix" stats
 		# Filter out stats already shown in Primary Stat section
-		if k == "energy_load" or k == "atk_interval": continue
+		if k == "atk_interval": continue
+		if k == "energy_load" and my_stats[k] == 0: continue
 		if slot_type == "weapon" and (k == "atk_kinetic" or k == "atk_energy" or k == "atk_explosive"): continue
 		if slot_type == "shield" and k == "max_shield": continue
 		if slot_type == "armor" and k == "hp": continue
@@ -226,7 +257,7 @@ func _build_comparison_tooltip_bbcode() -> String:
 		var delta_str = ""
 		
 		# Comparison deltas
-		if equipped_mid and equipped_mid != mid:
+		if equipped_mid and equipped_mid != mid and k != "energy_load":
 			var eq_val = equipped_stats.get(k, 0)
 			var diff = val - eq_val
 			if diff > 0:

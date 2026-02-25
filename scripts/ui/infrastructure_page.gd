@@ -151,3 +151,9 @@ func update_ui():
 
 	for w in widgets:
 		w.update_state()
+
+func get_building_widget(building_id: String) -> Control:
+	for w in widgets:
+		if w.bid == building_id:
+			return w
+	return null

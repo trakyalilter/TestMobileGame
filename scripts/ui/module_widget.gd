@@ -245,7 +245,8 @@ func _build_comparison_tooltip() -> String:
 	
 	for k in my_stats:
 		# Filter out structural and redundant stats
-		if k == "energy_load" or k == "atk_interval": continue
+		if k == "atk_interval": continue
+		if k == "energy_load" and my_stats[k] == 0: continue
 		if slot_type == "weapon" and (k == "atk_kinetic" or k == "atk_energy" or k == "atk_explosive"): continue
 		if slot_type == "shield" and k == "max_shield": continue
 		if slot_type == "armor" and k == "hp": continue
@@ -254,7 +255,7 @@ func _build_comparison_tooltip() -> String:
 		var val = my_stats[k]
 		var delta_str = ""
 		
-		if equipped_mid and equipped_mid != mid:
+		if equipped_mid and equipped_mid != mid and k != "energy_load":
 			var eq_val = equipped_stats.get(k, 0)
 			var diff = val - eq_val
 			if diff > 0:

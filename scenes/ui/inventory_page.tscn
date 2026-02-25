@@ -167,7 +167,7 @@ text = "Qty:"
 [node name="QtySpinBox" type="SpinBox" parent="HBoxContainer/RightPanel/VBoxContainer/Details/HBoxContainer"]
 layout_mode = 2
 min_value = 1.0
-max_value = 99999.0
+max_value = 1e+15
 value = 1.0
 editable = false
 

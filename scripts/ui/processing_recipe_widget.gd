@@ -30,22 +30,8 @@ func setup(p_rid: String, p_data: Dictionary, p_manager, p_parent):
 	# Input text is handled dynamically in update_state for coloring
 	in_lbl.text = ""
 	
-	var out_str = "[center]"
-	var rates = manager.get_current_rate() if manager.is_active and manager.current_recipe_id == rid else {}
-	
-	if "output" in recipe:
-		for item in recipe["output"]:
-			var display_name = ElementDB.get_display_name(item)
-			var qty = recipe["output"][item]
-			var line = "%s %s" % [FormatUtils.format_number(qty), display_name]
-			
-			if item in rates:
-				out_str += "%s [color=#55ff55](%s/m)[/color]\n" % [line, FormatUtils.format_number(rates[item])]
-			else:
-				out_str += "%s\n" % line
-				
-	out_str += "[/center]"
-	out_lbl.text = out_str.strip_edges()
+	# Output text is handled dynamically in update_state for multipliers
+	out_lbl.text = ""
 
 func _on_button_pressed():
 	if manager.is_active and manager.current_recipe_id == rid:
@@ -84,7 +70,35 @@ func update_state():
 	in_lbl.text = in_str
 	
 	has_ingredients = not missing_any
-
+	
+	# Rebuild Output String with Multipliers
+	var out_str = "[center]"
+	var rates = manager.get_current_rate() if is_this_active else {}
+	
+	var eff_mult = 1.0
+	if GameState.research_manager:
+		eff_mult = GameState.research_manager.get_efficiency_multiplier()
+		
+	if "output" in recipe:
+		for item in recipe["output"]:
+			var display_name = ElementDB.get_display_name(item)
+			var qty = recipe["output"][item]
+			
+			# BBCode url structure to catch hovers (similar to research smart links)
+			var meta_json = JSON.stringify({"id": item, "type": "item"})
+			var link_text = "[url=%s][color=#ff4444][u]%s[/u][/color][/url]" % [meta_json, display_name]
+			
+			# Apply Efficiency Multiplier to displayed output
+			var line = "%s %s" % [FormatUtils.format_number(qty * eff_mult), link_text]
+			
+			if item in rates:
+				out_str += "%s [color=#55ff55](%s/m)[/color]\n" % [line, FormatUtils.format_number(rates[item])]
+			else:
+				out_str += "%s\n" % line
+	out_str += "[/center]"
+	out_lbl.bbcode_enabled = true
+	out_lbl.text = out_str.strip_edges()
+	
 	var lvl_req = recipe.get("level_req", 1)
 	var has_level = manager.get_level() >= lvl_req
 	
@@ -127,3 +141,51 @@ func update_state():
 			UITheme.apply_locked_overlay(self, recipe["name"], "", false)
 			btn.text = "Start"
 			btn.disabled = false
+
+# ────────────────────────────────────────────────────────────
+# META HOVER (Info Card Tooltip)
+# ────────────────────────────────────────────────────────────
+
+var _active_info_card = null
+var info_card_scene = preload("res://scenes/ui/info_card.tscn")
+
+func _ready():
+	out_lbl.meta_hover_started.connect(_on_meta_hover)
+	out_lbl.meta_hover_ended.connect(_on_meta_exit)
+
+func _on_meta_hover(meta):
+	if _active_info_card: _active_info_card.queue_free()
+	
+	var m_data = JSON.parse_string(str(meta))
+	if not m_data: return
+	
+	var card = info_card_scene.instantiate()
+	
+	# Add to ModalLayer to avoid container stretching
+	var main = get_tree().current_scene
+	var modal_layer = main.get_node_or_null("ModalLayer")
+	if modal_layer:
+		modal_layer.add_child(card)
+	else:
+		main.add_child(card)
+		
+	card.setup(m_data["id"], m_data["type"])
+	_active_info_card = card
+	
+	var mpos = get_global_mouse_position()
+	card.global_position = mpos + Vector2(20, 20)
+	
+	# Keep on screen bounds
+	var viewport = get_viewport_rect().size
+	var card_size = Vector2(220, 100)
+	if card.size.x > 0: card_size = card.size
+	
+	if card.global_position.x + card_size.x > viewport.x:
+		card.global_position.x = mpos.x - card_size.x - 20
+	if card.global_position.y + card_size.y > viewport.y:
+		card.global_position.y = mpos.y - card_size.y - 20
+
+func _on_meta_exit(meta):
+	if _active_info_card:
+		_active_info_card.queue_free()
+		_active_info_card = null
