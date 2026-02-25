@@ -64,6 +64,11 @@ var has_reactive = false
 var has_exotic_matrix = false
 var next_spawn_elite = false # v72.8: Flag for elite hunt contracts
 
+# Step 5: Boss Set Bonus Flags
+var has_cryo_set = false
+var has_sovereign_set = false
+var has_patient_zero_set = false
+
 func _module_matches(module_id, base_module_id: String) -> bool:
 	if not (module_id is String):
 		return false
@@ -108,55 +113,55 @@ var zones = {
 		"name": "Lunar Orbit",
 		"desc": "Low threat sector populated by rogue mining drones.",
 		"difficulty": 1,
-		"enemies": ["lunar_drone", "dust_mite", "scrap_collector", "survey_probe"]
+		"enemies": ["lunar_drone", "dust_mite", "scrap_collector", "survey_probe", "rogue_architect"]
 	},
 	"asteroid_belt": {
 		"name": "Asteroid Belt",
 		"desc": "Dense field with pirate skiffs and kinetic hazards.",
 		"difficulty": 2,
-		"enemies": ["pirate_skiff", "rock_golem", "claim_jumper", "ore_hauler"],
+		"enemies": ["pirate_skiff", "rock_golem", "claim_jumper", "ore_hauler", "silicate_monolith"],
 		"research_req": "asteroid_clearance"
 	},
 	"mars_debris": {
 		"name": "Mars Debris Field",
 		"desc": "Wreckage of the old Martian shipyards. Scavengers abound.",
 		"difficulty": 3,
-		"enemies": ["scavenger_mech", "martian_sentry", "derelict_frigate", "salvage_swarm"],
+		"enemies": ["scavenger_mech", "martian_sentry", "derelict_frigate", "salvage_swarm", "martian_warmaster"],
 		"research_req": "mars_license"
 	},
 	"titan_halo": {
 		"name": "Titan's Halo",
 		"desc": "Frozen rings around the gas giant. Extreme cold and pirate lords.",
 		"difficulty": 4,
-		"enemies": ["cryo_drone", "pirate_gunship", "frozen_hulk", "smuggler_cutter", "titan_overseer"],
+		"enemies": ["cryo_drone", "pirate_gunship", "frozen_hulk", "smuggler_cutter", "titan_overseer", "cryo_lord"],
 		"research_req": "outer_system_auth"
 	},
 	"sector_alpha": {
 		"name": "Sector Alpha",
 		"desc": "Uncharted region rich in Titanium. High threat.",
 		"difficulty": 5,
-		"enemies": ["alien_frigate", "xenon_corvette", "xenon_mothership", "xenon_scout", "alien_probe"], # v57.0: +2
+		"enemies": ["alien_frigate", "xenon_corvette", "xenon_mothership", "xenon_scout", "alien_probe", "xenon_harbinger"], # v57.0: +2
 		"research_req": "sector_alpha_decryption"
 	},
 	"sector_beta": {
 		"name": "Sector Beta",
 		"desc": "Abandoned mining colony. Automated defense systems hostile. Rich in industrial metals.",
 		"difficulty": 6,
-		"enemies": ["mining_sentinel", "defense_turret", "colony_overseer", "repair_drone", "ore_guardian"], # v57.0: +2
+		"enemies": ["mining_sentinel", "defense_turret", "colony_overseer", "repair_drone", "ore_guardian", "overseer_prime"], # v57.0: +2
 		"research_req": "deep_space_nav"
 	},
 	"sector_gamma": {
 		"name": "Sector Gamma",
 		"desc": "Radioactive nebula. Mutated organisms detected. Extreme danger.",
 		"difficulty": 7,
-		"enemies": ["radiation_beast", "nebula_leviathan", "gamma_colossus", "irradiated_hulk", "plasma_wraith"], # v57.0: +2
+		"enemies": ["radiation_beast", "nebula_leviathan", "gamma_colossus", "irradiated_hulk", "plasma_wraith", "rad_beast_alpha"], # v57.0: +2
 		"research_req": "radiation_shielding"
 	},
 	"sector_delta": {
 		"name": "Sector Delta",
 		"desc": "Crystalline asteroid field. Unknown energy signatures. Ultimate challenge.",
 		"difficulty": 8,
-		"enemies": ["crystal_golem", "energy_wraith", "sentinel_prime", "shard_swarm", "prism_guardian"], # v57.0: +2
+		"enemies": ["crystal_golem", "energy_wraith", "sentinel_prime", "shard_swarm", "prism_guardian", "prismatic_sovereign"], # v57.0: +2
 		"research_req": "exotic_matter_analysis"
 	},
 	# ENDGAME ZONE - Added to address retention cliff after Dreadnought
@@ -165,14 +170,14 @@ var zones = {
 		"name": "Sector Zeta",
 		"desc": "Sealed sector containing ancient alien pathogens and rogue AI. Extreme biohazard.",
 		"difficulty": 9,
-		"enemies": ["plague_drone", "bio_horror", "rogue_ai_core", "quarantine_warden"],
+		"enemies": ["plague_drone", "bio_horror", "rogue_ai_core", "quarantine_warden", "patient_zero"],
 		"research_req": "quarantine_protocols"
 	},
 	"sector_epsilon": {
 		"name": "Sector Epsilon",
 		"desc": "Beyond known space. Primordial entities and temporal anomalies. Requires Dreadnought-class vessel.",
 		"difficulty": 10,
-		"enemies": ["void_stalker", "temporal_phantom", "omega_sentinel", "primordial_titan", "void_leviathan"],
+		"enemies": ["void_stalker", "temporal_phantom", "omega_sentinel", "primordial_titan", "void_leviathan", "time_weaver"],
 		"research_req": "void_navigation"
 	}
 }
@@ -354,7 +359,7 @@ var enemy_db = {
 		"name": "XENON MOTHERSHIP",
 		"stats": {"hp": 9238, "max_shield": 4927, "atk": 387, "def": 48, "atk_interval": 6.0, "accuracy": 85, "eva": 30},
 		"loot": [["credits", 700000, 1000000], ["Superalloy", 30, 50], ["Chip", 30, 50], ["AdvCircuit", 10, 20], ["QuantumCore", 5, 10], ["VoidArtifact", 10, 25], ["Res3", 50, 100]],
-		"rare_loot": [],
+		"rare_loot": [["warmaster_railgun", 0.15, 1, 1], ["warmaster_armor", 0.15, 1, 1], ["warmaster_drive", 0.15, 1, 1]], 
 		"module_drop_chance": 0.15,
 		"module_drop_pool": ["railgun_mk3", "mining_laser_mk3", "composite_armor_mk2", "stainless_armor", "superalloy_engine", "ai_targeting_system", "broadside_array"],
 		"is_boss": true,
@@ -382,7 +387,7 @@ var enemy_db = {
 		"name": "Colony Overseer AI",
 		"stats": {"hp": 20324, "max_shield": 10162, "atk": 301, "def": 80, "atk_interval": 3.5, "accuracy": 113, "jammer": true},
 		"loot": [["AdvCircuit", 20, 30], ["ColonySalvage", 20, 40], ["ColonyDataCore", 5, 7]],
-		"rare_loot": [["Pd", 0.3, 2, 5], ["AICore", 0.25, 1, 1], ["Chip", 0.25, 5, 10]],
+		"rare_loot": [["overseer_turret", 0.15, 1, 1], ["overseer_bulkhead", 0.15, 1, 1], ["overseer_matrix", 0.15, 1, 1]],
 		"module_drop_chance": 0.15,
 		"module_drop_pool": ["railgun_mk3", "mining_laser_mk3", "composite_armor_mk2", "stainless_armor", "superalloy_engine", "ai_targeting_system", "broadside_array"],
 		"is_boss": true,
@@ -401,9 +406,9 @@ var enemy_db = {
 		"name": "Nebula Leviathan",
 		"stats": {"hp": 83396, "max_shield": 47655, "atk": 509, "def": 202, "accuracy": 139},
 		"loot": [["credits", 3000000, 5000000], ["Pd", 100, 200], ["RadIsotope", 3, 5], ["U", 700, 1000]],
-		"rare_loot": [["ExoticMatter", 0.1, 1, 1]],
+		"rare_loot": [["ExoticMatter", 0.1, 1, 1], ["rad_beast_spitter", 0.15, 1, 1], ["rad_beast_flesh", 0.15, 1, 1], ["rad_beast_gland", 0.15, 1, 1]],
 		"module_drop_chance": 0.15,
-		"module_drop_pool": ["cryo_laser_mk3", "antimatter_engine", "iridium_armor", "reactive_core_battery", "iridium_penetrator", "platinum_laser", "reactive_armor", "plasma_overcharger", "exotic_shield_matrix"],
+		"module_drop_pool": ["cryo_laser_mk3", "plasma_overcharger", "iridium_armor"],
 		"is_boss": true,
 		"xp": 800
 	},
@@ -438,7 +443,7 @@ var enemy_db = {
 		"name": "SENTINEL PRIME",
 		"stats": {"hp": 213996, "max_shield": 114131, "atk": 702, "def": 357, "accuracy": 161},
 		"loot": [["VoidCrystal", 5, 10], ["Ir", 10, 20], ["QuantumCore", 2, 4]],
-		"rare_loot": [["Os", 0.25, 1, 3], ["AncientTech", 0.2, 1, 1]],
+		"rare_loot": [["Os", 0.25, 1, 3], ["sovereign_laser", 0.15, 1, 1], ["sovereign_crystal", 0.15, 1, 1], ["sovereign_barrier", 0.15, 1, 1]],
 		"module_drop_chance": 0.15,
 		"module_drop_pool": ["quantum_dissipator", "omni_scanner", "torpedo_launcher", "osmium_core_module", "palladium_fuel_cell", "reflective_sheath", "diamond_edge_railgun", "crystal_lens_laser"],
 		"is_boss": true,
@@ -604,6 +609,106 @@ var enemy_db = {
 		"module_drop_chance": 0.02,
 		"module_drop_pool": ["reflective_sheath", "diamond_edge_railgun", "crystal_lens_laser"],
 		"xp": 2500
+	},
+	"rogue_architect": {
+		"name": "Rogue Architect",
+		"stats": {"hp": 1200, "max_shield": 400, "atk": 65, "def": 15, "atk_interval": 2.0, "accuracy": 20},
+		"loot": [["credits", 1000, 2000], ["Cu", 20, 50]],
+		"rare_loot": [["architect_beam", 0.15, 1, 1], ["architect_plating", 0.15, 1, 1], ["architect_cell", 0.15, 1, 1]],
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["ai_targeting_system", "superalloy_engine", "composite_armor_mk2"],
+		"is_boss": true,
+		"xp": 500
+	},
+	"silicate_monolith": {
+		"name": "Silicate Monolith",
+		"stats": {"hp": 2500, "max_shield": 0, "atk": 120, "def": 40, "atk_interval": 4.0, "accuracy": 35},
+		"loot": [["credits", 3000, 5000], ["Si", 50, 100]],
+		"rare_loot": [["monolith_blaster", 0.15, 1, 1], ["monolith_shell", 0.15, 1, 1], ["monolith_sensor", 0.15, 1, 1]],
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["ai_targeting_system", "broadside_array", "stainless_armor"],
+		"is_boss": true,
+		"xp": 800
+	},
+	"martian_warmaster": {
+		"name": "Martian Warmaster",
+		"stats": {"hp": 6000, "max_shield": 1000, "atk": 250, "def": 30, "atk_interval": 2.5, "accuracy": 60, "jammer": true},
+		"loot": [["credits", 10000, 20000], ["Steel", 20, 40]],
+		"rare_loot": [["warmaster_railgun", 0.15, 1, 1], ["warmaster_armor", 0.15, 1, 1], ["warmaster_drive", 0.15, 1, 1]],
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["railgun_mk3", "superalloy_engine"],
+		"is_boss": true,
+		"xp": 1500
+	},
+	"cryo_lord": {
+		"name": "Cryo-Lord",
+		"stats": {"hp": 15000, "max_shield": 5000, "atk": 350, "def": 50, "atk_interval": 3.0, "accuracy": 75},
+		"loot": [["credits", 25000, 45000], ["Ti", 50, 100]],
+		"rare_loot": [["cryo_lance", 0.15, 1, 1], ["cryo_plating", 0.15, 1, 1], ["cryo_heat_sink", 0.15, 1, 1]],
+		"module_drop_chance": 0.15,
+		"module_drop_pool": ["absolute_zero_vent"],
+		"is_boss": true,
+		"xp": 3000
+	},
+	"xenon_harbinger": {
+		"name": "Xenon Harbinger",
+		"stats": {"hp": 30000, "max_shield": 15000, "atk": 600, "def": 70, "atk_interval": 2.0, "accuracy": 95, "eva": 40},
+		"loot": [["credits", 80000, 150000], ["VoidArtifact", 5, 10]],
+		"rare_loot": [["harbinger_repeater", 0.15, 1, 1], ["harbinger_carapace", 0.15, 1, 1], ["harbinger_reactor", 0.15, 1, 1]],
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["antimatter_engine", "reactive_core_battery"],
+		"is_boss": true,
+		"xp": 6000
+	},
+	"overseer_prime": {
+		"name": "Overseer Prime",
+		"stats": {"hp": 60000, "max_shield": 30000, "atk": 900, "def": 120, "atk_interval": 3.0, "accuracy": 130, "jammer": true},
+		"loot": [["credits", 200000, 400000], ["AdvCircuit", 50, 100]],
+		"rare_loot": [["overseer_turret", 0.15, 1, 1], ["overseer_bulkhead", 0.15, 1, 1], ["overseer_matrix", 0.15, 1, 1]],
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["ai_targeting_system", "broadside_array"],
+		"is_boss": true,
+		"xp": 12000
+	},
+	"rad_beast_alpha": {
+		"name": "Rad-Beast Alpha",
+		"stats": {"hp": 150000, "max_shield": 80000, "atk": 1500, "def": 250, "atk_interval": 2.5, "accuracy": 150},
+		"loot": [["credits", 500000, 1000000], ["RadIsotope", 20, 40]],
+		"rare_loot": [["rad_beast_spitter", 0.15, 1, 1], ["rad_beast_flesh", 0.15, 1, 1], ["rad_beast_gland", 0.15, 1, 1]],
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["reactive_armor", "exotic_shield_matrix"],
+		"is_boss": true,
+		"xp": 25000
+	},
+	"prismatic_sovereign": {
+		"name": "Prismatic Sovereign",
+		"stats": {"hp": 350000, "max_shield": 250000, "atk": 2500, "def": 400, "atk_interval": 2.0, "accuracy": 170, "eva": 30},
+		"loot": [["credits", 1000000, 2000000], ["ExoticMatter", 10, 20]],
+		"rare_loot": [["sovereign_laser", 0.15, 1, 1], ["sovereign_crystal", 0.15, 1, 1], ["sovereign_barrier", 0.15, 1, 1]],
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["reflective_sheath", "diamond_edge_railgun"],
+		"is_boss": true,
+		"xp": 50000
+	},
+	"patient_zero": {
+		"name": "Patient Zero",
+		"stats": {"hp": 800000, "max_shield": 500000, "atk": 4000, "def": 700, "atk_interval": 1.5, "accuracy": 190, "eva": 50},
+		"loot": [["credits", 3000000, 5000000], ["BiohazardSample", 50, 100]],
+		"rare_loot": [["zero_strain_cannon", 0.15, 1, 1], ["zero_strain_carapace", 0.15, 1, 1], ["zero_strain_tendrils", 0.15, 1, 1]],
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["diamond_edge_railgun", "crystal_lens_laser"],
+		"is_boss": true,
+		"xp": 100000
+	},
+	"time_weaver": {
+		"name": "The Time Weaver",
+		"stats": {"hp": 3000000, "max_shield": 2000000, "atk": 8000, "def": 1200, "atk_interval": 1.0, "accuracy": 220, "eva": 70},
+		"loot": [["credits", 20000000, 50000000], ["VoidEssence", 20, 50]],
+		"rare_loot": [["weaver_annihilator", 0.15, 1, 1], ["weaver_shroud", 0.15, 1, 1], ["weaver_core", 0.15, 1, 1]],
+		"module_drop_chance": 0.02,
+		"module_drop_pool": ["diamond_edge_railgun", "crystal_lens_laser"],
+		"is_boss": true,
+		"xp": 250000
 	}
 }
 
@@ -734,8 +839,35 @@ func spawn_enemy():
 	has_reflective = _loadout_has_module(sm, "reflective_sheath")
 	has_reactive = _loadout_has_module(sm, "reactive_armor")
 	has_exotic_matrix = _loadout_has_module(sm, "exotic_shield_matrix")
+	
+	# Step 5: Boss Set Flags
+	has_cryo_set = false
+	has_sovereign_set = false
+	has_patient_zero_set = false
+	
+	var set_counts = {}
+	for mid in sm.loadout.values():
+		if mid and mid in sm.modules:
+			var m_data = sm.modules[mid]
+			var desc = m_data.get("desc", "")
+			if desc.begins_with("(Set)"):
+				var set_name = desc.split("[")[0].strip_edges()
+				set_counts[set_name] = set_counts.get(set_name, 0) + 1
+				
+	for s_name in set_counts:
+		if set_counts[s_name] >= 3:
+			if "Cryo-Lord's Chill" in s_name:
+				has_cryo_set = true
+			elif "Sovereign's Prism" in s_name:
+				has_sovereign_set = true
+			elif "Patient Zero's Strain" in s_name:
+				has_patient_zero_set = true
+	
 	if _loadout_has_module(sm, "chrono_stabilizer"):
 		enemy_speed_mult *= 0.8
+		
+	if has_cryo_set:
+		enemy_speed_mult *= 0.85 # -15% Enemy Attack Speed
 	enemy_hp = current_enemy["max_hp"]
 	enemy_max_hp = enemy_hp
 	enemy_shield = float(current_enemy["max_shield"])
@@ -890,6 +1022,10 @@ func _process_regeneration(delta: float):
 	if player_shield < player_max_shield:
 		var regen_base = (sm.shield_regen * (1.0 + (rm.get_efficiency_bonus("shield_regen") if rm else 0.0) + sm.shield_regen_bonus))
 		player_shield = min(player_max_shield, player_shield + (regen_base * delta))
+		
+	# Point 5: Patient Zero Hull Regen
+	if has_patient_zero_set and sm.current_hp < sm.max_hp:
+		sm.current_hp = min(sm.max_hp, sm.current_hp + (50.0 * delta))
 	
 	# Enemy Shield Regen (1% per second, Combat Only)
 	if in_combat and current_enemy and enemy_shield < enemy_max_shield:
@@ -1010,6 +1146,12 @@ func _execute_enemy_attack():
 			var reflected = int(eres[0] * 0.5 + eres[1] * 0.5)
 			enemy_hp -= reflected
 			combat_events.append({"type": "reflect", "text": "REFL %d" % reflected, "color": Color.WHITE, "side": "enemy"})
+			
+		# Step 5: Sovereign's Prism Reflect Logic
+		if has_sovereign_set and randf() < 0.15:
+			var reflected = int(eres[0] + eres[1]) # 100% reflect but lower chance
+			enemy_hp -= reflected
+			combat_events.append({"type": "reflect", "text": "PRISM REFL %d" % reflected, "color": Color.PURPLE, "side": "enemy"})
 		
 		# Exotic Shield Matrix Logic (Sector Gamma Protection)
 		# v61.0 Fix: Use current_zone_id instead of current_zone.get("id")
@@ -1073,8 +1215,37 @@ func win_fight():
 	for entry in current_enemy.get("rare_loot", []):
 		if randf() < entry[1]:
 			var qty = randi_range(entry[2], entry[3])
-			GameState.resources.add_element(entry[0], qty)
-			session_loot[entry[0]] = session_loot.get(entry[0], 0) + qty
+			var item_id = entry[0]
+			var sm = GameState.shipyard_manager
+			if sm and item_id in sm.modules:
+				var custom_id = item_id
+				var m_data = sm.modules[item_id]
+				var rarity = m_data.get("rarity", sm.Rarity.COMMON)
+				
+				if rarity == sm.Rarity.UNIQUE:
+					# Generate it properly so it rolls affixes and sockets!
+					custom_id = sm.generate_module_drop(item_id, sm.Rarity.UNIQUE)
+					m_data = sm.modules[custom_id]
+				else:
+					sm.module_inventory[item_id] = sm.module_inventory.get(item_id, 0) + qty
+					
+				sm.new_drops_alert = true
+				sm.inventory_updated.emit()
+				
+				var rarity_color = sm.RARITY_COLORS.get(rarity, Color.WHITE)
+				var rarity_label = sm.RARITY_LABELS.get(rarity, "")
+				combat_events.append({"type": "loot", "text": "✦ %s DROP" % rarity_label.to_upper(), "color": rarity_color, "side": "enemy"})
+				log_msg("Looted %s Module: %s" % [rarity_label, m_data["name"]])
+				
+				if custom_id != item_id:
+					session_loot[custom_id] = session_loot.get(custom_id, 0) + 1
+				else:
+					session_loot[item_id] = session_loot.get(item_id, 0) + qty
+			else:
+				# It's a standard generic element (VoidCrystal, NavData, etc)
+				GameState.resources.add_element(item_id, qty)
+				
+			session_loot[item_id] = session_loot.get(item_id, 0) + qty
 	
 	var sm = GameState.shipyard_manager
 	

@@ -77,8 +77,14 @@ func _parse_and_display_report():
 		if line.strip_edges().begins_with("+"):
 			var parts = line.split(":")
 			if parts.size() == 2:
-				var item_name = parts[0].replace("+", "").strip_edges()
+				var raw_item_name = parts[0].replace("+", "").strip_edges()
 				var amount = parts[1].strip_edges()
+				
+				# Sanitize the item name
+				var item_name = raw_item_name
+				if "_" in item_name:
+					item_name = item_name.replace("_", " ").capitalize()
+					
 				bbcode += "[color=#b0b0cc]> %s[/color]    [color=#00ffff]%s[/color]\n" % [item_name.to_upper(), amount]
 	
 	loot_display.text = bbcode

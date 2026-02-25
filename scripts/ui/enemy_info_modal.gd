@@ -46,10 +46,27 @@ func setup(data):
 		add_header("Rare Drops", Color.MAGENTA)
 		for item in data["rare_loot"]:
 			# format: [name, chance, min, max]
-			var d_name = ElementDB.get_display_name(item[0])
+			var sm = GameState.shipyard_manager
+			var d_name = item[0]
+			var is_unique = false
+			
+			if sm and item[0] in sm.modules:
+				var m_data = sm.modules[item[0]]
+				d_name = m_data.get("name", item[0].replace("_", " ").capitalize())
+				if m_data.get("rarity") == sm.Rarity.UNIQUE:
+					is_unique = true
+			else:
+				var e_name = ElementDB.get_display_name(item[0])
+				d_name = e_name if e_name != item[0] else item[0].replace("_", " ").capitalize()
+				
 			var chance = item[1] * 100.0
 			var txt = "- %s: %.1f%% (%d-%d)" % [d_name, chance, item[2], item[3]]
-			add_item_label(txt, Color.LIGHT_BLUE)
+			
+			if is_unique:
+				txt = "✦ " + txt
+				add_item_label(txt, Color(1.0, 0.2, 0.8)) # Vivid Magenta
+			else:
+				add_item_label(txt, Color.LIGHT_BLUE)
 
 	# Module Loot
 	var module_pool = data.get("module_drop_pool", [])
@@ -62,7 +79,7 @@ func setup(data):
 		
 		for module_id in module_pool:
 			var m_data = sm.modules.get(module_id, {}) if sm else {}
-			var module_name = m_data.get("name", module_id)
+			var module_name = m_data.get("name", module_id.replace("_", " ").capitalize())
 			var slot_type = m_data.get("slot_type", "module")
 			
 			# v72.1: Research Prerequisite Check
@@ -70,6 +87,10 @@ func setup(data):
 			var lock_prefix = "🔒 " if not status["can_equip"] else ""
 			var col = Color(0.0, 0.8, 1.0) if status["can_equip"] else Color(0.6, 0.6, 0.6)
 			
+			# Don't show UNIQUE items in subspace signal, they are already in Rare Drops
+			if m_data.get("rarity") == sm.Rarity.UNIQUE:
+				continue
+				
 			add_item_label("%s» %s [%s]" % [lock_prefix, module_name.to_upper(), slot_type.to_upper()], col)
 
 	visible = true

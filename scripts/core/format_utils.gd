@@ -58,11 +58,18 @@ static func format_stat_label(key: String) -> String:
 	var key_lower = key.to_lower()
 	return STAT_LABELS.get(key_lower, key.replace("_", " ").to_upper())
 
-static func format_stat_value(key: String, val: float) -> String:
+static func format_stat_value(key: String, val: Variant) -> String:
+	if typeof(val) == TYPE_STRING:
+		if not val.is_valid_float() and not val.is_valid_int():
+			return val
+	elif typeof(val) != TYPE_INT and typeof(val) != TYPE_FLOAT:
+		return str(val)
+		
+	var f_val: float = float(val)
 	var k_low = key.to_lower()
 	if k_low.ends_with("_mult") or k_low.ends_with("_bonus") or k_low == "jamming_strength" or k_low == "crit_chance":
-		return "+%d%%" % int(val * 100)
-	return format_number(val)
+		return "+%d%%" % int(f_val * 100)
+	return format_number(f_val)
 
 static func format_time(seconds: float) -> String:
 	if seconds < 60:

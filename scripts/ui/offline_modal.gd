@@ -49,7 +49,24 @@ func start_resync_sequence(text: String):
 	)
 
 func _reveal_report(text: String):
-	report_label.text = text
+	var formatted_text = ""
+	var lines = text.split("\n")
+	for line in lines:
+		if line.strip_edges() == "": continue
+		var sanitized_line = line
+		# Assuming format + item_id: amount
+		if line.strip_edges().begins_with("+"):
+			var parts = line.split(":")
+			if parts.size() == 2:
+				var raw_item_name = parts[0].replace("+", "").strip_edges()
+				var amount = parts[1].strip_edges()
+				var item_name = raw_item_name
+				if "_" in item_name:
+					item_name = item_name.replace("_", " ").capitalize()
+				sanitized_line = "+ " + item_name + ": " + amount
+		formatted_text += sanitized_line + "\n"
+		
+	report_label.text = formatted_text
 	report_label.show()
 	ack_btn.show()
 	

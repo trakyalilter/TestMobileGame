@@ -119,6 +119,7 @@ func refresh_list():
 	_create_rack("cooling", "Cooling Systems", Color(0.0, 0.5, 1.0, 0.5), rack_container)
 	_create_rack("sensor", "Sensor & EW Suites", Color(0.6, 0.2, 1.0, 0.5), rack_container)
 	_create_rack("ammo", "Ordnance", Color(1.0, 0.6, 0.3, 0.5), rack_container)
+	_create_rack("gem", "Matrix Cores (Sockets)", Color(0.8, 0.3, 0.8, 0.5), rack_container)
 	
 	# Hulls
 	var sorted_hulls = manager.hulls.keys()
@@ -162,6 +163,7 @@ func refresh_list():
 			"cooling": cat = "cooling"
 			"sensor": cat = "sensor"
 			"ammo", "slug": cat = "ammo"
+			"gem", "gem_synth": cat = "gem"
 			_: cat = "energy" # Default
 		
 		if cat not in racks: continue

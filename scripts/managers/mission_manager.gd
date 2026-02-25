@@ -83,7 +83,8 @@ func init_missions():
 		# P0 Fix: Progression Deadlock Re-alignment
 		["m027", "Scanning Horizon", "Unlock 'Asteroid Belt' to expand operations.", "research", "asteroid_clearance", 1, 5000, 500, "m028"],
 		["m028", "Belt Mining", "Mine 1000 Cassiterite in the Asteroid Belt.", "gather", "Cassiterite", 1000, 10000, 2000, "m029"],
-		["m029", "Hardened Shell", "Craft 'Titanium Plating' in the Shipyard.", "craft", "titanium_armor", 1, 15000, 5000, "m030"],
+		["m029", "Hardened Shell", "Craft 'Titanium Plating' in the Shipyard.", "craft", "titanium_armor", 1, 15000, 5000, "m029b"],
+		["m029b", "Complex Electronics", "Craft 10 Advanced Circuits to prepare for heavier ships.", "gather", "AdvCircuit", 10, 20000, 5000, "m030"],
 		# P0-31: Fabricator Paradox Fix - Shipwright II moved before Fabricator
 		["m030", "Naval Expansion", "Research 'Shipwright II' to unlock Destroyer-class hulls.", "research", "shipwright_2", 1, 4000, 1000, "m030b"],
 		["m030b", "Deep Space Comms", "Build a 'Fabricator' to prepare for the long journey.", "build", "fabricator", 1, 30000, 5000, "m030c"],
@@ -94,7 +95,8 @@ func init_missions():
 		["m031", "Deep Space Signal", "Unlock 'Sector Alpha' via decryption.", "research", "sector_alpha_decryption", 1, 50000, 10000, "m032"],
 		["m032", "Alpha Sector Dominance", "Defeat 3 Xenon Patrol Frigates in Sector Alpha.", "defeat", "alien_frigate", 3, 75000, 15000, "m032b"],
 		# P0-27: Unlock Sector Beta
-		["m032b", "Expanding Horizons", "Research 'Deep Space Navigation' to unlock Sector Beta.", "research", "deep_space_nav", 1, 50000, 5000, "m032c"],
+		["m032b", "Expanding Horizons", "Research 'Deep Space Navigation' to unlock Sector Beta.", "research", "deep_space_nav", 1, 50000, 5000, "m032d"],
+		["m032d", "Void Research", "Gather 5 Void Artifacts dropped by Sector Alpha ships.", "gather", "VoidArtifact", 5, 100000, 10000, "m032c"],
 		# P0-28: Construct Battlecruiser
 		["m032c", "Capital Doctrine", "Construct a 'Battlecruiser' in the Shipyard.", "construct", "battlecruiser_hull", 1, 250000, 25000, "m033"],
 		

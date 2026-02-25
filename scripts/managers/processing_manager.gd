@@ -376,7 +376,7 @@ var recipes: Dictionary = {
 	"craft_coolant_cell": {
 		"name": "Helium Coolant Cell",
 		"description": "Pressurized helium and nitrogen for weapon cooling.",
-		"input": {"He": 10, "NitroCoolant": 5, "Steel": 2},
+		"input": {"He": 10, "NitroCoolant": 5, "Steel": 2, "Li": 2},
 		"output": {"CoolantCell": 1},
 		"duration": 15.0,
 		"level_req": 42, # Increased from 12
@@ -986,17 +986,6 @@ var recipes: Dictionary = {
 		"category": "salvage"
 	},
 	# T8: energy_wraith -> AntimatterParticle
-	"craft_antimatter_fuel": {
-		"name": "Antimatter Containment",
-		"description": "Stabilize antimatter into usable fuel cells.",
-		"input": {"AntimatterParticle": 5, "ExoticMatter": 10, "Steel": 50},
-		"output": {"AntimatterFuel": 1},
-		"duration": 60.0,
-		"level_req": 65,
-		"xp": 300,
-		"research_req": "exotic_matter_analysis",
-		"category": "endgame"
-	}
 }
 
 

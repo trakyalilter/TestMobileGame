@@ -1,11 +1,12 @@
 # v71.0: Module Rarity System
-enum Rarity {COMMON, UNCOMMON, RARE, LEGENDARY}
+enum Rarity {COMMON, UNCOMMON, RARE, LEGENDARY, UNIQUE}
 
 const RARITY_COLORS = {
 	Rarity.COMMON: Color(0.7, 0.7, 0.7), # Light Gray
 	Rarity.UNCOMMON: Color(0.2, 1.0, 0.2), # Sharp Green
 	Rarity.RARE: Color(0.0, 0.6, 1.0), # Vivid Electric Blue
 	Rarity.LEGENDARY: Color(1.0, 0.8, 0.0), # Vivid Gold
+	Rarity.UNIQUE: Color(1.0, 0.2, 0.8), # Vivid Magenta
 }
 
 const RARITY_LABELS = {
@@ -13,12 +14,14 @@ const RARITY_LABELS = {
 	Rarity.UNCOMMON: "Uncommon",
 	Rarity.RARE: "Rare",
 	Rarity.LEGENDARY: "Legendary",
+	Rarity.UNIQUE: "Unique",
 }
 
 const RARITY_STAT_RANGE = {
 	Rarity.UNCOMMON: [0.05, 0.15],
 	Rarity.RARE: [0.15, 0.30],
 	Rarity.LEGENDARY: [0.30, 0.50],
+	Rarity.UNIQUE: [0.50, 0.75],
 }
 
 # Stats that get rarity bonuses (damage, defense, HP, etc.)
@@ -87,6 +90,25 @@ const AFFIX_DB = {
 		"range": [0.10, 0.40],
 		"desc": "-%d%% material requirements for Delivery Contracts."
 	}
+}
+
+# Step 6: Gem/Matrix Core Effects
+const GEM_GLOBAL_EFFECTS = {
+	"CrackedCrimsonCore": {"atk_kinetic_mult": 0.02, "atk_energy_mult": 0.02, "crit_chance": 0.02},
+	"StableCrimsonCore": {"atk_kinetic_mult": 0.05, "atk_energy_mult": 0.05, "crit_chance": 0.05},
+	"PristineCrimsonCore": {"atk_kinetic_mult": 0.10, "atk_energy_mult": 0.10, "crit_chance": 0.10},
+	
+	"CrackedCobaltCore": {"max_shield_mult": 0.02, "shield_regen_mult": 0.02, "eva_mult": 0.02},
+	"StableCobaltCore": {"max_shield_mult": 0.05, "shield_regen_mult": 0.05, "eva_mult": 0.05},
+	"PristineCobaltCore": {"max_shield_mult": 0.10, "shield_regen_mult": 0.10, "eva_mult": 0.10},
+	
+	"CrackedTopazCore": {"energy_capacity_mult": 0.02},
+	"StableTopazCore": {"energy_capacity_mult": 0.05},
+	"PristineTopazCore": {"energy_capacity_mult": 0.10},
+	
+	"CrackedAmethystCore": {"def_mult": 0.02, "hp_mult": 0.02},
+	"StableAmethystCore": {"def_mult": 0.05, "hp_mult": 0.05},
+	"PristineAmethystCore": {"def_mult": 0.10, "hp_mult": 0.10}
 }
 
 var affix_bonuses = {
@@ -221,14 +243,14 @@ var modules: Dictionary = {
 	"mining_laser_mk1": {
 		"name": "Pulse Laser Mk.I",
 		"slot_type": "weapon",
-		"stats": {"atk_energy": 12, "energy_load": 5, "atk_interval": 1.5},
+		"stats": {"atk_energy": 15, "energy_load": 10, "atk_interval": 1.2},
 		"cost": {"credits": 125, "Si": 5},
 		"desc": "Fast-firing Energy Beam. Effective vs Shields."
 	},
 	"mining_laser_mk2": {
 		"name": "Pulse Laser Mk.II",
 		"slot_type": "weapon",
-		"stats": {"atk_energy": 40, "energy_load": 15, "atk_interval": 1.5},
+		"stats": {"atk_energy": 35, "energy_load": 25, "atk_interval": 1.2},
 		"cost": {"credits": 25000, "Si": 40, "Ti": 15, "Circuit": 15, "Chip": 10},
 		"desc": "High intensity beam. Melts shields.",
 		"research_req": "laser_optics"
@@ -236,7 +258,7 @@ var modules: Dictionary = {
 	"railgun_mk1": {
 		"name": "Mass Driver",
 		"slot_type": "weapon",
-		"stats": {"atk_kinetic": 25, "energy_load": 5, "atk_interval": 3.0},
+		"stats": {"atk_kinetic": 35, "energy_load": 5, "atk_interval": 3.5},
 		"cost": {"credits": 2500, "Fe": 50},
 		"desc": "Heavy magnetic projectile. Slow but powerful.",
 		"research_req": "kinetics_101"
@@ -311,7 +333,7 @@ var modules: Dictionary = {
 		"name": "Targeting Matrix",
 		"slot_type": "sensor",
 		"stats": {"accuracy": 20, "crit_chance": 0.05, "energy_load": 25},
-		"cost": {"credits": 75000, "AdvCircuit": 10, "NavData": 5},
+		"cost": {"credits": 75000, "AdvCircuit": 10, "NavData": 5, "Germanium": 5},
 		"desc": "Advanced tracking. +20 Accuracy, +5% Crit.",
 		"research_req": "automated_logistics"
 	},
@@ -319,7 +341,7 @@ var modules: Dictionary = {
 		"name": "Omni-Scanner",
 		"slot_type": "sensor",
 		"stats": {"accuracy": 40, "crit_chance": 0.10, "energy_load": 60},
-		"cost": {"credits": 5000000, "AICore": 5, "VoidCrystal": 20},
+		"cost": {"credits": 5000000, "AICore": 5, "VoidCrystal": 20, "Germanium": 25},
 		"desc": "All-seeing eye. +40 Accuracy, +10% Crit.",
 		"research_req": "xeno_engineering"
 	},
@@ -377,7 +399,7 @@ var modules: Dictionary = {
 	"basic_shield": {
 		"name": "Deflector Shield",
 		"slot_type": "shield",
-		"stats": {"max_shield": 50, "shield_regen": 2, "energy_load": 10},
+		"stats": {"max_shield": 50, "shield_regen": 2, "energy_load": 15},
 		"cost": {"credits": 1500, "Si": 50},
 		"desc": "Generates a regenerative energy field.",
 		"research_req": "energy_shields"
@@ -393,7 +415,7 @@ var modules: Dictionary = {
 	"titanium_armor": {
 		"name": "Titanium Plating",
 		"slot_type": "armor",
-		"stats": {"def": 50, "hp": 400},
+		"stats": {"def": 50, "hp": 600},
 		"cost": {"credits": 75000, "Ti": 20},
 		"desc": "Heavy-duty alloy armor.",
 		"research_req": "shipwright_1"
@@ -426,7 +448,7 @@ var modules: Dictionary = {
 	"mining_laser_mk3": {
 		"name": "Plasma Lance Mk.III",
 		"slot_type": "weapon",
-		"stats": {"atk_energy": 75, "energy_load": 25, "atk_interval": 1.2},
+		"stats": {"atk_energy": 75, "energy_load": 45, "atk_interval": 1.0},
 		"cost": {"credits": 25000, "Si": 50, "Ti": 20, "AdvCircuit": 10},
 		"desc": "Cutting-edge beam weapon. Devastates shields.",
 		"research_req": "shipwright_2"
@@ -434,7 +456,7 @@ var modules: Dictionary = {
 	"railgun_mk2": {
 		"name": "Heavy Railgun",
 		"slot_type": "weapon",
-		"stats": {"atk_kinetic": 75, "energy_load": 20, "atk_interval": 3.5},
+		"stats": {"atk_kinetic": 95, "energy_load": 20, "atk_interval": 4.0},
 		"cost": {"credits": 25000, "Steel": 50, "W": 10, "AlWire": 20}, # v62.0 Fix: Added AlWire sink
 		"desc": "Magnetic accelerator. Armor penetration.",
 		"research_req": "ballistics_optimization"
@@ -442,7 +464,7 @@ var modules: Dictionary = {
 	"railgun_mk3": {
 		"name": "Coil Cannon",
 		"slot_type": "weapon",
-		"stats": {"atk_kinetic": 280, "energy_load": 25, "atk_interval": 4.0},
+		"stats": {"atk_kinetic": 350, "energy_load": 25, "atk_interval": 4.5},
 		"cost": {"credits": 2000000, "Steel": 500, "AdvCircuit": 150, "Superalloy": 100, "Diamond": 5},
 		"desc": "Devastating kinetic damage. Hull shredder.",
 		"research_req": "capital_ship_engineering"
@@ -754,6 +776,221 @@ var modules: Dictionary = {
 		"cost": {"credits": 50000000, "VoidArtifact": 5, "VoidCrystal": 50, "QuantumCore": 10},
 		"desc": "[UNIQUE] Emits a frequency capable of shattering temporal shielding.",
 		"research_req": "void_navigation"
+	},
+	# ====================================================================
+	# === UNIQUE BOSS SETS (30 Items, 10 Sets) ===
+	# ====================================================================
+	
+	# SET 1: LUNAR ORBIT (Architect's Regalia) -> Set Bonus: +25% Shield Regen
+	"architect_beam": {
+		"name": "Architect's Beam", "slot_type": "weapon", "rarity": Rarity.UNIQUE, "is_custom": true,
+		"stats": {"atk_energy": 12, "energy_load": 5, "atk_interval": 1.5}, "cost": {}, "desc": "(Set) Architect's Regalia [1/3]\nPrecise cutting beam.", "unique_id": "architect_beam"
+	},
+	"architect_plating": {
+		"name": "Architect's Plating", "slot_type": "armor", "rarity": Rarity.UNIQUE, "is_custom": true,
+		"stats": {"hp": 50, "def": 5}, "cost": {}, "desc": "(Set) Architect's Regalia [2/3]\nReinforced lunar structural plating.", "unique_id": "architect_plating"
+	},
+	"architect_cell": {
+		"name": "Architect's Power Cell", "slot_type": "battery", "rarity": Rarity.UNIQUE, "is_custom": true,
+		"stats": {"energy_capacity": 30, "energy_gen": 2}, "cost": {}, "desc": "(Set) Architect's Regalia [3/3]\nStable low-tier power grid.", "unique_id": "architect_cell"
+	},
+
+	# SET 2: ASTEROID BELT (Monolith's Resolve) -> Set Bonus: +150 Base DEF
+	"monolith_blaster": {
+		"name": "Monolith Blaster", "slot_type": "weapon", "rarity": Rarity.UNIQUE, "is_custom": true,
+		"stats": {"atk_kinetic": 25, "atk_energy": 5, "atk_interval": 3.0}, "cost": {}, "desc": "(Set) Monolith's Resolve [1/3]\nSlow, heavy rock-crusher.", "unique_id": "monolith_blaster"
+	},
+	"monolith_shell": {
+		"name": "Monolith Shell", "slot_type": "armor", "rarity": Rarity.UNIQUE, "is_custom": true,
+		"stats": {"hp": 150, "def": 25, "eva": -10}, "cost": {}, "desc": "(Set) Monolith's Resolve [2/3]\nThick rocky exterior.", "unique_id": "monolith_shell"
+	},
+	"monolith_sensor": {
+		"name": "Monolith Sensor", "slot_type": "sensor", "rarity": Rarity.UNIQUE, "is_custom": true,
+		"stats": {"accuracy": 20, "energy_load": 10}, "cost": {}, "desc": "(Set) Monolith's Resolve [3/3]\nSeismic detection waves.", "unique_id": "monolith_sensor"
+	},
+
+	# SET 3: MARS DEBRIS (Warmaster's Arsenal) -> Set Bonus: +20% Kinetic Damage
+	"warmaster_railgun": {
+		"name": "Warmaster's Railgun", "slot_type": "weapon", "rarity": Rarity.UNIQUE, "is_custom": true,
+		"stats": {"atk_kinetic": 40, "energy_load": 15, "atk_interval": 2.5, "jamming_strength": 0.05}, "cost": {}, "desc": "(Set) Warmaster's Arsenal [1/3]\nHigh caliber rail driver.", "unique_id": "warmaster_railgun"
+	},
+	"warmaster_armor": {
+		"name": "Warmaster's Armor", "slot_type": "armor", "rarity": Rarity.UNIQUE, "is_custom": true,
+		"stats": {"hp": 250, "def": 15, "eva": 5}, "cost": {}, "desc": "(Set) Warmaster's Arsenal [2/3]\nLightweight assault alloy.", "unique_id": "warmaster_armor"
+	},
+	"warmaster_drive": {
+		"name": "Warmaster's Drive", "slot_type": "engine", "rarity": Rarity.UNIQUE, "is_custom": true,
+		"stats": {"eva": 25, "energy_load": 12}, "cost": {}, "desc": "(Set) Warmaster's Arsenal [3/3]\nAggressive thrust vectors.", "unique_id": "warmaster_drive"
+	},
+
+	# SET 4: TITAN'S HALO (Cryo-Lord's Chill) -> Set Bonus: Enemies attack 15% slower
+	"cryo_lance": {
+		"name": "Cryo-Lord's Lance", "slot_type": "weapon", "rarity": Rarity.UNIQUE, "is_custom": true,
+		"stats": {"atk_energy": 55, "atk_kinetic": 10, "energy_load": 25, "atk_interval": 3.0}, "cost": {}, "desc": "(Set) Cryo-Lord's Chill [1/3]\nFires super-chilled beams.", "unique_id": "cryo_lance"
+	},
+	"cryo_plating": {
+		"name": "Cryo-Lord's Plating", "slot_type": "armor", "rarity": Rarity.UNIQUE, "is_custom": true,
+		"stats": {"hp": 300, "def": 45}, "cost": {}, "desc": "(Set) Cryo-Lord's Chill [2/3]\nShatter-resistant ice alloy.", "unique_id": "cryo_plating"
+	},
+	"cryo_heat_sink": {
+		"name": "Cryo-Lord's Heat Sink", "slot_type": "cooling", "rarity": Rarity.UNIQUE, "is_custom": true,
+		"stats": {"atk_speed_bonus": 0.20, "energy_load": 15}, "cost": {}, "desc": "(Set) Cryo-Lord's Chill [3/3]\nAbsolute zero thermal flushing.", "unique_id": "cryo_heat_sink"
+	},
+
+	# SET 5: SECTOR ALPHA (Harbinger's Omen) -> Set Bonus: +20% Energy Damage
+	"harbinger_repeater": {
+		"name": "Harbinger's Repeater", "slot_type": "weapon", "rarity": Rarity.UNIQUE, "is_custom": true,
+		"stats": {"atk_energy": 45, "energy_load": 25, "atk_interval": 1.0}, "cost": {}, "desc": "(Set) Harbinger's Omen [1/3]\nRapid pulsing plasma.", "unique_id": "harbinger_repeater"
+	},
+	"harbinger_carapace": {
+		"name": "Harbinger's Carapace", "slot_type": "armor", "rarity": Rarity.UNIQUE, "is_custom": true,
+		"stats": {"hp": 400, "def": 30, "eva": 15}, "cost": {}, "desc": "(Set) Harbinger's Omen [2/3]\nAlien-metal woven mesh.", "unique_id": "harbinger_carapace"
+	},
+	"harbinger_reactor": {
+		"name": "Harbinger's Reactor", "slot_type": "battery", "rarity": Rarity.UNIQUE, "is_custom": true,
+		"stats": {"energy_capacity": 60, "energy_gen": 10}, "cost": {}, "desc": "(Set) Harbinger's Omen [3/3]\nUnstable alien power source.", "unique_id": "harbinger_reactor"
+	},
+	# SET 6: SECTOR BETA (Overseer's Command) -> Set Bonus: +15% Accuracy & Crit
+	"overseer_turret": {
+		"name": "Overseer's Turret", "slot_type": "weapon", "rarity": Rarity.UNIQUE, "is_custom": true,
+		"stats": {"atk_kinetic": 80, "atk_energy": 20, "energy_load": 30, "atk_interval": 2.0}, "cost": {}, "desc": "(Set) Overseer's Command [1/3]\nCalculated ballistic trajectories.", "unique_id": "overseer_turret"
+	},
+	"overseer_bulkhead": {
+		"name": "Overseer's Bulkhead", "slot_type": "armor", "rarity": Rarity.UNIQUE, "is_custom": true,
+		"stats": {"hp": 600, "def": 60}, "cost": {}, "desc": "(Set) Overseer's Command [2/3]\nStandardized extreme defense.", "unique_id": "overseer_bulkhead"
+	},
+	"overseer_matrix": {
+		"name": "Overseer's Matrix", "slot_type": "sensor", "rarity": Rarity.UNIQUE, "is_custom": true,
+		"stats": {"accuracy": 40, "crit_chance": 0.15, "energy_load": 25}, "cost": {}, "desc": "(Set) Overseer's Command [3/3]\nFlawless targeting algorithms.", "unique_id": "overseer_matrix"
+	},
+
+	# SET 7: SECTOR GAMMA (Rad-Beast's Hide) -> Set Bonus: +25% Max HP
+	"rad_beast_spitter": {
+		"name": "Rad-Beast Spitter", "slot_type": "weapon", "rarity": Rarity.UNIQUE, "is_custom": true,
+		"stats": {"atk_energy": 150, "atk_explosive": 30, "energy_load": 45, "atk_interval": 2.8}, "cost": {}, "desc": "(Set) Rad-Beast's Hide [1/3]\nVomits pure radiation.", "unique_id": "rad_beast_spitter"
+	},
+	"rad_beast_flesh": {
+		"name": "Rad-Beast Flesh", "slot_type": "armor", "rarity": Rarity.UNIQUE, "is_custom": true,
+		"stats": {"hp": 1200, "def": 50}, "cost": {}, "desc": "(Set) Rad-Beast's Hide [2/3]\nMutated thick flesh.", "unique_id": "rad_beast_flesh"
+	},
+	"rad_beast_gland": {
+		"name": "Rad-Beast Gland", "slot_type": "battery", "rarity": Rarity.UNIQUE, "is_custom": true,
+		"stats": {"energy_capacity": 150, "energy_gen": 25}, "cost": {}, "desc": "(Set) Rad-Beast's Hide [3/3]\nOrganic power generation.", "unique_id": "rad_beast_gland"
+	},
+
+	# SET 8: SECTOR DELTA (Sovereign's Prism) -> Set Bonus: +25% Max Shield & Reflect
+	"sovereign_laser": {
+		"name": "Sovereign Laser", "slot_type": "weapon", "rarity": Rarity.UNIQUE, "is_custom": true,
+		"stats": {"atk_energy": 220, "energy_load": 60, "atk_interval": 1.2}, "cost": {}, "desc": "(Set) Sovereign's Prism [1/3]\nFractured crystal beam.", "unique_id": "sovereign_laser"
+	},
+	"sovereign_crystal": {
+		"name": "Sovereign Crystal", "slot_type": "armor", "rarity": Rarity.UNIQUE, "is_custom": true,
+		"stats": {"hp": 1500, "def": 120, "eva": -15}, "cost": {}, "desc": "(Set) Sovereign's Prism [2/3]\nRefractive crystal armor.", "unique_id": "sovereign_crystal"
+	},
+	"sovereign_barrier": {
+		"name": "Sovereign Barrier", "slot_type": "shield", "rarity": Rarity.UNIQUE, "is_custom": true,
+		"stats": {"max_shield": 600, "shield_regen": 15, "energy_load": 80}, "cost": {}, "desc": "(Set) Sovereign's Prism [3/3]\nResonant energy shield.", "unique_id": "sovereign_barrier"
+	},
+
+	# SET 9: SECTOR ZETA (Patient Zero's Strain) -> Set Bonus: +50 Passive Hull Regen/sec
+	"zero_strain_cannon": {
+		"name": "Zero-Strain Cannon", "slot_type": "weapon", "rarity": Rarity.UNIQUE, "is_custom": true,
+		"stats": {"atk_kinetic": 200, "atk_explosive": 100, "energy_load": 70, "atk_interval": 3.0}, "cost": {}, "desc": "(Set) Patient Zero's Strain [1/3]\nFires virulent biomass.", "unique_id": "zero_strain_cannon"
+	},
+	"zero_strain_carapace": {
+		"name": "Zero-Strain Carapace", "slot_type": "armor", "rarity": Rarity.UNIQUE, "is_custom": true,
+		"stats": {"hp": 2500, "def": 180}, "cost": {}, "desc": "(Set) Patient Zero's Strain [2/3]\nLiving, crawling armor.", "unique_id": "zero_strain_carapace"
+	},
+	"zero_strain_tendrils": {
+		"name": "Zero-Strain Tendrils", "slot_type": "engine", "rarity": Rarity.UNIQUE, "is_custom": true,
+		"stats": {"eva": 80, "energy_load": 40}, "cost": {}, "desc": "(Set) Patient Zero's Strain [3/3]\nBiological propulsion.", "unique_id": "zero_strain_tendrils"
+	},
+
+	# SET 10: SECTOR EPSILON (Time Weaver's Paradox) -> Set Bonus: +30% Attack Speed
+	"weaver_annihilator": {
+		"name": "Weaver's Annihilator", "slot_type": "weapon", "rarity": Rarity.UNIQUE, "is_custom": true,
+		"stats": {"atk_energy": 500, "atk_explosive": 300, "energy_load": 150, "atk_interval": 4.0}, "cost": {}, "desc": "(Set) Time Weaver's Paradox [1/3]\nErases matter from existence.", "unique_id": "weaver_annihilator"
+	},
+	"weaver_shroud": {
+		"name": "Weaver's Shroud", "slot_type": "armor", "rarity": Rarity.UNIQUE, "is_custom": true,
+		"stats": {"hp": 4000, "def": 250, "eva": 60}, "cost": {}, "desc": "(Set) Time Weaver's Paradox [2/3]\nTemporally shifted armor.", "unique_id": "weaver_shroud"
+	},
+	"weaver_core": {
+		"name": "Weaver's Core", "slot_type": "battery", "rarity": Rarity.UNIQUE, "is_custom": true,
+		"stats": {"energy_capacity": 600, "energy_gen": 100}, "cost": {}, "desc": "(Set) Time Weaver's Paradox [3/3]\nDrawing power from the future.", "unique_id": "weaver_core"
+	},
+	# === MATRIX CORES (Sockets) ===
+	"matrix_synthesis": {
+		"name": "Matrix Synthesis (Random)",
+		"slot_type": "gem",
+		"stats": {},
+		"cost": {"credits": 50000, "VoidCrystal": 2, "AdvCircuit": 5, "Resin": 5},
+		"desc": "Synthesize a random Cracked Matrix Core using Void Crystals.",
+		"research_req": "xeno_engineering"
+	},
+	"cracked_crimson_core": {
+		"name": "Cracked Crimson Core",
+		"slot_type": "gem_synth", # Hides it from main rack, combined via UI
+		"stats": {},
+		"cost": {"CrackedCrimsonCore": 3},
+		"desc": "Fuse 3 Cracked Crimson Cores into 1 Stable Crimson Core.",
+		"research_req": "xeno_engineering"
+	},
+	"stable_crimson_core": {
+		"name": "Stable Crimson Core",
+		"slot_type": "gem_synth",
+		"stats": {},
+		"cost": {"StableCrimsonCore": 3},
+		"desc": "Fuse 3 Stable Crimson Cores into 1 Pristine Crimson Core.",
+		"research_req": "xeno_engineering"
+	},
+	"cracked_cobalt_core": {
+		"name": "Cracked Cobalt Core",
+		"slot_type": "gem_synth",
+		"stats": {},
+		"cost": {"CrackedCobaltCore": 3},
+		"desc": "Fuse 3 Cracked Cobalt Cores into 1 Stable Cobalt Core.",
+		"research_req": "xeno_engineering"
+	},
+	"stable_cobalt_core": {
+		"name": "Stable Cobalt Core",
+		"slot_type": "gem_synth",
+		"stats": {},
+		"cost": {"StableCobaltCore": 3},
+		"desc": "Fuse 3 Stable Cobalt Cores into 1 Pristine Cobalt Core.",
+		"research_req": "xeno_engineering"
+	},
+	"cracked_topaz_core": {
+		"name": "Cracked Topaz Core",
+		"slot_type": "gem_synth",
+		"stats": {},
+		"cost": {"CrackedTopazCore": 3},
+		"desc": "Fuse 3 Cracked Topaz Cores into 1 Stable Topaz Core.",
+		"research_req": "xeno_engineering"
+	},
+	"stable_topaz_core": {
+		"name": "Stable Topaz Core",
+		"slot_type": "gem_synth",
+		"stats": {},
+		"cost": {"StableTopazCore": 3},
+		"desc": "Fuse 3 Stable Topaz Cores into 1 Pristine Topaz Core.",
+		"research_req": "xeno_engineering"
+	},
+	"cracked_amethyst_core": {
+		"name": "Cracked Amethyst Core",
+		"slot_type": "gem_synth",
+		"stats": {},
+		"cost": {"CrackedAmethystCore": 3},
+		"desc": "Fuse 3 Cracked Amethyst Cores into 1 Stable Amethyst Core.",
+		"research_req": "xeno_engineering"
+	},
+	"stable_amethyst_core": {
+		"name": "Stable Amethyst Core",
+		"slot_type": "gem_synth",
+		"stats": {},
+		"cost": {"StableAmethystCore": 3},
+		"desc": "Fuse 3 Stable Amethyst Cores into 1 Pristine Amethyst Core.",
+		"research_req": "xeno_engineering"
 	}
 }
 
@@ -834,6 +1071,43 @@ func craft_module(module_id: String) -> bool:
 		else:
 			GameState.resources.remove_element(res, qty)
 			
+	# === Matrix Core Crafting Logic ===
+	if module_id == "matrix_synthesis":
+		# Roll random core
+		var roll = randi() % 4
+		var gem_id = ""
+		match roll:
+			0: gem_id = "CrackedCrimsonCore"
+			1: gem_id = "CrackedCobaltCore"
+			2: gem_id = "CrackedTopazCore"
+			3: gem_id = "CrackedAmethystCore"
+			_: gem_id = "CrackedCrimsonCore"
+			
+		GameState.resources.add_element(gem_id, 1)
+		UITheme.show_notification("Synthesized: " + ElementDB.get_display_name(gem_id), Color(0.8, 0.3, 0.8))
+		inventory_updated.emit()
+		return true
+		
+	elif mod_data.get("slot_type") == "gem_synth":
+		# It's an upgrade recipe, map ID to output gem
+		var out_gem = ""
+		match module_id:
+			"cracked_crimson_core": out_gem = "StableCrimsonCore"
+			"stable_crimson_core": out_gem = "PristineCrimsonCore"
+			"cracked_cobalt_core": out_gem = "StableCobaltCore"
+			"stable_cobalt_core": out_gem = "PristineCobaltCore"
+			"cracked_topaz_core": out_gem = "StableTopazCore"
+			"stable_topaz_core": out_gem = "PristineTopazCore"
+			"cracked_amethyst_core": out_gem = "StableAmethystCore"
+			"stable_amethyst_core": out_gem = "PristineAmethystCore"
+			
+		if out_gem != "":
+			GameState.resources.add_element(out_gem, 1)
+			UITheme.show_notification("Fused: " + ElementDB.get_display_name(out_gem), Color(0.8, 0.3, 0.8))
+			inventory_updated.emit()
+			return true
+			
+	# Normal Module Crafting
 	module_inventory[module_id] = module_inventory.get(module_id, 0) + 1
 	module_crafted.emit(module_id)
 	inventory_updated.emit() # Fix: Signal for UI update
@@ -984,6 +1258,37 @@ func set_slot_ammo(slot_idx: int, ammo_id: String):
 	ammo_loadout[slot_idx] = ammo_id
 	# No recalc needed as ammo doesn't affect base stats usually
 
+# Step 6: Gem Socket Support
+func insert_gem(module_id: String, socket_idx: int, gem_id: String) -> bool:
+	if not module_id in module_inventory: return false
+	if GameState.resources.get_element_amount(gem_id) <= 0: return false
+	
+	var mod = modules.get(module_id)
+	if not mod or not mod.has("sockets"): return false
+	if socket_idx < 0 or socket_idx >= mod["sockets"].size(): return false
+	if mod["sockets"][socket_idx] != null: return false # Already filled
+	
+	GameState.resources.remove_element(gem_id, 1)
+	mod["sockets"][socket_idx] = gem_id
+	recalc_stats()
+	inventory_updated.emit()
+	return true
+
+func remove_gem(module_id: String, socket_idx: int) -> bool:
+	if not module_id in module_inventory: return false
+	var mod = modules.get(module_id)
+	if not mod or not mod.has("sockets"): return false
+	if socket_idx < 0 or socket_idx >= mod["sockets"].size(): return false
+	
+	var gem = mod["sockets"][socket_idx]
+	if not gem: return false
+	
+	GameState.resources.add_element(gem, 1)
+	mod["sockets"][socket_idx] = null
+	recalc_stats()
+	inventory_updated.emit()
+	return true
+
 func recalc_stats():
 	var hp = 0
 	var shield = 0.0
@@ -1088,6 +1393,67 @@ func recalc_stats():
 		
 	shield_regen_bonus = s_reg_bon
 	jamming_strength = jam_str
+	
+	# Step 6: Gem (Matrix Core) Bonuses Accumulation
+	var gem_totals = {}
+	for mid in loadout.values():
+		if mid and mid in modules and modules[mid].has("sockets"):
+			for gem in modules[mid]["sockets"]:
+				if gem and gem in GEM_GLOBAL_EFFECTS:
+					var eff = GEM_GLOBAL_EFFECTS[gem]
+					for k in eff:
+						gem_totals[k] = gem_totals.get(k, 0.0) + eff[k]
+						
+	# Apply Gem Multipliers
+	max_hp *= (1.0 + gem_totals.get("hp_mult", 0.0))
+	defense *= (1.0 + gem_totals.get("def_mult", 0.0))
+	attack_kinetic *= (1.0 + gem_totals.get("atk_kinetic_mult", 0.0))
+	attack_energy *= (1.0 + gem_totals.get("atk_energy_mult", 0.0))
+	attack_explosive *= (1.0 + gem_totals.get("atk_explosive_mult", 0.0))
+	attack = attack_kinetic + attack_energy + attack_explosive
+	crit_chance += gem_totals.get("crit_chance", 0.0)
+	max_shield *= (1.0 + gem_totals.get("max_shield_mult", 0.0))
+	shield_regen *= (1.0 + gem_totals.get("shield_regen_mult", 0.0))
+	evasion *= (1.0 + gem_totals.get("eva_mult", 0.0))
+	e_cap *= (1.0 + gem_totals.get("energy_capacity_mult", 0.0))
+	jamming_strength += gem_totals.get("jamming_strength", 0.0)
+	
+	# Step 5: Boss Sets Bonus Accumulation
+	var set_counts = {}
+	for mid in loadout.values():
+		if mid and mid in modules:
+			var m_data = modules[mid]
+			var desc = m_data.get("desc", "")
+			if desc.begins_with("(Set)"):
+				var set_name = desc.split("[")[0].strip_edges() # E.g. "(Set) Architect's Regalia"
+				set_counts[set_name] = set_counts.get(set_name, 0) + 1
+				
+	for s_name in set_counts:
+		if set_counts[s_name] >= 3:
+			if "Architect's Regalia" in s_name:
+				shield_regen *= 1.25 # +25% Shield Regen
+			elif "Monolith's Resolve" in s_name:
+				defense += 150 # +150 Base DEF
+			elif "Warmaster's Arsenal" in s_name:
+				attack_kinetic *= 1.20 # +20% Kinetic Damage
+				attack = attack_kinetic + attack_energy + attack_explosive # Re-aggregate
+			elif "Cryo-Lord's Chill" in s_name:
+				pass # Handled in combat_manager for Enemy Attack Speed (-15%)
+			elif "Harbinger's Omen" in s_name:
+				attack_energy *= 1.20 # +20% Energy Damage
+				attack = attack_kinetic + attack_energy + attack_explosive # Re-aggregate
+			elif "Overseer's Command" in s_name:
+				accuracy += 15 # +15 Accuracy
+				crit_chance += 0.15 # +15% Crit
+			elif "Rad-Beast's Hide" in s_name:
+				max_hp = int(max_hp * 1.25) # +25% Max HP
+			elif "Sovereign's Prism" in s_name:
+				max_shield *= 1.25 # +25% Max Shield
+				# Reflect needs combat integration (has_reflective flag)
+			elif "Patient Zero's Strain" in s_name:
+				pass # Handled in combat_manager for 50 Passive Hull Regen
+			elif "Time Weaver's Paradox" in s_name:
+				attack_speed_bonus += 0.30 # +30% Attack Speed
 	
 	# Audit v8.0 P1-25: Applied Physics Hub Bonus (+10% Energy Capacity)
 	if rm:
@@ -1292,6 +1658,7 @@ func generate_module_drop(base_module_id: String, rarity: int = Rarity.UNCOMMON)
 	var num_affixes = 0
 	if rarity == Rarity.RARE: num_affixes = 1
 	elif rarity == Rarity.LEGENDARY: num_affixes = 2
+	elif rarity == Rarity.UNIQUE: num_affixes = 3
 	
 	if num_affixes > 0:
 		affix_pool.shuffle()
@@ -1304,6 +1671,15 @@ func generate_module_drop(base_module_id: String, rarity: int = Rarity.UNCOMMON)
 	var rarity_label = RARITY_LABELS.get(rarity, "")
 	var suffix = " (%s)" % rarity_label if rarity_label != "" else ""
 	
+	# Socket Generation (Step 6)
+	var sockets = []
+	if base.get("rarity") == Rarity.LEGENDARY or rarity == Rarity.LEGENDARY or rarity == Rarity.UNIQUE:
+		var socket_count = 3 if rarity == Rarity.UNIQUE else (randi() % 3 + 1) # 1 to 3 sockets for Legendary, 3 for Unique
+		for _i in range(socket_count): sockets.append(null)
+	elif rarity == Rarity.RARE:
+		if randf() < 0.3: # 30% chance for a socket on Rare
+			sockets.append(null)
+			
 	var custom_module = {
 		"name": "%s%s" % [base.get("name", "Unknown"), suffix],
 		"slot_type": base.get("slot_type", "weapon"),
@@ -1313,7 +1689,8 @@ func generate_module_drop(base_module_id: String, rarity: int = Rarity.UNCOMMON)
 		"is_custom": true,
 		"rarity": rarity,
 		"base_module": base_module_id,
-		"affixes": custom_affixes # Add affixes here
+		"affixes": custom_affixes, # Add affixes here
+		"sockets": sockets # Array of gem IDs or null
 	}
 	
 	# Legendary: add extra flavor

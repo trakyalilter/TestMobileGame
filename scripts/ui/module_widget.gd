@@ -22,10 +22,48 @@ func setup(p_mid: String, p_data: Dictionary, p_manager, p_parent):
 	name_lbl.text = data["name"]
 	name_lbl.add_theme_color_override("font_color", UITheme.CATEGORY_COLORS["shipyard"])
 	
+	# (Removed old text-based socket render)
+	
 	UITheme.apply_card_style(self, "shipyard")
 	UITheme.apply_premium_button_style(btn, "shipyard")
 	
 	_update_stats_text()
+	
+	# v74.0: Render Physical Sockets on the card
+	if data.has("sockets") and data["sockets"].size() > 0:
+		var sock_container = HBoxContainer.new()
+		sock_container.name = "SocketContainer"
+		sock_container.alignment = BoxContainer.ALIGNMENT_CENTER
+		sock_container.add_theme_constant_override("separation", 8)
+		
+		for gem in data["sockets"]:
+			var sock_bg = Panel.new()
+			sock_bg.custom_minimum_size = Vector2(10, 10)
+			var sb = StyleBoxFlat.new()
+			sb.bg_color = Color(0.02, 0.02, 0.02, 0.8) # Empty dark hole
+			sb.border_width_left = 1; sb.border_width_top = 1; sb.border_width_right = 1; sb.border_width_bottom = 1;
+			sb.border_color = Color(0.3, 0.3, 0.3, 0.8)
+			
+			if gem != null:
+				var gem_name = ElementDB.get_display_name(gem)
+				var g_color = Color("#ff4444") if "Crimson" in gem_name else (Color("#44ccff") if "Cobalt" in gem_name else (Color("#ffcc00") if "Topaz" in gem_name else Color("#aa44ff")))
+				sb.bg_color = g_color
+				sb.border_color = g_color.lightened(0.6)
+				sb.shadow_color = g_color * Color(1, 1, 1, 0.4)
+				sb.shadow_size = 4
+			
+			sock_bg.add_theme_stylebox_override("panel", sb)
+			sock_bg.pivot_offset = Vector2(5, 5)
+			sock_bg.rotation_degrees = 45 # Diamond layout
+			
+			var sock_wrap = Control.new()
+			sock_wrap.custom_minimum_size = Vector2(16, 16)
+			sock_bg.position = Vector2(3, 3)
+			sock_wrap.add_child(sock_bg)
+			sock_container.add_child(sock_wrap)
+			
+		$MarginContainer/VBoxContainer.add_child(sock_container)
+		$MarginContainer/VBoxContainer.move_child(sock_container, 2)
 	
 	cost_lbl.text = ""
 	research_lbl.hide()
@@ -41,6 +79,9 @@ func _update_stats_text():
 		var label = FormatUtils.format_stat_label(k)
 		var val = stats[k]
 		s_txt += "%s: %s\n" % [label, FormatUtils.format_stat_value(k, val)]
+		
+	# (Removed old text-prepend)
+		
 	stats_lbl.text = s_txt.strip_edges()
 	
 	# v74.0: Display Affixes
@@ -60,7 +101,10 @@ func _update_stats_text():
 
 func update_state():
 	var owned = manager.module_inventory.get(mid, 0)
-	owned_lbl.text = "In Storage: %d" % owned
+	if data.get("slot_type") == "gem_synth":
+		owned_lbl.text = "" # Synthesis doesn't go to storage directly
+	else:
+		owned_lbl.text = "In Storage: %d" % owned
 	
 	var req_id = data.get("research_req")
 	var tech_unlocked = GameState.research_manager.is_tech_unlocked(req_id)
@@ -148,6 +192,10 @@ func _reset_highlight():
 	if data.get("is_custom", false):
 		btn.text = "DROP ONLY"
 		btn.disabled = true
+	elif data.get("slot_type") == "gem":
+		btn.text = "Synthesize"
+	elif data.get("slot_type") == "gem_synth":
+		btn.text = "Fuse Cores"
 	else:
 		btn.text = "Craft"
 
@@ -204,28 +252,35 @@ func _build_comparison_tooltip() -> String:
 	
 	# 1. HEADER
 	var display_name = data.get("name", "Item").to_upper()
-	for suffix in [" (COMMON)", " (UNCOMMON)", " (RARE)", " (LEGENDARY)"]:
+	for suffix in [" (COMMON)", " (UNCOMMON)", " (RARE)", " (LEGENDARY)", " (UNIQUE)"]:
 		display_name = display_name.replace(suffix, "")
 		
-	tt += "[center][b][font_size=16][color=#%s]%s[/color][/font_size][/b]\n" % [rarity_color_hex, display_name]
-	tt += "[i][font_size=10][color=gray]%s %s[/color][/font_size][/i][/center]\n" % [rarity_label, slot_type.capitalize()]
-	tt += "[color=gray]──────────────────────────────────[/color]\n"
+	var rarity_color = sm.RARITY_COLORS.get(rarity, Color.WHITE)
+	var div = "[color=#3d3d3d]───────────────────────────────[/color]\n"
+
+	tt = "" # Reset tt as it was already initialized
+	tt += "[b][color=#%s]%s[/color][/b]\n" % [rarity_color.to_html(), data.get("name", "Unknown Item")]
+	tt += "[font_size=10][color=gray]%s[/color][/font_size]\n" % [slot_type.capitalize()]
+	tt += div
 	
+	if slot_type == "gem" or slot_type == "gem_synth":
+		tt += "[center][font_size=12][color=silver]Used to augment Epic and Legendary modules.[/color][/font_size][/center]\n"
+		return tt
+		
 	var my_stats = data.get("stats", {})
 	
 	# 2. PRIMARY STAT
 	if slot_type == "weapon":
 		var dmg = my_stats.get("atk_kinetic", 0) + my_stats.get("atk_energy", 0) + my_stats.get("atk_explosive", 0)
-		var interval = my_stats.get("atk_interval", 2.5)
-		if interval > 0:
-			var dps = float(dmg) / interval
-			tt += "[center][font_size=20][b]%.1f[/b][/font_size] [font_size=10][color=gray]Damage Per Second[/color][/font_size][/center]\n" % dps
-			tt += "[center][font_size=10][color=silver]• %s Damage  • %.2f Attacks per Second[/color][/font_size][/center]\n" % [UITheme.format_num(dmg), 1.0/interval]
-			tt += "[color=gray]──────────────────────────────────[/color]\n"
+		var interval = max(0.01, float(my_stats.get("atk_interval", 2.5)))
+		var dps = float(dmg) / interval
+		tt += "[font_size=20][b]%.1f DPS[/b][/font_size]\n" % dps
+		tt += "[font_size=9][color=gray]%s total damage, %.2f hits/s[/color][/font_size]\n" % [UITheme.format_num(dmg), 1.0 / interval]
+		tt += div
 	elif slot_type == "shield":
-		var m_shield = my_stats.get("max_shield", 0)
-		tt += "[center][font_size=20][b]%s[/b][/font_size] [font_size=10][color=gray]Shield Capacity[/color][/font_size][/center]\n" % UITheme.format_num(m_shield)
-		tt += "[color=gray]──────────────────────────────────[/color]\n"
+		var val = my_stats.get("max_shield", 0)
+		tt += "[font_size=20][b]%s[/b][/font_size] [font_size=10][color=gray]Shield Capacity[/color][/font_size]\n" % UITheme.format_num(val)
+		tt += div
 	elif slot_type == "armor":
 		var hp_val = my_stats.get("hp", 0)
 		tt += "[center][font_size=20][b]%s[/b][/font_size] [font_size=10][color=gray]Integrity Reinforcement[/color][/font_size][/center]\n" % UITheme.format_num(hp_val)
@@ -263,23 +318,44 @@ func _build_comparison_tooltip() -> String:
 			elif diff < 0:
 				delta_str = " [color=red][font_size=9](%s ↓)[/font_size][/color]" % FormatUtils.format_stat_value(k, diff)
 		
-		tt += "[color=silver]⋄ %s: [color=white]%s[/color][/color]%s\n" % [label, FormatUtils.format_stat_value(k, val), delta_str]
+		# v76.0: Display Roll Range for base stats
+		var range_info = ""
+		var b_id = data.get("base_module", "")
+		if b_id != "" and b_id in sm.modules and k in sm.BOOSTABLE_STATS:
+			var b_val = sm.modules[b_id].get("stats", {}).get(k, 0)
+			if b_val > 0:
+				var s_range = sm.RARITY_STAT_RANGE.get(rarity, [0, 0])
+				if s_range[1] > 0:
+					var r_min = b_val * (1.0 + s_range[0])
+					var r_max = b_val * (1.0 + s_range[1])
+					range_info = " [color=gray][font_size=8][%s-%s][/font_size][/color]" % [
+						FormatUtils.format_stat_value(k, r_min),
+						FormatUtils.format_stat_value(k, r_max)
+					]
+
+		tt += "[color=silver]⋄ %s: [color=white]%s[/color][/color]%s%s\n" % [label, FormatUtils.format_stat_value(k, val), range_info, delta_str]
 	
 	# 4. RANDOM AFFIXES
 	var affixes = data.get("affixes", {})
 	if affixes.size() > 0:
-		tt += "[color=gray]──────────────────────────────────[/color]\n"
+		tt += div
 		for aid in affixes:
 			if aid in sm.AFFIX_DB:
 				var cfg = sm.AFFIX_DB[aid]
 				var val = int(affixes[aid] * 100)
+				var r_min = int(cfg["range"][0] * 100)
+				var r_max = int(cfg["range"][1] * 100)
+				var range_str = " [color=gray][font_size=9][%d-%d]%%[/font_size][/color]" % [r_min, r_max]
+				
 				if rarity == sm.Rarity.LEGENDARY:
-					tt += "[color=orange]★ [b]%s[/b][/color]\n" % (cfg["desc"] % val)
+					tt += "[color=orange]★ [b]%s[/b][/color]%s\n" % [(cfg["desc"] % val), range_str]
+				elif rarity == sm.Rarity.UNIQUE:
+					tt += "[color=#ff33cc]✦ [b]%s[/b][/color]%s\n" % [(cfg["desc"] % val), range_str]
 				else:
-					tt += "[color=cyan]⋄ %s[/color]\n" % (cfg["desc"] % val)
+					tt += "[color=cyan]⋄ %s[/color]%s\n" % [(cfg["desc"] % val), range_str]
 
 	# 5. FOOTER
-	tt += "[color=gray]──────────────────────────────────[/color]\n"
+	tt += div
 	if equipped_mid and equipped_mid != mid:
 		tt += "[font_size=9][color=yellow]Comparing with: %s[/color][/font_size]" % manager.modules[equipped_mid]["name"]
 	else:

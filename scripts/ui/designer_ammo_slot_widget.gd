@@ -13,7 +13,7 @@ func setup(p_slot_idx, p_ui, p_manager):
 	slot_idx = p_slot_idx
 	parent_ui = p_ui
 	manager = p_manager
-	
+
 	if is_node_ready():
 		refresh_state()
 
@@ -23,55 +23,54 @@ func _ready():
 	refresh_state()
 
 func refresh_state():
-	if not is_node_ready(): return
-	if not manager: manager = GameState.shipyard_manager
-	if not manager: return
-	
-	# Get ammo for THIS specific slot
+	if not is_node_ready():
+		return
+	if not manager:
+		manager = GameState.shipyard_manager
+	if not manager:
+		return
+
 	var active_ammo = manager.ammo_loadout.get(slot_idx, "")
-	
 	type_lbl.text = "WEAPON #%d AMMUNITION" % (slot_idx + 1)
-	
+
 	if active_ammo != "":
-		var a_name = ElementDB.get_display_name(active_ammo)
+		var ammo_name = ElementDB.get_display_name(active_ammo)
 		var qty = GameState.resources.get_element_amount(active_ammo)
-		name_lbl.text = a_name
+		name_lbl.text = ammo_name
 		name_lbl.modulate = Color.CYAN
 		status_lbl.text = "%d units" % qty
 		status_lbl.modulate = Color.CYAN if qty > 0 else Color.RED
-		icon_lbl.text = "☗"
-		icon_lbl.modulate = Color.CYAN
+
 	else:
 		name_lbl.text = "EMPTY"
 		name_lbl.modulate = Color(0.33, 0.33, 0.33)
 		status_lbl.text = "None"
 		status_lbl.modulate = Color(0.33, 0.33, 0.33)
-		icon_lbl.text = "☖"
-		icon_lbl.modulate = Color(0.33, 0.33, 0.33)
+
 
 func _get_drag_data(_at_position):
 	var active_ammo = manager.ammo_loadout.get(slot_idx, "")
-	if active_ammo == "": return null
-	
+	if active_ammo == "":
+		return null
+
 	var drag_data = {
 		"type": "unequip_ammo",
 		"slot_idx": slot_idx,
 		"ammo_id": active_ammo
 	}
-	
-	# Visual Preview
+
 	var preview = load("res://scenes/ui/designer_ammo_slot_widget.tscn").instantiate()
 	preview.setup(slot_idx, parent_ui, manager)
-	preview.modulate = Color(1, 0.5, 0.5, 0.8) 
-	preview.custom_minimum_size = Vector2(110, 110)
-	
+	preview.modulate = Color(1, 0.5, 0.5, 0.8)
+	preview.custom_minimum_size = Vector2(124, 138)
+
 	set_drag_preview(preview)
 	return drag_data
 
-func _can_drop_data(at_position, data):
+func _can_drop_data(_at_position, data):
 	return typeof(data) == TYPE_DICTIONARY and data.get("type") == "ammo"
 
-func _drop_data(at_position, data):
+func _drop_data(_at_position, data):
 	var ammo_id = data.get("ammo_id")
 	manager.set_slot_ammo(slot_idx, ammo_id)
 	parent_ui.trigger_refresh()
@@ -81,17 +80,17 @@ func _gui_input(event):
 		if event.button_index == MOUSE_BUTTON_RIGHT:
 			manager.set_slot_ammo(slot_idx, "")
 			parent_ui.trigger_refresh()
-
-# ─────────────────────────────────────────────────
-# CUSTOM RICH TOOLTIP
-# ─────────────────────────────────────────────────
+		elif event.button_index == MOUSE_BUTTON_LEFT:
+			if parent_ui and parent_ui.has_method("_on_filter_changed"):
+				parent_ui._on_filter_changed("ordnance")
 
 func _make_custom_tooltip(_for_text: String) -> Control:
 	var active_ammo = manager.ammo_loadout.get(slot_idx, "")
-	if active_ammo == "": return null
-	
+	if active_ammo == "":
+		return null
+
 	var panel = PanelContainer.new()
-	
+
 	var style = StyleBoxFlat.new()
 	style.bg_color = Color(0.05, 0.05, 0.07, 0.98)
 	style.border_color = Color.GRAY
@@ -101,53 +100,60 @@ func _make_custom_tooltip(_for_text: String) -> Control:
 	style.set_corner_radius_all(2)
 	style.set_content_margin_all(12)
 	panel.add_theme_stylebox_override("panel", style)
-	
+
 	var rtl = RichTextLabel.new()
 	rtl.bbcode_enabled = true
 	rtl.fit_content = true
 	rtl.scroll_active = false
 	rtl.custom_minimum_size = Vector2(320, 0)
 	rtl.add_theme_color_override("default_color", Color(0.9, 0.9, 0.9))
-	
-	var a_name = ElementDB.get_display_name(active_ammo).to_upper()
-	var tt = "[center][b][font_size=16][color=#aaaaaa]%s[/color][/font_size][/b]\n" % a_name
+
+	var ammo_name = ElementDB.get_display_name(active_ammo).to_upper()
+	var tt = "[center][b][font_size=16][color=#aaaaaa]%s[/color][/font_size][/b]\n" % ammo_name
 	tt += "[i][font_size=10][color=gray]Common Ammo[/color][/font_size][/i][/center]\n"
-	tt += "[color=gray]──────────────────────────────────[/color]\n"
-	
+	tt += "[color=gray]--------------------------------[/color]\n"
+
 	var bonus = 0.0
 	var type_label = "Damage"
 	var color_label = "white"
-	
+
 	if active_ammo.begins_with("Slug"):
 		bonus = 5.0
-		if "T1S" in active_ammo: bonus = 10.0
-		elif "T2" in active_ammo: bonus = 15.0
-		elif "T3" in active_ammo: bonus = 30.0
-		elif "T4" in active_ammo: bonus = 60.0
+		if "T1S" in active_ammo:
+			bonus = 10.0
+		elif "T2" in active_ammo:
+			bonus = 15.0
+		elif "T3" in active_ammo:
+			bonus = 30.0
+		elif "T4" in active_ammo:
+			bonus = 60.0
 		type_label = "Kinetic Damage"
 		color_label = "red"
 	elif active_ammo.begins_with("Cell"):
 		bonus = 5.0
-		if "T2" in active_ammo: bonus = 15.0
-		elif "T3" in active_ammo: bonus = 30.0
-		elif "T4" in active_ammo: bonus = 60.0
+		if "T2" in active_ammo:
+			bonus = 15.0
+		elif "T3" in active_ammo:
+			bonus = 30.0
+		elif "T4" in active_ammo:
+			bonus = 60.0
 		type_label = "Energy Damage"
 		color_label = "cyan"
 	elif "Missile" in active_ammo or "Torpedo" in active_ammo:
 		bonus = 10.0
-		if "Seeker" in active_ammo: bonus = 25.0
-		elif "Torpedo" in active_ammo: bonus = 60.0
+		if "Seeker" in active_ammo:
+			bonus = 25.0
+		elif "Torpedo" in active_ammo:
+			bonus = 60.0
 		type_label = "Explosive Damage"
 		color_label = "orange"
-		
+
 	if bonus > 0:
 		tt += "[center][font_size=20][b][color=%s]+%.1f[/color][/b][/font_size] [font_size=10][color=gray]%s Bonus[/color][/font_size][/center]\n" % [color_label, bonus, type_label]
-		tt += "[color=gray]──────────────────────────────────[/color]\n"
-		
+		tt += "[color=gray]--------------------------------[/color]\n"
+
 	tt += "[center][font_size=10][color=gray][Right-click to unequip][/color][/font_size][/center]"
-	
+
 	rtl.text = tt
 	panel.add_child(rtl)
-	
 	return panel
-

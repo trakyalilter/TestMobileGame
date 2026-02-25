@@ -180,16 +180,6 @@
     "description": "Used in electronics and glass making."
   },
   {
-    "atomic_number": 33,
-    "symbol": "Glass",
-    "name": "Glass",
-    "mass": 10.0,
-    "category": "Refined Material",
-    "tier": 1,
-    "base_value": 15,
-    "description": "Refined silica."
-  },
-  {
     "atomic_number": 32,
     "symbol": "Ge",
     "name": "Germanium",
@@ -1652,5 +1642,125 @@
     "tier": 2,
     "base_value": 100,
     "description": "Advanced industrial or operational component."
+  },
+  {
+    "atomic_number": -1001,
+    "symbol": "CrackedCrimsonCore",
+    "name": "Cracked Crimson Core",
+    "mass": 0.5,
+    "category": "Artifact",
+    "tier": 3,
+    "base_value": 5000,
+    "description": "Socket into epic modules. +2% Kinetic & Energy Offense."
+  },
+  {
+    "atomic_number": -1002,
+    "symbol": "StableCrimsonCore",
+    "name": "Stable Crimson Core",
+    "mass": 0.5,
+    "category": "Artifact",
+    "tier": 4,
+    "base_value": 15000,
+    "description": "Socket into epic modules. +5% Kinetic & Energy Offense."
+  },
+  {
+    "atomic_number": -1003,
+    "symbol": "PristineCrimsonCore",
+    "name": "Pristine Crimson Core",
+    "mass": 0.5,
+    "category": "Artifact",
+    "tier": 5,
+    "base_value": 50000,
+    "description": "Socket into epic modules. +10% Kinetic & Energy Offense."
+  },
+  {
+    "atomic_number": -1004,
+    "symbol": "CrackedCobaltCore",
+    "name": "Cracked Cobalt Core",
+    "mass": 0.5,
+    "category": "Artifact",
+    "tier": 3,
+    "base_value": 5000,
+    "description": "Socket into epic modules. +2% Defense & Evasion."
+  },
+  {
+    "atomic_number": -1005,
+    "symbol": "StableCobaltCore",
+    "name": "Stable Cobalt Core",
+    "mass": 0.5,
+    "category": "Artifact",
+    "tier": 4,
+    "base_value": 15000,
+    "description": "Socket into epic modules. +5% Defense & Evasion."
+  },
+  {
+    "atomic_number": -1006,
+    "symbol": "PristineCobaltCore",
+    "name": "Pristine Cobalt Core",
+    "mass": 0.5,
+    "category": "Artifact",
+    "tier": 5,
+    "base_value": 50000,
+    "description": "Socket into epic modules. +10% Defense & Evasion."
+  },
+  {
+    "atomic_number": -1007,
+    "symbol": "CrackedTopazCore",
+    "name": "Cracked Topaz Core",
+    "mass": 0.5,
+    "category": "Artifact",
+    "tier": 3,
+    "base_value": 5000,
+    "description": "Socket into epic modules. +2% Utilities."
+  },
+  {
+    "atomic_number": -1008,
+    "symbol": "StableTopazCore",
+    "name": "Stable Topaz Core",
+    "mass": 0.5,
+    "category": "Artifact",
+    "tier": 4,
+    "base_value": 15000,
+    "description": "Socket into epic modules. +5% Utilities."
+  },
+  {
+    "atomic_number": -1009,
+    "symbol": "PristineTopazCore",
+    "name": "Pristine Topaz Core",
+    "mass": 0.5,
+    "category": "Artifact",
+    "tier": 5,
+    "base_value": 50000,
+    "description": "Socket into epic modules. +10% Utilities."
+  },
+  {
+    "atomic_number": -1010,
+    "symbol": "CrackedAmethystCore",
+    "name": "Cracked Amethyst Core",
+    "mass": 0.5,
+    "category": "Artifact",
+    "tier": 3,
+    "base_value": 5000,
+    "description": "Socket into epic modules. +2% Hull & Jamming."
+  },
+  {
+    "atomic_number": -1011,
+    "symbol": "StableAmethystCore",
+    "name": "Stable Amethyst Core",
+    "mass": 0.5,
+    "category": "Artifact",
+    "tier": 4,
+    "base_value": 15000,
+    "description": "Socket into epic modules. +5% Hull & Jamming."
+  },
+  {
+    "atomic_number": -1012,
+    "symbol": "PristineAmethystCore",
+    "name": "Pristine Amethyst Core",
+    "mass": 0.5,
+    "category": "Artifact",
+    "tier": 5,
+    "base_value": 50000,
+    "description": "Socket into epic modules. +10% Hull & Jamming."
   }
 ]

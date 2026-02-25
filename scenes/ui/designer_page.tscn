@@ -1,7 +1,7 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3 uid="uid://c53cn4jrut707"]
 
-[ext_resource type="Script" path="res://scripts/ui/designer_page.gd" id="1_script"]
-[ext_resource type="Script" path="res://scripts/ui/designer_storage_panel.gd" id="2_script"]
+[ext_resource type="Script" uid="uid://go4i21oahto8" path="res://scripts/ui/designer_page.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://1vprrlnqki77" path="res://scripts/ui/designer_storage_panel.gd" id="2_script"]
 
 [node name="DesignerPage" type="Control"]
 layout_mode = 3
@@ -23,13 +23,13 @@ offset_right = -20.0
 offset_bottom = -10.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 15
+theme_override_constants/separation = 14
 
 [node name="Label" type="Label" parent="VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0, 0.9, 1, 1)
-theme_override_font_sizes/font_size = 20
-text = "⚙ SHIP DESIGNER"
+theme_override_colors/font_color = Color(0.84, 0.7, 0.45, 1)
+theme_override_font_sizes/font_size = 24
+text = "SHIP DESIGNER"
 
 [node name="InfoPanel" type="PanelContainer" parent="VBoxContainer"]
 layout_mode = 2
@@ -43,44 +43,45 @@ theme_override_constants/margin_bottom = 15
 
 [node name="InfoHBox" type="HBoxContainer" parent="VBoxContainer/InfoPanel/MarginContainer"]
 layout_mode = 2
-theme_override_constants/separation = 40
+theme_override_constants/separation = 26
 
 [node name="ShipSpecs" type="VBoxContainer" parent="VBoxContainer/InfoPanel/MarginContainer/InfoHBox"]
 layout_mode = 2
-theme_override_constants/separation = 5
+theme_override_constants/separation = 6
 
 [node name="ShipNameLabel" type="Label" parent="VBoxContainer/InfoPanel/MarginContainer/InfoHBox/ShipSpecs"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0, 0.9, 1, 1)
+theme_override_colors/font_color = Color(0.84, 0.7, 0.45, 1)
 theme_override_font_sizes/font_size = 22
 text = "CORVETTE"
 
 [node name="SystemLoad" type="HBoxContainer" parent="VBoxContainer/InfoPanel/MarginContainer/InfoHBox/ShipSpecs"]
 layout_mode = 2
+theme_override_constants/separation = 6
 
 [node name="Label" type="Label" parent="VBoxContainer/InfoPanel/MarginContainer/InfoHBox/ShipSpecs/SystemLoad"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_colors/font_color = Color(0.62, 0.57, 0.5, 1)
 theme_override_font_sizes/font_size = 12
-text = "PWR"
+text = "POWER"
 
 [node name="PowerBar" type="ProgressBar" parent="VBoxContainer/InfoPanel/MarginContainer/InfoHBox/ShipSpecs/SystemLoad"]
-custom_minimum_size = Vector2(100, 10)
+custom_minimum_size = Vector2(120, 12)
 layout_mode = 2
 size_flags_vertical = 4
 show_percentage = false
 
 [node name="PowerLabel" type="Label" parent="VBoxContainer/InfoPanel/MarginContainer/InfoHBox/ShipSpecs/SystemLoad"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
+theme_override_colors/font_color = Color(0.84, 0.78, 0.68, 1)
 theme_override_font_sizes/font_size = 11
 text = "0 / 100"
 
 [node name="StatsGrid" type="GridContainer" parent="VBoxContainer/InfoPanel/MarginContainer/InfoHBox"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/h_separation = 30
-theme_override_constants/v_separation = 5
+theme_override_constants/h_separation = 10
+theme_override_constants/v_separation = 10
 columns = 4
 
 [node name="MainLayout" type="HBoxContainer" parent="VBoxContainer"]
@@ -115,13 +116,8 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/separation = 15
 
-[node name="BlueprintView" type="Control" parent="VBoxContainer/MainLayout/SchematicArea/LayoutSplit"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_stretch_ratio = 2.0
-
 [node name="RightPanel" type="PanelContainer" parent="VBoxContainer/MainLayout"]
-custom_minimum_size = Vector2(280, 0)
+custom_minimum_size = Vector2(336, 0)
 layout_mode = 2
 
 [node name="Margin" type="MarginContainer" parent="VBoxContainer/MainLayout/RightPanel"]
@@ -137,44 +133,82 @@ theme_override_constants/separation = 10
 
 [node name="Label" type="Label" parent="VBoxContainer/MainLayout/RightPanel/Margin/VBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.8, 0.2, 1)
-theme_override_font_sizes/font_size = 14
-text = "HARDWARE BAY"
+theme_override_colors/font_color = Color(0.84, 0.7, 0.45, 1)
+theme_override_font_sizes/font_size = 15
+text = "ARMORY CACHE"
 horizontal_alignment = 1
 
-[node name="FilterStrip" type="HBoxContainer" parent="VBoxContainer/MainLayout/RightPanel/Margin/VBox"]
+[node name="TabStripFrame" type="PanelContainer" parent="VBoxContainer/MainLayout/RightPanel/Margin/VBox"]
 layout_mode = 2
-theme_override_constants/separation = 5
-alignment = 1
 
-[node name="AllBtn" type="Button" parent="VBoxContainer/MainLayout/RightPanel/Margin/VBox/FilterStrip"]
-custom_minimum_size = Vector2(45, 28)
+[node name="TabMargin" type="MarginContainer" parent="VBoxContainer/MainLayout/RightPanel/Margin/VBox/TabStripFrame"]
+layout_mode = 2
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 6
+
+[node name="TabStrip" type="HFlowContainer" parent="VBoxContainer/MainLayout/RightPanel/Margin/VBox/TabStripFrame/TabMargin"]
+layout_mode = 2
+theme_override_constants/h_separation = 6
+theme_override_constants/v_separation = 6
+
+[node name="AllTab" type="Button" parent="VBoxContainer/MainLayout/RightPanel/Margin/VBox/TabStripFrame/TabMargin/TabStrip"]
+custom_minimum_size = Vector2(66, 30)
 layout_mode = 2
 theme_override_font_sizes/font_size = 10
 toggle_mode = true
 button_pressed = true
 text = "ALL"
 
-[node name="WpnBtn" type="Button" parent="VBoxContainer/MainLayout/RightPanel/Margin/VBox/FilterStrip"]
-custom_minimum_size = Vector2(45, 28)
+[node name="WeaponTab" type="Button" parent="VBoxContainer/MainLayout/RightPanel/Margin/VBox/TabStripFrame/TabMargin/TabStrip"]
+custom_minimum_size = Vector2(82, 30)
 layout_mode = 2
 theme_override_font_sizes/font_size = 10
 toggle_mode = true
-text = "WPN"
+text = "WEAPON"
 
-[node name="SysBtn" type="Button" parent="VBoxContainer/MainLayout/RightPanel/Margin/VBox/FilterStrip"]
-custom_minimum_size = Vector2(45, 28)
+[node name="ShieldTab" type="Button" parent="VBoxContainer/MainLayout/RightPanel/Margin/VBox/TabStripFrame/TabMargin/TabStrip"]
+custom_minimum_size = Vector2(76, 30)
 layout_mode = 2
 theme_override_font_sizes/font_size = 10
 toggle_mode = true
-text = "SYS"
+text = "SHIELD"
 
-[node name="OrdBtn" type="Button" parent="VBoxContainer/MainLayout/RightPanel/Margin/VBox/FilterStrip"]
-custom_minimum_size = Vector2(45, 28)
+[node name="ArmorTab" type="Button" parent="VBoxContainer/MainLayout/RightPanel/Margin/VBox/TabStripFrame/TabMargin/TabStrip"]
+custom_minimum_size = Vector2(74, 30)
 layout_mode = 2
 theme_override_font_sizes/font_size = 10
 toggle_mode = true
-text = "ORD"
+text = "ARMOR"
+
+[node name="EngineTab" type="Button" parent="VBoxContainer/MainLayout/RightPanel/Margin/VBox/TabStripFrame/TabMargin/TabStrip"]
+custom_minimum_size = Vector2(78, 30)
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+toggle_mode = true
+text = "ENGINE"
+
+[node name="BatteryTab" type="Button" parent="VBoxContainer/MainLayout/RightPanel/Margin/VBox/TabStripFrame/TabMargin/TabStrip"]
+custom_minimum_size = Vector2(80, 30)
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+toggle_mode = true
+text = "BATTERY"
+
+[node name="UtilityTab" type="Button" parent="VBoxContainer/MainLayout/RightPanel/Margin/VBox/TabStripFrame/TabMargin/TabStrip"]
+custom_minimum_size = Vector2(76, 30)
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+toggle_mode = true
+text = "UTILITY"
+
+[node name="OrdnanceTab" type="Button" parent="VBoxContainer/MainLayout/RightPanel/Margin/VBox/TabStripFrame/TabMargin/TabStrip"]
+custom_minimum_size = Vector2(90, 30)
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+toggle_mode = true
+text = "ORDNANCE"
 
 [node name="Scroll" type="ScrollContainer" parent="VBoxContainer/MainLayout/RightPanel/Margin/VBox"]
 layout_mode = 2
@@ -185,7 +219,7 @@ horizontal_scroll_mode = 0
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_constants/h_separation = 8
-theme_override_constants/v_separation = 8
+theme_override_constants/h_separation = 10
+theme_override_constants/v_separation = 10
 columns = 2
 script = ExtResource("2_script")

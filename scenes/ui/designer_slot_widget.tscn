@@ -3,47 +3,60 @@
 [ext_resource type="Script" path="res://scripts/ui/designer_slot_widget.gd" id="1_script"]
 
 [node name="DesignerSlotWidget" type="PanelContainer"]
-custom_minimum_size = Vector2(120, 120)
-offset_right = 120.0
-offset_bottom = 120.0
+custom_minimum_size = Vector2(124, 138)
+offset_right = 124.0
+offset_bottom = 138.0
 script = ExtResource("1_script")
 
 [node name="MarginContainer" type="MarginContainer" parent="."]
 layout_mode = 2
-theme_override_constants/margin_left = 6
+theme_override_constants/margin_left = 7
 theme_override_constants/margin_top = 6
-theme_override_constants/margin_right = 6
+theme_override_constants/margin_right = 7
 theme_override_constants/margin_bottom = 6
 
 [node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
 layout_mode = 2
-theme_override_constants/separation = 2
+theme_override_constants/separation = 4
 
 [node name="TypeLabel" type="Label" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.533333, 0.533333, 0.533333, 1)
+theme_override_colors/font_color = Color(0.53, 0.53, 0.53, 1)
 theme_override_font_sizes/font_size = 9
-text = "SLOT 1: WEAPON"
+text = "WEAPON"
 horizontal_alignment = 1
 
-[node name="NameLabel" type="Label" parent="MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(0, 30)
+[node name="RarityBadge" type="Label" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.333333, 0.333333, 0.333333, 1)
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 10
+text = "[ UNIQUE ]"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="NameLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.88, 0.84, 0.78, 1)
+theme_override_font_sizes/font_size = 12
 text = "EMPTY"
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 2
 
-[node name="IconLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+[node name="StatsLabel" type="Label" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_colors/font_color = Color(0.333333, 0.333333, 0.333333, 1)
-theme_override_font_sizes/font_size = 24
-text = "⛝"
+theme_override_colors/font_color = Color(0.74, 0.72, 0.67, 1)
+theme_override_font_sizes/font_size = 11
+text = "--"
 horizontal_alignment = 1
-vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="SocketAnchor" type="CenterContainer" parent="MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
 
 [node name="OptionButton" type="OptionButton" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
