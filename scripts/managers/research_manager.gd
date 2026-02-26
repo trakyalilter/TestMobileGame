@@ -75,8 +75,8 @@ var tech_tree = {
 	"shipwright_1": {
 		"name": "Shipwright I",
 		"description": "Unlocks:\n• Industrial Frigate \n• Titanium Plating\n• Sector Scanning, Asteroid Belt Clearance (Operations)\n• [Requires: Efficient Smelting (Engineering)]",
-		"cost": 100000,
-		"cost_items": {"Steel":100,"Res1": 20,"Circuit": 10},
+		"cost": 50000,
+		"cost_items": {"Steel":50,"Res1": 20,"Circuit": 10},
 		"type": "technology",
 		"parent": "power_systems",
 		"req_tech": "smelting"
@@ -102,7 +102,6 @@ var tech_tree = {
 		"name": "Energy Fields",
 		"description": "Unlocks:\n• Deflector Shield\n• Shield Harmonics (Ships)\n• [Requires: Applied Physics (Engineering)]",
 		"cost": 1250,
-		"cost_items": {"Res1": 5},
 		"type": "technology",
 		"parent": "eff_scanning_1",
 		"req_tech": "applied_physics"
@@ -119,7 +118,6 @@ var tech_tree = {
 		"name": "Sensor Calibration",
 		"description": "Bonus: +50% Scanning Yield\n• [Requires: Applied Physics (Engineering)]",
 		"cost": 375,
-		"cost_items": {"Res1": 5},
 		"type": "technology",
 		"parent": null,
 		"req_tech": "applied_physics"
@@ -143,13 +141,12 @@ var tech_tree = {
 	},
 	"sector_alpha_decryption": {
 		"name": "Sector Scanning (Alpha)",
-		"description": "Unlocks:\n• Sector Alpha\n• [Requires: Shipwright I (Ships)]",
-		# P0 Fix: Removed TitanClearance (Zone 4) dependency to allow progression
+		"description": "Unlocks:\n• Sector Alpha\n• [Requires: Outer System Authorization]",
+		# v76.5: Moved later in tree to prevent deadlock (Alpha enemies > Titan enemies)
 		"cost": 50000,
 		"cost_items": {"NavData": 10, "PirateManifest": 10},
 		"type": "technology",
-		"parent": "eff_scanning_1",
-		"req_tech": "shipwright_1"
+		"parent": "outer_system_auth"
 	},
 	"advanced_batteries": {
 		"name": "Advanced Battery Tech",
@@ -182,7 +179,7 @@ var tech_tree = {
 		"cost": 6250,
 		"cost_items": {"Cu": 50, "Fe": 200, "Si": 100},
 		"type": "technology",
-		"parent": "sector_alpha_decryption",
+		"parent": "eff_scanning_1",
 		"req_tech": "shipwright_1"
 	},
 	"mars_license": {
@@ -467,7 +464,7 @@ var tech_tree = {
 		"name": "Automated Logistics",
 		"description": "Unlocks:\n• Drone Bay\n• Fleet Logistics I (Ships)",
 		"cost": 3000,
-		"cost_items": {"Steel": 30},
+		"cost_items": {"Cu": 100, "Fe": 100},
 		"type": "technology",
 		"parent": "industrial_logistics"
 	},

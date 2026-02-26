@@ -558,8 +558,19 @@ func _build_module_tooltip(m_data: Dictionary) -> String:
 			if base_val > 0:
 				var s_range = manager.RARITY_STAT_RANGE.get(item_rarity_val, [0, 0])
 				if s_range[1] > 0:
-					var r_min = base_val * (1.0 + s_range[0])
-					var r_max = base_val * (1.0 + s_range[1])
+					var r_min = 0.0
+					var r_max = 0.0
+					
+					if key == "atk_interval":
+						# Better = Lower. Range is [Slowest - Fastest]
+						# v76.5: Adjusted for Reciprocal Scaling and Safety Floor
+						r_min = max(base_val / (1.0 + s_range[1]), 0.25) # Best (fastest)
+						r_max = max(base_val / (1.0 + s_range[0]), 0.25) # Worst (slowest)
+					else:
+						# Better = Higher. Range is [Lowest - Highest]
+						r_min = base_val * (1.0 + s_range[0])
+						r_max = base_val * (1.0 + s_range[1])
+						
 					range_info = " [color=gray][font_size=9][%s-%s][/font_size][/color]" % [
 						FormatUtils.format_stat_value(key, r_min),
 						FormatUtils.format_stat_value(key, r_max)

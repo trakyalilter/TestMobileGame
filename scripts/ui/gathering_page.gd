@@ -94,11 +94,20 @@ func update_ui():
 		
 	# Handle events for floating text
 	while not manager.events.is_empty():
-		var ev = manager.events.pop_front() # [type, text, target_id]
+		var ev = manager.events.pop_front() # [type, data, target_id]
 		var type = ev[0]
-		var text = ev[1]
+		var data = ev[1]
 		var target_id = ev[2]
 		
+		var display_text = ""
+		if data is Dictionary:
+			var symbol = data.get("symbol", "item")
+			var amount = data.get("amount", 0)
+			var total = GameState.resources.get_element_amount(symbol)
+			display_text = "+%s %s (%s)" % [UITheme.format_number(amount), symbol, UITheme.format_number(total)]
+		else:
+			display_text = str(data)
+
 		# Find target widget
 		var target_w = null
 		for w in widgets:
@@ -111,4 +120,4 @@ func update_ui():
 			if type == "xp": color = Color(1.0, 0.8, 0.15) # Gold
 			
 			if is_visible_in_tree():
-				UITheme.show_notification(text, color)
+				UITheme.show_notification(display_text, color)

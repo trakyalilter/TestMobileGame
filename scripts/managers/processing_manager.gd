@@ -13,7 +13,7 @@ var recipes: Dictionary = {
 		"description": "Manually sift through dirt for metallic fragments. No water required.",
 		"input": {"Dirt": 10},
 		# Low efficiency but early access
-		"output": {"Fe": 1},
+		"output": {"Fe": 3},
 		"output_table": [["Si", 0.2, 1, 1]],
 		"duration": 5.0,
 		"level_req": 1,
@@ -24,8 +24,8 @@ var recipes: Dictionary = {
 	"charcoal_burning": {
 		"name": "Charcoal Kiln",
 		"description": "Burn Wood to produce Carbon.",
-		"input": {"Wood": 1},
-		"output": {"C": 3},
+		"input": {"Wood": 5},
+		"output": {"C": 10},
 		"duration": 4.0,
 		"level_req": 3,
 		"xp": 5,
@@ -34,8 +34,8 @@ var recipes: Dictionary = {
 	"electrolysis": {
 		"name": "Water Electrolysis",
 		"description": "Split Water into Hydrogen and Oxygen.",
-		"input": {"Water": 1},
-		"output": {"H": 2, "O": 1},
+		"input": {"Water": 5},
+		"output": {"H": 20, "O": 10},
 		"duration": 2.0,
 		"level_req": 2,
 		"xp": 5,
@@ -46,7 +46,7 @@ var recipes: Dictionary = {
 		"name": "Mineral Washing",
 		"description": "Wash Dirt with Water to extract Iron more efficiently.",
 		"input": {"Dirt": 5, "Water": 5},
-		"output": {"Fe": 3, "Si": 1},
+		"output": {"Fe": 5, "Si": 3},
 		"duration": 3.0,
 		"level_req": 1,
 		"xp": 5,
@@ -57,8 +57,8 @@ var recipes: Dictionary = {
 		"name": "Basic Steel Smelting",
 		"description": "Foundry smelting of Iron and Carbon into Steel.",
 		"input": {"Fe": 5, "C": 2},
-		"output": {"Steel": 1},
-		"duration": 7.0,
+		"output": {"Steel": 5},
+		"duration": 5.0,
 		"level_req": 12,
 		"xp": 20,
 		"research_req": "smelting"
@@ -125,10 +125,10 @@ var recipes: Dictionary = {
 	"smelt_steel_oxygen": {
 		"name": "Oxygen-Enriched Smelting",
 		"description": "Use Oxygen to blast smelt Steel efficiently.",
-		"input": {"Fe": 5, "C": 2, "O": 2},
-		"output": {"Steel": 2},
-		"duration": 3.0,
-		"level_req": 22,
+		"input": {"Fe": 10, "C": 4, "O": 4},
+		"output": {"Steel": 10},
+		"duration": 5.0,
+		"level_req": 40,
 		"xp": 25,
 		"research_req": "smelting"
 	},
@@ -319,7 +319,7 @@ var recipes: Dictionary = {
 	"craft_chitin_patch": {
 		"name": "Biosynthetic Hull Patch",
 		"description": "Utilize mite chitin for emergency hull repairs. Restores 15% Hull Integrity.",
-		"input": {"MiteChitin": 10, "Steel": 7},
+		"input": {"MiteChitin": 10, "Steel": 5},
 		"output": {"ChitinPatch": 1},
 		"duration": 8.0,
 		"level_req": 5,
@@ -330,26 +330,26 @@ var recipes: Dictionary = {
 	"craft_slug_t1": {
 		"name": "Ferrite Rounds",
 		"description": "Mass produce iron slugs.",
-		"input": {"Fe": 2},
-		"output": {"SlugT1": 10},
-		"duration": 10.0,
+		"input": {"Fe": 1},
+		"output": {"SlugT1": 20},
+		"duration": 5.0,
 		"level_req": 1,
 		"xp": 5 # Reduced from 10
 	},
 	"craft_cell_t1": {
 		"name": "Focus Crystal",
 		"description": "Cut silicate for lenses.",
-		"input": {"Si": 2},
-		"output": {"CellT1": 10},
-		"duration": 10.0,
+		"input": {"Si": 1},
+		"output": {"CellT1": 20},
+		"duration": 5.0,
 		"level_req": 2, # Increased from 1
-		"xp": 5 # Reduced from 10
+		"xp": 7 # Reduced from 10
 	},
 	"craft_slug_t2": {
 		"name": "Tungsten Sabot",
 		"description": "Heavy kinetic penetrators.",
-		"input": {"Steel": 2, "W": 1},
-		"output": {"SlugT2": 10},
+		"input": {"Steel": 1, "W": 1},
+		"output": {"SlugT2": 20},
 		"duration": 10.0,
 		"level_req": 32, # Increased from 4
 		"xp": 40, # Increased from 20
@@ -358,8 +358,8 @@ var recipes: Dictionary = {
 	"craft_slug_t1s": {
 		"name": "Steel Slugs",
 		"description": "Armor-piercing heavy slugs.",
-		"input": {"Steel": 2},
-		"output": {"SlugT1S": 10},
+		"input": {"Steel": 1},
+		"output": {"SlugT1S": 20},
 		"duration": 10.0,
 		"level_req": 24,
 		"xp": 20
@@ -368,7 +368,7 @@ var recipes: Dictionary = {
 		"name": "Plasma Cell",
 		"description": "Contain superheated gas.",
 		"input": {"H": 5, "Resin": 1},
-		"output": {"CellT2": 10},
+		"output": {"CellT2": 20},
 		"duration": 10.0,
 		"level_req": 34, # Increased from 4
 		"xp": 40, # Increased from 20
@@ -418,8 +418,8 @@ var recipes: Dictionary = {
 	"craft_slug_t3": {
 		"name": "Depleted Uranium Round",
 		"description": "Armor-shredding heavy rounds.",
-		"input": {"SlugT2": 5, "U": 1},
-		"output": {"SlugT3": 5},
+		"input": {"SlugT2": 20, "U": 1},
+		"output": {"SlugT3": 20},
 		"duration": 15.0,
 		"level_req": 55, # Increased from 8
 		"xp": 120, # Increased from 50
@@ -429,7 +429,7 @@ var recipes: Dictionary = {
 		"name": "Hyper-Velocity Slug",
 		"description": "Tungsten-Superalloy sabot for railguns. Extreme kinetic impact.",
 		"input": {"W": 10, "U": 3, "Superalloy": 1},
-		"output": {"SlugT4": 5},
+		"output": {"SlugT4": 50},
 		"duration": 20.0,
 		"level_req": 65,
 		"xp": 180,
@@ -438,8 +438,8 @@ var recipes: Dictionary = {
 	"craft_cell_t3": {
 		"name": "Vaporizer Cell",
 		"description": "Matter-disintegrating energy.",
-		"input": {"CellT2": 5, "U": 1},
-		"output": {"CellT3": 5},
+		"input": {"CellT2": 20, "U": 1},
+		"output": {"CellT3": 20},
 		"duration": 15.0,
 		"level_req": 58, # Increased from 8
 		"xp": 120, # Increased from 50
@@ -449,7 +449,7 @@ var recipes: Dictionary = {
 		"name": "Heavy Plasma Cell",
 		"description": "Unstable fusion plasma containment. Extreme damage.",
 		"input": {"He": 10, "U": 3, "Superalloy": 1},
-		"output": {"CellT4": 5},
+		"output": {"CellT4": 20},
 		"duration": 20.0,
 		"level_req": 65,
 		"xp": 180,
@@ -459,7 +459,7 @@ var recipes: Dictionary = {
 		"name": "HE Missile",
 		"description": "Standard high-explosive ordnance.",
 		"input": {"Fe": 5, "C": 2},
-		"output": {"HE_Missile": 5},
+		"output": {"HE_Missile": 20},
 		"duration": 12.0,
 		"level_req": 5,
 		"xp": 20,
@@ -469,7 +469,7 @@ var recipes: Dictionary = {
 		"name": "Seeker Missile",
 		"description": "Guided missile with logic circuits.",
 		"input": {"Steel": 2, "Circuit": 1, "TargetingChip": 1},
-		"output": {"Seeker_Missile": 5},
+		"output": {"Seeker_Missile": 20},
 		"duration": 20.0,
 		"level_req": 25,
 		"xp": 50,
@@ -480,7 +480,7 @@ var recipes: Dictionary = {
 		"description": "Antimatter-infused capital buster.",
 		# v61.0 Fix: VolatileMatter doesn't exist, replaced with ExoticMatter
 		"input": {"Superalloy": 2, "ExoticMatter": 1},
-		"output": {"Photon_Torpedo": 2},
+		"output": {"Photon_Torpedo": 20},
 		"duration": 45.0,
 		"level_req": 60,
 		"xp": 200,
@@ -490,12 +490,11 @@ var recipes: Dictionary = {
 	"craft_circuit": {
 		"name": "Basic Circuitry",
 		"description": "Integrate salvaged drone processor with silicon.",
-		"input": {"Si": 2, "DroneCore": 1},
-		"output": {"Circuit": 1},
+		"input": {"Si": 4, "DroneCore": 2},
+		"output": {"Circuit": 2},
 		"duration": 6.0,
 		"level_req": 6,
-		"xp": 50,
-		"research_req": "automated_logistics"
+		"xp": 50
 	},
 	# v62.0 Fix: Added AlWire source (Component)
 	"craft_aluminum_wire": {
@@ -1131,9 +1130,9 @@ func complete_process():
 			# Audit v12.0: Milestone Level 50 (5% chance for double output)
 			if is_milestone_unlocked(50) and randf() < 0.05:
 				qty *= 2
-				events.append(["loot", "CRITICAL SUCCESS! +%d %s" % [qty, item], current_recipe_id])
+				events.append(["loot", {"symbol": item, "amount": qty, "is_critical": true}, current_recipe_id])
 			else:
-				events.append(["loot", "+%d %s" % [qty, item], current_recipe_id])
+				events.append(["loot", {"symbol": item, "amount": qty}, current_recipe_id])
 				
 			GameState.resources.add_element(item, qty)
 			
@@ -1169,9 +1168,9 @@ func complete_process():
 			
 			# Special jackpot message for rare items
 			if item in ["AncientComponent", "W", "Ti", "NavData", "Chip", "Circuit"]:
-				events.append(["xp", "JACKPOT! +%d %s" % [qty, ElementDB.get_display_name(item)], current_recipe_id])
+				events.append(["loot", {"symbol": item, "amount": qty, "is_jackpot": true}, current_recipe_id])
 			else:
-				events.append(["loot", "+%d %s" % [qty, ElementDB.get_display_name(item)], current_recipe_id])
+				events.append(["loot", {"symbol": item, "amount": qty}, current_recipe_id])
 					
 	# 4. XP
 	var xp_reward = current_recipe.get("xp", 0)
@@ -1185,7 +1184,7 @@ func complete_process():
 	if "credits_output" in current_recipe:
 		var cr_out = current_recipe["credits_output"]
 		GameState.resources.add_currency("credits", cr_out)
-		events.append(["loot", "+%d Credits" % cr_out, current_recipe_id])
+		events.append(["loot", {"symbol": "credits", "amount": cr_out}, current_recipe_id])
 	
 	# 5. Loop
 	action_progress = 0.0
@@ -1268,7 +1267,7 @@ func calculate_offline(delta: float):
 			
 			# Apply Steel Scalability (Oxygen-Blast Furnace)
 			if item == "Steel" and GameState.research_manager.is_tech_unlocked("oxygen_blast_furnace"):
-				qty *= 5
+				qty *= 2
 				
 			# Efficiency Research Multiplier
 			if GameState.research_manager:

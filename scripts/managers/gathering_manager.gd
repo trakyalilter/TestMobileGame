@@ -305,7 +305,7 @@ func complete_action():
 			amount = int(float(amount) * get_yield_multiplier())
 				
 			GameState.resources.add_element(element, amount)
-			events.append(["loot", "+%d %s" % [amount, element], current_action_id])
+			events.append(["loot", {"symbol": element, "amount": amount}, current_action_id])
 			dropped_any = true
 			
 	if not dropped_any:
@@ -315,7 +315,7 @@ func complete_action():
 		var max_amt = entry[3]
 		var amount = randi_range(min_amt, max_amt)
 		GameState.resources.add_element(element, amount)
-		events.append(["loot", "+%d %s" % [amount, element], current_action_id])
+		events.append(["loot", {"symbol": element, "amount": amount}, current_action_id])
 	
 	if GameState.bounty_manager:
 		xp_reward = int(xp_reward * GameState.bounty_manager.get_trophy_buff("gathering_xp"))

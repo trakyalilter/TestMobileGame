@@ -68,7 +68,7 @@ func _update_repair_button():
 	
 	# Audit v68.0: Combat awareness for repairing
 	if GameState.combat_manager and GameState.combat_manager.in_combat:
-		repair_btn.text = "In Combat (Blocked)"
+		repair_btn.text = "In Combat"
 		repair_btn.disabled = true
 	elif cost == 0:
 		repair_btn.text = "Hull OK"

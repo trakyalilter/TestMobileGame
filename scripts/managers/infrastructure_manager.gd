@@ -1094,10 +1094,6 @@ func recalc_energy():
 			gen += data.get("energy_gen", 0.0) * count * throttle
 			cons += data.get("energy_cons", 0.0) * count * throttle
 	
-	# Phase 6: Ship Reactor Link (Ship Gen adds to Grid, Load does NOT drain Grid)
-	if GameState.shipyard_manager:
-		gen += GameState.shipyard_manager.ship_energy_gen # Reactors power the base
-		# cons += GameState.shipyard_manager.energy_used # REMOVED: Gun Tax (Passive Drain)
 	
 	# Audit v4.0: Milestone Level 10 (+10% Grid Efficiency)
 	if is_milestone_unlocked(10):

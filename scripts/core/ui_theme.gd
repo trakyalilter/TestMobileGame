@@ -3,8 +3,23 @@ extends Node
 signal packet_landed(color)
 signal notification_requested(text: String, color: Color) # Feature v66.1
 
-func show_notification(text: String, color: Color = Color.WHITE):
+func show_notification(text: Variant, color: Color = Color.WHITE):
 	notification_requested.emit(text, color)
+
+func format_number(value: float) -> String:
+	if not is_finite(value): return "!!!" 
+	if value <= 0: return "0"
+	
+	if value < 1000:
+		return str(int(value))
+	elif value < 1000000:
+		return "%.1fK" % (value / 1000.0)
+	elif value < 1000000000:
+		return "%.1fM" % (value / 1000000.0)
+	elif value < 1000000000000:
+		return "%.1fB" % (value / 1000000000.0)
+	else:
+		return "%.1fT" % (value / 1000000000000.0)
 
 # Color Palette
 const COLORS = {

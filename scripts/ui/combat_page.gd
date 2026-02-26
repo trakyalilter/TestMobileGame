@@ -35,6 +35,10 @@ var player_weapon_bars = []
 # Controls
 @onready var btn_retreat = $Dashboard/HUD/BottomHUD/RetreatContainer/RetreatBtn
 
+@onready var consumable_container = $Dashboard/HUD/BottomHUD/ConsumablesContainer
+@onready var btn_hull_cons = $Dashboard/HUD/BottomHUD/ConsumablesContainer/ConsHullBtn
+@onready var btn_shd_cons = $Dashboard/HUD/BottomHUD/ConsumablesContainer/ConsShieldBtn
+
 var manager: RefCounted
 
 # Enemy List Item Prefab
@@ -68,6 +72,7 @@ func _ready():
 
 	# PHASE 22: Inject XP Bar programmatically
 	_setup_xp_bar()
+	_setup_consumable_buttons()
 	
 	# Create Label for Heat Bar (which is already in scene)
 	if p_heat_bar:
@@ -261,8 +266,7 @@ func update_ui():
 			current_lvl * 0.5
 		]
 		
-		# Optional: Add level text near bar - dealt with by moving to name label
-		p_name_lbl.text = "%s %s" % [sm.get_ship_name(), lvl_info]
+	_update_consumable_buttons()
 	
 	# Update Heat Bar Modulate
 	var heat_pct = manager.player_heat / manager.player_max_heat
@@ -669,3 +673,54 @@ func _create_centered_label(parent: Control) -> Label:
 	lbl.add_theme_constant_override("shadow_outline_size", 2)
 	parent.add_child(lbl)
 	return lbl
+
+func _setup_consumable_buttons():
+	if not consumable_container: return
+	
+	# Connect signals
+	if not btn_hull_cons.is_connected("pressed", _on_consumable_pressed):
+		btn_hull_cons.pressed.connect(_on_consumable_pressed.bind("hull"))
+	if not btn_shd_cons.is_connected("pressed", _on_consumable_pressed):
+		btn_shd_cons.pressed.connect(_on_consumable_pressed.bind("shield"))
+	
+	# Apply Premium styling to the buttons (now they are static in scene)
+	UITheme.apply_card_style(btn_hull_cons, "shipyard")
+	UITheme.apply_card_style(btn_shd_cons, "combat")
+	
+	# Ensure they have small font as in previous programmatic setup
+	btn_hull_cons.add_theme_font_size_override("font_size", 9)
+	btn_shd_cons.add_theme_font_size_override("font_size", 9)
+	
+func _update_consumable_buttons():
+	var sm = GameState.shipyard_manager
+	var res = GameState.resources
+	
+	_update_cons_btn(btn_hull_cons, sm.consumable_hull_slot, "HULL", Color(0.4, 1.0, 0.4))
+	_update_cons_btn(btn_shd_cons, sm.consumable_shield_slot, "SHLD", Color(0.4, 0.8, 1.0))
+
+func _update_cons_btn(btn: Button, item_id: String, label: String, color: Color):
+	if item_id == "" or item_id == null:
+		btn.text = "%s\n[ EMPTY ]" % label
+		btn.disabled = true
+		btn.modulate = Color(1, 1, 1, 0.3)
+		btn.tooltip_text = "No %s consumable equipped in Ship Designer." % label
+		return
+	
+	var qty = GameState.resources.get_element_amount(item_id)
+	var dname = ElementDB.get_display_name(item_id)
+	
+	# v66.0: Multi-line display
+	btn.text = "%s\n%s\nx%s" % [label, dname.to_upper(), UITheme.format_number(qty)]
+	btn.modulate = color if qty > 0 else Color(0.5, 0.5, 0.5, 0.5)
+	
+	# Disabled if 0 or cooldown active
+	var cooldown = manager.consumable_cooldown
+	btn.disabled = qty <= 0 or cooldown > 0
+	
+	if cooldown > 0:
+		btn.tooltip_text = "Cooldown: %.1fs" % cooldown
+	else:
+		btn.tooltip_text = "Use %s to restore %s." % [dname, label]
+
+func _on_consumable_pressed(type: String):
+	manager.use_manual_consumable(type)

@@ -412,7 +412,7 @@ func _create_blade(title: String, slot_list: Array, parent: Node, color: Color =
 	margin.add_child(vbox)
 
 	var label = Label.new()
-	label.text = "< %s >" % title.to_upper()
+	label.text = "%s" % title.to_upper()
 	label.add_theme_font_size_override("font_size", 12)
 	label.add_theme_color_override("font_color", color)
 	vbox.add_child(label)
@@ -461,7 +461,7 @@ func _create_consumable_blade(parent: Node):
 	margin.add_child(vbox)
 
 	var label = Label.new()
-	label.text = "< CONSUMABLES >"
+	label.text = "CONSUMABLES"
 	label.add_theme_font_size_override("font_size", 12)
 	label.add_theme_color_override("font_color", Color(0.78, 0.65, 0.82))
 	vbox.add_child(label)

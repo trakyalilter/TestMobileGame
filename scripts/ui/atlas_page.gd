@@ -121,11 +121,12 @@ func build_material_database():
 			for entry in action.get("loot_table", []):
 				var mat_id = entry[0]
 				ensure_material(mat_id)
-				material_db[mat_id]["sources"].append({
-					"type": "gathering",
-					"name": action_name,
-					"rate": "%.0f%% chance" % (entry[1] * 100)
-				})
+				if mat_id in material_db:
+					material_db[mat_id]["sources"].append({
+						"type": "gathering",
+						"name": action_name,
+						"rate": "%.0f%% chance" % (entry[1] * 100)
+					})
 	
 	# --- PROCESSING SOURCES & USES ---
 	var pm = GameState.processing_manager
@@ -137,20 +138,22 @@ func build_material_database():
 			if "output" in recipe:
 				for mat_id in recipe["output"]:
 					ensure_material(mat_id)
-					material_db[mat_id]["sources"].append({
-						"type": "processing",
-						"name": recipe_name,
-						"rate": "%d per cycle" % recipe["output"][mat_id]
-					})
+					if mat_id in material_db:
+						material_db[mat_id]["sources"].append({
+							"type": "processing",
+							"name": recipe_name,
+							"rate": "%d per cycle" % recipe["output"][mat_id]
+						})
 			
 			if "input" in recipe:
 				for mat_id in recipe["input"]:
 					ensure_material(mat_id)
-					material_db[mat_id]["uses"].append({
-						"type": "processing",
-						"name": recipe_name,
-						"rate": "%d per cycle" % recipe["input"][mat_id]
-					})
+					if mat_id in material_db:
+						material_db[mat_id]["uses"].append({
+							"type": "processing",
+							"name": recipe_name,
+							"rate": "%d per cycle" % recipe["input"][mat_id]
+						})
 	
 	# --- COMBAT SOURCES ---
 	var cm = GameState.combat_manager
@@ -162,20 +165,22 @@ func build_material_database():
 			for entry in enemy.get("loot", []):
 				var mat_id = entry[0]
 				ensure_material(mat_id)
-				material_db[mat_id]["sources"].append({
-					"type": "combat",
-					"name": enemy_name,
-					"rate": "%d-%d per kill" % [entry[1], entry[2]]
-				})
+				if mat_id in material_db:
+					material_db[mat_id]["sources"].append({
+						"type": "combat",
+						"name": enemy_name,
+						"rate": "%d-%d per kill" % [entry[1], entry[2]]
+					})
 			
 			for entry in enemy.get("rare_loot", []):
 				var mat_id = entry[0]
 				ensure_material(mat_id)
-				material_db[mat_id]["sources"].append({
-					"type": "combat",
-					"name": enemy_name + " (Rare)",
-					"rate": "%.0f%% chance" % (entry[1] * 100)
-				})
+				if mat_id in material_db:
+					material_db[mat_id]["sources"].append({
+						"type": "combat",
+						"name": enemy_name + " (Rare)",
+						"rate": "%.0f%% chance" % (entry[1] * 100)
+					})
 	
 	# --- INFRASTRUCTURE SOURCES & USES ---
 	var im = GameState.infrastructure_manager
@@ -187,30 +192,33 @@ func build_material_database():
 			if "yield" in bdata:
 				for mat_id in bdata["yield"]:
 					ensure_material(mat_id)
-					material_db[mat_id]["sources"].append({
-						"type": "building",
-						"name": bname,
-						"rate": "%d per cycle" % bdata["yield"][mat_id]
-					})
+					if mat_id in material_db:
+						material_db[mat_id]["sources"].append({
+							"type": "building",
+							"name": bname,
+							"rate": "%d per cycle" % bdata["yield"][mat_id]
+						})
 			
 			if "input" in bdata:
 				for mat_id in bdata["input"]:
 					ensure_material(mat_id)
-					material_db[mat_id]["uses"].append({
-						"type": "building",
-						"name": bname,
-						"rate": "%d per cycle" % bdata["input"][mat_id]
-					})
+					if mat_id in material_db:
+						material_db[mat_id]["uses"].append({
+							"type": "building",
+							"name": bname,
+							"rate": "%d per cycle" % bdata["input"][mat_id]
+						})
 			
 			if "cost" in bdata:
 				for mat_id in bdata["cost"]:
 					if mat_id == "credits": continue
 					ensure_material(mat_id)
-					material_db[mat_id]["uses"].append({
-						"type": "building",
-						"name": bname + " (Build)",
-						"rate": "%d required" % bdata["cost"][mat_id]
-					})
+					if mat_id in material_db:
+						material_db[mat_id]["uses"].append({
+							"type": "building",
+							"name": bname + " (Build)",
+							"rate": "%d required" % bdata["cost"][mat_id]
+						})
 	
 	# --- SHIPYARD USES ---
 	var sm = GameState.shipyard_manager
@@ -222,11 +230,12 @@ func build_material_database():
 				for mat_id in hull["cost"]:
 					if mat_id == "credits": continue
 					ensure_material(mat_id)
-					material_db[mat_id]["uses"].append({
-						"type": "shipyard",
-						"name": hull_name + " (Hull)",
-						"rate": "%d required" % hull["cost"][mat_id]
-					})
+					if mat_id in material_db:
+						material_db[mat_id]["uses"].append({
+							"type": "shipyard",
+							"name": hull_name + " (Hull)",
+							"rate": "%d required" % hull["cost"][mat_id]
+						})
 		
 		for mod_id in sm.modules:
 			var mod = sm.modules[mod_id]
@@ -235,11 +244,12 @@ func build_material_database():
 				for mat_id in mod["cost"]:
 					if mat_id == "credits": continue
 					ensure_material(mat_id)
-					material_db[mat_id]["uses"].append({
-						"type": "shipyard",
-						"name": mod_name + " (Module)",
-						"rate": "%d required" % mod["cost"][mat_id]
-					})
+					if mat_id in material_db:
+						material_db[mat_id]["uses"].append({
+							"type": "shipyard",
+							"name": mod_name + " (Module)",
+							"rate": "%d required" % mod["cost"][mat_id]
+						})
 	
 	# --- RESEARCH USES ---
 	var rm = GameState.research_manager
@@ -250,11 +260,12 @@ func build_material_database():
 			if "cost_items" in tech:
 				for mat_id in tech["cost_items"]:
 					ensure_material(mat_id)
-					material_db[mat_id]["uses"].append({
-						"type": "research",
-						"name": tech_name,
-						"rate": "%d required" % tech["cost_items"][mat_id]
-					})
+					if mat_id in material_db:
+						material_db[mat_id]["uses"].append({
+							"type": "research",
+							"name": tech_name,
+							"rate": "%d required" % tech["cost_items"][mat_id]
+						})
 	
 	# --- FLEET EXPEDITION SOURCES ---
 	var fm = GameState.fleet_manager
@@ -266,13 +277,18 @@ func build_material_database():
 				for mat_id in mission["yield"]:
 					if mat_id == "credits": continue
 					ensure_material(mat_id)
-					material_db[mat_id]["sources"].append({
-						"type": "fleet",
-						"name": mission_name,
-						"rate": "%.1f per cycle" % mission["yield"][mat_id]
-					})
+					if mat_id in material_db:
+						material_db[mat_id]["sources"].append({
+							"type": "fleet",
+							"name": mission_name,
+							"rate": "%.1f per cycle" % mission["yield"][mat_id]
+						})
 
 func ensure_material(mat_id: String):
+	# v73.0: Filter out items that are functionally modules (Boss Drops, Unique Items)
+	if GameState.shipyard_manager and mat_id in GameState.shipyard_manager.modules:
+		return
+		
 	if not mat_id in material_db:
 		material_db[mat_id] = {
 			"name": ElementDB.get_display_name(mat_id),

@@ -110,8 +110,8 @@ text = "[ SECTORS ]"
 horizontal_alignment = 1
 
 [node name="HSeparator" type="HSeparator" parent="Dashboard/HUD/TopHUD/NavPanel/VBox"]
-layout_mode = 2
 modulate = Color(0, 0.737, 0.831, 0.4)
+layout_mode = 2
 
 [node name="ZoneList" type="ItemList" parent="Dashboard/HUD/TopHUD/NavPanel/VBox"]
 layout_mode = 2
@@ -122,7 +122,6 @@ theme_override_font_sizes/font_size = 12
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
-alignment = 0
 
 [node name="SectorThreat" type="Label" parent="Dashboard/HUD/TopHUD/CenterInfo"]
 layout_mode = 2
@@ -155,8 +154,8 @@ text = "[ TARGETING DATA ]"
 horizontal_alignment = 1
 
 [node name="HSeparator" type="HSeparator" parent="Dashboard/HUD/TopHUD/TargetPanel/VBox"]
-layout_mode = 2
 modulate = Color(1, 0.32, 0.32, 0.4)
+layout_mode = 2
 
 [node name="Scroll" type="ScrollContainer" parent="Dashboard/HUD/TopHUD/TargetPanel/VBox"]
 layout_mode = 2
@@ -319,7 +318,6 @@ theme_override_constants/separation = 20
 [node name="ScannerOverlay" type="PanelContainer" parent="Dashboard/HUD/BottomHUD"]
 custom_minimum_size = Vector2(250, 110)
 layout_mode = 2
-mouse_filter = 0
 
 [node name="Margin" type="MarginContainer" parent="Dashboard/HUD/BottomHUD/ScannerOverlay"]
 layout_mode = 2
@@ -344,8 +342,8 @@ horizontal_alignment = 1
 [node name="Scroll" type="ScrollContainer" parent="Dashboard/HUD/BottomHUD/ScannerOverlay/Margin/VBox"]
 layout_mode = 2
 size_flags_vertical = 3
-horizontal_scroll_mode = 0
 mouse_filter = 0
+horizontal_scroll_mode = 0
 
 [node name="LootText" type="RichTextLabel" parent="Dashboard/HUD/BottomHUD/ScannerOverlay/Margin/VBox/Scroll"]
 layout_mode = 2
@@ -357,22 +355,6 @@ bbcode_enabled = true
 text = "[center]Searching for loot paths...[/center]"
 fit_content = true
 scroll_active = false
-
-[node name="Spacer" type="Control" parent="Dashboard/HUD/BottomHUD"]
-layout_mode = 2
-size_flags_horizontal = 3
-mouse_filter = 2
-
-[node name="RetreatContainer" type="VBoxContainer" parent="Dashboard/HUD/BottomHUD"]
-layout_mode = 2
-mouse_filter = 2
-alignment = 2
-
-[node name="RetreatBtn" type="Button" parent="Dashboard/HUD/BottomHUD/RetreatContainer"]
-custom_minimum_size = Vector2(120, 32)
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.35, 0.35, 1)
-text = "RETREAT"
 
 [node name="AmmoOverlay" type="PanelContainer" parent="Dashboard/HUD/BottomHUD"]
 custom_minimum_size = Vector2(250, 110)
@@ -404,6 +386,26 @@ layout_mode = 2
 size_flags_vertical = 3
 mouse_filter = 2
 theme_override_constants/separation = 4
+
+[node name="RetreatContainer" type="VBoxContainer" parent="Dashboard/HUD/BottomHUD"]
+layout_mode = 2
+mouse_filter = 2
+alignment = 2
+
+[node name="RetreatBtn" type="Button" parent="Dashboard/HUD/BottomHUD/RetreatContainer"]
+custom_minimum_size = Vector2(120, 32)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.35, 0.35, 1)
+text = "RETREAT"
+
+[node name="ConsumablesContainer" type="HBoxContainer" parent="Dashboard/HUD/BottomHUD"]
+layout_mode = 2
+
+[node name="ConsHullBtn" type="Button" parent="Dashboard/HUD/BottomHUD/ConsumablesContainer"]
+layout_mode = 2
+
+[node name="ConsShieldBtn" type="Button" parent="Dashboard/HUD/BottomHUD/ConsumablesContainer"]
+layout_mode = 2
 
 [connection signal="item_selected" from="Dashboard/HUD/TopHUD/NavPanel/VBox/ZoneList" to="." method="_on_zone_list_item_selected"]
 [connection signal="pressed" from="Dashboard/HUD/BottomHUD/RetreatContainer/RetreatBtn" to="." method="_on_retreat_btn_pressed"]

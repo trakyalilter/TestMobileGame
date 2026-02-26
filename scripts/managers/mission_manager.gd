@@ -59,11 +59,11 @@ func init_missions():
 		["m009", "Deforestation", "Gather 100 units of Wood.", "gather", "Wood", 100, 500, 100, "m010"],
 		["m010", "Organic Combustion", "Research 'Organic Combustion' to unlock the Kiln.", "research", "combustion", 1, 500, 150, "m011"],
 		["m011", "Essential Carbon", "Use the Charcoal Kiln to produce 50 Carbon.", "gather", "C", 50, 600, 150, "m012"],
-		["m012", "Lithium Discovery", "Gather 60 Lithium Ore. (Hint: Build a Lithium Brine Well for efficiency).", "gather", "Spodumene", 60, 800, 200, "m013"],
+		["m012", "Lithium Discovery", "Gather 60 Lithium Ore.", "gather", "Spodumene", 60, 800, 200, "m013"],
 		["m013", "Voltaic Storage", "Refine 30 Lithium in the Engineering tab.", "gather", "Li", 30, 1000, 250, "m020"],
 		["m014", "Ballistics Theory", "Research 'Kinetics 101' for weapons technology.", "research", "kinetics_101", 1, 1200, 100, "m015"],
 		["m015", "Prototype Arsenal", "Craft a 'Mass Driver' in the Shipyard.", "craft", "railgun_mk1", 1, 1500, 200, "m016"],
-		["m016", "Kinetic Munitions", "Produce 40 Ferrite Rounds for your weapon.", "gather", "SlugT1", 40, 1000, 100, "m023"],
+		["m016", "Kinetic Munitions", "Produce 100 Ferrite Rounds for your weapon.", "gather", "SlugT1", 100, 1000, 100, "m023"],
 		# Shield Section Moved Here (m023 -> m024)
 		# P2-12: Combat Readiness Checkpoint - ensure player is equipped before first combat
 		["m016b", "Combat Ready", "Equip a WEAPON and SHIELD in your Ship Designer.", "loadout_check", "combat_ready", 1, 300, 100, "m017"],

@@ -18,10 +18,10 @@ const RARITY_LABELS = {
 }
 
 const RARITY_STAT_RANGE = {
-	Rarity.UNCOMMON: [0.05, 0.15],
-	Rarity.RARE: [0.15, 0.30],
-	Rarity.LEGENDARY: [0.30, 0.50],
-	Rarity.UNIQUE: [0.50, 0.75],
+	Rarity.UNCOMMON: [0.25, 0.45], # ~1.35x
+	Rarity.RARE: [0.60, 0.90],     # ~1.75x
+	Rarity.LEGENDARY: [1.20, 1.80], # ~2.5x
+	Rarity.UNIQUE: [1.00, 1.50],    # ~2.2x (Apex) - Normalized from 4.5x
 }
 
 # Stats that get rarity bonuses (damage, defense, HP, etc.)
@@ -30,7 +30,7 @@ const BOOSTABLE_STATS = [
 	"hp", "def", "eva", "accuracy", "crit_chance",
 	"max_shield", "shield_regen", "energy_capacity",
 	"atk_speed_bonus", "shield_regen_mult", "atk_speed_mult",
-	"jamming_strength"
+	"jamming_strength", "atk_interval"
 ]
 
 # v74.0: Module Affix System (Diablo/PoE Style)
@@ -39,55 +39,71 @@ const AFFIX_DB = {
 	"static_burst": {
 		"name": "Static Burst",
 		"type": "tactical",
-		"range": [0.10, 0.30],
+		"range": [0.03, 0.08],
+		"limit_to": ["weapon"],
 		"desc": "%d%% shock chance on hit to reset enemy attack timer."
 	},
 	"capacitor_pulse": {
 		"name": "Capacitor Pulse",
 		"type": "tactical",
-		"range": [0.05, 0.15],
+		"range": [0.02, 0.05],
+		"limit_to": ["shield", "battery"],
 		"desc": "Instantly restore %d%% Max Shield on every enemy kill."
 	},
 	"void_strike": {
 		"name": "Void Strike",
 		"type": "tactical",
-		"range": [0.05, 0.20],
+		"range": [0.03, 0.08],
+		"limit_to": ["weapon"],
 		"desc": "%d%% chance to bypass Shield and deal Hull damage directly."
 	},
 	"heat_sync_focus": {
 		"name": "Heat-Sync Focus",
 		"type": "tactical",
-		"range": [0.10, 0.40],
+		"range": [0.05, 0.12],
+		"limit_to": ["weapon", "cooling"],
 		"desc": "+%d%% Attack Speed while Heat is above 40%%."
+	},
+	"nanite_resurgence": {
+		"name": "Nanite Resurgence",
+		"type": "tactical",
+		"range": [0.02, 0.05],
+		"limit_to": ["armor"],
+		"desc": "Instantly restore %d%% Max Hull on every enemy kill."
 	},
 	"refinery_link": {
 		"name": "Refinery Link",
 		"type": "industrial",
-		"range": [0.05, 0.20],
+		"range": [0.03, 0.10],
+		"limit_to": ["sensor"],
 		"desc": "+%d%% Global Processing Speed."
 	},
 	"extractor_efficiency": {
 		"name": "Extractor Efficiency",
 		"type": "industrial",
-		"range": [0.10, 0.30],
+		"range": [0.03, 0.10],
+		"limit_to": ["sensor"],
 		"desc": "+%d%% Auto-Miner Yield."
 	},
 	"nano_scavenger": {
 		"name": "Nano-Scavenger",
 		"type": "industrial",
-		"range": [0.10, 0.25],
+		"range": [0.03, 0.10],
+		"limit_to": ["sensor"],
 		"desc": "%d%% chance to loot processed materials from kills."
 	},
 	"contract_negotiation": {
 		"name": "Contract Negotiation",
 		"type": "economy",
-		"range": [0.10, 0.30],
+		"range": [0.03, 0.10],
+		"limit_to": ["sensor"],
 		"desc": "+%d%% Bounty Credit rewards."
 	},
 	"logistician_edge": {
 		"name": "Logistician's Edge",
 		"type": "economy",
-		"range": [0.10, 0.40],
+		"range": [0.03, 0.10],
+		"limit_to": ["sensor"],
 		"desc": "-%d%% material requirements for Delivery Contracts."
 	}
 }
@@ -116,6 +132,7 @@ var affix_bonuses = {
 	"capacitor_pulse": 0.0,
 	"void_strike": 0.0,
 	"heat_sync_focus": 0.0,
+	"nanite_resurgence": 0.0,
 	"refinery_link": 0.0,
 	"extractor_efficiency": 0.0,
 	"nano_scavenger": 0.0,
@@ -180,7 +197,7 @@ var energy_used = 0
 var attack_speed_bonus = 0.0
 var shield_regen_bonus = 0.0
 var jamming_strength = 0.0 # New: EW Enemy Slow % (0.0 to 1.0)
-var ship_energy_gen = 0.0 # Phase 6: Reactor integration
+
 
 signal hull_constructed(hull_id)
 signal module_crafted(module_id)
@@ -197,7 +214,7 @@ var hulls: Dictionary = {
 	},
 	"frigate_hull": {
 		"name": "Industrial Frigate",
-		"stats": {"hp": 800, "atk": 25, "energy_capacity": 60},
+		"stats": {"hp": 1200, "atk": 25, "energy_capacity": 60}, # Buffed from 800
 		"cost": {"credits": 5000, "Res1": 20},
 		"slots": ["weapon", "weapon", "weapon", "shield", "shield", "shield", "engine", "battery", "battery", "battery", "sensor", "armor", "armor"], # 13 Slots (+2 Armor)
 		"research_req": "shipwright_1",
@@ -206,7 +223,7 @@ var hulls: Dictionary = {
 	},
 	"destroyer_hull": {
 		"name": "Destroyer Class",
-		"stats": {"hp": 2500, "atk": 60, "energy_capacity": 150},
+		"stats": {"hp": 5000, "atk": 60, "energy_capacity": 150}, # Buffed from 2500
 		"cost": {"credits": 37500, "Ti": 50, "Circuit": 25, "Res2": 10},
 		"slots": ["weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "engine", "battery", "battery", "battery", "battery", "sensor", "cooling", "armor", "armor", "armor"], # 18 Slots (+3 Armor)
 		"research_req": "shipwright_2",
@@ -215,7 +232,7 @@ var hulls: Dictionary = {
 	},
 	"battlecruiser_hull": {
 		"name": "Battlecruiser Class",
-		"stats": {"hp": 8000, "atk": 120, "energy_capacity": 350},
+		"stats": {"hp": 20000, "atk": 120, "energy_capacity": 350}, # Buffed from 8000
 		"cost": {"credits": 375000, "Steel": 500, "AdvCircuit": 50, "VoidArtifact": 5, "Res3": 15},
 		"slots": ["weapon", "weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "shield", "engine", "battery", "battery", "battery", "battery", "battery", "sensor", "sensor", "cooling", "cooling", "armor", "armor", "armor", "armor"], # 24 Slots (+4 Armor)
 		"research_req": "capital_ship_engineering",
@@ -224,7 +241,7 @@ var hulls: Dictionary = {
 	},
 	"dreadnought_hull": {
 		"name": "Dreadnought Class",
-		"stats": {"hp": 20000, "atk": 250, "energy_capacity": 1000},
+		"stats": {"hp": 80000, "atk": 250, "energy_capacity": 1000}, # Buffed from 20000
 		"cost": {"credits": 25000000, "Steel": 100000, "Ti": 2500, "Neutronium": 50, "Circuit": 1000, "Chip": 250, "Superalloy": 100, "AdvCircuit": 100, "QuantumCore": 10, "VoidArtifact": 25},
 		"slots": ["weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "shield", "shield", "shield", "engine", "battery", "battery", "battery", "battery", "battery", "battery", "sensor", "sensor", "sensor", "cooling", "cooling", "cooling", "armor", "armor", "armor", "armor", "armor"], # +5 Armor
 		"research_req": "quantum_dynamics",
@@ -244,14 +261,14 @@ var modules: Dictionary = {
 		"name": "Pulse Laser Mk.I",
 		"slot_type": "weapon",
 		"stats": {"atk_energy": 15, "energy_load": 10, "atk_interval": 1.2},
-		"cost": {"credits": 125, "Si": 5},
+		"cost": {"credits": 2500, "Si": 50},
 		"desc": "Fast-firing Energy Beam. Effective vs Shields."
 	},
 	"mining_laser_mk2": {
 		"name": "Pulse Laser Mk.II",
 		"slot_type": "weapon",
-		"stats": {"atk_energy": 35, "energy_load": 25, "atk_interval": 1.2},
-		"cost": {"credits": 25000, "Si": 40, "Ti": 15, "Circuit": 15, "Chip": 10},
+		"stats": {"atk_energy": 75, "energy_load": 25, "atk_interval": 1.2},
+		"cost": {"credits": 25000, "Si": 400, "Ti": 15, "Circuit": 15, "Chip": 10},
 		"desc": "High intensity beam. Melts shields.",
 		"research_req": "laser_optics"
 	},
@@ -374,7 +391,7 @@ var modules: Dictionary = {
 	"battery_t1": {
 		"name": "Basic Battery Module",
 		"slot_type": "battery",
-		"stats": {"energy_capacity": 50},
+		"stats": {"energy_capacity": 100}, # Buffed from 50
 		"cost": {"BatteryT1": 5},
 		"desc": "Standard Energy Storage.",
 		"research_req": "power_systems"
@@ -382,7 +399,7 @@ var modules: Dictionary = {
 	"battery_t2": {
 		"name": "Graphene Matrix",
 		"slot_type": "battery",
-		"stats": {"energy_capacity": 150, "atk_speed_mult": 0.10}, # ITER4: +10% attack speed
+		"stats": {"energy_capacity": 500, "atk_speed_mult": 0.10}, # Buffed from 150
 		"cost": {"BatteryT2": 10},
 		"desc": "High-density Storage. +10% Attack Speed.",
 		"research_req": "adv_materials"
@@ -390,7 +407,7 @@ var modules: Dictionary = {
 	"battery_t3": {
 		"name": "Zero-Point Module",
 		"slot_type": "battery",
-		"stats": {"energy_capacity": 500, "shield_regen_mult": 0.20}, # ITER4: +20% shield regen
+		"stats": {"energy_capacity": 2500, "shield_regen_mult": 0.20}, # Buffed from 500
 		"cost": {"BatteryT3": 10},
 		"desc": "Infinite Void Energy. +20% Shield Regen.",
 		"research_req": "warp_drive"
@@ -399,7 +416,7 @@ var modules: Dictionary = {
 	"basic_shield": {
 		"name": "Deflector Shield",
 		"slot_type": "shield",
-		"stats": {"max_shield": 50, "shield_regen": 2, "energy_load": 15},
+		"stats": {"max_shield": 100, "shield_regen": 4, "energy_load": 15}, # Buffed from 50/2
 		"cost": {"credits": 1500, "Si": 50},
 		"desc": "Generates a regenerative energy field.",
 		"research_req": "energy_shields"
@@ -407,7 +424,7 @@ var modules: Dictionary = {
 	"thermal_tile": {
 		"name": "Graphite Armor",
 		"slot_type": "armor",
-		"stats": {"def": 35, "hp": 250},
+		"stats": {"def": 35, "hp": 500}, # Buffed HP for early scale
 		"cost": {"credits": 8000, "Graphite": 50, "Ti": 10},
 		"desc": "Ablative carbon armor. Increases Hull & Armor.",
 		"research_req": "adv_materials"
@@ -415,7 +432,7 @@ var modules: Dictionary = {
 	"titanium_armor": {
 		"name": "Titanium Plating",
 		"slot_type": "armor",
-		"stats": {"def": 50, "hp": 600},
+		"stats": {"def": 50, "hp": 1000}, # Buffed from 600
 		"cost": {"credits": 75000, "Ti": 20},
 		"desc": "Heavy-duty alloy armor.",
 		"research_req": "shipwright_1"
@@ -448,7 +465,7 @@ var modules: Dictionary = {
 	"mining_laser_mk3": {
 		"name": "Plasma Lance Mk.III",
 		"slot_type": "weapon",
-		"stats": {"atk_energy": 75, "energy_load": 45, "atk_interval": 1.0},
+		"stats": {"atk_energy": 350, "energy_load": 45, "atk_interval": 1.0},
 		"cost": {"credits": 25000, "Si": 50, "Ti": 20, "AdvCircuit": 10},
 		"desc": "Cutting-edge beam weapon. Devastates shields.",
 		"research_req": "shipwright_2"
@@ -456,7 +473,7 @@ var modules: Dictionary = {
 	"railgun_mk2": {
 		"name": "Heavy Railgun",
 		"slot_type": "weapon",
-		"stats": {"atk_kinetic": 95, "energy_load": 20, "atk_interval": 4.0},
+		"stats": {"atk_kinetic": 280, "energy_load": 20, "atk_interval": 4.0}, # Buffed from 95
 		"cost": {"credits": 25000, "Steel": 50, "W": 10, "AlWire": 20}, # v62.0 Fix: Added AlWire sink
 		"desc": "Magnetic accelerator. Armor penetration.",
 		"research_req": "ballistics_optimization"
@@ -464,7 +481,7 @@ var modules: Dictionary = {
 	"railgun_mk3": {
 		"name": "Coil Cannon",
 		"slot_type": "weapon",
-		"stats": {"atk_kinetic": 350, "energy_load": 25, "atk_interval": 4.5},
+		"stats": {"atk_kinetic": 1200, "energy_load": 25, "atk_interval": 4.5}, # Buffed from 350
 		"cost": {"credits": 2000000, "Steel": 500, "AdvCircuit": 150, "Superalloy": 100, "Diamond": 5},
 		"desc": "Devastating kinetic damage. Hull shredder.",
 		"research_req": "capital_ship_engineering"
@@ -473,7 +490,7 @@ var modules: Dictionary = {
 	"advanced_shield": {
 		"name": "Hardened Deflectors",
 		"slot_type": "shield",
-		"stats": {"max_shield": 150, "shield_regen": 5, "energy_load": 200},
+		"stats": {"max_shield": 500, "shield_regen": 15, "energy_load": 200}, # Buffed from 150/5
 		"cost": {"credits": 3000, "Si": 200, "Circuit": 10},
 		"desc": "Enhanced shield projectors with rapid regeneration.",
 		"research_req": "shipwright_1"
@@ -481,7 +498,7 @@ var modules: Dictionary = {
 	"composite_armor": {
 		"name": "Composite Plating",
 		"slot_type": "armor",
-		"stats": {"def": 45, "hp": 350},
+		"stats": {"def": 45, "hp": 1500}, # Buffed from 350
 		"cost": {"credits": 2000, "Ti": 50, "Graphite": 20},
 		"desc": "Layered titanium-carbon armor.",
 		"research_req": "shipwright_2"
@@ -575,7 +592,7 @@ var modules: Dictionary = {
 	"palladium_fuel_cell": {
 		"name": "Palladium Fuel Cell Array",
 		"slot_type": "battery",
-		"stats": {"energy_capacity": 400, "energy_gen": 10},
+		"stats": {"energy_capacity": 400},
 		"cost": {"credits": 8000, "PdFuelCell": 10, "AdvCircuit": 5},
 		"desc": "Pd-H2 fuel cell. Generates energy passively.",
 		"research_req": "fuel_cell_tech"
@@ -600,7 +617,7 @@ var modules: Dictionary = {
 	"platinum_laser": {
 		"name": "Platinum-Enhanced Laser",
 		"slot_type": "weapon",
-		"stats": {"atk_energy": 350, "energy_load": 35, "atk_interval": 2.0},
+		"stats": {"atk_energy": 1500, "energy_load": 35, "atk_interval": 2.0},
 		"cost": {"credits": 5000000, "PtCatalyst": 20, "AdvCircuit": 30, "SyntheticCrystal": 5},
 		"desc": "Pt-coated optics. Superior energy damage.",
 		"research_req": "industrial_catalysis"
@@ -609,7 +626,7 @@ var modules: Dictionary = {
 	"reactive_armor": {
 		"name": "Reactive Plate Alpha",
 		"slot_type": "armor",
-		"stats": {"hp": 1000, "def": 20},
+		"stats": {"hp": 3000, "def": 20}, # Buffed from 1000
 		"cost": {"credits": 1500000, "Superalloy": 50, "AdvCircuit": 10, "AncientComponent": 5, "ReactiveCore": 2},
 		"desc": "(Unique) Adaptive plating. Reduces incoming damage as Hull decreases.",
 		"research_req": "superalloy_engineering",
@@ -618,7 +635,7 @@ var modules: Dictionary = {
 	"plasma_overcharger": {
 		"name": "Plasma Overcharger",
 		"slot_type": "weapon",
-		"stats": {"atk_energy": 100, "energy_load": 300, "atk_interval": 0.8}, # Audit v40.0: Buffed ATK 202100
+		"stats": {"atk_energy": 250, "energy_load": 300, "atk_interval": 0.8}, # Buffed from 100
 		"cost": {"credits": 1000000, "AdvCircuit": 50, "Superalloy": 75},
 		"desc": "(Unique) Heavily boosts Energy Damage but consumes massive Reactor power.",
 		"research_req": "energy_metrics",
@@ -627,7 +644,7 @@ var modules: Dictionary = {
 	"reflective_sheath": {
 		"name": "Reflective Phase Sheath",
 		"slot_type": "shield",
-		"stats": {"max_shield": 500, "shield_regen": 10},
+		"stats": {"max_shield": 1500, "shield_regen": 10}, # Buffed from 500
 		"cost": {"credits": 500000, "VoidCrystal": 5, "AdvCircuit": 15},
 		"desc": "(Unique) 20% chance to reflect 50% of incoming damage back to the attacker.",
 		"research_req": "exotic_metallurgy",
@@ -699,7 +716,7 @@ var modules: Dictionary = {
 	"void_battery_array": {
 		"name": "★ Void Battery Array ★",
 		"slot_type": "battery",
-		"stats": {"energy_capacity": 3000, "energy_gen": 30, "shield_regen_mult": 0.75},
+		"stats": {"energy_capacity": 3000, "shield_regen_mult": 0.75},
 		"cost": {"credits": 50000000, "VoidBattery": 5},
 		"desc": "(Legendary) Pinnacle of void engineering. +3000 Energy, +30 Passive Regen, +75% Shield Regen.",
 		"research_req": "void_navigation"
@@ -724,7 +741,7 @@ var modules: Dictionary = {
 	"omega_singularity": {
 		"name": "★★ Omega Singularity ★★",
 		"slot_type": "battery",
-		"stats": {"energy_capacity": 5000, "energy_gen": 100, "atk_speed_mult": 0.50, "shield_regen_mult": 1.0},
+		"stats": {"energy_capacity": 5000, "atk_speed_mult": 0.50, "shield_regen_mult": 1.0},
 		"cost": {"credits": 250000000, "OmegaAccelerator": 2},
 		"desc": "(Mythic) Reality-bending power source. THE ultimate module.",
 		"research_req": "void_navigation"
@@ -792,7 +809,7 @@ var modules: Dictionary = {
 	},
 	"architect_cell": {
 		"name": "Architect's Power Cell", "slot_type": "battery", "rarity": Rarity.UNIQUE, "is_custom": true,
-		"stats": {"energy_capacity": 30, "energy_gen": 2}, "cost": {}, "desc": "(Set) Architect's Regalia [3/3]\nStable low-tier power grid.", "unique_id": "architect_cell"
+		"stats": {"energy_capacity": 30}, "cost": {}, "desc": "(Set) Architect's Regalia [3/3]\nStable low-tier power grid.", "unique_id": "architect_cell"
 	},
 
 	# SET 2: ASTEROID BELT (Monolith's Resolve) -> Set Bonus: +150 Base DEF
@@ -848,7 +865,7 @@ var modules: Dictionary = {
 	},
 	"harbinger_reactor": {
 		"name": "Harbinger's Reactor", "slot_type": "battery", "rarity": Rarity.UNIQUE, "is_custom": true,
-		"stats": {"energy_capacity": 60, "energy_gen": 10}, "cost": {}, "desc": "(Set) Harbinger's Omen [3/3]\nUnstable alien power source.", "unique_id": "harbinger_reactor"
+		"stats": {"energy_capacity": 60}, "cost": {}, "desc": "(Set) Harbinger's Omen [3/3]\nUnstable alien power source.", "unique_id": "harbinger_reactor"
 	},
 	# SET 6: SECTOR BETA (Overseer's Command) -> Set Bonus: +15% Accuracy & Crit
 	"overseer_turret": {
@@ -875,7 +892,7 @@ var modules: Dictionary = {
 	},
 	"rad_beast_gland": {
 		"name": "Rad-Beast Gland", "slot_type": "battery", "rarity": Rarity.UNIQUE, "is_custom": true,
-		"stats": {"energy_capacity": 150, "energy_gen": 25}, "cost": {}, "desc": "(Set) Rad-Beast's Hide [3/3]\nOrganic power generation.", "unique_id": "rad_beast_gland"
+		"stats": {"energy_capacity": 150}, "cost": {}, "desc": "(Set) Rad-Beast's Hide [3/3]\nOrganic power generation.", "unique_id": "rad_beast_gland"
 	},
 
 	# SET 8: SECTOR DELTA (Sovereign's Prism) -> Set Bonus: +25% Max Shield & Reflect
@@ -917,7 +934,7 @@ var modules: Dictionary = {
 	},
 	"weaver_core": {
 		"name": "Weaver's Core", "slot_type": "battery", "rarity": Rarity.UNIQUE, "is_custom": true,
-		"stats": {"energy_capacity": 600, "energy_gen": 100}, "cost": {}, "desc": "(Set) Time Weaver's Paradox [3/3]\nDrawing power from the future.", "unique_id": "weaver_core"
+		"stats": {"energy_capacity": 600}, "cost": {}, "desc": "(Set) Time Weaver's Paradox [3/3]\nDrawing power from the future.", "unique_id": "weaver_core"
 	},
 	# === MATRIX CORES (Sockets) ===
 	"matrix_synthesis": {
@@ -1431,7 +1448,7 @@ func recalc_stats():
 	for s_name in set_counts:
 		if set_counts[s_name] >= 3:
 			if "Architect's Regalia" in s_name:
-				shield_regen *= 1.25 # +25% Shield Regen
+				shield_regen *= 1.10 # Reduced from 1.25x for tiered progression
 			elif "Monolith's Resolve" in s_name:
 				defense += 150 # +150 Base DEF
 			elif "Warmaster's Arsenal" in s_name:
@@ -1464,11 +1481,6 @@ func recalc_stats():
 	
 	current_hp = min(current_hp, max_hp)
 	
-	# Phase 6: Expose Ship Generation for Grid Integration
-	ship_energy_gen = 0.0
-	for mid in loadout.values():
-		if mid and mid in modules:
-			ship_energy_gen += modules[mid]["stats"].get("energy_gen", 0.0)
 	
 	# Update Global Resources
 	if GameState.resources:
@@ -1635,12 +1647,22 @@ func generate_module_drop(base_module_id: String, rarity: int = Rarity.UNCOMMON)
 	for stat_key in base.get("stats", {}):
 		var base_val = base["stats"][stat_key]
 		if stat_key in BOOSTABLE_STATS:
-			# Boost "good" stats by the rarity range
 			var bonus = randf_range(stat_range[0], stat_range[1])
-			var boosted = base_val * (1.0 + bonus)
+			var boosted = base_val
 			
-			if base_val is float:
-				custom_stats[stat_key] = boosted
+			if stat_key == "atk_interval":
+				# Reciprocal Scaling: +100% speed = 0.5x interval
+				# Audit v80.0: Penalty for speed scaling to prevent exponential DPS spikes
+				var speed_bonus = bonus * 0.4 
+				boosted = base_val / (1.0 + speed_bonus)
+				# v76.5: User Requested Safety Floor (0.25s / 4 hits per sec)
+				boosted = max(boosted, 0.25)
+			else:
+				# Standard linear scaling for everything else
+				boosted = base_val * (1.0 + bonus)
+			
+			if base_val is float or stat_key == "atk_interval":
+				custom_stats[stat_key] = snappedf(boosted, 0.01)
 			else:
 				# Audit v76.0: Prevent integer truncation from deleting rarity bonuses on low-stat modules
 				if base_val < 50:
@@ -1648,17 +1670,33 @@ func generate_module_drop(base_module_id: String, rarity: int = Rarity.UNCOMMON)
 				else:
 					custom_stats[stat_key] = int(round(boosted))
 		else:
-			# Non-boostable stats (energy_load, atk_interval) stay at base
+			# Non-boostable stats (energy_load, etc.) stay at base
 			custom_stats[stat_key] = base_val
 	
 	# v74.0: Affix Generation
 	var custom_affixes = {}
-	var affix_pool = AFFIX_DB.keys()
+	var slot_type = base.get("slot_type", "utility")
+	
+	# v76.5: Filter affix pool by slot_type
+	var affix_pool = []
+	for a_id in AFFIX_DB:
+		var cfg = AFFIX_DB[a_id]
+		if not cfg.has("limit_to") or slot_type in cfg["limit_to"]:
+			affix_pool.append(a_id)
+			
+	# Fallback: If no restricted affixes match, allow sensor/industrial as generic fill for empty slots
+	if affix_pool.is_empty():
+		for a_id in AFFIX_DB:
+			if AFFIX_DB[a_id]["type"] in ["industrial", "economy"]:
+				affix_pool.append(a_id)
 	
 	var num_affixes = 0
 	if rarity == Rarity.RARE: num_affixes = 1
 	elif rarity == Rarity.LEGENDARY: num_affixes = 2
 	elif rarity == Rarity.UNIQUE: num_affixes = 3
+	
+	# v76.6: Prevents index crash if pool is smaller than required num (e.g. Armor unique only has 1 affix)
+	num_affixes = min(num_affixes, affix_pool.size())
 	
 	if num_affixes > 0:
 		affix_pool.shuffle()

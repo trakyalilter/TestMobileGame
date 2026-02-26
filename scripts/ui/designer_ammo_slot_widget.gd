@@ -18,9 +18,21 @@ func setup(p_slot_idx, p_ui, p_manager):
 		refresh_state()
 
 func _ready():
-	type_lbl.add_theme_color_override("font_color", UITheme.CATEGORY_COLORS["shipyard"])
-	UITheme.apply_card_style(self, "shipyard")
+	_apply_base_style()
 	refresh_state()
+
+func _apply_base_style():
+	var frame = StyleBoxFlat.new()
+	frame.bg_color = Color(0.11, 0.09, 0.08, 0.96)
+	frame.set_corner_radius_all(3)
+	frame.set_border_width_all(2)
+	frame.border_width_top = 5
+	frame.border_color = Color(0.35, 0.35, 0.35, 0.5)
+	frame.content_margin_left = 6
+	frame.content_margin_top = 5
+	frame.content_margin_right = 6
+	frame.content_margin_bottom = 5
+	add_theme_stylebox_override("panel", frame)
 
 func refresh_state():
 	if not is_node_ready():
@@ -32,20 +44,20 @@ func refresh_state():
 
 	var active_ammo = manager.ammo_loadout.get(slot_idx, "")
 	type_lbl.text = "WEAPON #%d AMMUNITION" % (slot_idx + 1)
+	type_lbl.add_theme_color_override("font_color", Color(0.88, 0.60, 0.34)) # Ammo Slot Color
 
 	if active_ammo != "":
 		var ammo_name = ElementDB.get_display_name(active_ammo)
 		var qty = GameState.resources.get_element_amount(active_ammo)
-		name_lbl.text = ammo_name
-		name_lbl.modulate = Color.CYAN
+		name_lbl.text = ammo_name.to_upper()
+		name_lbl.add_theme_color_override("font_color", Color(0.9, 0.86, 0.78)) # TEXT_MAIN
 		status_lbl.text = "%d units" % qty
-		status_lbl.modulate = Color.CYAN if qty > 0 else Color.RED
-
+		status_lbl.add_theme_color_override("font_color", Color(0.3, 0.8, 1.0) if qty > 0 else Color(0.8, 0.3, 0.3))
 	else:
 		name_lbl.text = "EMPTY"
-		name_lbl.modulate = Color(0.33, 0.33, 0.33)
+		name_lbl.add_theme_color_override("font_color", Color(0.33, 0.33, 0.33))
 		status_lbl.text = "None"
-		status_lbl.modulate = Color(0.33, 0.33, 0.33)
+		status_lbl.add_theme_color_override("font_color", Color(0.33, 0.33, 0.33))
 
 
 func _get_drag_data(_at_position):
