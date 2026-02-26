@@ -233,8 +233,9 @@ func update_ui():
 	var lvl_info = "[Lv.%d]" % manager.get_level()
 	if manager.get_level() > 0:
 		lvl_info += " +%.1f%% DMG" % (manager.get_level() * 0.5)
-		
-	p_name_lbl.text = "%s %s" % [sm.active_hull.to_upper() if sm.active_hull else "USS HORIZON", lvl_info]
+	
+	var hull_name = sm.get_ship_name() if sm and sm.has_method("get_ship_name") else "USS HORIZON"
+	p_name_lbl.text = "%s %s" % [hull_name.to_upper(), lvl_info]
 	
 	p_hp_lbl.text = "HULL: %s/%s" % [UITheme.format_num(sm.current_hp), UITheme.format_num(sm.max_hp)]
 	p_sh_lbl.text = "SHD: %s/%s" % [UITheme.format_num(manager.player_shield), UITheme.format_num(manager.player_max_shield)]
@@ -454,7 +455,7 @@ func _update_session_loot():
 			if str_id.begins_with("custom_"):
 				if sm.modules.has(str_id):
 					var m_data = sm.modules[str_id]
-					var rarity = m_data.get("rarity", sm.Rarity.COMMON)
+					var rarity = int(m_data.get("rarity", sm.Rarity.COMMON))
 					var rarity_hex = sm.RARITY_COLORS.get(rarity, Color.WHITE).to_html(false)
 					tt += "[color=#%s]★ %s[/color] x %s\n" % [rarity_hex, m_data["name"], UITheme.format_num(qty)]
 				else:

@@ -69,6 +69,16 @@ var has_cryo_set = false
 var has_sovereign_set = false
 var has_patient_zero_set = false
 
+# Progression compensation so external multipliers (level/research/warp/trophy)
+# don't invalidate zone pacing.
+const ENEMY_COMP_REGULAR_HP = 0.28
+const ENEMY_COMP_REGULAR_SHIELD = 0.24
+const ENEMY_COMP_REGULAR_ATK = 0.18
+const ENEMY_COMP_BOSS_HP = 0.42
+const ENEMY_COMP_BOSS_SHIELD = 0.36
+const ENEMY_COMP_BOSS_ATK = 0.28
+const ENEMY_COMP_DEF = 0.12
+
 func _module_matches(module_id, base_module_id: String) -> bool:
 	if not (module_id is String):
 		return false
@@ -107,6 +117,30 @@ func get_milestone_heat_mult() -> float:
 
 func is_auto_consume_unlocked() -> bool:
 	return get_level() >= 50 # Auto-Consume at Lv.50
+
+func get_external_progression_combat_mult() -> float:
+	var rm = GameState.research_manager
+	var bm = GameState.bounty_manager
+	var combat_mult = 1.0 + (get_level() * 0.005)
+	var processing_mult = 1.0
+	if GameState.processing_manager:
+		processing_mult += GameState.processing_manager.get_level() * 0.01
+	
+	var research_speed_mult = 1.0
+	if rm:
+		research_speed_mult += max(0.0, rm.get_efficiency_bonus("attack_speed"))
+	
+	var warp_mult = 1.0
+	if GameState.warp_manager:
+		warp_mult = max(1.0, GameState.warp_manager.get_combat_multiplier())
+	
+	var trophy_mult = 1.0
+	if bm:
+		var dmg_mult = (max(1.0, bm.get_trophy_buff("kinetic_dmg")) + max(1.0, bm.get_trophy_buff("energy_dmg"))) * 0.5
+		var speed_mult = max(1.0, bm.get_trophy_buff("ship_speed"))
+		trophy_mult = dmg_mult * speed_mult
+	
+	return clamp(combat_mult * processing_mult * research_speed_mult * warp_mult * trophy_mult, 1.0, 6.0)
 
 var zones = {
 	"lunar_orbit": {
@@ -781,6 +815,7 @@ func set_target_enemy(enemy_id):
 		target_enemy_id = null
 
 func spawn_enemy():
+	var sm = GameState.shipyard_manager
 	var eid = target_enemy_id if target_enemy_id else current_zone["enemies"][randi() % current_zone["enemies"].size()]
 	var e_data = enemy_db[eid]
 	current_enemy = {
@@ -804,6 +839,20 @@ func spawn_enemy():
 		"is_elite": false # Default
 	}
 	
+	# Compensate enemy baseline for permanent external progression multipliers.
+	# This avoids runaway TTK collapse from combat level / research / warp / trophies.
+	var progression_mult = get_external_progression_combat_mult()
+	var bonus_over_base = max(0.0, progression_mult - 1.0)
+	if bonus_over_base > 0.0:
+		var hp_comp = ENEMY_COMP_BOSS_HP if current_enemy["is_boss"] else ENEMY_COMP_REGULAR_HP
+		var sh_comp = ENEMY_COMP_BOSS_SHIELD if current_enemy["is_boss"] else ENEMY_COMP_REGULAR_SHIELD
+		var atk_comp = ENEMY_COMP_BOSS_ATK if current_enemy["is_boss"] else ENEMY_COMP_REGULAR_ATK
+		
+		current_enemy["max_hp"] = max(1, int(round(float(current_enemy["max_hp"]) * (1.0 + (bonus_over_base * hp_comp)))))
+		current_enemy["max_shield"] = max(0, int(round(float(current_enemy["max_shield"]) * (1.0 + (bonus_over_base * sh_comp)))))
+		current_enemy["atk"] = max(1, int(round(float(current_enemy["atk"]) * (1.0 + (bonus_over_base * atk_comp)))))
+		current_enemy["def"] = max(0, int(round(float(current_enemy["def"]) * (1.0 + (bonus_over_base * ENEMY_COMP_DEF)))))
+	
 	# Apply Elite logic if requested by bounty_manager or random chance (5%)
 	var elite_chance = 0.05
 	# The bounty_manager will signal is_elite through target_enemy_id if it's a specific elite hunt
@@ -816,12 +865,12 @@ func spawn_enemy():
 		current_enemy["is_elite"] = true
 		
 	if current_enemy["is_elite"]:
-		current_enemy["name"] = "★ ELITE ★ " + current_enemy["name"]
+		current_enemy["name"] = "ELITE " + current_enemy["name"]
 		current_enemy["max_hp"] *= 2.5
 		current_enemy["atk"] *= 1.8
 		current_enemy["xp"] *= 3.0
 		# Elite loot buff
-		current_enemy["loot"] = current_enemy["loot"].duplicate()
+		current_enemy["loot"] = current_enemy["loot"].duplicate(true)
 		for item in current_enemy["loot"]:
 			item[1] = int(item[1] * 2.5)
 			item[2] = int(item[2] * 2.5)
@@ -830,7 +879,6 @@ func spawn_enemy():
 	combat_started.emit()
 	
 	# Unique Module Check (Phase 19)
-	var sm = GameState.shipyard_manager
 	has_reflective = false
 	has_reactive = false
 	has_exotic_matrix = false
@@ -1221,10 +1269,11 @@ func win_fight():
 				var custom_id = item_id
 				var m_data = sm.modules[item_id]
 				var rarity = m_data.get("rarity", sm.Rarity.COMMON)
+				var zone_difficulty = int(current_zone.get("difficulty", 1))
 				
 				if rarity == sm.Rarity.UNIQUE:
 					# Generate it properly so it rolls affixes and sockets!
-					custom_id = sm.generate_module_drop(item_id, sm.Rarity.UNIQUE)
+					custom_id = sm.generate_module_drop(item_id, sm.Rarity.UNIQUE, zone_difficulty)
 					m_data = sm.modules[custom_id]
 				else:
 					sm.module_inventory[item_id] = sm.module_inventory.get(item_id, 0) + qty
@@ -1234,7 +1283,9 @@ func win_fight():
 				
 				var rarity_color = sm.RARITY_COLORS.get(rarity, Color.WHITE)
 				var rarity_label = sm.RARITY_LABELS.get(rarity, "")
-				combat_events.append({"type": "loot", "text": "✦ %s DROP" % rarity_label.to_upper(), "color": rarity_color, "side": "enemy"})
+				if rarity_label == "":
+					rarity_label = "Common"
+				combat_events.append({"type": "loot", "text": "* %s DROP" % rarity_label.to_upper(), "color": rarity_color, "side": "enemy"})
 				log_msg("Looted %s Module: %s" % [rarity_label, m_data["name"]])
 				
 				if custom_id != item_id:
@@ -1293,17 +1344,18 @@ func win_fight():
 	if drop_chance > 0 and unlocked_pool.size() > 0 and randf() < drop_chance:
 		var is_boss = current_enemy.get("is_boss", false)
 		var rarity = sm.roll_rarity(is_boss)
-		# Common rolls don't produce module drops (just materials)
-		if rarity != sm.Rarity.COMMON:
-			var base_id = unlocked_pool[randi() % unlocked_pool.size()]
-			var custom_id = sm.generate_module_drop(base_id, rarity)
-			if custom_id != "":
-				var w_name = sm.modules[custom_id]["name"]
-				var rarity_color = sm.RARITY_COLORS[rarity]
-				var rarity_label = sm.RARITY_LABELS[rarity]
-				combat_events.append({"type": "loot", "text": "%s DROP" % rarity_label.to_upper(), "color": rarity_color, "side": "enemy"})
-				log_msg("Looted %s Module: %s" % [rarity_label, w_name])
-				session_loot[custom_id] = 1
+		var base_id = unlocked_pool[randi() % unlocked_pool.size()]
+		var zone_difficulty = int(current_zone.get("difficulty", 1))
+		var custom_id = sm.generate_module_drop(base_id, rarity, zone_difficulty)
+		if custom_id != "":
+			var w_name = sm.modules[custom_id]["name"]
+			var rarity_color = sm.RARITY_COLORS[rarity]
+			var rarity_label = sm.RARITY_LABELS.get(rarity, "")
+			if rarity_label == "":
+				rarity_label = "Common"
+			combat_events.append({"type": "loot", "text": "%s DROP" % rarity_label.to_upper(), "color": rarity_color, "side": "enemy"})
+			log_msg("Looted %s Module: %s" % [rarity_label, w_name])
+			session_loot[custom_id] = session_loot.get(custom_id, 0) + 1
 
 	add_xp(int(current_enemy["xp"] * (1.0 + GameState.research_manager.get_efficiency_bonus("combat_xp"))))
 	enemy_defeated.emit(current_enemy["id"])

@@ -510,7 +510,7 @@ func _build_module_tooltip(m_data: Dictionary) -> String:
 
 	var rarity_color_hex = manager.RARITY_COLORS.get(rarity, Color.GRAY).to_html(false)
 	var s_type = m_data.get("slot_type", "weapon")
-	var div = "[color=#3d3d3d]───────────────────────────────[/color]\n"
+	var div = "[color=#3d3d3d]-------------------------------[/color]\n"
 
 	var tt = ""
 
@@ -552,7 +552,7 @@ func _build_module_tooltip(m_data: Dictionary) -> String:
 		# v76.0: Display Roll Range for base stats
 		var range_info = ""
 		var base_id = m_data.get("base_module", "")
-		var item_rarity_val = m_data.get("rarity", manager.Rarity.COMMON)
+		var item_rarity_val = int(m_data.get("rarity", manager.Rarity.COMMON))
 		if base_id != "" and base_id in manager.modules and key in manager.BOOSTABLE_STATS:
 			var base_val = manager.modules[base_id].get("stats", {}).get(key, 0)
 			if base_val > 0:
@@ -560,16 +560,20 @@ func _build_module_tooltip(m_data: Dictionary) -> String:
 				if s_range[1] > 0:
 					var r_min = 0.0
 					var r_max = 0.0
+					var zone_mult = 1.0
+					if key in manager.ZONE_SCALABLE_STATS and m_data.has("zone_difficulty"):
+						zone_mult = manager.get_module_zone_multiplier(int(m_data.get("zone_difficulty", 1)))
 					
 					if key == "atk_interval":
 						# Better = Lower. Range is [Slowest - Fastest]
-						# v76.5: Adjusted for Reciprocal Scaling and Safety Floor
-						r_min = max(base_val / (1.0 + s_range[1]), 0.25) # Best (fastest)
-						r_max = max(base_val / (1.0 + s_range[0]), 0.25) # Worst (slowest)
+						var scaled_base = max(0.25, float(base_val) / zone_mult)
+						r_min = max(scaled_base / (1.0 + (s_range[1] * 0.4)), 0.25) # Best (fastest)
+						r_max = max(scaled_base / (1.0 + (s_range[0] * 0.4)), 0.25) # Worst (slowest)
 					else:
 						# Better = Higher. Range is [Lowest - Highest]
-						r_min = base_val * (1.0 + s_range[0])
-						r_max = base_val * (1.0 + s_range[1])
+						var scaled_base = base_val * zone_mult
+						r_min = scaled_base * (1.0 + s_range[0])
+						r_max = scaled_base * (1.0 + s_range[1])
 						
 					range_info = " [color=gray][font_size=9][%s-%s][/font_size][/color]" % [
 						FormatUtils.format_stat_value(key, r_min),
@@ -588,10 +592,10 @@ func _build_module_tooltip(m_data: Dictionary) -> String:
 				var r_min = int(cfg["range"][0] * 100)
 				var r_max = int(cfg["range"][1] * 100)
 				
-				var item_rarity = m_data.get("rarity", manager.Rarity.COMMON)
-				var icon = "⋄"
-				if item_rarity == manager.Rarity.LEGENDARY: icon = "★"
-				elif item_rarity == manager.Rarity.UNIQUE: icon = "✦"
+				var item_rarity = int(m_data.get("rarity", manager.Rarity.COMMON))
+				var icon = "*"
+				if item_rarity == manager.Rarity.LEGENDARY: icon = "*"
+				elif item_rarity == manager.Rarity.UNIQUE: icon = "!"
 				
 				tt += "[color=#8fc5ff]%s %s[/color] [color=gray][font_size=9][%d-%d]%%[/font_size][/color]\n" % [icon, (cfg["desc"] % val), r_min, r_max]
 
@@ -600,9 +604,9 @@ func _build_module_tooltip(m_data: Dictionary) -> String:
 		for gem in m_data["sockets"]:
 			if gem:
 				var g_name = ElementDB.get_display_name(gem)
-				tt += "[color=#b548b5]⋄ %s[/color]\n" % g_name
+				tt += "[color=#b548b5]* %s[/color]\n" % g_name
 			else:
-				tt += "[color=#444444]⋄ Empty Socket[/color]\n"
+				tt += "[color=#444444]* Empty Socket[/color]\n"
 
 	tt += div
 	tt += "[center][font_size=10][color=gray][Right-click to unequip][/color][/font_size][/center]"

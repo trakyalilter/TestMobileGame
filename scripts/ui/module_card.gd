@@ -347,7 +347,7 @@ func _build_comparison_tooltip_bbcode() -> String:
 	var display_name = _get_clean_name(data.get("name", "Item")).to_upper()
 
 	var tt = ""
-	var div = "[color=#3d3d3d]───────────────────────────────[/color]\n"
+	var div = "[color=#3d3d3d]-------------------------------[/color]\n"
 
 	tt += "[b][color=#%s]%s[/color][/b]\n" % [rarity_color_hex, display_name]
 	tt += "[font_size=10][color=gray]%s %s[/color][/font_size]\n" % [rarity_label, slot_type.capitalize()]
@@ -416,8 +416,12 @@ func _build_comparison_tooltip_bbcode() -> String:
 			if base_val > 0:
 				var s_range = sm.RARITY_STAT_RANGE.get(rarity, [0, 0])
 				if s_range[1] > 0:
-					var r_min = base_val * (1.0 + s_range[0])
-					var r_max = base_val * (1.0 + s_range[1])
+					var zone_mult = 1.0
+					if key in sm.ZONE_SCALABLE_STATS and data.has("zone_difficulty"):
+						zone_mult = sm.get_module_zone_multiplier(int(data.get("zone_difficulty", 1)))
+					var scaled_base = base_val * zone_mult
+					var r_min = scaled_base * (1.0 + s_range[0])
+					var r_max = scaled_base * (1.0 + s_range[1])
 					range_info = " [color=gray][font_size=9][%s-%s][/font_size][/color]" % [
 						FormatUtils.format_stat_value(key, r_min),
 						FormatUtils.format_stat_value(key, r_max)
@@ -442,9 +446,9 @@ func _build_comparison_tooltip_bbcode() -> String:
 				var r_min = int(cfg["range"][0] * 100)
 				var r_max = int(cfg["range"][1] * 100)
 				
-				var icon = "⋄"
-				if rarity == sm.Rarity.LEGENDARY: icon = "★"
-				elif rarity == sm.Rarity.UNIQUE: icon = "✦"
+				var icon = "*"
+				if rarity == sm.Rarity.LEGENDARY: icon = "*"
+				elif rarity == sm.Rarity.UNIQUE: icon = "!"
 				
 				tt += "[color=#8fc5ff]%s %s[/color] [color=gray][font_size=9][%d-%d]%%[/font_size][/color]\n" % [icon, (cfg["desc"] % val), r_min, r_max]
 
@@ -453,9 +457,9 @@ func _build_comparison_tooltip_bbcode() -> String:
 		for gem in data["sockets"]:
 			if gem:
 				var g_name = ElementDB.get_display_name(gem)
-				tt += "[color=#b548b5]⋄ %s[/color]\n" % g_name
+				tt += "[color=#b548b5]* %s[/color]\n" % g_name
 			else:
-				tt += "[color=#444444]⋄ Empty Socket[/color]\n"
+				tt += "[color=#444444]* Empty Socket[/color]\n"
 
 	if sm and mid in sm.modules:
 		tt += div

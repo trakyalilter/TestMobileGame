@@ -212,7 +212,7 @@ func _on_hover_exit():
 func _make_custom_tooltip(_for_text: String) -> Control:
 	var panel = PanelContainer.new()
 	var sm = GameState.shipyard_manager
-	var rarity = data.get("rarity", sm.Rarity.COMMON)
+	var rarity = int(data.get("rarity", sm.Rarity.COMMON))
 	var r_color = sm.RARITY_COLORS.get(rarity, Color(0.2, 0.2, 0.2))
 	
 	var style = StyleBoxFlat.new()
@@ -241,7 +241,7 @@ func _build_comparison_tooltip() -> String:
 	if not data: return ""
 	
 	var sm = GameState.shipyard_manager
-	var rarity = data.get("rarity", sm.Rarity.COMMON)
+	var rarity = int(data.get("rarity", sm.Rarity.COMMON))
 	var rarity_label = sm.RARITY_LABELS.get(rarity, "Common")
 	if rarity == sm.Rarity.COMMON: rarity_label = "Common"
 	
@@ -256,7 +256,7 @@ func _build_comparison_tooltip() -> String:
 		display_name = display_name.replace(suffix, "")
 		
 	var rarity_color = sm.RARITY_COLORS.get(rarity, Color.WHITE)
-	var div = "[color=#3d3d3d]───────────────────────────────[/color]\n"
+	var div = "[color=#3d3d3d]-------------------------------[/color]\n"
 
 	tt = "" # Reset tt as it was already initialized
 	tt += "[b][color=#%s]%s[/color][/b]\n" % [rarity_color.to_html(), data.get("name", "Unknown Item")]
@@ -284,7 +284,7 @@ func _build_comparison_tooltip() -> String:
 	elif slot_type == "armor":
 		var hp_val = my_stats.get("hp", 0)
 		tt += "[center][font_size=20][b]%s[/b][/font_size] [font_size=10][color=gray]Integrity Reinforcement[/color][/font_size][/center]\n" % UITheme.format_num(hp_val)
-		tt += "[color=gray]──────────────────────────────────[/color]\n"
+		tt += "[color=gray]----------------------------------[/color]\n"
 
 	# 3. STAT COMPARISON
 	var equipped_mid = null
@@ -314,9 +314,9 @@ func _build_comparison_tooltip() -> String:
 			var eq_val = equipped_stats.get(k, 0)
 			var diff = val - eq_val
 			if diff > 0:
-				delta_str = " [color=lime][font_size=9](+%s ↑)[/font_size][/color]" % FormatUtils.format_stat_value(k, diff)
+				delta_str = " [color=lime][font_size=9](+%s ^)[/font_size][/color]" % FormatUtils.format_stat_value(k, diff)
 			elif diff < 0:
-				delta_str = " [color=red][font_size=9](%s ↓)[/font_size][/color]" % FormatUtils.format_stat_value(k, diff)
+				delta_str = " [color=red][font_size=9](%s v)[/font_size][/color]" % FormatUtils.format_stat_value(k, diff)
 		
 		# v76.0: Display Roll Range for base stats
 		var range_info = ""
@@ -326,14 +326,18 @@ func _build_comparison_tooltip() -> String:
 			if b_val > 0:
 				var s_range = sm.RARITY_STAT_RANGE.get(rarity, [0, 0])
 				if s_range[1] > 0:
-					var r_min = b_val * (1.0 + s_range[0])
-					var r_max = b_val * (1.0 + s_range[1])
+					var zone_mult = 1.0
+					if k in sm.ZONE_SCALABLE_STATS and data.has("zone_difficulty"):
+						zone_mult = sm.get_module_zone_multiplier(int(data.get("zone_difficulty", 1)))
+					var scaled_base = b_val * zone_mult
+					var r_min = scaled_base * (1.0 + s_range[0])
+					var r_max = scaled_base * (1.0 + s_range[1])
 					range_info = " [color=gray][font_size=8][%s-%s][/font_size][/color]" % [
 						FormatUtils.format_stat_value(k, r_min),
 						FormatUtils.format_stat_value(k, r_max)
 					]
 
-		tt += "[color=silver]⋄ %s: [color=white]%s[/color][/color]%s%s\n" % [label, FormatUtils.format_stat_value(k, val), range_info, delta_str]
+		tt += "[color=silver]* %s: [color=white]%s[/color][/color]%s%s\n" % [label, FormatUtils.format_stat_value(k, val), range_info, delta_str]
 	
 	# 4. RANDOM AFFIXES
 	var affixes = data.get("affixes", {})
@@ -348,11 +352,11 @@ func _build_comparison_tooltip() -> String:
 				var range_str = " [color=gray][font_size=9][%d-%d]%%[/font_size][/color]" % [r_min, r_max]
 				
 				if rarity == sm.Rarity.LEGENDARY:
-					tt += "[color=orange]★ [b]%s[/b][/color]%s\n" % [(cfg["desc"] % val), range_str]
+					tt += "[color=orange]* [b]%s[/b][/color]%s\n" % [(cfg["desc"] % val), range_str]
 				elif rarity == sm.Rarity.UNIQUE:
-					tt += "[color=#ff33cc]✦ [b]%s[/b][/color]%s\n" % [(cfg["desc"] % val), range_str]
+					tt += "[color=#ff33cc]! [b]%s[/b][/color]%s\n" % [(cfg["desc"] % val), range_str]
 				else:
-					tt += "[color=cyan]⋄ %s[/color]%s\n" % [(cfg["desc"] % val), range_str]
+					tt += "[color=cyan]* %s[/color]%s\n" % [(cfg["desc"] % val), range_str]
 
 	# 5. FOOTER
 	tt += div

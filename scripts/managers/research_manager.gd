@@ -12,8 +12,26 @@ const COST_MULTIPLIER = 1.0 # Applied manually now
 # v56.1: 2x material requirements for progression extension
 const MATERIAL_MULTIPLIER = 2.0
 
+# Mid/Late progression tuning for research item requirements.
+const MID_RESEARCH_ITEM_REQ_MULT = 1.35
+const LATE_RESEARCH_ITEM_REQ_MULT = 1.80
+const MID_RESEARCH_COST_GATE = 15000
+const LATE_RESEARCH_COST_GATE = 150000
+
+const MID_RESEARCH_ITEMS = [
+	"Res2", "Res3", "AdvCircuit", "NavData", "ColonyDataCore",
+	"RadIsotope", "ExoticIsotope", "Superalloy", "AntimatterParticle"
+]
+
+const LATE_RESEARCH_ITEMS = [
+	"VoidArtifact", "VoidCrystal", "VoidEssence", "QuantumCore",
+	"ChronoCore", "ExoticMatter", "Neutronium", "AncientTech",
+	"AICore", "AIProcessor", "PrimordialShard", "OmegaPlating"
+]
+
 var unlocked_techs = []
 var repeatable_techs = {} # {id: level}
+var _research_item_costs_scaled := false
 
 signal tech_unlocked(tech_id)
 
@@ -293,7 +311,6 @@ var tech_tree = {
 		"name": "Magnetic Funnels",
 		"description": "Bonus:\n• +25% Harvest Nebula speed",
 		"cost": 2000,
-		"cost_items": {"Res1": 10},
 		"type": "technology",
 		"parent": "energy_shields"
 	},
@@ -302,7 +319,7 @@ var tech_tree = {
 		"name": "Ultrasonic Drills",
 		"description": "Bonus:\n• +50% Excavate Soil speed",
 		"cost": 1000,
-		"cost_items": {"Res1": 10},
+		"cost_items": {"Res1": 250},
 		"type": "technology",
 		"parent": "diamond_drills"
 	},
@@ -615,7 +632,7 @@ var tech_tree = {
 		"name": "Efficiency I",
 		"description": "Yield Bonus:\n• x2 Output (Gathering & Processing)",
 		"cost": 250000,
-		"cost_items": {"Circuit": 250, "Steel": 500, "Res2": 25},
+		"cost_items": {"Circuit": 250, "Steel": 500,"Res1": 1000, "Res2": 100},
 		"type": "technology",
 		"parent": "industrial_logistics"
 	},
@@ -937,6 +954,91 @@ var repeatable_tech_db = {
 
 func _init():
 	super._init("Astrophysics")
+	_scale_mid_late_research_item_costs()
+
+func _scale_mid_late_research_item_costs() -> void:
+	if _research_item_costs_scaled:
+		return
+	_research_item_costs_scaled = true
+	
+	for tech_id in tech_tree:
+		var node = tech_tree[tech_id]
+		if not node.has("cost_items"):
+			continue
+		var stage = _get_research_cost_stage(node)
+		if stage <= 0:
+			continue
+		
+		var mult = MID_RESEARCH_ITEM_REQ_MULT if stage == 1 else LATE_RESEARCH_ITEM_REQ_MULT
+		var cost_items: Dictionary = node["cost_items"]
+		for item in cost_items:
+			var qty = int(cost_items[item])
+			if qty <= 0:
+				continue
+			cost_items[item] = _scale_research_item_requirement(qty, mult)
+		
+		node["cost_items"] = cost_items
+		tech_tree[tech_id] = node
+	
+	for rid in repeatable_tech_db:
+		var r_data = repeatable_tech_db[rid]
+		if not r_data.has("base_items"):
+			continue
+		
+		var stage = _get_repeatable_cost_stage(r_data)
+		if stage <= 0:
+			continue
+		
+		var mult = MID_RESEARCH_ITEM_REQ_MULT if stage == 1 else LATE_RESEARCH_ITEM_REQ_MULT
+		var base_items: Dictionary = r_data["base_items"]
+		for item in base_items:
+			var qty = int(base_items[item])
+			if qty <= 0:
+				continue
+			base_items[item] = _scale_research_item_requirement(qty, mult)
+		
+		r_data["base_items"] = base_items
+		repeatable_tech_db[rid] = r_data
+
+func _get_research_cost_stage(node: Dictionary) -> int:
+	var cost_items: Dictionary = node.get("cost_items", {})
+	var credit_cost = int(node.get("cost", 0))
+	
+	for item in cost_items:
+		if item in LATE_RESEARCH_ITEMS:
+			return 2
+	if credit_cost >= LATE_RESEARCH_COST_GATE:
+		return 2
+	
+	for item in cost_items:
+		if item in MID_RESEARCH_ITEMS:
+			return 1
+	if credit_cost >= MID_RESEARCH_COST_GATE:
+		return 1
+	return 0
+
+func _get_repeatable_cost_stage(r_data: Dictionary) -> int:
+	var base_items: Dictionary = r_data.get("base_items", {})
+	var base_cost = int(r_data.get("base_cost", 0))
+	
+	for item in base_items:
+		if item in LATE_RESEARCH_ITEMS:
+			return 2
+	if base_cost >= LATE_RESEARCH_COST_GATE:
+		return 2
+	
+	for item in base_items:
+		if item in MID_RESEARCH_ITEMS:
+			return 1
+	if base_cost >= MID_RESEARCH_COST_GATE:
+		return 1
+	return 0
+
+func _scale_research_item_requirement(base_qty: int, multiplier: float) -> int:
+	var scaled = int(ceil(float(base_qty) * multiplier))
+	if scaled <= base_qty:
+		return base_qty + 1
+	return scaled
 
 func can_unlock(tech_id: String) -> bool:
 	if not tech_id in tech_tree: return false

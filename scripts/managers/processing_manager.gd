@@ -175,9 +175,9 @@ var recipes: Dictionary = {
 	"upgrade_rare_artifact": {
 		"name": "Synthesize Rare Artifact",
 		"description": "Combine Common artifacts with circuits to create Rare research data.",
-		"input": {"Res1": 5, "Circuit": 2},
+		"input": {"Res1": 100, "Circuit": 10},
 		"output": {"Res2": 1},
-		"duration": 30.0,
+		"duration": 8.0,
 		"level_req": 35, # Increased from 8
 		"xp": 100, # Increased from 50
 		"research_req": "smelting"

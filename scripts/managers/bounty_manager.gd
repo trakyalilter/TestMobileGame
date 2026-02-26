@@ -371,7 +371,7 @@ func claim_contract(contract_id: String) -> bool:
 		var leg_chance = 0.25 if is_boss else 0.10
 		var rarity = sm.Rarity.LEGENDARY if randf() < leg_chance else sm.Rarity.RARE
 		
-		var custom_id = sm.generate_module_drop(base_id, rarity)
+		var custom_id = sm.generate_module_drop(base_id, rarity, int(contract.get("difficulty", 1)))
 		if custom_id != "":
 			var m_name = sm.modules[custom_id]["name"]
 			var r_color = sm.RARITY_COLORS.get(rarity, Color.WHITE)

@@ -18,11 +18,17 @@ const RARITY_LABELS = {
 }
 
 const RARITY_STAT_RANGE = {
-	Rarity.UNCOMMON: [0.25, 0.45], # ~1.35x
-	Rarity.RARE: [0.60, 0.90],     # ~1.75x
-	Rarity.LEGENDARY: [1.20, 1.80], # ~2.5x
-	Rarity.UNIQUE: [1.00, 1.50],    # ~2.2x (Apex) - Normalized from 4.5x
+	Rarity.COMMON: [0.00, 0.00],    # Fixed roll (no RNG spread)
+	Rarity.UNCOMMON: [0.05, 0.08],  # 1.05x - 1.08x
+	Rarity.RARE: [0.11, 0.15],      # 1.11x - 1.15x
+	Rarity.LEGENDARY: [0.18, 0.22], # 1.18x - 1.22x
+	Rarity.UNIQUE: [0.23, 0.27],    # 1.23x - 1.27x
 }
+
+# Drop scaling curve per zone (kept controlled and tapering in late game).
+const MODULE_ZONE_SCALE_EARLY = 1.34
+const MODULE_ZONE_SCALE_LATE = 1.28
+const MODULE_ZONE_LATE_START = 7
 
 # Stats that get rarity bonuses (damage, defense, HP, etc.)
 const BOOSTABLE_STATS = [
@@ -31,6 +37,40 @@ const BOOSTABLE_STATS = [
 	"max_shield", "shield_regen", "energy_capacity",
 	"atk_speed_bonus", "shield_regen_mult", "atk_speed_mult",
 	"jamming_strength", "atk_interval"
+]
+
+# Zone scaling is applied only to flat/core stats.
+const ZONE_SCALABLE_STATS = [
+	"atk_kinetic", "atk_energy", "atk_explosive",
+	"hp", "def", "eva", "accuracy",
+	"max_shield", "shield_regen", "energy_capacity",
+	"atk_interval"
+]
+
+# Mid/Late progression tuning for craftable module item requirements.
+const MID_MODULE_ITEM_REQ_MULT = 1.35
+const LATE_MODULE_ITEM_REQ_MULT = 1.75
+
+const EARLY_MODULE_REQ_TECHS = [
+	"kinetics_101", "laser_optics", "power_systems",
+	"lightweight_alloys", "basic_electronics", "eff_scanning_1",
+	"energy_shields", "fluid_dynamics", "combustion"
+]
+
+const LATE_MODULE_REQ_TECHS = [
+	"capital_ship_engineering", "quantum_dynamics", "xeno_engineering",
+	"exotic_matter_analysis", "void_navigation", "void_physics"
+]
+
+const MID_MODULE_ITEMS = [
+	"Res2", "Res3", "AdvCircuit", "Superalloy", "NavData",
+	"ColonyDataCore", "RadIsotope", "ExoticIsotope", "AntimatterParticle"
+]
+
+const LATE_MODULE_ITEMS = [
+	"VoidArtifact", "VoidCrystal", "VoidEssence", "QuantumCore",
+	"ChronoCore", "ExoticMatter", "Neutronium", "AncientTech",
+	"AICore", "AIProcessor", "PrimordialShard", "OmegaPlating"
 ]
 
 # v74.0: Module Affix System (Diablo/PoE Style)
@@ -178,6 +218,7 @@ const ELEMENT_RESEARCH_REQS = {
 	"ZeroPoint": "quantum_dynamics"
 }
 var custom_modules: Dictionary = {} # Feature v66.0: Random Rare Drops
+var _module_item_costs_scaled := false
 
 # Calculated Stats
 var max_hp = 100
@@ -798,7 +839,7 @@ var modules: Dictionary = {
 	# === UNIQUE BOSS SETS (30 Items, 10 Sets) ===
 	# ====================================================================
 	
-	# SET 1: LUNAR ORBIT (Architect's Regalia) -> Set Bonus: +25% Shield Regen
+	# SET 1: LUNAR ORBIT (Architect's Regalia) -> Set Bonus: +10% Shield Regen
 	"architect_beam": {
 		"name": "Architect's Beam", "slot_type": "weapon", "rarity": Rarity.UNIQUE, "is_custom": true,
 		"stats": {"atk_energy": 12, "energy_load": 5, "atk_interval": 1.5}, "cost": {}, "desc": "(Set) Architect's Regalia [1/3]\nPrecise cutting beam.", "unique_id": "architect_beam"
@@ -1013,7 +1054,89 @@ var modules: Dictionary = {
 
 
 func _init():
+	_scale_mid_late_module_item_costs()
 	recalc_stats()
+	_migrate_module_entries_from_resources()
+
+func _scale_mid_late_module_item_costs() -> void:
+	if _module_item_costs_scaled:
+		return
+	_module_item_costs_scaled = true
+	
+	for module_id in modules:
+		var m_data = modules[module_id]
+		if m_data.get("is_custom", false):
+			continue
+		var slot_type = str(m_data.get("slot_type", ""))
+		if slot_type == "gem" or slot_type == "gem_synth":
+			continue
+		if not m_data.has("cost"):
+			continue
+		
+		var stage = _get_module_cost_stage(m_data)
+		if stage <= 0:
+			continue
+		
+		var mult = MID_MODULE_ITEM_REQ_MULT if stage == 1 else LATE_MODULE_ITEM_REQ_MULT
+		var cost_dict: Dictionary = m_data["cost"]
+		for res in cost_dict:
+			if res == "credits":
+				continue
+			var qty = int(cost_dict[res])
+			if qty <= 0:
+				continue
+			cost_dict[res] = _scale_item_requirement(qty, mult)
+		
+		m_data["cost"] = cost_dict
+		modules[module_id] = m_data
+
+func _get_module_cost_stage(m_data: Dictionary) -> int:
+	var req = str(m_data.get("research_req", ""))
+	var cost: Dictionary = m_data.get("cost", {})
+	
+	for res in cost:
+		if res in LATE_MODULE_ITEMS:
+			return 2
+	if req in LATE_MODULE_REQ_TECHS:
+		return 2
+	
+	for res in cost:
+		if res in MID_MODULE_ITEMS:
+			return 1
+	if req == "":
+		return 0
+	if req in EARLY_MODULE_REQ_TECHS:
+		return 0
+	return 1
+
+func _scale_item_requirement(base_qty: int, multiplier: float) -> int:
+	var scaled = int(ceil(float(base_qty) * multiplier))
+	if scaled <= base_qty:
+		return base_qty + 1
+	return scaled
+
+func _migrate_module_entries_from_resources() -> void:
+	if not GameState or not GameState.resources:
+		return
+	
+	var moved_any = false
+	var symbols_to_remove: Array = []
+	for symbol in GameState.resources.elements.keys():
+		if symbol in modules:
+			var qty = int(GameState.resources.elements.get(symbol, 0))
+			if qty > 0:
+				module_inventory[symbol] = module_inventory.get(symbol, 0) + qty
+				symbols_to_remove.append(symbol)
+				moved_any = true
+	
+	for symbol in symbols_to_remove:
+		var qty_left = GameState.resources.get_element_amount(symbol)
+		if qty_left > 0:
+			GameState.resources.remove_element(symbol, qty_left)
+	
+	if moved_any:
+		new_drops_alert = true
+		inventory_updated.emit()
 
 func construct_hull(hull_id: String) -> bool:
 	if not hull_id in hulls: return false
@@ -1522,6 +1645,7 @@ func load_save_data_manager(data: Dictionary):
 			loadout[i] = val
 			
 	module_inventory = data.get("inventory", {})
+	_migrate_module_entries_from_resources()
 	
 	# Convert JSON string keys for ammo_loadout back to int
 	var saved_ammo = data.get("ammo_loadout", {})
@@ -1626,46 +1750,58 @@ func get_consumable(slot_type: String) -> String:
 	if slot_type == "shield": return consumable_shield_slot
 	return ""
 
+func get_module_zone_multiplier(zone_difficulty: int) -> float:
+	var diff = max(1, zone_difficulty)
+	var early_steps = min(diff - 1, MODULE_ZONE_LATE_START - 1)
+	var late_steps = max(0, diff - MODULE_ZONE_LATE_START)
+	return pow(MODULE_ZONE_SCALE_EARLY, early_steps) * pow(MODULE_ZONE_SCALE_LATE, late_steps)
+
 # v71.0: Generate a rarity-boosted module drop from a base module ID
-func generate_module_drop(base_module_id: String, rarity: int = Rarity.UNCOMMON) -> String:
+func generate_module_drop(base_module_id: String, rarity: int = Rarity.UNCOMMON, zone_difficulty: int = 1) -> String:
 	if base_module_id not in modules:
 		print("generate_module_drop: Unknown base module '%s'" % base_module_id)
 		return ""
 	
-	# Common modules are just base — no custom needed
+	# Common modules are fixed drops; no custom roll is created.
 	if rarity == Rarity.COMMON:
-		GameState.resources.add_element(base_module_id, 1)
+		module_inventory[base_module_id] = module_inventory.get(base_module_id, 0) + 1
+		new_drops_alert = true
 		inventory_updated.emit()
 		return base_module_id
 	
 	var base = modules[base_module_id]
 	var custom_id = "custom_%s_%d" % [base_module_id, Time.get_ticks_msec()]
+	var zone_mult = get_module_zone_multiplier(zone_difficulty)
 	
 	# Apply stat bonuses based on rarity tier
-	var stat_range = RARITY_STAT_RANGE.get(rarity, [0.05, 0.15])
+	var stat_range = RARITY_STAT_RANGE.get(rarity, [0.0, 0.0])
 	var custom_stats = {}
 	for stat_key in base.get("stats", {}):
 		var base_val = base["stats"][stat_key]
 		if stat_key in BOOSTABLE_STATS:
+			var scaled_base = base_val
+			if stat_key in ZONE_SCALABLE_STATS:
+				if stat_key == "atk_interval":
+					# Higher-zone drops should not become slower.
+					scaled_base = max(0.25, float(base_val) / zone_mult)
+				else:
+					scaled_base = base_val * zone_mult
+			
 			var bonus = randf_range(stat_range[0], stat_range[1])
-			var boosted = base_val
+			var boosted = scaled_base
 			
 			if stat_key == "atk_interval":
-				# Reciprocal Scaling: +100% speed = 0.5x interval
-				# Audit v80.0: Penalty for speed scaling to prevent exponential DPS spikes
-				var speed_bonus = bonus * 0.4 
-				boosted = base_val / (1.0 + speed_bonus)
-				# v76.5: User Requested Safety Floor (0.25s / 4 hits per sec)
+				# Reciprocal scaling: +100% speed = 0.5x interval
+				var speed_bonus = bonus * 0.4
+				boosted = scaled_base / (1.0 + speed_bonus)
 				boosted = max(boosted, 0.25)
 			else:
-				# Standard linear scaling for everything else
-				boosted = base_val * (1.0 + bonus)
+				boosted = scaled_base * (1.0 + bonus)
 			
-			if base_val is float or stat_key == "atk_interval":
+			if scaled_base is float or stat_key == "atk_interval":
 				custom_stats[stat_key] = snappedf(boosted, 0.01)
 			else:
-				# Audit v76.0: Prevent integer truncation from deleting rarity bonuses on low-stat modules
-				if base_val < 50:
+				if float(scaled_base) < 50.0:
 					custom_stats[stat_key] = snappedf(boosted, 0.1)
 				else:
 					custom_stats[stat_key] = int(round(boosted))
@@ -1727,6 +1863,7 @@ func generate_module_drop(base_module_id: String, rarity: int = Rarity.UNCOMMON)
 		"is_custom": true,
 		"rarity": rarity,
 		"base_module": base_module_id,
+		"zone_difficulty": max(1, zone_difficulty),
 		"affixes": custom_affixes, # Add affixes here
 		"sockets": sockets # Array of gem IDs or null
 	}

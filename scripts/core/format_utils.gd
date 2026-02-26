@@ -4,38 +4,38 @@ extends Node
 const SUFFIXES = ["", "K", "M", "B", "T", "q", "Q", "s", "S", "O", "N", "d"]
 
 static func format_number(val: float) -> String:
-	if val < 1000:
-		if val > 0.0 and val < 1.0:
-			return "%.2f" % val
+	var abs_val = abs(val)
+	var sign_str = "-" if val < 0 else ""
+
+	if abs_val < 1000:
+		if abs_val > 0.0 and abs_val < 1.0:
+			return "%s%.2f" % [sign_str, abs_val]
 		
-		# Prevent deceptive rounding (e.g. 4.8 displayed as 5)
-		# Add tiny epsilon to bypass float point precision loss
-		var diff = abs(val - round(val))
+		# Prevent deceptive rounding
+		var diff = abs(abs_val - round(abs_val))
 		if diff > 0.01 and diff < 0.99:
-			# Use floor with epsilon to chop off purely partial fractions over .01
-			var safe_val = val + 0.000001
-			return "%.1f" % (floor(safe_val * 10.0) / 10.0)
+			var safe_val = abs_val + 0.000001
+			return "%s%.1f" % [sign_str, floor(safe_val * 10.0) / 10.0]
 			
-		return str(int(round(val)))
+		return "%s%s" % [sign_str, str(int(round(abs_val)))]
 	
-	# 1.25M instead of 1.25e6 per User Request
-	var exp = int(floor(log(val) / log(1000)))
+	# Suffix formatting
+	var exp = int(floor(log(abs_val) / log(1000)))
 	
-	# Fallback to scientific only if we exceed supported suffixes (e.g. > 1e36)
 	if exp >= SUFFIXES.size():
-		var exponent = floor(log(val) / log(10.0))
-		var base = val / pow(10, exponent)
-		return "%.2fe%d" % [base, int(exponent)]
+		var exponent = floor(log(abs_val) / log(10.0))
+		var base = abs_val / pow(10, exponent)
+		return "%s%.2fe%d" % [sign_str, base, int(exponent)]
 		
 	var suffix = SUFFIXES[min(exp, SUFFIXES.size() - 1)]
-	var scaled = (val / pow(1000, exp)) + 0.000001
+	var scaled = (abs_val / pow(1000, exp)) + 0.000001
 	
 	if scaled >= 100:
-		return "%.0f%s" % [floor(scaled), suffix]
+		return "%s%.0f%s" % [sign_str, floor(scaled), suffix]
 	elif scaled >= 10:
-		return "%.1f%s" % [floor(scaled * 10.0) / 10.0, suffix]
+		return "%s%.1f%s" % [sign_str, floor(scaled * 10.0) / 10.0, suffix]
 	else:
-		return "%.2f%s" % [floor(scaled * 100.0) / 100.0, suffix]
+		return "%s%.2f%s" % [sign_str, floor(scaled * 100.0) / 100.0, suffix]
 
 const STAT_LABELS = {
 	"atk_energy": "ENERGY ATK",
