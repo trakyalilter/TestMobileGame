@@ -468,9 +468,13 @@ func _update_session_loot():
 					var base_name = sm.modules.get(base_id, {"name": base_id}).get("name", base_id)
 					tt += "[color=#aaaaaa]★ %s (Data Lost)[/color] x %s\n" % [base_name, UITheme.format_num(qty)]
 			else:
-				var item_name = ElementDB.get_display_name(str_id)
-				if item_name == str_id:
-					item_name = str_id.replace("_", " ").capitalize()
+				var item_name = str_id
+				if sm.modules.has(str_id):
+					item_name = sm.modules[str_id].get("name", str_id)
+				else:
+					item_name = ElementDB.get_display_name(str_id)
+					if item_name == str_id:
+						item_name = str_id.replace("_", " ").capitalize()
 				tt += "[color=#32cd32]%s[/color] x %s\n" % [item_name, UITheme.format_num(qty)]
 			
 	tt += "[/center]"

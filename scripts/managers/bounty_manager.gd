@@ -17,16 +17,16 @@ var total_completed: int = 0        # Lifetime stat
 # Format: {type, zone_id, target, target_qty, reward_credits, reward_module_pool}
 var delivery_materials = {
 	# zone_difficulty: [[material_id, min_qty, max_qty, credit_reward]]
-	1: [["Cu", 500, 1000, 5000], ["Fe", 300, 600, 8000], ["Si", 200, 400, 6000]],
-	2: [["Fe", 800, 1500, 20000], ["Cu", 300, 600, 15000], ["Steel", 100, 250, 30000]],
-	3: [["Steel", 250, 500, 50000], ["Ti", 100, 250, 80000], ["Circuit", 100, 200, 60000]],
-	4: [["Ti", 300, 600, 120000], ["W", 150, 300, 100000], ["Graphite", 200, 400, 80000]],
-	5: [["AdvCircuit", 100, 200, 250000], ["Superalloy", 50, 150, 300000], ["NavData", 100, 250, 200000]],
-	6: [["ColonySalvage", 250, 500, 400000], ["AdvCircuit", 150, 300, 350000], ["Steel", 2000, 5000, 500000]],
-	7: [["RadIsotope", 200, 500, 600000], ["Pt", 100, 250, 750000], ["Superalloy", 150, 300, 550000]],
-	8: [["VoidCrystal", 50, 150, 1000000], ["Diamond", 30, 80, 800000], ["ExoticMatter", 20, 50, 1200000]],
-	9: [["BiohazardSample", 100, 250, 1500000], ["MutatedTissue", 50, 150, 1800000], ["PathogenCore", 20, 50, 2000000]],
-	10: [["VoidEssence", 50, 100, 5000000], ["ChronoCore", 20, 50, 7500000], ["PrimordialShard", 10, 30, 10000000]]
+	1: [["Cu", 500, 1000, 25000], ["Fe", 300, 600, 40000], ["Si", 200, 400, 30000]],
+	2: [["Fe", 800, 1500, 100000], ["Cu", 300, 600, 75000], ["Steel", 100, 250, 150000]],
+	3: [["Steel", 250, 500, 250000], ["Ti", 100, 250, 400000], ["Circuit", 100, 200, 300000]],
+	4: [["Ti", 300, 600, 600000], ["W", 150, 300, 500000], ["Graphite", 200, 400, 400000]],
+	5: [["AdvCircuit", 100, 200, 1250000], ["Superalloy", 50, 150, 1500000], ["NavData", 100, 250, 1000000]],
+	6: [["ColonySalvage", 250, 500, 2000000], ["AdvCircuit", 150, 300, 1750000], ["Steel", 2000, 5000, 2500000]],
+	7: [["RadIsotope", 200, 500, 3000000], ["Pt", 100, 250, 3750000], ["Superalloy", 150, 300, 2750000]],
+	8: [["VoidCrystal", 50, 150, 5000000], ["Diamond", 30, 80, 4000000], ["ExoticMatter", 20, 50, 6000000]],
+	9: [["BiohazardSample", 100, 250, 7500000], ["MutatedTissue", 50, 150, 9000000], ["PathogenCore", 20, 50, 10000000]],
+	10: [["VoidEssence", 50, 100, 25000000], ["ChronoCore", 20, 50, 37500000], ["PrimordialShard", 10, 30, 50000000]]
 }
 
 func connect_signals():
@@ -178,8 +178,8 @@ func _generate_hunt_contract(min_diff: int, max_diff: int) -> Dictionary:
 	var base_xp = enemy_data.get("xp", 10)
 	
 	# v73.0: Exponential Credit Scaling
-	var diff_mult = pow(zone["data"]["difficulty"], 1.5)
-	var credit_reward = int(base_xp * qty * 0.5 * diff_mult)
+	var diff_mult = pow(zone["data"]["difficulty"], 1.8)
+	var credit_reward = int(base_xp * qty * 5.0 * diff_mult)
 	
 	# Module reward: pick from the zone's enemies' module pools
 	var module_pool = _get_zone_module_pool(zone["id"])
@@ -222,8 +222,8 @@ func _generate_elite_contract(max_diff: int) -> Dictionary:
 	var base_xp = enemy_data.get("xp", 10)
 	
 	# v73.0: Elite Jackpot Scaling
-	var diff_mult = pow(zone["data"]["difficulty"], 1.2)
-	var credit_reward = int(base_xp * 75 * diff_mult)
+	var diff_mult = pow(zone["data"]["difficulty"], 1.5)
+	var credit_reward = int(base_xp * 300 * diff_mult)
 	
 	return {
 		"id": _gen_id(),

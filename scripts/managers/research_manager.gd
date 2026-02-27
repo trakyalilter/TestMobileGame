@@ -195,7 +195,7 @@ var tech_tree = {
 		"name": "Asteroid Belt Clearance",
 		"description": "Unlocks:\n• Asteroid Belt zone\n• Claim Jumper enemy\n• [Requires: Shipwright I (Ships)]",
 		"cost": 6250,
-		"cost_items": {"Cu": 50, "Fe": 200, "Si": 100},
+		"cost_items": {"Cu": 10, "W":5},
 		"type": "technology",
 		"parent": "eff_scanning_1",
 		"req_tech": "shipwright_1"

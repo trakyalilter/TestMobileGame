@@ -219,7 +219,7 @@ var zones = {
 var enemy_db = {
 	"dust_mite": {
 		"name": "Space Dust Mite",
-		"stats": {"hp": 280, "atk": 20, "def": 5, "atk_interval": 2.5, "accuracy": 9}, # Buffed from 158
+		"stats": {"hp": 550, "atk": 45, "def": 10, "atk_interval": 2.5, "accuracy": 20}, # Early game tweak
 		"loot": [["Fe", 1, 3], ["MiteChitin", 1, 1]],
 		"module_drop_chance": 0.02,
 		"module_drop_pool": ["mining_laser_mk1", "railgun_mk1", "battery_t1", "basic_shield", "basic_thruster", "lidar_array"],
@@ -227,7 +227,7 @@ var enemy_db = {
 	},
 	"lunar_drone": {
 		"name": "Lunar Drone",
-		"stats": {"hp": 320, "atk": 27, "def": 6, "atk_interval": 2.5, "accuracy": 9}, # Buffed from 164
+		"stats": {"hp": 850, "atk": 65, "def": 15, "atk_interval": 2.5, "accuracy": 20},
 		"loot": [["Cu", 2, 4], ["Fe", 3, 6], ["DroneCore", 1, 1]],
 		"rare_loot": [["Cu", 0.3, 1, 2], ["Chip", 0.08, 1, 1], ["SalvageData", 0.20, 1, 1]],
 		"module_drop_chance": 0.02,
@@ -236,7 +236,7 @@ var enemy_db = {
 	},
 	"scrap_collector": {
 		"name": "Scrap Collector",
-		"stats": {"hp": 145, "atk": 18, "def": 4, "atk_interval": 2.2, "accuracy": 10},
+		"stats": {"hp": 1100, "atk": 50, "def": 12, "atk_interval": 2.2, "accuracy": 25},
 		"loot": [["Cu", 5, 10], ["Res1", 2, 5], ["DroneCore", 2, 5]],
 		"rare_loot": [["NavData", 0.33, 1, 2]],
 		"module_drop_chance": 0.02,
@@ -245,7 +245,7 @@ var enemy_db = {
 	},
 	"survey_probe": {
 		"name": "Survey Probe",
-		"stats": {"hp": 150, "max_shield": 150, "atk": 9, "def": 5, "atk_interval": 1.0, "accuracy": 10}, # Buffed from 52/69
+		"stats": {"hp": 1400, "max_shield": 400, "atk": 30, "def": 18, "atk_interval": 1.0, "accuracy": 30},
 		"loot": [["credits", 100, 250], ["Si", 10, 20]],
 		"rare_loot": [["Circuit", 0.1, 1, 1], ["NavData", 0.05, 1, 1]],
 		"module_drop_chance": 0.02,
@@ -254,7 +254,7 @@ var enemy_db = {
 	},
 	"claim_jumper": {
 		"name": "Claim Jumper",
-		"stats": {"hp": 375, "max_shield": 25, "atk": 36, "def": 10, "atk_interval": 2.2, "accuracy": 27}, # High Armor
+		"stats": {"hp": 4800, "max_shield": 1200, "atk": 155, "def": 38, "atk_interval": 2.2, "accuracy": 45}, # Starts approaching Zone 1 boss (6k/180/45)
 		"loot": [["credits", 250, 450], ["Cu", 15, 30], ["StolenCargo", 1, 1]],
 		"rare_loot": [["NavData", 0.15, 2, 5]],
 		"module_drop_chance": 0.02,
@@ -263,7 +263,7 @@ var enemy_db = {
 	},
 	"ore_hauler": {
 		"name": "Ore Hauler Wreck",
-		"stats": {"hp": 505, "atk": 86, "def": 8, "atk_interval": 5.0, "accuracy": 28},
+		"stats": {"hp": 7500, "atk": 220, "def": 45, "atk_interval": 5.0, "accuracy": 40}, # Exceeds Z1 boss due to low RoF
 		"loot": [["Fe", 50, 70], ["W", 15, 20]],
 		"rare_loot": [["U", 0.20, 2, 5], ["Ag", 0.15, 1, 3]],
 		"module_drop_chance": 0.02,
@@ -272,7 +272,7 @@ var enemy_db = {
 	},
 	"derelict_frigate": {
 		"name": "Derelict Frigate",
-		"stats": {"hp": 4599, "max_shield": 192, "atk": 144, "def": 20, "atk_interval": 4.0, "accuracy": 55},
+		"stats": {"hp": 14500, "max_shield": 3500, "atk": 420, "def": 75, "atk_interval": 4.0, "accuracy": 65}, # Approaches Z2 Boss (12k/350/65)
 		"loot": [["Steel", 5, 10], ["Fe", 20, 40], ["Res2", 5, 10]],
 		"rare_loot": [["Circuit", 0.35, 2, 4], ["Chip", 0.20, 2, 2]],
 		"module_drop_chance": 0.15,
@@ -282,7 +282,7 @@ var enemy_db = {
 	},
 	"salvage_swarm": {
 		"name": "Salvage Swarm",
-		"stats": {"hp": 1538, "atk": 16, "def": 18, "atk_interval": 0.6, "accuracy": 52},
+		"stats": {"hp": 9500, "atk": 110, "def": 55, "atk_interval": 0.6, "accuracy": 60}, # Fast attack
 		"loot": [["Cu", 10, 20], ["SwarmFragment", 1, 2]],
 		"rare_loot": [["Resin", 0.3, 1, 2], ["Cu", 0.2, 1, 2]],
 		"module_drop_chance": 0.02,
@@ -291,7 +291,7 @@ var enemy_db = {
 	},
 	"frozen_hulk": {
 		"name": "Frozen Hulk",
-		"stats": {"hp": 3957, "max_shield": 152, "atk": 292, "def": 28, "atk_interval": 6.0, "accuracy": 71},
+		"stats": {"hp": 38000, "max_shield": 8000, "atk": 1400, "def": 105, "atk_interval": 6.0, "accuracy": 95}, # Approaches Z3 Boss (45k/1500/110)
 		"loot": [["C", 10, 20]],
 		"rare_loot": [["Graphite", 0.35, 1, 3], ["W", 0.15, 1, 2]],
 		"module_drop_chance": 0.02,
@@ -300,7 +300,7 @@ var enemy_db = {
 	},
 	"smuggler_cutter": {
 		"name": "Smuggler Cutter",
-		"stats": {"hp": 1058, "max_shield": 3526, "atk": 129, "def": 33, "accuracy": 71}, # High Shield
+		"stats": {"hp": 22000, "max_shield": 16000, "atk": 850, "def": 85, "accuracy": 100}, 
 		"loot": [["credits", 100, 200]],
 		"rare_loot": [["Li", 0.25, 1, 3], ["Ti", 0.2, 1, 2]],
 		"module_drop_chance": 0.02,
@@ -309,7 +309,7 @@ var enemy_db = {
 	},
 	"pirate_skiff": {
 		"name": "Pirate Skiff",
-		"stats": {"hp": 950, "max_shield": 100, "atk": 23, "def": 8, "atk_interval": 1.8, "accuracy": 29}, # Buffed from 440
+		"stats": {"hp": 5200, "max_shield": 1800, "atk": 165, "def": 42, "atk_interval": 1.8, "accuracy": 45}, # Target: Z1 Boss
 		"loot": [["credits", 2000, 6000], ["Fe", 10, 20], ["PirateManifest", 1, 1], ["NavData", 1, 2], ["Cu", 100, 200]],
 		"rare_loot": [["W", 0.40, 10, 20], ["Ti", 0.30, 40, 50]],
 		"module_drop_chance": 0.02,
@@ -318,7 +318,7 @@ var enemy_db = {
 	},
 	"rock_golem": {
 		"name": "Silicate Golem",
-		"stats": {"hp": 1100, "atk": 43, "def": 8, "accuracy": 29}, # Buffed from 374
+		"stats": {"hp": 6500, "atk": 190, "def": 48, "accuracy": 45},
 		"loot": [["Si", 100, 200], ["Fe", 10, 20]], # Added Fe for Ammo Sustenance (Audit Round 2)
 		"rare_loot": [["Ti", 0.4, 10, 20]],
 		"module_drop_chance": 0.02,
@@ -327,7 +327,7 @@ var enemy_db = {
 	},
 	"scavenger_mech": {
 		"name": "Scavenger Mech",
-		"stats": {"hp": 1377, "max_shield": 46, "atk": 73, "def": 15, "accuracy": 47}, # High Armor
+		"stats": {"hp": 11500, "max_shield": 2200, "atk": 310, "def": 60, "accuracy": 65}, # Target: Z2 Boss
 		"loot": [["Cu", 10, 20]],
 		"rare_loot": [["W", 0.3, 5, 10], ["Res2", 0.20, 1, 1], ["NavData", 0.25, 1, 2]],
 		"module_drop_chance": 0.02,
@@ -336,7 +336,7 @@ var enemy_db = {
 	},
 	"martian_sentry": {
 		"name": "Martian Sentry",
-		"stats": {"hp": 245, "max_shield": 979, "atk": 90, "def": 17, "accuracy": 51}, # High Shield
+		"stats": {"hp": 7500, "max_shield": 6500, "atk": 380, "def": 58, "accuracy": 70}, 
 		"loot": [["C", 5, 10]],
 		"rare_loot": [["Resin", 0.1, 1, 2], ["Chip", 0.25, 1, 2], ["Rh", 0.10, 1, 2]],
 		"module_drop_chance": 0.02,
@@ -345,7 +345,7 @@ var enemy_db = {
 	},
 	"cryo_drone": {
 		"name": "Cryo Drone",
-		"stats": {"hp": 1507, "max_shield": 2010, "atk": 134, "def": 25, "accuracy": 68},
+		"stats": {"hp": 35000, "max_shield": 12000, "atk": 1250, "def": 95, "accuracy": 95}, # Target Z3 Boss
 		"loot": [["H", 5, 15], ["Water", 5, 10], ["CryoCell", 1, 1]],
 		"rare_loot": [["Mesh", 0.05, 1, 1]],
 		"module_drop_chance": 0.02,
@@ -373,7 +373,7 @@ var enemy_db = {
 	},
 	"alien_frigate": {
 		"name": "Xenon Patrol Frigate",
-		"stats": {"hp": 6500, "max_shield": 3215, "atk": 178, "def": 46, "accuracy": 98}, # Squashed from 8038
+		"stats": {"hp": 60000, "max_shield": 22000, "atk": 1150, "def": 145, "accuracy": 120}, # Target Z4 Boss (65k/150)
 		"loot": [["credits", 15000, 20000], ["Ti", 30, 60]],
 		"rare_loot": [["NavData", 0.35, 2, 5], ["Chip", 0.35, 2, 5], ["VoidArtifact", 0.3, 2, 3], ["Co", 0.35, 2, 4], ["Ni", 0.35, 2, 4], ["Res3", 0.35, 1, 2]],
 		"module_drop_chance": 0.02,
@@ -382,7 +382,7 @@ var enemy_db = {
 	},
 	"xenon_corvette": {
 		"name": "Xenon Corvette",
-		"stats": {"hp": 7500, "max_shield": 4194, "atk": 152, "def": 56, "atk_interval": 2.5, "accuracy": 88, "eva": 25}, # Squashed from 9785
+		"stats": {"hp": 68000, "max_shield": 30000, "atk": 1350, "def": 150, "atk_interval": 2.5, "accuracy": 125, "eva": 25}, 
 		"loot": [["credits", 40000, 60000], ["Superalloy", 1, 2], ["VoidArtifact", 2, 4], ["NavData", 4, 8], ["Res3", 2, 3], ["Ti", 50, 100], ["U", 5, 15]],
 		"rare_loot": [],
 		"module_drop_chance": 0.02,
@@ -401,7 +401,7 @@ var enemy_db = {
 	},
 	"mining_sentinel": {
 		"name": "Mining Sentinel MK-VII",
-		"stats": {"hp": 20000, "max_shield": 8000, "atk": 285, "def": 98, "accuracy": 119, "jammer": true}, # Adjusted from 24007
+		"stats": {"hp": 170000, "max_shield": 55000, "atk": 1750, "def": 120, "accuracy": 140, "jammer": true}, # Target Z5 Boss (180k/120)
 		"loot": [["ColonySalvage", 10, 20], ["Steel", 50, 100]],
 		"rare_loot": [["Co", 0.3, 5, 15], ["Ni", 0.3, 5, 15], ["Circuit", 0.3, 10, 25]],
 		"module_drop_chance": 0.02,
@@ -410,7 +410,7 @@ var enemy_db = {
 	},
 	"defense_turret": {
 		"name": "Automated Defense Turret",
-		"stats": {"hp": 30000, "atk": 372, "def": 113, "atk_interval": 4.0, "accuracy": 110}, # Adjusted from 34983
+		"stats": {"hp": 210000, "atk": 2100, "def": 135, "atk_interval": 2.5, "accuracy": 150},
 		"loot": [["ColonySalvage", 25, 50], ["Circuit", 20, 50], ["TurretCore", 1, 1]],
 		"rare_loot": [["Cr", 0.3, 5, 10], ["AdvCircuit", 0.4, 5, 10]],
 		"module_drop_chance": 0.02,
@@ -429,7 +429,7 @@ var enemy_db = {
 	},
 	"radiation_beast": {
 		"name": "Gamma Radiation Beast",
-		"stats": {"hp": 18000, "max_shield": 4579, "atk": 488, "def": 140, "accuracy": 127}, # Squashed from 76328
+		"stats": {"hp": 260000, "max_shield": 85000, "atk": 2400, "def": 180, "accuracy": 160}, # Target Z6 Boss (250k/180)
 		"loot": [["credits", 750000, 1000000], ["RadIsotope", 1, 3], ["U", 100, 150]],
 		"rare_loot": [["ReactiveCore", 0.2, 1, 1]],
 		"module_drop_chance": 0.02,
@@ -448,7 +448,7 @@ var enemy_db = {
 	},
 	"gamma_colossus": {
 		"name": "GAMMA COLOSSUS",
-		"stats": {"hp": 62844, "max_shield": 25138, "atk": 456, "def": 182, "atk_interval": 2.5, "accuracy": 131, "jammer": true},
+		"stats": {"hp": 310000, "max_shield": 110000, "atk": 2850, "def": 190, "atk_interval": 2.5, "accuracy": 165, "jammer": true},
 		"loot": [["RadIsotope", 50, 100], ["Pt", 25, 50], ["QuantumCore", 5, 10], ["ExoticIsotope", 1, 3]],
 		"rare_loot": [["Ir", 0.5, 5, 15]],
 		"module_drop_chance": 0.02,
@@ -457,7 +457,7 @@ var enemy_db = {
 	},
 	"crystal_golem": {
 		"name": "Crystalline Golem",
-		"stats": {"hp": 95000, "atk": 851, "def": 259, "accuracy": 148}, # Squashed from 297453
+		"stats": {"hp": 550000, "atk": 4800, "def": 255, "accuracy": 185}, # Target Z7 Boss (500k/250)
 		"loot": [["VoidCrystal", 1, 3], ["Si", 50, 100], ["Diamond", 1, 3]],
 		"rare_loot": [["Ir", 0.2, 1, 2], ["SyntheticCrystal", 0.15, 1, 1]],
 		"module_drop_chance": 0.02,
@@ -466,7 +466,7 @@ var enemy_db = {
 	},
 	"energy_wraith": {
 		"name": "Energy Wraith",
-		"stats": {"hp": 120742, "max_shield": 201236, "atk": 951, "def": 352, "accuracy": 143},
+		"stats": {"hp": 480000, "max_shield": 280000, "atk": 5200, "def": 240, "accuracy": 190},
 		"loot": [["ExoticMatter", 2, 5], ["VoidCrystal", 2, 4], ["H", 20, 40]],
 		"rare_loot": [["AntimatterParticle", 0.1, 1, 1], ["VoidCrystal", 0.25, 2, 3]],
 		"module_drop_chance": 0.02,
@@ -485,7 +485,7 @@ var enemy_db = {
 	},
 	"void_stalker": {
 		"name": "Void Stalker",
-		"stats": {"hp": 550000, "max_shield": 250000, "atk": 1451, "def": 1035, "atk_interval": 2.0, "accuracy": 177, "eva": 60}, # Squashed from 1.55M
+		"stats": {"hp": 1800000, "max_shield": 600000, "atk": 8500, "def": 550, "atk_interval": 2.0, "accuracy": 210, "eva": 60}, # Target Z8 Boss (1.5M/500)
 		"loot": [["credits", 100000, 200000], ["VoidCrystal", 10, 20], ["ExoticMatter", 5, 10]],
 		"rare_loot": [["VoidEssence", 0.50, 1, 2], ["QuantumCore", 0.5, 2, 4]],
 		"module_drop_chance": 0.02,
@@ -494,7 +494,7 @@ var enemy_db = {
 	},
 	"temporal_phantom": {
 		"name": "Temporal Phantom",
-		"stats": {"hp": 1223426, "max_shield": 2039044, "atk": 1047, "def": 1102, "atk_interval": 1.5, "accuracy": 191, "eva": 80},
+		"stats": {"hp": 2100000, "max_shield": 1000000, "atk": 9500, "def": 580, "atk_interval": 1.5, "accuracy": 220, "eva": 80},
 		"loot": [["credits", 150000, 300000], ["ExoticMatter", 8, 15], ["VoidCrystal", 5, 10], ["AntimatterParticle", 1, 2]],
 		"rare_loot": [["ChronoCore", 0.25, 1, 1], ["VoidEssence", 0.2, 1, 2]],
 		"module_drop_chance": 0.02,
@@ -503,7 +503,7 @@ var enemy_db = {
 	},
 	"omega_sentinel": {
 		"name": "OMEGA SENTINEL",
-		"stats": {"hp": 1476647, "max_shield": 885988, "atk": 1917, "def": 801, "accuracy": 206, "eva": 40},
+		"stats": {"hp": 3500000, "max_shield": 1800000, "atk": 16000, "def": 780, "accuracy": 235, "eva": 40}, # Target Z9 Boss (3M/900)
 		"loot": [["credits", 300000, 600000], ["VoidCrystal", 20, 40], ["QuantumCore", 5, 10], ["Ir", 20, 40]],
 		"rare_loot": [["OmegaPlating", 0.40, 1, 2], ["ChronoCore", 0.3, 1, 1], ["Os", 0.25, 2, 4], ["Neutronium", 0.15, 1, 2]],
 		"module_drop_chance": 0.02,
@@ -512,7 +512,7 @@ var enemy_db = {
 	},
 	"primordial_titan": {
 		"name": "★ PRIMORDIAL TITAN ★",
-		"stats": {"hp": 2266475, "max_shield": 1133238, "atk": 3892, "def": 915, "atk_interval": 5.0, "accuracy": 173, "eva": 50},
+		"stats": {"hp": 7500000, "max_shield": 3000000, "atk": 24000, "def": 950, "atk_interval": 5.0, "accuracy": 250, "eva": 50},
 		"loot": [["credits", 5000000, 15000000], ["VoidCrystal", 100, 200], ["QuantumCore", 20, 40], ["OmegaPlating", 5, 10], ["PrimordialShard", 1, 3], ["ChronoCore", 2, 4], ["VoidEssence", 5, 10]],
 		"rare_loot": [],
 		"module_drop_chance": 0.02,
@@ -533,7 +533,7 @@ var enemy_db = {
 	# v57.0: SECTOR ZETA ENEMIES (Difficulty 9)
 	"plague_drone": {
 		"name": "Plague Drone",
-		"stats": {"hp": 80000, "max_shield": 40000, "atk": 854, "def": 610, "atk_interval": 1.8, "accuracy": 157, "eva": 35}, # Squashed from 543k
+		"stats": {"hp": 1600000, "max_shield": 600000, "atk": 8500, "def": 530, "atk_interval": 1.8, "accuracy": 205, "eva": 35}, # Target Z8 Boss (1.5M/500)
 		"loot": [["credits", 50000, 100000], ["BiohazardSample", 2, 5], ["Ti", 30, 60]],
 		"rare_loot": [["PathogenCore", 0.25, 1, 2], ["Res3", 0.3, 5, 10]],
 		"module_drop_chance": 0.02,
@@ -542,7 +542,7 @@ var enemy_db = {
 	},
 	"bio_horror": {
 		"name": "Bio-Horror",
-		"stats": {"hp": 120000, "max_shield": 50000, "atk": 1095, "def": 499, "atk_interval": 2.5, "accuracy": 183, "eva": 25}, # Squashed from 696k
+		"stats": {"hp": 1900000, "max_shield": 750000, "atk": 9800, "def": 560, "atk_interval": 2.5, "accuracy": 215, "eva": 25},
 		"loot": [["credits", 80000, 150000], ["BiohazardSample", 5, 10], ["MutatedTissue", 2, 4]],
 		"rare_loot": [["PathogenCore", 0.4, 1, 3], ["VoidCrystal", 0.2, 2, 4], ["S", 0.30, 2, 5]],
 		"module_drop_chance": 0.02,
@@ -551,7 +551,7 @@ var enemy_db = {
 	},
 	"rogue_ai_core": {
 		"name": "Rogue AI Core",
-		"stats": {"hp": 100000, "max_shield": 25000, "atk": 570, "def": 560, "atk_interval": 1.5, "accuracy": 178, "eva": 45}, # Squashed from 451k
+		"stats": {"hp": 2400000, "max_shield": 1200000, "atk": 10500, "def": 600, "atk_interval": 1.5, "accuracy": 225, "eva": 45},
 		"loot": [["credits", 100000, 200000], ["AdvCircuit", 10, 20], ["QuantumCore", 1, 2]],
 		"rare_loot": [["AIMatrix", 0.3, 1, 1], ["Chip", 0.5, 5, 10]],
 		"module_drop_chance": 0.02,
@@ -571,7 +571,7 @@ var enemy_db = {
 	# v57.0: Late Sector Expansion - Sector Alpha (+2)
 	"xenon_scout": {
 		"name": "Xenon Scout",
-		"stats": {"hp": 6000, "max_shield": 2000, "atk": 99, "def": 45, "atk_interval": 1.5, "accuracy": 85, "eva": 40}, # Squashed from 8464
+		"stats": {"hp": 55000, "max_shield": 18000, "atk": 1050, "def": 140, "atk_interval": 1.5, "accuracy": 115, "eva": 40}, # Target Z4 Boss
 		"loot": [["credits", 5000, 10000], ["Ti", 10, 20], ["Fe", 25, 50]],
 		"rare_loot": [["NavData", 0.3, 1, 3], ["Res2", 0.2, 1, 2]],
 		"module_drop_chance": 0.02,
@@ -580,7 +580,7 @@ var enemy_db = {
 	},
 	"alien_probe": {
 		"name": "Alien Probe",
-		"stats": {"hp": 5000, "max_shield": 5000, "atk": 136, "def": 47, "atk_interval": 2.0, "accuracy": 85, "eva": 50}, # Adjusted from 4261
+		"stats": {"hp": 65000, "max_shield": 25000, "atk": 1250, "def": 150, "atk_interval": 2.0, "accuracy": 125, "eva": 50},
 		"loot": [["credits", 2000, 4000], ["SalvageData", 2, 4], ["Circuit", 3, 6]],
 		"rare_loot": [["VoidArtifact", 0.1, 1, 1], ["Chip", 0.25, 1, 2]],
 		"module_drop_chance": 0.02,
@@ -590,7 +590,7 @@ var enemy_db = {
 	# v57.0: Late Sector Expansion - Sector Beta (+2)
 	"repair_drone": {
 		"name": "Repair Drone",
-		"stats": {"hp": 12000, "max_shield": 4000, "atk": 276, "def": 84, "atk_interval": 2.5, "accuracy": 119, "eva": 30}, # Squashed from 21960
+		"stats": {"hp": 160000, "max_shield": 60000, "atk": 1650, "def": 125, "atk_interval": 2.5, "accuracy": 135, "eva": 30}, # Target Z5 Boss
 		"loot": [["credits", 3000, 6000], ["Cu", 20, 40], ["Circuit", 5, 10]],
 		"rare_loot": [["AdvCircuit", 0.2, 1, 2], ["Mesh", 0.15, 1, 2]],
 		"module_drop_chance": 0.02,
@@ -599,7 +599,7 @@ var enemy_db = {
 	},
 	"ore_guardian": {
 		"name": "Ore Guardian",
-		"stats": {"hp": 15000, "max_shield": 5000, "atk": 261, "def": 85, "accuracy": 114, "eva": 15}, # Squashed from 33355
+		"stats": {"hp": 190000, "max_shield": 75000, "atk": 1900, "def": 130, "accuracy": 145, "eva": 15}, 
 		"loot": [["Fe", 100, 200], ["Ti", 30, 60], ["W", 20, 40]],
 		"rare_loot": [["Pt", 0.2, 1, 3], ["Ir", 0.1, 1, 2]],
 		"module_drop_chance": 0.02,
@@ -609,7 +609,7 @@ var enemy_db = {
 	# v57.0: Late Sector Expansion - Sector Gamma (+2)
 	"irradiated_hulk": {
 		"name": "Irradiated Hulk",
-		"stats": {"hp": 75328, "max_shield": 21522, "atk": 572, "def": 200, "atk_interval": 4.0, "accuracy": 132, "eva": 10},
+		"stats": {"hp": 290000, "max_shield": 95000, "atk": 2700, "def": 185, "atk_interval": 4.0, "accuracy": 170, "eva": 10}, # Target Z6 Boss
 		"loot": [["credits", 3000000, 5000000], ["U", 400, 500], ["RadIsotope", 5, 10]],
 		"rare_loot": [["Res3", 0.3, 2, 4], ["VoidCrystal", 0.1, 1, 2]],
 		"module_drop_chance": 0.02,
@@ -618,7 +618,7 @@ var enemy_db = {
 	},
 	"plasma_wraith": {
 		"name": "Plasma Wraith",
-		"stats": {"hp": 49161, "max_shield": 58993, "atk": 336, "def": 191, "atk_interval": 1.8, "accuracy": 122, "eva": 45},
+		"stats": {"hp": 240000, "max_shield": 150000, "atk": 2900, "def": 175, "atk_interval": 1.8, "accuracy": 165, "eva": 45}, 
 		"loot": [["credits", 1500000, 2000000]],
 		"rare_loot": [["QuantumCore", 0.15, 1, 1], ["ExoticMatter", 0.1, 1, 2]],
 		"module_drop_chance": 0.02,
@@ -628,7 +628,7 @@ var enemy_db = {
 	# v57.0: Late Sector Expansion - Sector Delta (+2)
 	"shard_swarm": {
 		"name": "Shard Swarm",
-		"stats": {"hp": 200116, "max_shield": 75043, "atk": 209, "def": 297, "atk_interval": 0.8, "accuracy": 149, "eva": 35},
+		"stats": {"hp": 600000, "max_shield": 150000, "atk": 5000, "def": 260, "atk_interval": 0.8, "accuracy": 195, "eva": 35}, # Target Z7 Boss
 		"loot": [["credits", 20000, 40000], ["VoidCrystal", 3, 6], ["Si", 50, 100]],
 		"rare_loot": [["Ir", 0.2, 1, 3], ["QuantumCore", 0.1, 1, 1]],
 		"module_drop_chance": 0.02,
@@ -637,7 +637,7 @@ var enemy_db = {
 	},
 	"prism_guardian": {
 		"name": "Prism Guardian",
-		"stats": {"hp": 214866, "max_shield": 143244, "atk": 718, "def": 365, "atk_interval": 2.5, "accuracy": 138, "eva": 25},
+		"stats": {"hp": 650000, "max_shield": 300000, "atk": 5400, "def": 300, "atk_interval": 2.5, "accuracy": 185, "eva": 25},
 		"loot": [["credits", 30000, 60000], ["VoidCrystal", 5, 10], ["ExoticMatter", 2, 4]],
 		"rare_loot": [["AncientTech", 0.15, 1, 1], ["Os", 0.1, 1, 2]],
 		"module_drop_chance": 0.02,
@@ -647,7 +647,7 @@ var enemy_db = {
 	"rogue_architect": {
 		"name": "Rogue Architect",
 		"stats": {"hp": 6000, "max_shield": 2000, "atk": 180, "def": 45, "atk_interval": 2.0, "accuracy": 60}, # Buffed from 3k/1k/120
-		"loot": [["credits", 1000, 2000], ["Cu", 20, 50]],
+		"loot": [["credits", 10000, 20000], ["W", 5, 10], ["Cu", 20, 50]],
 		"rare_loot": [["architect_beam", 0.15, 1, 1], ["architect_plating", 0.15, 1, 1], ["architect_cell", 0.15, 1, 1]],
 		"module_drop_chance": 0.02,
 		"module_drop_pool": ["ai_targeting_system", "superalloy_engine", "composite_armor_mk2"],
