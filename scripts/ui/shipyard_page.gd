@@ -141,7 +141,9 @@ func refresh_list():
 	
 	for mid in sorted_mods:
 		var data = manager.modules[mid]
-		if data.get("is_custom", false): continue # Skip dropped loot in Shipyard (Crafting)
+		# Audit v80.1: Skip dropped loot and Unique (Drop-only) modules in Shipyard Crafting
+		if data.get("is_custom", false) or data.get("is_unique", false): 
+			continue 
 		
 		var type = data.get("slot_type", "weapon")
 		var cat = "kinetic"
@@ -174,6 +176,15 @@ func refresh_list():
 		w.update_state()
 		widgets.append(w)
 
+	# v80.1: Hide empty racks (no hulls or modules)
+	for cat_id in racks:
+		var grid = racks[cat_id]
+		var rack_vbox = grid.get_parent().get_parent() if grid.get_parent() is ScrollContainer else grid.get_parent()
+		if grid.get_child_count() == 0:
+			rack_vbox.hide()
+		else:
+			rack_vbox.show()
+
 func _get_module_power_score(id: String, data: Dictionary) -> int:
 	# Tier Heuristic: Calculate a "Power Score" based on primary stat or cost
 	# Used for sorting modules from Weakest -> Strongest
@@ -205,10 +216,7 @@ func _get_module_power_score(id: String, data: Dictionary) -> int:
 	if stats.get("eva", 0) > 0: score += stats["eva"] * 2
 	if stats.get("atk_speed_bonus", 0) > 0: score += int(stats["atk_speed_bonus"] * 100)
 	
-	# 3. Explicit Overrides for known oddities
-	if id == "mining_laser_mk1": score = 10
-	if id == "mining_laser_mk2": score = 50
-	if id == "railgun_mk1": score = 20
+	# v80.3: Removed dead sort-score overrides (mining_laser_mk1, mk2, railgun_mk1 no longer exist)
 	
 	return score
 

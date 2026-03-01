@@ -22,6 +22,35 @@ func setup(p_mid: String, p_data: Dictionary, p_manager, p_parent):
 	name_lbl.text = data["name"]
 	name_lbl.add_theme_color_override("font_color", UITheme.CATEGORY_COLORS["shipyard"])
 	
+	# v83.9: Set Name Display
+	var sid = data.get("set_id", "")
+	var sm = GameState.shipyard_manager
+	if sid == "" and data.get("is_custom") and data.has("base_module") and sm:
+		var base_id = data["base_module"]
+		sid = sm.modules.get(base_id, {}).get("set_id", "")
+	var v_box = $MarginContainer/VBoxContainer
+	var set_lbl = v_box.get_node_or_null("SetLabel")
+	if not set_lbl:
+		set_lbl = Label.new()
+		set_lbl.name = "SetLabel"
+		set_lbl.add_theme_font_size_override("font_size", 8)
+		set_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		set_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		v_box.add_child(set_lbl)
+		v_box.move_child(set_lbl, name_lbl.get_index() + 1)
+	
+	if sid != "" and GameState.combat_manager and "TRINITY_SET_BONUSES" in GameState.combat_manager:
+		var s_db = GameState.combat_manager.TRINITY_SET_BONUSES
+		if s_db.has(sid):
+			var set_name = s_db[sid]["name"]
+			set_lbl.text = "[ %s ]" % set_name.to_upper()
+			set_lbl.add_theme_color_override("font_color", Color(0.0, 0.8, 0.8)) # Cyan
+			set_lbl.visible = true
+		else:
+			set_lbl.visible = false
+	else:
+		set_lbl.visible = false
+	
 	# (Removed old text-based socket render)
 	
 	UITheme.apply_card_style(self, "shipyard")
@@ -46,7 +75,7 @@ func setup(p_mid: String, p_data: Dictionary, p_manager, p_parent):
 			
 			if gem != null:
 				var gem_name = ElementDB.get_display_name(gem)
-				var g_color = Color("#ff4444") if "Crimson" in gem_name else (Color("#44ccff") if "Cobalt" in gem_name else (Color("#ffcc00") if "Topaz" in gem_name else Color("#aa44ff")))
+				var g_color = _get_gem_color(gem_name)
 				sb.bg_color = g_color
 				sb.border_color = g_color.lightened(0.6)
 				sb.shadow_color = g_color * Color(1, 1, 1, 0.4)
@@ -122,7 +151,7 @@ func update_state():
 		research_lbl.hide()
 		cost_lbl.show()
 	
-	if data.get("is_custom", false):
+	if data.get("is_custom", false) or data.get("is_unique", false):
 		cost_lbl.text = "[center][color=orange]Drop-only module[/color][/center]"
 		btn.text = "DROP ONLY"
 		btn.disabled = true
@@ -130,9 +159,10 @@ func update_state():
 
 	var affordable = true
 	var cost_str = "[center]"
+	var cost_data = data.get("cost", {})
 	
-	for res in data["cost"]:
-		var qty = data["cost"][res]
+	for res in cost_data:
+		var qty = cost_data[res]
 		var can_afford = false
 		var color = "gray" 
 		
@@ -199,6 +229,13 @@ func _reset_highlight():
 	else:
 		btn.text = "Craft"
 
+func _get_gem_color(gem_name: String) -> Color:
+	if "Crimson" in gem_name: return Color("#ff4444")
+	if "Cobalt" in gem_name: return Color("#44ccff")
+	if "Topaz" in gem_name: return Color("#ffcc00")
+	if "Amethyst" in gem_name: return Color("#aa44ff")
+	return Color("#b548b5") # Default purple
+
 # ─────────────────────────────────────────────────
 # COMPARISON TOOLTIP
 # ─────────────────────────────────────────────────
@@ -264,7 +301,8 @@ func _build_comparison_tooltip() -> String:
 	tt += div
 	
 	if slot_type == "gem" or slot_type == "gem_synth":
-		tt += "[center][font_size=12][color=silver]Used to augment Epic and Legendary modules.[/color][/font_size][/center]\n"
+		var gem_desc = data.get("desc", ElementDB.get_element_description(mid))
+		tt += "[center][font_size=12][color=silver]%s[/color][/font_size][/center]\n" % gem_desc
 		return tt
 		
 	var my_stats = data.get("stats", {})
@@ -343,20 +381,33 @@ func _build_comparison_tooltip() -> String:
 	var affixes = data.get("affixes", {})
 	if affixes.size() > 0:
 		tt += div
+		var zone_difficulty = int(data.get("zone_difficulty", 1))
 		for aid in affixes:
 			if aid in sm.AFFIX_DB:
 				var cfg = sm.AFFIX_DB[aid]
-				var val = int(affixes[aid] * 100)
-				var r_min = int(cfg["range"][0] * 100)
-				var r_max = int(cfg["range"][1] * 100)
-				var range_str = " [color=gray][font_size=9][%d-%d]%%[/font_size][/color]" % [r_min, r_max]
+				var val_raw = affixes[aid]
+				var scaling = cfg.get("scaling", "percent")
+				
+				# v80.1 Fix: Use scaled ranges for display
+				var s_range = sm.get_affix_scaled_range(aid, zone_difficulty)
+				var val_str = ""
+				var range_str = ""
+				
+				if scaling == "flat":
+					val_str = str(int(val_raw))
+					range_str = " [color=gray][font_size=9][%d-%d][/font_size][/color]" % [int(s_range[0]), int(s_range[1])]
+				else:
+					val_str = "%d%%" % int(val_raw * 100)
+					range_str = " [color=gray][font_size=9][%d-%d]%%[/font_size][/color]" % [int(s_range[0] * 100), int(s_range[1] * 100)]
+				
+				var desc = cfg["desc"] % [int(val_raw) if scaling == "flat" else int(val_raw * 100)]
 				
 				if rarity == sm.Rarity.LEGENDARY:
-					tt += "[color=orange]* [b]%s[/b][/color]%s\n" % [(cfg["desc"] % val), range_str]
+					tt += "[color=orange][b]%s[/b][/color]%s\n" % [desc, range_str]
 				elif rarity == sm.Rarity.UNIQUE:
-					tt += "[color=#ff33cc]! [b]%s[/b][/color]%s\n" % [(cfg["desc"] % val), range_str]
+					tt += "[color=#ff33cc][b]%s[/b][/color]%s\n" % [desc, range_str]
 				else:
-					tt += "[color=cyan]* %s[/color]%s\n" % [(cfg["desc"] % val), range_str]
+					tt += "[color=cyan]%s[/color]%s\n" % [desc, range_str]
 
 	# 5. FOOTER
 	tt += div
@@ -364,5 +415,30 @@ func _build_comparison_tooltip() -> String:
 		tt += "[font_size=9][color=yellow]Comparing with: %s[/color][/font_size]" % manager.modules[equipped_mid]["name"]
 	else:
 		tt += "[font_size=9][color=gray](Currently equipped module)[/color][/font_size]" if equipped_mid == mid else ""
+
+	# v83.9: Set Bonus Tooltip Section
+	var sid = data.get("set_id", "")
+	if sid == "" and data.get("is_custom") and data.has("base_module"):
+		var base_id = data["base_module"]
+		sid = sm.modules.get(base_id, {}).get("set_id", "")
+	if sid != "" and GameState.combat_manager and "TRINITY_SET_BONUSES" in GameState.combat_manager:
+		var s_db = GameState.combat_manager.TRINITY_SET_BONUSES
+		if s_db.has(sid):
+			tt += div
+			var set_info = s_db[sid]
+			var count = GameState.combat_manager.get_set_piece_count(sid)
+			var total = set_info["pieces"]
+			var active = count >= total
+			
+			tt += "[b][color=#00ffff]SET: %s[/color][/b]\n" % set_info["name"].to_upper()
+			tt += "[font_size=10][color=gray]%d / %d pieces equipped[/color][/font_size]\n" % [count, total]
+			
+			for bonus_key in set_info["bonus"]:
+				var val = set_info["bonus"][bonus_key]
+				var b_name = bonus_key.replace("_pct", "").replace("_flat", "").replace("_", " ").to_upper()
+				var val_str = "+%d%%" % val if ("_pct" in bonus_key or "crit" in bonus_key) else "+%d" % val
+				
+				var col = "#ffffff" if active else "#666666"
+				tt += "[color=%s]%s: %s[/color]\n" % [col, b_name, val_str]
 
 	return tt

@@ -41,6 +41,13 @@ func setup(data):
 		var txt = "- %s: %d-%d" % [d_name, item[1], item[2]]
 		add_item_label(txt, Color.WHITE)
 
+	# v80.4: Guaranteed Boss Core
+	var core_id = data.get("boss_core", "")
+	if core_id != "":
+		var core_name = ElementDB.get_display_name(core_id)
+		add_item_label("★ BOSS DROP: %s" % core_name, Color.GOLD)
+
+
 	# Rare Loot
 	if "rare_loot" in data and not data["rare_loot"].is_empty():
 		add_header("Rare Drops", Color.MAGENTA)

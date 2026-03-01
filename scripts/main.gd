@@ -374,8 +374,8 @@ func _update_navigation_hints():
 		if current_page_name != "shipyard": target_to_pulse = shipyard_btn
 		else:
 			var page = pages["shipyard"]
-			page.focus_module_tab("basic_thruster")
-			target_to_pulse = page.get_module_widget("basic_thruster")
+			page.focus_module_tab("z1_engine")
+			target_to_pulse = page.get_module_widget("z1_engine")
 		
 	elif "m008" in mm.active_missions:
 		# Research: Materials Science Hub
@@ -441,8 +441,8 @@ func _update_navigation_hints():
 		if current_page_name != "shipyard": target_to_pulse = shipyard_btn
 		else:
 			var page = pages["shipyard"]
-			page.focus_module_tab("railgun_mk1")
-			target_to_pulse = page.get_module_widget("railgun_mk1")
+			page.focus_module_tab("z1_kinetic")
+			target_to_pulse = page.get_module_widget("z1_kinetic")
 		
 	elif "m016" in mm.active_missions:
 		# Processing: Ferrite Rounds
@@ -461,7 +461,7 @@ func _update_navigation_hints():
 		else:
 			var page = pages["combat"]
 			page.focus_zone("lunar_orbit")
-			target_to_pulse = page.get_enemy_card("lunar_drone")
+			target_to_pulse = page.get_enemy_card("z1_lunar_drone")
 
 	elif "m018" in mm.active_missions:
 		# Research: Industrial Logistics Hub
@@ -511,8 +511,8 @@ func _update_navigation_hints():
 		if current_page_name != "shipyard": target_to_pulse = shipyard_btn
 		else:
 			var page = pages["shipyard"]
-			page.focus_module_tab("battery_t1")
-			target_to_pulse = page.get_module_widget("battery_t1")
+			page.focus_module_tab("z1_battery")
+			target_to_pulse = page.get_module_widget("z1_battery")
 
 	elif "m023" in mm.active_missions:
 		# Research: Energy Shields
@@ -526,8 +526,8 @@ func _update_navigation_hints():
 		if current_page_name != "shipyard": target_to_pulse = shipyard_btn
 		else:
 			var page = pages["shipyard"]
-			page.focus_module_tab("basic_shield")
-			target_to_pulse = page.get_module_widget("basic_shield")
+			page.focus_module_tab("z1_shield")
+			target_to_pulse = page.get_module_widget("z1_shield")
 
 	elif "m025" in mm.active_missions:
 		# Research: Smelting
@@ -563,10 +563,10 @@ func _update_navigation_hints():
 		if current_page_name != "shipyard": target_to_pulse = shipyard_btn
 		else:
 			var page = pages["shipyard"]
-			page.focus_module_tab("titanium_armor")
-			target_to_pulse = page.get_module_widget("titanium_armor")
+			page.focus_module_tab("z2_armor")
+			target_to_pulse = page.get_module_widget("z2_armor")
 
-			target_to_pulse = page.get_module_widget("titanium_armor")
+			target_to_pulse = page.get_module_widget("z2_armor")
 
 	elif "m030" in mm.active_missions:
 		# Research: Shipwright II (Audit v15.0)
@@ -627,7 +627,7 @@ func _update_navigation_hints():
 		else:
 			var page = pages["combat"]
 			page.focus_zone("sector_alpha")
-			target_to_pulse = page.get_enemy_card("alien_frigate")
+			target_to_pulse = page.get_enemy_card("z5_alien_frigate")
 
 	elif "m033" in mm.active_missions:
 		# Combat: Beta Sector Expansion (Ore Guardian)
@@ -635,7 +635,7 @@ func _update_navigation_hints():
 		else:
 			var page = pages["combat"]
 			page.focus_zone("sector_beta")
-			target_to_pulse = page.get_enemy_card("ore_guardian")
+			target_to_pulse = page.get_enemy_card("z6_ore_guardian")
 
 	elif "m034" in mm.active_missions:
 		# Combat: Gamma Sector Control (Gamma Colossus)
@@ -643,7 +643,7 @@ func _update_navigation_hints():
 		else:
 			var page = pages["combat"]
 			page.focus_zone("sector_gamma")
-			target_to_pulse = page.get_enemy_card("gamma_colossus")
+			target_to_pulse = page.get_enemy_card("z6_boss_colossus")
 
 	# Apply final decision
 	if target_to_pulse:

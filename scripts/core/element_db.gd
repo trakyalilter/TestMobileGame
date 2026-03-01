@@ -180,7 +180,19 @@ var ELEMENT_NAMES = {
 	"VoidBattery": "Void Battery",
 	"TemporalModule": "Temporal Stabilizer",
 	"PrimordialArmor": "Primordial Armor",
-	"OmegaAccelerator": "Omega Accelerator"
+	"OmegaAccelerator": "Omega Accelerator",
+	
+	# Boss Cores
+	"Z1_Core": "Lunar Core",
+	"Z2_Core": "Asteroid Core",
+	"Z3_Core": "Debris Core",
+	"Z4_Core": "Cryofield Core",
+	"Z5_Core": "Alpha Core",
+	"Z6_Core": "Beta Core",
+	"Z7_Core": "Gamma Core",
+	"Z8_Core": "Delta Core",
+	"Z9_Core": "Epsilon Core",
+	"Z10_Core": "Omega Core"
 }
 
 ## Category mappings for inventory filtering
@@ -203,7 +215,13 @@ var CATEGORIES = {
 				"ColonyDataCore", "RadIsotope", "CryoCell"],
 	# Audit v4.0: Endgame category for ultimate items
 	"endgame": ["VoidEssence", "ChronoCore", "OmegaPlating", "PrimordialShard", 
-				"VoidBattery", "TemporalModule", "PrimordialArmor", "OmegaAccelerator"]
+				"VoidBattery", "TemporalModule", "PrimordialArmor", "OmegaAccelerator"],
+	"boss_cores": ["Z1_Core", "Z2_Core", "Z3_Core", "Z4_Core", "Z5_Core", 
+					"Z6_Core", "Z7_Core", "Z8_Core", "Z9_Core", "Z10_Core"],
+	"matrix_cores": ["CrackedCrimsonCore", "StableCrimsonCore", "PristineCrimsonCore",
+					"CrackedCobaltCore", "StableCobaltCore", "PristineCobaltCore",
+					"CrackedTopazCore", "StableTopazCore", "PristineTopazCore",
+					"CrackedAmethystCore", "StableAmethystCore", "PristineAmethystCore"]
 }
 
 # v66.0: Consumable Slot System Data
@@ -225,7 +243,14 @@ var CONSUMABLE_DATA = {
 
 ## Get display name for an element
 func get_display_name(symbol: String) -> String:
-	return ELEMENT_NAMES.get(symbol, symbol)
+	if symbol in ELEMENT_NAMES:
+		return ELEMENT_NAMES[symbol]
+	
+	# Fallback to JSON data if hardcoded name is missing
+	if symbol in ELEMENT_DATA:
+		return ELEMENT_DATA[symbol].get("name", symbol)
+		
+	return symbol
 
 ## Get display name with symbol in parentheses
 func get_full_display(symbol: String) -> String:

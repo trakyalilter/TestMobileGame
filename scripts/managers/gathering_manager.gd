@@ -137,6 +137,15 @@ var actions: Dictionary = {
 		"level_req": 35,
 		"category": "terrestrial"
 	},
+	# v80.4 Fix: Tungsten had no early source (only late-game infrastructure drill)
+	"mine_tungsten": {
+		"name": "Tungsten Vein Mining",
+		"loot_table": [["W", 1.0, 1, 2], ["Fe", 0.3, 1, 2]],
+		"xp": 30,
+		"level_req": 20,
+		"research_req": "smelting",
+		"category": "terrestrial"
+	},
 	"extract_platinum": {
 		"name": "Extract Platinum samples",
 		"loot_table": [["PtOre", 1.0, 1, 3], ["Ti", 0.2, 1, 2]],

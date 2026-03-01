@@ -54,7 +54,7 @@ func init_missions():
 		["m005", "Mineral Washing", "Recover 75 Silicon and 75 Iron from Dirt.", "gather_multi", {"Si": 75, "Fe": 75}, 150, 1000, 200, "m007"],
 		
 		# m006 Removed (Moved to m002b)
-		["m007", "Mobility Check", "Craft 'Ion Thrusters' in the Shipyard.", "craft", "basic_thruster", 1, 1000, 100, "m008"],
+		["m007", "Mobility Check", "Craft a 'Basic Thruster' in the Shipyard.", "craft", "z1_engine", 1, 1000, 100, "m008"],
 		["m008", "Materials Science", "Research the 'Materials Science' hub.", "research", "materials_science", 1, 300, 100, "m009"],
 		["m009", "Deforestation", "Gather 100 units of Wood.", "gather", "Wood", 100, 500, 100, "m010"],
 		["m010", "Organic Combustion", "Research 'Organic Combustion' to unlock the Kiln.", "research", "combustion", 1, 500, 150, "m011"],
@@ -62,20 +62,20 @@ func init_missions():
 		["m012", "Lithium Discovery", "Gather 60 Lithium Ore.", "gather", "Spodumene", 60, 800, 200, "m013"],
 		["m013", "Voltaic Storage", "Refine 30 Lithium in the Engineering tab.", "gather", "Li", 30, 1000, 250, "m020"],
 		["m014", "Ballistics Theory", "Research 'Kinetics 101' for weapons technology.", "research", "kinetics_101", 1, 1200, 100, "m015"],
-		["m015", "Prototype Arsenal", "Craft a 'Mass Driver' in the Shipyard.", "craft", "railgun_mk1", 1, 1500, 200, "m016"],
+		["m015", "Prototype Arsenal", "Craft a 'Mass Driver Mk.I' in the Shipyard.", "craft", "z1_kinetic", 1, 1500, 200, "m016"],
 		["m016", "Kinetic Munitions", "Produce 100 Ferrite Rounds for your weapon.", "gather", "SlugT1", 100, 1000, 100, "m023"],
 		# Shield Section Moved Here (m023 -> m024)
 		# P2-12: Combat Readiness Checkpoint - ensure player is equipped before first combat
 		["m016b", "Combat Ready", "Equip a WEAPON and SHIELD in your Ship Designer.", "loadout_check", "combat_ready", 1, 300, 100, "m017"],
-		["m017", "Target Locked", "Defeat 1 Lunar Drone in Lunar Orbit.", "defeat", "lunar_drone", 1, 2500, 500, "m018"],
+		["m017", "Target Locked", "Defeat 1 Lunar Drone in Lunar Orbit.", "defeat", "z1_lunar_drone", 1, 2500, 500, "m018"],
 		["m018", "Industrial Logistics", "Research the 'Industrial Logistics' hub.", "research", "industrial_logistics", 1, 500, 100, "m018b"],
 		["m018b", "Automated Intelligence", "Research 'Automated Logistics' for circuitry.", "research", "automated_logistics", 1, 1000, 200, "m019"],
 		["m019", "Cybernetic Integration", "Craft 5 Basic Circuitry in the Engineering tab.", "gather", "Circuit", 5, 2000, 300, "m025"],
 		["m020", "Advanced Energy", "Research 'Power Systems' for batteries.", "research", "power_systems", 1, 500, 100, "m021"],
 		["m021", "Industrial Energy", "Craft 5 Basic Batteries in the Engineering tab.", "gather", "BatteryT1", 5, 1000, 100, "m022"],
-		["m022", "Power Storage", "Craft a 'Basic Battery Module' in the Shipyard.", "craft", "battery_t1", 1, 1500, 150, "m014"],
+		["m022", "Power Storage", "Craft a 'Basic Battery' in the Shipyard.", "craft", "z1_battery", 1, 1500, 150, "m014"],
 		["m023", "Hull Integrity", "Research 'Energy Fields' to unlock shielding.", "research", "energy_shields", 1, 1000, 150, "m024"],
-		["m024", "Aegis System", "Craft a 'Deflector Shield' for protection.", "craft", "basic_shield", 1, 2500, 200, "m016b"],
+		["m024", "Aegis System", "Craft a 'Basic Shield' for protection.", "craft", "z1_shield", 1, 2500, 200, "m016b"],
 		["m025", "Refining Mastery", "Research 'Efficient Smelting' for alloys.", "research", "smelting", 1, 15000, 500, "m026"],
 		["m026", "Master Constructor", "Research 'Shipwright I' for hull reinforcement.", "research", "shipwright_1", 1, 5000, 500, "m026b"],
 		# P0-25: Missing Beepings - Fleet Modernization I
@@ -83,7 +83,7 @@ func init_missions():
 		# P0 Fix: Progression Deadlock Re-alignment
 		["m027", "Scanning Horizon", "Unlock 'Asteroid Belt' to expand operations.", "research", "asteroid_clearance", 1, 5000, 500, "m028"],
 		["m028", "Belt Mining", "Mine 1000 Cassiterite in the Asteroid Belt.", "gather", "Cassiterite", 1000, 10000, 2000, "m029"],
-		["m029", "Hardened Shell", "Craft 'Titanium Plating' in the Shipyard.", "craft", "titanium_armor", 1, 15000, 5000, "m029b"],
+		["m029", "Hardened Shell", "Craft 'Carbon Fiber Plate' in the Shipyard.", "craft", "z2_armor", 1, 15000, 5000, "m029b"],
 		["m029b", "Complex Electronics", "Craft 10 Advanced Circuits to prepare for heavier ships.", "gather", "AdvCircuit", 10, 20000, 5000, "m030"],
 		# P0-31: Fabricator Paradox Fix - Shipwright II moved before Fabricator
 		["m030", "Naval Expansion", "Research 'Shipwright II' to unlock Destroyer-class hulls.", "research", "shipwright_2", 1, 4000, 1000, "m030b"],
@@ -93,22 +93,22 @@ func init_missions():
 		
 		# P0 Fix: Sector Alpha Push
 		["m031", "Deep Space Signal", "Unlock 'Sector Alpha' via decryption.", "research", "sector_alpha_decryption", 1, 50000, 10000, "m032"],
-		["m032", "Alpha Sector Dominance", "Defeat 3 Xenon Patrol Frigates in Sector Alpha.", "defeat", "alien_frigate", 3, 75000, 15000, "m032b"],
+		["m032", "Alpha Sector Dominance", "Defeat 3 Alien Frigates in Sector Alpha.", "defeat", "z5_alien_frigate", 3, 75000, 15000, "m032b"],
 		# P0-27: Unlock Sector Beta
 		["m032b", "Expanding Horizons", "Research 'Deep Space Navigation' to unlock Sector Beta.", "research", "deep_space_nav", 1, 50000, 5000, "m032d"],
 		["m032d", "Void Research", "Gather 5 Void Artifacts dropped by Sector Alpha ships.", "gather", "VoidArtifact", 5, 100000, 10000, "m032c"],
 		# P0-28: Construct Battlecruiser
 		["m032c", "Capital Doctrine", "Construct a 'Battlecruiser' in the Shipyard.", "construct", "battlecruiser_hull", 1, 250000, 25000, "m033"],
 		
-		# v61.0 Fix: hive_guard doesn't exist, replaced with ore_guardian
-		["m033", "Beta Sector Expansion", "Defeat 5 Ore Guardians in Sector Beta to expand your influence.", "defeat", "ore_guardian", 5, 150000, 25000, "m033b"],
+		# v80.3 Fix: Remapped to v80.1 enemy IDs
+		["m033", "Beta Sector Expansion", "Defeat 5 Ore Guardians in Sector Beta to expand your influence.", "defeat", "z6_ore_guardian", 5, 150000, 25000, "m033b"],
 		# P0-27: Unlock Sector Gamma
 		["m033b", "Deep Space Signals", "Research 'Radiation Shielding Theory' to unlock Sector Gamma.", "research", "radiation_shielding", 1, 100000, 10000, "m033c"],
 		# P0-28: Construct Dreadnought
 		["m033c", "Titan Construction", "Construct a 'Dreadnought' in the Shipyard.", "construct", "dreadnought_hull", 1, 1000000, 50000, "m034"],
 		
-		# v61.0 Fix: colossus_servant doesn't exist, replaced with gamma_colossus
-		["m034", "Gamma Sector Control", "Defeat 3 Gamma Colossus in Sector Gamma to finalize supremacy.", "defeat", "gamma_colossus", 3, 300000, 50000, ""],
+		# v80.3 Fix: Remapped to v80.1 enemy IDs
+		["m034", "Gamma Sector Control", "Defeat 3 Gamma Colossus in Sector Gamma to finalize supremacy.", "defeat", "z6_boss_colossus", 3, 300000, 50000, ""],
 		["goal_001", "THE GREAT EXPEDITION", "Reach Sector Epsilon and discover the Primordial Core.", "discover", "sector_epsilon", 1, 0, 1000000, ""]
 	]
 	

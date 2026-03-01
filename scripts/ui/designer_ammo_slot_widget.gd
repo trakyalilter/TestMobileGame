@@ -7,7 +7,6 @@ var slot_idx: int = -1
 @onready var type_lbl = $MarginContainer/VBoxContainer/TypeLabel
 @onready var name_lbl = $MarginContainer/VBoxContainer/NameLabel
 @onready var status_lbl = $MarginContainer/VBoxContainer/StatusLabel
-@onready var icon_lbl = $MarginContainer/VBoxContainer/IconLabel
 
 func setup(p_slot_idx, p_ui, p_manager):
 	slot_idx = p_slot_idx
@@ -80,7 +79,19 @@ func _get_drag_data(_at_position):
 	return drag_data
 
 func _can_drop_data(_at_position, data):
-	return typeof(data) == TYPE_DICTIONARY and data.get("type") == "ammo"
+	if typeof(data) != TYPE_DICTIONARY or data.get("type") != "ammo":
+		return false
+	
+	var ammo_id = data.get("ammo_id")
+	var mid = manager.loadout.get(slot_idx)
+	if mid and mid in manager.modules:
+		var m_stats = manager.modules[mid].get("stats", {})
+		var w_type = "kinetic"
+		if m_stats.get("atk_energy", 0) > 0: w_type = "energy"
+		elif m_stats.get("atk_explosive", 0) > 0: w_type = "explosive"
+		
+		return manager.is_ammo_compatible(w_type, ammo_id)
+	return false
 
 func _drop_data(_at_position, data):
 	var ammo_id = data.get("ammo_id")

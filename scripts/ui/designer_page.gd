@@ -31,7 +31,7 @@ const TEXT_DIM := Color(0.62, 0.57, 0.50)
 const TAB_BASE := Color(0.16, 0.11, 0.08)
 const TAB_EDGE := Color(0.44, 0.31, 0.21)
 
-const FILTER_ORDER := ["all", "weapon", "shield", "armor", "engine", "battery", "utility", "ordnance"]
+const FILTER_ORDER := ["all", "weapon", "shield", "armor", "engine", "battery", "utility", "ordnance", "matrix"]
 const FILTER_LABELS := {
 	"all": "ALL",
 	"weapon": "WPN",
@@ -41,6 +41,7 @@ const FILTER_LABELS := {
 	"battery": "BAT",
 	"utility": "UTL",
 	"ordnance": "ORD",
+	"matrix": "CORE",
 }
 const FILTER_TOOLTIPS := {
 	"all": "Show all modules, ammo, and consumables.",
@@ -51,6 +52,7 @@ const FILTER_TOOLTIPS := {
 	"battery": "Battery modules.",
 	"utility": "Sensors, reactors, cooling, and other utility modules.",
 	"ordnance": "Ammo and consumables.",
+	"matrix": "Matrix Cores for sockets.",
 }
 const ORDNANCE_AMMO_IDS := [
 	"SlugT1",
@@ -73,6 +75,7 @@ const FILTER_CONFIG := {
 	"battery": {"node": "BatteryTab", "accent": Color(0.80, 0.86, 0.56)},
 	"utility": {"node": "UtilityTab", "accent": Color(0.73, 0.67, 0.88)},
 	"ordnance": {"node": "OrdnanceTab", "accent": Color(0.93, 0.64, 0.42)},
+	"matrix": {"node": "MatrixTab", "accent": Color(0.85, 0.45, 0.85)},
 }
 
 func _ready():
@@ -115,6 +118,15 @@ func _setup_filter_tabs():
 			tab_buttons[filter_id] = button
 			(button as Button).pressed.connect(_on_filter_pressed.bind(filter_id))
 			(button as Button).tooltip_text = FILTER_TOOLTIPS.get(filter_id, "")
+		elif filter_id == "matrix" and tab_strip.get_child_count() > 0:
+			# v83.9: Dynamically create Matrix tab if missing from scene
+			var first_btn = tab_strip.get_child(0)
+			var new_btn = first_btn.duplicate()
+			new_btn.name = "MatrixTab"
+			tab_strip.add_child(new_btn)
+			tab_buttons[filter_id] = new_btn
+			new_btn.pressed.connect(_on_filter_pressed.bind(filter_id))
+			new_btn.tooltip_text = FILTER_TOOLTIPS.get(filter_id, "")
 	_refresh_tab_labels()
 
 func _on_filter_pressed(filter_id: String):
@@ -531,6 +543,42 @@ func rebuild_storage():
 				}
 				consumable_card.setup(consumable_id, fake_data, qty)
 
+	# v83.9: Matrix Cores (Cracked, Stable, Pristine)
+	if active_filter in ["all", "matrix"]:
+		var cores = ElementDB.get_elements_in_category("matrix_cores")
+		for core_id in cores:
+			var qty = GameState.resources.get_element_amount(core_id)
+			if qty > 0:
+				var core_card = draggable_icon_scene.instantiate()
+				storage_grid.add_child(core_card)
+				var display_name = ElementDB.get_display_name(core_id)
+				var fake_data = {
+					"name": display_name,
+					"slot_type": "gem", # Treating as gem for socketing
+					"rarity": 3 if "Stable" in display_name else (4 if "Pristine" in display_name else 2),
+					"stats": {},
+					"desc": ElementDB.get_element_description(core_id)
+				}
+				core_card.setup(core_id, fake_data, qty)
+	
+	# v83.9.5: Boss Cores (Lunar, Asteroid, etc.) - Only in "ALL"
+	if active_filter == "all":
+		var boss_cores = ElementDB.get_elements_in_category("boss_cores")
+		for core_id in boss_cores:
+			var qty = GameState.resources.get_element_amount(core_id)
+			if qty > 0:
+				var core_card = draggable_icon_scene.instantiate()
+				storage_grid.add_child(core_card)
+				var display_name = ElementDB.get_display_name(core_id)
+				var fake_data = {
+					"name": display_name,
+					"slot_type": "resource",
+					"rarity": 4, # Unique
+					"stats": {},
+					"desc": "Rare boss component."
+				}
+				core_card.setup(core_id, fake_data, qty)
+
 func _is_module_visible_for_filter(module_data: Dictionary) -> bool:
 	var module_type = module_data.get("slot_type", "weapon")
 	match active_filter:
@@ -555,6 +603,8 @@ func _is_module_visible_for_filter(module_data: Dictionary) -> bool:
 			return module_type == "weapon" and module_data.get("stats", {}).get("atk_explosive", 0) > 0
 		"ordnance", "ord":
 			return false
+		"matrix":
+			return module_type in ["gem", "gem_synth"]
 		_:
 			return true
 
@@ -626,7 +676,23 @@ func _build_filter_counts() -> Dictionary:
 			ordnance_count += 1
 
 	counts["ordnance"] = ordnance_count
-	counts["all"] += ordnance_count
+	
+	# v83.9: Matrix Core Counts
+	var core_count = 0
+	var matrix_cores = ElementDB.get_elements_in_category("matrix_cores")
+	for core_id in matrix_cores:
+		if GameState.resources.get_element_amount(core_id) > 0:
+			core_count += 1
+	counts["matrix"] = core_count
+	
+	# Boss Cores added to "ALL"
+	var boss_core_count = 0
+	var boss_cores = ElementDB.get_elements_in_category("boss_cores")
+	for core_id in boss_cores:
+		if GameState.resources.get_element_amount(core_id) > 0:
+			boss_core_count += 1
+			
+	counts["all"] += ordnance_count + core_count + boss_core_count
 	return counts
 
 func _normalize_filter_id(filter_id: String) -> String:
@@ -685,11 +751,6 @@ func _get_module_power_score(id: String, data: Dictionary) -> int:
 	if stats.get("atk_speed_bonus", 0) > 0:
 		score += int(stats["atk_speed_bonus"] * 100)
 
-	if id == "mining_laser_mk1":
-		score = 10
-	if id == "mining_laser_mk2":
-		score = 50
-	if id == "railgun_mk1":
-		score = 20
+	# v80.3: Removed dead sort-score overrides (mining_laser_mk1, mk2, railgun_mk1 no longer exist)
 
 	return score

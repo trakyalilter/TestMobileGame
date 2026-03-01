@@ -92,7 +92,7 @@ var tech_tree = {
 	},
 	"shipwright_1": {
 		"name": "Shipwright I",
-		"description": "Unlocks:\n• Industrial Frigate \n• Titanium Plating\n• Sector Scanning, Asteroid Belt Clearance (Operations)\n• [Requires: Efficient Smelting (Engineering)]",
+		"description": "Unlocks:\n• Industrial Frigate \n• Titanium Plating\n• [Requires: Efficient Smelting (Engineering)]",
 		"cost": 50000,
 		"cost_items": {"Steel":50,"Res1": 20,"Circuit": 10},
 		"type": "technology",
@@ -159,12 +159,11 @@ var tech_tree = {
 	},
 	"sector_alpha_decryption": {
 		"name": "Sector Scanning (Alpha)",
-		"description": "Unlocks:\n• Sector Alpha\n• [Requires: Outer System Authorization]",
-		# v76.5: Moved later in tree to prevent deadlock (Alpha enemies > Titan enemies)
+		"description": "Unlocks:\n• Sector Alpha",
 		"cost": 50000,
-		"cost_items": {"NavData": 10, "PirateManifest": 10},
+		"cost_items": {"NavData": 15, "Res1": 50},
 		"type": "technology",
-		"parent": "outer_system_auth"
+		"parent": "zone_5_access"
 	},
 	"advanced_batteries": {
 		"name": "Advanced Battery Tech",
@@ -191,49 +190,82 @@ var tech_tree = {
 		"parent": "shipwright_2"
 	},
 	# --- v56.1: CONTENT GATES (Intermediate milestones) ---
-	"asteroid_clearance": {
-		"name": "Asteroid Belt Clearance",
-		"description": "Unlocks:\n• Asteroid Belt zone\n• Claim Jumper enemy\n• [Requires: Shipwright I (Ships)]",
-		"cost": 6250,
-		"cost_items": {"Cu": 10, "W":5},
+
+	# ═══════════════════════════════════════════════════════════════
+	# v80.1: Zone Access Research Gates — Instant, material-gated
+	# Cost formula: credits = floor(30000 × 2.5^(N-2)), boss cores = floor(1 + (N-1)/2)
+	# ═══════════════════════════════════════════════════════════════
+	"zone_2_access": {
+		"name": "Asteroid Belt Authorization",
+		"description": "Unlocks:\n• Asteroid Belt zone\n• Zone 2 modules fabrication",
+		"cost": 30000,
+		"cost_items": {"Z1_Core": 1, "Fe": 200, "Cu": 100},
 		"type": "technology",
-		"parent": "eff_scanning_1",
-		"req_tech": "shipwright_1"
+		"parent": "shipwright_1"
 	},
-	"mars_license": {
-		"name": "Mars Sector License",
-		"description": "Unlocks:\n• Mars Debris Field zone\n• Derelict Frigate enemy",
-		"cost": 25000,
-		# Cost Fix: StolenCargo is fine (Asteroid drop), NavData (Belt Rare)
-		"cost_items": {"StolenCargo": 5, "NavData": 5, "Steel": 50},
+	"zone_3_access": {
+		"name": "Mars Debris Clearance",
+		"description": "Unlocks:\n• Mars Debris Field\n• Zone 3 modules fabrication",
+		"cost": 75000,
+		"cost_items": {"Z2_Core": 1, "Steel": 100, "Ti": 50},
 		"type": "technology",
-		"parent": "asteroid_clearance"
+		"parent": "shipwright_2"
 	},
-	"outer_system_auth": {
-		"name": "Outer System Authorization",
-		"description": "Unlocks:\n• Titan's Halo zone\n• Pirate Gunship enemy",
-		"cost": 62500,
-		# Cost Fix: ColonySalvage replaced with Res2 (Mars drop) - ColonySalvage is Sector Beta
-		"cost_items": {"Res2": 10, "Steel": 100, "Circuit": 20},
+	"zone_4_access": {
+		"name": "Cryofield Expedition",
+		"description": "Unlocks:\n• Cryofield zone\n• Zone 4 modules & Heavy Cruiser hull",
+		"cost": 187500,
+		"cost_items": {"Z3_Core": 2, "Ti": 200, "Circuit": 50},
 		"type": "technology",
-		"parent": "mars_license"
+		"parent": "zone_3_access"
 	},
-	"deep_space_expedition": {
-		"name": "Deep Space Expedition",
-		"description": "Unlocks:\n• [Requires: Outer System Authorization]\n• Prerequisite for Sector Zeta access",
-		"cost": 250000,
-		"cost_items": {"VoidArtifact": 3, "Res3": 25, "AdvCircuit": 25},
+	"zone_5_access": {
+		"name": "Sector Alpha Decryption",
+		"description": "Unlocks:\n• Sector Alpha\n• Zone 5 modules & Battlecruiser hull",
+		"cost": 468750,
+		"cost_items": {"Z4_Core": 2, "AdvCircuit": 100, "Superalloy": 25},
 		"type": "technology",
-		"parent": "outer_system_auth"
+		"parent": "zone_4_access"
 	},
-	# v57.1: Sector Zeta research requirement
-	"quarantine_protocols": {
+	"zone_6_access": {
+		"name": "Deep Space Navigation",
+		"description": "Unlocks:\n• Sector Beta\n• Zone 6 modules & Capital Ship hull",
+		"cost": 1171875,
+		"cost_items": {"Z5_Core": 3, "VoidArtifact": 20, "QuantumCore": 5},
+		"type": "technology",
+		"parent": "zone_5_access"
+	},
+	"zone_7_access": {
+		"name": "Radiation Shielding",
+		"description": "Unlocks:\n• Sector Gamma\n• Zone 7 modules & Carrier hull",
+		"cost": 2929687,
+		"cost_items": {"Z6_Core": 3, "Superalloy": 200, "Ir": 10},
+		"type": "technology",
+		"parent": "zone_6_access"
+	},
+	"zone_8_access": {
+		"name": "Exotic Matter Analysis",
+		"description": "Unlocks:\n• Sector Delta\n• Zone 8 modules & Dreadnought hull",
+		"cost": 7324218,
+		"cost_items": {"Z7_Core": 4, "ExoticMatter": 50, "Os": 5},
+		"type": "technology",
+		"parent": "zone_7_access"
+	},
+	"zone_9_access": {
 		"name": "Quarantine Protocols",
-		"description": "Unlocks:\n• Sector Zeta zone\n• [Requires: Deep Space Expedition]",
-		"cost": 150000,
-		"cost_items": {"Res3": 40, "VoidCrystal": 10, "AdvCircuit": 30},
+		"description": "Unlocks:\n• Sector Zeta\n• Zone 9 modules & Titan hull",
+		"cost": 18310546,
+		"cost_items": {"Z8_Core": 4, "VoidCrystal": 50, "Diamond": 5},
 		"type": "technology",
-		"parent": "deep_space_expedition"
+		"parent": "zone_8_access"
+	},
+	"zone_10_access": {
+		"name": "Void Navigation",
+		"description": "Unlocks:\n• Sector Epsilon\n• Zone 10 modules & Leviathan hull",
+		"cost": 45776367,
+		"cost_items": {"Z9_Core": 5, "Neutronium": 100, "ChronoCore": 10},
+		"type": "technology",
+		"parent": "zone_9_access"
 	},
 	# --- NEW EARLY GAME GATES ---
 	"kinetics_101": {
@@ -556,7 +588,7 @@ var tech_tree = {
 		"name": "Fleet Logistics II",
 		"description": "Unlocks:\n• Tertiary Fleet Slot\n• Advanced Fleet Coordination",
 		"cost": 250000,
-		"cost_items": {"AdvCircuit": 50, "Gold": 20},
+		"cost_items": {"AdvCircuit": 50, "Au": 20},
 		"type": "technology",
 		"parent": "fleet_logistics_1"
 	},
@@ -648,7 +680,7 @@ var tech_tree = {
 		"name": "Efficiency III",
 		"description": "Yield Bonus:\n• x8 Output (Gathering & Processing)",
 		"cost": 5000000,
-		"cost_items": {"QuantumCore": 10, "U": 500, "Platinum": 250},
+		"cost_items": {"QuantumCore": 10, "U": 500, "Pt": 250},
 		"type": "technology",
 		"parent": "efficiency_2"
 	},
@@ -656,7 +688,7 @@ var tech_tree = {
 		"name": "Efficiency IV",
 		"description": "Yield Bonus:\n• x16 Output (Gathering & Processing)",
 		"cost": 25000000,
-		"cost_items": {"ExoticMatter": 5, "Osmium": 100, "VoidCrystal": 50},
+		"cost_items": {"ExoticMatter": 5, "Os": 100, "VoidCrystal": 50},
 		"type": "technology",
 		"parent": "efficiency_3"
 	},
@@ -769,7 +801,7 @@ var tech_tree = {
 		"name": "Void Weaponry Optimization",
 		"description": "Bonus:\n• +20% Total Ship Damage\n• [Requires: Void Navigation (Operations)]",
 		"cost": 100000000,
-		"cost_items": {"VoidEssence": 50, "ChronoCore": 20, "PrimordialShard": 5, "MutatedTissue": 10, "BioWeaponCoating": 10},
+		"cost_items": {"VoidEssence": 50, "ChronoCore": 20, "PrimordialShard": 5, "BiohazardSample": 10, "BioWeaponCoating": 10},
 		"type": "technology",
 		"parent": null,
 		"req_tech": "void_navigation"
@@ -778,7 +810,7 @@ var tech_tree = {
 		"name": "Void Shielding Optimization",
 		"description": "Bonus:\n• +20% Total Ship Shields\n• [Requires: Void Navigation (Operations)]",
 		"cost": 100000000,
-		"cost_items": {"OmegaPlating": 50, "VoidEssence": 20, "PrimordialShard": 5, "Os": 25, "MutatedTissue": 10, "RegenPlating": 8},
+		"cost_items": {"OmegaPlating": 50, "VoidEssence": 20, "PrimordialShard": 5, "Os": 25, "BiohazardSample": 10, "RegenPlating": 8},
 		"type": "technology",
 		"parent": null,
 		"req_tech": "void_navigation"

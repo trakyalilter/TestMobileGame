@@ -1007,31 +1007,119 @@ func set_buy_multiplier(mult: int):
 	buy_multiplier = max(1, mult)
 
 func get_building_cost(building_id: String) -> Dictionary:
-	"""Calculates progressive late-game scaling with bottleneck protection for N multi-buys."""
+	"""Calculates progressive late-game scaling with O(1) math for N multi-buys."""
 	if not building_id in building_db: return {}
 	
 	var data = building_db[building_id]
 	var current_count = get_building_count(building_id)
+	var buy_qty = buy_multiplier
 	
 	var total_scaled_cost = {}
 	
-	# Iterate for the number of buildings we are buying to sum up the progressive cost
-	for i in range(buy_multiplier):
-		var theoretical_count = current_count + i
-		var credit_multiplier = _get_credit_cost_multiplier(theoretical_count)
-		var passive_item_multiplier = _get_passive_item_cost_multiplier(theoretical_count)
-		var non_passive_item_multiplier = _get_non_passive_item_cost_multiplier(theoretical_count)
+	for res in data["cost"]:
+		var base_cost = float(data["cost"][res])
+		var total_mult = 0.0
 		
-		for res in data["cost"]:
-			var base_cost = float(data["cost"][res])
-			var mult = credit_multiplier
-			if res != "credits":
-				mult = passive_item_multiplier if _is_resource_passively_produced(res) else non_passive_item_multiplier
+		if res == "credits":
+			total_mult = _get_total_scaling_credits(current_count, buy_qty)
+		elif _is_resource_passively_produced(res):
+			total_mult = _get_total_scaling_passive(current_count, buy_qty)
+		else:
+			total_mult = _get_total_scaling_non_passive(current_count, buy_qty)
 			
-			var cycle_cost = int(ceil(base_cost * mult))
-			total_scaled_cost[res] = total_scaled_cost.get(res, 0) + cycle_cost
+		total_scaled_cost[res] = int(ceil(base_cost * total_mult))
 			
 	return total_scaled_cost
+
+func _get_total_scaling_credits(start: int, qty: int) -> float:
+	var total = 0.0
+	var remaining = qty
+	var current = start
+	
+	# Tier 1: 0-10 (rate 1.15)
+	if current < 10:
+		var batch = min(remaining, 10 - current)
+		total += _sum_geometric_series(1.0, 1.15, current, batch)
+		remaining -= batch
+		current += batch
+		
+	# Tier 2: 10-25 (rate 1.24)
+	if remaining > 0 and current < 25:
+		var batch = min(remaining, 25 - current)
+		var tier_coeff = pow(1.15, 10.0)
+		total += _sum_geometric_series(tier_coeff, 1.24, current - 10, batch)
+		remaining -= batch
+		current += batch
+		
+	# Tier 3: 25+ (rate 1.32)
+	if remaining > 0:
+		var tier_coeff = pow(1.15, 10.0) * pow(1.24, 15.0)
+		total += _sum_geometric_series(tier_coeff, 1.32, current - 25, remaining)
+		
+	return total
+
+func _get_total_scaling_passive(start: int, qty: int) -> float:
+	var total = 0.0
+	var remaining = qty
+	var current = start
+	
+	# Tier 1: 0-10 (rate 1.15)
+	if current < 10:
+		var batch = min(remaining, 10 - current)
+		total += _sum_geometric_series(1.0, 1.15, current, batch)
+		remaining -= batch
+		current += batch
+		
+	# Tier 2: 10-25 (rate 1.20)
+	if remaining > 0 and current < 25:
+		var batch = min(remaining, 25 - current)
+		var tier_coeff = pow(1.15, 10.0)
+		total += _sum_geometric_series(tier_coeff, 1.20, current - 10, batch)
+		remaining -= batch
+		current += batch
+		
+	# Tier 3: 25+ (rate 1.26)
+	if remaining > 0:
+		var tier_coeff = pow(1.15, 10.0) * pow(1.20, 15.0)
+		total += _sum_geometric_series(tier_coeff, 1.26, current - 25, remaining)
+		
+	return total
+
+func _get_total_scaling_non_passive(start: int, qty: int) -> float:
+	# Non-passive has a min(mult, 5.0) cap which makes it linear once capped
+	var total = 0.0
+	var remaining = qty
+	var current = start
+	
+	# We can't easily O(1) with the min() in every step if it's not yet hit.
+	# But since non-passive caps at 5.0 very quickly, let's just use the loop if small, or math if capped.
+	# Actually, the non-passive logic in _get_non_passive_item_cost_multiplier returns the mult for ONE building.
+	# mult = pow(1.12, 10) * pow(1.08, 15) * pow(1.05, count-25).
+	# Let's find when this hits 5.0.
+	# 1.12^10 = 3.10
+	# 3.10 * 1.08^15 = 3.10 * 3.17 = 9.8 (already > 5!)
+	# Wait, so it caps in Tier 2.
+	# 3.10 * 1.08^x = 5 => 1.08^x = 1.61 => x = ln(1.61)/ln(1.08) = 0.47 / 0.076 = 6.2
+	# So it caps at 10 + 6.2 = 16.2.
+	
+	# Since it's piecewise and capped, let's just maintain the iterative approach but ONLY for the uncapped portion.
+	# Or better, just fix it properly:
+	
+	for i in range(qty):
+		var mult = _get_non_passive_item_cost_multiplier(current + i)
+		if mult >= 5.0:
+			# If we hit the cap, the rest is just 5.0 * Remaining
+			total += 5.0 * (remaining - i)
+			break
+		total += mult
+		
+	return total
+
+func _sum_geometric_series(A: float, r: float, start_pow: int, n: int) -> float:
+	if n <= 0: return 0.0
+	if abs(r - 1.0) < 0.0001: return A * n
+	# Sum = A * r^start * (1 - r^n) / (1 - r)
+	return A * pow(r, float(start_pow)) * (1.0 - pow(r, float(n))) / (1.0 - r)
 
 func can_afford(building_id: String) -> bool:
 	if not building_id in building_db: return false

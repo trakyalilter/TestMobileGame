@@ -81,6 +81,33 @@ func refresh_state():
 		var clean_name = _get_clean_name(m_data.get("name", "Unknown"))
 		name_lbl.text = clean_name.to_upper()
 		
+		# v83.9: Set Name Display for equipped slots
+		var sid = m_data.get("set_id", "")
+		if sid == "" and m_data.get("is_custom") and m_data.has("base_module"):
+			var base_id = m_data["base_module"]
+			sid = manager.modules.get(base_id, {}).get("set_id", "")
+		
+		var v_box = $MarginContainer/VBoxContainer
+		var set_lbl = v_box.get_node_or_null("SetLabel")
+		if not set_lbl:
+			set_lbl = Label.new()
+			set_lbl.name = "SetLabel"
+			set_lbl.add_theme_font_size_override("font_size", 8)
+			set_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			set_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			v_box.add_child(set_lbl)
+			v_box.move_child(set_lbl, name_lbl.get_index() + 1)
+		
+		if sid != "" and GameState.combat_manager and "TRINITY_SET_BONUSES" in GameState.combat_manager:
+			var s_db = GameState.combat_manager.TRINITY_SET_BONUSES
+			if s_db.has(sid):
+				var set_name = s_db[sid]["name"]
+				set_lbl.text = "[ %s ]" % set_name.to_upper()
+				set_lbl.add_theme_color_override("font_color", Color(0.0, 0.8, 0.8)) # Cyan
+				set_lbl.visible = true
+			else: set_lbl.visible = false
+		else: set_lbl.visible = false
+		
 		var rarity = manager.get_module_rarity(equipped_id)
 		var rarity_color = manager.RARITY_COLORS.get(rarity, Color(0.7, 0.7, 0.7))
 		
@@ -121,7 +148,7 @@ func refresh_state():
 					option_btn.add_item("Socket: Remove " + gem_name, item_idx)
 					option_btn.set_item_metadata(item_idx, {"action": "remove_gem", "socket_idx": i})
 					
-					var g_color = Color("#ff4444") if "Crimson" in gem_name else (Color("#44ccff") if "Cobalt" in gem_name else (Color("#ffcc00") if "Topaz" in gem_name else Color("#aa44ff")))
+					var g_color = _get_gem_color(gem_name)
 					sb.bg_color = g_color
 					sb.border_color = g_color.lightened(0.6)
 					sb.shadow_color = g_color * Color(1, 1, 1, 0.4)
@@ -192,7 +219,7 @@ func _refresh_consumable_state():
 		var data = ElementDB.get_consumable_data(equipped_id)
 		var dname = data.get("name", equipped_id)
 		var qty = GameState.resources.get_element_amount(equipped_id)
-		var heal_pct = int(round(data.get("stats", {}).get("heal_pct", 0.0) * 100.0))
+		var heal_pct = int(round(data.get("heal_pct", data.get("stats", {}).get("heal_pct", 0.0)) * 100.0))
 		
 		name_lbl.text = "%s (x%d)" % [dname, qty]
 		name_lbl.add_theme_color_override("font_color", Color(0.74, 0.74, 0.86))
@@ -217,7 +244,7 @@ func _refresh_consumable_state():
 			var qty = GameState.resources.get_element_amount(id)
 			if qty > 0:
 				option_btn.add_item("%s (x%d)" % [data.get("name", id), qty], idx)
-				option_btn.set_item_metadata(idx, id)
+				option_btn.set_item_metadata(option_btn.get_item_count() - 1, id)
 				idx += 1
 
 func _get_clean_name(raw_name: String) -> String:
@@ -235,6 +262,13 @@ func _get_slot_color(s_type: String) -> Color:
 		"ammo": return Color(0.88, 0.60, 0.34)
 		"consumable": return Color(0.74, 0.74, 0.86)
 		_: return Color(0.65, 0.58, 0.47)
+
+func _get_gem_color(gem_name: String) -> Color:
+	if "Crimson" in gem_name: return Color("#ff4444")
+	if "Cobalt" in gem_name: return Color("#44ccff")
+	if "Topaz" in gem_name: return Color("#ffcc00")
+	if "Amethyst" in gem_name: return Color("#aa44ff")
+	return Color("#b548b5") # Default purple
 
 func _get_rarity_background(rarity: int) -> Color:
 	if rarity == manager.Rarity.UNCOMMON: return Color(0.08, 0.11, 0.08, 0.96)
@@ -585,28 +619,70 @@ func _build_module_tooltip(m_data: Dictionary) -> String:
 	var affixes = m_data.get("affixes", {})
 	if affixes.size() > 0:
 		tt += div
+		var zone_diff = int(m_data.get("zone_difficulty", 1))
 		for aid in affixes:
 			if aid in manager.AFFIX_DB:
 				var cfg = manager.AFFIX_DB[aid]
-				var val = int(affixes[aid] * 100)
-				var r_min = int(cfg["range"][0] * 100)
-				var r_max = int(cfg["range"][1] * 100)
+				var val_raw = affixes[aid]
+				var scaling = cfg.get("scaling", "percent")
 				
-				var item_rarity = int(m_data.get("rarity", manager.Rarity.COMMON))
-				var icon = "*"
-				if item_rarity == manager.Rarity.LEGENDARY: icon = "*"
-				elif item_rarity == manager.Rarity.UNIQUE: icon = "!"
+				# v80.1 Fix: Use scaled ranges for display
+				var s_range = manager.get_affix_scaled_range(aid, zone_diff)
+				var val_str = ""
+				var range_str = ""
 				
-				tt += "[color=#8fc5ff]%s %s[/color] [color=gray][font_size=9][%d-%d]%%[/font_size][/color]\n" % [icon, (cfg["desc"] % val), r_min, r_max]
+				if scaling == "flat":
+					val_str = str(int(val_raw))
+					range_str = " [color=gray][font_size=9][%d-%d][/font_size][/color]" % [int(s_range[0]), int(s_range[1])]
+				else:
+					val_str = "%d%%" % int(val_raw * 100)
+					range_str = " [color=gray][font_size=9][%d-%d]%%[/font_size][/color]" % [int(s_range[0] * 100), int(s_range[1] * 100)]
+				
+				var item_rarity_val = int(m_data.get("rarity", manager.Rarity.COMMON))
+				var icon = ""
+				
+				var desc = cfg["desc"] % [int(val_raw) if scaling == "flat" else int(val_raw * 100)]
+				tt += "[color=#8fc5ff]%s %s[/color]%s\n" % [icon, desc, range_str]
 
 	if m_data.has("sockets"):
 		tt += div
 		for gem in m_data["sockets"]:
 			if gem:
 				var g_name = ElementDB.get_display_name(gem)
-				tt += "[color=#b548b5]* %s[/color]\n" % g_name
+				var g_desc = ElementDB.get_element_description(gem)
+				var g_hex = _get_gem_color(g_name).to_html(false)
+				if g_desc != "":
+					tt += "[color=#%s]%s: %s[/color]\n" % [g_hex, g_name, g_desc]
+				else:
+					tt += "[color=#%s]%s[/color]\n" % [g_hex, g_name]
 			else:
-				tt += "[color=#444444]* Empty Socket[/color]\n"
+				tt += "[color=#444444]Empty Socket[/color]\n"
+
+	# v83.9: Set Bonus Tooltip Section
+	var sid = m_data.get("set_id", "")
+	if sid == "" and m_data.get("is_custom") and m_data.has("base_module"):
+		var base_id = m_data["base_module"]
+		sid = manager.modules.get(base_id, {}).get("set_id", "")
+		
+	if sid != "" and GameState.combat_manager and "TRINITY_SET_BONUSES" in GameState.combat_manager:
+		var s_db = GameState.combat_manager.TRINITY_SET_BONUSES
+		if s_db.has(sid):
+			tt += div
+			var set_info = s_db[sid]
+			var count = GameState.combat_manager.get_set_piece_count(sid)
+			var total = set_info["pieces"]
+			var active = count >= total
+			
+			tt += "[b][color=#00ffff]SET: %s[/color][/b]\n" % set_info["name"].to_upper()
+			tt += "[font_size=10][color=gray]%d / %d pieces equipped[/color][/font_size]\n" % [count, total]
+			
+			for bonus_key in set_info["bonus"]:
+				var val = set_info["bonus"][bonus_key]
+				var b_name = bonus_key.replace("_pct", "").replace("_flat", "").replace("_", " ").to_upper()
+				var val_str = "+%d%%" % val if ("_pct" in bonus_key or "crit" in bonus_key) else "+%d" % val
+				
+				var col = "#ffffff" if active else "#666666"
+				tt += "[color=%s]%s: %s[/color]\n" % [col, b_name, val_str]
 
 	tt += div
 	tt += "[center][font_size=10][color=gray][Right-click to unequip][/color][/font_size][/center]"

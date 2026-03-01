@@ -32,7 +32,10 @@ var graphs = {
 			
 			# Missing Techs Restored (Audit)
 			"eff_scanning_1", "xeno_archaeology",
-			"asteroid_clearance", "mars_license", "outer_system_auth", "deep_space_expedition", "quarantine_protocols",
+			
+			# v80.4: Zone Access Gates (required for hulls, modules, and combat zones)
+			"zone_2_access", "zone_3_access", "zone_4_access", "zone_5_access", "zone_6_access",
+			"zone_7_access", "zone_8_access", "zone_9_access", "zone_10_access",
 			
 			# Efficiency Branch
 			"efficiency_1", "efficiency_2", "efficiency_3", "efficiency_4", "efficiency_5"
@@ -70,14 +73,19 @@ var graphs = {
 			"void_physics": Vector2(840, 600),
 			"void_navigation": Vector2(1040, 600),
 			
-			# Branch 6: Progression Gates (Restored Chain)
-			"asteroid_clearance": Vector2(40, 850),
-			"mars_license": Vector2(240, 850),
-			"outer_system_auth": Vector2(440, 850),
-			"deep_space_expedition": Vector2(640, 850),
-			"quarantine_protocols": Vector2(840, 850),
 			
-			# Branch 7: Efficiency (Yield Boosts)
+			# Branch 7: Zone Access Gates (v80.4 — Required for Hulls & Modules)
+			"zone_2_access": Vector2(40, 850),
+			"zone_3_access": Vector2(240, 850),
+			"zone_4_access": Vector2(440, 850),
+			"zone_5_access": Vector2(640, 850),
+			"zone_6_access": Vector2(840, 850),
+			"zone_7_access": Vector2(1040, 850),
+			"zone_8_access": Vector2(1240, 850),
+			"zone_9_access": Vector2(1440, 850),
+			"zone_10_access": Vector2(1640, 850),
+			
+			# Branch 8: Efficiency (Yield Boosts)
 			"efficiency_1": Vector2(240, 370),
 			"efficiency_2": Vector2(440, 370),
 			"efficiency_3": Vector2(640, 370),

@@ -79,6 +79,82 @@ const ENEMY_COMP_BOSS_SHIELD = 0.36
 const ENEMY_COMP_BOSS_ATK = 0.28
 const ENEMY_COMP_DEF = 0.12
 
+# v80.1: Combat Safety Caps — Anti-Exploit Hard Ceilings
+const MIN_ATTACK_INTERVAL = 0.3           # Prevents infinite DPS
+const MAX_ATK_SPEED_MULT = 3.0            # Max 3x base fire rate
+const MAX_EVASION = 75                    # Enemies always ≥25% hit chance
+const MAX_CRIT_CHANCE = 0.50              # No guaranteed crit loops
+const MAX_CRIT_DAMAGE = 3.0               # Caps burst spikes
+const MAX_DAMAGE_REDUCTION = 0.80         # Explicit DEF ceiling
+const MAX_SHIELD_REGEN_PERCENT = 5        # % of max shield per second
+const MAX_HP_REGEN_PERCENT = 2            # % of max HP per second
+const MAX_ENEMY_SLOW = 0.50               # Jamming can't freeze enemies
+const MAX_REFLECT_PERCENT = 0.10          # Reflect capped
+const DEF_K_CONSTANT = 100.0              # v80.1: Fixed k for DEF/(DEF+k) formula
+
+# v80.1: Trinity Set Bonus Definitions — 3/3 pieces needed
+# Each bonus is capped at ≤15% effective power increase per architecture constraint
+var active_trinity_sets: Array = []  # Populated on stat recalc
+
+const TRINITY_SET_BONUSES = {
+	"architects_regalia":  {"name": "Architect's Regalia",  "pieces": 3, "bonus": {"atk_speed_pct": 15, "hp_regen_flat": 20}},
+	"monoliths_bedrock":   {"name": "Monolith's Bedrock",   "pieces": 3, "bonus": {"def_pct": 10, "reflect_pct": 5}},
+	"warmasters_arsenal":  {"name": "Warmaster's Arsenal",  "pieces": 3, "bonus": {"crit_chance": 12, "atk_pct": 8}},
+	"overseers_command":   {"name": "Overseer's Command",   "pieces": 3, "bonus": {"shield_regen_pct": 10, "accuracy_flat": 50}},
+	"harbingers_wrath":    {"name": "Harbinger's Wrath",    "pieces": 3, "bonus": {"missile_dmg_pct": 15, "enemy_def_reduce_pct": 10}},
+	"colossus_dominion":   {"name": "Colossus Dominion",    "pieces": 3, "bonus": {"all_dmg_pct": 12, "evasion_flat": 5}},
+	"sovereigns_prism":    {"name": "Sovereign's Prism",    "pieces": 3, "bonus": {"def_flat": 300, "energy_dmg_pct": 10}},
+	"wardens_quarantine":  {"name": "Warden's Quarantine",  "pieces": 3, "bonus": {"shield_hp_pct": 20, "crit_chance": 8}},
+	"titans_legacy":       {"name": "Titan's Legacy",       "pieces": 3, "bonus": {"all_dmg_pct": 15, "def_flat": 500}},
+	"leviathans_crown":    {"name": "Leviathan's Crown",    "pieces": 3, "bonus": {"all_dmg_pct": 20, "hp_regen_flat": 1000}}
+}
+
+func _get_active_trinity_sets() -> Array:
+	var sm = GameState.shipyard_manager
+	if not sm:
+		return []
+	var set_counts = {}
+	for slot in sm.loadout:
+		var mod_id = sm.loadout[slot]
+		if mod_id == null or mod_id == "":
+			continue
+		# Look up module data
+		var mod_data = sm.modules.get(mod_id, {})
+		var sid = mod_data.get("set_id", "")
+		
+		# Fallback: if sid is missing on custom item, check base module
+		if sid == "" and mod_data.get("is_custom") and mod_data.has("base_module"):
+			var base_id = mod_data["base_module"]
+			sid = sm.modules.get(base_id, {}).get("set_id", "")
+			
+		if sid != "":
+			set_counts[sid] = set_counts.get(sid, 0) + 1
+	var result = []
+	for sid in set_counts:
+		if sid in TRINITY_SET_BONUSES:
+			if set_counts[sid] >= TRINITY_SET_BONUSES[sid]["pieces"]:
+				result.append(sid)
+	return result
+
+func get_set_piece_count(set_id: String) -> int:
+	var sm = GameState.shipyard_manager
+	if not sm: return 0
+	var count = 0
+	for slot in sm.loadout:
+		var mod_id = sm.loadout[slot]
+		if mod_id == null or mod_id == "": continue
+		var mod_data = sm.modules.get(mod_id, {})
+		var sid = mod_data.get("set_id", "")
+		
+		# Fallback: if sid is missing on custom item, check base module
+		if sid == "" and mod_data.get("is_custom") and mod_data.has("base_module"):
+			var base_id = mod_data["base_module"]
+			sid = sm.modules.get(base_id, {}).get("set_id", "")
+			
+		if sid == set_id:
+			count += 1
+	return count
+
 func _module_matches(module_id, base_module_id: String) -> bool:
 	if not (module_id is String):
 		return false
@@ -142,607 +218,562 @@ func get_external_progression_combat_mult() -> float:
 	
 	return clamp(combat_mult * processing_mult * research_speed_mult * warp_mult * trophy_mult, 1.0, 6.0)
 
+# v80.1: Formula-driven zones — 10 zones with proper research gates
 var zones = {
 	"lunar_orbit": {
 		"name": "Lunar Orbit",
 		"desc": "Low threat sector populated by rogue mining drones.",
 		"difficulty": 1,
-		"enemies": ["lunar_drone", "dust_mite", "scrap_collector", "survey_probe", "rogue_architect"]
+		"enemies": ["z1_dust_mite", "z1_lunar_drone", "z1_scrap_collector", "z1_survey_probe", "z1_boss_architect"]
 	},
 	"asteroid_belt": {
 		"name": "Asteroid Belt",
-		"desc": "Dense field with pirate skiffs and kinetic hazards.",
+		"desc": "Dense asteroid field. Pirates and territorial fauna.",
 		"difficulty": 2,
-		"enemies": ["pirate_skiff", "rock_golem", "claim_jumper", "ore_hauler", "silicate_monolith"],
-		"research_req": "asteroid_clearance"
+		"enemies": ["z2_pirate_skiff", "z2_silicate_golem", "z2_claim_jumper", "z2_ore_hauler", "z2_boss_monolith"],
+		"research_req": "zone_2_access"
 	},
 	"mars_debris": {
 		"name": "Mars Debris Field",
-		"desc": "Wreckage of the old Martian shipyards. Scavengers abound.",
+		"desc": "War-torn debris. Salvage mechs and derelict defenses.",
 		"difficulty": 3,
-		"enemies": ["scavenger_mech", "martian_sentry", "derelict_frigate", "salvage_swarm", "martian_warmaster"],
-		"research_req": "mars_license"
+		"enemies": ["z3_scavenger_mech", "z3_martian_sentry", "z3_salvage_swarm", "z3_derelict_frigate", "z3_boss_warmaster"],
+		"research_req": "zone_3_access"
 	},
-	"titan_halo": {
-		"name": "Titan's Halo",
-		"desc": "Frozen rings around the gas giant. Extreme cold and pirate lords.",
+	"cryofield": {
+		"name": "Cryofield",
+		"desc": "Frozen deep-space anomaly. Cryo-adapted hostiles.",
 		"difficulty": 4,
-		"enemies": ["cryo_drone", "pirate_gunship", "frozen_hulk", "smuggler_cutter", "titan_overseer", "cryo_lord"],
-		"research_req": "outer_system_auth"
+		"enemies": ["z4_ice_wraith", "z4_cryo_sentinel", "z4_frost_hulk", "z4_glacial_drone", "z4_boss_overseer"],
+		"research_req": "zone_4_access"
 	},
 	"sector_alpha": {
 		"name": "Sector Alpha",
-		"desc": "Uncharted region rich in Titanium. High threat.",
+		"desc": "Xenon-controlled territory. Advanced alien technology.",
 		"difficulty": 5,
-		"enemies": ["alien_frigate", "xenon_corvette", "xenon_mothership", "xenon_scout", "alien_probe", "xenon_harbinger"], # v57.0: +2
-		"research_req": "sector_alpha_decryption"
+		"enemies": ["z5_xenon_scout", "z5_xenon_corvette", "z5_alien_frigate", "z5_alien_probe", "z5_boss_harbinger"],
+		"research_req": "zone_5_access"
 	},
 	"sector_beta": {
 		"name": "Sector Beta",
-		"desc": "Abandoned mining colony. Automated defense systems hostile. Rich in industrial metals.",
+		"desc": "Abandoned mining colony. Automated defense systems.",
 		"difficulty": 6,
-		"enemies": ["mining_sentinel", "defense_turret", "colony_overseer", "repair_drone", "ore_guardian", "overseer_prime"], # v57.0: +2
-		"research_req": "deep_space_nav"
+		"enemies": ["z6_defense_turret", "z6_mining_golem", "z6_rad_beast", "z6_ore_guardian", "z6_boss_colossus"],
+		"research_req": "zone_6_access"
 	},
 	"sector_gamma": {
 		"name": "Sector Gamma",
-		"desc": "Radioactive nebula. Mutated organisms detected. Extreme danger.",
+		"desc": "Deep space void. Energy wraiths and exotic matter.",
 		"difficulty": 7,
-		"enemies": ["radiation_beast", "nebula_leviathan", "gamma_colossus", "irradiated_hulk", "plasma_wraith", "rad_beast_alpha"], # v57.0: +2
-		"research_req": "radiation_shielding"
+		"enemies": ["z7_shard_swarm", "z7_energy_wraith", "z7_void_hunter", "z7_gamma_beast", "z7_boss_sovereign"],
+		"research_req": "zone_7_access"
 	},
 	"sector_delta": {
 		"name": "Sector Delta",
-		"desc": "Crystalline asteroid field. Unknown energy signatures. Ultimate challenge.",
+		"desc": "Crystal nebula. Prismatic entities and void anomalies.",
 		"difficulty": 8,
-		"enemies": ["crystal_golem", "energy_wraith", "sentinel_prime", "shard_swarm", "prism_guardian", "prismatic_sovereign"], # v57.0: +2
-		"research_req": "exotic_matter_analysis"
+		"enemies": ["z8_prism_drone", "z8_crystal_golem", "z8_void_stalker", "z8_nebula_phantom", "z8_boss_warden"],
+		"research_req": "zone_8_access"
 	},
-	# ENDGAME ZONE - Added to address retention cliff after Dreadnought
-	# v57.0: Added Sector Zeta (Difficulty 9) to bridge Delta → Epsilon gap
 	"sector_zeta": {
 		"name": "Sector Zeta",
-		"desc": "Sealed sector containing ancient alien pathogens and rogue AI. Extreme biohazard.",
+		"desc": "Quarantine zone. Biological horrors and rogue AI.",
 		"difficulty": 9,
-		"enemies": ["plague_drone", "bio_horror", "rogue_ai_core", "quarantine_warden", "patient_zero"],
-		"research_req": "quarantine_protocols"
+		"enemies": ["z9_plague_drone", "z9_bio_horror", "z9_rogue_ai", "z9_quarantine_mech", "z9_boss_patient_zero"],
+		"research_req": "zone_9_access"
 	},
 	"sector_epsilon": {
 		"name": "Sector Epsilon",
-		"desc": "Beyond known space. Primordial entities and temporal anomalies. Requires Dreadnought-class vessel.",
+		"desc": "Beyond known space. Primordial entities and temporal anomalies.",
 		"difficulty": 10,
-		"enemies": ["void_stalker", "temporal_phantom", "omega_sentinel", "primordial_titan", "void_leviathan", "time_weaver"],
-		"research_req": "void_navigation"
+		"enemies": ["z10_void_stalker", "z10_temporal_phantom", "z10_omega_sentinel", "z10_primordial_titan", "z10_boss_leviathan"],
+		"research_req": "zone_10_access"
 	}
 }
 
+# v80.1: Formula-Driven Enemy DB
+# Regular: HP=floor(200*2.4^(N-1)), ATK=floor(12*2.2^(N-1)), DEF=floor(3*2.2^(N-1))
+# Boss: HP×8, ATK×3, DEF×4
+# Enemy variants within zone: ±20% stat variation for diversity
 var enemy_db = {
-	"dust_mite": {
+	# ═══ ZONE 1: Lunar Orbit — Reg HP~200, ATK~12, DEF~3 ═══
+	"z1_dust_mite": {
 		"name": "Space Dust Mite",
-		"stats": {"hp": 550, "atk": 45, "def": 10, "atk_interval": 2.5, "accuracy": 20}, # Early game tweak
-		"loot": [["Fe", 1, 3], ["MiteChitin", 1, 1]],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["mining_laser_mk1", "railgun_mk1", "battery_t1", "basic_shield", "basic_thruster", "lidar_array"],
-		"xp": 8
+		"stats": {"hp": 150, "atk": 8, "def": 2, "atk_interval": 2.5, "accuracy": 15},
+		"loot": [["Fe", 2, 4], ["credits", 50, 100], ["Res1", 1, 2]],
+		"rare_loot": [["MiteChitin", 0.25, 2, 3]],
+		"module_drop_chance": 0.10,
+		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_shield", "z1_armor"],
+		"xp": 5, "eva": 5, "zone": 1
 	},
-	"lunar_drone": {
+	"z1_lunar_drone": {
 		"name": "Lunar Drone",
-		"stats": {"hp": 850, "atk": 65, "def": 15, "atk_interval": 2.5, "accuracy": 20},
-		"loot": [["Cu", 2, 4], ["Fe", 3, 6], ["DroneCore", 1, 1]],
-		"rare_loot": [["Cu", 0.3, 1, 2], ["Chip", 0.08, 1, 1], ["SalvageData", 0.20, 1, 1]],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["mining_laser_mk1", "railgun_mk1", "battery_t1", "basic_shield", "basic_thruster", "lidar_array"],
-		"xp": 12
+		"stats": {"hp": 200, "atk": 12, "def": 3, "atk_interval": 2.5, "accuracy": 18},
+		"loot": [["Fe", 2, 5], ["Cu", 1, 3], ["Res1", 1, 2]],
+		"rare_loot": [["NavData", 0.10, 1, 1]],
+		"module_drop_chance": 0.10,
+		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_missile", "z1_shield", "z1_armor"],
+		"xp": 8, "eva": 8, "zone": 1
 	},
-	"scrap_collector": {
+	"z1_scrap_collector": {
 		"name": "Scrap Collector",
-		"stats": {"hp": 1100, "atk": 50, "def": 12, "atk_interval": 2.2, "accuracy": 25},
-		"loot": [["Cu", 5, 10], ["Res1", 2, 5], ["DroneCore", 2, 5]],
-		"rare_loot": [["NavData", 0.33, 1, 2]],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["mining_laser_mk1", "railgun_mk1", "battery_t1", "basic_shield", "basic_thruster", "lidar_array"],
-		"xp": 10
+		"stats": {"hp": 250, "atk": 15, "def": 4, "atk_interval": 2.2, "accuracy": 20},
+		"loot": [["Fe", 3, 6], ["Si", 1, 3], ["Res1", 1, 3]],
+		"rare_loot": [["Cu", 0.15, 2, 4]],
+		"module_drop_chance": 0.10,
+		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_missile", "z1_shield", "z1_armor"],
+		"xp": 10, "eva": 6, "zone": 1
 	},
-	"survey_probe": {
+	"z1_survey_probe": {
 		"name": "Survey Probe",
-		"stats": {"hp": 1400, "max_shield": 400, "atk": 30, "def": 18, "atk_interval": 1.0, "accuracy": 30},
-		"loot": [["credits", 100, 250], ["Si", 10, 20]],
-		"rare_loot": [["Circuit", 0.1, 1, 1], ["NavData", 0.05, 1, 1]],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["mining_laser_mk1", "railgun_mk1", "battery_t1", "basic_shield", "basic_thruster", "lidar_array"],
-		"xp": 25
+		"stats": {"hp": 180, "max_shield": 40, "atk": 10, "def": 5, "atk_interval": 1.0, "accuracy": 22},
+		"loot": [["credits", 80, 150], ["Si", 2, 4], ["Res1", 1, 3]],
+		"rare_loot": [["NavData", 0.15, 1, 2]],
+		"module_drop_chance": 0.10,
+		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_shield", "z1_armor"],
+		"xp": 12, "eva": 15, "zone": 1
 	},
-	"claim_jumper": {
-		"name": "Claim Jumper",
-		"stats": {"hp": 4800, "max_shield": 1200, "atk": 155, "def": 38, "atk_interval": 2.2, "accuracy": 45}, # Starts approaching Zone 1 boss (6k/180/45)
-		"loot": [["credits", 250, 450], ["Cu", 15, 30], ["StolenCargo", 1, 1]],
-		"rare_loot": [["NavData", 0.15, 2, 5]],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["mining_laser_mk1", "railgun_mk1", "battery_t1", "basic_shield", "basic_thruster", "lidar_array"],
-		"xp": 50
-	},
-	"ore_hauler": {
-		"name": "Ore Hauler Wreck",
-		"stats": {"hp": 7500, "atk": 220, "def": 45, "atk_interval": 5.0, "accuracy": 40}, # Exceeds Z1 boss due to low RoF
-		"loot": [["Fe", 50, 70], ["W", 15, 20]],
-		"rare_loot": [["U", 0.20, 2, 5], ["Ag", 0.15, 1, 3]],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["mining_laser_mk1", "railgun_mk1", "battery_t1", "basic_shield", "basic_thruster", "lidar_array"],
-		"xp": 80
-	},
-	"derelict_frigate": {
-		"name": "Derelict Frigate",
-		"stats": {"hp": 14500, "max_shield": 3500, "atk": 420, "def": 75, "atk_interval": 4.0, "accuracy": 65}, # Approaches Z2 Boss (12k/350/65)
-		"loot": [["Steel", 5, 10], ["Fe", 20, 40], ["Res2", 5, 10]],
-		"rare_loot": [["Circuit", 0.35, 2, 4], ["Chip", 0.20, 2, 2]],
-		"module_drop_chance": 0.15,
-		"module_drop_pool": ["mining_laser_mk1", "railgun_mk1", "battery_t1", "basic_shield", "basic_thruster", "lidar_array"],
-		"is_boss": true,
-		"xp": 250
-	},
-	"salvage_swarm": {
-		"name": "Salvage Swarm",
-		"stats": {"hp": 9500, "atk": 110, "def": 55, "atk_interval": 0.6, "accuracy": 60}, # Fast attack
-		"loot": [["Cu", 10, 20], ["SwarmFragment", 1, 2]],
-		"rare_loot": [["Resin", 0.3, 1, 2], ["Cu", 0.2, 1, 2]],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["mining_laser_mk1", "railgun_mk1", "battery_t1", "basic_shield", "basic_thruster", "lidar_array"],
-		"xp": 35
-	},
-	"frozen_hulk": {
-		"name": "Frozen Hulk",
-		"stats": {"hp": 38000, "max_shield": 8000, "atk": 1400, "def": 105, "atk_interval": 6.0, "accuracy": 95}, # Approaches Z3 Boss (45k/1500/110)
-		"loot": [["C", 10, 20]],
-		"rare_loot": [["Graphite", 0.35, 1, 3], ["W", 0.15, 1, 2]],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["mining_laser_mk1", "railgun_mk1", "battery_t1", "basic_shield", "basic_thruster", "lidar_array"],
-		"xp": 75
-	},
-	"smuggler_cutter": {
-		"name": "Smuggler Cutter",
-		"stats": {"hp": 22000, "max_shield": 16000, "atk": 850, "def": 85, "accuracy": 100}, 
-		"loot": [["credits", 100, 200]],
-		"rare_loot": [["Li", 0.25, 1, 3], ["Ti", 0.2, 1, 2]],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["mining_laser_mk1", "railgun_mk1", "battery_t1", "basic_shield", "basic_thruster", "lidar_array"],
-		"xp": 95
-	},
-	"pirate_skiff": {
-		"name": "Pirate Skiff",
-		"stats": {"hp": 5200, "max_shield": 1800, "atk": 165, "def": 42, "atk_interval": 1.8, "accuracy": 45}, # Target: Z1 Boss
-		"loot": [["credits", 2000, 6000], ["Fe", 10, 20], ["PirateManifest", 1, 1], ["NavData", 1, 2], ["Cu", 100, 200]],
-		"rare_loot": [["W", 0.40, 10, 20], ["Ti", 0.30, 40, 50]],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["mining_laser_mk2", "micro_missile_launcher", "heatsink_array", "battery_t2", "thermal_tile", "titanium_armor", "aluminum_hull_patch", "plasma_drive", "stasis_web"],
-		"xp": 30
-	},
-	"rock_golem": {
-		"name": "Silicate Golem",
-		"stats": {"hp": 6500, "atk": 190, "def": 48, "accuracy": 45},
-		"loot": [["Si", 100, 200], ["Fe", 10, 20]], # Added Fe for Ammo Sustenance (Audit Round 2)
-		"rare_loot": [["Ti", 0.4, 10, 20]],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["mining_laser_mk2", "micro_missile_launcher", "heatsink_array", "battery_t2", "thermal_tile", "titanium_armor", "aluminum_hull_patch", "plasma_drive", "stasis_web"],
-		"xp": 30
-	},
-	"scavenger_mech": {
-		"name": "Scavenger Mech",
-		"stats": {"hp": 11500, "max_shield": 2200, "atk": 310, "def": 60, "accuracy": 65}, # Target: Z2 Boss
-		"loot": [["Cu", 10, 20]],
-		"rare_loot": [["W", 0.3, 5, 10], ["Res2", 0.20, 1, 1], ["NavData", 0.25, 1, 2]],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["mining_laser_mk2", "micro_missile_launcher", "heatsink_array", "battery_t2", "thermal_tile", "titanium_armor", "aluminum_hull_patch", "plasma_drive", "stasis_web"],
-		"xp": 55
-	},
-	"martian_sentry": {
-		"name": "Martian Sentry",
-		"stats": {"hp": 7500, "max_shield": 6500, "atk": 380, "def": 58, "accuracy": 70}, 
-		"loot": [["C", 5, 10]],
-		"rare_loot": [["Resin", 0.1, 1, 2], ["Chip", 0.25, 1, 2], ["Rh", 0.10, 1, 2]],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["mining_laser_mk2", "micro_missile_launcher", "heatsink_array", "battery_t2", "thermal_tile", "titanium_armor", "aluminum_hull_patch", "plasma_drive", "stasis_web"],
-		"xp": 60
-	},
-	"cryo_drone": {
-		"name": "Cryo Drone",
-		"stats": {"hp": 35000, "max_shield": 12000, "atk": 1250, "def": 95, "accuracy": 95}, # Target Z3 Boss
-		"loot": [["H", 5, 15], ["Water", 5, 10], ["CryoCell", 1, 1]],
-		"rare_loot": [["Mesh", 0.05, 1, 1]],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["mining_laser_mk2", "micro_missile_launcher", "heatsink_array", "battery_t2", "thermal_tile", "titanium_armor", "aluminum_hull_patch", "plasma_drive", "stasis_web"],
-		"xp": 75
-	},
-	"pirate_gunship": {
-		"name": "Pirate Gunship",
-		"stats": {"hp": 25000, "max_shield": 12000, "atk": 550, "def": 75, "accuracy": 110}, # Buffed from 20k/8k/350
-		"loot": [["credits", 50, 150], ["Ti", 1, 3]],
-		"rare_loot": [["Seal", 0.05, 1, 1], ["NavData", 0.2, 1, 3], ["Res2", 0.30, 1, 2]],
-		"module_drop_chance": 0.15,
-		"module_drop_pool": ["mining_laser_mk2", "micro_missile_launcher", "heatsink_array", "battery_t2", "thermal_tile", "titanium_armor", "aluminum_hull_patch", "plasma_drive", "stasis_web"],
-		"is_boss": true,
-		"xp": 2500
-	},
-	"titan_overseer": {
-		"name": "TITAN OVERSEER",
-		"stats": {"hp": 120000, "max_shield": 40000, "atk": 3500, "def": 180, "accuracy": 160}, # Massive Buff: from 30k/10k/400
-		"loot": [["TitanClearance", 1, 1], ["Ti", 50, 100]],
-		"rare_loot": [["CryoCell", 0.50, 1, 2], ["Res2", 0.50, 2, 4]],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["missile_launcher_mk2", "cryo_vent", "targeting_matrix", "railgun_mk2", "advanced_shield", "composite_armor", "mg_al_frame", "galvanized_plating", "battery_t3"],
-		"xp": 15000
-	},
-	"alien_frigate": {
-		"name": "Xenon Patrol Frigate",
-		"stats": {"hp": 60000, "max_shield": 22000, "atk": 1150, "def": 145, "accuracy": 120}, # Target Z4 Boss (65k/150)
-		"loot": [["credits", 15000, 20000], ["Ti", 30, 60]],
-		"rare_loot": [["NavData", 0.35, 2, 5], ["Chip", 0.35, 2, 5], ["VoidArtifact", 0.3, 2, 3], ["Co", 0.35, 2, 4], ["Ni", 0.35, 2, 4], ["Res3", 0.35, 1, 2]],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["railgun_mk3", "mining_laser_mk3", "composite_armor_mk2", "stainless_armor", "superalloy_engine", "ai_targeting_system", "broadside_array"],
-		"xp": 500
-	},
-	"xenon_corvette": {
-		"name": "Xenon Corvette",
-		"stats": {"hp": 68000, "max_shield": 30000, "atk": 1350, "def": 150, "atk_interval": 2.5, "accuracy": 125, "eva": 25}, 
-		"loot": [["credits", 40000, 60000], ["Superalloy", 1, 2], ["VoidArtifact", 2, 4], ["NavData", 4, 8], ["Res3", 2, 3], ["Ti", 50, 100], ["U", 5, 15]],
-		"rare_loot": [],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["railgun_mk3", "mining_laser_mk3", "composite_armor_mk2", "stainless_armor", "superalloy_engine", "ai_targeting_system", "signal_jammer"],
-		"xp": 800
-	},
-	"xenon_mothership": {
-		"name": "XENON MOTHERSHIP",
-		"stats": {"hp": 180000, "max_shield": 60000, "atk": 1800, "def": 120, "atk_interval": 6.0, "accuracy": 150, "eva": 30}, # Buffed from 100k/30k/800
-		"loot": [["credits", 700000, 1000000], ["Superalloy", 30, 50], ["Chip", 30, 50], ["AdvCircuit", 10, 20], ["QuantumCore", 5, 10], ["VoidArtifact", 10, 25], ["Res3", 50, 100]],
-		"rare_loot": [["warmaster_railgun", 0.15, 1, 1], ["warmaster_armor", 0.15, 1, 1], ["warmaster_drive", 0.15, 1, 1]], 
-		"module_drop_chance": 0.15,
-		"module_drop_pool": ["railgun_mk3", "mining_laser_mk3", "composite_armor_mk2", "stainless_armor", "superalloy_engine", "ai_targeting_system", "broadside_array"],
-		"is_boss": true,
-		"xp": 10000
-	},
-	"mining_sentinel": {
-		"name": "Mining Sentinel MK-VII",
-		"stats": {"hp": 170000, "max_shield": 55000, "atk": 1750, "def": 120, "accuracy": 140, "jammer": true}, # Target Z5 Boss (180k/120)
-		"loot": [["ColonySalvage", 10, 20], ["Steel", 50, 100]],
-		"rare_loot": [["Co", 0.3, 5, 15], ["Ni", 0.3, 5, 15], ["Circuit", 0.3, 10, 25]],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["railgun_mk3", "mining_laser_mk3", "composite_armor_mk2", "stainless_armor", "superalloy_engine", "ai_targeting_system", "signal_jammer"],
-		"xp": 8000
-	},
-	"defense_turret": {
-		"name": "Automated Defense Turret",
-		"stats": {"hp": 210000, "atk": 2100, "def": 135, "atk_interval": 2.5, "accuracy": 150},
-		"loot": [["ColonySalvage", 25, 50], ["Circuit", 20, 50], ["TurretCore", 1, 1]],
-		"rare_loot": [["Cr", 0.3, 5, 10], ["AdvCircuit", 0.4, 5, 10]],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["railgun_mk3", "mining_laser_mk3", "composite_armor_mk2", "stainless_armor", "superalloy_engine", "ai_targeting_system", "broadside_array"],
-		"xp": 15000
-	},
-	"colony_overseer": {
-		"name": "Colony Overseer AI",
-		"stats": {"hp": 250000, "max_shield": 100000, "atk": 2500, "def": 180, "atk_interval": 3.5, "accuracy": 160, "jammer": true}, # Buffed from 150k/60k/900
-		"loot": [["AdvCircuit", 20, 30], ["ColonySalvage", 20, 40], ["ColonyDataCore", 5, 7]],
-		"rare_loot": [["overseer_turret", 0.15, 1, 1], ["overseer_bulkhead", 0.15, 1, 1], ["overseer_matrix", 0.15, 1, 1]],
-		"module_drop_chance": 0.15,
-		"module_drop_pool": ["railgun_mk3", "mining_laser_mk3", "composite_armor_mk2", "stainless_armor", "superalloy_engine", "ai_targeting_system", "broadside_array"],
-		"is_boss": true,
-		"xp": 35000
-	},
-	"radiation_beast": {
-		"name": "Gamma Radiation Beast",
-		"stats": {"hp": 260000, "max_shield": 85000, "atk": 2400, "def": 180, "accuracy": 160}, # Target Z6 Boss (250k/180)
-		"loot": [["credits", 750000, 1000000], ["RadIsotope", 1, 3], ["U", 100, 150]],
-		"rare_loot": [["ReactiveCore", 0.2, 1, 1]],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["cryo_laser_mk3", "antimatter_engine", "iridium_armor", "reactive_core_battery", "iridium_penetrator", "platinum_laser", "reactive_armor", "plasma_overcharger", "exotic_shield_matrix"],
-		"xp": 500
-	},
-	"nebula_leviathan": {
-		"name": "Nebula Leviathan",
-		"stats": {"hp": 500000, "max_shield": 200000, "atk": 4500, "def": 250, "accuracy": 180}, # Buffed from 300k/100k/1200
-		"loot": [["credits", 3000000, 5000000], ["Pd", 100, 200], ["RadIsotope", 3, 5], ["U", 700, 1000]],
-		"rare_loot": [["ExoticMatter", 0.1, 1, 1], ["rad_beast_spitter", 0.15, 1, 1], ["rad_beast_flesh", 0.15, 1, 1], ["rad_beast_gland", 0.15, 1, 1]],
-		"module_drop_chance": 0.15,
-		"module_drop_pool": ["cryo_laser_mk3", "plasma_overcharger", "iridium_armor"],
-		"is_boss": true,
-		"xp": 60000
-	},
-	"gamma_colossus": {
-		"name": "GAMMA COLOSSUS",
-		"stats": {"hp": 310000, "max_shield": 110000, "atk": 2850, "def": 190, "atk_interval": 2.5, "accuracy": 165, "jammer": true},
-		"loot": [["RadIsotope", 50, 100], ["Pt", 25, 50], ["QuantumCore", 5, 10], ["ExoticIsotope", 1, 3]],
-		"rare_loot": [["Ir", 0.5, 5, 15]],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["cryo_laser_mk3", "antimatter_engine", "iridium_armor", "reactive_core_battery", "iridium_penetrator", "platinum_laser", "reactive_armor", "plasma_overcharger", "exotic_shield_matrix"],
-		"xp": 30000
-	},
-	"crystal_golem": {
-		"name": "Crystalline Golem",
-		"stats": {"hp": 550000, "atk": 4800, "def": 255, "accuracy": 185}, # Target Z7 Boss (500k/250)
-		"loot": [["VoidCrystal", 1, 3], ["Si", 50, 100], ["Diamond", 1, 3]],
-		"rare_loot": [["Ir", 0.2, 1, 2], ["SyntheticCrystal", 0.15, 1, 1]],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["quantum_dissipator", "omni_scanner", "torpedo_launcher", "osmium_core_module", "palladium_fuel_cell", "reflective_sheath", "diamond_edge_railgun", "crystal_lens_laser"],
-		"xp": 1500
-	},
-	"energy_wraith": {
-		"name": "Energy Wraith",
-		"stats": {"hp": 480000, "max_shield": 280000, "atk": 5200, "def": 240, "accuracy": 190},
-		"loot": [["ExoticMatter", 2, 5], ["VoidCrystal", 2, 4], ["H", 20, 40]],
-		"rare_loot": [["AntimatterParticle", 0.1, 1, 1], ["VoidCrystal", 0.25, 2, 3]],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["quantum_dissipator", "omni_scanner", "torpedo_launcher", "osmium_core_module", "palladium_fuel_cell", "reflective_sheath", "diamond_edge_railgun", "crystal_lens_laser"],
-		"xp": 1800
-	},
-	"sentinel_prime": {
-		"name": "SENTINEL PRIME",
-		"stats": {"hp": 1500000, "max_shield": 500000, "atk": 7500, "def": 500, "accuracy": 200}, # Buffed from 1M/300k/2000
-		"loot": [["VoidCrystal", 5, 10], ["Ir", 10, 20], ["QuantumCore", 2, 4]],
-		"rare_loot": [["Os", 0.25, 1, 3], ["sovereign_laser", 0.15, 1, 1], ["sovereign_crystal", 0.15, 1, 1], ["sovereign_barrier", 0.15, 1, 1]],
-		"module_drop_chance": 0.15,
-		"module_drop_pool": ["quantum_dissipator", "omni_scanner", "torpedo_launcher", "osmium_core_module", "palladium_fuel_cell", "reflective_sheath", "diamond_edge_railgun", "crystal_lens_laser"],
-		"is_boss": true,
-		"xp": 150000
-	},
-	"void_stalker": {
-		"name": "Void Stalker",
-		"stats": {"hp": 1800000, "max_shield": 600000, "atk": 8500, "def": 550, "atk_interval": 2.0, "accuracy": 210, "eva": 60}, # Target Z8 Boss (1.5M/500)
-		"loot": [["credits", 100000, 200000], ["VoidCrystal", 10, 20], ["ExoticMatter", 5, 10]],
-		"rare_loot": [["VoidEssence", 0.50, 1, 2], ["QuantumCore", 0.5, 2, 4]],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["omega_armor", "primordial_core", "omega_beam", "void_battery_array", "temporal_drive", "primordial_fortification", "omega_singularity", "void_breaker_laser"],
-		"xp": 8000
-	},
-	"temporal_phantom": {
-		"name": "Temporal Phantom",
-		"stats": {"hp": 2100000, "max_shield": 1000000, "atk": 9500, "def": 580, "atk_interval": 1.5, "accuracy": 220, "eva": 80},
-		"loot": [["credits", 150000, 300000], ["ExoticMatter", 8, 15], ["VoidCrystal", 5, 10], ["AntimatterParticle", 1, 2]],
-		"rare_loot": [["ChronoCore", 0.25, 1, 1], ["VoidEssence", 0.2, 1, 2]],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["omega_armor", "primordial_core", "omega_beam", "void_battery_array", "temporal_drive", "primordial_fortification", "omega_singularity", "void_breaker_laser"],
-		"xp": 10000
-	},
-	"omega_sentinel": {
-		"name": "OMEGA SENTINEL",
-		"stats": {"hp": 3500000, "max_shield": 1800000, "atk": 16000, "def": 780, "accuracy": 235, "eva": 40}, # Target Z9 Boss (3M/900)
-		"loot": [["credits", 300000, 600000], ["VoidCrystal", 20, 40], ["QuantumCore", 5, 10], ["Ir", 20, 40]],
-		"rare_loot": [["OmegaPlating", 0.40, 1, 2], ["ChronoCore", 0.3, 1, 1], ["Os", 0.25, 2, 4], ["Neutronium", 0.15, 1, 2]],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["omega_armor", "primordial_core", "omega_beam", "void_battery_array", "temporal_drive", "primordial_fortification", "omega_singularity", "void_breaker_laser"],
-		"xp": 25000
-	},
-	"primordial_titan": {
-		"name": "★ PRIMORDIAL TITAN ★",
-		"stats": {"hp": 7500000, "max_shield": 3000000, "atk": 24000, "def": 950, "atk_interval": 5.0, "accuracy": 250, "eva": 50},
-		"loot": [["credits", 5000000, 15000000], ["VoidCrystal", 100, 200], ["QuantumCore", 20, 40], ["OmegaPlating", 5, 10], ["PrimordialShard", 1, 3], ["ChronoCore", 2, 4], ["VoidEssence", 5, 10]],
-		"rare_loot": [],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["omega_armor", "primordial_core", "omega_beam", "void_battery_array", "temporal_drive", "primordial_fortification", "omega_singularity", "void_breaker_laser"],
-		"xp": 100000
-	},
-	"void_leviathan": {
-		"name": "VOID LEVIATHAN",
-		"stats": {"hp": 15000000, "max_shield": 5000000, "atk": 30000, "def": 1200, "atk_interval": 6.0, "accuracy": 220, "jammer": true, "eva": 60}, # Ultimate Barrier: Buffed from 5M/9k
-		"loot": [["credits", 15000000, 30000000], ["VoidEssence", 10, 20], ["PrimordialShard", 5, 10]],
-		"rare_loot": [],
-		"requires_weapon": "void_breaker_laser",
-		"module_drop_chance": 0.15,
-		"module_drop_pool": ["omega_armor", "primordial_core", "omega_beam", "void_battery_array", "temporal_drive", "primordial_fortification", "omega_singularity", "void_breaker_laser"],
-		"is_boss": true,
-		"xp": 1000000
-	},
-	# v57.0: SECTOR ZETA ENEMIES (Difficulty 9)
-	"plague_drone": {
-		"name": "Plague Drone",
-		"stats": {"hp": 1600000, "max_shield": 600000, "atk": 8500, "def": 530, "atk_interval": 1.8, "accuracy": 205, "eva": 35}, # Target Z8 Boss (1.5M/500)
-		"loot": [["credits", 50000, 100000], ["BiohazardSample", 2, 5], ["Ti", 30, 60]],
-		"rare_loot": [["PathogenCore", 0.25, 1, 2], ["Res3", 0.3, 5, 10]],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["temporal_scrambler", "warp_stabilizer"],
-		"xp": 3500
-	},
-	"bio_horror": {
-		"name": "Bio-Horror",
-		"stats": {"hp": 1900000, "max_shield": 750000, "atk": 9800, "def": 560, "atk_interval": 2.5, "accuracy": 215, "eva": 25},
-		"loot": [["credits", 80000, 150000], ["BiohazardSample", 5, 10], ["MutatedTissue", 2, 4]],
-		"rare_loot": [["PathogenCore", 0.4, 1, 3], ["VoidCrystal", 0.2, 2, 4], ["S", 0.30, 2, 5]],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["void_engine", "chrono_stabilizer"],
-		"xp": 5000
-	},
-	"rogue_ai_core": {
-		"name": "Rogue AI Core",
-		"stats": {"hp": 2400000, "max_shield": 1200000, "atk": 10500, "def": 600, "atk_interval": 1.5, "accuracy": 225, "eva": 45},
-		"loot": [["credits", 100000, 200000], ["AdvCircuit", 10, 20], ["QuantumCore", 1, 2]],
-		"rare_loot": [["AIMatrix", 0.3, 1, 1], ["Chip", 0.5, 5, 10]],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["temporal_scrambler", "warp_stabilizer", "void_engine", "chrono_stabilizer"],
-		"xp": 6000
-	},
-	"quarantine_warden": {
-		"name": "QUARANTINE WARDEN",
-		"stats": {"hp": 3000000, "max_shield": 1500000, "atk": 8500, "def": 900, "accuracy": 220, "eva": 30}, # Buffed from 1.5M/800k/3000
-		"loot": [["credits", 200000, 400000], ["BiohazardSample", 10, 20], ["PathogenCore", 2, 4], ["MutatedTissue", 5, 10]],
-		"rare_loot": [["QuarantineClearance", 0.5, 1, 1], ["AIMatrix", 0.25, 1, 2]],
-		"module_drop_chance": 0.15,
-		"module_drop_pool": ["temporal_scrambler", "warp_stabilizer", "void_engine", "chrono_stabilizer"],
-		"is_boss": true,
-		"xp": 250000
-	},
-	# v57.0: Late Sector Expansion - Sector Alpha (+2)
-	"xenon_scout": {
-		"name": "Xenon Scout",
-		"stats": {"hp": 55000, "max_shield": 18000, "atk": 1050, "def": 140, "atk_interval": 1.5, "accuracy": 115, "eva": 40}, # Target Z4 Boss
-		"loot": [["credits", 5000, 10000], ["Ti", 10, 20], ["Fe", 25, 50]],
-		"rare_loot": [["NavData", 0.3, 1, 3], ["Res2", 0.2, 1, 2]],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["railgun_mk3", "mining_laser_mk3", "composite_armor_mk2", "stainless_armor", "cobalt_battery_module"],
-		"xp": 350
-	},
-	"alien_probe": {
-		"name": "Alien Probe",
-		"stats": {"hp": 65000, "max_shield": 25000, "atk": 1250, "def": 150, "atk_interval": 2.0, "accuracy": 125, "eva": 50},
-		"loot": [["credits", 2000, 4000], ["SalvageData", 2, 4], ["Circuit", 3, 6]],
-		"rare_loot": [["VoidArtifact", 0.1, 1, 1], ["Chip", 0.25, 1, 2]],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["railgun_mk3", "mining_laser_mk3", "composite_armor_mk2", "stainless_armor", "mg_battery_module"],
-		"xp": 400
-	},
-	# v57.0: Late Sector Expansion - Sector Beta (+2)
-	"repair_drone": {
-		"name": "Repair Drone",
-		"stats": {"hp": 160000, "max_shield": 60000, "atk": 1650, "def": 125, "atk_interval": 2.5, "accuracy": 135, "eva": 30}, # Target Z5 Boss
-		"loot": [["credits", 3000, 6000], ["Cu", 20, 40], ["Circuit", 5, 10]],
-		"rare_loot": [["AdvCircuit", 0.2, 1, 2], ["Mesh", 0.15, 1, 2]],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["railgun_mk3", "mining_laser_mk3", "composite_armor_mk2", "stainless_armor", "cobalt_battery_module"],
-		"xp": 500
-	},
-	"ore_guardian": {
-		"name": "Ore Guardian",
-		"stats": {"hp": 190000, "max_shield": 75000, "atk": 1900, "def": 130, "accuracy": 145, "eva": 15}, 
-		"loot": [["Fe", 100, 200], ["Ti", 30, 60], ["W", 20, 40]],
-		"rare_loot": [["Pt", 0.2, 1, 3], ["Ir", 0.1, 1, 2]],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["railgun_mk3", "mining_laser_mk3", "composite_armor_mk2", "stainless_armor", "mg_battery_module"],
-		"xp": 700
-	},
-	# v57.0: Late Sector Expansion - Sector Gamma (+2)
-	"irradiated_hulk": {
-		"name": "Irradiated Hulk",
-		"stats": {"hp": 290000, "max_shield": 95000, "atk": 2700, "def": 185, "atk_interval": 4.0, "accuracy": 170, "eva": 10}, # Target Z6 Boss
-		"loot": [["credits", 3000000, 5000000], ["U", 400, 500], ["RadIsotope", 5, 10]],
-		"rare_loot": [["Res3", 0.3, 2, 4], ["VoidCrystal", 0.1, 1, 2]],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["cryo_laser_mk3", "antimatter_engine", "iridium_armor", "reactive_core_battery"],
-		"xp": 1200
-	},
-	"plasma_wraith": {
-		"name": "Plasma Wraith",
-		"stats": {"hp": 240000, "max_shield": 150000, "atk": 2900, "def": 175, "atk_interval": 1.8, "accuracy": 165, "eva": 45}, 
-		"loot": [["credits", 1500000, 2000000]],
-		"rare_loot": [["QuantumCore", 0.15, 1, 1], ["ExoticMatter", 0.1, 1, 2]],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["iridium_penetrator", "platinum_laser", "reactive_armor", "plasma_overcharger", "exotic_shield_matrix"],
-		"xp": 1500
-	},
-	# v57.0: Late Sector Expansion - Sector Delta (+2)
-	"shard_swarm": {
-		"name": "Shard Swarm",
-		"stats": {"hp": 600000, "max_shield": 150000, "atk": 5000, "def": 260, "atk_interval": 0.8, "accuracy": 195, "eva": 35}, # Target Z7 Boss
-		"loot": [["credits", 20000, 40000], ["VoidCrystal", 3, 6], ["Si", 50, 100]],
-		"rare_loot": [["Ir", 0.2, 1, 3], ["QuantumCore", 0.1, 1, 1]],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["quantum_dissipator", "omni_scanner", "torpedo_launcher", "osmium_core_module", "palladium_fuel_cell"],
-		"xp": 2000
-	},
-	"prism_guardian": {
-		"name": "Prism Guardian",
-		"stats": {"hp": 650000, "max_shield": 300000, "atk": 5400, "def": 300, "atk_interval": 2.5, "accuracy": 185, "eva": 25},
-		"loot": [["credits", 30000, 60000], ["VoidCrystal", 5, 10], ["ExoticMatter", 2, 4]],
-		"rare_loot": [["AncientTech", 0.15, 1, 1], ["Os", 0.1, 1, 2]],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["reflective_sheath", "diamond_edge_railgun", "crystal_lens_laser"],
-		"xp": 2500
-	},
-	"rogue_architect": {
+	"z1_boss_architect": {
 		"name": "Rogue Architect",
-		"stats": {"hp": 6000, "max_shield": 2000, "atk": 180, "def": 45, "atk_interval": 2.0, "accuracy": 60}, # Buffed from 3k/1k/120
-		"loot": [["credits", 10000, 20000], ["W", 5, 10], ["Cu", 20, 50]],
-		"rare_loot": [["architect_beam", 0.15, 1, 1], ["architect_plating", 0.15, 1, 1], ["architect_cell", 0.15, 1, 1]],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["ai_targeting_system", "superalloy_engine", "composite_armor_mk2"],
-		"is_boss": true,
-		"xp": 1000
+		"stats": {"hp": 1200, "max_shield": 100, "atk": 30, "def": 10, "atk_interval": 2.5, "accuracy": 35},
+		"loot": [["credits", 500, 1000], ["Cu", 10, 25], ["Fe", 15, 30], ["Res1", 5, 10]],
+		"rare_loot": [["z1_unique_weapon", 0.10, 1, 1], ["z1_unique_armor", 0.10, 1, 1], ["z1_unique_shield", 0.10, 1, 1]],
+		"boss_core": "Z1_Core",
+		"module_drop_chance": 0.25,
+		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_missile", "z1_shield", "z1_armor"],
+		"is_boss": true, "xp": 100, "eva": 10, "zone": 1
 	},
-	"silicate_monolith": {
+
+	# ═══ ZONE 2: Asteroid Belt — Reg HP~480, ATK~26, DEF~7 ═══
+	"z2_pirate_skiff": {
+		"name": "Pirate Skiff",
+		"stats": {"hp": 380, "atk": 20, "def": 5, "atk_interval": 1.8, "accuracy": 25},
+		"loot": [["credits", 150, 300], ["Fe", 3, 8], ["Res1", 2, 4]],
+		"rare_loot": [["Cu", 0.15, 3, 6]],
+		"module_drop_chance": 0.10,
+		"module_drop_pool": ["z2_kinetic", "z2_energy", "z2_missile", "z2_shield", "z2_armor"],
+		"xp": 20, "eva": 12, "zone": 2
+	},
+	"z2_silicate_golem": {
+		"name": "Silicate Golem",
+		"stats": {"hp": 480, "atk": 26, "def": 7, "atk_interval": 3.0, "accuracy": 22},
+		"loot": [["Si", 5, 15], ["Fe", 3, 8], ["Res1", 2, 4]],
+		"rare_loot": [["Ti", 0.10, 1, 3]],
+		"module_drop_chance": 0.10,
+		"module_drop_pool": ["z2_kinetic", "z2_energy", "z2_missile", "z2_shield", "z2_armor"],
+		"xp": 25, "eva": 5, "zone": 2
+	},
+	"z2_claim_jumper": {
+		"name": "Claim Jumper",
+		"stats": {"hp": 520, "atk": 30, "def": 8, "atk_interval": 2.2, "accuracy": 28},
+		"loot": [["credits", 200, 400], ["Sn", 2, 5], ["Res1", 2, 5]],
+		"rare_loot": [["Ti", 0.12, 2, 4]],
+		"module_drop_chance": 0.10,
+		"module_drop_pool": ["z2_kinetic", "z2_energy", "z2_missile", "z2_shield", "z2_armor"],
+		"xp": 28, "eva": 15, "zone": 2
+	},
+	"z2_ore_hauler": {
+		"name": "Ore Hauler",
+		"stats": {"hp": 600, "atk": 22, "def": 10, "atk_interval": 5.0, "accuracy": 20},
+		"loot": [["Fe", 10, 25], ["Si", 5, 12], ["Res1", 2, 5]],
+		"rare_loot": [["Steel", 0.10, 1, 3]],
+		"module_drop_chance": 0.10,
+		"module_drop_pool": ["z2_kinetic", "z2_energy", "z2_shield", "z2_armor"],
+		"xp": 22, "eva": 3, "zone": 2
+	},
+	"z2_boss_monolith": {
 		"name": "Silicate Monolith",
-		"stats": {"hp": 12000, "max_shield": 4000, "atk": 350, "def": 65, "atk_interval": 4.0, "accuracy": 85}, # Buffed from 8k/2k/250
-		"loot": [["credits", 3000, 5000], ["Si", 50, 100]],
-		"rare_loot": [["monolith_blaster", 0.15, 1, 1], ["monolith_shell", 0.15, 1, 1], ["monolith_sensor", 0.15, 1, 1]],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["ai_targeting_system", "broadside_array", "stainless_armor"],
-		"is_boss": true,
-		"xp": 1500
+		"stats": {"hp": 3840, "max_shield": 800, "atk": 79, "def": 26, "atk_interval": 3.5, "accuracy": 45},
+		"loot": [["credits", 2000, 5000], ["Ti", 5, 12], ["Fe", 20, 40], ["Res1", 10, 20]],
+		"rare_loot": [["z2_unique_weapon", 0.10, 1, 1], ["z2_unique_armor", 0.10, 1, 1], ["z2_unique_shield", 0.10, 1, 1]],
+		"boss_core": "Z2_Core",
+		"module_drop_chance": 0.25,
+		"module_drop_pool": ["z2_kinetic", "z2_energy", "z2_missile", "z2_shield", "z2_armor"],
+		"is_boss": true, "xp": 300, "eva": 8, "zone": 2
 	},
-	"martian_warmaster": {
+
+	# ═══ ZONE 3: Mars Debris — Reg HP~1152, ATK~58, DEF~15 ═══
+	"z3_scavenger_mech": {
+		"name": "Scavenger Mech",
+		"stats": {"hp": 900, "atk": 45, "def": 12, "atk_interval": 2.5, "accuracy": 35},
+		"loot": [["Steel", 3, 8], ["Fe", 8, 20], ["Res2", 1, 2]],
+		"rare_loot": [["Circuit", 0.10, 1, 2]],
+		"module_drop_chance": 0.10,
+		"module_drop_pool": ["z3_kinetic", "z3_energy", "z3_missile", "z3_shield", "z3_armor"],
+		"xp": 50, "eva": 10, "zone": 3
+	},
+	"z3_martian_sentry": {
+		"name": "Martian Sentry",
+		"stats": {"hp": 1152, "max_shield": 300, "atk": 58, "def": 15, "atk_interval": 2.0, "accuracy": 40},
+		"loot": [["C", 3, 8], ["credits", 400, 800], ["Res2", 1, 2]],
+		"rare_loot": [["Chip", 0.08, 1, 2]],
+		"module_drop_chance": 0.10,
+		"module_drop_pool": ["z3_kinetic", "z3_energy", "z3_missile", "z3_shield", "z3_armor"],
+		"xp": 60, "eva": 12, "zone": 3
+	},
+	"z3_salvage_swarm": {
+		"name": "Salvage Swarm",
+		"stats": {"hp": 800, "atk": 30, "def": 10, "atk_interval": 0.6, "accuracy": 38},
+		"loot": [["Fe", 5, 15], ["Cu", 3, 8], ["Res2", 1, 2]],
+		"rare_loot": [["Steel", 0.15, 2, 5]],
+		"module_drop_chance": 0.10,
+		"module_drop_pool": ["z3_kinetic", "z3_energy", "z3_shield", "z3_armor"],
+		"xp": 45, "eva": 20, "zone": 3
+	},
+	"z3_derelict_frigate": {
+		"name": "Derelict Frigate",
+		"stats": {"hp": 1400, "max_shield": 400, "atk": 65, "def": 18, "atk_interval": 4.0, "accuracy": 42},
+		"loot": [["Steel", 5, 12], ["Fe", 10, 25], ["Res2", 1, 3]],
+		"rare_loot": [["Ti", 0.10, 2, 5]],
+		"module_drop_chance": 0.10,
+		"module_drop_pool": ["z3_kinetic", "z3_energy", "z3_missile", "z3_shield", "z3_armor"],
+		"xp": 70, "eva": 5, "zone": 3
+	},
+	"z3_boss_warmaster": {
 		"name": "Martian Warmaster",
-		"stats": {"hp": 45000, "max_shield": 10000, "atk": 1500, "def": 110, "atk_interval": 2.5, "accuracy": 120, "jammer": true}, # Tier Wall: Buffed from 15k/500/30
-		"loot": [["credits", 10000, 20000], ["Steel", 20, 40]],
-		"rare_loot": [["warmaster_railgun", 0.15, 1, 1], ["warmaster_armor", 0.15, 1, 1], ["warmaster_drive", 0.15, 1, 1]],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["railgun_mk3", "superalloy_engine"],
-		"is_boss": true,
-		"xp": 5000
+		"stats": {"hp": 9216, "max_shield": 2000, "atk": 174, "def": 58, "atk_interval": 2.5, "accuracy": 65},
+		"loot": [["credits", 5000, 10000], ["Steel", 20, 40], ["Ti", 10, 25], ["Res2", 5, 10]],
+		"rare_loot": [["z3_unique_weapon", 0.10, 1, 1], ["z3_unique_armor", 0.10, 1, 1], ["z3_unique_shield", 0.10, 1, 1]],
+		"boss_core": "Z3_Core",
+		"module_drop_chance": 0.25,
+		"module_drop_pool": ["z3_kinetic", "z3_energy", "z3_missile", "z3_shield", "z3_armor"],
+		"is_boss": true, "xp": 800, "eva": 15, "zone": 3
 	},
-	"cryo_lord": {
-		"name": "Cryo-Lord",
-		"stats": {"hp": 65000, "max_shield": 25000, "atk": 1200, "def": 150, "atk_interval": 3.0, "accuracy": 140}, # Buffed from 40k/700/50
-		"loot": [["credits", 25000, 45000], ["Ti", 50, 100]],
-		"rare_loot": [["cryo_lance", 0.15, 1, 1], ["cryo_plating", 0.15, 1, 1], ["cryo_heat_sink", 0.15, 1, 1]],
-		"module_drop_chance": 0.15,
-		"module_drop_pool": ["absolute_zero_vent"],
-		"is_boss": true,
-		"xp": 8000
+
+	# ═══ ZONE 4: Cryofield — Reg HP~2765, ATK~128, DEF~32 ═══
+	"z4_ice_wraith": {
+		"name": "Ice Wraith",
+		"stats": {"hp": 2200, "max_shield": 600, "atk": 100, "def": 25, "atk_interval": 1.5, "accuracy": 50},
+		"loot": [["CoolantCell", 1, 3], ["credits", 800, 1500], ["Res2", 1, 3]],
+		"rare_loot": [["AdvCircuit", 0.08, 1, 2]],
+		"module_drop_chance": 0.10,
+		"module_drop_pool": ["z4_kinetic", "z4_energy", "z4_missile", "z4_shield", "z4_armor"],
+		"xp": 120, "eva": 25, "zone": 4
 	},
-	"xenon_harbinger": {
+	"z4_cryo_sentinel": {
+		"name": "Cryo Sentinel",
+		"stats": {"hp": 2765, "max_shield": 800, "atk": 128, "def": 32, "atk_interval": 2.5, "accuracy": 55},
+		"loot": [["Ti", 5, 12], ["credits", 1000, 2000], ["Res2", 1, 3]],
+		"rare_loot": [["Chip", 0.10, 1, 3]],
+		"module_drop_chance": 0.10,
+		"module_drop_pool": ["z4_kinetic", "z4_energy", "z4_missile", "z4_shield", "z4_armor"],
+		"xp": 140, "eva": 12, "zone": 4
+	},
+	"z4_frost_hulk": {
+		"name": "Frost Hulk",
+		"stats": {"hp": 3300, "atk": 110, "def": 40, "atk_interval": 4.0, "accuracy": 48},
+		"loot": [["Steel", 8, 18], ["Fe", 15, 35], ["Res2", 1, 3]],
+		"rare_loot": [["Ti", 0.15, 3, 8]],
+		"module_drop_chance": 0.10,
+		"module_drop_pool": ["z4_kinetic", "z4_energy", "z4_shield", "z4_armor"],
+		"xp": 130, "eva": 5, "zone": 4
+	},
+	"z4_glacial_drone": {
+		"name": "Glacial Drone",
+		"stats": {"hp": 2400, "max_shield": 500, "atk": 140, "def": 28, "atk_interval": 1.8, "accuracy": 58},
+		"loot": [["credits", 1200, 2500], ["Cu", 5, 12], ["Res2", 2, 4]],
+		"rare_loot": [["AdvCircuit", 0.10, 1, 2]],
+		"module_drop_chance": 0.10,
+		"module_drop_pool": ["z4_kinetic", "z4_energy", "z4_missile", "z4_shield", "z4_armor"],
+		"xp": 135, "eva": 18, "zone": 4
+	},
+	"z4_boss_overseer": {
+		"name": "Cryo Overseer",
+		"stats": {"hp": 22118, "max_shield": 5000, "atk": 383, "def": 128, "atk_interval": 2.5, "accuracy": 85},
+		"loot": [["credits", 15000, 30000], ["Ti", 30, 60], ["AdvCircuit", 5, 12], ["Res2", 10, 20]],
+		"rare_loot": [["z4_unique_weapon", 0.10, 1, 1], ["z4_unique_armor", 0.10, 1, 1], ["z4_unique_shield", 0.10, 1, 1]],
+		"boss_core": "Z4_Core",
+		"module_drop_chance": 0.25,
+		"module_drop_pool": ["z4_kinetic", "z4_energy", "z4_missile", "z4_shield", "z4_armor"],
+		"is_boss": true, "xp": 2000, "eva": 15, "zone": 4
+	},
+
+	# ═══ ZONE 5: Sector Alpha — Reg HP~6636, ATK~281, DEF~70 ═══
+	"z5_xenon_scout": {
+		"name": "Xenon Scout",
+		"stats": {"hp": 5300, "max_shield": 1500, "atk": 220, "def": 55, "atk_interval": 1.5, "accuracy": 65},
+		"loot": [["credits", 3000, 6000], ["VoidArtifact", 1, 2], ["Res2", 2, 5]],
+		"rare_loot": [["QuantumCore", 0.05, 1, 1]],
+		"module_drop_chance": 0.10,
+		"module_drop_pool": ["z5_kinetic", "z5_energy", "z5_missile", "z5_shield", "z5_armor"],
+		"xp": 300, "eva": 30, "zone": 5
+	},
+	"z5_xenon_corvette": {
+		"name": "Xenon Corvette",
+		"stats": {"hp": 6636, "max_shield": 2000, "atk": 281, "def": 70, "atk_interval": 2.0, "accuracy": 70},
+		"loot": [["credits", 4000, 8000], ["Ti", 10, 25], ["Res2", 2, 5]],
+		"rare_loot": [["Superalloy", 0.08, 1, 3]],
+		"module_drop_chance": 0.10,
+		"module_drop_pool": ["z5_kinetic", "z5_energy", "z5_missile", "z5_shield", "z5_armor"],
+		"xp": 350, "eva": 15, "zone": 5
+	},
+	"z5_alien_frigate": {
+		"name": "Alien Frigate",
+		"stats": {"hp": 7900, "max_shield": 2500, "atk": 310, "def": 80, "atk_interval": 3.0, "accuracy": 72},
+		"loot": [["VoidArtifact", 2, 5], ["credits", 5000, 10000], ["Res2", 3, 6]],
+		"rare_loot": [["QuantumCore", 0.08, 1, 1]],
+		"module_drop_chance": 0.10,
+		"module_drop_pool": ["z5_kinetic", "z5_energy", "z5_missile", "z5_shield", "z5_armor"],
+		"xp": 380, "eva": 10, "zone": 5
+	},
+	"z5_alien_probe": {
+		"name": "Alien Probe",
+		"stats": {"hp": 5000, "max_shield": 3000, "atk": 250, "def": 60, "atk_interval": 1.2, "accuracy": 78},
+		"loot": [["credits", 4000, 7000], ["Circuit", 5, 10], ["Res2", 2, 5]],
+		"rare_loot": [["AdvCircuit", 0.10, 2, 4]],
+		"module_drop_chance": 0.10,
+		"module_drop_pool": ["z5_kinetic", "z5_energy", "z5_shield", "z5_armor"],
+		"xp": 320, "eva": 35, "zone": 5
+	},
+	"z5_boss_harbinger": {
 		"name": "Xenon Harbinger",
-		"stats": {"hp": 80000, "max_shield": 40000, "atk": 1000, "def": 70, "atk_interval": 2.0, "accuracy": 130, "eva": 40},
-		"loot": [["credits", 80000, 150000], ["VoidArtifact", 5, 10]],
-		"rare_loot": [["harbinger_repeater", 0.15, 1, 1], ["harbinger_carapace", 0.15, 1, 1], ["harbinger_reactor", 0.15, 1, 1]],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["antimatter_engine", "reactive_core_battery"],
-		"is_boss": true,
-		"xp": 6000
+		"stats": {"hp": 53084, "max_shield": 15000, "atk": 843, "def": 282, "atk_interval": 2.5, "accuracy": 110},
+		"loot": [["credits", 50000, 100000], ["VoidArtifact", 10, 25], ["QuantumCore", 2, 5], ["Res2", 15, 30]],
+		"rare_loot": [["z5_unique_weapon", 0.10, 1, 1], ["z5_unique_armor", 0.10, 1, 1], ["z5_unique_shield", 0.10, 1, 1]],
+		"boss_core": "Z5_Core",
+		"module_drop_chance": 0.25,
+		"module_drop_pool": ["z5_kinetic", "z5_energy", "z5_missile", "z5_shield", "z5_armor"],
+		"is_boss": true, "xp": 5000, "eva": 20, "zone": 5
 	},
-	"overseer_prime": {
-		"name": "Overseer Prime",
-		"stats": {"hp": 350000, "max_shield": 120000, "atk": 3000, "def": 250, "atk_interval": 3.0, "accuracy": 170, "jammer": true}, # Buffed from 200k/1.5k
-		"loot": [["credits", 200000, 400000], ["AdvCircuit", 50, 100]],
-		"rare_loot": [["overseer_turret", 0.15, 1, 1], ["overseer_bulkhead", 0.15, 1, 1], ["overseer_matrix", 0.15, 1, 1]],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["ai_targeting_system", "broadside_array"],
-		"is_boss": true,
-		"xp": 50000
+
+	# ═══ ZONE 6: Sector Beta — Reg HP~15926, ATK~618, DEF~155 ═══
+	"z6_defense_turret": {
+		"name": "Defense Turret",
+		"stats": {"hp": 12700, "atk": 490, "def": 125, "atk_interval": 2.5, "accuracy": 90},
+		"loot": [["ColonySalvage", 5, 12], ["Circuit", 5, 12], ["Res3", 1, 2]],
+		"rare_loot": [["AdvCircuit", 0.10, 2, 5]],
+		"module_drop_chance": 0.10,
+		"module_drop_pool": ["z6_kinetic", "z6_energy", "z6_missile", "z6_shield", "z6_armor"],
+		"xp": 700, "eva": 5, "zone": 6
 	},
-	"rad_beast_alpha": {
-		"name": "Rad-Beast Alpha",
-		"stats": {"hp": 650000, "max_shield": 250000, "atk": 5000, "def": 350, "atk_interval": 2.5, "accuracy": 190}, # Buffed from 400k/2.5k
-		"loot": [["credits", 500000, 1000000], ["RadIsotope", 20, 40]],
-		"rare_loot": [["rad_beast_spitter", 0.15, 1, 1], ["rad_beast_flesh", 0.15, 1, 1], ["rad_beast_gland", 0.15, 1, 1]],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["reactive_armor", "exotic_shield_matrix"],
-		"is_boss": true,
-		"xp": 100000
+	"z6_mining_golem": {
+		"name": "Mining Golem",
+		"stats": {"hp": 15926, "atk": 618, "def": 155, "atk_interval": 3.5, "accuracy": 85},
+		"loot": [["Fe", 50, 100], ["Ti", 10, 25], ["Res3", 1, 2]],
+		"rare_loot": [["Superalloy", 0.10, 2, 5]],
+		"module_drop_chance": 0.10,
+		"module_drop_pool": ["z6_kinetic", "z6_energy", "z6_missile", "z6_shield", "z6_armor"],
+		"xp": 750, "eva": 5, "zone": 6
 	},
-	"prismatic_sovereign": {
-		"name": "Prismatic Sovereign",
-		"stats": {"hp": 2500000, "max_shield": 800000, "atk": 9000, "def": 500, "atk_interval": 2.0, "accuracy": 210, "eva": 30}, # Buffed from 1.2M/4.5k
-		"loot": [["credits", 1000000, 2000000], ["ExoticMatter", 10, 20]],
-		"rare_loot": [["sovereign_laser", 0.15, 1, 1], ["sovereign_crystal", 0.15, 1, 1], ["sovereign_barrier", 0.15, 1, 1]],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["reflective_sheath", "diamond_edge_railgun"],
-		"is_boss": true,
-		"xp": 250000
+	"z6_rad_beast": {
+		"name": "Radiation Beast",
+		"stats": {"hp": 18000, "max_shield": 4000, "atk": 680, "def": 140, "atk_interval": 2.0, "accuracy": 92},
+		"loot": [["RadIsotope", 1, 3], ["U", 5, 12], ["Res3", 1, 3]],
+		"rare_loot": [["Ir", 0.08, 1, 2]],
+		"module_drop_chance": 0.10,
+		"module_drop_pool": ["z6_kinetic", "z6_energy", "z6_missile", "z6_shield", "z6_armor"],
+		"xp": 780, "eva": 12, "zone": 6
 	},
-	"patient_zero": {
+	"z6_ore_guardian": {
+		"name": "Ore Guardian",
+		"stats": {"hp": 14000, "max_shield": 5000, "atk": 550, "def": 170, "atk_interval": 3.0, "accuracy": 88},
+		"loot": [["Fe", 30, 70], ["Steel", 10, 25], ["Res3", 1, 3]],
+		"rare_loot": [["VoidArtifact", 0.10, 1, 3]],
+		"module_drop_chance": 0.10,
+		"module_drop_pool": ["z6_kinetic", "z6_energy", "z6_shield", "z6_armor"],
+		"xp": 720, "eva": 8, "zone": 6
+	},
+	"z6_boss_colossus": {
+		"name": "Gamma Colossus",
+		"stats": {"hp": 127411, "max_shield": 30000, "atk": 1855, "def": 620, "atk_interval": 2.5, "accuracy": 140},
+		"loot": [["credits", 200000, 500000], ["Ir", 5, 12], ["Superalloy", 10, 25], ["Res3", 10, 20]],
+		"rare_loot": [["z6_unique_weapon", 0.10, 1, 1], ["z6_unique_armor", 0.10, 1, 1], ["z6_unique_shield", 0.10, 1, 1]],
+		"boss_core": "Z6_Core",
+		"module_drop_chance": 0.25,
+		"module_drop_pool": ["z6_kinetic", "z6_energy", "z6_missile", "z6_shield", "z6_armor"],
+		"is_boss": true, "xp": 15000, "eva": 15, "zone": 6
+	},
+
+	# ═══ ZONE 7: Sector Gamma — Reg HP~38222, ATK~1360, DEF~341 ═══
+	"z7_shard_swarm": {
+		"name": "Shard Swarm",
+		"stats": {"hp": 30000, "atk": 1080, "def": 270, "atk_interval": 0.8, "accuracy": 100},
+		"loot": [["ExoticMatter", 1, 3], ["VoidCrystal", 1, 2], ["Res3", 2, 4]],
+		"rare_loot": [["Os", 0.08, 1, 2]],
+		"module_drop_chance": 0.10,
+		"module_drop_pool": ["z7_kinetic", "z7_energy", "z7_missile", "z7_shield", "z7_armor"],
+		"xp": 1500, "eva": 30, "zone": 7
+	},
+	"z7_energy_wraith": {
+		"name": "Energy Wraith",
+		"stats": {"hp": 38222, "max_shield": 15000, "atk": 1360, "def": 341, "atk_interval": 2.0, "accuracy": 105},
+		"loot": [["ExoticMatter", 2, 5], ["VoidCrystal", 1, 3], ["Res3", 2, 5]],
+		"rare_loot": [["Ir", 0.10, 1, 3]],
+		"module_drop_chance": 0.10,
+		"module_drop_pool": ["z7_kinetic", "z7_energy", "z7_missile", "z7_shield", "z7_armor"],
+		"xp": 1800, "eva": 18, "zone": 7
+	},
+	"z7_void_hunter": {
+		"name": "Void Hunter",
+		"stats": {"hp": 32000, "max_shield": 12000, "atk": 1500, "def": 300, "atk_interval": 1.5, "accuracy": 110},
+		"loot": [["VoidCrystal", 2, 4], ["credits", 50000, 100000], ["Res3", 2, 5]],
+		"rare_loot": [["ExoticMatter", 0.12, 2, 4]],
+		"module_drop_chance": 0.10,
+		"module_drop_pool": ["z7_kinetic", "z7_energy", "z7_missile", "z7_shield", "z7_armor"],
+		"xp": 1700, "eva": 25, "zone": 7
+	},
+	"z7_gamma_beast": {
+		"name": "Gamma Beast",
+		"stats": {"hp": 45000, "atk": 1200, "def": 380, "atk_interval": 3.5, "accuracy": 95},
+		"loot": [["RadIsotope", 3, 8], ["ExoticMatter", 1, 3], ["Res3", 2, 5]],
+		"rare_loot": [["Os", 0.10, 1, 2]],
+		"module_drop_chance": 0.10,
+		"module_drop_pool": ["z7_kinetic", "z7_energy", "z7_shield", "z7_armor"],
+		"xp": 1600, "eva": 8, "zone": 7
+	},
+	"z7_boss_sovereign": {
+		"name": "Sovereign Prism",
+		"stats": {"hp": 305779, "max_shield": 80000, "atk": 4081, "def": 1363, "atk_interval": 2.5, "accuracy": 170},
+		"loot": [["credits", 1000000, 2000000], ["ExoticMatter", 15, 30], ["Os", 3, 8], ["Res3", 15, 30]],
+		"rare_loot": [["z7_unique_weapon", 0.10, 1, 1], ["z7_unique_armor", 0.10, 1, 1], ["z7_unique_shield", 0.10, 1, 1]],
+		"boss_core": "Z7_Core",
+		"module_drop_chance": 0.25,
+		"module_drop_pool": ["z7_kinetic", "z7_energy", "z7_missile", "z7_shield", "z7_armor"],
+		"is_boss": true, "xp": 35000, "eva": 20, "zone": 7
+	},
+
+	# ═══ ZONE 8: Sector Delta — Reg HP~91733, ATK~2993, DEF~749 ═══
+	"z8_prism_drone": {
+		"name": "Prism Drone",
+		"stats": {"hp": 73000, "max_shield": 25000, "atk": 2400, "def": 600, "atk_interval": 1.5, "accuracy": 120},
+		"loot": [["VoidCrystal", 3, 8], ["credits", 100000, 200000], ["Res3", 3, 6]],
+		"rare_loot": [["Diamond", 0.05, 1, 1]],
+		"module_drop_chance": 0.10,
+		"module_drop_pool": ["z8_kinetic", "z8_energy", "z8_missile", "z8_shield", "z8_armor"],
+		"xp": 4000, "eva": 22, "zone": 8
+	},
+	"z8_crystal_golem": {
+		"name": "Crystal Golem",
+		"stats": {"hp": 91733, "atk": 2993, "def": 749, "atk_interval": 3.5, "accuracy": 115},
+		"loot": [["VoidCrystal", 5, 12], ["Os", 1, 3], ["Res3", 3, 6]],
+		"rare_loot": [["Diamond", 0.08, 1, 1]],
+		"module_drop_chance": 0.10,
+		"module_drop_pool": ["z8_kinetic", "z8_energy", "z8_missile", "z8_shield", "z8_armor"],
+		"xp": 4500, "eva": 5, "zone": 8
+	},
+	"z8_void_stalker": {
+		"name": "Void Stalker",
+		"stats": {"hp": 80000, "max_shield": 35000, "atk": 3300, "def": 680, "atk_interval": 2.0, "accuracy": 125},
+		"loot": [["ExoticMatter", 3, 8], ["VoidCrystal", 2, 5], ["Res3", 3, 8]],
+		"rare_loot": [["Os", 0.10, 1, 3]],
+		"module_drop_chance": 0.10,
+		"module_drop_pool": ["z8_kinetic", "z8_energy", "z8_missile", "z8_shield", "z8_armor"],
+		"xp": 4200, "eva": 28, "zone": 8
+	},
+	"z8_nebula_phantom": {
+		"name": "Nebula Phantom",
+		"stats": {"hp": 100000, "max_shield": 40000, "atk": 2700, "def": 800, "atk_interval": 2.5, "accuracy": 118},
+		"loot": [["credits", 150000, 300000], ["VoidCrystal", 3, 7], ["Res3", 3, 8]],
+		"rare_loot": [["ExoticMatter", 0.12, 2, 5]],
+		"module_drop_chance": 0.10,
+		"module_drop_pool": ["z8_kinetic", "z8_energy", "z8_shield", "z8_armor"],
+		"xp": 4300, "eva": 15, "zone": 8
+	},
+	"z8_boss_warden": {
+		"name": "Prismatic Warden",
+		"stats": {"hp": 733866, "max_shield": 200000, "atk": 8978, "def": 2998, "atk_interval": 2.5, "accuracy": 200},
+		"loot": [["credits", 3000000, 6000000], ["VoidCrystal", 20, 50], ["Diamond", 2, 5], ["Res3", 20, 40]],
+		"rare_loot": [["z8_unique_weapon", 0.10, 1, 1], ["z8_unique_armor", 0.10, 1, 1], ["z8_unique_shield", 0.10, 1, 1]],
+		"boss_core": "Z8_Core",
+		"module_drop_chance": 0.25,
+		"module_drop_pool": ["z8_kinetic", "z8_energy", "z8_missile", "z8_shield", "z8_armor"],
+		"is_boss": true, "xp": 80000, "eva": 18, "zone": 8
+	},
+
+	# ═══ ZONE 9: Sector Zeta — Reg HP~220160, ATK~6584, DEF~1648 ═══
+	"z9_plague_drone": {
+		"name": "Plague Drone",
+		"stats": {"hp": 175000, "max_shield": 50000, "atk": 5200, "def": 1300, "atk_interval": 1.2, "accuracy": 140},
+		"loot": [["BiohazardSample", 2, 5], ["credits", 300000, 600000], ["Res3", 5, 10]],
+		"rare_loot": [["PathogenCore", 0.05, 1, 1]],
+		"module_drop_chance": 0.10,
+		"module_drop_pool": ["z9_kinetic", "z9_energy", "z9_missile", "z9_shield", "z9_armor"],
+		"xp": 10000, "eva": 20, "zone": 9
+	},
+	"z9_bio_horror": {
+		"name": "Bio-Horror",
+		"stats": {"hp": 220160, "max_shield": 70000, "atk": 6584, "def": 1648, "atk_interval": 2.5, "accuracy": 145},
+		"loot": [["BiohazardSample", 3, 8], ["Neutronium", 1, 2], ["Res3", 5, 10]],
+		"rare_loot": [["PathogenCore", 0.08, 1, 1]],
+		"module_drop_chance": 0.10,
+		"module_drop_pool": ["z9_kinetic", "z9_energy", "z9_missile", "z9_shield", "z9_armor"],
+		"xp": 12000, "eva": 12, "zone": 9
+	},
+	"z9_rogue_ai": {
+		"name": "Rogue AI Core",
+		"stats": {"hp": 190000, "max_shield": 90000, "atk": 7200, "def": 1400, "atk_interval": 1.5, "accuracy": 155},
+		"loot": [["Chip", 10, 25], ["AdvCircuit", 5, 12], ["Res3", 5, 10]],
+		"rare_loot": [["ChronoCore", 0.05, 1, 1]],
+		"module_drop_chance": 0.10,
+		"module_drop_pool": ["z9_kinetic", "z9_energy", "z9_missile", "z9_shield", "z9_armor"],
+		"xp": 11000, "eva": 25, "zone": 9
+	},
+	"z9_quarantine_mech": {
+		"name": "Quarantine Mech",
+		"stats": {"hp": 260000, "atk": 6000, "def": 1800, "atk_interval": 3.5, "accuracy": 138},
+		"loot": [["Neutronium", 1, 3], ["credits", 500000, 1000000], ["Res3", 5, 10]],
+		"rare_loot": [["PathogenCore", 0.10, 1, 2]],
+		"module_drop_chance": 0.10,
+		"module_drop_pool": ["z9_kinetic", "z9_energy", "z9_shield", "z9_armor"],
+		"xp": 11500, "eva": 5, "zone": 9
+	},
+	"z9_boss_patient_zero": {
 		"name": "Patient Zero",
-		"stats": {"hp": 5000000, "max_shield": 2000000, "atk": 15000, "def": 750, "atk_interval": 1.5, "accuracy": 230, "eva": 50}, # Pathogen Wall: Buffed from 2.5M/7k
-		"loot": [["credits", 3000000, 5000000], ["BiohazardSample", 50, 100]],
-		"rare_loot": [["zero_strain_cannon", 0.15, 1, 1], ["zero_strain_carapace", 0.15, 1, 1], ["zero_strain_tendrils", 0.15, 1, 1]],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["diamond_edge_railgun", "crystal_lens_laser"],
-		"is_boss": true,
-		"xp": 1000000
+		"stats": {"hp": 1761280, "max_shield": 500000, "atk": 19752, "def": 6594, "atk_interval": 1.5, "accuracy": 230},
+		"loot": [["credits", 10000000, 20000000], ["Neutronium", 10, 25], ["PathogenCore", 3, 8], ["Res3", 30, 50], ["QuarantineClearance", 1, 1]],
+		"rare_loot": [["z9_unique_weapon", 0.10, 1, 1], ["z9_unique_armor", 0.10, 1, 1], ["z9_unique_shield", 0.10, 1, 1]],
+		"boss_core": "Z9_Core",
+		"module_drop_chance": 0.25,
+		"module_drop_pool": ["z9_kinetic", "z9_energy", "z9_missile", "z9_shield", "z9_armor"],
+		"is_boss": true, "xp": 200000, "eva": 20, "zone": 9
 	},
-	"time_weaver": {
-		"name": "The Time Weaver",
-		"stats": {"hp": 30000000, "max_shield": 10000000, "atk": 50000, "def": 2500, "atk_interval": 1.0, "accuracy": 280, "eva": 70}, # Chrono Wall: Buffed from 10M/15k
-		"loot": [["credits", 20000000, 50000000], ["VoidEssence", 20, 50]],
-		"rare_loot": [["weaver_annihilator", 0.15, 1, 1], ["weaver_shroud", 0.15, 1, 1], ["weaver_core", 0.15, 1, 1]],
-		"module_drop_chance": 0.02,
-		"module_drop_pool": ["diamond_edge_railgun", "crystal_lens_laser"],
-		"is_boss": true,
-		"xp": 5000000
+
+	# ═══ ZONE 10: Sector Epsilon — Reg HP~528384, ATK~14484, DEF~3627 ═══
+	"z10_void_stalker": {
+		"name": "Void Reaver",
+		"stats": {"hp": 420000, "max_shield": 150000, "atk": 11500, "def": 2900, "atk_interval": 2.0, "accuracy": 160},
+		"loot": [["PrimordialShard", 1, 3], ["VoidEssence", 1, 2]],
+		"rare_loot": [["ChronoCore", 0.05, 1, 1]],
+		"module_drop_chance": 0.10,
+		"module_drop_pool": ["z10_kinetic", "z10_energy", "z10_missile", "z10_shield", "z10_armor"],
+		"xp": 25000, "eva": 25, "zone": 10
+	},
+	"z10_temporal_phantom": {
+		"name": "Temporal Phantom",
+		"stats": {"hp": 528384, "max_shield": 200000, "atk": 14484, "def": 3627, "atk_interval": 1.5, "accuracy": 170},
+		"loot": [["ChronoCore", 1, 2], ["VoidEssence", 2, 4]],
+		"rare_loot": [["PrimordialShard", 0.08, 1, 2]],
+		"module_drop_chance": 0.10,
+		"module_drop_pool": ["z10_kinetic", "z10_energy", "z10_missile", "z10_shield", "z10_armor"],
+		"xp": 30000, "eva": 35, "zone": 10
+	},
+	"z10_omega_sentinel": {
+		"name": "Omega Sentinel",
+		"stats": {"hp": 600000, "max_shield": 180000, "atk": 13000, "def": 4000, "atk_interval": 2.5, "accuracy": 165},
+		"loot": [["OmegaPlating", 1, 3], ["PrimordialShard", 1, 2]],
+		"rare_loot": [["VoidEssence", 0.10, 1, 3]],
+		"module_drop_chance": 0.10,
+		"module_drop_pool": ["z10_kinetic", "z10_energy", "z10_missile", "z10_shield", "z10_armor"],
+		"xp": 28000, "eva": 10, "zone": 10
+	},
+	"z10_primordial_titan": {
+		"name": "Primordial Titan",
+		"stats": {"hp": 650000, "atk": 16000, "def": 3400, "atk_interval": 4.0, "accuracy": 158},
+		"loot": [["PrimordialShard", 2, 5], ["credits", 5000000, 10000000]],
+		"rare_loot": [["OmegaPlating", 0.08, 1, 2]],
+		"module_drop_chance": 0.10,
+		"module_drop_pool": ["z10_kinetic", "z10_energy", "z10_shield", "z10_armor"],
+		"xp": 32000, "eva": 5, "zone": 10
+	},
+	"z10_boss_leviathan": {
+		"name": "Void Leviathan",
+		"stats": {"hp": 4227072, "max_shield": 1200000, "atk": 43453, "def": 14506, "atk_interval": 3.0, "accuracy": 250},
+		"loot": [["credits", 50000000, 100000000], ["PrimordialShard", 20, 50], ["ChronoCore", 5, 12]],
+		"rare_loot": [["z10_unique_weapon", 0.10, 1, 1], ["z10_unique_armor", 0.10, 1, 1], ["z10_unique_shield", 0.10, 1, 1]],
+		"boss_core": "Z10_Core",
+		"module_drop_chance": 0.25,
+		"module_drop_pool": ["z10_kinetic", "z10_energy", "z10_missile", "z10_shield", "z10_armor"],
+		"is_boss": true, "xp": 500000, "eva": 25, "zone": 10
 	}
 }
 
@@ -831,6 +862,7 @@ func spawn_enemy():
 		"module_drop_chance": e_data.get("module_drop_chance", 0.0),
 		"module_drop_pool": e_data.get("module_drop_pool", []),
 		"is_boss": e_data.get("is_boss", false),
+		"boss_core": e_data.get("boss_core", ""),
 		"xp": e_data["xp"],
 		"jammer": e_data["stats"].get("jammer", false),
 		"eva": e_data["stats"].get("eva", 0),
@@ -839,19 +871,8 @@ func spawn_enemy():
 		"is_elite": false # Default
 	}
 	
-	# Compensate enemy baseline for permanent external progression multipliers.
-	# This avoids runaway TTK collapse from combat level / research / warp / trophies.
-	var progression_mult = get_external_progression_combat_mult()
-	var bonus_over_base = max(0.0, progression_mult - 1.0)
-	if bonus_over_base > 0.0:
-		var hp_comp = ENEMY_COMP_BOSS_HP if current_enemy["is_boss"] else ENEMY_COMP_REGULAR_HP
-		var sh_comp = ENEMY_COMP_BOSS_SHIELD if current_enemy["is_boss"] else ENEMY_COMP_REGULAR_SHIELD
-		var atk_comp = ENEMY_COMP_BOSS_ATK if current_enemy["is_boss"] else ENEMY_COMP_REGULAR_ATK
-		
-		current_enemy["max_hp"] = max(1, int(round(float(current_enemy["max_hp"]) * (1.0 + (bonus_over_base * hp_comp)))))
-		current_enemy["max_shield"] = max(0, int(round(float(current_enemy["max_shield"]) * (1.0 + (bonus_over_base * sh_comp)))))
-		current_enemy["atk"] = max(1, int(round(float(current_enemy["atk"]) * (1.0 + (bonus_over_base * atk_comp)))))
-		current_enemy["def"] = max(0, int(round(float(current_enemy["def"]) * (1.0 + (bonus_over_base * ENEMY_COMP_DEF)))))
+	# v83.0: Disabled progression-based scaling per user request. 
+	# Enemies now always match database stats exactly.
 	
 	# Apply Elite logic if requested by bounty_manager or random chance (5%)
 	var elite_chance = 0.05
@@ -889,37 +910,30 @@ func spawn_enemy():
 	has_exotic_matrix = _loadout_has_module(sm, "exotic_shield_matrix")
 	
 	# Step 5: Boss Set Flags
-	has_cryo_set = false
-	has_sovereign_set = false
-	has_patient_zero_set = false
+	active_trinity_sets = _get_active_trinity_sets()
 	
-	var set_counts = {}
-	for mid in sm.loadout.values():
-		if mid and mid in sm.modules:
-			var m_data = sm.modules[mid]
-			var desc = m_data.get("desc", "")
-			if desc.begins_with("(Set)"):
-				var set_name = desc.split("[")[0].strip_edges()
-				set_counts[set_name] = set_counts.get(set_name, 0) + 1
-				
-	for s_name in set_counts:
-		if set_counts[s_name] >= 3:
-			if "Cryo-Lord's Chill" in s_name:
-				has_cryo_set = true
-			elif "Sovereign's Prism" in s_name:
-				has_sovereign_set = true
-			elif "Patient Zero's Strain" in s_name:
-				has_patient_zero_set = true
+	# Trinity Bonus: Enemy DEF Reduction (Harbinger's Wrath)
+	if "harbingers_wrath" in active_trinity_sets:
+		var red = TRINITY_SET_BONUSES["harbingers_wrath"]["bonus"]["enemy_def_reduce_pct"]
+		current_enemy["def"] = int(current_enemy["def"] * (1.0 - red / 100.0))
 	
+	# Legacy check for backward compatibility (if any)
 	if _loadout_has_module(sm, "chrono_stabilizer"):
 		enemy_speed_mult *= 0.8
-		
-	if has_cryo_set:
-		enemy_speed_mult *= 0.85 # -15% Enemy Attack Speed
+	if "architects_regalia" in active_trinity_sets:
+		# Add any specific logic if needed, but mostly handled in stat tallies
+		pass
+
 	enemy_hp = current_enemy["max_hp"]
 	enemy_max_hp = enemy_hp
 	enemy_shield = float(current_enemy["max_shield"])
 	enemy_max_shield = enemy_shield
+	
+	# v80.1: Recalculate player stats including set bonuses before safety caps
+	_apply_trinity_stat_bonuses(sm)
+	
+	# v80.1: Apply safety caps after all bonuses are computed
+	apply_safety_caps()
 	
 	player_max_shield = sm.max_shield
 	player_weapon_states.clear()
@@ -966,6 +980,70 @@ func retreat():
 
 func stop_action():
 	retreat()
+
+# v80.1: Centralized safety cap enforcement — called ONCE after all bonuses
+func apply_safety_caps():
+	var sm = GameState.shipyard_manager
+	if not sm: return
+	
+	# ATK Speed: clamp multiplier (Max 3.0x -> +200%)
+	sm.attack_speed_bonus = min(sm.attack_speed_bonus, MAX_ATK_SPEED_MULT - 1.0)
+	
+	# Evasion: max 75
+	sm.evasion = min(sm.evasion, MAX_EVASION)
+	
+	# Crit Chance: max 50%
+	sm.crit_chance = min(sm.crit_chance, MAX_CRIT_CHANCE)
+	
+	# Crit Damage: max 3.0 (if we add it later)
+	
+	# Shield Regen: cap to MAX_SHIELD_REGEN_PERCENT% of max shield per second
+	if sm.max_shield > 0:
+		var max_s_regen = int(sm.max_shield * MAX_SHIELD_REGEN_PERCENT / 100.0)
+		sm.shield_regen = min(sm.shield_regen, max_s_regen)
+	
+	# HP Regen: cap to MAX_HP_REGEN_PERCENT% per second
+	if sm.max_hp > 0:
+		var max_h_regen = int(sm.max_hp * MAX_HP_REGEN_PERCENT / 100.0)
+		sm.hp_regen = min(sm.hp_regen, max_h_regen)
+	
+	# Enemy Slow / Jamming
+	sm.jamming_strength = min(sm.jamming_strength, MAX_ENEMY_SLOW)
+
+func _get_set_bonus_value(bonus_key: String) -> float:
+	var total = 0.0
+	for set_id in active_trinity_sets:
+		var b = TRINITY_SET_BONUSES[set_id]["bonus"]
+		if bonus_key in b:
+			total += b[bonus_key]
+	return total
+
+func _apply_trinity_stat_bonuses(sm):
+	# Apply standard bonuses that fit into shipyard_manager stat fields
+	sm.attack_speed_bonus += _get_set_bonus_value("atk_speed_pct") / 100.0
+	sm.defense += _get_set_bonus_value("def_flat")
+	if _get_set_bonus_value("def_pct") > 0:
+		sm.defense = int(sm.defense * (1.0 + _get_set_bonus_value("def_pct") / 100.0))
+	
+	sm.crit_chance += _get_set_bonus_value("crit_chance") / 100.0
+	sm.evasion += _get_set_bonus_value("evasion_flat")
+	
+	# Accuracy
+	sm.accuracy = (sm.affix_bonuses.get("accuracy", 0.0) if "affix_bonuses" in sm else 100.0) + _get_set_bonus_value("accuracy_flat")
+	
+	# HP Regen
+	sm.hp_regen = sm.hp_regen + _get_set_bonus_value("hp_regen_flat")
+	
+	# Shield HP %
+	if _get_set_bonus_value("shield_hp_pct") > 0:
+		sm.max_shield = int(sm.max_shield * (1.0 + _get_set_bonus_value("shield_hp_pct") / 100.0))
+	
+	# Shield Regen %	
+	if _get_set_bonus_value("shield_regen_pct") > 0:
+		sm.shield_regen = int(sm.shield_regen * (1.0 + _get_set_bonus_value("shield_regen_pct") / 100.0))
+	
+	# Enemy slow (jamming + chrono + cryo set)
+	enemy_speed_mult = max(enemy_speed_mult, 1.0 - MAX_ENEMY_SLOW)
 
 func process_tick(delta: float):
 	var sm = GameState.shipyard_manager
@@ -1024,7 +1102,10 @@ func process_tick(delta: float):
 		w["timer"] += delta * p_speed_mult * cooling_mult
 		
 		if w["timer"] >= w["interval"]:
-			_execute_player_attack(w_idx)
+			# v80.1: Clamp effective interval to MIN_ATTACK_INTERVAL
+			var effective_interval = max(MIN_ATTACK_INTERVAL, w["interval"] / (p_speed_mult * cooling_mult))
+			if w["timer"] * (p_speed_mult * cooling_mult) / max(0.01, w["interval"]) >= 1.0:
+				_execute_player_attack(w_idx)
 			if w_idx >= player_weapon_states.size():
 				break # win_fight() may have rebuilt weapon states
 			w["timer"] -= w["interval"]
@@ -1032,7 +1113,8 @@ func process_tick(delta: float):
 	# v65.0 Fix: Use enemy's actual attack interval (was hardcoded 3.0)
 	# Audit v70.0: Electronic Warfare Implementation
 	# Enemy attack timer increments slower based on jamming_strength
-	var jamming_mult = max(0.2, 1.0 - sm.jamming_strength) # Cap slow at 80%
+	# v80.1: Clamp jamming to safety cap
+	var jamming_mult = max(1.0 - MAX_ENEMY_SLOW, 1.0 - sm.jamming_strength)
 	var e_interval = current_enemy.get("atk_interval", 3.0)
 	
 	enemy_attack_timer += delta * enemy_speed_mult * jamming_mult
@@ -1071,9 +1153,10 @@ func _process_regeneration(delta: float):
 		var regen_base = (sm.shield_regen * (1.0 + (rm.get_efficiency_bonus("shield_regen") if rm else 0.0) + sm.shield_regen_bonus))
 		player_shield = min(player_max_shield, player_shield + (regen_base * delta))
 		
-	# Point 5: Patient Zero Hull Regen
-	if has_patient_zero_set and sm.current_hp < sm.max_hp:
-		sm.current_hp = min(sm.max_hp, sm.current_hp + (50.0 * delta))
+	# v80.1: Unified HP Regen (Trinity sets + Potential Modules)
+	if sm.hp_regen > 0 and sm.current_hp < sm.max_hp:
+		# Safety cap already applied in apply_safety_caps()
+		sm.current_hp = min(sm.max_hp, sm.current_hp + (sm.hp_regen * delta))
 	
 	# Enemy Shield Regen (1% per second, Combat Only)
 	if in_combat and current_enemy and enemy_shield < enemy_max_shield:
@@ -1131,6 +1214,10 @@ func _execute_player_attack(weapon_idx: int):
 	var ammo_id = sm.ammo_loadout.get(w["slot_idx"])
 	var requires_ammo = (w["type"] == "kinetic" or w["type"] == "explosive") and w["slot_idx"] != -1
 	
+	# v80.2 Fix: Enforce Ammo Type Compatibility
+	if ammo_id and ammo_id != "" and not sm.is_ammo_compatible(w["type"], ammo_id):
+		ammo_id = "" # Ignore incompatible ammo
+		
 	if ammo_id and ammo_id != "":
 		if GameState.resources.get_element_amount(ammo_id) > 0:
 			GameState.resources.remove_element(ammo_id, 1)
@@ -1169,8 +1256,18 @@ func _execute_player_attack(weapon_idx: int):
 			return # Deals 0 damage and skips calculation
 			
 	var skill_dmg_mult = (1.0 + (get_level() * 0.005)) * GameState.warp_manager.get_combat_multiplier()
+	
+	# v80.1: Trinity Damage Multipliers
+	var trinity_atk_mult = 1.0 + (_get_set_bonus_value("atk_pct") + _get_set_bonus_value("all_dmg_pct")) / 100.0
+	var trinity_energy_mult = 1.0 + _get_set_bonus_value("energy_dmg_pct") / 100.0
+	var trinity_missile_mult = 1.0 + _get_set_bonus_value("missile_dmg_pct") / 100.0
+	
+	p_atk_k *= skill_dmg_mult * trinity_atk_mult
+	p_atk_e *= skill_dmg_mult * trinity_atk_mult * trinity_energy_mult
+	p_atk_x *= skill_dmg_mult * trinity_atk_mult * trinity_missile_mult
+	
 	var total_crit = sm.crit_chance + get_milestone_crit_bonus()
-	var res = resolve_damage(p_atk_k * skill_dmg_mult, p_atk_e * skill_dmg_mult, p_atk_x * skill_dmg_mult, enemy_shield, current_enemy["def"], current_zone.get("difficulty", 1), total_crit, true)
+	var res = resolve_damage(p_atk_k, p_atk_e, p_atk_x, enemy_shield, current_enemy["def"], current_zone.get("difficulty", 1), total_crit, true)
 	enemy_shield = max(0, enemy_shield - res[0])
 	enemy_hp -= res[1]
 	if res[0] > 0: combat_events.append({"type": "dmg_shield", "text": "-%d" % res[0], "color": Color.CYAN, "side": "enemy"})
@@ -1189,17 +1286,21 @@ func _execute_enemy_attack():
 		# Enemy uses base crit 5%
 		var eres = resolve_damage(current_enemy["atk"], 0, 0, player_shield, sm.defense, difficulty, 0.05, false)
 		
-		# Reflective Sheath Logic
-		if has_reflective and randf() < 0.20:
-			var reflected = int(eres[0] * 0.5 + eres[1] * 0.5)
-			enemy_hp -= reflected
-			combat_events.append({"type": "reflect", "text": "REFL %d" % reflected, "color": Color.WHITE, "side": "enemy"})
-			
-		# Step 5: Sovereign's Prism Reflect Logic
-		if has_sovereign_set and randf() < 0.15:
-			var reflected = int(eres[0] + eres[1]) # 100% reflect but lower chance
-			enemy_hp -= reflected
-			combat_events.append({"type": "reflect", "text": "PRISM REFL %d" % reflected, "color": Color.PURPLE, "side": "enemy"})
+		# v80.1: Unified Reflect Logic (Reflective Sheath + Monolith's Bedrock)
+		var reflect_pct = _get_set_bonus_value("reflect_pct") / 100.0
+		if has_reflective: reflect_pct += 0.20
+		
+		# Enforce reflect safety cap
+		reflect_pct = min(reflect_pct, MAX_REFLECT_PERCENT)
+		
+		if reflect_pct > 0:
+			var ref_dmg = int((eres[0] + eres[1]) * reflect_pct)
+			if ref_dmg > 0:
+				enemy_hp -= ref_dmg
+				combat_events.append({"type": "reflect", "text": "REFLECT %d" % ref_dmg, "color": Color.WHITE, "side": "enemy"})
+				if enemy_hp <= 0:
+					win_fight()
+					return # Stop further attack resolution if enemy is dead
 		
 		# Exotic Shield Matrix Logic (Sector Gamma Protection)
 		# v61.0 Fix: Use current_zone_id instead of current_zone.get("id")
@@ -1229,7 +1330,8 @@ func resolve_damage(atk_k, atk_e, atk_x, c_shield, c_armor, difficulty = 1, crit
 		
 	var bleed_ratio = (shield_dmg_pot - damage_to_shield) / shield_dmg_pot if shield_dmg_pot > 0 else 1.0
 	
-	var k = max(20.0, float(difficulty) * 50.0)
+	# v80.1: Fixed k constant for consistent DEF behavior across all zones
+	var k = DEF_K_CONSTANT
 	
 	# Armor Penetration Logic
 	var arm_k = c_armor
@@ -1260,23 +1362,41 @@ func win_fight():
 		if entry[0] == "credits": GameState.resources.add_currency("credits", qty)
 		else: GameState.resources.add_element(entry[0], qty)
 		session_loot[entry[0]] = session_loot.get(entry[0], 0) + qty
+		
+	# v80.1: Boss Core drops
+	if current_enemy.get("is_boss", false) and current_enemy.has("boss_core") and current_enemy["boss_core"] != "":
+		var core_id = current_enemy["boss_core"]
+		GameState.resources.add_element(core_id, 1)
+		
+		# v80.4: Display friendly name from DB
+		var core_name = "Boss Core"
+		if ElementDB:
+			core_name = ElementDB.get_display_name(core_id)
+			
+		combat_events.append({"type": "loot", "text": "BOSS CORE: %s" % core_name, "color": Color.ORANGE, "side": "enemy"})
+		log_msg("Looted Boss Core: %s" % core_name)
+		session_loot[core_id] = session_loot.get(core_id, 0) + 1
 	for entry in current_enemy.get("rare_loot", []):
 		if randf() < entry[1]:
 			var qty = randi_range(entry[2], entry[3])
 			var item_id = entry[0]
 			var sm = GameState.shipyard_manager
+			
 			if sm and item_id in sm.modules:
-				var custom_id = item_id
 				var m_data = sm.modules[item_id]
 				var rarity = m_data.get("rarity", sm.Rarity.COMMON)
 				var zone_difficulty = int(current_zone.get("difficulty", 1))
 				
-				if rarity == sm.Rarity.UNIQUE:
-					# Generate it properly so it rolls affixes and sockets!
-					custom_id = sm.generate_module_drop(item_id, sm.Rarity.UNIQUE, zone_difficulty)
-					m_data = sm.modules[custom_id]
+				# Generate it properly so it rolls affixes and sockets!
+				# Rare loot modules should always be generated if not COMMON
+				var final_id = item_id
+				if rarity != sm.Rarity.COMMON:
+					final_id = sm.generate_module_drop(item_id, rarity, zone_difficulty)
+					m_data = sm.modules[final_id]
+					session_loot[final_id] = session_loot.get(final_id, 0) + 1
 				else:
 					sm.module_inventory[item_id] = sm.module_inventory.get(item_id, 0) + qty
+					session_loot[item_id] = session_loot.get(item_id, 0) + qty
 					
 				sm.new_drops_alert = true
 				sm.inventory_updated.emit()
@@ -1287,16 +1407,10 @@ func win_fight():
 					rarity_label = "Common"
 				combat_events.append({"type": "loot", "text": "* %s DROP" % rarity_label.to_upper(), "color": rarity_color, "side": "enemy"})
 				log_msg("Looted %s Module: %s" % [rarity_label, m_data["name"]])
-				
-				if custom_id != item_id:
-					session_loot[custom_id] = session_loot.get(custom_id, 0) + 1
-				else:
-					session_loot[item_id] = session_loot.get(item_id, 0) + qty
 			else:
 				# It's a standard generic element (VoidCrystal, NavData, etc)
 				GameState.resources.add_element(item_id, qty)
-				
-			session_loot[item_id] = session_loot.get(item_id, 0) + qty
+				session_loot[item_id] = session_loot.get(item_id, 0) + qty
 	
 	var sm = GameState.shipyard_manager
 	

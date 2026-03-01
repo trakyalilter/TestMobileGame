@@ -44,8 +44,35 @@ func _update_ui():
 	stats_lbl.text = _build_card_stats(slot_type, data.get("stats", {}))
 	footer_lbl.text = _build_footer_text(slot_type, rarity_label)
 
-	# Socket rendering logic
+	# v83.9: Set Name Display
+	var sid = data.get("set_id", "")
+	if sid == "" and data.get("is_custom") and data.has("base_module"):
+		var base_id = data["base_module"]
+		sid = sm.modules.get(base_id, {}).get("set_id", "")
 	var margin_vbox = $Margin/VBox
+	var set_lbl = margin_vbox.get_node_or_null("SetLabel")
+	if not set_lbl:
+		set_lbl = Label.new()
+		set_lbl.name = "SetLabel"
+		set_lbl.add_theme_font_size_override("font_size", 8)
+		set_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		set_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		margin_vbox.add_child(set_lbl)
+		margin_vbox.move_child(set_lbl, name_lbl.get_index() + 1)
+	
+	if sid != "" and GameState.combat_manager and "TRINITY_SET_BONUSES" in GameState.combat_manager:
+		var s_db = GameState.combat_manager.TRINITY_SET_BONUSES
+		if s_db.has(sid):
+			var set_name = s_db[sid]["name"]
+			set_lbl.text = "[ %s ]" % set_name.to_upper()
+			set_lbl.add_theme_color_override("font_color", Color(0.0, 0.8, 0.8)) # Cyan for set
+			set_lbl.visible = true
+		else:
+			set_lbl.visible = false
+	else:
+		set_lbl.visible = false
+
+	# Socket rendering logic
 	for child in margin_vbox.get_children():
 		if child.name == "SocketContainer":
 			child.free()
@@ -67,7 +94,7 @@ func _update_ui():
 			
 			if gem:
 				var gem_name = ElementDB.get_display_name(gem)
-				var g_color = Color("#ff4444") if "Crimson" in gem_name else (Color("#44ccff") if "Cobalt" in gem_name else (Color("#ffcc00") if "Topaz" in gem_name else Color("#aa44ff")))
+				var g_color = _get_gem_color(gem_name)
 				sb.bg_color = g_color
 				sb.border_color = g_color.lightened(0.6)
 				sb.shadow_color = g_color * Color(1, 1, 1, 0.4)
@@ -123,7 +150,7 @@ func _build_card_stats(slot_type: String, stats: Dictionary) -> String:
 		return _build_ammo_card_stats()
 
 	if slot_type == "consumable":
-		var heal_pct = int(round(data.get("stats", {}).get("heal_pct", 0.0) * 100.0))
+		var heal_pct = int(round(data.get("heal_pct", data.get("stats", {}).get("heal_pct", 0.0)) * 100.0))
 		var target = data.get("consumable_type", "hull").capitalize()
 		return "Restores %d%% %s" % [heal_pct, target]
 
@@ -148,6 +175,8 @@ func _build_card_stats(slot_type: String, stats: Dictionary) -> String:
 			break
 
 	if lines.is_empty():
+		if slot_type == "gem":
+			return data.get("desc", "No combat modifiers")
 		return "No combat modifiers"
 	return "\n".join(lines)
 
@@ -253,6 +282,13 @@ func _get_slot_color(slot_type: String) -> Color:
 			return Color(0.74, 0.74, 0.86)
 		_:
 			return Color(0.65, 0.58, 0.47)
+
+func _get_gem_color(gem_name: String) -> Color:
+	if "Crimson" in gem_name: return Color("#ff4444")
+	if "Cobalt" in gem_name: return Color("#44ccff")
+	if "Topaz" in gem_name: return Color("#ffcc00")
+	if "Amethyst" in gem_name: return Color("#aa44ff")
+	return Color("#b548b5") # Default purple
 
 func _apply_pulse(rarity: int):
 	_stop_pulse()
@@ -365,7 +401,7 @@ func _build_comparison_tooltip_bbcode() -> String:
 		tt += "[font_size=14][b]%s[/b][/font_size]\n" % _build_ammo_card_stats()
 		tt += div
 	elif slot_type == "consumable":
-		var heal_pct = int(round(data.get("stats", {}).get("heal_pct", 0.0) * 100.0))
+		var heal_pct = int(round(data.get("heal_pct", data.get("stats", {}).get("heal_pct", 0.0)) * 100.0))
 		var target = data.get("consumable_type", "hull")
 		tt += "[font_size=16][b]Restores %d%% %s[/b][/font_size]\n" % [heal_pct, target.capitalize()]
 		tt += div
@@ -376,6 +412,10 @@ func _build_comparison_tooltip_bbcode() -> String:
 	elif slot_type == "armor":
 		var val = my_stats.get("hp", 0)
 		tt += "[font_size=20][b]%s[/b][/font_size] [font_size=10][color=gray]Integrity Reinforcement[/color][/font_size]\n" % UITheme.format_num(val)
+		tt += div
+	elif slot_type == "gem":
+		var gem_desc = data.get("desc", ElementDB.get_element_description(mid))
+		tt += "[font_size=14][b]%s[/b][/font_size]\n" % gem_desc
 		tt += div
 
 	var equipped_mid = ""
@@ -439,31 +479,72 @@ func _build_comparison_tooltip_bbcode() -> String:
 	var affixes = data.get("affixes", {})
 	if sm and affixes.size() > 0:
 		tt += div
+		var zone_difficulty = int(data.get("zone_difficulty", 1))
 		for aid in affixes:
 			if aid in sm.AFFIX_DB:
 				var cfg = sm.AFFIX_DB[aid]
-				var val = int(affixes[aid] * 100)
-				var r_min = int(cfg["range"][0] * 100)
-				var r_max = int(cfg["range"][1] * 100)
+				var val_raw = affixes[aid]
+				var scaling = cfg.get("scaling", "percent")
 				
-				var icon = "*"
-				if rarity == sm.Rarity.LEGENDARY: icon = "*"
-				elif rarity == sm.Rarity.UNIQUE: icon = "!"
+				# v80.1 Fix: Use scaled ranges for display
+				var s_range = sm.get_affix_scaled_range(aid, zone_difficulty)
+				var val_str = ""
+				var range_str = ""
 				
-				tt += "[color=#8fc5ff]%s %s[/color] [color=gray][font_size=9][%d-%d]%%[/font_size][/color]\n" % [icon, (cfg["desc"] % val), r_min, r_max]
+				if scaling == "flat":
+					val_str = str(int(val_raw))
+					range_str = " [color=gray][font_size=9][%d-%d][/font_size][/color]" % [int(s_range[0]), int(s_range[1])]
+				else:
+					val_str = "%d%%" % int(val_raw * 100)
+					range_str = " [color=gray][font_size=9][%d-%d]%%[/font_size][/color]" % [int(s_range[0] * 100), int(s_range[1] * 100)]
+				
+				var icon = ""
+				
+				var desc = cfg["desc"] % [int(val_raw) if scaling == "flat" else int(val_raw * 100)]
+				tt += "[color=#8fc5ff]%s %s[/color]%s\n" % [icon, desc, range_str]
 
 	if data.has("sockets"):
 		tt += div
 		for gem in data["sockets"]:
 			if gem:
 				var g_name = ElementDB.get_display_name(gem)
-				tt += "[color=#b548b5]* %s[/color]\n" % g_name
+				var g_desc = ElementDB.get_element_description(gem)
+				var g_hex = _get_gem_color(g_name).to_html(false)
+				if g_desc != "":
+					tt += "[color=#%s]%s: %s[/color]\n" % [g_hex, g_name, g_desc]
+				else:
+					tt += "[color=#%s]%s[/color]\n" % [g_hex, g_name]
 			else:
-				tt += "[color=#444444]* Empty Socket[/color]\n"
+				tt += "[color=#444444]Empty Socket[/color]\n"
 
 	if sm and mid in sm.modules:
 		tt += div
 		tt += "[font_size=10][color=gray]Sell Value:[/color] [color=#e0b150]%s credits[/color][/font_size]" % UITheme.format_num(sm.get_sell_price(mid))
+
+	# v83.9: Set Bonus Tooltip Section
+	var sid = data.get("set_id", "")
+	if sid == "" and data.get("is_custom") and data.has("base_module"):
+		var base_id = data["base_module"]
+		sid = sm.modules.get(base_id, {}).get("set_id", "")
+	if sid != "" and GameState.combat_manager and "TRINITY_SET_BONUSES" in GameState.combat_manager:
+		var s_db = GameState.combat_manager.TRINITY_SET_BONUSES
+		if s_db.has(sid):
+			tt += div
+			var set_info = s_db[sid]
+			var count = GameState.combat_manager.get_set_piece_count(sid)
+			var total = set_info["pieces"]
+			var active = count >= total
+			
+			tt += "[b][color=#00ffff]SET: %s[/color][/b]\n" % set_info["name"].to_upper()
+			tt += "[font_size=10][color=gray]%d / %d pieces equipped[/color][/font_size]\n" % [count, total]
+			
+			for bonus_key in set_info["bonus"]:
+				var val = set_info["bonus"][bonus_key]
+				var b_name = bonus_key.replace("_pct", "").replace("_flat", "").replace("_", " ").to_upper()
+				var val_str = "+%d%%" % val if ("_pct" in bonus_key or "crit" in bonus_key) else "+%d" % val
+				
+				var col = "#ffffff" if active else "#666666"
+				tt += "[color=%s]%s: %s[/color]\n" % [col, b_name, val_str]
 
 	return tt
 

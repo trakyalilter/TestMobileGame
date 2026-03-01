@@ -106,6 +106,7 @@ func build_enemy_database():
 			"stats": e_data["stats"],
 			"loot": e_data["loot"],
 			"rare_loot": e_data.get("rare_loot", []),
+			"boss_core": e_data.get("boss_core", ""),
 			"xp": e_data.get("xp", 0)
 		}
 
@@ -180,6 +181,16 @@ func build_material_database():
 						"type": "combat",
 						"name": enemy_name + " (Rare)",
 						"rate": "%.0f%% chance" % (entry[1] * 100)
+					})
+			
+			if "boss_core" in enemy and enemy["boss_core"] != "":
+				var core_id = enemy["boss_core"]
+				ensure_material(core_id)
+				if core_id in material_db:
+					material_db[core_id]["sources"].append({
+						"type": "combat",
+						"name": enemy_name + " (Boss)",
+						"rate": "100% (Guaranteed)"
 					})
 	
 	# --- INFRASTRUCTURE SOURCES & USES ---
@@ -492,15 +503,20 @@ func _display_enemy_details(eid):
 	uses_list.add_child(loot_header)
 	
 	for entry in e.get("loot", []):
-		var mat_name = ElementDB.get_display_name(entry[0])
+		var mat_name = _get_pretty_name(entry[0])
 		var qty = "%d-%d" % [entry[1], entry[2]]
 		_add_label(uses_list, "• %s (%s)" % [mat_name, qty], Color.WHITE)
+		
+	var core_id = e.get("boss_core", "")
+	if core_id != "":
+		var core_name = _get_pretty_name(core_id)
+		_add_label(uses_list, "★ %s (100%% Guaranteed)" % core_name, Color.ORANGE)
 		
 	var rare_loot = e.get("rare_loot", [])
 	if not rare_loot.is_empty():
 		_add_label(uses_list, "-- RARE DROPS --", UITheme.COLORS["warning"])
 		for entry in rare_loot:
-			var mat_name = ElementDB.get_display_name(entry[0])
+			var mat_name = _get_pretty_name(entry[0])
 			var chance = "%.1f%%" % (entry[1] * 100)
 			var qty = "%d-%d" % [entry[2], entry[3]]
 			_add_label(uses_list, "★ %s (%s, %s)" % [mat_name, chance, qty], UITheme.COLORS["warning"])
@@ -601,3 +617,15 @@ func _update_filter_buttons(active_btn: String):
 	for child in filter_container.get_children():
 		if child is Button:
 			child.button_pressed = (child.name == active_btn)
+
+func _get_pretty_name(id: String) -> String:
+	# Try Element DB first
+	var name = ElementDB.get_display_name(id)
+	if name != id:
+		return name
+	
+	# Try Module DB
+	if GameState.shipyard_manager and id in GameState.shipyard_manager.modules:
+		return GameState.shipyard_manager.modules[id].get("name", id)
+		
+	return id

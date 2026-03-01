@@ -184,10 +184,11 @@ func refresh_inventory():
 				if item_cat != "basic_metals" and item_cat != "advanced_metals" and item_cat != "rare_metals":
 					continue
 			elif current_filter == "other":
-				# 'other' is a catch-all for anything not in the specific filters
+				# 'other' is a catch-all for anything not explicitly listed in the main filter buttons
 				var specific_cats = ["ores", "basic_metals", "advanced_metals", "rare_metals", "alloys", "components"]
 				if item_cat in specific_cats:
 					continue
+				# If we are here, it's a special item (like Boss Cores) and should be shown in 'Other'
 			elif item_cat != current_filter:
 				continue
 		

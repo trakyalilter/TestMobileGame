@@ -78,6 +78,7 @@ var recipes: Dictionary = {
 		"description": "Extract Zinc from ore via carbon reduction.",
 		"input": {"ZincOre": 3, "C": 1},
 		"output": {"Zn": 2},
+		"output_table": [["Ag", 0.4, 1, 1]], # v80.4 Fix: Ag byproduct added to Zn refining (fixes catalyst deadlock)
 		"duration": 4.0,
 		"level_req": 18,
 		"xp": 12
@@ -98,6 +99,7 @@ var recipes: Dictionary = {
 		"description": "Process Pentlandite for Nickel (Ni).",
 		"input": {"Pentlandite": 3, "C": 1},
 		"output": {"Ni": 2},
+		"output_table": [["Co", 0.4, 1, 1]], # v80.4 Fix: Co byproduct added to Ni refining (fixes major deadlock)
 		"duration": 6.0,
 		"level_req": 22,
 		"xp": 30,
@@ -151,7 +153,7 @@ var recipes: Dictionary = {
 			["Cu", 1.0, 10, 20],
 			["Chip", 0.3, 1, 2],
 			["NavData", 0.2, 1, 2],
-			["AncientComponent", 0.05, 1, 1]
+			["AncientTech", 0.05, 1, 1] # v80.4 Fix: Renamed from AncientComponent to match Costs
 		],
 		"duration": 10.0,
 		"level_req": 50, # Increased from 5
@@ -489,8 +491,9 @@ var recipes: Dictionary = {
 	# Components
 	"craft_circuit": {
 		"name": "Basic Circuitry",
-		"description": "Integrate salvaged drone processor with silicon.",
-		"input": {"Si": 4, "DroneCore": 2},
+		# v80.3 Fix: DroneCore requires SwarmFragment which no enemy drops — deadlock
+		"description": "Combine conductive copper traces with silicon wafers.",
+		"input": {"Cu": 3, "Si": 4},
 		"output": {"Circuit": 2},
 		"duration": 6.0,
 		"level_req": 6,
@@ -543,14 +546,25 @@ var recipes: Dictionary = {
 	# Basic metallurgy moved to top
 	# Germanium / Advanced Electronics
 	"extract_germanium": {
-		"name": "Germanite Smelting",
-		"description": "Refine Germanite Mineral into pure Germanium.",
-		"input": {"Germanit": 5},
+		"name": "Germanium Extraction",
+		# v80.4 Fix: Germanit has no source. Reworked to use Si+Cu
+		"description": "Extract trace Germanium from refined Silicon.",
+		"input": {"Si": 10, "Cu": 5},
 		"output": {"Germanium": 1},
 		"duration": 8.0,
-		"level_req": 36, # Increased from 5
-		"xp": 40, # Increased from 25
+		"level_req": 36,
+		"xp": 40,
 		"research_req": "combustion"
+	},
+	"refine_germanite": {
+		"name": "Germanite Refining",
+		"description": "Directly smelt Germanite ore for high-purity Germanium.",
+		"input": {"Germanit": 3},
+		"output": {"Germanium": 2},
+		"duration": 10.0,
+		"level_req": 35,
+		"xp": 50,
+		"research_req": "adv_materials"
 	},
 	"craft_semiconductor": {
 		"name": "Semiconductor Wafer",
@@ -839,8 +853,9 @@ var recipes: Dictionary = {
 	# ========== v57.1: SECTOR ZETA RECIPES ==========
 	"synthesize_bioweapon": {
 		"name": "Bio-Agent Synthesis",
+		# v80.4 Fix: MutatedTissue has no source. Replaced with BiohazardSample
 		"description": "Synthesize pathogen samples into biological weapon coating.",
-		"input": {"BiohazardSample": 10, "PathogenCore": 2, "MutatedTissue": 5},
+		"input": {"BiohazardSample": 15, "PathogenCore": 2},
 		"output": {"BioWeaponCoating": 3},
 		"duration": 30.0,
 		"level_req": 70,
@@ -848,21 +863,32 @@ var recipes: Dictionary = {
 		"research_req": "quarantine_protocols",
 		"category": "endgame"
 	},
+	"craft_ai_core": {
+		"name": "AI Logic Core",
+		"description": "Synthesize a high-bandwidth AI processing core.",
+		"input": {"Chip": 25, "AdvCircuit": 5, "NavData": 2},
+		"output": {"AICore": 1},
+		"duration": 20.0,
+		"level_req": 50,
+		"xp": 150,
+		"research_req": "automation"
+	},
 	"craft_ai_processor": {
-		"name": "AI Processor Array",
-		"description": "Advanced AI processing unit for autonomous combat support.",
-		"input": {"AIMatrix": 2, "AdvCircuit": 20, "QuantumCore": 1},
+		"name": "Sentient AI Processor",
+		"description": "Quantum-entangled processing substrate for sentient AI.",
+		# v80.1: Moved QuantumCore back to level 60
+		"input": {"AICore": 5, "AdvCircuit": 20, "QuantumCore": 1},
 		"output": {"AIProcessor": 1},
-		"duration": 45.0,
-		"level_req": 75,
-		"xp": 1800,
-		"research_req": "quarantine_protocols",
-		"category": "endgame"
+		"duration": 60.0,
+		"level_req": 65,
+		"xp": 500,
+		"research_req": "void_navigation"
 	},
 	"craft_regenerative_plating": {
 		"name": "Regenerative Hull Plating",
-		"description": "Self-healing armor using mutated tissue samples.",
-		"input": {"MutatedTissue": 10, "IrPlate": 3, "PathogenCore": 1},
+		# v80.4 Fix: MutatedTissue has no source. Replaced with BiohazardSample
+		"description": "Self-healing armor using bio-hazard compounds.",
+		"input": {"BiohazardSample": 20, "IrPlate": 3, "PathogenCore": 1},
 		"output": {"RegenPlating": 2},
 		"duration": 40.0,
 		"level_req": 72,
@@ -885,10 +911,11 @@ var recipes: Dictionary = {
 	# ========== AUDIT v20.0: DEAD RESOURCE ACTIVATION ==========
 	# T2 Fix: PirateManifest
 	"decode_manifest": {
-		"name": "Decode Pirate Manifest",
-		"description": "Decrypt stolen shipping data. Reveals hidden coordinates and bounty.",
-		"input": {"PirateManifest": 1},
-		"output": {"NavData": 1},
+		"name": "Decode Encrypted Data",
+		# v80.4 Fix: PirateManifest has no source. Reworked to use NavData
+		"description": "Cross-reference navigation data to reveal hidden coordinates and bounty.",
+		"input": {"NavData": 3},
+		"output": {},
 		"credits_output": 12500,
 		"duration": 15.0,
 		"level_req": 15,
@@ -921,9 +948,10 @@ var recipes: Dictionary = {
 	},
 	# T7 Fix: AncientTech
 	"decode_ancient_tech": {
-		"name": "Decode Ancient Technology",
-		"description": "Reverse engineer alien tech into quantum components.",
-		"input": {"AncientTech": 3, "VoidArtifact": 5},
+		"name": "Quantum Core Synthesis",
+		# v80.4 Fix: AncientTech has no source. Reworked to use void materials
+		"description": "Compress void artifacts into quantum-entangled processing cores.",
+		"input": {"VoidArtifact": 10, "VoidCrystal": 3, "AdvCircuit": 5},
 		"output": {"QuantumCore": 2},
 		"duration": 90.0,
 		"level_req": 70,
@@ -933,39 +961,15 @@ var recipes: Dictionary = {
 	},
 	# ========== AUDIT v20.0 EXTENSION: ALL ENEMIES UNIQUE DROPS ==========
 	# T2: claim_jumper -> StolenCargo
-	"fence_stolen_cargo": {
-		"name": "Fence Stolen Cargo",
-		"description": "Offload stolen goods through black market contacts.",
-		"input": {"StolenCargo": 1},
-		"output": {},
-		"credits_output": 5000,
-		"output_table": [
-			["NavData", 0.3, 1, 2],
-			["Chip", 0.2, 1, 1],
-			["Ti", 0.25, 5, 15],
-			["W", 0.15, 5, 10]
-		],
-		"duration": 10.0,
-		"level_req": 10,
-		"xp": 20,
-		"category": "salvage"
-	},
-	# T3: salvage_swarm -> SwarmFragment
-	"assemble_drone_core": {
-		"name": "Assemble Drone Core",
-		"description": "Reconstruct a functional drone processor from swarm fragments.",
-		"input": {"SwarmFragment": 5, "Si": 5},
-		"output": {"DroneCore": 2},
-		"duration": 15.0,
-		"level_req": 8,
-		"xp": 25,
-		"category": "salvage"
-	},
+	# v80.4 Fix: StolenCargo and SwarmFragment have no source — both recipes removed
+	# fence_stolen_cargo: StolenCargo not dropped by any enemy
+	# assemble_drone_core: SwarmFragment not dropped by any enemy
 	# T4: cryo_drone -> CryoCell
 	"craft_cryo_coolant": {
 		"name": "Cryogenic Coolant",
-		"description": "Extract supercooled fluid from cryo drone cells.",
-		"input": {"CryoCell": 1, "Water": 5},
+		# v80.4 Fix: CryoCell has no source. Reworked to use He+N (cryogenic materials)
+		"description": "Compress helium and nitrogen into supercooled fluid.",
+		"input": {"He": 15, "N": 10, "Water": 5},
 		"output": {"NitroCoolant": 1},
 		"duration": 10.0,
 		"level_req": 20,
@@ -974,9 +978,10 @@ var recipes: Dictionary = {
 	},
 	# T5: defense_turret -> TurretCore
 	"craft_turret_targeting": {
-		"name": "Salvage Targeting Array",
-		"description": "Extract the targeting computer from colonial turrets.",
-		"input": {"TurretCore": 2, "Circuit": 10},
+		"name": "Targeting Array Fabrication",
+		# v80.4 Fix: TurretCore has no source. Reworked to use AdvCircuit+Steel
+		"description": "Assemble a precision targeting computer from advanced circuits.",
+		"input": {"AdvCircuit": 3, "Steel": 20, "Circuit": 10},
 		"output": {"TargetingChip": 1},
 		"duration": 20.0,
 		"level_req": 45,
@@ -1167,7 +1172,7 @@ func complete_process():
 			GameState.resources.add_element(item, qty)
 			
 			# Special jackpot message for rare items
-			if item in ["AncientComponent", "W", "Ti", "NavData", "Chip", "Circuit"]:
+			if item in ["AncientTech", "W", "Ti", "NavData", "Chip", "Circuit"]:
 				events.append(["loot", {"symbol": item, "amount": qty, "is_jackpot": true}, current_recipe_id])
 			else:
 				events.append(["loot", {"symbol": item, "amount": qty}, current_recipe_id])

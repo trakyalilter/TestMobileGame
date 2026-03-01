@@ -22,7 +22,34 @@ func _ready():
 	$VBoxContainer/ScrollContainer.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_ALWAYS
 	_setup_logistics_rack()
 	_setup_multi_buy_toggles()
+	_connect_signals()
 	call_deferred("refresh_list")
+
+var refresh_timer: SceneTreeTimer
+var is_dirty: bool = false
+
+func _connect_signals():
+	GameState.resources.element_added.connect(_on_resources_changed)
+	GameState.resources.element_removed.connect(_on_resources_changed)
+	GameState.resources.currency_added.connect(_on_resources_changed)
+	GameState.resources.currency_removed.connect(_on_resources_changed)
+	GameState.resources.energy_changed.connect(_on_resources_changed)
+	if manager.has_signal("building_constructed"):
+		manager.building_constructed.connect(_on_resources_changed)
+
+func _on_resources_changed(_a=null, _b=null):
+	queue_refresh()
+
+func queue_refresh():
+	if is_dirty: return
+	is_dirty = true
+	# Throttle: Max 5 updates per second (200ms)
+	get_tree().create_timer(0.2).timeout.connect(_do_refresh)
+
+func _do_refresh():
+	is_dirty = false
+	if visible:
+		update_ui()
 
 var btn_x1: Button
 var btn_x10: Button
@@ -118,9 +145,7 @@ func refresh_list():
 			w.setup(bid, data, manager, self)
 			widgets.append(w)
 
-func _process(_delta):
-	# Update UI elements
-	update_ui()
+# Removed _process derived updates - using signals + throttled refreshes now
 
 func update_ui():
 	if not manager: return

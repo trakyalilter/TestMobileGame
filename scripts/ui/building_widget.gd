@@ -42,6 +42,8 @@ func setup(p_bid: String, p_data: Dictionary, p_manager, p_parent):
 	
 	production_interval = data.get("interval", 2.0)
 	
+	update_state()
+	
 	# Efficiency Slider (Throttle)
 	var throttle_container = VBoxContainer.new()
 	$MarginContainer/VBoxContainer.add_child(throttle_container)
@@ -102,9 +104,6 @@ func setup(p_bid: String, p_data: Dictionary, p_manager, p_parent):
 	cost_lbl.text = cost_str.strip_edges()
 
 func _process(delta):
-	# Refresh buildability
-	update_state()
-	
 	# THEMATIC: Production Flow (Simulated for HUD satisfaction)
 	var count = manager.get_building_count(bid)
 	if count > 0 and production_interval > 0:

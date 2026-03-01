@@ -1762,5 +1762,115 @@
     "tier": 5,
     "base_value": 50000,
     "description": "Socket into epic modules. +10% Hull & Jamming."
+  },
+  {
+    "atomic_number": -2001,
+    "symbol": "Z1_Core",
+    "name": "Lunar Core",
+    "mass": 5.0,
+    "category": "Boss Core",
+    "tier": 1,
+    "base_value": 500,
+    "description": "A crystallized energy matrix extracted from a Zone 1 boss. Used for zone-access research."
+  },
+  {
+    "atomic_number": -2002,
+    "symbol": "Z2_Core",
+    "name": "Asteroid Core",
+    "mass": 8.0,
+    "category": "Boss Core",
+    "tier": 2,
+    "base_value": 1500,
+    "description": "A dense mineral core from an Asteroid Belt boss. Used for zone-access research."
+  },
+  {
+    "atomic_number": -2003,
+    "symbol": "Z3_Core",
+    "name": "Debris Core",
+    "mass": 12.0,
+    "category": "Boss Core",
+    "tier": 3,
+    "base_value": 4000,
+    "description": "A superheated core from a Mars Debris boss. Used for zone-access research."
+  },
+  {
+    "atomic_number": -2004,
+    "symbol": "Z4_Core",
+    "name": "Cryofield Core",
+    "mass": 15.0,
+    "category": "Boss Core",
+    "tier": 3,
+    "base_value": 10000,
+    "description": "A frozen energy lattice from a Cryofield boss. Used for zone-access research."
+  },
+  {
+    "atomic_number": -2005,
+    "symbol": "Z5_Core",
+    "name": "Alpha Core",
+    "mass": 20.0,
+    "category": "Boss Core",
+    "tier": 4,
+    "base_value": 25000,
+    "description": "A xenon-infused power matrix from a Sector Alpha boss. Used for zone-access research."
+  },
+  {
+    "atomic_number": -2006,
+    "symbol": "Z6_Core",
+    "name": "Beta Core",
+    "mass": 25.0,
+    "category": "Boss Core",
+    "tier": 4,
+    "base_value": 60000,
+    "description": "A radiation-hardened core from a Sector Beta boss. Used for zone-access research."
+  },
+  {
+    "atomic_number": -2007,
+    "symbol": "Z7_Core",
+    "name": "Gamma Core",
+    "mass": 30.0,
+    "category": "Boss Core",
+    "tier": 5,
+    "base_value": 150000,
+    "description": "An exotic matter core from a Sector Gamma boss. Used for zone-access research."
+  },
+  {
+    "atomic_number": -2008,
+    "symbol": "Z8_Core",
+    "name": "Delta Core",
+    "mass": 40.0,
+    "category": "Boss Core",
+    "tier": 5,
+    "base_value": 400000,
+    "description": "A void-charged energy core from a Sector Delta boss. Used for zone-access research."
+  },
+  {
+    "atomic_number": -2009,
+    "symbol": "Z9_Core",
+    "name": "Epsilon Core",
+    "mass": 50.0,
+    "category": "Boss Core",
+    "tier": 5,
+    "base_value": 1000000,
+    "description": "A neutronium-laced core from a Sector Epsilon boss. Used for zone-access research."
+  },
+  {
+    "atomic_number": -2010,
+    "symbol": "Z10_Core",
+    "name": "Omega Core",
+    "mass": 100.0,
+    "category": "Boss Core",
+    "tier": 5,
+    "base_value": 5000000,
+    "description": "The ultimate boss core, pulsing with primordial energy. The rarest crafting material."
+  },
+  {
+    "atomic_number": -2011,
+    "symbol": "QuarantineClearance",
+    "name": "Quarantine Clearance",
+    "mass": 0.1,
+    "category": "Data",
+    "tier": 5,
+    "base_value": 0,
+    "description": "Biometric authorization token required for FTL travel into protected sectors."
   }
 ]
