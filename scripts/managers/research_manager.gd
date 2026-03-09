@@ -13,7 +13,7 @@ const COST_MULTIPLIER = 1.0 # Applied manually now
 const MATERIAL_MULTIPLIER = 2.0
 
 # Mid/Late progression tuning for research item requirements.
-const MID_RESEARCH_ITEM_REQ_MULT = 1.35
+const MID_RESEARCH_ITEM_REQ_MULT = 1.0
 const LATE_RESEARCH_ITEM_REQ_MULT = 1.80
 const MID_RESEARCH_COST_GATE = 15000
 const LATE_RESEARCH_COST_GATE = 150000
@@ -86,7 +86,7 @@ var tech_tree = {
 		# v61.0 Fix: Bronze Alloy doesn't exist, corrected to Galvanized Steel
 		"description": "Unlocks:\n• Steel Foundry\n• Galvanized Steel\n• Shipwright I, Processing Tungsten, Salvage Heuristics (Ships)",
 		"cost": 3750,  # Audit v41.0: Reduced from 3000 to smooth progression
-		"cost_items": {"Res1": 7, "Circuit": 15},
+		"cost_items": {"Res1": 10, "Circuit": 5},
 		"type": "technology",
 		"parent": "combustion"
 	},
@@ -94,7 +94,7 @@ var tech_tree = {
 		"name": "Shipwright I",
 		"description": "Unlocks:\n• Industrial Frigate \n• Titanium Plating\n• [Requires: Efficient Smelting (Engineering)]",
 		"cost": 50000,
-		"cost_items": {"Steel":50,"Res1": 20,"Circuit": 10},
+		"cost_items": {"Steel":20,"Res1": 20,"Circuit": 10},
 		"type": "technology",
 		"parent": "power_systems",
 		"req_tech": "smelting"
@@ -513,7 +513,7 @@ var tech_tree = {
 		"name": "Automated Logistics",
 		"description": "Unlocks:\n• Drone Bay\n• Fleet Logistics I (Ships)",
 		"cost": 3000,
-		"cost_items": {"Cu": 100, "Fe": 100},
+		"cost_items": {"Cu": 25, "Fe":50, "Res1": 25},
 		"type": "technology",
 		"parent": "industrial_logistics"
 	},

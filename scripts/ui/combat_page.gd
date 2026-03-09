@@ -87,6 +87,7 @@ func _ready():
 	# Initial Sync
 	_on_heat_changed(manager.player_heat, manager.player_max_heat)
 	
+	_setup_loot_filter_button()
 
 var p_xp_bar: ProgressBar
 var p_xp_label: Label
@@ -124,6 +125,27 @@ func _setup_xp_bar():
 	if p_xp_label: p_xp_label.add_theme_font_size_override("font_size", 8)
 
 	container.move_child(p_xp_bar, 1)
+
+func _setup_loot_filter_button():
+	var btn = Button.new()
+	btn.text = "LOOT FILTER"
+	btn.name = "LootFilterBtn"
+	btn.custom_minimum_size = Vector2(120, 30)
+	UITheme.apply_premium_button_style(btn, "ops")
+	
+	# Add to BottomHUD next to Retreat button if possible or just in horizontal layout
+	var container = $Dashboard/HUD/BottomHUD
+	container.add_child(btn)
+	container.move_child(btn, 0) # Put it first for visibility
+	
+	btn.pressed.connect(_on_filter_btn_pressed)
+
+func _on_filter_btn_pressed():
+	# Since it's code-only, we just instantiate the script
+	var script = load("res://scripts/ui/loot_filter_modal.gd")
+	var dlg = Control.new()
+	dlg.set_script(script)
+	self.add_child(dlg)
 
 func refresh_zones():
 	zone_list.clear()

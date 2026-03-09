@@ -101,22 +101,41 @@ func _setup_module(id: String):
 	title_lbl.text = data["name"]
 	title_lbl.modulate = Color.WHITE # Force strict white
 
+	var stats = data.get("stats", {})
+
 	
 	var s_type = data.get("slot_type", "module").to_upper()
 	type_lbl.text = "SHIP MODULE (%s)" % s_type
 	type_lbl.modulate = Color(1.0, 0.5, 0.2)
 	
-	desc_lbl.text = data.get("desc", "")
+	var final_desc = data.get("desc", "")
+	if stats.has("atk_kinetic") and stats["atk_kinetic"] > 0:
+		final_desc += "\n[+20% VS HULL]"
+	if stats.has("atk_energy") and stats["atk_energy"] > 0:
+		final_desc += "\n[+50% VS SHIELD]"
+	if stats.has("atk_explosive") and stats["atk_explosive"] > 0:
+		final_desc += "\n[+10% VS SHIELD]"
+		
+	desc_lbl.text = final_desc
 	desc_lbl.modulate = Color(0.8, 0.8, 0.8, 1) # Force strict grey
 
 	
-	var stats = data.get("stats", {})
+	
+	
 	for k in stats:
 		var key_name = k.capitalize().replace("_", " ")
 		var val_str = str(stats[k])
 		if "bonus" in k or "chance" in k:
 			val_str = "+%.0f%%" % (stats[k] * 100.0)
 		_add_stat(key_name, val_str)
+	
+	# v83.1: Damage Type Bonuses (High Visibility)
+	if stats.has("atk_kinetic") and stats["atk_kinetic"] > 0:
+		_add_stat("VS HULL", "+20% DAMAGE", Color.GOLD)
+	if stats.has("atk_energy") and stats["atk_energy"] > 0:
+		_add_stat("VS SHIELD", "+50% DAMAGE", Color.CYAN)
+	if stats.has("atk_explosive") and stats["atk_explosive"] > 0:
+		_add_stat("VS SHIELD", "+10% DAMAGE", Color.LIGHT_CORAL)
 		
 	_set_cost(data["cost"])
 
@@ -141,14 +160,15 @@ func _setup_building(id: String):
 		
 	_set_cost(data["cost"])
 
-func _add_stat(label: String, value: String):
+func _add_stat(label: String, value: String, val_color: Color = Color.WHITE):
 	var box = HBoxContainer.new()
 	var l = Label.new()
 	l.text = label + ":"
-	l.modulate = Color(0.6, 0.6, 0.6)
+	l.modulate = Color(0.7, 0.7, 0.7) # Slightly brighter grey for labels
 	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var v = Label.new()
 	v.text = value
+	v.modulate = val_color # Dynamic color for the value
 	v.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	
 	box.add_child(l)

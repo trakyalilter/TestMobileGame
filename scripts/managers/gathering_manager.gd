@@ -105,7 +105,7 @@ var actions: Dictionary = {
 	},
 	"mine_malachite": {
 		"name": "Extract Malachite",
-		"loot_table": [["Malachite", 1.0, 1, 2]],
+		"loot_table": [["Malachite", 1.0, 8, 10]],
 		"xp": 14,
 		"level_req": 10,
 		"research_req": "basic_engineering",

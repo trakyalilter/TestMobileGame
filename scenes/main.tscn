@@ -63,14 +63,14 @@ layout_mode = 2
 text = "  ◓  Mine"
 alignment = 0
 
-[node name="InfrastructureBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
-layout_mode = 2
-text = "  ⌬  Infrastructure"
-alignment = 0
-
 [node name="ProcessingBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
 text = "  ⚙ Engineering"
+alignment = 0
+
+[node name="InfrastructureBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
+layout_mode = 2
+text = "  ⌬  Infrastructure"
 alignment = 0
 
 [node name="ResearchBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
@@ -134,8 +134,8 @@ mouse_filter = 2
 [connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/BountyBtn" to="." method="_on_bounty_btn_pressed"]
 [connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/FleetBtn" to="." method="_on_fleet_btn_pressed"]
 [connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/GatheringBtn" to="." method="_on_gathering_btn_pressed"]
-[connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/InfrastructureBtn" to="." method="_on_infrastructure_btn_pressed"]
 [connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/ProcessingBtn" to="." method="_on_processing_btn_pressed"]
+[connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/InfrastructureBtn" to="." method="_on_infrastructure_btn_pressed"]
 [connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/ResearchBtn" to="." method="_on_research_btn_pressed"]
 [connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/ShipyardBtn" to="." method="_on_shipyard_btn_pressed"]
 [connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/DesignerBtn" to="." method="_on_designer_btn_pressed"]

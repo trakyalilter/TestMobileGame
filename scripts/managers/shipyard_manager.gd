@@ -157,7 +157,77 @@ const AFFIX_DB = {
 		"name": "Logistician's Edge", "type": "economy", "scaling": "percent",
 		"range": [3, 10], "limit_to": ["sensor"],
 		"desc": "-%d%% material requirements for Delivery Contracts."
+	},
+	# v85.1: New Combat Affixes
+	"combat_sight": {
+		"name": "Combat Sight", "type": "tactical", "scaling": "percent",
+		"range": [2, 5], "limit_to": ["weapon", "sensor"],
+		"desc": "+%d%% Critical Strike chance."
+	},
+	"reflexive_plating": {
+		"name": "Reflexive Plating", "type": "defensive", "scaling": "flat",
+		"range": [2, 5], "limit_to": ["armor", "engine"],
+		"desc": "+%d Flat Evasion."
+	},
+	"hull_heal_on_hit": {
+		"name": "Nanite Syringe", "type": "defensive", "scaling": "linear_tier",
+		"range": [1, 3], "limit_to": ["weapon", "armor"],
+		"desc": "Restore %d Hull Integrity on every hit."
+	},
+	"shield_heal_on_hit": {
+		"name": "Shield Siphon", "type": "defensive", "scaling": "linear_tier",
+		"range": [1, 3], "limit_to": ["weapon", "shield"],
+		"desc": "Restore %d Shield Capacity on every hit."
+	},
+	# v85.3: Refined Sci-Fi Affixes (Inspiration, not Imitation)
+	"lucky_hit_chance": {
+		"name": "Tactical Breach Chance", "type": "tactical", "scaling": "percent",
+		"range": [5, 10], "limit_to": ["weapon", "sensor"],
+		"desc": "+%d%% Tactical Breach Chance."
+	},
+	"dmg_healthy": {
+		"name": "Precision Calibration", "type": "tactical", "scaling": "percent",
+		"range": [10, 20], "limit_to": ["weapon"],
+		"desc": "+%d%% damage against High Integrity enemies (>80%% Hull)."
+	},
+	"dmg_injured": {
+		"name": "Structural Exploitation", "type": "tactical", "scaling": "percent",
+		"range": [15, 30], "limit_to": ["weapon"],
+		"desc": "+%d%% damage against Severely Damaged enemies (<35%% Hull)."
+	},
+	"vuln_on_hit": {
+		"name": "Exposing Pulse", "type": "tactical", "scaling": "percent",
+		"range": [5, 12], "limit_to": ["weapon"],
+		"desc": "%d%% chance to make enemies Exposed (20%% more dmg) for 3s."
+	},
+	"berserk_on_kill": {
+		"name": "Overdrive Catalyst", "type": "tactical", "scaling": "percent",
+		"range": [8, 15], "limit_to": ["weapon", "engine"],
+		"desc": "%d%% chance on kill to enter Overdrive (+25%% Atk Speed) for 5s."
 	}
+}
+
+# v85.3: Sci-Fi Thematic Naming System
+const AFFIX_NAMING = {
+	"static_burst": {"prefix": "Overloaded", "suffix": "of Discharge"},
+	"void_strike": {"prefix": "Phased", "suffix": "of the Void"},
+	"flat_atk": {"prefix": "Charged", "suffix": "of Lethality"},
+	"flat_accuracy": {"prefix": "Calibrated", "suffix": "of Precision"},
+	"heat_sync_focus": {"prefix": "Thermal", "suffix": "of Venting"},
+	"flat_hp": {"prefix": "Reinforced", "suffix": "of Bulwark"},
+	"flat_def": {"prefix": "Hardened", "suffix": "of Bastion"},
+	"flat_shield": {"prefix": "Flux", "suffix": "of the Aegis"},
+	"capacitor_pulse": {"prefix": "Kinetic", "suffix": "of the Dynamo"},
+	"nanite_resurgence": {"prefix": "Repairing", "suffix": "of Nanites"},
+	"combat_sight": {"prefix": "Surgical", "suffix": "of the Assassin"},
+	"reflexive_plating": {"prefix": "Stealth", "suffix": "of Ghosting"},
+	"hull_heal_on_hit": {"prefix": "Siphoning", "suffix": "of the Parasite"},
+	"shield_heal_on_hit": {"prefix": "Conductive", "suffix": "of the Siphon"},
+	"lucky_hit_chance": {"prefix": "Opportunistic", "suffix": "of Synergy"},
+	"dmg_healthy": {"prefix": "Executioner's", "suffix": "of the Hunt"},
+	"dmg_injured": {"prefix": "Sadistic", "suffix": "of Ending"},
+	"vuln_on_hit": {"prefix": "Shattering", "suffix": "of Weakness"},
+	"berserk_on_kill": {"prefix": "Neural", "suffix": "of the Reckless"}
 }
 
 # Step 6: Gem/Matrix Core Effects
@@ -195,7 +265,18 @@ var affix_bonuses = {
 	"flat_def": 0.0,
 	"flat_atk": 0.0,
 	"flat_accuracy": 0.0,
-	"flat_shield": 0.0
+	"flat_shield": 0.0,
+	# v85.1: New Affixes
+	"combat_sight": 0.0,
+	"reflexive_plating": 0.0,
+	"hull_heal_on_hit": 0.0,
+	"shield_heal_on_hit": 0.0,
+	# v85.2: New D4 Affixes
+	"lucky_hit_chance": 0.0,
+	"dmg_healthy": 0.0,
+	"dmg_injured": 0.0,
+	"vuln_on_hit": 0.0,
+	"berserk_on_kill": 0.0
 }
 
 # v71.1: Alert System for new drops
@@ -275,9 +356,9 @@ var hulls: Dictionary = {
 	},
 	"frigate_hull": {
 		"name": "Industrial Frigate",
-		"stats": {"hp": 185, "atk": 20, "energy_capacity": 55},
-		"cost": {"credits": 30000, "Fe": 200, "Cu": 100},
-		"slots": ["weapon", "weapon", "shield", "shield", "armor", "engine", "battery", "battery", "battery", "sensor"], # 10
+		"stats": {"hp": 200, "atk": 25, "energy_capacity": 75},
+		"cost": {"credits": 30000, "Steel": 50},
+		"slots": ["weapon", "weapon", "shield", "shield","armor", "armor", "engine", "battery", "battery", "sensor"], # 10
 		"research_req": "shipwright_1",
 		"visual": "res://assets/ships/2.png",
 		"tier": 2
@@ -1560,7 +1641,7 @@ func insert_gem(module_id: String, socket_idx: int, gem_id: String) -> bool:
 	return true
 
 func remove_gem(module_id: String, socket_idx: int) -> bool:
-	if not module_id in module_inventory: return false
+	# Removed inventory check to allow removal from equipped modules
 	var mod = modules.get(module_id)
 	if not mod or not mod.has("sockets"): return false
 	if socket_idx < 0 or socket_idx >= mod["sockets"].size(): return false
@@ -1650,6 +1731,14 @@ func recalc_stats():
 	defe += affix_bonuses.get("flat_def", 0.0)
 	acc += affix_bonuses.get("flat_accuracy", 0.0)
 	atk_k += affix_bonuses.get("flat_atk", 0.0)
+	
+	# v85.1: Add New Affix types to global stats
+	crit += affix_bonuses.get("combat_sight", 0.0)
+	eva += affix_bonuses.get("reflexive_plating", 0.0)
+	
+	# v85.2: Accumulate D4 stats (Combat manager will handle the logic, but we track the totals)
+	# Note: These are mostly procs/thresholds, but we track totals for tooltip display logic if needed.
+	# Actually, CombatManager will check sm.affix_bonuses directly.
 
 	var rm = GameState.research_manager
 	var hp_mult = 1.0
@@ -1884,6 +1973,9 @@ func get_affix_scaled_range(affix_id: String, zone_difficulty: int) -> Array:
 		var scaled_min = floor(float(r_min) * pow(1.8, max(0, zone_difficulty - 1)))
 		var scaled_max = floor(float(r_max) * pow(1.8, max(0, zone_difficulty - 1)))
 		return [scaled_min, scaled_max]
+	elif cfg.get("scaling") == "linear_tier":
+		# v85.1: Base * Zone
+		return [float(r_min) * zone_difficulty, float(r_max) * zone_difficulty]
 	else:
 		# Percent affixes [3, 10] -> [0.03, 0.10]
 		return [float(r_min) / 100.0, float(r_max) / 100.0]
@@ -1973,28 +2065,56 @@ func generate_module_drop(base_module_id: String, rarity: int = Rarity.UNCOMMON,
 	elif rarity == Rarity.LEGENDARY: num_affixes = 2
 	elif rarity == Rarity.UNIQUE: num_affixes = 3
 	
-	# v76.6: Prevents index crash if pool is smaller than required num (e.g. Armor unique only has 1 affix)
-	num_affixes = min(num_affixes, affix_pool.size())
+	# v85.3: Dynamic Naming & GA Initialization
+	var final_name = base.get("name", "Unknown")
+	var greater_affixes = []
 	
 	if num_affixes > 0:
 		affix_pool.shuffle()
 		for i in range(num_affixes):
 			var affix_id = affix_pool[i]
 			var cfg = AFFIX_DB[affix_id]
-			var raw_val = randi_range(cfg["range"][0], cfg["range"][1])
+			
+			# v85.2: Greater Affix Logic (10% chance)
+			var is_greater = randf() < 0.1
+			var raw_val = 0.0
+			
+			if is_greater:
+				# GA is pinned to 1.5x max possible roll
+				raw_val = cfg["range"][1] * 1.5
+				greater_affixes.append(affix_id)
+			else:
+				raw_val = randi_range(cfg["range"][0], cfg["range"][1])
+				
 			var final_val = 0.0
 			
 			if cfg.get("scaling") == "flat":
 				# v80.1: floor(Base * 1.8^(Zone - 1))
 				final_val = floor(float(raw_val) * pow(1.8, zone_difficulty - 1))
+			elif cfg.get("scaling") == "linear_tier":
+				# v85.1: Base * Zone (e.g. 3 * Zone 5 = 15)
+				final_val = float(raw_val) * zone_difficulty
 			else: # percent
 				# v80.1: range [3, 10] becomes [0.03, 0.10]
 				final_val = float(raw_val) / 100.0
 				
 			custom_affixes[affix_id] = final_val
 	
+		# v85.3: Apply Dynamic Naming if affixes exist
+		var affix_ids = custom_affixes.keys()
+		var first_affix = affix_ids[0]
+		var last_affix = affix_ids[-1]
+		
+		var prefix = AFFIX_NAMING.get(first_affix, {}).get("prefix", "")
+		var suffix = AFFIX_NAMING.get(last_affix, {}).get("suffix", "")
+		
+		if prefix != "":
+			final_name = prefix + " " + final_name
+		if suffix != "" and affix_ids.size() > 1:
+			final_name = final_name + " " + suffix
+			
 	var rarity_label = RARITY_LABELS.get(rarity, "")
-	var suffix = " (%s)" % rarity_label if rarity_label != "" else ""
+	var suffix_label = " (%s)" % rarity_label if rarity_label != "" else ""
 	
 	# Socket Generation (Step 6)
 	var sockets = []
@@ -2006,7 +2126,7 @@ func generate_module_drop(base_module_id: String, rarity: int = Rarity.UNCOMMON,
 			sockets.append(null)
 			
 	var custom_module = {
-		"name": "%s%s" % [base.get("name", "Unknown"), suffix],
+		"name": "%s%s" % [final_name, suffix_label],
 		"slot_type": base.get("slot_type", "weapon"),
 		"stats": custom_stats,
 		"cost": {},
@@ -2018,8 +2138,9 @@ func generate_module_drop(base_module_id: String, rarity: int = Rarity.UNCOMMON,
 		"rarity": rarity,
 		"base_module": base_module_id,
 		"zone_difficulty": max(1, zone_difficulty),
-		"affixes": custom_affixes, # Add affixes here
-		"sockets": sockets # Array of gem IDs or null
+		"affixes": custom_affixes,
+		"greater_affixes": greater_affixes, # v85.2: Track GA affixes
+		"sockets": sockets
 	}
 	
 	# Legendary: add extra flavor

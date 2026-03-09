@@ -77,11 +77,23 @@ func setup(data):
 
 	# Module Loot
 	var module_pool = data.get("module_drop_pool", [])
-	var module_drop_chance = data.get("module_drop_chance", 0.0)
-	if module_drop_chance > 0 and module_pool.size() > 0:
+	var base_drop_chance = data.get("module_drop_chance", 0.0)
+	
+	if base_drop_chance > 0 and module_pool.size() > 0:
 		var sm = GameState.shipyard_manager
+		var cm = GameState.combat_manager
+		
+		var effective_chance = base_drop_chance
+		if cm and cm.has_method("get_effective_module_drop_chance"):
+			effective_chance = cm.get_effective_module_drop_chance(data)
+			
 		add_header("Subspace Signal Detected", Color.GOLD)
-		add_item_label("Chance per kill: %.1f%%" % (module_drop_chance * 100.0), Color(1.0, 0.9, 0.4))
+		
+		var chance_text = "Chance per kill: %.1f%%" % (effective_chance * 100.0)
+		if abs(effective_chance - base_drop_chance) > 0.001:
+			chance_text = "Chance: %.1f%% (Base: %.1f%%)" % [effective_chance * 100.0, base_drop_chance * 100.0]
+			
+		add_item_label(chance_text, Color(1.0, 0.9, 0.4))
 		add_item_label("Contains variants for:", Color(0.7, 0.7, 0.8))
 		
 		for module_id in module_pool:

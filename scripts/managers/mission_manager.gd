@@ -51,7 +51,7 @@ func init_missions():
 		["m002b", "Applied Physics", "Research the 'Applied Physics' hub.", "research", "applied_physics", 1, 300, 100, "m003"],
 		["m003", "Pump Master", "Research 'Fluid Dynamics' to unlock water collection.", "research", "fluid_dynamics", 1, 300, 50, "m004"],
 		["m004", "Hydration", "Gather 350 units of Water.", "gather", "Water", 350, 500, 100, "m005"],
-		["m005", "Mineral Washing", "Recover 75 Silicon and 75 Iron from Dirt.", "gather_multi", {"Si": 75, "Fe": 75}, 150, 1000, 200, "m007"],
+		["m005", "Mineral Washing", "Recover 100 Silicon and 80 Iron from Dirt.", "gather_multi", {"Si": 100, "Fe": 80}, 180, 1000, 200, "m007"],
 		
 		# m006 Removed (Moved to m002b)
 		["m007", "Mobility Check", "Craft a 'Basic Thruster' in the Shipyard.", "craft", "z1_engine", 1, 1000, 100, "m008"],
@@ -59,8 +59,10 @@ func init_missions():
 		["m009", "Deforestation", "Gather 100 units of Wood.", "gather", "Wood", 100, 500, 100, "m010"],
 		["m010", "Organic Combustion", "Research 'Organic Combustion' to unlock the Kiln.", "research", "combustion", 1, 500, 150, "m011"],
 		["m011", "Essential Carbon", "Use the Charcoal Kiln to produce 50 Carbon.", "gather", "C", 50, 600, 150, "m012"],
-		["m012", "Lithium Discovery", "Gather 60 Lithium Ore.", "gather", "Spodumene", 60, 800, 200, "m013"],
-		["m013", "Voltaic Storage", "Refine 30 Lithium in the Engineering tab.", "gather", "Li", 30, 1000, 250, "m020"],
+		["m012", "Lithium Discovery", "Gather 100 Lithium Ore.", "gather", "Spodumene", 100, 800, 200, "m013"],
+		["m013", "Voltaic Storage", "Refine 50 Lithium in the Engineering tab.", "gather", "Li", 50, 1000, 250, "m013b"],
+		["m013b", "Copper Prospecting", "Gather 100 Malachite Ore.", "gather", "Malachite", 100, 1200, 300, "m013c"],
+		["m013c", "Conductivity", "Refine 50 Copper in the Engineering tab.", "gather", "Cu", 50, 1500, 350, "m020"],
 		["m014", "Ballistics Theory", "Research 'Kinetics 101' for weapons technology.", "research", "kinetics_101", 1, 1200, 100, "m015"],
 		["m015", "Prototype Arsenal", "Craft a 'Mass Driver Mk.I' in the Shipyard.", "craft", "z1_kinetic", 1, 1500, 200, "m016"],
 		["m016", "Kinetic Munitions", "Produce 100 Ferrite Rounds for your weapon.", "gather", "SlugT1", 100, 1000, 100, "m023"],
@@ -70,16 +72,20 @@ func init_missions():
 		["m017", "Target Locked", "Defeat 1 Lunar Drone in Lunar Orbit.", "defeat", "z1_lunar_drone", 1, 2500, 500, "m018"],
 		["m018", "Industrial Logistics", "Research the 'Industrial Logistics' hub.", "research", "industrial_logistics", 1, 500, 100, "m018b"],
 		["m018b", "Automated Intelligence", "Research 'Automated Logistics' for circuitry.", "research", "automated_logistics", 1, 1000, 200, "m019"],
-		["m019", "Cybernetic Integration", "Craft 5 Basic Circuitry in the Engineering tab.", "gather", "Circuit", 5, 2000, 300, "m025"],
+		["m019", "Cybernetic Integration", "Craft 10 Basic Circuitry in the Engineering tab.", "gather", "Circuit", 10, 2000, 300, "m025"],
 		["m020", "Advanced Energy", "Research 'Power Systems' for batteries.", "research", "power_systems", 1, 500, 100, "m021"],
 		["m021", "Industrial Energy", "Craft 5 Basic Batteries in the Engineering tab.", "gather", "BatteryT1", 5, 1000, 100, "m022"],
 		["m022", "Power Storage", "Craft a 'Basic Battery' in the Shipyard.", "craft", "z1_battery", 1, 1500, 150, "m014"],
 		["m023", "Hull Integrity", "Research 'Energy Fields' to unlock shielding.", "research", "energy_shields", 1, 1000, 150, "m024"],
 		["m024", "Aegis System", "Craft a 'Basic Shield' for protection.", "craft", "z1_shield", 1, 2500, 200, "m016b"],
-		["m025", "Refining Mastery", "Research 'Efficient Smelting' for alloys.", "research", "smelting", 1, 15000, 500, "m026"],
+		["m025", "Refining Mastery", "Research 'Efficient Smelting' for alloys.", "research", "smelting", 1, 15000, 500, "m025b"],
+		["m025b", "Alloy Production", "Produce 50 Steel in the Steel Foundry.", "gather", "Steel", 50, 5000, 500, "m026"],
 		["m026", "Master Constructor", "Research 'Shipwright I' for hull reinforcement.", "research", "shipwright_1", 1, 5000, 500, "m026b"],
 		# P0-25: Missing Beepings - Fleet Modernization I
-		["m026b", "Fleet Modernization I", "Construct an 'Industrial Frigate' in the Shipyard.", "construct", "frigate_hull", 1, 10000, 1000, "m027"],
+		["m026b", "Fleet Modernization I", "Construct an 'Industrial Frigate' in the Shipyard.", "construct", "frigate_hull", 1, 10000, 1000, "m026c"],
+		["m026c", "Elite Salvage", "Drop a RARE module from enemies in Lunar Orbit.", "drop_rarity", "", 2, 5000, 500, "m026d"],
+		["m026d", "Combat Overhaul", "Equip your Industrial Frigate with RARE or better modules in ALL slots.", "loadout_full_rarity", "", 2, 10000, 1000, "m026e"],
+		["m026e", "Final Confrontation", "Defeat the Rogue Architect boss in Lunar Orbit.", "defeat", "z1_boss_architect", 1, 25000, 2500, "m027"],
 		# P0 Fix: Progression Deadlock Re-alignment
 		["m027", "Scanning Horizon", "Unlock 'Asteroid Belt' to expand operations.", "research", "asteroid_clearance", 1, 5000, 500, "m028"],
 		["m028", "Belt Mining", "Mine 1000 Cassiterite in the Asteroid Belt.", "gather", "Cassiterite", 1000, 10000, 2000, "m029"],
@@ -336,6 +342,41 @@ func sync_progress():
 				has_weapon = true
 				
 			if has_weapon and has_shield:
+				m["current_qty"] = 1
+
+		elif m["type"] == "drop_rarity":
+			var target_rarity = int(m["target_qty"])
+			var has_rarity = false
+			var sm = GameState.shipyard_manager
+			for inv_mid in sm.module_inventory:
+				if sm.get_module_rarity(inv_mid) >= target_rarity:
+					has_rarity = true
+					break
+			if not has_rarity:
+				for equipped_mid in sm.loadout.values():
+					if equipped_mid and sm.get_module_rarity(equipped_mid) >= target_rarity:
+						has_rarity = true
+						break
+			if has_rarity:
+				m["current_qty"] = 1
+
+		elif m["type"] == "loadout_full_rarity":
+			var target_rarity = int(m["target_qty"])
+			var sm = GameState.shipyard_manager
+			var all_rare = true
+			if sm.loadout.is_empty():
+				all_rare = false
+			else:
+				var hull_slots = sm.hulls[sm.active_hull]["slots"].size()
+				for i in range(hull_slots):
+					var mid_in_slot = sm.loadout.get(i)
+					if not mid_in_slot:
+						all_rare = false
+						break
+					if sm.get_module_rarity(mid_in_slot) < target_rarity:
+						all_rare = false
+						break
+			if all_rare:
 				m["current_qty"] = 1
 
 		if m["current_qty"] != old_qty:

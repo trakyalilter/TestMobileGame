@@ -160,9 +160,17 @@ func _build_card_stats(slot_type: String, stats: Dictionary) -> String:
 		var dmg = stats.get("atk_kinetic", 0) + stats.get("atk_energy", 0) + stats.get("atk_explosive", 0)
 		var interval = max(0.01, float(stats.get("atk_interval", 2.5)))
 		lines.append("DPS: %.1f" % (float(dmg) / interval))
+		
+		# v83.1: Damage Type Bonuses
+		if stats.get("atk_kinetic", 0) > 0: lines.append("Vs Hull: +20%")
+		if stats.get("atk_energy", 0) > 0: lines.append("Vs Shield: +50%")
+		if stats.get("atk_explosive", 0) > 0: lines.append("Vs Shield: +10%")
 
 	var keys = stats.keys()
 	keys.sort()
+	
+	var ga_list = data.get("greater_affixes", [])
+	
 	for key in keys:
 		if key == "atk_interval":
 			continue
@@ -170,8 +178,9 @@ func _build_card_stats(slot_type: String, stats: Dictionary) -> String:
 		if key == "energy_load" and val == 0:
 			continue
 		var label = FormatUtils.format_stat_label(key)
-		lines.append("%s: %s" % [label, FormatUtils.format_stat_value(key, val)])
-		if lines.size() >= 4:
+		var ga_prefix = "[color=#ffcc00]★[/color] " if key in ga_list else ""
+		lines.append("%s%s: %s" % [ga_prefix, label, FormatUtils.format_stat_value(key, val)])
+		if lines.size() >= 5: # Increased limit slightly
 			break
 
 	if lines.is_empty():
@@ -396,6 +405,15 @@ func _build_comparison_tooltip_bbcode() -> String:
 		var dps = float(dmg) / interval
 		tt += "[font_size=20][b]%.1f DPS[/b][/font_size]\n" % dps
 		tt += "[font_size=9][color=gray]%s total damage, %.2f hits/s[/color][/font_size]\n" % [UITheme.format_num(dmg), 1.0 / interval]
+		
+		# v83.1: Damage Type Bonuses
+		if my_stats.get("atk_kinetic", 0) > 0: 
+			tt += "[color=gold][b]Hull Damage Bonus: +20%[/b][/color]\n"
+		if my_stats.get("atk_energy", 0) > 0:
+			tt += "[color=cyan][b]Shield Damage Bonus: +50%[/b][/color]\n"
+		if my_stats.get("atk_explosive", 0) > 0:
+			tt += "[color=pink][b]Shield Damage Bonus: +10%[/b][/color]\n"
+			
 		tt += div
 	elif slot_type == "ammo":
 		tt += "[font_size=14][b]%s[/b][/font_size]\n" % _build_ammo_card_stats()
@@ -477,6 +495,8 @@ func _build_comparison_tooltip_bbcode() -> String:
 		tt += "%s\n" % line
 
 	var affixes = data.get("affixes", {})
+	var ga_list = data.get("greater_affixes", [])
+	
 	if sm and affixes.size() > 0:
 		tt += div
 		var zone_difficulty = int(data.get("zone_difficulty", 1))
@@ -485,23 +505,35 @@ func _build_comparison_tooltip_bbcode() -> String:
 				var cfg = sm.AFFIX_DB[aid]
 				var val_raw = affixes[aid]
 				var scaling = cfg.get("scaling", "percent")
+				var is_ga = aid in ga_list
 				
 				# v80.1 Fix: Use scaled ranges for display
 				var s_range = sm.get_affix_scaled_range(aid, zone_difficulty)
 				var val_str = ""
 				var range_str = ""
 				
-				if scaling == "flat":
+				if scaling == "flat" or scaling == "linear_tier":
 					val_str = str(int(val_raw))
 					range_str = " [color=gray][font_size=9][%d-%d][/font_size][/color]" % [int(s_range[0]), int(s_range[1])]
+					# v85.3 bugfix: If it's a percentage, append the symbol
+					if scaling == "percent":
+						range_str = " [color=gray][font_size=9][%d-%d]%%[/font_size][/color]" % [int(s_range[0] * 100), int(s_range[1] * 100)]
 				else:
 					val_str = "%d%%" % int(val_raw * 100)
 					range_str = " [color=gray][font_size=9][%d-%d]%%[/font_size][/color]" % [int(s_range[0] * 100), int(s_range[1] * 100)]
 				
-				var icon = ""
+				var ga_star = "[color=#ffcc00]★[/color] " if is_ga else ""
+				var text_color = "#ffaa00" if is_ga else "#8fc5ff"
 				
-				var desc = cfg["desc"] % [int(val_raw) if scaling == "flat" else int(val_raw * 100)]
-				tt += "[color=#8fc5ff]%s %s[/color]%s\n" % [icon, desc, range_str]
+				var desc_val = 0
+				if scaling == "flat" or scaling == "linear_tier":
+					desc_val = int(val_raw)
+				else:
+					desc_val = int(val_raw * 100)
+				
+				var desc = cfg["desc"] % desc_val
+				
+				tt += "[color=%s]%s%s[/color]%s\n" % [text_color, ga_star, desc, range_str]
 
 	if data.has("sockets"):
 		tt += div

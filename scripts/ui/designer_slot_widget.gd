@@ -165,6 +165,18 @@ func refresh_state():
 				sock_wrap.custom_minimum_size = Vector2(20, 20)
 				sock_bg.position = Vector2(4, 4)
 				sock_wrap.add_child(sock_bg)
+				
+				# v83.9.1: Interactive Gem Removal
+				if gem:
+					sock_wrap.mouse_filter = Control.MOUSE_FILTER_STOP
+					sock_wrap.tooltip_text = "Matrix Core: %s\n[Right-Click to remove]" % ElementDB.get_display_name(gem)
+					sock_wrap.gui_input.connect(func(event):
+						if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
+							if manager.remove_gem(equipped_id, i):
+								UITheme.trigger_circuit_surge(self)
+								parent_ui.trigger_refresh()
+					)
+				
 				h_box.add_child(sock_wrap)
 				
 			socket_anchor.add_child(h_box)

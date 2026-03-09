@@ -69,6 +69,27 @@ var has_cryo_set = false
 var has_sovereign_set = false
 var has_patient_zero_set = false
 
+# v85.2: D4 Combat States
+var enemy_vulnerable_timer = 0.0
+var player_berserk_timer = 0.0
+
+# v85.0: Loot Filter Settings
+var loot_filter: Dictionary = {
+	0: true, # COMMON
+	1: true, # UNCOMMON
+	2: true, # RARE
+	3: true, # LEGENDARY
+	4: true  # UNIQUE
+}
+var loot_type_filter: Dictionary = {
+	"weapon": true,
+	"armor": true,
+	"shield": true,
+	"engine": true,
+	"battery": true,
+	"sensor": true
+}
+
 # Progression compensation so external multipliers (level/research/warp/trophy)
 # don't invalidate zone pacing.
 const ENEMY_COMP_REGULAR_HP = 0.28
@@ -299,40 +320,41 @@ var enemy_db = {
 	# ═══ ZONE 1: Lunar Orbit — Reg HP~200, ATK~12, DEF~3 ═══
 	"z1_dust_mite": {
 		"name": "Space Dust Mite",
-		"stats": {"hp": 150, "atk": 8, "def": 2, "atk_interval": 2.5, "accuracy": 15},
+		"stats": {"hp": 80, "atk": 6, "def": 0, "atk_interval": 3.0, "accuracy": 10},
 		"loot": [["Fe", 2, 4], ["credits", 50, 100], ["Res1", 1, 2]],
-		"rare_loot": [["MiteChitin", 0.25, 2, 3]],
-		"module_drop_chance": 0.10,
+		"rare_loot": [["MiteChitin", 0.33, 2, 3]],
+		"module_drop_chance": 0.15,
 		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_shield", "z1_armor"],
 		"xp": 5, "eva": 5, "zone": 1
 	},
 	"z1_lunar_drone": {
 		"name": "Lunar Drone",
-		"stats": {"hp": 200, "atk": 12, "def": 3, "atk_interval": 2.5, "accuracy": 18},
+		"stats": {"hp": 120, "atk": 10, "def": 3, "atk_interval": 2.5, "accuracy": 18},
 		"loot": [["Fe", 2, 5], ["Cu", 1, 3], ["Res1", 1, 2]],
 		"rare_loot": [["NavData", 0.10, 1, 1]],
-		"module_drop_chance": 0.10,
-		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_missile", "z1_shield", "z1_armor"],
+		"module_drop_chance": 0.20,
+		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_missile", "z1_shield", "z1_armor", "z1_battery"],
 		"xp": 8, "eva": 8, "zone": 1
-	},
-	"z1_scrap_collector": {
-		"name": "Scrap Collector",
-		"stats": {"hp": 250, "atk": 15, "def": 4, "atk_interval": 2.2, "accuracy": 20},
-		"loot": [["Fe", 3, 6], ["Si", 1, 3], ["Res1", 1, 3]],
-		"rare_loot": [["Cu", 0.15, 2, 4]],
-		"module_drop_chance": 0.10,
-		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_missile", "z1_shield", "z1_armor"],
-		"xp": 10, "eva": 6, "zone": 1
 	},
 	"z1_survey_probe": {
 		"name": "Survey Probe",
-		"stats": {"hp": 180, "max_shield": 40, "atk": 10, "def": 5, "atk_interval": 1.0, "accuracy": 22},
+		"stats": {"hp": 150, "max_shield": 40, "atk": 10, "def": 3, "atk_interval": 1.0, "accuracy": 22},
 		"loot": [["credits", 80, 150], ["Si", 2, 4], ["Res1", 1, 3]],
 		"rare_loot": [["NavData", 0.15, 1, 2]],
-		"module_drop_chance": 0.10,
-		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_shield", "z1_armor"],
+		"module_drop_chance": 0.25,
+		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_shield", "z1_armor", "z1_sensor"],
 		"xp": 12, "eva": 15, "zone": 1
 	},
+	"z1_scrap_collector": {
+		"name": "Scrap Collector",
+		"stats": {"hp": 200, "atk": 12, "def": 3, "atk_interval": 2.2, "accuracy": 20},
+		"loot": [["Fe", 3, 6], ["Si", 1, 3], ["Res1", 1, 3]],
+		"rare_loot": [["Cu", 0.15, 2, 4]],
+		"module_drop_chance": 0.25,
+		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_missile", "z1_shield", "z1_armor", "z1_engine"],
+		"xp": 10, "eva": 6, "zone": 1
+	},
+
 	"z1_boss_architect": {
 		"name": "Rogue Architect",
 		"stats": {"hp": 1200, "max_shield": 100, "atk": 30, "def": 10, "atk_interval": 2.5, "accuracy": 35},
@@ -340,7 +362,7 @@ var enemy_db = {
 		"rare_loot": [["z1_unique_weapon", 0.10, 1, 1], ["z1_unique_armor", 0.10, 1, 1], ["z1_unique_shield", 0.10, 1, 1]],
 		"boss_core": "Z1_Core",
 		"module_drop_chance": 0.25,
-		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_missile", "z1_shield", "z1_armor"],
+		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_missile", "z1_shield", "z1_armor", "z1_engine", "z1_battery", "z1_sensor"],
 		"is_boss": true, "xp": 100, "eva": 10, "zone": 1
 	},
 
@@ -1055,7 +1077,7 @@ func process_tick(delta: float):
 		return
 		
 	var rm = GameState.research_manager
-	# v65.4 Fix: Removed sm.attack_speed_bonus here — it's already applied via cooling_mult per-weapon
+	# v65.4: Removed sm.attack_speed_bonus here — it's already applied via cooling_mult per-weapon
 	var p_speed_mult = (1.0 + rm.get_efficiency_bonus("attack_speed"))
 	
 	# Safety: Ensure HP never exceeds Max
@@ -1090,6 +1112,14 @@ func process_tick(delta: float):
 	if coolant_flush_timer > 0:
 		coolant_flush_timer -= delta
 		p_speed_mult *= 2.0
+		
+	# v85.2: Berserking Logic (+25% Attack Speed)
+	if player_berserk_timer > 0:
+		player_berserk_timer -= delta
+		p_speed_mult *= 1.25
+		
+	if enemy_vulnerable_timer > 0:
+		enemy_vulnerable_timer -= delta
 			
 	for w_idx in range(player_weapon_states.size()):
 		if w_idx >= player_weapon_states.size():
@@ -1198,6 +1228,27 @@ func _execute_player_attack(weapon_idx: int):
 	if randf() > hit_chance:
 		combat_events.append({"type": "miss", "text": "MISS", "color": Color.WHITE, "side": "enemy"})
 		return
+
+	# v85.1: Heal on Hit Affixes
+	var hull_heal = sm.affix_bonuses.get("hull_heal_on_hit", 0.0)
+	if hull_heal > 0:
+		sm.current_hp = min(sm.max_hp, sm.current_hp + hull_heal)
+		
+	var shield_heal = sm.affix_bonuses.get("shield_heal_on_hit", 0.0)
+	if shield_heal > 0:
+		player_shield = min(player_max_shield, player_shield + shield_heal)
+
+	# v85.2: Lucky Hit Logic
+	# Base 10% Lucky Hit chance + prefix bonuses
+	var base_lucky_hit = 0.10 + sm.affix_bonuses.get("lucky_hit_chance", 0.0)
+	var is_lucky_hit = randf() < base_lucky_hit
+	
+	if is_lucky_hit:
+		# Trigger Vulnerable
+		var vuln_chance = sm.affix_bonuses.get("vuln_on_hit", 0.0)
+		if vuln_chance > 0 and randf() < vuln_chance:
+			enemy_vulnerable_timer = 3.0
+			combat_events.append({"type": "status", "text": "EXPOSED!", "color": Color.MEDIUM_PURPLE, "side": "enemy"})
 
 	# v74.0: Static Burst (Reset enemy attack timer)
 	var static_burst_chance = sm.affix_bonuses.get("static_burst", 0.0)
@@ -1315,7 +1366,22 @@ func _execute_enemy_attack():
 
 func resolve_damage(atk_k, atk_e, atk_x, c_shield, c_armor, difficulty = 1, crit_chance = 0.05, is_player_attacker = false):
 	var shield_dmg_pot = (atk_k * 0.5) + (atk_e * 1.5) + (atk_x * 1.1)
+	var sm = GameState.shipyard_manager
 	
+	# v85.2: Vulnerable Status (+20% damage taken)
+	if not is_player_attacker and enemy_vulnerable_timer > 0:
+		shield_dmg_pot *= 1.2
+	
+	# v85.2: Healthy/Injured Damage Bonuses
+	if is_player_attacker:
+		var enemy_hp_pct = float(enemy_hp) / float(enemy_max_hp) if enemy_max_hp > 0 else 1.0
+		if enemy_hp_pct >= 0.8:
+			var bonus = sm.affix_bonuses.get("dmg_healthy", 0.0)
+			if bonus > 0: shield_dmg_pot *= (1.0 + bonus)
+		elif enemy_hp_pct <= 0.35:
+			var bonus = sm.affix_bonuses.get("dmg_injured", 0.0)
+			if bonus > 0: shield_dmg_pot *= (1.0 + bonus)
+
 	# v74.0: Void Strike (Shield Bypass) - Player Only
 	var void_strike_chance = 0.0
 	if is_player_attacker:
@@ -1350,10 +1416,39 @@ func resolve_damage(atk_k, atk_e, atk_x, c_shield, c_armor, difficulty = 1, crit
 	
 	var total_hull_dmg = (hull_dmg_k + hull_dmg_e + hull_dmg_x) * bleed_ratio
 	
+	# v85.2: Vulnerable/Thresholds applied to Hull too
+	if not is_player_attacker and enemy_vulnerable_timer > 0:
+		total_hull_dmg *= 1.2
+		
+	if is_player_attacker:
+		var enemy_hp_pct = float(enemy_hp) / float(enemy_max_hp) if enemy_max_hp > 0 else 1.0
+		if enemy_hp_pct >= 0.8:
+			var bonus = sm.affix_bonuses.get("dmg_healthy", 0.0)
+			if bonus > 0: total_hull_dmg *= (1.0 + bonus)
+		elif enemy_hp_pct <= 0.35:
+			var bonus = sm.affix_bonuses.get("dmg_injured", 0.0)
+			if bonus > 0: total_hull_dmg *= (1.0 + bonus)
+	
 	var variance = randf_range(0.9, 1.1)
 	var is_crit = randf() < crit_chance
 	if is_crit: variance *= 1.5
 	return [int(damage_to_shield * variance), int(max(1.0 if (atk_k + atk_e + atk_x) > 0 else 0, total_hull_dmg * variance)), is_crit]
+
+func get_effective_module_drop_chance(enemy_data: Dictionary) -> float:
+	var base = enemy_data.get("module_drop_chance", 0.0)
+	if base <= 0: return 0.0
+	
+	var sm = GameState.shipyard_manager
+	var rm = GameState.research_manager
+	
+	# 1. Accuracy Bonus: +1% per 4 points above 100 (e.g. 500 Accuracy = +100%)
+	var acc_bonus = max(0, (sm.accuracy - 100) / 400.0)
+	
+	# 2. Xeno-Engineering Bonus (Rare Loot Chance)
+	var xeno_bonus = rm.get_efficiency_bonus("xeno_engineering") if rm else 0.0
+	
+	var total_mult = 1.0 + acc_bonus + xeno_bonus
+	return base * total_mult
 
 func win_fight():
 	log_msg("Destroyed %s!" % current_enemy["name"])
@@ -1376,6 +1471,12 @@ func win_fight():
 		combat_events.append({"type": "loot", "text": "BOSS CORE: %s" % core_name, "color": Color.ORANGE, "side": "enemy"})
 		log_msg("Looted Boss Core: %s" % core_name)
 		session_loot[core_id] = session_loot.get(core_id, 0) + 1
+	# v85.2: Berserking Proc on Kill
+	var berserk_chance = GameState.shipyard_manager.affix_bonuses.get("berserk_on_kill", 0.0)
+	if berserk_chance > 0 and randf() < berserk_chance:
+		player_berserk_timer = 5.0
+		combat_events.append({"type": "status", "text": "OVERDRIVEN!", "color": Color.ORANGE_RED, "side": "player"})
+
 	for entry in current_enemy.get("rare_loot", []):
 		if randf() < entry[1]:
 			var qty = randi_range(entry[2], entry[3])
@@ -1445,7 +1546,8 @@ func win_fight():
 		log_msg("Nano-Scavenger triggered: Found %d %s" % [qty, drop])
 	
 	# v71.0: Module Rarity Drop System
-	var drop_chance = current_enemy.get("module_drop_chance", 0.0)
+	var drop_chance = get_effective_module_drop_chance(current_enemy)
+
 	var drop_pool = current_enemy.get("module_drop_pool", [])
 	
 	# Only drop unlocked modules
@@ -1458,18 +1560,31 @@ func win_fight():
 	if drop_chance > 0 and unlocked_pool.size() > 0 and randf() < drop_chance:
 		var is_boss = current_enemy.get("is_boss", false)
 		var rarity = sm.roll_rarity(is_boss)
+		
+		# v85.0: Apply Loot Filter
 		var base_id = unlocked_pool[randi() % unlocked_pool.size()]
-		var zone_difficulty = int(current_zone.get("difficulty", 1))
-		var custom_id = sm.generate_module_drop(base_id, rarity, zone_difficulty)
-		if custom_id != "":
-			var w_name = sm.modules[custom_id]["name"]
-			var rarity_color = sm.RARITY_COLORS[rarity]
-			var rarity_label = sm.RARITY_LABELS.get(rarity, "")
-			if rarity_label == "":
-				rarity_label = "Common"
-			combat_events.append({"type": "loot", "text": "%s DROP" % rarity_label.to_upper(), "color": rarity_color, "side": "enemy"})
-			log_msg("Looted %s Module: %s" % [rarity_label, w_name])
-			session_loot[custom_id] = session_loot.get(custom_id, 0) + 1
+		var m_data = sm.modules.get(base_id, {})
+		var slot_type = m_data.get("slot_type", "weapon")
+		
+		var is_rarity_ok = loot_filter.get(rarity, true)
+		var is_type_ok = loot_type_filter.get(slot_type, true)
+		
+		if is_rarity_ok and is_type_ok:
+			var zone_difficulty = int(current_zone.get("difficulty", 1))
+			var custom_id = sm.generate_module_drop(base_id, rarity, zone_difficulty)
+			if custom_id != "":
+				var w_name = sm.modules[custom_id]["name"]
+				var rarity_color = sm.RARITY_COLORS[rarity]
+				var rarity_label = sm.RARITY_LABELS.get(rarity, "")
+				if rarity_label == "":
+					rarity_label = "Common"
+				combat_events.append({"type": "loot", "text": "%s DROP" % rarity_label.to_upper(), "color": rarity_color, "side": "enemy"})
+				log_msg("Looted %s Module: %s" % [rarity_label, w_name])
+				session_loot[custom_id] = session_loot.get(custom_id, 0) + 1
+		else:
+			var reason = "Rarity" if not is_rarity_ok else "Type"
+			if not is_rarity_ok and not is_type_ok: reason = "Rarity & Type"
+			log_msg("Filtered out %s (%s) module drop." % [sm.RARITY_LABELS.get(rarity, "Common"), slot_type.capitalize()])
 
 	add_xp(int(current_enemy["xp"] * (1.0 + GameState.research_manager.get_efficiency_bonus("combat_xp"))))
 	enemy_defeated.emit(current_enemy["id"])
@@ -1577,6 +1692,8 @@ func get_save_data_manager() -> Dictionary:
 	data["nanite_hot_timer"] = nanite_hot_timer
 	data["coolant_flush_timer"] = coolant_flush_timer
 	data["session_loot"] = session_loot
+	data["loot_filter"] = loot_filter
+	data["loot_type_filter"] = loot_type_filter
 	return data
 
 func load_save_data_manager(data: Dictionary):
@@ -1589,6 +1706,18 @@ func load_save_data_manager(data: Dictionary):
 	nanite_hot_timer = data.get("nanite_hot_timer", 0.0)
 	coolant_flush_timer = data.get("coolant_flush_timer", 0.0)
 	session_loot = data.get("session_loot", {})
+	
+	# v85.0: Loot Filter Loading
+	if data.has("loot_filter"):
+		var saved_filter = data["loot_filter"]
+		# Merge to handle new rarities if added
+		for r in saved_filter:
+			loot_filter[int(r)] = saved_filter[r]
+			
+	if data.has("loot_type_filter"):
+		var saved_type_filter = data["loot_type_filter"]
+		for t in saved_type_filter:
+			loot_type_filter[t] = saved_type_filter[t]
 	
 	var zid = data.get("current_zone_id")
 	if zid and zid in zones:
