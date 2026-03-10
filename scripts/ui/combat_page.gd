@@ -27,7 +27,7 @@ var player_weapon_bars = []
 @onready var e_attack_pb = $Dashboard/HUD/MidHUD/EnemyStatsOverlay/Margin/VBox/E_AttackBar
 
 @onready var scanner_overlay = $Dashboard/HUD/BottomHUD/ScannerOverlay
-@onready var loot_lbl = $Dashboard/HUD/BottomHUD/ScannerOverlay/Margin/VBox/Scroll/LootText
+@onready var loot_lbl = $Dashboard/HUD/BottomHUD/ScannerOverlay/Margin/VBox/Scroll/LootVBox/LootText
 
 @onready var ammo_overlay = $Dashboard/HUD/BottomHUD/AmmoOverlay
 @onready var ammo_vbox = $Dashboard/HUD/BottomHUD/AmmoOverlay/Margin/VBox/AmmoGroupVBox
@@ -500,7 +500,9 @@ func _update_session_loot():
 				tt += "[color=#32cd32]%s[/color] x %s\n" % [item_name, UITheme.format_num(qty)]
 			
 	tt += "[/center]"
-	loot_lbl.text = tt
+	
+	if loot_lbl.text != tt:
+		loot_lbl.text = tt
 
 func _update_ammo_display():
 	var sm = GameState.shipyard_manager

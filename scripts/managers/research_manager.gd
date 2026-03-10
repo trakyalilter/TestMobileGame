@@ -889,14 +889,6 @@ var tech_tree = {
 		"type": "technology",
 		"parent": "automation"
 	},
-	"data_clustering": {
-		"name": "Data Clustering",
-		"description": "Bonus:\n• -20% Research action duration",
-		"cost": 2000,
-		"cost_items": {"Res1": 15},
-		"type": "technology",
-		"parent": "industrial_logistics"
-	},
 	"industrial_automation": {
 		"name": "Industrial Automation",
 		"description": "Unlocks:\n• Electronics Assembler",
@@ -1189,7 +1181,6 @@ func get_efficiency_bonus(bonus_type: String) -> float:
 			return p_speed
 		"research_speed":
 			var r_speed = 0.0
-			if "data_clustering" in unlocked_techs: r_speed += 0.20
 			if "perfect_automation" in unlocked_techs: r_speed += 0.30
 			return r_speed
 		"fleet_slots":

@@ -42,6 +42,12 @@ func _update_ui():
 	name_lbl.text = clean_name.to_upper()
 	name_lbl.add_theme_color_override("font_color", rarity_color.lerp(Color.WHITE, 0.18))
 	stats_lbl.text = _build_card_stats(slot_type, data.get("stats", {}))
+	
+	var durability = int(data.get("durability", 100))
+	stats_lbl.text += "\nDurability: %d/100" % durability
+	if durability <= 20:
+		stats_lbl.text += " [ CRITICAL ]"
+			
 	footer_lbl.text = _build_footer_text(slot_type, rarity_label)
 
 	# v83.9: Set Name Display
@@ -396,6 +402,14 @@ func _build_comparison_tooltip_bbcode() -> String:
 
 	tt += "[b][color=#%s]%s[/color][/b]\n" % [rarity_color_hex, display_name]
 	tt += "[font_size=10][color=gray]%s %s[/color][/font_size]\n" % [rarity_label, slot_type.capitalize()]
+	
+	var durability = int(data.get("durability", 100))
+	var dur_col = "green"
+	if durability <= 25: dur_col = "red"
+	elif durability <= 50: dur_col = "orange"
+	elif durability <= 75: dur_col = "yellow"
+	tt += "[font_size=10][color=gray]Durability:[/color] [color=%s]%d/100[/color][/font_size]\n" % [dur_col, durability]
+		
 	tt += div
 
 	var my_stats = data.get("stats", {})
@@ -515,9 +529,6 @@ func _build_comparison_tooltip_bbcode() -> String:
 				if scaling == "flat" or scaling == "linear_tier":
 					val_str = str(int(val_raw))
 					range_str = " [color=gray][font_size=9][%d-%d][/font_size][/color]" % [int(s_range[0]), int(s_range[1])]
-					# v85.3 bugfix: If it's a percentage, append the symbol
-					if scaling == "percent":
-						range_str = " [color=gray][font_size=9][%d-%d]%%[/font_size][/color]" % [int(s_range[0] * 100), int(s_range[1] * 100)]
 				else:
 					val_str = "%d%%" % int(val_raw * 100)
 					range_str = " [color=gray][font_size=9][%d-%d]%%[/font_size][/color]" % [int(s_range[0] * 100), int(s_range[1] * 100)]

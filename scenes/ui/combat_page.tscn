@@ -345,7 +345,11 @@ size_flags_vertical = 3
 mouse_filter = 0
 horizontal_scroll_mode = 0
 
-[node name="LootText" type="RichTextLabel" parent="Dashboard/HUD/BottomHUD/ScannerOverlay/Margin/VBox/Scroll"]
+[node name="LootVBox" type="VBoxContainer" parent="Dashboard/HUD/BottomHUD/ScannerOverlay/Margin/VBox/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="LootText" type="RichTextLabel" parent="Dashboard/HUD/BottomHUD/ScannerOverlay/Margin/VBox/Scroll/LootVBox"]
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
@@ -355,6 +359,10 @@ bbcode_enabled = true
 text = "[center]Searching for loot paths...[/center]"
 fit_content = true
 scroll_active = false
+
+[node name="BottomPadding" type="Control" parent="Dashboard/HUD/BottomHUD/ScannerOverlay/Margin/VBox/Scroll/LootVBox"]
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
 
 [node name="AmmoOverlay" type="PanelContainer" parent="Dashboard/HUD/BottomHUD"]
 custom_minimum_size = Vector2(250, 110)

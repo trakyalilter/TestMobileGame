@@ -988,11 +988,7 @@ func spawn_enemy():
 					"slot_idx": int(s_idx),
 					"energy_load": m_stats.get("energy_load", 0)
 				})
-	if equipped_weapons.is_empty():
-		var h_stats = sm.hulls[sm.active_hull]["stats"]
-		player_weapon_states.append({"name": "Standard Cannon", "type": "kinetic", "timer": 0.0, "interval": 3.0, "dmg_k": h_stats["atk"], "dmg_e": 0, "dmg_x": 0, "slot_idx": - 1, "energy_load": 0})
-	else:
-		player_weapon_states.append_array(equipped_weapons)
+	player_weapon_states.append_array(equipped_weapons)
 	log_msg("Readying Weapon Battery: %d systems online." % player_weapon_states.size())
 
 func retreat():
@@ -1263,7 +1259,7 @@ func _execute_player_attack(weapon_idx: int):
 		p_atk_e *= 2.0
 	
 	var ammo_id = sm.ammo_loadout.get(w["slot_idx"])
-	var requires_ammo = (w["type"] == "kinetic" or w["type"] == "explosive") and w["slot_idx"] != -1
+	var requires_ammo = w["slot_idx"] != -1 # All equipped weapons require ammo
 	
 	# v80.2 Fix: Enforce Ammo Type Compatibility
 	if ammo_id and ammo_id != "" and not sm.is_ammo_compatible(w["type"], ammo_id):
@@ -1597,6 +1593,10 @@ func lose_fight():
 	if cost > current_credits:
 		cost = current_credits
 	GameState.resources.add_currency("credits", -cost)
+	
+	# v100.0: Module Durability System
+	sm.handle_module_defeat()
+	
 	retreat()
 
 # v66.0: Auto-Consume System

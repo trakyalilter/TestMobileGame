@@ -83,12 +83,12 @@ func init_missions():
 		["m026", "Master Constructor", "Research 'Shipwright I' for hull reinforcement.", "research", "shipwright_1", 1, 5000, 500, "m026b"],
 		# P0-25: Missing Beepings - Fleet Modernization I
 		["m026b", "Fleet Modernization I", "Construct an 'Industrial Frigate' in the Shipyard.", "construct", "frigate_hull", 1, 10000, 1000, "m026c"],
-		["m026c", "Elite Salvage", "Drop a RARE module from enemies in Lunar Orbit.", "drop_rarity", "", 2, 5000, 500, "m026d"],
-		["m026d", "Combat Overhaul", "Equip your Industrial Frigate with RARE or better modules in ALL slots.", "loadout_full_rarity", "", 2, 10000, 1000, "m026e"],
+		["m026c", "Elite Salvage", "Drop a RARE module from enemies in Lunar Orbit.", "drop_rarity", "2", 1, 5000, 500, "m026d"],
+		["m026d", "Combat Overhaul", "Equip at least 1 RARE+ Weapon, Shield, and Armor.", "loadout_specific_rarity", "2", 1, 10000, 1000, "m026e"],
 		["m026e", "Final Confrontation", "Defeat the Rogue Architect boss in Lunar Orbit.", "defeat", "z1_boss_architect", 1, 25000, 2500, "m027"],
 		# P0 Fix: Progression Deadlock Re-alignment
-		["m027", "Scanning Horizon", "Unlock 'Asteroid Belt' to expand operations.", "research", "asteroid_clearance", 1, 5000, 500, "m028"],
-		["m028", "Belt Mining", "Mine 1000 Cassiterite in the Asteroid Belt.", "gather", "Cassiterite", 1000, 10000, 2000, "m029"],
+		["m027", "Scanning Horizon", "Unlock 'Asteroid Belt' to expand operations.", "research", "zone_2_access", 1, 5000, 500, "m028"],
+		["m028", "Belt Mining", "Mine 100 Tin.", "gather", "Cassiterite", 100, 10000, 2000, "m029"],
 		["m029", "Hardened Shell", "Craft 'Carbon Fiber Plate' in the Shipyard.", "craft", "z2_armor", 1, 15000, 5000, "m029b"],
 		["m029b", "Complex Electronics", "Craft 10 Advanced Circuits to prepare for heavier ships.", "gather", "AdvCircuit", 10, 20000, 5000, "m030"],
 		# P0-31: Fabricator Paradox Fix - Shipwright II moved before Fabricator
@@ -345,7 +345,7 @@ func sync_progress():
 				m["current_qty"] = 1
 
 		elif m["type"] == "drop_rarity":
-			var target_rarity = int(m["target_qty"])
+			var target_rarity = int(m["target"])
 			var has_rarity = false
 			var sm = GameState.shipyard_manager
 			for inv_mid in sm.module_inventory:
@@ -360,23 +360,22 @@ func sync_progress():
 			if has_rarity:
 				m["current_qty"] = 1
 
-		elif m["type"] == "loadout_full_rarity":
-			var target_rarity = int(m["target_qty"])
+		elif m["type"] == "loadout_specific_rarity":
+			var target_rarity = int(m["target"])
 			var sm = GameState.shipyard_manager
-			var all_rare = true
-			if sm.loadout.is_empty():
-				all_rare = false
-			else:
-				var hull_slots = sm.hulls[sm.active_hull]["slots"].size()
-				for i in range(hull_slots):
-					var mid_in_slot = sm.loadout.get(i)
-					if not mid_in_slot:
-						all_rare = false
-						break
-					if sm.get_module_rarity(mid_in_slot) < target_rarity:
-						all_rare = false
-						break
-			if all_rare:
+			var has_weapon = false
+			var has_shield = false
+			var has_armor = false
+			
+			for mid_in_slot in sm.loadout.values():
+				if mid_in_slot and mid_in_slot in sm.modules:
+					if sm.get_module_rarity(mid_in_slot) >= target_rarity:
+						var st = sm.modules[mid_in_slot].get("slot_type", "")
+						if st == "weapon": has_weapon = true
+						elif st == "shield": has_shield = true
+						elif st == "armor" or st == "plating": has_armor = true
+						
+			if has_weapon and has_shield and has_armor:
 				m["current_qty"] = 1
 
 		if m["current_qty"] != old_qty:

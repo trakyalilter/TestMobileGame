@@ -69,7 +69,7 @@ var recipes: Dictionary = {
 		"input": {"Malachite": 2, "C": 1},
 		"output": {"Cu": 1},
 		"duration": 5.0,
-		"level_req": 15,
+		"level_req": 5,
 		"xp": 15,
 		"research_req": "basic_engineering"
 	},

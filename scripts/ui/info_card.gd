@@ -137,6 +137,9 @@ func _setup_module(id: String):
 	if stats.has("atk_explosive") and stats["atk_explosive"] > 0:
 		_add_stat("VS SHIELD", "+10% DAMAGE", Color.LIGHT_CORAL)
 		
+	var durability = int(data.get("durability", 100))
+	_add_stat("Durability", "%d/100" % durability, Color.GOLD if durability <= 20 else Color.WHITE)
+		
 	_set_cost(data["cost"])
 
 func _setup_building(id: String):

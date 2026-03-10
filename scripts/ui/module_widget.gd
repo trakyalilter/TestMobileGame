@@ -111,6 +111,9 @@ func _update_stats_text():
 		
 	# (Removed old text-prepend)
 		
+	var durability = int(data.get("durability", 100))
+	s_txt += "Durability: %d/100\n" % durability
+		
 	stats_lbl.text = s_txt.strip_edges()
 	
 	# v74.0: Display Affixes
@@ -393,14 +396,14 @@ func _build_comparison_tooltip() -> String:
 				var val_str = ""
 				var range_str = ""
 				
-				if scaling == "flat":
+				if scaling == "flat" or scaling == "linear_tier":
 					val_str = str(int(val_raw))
 					range_str = " [color=gray][font_size=9][%d-%d][/font_size][/color]" % [int(s_range[0]), int(s_range[1])]
 				else:
 					val_str = "%d%%" % int(val_raw * 100)
 					range_str = " [color=gray][font_size=9][%d-%d]%%[/font_size][/color]" % [int(s_range[0] * 100), int(s_range[1] * 100)]
 				
-				var desc = cfg["desc"] % [int(val_raw) if scaling == "flat" else int(val_raw * 100)]
+				var desc = cfg["desc"] % [int(val_raw) if (scaling == "flat" or scaling == "linear_tier") else int(val_raw * 100)]
 				
 				if rarity == sm.Rarity.LEGENDARY:
 					tt += "[color=orange][b]%s[/b][/color]%s\n" % [desc, range_str]

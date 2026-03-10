@@ -119,6 +119,9 @@ func refresh_state():
 		rarity_badge.add_theme_color_override("font_color", rarity_color)
 
 		stats_lbl.text = _build_card_stats(m_data.get("stats", {}))
+		
+		var durability = int(m_data.get("durability", 100))
+		stats_lbl.text += "\nDurability: %d/100" % durability
 
 		_apply_card_style(rarity, rarity_color)
 		_apply_pulse(rarity)
@@ -563,6 +566,14 @@ func _build_module_tooltip(m_data: Dictionary) -> String:
 	var display_name = _get_clean_name(m_data.get("name", "Item")).to_upper()
 	tt += "[b][color=#%s]%s[/color][/b]\n" % [rarity_color_hex, display_name]
 	tt += "[font_size=10][color=gray]%s %s[/color][/font_size]\n" % [rarity_label, s_type.capitalize()]
+	
+	var durability = int(m_data.get("durability", 100))
+	var dur_col = "green"
+	if durability <= 25: dur_col = "red"
+	elif durability <= 50: dur_col = "orange"
+	elif durability <= 75: dur_col = "yellow"
+	tt += "[font_size=10][color=gray]Durability:[/color] [color=%s]%d/100[/color][/font_size]\n" % [dur_col, durability]
+	
 	tt += div
 
 	var stats = m_data.get("stats", {})
@@ -643,7 +654,7 @@ func _build_module_tooltip(m_data: Dictionary) -> String:
 				var val_str = ""
 				var range_str = ""
 				
-				if scaling == "flat":
+				if scaling == "flat" or scaling == "linear_tier":
 					val_str = str(int(val_raw))
 					range_str = " [color=gray][font_size=9][%d-%d][/font_size][/color]" % [int(s_range[0]), int(s_range[1])]
 				else:
@@ -653,7 +664,7 @@ func _build_module_tooltip(m_data: Dictionary) -> String:
 				var item_rarity_val = int(m_data.get("rarity", manager.Rarity.COMMON))
 				var icon = ""
 				
-				var desc = cfg["desc"] % [int(val_raw) if scaling == "flat" else int(val_raw * 100)]
+				var desc = cfg["desc"] % [int(val_raw) if (scaling == "flat" or scaling == "linear_tier") else int(val_raw * 100)]
 				tt += "[color=#8fc5ff]%s %s[/color]%s\n" % [icon, desc, range_str]
 
 	if m_data.has("sockets"):

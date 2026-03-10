@@ -1495,7 +1495,7 @@ func equip_module(slot_idx: int, module_id: String) -> bool:
 	# Design Constraint: Enforce Energy Load (Audit Phase 18)
 	var potential_load = energy_used
 	var existing = loadout.get(slot_idx)
-	if existing:
+	if existing and modules.has(existing):
 		potential_load -= modules[existing]["stats"].get("energy_load", 0)
 	potential_load += mod_data["stats"].get("energy_load", 0)
 	
@@ -1560,9 +1560,12 @@ func equip_module(slot_idx: int, module_id: String) -> bool:
 
 	# Unequip existing
 	if existing:
-		module_inventory[existing] += 1
+		module_inventory[existing] = module_inventory.get(existing, 0) + 1
 		
-	module_inventory[module_id] -= 1
+	module_inventory[module_id] = module_inventory.get(module_id, 1) - 1
+	if module_inventory[module_id] <= 0:
+		module_inventory.erase(module_id)
+		
 	loadout[slot_idx] = module_id
 	
 	recalc_stats()
@@ -1605,6 +1608,63 @@ func unequip_slot(slot_idx: int):
 		ammo_loadout.erase(slot_idx)
 		recalc_stats()
 		inventory_updated.emit() # Fix: Signal for UI update
+
+func handle_module_defeat():
+	var slots_to_clear = []
+	for slot_idx in loadout:
+		var mid = loadout[slot_idx]
+		if not mid or mid == "": continue
+		
+		# 1/6 chance to be destroyed completely
+		if randf() < (1.0 / 6.0):
+			slots_to_clear.append(slot_idx)
+			log_msg("CRITICAL FAILURE: Module in slot %d destroyed!" % slot_idx)
+			continue
+			
+		# Durable loss between 10% and 50% (increments of 10)
+		var loss = (randi() % 5 + 1) * 10
+		
+		# If it's a base module, we must convert it to a custom instance to track durability
+		if not mid.begins_with("custom_"):
+			var base_data = modules.get(mid)
+			if base_data:
+				var custom_id = "custom_%s_%d" % [mid, Time.get_ticks_msec() + slot_idx]
+				var custom_module = base_data.duplicate(true)
+				custom_module["is_custom"] = true
+				custom_module["base_module"] = mid
+				custom_module["durability"] = 100
+				
+				modules[custom_id] = custom_module
+				custom_modules[custom_id] = custom_module
+				loadout[slot_idx] = custom_id
+				mid = custom_id
+		
+		var m = modules[mid]
+		var current_dur = m.get("durability", 100)
+		m["durability"] = max(0, current_dur - loss)
+		
+		if m["durability"] <= 0:
+			slots_to_clear.append(slot_idx)
+			log_msg("SYSTEM FAILURE: Module %s reached 0%% durability and was destroyed." % m.get("name", mid))
+
+	for slot_idx in slots_to_clear:
+		# When a module is destroyed, it's just removed. 
+		# We don't call unequip_slot because that returns it to inventory.
+		var mid = loadout.get(slot_idx)
+		if mid:
+			if mid.begins_with("custom_"):
+				custom_modules.erase(mid)
+				modules.erase(mid)
+			loadout[slot_idx] = null
+	
+	recalc_stats()
+	inventory_updated.emit()
+
+func log_msg(msg: String):
+	if GameState.combat_manager:
+		GameState.combat_manager.log_msg(msg)
+	else:
+		print(msg)
 
 func set_slot_ammo(slot_idx: int, ammo_id: String) -> bool:
 	if ammo_id != "":
@@ -2065,6 +2125,8 @@ func generate_module_drop(base_module_id: String, rarity: int = Rarity.UNCOMMON,
 	elif rarity == Rarity.LEGENDARY: num_affixes = 2
 	elif rarity == Rarity.UNIQUE: num_affixes = 3
 	
+	num_affixes = min(num_affixes, affix_pool.size())
+	
 	# v85.3: Dynamic Naming & GA Initialization
 	var final_name = base.get("name", "Unknown")
 	var greater_affixes = []
@@ -2140,7 +2202,8 @@ func generate_module_drop(base_module_id: String, rarity: int = Rarity.UNCOMMON,
 		"zone_difficulty": max(1, zone_difficulty),
 		"affixes": custom_affixes,
 		"greater_affixes": greater_affixes, # v85.2: Track GA affixes
-		"sockets": sockets
+		"sockets": sockets,
+		"durability": 100
 	}
 	
 	# Legendary: add extra flavor
@@ -2164,12 +2227,17 @@ func get_module_rarity(module_id: String) -> int:
 	var m = modules.get(module_id, {})
 	if m.has("rarity"):
 		return m["rarity"]
+	
 	# Fallback: parse from name for modules created before rarity system
 	var name_str = m.get("name", "")
 	if "(Legendary)" in name_str: return Rarity.LEGENDARY
 	if "(Rare)" in name_str: return Rarity.RARE
 	if "(Uncommon)" in name_str: return Rarity.UNCOMMON
 	return Rarity.COMMON
+
+func get_module_durability(module_id: String) -> int:
+	var m = modules.get(module_id, {})
+	return int(m.get("durability", 100))
 
 # v71.5: Check if module can be equipped (Prerequisite check)
 # Returns: {"can_equip": bool, "reason": String}
