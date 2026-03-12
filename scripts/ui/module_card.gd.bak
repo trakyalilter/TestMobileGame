@@ -30,249 +30,103 @@ func _update_ui():
 	var rarity = _get_module_rarity_safe(sm)
 	var rarity_color = _get_rarity_color_safe(sm, rarity)
 	var clean_name = _get_clean_name(data.get("name", "Unknown"))
-	
-	if slot_type == "gem" or slot_type == "gem_synth":
-		_draw_gem_visual(clean_name, rarity_color)
-		return
 
-	# DYNAMIC COMPACT VISUAL REDESIGN
-	_draw_tile_visual(clean_name, slot_type, rarity, rarity_color, data)
-	return
+	type_lbl.text = slot_type.to_upper()
+	type_lbl.add_theme_color_override("font_color", _get_slot_color(slot_type))
 
-func _draw_tile_visual(item_name: String, slot_type: String, rarity: int, rarity_color: Color, m_data: Dictionary):
-	var margin_vbox = $Margin/VBox
-	margin_vbox.visible = false
+	var rarity_label = _get_rarity_label_safe(sm, rarity)
+	rarity_badge.visible = rarity_label != ""
+	rarity_badge.text = rarity_label.to_upper()
+	rarity_badge.add_theme_color_override("font_color", rarity_color)
+
+	name_lbl.text = clean_name.to_upper()
+	name_lbl.add_theme_color_override("font_color", rarity_color.lerp(Color.WHITE, 0.18))
+	stats_lbl.text = _build_card_stats(slot_type, data.get("stats", {}))
 	
-	for child in get_children():
-		if child.name == "TileVisual":
-			child.free()
+	var durability = int(data.get("durability", 100))
+	stats_lbl.text += "\nDurability: %d/100" % durability
+	if durability <= 20:
+		stats_lbl.text += " [ CRITICAL ]"
 			
-	var tile_container = Control.new()
-	tile_container.name = "TileVisual"
-	var size = 40 # Increased by 25% (32 -> 40)
-	custom_minimum_size = Vector2(size, size)
-	tile_container.custom_minimum_size = Vector2(size, size)
-	tile_container.mouse_filter = Control.MOUSE_FILTER_PASS
-	
-	var bg_panel = Panel.new()
-	bg_panel.custom_minimum_size = Vector2(size, size)
+	footer_lbl.text = _build_footer_text(slot_type, rarity_label)
 
-
-	bg_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# v83.9: Set Name Display
+	var sid = data.get("set_id", "")
+	if sid == "" and data.get("is_custom") and data.has("base_module"):
+		var base_id = data["base_module"]
+		sid = sm.modules.get(base_id, {}).get("set_id", "")
+	var margin_vbox = $Margin/VBox
+	var set_lbl = margin_vbox.get_node_or_null("SetLabel")
+	if not set_lbl:
+		set_lbl = Label.new()
+		set_lbl.name = "SetLabel"
+		set_lbl.add_theme_font_size_override("font_size", 8)
+		set_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		set_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		margin_vbox.add_child(set_lbl)
+		margin_vbox.move_child(set_lbl, name_lbl.get_index() + 1)
 	
-	var sb = StyleBoxFlat.new()
-	sb.bg_color = Color(0.1, 0.08, 0.08, 0.95)
-	
-	# The jagged/glowing highlight based on rarity from user mockup
-	if rarity == GameState.shipyard_manager.Rarity.LEGENDARY:
-		sb.border_color = Color(0.95, 0.85, 0.2, 1.0)
-		sb.shadow_color = Color(0.95, 0.85, 0.2, 0.2) # Lower alpha
-	elif rarity == GameState.shipyard_manager.Rarity.RARE:
-		sb.border_color = Color(0.2, 0.5, 0.95, 1.0)
-		sb.shadow_color = Color(0.2, 0.5, 0.95, 0.2)
-	elif rarity == GameState.shipyard_manager.Rarity.UNIQUE:
-		sb.border_color = Color(0.8, 0.2, 0.8, 1.0)
-		sb.shadow_color = Color(0.8, 0.2, 0.8, 0.2)
-	elif rarity == GameState.shipyard_manager.Rarity.UNCOMMON:
-		sb.border_color = Color(0.2, 0.8, 0.2, 1.0)
-		sb.shadow_color = Color(0.2, 0.8, 0.2, 0.1)
+	if sid != "" and GameState.combat_manager and "TRINITY_SET_BONUSES" in GameState.combat_manager:
+		var s_db = GameState.combat_manager.TRINITY_SET_BONUSES
+		if s_db.has(sid):
+			var set_name = s_db[sid]["name"]
+			set_lbl.text = "[ %s ]" % set_name.to_upper()
+			set_lbl.add_theme_color_override("font_color", Color(0.0, 0.8, 0.8)) # Cyan for set
+			set_lbl.visible = true
+		else:
+			set_lbl.visible = false
 	else:
-		sb.border_color = Color(0.4, 0.4, 0.4, 1.0)
-		sb.shadow_color = Color(0, 0, 0, 0.0)
+		set_lbl.visible = false
+
+	# Socket rendering logic
+	for child in margin_vbox.get_children():
+		if child.name == "SocketContainer":
+			child.free()
+	
+	if data.has("sockets") and data["sockets"].size() > 0:
+		var h_box = HBoxContainer.new()
+		h_box.name = "SocketContainer"
+		h_box.alignment = BoxContainer.ALIGNMENT_CENTER
+		h_box.add_theme_constant_override("separation", 12)
+		h_box.custom_minimum_size = Vector2(0, 20)
 		
-	# Make it look like a highlighted border
-	sb.border_width_left = 2; sb.border_width_top = 2; sb.border_width_right = 2; sb.border_width_bottom = 2;
-	sb.set_corner_radius_all(3)
-	sb.shadow_size = 5 if rarity >= GameState.shipyard_manager.Rarity.RARE else 0
+		for gem in data["sockets"]:
+			var sock_bg = Panel.new()
+			sock_bg.custom_minimum_size = Vector2(10, 10)
+			var sb = StyleBoxFlat.new()
+			sb.bg_color = Color(0.01, 0.01, 0.01, 0.9)
+			sb.border_width_left = 1; sb.border_width_top = 1; sb.border_width_right = 1; sb.border_width_bottom = 1;
+			sb.border_color = Color(0.4, 0.4, 0.4, 0.8)
+			
+			if gem:
+				var gem_name = ElementDB.get_display_name(gem)
+				var g_color = _get_gem_color(gem_name)
+				sb.bg_color = g_color
+				sb.border_color = g_color.lightened(0.6)
+				sb.shadow_color = g_color * Color(1, 1, 1, 0.4)
+				sb.shadow_size = 4
+			
+			sock_bg.add_theme_stylebox_override("panel", sb)
+			sock_bg.pivot_offset = Vector2(5, 5)
+			sock_bg.rotation_degrees = 45 # Diamond layout
+			
+			var sock_wrap = Control.new()
+			sock_wrap.custom_minimum_size = Vector2(16, 16)
+			sock_bg.position = Vector2(3, 3)
+			sock_wrap.add_child(sock_bg)
+			h_box.add_child(sock_wrap)
+			
+		margin_vbox.add_child(h_box)
+		margin_vbox.move_child(h_box, footer_lbl.get_index()) # Put right above footer!
 
-	
-	bg_panel.add_theme_stylebox_override("panel", sb)
-	tile_container.add_child(bg_panel)
-	
-	# Center Letter (W, S, A, etc.)
-	var type_char = _get_type_char(slot_type)
-	var letter_lbl = Label.new()
-	letter_lbl.text = type_char
-	letter_lbl.add_theme_font_size_override("font_size", 18) # Was 14
-	letter_lbl.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
-	letter_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	letter_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	letter_lbl.custom_minimum_size = Vector2(size, size)
-	tile_container.add_child(letter_lbl)
-	
-	# Bottom Right Tier/Level Number
-	var tier_val = _get_item_tier(item_name, m_data)
-	var tier_lbl = Label.new()
-	tier_lbl.text = tier_val
-	tier_lbl.add_theme_font_size_override("font_size", 9) # Was 7
-	tier_lbl.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8))
-	tier_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	tier_lbl.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
-	tier_lbl.custom_minimum_size = Vector2(size, size)
-
-
-	
-	# Adjust margin to sit nicely in bottom right
-	var tier_margin = MarginContainer.new()
-	tier_margin.add_theme_constant_override("margin_right", 5) # Nudged from 2
-	tier_margin.add_theme_constant_override("margin_bottom", 0) # From -1
-	tier_margin.mouse_filter = Control.MOUSE_FILTER_PASS
-	tier_margin.custom_minimum_size = Vector2(size, size)
-	tier_margin.add_child(tier_lbl)
-	tile_container.add_child(tier_margin)
-
-
-
-	
-	# Count badge if Stacked (Top Left Corner Badge)
-	if count > 1:
-		var badge_bg = ColorRect.new()
-		badge_bg.color = Color(0, 0, 0, 0.6)
-		badge_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		
-		var count_lbl = Label.new()
-		count_lbl.text = str(count)
-		count_lbl.add_theme_font_size_override("font_size", 8) # Was 6
-		count_lbl.add_theme_color_override("font_color", Color(0.7, 1.0, 1.0))
-		
-		var text_size = count_lbl.get_theme_font("font").get_string_size(count_lbl.text, HORIZONTAL_ALIGNMENT_LEFT, -1, 8)
-		badge_bg.custom_minimum_size = Vector2(text_size.x + 4, 12)
-		badge_bg.position = Vector2(2, 2)
-		
-		count_lbl.position = Vector2(2, -1)
-		badge_bg.add_child(count_lbl)
-		tile_container.add_child(badge_bg)
-
-
-
-
-	# Overrides to original card layout
-	var empty_style = StyleBoxEmpty.new()
-	add_theme_stylebox_override("panel", empty_style)
+	_apply_card_style(rarity, rarity_color)
 	_apply_pulse(rarity)
-	
-	add_child(tile_container)
-	
-	var sm = GameState.shipyard_manager
+
 	if sm and mid in sm.modules:
 		var status = sm.can_equip_module(mid)
-		UITheme.apply_locked_overlay(self, item_name, status["reason"], not status["can_equip"])
+		UITheme.apply_locked_overlay(self, clean_name, status["reason"], not status["can_equip"])
 	else:
-		UITheme.apply_locked_overlay(self, item_name, "", false)
-
-func _get_type_char(s_type: String) -> String:
-	match s_type:
-		"weapon": return "W"
-		"shield": return "S"
-		"armor": return "A"
-		"engine": return "E"
-		"battery": return "B"
-		"reactor": return "R"
-		"sensor": return "V"
-		"cooling": return "C"
-		"ammo": return "O"
-		"consumable": return "H"
-		"gem", "gem_synth": return "G"
-	return "M"
-
-func _get_item_tier(item_name: String, m_data: Dictionary) -> String:
-	if m_data.has("tier"):
-		return str(m_data["tier"])
-	
-	if "Mk." in item_name:
-		var parts = item_name.split("Mk.")
-		if parts.size() > 1:
-			var roman = parts[1].strip_edges().split(" ")[0]
-			if roman == "I": return "1"
-			if roman == "II": return "2"
-			if roman == "III": return "3"
-			if roman == "IV": return "4"
-			if roman == "V": return "5"
-			if roman == "VI": return "6"
-			return roman
-			
-	if "T1" in item_name: return "1"
-	if "T2" in item_name: return "2"
-	if "T3" in item_name: return "3"
-	if "T4" in item_name: return "4"
-	if "T5" in item_name: return "5"
-	
-	return "1"
-
-func _draw_gem_visual(gem_name: String, rarity_color: Color):
-	var margin_vbox = $Margin/VBox
-	margin_vbox.visible = false
-	
-	for child in get_children():
-		if child.name == "GemVisual":
-			child.free()
-			
-	var gem_container = Control.new()
-	gem_container.name = "GemVisual"
-	var grid_size = 40 # Match the module tile size for grid alignment
-	var visual_size = 25 # The specific size requested for the core visual
-	custom_minimum_size = Vector2(grid_size, grid_size)
-	gem_container.custom_minimum_size = Vector2(grid_size, grid_size)
-	gem_container.mouse_filter = Control.MOUSE_FILTER_PASS
-	
-	var sock_bg = Panel.new()
-	var size = 15 # Diamond size
-	sock_bg.custom_minimum_size = Vector2(size, size)
-	sock_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var sb = StyleBoxFlat.new()
-	var g_color = _get_gem_color(gem_name)
-
-	
-	sb.bg_color = g_color
-	sb.border_width_left = 1; sb.border_width_top = 1; sb.border_width_right = 1; sb.border_width_bottom = 1;
-	sb.border_color = g_color.lightened(0.5)
-	sb.shadow_color = g_color * Color(1, 1, 1, 0.45)
-	sb.shadow_size = 4
-	
-	sock_bg.add_theme_stylebox_override("panel", sb)
-	sock_bg.pivot_offset = Vector2(size / 2.0, size / 2.0)
-	sock_bg.rotation_degrees = 45
-	
-	# Center the diamond within the 40x40 grid cell
-	sock_bg.position = Vector2((grid_size - size) / 2.0, (grid_size - size) / 2.0)
-	
-	if count > 1:
-		var badge_bg = ColorRect.new()
-		badge_bg.color = Color(0, 0, 0, 0.6)
-		# Position badge relative to the visual_size or just top-left of the 40x40
-		badge_bg.position = Vector2(6, 6) 
-		
-		var count_lbl = Label.new()
-		count_lbl.text = str(count)
-		count_lbl.add_theme_font_size_override("font_size", 8)
-		count_lbl.add_theme_color_override("font_color", Color(0.7, 1.0, 1.0))
-		
-		var text_size = count_lbl.get_theme_font("font").get_string_size(count_lbl.text, HORIZONTAL_ALIGNMENT_LEFT, -1, 8)
-		badge_bg.custom_minimum_size = Vector2(text_size.x + 2, 10)
-		count_lbl.position = Vector2(1, -1)
-		
-		badge_bg.add_child(count_lbl)
-		gem_container.add_child(badge_bg)
-
-
-
-
-
-
-		
-	var sm = GameState.shipyard_manager
-	var rarity = _get_module_rarity_safe(sm)
-	_apply_card_style(rarity, rarity_color, "gem")
-	_apply_pulse(rarity)
-	
-	gem_container.add_child(sock_bg)
-	add_child(gem_container)
-	
-	# Small glow tween to make the core feel alive
-	var glow_tween = create_tween().set_loops()
-	glow_tween.tween_property(sock_bg, "modulate", Color(1.2, 1.2, 1.2), 1.5).set_trans(Tween.TRANS_SINE)
-	glow_tween.tween_property(sock_bg, "modulate", Color(0.9, 0.9, 0.9), 1.5).set_trans(Tween.TRANS_SINE)
-
+		UITheme.apply_locked_overlay(self, clean_name, "", false)
 
 func _get_module_rarity_safe(sm) -> int:
 	if not sm:
@@ -389,18 +243,10 @@ func _build_footer_text(slot_type: String, rarity_label: String) -> String:
 		return ""
 	return " | ".join(parts)
 
-func _apply_card_style(rarity: int, rarity_color: Color, slot_type: String = "module"):
+func _apply_card_style(rarity: int, rarity_color: Color):
 	var frame = StyleBoxFlat.new()
 	frame.bg_color = _get_rarity_background(rarity)
 	frame.set_corner_radius_all(3)
-	
-	if slot_type == "gem" or slot_type == "gem_synth":
-		frame.bg_color = Color(0, 0, 0, 0.0) # Transparent background
-		frame.set_border_width_all(0)
-		frame.shadow_size = 0
-		add_theme_stylebox_override("panel", frame)
-		return
-		
 	frame.set_border_width_all(2)
 	frame.border_width_top = 5
 	frame.border_color = rarity_color.lerp(Color(0.55, 0.45, 0.34), 0.35)
@@ -769,8 +615,7 @@ func _get_drag_data(_at_position):
 
 	var preview_container = Control.new()
 	preview_container.add_child(preview)
-	
-	preview.scale = Vector2(1.0, 1.0)
+	preview.scale = Vector2(1.05, 1.05)
 	preview.modulate.a = 0.96
 
 	var shadow = Panel.new()
@@ -778,19 +623,15 @@ func _get_drag_data(_at_position):
 	style.bg_color = Color(0, 0, 0, 0.45)
 	style.set_corner_radius_all(3)
 	style.shadow_color = Color(0, 0, 0, 0.45)
-	style.shadow_size = 12
-	style.shadow_offset = Vector2(0, 8)
+	style.shadow_size = 18
+	style.shadow_offset = Vector2(0, 12)
 	shadow.add_theme_stylebox_override("panel", style)
-	
-	var p_size = custom_minimum_size
-	shadow.custom_minimum_size = p_size
+	shadow.custom_minimum_size = Vector2(124, 138)
 
 	preview_container.add_child(shadow)
 	preview_container.move_child(shadow, 0)
-	
-	preview.position = -p_size / 2.0
-	shadow.position = -p_size / 2.0
+	preview.position = Vector2(-62, -70)
+	shadow.position = Vector2(-58, -66)
 
 	set_drag_preview(preview_container)
-
 	return drag_data

@@ -104,7 +104,7 @@ var tech_tree = {
 		"name": "Shipwright II",
 		"description": "Unlocks:\n• Destroyer Class",
 		"cost": 1000000,
-		"cost_items": {"Res2": 100},
+		"cost_items": {"Res2": 25},
 		"type": "technology",
 		"parent": "shipwright_1"
 	},

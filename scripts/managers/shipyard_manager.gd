@@ -1051,22 +1051,22 @@ var modules: Dictionary = {
 	# All have: rarity=UNIQUE, 4 affixes, 3 matrix sockets
 	# ═══════════════════════════════════════════════════════════════
 
-	# ── Z1: Architect's Regalia (+15% ATK Speed, +20 HP Regen/tick) ──
+	# ── Z1: Architect's Regalia (+15% ATK Speed, +5 HP Regen/tick) ──
 	"z1_unique_weapon": {
 		"name": "Architect's Beam", "slot_type": "weapon", "rarity": 4,
-		"stats": {"atk_energy": 28, "energy_load": 12, "atk_interval": 2.0},
+		"stats": {"atk_energy": 16, "energy_load": 12, "atk_interval": 2.0},
 		"cost": {}, "desc": "Precision-engineered energy weapon.", "zone": 1,
 		"set_id": "architects_regalia", "is_unique": true
 	},
 	"z1_unique_armor": {
 		"name": "Architect's Plating", "slot_type": "armor", "rarity": 4,
-		"stats": {"def": 14, "hp": 56},
+		"stats": {"def": 8, "hp": 32},
 		"cost": {}, "desc": "Blueprint-perfect hull reinforcement.", "zone": 1,
 		"set_id": "architects_regalia", "is_unique": true
 	},
 	"z1_unique_shield": {
 		"name": "Architect's Ward", "slot_type": "shield", "rarity": 4,
-		"stats": {"max_shield": 112, "shield_regen": 5},
+		"stats": {"max_shield": 64, "shield_regen": 3},
 		"cost": {}, "desc": "Geometrically perfect barrier field.", "zone": 1,
 		"set_id": "architects_regalia", "is_unique": true
 	},
@@ -1074,19 +1074,19 @@ var modules: Dictionary = {
 	# ── Z2: Monolith's Bedrock (+10% DEF, Reflect 5% dmg) ──
 	"z2_unique_weapon": {
 		"name": "Monolith's Shatter", "slot_type": "weapon", "rarity": 4,
-		"stats": {"atk_kinetic": 50, "energy_load": 18, "atk_interval": 2.0},
+		"stats": {"atk_kinetic": 28, "energy_load": 18, "atk_interval": 2.0},
 		"cost": {}, "desc": "Crystalline projectile launcher.", "zone": 2,
 		"set_id": "monoliths_bedrock", "is_unique": true
 	},
 	"z2_unique_armor": {
 		"name": "Monolith's Shell", "slot_type": "armor", "rarity": 4,
-		"stats": {"def": 31, "hp": 123},
+		"stats": {"def": 17, "hp": 70},
 		"cost": {}, "desc": "Silicate-hardened hull plating.", "zone": 2,
 		"set_id": "monoliths_bedrock", "is_unique": true
 	},
 	"z2_unique_shield": {
 		"name": "Monolith's Barrier", "slot_type": "shield", "rarity": 4,
-		"stats": {"max_shield": 246, "shield_regen": 12},
+		"stats": {"max_shield": 140, "shield_regen": 6},
 		"cost": {}, "desc": "Stone-resonance energy barrier.", "zone": 2,
 		"set_id": "monoliths_bedrock", "is_unique": true
 	},
@@ -1094,19 +1094,19 @@ var modules: Dictionary = {
 	# ── Z3: Warmaster's Arsenal (+12% Crit Chance, +8% ATK) ──
 	"z3_unique_weapon": {
 		"name": "Warmaster's Railgun", "slot_type": "weapon", "rarity": 4,
-		"stats": {"atk_kinetic": 109, "energy_load": 30, "atk_interval": 2.0},
+		"stats": {"atk_kinetic": 62, "energy_load": 30, "atk_interval": 2.0},
 		"cost": {}, "desc": "Mars-forged magnetic accelerator.", "zone": 3,
 		"set_id": "warmasters_arsenal", "is_unique": true
 	},
 	"z3_unique_armor": {
 		"name": "Warmaster's Bulkhead", "slot_type": "armor", "rarity": 4,
-		"stats": {"def": 67, "hp": 271},
+		"stats": {"def": 38, "hp": 155},
 		"cost": {}, "desc": "Battle-scarred Martian alloy.", "zone": 3,
 		"set_id": "warmasters_arsenal", "is_unique": true
 	},
 	"z3_unique_shield": {
 		"name": "Warmaster's Aegis", "slot_type": "shield", "rarity": 4,
-		"stats": {"max_shield": 543, "shield_regen": 27},
+		"stats": {"max_shield": 310, "shield_regen": 14},
 		"cost": {}, "desc": "Command-grade barrier matrix.", "zone": 3,
 		"set_id": "warmasters_arsenal", "is_unique": true
 	},
@@ -1114,19 +1114,19 @@ var modules: Dictionary = {
 	# ── Z4: Overseer's Command (+10% Shield Regen, +50 Accuracy) ──
 	"z4_unique_weapon": {
 		"name": "Overseer's Lance", "slot_type": "weapon", "rarity": 4,
-		"stats": {"atk_energy": 297, "energy_load": 50, "atk_interval": 2.0},
+		"stats": {"atk_energy": 169, "energy_load": 50, "atk_interval": 2.0},
 		"cost": {}, "desc": "Cryo-focused targeting lance.", "zone": 4,
 		"set_id": "overseers_command", "is_unique": true
 	},
 	"z4_unique_armor": {
 		"name": "Overseer's Carapace", "slot_type": "armor", "rarity": 4,
-		"stats": {"def": 148, "hp": 596},
+		"stats": {"def": 84, "hp": 340},
 		"cost": {}, "desc": "Ice-tempered composite armor.", "zone": 4,
 		"set_id": "overseers_command", "is_unique": true
 	},
 	"z4_unique_shield": {
 		"name": "Overseer's Dome", "slot_type": "shield", "rarity": 4,
-		"stats": {"max_shield": 1192, "shield_regen": 59},
+		"stats": {"max_shield": 681, "shield_regen": 33},
 		"cost": {}, "desc": "Cryo-stabilized barrier dome.", "zone": 4,
 		"set_id": "overseers_command", "is_unique": true
 	},
@@ -1134,19 +1134,19 @@ var modules: Dictionary = {
 	# ── Z5: Harbinger's Wrath (+15% Missile DMG, -10% Enemy DEF) ──
 	"z5_unique_weapon": {
 		"name": "Harbinger's Fury", "slot_type": "weapon", "rarity": 4,
-		"stats": {"atk_explosive": 1181, "energy_load": 90, "atk_interval": 4.0},
+		"stats": {"atk_explosive": 675, "energy_load": 90, "atk_interval": 4.0},
 		"cost": {}, "desc": "Xenon doomsday missile platform.", "zone": 5,
 		"set_id": "harbingers_wrath", "is_unique": true
 	},
 	"z5_unique_armor": {
 		"name": "Harbinger's Bastion", "slot_type": "armor", "rarity": 4,
-		"stats": {"def": 327, "hp": 1313},
+		"stats": {"def": 187, "hp": 750},
 		"cost": {}, "desc": "Alien-alloy hull reinforcement.", "zone": 5,
 		"set_id": "harbingers_wrath", "is_unique": true
 	},
 	"z5_unique_shield": {
 		"name": "Harbinger's Veil", "slot_type": "shield", "rarity": 4,
-		"stats": {"max_shield": 2623, "shield_regen": 131},
+		"stats": {"max_shield": 1499, "shield_regen": 73},
 		"cost": {}, "desc": "Xenon phase-shift barrier.", "zone": 5,
 		"set_id": "harbingers_wrath", "is_unique": true
 	},
@@ -1154,19 +1154,19 @@ var modules: Dictionary = {
 	# ── Z6: Colossus Dominion (+12% All DMG, +5% Evasion) ──
 	"z6_unique_weapon": {
 		"name": "Colossus Cannon", "slot_type": "weapon", "rarity": 4,
-		"stats": {"atk_kinetic": 1164, "energy_load": 120, "atk_interval": 2.0},
+		"stats": {"atk_kinetic": 665, "energy_load": 120, "atk_interval": 2.0},
 		"cost": {}, "desc": "Colony-siege superweapon.", "zone": 6,
 		"set_id": "colossus_dominion", "is_unique": true
 	},
 	"z6_unique_armor": {
 		"name": "Colossus Bulwark", "slot_type": "armor", "rarity": 4,
-		"stats": {"def": 719, "hp": 2886},
+		"stats": {"def": 411, "hp": 1649},
 		"cost": {}, "desc": "Gamma-hardened ultra-plating.", "zone": 6,
 		"set_id": "colossus_dominion", "is_unique": true
 	},
 	"z6_unique_shield": {
 		"name": "Colossus Aegis", "slot_type": "shield", "rarity": 4,
-		"stats": {"max_shield": 5773, "shield_regen": 288},
+		"stats": {"max_shield": 3299, "shield_regen": 164},
 		"cost": {}, "desc": "Radiation-dampening barrier.", "zone": 6,
 		"set_id": "colossus_dominion", "is_unique": true
 	},
@@ -1174,19 +1174,19 @@ var modules: Dictionary = {
 	# ── Z7: Sovereign's Prism (+300 DEF, +10% Energy DMG) ──
 	"z7_unique_weapon": {
 		"name": "Sovereign's Ray", "slot_type": "weapon", "rarity": 4,
-		"stats": {"atk_energy": 3166, "energy_load": 180, "atk_interval": 2.0},
+		"stats": {"atk_energy": 1809, "energy_load": 180, "atk_interval": 2.0},
 		"cost": {}, "desc": "Prismatic energy cascade.", "zone": 7,
 		"set_id": "sovereigns_prism", "is_unique": true
 	},
 	"z7_unique_armor": {
 		"name": "Sovereign's Mantle", "slot_type": "armor", "rarity": 4,
-		"stats": {"def": 1582, "hp": 6350},
+		"stats": {"def": 904, "hp": 3628},
 		"cost": {}, "desc": "Exotic-matter woven hull.", "zone": 7,
 		"set_id": "sovereigns_prism", "is_unique": true
 	},
 	"z7_unique_shield": {
 		"name": "Sovereign's Corona", "slot_type": "shield", "rarity": 4,
-		"stats": {"max_shield": 12700, "shield_regen": 635},
+		"stats": {"max_shield": 7257, "shield_regen": 361},
 		"cost": {}, "desc": "Reality-bending shield aura.", "zone": 7,
 		"set_id": "sovereigns_prism", "is_unique": true
 	},
@@ -1194,19 +1194,19 @@ var modules: Dictionary = {
 	# ── Z8: Warden's Quarantine (+20% Shield HP, +8% Crit) ──
 	"z8_unique_weapon": {
 		"name": "Warden's Scalpel", "slot_type": "weapon", "rarity": 4,
-		"stats": {"atk_energy": 6969, "energy_load": 280, "atk_interval": 2.0},
+		"stats": {"atk_energy": 3982, "energy_load": 280, "atk_interval": 2.0},
 		"cost": {}, "desc": "Crystal-focused annihilation beam.", "zone": 8,
 		"set_id": "wardens_quarantine", "is_unique": true
 	},
 	"z8_unique_armor": {
 		"name": "Warden's Containment", "slot_type": "armor", "rarity": 4,
-		"stats": {"def": 3483, "hp": 13972},
+		"stats": {"def": 1990, "hp": 7984},
 		"cost": {}, "desc": "Diamond-lattice containment hull.", "zone": 8,
 		"set_id": "wardens_quarantine", "is_unique": true
 	},
 	"z8_unique_shield": {
 		"name": "Warden's Lockdown", "slot_type": "shield", "rarity": 4,
-		"stats": {"max_shield": 27944, "shield_regen": 1397},
+		"stats": {"max_shield": 15968, "shield_regen": 798},
 		"cost": {}, "desc": "Prismatic containment barrier.", "zone": 8,
 		"set_id": "wardens_quarantine", "is_unique": true
 	},
@@ -1214,19 +1214,19 @@ var modules: Dictionary = {
 	# ── Z9: Titan's Legacy (+15% All DMG, +500 DEF) ──
 	"z9_unique_weapon": {
 		"name": "Titan's Wrath", "slot_type": "weapon", "rarity": 4,
-		"stats": {"atk_kinetic": 12409, "energy_load": 400, "atk_interval": 2.0},
+		"stats": {"atk_kinetic": 7091, "energy_load": 400, "atk_interval": 2.0},
 		"cost": {}, "desc": "Neutronium-core mass driver.", "zone": 9,
 		"set_id": "titans_legacy", "is_unique": true
 	},
 	"z9_unique_armor": {
 		"name": "Titan's Aegis", "slot_type": "armor", "rarity": 4,
-		"stats": {"def": 7663, "hp": 30738},
+		"stats": {"def": 4379, "hp": 17564},
 		"cost": {}, "desc": "Neutron-star density plating.", "zone": 9,
 		"set_id": "titans_legacy", "is_unique": true
 	},
 	"z9_unique_shield": {
 		"name": "Titan's Bulwark", "slot_type": "shield", "rarity": 4,
-		"stats": {"max_shield": 61476, "shield_regen": 3073},
+		"stats": {"max_shield": 35129, "shield_regen": 1755},
 		"cost": {}, "desc": "Containment-grade mega-barrier.", "zone": 9,
 		"set_id": "titans_legacy", "is_unique": true
 	},
@@ -1234,19 +1234,19 @@ var modules: Dictionary = {
 	# ── Z10: Leviathan's Crown (+20% All DMG, +1000 HP Regen/tick) ──
 	"z10_unique_weapon": {
 		"name": "Leviathan's Maw", "slot_type": "weapon", "rarity": 4,
-		"stats": {"atk_explosive": 60891, "energy_load": 600, "atk_interval": 4.0},
+		"stats": {"atk_explosive": 34795, "energy_load": 600, "atk_interval": 4.0},
 		"cost": {}, "desc": "Reality-ending void warhead.", "zone": 10,
 		"set_id": "leviathans_crown", "is_unique": true
 	},
 	"z10_unique_armor": {
 		"name": "Leviathan's Hide", "slot_type": "armor", "rarity": 4,
-		"stats": {"def": 16861, "hp": 67625},
+		"stats": {"def": 9635, "hp": 38643},
 		"cost": {}, "desc": "Primordial matter hull.", "zone": 10,
 		"set_id": "leviathans_crown", "is_unique": true
 	},
 	"z10_unique_shield": {
 		"name": "Leviathan's Dominion", "slot_type": "shield", "rarity": 4,
-		"stats": {"max_shield": 135251, "shield_regen": 6762},
+		"stats": {"max_shield": 77286, "shield_regen": 3864},
 		"cost": {}, "desc": "Void-sovereign barrier field.", "zone": 10,
 		"set_id": "leviathans_crown", "is_unique": true
 	}
@@ -1686,7 +1686,6 @@ func set_slot_ammo(slot_idx: int, ammo_id: String) -> bool:
 
 # Step 6: Gem Socket Support
 func insert_gem(module_id: String, socket_idx: int, gem_id: String) -> bool:
-	if not module_id in module_inventory: return false
 	if GameState.resources.get_element_amount(gem_id) <= 0: return false
 	
 	var mod = modules.get(module_id)
@@ -2074,12 +2073,6 @@ func generate_module_drop(base_module_id: String, rarity: int = Rarity.UNCOMMON,
 		var base_val = base["stats"][stat_key]
 		if stat_key in BOOSTABLE_STATS:
 			var scaled_base = base_val
-			if stat_key in ZONE_SCALABLE_STATS:
-				if stat_key == "atk_interval":
-					# Higher-zone drops should not become slower.
-					scaled_base = max(0.25, float(base_val) / zone_mult)
-				else:
-					scaled_base = base_val * zone_mult
 			
 			var bonus = randf_range(stat_range[0], stat_range[1])
 			var boosted = scaled_base

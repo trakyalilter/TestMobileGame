@@ -118,7 +118,7 @@ const DEF_K_CONSTANT = 100.0              # v80.1: Fixed k for DEF/(DEF+k) formu
 var active_trinity_sets: Array = []  # Populated on stat recalc
 
 const TRINITY_SET_BONUSES = {
-	"architects_regalia":  {"name": "Architect's Regalia",  "pieces": 3, "bonus": {"atk_speed_pct": 15, "hp_regen_flat": 20}},
+	"architects_regalia":  {"name": "Architect's Regalia",  "pieces": 3, "bonus": {"atk_speed_pct": 15, "hp_regen_flat": 5}},
 	"monoliths_bedrock":   {"name": "Monolith's Bedrock",   "pieces": 3, "bonus": {"def_pct": 10, "reflect_pct": 5}},
 	"warmasters_arsenal":  {"name": "Warmaster's Arsenal",  "pieces": 3, "bonus": {"crit_chance": 12, "atk_pct": 8}},
 	"overseers_command":   {"name": "Overseer's Command",   "pieces": 3, "bonus": {"shield_regen_pct": 10, "accuracy_flat": 50}},
@@ -313,8 +313,8 @@ var zones = {
 }
 
 # v80.1: Formula-Driven Enemy DB
-# Regular: HP=floor(200*2.4^(N-1)), ATK=floor(12*2.2^(N-1)), DEF=floor(3*2.2^(N-1))
-# Boss: HP×8, ATK×3, DEF×4
+# Regular: HP=floor(200*2.2^(N-1)), ATK=floor(12*2.2^(N-1)), DEF=floor(3*2.2^(N-1))
+# Boss: HP×6, ATK×2.5, DEF×3, Shield×3
 # Enemy variants within zone: ±20% stat variation for diversity
 var enemy_db = {
 	# ═══ ZONE 1: Lunar Orbit — Reg HP~200, ATK~12, DEF~3 ═══
@@ -357,9 +357,9 @@ var enemy_db = {
 
 	"z1_boss_architect": {
 		"name": "Rogue Architect",
-		"stats": {"hp": 1200, "max_shield": 100, "atk": 30, "def": 10, "atk_interval": 2.5, "accuracy": 35},
+		"stats": {"hp": 1200, "max_shield": 120, "atk": 54, "def": 18, "atk_interval": 2.5, "accuracy": 35},
 		"loot": [["credits", 500, 1000], ["Cu", 10, 25], ["Fe", 15, 30], ["Res1", 5, 10]],
-		"rare_loot": [["z1_unique_weapon", 0.10, 1, 1], ["z1_unique_armor", 0.10, 1, 1], ["z1_unique_shield", 0.10, 1, 1]],
+		"rare_loot": [["z1_unique_weapon", 0.03, 1, 1], ["z1_unique_armor", 0.03, 1, 1], ["z1_unique_shield", 0.03, 1, 1]],
 		"boss_core": "Z1_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_missile", "z1_shield", "z1_armor", "z1_engine", "z1_battery", "z1_sensor"],
@@ -405,9 +405,9 @@ var enemy_db = {
 	},
 	"z2_boss_monolith": {
 		"name": "Silicate Monolith",
-		"stats": {"hp": 3840, "max_shield": 800, "atk": 79, "def": 26, "atk_interval": 3.5, "accuracy": 45},
+		"stats": {"hp": 5280, "max_shield": 264, "atk": 132, "def": 39, "atk_interval": 3.5, "accuracy": 45},
 		"loot": [["credits", 2000, 5000], ["Ti", 5, 12], ["Fe", 20, 40], ["Res1", 10, 20]],
-		"rare_loot": [["z2_unique_weapon", 0.10, 1, 1], ["z2_unique_armor", 0.10, 1, 1], ["z2_unique_shield", 0.10, 1, 1]],
+		"rare_loot": [["z2_unique_weapon", 0.03, 1, 1], ["z2_unique_armor", 0.03, 1, 1], ["z2_unique_shield", 0.03, 1, 1]],
 		"boss_core": "Z2_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z2_kinetic", "z2_energy", "z2_missile", "z2_shield", "z2_armor"],
@@ -453,9 +453,9 @@ var enemy_db = {
 	},
 	"z3_boss_warmaster": {
 		"name": "Martian Warmaster",
-		"stats": {"hp": 9216, "max_shield": 2000, "atk": 174, "def": 58, "atk_interval": 2.5, "accuracy": 65},
+		"stats": {"hp": 17424, "max_shield": 580, "atk": 319, "def": 87, "atk_interval": 2.5, "accuracy": 65},
 		"loot": [["credits", 5000, 10000], ["Steel", 20, 40], ["Ti", 10, 25], ["Res2", 5, 10]],
-		"rare_loot": [["z3_unique_weapon", 0.10, 1, 1], ["z3_unique_armor", 0.10, 1, 1], ["z3_unique_shield", 0.10, 1, 1]],
+		"rare_loot": [["z3_unique_weapon", 0.03, 1, 1], ["z3_unique_armor", 0.03, 1, 1], ["z3_unique_shield", 0.03, 1, 1]],
 		"boss_core": "Z3_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z3_kinetic", "z3_energy", "z3_missile", "z3_shield", "z3_armor"],
@@ -501,9 +501,9 @@ var enemy_db = {
 	},
 	"z4_boss_overseer": {
 		"name": "Cryo Overseer",
-		"stats": {"hp": 22118, "max_shield": 5000, "atk": 383, "def": 128, "atk_interval": 2.5, "accuracy": 85},
+		"stats": {"hp": 51110, "max_shield": 1277, "atk": 766, "def": 191, "atk_interval": 2.5, "accuracy": 85},
 		"loot": [["credits", 15000, 30000], ["Ti", 30, 60], ["AdvCircuit", 5, 12], ["Res2", 10, 20]],
-		"rare_loot": [["z4_unique_weapon", 0.10, 1, 1], ["z4_unique_armor", 0.10, 1, 1], ["z4_unique_shield", 0.10, 1, 1]],
+		"rare_loot": [["z4_unique_weapon", 0.03, 1, 1], ["z4_unique_armor", 0.03, 1, 1], ["z4_unique_shield", 0.03, 1, 1]],
 		"boss_core": "Z4_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z4_kinetic", "z4_energy", "z4_missile", "z4_shield", "z4_armor"],
@@ -549,9 +549,9 @@ var enemy_db = {
 	},
 	"z5_boss_harbinger": {
 		"name": "Xenon Harbinger",
-		"stats": {"hp": 53084, "max_shield": 15000, "atk": 843, "def": 282, "atk_interval": 2.5, "accuracy": 110},
+		"stats": {"hp": 140553, "max_shield": 2811, "atk": 1827, "def": 421, "atk_interval": 2.5, "accuracy": 110},
 		"loot": [["credits", 50000, 100000], ["VoidArtifact", 10, 25], ["QuantumCore", 2, 5], ["Res2", 15, 30]],
-		"rare_loot": [["z5_unique_weapon", 0.10, 1, 1], ["z5_unique_armor", 0.10, 1, 1], ["z5_unique_shield", 0.10, 1, 1]],
+		"rare_loot": [["z5_unique_weapon", 0.03, 1, 1], ["z5_unique_armor", 0.03, 1, 1], ["z5_unique_shield", 0.03, 1, 1]],
 		"boss_core": "Z5_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z5_kinetic", "z5_energy", "z5_missile", "z5_shield", "z5_armor"],
@@ -597,9 +597,9 @@ var enemy_db = {
 	},
 	"z6_boss_colossus": {
 		"name": "Gamma Colossus",
-		"stats": {"hp": 127411, "max_shield": 30000, "atk": 1855, "def": 620, "atk_interval": 2.5, "accuracy": 140},
+		"stats": {"hp": 371061, "max_shield": 6184, "atk": 4329, "def": 927, "atk_interval": 2.5, "accuracy": 140},
 		"loot": [["credits", 200000, 500000], ["Ir", 5, 12], ["Superalloy", 10, 25], ["Res3", 10, 20]],
-		"rare_loot": [["z6_unique_weapon", 0.10, 1, 1], ["z6_unique_armor", 0.10, 1, 1], ["z6_unique_shield", 0.10, 1, 1]],
+		"rare_loot": [["z6_unique_weapon", 0.03, 1, 1], ["z6_unique_armor", 0.03, 1, 1], ["z6_unique_shield", 0.03, 1, 1]],
 		"boss_core": "Z6_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z6_kinetic", "z6_energy", "z6_missile", "z6_shield", "z6_armor"],
@@ -645,9 +645,9 @@ var enemy_db = {
 	},
 	"z7_boss_sovereign": {
 		"name": "Sovereign Prism",
-		"stats": {"hp": 305779, "max_shield": 80000, "atk": 4081, "def": 1363, "atk_interval": 2.5, "accuracy": 170},
+		"stats": {"hp": 952391, "max_shield": 13605, "atk": 10204, "def": 2040, "atk_interval": 2.5, "accuracy": 170},
 		"loot": [["credits", 1000000, 2000000], ["ExoticMatter", 15, 30], ["Os", 3, 8], ["Res3", 15, 30]],
-		"rare_loot": [["z7_unique_weapon", 0.10, 1, 1], ["z7_unique_armor", 0.10, 1, 1], ["z7_unique_shield", 0.10, 1, 1]],
+		"rare_loot": [["z7_unique_weapon", 0.03, 1, 1], ["z7_unique_armor", 0.03, 1, 1], ["z7_unique_shield", 0.03, 1, 1]],
 		"boss_core": "Z7_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z7_kinetic", "z7_energy", "z7_missile", "z7_shield", "z7_armor"],
@@ -693,9 +693,9 @@ var enemy_db = {
 	},
 	"z8_boss_warden": {
 		"name": "Prismatic Warden",
-		"stats": {"hp": 733866, "max_shield": 200000, "atk": 8978, "def": 2998, "atk_interval": 2.5, "accuracy": 200},
+		"stats": {"hp": 2394583, "max_shield": 29932, "atk": 23945, "def": 4489, "atk_interval": 2.5, "accuracy": 200},
 		"loot": [["credits", 3000000, 6000000], ["VoidCrystal", 20, 50], ["Diamond", 2, 5], ["Res3", 20, 40]],
-		"rare_loot": [["z8_unique_weapon", 0.10, 1, 1], ["z8_unique_armor", 0.10, 1, 1], ["z8_unique_shield", 0.10, 1, 1]],
+		"rare_loot": [["z8_unique_weapon", 0.03, 1, 1], ["z8_unique_armor", 0.03, 1, 1], ["z8_unique_shield", 0.03, 1, 1]],
 		"boss_core": "Z8_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z8_kinetic", "z8_energy", "z8_missile", "z8_shield", "z8_armor"],
@@ -741,9 +741,9 @@ var enemy_db = {
 	},
 	"z9_boss_patient_zero": {
 		"name": "Patient Zero",
-		"stats": {"hp": 1761280, "max_shield": 500000, "atk": 19752, "def": 6594, "atk_interval": 1.5, "accuracy": 230},
+		"stats": {"hp": 5926594, "max_shield": 65851, "atk": 55973, "def": 9877, "atk_interval": 1.5, "accuracy": 230},
 		"loot": [["credits", 10000000, 20000000], ["Neutronium", 10, 25], ["PathogenCore", 3, 8], ["Res3", 30, 50], ["QuarantineClearance", 1, 1]],
-		"rare_loot": [["z9_unique_weapon", 0.10, 1, 1], ["z9_unique_armor", 0.10, 1, 1], ["z9_unique_shield", 0.10, 1, 1]],
+		"rare_loot": [["z9_unique_weapon", 0.03, 1, 1], ["z9_unique_armor", 0.03, 1, 1], ["z9_unique_shield", 0.03, 1, 1]],
 		"boss_core": "Z9_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z9_kinetic", "z9_energy", "z9_missile", "z9_shield", "z9_armor"],
@@ -789,9 +789,9 @@ var enemy_db = {
 	},
 	"z10_boss_leviathan": {
 		"name": "Void Leviathan",
-		"stats": {"hp": 4227072, "max_shield": 1200000, "atk": 43453, "def": 14506, "atk_interval": 3.0, "accuracy": 250},
+		"stats": {"hp": 14487230, "max_shield": 144872, "atk": 130385, "def": 21730, "atk_interval": 3.0, "accuracy": 250},
 		"loot": [["credits", 50000000, 100000000], ["PrimordialShard", 20, 50], ["ChronoCore", 5, 12]],
-		"rare_loot": [["z10_unique_weapon", 0.10, 1, 1], ["z10_unique_armor", 0.10, 1, 1], ["z10_unique_shield", 0.10, 1, 1]],
+		"rare_loot": [["z10_unique_weapon", 0.03, 1, 1], ["z10_unique_armor", 0.03, 1, 1], ["z10_unique_shield", 0.03, 1, 1]],
 		"boss_core": "Z10_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z10_kinetic", "z10_energy", "z10_missile", "z10_shield", "z10_armor"],

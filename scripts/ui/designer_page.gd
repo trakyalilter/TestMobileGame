@@ -108,6 +108,12 @@ func _apply_designer_styles():
 	_apply_tab_frame_style()
 	_apply_power_bar_style()
 	_refresh_filter_button_styles()
+	
+	# v84.0: Increased columns for compact tiles
+	storage_grid.columns = 6
+	storage_grid.add_theme_constant_override("h_separation", 6)
+	storage_grid.add_theme_constant_override("v_separation", 6)
+
 
 func _setup_filter_tabs():
 	tab_buttons.clear()
