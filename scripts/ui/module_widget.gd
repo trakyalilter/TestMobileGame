@@ -57,6 +57,7 @@ func setup(p_mid: String, p_data: Dictionary, p_manager, p_parent):
 	UITheme.apply_premium_button_style(btn, "shipyard")
 	
 	_update_stats_text()
+	UITheme.inject_diegetic_header(self, "shipyard")
 	
 	# v74.0: Render Physical Sockets on the card
 	if data.has("sockets") and data["sockets"].size() > 0:
@@ -143,7 +144,7 @@ func update_state():
 	
 	if not tech_unlocked:
 		var tech_name = GameState.research_manager.tech_tree.get(req_id, {}).get("name", req_id)
-		UITheme.apply_locked_overlay(self, data["name"], "RESEARCH: %s" % tech_name, true)
+		UITheme.apply_locked_overlay(self, data["name"], "RESEARCH: %s" % tech_name, true, req_id, "shipyard")
 		research_lbl.text = "Req: %s" % tech_name
 		research_lbl.show()
 		btn.disabled = true

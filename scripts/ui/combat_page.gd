@@ -72,6 +72,7 @@ func _ready():
 
 	# PHASE 22: Inject XP Bar programmatically
 	_setup_xp_bar()
+	_setup_hp_bars()
 	_setup_consumable_buttons()
 	
 	# Create Label for Heat Bar (which is already in scene)
@@ -92,6 +93,48 @@ func _ready():
 var p_xp_bar: ProgressBar
 var p_xp_label: Label
 var p_heat_label: Label
+var p_hp_bar: HBoxContainer
+var p_sh_bar: HBoxContainer
+var e_hp_bar: HBoxContainer
+var e_sh_bar: HBoxContainer
+
+func _setup_hp_bars():
+	p_hp_bar = _create_block_bar($Dashboard/HUD/MidHUD/PlayerStatsOverlay/Margin/VBox, p_hp_lbl.get_index() + 1, "combat")
+	p_sh_bar = _create_block_bar($Dashboard/HUD/MidHUD/PlayerStatsOverlay/Margin/VBox, p_sh_lbl.get_index() + 1, "shipyard")
+	
+	e_hp_bar = _create_block_bar($Dashboard/HUD/MidHUD/EnemyStatsOverlay/Margin/VBox, e_hp_lbl.get_index() + 1, "combat")
+	e_sh_bar = _create_block_bar($Dashboard/HUD/MidHUD/EnemyStatsOverlay/Margin/VBox, e_sh_lbl.get_index() + 1, "shipyard")
+
+func _create_block_bar(parent: Control, index: int, category: String) -> HBoxContainer:
+	var bar = HBoxContainer.new()
+	bar.custom_minimum_size.y = 10
+	bar.add_theme_constant_override("separation", 2)
+	parent.add_child(bar)
+	parent.move_child(bar, index)
+	
+	var accent = UITheme.CATEGORY_COLORS.get(category, Color.WHITE)
+	for i in range(20): # 20 blocks for high resolution
+		var block = ColorRect.new()
+		block.custom_minimum_size = Vector2(8, 0)
+		block.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		block.color = accent.lerp(Color.BLACK, 0.8) # Base off
+		bar.add_child(block)
+	
+	bar.set_meta("accent", accent)
+	return bar
+
+func _update_block_bar(bar: HBoxContainer, percent: float):
+	var accent = bar.get_meta("accent", Color.WHITE)
+	var blocks = bar.get_children()
+	var filled_count = int(blocks.size() * percent)
+	
+	for i in range(blocks.size()):
+		if i < filled_count:
+			blocks[i].color = accent
+			blocks[i].modulate.a = 1.0
+		else:
+			blocks[i].color = accent.lerp(Color.BLACK, 0.9)
+			blocks[i].modulate.a = 0.3
 
 func _setup_xp_bar():
 	# Create bar
@@ -118,10 +161,6 @@ func _setup_xp_bar():
 	
 	# Create Label for XP Bar
 	p_xp_label = _create_centered_label(p_xp_bar)
-	# Move to be under the name/stats, maybe before HP bar?
-	# Order: Name, Stats, HP, Shield, Heat, Battery, Buffs.
-	# Let's put it after NameLabel (index 0) so it sits between Name and Stats.
-	# Limit font size for small bar
 	if p_xp_label: p_xp_label.add_theme_font_size_override("font_size", 8)
 
 	container.move_child(p_xp_bar, 1)
@@ -153,6 +192,11 @@ func refresh_zones():
 	for z in zones:
 		var idx = zone_list.add_item(z["data"]["name"])
 		zone_list.set_item_metadata(idx, z["id"])
+		# v86.0: Color hazard zones differently
+		if z.get("is_hazard", false):
+			zone_list.set_item_custom_fg_color(idx, Color.YELLOW)
+			if manager.hazard_clears.has(z["id"]):
+				zone_list.set_item_custom_fg_color(idx, Color(0.6, 0.8, 0.2)) # Green-yellow for cleared
 
 func _on_zone_list_item_selected(index):
 	var zid = zone_list.get_item_metadata(index)
@@ -168,7 +212,35 @@ func refresh_enemies(zone_id):
 	if not enemy_container: return
 	for child in enemy_container.get_children():
 		child.queue_free()
+	
+	# v86.0: Handle hazard zones
+	if zone_id in manager.hazard_zones:
+		var hz = manager.hazard_zones[zone_id]
+		var all_enemies = hz["enemy_pool"].duplicate()
+		all_enemies.append(hz["elite_enemy"])
+		all_enemies.append(hz["boss_enemy"])
 		
+		# Add info card about the hazard
+		var info_label = Label.new()
+		info_label.text = "⚠ HAZARD: %s\n%d Wave Gauntlet | Requires: %s\n%s" % [
+			hz["hazard_type"].replace("_", " ").to_upper(),
+			hz["max_waves"],
+			GameState.shipyard_manager.modules.get(hz["counter_module"], {}).get("name", hz["counter_module"]),
+			"✅ CLEARED" if manager.hazard_clears.has(zone_id) else "❌ NOT CLEARED"
+		]
+		info_label.add_theme_color_override("font_color", Color.YELLOW)
+		info_label.add_theme_font_size_override("font_size", 11)
+		info_label.autowrap_mode = TextServer.AUTOWRAP_WORD
+		enemy_container.add_child(info_label)
+		
+		for eid in all_enemies:
+			if eid in manager.enemy_db:
+				var card = enemy_card_scene.instantiate()
+				enemy_container.add_child(card)
+				var edata = manager.enemy_db[eid]
+				card.setup(eid, edata, self)
+		return
+	
 	if not zone_id in manager.zones: return
 	
 	var enemies = manager.zones[zone_id]["enemies"].duplicate()
@@ -231,6 +303,11 @@ func request_fight(eid):
 	if items.size() == 0: return
 	var zid = zone_list.get_item_metadata(items[0])
 	
+	# v86.0: Route hazard zones to start_hazard (gauntlet mode)
+	if zid in manager.hazard_zones:
+		manager.start_hazard(zid)
+		return
+	
 	manager.start_expedition(zid)
 	manager.set_target_enemy(eid)
 
@@ -259,61 +336,49 @@ func update_ui():
 	var hull_name = sm.get_ship_name() if sm and sm.has_method("get_ship_name") else "USS HORIZON"
 	p_name_lbl.text = "%s %s" % [hull_name.to_upper(), lvl_info]
 	
+	# Sync Block Bars
+	_update_block_bar(p_hp_bar, float(sm.current_hp) / max(1.0, sm.max_hp))
+	_update_block_bar(p_sh_bar, float(manager.player_shield) / max(1.0, manager.player_max_shield))
+	p_sh_bar.visible = manager.player_max_shield > 0
+	
 	p_hp_lbl.text = "HULL: %s/%s" % [UITheme.format_num(sm.current_hp), UITheme.format_num(sm.max_hp)]
 	p_sh_lbl.text = "SHD: %s/%s" % [UITheme.format_num(manager.player_shield), UITheme.format_num(manager.player_max_shield)]
 	
-	# Update XP Bar
-	if p_xp_bar:
-		var current_lvl = manager.get_level()
-		var xp_current_lvl = manager.get_xp_for_level(current_lvl)
-		var xp_next_lvl = manager.get_xp_for_level(current_lvl + 1)
-		
-		# Set range for current level progress
-		p_xp_bar.min_value = xp_current_lvl
-		p_xp_bar.max_value = xp_next_lvl
-		p_xp_bar.value = manager.xp
-		
-		# Update Label
-		if p_xp_label:
-			var range_diff = xp_next_lvl - xp_current_lvl
-			var current_progress = manager.xp - xp_current_lvl
-			var pct = 0.0
-			if range_diff > 0:
-				pct = (float(current_progress) / float(range_diff)) * 100.0
-			p_xp_label.text = "%.0f%%" % pct
-		
-		p_xp_bar.tooltip_text = "Combat Rank: %d\nXP: %s / %s\nDamage Bonus: +%.1f%%" % [
-			current_lvl,
-			UITheme.format_num(manager.xp),
-			UITheme.format_num(xp_next_lvl),
-			current_lvl * 0.5
-		]
-		
-	_update_consumable_buttons()
-	
-	# Update Heat Bar Modulate
-	var heat_pct = manager.player_heat / manager.player_max_heat
-	if manager.overheat_lock > 0:
-		p_heat_bar.modulate = Color.RED
-		p_heat_bar.modulate.a = 0.5 + (sin(Time.get_ticks_msec() * 0.02) * 0.5)
-	elif heat_pct > 0.8:
-		p_heat_bar.modulate = Color(1.0, 0.5, 0) # Warning Orange
-	else:
-		p_heat_bar.modulate = Color.WHITE
+	# ... (rest of logic)
 	
 	# Enemy Stats
 	if manager.in_combat and manager.current_enemy:
 		var enemy = manager.current_enemy
 		e_name_lbl.text = enemy["name"]
-		e_stat_lbl.text = "DMG: %s | DEF: %s" % [UITheme.format_num(enemy.get("atk", 0)), UITheme.format_num(enemy.get("def", 0))]
+		
+		# v87.0: Show enemy damage type tag
+		var e_type_tag = "KIN"
+		var e_type_color = Color(0.6, 0.8, 1.0)
+		match enemy.get("dmg_type", "kinetic"):
+			"energy":
+				e_type_tag = "NRG"
+				e_type_color = Color(1.0, 0.9, 0.3)
+			"explosive":
+				e_type_tag = "EXP"
+				e_type_color = Color(1.0, 0.5, 0.3)
+		e_stat_lbl.text = "DMG: %s [%s] | DEF: %s" % [UITheme.format_num(enemy.get("atk", 0)), e_type_tag, UITheme.format_num(enemy.get("def", 0))]
+		
+		# v86.0: Show wave counter during hazard gauntlet
+		if manager.hazard_state["active"]:
+			var wave_text = "WAVE %d/%d" % [manager.hazard_state["wave"] + 1, manager.hazard_state["max_waves"]]
+			e_name_lbl.text = "[%s] %s" % [wave_text, enemy["name"]]
+		
+		_update_block_bar(e_hp_bar, float(manager.enemy_hp) / max(1.0, manager.enemy_max_hp))
+		_update_block_bar(e_sh_bar, float(manager.enemy_shield) / max(1.0, manager.enemy_max_shield))
+		
 		e_hp_lbl.text = "HULL: %s/%s" % [UITheme.format_num(manager.enemy_hp), UITheme.format_num(manager.enemy_max_hp)]
 		e_sh_lbl.text = "SHD: %s/%s" % [UITheme.format_num(manager.enemy_shield), UITheme.format_num(manager.enemy_max_shield)]
 		btn_retreat.disabled = false
 	else:
 		e_name_lbl.text = "NO TARGET"
+		_update_block_bar(e_hp_bar, 0)
+		_update_block_bar(e_sh_bar, 0)
 		e_stat_lbl.text = "DMG: 0 | DEF: 0"
-		e_hp_lbl.text = "HULL: 0/0"
-		e_sh_lbl.text = "SHD: 0/0"
 		btn_retreat.disabled = true
 	
 	# Attack Timers
@@ -346,6 +411,19 @@ func update_ui():
 			e_attack_pb.visible = true
 			e_attack_pb.max_value = manager.current_enemy.get("atk_interval", 3.0)
 			e_attack_pb.value = manager.enemy_attack_timer
+			
+			# v87.0: Color enemy attack bar by damage type (cached)
+			var cur_dmg_type = manager.current_enemy.get("dmg_type", "kinetic")
+			if e_attack_pb.get_meta("dmg_type", "") != cur_dmg_type:
+				e_attack_pb.set_meta("dmg_type", cur_dmg_type)
+				var e_bar_color = Color(0.6, 0.8, 1.0) # Kinetic: Steel Blue
+				match cur_dmg_type:
+					"energy": e_bar_color = Color(1.0, 0.9, 0.3) # Energy: Gold
+					"explosive": e_bar_color = Color(1.0, 0.5, 0.3) # Explosive: Orange-Red
+				var e_fill = StyleBoxFlat.new()
+				e_fill.bg_color = e_bar_color
+				e_fill.set_corner_radius_all(2)
+				e_attack_pb.add_theme_stylebox_override("fill", e_fill)
 		else:
 			e_attack_pb.visible = false
 		# Expedition Yield
@@ -368,6 +446,9 @@ func update_ui():
 
 	# Retreat Btn
 	btn_retreat.disabled = not manager.in_combat
+	
+	# Update Consumable Action Buttons
+	_update_consumable_buttons()
 
 
 	# Process Combat Events (Floating Text + Haptics)
@@ -376,12 +457,18 @@ func update_ui():
 		if is_visible_in_tree():
 			UITheme.show_notification(ev["text"], ev["color"])
 		
-		# TACTILE: Damage-induced System Glitch (Still apply glitch if hidden? Usually yes, for weight, but let's gate it too to reduce noise)
+		# TACTILE: Damage-induced System Glitch 
 		if ev.get("side") == "player" and ev.get("type", "") == "damage":
 			if is_visible_in_tree():
 				_apply_hud_stress()
+				UITheme.trigger_damage_flash(p_hp_bar)
+				UITheme.trigger_damage_flash(p_sh_bar)
 			if manager.haptics_enabled:
 				Input.vibrate_handheld(100)
+		elif ev.get("side") == "enemy" and ev.get("type", "") == "damage":
+			if is_visible_in_tree():
+				UITheme.trigger_damage_flash(e_hp_bar)
+				UITheme.trigger_damage_flash(e_sh_bar)
 		
 		# PARRY: Special feedback for successful reflection
 		if ev.get("type") == "parry":
@@ -614,8 +701,17 @@ func _rebuild_weapon_battery(w_states):
 		pb.custom_minimum_size = Vector2(0, 4)
 		pb.show_percentage = false
 		
-		# Set style based on type
-		var fill_color = Color("#00ccff") if w["type"] == "energy" else Color("#ffcc00")
+		# v87.0: Color-coded by damage type
+		var fill_color = Color(0.6, 0.8, 1.0) # Kinetic: Steel Blue
+		var type_tag = "KIN"
+		match w["type"]:
+			"energy":
+				fill_color = Color(1.0, 0.9, 0.3) # Energy: Gold
+				type_tag = "NRG"
+			"explosive":
+				fill_color = Color(1.0, 0.5, 0.3) # Explosive: Orange-Red
+				type_tag = "EXP"
+		
 		var sb_fill = StyleBoxFlat.new()
 		sb_fill.bg_color = fill_color
 		sb_fill.set_corner_radius_all(2)
@@ -626,7 +722,7 @@ func _rebuild_weapon_battery(w_states):
 		sb_bg.set_corner_radius_all(2)
 		pb.add_theme_stylebox_override("background", sb_bg)
 		
-		pb.tooltip_text = w["name"]
+		pb.tooltip_text = "%s [%s]" % [w["name"], type_tag]
 		
 		weapon_battery.add_child(pb)
 		player_weapon_bars.append(pb)
@@ -712,13 +808,14 @@ func _setup_consumable_buttons():
 	if not btn_shd_cons.is_connected("pressed", _on_consumable_pressed):
 		btn_shd_cons.pressed.connect(_on_consumable_pressed.bind("shield"))
 	
-	# Apply Premium styling to the buttons (now they are static in scene)
-	UITheme.apply_card_style(btn_hull_cons, "shipyard")
-	UITheme.apply_card_style(btn_shd_cons, "combat")
+	# Apply Premium styling
+	UITheme.apply_instrument_style(btn_hull_cons, "shipyard")
+	UITheme.apply_instrument_style(btn_shd_cons, "combat")
 	
-	# Ensure they have small font as in previous programmatic setup
-	btn_hull_cons.add_theme_font_size_override("font_size", 9)
-	btn_shd_cons.add_theme_font_size_override("font_size", 9)
+	for btn in [btn_hull_cons, btn_shd_cons]:
+		btn.custom_minimum_size = Vector2(100, 45) # Physical size
+		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		btn.add_theme_font_size_override("font_size", 10)
 	
 func _update_consumable_buttons():
 	var sm = GameState.shipyard_manager
@@ -729,18 +826,41 @@ func _update_consumable_buttons():
 
 func _update_cons_btn(btn: Button, item_id: String, label: String, color: Color):
 	if item_id == "" or item_id == null:
-		btn.text = "%s\n[ EMPTY ]" % label
+		btn.text = ""
 		btn.disabled = true
-		btn.modulate = Color(1, 1, 1, 0.3)
-		btn.tooltip_text = "No %s consumable equipped in Ship Designer." % label
+		btn.modulate = Color(1, 1, 1, 0.2)
+		btn.tooltip_text = "Equip a %s consumable in Ship Designer." % label
+		
+		# Holographic Placeholder
+		var overlay_name = "Placeholder"
+		var holder = btn.get_node_or_null(overlay_name)
+		if not holder:
+			holder = Label.new()
+			holder.name = overlay_name
+			holder.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			holder.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			holder.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			holder.modulate = color
+			holder.modulate.a = 0.3
+			UITheme.apply_segmented_font(holder, color)
+			btn.add_child(holder)
+		
+		holder.text = "[[ %s SLOT ]]\nSTANDBY" % label.to_upper()
+		holder.show()
 		return
+	
+	# If not empty, hide placeholder
+	if btn.has_node("Placeholder"):
+		btn.get_node("Placeholder").hide()
 	
 	var qty = GameState.resources.get_element_amount(item_id)
 	var dname = ElementDB.get_display_name(item_id)
 	
 	# v66.0: Multi-line display
 	btn.text = "%s\n%s\nx%s" % [label, dname.to_upper(), UITheme.format_number(qty)]
-	btn.modulate = color if qty > 0 else Color(0.5, 0.5, 0.5, 0.5)
+	btn.modulate = color if qty > 0 else Color(0.5, 0.5, 0.5, 0.8)
+	btn.clip_text = false # Ensure we see it
+	btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	
 	# Disabled if 0 or cooldown active
 	var cooldown = manager.consumable_cooldown

@@ -181,6 +181,8 @@ func load_game():
 			game_settings[key] = saved_settings[key]
 		
 		# Restore Active Manager
+		var offline_combat_enabled = game_settings.get("offline_combat", false)
+		
 		if gathering_manager.is_active:
 			set_active_manager(gathering_manager)
 		elif processing_manager.is_active:
@@ -188,7 +190,11 @@ func load_game():
 		elif research_manager.is_active:
 			set_active_manager(research_manager)
 		elif combat_manager.in_combat:
-			set_active_manager(combat_manager)
+			if offline_combat_enabled:
+				set_active_manager(combat_manager)
+			else:
+				# If offline combat is disabled, stop combat upon offline load.
+				combat_manager.stop_action()
 			
 		# Offline Progress
 		var last_time = data.get("last_save_time", Time.get_unix_time_from_system())

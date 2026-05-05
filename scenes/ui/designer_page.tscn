@@ -84,6 +84,15 @@ theme_override_constants/h_separation = 10
 theme_override_constants/v_separation = 10
 columns = 4
 
+[node name="BtnRepairMode" type="Button" parent="VBoxContainer/InfoPanel/MarginContainer/InfoHBox"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.7, 0.2, 1)
+theme_override_colors/font_pressed_color = Color(1, 0.9, 0.4, 1)
+theme_override_font_sizes/font_size = 14
+toggle_mode = true
+text = " 🛠 REPAIR "
+
 [node name="MainLayout" type="HBoxContainer" parent="VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3

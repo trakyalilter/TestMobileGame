@@ -420,7 +420,7 @@ var recipes: Dictionary = {
 	"craft_slug_t3": {
 		"name": "Depleted Uranium Round",
 		"description": "Armor-shredding heavy rounds.",
-		"input": {"SlugT2": 20, "U": 1},
+		"input": {"SlugT2": 20, "U": 1, "StructuralComponent": 5},
 		"output": {"SlugT3": 20},
 		"duration": 15.0,
 		"level_req": 55, # Increased from 8
@@ -430,7 +430,7 @@ var recipes: Dictionary = {
 	"craft_slug_t4": {
 		"name": "Hyper-Velocity Slug",
 		"description": "Tungsten-Superalloy sabot for railguns. Extreme kinetic impact.",
-		"input": {"W": 10, "U": 3, "Superalloy": 1},
+		"input": {"W": 10, "U": 3, "Superalloy": 1, "NanoSubstrate": 2},
 		"output": {"SlugT4": 50},
 		"duration": 20.0,
 		"level_req": 65,
@@ -440,7 +440,7 @@ var recipes: Dictionary = {
 	"craft_cell_t3": {
 		"name": "Vaporizer Cell",
 		"description": "Matter-disintegrating energy.",
-		"input": {"CellT2": 20, "U": 1},
+		"input": {"CellT2": 20, "U": 1, "StructuralComponent": 5},
 		"output": {"CellT3": 20},
 		"duration": 15.0,
 		"level_req": 58, # Increased from 8
@@ -450,7 +450,7 @@ var recipes: Dictionary = {
 	"craft_cell_t4": {
 		"name": "Heavy Plasma Cell",
 		"description": "Unstable fusion plasma containment. Extreme damage.",
-		"input": {"He": 10, "U": 3, "Superalloy": 1},
+		"input": {"He": 10, "U": 3, "Superalloy": 1, "NanoSubstrate": 2},
 		"output": {"CellT4": 20},
 		"duration": 20.0,
 		"level_req": 65,
@@ -470,7 +470,7 @@ var recipes: Dictionary = {
 	"craft_seeker_missile": {
 		"name": "Seeker Missile",
 		"description": "Guided missile with logic circuits.",
-		"input": {"Steel": 2, "Circuit": 1, "TargetingChip": 1},
+		"input": {"Steel": 2, "Circuit": 1, "TargetingChip": 1, "StructuralComponent": 3},
 		"output": {"Seeker_Missile": 20},
 		"duration": 20.0,
 		"level_req": 25,
@@ -481,7 +481,7 @@ var recipes: Dictionary = {
 		"name": "Photon Torpedo",
 		"description": "Antimatter-infused capital buster.",
 		# v61.0 Fix: VolatileMatter doesn't exist, replaced with ExoticMatter
-		"input": {"Superalloy": 2, "ExoticMatter": 1},
+		"input": {"Superalloy": 2, "ExoticMatter": 1, "NanoSubstrate": 3},
 		"output": {"Photon_Torpedo": 20},
 		"duration": 45.0,
 		"level_req": 60,
@@ -599,7 +599,7 @@ var recipes: Dictionary = {
 	"craft_adv_circuit": {
 		"name": "Advanced Circuitry",
 		"description": "High-performance integrated circuit.",
-		"input": {"Semiconductor": 1, "Au": 1},
+		"input": {"Semiconductor": 1, "Au": 1, "StructuralComponent": 2},
 		"output": {"AdvCircuit": 1},
 		"duration": 15.0,
 		"level_req": 45, # Increased from 8
@@ -629,7 +629,7 @@ var recipes: Dictionary = {
 	"craft_battery_t2": {
 		"name": "Graphene Matrix Battery",
 		"description": "Advanced high-density battery. Requires Sulfur for electrolyte.",
-		"input": {"BatteryT1": 10, "Chip": 5, "Graphite": 5, "AdvCircuit": 5},
+		"input": {"BatteryT1": 10, "Chip": 5, "Graphite": 5, "AdvCircuit": 5, "StructuralComponent": 3},
 		"output": {"BatteryT2": 1},
 		"duration": 20.0,
 		"level_req": 55, # Increased from 15
@@ -639,7 +639,7 @@ var recipes: Dictionary = {
 	"craft_battery_t3": {
 		"name": "Zero-Point Module",
 		"description": "Experimental infinite energy containment.",
-		"input": {"BatteryT2": 1, "VoidArtifact": 1, "Circuit": 20},
+		"input": {"BatteryT2": 1, "VoidArtifact": 1, "Circuit": 20, "NanoSubstrate": 2},
 		"output": {"BatteryT3": 1},
 		"duration": 60.0,
 		"level_req": 80, # Increased from 30
@@ -809,7 +809,7 @@ var recipes: Dictionary = {
 	"craft_temporal_module": {
 		"name": "Temporal Stabilizer",
 		"description": "Manipulates local time flow. Grants massive combat speed boost.",
-		"input": {"ChronoCore": 5, "QuantumCore": 10, "AdvCircuit": 20},
+		"input": {"ChronoCore": 5, "QuantumCore": 10, "AdvCircuit": 20, "NanoSubstrate": 5},
 		"output": {"TemporalModule": 1},
 		"duration": 90.0,
 		"level_req": 85,
@@ -820,7 +820,7 @@ var recipes: Dictionary = {
 	"craft_primordial_armor": {
 		"name": "Primordial Forge",
 		"description": "Legendary armor forged from titan remains. Best-in-slot defense.",
-		"input": {"PrimordialShard": 3, "OmegaPlating": 10, "IrPlate": 5},
+		"input": {"PrimordialShard": 3, "OmegaPlating": 10, "IrPlate": 5, "NanoSubstrate": 3},
 		"output": {"PrimordialArmor": 1},
 		"duration": 120.0,
 		"level_req": 90,
@@ -831,7 +831,7 @@ var recipes: Dictionary = {
 	"craft_omega_accelerator": {
 		"name": "Omega Accelerator",
 		"description": "Massively increases all production rates. Ultimate prestige item.",
-		"input": {"OmegaPlating": 5, "ChronoCore": 3, "VoidEssence": 5, "QuantumCore": 5},
+		"input": {"OmegaPlating": 5, "ChronoCore": 3, "VoidEssence": 5, "QuantumCore": 5, "NanoSubstrate": 5},
 		"output": {"OmegaAccelerator": 1},
 		"duration": 180.0,
 		"level_req": 95,
@@ -849,6 +849,27 @@ var recipes: Dictionary = {
 		"xp": 1500,
 		"research_req": "exotic_matter_analysis",
 		"category": "endgame"
+	},
+	# ========== v86.0: UNIVERSAL COMPONENT CHAIN ==========
+	"craft_structural_component": {
+		"name": "Structural Component",
+		"description": "Precision-machined universal assembly from base metals. Required for advanced fabrication.",
+		"input": {"Fe": 10, "Cu": 5, "Si": 5, "C": 3, "Li": 2},
+		"output": {"StructuralComponent": 1},
+		"duration": 8.0,
+		"level_req": 40,
+		"xp": 80,
+		"research_req": "metallurgy_advanced"
+	},
+	"craft_nano_substrate": {
+		"name": "Nano-Substrate",
+		"description": "Molecular-scale lattice from structural components and lightweight metals. Capital-grade fabrication.",
+		"input": {"StructuralComponent": 5, "Al": 3, "Mg": 2, "Ni": 1},
+		"output": {"NanoSubstrate": 1},
+		"duration": 15.0,
+		"level_req": 55,
+		"xp": 200,
+		"research_req": "automation"
 	},
 	# ========== v57.1: SECTOR ZETA RECIPES ==========
 	"synthesize_bioweapon": {

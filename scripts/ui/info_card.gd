@@ -109,12 +109,21 @@ func _setup_module(id: String):
 	type_lbl.modulate = Color(1.0, 0.5, 0.2)
 	
 	var final_desc = data.get("desc", "")
+	
+	# v87.0: Damage Type Strong/Weak Tooltips
 	if stats.has("atk_kinetic") and stats["atk_kinetic"] > 0:
-		final_desc += "\n[+20% VS HULL]"
+		final_desc += "\n[KINETIC]"
+		final_desc += "\n  + Strong: Hull Damage (+20%)"
+		final_desc += "\n  - Weak: Shield Damage (-50%)"
 	if stats.has("atk_energy") and stats["atk_energy"] > 0:
-		final_desc += "\n[+50% VS SHIELD]"
+		final_desc += "\n[ENERGY]"
+		final_desc += "\n  + Strong: Shield Damage (+50%)"
+		final_desc += "\n  + Strong: Armor Bypass (70% pen)"
+		final_desc += "\n  - Weak: Hull Damage (-10%)"
 	if stats.has("atk_explosive") and stats["atk_explosive"] > 0:
-		final_desc += "\n[+10% VS SHIELD]"
+		final_desc += "\n[EXPLOSIVE]"
+		final_desc += "\n  + Strong: Armor Bypass (80% pen!)"
+		final_desc += "\n  - Weak: Slower fire rate"
 		
 	desc_lbl.text = final_desc
 	desc_lbl.modulate = Color(0.8, 0.8, 0.8, 1) # Force strict grey
@@ -129,13 +138,13 @@ func _setup_module(id: String):
 			val_str = "+%.0f%%" % (stats[k] * 100.0)
 		_add_stat(key_name, val_str)
 	
-	# v83.1: Damage Type Bonuses (High Visibility)
+	# v87.0: Condensed type hint (replaces old v83.1 duplicate)
 	if stats.has("atk_kinetic") and stats["atk_kinetic"] > 0:
-		_add_stat("VS HULL", "+20% DAMAGE", Color.GOLD)
+		_add_stat("TYPE", "KINETIC", Color(0.6, 0.8, 1.0))
 	if stats.has("atk_energy") and stats["atk_energy"] > 0:
-		_add_stat("VS SHIELD", "+50% DAMAGE", Color.CYAN)
+		_add_stat("TYPE", "ENERGY", Color(1.0, 0.9, 0.3))
 	if stats.has("atk_explosive") and stats["atk_explosive"] > 0:
-		_add_stat("VS SHIELD", "+10% DAMAGE", Color.LIGHT_CORAL)
+		_add_stat("TYPE", "EXPLOSIVE", Color(1.0, 0.5, 0.3))
 		
 	var durability = int(data.get("durability", 100))
 	_add_stat("Durability", "%d/100" % durability, Color.GOLD if durability <= 20 else Color.WHITE)

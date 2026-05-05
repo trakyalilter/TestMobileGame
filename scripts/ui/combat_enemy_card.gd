@@ -15,9 +15,17 @@ func setup(p_eid, p_data, p_parent):
 	
 	name_lbl.text = data["name"]
 	name_lbl.add_theme_color_override("font_color", UITheme.CATEGORY_COLORS["combat"])
-	stats_lbl.text = "HP: %d | ATK: %d | DEF: %d" % [data["stats"]["hp"], data["stats"]["atk"], data["stats"]["def"]]
+	
+	# v87.0: Show damage type in compact stats
+	var dmg_tag = "KIN"
+	match data.get("dmg_type", "kinetic"):
+		"energy": dmg_tag = "NRG"
+		"explosive": dmg_tag = "EXP"
+	stats_lbl.text = "HP: %d | ATK: %d %s | DEF: %d" % [data["stats"]["hp"], data["stats"]["atk"], dmg_tag, data["stats"]["def"]]
 	
 	UITheme.apply_card_style(self, "combat")
+	UITheme.inject_diegetic_header(self, "combat")
+	
 	if has_node("MarginContainer/VBoxContainer/Actions/FightBtn"):
 		UITheme.apply_premium_button_style($MarginContainer/VBoxContainer/Actions/FightBtn, "combat")
 	

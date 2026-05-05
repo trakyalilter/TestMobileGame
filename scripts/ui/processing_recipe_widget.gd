@@ -32,6 +32,8 @@ func setup(p_rid: String, p_data: Dictionary, p_manager, p_parent):
 	
 	# Output text is handled dynamically in update_state for multipliers
 	out_lbl.text = ""
+	
+	UITheme.inject_diegetic_header(self, "engineering")
 
 func _on_button_pressed():
 	if manager.is_active and manager.current_recipe_id == rid:
@@ -126,11 +128,11 @@ func update_state():
 		
 		if not has_research:
 			var tech_name = GameState.research_manager.tech_tree.get(recipe["research_req"], {}).get("name", "Unknown Tech")
-			UITheme.apply_locked_overlay(self, recipe["name"], "RESEARCH: %s" % tech_name, true)
+			UITheme.apply_locked_overlay(self, recipe["name"], "RESEARCH: %s" % tech_name, true, recipe["research_req"], "engineering")
 			btn.text = "Research Required"
 			btn.disabled = true
 		elif not has_level:
-			UITheme.apply_locked_overlay(self, recipe["name"], "LEVEL %d REQUIRED" % lvl_req, true)
+			UITheme.apply_locked_overlay(self, recipe["name"], "LEVEL %d REQUIRED" % recipe["level_req"], true, "", "engineering")
 			btn.text = "Requires Lv %d" % lvl_req
 			btn.disabled = true
 		elif not has_ingredients:

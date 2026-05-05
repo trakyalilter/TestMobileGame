@@ -2,6 +2,7 @@ extends Node
 
 signal packet_landed(color)
 signal notification_requested(text: String, color: Color) # Feature v66.1
+signal research_navigation_requested(tech_id: String)
 
 func show_notification(text: Variant, color: Color = Color.WHITE):
 	notification_requested.emit(text, color)
@@ -87,6 +88,49 @@ func apply_diegetic_header(panel: Control, category: String = "ops"):
 	style.border_color = accent
 	panel.add_theme_stylebox_override("panel", style)
 
+func inject_diegetic_header(card: PanelContainer, category: String) -> PanelContainer:
+	var margin_cont = card.get_node_or_null("MarginContainer")
+	if not margin_cont: return null
+	
+	var vbox = margin_cont.get_node_or_null("VBoxContainer")
+	if not vbox: return null
+	
+	var name_lbl = vbox.get_node_or_null("NameLabel")
+	if not name_lbl: return null
+	
+	# 1. Adjust Main Layout to support header (flush top)
+	margin_cont.add_theme_constant_override("margin_top", 0)
+	margin_cont.add_theme_constant_override("margin_left", 2)
+	margin_cont.add_theme_constant_override("margin_right", 2)
+	margin_cont.add_theme_constant_override("margin_bottom", 6)
+	vbox.add_theme_constant_override("separation", 8)
+	
+	# 2. Create Header
+	var header_panel = PanelContainer.new()
+	header_panel.mouse_filter = Control.MOUSE_FILTER_PASS
+	vbox.add_child(header_panel)
+	vbox.move_child(header_panel, 0)
+	
+	# 3. Reparent NameLabel
+	name_lbl.get_parent().remove_child(name_lbl)
+	
+	var header_margin = MarginContainer.new()
+	header_margin.add_theme_constant_override("margin_left", 8)
+	header_margin.add_theme_constant_override("margin_top", 6)
+	header_margin.add_theme_constant_override("margin_right", 8)
+	header_margin.add_theme_constant_override("margin_bottom", 6)
+	header_margin.mouse_filter = Control.MOUSE_FILTER_PASS
+	header_panel.add_child(header_margin)
+	
+	header_margin.add_child(name_lbl)
+	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_lbl.add_theme_color_override("font_color", Color.WHITE)
+	name_lbl.add_theme_font_size_override("font_size", 13)
+	
+	# 4. Apply Styling
+	apply_diegetic_header(header_panel, category)
+	return header_panel
+
 func apply_premium_button_style(button: Button, category: String = "ops"):
 	if not button: return
 	var accent = CATEGORY_COLORS.get(category, COLORS["accent"])
@@ -128,17 +172,52 @@ func apply_progress_bar_style(pb: ProgressBar, category: String = "ops"):
 	var accent = CATEGORY_COLORS.get(category, COLORS["accent"])
 	
 	var style_bg = StyleBoxFlat.new()
-	style_bg.bg_color = Color(0, 0, 0, 0.3)
-	style_bg.set_corner_radius_all(3)
-	style_bg.set_border_width_all(0) # Clean track
+	style_bg.bg_color = Color(0, 0, 0, 0.4)
+	style_bg.set_border_width_all(1)
+	style_bg.border_color = Color(0.2, 0.2, 0.2, 0.5)
 	
 	var style_fill = StyleBoxFlat.new()
 	style_fill.bg_color = accent
-	style_fill.set_border_width_all(0)
-	style_fill.set_corner_radius_all(3)
+	style_fill.border_width_right = 2
+	style_fill.border_color = Color.WHITE
+	style_fill.border_color.a = 0.5
 	
 	pb.add_theme_stylebox_override("background", style_bg)
 	pb.add_theme_stylebox_override("fill", style_fill)
+
+## apply_segmented_bar_style: Creates a high-tech "Digital Gauge" look
+func apply_segmented_bar_style(pb: ProgressBar, category: String = "ops"):
+	if not pb: return
+	var accent = CATEGORY_COLORS.get(category, COLORS["accent"])
+	
+	var style_bg = StyleBoxFlat.new()
+	style_bg.bg_color = Color(0.08, 0.08, 0.1, 0.9)
+	style_bg.set_border_width_all(1)
+	style_bg.border_color = accent.lerp(Color.BLACK, 0.6)
+	
+	var style_fill = StyleBoxFlat.new()
+	style_fill.bg_color = accent
+	style_fill.border_width_top = 2
+	style_fill.border_color = Color.WHITE
+	style_fill.border_color.a = 0.2
+	
+	pb.add_theme_stylebox_override("background", style_bg)
+	pb.add_theme_stylebox_override("fill", style_fill)
+	
+	# REMOVED: Procedural overlays that cause phantom artifacts
+
+## trigger_damage_flash: Visual "White-Out" for bars when taking hits
+func trigger_damage_flash(node: Control):
+	if not node: return
+	var tween = node.create_tween()
+	var original_mod = node.modulate
+	
+	node.modulate = Color(3, 3, 3, 1) # Overexposure
+	tween.tween_property(node, "modulate", original_mod, 0.2).set_trans(Tween.TRANS_QUINT)
+	
+	# Add a bite-sized shake
+	# Assuming trigger_ui_thud exists elsewhere or is a placeholder
+	# trigger_ui_thud(node, 3.0)
 
 func format_num(val: float) -> String:
 	return FormatUtils.format_number(val)
@@ -553,7 +632,7 @@ func apply_holographic_projection(panel: Control, category: String = "ops"):
 	return style
 
 ## apply_locked_overlay: Creates and manages a visual "LOCKED" state for Cards
-func apply_locked_overlay(card: Control, item_name: String, message: String, is_locked: bool):
+func apply_locked_overlay(card: Control, item_name: String, message: String, is_locked: bool, tech_id: String = "", category: String = "ops"):
 	if not card: return
 	
 	var overlay_name = "LockedOverlay"
@@ -578,16 +657,21 @@ func apply_locked_overlay(card: Control, item_name: String, message: String, is_
 		overlay.add_child(center)
 		
 		var vbox = VBoxContainer.new()
-		vbox.custom_minimum_size.x = card.custom_minimum_size.x - 16 # Fit within card with padding
+		vbox.name = "VBox"
+		vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+		vbox.custom_minimum_size.x = card.custom_minimum_size.x - 8
 		center.add_child(vbox)
 		
 		var name_lbl = Label.new()
 		name_lbl.name = "ItemNameLabel"
-		name_lbl.text = item_name.to_upper()
+		name_lbl.text = item_name
 		name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		name_lbl.add_theme_font_size_override("font_size", 10) # Reduced from 12
-		name_lbl.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
-		name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		name_lbl.add_theme_font_size_override("font_size", 12) # Reduced for better fit
+		
+		var title_col = CATEGORY_COLORS.get(category, Color(0.1, 0.8, 1.0))
+		name_lbl.add_theme_color_override("font_color", title_col)
+		
+		name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD # Standard word wrap only
 		vbox.add_child(name_lbl)
 		
 		var lock_lbl = Label.new()
@@ -598,21 +682,45 @@ func apply_locked_overlay(card: Control, item_name: String, message: String, is_
 		lock_lbl.add_theme_color_override("font_color", Color.WHITE)
 		vbox.add_child(lock_lbl)
 		
-		var req_lbl = Label.new()
+		var req_lbl = RichTextLabel.new()
 		req_lbl.name = "ReqLabel"
-		req_lbl.text = message
+		req_lbl.bbcode_enabled = true
+		req_lbl.fit_content = true
+		req_lbl.scroll_active = false
+		req_lbl.mouse_filter = Control.MOUSE_FILTER_STOP 
 		req_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		req_lbl.add_theme_font_size_override("font_size", 9) # Reduced from 11
-		req_lbl.add_theme_color_override("font_color", Color(1.0, 0.4, 0.4))
-		req_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		req_lbl.add_theme_font_size_override("normal_font_size", 9) 
+		req_lbl.add_theme_color_override("default_color", Color(1.0, 0.4, 0.4))
+		req_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
+		req_lbl.add_theme_constant_override("line_separation", 2)
 		vbox.add_child(req_lbl)
+		
+		req_lbl.meta_clicked.connect(func(meta):
+			if str(meta).begins_with("research:"):
+				var tid = str(meta).replace("research:", "")
+				research_navigation_requested.emit(tid)
+		)
+		
+		_update_locked_message(req_lbl, message, tech_id)
 	else:
 		overlay.show()
 		var name_lbl = overlay.find_child("ItemNameLabel", true, false)
-		if name_lbl: name_lbl.text = item_name.to_upper()
+		if name_lbl: 
+			name_lbl.text = item_name
+			var title_col = CATEGORY_COLORS.get(category, Color(0.1, 0.8, 1.0))
+			name_lbl.add_theme_color_override("font_color", title_col)
 		
 		var req_lbl = overlay.find_child("ReqLabel", true, false)
-		if req_lbl: req_lbl.text = message
+		if req_lbl: 
+			_update_locked_message(req_lbl, message, tech_id)
+
+func _update_locked_message(lbl: RichTextLabel, message: String, tech_id: String):
+	if message.to_upper().begins_with("RESEARCH:") and tech_id != "":
+		# Handle both "RESEARCH: Name" and "RESEARCH: NAME"
+		var tech_name = message.substr(9).strip_edges() # Skip "RESEARCH:"
+		lbl.text = "[center]RESEARCH:\n[url=research:%s][color=#ffdd22][u]%s[/u][/color][/url][/center]" % [tech_id, tech_name]
+	else:
+		lbl.text = "[center]%s[/center]" % message
 
 func _process(delta):
 	# Global UI animations or packet handling can go here

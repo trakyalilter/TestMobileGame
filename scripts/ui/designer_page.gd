@@ -11,6 +11,7 @@ extends Control
 @onready var power_bar: ProgressBar = $VBoxContainer/InfoPanel/MarginContainer/InfoHBox/ShipSpecs/SystemLoad/PowerBar
 @onready var power_lbl: Label = $VBoxContainer/InfoPanel/MarginContainer/InfoHBox/ShipSpecs/SystemLoad/PowerLabel
 @onready var stats_grid: GridContainer = $VBoxContainer/InfoPanel/MarginContainer/InfoHBox/StatsGrid
+@onready var btn_repair_mode: Button = $VBoxContainer/InfoPanel/MarginContainer/InfoHBox/BtnRepairMode
 
 @onready var storage_grid: GridContainer = $VBoxContainer/MainLayout/RightPanel/Margin/VBox/Scroll/UnifiedStorageGrid
 @onready var tab_frame: PanelContainer = $VBoxContainer/MainLayout/RightPanel/Margin/VBox/TabStripFrame
@@ -18,10 +19,21 @@ extends Control
 
 var manager: RefCounted
 var active_filter := "all"
+var is_repair_mode := false
 var tab_buttons: Dictionary = {}
 var slot_widget_scene = preload("res://scenes/ui/designer_slot_widget.tscn")
 var ammo_slot_scene = preload("res://scenes/ui/designer_ammo_slot_widget.tscn")
 var draggable_icon_scene = preload("res://scenes/ui/module_card.tscn")
+var empty_slot_scene = preload("res://scenes/ui/empty_slot.tscn")
+
+# v87.1: Multi-select demolish
+var is_select_mode := false
+var selected_modules: Dictionary = {} # {module_id: true}
+var _select_btn: Button = null
+var _action_bar: HBoxContainer = null
+var _demolish_btn: Button = null
+var _select_all_btn: Button = null
+var _deselect_all_btn: Button = null
 
 const FRAME_BG := Color(0.09, 0.07, 0.06, 0.96)
 const FRAME_EDGE := Color(0.42, 0.30, 0.21, 0.95)
@@ -82,6 +94,15 @@ func _ready():
 	manager = GameState.shipyard_manager
 	visibility_changed.connect(_on_visibility_changed)
 	GameState.game_loaded.connect(trigger_refresh)
+	
+	if btn_repair_mode:
+		btn_repair_mode.toggled.connect(func(toggled_on):
+			is_repair_mode = toggled_on
+			if is_repair_mode:
+				Input.set_default_cursor_shape(Input.CURSOR_CROSS)
+			else:
+				Input.set_default_cursor_shape(Input.CURSOR_ARROW)
+		)
 	if GameState.warp_manager:
 		GameState.warp_manager.warped.connect(_on_warp_refresh)
 	manager.inventory_updated.connect(_on_inventory_updated)
@@ -133,6 +154,21 @@ func _setup_filter_tabs():
 			tab_buttons[filter_id] = new_btn
 			new_btn.pressed.connect(_on_filter_pressed.bind(filter_id))
 			new_btn.tooltip_text = FILTER_TOOLTIPS.get(filter_id, "")
+	
+	# v87.1: Add SELECT toggle button
+	if tab_strip.get_child_count() > 0:
+		var first_btn = tab_strip.get_child(0)
+		_select_btn = first_btn.duplicate()
+		_select_btn.name = "SelectModeBtn"
+		_select_btn.text = "SELECT"
+		_select_btn.tooltip_text = "Toggle selection mode to demolish multiple modules at once."
+		tab_strip.add_child(_select_btn)
+		_select_btn.pressed.connect(_on_select_mode_pressed)
+		_apply_select_button_style()
+	
+	# v87.1: Create action bar (hidden by default)
+	_create_action_bar()
+	
 	_refresh_tab_labels()
 
 func _on_filter_pressed(filter_id: String):
@@ -229,9 +265,18 @@ func _apply_filter_button_style(button: Button, is_active: bool, accent: Color):
 func _on_visibility_changed():
 	if visible:
 		trigger_refresh()
+	else:
+		if is_repair_mode:
+			btn_repair_mode.button_pressed = false
 
 func _on_inventory_updated():
 	if visible:
+		# v87.1: Prune stale selections
+		if is_select_mode:
+			for mid in selected_modules.keys():
+				if not manager.module_inventory.has(mid) or manager.module_inventory[mid] <= 0:
+					selected_modules.erase(mid)
+			_refresh_action_bar()
 		rebuild_storage()
 		_refresh_tab_labels()
 		update_header()
@@ -501,6 +546,7 @@ func rebuild_ammo_slots():
 	pass
 
 func rebuild_storage():
+	var slot_count = 0
 	for child in storage_grid.get_children():
 		child.queue_free()
 
@@ -520,6 +566,12 @@ func rebuild_storage():
 				var item = draggable_icon_scene.instantiate()
 				storage_grid.add_child(item)
 				item.setup(module_id, module_data, module_count)
+				# v87.1: Wire selection mode
+				item.select_mode_active = is_select_mode
+				if is_select_mode and selected_modules.has(module_id):
+					item.set_selected(true)
+				item.on_selection_toggled = _on_card_selection_toggled
+				slot_count += 1
 
 	if active_filter in ["all", "ordnance", "ord"]:
 		for ammo_id in ORDNANCE_AMMO_IDS:
@@ -530,6 +582,7 @@ func rebuild_storage():
 				var display_name = ElementDB.get_display_name(ammo_id)
 				var fake_data = {"name": display_name, "slot_type": "ammo", "stats": {}}
 				ammo_card.setup(ammo_id, fake_data, qty)
+				slot_count += 1
 
 	if active_filter in ["all", "ordnance", "ord"]:
 		var consumables = ElementDB.get_elements_in_category("consumables")
@@ -548,6 +601,7 @@ func rebuild_storage():
 					"stats": {"heal_pct": consumable_data.get("heal_pct", 0)}
 				}
 				consumable_card.setup(consumable_id, fake_data, qty)
+				slot_count += 1
 
 	# v83.9: Matrix Cores (Cracked, Stable, Pristine)
 	if active_filter in ["all", "matrix"]:
@@ -566,6 +620,7 @@ func rebuild_storage():
 					"desc": ElementDB.get_element_description(core_id)
 				}
 				core_card.setup(core_id, fake_data, qty)
+				slot_count += 1
 	
 	# v83.9.5: Boss Cores (Lunar, Asteroid, etc.) - Only in "ALL"
 	if active_filter == "all":
@@ -584,6 +639,16 @@ func rebuild_storage():
 					"desc": "Rare boss component."
 				}
 				core_card.setup(core_id, fake_data, qty)
+				slot_count += 1
+
+	# v84.1: Fill remaining with Empty Slots (Premium Grid Look)
+	var min_slots = 42 # 6 columns * 7 rows
+	var needed = max(0, min_slots - slot_count)
+	for i in range(needed):
+		var empty = empty_slot_scene.instantiate()
+		storage_grid.add_child(empty)
+		# Match compact tile sizing
+		empty.custom_minimum_size = Vector2(40, 40)
 
 func _is_module_visible_for_filter(module_data: Dictionary) -> bool:
 	var module_type = module_data.get("slot_type", "weapon")
@@ -760,3 +825,183 @@ func _get_module_power_score(id: String, data: Dictionary) -> int:
 	# v80.3: Removed dead sort-score overrides (mining_laser_mk1, mk2, railgun_mk1 no longer exist)
 
 	return score
+
+# ──────────────────────────────────────────────
+# v87.1: Multi-Select Demolish System
+# ──────────────────────────────────────────────
+
+func _create_action_bar():
+	_action_bar = HBoxContainer.new()
+	_action_bar.name = "SelectActionBar"
+	_action_bar.add_theme_constant_override("separation", 6)
+	_action_bar.visible = false
+	
+	# Insert into the right panel's VBox, after tab strip frame
+	var parent_vbox = tab_frame.get_parent()
+	if parent_vbox:
+		parent_vbox.add_child(_action_bar)
+		parent_vbox.move_child(_action_bar, tab_frame.get_index() + 1)
+	
+	# SELECT ALL button
+	_select_all_btn = Button.new()
+	_select_all_btn.text = "ALL"
+	_select_all_btn.tooltip_text = "Select all visible modules"
+	_select_all_btn.custom_minimum_size = Vector2(50, 28)
+	_select_all_btn.pressed.connect(_on_select_all)
+	_action_bar.add_child(_select_all_btn)
+	_apply_action_button_style(_select_all_btn, Color(0.7, 0.7, 0.6))
+	
+	# DESELECT ALL button
+	_deselect_all_btn = Button.new()
+	_deselect_all_btn.text = "NONE"
+	_deselect_all_btn.tooltip_text = "Deselect all modules"
+	_deselect_all_btn.custom_minimum_size = Vector2(50, 28)
+	_deselect_all_btn.pressed.connect(_on_deselect_all)
+	_action_bar.add_child(_deselect_all_btn)
+	_apply_action_button_style(_deselect_all_btn, Color(0.7, 0.7, 0.6))
+	
+	# Spacer
+	var spacer = Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_action_bar.add_child(spacer)
+	
+	# DEMOLISH button
+	_demolish_btn = Button.new()
+	_demolish_btn.text = "DEMOLISH (0)"
+	_demolish_btn.tooltip_text = "Demolish all selected modules"
+	_demolish_btn.custom_minimum_size = Vector2(140, 28)
+	_demolish_btn.pressed.connect(_on_demolish_selected)
+	_action_bar.add_child(_demolish_btn)
+	_apply_action_button_style(_demolish_btn, Color(0.95, 0.35, 0.25))
+
+func _apply_select_button_style():
+	if not _select_btn: return
+	var accent = Color(0.95, 0.65, 0.25) if not is_select_mode else Color(0.3, 0.9, 0.4)
+	_apply_filter_button_style(_select_btn, is_select_mode, accent)
+	_select_btn.text = "DONE" if is_select_mode else "SELECT"
+
+func _apply_action_button_style(btn: Button, accent: Color):
+	var normal = StyleBoxFlat.new()
+	normal.bg_color = TAB_BASE
+	normal.set_border_width_all(1)
+	normal.border_color = accent.lerp(TAB_EDGE, 0.5)
+	normal.set_corner_radius_all(2)
+	normal.content_margin_left = 8
+	normal.content_margin_right = 8
+	normal.content_margin_top = 4
+	normal.content_margin_bottom = 4
+	
+	var hover = normal.duplicate()
+	hover.bg_color = TAB_BASE.lerp(accent, 0.25)
+	hover.border_color = accent
+	
+	var pressed = normal.duplicate()
+	pressed.bg_color = TAB_BASE.lerp(accent, 0.4)
+	
+	btn.add_theme_stylebox_override("normal", normal)
+	btn.add_theme_stylebox_override("hover", hover)
+	btn.add_theme_stylebox_override("pressed", pressed)
+	btn.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	btn.add_theme_color_override("font_color", accent.lerp(Color.WHITE, 0.3))
+	btn.add_theme_color_override("font_hover_color", accent.lerp(Color.WHITE, 0.5))
+	btn.add_theme_font_size_override("font_size", 10)
+
+func _on_select_mode_pressed():
+	is_select_mode = !is_select_mode
+	if is_select_mode:
+		_enter_select_mode()
+	else:
+		_exit_select_mode()
+
+func _enter_select_mode():
+	is_select_mode = true
+	selected_modules.clear()
+	_apply_select_button_style()
+	_action_bar.visible = true
+	_refresh_action_bar()
+	rebuild_storage()
+
+func _exit_select_mode():
+	is_select_mode = false
+	selected_modules.clear()
+	_apply_select_button_style()
+	_action_bar.visible = false
+	rebuild_storage()
+
+func _on_card_selection_toggled(module_id: String, is_sel: bool):
+	if is_sel:
+		selected_modules[module_id] = true
+	else:
+		selected_modules.erase(module_id)
+	_refresh_action_bar()
+
+func _on_select_all():
+	# Select all visible module cards (not ammo/consumables)
+	for child in storage_grid.get_children():
+		if child.has_method("set_selected") and child.get("mid") != null:
+			var slot_type = child.data.get("slot_type", "")
+			if slot_type not in ["ammo", "consumable", "gem"]:
+				child.set_selected(true)
+				selected_modules[child.mid] = true
+	_refresh_action_bar()
+
+func _on_deselect_all():
+	selected_modules.clear()
+	for child in storage_grid.get_children():
+		if child.has_method("set_selected"):
+			child.set_selected(false)
+	_refresh_action_bar()
+
+func _refresh_action_bar():
+	if not _demolish_btn: return
+	var count = selected_modules.size()
+	if count == 0:
+		_demolish_btn.text = "DEMOLISH (0)"
+		_demolish_btn.disabled = true
+		_demolish_btn.modulate = Color(1, 1, 1, 0.4)
+	else:
+		var summary = manager.get_batch_demolish_summary(selected_modules.keys())
+		_demolish_btn.text = "DEMOLISH %d > %s cr + %s pts" % [
+			summary["count"],
+			UITheme.format_num(summary["credits"]),
+			summary["parts"]
+		]
+		_demolish_btn.disabled = false
+		_demolish_btn.modulate = Color.WHITE
+
+func _on_demolish_selected():
+	var count = selected_modules.size()
+	if count == 0: return
+	
+	var summary = manager.get_batch_demolish_summary(selected_modules.keys())
+	
+	# Confirmation dialog
+	var dlg = ConfirmationDialog.new()
+	dlg.title = "Confirm Batch Demolish"
+	dlg.dialog_text = "Demolish %d modules?\n\nYou will receive:\n  %s Credits\n  %d Spare Parts" % [
+		summary["count"],
+		UITheme.format_num(summary["credits"]),
+		summary["parts"]
+	]
+	dlg.ok_button_text = "DEMOLISH"
+	dlg.cancel_button_text = "Cancel"
+	add_child(dlg)
+	
+	dlg.confirmed.connect(func():
+		var ids = selected_modules.keys().duplicate()
+		var result = manager.demolish_modules_batch(ids)
+		UITheme.show_notification(
+			"Demolished %d modules: +%s credits, +%d parts" % [
+				result["count"],
+				UITheme.format_num(result["credits"]),
+				result["parts"]
+			],
+			Color(0.3, 0.9, 0.4)
+		)
+		_exit_select_mode()
+		dlg.queue_free()
+	)
+	dlg.canceled.connect(func():
+		dlg.queue_free()
+	)
+	dlg.popup_centered()

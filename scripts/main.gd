@@ -13,10 +13,11 @@ extends Control
 @onready var inventory_btn = $HBoxContainer/Sidebar/VBoxContainer/InventoryBtn
 @onready var atlas_btn = $HBoxContainer/Sidebar/VBoxContainer/AtlasBtn
 @onready var options_btn = $HBoxContainer/Sidebar/VBoxContainer/OptionsBtn
+@onready var menu_btn = $HBoxContainer/Sidebar/VBoxContainer/MenuBtn
 @onready var bounty_btn = $HBoxContainer/Sidebar/VBoxContainer/BountyBtn
-@onready var fleet_btn = $HBoxContainer/Sidebar/VBoxContainer/FleetBtn
 @onready var warp_btn = $HBoxContainer/Sidebar/VBoxContainer/WarpBtn
 @onready var sidebar_list = $HBoxContainer/Sidebar/VBoxContainer
+@onready var sidebar_panel = $HBoxContainer/Sidebar
 
 @onready var modal_layer = $ModalLayer
 var offline_modal
@@ -41,6 +42,15 @@ func _ready():
 		switch_to("mission")
 	else:
 		switch_to("gathering")
+	
+	# v84.2: Research Navigation QoL
+	UITheme.research_navigation_requested.connect(_on_research_navigation_requested)
+
+func _on_research_navigation_requested(tech_id: String):
+	switch_to("research")
+	var res_page = pages.get("research")
+	if res_page and res_page.has_method("focus_on_tech"):
+		res_page.focus_on_tech(tech_id)
 
 func _apply_global_styles():
 	background.color = UITheme.COLORS["background"]
@@ -106,10 +116,6 @@ func _init_pages():
 	# v1.0 Feature: Renamed to generic "Atlas" for Enemies + Materials
 	atlas_btn.text = "Atlas"
 
-	var p_fleet = preload("res://scenes/ui/fleet_page.tscn").instantiate()
-	page_container.add_child(p_fleet)
-	p_fleet.visible = false
-	pages["fleet"] = p_fleet
 	
 	var p_bounty = preload("res://scenes/ui/bounty_page.tscn").instantiate()
 	page_container.add_child(p_bounty)
@@ -239,7 +245,7 @@ func _get_btn_for_page(page_name: String) -> Button:
 		"inventory": return inventory_btn
 		"atlas": return atlas_btn
 		"options": return options_btn
-		"fleet": return fleet_btn
+
 		"bounty": return bounty_btn
 		"warp": return warp_btn
 	return null
@@ -263,7 +269,7 @@ func _update_sidebar_styling():
 	UITheme.apply_sidebar_button_style(inventory_btn, current_page_name == "inventory")
 	UITheme.apply_sidebar_button_style(atlas_btn, current_page_name == "atlas")
 	UITheme.apply_sidebar_button_style(options_btn, current_page_name == "options")
-	UITheme.apply_sidebar_button_style(fleet_btn, current_page_name == "fleet")
+
 	UITheme.apply_sidebar_button_style(bounty_btn, current_page_name == "bounty")
 	
 	# THEMATIC: Progressive Disclosure (Early & Mid-Game Gates)
@@ -275,9 +281,6 @@ func _update_sidebar_styling():
 	designer_btn.visible = has_basic_eng
 	combat_btn.visible = has_basic_eng
 
-	
-	# 2. Mid Game: Fleet Command unlocks at Shipwright 1
-	fleet_btn.visible = has_shipwright
 	
 	# v72.0: Bounty Board unlocks at Asteroid Clearance (first real combat sector)
 	var has_asteroid_clearance = GameState.research_manager.is_tech_unlocked("asteroid_clearance")
@@ -700,6 +703,10 @@ func _on_warp_btn_pressed():
 func _on_options_btn_pressed(): switch_to("options")
 func _on_fleet_btn_pressed(): switch_to("fleet")
 func _on_bounty_btn_pressed(): switch_to("bounty")
+
+func _on_menu_btn_pressed():
+	GameState.save_game()
+	get_tree().change_scene_to_file("res://scenes/main_menu.tscn")
 
 func _on_game_resetted():
 	switch_to("mission")

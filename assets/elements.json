@@ -10,6 +10,16 @@
     "description": "Essential for life and a source of Hydrogen/Oxygen."
   },
   {
+    "atomic_number": -99,
+    "symbol": "SparePart",
+    "name": "Spare Parts",
+    "mass": 0.5,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 10,
+    "description": "Utilized to repair degraded modules and restore durability."
+  },
+  {
     "atomic_number": -2,
     "symbol": "Dirt",
     "name": "Dirt",
@@ -1872,5 +1882,35 @@
     "tier": 5,
     "base_value": 0,
     "description": "Biometric authorization token required for FTL travel into protected sectors."
+  },
+  {
+    "atomic_number": -3001,
+    "symbol": "StructuralComponent",
+    "name": "Structural Component",
+    "mass": 5.0,
+    "category": "Component",
+    "tier": 3,
+    "base_value": 120,
+    "description": "Precision-machined structural assembly. Requires Iron, Copper, Silicon, Carbon, and Lithium. Universal building block for advanced modules."
+  },
+  {
+    "atomic_number": -3002,
+    "symbol": "NanoSubstrate",
+    "name": "Nano-Substrate",
+    "mass": 2.0,
+    "category": "Component",
+    "tier": 4,
+    "base_value": 450,
+    "description": "Molecular-scale lattice of Structural Components infused with lightweight metals. Required for capital-grade fabrication."
+  },
+  {
+    "atomic_number": -3003,
+    "symbol": "emp_generator_blueprint",
+    "name": "EMP Generator Blueprint",
+    "mass": 0.1,
+    "category": "Blueprint",
+    "tier": 3,
+    "base_value": 5000,
+    "description": "Captured electromagnetic pulse schematics from the EMP Nexus. First-clear reward. Can be used to craft an EMP Generator module."
   }
 ]

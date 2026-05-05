@@ -107,7 +107,8 @@ func build_enemy_database():
 			"loot": e_data["loot"],
 			"rare_loot": e_data.get("rare_loot", []),
 			"boss_core": e_data.get("boss_core", ""),
-			"xp": e_data.get("xp", 0)
+			"xp": e_data.get("xp", 0),
+			"dmg_type": e_data.get("dmg_type", "kinetic")
 		}
 
 func build_material_database():
@@ -464,14 +465,21 @@ func _display_enemy_details(eid):
 	desc_parts.append("Zone Difficulty: ★%d" % e["zone_difficulty"])
 	desc_parts.append("XP Value: %d" % e["xp"])
 	
+	# v87.0: Enemy Damage Type
+	var e_dmg_type = e.get("dmg_type", "kinetic")
+	match e_dmg_type:
+		"kinetic": desc_parts.append("Attacks With: KINETIC")
+		"energy": desc_parts.append("Attacks With: ENERGY")
+		"explosive": desc_parts.append("Attacks With: EXPLOSIVE")
+	
 	# Compute effective DPS
-	var atk = e["stats"]["atk"]
+	var atk = e["stats"].get("atk", 0)
 	var interval = e["stats"].get("atk_interval", 2.0)
 	if interval > 0:
 		desc_parts.append("Effective DPS: %.1f" % (float(atk) / interval))
 	
 	# Compute effective HP (HP + Shield)
-	var total_ehp = e["stats"]["hp"] + e["stats"]["max_shield"]
+	var total_ehp = e["stats"].get("hp", 0) + e["stats"].get("max_shield", 0)
 	desc_parts.append("Effective HP: %d" % total_ehp)
 	
 	desc_label.text = "\n".join(desc_parts)
@@ -487,10 +495,10 @@ func _display_enemy_details(eid):
 	stats_header.add_theme_color_override("font_color", UITheme.COLORS["text_accent"])
 	sources_list.add_child(stats_header)
 	
-	_add_stat_row(sources_list, "Health", e["stats"]["hp"])
-	_add_stat_row(sources_list, "Shield", e["stats"]["max_shield"])
-	_add_stat_row(sources_list, "Attack", e["stats"]["atk"])
-	_add_stat_row(sources_list, "Defense", e["stats"]["def"])
+	_add_stat_row(sources_list, "Health", e["stats"].get("hp", 0))
+	_add_stat_row(sources_list, "Shield", e["stats"].get("max_shield", 0))
+	_add_stat_row(sources_list, "Attack", e["stats"].get("atk", 0))
+	_add_stat_row(sources_list, "Defense", e["stats"].get("def", 0))
 	_add_stat_row(sources_list, "Attack Interval", "%.1fs" % e["stats"].get("atk_interval", 2.0))
 	_add_stat_row(sources_list, "Accuracy", e["stats"].get("accuracy", 0))
 	_add_stat_row(sources_list, "Evasion", e["stats"].get("eva", 0))

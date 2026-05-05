@@ -5,6 +5,12 @@ var data: Dictionary
 var count: int = 0
 var pulse_tween: Tween
 
+# v87.1: Multi-select demolish
+var select_mode_active := false
+var is_selected := false
+var _select_overlay: ColorRect = null
+var on_selection_toggled: Callable = Callable()
+
 @onready var type_lbl: Label = $Margin/VBox/Header/TypeLabel
 @onready var rarity_badge: Label = $Margin/VBox/Header/RarityBadge
 @onready var name_lbl: Label = $Margin/VBox/NameLabel
@@ -19,7 +25,14 @@ func setup(p_mid: String, p_data: Dictionary, p_count: int):
 
 func _ready():
 	mouse_filter = Control.MOUSE_FILTER_STOP
+	mouse_entered.connect(_on_mouse_enter)
 	_update_ui()
+
+func _on_mouse_enter():
+	var sm = GameState.shipyard_manager
+	if sm and sm.get("unseen_modules") != null and sm.unseen_modules.get(mid, false):
+		sm.unseen_modules.erase(mid)
+		_update_ui()
 
 func _update_ui():
 	if not is_inside_tree() or data.is_empty():
@@ -143,8 +156,20 @@ func _draw_tile_visual(item_name: String, slot_type: String, rarity: int, rarity
 		badge_bg.add_child(count_lbl)
 		tile_container.add_child(badge_bg)
 
-
-
+	# Unseen indicator (Yellow Orb)
+	var sm = GameState.shipyard_manager
+	if sm and sm.get("unseen_modules") != null and sm.unseen_modules.get(mid, false):
+		var orb = Panel.new()
+		orb.custom_minimum_size = Vector2(8, 8)
+		orb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var osb = StyleBoxFlat.new()
+		osb.bg_color = Color(1.0, 0.9, 0.1) # Bright yellow
+		osb.set_corner_radius_all(4)
+		osb.shadow_color = Color(1.0, 0.9, 0.1, 0.6)
+		osb.shadow_size = 4
+		orb.add_theme_stylebox_override("panel", osb)
+		orb.position = Vector2(-2, -2)
+		tile_container.add_child(orb)
 
 	# Overrides to original card layout
 	var empty_style = StyleBoxEmpty.new()
@@ -152,8 +177,6 @@ func _draw_tile_visual(item_name: String, slot_type: String, rarity: int, rarity
 	_apply_pulse(rarity)
 	
 	add_child(tile_container)
-	
-	var sm = GameState.shipyard_manager
 	if sm and mid in sm.modules:
 		var status = sm.can_equip_module(mid)
 		UITheme.apply_locked_overlay(self, item_name, status["reason"], not status["can_equip"])
@@ -254,11 +277,20 @@ func _draw_gem_visual(gem_name: String, rarity_color: Color):
 		badge_bg.add_child(count_lbl)
 		gem_container.add_child(badge_bg)
 
-
-
-
-
-
+	# Unseen indicator (Yellow Orb)
+	var sm2 = GameState.shipyard_manager
+	if sm2 and sm2.get("unseen_modules") != null and sm2.unseen_modules.get(mid, false):
+		var orb = Panel.new()
+		orb.custom_minimum_size = Vector2(8, 8)
+		orb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var osb = StyleBoxFlat.new()
+		osb.bg_color = Color(1.0, 0.9, 0.1) # Bright yellow
+		osb.set_corner_radius_all(4)
+		osb.shadow_color = Color(1.0, 0.9, 0.1, 0.6)
+		osb.shadow_size = 4
+		orb.add_theme_stylebox_override("panel", osb)
+		orb.position = Vector2(-2, -2)
+		gem_container.add_child(orb)
 		
 	var sm = GameState.shipyard_manager
 	var rarity = _get_module_rarity_safe(sm)
@@ -313,10 +345,10 @@ func _build_card_stats(slot_type: String, stats: Dictionary) -> String:
 		var interval = max(0.01, float(stats.get("atk_interval", 2.5)))
 		lines.append("DPS: %.1f" % (float(dmg) / interval))
 		
-		# v83.1: Damage Type Bonuses
-		if stats.get("atk_kinetic", 0) > 0: lines.append("Vs Hull: +20%")
-		if stats.get("atk_energy", 0) > 0: lines.append("Vs Shield: +50%")
-		if stats.get("atk_explosive", 0) > 0: lines.append("Vs Shield: +10%")
+		# v87.0: Damage Type Strong/Weak (Condensed)
+		if stats.get("atk_kinetic", 0) > 0: lines.append("KIN - Strong vs Hull, Weak vs Shield")
+		if stats.get("atk_energy", 0) > 0: lines.append("NRG - Strong vs Shield, Bypasses Armor")
+		if stats.get("atk_explosive", 0) > 0: lines.append("EXP - Bypasses Armor, Slower Fire")
 
 	var keys = stats.keys()
 	keys.sort()
@@ -480,31 +512,69 @@ func _stop_pulse():
 	modulate = Color.WHITE
 
 func _gui_input(event):
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		if select_mode_active and data.get("slot_type", "") not in ["ammo", "consumable", "gem"]:
+			set_selected(!is_selected)
+			if on_selection_toggled.is_valid():
+				on_selection_toggled.call(mid, is_selected)
+			accept_event()
+			return
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
-		_show_sell_menu()
+		if select_mode_active:
+			return # Block individual demolish during select mode
+		_show_demolish_menu()
 
-func _show_sell_menu():
+func set_selected(val: bool):
+	is_selected = val
+	_update_selection_visual()
+
+func _update_selection_visual():
+	if not _select_overlay:
+		_select_overlay = ColorRect.new()
+		_select_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		_select_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_select_overlay.z_index = 5
+		add_child(_select_overlay)
+	
+	if is_selected:
+		_select_overlay.color = Color(0.2, 0.8, 0.3, 0.25) # Green tint
+		_select_overlay.visible = true
+		# Add selection border
+		var sel_style = StyleBoxFlat.new()
+		sel_style.bg_color = Color(0.1, 0.08, 0.06, 0.9)
+		sel_style.set_border_width_all(2)
+		sel_style.border_color = Color(0.3, 0.9, 0.4, 0.9)
+		sel_style.set_corner_radius_all(3)
+		add_theme_stylebox_override("panel", sel_style)
+	else:
+		_select_overlay.visible = false
+		# Restore original style
+		_update_ui()
+
+func _show_demolish_menu():
 	var sm = GameState.shipyard_manager
 	if not sm or mid not in sm.modules:
 		return
 
 	var in_storage = sm.module_inventory.get(mid, 0)
 	if in_storage <= 0:
-		UITheme.show_notification("Cannot sell equipped module", Color.RED)
+		UITheme.show_notification("Cannot demolish equipped module", Color.RED)
 		return
 
 	var price = sm.get_sell_price(mid)
+	var parts = sm.get_demolish_parts(mid)
+	
 	var popup = PopupMenu.new()
-	popup.add_item("Sell for %s credits" % UITheme.format_num(price), 0)
+	popup.add_item("Demolish (%s credits, %s parts)" % [UITheme.format_num(price), parts], 0)
 	popup.add_separator()
 	popup.add_item("Cancel", 1)
 	add_child(popup)
 
 	popup.id_pressed.connect(func(id):
-		if id == 0 and sm.sell_module(mid):
+		if id == 0 and sm.demolish_module(mid):
 			var rarity = sm.get_module_rarity(mid)
 			var rarity_color = sm.RARITY_COLORS.get(rarity, Color.WHITE)
-			UITheme.show_notification("Sold for %s credits" % UITheme.format_num(price), rarity_color)
+			UITheme.show_notification("Demolished for %s credits & %s parts" % [UITheme.format_num(price), parts], rarity_color)
 		popup.queue_free()
 	)
 	popup.popup(Rect2i(get_global_mouse_position(), Vector2i(1, 1)))
@@ -574,13 +644,19 @@ func _build_comparison_tooltip_bbcode() -> String:
 		tt += "[font_size=20][b]%.1f DPS[/b][/font_size]\n" % dps
 		tt += "[font_size=9][color=gray]%s total damage, %.2f hits/s[/color][/font_size]\n" % [UITheme.format_num(dmg), 1.0 / interval]
 		
-		# v83.1: Damage Type Bonuses
+		# v87.0: Damage Type Strong/Weak (Rich BBCode)
 		if my_stats.get("atk_kinetic", 0) > 0: 
-			tt += "[color=gold][b]Hull Damage Bonus: +20%[/b][/color]\n"
+			tt += "[color=#99ccff][b]KINETIC[/b][/color]\n"
+			tt += "[color=green]  + Strong: Hull (+20%)[/color]\n"
+			tt += "[color=red]  - Weak: Shield (-50%)[/color]\n"
 		if my_stats.get("atk_energy", 0) > 0:
-			tt += "[color=cyan][b]Shield Damage Bonus: +50%[/b][/color]\n"
+			tt += "[color=#ffe64d][b]ENERGY[/b][/color]\n"
+			tt += "[color=green]  + Strong: Shield (+50%), Armor Bypass[/color]\n"
+			tt += "[color=red]  - Weak: Hull (-10%)[/color]\n"
 		if my_stats.get("atk_explosive", 0) > 0:
-			tt += "[color=pink][b]Shield Damage Bonus: +10%[/b][/color]\n"
+			tt += "[color=#ff804d][b]EXPLOSIVE[/b][/color]\n"
+			tt += "[color=green]  + Strong: Armor Bypass (80% pen)[/color]\n"
+			tt += "[color=red]  - Weak: Slower fire rate[/color]\n"
 			
 		tt += div
 	elif slot_type == "ammo":

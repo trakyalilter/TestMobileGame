@@ -29,6 +29,7 @@ func setup(p_aid: String, p_data: Dictionary, p_manager, p_parent):
 	UITheme.apply_progress_bar_style(prog_bar, "ops")
 	
 	# Moved loot text compilation to update_state()
+	UITheme.inject_diegetic_header(self, "ops")
 
 func _on_button_pressed():
 	if manager.is_active and manager.current_action_id == aid:
@@ -106,7 +107,8 @@ func update_state():
 			var speed_mult = manager.get_action_speed_multiplier(aid)
 			time_lbl.text = "0.0s / %s" % FormatUtils.format_time(manager.action_duration / speed_mult)
 	else:
-		UITheme.apply_locked_overlay(self, data["name"], status_msg, true)
+		var tech_id = data.get("research_req", "") if "RESEARCH:" in status_msg else ""
+		UITheme.apply_locked_overlay(self, data["name"], status_msg, true, tech_id, "ops")
 		
 		# Context-sensitive Button Text
 		if "RESEARCH:" in status_msg:

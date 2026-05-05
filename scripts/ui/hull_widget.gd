@@ -36,6 +36,8 @@ func setup(p_hid: String, p_data: Dictionary, p_manager, p_parent):
 	cost_lbl.text = ""
 	research_lbl.hide()
 	
+	UITheme.inject_diegetic_header(self, "shipyard")
+	
 func _process(delta):
 	update_state()
 
@@ -54,7 +56,7 @@ func update_state():
 		
 		if not tech_unlocked:
 			var tech_name = GameState.research_manager.tech_tree.get(req_id, {}).get("name", req_id)
-			UITheme.apply_locked_overlay(self, data["name"], "RESEARCH: %s" % tech_name, true)
+			UITheme.apply_locked_overlay(self, data["name"], "RESEARCH: %s" % tech_name, true, req_id, "shipyard")
 			research_lbl.text = "Req: %s" % tech_name
 			research_lbl.show()
 			btn.disabled = true

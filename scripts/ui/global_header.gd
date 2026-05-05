@@ -3,19 +3,23 @@ extends PanelContainer
 @onready var credits_lbl = $MarginContainer/HBoxContainer/CreditsLabel	
 @onready var task_lbl = $MarginContainer/HBoxContainer/TaskLabel
 
-var stability_lbl: Label # Added dynamically in _ready if not in scene
-
+var stability_lbl: Label 
+var credits_led: ColorRect
+var stability_led: ColorRect
 
 func _ready():
-	UITheme.apply_panel_style(self)
+	# 1. Glassmorphism Styling
+	var glass = StyleBoxFlat.new()
+	glass.bg_color = Color(0.06, 0.06, 0.08, 0.85) # Translucent dark glass
+	glass.border_width_bottom = 2
+	glass.border_color = UITheme.COLORS["accent"]
+	glass.border_color.a = 0.6
+	glass.shadow_color = Color(0, 0, 0, 0.4)
+	glass.shadow_size = 8
+	glass.set_content_margin_all(8)
+	add_theme_stylebox_override("panel", glass)
 	
-	# Premium Glassmorphism Feel
-	self.modulate.a = 0.9
-	UITheme.add_hover_scale(task_lbl, 0.75)
-	UITheme.apply_segmented_font(credits_lbl, UITheme.COLORS["warning"])
-	UITheme.apply_segmented_font(task_lbl, UITheme.COLORS["text_main"])
-	
-	# Add Stability Label dynamically to avoid tscn surgery
+	# ... (Add Stability Label as before)
 	stability_lbl = Label.new()
 	stability_lbl.name = "StabilityLabel"
 	stability_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -24,21 +28,45 @@ func _ready():
 	stability_lbl.clip_text = true
 	stability_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	$MarginContainer/HBoxContainer.add_child(stability_lbl)
-	$MarginContainer/HBoxContainer.move_child(stability_lbl, 3) # After TaskLabel
+	$MarginContainer/HBoxContainer.move_child(stability_lbl, 2) # Position between Credits and Task
 	UITheme.apply_segmented_font(stability_lbl, Color.WHITE)
 	
+	# 2. Add Status LEDs & Enhanced Labels (NOW AFTER LABELS EXIST)
+	_setup_leds()
+	
+func _setup_leds():
+	var hbox = $MarginContainer/HBoxContainer
+	
+	# Apply fonts first
+	UITheme.apply_segmented_font(credits_lbl, Color.WHITE)
+	UITheme.apply_segmented_font(task_lbl, UITheme.COLORS["text_main"])
+	
+	# Credits LED
+	credits_led = ColorRect.new()
+	credits_led.custom_minimum_size = Vector2(4, 12)
+	credits_led.color = UITheme.COLORS["warning"]
+	hbox.add_child(credits_led)
+	hbox.move_child(credits_led, credits_lbl.get_index())
+	
+	# Stability LED
+	stability_led = ColorRect.new()
+	stability_led.custom_minimum_size = Vector2(4, 12)
+	stability_led.color = Color.GREEN
+	hbox.add_child(stability_led)
+	hbox.move_child(stability_led, stability_lbl.get_index())
+	
 	# Prevent layout expansion from text
-	for lbl in [credits_lbl, task_lbl]:
+	for lbl in [credits_lbl, task_lbl, stability_lbl]:
 		lbl.clip_text = true
 		lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	
-	UITheme.packet_landed.connect(_on_packet_landed)
-	
+		lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	
 	# Initial sync
-	update_hud()
+	update_credits()
+	update_stability()
 	
-	# Connect signals for real-time updates and activity blips
+	# Connect signals for real-time updates
 	if GameState.resources:
 		GameState.resources.currency_added.connect(func(t, a): update_credits())
 		GameState.resources.currency_removed.connect(func(t, a): update_credits())
@@ -70,14 +98,19 @@ func update_stability():
 	
 	if stability < 100.0:
 		stability_lbl.add_theme_color_override("font_color", UITheme.COLORS["negative"])
+		stability_led.color = UITheme.COLORS["negative"]
 		# Visual flicker if stability is critical
 		if stability < 50.0 and Engine.get_frames_drawn() % 30 < 10:
 			stability_lbl.modulate.a = 0.3
+			stability_led.modulate.a = 0.3
 		else:
 			stability_lbl.modulate.a = 1.0
+			stability_led.modulate.a = 1.0
 	else:
 		stability_lbl.add_theme_color_override("font_color", Color(0.4, 1.0, 0.4)) # Green
+		stability_led.color = Color(0.4, 1.0, 0.4)
 		stability_lbl.modulate.a = 1.0
+		stability_led.modulate.a = 1.0
 
 func update_hud():
 	update_credits()
@@ -127,6 +160,7 @@ func update_task_status():
 func _on_packet_landed(_color: Color):
 	# TACTILE: Subtle thud on arrival
 	UITheme.trigger_ui_thud(credits_lbl, 1.5)
+	flash_led(credits_led, UITheme.COLORS["warning"])
 	
 	# Visual "Overheat" pulse
 	var tween = create_tween()

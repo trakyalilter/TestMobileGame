@@ -77,14 +77,15 @@ func init_missions():
 		["m021", "Industrial Energy", "Craft 5 Basic Batteries in the Engineering tab.", "gather", "BatteryT1", 5, 1000, 100, "m022"],
 		["m022", "Power Storage", "Craft a 'Basic Battery' in the Shipyard.", "craft", "z1_battery", 1, 1500, 150, "m014"],
 		["m023", "Hull Integrity", "Research 'Energy Fields' to unlock shielding.", "research", "energy_shields", 1, 1000, 150, "m024"],
-		["m024", "Aegis System", "Craft a 'Basic Shield' for protection.", "craft", "z1_shield", 1, 2500, 200, "m016b"],
+		["m024", "Aegis System", "Craft a 'Basic Shield' for protection.", "craft", "z1_shield", 1, 2500, 200, "m024b"],
+		["m024b", "Combat Triage", "Equip Hull & Shield consumables, with at least 10 of each in inventory.", "equip_consumables", "10", 1, 3500, 300, "m016b"],
 		["m025", "Refining Mastery", "Research 'Efficient Smelting' for alloys.", "research", "smelting", 1, 15000, 500, "m025b"],
 		["m025b", "Alloy Production", "Produce 50 Steel in the Steel Foundry.", "gather", "Steel", 50, 5000, 500, "m026"],
 		["m026", "Master Constructor", "Research 'Shipwright I' for hull reinforcement.", "research", "shipwright_1", 1, 5000, 500, "m026b"],
 		# P0-25: Missing Beepings - Fleet Modernization I
 		["m026b", "Fleet Modernization I", "Construct an 'Industrial Frigate' in the Shipyard.", "construct", "frigate_hull", 1, 10000, 1000, "m026c"],
 		["m026c", "Elite Salvage", "Drop a RARE module from enemies in Lunar Orbit.", "drop_rarity", "2", 1, 5000, 500, "m026d"],
-		["m026d", "Combat Overhaul", "Equip at least 1 RARE+ Weapon, Shield, and Armor.", "loadout_specific_rarity", "2", 1, 10000, 1000, "m026e"],
+		["m026d", "Combat Overhaul", "Equip at least 1 RARE+ Weapon.", "loadout_rare_weapon", "2", 1, 10000, 1000, "m026e"],
 		["m026e", "Final Confrontation", "Defeat the Rogue Architect boss in Lunar Orbit.", "defeat", "z1_boss_architect", 1, 25000, 2500, "m027"],
 		# P0 Fix: Progression Deadlock Re-alignment
 		["m027", "Scanning Horizon", "Unlock 'Asteroid Belt' to expand operations.", "research", "zone_2_access", 1, 5000, 500, "m028"],
@@ -360,22 +361,36 @@ func sync_progress():
 			if has_rarity:
 				m["current_qty"] = 1
 
-		elif m["type"] == "loadout_specific_rarity":
+		elif m["type"] == "loadout_rare_weapon":
 			var target_rarity = int(m["target"])
 			var sm = GameState.shipyard_manager
 			var has_weapon = false
-			var has_shield = false
-			var has_armor = false
 			
 			for mid_in_slot in sm.loadout.values():
 				if mid_in_slot and mid_in_slot in sm.modules:
 					if sm.get_module_rarity(mid_in_slot) >= target_rarity:
-						var st = sm.modules[mid_in_slot].get("slot_type", "")
-						if st == "weapon": has_weapon = true
-						elif st == "shield": has_shield = true
-						elif st == "armor" or st == "plating": has_armor = true
+						if sm.modules[mid_in_slot].get("slot_type", "") == "weapon":
+							has_weapon = true
+							break
 						
-			if has_weapon and has_shield and has_armor:
+			if has_weapon:
+				m["current_qty"] = 1
+
+		elif m["type"] == "equip_consumables":
+			var required_qty = int(m["target"])
+			var sm = GameState.shipyard_manager
+			var hull_ok = false
+			var shield_ok = false
+			
+			if sm.consumable_hull_slot != "":
+				if GameState.resources.get_element_amount(sm.consumable_hull_slot) >= required_qty:
+					hull_ok = true
+			
+			if sm.consumable_shield_slot != "":
+				if GameState.resources.get_element_amount(sm.consumable_shield_slot) >= required_qty:
+					shield_ok = true
+					
+			if hull_ok and shield_ok:
 				m["current_qty"] = 1
 
 		if m["current_qty"] != old_qty:

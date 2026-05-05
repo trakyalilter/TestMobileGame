@@ -11,12 +11,15 @@ var parent_graph: Node
 @onready var desc_lbl = $TooltipPanel/MarginContainer/Label
 
 # Colors
-const COL_LOCKED = Color(0.2, 0.2, 0.2)
-const COL_AVAILABLE = Color(0.3, 0.3, 0.3)
-const COL_UNLOCKED = Color(0.1, 0.4, 0.2)
-const BORDER_LOCKED = Color(0.4, 0.4, 0.4)
+const COL_LOCKED = Color(0.12, 0.12, 0.12)
+const COL_AVAILABLE = Color(0.18, 0.18, 0.22)
+const COL_UNLOCKED = Color(0.1, 0.25, 0.15)
+const BORDER_LOCKED = Color(0.3, 0.3, 0.3)
 const BORDER_AVAILABLE = Color(1.0, 0.8, 0.2)
-const BORDER_UNLOCKED = Color(0.0, 0.8, 0.4)
+const BORDER_UNLOCKED = Color(0.2, 1.0, 0.5)
+
+var _header_panel: PanelContainer
+var _pulse_tween: Tween
 
 func setup(p_nid: String, p_data: Dictionary, p_manager, p_parent):
 	nid = p_nid
@@ -116,6 +119,38 @@ func _make_link(display: String, id: String, type: String) -> String:
 func _ready():
 	desc_lbl.meta_hover_started.connect(_on_meta_hover)
 	desc_lbl.meta_hover_ended.connect(_on_meta_exit)
+	_ensure_header()
+
+func _ensure_header():
+	if _header_panel: return
+	_header_panel = UITheme.inject_diegetic_header(self, "research")
+	
+	# Hide original spacing Control if it exists
+	var vbox = get_node("MarginContainer/VBoxContainer")
+	var spacer = vbox.get_node_or_null("Control")
+	if spacer: spacer.hide()
+	
+	# 5. Modernize Tooltip (TooltipPanel)
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.08, 0.08, 0.1, 0.85) # High translucency glassy look
+	style.set_border_width_all(2)
+	style.border_color = UITheme.CATEGORY_COLORS["research"]
+	style.set_corner_radius_all(4)
+	style.shadow_size = 12
+	style.shadow_color = Color(0, 0, 0, 0.5)
+	desc_tip.add_theme_stylebox_override("panel", style)
+	
+	# Add a small subtle header to the tooltip too if possible
+	# We can just use BBCode in the Label for now to simulate a header
+	
+func _cleanup_pulse():
+	if _pulse_tween:
+		_pulse_tween.kill()
+		_pulse_tween = null
+	# Reset border to standard
+	var style = get_theme_stylebox("panel").duplicate()
+	style.shadow_size = 0
+	add_theme_stylebox_override("panel", style)
 
 var _active_info_card = null
 var info_card_scene = preload("res://scenes/ui/info_card.tscn")
@@ -178,34 +213,37 @@ func update_state():
 			cost_parts.append("[color=%s]%s %s[/color]" % [color, FormatUtils.format_number(req_qty), display_name])
 		cost_lbl.text = "[center]" + "\n".join(cost_parts) + "[/center]"
 	
-	name_lbl.add_theme_color_override("font_color", UITheme.CATEGORY_COLORS["research"])
+	name_lbl.add_theme_color_override("font_color", Color.WHITE) # Header handled color
 	var style = UITheme.apply_card_style(self, "research")
+	_ensure_header()
+	
+	_cleanup_pulse()
 	
 	if is_unlocked:
 		style.bg_color = COL_UNLOCKED
 		style.border_color = BORDER_UNLOCKED
-		cost_lbl.text = "[center][color=LIME]RESEARCHED[/color][/center]"
+		style.shadow_color = Color(BORDER_UNLOCKED, 0.4)
+		style.shadow_size = 8
+		cost_lbl.text = "[center][b][color=SPRING_GREEN]RESEARCHED[/color][/b][/center]"
 	else:
 		# Build cost string with met/unmet color coding
 		var cost_parts = []
 		var total_credits = GameState.resources.get_currency("credits")
 		var raw_credit_cost = data.get("cost", 0)
-		# v61.0 Fix: Apply COST_MULTIPLIER to match research_manager.gd
 		var credit_cost = int(raw_credit_cost * manager.COST_MULTIPLIER)
 		
 		# Credits check
 		if credit_cost > 0:
-			var color = "lime" if total_credits >= credit_cost else "gray"
+			var color = "#00ff00" if total_credits >= credit_cost else "#888888"
 			cost_parts.append("[color=%s]%s Cr[/color]" % [color, FormatUtils.format_number(credit_cost)])
 		
-		# Items check - apply MATERIAL_MULTIPLIER
+		# Items check
 		if "cost_items" in data:
 			for item in data["cost_items"]:
 				var raw_qty = data["cost_items"][item]
-				# v61.0 Fix: Apply MATERIAL_MULTIPLIER to match research_manager.gd
 				var req_qty = int(raw_qty * manager.MATERIAL_MULTIPLIER)
 				var inv_qty = GameState.resources.get_element_amount(item)
-				var color = "lime" if inv_qty >= req_qty else "gray"
+				var color = "#00ff00" if inv_qty >= req_qty else "#888888"
 				var display_name = ElementDB.get_display_name(item)
 				cost_parts.append("[color=%s]%s %s[/color]" % [color, FormatUtils.format_number(req_qty), display_name])
 		
@@ -214,11 +252,24 @@ func update_state():
 		if can_unlock:
 			style.bg_color = COL_AVAILABLE
 			style.border_color = BORDER_AVAILABLE
+			
+			# Start Pulse Tween
+			_start_pulse(style)
 		else:
 			style.bg_color = COL_LOCKED
 			style.border_color = BORDER_LOCKED
 		
 	add_theme_stylebox_override("panel", style)
+
+func _start_pulse(style: StyleBoxFlat):
+	_pulse_tween = create_tween().set_loops()
+	_pulse_tween.tween_property(style, "border_color", Color(1.0, 1.0, 0.5), 0.8).set_trans(Tween.TRANS_SINE)
+	_pulse_tween.parallel().tween_property(style, "shadow_size", 8, 0.8).set_trans(Tween.TRANS_SINE)
+	_pulse_tween.parallel().tween_property(style, "shadow_color", Color(1.0, 0.8, 0.0, 0.5), 0.8)
+	
+	_pulse_tween.tween_property(style, "border_color", BORDER_AVAILABLE, 0.8).set_trans(Tween.TRANS_SINE)
+	_pulse_tween.parallel().tween_property(style, "shadow_size", 2, 0.8).set_trans(Tween.TRANS_SINE)
+	_pulse_tween.parallel().tween_property(style, "shadow_color", Color(1.0, 0.8, 0.0, 0.1), 0.8)
 
 var _pressed_pos: Vector2 = Vector2.ZERO
 var _is_pressed: bool = false
@@ -261,8 +312,8 @@ func _update_tooltip_position():
 	# Force the container to recalculate its size based on the new text
 	desc_tip.reset_size()
 	
-	# Default offset
-	desc_tip.position = Vector2(120, 0)
+	# Default offset (increased to 130 to prevent edge overlap)
+	desc_tip.position = Vector2(130, 0)
 	
 	# Use combined_minimum_size for the most accurate calculation before a frame pass
 	# Note: desc_tip size might change if rich text wraps

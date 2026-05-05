@@ -42,7 +42,13 @@ func setup(p_bid: String, p_data: Dictionary, p_manager, p_parent):
 	
 	production_interval = data.get("interval", 2.0)
 	
+	_ensure_header()
 	update_state()
+
+var _header_panel: PanelContainer
+func _ensure_header():
+	if _header_panel: return
+	_header_panel = UITheme.inject_diegetic_header(self, "infrastructure")
 	
 	# Efficiency Slider (Throttle)
 	var throttle_container = VBoxContainer.new()
@@ -198,12 +204,12 @@ func update_state():
 		var tech_name = tech_data.get("name", "Unknown Tech")
 		# Force strict formatting
 		var lock_msg = "RESEARCH: %s" % tech_name
-		UITheme.apply_locked_overlay(self, data["name"], lock_msg, true)
+		UITheme.apply_locked_overlay(self, data["name"], lock_msg, true, req_id, "infrastructure")
 		buy_btn.text = "RESEARCH REQUIRED" # All Caps for emphasis
 		buy_btn.disabled = true
 		return
 	elif not has_level:
-		UITheme.apply_locked_overlay(self, data["name"], "LEVEL %d REQUIRED" % lvl_req, true)
+		UITheme.apply_locked_overlay(self, data["name"], "LEVEL %d REQUIRED" % lvl_req, true, "", "infrastructure")
 		buy_btn.text = "Requires Lv %d" % lvl_req
 		buy_btn.disabled = true
 		return

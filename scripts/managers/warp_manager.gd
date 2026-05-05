@@ -100,4 +100,3 @@ func load_save_data_manager(data: Dictionary):
 	total_warps = data.get("total_warps", 0)
 	warp_shards = data.get("warp_shards", 0.0)
 	credits_at_warp_start = data.get("credits_at_warp_start", 0.0)
-

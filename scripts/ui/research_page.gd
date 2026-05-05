@@ -528,15 +528,61 @@ func _on_graph_draw(container, tab_name, positions):
 		var parent = node_data.get("parent")
 		
 		if parent and parent in positions and nid in positions:
-			var p1 = positions[parent] + Vector2(105, 22.5) # Right-Center (140*0.75, 30*0.75)
-			var p2 = positions[nid] + Vector2(0, 22.5) # Left-Center
+			# Adjusted centers for 0.75 scaled nodes (W=160*0.75=120, H=100*0.75=75)
+			# Exit from previous node (right side)
+			var p1 = positions[parent] + Vector2(120, 37.5) 
+			# Enter into current node (left side)
+			var p2 = positions[nid] + Vector2(0, 37.5)
 			
-			container.draw_line(p1, p2, Color(0.5, 0.5, 0.5), 2.0)
+			# Determine Path State/Color
+			var is_completed = manager.is_tech_unlocked(nid)
+			var is_available = manager.can_unlock(nid)
+			
+			var base_col = Color(0.35, 0.35, 0.4) # Brighter Gray-Blue for visibility
+			var glow_col = Color(0.1, 0.1, 0.15, 0.1) # Very faint background glow
+			
+			if is_completed:
+				base_col = Color(0.2, 1.0, 0.5) # Brighter Emerald
+				glow_col = Color(0.1, 0.8, 0.4, 0.4)
+			elif is_available:
+				base_col = Color(1.0, 0.8, 0.2) # Brighter Gold
+				glow_col = Color(1.0, 0.7, 0.1, 0.4)
+				
+			_draw_bezier_path(container, p1, p2, base_col, glow_col)
+
+func _draw_bezier_path(container: Control, p1: Vector2, p2: Vector2, color: Color, glow: Color):
+	var points = PackedVector2Array()
+	var steps = 16
+	
+	# Cubic Bezier: p1, cp1, cp2, p2
+	# For horizontal trees, control points shift horizontally
+	var cp_dist = abs(p2.x - p1.x) / 1.5
+	var cp1 = p1 + Vector2(cp_dist, 0)
+	var cp2 = p2 - Vector2(cp_dist, 0)
+	
+	for i in range(steps + 1):
+		var t = float(i) / steps
+		var q0 = p1.lerp(cp1, t)
+		var q1 = cp1.lerp(cp2, t)
+		var q2 = cp2.lerp(p2, t)
+		var r0 = q0.lerp(q1, t)
+		var r1 = q1.lerp(q2, t)
+		var pt = r0.lerp(r1, t)
+		points.append(pt)
+		
+	# Draw Glow (Wider, softer)
+	if glow.a > 0:
+		container.draw_polyline(points, glow, 6.0, true)
+		container.draw_polyline(points, glow * 0.5, 10.0, true)
+		
+	# Draw Core Line
+	container.draw_polyline(points, color, 2.5, true)
 
 func refresh_all():
 	# Re-check states of all nodes
 	for tab_name in graphs:
 		var container = graphs[tab_name]["container"]
+		if container: container.queue_redraw()
 		for child in container.get_children():
 			if child.has_method("update_state"):
 				child.update_state()
@@ -549,3 +595,35 @@ func get_node_widget(tech_id: String) -> Control:
 			if child.get("nid") == tech_id:
 				return child
 	return null
+
+func focus_on_tech(tech_id: String):
+	# 1. Find Tab
+	var target_tab_name = ""
+	for tab_name in graphs:
+		if tech_id in graphs[tab_name]["nodes"]:
+			target_tab_name = tab_name
+			break
+	
+	if target_tab_name == "": return
+	
+	# 2. Switch Tab
+	for i in range(tabs.get_tab_count()):
+		if tabs.get_tab_control(i).name == target_tab_name:
+			tabs.current_tab = i
+			break
+	
+	# 3. Center on Node (Deferred to allow layout)
+	await get_tree().process_frame
+	
+	var node_widget = get_node_widget(tech_id)
+	if node_widget:
+		var scroll = tabs.get_current_tab_control().get_child(0) # ScrollContainer
+		if scroll is ScrollContainer:
+			var target_pos = node_widget.position + (node_widget.size * node_widget.scale / 2.0)
+			scroll.scroll_horizontal = int(target_pos.x - scroll.size.x / 2.0)
+			scroll.scroll_vertical = int(target_pos.y - scroll.size.y / 2.0)
+			
+			# Visual Highlight
+			var tween = node_widget.create_tween()
+			tween.tween_property(node_widget, "modulate", Color(2, 2, 2), 0.2)
+			tween.tween_property(node_widget, "modulate", Color(1, 1, 1), 0.5)

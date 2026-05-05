@@ -53,10 +53,6 @@ layout_mode = 2
 text = "  🎯  Bounty Board"
 alignment = 0
 
-[node name="FleetBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
-layout_mode = 2
-text = "  🛰  Fleet Command"
-alignment = 0
 
 [node name="GatheringBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
@@ -119,6 +115,12 @@ theme_override_colors/font_color = Color(0.811765, 0.435294, 0.435294, 1)
 text = "  ⚒  SYS CONFIG"
 alignment = 0
 
+[node name="MenuBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.48, 0.5, 0.55, 1)
+text = "  ⏴  MAIN MENU"
+alignment = 0
+
 [node name="Content" type="VBoxContainer" parent="HBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
@@ -144,3 +146,4 @@ mouse_filter = 2
 [connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/InventoryBtn" to="." method="_on_inventory_btn_pressed"]
 [connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/AtlasBtn" to="." method="_on_atlas_btn_pressed"]
 [connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/OptionsBtn" to="." method="_on_options_btn_pressed"]
+[connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/MenuBtn" to="." method="_on_menu_btn_pressed"]

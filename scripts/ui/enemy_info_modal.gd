@@ -29,9 +29,33 @@ func setup(data):
 
 	stats_lbl.text = "HP: %d | Shield: %d\nATK: %d | DEF: %d" % [hp, shield, atk, df]
 
-	# Clear Loot
+	# Clear Loot (must happen before adding new children)
 	for c in loot_container.get_children():
 		c.queue_free()
+
+	# v87.0: Enemy Damage Type Display
+	var e_dmg_type = data.get("dmg_type", "kinetic")
+	var dmg_type_label = "KINETIC"
+	var dmg_type_color = Color(0.6, 0.8, 1.0) # Steel Blue
+	match e_dmg_type:
+		"energy":
+			dmg_type_label = "ENERGY"
+			dmg_type_color = Color(1.0, 0.9, 0.3) # Gold
+		"explosive":
+			dmg_type_label = "EXPLOSIVE"
+			dmg_type_color = Color(1.0, 0.5, 0.3) # Orange-Red
+	add_header("Attacks With: %s" % dmg_type_label, dmg_type_color)
+
+	# v86.0: Damage Type Resistances
+	var rk = data.get("resist_k", 0.0)
+	var re = data.get("resist_e", 0.0)
+	var rx = data.get("resist_x", 0.0)
+	
+	if rk != 0.0 or re != 0.0 or rx != 0.0:
+		add_header("Damage Resistances", Color(0.8, 0.8, 0.9))
+		_add_resist_label("KIN", rk, Color(0.6, 0.8, 1.0))
+		_add_resist_label("NRG", re, Color(1.0, 0.9, 0.3))
+		_add_resist_label("EXP", rx, Color(1.0, 0.5, 0.3))
 
 	# Guaranteed Loot Header
 	add_header("Guaranteed Drops", Color.ORANGE)
@@ -129,6 +153,22 @@ func add_item_label(text, color):
 	l.add_theme_color_override("font_color", color)
 	l.add_theme_font_size_override("font_size", 12)
 	loot_container.add_child(l)
+
+func _add_resist_label(type_name: String, value: float, type_color: Color):
+	var text = ""
+	var color = Color.GRAY
+	
+	if value > 0.01:
+		text = "  %s: +%d%% RESIST" % [type_name, int(value * 100)]
+		color = Color(1.0, 0.4, 0.4) # Red = bad for player
+	elif value < -0.01:
+		text = "  %s: %d%% WEAK" % [type_name, int(value * 100)]
+		color = Color(0.4, 1.0, 0.4) # Green = good for player
+	else:
+		text = "  %s: NEUTRAL" % type_name
+		color = Color(0.5, 0.5, 0.5)
+	
+	add_item_label(text, color)
 
 func close():
 	visible = false

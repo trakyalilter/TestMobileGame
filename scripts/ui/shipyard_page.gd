@@ -70,12 +70,19 @@ func _update_repair_button():
 	if GameState.combat_manager and GameState.combat_manager.in_combat:
 		repair_btn.text = "In Combat"
 		repair_btn.disabled = true
+		repair_btn.modulate = Color.WHITE
 	elif cost == 0:
 		repair_btn.text = "Hull OK"
 		repair_btn.disabled = true
+		repair_btn.modulate = Color.WHITE
 	else:
 		repair_btn.text = "Repair (%d Cr)" % cost
 		repair_btn.disabled = not manager.can_repair()
+		
+		# Make the button flashy to catch the player's eye
+		var t = Time.get_ticks_msec() / 200.0
+		var pulse = (sin(t) + 1.0) / 2.0
+		repair_btn.modulate = Color.WHITE.lerp(Color(1.0, 0.2, 0.2), pulse)
 
 func _update_stats_display():
 	if hp_lbl:
@@ -107,8 +114,8 @@ func refresh_list():
 	widgets.clear()
 	racks.clear()
 	
-	# Create racks - Hulls use HBoxContainer for horizontal slider feel
-	_create_rack("hulls", "Capital Hulls", Color(0.4, 0.9, 0.6, 0.5), rack_container, true)
+	# Create racks - Hulls now use GridContainer for consistency
+	_create_rack("hulls", "Capital Hulls", Color(0.4, 0.9, 0.6, 0.5), rack_container, false)
 	_create_rack("kinetic", "Kinetic Weapons", Color(1.0, 0.32, 0.32, 0.5), rack_container)
 	_create_rack("explosive", "Explosive Weapons", Color(1.0, 0.5, 0.0, 0.5), rack_container) # Added
 	_create_rack("energy", "Energy Weapons", Color(0.0, 0.9, 1.0, 0.5), rack_container)

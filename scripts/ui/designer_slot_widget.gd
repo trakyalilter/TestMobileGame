@@ -30,15 +30,24 @@ func _ready():
 
 func _apply_base_style():
 	var frame = StyleBoxFlat.new()
-	frame.bg_color = Color(0.11, 0.09, 0.08, 0.96)
-	frame.set_corner_radius_all(3)
-	frame.set_border_width_all(2)
-	frame.border_width_top = 5
-	frame.border_color = Color(0.35, 0.35, 0.35, 0.5)
-	frame.content_margin_left = 6
-	frame.content_margin_top = 5
-	frame.content_margin_right = 6
-	frame.content_margin_bottom = 5
+	frame.bg_color = Color(0.08, 0.08, 0.1, 0.9)
+	frame.set_corner_radius_all(2)
+	frame.set_border_width_all(1)
+	frame.border_color = Color(0.2, 0.2, 0.25, 1.0)
+	
+	# Top accent bar instead of just border
+	frame.border_width_top = 4
+	frame.border_color = Color(0.3, 0.3, 0.4, 0.8)
+	
+	frame.content_margin_left = 8
+	frame.content_margin_top = 6
+	frame.content_margin_right = 8
+	frame.content_margin_bottom = 6
+	
+	# Inner shadow for depth
+	frame.shadow_color = Color(0, 0, 0, 0.5)
+	frame.shadow_size = 4
+	
 	add_theme_stylebox_override("panel", frame)
 
 func refresh_state():
@@ -188,8 +197,7 @@ func refresh_state():
 		option_btn.add_item("Unequip", option_btn.item_count)
 		option_btn.set_item_metadata(option_btn.item_count - 1, "unequip")
 	else:
-		name_lbl.text = "EMPTY"
-		name_lbl.add_theme_color_override("font_color", Color(0.33, 0.33, 0.33))
+		name_lbl.text = ""
 		stats_lbl.text = "--"
 		rarity_badge.visible = false
 		_apply_base_style()
@@ -246,8 +254,7 @@ func _refresh_consumable_state():
 		option_btn.add_item("Unequip", 1)
 		option_btn.set_item_metadata(1, "unequip")
 	else:
-		name_lbl.text = "EMPTY SLOT"
-		name_lbl.add_theme_color_override("font_color", Color(0.33, 0.33, 0.33))
+		name_lbl.text = ""
 		stats_lbl.text = "--"
 		tooltip_text = "Drag a Consumable here"
 
@@ -295,25 +302,32 @@ func _get_rarity_background(rarity: int) -> Color:
 func _apply_card_style(rarity: int, rarity_color: Color):
 	var frame = StyleBoxFlat.new()
 	frame.bg_color = _get_rarity_background(rarity)
-	frame.set_corner_radius_all(3)
-	frame.set_border_width_all(2)
+	frame.set_corner_radius_all(2)
+	frame.set_border_width_all(1)
+	frame.border_color = rarity_color.lerp(Color.WHITE, 0.3)
+	frame.border_color.a = 0.5
+	
+	# Top accent bar
 	frame.border_width_top = 5
-	frame.border_color = rarity_color.lerp(Color(0.55, 0.45, 0.34), 0.35)
-	frame.content_margin_left = 6
-	frame.content_margin_top = 5
-	frame.content_margin_right = 6
-	frame.content_margin_bottom = 5
-	frame.shadow_color = Color(rarity_color.r, rarity_color.g, rarity_color.b, 0.2)
-	frame.shadow_size = 8
-	frame.shadow_offset = Vector2(0, 2)
-
-	if rarity == manager.Rarity.LEGENDARY or rarity == manager.Rarity.UNIQUE:
-		frame.set_border_width_all(3)
-		frame.border_width_top = 6
-		frame.shadow_size = 12
-
-	if rarity == manager.Rarity.UNIQUE:
-		frame.border_color = Color(0.85, 0.65, 0.25, 1.0) # Antique Legendary Gold
+	frame.border_color = rarity_color
+	
+	frame.content_margin_left = 8
+	frame.content_margin_top = 6
+	frame.content_margin_right = 8
+	frame.content_margin_bottom = 6
+	
+	# Premium outer glow for rarity
+	frame.shadow_color = Color(rarity_color.r, rarity_color.g, rarity_color.b, 0.3)
+	frame.shadow_size = 10
+	
+	if rarity >= manager.Rarity.RARE:
+		frame.shadow_size = 15
+		frame.set_border_width_all(2)
+		
+	if rarity >= manager.Rarity.LEGENDARY:
+		frame.border_color.a = 0.9
+		frame.shadow_size = 20
+		frame.shadow_color.a = 0.5
 
 	add_theme_stylebox_override("panel", frame)
 
@@ -495,6 +509,12 @@ func _on_option_button_item_selected(index):
 
 func _gui_input(event):
 	if event is InputEventMouseButton and event.pressed:
+		if parent_ui and "is_repair_mode" in parent_ui and parent_ui.is_repair_mode:
+			if event.button_index == MOUSE_BUTTON_LEFT:
+				if is_occupied and not slot_type.begins_with("consumable_"):
+					_try_repair()
+				return
+				
 		if event.button_index == MOUSE_BUTTON_RIGHT:
 			if slot_type.begins_with("consumable_"):
 				var c_type = "hull" if slot_type == "consumable_hull" else "shield"
@@ -515,6 +535,164 @@ func _gui_input(event):
 				
 				parent_ui._on_filter_changed(target_filter)
 				UITheme.trigger_ui_thud(self, 1.0)
+
+func _try_repair():
+	var equipped_id = manager.loadout.get(slot_idx)
+	if not equipped_id or not equipped_id.begins_with("custom_"):
+		UITheme.show_notification("Cannot repair this module", Color.RED)
+		return
+		
+	var m_data = manager.modules.get(equipped_id)
+	var cur_dur = m_data.get("durability", 100)
+	if cur_dur >= 100:
+		UITheme.show_notification("Module is at maximum durability", Color.GREEN)
+		return
+		
+	var missing = 100 - cur_dur
+	var chunks = ceili(missing / 10.0)
+	var rarity = manager.get_module_rarity(equipped_id)
+	
+	# Cost calculation
+	var parts_cost = manager.RARITY_SPARE_PARTS.get(rarity, 1) * chunks
+	var credit_cost = max(50, int(manager.get_sell_price(equipped_id) * 0.2)) * chunks
+	
+	_spawn_custom_repair_modal(m_data, cur_dur, credit_cost, parts_cost)
+
+func _spawn_custom_repair_modal(m_data: Dictionary, cur_dur: int, credit_cost: int, parts_cost: int):
+	var layer = CanvasLayer.new()
+	layer.layer = 100
+	
+	var overlay = ColorRect.new()
+	overlay.color = Color(0, 0, 0, 0.7)
+	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	layer.add_child(overlay)
+	
+	var center = CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	overlay.add_child(center)
+	
+	var panel = PanelContainer.new()
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.1, 0.08, 0.07, 0.98)
+	style.set_border_width_all(2)
+	style.border_width_top = 4
+	style.border_color = Color(0.8, 0.6, 0.2, 0.9)
+	style.set_corner_radius_all(3)
+	style.shadow_color = Color(0, 0, 0, 0.8)
+	style.shadow_size = 20
+	panel.add_theme_stylebox_override("panel", style)
+	
+	panel.custom_minimum_size = Vector2(340, 0)
+	center.add_child(panel)
+	
+	var marg = MarginContainer.new()
+	marg.add_theme_constant_override("margin_left", 20)
+	marg.add_theme_constant_override("margin_top", 20)
+	marg.add_theme_constant_override("margin_right", 20)
+	marg.add_theme_constant_override("margin_bottom", 20)
+	panel.add_child(marg)
+	
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 15)
+	marg.add_child(vbox)
+	
+	var title = Label.new()
+	title.text = "REPAIR MODULE"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 18)
+	title.add_theme_color_override("font_color", Color(0.9, 0.7, 0.3))
+	vbox.add_child(title)
+	
+	var desc = Label.new()
+	desc.text = "Restore %s from %d%% back to maximum durability (100%%)?" % [m_data.get("name", "Unknown").to_upper(), cur_dur]
+	desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	desc.add_theme_font_size_override("font_size", 13)
+	desc.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8))
+	vbox.add_child(desc)
+	
+	var cost_box = VBoxContainer.new()
+	cost_box.add_theme_constant_override("separation", 4)
+	vbox.add_child(cost_box)
+	
+	var c_lbl = Label.new()
+	c_lbl.text = "Cost: %s Credits" % UITheme.format_num(credit_cost)
+	c_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	c_lbl.add_theme_font_size_override("font_size", 14)
+	c_lbl.add_theme_color_override("font_color", Color(0.9, 0.9, 0.4))
+	cost_box.add_child(c_lbl)
+	
+	var p_lbl = Label.new()
+	p_lbl.text = "Required: %d Spare Parts" % parts_cost
+	p_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	p_lbl.add_theme_font_size_override("font_size", 14)
+	p_lbl.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+	cost_box.add_child(p_lbl)
+	
+	var has_funds = GameState.resources.get_currency("credits") >= credit_cost and GameState.resources.get_element_amount("SparePart") >= parts_cost
+	if not has_funds:
+		var w_lbl = Label.new()
+		w_lbl.text = "INSUFFICIENT RESOURCES"
+		w_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		w_lbl.add_theme_font_size_override("font_size", 12)
+		w_lbl.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3))
+		cost_box.add_child(w_lbl)
+	
+	var btn_box = HBoxContainer.new()
+	btn_box.alignment = BoxContainer.ALIGNMENT_CENTER
+	btn_box.add_theme_constant_override("separation", 20)
+	vbox.add_child(btn_box)
+	
+	var cancel = Button.new()
+	cancel.text = " Cancel "
+	cancel.custom_minimum_size = Vector2(100, 30)
+	_style_repair_button(cancel, Color(0.6, 0.2, 0.2))
+	btn_box.add_child(cancel)
+	
+	var confirm = Button.new()
+	confirm.text = " Confirm "
+	confirm.custom_minimum_size = Vector2(100, 30)
+	confirm.disabled = not has_funds
+	_style_repair_button(confirm, Color(0.2, 0.6, 0.2))
+	if has_funds:
+		confirm.add_theme_color_override("font_color", Color(0.6, 1.0, 0.5))
+	btn_box.add_child(confirm)
+	
+	cancel.pressed.connect(layer.queue_free)
+	confirm.pressed.connect(func():
+		if manager.repair_module(slot_idx, credit_cost, parts_cost):
+			UITheme.show_notification("Repaired Successfully!", Color.GREEN)
+			parent_ui.trigger_refresh()
+		else:
+			UITheme.show_notification("Insufficient Resources", Color.RED)
+		layer.queue_free()
+	)
+	
+	parent_ui.add_child(layer)
+
+func _style_repair_button(btn: Button, hover_color: Color):
+	var normal = StyleBoxFlat.new()
+	normal.bg_color = Color(0.12, 0.10, 0.09, 0.95)
+	normal.set_border_width_all(1)
+	normal.border_color = Color(0.4, 0.3, 0.2, 0.8)
+	normal.set_corner_radius_all(3)
+	
+	var hover = normal.duplicate()
+	hover.bg_color = hover_color
+	hover.border_color = Color.WHITE
+	
+	var pressed = hover.duplicate()
+	pressed.bg_color = hover_color.darkened(0.2)
+	
+	var disabled = normal.duplicate()
+	disabled.bg_color = Color(0.05, 0.05, 0.05, 0.8)
+	disabled.border_color = Color(0.2, 0.2, 0.2, 0.5)
+	
+	btn.add_theme_stylebox_override("normal", normal)
+	btn.add_theme_stylebox_override("hover", hover)
+	btn.add_theme_stylebox_override("pressed", pressed)
+	btn.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	btn.add_theme_stylebox_override("disabled", disabled)
 
 # TOOLTIP
 

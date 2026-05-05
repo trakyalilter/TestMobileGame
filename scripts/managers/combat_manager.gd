@@ -90,6 +90,17 @@ var loot_type_filter: Dictionary = {
 	"sensor": true
 }
 
+# v86.0: Hazard Zone (Dungeon) State
+var hazard_state = {
+	"active": false,
+	"zone_id": "",
+	"wave": 0,
+	"max_waves": 7,
+	"completed": false
+}
+var boss_kills: Dictionary = {} # {enemy_id: kill_count}
+var hazard_clears: Dictionary = {} # {hazard_zone_id: true}
+
 # Progression compensation so external multipliers (level/research/warp/trophy)
 # don't invalidate zone pacing.
 const ENEMY_COMP_REGULAR_HP = 0.28
@@ -99,6 +110,12 @@ const ENEMY_COMP_BOSS_HP = 0.42
 const ENEMY_COMP_BOSS_SHIELD = 0.36
 const ENEMY_COMP_BOSS_ATK = 0.28
 const ENEMY_COMP_DEF = 0.12
+
+# v87.0: Enemy Typed Damage Balance Compensation
+# Energy enemies deal 1.5x to shields (up from 0.5x kinetic), so reduce raw ATK
+# Explosive enemies bypass 80% armor, so reduce raw ATK
+const ENEMY_ENERGY_ATK_COMP = 0.75
+const ENEMY_EXPLOSIVE_ATK_COMP = 0.85
 
 # v80.1: Combat Safety Caps — Anti-Exploit Hard Ceilings
 const MIN_ATTACK_INTERVAL = 0.3           # Prevents infinite DPS
@@ -312,6 +329,23 @@ var zones = {
 	}
 }
 
+# v86.0: Hazard Zone Definitions
+var hazard_zones = {
+	"emp_nexus": {
+		"name": "EMP Nexus",
+		"desc": "Electromagnetic death-field. Weapons jam constantly without shielding.",
+		"unlock_boss": "z2_boss_monolith",
+		"counter_module": "faraday_hull",
+		"hazard_type": "emp_storm",
+		"max_waves": 7,
+		"enemy_pool": ["hz_emp_drone_1", "hz_emp_drone_2", "hz_emp_drone_3", "hz_emp_drone_4", "hz_emp_drone_5"],
+		"elite_enemy": "hz_emp_elite",
+		"boss_enemy": "hz_emp_overlord",
+		"first_clear_reward": "emp_generator_blueprint",
+		"zone_difficulty": 3
+	}
+}
+
 # v80.1: Formula-Driven Enemy DB
 # Regular: HP=floor(200*2.2^(N-1)), ATK=floor(12*2.2^(N-1)), DEF=floor(3*2.2^(N-1))
 # Boss: HP×6, ATK×2.5, DEF×3, Shield×3
@@ -325,7 +359,7 @@ var enemy_db = {
 		"rare_loot": [["MiteChitin", 0.33, 2, 3]],
 		"module_drop_chance": 0.15,
 		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_shield", "z1_armor"],
-		"xp": 5, "eva": 5, "zone": 1
+		"xp": 5, "eva": 5, "zone": 1, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "dmg_type": "kinetic"
 	},
 	"z1_lunar_drone": {
 		"name": "Lunar Drone",
@@ -334,7 +368,7 @@ var enemy_db = {
 		"rare_loot": [["NavData", 0.10, 1, 1]],
 		"module_drop_chance": 0.20,
 		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_missile", "z1_shield", "z1_armor", "z1_battery"],
-		"xp": 8, "eva": 8, "zone": 1
+		"xp": 8, "eva": 8, "zone": 1, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "dmg_type": "kinetic"
 	},
 	"z1_survey_probe": {
 		"name": "Survey Probe",
@@ -343,7 +377,7 @@ var enemy_db = {
 		"rare_loot": [["NavData", 0.15, 1, 2]],
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_shield", "z1_armor", "z1_sensor"],
-		"xp": 12, "eva": 15, "zone": 1
+		"xp": 12, "eva": 15, "zone": 1, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "dmg_type": "energy"
 	},
 	"z1_scrap_collector": {
 		"name": "Scrap Collector",
@@ -352,7 +386,7 @@ var enemy_db = {
 		"rare_loot": [["Cu", 0.15, 2, 4]],
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_missile", "z1_shield", "z1_armor", "z1_engine"],
-		"xp": 10, "eva": 6, "zone": 1
+		"xp": 10, "eva": 6, "zone": 1, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "dmg_type": "kinetic"
 	},
 
 	"z1_boss_architect": {
@@ -363,7 +397,7 @@ var enemy_db = {
 		"boss_core": "Z1_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_missile", "z1_shield", "z1_armor", "z1_engine", "z1_battery", "z1_sensor"],
-		"is_boss": true, "xp": 100, "eva": 10, "zone": 1
+		"is_boss": true, "xp": 100, "eva": 10, "zone": 1, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "dmg_type": "kinetic"
 	},
 
 	# ═══ ZONE 2: Asteroid Belt — Reg HP~480, ATK~26, DEF~7 ═══
@@ -374,7 +408,7 @@ var enemy_db = {
 		"rare_loot": [["Cu", 0.15, 3, 6]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z2_kinetic", "z2_energy", "z2_missile", "z2_shield", "z2_armor"],
-		"xp": 20, "eva": 12, "zone": 2
+		"xp": 20, "eva": 12, "zone": 2, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "dmg_type": "kinetic"
 	},
 	"z2_silicate_golem": {
 		"name": "Silicate Golem",
@@ -383,7 +417,7 @@ var enemy_db = {
 		"rare_loot": [["Ti", 0.10, 1, 3]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z2_kinetic", "z2_energy", "z2_missile", "z2_shield", "z2_armor"],
-		"xp": 25, "eva": 5, "zone": 2
+		"xp": 25, "eva": 5, "zone": 2, "resist_k": 0.25, "resist_e": 0.0, "resist_x": -0.25, "dmg_type": "kinetic"
 	},
 	"z2_claim_jumper": {
 		"name": "Claim Jumper",
@@ -392,7 +426,7 @@ var enemy_db = {
 		"rare_loot": [["Ti", 0.12, 2, 4]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z2_kinetic", "z2_energy", "z2_missile", "z2_shield", "z2_armor"],
-		"xp": 28, "eva": 15, "zone": 2
+		"xp": 28, "eva": 15, "zone": 2, "resist_k": 0.10, "resist_e": -0.10, "resist_x": 0.0, "dmg_type": "explosive"
 	},
 	"z2_ore_hauler": {
 		"name": "Ore Hauler",
@@ -401,17 +435,17 @@ var enemy_db = {
 		"rare_loot": [["Steel", 0.10, 1, 3]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z2_kinetic", "z2_energy", "z2_shield", "z2_armor"],
-		"xp": 22, "eva": 3, "zone": 2
+		"xp": 22, "eva": 3, "zone": 2, "resist_k": 0.30, "resist_e": 0.10, "resist_x": -0.20, "dmg_type": "kinetic"
 	},
 	"z2_boss_monolith": {
 		"name": "Silicate Monolith",
 		"stats": {"hp": 5280, "max_shield": 264, "atk": 132, "def": 39, "atk_interval": 3.5, "accuracy": 45},
 		"loot": [["credits", 2000, 5000], ["Ti", 5, 12], ["Fe", 20, 40], ["Res1", 10, 20]],
-		"rare_loot": [["z2_unique_weapon", 0.03, 1, 1], ["z2_unique_armor", 0.03, 1, 1], ["z2_unique_shield", 0.03, 1, 1]],
+		"rare_loot": [["z2_unique_weapon", 0.03, 1, 1], ["z2_unique_armor", 0.03, 1, 1], ["z2_unique_shield", 0.03, 1, 1], ["faraday_hull", 0.03, 1, 1]],
 		"boss_core": "Z2_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z2_kinetic", "z2_energy", "z2_missile", "z2_shield", "z2_armor"],
-		"is_boss": true, "xp": 300, "eva": 8, "zone": 2
+		"is_boss": true, "xp": 300, "eva": 8, "zone": 2, "resist_k": 0.30, "resist_e": 0.10, "resist_x": -0.30, "dmg_type": "kinetic"
 	},
 
 	# ═══ ZONE 3: Mars Debris — Reg HP~1152, ATK~58, DEF~15 ═══
@@ -422,7 +456,7 @@ var enemy_db = {
 		"rare_loot": [["Circuit", 0.10, 1, 2]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z3_kinetic", "z3_energy", "z3_missile", "z3_shield", "z3_armor"],
-		"xp": 50, "eva": 10, "zone": 3
+		"xp": 50, "eva": 10, "zone": 3, "resist_k": 0.0, "resist_e": -0.15, "resist_x": 0.15, "dmg_type": "explosive"
 	},
 	"z3_martian_sentry": {
 		"name": "Martian Sentry",
@@ -431,7 +465,7 @@ var enemy_db = {
 		"rare_loot": [["Chip", 0.08, 1, 2]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z3_kinetic", "z3_energy", "z3_missile", "z3_shield", "z3_armor"],
-		"xp": 60, "eva": 12, "zone": 3
+		"xp": 60, "eva": 12, "zone": 3, "resist_k": 0.0, "resist_e": -0.20, "resist_x": 0.20, "dmg_type": "explosive"
 	},
 	"z3_salvage_swarm": {
 		"name": "Salvage Swarm",
@@ -440,7 +474,7 @@ var enemy_db = {
 		"rare_loot": [["Steel", 0.15, 2, 5]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z3_kinetic", "z3_energy", "z3_shield", "z3_armor"],
-		"xp": 45, "eva": 20, "zone": 3
+		"xp": 45, "eva": 20, "zone": 3, "resist_k": -0.10, "resist_e": -0.10, "resist_x": 0.10, "dmg_type": "kinetic"
 	},
 	"z3_derelict_frigate": {
 		"name": "Derelict Frigate",
@@ -449,7 +483,7 @@ var enemy_db = {
 		"rare_loot": [["Ti", 0.10, 2, 5]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z3_kinetic", "z3_energy", "z3_missile", "z3_shield", "z3_armor"],
-		"xp": 70, "eva": 5, "zone": 3
+		"xp": 70, "eva": 5, "zone": 3, "resist_k": 0.10, "resist_e": -0.20, "resist_x": 0.25, "dmg_type": "explosive"
 	},
 	"z3_boss_warmaster": {
 		"name": "Martian Warmaster",
@@ -459,7 +493,7 @@ var enemy_db = {
 		"boss_core": "Z3_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z3_kinetic", "z3_energy", "z3_missile", "z3_shield", "z3_armor"],
-		"is_boss": true, "xp": 800, "eva": 15, "zone": 3
+		"is_boss": true, "xp": 800, "eva": 15, "zone": 3, "resist_k": 0.10, "resist_e": -0.25, "resist_x": 0.30, "dmg_type": "explosive"
 	},
 
 	# ═══ ZONE 4: Cryofield — Reg HP~2765, ATK~128, DEF~32 ═══
@@ -470,7 +504,7 @@ var enemy_db = {
 		"rare_loot": [["AdvCircuit", 0.08, 1, 2]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z4_kinetic", "z4_energy", "z4_missile", "z4_shield", "z4_armor"],
-		"xp": 120, "eva": 25, "zone": 4
+		"xp": 120, "eva": 25, "zone": 4, "resist_k": -0.15, "resist_e": 0.20, "resist_x": 0.0, "dmg_type": "energy"
 	},
 	"z4_cryo_sentinel": {
 		"name": "Cryo Sentinel",
@@ -479,7 +513,7 @@ var enemy_db = {
 		"rare_loot": [["Chip", 0.10, 1, 3]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z4_kinetic", "z4_energy", "z4_missile", "z4_shield", "z4_armor"],
-		"xp": 140, "eva": 12, "zone": 4
+		"xp": 140, "eva": 12, "zone": 4, "resist_k": -0.15, "resist_e": 0.25, "resist_x": 0.0, "dmg_type": "energy"
 	},
 	"z4_frost_hulk": {
 		"name": "Frost Hulk",
@@ -488,7 +522,7 @@ var enemy_db = {
 		"rare_loot": [["Ti", 0.15, 3, 8]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z4_kinetic", "z4_energy", "z4_shield", "z4_armor"],
-		"xp": 130, "eva": 5, "zone": 4
+		"xp": 130, "eva": 5, "zone": 4, "resist_k": -0.20, "resist_e": 0.15, "resist_x": 0.10, "dmg_type": "kinetic"
 	},
 	"z4_glacial_drone": {
 		"name": "Glacial Drone",
@@ -497,7 +531,7 @@ var enemy_db = {
 		"rare_loot": [["AdvCircuit", 0.10, 1, 2]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z4_kinetic", "z4_energy", "z4_missile", "z4_shield", "z4_armor"],
-		"xp": 135, "eva": 18, "zone": 4
+		"xp": 135, "eva": 18, "zone": 4, "resist_k": -0.10, "resist_e": 0.20, "resist_x": 0.0, "dmg_type": "energy"
 	},
 	"z4_boss_overseer": {
 		"name": "Cryo Overseer",
@@ -507,7 +541,7 @@ var enemy_db = {
 		"boss_core": "Z4_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z4_kinetic", "z4_energy", "z4_missile", "z4_shield", "z4_armor"],
-		"is_boss": true, "xp": 2000, "eva": 15, "zone": 4
+		"is_boss": true, "xp": 2000, "eva": 15, "zone": 4, "resist_k": -0.20, "resist_e": 0.30, "resist_x": 0.0, "dmg_type": "energy"
 	},
 
 	# ═══ ZONE 5: Sector Alpha — Reg HP~6636, ATK~281, DEF~70 ═══
@@ -518,7 +552,7 @@ var enemy_db = {
 		"rare_loot": [["QuantumCore", 0.05, 1, 1]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z5_kinetic", "z5_energy", "z5_missile", "z5_shield", "z5_armor"],
-		"xp": 300, "eva": 30, "zone": 5
+		"xp": 300, "eva": 30, "zone": 5, "resist_k": 0.20, "resist_e": 0.0, "resist_x": -0.15, "dmg_type": "energy"
 	},
 	"z5_xenon_corvette": {
 		"name": "Xenon Corvette",
@@ -527,7 +561,7 @@ var enemy_db = {
 		"rare_loot": [["Superalloy", 0.08, 1, 3]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z5_kinetic", "z5_energy", "z5_missile", "z5_shield", "z5_armor"],
-		"xp": 350, "eva": 15, "zone": 5
+		"xp": 350, "eva": 15, "zone": 5, "resist_k": 0.25, "resist_e": 0.0, "resist_x": -0.20, "dmg_type": "energy"
 	},
 	"z5_alien_frigate": {
 		"name": "Alien Frigate",
@@ -536,7 +570,7 @@ var enemy_db = {
 		"rare_loot": [["QuantumCore", 0.08, 1, 1]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z5_kinetic", "z5_energy", "z5_missile", "z5_shield", "z5_armor"],
-		"xp": 380, "eva": 10, "zone": 5
+		"xp": 380, "eva": 10, "zone": 5, "resist_k": 0.30, "resist_e": 0.10, "resist_x": -0.20, "dmg_type": "kinetic"
 	},
 	"z5_alien_probe": {
 		"name": "Alien Probe",
@@ -545,7 +579,7 @@ var enemy_db = {
 		"rare_loot": [["AdvCircuit", 0.10, 2, 4]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z5_kinetic", "z5_energy", "z5_shield", "z5_armor"],
-		"xp": 320, "eva": 35, "zone": 5
+		"xp": 320, "eva": 35, "zone": 5, "resist_k": 0.15, "resist_e": -0.10, "resist_x": -0.15, "dmg_type": "energy"
 	},
 	"z5_boss_harbinger": {
 		"name": "Xenon Harbinger",
@@ -555,7 +589,7 @@ var enemy_db = {
 		"boss_core": "Z5_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z5_kinetic", "z5_energy", "z5_missile", "z5_shield", "z5_armor"],
-		"is_boss": true, "xp": 5000, "eva": 20, "zone": 5
+		"is_boss": true, "xp": 5000, "eva": 20, "zone": 5, "resist_k": 0.30, "resist_e": 0.10, "resist_x": -0.30, "dmg_type": "energy"
 	},
 
 	# ═══ ZONE 6: Sector Beta — Reg HP~15926, ATK~618, DEF~155 ═══
@@ -566,7 +600,7 @@ var enemy_db = {
 		"rare_loot": [["AdvCircuit", 0.10, 2, 5]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z6_kinetic", "z6_energy", "z6_missile", "z6_shield", "z6_armor"],
-		"xp": 700, "eva": 5, "zone": 6
+		"xp": 700, "eva": 5, "zone": 6, "resist_k": 0.0, "resist_e": -0.20, "resist_x": 0.20, "dmg_type": "kinetic"
 	},
 	"z6_mining_golem": {
 		"name": "Mining Golem",
@@ -575,7 +609,7 @@ var enemy_db = {
 		"rare_loot": [["Superalloy", 0.10, 2, 5]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z6_kinetic", "z6_energy", "z6_missile", "z6_shield", "z6_armor"],
-		"xp": 750, "eva": 5, "zone": 6
+		"xp": 750, "eva": 5, "zone": 6, "resist_k": 0.10, "resist_e": -0.25, "resist_x": 0.25, "dmg_type": "explosive"
 	},
 	"z6_rad_beast": {
 		"name": "Radiation Beast",
@@ -584,7 +618,7 @@ var enemy_db = {
 		"rare_loot": [["Ir", 0.08, 1, 2]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z6_kinetic", "z6_energy", "z6_missile", "z6_shield", "z6_armor"],
-		"xp": 780, "eva": 12, "zone": 6
+		"xp": 780, "eva": 12, "zone": 6, "resist_k": -0.10, "resist_e": -0.15, "resist_x": 0.15, "dmg_type": "kinetic"
 	},
 	"z6_ore_guardian": {
 		"name": "Ore Guardian",
@@ -593,7 +627,7 @@ var enemy_db = {
 		"rare_loot": [["VoidArtifact", 0.10, 1, 3]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z6_kinetic", "z6_energy", "z6_shield", "z6_armor"],
-		"xp": 720, "eva": 8, "zone": 6
+		"xp": 720, "eva": 8, "zone": 6, "resist_k": 0.15, "resist_e": -0.20, "resist_x": 0.30, "dmg_type": "explosive"
 	},
 	"z6_boss_colossus": {
 		"name": "Gamma Colossus",
@@ -603,7 +637,7 @@ var enemy_db = {
 		"boss_core": "Z6_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z6_kinetic", "z6_energy", "z6_missile", "z6_shield", "z6_armor"],
-		"is_boss": true, "xp": 15000, "eva": 15, "zone": 6
+		"is_boss": true, "xp": 15000, "eva": 15, "zone": 6, "resist_k": 0.10, "resist_e": -0.30, "resist_x": 0.30, "dmg_type": "explosive"
 	},
 
 	# ═══ ZONE 7: Sector Gamma — Reg HP~38222, ATK~1360, DEF~341 ═══
@@ -614,7 +648,7 @@ var enemy_db = {
 		"rare_loot": [["Os", 0.08, 1, 2]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z7_kinetic", "z7_energy", "z7_missile", "z7_shield", "z7_armor"],
-		"xp": 1500, "eva": 30, "zone": 7
+		"xp": 1500, "eva": 30, "zone": 7, "resist_k": -0.15, "resist_e": 0.20, "resist_x": 0.0, "dmg_type": "energy"
 	},
 	"z7_energy_wraith": {
 		"name": "Energy Wraith",
@@ -623,7 +657,7 @@ var enemy_db = {
 		"rare_loot": [["Ir", 0.10, 1, 3]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z7_kinetic", "z7_energy", "z7_missile", "z7_shield", "z7_armor"],
-		"xp": 1800, "eva": 18, "zone": 7
+		"xp": 1800, "eva": 18, "zone": 7, "resist_k": -0.20, "resist_e": 0.30, "resist_x": 0.0, "dmg_type": "energy"
 	},
 	"z7_void_hunter": {
 		"name": "Void Hunter",
@@ -632,7 +666,7 @@ var enemy_db = {
 		"rare_loot": [["ExoticMatter", 0.12, 2, 4]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z7_kinetic", "z7_energy", "z7_missile", "z7_shield", "z7_armor"],
-		"xp": 1700, "eva": 25, "zone": 7
+		"xp": 1700, "eva": 25, "zone": 7, "resist_k": -0.20, "resist_e": 0.25, "resist_x": 0.10, "dmg_type": "energy"
 	},
 	"z7_gamma_beast": {
 		"name": "Gamma Beast",
@@ -641,7 +675,7 @@ var enemy_db = {
 		"rare_loot": [["Os", 0.10, 1, 2]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z7_kinetic", "z7_energy", "z7_shield", "z7_armor"],
-		"xp": 1600, "eva": 8, "zone": 7
+		"xp": 1600, "eva": 8, "zone": 7, "resist_k": -0.10, "resist_e": 0.20, "resist_x": 0.0, "dmg_type": "kinetic"
 	},
 	"z7_boss_sovereign": {
 		"name": "Sovereign Prism",
@@ -651,7 +685,7 @@ var enemy_db = {
 		"boss_core": "Z7_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z7_kinetic", "z7_energy", "z7_missile", "z7_shield", "z7_armor"],
-		"is_boss": true, "xp": 35000, "eva": 20, "zone": 7
+		"is_boss": true, "xp": 35000, "eva": 20, "zone": 7, "resist_k": -0.25, "resist_e": 0.35, "resist_x": 0.0, "dmg_type": "energy"
 	},
 
 	# ═══ ZONE 8: Sector Delta — Reg HP~91733, ATK~2993, DEF~749 ═══
@@ -662,7 +696,7 @@ var enemy_db = {
 		"rare_loot": [["Diamond", 0.05, 1, 1]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z8_kinetic", "z8_energy", "z8_missile", "z8_shield", "z8_armor"],
-		"xp": 4000, "eva": 22, "zone": 8
+		"xp": 4000, "eva": 22, "zone": 8, "resist_k": 0.25, "resist_e": 0.0, "resist_x": -0.20, "dmg_type": "energy"
 	},
 	"z8_crystal_golem": {
 		"name": "Crystal Golem",
@@ -671,7 +705,7 @@ var enemy_db = {
 		"rare_loot": [["Diamond", 0.08, 1, 1]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z8_kinetic", "z8_energy", "z8_missile", "z8_shield", "z8_armor"],
-		"xp": 4500, "eva": 5, "zone": 8
+		"xp": 4500, "eva": 5, "zone": 8, "resist_k": 0.30, "resist_e": 0.10, "resist_x": -0.25, "dmg_type": "kinetic"
 	},
 	"z8_void_stalker": {
 		"name": "Void Stalker",
@@ -680,7 +714,7 @@ var enemy_db = {
 		"rare_loot": [["Os", 0.10, 1, 3]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z8_kinetic", "z8_energy", "z8_missile", "z8_shield", "z8_armor"],
-		"xp": 4200, "eva": 28, "zone": 8
+		"xp": 4200, "eva": 28, "zone": 8, "resist_k": 0.20, "resist_e": -0.10, "resist_x": -0.15, "dmg_type": "energy"
 	},
 	"z8_nebula_phantom": {
 		"name": "Nebula Phantom",
@@ -689,7 +723,7 @@ var enemy_db = {
 		"rare_loot": [["ExoticMatter", 0.12, 2, 5]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z8_kinetic", "z8_energy", "z8_shield", "z8_armor"],
-		"xp": 4300, "eva": 15, "zone": 8
+		"xp": 4300, "eva": 15, "zone": 8, "resist_k": 0.25, "resist_e": 0.10, "resist_x": -0.20, "dmg_type": "kinetic"
 	},
 	"z8_boss_warden": {
 		"name": "Prismatic Warden",
@@ -699,7 +733,7 @@ var enemy_db = {
 		"boss_core": "Z8_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z8_kinetic", "z8_energy", "z8_missile", "z8_shield", "z8_armor"],
-		"is_boss": true, "xp": 80000, "eva": 18, "zone": 8
+		"is_boss": true, "xp": 80000, "eva": 18, "zone": 8, "resist_k": 0.35, "resist_e": 0.10, "resist_x": -0.30, "dmg_type": "kinetic"
 	},
 
 	# ═══ ZONE 9: Sector Zeta — Reg HP~220160, ATK~6584, DEF~1648 ═══
@@ -710,7 +744,7 @@ var enemy_db = {
 		"rare_loot": [["PathogenCore", 0.05, 1, 1]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z9_kinetic", "z9_energy", "z9_missile", "z9_shield", "z9_armor"],
-		"xp": 10000, "eva": 20, "zone": 9
+		"xp": 10000, "eva": 20, "zone": 9, "resist_k": 0.0, "resist_e": -0.15, "resist_x": 0.20, "dmg_type": "explosive"
 	},
 	"z9_bio_horror": {
 		"name": "Bio-Horror",
@@ -719,7 +753,7 @@ var enemy_db = {
 		"rare_loot": [["PathogenCore", 0.08, 1, 1]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z9_kinetic", "z9_energy", "z9_missile", "z9_shield", "z9_armor"],
-		"xp": 12000, "eva": 12, "zone": 9
+		"xp": 12000, "eva": 12, "zone": 9, "resist_k": 0.0, "resist_e": -0.20, "resist_x": 0.25, "dmg_type": "explosive"
 	},
 	"z9_rogue_ai": {
 		"name": "Rogue AI Core",
@@ -728,7 +762,7 @@ var enemy_db = {
 		"rare_loot": [["ChronoCore", 0.05, 1, 1]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z9_kinetic", "z9_energy", "z9_missile", "z9_shield", "z9_armor"],
-		"xp": 11000, "eva": 25, "zone": 9
+		"xp": 11000, "eva": 25, "zone": 9, "resist_k": -0.10, "resist_e": -0.15, "resist_x": 0.15, "dmg_type": "energy"
 	},
 	"z9_quarantine_mech": {
 		"name": "Quarantine Mech",
@@ -737,7 +771,7 @@ var enemy_db = {
 		"rare_loot": [["PathogenCore", 0.10, 1, 2]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z9_kinetic", "z9_energy", "z9_shield", "z9_armor"],
-		"xp": 11500, "eva": 5, "zone": 9
+		"xp": 11500, "eva": 5, "zone": 9, "resist_k": 0.10, "resist_e": -0.20, "resist_x": 0.30, "dmg_type": "explosive"
 	},
 	"z9_boss_patient_zero": {
 		"name": "Patient Zero",
@@ -747,7 +781,7 @@ var enemy_db = {
 		"boss_core": "Z9_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z9_kinetic", "z9_energy", "z9_missile", "z9_shield", "z9_armor"],
-		"is_boss": true, "xp": 200000, "eva": 20, "zone": 9
+		"is_boss": true, "xp": 200000, "eva": 20, "zone": 9, "resist_k": 0.10, "resist_e": -0.25, "resist_x": 0.35, "dmg_type": "explosive"
 	},
 
 	# ═══ ZONE 10: Sector Epsilon — Reg HP~528384, ATK~14484, DEF~3627 ═══
@@ -758,7 +792,7 @@ var enemy_db = {
 		"rare_loot": [["ChronoCore", 0.05, 1, 1]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z10_kinetic", "z10_energy", "z10_missile", "z10_shield", "z10_armor"],
-		"xp": 25000, "eva": 25, "zone": 10
+		"xp": 25000, "eva": 25, "zone": 10, "resist_k": 0.15, "resist_e": 0.15, "resist_x": 0.10, "dmg_type": "kinetic"
 	},
 	"z10_temporal_phantom": {
 		"name": "Temporal Phantom",
@@ -767,7 +801,7 @@ var enemy_db = {
 		"rare_loot": [["PrimordialShard", 0.08, 1, 2]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z10_kinetic", "z10_energy", "z10_missile", "z10_shield", "z10_armor"],
-		"xp": 30000, "eva": 35, "zone": 10
+		"xp": 30000, "eva": 35, "zone": 10, "resist_k": 0.15, "resist_e": 0.15, "resist_x": 0.15, "dmg_type": "energy"
 	},
 	"z10_omega_sentinel": {
 		"name": "Omega Sentinel",
@@ -776,7 +810,7 @@ var enemy_db = {
 		"rare_loot": [["VoidEssence", 0.10, 1, 3]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z10_kinetic", "z10_energy", "z10_missile", "z10_shield", "z10_armor"],
-		"xp": 28000, "eva": 10, "zone": 10
+		"xp": 28000, "eva": 10, "zone": 10, "resist_k": 0.20, "resist_e": 0.10, "resist_x": 0.10, "dmg_type": "explosive"
 	},
 	"z10_primordial_titan": {
 		"name": "Primordial Titan",
@@ -785,7 +819,7 @@ var enemy_db = {
 		"rare_loot": [["OmegaPlating", 0.08, 1, 2]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z10_kinetic", "z10_energy", "z10_shield", "z10_armor"],
-		"xp": 32000, "eva": 5, "zone": 10
+		"xp": 32000, "eva": 5, "zone": 10, "resist_k": 0.10, "resist_e": 0.15, "resist_x": 0.15, "dmg_type": "kinetic"
 	},
 	"z10_boss_leviathan": {
 		"name": "Void Leviathan",
@@ -795,7 +829,60 @@ var enemy_db = {
 		"boss_core": "Z10_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z10_kinetic", "z10_energy", "z10_missile", "z10_shield", "z10_armor"],
-		"is_boss": true, "xp": 500000, "eva": 25, "zone": 10
+		"is_boss": true, "xp": 500000, "eva": 25, "zone": 10, "resist_k": 0.20, "resist_e": 0.20, "resist_x": 0.20, "dmg_type": "energy"
+	},
+
+	# ═══ HAZARD ZONE: EMP Nexus — Boosted Z2 enemies ═══
+	"hz_emp_drone_1": {
+		"name": "EMP Assault Drone",
+		"stats": {"hp": 600, "max_shield": 150, "atk": 40, "def": 15, "atk_interval": 2.0, "accuracy": 35},
+		"loot": [["credits", 500, 1000], ["Fe", 5, 10], ["Cu", 3, 6]],
+		"rare_loot": [], "xp": 40, "eva": 15, "zone": 2,
+		"resist_k": 0.20, "resist_e": -0.20, "resist_x": 0.0, "dmg_type": "energy"
+	},
+	"hz_emp_drone_2": {
+		"name": "Charged Golem",
+		"stats": {"hp": 800, "atk": 50, "def": 20, "atk_interval": 3.0, "accuracy": 30},
+		"loot": [["credits", 600, 1200], ["Si", 5, 10], ["Cu", 2, 5]],
+		"rare_loot": [], "xp": 45, "eva": 5, "zone": 2,
+		"resist_k": 0.30, "resist_e": -0.15, "resist_x": -0.10, "dmg_type": "energy"
+	},
+	"hz_emp_drone_3": {
+		"name": "Pulse Skimmer",
+		"stats": {"hp": 500, "max_shield": 300, "atk": 35, "def": 10, "atk_interval": 1.5, "accuracy": 40},
+		"loot": [["credits", 400, 800], ["Fe", 3, 8], ["Res1", 2, 4]],
+		"rare_loot": [], "xp": 35, "eva": 20, "zone": 2,
+		"resist_k": 0.10, "resist_e": -0.25, "resist_x": 0.10, "dmg_type": "energy"
+	},
+	"hz_emp_drone_4": {
+		"name": "Static Hauler",
+		"stats": {"hp": 1000, "atk": 55, "def": 25, "atk_interval": 3.5, "accuracy": 28},
+		"loot": [["credits", 700, 1400], ["Fe", 8, 15], ["Ti", 1, 3]],
+		"rare_loot": [], "xp": 50, "eva": 3, "zone": 2,
+		"resist_k": 0.25, "resist_e": 0.0, "resist_x": -0.20, "dmg_type": "energy"
+	},
+	"hz_emp_drone_5": {
+		"name": "Ion Disruptor",
+		"stats": {"hp": 700, "max_shield": 200, "atk": 45, "def": 12, "atk_interval": 2.0, "accuracy": 38},
+		"loot": [["credits", 500, 1000], ["Cu", 5, 10], ["Si", 3, 6]],
+		"rare_loot": [], "xp": 42, "eva": 18, "zone": 2,
+		"resist_k": 0.15, "resist_e": -0.20, "resist_x": 0.0, "dmg_type": "energy"
+	},
+	"hz_emp_elite": {
+		"name": "EMP Commander",
+		"stats": {"hp": 2500, "max_shield": 600, "atk": 100, "def": 40, "atk_interval": 2.5, "accuracy": 50},
+		"loot": [["credits", 3000, 6000], ["Cu", 10, 20], ["Ti", 3, 8], ["Res1", 5, 10]],
+		"rare_loot": [["Circuit", 0.30, 3, 6]],
+		"xp": 150, "eva": 12, "zone": 2,
+		"resist_k": 0.30, "resist_e": -0.25, "resist_x": -0.15, "dmg_type": "energy"
+	},
+	"hz_emp_overlord": {
+		"name": "EMP Overlord",
+		"stats": {"hp": 8000, "max_shield": 1500, "atk": 200, "def": 60, "atk_interval": 2.0, "accuracy": 65},
+		"loot": [["credits", 10000, 20000], ["Cu", 20, 40], ["Ti", 8, 15], ["Res1", 10, 20]],
+		"rare_loot": [["AdvCircuit", 0.25, 2, 4], ["NavData", 0.40, 1, 3]],
+		"is_boss": true, "xp": 500, "eva": 10, "zone": 2,
+		"resist_k": 0.35, "resist_e": -0.30, "resist_x": -0.20, "dmg_type": "energy"
 	}
 }
 
@@ -812,6 +899,19 @@ func get_available_zones() -> Array:
 				available.append({"id": zid, "data": data})
 		else:
 			available.append({"id": zid, "data": data})
+	
+	# v86.0: Append unlocked hazard zones
+	for hz_id in hazard_zones:
+		if is_hazard_unlocked(hz_id):
+			var hz = hazard_zones[hz_id]
+			var display_data = {
+				"name": "⚠ %s" % hz["name"],
+				"desc": hz["desc"],
+				"difficulty": hz.get("zone_difficulty", 3),
+				"is_hazard": true
+			}
+			available.append({"id": hz_id, "data": display_data, "is_hazard": true})
+	
 	return available
 
 func start_expedition(zone_id: String):
@@ -890,7 +990,11 @@ func spawn_enemy():
 		"eva": e_data["stats"].get("eva", 0),
 		# v62.0 Fix: Copy atk_interval so enemy attack speed is used
 		"atk_interval": e_data["stats"].get("atk_interval", 3.0),
-		"is_elite": false # Default
+		"is_elite": false, # Default
+		"resist_k": e_data.get("resist_k", 0.0),
+		"resist_e": e_data.get("resist_e", 0.0),
+		"resist_x": e_data.get("resist_x", 0.0),
+		"dmg_type": e_data.get("dmg_type", "kinetic") # v87.0: Typed enemy damage
 	}
 	
 	# v83.0: Disabled progression-based scaling per user request. 
@@ -1207,6 +1311,14 @@ func _execute_player_attack(weapon_idx: int):
 	if is_jammed and randf() < 0.25:
 		combat_events.append({"type": "miss", "text": "JAMMED", "color": Color.ORANGE, "side": "enemy"})
 		return
+	
+	# v86.0: EMP Storm hazard — 40% weapon jam if in EMP Nexus without counter
+	if hazard_state["active"] and _get_active_hazard_type() == "emp_storm":
+		var has_counter = _loadout_has_module(sm, "faraday_hull")
+		var jam_chance = 0.10 if has_counter else 0.40 # 10% even with counter for flavor
+		if randf() < jam_chance:
+			combat_events.append({"type": "miss", "text": "EMP JAM", "color": Color.YELLOW, "side": "enemy"})
+			return
 
 	# Manual consume check removed (Auto-only now)
 
@@ -1317,8 +1429,25 @@ func _execute_player_attack(weapon_idx: int):
 	var res = resolve_damage(p_atk_k, p_atk_e, p_atk_x, enemy_shield, current_enemy["def"], current_zone.get("difficulty", 1), total_crit, true)
 	enemy_shield = max(0, enemy_shield - res[0])
 	enemy_hp -= res[1]
-	if res[0] > 0: combat_events.append({"type": "dmg_shield", "text": "-%d" % res[0], "color": Color.CYAN, "side": "enemy"})
-	if res[1] > 0: combat_events.append({"type": "dmg_hull", "text": "-%d" % res[1], "color": Color.RED, "side": "enemy"})
+	
+	# v86.0: Typed damage labels
+	var type_tag = "KIN"
+	if p_atk_e > p_atk_k and p_atk_e > p_atk_x: type_tag = "NRG"
+	elif p_atk_x > p_atk_k and p_atk_x > p_atk_e: type_tag = "EXP"
+	
+	if res[0] > 0: combat_events.append({"type": "dmg_shield", "text": "-%d %s" % [res[0], type_tag], "color": Color.CYAN, "side": "enemy"})
+	if res[1] > 0: combat_events.append({"type": "dmg_hull", "text": "-%d %s" % [res[1], type_tag], "color": Color.RED, "side": "enemy"})
+	
+	# v86.0: Resistance feedback
+	var dominant_resist = current_enemy.get("resist_k", 0.0)
+	if type_tag == "NRG": dominant_resist = current_enemy.get("resist_e", 0.0)
+	elif type_tag == "EXP": dominant_resist = current_enemy.get("resist_x", 0.0)
+	
+	if dominant_resist >= 0.20 and randf() < 0.15: # 15% chance to show feedback (anti-spam)
+		combat_events.append({"type": "resist", "text": "RESISTED", "color": Color.GRAY, "side": "enemy"})
+	elif dominant_resist <= -0.20 and randf() < 0.15:
+		combat_events.append({"type": "weakness", "text": "WEAK SPOT", "color": Color.GREEN, "side": "enemy"})
+	
 	if enemy_hp <= 0: win_fight()
 
 func _execute_enemy_attack():
@@ -1330,8 +1459,21 @@ func _execute_enemy_attack():
 		combat_events.append({"type": "miss", "text": "MISS", "color": Color.WHITE, "side": "player"})
 	else:
 		var difficulty = current_zone.get("difficulty", 1)
+		# v87.0: Enemy uses typed damage channels
+		var e_atk = current_enemy["atk"]
+		var e_type = current_enemy.get("dmg_type", "kinetic")
+		var e_atk_k = 0
+		var e_atk_e = 0
+		var e_atk_x = 0
+		match e_type:
+			"energy":
+				e_atk_e = e_atk * ENEMY_ENERGY_ATK_COMP
+			"explosive":
+				e_atk_x = e_atk * ENEMY_EXPLOSIVE_ATK_COMP
+			_:
+				e_atk_k = e_atk
 		# Enemy uses base crit 5%
-		var eres = resolve_damage(current_enemy["atk"], 0, 0, player_shield, sm.defense, difficulty, 0.05, false)
+		var eres = resolve_damage(e_atk_k, e_atk_e, e_atk_x, player_shield, sm.defense, difficulty, 0.05, false)
 		
 		# v80.1: Unified Reflect Logic (Reflective Sheath + Monolith's Bedrock)
 		var reflect_pct = _get_set_bonus_value("reflect_pct") / 100.0
@@ -1356,8 +1498,13 @@ func _execute_enemy_attack():
 			
 		player_shield = max(0, player_shield - eres[0])
 		sm.current_hp -= eres[1]
-		if eres[0] > 0: combat_events.append({"type": "dmg_shield", "text": "-%d" % eres[0], "color": Color.CYAN, "side": "player"})
-		if eres[1] > 0: combat_events.append({"type": "dmg_hull", "text": "-%d" % eres[1], "color": Color.RED, "side": "player"})
+		# v87.0: Typed damage labels for enemy attacks
+		var e_type_tag = "KIN"
+		match current_enemy.get("dmg_type", "kinetic"):
+			"energy": e_type_tag = "NRG"
+			"explosive": e_type_tag = "EXP"
+		if eres[0] > 0: combat_events.append({"type": "dmg_shield", "text": "-%d %s" % [eres[0], e_type_tag], "color": Color.CYAN, "side": "player"})
+		if eres[1] > 0: combat_events.append({"type": "dmg_hull", "text": "-%d %s" % [eres[1], e_type_tag], "color": Color.RED, "side": "player"})
 	if sm.current_hp <= 0: lose_fight()
 
 func resolve_damage(atk_k, atk_e, atk_x, c_shield, c_armor, difficulty = 1, crit_chance = 0.05, is_player_attacker = false):
@@ -1409,6 +1556,15 @@ func resolve_damage(atk_k, atk_e, atk_x, c_shield, c_armor, difficulty = 1, crit
 	var hull_dmg_k = atk_k * 1.2 * (1.0 - arm_k / (arm_k + k))
 	var hull_dmg_e = atk_e * 0.9 * (1.0 - arm_e / (arm_e + k))
 	var hull_dmg_x = atk_x * 1.0 * (1.0 - arm_x / (arm_x + k))
+	
+	# v86.0: Enemy Damage Type Resistances
+	if is_player_attacker and current_enemy:
+		var rk = clamp(current_enemy.get("resist_k", 0.0), -0.30, 0.50)
+		var re = clamp(current_enemy.get("resist_e", 0.0), -0.30, 0.50)
+		var rx = clamp(current_enemy.get("resist_x", 0.0), -0.30, 0.50)
+		hull_dmg_k *= (1.0 - rk)
+		hull_dmg_e *= (1.0 - re)
+		hull_dmg_x *= (1.0 - rx)
 	
 	var total_hull_dmg = (hull_dmg_k + hull_dmg_e + hull_dmg_x) * bleed_ratio
 	
@@ -1493,6 +1649,7 @@ func win_fight():
 					session_loot[final_id] = session_loot.get(final_id, 0) + 1
 				else:
 					sm.module_inventory[item_id] = sm.module_inventory.get(item_id, 0) + qty
+					sm.unseen_modules[item_id] = true
 					session_loot[item_id] = session_loot.get(item_id, 0) + qty
 					
 				sm.new_drops_alert = true
@@ -1584,6 +1741,24 @@ func win_fight():
 
 	add_xp(int(current_enemy["xp"] * (1.0 + GameState.research_manager.get_efficiency_bonus("combat_xp"))))
 	enemy_defeated.emit(current_enemy["id"])
+	
+	# v86.0: Track boss kills for hazard zone unlocks
+	if current_enemy.get("is_boss", false):
+		var eid = current_enemy["id"]
+		boss_kills[eid] = boss_kills.get(eid, 0) + 1
+	
+	# v86.0: Hazard Zone Gauntlet Progression
+	if hazard_state["active"]:
+		hazard_state["wave"] += 1
+		if hazard_state["wave"] >= hazard_state["max_waves"]:
+			# Gauntlet Complete!
+			_complete_hazard_zone()
+		else:
+			# Spawn next wave enemy (NO HP/shield reset)
+			_spawn_hazard_wave_enemy()
+			combat_events.append({"type": "status", "text": "WAVE %d/%d" % [hazard_state["wave"] + 1, hazard_state["max_waves"]], "color": Color.YELLOW, "side": "player"})
+		return
+	
 	spawn_enemy()
 
 func lose_fight():
@@ -1596,6 +1771,13 @@ func lose_fight():
 	
 	# v100.0: Module Durability System
 	sm.handle_module_defeat()
+	
+	# v86.0: Hazard Zone — eject on death
+	if hazard_state["active"]:
+		var hz_name = hazard_zones.get(hazard_state["zone_id"], {}).get("name", "Hazard Zone")
+		log_msg("EJECTED from %s at Wave %d/%d!" % [hz_name, hazard_state["wave"] + 1, hazard_state["max_waves"]])
+		combat_events.append({"type": "status", "text": "HAZARD FAILED", "color": Color.RED, "side": "player"})
+		_reset_hazard_state()
 	
 	retreat()
 
@@ -1682,6 +1864,147 @@ func log_msg(msg: String):
 	combat_log.append(msg)
 	if combat_log.size() > 20: combat_log.pop_front()
 
+# v86.0: Hazard Zone API
+func start_hazard(zone_id: String) -> bool:
+	if zone_id not in hazard_zones:
+		log_msg("Unknown hazard zone: %s" % zone_id)
+		return false
+	
+	var hz = hazard_zones[zone_id]
+	
+	# Check unlock: boss must have been killed at least once
+	var unlock_boss = hz.get("unlock_boss", "")
+	if unlock_boss != "" and boss_kills.get(unlock_boss, 0) <= 0:
+		log_msg("LOCKED: Defeat %s first." % enemy_db.get(unlock_boss, {}).get("name", unlock_boss))
+		return false
+	
+	# Hard gate: counter module must be equipped
+	var counter = hz.get("counter_module", "")
+	if counter != "":
+		var sm = GameState.shipyard_manager
+		if not _loadout_has_module(sm, counter):
+			var mod_name = sm.modules.get(counter, {}).get("name", counter)
+			log_msg("BLOCKED: %s required to enter %s." % [mod_name, hz["name"]])
+			combat_events.append({"type": "status", "text": "REQUIRES: %s" % mod_name.to_upper(), "color": Color.RED, "side": "player"})
+			return false
+	
+	# Set up gauntlet
+	hazard_state = {
+		"active": true,
+		"zone_id": zone_id,
+		"wave": 0,
+		"max_waves": hz.get("max_waves", 7),
+		"completed": false
+	}
+	
+	# Create a dummy zone entry for combat compatibility
+	current_zone = {
+		"name": hz["name"],
+		"desc": hz["desc"],
+		"difficulty": hz.get("zone_difficulty", 3),
+		"enemies": hz["enemy_pool"]
+	}
+	current_zone_id = zone_id
+	
+	GameState.set_active_manager(self)
+	in_combat = true
+	
+	var sm = GameState.shipyard_manager
+	player_shield = sm.max_shield
+	shield_regen_accumulator = 0.0
+	player_heat = 0.0
+	overheat_lock = 0.0
+	heat_changed.emit(player_heat, player_max_heat)
+	
+	_spawn_hazard_wave_enemy()
+	log_msg("ENTERING: %s — WAVE 1/%d" % [hz["name"], hazard_state["max_waves"]])
+	combat_events.append({"type": "status", "text": "HAZARD: %s" % hz["name"].to_upper(), "color": Color.YELLOW, "side": "player"})
+	combat_events.append({"type": "status", "text": "WAVE 1/%d" % hazard_state["max_waves"], "color": Color.YELLOW, "side": "player"})
+	return true
+
+func _spawn_hazard_wave_enemy():
+	var hz = hazard_zones.get(hazard_state["zone_id"], {})
+	var wave = hazard_state["wave"]
+	var max_waves = hazard_state["max_waves"]
+	
+	var eid = ""
+	if wave == max_waves - 1:
+		# Final wave: Boss
+		eid = hz.get("boss_enemy", hz["enemy_pool"][0])
+	elif wave == max_waves - 2:
+		# Second to last: Elite mini-boss
+		eid = hz.get("elite_enemy", hz["enemy_pool"][0])
+	else:
+		# Regular waves: pick from pool
+		eid = hz["enemy_pool"][wave % hz["enemy_pool"].size()]
+	
+	# Scale stats by wave progression (+20% per wave)
+	var wave_mult = 1.0 + (wave * 0.20)
+	
+	target_enemy_id = eid
+	spawn_enemy()
+	
+	# Apply wave scaling
+	current_enemy["max_hp"] = int(current_enemy["max_hp"] * wave_mult)
+	current_enemy["atk"] = int(current_enemy["atk"] * wave_mult)
+	current_enemy["max_shield"] = int(current_enemy.get("max_shield", 0) * wave_mult)
+	
+	enemy_hp = current_enemy["max_hp"]
+	enemy_max_hp = enemy_hp
+	enemy_shield = float(current_enemy["max_shield"])
+	enemy_max_shield = enemy_shield
+
+func _complete_hazard_zone():
+	var hz_id = hazard_state["zone_id"]
+	var hz = hazard_zones.get(hz_id, {})
+	var hz_name = hz.get("name", "Hazard Zone")
+	
+	log_msg("HAZARD CLEARED: %s!" % hz_name)
+	combat_events.append({"type": "status", "text": "HAZARD CLEARED!", "color": Color.GOLD, "side": "player"})
+	
+	# First-clear reward
+	if hz_id not in hazard_clears:
+		hazard_clears[hz_id] = true
+		var reward = hz.get("first_clear_reward", "")
+		if reward != "":
+			GameState.resources.add_element(reward, 1)
+			log_msg("FIRST CLEAR REWARD: %s" % reward.replace("_", " ").capitalize())
+			combat_events.append({"type": "loot", "text": "★ FIRST CLEAR REWARD", "color": Color.GOLD, "side": "player"})
+	
+	_reset_hazard_state()
+	in_combat = false
+
+func _reset_hazard_state():
+	hazard_state = {
+		"active": false,
+		"zone_id": "",
+		"wave": 0,
+		"max_waves": 7,
+		"completed": false
+	}
+
+func _get_active_hazard_type() -> String:
+	if not hazard_state["active"]:
+		return ""
+	var hz = hazard_zones.get(hazard_state["zone_id"], {})
+	return hz.get("hazard_type", "")
+
+func is_hazard_unlocked(zone_id: String) -> bool:
+	if zone_id not in hazard_zones:
+		return false
+	var hz = hazard_zones[zone_id]
+	var unlock_boss = hz.get("unlock_boss", "")
+	return unlock_boss == "" or boss_kills.get(unlock_boss, 0) > 0
+
+func has_counter_module(zone_id: String) -> bool:
+	if zone_id not in hazard_zones:
+		return false
+	var counter = hazard_zones[zone_id].get("counter_module", "")
+	if counter == "":
+		return true # No counter needed
+	var sm = GameState.shipyard_manager
+	return _loadout_has_module(sm, counter)
+
 func get_save_data_manager() -> Dictionary:
 	var data = get_save_data()
 	data["in_combat"] = in_combat
@@ -1694,6 +2017,8 @@ func get_save_data_manager() -> Dictionary:
 	data["session_loot"] = session_loot
 	data["loot_filter"] = loot_filter
 	data["loot_type_filter"] = loot_type_filter
+	data["boss_kills"] = boss_kills
+	data["hazard_clears"] = hazard_clears
 	return data
 
 func load_save_data_manager(data: Dictionary):
@@ -1730,6 +2055,10 @@ func load_save_data_manager(data: Dictionary):
 	# Ensure max shield is set even if not in combat
 	if GameState.shipyard_manager:
 		player_max_shield = GameState.shipyard_manager.max_shield
+	
+	# v86.0: Load boss kills and hazard clears
+	boss_kills = data.get("boss_kills", {})
+	hazard_clears = data.get("hazard_clears", {})
 func reset(decay_factor: float = 1.0) -> void:
 	super.reset(decay_factor)
 	retreat()
@@ -1789,9 +2118,10 @@ func calculate_offline(delta: float) -> String:
 	# Build report
 	var report = "Combat Offline Gains (%d kills):\n" % num_kills
 	for item in loot_summary:
-		report += " + %d %s\n" % [loot_summary[item], item]
+		var d_name = ElementDB.get_display_name(item) if ElementDB else item
+		report += " + %s: %d\n" % [d_name, loot_summary[item]]
 	if credits_earned > 0:
-		report += " + %d Credits\n" % credits_earned
-	report += " + %d XP" % total_xp
+		report += " + Credits: %d\n" % credits_earned
+	report += " + XP: %d" % total_xp
 	
 	return report

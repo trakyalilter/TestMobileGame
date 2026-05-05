@@ -289,6 +289,7 @@ var new_drops_alert: bool = false:
 
 var active_hull: String = "corvette_hull"
 var module_inventory: Dictionary = {}
+var unseen_modules: Dictionary = {}
 var loadout: Dictionary = {} # {slot_index: module_id}
 var ammo_loadout: Dictionary = {} # {slot_index: ammo_id}
 
@@ -1091,6 +1092,14 @@ var modules: Dictionary = {
 		"set_id": "monoliths_bedrock", "is_unique": true
 	},
 
+	# v86.0: Hazard Zone Counter Equipment
+	"faraday_hull": {
+		"name": "Faraday Hull", "slot_type": "armor", "rarity": 4,
+		"stats": {"def": 20, "hp": 80},
+		"cost": {}, "desc": "EMP-shielded armor plating with integrated electromagnetic dampeners. Grants immunity to weapon jamming in the EMP Nexus.", "zone": 2,
+		"is_unique": true, "special": "emp_immunity"
+	},
+
 	# ── Z3: Warmaster's Arsenal (+12% Crit Chance, +8% ATK) ──
 	"z3_unique_weapon": {
 		"name": "Warmaster's Railgun", "slot_type": "weapon", "rarity": 4,
@@ -1880,6 +1889,7 @@ func get_save_data_manager() -> Dictionary:
 	data["active_hull"] = active_hull
 	data["loadout"] = loadout
 	data["inventory"] = module_inventory
+	data["unseen_modules"] = unseen_modules
 	data["hp"] = current_hp
 	data["ammo_loadout"] = ammo_loadout
 	data["consumable_hull_slot"] = consumable_hull_slot
@@ -1910,6 +1920,7 @@ func load_save_data_manager(data: Dictionary):
 			loadout[i] = val
 			
 	module_inventory = data.get("inventory", {})
+	unseen_modules = data.get("unseen_modules", {})
 	_migrate_module_entries_from_resources()
 	
 	# Convert JSON string keys for ammo_loadout back to int
@@ -1978,6 +1989,7 @@ func repair_hull() -> bool:
 func reset(decay_factor: float = 1.0) -> void:
 	active_hull = "corvette_hull"
 	module_inventory = {}
+	unseen_modules = {}
 	loadout = {}
 	ammo_loadout = {}
 	custom_modules = {}
@@ -2106,7 +2118,7 @@ func generate_module_drop(base_module_id: String, rarity: int = Rarity.UNCOMMON,
 		var cfg = AFFIX_DB[a_id]
 		if not cfg.has("limit_to") or slot_type in cfg["limit_to"]:
 			affix_pool.append(a_id)
-			
+					
 	# Fallback: If no restricted affixes match, allow sensor/industrial as generic fill for empty slots
 	if affix_pool.is_empty():
 		for a_id in AFFIX_DB:
@@ -2207,6 +2219,7 @@ func generate_module_drop(base_module_id: String, rarity: int = Rarity.UNCOMMON,
 	custom_modules[custom_id] = custom_module
 	
 	module_inventory[custom_id] = module_inventory.get(custom_id, 0) + 1
+	unseen_modules[custom_id] = true
 	new_drops_alert = true
 	inventory_updated.emit()
 	return custom_id
@@ -2282,12 +2295,21 @@ func roll_rarity(is_boss: bool = false) -> int:
 	else:
 		return Rarity.UNCOMMON
 
-# v71.2: Sell module for credits
+# v71.2: Sell module for credits -> v100: Demolish for credits + SpareParts
 const RARITY_SELL_PRICES = {
 	Rarity.COMMON: 100,
 	Rarity.UNCOMMON: 500,
 	Rarity.RARE: 2500,
 	Rarity.LEGENDARY: 15000,
+	Rarity.UNIQUE: 50000,
+}
+
+const RARITY_SPARE_PARTS = {
+	Rarity.COMMON: 1,
+	Rarity.UNCOMMON: 2,
+	Rarity.RARE: 5,
+	Rarity.LEGENDARY: 15,
+	Rarity.UNIQUE: 50,
 }
 
 func get_sell_price(module_id: String) -> int:
@@ -2300,11 +2322,18 @@ func get_sell_price(module_id: String) -> int:
 	var rarity = m.get("rarity", Rarity.COMMON)
 	return RARITY_SELL_PRICES.get(rarity, 100)
 
-func sell_module(module_id: String) -> bool:
+func get_demolish_parts(module_id: String) -> int:
+	var m = modules.get(module_id, {})
+	var rarity = m.get("rarity", Rarity.COMMON)
+	return RARITY_SPARE_PARTS.get(rarity, 1)
+
+func demolish_module(module_id: String) -> bool:
 	if module_id not in module_inventory or module_inventory[module_id] <= 0:
 		return false
 	
 	var price = get_sell_price(module_id)
+	var parts = get_demolish_parts(module_id)
+	
 	module_inventory[module_id] -= 1
 	if module_inventory[module_id] <= 0:
 		module_inventory.erase(module_id)
@@ -2314,5 +2343,50 @@ func sell_module(module_id: String) -> bool:
 			modules.erase(module_id)
 	
 	GameState.resources.add_currency("credits", price)
+	GameState.resources.add_element("SparePart", parts)
+	inventory_updated.emit()
+	return true
+
+# v87.1: Batch Demolish for multi-select
+func get_batch_demolish_summary(module_ids: Array) -> Dictionary:
+	var total_credits = 0
+	var total_parts = 0
+	var valid_count = 0
+	for mid in module_ids:
+		if mid in module_inventory and module_inventory[mid] > 0:
+			total_credits += get_sell_price(mid)
+			total_parts += get_demolish_parts(mid)
+			valid_count += 1
+	return {"count": valid_count, "credits": total_credits, "parts": total_parts}
+
+func demolish_modules_batch(module_ids: Array) -> Dictionary:
+	var total_credits = 0
+	var total_parts = 0
+	var count = 0
+	for mid in module_ids:
+		if mid in module_inventory and module_inventory[mid] > 0:
+			var price = get_sell_price(mid)
+			var parts = get_demolish_parts(mid)
+			if demolish_module(mid):
+				total_credits += price
+				total_parts += parts
+				count += 1
+	return {"count": count, "credits": total_credits, "parts": total_parts}
+
+func repair_module(slot_idx: int, cost_credits: int, cost_parts: int) -> bool:
+	if GameState.resources.get_currency("credits") < cost_credits: return false
+	if GameState.resources.get_element_amount("SparePart") < cost_parts: return false
+	
+	var mid = loadout.get(slot_idx)
+	if not mid or not mid.begins_with("custom_"): return false
+	
+	GameState.resources.remove_currency("credits", cost_credits)
+	GameState.resources.remove_element("SparePart", cost_parts)
+	
+	modules[mid]["durability"] = 100
+	if mid in custom_modules:
+		custom_modules[mid]["durability"] = 100
+	
+	recalc_stats()
 	inventory_updated.emit()
 	return true
