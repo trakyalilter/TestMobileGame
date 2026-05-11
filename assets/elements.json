@@ -1424,14 +1424,13 @@
     "description": "Advanced industrial or operational component."
   },
   {
-    "atomic_number": -912,
     "symbol": "CellT4",
     "name": "Heavy Plasma Cell",
-    "mass": 100.0,
-    "category": "Component",
-    "tier": 2,
-    "base_value": 100,
-    "description": "Advanced industrial or operational component."
+    "mass": 0.5,
+    "category": "Ammo",
+    "tier": 4,
+    "base_value": 150,
+    "description": "Unstable fusion plasma containment. +60 Energy Dmg."
   },
   {
     "atomic_number": -913,
@@ -1504,14 +1503,13 @@
     "description": "Advanced industrial or operational component."
   },
   {
-    "atomic_number": -920,
-    "symbol": "HE_Missile",
-    "name": "High-Explosive Missile",
-    "mass": 100.0,
-    "category": "Component",
-    "tier": 2,
-    "base_value": 100,
-    "description": "Advanced industrial or operational component."
+    "symbol": "MissileT1",
+    "name": "HE Missile",
+    "mass": 0.5,
+    "category": "Ammo",
+    "tier": 1,
+    "base_value": 5,
+    "description": "Standard high-explosive ordnance. +10 Explosive Dmg."
   },
   {
     "atomic_number": -921,
@@ -1544,14 +1542,13 @@
     "description": "Advanced industrial or operational component."
   },
   {
-    "atomic_number": -924,
-    "symbol": "Photon_Torpedo",
+    "symbol": "MissileT4",
     "name": "Photon Torpedo",
-    "mass": 100.0,
-    "category": "Component",
-    "tier": 2,
-    "base_value": 100,
-    "description": "Advanced industrial or operational component."
+    "mass": 2.0,
+    "category": "Ammo",
+    "tier": 4,
+    "base_value": 250,
+    "description": "Capital-class antimatter buster. +150 Explosive Dmg."
   },
   {
     "atomic_number": -925,
@@ -1584,24 +1581,31 @@
     "description": "Advanced industrial or operational component."
   },
   {
-    "atomic_number": -928,
-    "symbol": "Seeker_Missile",
+    "symbol": "MissileT2",
     "name": "Seeker Missile",
-    "mass": 100.0,
-    "category": "Component",
+    "mass": 0.8,
+    "category": "Ammo",
     "tier": 2,
-    "base_value": 100,
-    "description": "Advanced industrial or operational component."
+    "base_value": 30,
+    "description": "Guided missile with tracking chips. +25 Explosive Dmg."
   },
   {
-    "atomic_number": -929,
+    "symbol": "MissileT3",
+    "name": "Heavy Missile",
+    "mass": 1.2,
+    "category": "Ammo",
+    "tier": 3,
+    "base_value": 80,
+    "description": "High-yield thermobaric missile. +60 Explosive Dmg."
+  },
+  {
     "symbol": "SlugT4",
     "name": "Hyper-Velocity Slug",
-    "mass": 100.0,
-    "category": "Component",
-    "tier": 2,
-    "base_value": 100,
-    "description": "Advanced industrial or operational component."
+    "mass": 0.5,
+    "category": "Ammo",
+    "tier": 4,
+    "base_value": 150,
+    "description": "Tungsten-Superalloy sabot for railguns. +60 Kinetic Dmg."
   },
   {
     "atomic_number": -930,

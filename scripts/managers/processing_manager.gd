@@ -457,35 +457,44 @@ var recipes: Dictionary = {
 		"xp": 180,
 		"research_req": "energy_metrics"
 	},
-	"craft_he_missile": {
+	"craft_missile_t1": {
 		"name": "HE Missile",
 		"description": "Standard high-explosive ordnance.",
 		"input": {"Fe": 5, "C": 2},
-		"output": {"HE_Missile": 20},
+		"output": {"MissileT1": 20},
 		"duration": 12.0,
 		"level_req": 5,
 		"xp": 20,
 		"research_req": "combustion"
 	},
-	"craft_seeker_missile": {
+	"craft_missile_t2": {
 		"name": "Seeker Missile",
 		"description": "Guided missile with logic circuits.",
 		"input": {"Steel": 2, "Circuit": 1, "TargetingChip": 1, "StructuralComponent": 3},
-		"output": {"Seeker_Missile": 20},
+		"output": {"MissileT2": 20},
 		"duration": 20.0,
 		"level_req": 25,
 		"xp": 50,
 		"research_req": "advanced_rocketry"
 	},
-	"craft_photon_torpedo": {
+	"craft_missile_t3": {
+		"name": "Heavy Missile",
+		"description": "High-yield thermobaric ordnance.",
+		"input": {"Steel": 5, "AlMgAlloy": 2, "H": 20, "StructuralComponent": 5},
+		"output": {"MissileT3": 20},
+		"duration": 30.0,
+		"level_req": 48,
+		"xp": 100,
+		"research_req": "advanced_rocketry"
+	},
+	"craft_missile_t4": {
 		"name": "Photon Torpedo",
 		"description": "Antimatter-infused capital buster.",
-		# v61.0 Fix: VolatileMatter doesn't exist, replaced with ExoticMatter
 		"input": {"Superalloy": 2, "ExoticMatter": 1, "NanoSubstrate": 3},
-		"output": {"Photon_Torpedo": 20},
+		"output": {"MissileT4": 20},
 		"duration": 45.0,
-		"level_req": 60,
-		"xp": 200,
+		"level_req": 65,
+		"xp": 250,
 		"research_req": "capital_ship_armament"
 	},
 	# Components

@@ -2,12 +2,12 @@ extends GridContainer
 
 # Handle drops for unequipping (dragging from ship slots back to storage)
 
-func _can_drop_data(_at_position, data):
+func _can_drop_data(_at_position: Vector2, data: Variant) -> bool:
 	if typeof(data) != TYPE_DICTIONARY: return false
 	var type = data.get("type", "")
 	return type == "unequip_module" or type == "unequip_ammo" or type == "unequip_consumable"
 
-func _drop_data(_at_position, data):
+func _drop_data(_at_position: Vector2, data: Variant) -> void:
 	var type = data.get("type", "")
 	var shipyard_manager = GameState.shipyard_manager
 	var designer_page = get_viewport().get_node("Main/Content/PageContainer/DesignerPage") # Usual path

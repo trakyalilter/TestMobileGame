@@ -197,11 +197,12 @@ var tech_tree = {
 	# ═══════════════════════════════════════════════════════════════
 	"zone_2_access": {
 		"name": "Asteroid Belt Authorization",
-		"description": "Unlocks:\n• Asteroid Belt zone\n• Zone 2 modules fabrication",
+		"description": "Unlocks:\n• Asteroid Belt zone\n• Zone 2 modules fabrication\n• [Requires: Shipwright I (Ships)]",
 		"cost": 30000,
 		"cost_items": {"Z1_Core": 1, "Fe": 200, "Cu": 100},
 		"type": "technology",
-		"parent": "shipwright_1"
+		"parent": null,
+		"req_tech": "shipwright_1"
 	},
 	"zone_3_access": {
 		"name": "Mars Debris Clearance",
@@ -209,7 +210,7 @@ var tech_tree = {
 		"cost": 75000,
 		"cost_items": {"Z2_Core": 1, "Steel": 100, "Ti": 50},
 		"type": "technology",
-		"parent": "shipwright_2"
+		"parent": "zone_2_access"
 	},
 	"zone_4_access": {
 		"name": "Cryofield Expedition",

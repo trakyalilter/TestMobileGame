@@ -59,7 +59,7 @@ func refresh_state():
 		status_lbl.add_theme_color_override("font_color", Color(0.33, 0.33, 0.33))
 
 
-func _get_drag_data(_at_position):
+func _get_drag_data(_at_position: Vector2) -> Variant:
 	var active_ammo = manager.ammo_loadout.get(slot_idx, "")
 	if active_ammo == "":
 		return null
@@ -74,11 +74,19 @@ func _get_drag_data(_at_position):
 	preview.setup(slot_idx, parent_ui, manager)
 	preview.modulate = Color(1, 0.5, 0.5, 0.8)
 	preview.custom_minimum_size = Vector2(124, 138)
+	preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	var queue = [preview]
+	while queue.size() > 0:
+		var n = queue.pop_front()
+		if n is Control:
+			n.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		queue.append_array(n.get_children())
 
 	set_drag_preview(preview)
 	return drag_data
 
-func _can_drop_data(_at_position, data):
+func _can_drop_data(_at_position: Vector2, data: Variant) -> bool:
 	if typeof(data) != TYPE_DICTIONARY or data.get("type") != "ammo":
 		return false
 	
@@ -93,7 +101,7 @@ func _can_drop_data(_at_position, data):
 		return manager.is_ammo_compatible(w_type, ammo_id)
 	return false
 
-func _drop_data(_at_position, data):
+func _drop_data(_at_position: Vector2, data: Variant) -> void:
 	var ammo_id = data.get("ammo_id")
 	manager.set_slot_ammo(slot_idx, ammo_id)
 	parent_ui.trigger_refresh()

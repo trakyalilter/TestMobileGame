@@ -355,8 +355,8 @@ var enemy_db = {
 	"z1_dust_mite": {
 		"name": "Space Dust Mite",
 		"stats": {"hp": 80, "atk": 6, "def": 0, "atk_interval": 3.0, "accuracy": 10},
-		"loot": [["Fe", 2, 4], ["credits", 50, 100], ["Res1", 1, 2]],
-		"rare_loot": [["MiteChitin", 0.33, 2, 3]],
+		"loot": [["Fe", 2, 4], ["credits", 50, 100], ["Res1", 1, 2], ["MiteChitin", 1, 3]],
+		"rare_loot": [],
 		"module_drop_chance": 0.15,
 		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_shield", "z1_armor"],
 		"xp": 5, "eva": 5, "zone": 1, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "dmg_type": "kinetic"
@@ -364,7 +364,7 @@ var enemy_db = {
 	"z1_lunar_drone": {
 		"name": "Lunar Drone",
 		"stats": {"hp": 120, "atk": 10, "def": 3, "atk_interval": 2.5, "accuracy": 18},
-		"loot": [["Fe", 2, 5], ["Cu", 1, 3], ["Res1", 1, 2]],
+		"loot": [["Fe", 2, 5], ["Cu", 1, 3], ["Res1", 1, 2], ["MiteChitin", 1, 3]],
 		"rare_loot": [["NavData", 0.10, 1, 1]],
 		"module_drop_chance": 0.20,
 		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_missile", "z1_shield", "z1_armor", "z1_battery"],
@@ -373,7 +373,7 @@ var enemy_db = {
 	"z1_survey_probe": {
 		"name": "Survey Probe",
 		"stats": {"hp": 150, "max_shield": 40, "atk": 10, "def": 3, "atk_interval": 1.0, "accuracy": 22},
-		"loot": [["credits", 80, 150], ["Si", 2, 4], ["Res1", 1, 3]],
+		"loot": [["credits", 80, 150], ["Si", 2, 4], ["Res1", 1, 3], ["MiteChitin", 1, 2]],
 		"rare_loot": [["NavData", 0.15, 1, 2]],
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_shield", "z1_armor", "z1_sensor"],
@@ -382,7 +382,7 @@ var enemy_db = {
 	"z1_scrap_collector": {
 		"name": "Scrap Collector",
 		"stats": {"hp": 200, "atk": 12, "def": 3, "atk_interval": 2.2, "accuracy": 20},
-		"loot": [["Fe", 3, 6], ["Si", 1, 3], ["Res1", 1, 3]],
+		"loot": [["Fe", 3, 6], ["Si", 1, 3], ["Res1", 1, 3], ["MiteChitin", 2, 4]],
 		"rare_loot": [["Cu", 0.15, 2, 4]],
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_missile", "z1_shield", "z1_armor", "z1_engine"],
@@ -392,7 +392,7 @@ var enemy_db = {
 	"z1_boss_architect": {
 		"name": "Rogue Architect",
 		"stats": {"hp": 1200, "max_shield": 120, "atk": 54, "def": 18, "atk_interval": 2.5, "accuracy": 35},
-		"loot": [["credits", 500, 1000], ["Cu", 10, 25], ["Fe", 15, 30], ["Res1", 5, 10]],
+		"loot": [["credits", 500, 1000], ["Cu", 10, 25], ["Fe", 15, 30], ["Res1", 5, 10], ["MiteChitin", 5, 12]],
 		"rare_loot": [["z1_unique_weapon", 0.03, 1, 1], ["z1_unique_armor", 0.03, 1, 1], ["z1_unique_shield", 0.03, 1, 1]],
 		"boss_core": "Z1_Core",
 		"module_drop_chance": 0.25,
@@ -404,7 +404,7 @@ var enemy_db = {
 	"z2_pirate_skiff": {
 		"name": "Pirate Skiff",
 		"stats": {"hp": 380, "atk": 20, "def": 5, "atk_interval": 1.8, "accuracy": 25},
-		"loot": [["credits", 150, 300], ["Fe", 3, 8], ["Res1", 2, 4]],
+		"loot": [["credits", 150, 300], ["Fe", 3, 8], ["Res1", 2, 4], ["PirateSalvage", 1, 3]],
 		"rare_loot": [["Cu", 0.15, 3, 6]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z2_kinetic", "z2_energy", "z2_missile", "z2_shield", "z2_armor"],
@@ -413,7 +413,7 @@ var enemy_db = {
 	"z2_silicate_golem": {
 		"name": "Silicate Golem",
 		"stats": {"hp": 480, "atk": 26, "def": 7, "atk_interval": 3.0, "accuracy": 22},
-		"loot": [["Si", 5, 15], ["Fe", 3, 8], ["Res1", 2, 4]],
+		"loot": [["Si", 5, 15], ["Fe", 3, 8], ["Res1", 2, 4], ["PirateSalvage", 1, 3]],
 		"rare_loot": [["Ti", 0.10, 1, 3]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z2_kinetic", "z2_energy", "z2_missile", "z2_shield", "z2_armor"],
@@ -422,7 +422,7 @@ var enemy_db = {
 	"z2_claim_jumper": {
 		"name": "Claim Jumper",
 		"stats": {"hp": 520, "atk": 30, "def": 8, "atk_interval": 2.2, "accuracy": 28},
-		"loot": [["credits", 200, 400], ["Sn", 2, 5], ["Res1", 2, 5]],
+		"loot": [["credits", 200, 400], ["Sn", 2, 5], ["Res1", 2, 5], ["PirateSalvage", 2, 4]],
 		"rare_loot": [["Ti", 0.12, 2, 4]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z2_kinetic", "z2_energy", "z2_missile", "z2_shield", "z2_armor"],
@@ -431,7 +431,7 @@ var enemy_db = {
 	"z2_ore_hauler": {
 		"name": "Ore Hauler",
 		"stats": {"hp": 600, "atk": 22, "def": 10, "atk_interval": 5.0, "accuracy": 20},
-		"loot": [["Fe", 10, 25], ["Si", 5, 12], ["Res1", 2, 5]],
+		"loot": [["Fe", 10, 25], ["Si", 5, 12], ["Res1", 2, 5], ["PirateSalvage", 2, 5]],
 		"rare_loot": [["Steel", 0.10, 1, 3]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z2_kinetic", "z2_energy", "z2_shield", "z2_armor"],
@@ -440,7 +440,7 @@ var enemy_db = {
 	"z2_boss_monolith": {
 		"name": "Silicate Monolith",
 		"stats": {"hp": 5280, "max_shield": 264, "atk": 132, "def": 39, "atk_interval": 3.5, "accuracy": 45},
-		"loot": [["credits", 2000, 5000], ["Ti", 5, 12], ["Fe", 20, 40], ["Res1", 10, 20]],
+		"loot": [["credits", 2000, 5000], ["Ti", 5, 12], ["Fe", 20, 40], ["Res1", 10, 20], ["PirateSalvage", 5, 12]],
 		"rare_loot": [["z2_unique_weapon", 0.03, 1, 1], ["z2_unique_armor", 0.03, 1, 1], ["z2_unique_shield", 0.03, 1, 1], ["faraday_hull", 0.03, 1, 1]],
 		"boss_core": "Z2_Core",
 		"module_drop_chance": 0.25,
@@ -452,7 +452,7 @@ var enemy_db = {
 	"z3_scavenger_mech": {
 		"name": "Scavenger Mech",
 		"stats": {"hp": 900, "atk": 45, "def": 12, "atk_interval": 2.5, "accuracy": 35},
-		"loot": [["Steel", 3, 8], ["Fe", 8, 20], ["Res2", 1, 2]],
+		"loot": [["Steel", 3, 8], ["Fe", 8, 20], ["Res2", 1, 2], ["MartianRelics", 1, 3]],
 		"rare_loot": [["Circuit", 0.10, 1, 2]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z3_kinetic", "z3_energy", "z3_missile", "z3_shield", "z3_armor"],
@@ -461,7 +461,7 @@ var enemy_db = {
 	"z3_martian_sentry": {
 		"name": "Martian Sentry",
 		"stats": {"hp": 1152, "max_shield": 300, "atk": 58, "def": 15, "atk_interval": 2.0, "accuracy": 40},
-		"loot": [["C", 3, 8], ["credits", 400, 800], ["Res2", 1, 2]],
+		"loot": [["C", 3, 8], ["credits", 400, 800], ["Res2", 1, 2], ["MartianRelics", 1, 3]],
 		"rare_loot": [["Chip", 0.08, 1, 2]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z3_kinetic", "z3_energy", "z3_missile", "z3_shield", "z3_armor"],
@@ -470,7 +470,7 @@ var enemy_db = {
 	"z3_salvage_swarm": {
 		"name": "Salvage Swarm",
 		"stats": {"hp": 800, "atk": 30, "def": 10, "atk_interval": 0.6, "accuracy": 38},
-		"loot": [["Fe", 5, 15], ["Cu", 3, 8], ["Res2", 1, 2]],
+		"loot": [["Fe", 5, 15], ["Cu", 3, 8], ["Res2", 1, 2], ["MartianRelics", 1, 2]],
 		"rare_loot": [["Steel", 0.15, 2, 5]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z3_kinetic", "z3_energy", "z3_shield", "z3_armor"],
@@ -479,7 +479,7 @@ var enemy_db = {
 	"z3_derelict_frigate": {
 		"name": "Derelict Frigate",
 		"stats": {"hp": 1400, "max_shield": 400, "atk": 65, "def": 18, "atk_interval": 4.0, "accuracy": 42},
-		"loot": [["Steel", 5, 12], ["Fe", 10, 25], ["Res2", 1, 3]],
+		"loot": [["Steel", 5, 12], ["Fe", 10, 25], ["Res2", 1, 3], ["MartianRelics", 2, 4]],
 		"rare_loot": [["Ti", 0.10, 2, 5]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z3_kinetic", "z3_energy", "z3_missile", "z3_shield", "z3_armor"],
@@ -488,7 +488,7 @@ var enemy_db = {
 	"z3_boss_warmaster": {
 		"name": "Martian Warmaster",
 		"stats": {"hp": 17424, "max_shield": 580, "atk": 319, "def": 87, "atk_interval": 2.5, "accuracy": 65},
-		"loot": [["credits", 5000, 10000], ["Steel", 20, 40], ["Ti", 10, 25], ["Res2", 5, 10]],
+		"loot": [["credits", 5000, 10000], ["Steel", 20, 40], ["Ti", 10, 25], ["Res2", 5, 10], ["MartianRelics", 5, 12]],
 		"rare_loot": [["z3_unique_weapon", 0.03, 1, 1], ["z3_unique_armor", 0.03, 1, 1], ["z3_unique_shield", 0.03, 1, 1]],
 		"boss_core": "Z3_Core",
 		"module_drop_chance": 0.25,
@@ -500,7 +500,7 @@ var enemy_db = {
 	"z4_ice_wraith": {
 		"name": "Ice Wraith",
 		"stats": {"hp": 2200, "max_shield": 600, "atk": 100, "def": 25, "atk_interval": 1.5, "accuracy": 50},
-		"loot": [["CoolantCell", 1, 3], ["credits", 800, 1500], ["Res2", 1, 3]],
+		"loot": [["CoolantCell", 1, 3], ["credits", 800, 1500], ["Res2", 1, 3], ["CryoEssence", 1, 3]],
 		"rare_loot": [["AdvCircuit", 0.08, 1, 2]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z4_kinetic", "z4_energy", "z4_missile", "z4_shield", "z4_armor"],
@@ -509,7 +509,7 @@ var enemy_db = {
 	"z4_cryo_sentinel": {
 		"name": "Cryo Sentinel",
 		"stats": {"hp": 2765, "max_shield": 800, "atk": 128, "def": 32, "atk_interval": 2.5, "accuracy": 55},
-		"loot": [["Ti", 5, 12], ["credits", 1000, 2000], ["Res2", 1, 3]],
+		"loot": [["Ti", 5, 12], ["credits", 1000, 2000], ["Res2", 1, 3], ["CryoEssence", 1, 3]],
 		"rare_loot": [["Chip", 0.10, 1, 3]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z4_kinetic", "z4_energy", "z4_missile", "z4_shield", "z4_armor"],
@@ -518,7 +518,7 @@ var enemy_db = {
 	"z4_frost_hulk": {
 		"name": "Frost Hulk",
 		"stats": {"hp": 3300, "atk": 110, "def": 40, "atk_interval": 4.0, "accuracy": 48},
-		"loot": [["Steel", 8, 18], ["Fe", 15, 35], ["Res2", 1, 3]],
+		"loot": [["Steel", 8, 18], ["Fe", 15, 35], ["Res2", 1, 3], ["CryoEssence", 1, 2]],
 		"rare_loot": [["Ti", 0.15, 3, 8]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z4_kinetic", "z4_energy", "z4_shield", "z4_armor"],
@@ -527,7 +527,7 @@ var enemy_db = {
 	"z4_glacial_drone": {
 		"name": "Glacial Drone",
 		"stats": {"hp": 2400, "max_shield": 500, "atk": 140, "def": 28, "atk_interval": 1.8, "accuracy": 58},
-		"loot": [["credits", 1200, 2500], ["Cu", 5, 12], ["Res2", 2, 4]],
+		"loot": [["credits", 1200, 2500], ["Cu", 5, 12], ["Res2", 2, 4], ["CryoEssence", 2, 4]],
 		"rare_loot": [["AdvCircuit", 0.10, 1, 2]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z4_kinetic", "z4_energy", "z4_missile", "z4_shield", "z4_armor"],
@@ -536,7 +536,7 @@ var enemy_db = {
 	"z4_boss_overseer": {
 		"name": "Cryo Overseer",
 		"stats": {"hp": 51110, "max_shield": 1277, "atk": 766, "def": 191, "atk_interval": 2.5, "accuracy": 85},
-		"loot": [["credits", 15000, 30000], ["Ti", 30, 60], ["AdvCircuit", 5, 12], ["Res2", 10, 20]],
+		"loot": [["credits", 15000, 30000], ["Ti", 30, 60], ["AdvCircuit", 5, 12], ["Res2", 10, 20], ["CryoEssence", 5, 12]],
 		"rare_loot": [["z4_unique_weapon", 0.03, 1, 1], ["z4_unique_armor", 0.03, 1, 1], ["z4_unique_shield", 0.03, 1, 1]],
 		"boss_core": "Z4_Core",
 		"module_drop_chance": 0.25,
@@ -548,7 +548,7 @@ var enemy_db = {
 	"z5_xenon_scout": {
 		"name": "Xenon Scout",
 		"stats": {"hp": 5300, "max_shield": 1500, "atk": 220, "def": 55, "atk_interval": 1.5, "accuracy": 65},
-		"loot": [["credits", 3000, 6000], ["VoidArtifact", 1, 2], ["Res2", 2, 5]],
+		"loot": [["credits", 3000, 6000], ["VoidArtifact", 1, 2], ["Res2", 2, 5], ["XenoFragment", 1, 3]],
 		"rare_loot": [["QuantumCore", 0.05, 1, 1]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z5_kinetic", "z5_energy", "z5_missile", "z5_shield", "z5_armor"],
@@ -557,7 +557,7 @@ var enemy_db = {
 	"z5_xenon_corvette": {
 		"name": "Xenon Corvette",
 		"stats": {"hp": 6636, "max_shield": 2000, "atk": 281, "def": 70, "atk_interval": 2.0, "accuracy": 70},
-		"loot": [["credits", 4000, 8000], ["Ti", 10, 25], ["Res2", 2, 5]],
+		"loot": [["credits", 4000, 8000], ["Ti", 10, 25], ["Res2", 2, 5], ["XenoFragment", 1, 3]],
 		"rare_loot": [["Superalloy", 0.08, 1, 3]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z5_kinetic", "z5_energy", "z5_missile", "z5_shield", "z5_armor"],
@@ -566,7 +566,7 @@ var enemy_db = {
 	"z5_alien_frigate": {
 		"name": "Alien Frigate",
 		"stats": {"hp": 7900, "max_shield": 2500, "atk": 310, "def": 80, "atk_interval": 3.0, "accuracy": 72},
-		"loot": [["VoidArtifact", 2, 5], ["credits", 5000, 10000], ["Res2", 3, 6]],
+		"loot": [["VoidArtifact", 2, 5], ["credits", 5000, 10000], ["Res2", 3, 6], ["XenoFragment", 2, 4]],
 		"rare_loot": [["QuantumCore", 0.08, 1, 1]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z5_kinetic", "z5_energy", "z5_missile", "z5_shield", "z5_armor"],
@@ -575,7 +575,7 @@ var enemy_db = {
 	"z5_alien_probe": {
 		"name": "Alien Probe",
 		"stats": {"hp": 5000, "max_shield": 3000, "atk": 250, "def": 60, "atk_interval": 1.2, "accuracy": 78},
-		"loot": [["credits", 4000, 7000], ["Circuit", 5, 10], ["Res2", 2, 5]],
+		"loot": [["credits", 4000, 7000], ["Circuit", 5, 10], ["Res2", 2, 5], ["XenoFragment", 1, 3]],
 		"rare_loot": [["AdvCircuit", 0.10, 2, 4]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z5_kinetic", "z5_energy", "z5_shield", "z5_armor"],
@@ -584,7 +584,7 @@ var enemy_db = {
 	"z5_boss_harbinger": {
 		"name": "Xenon Harbinger",
 		"stats": {"hp": 140553, "max_shield": 2811, "atk": 1827, "def": 421, "atk_interval": 2.5, "accuracy": 110},
-		"loot": [["credits", 50000, 100000], ["VoidArtifact", 10, 25], ["QuantumCore", 2, 5], ["Res2", 15, 30]],
+		"loot": [["credits", 50000, 100000], ["VoidArtifact", 10, 25], ["QuantumCore", 2, 5], ["Res2", 15, 30], ["XenoFragment", 5, 12]],
 		"rare_loot": [["z5_unique_weapon", 0.03, 1, 1], ["z5_unique_armor", 0.03, 1, 1], ["z5_unique_shield", 0.03, 1, 1]],
 		"boss_core": "Z5_Core",
 		"module_drop_chance": 0.25,
@@ -1586,6 +1586,33 @@ func resolve_damage(atk_k, atk_e, atk_x, c_shield, c_armor, difficulty = 1, crit
 	if is_crit: variance *= 1.5
 	return [int(damage_to_shield * variance), int(max(1.0 if (atk_k + atk_e + atk_x) > 0 else 0, total_hull_dmg * variance)), is_crit]
 
+# v101: Combat Loot Scaling System
+# Ensures combat resource drops keep pace with gathering/processing progression
+func get_combat_loot_multiplier() -> float:
+	var mult = 1.0
+	
+	# 1. Combat Skill Level bonus (+1% per level, e.g. Lvl 50 = +50%)
+	mult += get_level() * 0.01
+	
+	# 2. Zone Difficulty bonus (+15% per zone tier above 1)
+	var zone_diff = current_zone.get("difficulty", 1) if current_zone else 1
+	mult += max(0, (zone_diff - 1)) * 0.15
+	
+	# 3. Efficiency Research tiers (same x2-x32 curve as gathering)
+	var rm = GameState.research_manager
+	if rm:
+		if rm.is_tech_unlocked("efficiency_5"): mult *= 4.0  # x32 total with base
+		elif rm.is_tech_unlocked("efficiency_4"): mult *= 3.0
+		elif rm.is_tech_unlocked("efficiency_3"): mult *= 2.5
+		elif rm.is_tech_unlocked("efficiency_2"): mult *= 2.0
+		elif rm.is_tech_unlocked("efficiency_1"): mult *= 1.5
+	
+	# 4. Warp Manager bonus
+	if GameState.warp_manager:
+		mult *= max(1.0, GameState.warp_manager.get_combat_multiplier())
+	
+	return mult
+
 func get_effective_module_drop_chance(enemy_data: Dictionary) -> float:
 	var base = enemy_data.get("module_drop_chance", 0.0)
 	if base <= 0: return 0.0
@@ -1604,8 +1631,13 @@ func get_effective_module_drop_chance(enemy_data: Dictionary) -> float:
 
 func win_fight():
 	log_msg("Destroyed %s!" % current_enemy["name"])
+	
+	# v101: Combat Loot Scaling — loot now grows with progression
+	var loot_mult = get_combat_loot_multiplier()
+	
 	for entry in current_enemy["loot"]:
-		var qty = randi_range(entry[1], entry[2])
+		var base_qty = randi_range(entry[1], entry[2])
+		var qty = int(ceil(float(base_qty) * loot_mult))
 		if entry[0] == "credits": GameState.resources.add_currency("credits", qty)
 		else: GameState.resources.add_element(entry[0], qty)
 		session_loot[entry[0]] = session_loot.get(entry[0], 0) + qty

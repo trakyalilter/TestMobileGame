@@ -4,12 +4,10 @@ var mid: String
 var data: Dictionary
 var count: int = 0
 var pulse_tween: Tween
+var is_selected: bool = false
+var is_draggable: bool = true
 
-# v87.1: Multi-select demolish
-var select_mode_active := false
-var is_selected := false
-var _select_overlay: ColorRect = null
-var on_selection_toggled: Callable = Callable()
+signal clicked(p_mid: String)
 
 @onready var type_lbl: Label = $Margin/VBox/Header/TypeLabel
 @onready var rarity_badge: Label = $Margin/VBox/Header/RarityBadge
@@ -171,6 +169,21 @@ func _draw_tile_visual(item_name: String, slot_type: String, rarity: int, rarity
 		orb.position = Vector2(-2, -2)
 		tile_container.add_child(orb)
 
+	# Selection Highlight (Cyan Glow)
+	if is_selected:
+		var selection_panel = Panel.new()
+		selection_panel.custom_minimum_size = Vector2(size, size)
+		selection_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var ssb = StyleBoxFlat.new()
+		ssb.bg_color = Color(0, 0, 0, 0)
+		ssb.set_border_width_all(3)
+		ssb.border_color = Color(0, 1.0, 1.0, 0.8) # Cyan
+		ssb.set_corner_radius_all(3)
+		ssb.shadow_color = Color(0, 1.0, 1.0, 0.4)
+		ssb.shadow_size = 6
+		selection_panel.add_theme_stylebox_override("panel", ssb)
+		tile_container.add_child(selection_panel)
+
 	# Overrides to original card layout
 	var empty_style = StyleBoxEmpty.new()
 	add_theme_stylebox_override("panel", empty_style)
@@ -291,6 +304,21 @@ func _draw_gem_visual(gem_name: String, rarity_color: Color):
 		orb.add_theme_stylebox_override("panel", osb)
 		orb.position = Vector2(-2, -2)
 		gem_container.add_child(orb)
+
+	# Selection Highlight (Cyan Glow for Gems)
+	if is_selected:
+		var selection_panel = Panel.new()
+		selection_panel.custom_minimum_size = Vector2(grid_size, grid_size)
+		selection_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var ssb = StyleBoxFlat.new()
+		ssb.bg_color = Color(0, 0, 0, 0)
+		ssb.set_border_width_all(3)
+		ssb.border_color = Color(0, 1.0, 1.0, 0.8) # Cyan
+		ssb.set_corner_radius_all(3)
+		ssb.shadow_color = Color(0, 1.0, 1.0, 0.4)
+		ssb.shadow_size = 6
+		selection_panel.add_theme_stylebox_override("panel", ssb)
+		gem_container.add_child(selection_panel)
 		
 	var sm = GameState.shipyard_manager
 	var rarity = _get_module_rarity_safe(sm)
@@ -512,44 +540,11 @@ func _stop_pulse():
 	modulate = Color.WHITE
 
 func _gui_input(event):
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		if select_mode_active and data.get("slot_type", "") not in ["ammo", "consumable", "gem"]:
-			set_selected(!is_selected)
-			if on_selection_toggled.is_valid():
-				on_selection_toggled.call(mid, is_selected)
-			accept_event()
-			return
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
-		if select_mode_active:
-			return # Block individual demolish during select mode
-		_show_demolish_menu()
-
-func set_selected(val: bool):
-	is_selected = val
-	_update_selection_visual()
-
-func _update_selection_visual():
-	if not _select_overlay:
-		_select_overlay = ColorRect.new()
-		_select_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		_select_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_select_overlay.z_index = 5
-		add_child(_select_overlay)
-	
-	if is_selected:
-		_select_overlay.color = Color(0.2, 0.8, 0.3, 0.25) # Green tint
-		_select_overlay.visible = true
-		# Add selection border
-		var sel_style = StyleBoxFlat.new()
-		sel_style.bg_color = Color(0.1, 0.08, 0.06, 0.9)
-		sel_style.set_border_width_all(2)
-		sel_style.border_color = Color(0.3, 0.9, 0.4, 0.9)
-		sel_style.set_corner_radius_all(3)
-		add_theme_stylebox_override("panel", sel_style)
-	else:
-		_select_overlay.visible = false
-		# Restore original style
-		_update_ui()
+	if event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+			_show_demolish_menu()
+		elif event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
+			clicked.emit(mid)
 
 func _show_demolish_menu():
 	var sm = GameState.shipyard_manager
@@ -821,8 +816,8 @@ func _build_comparison_tooltip_bbcode() -> String:
 
 	return tt
 
-func _get_drag_data(_at_position):
-	if data.is_empty() or mid == "":
+func _get_drag_data(_at_position: Vector2) -> Variant:
+	if not is_draggable or data.is_empty() or mid == "":
 		return null
 
 	var slot_type = data.get("slot_type", "")
@@ -844,10 +839,12 @@ func _get_drag_data(_at_position):
 	preview.setup(mid, data, count)
 
 	var preview_container = Control.new()
+	preview_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	preview_container.add_child(preview)
 	
 	preview.scale = Vector2(1.0, 1.0)
 	preview.modulate.a = 0.96
+	preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	var shadow = Panel.new()
 	var style = StyleBoxFlat.new()
@@ -867,6 +864,24 @@ func _get_drag_data(_at_position):
 	preview.position = -p_size / 2.0
 	shadow.position = -p_size / 2.0
 
+	var queue = [preview_container]
+	while queue.size() > 0:
+		var n = queue.pop_front()
+		if n is Control:
+			n.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		queue.append_array(n.get_children())
+
 	set_drag_preview(preview_container)
 
 	return drag_data
+
+func _can_drop_data(at_position: Vector2, p_data: Variant) -> bool:
+	var p = get_parent()
+	if p and p.has_method("_can_drop_data"):
+		return p._can_drop_data(at_position, p_data)
+	return false
+
+func _drop_data(at_position: Vector2, p_data: Variant) -> void:
+	var p = get_parent()
+	if p and p.has_method("_drop_data"):
+		p._drop_data(at_position, p_data)

@@ -373,7 +373,7 @@ func _build_card_stats(stats: Dictionary) -> String:
 	return "\n".join(lines)
 
 
-func _get_drag_data(at_position):
+func _get_drag_data(at_position: Vector2) -> Variant:
 	if slot_type.begins_with("consumable_"):
 		var c_type = "hull" if slot_type == "consumable_hull" else "shield"
 		var equipped_id = manager.get_consumable(c_type)
@@ -399,12 +399,15 @@ func _get_drag_data(at_position):
 	preview.setup(slot_idx, slot_type, parent_ui, manager)
 	
 	var preview_container = Control.new()
+	preview_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	preview_container.add_child(preview)
 	
 	preview.scale = Vector2(1.05, 1.05)
 	preview.modulate = Color(1.0, 0.7, 0.7, 0.95)
-	
+	preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
 	var shadow = Panel.new()
+	shadow.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var style = StyleBoxFlat.new()
 	style.bg_color = Color(0, 0, 0, 0.45)
 	style.set_corner_radius_all(3)
@@ -420,10 +423,17 @@ func _get_drag_data(at_position):
 	preview.position = Vector2(-70, -110)
 	shadow.position = Vector2(-70, -110)
 	
+	var queue = [preview_container]
+	while queue.size() > 0:
+		var n = queue.pop_front()
+		if n is Control:
+			n.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		queue.append_array(n.get_children())
+
 	set_drag_preview(preview_container)
 	return drag_data
 
-func _can_drop_data(at_position, data):
+func _can_drop_data(at_position: Vector2, data: Variant) -> bool:
 	if typeof(data) != TYPE_DICTIONARY: return false
 	
 	if slot_type.begins_with("consumable_"):
@@ -443,7 +453,7 @@ func _can_drop_data(at_position, data):
 		return data.get("slot_type") == slot_type
 	return false
 
-func _drop_data(at_position, data):
+func _drop_data(at_position: Vector2, data: Variant) -> void:
 	if slot_type.begins_with("consumable_"):
 		var c_type = "hull" if slot_type == "consumable_hull" else "shield"
 		var item_id = data.get("mid", "")

@@ -25,15 +25,12 @@ var slot_widget_scene = preload("res://scenes/ui/designer_slot_widget.tscn")
 var ammo_slot_scene = preload("res://scenes/ui/designer_ammo_slot_widget.tscn")
 var draggable_icon_scene = preload("res://scenes/ui/module_card.tscn")
 var empty_slot_scene = preload("res://scenes/ui/empty_slot.tscn")
-
-# v87.1: Multi-select demolish
-var is_select_mode := false
-var selected_modules: Dictionary = {} # {module_id: true}
-var _select_btn: Button = null
-var _action_bar: HBoxContainer = null
-var _demolish_btn: Button = null
-var _select_all_btn: Button = null
-var _deselect_all_btn: Button = null
+var selected_mids: Array[String] = []
+var btn_demolish_selected: Button
+var btn_clear: Button
+var btn_selection_toggle: Button
+var bulk_actions_container: HBoxContainer
+var is_selection_mode: bool = false
 
 const FRAME_BG := Color(0.09, 0.07, 0.06, 0.96)
 const FRAME_EDGE := Color(0.42, 0.30, 0.21, 0.95)
@@ -67,16 +64,9 @@ const FILTER_TOOLTIPS := {
 	"matrix": "Matrix Cores for sockets.",
 }
 const ORDNANCE_AMMO_IDS := [
-	"SlugT1",
-	"SlugT1S",
-	"SlugT2",
-	"SlugT3",
-	"SlugT4",
-	"CellT1",
-	"CellT2",
-	"CellT3",
-	"CellT4",
-	"Photon_Torpedo"
+	"SlugT1", "SlugT1S", "SlugT2", "SlugT3", "SlugT4",
+	"CellT1", "CellT2", "CellT3", "CellT4",
+	"MissileT1", "MissileT2", "MissileT3", "MissileT4"
 ]
 const FILTER_CONFIG := {
 	"all": {"node": "AllTab", "accent": Color(0.80, 0.73, 0.62)},
@@ -109,6 +99,7 @@ func _ready():
 
 	_apply_designer_styles()
 	_setup_filter_tabs()
+	_setup_bulk_actions()
 
 	trigger_refresh()
 
@@ -154,22 +145,55 @@ func _setup_filter_tabs():
 			tab_buttons[filter_id] = new_btn
 			new_btn.pressed.connect(_on_filter_pressed.bind(filter_id))
 			new_btn.tooltip_text = FILTER_TOOLTIPS.get(filter_id, "")
-	
-	# v87.1: Add SELECT toggle button
-	if tab_strip.get_child_count() > 0:
-		var first_btn = tab_strip.get_child(0)
-		_select_btn = first_btn.duplicate()
-		_select_btn.name = "SelectModeBtn"
-		_select_btn.text = "SELECT"
-		_select_btn.tooltip_text = "Toggle selection mode to demolish multiple modules at once."
-		tab_strip.add_child(_select_btn)
-		_select_btn.pressed.connect(_on_select_mode_pressed)
-		_apply_select_button_style()
-	
-	# v87.1: Create action bar (hidden by default)
-	_create_action_bar()
-	
 	_refresh_tab_labels()
+
+func _setup_bulk_actions():
+	bulk_actions_container = HBoxContainer.new()
+	bulk_actions_container.alignment = BoxContainer.ALIGNMENT_END
+	bulk_actions_container.add_theme_constant_override("separation", 10)
+	
+	btn_selection_toggle = Button.new()
+	btn_selection_toggle.text = "SELECT MODULES"
+	btn_selection_toggle.toggle_mode = true
+	btn_selection_toggle.toggled.connect(_on_selection_mode_toggled)
+	_apply_filter_button_style(btn_selection_toggle, false, Color(0.3, 0.8, 0.9))
+	bulk_actions_container.add_child(btn_selection_toggle)
+
+	btn_demolish_selected = Button.new()
+	btn_demolish_selected.text = "DEMOLISH SELECTED (0)"
+	btn_demolish_selected.disabled = true
+	btn_demolish_selected.visible = false
+	btn_demolish_selected.pressed.connect(_on_demolish_selected_pressed)
+	_apply_filter_button_style(btn_demolish_selected, false, Color(0.9, 0.3, 0.3))
+	bulk_actions_container.add_child(btn_demolish_selected)
+	
+	btn_clear = Button.new()
+	btn_clear.text = "CLEAR"
+	btn_clear.visible = false
+	btn_clear.pressed.connect(func(): 
+		selected_mids.clear()
+		_update_bulk_ui()
+		rebuild_storage()
+	)
+	_apply_filter_button_style(btn_clear, false, Color(0.7, 0.7, 0.7))
+	bulk_actions_container.add_child(btn_clear)
+
+	var scroll = storage_grid.get_parent()
+	var v_box = scroll.get_parent()
+	v_box.add_child(bulk_actions_container)
+	v_box.move_child(bulk_actions_container, scroll.get_index())
+
+func _on_selection_mode_toggled(toggled_on: bool):
+	is_selection_mode = toggled_on
+	if not toggled_on:
+		selected_mids.clear()
+	
+	btn_selection_toggle.text = "EXIT SELECTION" if toggled_on else "SELECT MODULES"
+	btn_demolish_selected.visible = toggled_on
+	btn_clear.visible = toggled_on
+	
+	_update_bulk_ui()
+	rebuild_storage()
 
 func _on_filter_pressed(filter_id: String):
 	_on_filter_changed(filter_id)
@@ -271,12 +295,17 @@ func _on_visibility_changed():
 
 func _on_inventory_updated():
 	if visible:
-		# v87.1: Prune stale selections
-		if is_select_mode:
-			for mid in selected_modules.keys():
-				if not manager.module_inventory.has(mid) or manager.module_inventory[mid] <= 0:
-					selected_modules.erase(mid)
-			_refresh_action_bar()
+		# v85.0: Clean up selected_mids that are no longer in inventory
+		var inv = manager.module_inventory
+		var new_selected: Array[String] = []
+		for mid in selected_mids:
+			if inv.has(mid) and inv[mid] > 0:
+				new_selected.append(mid)
+			elif mid in ORDNANCE_AMMO_IDS: # Also check resources for ammo
+				if GameState.resources.get_element_amount(mid) > 0:
+					new_selected.append(mid)
+		selected_mids = new_selected
+		_update_bulk_ui()
 		rebuild_storage()
 		_refresh_tab_labels()
 		update_header()
@@ -566,11 +595,9 @@ func rebuild_storage():
 				var item = draggable_icon_scene.instantiate()
 				storage_grid.add_child(item)
 				item.setup(module_id, module_data, module_count)
-				# v87.1: Wire selection mode
-				item.select_mode_active = is_select_mode
-				if is_select_mode and selected_modules.has(module_id):
-					item.set_selected(true)
-				item.on_selection_toggled = _on_card_selection_toggled
+				item.is_selected = module_id in selected_mids
+				item.is_draggable = not is_selection_mode
+				item.clicked.connect(_on_card_clicked)
 				slot_count += 1
 
 	if active_filter in ["all", "ordnance", "ord"]:
@@ -582,6 +609,8 @@ func rebuild_storage():
 				var display_name = ElementDB.get_display_name(ammo_id)
 				var fake_data = {"name": display_name, "slot_type": "ammo", "stats": {}}
 				ammo_card.setup(ammo_id, fake_data, qty)
+				ammo_card.is_selected = ammo_id in selected_mids
+				ammo_card.clicked.connect(_on_card_clicked)
 				slot_count += 1
 
 	if active_filter in ["all", "ordnance", "ord"]:
@@ -601,6 +630,8 @@ func rebuild_storage():
 					"stats": {"heal_pct": consumable_data.get("heal_pct", 0)}
 				}
 				consumable_card.setup(consumable_id, fake_data, qty)
+				consumable_card.is_selected = consumable_id in selected_mids
+				consumable_card.clicked.connect(_on_card_clicked)
 				slot_count += 1
 
 	# v83.9: Matrix Cores (Cracked, Stable, Pristine)
@@ -825,183 +856,30 @@ func _get_module_power_score(id: String, data: Dictionary) -> int:
 	# v80.3: Removed dead sort-score overrides (mining_laser_mk1, mk2, railgun_mk1 no longer exist)
 
 	return score
-
-# ──────────────────────────────────────────────
-# v87.1: Multi-Select Demolish System
-# ──────────────────────────────────────────────
-
-func _create_action_bar():
-	_action_bar = HBoxContainer.new()
-	_action_bar.name = "SelectActionBar"
-	_action_bar.add_theme_constant_override("separation", 6)
-	_action_bar.visible = false
-	
-	# Insert into the right panel's VBox, after tab strip frame
-	var parent_vbox = tab_frame.get_parent()
-	if parent_vbox:
-		parent_vbox.add_child(_action_bar)
-		parent_vbox.move_child(_action_bar, tab_frame.get_index() + 1)
-	
-	# SELECT ALL button
-	_select_all_btn = Button.new()
-	_select_all_btn.text = "ALL"
-	_select_all_btn.tooltip_text = "Select all visible modules"
-	_select_all_btn.custom_minimum_size = Vector2(50, 28)
-	_select_all_btn.pressed.connect(_on_select_all)
-	_action_bar.add_child(_select_all_btn)
-	_apply_action_button_style(_select_all_btn, Color(0.7, 0.7, 0.6))
-	
-	# DESELECT ALL button
-	_deselect_all_btn = Button.new()
-	_deselect_all_btn.text = "NONE"
-	_deselect_all_btn.tooltip_text = "Deselect all modules"
-	_deselect_all_btn.custom_minimum_size = Vector2(50, 28)
-	_deselect_all_btn.pressed.connect(_on_deselect_all)
-	_action_bar.add_child(_deselect_all_btn)
-	_apply_action_button_style(_deselect_all_btn, Color(0.7, 0.7, 0.6))
-	
-	# Spacer
-	var spacer = Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_action_bar.add_child(spacer)
-	
-	# DEMOLISH button
-	_demolish_btn = Button.new()
-	_demolish_btn.text = "DEMOLISH (0)"
-	_demolish_btn.tooltip_text = "Demolish all selected modules"
-	_demolish_btn.custom_minimum_size = Vector2(140, 28)
-	_demolish_btn.pressed.connect(_on_demolish_selected)
-	_action_bar.add_child(_demolish_btn)
-	_apply_action_button_style(_demolish_btn, Color(0.95, 0.35, 0.25))
-
-func _apply_select_button_style():
-	if not _select_btn: return
-	var accent = Color(0.95, 0.65, 0.25) if not is_select_mode else Color(0.3, 0.9, 0.4)
-	_apply_filter_button_style(_select_btn, is_select_mode, accent)
-	_select_btn.text = "DONE" if is_select_mode else "SELECT"
-
-func _apply_action_button_style(btn: Button, accent: Color):
-	var normal = StyleBoxFlat.new()
-	normal.bg_color = TAB_BASE
-	normal.set_border_width_all(1)
-	normal.border_color = accent.lerp(TAB_EDGE, 0.5)
-	normal.set_corner_radius_all(2)
-	normal.content_margin_left = 8
-	normal.content_margin_right = 8
-	normal.content_margin_top = 4
-	normal.content_margin_bottom = 4
-	
-	var hover = normal.duplicate()
-	hover.bg_color = TAB_BASE.lerp(accent, 0.25)
-	hover.border_color = accent
-	
-	var pressed = normal.duplicate()
-	pressed.bg_color = TAB_BASE.lerp(accent, 0.4)
-	
-	btn.add_theme_stylebox_override("normal", normal)
-	btn.add_theme_stylebox_override("hover", hover)
-	btn.add_theme_stylebox_override("pressed", pressed)
-	btn.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
-	btn.add_theme_color_override("font_color", accent.lerp(Color.WHITE, 0.3))
-	btn.add_theme_color_override("font_hover_color", accent.lerp(Color.WHITE, 0.5))
-	btn.add_theme_font_size_override("font_size", 10)
-
-func _on_select_mode_pressed():
-	is_select_mode = !is_select_mode
-	if is_select_mode:
-		_enter_select_mode()
+func _on_card_clicked(p_mid: String):
+	if not is_selection_mode:
+		return
+		
+	if p_mid in selected_mids:
+		selected_mids.erase(p_mid)
 	else:
-		_exit_select_mode()
-
-func _enter_select_mode():
-	is_select_mode = true
-	selected_modules.clear()
-	_apply_select_button_style()
-	_action_bar.visible = true
-	_refresh_action_bar()
+		selected_mids.append(p_mid)
+	_update_bulk_ui()
 	rebuild_storage()
 
-func _exit_select_mode():
-	is_select_mode = false
-	selected_modules.clear()
-	_apply_select_button_style()
-	_action_bar.visible = false
+func _update_bulk_ui():
+	if btn_demolish_selected:
+		btn_demolish_selected.text = "DEMOLISH SELECTED (%d)" % selected_mids.size()
+		btn_demolish_selected.disabled = selected_mids.is_empty()
+
+func _on_demolish_selected_pressed():
+	if selected_mids.is_empty(): return
+	
+	# v85.0: Copy to avoid mutation issues
+	var to_demolish = selected_mids.duplicate()
+	for mid in to_demolish:
+		manager.demolish_module(mid)
+	
+	selected_mids.clear()
+	_update_bulk_ui()
 	rebuild_storage()
-
-func _on_card_selection_toggled(module_id: String, is_sel: bool):
-	if is_sel:
-		selected_modules[module_id] = true
-	else:
-		selected_modules.erase(module_id)
-	_refresh_action_bar()
-
-func _on_select_all():
-	# Select all visible module cards (not ammo/consumables)
-	for child in storage_grid.get_children():
-		if child.has_method("set_selected") and child.get("mid") != null:
-			var slot_type = child.data.get("slot_type", "")
-			if slot_type not in ["ammo", "consumable", "gem"]:
-				child.set_selected(true)
-				selected_modules[child.mid] = true
-	_refresh_action_bar()
-
-func _on_deselect_all():
-	selected_modules.clear()
-	for child in storage_grid.get_children():
-		if child.has_method("set_selected"):
-			child.set_selected(false)
-	_refresh_action_bar()
-
-func _refresh_action_bar():
-	if not _demolish_btn: return
-	var count = selected_modules.size()
-	if count == 0:
-		_demolish_btn.text = "DEMOLISH (0)"
-		_demolish_btn.disabled = true
-		_demolish_btn.modulate = Color(1, 1, 1, 0.4)
-	else:
-		var summary = manager.get_batch_demolish_summary(selected_modules.keys())
-		_demolish_btn.text = "DEMOLISH %d > %s cr + %s pts" % [
-			summary["count"],
-			UITheme.format_num(summary["credits"]),
-			summary["parts"]
-		]
-		_demolish_btn.disabled = false
-		_demolish_btn.modulate = Color.WHITE
-
-func _on_demolish_selected():
-	var count = selected_modules.size()
-	if count == 0: return
-	
-	var summary = manager.get_batch_demolish_summary(selected_modules.keys())
-	
-	# Confirmation dialog
-	var dlg = ConfirmationDialog.new()
-	dlg.title = "Confirm Batch Demolish"
-	dlg.dialog_text = "Demolish %d modules?\n\nYou will receive:\n  %s Credits\n  %d Spare Parts" % [
-		summary["count"],
-		UITheme.format_num(summary["credits"]),
-		summary["parts"]
-	]
-	dlg.ok_button_text = "DEMOLISH"
-	dlg.cancel_button_text = "Cancel"
-	add_child(dlg)
-	
-	dlg.confirmed.connect(func():
-		var ids = selected_modules.keys().duplicate()
-		var result = manager.demolish_modules_batch(ids)
-		UITheme.show_notification(
-			"Demolished %d modules: +%s credits, +%d parts" % [
-				result["count"],
-				UITheme.format_num(result["credits"]),
-				result["parts"]
-			],
-			Color(0.3, 0.9, 0.4)
-		)
-		_exit_select_mode()
-		dlg.queue_free()
-	)
-	dlg.canceled.connect(func():
-		dlg.queue_free()
-	)
-	dlg.popup_centered()

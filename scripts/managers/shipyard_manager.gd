@@ -19,10 +19,10 @@ const RARITY_LABELS = {
 
 const RARITY_STAT_RANGE = {
 	Rarity.COMMON: [0.00, 0.00],    # Fixed roll (no RNG spread)
-	Rarity.UNCOMMON: [0.05, 0.08],  # 1.05x - 1.08x
-	Rarity.RARE: [0.11, 0.15],      # 1.11x - 1.15x
-	Rarity.LEGENDARY: [0.18, 0.22], # 1.18x - 1.22x
-	Rarity.UNIQUE: [0.23, 0.27],    # 1.23x - 1.27x
+	Rarity.UNCOMMON: [0.08, 0.15],  # 1.08x - 1.15x  (was 1.05-1.08)
+	Rarity.RARE: [0.20, 0.35],      # 1.20x - 1.35x  (was 1.11-1.15)
+	Rarity.LEGENDARY: [0.40, 0.60], # 1.40x - 1.60x  (was 1.18-1.22)
+	Rarity.UNIQUE: [0.65, 0.85],    # 1.65x - 1.85x  (was 1.23-1.27)
 }
 
 # Drop scaling curve per zone (kept controlled and tapering in late game).
@@ -306,9 +306,10 @@ const ELEMENT_RESEARCH_REQS = {
 	"CellT2": "laser_optics",
 	"CellT3": "cryogenic_systems",
 	"CellT4": "cryogenic_systems",
-	"HE_Missile": "combustion",
-	"Seeker_Missile": "advanced_rocketry",
-	"Photon_Torpedo": "capital_ship_armament",
+	"MissileT1": "combustion",
+	"MissileT2": "advanced_rocketry",
+	"MissileT3": "advanced_rocketry",
+	"MissileT4": "capital_ship_armament",
 	"EmergencyPatch": "basic_engineering", # Early game
 	"Mesh": "adv_materials",
 	"Seal": "adv_materials",
@@ -2126,9 +2127,10 @@ func generate_module_drop(base_module_id: String, rarity: int = Rarity.UNCOMMON,
 				affix_pool.append(a_id)
 	
 	var num_affixes = 0
-	if rarity == Rarity.RARE: num_affixes = 1
-	elif rarity == Rarity.LEGENDARY: num_affixes = 2
-	elif rarity == Rarity.UNIQUE: num_affixes = 3
+	if rarity == Rarity.UNCOMMON: num_affixes = 1  # v101: Was 0
+	elif rarity == Rarity.RARE: num_affixes = 2    # v101: Was 1
+	elif rarity == Rarity.LEGENDARY: num_affixes = 3 # v101: Was 2
+	elif rarity == Rarity.UNIQUE: num_affixes = 4  # v101: Was 3
 	
 	num_affixes = min(num_affixes, affix_pool.size())
 	
@@ -2142,13 +2144,13 @@ func generate_module_drop(base_module_id: String, rarity: int = Rarity.UNCOMMON,
 			var affix_id = affix_pool[i]
 			var cfg = AFFIX_DB[affix_id]
 			
-			# v85.2: Greater Affix Logic (10% chance)
-			var is_greater = randf() < 0.1
+			# v101: Greater Affix Logic (15% chance, was 10%)
+			var is_greater = randf() < 0.15
 			var raw_val = 0.0
 			
 			if is_greater:
-				# GA is pinned to 1.5x max possible roll
-				raw_val = cfg["range"][1] * 1.5
+				# v101: GA pinned to 2.0x max roll (was 1.5x)
+				raw_val = cfg["range"][1] * 2.0
 				greater_affixes.append(affix_id)
 			else:
 				raw_val = randi_range(cfg["range"][0], cfg["range"][1])
@@ -2298,18 +2300,18 @@ func roll_rarity(is_boss: bool = false) -> int:
 # v71.2: Sell module for credits -> v100: Demolish for credits + SpareParts
 const RARITY_SELL_PRICES = {
 	Rarity.COMMON: 100,
-	Rarity.UNCOMMON: 500,
-	Rarity.RARE: 2500,
-	Rarity.LEGENDARY: 15000,
-	Rarity.UNIQUE: 50000,
+	Rarity.UNCOMMON: 750,
+	Rarity.RARE: 5000,
+	Rarity.LEGENDARY: 30000,
+	Rarity.UNIQUE: 100000,
 }
 
 const RARITY_SPARE_PARTS = {
 	Rarity.COMMON: 1,
-	Rarity.UNCOMMON: 2,
-	Rarity.RARE: 5,
-	Rarity.LEGENDARY: 15,
-	Rarity.UNIQUE: 50,
+	Rarity.UNCOMMON: 3,
+	Rarity.RARE: 8,
+	Rarity.LEGENDARY: 25,
+	Rarity.UNIQUE: 75,
 }
 
 func get_sell_price(module_id: String) -> int:
@@ -2334,6 +2336,10 @@ func demolish_module(module_id: String) -> bool:
 	var price = get_sell_price(module_id)
 	var parts = get_demolish_parts(module_id)
 	
+	var m = modules.get(module_id, {})
+	var rarity = m.get("rarity", Rarity.COMMON)
+	var zone = m.get("zone", 1)
+	
 	module_inventory[module_id] -= 1
 	if module_inventory[module_id] <= 0:
 		module_inventory.erase(module_id)
@@ -2344,34 +2350,22 @@ func demolish_module(module_id: String) -> bool:
 	
 	GameState.resources.add_currency("credits", price)
 	GameState.resources.add_element("SparePart", parts)
+	
+	# v101: Zone-specific salvage return based on rarity and zone tier
+	if rarity > Rarity.COMMON:
+		var salvage_amt = rarity - Rarity.COMMON # 1 to 4 depending on rarity
+		var salvage_item = ""
+		if zone == 1: salvage_item = "MiteChitin"
+		elif zone == 2: salvage_item = "PirateSalvage"
+		elif zone == 3: salvage_item = "MartianRelics"
+		elif zone == 4: salvage_item = "CryoEssence"
+		elif zone == 5: salvage_item = "XenoFragment"
+		
+		if salvage_item != "":
+			GameState.resources.add_element(salvage_item, salvage_amt)
+			
 	inventory_updated.emit()
 	return true
-
-# v87.1: Batch Demolish for multi-select
-func get_batch_demolish_summary(module_ids: Array) -> Dictionary:
-	var total_credits = 0
-	var total_parts = 0
-	var valid_count = 0
-	for mid in module_ids:
-		if mid in module_inventory and module_inventory[mid] > 0:
-			total_credits += get_sell_price(mid)
-			total_parts += get_demolish_parts(mid)
-			valid_count += 1
-	return {"count": valid_count, "credits": total_credits, "parts": total_parts}
-
-func demolish_modules_batch(module_ids: Array) -> Dictionary:
-	var total_credits = 0
-	var total_parts = 0
-	var count = 0
-	for mid in module_ids:
-		if mid in module_inventory and module_inventory[mid] > 0:
-			var price = get_sell_price(mid)
-			var parts = get_demolish_parts(mid)
-			if demolish_module(mid):
-				total_credits += price
-				total_parts += parts
-				count += 1
-	return {"count": count, "credits": total_credits, "parts": total_parts}
 
 func repair_module(slot_idx: int, cost_credits: int, cost_parts: int) -> bool:
 	if GameState.resources.get_currency("credits") < cost_credits: return false

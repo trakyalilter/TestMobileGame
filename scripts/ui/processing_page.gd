@@ -79,7 +79,7 @@ func _get_recipe_category(rid: String, data: Dictionary) -> String:
 		return data.get("category")
 
 	# Munitions - ammo for weapons
-	if "slug" in rid or "cell_t" in rid or "craft_cell" in rid or "rounds" in rid:
+	if "slug" in rid or "cell_t" in rid or "craft_cell" in rid or "rounds" in rid or "missile" in rid:
 		return "munitions"
 	
 	# Batteries - power storage
