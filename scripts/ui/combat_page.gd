@@ -345,7 +345,7 @@ func _process(delta):
 func update_ui():
 	# Update Haptics & Visualizer
 	radar_display.queue_redraw()
-	
+
 	# Player Stats
 	var sm = GameState.shipyard_manager
 	var eva_bonus = manager.get_milestone_evasion_bonus()

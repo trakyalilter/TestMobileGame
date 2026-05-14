@@ -1,6 +1,6 @@
 extends RefCounted
 
-const CHAPTER_2_IDS = ["m027", "m028", "m029", "m029b", "m030", "m030b", "m030c", "m030d",
+const CHAPTER_2_IDS = ["m027", "m028", "m029", "m029b", "m030", "m030b", "m030c",
 	"m030e", "m030f", "m030g", "m030h",
 	"m031", "m032", "m032b", "m032d", "m032c", "m033", "m033b", "m033c"]
 const ENDGAME_IDS = ["m034"]
@@ -68,7 +68,7 @@ func init_missions():
 		["m013", "Voltaic Storage", "Refine 50 Lithium in the Engineering tab.", "gather", "Li", 50, 1000, 250, "m013b"],
 		["m013b", "Copper Prospecting", "Gather 100 Malachite Ore.", "gather", "Malachite", 100, 1200, 300, "m013c"],
 		["m013c", "Conductivity", "Refine 50 Copper in the Engineering tab.", "gather", "Cu", 50, 1500, 350, "m020"],
-		["m014", "Ballistics Theory", "Research 'Kinetics 101' for weapons technology.", "research", "kinetics_101", 1, 1200, 100, "m015"],
+		["m014", "Ballistics Theory", "Research 'Kinetic Weapons Theory' in the Research tree to unlock kinetic weapon modules.", "research", "kinetics_101", 1, 1200, 100, "m015"],
 		["m015", "Prototype Arsenal", "Craft a 'Mass Driver Mk.I' in the Shipyard.", "craft", "z1_kinetic", 1, 1500, 200, "m016"],
 		["m016", "Kinetic Munitions", "Produce 100 Ferrite Rounds for your weapon.", "gather", "SlugT1", 100, 1000, 100, "m023"],
 		# Shield Section Moved Here (m023 -> m024)
@@ -85,32 +85,29 @@ func init_missions():
 		["m024", "Aegis System", "Craft a 'Basic Shield' for protection.", "craft", "z1_shield", 1, 2500, 200, "m024b"],
 		["m024b", "Combat Triage", "Equip Hull & Shield consumables, with at least 10 of each in inventory.", "equip_consumables", "10", 1, 3500, 300, "m016b"],
 		["m025", "Refining Mastery", "Research 'Efficient Smelting' for alloys.", "research", "smelting", 1, 15000, 500, "m025b"],
-		["m025b", "Alloy Production", "Produce 50 Steel in the Steel Foundry.", "gather", "Steel", 50, 5000, 500, "m026"],
+		["m025b", "Alloy Production", "Smelt 50 Steel in the Engineering tab (Basic Steel Smelting recipe).", "gather", "Steel", 50, 5000, 500, "m026"],
 		["m026", "Master Constructor", "Research 'Shipwright I' for hull reinforcement.", "research", "shipwright_1", 1, 5000, 500, "m026b"],
-		# P0-25: Missing Beepings - Fleet Modernization I
-		["m026b", "Fleet Modernization I", "Construct an 'Industrial Frigate' in the Shipyard.", "construct", "frigate_hull", 1, 10000, 1000, "m026c"],
+		["m026b", "Hull Modernization I", "Construct an 'Industrial Frigate' in the Shipyard.", "construct", "frigate_hull", 1, 10000, 1000, "m026c"],
 		["m026c", "Elite Salvage", "Drop a RARE module from enemies in Lunar Orbit.", "drop_rarity", "2", 1, 5000, 500, "m026d"],
 		["m026d", "Combat Overhaul", "Equip at least 1 RARE+ Weapon.", "loadout_rare_weapon", "2", 1, 10000, 1000, "m026e"],
 		["m026e", "Final Confrontation", "Defeat the Rogue Architect boss in Lunar Orbit.", "defeat", "z1_boss_architect", 1, 25000, 2500, "m027"],
 		# P0 Fix: Progression Deadlock Re-alignment
-		["m027", "Scanning Horizon", "Unlock 'Asteroid Belt' to expand operations.", "research", "zone_2_access", 1, 5000, 500, "m028"],
+		["m027", "Scanning Horizon", "Research 'Asteroid Belt Authorization' in the Research tree to unlock the Asteroid Belt combat zone.", "research", "zone_2_access", 1, 5000, 500, "m028"],
 		["m028", "Belt Mining", "Mine 100 Tin.", "gather", "Cassiterite", 100, 10000, 2000, "m029"],
 		["m029", "Hardened Shell", "Craft 'Carbon Fiber Plate' in the Shipyard.", "craft", "z2_armor", 1, 15000, 5000, "m029b"],
 		["m029b", "Complex Electronics", "Craft 10 Advanced Circuits to prepare for heavier ships.", "gather", "AdvCircuit", 10, 20000, 5000, "m030"],
 		# P0-31: Fabricator Paradox Fix - Shipwright II moved before Fabricator
 		["m030", "Naval Expansion", "Research 'Shipwright II' to unlock Destroyer-class hulls.", "research", "shipwright_2", 1, 4000, 1000, "m030b"],
-		["m030b", "Deep Space Comms", "Build a 'Fabricator' to prepare for the long journey.", "build", "fabricator", 1, 30000, 5000, "m030c"],
-		# P0-25: Missing Beepings - Fleet Modernization II
-		["m030c", "Fleet Modernization II", "Construct an 'Escort Destroyer' in the Shipyard.", "construct", "destroyer_hull", 1, 25000, 2000, "m030d"],
-		["m030d", "Expedition Command", "Deploy a ship on a Fleet Expedition from the Mission screen. Your fleet can gather resources passively while you focus on combat.", "fleet_deploy", "expedition", 1, 35000, 4000, "m030e"],
+		["m030b", "Deep Space Comms", "Build a 'Molecular Fabricator' in the Infrastructure page (Industry rack) to reduce crafting time.", "build", "fabricator", 1, 30000, 5000, "m030c"],
+		["m030c", "Hull Modernization II", "Construct a 'Destroyer' hull in the Shipyard.", "construct", "destroyer_hull", 1, 25000, 2000, "m030e"],
 		# Mission bridge from Asteroid Belt to Sector Alpha (zones 3-4 introduction)
-		["m030e", "Mars Beachhead", "Unlock 'Mars Debris' to access Steel-rich derelicts and Martian Relics.", "research", "zone_3_access", 1, 40000, 5000, "m030f"],
-		["m030f", "Salvage Operations", "Defeat 3 Scavenger Mechs in Mars Debris. Their relics can be forged into a Mars Trophy.", "defeat", "z3_scavenger_mech", 3, 60000, 8000, "m030g"],
-		["m030g", "Cryofield Survey", "Unlock the 'Cryofield' to access frozen anomalies and Cryo Essence.", "research", "zone_4_access", 1, 80000, 10000, "m030h"],
+		["m030e", "Mars Beachhead", "Research 'Mars Debris Clearance' in the Research tree to unlock the Mars Debris combat zone.", "research", "zone_3_access", 1, 40000, 5000, "m030f"],
+		["m030f", "Salvage Operations", "Defeat 3 Scavenger Mechs in the Mars Debris combat zone. Their relics can later be forged into a Mars Trophy.", "defeat", "z3_scavenger_mech", 3, 60000, 8000, "m030g"],
+		["m030g", "Cryofield Survey", "Research 'Cryofield Expedition' in the Research tree to unlock the Cryofield combat zone.", "research", "zone_4_access", 1, 80000, 10000, "m030h"],
 		["m030h", "Frozen Frontier", "Defeat 3 Ice Wraiths in the Cryofield. Cryo Essence powers Titan Trophy crafting.", "defeat", "z4_ice_wraith", 3, 100000, 12000, "m031"],
 
 		# P0 Fix: Sector Alpha Push
-		["m031", "Deep Space Signal", "Unlock 'Sector Alpha' via decryption.", "research", "sector_alpha_decryption", 1, 50000, 10000, "m032"],
+		["m031", "Deep Space Signal", "Research 'Sector Scanning (Alpha)' in the Research tree to detect Sector Alpha space.", "research", "sector_alpha_decryption", 1, 50000, 10000, "m032"],
 		["m032", "Alpha Sector Dominance", "Defeat 3 Alien Frigates in Sector Alpha.", "defeat", "z5_alien_frigate", 3, 75000, 15000, "m032b"],
 		# P0-27: Unlock Sector Beta
 		["m032b", "Expanding Horizons", "Research 'Deep Space Navigation' to unlock Sector Beta.", "research", "deep_space_nav", 1, 50000, 5000, "m032d"],
@@ -413,14 +410,6 @@ func sync_progress():
 			if hull_ok and shield_ok:
 				m["current_qty"] = 1
 
-		elif m["type"] == "fleet_deploy":
-			var fm = GameState.get("fleet_manager")
-			if fm:
-				for slot in fm.active_expeditions:
-					if fm.active_expeditions.get(slot) != null:
-						m["current_qty"] = max(m["current_qty"], 1)
-						break
-
 		elif m["type"] == "warp_perform":
 			if GameState.warp_manager:
 				m["current_qty"] = max(m["current_qty"], min(GameState.warp_manager.total_warps, m["target_qty"]))
@@ -448,6 +437,28 @@ func load_save_data_manager(data: Dictionary):
 			m["active"] = saved.get("active", false)
 			if m["active"] and not m["claimed"]:
 				active_missions.append(mid)
+	# Save migration: if a mission in the chain was removed in an update, the
+	# player can end up stuck because the gone mission was their active link.
+	# Walk every claimed mission and ensure its next_mission is activated.
+	_rescue_orphan_chains()
+
+func _rescue_orphan_chains():
+	# For every claimed mission, make sure its next_mission is active or already claimed.
+	# Iterates until no further activations happen (handles claimed-mission cascades).
+	var changed = true
+	while changed:
+		changed = false
+		for mid in missions:
+			var m = missions[mid]
+			if not m["claimed"]: continue
+			var next_id: String = m.get("next_mission", "")
+			if next_id == "" or not next_id in missions: continue
+			var next_m = missions[next_id]
+			if next_m["claimed"] or next_m["active"]: continue
+			next_m["active"] = true
+			if not next_id in active_missions:
+				active_missions.append(next_id)
+			changed = true
 
 func reset():
 	init_missions()

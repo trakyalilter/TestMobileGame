@@ -1332,6 +1332,35 @@ func _scale_item_requirement(base_qty: int, multiplier: float) -> int:
 		return base_qty + 1
 	return scaled
 
+func _migrate_atk_interval_caps() -> void:
+	# Retroactive migration: older saves contain weapon drops where atk_interval
+	# was rolled below the new -40% reduction floor (formula coefficient lowered
+	# from 0.4 → 0.15). Clamp those values to base × 0.6 so cross-tier outliers
+	# get rebalanced. Damage stats are untouched.
+	var clamped := 0
+	for mid in custom_modules.keys():
+		var m: Dictionary = custom_modules[mid]
+		var stats: Dictionary = m.get("stats", {})
+		if not stats.has("atk_interval"):
+			continue
+		var base_id: String = m.get("base_module", "")
+		if base_id == "" or not base_id in modules:
+			continue
+		var base_interval: float = float(modules[base_id].get("stats", {}).get("atk_interval", 0.0))
+		if base_interval <= 0.0:
+			continue
+		var floor_val: float = base_interval * 0.6
+		var cur: float = float(stats["atk_interval"])
+		if cur < floor_val:
+			var new_val := snappedf(floor_val, 0.01)
+			stats["atk_interval"] = new_val
+			# The modules dict is a live mirror that contains custom_modules — keep them in sync.
+			if mid in modules:
+				modules[mid]["stats"]["atk_interval"] = new_val
+			clamped += 1
+	if clamped > 0:
+		print("[Migration] Clamped atk_interval on %d existing custom module(s) to new -40%% floor." % clamped)
+
 func _migrate_module_entries_from_resources() -> void:
 	if not GameState or not GameState.resources:
 		return
@@ -1931,7 +1960,8 @@ func load_save_data_manager(data: Dictionary):
 	module_inventory = data.get("inventory", {})
 	unseen_modules = data.get("unseen_modules", {})
 	_migrate_module_entries_from_resources()
-	
+	_migrate_atk_interval_caps()
+
 	# Convert JSON string keys for ammo_loadout back to int
 	var saved_ammo = data.get("ammo_loadout", {})
 	ammo_loadout = {}
@@ -2116,9 +2146,16 @@ func generate_module_drop(base_module_id: String, rarity: int = Rarity.UNCOMMON,
 			var boosted = scaled_base
 			
 			if stat_key == "atk_interval":
-				# Reciprocal scaling: +100% speed = 0.5x interval
-				var speed_bonus = bonus * 0.4
+				# Reciprocal scaling: faster fire rate at higher rarity.
+				# Coefficient lowered from 0.4 → 0.15 so a max-roll Unique caps near
+				# -40% reduction (was -67%). Damage scaling is unchanged; this only
+				# affects fire rate, preventing compound DPS outliers that let a
+				# T2 Unique trivialize T3+ content.
+				var speed_bonus = bonus * 0.15
 				boosted = scaled_base / (1.0 + speed_bonus)
+				# Hard floor: interval can never drop below 60% of base (-40% cap).
+				boosted = max(boosted, scaled_base * 0.6)
+				# Absolute floor: never under 0.25s (4Hz fire rate cap) for very fast bases.
 				boosted = max(boosted, 0.25)
 			else:
 				boosted = scaled_base * (1.0 + bonus)

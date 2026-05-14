@@ -52,7 +52,6 @@ const CATEGORY_STRIPE = {
 	"building":   Color(0.40, 0.80, 0.45),  # green  — factory
 	"shipyard":   Color(0.30, 0.70, 0.95),  # cyan   — rocket
 	"research":   Color(0.80, 0.55, 0.95),  # violet — science
-	"fleet":      Color(0.90, 0.75, 0.30)   # yellow — UFO
 }
 
 func _ready():
@@ -359,23 +358,6 @@ func build_material_database():
 							"rate": "%d required" % tech["cost_items"][mat_id]
 						})
 	
-	# --- FLEET EXPEDITION SOURCES ---
-	var fm = GameState.fleet_manager
-	if fm:
-		for mid in fm.missions:
-			var mission = fm.missions[mid]
-			var mission_name = mission.get("name", mid)
-			if "yield" in mission:
-				for mat_id in mission["yield"]:
-					if mat_id == "credits": continue
-					ensure_material(mat_id)
-					if mat_id in material_db:
-						material_db[mat_id]["sources"].append({
-							"type": "fleet",
-							"name": mission_name,
-							"rate": "%.1f per cycle" % mission["yield"][mat_id]
-						})
-
 func ensure_material(mat_id: String):
 	# v73.0: Filter out items that are functionally modules (Boss Drops, Unique Items)
 	if GameState.shipyard_manager and mat_id in GameState.shipyard_manager.modules:
@@ -405,8 +387,8 @@ func _get_material_tier(mat_id: String) -> int:
 	return TIER_ORDER.get(cat, 2)
 
 func _get_primary_source_type(mat: Dictionary) -> String:
-	# Pick a source-type to color-code by; prefer gathering > combat > processing > building > fleet
-	var priority = ["gathering", "combat", "processing", "building", "fleet", "shipyard", "research"]
+	# Pick a source-type to color-code by; prefer gathering > combat > processing > building
+	var priority = ["gathering", "combat", "processing", "building", "shipyard", "research"]
 	var seen = {}
 	for s in mat.get("sources", []):
 		seen[s["type"]] = true
@@ -886,7 +868,6 @@ func _get_type_icon(type: String) -> String:
 		"building": return "🏭"
 		"shipyard": return "🚀"
 		"research": return "🔬"
-		"fleet": return "🛸"
 		_: return "📦"
 
 func _get_type_color(type: String) -> Color:
@@ -897,7 +878,6 @@ func _get_type_color(type: String) -> Color:
 		"building": return Color(0.4, 0.7, 0.4)
 		"shipyard": return Color(0.3, 0.7, 0.9)
 		"research": return Color(0.8, 0.6, 0.9)
-		"fleet": return Color(0.9, 0.7, 0.3)
 		_: return Color(0.7, 0.7, 0.7)
 
 func _on_search_changed(_text):
@@ -938,10 +918,6 @@ func _on_filter_research():
 	_update_filter_buttons("ResearchBtn")
 	refresh_list()
 
-func _on_filter_fleet():
-	current_filter = "fleet"
-	_update_filter_buttons("FleetBtn")
-	refresh_list()
 
 func _update_filter_buttons(active_btn: String):
 	var filter_container = $HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/CategoryFilter

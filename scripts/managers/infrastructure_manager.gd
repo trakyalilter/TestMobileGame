@@ -779,26 +779,6 @@ var building_db: Dictionary = {
 		"special": "global_catalyst",
 		"category": "logistics"
 	},
-	"repair_docks": {
-		"name": "Fleet Repair Docks",
-		"description": "-10% Repair Cost",
-		"cost": {"credits": 100000, "AdvCircuit": 20, "Steel": 100},
-		"energy_gen": 0.0,
-		"energy_cons": 500.0,
-		"max": 10,
-		"research_req": "fleet_logistics_1",
-		"category": "logistics"
-	},
-	"repair_gantry": {
-		"name": "Automated Repair Gantry",
-		"description": "+Passive Ship Repair",
-		"cost": {"credits": 250000, "AdvCircuit": 50, "Superalloy": 50},
-		"energy_gen": 0.0,
-		"energy_cons": 1500.0,
-		"max": 5,
-		"research_req": "fleet_logistics_2",
-		"category": "logistics"
-	}
 }
 
 var production_timers: Dictionary = {}
@@ -1247,10 +1227,6 @@ func process_tick(delta: float):
 			var data = building_db.get(bid)
 			if not data: continue
 			
-			# Fleet Auto-Repair Logic (special case)
-			if bid == "repair_gantry":
-				_process_fleet_repairs(delta * energy_efficiency * count)
-
 			if "yield" in data:
 				if not bid in production_timers: production_timers[bid] = 0.0
 					
@@ -1478,24 +1454,3 @@ func reset(decay_factor: float = 1.0) -> void:
 	energy_efficiency = 1.0
 	production_timers.clear()
 	recalc_energy()
-
-func _process_fleet_repairs(repair_power: float):
-	# repair_power is delta * efficiency * count
-	# Repairs 1% of damage per minute per gantry
-	# 1% per 60s = 0.016% per second
-	var fm = GameState.fleet_manager
-	if not fm or fm.pending_repairs.is_empty(): return
-	
-	var repair_pct = 0.00016 * repair_power # approx 1% per minute
-	for hull_id in fm.pending_repairs.keys():
-		var total_damaged = fm.pending_repairs[hull_id]
-		if total_damaged <= 0: continue
-		
-		# For "auto-repair", we treat it as structural mending (doesn't cost credits)
-		# but it's slow. This rewards high-end infrastructure.
-		var mended = int(total_damaged * repair_pct)
-		if mended < 1: mended = 1 # Minimum 1 cr per tick if damaged
-		
-		fm.pending_repairs[hull_id] = max(0, total_damaged - mended)
-		if fm.pending_repairs[hull_id] == 0:
-			fm.pending_repairs.erase(hull_id)

@@ -199,10 +199,7 @@ var graphs = {
 			# Military Techs (Processing Tungsten -> Ballistics)
 			"processing_tungsten", "ballistics_optimization", "advanced_rocketry",
 			"gamma_optics",
-			
-			# Fleet
-			"fleet_logistics_1", "fleet_logistics_2", "automated_expeditions",
-			
+
 			# Void / Endgame
 			"void_weaponry_1", "void_shielding_1",
 			
@@ -236,12 +233,9 @@ var graphs = {
 			"advanced_rocketry": Vector2(440, 500), # Sits under automation usually, moved here for mil-tech coherence
 			"gamma_optics": Vector2(840, 500),
 			
-			# Column 5: Warp & Fleet
+			# Column 5: Warp
 			"warp_drive": Vector2(440, 80),
 			"warp_stabilizer": Vector2(640, 80),
-			"fleet_logistics_1": Vector2(640, 0),
-			"fleet_logistics_2": Vector2(840, 0),
-			"automated_expeditions": Vector2(840, 80),
 			
 			# Column 6: Void High-End
 			"void_weaponry_1": Vector2(1040, 320),

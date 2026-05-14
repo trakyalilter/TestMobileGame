@@ -512,7 +512,7 @@ var tech_tree = {
 	# --- LOGISTICS UPGRADES ---
 	"automated_logistics": {
 		"name": "Automated Logistics",
-		"description": "Unlocks:\n• Drone Bay\n• Fleet Logistics I (Ships)",
+		"description": "Unlocks:\n• Drone Bay",
 		"cost": 3000,
 		"cost_items": {"Cu": 25, "Fe":50, "Res1": 25},
 		"type": "technology",
@@ -574,32 +574,6 @@ var tech_tree = {
 		"cost_items": {"SalvageData": 10, "Circuit": 50},
 		"type": "technology",
 		"parent": "automated_logistics"
-	},
-	# --- FLEET COMMAND TECHS (New) ---
-	"fleet_logistics_1": {
-		"name": "Fleet Logistics I",
-		"description": "Unlocks:\n• Secondary Fleet Slot\n• Basic Expeditionary Command\n• [Requires: Automated Logistics (Engineering)]",
-		"cost": 25000,
-		"cost_items": {"Circuit": 100, "Ti": 100},
-		"type": "technology",
-		"parent": "warp_drive",
-		"req_tech": "automated_logistics"
-	},
-	"fleet_logistics_2": {
-		"name": "Fleet Logistics II",
-		"description": "Unlocks:\n• Tertiary Fleet Slot\n• Advanced Fleet Coordination",
-		"cost": 250000,
-		"cost_items": {"AdvCircuit": 50, "Au": 20},
-		"type": "technology",
-		"parent": "fleet_logistics_1"
-	},
-	"automated_expeditions": {
-		"name": "Predictive Route Planning",
-		"description": "Bonus:\n• -25% Fleet Mission Interval",
-		"cost": 50000,
-		"cost_items": {"NavData": 50, "Circuit": 200},
-		"type": "technology",
-		"parent": "fleet_logistics_1"
 	},
 	# --- END-GAME SHIPS (NEW) ---
 	"capital_ship_engineering": {
@@ -1184,13 +1158,6 @@ func get_efficiency_bonus(bonus_type: String) -> float:
 			var r_speed = 0.0
 			if "perfect_automation" in unlocked_techs: r_speed += 0.30
 			return r_speed
-		"fleet_slots":
-			var slots = 1
-			if "fleet_logistics_1" in unlocked_techs: slots += 1
-			if "fleet_logistics_2" in unlocked_techs: slots += 1
-			return float(slots)
-		"fleet_speed":
-			return 0.25 if "automated_expeditions" in unlocked_techs else 0.0
 	# Audit v8.0 P1-25: Hub Node Passive Bonuses
 	if bonus_type == "applied_physics" and is_tech_unlocked("applied_physics"):
 		return 0.10 # +10% Energy Capacity

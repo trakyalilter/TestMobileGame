@@ -55,7 +55,6 @@ func execute_warp():
 	GameState.infrastructure_manager.reset(decay)
 	# Audit v2.0 P1-6: Research PERSISTS - only soft reset (clear in-progress, keep unlocks)
 	GameState.research_manager.soft_reset()
-	GameState.fleet_manager.reset(decay)
 	GameState.combat_manager.reset(decay)
 	GameState.shipyard_manager.reset(decay)
 	

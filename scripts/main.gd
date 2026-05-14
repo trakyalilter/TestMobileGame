@@ -804,7 +804,6 @@ func _on_atlas_btn_pressed():
 func _on_warp_btn_pressed():
 	switch_to("warp")
 func _on_options_btn_pressed(): switch_to("options")
-func _on_fleet_btn_pressed(): switch_to("fleet")
 func _on_bounty_btn_pressed(): switch_to("bounty")
 func _on_quest_btn_pressed(): switch_to("quest")
 

@@ -96,13 +96,13 @@ layout_mode = 2
 text = "  🔬  Research Lab"
 alignment = 0
 
-[node name="SectionFleetTop" type="Control" parent="HBoxContainer/Sidebar/VBoxContainer"]
+[node name="SectionShipTop" type="Control" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 4)
 
-[node name="SectionFleetLbl" type="Label" parent="HBoxContainer/Sidebar/VBoxContainer"]
+[node name="SectionShipLbl" type="Label" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
-text = "  FLEET"
+text = "  SHIP"
 
 [node name="ShipyardBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
@@ -173,7 +173,6 @@ mouse_filter = 2
 [connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/MissionBtn" to="." method="_on_mission_btn_pressed"]
 [connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/BountyBtn" to="." method="_on_bounty_btn_pressed"]
 [connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/QuestBtn" to="." method="_on_quest_btn_pressed"]
-[connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/FleetBtn" to="." method="_on_fleet_btn_pressed"]
 [connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/GatheringBtn" to="." method="_on_gathering_btn_pressed"]
 [connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/ProcessingBtn" to="." method="_on_processing_btn_pressed"]
 [connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/InfrastructureBtn" to="." method="_on_infrastructure_btn_pressed"]

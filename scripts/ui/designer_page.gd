@@ -101,8 +101,11 @@ func _ready():
 	GameState.game_loaded.connect(trigger_refresh)
 	
 	if btn_repair_mode:
+		_apply_toolbar_button_style(btn_repair_mode, Color(0.95, 0.78, 0.30))
 		btn_repair_mode.toggled.connect(func(toggled_on):
 			is_repair_mode = toggled_on
+			# Re-apply style so the "pressed" edge actually persists while toggled on
+			_apply_toolbar_button_style(btn_repair_mode, Color(0.95, 0.78, 0.30))
 			if is_repair_mode:
 				Input.set_default_cursor_shape(Input.CURSOR_CROSS)
 			else:
@@ -278,6 +281,7 @@ func _setup_armory_toolbar(v_box: Node, scroll_node: Node):
 	armory_search.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	armory_search.clear_button_enabled = true
 	armory_search.add_theme_font_size_override("font_size", 11)
+	_apply_search_field_style(armory_search)
 	armory_search.text_changed.connect(func(t):
 		armory_search_text = t
 		rebuild_storage())
@@ -290,6 +294,7 @@ func _setup_armory_toolbar(v_box: Node, scroll_node: Node):
 	armory_sort_dropdown.add_item("Sort · Rarity", 2)
 	armory_sort_dropdown.selected = armory_sort_mode
 	armory_sort_dropdown.add_theme_font_size_override("font_size", 11)
+	_apply_dropdown_style(armory_sort_dropdown)
 	armory_sort_dropdown.item_selected.connect(func(idx):
 		armory_sort_mode = idx
 		_update_sort_button_styles()
@@ -302,13 +307,113 @@ func _setup_armory_toolbar(v_box: Node, scroll_node: Node):
 	armory_manage_btn.toggle_mode = true
 	armory_manage_btn.tooltip_text = "Reveal bulk actions (select / demolish / scrap)."
 	armory_manage_btn.add_theme_font_size_override("font_size", 11)
+	_apply_toolbar_button_style(armory_manage_btn, Color(0.55, 0.85, 0.95))
 	armory_manage_btn.toggled.connect(func(on):
 		if bulk_actions_container:
-			bulk_actions_container.visible = on)
+			bulk_actions_container.visible = on
+		_apply_toolbar_button_style(armory_manage_btn, Color(0.55, 0.85, 0.95)))
 	toolbar.add_child(armory_manage_btn)
 
 	v_box.add_child(toolbar)
 	v_box.move_child(toolbar, scroll_node.get_index())
+
+# ── Toolbar styling helpers (match the parchment/brass theme used elsewhere) ──
+
+func _apply_toolbar_button_style(button: Button, accent: Color):
+	# Toggle-aware: pressed state shows a lit accent edge so on/off is obvious.
+	var normal := StyleBoxFlat.new()
+	normal.bg_color = Color(0.10, 0.07, 0.05, 0.95)
+	normal.set_corner_radius_all(2)
+	normal.set_border_width_all(1)
+	normal.border_color = TAB_EDGE
+	normal.content_margin_left = 10
+	normal.content_margin_right = 10
+	normal.content_margin_top = 4
+	normal.content_margin_bottom = 4
+
+	var hover := normal.duplicate()
+	hover.bg_color = Color(0.14, 0.10, 0.07, 1.0)
+	hover.border_color = accent.lerp(TAB_EDGE, 0.45)
+
+	var pressed := normal.duplicate()
+	pressed.bg_color = Color(0.18, 0.13, 0.08, 1.0)
+	pressed.border_color = accent
+	pressed.border_width_left = 3
+
+	var disabled := normal.duplicate()
+	disabled.bg_color = Color(0.08, 0.06, 0.05, 0.70)
+	disabled.border_color = Color(0.22, 0.18, 0.15, 0.70)
+
+	button.add_theme_stylebox_override("normal", normal)
+	button.add_theme_stylebox_override("hover", hover)
+	button.add_theme_stylebox_override("pressed", pressed)
+	button.add_theme_stylebox_override("disabled", disabled)
+	button.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	# If the button is toggle-pressed, also show the lit edge in the normal state
+	if button.toggle_mode and button.button_pressed:
+		button.add_theme_stylebox_override("normal", pressed.duplicate())
+
+	button.add_theme_color_override("font_color", accent.lerp(TEXT_MAIN, 0.55))
+	button.add_theme_color_override("font_hover_color", accent.lerp(Color.WHITE, 0.25))
+	button.add_theme_color_override("font_pressed_color", accent.lerp(Color.WHITE, 0.45))
+	button.add_theme_color_override("font_focus_color", accent.lerp(TEXT_MAIN, 0.55))
+
+func _apply_dropdown_style(opt: OptionButton):
+	# Style the OptionButton itself like a toolbar button…
+	_apply_toolbar_button_style(opt, Color(0.85, 0.70, 0.45))
+	opt.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	# …and style its popup list to match the brass/parchment palette.
+	var popup := opt.get_popup()
+	if popup == null: return
+	var panel := StyleBoxFlat.new()
+	panel.bg_color = Color(0.07, 0.05, 0.04, 0.98)
+	panel.set_corner_radius_all(3)
+	panel.set_border_width_all(1)
+	panel.border_color = Color(0.85, 0.70, 0.45, 0.65)
+	panel.content_margin_left = 4
+	panel.content_margin_right = 4
+	panel.content_margin_top = 4
+	panel.content_margin_bottom = 4
+	panel.shadow_color = Color(0, 0, 0, 0.6)
+	panel.shadow_size = 6
+	popup.add_theme_stylebox_override("panel", panel)
+
+	var hover := StyleBoxFlat.new()
+	hover.bg_color = Color(0.18, 0.13, 0.08, 1.0)
+	hover.border_width_left = 2
+	hover.border_color = Color(0.85, 0.70, 0.45, 0.95)
+	hover.set_corner_radius_all(2)
+	hover.content_margin_left = 8
+	hover.content_margin_right = 8
+	hover.content_margin_top = 3
+	hover.content_margin_bottom = 3
+	popup.add_theme_stylebox_override("hover", hover)
+
+	popup.add_theme_color_override("font_color", TEXT_MAIN)
+	popup.add_theme_color_override("font_hover_color", Color(1.0, 0.92, 0.55))
+	popup.add_theme_color_override("font_separator_color", TAB_EDGE)
+	popup.add_theme_font_size_override("font_size", 11)
+
+func _apply_search_field_style(le: LineEdit):
+	var normal := StyleBoxFlat.new()
+	normal.bg_color = Color(0.06, 0.04, 0.03, 0.98)
+	normal.set_corner_radius_all(2)
+	normal.set_border_width_all(1)
+	normal.border_color = TAB_EDGE
+	normal.content_margin_left = 8
+	normal.content_margin_right = 8
+	normal.content_margin_top = 4
+	normal.content_margin_bottom = 4
+
+	var focus := normal.duplicate()
+	focus.border_color = Color(0.85, 0.70, 0.45, 0.95)
+	focus.border_width_left = 2
+
+	le.add_theme_stylebox_override("normal", normal)
+	le.add_theme_stylebox_override("focus", focus)
+	le.add_theme_color_override("font_color", TEXT_MAIN)
+	le.add_theme_color_override("font_placeholder_color", TEXT_DIM)
+	le.add_theme_color_override("caret_color", Color(0.85, 0.70, 0.45))
 
 func _setup_loadout_preset_row(parent: Node, insert_idx: int):
 	var preset_row = HBoxContainer.new()
@@ -440,7 +545,8 @@ func _update_armory_banner():
 		_armory_banner.text = ""
 		return
 	if focused_slot_idx >= 0 and manager:
-		focused_slot_equipped_mid = manager.loadout.get(focused_slot_idx, "")
+		var eq = manager.loadout.get(focused_slot_idx, "")
+		focused_slot_equipped_mid = eq if eq else ""
 	var slot_num = _get_focused_slot_number()
 	var slot_label = "%s %d" % [focused_slot_type.to_upper(), slot_num]
 	if focused_slot_equipped_mid != "" and focused_slot_equipped_mid in manager.modules:
@@ -645,7 +751,7 @@ func update_header():
 	stats_grid.columns = 1
 
 	var stack = VBoxContainer.new()
-	stack.add_theme_constant_override("separation", 6)
+	stack.add_theme_constant_override("separation", 3)
 	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	stats_grid.add_child(stack)
 
@@ -678,10 +784,10 @@ func _build_hero_dps_panel(dps: float) -> Control:
 	bg.border_color = Color(0.84, 0.70, 0.45, 0.60)
 	bg.set_corner_radius_all(3)
 	bg.border_width_left = 4
-	bg.content_margin_left = 14
-	bg.content_margin_right = 14
-	bg.content_margin_top = 8
-	bg.content_margin_bottom = 8
+	bg.content_margin_left = 12
+	bg.content_margin_right = 12
+	bg.content_margin_top = 3
+	bg.content_margin_bottom = 3
 	panel.add_theme_stylebox_override("panel", bg)
 
 	var hbox = HBoxContainer.new()
@@ -689,9 +795,9 @@ func _build_hero_dps_panel(dps: float) -> Control:
 
 	var key = Label.new()
 	key.text = "DPS"
-	key.add_theme_font_size_override("font_size", 12)
+	key.add_theme_font_size_override("font_size", 11)
 	key.add_theme_color_override("font_color", TEXT_DIM)
-	key.size_flags_vertical = Control.SIZE_SHRINK_END
+	key.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	hbox.add_child(key)
 
 	var spacer = Control.new()
@@ -700,7 +806,7 @@ func _build_hero_dps_panel(dps: float) -> Control:
 
 	var value = Label.new()
 	value.text = UITheme.format_num(dps)
-	value.add_theme_font_size_override("font_size", 26)
+	value.add_theme_font_size_override("font_size", 22)
 	value.add_theme_color_override("font_color", Color(0.95, 0.82, 0.42))
 	value.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	hbox.add_child(value)
@@ -719,7 +825,7 @@ func _build_resource_bar(label: String, value: float, max_value: float, fill: Co
 	outer.add_child(lbl)
 
 	var bar = ProgressBar.new()
-	bar.custom_minimum_size = Vector2(0, 14)
+	bar.custom_minimum_size = Vector2(0, 10)
 	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bar.show_percentage = false
 	bar.max_value = max(1.0, max_value)
@@ -776,7 +882,7 @@ func _build_grid_bar(used: float, cap: float, margin: float) -> Control:
 		margin_prefix = "MARGIN +%d kW" % int(margin)
 
 	var bar = ProgressBar.new()
-	bar.custom_minimum_size = Vector2(0, 14)
+	bar.custom_minimum_size = Vector2(0, 10)
 	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bar.show_percentage = false
 	bar.max_value = max(1.0, cap)
@@ -794,26 +900,17 @@ func _build_grid_bar(used: float, cap: float, margin: float) -> Control:
 	outer.add_child(bar)
 
 	var margin_lbl = Label.new()
-	margin_lbl.text = margin_prefix
-	margin_lbl.custom_minimum_size = Vector2(110, 0)
+	# Merge the used/cap readout into the margin line so the GRID bar fits in a single row.
+	if margin >= 0:
+		margin_lbl.text = "%d / %d  ·  %s" % [int(used), int(cap), margin_prefix]
+	else:
+		margin_lbl.text = "%d / %d  ·  %s" % [int(used), int(cap), margin_prefix]
+	margin_lbl.custom_minimum_size = Vector2(160, 0)
 	margin_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	margin_lbl.add_theme_font_size_override("font_size", 10)
 	margin_lbl.add_theme_color_override("font_color", margin_color)
 	outer.add_child(margin_lbl)
-
-	# Used/cap line below the bar
-	var used_line = Label.new()
-	used_line.text = "%d / %d kW" % [int(used), int(cap)]
-	used_line.add_theme_font_size_override("font_size", 9)
-	used_line.add_theme_color_override("font_color", TEXT_DIM)
-
-	# Stack both lines vertically using a sub VBox
-	var v = VBoxContainer.new()
-	v.add_theme_constant_override("separation", 1)
-	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	v.add_child(outer)
-	v.add_child(used_line)
-	return v
+	return outer
 
 func _build_supporting_stats_row(atk: float, def: float, acc: float, crit_pct: float, eva: float) -> Control:
 	var row = HBoxContainer.new()
@@ -866,30 +963,23 @@ func _build_sets_active_panel() -> Control:
 		return null
 	var s_db = GameState.combat_manager.TRINITY_SET_BONUSES
 
-	# Container
+	# Compact single-line-per-set panel. Bonus details moved to per-line tooltips.
 	var panel = PanelContainer.new()
 	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.06, 0.06, 0.10, 0.92)
-	style.set_corner_radius_all(3)
-	style.set_border_width_all(1)
-	style.border_color = Color(0.0, 0.80, 0.85, 0.50)
-	style.content_margin_left = 10
-	style.content_margin_right = 10
-	style.content_margin_top = 6
-	style.content_margin_bottom = 6
+	style.bg_color = Color(0.06, 0.06, 0.10, 0.85)
+	style.set_corner_radius_all(2)
+	style.border_width_left = 2
+	style.border_color = Color(0.0, 0.80, 0.85, 0.55)
+	style.content_margin_left = 8
+	style.content_margin_right = 8
+	style.content_margin_top = 3
+	style.content_margin_bottom = 3
 	panel.add_theme_stylebox_override("panel", style)
 
 	var vbox = VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 4)
+	vbox.add_theme_constant_override("separation", 1)
 	panel.add_child(vbox)
 
-	var hdr = Label.new()
-	hdr.text = "SETS ACTIVE"
-	hdr.add_theme_font_size_override("font_size", 10)
-	hdr.add_theme_color_override("font_color", Color(0.0, 0.85, 0.95))
-	vbox.add_child(hdr)
-
-	# Sort: active sets first, then by piece count descending
 	var sids = counts.keys()
 	sids.sort_custom(func(a, b):
 		var pa = s_db.get(a, {}).get("pieces", 99)
@@ -907,16 +997,15 @@ func _build_sets_active_panel() -> Control:
 		var active = have >= total
 
 		var line = HBoxContainer.new()
-		line.add_theme_constant_override("separation", 6)
+		line.add_theme_constant_override("separation", 5)
 		vbox.add_child(line)
 
-		# Pip indicator (filled/empty diamonds)
 		var pips = ""
 		for i in range(total):
 			pips += ("◆" if i < have else "◇")
 		var pip_lbl = Label.new()
 		pip_lbl.text = pips
-		pip_lbl.add_theme_font_size_override("font_size", 12)
+		pip_lbl.add_theme_font_size_override("font_size", 10)
 		pip_lbl.add_theme_color_override("font_color",
 			Color(1.0, 0.85, 0.30) if active else Color(0.65, 0.65, 0.70))
 		line.add_child(pip_lbl)
@@ -924,7 +1013,7 @@ func _build_sets_active_panel() -> Control:
 		var name_lbl = Label.new()
 		name_lbl.text = info["name"]
 		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		name_lbl.add_theme_font_size_override("font_size", 11)
+		name_lbl.add_theme_font_size_override("font_size", 10)
 		name_lbl.add_theme_color_override("font_color",
 			Color(1.0, 0.92, 0.55) if active else Color(0.78, 0.78, 0.86))
 		line.add_child(name_lbl)
@@ -934,30 +1023,24 @@ func _build_sets_active_panel() -> Control:
 			status_lbl.text = "ACTIVE"
 			status_lbl.add_theme_color_override("font_color", Color(0.45, 1.00, 0.55))
 		else:
-			status_lbl.text = "%d / %d" % [have, total]
+			status_lbl.text = "%d/%d" % [have, total]
 			status_lbl.add_theme_color_override("font_color", Color(0.65, 0.65, 0.70))
-		status_lbl.add_theme_font_size_override("font_size", 10)
+		status_lbl.add_theme_font_size_override("font_size", 9)
 		line.add_child(status_lbl)
 
-		# Sub-line: bonus preview (only shown for partial sets — "missing 1 piece for X")
+		# Build a rich tooltip for hover instead of inflating the page with sub-lines.
+		var tt := "%s   %d / %d pieces\n" % [info["name"], have, total]
+		for bk in info["bonus"]:
+			var bv = info["bonus"][bk]
+			var bn = bk.replace("_pct", "").replace("_flat", "").replace("_", " ")
+			var bv_str = "+%d%%" % bv if ("_pct" in bk or "crit" in bk) else "+%d" % bv
+			tt += "  • %s  %s\n" % [bn, bv_str]
 		if not active:
-			var missing = total - have
-			var bonus_summary := ""
-			for bk in info["bonus"]:
-				var bv = info["bonus"][bk]
-				var bn = bk.replace("_pct", "").replace("_flat", "").replace("_", " ")
-				var bv_str = "+%d%%" % bv if ("_pct" in bk or "crit" in bk) else "+%d" % bv
-				bonus_summary += "%s %s   " % [bn, bv_str]
-			var hint = Label.new()
-			hint.text = "  └  %d piece%s away from: %s" % [
-				missing,
-				"s" if missing > 1 else "",
-				bonus_summary.strip_edges()
-			]
-			hint.add_theme_font_size_override("font_size", 9)
-			hint.add_theme_color_override("font_color", Color(0.55, 0.65, 0.78))
-			hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			vbox.add_child(hint)
+			tt += "(%d more piece%s to activate)" % [total - have, "s" if (total - have) > 1 else ""]
+		else:
+			tt += "ACTIVE"
+		line.mouse_filter = Control.MOUSE_FILTER_STOP
+		line.tooltip_text = tt
 
 	return panel
 

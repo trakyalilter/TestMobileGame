@@ -645,7 +645,10 @@ func _gui_input(event):
 					parent_ui._on_filter_changed("ordnance")
 					UITheme.trigger_ui_thud(self, 1.0)
 			elif parent_ui and parent_ui.has_method("set_focused_slot"):
+				# Dict.get() returns the default ONLY when the key is missing; a stored
+				# null value comes through as null. Coerce to "" so the typed param holds.
 				var equipped_mid = manager.loadout.get(slot_idx, "")
+				if equipped_mid == null: equipped_mid = ""
 				parent_ui.set_focused_slot(slot_idx, slot_type, equipped_mid)
 				UITheme.trigger_ui_thud(self, 1.0)
 

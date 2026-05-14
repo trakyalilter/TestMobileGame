@@ -14,7 +14,6 @@ var shipyard_manager : RefCounted
 var research_manager : RefCounted
 var combat_manager : RefCounted
 var mission_manager : RefCounted
-var fleet_manager : RefCounted
 var warp_manager : RefCounted
 var bounty_manager : RefCounted
 var quest_manager : RefCounted
@@ -55,7 +54,6 @@ func _ready():
 	research_manager = load("res://scripts/managers/research_manager.gd").new()
 	combat_manager = load("res://scripts/managers/combat_manager.gd").new()
 	mission_manager = load("res://scripts/managers/mission_manager.gd").new()
-	fleet_manager = load("res://scripts/managers/fleet_manager.gd").new()
 	warp_manager = load("res://scripts/managers/warp_manager.gd").new()
 	bounty_manager = load("res://scripts/managers/bounty_manager.gd").new()
 	quest_manager = load("res://scripts/managers/quest_manager.gd").new()
@@ -67,9 +65,8 @@ func _ready():
 	load_game()
 
 func _process(delta):
-	# 1. Background Automation (Infrastructure & Fleet)
+	# 1. Background Automation (Infrastructure)
 	if infrastructure_manager: infrastructure_manager.process_tick(delta)
-	if fleet_manager: fleet_manager.process_tick(delta)
 	if bounty_manager: bounty_manager.process_tick(delta)
 	
 	# 2. Active Foreground Task
@@ -105,7 +102,6 @@ func save_game():
 		"research": research_manager.get_save_data_manager(),
 		"combat": combat_manager.get_save_data_manager(),
 		"mission": mission_manager.get_save_data_manager(),
-		"fleet": fleet_manager.get_save_data_manager(),
 		"prestige": warp_manager.get_save_data_manager(),
 		"bounty": bounty_manager.get_save_data_manager(),
 		"quest": quest_manager.get_save_data_manager(),
@@ -175,7 +171,6 @@ func load_game():
 		
 		combat_manager.load_save_data_manager(data.get("combat", {}))
 		mission_manager.load_save_data_manager(data.get("mission", {}))
-		fleet_manager.load_save_data_manager(data.get("fleet", {}))
 		warp_manager.load_save_data_manager(data.get("prestige", {}))
 		bounty_manager.load_save_data_manager(data.get("bounty", {}))
 		quest_manager.load_save_data_manager(data.get("quest", {}))
@@ -229,9 +224,6 @@ func process_offline_progress(delta: float):
 	var r_report = research_manager.calculate_offline(delta)
 	if r_report: reports.append(r_report)
 	
-	var fl_report = fleet_manager.calculate_offline(delta)
-	if fl_report: reports.append(fl_report)
-	
 	# v52.1: Optional offline combat
 	if game_settings.get("offline_combat", false):
 		var c_report = combat_manager.calculate_offline(delta)
@@ -251,7 +243,6 @@ func hard_reset():
 	research_manager.reset()
 	combat_manager.reset()
 	mission_manager.reset()
-	fleet_manager.reset()
 	if quest_manager: quest_manager.reset()
 	# ... others
 	
