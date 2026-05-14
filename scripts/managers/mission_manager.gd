@@ -1,5 +1,10 @@
 extends RefCounted
 
+const CHAPTER_2_IDS = ["m027", "m028", "m029", "m029b", "m030", "m030b", "m030c", "m030d",
+	"m030e", "m030f", "m030g", "m030h",
+	"m031", "m032", "m032b", "m032d", "m032c", "m033", "m033b", "m033c"]
+const ENDGAME_IDS = ["m034"]
+
 var missions = {}
 var active_missions = []
 
@@ -96,8 +101,14 @@ func init_missions():
 		["m030", "Naval Expansion", "Research 'Shipwright II' to unlock Destroyer-class hulls.", "research", "shipwright_2", 1, 4000, 1000, "m030b"],
 		["m030b", "Deep Space Comms", "Build a 'Fabricator' to prepare for the long journey.", "build", "fabricator", 1, 30000, 5000, "m030c"],
 		# P0-25: Missing Beepings - Fleet Modernization II
-		["m030c", "Fleet Modernization II", "Construct an 'Escort Destroyer' in the Shipyard.", "construct", "destroyer_hull", 1, 25000, 2000, "m031"],
-		
+		["m030c", "Fleet Modernization II", "Construct an 'Escort Destroyer' in the Shipyard.", "construct", "destroyer_hull", 1, 25000, 2000, "m030d"],
+		["m030d", "Expedition Command", "Deploy a ship on a Fleet Expedition from the Mission screen. Your fleet can gather resources passively while you focus on combat.", "fleet_deploy", "expedition", 1, 35000, 4000, "m030e"],
+		# Mission bridge from Asteroid Belt to Sector Alpha (zones 3-4 introduction)
+		["m030e", "Mars Beachhead", "Unlock 'Mars Debris' to access Steel-rich derelicts and Martian Relics.", "research", "zone_3_access", 1, 40000, 5000, "m030f"],
+		["m030f", "Salvage Operations", "Defeat 3 Scavenger Mechs in Mars Debris. Their relics can be forged into a Mars Trophy.", "defeat", "z3_scavenger_mech", 3, 60000, 8000, "m030g"],
+		["m030g", "Cryofield Survey", "Unlock the 'Cryofield' to access frozen anomalies and Cryo Essence.", "research", "zone_4_access", 1, 80000, 10000, "m030h"],
+		["m030h", "Frozen Frontier", "Defeat 3 Ice Wraiths in the Cryofield. Cryo Essence powers Titan Trophy crafting.", "defeat", "z4_ice_wraith", 3, 100000, 12000, "m031"],
+
 		# P0 Fix: Sector Alpha Push
 		["m031", "Deep Space Signal", "Unlock 'Sector Alpha' via decryption.", "research", "sector_alpha_decryption", 1, 50000, 10000, "m032"],
 		["m032", "Alpha Sector Dominance", "Defeat 3 Alien Frigates in Sector Alpha.", "defeat", "z5_alien_frigate", 3, 75000, 15000, "m032b"],
@@ -116,7 +127,9 @@ func init_missions():
 		
 		# v80.3 Fix: Remapped to v80.1 enemy IDs
 		["m034", "Gamma Sector Control", "Defeat 3 Gamma Colossus in Sector Gamma to finalize supremacy.", "defeat", "z6_boss_colossus", 3, 300000, 50000, ""],
-		["goal_001", "THE GREAT EXPEDITION", "Reach Sector Epsilon and discover the Primordial Core.", "discover", "sector_epsilon", 1, 0, 1000000, ""]
+		["goal_001", "THE GREAT EXPEDITION", "Reach Sector Epsilon and discover the Primordial Core.", "discover", "sector_epsilon", 1, 0, 1000000, ""],
+		["goal_002", "INTO THE VOID", "Perform your first Warp. Your credits and materials reset, but you gain Exotic Matter Shards for permanent multipliers that make each run stronger.", "warp_perform", "warp", 1, 0, 250000, ""],
+		["goal_003", "PRESTIGE VETERAN", "Perform 5 Warps total to fully unlock Warp Tier scaling.", "warp_perform", "warp", 5, 0, 2000000, ""]
 	]
 	
 	for i in range(m_list.size()):
@@ -136,8 +149,15 @@ func init_missions():
 		if mid == "m034": next_id = ""
 		
 		var m_name = entry[1]
-		if mid.begins_with("m"): m_name = "[TUTORIAL] " + m_name
-		else: m_name = "[CORE GOAL] " + m_name
+		if mid.begins_with("m"):
+			if mid in ENDGAME_IDS:
+				m_name = "[ENDGAME] " + m_name
+			elif mid in CHAPTER_2_IDS:
+				m_name = "[CHAPTER 2] " + m_name
+			else:
+				m_name = "[TUTORIAL] " + m_name
+		else:
+			m_name = "[CORE GOAL] " + m_name
 		
 		missions[mid] = {
 			"id": mid,
@@ -393,6 +413,18 @@ func sync_progress():
 			if hull_ok and shield_ok:
 				m["current_qty"] = 1
 
+		elif m["type"] == "fleet_deploy":
+			var fm = GameState.get("fleet_manager")
+			if fm:
+				for slot in fm.active_expeditions:
+					if fm.active_expeditions.get(slot) != null:
+						m["current_qty"] = max(m["current_qty"], 1)
+						break
+
+		elif m["type"] == "warp_perform":
+			if GameState.warp_manager:
+				m["current_qty"] = max(m["current_qty"], min(GameState.warp_manager.total_warps, m["target_qty"]))
+
 		if m["current_qty"] != old_qty:
 			changed = true
 			
@@ -426,3 +458,12 @@ func has_progress() -> bool:
 		if m["claimed"] or m["completed"]:
 			return true
 	return false
+
+func count_claimable_missions() -> int:
+	# Total missions completed-but-not-yet-claimed across tutorial, chapter, endgame, and goal tracks.
+	var n = 0
+	for mid in active_missions:
+		var m = missions.get(mid)
+		if m and m["completed"] and not m["claimed"]:
+			n += 1
+	return n

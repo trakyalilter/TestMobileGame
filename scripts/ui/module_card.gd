@@ -6,6 +6,7 @@ var count: int = 0
 var pulse_tween: Tween
 var is_selected: bool = false
 var is_draggable: bool = true
+var compare_equipped_mid: String = ""
 
 signal clicked(p_mid: String)
 
@@ -111,26 +112,78 @@ func _draw_tile_visual(item_name: String, slot_type: String, rarity: int, rarity
 	letter_lbl.custom_minimum_size = Vector2(size, size)
 	tile_container.add_child(letter_lbl)
 	
-	# Bottom Right Tier/Level Number
+	# Bottom Right Tier badge — PoE-style iLvl indicator with colored pill background
 	var tier_val = _get_item_tier(item_name, m_data)
-	var tier_lbl = Label.new()
-	tier_lbl.text = tier_val
-	tier_lbl.add_theme_font_size_override("font_size", 9) # Was 7
-	tier_lbl.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8))
-	tier_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	tier_lbl.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
-	tier_lbl.custom_minimum_size = Vector2(size, size)
+	if tier_val != "":
+		var tier_panel = PanelContainer.new()
+		tier_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var tier_style = StyleBoxFlat.new()
+		tier_style.bg_color = rarity_color.lerp(Color.BLACK, 0.45)
+		tier_style.set_corner_radius_all(3)
+		tier_style.border_color = rarity_color.lerp(Color.WHITE, 0.15)
+		tier_style.set_border_width_all(1)
+		tier_style.content_margin_left = 3
+		tier_style.content_margin_right = 3
+		tier_style.content_margin_top = 0
+		tier_style.content_margin_bottom = 0
+		tier_panel.add_theme_stylebox_override("panel", tier_style)
 
+		var tier_lbl = Label.new()
+		tier_lbl.text = tier_val
+		tier_lbl.add_theme_font_size_override("font_size", 9)
+		tier_lbl.add_theme_color_override("font_color", rarity_color.lerp(Color.WHITE, 0.55))
+		tier_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		tier_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		tier_panel.add_child(tier_lbl)
 
-	
-	# Adjust margin to sit nicely in bottom right
-	var tier_margin = MarginContainer.new()
-	tier_margin.add_theme_constant_override("margin_right", 5) # Nudged from 2
-	tier_margin.add_theme_constant_override("margin_bottom", 0) # From -1
-	tier_margin.mouse_filter = Control.MOUSE_FILTER_PASS
-	tier_margin.custom_minimum_size = Vector2(size, size)
-	tier_margin.add_child(tier_lbl)
-	tile_container.add_child(tier_margin)
+		var tier_margin = MarginContainer.new()
+		tier_margin.add_theme_constant_override("margin_right", 2)
+		tier_margin.add_theme_constant_override("margin_bottom", 2)
+		tier_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tier_margin.custom_minimum_size = Vector2(size, size)
+
+		# Anchor the badge to bottom-right via a container that aligns its child
+		var anchor = HBoxContainer.new()
+		anchor.alignment = BoxContainer.ALIGNMENT_END
+		anchor.custom_minimum_size = Vector2(size, 0)
+		anchor.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		anchor.add_child(tier_panel)
+
+		var v_anchor = VBoxContainer.new()
+		v_anchor.alignment = BoxContainer.ALIGNMENT_END
+		v_anchor.custom_minimum_size = Vector2(size, size)
+		v_anchor.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		v_anchor.add_child(anchor)
+		tile_container.add_child(v_anchor)
+
+	# Top Right comparison chevron — surfaces upgrade/downgrade at a glance
+	# (Detailed deltas are still in the tooltip; this is the scan-mode cue.)
+	var cmp = _compute_compare_summary()
+	if cmp != "":
+		var cmp_lbl = Label.new()
+		cmp_lbl.text = cmp
+		cmp_lbl.add_theme_font_size_override("font_size", 12)
+		var cmp_color = Color(0.45, 1.00, 0.55) if cmp == "▲" else (Color(1.00, 0.40, 0.40) if cmp == "▼" else Color(0.85, 0.85, 0.85))
+		cmp_lbl.add_theme_color_override("font_color", cmp_color)
+		cmp_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+		var cmp_margin = MarginContainer.new()
+		cmp_margin.add_theme_constant_override("margin_right", 2)
+		cmp_margin.add_theme_constant_override("margin_top", -2)
+		cmp_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+		var cmp_anchor = HBoxContainer.new()
+		cmp_anchor.alignment = BoxContainer.ALIGNMENT_END
+		cmp_anchor.custom_minimum_size = Vector2(size, 0)
+		cmp_anchor.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cmp_anchor.add_child(cmp_lbl)
+
+		var cmp_v = VBoxContainer.new()
+		cmp_v.alignment = BoxContainer.ALIGNMENT_BEGIN
+		cmp_v.custom_minimum_size = Vector2(size, size)
+		cmp_v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cmp_v.add_child(cmp_anchor)
+		tile_container.add_child(cmp_v)
 
 
 
@@ -210,6 +263,30 @@ func _get_type_char(s_type: String) -> String:
 		"consumable": return "H"
 		"gem", "gem_synth": return "G"
 	return "M"
+
+func _compute_compare_summary() -> String:
+	# At-a-glance upgrade indicator vs the focused-slot's equipped module.
+	# Returns "▲" / "▼" / "=" / "" (empty = nothing to compare against).
+	if compare_equipped_mid == "" or compare_equipped_mid == mid:
+		return ""
+	var sm = GameState.shipyard_manager
+	if not sm or not compare_equipped_mid in sm.modules:
+		return ""
+	if not mid in sm.modules:
+		return ""
+	var my_stats = data.get("stats", {})
+	var eq_stats = sm.modules[compare_equipped_mid].get("stats", {})
+	# Score = simple sum of primary combat stats. Larger = stronger.
+	var score_keys = ["atk_kinetic", "atk_energy", "atk_explosive",
+		"hp", "max_shield", "def", "accuracy", "evasion", "crit_chance"]
+	var my_score = 0.0
+	var eq_score = 0.0
+	for k in score_keys:
+		my_score += float(my_stats.get(k, 0))
+		eq_score += float(eq_stats.get(k, 0))
+	if abs(my_score - eq_score) < 0.5:
+		return "="
+	return "▲" if my_score > eq_score else "▼"
 
 func _get_item_tier(item_name: String, m_data: Dictionary) -> String:
 	if m_data.has("tier"):
@@ -677,7 +754,10 @@ func _build_comparison_tooltip_bbcode() -> String:
 
 	var equipped_mid = ""
 	var equipped_stats = {}
-	if sm and slot_type in ["weapon", "shield", "armor", "engine", "battery", "reactor", "sensor", "cooling"]:
+	if compare_equipped_mid != "" and sm and compare_equipped_mid in sm.modules:
+		equipped_mid = compare_equipped_mid
+		equipped_stats = sm.modules[compare_equipped_mid].get("stats", {})
+	elif sm and slot_type in ["weapon", "shield", "armor", "engine", "battery", "reactor", "sensor", "cooling"]:
 		for idx in sm.loadout:
 			var equipped = sm.loadout[idx]
 			if equipped and equipped in sm.modules:
@@ -758,18 +838,18 @@ func _build_comparison_tooltip_bbcode() -> String:
 					val_str = "%d%%" % int(val_raw * 100)
 					range_str = " [color=gray][font_size=9][%d-%d]%%[/font_size][/color]" % [int(s_range[0] * 100), int(s_range[1] * 100)]
 				
-				var ga_star = "[color=#ffcc00]★[/color] " if is_ga else ""
-				var text_color = "#ffaa00" if is_ga else "#8fc5ff"
-				
 				var desc_val = 0
 				if scaling == "flat" or scaling == "linear_tier":
 					desc_val = int(val_raw)
 				else:
 					desc_val = int(val_raw * 100)
-				
+
 				var desc = cfg["desc"] % desc_val
-				
-				tt += "[color=%s]%s%s[/color]%s\n" % [text_color, ga_star, desc, range_str]
+
+				if is_ga:
+					tt += "[color=#ffcc00][b] GREATER[/b][/color]  [color=#ffdd44][b]%s[/b][/color]%s\n" % [desc, range_str]
+				else:
+					tt += "[color=#8fc5ff]◆ %s[/color]%s\n" % [desc, range_str]
 
 	if data.has("sockets"):
 		tt += div

@@ -16,14 +16,48 @@ var mode_switch_container: HBoxContainer
 var btn_materials: Button
 var btn_enemies: Button
 
+# Sort controls (built in _setup_sort_bar)
+var sort_bar: HBoxContainer
+var btn_sort_az: Button
+var btn_sort_inv: Button
+var btn_sort_tier: Button
+
 var current_mode = "materials" # "materials" or "enemies"
 var current_filter = "all"
+var current_sort = "az"  # "az" | "inv" | "tier"
 var material_db = {}  # {material_id: {name, sources: [], uses: []}}
 var enemy_db = {} # {enemy_id: {name, zone, zone_difficulty, stats, loot}}
 var selected_id = ""
 
+# Tier index by ElementDB category — drives badge color & sort order
+const TIER_ORDER = {
+	"ores": 1, "basic_metals": 1,
+	"advanced_metals": 2, "components": 2, "alloys": 2,
+	"rare_metals": 3, "ammo": 3, "batteries": 3,
+	"consumables": 3,
+	"special": 4,
+	"endgame": 5, "boss_cores": 5, "matrix_cores": 5
+}
+const TIER_COLORS = {
+	1: Color(0.65, 0.65, 0.70),         # gray  — basic
+	2: Color(0.40, 0.85, 0.50),         # green — refined
+	3: Color(0.35, 0.65, 1.00),         # blue  — advanced
+	4: Color(0.85, 0.45, 1.00),         # purple — exotic
+	5: Color(1.00, 0.65, 0.20)          # gold  — endgame
+}
+const CATEGORY_STRIPE = {
+	"gathering":  Color(0.85, 0.55, 0.20),  # orange — pickaxe
+	"processing": Color(0.45, 0.55, 0.95),  # blue   — gear
+	"combat":     Color(0.95, 0.30, 0.30),  # red    — sword
+	"building":   Color(0.40, 0.80, 0.45),  # green  — factory
+	"shipyard":   Color(0.30, 0.70, 0.95),  # cyan   — rocket
+	"research":   Color(0.80, 0.55, 0.95),  # violet — science
+	"fleet":      Color(0.90, 0.75, 0.30)   # yellow — UFO
+}
+
 func _ready():
 	_setup_mode_switch()
+	_setup_sort_bar()
 	build_databases()
 
 func _setup_mode_switch():
@@ -47,9 +81,54 @@ func _setup_mode_switch():
 	
 	mode_switch_container.add_child(btn_materials)
 	mode_switch_container.add_child(btn_enemies)
-	
+
 	left_vbox.add_child(mode_switch_container)
 	left_vbox.move_child(mode_switch_container, 0)
+
+func _setup_sort_bar():
+	# Sort row below the search box — A→Z / Inventory / Tier
+	var left_vbox = $HBoxContainer/LeftPanel/MarginContainer/VBoxContainer
+
+	sort_bar = HBoxContainer.new()
+	sort_bar.name = "SortBar"
+	sort_bar.add_theme_constant_override("separation", 6)
+
+	var label = Label.new()
+	label.text = "Sort:"
+	label.add_theme_font_size_override("font_size", 11)
+	label.add_theme_color_override("font_color", Color(0.55, 0.6, 0.72))
+	sort_bar.add_child(label)
+
+	btn_sort_az = _make_sort_btn("A→Z", "az")
+	btn_sort_inv = _make_sort_btn("Inventory", "inv")
+	btn_sort_tier = _make_sort_btn("Tier", "tier")
+	sort_bar.add_child(btn_sort_az)
+	sort_bar.add_child(btn_sort_inv)
+	sort_bar.add_child(btn_sort_tier)
+
+	# Insert below SearchBox
+	left_vbox.add_child(sort_bar)
+	var search_box_node = $HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/SearchBox
+	left_vbox.move_child(sort_bar, search_box_node.get_index() + 1)
+	_update_sort_buttons()
+
+func _make_sort_btn(label: String, mode: String) -> Button:
+	var b = Button.new()
+	b.text = label
+	b.toggle_mode = true
+	b.add_theme_font_size_override("font_size", 11)
+	b.button_pressed = (current_sort == mode)
+	b.pressed.connect(func():
+		current_sort = mode
+		_update_sort_buttons()
+		refresh_list()
+	)
+	return b
+
+func _update_sort_buttons():
+	if btn_sort_az: btn_sort_az.button_pressed = (current_sort == "az")
+	if btn_sort_inv: btn_sort_inv.button_pressed = (current_sort == "inv")
+	if btn_sort_tier: btn_sort_tier.button_pressed = (current_sort == "tier")
 
 func _on_visibility_changed():
 	if visible:
@@ -74,7 +153,8 @@ func _update_mode_buttons():
 	filter_container.visible = (current_mode == "materials")
 	
 	name_label.text = "Select an Item"
-	desc_label.text = ""
+	desc_label.text = "Pick %s from the list to view full details." % ("a material" if current_mode == "materials" else "an enemy")
+	desc_label.add_theme_color_override("font_color", Color(0.62, 0.66, 0.74))
 	_clear_list(sources_list)
 	_clear_list(uses_list)
 	if net_label: net_label.text = ""
@@ -320,17 +400,43 @@ func refresh_list():
 	else:
 		_populate_enemies_list(search_term)
 
+func _get_material_tier(mat_id: String) -> int:
+	var cat = ElementDB.get_category(mat_id)
+	return TIER_ORDER.get(cat, 2)
+
+func _get_primary_source_type(mat: Dictionary) -> String:
+	# Pick a source-type to color-code by; prefer gathering > combat > processing > building > fleet
+	var priority = ["gathering", "combat", "processing", "building", "fleet", "shipyard", "research"]
+	var seen = {}
+	for s in mat.get("sources", []):
+		seen[s["type"]] = true
+	for p in priority:
+		if p in seen: return p
+	return ""
+
 func _populate_materials_list(search_term):
 	var sorted_keys = material_db.keys()
-	sorted_keys.sort()
-	
+
+	match current_sort:
+		"az":
+			sorted_keys.sort()
+		"inv":
+			sorted_keys.sort_custom(func(a, b):
+				return GameState.resources.get_element_amount(a) > GameState.resources.get_element_amount(b))
+		"tier":
+			sorted_keys.sort_custom(func(a, b):
+				var ta = _get_material_tier(a)
+				var tb = _get_material_tier(b)
+				if ta != tb: return ta < tb
+				return material_db[a]["name"] < material_db[b]["name"])
+
 	for mat_id in sorted_keys:
 		var mat = material_db[mat_id]
 		var mat_name = mat["name"]
-		
+
 		if search_term != "" and not mat_name.to_lower().contains(search_term):
 			continue
-		
+
 		if current_filter != "all":
 			var has_match = false
 			for source in mat["sources"]:
@@ -344,12 +450,92 @@ func _populate_materials_list(search_term):
 						break
 			if not has_match:
 				continue
-		
-		var btn = Button.new()
-		btn.text = mat_name
-		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		btn.connect("pressed", _on_item_selected.bind(mat_id))
-		item_list.add_child(btn)
+
+		var card = _build_material_card(mat_id, mat)
+		item_list.add_child(card)
+
+func _build_material_card(mat_id: String, mat: Dictionary) -> Control:
+	var tier = _get_material_tier(mat_id)
+	var tier_color = TIER_COLORS.get(tier, Color.WHITE)
+	var stripe_color = CATEGORY_STRIPE.get(_get_primary_source_type(mat), Color(0.4, 0.4, 0.45))
+	var owned = GameState.resources.get_element_amount(mat_id) if GameState.resources else 0.0
+
+	var panel = PanelContainer.new()
+	panel.custom_minimum_size = Vector2(0, 44)
+	panel.mouse_filter = Control.MOUSE_FILTER_PASS
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.10, 0.12, 0.17, 0.95)
+	style.border_color = stripe_color
+	style.border_width_left = 4
+	style.corner_radius_top_left = 4
+	style.corner_radius_top_right = 4
+	style.corner_radius_bottom_left = 4
+	style.corner_radius_bottom_right = 4
+	panel.add_theme_stylebox_override("panel", style)
+
+	var hover = StyleBoxFlat.new()
+	hover.bg_color = Color(0.16, 0.20, 0.28, 1.0)
+	hover.border_color = stripe_color
+	hover.border_width_left = 4
+	hover.corner_radius_top_left = 4
+	hover.corner_radius_top_right = 4
+	hover.corner_radius_bottom_left = 4
+	hover.corner_radius_bottom_right = 4
+
+	# Clickable button overlay
+	var btn = Button.new()
+	btn.flat = true
+	btn.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	btn.mouse_filter = Control.MOUSE_FILTER_STOP
+	btn.pressed.connect(_on_item_selected.bind(mat_id))
+	btn.mouse_entered.connect(func(): panel.add_theme_stylebox_override("panel", hover))
+	btn.mouse_exited.connect(func(): panel.add_theme_stylebox_override("panel", style))
+
+	var margin = MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 10)
+	margin.add_theme_constant_override("margin_right", 10)
+	margin.add_theme_constant_override("margin_top", 4)
+	margin.add_theme_constant_override("margin_bottom", 4)
+	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(margin)
+
+	var hbox = HBoxContainer.new()
+	hbox.add_theme_constant_override("separation", 8)
+	hbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	margin.add_child(hbox)
+
+	# Tier badge
+	var tier_lbl = Label.new()
+	tier_lbl.text = "T%d" % tier
+	tier_lbl.add_theme_font_size_override("font_size", 11)
+	tier_lbl.add_theme_color_override("font_color", tier_color)
+	tier_lbl.custom_minimum_size = Vector2(26, 0)
+	tier_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	hbox.add_child(tier_lbl)
+
+	# Name
+	var name_lbl = Label.new()
+	name_lbl.text = mat["name"]
+	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_lbl.add_theme_font_size_override("font_size", 13)
+	name_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	hbox.add_child(name_lbl)
+
+	# Inventory count
+	var inv_lbl = Label.new()
+	inv_lbl.text = "x%s" % UITheme.format_num(owned)
+	inv_lbl.add_theme_font_size_override("font_size", 11)
+	inv_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	if owned <= 0:
+		inv_lbl.add_theme_color_override("font_color", Color(0.45, 0.45, 0.50))
+	elif owned >= 1000:
+		inv_lbl.add_theme_color_override("font_color", Color(0.45, 1.00, 0.55))
+	else:
+		inv_lbl.add_theme_color_override("font_color", Color(0.85, 0.88, 0.95))
+	hbox.add_child(inv_lbl)
+
+	panel.add_child(btn)
+	return panel
 
 func _populate_enemies_list(search_term):
 	# Group by Zone, sort by difficulty (ascending)
@@ -375,18 +561,108 @@ func _populate_enemies_list(search_term):
 	for zone in sorted_zones:
 		var header = Label.new()
 		var diff = zone_difficulty.get(zone, 0)
-		header.text = "— %s (★%d) —" % [zone, diff]
+		header.text = "—  %s  ★%d  —" % [zone, diff]
 		header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		header.add_theme_color_override("font_color", UITheme.COLORS["text_accent"])
+		header.add_theme_font_size_override("font_size", 12)
 		item_list.add_child(header)
-		
+
 		for eid in enemies_by_zone[zone]:
-			var e = enemy_db[eid]
-			var btn = Button.new()
-			btn.text = e["name"]
-			btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
-			btn.connect("pressed", _on_item_selected.bind(eid))
-			item_list.add_child(btn)
+			var card = _build_enemy_card(eid, enemy_db[eid])
+			item_list.add_child(card)
+
+func _build_enemy_card(eid: String, e: Dictionary) -> Control:
+	# Compute threat color for stripe — same logic as detail panel but compressed
+	var sm = GameState.shipyard_manager
+	var atk = e["stats"].get("atk", 0)
+	var interval = e["stats"].get("atk_interval", 2.0)
+	var enemy_dps = float(atk) / max(0.5, interval)
+	var enemy_ehp = e["stats"].get("hp", 0) + e["stats"].get("max_shield", 0)
+	var stripe_color = Color(0.5, 0.5, 0.55)
+	var threat_short = ""
+	if sm and sm.attack_kinetic + sm.attack_energy + sm.attack_explosive > 0 and sm.max_hp > 0:
+		var p_dps = float(sm.attack_kinetic + sm.attack_energy + sm.attack_explosive)
+		var p_ehp = float(sm.max_hp + sm.max_shield)
+		var p_ttk = float(enemy_ehp) / max(1.0, p_dps)
+		var e_ttk = float(p_ehp) / max(1.0, enemy_dps)
+		var ratio = e_ttk / max(0.01, p_ttk)
+		if ratio >= 3.0:    stripe_color = Color(0.45, 1.00, 0.50); threat_short = "TRIVIAL"
+		elif ratio >= 1.5:  stripe_color = Color(0.55, 0.95, 0.70); threat_short = "OK"
+		elif ratio >= 0.75: stripe_color = Color(1.00, 0.85, 0.30); threat_short = "TOUGH"
+		elif ratio >= 0.35: stripe_color = Color(1.00, 0.50, 0.20); threat_short = "LETHAL"
+		else:               stripe_color = Color(1.00, 0.30, 0.30); threat_short = "★ DEADLY"
+
+	var is_boss = e.get("boss_core", "") != ""
+	if is_boss:
+		stripe_color = stripe_color.lerp(Color(1.0, 0.85, 0.20), 0.4)
+
+	var panel = PanelContainer.new()
+	panel.custom_minimum_size = Vector2(0, 44)
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.10, 0.12, 0.17, 0.95)
+	style.border_color = stripe_color
+	style.border_width_left = 4
+	style.corner_radius_top_left = 4
+	style.corner_radius_top_right = 4
+	style.corner_radius_bottom_left = 4
+	style.corner_radius_bottom_right = 4
+	panel.add_theme_stylebox_override("panel", style)
+
+	var hover = StyleBoxFlat.new()
+	hover.bg_color = Color(0.16, 0.20, 0.28, 1.0)
+	hover.border_color = stripe_color
+	hover.border_width_left = 4
+	hover.corner_radius_top_left = 4
+	hover.corner_radius_top_right = 4
+	hover.corner_radius_bottom_left = 4
+	hover.corner_radius_bottom_right = 4
+
+	var btn = Button.new()
+	btn.flat = true
+	btn.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	btn.mouse_filter = Control.MOUSE_FILTER_STOP
+	btn.pressed.connect(_on_item_selected.bind(eid))
+	btn.mouse_entered.connect(func(): panel.add_theme_stylebox_override("panel", hover))
+	btn.mouse_exited.connect(func(): panel.add_theme_stylebox_override("panel", style))
+
+	var margin = MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 10)
+	margin.add_theme_constant_override("margin_right", 10)
+	margin.add_theme_constant_override("margin_top", 4)
+	margin.add_theme_constant_override("margin_bottom", 4)
+	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(margin)
+
+	var hbox = HBoxContainer.new()
+	hbox.add_theme_constant_override("separation", 8)
+	hbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	margin.add_child(hbox)
+
+	if is_boss:
+		var boss_lbl = Label.new()
+		boss_lbl.text = "★"
+		boss_lbl.add_theme_font_size_override("font_size", 14)
+		boss_lbl.add_theme_color_override("font_color", Color(1.0, 0.85, 0.20))
+		boss_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		hbox.add_child(boss_lbl)
+
+	var name_lbl = Label.new()
+	name_lbl.text = e["name"]
+	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_lbl.add_theme_font_size_override("font_size", 13)
+	name_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	hbox.add_child(name_lbl)
+
+	if threat_short != "":
+		var th_lbl = Label.new()
+		th_lbl.text = threat_short
+		th_lbl.add_theme_font_size_override("font_size", 10)
+		th_lbl.add_theme_color_override("font_color", stripe_color)
+		th_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		hbox.add_child(th_lbl)
+
+	panel.add_child(btn)
+	return panel
 
 func _on_item_selected(id: String):
 	selected_id = id
@@ -398,44 +674,46 @@ func _on_item_selected(id: String):
 
 func _display_material_details(mat_id):
 	var mat = material_db[mat_id]
-	
+
 	name_label.text = mat["name"]
-	
-	# Wiki-style description block
-	var desc_parts = []
-	desc_parts.append("ID: %s" % mat_id)
-	
-	# Element description from JSON
-	var elem_desc = ElementDB.get_element_description(mat_id)
-	if elem_desc != "":
-		desc_parts.append(elem_desc)
-	
-	# Market value
+
+	# Stat block (rendered inline via desc_label BBCode-like single string, plus net_label)
+	var tier = _get_material_tier(mat_id)
+	var tier_color = TIER_COLORS.get(tier, Color.WHITE)
+	var owned = GameState.resources.get_element_amount(mat_id) if GameState.resources else 0.0
 	var market_value = ElementDB.get_element_value(mat_id)
-	if market_value > 0:
-		desc_parts.append("Market Value: %d Cr" % market_value)
-	
-	# Current inventory
-	var owned = GameState.resources.get_element_amount(mat_id)
-	if owned > 0:
-		desc_parts.append("In Inventory: %d" % owned)
-	
-	desc_label.text = "\n".join(desc_parts)
-	
+	var cat = ElementDB.get_category(mat_id).replace("_", " ").capitalize()
+	var elem_desc = ElementDB.get_element_description(mat_id)
+
+	var stat_lines = []
+	stat_lines.append("OWNED: %s    |    TIER %d (%s)    |    VALUE: %s Cr" % [
+		UITheme.format_num(owned),
+		tier,
+		cat,
+		UITheme.format_num(market_value) if market_value > 0 else "—"
+	])
+	stat_lines.append("ID: %s" % mat_id)
+	if elem_desc != "":
+		stat_lines.append("")
+		stat_lines.append(elem_desc)
+
+	desc_label.text = "\n".join(stat_lines)
+	desc_label.add_theme_color_override("font_color", tier_color)
+
 	# Net Rate
 	var im_mgr = GameState.infrastructure_manager
 	var net_rates = im_mgr.get_total_resource_rates()
 	var rate = net_rates.get(mat_id, 0.0)
-	
+
 	if net_label:
 		if rate == 0:
-			net_label.text = "NET GROWTH: 0.00 /min"
+			net_label.text = "⏸  NET GROWTH: 0.00 /min"
 			net_label.modulate = Color(0.7, 0.7, 0.7)
 		elif rate > 0:
-			net_label.text = "NET GROWTH: +%.2f /min" % rate
+			net_label.text = "▲ NET GROWTH: +%.2f /min" % rate
 			net_label.modulate = Color(0.4, 1.0, 0.4)
 		else:
-			net_label.text = "NET GROWTH: %.2f /min" % rate
+			net_label.text = "▼ NET DRAIN: %.2f /min" % rate
 			net_label.modulate = Color(1.0, 0.4, 0.4)
 	
 	_clear_list(sources_list)
@@ -456,33 +734,78 @@ func _display_material_details(mat_id):
 func _display_enemy_details(eid):
 	var e = enemy_db.get(eid)
 	if not e: return
-	
+
 	name_label.text = e["name"]
-	
-	# Wiki-style description block
-	var desc_parts = []
-	desc_parts.append("Zone: %s" % e["zone"])
-	desc_parts.append("Zone Difficulty: ★%d" % e["zone_difficulty"])
-	desc_parts.append("XP Value: %d" % e["xp"])
-	
-	# v87.0: Enemy Damage Type
-	var e_dmg_type = e.get("dmg_type", "kinetic")
-	match e_dmg_type:
-		"kinetic": desc_parts.append("Attacks With: KINETIC")
-		"energy": desc_parts.append("Attacks With: ENERGY")
-		"explosive": desc_parts.append("Attacks With: EXPLOSIVE")
-	
-	# Compute effective DPS
+
+	var e_raw = GameState.combat_manager.enemy_db.get(eid, {})
+
+	# Compute effective DPS / EHP
 	var atk = e["stats"].get("atk", 0)
 	var interval = e["stats"].get("atk_interval", 2.0)
-	if interval > 0:
-		desc_parts.append("Effective DPS: %.1f" % (float(atk) / interval))
-	
-	# Compute effective HP (HP + Shield)
-	var total_ehp = e["stats"].get("hp", 0) + e["stats"].get("max_shield", 0)
-	desc_parts.append("Effective HP: %d" % total_ehp)
-	
+	var enemy_dps = float(atk) / max(0.5, interval)
+	var enemy_ehp = e["stats"].get("hp", 0) + e["stats"].get("max_shield", 0)
+
+	# Compute player power
+	var sm = GameState.shipyard_manager
+	var player_dps = 0.0
+	var player_ehp = 0.0
+	if sm:
+		player_dps = float(sm.attack_kinetic + sm.attack_energy + sm.attack_explosive)
+		player_ehp = float(sm.max_hp + sm.max_shield)
+
+	# Threat rating
+	var threat = "UNKNOWN"
+	var threat_color = Color(0.7, 0.7, 0.7)
+	if player_dps > 0 and player_ehp > 0:
+		# Time to kill comparison: how much HP enemy strips of player vs player strips of enemy
+		var player_ttk = float(enemy_ehp) / max(1.0, player_dps)
+		var enemy_ttk = float(player_ehp) / max(1.0, enemy_dps)
+		var ratio = enemy_ttk / max(0.01, player_ttk)
+		if ratio >= 3.0:
+			threat = "TRIVIAL"
+			threat_color = Color(0.45, 1.00, 0.50)
+		elif ratio >= 1.5:
+			threat = "MANAGEABLE"
+			threat_color = Color(0.55, 0.95, 0.70)
+		elif ratio >= 0.75:
+			threat = "DANGEROUS"
+			threat_color = Color(1.0, 0.85, 0.30)
+		elif ratio >= 0.35:
+			threat = "LETHAL"
+			threat_color = Color(1.0, 0.50, 0.20)
+		else:
+			threat = "OVERWHELMING"
+			threat_color = Color(1.0, 0.30, 0.30)
+
+	# Build resistance & weakness chip strings
+	var rk = e_raw.get("resist_k", 0.0)
+	var re = e_raw.get("resist_e", 0.0)
+	var rx = e_raw.get("resist_x", 0.0)
+	var resist_chips = []
+	var weak_chips = []
+	if rk >= 0.10: resist_chips.append("KIN +%d%%" % int(rk * 100))
+	elif rk <= -0.10: weak_chips.append("KIN %d%%" % int(rk * 100))
+	if re >= 0.10: resist_chips.append("ENG +%d%%" % int(re * 100))
+	elif re <= -0.10: weak_chips.append("ENG %d%%" % int(re * 100))
+	if rx >= 0.10: resist_chips.append("EXP +%d%%" % int(rx * 100))
+	elif rx <= -0.10: weak_chips.append("EXP %d%%" % int(rx * 100))
+
+	var desc_parts = []
+	desc_parts.append("ZONE: %s  ★%d   |   XP: %d" % [e["zone"], e["zone_difficulty"], e["xp"]])
+	desc_parts.append("THREAT: %s" % threat)
+	desc_parts.append("Effective HP: %s    |    DPS: %.1f    |    Attacks with: %s" % [
+		UITheme.format_num(enemy_ehp),
+		enemy_dps,
+		e.get("dmg_type", "kinetic").to_upper()
+	])
+	if not resist_chips.is_empty():
+		desc_parts.append("RESISTS: " + "  ".join(resist_chips))
+	if not weak_chips.is_empty():
+		desc_parts.append("WEAK TO: " + "  ".join(weak_chips))
+
 	desc_label.text = "\n".join(desc_parts)
+	desc_label.add_theme_color_override("font_color", threat_color)
+
 	if net_label: net_label.text = ""
 	
 	_clear_list(sources_list)

@@ -17,6 +17,7 @@ var mission_manager : RefCounted
 var fleet_manager : RefCounted
 var warp_manager : RefCounted
 var bounty_manager : RefCounted
+var quest_manager : RefCounted
 # var processing_manager
 # var mission_manager
 # var combat_manager
@@ -57,9 +58,11 @@ func _ready():
 	fleet_manager = load("res://scripts/managers/fleet_manager.gd").new()
 	warp_manager = load("res://scripts/managers/warp_manager.gd").new()
 	bounty_manager = load("res://scripts/managers/bounty_manager.gd").new()
-	
+	quest_manager = load("res://scripts/managers/quest_manager.gd").new()
+
 	mission_manager.connect_signals()
 	bounty_manager.connect_signals()
+	quest_manager.connect_signals()
 	
 	load_game()
 
@@ -105,6 +108,7 @@ func save_game():
 		"fleet": fleet_manager.get_save_data_manager(),
 		"prestige": warp_manager.get_save_data_manager(),
 		"bounty": bounty_manager.get_save_data_manager(),
+		"quest": quest_manager.get_save_data_manager(),
 		"game_settings": game_settings,  # v52.1
 		"last_save_time": Time.get_unix_time_from_system()
 	}
@@ -174,6 +178,7 @@ func load_game():
 		fleet_manager.load_save_data_manager(data.get("fleet", {}))
 		warp_manager.load_save_data_manager(data.get("prestige", {}))
 		bounty_manager.load_save_data_manager(data.get("bounty", {}))
+		quest_manager.load_save_data_manager(data.get("quest", {}))
 		
 		# v52.1: Load game settings
 		var saved_settings = data.get("game_settings", {})
@@ -247,6 +252,7 @@ func hard_reset():
 	combat_manager.reset()
 	mission_manager.reset()
 	fleet_manager.reset()
+	if quest_manager: quest_manager.reset()
 	# ... others
 	
 	was_resetted = true

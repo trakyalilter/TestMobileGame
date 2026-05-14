@@ -442,7 +442,7 @@ var building_db: Dictionary = {
 		"cost": {"credits": 150000, "Steel": 300, "Hydraulics": 20},
 		"energy_gen": 0.0,
 		"energy_cons": 35.0,
-		"yield": {"C": 3.8},
+		"yield": {"C": 6.0},
 		"input": {"Wood": 1.3},
 		"interval": 5.0,
 		"research_req": "combustion",
@@ -757,19 +757,6 @@ var building_db: Dictionary = {
 		"special": "gather_speed_buff",
 		"category": "logistics"
 	},
-	"crew_quarters": {
-		"name": "Crew Quarters",
-		"description": "+10% XP Gain",
-		"cost": {"credits": 25000, "Steel": 100, "Circuit": 20},
-		"energy_gen": 0.0,
-		"energy_cons": 50.0,
-		"input": {"Food": 1},
-		"interval": 30.0,
-		"max": 3,
-		"research_req": "industrial_logistics",
-		"special": "xp_buff",
-		"category": "logistics"
-	},
 	"catalyst_chamber": {
 		"name": "Platinum Catalyst Chamber",
 		"description": "+25% Processing Speed",
@@ -828,10 +815,6 @@ func set_building_throttle(building_id: String, value: float):
 
 func get_building_throttle(building_id: String) -> float:
 	return building_throttles.get(building_id, 1.0)
-
-func get_xp_multiplier() -> float:
-	# Crew Quarters: +10% per building, max 3 (+30%)
-	return 1.0 + (get_building_count("crew_quarters") * 0.10)
 
 func get_effective_yield(building_id: String, resource_symbol: String) -> float:
 	var data = building_db.get(building_id)
@@ -1461,8 +1444,6 @@ func calculate_offline(delta: float) -> String:
 			report += " + %s: %s\n" % [item, FormatUtils.format_number(loot_summary[item])]
 			
 	# Audit v9.0 P2-23: Special Buff Reporting
-	if get_building_count("crew_quarters") > 0:
-		report += " + Crew Quarters: +10% XP Active\n"
 	if get_building_count("biosphere_dome") > 0:
 		var bonus = get_building_count("biosphere_dome") * 5
 		report += " + Biosphere Domes: +%d%% Gather Speed Active\n" % bonus

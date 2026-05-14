@@ -26,40 +26,55 @@ theme_override_constants/separation = 10
 
 [node name="TitleLabel" type="Label" parent="VBoxContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 24
-text = "Shipyard & Engineering"
+theme_override_font_sizes/font_size = 26
+text = "Shipyard"
 
 [node name="StatsPanel" type="PanelContainer" parent="VBoxContainer"]
 layout_mode = 2
 
 [node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/StatsPanel"]
 layout_mode = 2
-theme_override_constants/separation = 40
+theme_override_constants/separation = 0
 alignment = 1
 
 [node name="HPLabel" type="Label" parent="VBoxContainer/StatsPanel/HBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.4, 0.9, 0.4, 1)
-text = "Structure: 0 / 0"
+theme_override_colors/font_color = Color(0.35, 0.90, 0.45, 1)
+theme_override_font_sizes/font_size = 13
+size_flags_horizontal = 3
+horizontal_alignment = 1
+text = "HP: 0 / 0"
 
 [node name="AtkLabel" type="Label" parent="VBoxContainer/StatsPanel/HBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.6, 0.2, 1)
-text = "Firepower: 0"
+theme_override_colors/font_color = Color(1, 0.60, 0.20, 1)
+theme_override_font_sizes/font_size = 13
+size_flags_horizontal = 3
+horizontal_alignment = 1
+text = "Atk: 0"
 
 [node name="DefLabel" type="Label" parent="VBoxContainer/StatsPanel/HBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0, 0.8, 1, 1)
+theme_override_colors/font_color = Color(0.30, 0.78, 1, 1)
+theme_override_font_sizes/font_size = 13
+size_flags_horizontal = 3
+horizontal_alignment = 1
 text = "Shield: 0"
 
 [node name="EvaLabel" type="Label" parent="VBoxContainer/StatsPanel/HBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.8, 1, 0.2, 1)
-text = "Evasion: 0%"
+theme_override_colors/font_color = Color(0.75, 1, 0.25, 1)
+theme_override_font_sizes/font_size = 13
+size_flags_horizontal = 3
+horizontal_alignment = 1
+text = "Eva: 0%"
 
 [node name="EnergyLabel" type="Label" parent="VBoxContainer/StatsPanel/HBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 1, 0.2, 1)
+theme_override_colors/font_color = Color(1, 0.90, 0.25, 1)
+theme_override_font_sizes/font_size = 13
+size_flags_horizontal = 3
+horizontal_alignment = 1
 text = "Energy: 0/0"
 
 [node name="ScrollContainer" type="ScrollContainer" parent="VBoxContainer"]

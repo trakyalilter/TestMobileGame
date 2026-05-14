@@ -157,22 +157,31 @@ func update_ui():
 	var cons = manager.consumption
 	
 	if net_lbl:
-		net_lbl.text = "NET: %+.1f kW" % net
+		var eff = manager.energy_efficiency
 		if net >= 0:
+			net_lbl.text = "NET: +%.1f kW" % net
 			net_lbl.add_theme_color_override("font_color", Color.CYAN)
+		elif eff <= 0.5:
+			net_lbl.text = "NET: %.1f kW  ⚠ GRID COLLAPSING" % net
+			net_lbl.add_theme_color_override("font_color", Color.RED)
 		else:
+			net_lbl.text = "NET: %.1f kW  ⚠ POWER DEFICIT" % net
 			net_lbl.add_theme_color_override("font_color", Color.ORANGE_RED)
-	
+
 	if gen_lbl:
 		gen_lbl.text = "GEN: %.1f kW" % gen
-	
+
 	if cons_lbl:
-		# Forensic 3: Efficiency Visibility
 		var eff = manager.energy_efficiency
-		if eff < 1.0:
-			cons_lbl.text = "CONS: %.1f kW (Grid Stalled: %d%%)" % [cons, int(eff * 100)]
+		if eff < 0.5:
+			cons_lbl.text = "CONS: %.1f kW  [THROTTLED TO %d%% — BUILD MORE POWER]" % [cons, int(eff * 100)]
+			cons_lbl.add_theme_color_override("font_color", Color.RED)
+		elif eff < 1.0:
+			cons_lbl.text = "CONS: %.1f kW  (Grid Stalled: %d%%)" % [cons, int(eff * 100)]
+			cons_lbl.add_theme_color_override("font_color", Color.ORANGE)
 		else:
 			cons_lbl.text = "CONS: %.1f kW" % cons
+			cons_lbl.add_theme_color_override("font_color", Color.WHITE)
 
 	for w in widgets:
 		w.update_state()

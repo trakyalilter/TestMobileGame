@@ -36,12 +36,22 @@ grow_vertical = 2
 theme_override_constants/separation = 0
 
 [node name="Sidebar" type="PanelContainer" parent="HBoxContainer"]
-custom_minimum_size = Vector2(190, 0)
+custom_minimum_size = Vector2(188, 0)
 layout_mode = 2
 
 [node name="VBoxContainer" type="VBoxContainer" parent="HBoxContainer/Sidebar"]
 layout_mode = 2
-theme_override_constants/separation = 5
+theme_override_constants/separation = 2
+
+[node name="LogoLabel" type="Label" parent="HBoxContainer/Sidebar/VBoxContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 38)
+horizontal_alignment = 1
+vertical_alignment = 1
+text = "HORIZON IDLE"
+
+[node name="LogoSep" type="HSeparator" parent="HBoxContainer/Sidebar/VBoxContainer"]
+layout_mode = 2
 
 [node name="MissionBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
@@ -50,9 +60,21 @@ alignment = 0
 
 [node name="BountyBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
-text = "  🎯  Bounty Board"
+text = "  🎯  Bounties"
 alignment = 0
 
+[node name="QuestBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
+layout_mode = 2
+text = "  ✦  Quests"
+alignment = 0
+
+[node name="SectionOpsTop" type="Control" parent="HBoxContainer/Sidebar/VBoxContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 4)
+
+[node name="SectionOpsLbl" type="Label" parent="HBoxContainer/Sidebar/VBoxContainer"]
+layout_mode = 2
+text = "  OPERATIONS"
 
 [node name="GatheringBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
@@ -61,7 +83,7 @@ alignment = 0
 
 [node name="ProcessingBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
-text = "  ⚙ Engineering"
+text = "  ⚙  Engineering"
 alignment = 0
 
 [node name="InfrastructureBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
@@ -74,14 +96,22 @@ layout_mode = 2
 text = "  🔬  Research Lab"
 alignment = 0
 
+[node name="SectionFleetTop" type="Control" parent="HBoxContainer/Sidebar/VBoxContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 4)
+
+[node name="SectionFleetLbl" type="Label" parent="HBoxContainer/Sidebar/VBoxContainer"]
+layout_mode = 2
+text = "  FLEET"
+
 [node name="ShipyardBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
-text = "  ⚓ Shipyard"
+text = "  ⚓  Shipyard"
 alignment = 0
 
 [node name="DesignerBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
-text = "  ⌬   Ship Designer"
+text = "  ✦  Ship Designer"
 alignment = 0
 
 [node name="CombatBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
@@ -91,34 +121,42 @@ alignment = 0
 
 [node name="WarpBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.720442, 0.449173, 1, 1)
-text = "  ✨  WARP CORE"
+text = "  ✨  Warp Core"
 alignment = 0
+
+[node name="SectionRefTop" type="Control" parent="HBoxContainer/Sidebar/VBoxContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 4)
+
+[node name="SectionRefLbl" type="Label" parent="HBoxContainer/Sidebar/VBoxContainer"]
+layout_mode = 2
+text = "  REFERENCE"
 
 [node name="InventoryBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
-text = " 📦 Inventory"
+text = "  📦  Inventory"
 alignment = 0
 
 [node name="AtlasBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
-text = " 📖 Material Atlas"
+text = "  📖  Atlas"
 alignment = 0
 
 [node name="Spacer" type="Control" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
 
+[node name="SysSep" type="HSeparator" parent="HBoxContainer/Sidebar/VBoxContainer"]
+layout_mode = 2
+
 [node name="OptionsBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.811765, 0.435294, 0.435294, 1)
-text = "  ⚒  SYS CONFIG"
+text = "  ⚒  Sys Config"
 alignment = 0
 
 [node name="MenuBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.48, 0.5, 0.55, 1)
-text = "  ⏴  MAIN MENU"
+text = "  ⏴  Main Menu"
 alignment = 0
 
 [node name="Content" type="VBoxContainer" parent="HBoxContainer"]
@@ -134,6 +172,7 @@ mouse_filter = 2
 
 [connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/MissionBtn" to="." method="_on_mission_btn_pressed"]
 [connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/BountyBtn" to="." method="_on_bounty_btn_pressed"]
+[connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/QuestBtn" to="." method="_on_quest_btn_pressed"]
 [connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/FleetBtn" to="." method="_on_fleet_btn_pressed"]
 [connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/GatheringBtn" to="." method="_on_gathering_btn_pressed"]
 [connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/ProcessingBtn" to="." method="_on_processing_btn_pressed"]

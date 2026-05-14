@@ -18,11 +18,11 @@ const RARITY_LABELS = {
 }
 
 const RARITY_STAT_RANGE = {
-	Rarity.COMMON: [0.00, 0.00],    # Fixed roll (no RNG spread)
-	Rarity.UNCOMMON: [0.08, 0.15],  # 1.08x - 1.15x  (was 1.05-1.08)
-	Rarity.RARE: [0.20, 0.35],      # 1.20x - 1.35x  (was 1.11-1.15)
-	Rarity.LEGENDARY: [0.40, 0.60], # 1.40x - 1.60x  (was 1.18-1.22)
-	Rarity.UNIQUE: [0.65, 0.85],    # 1.65x - 1.85x  (was 1.23-1.27)
+	Rarity.COMMON: [0.00, 0.00],    # 1.00x fixed — baseline crafted
+	Rarity.UNCOMMON: [0.30, 0.50],  # 1.30x–1.50x — within-zone upgrade
+	Rarity.RARE: [1.30, 1.65],      # 2.30x–2.65x — beats next zone Common (zone scale 2.2x)
+	Rarity.LEGENDARY: [2.00, 2.80], # 3.00x–3.80x — stays relevant into next zone
+	Rarity.UNIQUE: [3.50, 5.00],    # 4.50x–6.00x — replaced by N+1 Legendary
 }
 
 # Drop scaling curve per zone (kept controlled and tapering in late game).
@@ -296,6 +296,13 @@ var ammo_loadout: Dictionary = {} # {slot_index: ammo_id}
 # v66.0: Consumable Slots
 var consumable_hull_slot: String = "" # e.g. "Mesh"
 var consumable_shield_slot: String = "" # e.g. "BasicBooster"
+
+# Loadout Presets — 3 saved builds for quick swap (Kinetic / Energy / Boss DPS etc.)
+var loadout_presets: Dictionary = {
+	1: {"name": "", "loadout": {}, "ammo_loadout": {}, "consumable_hull": "", "consumable_shield": ""},
+	2: {"name": "", "loadout": {}, "ammo_loadout": {}, "consumable_hull": "", "consumable_shield": ""},
+	3: {"name": "", "loadout": {}, "ammo_loadout": {}, "consumable_hull": "", "consumable_shield": ""}
+}
 
 # v72.3: Research Requirements for non-module equipment (Ammo, Consumables)
 const ELEMENT_RESEARCH_REQS = {
@@ -617,7 +624,7 @@ var modules: Dictionary = {
 		"name": "Stainless Armor",
 		"slot_type": "armor",
 		"stats": {"def": 53, "hp": 213},
-		"cost": {"credits": 15972, "Steel": 60, "Ti": 20},
+		"cost": {"credits": 15972, "Steel": 60, "Ti": 20, "GalvanizedSteel": 10},
 		"desc": "Corrosion-resistant alloy plating.",
 		"zone": 4, "research_req": "zone_4_access"
 	},
@@ -635,7 +642,7 @@ var modules: Dictionary = {
 		"name": "Particle Beam",
 		"slot_type": "weapon",
 		"stats": {"atk_energy": 234, "energy_load": 60, "atk_interval": 2.0},
-		"cost": {"credits": 46851, "Ti": 100, "QuantumCore": 2},
+		"cost": {"credits": 46851, "Ti": 100, "QuantumCore": 2, "Au": 10},
 		"desc": "Accelerated particles strip shields instantly.",
 		"zone": 5, "research_req": "zone_5_access"
 	},
@@ -651,7 +658,7 @@ var modules: Dictionary = {
 		"name": "Xenon Barrier",
 		"slot_type": "shield",
 		"stats": {"max_shield": 937, "shield_regen": 46},
-		"cost": {"credits": 35138, "VoidArtifact": 5, "AdvCircuit": 20},
+		"cost": {"credits": 35138, "VoidArtifact": 5, "AdvCircuit": 20, "StainlessSteel": 8},
 		"desc": "Reverse-engineered alien shielding.",
 		"zone": 5, "research_req": "zone_5_access"
 	},
@@ -659,7 +666,7 @@ var modules: Dictionary = {
 		"name": "Superalloy Plate",
 		"slot_type": "armor",
 		"stats": {"def": 117, "hp": 469},
-		"cost": {"credits": 35138, "Superalloy": 15, "Steel": 100},
+		"cost": {"credits": 35138, "Superalloy": 15, "Steel": 100, "StainlessSteel": 8},
 		"desc": "Dense metamaterial hull plating.",
 		"zone": 5, "research_req": "zone_5_access"
 	},
@@ -711,7 +718,7 @@ var modules: Dictionary = {
 		"name": "Neutron Slugger",
 		"slot_type": "weapon",
 		"stats": {"atk_kinetic": 916, "energy_load": 120, "atk_interval": 2.0},
-		"cost": {"credits": 226758, "ExoticMatter": 10, "Ir": 10},
+		"cost": {"credits": 226758, "ExoticMatter": 10, "Ir": 10, "IrWAlloy": 5},
 		"desc": "Fires neutron-dense projectiles.",
 		"zone": 7, "research_req": "zone_7_access"
 	},
@@ -927,7 +934,7 @@ var modules: Dictionary = {
 	},
 	"z3_battery": {
 		"name": "Co-Li Battery", "slot_type": "battery", "stats": {"energy_capacity": 242},
-		"cost": {"credits": 6000, "Co": 15, "Li": 15}, "zone": 3, "research_req": "zone_3_access"
+		"cost": {"credits": 6000, "CoBattery": 3, "Mn": 8}, "zone": 3, "research_req": "zone_3_access"
 	},
 	"z4_battery": {
 		"name": "Mg-Ion Cell", "slot_type": "battery", "stats": {"energy_capacity": 532},
@@ -973,7 +980,7 @@ var modules: Dictionary = {
 	},
 	"z4_sensor": {
 		"name": "Phased Array", "slot_type": "sensor", "stats": {"accuracy": 60},
-		"cost": {"credits": 18000, "AdvCircuit": 10, "Ti": 30}, "zone": 4, "research_req": "zone_4_access"
+		"cost": {"credits": 18000, "AdvCircuit": 10, "Ti": 30, "Au": 5}, "zone": 4, "research_req": "zone_4_access"
 	},
 	"z5_sensor": {
 		"name": "AI Targeting", "slot_type": "sensor", "stats": {"accuracy": 70},
@@ -1896,6 +1903,7 @@ func get_save_data_manager() -> Dictionary:
 	data["consumable_hull_slot"] = consumable_hull_slot
 	data["consumable_shield_slot"] = consumable_shield_slot
 	data["custom_modules"] = custom_modules
+	data["loadout_presets"] = loadout_presets
 	return data
 
 func load_save_data_manager(data: Dictionary):
@@ -1931,6 +1939,23 @@ func load_save_data_manager(data: Dictionary):
 		ammo_loadout[int(key)] = saved_ammo[key]
 	recalc_stats()
 	current_hp = data.get("hp", max_hp)
+
+	# Restore loadout presets (JSON string keys → int)
+	var saved_presets = data.get("loadout_presets", {})
+	for raw_idx in saved_presets:
+		var p_idx = int(raw_idx)
+		if not p_idx in loadout_presets: continue
+		var p = saved_presets[raw_idx]
+		var preset = loadout_presets[p_idx]
+		preset["name"] = p.get("name", "")
+		preset["consumable_hull"] = p.get("consumable_hull", "")
+		preset["consumable_shield"] = p.get("consumable_shield", "")
+		preset["loadout"] = {}
+		for k in p.get("loadout", {}):
+			preset["loadout"][int(k)] = p["loadout"][k]
+		preset["ammo_loadout"] = {}
+		for k in p.get("ammo_loadout", {}):
+			preset["ammo_loadout"][int(k)] = p["ammo_loadout"][k]
 
 # Manual Repair System
 func get_full_repair_cost(hull_id: String) -> int:
@@ -2363,9 +2388,127 @@ func demolish_module(module_id: String) -> bool:
 		
 		if salvage_item != "":
 			GameState.resources.add_element(salvage_item, salvage_amt)
-			
+
 	inventory_updated.emit()
 	return true
+
+# ── Bulk Demolish (QoL: Scrap All Commons / Scrap Junk) ──
+# Demolishes every NON-EQUIPPED module at or below max_rarity.
+# Returns the count of modules scrapped.
+func bulk_demolish_by_rarity(max_rarity: int) -> int:
+	var equipped_ids = {}
+	for slot in loadout:
+		var mid = loadout[slot]
+		if mid: equipped_ids[mid] = true
+	# Collect candidates first (don't mutate while iterating)
+	var candidates: Array = []
+	for mid in module_inventory.keys():
+		if equipped_ids.has(mid): continue
+		if get_module_rarity(mid) > max_rarity: continue
+		candidates.append(mid)
+	var count = 0
+	for mid in candidates:
+		var qty = module_inventory.get(mid, 0)
+		for i in range(qty):
+			if demolish_module(mid):
+				count += 1
+	return count
+
+func count_demolish_candidates_by_rarity(max_rarity: int) -> int:
+	var equipped_ids = {}
+	for slot in loadout:
+		var mid = loadout[slot]
+		if mid: equipped_ids[mid] = true
+	var n = 0
+	for mid in module_inventory.keys():
+		if equipped_ids.has(mid): continue
+		if get_module_rarity(mid) > max_rarity: continue
+		n += module_inventory.get(mid, 0)
+	return n
+
+# ── Loadout Presets (QoL: Save/Load build) ──
+func save_loadout_preset(idx: int) -> bool:
+	if not idx in loadout_presets: return false
+	var preset = loadout_presets[idx]
+	# Deep copy of current state
+	preset["loadout"] = loadout.duplicate(true)
+	preset["ammo_loadout"] = ammo_loadout.duplicate(true)
+	preset["consumable_hull"] = consumable_hull_slot
+	preset["consumable_shield"] = consumable_shield_slot
+	if preset["name"] == "":
+		preset["name"] = "Build %d" % idx
+	inventory_updated.emit()
+	return true
+
+func load_loadout_preset(idx: int) -> Dictionary:
+	# Returns: {"loaded": int, "skipped": int}
+	if not idx in loadout_presets: return {"loaded": 0, "skipped": 0}
+	var preset = loadout_presets[idx]
+	if _preset_has_no_modules(preset):
+		return {"loaded": 0, "skipped": 0}
+
+	# Step 1: Return every currently-equipped module to inventory.
+	# This is critical — otherwise equipped modules vanish from accounting.
+	var slot_keys = loadout.keys().duplicate()
+	for slot in slot_keys:
+		if loadout.get(slot):
+			unequip_slot(slot)
+
+	# Step 2: Equip preset modules in order. equip_module handles inventory
+	# accounting, slot-type validation, energy capacity, and research gates.
+	var loaded = 0
+	var skipped = 0
+	for raw_slot in preset["loadout"]:
+		var slot_idx = int(raw_slot)
+		var mid = preset["loadout"][raw_slot]
+		if mid == null or mid == "":
+			continue
+		if equip_module(slot_idx, mid):
+			loaded += 1
+		else:
+			skipped += 1
+
+	# Step 3: Restore ammo loadout (only for slots that still have weapons equipped).
+	for raw_slot in preset["ammo_loadout"]:
+		var slot_idx = int(raw_slot)
+		if slot_idx in loadout and loadout[slot_idx] != null and loadout[slot_idx] != "":
+			ammo_loadout[slot_idx] = preset["ammo_loadout"][raw_slot]
+
+	# Step 4: Restore consumables (only if the player still owns at least one).
+	var hull_c = preset.get("consumable_hull", "")
+	if hull_c != "" and GameState.resources and GameState.resources.get_element_amount(hull_c) > 0:
+		consumable_hull_slot = hull_c
+	else:
+		consumable_hull_slot = ""
+
+	var shield_c = preset.get("consumable_shield", "")
+	if shield_c != "" and GameState.resources and GameState.resources.get_element_amount(shield_c) > 0:
+		consumable_shield_slot = shield_c
+	else:
+		consumable_shield_slot = ""
+
+	recalc_stats()
+	inventory_updated.emit()
+	return {"loaded": loaded, "skipped": skipped}
+
+func _preset_has_no_modules(preset: Dictionary) -> bool:
+	# A preset is "empty" if every saved slot is null/empty — not just if the dict has no keys.
+	# (Loadout dicts have keys for every slot, often with null values.)
+	for k in preset.get("loadout", {}):
+		var v = preset["loadout"][k]
+		if v != null and v != "":
+			return false
+	return true
+
+func clear_loadout_preset(idx: int) -> bool:
+	if not idx in loadout_presets: return false
+	loadout_presets[idx] = {"name": "", "loadout": {}, "ammo_loadout": {}, "consumable_hull": "", "consumable_shield": ""}
+	inventory_updated.emit()
+	return true
+
+func is_loadout_preset_empty(idx: int) -> bool:
+	if not idx in loadout_presets: return true
+	return _preset_has_no_modules(loadout_presets[idx])
 
 func repair_module(slot_idx: int, cost_credits: int, cost_parts: int) -> bool:
 	if GameState.resources.get_currency("credits") < cost_credits: return false

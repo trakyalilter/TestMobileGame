@@ -45,9 +45,17 @@ func update_state():
 		ship_name.text = "Ship: " + active["hull_id"].capitalize()
 		progress_bar.max_value = effective_interval
 		progress_bar.value = active["progress"]
-		
-		status_lbl.text = "EXPEDITION ACTIVE"
-		status_lbl.modulate = Color.CYAN
+
+		var risk = m_data.get("risk", 0.0)
+		if risk >= 0.30:
+			status_lbl.text = "EXPEDITION ACTIVE  ⚠ EXTREME RISK"
+			status_lbl.modulate = Color(1.0, 0.2, 0.2)
+		elif risk >= 0.15:
+			status_lbl.text = "EXPEDITION ACTIVE  ⚠ HIGH RISK"
+			status_lbl.modulate = Color(1.0, 0.6, 0.1)
+		else:
+			status_lbl.text = "EXPEDITION ACTIVE"
+			status_lbl.modulate = Color.CYAN
 		
 		# Earnings preview
 		var earn_str = "Yielded: "

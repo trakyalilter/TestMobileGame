@@ -67,6 +67,50 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "Enable Offline Combat"
 
+[node name="HSeparator2" type="HSeparator" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="SpeedLabel" type="Label" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Game Speed (Testing)"
+horizontal_alignment = 1
+
+[node name="SpeedContainer" type="HBoxContainer" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 8
+
+[node name="Speed1x" type="Button" parent="CenterContainer/VBoxContainer/SpeedContainer"]
+custom_minimum_size = Vector2(70, 50)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "1×"
+
+[node name="Speed2x" type="Button" parent="CenterContainer/VBoxContainer/SpeedContainer"]
+custom_minimum_size = Vector2(70, 50)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "2×"
+
+[node name="Speed4x" type="Button" parent="CenterContainer/VBoxContainer/SpeedContainer"]
+custom_minimum_size = Vector2(70, 50)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "4×"
+
+[node name="Speed8x" type="Button" parent="CenterContainer/VBoxContainer/SpeedContainer"]
+custom_minimum_size = Vector2(70, 50)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "8×"
+
+[node name="Speed16x" type="Button" parent="CenterContainer/VBoxContainer/SpeedContainer"]
+custom_minimum_size = Vector2(70, 50)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "16×"
+
 [node name="ConfirmationDialog" type="ConfirmationDialog" parent="."]
 title = "Confirm Hard Reset"
 initial_position = 2

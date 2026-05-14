@@ -7,6 +7,10 @@ var manager: RefCounted
 var is_occupied: bool = false
 var pulse_tween: Tween
 
+var _active_gem_card = null
+var _info_card_scene = preload("res://scenes/ui/info_card.tscn")
+var _is_focused: bool = false
+
 @onready var type_lbl = $MarginContainer/VBoxContainer/TypeLabel
 @onready var rarity_badge = $MarginContainer/VBoxContainer/RarityBadge
 @onready var name_lbl = $MarginContainer/VBoxContainer/NameLabel
@@ -26,7 +30,10 @@ func setup(idx: int, s_type: String, p_ui, p_manager):
 func _ready():
 	_apply_base_style()
 	option_btn.visible = false
-	refresh_state()
+	# Only refresh if setup() already ran; otherwise the empty slot_type falls
+	# through to the module-render path and bleeds set labels into consumable slots.
+	if slot_type != "":
+		refresh_state()
 
 func _apply_base_style():
 	var frame = StyleBoxFlat.new()
@@ -47,8 +54,33 @@ func _apply_base_style():
 	# Inner shadow for depth
 	frame.shadow_color = Color(0, 0, 0, 0.5)
 	frame.shadow_size = 4
-	
+
+	if _is_focused:
+		frame.border_width_top = 5
+		frame.border_color = Color(0.4, 0.82, 1.0, 0.9)
+		frame.shadow_color = Color(0.4, 0.82, 1.0, 0.35)
+		frame.shadow_size = 10
+
 	add_theme_stylebox_override("panel", frame)
+
+func _get_type_number() -> int:
+	if not parent_ui or not "all_slot_widgets" in parent_ui: return slot_idx + 1
+	var n = 1
+	for w in parent_ui.all_slot_widgets:
+		if w == self: break
+		if is_instance_valid(w) and w.slot_type == slot_type: n += 1
+	return n
+
+func set_focus_highlight(on: bool):
+	_is_focused = on
+	if is_occupied and not slot_type.begins_with("consumable_") and manager:
+		var equipped_id = manager.loadout.get(slot_idx, "")
+		if equipped_id != "" and equipped_id in manager.modules:
+			var rarity = manager.get_module_rarity(equipped_id)
+			var rarity_color = manager.RARITY_COLORS.get(rarity, Color(0.7, 0.7, 0.7))
+			_apply_card_style(rarity, rarity_color)
+			return
+	_apply_base_style()
 
 func refresh_state():
 	if not is_node_ready(): return
@@ -59,6 +91,12 @@ func refresh_state():
 	for child in socket_anchor.get_children():
 		child.queue_free()
 
+	var old_uneq = $MarginContainer/VBoxContainer.get_node_or_null("QuickUnequipBtn")
+	if is_instance_valid(old_uneq): old_uneq.free()
+
+	var old_repair = $MarginContainer/VBoxContainer.get_node_or_null("QuickRepairBtn")
+	if is_instance_valid(old_repair): old_repair.free()
+
 	_stop_pulse()
 
 	# CONSUMABLE LOGIC
@@ -66,13 +104,13 @@ func refresh_state():
 		_refresh_consumable_state()
 		return
 
-	type_lbl.text = "SLOT %d: %s" % [slot_idx + 1, slot_type.to_upper()]
+	type_lbl.text = "%s %d" % [slot_type.to_upper(), _get_type_number()]
 	type_lbl.add_theme_color_override("font_color", _get_slot_color(slot_type))
 	
 	option_btn.clear()
-	option_btn.add_item("Change...", 0)
+	option_btn.add_item("EQUIP ▼", 0)
 	option_btn.set_item_metadata(0, null)
-	
+
 	var equipped_id = manager.loadout.get(slot_idx)
 	is_occupied = equipped_id != null
 	
@@ -132,6 +170,36 @@ func refresh_state():
 		var durability = int(m_data.get("durability", 100))
 		stats_lbl.text += "\nDurability: %d/100" % durability
 
+		var uneq_btn = Button.new()
+		uneq_btn.name = "QuickUnequipBtn"
+		uneq_btn.text = "× Unequip"
+		uneq_btn.flat = true
+		uneq_btn.add_theme_font_size_override("font_size", 9)
+		uneq_btn.add_theme_color_override("font_color", Color(0.9, 0.4, 0.4))
+		uneq_btn.pressed.connect(func():
+			manager.unequip_slot(slot_idx)
+			if parent_ui: parent_ui.trigger_refresh()
+		)
+		$MarginContainer/VBoxContainer.add_child(uneq_btn)
+		$MarginContainer/VBoxContainer.move_child(uneq_btn, option_btn.get_index())
+
+		# Per-module repair affordance (replaces global repair-mode discovery problem).
+		# Shown when the equipped module is a custom drop and below full durability.
+		if equipped_id.begins_with("custom_") and durability < 100:
+			var repair_btn = Button.new()
+			repair_btn.name = "QuickRepairBtn"
+			repair_btn.text = "🔧 Repair  %d%%" % durability
+			repair_btn.flat = true
+			repair_btn.add_theme_font_size_override("font_size", 9)
+			var dur_col := Color(0.95, 0.85, 0.30)
+			if durability <= 25: dur_col = Color(0.95, 0.40, 0.30)
+			elif durability <= 50: dur_col = Color(0.95, 0.65, 0.25)
+			repair_btn.add_theme_color_override("font_color", dur_col)
+			repair_btn.tooltip_text = "Repair this module without entering global Repair Mode."
+			repair_btn.pressed.connect(_try_repair)
+			$MarginContainer/VBoxContainer.add_child(repair_btn)
+			$MarginContainer/VBoxContainer.move_child(repair_btn, uneq_btn.get_index() + 1)
+
 		_apply_card_style(rarity, rarity_color)
 		_apply_pulse(rarity)
 		
@@ -182,8 +250,36 @@ func refresh_state():
 				if gem:
 					sock_wrap.mouse_filter = Control.MOUSE_FILTER_STOP
 					sock_wrap.tooltip_text = "Matrix Core: %s\n[Right-Click to remove]" % ElementDB.get_display_name(gem)
+					var captured_gem = gem
+					sock_wrap.mouse_entered.connect(func():
+						if _active_gem_card: _active_gem_card.queue_free()
+						var card = _info_card_scene.instantiate()
+						var main = get_tree().current_scene
+						var modal = main.get_node_or_null("ModalLayer")
+						if modal: modal.add_child(card)
+						else: main.add_child(card)
+						card.setup(captured_gem, "gem")
+						var mpos = get_global_mouse_position()
+						var vp = get_viewport().get_visible_rect().size
+						card.global_position = mpos + Vector2(20, -20)
+						await get_tree().process_frame
+						if is_instance_valid(card):
+							if card.global_position.x + card.size.x > vp.x:
+								card.global_position.x = mpos.x - card.size.x - 20
+							if card.global_position.y + card.size.y > vp.y:
+								card.global_position.y = mpos.y - card.size.y - 20
+						_active_gem_card = card
+					)
+					sock_wrap.mouse_exited.connect(func():
+						if _active_gem_card:
+							_active_gem_card.queue_free()
+							_active_gem_card = null
+					)
 					sock_wrap.gui_input.connect(func(event):
 						if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
+							if _active_gem_card:
+								_active_gem_card.queue_free()
+								_active_gem_card = null
 							if manager.remove_gem(equipped_id, i):
 								UITheme.trigger_circuit_surge(self)
 								parent_ui.trigger_refresh()
@@ -229,14 +325,19 @@ func refresh_state():
 func _refresh_consumable_state():
 	_apply_base_style()
 	var c_type = "hull" if slot_type == "consumable_hull" else "shield"
-	
+
 	type_lbl.text = "HULL REPAIR" if c_type == "hull" else "SHIELD REPAIR"
 	type_lbl.add_theme_color_override("font_color", Color(0.74, 0.74, 0.86))
 	rarity_badge.visible = false
+
+	# Belt-and-suspenders: hide any SetLabel that an early refresh may have left here.
+	# Consumables are not part of Trinity sets, so this label should never appear.
+	var stale_set_lbl = $MarginContainer/VBoxContainer.get_node_or_null("SetLabel")
+	if stale_set_lbl: stale_set_lbl.visible = false
 	
 	option_btn.clear()
-	option_btn.add_item("Change...", 0)
-	
+	option_btn.add_item("EQUIP ▼", 0)
+
 	var equipped_id = manager.get_consumable(c_type)
 	if equipped_id != "":
 		var data = ElementDB.get_consumable_data(equipped_id)
@@ -328,6 +429,12 @@ func _apply_card_style(rarity: int, rarity_color: Color):
 		frame.border_color.a = 0.9
 		frame.shadow_size = 20
 		frame.shadow_color.a = 0.5
+
+	if _is_focused:
+		frame.border_color = Color(0.4, 0.82, 1.0)
+		frame.border_width_top = 6
+		frame.shadow_color = Color(0.4, 0.82, 1.0, 0.5)
+		frame.shadow_size = 16
 
 	add_theme_stylebox_override("panel", frame)
 
@@ -533,17 +640,13 @@ func _gui_input(event):
 				manager.unequip_slot(slot_idx)
 			parent_ui.trigger_refresh()
 		elif event.button_index == MOUSE_BUTTON_LEFT:
-			if parent_ui and parent_ui.has_method("_on_filter_changed"):
-				var target_filter = "all"
-				if slot_type == "weapon": target_filter = "weapon"
-				elif slot_type == "shield": target_filter = "shield"
-				elif slot_type == "armor": target_filter = "armor"
-				elif slot_type == "engine": target_filter = "engine"
-				elif slot_type == "battery": target_filter = "battery"
-				elif slot_type in ["reactor", "sensor", "cooling"]: target_filter = "utility"
-				elif slot_type.begins_with("consumable_"): target_filter = "ordnance"
-				
-				parent_ui._on_filter_changed(target_filter)
+			if slot_type.begins_with("consumable_"):
+				if parent_ui and parent_ui.has_method("_on_filter_changed"):
+					parent_ui._on_filter_changed("ordnance")
+					UITheme.trigger_ui_thud(self, 1.0)
+			elif parent_ui and parent_ui.has_method("set_focused_slot"):
+				var equipped_mid = manager.loadout.get(slot_idx, "")
+				parent_ui.set_focused_slot(slot_idx, slot_type, equipped_mid)
 				UITheme.trigger_ui_thud(self, 1.0)
 
 func _try_repair():

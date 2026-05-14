@@ -32,6 +32,21 @@ var btn_selection_toggle: Button
 var bulk_actions_container: HBoxContainer
 var is_selection_mode: bool = false
 
+var focused_slot_idx: int = -1
+var focused_slot_type: String = ""
+var focused_slot_equipped_mid: String = ""
+var all_slot_widgets: Array = []
+var armory_sort_mode: int = 0  # 0=Power, 1=Zone, 2=Rarity
+var _armory_banner: Label = null
+var _sort_buttons: Array = []
+var _preset_load_buttons: Array = []
+
+# Consolidated armory toolbar (search + sort dropdown + manage toggle).
+var armory_search: LineEdit
+var armory_sort_dropdown: OptionButton
+var armory_manage_btn: Button
+var armory_search_text: String = ""
+
 const FRAME_BG := Color(0.09, 0.07, 0.06, 0.96)
 const FRAME_EDGE := Color(0.42, 0.30, 0.21, 0.95)
 const TITLE_GOLD := Color(0.84, 0.70, 0.45)
@@ -100,6 +115,17 @@ func _ready():
 	_apply_designer_styles()
 	_setup_filter_tabs()
 	_setup_bulk_actions()
+
+	# Title is clickable — rename active build (preset name)
+	if ship_name_lbl:
+		ship_name_lbl.mouse_filter = Control.MOUSE_FILTER_STOP
+		ship_name_lbl.gui_input.connect(_on_ship_title_input)
+		ship_name_lbl.mouse_entered.connect(func():
+			if _get_active_build_name() != "":
+				Input.set_default_cursor_shape(Input.CURSOR_POINTING_HAND))
+		ship_name_lbl.mouse_exited.connect(func():
+			if not is_repair_mode:
+				Input.set_default_cursor_shape(Input.CURSOR_ARROW))
 
 	trigger_refresh()
 
@@ -170,7 +196,7 @@ func _setup_bulk_actions():
 	btn_clear = Button.new()
 	btn_clear.text = "CLEAR"
 	btn_clear.visible = false
-	btn_clear.pressed.connect(func(): 
+	btn_clear.pressed.connect(func():
 		selected_mids.clear()
 		_update_bulk_ui()
 		rebuild_storage()
@@ -178,10 +204,200 @@ func _setup_bulk_actions():
 	_apply_filter_button_style(btn_clear, false, Color(0.7, 0.7, 0.7))
 	bulk_actions_container.add_child(btn_clear)
 
+	# Scrap-by-rarity quick actions
+	var btn_scrap_common = Button.new()
+	btn_scrap_common.text = "SCRAP COMMONS"
+	btn_scrap_common.tooltip_text = "Demolish every non-equipped Common module."
+	btn_scrap_common.pressed.connect(_on_scrap_by_rarity.bind(0))
+	_apply_filter_button_style(btn_scrap_common, false, Color(0.70, 0.70, 0.70))
+	bulk_actions_container.add_child(btn_scrap_common)
+
+	var btn_scrap_junk = Button.new()
+	btn_scrap_junk.text = "SCRAP JUNK"
+	btn_scrap_junk.tooltip_text = "Demolish every non-equipped Common + Uncommon module."
+	btn_scrap_junk.pressed.connect(_on_scrap_by_rarity.bind(1))
+	_apply_filter_button_style(btn_scrap_junk, false, Color(0.30, 0.85, 0.40))
+	bulk_actions_container.add_child(btn_scrap_junk)
+
 	var scroll = storage_grid.get_parent()
 	var v_box = scroll.get_parent()
+
+	# Armory context banner
+	_armory_banner = Label.new()
+	_armory_banner.add_theme_font_size_override("font_size", 11)
+	_armory_banner.add_theme_color_override("font_color", Color(0.55, 0.80, 1.0))
+	_armory_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_armory_banner.text = ""
+	v_box.add_child(_armory_banner)
+	v_box.move_child(_armory_banner, scroll.get_index())
+
+	# Sort mode buttons
+	var sort_row = HBoxContainer.new()
+	sort_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	sort_row.add_theme_constant_override("separation", 6)
+	v_box.add_child(sort_row)
+	v_box.move_child(sort_row, _armory_banner.get_index() + 1)
+
+	_sort_buttons.clear()
+	for i in range(3):
+		var btn = Button.new()
+		btn.text = ["Power", "Zone", "Rarity"][i]
+		var mode_idx = i
+		btn.pressed.connect(func():
+			armory_sort_mode = mode_idx
+			_update_sort_button_styles()
+			rebuild_storage()
+		)
+		_apply_filter_button_style(btn, i == 0, Color(0.65, 0.60, 0.82))
+		sort_row.add_child(btn)
+		_sort_buttons.append(btn)
+
 	v_box.add_child(bulk_actions_container)
 	v_box.move_child(bulk_actions_container, scroll.get_index())
+	# Bulk actions are hidden by default; Manage toggle reveals them.
+	bulk_actions_container.visible = false
+
+	# Loadout Preset row (above sort buttons)
+	_setup_loadout_preset_row(v_box, _armory_banner.get_index())
+
+	# Consolidated toolbar: SEARCH + SORT dropdown + MANAGE toggle.
+	# Hides the now-redundant sort button row.
+	_setup_armory_toolbar(v_box, scroll)
+	for btn in _sort_buttons:
+		if is_instance_valid(btn): btn.visible = false
+
+func _setup_armory_toolbar(v_box: Node, scroll_node: Node):
+	var toolbar = HBoxContainer.new()
+	toolbar.name = "ArmoryToolbar"
+	toolbar.add_theme_constant_override("separation", 6)
+	toolbar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	# Search — primary filter, takes most width
+	armory_search = LineEdit.new()
+	armory_search.placeholder_text = "🔍  Search    tier:3   set:architect   slot:weapon"
+	armory_search.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	armory_search.clear_button_enabled = true
+	armory_search.add_theme_font_size_override("font_size", 11)
+	armory_search.text_changed.connect(func(t):
+		armory_search_text = t
+		rebuild_storage())
+	toolbar.add_child(armory_search)
+
+	# Sort dropdown — consolidates the 3 sort buttons
+	armory_sort_dropdown = OptionButton.new()
+	armory_sort_dropdown.add_item("Sort · Power",  0)
+	armory_sort_dropdown.add_item("Sort · Zone",   1)
+	armory_sort_dropdown.add_item("Sort · Rarity", 2)
+	armory_sort_dropdown.selected = armory_sort_mode
+	armory_sort_dropdown.add_theme_font_size_override("font_size", 11)
+	armory_sort_dropdown.item_selected.connect(func(idx):
+		armory_sort_mode = idx
+		_update_sort_button_styles()
+		rebuild_storage())
+	toolbar.add_child(armory_sort_dropdown)
+
+	# Manage toggle — reveals/hides bulk action controls on demand
+	armory_manage_btn = Button.new()
+	armory_manage_btn.text = "⚙ Manage"
+	armory_manage_btn.toggle_mode = true
+	armory_manage_btn.tooltip_text = "Reveal bulk actions (select / demolish / scrap)."
+	armory_manage_btn.add_theme_font_size_override("font_size", 11)
+	armory_manage_btn.toggled.connect(func(on):
+		if bulk_actions_container:
+			bulk_actions_container.visible = on)
+	toolbar.add_child(armory_manage_btn)
+
+	v_box.add_child(toolbar)
+	v_box.move_child(toolbar, scroll_node.get_index())
+
+func _setup_loadout_preset_row(parent: Node, insert_idx: int):
+	var preset_row = HBoxContainer.new()
+	preset_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	preset_row.add_theme_constant_override("separation", 12)
+
+	var label = Label.new()
+	label.text = "LOADOUTS:"
+	label.add_theme_font_size_override("font_size", 11)
+	label.add_theme_color_override("font_color", Color(0.55, 0.60, 0.72))
+	preset_row.add_child(label)
+
+	_preset_load_buttons = []
+	for i in [1, 2, 3]:
+		var preset_box = HBoxContainer.new()
+		preset_box.add_theme_constant_override("separation", 2)
+
+		var save_btn = Button.new()
+		save_btn.text = "💾 %d" % i
+		save_btn.tooltip_text = "Save current ship setup to Preset %d" % i
+		save_btn.pressed.connect(_on_preset_save.bind(i))
+		save_btn.add_theme_font_size_override("font_size", 11)
+		_apply_filter_button_style(save_btn, false, Color(0.65, 0.85, 0.95))
+		preset_box.add_child(save_btn)
+
+		var load_btn = Button.new()
+		load_btn.text = "LOAD %d" % i
+		load_btn.tooltip_text = "Apply Preset %d to ship" % i
+		load_btn.pressed.connect(_on_preset_load.bind(i))
+		load_btn.add_theme_font_size_override("font_size", 11)
+		_apply_filter_button_style(load_btn, false, Color(0.95, 0.80, 0.30))
+		preset_box.add_child(load_btn)
+
+		preset_row.add_child(preset_box)
+		_preset_load_buttons.append(load_btn)
+
+	parent.add_child(preset_row)
+	parent.move_child(preset_row, insert_idx)
+	_refresh_preset_buttons()
+
+func _refresh_preset_buttons():
+	if not manager: return
+	for i in range(3):
+		var idx = i + 1
+		var btn = _preset_load_buttons[i]
+		var empty = manager.is_loadout_preset_empty(idx)
+		btn.disabled = empty
+		if empty:
+			btn.tooltip_text = "Preset %d is empty. Save a build first." % idx
+		else:
+			btn.tooltip_text = "Apply Preset %d to ship." % idx
+
+func _on_preset_save(idx: int):
+	if not manager: return
+	if manager.save_loadout_preset(idx):
+		UITheme.show_notification("Loadout saved to Preset %d" % idx, Color(0.50, 0.95, 1.0))
+		_refresh_preset_buttons()
+
+func _on_preset_load(idx: int):
+	if not manager: return
+	var result = manager.load_loadout_preset(idx)
+	if result["loaded"] == 0 and result["skipped"] == 0:
+		UITheme.show_notification("Preset %d is empty." % idx, Color.RED)
+		return
+	var msg = "Loaded Preset %d  —  %d slot(s) restored" % [idx, result["loaded"]]
+	if result["skipped"] > 0:
+		msg += "  |  %d missing" % result["skipped"]
+	UITheme.show_notification(msg, Color(0.95, 0.80, 0.30))
+	# Force full UI refresh — slots & armory both depend on loadout
+	trigger_refresh()
+
+func _on_scrap_by_rarity(max_rarity: int):
+	if not manager: return
+	var count = manager.count_demolish_candidates_by_rarity(max_rarity)
+	if count <= 0:
+		var name = "Common" if max_rarity == 0 else "Junk"
+		UITheme.show_notification("No %s modules to scrap." % name, Color(0.7, 0.7, 0.7))
+		return
+	# Confirmation dialog
+	var dlg = ConfirmationDialog.new()
+	dlg.title = "Bulk Demolish"
+	dlg.dialog_text = "Demolish %d non-equipped module(s)?\n\nYou will receive credits, Spare Parts, and zone salvage." % count
+	dlg.confirmed.connect(func():
+		var scrapped = manager.bulk_demolish_by_rarity(max_rarity)
+		UITheme.show_notification("Demolished %d module(s)" % scrapped, Color(0.95, 0.55, 0.25))
+		trigger_refresh()
+	)
+	add_child(dlg)
+	dlg.popup_centered()
 
 func _on_selection_mode_toggled(toggled_on: bool):
 	is_selection_mode = toggled_on
@@ -194,6 +410,60 @@ func _on_selection_mode_toggled(toggled_on: bool):
 	
 	_update_bulk_ui()
 	rebuild_storage()
+
+func set_focused_slot(slot_idx: int, s_type: String, equipped_mid: String):
+	for w in all_slot_widgets:
+		if is_instance_valid(w): w.set_focus_highlight(false)
+	focused_slot_idx = slot_idx
+	focused_slot_type = s_type
+	focused_slot_equipped_mid = equipped_mid
+	for w in all_slot_widgets:
+		if is_instance_valid(w) and w.slot_idx == slot_idx:
+			w.set_focus_highlight(true)
+			break
+	_on_filter_changed(_slot_type_to_filter(s_type))
+	_update_armory_banner()
+
+func _slot_type_to_filter(s_type: String) -> String:
+	match s_type:
+		"weapon": return "weapon"
+		"shield": return "shield"
+		"armor": return "armor"
+		"engine": return "engine"
+		"battery": return "battery"
+		"reactor", "sensor", "cooling": return "utility"
+		_: return s_type
+
+func _update_armory_banner():
+	if not _armory_banner: return
+	if focused_slot_type == "":
+		_armory_banner.text = ""
+		return
+	if focused_slot_idx >= 0 and manager:
+		focused_slot_equipped_mid = manager.loadout.get(focused_slot_idx, "")
+	var slot_num = _get_focused_slot_number()
+	var slot_label = "%s %d" % [focused_slot_type.to_upper(), slot_num]
+	if focused_slot_equipped_mid != "" and focused_slot_equipped_mid in manager.modules:
+		var eq_name = manager.modules[focused_slot_equipped_mid].get("name", "Unknown")
+		for suffix in [" (Common)", " (Uncommon)", " (Rare)", " (Legendary)", " (Unique)"]:
+			eq_name = eq_name.replace(suffix, "")
+		_armory_banner.text = "Equipping for: %s  |  Currently: %s" % [slot_label, eq_name.to_upper()]
+	else:
+		_armory_banner.text = "Equipping for: %s  |  Slot is empty" % slot_label
+
+func _get_focused_slot_number() -> int:
+	var n = 1
+	for w in all_slot_widgets:
+		if is_instance_valid(w) and w.slot_type == focused_slot_type:
+			if w.slot_idx == focused_slot_idx: break
+			n += 1
+	return n
+
+func _update_sort_button_styles():
+	var accent = Color(0.65, 0.60, 0.82)
+	for i in range(_sort_buttons.size()):
+		if i < _sort_buttons.size() and is_instance_valid(_sort_buttons[i]):
+			_apply_filter_button_style(_sort_buttons[i], i == armory_sort_mode, accent)
 
 func _on_filter_pressed(filter_id: String):
 	_on_filter_changed(filter_id)
@@ -292,6 +562,10 @@ func _on_visibility_changed():
 	else:
 		if is_repair_mode:
 			btn_repair_mode.button_pressed = false
+		focused_slot_type = ""
+		focused_slot_idx = -1
+		focused_slot_equipped_mid = ""
+		if _armory_banner: _armory_banner.text = ""
 
 func _on_inventory_updated():
 	if visible:
@@ -320,89 +594,450 @@ func trigger_refresh():
 	rebuild_storage()
 	_refresh_tab_labels()
 	_refresh_filter_button_styles()
+	_update_armory_banner()
+	_refresh_preset_buttons()
 
 func update_header():
-	if manager.active_hull and manager.active_hull in manager.hulls:
-		var hull_data = manager.hulls[manager.active_hull]
-		ship_name_lbl.text = hull_data["name"].to_upper()
-
-		var e_cap = 100.0
-		if GameState.resources:
-			e_cap = GameState.resources.max_energy
-		var e_used = manager.energy_used
-
-		power_bar.max_value = e_cap
-		power_bar.value = e_used
-		power_lbl.text = "%d / %d" % [int(round(e_used)), int(round(e_cap))]
-
-		if e_used > e_cap:
-			power_bar.modulate = Color(1.0, 0.38, 0.34)
-			power_lbl.add_theme_color_override("font_color", Color(1.0, 0.47, 0.42))
-		elif e_used > e_cap * 0.8:
-			power_bar.modulate = Color(1.0, 0.74, 0.31)
-			power_lbl.add_theme_color_override("font_color", Color(1.0, 0.78, 0.45))
-		else:
-			power_bar.modulate = Color(0.84, 0.70, 0.45)
-			power_lbl.add_theme_color_override("font_color", TEXT_MAIN)
-
-		var total_dps = _calculate_total_dps()
-		var combat_manager = GameState.combat_manager
-		var milestone_eva = combat_manager.get_milestone_evasion_bonus() if combat_manager else 0.0
-		var milestone_crit = combat_manager.get_milestone_crit_bonus() if combat_manager else 0.0
-
-		var total_eva = manager.evasion + milestone_eva
-		var total_crit = (manager.crit_chance + milestone_crit) * 100.0
-
-		var stats = [
-			{"label": "HP", "val": str(manager.max_hp), "color": Color(0.73, 0.86, 0.56)},
-			{"label": "SHIELD", "val": UITheme.format_num(manager.max_shield), "color": Color(0.56, 0.76, 0.96)},
-			{"label": "ATK", "val": UITheme.format_num(manager.attack), "color": Color(0.95, 0.57, 0.38)},
-			{"label": "DEF", "val": UITheme.format_num(manager.defense), "color": Color(0.79, 0.74, 0.66)},
-			{"label": "ACC", "val": str(manager.accuracy), "color": Color(0.85, 0.81, 0.74)},
-			{"label": "CRIT", "val": "%.0f%%" % total_crit, "color": Color(0.93, 0.47, 0.38)},
-			{"label": "EVA", "val": "%.0f" % total_eva, "color": Color(0.86, 0.84, 0.47)},
-			{"label": "DPS", "val": UITheme.format_num(total_dps), "color": Color(0.94, 0.80, 0.44)}
-		]
-
-		for child in stats_grid.get_children():
-			child.queue_free()
-
-		for stat_data in stats:
-			var tile = PanelContainer.new()
-			tile.custom_minimum_size = Vector2(96, 40)
-			tile.add_theme_stylebox_override("panel", _make_stat_tile_style(stat_data["color"]))
-
-			var margin = MarginContainer.new()
-			margin.add_theme_constant_override("margin_left", 6)
-			margin.add_theme_constant_override("margin_top", 4)
-			margin.add_theme_constant_override("margin_right", 6)
-			margin.add_theme_constant_override("margin_bottom", 4)
-			tile.add_child(margin)
-
-			var box = VBoxContainer.new()
-			box.add_theme_constant_override("separation", 1)
-			margin.add_child(box)
-
-			var key_lbl = Label.new()
-			key_lbl.text = stat_data["label"]
-			key_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			key_lbl.add_theme_font_size_override("font_size", 9)
-			key_lbl.add_theme_color_override("font_color", TEXT_DIM)
-
-			var value_lbl = Label.new()
-			value_lbl.text = stat_data["val"]
-			value_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			value_lbl.add_theme_font_size_override("font_size", 12)
-			value_lbl.add_theme_color_override("font_color", stat_data["color"])
-
-			box.add_child(key_lbl)
-			box.add_child(value_lbl)
-			stats_grid.add_child(tile)
-	else:
+	if not (manager.active_hull and manager.active_hull in manager.hulls):
 		ship_name_lbl.text = "NO HULL SELECTED"
 		power_lbl.text = "0 / 0"
 		for child in stats_grid.get_children():
 			child.queue_free()
+		return
+
+	var hull_data = manager.hulls[manager.active_hull]
+
+	# Build name in title: shows active loadout preset name when one matches the current loadout.
+	var build_name = _get_active_build_name()
+	if build_name != "":
+		ship_name_lbl.text = "%s  ·  %s  ✎" % [hull_data["name"].to_upper(), build_name.to_upper()]
+		ship_name_lbl.tooltip_text = "Click to rename this build."
+	else:
+		ship_name_lbl.text = hull_data["name"].to_upper()
+		ship_name_lbl.tooltip_text = ""
+
+	# Power-grid math (used by both old ShipSpecs bar and new GRID line)
+	var e_cap = 100.0
+	if GameState.resources:
+		e_cap = GameState.resources.max_energy
+	var e_used = manager.energy_used
+	var grid_margin = e_cap - e_used
+
+	# Keep the legacy ShipSpecs power bar updated but hide it — the new GRID line replaces it.
+	power_bar.visible = false
+	power_lbl.visible = false
+	power_bar.max_value = e_cap
+	power_bar.value = e_used
+	power_lbl.text = "%d / %d" % [int(round(e_used)), int(round(e_cap))]
+	var ship_specs_power_label = power_bar.get_parent().get_node_or_null("Label")
+	if ship_specs_power_label: ship_specs_power_label.visible = false
+
+	var total_dps = _calculate_total_dps()
+	var combat_manager = GameState.combat_manager
+	var milestone_eva = combat_manager.get_milestone_evasion_bonus() if combat_manager else 0.0
+	var milestone_crit = combat_manager.get_milestone_crit_bonus() if combat_manager else 0.0
+	var total_eva = manager.evasion + milestone_eva
+	var total_crit = (manager.crit_chance + milestone_crit) * 100.0
+
+	# Re-render the stat hierarchy
+	for child in stats_grid.get_children():
+		child.queue_free()
+	stats_grid.columns = 1
+
+	var stack = VBoxContainer.new()
+	stack.add_theme_constant_override("separation", 6)
+	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	stats_grid.add_child(stack)
+
+	# 1. HERO DPS — the question every player is actually asking
+	stack.add_child(_build_hero_dps_panel(total_dps))
+
+	# 2. HP / SHIELD as proper bars (the two things that get you killed)
+	stack.add_child(_build_resource_bar("HULL",   manager.current_hp, manager.max_hp,
+		Color(0.85, 0.40, 0.30), Color(0.30, 0.12, 0.10)))
+	stack.add_child(_build_resource_bar("SHIELD", manager.max_shield, manager.max_shield,
+		Color(0.45, 0.80, 1.00), Color(0.10, 0.20, 0.32)))
+
+	# 3. POWER GRID with margin (the thing that gates equipping — promoted to first-class)
+	stack.add_child(_build_grid_bar(e_used, e_cap, grid_margin))
+
+	# 4. Supporting stats — single dense row, lower visual weight than HP/Shield/DPS
+	stack.add_child(_build_supporting_stats_row(manager.attack, manager.defense, manager.accuracy, total_crit, total_eva))
+
+	# 5. Sets Active panel — surfaces partial set progress
+	var sets_panel = _build_sets_active_panel()
+	if sets_panel: stack.add_child(sets_panel)
+
+# ── Stat Hierarchy Builders ──
+
+func _build_hero_dps_panel(dps: float) -> Control:
+	var panel = PanelContainer.new()
+	var bg := StyleBoxFlat.new()
+	bg.bg_color = Color(0.07, 0.05, 0.04, 0.95)
+	bg.set_border_width_all(1)
+	bg.border_color = Color(0.84, 0.70, 0.45, 0.60)
+	bg.set_corner_radius_all(3)
+	bg.border_width_left = 4
+	bg.content_margin_left = 14
+	bg.content_margin_right = 14
+	bg.content_margin_top = 8
+	bg.content_margin_bottom = 8
+	panel.add_theme_stylebox_override("panel", bg)
+
+	var hbox = HBoxContainer.new()
+	panel.add_child(hbox)
+
+	var key = Label.new()
+	key.text = "DPS"
+	key.add_theme_font_size_override("font_size", 12)
+	key.add_theme_color_override("font_color", TEXT_DIM)
+	key.size_flags_vertical = Control.SIZE_SHRINK_END
+	hbox.add_child(key)
+
+	var spacer = Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hbox.add_child(spacer)
+
+	var value = Label.new()
+	value.text = UITheme.format_num(dps)
+	value.add_theme_font_size_override("font_size", 26)
+	value.add_theme_color_override("font_color", Color(0.95, 0.82, 0.42))
+	value.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	hbox.add_child(value)
+	return panel
+
+func _build_resource_bar(label: String, value: float, max_value: float, fill: Color, track: Color) -> Control:
+	var outer = HBoxContainer.new()
+	outer.add_theme_constant_override("separation", 8)
+
+	var lbl = Label.new()
+	lbl.text = label
+	lbl.custom_minimum_size = Vector2(54, 0)
+	lbl.add_theme_font_size_override("font_size", 10)
+	lbl.add_theme_color_override("font_color", TEXT_DIM)
+	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	outer.add_child(lbl)
+
+	var bar = ProgressBar.new()
+	bar.custom_minimum_size = Vector2(0, 14)
+	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bar.show_percentage = false
+	bar.max_value = max(1.0, max_value)
+	bar.value = clamp(value, 0.0, max_value)
+
+	var bar_bg = StyleBoxFlat.new()
+	bar_bg.bg_color = track
+	bar_bg.set_corner_radius_all(2)
+	bar_bg.set_border_width_all(1)
+	bar_bg.border_color = fill.lerp(Color.BLACK, 0.6)
+	var bar_fill = StyleBoxFlat.new()
+	bar_fill.bg_color = fill
+	bar_fill.set_corner_radius_all(2)
+	bar.add_theme_stylebox_override("background", bar_bg)
+	bar.add_theme_stylebox_override("fill", bar_fill)
+	outer.add_child(bar)
+
+	var v_lbl = Label.new()
+	v_lbl.text = "%s / %s" % [UITheme.format_num(value), UITheme.format_num(max_value)]
+	v_lbl.custom_minimum_size = Vector2(110, 0)
+	v_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	v_lbl.add_theme_font_size_override("font_size", 11)
+	v_lbl.add_theme_color_override("font_color", fill.lerp(Color.WHITE, 0.35))
+	outer.add_child(v_lbl)
+	return outer
+
+func _build_grid_bar(used: float, cap: float, margin: float) -> Control:
+	var outer = HBoxContainer.new()
+	outer.add_theme_constant_override("separation", 8)
+
+	var lbl = Label.new()
+	lbl.text = "⚡ GRID"
+	lbl.custom_minimum_size = Vector2(54, 0)
+	lbl.add_theme_font_size_override("font_size", 10)
+	lbl.add_theme_color_override("font_color", TEXT_DIM)
+	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	outer.add_child(lbl)
+
+	# Overload/warning/normal coloring drives both the bar and the margin readout.
+	var fill_color: Color
+	var margin_color: Color
+	var margin_prefix: String
+	if margin < 0:
+		fill_color = Color(1.0, 0.38, 0.34)
+		margin_color = Color(1.0, 0.45, 0.38)
+		margin_prefix = "OVERLOAD"
+	elif used > cap * 0.8:
+		fill_color = Color(1.0, 0.74, 0.31)
+		margin_color = Color(1.0, 0.80, 0.42)
+		margin_prefix = "MARGIN +%d kW" % int(margin)
+	else:
+		fill_color = Color(0.84, 0.70, 0.45)
+		margin_color = Color(0.80, 0.95, 0.55)
+		margin_prefix = "MARGIN +%d kW" % int(margin)
+
+	var bar = ProgressBar.new()
+	bar.custom_minimum_size = Vector2(0, 14)
+	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bar.show_percentage = false
+	bar.max_value = max(1.0, cap)
+	bar.value = clamp(used, 0.0, cap)
+	var bg = StyleBoxFlat.new()
+	bg.bg_color = Color(0.10, 0.08, 0.06, 1.0)
+	bg.set_corner_radius_all(2)
+	bg.set_border_width_all(1)
+	bg.border_color = fill_color.lerp(Color.BLACK, 0.6)
+	var fill = StyleBoxFlat.new()
+	fill.bg_color = fill_color
+	fill.set_corner_radius_all(2)
+	bar.add_theme_stylebox_override("background", bg)
+	bar.add_theme_stylebox_override("fill", fill)
+	outer.add_child(bar)
+
+	var margin_lbl = Label.new()
+	margin_lbl.text = margin_prefix
+	margin_lbl.custom_minimum_size = Vector2(110, 0)
+	margin_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	margin_lbl.add_theme_font_size_override("font_size", 10)
+	margin_lbl.add_theme_color_override("font_color", margin_color)
+	outer.add_child(margin_lbl)
+
+	# Used/cap line below the bar
+	var used_line = Label.new()
+	used_line.text = "%d / %d kW" % [int(used), int(cap)]
+	used_line.add_theme_font_size_override("font_size", 9)
+	used_line.add_theme_color_override("font_color", TEXT_DIM)
+
+	# Stack both lines vertically using a sub VBox
+	var v = VBoxContainer.new()
+	v.add_theme_constant_override("separation", 1)
+	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	v.add_child(outer)
+	v.add_child(used_line)
+	return v
+
+func _build_supporting_stats_row(atk: float, def: float, acc: float, crit_pct: float, eva: float) -> Control:
+	var row = HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_BEGIN
+	row.add_theme_constant_override("separation", 14)
+
+	var chips = [
+		{"k": "ATK",  "v": UITheme.format_num(atk),       "col": Color(0.95, 0.57, 0.38)},
+		{"k": "DEF",  "v": UITheme.format_num(def),       "col": Color(0.79, 0.74, 0.66)},
+		{"k": "ACC",  "v": str(int(acc)),                  "col": Color(0.85, 0.81, 0.74)},
+		{"k": "CRIT", "v": "%.0f%%" % crit_pct,            "col": Color(0.93, 0.47, 0.38)},
+		{"k": "EVA",  "v": "%.0f" % eva,                   "col": Color(0.86, 0.84, 0.47)}
+	]
+	for c in chips:
+		var chip = HBoxContainer.new()
+		chip.add_theme_constant_override("separation", 4)
+
+		var k = Label.new()
+		k.text = c["k"]
+		k.add_theme_font_size_override("font_size", 9)
+		k.add_theme_color_override("font_color", TEXT_DIM)
+		k.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		chip.add_child(k)
+
+		var v = Label.new()
+		v.text = c["v"]
+		v.add_theme_font_size_override("font_size", 12)
+		v.add_theme_color_override("font_color", c["col"])
+		v.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		chip.add_child(v)
+
+		row.add_child(chip)
+	return row
+
+func _build_sets_active_panel() -> Control:
+	# Walk currently-equipped modules and group by set_id.
+	var counts: Dictionary = {}
+	for slot in manager.loadout:
+		var mid = manager.loadout[slot]
+		if not mid: continue
+		var data = manager.modules.get(mid, {})
+		var sid = data.get("set_id", "")
+		if sid == "" and data.get("is_custom") and data.has("base_module"):
+			sid = manager.modules.get(data["base_module"], {}).get("set_id", "")
+		if sid == "": continue
+		counts[sid] = counts.get(sid, 0) + 1
+
+	if counts.is_empty(): return null
+	if not GameState.combat_manager or not "TRINITY_SET_BONUSES" in GameState.combat_manager:
+		return null
+	var s_db = GameState.combat_manager.TRINITY_SET_BONUSES
+
+	# Container
+	var panel = PanelContainer.new()
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.06, 0.06, 0.10, 0.92)
+	style.set_corner_radius_all(3)
+	style.set_border_width_all(1)
+	style.border_color = Color(0.0, 0.80, 0.85, 0.50)
+	style.content_margin_left = 10
+	style.content_margin_right = 10
+	style.content_margin_top = 6
+	style.content_margin_bottom = 6
+	panel.add_theme_stylebox_override("panel", style)
+
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 4)
+	panel.add_child(vbox)
+
+	var hdr = Label.new()
+	hdr.text = "SETS ACTIVE"
+	hdr.add_theme_font_size_override("font_size", 10)
+	hdr.add_theme_color_override("font_color", Color(0.0, 0.85, 0.95))
+	vbox.add_child(hdr)
+
+	# Sort: active sets first, then by piece count descending
+	var sids = counts.keys()
+	sids.sort_custom(func(a, b):
+		var pa = s_db.get(a, {}).get("pieces", 99)
+		var pb = s_db.get(b, {}).get("pieces", 99)
+		var active_a = counts[a] >= pa
+		var active_b = counts[b] >= pb
+		if active_a != active_b: return active_a
+		return counts[a] > counts[b])
+
+	for sid in sids:
+		if not s_db.has(sid): continue
+		var info = s_db[sid]
+		var have = counts[sid]
+		var total = info["pieces"]
+		var active = have >= total
+
+		var line = HBoxContainer.new()
+		line.add_theme_constant_override("separation", 6)
+		vbox.add_child(line)
+
+		# Pip indicator (filled/empty diamonds)
+		var pips = ""
+		for i in range(total):
+			pips += ("◆" if i < have else "◇")
+		var pip_lbl = Label.new()
+		pip_lbl.text = pips
+		pip_lbl.add_theme_font_size_override("font_size", 12)
+		pip_lbl.add_theme_color_override("font_color",
+			Color(1.0, 0.85, 0.30) if active else Color(0.65, 0.65, 0.70))
+		line.add_child(pip_lbl)
+
+		var name_lbl = Label.new()
+		name_lbl.text = info["name"]
+		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		name_lbl.add_theme_font_size_override("font_size", 11)
+		name_lbl.add_theme_color_override("font_color",
+			Color(1.0, 0.92, 0.55) if active else Color(0.78, 0.78, 0.86))
+		line.add_child(name_lbl)
+
+		var status_lbl = Label.new()
+		if active:
+			status_lbl.text = "ACTIVE"
+			status_lbl.add_theme_color_override("font_color", Color(0.45, 1.00, 0.55))
+		else:
+			status_lbl.text = "%d / %d" % [have, total]
+			status_lbl.add_theme_color_override("font_color", Color(0.65, 0.65, 0.70))
+		status_lbl.add_theme_font_size_override("font_size", 10)
+		line.add_child(status_lbl)
+
+		# Sub-line: bonus preview (only shown for partial sets — "missing 1 piece for X")
+		if not active:
+			var missing = total - have
+			var bonus_summary := ""
+			for bk in info["bonus"]:
+				var bv = info["bonus"][bk]
+				var bn = bk.replace("_pct", "").replace("_flat", "").replace("_", " ")
+				var bv_str = "+%d%%" % bv if ("_pct" in bk or "crit" in bk) else "+%d" % bv
+				bonus_summary += "%s %s   " % [bn, bv_str]
+			var hint = Label.new()
+			hint.text = "  └  %d piece%s away from: %s" % [
+				missing,
+				"s" if missing > 1 else "",
+				bonus_summary.strip_edges()
+			]
+			hint.add_theme_font_size_override("font_size", 9)
+			hint.add_theme_color_override("font_color", Color(0.55, 0.65, 0.78))
+			hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			vbox.add_child(hint)
+
+	return panel
+
+func _on_ship_title_input(event: InputEvent):
+	if not (event is InputEventMouseButton): return
+	if not event.pressed or event.button_index != MOUSE_BUTTON_LEFT: return
+	var build_name = _get_active_build_name()
+	if build_name == "": return  # Nothing to rename — save a preset first
+	_open_build_rename_dialog(build_name)
+
+func _open_build_rename_dialog(current_name: String):
+	var dlg = AcceptDialog.new()
+	dlg.title = "Rename Build"
+	dlg.min_size = Vector2(320, 0)
+
+	var box = VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+
+	var hint = Label.new()
+	hint.text = "Rename the active loadout preset:"
+	hint.add_theme_font_size_override("font_size", 11)
+	hint.add_theme_color_override("font_color", TEXT_DIM)
+	box.add_child(hint)
+
+	var input = LineEdit.new()
+	input.text = current_name
+	input.placeholder_text = "Build name…"
+	input.custom_minimum_size = Vector2(240, 0)
+	input.select_all_on_focus = true
+	box.add_child(input)
+
+	dlg.add_child(box)
+	dlg.confirmed.connect(func():
+		var new_name = input.text.strip_edges()
+		if new_name == "": return
+		for idx in manager.loadout_presets:
+			var p = manager.loadout_presets[idx]
+			if _loadout_matches_preset(p):
+				p["name"] = new_name
+				break
+		manager.inventory_updated.emit()
+		trigger_refresh())
+	dlg.tree_exited.connect(func(): dlg.queue_free())
+	add_child(dlg)
+	dlg.popup_centered()
+	input.grab_focus()
+
+func _get_active_build_name() -> String:
+	# Returns the preset name if the current loadout exactly matches one of the saved presets.
+	if not manager or not "loadout_presets" in manager: return ""
+	for idx in manager.loadout_presets:
+		var preset = manager.loadout_presets[idx]
+		if _loadout_matches_preset(preset):
+			return preset.get("name", "")
+	return ""
+
+func _loadout_matches_preset(preset: Dictionary) -> bool:
+	var preset_load = preset.get("loadout", {})
+	# Empty preset can never match
+	var preset_has_content = false
+	for k in preset_load:
+		var v = preset_load[k]
+		if v != null and v != "":
+			preset_has_content = true
+			break
+	if not preset_has_content: return false
+
+	# Build normalized maps of slot_idx → mid (skipping null/empty)
+	var cur := {}
+	for s in manager.loadout:
+		var m = manager.loadout[s]
+		if m: cur[int(s)] = m
+	var psh := {}
+	for s in preset_load:
+		var m = preset_load[s]
+		if m: psh[int(s)] = m
+	if cur.size() != psh.size(): return false
+	for k in cur:
+		if not psh.has(k) or psh[k] != cur[k]: return false
+	return true
 
 func _make_stat_tile_style(accent: Color) -> StyleBoxFlat:
 	var style = StyleBoxFlat.new()
@@ -442,6 +1077,7 @@ func _calculate_total_dps() -> float:
 	return total
 
 func rebuild_slots():
+	all_slot_widgets.clear()
 	var slot_container = $VBoxContainer/MainLayout/SchematicArea/LayoutSplit/SlotListPanel/SlotScroll/SchematicContainer
 	if slot_container:
 		for child in slot_container.get_children():
@@ -524,6 +1160,7 @@ func _create_blade(title: String, slot_list: Array, parent: Node, color: Color =
 			widget = slot_widget_scene.instantiate()
 			flow.add_child(widget)
 			widget.setup(slot_data["idx"], slot_data["type"], self, manager)
+			all_slot_widgets.append(widget)
 
 func _make_blade_style(accent: Color) -> StyleBoxFlat:
 	var style = StyleBoxFlat.new()
@@ -584,30 +1221,46 @@ func rebuild_storage():
 	sorted_mids.sort_custom(func(a, b):
 		var data_a = manager.modules.get(a, {})
 		var data_b = manager.modules.get(b, {})
-		return _get_module_power_score(a, data_a) < _get_module_power_score(b, data_b)
+		match armory_sort_mode:
+			1:  # Zone
+				var za = data_a.get("zone", data_a.get("zone_difficulty", 0))
+				var zb = data_b.get("zone", data_b.get("zone_difficulty", 0))
+				if za != zb: return za > zb
+			2:  # Rarity
+				var ra = data_a.get("rarity", 0)
+				var rb = data_b.get("rarity", 0)
+				if ra != rb: return ra > rb
+		return _get_module_power_score(a, data_a) > _get_module_power_score(b, data_b)
 	)
 
 	for module_id in sorted_mids:
 		var module_count = inv[module_id]
 		if module_count > 0 and module_id in manager.modules:
 			var module_data = manager.modules[module_id]
-			if _is_module_visible_for_filter(module_data):
+			if _is_module_visible_for_filter(module_data) and _module_matches_search(module_id, module_data):
 				var item = draggable_icon_scene.instantiate()
 				storage_grid.add_child(item)
 				item.setup(module_id, module_data, module_count)
 				item.is_selected = module_id in selected_mids
 				item.is_draggable = not is_selection_mode
 				item.clicked.connect(_on_card_clicked)
+				if "compare_equipped_mid" in item:
+					item.compare_equipped_mid = focused_slot_equipped_mid
+				var module_slot_type = module_data.get("slot_type", "")
+				if focused_slot_type != "" and module_slot_type != _slot_type_to_filter(focused_slot_type):
+					item.modulate = Color(1, 1, 1, 0.35)
 				slot_count += 1
 
 	if active_filter in ["all", "ordnance", "ord"]:
 		for ammo_id in ORDNANCE_AMMO_IDS:
 			var qty = GameState.resources.get_element_amount(ammo_id)
 			if qty > 0:
-				var ammo_card = draggable_icon_scene.instantiate()
-				storage_grid.add_child(ammo_card)
 				var display_name = ElementDB.get_display_name(ammo_id)
 				var fake_data = {"name": display_name, "slot_type": "ammo", "stats": {}}
+				if not _module_matches_search(ammo_id, fake_data):
+					continue
+				var ammo_card = draggable_icon_scene.instantiate()
+				storage_grid.add_child(ammo_card)
 				ammo_card.setup(ammo_id, fake_data, qty)
 				ammo_card.is_selected = ammo_id in selected_mids
 				ammo_card.clicked.connect(_on_card_clicked)
@@ -618,8 +1271,6 @@ func rebuild_storage():
 		for consumable_id in consumables:
 			var qty = GameState.resources.get_element_amount(consumable_id)
 			if qty > 0:
-				var consumable_card = draggable_icon_scene.instantiate()
-				storage_grid.add_child(consumable_card)
 				var consumable_data = ElementDB.get_consumable_data(consumable_id)
 				var display_name = consumable_data.get("name", consumable_id)
 				var consumable_type = consumable_data.get("type", "hull")
@@ -629,6 +1280,10 @@ func rebuild_storage():
 					"consumable_type": consumable_type,
 					"stats": {"heal_pct": consumable_data.get("heal_pct", 0)}
 				}
+				if not _module_matches_search(consumable_id, fake_data):
+					continue
+				var consumable_card = draggable_icon_scene.instantiate()
+				storage_grid.add_child(consumable_card)
 				consumable_card.setup(consumable_id, fake_data, qty)
 				consumable_card.is_selected = consumable_id in selected_mids
 				consumable_card.clicked.connect(_on_card_clicked)
@@ -680,6 +1335,52 @@ func rebuild_storage():
 		storage_grid.add_child(empty)
 		# Match compact tile sizing
 		empty.custom_minimum_size = Vector2(40, 40)
+
+func _module_matches_search(mid: String, module_data: Dictionary) -> bool:
+	# Empty search shows everything.
+	var raw = armory_search_text.strip_edges().to_lower()
+	if raw == "": return true
+	# Whitespace-split tokens are AND-combined. Operator tokens look like "tier:3".
+	for term in raw.split(" ", false):
+		var t = term.strip_edges()
+		if t == "": continue
+		if not _module_matches_term(mid, module_data, t):
+			return false
+	return true
+
+func _module_matches_term(mid: String, module_data: Dictionary, term: String) -> bool:
+	# Operators: tier:N / set:X / slot:Y / rarity:Z
+	if ":" in term:
+		var parts = term.split(":", true, 1)
+		if parts.size() == 2:
+			var op = parts[0]
+			var val = parts[1]
+			match op:
+				"tier", "zone":
+					var z = int(module_data.get("zone", module_data.get("zone_difficulty", 0)))
+					return z == int(val) if val.is_valid_int() else false
+				"set":
+					var sid = str(module_data.get("set_id", ""))
+					if sid == "" and module_data.get("is_custom") and module_data.has("base_module"):
+						var base = manager.modules.get(module_data["base_module"], {})
+						sid = str(base.get("set_id", ""))
+					return val in sid.to_lower()
+				"slot", "type":
+					return val == str(module_data.get("slot_type", "")).to_lower()
+				"rarity":
+					var rname = ""
+					match int(module_data.get("rarity", 0)):
+						0: rname = "common"
+						1: rname = "uncommon"
+						2: rname = "rare"
+						3: rname = "legendary"
+						4: rname = "unique"
+					return val in rname
+	# Plain text: match module display name (and module id as fallback).
+	var name = str(module_data.get("name", mid)).to_lower()
+	if term in name: return true
+	if term in mid.to_lower(): return true
+	return false
 
 func _is_module_visible_for_filter(module_data: Dictionary) -> bool:
 	var module_type = module_data.get("slot_type", "weapon")

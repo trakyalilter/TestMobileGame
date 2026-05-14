@@ -170,7 +170,6 @@ var ELEMENT_NAMES = {
 	"Res3": "Exotic Artifact",
 	
 	# Iter2 Dead Resource Sink Outputs
-	"Food": "Hydroponic Food",
 	"FertileSoil": "Fertile Soil",
 	"CompositeWeave": "Composite Weave",
 	"N": "Nitrogen",

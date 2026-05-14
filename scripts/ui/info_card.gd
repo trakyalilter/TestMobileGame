@@ -22,6 +22,7 @@ func setup(id: String, type: String):
 		"ship": _setup_ship(id)
 		"module": _setup_module(id)
 		"building": _setup_building(id)
+		"gem": _setup_gem(id)
 		_:
 			title_lbl.text = "Unknown Entity"
 			desc_lbl.text = "No data found for %s" % id
@@ -171,6 +172,29 @@ func _setup_building(id: String):
 		_add_stat("Energy Use", "-%.1f kW" % data["energy_cons"])
 		
 	_set_cost(data["cost"])
+
+func _setup_gem(id: String):
+	var sm = GameState.shipyard_manager
+	title_lbl.text = ElementDB.get_display_name(id)
+	type_lbl.text = "MATRIX CORE"
+
+	if "Crimson" in id:
+		type_lbl.modulate = Color(1.0, 0.35, 0.35)
+	elif "Cobalt" in id:
+		type_lbl.modulate = Color(0.35, 0.65, 1.0)
+	elif "Topaz" in id:
+		type_lbl.modulate = Color(1.0, 0.82, 0.2)
+	elif "Amethyst" in id:
+		type_lbl.modulate = Color(0.78, 0.4, 1.0)
+	else:
+		type_lbl.modulate = Color(0.8, 0.8, 0.8)
+
+	desc_lbl.text = ElementDB.get_element_description(id)
+
+	var effects = sm.GEM_GLOBAL_EFFECTS.get(id, {})
+	for k in effects:
+		var label = k.replace("_mult", "").replace("_", " ").capitalize()
+		_add_stat(label, "+%.0f%%" % (effects[k] * 100.0), Color(0.45, 1.0, 0.55))
 
 func _add_stat(label: String, value: String, val_color: Color = Color.WHITE):
 	var box = HBoxContainer.new()

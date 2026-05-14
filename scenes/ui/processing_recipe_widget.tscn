@@ -3,36 +3,36 @@
 [ext_resource type="Script" path="res://scripts/ui/processing_recipe_widget.gd" id="1_script"]
 
 [node name="ProcessingRecipeWidget" type="PanelContainer"]
-custom_minimum_size = Vector2(0, 185)
+custom_minimum_size = Vector2(0, 210)
 size_flags_horizontal = 3
 script = ExtResource("1_script")
 
 [node name="MarginContainer" type="MarginContainer" parent="."]
 layout_mode = 2
-theme_override_constants/margin_left = 8
-theme_override_constants/margin_top = 8
-theme_override_constants/margin_right = 8
-theme_override_constants/margin_bottom = 8
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
 
 [node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
 layout_mode = 2
-theme_override_constants/separation = 3
+theme_override_constants/separation = 4
 
 [node name="NameLabel" type="Label" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
+theme_override_font_sizes/font_size = 14
 text = "Recipe Name"
 horizontal_alignment = 1
 autowrap_mode = 2
 
 [node name="LevelLabel" type="Label" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.666667, 0.666667, 0.666667, 1)
-theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.55, 0.55, 0.62, 1)
+theme_override_font_sizes/font_size = 11
 text = "Lvl 1"
 horizontal_alignment = 1
 
 [node name="InputLabel" type="RichTextLabel" parent="MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(0, 0)
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_font_sizes/normal_font_size = 12
@@ -44,11 +44,12 @@ autowrap_mode = 3
 
 [node name="ArrowLabel" type="Label" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
-text = "⬇"
+theme_override_colors/font_color = Color(0.40, 0.45, 0.55, 1)
+theme_override_font_sizes/font_size = 11
+text = "↓"
 horizontal_alignment = 1
 
 [node name="OutputLabel" type="RichTextLabel" parent="MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(0, 0)
 layout_mode = 2
 theme_override_font_sizes/normal_font_size = 12
 bbcode_enabled = true
@@ -58,7 +59,7 @@ scroll_active = false
 autowrap_mode = 3
 
 [node name="Button" type="Button" parent="MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(0, 28)
+custom_minimum_size = Vector2(0, 34)
 layout_mode = 2
 text = "Start"
 clip_text = true
@@ -66,13 +67,13 @@ autowrap_mode = 2
 
 [node name="TimeLabel" type="Label" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.666667, 0.666667, 0.666667, 1)
+theme_override_colors/font_color = Color(0.50, 0.52, 0.58, 1)
 theme_override_font_sizes/font_size = 10
 text = "0.0s / 0.0s"
 horizontal_alignment = 1
 
 [node name="ProgressBar" type="ProgressBar" parent="MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(0, 10)
+custom_minimum_size = Vector2(0, 12)
 layout_mode = 2
 theme_override_font_sizes/font_size = 8
 value = 50.0

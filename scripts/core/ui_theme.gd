@@ -236,39 +236,49 @@ func apply_panel_style(panel: PanelContainer):
 
 func apply_sidebar_button_style(button: Button, is_active: bool):
 	if not button: return
-	
-	var style_normal = StyleBoxFlat.new()
-	style_normal.bg_color = COLORS["sidebar"].lerp(COLORS["accent"], 0.03) if not is_active else COLORS["accent"]
-	if is_active: style_normal.bg_color.a = 0.6
-	
-	style_normal.draw_center = true
-	style_normal.set_border_width_all(0)
-	style_normal.content_margin_left = 15
-	
+
+	var accent     := Color(0.38, 0.78, 1.00)
+	var bg_active  := Color(0.10, 0.135, 0.215, 0.88)
+	var bg_hover   := Color(0.08, 0.100, 0.165, 0.65)
+
+	var style_n := StyleBoxFlat.new()
+	style_n.draw_center = is_active
+	style_n.bg_color = bg_active if is_active else Color(0, 0, 0, 0)
+	style_n.set_border_width_all(0)
 	if is_active:
-		style_normal.border_width_left = 3
-		style_normal.border_color = COLORS["accent"].lightened(0.2)
-	
-	# Clean edge blending
-	style_normal.corner_radius_top_right = 2
-	style_normal.corner_radius_bottom_right = 2
-	
-	button.add_theme_stylebox_override("normal", style_normal)
-	
-	var style_hover = style_normal.duplicate()
-	style_hover.bg_color = COLORS["accent"]
-	style_hover.bg_color.a = 0.3
-	button.add_theme_stylebox_override("hover", style_hover)
-	
-	var style_pressed = style_normal.duplicate()
-	style_pressed.bg_color = COLORS["accent"]
-	button.add_theme_stylebox_override("pressed", style_pressed)
-	button.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
-	
-	if is_active:
-		button.add_theme_color_override("font_color", Color.WHITE)
-	else:
-		button.add_theme_color_override("font_color", COLORS["text_dim"])
+		style_n.border_width_left = 3
+		style_n.border_color = accent
+	style_n.content_margin_left   = 14
+	style_n.content_margin_right  = 8
+	style_n.content_margin_top    = 6
+	style_n.content_margin_bottom = 6
+
+	var style_h := StyleBoxFlat.new()
+	style_h.draw_center = true
+	style_h.bg_color = bg_hover
+	style_h.set_border_width_all(0)
+	style_h.border_width_left = 2
+	style_h.border_color = accent.darkened(0.35)
+	style_h.content_margin_left   = 14
+	style_h.content_margin_right  = 8
+	style_h.content_margin_top    = 6
+	style_h.content_margin_bottom = 6
+
+	var style_p := style_h.duplicate()
+	style_p.bg_color = bg_active
+	style_p.border_width_left = 3
+	style_p.border_color = accent
+
+	button.add_theme_stylebox_override("normal",  style_n)
+	button.add_theme_stylebox_override("hover",   style_h)
+	button.add_theme_stylebox_override("pressed", style_p)
+	button.add_theme_stylebox_override("focus",   StyleBoxEmpty.new())
+
+	button.add_theme_font_size_override("font_size", 13)
+	button.add_theme_color_override("font_color",
+		Color(0.90, 0.95, 1.00) if is_active else Color(0.50, 0.55, 0.68))
+	button.add_theme_color_override("font_hover_color",   Color(0.78, 0.90, 1.00))
+	button.add_theme_color_override("font_pressed_color", Color(1.00, 1.00, 1.00))
 
 func apply_modal_style(panel: PanelContainer):
 	if not panel: return

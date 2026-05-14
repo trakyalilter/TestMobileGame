@@ -82,79 +82,84 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_override_constants/margin_left = 20
-theme_override_constants/margin_top = 20
-theme_override_constants/margin_right = 20
-theme_override_constants/margin_bottom = 20
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
 
 [node name="TopHUD" type="HBoxContainer" parent="Dashboard/HUD"]
 layout_mode = 2
 size_flags_vertical = 0
 mouse_filter = 2
-theme_override_constants/separation = 20
+theme_override_constants/separation = 14
 
 [node name="NavPanel" type="PanelContainer" parent="Dashboard/HUD/TopHUD"]
-custom_minimum_size = Vector2(200, 200)
+custom_minimum_size = Vector2(195, 215)
 layout_mode = 2
+size_flags_vertical = 4
 mouse_filter = 2
 
 [node name="VBox" type="VBoxContainer" parent="Dashboard/HUD/TopHUD/NavPanel"]
 layout_mode = 2
 mouse_filter = 2
+theme_override_constants/separation = 5
 
 [node name="Header" type="Label" parent="Dashboard/HUD/TopHUD/NavPanel/VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0, 0.737, 0.831, 1)
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 11
 text = "[ SECTORS ]"
 horizontal_alignment = 1
 
 [node name="HSeparator" type="HSeparator" parent="Dashboard/HUD/TopHUD/NavPanel/VBox"]
-modulate = Color(0, 0.737, 0.831, 0.4)
+modulate = Color(0, 0.737, 0.831, 0.35)
 layout_mode = 2
 
 [node name="ZoneList" type="ItemList" parent="Dashboard/HUD/TopHUD/NavPanel/VBox"]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 13
 
 [node name="CenterInfo" type="VBoxContainer" parent="Dashboard/HUD/TopHUD"]
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
+alignment = 1
 
 [node name="SectorThreat" type="Label" parent="Dashboard/HUD/TopHUD/CenterInfo"]
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.843, 0, 0.5)
-theme_override_font_sizes/font_size = 10
+theme_override_colors/font_color = Color(1, 0.843, 0, 0.9)
+theme_override_font_sizes/font_size = 13
 text = "SECTOR THREAT: NOMINAL"
 horizontal_alignment = 1
 
 [node name="ScanningStatus" type="Label" parent="Dashboard/HUD/TopHUD/CenterInfo"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0, 0.8, 1, 0.4)
-theme_override_font_sizes/font_size = 9
+theme_override_colors/font_color = Color(0, 0.8, 1, 0.7)
+theme_override_font_sizes/font_size = 11
 text = "SCANNING FOR ANOMALIES..."
 horizontal_alignment = 1
 
 [node name="TargetPanel" type="PanelContainer" parent="Dashboard/HUD/TopHUD"]
-custom_minimum_size = Vector2(250, 200)
+custom_minimum_size = Vector2(260, 215)
 layout_mode = 2
+size_flags_vertical = 4
 mouse_filter = 2
 
 [node name="VBox" type="VBoxContainer" parent="Dashboard/HUD/TopHUD/TargetPanel"]
 layout_mode = 2
 mouse_filter = 2
+theme_override_constants/separation = 5
 
 [node name="Header" type="Label" parent="Dashboard/HUD/TopHUD/TargetPanel/VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.32, 0.32, 1)
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 11
 text = "[ TARGETING DATA ]"
 horizontal_alignment = 1
 
 [node name="HSeparator" type="HSeparator" parent="Dashboard/HUD/TopHUD/TargetPanel/VBox"]
-modulate = Color(1, 0.32, 0.32, 0.4)
+modulate = Color(1, 0.32, 0.32, 0.35)
 layout_mode = 2
 
 [node name="Scroll" type="ScrollContainer" parent="Dashboard/HUD/TopHUD/TargetPanel/VBox"]
@@ -165,70 +170,73 @@ horizontal_scroll_mode = 0
 [node name="EnemyList" type="VBoxContainer" parent="Dashboard/HUD/TopHUD/TargetPanel/VBox/Scroll"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 8
+theme_override_constants/separation = 6
 
 [node name="MidHUD" type="HBoxContainer" parent="Dashboard/HUD"]
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2
-theme_override_constants/separation = 20
+theme_override_constants/separation = 14
 
 [node name="PlayerStatsOverlay" type="PanelContainer" parent="Dashboard/HUD/MidHUD"]
-custom_minimum_size = Vector2(220, 150)
+custom_minimum_size = Vector2(225, 185)
 layout_mode = 2
+size_flags_vertical = 4
 mouse_filter = 2
 
 [node name="Margin" type="MarginContainer" parent="Dashboard/HUD/MidHUD/PlayerStatsOverlay"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/margin_left = 10
+theme_override_constants/margin_left = 12
 theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 10
+theme_override_constants/margin_right = 12
 theme_override_constants/margin_bottom = 10
 
 [node name="VBox" type="VBoxContainer" parent="Dashboard/HUD/MidHUD/PlayerStatsOverlay/Margin"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 6
 
 [node name="NameLabel" type="Label" parent="Dashboard/HUD/MidHUD/PlayerStatsOverlay/Margin/VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0, 0.737, 0.831, 1)
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 14
 text = "USS Horizon"
 horizontal_alignment = 1
+text_overrun_behavior = 3
 
 [node name="Grid" type="GridContainer" parent="Dashboard/HUD/MidHUD/PlayerStatsOverlay/Margin/VBox"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/h_separation = 10
-theme_override_constants/v_separation = 4
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 5
 columns = 2
 
 [node name="HealthLabel" type="Label" parent="Dashboard/HUD/MidHUD/PlayerStatsOverlay/Margin/VBox/Grid"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.4, 0.9, 0.4, 1)
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 12
 text = "HULL: 0 / 0"
 
 [node name="ShieldLabel" type="Label" parent="Dashboard/HUD/MidHUD/PlayerStatsOverlay/Margin/VBox/Grid"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0, 0.8, 1, 1)
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 12
 text = "SHD: 0 / 0"
 horizontal_alignment = 2
 
 [node name="StatsLabel" type="Label" parent="Dashboard/HUD/MidHUD/PlayerStatsOverlay/Margin/VBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
+theme_override_colors/font_color = Color(0.55, 0.55, 0.65, 1)
 theme_override_font_sizes/font_size = 11
 text = "ATK: 0 | DEF: 0"
 horizontal_alignment = 1
+text_overrun_behavior = 3
 
 [node name="HeatBar" type="ProgressBar" parent="Dashboard/HUD/MidHUD/PlayerStatsOverlay/Margin/VBox"]
-custom_minimum_size = Vector2(0, 4)
+custom_minimum_size = Vector2(0, 6)
 layout_mode = 2
 theme_override_styles/background = SubResource("StyleBoxFlat_hp_bg")
 theme_override_styles/fill = SubResource("StyleBoxFlat_hp_fill")
@@ -237,7 +245,7 @@ show_percentage = false
 
 [node name="WeaponBattery" type="VBoxContainer" parent="Dashboard/HUD/MidHUD/PlayerStatsOverlay/Margin/VBox"]
 layout_mode = 2
-theme_override_constants/separation = 2
+theme_override_constants/separation = 3
 
 [node name="BuffContainer" type="HBoxContainer" parent="Dashboard/HUD/MidHUD/PlayerStatsOverlay/Margin/VBox"]
 layout_mode = 2
@@ -250,61 +258,64 @@ size_flags_horizontal = 3
 mouse_filter = 2
 
 [node name="EnemyStatsOverlay" type="PanelContainer" parent="Dashboard/HUD/MidHUD"]
-custom_minimum_size = Vector2(220, 150)
+custom_minimum_size = Vector2(225, 185)
 layout_mode = 2
+size_flags_vertical = 4
 mouse_filter = 2
 
 [node name="Margin" type="MarginContainer" parent="Dashboard/HUD/MidHUD/EnemyStatsOverlay"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/margin_left = 10
+theme_override_constants/margin_left = 12
 theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 10
+theme_override_constants/margin_right = 12
 theme_override_constants/margin_bottom = 10
 
 [node name="VBox" type="VBoxContainer" parent="Dashboard/HUD/MidHUD/EnemyStatsOverlay/Margin"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 6
 
 [node name="NameLabel" type="Label" parent="Dashboard/HUD/MidHUD/EnemyStatsOverlay/Margin/VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.32, 0.32, 1)
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 14
 text = "Target Acquired"
 horizontal_alignment = 1
+text_overrun_behavior = 3
 
 [node name="Grid" type="GridContainer" parent="Dashboard/HUD/MidHUD/EnemyStatsOverlay/Margin/VBox"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/h_separation = 10
-theme_override_constants/v_separation = 4
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 5
 columns = 2
 
 [node name="HealthLabel" type="Label" parent="Dashboard/HUD/MidHUD/EnemyStatsOverlay/Margin/VBox/Grid"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(1, 0.3, 0.3, 1)
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 12
 text = "HULL: 0 / 0"
 
 [node name="ShieldLabel" type="Label" parent="Dashboard/HUD/MidHUD/EnemyStatsOverlay/Margin/VBox/Grid"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0, 0.8, 1, 1)
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 12
 text = "SHD: 0 / 0"
 horizontal_alignment = 2
 
 [node name="StatsLabel" type="Label" parent="Dashboard/HUD/MidHUD/EnemyStatsOverlay/Margin/VBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
+theme_override_colors/font_color = Color(0.55, 0.55, 0.65, 1)
 theme_override_font_sizes/font_size = 11
 text = "DNG: 0 | DEF: 0"
 horizontal_alignment = 1
+text_overrun_behavior = 3
 
 [node name="E_AttackBar" type="ProgressBar" parent="Dashboard/HUD/MidHUD/EnemyStatsOverlay/Margin/VBox"]
-custom_minimum_size = Vector2(0, 3)
+custom_minimum_size = Vector2(0, 6)
 layout_mode = 2
 value = 50.0
 show_percentage = false
@@ -313,11 +324,12 @@ show_percentage = false
 layout_mode = 2
 size_flags_vertical = 8
 mouse_filter = 2
-theme_override_constants/separation = 20
+theme_override_constants/separation = 14
 
 [node name="ScannerOverlay" type="PanelContainer" parent="Dashboard/HUD/BottomHUD"]
-custom_minimum_size = Vector2(250, 110)
+custom_minimum_size = Vector2(250, 145)
 layout_mode = 2
+size_flags_vertical = 4
 
 [node name="Margin" type="MarginContainer" parent="Dashboard/HUD/BottomHUD/ScannerOverlay"]
 layout_mode = 2
@@ -335,9 +347,13 @@ theme_override_constants/separation = 5
 [node name="Header" type="Label" parent="Dashboard/HUD/BottomHUD/ScannerOverlay/Margin/VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0, 0.8, 1, 1)
-theme_override_font_sizes/font_size = 10
+theme_override_font_sizes/font_size = 11
 text = "[ EXPEDITION YIELD ]"
 horizontal_alignment = 1
+
+[node name="ScanSep" type="HSeparator" parent="Dashboard/HUD/BottomHUD/ScannerOverlay/Margin/VBox"]
+modulate = Color(0, 0.8, 1, 0.25)
+layout_mode = 2
 
 [node name="Scroll" type="ScrollContainer" parent="Dashboard/HUD/BottomHUD/ScannerOverlay/Margin/VBox"]
 layout_mode = 2
@@ -354,7 +370,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
 theme_override_colors/default_color = Color(0.2, 0.8, 0.2, 1)
-theme_override_font_sizes/normal_font_size = 9
+theme_override_font_sizes/normal_font_size = 10
 bbcode_enabled = true
 text = "[center]Searching for loot paths...[/center]"
 fit_content = true
@@ -365,8 +381,9 @@ custom_minimum_size = Vector2(0, 20)
 layout_mode = 2
 
 [node name="AmmoOverlay" type="PanelContainer" parent="Dashboard/HUD/BottomHUD"]
-custom_minimum_size = Vector2(250, 110)
+custom_minimum_size = Vector2(250, 128)
 layout_mode = 2
+size_flags_vertical = 4
 mouse_filter = 2
 
 [node name="Margin" type="MarginContainer" parent="Dashboard/HUD/BottomHUD/AmmoOverlay"]
@@ -385,9 +402,13 @@ theme_override_constants/separation = 5
 [node name="Header" type="Label" parent="Dashboard/HUD/BottomHUD/AmmoOverlay/Margin/VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.6, 0.2, 1)
-theme_override_font_sizes/font_size = 10
+theme_override_font_sizes/font_size = 11
 text = "[ ORDNANCE FEED ]"
 horizontal_alignment = 1
+
+[node name="AmmoSep" type="HSeparator" parent="Dashboard/HUD/BottomHUD/AmmoOverlay/Margin/VBox"]
+modulate = Color(1, 0.6, 0.2, 0.25)
+layout_mode = 2
 
 [node name="AmmoGroupVBox" type="VBoxContainer" parent="Dashboard/HUD/BottomHUD/AmmoOverlay/Margin/VBox"]
 layout_mode = 2
@@ -401,7 +422,7 @@ mouse_filter = 2
 alignment = 2
 
 [node name="RetreatBtn" type="Button" parent="Dashboard/HUD/BottomHUD/RetreatContainer"]
-custom_minimum_size = Vector2(120, 32)
+custom_minimum_size = Vector2(120, 40)
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.35, 0.35, 1)
 text = "RETREAT"

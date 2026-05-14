@@ -32,12 +32,14 @@ func setup(p_aid: String, p_data: Dictionary, p_manager, p_parent):
 	UITheme.inject_diegetic_header(self, "ops")
 
 func _on_button_pressed():
+	if GameState.combat_manager and GameState.combat_manager.in_combat:
+		return
 	if manager.is_active and manager.current_action_id == aid:
 		manager.stop_action()
 	else:
 		GameState.set_active_manager(manager)
 		manager.start_action(aid)
-	
+
 	parent_ui.update_ui()
 
 func update_state():
@@ -99,6 +101,14 @@ func update_state():
 			var prog = (manager.action_progress / effective_duration) * 100.0
 			prog_bar.value = prog
 			time_lbl.text = "%s / %s" % [FormatUtils.format_time(manager.action_progress), FormatUtils.format_time(effective_duration)]
+		elif GameState.combat_manager and GameState.combat_manager.in_combat:
+			btn.text = "IN COMBAT"
+			btn.disabled = true
+			btn.modulate = Color(1.0, 0.35, 0.35, 0.8)
+			modulate = Color(0.85, 0.85, 0.85)
+			prog_bar.value = 0
+			var speed_mult = manager.get_action_speed_multiplier(aid)
+			time_lbl.text = "0.0s / %s" % FormatUtils.format_time(manager.action_duration / speed_mult)
 		else:
 			btn.text = "Start"
 			btn.modulate = Color(1, 1, 1)

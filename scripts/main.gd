@@ -15,6 +15,7 @@ extends Control
 @onready var options_btn = $HBoxContainer/Sidebar/VBoxContainer/OptionsBtn
 @onready var menu_btn = $HBoxContainer/Sidebar/VBoxContainer/MenuBtn
 @onready var bounty_btn = $HBoxContainer/Sidebar/VBoxContainer/BountyBtn
+@onready var quest_btn = $HBoxContainer/Sidebar/VBoxContainer/QuestBtn
 @onready var warp_btn = $HBoxContainer/Sidebar/VBoxContainer/WarpBtn
 @onready var sidebar_list = $HBoxContainer/Sidebar/VBoxContainer
 @onready var sidebar_panel = $HBoxContainer/Sidebar
@@ -28,14 +29,20 @@ var pages = {}
 var current_page_name = ""
 var header_widget: Control
 
+# Claim badges — shown on Mission / Quest sidebar buttons when rewards are ready
+var mission_claim_badge: Control = null
+var quest_claim_badge: Control = null
+var _claim_badge_tick: float = 0.0
+
 func _ready():
 	_init_pages()
 	_apply_global_styles()
 	_init_notifications() # Feature 66.1
-	
+	_init_claim_badges()
+
 	# v71.1: Connect to shipyard alerts
 	GameState.shipyard_manager.alert_changed.connect(_on_shipyard_alert_changed)
-	
+
 	GameState.game_resetted.connect(_on_game_resetted)
 	
 	if not GameState.mission_manager.has_progress():
@@ -54,7 +61,16 @@ func _on_research_navigation_requested(tech_id: String):
 
 func _apply_global_styles():
 	background.color = UITheme.COLORS["background"]
+	_style_sidebar_panel()
 	_update_sidebar_styling()
+
+func _style_sidebar_panel():
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.048, 0.052, 0.085, 1.0)
+	style.set_border_width_all(0)
+	style.border_width_right = 1
+	style.border_color = Color(0.20, 0.26, 0.42, 0.50)
+	sidebar_panel.add_theme_stylebox_override("panel", style)
 
 func _init_pages():
 	# ... (same as before)
@@ -113,14 +129,18 @@ func _init_pages():
 	p_atlas.visible = false
 	pages["atlas"] = p_atlas
 	
-	# v1.0 Feature: Renamed to generic "Atlas" for Enemies + Materials
-	atlas_btn.text = "Atlas"
+	atlas_btn.text = "  📖  Atlas"
 
 	
 	var p_bounty = preload("res://scenes/ui/bounty_page.tscn").instantiate()
 	page_container.add_child(p_bounty)
 	p_bounty.visible = false
 	pages["bounty"] = p_bounty
+
+	var p_quest = preload("res://scenes/ui/quest_page.tscn").instantiate()
+	page_container.add_child(p_quest)
+	p_quest.visible = false
+	pages["quest"] = p_quest
 	
 	var p_warp = preload("res://scenes/ui/warp_page.tscn").instantiate()
 	page_container.add_child(p_warp)
@@ -209,6 +229,70 @@ func _spawn_notification(text: String, color: Color):
 	tween.tween_property(panel, "modulate:a", 0.0, 0.3)
 	tween.tween_callback(panel.queue_free)
 
+# ── Claim Badges (Mission / Quest sidebar buttons) ──
+func _init_claim_badges():
+	mission_claim_badge = _build_claim_badge(Color(1.0, 0.40, 0.20))  # orange-red — story rewards
+	mission_btn.add_child(mission_claim_badge)
+	quest_claim_badge = _build_claim_badge(Color(1.0, 0.78, 0.22))   # gold — quest rewards
+	quest_btn.add_child(quest_claim_badge)
+	_update_claim_badges()
+
+func _build_claim_badge(bg: Color) -> Control:
+	# A right-edge circular pill carrying the claim count. Hidden when count == 0.
+	var panel := PanelContainer.new()
+	panel.name = "ClaimBadge"
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.visible = false
+	# Anchored to the right edge of the parent button, vertically centered.
+	panel.set_anchors_preset(Control.PRESET_CENTER_RIGHT, true)
+	panel.position = Vector2(-32, -10)
+	panel.custom_minimum_size = Vector2(22, 20)
+
+	var style := StyleBoxFlat.new()
+	style.bg_color = bg
+	style.set_corner_radius_all(10)
+	style.content_margin_left = 6
+	style.content_margin_right = 6
+	style.content_margin_top = 1
+	style.content_margin_bottom = 1
+	style.shadow_color = Color(bg.r, bg.g, bg.b, 0.45)
+	style.shadow_size = 4
+	panel.add_theme_stylebox_override("panel", style)
+
+	var lbl := Label.new()
+	lbl.name = "CountLabel"
+	lbl.text = "0"
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	lbl.add_theme_font_size_override("font_size", 11)
+	lbl.add_theme_color_override("font_color", Color.WHITE)
+	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(lbl)
+
+	# Soft pulse to draw the eye without being obnoxious
+	var tween := panel.create_tween().set_loops()
+	tween.tween_property(panel, "modulate", Color(1, 1, 1, 0.7), 0.9).set_trans(Tween.TRANS_SINE)
+	tween.tween_property(panel, "modulate", Color(1, 1, 1, 1.0), 0.9).set_trans(Tween.TRANS_SINE)
+
+	return panel
+
+func _update_claim_badges():
+	var mm = GameState.mission_manager
+	if mission_claim_badge and mm:
+		var n = mm.count_claimable_missions()
+		var lbl = mission_claim_badge.get_node_or_null("CountLabel")
+		if lbl:
+			lbl.text = str(n) if n < 99 else "99+"
+		mission_claim_badge.visible = (n > 0)
+
+	var qm = GameState.quest_manager
+	if quest_claim_badge and qm:
+		var n = qm.count_claimable()
+		var lbl = quest_claim_badge.get_node_or_null("CountLabel")
+		if lbl:
+			lbl.text = str(n) if n < 99 else "99+"
+		quest_claim_badge.visible = (n > 0) and quest_btn.visible
+
 func switch_to(page_name):
 	if current_page_name == page_name: return
 	
@@ -247,6 +331,7 @@ func _get_btn_for_page(page_name: String) -> Button:
 		"options": return options_btn
 
 		"bounty": return bounty_btn
+		"quest": return quest_btn
 		"warp": return warp_btn
 	return null
 
@@ -271,6 +356,7 @@ func _update_sidebar_styling():
 	UITheme.apply_sidebar_button_style(options_btn, current_page_name == "options")
 
 	UITheme.apply_sidebar_button_style(bounty_btn, current_page_name == "bounty")
+	UITheme.apply_sidebar_button_style(quest_btn, current_page_name == "quest")
 	
 	# THEMATIC: Progressive Disclosure (Early & Mid-Game Gates)
 	var has_basic_eng = GameState.research_manager.is_tech_unlocked("applied_physics")
@@ -285,6 +371,8 @@ func _update_sidebar_styling():
 	# v72.0: Bounty Board unlocks at Asteroid Clearance (first real combat sector)
 	var has_asteroid_clearance = GameState.research_manager.is_tech_unlocked("asteroid_clearance")
 	bounty_btn.visible = has_asteroid_clearance
+	# Quests appear once the player has core gameplay loops available
+	quest_btn.visible = has_basic_eng
 	
 	# 3. Late Game: Warp Core unlocks at Warp Drive Theory
 	var has_warp = GameState.research_manager.is_tech_unlocked("warp_drive")
@@ -295,21 +383,36 @@ func _update_sidebar_styling():
 	
 
 	
-	# Apply Physical Switch Styling
+	# Style non-button sidebar elements
 	for child in sidebar_list.get_children():
-		if child is Button:
-			UITheme.apply_instrument_style(child)
-		elif child is Label:
-			child.add_theme_font_size_override("font_size", 10)
-			child.modulate = Color(0.4, 0.4, 0.6, 0.5) # Dim, terminal navy
+		if child is Label:
+			if child.name == "LogoLabel":
+				child.add_theme_font_size_override("font_size", 14)
+				child.add_theme_color_override("font_color", Color(0.42, 0.84, 1.00))
+				child.modulate = Color.WHITE
+			else:
+				child.add_theme_font_size_override("font_size", 9)
+				child.add_theme_color_override("font_color", Color(0.28, 0.36, 0.52))
+				child.modulate = Color.WHITE
+
+	# Warp button keeps its purple accent
+	if is_instance_valid(warp_btn) and warp_btn.visible:
+		var wc := Color(0.78, 0.50, 1.00) if current_page_name != "warp" else Color(0.92, 0.72, 1.00)
+		warp_btn.add_theme_color_override("font_color", wc)
 
 func _process(delta):
 	# 1. Navigation Logic & Disclosure Check (Once per second is enough)
 	if Engine.get_frames_drawn() % 60 == 0:
 		_update_sidebar_styling()
-		
+
 	# 2. Tutorial Navigation Guidance
 	_update_navigation_hints()
+
+	# 3. Claim badges (refresh ~4 Hz)
+	_claim_badge_tick += delta
+	if _claim_badge_tick >= 0.25:
+		_claim_badge_tick = 0.0
+		_update_claim_badges()
 
 func _update_navigation_hints():
 	var mm = GameState.mission_manager
@@ -703,6 +806,7 @@ func _on_warp_btn_pressed():
 func _on_options_btn_pressed(): switch_to("options")
 func _on_fleet_btn_pressed(): switch_to("fleet")
 func _on_bounty_btn_pressed(): switch_to("bounty")
+func _on_quest_btn_pressed(): switch_to("quest")
 
 func _on_menu_btn_pressed():
 	GameState.save_game()

@@ -91,7 +91,7 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/h_separation = 10
 theme_override_constants/v_separation = 10
-columns = 7
+columns = 6
 
 [node name="RightPanel" type="PanelContainer" parent="HBoxContainer"]
 layout_mode = 2
@@ -99,19 +99,19 @@ size_flags_horizontal = 3
 
 [node name="VBoxContainer" type="VBoxContainer" parent="HBoxContainer/RightPanel"]
 layout_mode = 2
-theme_override_constants/separation = 20
+theme_override_constants/separation = 14
 
 [node name="Label" type="Label" parent="HBoxContainer/RightPanel/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.792157, 0.156863, 1)
-theme_override_font_sizes/font_size = 18
-text = "Item Details"
+theme_override_colors/font_color = Color(0.45, 0.52, 0.65, 1)
+theme_override_font_sizes/font_size = 12
+text = "ITEM DETAILS"
 horizontal_alignment = 1
 
 [node name="CreditsLabel" type="Label" parent="HBoxContainer/RightPanel/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.843137, 0, 1)
-theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.9, 0.78, 0.3, 1)
+theme_override_font_sizes/font_size = 13
 text = "Credits: 0"
 horizontal_alignment = 1
 
@@ -123,9 +123,10 @@ theme_override_constants/separation = 10
 [node name="NameLabel" type="Label" parent="HBoxContainer/RightPanel/VBoxContainer/Details"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0, 0.898039, 1, 1)
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 18
 text = "Select an Item"
 horizontal_alignment = 1
+autowrap_mode = 2
 
 [node name="ScrollContainer" type="ScrollContainer" parent="HBoxContainer/RightPanel/VBoxContainer/Details"]
 layout_mode = 2
@@ -145,6 +146,7 @@ autowrap_mode = 2
 [node name="PriceLabel" type="Label" parent="HBoxContainer/RightPanel/VBoxContainer/Details"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.792157, 0.156863, 1)
+theme_override_font_sizes/font_size = 13
 text = "Unit Price: -"
 horizontal_alignment = 1
 
@@ -153,8 +155,9 @@ layout_mode = 2
 
 [node name="Label2" type="Label" parent="HBoxContainer/RightPanel/VBoxContainer/Details"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.666667, 0.666667, 0.666667, 1)
-text = "Sell To Union"
+theme_override_colors/font_color = Color(0.40, 0.55, 0.75, 1)
+theme_override_font_sizes/font_size = 11
+text = "SELL TO UNION"
 
 [node name="HBoxContainer" type="HBoxContainer" parent="HBoxContainer/RightPanel/VBoxContainer/Details"]
 layout_mode = 2
@@ -174,16 +177,19 @@ editable = false
 [node name="TotalLabel" type="Label" parent="HBoxContainer/RightPanel/VBoxContainer/Details"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.411765, 0.941176, 0.682353, 1)
+theme_override_font_sizes/font_size = 14
 text = "Total: 0"
 horizontal_alignment = 2
 
 [node name="SellBtn" type="Button" parent="HBoxContainer/RightPanel/VBoxContainer/Details"]
+custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.298039, 0.686275, 0.313726, 1)
 disabled = true
 text = "Sell Items"
 
 [node name="SellAllBtn" type="Button" parent="HBoxContainer/RightPanel/VBoxContainer/Details"]
+custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
 disabled = true
 text = "Sell All Stack"

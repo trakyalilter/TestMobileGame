@@ -44,8 +44,15 @@ func _ready():
 	repair_btn.pressed.connect(_on_repair_pressed)
 	$VBoxContainer/StatsPanel/HBoxContainer.add_child(repair_btn)
 	UITheme.apply_premium_button_style(repair_btn, "shipyard")
-	
+
+	_style_stats_panel()
 	call_deferred("refresh_list")
+
+func _style_stats_panel():
+	UITheme.apply_card_style($VBoxContainer/StatsPanel, "shipyard")
+	for child in $VBoxContainer/StatsPanel/HBoxContainer.get_children():
+		if child is Label:
+			child.add_theme_font_size_override("font_size", 13)
 
 func _process(_delta):
 	_update_repair_button()
@@ -253,7 +260,7 @@ func _create_rack(id: String, title: String, color: Color, parent: Node, horizon
 		scroll.add_child(rack_grid)
 	else:
 		rack_grid = GridContainer.new()
-		rack_grid.columns = 5
+		rack_grid.columns = 4
 		rack_grid.add_theme_constant_override("h_separation", 10)
 		rack_grid.add_theme_constant_override("v_separation", 10)
 		rack_vbox.add_child(rack_grid)

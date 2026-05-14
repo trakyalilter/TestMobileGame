@@ -21,7 +21,7 @@ func setup(p_bid: String, p_data: Dictionary, p_manager, p_parent):
 	manager = p_manager
 	parent_ui = p_parent
 	
-	custom_minimum_size = Vector2(250, 220)
+	custom_minimum_size = Vector2(0, 240)
 	
 	name_lbl.text = data["name"]
 	name_lbl.add_theme_color_override("font_color", UITheme.CATEGORY_COLORS["infrastructure"])

@@ -167,16 +167,17 @@ func _setup_xp_bar():
 
 func _setup_loot_filter_button():
 	var btn = Button.new()
-	btn.text = "LOOT FILTER"
+	btn.text = "▼ FILTER"
 	btn.name = "LootFilterBtn"
-	btn.custom_minimum_size = Vector2(120, 30)
+	btn.custom_minimum_size = Vector2(0, 22)
+	btn.add_theme_font_size_override("font_size", 10)
 	UITheme.apply_premium_button_style(btn, "ops")
-	
-	# Add to BottomHUD next to Retreat button if possible or just in horizontal layout
-	var container = $Dashboard/HUD/BottomHUD
-	container.add_child(btn)
-	container.move_child(btn, 0) # Put it first for visibility
-	
+
+	# Inject into ScannerOverlay header row, between Header and Scroll
+	var vbox = $Dashboard/HUD/BottomHUD/ScannerOverlay/Margin/VBox
+	vbox.add_child(btn)
+	vbox.move_child(btn, 1) # After Header label, before Scroll
+
 	btn.pressed.connect(_on_filter_btn_pressed)
 
 func _on_filter_btn_pressed():
@@ -196,7 +197,33 @@ func refresh_zones():
 		if z.get("is_hazard", false):
 			zone_list.set_item_custom_fg_color(idx, Color.YELLOW)
 			if manager.hazard_clears.has(z["id"]):
-				zone_list.set_item_custom_fg_color(idx, Color(0.6, 0.8, 0.2)) # Green-yellow for cleared
+				zone_list.set_item_custom_fg_color(idx, Color(0.6, 0.8, 0.2))
+		# Recommended power tooltip: find boss stats for this zone
+		var zone_data = z["data"]
+		var enemy_list = zone_data.get("enemies", [])
+		var boss_hp = 0
+		var boss_atk = 0
+		var boss_name = ""
+		var toughest_hp = 0
+		var toughest_atk = 0
+		for eid in enemy_list:
+			var edata = manager.enemy_db.get(eid, {})
+			var estats = edata.get("stats", {})
+			if edata.get("is_boss", false):
+				boss_hp = estats.get("hp", 0)
+				boss_atk = estats.get("atk", 0)
+				boss_name = edata.get("name", "Boss")
+			else:
+				if estats.get("hp", 0) > toughest_hp:
+					toughest_hp = estats.get("hp", 0)
+					toughest_atk = estats.get("atk", 0)
+		var rec_dps = int(boss_hp / 30.0) if boss_hp > 0 else int(toughest_hp / 15.0)
+		var tooltip = "Zone %d\n" % zone_data.get("difficulty", 1)
+		tooltip += "Strongest Enemy: %s HP | %s ATK\n" % [UITheme.format_num(toughest_hp), UITheme.format_num(toughest_atk)]
+		if boss_hp > 0:
+			tooltip += "%s: %s HP | %s ATK\n" % [boss_name, UITheme.format_num(boss_hp), UITheme.format_num(boss_atk)]
+		tooltip += "Recommended DPS: ~%s" % UITheme.format_num(rec_dps)
+		zone_list.set_item_tooltip(idx, tooltip)
 
 func _on_zone_list_item_selected(index):
 	var zid = zone_list.get_item_metadata(index)
@@ -245,20 +272,20 @@ func refresh_enemies(zone_id):
 	
 	var enemies = manager.zones[zone_id]["enemies"].duplicate()
 	
-	# Sort by Threat Score (weakest to strongest)
-	# Heuristic: (HP + Shield) * (1 + Def/100) * (1 + Atk/50)
+	# Sort weakest → strongest; boss always last regardless of stats
 	enemies.sort_custom(func(a, b):
 		var e_a = manager.enemy_db[a]
 		var e_b = manager.enemy_db[b]
-		
+		var boss_a = e_a.get("is_boss", false)
+		var boss_b = e_b.get("is_boss", false)
+		if boss_a != boss_b:
+			return not boss_a  # non-boss sorts before boss
 		var score_a = (e_a["stats"].get("hp", 0) + e_a["stats"].get("max_shield", 0)) \
 			* (1.0 + e_a["stats"].get("def", 0) / 100.0) \
 			* (1.0 + e_a["stats"].get("atk", 0) / 50.0)
-			
 		var score_b = (e_b["stats"].get("hp", 0) + e_b["stats"].get("max_shield", 0)) \
 			* (1.0 + e_b["stats"].get("def", 0) / 100.0) \
 			* (1.0 + e_b["stats"].get("atk", 0) / 50.0)
-			
 		return score_a < score_b
 	)
 	
@@ -614,7 +641,11 @@ func _update_ammo_display():
 		{"name": "Focus", "id": "CellT1", "col": Color("#00ccff"), "type": "energy"},
 		{"name": "Plasma", "id": "CellT2", "col": Color("#0099ff"), "type": "energy"},
 		{"name": "Vapor", "id": "CellT3", "col": Color("#0066ff"), "type": "energy"},
-		{"name": "Heavy", "id": "CellT4", "col": Color("#aa00ff"), "type": "energy"}
+		{"name": "Heavy", "id": "CellT4", "col": Color("#aa00ff"), "type": "energy"},
+		{"name": "HE", "id": "MissileT1", "col": Color("#ff6633"), "type": "explosive"},
+		{"name": "Seek", "id": "MissileT2", "col": Color("#ff4422"), "type": "explosive"},
+		{"name": "Thermo", "id": "MissileT3", "col": Color("#ff2200"), "type": "explosive"},
+		{"name": "Photon", "id": "MissileT4", "col": Color("#ff66cc"), "type": "explosive"}
 	]
 	
 	var has_any = false
@@ -652,6 +683,12 @@ func _update_ammo_display():
 				# SLUGS: Sharp and mechanical
 				sb_pip.corner_radius_top_left = 1
 				sb_pip.corner_radius_bottom_right = 3
+			elif ammo["type"] == "explosive":
+				# MISSILES: Warhead — pointed top, flat base
+				sb_pip.corner_radius_top_left = 3
+				sb_pip.corner_radius_top_right = 3
+				sb_pip.corner_radius_bottom_left = 0
+				sb_pip.corner_radius_bottom_right = 0
 			else:
 				# CELLS: Rounded energy capsules
 				sb_pip.corner_radius_top_left = 3
@@ -766,7 +803,6 @@ func _update_atmosphere(delta):
 					scan_lbl.text = "CAUTION: EVASION COMPROMISED - SHIELDS REQUIRED"
 					scan_lbl.modulate = Color(1.0, 0.5, 0.0) # Warning Orange
 	else:
-		threat_lbl.text = "SCANNING SECTOR..."
 		threat_lbl.text = "SECTOR THREAT: NOMINAL"
 		threat_lbl.modulate = Color(1, 0.8, 0, 0.5) # Yellow cautious
 
@@ -801,19 +837,50 @@ func _create_centered_label(parent: Control) -> Label:
 
 func _setup_consumable_buttons():
 	if not consumable_container: return
-	
+
+	# Build a styled panel matching the scanner/ammo panels.
+	# Structure: wrapper(PanelContainer) → inner_vbox → [header, sep, consumable_container]
+	var bottom_hud = $Dashboard/HUD/BottomHUD
+	var slot = consumable_container.get_index()
+
+	var inner_vbox = VBoxContainer.new()
+	inner_vbox.add_theme_constant_override("separation", 5)
+
+	var hdr = Label.new()
+	hdr.text = "[ CONSUMABLES ]"
+	hdr.add_theme_color_override("font_color", Color(0.5, 0.9, 0.5, 1.0))
+	hdr.add_theme_font_size_override("font_size", 11)
+	hdr.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	inner_vbox.add_child(hdr)
+
+	var sep = HSeparator.new()
+	sep.modulate = Color(0.5, 0.9, 0.5, 0.25)
+	inner_vbox.add_child(sep)
+
+	var wrapper = PanelContainer.new()
+	wrapper.name = "ConsumablesPanel"
+	wrapper.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	wrapper.add_child(inner_vbox)
+
+	# Insert wrapper at the same position, then move consumable_container inside
+	bottom_hud.add_child(wrapper)
+	bottom_hud.move_child(wrapper, slot)
+	consumable_container.reparent(inner_vbox)
+
+	UITheme.apply_card_style(wrapper, "shipyard")
+
 	# Connect signals
 	if not btn_hull_cons.is_connected("pressed", _on_consumable_pressed):
 		btn_hull_cons.pressed.connect(_on_consumable_pressed.bind("hull"))
 	if not btn_shd_cons.is_connected("pressed", _on_consumable_pressed):
 		btn_shd_cons.pressed.connect(_on_consumable_pressed.bind("shield"))
-	
+
 	# Apply Premium styling
 	UITheme.apply_instrument_style(btn_hull_cons, "shipyard")
 	UITheme.apply_instrument_style(btn_shd_cons, "combat")
-	
+
 	for btn in [btn_hull_cons, btn_shd_cons]:
-		btn.custom_minimum_size = Vector2(100, 45) # Physical size
+		btn.custom_minimum_size = Vector2(100, 45)
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		btn.add_theme_font_size_override("font_size", 10)
 	

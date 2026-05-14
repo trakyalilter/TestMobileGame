@@ -36,6 +36,8 @@ func setup(p_rid: String, p_data: Dictionary, p_manager, p_parent):
 	UITheme.inject_diegetic_header(self, "engineering")
 
 func _on_button_pressed():
+	if GameState.combat_manager and GameState.combat_manager.in_combat:
+		return
 	if manager.is_active and manager.current_recipe_id == rid:
 		manager.stop_action()
 	else:
@@ -139,6 +141,12 @@ func update_state():
 			UITheme.apply_locked_overlay(self, recipe["name"], "", false)
 			btn.text = "Missing Materials"
 			btn.disabled = true
+		elif GameState.combat_manager and GameState.combat_manager.in_combat:
+			UITheme.apply_locked_overlay(self, recipe["name"], "", false)
+			btn.text = "IN COMBAT"
+			btn.disabled = true
+			btn.modulate = Color(1.0, 0.35, 0.35, 0.8)
+			modulate = Color(0.85, 0.85, 0.85)
 		else:
 			UITheme.apply_locked_overlay(self, recipe["name"], "", false)
 			btn.text = "Start"

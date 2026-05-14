@@ -42,14 +42,14 @@ theme_override_constants/separation = 10
 layout_mode = 2
 theme_override_colors/font_color = Color(0.4, 0.8, 1, 1)
 theme_override_font_sizes/font_size = 24
-text = "📖 Material Atlas"
+text = "📖 ATLAS"
 
 [node name="HSeparator" type="HSeparator" parent="HBoxContainer/LeftPanel/MarginContainer/VBoxContainer"]
 layout_mode = 2
 
 [node name="SearchBox" type="LineEdit" parent="HBoxContainer/LeftPanel/MarginContainer/VBoxContainer"]
 layout_mode = 2
-placeholder_text = "🔍 Search materials..."
+placeholder_text = "🔍 Search by name..."
 
 [node name="CategoryFilter" type="HBoxContainer" parent="HBoxContainer/LeftPanel/MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -59,41 +59,49 @@ theme_override_constants/separation = 5
 layout_mode = 2
 toggle_mode = true
 button_pressed = true
+theme_override_font_sizes/font_size = 11
 text = "All"
 
 [node name="GatherBtn" type="Button" parent="HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/CategoryFilter"]
 layout_mode = 2
 toggle_mode = true
+theme_override_font_sizes/font_size = 11
 text = "Gathering"
 
 [node name="ProcessBtn" type="Button" parent="HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/CategoryFilter"]
 layout_mode = 2
 toggle_mode = true
+theme_override_font_sizes/font_size = 11
 text = "Processing"
 
 [node name="CombatBtn" type="Button" parent="HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/CategoryFilter"]
 layout_mode = 2
 toggle_mode = true
+theme_override_font_sizes/font_size = 11
 text = "Combat"
 
 [node name="BuildingBtn" type="Button" parent="HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/CategoryFilter"]
 layout_mode = 2
 toggle_mode = true
+theme_override_font_sizes/font_size = 11
 text = "Buildings"
 
 [node name="ShipyardBtn" type="Button" parent="HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/CategoryFilter"]
 layout_mode = 2
 toggle_mode = true
+theme_override_font_sizes/font_size = 11
 text = "Shipyard"
 
 [node name="ResearchBtn" type="Button" parent="HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/CategoryFilter"]
 layout_mode = 2
 toggle_mode = true
+theme_override_font_sizes/font_size = 11
 text = "Research"
 
 [node name="FleetBtn" type="Button" parent="HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/CategoryFilter"]
 layout_mode = 2
 toggle_mode = true
+theme_override_font_sizes/font_size = 11
 text = "Fleet"
 
 [node name="ScrollContainer" type="ScrollContainer" parent="HBoxContainer/LeftPanel/MarginContainer/VBoxContainer"]
@@ -125,7 +133,7 @@ theme_override_constants/separation = 15
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.8, 0.2, 1)
 theme_override_font_sizes/font_size = 22
-text = "Select a Material"
+text = "Select an Item"
 horizontal_alignment = 1
 
 [node name="HSeparator" type="HSeparator" parent="HBoxContainer/RightPanel/MarginContainer/VBoxContainer"]
@@ -145,12 +153,13 @@ theme_override_constants/separation = 12
 layout_mode = 2
 theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
 theme_override_font_sizes/font_size = 14
-text = "Select a material from the list to view its sources and uses."
+text = "Pick a material or enemy from the list to view full details."
 autowrap_mode = 2
 
 [node name="NetLabel" type="Label" parent="HBoxContainer/RightPanel/MarginContainer/VBoxContainer/ScrollContainer/Details"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 15
+theme_override_colors/font_color = Color(0.5, 0.9, 0.55, 1)
+theme_override_font_sizes/font_size = 14
 text = "NET GROWTH: 0.00 /min"
 horizontal_alignment = 1
 

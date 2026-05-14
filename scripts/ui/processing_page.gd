@@ -48,7 +48,9 @@ func refresh_recipes():
 	_create_rack("materials", "Advanced Materials", Color(0.4, 0.8, 0.6, 0.5), rack_container)
 	_create_rack("electronics", "Electronics & Components", Color(0.2, 0.8, 1.0, 0.5), rack_container)
 	_create_rack("batteries", "Power Cells & Batteries", Color(1.0, 1.0, 0.3, 0.5), rack_container)
-	_create_rack("munitions", "Munitions Factory", Color(1.0, 0.4, 0.3, 0.5), rack_container)
+	_create_rack("munitions_kinetic", "Kinetic Munitions", Color(0.95, 0.55, 0.25, 0.5), rack_container)
+	_create_rack("munitions_energy", "Energy Munitions", Color(0.30, 0.85, 1.0, 0.5), rack_container)
+	_create_rack("munitions_explosive", "Explosive Munitions", Color(1.0, 0.85, 0.30, 0.5), rack_container)
 	# Split Consumables
 	_create_rack("consumables_hull", "Hull Repair Kits", Color(0.2, 1.0, 0.5, 0.5), rack_container)
 	_create_rack("consumables_shield", "Shield Repair Kits", Color(0.2, 0.6, 1.0, 0.5), rack_container)
@@ -78,9 +80,16 @@ func _get_recipe_category(rid: String, data: Dictionary) -> String:
 	if data.get("category"):
 		return data.get("category")
 
-	# Munitions - ammo for weapons
-	if "slug" in rid or "cell_t" in rid or "craft_cell" in rid or "rounds" in rid or "missile" in rid:
-		return "munitions"
+	# Munitions — split by damage type
+	# Kinetic: slugs and rounds (Mass Driver / Railgun ammo)
+	if "slug" in rid or "rounds" in rid:
+		return "munitions_kinetic"
+	# Energy: cells (Plasma / Laser / Vaporizer ammo)
+	if "cell_t" in rid or "craft_cell" in rid:
+		return "munitions_energy"
+	# Explosive: missiles and warheads
+	if "missile" in rid or "warhead" in rid:
+		return "munitions_explosive"
 	
 	# Batteries - power storage
 	if "battery" in rid:
@@ -127,9 +136,8 @@ func _create_rack(id: String, title: String, color: Color, parent: Node):
 	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	rack_vbox.add_child(header)
 	
-	# Use GridContainer with 4 columns for uniform stretch
 	var rack_grid = GridContainer.new()
-	rack_grid.columns = 5
+	rack_grid.columns = 4
 	rack_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	rack_grid.add_theme_constant_override("h_separation", 10)
 	rack_grid.add_theme_constant_override("v_separation", 10)

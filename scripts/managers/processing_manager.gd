@@ -23,9 +23,9 @@ var recipes: Dictionary = {
 	},
 	"charcoal_burning": {
 		"name": "Charcoal Kiln",
-		"description": "Burn Wood to produce Carbon.",
+		"description": "Burn Wood to produce Carbon. The backbone of metallurgy.",
 		"input": {"Wood": 5},
-		"output": {"C": 10},
+		"output": {"C": 16},
 		"duration": 4.0,
 		"level_req": 3,
 		"xp": 5,
@@ -1020,6 +1020,77 @@ var recipes: Dictionary = {
 		"category": "salvage"
 	},
 	# T8: energy_wraith -> AntimatterParticle
+
+	# ========== ZONE TROPHIES (Permanent Buffs) ==========
+	# Consumes zone-themed combat loot that was previously dead-end inventory.
+	# Each trophy grants a permanent passive bonus (see bounty_manager.get_trophy_buff).
+	# Multiple copies do NOT stack — one is enough.
+	"craft_trophy_lunar": {
+		"name": "Lunar Conquest Trophy",
+		"description": "Forge a trophy from Mite Chitin shards. Grants +25% Gathering XP permanently.",
+		"input": {"MiteChitin": 50, "Cu": 20, "Circuit": 10},
+		"output": {"Trophy_Lunar": 1},
+		"duration": 30.0,
+		"level_req": 10,
+		"xp": 80,
+		"research_req": "kinetics_101",
+		"category": "trophies"
+	},
+	"craft_trophy_belt": {
+		"name": "Asteroid Belt Trophy",
+		"description": "Reforge Pirate Salvage into a Belt Trophy. Grants +20% Mining Yield permanently.",
+		"input": {"PirateSalvage": 50, "Steel": 30, "Cu": 20},
+		"output": {"Trophy_Belt": 1},
+		"duration": 45.0,
+		"level_req": 20,
+		"xp": 150,
+		"research_req": "zone_2_access",
+		"category": "trophies"
+	},
+	"craft_trophy_mars": {
+		"name": "Martian Relic Trophy",
+		"description": "Restore Martian Relics into a memorial trophy. Grants +25% Processing XP permanently.",
+		"input": {"MartianRelics": 40, "Steel": 40, "AdvCircuit": 5},
+		"output": {"Trophy_Mars": 1},
+		"duration": 60.0,
+		"level_req": 30,
+		"xp": 250,
+		"research_req": "zone_3_access",
+		"category": "trophies"
+	},
+	"craft_trophy_titan": {
+		"name": "Titan Cryofield Trophy",
+		"description": "Condense Cryo Essence into a Titan Trophy. Grants +10% Ship Speed permanently.",
+		"input": {"CryoEssence": 30, "Ti": 50, "Superalloy": 5},
+		"output": {"Trophy_Titan": 1},
+		"duration": 75.0,
+		"level_req": 40,
+		"xp": 400,
+		"research_req": "zone_4_access",
+		"category": "trophies"
+	},
+	"craft_trophy_alpha": {
+		"name": "Sector Alpha Trophy",
+		"description": "Bind Xeno Fragments into an Alpha Trophy. Grants +15% Research Speed permanently.",
+		"input": {"XenoFragment": 25, "Superalloy": 5, "AdvCircuit": 10},
+		"output": {"Trophy_Alpha": 1},
+		"duration": 90.0,
+		"level_req": 50,
+		"xp": 600,
+		"research_req": "zone_5_access",
+		"category": "trophies"
+	},
+	"craft_trophy_delta": {
+		"name": "Delta Sector Trophy",
+		"description": "Compress Neutronium into a Delta Trophy. Grants +15% Kinetic Damage permanently.",
+		"input": {"Neutronium": 20, "Superalloy": 10, "ExoticMatter": 5},
+		"output": {"Trophy_Delta": 1},
+		"duration": 120.0,
+		"level_req": 70,
+		"xp": 1200,
+		"research_req": "zone_8_access",
+		"category": "trophies"
+	},
 }
 
 
