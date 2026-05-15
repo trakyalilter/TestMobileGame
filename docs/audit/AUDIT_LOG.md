@@ -19,7 +19,7 @@ Use this file to track concrete findings. Keep one row per finding.
 | AUD-P1-003 | P1 | Reset Integrity | `scripts/core/resources.gd` | `resources.reset()` leaves `lifetime_credits` (and `max_energy`) untouched | Hard reset can keep meta progression counters unexpectedly | TBD | open | Hard reset + inspect warp gains |
 | AUD-P0-004 | P0 | Offline Progress | `scripts/core/game_state.gd`, `scripts/managers/gathering_manager.gd`, `scripts/managers/combat_manager.gd` | Offline `delta` is unbounded; large deltas can trigger huge per-action loops | Startup freeze/hang risk and extreme offline exploit window | TBD | open | Large-delta simulation |
 | AUD-P2-005 | P2 | Save/Load Robustness | `scripts/core/game_state.gd` | `load_game()` does not guard null return from `FileAccess.open` | Can throw runtime errors on IO open failure | TBD | open | Forced open-failure test |
-| AUD-P1-006 | P1 | Economy Integrity | `scripts/managers/combat_manager.gd`, `scripts/managers/fleet_manager.gd`, `scripts/core/resources.gd` | Credit penalties use `add_currency(..., -cost)` but `add_currency` ignores non-positive values | Loss/repair costs can be bypassed, breaking economy penalties | TBD | open | Combat/fleet deduction scenario |
+| AUD-P1-006 | P1 | Economy Integrity | `scripts/managers/combat_manager.gd`, `scripts/core/resources.gd` | Credit penalties use `add_currency(..., -cost)` but `add_currency` ignores non-positive values | Loss costs can be bypassed, breaking economy penalties | TBD | open | Combat deduction scenario |
 
 ## Detailed Evidence (Append Below)
 
@@ -180,17 +180,16 @@ Use this file to track concrete findings. Keep one row per finding.
 ### [AUD-P1-006] Negative credit deductions are no-ops due to API contract mismatch
 - Severity: P1
 - Subsystem: Economy Integrity
-- Location: `scripts/managers/combat_manager.gd` (`lose_fight`), `scripts/managers/fleet_manager.gd` (`repair_ship`), `scripts/core/resources.gd` (`add_currency`)
+- Location: `scripts/managers/combat_manager.gd` (`lose_fight`), `scripts/core/resources.gd` (`add_currency`)
 - Repro Steps:
   1. Trigger a combat loss path that calls `add_currency("credits", -cost)`.
-  2. Trigger fleet repair path with sufficient credits.
-  3. Compare credits before/after.
+  2. Compare credits before/after.
 - Expected:
-  - Credits decrease by `cost` for penalties/repairs.
+  - Credits decrease by `cost` for penalties.
 - Actual:
   - `resources.add_currency` returns early for `amount <= 0`, so no deduction happens.
 - Impact:
-  - Repair/loss penalties are effectively disabled.
+  - Loss penalties are effectively disabled.
   - Progression economy and risk/reward balance are distorted.
 - Likely Root Cause:
   - Deduction call sites use `add_currency` with negative values instead of `remove_currency`.
@@ -203,4 +202,4 @@ Use this file to track concrete findings. Keep one row per finding.
 - Status:
   - open
 - Verification:
-  - Credits reliably decrease in combat-loss and fleet-repair scenarios.
+  - Credits reliably decrease in combat-loss scenarios.

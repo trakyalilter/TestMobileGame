@@ -276,17 +276,32 @@ func _compute_compare_summary() -> String:
 		return ""
 	var my_stats = data.get("stats", {})
 	var eq_stats = sm.modules[compare_equipped_mid].get("stats", {})
-	# Score = simple sum of primary combat stats. Larger = stronger.
-	var score_keys = ["atk_kinetic", "atk_energy", "atk_explosive",
-		"hp", "max_shield", "def", "accuracy", "evasion", "crit_chance"]
-	var my_score = 0.0
-	var eq_score = 0.0
-	for k in score_keys:
-		my_score += float(my_stats.get(k, 0))
-		eq_score += float(eq_stats.get(k, 0))
+	# Sum every stat the module carries (not a hardcoded list) so each slot
+	# type compares on its own profile: engine -> eva, battery ->
+	# energy_capacity, sensor -> accuracy, weapon -> atk_*, etc. Comparisons
+	# are always same-slot-type (designer_page only sets compare_equipped_mid
+	# for matching types), so a raw sum is valid here. Lower-is-better stats
+	# are subtracted.
+	var my_score = _stat_score(my_stats)
+	var eq_score = _stat_score(eq_stats)
 	if abs(my_score - eq_score) < 0.5:
 		return "="
 	return "▲" if my_score > eq_score else "▼"
+
+# Stats where a lower value is the upgrade (faster fire = shorter interval).
+const _COMPARE_INVERSE_STATS := ["atk_interval"]
+
+func _stat_score(stats: Dictionary) -> float:
+	var s := 0.0
+	for k in stats:
+		var v = stats[k]
+		if typeof(v) != TYPE_FLOAT and typeof(v) != TYPE_INT:
+			continue
+		if k in _COMPARE_INVERSE_STATS:
+			s -= float(v)
+		else:
+			s += float(v)
+	return s
 
 func _get_item_tier(item_name: String, m_data: Dictionary) -> String:
 	if m_data.has("tier"):

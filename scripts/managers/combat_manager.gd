@@ -90,6 +90,18 @@ var loot_type_filter: Dictionary = {
 	"sensor": true
 }
 
+# Relative drop weight per slot type. Core combat gear stays dominant;
+# sensor/engine are rarer "spice" drops so widening the pools doesn't tax
+# weapon/shield/armor frequency. Battery is weight 0 by design: it has a
+# single stat with deterministic Shipyard scaling (zone_N_access gated) and
+# only one weak affix, so loot treatment would add dilution, not depth —
+# it is acquired exclusively from the Shipyard.
+const MODULE_DROP_WEIGHTS := {
+	"weapon": 10, "shield": 10, "armor": 10,
+	"sensor": 4, "engine": 4,
+	"battery": 0,
+}
+
 # v86.0: Hazard Zone (Dungeon) State
 var hazard_state = {
 	"active": false,
@@ -436,7 +448,7 @@ var enemy_db = {
 		"loot": [["Fe", 10, 25], ["Si", 5, 12], ["Res1", 2, 5], ["PirateSalvage", 2, 5]],
 		"rare_loot": [["Steel", 0.10, 1, 3]],
 		"module_drop_chance": 0.10,
-		"module_drop_pool": ["z2_kinetic", "z2_energy", "z2_shield", "z2_armor"],
+		"module_drop_pool": ["z2_kinetic", "z2_energy", "z2_shield", "z2_armor", "z2_sensor", "z2_engine"],
 		"xp": 22, "eva": 3, "zone": 2, "resist_k": 0.45, "resist_e": 0.15, "resist_x": -0.30, "dmg_type": "kinetic"
 	},
 	"z2_boss_monolith": {
@@ -475,7 +487,7 @@ var enemy_db = {
 		"loot": [["Fe", 5, 15], ["Cu", 3, 8], ["Res2", 1, 2], ["MartianRelics", 1, 2]],
 		"rare_loot": [["Steel", 0.15, 2, 5], ["Sn", 0.12, 2, 4]],
 		"module_drop_chance": 0.10,
-		"module_drop_pool": ["z3_kinetic", "z3_energy", "z3_shield", "z3_armor"],
+		"module_drop_pool": ["z3_kinetic", "z3_energy", "z3_shield", "z3_armor", "z3_sensor", "z3_engine"],
 		"xp": 45, "eva": 20, "zone": 3, "resist_k": -0.15, "resist_e": -0.15, "resist_x": 0.15, "dmg_type": "kinetic"
 	},
 	"z3_derelict_frigate": {
@@ -523,7 +535,7 @@ var enemy_db = {
 		"loot": [["Steel", 8, 18], ["Fe", 15, 35], ["Res2", 1, 3], ["CryoEssence", 1, 2]],
 		"rare_loot": [["Ti", 0.15, 3, 8]],
 		"module_drop_chance": 0.10,
-		"module_drop_pool": ["z4_kinetic", "z4_energy", "z4_shield", "z4_armor"],
+		"module_drop_pool": ["z4_kinetic", "z4_energy", "z4_shield", "z4_armor", "z4_sensor", "z4_engine"],
 		"xp": 130, "eva": 5, "zone": 4, "resist_k": -0.30, "resist_e": 0.25, "resist_x": 0.15, "dmg_type": "kinetic"
 	},
 	"z4_glacial_drone": {
@@ -580,7 +592,7 @@ var enemy_db = {
 		"loot": [["credits", 4000, 7000], ["Circuit", 5, 10], ["Res2", 2, 5], ["XenoFragment", 1, 3]],
 		"rare_loot": [["AdvCircuit", 0.10, 2, 4]],
 		"module_drop_chance": 0.10,
-		"module_drop_pool": ["z5_kinetic", "z5_energy", "z5_shield", "z5_armor"],
+		"module_drop_pool": ["z5_kinetic", "z5_energy", "z5_shield", "z5_armor", "z5_sensor", "z5_engine"],
 		"xp": 320, "eva": 35, "zone": 5, "resist_k": 0.25, "resist_e": -0.15, "resist_x": -0.25, "dmg_type": "energy"
 	},
 	"z5_boss_harbinger": {
@@ -628,7 +640,7 @@ var enemy_db = {
 		"loot": [["Fe", 30, 70], ["Steel", 10, 25], ["Res3", 1, 3]],
 		"rare_loot": [["VoidArtifact", 0.10, 1, 3]],
 		"module_drop_chance": 0.10,
-		"module_drop_pool": ["z6_kinetic", "z6_energy", "z6_shield", "z6_armor"],
+		"module_drop_pool": ["z6_kinetic", "z6_energy", "z6_shield", "z6_armor", "z6_sensor", "z6_engine"],
 		"xp": 720, "eva": 8, "zone": 6, "resist_k": 0.25, "resist_e": -0.30, "resist_x": 0.45, "dmg_type": "explosive"
 	},
 	"z6_boss_colossus": {
@@ -676,7 +688,7 @@ var enemy_db = {
 		"loot": [["RadIsotope", 3, 8], ["ExoticMatter", 1, 3], ["Res3", 2, 5]],
 		"rare_loot": [["Os", 0.10, 1, 2]],
 		"module_drop_chance": 0.10,
-		"module_drop_pool": ["z7_kinetic", "z7_energy", "z7_shield", "z7_armor"],
+		"module_drop_pool": ["z7_kinetic", "z7_energy", "z7_shield", "z7_armor", "z7_sensor", "z7_engine"],
 		"xp": 1600, "eva": 8, "zone": 7, "resist_k": -0.15, "resist_e": 0.30, "resist_x": 0.0, "dmg_type": "kinetic"
 	},
 	"z7_boss_sovereign": {
@@ -724,7 +736,7 @@ var enemy_db = {
 		"loot": [["credits", 150000, 300000], ["VoidCrystal", 3, 7], ["Res3", 3, 8]],
 		"rare_loot": [["ExoticMatter", 0.12, 2, 5]],
 		"module_drop_chance": 0.10,
-		"module_drop_pool": ["z8_kinetic", "z8_energy", "z8_shield", "z8_armor"],
+		"module_drop_pool": ["z8_kinetic", "z8_energy", "z8_shield", "z8_armor", "z8_sensor", "z8_engine"],
 		"xp": 4300, "eva": 15, "zone": 8, "resist_k": 0.40, "resist_e": 0.15, "resist_x": -0.30, "dmg_type": "kinetic"
 	},
 	"z8_boss_warden": {
@@ -772,7 +784,7 @@ var enemy_db = {
 		"loot": [["Neutronium", 1, 3], ["credits", 500000, 1000000], ["Res3", 5, 10]],
 		"rare_loot": [["PathogenCore", 0.10, 1, 2]],
 		"module_drop_chance": 0.10,
-		"module_drop_pool": ["z9_kinetic", "z9_energy", "z9_shield", "z9_armor"],
+		"module_drop_pool": ["z9_kinetic", "z9_energy", "z9_shield", "z9_armor", "z9_sensor", "z9_engine"],
 		"xp": 11500, "eva": 5, "zone": 9, "resist_k": 0.15, "resist_e": -0.30, "resist_x": 0.45, "dmg_type": "explosive"
 	},
 	"z9_boss_patient_zero": {
@@ -820,7 +832,7 @@ var enemy_db = {
 		"loot": [["PrimordialShard", 2, 5], ["credits", 5000000, 10000000]],
 		"rare_loot": [["OmegaPlating", 0.08, 1, 2]],
 		"module_drop_chance": 0.10,
-		"module_drop_pool": ["z10_kinetic", "z10_energy", "z10_shield", "z10_armor"],
+		"module_drop_pool": ["z10_kinetic", "z10_energy", "z10_shield", "z10_armor", "z10_sensor", "z10_engine"],
 		"xp": 32000, "eva": 5, "zone": 10, "resist_k": -0.15, "resist_e": 0.30, "resist_x": 0.15, "dmg_type": "kinetic"
 	},
 	"z10_boss_leviathan": {
@@ -1635,6 +1647,28 @@ func get_effective_module_drop_chance(enemy_data: Dictionary) -> float:
 	var total_mult = 1.0 + acc_bonus + xeno_bonus
 	return base * total_mult
 
+# Weighted pick over a drop pool using MODULE_DROP_WEIGHTS by slot type.
+# Entries whose slot type has weight <= 0 (e.g. battery) can never drop,
+# even if present in an enemy's pool. Returns "" if nothing is eligible.
+func _pick_weighted_base(pool: Array, sm: Object) -> String:
+	var total := 0.0
+	var weighted := []
+	for mid in pool:
+		var st = sm.modules.get(mid, {}).get("slot_type", "weapon")
+		var w = float(MODULE_DROP_WEIGHTS.get(st, 10))
+		if w <= 0.0:
+			continue
+		weighted.append([mid, w])
+		total += w
+	if weighted.is_empty():
+		return ""
+	var r := randf() * total
+	for pair in weighted:
+		r -= pair[1]
+		if r <= 0.0:
+			return pair[0]
+	return weighted[-1][0]
+
 func win_fight():
 	log_msg("Destroyed %s!" % current_enemy["name"])
 	
@@ -1751,31 +1785,32 @@ func win_fight():
 	if drop_chance > 0 and unlocked_pool.size() > 0 and randf() < drop_chance:
 		var is_boss = current_enemy.get("is_boss", false)
 		var rarity = sm.roll_rarity(is_boss)
-		
+
 		# v85.0: Apply Loot Filter
-		var base_id = unlocked_pool[randi() % unlocked_pool.size()]
-		var m_data = sm.modules.get(base_id, {})
-		var slot_type = m_data.get("slot_type", "weapon")
-		
-		var is_rarity_ok = loot_filter.get(rarity, true)
-		var is_type_ok = loot_type_filter.get(slot_type, true)
-		
-		if is_rarity_ok and is_type_ok:
-			var zone_difficulty = int(current_zone.get("difficulty", 1))
-			var custom_id = sm.generate_module_drop(base_id, rarity, zone_difficulty)
-			if custom_id != "":
-				var w_name = sm.modules[custom_id]["name"]
-				var rarity_color = sm.RARITY_COLORS[rarity]
-				var rarity_label = sm.RARITY_LABELS.get(rarity, "")
-				if rarity_label == "":
-					rarity_label = "Common"
-				combat_events.append({"type": "loot", "text": "%s DROP" % rarity_label.to_upper(), "color": rarity_color, "side": "enemy"})
-				log_msg("Looted %s Module: %s" % [rarity_label, w_name])
-				session_loot[custom_id] = session_loot.get(custom_id, 0) + 1
-		else:
-			var reason = "Rarity" if not is_rarity_ok else "Type"
-			if not is_rarity_ok and not is_type_ok: reason = "Rarity & Type"
-			log_msg("Filtered out %s (%s) module drop." % [sm.RARITY_LABELS.get(rarity, "Common"), slot_type.capitalize()])
+		var base_id = _pick_weighted_base(unlocked_pool, sm)
+		if base_id != "":
+			var m_data = sm.modules.get(base_id, {})
+			var slot_type = m_data.get("slot_type", "weapon")
+
+			var is_rarity_ok = loot_filter.get(rarity, true)
+			var is_type_ok = loot_type_filter.get(slot_type, true)
+
+			if is_rarity_ok and is_type_ok:
+				var zone_difficulty = int(current_zone.get("difficulty", 1))
+				var custom_id = sm.generate_module_drop(base_id, rarity, zone_difficulty)
+				if custom_id != "":
+					var w_name = sm.modules[custom_id]["name"]
+					var rarity_color = sm.RARITY_COLORS[rarity]
+					var rarity_label = sm.RARITY_LABELS.get(rarity, "")
+					if rarity_label == "":
+						rarity_label = "Common"
+					combat_events.append({"type": "loot", "text": "%s DROP" % rarity_label.to_upper(), "color": rarity_color, "side": "enemy"})
+					log_msg("Looted %s Module: %s" % [rarity_label, w_name])
+					session_loot[custom_id] = session_loot.get(custom_id, 0) + 1
+			else:
+				var reason = "Rarity" if not is_rarity_ok else "Type"
+				if not is_rarity_ok and not is_type_ok: reason = "Rarity & Type"
+				log_msg("Filtered out %s (%s) module drop." % [sm.RARITY_LABELS.get(rarity, "Common"), slot_type.capitalize()])
 
 	add_xp(int(current_enemy["xp"] * (1.0 + GameState.research_manager.get_efficiency_bonus("combat_xp"))))
 	enemy_defeated.emit(current_enemy["id"])

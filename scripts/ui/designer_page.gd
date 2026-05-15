@@ -1323,14 +1323,21 @@ func rebuild_storage():
 			if _is_module_visible_for_filter(module_data) and _module_matches_search(module_id, module_data):
 				var item = draggable_icon_scene.instantiate()
 				storage_grid.add_child(item)
-				item.setup(module_id, module_data, module_count)
+				var module_slot_type = module_data.get("slot_type", "")
+				var type_matches_focus = focused_slot_type != "" and module_slot_type == _slot_type_to_filter(focused_slot_type)
+				# Set selection + comparison baseline BEFORE setup() so the
+				# first _update_ui() draws the ▲/▼/= chevron. (Previously these
+				# were set after setup() with no redraw, so the chevron only
+				# appeared on newly-dropped cards that got a second _update_ui()
+				# on hover.) Only same-type modules compare against the focused
+				# slot's equipped module so the indicator stays meaningful.
 				item.is_selected = module_id in selected_mids
 				item.is_draggable = not is_selection_mode
-				item.clicked.connect(_on_card_clicked)
 				if "compare_equipped_mid" in item:
-					item.compare_equipped_mid = focused_slot_equipped_mid
-				var module_slot_type = module_data.get("slot_type", "")
-				if focused_slot_type != "" and module_slot_type != _slot_type_to_filter(focused_slot_type):
+					item.compare_equipped_mid = focused_slot_equipped_mid if type_matches_focus else ""
+				item.setup(module_id, module_data, module_count)
+				item.clicked.connect(_on_card_clicked)
+				if focused_slot_type != "" and not type_matches_focus:
 					item.modulate = Color(1, 1, 1, 0.35)
 				slot_count += 1
 

@@ -24,7 +24,6 @@ Track coverage and completion for each game subsystem.
 | Research | `scripts/managers/research_manager.gd`, `scripts/ui/research_page.gd` | pending | pending | pending | pending | pending | pending | pending | high | not_started | |
 | Combat | `scripts/managers/combat_manager.gd`, `scripts/ui/combat_page.gd` | in_review | in_review | pending | pending | in_review | in_review | pending | high | in_review | Logged economy bug: negative add_currency penalty no-op |
 | Missions | `scripts/managers/mission_manager.gd`, `scripts/ui/mission_page.gd` | pending | pending | pending | pending | pending | pending | pending | medium | not_started | |
-| Fleet | `scripts/managers/fleet_manager.gd`, `scripts/ui/fleet_page.gd` | in_review | in_review | pending | pending | in_review | pending | pending | medium | in_review | Logged economy bug: repair cost deduction uses negative add_currency |
 | Bounty | `scripts/managers/bounty_manager.gd`, `scripts/ui/bounty_page.gd` | in_review | pending | pending | in_review | in_review | pending | pending | medium | in_review | Hard reset path currently does not clear bounty manager state |
 | Warp/Prestige | `scripts/managers/warp_manager.gd`, `scripts/ui/warp_page.gd` | in_review | in_review | pending | in_review | in_review | pending | pending | high | in_review | Hard reset path currently does not clear prestige manager state |
 | Global Save/State | `scripts/core/game_state.gd`, `scripts/core/resources.gd` | reviewed | reviewed | n/a | reviewed | reviewed | reviewed | pending | high | in_review | Key risks logged: backup fallback, null open guard, offline delta cap |
@@ -39,5 +38,5 @@ Track coverage and completion for each game subsystem.
 5. Research
 6. Infrastructure
 7. Warp/Prestige
-8. Missions/Fleet/Bounty
+8. Missions/Bounty
 9. Remaining UI-shell validation
