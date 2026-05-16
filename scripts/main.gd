@@ -29,6 +29,9 @@ var pages = {}
 var current_page_name = ""
 var header_widget: Control
 
+# First-visit coach-mark overlay (shown once per page)
+var coach_overlay = null
+
 # Claim badges — shown on Mission / Quest sidebar buttons when rewards are ready
 var mission_claim_badge: Control = null
 var quest_claim_badge: Control = null
@@ -39,6 +42,7 @@ func _ready():
 	_apply_global_styles()
 	_init_notifications() # Feature 66.1
 	_init_claim_badges()
+	_init_coach_overlay()
 
 	# v71.1: Connect to shipyard alerts
 	GameState.shipyard_manager.alert_changed.connect(_on_shipyard_alert_changed)
@@ -293,12 +297,49 @@ func _update_claim_badges():
 			lbl.text = str(n) if n < 99 else "99+"
 		quest_claim_badge.visible = (n > 0) and quest_btn.visible
 
+# ── First-visit Coach Marks ──
+func _init_coach_overlay():
+	if not GameState.game_settings.has("coach_seen"):
+		GameState.game_settings["coach_seen"] = {}
+	coach_overlay = preload("res://scenes/ui/coach_overlay.tscn").instantiate()
+	if modal_layer:
+		modal_layer.add_child(coach_overlay)
+	else:
+		add_child(coach_overlay)
+	coach_overlay.finished.connect(_on_coach_finished)
+
+func _coach_active() -> bool:
+	return coach_overlay != null and coach_overlay.is_active()
+
+func _maybe_show_coach(page_name: String):
+	if coach_overlay == null or _coach_active():
+		return
+	var seen: Dictionary = GameState.game_settings.get("coach_seen", {})
+	if seen.get(page_name, false):
+		return
+	# Don't stack on top of the offline-summary modal on first boot; the player
+	# will navigate again and the tour will trigger then.
+	if offline_modal and is_instance_valid(offline_modal) and offline_modal.visible:
+		return
+	var steps: Array = CoachMarks.get_steps(page_name)
+	if steps.is_empty():
+		return
+	var page_node = pages.get(page_name)
+	stop_hint_pulse()  # don't fight the tour with the nav pulse
+	coach_overlay.start(page_name, steps, page_node)
+
+func _on_coach_finished(page_name: String):
+	var seen: Dictionary = GameState.game_settings.get("coach_seen", {})
+	seen[page_name] = true
+	GameState.game_settings["coach_seen"] = seen
+	GameState.save_game()
+
 func switch_to(page_name):
 	if current_page_name == page_name: return
-	
+
 	for p_name in pages:
 		pages[p_name].visible = (p_name == page_name)
-		
+
 	if page_name in pages:
 		# Guard: Don't switch to pages that are currently hidden (gated)
 		var btn = _get_btn_for_page(page_name)
@@ -307,14 +348,20 @@ func switch_to(page_name):
 
 		current_page_name = page_name
 		_update_sidebar_styling()
-		
+
+		# Per-page idle cursor (inert until art exists for the page)
+		CursorManager.set_page_cursor(page_name)
+
 		# SMART NAVIGATION: Notify page it's been opened
 		if pages[page_name].has_method("on_page_enter"):
 			pages[page_name].on_page_enter()
-		
+
 		# v71.1: Clear shipyard alert when entering designer
 		if page_name == "designer":
 			GameState.shipyard_manager.new_drops_alert = false
+
+		# First-visit onboarding tour for this page
+		_maybe_show_coach(page_name)
 
 func _get_btn_for_page(page_name: String) -> Button:
 	match page_name:
@@ -415,6 +462,10 @@ func _process(delta):
 		_update_claim_badges()
 
 func _update_navigation_hints():
+	# A page tour owns the spotlight while it's open — don't double up.
+	if _coach_active():
+		stop_hint_pulse()
+		return
 	var mm = GameState.mission_manager
 	if not mm: return
 	
@@ -650,10 +701,10 @@ func _update_navigation_hints():
 			if widget: target_to_pulse = widget
 
 	elif "m027" in mm.active_missions:
-		# Research: Asteroid Belt Clearance
+		# Research: Asteroid Belt Authorization (zone_2_access)
 		if current_page_name != "research": target_to_pulse = research_btn
 		else:
-			var widget = pages["research"].get_node_widget("asteroid_clearance")
+			var widget = pages["research"].get_node_widget("zone_2_access")
 			if widget: target_to_pulse = widget
 
 	elif "m028" in mm.active_missions:
@@ -750,6 +801,172 @@ func _update_navigation_hints():
 			var page = pages["combat"]
 			page.focus_zone("sector_gamma")
 			target_to_pulse = page.get_enemy_card("z6_boss_colossus")
+
+	# ── Previously-undirected tutorial steps ──
+	elif "m002b" in mm.active_missions:
+		# Research: Applied Physics
+		if current_page_name != "research": target_to_pulse = research_btn
+		else:
+			var widget = pages["research"].get_node_widget("applied_physics")
+			if widget: target_to_pulse = widget
+
+	elif "m013b" in mm.active_missions:
+		# Gathering: Malachite Ore
+		if current_page_name != "gathering": target_to_pulse = gathering_btn
+		else:
+			var widget = pages["gathering"].get_widget_by_aid("mine_malachite")
+			if widget and not (GameState.gathering_manager.is_active and GameState.gathering_manager.current_action_id == "mine_malachite"):
+				target_to_pulse = widget.btn
+
+	elif "m013c" in mm.active_missions:
+		# Processing: Refine Copper
+		if current_page_name != "processing": target_to_pulse = processing_btn
+		else:
+			var pm = GameState.processing_manager
+			var page = pages["processing"]
+			page.focus_tab("smelt_copper")
+			var widget = page.get_widget_by_aid("smelt_copper")
+			if widget and not (pm.is_active and pm.current_recipe_id == "smelt_copper"):
+				target_to_pulse = widget.btn
+
+	elif "m016b" in mm.active_missions:
+		# Designer: pulse the exact empty slot to fill next (weapon, then shield)
+		if current_page_name != "designer": target_to_pulse = designer_btn
+		else:
+			var sm = GameState.shipyard_manager
+			var has_w := false
+			var has_s := false
+			for mid_v in sm.loadout.values():
+				if mid_v and mid_v in sm.modules:
+					var st: String = sm.modules[mid_v].get("slot_type", "")
+					if st == "weapon": has_w = true
+					elif st == "shield": has_s = true
+			var dp = pages["designer"]
+			var want := "weapon" if not has_w else ("shield" if not has_s else "")
+			if want != "" and dp.has_method("get_slot_widget"):
+				dp.focus_slot(want)
+				target_to_pulse = dp.get_slot_widget(want)
+			elif dp.has_method("get_coach_anchor"):
+				target_to_pulse = dp.get_coach_anchor("schematic")
+
+	elif "m024b" in mm.active_missions:
+		# Processing: craft repair kits (hull patches first, then shield boosters)
+		if current_page_name != "processing": target_to_pulse = processing_btn
+		else:
+			var pm = GameState.processing_manager
+			var page = pages["processing"]
+			var need_hull = GameState.resources.get_element_amount("EmergencyPatch") < 5
+			var rid = "craft_emergency_patch" if need_hull else "craft_basic_booster"
+			page.focus_tab(rid)
+			var widget = page.get_widget_by_aid(rid)
+			if widget and not (pm.is_active and pm.current_recipe_id == rid):
+				target_to_pulse = widget.btn
+
+	elif "m024b2" in mm.active_missions:
+		# Designer: pulse the exact empty consumable slot (hull, then shield)
+		if current_page_name != "designer": target_to_pulse = designer_btn
+		else:
+			var sm = GameState.shipyard_manager
+			var dp = pages["designer"]
+			var want := "consumable_hull" if sm.consumable_hull_slot == "" else ("consumable_shield" if sm.consumable_shield_slot == "" else "")
+			if want != "" and dp.has_method("get_slot_widget"):
+				dp.focus_slot(want)
+				target_to_pulse = dp.get_slot_widget(want)
+			elif dp.has_method("get_coach_anchor"):
+				target_to_pulse = dp.get_coach_anchor("consumables")
+
+	elif "m025b" in mm.active_missions:
+		# Processing: Smelt Steel
+		if current_page_name != "processing": target_to_pulse = processing_btn
+		else:
+			var pm = GameState.processing_manager
+			var page = pages["processing"]
+			page.focus_tab("smelt_steel_basic")
+			var widget = page.get_widget_by_aid("smelt_steel_basic")
+			if widget and not (pm.is_active and pm.current_recipe_id == "smelt_steel_basic"):
+				target_to_pulse = widget.btn
+
+	elif "m026b" in mm.active_missions:
+		# Shipyard: Construct Industrial Frigate
+		if current_page_name != "shipyard": target_to_pulse = shipyard_btn
+		else:
+			target_to_pulse = pages["shipyard"].get_hull_widget("frigate_hull")
+
+	elif "m026c" in mm.active_missions:
+		# Combat: Farm a RARE drop in Lunar Orbit
+		if current_page_name != "combat": target_to_pulse = combat_btn
+		else:
+			var page = pages["combat"]
+			page.focus_zone("lunar_orbit")
+			target_to_pulse = page.get_enemy_card("z1_lunar_drone")
+
+	elif "m026d" in mm.active_missions:
+		# Designer: pulse the weapon slot to swap in a RARE+ weapon
+		if current_page_name != "designer": target_to_pulse = designer_btn
+		else:
+			var dp = pages["designer"]
+			if dp.has_method("get_slot_widget"):
+				dp.focus_slot("weapon")
+				target_to_pulse = dp.get_slot_widget("weapon")
+			elif dp.has_method("get_coach_anchor"):
+				target_to_pulse = dp.get_coach_anchor("schematic")
+
+	elif "m026e" in mm.active_missions:
+		# Combat: Defeat Rogue Architect (Lunar Orbit boss)
+		if current_page_name != "combat": target_to_pulse = combat_btn
+		else:
+			var page = pages["combat"]
+			page.focus_zone("lunar_orbit")
+			target_to_pulse = page.get_enemy_card("z1_boss_architect")
+
+	elif "m029b" in mm.active_missions:
+		# Processing: Advanced Circuitry
+		if current_page_name != "processing": target_to_pulse = processing_btn
+		else:
+			var pm = GameState.processing_manager
+			var page = pages["processing"]
+			page.focus_tab("craft_adv_circuit")
+			var widget = page.get_widget_by_aid("craft_adv_circuit")
+			if widget and not (pm.is_active and pm.current_recipe_id == "craft_adv_circuit"):
+				target_to_pulse = widget.btn
+
+	elif "m030e" in mm.active_missions:
+		# Research: Mars Debris Clearance (zone_3_access)
+		if current_page_name != "research": target_to_pulse = research_btn
+		else:
+			var widget = pages["research"].get_node_widget("zone_3_access")
+			if widget: target_to_pulse = widget
+
+	elif "m030f" in mm.active_missions:
+		# Combat: Scavenger Mechs (Mars Debris)
+		if current_page_name != "combat": target_to_pulse = combat_btn
+		else:
+			var page = pages["combat"]
+			page.focus_zone("mars_debris")
+			target_to_pulse = page.get_enemy_card("z3_scavenger_mech")
+
+	elif "m030g" in mm.active_missions:
+		# Research: Cryofield Expedition (zone_4_access)
+		if current_page_name != "research": target_to_pulse = research_btn
+		else:
+			var widget = pages["research"].get_node_widget("zone_4_access")
+			if widget: target_to_pulse = widget
+
+	elif "m030h" in mm.active_missions:
+		# Combat: Ice Wraiths (Cryofield)
+		if current_page_name != "combat": target_to_pulse = combat_btn
+		else:
+			var page = pages["combat"]
+			page.focus_zone("cryofield")
+			target_to_pulse = page.get_enemy_card("z4_ice_wraith")
+
+	elif "m032d" in mm.active_missions:
+		# Combat: Void Artifacts from Sector Alpha ships
+		if current_page_name != "combat": target_to_pulse = combat_btn
+		else:
+			var page = pages["combat"]
+			page.focus_zone("sector_alpha")
+			target_to_pulse = page.get_enemy_card("z5_alien_frigate")
 
 	# Apply final decision
 	if target_to_pulse:

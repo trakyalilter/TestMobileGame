@@ -301,6 +301,16 @@ func get_enemy_card(enemy_id: String) -> Control:
 			return child
 	return null
 
+func get_coach_anchor(key: String) -> Control:
+	match key:
+		"zones":
+			return zone_list
+		"enemies":
+			return enemy_container
+		"consumables":
+			return consumable_container
+	return null
+
 func focus_zone(zone_id: String):
 	for i in range(zone_list.item_count):
 		if zone_list.get_item_metadata(i) == zone_id:
@@ -890,6 +900,13 @@ func _update_consumable_buttons():
 	
 	_update_cons_btn(btn_hull_cons, sm.consumable_hull_slot, "HULL", Color(0.4, 1.0, 0.4))
 	_update_cons_btn(btn_shd_cons, sm.consumable_shield_slot, "SHLD", Color(0.4, 0.8, 1.0))
+
+	# Low-hull alarm: pulse the HULL kit so a new player can't miss that
+	# they should heal (consumables are manual — nothing auto-saves them).
+	if sm.max_hp > 0 and float(sm.current_hp) / float(sm.max_hp) < 0.30 and not btn_hull_cons.disabled:
+		var p := 0.5 + 0.5 * sin(Time.get_ticks_msec() / 140.0)
+		btn_hull_cons.modulate = Color(1.0, 0.40, 0.30).lerp(Color(1.0, 0.95, 0.40), p)
+		btn_hull_cons.tooltip_text = "HULL CRITICAL — tap to repair now!"
 
 func _update_cons_btn(btn: Button, item_id: String, label: String, color: Color):
 	if item_id == "" or item_id == null:

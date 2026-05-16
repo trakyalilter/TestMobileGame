@@ -36,6 +36,9 @@ var combat_events: Array[Dictionary] = [] # [{type, text, color, side}]
 var consumable_cooldown = 0.0
 var consumable_cooldown_max = 1.5
 
+# Throttle for the "no ammo" combat warning so it doesn't spam every tick.
+var _last_ammo_warn_ms: int = 0
+
 signal enemy_defeated(enemy_id)
 signal combat_started() # v72.8: For Elite bounty detection
 
@@ -89,6 +92,13 @@ var loot_type_filter: Dictionary = {
 	"battery": true,
 	"sensor": true
 }
+# Sub-filter for WEAPON drops by damage type (only consulted when a dropped
+# module is a weapon). Lets players farm e.g. only explosive weapons.
+var loot_weapon_type_filter: Dictionary = {
+	"kinetic": true,
+	"energy": true,
+	"explosive": true
+}
 
 # Relative drop weight per slot type. Core combat gear stays dominant;
 # sensor/engine are rarer "spice" drops so widening the pools doesn't tax
@@ -140,9 +150,9 @@ const MAX_SHIELD_REGEN_PERCENT = 5        # % of max shield per second
 const MAX_HP_REGEN_PERCENT = 2            # % of max HP per second
 const MAX_ENEMY_SLOW = 0.50               # Jamming can't freeze enemies
 const MAX_REFLECT_PERCENT = 0.10          # Reflect capped
-const DEF_K_CONSTANT = 100.0              # v80.1: Base k for DEF/(DEF+k) formula
-const DEF_K_ZONE_SCALE = 100.0            # Scales k by zone difficulty so high-DEF enemies don't reach 99% mitigation
-const DEF_K_ZONE_EXP = 1.3                # k(zone) = BASE + SCALE * zone^EXP — keeps Z10 boss TTK at ~30 min vs ~11 hours
+const DEF_K_CONSTANT = 40.0               # v103: lowered so enemy/player DEF actually mitigates
+const DEF_K_ZONE_SCALE = 30.0             # was 100/100 → DEF was ~14% at Z3 boss (worthless); now ~35%
+const DEF_K_ZONE_EXP = 1.3                # k(zone) = BASE + SCALE * zone^EXP. MAX_DAMAGE_REDUCTION clamp below prevents unkillable late enemies
 
 # v80.1: Trinity Set Bonus Definitions — 3/3 pieces needed
 # Bonuses are substantial rewards for hunting all 3 pieces from zone bosses (3% drop each)
@@ -1011,9 +1021,41 @@ func spawn_enemy():
 		"dmg_type": e_data.get("dmg_type", "kinetic") # v87.0: Typed enemy damage
 	}
 	
-	# v83.0: Disabled progression-based scaling per user request. 
-	# Enemies now always match database stats exactly.
-	
+	# v103b: Static zone-gap steepening (zone 3+). A complete sub-zone gear/set
+	# out-DPSes later content otherwise; both regular enemies AND bosses scale.
+	# Zones 1-2 untouched (early game stays gentle). First-pass curve — tune the
+	# two _zhp / _zdef knobs from playtest.
+	var _ezone := int(e_data.get("zone", current_zone.get("difficulty", 1)))
+	if _ezone >= 3:
+		# v103c: gate via OFFENSE, not HP. HP-sponging just made fights long
+		# but still winnable (sustain race). Eased HP, kept DEF, added ATK so
+		# sub-zone defensive stats can't survive the kill time; zone-N gear can.
+		var _zhp: float = 1.7 + 0.25 * float(_ezone - 3)   # z3 ≈1.7× … z10 ≈3.45×
+		var _zdef: float = 1.7                             # 0.80 mitig clamp keeps it killable
+		var _zatk: float = 1.7 + 0.20 * float(_ezone - 3)  # z3 ≈1.7× … z10 ≈3.1× — the real gate
+		current_enemy["max_hp"] = int(current_enemy["max_hp"] * _zhp)
+		current_enemy["def"] = int(current_enemy["def"] * _zdef)
+		current_enemy["atk"] = int(current_enemy["atk"] * _zatk)
+
+	# v103: Measured progression compensation. Enemies scale ONLY against the
+	# player's *external grind* multiplier (combat level + warp), NOT gear —
+	# so leveling/warping can't trivialize a zone with old modules, but better
+	# gear is still the real lever to out-power content. Partial catch-up via
+	# the ENEMY_COMP_* fractions (<0.5), so zone pacing stays readable.
+	var _is_boss := bool(current_enemy.get("is_boss", false))
+	var _ext_mult: float = (1.0 + get_level() * 0.005)
+	if GameState.warp_manager:
+		_ext_mult *= max(1.0, GameState.warp_manager.get_combat_multiplier())
+	if _ext_mult > 1.0:
+		var _g := _ext_mult - 1.0
+		var _hpf := ENEMY_COMP_BOSS_HP if _is_boss else ENEMY_COMP_REGULAR_HP
+		var _atkf := ENEMY_COMP_BOSS_ATK if _is_boss else ENEMY_COMP_REGULAR_ATK
+		var _shf := ENEMY_COMP_BOSS_SHIELD if _is_boss else ENEMY_COMP_REGULAR_SHIELD
+		current_enemy["max_hp"] = int(current_enemy["max_hp"] * (1.0 + _g * _hpf))
+		current_enemy["atk"] = int(current_enemy["atk"] * (1.0 + _g * _atkf))
+		current_enemy["def"] = int(current_enemy["def"] * (1.0 + _g * ENEMY_COMP_DEF))
+		current_enemy["max_shield"] = int(current_enemy["max_shield"] * (1.0 + _g * _shf))
+
 	# Apply Elite logic if requested by bounty_manager or random chance (5%)
 	var elite_chance = 0.05
 	# The bounty_manager will signal is_elite through target_enemy_id if it's a specific elite hunt
@@ -1416,9 +1458,11 @@ func _execute_player_attack(weapon_idx: int):
 				elif "Torpedo" in ammo_id: bonus = 60.0
 				p_atk_x += bonus
 		elif requires_ammo:
+			_warn_no_ammo()
 			return # Ammo equipped but empty
 	elif requires_ammo:
-		return # No ammo equipped for kinetic weapon
+		_warn_no_ammo()
+		return # No ammo equipped — weapon can't fire at all
 		
 	# Feature 66.0: Boss Gating System
 	if current_enemy.has("requires_weapon"):
@@ -1571,9 +1615,12 @@ func resolve_damage(atk_k, atk_e, atk_x, c_shield, c_armor, difficulty = 1, crit
 		# If HP is low, effectively double the K-scale for better mitigation
 		k *= (1.0 + (1.0 - hp_ratio))
 
-	var hull_dmg_k = atk_k * 1.2 * (1.0 - arm_k / (arm_k + k))
-	var hull_dmg_e = atk_e * 0.9 * (1.0 - arm_e / (arm_e + k))
-	var hull_dmg_x = atk_x * 1.0 * (1.0 - arm_x / (arm_x + k))
+	# Clamp mitigation to MAX_DAMAGE_REDUCTION so lower k can't create
+	# unkillable high-DEF enemies (≥20% of each damage type always lands).
+	var _min_factor = 1.0 - MAX_DAMAGE_REDUCTION
+	var hull_dmg_k = atk_k * 1.2 * max(_min_factor, 1.0 - arm_k / (arm_k + k))
+	var hull_dmg_e = atk_e * 0.9 * max(_min_factor, 1.0 - arm_e / (arm_e + k))
+	var hull_dmg_x = atk_x * 1.0 * max(_min_factor, 1.0 - arm_x / (arm_x + k))
 	
 	# v86.0: Enemy Damage Type Resistances
 	if is_player_attacker and current_enemy:
@@ -1795,6 +1842,17 @@ func win_fight():
 			var is_rarity_ok = loot_filter.get(rarity, true)
 			var is_type_ok = loot_type_filter.get(slot_type, true)
 
+			# Weapon sub-filter by damage type (energy > explosive > kinetic,
+			# matching the weapon-type rule used everywhere else).
+			if is_type_ok and slot_type == "weapon":
+				var wstats = m_data.get("stats", {})
+				var wtype = "kinetic"
+				if float(wstats.get("atk_energy", 0)) > 0.0:
+					wtype = "energy"
+				elif float(wstats.get("atk_explosive", 0)) > 0.0:
+					wtype = "explosive"
+				is_type_ok = loot_weapon_type_filter.get(wtype, true)
+
 			if is_rarity_ok and is_type_ok:
 				var zone_difficulty = int(current_zone.get("difficulty", 1))
 				var custom_id = sm.generate_module_drop(base_id, rarity, zone_difficulty)
@@ -1877,6 +1935,20 @@ func _check_auto_consume(delta: float):
 		if sh_pct <= threshold and player_max_shield > 0:
 			_trigger_consumable(sm.consumable_shield_slot, sm)
 			return
+
+func _warn_no_ammo():
+	# A weapon tried to fire with no ammo (it deals ZERO damage). Surface it
+	# clearly but throttled, so the player understands why nothing's happening.
+	var now := Time.get_ticks_msec()
+	if now - _last_ammo_warn_ms < 2500:
+		return
+	_last_ammo_warn_ms = now
+	combat_events.append({
+		"type": "miss",
+		"text": "NO AMMO — load ammo in the Designer",
+		"color": Color(1.0, 0.55, 0.2),
+		"side": "player"
+	})
 
 func use_manual_consumable(type: String):
 	if consumable_cooldown > 0: return
@@ -2090,6 +2162,7 @@ func get_save_data_manager() -> Dictionary:
 	data["session_loot"] = session_loot
 	data["loot_filter"] = loot_filter
 	data["loot_type_filter"] = loot_type_filter
+	data["loot_weapon_type_filter"] = loot_weapon_type_filter
 	data["boss_kills"] = boss_kills
 	data["hazard_clears"] = hazard_clears
 	return data
@@ -2116,6 +2189,11 @@ func load_save_data_manager(data: Dictionary):
 		var saved_type_filter = data["loot_type_filter"]
 		for t in saved_type_filter:
 			loot_type_filter[t] = saved_type_filter[t]
+
+	if data.has("loot_weapon_type_filter"):
+		var saved_wt_filter = data["loot_weapon_type_filter"]
+		for t in saved_wt_filter:
+			loot_weapon_type_filter[t] = saved_wt_filter[t]
 	
 	var zid = data.get("current_zone_id")
 	if zid and zid in zones:

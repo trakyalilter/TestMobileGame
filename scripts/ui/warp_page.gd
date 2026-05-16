@@ -10,6 +10,14 @@ func _ready():
 	_update_ui()
 	GameState.warp_manager.warped.connect(_on_warped)
 
+func get_coach_anchor(key: String) -> Control:
+	match key:
+		"gain":
+			return gain_label
+		"warp_btn":
+			return warp_btn
+	return null
+
 func _process(_delta):
 	_update_dynamic_values()
 

@@ -48,6 +48,14 @@ func _ready():
 	_style_stats_panel()
 	call_deferred("refresh_list")
 
+func get_coach_anchor(key: String) -> Control:
+	match key:
+		"first_item":
+			return widgets[0] if not widgets.is_empty() else null
+		"stats":
+			return $VBoxContainer/StatsPanel
+	return null
+
 func _style_stats_panel():
 	UITheme.apply_card_style($VBoxContainer/StatsPanel, "shipyard")
 	for child in $VBoxContainer/StatsPanel/HBoxContainer.get_children():
@@ -277,5 +285,28 @@ func get_module_widget(module_id: String) -> Control:
 			return w
 	return null
 
-func focus_module_tab(_module_id: String):
-	pass # No longer using tabs
+func get_hull_widget(hull_id: String) -> Control:
+	for w in widgets:
+		if w.get("hid") == hull_id:
+			return w
+	return null
+
+var _last_focus_mid: String = ""
+
+func on_page_enter():
+	# Re-arm scroll-to so re-entering the page during a mission re-centers
+	# the relevant module card.
+	_last_focus_mid = ""
+
+func focus_module_tab(module_id: String):
+	# Scroll the mission-relevant module card into view (called every frame by
+	# the nav-hint system, so only act when the target actually changes).
+	if module_id == "" or module_id == _last_focus_mid:
+		return
+	var w = get_module_widget(module_id)
+	if not w:
+		return
+	_last_focus_mid = module_id
+	var sc = $VBoxContainer/ScrollContainer
+	if sc is ScrollContainer:
+		sc.call_deferred("ensure_control_visible", w)

@@ -138,6 +138,14 @@ func _on_inventory_changed(symbol, amount):
 		update_credits()
 		refresh_inventory()
 
+func get_coach_anchor(key: String) -> Control:
+	match key:
+		"grid":
+			return grid
+		"storage":
+			return storage_btn
+	return null
+
 func refresh_inventory():
 	# Clear
 	if not grid: return

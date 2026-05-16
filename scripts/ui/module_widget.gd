@@ -318,6 +318,12 @@ func _build_comparison_tooltip() -> String:
 		var dps = float(dmg) / interval
 		tt += "[font_size=20][b]%.1f DPS[/b][/font_size]\n" % dps
 		tt += "[font_size=9][color=gray]%s total damage, %.2f hits/s[/color][/font_size]\n" % [UITheme.format_num(dmg), 1.0 / interval]
+		if my_stats.get("atk_kinetic", 0) > 0:
+			tt += "[color=#99ccff][b]KINETIC[/b][/color]  [color=gray]Strong vs Hull, weak vs Shield[/color]\n"
+		if my_stats.get("atk_energy", 0) > 0:
+			tt += "[color=#ffe64d][b]ENERGY[/b][/color]  [color=gray]Strong vs Shield, bypasses Armor[/color]\n"
+		if my_stats.get("atk_explosive", 0) > 0:
+			tt += "[color=#ff804d][b]EXPLOSIVE[/b][/color]  [color=gray]Ignores most Armor[/color]\n"
 		tt += div
 	elif slot_type == "shield":
 		var val = my_stats.get("max_shield", 0)

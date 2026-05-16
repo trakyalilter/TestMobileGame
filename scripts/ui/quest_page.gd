@@ -20,6 +20,14 @@ func _ready():
 	UITheme.apply_premium_button_style(claim_all_btn, "mission")
 	_rebuild()
 
+func get_coach_anchor(key: String) -> Control:
+	match key:
+		"grid":
+			return grid
+		"claim_all":
+			return claim_all_btn
+	return null
+
 func _on_claim_all_pressed():
 	if not manager: return
 	var n = manager.claim_all_completed()

@@ -1408,14 +1408,36 @@ func construct_hull(hull_id: String) -> bool:
 		else:
 			GameState.resources.remove_element(res, qty)
 			
+	# Snapshot the current loadout (in slot order) so it can be carried over
+	# to the new hull. unequip_all() returns these to module_inventory.
+	var _carry: Array = []
+	var _old_idxs: Array = loadout.keys()
+	_old_idxs.sort()
+	for _i in _old_idxs:
+		if loadout[_i]:
+			_carry.append(loadout[_i])
+
 	# Unequip All
 	unequip_all()
-	
+
 	active_hull = hull_id
 	loadout = {}
 	for i in range(hull_data["slots"].size()):
 		loadout[i] = null
-		
+
+	# Auto-transfer: re-equip each previous module into the first matching
+	# free slot on the new hull. equip_module() enforces type / energy /
+	# uniqueness, so anything that no longer fits simply stays in inventory
+	# (never lost) instead of forcing a full manual re-equip.
+	for _mid in _carry:
+		if not _mid in modules:
+			continue
+		var _mtype = modules[_mid].get("slot_type", "")
+		for _s in range(hull_data["slots"].size()):
+			if loadout.get(_s) == null and hull_data["slots"][_s] == _mtype:
+				if module_inventory.get(_mid, 0) > 0 and equip_module(_s, _mid):
+					break
+
 	# Recalculate to get new max_hp
 	recalc_stats()
 	current_hp = max_hp # Explicitly force full health for the new hull
@@ -1601,7 +1623,7 @@ func equip_module(slot_idx: int, module_id: String) -> bool:
 				# Allow fallthrough
 			else:
 				print("Equip Fail: Grid Overloaded. Needs more battery modules. Potential: %f, Cap: %f (Old Cap: %f, Old Margin: %f, New Margin: %f)" % [potential_load, current_cap, old_cap, old_margin, new_margin])
-				UITheme.show_notification("Grid Overload: Insufficient Power", Color.RED)
+				UITheme.show_notification("Power %d / %d — equip a Battery module (or a bigger hull) before this." % [int(round(potential_load)), int(round(current_cap))], Color(1.0, 0.45, 0.35))
 				return false
 
 	# Unequip existing
@@ -1761,6 +1783,14 @@ func remove_gem(module_id: String, socket_idx: int) -> bool:
 	return true
 
 func recalc_stats():
+	# Capture the pre-recalc damage fraction. Loadout / research / hull /
+	# trophy changes all re-run this outside combat; without this the final
+	# clamp would fake-damage a full ship when max_hp grows and permanently
+	# erode HP on any transient max_hp dip.
+	var _prev_max_hp: float = float(max_hp)
+	var _hp_ratio: float = 1.0
+	if _prev_max_hp > 0.0:
+		_hp_ratio = clampf(float(current_hp) / _prev_max_hp, 0.0, 1.0)
 	var hp = 0
 	var shield = 0.0
 	var s_reg = 0.0
@@ -1913,7 +1943,14 @@ func recalc_stats():
 	if GameState.resources:
 		GameState.resources.set_max_energy(e_cap)
 	
-	current_hp = min(current_hp, max_hp)
+	# Was the ship full before this recalc? Then keep it full when max_hp
+	# grows (fixes "100/132 though I never fought"). Otherwise keep the
+	# absolute HP, only clamped to the new max — damage persists until you
+	# pay Repair, and recalcs never silently bleed HP out of combat.
+	if _hp_ratio >= 0.999:
+		current_hp = max_hp
+	else:
+		current_hp = int(clampf(float(current_hp), 1.0, float(max_hp)))
 	
 	
 	# Update Global Resources
@@ -2071,12 +2108,16 @@ func equip_consumable(slot_type: String, item_id: String):
 		consumable_hull_slot = item_id
 	elif slot_type == "shield":
 		consumable_shield_slot = item_id
+	# Without this, mission sync (equip_consumables) and the UI never
+	# re-evaluate on equip — the Combat Triage step would sit at 0%.
+	inventory_updated.emit()
 
 func unequip_consumable(slot_type: String):
 	if slot_type == "hull":
 		consumable_hull_slot = ""
 	elif slot_type == "shield":
 		consumable_shield_slot = ""
+	inventory_updated.emit()
 
 func get_consumable(slot_type: String) -> String:
 	if slot_type == "hull": return consumable_hull_slot

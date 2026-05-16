@@ -74,6 +74,14 @@ func get_widget_by_aid(target_aid: String) -> Control:
 			return w
 	return null
 
+func get_coach_anchor(key: String) -> Control:
+	match key:
+		"first_action":
+			return widgets[0] if not widgets.is_empty() else null
+		"xp_bar":
+			return xp_bar
+	return null
+
 func _process(delta):
 	update_ui()
 

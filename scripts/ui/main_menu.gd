@@ -27,7 +27,6 @@ func _ready():
 
 	_build_background()
 	_build_starfield()
-	_build_nebula()
 	_build_corner_chrome()
 	_build_center_panel()
 	_build_footer()
@@ -57,20 +56,6 @@ func _build_starfield():
 		star.color = Color(b * 0.88, b * 0.92, b, rng.randf_range(0.20, 0.80))
 		add_child(star)
 		_stars.append(star)
-
-func _build_nebula():
-	var vp = get_viewport().get_visible_rect().size
-	var blobs = [
-		[Vector2(vp.x * 0.12, vp.y * 0.18), Vector2(320, 220), Color(0.18, 0.28, 0.60, 0.030)],
-		[Vector2(vp.x * 0.72, vp.y * 0.62), Vector2(380, 260), Color(0.38, 0.10, 0.52, 0.025)],
-		[Vector2(vp.x * 0.80, vp.y * 0.08), Vector2(240, 190), Color(0.10, 0.32, 0.55, 0.035)],
-	]
-	for b in blobs:
-		var blob = ColorRect.new()
-		blob.size = b[1]
-		blob.position = b[0] - b[1] * 0.5
-		blob.color = b[2]
-		add_child(blob)
 
 func _build_corner_chrome():
 	var vp = get_viewport().get_visible_rect().size
@@ -429,17 +414,192 @@ func _load_save_summary() -> String:
 	else:
 		cr_str = "%d Cr" % int(credits)
 
-	return "Zone %d  ·  %s" % [max_zone, cr_str]
+	var summary := "Zone %d  ·  %s" % [max_zone, cr_str]
+
+	var pt := float(data.get("total_playtime", 0.0))
+	if pt >= 60.0:
+		summary += "  ·  %s played" % FormatUtils.format_playtime(pt)
+
+	return summary
 
 # ─────────────────────────────────────────────
 #  BUTTON HANDLERS
 # ─────────────────────────────────────────────
+const _MAIN_SCENE := "res://scenes/main.tscn"
+var _loading := false
+var _load_lbl: Label = null
+var _load_bar: ProgressBar = null
+var _load_pct: Label = null
+var _load_shimmer: ColorRect = null
+
 func _on_continue_pressed():
-	get_tree().change_scene_to_file("res://scenes/main.tscn")
+	_begin_load(false)
 
 func _on_new_game_pressed():
-	GameState.hard_reset()
-	get_tree().change_scene_to_file("res://scenes/main.tscn")
+	_begin_load(true)
+
+# Smooth boot: paint a loading screen FIRST, thread-load the scene resource,
+# then swap. The unavoidable page-build still happens on the main thread, but
+# now it happens behind a loading screen the player expects to wait on —
+# instead of a frozen Continue button.
+func _begin_load(is_new_game: bool) -> void:
+	if _loading: return
+	_loading = true
+
+	for b in [btn_continue, btn_new_game, btn_options, btn_exit]:
+		if is_instance_valid(b): b.disabled = true
+
+	_show_loading_overlay()
+	CursorManager.set_state(CursorManager.State.WAIT)
+
+	# Two frames so the overlay actually renders before any heavy work.
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	if is_new_game:
+		GameState.hard_reset()
+
+	ResourceLoader.load_threaded_request(_MAIN_SCENE)
+	while true:
+		var progress: Array = []
+		var status := ResourceLoader.load_threaded_get_status(_MAIN_SCENE, progress)
+		if status == ResourceLoader.THREAD_LOAD_LOADED:
+			break
+		if status == ResourceLoader.THREAD_LOAD_FAILED or status == ResourceLoader.THREAD_LOAD_INVALID_RESOURCE:
+			CursorManager.set_state(CursorManager.State.DEFAULT)
+			get_tree().change_scene_to_file(_MAIN_SCENE)  # blocking fallback
+			return
+		if progress.size() > 0:
+			_set_load_progress(progress[0])
+		await get_tree().process_frame
+
+	var packed: PackedScene = ResourceLoader.load_threaded_get(_MAIN_SCENE)
+	# Resource load is done, but the scene still has to instantiate on the
+	# main thread (unmeasurable). Switch to an indeterminate "finalizing"
+	# state so the held frame reads as working, never "stuck at 100%".
+	_enter_finalizing()
+	CursorManager.set_state(CursorManager.State.DEFAULT)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	get_tree().change_scene_to_packed(packed)
+
+func _show_loading_overlay() -> void:
+	var layer := CanvasLayer.new()
+	layer.layer = 120
+	add_child(layer)
+
+	var bg := ColorRect.new()
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.color = BG_COLOR
+	bg.mouse_filter = Control.MOUSE_FILTER_STOP  # eat clicks while loading
+	layer.add_child(bg)
+
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(center)
+
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(440, 0)
+	var ps := StyleBoxFlat.new()
+	ps.bg_color = PANEL_BG
+	ps.set_border_width_all(1)
+	ps.border_width_top = 3
+	ps.border_color = PANEL_BORDER
+	ps.set_corner_radius_all(4)
+	ps.shadow_color = Color(0, 0, 0, 0.6)
+	ps.shadow_size = 24
+	ps.content_margin_left = 40
+	ps.content_margin_right = 40
+	ps.content_margin_top = 32
+	ps.content_margin_bottom = 30
+	panel.add_theme_stylebox_override("panel", ps)
+	center.add_child(panel)
+
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 16)
+	panel.add_child(vb)
+
+	# Brand line — keeps the boot screen on-identity, not a bare bar.
+	var brand := HBoxContainer.new()
+	brand.alignment = BoxContainer.ALIGNMENT_CENTER
+	brand.add_theme_constant_override("separation", 8)
+	vb.add_child(brand)
+	var h := Label.new()
+	h.text = "HORIZON"
+	h.add_theme_font_size_override("font_size", 30)
+	h.add_theme_color_override("font_color", ACCENT_CYAN)
+	brand.add_child(h)
+	var i := Label.new()
+	i.text = "IDLE"
+	i.add_theme_font_size_override("font_size", 20)
+	i.add_theme_color_override("font_color", ACCENT_AMBER)
+	i.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+	brand.add_child(i)
+
+	_load_lbl = Label.new()
+	_load_lbl.text = "INITIALIZING SYSTEMS"
+	_load_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_load_lbl.add_theme_font_size_override("font_size", 12)
+	_load_lbl.add_theme_color_override("font_color", TEXT_DIM)
+	vb.add_child(_load_lbl)
+
+	# Progress bar with a shimmer overlay used during the finalizing phase.
+	var bar_wrap := Control.new()
+	bar_wrap.custom_minimum_size = Vector2(360, 16)
+	bar_wrap.clip_contents = true
+	vb.add_child(bar_wrap)
+
+	_load_bar = ProgressBar.new()
+	_load_bar.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_load_bar.min_value = 0
+	_load_bar.max_value = 100
+	_load_bar.value = 0
+	_load_bar.show_percentage = false
+	var track := StyleBoxFlat.new()
+	track.bg_color = Color(0.04, 0.05, 0.09, 1.0)
+	track.set_border_width_all(1)
+	track.border_color = PANEL_BORDER
+	track.set_corner_radius_all(3)
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = ACCENT_CYAN
+	fill.set_corner_radius_all(3)
+	fill.shadow_color = Color(ACCENT_CYAN.r, ACCENT_CYAN.g, ACCENT_CYAN.b, 0.35)
+	fill.shadow_size = 6
+	_load_bar.add_theme_stylebox_override("background", track)
+	_load_bar.add_theme_stylebox_override("fill", fill)
+	bar_wrap.add_child(_load_bar)
+
+	_load_shimmer = ColorRect.new()
+	_load_shimmer.color = Color(1, 1, 1, 0.12)
+	_load_shimmer.size = Vector2(70, 16)
+	_load_shimmer.position = Vector2(-80, 0)
+	_load_shimmer.visible = false
+	_load_shimmer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bar_wrap.add_child(_load_shimmer)
+
+	_load_pct = Label.new()
+	_load_pct.text = "0%"
+	_load_pct.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_load_pct.add_theme_font_size_override("font_size", 11)
+	_load_pct.add_theme_color_override("font_color", ACCENT_CYAN)
+	vb.add_child(_load_pct)
+
+func _set_load_progress(p: float) -> void:
+	# Reserve the top 10% for the unmeasurable instantiation phase so the
+	# bar never sits full-but-frozen.
+	var shown: float = clamp(p, 0.0, 1.0) * 90.0
+	if _load_bar: _load_bar.value = shown
+	if _load_pct: _load_pct.text = "%d%%" % int(shown)
+
+func _enter_finalizing() -> void:
+	if _load_lbl: _load_lbl.text = "ENTERING SECTOR"
+	if _load_pct: _load_pct.text = "FINALIZING"
+	if _load_bar: _load_bar.value = 100
+	if _load_shimmer:
+		_load_shimmer.visible = true
+		var tw := _load_shimmer.create_tween().set_loops()
+		tw.tween_property(_load_shimmer, "position:x", 360.0, 0.7).from(-80.0).set_trans(Tween.TRANS_SINE)
 
 func _on_options_pressed():
 	_menu_root.hide()

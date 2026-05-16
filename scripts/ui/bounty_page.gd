@@ -16,6 +16,14 @@ func _ready():
 		refresh_btn.pressed.connect(_on_refresh_pressed)
 	_refresh_ui()
 
+func get_coach_anchor(key: String) -> Control:
+	match key:
+		"available":
+			return available_container
+		"active":
+			return active_container
+	return null
+
 func _on_refresh_pressed():
 	if manager:
 		manager.force_refresh()

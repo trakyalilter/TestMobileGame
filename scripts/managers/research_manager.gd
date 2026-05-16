@@ -204,67 +204,72 @@ var tech_tree = {
 		"parent": null,
 		"req_tech": "shipwright_1"
 	},
+	# v102: Zone gates re-tuned into an escalating industrial-supply curve.
+	# Volumes from z4+ are impractical to hand-gather under the single-active-
+	# task rule, so extraction + background processing (Infrastructure) becomes
+	# the de-facto supply line. Boss cores stay as the combat gate. First-pass
+	# numbers — MATERIAL_MULTIPLIER scales further; tune via playtest.
 	"zone_3_access": {
 		"name": "Mars Debris Clearance",
-		"description": "Unlocks:\n• Mars Debris Field\n• Zone 3 modules fabrication",
+		"description": "Unlocks:\n• Mars Debris Field\n• Zone 3 modules fabrication\n[Bulk refined materials — start automating]",
 		"cost": 75000,
-		"cost_items": {"Z2_Core": 1, "Steel": 100, "Ti": 50},
+		"cost_items": {"Z2_Core": 1, "Steel": 200, "Ti": 120, "Circuit": 60},
 		"type": "technology",
 		"parent": "zone_2_access"
 	},
 	"zone_4_access": {
 		"name": "Cryofield Expedition",
-		"description": "Unlocks:\n• Cryofield zone\n• Zone 4 modules & Heavy Cruiser hull",
+		"description": "Unlocks:\n• Cryofield zone\n• Zone 4 modules & Heavy Cruiser hull\n[Hand-supply is impractical here — build extraction]",
 		"cost": 187500,
-		"cost_items": {"Z3_Core": 2, "Ti": 200, "Circuit": 50},
+		"cost_items": {"Z3_Core": 2, "Steel": 600, "Ti": 350, "Circuit": 200},
 		"type": "technology",
 		"parent": "zone_3_access"
 	},
 	"zone_5_access": {
 		"name": "Sector Alpha Decryption",
-		"description": "Unlocks:\n• Sector Alpha\n• Zone 5 modules & Battlecruiser hull",
+		"description": "Unlocks:\n• Sector Alpha\n• Zone 5 modules & Battlecruiser hull\n[Sustained automated output required]",
 		"cost": 468750,
-		"cost_items": {"Z4_Core": 2, "AdvCircuit": 100, "Superalloy": 25},
+		"cost_items": {"Z4_Core": 2, "Steel": 1500, "AdvCircuit": 250, "Superalloy": 80},
 		"type": "technology",
 		"parent": "zone_4_access"
 	},
 	"zone_6_access": {
 		"name": "Deep Space Navigation",
-		"description": "Unlocks:\n• Sector Beta\n• Zone 6 modules & Capital Ship hull",
+		"description": "Unlocks:\n• Sector Beta\n• Zone 6 modules & Capital Ship hull\n[Mature industrial base required]",
 		"cost": 1171875,
-		"cost_items": {"Z5_Core": 3, "VoidArtifact": 20, "QuantumCore": 5},
+		"cost_items": {"Z5_Core": 3, "Ti": 2000, "AdvCircuit": 600, "Superalloy": 300},
 		"type": "technology",
 		"parent": "zone_5_access"
 	},
 	"zone_7_access": {
 		"name": "Radiation Shielding",
-		"description": "Unlocks:\n• Sector Gamma\n• Zone 7 modules & Carrier hull",
+		"description": "Unlocks:\n• Sector Gamma\n• Zone 7 modules & Carrier hull\n[Heavy automation + Tungsten extraction]",
 		"cost": 2929687,
-		"cost_items": {"Z6_Core": 3, "Superalloy": 200, "Ir": 10},
+		"cost_items": {"Z6_Core": 3, "AdvCircuit": 1500, "Superalloy": 900, "W": 200},
 		"type": "technology",
 		"parent": "zone_6_access"
 	},
 	"zone_8_access": {
 		"name": "Exotic Matter Analysis",
-		"description": "Unlocks:\n• Sector Delta\n• Zone 8 modules & Dreadnought hull",
+		"description": "Unlocks:\n• Sector Delta\n• Zone 8 modules & Dreadnought hull\n[Full-scale industrial economy]",
 		"cost": 7324218,
-		"cost_items": {"Z7_Core": 4, "ExoticMatter": 50, "Os": 5},
+		"cost_items": {"Z7_Core": 4, "AdvCircuit": 3000, "Superalloy": 2200, "Ir": 60},
 		"type": "technology",
 		"parent": "zone_7_access"
 	},
 	"zone_9_access": {
 		"name": "Quarantine Protocols",
-		"description": "Unlocks:\n• Sector Zeta\n• Zone 9 modules & Titan hull",
+		"description": "Unlocks:\n• Sector Zeta\n• Zone 9 modules & Titan hull\n[Deep automated supply chains]",
 		"cost": 18310546,
-		"cost_items": {"Z8_Core": 4, "VoidCrystal": 50, "Diamond": 5},
+		"cost_items": {"Z8_Core": 4, "AdvCircuit": 6000, "Superalloy": 5000, "Os": 40},
 		"type": "technology",
 		"parent": "zone_8_access"
 	},
 	"zone_10_access": {
 		"name": "Void Navigation",
-		"description": "Unlocks:\n• Sector Epsilon\n• Zone 10 modules & Leviathan hull",
+		"description": "Unlocks:\n• Sector Epsilon\n• Zone 10 modules & Leviathan hull\n[End-game industrial empire]",
 		"cost": 45776367,
-		"cost_items": {"Z9_Core": 5, "Neutronium": 100, "ChronoCore": 10},
+		"cost_items": {"Z9_Core": 5, "AdvCircuit": 15000, "Superalloy": 12000, "ChronoCore": 10},
 		"type": "technology",
 		"parent": "zone_9_access"
 	},

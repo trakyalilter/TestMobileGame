@@ -701,6 +701,48 @@ var building_db: Dictionary = {
 		"category": "industry"
 	},
 
+	# ===== HEAVY INDUSTRY (v102: auto-producers for zone-gate-tier mats) =====
+	# Ti / AdvCircuit / Superalloy previously had no scalable auto-source,
+	# making the v102 zone-gate curve unsuppliable by automation. Inputs are
+	# deliberately condensed to mats that ALREADY have auto-producers, so the
+	# supply gap doesn't cascade. Engineering-scaled (see get_effective_yield).
+	"titanium_refinery": {
+		"name": "Titanium Refinery",
+		"description": "+1.5 Ti (-3 Dolomite)",
+		"cost": {"credits": 850000, "Steel": 1500, "Circuit": 100},
+		"energy_gen": 0.0,
+		"energy_cons": 1200.0,
+		"yield": {"Ti": 1.5},
+		"input": {"Dolomite": 3},
+		"interval": 5.0,
+		"research_req": "metallurgy_advanced",
+		"category": "industry"
+	},
+	"superalloy_forge": {
+		"name": "Superalloy Forge",
+		"description": "+1.0 Superalloy (-4 Steel, -2 Ni, -1 Cr, -1 Ti)",
+		"cost": {"credits": 1200000, "Steel": 2500, "Ti": 200, "Circuit": 150},
+		"energy_gen": 0.0,
+		"energy_cons": 1800.0,
+		"yield": {"Superalloy": 1.0},
+		"input": {"Steel": 4, "Ni": 2, "Cr": 1, "Ti": 1},
+		"interval": 5.0,
+		"research_req": "superalloy_engineering",
+		"category": "industry"
+	},
+	"adv_circuit_foundry": {
+		"name": "Advanced Circuit Foundry",
+		"description": "+1.2 AdvCircuit (-5 Circuit, -4 Si, -2 Germanium)",
+		"cost": {"credits": 2000000, "Steel": 3000, "Superalloy": 120, "Circuit": 200},
+		"energy_gen": 0.0,
+		"energy_cons": 3500.0,
+		"yield": {"AdvCircuit": 1.2},
+		"input": {"Circuit": 5, "Si": 4, "Germanium": 2},
+		"interval": 5.0,
+		"research_req": "nano_fabrication",
+		"category": "industry"
+	},
+
 	# ========== CATEGORY: LOGISTICS ==========
 	"drone_bay": {
 		"name": "Drone Recovery Bay",
@@ -803,7 +845,8 @@ func get_effective_yield(building_id: String, resource_symbol: String) -> float:
 	var base_qty = float(data["yield"][resource_symbol])
 	
 	# Engineering Level Scaling
-	var scaled_buildings = ["auto_smelter", "hydro_plant", "industrial_centrifuge", "munitions_factory"]
+	var scaled_buildings = ["auto_smelter", "hydro_plant", "industrial_centrifuge", "munitions_factory",
+		"titanium_refinery", "superalloy_forge", "adv_circuit_foundry"]
 	if building_id in scaled_buildings:
 		var eng_lvl = GameState.processing_manager.get_level()
 		base_qty *= (1.0 + (log(1.0 + eng_lvl) / log(10.0)) * 5.0)

@@ -13,6 +13,101 @@ func _ready():
 		offline_combat_check.button_pressed = GameState.game_settings.get("offline_combat", false)
 		offline_combat_check.toggled.connect(_on_offline_combat_toggled)
 	_setup_speed_buttons()
+	_add_replay_tutorials_btn()
+	_add_cursor_size_row()
+	_add_playtime_label()
+
+var _cursor_btns: Array = []
+
+func _add_cursor_size_row():
+	var vb = $CenterContainer/VBoxContainer
+	if not vb: return
+
+	var label = Label.new()
+	label.text = "Cursor Size"
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.add_theme_color_override("font_color", Color(0.7, 0.74, 0.82))
+	vb.add_child(label)
+
+	var row = HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 8)
+	vb.add_child(row)
+
+	var opts = [
+		["Small", CursorManager.SIZE_SMALL],
+		["Medium", CursorManager.SIZE_MEDIUM],
+		["Large", CursorManager.SIZE_LARGE],
+	]
+	for o in opts:
+		var b = Button.new()
+		b.text = o[0]
+		b.set_meta("px", o[1])
+		b.pressed.connect(_on_cursor_size_pressed.bind(o[1]))
+		row.add_child(b)
+		_cursor_btns.append(b)
+
+	# Place the label+row just under the speed selector.
+	if speed_container:
+		var base = speed_container.get_index() + 1
+		vb.move_child(label, base)
+		vb.move_child(row, base + 1)
+
+	_update_cursor_buttons()
+
+func _on_cursor_size_pressed(px: int):
+	GameState.game_settings["cursor_size"] = px
+	CursorManager.apply_size(px)
+	GameState.save_game()
+	_update_cursor_buttons()
+
+func _update_cursor_buttons():
+	var cur = CursorManager.get_size()
+	for b in _cursor_btns:
+		b.modulate = Color(0.4, 1.0, 0.4) if int(b.get_meta("px")) == cur else Color(1, 1, 1)
+
+var _pt_label: Label
+var _pt_refresh: float = 0.0
+
+func _add_playtime_label():
+	var vb = $CenterContainer/VBoxContainer
+	if not vb: return
+	_pt_label = Label.new()
+	_pt_label.name = "PlayTimeLabel"
+	_pt_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_pt_label.add_theme_color_override("font_color", Color(0.55, 0.78, 0.95))
+	vb.add_child(_pt_label)
+	vb.move_child(_pt_label, 0)  # top of the system panel
+	_refresh_playtime()
+
+func _refresh_playtime():
+	if _pt_label:
+		_pt_label.text = "Total Play Time:  %s" % FormatUtils.format_playtime(GameState.total_playtime)
+
+func _process(delta):
+	if not visible:
+		return
+	_pt_refresh += delta
+	if _pt_refresh >= 1.0:
+		_pt_refresh = 0.0
+		_refresh_playtime()
+
+func _add_replay_tutorials_btn():
+	var vb = $CenterContainer/VBoxContainer
+	if not vb: return
+	var btn = Button.new()
+	btn.name = "ReplayTutorialsBtn"
+	btn.text = "Replay Tutorials"
+	btn.pressed.connect(_on_replay_tutorials_pressed)
+	vb.add_child(btn)
+	# Sit it just under the offline-combat checkbox if possible.
+	if offline_combat_check:
+		vb.move_child(btn, offline_combat_check.get_index() + 1)
+
+func _on_replay_tutorials_pressed():
+	GameState.game_settings["coach_seen"] = {}
+	GameState.save_game()
+	UITheme.show_notification("Tutorials reset — page tips will reappear as you visit each screen", Color(0.42, 0.84, 1.0))
 
 func _on_offline_combat_toggled(pressed: bool):
 	GameState.game_settings["offline_combat"] = pressed

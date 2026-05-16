@@ -56,26 +56,30 @@ func apply_card_style(panel: Control, category: String = "ops") -> StyleBoxFlat:
 	var accent = CATEGORY_COLORS.get(category, COLORS["accent"])
 	
 	var style = StyleBoxFlat.new()
-	# Blend 5% of accent into the panel background
-	style.bg_color = COLORS["panel_bg"].lerp(accent, 0.05)
-	style.bg_color.a = 0.90
+	# Solid console panel, faintly accent-tinted (reads less "translucent
+	# overlay", more "physical module" — matches the recessed bar track).
+	style.bg_color = COLORS["panel_bg"].lerp(accent, 0.06)
+	style.bg_color.a = 0.96
 	style.draw_center = true
-	
-	# Uniform 1px crisp border
+
+	# Subtle accent frame with a brighter LIT TOP edge — the same
+	# light-source motif as the progress-bar fill and the menu panels.
 	style.set_border_width_all(1)
-	var border_col = accent
-	border_col.a = 0.3 # Subtle 30% alpha
+	style.border_width_top = 2
+	var border_col: Color = accent
+	border_col.a = 0.28
 	style.border_color = border_col
+	# Per-side colour isn't supported on StyleBoxFlat, so the brighter top
+	# is faked by a slightly stronger overall accent + the thicker top edge.
 	style.border_blend = false
-	
-	# Uniform modern rounded corners
-	style.set_corner_radius_all(6)
-	
-	# Softer, diffused shadow
-	style.shadow_color = Color(0, 0, 0, 0.25)
-	style.shadow_size = 12
-	style.shadow_offset = Vector2(0, 4)
-	
+
+	style.set_corner_radius_all(5)
+
+	# Depth shadow so cards separate cleanly in the grid.
+	style.shadow_color = Color(0, 0, 0, 0.35)
+	style.shadow_size = 10
+	style.shadow_offset = Vector2(0, 3)
+
 	panel.add_theme_stylebox_override("panel", style)
 	return style
 
@@ -83,9 +87,14 @@ func apply_diegetic_header(panel: Control, category: String = "ops"):
 	if not panel: return
 	var accent = CATEGORY_COLORS.get(category, COLORS["accent"])
 	var style = StyleBoxFlat.new()
-	style.bg_color = accent.lerp(Color.BLACK, 0.8)
+	# Dark accent-tinted title bar with a crisp accent underline — a
+	# "command bar" that caps the card. Top corners match the panel so
+	# the header sits flush instead of overhanging the rounded edge.
+	style.bg_color = accent.lerp(Color.BLACK, 0.82)
 	style.border_width_bottom = 2
 	style.border_color = accent
+	style.corner_radius_top_left = 4
+	style.corner_radius_top_right = 4
 	panel.add_theme_stylebox_override("panel", style)
 
 func inject_diegetic_header(card: PanelContainer, category: String) -> PanelContainer:
@@ -135,55 +144,87 @@ func apply_premium_button_style(button: Button, category: String = "ops"):
 	if not button: return
 	var accent = CATEGORY_COLORS.get(category, COLORS["accent"])
 	
+	# Recessed control with a lit accent top edge — same vocabulary as the
+	# card frame and the bar fill, so the whole card reads as one system.
 	var style_normal = StyleBoxFlat.new()
-	style_normal.bg_color = COLORS["sidebar"].lerp(accent, 0.05)
+	style_normal.bg_color = COLORS["sidebar"].lerp(accent, 0.06)
 	style_normal.set_border_width_all(1)
-	var normal_border = accent
-	normal_border.a = 0.4
+	style_normal.border_width_top = 2
+	var normal_border: Color = accent
+	normal_border.a = 0.45
 	style_normal.border_color = normal_border
 	style_normal.set_corner_radius_all(4)
-	
+
+	# Hover lights the frame and adds a soft ACCENT halo (not a black
+	# drop-shadow) — the bar's glow language.
 	var style_hover = style_normal.duplicate()
-	style_hover.bg_color = accent.lerp(Color.BLACK, 0.3)
+	style_hover.bg_color = accent.lerp(Color.BLACK, 0.32)
 	style_hover.border_color = accent
-	style_hover.shadow_color = Color(0, 0, 0, 0.2)
-	style_hover.shadow_size = 4
-	style_hover.shadow_offset = Vector2(0, 2)
-	
+	style_hover.shadow_color = Color(accent.r, accent.g, accent.b, 0.35)
+	style_hover.shadow_size = 5
+	style_hover.shadow_offset = Vector2(0, 0)
+
 	var style_pressed = style_normal.duplicate()
 	style_pressed.bg_color = accent
 	style_pressed.border_color = Color.WHITE
-	
+
 	button.add_theme_stylebox_override("normal", style_normal)
 	button.add_theme_stylebox_override("hover", style_hover)
 	button.add_theme_stylebox_override("pressed", style_pressed)
 	var style_disabled = style_normal.duplicate()
-	style_disabled.bg_color = Color(0.15, 0.15, 0.15, 0.8)
-	style_disabled.border_color = Color(0.3, 0.3, 0.3, 0.5)
+	style_disabled.bg_color = Color(0.12, 0.13, 0.16, 0.85)
+	style_disabled.border_color = Color(0.3, 0.3, 0.34, 0.45)
 	button.add_theme_stylebox_override("disabled", style_disabled)
 	button.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
-	
+
 	button.add_theme_color_override("font_color", Color.WHITE)
 	button.add_theme_color_override("font_hover_color", Color.WHITE)
+	# Bright accents (cyan/gold) wash out white text when pressed — use a
+	# near-black label so the pressed state stays readable.
+	button.add_theme_color_override("font_pressed_color", Color(0.05, 0.06, 0.08))
+	button.add_theme_color_override("font_disabled_color", Color(0.45, 0.46, 0.5))
 	button.add_theme_font_size_override("font_size", 13)
 
 func apply_progress_bar_style(pb: ProgressBar, category: String = "ops"):
 	if not pb: return
 	var accent = CATEGORY_COLORS.get(category, COLORS["accent"])
-	
+
+	# Recessed "channel": near-black, faint accent-tinted edge, inner pad so
+	# the fill nests cleanly inside the border instead of overdrawing it.
 	var style_bg = StyleBoxFlat.new()
-	style_bg.bg_color = Color(0, 0, 0, 0.4)
+	style_bg.bg_color = Color(0.03, 0.04, 0.07, 0.95)
 	style_bg.set_border_width_all(1)
-	style_bg.border_color = Color(0.2, 0.2, 0.2, 0.5)
-	
+	var edge: Color = accent.darkened(0.55)
+	edge.a = 0.55
+	style_bg.border_color = edge
+	style_bg.set_corner_radius_all(3)
+	style_bg.content_margin_left = 2
+	style_bg.content_margin_right = 2
+	style_bg.content_margin_top = 2
+	style_bg.content_margin_bottom = 2
+
+	# Solid accent fill with a lit top/leading edge (fakes a light source)
+	# and a soft accent halo — the flat-glow look used across the UI.
 	var style_fill = StyleBoxFlat.new()
 	style_fill.bg_color = accent
+	style_fill.set_corner_radius_all(2)
+	style_fill.border_width_top = 1
 	style_fill.border_width_right = 2
-	style_fill.border_color = Color.WHITE
-	style_fill.border_color.a = 0.5
-	
+	var lit: Color = accent.lightened(0.5)
+	lit.a = 0.9
+	style_fill.border_color = lit
+	style_fill.shadow_color = Color(accent.r, accent.g, accent.b, 0.4)
+	style_fill.shadow_size = 5
+
 	pb.add_theme_stylebox_override("background", style_bg)
 	pb.add_theme_stylebox_override("fill", style_fill)
+
+	# Percentage readout: smaller, accent-tinted, with a dark outline so it
+	# stays legible whether it sits over the fill or the empty channel.
+	pb.add_theme_color_override("font_color", accent.lightened(0.6))
+	pb.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.7))
+	pb.add_theme_constant_override("outline_size", 3)
+	pb.add_theme_font_size_override("font_size", 10)
 
 ## apply_segmented_bar_style: Creates a high-tech "Digital Gauge" look
 func apply_segmented_bar_style(pb: ProgressBar, category: String = "ops"):
@@ -661,48 +702,56 @@ func apply_locked_overlay(card: Control, item_name: String, message: String, is_
 		overlay.mouse_filter = Control.MOUSE_FILTER_STOP # Block clicks
 		card.add_child(overlay)
 		
-		# 2. Add Centered Containers
-		var center = CenterContainer.new()
-		center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		overlay.add_child(center)
-		
+		# 2. Full-width padded container. A CenterContainer shrinks to its
+		#    content, so long research names ("Lightweight Alloys") had no
+		#    width to wrap against and overflowed/clipped the card. A
+		#    MarginContainer forces the text block to the real card width.
+		var pad = MarginContainer.new()
+		pad.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		pad.add_theme_constant_override("margin_left", 6)
+		pad.add_theme_constant_override("margin_right", 6)
+		pad.add_theme_constant_override("margin_top", 4)
+		pad.add_theme_constant_override("margin_bottom", 4)
+		overlay.add_child(pad)
+
 		var vbox = VBoxContainer.new()
 		vbox.name = "VBox"
-		vbox.alignment = BoxContainer.ALIGNMENT_CENTER
-		vbox.custom_minimum_size.x = card.custom_minimum_size.x - 8
-		center.add_child(vbox)
-		
+		vbox.alignment = BoxContainer.ALIGNMENT_CENTER  # vertical centering
+		pad.add_child(vbox)
+
 		var name_lbl = Label.new()
 		name_lbl.name = "ItemNameLabel"
 		name_lbl.text = item_name
 		name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		name_lbl.add_theme_font_size_override("font_size", 12) # Reduced for better fit
-		
+		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
 		var title_col = CATEGORY_COLORS.get(category, Color(0.1, 0.8, 1.0))
 		name_lbl.add_theme_color_override("font_color", title_col)
-		
-		name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD # Standard word wrap only
+
+		name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		vbox.add_child(name_lbl)
-		
+
 		var lock_lbl = Label.new()
 		lock_lbl.name = "LockHeading"
 		lock_lbl.text = "LOCKED"
 		lock_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		lock_lbl.add_theme_font_size_override("font_size", 14) # Reduced from 18
 		lock_lbl.add_theme_color_override("font_color", Color.WHITE)
+		lock_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		vbox.add_child(lock_lbl)
-		
+
 		var req_lbl = RichTextLabel.new()
 		req_lbl.name = "ReqLabel"
 		req_lbl.bbcode_enabled = true
-		req_lbl.fit_content = true
+		req_lbl.fit_content = true       # height-to-content; width from parent
 		req_lbl.scroll_active = false
-		req_lbl.mouse_filter = Control.MOUSE_FILTER_STOP 
-		req_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		req_lbl.add_theme_font_size_override("normal_font_size", 9) 
+		req_lbl.mouse_filter = Control.MOUSE_FILTER_STOP
+		req_lbl.add_theme_font_size_override("normal_font_size", 9)
 		req_lbl.add_theme_color_override("default_color", Color(1.0, 0.4, 0.4))
-		req_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
+		req_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		req_lbl.add_theme_constant_override("line_separation", 2)
+		req_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		vbox.add_child(req_lbl)
 		
 		req_lbl.meta_clicked.connect(func(meta):

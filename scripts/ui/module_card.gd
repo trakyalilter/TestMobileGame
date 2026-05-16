@@ -276,6 +276,19 @@ func _compute_compare_summary() -> String:
 		return ""
 	var my_stats = data.get("stats", {})
 	var eq_stats = sm.modules[compare_equipped_mid].get("stats", {})
+
+	# Weapons: only compare within the SAME damage type. A DPS chevron
+	# between e.g. KINETIC and EXPLOSIVE is misleading — they're situational
+	# (explosive bypasses armor, energy melts shields), so a raw "better/
+	# worse" is wrong advice. Different type => no arrow at all.
+	if data.get("slot_type", "") == "weapon":
+		if _weapon_type(my_stats) != _weapon_type(eq_stats):
+			return ""
+		var my_dps := _weapon_dps(my_stats)
+		var eq_dps := _weapon_dps(eq_stats)
+		if abs(my_dps - eq_dps) < 0.05:
+			return "="
+		return "▲" if my_dps > eq_dps else "▼"
 	# Sum every stat the module carries (not a hardcoded list) so each slot
 	# type compares on its own profile: engine -> eva, battery ->
 	# energy_capacity, sensor -> accuracy, weapon -> atk_*, etc. Comparisons
@@ -302,6 +315,20 @@ func _stat_score(stats: Dictionary) -> float:
 		else:
 			s += float(v)
 	return s
+
+func _weapon_dps(stats: Dictionary) -> float:
+	var dmg := float(stats.get("atk_kinetic", 0)) + float(stats.get("atk_energy", 0)) + float(stats.get("atk_explosive", 0))
+	var interval := maxf(0.01, float(stats.get("atk_interval", 2.5)))
+	return dmg / interval
+
+# Mirrors combat_manager's weapon-type rule so the compare chevron only
+# appears between like-for-like damage types.
+func _weapon_type(stats: Dictionary) -> String:
+	if float(stats.get("atk_energy", 0)) > 0.0:
+		return "energy"
+	if float(stats.get("atk_explosive", 0)) > 0.0:
+		return "explosive"
+	return "kinetic"
 
 func _get_item_tier(item_name: String, m_data: Dictionary) -> String:
 	if m_data.has("tier"):

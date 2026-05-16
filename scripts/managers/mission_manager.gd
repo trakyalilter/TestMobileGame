@@ -56,7 +56,7 @@ func init_missions():
 		["m002b", "Applied Physics", "Research the 'Applied Physics' hub.", "research", "applied_physics", 1, 300, 100, "m003"],
 		["m003", "Pump Master", "Research 'Fluid Dynamics' to unlock water collection.", "research", "fluid_dynamics", 1, 300, 50, "m004"],
 		["m004", "Hydration", "Gather 350 units of Water.", "gather", "Water", 350, 500, 100, "m005"],
-		["m005", "Mineral Washing", "Recover 100 Silicon and 80 Iron from Dirt.", "gather_multi", {"Si": 100, "Fe": 80}, 180, 1000, 200, "m007"],
+		["m005", "Mineral Washing", "Open the Engineering page and process Dirt to extract 100 Silicon and 80 Iron.", "gather_multi", {"Si": 100, "Fe": 80}, 180, 1000, 200, "m007"],
 		
 		# m006 Removed (Moved to m002b)
 		["m007", "Mobility Check", "Craft a 'Basic Thruster' in the Shipyard.", "craft", "z1_engine", 1, 1000, 100, "m008"],
@@ -64,13 +64,13 @@ func init_missions():
 		["m009", "Deforestation", "Gather 100 units of Wood.", "gather", "Wood", 100, 500, 100, "m010"],
 		["m010", "Organic Combustion", "Research 'Organic Combustion' to unlock the Kiln.", "research", "combustion", 1, 500, 150, "m011"],
 		["m011", "Essential Carbon", "Use the Charcoal Kiln to produce 50 Carbon.", "gather", "C", 50, 600, 150, "m012"],
-		["m012", "Lithium Discovery", "Gather 100 Lithium Ore.", "gather", "Spodumene", 100, 800, 200, "m013"],
+		["m012", "Lithium Discovery", "In the Mine page, extract 100 Spodumene (the lithium-bearing ore).", "gather", "Spodumene", 100, 800, 200, "m013"],
 		["m013", "Voltaic Storage", "Refine 50 Lithium in the Engineering tab.", "gather", "Li", 50, 1000, 250, "m013b"],
 		["m013b", "Copper Prospecting", "Gather 100 Malachite Ore.", "gather", "Malachite", 100, 1200, 300, "m013c"],
 		["m013c", "Conductivity", "Refine 50 Copper in the Engineering tab.", "gather", "Cu", 50, 1500, 350, "m020"],
 		["m014", "Ballistics Theory", "Research 'Kinetic Weapons Theory' in the Research tree to unlock kinetic weapon modules.", "research", "kinetics_101", 1, 1200, 100, "m015"],
 		["m015", "Prototype Arsenal", "Craft a 'Mass Driver Mk.I' in the Shipyard.", "craft", "z1_kinetic", 1, 1500, 200, "m016"],
-		["m016", "Kinetic Munitions", "Produce 100 Ferrite Rounds for your weapon.", "gather", "SlugT1", 100, 1000, 100, "m023"],
+		["m016", "Kinetic Munitions", "In the Engineering page, produce 100 Ferrite Rounds (SlugT1) to feed your weapon.", "gather", "SlugT1", 100, 1000, 100, "m023"],
 		# Shield Section Moved Here (m023 -> m024)
 		# P2-12: Combat Readiness Checkpoint - ensure player is equipped before first combat
 		["m016b", "Combat Ready", "Equip a WEAPON and SHIELD in your Ship Designer.", "loadout_check", "combat_ready", 1, 300, 100, "m017"],
@@ -83,17 +83,20 @@ func init_missions():
 		["m022", "Power Storage", "Craft a 'Basic Battery' in the Shipyard.", "craft", "z1_battery", 1, 1500, 150, "m014"],
 		["m023", "Hull Integrity", "Research 'Energy Fields' to unlock shielding.", "research", "energy_shields", 1, 1000, 150, "m024"],
 		["m024", "Aegis System", "Craft a 'Basic Shield' for protection.", "craft", "z1_shield", 1, 2500, 200, "m024b"],
-		["m024b", "Combat Triage", "Equip Hull & Shield consumables, with at least 10 of each in inventory.", "equip_consumables", "10", 1, 3500, 300, "m016b"],
+		# Split for onboarding: teach what consumables are + where to make them,
+		# THEN how to equip them (was one sudden compound objective).
+		["m024b", "Field Supplies", "Repair kits keep you alive in combat. In the Processing page, craft 5 Emergency Hull Patches and 5 Basic Shield Boosters.", "gather_multi", {"EmergencyPatch": 5, "BasicBooster": 5}, 10, 2000, 150, "m024b2"],
+		["m024b2", "Combat Triage", "Now equip a Hull and a Shield repair kit in your Ship Designer's consumable slots. In combat, tap the HULL / SHLD buttons to spend one and patch up.", "equip_consumables", "1", 1, 2000, 200, "m016b"],
 		["m025", "Refining Mastery", "Research 'Efficient Smelting' for alloys.", "research", "smelting", 1, 15000, 500, "m025b"],
 		["m025b", "Alloy Production", "Smelt 50 Steel in the Engineering tab (Basic Steel Smelting recipe).", "gather", "Steel", 50, 5000, 500, "m026"],
 		["m026", "Master Constructor", "Research 'Shipwright I' for hull reinforcement.", "research", "shipwright_1", 1, 5000, 500, "m026b"],
 		["m026b", "Hull Modernization I", "Construct an 'Industrial Frigate' in the Shipyard.", "construct", "frigate_hull", 1, 10000, 1000, "m026c"],
-		["m026c", "Elite Salvage", "Drop a RARE module from enemies in Lunar Orbit.", "drop_rarity", "2", 1, 5000, 500, "m026d"],
+		["m026c", "Elite Salvage", "Defeated enemies drop gear of varying rarity. Farm Lunar Orbit until you get a RARE (blue) module drop.", "drop_rarity", "2", 1, 5000, 500, "m026d"],
 		["m026d", "Combat Overhaul", "Equip at least 1 RARE+ Weapon.", "loadout_rare_weapon", "2", 1, 10000, 1000, "m026e"],
 		["m026e", "Final Confrontation", "Defeat the Rogue Architect boss in Lunar Orbit.", "defeat", "z1_boss_architect", 1, 25000, 2500, "m027"],
 		# P0 Fix: Progression Deadlock Re-alignment
 		["m027", "Scanning Horizon", "Research 'Asteroid Belt Authorization' in the Research tree to unlock the Asteroid Belt combat zone.", "research", "zone_2_access", 1, 5000, 500, "m028"],
-		["m028", "Belt Mining", "Mine 100 Tin.", "gather", "Cassiterite", 100, 10000, 2000, "m029"],
+		["m028", "Belt Mining", "In the Mine page, mine 100 Cassiterite (tin ore).", "gather", "Cassiterite", 100, 10000, 2000, "m029"],
 		["m029", "Hardened Shell", "Craft 'Carbon Fiber Plate' in the Shipyard.", "craft", "z2_armor", 1, 15000, 5000, "m029b"],
 		["m029b", "Complex Electronics", "Craft 10 Advanced Circuits to prepare for heavier ships.", "gather", "AdvCircuit", 10, 20000, 5000, "m030"],
 		# P0-31: Fabricator Paradox Fix - Shipwright II moved before Fabricator
@@ -111,7 +114,7 @@ func init_missions():
 		["m032", "Alpha Sector Dominance", "Defeat 3 Alien Frigates in Sector Alpha.", "defeat", "z5_alien_frigate", 3, 75000, 15000, "m032b"],
 		# P0-27: Unlock Sector Beta
 		["m032b", "Expanding Horizons", "Research 'Deep Space Navigation' to unlock Sector Beta.", "research", "deep_space_nav", 1, 50000, 5000, "m032d"],
-		["m032d", "Void Research", "Gather 5 Void Artifacts dropped by Sector Alpha ships.", "gather", "VoidArtifact", 5, 100000, 10000, "m032c"],
+		["m032d", "Void Research", "Void Artifacts drop from Sector Alpha ships — defeat them in Combat until you collect 5.", "gather", "VoidArtifact", 5, 100000, 10000, "m032c"],
 		# P0-28: Construct Battlecruiser
 		["m032c", "Capital Doctrine", "Construct a 'Battlecruiser' in the Shipyard.", "construct", "battlecruiser_hull", 1, 250000, 25000, "m033"],
 		

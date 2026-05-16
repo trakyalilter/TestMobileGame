@@ -272,8 +272,8 @@ var recipes: Dictionary = {
 		"input": {"Si": 5, "Al": 2},
 		"output": {"CapacitorShard": 1},
 		"duration": 5.0,
-		"level_req": 2,
-		"xp": 5,
+		"level_req": 20,
+		"xp": 20,
 		"category": "consumables_shield"
 	},
 	"craft_basic_booster": {
@@ -282,8 +282,8 @@ var recipes: Dictionary = {
 		"input": {"Si": 20, "BatteryT1": 1},
 		"output": {"BasicBooster": 1},
 		"duration": 10.0,
-		"level_req": 8,
-		"xp": 10,
+		"level_req": 2,
+		"xp": 5,
 		"category": "consumables_shield"
 	},
 	"craft_ion_field": {
@@ -890,7 +890,7 @@ var recipes: Dictionary = {
 		"duration": 30.0,
 		"level_req": 70,
 		"xp": 1200,
-		"research_req": "quarantine_protocols",
+		"research_req": "zone_9_access",
 		"category": "endgame"
 	},
 	"craft_ai_core": {
@@ -923,7 +923,7 @@ var recipes: Dictionary = {
 		"duration": 40.0,
 		"level_req": 72,
 		"xp": 1500,
-		"research_req": "quarantine_protocols",
+		"research_req": "zone_9_access",
 		"category": "endgame"
 	},
 	"purify_biohazard": {
@@ -935,7 +935,7 @@ var recipes: Dictionary = {
 		"duration": 20.0,
 		"level_req": 65,
 		"xp": 800,
-		"research_req": "quarantine_protocols",
+		"research_req": "zone_9_access",
 		"category": "endgame"
 	},
 	# ========== AUDIT v20.0: DEAD RESOURCE ACTIVATION ==========

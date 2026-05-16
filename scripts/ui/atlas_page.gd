@@ -59,6 +59,14 @@ func _ready():
 	_setup_sort_bar()
 	build_databases()
 
+func get_coach_anchor(key: String) -> Control:
+	match key:
+		"list":
+			return item_list
+		"details":
+			return $HBoxContainer/RightPanel
+	return null
+
 func _setup_mode_switch():
 	var left_vbox = $HBoxContainer/LeftPanel/MarginContainer/VBoxContainer
 	

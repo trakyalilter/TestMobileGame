@@ -78,7 +78,7 @@ func update_state():
 	
 	if lvl < req:
 		unlocked = false
-		status_msg = "Level Locked"
+		status_msg = "LEVEL %d REQUIRED" % req
 	
 	# Research Check
 	if "research_req" in data and data["research_req"]:
@@ -123,7 +123,7 @@ func update_state():
 		# Context-sensitive Button Text
 		if "RESEARCH:" in status_msg:
 			btn.text = "RESEARCH REQUIRED"
-		elif "Level" in status_msg:
+		elif "LEVEL" in status_msg:
 			btn.text = "LEVEL %d REQUIRED" % req
 		else:
 			btn.text = "LOCKED"

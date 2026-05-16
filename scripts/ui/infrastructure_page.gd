@@ -40,6 +40,14 @@ func _connect_signals():
 func _on_resources_changed(_a=null, _b=null):
 	queue_refresh()
 
+func get_coach_anchor(key: String) -> Control:
+	match key:
+		"first_building":
+			return widgets[0] if not widgets.is_empty() else null
+		"energy":
+			return net_lbl
+	return null
+
 func queue_refresh():
 	if is_dirty: return
 	is_dirty = true

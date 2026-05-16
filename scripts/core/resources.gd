@@ -13,6 +13,7 @@ var max_energy: float = 0.0
 var lifetime_credits: float = 0.0
 var base_slots: int = 28
 var storage_upgrades: int = 0 # Feature P65-X: Manual Storage Upgrade
+var _last_full_warn_ms: int = 0  # throttle for the inventory-full warning
 
 func _ready():
 	# Initial Starter Kit if elements are empty (New Game)
@@ -46,7 +47,12 @@ func add_element(symbol: String, amount: float):
 	# Slot Check
 	if not elements.has(symbol):
 		if elements.size() >= get_max_slots():
-			# Inventory Full (Slots)
+			# Inventory full: this output is being silently lost. Tell the
+			# player (throttled) instead of failing invisibly.
+			var now := Time.get_ticks_msec()
+			if now - _last_full_warn_ms >= 5000:
+				_last_full_warn_ms = now
+				UITheme.show_notification("Inventory full — new resources are being wasted. Sell or expand storage.", Color(1.0, 0.45, 0.35))
 			return
 		elements[symbol] = 0.0
 	

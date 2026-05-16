@@ -38,6 +38,12 @@ var game_settings: Dictionary = {
 var time_since_save: float = 0.0
 const PROD_SAVE_INTERVAL: float = 60.0
 
+# Total active play time: real wall-clock seconds the game has been open.
+# Measured off the system clock so Engine.time_scale (game-speed) can't
+# inflate it. Persisted across sessions; reset only on a full New Game.
+var total_playtime: float = 0.0
+var _pt_last_msec: int = 0
+
 func _ready():
 	# Initialize Resources
 	var res_script = load("res://scripts/core/resources.gd")
@@ -65,6 +71,13 @@ func _ready():
 	load_game()
 
 func _process(delta):
+	# 0. Total play time (real clock — immune to game-speed scaling)
+	var now_ms := Time.get_ticks_msec()
+	if _pt_last_msec == 0:
+		_pt_last_msec = now_ms
+	total_playtime += float(now_ms - _pt_last_msec) / 1000.0
+	_pt_last_msec = now_ms
+
 	# 1. Background Automation (Infrastructure)
 	if infrastructure_manager: infrastructure_manager.process_tick(delta)
 	if bounty_manager: bounty_manager.process_tick(delta)
@@ -86,9 +99,19 @@ func _notification(what):
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_WM_GO_BACK_REQUEST:
 		save_game()
 
+func _task_label(m) -> String:
+	if m == gathering_manager: return "Mining"
+	if m == processing_manager: return "Engineering"
+	if m == research_manager: return "Research"
+	if m == combat_manager: return "Combat"
+	return "Task"
+
 func set_active_manager(manager):
 	if active_manager and active_manager != manager:
 		active_manager.stop_action()
+		# Only one foreground task runs at a time — make the swap visible so
+		# the player isn't left wondering why their last task "stopped".
+		UITheme.show_notification("%s paused — now %s" % [_task_label(active_manager), _task_label(manager)], Color(1.0, 0.82, 0.35))
 	active_manager = manager
 
 func save_game():
@@ -106,6 +129,7 @@ func save_game():
 		"bounty": bounty_manager.get_save_data_manager(),
 		"quest": quest_manager.get_save_data_manager(),
 		"game_settings": game_settings,  # v52.1
+		"total_playtime": total_playtime,
 		"last_save_time": Time.get_unix_time_from_system()
 	}
 	
@@ -179,6 +203,11 @@ func load_game():
 		var saved_settings = data.get("game_settings", {})
 		for key in saved_settings:
 			game_settings[key] = saved_settings[key]
+
+		# Restore lifetime play time (defaults to 0 for pre-existing saves).
+		# Re-anchor the clock so the load gap isn't counted as play time.
+		total_playtime = float(data.get("total_playtime", 0.0))
+		_pt_last_msec = Time.get_ticks_msec()
 		
 		# Restore Active Manager
 		var offline_combat_enabled = game_settings.get("offline_combat", false)
@@ -228,6 +257,10 @@ func process_offline_progress(delta: float):
 	if game_settings.get("offline_combat", false):
 		var c_report = combat_manager.calculate_offline(delta)
 		if c_report: reports.append(c_report)
+	elif combat_manager.in_combat:
+		# Player left mid-fight with offline combat off — explain the silence
+		# instead of letting them think combat is broken.
+		reports.append("Combat was paused while you were away. Turn on Offline Combat in Options to keep fighting offline.")
 	
 	if not reports.is_empty():
 		offline_report = "\n\n".join(reports)
@@ -245,7 +278,14 @@ func hard_reset():
 	mission_manager.reset()
 	if quest_manager: quest_manager.reset()
 	# ... others
-	
+
+	# Re-show first-visit page tours on a fresh playthrough
+	game_settings["coach_seen"] = {}
+
+	# New Game = brand new lifetime clock (Warp prestige does NOT reset this)
+	total_playtime = 0.0
+	_pt_last_msec = Time.get_ticks_msec()
+
 	was_resetted = true
 	game_resetted.emit()
 	

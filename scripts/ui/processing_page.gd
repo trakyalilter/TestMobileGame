@@ -34,6 +34,14 @@ func _on_resource_changed(_a = null, _b = null):
 		if w.has_method("update_state"):
 			w.update_state()
 
+func get_coach_anchor(key: String) -> Control:
+	match key:
+		"first_recipe":
+			return widgets[0] if not widgets.is_empty() else null
+		"xp_bar":
+			return xp_bar
+	return null
+
 func refresh_recipes():
 	# Clear previous racks
 	for child in rack_container.get_children():
@@ -155,8 +163,23 @@ func get_widget_by_aid(rid_in: String) -> Control:
 			return w
 	return null
 
-func focus_tab(_rid_in: String):
-	pass # No longer using tabs
+var _last_focus_rid: String = ""
+
+func on_page_enter():
+	_last_focus_rid = ""
+
+func focus_tab(rid_in: String):
+	# Scroll the mission-relevant recipe card into view (called every frame by
+	# the nav-hint system, so only act when the target actually changes).
+	if rid_in == "" or rid_in == _last_focus_rid:
+		return
+	var w = get_widget_by_aid(rid_in)
+	if not w:
+		return
+	_last_focus_rid = rid_in
+	var sc = $VBoxContainer/ScrollContainer
+	if sc is ScrollContainer:
+		sc.call_deferred("ensure_control_visible", w)
 
 func _process(_delta):
 	update_ui()

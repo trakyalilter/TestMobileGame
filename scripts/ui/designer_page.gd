@@ -132,6 +132,57 @@ func _ready():
 
 	trigger_refresh()
 
+var _consumable_blade: Control = null
+var _consumable_hull_slot: Control = null
+var _consumable_shield_slot: Control = null
+var _last_focus_slot: String = ""
+
+func get_coach_anchor(key: String) -> Control:
+	match key:
+		"schematic":
+			return schematic_area
+		"power":
+			return power_bar
+		"consumables":
+			return _consumable_blade if _consumable_blade else schematic_area
+	return null
+
+func on_page_enter():
+	# Re-arm scroll-to so re-entering during an equip mission re-centres.
+	_last_focus_slot = ""
+
+# Return the slot widget an equip mission should point at: the first EMPTY
+# slot of the given type (weapon/shield/armor/...), or the dedicated
+# consumable slot. Falls back to the first slot of that type.
+func get_slot_widget(slot_type: String) -> Control:
+	if slot_type == "consumable_hull":
+		return _consumable_hull_slot
+	if slot_type == "consumable_shield":
+		return _consumable_shield_slot
+	var fallback: Control = null
+	for w in all_slot_widgets:
+		if not is_instance_valid(w): continue
+		if w.slot_type != slot_type: continue
+		if fallback == null: fallback = w
+		var eq = ""
+		if manager: eq = manager.loadout.get(w.slot_idx, "")
+		if eq == null or eq == "":
+			return w
+	return fallback
+
+# Scroll the relevant slot into view. Called every frame by the nav-hint
+# system, so only act when the target slot type actually changes.
+func focus_slot(slot_type: String) -> void:
+	if slot_type == "" or slot_type == _last_focus_slot:
+		return
+	var w = get_slot_widget(slot_type)
+	if not w:
+		return
+	_last_focus_slot = slot_type
+	var sc = get_node_or_null("VBoxContainer/MainLayout/SchematicArea/LayoutSplit/SlotListPanel/SlotScroll")
+	if sc is ScrollContainer:
+		sc.call_deferred("ensure_control_visible", w)
+
 func _apply_designer_styles():
 	title_lbl.add_theme_color_override("font_color", TITLE_GOLD)
 	title_lbl.add_theme_font_size_override("font_size", 24)
@@ -857,7 +908,7 @@ func _build_grid_bar(used: float, cap: float, margin: float) -> Control:
 	outer.add_theme_constant_override("separation", 8)
 
 	var lbl = Label.new()
-	lbl.text = "⚡ GRID"
+	lbl.text = "GRID"
 	lbl.custom_minimum_size = Vector2(54, 0)
 	lbl.add_theme_font_size_override("font_size", 10)
 	lbl.add_theme_color_override("font_color", TEXT_DIM)
@@ -996,7 +1047,7 @@ func _build_sets_active_panel() -> Control:
 		var total = info["pieces"]
 		var active = have >= total
 
-		var line = HBoxContainer.new()
+		var line = _SetTooltip.new()
 		line.add_theme_constant_override("separation", 5)
 		vbox.add_child(line)
 
@@ -1028,19 +1079,22 @@ func _build_sets_active_panel() -> Control:
 		status_lbl.add_theme_font_size_override("font_size", 9)
 		line.add_child(status_lbl)
 
-		# Build a rich tooltip for hover instead of inflating the page with sub-lines.
-		var tt := "%s   %d / %d pieces\n" % [info["name"], have, total]
+		# Feed the custom rich tooltip (styled, LOCKED/ACTIVE state, pips).
+		var blines: Array = []
 		for bk in info["bonus"]:
 			var bv = info["bonus"][bk]
-			var bn = bk.replace("_pct", "").replace("_flat", "").replace("_", " ")
-			var bv_str = "+%d%%" % bv if ("_pct" in bk or "crit" in bk) else "+%d" % bv
-			tt += "  • %s  %s\n" % [bn, bv_str]
-		if not active:
-			tt += "(%d more piece%s to activate)" % [total - have, "s" if (total - have) > 1 else ""]
-		else:
-			tt += "ACTIVE"
+			var bn: String = bk.replace("_pct", "").replace("_flat", "").replace("_", " ").capitalize()
+			var bv_str: String = "%d%%" % bv if ("_pct" in bk or "crit" in bk) else "%d" % bv
+			blines.append([bn, bv_str])
+		line.tip_title = info["name"]
+		line.accent = Color(1.0, 0.85, 0.30) if active else Color(0.20, 0.84, 0.90)
+		line.have = have
+		line.total = total
+		line.is_active = active
+		line.bonus_lines = blines
 		line.mouse_filter = Control.MOUSE_FILTER_STOP
-		line.tooltip_text = tt
+		# No tooltip_text on purpose: _SetTooltip shows its own styled hover
+		# popup, so Godot's default (boxed) tooltip never fires.
 
 	return panel
 
@@ -1260,6 +1314,7 @@ func _create_consumable_blade(parent: Node):
 	var blade_panel = PanelContainer.new()
 	blade_panel.add_theme_stylebox_override("panel", _make_blade_style(Color(0.78, 0.65, 0.82)))
 	parent.add_child(blade_panel)
+	_consumable_blade = blade_panel  # coach/nav-hint anchor for Combat Triage
 
 	var margin = MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 10)
@@ -1286,15 +1341,42 @@ func _create_consumable_blade(parent: Node):
 	var hull_slot = slot_widget_scene.instantiate()
 	flow.add_child(hull_slot)
 	hull_slot.setup(-1, "consumable_hull", self, manager)
+	_consumable_hull_slot = hull_slot
 
 	var shield_slot = slot_widget_scene.instantiate()
 	flow.add_child(shield_slot)
 	shield_slot.setup(-1, "consumable_shield", self, manager)
+	_consumable_shield_slot = shield_slot
 
 func rebuild_ammo_slots():
 	pass
 
+var _storage_rebuild_pending := false
+
+func _rebuild_storage_after_drag() -> void:
+	# Wait out the drag, then do the deferred rebuild exactly once.
+	while is_inside_tree() and get_viewport().gui_is_dragging():
+		await get_tree().create_timer(0.15).timeout
+	if is_inside_tree():
+		_storage_rebuild_pending = false
+		rebuild_storage()
+	else:
+		_storage_rebuild_pending = false
+
 func rebuild_storage():
+	if not is_inside_tree():
+		return
+	# CRASH FIX: never free/rebuild armory cards while a drag is in progress.
+	# inventory_updated (combat loot, craft, equip, etc.) can fire mid-drag;
+	# rebuilding here queue_free()s the very node being dragged, which Godot's
+	# drag machinery then dereferences -> intermittent crash. Defer instead.
+	if get_viewport().gui_is_dragging():
+		if not _storage_rebuild_pending:
+			_storage_rebuild_pending = true
+			_rebuild_storage_after_drag()
+		return
+	_storage_rebuild_pending = false
+
 	var slot_count = 0
 	for child in storage_grid.get_children():
 		child.queue_free()
@@ -1674,3 +1756,100 @@ func _on_demolish_selected_pressed():
 	selected_mids.clear()
 	_update_bulk_ui()
 	rebuild_storage()
+
+
+# Rich, styled hover card for an equipped set — replaces the primitive
+# default text tooltip. Shows progress pips and a clear LOCKED→ACTIVE state
+# so the set reads as a collection goal, not a stat dump.
+class _SetTooltip extends HBoxContainer:
+	var tip_title: String = ""
+	var accent: Color = Color(0.20, 0.84, 0.90)
+	var have: int = 0
+	var total: int = 3
+	var is_active: bool = false
+	var bonus_lines: Array = []  # [[name, value_str], ...]
+
+	# Manual hover popup (NOT Godot's _make_custom_tooltip — that wraps the
+	# control in the theme's TooltipPanel, which drew a translucent black box
+	# behind our card). We render our own panel into ModalLayer instead.
+	var _popup: PanelContainer = null
+
+	func _ready() -> void:
+		mouse_entered.connect(_show_tip)
+		mouse_exited.connect(_hide_tip)
+		tree_exiting.connect(_hide_tip)
+
+	func _hide_tip() -> void:
+		if is_instance_valid(_popup):
+			_popup.queue_free()
+		_popup = null
+
+	func _show_tip() -> void:
+		_hide_tip()
+		_popup = _build_panel()
+		var root := get_tree().current_scene
+		var host: Node = null
+		if root:
+			host = root.get_node_or_null("ModalLayer")
+			if host == null:
+				host = root
+		else:
+			host = get_tree().root
+		host.add_child(_popup)
+		_popup.call_deferred("set", "position", _clamped_pos())
+
+	func _clamped_pos() -> Vector2:
+		var vp := get_viewport_rect().size
+		var sz := _popup.size if is_instance_valid(_popup) else Vector2(280, 140)
+		var p := get_global_mouse_position() + Vector2(18, 16)
+		if p.x + sz.x > vp.x - 8: p.x = get_global_mouse_position().x - sz.x - 18
+		if p.y + sz.y > vp.y - 8: p.y = vp.y - sz.y - 8
+		p.x = max(8.0, p.x)
+		p.y = max(8.0, p.y)
+		return p
+
+	func _build_panel() -> PanelContainer:
+		var panel := PanelContainer.new()
+		panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = Color(0.07, 0.08, 0.12, 0.98)
+		sb.set_border_width_all(1)
+		sb.border_width_top = 3
+		sb.border_color = accent
+		sb.set_corner_radius_all(5)
+		sb.shadow_color = Color(0, 0, 0, 0.55)
+		sb.shadow_size = 14
+		sb.content_margin_left = 16
+		sb.content_margin_right = 16
+		sb.content_margin_top = 12
+		sb.content_margin_bottom = 12
+		panel.add_theme_stylebox_override("panel", sb)
+
+		var rt := RichTextLabel.new()
+		rt.bbcode_enabled = true
+		rt.fit_content = true
+		rt.scroll_active = false
+		rt.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		rt.custom_minimum_size = Vector2(264, 0)
+		rt.add_theme_font_size_override("normal_font_size", 12)
+
+		var hex := accent.to_html(false)
+		var pips := ""
+		for i in range(total):
+			pips += "◆" if i < have else "◇"
+
+		var s := "[b][color=#%s]%s[/color][/b]\n" % [hex, tip_title]
+		s += "[color=#%s]%s[/color]  [color=#7a8190]%d / %d pieces[/color]\n" % [hex, pips, have, total]
+		s += "[color=#2b3140]————————————————————[/color]\n"
+		if is_active:
+			s += "[b][color=#4FE08C]◆ SET BONUS ACTIVE[/color][/b]\n"
+		else:
+			var rem := total - have
+			s += "[b][color=#FFB13D]◇ LOCKED[/color][/b]  [color=#9aa0ad]equip %d more piece%s[/color]\n" % [rem, ("s" if rem > 1 else "")]
+		var line_col := "#cfe8d8" if is_active else "#6c7280"
+		for bl in bonus_lines:
+			s += "[color=%s]   +%s  %s[/color]\n" % [line_col, str(bl[1]), str(bl[0])]
+
+		rt.text = s.strip_edges()
+		panel.add_child(rt)
+		return panel

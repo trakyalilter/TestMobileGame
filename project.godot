@@ -20,6 +20,8 @@ config/icon="res://icon.svg"
 GameState="*res://scripts/core/game_state.gd"
 ElementDB="*res://scripts/core/element_db.gd"
 UITheme="*res://scripts/core/ui_theme.gd"
+CursorManager="*res://scripts/core/cursor_manager.gd"
+ClickFX="*res://scripts/core/click_fx.gd"
 
 [display]
 

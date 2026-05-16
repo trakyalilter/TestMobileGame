@@ -82,3 +82,14 @@ static func format_time(seconds: float) -> String:
 		var hrs = int(seconds / 3600)
 		var mins = int(seconds / 60) % 60
 		return "%dh %dm" % [hrs, mins]
+
+# Compact lifetime-style duration (e.g. "3d 14h", "142h 09m", "12m").
+static func format_playtime(seconds: float) -> String:
+	var s := int(max(0.0, seconds))
+	if s < 60:
+		return "%ds" % s
+	if s < 3600:
+		return "%dm" % (s / 60)
+	if s < 86400:
+		return "%dh %02dm" % [s / 3600, (s / 60) % 60]
+	return "%dd %dh" % [s / 86400, (s / 3600) % 24]

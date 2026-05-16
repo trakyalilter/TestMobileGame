@@ -878,6 +878,21 @@ func _build_module_tooltip(m_data: Dictionary) -> String:
 		var dps = float(dmg) / interval
 		tt += "[font_size=20][b]%.1f DPS[/b][/font_size]\n" % dps
 		tt += "[font_size=9][color=gray]%s total damage, %.2f hits/s[/color][/font_size]\n" % [UITheme.format_num(dmg), 1.0 / interval]
+
+		# v87.0 parity: show the damage type + matchup on the EQUIPPED slot too
+		# (the armory card already did; the equipped tooltip didn't).
+		if stats.get("atk_kinetic", 0) > 0:
+			tt += "[color=#99ccff][b]KINETIC[/b][/color]\n"
+			tt += "[color=green]  + Strong: Hull (+20%)[/color]\n"
+			tt += "[color=red]  - Weak: Shield (-50%)[/color]\n"
+		if stats.get("atk_energy", 0) > 0:
+			tt += "[color=#ffe64d][b]ENERGY[/b][/color]\n"
+			tt += "[color=green]  + Strong: Shield (+50%), Armor Bypass[/color]\n"
+			tt += "[color=red]  - Weak: Hull (-10%)[/color]\n"
+		if stats.get("atk_explosive", 0) > 0:
+			tt += "[color=#ff804d][b]EXPLOSIVE[/b][/color]\n"
+			tt += "[color=green]  + Strong: Armor Bypass (80% pen)[/color]\n"
+			tt += "[color=red]  - Weak: Slower fire rate[/color]\n"
 		tt += div
 	elif s_type == "shield":
 		var m_shield = stats.get("max_shield", 0)

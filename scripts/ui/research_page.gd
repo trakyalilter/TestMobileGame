@@ -347,24 +347,22 @@ func _on_scroll_gui_input(event: InputEvent, scroll: ScrollContainer):
 		scroll.scroll_vertical = int(_pan_start_scroll.y + delta.y)
 
 func on_page_enter():
-	# SMART NAVIGATION: Auto-focus tab based on active mission
+	# SMART NAVIGATION: When a tutorial/active mission points at a research,
+	# switch to its tab AND center the required node so the player isn't left
+	# hunting the tree after clicking the beeping Research Lab button.
 	var mm = GameState.mission_manager
 	if not mm: return
-	
+
 	for mid in mm.active_missions:
 		var m = mm.missions[mid]
 		if m["type"] == "research":
 			var tech_id = m["target"]
-			
-			# Find which tab holds this tech
+
+			# Only act if the target actually exists in a tab's node list
 			for tab_name in graphs:
 				if tech_id in graphs[tab_name]["nodes"]:
-					# Switch to this tab immediately
-					for i in range(tabs.get_tab_count()):
-						# Audit v16.2: Use Node Name (immutable) instead of Title
-						if tabs.get_tab_control(i).name == tab_name:
-							tabs.current_tab = i
-							return # Found our target, stop searching
+					focus_on_tech(tech_id)
+					return # Found our target, stop searching
 
 var active_alert_indices: Array = []
 
@@ -581,6 +579,22 @@ func refresh_all():
 			if child.has_method("update_state"):
 				child.update_state()
 
+func get_coach_anchor(key: String) -> Control:
+	match key:
+		"tabs":
+			return tabs
+		"first_node":
+			var w := get_node_widget("basic_engineering")
+			if w: return w
+			# Fallback: any built node widget in any tab.
+			for tab_name in graphs:
+				var container = graphs[tab_name]["container"]
+				if container:
+					for child in container.get_children():
+						if child is Control and child.get("nid") != null:
+							return child
+	return null
+
 func get_node_widget(tech_id: String) -> Control:
 	for tab_name in graphs:
 		var container = graphs[tab_name]["container"]
@@ -606,18 +620,30 @@ func focus_on_tech(tech_id: String):
 			tabs.current_tab = i
 			break
 	
-	# 3. Center on Node (Deferred to allow layout)
+	# 3. Center on Node. The freshly-shown tab's ScrollContainer only finalizes
+	#    its scrollable range a couple of frames after becoming visible, so a
+	#    single set gets clamped to 0. Wait, set, then re-apply.
 	await get_tree().process_frame
-	
+	await get_tree().process_frame
+
 	var node_widget = get_node_widget(tech_id)
-	if node_widget:
-		var scroll = tabs.get_current_tab_control().get_child(0) # ScrollContainer
-		if scroll is ScrollContainer:
-			var target_pos = node_widget.position + (node_widget.size * node_widget.scale / 2.0)
-			scroll.scroll_horizontal = int(target_pos.x - scroll.size.x / 2.0)
-			scroll.scroll_vertical = int(target_pos.y - scroll.size.y / 2.0)
-			
-			# Visual Highlight
-			var tween = node_widget.create_tween()
-			tween.tween_property(node_widget, "modulate", Color(2, 2, 2), 0.2)
-			tween.tween_property(node_widget, "modulate", Color(1, 1, 1), 0.5)
+	if not node_widget:
+		return
+	var tab_ctrl = tabs.get_current_tab_control()
+	if not tab_ctrl or tab_ctrl.get_child_count() == 0:
+		return
+	var scroll = tab_ctrl.get_child(0) # ScrollContainer
+	if scroll is ScrollContainer:
+		_center_scroll_on(scroll, node_widget)
+		await get_tree().process_frame
+		_center_scroll_on(scroll, node_widget)
+
+		# Visual Highlight
+		var tween = node_widget.create_tween()
+		tween.tween_property(node_widget, "modulate", Color(2, 2, 2), 0.2)
+		tween.tween_property(node_widget, "modulate", Color(1, 1, 1), 0.5)
+
+func _center_scroll_on(scroll: ScrollContainer, node_widget: Control) -> void:
+	var target_pos = node_widget.position + (node_widget.size * node_widget.scale / 2.0)
+	scroll.scroll_horizontal = int(max(0.0, target_pos.x - scroll.size.x / 2.0))
+	scroll.scroll_vertical = int(max(0.0, target_pos.y - scroll.size.y / 2.0))
