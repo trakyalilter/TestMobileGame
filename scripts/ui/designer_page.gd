@@ -191,8 +191,9 @@ func _apply_designer_styles():
 	ship_name_lbl.add_theme_font_size_override("font_size", 22)
 	power_lbl.add_theme_color_override("font_color", TEXT_MAIN)
 
-	bay_lbl.add_theme_color_override("font_color", TITLE_GOLD)
-	bay_lbl.add_theme_font_size_override("font_size", 15)
+	# Standalone ARMORY title folded into the toolbar row (chrome diet) so
+	# it no longer eats a full strip above the grid.
+	bay_lbl.visible = false
 
 	_apply_frame_style(info_panel, FRAME_BG, FRAME_EDGE)
 	_apply_frame_style(schematic_area, Color(0.08, 0.06, 0.05, 0.96), Color(0.37, 0.27, 0.19, 0.92))
@@ -201,10 +202,10 @@ func _apply_designer_styles():
 	_apply_power_bar_style()
 	_refresh_filter_button_styles()
 	
-	# v84.0: Increased columns for compact tiles
-	storage_grid.columns = 6
-	storage_grid.add_theme_constant_override("h_separation", 6)
-	storage_grid.add_theme_constant_override("v_separation", 6)
+	# Fewer, larger tiles so loot reads instead of stacking narrow.
+	storage_grid.columns = 4
+	storage_grid.add_theme_constant_override("h_separation", 8)
+	storage_grid.add_theme_constant_override("v_separation", 8)
 
 
 func _setup_filter_tabs():
@@ -282,6 +283,7 @@ func _setup_bulk_actions():
 	_armory_banner.add_theme_color_override("font_color", Color(0.55, 0.80, 1.0))
 	_armory_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_armory_banner.text = ""
+	_armory_banner.visible = false
 	v_box.add_child(_armory_banner)
 	v_box.move_child(_armory_banner, scroll.get_index())
 
@@ -289,6 +291,9 @@ func _setup_bulk_actions():
 	var sort_row = HBoxContainer.new()
 	sort_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	sort_row.add_theme_constant_override("separation", 6)
+	# Superseded by the toolbar's Sort dropdown -- hide the whole row so it
+	# doesn't reserve a separation gap above the grid.
+	sort_row.visible = false
 	v_box.add_child(sort_row)
 	v_box.move_child(sort_row, _armory_banner.get_index() + 1)
 
@@ -325,6 +330,14 @@ func _setup_armory_toolbar(v_box: Node, scroll_node: Node):
 	toolbar.name = "ArmoryToolbar"
 	toolbar.add_theme_constant_override("separation", 6)
 	toolbar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	# Inline title (replaces the standalone ARMORY strip).
+	var title = Label.new()
+	title.text = "ARMORY"
+	title.add_theme_font_size_override("font_size", 13)
+	title.add_theme_color_override("font_color", Color(0.95, 0.80, 0.30))
+	title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	toolbar.add_child(title)
 
 	# Search — primary filter, takes most width
 	armory_search = LineEdit.new()
@@ -374,22 +387,28 @@ func _apply_toolbar_button_style(button: Button, accent: Color):
 	# Toggle-aware: pressed state shows a lit accent edge so on/off is obvious.
 	var normal := StyleBoxFlat.new()
 	normal.bg_color = Color(0.10, 0.07, 0.05, 0.95)
-	normal.set_corner_radius_all(2)
+	normal.set_corner_radius_all(4)
 	normal.set_border_width_all(1)
-	normal.border_color = TAB_EDGE
+	var n_edge: Color = accent
+	n_edge.a = 0.32
+	normal.border_color = n_edge
 	normal.content_margin_left = 10
 	normal.content_margin_right = 10
-	normal.content_margin_top = 4
-	normal.content_margin_bottom = 4
+	normal.content_margin_top = 5
+	normal.content_margin_bottom = 5
 
 	var hover := normal.duplicate()
-	hover.bg_color = Color(0.14, 0.10, 0.07, 1.0)
-	hover.border_color = accent.lerp(TAB_EDGE, 0.45)
+	hover.bg_color = accent.lerp(Color.BLACK, 0.74)
+	var h_edge: Color = accent
+	h_edge.a = 0.6
+	hover.border_color = h_edge
 
 	var pressed := normal.duplicate()
-	pressed.bg_color = Color(0.18, 0.13, 0.08, 1.0)
+	pressed.bg_color = accent.lerp(Color.BLACK, 0.55)
 	pressed.border_color = accent
-	pressed.border_width_left = 3
+	pressed.border_width_top = 2
+	pressed.shadow_color = Color(accent.r, accent.g, accent.b, 0.28)
+	pressed.shadow_size = 5
 
 	var disabled := normal.duplicate()
 	disabled.bg_color = Color(0.08, 0.06, 0.05, 0.70)
@@ -448,17 +467,19 @@ func _apply_dropdown_style(opt: OptionButton):
 func _apply_search_field_style(le: LineEdit):
 	var normal := StyleBoxFlat.new()
 	normal.bg_color = Color(0.06, 0.04, 0.03, 0.98)
-	normal.set_corner_radius_all(2)
+	normal.set_corner_radius_all(4)
 	normal.set_border_width_all(1)
 	normal.border_color = TAB_EDGE
-	normal.content_margin_left = 8
-	normal.content_margin_right = 8
-	normal.content_margin_top = 4
-	normal.content_margin_bottom = 4
+	normal.content_margin_left = 9
+	normal.content_margin_right = 9
+	normal.content_margin_top = 5
+	normal.content_margin_bottom = 5
 
 	var focus := normal.duplicate()
-	focus.border_color = Color(0.85, 0.70, 0.45, 0.95)
-	focus.border_width_left = 2
+	focus.border_color = Color(0.95, 0.78, 0.45, 0.95)
+	focus.border_width_bottom = 2
+	focus.shadow_color = Color(0.85, 0.70, 0.45, 0.18)
+	focus.shadow_size = 4
 
 	le.add_theme_stylebox_override("normal", normal)
 	le.add_theme_stylebox_override("focus", focus)
@@ -469,12 +490,13 @@ func _apply_search_field_style(le: LineEdit):
 func _setup_loadout_preset_row(parent: Node, insert_idx: int):
 	var preset_row = HBoxContainer.new()
 	preset_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	preset_row.add_theme_constant_override("separation", 12)
+	preset_row.add_theme_constant_override("separation", 7)
 
 	var label = Label.new()
-	label.text = "LOADOUTS:"
-	label.add_theme_font_size_override("font_size", 11)
-	label.add_theme_color_override("font_color", Color(0.55, 0.60, 0.72))
+	label.text = "LOADOUTS"
+	label.add_theme_font_size_override("font_size", 10)
+	label.add_theme_color_override("font_color", TEXT_DIM)
+	label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	preset_row.add_child(label)
 
 	_preset_load_buttons = []
@@ -483,10 +505,10 @@ func _setup_loadout_preset_row(parent: Node, insert_idx: int):
 		preset_box.add_theme_constant_override("separation", 2)
 
 		var save_btn = Button.new()
-		save_btn.text = "💾 %d" % i
+		save_btn.text = "SAVE %d" % i
 		save_btn.tooltip_text = "Save current ship setup to Preset %d" % i
 		save_btn.pressed.connect(_on_preset_save.bind(i))
-		save_btn.add_theme_font_size_override("font_size", 11)
+		save_btn.add_theme_font_size_override("font_size", 10)
 		_apply_filter_button_style(save_btn, false, Color(0.65, 0.85, 0.95))
 		preset_box.add_child(save_btn)
 
@@ -494,7 +516,7 @@ func _setup_loadout_preset_row(parent: Node, insert_idx: int):
 		load_btn.text = "LOAD %d" % i
 		load_btn.tooltip_text = "Apply Preset %d to ship" % i
 		load_btn.pressed.connect(_on_preset_load.bind(i))
-		load_btn.add_theme_font_size_override("font_size", 11)
+		load_btn.add_theme_font_size_override("font_size", 10)
 		_apply_filter_button_style(load_btn, false, Color(0.95, 0.80, 0.30))
 		preset_box.add_child(load_btn)
 
@@ -592,6 +614,8 @@ func _slot_type_to_filter(s_type: String) -> String:
 
 func _update_armory_banner():
 	if not _armory_banner: return
+	# Contextual: only occupies a row while equipping for a focused slot.
+	_armory_banner.visible = focused_slot_type != ""
 	if focused_slot_type == "":
 		_armory_banner.text = ""
 		return
@@ -678,38 +702,49 @@ func _refresh_filter_button_styles():
 		_apply_filter_button_style(button, visual_filter == filter_id, accent)
 
 func _apply_filter_button_style(button: Button, is_active: bool, accent: Color):
+	# Unselected: recessed dark chip with a dim accent edge + accent-dim text.
 	var normal = StyleBoxFlat.new()
-	normal.bg_color = TAB_BASE
+	normal.bg_color = Color(0.10, 0.08, 0.07, 0.92)
+	normal.set_corner_radius_all(4)
 	normal.set_border_width_all(1)
-	normal.border_color = TAB_EDGE
-	normal.set_corner_radius_all(2)
+	var dim_edge: Color = accent
+	dim_edge.a = 0.30
+	normal.border_color = dim_edge
 	normal.content_margin_left = 10
 	normal.content_margin_right = 10
-	normal.content_margin_top = 6
-	normal.content_margin_bottom = 6
+	normal.content_margin_top = 5
+	normal.content_margin_bottom = 5
 
 	var hover = normal.duplicate()
-	hover.bg_color = TAB_BASE.lerp(accent, 0.24)
-	hover.border_color = accent.lerp(Color.WHITE, 0.15)
+	hover.bg_color = accent.lerp(Color.BLACK, 0.72)
+	var hb: Color = accent
+	hb.a = 0.6
+	hover.border_color = hb
 
-	var pressed = normal.duplicate()
-	pressed.bg_color = TAB_BASE.lerp(accent, 0.44)
-	pressed.border_color = accent.lerp(Color.WHITE, 0.28)
-	pressed.border_width_top = 3
+	# Selected: filled accent plate, lit top edge, soft accent halo — the
+	# same "this is active" language as the card rarity frames.
+	var selected = normal.duplicate()
+	selected.bg_color = accent.lerp(Color.BLACK, 0.55)
+	selected.border_color = accent
+	selected.border_width_top = 2
+	selected.shadow_color = Color(accent.r, accent.g, accent.b, 0.30)
+	selected.shadow_size = 5
 
 	var disabled = normal.duplicate()
-	disabled.bg_color = Color(0.10, 0.08, 0.07, 0.70)
-	disabled.border_color = Color(0.25, 0.20, 0.18, 0.70)
+	disabled.bg_color = Color(0.09, 0.07, 0.06, 0.55)
+	disabled.border_color = Color(0.25, 0.20, 0.18, 0.45)
 
-	button.add_theme_stylebox_override("normal", normal)
-	button.add_theme_stylebox_override("hover", hover)
-	button.add_theme_stylebox_override("pressed", pressed)
+	button.add_theme_stylebox_override("normal", selected if is_active else normal)
+	button.add_theme_stylebox_override("hover", selected if is_active else hover)
+	button.add_theme_stylebox_override("pressed", selected)
 	button.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 	button.add_theme_stylebox_override("disabled", disabled)
 
-	button.add_theme_color_override("font_color", accent.lerp(Color(0.86, 0.80, 0.70), 0.55))
-	button.add_theme_color_override("font_hover_color", accent.lerp(Color.WHITE, 0.25))
-	button.add_theme_color_override("font_pressed_color", Color(0.17, 0.11, 0.06))
+	button.add_theme_color_override("font_color",
+		accent.lerp(Color.WHITE, 0.75) if is_active else accent.lerp(TEXT_DIM, 0.45))
+	button.add_theme_color_override("font_hover_color", accent.lerp(Color.WHITE, 0.6))
+	button.add_theme_color_override("font_pressed_color", accent.lerp(Color.WHITE, 0.85))
+	button.add_theme_color_override("font_disabled_color", Color(0.45, 0.40, 0.36))
 	button.add_theme_font_size_override("font_size", 10)
 	button.button_pressed = is_active
 
@@ -722,7 +757,9 @@ func _on_visibility_changed():
 		focused_slot_type = ""
 		focused_slot_idx = -1
 		focused_slot_equipped_mid = ""
-		if _armory_banner: _armory_banner.text = ""
+		if _armory_banner:
+			_armory_banner.text = ""
+			_armory_banner.visible = false
 
 func _on_inventory_updated():
 	if visible:
@@ -1500,7 +1537,7 @@ func rebuild_storage():
 				slot_count += 1
 
 	# v84.1: Fill remaining with Empty Slots (Premium Grid Look)
-	var min_slots = 42 # 6 columns * 7 rows
+	var min_slots = 28 # 4 columns * 7 rows
 	var needed = max(0, min_slots - slot_count)
 	for i in range(needed):
 		var empty = empty_slot_scene.instantiate()

@@ -53,8 +53,8 @@ layout_mode = 2
 theme_override_font_sizes/normal_font_size = 11
 bbcode_enabled = true
 text = "Costs"
-fit_content = false
-custom_minimum_size = Vector2(0, 48)
+fit_content = true
+custom_minimum_size = Vector2(0, 24)
 scroll_active = false
 autowrap_mode = 3
 

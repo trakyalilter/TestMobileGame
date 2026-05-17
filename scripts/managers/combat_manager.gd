@@ -455,7 +455,7 @@ var enemy_db = {
 	"z2_ore_hauler": {
 		"name": "Ore Hauler",
 		"stats": {"hp": 950, "atk": 28, "def": 10, "atk_interval": 5.0, "accuracy": 20},
-		"loot": [["Fe", 10, 25], ["Si", 5, 12], ["Res1", 2, 5], ["PirateSalvage", 2, 5]],
+		"loot": [["Fe", 10, 25], ["Si", 5, 12], ["Res1", 2, 5], ["PirateSalvage", 2, 5], ["SalvageData", 1, 3]],
 		"rare_loot": [["Steel", 0.10, 1, 3]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z2_kinetic", "z2_energy", "z2_shield", "z2_armor", "z2_sensor", "z2_engine"],
@@ -494,7 +494,7 @@ var enemy_db = {
 	"z3_salvage_swarm": {
 		"name": "Salvage Swarm",
 		"stats": {"hp": 800, "atk": 38, "def": 10, "atk_interval": 0.6, "accuracy": 38},
-		"loot": [["Fe", 5, 15], ["Cu", 3, 8], ["Res2", 1, 2], ["MartianRelics", 1, 2]],
+		"loot": [["Fe", 5, 15], ["Cu", 3, 8], ["Res2", 1, 2], ["MartianRelics", 1, 2], ["SalvageData", 2, 4]],
 		"rare_loot": [["Steel", 0.15, 2, 5], ["Sn", 0.12, 2, 4]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z3_kinetic", "z3_energy", "z3_shield", "z3_armor", "z3_sensor", "z3_engine"],
@@ -656,7 +656,7 @@ var enemy_db = {
 	"z6_boss_colossus": {
 		"name": "Gamma Colossus",
 		"stats": {"hp": 371061, "max_shield": 6184, "atk": 4329, "def": 927, "atk_interval": 2.5, "accuracy": 140},
-		"loot": [["credits", 200000, 500000], ["Ir", 5, 12], ["Superalloy", 10, 25], ["Res3", 10, 20]],
+		"loot": [["credits", 200000, 500000], ["Ir", 5, 12], ["Superalloy", 10, 25], ["Res3", 10, 20], ["ColonyDataCore", 2, 5]],
 		"rare_loot": [["z6_unique_weapon", 0.03, 1, 1], ["z6_unique_armor", 0.03, 1, 1], ["z6_unique_shield", 0.03, 1, 1]],
 		"boss_core": "Z6_Core",
 		"module_drop_chance": 0.25,
@@ -668,7 +668,7 @@ var enemy_db = {
 	"z7_shard_swarm": {
 		"name": "Shard Swarm",
 		"stats": {"hp": 30000, "atk": 1350, "def": 270, "atk_interval": 0.8, "accuracy": 100},
-		"loot": [["ExoticMatter", 1, 3], ["VoidCrystal", 1, 2], ["Res3", 2, 4]],
+		"loot": [["ExoticMatter", 1, 3], ["VoidCrystal", 1, 2], ["Res3", 2, 4], ["ExoticIsotope", 1, 2]],
 		"rare_loot": [["Os", 0.08, 1, 2]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z7_kinetic", "z7_energy", "z7_missile", "z7_shield", "z7_armor"],
@@ -716,7 +716,7 @@ var enemy_db = {
 	"z8_prism_drone": {
 		"name": "Prism Drone",
 		"stats": {"hp": 73000, "max_shield": 25000, "atk": 3000, "def": 600, "atk_interval": 1.5, "accuracy": 120},
-		"loot": [["VoidCrystal", 3, 8], ["credits", 100000, 200000], ["Res3", 3, 6]],
+		"loot": [["VoidCrystal", 3, 8], ["credits", 100000, 200000], ["Res3", 3, 6], ["ExoticIsotope", 1, 3]],
 		"rare_loot": [["Diamond", 0.05, 1, 1]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z8_kinetic", "z8_energy", "z8_missile", "z8_shield", "z8_armor"],
@@ -725,7 +725,7 @@ var enemy_db = {
 	"z8_crystal_golem": {
 		"name": "Crystal Golem",
 		"stats": {"hp": 91733, "atk": 3742, "def": 749, "atk_interval": 3.5, "accuracy": 115},
-		"loot": [["VoidCrystal", 5, 12], ["Os", 1, 3], ["Res3", 3, 6]],
+		"loot": [["VoidCrystal", 5, 12], ["Os", 1, 3], ["Res3", 3, 6], ["AntimatterParticle", 1, 2]],
 		"rare_loot": [["Diamond", 0.08, 1, 1]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z8_kinetic", "z8_energy", "z8_missile", "z8_shield", "z8_armor"],
@@ -764,7 +764,7 @@ var enemy_db = {
 	"z9_plague_drone": {
 		"name": "Plague Drone",
 		"stats": {"hp": 175000, "max_shield": 50000, "atk": 6500, "def": 1300, "atk_interval": 1.2, "accuracy": 140},
-		"loot": [["BiohazardSample", 2, 5], ["credits", 300000, 600000], ["Res3", 5, 10]],
+		"loot": [["BiohazardSample", 2, 5], ["credits", 300000, 600000], ["Res3", 5, 10], ["AntimatterParticle", 1, 3]],
 		"rare_loot": [["PathogenCore", 0.05, 1, 1]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z9_kinetic", "z9_energy", "z9_missile", "z9_shield", "z9_armor"],

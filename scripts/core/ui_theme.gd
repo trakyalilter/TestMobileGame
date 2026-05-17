@@ -781,6 +781,227 @@ func _update_locked_message(lbl: RichTextLabel, message: String, tech_id: String
 	else:
 		lbl.text = "[center]%s[/center]" % message
 
+# --- ACTIVITY CARD OVERHAUL (additive; used only by the gathering /
+# processing widgets -- does NOT touch the shared inject_diegetic_header /
+# apply_card_style paths the other 15 card types rely on) ---
+
+## inject_activity_header: one compact command row -- [icon | name | Lv badge]
+## -- replacing the name + separate centred level line. Reparents the
+## existing NameLabel + LevelLabel so update_state() keeps driving them.
+func inject_activity_header(card: PanelContainer, category: String, icon_tex: Texture2D) -> PanelContainer:
+	var margin_cont = card.get_node_or_null("MarginContainer")
+	if not margin_cont: return null
+	var vbox = margin_cont.get_node_or_null("VBoxContainer")
+	if not vbox: return null
+	var name_lbl = vbox.get_node_or_null("NameLabel")
+	var lvl_lbl = vbox.get_node_or_null("LevelLabel")
+	if not name_lbl: return null
+
+	var accent = CATEGORY_COLORS.get(category, COLORS["accent"])
+
+	# Uniform side inset so header / IO panels / button / bar share one
+	# aligned column. Top stays 0 so the header band sits flush to the card.
+	margin_cont.add_theme_constant_override("margin_top", 0)
+	margin_cont.add_theme_constant_override("margin_left", 8)
+	margin_cont.add_theme_constant_override("margin_right", 8)
+	margin_cont.add_theme_constant_override("margin_bottom", 8)
+	vbox.add_theme_constant_override("separation", 7)
+
+	var header_panel = PanelContainer.new()
+	header_panel.name = "ActivityHeader"
+	header_panel.mouse_filter = Control.MOUSE_FILTER_PASS
+	vbox.add_child(header_panel)
+	vbox.move_child(header_panel, 0)
+
+	var hmargin = MarginContainer.new()
+	hmargin.add_theme_constant_override("margin_left", 8)
+	hmargin.add_theme_constant_override("margin_right", 8)
+	hmargin.add_theme_constant_override("margin_top", 5)
+	hmargin.add_theme_constant_override("margin_bottom", 5)
+	hmargin.mouse_filter = Control.MOUSE_FILTER_PASS
+	header_panel.add_child(hmargin)
+
+	var row = HBoxContainer.new()
+	row.add_theme_constant_override("separation", 7)
+	row.mouse_filter = Control.MOUSE_FILTER_PASS
+	hmargin.add_child(row)
+
+	if icon_tex:
+		var icon = TextureRect.new()
+		icon.texture = icon_tex
+		icon.custom_minimum_size = Vector2(22, 22)
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(icon)
+
+	name_lbl.get_parent().remove_child(name_lbl)
+	row.add_child(name_lbl)
+	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	name_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	name_lbl.autowrap_mode = TextServer.AUTOWRAP_OFF
+	name_lbl.clip_text = true
+	name_lbl.add_theme_color_override("font_color", Color.WHITE)
+	name_lbl.add_theme_font_size_override("font_size", 13)
+
+	if lvl_lbl:
+		lvl_lbl.get_parent().remove_child(lvl_lbl)
+		var badge = PanelContainer.new()
+		badge.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		var bm = MarginContainer.new()
+		bm.add_theme_constant_override("margin_left", 6)
+		bm.add_theme_constant_override("margin_right", 6)
+		bm.add_theme_constant_override("margin_top", 1)
+		bm.add_theme_constant_override("margin_bottom", 1)
+		badge.add_child(bm)
+		bm.add_child(lvl_lbl)
+		lvl_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lvl_lbl.add_theme_font_size_override("font_size", 10)
+		lvl_lbl.add_theme_color_override("font_color", accent.lightened(0.4))
+		var bstyle = StyleBoxFlat.new()
+		bstyle.bg_color = accent.lerp(Color.BLACK, 0.78)
+		bstyle.set_corner_radius_all(3)
+		bstyle.set_border_width_all(1)
+		var bcol: Color = accent
+		bcol.a = 0.5
+		bstyle.border_color = bcol
+		badge.add_theme_stylebox_override("panel", bstyle)
+		row.add_child(badge)
+
+	apply_diegetic_header(header_panel, category)
+	return header_panel
+
+## wrap_in_io_panel: pull a label into a captioned compartment. kind is one
+## of "yield" / "output" (the payoff -- reads as the hero) or "input" (recedes).
+## The caption turns a floating text box into a labelled instrument readout.
+func wrap_in_io_panel(label: Control, category: String, kind: String) -> PanelContainer:
+	if not label: return null
+	var parent = label.get_parent()
+	if not parent: return null
+	var accent = CATEGORY_COLORS.get(category, COLORS["accent"])
+	var idx = label.get_index()
+	var emphasis: bool = kind != "input"
+
+	var panel = PanelContainer.new()
+	panel.name = label.name + "Panel"
+	panel.size_flags_horizontal = Control.SIZE_FILL
+	# Size to content -- a forced vexpand is what hollowed the sparse cards.
+	parent.add_child(panel)
+	parent.move_child(panel, idx)
+
+	var m = MarginContainer.new()
+	m.add_theme_constant_override("margin_left", 9)
+	m.add_theme_constant_override("margin_right", 9)
+	m.add_theme_constant_override("margin_top", 4)
+	m.add_theme_constant_override("margin_bottom", 6)
+	panel.add_child(m)
+
+	var col = VBoxContainer.new()
+	col.add_theme_constant_override("separation", 1)
+	m.add_child(col)
+
+	var cap = Label.new()
+	cap.text = ({"yield": "YIELD", "output": "OUTPUT", "input": "INPUTS"}).get(kind, kind.to_upper())
+	cap.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	cap.add_theme_font_size_override("font_size", 8)
+	cap.add_theme_constant_override("outline_size", 0)
+	if emphasis:
+		var cc: Color = accent.lightened(0.35)
+		cc.a = 0.75
+		cap.add_theme_color_override("font_color", cc)
+	else:
+		cap.add_theme_color_override("font_color", Color(0.52, 0.54, 0.60))
+	col.add_child(cap)
+
+	label.get_parent().remove_child(label)
+	col.add_child(label)
+	if label is RichTextLabel:
+		label.add_theme_font_size_override("normal_font_size", 14 if emphasis else 11)
+		label.add_theme_color_override("default_color",
+			Color(0.96, 0.97, 1.0) if emphasis else Color(0.66, 0.68, 0.74))
+
+	var style = StyleBoxFlat.new()
+	style.set_corner_radius_all(4)
+	if emphasis:
+		style.bg_color = accent.lerp(Color.BLACK, 0.82)
+		style.set_border_width_all(1)
+		style.border_width_left = 3
+		var bc: Color = accent
+		bc.a = 0.9
+		style.border_color = bc
+		style.shadow_color = Color(accent.r, accent.g, accent.b, 0.16)
+		style.shadow_size = 6
+	else:
+		style.bg_color = Color(0.0, 0.0, 0.0, 0.22)
+		style.set_border_width_all(1)
+		style.border_color = Color(1, 1, 1, 0.05)
+	panel.add_theme_stylebox_override("panel", style)
+	return panel
+
+## pin_card_footer: make every card in a grid row the same height and put the
+## flexible gap just before `before_node_name`, so everything from that node
+## down is bottom-aligned across cards regardless of how tall the region above
+## it grows. Pass the REFINE divider for processing (so INPUTS floats, but
+## REFINE/OUTPUT/footer all line up) or the Button for the simple cards.
+func pin_card_footer(card: PanelContainer, before_node_name: String = "Button") -> void:
+	if not card: return
+	card.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var vbox = card.get_node_or_null("MarginContainer/VBoxContainer")
+	if not vbox: return
+	var pivot = vbox.get_node_or_null(before_node_name)
+	if not pivot:
+		pivot = vbox.get_node_or_null("Button")
+	if not pivot: return
+	if vbox.get_node_or_null("FooterSpacer"): return
+	var spacer = Control.new()
+	spacer.name = "FooterSpacer"
+	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	spacer.custom_minimum_size = Vector2(0, 2)
+	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vbox.add_child(spacer)
+	vbox.move_child(spacer, pivot.get_index())
+
+# --- MODULE TYPE ICON / DAMAGE-FAMILY (shared by the armory tiles and the
+# equipped-slot widgets so they read with one visual language) ---
+
+var _module_icon_cache: Dictionary = {}
+
+func weapon_family(stats: Dictionary) -> String:
+	if float(stats.get("atk_energy", 0)) > 0.0:
+		return "energy"
+	if float(stats.get("atk_explosive", 0)) > 0.0:
+		return "explosive"
+	return "kinetic"
+
+func weapon_family_color(stats: Dictionary) -> Color:
+	match weapon_family(stats):
+		"energy": return Color(0.32, 0.80, 1.0)
+		"explosive": return Color(1.0, 0.45, 0.30)
+		_: return Color(0.92, 0.66, 0.32)
+
+func weapon_family_tag(stats: Dictionary) -> String:
+	match weapon_family(stats):
+		"energy": return "NRG"
+		"explosive": return "EXP"
+		_: return "KIN"
+
+func module_type_icon(slot_type: String, stats: Dictionary) -> Texture2D:
+	var key = slot_type
+	if slot_type == "weapon":
+		key = "weapon_" + weapon_family(stats)
+	var valid = ["weapon_kinetic", "weapon_energy", "weapon_explosive",
+		"shield", "armor", "engine", "battery", "reactor", "sensor",
+		"cooling", "ammo", "consumable"]
+	if not (key in valid):
+		key = "module"
+	if key in _module_icon_cache:
+		return _module_icon_cache[key]
+	var tex = load("res://assets/icons/modules/%s.svg" % key) as Texture2D
+	_module_icon_cache[key] = tex
+	return tex
+
 func _process(delta):
 	# Global UI animations or packet handling can go here
 	pass

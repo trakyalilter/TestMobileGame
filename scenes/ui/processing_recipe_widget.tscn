@@ -1,9 +1,10 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/processing_recipe_widget.gd" id="1_script"]
+[ext_resource type="Script" path="res://scripts/ui/smelt_progress_bar.gd" id="2_smelt"]
 
 [node name="ProcessingRecipeWidget" type="PanelContainer"]
-custom_minimum_size = Vector2(0, 210)
+custom_minimum_size = Vector2(0, 170)
 size_flags_horizontal = 3
 script = ExtResource("1_script")
 
@@ -72,10 +73,9 @@ theme_override_font_sizes/font_size = 10
 text = "0.0s / 0.0s"
 horizontal_alignment = 1
 
-[node name="ProgressBar" type="ProgressBar" parent="MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(0, 12)
+[node name="ProgressBar" type="Control" parent="MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 18)
 layout_mode = 2
-theme_override_font_sizes/font_size = 8
-value = 50.0
+script = ExtResource("2_smelt")
 
 [connection signal="pressed" from="MarginContainer/VBoxContainer/Button" to="." method="_on_button_pressed"]

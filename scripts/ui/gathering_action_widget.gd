@@ -26,10 +26,14 @@ func setup(p_aid: String, p_data: Dictionary, p_manager, p_parent):
 	
 	UITheme.apply_card_style(self, "ops")
 	UITheme.apply_premium_button_style(btn, "ops")
-	UITheme.apply_progress_bar_style(prog_bar, "ops")
-	
-	# Moved loot text compilation to update_state()
-	UITheme.inject_diegetic_header(self, "ops")
+	prog_bar.accent = UITheme.CATEGORY_COLORS["ops"]
+
+	# Themed "work order" card: drill-motif backdrop + icon header, with the
+	# yield framed as the payoff. Loot text still compiled in update_state().
+	var glyph = load("res://assets/cursors/pages/gathering.svg") as Texture2D
+	UITheme.inject_activity_header(self, "ops", glyph)
+	UITheme.wrap_in_io_panel(loot_lbl, "ops", "yield")
+	UITheme.pin_card_footer(self)
 
 func _on_button_pressed():
 	if GameState.combat_manager and GameState.combat_manager.in_combat:
@@ -99,6 +103,7 @@ func update_state():
 			var speed_mult = manager.get_action_speed_multiplier(aid)
 			var effective_duration = manager.action_duration / speed_mult
 			var prog = (manager.action_progress / effective_duration) * 100.0
+			prog_bar.active = true
 			prog_bar.value = prog
 			time_lbl.text = "%s / %s" % [FormatUtils.format_time(manager.action_progress), FormatUtils.format_time(effective_duration)]
 		elif GameState.combat_manager and GameState.combat_manager.in_combat:
@@ -106,6 +111,7 @@ func update_state():
 			btn.disabled = true
 			btn.modulate = Color(1.0, 0.35, 0.35, 0.8)
 			modulate = Color(0.85, 0.85, 0.85)
+			prog_bar.active = false
 			prog_bar.value = 0
 			var speed_mult = manager.get_action_speed_multiplier(aid)
 			time_lbl.text = "0.0s / %s" % FormatUtils.format_time(manager.action_duration / speed_mult)
@@ -113,6 +119,7 @@ func update_state():
 			btn.text = "Start"
 			btn.modulate = Color(1, 1, 1)
 			modulate = Color(1, 1, 1)
+			prog_bar.active = false
 			prog_bar.value = 0
 			var speed_mult = manager.get_action_speed_multiplier(aid)
 			time_lbl.text = "0.0s / %s" % FormatUtils.format_time(manager.action_duration / speed_mult)
@@ -131,5 +138,6 @@ func update_state():
 		btn.disabled = true
 		status_lbl.text = status_msg
 		modulate = Color(0.7, 0.7, 0.7)
+		prog_bar.active = false
 		prog_bar.value = 0
 		time_lbl.text = "- / -"

@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 120" width="256" height="120">
+  <defs>
+    <linearGradient id="steel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#3a4250"/>
+      <stop offset="34%" stop-color="#c6cfdb"/>
+      <stop offset="52%" stop-color="#9aa5b4"/>
+      <stop offset="100%" stop-color="#272d38"/>
+    </linearGradient>
+    <linearGradient id="hot" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#FFD27A"/>
+      <stop offset="50%" stop-color="#FF9A3D"/>
+      <stop offset="100%" stop-color="#C75A12"/>
+    </linearGradient>
+    <radialGradient id="tipGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%"  stop-color="#FFF3D0"/>
+      <stop offset="40%" stop-color="#FFB454" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#FF8A2E" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="body">
+      <path d="M22 38 L46 30 L46 22 L170 18 L250 60 L170 102 L46 98 L46 90 L22 82 Z"/>
+    </clipPath>
+  </defs>
+
+  <!-- bold dark silhouette (matches the cursor-set outline language) -->
+  <path d="M22 38 L46 30 L46 22 L170 18 L250 60 L170 102 L46 98 L46 90 L22 82 Z"
+        fill="#0A0D12" stroke="#0A0D12" stroke-width="9"
+        stroke-linejoin="round"/>
+
+  <g clip-path="url(#body)">
+    <!-- cylindrical steel shading -->
+    <rect x="20" y="14" width="236" height="92" fill="url(#steel)"/>
+
+    <!-- helical twist flutes -->
+    <g fill="#222937">
+      <polygon points="46,16 70,16 44,104 20,104"/>
+      <polygon points="86,16 110,16 84,104 60,104"/>
+      <polygon points="126,16 150,16 124,104 100,104"/>
+      <polygon points="166,16 190,16 164,104 140,104"/>
+    </g>
+    <g stroke="#dde4ee" stroke-width="2" opacity="0.7">
+      <line x1="70" y1="16" x2="44" y2="104"/>
+      <line x1="110" y1="16" x2="84" y2="104"/>
+      <line x1="150" y1="16" x2="124" y2="104"/>
+      <line x1="190" y1="16" x2="164" y2="104"/>
+    </g>
+
+    <!-- energized cutting collar -->
+    <rect x="158" y="14" width="20" height="92" fill="url(#hot)" opacity="0.95"/>
+
+    <!-- cone 3D shading: lit upper, shaded lower -->
+    <polygon points="170,60 170,18 250,60" fill="#ffffff" opacity="0.16"/>
+    <polygon points="170,60 170,102 250,60" fill="#000000" opacity="0.30"/>
+    <!-- spiral land on the head -->
+    <line x1="208" y1="34" x2="196" y2="86" stroke="#0A0D12"
+          stroke-width="4" opacity="0.55" stroke-linecap="round"/>
+  </g>
+
+  <!-- bright cutting edges -->
+  <line x1="170" y1="18" x2="250" y2="60" stroke="#eef2f8"
+        stroke-width="3" stroke-linecap="round"/>
+  <line x1="170" y1="102" x2="250" y2="60" stroke="#5c6573"
+        stroke-width="3" stroke-linecap="round"/>
+
+  <!-- rear chuck collar -->
+  <rect x="10" y="34" width="16" height="52" rx="3" fill="#1a1f29"
+        stroke="#0A0D12" stroke-width="4"/>
+
+  <!-- white-hot tip -->
+  <circle cx="246" cy="60" r="34" fill="url(#tipGlow)"/>
+  <circle cx="248" cy="60" r="7"  fill="#FFF6DE"/>
+</svg>

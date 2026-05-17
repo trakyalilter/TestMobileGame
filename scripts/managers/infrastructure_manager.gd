@@ -117,11 +117,13 @@ var building_db: Dictionary = {
 	},
 	"antimatter_generator": {
 		"name": "Antimatter Generator",
-		"description": "+16000000.0 kW (-1 AM-Cell)",
+		"description": "+16000000.0 kW (-1 Quantum Core)",
 		"cost": {"credits": 25000000, "VoidArtifact": 50, "QuantumCore": 10},
 		"energy_gen": 16000000.0,
 		"energy_cons": 0.0,
-		"input": {"AntimatterFuel": 1},
+		# v103d: AntimatterFuel had NO source anywhere -> this generator could
+		# never run. Swapped to QuantumCore (obtainable: processing + combat).
+		"input": {"QuantumCore": 1},
 		"interval": 20.0,
 		"research_req": "quantum_dynamics",
 		"category": "power"
@@ -414,7 +416,10 @@ var building_db: Dictionary = {
 	"chrono_siphon": {
 		"name": "Chrono-Siphon",
 		"description": "+0.3 Chrono Core",
-		"cost": {"credits": 25000000, "Superalloy": 1000, "AntimatterFuel": 10},
+		# v103d: AntimatterFuel had no source -> Chrono-Siphon was unbuildable.
+		# Swapped to VoidEssence (obtainable: Void Rift Anchor + gather), same
+		# void_navigation tier as this building.
+		"cost": {"credits": 25000000, "Superalloy": 1000, "VoidEssence": 50},
 		"energy_gen": 0.0,
 		"energy_cons": 127500.0,
 		"yield": {"ChronoCore": 0.3},
@@ -425,7 +430,10 @@ var building_db: Dictionary = {
 	"industrial_centrifuge": {
 		"name": "Industrial Centrifuge",
 		"description": "+5 Fe, +1.7 Si (-8.3 Dirt, -8.3 Water)",
-		"cost": {"credits": 500000, "Steel": 1000, "Si": 2000, "DroneCore": 100},
+		# v103e: DroneCore has NO source anywhere (advertised scavenger drop
+		# was never implemented) -> Centrifuge was unbuildable. Swapped to
+		# Circuit (obtainable: processing + infra + combat), same tier.
+		"cost": {"credits": 500000, "Steel": 1000, "Si": 2000, "Circuit": 100},
 		"energy_gen": 0.0,
 		"energy_cons": 180.0,
 		"yield": {"Fe": 5, "Si": 1.7},
@@ -825,8 +833,47 @@ var building_db: Dictionary = {
 
 var production_timers: Dictionary = {}
 
+# v104: Continuous building-upkeep sink. The economy glut comes from continuous
+# raw production vs. one-time gate costs. Research tier-scaling (Lever 1) drains
+# stockpiles at gates, but a finite sink still loses to an infinite source over
+# a multi-day idle. Upkeep is the forever-drain: every building consumes a small
+# amount of the cheapest glut mats per minute, and the per-building cost itself
+# grows with total building count so the appetite scales over the long curve.
+# Safety: drain-if-available only — if the player can't pay, NOTHING stalls and
+# NOTHING goes negative. It only ever removes surplus, never punishes AFK.
+const UPKEEP_INTERVAL := 60.0
+const UPKEEP_BASE := {"Water": 2.0, "Dirt": 1.0}  # per building, per interval, pre-growth
+const UPKEEP_COUNT_GROWTH := 0.05                  # +5% per-building cost per building owned
+const UPKEEP_GROWTH_CAP := 8.0                     # growth multiplier ceiling
+var _upkeep_timer: float = 0.0
+
 func _init():
 	super._init("Infrastructure")
+
+# Returns {res: amount_consumed} for reporting. intervals = number of full
+# UPKEEP_INTERVAL periods to charge (1 online, many for an offline catch-up).
+func _apply_upkeep(intervals: int) -> Dictionary:
+	var consumed: Dictionary = {}
+	if intervals <= 0:
+		return consumed
+	var total: int = 0
+	for bid in buildings:
+		var c: int = buildings[bid]
+		if c > 0:
+			total += c
+	if total <= 0:
+		return consumed
+	var growth: float = min(UPKEEP_GROWTH_CAP, 1.0 + float(total) * UPKEEP_COUNT_GROWTH)
+	for res in UPKEEP_BASE:
+		var demand: float = float(UPKEEP_BASE[res]) * float(total) * growth * float(intervals)
+		if demand <= 0.0:
+			continue
+		var avail: float = GameState.resources.get_element_amount(res)
+		var take: float = min(demand, avail)  # never negative, never a hard gate
+		if take > 0.0:
+			GameState.resources.remove_element(res, take)
+			consumed[res] = take
+	return consumed
 
 func get_building_count(building_id: String) -> int:
 	return buildings.get(building_id, 0)
@@ -1370,10 +1417,20 @@ func process_tick(delta: float):
 											GameState.resources.add_element(element, max(1, amount))
 					
 					# Audit v8.0: Passive Scrap Logic Replaced
-					# Always generate 1 Cu per 10s per Drone Bay 
+					# Always generate 1 Cu per 10s per Drone Bay
 					GameState.resources.add_element("Cu", 1 * count)
-					
+
 					production_timers[bid] = 0.0
+
+	# v104: Continuous upkeep sink — only charged while the grid is live, so an
+	# idle/unpowered base never bleeds mats. Closed-form: accumulate then charge
+	# whole intervals at once (no per-frame removal churn).
+	if energy_efficiency > 0:
+		_upkeep_timer += delta
+		if _upkeep_timer >= UPKEEP_INTERVAL:
+			var n: int = int(_upkeep_timer / UPKEEP_INTERVAL)
+			_upkeep_timer -= float(n) * UPKEEP_INTERVAL
+			_apply_upkeep(n)
 
 func calculate_offline(delta: float) -> String:
 	# Offline Industry
@@ -1466,6 +1523,14 @@ func calculate_offline(delta: float) -> String:
 	if get_building_count("biosphere_dome") > 0:
 		var bonus = get_building_count("biosphere_dome") * 5
 		report += " + Biosphere Domes: +%d%% Gather Speed Active\n" % bonus
+
+	# v104: Offline upkeep — closed-form, whole intervals only. Grid is
+	# guaranteed live here (negative-energy case returned early above).
+	var upkeep := _apply_upkeep(int(delta / UPKEEP_INTERVAL))
+	if not upkeep.is_empty():
+		report += "Infrastructure Upkeep (Offline):\n"
+		for item in upkeep:
+			report += " - %s: %s\n" % [item, FormatUtils.format_number(upkeep[item])]
 			
 	return report
 

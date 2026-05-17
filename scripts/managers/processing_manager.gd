@@ -126,8 +126,8 @@ var recipes: Dictionary = {
 	},
 	"smelt_steel_oxygen": {
 		"name": "Oxygen-Enriched Smelting",
-		"description": "Use Oxygen to blast smelt Steel efficiently.",
-		"input": {"Fe": 10, "C": 4, "O": 4},
+		"description": "Use Oxygen to blast smelt Steel efficiently. Manganese deoxidises the melt for a higher yield.",
+		"input": {"Fe": 10, "C": 4, "O": 4, "Mn": 2},
 		"output": {"Steel": 10},
 		"duration": 5.0,
 		"level_req": 40,
@@ -176,8 +176,8 @@ var recipes: Dictionary = {
 	# Research Fragment Upgrade Chain
 	"upgrade_rare_artifact": {
 		"name": "Synthesize Rare Artifact",
-		"description": "Combine Common artifacts with circuits to create Rare research data.",
-		"input": {"Res1": 100, "Circuit": 10},
+		"description": "Combine Common artifacts and recovered Martian relics with circuits to create Rare research data.",
+		"input": {"Res1": 100, "Circuit": 10, "MartianRelics": 5},
 		"output": {"Res2": 1},
 		"duration": 8.0,
 		"level_req": 35, # Increased from 8
@@ -187,7 +187,7 @@ var recipes: Dictionary = {
 	"upgrade_exotic_artifact": {
 		"name": "Compile Exotic Artifact",
 		"description": "Merge Rare artifacts with advanced tech to unlock capital-class research.",
-		"input": {"Res2": 5, "AdvCircuit": 2, "NavData": 5},
+		"input": {"Res2": 5, "AdvCircuit": 2, "NavData": 5, "XenoFragment": 3},
 		"output": {"Res3": 1},
 		"duration": 60.0,
 		"level_req": 60, # Increased from 15
@@ -257,8 +257,8 @@ var recipes: Dictionary = {
 	# v62.0 Fix: Added Consumer for AlWire and Circuit
 	"craft_adv_maintenance_kit": {
 		"name": "Adv. Maintenance Kit",
-		"description": "High-tech repair kit. Restores 50% Hull Integrity.",
-		"input": {"AlWire": 3, "Circuit": 5, "Superalloy": 1, "Steel": 50, "Ti": 15},
+		"description": "High-tech repair kit. Restores 50% Hull Integrity. Galvanised plating and zinc inhibitor resist corrosion.",
+		"input": {"AlWire": 3, "Circuit": 5, "Superalloy": 1, "Steel": 50, "Ti": 15, "Zn": 4, "GalvanizedSteel": 5},
 		"output": {"AdvMaintenanceKit": 1},
 		"duration": 15.0,
 		"level_req": 40,
@@ -377,8 +377,8 @@ var recipes: Dictionary = {
 	},
 	"craft_coolant_cell": {
 		"name": "Helium Coolant Cell",
-		"description": "Pressurized helium and nitrogen for weapon cooling.",
-		"input": {"He": 10, "NitroCoolant": 5, "Steel": 2, "Li": 2},
+		"description": "Pressurized helium and nitrogen for weapon cooling, charged with recovered cryo-essence.",
+		"input": {"He": 10, "NitroCoolant": 5, "Steel": 2, "Li": 2, "CryoEssence": 3},
 		"output": {"CoolantCell": 1},
 		"duration": 15.0,
 		"level_req": 42, # Increased from 12
@@ -406,6 +406,15 @@ var recipes: Dictionary = {
 		"research_req": "fluid_dynamics",
 		"category": "consumables_shield"
 	},
+	"refine_diamond_lens": {
+		"name": "Diamond Sensor Lens",
+		"description": "Cut a flawless diamond into a precision sensor lens and decode it into exotic research data.",
+		"input": {"Diamond": 1, "AdvCircuit": 5, "Au": 2},
+		"output": {"Res3": 2},
+		"duration": 30.0,
+		"level_req": 60,
+		"xp": 150
+	},
 	"craft_zero_point": {
 		"name": "Zero-Point Injector",
 		"description": "Vacuum energy extraction. Restores 50% Shield Integrity.",
@@ -430,7 +439,7 @@ var recipes: Dictionary = {
 	"craft_slug_t4": {
 		"name": "Hyper-Velocity Slug",
 		"description": "Tungsten-Superalloy sabot for railguns. Extreme kinetic impact.",
-		"input": {"W": 10, "U": 3, "Superalloy": 1, "NanoSubstrate": 2},
+		"input": {"W": 10, "U": 3, "Superalloy": 1, "NanoSubstrate": 2, "IrWAlloy": 4},
 		"output": {"SlugT4": 50},
 		"duration": 20.0,
 		"level_req": 65,
@@ -450,7 +459,7 @@ var recipes: Dictionary = {
 	"craft_cell_t4": {
 		"name": "Heavy Plasma Cell",
 		"description": "Unstable fusion plasma containment. Extreme damage.",
-		"input": {"He": 10, "U": 3, "Superalloy": 1, "NanoSubstrate": 2},
+		"input": {"He": 10, "U": 3, "Superalloy": 1, "NanoSubstrate": 2, "SuperconductingMagnet": 2},
 		"output": {"CellT4": 20},
 		"duration": 20.0,
 		"level_req": 65,
@@ -467,10 +476,19 @@ var recipes: Dictionary = {
 		"xp": 20,
 		"research_req": "combustion"
 	},
+	"craft_turret_core": {
+		"name": "Turret Core",
+		"description": "Fabricate an automated turret control core from circuits and structural alloy.",
+		"input": {"Circuit": 20, "Steel": 30, "AdvCircuit": 5, "StainlessSteel": 10},
+		"output": {"TurretCore": 1},
+		"duration": 25.0,
+		"level_req": 35,
+		"xp": 90
+	},
 	"craft_missile_t2": {
 		"name": "Seeker Missile",
 		"description": "Guided missile with logic circuits.",
-		"input": {"Steel": 2, "Circuit": 1, "TargetingChip": 1, "StructuralComponent": 3},
+		"input": {"Steel": 2, "Circuit": 1, "TargetingChip": 1, "StructuralComponent": 3, "PirateSalvage": 2},
 		"output": {"MissileT2": 20},
 		"duration": 20.0,
 		"level_req": 25,
@@ -479,8 +497,8 @@ var recipes: Dictionary = {
 	},
 	"craft_missile_t3": {
 		"name": "Heavy Missile",
-		"description": "High-yield thermobaric ordnance.",
-		"input": {"Steel": 5, "AlMgAlloy": 2, "H": 20, "StructuralComponent": 5},
+		"description": "High-yield thermobaric ordnance in a corrosion-resistant casing.",
+		"input": {"Steel": 5, "AlMgAlloy": 2, "H": 20, "StructuralComponent": 5, "GalvanizedSteel": 3, "StainlessSteel": 4},
 		"output": {"MissileT3": 20},
 		"duration": 30.0,
 		"level_req": 48,
@@ -490,7 +508,7 @@ var recipes: Dictionary = {
 	"craft_missile_t4": {
 		"name": "Photon Torpedo",
 		"description": "Antimatter-infused capital buster.",
-		"input": {"Superalloy": 2, "ExoticMatter": 1, "NanoSubstrate": 3},
+		"input": {"Superalloy": 2, "ExoticMatter": 1, "NanoSubstrate": 3, "OsCore": 2},
 		"output": {"MissileT4": 20},
 		"duration": 45.0,
 		"level_req": 65,
@@ -607,8 +625,8 @@ var recipes: Dictionary = {
 	},
 	"craft_adv_circuit": {
 		"name": "Advanced Circuitry",
-		"description": "High-performance integrated circuit.",
-		"input": {"Semiconductor": 1, "Au": 1, "StructuralComponent": 2},
+		"description": "High-performance integrated circuit. Silver traces and tin solder for low-loss interconnects.",
+		"input": {"Semiconductor": 1, "Au": 1, "StructuralComponent": 2, "Ag": 2, "Sn": 1},
 		"output": {"AdvCircuit": 1},
 		"duration": 15.0,
 		"level_req": 45, # Increased from 8
@@ -807,7 +825,7 @@ var recipes: Dictionary = {
 	"craft_void_battery": {
 		"name": "Void Battery",
 		"description": "Ultimate power storage using void essence compression.",
-		"input": {"VoidEssence": 10, "ExoticMatter": 5, "QuantumCore": 2},
+		"input": {"VoidEssence": 10, "ExoticMatter": 5, "QuantumCore": 2, "NuclearFuel": 5},
 		"output": {"VoidBattery": 1},
 		"duration": 60.0,
 		"level_req": 80,
@@ -829,7 +847,7 @@ var recipes: Dictionary = {
 	"craft_primordial_armor": {
 		"name": "Primordial Forge",
 		"description": "Legendary armor forged from titan remains. Best-in-slot defense.",
-		"input": {"PrimordialShard": 3, "OmegaPlating": 10, "IrPlate": 5, "NanoSubstrate": 3},
+		"input": {"PrimordialShard": 3, "OmegaPlating": 10, "IrPlate": 5, "NanoSubstrate": 3, "CompositeWeave": 8},
 		"output": {"PrimordialArmor": 1},
 		"duration": 120.0,
 		"level_req": 90,
@@ -840,7 +858,7 @@ var recipes: Dictionary = {
 	"craft_omega_accelerator": {
 		"name": "Omega Accelerator",
 		"description": "Massively increases all production rates. Ultimate prestige item.",
-		"input": {"OmegaPlating": 5, "ChronoCore": 3, "VoidEssence": 5, "QuantumCore": 5, "NanoSubstrate": 5},
+		"input": {"OmegaPlating": 5, "ChronoCore": 3, "VoidEssence": 5, "QuantumCore": 5, "NanoSubstrate": 5, "PurifiedCompound": 4},
 		"output": {"OmegaAccelerator": 1},
 		"duration": 180.0,
 		"level_req": 95,

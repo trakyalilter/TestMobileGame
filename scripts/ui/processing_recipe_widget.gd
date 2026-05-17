@@ -25,15 +25,30 @@ func setup(p_rid: String, p_data: Dictionary, p_manager, p_parent):
 	
 	UITheme.apply_card_style(self, "engineering")
 	UITheme.apply_premium_button_style(btn, "engineering")
-	UITheme.apply_progress_bar_style(prog_bar, "engineering")
-	
+	prog_bar.accent = UITheme.CATEGORY_COLORS["engineering"]
+
 	# Input text is handled dynamically in update_state for coloring
 	in_lbl.text = ""
-	
+
 	# Output text is handled dynamically in update_state for multipliers
 	out_lbl.text = ""
-	
-	UITheme.inject_diegetic_header(self, "engineering")
+
+	# Themed "work order" card: crucible-motif backdrop + icon header, with a
+	# clear input -> (transform) -> output flow. Inputs recede, output pops.
+	var glyph = load("res://assets/cursors/pages/processing.svg") as Texture2D
+	UITheme.inject_activity_header(self, "engineering", glyph)
+	UITheme.wrap_in_io_panel(in_lbl, "engineering", "input")
+	UITheme.wrap_in_io_panel(out_lbl, "engineering", "output")
+	# Gap sits above REFINE: INPUTS anchors under the header, while
+	# REFINE / OUTPUT / footer stay bottom-aligned across cards.
+	UITheme.pin_card_footer(self, "ArrowLabel")
+
+	var arrow = $MarginContainer/VBoxContainer.get_node_or_null("ArrowLabel")
+	if arrow:
+		arrow.text = "▼ REFINE ▼"
+		arrow.add_theme_font_size_override("font_size", 9)
+		arrow.add_theme_color_override("font_color",
+			UITheme.CATEGORY_COLORS["engineering"].lightened(0.2))
 
 func _on_button_pressed():
 	if GameState.combat_manager and GameState.combat_manager.in_combat:
@@ -90,7 +105,7 @@ func update_state():
 			
 			# BBCode url structure to catch hovers (similar to research smart links)
 			var meta_json = JSON.stringify({"id": item, "type": "item"})
-			var link_text = "[url=%s][color=#ff4444][u]%s[/u][/color][/url]" % [meta_json, display_name]
+			var link_text = "[url=%s][color=#ffce5c][u]%s[/u][/color][/url]" % [meta_json, display_name]
 			
 			# Apply Efficiency Multiplier to displayed output
 			var line = "%s %s" % [FormatUtils.format_number(qty * eff_mult), link_text]
@@ -121,9 +136,11 @@ func update_state():
 		var speed_mult = manager.get_recipe_speed_multiplier(rid)
 		var effective_duration = recipe["duration"] / speed_mult
 		var prog = (manager.action_progress / effective_duration) * 100.0
+		prog_bar.active = true
 		prog_bar.value = prog
 		time_lbl.text = "%s / %s" % [FormatUtils.format_time(manager.action_progress), FormatUtils.format_time(effective_duration)]
 	else:
+		prog_bar.active = false
 		prog_bar.value = 0
 		time_lbl.text = "0.0s / %s" % (FormatUtils.format_time(recipe["duration"] / manager.get_recipe_speed_multiplier(rid)))
 		modulate = Color(1, 1, 1)

@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120" width="200" height="120">
+  <defs>
+    <linearGradient id="vessel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#7fe4ff"/>
+      <stop offset="38%" stop-color="#2fb8e6"/>
+      <stop offset="100%" stop-color="#13627d"/>
+    </linearGradient>
+    <linearGradient id="melt" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#FFF3D0"/>
+      <stop offset="45%" stop-color="#FFB454"/>
+      <stop offset="100%" stop-color="#E0641A"/>
+    </linearGradient>
+    <radialGradient id="pourGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%"  stop-color="#FFF3D0"/>
+      <stop offset="45%" stop-color="#FFB454" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#FF8A2E" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- lifting yoke -->
+  <path d="M70 30 Q120 -6 170 30" fill="none" stroke="#0A0D12" stroke-width="11"
+        stroke-linecap="round"/>
+  <path d="M70 30 Q120 -6 170 30" fill="none" stroke="#2fb8e6" stroke-width="6"
+        stroke-linecap="round"/>
+
+  <!-- crucible body (tilted, lip forward-left) -->
+  <path d="M52 60 L60 104 Q120 122 182 100 L188 44 Q150 26 86 34 Z"
+        fill="#0A0D12" stroke="#0A0D12" stroke-width="10" stroke-linejoin="round"/>
+  <path d="M58 60 L64 100 Q120 116 178 96 L183 48 Q150 32 90 39 Z"
+        fill="url(#vessel)"/>
+
+  <!-- molten charge surface + body -->
+  <path d="M60 60 Q120 80 184 56 Q150 40 92 46 Z" fill="url(#melt)"/>
+  <ellipse cx="120" cy="55" rx="60" ry="9" fill="#FFE3A0" opacity="0.7"/>
+
+  <!-- rivets -->
+  <circle cx="74" cy="92" r="3.5" fill="#0A0D12"/>
+  <circle cx="170" cy="86" r="3.5" fill="#0A0D12"/>
+
+  <!-- pour spout + falling molten stream -->
+  <path d="M52 58 L40 62 L46 74 L60 70 Z" fill="#0A0D12"/>
+  <path d="M44 66 Q34 78 30 96 L40 98 Q44 80 52 70 Z" fill="url(#melt)"/>
+  <!-- contact splash (anchor ~ x18,y100) -->
+  <circle cx="32" cy="98" r="22" fill="url(#pourGlow)"/>
+  <circle cx="30" cy="99" r="7"  fill="#FFF6DE"/>
+</svg>

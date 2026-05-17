@@ -732,13 +732,6 @@ func _update_navigation_hints():
 			var widget = pages["research"].get_node_widget("shipwright_2")
 			if widget: target_to_pulse = widget
 			
-	elif "m030b" in mm.active_missions:
-		# Infrastructure: Fabricator (Audit v15.0)
-		if current_page_name != "infrastructure": target_to_pulse = infrastructure_btn
-		else:
-			var widget = pages["infrastructure"].get_building_widget("fabricator")
-			if widget: target_to_pulse = widget.buy_btn
-			
 	elif "m030c" in mm.active_missions:
 		# Shipyard: Escort Destroyer
 		if current_page_name != "shipyard": target_to_pulse = shipyard_btn

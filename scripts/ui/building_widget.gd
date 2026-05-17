@@ -32,6 +32,9 @@ func setup(p_bid: String, p_data: Dictionary, p_manager, p_parent):
 	
 	stats_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	cost_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	# Grow to fit ALL cost lines (4-cost buildings clipped the last line,
+	# hiding gating mats like Drone Core).
+	cost_lbl.fit_content = true
 	
 	UITheme.apply_card_style(self, "infrastructure")
 	UITheme.apply_premium_button_style(buy_btn, "infrastructure")
@@ -170,7 +173,8 @@ func update_state():
 	var current_costs = manager.get_building_cost(bid)
 	var cost_str = ""
 	var can_afford_all = true
-	
+	var missing := ""  # first unmet cost — surfaced on the disabled button
+
 	for res in current_costs:
 		var needed = current_costs[res]
 		var owned = 0.0
@@ -187,6 +191,8 @@ func update_state():
 		else:
 			cost_str += "[color=#ff6666]%s[/color]\n" % res_str
 			can_afford_all = false
+			if missing == "":
+				missing = "%s %s" % [FormatUtils.format_number(needed - owned), display_name]
 			
 	cost_lbl.text = cost_str.strip_edges()
 	
@@ -220,14 +226,19 @@ func update_state():
 		buy_btn.text = "Maxed"
 		buy_btn.disabled = true
 		_stop_pulse()
-	else:
+	elif can_afford_all:
 		var mult = manager.buy_multiplier
 		buy_btn.text = "Build x%d" % mult if mult > 1 else "Build"
-		buy_btn.disabled = not can_afford_all
-		if can_afford_all:
-			_start_pulse()
-		else:
-			_stop_pulse()
+		buy_btn.disabled = false
+		buy_btn.tooltip_text = ""
+		_start_pulse()
+	else:
+		# Name the blocking resource so a clipped/long cost list can't hide
+		# WHY Build is disabled (the Drone Core / Salvage Data class).
+		buy_btn.text = "Need %s" % missing
+		buy_btn.disabled = true
+		buy_btn.tooltip_text = "Missing: %s" % missing
+		_stop_pulse()
 
 var pulse_tween: Tween
 func _start_pulse():

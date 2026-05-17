@@ -137,14 +137,14 @@ layout_mode = 2
 
 [node name="Margin" type="MarginContainer" parent="VBoxContainer/MainLayout/RightPanel"]
 layout_mode = 2
-theme_override_constants/margin_left = 6
-theme_override_constants/margin_top = 6
-theme_override_constants/margin_right = 6
-theme_override_constants/margin_bottom = 6
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 5
+theme_override_constants/margin_bottom = 5
 
 [node name="VBox" type="VBoxContainer" parent="VBoxContainer/MainLayout/RightPanel/Margin"]
 layout_mode = 2
-theme_override_constants/separation = 5
+theme_override_constants/separation = 3
 
 [node name="Label" type="Label" parent="VBoxContainer/MainLayout/RightPanel/Margin/VBox"]
 layout_mode = 2

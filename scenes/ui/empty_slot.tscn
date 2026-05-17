@@ -3,16 +3,18 @@
 [ext_resource type="Script" path="res://scripts/ui/empty_slot.gd" id="1_script"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_empty"]
-bg_color = Color(0.02, 0.02, 0.05, 0.5)
+bg_color = Color(0.03, 0.045, 0.07, 0.92)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
-border_color = Color(0.1, 0.2, 0.3, 0.5)
-corner_radius_top_left = 2
-corner_radius_top_right = 2
-corner_radius_bottom_right = 2
-corner_radius_bottom_left = 2
+border_color = Color(0.24, 0.36, 0.48, 0.85)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+shadow_color = Color(0, 0, 0, 0.55)
+shadow_size = 3
 
 [node name="EmptySlot" type="PanelContainer"]
 custom_minimum_size = Vector2(100, 100)

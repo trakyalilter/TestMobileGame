@@ -9,14 +9,31 @@ var action_progress = 0.0
 
 # v56.0: Progression Pacing Extension - 2.5x credit costs for 30-40h playtime
 const COST_MULTIPLIER = 1.0 # Applied manually now
-# v56.1: 2x material requirements for progression extension
+# v56.1: 2x material requirements for progression extension.
+# NOTE: this is a SECOND, flat layer applied at can_unlock()/unlock_tech() time,
+# ON TOP OF the per-stage multiplier baked into tech_tree by
+# _scale_mid_late_research_item_costs(). Effective item cost is therefore:
+#     raw_authored_qty  ×  stage_mult  ×  MATERIAL_MULTIPLIER
+# The stage constants below are set to HALF their headline value so they
+# compound with this ×2 to the intended effective curve. Do NOT add a third
+# multiply anywhere — keep these two layers the only sources of truth.
 const MATERIAL_MULTIPLIER = 2.0
 
-# Mid/Late progression tuning for research item requirements.
-const MID_RESEARCH_ITEM_REQ_MULT = 1.0
-const LATE_RESEARCH_ITEM_REQ_MULT = 1.80
+# v104: Tier-scaled material sink. The economy problem was a glut: continuous
+# raw/refined production vs. one-time gate costs calibrated to ~hour-1 income.
+# Fix = steepen the (already-existing but near-flat) per-stage cost curve so
+# later research consumes a meaningful slice of a multi-day stockpile.
+# Headline effective curve (raw × these × MATERIAL_MULTIPLIER):
+#   stage 0 (early/tutorial) : ×1  effective  (UNCHANGED — onboarding contract)
+#   stage 1 (mid)            : ×5  effective  (2.5 × 2.0)
+#   stage 2 (late)           : ×15 effective  (7.5 × 2.0)
+#   stage 3 (endgame, new)   : ×40 effective  (20  × 2.0)
+const MID_RESEARCH_ITEM_REQ_MULT = 2.5
+const LATE_RESEARCH_ITEM_REQ_MULT = 7.5
+const ENDGAME_RESEARCH_ITEM_REQ_MULT = 20.0
 const MID_RESEARCH_COST_GATE = 15000
 const LATE_RESEARCH_COST_GATE = 150000
+const ENDGAME_RESEARCH_COST_GATE = 1000000
 
 const MID_RESEARCH_ITEMS = [
 	"Res2", "Res3", "AdvCircuit", "NavData", "ColonyDataCore",
@@ -24,9 +41,23 @@ const MID_RESEARCH_ITEMS = [
 ]
 
 const LATE_RESEARCH_ITEMS = [
-	"VoidArtifact", "VoidCrystal", "VoidEssence", "QuantumCore",
-	"ChronoCore", "ExoticMatter", "Neutronium", "AncientTech",
+	"VoidArtifact", "VoidCrystal", "QuantumCore", "AncientTech"
+]
+
+const ENDGAME_RESEARCH_ITEMS = [
+	"VoidEssence", "ChronoCore", "ExoticMatter", "Neutronium",
 	"AICore", "AIProcessor", "PrimordialShard", "OmegaPlating"
+]
+
+# v104: Drop-gated / one-off tokens are NEVER tier-scaled. Scaling these adds
+# pure grind with zero glut benefit (they don't accumulate in bulk). The glut
+# is raw/refined mats (Fe, Steel, Circuit, AdvCircuit, Ti, Superalloy, ...) —
+# only those should grow with tier. Zone boss cores match the "*_Core" suffix
+# (Z1_Core..Z10_Core) and are excluded by pattern.
+const NON_SCALING_ITEMS = [
+	"NavData", "SalvageData", "VoidArtifact", "ColonyDataCore",
+	"QuarantineClearance", "BiohazardSample", "TurretCore",
+	"AncientTech", "ExoticMatter"
 ]
 
 var unlocked_techs = []
@@ -949,7 +980,9 @@ var repeatable_tech_db = {
 		"name": "Recursive Logistics (Gathering)",
 		"description": "Infinite scaling: +5% Global Gathering Yield per level.",
 		"base_cost": 100000,
-		"base_items": {"VoidArtifact": 5, "DroneCore": 50, "Spodumene": 100},
+		# v103e: DroneCore unsourced -> swapped to MiteChitin (obtainable:
+		# zone-1 combat loot + salvage) so this recursion stays levelable.
+		"base_items": {"VoidArtifact": 5, "MiteChitin": 50, "Spodumene": 100},
 		"bonus_type": "gathering_yield_mult",
 		"bonus_value": 0.05
 	}
@@ -972,12 +1005,14 @@ func _scale_mid_late_research_item_costs() -> void:
 		var stage = _get_research_cost_stage(node)
 		if stage <= 0:
 			continue
-		
-		var mult = MID_RESEARCH_ITEM_REQ_MULT if stage == 1 else LATE_RESEARCH_ITEM_REQ_MULT
+
+		var mult = _stage_item_multiplier(stage)
 		var cost_items: Dictionary = node["cost_items"]
 		for item in cost_items:
 			var qty = int(cost_items[item])
 			if qty <= 0:
+				continue
+			if not _is_scalable_cost_item(item):
 				continue
 			cost_items[item] = _scale_research_item_requirement(qty, mult)
 		
@@ -992,12 +1027,14 @@ func _scale_mid_late_research_item_costs() -> void:
 		var stage = _get_repeatable_cost_stage(r_data)
 		if stage <= 0:
 			continue
-		
-		var mult = MID_RESEARCH_ITEM_REQ_MULT if stage == 1 else LATE_RESEARCH_ITEM_REQ_MULT
+
+		var mult = _stage_item_multiplier(stage)
 		var base_items: Dictionary = r_data["base_items"]
 		for item in base_items:
 			var qty = int(base_items[item])
 			if qty <= 0:
+				continue
+			if not _is_scalable_cost_item(item):
 				continue
 			base_items[item] = _scale_research_item_requirement(qty, mult)
 		
@@ -1007,13 +1044,19 @@ func _scale_mid_late_research_item_costs() -> void:
 func _get_research_cost_stage(node: Dictionary) -> int:
 	var cost_items: Dictionary = node.get("cost_items", {})
 	var credit_cost = int(node.get("cost", 0))
-	
+
+	for item in cost_items:
+		if item in ENDGAME_RESEARCH_ITEMS:
+			return 3
+	if credit_cost >= ENDGAME_RESEARCH_COST_GATE:
+		return 3
+
 	for item in cost_items:
 		if item in LATE_RESEARCH_ITEMS:
 			return 2
 	if credit_cost >= LATE_RESEARCH_COST_GATE:
 		return 2
-	
+
 	for item in cost_items:
 		if item in MID_RESEARCH_ITEMS:
 			return 1
@@ -1024,19 +1067,40 @@ func _get_research_cost_stage(node: Dictionary) -> int:
 func _get_repeatable_cost_stage(r_data: Dictionary) -> int:
 	var base_items: Dictionary = r_data.get("base_items", {})
 	var base_cost = int(r_data.get("base_cost", 0))
-	
+
+	for item in base_items:
+		if item in ENDGAME_RESEARCH_ITEMS:
+			return 3
+	if base_cost >= ENDGAME_RESEARCH_COST_GATE:
+		return 3
+
 	for item in base_items:
 		if item in LATE_RESEARCH_ITEMS:
 			return 2
 	if base_cost >= LATE_RESEARCH_COST_GATE:
 		return 2
-	
+
 	for item in base_items:
 		if item in MID_RESEARCH_ITEMS:
 			return 1
 	if base_cost >= MID_RESEARCH_COST_GATE:
 		return 1
 	return 0
+
+func _stage_item_multiplier(stage: int) -> float:
+	match stage:
+		3: return ENDGAME_RESEARCH_ITEM_REQ_MULT
+		2: return LATE_RESEARCH_ITEM_REQ_MULT
+		1: return MID_RESEARCH_ITEM_REQ_MULT
+		_: return 1.0
+
+func _is_scalable_cost_item(item: String) -> bool:
+	# v104: never tier-scale drop-gated tokens or zone boss cores.
+	if item in NON_SCALING_ITEMS:
+		return false
+	if item.ends_with("_Core"):  # Z1_Core .. Z10_Core
+		return false
+	return true
 
 func _scale_research_item_requirement(base_qty: int, multiplier: float) -> int:
 	var scaled = int(ceil(float(base_qty) * multiplier))

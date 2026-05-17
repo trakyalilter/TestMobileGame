@@ -1,6 +1,6 @@
 extends RefCounted
 
-const CHAPTER_2_IDS = ["m027", "m028", "m029", "m029b", "m030", "m030b", "m030c",
+const CHAPTER_2_IDS = ["m027", "m028", "m029", "m029b", "m030", "m030c",
 	"m030e", "m030f", "m030g", "m030h",
 	"m031", "m032", "m032b", "m032d", "m032c", "m033", "m033b", "m033c"]
 const ENDGAME_IDS = ["m034"]
@@ -99,9 +99,9 @@ func init_missions():
 		["m028", "Belt Mining", "In the Mine page, mine 100 Cassiterite (tin ore).", "gather", "Cassiterite", 100, 10000, 2000, "m029"],
 		["m029", "Hardened Shell", "Craft 'Carbon Fiber Plate' in the Shipyard.", "craft", "z2_armor", 1, 15000, 5000, "m029b"],
 		["m029b", "Complex Electronics", "Craft 10 Advanced Circuits to prepare for heavier ships.", "gather", "AdvCircuit", 10, 20000, 5000, "m030"],
-		# P0-31: Fabricator Paradox Fix - Shipwright II moved before Fabricator
-		["m030", "Naval Expansion", "Research 'Shipwright II' to unlock Destroyer-class hulls.", "research", "shipwright_2", 1, 4000, 1000, "m030b"],
-		["m030b", "Deep Space Comms", "Build a 'Molecular Fabricator' in the Infrastructure page (Industry rack) to reduce crafting time.", "build", "fabricator", 1, 30000, 5000, "m030c"],
+		# v103f: Removed forced Fabricator mission (m030b) — it gated nothing
+		# (Fabricator is optional QoL, still buildable). m030 -> m030c directly.
+		["m030", "Naval Expansion", "Research 'Shipwright II' to unlock Destroyer-class hulls.", "research", "shipwright_2", 1, 4000, 1000, "m030c"],
 		["m030c", "Hull Modernization II", "Construct a 'Destroyer' hull in the Shipyard.", "construct", "destroyer_hull", 1, 25000, 2000, "m030e"],
 		# Mission bridge from Asteroid Belt to Sector Alpha (zones 3-4 introduction)
 		["m030e", "Mars Beachhead", "Research 'Mars Debris Clearance' in the Research tree to unlock the Mars Debris combat zone.", "research", "zone_3_access", 1, 40000, 5000, "m030f"],

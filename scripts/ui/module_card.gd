@@ -54,200 +54,257 @@ func _update_ui():
 func _draw_tile_visual(item_name: String, slot_type: String, rarity: int, rarity_color: Color, m_data: Dictionary):
 	var margin_vbox = $Margin/VBox
 	margin_vbox.visible = false
-	
+
 	for child in get_children():
 		if child.name == "TileVisual":
 			child.free()
-			
+
+	var sm = GameState.shipyard_manager
+	var TS := 64.0
+	var hi = rarity >= GameState.shipyard_manager.Rarity.RARE
+	var top_rarity = rarity >= GameState.shipyard_manager.Rarity.LEGENDARY
+	var slot_col = _get_slot_color(slot_type)
+	# Weapons read by DAMAGE FAMILY, not the generic weapon colour, so
+	# kinetic / energy / explosive are distinguishable at a glance.
+	if slot_type == "weapon":
+		slot_col = _weapon_dmg_color(m_data.get("stats", {}))
+
+	# Expand to fill the grid column; height stays fixed via min size.
+	size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	custom_minimum_size = Vector2(0, TS)
 	var tile_container = Control.new()
 	tile_container.name = "TileVisual"
-	var size = 40 # Increased by 25% (32 -> 40)
-	custom_minimum_size = Vector2(size, size)
-	tile_container.custom_minimum_size = Vector2(size, size)
+	tile_container.custom_minimum_size = Vector2(0, TS)
 	tile_container.mouse_filter = Control.MOUSE_FILTER_PASS
-	
+
+	# --- Socket backplate: matches the empty-slot filler so a filled cell
+	# reads as "module seated in a slot", consistent with the empty cells
+	# and the equipped-slot panel. ---
+	var socket = Panel.new()
+	socket.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	socket.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var sock_sb = StyleBoxFlat.new()
+	sock_sb.bg_color = Color(0.03, 0.045, 0.07, 0.92)
+	sock_sb.set_corner_radius_all(5)
+	sock_sb.set_border_width_all(1)
+	sock_sb.border_color = Color(0.24, 0.36, 0.48, 0.85)
+	sock_sb.shadow_color = Color(0, 0, 0, 0.55)
+	sock_sb.shadow_size = 3
+	socket.add_theme_stylebox_override("panel", sock_sb)
+	tile_container.add_child(socket)
+
+	# --- Frame: rarity plate seated inside the socket (rim shows around) ---
 	var bg_panel = Panel.new()
-	bg_panel.custom_minimum_size = Vector2(size, size)
-
-
+	bg_panel.anchor_right = 1.0
+	bg_panel.anchor_bottom = 1.0
+	bg_panel.offset_left = 5
+	bg_panel.offset_top = 5
+	bg_panel.offset_right = -5
+	bg_panel.offset_bottom = -5
 	bg_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	
 	var sb = StyleBoxFlat.new()
-	sb.bg_color = Color(0.1, 0.08, 0.08, 0.95)
-	
-	# The jagged/glowing highlight based on rarity from user mockup
-	if rarity == GameState.shipyard_manager.Rarity.LEGENDARY:
-		sb.border_color = Color(0.95, 0.85, 0.2, 1.0)
-		sb.shadow_color = Color(0.95, 0.85, 0.2, 0.2) # Lower alpha
-	elif rarity == GameState.shipyard_manager.Rarity.RARE:
-		sb.border_color = Color(0.2, 0.5, 0.95, 1.0)
-		sb.shadow_color = Color(0.2, 0.5, 0.95, 0.2)
-	elif rarity == GameState.shipyard_manager.Rarity.UNIQUE:
-		sb.border_color = Color(0.8, 0.2, 0.8, 1.0)
-		sb.shadow_color = Color(0.8, 0.2, 0.8, 0.2)
-	elif rarity == GameState.shipyard_manager.Rarity.UNCOMMON:
-		sb.border_color = Color(0.2, 0.8, 0.2, 1.0)
-		sb.shadow_color = Color(0.2, 0.8, 0.2, 0.1)
-	else:
-		sb.border_color = Color(0.4, 0.4, 0.4, 1.0)
-		sb.shadow_color = Color(0, 0, 0, 0.0)
-		
-	# Make it look like a highlighted border
-	sb.border_width_left = 2; sb.border_width_top = 2; sb.border_width_right = 2; sb.border_width_bottom = 2;
-	sb.set_corner_radius_all(3)
-	sb.shadow_size = 5 if rarity >= GameState.shipyard_manager.Rarity.RARE else 0
-
-	
+	sb.bg_color = _get_rarity_background(rarity)
+	sb.set_corner_radius_all(4)
+	sb.set_border_width_all(2 if not top_rarity else 3)
+	sb.border_color = rarity_color
+	sb.shadow_color = Color(rarity_color.r, rarity_color.g, rarity_color.b,
+		0.0 if rarity == sm.Rarity.COMMON else (0.32 if hi else 0.16))
+	sb.shadow_size = (9 if top_rarity else (6 if hi else 0))
 	bg_panel.add_theme_stylebox_override("panel", sb)
 	tile_container.add_child(bg_panel)
-	
-	# Center Letter (W, S, A, etc.)
-	var type_char = _get_type_char(slot_type)
-	var letter_lbl = Label.new()
-	letter_lbl.text = type_char
-	letter_lbl.add_theme_font_size_override("font_size", 18) # Was 14
-	letter_lbl.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
-	letter_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	letter_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	letter_lbl.custom_minimum_size = Vector2(size, size)
-	tile_container.add_child(letter_lbl)
-	
-	# Bottom Right Tier badge — PoE-style iLvl indicator with colored pill background
-	var tier_val = _get_item_tier(item_name, m_data)
-	if tier_val != "":
-		var tier_panel = PanelContainer.new()
-		tier_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var tier_style = StyleBoxFlat.new()
-		tier_style.bg_color = rarity_color.lerp(Color.BLACK, 0.45)
-		tier_style.set_corner_radius_all(3)
-		tier_style.border_color = rarity_color.lerp(Color.WHITE, 0.15)
-		tier_style.set_border_width_all(1)
-		tier_style.content_margin_left = 3
-		tier_style.content_margin_right = 3
-		tier_style.content_margin_top = 0
-		tier_style.content_margin_bottom = 0
-		tier_panel.add_theme_stylebox_override("panel", tier_style)
 
-		var tier_lbl = Label.new()
-		tier_lbl.text = tier_val
-		tier_lbl.add_theme_font_size_override("font_size", 9)
-		tier_lbl.add_theme_color_override("font_color", rarity_color.lerp(Color.WHITE, 0.55))
-		tier_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		tier_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		tier_panel.add_child(tier_lbl)
+	# (No top colour band -- it read as a durability/progress meter. Category
+	# is already carried by the emblem chip + icon tint.)
 
-		var tier_margin = MarginContainer.new()
-		tier_margin.add_theme_constant_override("margin_right", 2)
-		tier_margin.add_theme_constant_override("margin_bottom", 2)
-		tier_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		tier_margin.custom_minimum_size = Vector2(size, size)
+	# --- Centre emblem: slot-coloured chip + bold type letter ---
+	var em := TS * 0.5
+	var emblem = Panel.new()
+	emblem.anchor_left = 0.5; emblem.anchor_right = 0.5
+	emblem.anchor_top = 0.5; emblem.anchor_bottom = 0.5
+	emblem.offset_left = -em * 0.5; emblem.offset_right = em * 0.5
+	emblem.offset_top = -em * 0.5 - 1.0; emblem.offset_bottom = em * 0.5 - 1.0
+	emblem.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var esb = StyleBoxFlat.new()
+	esb.bg_color = slot_col.lerp(Color.BLACK, 0.62)
+	esb.set_corner_radius_all(5)
+	esb.set_border_width_all(1)
+	esb.border_color = slot_col.lerp(Color.WHITE, 0.1)
+	emblem.add_theme_stylebox_override("panel", esb)
+	tile_container.add_child(emblem)
 
-		# Anchor the badge to bottom-right via a container that aligns its child
-		var anchor = HBoxContainer.new()
-		anchor.alignment = BoxContainer.ALIGNMENT_END
-		anchor.custom_minimum_size = Vector2(size, 0)
-		anchor.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		anchor.add_child(tier_panel)
+	var icon_tex = _get_module_icon(slot_type, m_data.get("stats", {}))
+	if icon_tex:
+		var icon = TextureRect.new()
+		icon.texture = icon_tex
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.anchor_right = 1.0; icon.anchor_bottom = 1.0
+		icon.offset_left = 5; icon.offset_top = 5
+		icon.offset_right = -5; icon.offset_bottom = -5
+		icon.modulate = slot_col.lerp(Color.WHITE, 0.85)
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		emblem.add_child(icon)
+	else:
+		var letter_lbl = Label.new()
+		letter_lbl.text = _get_type_char(slot_type)
+		letter_lbl.add_theme_font_size_override("font_size", 20)
+		letter_lbl.add_theme_color_override("font_color", slot_col.lerp(Color.WHITE, 0.75))
+		letter_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		letter_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		letter_lbl.anchor_right = 1.0; letter_lbl.anchor_bottom = 1.0
+		letter_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		emblem.add_child(letter_lbl)
 
-		var v_anchor = VBoxContainer.new()
-		v_anchor.alignment = BoxContainer.ALIGNMENT_END
-		v_anchor.custom_minimum_size = Vector2(size, size)
-		v_anchor.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		v_anchor.add_child(anchor)
-		tile_container.add_child(v_anchor)
+	# --- Socket pips: show matrix-core slots (filled = gem colour, empty =
+	# hollow), top-centre, mirroring the equipped-slot panel's diamonds ---
+	if m_data.has("sockets") and m_data["sockets"].size() > 0:
+		var socks = m_data["sockets"]
+		var n: int = socks.size()
+		var d := 7.0
+		var gap := 3.0
+		var total: float = n * d + (n - 1) * gap
+		var row = Control.new()
+		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.anchor_left = 0.5; row.anchor_right = 0.5
+		row.offset_left = -total * 0.5; row.offset_right = total * 0.5
+		row.offset_top = 3; row.offset_bottom = 3 + d
+		tile_container.add_child(row)
+		for i in range(n):
+			var dia = Panel.new()
+			dia.size = Vector2(d, d)
+			dia.position = Vector2(i * (d + gap), 0)
+			dia.pivot_offset = Vector2(d * 0.5, d * 0.5)
+			dia.rotation_degrees = 45
+			dia.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			var dsb = StyleBoxFlat.new()
+			dsb.set_border_width_all(1)
+			var gem = socks[i]
+			if gem:
+				var gc = _get_gem_color(ElementDB.get_display_name(gem))
+				dsb.bg_color = gc
+				dsb.border_color = gc.lerp(Color.WHITE, 0.5)
+			else:
+				dsb.bg_color = Color(0, 0, 0, 0.45)
+				dsb.border_color = Color(0.55, 0.60, 0.68, 0.85)
+			dia.add_theme_stylebox_override("panel", dsb)
+			row.add_child(dia)
 
-	# Top Right comparison chevron — surfaces upgrade/downgrade at a glance
-	# (Detailed deltas are still in the tooltip; this is the scan-mode cue.)
+	# --- Compare chevron: upgrade/downgrade scan cue, top-right ---
 	var cmp = _compute_compare_summary()
 	if cmp != "":
 		var cmp_lbl = Label.new()
 		cmp_lbl.text = cmp
-		cmp_lbl.add_theme_font_size_override("font_size", 12)
-		var cmp_color = Color(0.45, 1.00, 0.55) if cmp == "▲" else (Color(1.00, 0.40, 0.40) if cmp == "▼" else Color(0.85, 0.85, 0.85))
-		cmp_lbl.add_theme_color_override("font_color", cmp_color)
+		cmp_lbl.add_theme_font_size_override("font_size", 14)
+		cmp_lbl.add_theme_color_override("font_color",
+			Color(0.40, 1.0, 0.55) if cmp == "▲" else (Color(1.0, 0.40, 0.40) if cmp == "▼" else Color(0.80, 0.80, 0.80)))
+		cmp_lbl.anchor_left = 1.0; cmp_lbl.anchor_right = 1.0
+		cmp_lbl.offset_left = -19; cmp_lbl.offset_right = -2
+		cmp_lbl.offset_top = 2; cmp_lbl.offset_bottom = 19
+		cmp_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		cmp_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tile_container.add_child(cmp_lbl)
 
-		var cmp_margin = MarginContainer.new()
-		cmp_margin.add_theme_constant_override("margin_right", 2)
-		cmp_margin.add_theme_constant_override("margin_top", -2)
-		cmp_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
-
-		var cmp_anchor = HBoxContainer.new()
-		cmp_anchor.alignment = BoxContainer.ALIGNMENT_END
-		cmp_anchor.custom_minimum_size = Vector2(size, 0)
-		cmp_anchor.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		cmp_anchor.add_child(cmp_lbl)
-
-		var cmp_v = VBoxContainer.new()
-		cmp_v.alignment = BoxContainer.ALIGNMENT_BEGIN
-		cmp_v.custom_minimum_size = Vector2(size, size)
-		cmp_v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		cmp_v.add_child(cmp_anchor)
-		tile_container.add_child(cmp_v)
-
-
-
-	
-	# Count badge if Stacked (Top Left Corner Badge)
+	# --- Count, top-left next to gem ---
 	if count > 1:
-		var badge_bg = ColorRect.new()
-		badge_bg.color = Color(0, 0, 0, 0.6)
-		badge_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		
 		var count_lbl = Label.new()
-		count_lbl.text = str(count)
-		count_lbl.add_theme_font_size_override("font_size", 8) # Was 6
-		count_lbl.add_theme_color_override("font_color", Color(0.7, 1.0, 1.0))
-		
-		var text_size = count_lbl.get_theme_font("font").get_string_size(count_lbl.text, HORIZONTAL_ALIGNMENT_LEFT, -1, 8)
-		badge_bg.custom_minimum_size = Vector2(text_size.x + 4, 12)
-		badge_bg.position = Vector2(2, 2)
-		
-		count_lbl.position = Vector2(2, -1)
-		badge_bg.add_child(count_lbl)
-		tile_container.add_child(badge_bg)
+		count_lbl.text = "x%d" % count
+		count_lbl.add_theme_font_size_override("font_size", 10)
+		count_lbl.add_theme_color_override("font_color", Color(0.75, 1.0, 1.0))
+		count_lbl.position = Vector2(5, 2)
+		count_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tile_container.add_child(count_lbl)
 
-	# Unseen indicator (Yellow Orb)
-	var sm = GameState.shipyard_manager
+	# --- Bottom strip: the sort key (power) + tier, on a dark plate ---
+	var strip = ColorRect.new()
+	strip.color = Color(0, 0, 0, 0.55)
+	strip.anchor_top = 1.0; strip.anchor_right = 1.0; strip.anchor_bottom = 1.0
+	strip.offset_left = 6; strip.offset_right = -6
+	strip.offset_top = -18; strip.offset_bottom = -6
+	strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tile_container.add_child(strip)
+
+	var readout = _get_power_readout(slot_type, m_data.get("stats", {}))
+	if slot_type == "weapon":
+		var wt = _weapon_dmg_tag(m_data.get("stats", {}))
+		readout = ("%s %s" % [wt, readout]) if readout != "" else wt
+	var tier_val = _get_item_tier(item_name, m_data)
+	if tier_val != "":
+		readout = ("%s  T%s" % [readout, tier_val]) if readout != "" else ("T%s" % tier_val)
+	var pow_lbl = Label.new()
+	pow_lbl.text = readout
+	pow_lbl.add_theme_font_size_override("font_size", 10)
+	pow_lbl.add_theme_color_override("font_color", rarity_color.lerp(Color.WHITE, 0.7))
+	pow_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	pow_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	pow_lbl.anchor_top = 1.0; pow_lbl.anchor_right = 1.0; pow_lbl.anchor_bottom = 1.0
+	pow_lbl.offset_left = 6; pow_lbl.offset_right = -6
+	pow_lbl.offset_top = -18; pow_lbl.offset_bottom = -6
+	pow_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tile_container.add_child(pow_lbl)
+
+	# --- Equipped marker: bright slot-colour underline ---
+	if sm and mid in sm.loadout.values():
+		var eq = ColorRect.new()
+		eq.color = Color(0.45, 1.0, 0.6, 0.95)
+		eq.anchor_top = 1.0; eq.anchor_right = 1.0; eq.anchor_bottom = 1.0
+		eq.offset_left = 7; eq.offset_right = -7
+		eq.offset_top = -8; eq.offset_bottom = -5
+		eq.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tile_container.add_child(eq)
+
+	# --- Unseen indicator (yellow orb) ---
 	if sm and sm.get("unseen_modules") != null and sm.unseen_modules.get(mid, false):
 		var orb = Panel.new()
-		orb.custom_minimum_size = Vector2(8, 8)
+		orb.size = Vector2(8, 8)
+		orb.position = Vector2(-2, -2)
 		orb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var osb = StyleBoxFlat.new()
-		osb.bg_color = Color(1.0, 0.9, 0.1) # Bright yellow
+		osb.bg_color = Color(1.0, 0.9, 0.1)
 		osb.set_corner_radius_all(4)
 		osb.shadow_color = Color(1.0, 0.9, 0.1, 0.6)
 		osb.shadow_size = 4
 		orb.add_theme_stylebox_override("panel", osb)
-		orb.position = Vector2(-2, -2)
 		tile_container.add_child(orb)
 
-	# Selection Highlight (Cyan Glow)
+	# --- Selection highlight (cyan glow) ---
 	if is_selected:
 		var selection_panel = Panel.new()
-		selection_panel.custom_minimum_size = Vector2(size, size)
+		selection_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		selection_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var ssb = StyleBoxFlat.new()
 		ssb.bg_color = Color(0, 0, 0, 0)
 		ssb.set_border_width_all(3)
-		ssb.border_color = Color(0, 1.0, 1.0, 0.8) # Cyan
-		ssb.set_corner_radius_all(3)
+		ssb.border_color = Color(0, 1.0, 1.0, 0.85)
+		ssb.set_corner_radius_all(4)
 		ssb.shadow_color = Color(0, 1.0, 1.0, 0.4)
 		ssb.shadow_size = 6
 		selection_panel.add_theme_stylebox_override("panel", ssb)
 		tile_container.add_child(selection_panel)
 
-	# Overrides to original card layout
-	var empty_style = StyleBoxEmpty.new()
-	add_theme_stylebox_override("panel", empty_style)
+	# Self panel is just a transparent host; the tile draws its own frame.
+	add_theme_stylebox_override("panel", StyleBoxEmpty.new())
 	_apply_pulse(rarity)
-	
+
 	add_child(tile_container)
 	if sm and mid in sm.modules:
 		var status = sm.can_equip_module(mid)
 		UITheme.apply_locked_overlay(self, item_name, status["reason"], not status["can_equip"])
 	else:
 		UITheme.apply_locked_overlay(self, item_name, "", false)
+
+## Compact sort-key readout shown on the tile (power = what Sort·Power uses).
+func _get_power_readout(slot_type: String, stats: Dictionary) -> String:
+	match slot_type:
+		"weapon":
+			return "%s" % FormatUtils.format_number(_weapon_dps(stats))
+		"shield":
+			return FormatUtils.format_number(float(stats.get("max_shield", 0)))
+		"armor":
+			return FormatUtils.format_number(float(stats.get("hp", 0)))
+		"ammo", "consumable", "gem", "gem_synth":
+			return ""
+	var sc := _stat_score(stats)
+	return "" if sc == 0.0 else FormatUtils.format_number(sc)
 
 func _get_type_char(s_type: String) -> String:
 	match s_type:
@@ -263,6 +320,39 @@ func _get_type_char(s_type: String) -> String:
 		"consumable": return "H"
 		"gem", "gem_synth": return "G"
 	return "M"
+
+# Drawn type icon (weapons split by damage family). Loaded once per key and
+# cached across every card instance.
+static var _icon_cache: Dictionary = {}
+
+func _get_module_icon(slot_type: String, stats: Dictionary) -> Texture2D:
+	var key = slot_type
+	if slot_type == "weapon":
+		key = "weapon_" + _weapon_type(stats)
+	var valid = ["weapon_kinetic", "weapon_energy", "weapon_explosive",
+		"shield", "armor", "engine", "battery", "reactor", "sensor",
+		"cooling", "ammo", "consumable"]
+	if not (key in valid):
+		key = "module"
+	if key in _icon_cache:
+		return _icon_cache[key]
+	var tex = load("res://assets/icons/modules/%s.svg" % key) as Texture2D
+	_icon_cache[key] = tex
+	return tex
+
+# Damage-family identity for weapons (colour is the primary scan cue,
+# the tag is the unambiguous backup).
+func _weapon_dmg_color(stats: Dictionary) -> Color:
+	match _weapon_type(stats):
+		"energy": return Color(0.32, 0.80, 1.0)
+		"explosive": return Color(1.0, 0.45, 0.30)
+		_: return Color(0.92, 0.66, 0.32)
+
+func _weapon_dmg_tag(stats: Dictionary) -> String:
+	match _weapon_type(stats):
+		"energy": return "NRG"
+		"explosive": return "EXP"
+		_: return "KIN"
 
 func _compute_compare_summary() -> String:
 	# At-a-glance upgrade indicator vs the focused-slot's equipped module.

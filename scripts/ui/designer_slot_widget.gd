@@ -71,6 +71,36 @@ func _get_type_number() -> int:
 		if is_instance_valid(w) and w.slot_type == slot_type: n += 1
 	return n
 
+func _ensure_footer_spacer() -> void:
+	# Expanding gap so the Unequip/Repair/Change footer sinks to the bottom;
+	# with the fixed slot height this aligns headers (top) and footers
+	# (bottom) across side-by-side slots regardless of content length.
+	var v = $MarginContainer/VBoxContainer
+	var sp = v.get_node_or_null("FooterSpacer")
+	if not sp:
+		sp = Control.new()
+		sp.name = "FooterSpacer"
+		sp.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		sp.custom_minimum_size = Vector2(0, 2)
+		sp.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		v.add_child(sp)
+	v.move_child(sp, option_btn.get_index())
+
+func _ensure_type_icon() -> TextureRect:
+	var v = $MarginContainer/VBoxContainer
+	var ic = v.get_node_or_null("TypeIcon")
+	if not ic:
+		ic = TextureRect.new()
+		ic.name = "TypeIcon"
+		ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		ic.custom_minimum_size = Vector2(0, 30)
+		ic.size_flags_horizontal = Control.SIZE_FILL
+		ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		v.add_child(ic)
+		v.move_child(ic, 0)
+	return ic
+
 func set_focus_highlight(on: bool):
 	_is_focused = on
 	if is_occupied and not slot_type.begins_with("consumable_") and manager:
@@ -98,6 +128,7 @@ func refresh_state():
 	if is_instance_valid(old_repair): old_repair.free()
 
 	_stop_pulse()
+	_ensure_footer_spacer()
 
 	# CONSUMABLE LOGIC
 	if slot_type.begins_with("consumable_"):
@@ -165,10 +196,21 @@ func refresh_state():
 		rarity_badge.text = "[ %s ]" % r_label.to_upper()
 		rarity_badge.add_theme_color_override("font_color", rarity_color)
 
-		stats_lbl.text = _build_card_stats(m_data.get("stats", {}))
-		
+		# Cohesion with the armory tiles: type icon + damage-family accent.
+		var stats = m_data.get("stats", {})
+		var accent = UITheme.weapon_family_color(stats) if slot_type == "weapon" else _get_slot_color(slot_type)
+		type_lbl.add_theme_color_override("font_color", accent)
+		var ic = _ensure_type_icon()
+		ic.texture = UITheme.module_type_icon(slot_type, stats)
+		ic.modulate = accent.lerp(Color.WHITE, 0.85)
+		ic.visible = true
+
+		stats_lbl.text = _build_card_stats(stats)
+		if slot_type == "weapon":
+			stats_lbl.text = "%s · %s" % [UITheme.weapon_family_tag(stats), stats_lbl.text]
+
 		var durability = int(m_data.get("durability", 100))
-		stats_lbl.text += "\nDurability: %d/100" % durability
+		stats_lbl.text += "\nDUR %d%%" % durability
 
 		var uneq_btn = Button.new()
 		uneq_btn.name = "QuickUnequipBtn"
@@ -296,6 +338,7 @@ func refresh_state():
 		name_lbl.text = ""
 		stats_lbl.text = "--"
 		rarity_badge.visible = false
+		_ensure_type_icon().visible = false
 		_apply_base_style()
 		tooltip_text = "Empty %s Slot\nDrag a module here to equip" % slot_type.capitalize()
 
@@ -329,6 +372,7 @@ func _refresh_consumable_state():
 	type_lbl.text = "HULL REPAIR" if c_type == "hull" else "SHIELD REPAIR"
 	type_lbl.add_theme_color_override("font_color", Color(0.74, 0.74, 0.86))
 	rarity_badge.visible = false
+	_ensure_type_icon().visible = false
 
 	# Belt-and-suspenders: hide any SetLabel that an early refresh may have left here.
 	# Consumables are not part of Trinity sets, so this label should never appear.
@@ -461,7 +505,7 @@ func _build_card_stats(stats: Dictionary) -> String:
 	if slot_type == "weapon":
 		var dmg = stats.get("atk_kinetic", 0) + stats.get("atk_energy", 0) + stats.get("atk_explosive", 0)
 		var interval = max(0.01, float(stats.get("atk_interval", 2.5)))
-		lines.append("DPS: %.1f" % (float(dmg) / interval))
+		lines.append("DPS %.1f" % (float(dmg) / interval))
 
 	var keys = stats.keys()
 	keys.sort()
@@ -470,10 +514,10 @@ func _build_card_stats(stats: Dictionary) -> String:
 		var val = stats[key]
 		if key == "energy_load" and val == 0: continue
 		if slot_type == "weapon" and key in ["atk_kinetic", "atk_energy", "atk_explosive"]: continue
-		
+
 		var label = FormatUtils.format_stat_label(key)
-		lines.append("%s: %s" % [label, FormatUtils.format_stat_value(key, val)])
-		if lines.size() >= 3: break
+		lines.append("%s %s" % [label, FormatUtils.format_stat_value(key, val)])
+		if lines.size() >= 2: break
 
 	if lines.is_empty():
 		return "No combat modifiers"
