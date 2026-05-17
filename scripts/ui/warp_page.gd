@@ -52,7 +52,7 @@ func _on_execute_btn_pressed():
 
 func _show_confirmation():
 	var gains = GameState.warp_manager.calculate_warp_gains()
-	var msg = "WARP CORE RESONANCE DETECTED.\n\nExecuting this command will reset your Credits, Industrial Infrastructure, and Standard Materials.\n\nYou will gain %d EXOTIC MATTER SHARDS.\n\nPROCEED WITH SYSTEM RESTART?" % gains
+	var msg = "WARP CORE RESONANCE DETECTED.\n\nExecuting this command will reset your Liras, Industrial Infrastructure, and Standard Materials.\n\nYou will gain %d EXOTIC MATTER SHARDS.\n\nPROCEED WITH SYSTEM RESTART?" % gains
 	
 	# For now, just execute if confirmed via prompt or simple button check
 	# In a real game we'd use a Modal.

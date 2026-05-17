@@ -45,14 +45,14 @@ func update_state():
 	elif data["completed"]:
 		status_lbl.text = "READY"
 		status_lbl.modulate = Color(1.0, 0.8, 0.2)
-		claim_btn.text = "Claim %d Cr" % data["reward_cr"]
+		claim_btn.text = "Claim %d Liras" % data["reward_cr"]
 		claim_btn.disabled = false
 		progress_bar.visible = true
 		modulate.a = 1.0
 	else:
 		status_lbl.text = "IN PROGRESS"
 		status_lbl.modulate = Color(0.2, 0.7, 1.0)
-		claim_btn.text = "%d Cr" % data["reward_cr"]
+		claim_btn.text = "%d Liras" % data["reward_cr"]
 		claim_btn.disabled = true
 		progress_bar.visible = true
 		modulate.a = 1.0

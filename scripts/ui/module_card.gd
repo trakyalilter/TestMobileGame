@@ -769,7 +769,7 @@ func _show_demolish_menu():
 	var parts = sm.get_demolish_parts(mid)
 	
 	var popup = PopupMenu.new()
-	popup.add_item("Demolish (%s credits, %s parts)" % [UITheme.format_num(price), parts], 0)
+	popup.add_item("Demolish (%s Liras, %s parts)" % [UITheme.format_num(price), parts], 0)
 	popup.add_separator()
 	popup.add_item("Cancel", 1)
 	add_child(popup)
@@ -778,7 +778,7 @@ func _show_demolish_menu():
 		if id == 0 and sm.demolish_module(mid):
 			var rarity = sm.get_module_rarity(mid)
 			var rarity_color = sm.RARITY_COLORS.get(rarity, Color.WHITE)
-			UITheme.show_notification("Demolished for %s credits & %s parts" % [UITheme.format_num(price), parts], rarity_color)
+			UITheme.show_notification("Demolished for %s Liras & %s parts" % [UITheme.format_num(price), parts], rarity_color)
 		popup.queue_free()
 	)
 	popup.popup(Rect2i(get_global_mouse_position(), Vector2i(1, 1)))
@@ -999,7 +999,7 @@ func _build_comparison_tooltip_bbcode() -> String:
 
 	if sm and mid in sm.modules:
 		tt += div
-		tt += "[font_size=10][color=gray]Sell Value:[/color] [color=#e0b150]%s credits[/color][/font_size]" % UITheme.format_num(sm.get_sell_price(mid))
+		tt += "[font_size=10][color=gray]Sell Value:[/color] [color=#e0b150]%s %s[/color][/font_size]" % [UITheme.format_num(sm.get_sell_price(mid)), UITheme.LIRA_ICON_BB]
 
 	# v83.9: Set Bonus Tooltip Section
 	var sid = data.get("set_id", "")

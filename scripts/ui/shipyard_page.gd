@@ -37,7 +37,7 @@ func _ready():
 	
 	# Create Repair Button dynamically
 	repair_btn = Button.new()
-	repair_btn.text = "Repair (0 Cr)"
+	repair_btn.text = "Repair (0 Liras)"
 	repair_btn.custom_minimum_size = Vector2(120, 30) # Ensure it's clickable
 	repair_btn.mouse_filter = Control.MOUSE_FILTER_STOP # Detect clicks
 	repair_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
@@ -91,7 +91,7 @@ func _update_repair_button():
 		repair_btn.disabled = true
 		repair_btn.modulate = Color.WHITE
 	else:
-		repair_btn.text = "Repair (%d Cr)" % cost
+		repair_btn.text = "Repair (%d Liras)" % cost
 		repair_btn.disabled = not manager.can_repair()
 		
 		# Make the button flashy to catch the player's eye

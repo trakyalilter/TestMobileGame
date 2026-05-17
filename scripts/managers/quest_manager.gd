@@ -204,7 +204,7 @@ func claim_quest(quest_id: String) -> bool:
 	if GameState.warp_manager:
 		cred = int(cred * GameState.warp_manager.get_production_multiplier())
 	GameState.resources.add_currency("credits", cred)
-	UITheme.show_notification("+%s Credits" % UITheme.format_num(cred), Color(1.0, 0.85, 0.3))
+	UITheme.show_notification("+%s Liras" % UITheme.format_num(cred), Color(1.0, 0.85, 0.3))
 
 	# Award material bonus
 	var mat = q.get("reward_material", {})
@@ -250,7 +250,7 @@ func get_reroll_cost() -> int:
 func reroll_board() -> bool:
 	var cost = get_reroll_cost()
 	if GameState.resources.get_currency("credits") < cost:
-		UITheme.show_notification("Insufficient credits to reroll!", Color.RED)
+		UITheme.show_notification("Insufficient Liras to reroll!", Color.RED)
 		return false
 	GameState.resources.remove_currency("credits", cost)
 	# Keep completed-but-unclaimed quests; reroll the rest

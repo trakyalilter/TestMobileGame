@@ -28,7 +28,7 @@ func setup(p_nid: String, p_data: Dictionary, p_manager, p_parent):
 	parent_graph = p_parent
 	
 	name_lbl.text = data["name"]
-	cost_lbl.text = "%d Cr" % data.get("cost", 0)
+	cost_lbl.text = "%d %s" % [data.get("cost", 0), UITheme.LIRA_ICON_BB]
 	desc_lbl.bbcode_enabled = true
 	desc_lbl.text = _apply_smart_linking(data["description"])
 	
@@ -209,7 +209,7 @@ func update_state():
 			var req_qty = costs[res]
 			var inv_qty = GameState.resources.get_currency("credits") if res == "credits" else GameState.resources.get_element_amount(res)
 			var color = "lime" if inv_qty >= req_qty else "gray"
-			var display_name = "Cr" if res == "credits" else ElementDB.get_display_name(res)
+			var display_name = UITheme.LIRA_ICON_BB if res == "credits" else ElementDB.get_display_name(res)
 			cost_parts.append("[color=%s]%s %s[/color]" % [color, FormatUtils.format_number(req_qty), display_name])
 		cost_lbl.text = "[center]" + "\n".join(cost_parts) + "[/center]"
 	
@@ -235,7 +235,7 @@ func update_state():
 		# Credits check
 		if credit_cost > 0:
 			var color = "#00ff00" if total_credits >= credit_cost else "#888888"
-			cost_parts.append("[color=%s]%s Cr[/color]" % [color, FormatUtils.format_number(credit_cost)])
+			cost_parts.append("[color=%s]%s %s[/color]" % [color, FormatUtils.format_number(credit_cost), UITheme.LIRA_ICON_BB])
 		
 		# Items check
 		if "cost_items" in data:

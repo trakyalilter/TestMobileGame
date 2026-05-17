@@ -776,7 +776,7 @@ func _spawn_custom_repair_modal(m_data: Dictionary, cur_dur: int, credit_cost: i
 	vbox.add_child(cost_box)
 	
 	var c_lbl = Label.new()
-	c_lbl.text = "Cost: %s Credits" % UITheme.format_num(credit_cost)
+	c_lbl.text = "Cost: %s Liras" % UITheme.format_num(credit_cost)
 	c_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	c_lbl.add_theme_font_size_override("font_size", 14)
 	c_lbl.add_theme_color_override("font_color", Color(0.9, 0.9, 0.4))

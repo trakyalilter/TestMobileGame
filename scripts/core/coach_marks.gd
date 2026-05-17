@@ -32,7 +32,7 @@ const STEPS := {
 		{
 			"anchor": "first_node",
 			"title": "Unlocking Tech",
-			"body": "Each node costs credits and sometimes items. Gold = ready to unlock, green = already owned. A glowing tab marks the tech your current mission needs.",
+			"body": "Each node costs Liras and sometimes items. Gold = ready to unlock, green = already owned. A glowing tab marks the tech your current mission needs.",
 		},
 	],
 	"mission": [
@@ -44,7 +44,7 @@ const STEPS := {
 		{
 			"anchor": "claim",
 			"title": "Claiming Rewards",
-			"body": "When an objective is complete, claim it here to collect credits and XP and unlock the next mission.",
+			"body": "When an objective is complete, claim it here to collect Liras and XP and unlock the next mission.",
 		},
 	],
 	"processing": [
@@ -70,11 +70,6 @@ const STEPS := {
 			"title": "Active Ship",
 			"body": "This shows your current ship's combat stats. After building modules, equip them in the Designer.",
 		},
-		{
-			"anchor": "first_item",
-			"title": "Matrix Cores",
-			"body": "In the MATRIX CORES rack: 'Matrix Synthesis' rolls a random core; fuse 3 of one kind into the next tier (Cracked → Stable → Pristine) for a bigger bonus. Crimson = attack, Cobalt = shield/evasion, Topaz = power, Amethyst = defense/hull.",
-		},
 	],
 	"designer": [
 		{
@@ -86,6 +81,11 @@ const STEPS := {
 			"anchor": "power",
 			"title": "Power Budget",
 			"body": "Every module draws power. Stay within your ship's capacity — overloading weakens performance.",
+		},
+		{
+			"anchor": "schematic",
+			"title": "Matrix Cores",
+			"body": "In your armory's MATRIX CORES rack: 'Matrix Synthesis' rolls a random core; fuse 3 of one kind into the next tier (Cracked → Stable → Pristine) for a bigger bonus. Crimson = attack, Cobalt = shield/evasion, Topaz = power, Amethyst = defense/hull.",
 		},
 		{
 			"anchor": "schematic",
@@ -136,14 +136,14 @@ const STEPS := {
 		{
 			"anchor": "storage",
 			"title": "Expanding Storage",
-			"body": "Spend credits here to add more inventory slots as your operation grows.",
+			"body": "Spend Liras here to add more inventory slots as your operation grows.",
 		},
 	],
 	"bounty": [
 		{
 			"anchor": "available",
 			"title": "Bounty Board",
-			"body": "Optional timed contracts for bonus credits. Accept one to add it to your active list.",
+			"body": "Optional timed contracts for bonus Liras. Accept one to add it to your active list.",
 		},
 		{
 			"anchor": "active",

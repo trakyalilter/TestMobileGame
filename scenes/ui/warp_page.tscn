@@ -73,7 +73,7 @@ horizontal_alignment = 1
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.4, 0.4, 1)
 theme_override_font_sizes/font_size = 11
-text = "Resets: Credits, Buildings, Standard Resources
+text = "Resets: Liras, Buildings, Standard Resources
 Keeps: Research, Ships, Exotic Materials"
 horizontal_alignment = 1
 

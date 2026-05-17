@@ -151,7 +151,7 @@ const AFFIX_DB = {
 	"contract_negotiation": {
 		"name": "Contract Negotiation", "type": "economy", "scaling": "percent",
 		"range": [3, 10], "limit_to": ["sensor"],
-		"desc": "+%d%% Bounty Credit rewards."
+		"desc": "+%d%% Bounty Lira rewards."
 	},
 	"logistician_edge": {
 		"name": "Logistician's Edge", "type": "economy", "scaling": "percent",

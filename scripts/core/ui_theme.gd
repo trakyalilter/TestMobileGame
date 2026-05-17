@@ -4,6 +4,11 @@ signal packet_landed(color)
 signal notification_requested(text: String, color: Color) # Feature v66.1
 signal research_navigation_requested(tech_id: String)
 
+# Inline Lira currency icon for BBCode/RichText contexts ONLY (plain Labels
+# and Buttons can't embed images — those use the word "Liras"). Single source
+# of truth: tweak size/path/tint here. 14px ≈ inline body text height.
+const LIRA_ICON_BB := "[img=14 color=#ffd14c]res://assets/icons/lira.svg[/img]"
+
 func show_notification(text: Variant, color: Color = Color.WHITE):
 	notification_requested.emit(text, color)
 

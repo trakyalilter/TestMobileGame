@@ -98,7 +98,7 @@ func update_credits():
 	# Update Storage Button
 	if storage_btn:
 		var cost = GameState.resources.get_storage_upgrade_cost()
-		storage_btn.text = "Expand Storage (+1 Slot) - %s Cr" % UITheme.format_num(cost)
+		storage_btn.text = "Expand Storage (+1 Slot) - %s Liras" % UITheme.format_num(cost)
 		var current_cr = GameState.resources.get_currency("credits")
 		if current_cr >= cost:
 			storage_btn.disabled = false
@@ -272,7 +272,7 @@ func update_selection_view(data, amount):
 	sel_desc.text = desc
 	
 	price_val = data.get("base_value", 1)
-	price_lbl.text = "Unit Price: %s Cr" % UITheme.format_num(price_val)
+	price_lbl.text = "Unit Price: %s Liras" % UITheme.format_num(price_val)
 	
 	qty_spin.max_value = amount
 	qty_spin.value = 1
@@ -289,10 +289,10 @@ func clear_selection():
 	qty_spin.editable = false
 	sell_btn.disabled = true
 	sell_all_btn.disabled = true
-	total_lbl.text = "Total: 0 Cr"
+	total_lbl.text = "Total: 0 Liras"
 
 func update_total_price(val):
-	total_lbl.text = "Total: %s Cr" % UITheme.format_num(val * price_val)
+	total_lbl.text = "Total: %s Liras" % UITheme.format_num(val * price_val)
 
 func _on_qty_spin_box_value_changed(value):
 	update_total_price(value)
@@ -324,7 +324,7 @@ func perform_sale(symbol, qty):
 	var total = qty * price_val
 	if GameState.resources.remove_element(symbol, qty):
 		GameState.resources.add_currency("credits", total)
-		UITheme.show_notification("+%s Cr" % UITheme.format_num(total), Color.GOLD)
+		UITheme.show_notification("+%s Liras" % UITheme.format_num(total), Color.GOLD)
 		# refresh_inventory() # v65.1 Cleanup: Redundant, handled by signals
 	else:
 		UITheme.show_notification("Sale Failed", Color.RED)

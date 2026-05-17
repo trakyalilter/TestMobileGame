@@ -182,7 +182,7 @@ func update_state():
 		if not can_afford:
 			affordable = false
 			
-		cost_str += "[color=%s]%s %s[/color]\n" % [color, FormatUtils.format_number(qty), ElementDB.get_display_name(res)]
+		cost_str += "[color=%s]%s %s[/color]\n" % [color, FormatUtils.format_number(qty), (UITheme.LIRA_ICON_BB if res == "credits" else ElementDB.get_display_name(res))]
 	
 	cost_str += "[/center]"
 	cost_lbl.text = cost_str

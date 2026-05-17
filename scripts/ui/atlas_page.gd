@@ -676,7 +676,7 @@ func _display_material_details(mat_id):
 	var elem_desc = ElementDB.get_element_description(mat_id)
 
 	var stat_lines = []
-	stat_lines.append("OWNED: %s    |    TIER %d (%s)    |    VALUE: %s Cr" % [
+	stat_lines.append("OWNED: %s    |    TIER %d (%s)    |    VALUE: %s Liras" % [
 		UITheme.format_num(owned),
 		tier,
 		cat,

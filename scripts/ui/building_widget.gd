@@ -108,7 +108,7 @@ func _ensure_header():
 	
 	var cost_str = ""
 	for res in data["cost"]:
-		var display_name = ElementDB.get_display_name(res)
+		var display_name = UITheme.LIRA_ICON_BB if res == "credits" else ElementDB.get_display_name(res)
 		cost_str += "%d %s\n" % [data["cost"][res], display_name]
 	cost_lbl.text = cost_str.strip_edges()
 
@@ -183,16 +183,20 @@ func update_state():
 		else:
 			owned = GameState.resources.get_element_amount(res)
 		
-		var display_name = ElementDB.get_display_name(res)
+		var is_cr: bool = (res == "credits")
+		# cost_lbl is BBCode RichText -> Lira icon; the disabled Build button
+		# is a plain Button -> the word "Liras" (can't embed an image there).
+		var display_name: String = UITheme.LIRA_ICON_BB if is_cr else ElementDB.get_display_name(res)
 		var res_str = "%s %s" % [FormatUtils.format_number(needed), display_name]
-		
+
 		if owned >= needed:
 			cost_str += "[color=#00ff00]%s[/color]\n" % res_str
 		else:
 			cost_str += "[color=#ff6666]%s[/color]\n" % res_str
 			can_afford_all = false
 			if missing == "":
-				missing = "%s %s" % [FormatUtils.format_number(needed - owned), display_name]
+				var missing_name: String = "Liras" if is_cr else ElementDB.get_display_name(res)
+				missing = "%s %s" % [FormatUtils.format_number(needed - owned), missing_name]
 			
 	cost_lbl.text = cost_str.strip_edges()
 	

@@ -408,11 +408,11 @@ func _load_save_summary() -> String:
 
 	var cr_str: String
 	if credits >= 1_000_000.0:
-		cr_str = "%.1fM Cr" % (credits / 1_000_000.0)
+		cr_str = "%.1fM Liras" % (credits / 1_000_000.0)
 	elif credits >= 1_000.0:
-		cr_str = "%.1fK Cr" % (credits / 1_000.0)
+		cr_str = "%.1fK Liras" % (credits / 1_000.0)
 	else:
-		cr_str = "%d Cr" % int(credits)
+		cr_str = "%d Liras" % int(credits)
 
 	var summary := "Zone %d  ·  %s" % [max_zone, cr_str]
 

@@ -145,7 +145,7 @@ func get_refresh_cost() -> int:
 func force_refresh() -> bool:
 	var cost = get_refresh_cost()
 	if GameState.resources.get_currency("credits") < cost:
-		UITheme.show_notification("Not enough credits to refresh!", Color.RED)
+		UITheme.show_notification("Not enough Liras to refresh!", Color.RED)
 		return false
 	
 	GameState.resources.remove_currency("credits", cost)
@@ -359,7 +359,7 @@ func claim_contract(contract_id: String) -> bool:
 	var final_reward = int(contract["reward_credits"] * bonus_mult)
 	
 	GameState.resources.add_currency("credits", final_reward)
-	UITheme.show_notification("+%s Credits" % UITheme.format_num(final_reward), Color.GOLD)
+	UITheme.show_notification("+%s Liras" % UITheme.format_num(final_reward), Color.GOLD)
 	
 	# Award module (if pool exists)
 	var pool = contract["reward_module_pool"]

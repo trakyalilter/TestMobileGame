@@ -25,7 +25,7 @@ func setup(p_quest: Dictionary, p_parent: Node):
 	tier_lbl.text = "T%d" % int(quest.get("difficulty", 1))
 
 	# Reward summary
-	var reward_text = "+%s Cr" % UITheme.format_num(quest["reward_credits"])
+	var reward_text = "+%s Liras" % UITheme.format_num(quest["reward_credits"])
 	var mat = quest.get("reward_material", {})
 	if mat and mat.size() > 0:
 		var d_name = ElementDB.get_display_name(mat["id"])

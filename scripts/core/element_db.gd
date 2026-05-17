@@ -248,6 +248,11 @@ var CONSUMABLE_DATA = {
 
 ## Get display name for an element
 func get_display_name(symbol: String) -> String:
+	# Currency is not an element; surface its proper name everywhere
+	# (loot lists, rewards, bounties, costs). Word form is safe in both
+	# plain Labels and BBCode; cost widgets override to the Lira icon.
+	if symbol == "credits":
+		return "Liras"
 	if symbol in ELEMENT_NAMES:
 		return ELEMENT_NAMES[symbol]
 	

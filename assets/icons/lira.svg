@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- sci-fi credit token -->
+  <path d="M32 4 L55 17.5 L55 46.5 L32 60 L9 46.5 L9 17.5 Z"
+        fill="none" stroke="#EDEFF5" stroke-width="3" stroke-linejoin="round"
+        opacity="0.55"/>
+  <!-- small star in the token's clear corner -->
+  <path d="M45 14 L46.4 17.6 L50 19 L46.4 20.4 L45 24 L43.6 20.4 L40 19 L43.6 17.6 Z"
+        fill="#EDEFF5" opacity="0.8"/>
+  <!-- lira glyph (unchanged), scaled to sit inside the token -->
+  <g transform="translate(5.76 6.7) scale(0.79)" fill="none" stroke="#EDEFF5"
+     stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M22 11 L31 17 L31 50 L49 50"/>
+    <line x1="15" y1="33" x2="45" y2="21"/>
+    <line x1="15" y1="44" x2="45" y2="32"/>
+  </g>
+</svg>

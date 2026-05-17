@@ -71,7 +71,7 @@ func _setup_item(id: String):
 	
 	# Value
 	var val = ElementDB.get_element_value(id)
-	_add_stat("Base Value", "%d Cr" % val)
+	_add_stat("Base Value", "%d Liras" % val)
 
 func _setup_ship(id: String):
 	var sm = GameState.shipyard_manager
@@ -215,6 +215,6 @@ func _set_cost(cost_data: Dictionary):
 	var parts = []
 	for res in cost_data:
 		var qty = cost_data[res]
-		var n = "Cr" if res == "credits" else res
+		var n = "Liras" if res == "credits" else res
 		parts.append("%s %s" % [FormatUtils.format_number(qty), n])
 	cost_lbl.text = "Cost: " + ", ".join(parts)

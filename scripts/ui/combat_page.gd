@@ -551,6 +551,12 @@ func _on_radar_draw():
 	radar_display.draw_arc(center, 100, 0, TAU, 64, Color(1, 1, 1, 0.05), 1.0) # Inner guide ring
 
 func _draw_arc_poly(center: Vector2, inner_radius: float, outer_radius: float, start_deg: float, end_deg: float, bg_color: Color, fill_color: Color, percent: float):
+	# Out-of-range data (e.g. shield 1.55K with max 0, or HP above max) must
+	# never sweep the fill past its arc -- that wraps the polygon into the
+	# jagged full ring. Clamp + reject NaN/inf.
+	if not is_finite(percent):
+		percent = 0.0
+	percent = clampf(percent, 0.0, 1.0)
 	var segments = 32
 	var start_rad = deg_to_rad(start_deg)
 	var end_rad = deg_to_rad(end_deg)

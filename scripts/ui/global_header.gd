@@ -47,7 +47,20 @@ func _setup_leds():
 	credits_led.color = UITheme.COLORS["warning"]
 	hbox.add_child(credits_led)
 	hbox.move_child(credits_led, credits_lbl.get_index())
-	
+
+	# Lira currency symbol (replaces the "Liras:" text prefix)
+	var lira_icon = TextureRect.new()
+	lira_icon.name = "LiraIcon"
+	lira_icon.texture = load("res://assets/icons/lira.svg")
+	lira_icon.custom_minimum_size = Vector2(16, 16)
+	lira_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	lira_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	lira_icon.modulate = Color(1.0, 0.82, 0.30)
+	lira_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	lira_icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	hbox.add_child(lira_icon)
+	hbox.move_child(lira_icon, credits_lbl.get_index())
+
 	# Stability LED
 	stability_led = ColorRect.new()
 	stability_led.custom_minimum_size = Vector2(4, 12)
@@ -117,7 +130,7 @@ func update_hud():
 
 func update_credits():
 	var cr = GameState.resources.get_currency("credits")
-	credits_lbl.text = "Credits: %s" % UITheme.format_num(cr)
+	credits_lbl.text = " %s" % UITheme.format_num(cr)
 
 # Removed _on_energy_changed as it's no longer displayed in the header
 

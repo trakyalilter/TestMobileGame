@@ -2269,10 +2269,10 @@ func calculate_offline(delta: float) -> String:
 	# Build report
 	var report = "Combat Offline Gains (%d kills):\n" % num_kills
 	for item in loot_summary:
-		var d_name = ElementDB.get_display_name(item) if ElementDB else item
+		var d_name = "Liras" if item == "credits" else (ElementDB.get_display_name(item) if ElementDB else item)
 		report += " + %s: %d\n" % [d_name, loot_summary[item]]
 	if credits_earned > 0:
-		report += " + Credits: %d\n" % credits_earned
+		report += " + Liras: %d\n" % credits_earned
 	report += " + XP: %d" % total_xp
 	
 	return report

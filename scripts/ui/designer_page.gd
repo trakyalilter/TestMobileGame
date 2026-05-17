@@ -568,7 +568,7 @@ func _on_scrap_by_rarity(max_rarity: int):
 	# Confirmation dialog
 	var dlg = ConfirmationDialog.new()
 	dlg.title = "Bulk Demolish"
-	dlg.dialog_text = "Demolish %d non-equipped module(s)?\n\nYou will receive credits, Spare Parts, and zone salvage." % count
+	dlg.dialog_text = "Demolish %d non-equipped module(s)?\n\nYou will receive Liras, Spare Parts, and zone salvage." % count
 	dlg.confirmed.connect(func():
 		var scrapped = manager.bulk_demolish_by_rarity(max_rarity)
 		UITheme.show_notification("Demolished %d module(s)" % scrapped, Color(0.95, 0.55, 0.25))

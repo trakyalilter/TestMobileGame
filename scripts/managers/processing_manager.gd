@@ -162,7 +162,7 @@ var recipes: Dictionary = {
 	},
 	"decrypt_nav_data": {
 		"name": "Decrypt Nav-Data",
-		"description": "Synthesize navigation data from salvaged schematics and credits.",
+		"description": "Synthesize navigation data from salvaged schematics and Liras.",
 		"input": {"SalvageData": 5},
 		"credits_cost": 500, # Manual check in implementation or handled via logic
 		"output": {"NavData": 1},
@@ -1437,7 +1437,7 @@ func calculate_offline(delta: float):
 	report += "Actions Completed: %d\n" % actions
 	report += "XP Gained: %d\n" % total_xp
 	if total_credits > 0:
-		report += "Credits Earned: %d\n" % total_credits
+		report += "Liras Earned: %d\n" % total_credits
 	report += "Produced:\n"
 	
 	for item in loot_summary:
