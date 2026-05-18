@@ -52,6 +52,11 @@ const OFFLINE_DELTA_CAP_SECONDS: float = 86400.0
 var telemetry: Dictionary = {
 	"occupancy": {"mining": 0.0, "engineering": 0.0, "research": 0.0, "combat": 0.0, "idle": 0.0},
 	"production": {"gather": 0.0, "process": 0.0, "infra": 0.0, "combat": 0.0},
+	# Phase 0 (combat materials): per-material units by source. Validates the
+	# mandatory-gate + punitive-fallback balance — if a gated material is
+	# mostly "craft" the fallback is too cheap (or farming too painful); if
+	# "combat" dominates the loop works. {mat_id: {combat: x, craft: y}}
+	"mat_source": {},
 }
 
 # Total active play time: real wall-clock seconds the game has been open.
@@ -135,6 +140,23 @@ func note_production(stream: String, amount) -> void:
 	if a <= 0.0: return
 	var p: Dictionary = telemetry["production"]
 	p[stream] = float(p.get(stream, 0.0)) + a
+
+# Phase 0: credit a tracked combat-material to its source ("combat" drop or
+# "craft" = the punitive fallback recipe). Lets us see, per gated material,
+# whether players farm it or fall back to the lossy craft.
+func note_material(mat_id: String, source: String, amount = 1) -> void:
+	var a := float(amount)
+	if a <= 0.0: return
+	var ms: Dictionary = telemetry["mat_source"]
+	var rec: Dictionary = ms.get(mat_id, {"combat": 0.0, "craft": 0.0})
+	rec[source] = float(rec.get(source, 0.0)) + a
+	ms[mat_id] = rec
+
+# Convenience: credit a fallback-CRAFTED output, but only if it's a tracked
+# combat material. Keeps processing call sites a single plain statement.
+func note_craft_material(mat_id: String, amount) -> void:
+	if mat_id in ElementDB.get_elements_in_category("reclaimed_components"):
+		note_material(mat_id, "craft", amount)
 
 func _task_label(m) -> String:
 	if m == gathering_manager: return "Mining"
@@ -255,6 +277,8 @@ func load_game():
 				if saved_tele.has(grp) and saved_tele[grp] is Dictionary:
 					for k in telemetry[grp]:
 						telemetry[grp][k] = float(saved_tele[grp].get(k, 0.0))
+			if saved_tele.has("mat_source") and saved_tele["mat_source"] is Dictionary:
+				telemetry["mat_source"] = saved_tele["mat_source"].duplicate(true)
 		
 		# Restore Active Manager
 		var offline_combat_enabled = game_settings.get("offline_combat", false)
@@ -333,9 +357,10 @@ func hard_reset():
 	# ... others
 
 	# P3.10: telemetry is a fresh-playthrough metric — clear on hard reset.
-	for grp in telemetry:
+	for grp in ["occupancy", "production"]:
 		for k in telemetry[grp]:
 			telemetry[grp][k] = 0.0
+	telemetry["mat_source"] = {}  # free-form per-material map — just empty it
 
 	# Re-show first-visit page tours on a fresh playthrough
 	game_settings["coach_seen"] = {}

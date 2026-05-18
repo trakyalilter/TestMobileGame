@@ -185,7 +185,13 @@ var ELEMENT_NAMES = {
 	"TemporalModule": "Temporal Stabilizer",
 	"PrimordialArmor": "Primordial Armor",
 	"OmegaAccelerator": "Omega Accelerator",
-	
+
+	# Reclaimed Components — combat-exclusive progression salvage (Tier 1).
+	# Torn from specific enemy archetypes; gate crafting; hard-to-craft fallback.
+	"SalvagedAlloy": "Salvaged Alloy",
+	"DamagedCircuitry": "Damaged Circuitry",
+	"ReinforcedPlating": "Reinforced Plating",
+
 	# Boss Cores
 	"Z1_Core": "Lunar Core",
 	"Z2_Core": "Asteroid Core",
@@ -206,7 +212,7 @@ var CATEGORIES = {
 	"advanced_metals": ["Ti", "Co", "Ni", "Cr", "Mn", "W"],
 	"rare_metals": ["Au", "Ag", "Pt", "Pd", "Ir", "Os", "Rh", "U", "Germanium"],
 	"alloys": ["Steel", "Bronze", "Graphite", "StainlessSteel", "GalvanizedSteel", "Superalloy", "AlMgAlloy", "IrWAlloy"],
-	"components": ["Circuit", "AdvCircuit", "Chip", "Hydraulics", "AlWire", "Resin", "Fiber"],
+	"components": ["Circuit", "AdvCircuit", "Chip", "Hydraulics", "AlWire", "Resin", "Fiber", "ReinforcedPlating"],
 	"batteries": ["BatteryT1", "BatteryT2", "BatteryT3", "CoBattery", "MgBattery", "PdFuelCell"],
 	"consumables": ["Mesh", "Seal", "EmergencyPatch", "BasicBooster", "ChitinPatch", "NitroCoolant", "AdvMaintenanceKit", "CapacitorShard", "IonField", "ZeroPoint"],  # Audit v2.0: Early/Mid consumables
 	"ammo": ["SlugT1", "SlugT1S", "SlugT2", "SlugT3", "SlugT4", "CellT1", "CellT2", "CellT3", "CellT4", "MissileT1", "MissileT2", "MissileT3", "MissileT4"],
@@ -226,7 +232,9 @@ var CATEGORIES = {
 	"matrix_cores": ["CrackedCrimsonCore", "StableCrimsonCore", "PristineCrimsonCore",
 					"CrackedCobaltCore", "StableCobaltCore", "PristineCobaltCore",
 					"CrackedTopazCore", "StableTopazCore", "PristineTopazCore",
-					"CrackedAmethystCore", "StableAmethystCore", "PristineAmethystCore"]
+					"CrackedAmethystCore", "StableAmethystCore", "PristineAmethystCore"],
+	# Combat-exclusive progression salvage (Inventory "Other", never Armory)
+	"reclaimed_components": ["SalvagedAlloy", "DamagedCircuitry"]
 }
 
 # v66.0: Consumable Slot System Data

@@ -1109,6 +1109,41 @@ var recipes: Dictionary = {
 		"research_req": "zone_8_access",
 		"category": "trophies"
 	},
+
+	# ── Tier 1 Combat-Materials (Phase 1) ──────────────────────────────
+	# Mandatory consumer: the intended path is farming Z1-2 Heavy/Tech
+	# enemies for the inputs. Below it, two deliberately punitive fallback
+	# recipes guarantee no progression deadlock (anti-deadlock Law 3).
+	"craft_reinforced_plating": {
+		"name": "Reinforced Plating",
+		"description": "Forge salvaged combat alloy and scavenged circuitry into a Tier-1 reinforced hull plate — the cornerstone of early ship-frame upgrades.",
+		"input": {"SalvagedAlloy": 4, "DamagedCircuitry": 2, "Steel": 10},
+		"output": {"ReinforcedPlating": 1},
+		"duration": 12.0,
+		"level_req": 8,
+		"xp": 60,
+		"category": "components"
+	},
+	"reclaim_salvaged_alloy": {
+		"name": "Improvised Alloy (Fallback)",
+		"description": "Crudely re-smelt bulk Steel into a Salvaged Alloy substitute. Wildly inefficient (8:1) — farming Heavy enemies is far better — but it guarantees you can never hard-lock.",
+		"input": {"Steel": 8},
+		"output": {"SalvagedAlloy": 1},
+		"duration": 15.0,
+		"level_req": 8,
+		"xp": 10,
+		"category": "components"
+	},
+	"reclaim_damaged_circuitry": {
+		"name": "Stripped Circuitry (Fallback)",
+		"description": "Cannibalise finished Circuits into a Damaged Circuitry substitute. Lossy (6:1) — Tech enemies drop it far faster — but this is the deadlock safety net.",
+		"input": {"Circuit": 6},
+		"output": {"DamagedCircuitry": 1},
+		"duration": 15.0,
+		"level_req": 8,
+		"xp": 10,
+		"category": "components"
+	},
 }
 
 
@@ -1258,7 +1293,7 @@ func complete_process():
 			else:
 				events.append(["loot", {"symbol": item, "amount": qty}, current_recipe_id])
 				
-			GameState.resources.add_element(item, qty); GameState.note_production("process", qty)  # P3.10
+			GameState.resources.add_element(item, qty); GameState.note_production("process", qty); GameState.note_craft_material(item, qty)  # P3.10 / Phase 0
 			
 	if "output_table" in current_recipe:
 		var roll_count = current_recipe.get("roll_count", 1) # Default 1 roll
@@ -1288,7 +1323,7 @@ func complete_process():
 		# Grant accumulated loot
 		for item in results:
 			var qty = results[item]
-			GameState.resources.add_element(item, qty); GameState.note_production("process", qty)  # P3.10
+			GameState.resources.add_element(item, qty); GameState.note_production("process", qty); GameState.note_craft_material(item, qty)  # P3.10 / Phase 0
 			
 			# Special jackpot message for rare items
 			if item in ["AncientTech", "W", "Ti", "NavData", "Chip", "Circuit"]:
@@ -1398,7 +1433,7 @@ func calculate_offline(delta: float):
 				qty *= GameState.research_manager.get_efficiency_multiplier()
 				
 			var total = qty * actions
-			GameState.resources.add_element(item, total); GameState.note_production("process", total)  # P3.10
+			GameState.resources.add_element(item, total); GameState.note_production("process", total); GameState.note_craft_material(item, total)  # P3.10 / Phase 0 (offline fallback)
 			loot_summary[item] = loot_summary.get(item, 0) + total
 			
 	if "output_table" in current_recipe:
@@ -1423,7 +1458,7 @@ func calculate_offline(delta: float):
 						if GameState.research_manager:
 							qty *= GameState.research_manager.get_efficiency_multiplier()
 							
-						GameState.resources.add_element(item, qty); GameState.note_production("process", qty)  # P3.10
+						GameState.resources.add_element(item, qty); GameState.note_production("process", qty); GameState.note_craft_material(item, qty)  # P3.10 / Phase 0
 						loot_summary[item] = loot_summary.get(item, 0) + qty
 
 	# v61.0 Fix: Award credits_output for offline processing
