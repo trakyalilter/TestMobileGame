@@ -1517,24 +1517,9 @@ func rebuild_storage():
 				core_card.setup(core_id, fake_data, qty)
 				slot_count += 1
 	
-	# v83.9.5: Boss Cores (Lunar, Asteroid, etc.) - Only in "ALL"
-	if active_filter == "all":
-		var boss_cores = ElementDB.get_elements_in_category("boss_cores")
-		for core_id in boss_cores:
-			var qty = GameState.resources.get_element_amount(core_id)
-			if qty > 0:
-				var core_card = draggable_icon_scene.instantiate()
-				storage_grid.add_child(core_card)
-				var display_name = ElementDB.get_display_name(core_id)
-				var fake_data = {
-					"name": display_name,
-					"slot_type": "resource",
-					"rarity": 4, # Unique
-					"stats": {},
-					"desc": "Rare boss component."
-				}
-				core_card.setup(core_id, fake_data, qty)
-				slot_count += 1
+	# Boss cores (Lunar, Asteroid, …) are research/crafting materials, NOT
+	# equippable modules — they are shown in the Inventory page ("Other"),
+	# not the Armory. Matrix cores above stay: those socket into gear.
 
 	# v84.1: Fill remaining with Empty Slots (Premium Grid Look)
 	var min_slots = 28 # 4 columns * 7 rows
@@ -1697,14 +1682,8 @@ func _build_filter_counts() -> Dictionary:
 			core_count += 1
 	counts["matrix"] = core_count
 	
-	# Boss Cores added to "ALL"
-	var boss_core_count = 0
-	var boss_cores = ElementDB.get_elements_in_category("boss_cores")
-	for core_id in boss_cores:
-		if GameState.resources.get_element_amount(core_id) > 0:
-			boss_core_count += 1
-			
-	counts["all"] += ordnance_count + core_count + boss_core_count
+	# Boss cores excluded from the Armory (they're Inventory materials).
+	counts["all"] += ordnance_count + core_count
 	return counts
 
 func _normalize_filter_id(filter_id: String) -> String:
