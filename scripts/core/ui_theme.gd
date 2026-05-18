@@ -3,6 +3,18 @@ extends Node
 signal packet_landed(color)
 signal notification_requested(text: String, color: Color) # Feature v66.1
 signal research_navigation_requested(tech_id: String)
+# Emitted when the player switches card frame style in Sys Config so every
+# live CardChrome overlay repaints without a page rebuild.
+signal chrome_changed
+
+# Card frame / "soul" chrome styles, selectable in Sys Config.
+# Default is INDUSTRIAL (matches the diegetic engineering-console copy).
+const CHROME_INDUSTRIAL := 0
+const CHROME_HOLOGRAPHIC := 1
+const CHROME_PRECURSOR := 2
+
+func get_card_chrome() -> int:
+	return int(GameState.game_settings.get("card_chrome", CHROME_INDUSTRIAL))
 
 # Inline Lira currency icon for BBCode/RichText contexts ONLY (plain Labels
 # and Buttons can't embed images — those use the word "Liras"). Single source
@@ -67,18 +79,19 @@ func apply_card_style(panel: Control, category: String = "ops") -> StyleBoxFlat:
 	style.bg_color.a = 0.96
 	style.draw_center = true
 
-	# Subtle accent frame with a brighter LIT TOP edge — the same
-	# light-source motif as the progress-bar fill and the menu panels.
+	# Faint uniform 1px hairline only. The CardChrome overlay now owns the
+	# lit-edge / frame motif, so a thicker StyleBox top border just stacks
+	# behind it and reads as one over-thick accent band.
 	style.set_border_width_all(1)
-	style.border_width_top = 2
 	var border_col: Color = accent
-	border_col.a = 0.28
+	border_col.a = 0.22
 	style.border_color = border_col
-	# Per-side colour isn't supported on StyleBoxFlat, so the brighter top
-	# is faked by a slightly stronger overall accent + the thicker top edge.
 	style.border_blend = false
 
-	style.set_corner_radius_all(5)
+	# Square corners: the CardChrome overlay (always on) draws sharp corner
+	# hardware / a chamfered octagon / etched frames — a rounded StyleBox
+	# corner would poke out behind those and read as a defect.
+	style.set_corner_radius_all(0)
 
 	# Depth shadow so cards separate cleanly in the grid.
 	style.shadow_color = Color(0, 0, 0, 0.35)
@@ -86,20 +99,42 @@ func apply_card_style(panel: Control, category: String = "ops") -> StyleBoxFlat:
 	style.shadow_offset = Vector2(0, 3)
 
 	panel.add_theme_stylebox_override("panel", style)
+
+	# Procedural "soul" chrome layer (corner hardware / holo frame / etched
+	# filigree) painted over the flat StyleBox. One overlay per card, tinted
+	# by the same accent — switches live with the Sys Config setting.
+	_attach_chrome(panel, accent)
 	return style
+
+# Adds (or refreshes) the CardChrome overlay on a styled card. Idempotent:
+# re-applying a style on the same panel just updates the accent.
+func _attach_chrome(panel: Control, accent: Color) -> void:
+	var existing := panel.get_node_or_null("_CardChrome")
+	if existing:
+		existing.accent = accent
+		existing.queue_redraw()
+		return
+	var chrome := CardChrome.new()
+	chrome.name = "_CardChrome"
+	chrome.accent = accent
+	chrome.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chrome.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	panel.add_child(chrome)
+	# Stay the last sibling so the ornament paints above card content.
+	panel.move_child(chrome, panel.get_child_count() - 1)
 
 func apply_diegetic_header(panel: Control, category: String = "ops"):
 	if not panel: return
 	var accent = CATEGORY_COLORS.get(category, COLORS["accent"])
 	var style = StyleBoxFlat.new()
 	# Dark accent-tinted title bar with a crisp accent underline — a
-	# "command bar" that caps the card. Top corners match the panel so
-	# the header sits flush instead of overhanging the rounded edge.
+	# "command bar" that caps the card. Square top corners to match the
+	# square (chrome-framed) panel so the header sits perfectly flush.
 	style.bg_color = accent.lerp(Color.BLACK, 0.82)
 	style.border_width_bottom = 2
 	style.border_color = accent
-	style.corner_radius_top_left = 4
-	style.corner_radius_top_right = 4
+	style.corner_radius_top_left = 0
+	style.corner_radius_top_right = 0
 	panel.add_theme_stylebox_override("panel", style)
 
 func inject_diegetic_header(card: PanelContainer, category: String) -> PanelContainer:
@@ -1010,3 +1045,248 @@ func module_type_icon(slot_type: String, stats: Dictionary) -> Texture2D:
 func _process(delta):
 	# Global UI animations or packet handling can go here
 	pass
+
+# ---------------------------------------------------------------------------
+# CardChrome — procedural card "soul" overlay.
+#
+# A mouse-transparent Control that paints sci-fi panel hardware over the flat
+# StyleBox of every card built through apply_card_style(). The motif is chosen
+# globally in Sys Config (GameState.game_settings.card_chrome); the accent is
+# inherited per-card so all 8 category colours stay coherent. Fully static —
+# repaints only on resize or when the player switches styles.
+# ---------------------------------------------------------------------------
+class CardChrome extends Control:
+	var accent: Color = Color(1.0, 0.6, 0.2)
+	# Page background, used to mask the holographic octagon corner cuts.
+	const _PAGE_BG := Color(0.08, 0.08, 0.12)
+
+	func _ready() -> void:
+		UITheme.chrome_changed.connect(queue_redraw)
+
+	func _draw() -> void:
+		var w := size.x
+		var h := size.y
+		if w < 8.0 or h < 8.0:
+			return
+		match UITheme.get_card_chrome():
+			UITheme.CHROME_HOLOGRAPHIC:
+				_draw_holographic(w, h)
+			UITheme.CHROME_PRECURSOR:
+				_draw_precursor(w, h)
+			_:
+				_draw_industrial(w, h)
+
+	# --- small shared primitives ------------------------------------------
+	func _diamond(c: Vector2, r: float, col: Color) -> void:
+		draw_colored_polygon(PackedVector2Array([
+			c + Vector2(0, -r), c + Vector2(r, 0),
+			c + Vector2(0, r), c + Vector2(-r, 0)]), col)
+
+	func _diamond_outline(c: Vector2, r: float, col: Color, wd: float) -> void:
+		draw_polyline(PackedVector2Array([
+			c + Vector2(0, -r), c + Vector2(r, 0), c + Vector2(0, r),
+			c + Vector2(-r, 0), c + Vector2(0, -r)]), col, wd, true)
+
+	# Eight-point octagon tracing a chamfer of size `c`.
+	func _octagon(w: float, h: float, c: float) -> PackedVector2Array:
+		return PackedVector2Array([
+			Vector2(c, 0), Vector2(w - c, 0), Vector2(w, c), Vector2(w, h - c),
+			Vector2(w - c, h), Vector2(c, h), Vector2(0, h - c), Vector2(0, c),
+			Vector2(c, 0)])
+
+	# --- 01 · Industrial command console ----------------------------------
+	func _draw_industrial(w: float, h: float) -> void:
+		var a := accent
+		# CRT scanline surface — one batched call, very low alpha.
+		var scan := PackedVector2Array()
+		var sy := 7.0
+		while sy < h - 5.0:
+			scan.append(Vector2(5, sy))
+			scan.append(Vector2(w - 5, sy))
+			sy += 4.0
+		draw_multiline(scan, Color(1, 1, 1, 0.022), 1.0)
+
+		# Recessed inner hairline frame only (thin — matches the comp).
+		var fr := a
+		fr.a = 0.15
+		draw_rect(Rect2(4, 4, w - 8, h - 8), fr, false, 1.0)
+
+		# Machined L brackets — double stroke on all four corners.
+		_bracket(Vector2(2, 2), 1.0, 1.0, a)
+		_bracket(Vector2(w - 2, 2), -1.0, 1.0, a)
+		_bracket(Vector2(2, h - 2), 1.0, -1.0, a)
+		_bracket(Vector2(w - 2, h - 2), -1.0, -1.0, a)
+
+		# Recessed rivets near the lower corners.
+		_rivet(Vector2(13, h - 12))
+		_rivet(Vector2(w - 13, h - 12))
+
+	func _bracket(o: Vector2, sx: float, sy: float, col: Color) -> void:
+		var L := 18.0
+		draw_polyline(PackedVector2Array([
+			o + Vector2(0, L * sy), o, o + Vector2(L * sx, 0)]), col, 2.0)
+		var inner := col
+		inner.a *= 0.5
+		draw_polyline(PackedVector2Array([
+			o + Vector2(5 * sx, 13 * sy), o + Vector2(5 * sx, 5 * sy),
+			o + Vector2(13 * sx, 5 * sy)]), inner, 1.0)
+
+	func _rivet(c: Vector2) -> void:
+		draw_circle(c, 3.0, Color(0, 0, 0, 0.5))
+		draw_circle(c, 1.6, Color(1, 1, 1, 0.22))
+
+	# --- 02 · Holographic projection --------------------------------------
+	func _draw_holographic(w: float, h: float) -> void:
+		var a := accent
+		var ch := 16.0
+
+		# Cut all four corners with page bg → a true octagon silhouette.
+		# Triangles bleed ~3px past the overlay so they also mask the panel's
+		# rounded StyleBox corner (radius 5) that sits just outside this rect.
+		var b := 3.0
+		draw_colored_polygon(PackedVector2Array([
+			Vector2(-b, -b), Vector2(ch, -b), Vector2(-b, ch)]), _PAGE_BG)
+		draw_colored_polygon(PackedVector2Array([
+			Vector2(w - ch, -b), Vector2(w + b, -b), Vector2(w + b, ch)]), _PAGE_BG)
+		draw_colored_polygon(PackedVector2Array([
+			Vector2(-b, h - ch), Vector2(ch, h + b), Vector2(-b, h + b)]), _PAGE_BG)
+		draw_colored_polygon(PackedVector2Array([
+			Vector2(w + b, h - ch), Vector2(w + b, h + b), Vector2(w - ch, h + b)]), _PAGE_BG)
+
+		# Outer bloom — stacked octagon strokes following the shape.
+		var gg := a
+		gg.a = 0.06
+		for i in range(1, 4):
+			var d := float(i) * 2.0
+			# Bloom octagon, expanded outward by d on every side.
+			var ring := PackedVector2Array()
+			for p in _octagon(w + d * 2.0, h + d * 2.0, ch + d):
+				ring.append(p - Vector2(d, d))
+			draw_polyline(ring, gg, 2.0, true)
+
+		# Faint dot-mesh fill (one batched call).
+		var dm := a
+		dm.a = 0.06
+		var mesh := PackedVector2Array()
+		var my := 18.0
+		while my < h - 12.0:
+			var mx := 18.0
+			while mx < w - 12.0:
+				mesh.append(Vector2(mx - 1.5, my))
+				mesh.append(Vector2(mx + 1.5, my))
+				mesh.append(Vector2(mx, my - 1.5))
+				mesh.append(Vector2(mx, my + 1.5))
+				mx += 16.0
+			my += 16.0
+		draw_multiline(mesh, dm, 1.0)
+
+		# Static "scan band" — soft bright band, reads as a frozen sweep.
+		var by := h * 0.40
+		for k in range(6):
+			var t := float(k)
+			var band := a
+			band.a = 0.05 * (1.0 - t / 6.0)
+			draw_rect(Rect2(ch, by - t * 3.0, w - ch * 2.0, 3.0), band, true)
+			draw_rect(Rect2(ch, by + t * 3.0, w - ch * 2.0, 3.0), band, true)
+
+		# Faint inner octagon, inset 4px on every side.
+		var g2 := a
+		g2.a = 0.2
+		var inner := PackedVector2Array()
+		for p in _octagon(w - 8, h - 8, ch - 4):
+			inner.append(p + Vector2(4, 4))
+		draw_polyline(inner, g2, 1.0, true)
+
+		# Outer frame drawn edge-by-edge: dim straight runs, BRIGHT thick
+		# chamfer cuts. One clean stroke per edge — the "lit bevel" is the
+		# frame itself, so nothing overlaps or wedges at the corners.
+		var v0 := Vector2(ch, 0)
+		var v1 := Vector2(w - ch, 0)
+		var v2 := Vector2(w, ch)
+		var v3 := Vector2(w, h - ch)
+		var v4 := Vector2(w - ch, h)
+		var v5 := Vector2(ch, h)
+		var v6 := Vector2(0, h - ch)
+		var v7 := Vector2(0, ch)
+		var edge := a
+		edge.a = 0.45
+		var cut := a
+		cut.a = 0.95
+		draw_line(v0, v1, edge, 1.2)   # straight runs
+		draw_line(v2, v3, edge, 1.2)
+		draw_line(v4, v5, edge, 1.2)
+		draw_line(v6, v7, edge, 1.2)
+		draw_line(v7, v0, cut, 2.5)    # lit chamfer cuts
+		draw_line(v1, v2, cut, 2.5)
+		draw_line(v3, v4, cut, 2.5)
+		draw_line(v5, v6, cut, 2.5)
+
+	# --- 03 · Precursor-etched --------------------------------------------
+	func _filigree(o: Vector2, sx: float, sy: float, col: Color) -> void:
+		# Main chamfered L bracket.
+		draw_polyline(PackedVector2Array([
+			o + Vector2(2 * sx, 36 * sy), o + Vector2(2 * sx, 14 * sy),
+			o + Vector2(14 * sx, 2 * sy), o + Vector2(36 * sx, 2 * sy)]), col, 1.8)
+		# Parallel inner groove (lighter — fakes an engraved bevel).
+		var groove := col
+		groove.a *= 0.45
+		draw_polyline(PackedVector2Array([
+			o + Vector2(6 * sx, 30 * sy), o + Vector2(6 * sx, 16 * sy),
+			o + Vector2(16 * sx, 6 * sy), o + Vector2(30 * sx, 6 * sy)]), groove, 1.2)
+		# Hooked flourish + an inlaid node at the elbow.
+		draw_polyline(PackedVector2Array([
+			o + Vector2(2 * sx, 24 * sy), o + Vector2(11 * sx, 24 * sy),
+			o + Vector2(16 * sx, 19 * sy)]), col, 1.4)
+		_diamond(o + Vector2(9 * sx, 9 * sy), 2.5, col)
+
+	func _draw_precursor(w: float, h: float) -> void:
+		var a := accent
+		# Engraved double inner stroke (outer line + lighter offset groove).
+		var e1 := a
+		e1.a = 0.5
+		var e2 := a
+		e2.a = 0.2
+		draw_rect(Rect2(6, 6, w - 12, h - 12), e1, false, 1.0)
+		draw_rect(Rect2(9, 9, w - 18, h - 18), e2, false, 1.0)
+
+		# Angular filigree at all four corners.
+		var fc := a
+		fc.a = 0.85
+		_filigree(Vector2(0, 0), 1.0, 1.0, fc)
+		_filigree(Vector2(w, 0), -1.0, 1.0, fc)
+		_filigree(Vector2(0, h), 1.0, -1.0, fc)
+		_filigree(Vector2(w, h), -1.0, -1.0, fc)
+
+		# Embroidery stitch ticks down both inner side edges.
+		var st := a
+		st.a = 0.3
+		var stitch := PackedVector2Array()
+		var ys := 48.0
+		while ys < h - 48.0:
+			stitch.append(Vector2(12, ys))
+			stitch.append(Vector2(16, ys))
+			stitch.append(Vector2(w - 12, ys))
+			stitch.append(Vector2(w - 16, ys))
+			ys += 11.0
+		draw_multiline(stitch, st, 1.0)
+
+		# Inlaid node diamonds (with a ring) at the mid-point of each edge.
+		for p in [Vector2(w * 0.5, 4), Vector2(w * 0.5, h - 4),
+				Vector2(4, h * 0.5), Vector2(w - 4, h * 0.5)]:
+			_diamond(p, 4.0, a)
+			_diamond_outline(p, 7.0, e2, 1.0)
+
+		# Etched glyph row along the bottom inner edge: diamond · chevron.
+		var gl := a
+		gl.a = 0.45
+		var gx := 46.0
+		var idx := 0
+		while gx < w - 46.0:
+			if idx % 2 == 0:
+				_diamond(Vector2(gx, h - 11), 2.5, gl)
+			else:
+				draw_polyline(PackedVector2Array([
+					Vector2(gx - 3, h - 9), Vector2(gx, h - 13),
+					Vector2(gx + 3, h - 9)]), gl, 1.2)
+			gx += 15.0
+			idx += 1

@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Horizon Idle — Card Soul Comps</title>
+<style>
+  /* Palette pulled straight from scripts/core/ui_theme.gd */
+  :root{
+    --bg:#14141f;            /* COLORS.background  0.08,0.08,0.12 */
+    --panel:#262638;         /* COLORS.panel_bg    0.15,0.15,0.22 */
+    --panel-deep:#0a0b12;    /* recessed channel   0.03,0.04,0.07 */
+    --text:#e6e6f2;          /* text_main */
+    --dim:#9a9ab2;           /* text_dim */
+    --cyan:#19cdff;          /* text_accent / engineering */
+    --orange:#ff9933;        /* ops accent */
+    --gold:#ffcc33;          /* inventory accent */
+    --green:#4dbf4d;         /* positive */
+    --red:#cc5050;           /* hull / negative */
+    --blue:#5aa0ff;          /* shield */
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--bg);color:var(--text);
+    font-family:"Bahnschrift","Segoe UI Variable Display","Eurostile",Arial,sans-serif;
+    padding:32px 28px 64px;
+  }
+  h1{font-size:20px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#fff;margin-bottom:4px}
+  .sub{font-size:12px;color:var(--dim);letter-spacing:1px;margin-bottom:34px}
+  .dir{margin-bottom:54px}
+  .dir-head{display:flex;align-items:baseline;gap:14px;margin-bottom:6px;
+    border-bottom:1px solid rgba(255,255,255,.07);padding-bottom:8px}
+  .dir-head .num{font-size:13px;color:var(--dim);letter-spacing:2px}
+  .dir-head h2{font-size:17px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#fff}
+  .dir-head .note{font-size:12px;color:var(--dim);margin-left:auto;max-width:520px;text-align:right}
+  .row{display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start;margin-top:24px}
+
+  /* ---------- shared card content skeleton ---------- */
+  .card{width:300px;position:relative;background:var(--panel);
+    border-radius:5px;padding:0;overflow:visible}
+  .card .pad{padding:14px 16px 16px}
+  .ttl{font-size:13px;font-weight:600;letter-spacing:3px;text-transform:uppercase;
+    text-align:center;padding:10px 0}
+  .filter{border:1px solid var(--gold);border-radius:6px;color:var(--text);
+    text-align:center;font-size:13px;letter-spacing:3px;padding:7px 0;margin:4px 0 12px;
+    background:rgba(0,0,0,.25)}
+  .list div{color:var(--green);font-size:14px;text-align:center;padding:2px 0;letter-spacing:.5px}
+  .feedlbl{color:var(--dim);font-size:11px;letter-spacing:2px;margin:6px 0 6px}
+  .bar{height:22px;background:var(--panel-deep);border-radius:3px;
+    border:1px solid rgba(255,153,51,.4);position:relative;display:flex;align-items:center}
+  .bar i{display:block;height:100%;border-radius:2px;
+    background:repeating-linear-gradient(90deg,var(--orange) 0 7px,rgba(0,0,0,.18) 7px 9px)}
+  .bar b{position:absolute;right:-46px;color:var(--orange);font-size:12px;font-style:normal}
+  .dps{display:flex;justify-content:space-between;align-items:center;
+    background:var(--panel-deep);border:1px solid rgba(255,204,51,.35);
+    border-radius:4px;padding:8px 12px;margin-bottom:10px}
+  .dps span{font-size:12px;letter-spacing:3px;color:var(--dim)}
+  .dps strong{font-size:22px;color:var(--gold)}
+  .stat{display:flex;align-items:center;gap:8px;font-size:11px;margin:5px 0}
+  .stat em{width:48px;color:var(--dim);font-style:normal;letter-spacing:1px}
+  .stat .t{flex:1;height:9px;background:var(--panel-deep);border-radius:2px;overflow:hidden}
+  .stat .t i{display:block;height:100%}
+  .stat .v{width:64px;text-align:right;font-style:normal}
+  .substat{font-size:11px;color:var(--dim);letter-spacing:1px;margin:8px 0 6px;
+    display:flex;gap:10px;flex-wrap:wrap}
+  .substat b{font-style:normal}
+  .setrow{font-size:11px;color:var(--dim);letter-spacing:1px;
+    border-top:1px solid rgba(255,255,255,.07);padding-top:7px;margin-top:8px;
+    display:flex;justify-content:space-between}
+  .cardname{font-size:17px;font-weight:700;letter-spacing:2px;color:var(--gold);
+    text-transform:uppercase;line-height:1.15;margin-bottom:10px}
+
+  /* =================================================================
+     DIRECTION A — INDUSTRIAL COMMAND CONSOLE
+     ================================================================= */
+  .A .card{background:var(--panel);border-radius:0;
+    box-shadow:0 3px 10px rgba(0,0,0,.45);
+  }
+  .A .card::before{ /* recessed hairline frame */
+    content:"";position:absolute;inset:5px;border:1px solid var(--frame,rgba(255,255,255,.10));
+    border-radius:0;pointer-events:none}
+  .A .card::after{ /* faint scanline surface texture */
+    content:"";position:absolute;inset:0;pointer-events:none;border-radius:0;
+    background:repeating-linear-gradient(0deg,rgba(255,255,255,.022) 0 1px,transparent 1px 4px)}
+  .A .hdr{position:relative;padding:11px 16px;margin:0;
+    background:rgba(0,0,0,.45);border-bottom:2px solid var(--ac);
+    font-size:13px;font-weight:600;letter-spacing:3px;text-transform:uppercase;
+    color:#fff;display:flex;align-items:center;gap:9px}
+  .A .hdr .g{color:var(--ac)}
+  .A .hdr .r{margin-left:auto;color:var(--ac);font-size:11px;letter-spacing:0}
+  /* L corner brackets */
+  .A .brk{position:absolute;width:16px;height:16px;border:2px solid var(--ac);pointer-events:none}
+  .A .b1{left:-1px;top:-1px;border-right:0;border-bottom:0}
+  .A .b4{right:-1px;top:-1px;border-left:0;border-bottom:0}
+  .A .b3{left:-1px;bottom:-1px;border-right:0;border-top:0}
+  .A .b2{right:-1px;bottom:-1px;border-left:0;border-top:0}
+  /* rivets */
+  .A .rv{position:absolute;width:4px;height:4px;border-radius:50%;
+    background:rgba(255,255,255,.18);box-shadow:0 0 0 1px rgba(0,0,0,.5)}
+  .A .rv.a{left:11px;bottom:10px}.A .rv.b{right:11px;bottom:10px}
+
+  /* =================================================================
+     DIRECTION B — HOLOGRAPHIC PROJECTION
+     ================================================================= */
+  .B .card{background:linear-gradient(180deg,rgba(38,38,56,.92),rgba(20,20,31,.92));
+    /* chamfered octagon corners */
+    clip-path:polygon(14px 0,calc(100% - 14px) 0,100% 14px,100% calc(100% - 14px),
+      calc(100% - 14px) 100%,14px 100%,0 calc(100% - 14px),0 14px);
+    box-shadow:0 0 18px var(--glow,rgba(25,205,255,.22));overflow:hidden}
+  .B .card::before{ /* double glow frame */
+    content:"";position:absolute;inset:3px;pointer-events:none;
+    clip-path:polygon(12px 0,calc(100% - 12px) 0,100% 12px,100% calc(100% - 12px),
+      calc(100% - 12px) 100%,12px 100%,0 calc(100% - 12px),0 12px);
+    border:1px solid var(--ac);box-shadow:inset 0 0 8px var(--glow,rgba(25,205,255,.28))}
+  .B .card::after{ /* static scan band — frozen sweep (matches in-game) */
+    content:"";position:absolute;left:14px;right:14px;top:38%;height:34px;
+    pointer-events:none;transform:translateY(-50%);
+    background:linear-gradient(180deg,transparent,var(--glow,rgba(25,205,255,.22)) 50%,transparent)}
+  .B .mesh{position:absolute;inset:0;pointer-events:none;opacity:.10;
+    background-image:
+      radial-gradient(circle,var(--ac) 1px,transparent 1.4px);
+    background-size:16px 16px}
+  .B .hdr{position:relative;padding:11px 16px;
+    font-size:13px;font-weight:600;letter-spacing:3px;text-transform:uppercase;
+    color:#fff;display:flex;align-items:center;gap:9px;
+    text-shadow:0 0 8px var(--glow,rgba(25,205,255,.7))}
+  .B .hdr::after{content:"";position:absolute;left:14px;right:14px;bottom:0;height:1px;
+    background:linear-gradient(90deg,transparent,var(--ac),transparent)}
+  .B .hdr .g{color:var(--ac)}
+  /* In-engine the chamfer cuts are the BRIGHT segments of the octagon
+     frame itself (straight runs dimmer). CSS clip-path can't weight one
+     polygon edge, so the comp just shows the clean octagon glow frame —
+     the corners read clean, no overlaid bevel that could wedge. */
+  .B .nd{display:none}
+  .B .card::before{border-width:1.5px}
+
+  /* =================================================================
+     DIRECTION C — PRECURSOR-ETCHED
+     ================================================================= */
+  .C .card{background:var(--panel);border-radius:0;
+    box-shadow:0 3px 12px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.04)}
+  .C .card::before{ /* engraved double inner stroke */
+    content:"";position:absolute;inset:6px;pointer-events:none;border-radius:0;
+    border:1px solid var(--ac);opacity:.5;
+    box-shadow:inset 0 0 0 3px rgba(0,0,0,.35),inset 0 0 0 4px rgba(255,255,255,.05)}
+  .C .card::after{ /* embroidery stitch ticks down both inner side edges */
+    content:"";position:absolute;top:48px;bottom:48px;left:12px;right:12px;
+    pointer-events:none;
+    background:
+      repeating-linear-gradient(180deg,var(--ac) 0 1px,transparent 1px 11px) left/4px 100% no-repeat,
+      repeating-linear-gradient(180deg,var(--ac) 0 1px,transparent 1px 11px) right/4px 100% no-repeat;
+    opacity:.3}
+  .C .fil{position:absolute;width:38px;height:38px;pointer-events:none;
+    stroke:var(--ac);fill:none;stroke-width:1.6;opacity:.85;
+    filter:drop-shadow(0 0 3px rgba(0,0,0,.6))}
+  .C .f1{left:-2px;top:-2px}
+  .C .f2{right:-2px;top:-2px;transform:scaleX(-1)}
+  .C .f3{left:-2px;bottom:-2px;transform:scaleY(-1)}
+  .C .f4{right:-2px;bottom:-2px;transform:scale(-1,-1)}
+  .C .hdr{position:relative;padding:12px 18px 10px;
+    font-size:13px;font-weight:600;letter-spacing:4px;text-transform:uppercase;
+    color:#fff;display:flex;align-items:center;gap:10px}
+  .C .hdr .g{color:var(--ac)}
+  .C .glyphrow{display:flex;justify-content:center;gap:9px;padding:0 0 4px;
+    color:var(--ac);opacity:.55;font-size:12px;letter-spacing:6px}
+  .C .node{position:absolute;width:7px;height:7px;background:var(--ac);
+    transform:rotate(45deg);opacity:.8;box-shadow:0 0 0 2px rgba(0,0,0,.4);pointer-events:none}
+  .C .node.t{left:50%;top:-3px;margin-left:-3px}
+  .C .node.b{left:50%;bottom:-3px;margin-left:-3px}
+  .C .node.l{left:-3px;top:50%;margin-top:-3px}
+  .C .node.r{right:-3px;top:50%;margin-top:-3px}
+</style>
+</head>
+<body>
+  <h1>Horizon Idle — Card Soul</h1>
+  <div class="sub">3 directions × your 3 real cards · game palette from ui_theme.gd · theme-tinted per category accent</div>
+
+  <!-- SVG filigree definition reused by Direction C -->
+  <svg width="0" height="0" style="position:absolute">
+    <defs>
+      <g id="filig">
+        <!-- main chamfered L bracket -->
+        <path d="M2 36 L2 14 L14 2 L36 2"/>
+        <!-- parallel engraved groove (lighter) -->
+        <path d="M6 30 L6 16 L16 6 L30 6" opacity="0.45"/>
+        <!-- hooked flourish -->
+        <path d="M2 24 L11 24 L16 19"/>
+        <!-- inlaid elbow node -->
+        <path d="M9 5 L13 9 L9 13 L5 9 Z"/>
+      </g>
+    </defs>
+  </svg>
+
+  <!-- ============ DIRECTION A ============ -->
+  <section class="dir A">
+    <div class="dir-head">
+      <span class="num">DIRECTION 01</span>
+      <h2>Industrial Command Console</h2>
+      <span class="note">Corner brackets · stencil cut-corner · recessed hairline frame · rivets · hazard ticks · faint scanline. Matches your existing diegetic copy.</span>
+    </div>
+    <div class="row">
+
+      <div class="card" style="--ac:var(--cyan);--frame:rgba(25,205,255,.16)">
+        <span class="brk b1"></span><span class="brk b2"></span><span class="brk b3"></span><span class="brk b4"></span>
+        <div class="hdr"><span class="g">◳</span>EXPEDITION YIELD<span class="r">▸</span></div>
+        <div class="pad">
+          <div class="filter">▼ FILTER</div>
+          <div class="list"><div>Common Artifact x 21</div><div>Mite Chitin x 27</div><div>Lunar Core x 2</div></div>
+        </div>
+        <span class="rv a"></span><span class="rv b"></span>
+      </div>
+
+      <div class="card" style="--ac:var(--orange);--frame:rgba(255,153,51,.16)">
+        <span class="brk b1"></span><span class="brk b2"></span><span class="brk b3"></span><span class="brk b4"></span>
+        <div class="hdr"><span class="g">◳</span>ORDNANCE FEED<span class="r">▸</span></div>
+        <div class="pad">
+          <div class="feedlbl">SLUG</div>
+          <div class="bar"><i style="width:88%"></i><b>+12788</b></div>
+        </div>
+        <span class="rv a"></span><span class="rv b"></span>
+      </div>
+
+      <div class="card" style="--ac:var(--gold);--frame:rgba(255,204,51,.16)">
+        <span class="brk b1"></span><span class="brk b2"></span><span class="brk b3"></span><span class="brk b4"></span>
+        <div class="hdr"><span class="g">◳</span>INDUSTRIAL FRIGATE<span class="r">▸</span></div>
+        <div class="pad">
+          <div class="dps"><span>DPS</span><strong>24.0</strong></div>
+          <div class="stat"><em>HULL</em><div class="t"><i style="width:100%;background:var(--red)"></i></div><span class="v" style="color:var(--red)">699/699</span></div>
+          <div class="stat"><em>SHIELD</em><div class="t"><i style="width:100%;background:var(--blue)"></i></div><span class="v" style="color:var(--blue)">334/334</span></div>
+          <div class="stat"><em>GRID</em><div class="t"><i style="width:7%;background:var(--gold)"></i></div><span class="v" style="color:var(--green)">+141 kW</span></div>
+          <div class="substat"><b style="color:var(--orange)">ATK 78.6</b><b>DEF 112</b><b>ACC 0</b><b style="color:var(--orange)">CRIT 10%</b><b>EVA 13</b></div>
+          <div class="setrow"><span>◆◆◇ Architect's Regalia</span><span>2/3</span></div>
+        </div>
+        <span class="rv a"></span><span class="rv b"></span>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ DIRECTION B ============ -->
+  <section class="dir B">
+    <div class="dir-head">
+      <span class="num">DIRECTION 02</span>
+      <h2>Holographic Projection</h2>
+      <span class="note">Chamfered octagon corners · double glow frame · animated scan sweep · dot-mesh fill · corner nodes · accent bloom on titles.</span>
+    </div>
+    <div class="row">
+
+      <div class="card" style="--ac:var(--cyan);--glow:rgba(25,205,255,.26)">
+        <div class="mesh"></div>
+        <div class="hdr"><span class="g">◇</span>EXPEDITION YIELD</div>
+        <div class="pad">
+          <div class="filter">▼ FILTER</div>
+          <div class="list"><div>Common Artifact x 21</div><div>Mite Chitin x 27</div><div>Lunar Core x 2</div></div>
+        </div>
+        <span class="nd a"></span><span class="nd b"></span><span class="nd c"></span><span class="nd d"></span>
+      </div>
+
+      <div class="card" style="--ac:var(--orange);--glow:rgba(255,153,51,.26)">
+        <div class="mesh"></div>
+        <div class="hdr"><span class="g">◇</span>ORDNANCE FEED</div>
+        <div class="pad">
+          <div class="feedlbl">SLUG</div>
+          <div class="bar"><i style="width:88%"></i><b>+12788</b></div>
+        </div>
+        <span class="nd a"></span><span class="nd b"></span><span class="nd c"></span><span class="nd d"></span>
+      </div>
+
+      <div class="card" style="--ac:var(--gold);--glow:rgba(255,204,51,.24)">
+        <div class="mesh"></div>
+        <div class="hdr"><span class="g">◇</span>INDUSTRIAL FRIGATE</div>
+        <div class="pad">
+          <div class="dps"><span>DPS</span><strong>24.0</strong></div>
+          <div class="stat"><em>HULL</em><div class="t"><i style="width:100%;background:var(--red)"></i></div><span class="v" style="color:var(--red)">699/699</span></div>
+          <div class="stat"><em>SHIELD</em><div class="t"><i style="width:100%;background:var(--blue)"></i></div><span class="v" style="color:var(--blue)">334/334</span></div>
+          <div class="stat"><em>GRID</em><div class="t"><i style="width:7%;background:var(--gold)"></i></div><span class="v" style="color:var(--green)">+141 kW</span></div>
+          <div class="substat"><b style="color:var(--orange)">ATK 78.6</b><b>DEF 112</b><b>ACC 0</b><b style="color:var(--orange)">CRIT 10%</b><b>EVA 13</b></div>
+          <div class="setrow"><span>◆◆◇ Architect's Regalia</span><span>2/3</span></div>
+        </div>
+        <span class="nd a"></span><span class="nd b"></span><span class="nd c"></span><span class="nd d"></span>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ DIRECTION C ============ -->
+  <section class="dir C">
+    <div class="dir-head">
+      <span class="num">DIRECTION 03</span>
+      <h2>Precursor-Etched</h2>
+      <span class="note">Angular filigree corners · engraved double inner stroke · etched glyph row under header · inlaid edge nodes. Most ornamental.</span>
+    </div>
+    <div class="row">
+
+      <div class="card" style="--ac:var(--cyan)">
+        <svg class="fil f1" viewBox="0 0 40 40"><use href="#filig"/></svg>
+        <svg class="fil f2" viewBox="0 0 40 40"><use href="#filig"/></svg>
+        <svg class="fil f3" viewBox="0 0 40 40"><use href="#filig"/></svg>
+        <svg class="fil f4" viewBox="0 0 40 40"><use href="#filig"/></svg>
+        <span class="node t"></span><span class="node b"></span><span class="node l"></span><span class="node r"></span>
+        <div class="hdr"><span class="g">⟐</span>EXPEDITION YIELD</div>
+        <div class="glyphrow">⟁ ◇ ⟁ ◇ ⟁ ◇ ⟁ ◇ ⟁</div>
+        <div class="pad">
+          <div class="filter">▼ FILTER</div>
+          <div class="list"><div>Common Artifact x 21</div><div>Mite Chitin x 27</div><div>Lunar Core x 2</div></div>
+        </div>
+      </div>
+
+      <div class="card" style="--ac:var(--orange)">
+        <svg class="fil f1" viewBox="0 0 40 40"><use href="#filig"/></svg>
+        <svg class="fil f2" viewBox="0 0 40 40"><use href="#filig"/></svg>
+        <svg class="fil f3" viewBox="0 0 40 40"><use href="#filig"/></svg>
+        <svg class="fil f4" viewBox="0 0 40 40"><use href="#filig"/></svg>
+        <span class="node t"></span><span class="node b"></span><span class="node l"></span><span class="node r"></span>
+        <div class="hdr"><span class="g">⟐</span>ORDNANCE FEED</div>
+        <div class="glyphrow">⟁ ◇ ⟁ ◇ ⟁ ◇ ⟁ ◇ ⟁</div>
+        <div class="pad">
+          <div class="feedlbl">SLUG</div>
+          <div class="bar"><i style="width:88%"></i><b>+12788</b></div>
+        </div>
+      </div>
+
+      <div class="card" style="--ac:var(--gold)">
+        <svg class="fil f1" viewBox="0 0 40 40"><use href="#filig"/></svg>
+        <svg class="fil f2" viewBox="0 0 40 40"><use href="#filig"/></svg>
+        <svg class="fil f3" viewBox="0 0 40 40"><use href="#filig"/></svg>
+        <svg class="fil f4" viewBox="0 0 40 40"><use href="#filig"/></svg>
+        <span class="node t"></span><span class="node b"></span><span class="node l"></span><span class="node r"></span>
+        <div class="hdr"><span class="g">⟐</span>INDUSTRIAL FRIGATE</div>
+        <div class="glyphrow">⟁ ◇ ⟁ ◇ ⟁ ◇ ⟁ ◇ ⟁</div>
+        <div class="pad">
+          <div class="dps"><span>DPS</span><strong>24.0</strong></div>
+          <div class="stat"><em>HULL</em><div class="t"><i style="width:100%;background:var(--red)"></i></div><span class="v" style="color:var(--red)">699/699</span></div>
+          <div class="stat"><em>SHIELD</em><div class="t"><i style="width:100%;background:var(--blue)"></i></div><span class="v" style="color:var(--blue)">334/334</span></div>
+          <div class="stat"><em>GRID</em><div class="t"><i style="width:7%;background:var(--gold)"></i></div><span class="v" style="color:var(--green)">+141 kW</span></div>
+          <div class="substat"><b style="color:var(--orange)">ATK 78.6</b><b>DEF 112</b><b>ACC 0</b><b style="color:var(--orange)">CRIT 10%</b><b>EVA 13</b></div>
+          <div class="setrow"><span>◆◆◇ Architect's Regalia</span><span>2/3</span></div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+</body>
+</html>
