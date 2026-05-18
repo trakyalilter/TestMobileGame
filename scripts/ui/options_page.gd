@@ -16,6 +16,7 @@ func _ready():
 	_add_replay_tutorials_btn()
 	_add_cursor_size_row()
 	_add_playtime_label()
+	_add_telemetry_readout()
 
 var _cursor_btns: Array = []
 
@@ -84,6 +85,43 @@ func _refresh_playtime():
 	if _pt_label:
 		_pt_label.text = "Total Play Time:  %s" % FormatUtils.format_playtime(GameState.total_playtime)
 
+# P3.10: read-only balance instrumentation readout.
+var _tele_label: Label
+
+func _add_telemetry_readout():
+	var vb = $CenterContainer/VBoxContainer
+	if not vb: return
+	vb.add_child(HSeparator.new())
+	var header = Label.new()
+	header.text = "Balance Telemetry (debug)"
+	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	header.add_theme_color_override("font_color", Color(0.7, 0.74, 0.82))
+	vb.add_child(header)
+	_tele_label = Label.new()
+	_tele_label.name = "TelemetryLabel"
+	_tele_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_tele_label.add_theme_color_override("font_color", Color(0.6, 0.85, 0.7))
+	vb.add_child(_tele_label)
+	_refresh_telemetry()
+
+func _pct_line(d: Dictionary) -> String:
+	var total := 0.0
+	for k in d:
+		total += float(d[k])
+	if total <= 0.0:
+		return "no data yet"
+	var parts := []
+	for k in d:
+		var p := float(d[k]) / total * 100.0
+		if p >= 0.5:
+			parts.append("%s %d%%" % [k, int(round(p))])
+	return ", ".join(parts) if not parts.is_empty() else "no data yet"
+
+func _refresh_telemetry():
+	if not _tele_label: return
+	var t = GameState.telemetry
+	_tele_label.text = "Active slot — %s\nProduction — %s" % [_pct_line(t["occupancy"]), _pct_line(t["production"])]
+
 func _process(delta):
 	if not visible:
 		return
@@ -91,6 +129,7 @@ func _process(delta):
 	if _pt_refresh >= 1.0:
 		_pt_refresh = 0.0
 		_refresh_playtime()
+		_refresh_telemetry()
 
 func _add_replay_tutorials_btn():
 	var vb = $CenterContainer/VBoxContainer

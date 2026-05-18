@@ -1436,7 +1436,9 @@ func process_tick(delta: float):
 							if GameState.shipyard_manager:
 								yield_mult *= (1.0 + GameState.shipyard_manager.affix_bonuses.get("extractor_efficiency", 0.0))
 							
-							GameState.resources.add_element(res, qty * _dr_units(count) * throttle * yield_mult)  # P0.2 DR
+							var _prod := qty * _dr_units(count) * throttle * yield_mult  # P0.2 DR
+							GameState.resources.add_element(res, _prod)
+							GameState.note_production("infra", _prod)  # P3.10
 						
 						# Statistical expectation (Audit v5.0 - O(1) Performance Foundation)
 						if bid == "hydro_plant":
@@ -1490,7 +1492,7 @@ func process_tick(delta: float):
 					
 					# Audit v8.0: Passive Scrap Logic Replaced
 					# Always generate 1 Cu per 10s per Drone Bay
-					GameState.resources.add_element("Cu", 1 * count)
+					GameState.resources.add_element("Cu", 1 * count); GameState.note_production("infra", count)  # P3.10
 
 					production_timers[bid] = 0.0
 
@@ -1551,7 +1553,7 @@ func calculate_offline(delta: float) -> String:
 				for res in data["yield"]:
 					var qty = get_effective_yield(bid, res)
 					var total = qty * _dr_units(count) * cycles  # P0.2 DR
-					GameState.resources.add_element(res, total)
+					GameState.resources.add_element(res, total); GameState.note_production("infra", total)  # P3.10
 					loot_summary[res] = loot_summary.get(res, 0.0) + total
 
 	# Pass 2: General Production
@@ -1588,7 +1590,7 @@ func calculate_offline(delta: float) -> String:
 				for res in data["yield"]:
 					var qty = get_effective_yield(bid, res)
 					var total = qty * _dr_units(count) * cycles  # P0.2 DR
-					GameState.resources.add_element(res, total)
+					GameState.resources.add_element(res, total); GameState.note_production("infra", total)  # P3.10
 					loot_summary[res] = loot_summary.get(res, 0.0) + total
 
 	

@@ -1258,7 +1258,7 @@ func complete_process():
 			else:
 				events.append(["loot", {"symbol": item, "amount": qty}, current_recipe_id])
 				
-			GameState.resources.add_element(item, qty)
+			GameState.resources.add_element(item, qty); GameState.note_production("process", qty)  # P3.10
 			
 	if "output_table" in current_recipe:
 		var roll_count = current_recipe.get("roll_count", 1) # Default 1 roll
@@ -1288,7 +1288,7 @@ func complete_process():
 		# Grant accumulated loot
 		for item in results:
 			var qty = results[item]
-			GameState.resources.add_element(item, qty)
+			GameState.resources.add_element(item, qty); GameState.note_production("process", qty)  # P3.10
 			
 			# Special jackpot message for rare items
 			if item in ["AncientTech", "W", "Ti", "NavData", "Chip", "Circuit"]:
@@ -1398,7 +1398,7 @@ func calculate_offline(delta: float):
 				qty *= GameState.research_manager.get_efficiency_multiplier()
 				
 			var total = qty * actions
-			GameState.resources.add_element(item, total)
+			GameState.resources.add_element(item, total); GameState.note_production("process", total)  # P3.10
 			loot_summary[item] = loot_summary.get(item, 0) + total
 			
 	if "output_table" in current_recipe:
@@ -1423,7 +1423,7 @@ func calculate_offline(delta: float):
 						if GameState.research_manager:
 							qty *= GameState.research_manager.get_efficiency_multiplier()
 							
-						GameState.resources.add_element(item, qty)
+						GameState.resources.add_element(item, qty); GameState.note_production("process", qty)  # P3.10
 						loot_summary[item] = loot_summary.get(item, 0) + qty
 
 	# v61.0 Fix: Award credits_output for offline processing

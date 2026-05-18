@@ -1727,12 +1727,13 @@ func win_fight():
 		var qty = int(ceil(float(base_qty) * loot_mult))
 		if entry[0] == "credits": GameState.resources.add_currency("credits", qty)
 		else: GameState.resources.add_element(entry[0], qty)
+		if entry[0] != "credits": GameState.note_production("combat", qty)  # P3.10
 		session_loot[entry[0]] = session_loot.get(entry[0], 0) + qty
 		
 	# v80.1: Boss Core drops
 	if current_enemy.get("is_boss", false) and current_enemy.has("boss_core") and current_enemy["boss_core"] != "":
 		var core_id = current_enemy["boss_core"]
-		GameState.resources.add_element(core_id, 1)
+		GameState.resources.add_element(core_id, 1); GameState.note_production("combat", 1)  # P3.10
 		
 		# v80.4: Display friendly name from DB
 		var core_name = "Boss Core"
@@ -1782,7 +1783,7 @@ func win_fight():
 				log_msg("Looted %s Module: %s" % [rarity_label, m_data["name"]])
 			else:
 				# It's a standard generic element (VoidCrystal, NavData, etc)
-				GameState.resources.add_element(item_id, qty)
+				GameState.resources.add_element(item_id, qty); GameState.note_production("combat", qty)  # P3.10
 				session_loot[item_id] = session_loot.get(item_id, 0) + qty
 	
 	var sm = GameState.shipyard_manager
@@ -1813,7 +1814,7 @@ func win_fight():
 		# Scale extra loot by difficulty
 		var diff = current_zone.get("difficulty", 1)
 		var qty = randi_range(1, 1 + int(diff / 3))
-		GameState.resources.add_element(drop, qty)
+		GameState.resources.add_element(drop, qty); GameState.note_production("combat", qty)  # P3.10
 		combat_events.append({"type": "loot", "text": "SCAVENGED %s" % drop, "color": Color.AQUA, "side": "enemy"})
 		log_msg("Nano-Scavenger triggered: Found %d %s" % [qty, drop])
 	

@@ -43,6 +43,17 @@ const PROD_SAVE_INTERVAL: float = 60.0
 # exploit and a startup-stall risk (AUDIT_LOG AUD-P0-004). Tune here.
 const OFFLINE_DELTA_CAP_SECONDS: float = 86400.0
 
+# P3.10: lightweight balance telemetry (instrumentation, NOT gameplay).
+#  occupancy  — seconds the single active slot spent per mode (is the
+#               skilling loop alive, or is everyone just doing combat?).
+#  production — total resource units credited per stream (did P0/P1.4
+#               actually stop infra from out-producing gathering?).
+# Persisted across prestige (lifetime/meta); cleared only on hard reset.
+var telemetry: Dictionary = {
+	"occupancy": {"mining": 0.0, "engineering": 0.0, "research": 0.0, "combat": 0.0, "idle": 0.0},
+	"production": {"gather": 0.0, "process": 0.0, "infra": 0.0, "combat": 0.0},
+}
+
 # Total active play time: real wall-clock seconds the game has been open.
 # Measured off the system clock so Engine.time_scale (game-speed) can't
 # inflate it. Persisted across sessions; reset only on a full New Game.
@@ -93,7 +104,12 @@ func _process(delta):
 	# Sticking to single active manager for now as per Python logic
 	if active_manager:
 		active_manager.process_tick(delta)
-		
+
+	# 3. Occupancy telemetry (P3.10) — attribute this frame to one mode
+	var _ok := _occupancy_key()
+	var _occ: Dictionary = telemetry["occupancy"]
+	_occ[_ok] = float(_occ.get(_ok, 0.0)) + delta
+
 	# Auto-save
 	time_since_save += delta
 	if time_since_save >= PROD_SAVE_INTERVAL:
@@ -103,6 +119,22 @@ func _process(delta):
 func _notification(what):
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_WM_GO_BACK_REQUEST:
 		save_game()
+
+# P3.10: which mode the single active slot is occupying this frame.
+func _occupancy_key() -> String:
+	if combat_manager and combat_manager.in_combat: return "combat"
+	if active_manager == gathering_manager: return "mining"
+	if active_manager == processing_manager: return "engineering"
+	if active_manager == research_manager: return "research"
+	return "idle"
+
+# P3.10: credit produced resource units to a stream (gather/process/infra/combat).
+func note_production(stream: String, amount) -> void:
+	if amount == null: return
+	var a := float(amount)
+	if a <= 0.0: return
+	var p: Dictionary = telemetry["production"]
+	p[stream] = float(p.get(stream, 0.0)) + a
 
 func _task_label(m) -> String:
 	if m == gathering_manager: return "Mining"
@@ -135,6 +167,7 @@ func save_game():
 		"quest": quest_manager.get_save_data_manager(),
 		"game_settings": game_settings,  # v52.1
 		"total_playtime": total_playtime,
+		"telemetry": telemetry,  # P3.10 (additive; old saves default safely)
 		"last_save_time": Time.get_unix_time_from_system()
 	}
 	
@@ -213,6 +246,15 @@ func load_game():
 		# Re-anchor the clock so the load gap isn't counted as play time.
 		total_playtime = float(data.get("total_playtime", 0.0))
 		_pt_last_msec = Time.get_ticks_msec()
+
+		# P3.10: restore telemetry. Guarded merge into the existing shape so
+		# old saves (no telemetry) and any future key drift load safely.
+		var saved_tele = data.get("telemetry", {})
+		if saved_tele is Dictionary:
+			for grp in ["occupancy", "production"]:
+				if saved_tele.has(grp) and saved_tele[grp] is Dictionary:
+					for k in telemetry[grp]:
+						telemetry[grp][k] = float(saved_tele[grp].get(k, 0.0))
 		
 		# Restore Active Manager
 		var offline_combat_enabled = game_settings.get("offline_combat", false)
@@ -289,6 +331,11 @@ func hard_reset():
 	mission_manager.reset()
 	if quest_manager: quest_manager.reset()
 	# ... others
+
+	# P3.10: telemetry is a fresh-playthrough metric — clear on hard reset.
+	for grp in telemetry:
+		for k in telemetry[grp]:
+			telemetry[grp][k] = 0.0
 
 	# Re-show first-visit page tours on a fresh playthrough
 	game_settings["coach_seen"] = {}

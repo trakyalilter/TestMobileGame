@@ -314,6 +314,7 @@ func complete_action():
 			amount = int(float(amount) * get_yield_multiplier())
 				
 			GameState.resources.add_element(element, amount)
+			GameState.note_production("gather", amount)  # P3.10
 			events.append(["loot", {"symbol": element, "amount": amount}, current_action_id])
 			dropped_any = true
 			
@@ -324,8 +325,9 @@ func complete_action():
 		var max_amt = entry[3]
 		var amount = randi_range(min_amt, max_amt)
 		GameState.resources.add_element(element, amount)
+		GameState.note_production("gather", amount)  # P3.10
 		events.append(["loot", {"symbol": element, "amount": amount}, current_action_id])
-	
+
 	if GameState.bounty_manager:
 		xp_reward = int(xp_reward * GameState.bounty_manager.get_trophy_buff("gathering_xp"))
 		
@@ -376,7 +378,7 @@ func calculate_offline(delta: float):
 				amount = int(float(amount) * yield_mult)
 					
 				GameState.resources.add_element(element, amount)
-				loot_summary[element] = loot_summary.get(element, 0) + amount
+				loot_summary[element] = loot_summary.get(element, 0) + amount; GameState.note_production("gather", amount)  # P3.10
 				dropped_any = true
 		
 		if not dropped_any:
@@ -393,7 +395,7 @@ func calculate_offline(delta: float):
 			amount = int(float(amount) * yield_mult)
 				
 			GameState.resources.add_element(element, amount)
-			loot_summary[element] = loot_summary.get(element, 0) + amount
+			loot_summary[element] = loot_summary.get(element, 0) + amount; GameState.note_production("gather", amount)  # P3.10
 	
 	var report = "Off-World Operations (%s):\n" % current_action['name']
 	report += "Time: %dm %ds\n" % [int(delta / 60), int(delta) % 60]
