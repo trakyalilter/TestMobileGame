@@ -874,6 +874,11 @@ const UPKEEP_BASE := {"Water": 2.0, "Dirt": 1.0}  # per building, per interval, 
 const UPKEEP_COUNT_GROWTH := 0.05                  # +5% per-building cost per building owned
 const UPKEEP_GROWTH_CAP := 8.0                     # growth multiplier ceiling
 var _upkeep_timer: float = 0.0
+# P2.6: proportional upkeep throttle. When upkeep mats run short, buildings
+# produce at the fraction you can afford (bottleneck resource ratio) instead
+# of upkeep being a silent free pass. Smooth, self-recovering, never
+# destroys buildings. 1.0 = fully supplied. Transient (recomputed; not saved).
+var upkeep_efficiency: float = 1.0
 
 func _init():
 	super._init("Infrastructure")
@@ -902,6 +907,29 @@ func _apply_upkeep(intervals: int) -> Dictionary:
 			GameState.resources.remove_element(res, take)
 			consumed[res] = take
 	return consumed
+
+# P2.6: affordable fraction of upkeep for `intervals` periods WITHOUT
+# consuming — the bottleneck (min) ratio across upkeep resources. Production
+# is scaled by this so a shortfall throttles output proportionally.
+func _upkeep_efficiency_for(intervals: int) -> float:
+	if intervals <= 0:
+		return 1.0
+	var total: int = 0
+	for bid in buildings:
+		var c: int = buildings[bid]
+		if c > 0:
+			total += c
+	if total <= 0:
+		return 1.0
+	var growth: float = min(UPKEEP_GROWTH_CAP, 1.0 + float(total) * UPKEEP_COUNT_GROWTH)
+	var eff: float = 1.0
+	for res in UPKEEP_BASE:
+		var demand: float = float(UPKEEP_BASE[res]) * float(total) * growth * float(intervals)
+		if demand <= 0.0:
+			continue
+		var avail: float = GameState.resources.get_element_amount(res)
+		eff = min(eff, clamp(avail / demand, 0.0, 1.0))
+	return eff
 
 func get_building_count(building_id: String) -> int:
 	return buildings.get(building_id, 0)
@@ -1365,7 +1393,7 @@ func process_tick(delta: float):
 				if not bid in production_timers: production_timers[bid] = 0.0
 					
 				var eff_interval = get_effective_interval(bid)
-				production_timers[bid] += delta * energy_efficiency
+				production_timers[bid] += delta * energy_efficiency * upkeep_efficiency  # P2.6
 				
 				if production_timers[bid] >= eff_interval:
 					# Check if building needs inputs
@@ -1429,7 +1457,7 @@ func process_tick(delta: float):
 			
 			elif data.get("special", "") == "passive_gather":
 				if not bid in production_timers: production_timers[bid] = 0.0
-				production_timers[bid] += delta * energy_efficiency
+				production_timers[bid] += delta * energy_efficiency * upkeep_efficiency  # P2.6
 				
 				if production_timers[bid] >= 10.0:
 					# Passive Gather from unlocked gathering actions
@@ -1474,6 +1502,7 @@ func process_tick(delta: float):
 		if _upkeep_timer >= UPKEEP_INTERVAL:
 			var n: int = int(_upkeep_timer / UPKEEP_INTERVAL)
 			_upkeep_timer -= float(n) * UPKEEP_INTERVAL
+			upkeep_efficiency = _upkeep_efficiency_for(n)  # P2.6 throttle for next cycle
 			_apply_upkeep(n)
 
 func calculate_offline(delta: float) -> String:
@@ -1484,6 +1513,11 @@ func calculate_offline(delta: float) -> String:
 	
 	var report = ""
 	var loot_summary = {}
+
+	# P2.6: throttle offline production by the upkeep fraction the player can
+	# afford over the whole window (computed up front, non-consuming; the
+	# actual drain still happens once at the end via _apply_upkeep).
+	upkeep_efficiency = _upkeep_efficiency_for(int(delta / UPKEEP_INTERVAL))
 	
 	# Offline Industry: Two-Pass 'Jump-Start' Logic
 	# Pass 1: Fuel & Energy Priority (Ensures consumers have inputs ready)
@@ -1499,7 +1533,7 @@ func calculate_offline(delta: float) -> String:
 			var eff_interval = get_effective_interval(bid)
 			# Effective cycles reduced by throttle
 			var base_cycles = int(delta / eff_interval)
-			var cycles = int(base_cycles * throttle)
+			var cycles = int(base_cycles * throttle * upkeep_efficiency)  # P2.6
 			
 			if "input" in data:
 				var max_cycles = cycles
@@ -1531,7 +1565,7 @@ func calculate_offline(delta: float) -> String:
 		if "yield" in data:
 			var eff_interval = get_effective_interval(bid)
 			var base_cycles = int(delta / eff_interval)
-			var cycles = int(base_cycles * throttle)
+			var cycles = int(base_cycles * throttle * upkeep_efficiency)  # P2.6
 			
 			# If building has input requirements, calculate max possible cycles
 			if "input" in data:
@@ -1575,7 +1609,11 @@ func calculate_offline(delta: float) -> String:
 		report += "Infrastructure Upkeep (Offline):\n"
 		for item in upkeep:
 			report += " - %s: %s\n" % [item, FormatUtils.format_number(upkeep[item])]
-			
+
+	# Transparency: never silently throttle — tell the player why output was low.
+	if upkeep_efficiency < 0.999:
+		report += "Infrastructure throttled to %d%% — upkeep ran short.\n" % int(upkeep_efficiency * 100.0)
+
 	return report
 
 func get_save_data_manager() -> Dictionary:
