@@ -12,6 +12,22 @@ var energy_efficiency: float = 1.0 # Current grid stability (0.0 to 1.0)
 var grid_warning_sent: bool = false
 var events: Array = []
 
+# ── P0 Infrastructure rebalance (data-driven; retune via constants, no logic edits) ──
+# P0.3: cap the engineering yield bonus so idle industry buildings can't
+# obsolete active processing (was 1 + log10(1+eng)*5 → ~11x at eng 99).
+const INFRA_ENG_SCALE_COEF := 1.0   # log coefficient (was 5.0)
+const INFRA_ENG_SCALE_CAP  := 3.0   # hard ceiling on the engineering multiplier
+# P0.2: diminishing returns on stacked buildings — linear to KNEE, then a
+# saturating tail (asymptote = KNEE + TAIL). Infra is a parallel baseline,
+# not an infinite scaling path.
+const INFRA_DR_KNEE := 10
+const INFRA_DR_TAIL := 10
+# Single source of truth for engineering-scaled buildings (previously
+# duplicated & inconsistent: 7 here-equivalent vs only 3 in
+# get_building_adjusted_rate, so the UI rate disagreed with production).
+const INFRA_ENG_SCALED_BUILDINGS := ["auto_smelter", "hydro_plant", "industrial_centrifuge",
+	"munitions_factory", "titanium_refinery", "superalloy_forge", "adv_circuit_foundry"]
+
 
 var building_db: Dictionary = {
 	"solar_panel": {
@@ -885,21 +901,32 @@ func set_building_throttle(building_id: String, value: float):
 func get_building_throttle(building_id: String) -> float:
 	return building_throttles.get(building_id, 1.0)
 
+# P0.3: capped engineering yield multiplier. Single source of truth — used
+# by get_effective_yield (online + offline + total rates) AND
+# get_building_adjusted_rate, so the UI can no longer disagree with reality.
+func _eng_scale(building_id: String) -> float:
+	if not building_id in INFRA_ENG_SCALED_BUILDINGS:
+		return 1.0
+	var eng_lvl = GameState.processing_manager.get_level()
+	return clamp(1.0 + (log(1.0 + eng_lvl) / log(10.0)) * INFRA_ENG_SCALE_COEF,
+		1.0, INFRA_ENG_SCALE_CAP)
+
+# P0.2: diminishing returns on stacked buildings. Linear up to KNEE, then a
+# saturating tail so over-stacking asymptotes (ceiling = KNEE + TAIL).
+# Applied to BOTH yield and input so surplus buildings idle rather than
+# burn inputs for no extra output.
+func _dr_units(count: int) -> float:
+	if count <= INFRA_DR_KNEE:
+		return float(count)
+	var extra := float(count - INFRA_DR_KNEE)
+	return float(INFRA_DR_KNEE) + extra / (1.0 + extra / float(INFRA_DR_TAIL))
+
 func get_effective_yield(building_id: String, resource_symbol: String) -> float:
 	var data = building_db.get(building_id)
 	if not data or not "yield" in data or not resource_symbol in data["yield"]: return 0.0
-	
+
 	var base_qty = float(data["yield"][resource_symbol])
-	
-	# Engineering Level Scaling
-	var scaled_buildings = ["auto_smelter", "hydro_plant", "industrial_centrifuge", "munitions_factory",
-		"titanium_refinery", "superalloy_forge", "adv_circuit_foundry"]
-	if building_id in scaled_buildings:
-		var eng_lvl = GameState.processing_manager.get_level()
-		base_qty *= (1.0 + (log(1.0 + eng_lvl) / log(10.0)) * 5.0)
-	
-	# Industrial Logistics Hub Bonus (Direct Yield buff instead of speed if specified? 
-	# No, let's keep it as speed bonus per plan, but standardize the formula here)
+	base_qty *= _eng_scale(building_id)  # P0.3 capped engineering scaling
 	return base_qty
 
 func get_effective_interval(building_id: String) -> float:
@@ -945,7 +972,7 @@ func get_total_resource_rates() -> Dictionary:
 			for res in data["yield"]:
 				var base_qty = get_effective_yield(bid, res)
 				var total_yield_mult = 1.0 + global_yield_bonuses.get(res, 0.0)
-				var qty = base_qty * count * total_yield_mult
+				var qty = base_qty * _dr_units(count) * total_yield_mult  # P0.2 DR
 				
 				# Apply Throttle
 				var rate_per_min = (qty / eff_interval) * 60.0 * efficiency * throttle
@@ -954,7 +981,7 @@ func get_total_resource_rates() -> Dictionary:
 		# Consumptions
 		if "input" in data:
 			for res in data["input"]:
-				var qty = float(data["input"][res]) * count
+				var qty = float(data["input"][res]) * _dr_units(count)  # P0.2 DR
 				# Power generators consume at full speed? Maybe throttle should apply to them too now.
 				# If user throttles a generator, they want less consumption.
 				var consumption_eff = 1.0 if data.get("category") == "power" else efficiency
@@ -989,11 +1016,11 @@ func get_building_adjusted_rate(building_id: String) -> Dictionary:
 	
 	if "yield" in data:
 		for res in data["yield"]:
-			var base_qty = float(data["yield"][res])
-			if building_id == "auto_smelter" or building_id == "hydro_plant" or building_id == "industrial_centrifuge":
-				var eng_lvl = GameState.processing_manager.get_level()
-				base_qty = base_qty * (1.0 + (log(1.0 + eng_lvl) / log(10.0)) * 5.0)
-			
+			# P0.3: same capped scaling as production (was inconsistent here —
+			# only 3 buildings vs 7 in get_effective_yield). Per-single-building
+			# rate, so no DR (DR is an aggregate cap, see get_total_resource_rates).
+			var base_qty = float(data["yield"][res]) * _eng_scale(building_id)
+
 			var total_yield_mult = 1.0 + global_yield_bonuses.get(res, 0.0)
 			
 			# v74.0: Extractor Efficiency (Module Affix)
@@ -1331,7 +1358,7 @@ func process_tick(delta: float):
 					
 					if can_produce and "input" in data:
 						for res in data["input"]:
-							var qty_needed = data["input"][res] * count * throttle
+							var qty_needed = data["input"][res] * _dr_units(count) * throttle  # P0.2 DR
 							if GameState.resources.get_element_amount(res) < qty_needed:
 								can_produce = false
 								break
@@ -1340,7 +1367,7 @@ func process_tick(delta: float):
 						# Consume inputs if required
 						if "input" in data:
 							for res in data["input"]:
-								var qty = data["input"][res] * count * throttle
+								var qty = data["input"][res] * _dr_units(count) * throttle  # P0.2 DR
 								GameState.resources.remove_element(res, qty)
 						
 						# Production complete
@@ -1364,19 +1391,19 @@ func process_tick(delta: float):
 							if GameState.shipyard_manager:
 								yield_mult *= (1.0 + GameState.shipyard_manager.affix_bonuses.get("extractor_efficiency", 0.0))
 							
-							GameState.resources.add_element(res, qty * count * throttle * yield_mult)
+							GameState.resources.add_element(res, qty * _dr_units(count) * throttle * yield_mult)  # P0.2 DR
 						
 						# Statistical expectation (Audit v5.0 - O(1) Performance Foundation)
 						if bid == "hydro_plant":
 							if GameState.research_manager and GameState.research_manager.is_tech_unlocked("fluid_dynamics"):
-								var expected = count * throttle * 0.2
+								var expected = _dr_units(count) * throttle * 0.2  # P0.2 DR
 								var floor_exp = floor(expected)
 								var extra = 1 if randf() < (expected - floor_exp) else 0
 								GameState.resources.add_element("N", floor_exp + extra)
 					
 						if bid == "industrial_centrifuge":
 							if GameState.research_manager and GameState.research_manager.is_tech_unlocked("advanced_mineralogy"):
-								var expected = count * throttle * 0.2
+								var expected = _dr_units(count) * throttle * 0.2  # P0.2 DR
 								var floor_exp = floor(expected)
 								var extra = 1 if randf() < (expected - floor_exp) else 0
 								GameState.resources.add_element("Ti", floor_exp + extra)
@@ -1460,7 +1487,7 @@ func calculate_offline(delta: float) -> String:
 			if "input" in data:
 				var max_cycles = cycles
 				for res in data["input"]:
-					var qty_per_cycle = data["input"][res] * count
+					var qty_per_cycle = data["input"][res] * _dr_units(count)  # P0.2 DR
 					var available = GameState.resources.get_element_amount(res)
 					var possible = int(available / qty_per_cycle)
 					max_cycles = min(max_cycles, possible)
@@ -1469,10 +1496,10 @@ func calculate_offline(delta: float) -> String:
 			if cycles > 0:
 				if "input" in data:
 					for res in data["input"]:
-						GameState.resources.remove_element(res, data["input"][res] * count * cycles)
+						GameState.resources.remove_element(res, data["input"][res] * _dr_units(count) * cycles)  # P0.2 DR
 				for res in data["yield"]:
 					var qty = get_effective_yield(bid, res)
-					var total = qty * count * cycles
+					var total = qty * _dr_units(count) * cycles  # P0.2 DR
 					GameState.resources.add_element(res, total)
 					loot_summary[res] = loot_summary.get(res, 0.0) + total
 
@@ -1493,7 +1520,7 @@ func calculate_offline(delta: float) -> String:
 			if "input" in data:
 				var max_cycles = cycles
 				for res in data["input"]:
-					var qty_per_cycle = data["input"][res] * count
+					var qty_per_cycle = data["input"][res] * _dr_units(count)  # P0.2 DR
 					var available = GameState.resources.get_element_amount(res)
 					var possible = int(available / qty_per_cycle)
 					max_cycles = min(max_cycles, possible)
@@ -1503,13 +1530,13 @@ func calculate_offline(delta: float) -> String:
 				# Consume inputs if required
 				if "input" in data:
 					for res in data["input"]:
-						var qty = data["input"][res] * count * cycles
+						var qty = data["input"][res] * _dr_units(count) * cycles  # P0.2 DR
 						GameState.resources.remove_element(res, qty)
 				
 				# Produce outputs
 				for res in data["yield"]:
 					var qty = get_effective_yield(bid, res)
-					var total = qty * count * cycles
+					var total = qty * _dr_units(count) * cycles  # P0.2 DR
 					GameState.resources.add_element(res, total)
 					loot_summary[res] = loot_summary.get(res, 0.0) + total
 
