@@ -27,6 +27,18 @@ const INFRA_DR_TAIL := 10
 # get_building_adjusted_rate, so the UI rate disagreed with production).
 const INFRA_ENG_SCALED_BUILDINGS := ["auto_smelter", "hydro_plant", "industrial_centrifuge",
 	"munitions_factory", "titanium_refinery", "superalloy_forge", "adv_circuit_foundry"]
+# P1.4: gathering owns the ore tier. Raw ORE/metal extractors that duplicate a
+# gather action are throttled so active gathering is the primary source and
+# infra ore-mining is a convenience trickle (on top of P0.2 DR). Bulk
+# (Dirt/Water/Wood), gas, uranium and exotic (Void/Chrono) extractors are NOT
+# throttled — those tiers are infra-owned by design. Industry/conversion
+# buildings are unaffected (handled by P0.3 eng cap).
+const INFRA_ORE_EXTRACTION_MULT := 0.5
+const INFRA_ORE_EXTRACTORS := ["lithium_extractor", "brine_extractor", "copper_mine",
+	"deep_crust_drill", "tin_mine", "quartz_mine", "quartz_excavator", "zinc_mine",
+	"bauxite_mine", "bauxite_miner", "dolomite_quarry", "manganese_dredge", "nickel_mine",
+	"chromite_excavator", "tungsten_drill", "germanite_excavator", "platinum_drill",
+	"precious_dredge", "iridium_drill", "osmium_condenser"]
 
 
 var building_db: Dictionary = {
@@ -921,12 +933,17 @@ func _dr_units(count: int) -> float:
 	var extra := float(count - INFRA_DR_KNEE)
 	return float(INFRA_DR_KNEE) + extra / (1.0 + extra / float(INFRA_DR_TAIL))
 
+# P1.4: yield multiplier for raw ore extractors (gathering owns the ore tier).
+func _ore_throttle(building_id: String) -> float:
+	return INFRA_ORE_EXTRACTION_MULT if building_id in INFRA_ORE_EXTRACTORS else 1.0
+
 func get_effective_yield(building_id: String, resource_symbol: String) -> float:
 	var data = building_db.get(building_id)
 	if not data or not "yield" in data or not resource_symbol in data["yield"]: return 0.0
 
 	var base_qty = float(data["yield"][resource_symbol])
-	base_qty *= _eng_scale(building_id)  # P0.3 capped engineering scaling
+	base_qty *= _eng_scale(building_id)     # P0.3 capped engineering scaling
+	base_qty *= _ore_throttle(building_id)  # P1.4 ore-tier handed to gathering
 	return base_qty
 
 func get_effective_interval(building_id: String) -> float:
@@ -1019,7 +1036,7 @@ func get_building_adjusted_rate(building_id: String) -> Dictionary:
 			# P0.3: same capped scaling as production (was inconsistent here —
 			# only 3 buildings vs 7 in get_effective_yield). Per-single-building
 			# rate, so no DR (DR is an aggregate cap, see get_total_resource_rates).
-			var base_qty = float(data["yield"][res]) * _eng_scale(building_id)
+			var base_qty = float(data["yield"][res]) * _eng_scale(building_id) * _ore_throttle(building_id)
 
 			var total_yield_mult = 1.0 + global_yield_bonuses.get(res, 0.0)
 			

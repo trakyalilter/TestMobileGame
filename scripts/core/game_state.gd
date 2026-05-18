@@ -38,6 +38,11 @@ var game_settings: Dictionary = {
 var time_since_save: float = 0.0
 const PROD_SAVE_INTERVAL: float = 60.0
 
+# P2.7: Global offline cap. Generous (24h) but finite — gathering/processing/
+# infrastructure offline accrual was previously unbounded, both an economy
+# exploit and a startup-stall risk (AUDIT_LOG AUD-P0-004). Tune here.
+const OFFLINE_DELTA_CAP_SECONDS: float = 86400.0
+
 # Total active play time: real wall-clock seconds the game has been open.
 # Measured off the system clock so Engine.time_scale (game-speed) can't
 # inflate it. Persisted across sessions; reset only on a full New Game.
@@ -231,7 +236,13 @@ func load_game():
 		var delta = current_time - last_time
 		
 		if delta > 10:
-			process_offline_progress(delta)
+			var capped_delta = min(delta, OFFLINE_DELTA_CAP_SECONDS)
+			process_offline_progress(capped_delta)
+			# Transparency: never silently swallow time — tell the returning
+			# player their earnings were capped so it doesn't feel like a bug.
+			if delta > OFFLINE_DELTA_CAP_SECONDS and offline_report != "":
+				var cap_hrs = int(OFFLINE_DELTA_CAP_SECONDS / 3600.0)
+				offline_report = "Offline earnings are capped at %d hours.\n\n%s" % [cap_hrs, offline_report]
 	else:
 		print("JSON Parse Error: ", json.get_error_message())
 	
