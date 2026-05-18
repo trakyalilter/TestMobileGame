@@ -1436,7 +1436,7 @@ func process_tick(delta: float):
 							if GameState.shipyard_manager:
 								yield_mult *= (1.0 + GameState.shipyard_manager.affix_bonuses.get("extractor_efficiency", 0.0))
 							
-							var _prod := qty * _dr_units(count) * throttle * yield_mult  # P0.2 DR
+							var _prod: float = qty * _dr_units(count) * throttle * yield_mult  # P0.2 DR
 							GameState.resources.add_element(res, _prod)
 							GameState.note_production("infra", _prod)  # P3.10
 						
