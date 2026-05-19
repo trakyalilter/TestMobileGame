@@ -103,21 +103,29 @@ func _build_center_panel():
 	style.shadow_color = Color(0, 0, 0, 0.70)
 	style.shadow_size = 28
 	style.shadow_offset = Vector2(0, 10)
-	style.content_margin_left   = 44
-	style.content_margin_right  = 44
-	style.content_margin_top    = 38
-	style.content_margin_bottom = 44
+	# Padding moved to an inner MarginContainer (not stylebox content_margin)
+	# so the themed CardChrome overlay can span the full panel edges.
 	_center_panel.add_theme_stylebox_override("panel", style)
 	add_child(_center_panel)
 
+	var pad := MarginContainer.new()
+	pad.add_theme_constant_override("margin_left", 44)
+	pad.add_theme_constant_override("margin_right", 44)
+	pad.add_theme_constant_override("margin_top", 38)
+	pad.add_theme_constant_override("margin_bottom", 44)
+	_center_panel.add_child(pad)
+
 	var vbox = VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 0)
-	_center_panel.add_child(vbox)
+	pad.add_child(vbox)
 
 	_build_title(vbox)
 	_add_sep(vbox, 22, 18)
 	_build_main_menu(vbox)
 	_build_options_menu(vbox)
+
+	# Same selectable card-soul chrome as gameplay cards (Sys Config).
+	UITheme._attach_chrome(_center_panel, ACCENT_CYAN)
 
 func _build_title(parent: VBoxContainer):
 	var title_box = VBoxContainer.new()
@@ -509,16 +517,22 @@ func _show_loading_overlay() -> void:
 	ps.set_corner_radius_all(4)
 	ps.shadow_color = Color(0, 0, 0, 0.6)
 	ps.shadow_size = 24
-	ps.content_margin_left = 40
-	ps.content_margin_right = 40
-	ps.content_margin_top = 32
-	ps.content_margin_bottom = 30
+	# Padding via inner MarginContainer so the CardChrome spans full edges.
 	panel.add_theme_stylebox_override("panel", ps)
 	center.add_child(panel)
 
+	var pad := MarginContainer.new()
+	pad.add_theme_constant_override("margin_left", 40)
+	pad.add_theme_constant_override("margin_right", 40)
+	pad.add_theme_constant_override("margin_top", 32)
+	pad.add_theme_constant_override("margin_bottom", 30)
+	panel.add_child(pad)
+	# Same selectable card-soul chrome as gameplay cards (Sys Config).
+	UITheme._attach_chrome(panel, ACCENT_CYAN)
+
 	var vb := VBoxContainer.new()
 	vb.add_theme_constant_override("separation", 16)
-	panel.add_child(vb)
+	pad.add_child(vb)
 
 	# Brand line — keeps the boot screen on-identity, not a bare bar.
 	var brand := HBoxContainer.new()

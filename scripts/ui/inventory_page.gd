@@ -34,9 +34,14 @@ var storage_btn: Button = null
 func _ready():
 	_init_filter_buttons()
 	
-	# Premium Styling
+	# Premium Styling. The big Storage / Item-Details containers keep the
+	# styled background but NOT the CardChrome corner ornament — only the
+	# individual item slot cards should carry the theme.
 	UITheme.apply_card_style($HBoxContainer/LeftPanel, "inventory")
 	UITheme.apply_card_style($HBoxContainer/RightPanel, "inventory")
+	for _p in [$HBoxContainer/LeftPanel, $HBoxContainer/RightPanel]:
+		var _c = _p.get_node_or_null("_CardChrome")
+		if _c: _c.queue_free()
 	UITheme.apply_premium_button_style(sell_btn, "inventory")
 	UITheme.apply_premium_button_style(sell_all_btn, "inventory")
 	

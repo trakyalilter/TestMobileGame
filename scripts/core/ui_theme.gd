@@ -1108,28 +1108,33 @@ class CardChrome extends Control:
 
 		# Recessed inner hairline frame only (thin — matches the comp).
 		var fr := a
-		fr.a = 0.15
+		fr.a = 0.18
 		draw_rect(Rect2(4, 4, w - 8, h - 8), fr, false, 1.0)
 
-		# Machined L brackets — double stroke on all four corners.
-		_bracket(Vector2(2, 2), 1.0, 1.0, a)
-		_bracket(Vector2(w - 2, 2), -1.0, 1.0, a)
-		_bracket(Vector2(2, h - 2), 1.0, -1.0, a)
-		_bracket(Vector2(w - 2, h - 2), -1.0, -1.0, a)
+		# Machined L brackets, scaled to the panel so big containers (Storage,
+		# Item Details, menu/loading panels) carry the theme as visibly as the
+		# small cards. Clamp floor = the original 18px so small cards are
+		# unchanged.
+		var bl := clampf(min(w, h) * 0.07, 18.0, 44.0)
+		_bracket(Vector2(2, 2), 1.0, 1.0, a, bl)
+		_bracket(Vector2(w - 2, 2), -1.0, 1.0, a, bl)
+		_bracket(Vector2(2, h - 2), 1.0, -1.0, a, bl)
+		_bracket(Vector2(w - 2, h - 2), -1.0, -1.0, a, bl)
 
 		# Recessed rivets near the lower corners.
 		_rivet(Vector2(13, h - 12))
 		_rivet(Vector2(w - 13, h - 12))
 
-	func _bracket(o: Vector2, sx: float, sy: float, col: Color) -> void:
-		var L := 18.0
+	func _bracket(o: Vector2, sx: float, sy: float, col: Color, L: float = 18.0) -> void:
+		var f := L / 18.0           # scale factor vs the original 18px unit
+		var mw := clampf(2.0 * f, 2.0, 4.0)
 		draw_polyline(PackedVector2Array([
-			o + Vector2(0, L * sy), o, o + Vector2(L * sx, 0)]), col, 2.0)
+			o + Vector2(0, L * sy), o, o + Vector2(L * sx, 0)]), col, mw, true)
 		var inner := col
 		inner.a *= 0.5
 		draw_polyline(PackedVector2Array([
-			o + Vector2(5 * sx, 13 * sy), o + Vector2(5 * sx, 5 * sy),
-			o + Vector2(13 * sx, 5 * sy)]), inner, 1.0)
+			o + Vector2(5 * f * sx, 13 * f * sy), o + Vector2(5 * f * sx, 5 * f * sy),
+			o + Vector2(13 * f * sx, 5 * f * sy)]), inner, clampf(f, 1.0, 2.0), true)
 
 	func _rivet(c: Vector2) -> void:
 		draw_circle(c, 3.0, Color(0, 0, 0, 0.5))
