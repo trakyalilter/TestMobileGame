@@ -124,6 +124,11 @@ func start(page_name: String, steps: Array, anchor_provider: Node) -> void:
 	if steps.is_empty():
 		finished.emit(page_name)
 		return
+	# start() can be invoked a frame before the overlay is parented into the
+	# tree; await entry so get_tree() is valid for the frame-awaits below
+	# (was crashing: process_frame on a null SceneTree).
+	if not is_inside_tree():
+		await tree_entered
 	_build_ui()
 	_page_name = page_name
 	_steps = steps

@@ -198,6 +198,13 @@ func _apply_designer_styles():
 	_apply_frame_style(info_panel, FRAME_BG, FRAME_EDGE)
 	_apply_frame_style(schematic_area, Color(0.08, 0.06, 0.05, 0.96), Color(0.37, 0.27, 0.19, 0.92))
 	_apply_frame_style(right_panel, Color(0.08, 0.06, 0.05, 0.96), Color(0.47, 0.32, 0.19, 0.92))
+	# Themed CardChrome on the three big container panels (like the main
+	# menu). _apply_frame_style sets no content_margin and these are
+	# PanelContainers with nested-container content, so the chrome spans the
+	# true panel edges with no inset. Gold tint matches the page identity.
+	UITheme._attach_chrome(info_panel, TITLE_GOLD)
+	UITheme._attach_chrome(schematic_area, TITLE_GOLD)
+	UITheme._attach_chrome(right_panel, TITLE_GOLD)
 	_apply_tab_frame_style()
 	_apply_power_bar_style()
 	_refresh_filter_button_styles()

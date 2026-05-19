@@ -1104,7 +1104,8 @@ class CardChrome extends Control:
 			scan.append(Vector2(5, sy))
 			scan.append(Vector2(w - 5, sy))
 			sy += 4.0
-		draw_multiline(scan, Color(1, 1, 1, 0.022), 1.0)
+		if not scan.is_empty():
+			draw_multiline(scan, Color(1, 1, 1, 0.022), 1.0)
 
 		# Recessed inner hairline frame only (thin — matches the comp).
 		var fr := a
@@ -1183,7 +1184,8 @@ class CardChrome extends Control:
 				mesh.append(Vector2(mx, my + 1.5))
 				mx += 16.0
 			my += 16.0
-		draw_multiline(mesh, dm, 1.0)
+		if not mesh.is_empty():
+			draw_multiline(mesh, dm, 1.0)
 
 		# Static "scan band" — soft bright band, reads as a frozen sweep.
 		var by := h * 0.40
@@ -1273,7 +1275,10 @@ class CardChrome extends Control:
 			stitch.append(Vector2(w - 12, ys))
 			stitch.append(Vector2(w - 16, ys))
 			ys += 11.0
-		draw_multiline(stitch, st, 1.0)
+		# Skip when the card is too short to fit any stitch ticks — an empty
+		# point array makes draw_multiline error out (renderer assert).
+		if not stitch.is_empty():
+			draw_multiline(stitch, st, 1.0)
 
 		# Inlaid node diamonds (with a ring) at the mid-point of each edge.
 		for p in [Vector2(w * 0.5, 4), Vector2(w * 0.5, h - 4),

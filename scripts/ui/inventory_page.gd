@@ -44,7 +44,8 @@ func _ready():
 		if _c: _c.queue_free()
 	UITheme.apply_premium_button_style(sell_btn, "inventory")
 	UITheme.apply_premium_button_style(sell_all_btn, "inventory")
-	
+	_style_details()
+
 	# Inject Storage Upgrade Button (P65 Feature)
 	storage_btn = Button.new()
 	$HBoxContainer/LeftPanel/MarginContainer/VBoxContainer.add_child(storage_btn)
@@ -257,6 +258,63 @@ func _on_item_clicked(data):
 	
 	var amt = GameState.resources.get_element_amount(data["symbol"])
 	update_selection_view(data, amt)
+
+func _style_details() -> void:
+	var gold: Color = UITheme.CATEGORY_COLORS.get("inventory", Color(1.0, 0.8, 0.2))
+	var dim := Color(0.60, 0.58, 0.52)
+	var base := "HBoxContainer/RightPanel/VBoxContainer"
+
+	# Header: accent caption + slim slots sub-line.
+	var hdr := get_node_or_null(base + "/Label")
+	if hdr:
+		hdr.add_theme_color_override("font_color", gold)
+		hdr.add_theme_font_size_override("font_size", 13)
+		hdr.uppercase = true
+	var slots := get_node_or_null(base + "/CreditsLabel")
+	if slots:
+		slots.add_theme_color_override("font_color", dim)
+		slots.add_theme_font_size_override("font_size", 10)
+
+	# Item name — the hero line.
+	if sel_name:
+		sel_name.add_theme_font_size_override("font_size", 20)
+		sel_name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+
+	# Dossier: recessed, left-aligned compartment for desc / sources / uses.
+	var scroll := get_node_or_null(base + "/Details/ScrollContainer")
+	if scroll:
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = Color(0, 0, 0, 0.28)
+		sb.set_corner_radius_all(4)
+		sb.set_border_width_all(1)
+		var be := gold
+		be.a = 0.22
+		sb.border_color = be
+		sb.content_margin_left = 10
+		sb.content_margin_right = 10
+		sb.content_margin_top = 8
+		sb.content_margin_bottom = 8
+		scroll.add_theme_stylebox_override("panel", sb)
+	if sel_desc:
+		sel_desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		sel_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		sel_desc.add_theme_font_size_override("font_size", 12)
+		sel_desc.add_theme_color_override("font_color", Color(0.82, 0.84, 0.90))
+
+	# Unit price — prominent.
+	if price_lbl:
+		price_lbl.add_theme_color_override("font_color", gold)
+		price_lbl.add_theme_font_size_override("font_size", 13)
+
+	# Sell block caption.
+	var sell_hdr := get_node_or_null(base + "/Details/Label2")
+	if sell_hdr:
+		sell_hdr.add_theme_color_override("font_color", gold.lerp(dim, 0.4))
+		sell_hdr.add_theme_font_size_override("font_size", 11)
+		sell_hdr.uppercase = true
+	var sep := get_node_or_null(base + "/Details/HSeparator")
+	if sep:
+		sep.modulate = Color(1, 1, 1, 0.12)
 
 func update_selection_view(data, amount):
 	sel_name.text = ElementDB.get_full_display(data["symbol"])
