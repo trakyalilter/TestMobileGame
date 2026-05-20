@@ -243,14 +243,14 @@ var CONSUMABLE_DATA = {
 	"Seal":           {"type": "hull",   "heal_pct": 0.35, "name": "Hull Sealant"},
 	"EmergencyPatch": {"type": "hull",   "heal_pct": 0.10, "name": "Emergency Patch"},
 	"ChitinPatch":    {"type": "hull",   "heal_pct": 0.15, "name": "Chitin Hull Patch"},
-	"AdvMaintenanceKit": {"type": "hull", "heal_pct": 0.50, "name": "Adv. Maintenance Kit"},
+	"AdvMaintenanceKit": {"type": "hull", "heal_pct": 0.35, "name": "Adv. Maintenance Kit"},  # v106: 0.50→0.25→0.35 (recalibrated middle ground after Z10 over-tuning)
 	# Shield Consumables (restore Shield % of Max Shield)
 	# Shield Consumables (restore Shield % of Max Shield)
 	"CapacitorShard": {"type": "shield", "heal_pct": 0.10, "name": "Capacitor Shard"},
 	"BasicBooster":   {"type": "shield", "heal_pct": 0.15, "name": "Shield Booster"},
 	"IonField":       {"type": "shield", "heal_pct": 0.25, "name": "Ion Field Projector"},
-	"NitroCoolant":   {"type": "shield", "heal_pct": 0.35, "name": "Cryo-Shield Matrix"},
-	"ZeroPoint":      {"type": "shield", "heal_pct": 0.50, "name": "Zero-Point Injector"},
+	"NitroCoolant":   {"type": "shield", "heal_pct": 0.25, "name": "Cryo-Shield Matrix"},  # v106: 0.35→0.20→0.25 (recalibrated)
+	"ZeroPoint":      {"type": "shield", "heal_pct": 0.35, "name": "Zero-Point Injector"},  # v106: 0.50→0.25→0.35 (recalibrated)
 }
 
 ## Get display name for an element

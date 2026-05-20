@@ -1928,6 +1928,10 @@ func recalc_stats():
 						
 	# Apply Gem Multipliers
 	max_hp *= (1.0 + gem_totals.get("hp_mult", 0.0))
+
+	# v107: Warp Mastery Tree — C1 Hull Reinforcement (+10% Hull HP, all hulls)
+	if GameState.warp_manager:
+		max_hp = int(float(max_hp) * GameState.warp_manager.get_tree_hull_bonus())
 	defense *= (1.0 + gem_totals.get("def_mult", 0.0))
 	attack_kinetic *= (1.0 + gem_totals.get("atk_kinetic_mult", 0.0))
 	attack_energy *= (1.0 + gem_totals.get("atk_energy_mult", 0.0))

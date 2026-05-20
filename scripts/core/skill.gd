@@ -4,7 +4,10 @@ extends RefCounted
 var skill_name: String
 var xp: float = 0.0
 var level: int = 1
-var max_level: int = 99
+# v107: Cap raised 99 → 100 to give a clean round-number capstone and a
+# dedicated milestone (gold-card cosmetic in P1 Mastery layer). XP table
+# already runs to 120 so no curve change is needed — just the cap.
+var max_level: int = 100
 var xp_table: Dictionary = {}
 
 # Signals for UI updates can be added here or in the manager
@@ -66,7 +69,10 @@ func check_level_up():
 				req_xp = xp_table[next_level]
 
 func _check_milestones(new_lvl: int):
-	for m in [10, 25, 50, 75]:
+	# v107: 100 added as the capstone milestone — P1 Mastery hooks this to
+	# award the gold-card cosmetic (Hearthstone-style golden header treatment
+	# on the maxed skill's card).
+	for m in [10, 25, 50, 75, 100]:
 		if new_lvl >= m and not m in unlocked_milestones:
 			unlocked_milestones.append(m)
 			milestone_unlocked.emit(m)

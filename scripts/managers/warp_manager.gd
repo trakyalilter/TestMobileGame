@@ -4,10 +4,47 @@ extends "res://scripts/core/skill.gd"
 # Grants "Exotic Matter" (Warp Shards) based on total progress.
 
 signal warped(shards_gained)
+signal tree_node_purchased(node_id)  # v107: UI repaint hook on tree purchase
+
+# v107: Warp Mastery Tree v1 — 2 branches × 5 nodes, spendable via shards.
+# Earned warp_shards STILL drive existing global multipliers (untouched);
+# warp_shards_spent tracks tree purchases. Available = shards - spent.
+# Purchased nodes persist across warps (true meta-progression).
+const TREE_NODES := {
+	# Engineering branch (revealed at warp #1) ---------------------------
+	"E1": {"branch": "engineering", "cost": 1, "name": "Yield Calibration",
+		"desc": "+10% Gathering yield.", "implemented": true},
+	"E2": {"branch": "engineering", "cost": 2, "name": "Recipe Efficiency",
+		"desc": "-10% Processing duration.", "implemented": true},
+	"E3": {"branch": "engineering", "cost": 3, "name": "Alt-Recipe Slot",
+		"desc": "Unlocks alt-recipe variants on chosen recipes.", "implemented": false},
+	"E4": {"branch": "engineering", "cost": 5, "name": "Building Overclock",
+		"desc": "Buildings can be throttled up to 200% at +50% input cost per unit produced.", "implemented": false},
+	"E5": {"branch": "engineering", "cost": 8, "name": "Reclamation Foundry",
+		"desc": "Unlocks a building that auto-converts surplus raw materials into Liras at a slow rate.", "implemented": false},
+	# Combat branch (revealed at warp #2) --------------------------------
+	"C1": {"branch": "combat", "cost": 1, "name": "Hull Reinforcement",
+		"desc": "+10% Hull HP on all hulls.", "implemented": true},
+	"C2": {"branch": "combat", "cost": 2, "name": "Weapon Tuning",
+		"desc": "+10% module damage.", "implemented": true},
+	"C3": {"branch": "combat", "cost": 3, "name": "Auxiliary Slot",
+		"desc": "Unlocks a 9th module slot (Auxiliary type — accepts any module).", "implemented": false},
+	"C4": {"branch": "combat", "cost": 5, "name": "Matrix Core Resonance",
+		"desc": "Unlocks the 4th Matrix Core tier (Resonant) with stronger affixes.", "implemented": false},
+	"C5": {"branch": "combat", "cost": 8, "name": "Cryogenic Armaments",
+		"desc": "Unlocks Cryo, a 4th damage type alongside Kinetic / Energy / Explosive.", "implemented": false},
+}
+
+# Branch reveal is derived from total_warps — no separate state needed.
+const BRANCH_REVEAL_WARP := {"engineering": 1, "combat": 2}
 
 var total_warps: int = 0
-var warp_shards: float = 0.0 # Permanent prestige currency
+var warp_shards: float = 0.0 # Permanent prestige currency (cumulative EARNED)
 var credits_at_warp_start: float = 0.0 # To prevent infinite shard loop
+
+# v107: Tree state ---------------------------------------------------------
+var purchased_nodes: Dictionary = {}  # {node_id: true} — persists across warps
+var warp_shards_spent: float = 0.0    # cumulative spend; available = shards - spent
 
 func get_warp_tier() -> int:
 	# Tier increases every 5 warps
@@ -87,11 +124,70 @@ func get_xp_multiplier() -> float:
 	var base = 1.0 + (warp_shards * 0.025) # 2.5% per shard
 	return base * pow(2.0, get_warp_tier())
 
+# === v107: Warp Mastery Tree =============================================
+
+func get_available_shards() -> float:
+	return max(0.0, warp_shards - warp_shards_spent)
+
+func is_branch_revealed(branch: String) -> bool:
+	if not branch in BRANCH_REVEAL_WARP:
+		return false
+	return total_warps >= int(BRANCH_REVEAL_WARP[branch])
+
+func is_node_purchased(node_id: String) -> bool:
+	return purchased_nodes.get(node_id, false)
+
+func is_node_implemented(node_id: String) -> bool:
+	if not node_id in TREE_NODES:
+		return false
+	return bool(TREE_NODES[node_id].get("implemented", true))
+
+func can_purchase_node(node_id: String) -> bool:
+	if not node_id in TREE_NODES:
+		return false
+	if is_node_purchased(node_id):
+		return false
+	if not is_node_implemented(node_id):
+		return false  # v107: unfinished mechanic nodes refuse purchase
+	var node: Dictionary = TREE_NODES[node_id]
+	if not is_branch_revealed(node["branch"]):
+		return false
+	return get_available_shards() >= float(node["cost"])
+
+func purchase_node(node_id: String) -> bool:
+	if not can_purchase_node(node_id):
+		return false
+	var node: Dictionary = TREE_NODES[node_id]
+	warp_shards_spent += float(node["cost"])
+	purchased_nodes[node_id] = true
+	tree_node_purchased.emit(node_id)
+	return true
+
+# Effect queries — other managers call these to fold tree bonuses into their
+# own stat math. Returning 1.0 means "node not bought". Stat nodes only;
+# unlock-mechanic nodes (E3/E4/E5/C3/C4/C5) are checked via is_node_purchased.
+func get_tree_gathering_bonus() -> float:
+	return 1.10 if is_node_purchased("E1") else 1.0
+
+func get_tree_processing_speed_bonus() -> float:
+	# E2: -10% duration → speed multiplier = 1 / 0.9
+	return (1.0 / 0.9) if is_node_purchased("E2") else 1.0
+
+func get_tree_hull_bonus() -> float:
+	return 1.10 if is_node_purchased("C1") else 1.0
+
+func get_tree_damage_bonus() -> float:
+	return 1.10 if is_node_purchased("C2") else 1.0
+
+# === Save / Load =========================================================
+
 func get_save_data_manager() -> Dictionary:
 	var data = get_save_data()
 	data["total_warps"] = total_warps
 	data["warp_shards"] = warp_shards
 	data["credits_at_warp_start"] = credits_at_warp_start
+	data["purchased_nodes"] = purchased_nodes
+	data["warp_shards_spent"] = warp_shards_spent
 	return data
 
 func load_save_data_manager(data: Dictionary):
@@ -99,3 +195,5 @@ func load_save_data_manager(data: Dictionary):
 	total_warps = data.get("total_warps", 0)
 	warp_shards = data.get("warp_shards", 0.0)
 	credits_at_warp_start = data.get("credits_at_warp_start", 0.0)
+	purchased_nodes = data.get("purchased_nodes", {})
+	warp_shards_spent = float(data.get("warp_shards_spent", 0.0))

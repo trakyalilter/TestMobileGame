@@ -204,7 +204,11 @@ func get_yield_multiplier() -> float:
 	# Efficiency Research Branch
 	if GameState.research_manager:
 		mult *= GameState.research_manager.get_efficiency_multiplier()
-		
+
+	# v107: Warp Mastery Tree — E1 Yield Calibration (+10% gathering yield)
+	if GameState.warp_manager:
+		mult *= GameState.warp_manager.get_tree_gathering_bonus()
+
 	return mult
 
 func get_action_speed_multiplier(action_id: String) -> float:

@@ -57,6 +57,38 @@ func _ready():
 	# v84.2: Research Navigation QoL
 	UITheme.research_navigation_requested.connect(_on_research_navigation_requested)
 
+	# v107: P0 Prestige Discovery Fanfare — detect the moment the player
+	# crosses the warp shard threshold for the first time. We listen on
+	# every currency_added because credits feed the progress_score formula.
+	GameState.resources.currency_added.connect(_on_currency_added_for_warp_reveal)
+
+func _on_currency_added_for_warp_reveal(currency_type: String, _amount: float) -> void:
+	# Cheap fast-paths first — this fires on every credit gain.
+	if currency_type != "credits":
+		return
+	if GameState.game_settings.get("warp_first_revealed", false):
+		return
+	if GameState.warp_manager.calculate_warp_gains() <= 0:
+		return
+	# First-time crossing of the prestige threshold — flip the flag,
+	# reveal the Warp tab, and fire the fanfare.
+	GameState.game_settings["warp_first_revealed"] = true
+	_update_sidebar_styling()  # makes the Warp tab appear immediately
+	_fire_warp_reveal_fanfare()
+
+func _fire_warp_reveal_fanfare() -> void:
+	# Tell the player something happened AND what to do — the pulsing tab
+	# alone doesn't read as an instruction. One self-contained notification
+	# beats two-stage messaging.
+	UITheme.show_notification(
+		"⟨ WARP CORE RESONANCE DETECTED ⟩  A new prestige system is online — open the WARP tab to spend Exotic Matter Shards.",
+		Color(0.85, 0.5, 1.0)
+	)
+	if is_instance_valid(warp_btn):
+		var tween := create_tween().set_loops(4)
+		tween.tween_property(warp_btn, "modulate", Color(1.5, 1.0, 1.7), 0.5)
+		tween.tween_property(warp_btn, "modulate", Color.WHITE, 0.5)
+
 func _on_research_navigation_requested(tech_id: String):
 	switch_to("research")
 	var res_page = pages.get("research")
@@ -421,9 +453,24 @@ func _update_sidebar_styling():
 	# Quests appear once the player has core gameplay loops available
 	quest_btn.visible = has_basic_eng
 	
-	# 3. Late Game: Warp Core unlocks at Warp Drive Theory
-	var has_warp = GameState.research_manager.is_tech_unlocked("warp_drive")
-	warp_btn.visible = has_warp
+	# 3. Late Game: Warp Core unlocks the first time the player crosses the
+	# progress-score shard threshold. v107 moved this off the warp_drive
+	# research gate — research-gating muffled the "Warp Core Resonance
+	# Detected" surprise because the player chose to research it. Now the
+	# tab simply appears when the player earns their first earnable shard.
+	# Backward compat: existing saves where the player already had warp
+	# activity OR warp_drive researched silently flip the flag so the tab
+	# stays visible without re-firing the reveal.
+	var revealed: bool = GameState.game_settings.get("warp_first_revealed", false)
+	if not revealed:
+		var wm_ref = GameState.warp_manager
+		if wm_ref.total_warps > 0 or wm_ref.warp_shards > 0:
+			revealed = true
+		elif GameState.research_manager.is_tech_unlocked("warp_drive"):
+			revealed = true
+		if revealed:
+			GameState.game_settings["warp_first_revealed"] = true
+	warp_btn.visible = revealed
 	
 
 

@@ -175,6 +175,10 @@ func _build_testing_section() -> void:
 
 	body.add_child(HSeparator.new())
 
+	_build_warp_debug(body)
+
+	body.add_child(HSeparator.new())
+
 	var tele_title := Label.new()
 	tele_title.text = "Balance Telemetry (debug)"
 	tele_title.add_theme_font_size_override("font_size", 12)
@@ -638,6 +642,103 @@ func _on_test_grant_material_pressed() -> void:
 	GameState.resources.add_element(symbol, amt)
 	var dn: String = ElementDB.get_display_name(symbol)
 	UITheme.show_notification("+%d %s" % [amt, dn], Color(0.45, 1.0, 0.55))
+
+
+# v107: Warp Mastery Tree playtest helpers --------------------------------
+# Pure debug. "+1M Liras" lets you do a NATURAL warp (lifetime_credits auto-
+# increments inside add_currency, so the gain calc returns a real shard).
+# "Force Warp" bypasses the gain check entirely — bumps total_warps + shards
+# and emits the warped signal, with NO world reset, so you keep gear/XP/
+# materials for rapid reveal testing.
+func _build_warp_debug(body: VBoxContainer) -> void:
+	var title := Label.new()
+	title.text = "Warp Mastery Tree (debug)"
+	title.add_theme_font_size_override("font_size", 12)
+	title.add_theme_color_override("font_color", Color(0.66, 0.7, 0.8))
+	body.add_child(title)
+
+	var hint := Label.new()
+	hint.text = "'+1M Liras' lets you execute a natural warp (gain calc returns ~1 shard). 'Force Warp' bumps total_warps and grants 1 shard directly — NO world reset, so you keep gear/progress for rapid branch-reveal testing."
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hint.add_theme_font_size_override("font_size", 10)
+	hint.add_theme_color_override("font_color", Color(0.55, 0.58, 0.65))
+	body.add_child(hint)
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	body.add_child(row)
+
+	var liras_btn := _primary_button("+1M LIRAS", FRAME_CAT)
+	liras_btn.custom_minimum_size = Vector2(0, 38)
+	liras_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	liras_btn.pressed.connect(_on_test_grant_liras_pressed)
+	row.add_child(liras_btn)
+
+	var warp_btn := _primary_button("FORCE WARP +1 (no reset)", FRAME_CAT)
+	warp_btn.custom_minimum_size = Vector2(0, 38)
+	warp_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	warp_btn.pressed.connect(_on_test_force_warp_pressed)
+	row.add_child(warp_btn)
+
+	# Second row — reveal-flag reset for replaying the P0 fanfare test.
+	var row2 := HBoxContainer.new()
+	row2.add_theme_constant_override("separation", 10)
+	body.add_child(row2)
+
+	var reset_btn := _primary_button("RESET REVEAL FLAG (replay fanfare)", FRAME_CAT)
+	reset_btn.custom_minimum_size = Vector2(0, 38)
+	reset_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	reset_btn.pressed.connect(_on_test_reset_warp_reveal_pressed)
+	row2.add_child(reset_btn)
+
+
+func _on_test_grant_liras_pressed() -> void:
+	if not GameState.resources:
+		UITheme.show_notification("Resources unavailable.", Color.RED)
+		return
+	# add_currency("credits", X) auto-bumps lifetime_credits, which feeds the
+	# warp gain calc. 1M is comfortably over the 500K first-warp threshold.
+	GameState.resources.add_currency("credits", 1_000_000)
+	UITheme.show_notification("+1,000,000 Liras (lifetime credits bumped — natural warp now available)", Color(0.45, 1.0, 0.55))
+
+
+func _on_test_reset_warp_reveal_pressed() -> void:
+	GameState.game_settings["warp_first_revealed"] = false
+	# Also hide the Warp tab again so the reveal is visible/dramatic on next
+	# threshold-cross. Backward-compat path would re-flip it if total_warps>0,
+	# so this only really "hides" the tab for never-warped saves.
+	var main_scene = get_tree().current_scene
+	if main_scene and main_scene.has_method("_update_sidebar_styling"):
+		main_scene._update_sidebar_styling()
+	UITheme.show_notification(
+		"[DEBUG] Reveal flag cleared — click '+1M LIRAS' to re-trigger the fanfare via the natural path.",
+		Color(0.7, 0.6, 1.0)
+	)
+
+
+func _on_test_force_warp_pressed() -> void:
+	if not GameState.warp_manager:
+		UITheme.show_notification("Warp manager unavailable.", Color.RED)
+		return
+	var wm = GameState.warp_manager
+	# The Warp sidebar tab is gated behind the "warp_drive" research tech, so a
+	# Force Warp alone wouldn't reveal the page in the nav. Force-unlock that
+	# tech here too so a single click puts the player into the testable state.
+	var rm = GameState.research_manager
+	if rm and not rm.is_tech_unlocked("warp_drive"):
+		if not "warp_drive" in rm.unlocked_techs:
+			rm.unlocked_techs.append("warp_drive")
+			rm.tech_unlocked.emit("warp_drive")
+	wm.total_warps += 1
+	wm.warp_shards += 1.0
+	wm.warped.emit(1)   # repaints Warp page + reveals branch if threshold crossed
+	# Sidebar visibility only re-evaluates on page-switch, so force a refresh
+	# now — otherwise the newly-unlocked Warp tab won't appear in the nav
+	# until the user clicks another tab first.
+	var main_scene = get_tree().current_scene
+	if main_scene and main_scene.has_method("_update_sidebar_styling"):
+		main_scene._update_sidebar_styling()
+	UITheme.show_notification("[DEBUG] Force Warp — total_warps=%d, +1 shard, warp_drive unlocked (no reset)" % wm.total_warps, Color(0.7, 0.6, 1.0))
 
 
 # --------------------------------------------------------------------------

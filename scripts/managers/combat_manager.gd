@@ -34,7 +34,11 @@ var combat_events: Array[Dictionary] = [] # [{type, text, color, side}]
 
 # Consumables
 var consumable_cooldown = 0.0
-var consumable_cooldown_max = 1.5
+# v106: 1.5 → 12.0 overshot; recalibrated to 10.0. Short enough that careful
+# timing matters, long enough that spam can no longer carry you through any
+# fight regardless of damage type or gear. Pair with the heal_pct values in
+# element_db: top-tier consumables now restore ~35% per cycle, not 50%.
+var consumable_cooldown_max = 10.0
 
 # Throttle for the "no ammo" combat warning so it doesn't spam every tick.
 var _last_ammo_warn_ms: int = 0
@@ -710,7 +714,8 @@ var enemy_db = {
 	},
 	"z7_boss_sovereign": {
 		"name": "Sovereign Prism",
-		"stats": {"hp": 952391, "max_shield": 13605, "atk": 10204, "def": 2040, "atk_interval": 2.5, "accuracy": 170},
+		# v106: Late-game escalation pass — HP 952K→1.4M, ATK 10.2K→14K. Target ~8 min for tier-matched legendary clears (was ~6 min).
+		"stats": {"hp": 1400000, "max_shield": 13605, "atk": 14000, "def": 2040, "atk_interval": 2.5, "accuracy": 170},
 		"loot": [["credits", 1000000, 2000000], ["ExoticMatter", 15, 30], ["Os", 3, 8], ["Res3", 15, 30]],
 		"rare_loot": [["z7_unique_weapon", 0.03, 1, 1], ["z7_unique_armor", 0.03, 1, 1], ["z7_unique_shield", 0.03, 1, 1]],
 		"boss_core": "Z7_Core",
@@ -758,7 +763,8 @@ var enemy_db = {
 	},
 	"z8_boss_warden": {
 		"name": "Prismatic Warden",
-		"stats": {"hp": 2394583, "max_shield": 29932, "atk": 23945, "def": 4489, "atk_interval": 2.5, "accuracy": 200},
+		# v106: Late-game escalation pass — HP 2.39M→4M, ATK 23.9K→38K. Target ~10 min for tier-matched legendary.
+		"stats": {"hp": 4000000, "max_shield": 29932, "atk": 38000, "def": 4489, "atk_interval": 2.5, "accuracy": 200},
 		"loot": [["credits", 3000000, 6000000], ["VoidCrystal", 20, 50], ["Diamond", 2, 5], ["Res3", 20, 40]],
 		"rare_loot": [["z8_unique_weapon", 0.03, 1, 1], ["z8_unique_armor", 0.03, 1, 1], ["z8_unique_shield", 0.03, 1, 1]],
 		"boss_core": "Z8_Core",
@@ -806,7 +812,8 @@ var enemy_db = {
 	},
 	"z9_boss_patient_zero": {
 		"name": "Patient Zero",
-		"stats": {"hp": 5926594, "max_shield": 65851, "atk": 55973, "def": 9877, "atk_interval": 1.5, "accuracy": 230},
+		# v106: Late-game escalation pass — HP 5.93M→10M, ATK 56K→90K. Target ~12 min for tier-matched legendary, smoothing the ramp into Z10's 13 min finale.
+		"stats": {"hp": 10000000, "max_shield": 65851, "atk": 90000, "def": 9877, "atk_interval": 1.5, "accuracy": 230},
 		"loot": [["credits", 10000000, 20000000], ["Neutronium", 10, 25], ["PathogenCore", 3, 8], ["Res3", 30, 50], ["QuarantineClearance", 1, 1]],
 		"rare_loot": [["z9_unique_weapon", 0.03, 1, 1], ["z9_unique_armor", 0.03, 1, 1], ["z9_unique_shield", 0.03, 1, 1]],
 		"boss_core": "Z9_Core",
@@ -854,13 +861,22 @@ var enemy_db = {
 	},
 	"z10_boss_leviathan": {
 		"name": "Void Leviathan",
-		"stats": {"hp": 14487230, "max_shield": 144872, "atk": 130385, "def": 21730, "atk_interval": 3.0, "accuracy": 250},
+		# v106: Final-boss credibility pass.
+		#   ATK    130K→300K→200K   (first buff over-tuned; recalibrated to
+		#                            ~54% over the trivial original — credible
+		#                            threat, not instant death)
+		#   HP     14.4M→30M→20M    (30M pushed optimal clear to ~19.5 min;
+		#                            20M lands at ~13 min — climactic, not
+		#                            endurance; off-meta still ~16 min penalty)
+		#   res_e  0.45→0.65→0.55   (still punishes NRG-on-NRG-resist; survivable)
+		# Boss stays WEAK KIN at −0.40 — swapping loadout is the real reward.
+		"stats": {"hp": 20000000, "max_shield": 144872, "atk": 200000, "def": 21730, "atk_interval": 3.0, "accuracy": 250},
 		"loot": [["credits", 50000000, 100000000], ["PrimordialShard", 20, 50], ["ChronoCore", 5, 12]],
 		"rare_loot": [["z10_unique_weapon", 0.03, 1, 1], ["z10_unique_armor", 0.03, 1, 1], ["z10_unique_shield", 0.03, 1, 1]],
 		"boss_core": "Z10_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z10_kinetic", "z10_energy", "z10_missile", "z10_shield", "z10_armor"],
-		"is_boss": true, "xp": 500000, "eva": 25, "zone": 10, "resist_k": -0.40, "resist_e": 0.45, "resist_x": 0.0, "dmg_type": "energy"
+		"is_boss": true, "xp": 500000, "eva": 25, "zone": 10, "resist_k": -0.40, "resist_e": 0.55, "resist_x": 0.0, "dmg_type": "energy"
 	},
 
 	# ═══ HAZARD ZONE: EMP Nexus — Boosted Z2 enemies ═══
@@ -1153,9 +1169,10 @@ func spawn_enemy():
 					"type": w_type,
 					"timer": randf_range(0.0, 0.5),
 					"interval": m_stats.get("atk_interval", 2.5),
-					"dmg_k": m_stats.get("atk_kinetic", 0) * weapon_skill_mult,
-					"dmg_e": m_stats.get("atk_energy", 0) * weapon_skill_mult,
-					"dmg_x": m_stats.get("atk_explosive", 0) * weapon_skill_mult,
+					# v107: Warp Mastery Tree — C2 Weapon Tuning (+10% module damage)
+					"dmg_k": m_stats.get("atk_kinetic", 0) * weapon_skill_mult * GameState.warp_manager.get_tree_damage_bonus(),
+					"dmg_e": m_stats.get("atk_energy", 0) * weapon_skill_mult * GameState.warp_manager.get_tree_damage_bonus(),
+					"dmg_x": m_stats.get("atk_explosive", 0) * weapon_skill_mult * GameState.warp_manager.get_tree_damage_bonus(),
 					"slot_idx": int(s_idx),
 					"energy_load": m_stats.get("energy_load", 0)
 				})

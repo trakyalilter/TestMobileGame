@@ -38,6 +38,9 @@ var player_weapon_bars = []
 @onready var consumable_container = $Dashboard/HUD/BottomHUD/ConsumablesContainer
 @onready var btn_hull_cons = $Dashboard/HUD/BottomHUD/ConsumablesContainer/ConsHullBtn
 @onready var btn_shd_cons = $Dashboard/HUD/BottomHUD/ConsumablesContainer/ConsShieldBtn
+# Shared consumable cooldown bar — both buttons gate on manager.consumable_cooldown.
+var _cons_cd_bar: ProgressBar = null
+var _cons_cd_lbl: Label = null
 
 var manager: RefCounted
 
@@ -907,13 +910,54 @@ func _setup_consumable_buttons():
 		btn.custom_minimum_size = Vector2(100, 45)
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		btn.add_theme_font_size_override("font_size", 10)
-	
+
+	# Shared cooldown indicator (both consumables gate on the same timer).
+	# Wrapped in a margined container so it doesn't run under the panel
+	# chrome's corner brackets at the bottom edges.
+	var cd_pad := MarginContainer.new()
+	cd_pad.add_theme_constant_override("margin_left", 24)
+	cd_pad.add_theme_constant_override("margin_right", 24)
+	cd_pad.add_theme_constant_override("margin_bottom", 4)
+	inner_vbox.add_child(cd_pad)
+	var cd_box := VBoxContainer.new()
+	cd_box.add_theme_constant_override("separation", 2)
+	cd_pad.add_child(cd_box)
+
+	_cons_cd_lbl = Label.new()
+	_cons_cd_lbl.text = "READY"
+	_cons_cd_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_cons_cd_lbl.add_theme_font_size_override("font_size", 9)
+	_cons_cd_lbl.modulate = Color(0.55, 1.0, 0.75)
+	cd_box.add_child(_cons_cd_lbl)
+
+	_cons_cd_bar = ProgressBar.new()
+	_cons_cd_bar.min_value = 0
+	_cons_cd_bar.max_value = manager.consumable_cooldown_max
+	_cons_cd_bar.value = manager.consumable_cooldown_max  # full = ready
+	_cons_cd_bar.show_percentage = false
+	_cons_cd_bar.custom_minimum_size = Vector2(0, 8)
+	UITheme.apply_progress_bar_style(_cons_cd_bar, "shipyard")
+	cd_box.add_child(_cons_cd_bar)
+
 func _update_consumable_buttons():
 	var sm = GameState.shipyard_manager
 	var res = GameState.resources
 	
 	_update_cons_btn(btn_hull_cons, sm.consumable_hull_slot, "HULL", Color(0.4, 1.0, 0.4))
 	_update_cons_btn(btn_shd_cons, sm.consumable_shield_slot, "SHLD", Color(0.4, 0.8, 1.0))
+
+	# Shared cooldown bar — fills up as it nears ready.
+	if _cons_cd_bar and _cons_cd_lbl:
+		var cd: float = max(0.0, manager.consumable_cooldown)
+		var mx: float = max(0.01, manager.consumable_cooldown_max)
+		_cons_cd_bar.max_value = mx
+		_cons_cd_bar.value = mx - cd
+		if cd <= 0.0:
+			_cons_cd_lbl.text = "READY"
+			_cons_cd_lbl.modulate = Color(0.55, 1.0, 0.75)
+		else:
+			_cons_cd_lbl.text = "Cooldown  %.1fs" % cd
+			_cons_cd_lbl.modulate = Color(0.78, 0.82, 0.90)
 
 	# Low-hull alarm: pulse the HULL kit so a new player can't miss that
 	# they should heal (consumables are manual — nothing auto-saves them).

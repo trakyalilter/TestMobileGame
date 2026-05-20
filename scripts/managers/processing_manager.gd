@@ -1206,7 +1206,11 @@ func get_recipe_speed_multiplier(recipe_id: String) -> float:
 	# Audit v12.0: Milestone Level 25 (-10% Duration = 1.11x speed effectively)
 	if is_milestone_unlocked(25):
 		multiplier *= 1.11
-	
+
+	# v107: Warp Mastery Tree — E2 Recipe Efficiency (-10% duration → +11.1% speed)
+	if GameState.warp_manager:
+		multiplier *= GameState.warp_manager.get_tree_processing_speed_bonus()
+
 	return multiplier
 
 func start_action(action_id: String):
