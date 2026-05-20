@@ -56,6 +56,17 @@ func setup(data):
 		_add_resist_label("KIN", rk, Color(0.6, 0.8, 1.0))
 		_add_resist_label("NRG", re, Color(1.0, 0.9, 0.3))
 		_add_resist_label("EXP", rx, Color(1.0, 0.5, 0.3))
+		# Phase A: surface THE answer — the damage type with the lowest
+		# resist (or strongest weakness) is the recommended attack type.
+		var best_type = "KIN"
+		var best_val = rk
+		if re < best_val:
+			best_type = "NRG"
+			best_val = re
+		if rx < best_val:
+			best_type = "EXP"
+			best_val = rx
+		add_item_label("▶ BEST DAMAGE TYPE: %s" % best_type, Color(0.45, 1.0, 0.55))
 
 	# Guaranteed Loot Header
 	add_header("Guaranteed Drops", Color.ORANGE)

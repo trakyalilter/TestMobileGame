@@ -334,12 +334,28 @@ func _mat_line(ms: Dictionary) -> String:
 	return ", ".join(parts) if not parts.is_empty() else "no data yet"
 
 
+func _dmg_line(d: Dictionary) -> String:
+	var k_raw := float(d.get("kinetic_raw", 0.0))
+	var e_raw := float(d.get("energy_raw", 0.0))
+	var x_raw := float(d.get("explosive_raw", 0.0))
+	var tot := k_raw + e_raw + x_raw
+	if tot <= 0.0:
+		return "no data yet"
+	var parts := []
+	if k_raw > 0.0:
+		parts.append("KIN %d%% (×%.2f)" % [int(round(k_raw / tot * 100.0)), float(d.get("kinetic_done", 0.0)) / k_raw])
+	if e_raw > 0.0:
+		parts.append("NRG %d%% (×%.2f)" % [int(round(e_raw / tot * 100.0)), float(d.get("energy_done", 0.0)) / e_raw])
+	if x_raw > 0.0:
+		parts.append("EXP %d%% (×%.2f)" % [int(round(x_raw / tot * 100.0)), float(d.get("explosive_done", 0.0)) / x_raw])
+	return ", ".join(parts)
+
 func _refresh_telemetry() -> void:
 	if not _tele_label:
 		return
 	var t = GameState.telemetry
-	_tele_label.text = "Active slot — %s\nProduction — %s\nMaterials — %s" % [
-		_pct_line(t["occupancy"]), _pct_line(t["production"]), _mat_line(t.get("mat_source", {}))]
+	_tele_label.text = "Active slot — %s\nProduction — %s\nMaterials — %s\nDamage — %s" % [
+		_pct_line(t["occupancy"]), _pct_line(t["production"]), _mat_line(t.get("mat_source", {})), _dmg_line(t.get("damage_type", {}))]
 
 
 func _process(delta: float) -> void:

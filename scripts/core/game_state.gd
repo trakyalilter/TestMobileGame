@@ -57,6 +57,16 @@ var telemetry: Dictionary = {
 	# mostly "craft" the fallback is too cheap (or farming too painful); if
 	# "combat" dominates the loop works. {mat_id: {combat: x, craft: y}}
 	"mat_source": {},
+	# Phase A (damage triangle): track per-type usage AND post-resist
+	# delivered damage so we can see if players are actually adapting their
+	# loadout to enemy resists. *_raw = pre-resist damage attempted by type;
+	# *_done = damage that actually landed. Ratio done/raw ≈ avg (1 - resist)
+	# experienced when that type was used. Balanced *_raw shares + done/raw
+	# > 1.0 = players are adapting (using right type for the right enemy).
+	"damage_type": {
+		"kinetic_raw": 0.0, "energy_raw": 0.0, "explosive_raw": 0.0,
+		"kinetic_done": 0.0, "energy_done": 0.0, "explosive_done": 0.0,
+	},
 }
 
 # Total active play time: real wall-clock seconds the game has been open.
@@ -157,6 +167,18 @@ func note_material(mat_id: String, source: String, amount = 1) -> void:
 func note_craft_material(mat_id: String, amount) -> void:
 	if mat_id in ElementDB.get_elements_in_category("reclaimed_components"):
 		note_material(mat_id, "craft", amount)
+
+# Phase A: credit a player attack's per-type raw and post-resist damage so
+# we can see which type the player picked and what landed. One call site
+# inside the resist-application block keeps overhead negligible.
+func note_damage(k_raw: float, e_raw: float, x_raw: float, k_done: float, e_done: float, x_done: float) -> void:
+	var d: Dictionary = telemetry["damage_type"]
+	d["kinetic_raw"] = float(d.get("kinetic_raw", 0.0)) + k_raw
+	d["energy_raw"] = float(d.get("energy_raw", 0.0)) + e_raw
+	d["explosive_raw"] = float(d.get("explosive_raw", 0.0)) + x_raw
+	d["kinetic_done"] = float(d.get("kinetic_done", 0.0)) + k_done
+	d["energy_done"] = float(d.get("energy_done", 0.0)) + e_done
+	d["explosive_done"] = float(d.get("explosive_done", 0.0)) + x_done
 
 func _task_label(m) -> String:
 	if m == gathering_manager: return "Mining"
@@ -273,7 +295,7 @@ func load_game():
 		# old saves (no telemetry) and any future key drift load safely.
 		var saved_tele = data.get("telemetry", {})
 		if saved_tele is Dictionary:
-			for grp in ["occupancy", "production"]:
+			for grp in ["occupancy", "production", "damage_type"]:
 				if saved_tele.has(grp) and saved_tele[grp] is Dictionary:
 					for k in telemetry[grp]:
 						telemetry[grp][k] = float(saved_tele[grp].get(k, 0.0))
@@ -357,7 +379,7 @@ func hard_reset():
 	# ... others
 
 	# P3.10: telemetry is a fresh-playthrough metric — clear on hard reset.
-	for grp in ["occupancy", "production"]:
+	for grp in ["occupancy", "production", "damage_type"]:
 		for k in telemetry[grp]:
 			telemetry[grp][k] = 0.0
 	telemetry["mat_source"] = {}  # free-form per-material map — just empty it

@@ -36,21 +36,26 @@ func setup(p_eid, p_data, p_parent):
 	if rx > 0.05:   resist_parts.append("EXP")
 	elif rx < -0.05: weak_parts.append("EXP")
 
-	var resist_line = ""
-	if resist_parts.size() > 0:
-		resist_line += "RESIST: " + ", ".join(resist_parts)
-	if weak_parts.size() > 0:
-		if resist_line != "": resist_line += "  "
-		resist_line += "WEAK: " + ", ".join(weak_parts)
+	# Phase A: stronger damage-triangle telegraph — colored BBCode at 12pt so
+	# the player actually reads RESIST/WEAK before clicking Fight.
+	var resist_bb = ""
+	if not resist_parts.is_empty():
+		resist_bb += "[color=#ff6e6e]⛨ RESIST %s[/color]" % ", ".join(resist_parts)
+	if not weak_parts.is_empty():
+		if resist_bb != "":
+			resist_bb += "   "
+		resist_bb += "[color=#6eff8a]▼ WEAK %s[/color]" % ", ".join(weak_parts)
 
-	if resist_line != "" and has_node("MarginContainer/VBoxContainer/ResistLabel"):
-		$MarginContainer/VBoxContainer/ResistLabel.text = resist_line
-	elif resist_line != "":
-		var rl = Label.new()
+	if resist_bb != "":
+		if has_node("MarginContainer/VBoxContainer/ResistLabel"):
+			$MarginContainer/VBoxContainer/ResistLabel.queue_free()
+		var rl = RichTextLabel.new()
 		rl.name = "ResistLabel"
-		rl.add_theme_font_size_override("font_size", 10)
-		rl.add_theme_color_override("font_color", Color(0.7, 0.85, 1.0, 0.85))
-		rl.text = resist_line
+		rl.bbcode_enabled = true
+		rl.fit_content = true
+		rl.scroll_active = false
+		rl.add_theme_font_size_override("normal_font_size", 12)
+		rl.text = resist_bb
 		$MarginContainer/VBoxContainer.add_child(rl)
 		$MarginContainer/VBoxContainer.move_child(rl, stats_lbl.get_index() + 1)
 	

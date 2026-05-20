@@ -383,7 +383,7 @@ var enemy_db = {
 		"rare_loot": [],
 		"module_drop_chance": 0.15,
 		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_shield", "z1_armor"],
-		"xp": 5, "eva": 5, "zone": 1, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "dmg_type": "kinetic"
+		"xp": 5, "eva": 5, "zone": 1, "resist_k": -0.20, "resist_e": 0.0, "resist_x": 0.10, "dmg_type": "kinetic"
 	},
 	"z1_lunar_drone": {
 		"name": "Lunar Drone",
@@ -392,7 +392,7 @@ var enemy_db = {
 		"rare_loot": [["NavData", 0.10, 1, 1]],
 		"module_drop_chance": 0.20,
 		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_missile", "z1_shield", "z1_armor", "z1_battery"],
-		"xp": 8, "eva": 8, "zone": 1, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "dmg_type": "kinetic"
+		"xp": 8, "eva": 8, "zone": 1, "resist_k": -0.30, "resist_e": 0.30, "resist_x": 0.0, "dmg_type": "kinetic"
 	},
 	"z1_survey_probe": {
 		"name": "Survey Probe",
@@ -401,7 +401,7 @@ var enemy_db = {
 		"rare_loot": [["NavData", 0.15, 1, 2], ["DamagedCircuitry", 0.35, 1, 2]],
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_shield", "z1_armor", "z1_sensor"],
-		"xp": 12, "eva": 15, "zone": 1, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "dmg_type": "energy"
+		"xp": 12, "eva": 15, "zone": 1, "resist_k": 0.30, "resist_e": -0.30, "resist_x": 0.0, "dmg_type": "energy"
 	},
 	"z1_scrap_collector": {
 		"name": "Scrap Collector",
@@ -410,7 +410,7 @@ var enemy_db = {
 		"rare_loot": [["Cu", 0.15, 2, 4], ["SalvagedAlloy", 0.35, 1, 2]],
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_missile", "z1_shield", "z1_armor", "z1_engine"],
-		"xp": 10, "eva": 6, "zone": 1, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "dmg_type": "kinetic"
+		"xp": 10, "eva": 6, "zone": 1, "resist_k": 0.10, "resist_e": -0.20, "resist_x": 0.30, "dmg_type": "kinetic"
 	},
 
 	"z1_boss_architect": {
@@ -421,7 +421,7 @@ var enemy_db = {
 		"boss_core": "Z1_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_missile", "z1_shield", "z1_armor", "z1_engine", "z1_battery", "z1_sensor"],
-		"is_boss": true, "xp": 100, "eva": 10, "zone": 1, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "dmg_type": "kinetic"
+		"is_boss": true, "xp": 100, "eva": 10, "zone": 1, "resist_k": 0.25, "resist_e": 0.25, "resist_x": -0.30, "dmg_type": "kinetic"
 	},
 
 	# ═══ ZONE 2: Asteroid Belt — Reg HP~480, ATK~33, DEF~7 ═══
@@ -432,7 +432,7 @@ var enemy_db = {
 		"rare_loot": [["Cu", 0.15, 3, 6]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z2_kinetic", "z2_energy", "z2_missile", "z2_shield", "z2_armor"],
-		"xp": 20, "eva": 12, "zone": 2, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "dmg_type": "kinetic"
+		"xp": 20, "eva": 12, "zone": 2, "resist_k": -0.20, "resist_e": 0.30, "resist_x": -0.20, "dmg_type": "kinetic"
 	},
 	"z2_silicate_golem": {
 		"name": "Silicate Golem",
@@ -1627,6 +1627,10 @@ func resolve_damage(atk_k, atk_e, atk_x, c_shield, c_armor, difficulty = 1, crit
 		var rk = clamp(current_enemy.get("resist_k", 0.0), -0.40, 0.50)
 		var re = clamp(current_enemy.get("resist_e", 0.0), -0.40, 0.50)
 		var rx = clamp(current_enemy.get("resist_x", 0.0), -0.40, 0.50)
+		# Phase A: capture per-type pre/post-resist so we can see whether
+		# players actually adapt their damage type to the enemy.
+		GameState.note_damage(hull_dmg_k, hull_dmg_e, hull_dmg_x,
+			hull_dmg_k * (1.0 - rk), hull_dmg_e * (1.0 - re), hull_dmg_x * (1.0 - rx))
 		hull_dmg_k *= (1.0 - rk)
 		hull_dmg_e *= (1.0 - re)
 		hull_dmg_x *= (1.0 - rx)
