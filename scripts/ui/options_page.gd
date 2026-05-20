@@ -441,6 +441,19 @@ func _on_test_fit_pressed() -> void:
 	sm.recalc_stats()
 	sm.inventory_updated.emit()
 
+	# Heat is a real game mechanic (each shot adds 2 + dmg/100 heat into a
+	# 100-cap with an 8/s base vent — normally managed via cooling research,
+	# milestones, and heat-sync affixes). A debug-fit has none of those, so
+	# T10 weapons would overheat to 500%+ in a second and lock the player
+	# out of firing entirely. Neutralize for the test rig: clear current
+	# heat / lock and raise the ceiling far past anything weapons can produce
+	# in a session. (Vent rate left alone; ceiling alone is sufficient.)
+	var cm = GameState.combat_manager
+	if cm:
+		cm.player_heat = 0.0
+		cm.overheat_lock = 0.0
+		cm.player_max_heat = 1_000_000.0
+
 	var rarity_names: Array = ["Common", "Uncommon", "Rare", "Legendary", "Unique"]
 	var wtype_names: Array = ["Mixed", "KIN", "NRG", "EXP"]
 	var msg: String = "Fitted T%d %s (%s weapons) — %d slot(s)" % [
