@@ -20,6 +20,10 @@ var _refreshers: Array = []        # Array[Callable] — repaint selected states
 var _pt_label: Label               # total play-time readout
 var _tele_label: Label             # balance telemetry readout
 var _pt_refresh := 0.0
+# Test Fitter (debug — Testing section). Persists in-session selection
+# so the Fit button is one click after picking Tier + Rarity once.
+var _test_tier: int = 1
+var _test_rarity: int = 2  # Rare default — best signal-to-noise for combat tests
 
 
 func _ready() -> void:
@@ -153,6 +157,10 @@ func _build_testing_section() -> void:
 
 	body.add_child(HSeparator.new())
 
+	_build_test_fitter(body)
+
+	body.add_child(HSeparator.new())
+
 	var tele_title := Label.new()
 	tele_title.text = "Balance Telemetry (debug)"
 	tele_title.add_theme_font_size_override("font_size", 12)
@@ -164,6 +172,118 @@ func _build_testing_section() -> void:
 	_tele_label.add_theme_color_override("font_color", Color(0.6, 0.85, 0.7))
 	body.add_child(_tele_label)
 	_refresh_telemetry()
+
+
+# --------------------------------------------------------------------------
+# Test Fitter (debug)
+# --------------------------------------------------------------------------
+# Auto-fits the active hull with the chosen Tier (Z1-10) + Rarity using the
+# same drop pipeline combat uses, so the resulting modules carry the correct
+# rarity bonuses + affixes. Bypasses can_equip_module's research gate by
+# writing loadout[] directly — the whole point of this tool is to test gear
+# you haven't unlocked yet. Weapon slots rotate KIN/NRG/EXP for damage-type
+# variety, which is what Phase A's triangle expects you to leverage.
+func _build_test_fitter(body: VBoxContainer) -> void:
+	var title := Label.new()
+	title.text = "Ship Fitter (debug)"
+	title.add_theme_font_size_override("font_size", 12)
+	title.add_theme_color_override("font_color", Color(0.66, 0.7, 0.8))
+	body.add_child(title)
+
+	var hint := Label.new()
+	hint.text = "Auto-fit the active hull at the chosen Tier + Rarity. Bypasses research gates. Overwrites current loadout."
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hint.add_theme_font_size_override("font_size", 10)
+	hint.add_theme_color_override("font_color", Color(0.55, 0.58, 0.65))
+	body.add_child(hint)
+
+	var tier_opts: Array = []
+	for t in range(1, 11):
+		tier_opts.append(["T%d" % t, t])
+	_add_choice_row(body, "Tier",
+		tier_opts,
+		func(): return _test_tier,
+		func(v): _set_test_tier(v))
+
+	var rarity_opts: Array = [
+		["Common", 0], ["Uncommon", 1], ["Rare", 2], ["Legendary", 3], ["Unique", 4]
+	]
+	_add_choice_row(body, "Rarity",
+		rarity_opts,
+		func(): return _test_rarity,
+		func(v): _set_test_rarity(v))
+
+	var fit_btn := _primary_button("FIT SHIP", DANGER_CAT)
+	fit_btn.custom_minimum_size = Vector2(0, 38)
+	fit_btn.pressed.connect(_on_test_fit_pressed)
+	body.add_child(fit_btn)
+
+
+func _set_test_tier(v) -> void:
+	_test_tier = int(v)
+	_refresh_all()
+
+
+func _set_test_rarity(v) -> void:
+	_test_rarity = int(v)
+	_refresh_all()
+
+
+func _on_test_fit_pressed() -> void:
+	var sm = GameState.shipyard_manager
+	if not sm or not (sm.active_hull in sm.hulls):
+		UITheme.show_notification("No active hull to fit.", Color.RED)
+		return
+	var hull = sm.hulls[sm.active_hull]
+	var slots: Array = hull["slots"]
+	var weapon_types: Array = ["kinetic", "energy", "missile"]
+	var weapon_pick: int = 0
+	var equipped: int = 0
+	var missing: Array = []
+
+	for i in range(slots.size()):
+		var slot_type: String = slots[i]
+		var base_id: String = ""
+		match slot_type:
+			"weapon":
+				base_id = "z%d_%s" % [_test_tier, weapon_types[weapon_pick % 3]]
+				weapon_pick += 1
+			"shield":
+				base_id = "z%d_shield" % _test_tier
+			"armor":
+				base_id = "z%d_armor" % _test_tier
+			"engine":
+				base_id = "z%d_engine" % _test_tier
+			"battery":
+				base_id = "z%d_battery" % _test_tier
+			"sensor":
+				base_id = "z%d_sensor" % _test_tier
+			_:
+				continue
+
+		if not (base_id in sm.modules):
+			if not (base_id in missing):
+				missing.append(base_id)
+			continue
+
+		# Same drop pipeline combat uses: Common returns the base id and
+		# bumps inventory; Uncommon+ creates a customized roll with affixes.
+		var module_id: String = sm.generate_module_drop(base_id, _test_rarity, _test_tier)
+		if module_id == "":
+			continue
+
+		# Direct loadout write — bypasses can_equip_module's research gate.
+		sm.loadout[i] = module_id
+		equipped += 1
+
+	sm.recalc_stats()
+	sm.inventory_updated.emit()
+
+	var rarity_names: Array = ["Common", "Uncommon", "Rare", "Legendary", "Unique"]
+	var msg: String = "Fitted T%d %s — %d slot(s)" % [_test_tier, rarity_names[_test_rarity], equipped]
+	if not missing.is_empty():
+		msg += "  (missing bases: %s)" % ", ".join(missing)
+	UITheme.show_notification(msg, Color(0.45, 1.0, 0.55))
 
 
 # --------------------------------------------------------------------------
