@@ -24,6 +24,7 @@ var _pt_refresh := 0.0
 # so the Fit button is one click after picking Tier + Rarity once.
 var _test_tier: int = 1
 var _test_rarity: int = 2  # Rare default — best signal-to-noise for combat tests
+var _test_weapon_type: int = 0  # 0=Mixed (rotate KIN/NRG/EXP), 1=KIN, 2=NRG, 3=EXP
 
 
 func _ready() -> void:
@@ -213,6 +214,18 @@ func _build_test_fitter(body: VBoxContainer) -> void:
 		func(): return _test_rarity,
 		func(v): _set_test_rarity(v))
 
+	# Weapon Type: Mixed = rotate KIN/NRG/EXP across weapon slots (variety,
+	# good for general testing). KIN/NRG/EXP = force ALL weapon slots to one
+	# type (useful for isolating Phase A triangle scenarios — e.g. "all KIN
+	# vs the kinetic-resist enemy in Z1, how punishing is wrong-type?").
+	var wtype_opts: Array = [
+		["Mixed", 0], ["KIN", 1], ["NRG", 2], ["EXP", 3]
+	]
+	_add_choice_row(body, "Weapon Type",
+		wtype_opts,
+		func(): return _test_weapon_type,
+		func(v): _set_test_weapon_type(v))
+
 	var fit_btn := _primary_button("FIT SHIP", DANGER_CAT)
 	fit_btn.custom_minimum_size = Vector2(0, 38)
 	fit_btn.pressed.connect(_on_test_fit_pressed)
@@ -226,6 +239,11 @@ func _set_test_tier(v) -> void:
 
 func _set_test_rarity(v) -> void:
 	_test_rarity = int(v)
+	_refresh_all()
+
+
+func _set_test_weapon_type(v) -> void:
+	_test_weapon_type = int(v)
 	_refresh_all()
 
 
@@ -246,8 +264,15 @@ func _on_test_fit_pressed() -> void:
 		var base_id: String = ""
 		match slot_type:
 			"weapon":
-				base_id = "z%d_%s" % [_test_tier, weapon_types[weapon_pick % 3]]
-				weapon_pick += 1
+				# 0=Mixed: rotate across types. 1/2/3 force one type for ALL
+				# weapon slots so the player can isolate Phase A triangle cases.
+				match _test_weapon_type:
+					1: base_id = "z%d_kinetic" % _test_tier
+					2: base_id = "z%d_energy" % _test_tier
+					3: base_id = "z%d_missile" % _test_tier
+					_:
+						base_id = "z%d_%s" % [_test_tier, weapon_types[weapon_pick % 3]]
+						weapon_pick += 1
 			"shield":
 				base_id = "z%d_shield" % _test_tier
 			"armor":
@@ -280,7 +305,9 @@ func _on_test_fit_pressed() -> void:
 	sm.inventory_updated.emit()
 
 	var rarity_names: Array = ["Common", "Uncommon", "Rare", "Legendary", "Unique"]
-	var msg: String = "Fitted T%d %s — %d slot(s)" % [_test_tier, rarity_names[_test_rarity], equipped]
+	var wtype_names: Array = ["Mixed", "KIN", "NRG", "EXP"]
+	var msg: String = "Fitted T%d %s (%s weapons) — %d slot(s)" % [
+		_test_tier, rarity_names[_test_rarity], wtype_names[_test_weapon_type], equipped]
 	if not missing.is_empty():
 		msg += "  (missing bases: %s)" % ", ".join(missing)
 	UITheme.show_notification(msg, Color(0.45, 1.0, 0.55))
