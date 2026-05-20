@@ -27,6 +27,7 @@ var _test_tier: int = 1
 var _test_rarity: int = 2  # Rare default — best signal-to-noise for combat tests
 var _test_weapon_type: int = 0  # 0=Mixed (rotate KIN/NRG/EXP), 1=KIN, 2=NRG, 3=EXP
 var _test_consumable_id: String = "Mesh"  # default to the most common hull consumable
+var _test_zone_tier: int = 2  # Z2 is the first gated zone (Z1 is always available)
 
 
 func _ready() -> void:
@@ -161,6 +162,10 @@ func _build_testing_section() -> void:
 	body.add_child(HSeparator.new())
 
 	_build_test_fitter(body)
+
+	body.add_child(HSeparator.new())
+
+	_build_zone_unlocker(body)
 
 	body.add_child(HSeparator.new())
 
@@ -405,6 +410,67 @@ func _on_test_fit_pressed() -> void:
 	if not missing.is_empty():
 		msg += "  (missing bases: %s)" % ", ".join(missing)
 	UITheme.show_notification(msg, Color(0.45, 1.0, 0.55))
+
+
+# --------------------------------------------------------------------------
+# Zone Unlocker (debug)
+# --------------------------------------------------------------------------
+# Unlocks zone_N_access research entries for free, cascading Z2..N so the
+# dependency chain stays intact (modules / recipes / infrastructure tiers
+# all check zone_N_access throughout the codebase — skipping intermediate
+# tiers would leave dead gates).
+func _build_zone_unlocker(body: VBoxContainer) -> void:
+	var title := Label.new()
+	title.text = "Zone Unlock (debug)"
+	title.add_theme_font_size_override("font_size", 12)
+	title.add_theme_color_override("font_color", Color(0.66, 0.7, 0.8))
+	body.add_child(title)
+
+	var hint := Label.new()
+	hint.text = "Free-unlock zone_N_access research. Cascades Z2 → chosen tier so prerequisite chains stay intact."
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hint.add_theme_font_size_override("font_size", 10)
+	hint.add_theme_color_override("font_color", Color(0.55, 0.58, 0.65))
+	body.add_child(hint)
+
+	var zone_opts: Array = []
+	for z in range(2, 11):
+		zone_opts.append(["Z%d" % z, z])
+	_add_choice_row(body, "Up To Zone",
+		zone_opts,
+		func(): return _test_zone_tier,
+		func(v): _set_test_zone_tier(v))
+
+	var btn := _primary_button("UNLOCK ZONE", FRAME_CAT)
+	btn.custom_minimum_size = Vector2(0, 38)
+	btn.pressed.connect(_on_test_unlock_zone_pressed)
+	body.add_child(btn)
+
+
+func _set_test_zone_tier(v) -> void:
+	_test_zone_tier = int(v)
+	_refresh_all()
+
+
+func _on_test_unlock_zone_pressed() -> void:
+	var rm = GameState.research_manager
+	if not rm:
+		UITheme.show_notification("Research manager unavailable.", Color.RED)
+		return
+	# Mirror the safe parts of unlock_tech(): append + emit. Skip cost +
+	# can_unlock prereq checks (test-tool intent). Cascade Z2..N so any
+	# dependent gates between current state and the target tier light up.
+	var newly: Array = []
+	for t in range(2, _test_zone_tier + 1):
+		var tech_id: String = "zone_%d_access" % t
+		if not rm.is_tech_unlocked(tech_id):
+			rm.unlocked_techs.append(tech_id)
+			rm.tech_unlocked.emit(tech_id)
+			newly.append("Z%d" % t)
+	if newly.is_empty():
+		UITheme.show_notification("Z2 — Z%d already unlocked." % _test_zone_tier, Color(0.7, 0.7, 0.7))
+	else:
+		UITheme.show_notification("Unlocked: %s" % ", ".join(newly), Color(0.45, 1.0, 0.55))
 
 
 # --------------------------------------------------------------------------
