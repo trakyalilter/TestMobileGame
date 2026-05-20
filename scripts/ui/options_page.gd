@@ -22,6 +22,7 @@ var _tele_label: Label             # balance telemetry readout
 var _pt_refresh := 0.0
 # Test Fitter (debug — Testing section). Persists in-session selection
 # so the Fit button is one click after picking Tier + Rarity once.
+var _test_hull_tier: int = 1
 var _test_tier: int = 1
 var _test_rarity: int = 2  # Rare default — best signal-to-noise for combat tests
 var _test_weapon_type: int = 0  # 0=Mixed (rotate KIN/NRG/EXP), 1=KIN, 2=NRG, 3=EXP
@@ -199,10 +200,28 @@ func _build_test_fitter(body: VBoxContainer) -> void:
 	hint.add_theme_color_override("font_color", Color(0.55, 0.58, 0.65))
 	body.add_child(hint)
 
+	# Hull construction — foundation step. Swap to any tier's hull, free,
+	# bypassing research/credits/materials. Clears existing loadout (slot
+	# layouts differ per tier; modules return to inventory via unequip_all).
+	var hull_opts: Array = []
+	for t in range(1, 11):
+		hull_opts.append(["T%d" % t, t])
+	_add_choice_row(body, "Hull Tier",
+		hull_opts,
+		func(): return _test_hull_tier,
+		func(v): _set_test_hull_tier(v))
+
+	var hull_btn := _primary_button("CONSTRUCT HULL", DANGER_CAT)
+	hull_btn.custom_minimum_size = Vector2(0, 38)
+	hull_btn.pressed.connect(_on_test_construct_hull_pressed)
+	body.add_child(hull_btn)
+
+	body.add_child(HSeparator.new())
+
 	var tier_opts: Array = []
 	for t in range(1, 11):
 		tier_opts.append(["T%d" % t, t])
-	_add_choice_row(body, "Tier",
+	_add_choice_row(body, "Module Tier",
 		tier_opts,
 		func(): return _test_tier,
 		func(v): _set_test_tier(v))
@@ -272,6 +291,46 @@ func _set_test_weapon_type(v) -> void:
 func _set_test_consumable(v) -> void:
 	_test_consumable_id = str(v)
 	_refresh_all()
+
+
+func _set_test_hull_tier(v) -> void:
+	_test_hull_tier = int(v)
+	_refresh_all()
+
+
+func _on_test_construct_hull_pressed() -> void:
+	var sm = GameState.shipyard_manager
+	if not sm:
+		UITheme.show_notification("Shipyard manager unavailable.", Color.RED)
+		return
+	# Resolve hull-id by tier (data-driven; doesn't hard-code corvette/frigate/…).
+	var target_id: String = ""
+	for hull_id in sm.hulls:
+		if int(sm.hulls[hull_id].get("tier", 0)) == _test_hull_tier:
+			target_id = hull_id
+			break
+	if target_id == "":
+		UITheme.show_notification("No hull at T%d." % _test_hull_tier, Color.RED)
+		return
+	if target_id == sm.active_hull:
+		UITheme.show_notification("Already in this hull.", Color(0.7, 0.7, 0.7))
+		return
+	# Mirror the safe parts of purchase_hull() — unequip back to inventory,
+	# swap active_hull, init slot dict, recalc, full HP. Skip the cost/
+	# research gates (test tool) and skip hull_constructed.emit (don't
+	# credit missions for a debug swap).
+	var hull_data = sm.hulls[target_id]
+	sm.unequip_all()
+	sm.active_hull = target_id
+	sm.loadout = {}
+	for i in range(hull_data["slots"].size()):
+		sm.loadout[i] = null
+	sm.ammo_loadout = {}
+	sm.recalc_stats()
+	sm.current_hp = sm.max_hp
+	sm.inventory_updated.emit()
+	var hull_name: String = hull_data.get("name", target_id)
+	UITheme.show_notification("Constructed T%d: %s" % [_test_hull_tier, hull_name], Color(0.45, 1.0, 0.55))
 
 
 func _on_test_stock_consumable_pressed() -> void:
