@@ -25,6 +25,7 @@ var _pt_refresh := 0.0
 var _test_tier: int = 1
 var _test_rarity: int = 2  # Rare default — best signal-to-noise for combat tests
 var _test_weapon_type: int = 0  # 0=Mixed (rotate KIN/NRG/EXP), 1=KIN, 2=NRG, 3=EXP
+var _test_consumable_id: String = "Mesh"  # default to the most common hull consumable
 
 
 func _ready() -> void:
@@ -231,6 +232,27 @@ func _build_test_fitter(body: VBoxContainer) -> void:
 	fit_btn.pressed.connect(_on_test_fit_pressed)
 	body.add_child(fit_btn)
 
+	body.add_child(HSeparator.new())
+
+	# Consumable stocking — pre-fight prep for sustained combat tests.
+	# 5 hull consumables (heal % asc) then 5 shield consumables. Short
+	# labels keep the segmented row sane on the 620px column.
+	var cons_opts: Array = [
+		["Patch", "EmergencyPatch"], ["Chitin", "ChitinPatch"], ["Mesh", "Mesh"],
+		["Seal", "Seal"], ["AdvKit", "AdvMaintenanceKit"],
+		["Shard", "CapacitorShard"], ["Boost", "BasicBooster"], ["Ion", "IonField"],
+		["Cryo", "NitroCoolant"], ["ZeroP", "ZeroPoint"]
+	]
+	_add_choice_row(body, "Consumable",
+		cons_opts,
+		func(): return _test_consumable_id,
+		func(v): _set_test_consumable(v))
+
+	var stock_btn := _primary_button("+100 CONSUMABLE", FRAME_CAT)
+	stock_btn.custom_minimum_size = Vector2(0, 38)
+	stock_btn.pressed.connect(_on_test_stock_consumable_pressed)
+	body.add_child(stock_btn)
+
 
 func _set_test_tier(v) -> void:
 	_test_tier = int(v)
@@ -245,6 +267,19 @@ func _set_test_rarity(v) -> void:
 func _set_test_weapon_type(v) -> void:
 	_test_weapon_type = int(v)
 	_refresh_all()
+
+
+func _set_test_consumable(v) -> void:
+	_test_consumable_id = str(v)
+	_refresh_all()
+
+
+func _on_test_stock_consumable_pressed() -> void:
+	if not GameState.resources or _test_consumable_id == "":
+		return
+	GameState.resources.add_element(_test_consumable_id, 100)
+	var display_name: String = ElementDB.get_display_name(_test_consumable_id)
+	UITheme.show_notification("+100 %s" % display_name, Color(0.45, 1.0, 0.55))
 
 
 func _on_test_fit_pressed() -> void:
