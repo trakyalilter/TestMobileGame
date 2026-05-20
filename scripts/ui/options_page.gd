@@ -283,6 +283,13 @@ func _build_test_fitter(body: VBoxContainer) -> void:
 	stock_btn.pressed.connect(_on_test_stock_consumable_pressed)
 	body.add_child(stock_btn)
 
+	# Emergency unstick: heat-lock can strand a player mid-fight if their
+	# build outpaces vent (T10 sustained > 1M heat ceiling). One-click reset.
+	var cool_btn := _primary_button("COOL SHIP (clear heat)", FRAME_CAT)
+	cool_btn.custom_minimum_size = Vector2(0, 38)
+	cool_btn.pressed.connect(_on_test_cool_ship_pressed)
+	body.add_child(cool_btn)
+
 
 func _set_test_tier(v) -> void:
 	_test_tier = int(v)
@@ -340,8 +347,35 @@ func _on_test_construct_hull_pressed() -> void:
 	sm.recalc_stats()
 	sm.current_hp = sm.max_hp
 	sm.inventory_updated.emit()
+	# A stale heat lock from a prior fight would survive this swap and
+	# strand the new hull — clear heat as part of the construct path too.
+	_neutralize_heat()
 	var hull_name: String = hull_data.get("name", target_id)
 	UITheme.show_notification("Constructed T%d: %s" % [_test_hull_tier, hull_name], Color(0.45, 1.0, 0.55))
+
+
+# Pull heat ceiling + vent rate up to 1e9 (effectively infinite for any
+# single combat session) and clear current state. Used by FIT SHIP /
+# CONSTRUCT HULL / the standalone COOL SHIP button. Heat math:
+# combat_manager.gd:1396 adds ~2 + dmg/100 heat per shot; T10 sustained
+# fire can produce ~7,000 heat/sec, so a 1M ceiling fills in ~140s of
+# uninterrupted fire — not enough. 1e9 ceiling + 1e9 vent rate makes
+# heat effectively a no-op for test sessions; the bar will hover at 0%.
+func _neutralize_heat() -> void:
+	var cm = GameState.combat_manager
+	if not cm:
+		return
+	cm.player_heat = 0.0
+	cm.overheat_lock = 0.0
+	cm.player_max_heat = 1_000_000_000.0
+	cm.player_vent_rate = 1_000_000_000.0
+	if cm.has_signal("heat_changed"):
+		cm.heat_changed.emit(cm.player_heat, cm.player_max_heat)
+
+
+func _on_test_cool_ship_pressed() -> void:
+	_neutralize_heat()
+	UITheme.show_notification("Heat neutralized — weapons online.", Color(0.45, 1.0, 0.55))
 
 
 func _on_test_stock_consumable_pressed() -> void:
@@ -448,17 +482,12 @@ func _on_test_fit_pressed() -> void:
 	sm.inventory_updated.emit()
 
 	# Heat is a real game mechanic (each shot adds 2 + dmg/100 heat into a
-	# 100-cap with an 8/s base vent — normally managed via cooling research,
-	# milestones, and heat-sync affixes). A debug-fit has none of those, so
-	# T10 weapons would overheat to 500%+ in a second and lock the player
-	# out of firing entirely. Neutralize for the test rig: clear current
-	# heat / lock and raise the ceiling far past anything weapons can produce
-	# in a session. (Vent rate left alone; ceiling alone is sufficient.)
-	var cm = GameState.combat_manager
-	if cm:
-		cm.player_heat = 0.0
-		cm.overheat_lock = 0.0
-		cm.player_max_heat = 1_000_000.0
+	# 100-cap with an 8/s base vent — normally tuned by cooling research,
+	# milestones, and heat-sync affixes). A debug-fit has none of those.
+	# Neutralize: clear current + raise the ceiling AND vent rate far past
+	# anything any session can produce (T10 sustained ≈ 7k heat/s for
+	# 30+ min would exceed a 1M cap).
+	_neutralize_heat()
 
 	var rarity_names: Array = ["Common", "Uncommon", "Rare", "Legendary", "Unique"]
 	var wtype_names: Array = ["Mixed", "KIN", "NRG", "EXP"]
