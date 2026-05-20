@@ -28,6 +28,8 @@ var _test_rarity: int = 2  # Rare default — best signal-to-noise for combat te
 var _test_weapon_type: int = 0  # 0=Mixed (rotate KIN/NRG/EXP), 1=KIN, 2=NRG, 3=EXP
 var _test_consumable_id: String = "Mesh"  # default to the most common hull consumable
 var _test_zone_tier: int = 2  # Z2 is the first gated zone (Z1 is always available)
+var _grant_symbol_edit: LineEdit  # arbitrary-material granter — symbol input
+var _grant_amount_edit: LineEdit  # arbitrary-material granter — amount input
 
 
 func _ready() -> void:
@@ -166,6 +168,10 @@ func _build_testing_section() -> void:
 	body.add_child(HSeparator.new())
 
 	_build_zone_unlocker(body)
+
+	body.add_child(HSeparator.new())
+
+	_build_material_granter(body)
 
 	body.add_child(HSeparator.new())
 
@@ -522,6 +528,87 @@ func _on_test_unlock_zone_pressed() -> void:
 		UITheme.show_notification("Z2 — Z%d already unlocked." % _test_zone_tier, Color(0.7, 0.7, 0.7))
 	else:
 		UITheme.show_notification("Unlocked: %s" % ", ".join(newly), Color(0.45, 1.0, 0.55))
+
+
+# --------------------------------------------------------------------------
+# Material Granter (debug)
+# --------------------------------------------------------------------------
+# Free-text symbol + amount → directly into resources. Lets the player
+# stock arbitrary materials (ores, refined metals, boss cores, reclaimed
+# components, ammo tiers, anything) without grinding the chain. A dropdown
+# would need 150+ entries — typing the symbol is faster when you already
+# know what you want, which is the entire premise of a debug tool.
+func _build_material_granter(body: VBoxContainer) -> void:
+	var title := Label.new()
+	title.text = "Material Grant (debug)"
+	title.add_theme_font_size_override("font_size", 12)
+	title.add_theme_color_override("font_color", Color(0.66, 0.7, 0.8))
+	body.add_child(title)
+
+	var hint := Label.new()
+	hint.text = "Enter element symbol (Fe, Si, Z3_Core, ExoticMatter, SalvagedAlloy, …) and amount. Adds straight to inventory."
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hint.add_theme_font_size_override("font_size", 10)
+	hint.add_theme_color_override("font_color", Color(0.55, 0.58, 0.65))
+	body.add_child(hint)
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	body.add_child(row)
+
+	var s_lbl := Label.new()
+	s_lbl.text = "Symbol"
+	s_lbl.add_theme_font_size_override("font_size", 11)
+	s_lbl.add_theme_color_override("font_color", Color(0.62, 0.66, 0.76))
+	row.add_child(s_lbl)
+
+	_grant_symbol_edit = LineEdit.new()
+	_grant_symbol_edit.placeholder_text = "Fe"
+	_grant_symbol_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_grant_symbol_edit.custom_minimum_size = Vector2(120, 0)
+	row.add_child(_grant_symbol_edit)
+
+	var a_lbl := Label.new()
+	a_lbl.text = "Amount"
+	a_lbl.add_theme_font_size_override("font_size", 11)
+	a_lbl.add_theme_color_override("font_color", Color(0.62, 0.66, 0.76))
+	row.add_child(a_lbl)
+
+	_grant_amount_edit = LineEdit.new()
+	_grant_amount_edit.placeholder_text = "1000"
+	_grant_amount_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_grant_amount_edit.custom_minimum_size = Vector2(100, 0)
+	row.add_child(_grant_amount_edit)
+
+	var btn := _primary_button("GRANT MATERIAL", FRAME_CAT)
+	btn.custom_minimum_size = Vector2(0, 38)
+	btn.pressed.connect(_on_test_grant_material_pressed)
+	body.add_child(btn)
+
+
+func _on_test_grant_material_pressed() -> void:
+	if not GameState.resources:
+		UITheme.show_notification("Resources unavailable.", Color.RED)
+		return
+	var symbol: String = ""
+	if _grant_symbol_edit:
+		symbol = _grant_symbol_edit.text.strip_edges()
+	var amt_text: String = ""
+	if _grant_amount_edit:
+		amt_text = _grant_amount_edit.text.strip_edges()
+	if symbol == "":
+		UITheme.show_notification("Enter a material symbol.", Color.RED)
+		return
+	if not amt_text.is_valid_int():
+		UITheme.show_notification("Amount must be a whole number.", Color.RED)
+		return
+	var amt: int = amt_text.to_int()
+	if amt <= 0:
+		UITheme.show_notification("Amount must be greater than 0.", Color.RED)
+		return
+	GameState.resources.add_element(symbol, amt)
+	var dn: String = ElementDB.get_display_name(symbol)
+	UITheme.show_notification("+%d %s" % [amt, dn], Color(0.45, 1.0, 0.55))
 
 
 # --------------------------------------------------------------------------
