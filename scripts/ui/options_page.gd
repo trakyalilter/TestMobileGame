@@ -346,6 +346,31 @@ func _on_test_stock_consumable_pressed() -> void:
 	UITheme.show_notification("+100 %s" % display_name, Color(0.45, 1.0, 0.55))
 
 
+# Map the fitter's weapon base-suffix + module tier to the matching ammo id.
+# Tier bands: T1-2 → ammo T1, T3-5 → T2, T6-8 → T3, T9-10 → T4. Matches the
+# game's ammo progression so a fitted ship uses tier-appropriate rounds, not
+# T1 rounds on T10 guns. is_ammo_compatible() matches by name prefix so
+# "SlugT4" / "CellT4" / "MissileT4" all pass for their respective weapons.
+func _ammo_for_weapon(base_suffix: String, module_tier: int) -> String:
+	var at: int = 1
+	if module_tier <= 2:
+		at = 1
+	elif module_tier <= 5:
+		at = 2
+	elif module_tier <= 8:
+		at = 3
+	else:
+		at = 4
+	match base_suffix:
+		"kinetic":
+			return "SlugT%d" % at
+		"energy":
+			return "CellT%d" % at
+		"missile":
+			return "MissileT%d" % at
+	return ""
+
+
 func _on_test_fit_pressed() -> void:
 	var sm = GameState.shipyard_manager
 	if not sm or not (sm.active_hull in sm.hulls):
@@ -361,17 +386,19 @@ func _on_test_fit_pressed() -> void:
 	for i in range(slots.size()):
 		var slot_type: String = slots[i]
 		var base_id: String = ""
+		var w_suffix: String = ""  # set only for weapon slots — used to grant matching ammo below
 		match slot_type:
 			"weapon":
 				# 0=Mixed: rotate across types. 1/2/3 force one type for ALL
 				# weapon slots so the player can isolate Phase A triangle cases.
 				match _test_weapon_type:
-					1: base_id = "z%d_kinetic" % _test_tier
-					2: base_id = "z%d_energy" % _test_tier
-					3: base_id = "z%d_missile" % _test_tier
+					1: w_suffix = "kinetic"
+					2: w_suffix = "energy"
+					3: w_suffix = "missile"
 					_:
-						base_id = "z%d_%s" % [_test_tier, weapon_types[weapon_pick % 3]]
+						w_suffix = weapon_types[weapon_pick % 3]
 						weapon_pick += 1
+				base_id = "z%d_%s" % [_test_tier, w_suffix]
 			"shield":
 				base_id = "z%d_shield" % _test_tier
 			"armor":
@@ -399,6 +426,17 @@ func _on_test_fit_pressed() -> void:
 		# Direct loadout write — bypasses can_equip_module's research gate.
 		sm.loadout[i] = module_id
 		equipped += 1
+
+		# Weapons need ammo or they fire blanks. equip_module() normally
+		# auto-assigns SlugT1/CellT1/missile defaults, but our direct
+		# loadout write bypasses that path — without this, T10 weapons on
+		# a fitted ship deal 0 damage. Tier-band the ammo to the module
+		# tier so the test loadout feels real rather than handicapped.
+		if w_suffix != "":
+			var ammo_id: String = _ammo_for_weapon(w_suffix, _test_tier)
+			if ammo_id != "":
+				GameState.resources.add_element(ammo_id, 1000)
+				sm.ammo_loadout[i] = ammo_id
 
 	sm.recalc_stats()
 	sm.inventory_updated.emit()
