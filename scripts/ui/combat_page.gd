@@ -87,8 +87,9 @@ func _ready():
 	
 	# Initial Sync
 	_on_heat_changed(manager.player_heat, manager.player_max_heat)
-	
+
 	_setup_loot_filter_button()
+	_build_combat_timers()
 
 var p_xp_bar: ProgressBar
 var p_xp_label: Label
@@ -97,6 +98,12 @@ var p_hp_bar: HBoxContainer
 var p_sh_bar: HBoxContainer
 var e_hp_bar: HBoxContainer
 var e_sh_bar: HBoxContainer
+
+# Combat-session HUD timers (built in _ready, refreshed from update_ui).
+# Left: total combat duration since engage. Right: time since the last kill.
+var combat_timer_row: HBoxContainer
+var session_timer_lbl: Label
+var kill_timer_lbl: Label
 
 func _setup_hp_bars():
 	p_hp_bar = _create_block_bar($Dashboard/HUD/MidHUD/PlayerStatsOverlay/Margin/VBox, p_hp_lbl.get_index() + 1, "combat")
@@ -355,6 +362,7 @@ func _process(delta):
 func update_ui():
 	# Update Haptics & Visualizer
 	radar_display.queue_redraw()
+	_refresh_combat_timers()
 
 	# Player Stats
 	var sm = GameState.shipyard_manager
@@ -963,3 +971,79 @@ func _update_cons_btn(btn: Button, item_id: String, label: String, color: Color)
 
 func _on_consumable_pressed(type: String):
 	manager.use_manual_consumable(type)
+
+
+# --------------------------------------------------------------------------
+# Combat-session HUD timers
+# --------------------------------------------------------------------------
+# Two readouts injected into the top-center HUD:
+#  · SESSION  — total combat time since engage; runs until retreat.
+#  · LAST KILL — resets to 0 on every enemy_defeated; tracks current kill pace.
+# Both read directly from combat_manager state vars, no extra signals needed.
+func _build_combat_timers() -> void:
+	var center = $Dashboard/HUD/TopHUD/CenterInfo
+	if center == null:
+		return
+
+	combat_timer_row = HBoxContainer.new()
+	combat_timer_row.name = "CombatTimers"
+	combat_timer_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	combat_timer_row.add_theme_constant_override("separation", 14)
+	combat_timer_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	center.add_child(combat_timer_row)
+
+	session_timer_lbl = _make_timer_label("SESSION  0:00", UITheme.CATEGORY_COLORS["combat"])
+	combat_timer_row.add_child(session_timer_lbl)
+
+	var dot := Label.new()
+	dot.text = "·"
+	dot.add_theme_color_override("font_color", Color(0.5, 0.52, 0.6))
+	dot.add_theme_font_size_override("font_size", 12)
+	combat_timer_row.add_child(dot)
+
+	kill_timer_lbl = _make_timer_label("LAST KILL  0.0s", UITheme.CATEGORY_COLORS["shipyard"])
+	combat_timer_row.add_child(kill_timer_lbl)
+
+	combat_timer_row.visible = false
+
+
+func _make_timer_label(initial: String, col: Color) -> Label:
+	var l := Label.new()
+	l.text = initial
+	l.add_theme_color_override("font_color", col)
+	l.add_theme_font_size_override("font_size", 12)
+	return l
+
+
+func _refresh_combat_timers() -> void:
+	if combat_timer_row == null:
+		return
+	if not manager.in_combat:
+		if combat_timer_row.visible:
+			combat_timer_row.visible = false
+		return
+	if not combat_timer_row.visible:
+		combat_timer_row.visible = true
+	session_timer_lbl.text = "SESSION  %s" % _fmt_session(manager.combat_session_time)
+	kill_timer_lbl.text = "LAST KILL  %s" % _fmt_kill(manager.time_since_last_kill)
+
+
+# Clock-style mm:ss (or h:mm:ss past an hour). Always shows a whole-second
+# tick so the session readout doesn't jitter.
+func _fmt_session(t: float) -> String:
+	var s := int(t)
+	var mm := s / 60
+	var ss := s % 60
+	if mm < 60:
+		return "%d:%02d" % [mm, ss]
+	var hh := mm / 60
+	mm = mm % 60
+	return "%d:%02d:%02d" % [hh, mm, ss]
+
+
+# Sub-second precision under a minute (kill-pace cue), clock format after.
+func _fmt_kill(t: float) -> String:
+	if t < 60.0:
+		return "%.1fs" % t
+	var s := int(t)
+	return "%d:%02d" % [s / 60, s % 60]

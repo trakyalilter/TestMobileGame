@@ -26,10 +26,10 @@ var graphs = {
 			"magnetic_funnels", "deep_core_optics",
 			
 			# Exploration / Sectors
-			"sector_alpha_decryption", "deep_space_nav", "radiation_shielding", 
+			"sector_alpha_decryption", "deep_space_nav", "radiation_shielding",
 			"exotic_matter_analysis", "void_physics", "void_navigation",
-			"field_theory", # Added missing node
-			
+			"field_theory",
+
 			# Missing Techs Restored (Audit)
 			"eff_scanning_1", "xeno_archaeology",
 			
@@ -58,7 +58,7 @@ var graphs = {
 
 			# Branch 4: Utility & Gases
 			"energy_shields": Vector2(40, 370),
-			"field_theory": Vector2(40, 430), # Restored (Child of Energy Fields)
+			"field_theory": Vector2(40, 430), # Child of Energy Fields — gates IonField consumable
 			"magnetic_funnels": Vector2(240, 370),
 			"eff_scanning_1": Vector2(40, 480), # Restored
 			"deep_core_optics": Vector2(240, 480), # Shifted right
@@ -190,21 +190,19 @@ var graphs = {
 			"kinetics_101", "power_systems", "laser_optics",
 			
 			# Shipwright Chain
-			"shipwright_1", "shipwright_2", "molecular_printing", 
-			"capital_ship_engineering", "capital_ship_armament", "quantum_dynamics", "broadside_tactics",
-			
+			"shipwright_1", "shipwright_2", "molecular_printing",
+			"capital_ship_engineering", "capital_ship_armament", "quantum_dynamics",
+
 			# Warp & Navigation
-			"warp_drive", "warp_stabilizer", 
-			
+			"warp_drive", "warp_stabilizer",
+
 			# Military Techs (Processing Tungsten -> Ballistics)
 			"processing_tungsten", "ballistics_optimization", "advanced_rocketry",
-			"gamma_optics",
 
 			# Void / Endgame
 			"void_weaponry_1", "void_shielding_1",
 			
 			# Efficiency
-			"salvage_heuristics", "scavenger_protocol", 
 			"combat_heuristics", "shield_harmonics", "hull_hardening", "core_overclocking",
 			
 			# Auto-Repair (Audit v66.0)
@@ -225,13 +223,11 @@ var graphs = {
 			"capital_ship_engineering": Vector2(440, 320),
 			"capital_ship_armament": Vector2(640, 320),
 			"quantum_dynamics": Vector2(840, 320),
-			"broadside_tactics": Vector2(640, 400),
-			
+
 			# Column 4: Weapons Tech (Lower Branch)
 			"processing_tungsten": Vector2(40, 500),
 			"ballistics_optimization": Vector2(240, 500),
 			"advanced_rocketry": Vector2(440, 500), # Sits under automation usually, moved here for mil-tech coherence
-			"gamma_optics": Vector2(840, 500),
 			
 			# Column 5: Warp
 			"warp_drive": Vector2(440, 80),
@@ -251,9 +247,7 @@ var graphs = {
 			"auto_repair_40": Vector2(640, 680),
 			"auto_repair_60": Vector2(840, 680),
 			"auto_repair_80": Vector2(1040, 680),
-			"salvage_heuristics": Vector2(40, 840),
-			"scavenger_protocol": Vector2(240, 840),
-			"combat_heuristics": Vector2(40, 920)
+			"combat_heuristics": Vector2(40, 840)
 		},
 		"container": null
 	},

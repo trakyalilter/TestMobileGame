@@ -1297,11 +1297,7 @@ func complete_process():
 			
 	if "output_table" in current_recipe:
 		var roll_count = current_recipe.get("roll_count", 1) # Default 1 roll
-		
-		# Apply Scrap Recycling Bonus
-		if current_recipe_id == "recycle_scrap":
-			roll_count += int(GameState.research_manager.get_efficiency_bonus("scrap_rolls"))
-			
+
 		var results = {} # Accumulate results: {item: total_qty}
 		
 		for i in range(roll_count):
@@ -1438,11 +1434,7 @@ func calculate_offline(delta: float):
 			
 	if "output_table" in current_recipe:
 		var roll_count = current_recipe.get("roll_count", 1)
-		
-		# Apply Scrap Recycling Bonus
-		if current_recipe_id == "recycle_scrap":
-			roll_count += int(GameState.research_manager.get_efficiency_bonus("scrap_rolls"))
-			
+
 		for i in range(actions):
 			for j in range(roll_count):
 				for entry in current_recipe["output_table"]:
@@ -1525,9 +1517,7 @@ func get_current_rate() -> Dictionary:
 	# Probability Outputs
 	if "output_table" in recipe:
 		var roll_count = recipe.get("roll_count", 1)
-		if current_recipe_id == "recycle_scrap":
-			roll_count += int(GameState.research_manager.get_efficiency_bonus("scrap_rolls"))
-			
+
 		for entry in recipe["output_table"]:
 			var item = entry[0]
 			var chance = entry[1]

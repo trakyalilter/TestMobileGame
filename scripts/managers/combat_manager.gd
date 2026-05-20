@@ -48,6 +48,13 @@ var active_buffs = {} # {buff_name: duration}
 # Session Tracking
 var session_loot = {} # {item_id: total_amount}
 
+# Combat timers shown on the combat page HUD.
+# combat_session_time runs from engage until retreat (overall combat duration).
+# time_since_last_kill resets to 0 on every enemy_defeated and tracks the
+# current kill streak's elapsed time. Both only accumulate while in_combat.
+var combat_session_time: float = 0.0
+var time_since_last_kill: float = 0.0
+
 # Balanced Phase 2 Buffs
 var broadside_timer = 0.0
 var coolant_flush_timer = 0.0
@@ -959,6 +966,8 @@ func start_expedition(zone_id: String):
 	current_zone_id = zone_id # Track ID explicitly
 	in_combat = true
 	session_loot.clear()
+	combat_session_time = 0.0
+	time_since_last_kill = 0.0
 	spawn_enemy()
 	player_shield = player_max_shield # FIX: Restore shields on enter
 	shield_regen_accumulator = 0.0
@@ -981,6 +990,8 @@ func set_target_enemy(enemy_id):
 		GameState.set_active_manager(self)
 		target_enemy_id = enemy_id
 		in_combat = true
+		combat_session_time = 0.0
+		time_since_last_kill = 0.0
 		spawn_enemy()
 		player_shield = player_max_shield # FIX: Restore shields on target
 		shield_regen_accumulator = 0.0
@@ -1231,7 +1242,11 @@ func process_tick(delta: float):
 	if not in_combat or not current_enemy or not current_zone:
 		_process_regeneration(delta)
 		return
-		
+
+	# Accumulate combat HUD timers while a fight is active.
+	combat_session_time += delta
+	time_since_last_kill += delta
+
 	var rm = GameState.research_manager
 	# v65.4: Removed sm.attack_speed_bonus here — it's already applied via cooling_mult per-weapon
 	var p_speed_mult = (1.0 + rm.get_efficiency_bonus("attack_speed"))
@@ -1472,7 +1487,19 @@ func _execute_player_attack(weapon_idx: int):
 				combat_events.append({"type": "miss", "text": "REQUIRES " + req_w.replace("_", " ").to_upper(), "color": Color.RED, "side": "enemy"})
 			return # Deals 0 damage and skips calculation
 			
-	var skill_dmg_mult = (1.0 + (get_level() * 0.005)) * GameState.warp_manager.get_combat_multiplier()
+	# v105: combat_focus (Recursive Calibration) +5%/level Total Ship Damage.
+	# Previously combat_focus's bonus_type "combat_damage" had no consumer;
+	# wiring it into skill_dmg_mult means every ship damage path picks it up.
+	# v105b: void_weaponry_1 (+5% Total Ship Damage) — endgame sink that was
+	# defined but had no consumer. Wired alongside combat_focus.
+	# Nerfed 20% → 5% (v105c): 20% stacked too hard on efficiency × warp × combat_focus.
+	var combat_dmg_bonus := 0.0
+	var void_weap_bonus := 0.0
+	if GameState.research_manager:
+		combat_dmg_bonus = GameState.research_manager.get_efficiency_bonus("combat_damage")
+		if GameState.research_manager.is_tech_unlocked("void_weaponry_1"):
+			void_weap_bonus = 0.05
+	var skill_dmg_mult = (1.0 + (get_level() * 0.005)) * GameState.warp_manager.get_combat_multiplier() * (1.0 + combat_dmg_bonus) * (1.0 + void_weap_bonus)
 	
 	# v80.1: Trinity Damage Multipliers
 	var trinity_atk_mult = 1.0 + (_get_set_bonus_value("atk_pct") + _get_set_bonus_value("all_dmg_pct")) / 100.0
@@ -1878,6 +1905,8 @@ func win_fight():
 				log_msg("Filtered out %s (%s) module drop." % [sm.RARITY_LABELS.get(rarity, "Common"), slot_type.capitalize()])
 
 	add_xp(int(current_enemy["xp"] * (1.0 + GameState.research_manager.get_efficiency_bonus("combat_xp"))))
+	# Per-kill HUD timer resets at the moment of the kill; session timer keeps running.
+	time_since_last_kill = 0.0
 	enemy_defeated.emit(current_enemy["id"])
 	
 	# v86.0: Track boss kills for hazard zone unlocks
@@ -2000,8 +2029,17 @@ func _execute_broadside_burst():
 		if w["type"] == "kinetic": total_atk_k += w["dmg_k"]
 	
 	# Broadside delivers a massive kinetic salvo (5x base kinetic attack)
-	# subject to standard armor/shield resolution
-	var skill_dmg_mult = 1.0 + (get_level() * 0.005)
+	# subject to standard armor/shield resolution.
+	# v105: also picks up combat_focus (Recursive Calibration) bonus.
+	# v105b: void_weaponry_1 +5% Total Ship Damage (endgame sink).
+	# Nerfed 20% → 5% (v105c) to match main hit path.
+	var combat_dmg_bonus_b := 0.0
+	var void_weap_bonus_b := 0.0
+	if GameState.research_manager:
+		combat_dmg_bonus_b = GameState.research_manager.get_efficiency_bonus("combat_damage")
+		if GameState.research_manager.is_tech_unlocked("void_weaponry_1"):
+			void_weap_bonus_b = 0.05
+	var skill_dmg_mult = (1.0 + (get_level() * 0.005)) * (1.0 + combat_dmg_bonus_b) * (1.0 + void_weap_bonus_b)
 	var res = resolve_damage(total_atk_k * 5.0 * skill_dmg_mult, 0, 0, enemy_shield, current_enemy["def"], current_zone.get("difficulty", 1), 0.1, true) # 10% base crit for volley
 	
 	enemy_shield = max(0, enemy_shield - res[0])

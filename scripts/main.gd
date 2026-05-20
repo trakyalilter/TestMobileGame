@@ -716,7 +716,7 @@ func _update_navigation_hints():
 				target_to_pulse = widget.btn
 
 	elif "m029" in mm.active_missions:
-		# Shipyard: Titanium Plating
+		# Shipyard: Zone 2 Armor (Carbon Fiber Plate)
 		if current_page_name != "shipyard": target_to_pulse = shipyard_btn
 		else:
 			var page = pages["shipyard"]

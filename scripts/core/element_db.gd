@@ -134,7 +134,6 @@ var ELEMENT_NAMES = {
 	# Combat Loot & Artifacts
 	"MiteChitin": "Mite Chitin",
 	"ChitinPatch": "Chitin Hull Patch",
-	"DroneCore": "Drone Core",
 	"SalvageData": "Salvage Data",
 	"StolenCargo": "Stolen Cargo",
 	"SwarmFragment": "Swarm Fragment",
@@ -220,7 +219,7 @@ var CATEGORIES = {
 				"Neutronium", "AntimatterParticle", "ExoticIsotope", "ReactiveCore", "AICore", "AncientTech",
 				"NavData", "IrPlate", "OsCore", "PtCatalyst",
 				"Res1", "Res2", "Res3",
-				"MiteChitin", "DroneCore", "SalvageData", "StolenCargo", 
+				"MiteChitin", "SalvageData", "StolenCargo",
 				"SwarmFragment", "PirateManifest", "ColonySalvage", "TurretCore", 
 				"ColonyDataCore", "RadIsotope", "CryoCell",
 				"PirateSalvage", "MartianRelics", "CryoEssence", "XenoFragment"],

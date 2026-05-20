@@ -308,8 +308,12 @@ var loadout_presets: Dictionary = {
 const ELEMENT_RESEARCH_REQS = {
 	"SlugT1": "kinetics_101",
 	"SlugT2": "ballistics_optimization",
-	"SlugT3": "high_energy_munitions",
-	"SlugT4": "high_energy_munitions",
+	# v105b: was "high_energy_munitions" — a tech that doesn't exist in tech_tree.
+	# Players could craft SlugT3/T4 via ballistics_optimization but never equip
+	# them (can_equip_module check failed against unknown tech). Aligned to the
+	# same tech that gates the crafting recipes.
+	"SlugT3": "ballistics_optimization",
+	"SlugT4": "ballistics_optimization",
 	"CellT2": "laser_optics",
 	"CellT3": "cryogenic_systems",
 	"CellT4": "cryogenic_systems",
@@ -1932,6 +1936,12 @@ func recalc_stats():
 	crit_chance += gem_totals.get("crit_chance", 0.0)
 	max_shield *= (1.0 + gem_totals.get("max_shield_mult", 0.0))
 	shield_regen *= (1.0 + gem_totals.get("shield_regen_mult", 0.0))
+
+	# v105b: void_shielding_1 +5% Total Ship Shields. Endgame sink that
+	# had no consumer despite a 100M-credit unlock cost.
+	# Nerfed 20% → 5% (v105c): 20% stacked too hard on shield gem mults.
+	if rm and rm.is_tech_unlocked("void_shielding_1"):
+		max_shield *= 1.05
 	evasion *= (1.0 + gem_totals.get("eva_mult", 0.0))
 	e_cap *= (1.0 + gem_totals.get("energy_capacity_mult", 0.0))
 	jamming_strength += gem_totals.get("jamming_strength", 0.0)

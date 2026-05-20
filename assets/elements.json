@@ -599,16 +599,6 @@
     "description": "Salvaged data core containing basic engineering schematics."
   },
   {
-    "atomic_number": -401,
-    "symbol": "DroneCore",
-    "name": "Drone Core",
-    "mass": 0.5,
-    "category": "Combat Component",
-    "tier": 1,
-    "base_value": 15,
-    "description": "Intact processing unit from a destroyed drone. Required for circuit fabrication."
-  },
-  {
     "atomic_number": -402,
     "symbol": "SalvageData",
     "name": "Salvage Data",

@@ -734,13 +734,18 @@ func apply_locked_overlay(card: Control, item_name: String, message: String, is_
 		return
 	
 	if not overlay:
-		# 1. Create Transparent Shadow Panel
+		# 1. Translucent darken — lets the rarity-styled tile underneath
+		# still read (slot icon, rarity frame, power readout) instead of
+		# blacking the whole card out and reducing it to "just text".
 		overlay = ColorRect.new()
 		overlay.name = overlay_name
-		overlay.color = Color(0, 0, 0, 1.0) # Full dark overlay
+		overlay.color = Color(0.02, 0.03, 0.05, 0.62)
 		overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		overlay.mouse_filter = Control.MOUSE_FILTER_STOP # Block clicks
 		card.add_child(overlay)
+		# Stay the last sibling so the overlay paints above the tile visual
+		# (which is added to the card *after* this function runs in some flows).
+		card.move_child(overlay, card.get_child_count() - 1)
 		
 		# 2. Full-width padded container. A CenterContainer shrinks to its
 		#    content, so long research names ("Lightweight Alloys") had no
@@ -759,25 +764,32 @@ func apply_locked_overlay(card: Control, item_name: String, message: String, is_
 		vbox.alignment = BoxContainer.ALIGNMENT_CENTER  # vertical centering
 		pad.add_child(vbox)
 
+		# Compact single-line name (clipped, not wrapped) — leaves room for
+		# the rarity tile to read through the translucent overlay.
 		var name_lbl = Label.new()
 		name_lbl.name = "ItemNameLabel"
 		name_lbl.text = item_name
 		name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		name_lbl.add_theme_font_size_override("font_size", 12) # Reduced for better fit
+		name_lbl.add_theme_font_size_override("font_size", 10)
 		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-
+		name_lbl.autowrap_mode = TextServer.AUTOWRAP_OFF
+		name_lbl.clip_text = true
+		name_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		name_lbl.add_theme_constant_override("outline_size", 3)
+		name_lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
 		var title_col = CATEGORY_COLORS.get(category, Color(0.1, 0.8, 1.0))
 		name_lbl.add_theme_color_override("font_color", title_col)
-
-		name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		vbox.add_child(name_lbl)
 
+		# Compact LOCKED badge so the underlying tile stays the dominant read.
 		var lock_lbl = Label.new()
 		lock_lbl.name = "LockHeading"
-		lock_lbl.text = "LOCKED"
+		lock_lbl.text = "[ LOCKED ]"
 		lock_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		lock_lbl.add_theme_font_size_override("font_size", 14) # Reduced from 18
-		lock_lbl.add_theme_color_override("font_color", Color.WHITE)
+		lock_lbl.add_theme_font_size_override("font_size", 11)
+		lock_lbl.add_theme_color_override("font_color", CATEGORY_COLORS["combat"].lightened(0.1))
+		lock_lbl.add_theme_constant_override("outline_size", 3)
+		lock_lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
 		lock_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		vbox.add_child(lock_lbl)
 

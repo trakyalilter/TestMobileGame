@@ -305,11 +305,14 @@ func complete_action():
 		
 		if randf() < chance:
 			var amount = randi_range(min_amt, max_amt)
-			
+
 			# Apply Yield Bonus from research
 			if GameState.research_manager:
 				amount += int(GameState.research_manager.get_efficiency_bonus("gathering_yield"))
-			
+				# v105: gathering_focus (Recursive Logistics) +5%/level multiplicative.
+				# Previously bonus_type "gathering_yield_mult" had no consumer.
+				amount = int(float(amount) * (1.0 + GameState.research_manager.get_efficiency_bonus("gathering_yield_mult")))
+
 			# Audit v6.0 P1-19: Apply skill yield multiplier
 			amount = int(float(amount) * get_yield_multiplier())
 				
@@ -370,10 +373,12 @@ func calculate_offline(delta: float):
 			
 			if randf() < chance:
 				var amount = randi_range(min_amt, max_amt)
-				
+
 				if GameState.research_manager:
 					amount += int(GameState.research_manager.get_efficiency_bonus("gathering_yield"))
-				
+					# v105: gathering_focus multiplicative bonus (see online path)
+					amount = int(float(amount) * (1.0 + GameState.research_manager.get_efficiency_bonus("gathering_yield_mult")))
+
 				# v62.0 Fix: Apply yield multiplier like online does
 				amount = int(float(amount) * yield_mult)
 					
@@ -390,7 +395,9 @@ func calculate_offline(delta: float):
 			
 			if GameState.research_manager:
 				amount += int(GameState.research_manager.get_efficiency_bonus("gathering_yield"))
-			
+				# v105: gathering_focus multiplicative bonus (see online path)
+				amount = int(float(amount) * (1.0 + GameState.research_manager.get_efficiency_bonus("gathering_yield_mult")))
+
 			# v62.0 Fix: Apply yield multiplier for fallback drops too
 			amount = int(float(amount) * yield_mult)
 				
@@ -449,7 +456,9 @@ func get_current_rate() -> Dictionary:
 		# Resource Yield Bonus
 		if GameState.research_manager:
 			avg_amt += GameState.research_manager.get_efficiency_bonus("gathering_yield")
-			
+			# v105: gathering_focus multiplicative bonus (see runtime drop path)
+			avg_amt *= (1.0 + GameState.research_manager.get_efficiency_bonus("gathering_yield_mult"))
+
 		rates[symbol] = avg_amt * chance * actions_per_min
 		
 	return rates

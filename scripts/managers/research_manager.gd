@@ -72,7 +72,7 @@ func _on_research_completed(active_tech_id):
 var tech_tree = {
 	"basic_engineering": {
 		"name": "Basic Engineering",
-		"description": "Unlocks:\n• Mineral Washing\n• Scrap Recycling\n• Lithium Refining",
+		"description": "Unlocks:\n• Mineral Washing\n• Lithium Refining",
 		"cost": 125,
 		"type": "technology",
 		"parent": null
@@ -100,7 +100,7 @@ var tech_tree = {
 	},
 	"fluid_dynamics": {
 		"name": "Fluid Dynamics",
-		"description": "Unlocks:\n• Water Pumping\n• Electrolysis\n• High-Flow Pumps (Operations)",
+		"description": "Unlocks:\n• Water Reclamation (Building)\n• Electrolysis (Crafting)\n• High-Flow Pumps (Operations)",
 		"cost": 125,
 		"type": "technology",
 		"parent": "applied_physics"
@@ -115,7 +115,7 @@ var tech_tree = {
 	"smelting": {
 		"name": "Efficient Smelting",
 		# v61.0 Fix: Bronze Alloy doesn't exist, corrected to Galvanized Steel
-		"description": "Unlocks:\n• Steel Foundry\n• Galvanized Steel\n• Shipwright I, Processing Tungsten, Salvage Heuristics (Ships)",
+		"description": "Unlocks:\n• Steel Foundry\n• Galvanized Steel\n• Shipwright I, Processing Tungsten (Ships)",
 		"cost": 3750,  # Audit v41.0: Reduced from 3000 to smooth progression
 		"cost_items": {"Res1": 10, "Circuit": 5},
 		"type": "technology",
@@ -123,7 +123,7 @@ var tech_tree = {
 	},
 	"shipwright_1": {
 		"name": "Shipwright I",
-		"description": "Unlocks:\n• Industrial Frigate \n• Titanium Plating\n• [Requires: Efficient Smelting (Engineering)]",
+		"description": "Unlocks:\n• Industrial Frigate (Hull)\n• [Requires: Efficient Smelting (Engineering)]",
 		"cost": 50000,
 		"cost_items": {"Steel":20,"Res1": 20,"Circuit": 10},
 		"type": "technology",
@@ -149,7 +149,7 @@ var tech_tree = {
 	},
 	"energy_shields": {
 		"name": "Energy Fields",
-		"description": "Unlocks:\n• Deflector Shield\n• Shield Harmonics (Ships)\n• [Requires: Applied Physics (Engineering)]",
+		"description": "Required for Shield Harmonics and Magnetic Funnels research.\n• [Requires: Applied Physics (Engineering)]",
 		"cost": 1250,
 		"type": "technology",
 		"parent": "eff_scanning_1",
@@ -157,7 +157,9 @@ var tech_tree = {
 	},
 	"field_theory": {
 		"name": "Field Theory",
-		"description": "Unlocks:\n• Stasis Web",
+		# v105: restored after wrong-flag deletion — actually gates the IonField
+		# defensive consumable via shipyard CONSUMABLE_REQ_TECH map.
+		"description": "Unlocks:\n• Ion Field (Defensive Consumable)",
 		"cost": 37500,
 		"cost_items": {"Res2": 15},
 		"type": "technology",
@@ -174,7 +176,7 @@ var tech_tree = {
 
 	"automation": {
 		"name": "Factory Automation",
-		"description": "Unlocks:\n• Advanced Circuit\n• Automated Assembly Line\n• Advanced Rocketry (Ships)",
+		"description": "Unlocks:\n• Advanced Circuit (Crafting)\n• Required for Advanced Rocketry research",
 		"cost": 12500,
 		"cost_items": {"Res2": 25, "Circuit": 20},
 		"type": "technology",
@@ -182,7 +184,7 @@ var tech_tree = {
 	},
 	"advanced_rocketry": {
 		"name": "Advanced Rocketry",
-		"description": "Unlocks:\n• Seeker Missile Mk.II\n• Seeker Missile (Ammo)\n• [Requires: Factory Automation (Engineering)]",
+		"description": "Unlocks:\n• Seeker Missile (Ammo Crafting)\n• [Requires: Factory Automation (Engineering)]",
 		"cost": 37500,
 		"cost_items": {"Steel": 100, "Circuit": 50},
 		"type": "technology",
@@ -214,7 +216,7 @@ var tech_tree = {
 	},
 	"warp_drive": {
 		"name": "Warp Drive Theory",
-		"description": "Unlocks:\n• Galaxy Map\n• Deep Space Navigation (Operations)",
+		"description": "Unlocks:\n• Meson Oscillator (Crafting)\n• Required for Deep Space Navigation research",
 		"cost": 12500,
 		"cost_items": {"NavData": 50, "Ti": 200, "Res3": 10},
 		"type": "technology",
@@ -230,7 +232,7 @@ var tech_tree = {
 		"name": "Asteroid Belt Authorization",
 		"description": "Unlocks:\n• Asteroid Belt zone\n• Zone 2 modules fabrication\n• [Requires: Shipwright I (Ships)]",
 		"cost": 30000,
-		"cost_items": {"Z1_Core": 1, "Fe": 200, "Cu": 100},
+		"cost_items": {"Z1_Core": 1, "Fe": 40, "Cu": 20},
 		"type": "technology",
 		"parent": null,
 		"req_tech": "shipwright_1"
@@ -244,7 +246,7 @@ var tech_tree = {
 		"name": "Mars Debris Clearance",
 		"description": "Unlocks:\n• Mars Debris Field\n• Zone 3 modules fabrication\n[Bulk refined materials — start automating]",
 		"cost": 75000,
-		"cost_items": {"Z2_Core": 1, "Steel": 200, "Ti": 120, "Circuit": 60},
+		"cost_items": {"Z2_Core": 1, "Steel": 200, "Circuit": 60},
 		"type": "technology",
 		"parent": "zone_2_access"
 	},
@@ -307,30 +309,30 @@ var tech_tree = {
 	# --- NEW EARLY GAME GATES ---
 	"kinetics_101": {
 		"name": "Kinetic Weapons Theory",
-		"description": "Unlocks:\n• Mass Driver\n• [Requires: Applied Physics (Engineering)]",
+		"description": "Unlocks:\n• Basic Slug Factory (Building)\n• Lunar Trophy (Crafting)\n• [Requires: Applied Physics (Engineering)]",
 		"cost": 50,
 		"type": "technology",
 		"parent": null,
 		"req_tech": "applied_physics"
 	},
+	"power_systems": {
+		"name": "Power Systems",
+		"description": "Unlocks:\n• Basic Cell Factory (Building)\n• Basic Battery (Crafting)\n• [Requires: Applied Physics (Engineering)]",
+		"cost": 300,
+		"type": "technology",
+		"parent": "kinetics_101",
+		"req_tech": "applied_physics"
+	},
 	"laser_optics": {
 		"name": "Laser Optics",
-		# v61.0 Fix: Module is named Pulse Laser, not Focused Laser
-		"description": "Unlocks:\n• Pulse Laser Mk.II",
+		# v105b: restored after wrong-flag deletion — actually gates Plasma Cell
+		# (CellT2 energy ammo) via shipyard ELEMENT_RESEARCH_REQS map.
+		"description": "Unlocks:\n• Plasma Cell (T2 Energy Ammo)",
 		"cost": 300,
 		"cost_items": {"Res1": 5},
 		"type": "technology",
 		"parent": "power_systems",
 		"req_tech": "fluid_dynamics"
-	},
-
-	"power_systems": {
-		"name": "Power Systems",
-		"description": "Unlocks:\n• Basic Battery Module\n• [Requires: Applied Physics (Engineering)]",
-		"cost": 300,
-		"type": "technology",
-		"parent": "kinetics_101",
-		"req_tech": "applied_physics"
 	},
 	"lightweight_alloys": {
 		"name": "Lightweight Alloys",
@@ -522,8 +524,10 @@ var tech_tree = {
 		"parent": "smelting"
 	},
 	"ballistics_optimization": {
-		"name": "Ballistics Optimization", 
-		"description": "Unlocks:\n• Depleted Uranium Rounds (T3)\n• Heavy Railgun",
+		"name": "Ballistics Optimization",
+		# v105b: was claiming Tungsten Sabot (gated by processing_tungsten — not here).
+		# Real consumers: SlugT3 + SlugT4 crafting recipes.
+		"description": "Unlocks:\n• Depleted Uranium Rounds (T3 Ammo)\n• Hyper-Velocity Slug (T4 Ammo)",
 		"cost": 1500,
 		"cost_items": {"Res2": 15},
 		"type": "technology",
@@ -531,7 +535,7 @@ var tech_tree = {
 	},
 	"energy_metrics": {
 		"name": "Energy Metrics",
-		"description": "Unlocks:\n• Hydrogen Reactor\n• Vaporizer Cells (T3)\n• Plasma Lance Mk.III\n• Orbital Gas Siphon (Auto)\n• Uranium Centrifuge (Auto)",
+		"description": "Unlocks:\n• Hydrogen Reactor (Building)\n• Vaporizer Cell (T3 Ammo)\n• Orbital Gas Siphon (Building)\n• Uranium Isotope Centrifuge (Building)",
 		"cost": 5000,
 		"cost_items": {"Res2": 20, "AdvCircuit": 10},
 		"type": "technology",
@@ -539,7 +543,7 @@ var tech_tree = {
 	},
 	"cryogenic_systems": {
 		"name": "Cryogenic Systems",
-		"description": "Unlocks:\n• Helium Coolant Cell\n• Cryo-Cooled Laser Mk.III",
+		"description": "Unlocks:\n• Helium Coolant Cell (Crafting)",
 		"cost": 25000,
 		"cost_items": {"He": 50, "Ti": 30},
 		"type": "technology",
@@ -614,7 +618,7 @@ var tech_tree = {
 	# --- END-GAME SHIPS (NEW) ---
 	"capital_ship_engineering": {
 		"name": "Capital Ship Doctrine",
-		"description": "Unlocks:\n• Battlecruiser Class \n• Coil Cannon\n• Antimatter Engine",
+		"description": "Required for Capital Ship Armament research.\n[Battlecruiser hull and capital modules unlock via Zone Access tech]",
 		"cost": 500000,
 		"cost_items": {"VoidArtifact": 20,"NavData": 75, "Res3":75}, # Audit v20.0: Added ColonyDataCore (Overseer Drop)
 		"type": "technology",
@@ -622,7 +626,7 @@ var tech_tree = {
 	},
 	"capital_ship_armament": {
 		"name": "Capital Ship Armament",
-		"description": "Unlocks:\n• Heavy Torpedo Launcher\n• Photon Torpedo (Ammo)",
+		"description": "Unlocks:\n• Photon Torpedo (T4 Ammo Crafting)\n• Munitions Factory tier (Building)",
 		"cost": 1000000,
 		"cost_items": {"VoidArtifact": 10, "Superalloy": 50, "AdvCircuit": 50},
 		"type": "technology",
@@ -630,17 +634,13 @@ var tech_tree = {
 	},
 	"quantum_dynamics": {
 		"name": "Quantum Dynamics",
-		"description": "Unlocks:\n• Dreadnought Class ",
+		# v105: restored after wrong-flag deletion — actually gates Fusion Core
+		# and Antimatter Generator (Infrastructure) plus the Zero-Point Module
+		# defensive consumable via shipyard CONSUMABLE_REQ_TECH map. Original
+		# "Dreadnought Class" claim was phantom (Dreadnought is zone-gated).
+		"description": "Unlocks:\n• Fusion Core (Building)\n• Antimatter Generator (Building)\n• Zero-Point Module (Defensive Consumable)",
 		"cost": 5000000,
-		"cost_items": {"QuantumCore": 20, "VoidArtifact": 50, "ColonyDataCore": 50,"RadIsotope": 1000,"Res3": 500,"ExoticIsotope": 20},
-		"type": "technology",
-		"parent": "capital_ship_engineering"
-	},
-	"broadside_tactics": {
-		"name": "Broadside Tactics",
-		"description": "Unlocks:\n• Broadside Integrated Array (Burst Module)",
-		"cost": 250000,
-		"cost_items": {"Res3": 25, "AdvCircuit": 50, "TurretCore": 1},
+		"cost_items": {"QuantumCore": 20, "VoidArtifact": 50, "ColonyDataCore": 50, "RadIsotope": 1000, "Res3": 500, "ExoticIsotope": 20},
 		"type": "technology",
 		"parent": "capital_ship_engineering"
 	},
@@ -656,7 +656,7 @@ var tech_tree = {
 	},
 	"radiation_shielding": {
 		"name": "Radiation Shielding Theory",
-		"description": "Unlocks:\n• Sector Gamma (Radioactive)\n• High-Energy Gamma Optics (Ships)",
+		"description": "Unlocks:\n• Sector Gamma (Radioactive)\n• Required for Exotic Matter Analysis research",
 		"cost": 250000,
 		"cost_items": {"Co": 50, "Al": 100, "Superalloy": 25, "AdvCircuit": 15},
 		"type": "technology",
@@ -741,7 +741,11 @@ var tech_tree = {
 	},
 	"industrial_catalysis": {
 		"name": "Industrial Catalysis",
-		"description": "Bonus:\n• +25% All Production Speed",
+		# v105b: was advertising +25% "All" but code paid 0.15 and only into
+		# processing_speed. Aligned: 0.25 in code (see get_efficiency_bonus),
+		# and description scoped to Crafting since gathering/research are
+		# untouched. Also gates 4 catalyst recipes/buildings.
+		"description": "Bonus:\n• +25% Crafting Speed\nUnlocks:\n• Platinum Catalyst Matrix + Silver Catalyst (Crafting)\n• Platinum / Silver Catalyst Bays (Buildings)",
 		"cost": 1000000,
 		"cost_items": {"Pt": 200, "Si": 200, "AdvCircuit": 20},
 		"type": "technology",
@@ -781,18 +785,9 @@ var tech_tree = {
 		"parent": null,
 		"req_tech": "deep_space_nav"
 	},
-	"gamma_optics": {
-		"name": "High-Energy Gamma Optics",
-		"description": "Unlocks:\n• Gamma Pulse Battery (Ship Module)\n• Advanced Laser Tech\n• [Requires: Radiation Shielding Theory (Operations)]",
-		"cost": 75000,
-		"cost_items": {"RadIsotope": 50, "Pt": 100},
-		"type": "technology",
-		"parent": "advanced_rocketry",
-		"req_tech": "radiation_shielding"
-	},
 	"void_physics": {
 		"name": "Extreme Void Physics",
-		"description": "Unlocks:\n• Void Phase Engine (Ship Module)\n• Void Shielding",
+		"description": "Required for Void Navigation research.",
 		"cost": 5000000,
 		"cost_items": {"VoidCrystal": 20, "QuantumCore": 10, "AntimatterParticle": 5},
 		"type": "technology",
@@ -810,18 +805,23 @@ var tech_tree = {
 	# ENDGAME SINKS - Iteration 7
 	"void_weaponry_1": {
 		"name": "Void Weaponry Optimization",
-		"description": "Bonus:\n• +20% Total Ship Damage\n• [Requires: Void Navigation (Operations)]",
-		"cost": 100000000,
-		"cost_items": {"VoidEssence": 50, "ChronoCore": 20, "PrimordialShard": 5, "BiohazardSample": 10, "BioWeaponCoating": 10},
+		"description": "Bonus:\n• +5% Total Ship Damage\n• [Requires: Void Navigation (Operations)]",
+		# v105c: rebalanced 100M → 25M and materials halved to match 20% → 5%
+		# bonus nerf. Still above ENDGAME_RESEARCH_COST_GATE so stage-3 scaling
+		# (×20 × ×2 MATERIAL_MULTIPLIER = ×40 effective) still applies.
+		"cost": 25000000,
+		"cost_items": {"VoidEssence": 25, "ChronoCore": 10, "PrimordialShard": 3, "BiohazardSample": 5, "BioWeaponCoating": 5},
 		"type": "technology",
 		"parent": null,
 		"req_tech": "void_navigation"
 	},
 	"void_shielding_1": {
 		"name": "Void Shielding Optimization",
-		"description": "Bonus:\n• +20% Total Ship Shields\n• [Requires: Void Navigation (Operations)]",
-		"cost": 100000000,
-		"cost_items": {"OmegaPlating": 50, "VoidEssence": 20, "PrimordialShard": 5, "Os": 25, "BiohazardSample": 10, "RegenPlating": 8},
+		"description": "Bonus:\n• +5% Total Ship Shields\n• [Requires: Void Navigation (Operations)]",
+		# v105c: rebalanced 100M → 25M and materials halved to match 20% → 5%
+		# bonus nerf. Stage-3 scaling still applies.
+		"cost": 25000000,
+		"cost_items": {"OmegaPlating": 25, "VoidEssence": 10, "PrimordialShard": 3, "Os": 12, "BiohazardSample": 5, "RegenPlating": 4},
 		"type": "technology",
 		"parent": null,
 		"req_tech": "void_navigation"
@@ -835,22 +835,6 @@ var tech_tree = {
 		"parent": "colony_automation"
 	},
 	# --- EFFICIENCY & STAT EXPANSION (Phase 7) ---
-	"salvage_heuristics": {
-		"name": "Salvage Heuristics",
-		"description": "Bonus:\n• +2 rolls in Scrap Recycling\n• [Requires: Efficient Smelting (Engineering)]",
-		"cost": 1000,
-		"cost_items": {"Res1": 10},
-		"type": "technology",
-		"parent": "smelting"
-	},
-	"scavenger_protocol": {
-		"name": "Scavenger Protocol",
-		"description": "Bonus:\n• +15% DroneCore drop chance",
-		"cost": 2500,
-		"cost_items": {"Res2": 5},
-		"type": "technology",
-		"parent": "salvage_heuristics"
-	},
 	"combat_heuristics": {
 		"name": "Combat Heuristics",
 		"description": "Bonus:\n• +20% Combat XP gain",
@@ -1200,56 +1184,55 @@ func get_efficiency_multiplier() -> float:
 	return 1.0
 
 func get_efficiency_bonus(bonus_type: String) -> float:
+	# v105: Refactored to accumulate into a single bonus instead of early-returning
+	# from each match arm. Old structure made the repeatable-tech loop at the bottom
+	# unreachable for any bonus_type handled in the match — silently killing the
+	# Recursive Optimization / Calibration / Logistics endgame sinks. Now the
+	# repeatable bonus always applies.
+	var bonus := 0.0
+
 	match bonus_type:
-		"scrap_rolls":
-			return 2.0 if "salvage_heuristics" in unlocked_techs else 0.0
-		"drone_core_chance":
-			return 0.15 if "scavenger_protocol" in unlocked_techs else 0.0
 		"combat_xp":
-			return 0.20 if "combat_heuristics" in unlocked_techs else 0.0
+			if "combat_heuristics" in unlocked_techs: bonus += 0.20
 		"shield_regen":
-			return 0.20 if "shield_harmonics" in unlocked_techs else 0.0
+			if "shield_harmonics" in unlocked_techs: bonus += 0.20
 		"max_hp_mult":
-			return 0.15 if "hull_hardening" in unlocked_techs else 0.0
+			if "hull_hardening" in unlocked_techs: bonus += 0.15
 		"attack_speed":
-			return 0.10 if "core_overclocking" in unlocked_techs else 0.0
+			if "core_overclocking" in unlocked_techs: bonus += 0.10
 		"gathering_yield":
-			var yield_bonus = 0.0
-			if "deep_core_optics" in unlocked_techs: yield_bonus += 1.0
-			if "colony_automation" in unlocked_techs: yield_bonus += 5.0 # Buffed from 2.0
-			return yield_bonus
+			if "deep_core_optics" in unlocked_techs: bonus += 1.0
+			if "colony_automation" in unlocked_techs: bonus += 5.0
 		"processing_speed":
-			var p_speed = 0.0
-			if "nano_fabrication" in unlocked_techs: p_speed += 0.15
-			if "perfect_automation" in unlocked_techs: p_speed += 0.30
-			return p_speed
+			if "nano_fabrication" in unlocked_techs: bonus += 0.15
+			if "perfect_automation" in unlocked_techs: bonus += 0.30
+			# v105/v105b: industrial_catalysis was previously an unreachable
+			# hub-style bonus_type with no consumer. Now wired into processing.
+			# Bumped 0.15 → 0.25 to match player-facing description.
+			if "industrial_catalysis" in unlocked_techs: bonus += 0.25
 		"research_speed":
-			var r_speed = 0.0
-			if "perfect_automation" in unlocked_techs: r_speed += 0.30
-			return r_speed
-	# Audit v8.0 P1-25: Hub Node Passive Bonuses
+			if "perfect_automation" in unlocked_techs: bonus += 0.30
+
+	# Hub Node Passive Bonuses (Audit v8.0 P1-25)
 	if bonus_type == "applied_physics" and is_tech_unlocked("applied_physics"):
-		return 0.10 # +10% Energy Capacity
+		bonus += 0.10 # +10% Energy Capacity
 	if bonus_type == "materials_science" and is_tech_unlocked("materials_science"):
-		return 0.10 # +10% Max Hull HP
+		bonus += 0.10 # +10% Max Hull HP
 	if bonus_type == "industrial_logistics" and is_tech_unlocked("industrial_logistics"):
-		return 0.10 # +10% Global Production Speed
-		
-	# Audit v64.0 Fix: Dead Techs Wired Up
-	if bonus_type == "industrial_catalysis" and is_tech_unlocked("industrial_catalysis"):
-		return 0.15 # +15% Global Production Speed
+		bonus += 0.10 # +10% Global Production Speed
+
 	if bonus_type == "xeno_engineering" and is_tech_unlocked("xeno_engineering"):
-		return 0.25 # +25% Rare Loot Chance (Used by Combat/Gathering)
-		
-	# Audit v10.0: Infinite Sinks
-	var repeatable_bonus = 0.0
+		bonus += 0.25 # +25% Rare Loot Chance (Used by Combat/Gathering)
+
+	# Recursive (infinite endgame) bonuses — always summed, for every bonus_type.
+	# bonus_value × levels, e.g. production_focus adds 0.05/level to processing_speed.
 	for rid in repeatable_techs:
 		var lvl = int(repeatable_techs[rid])
 		var r_data = repeatable_tech_db.get(rid)
 		if r_data and r_data["bonus_type"] == bonus_type:
-			repeatable_bonus += lvl * r_data["bonus_value"]
-			
-	return repeatable_bonus
+			bonus += lvl * r_data["bonus_value"]
+
+	return bonus
 
 func get_research_speed_multiplier() -> float:
 	# Audit v8.0 P2-20: +1% Research Speed per Level
@@ -1283,7 +1266,13 @@ func get_save_data_manager() -> Dictionary:
 
 func load_save_data_manager(data: Dictionary):
 	load_save_data(data)
-	unlocked_techs = data.get("unlocked_techs", [])
+	# Filter out tech IDs that no longer exist in tech_tree (handles removed nodes
+	# in old saves — e.g. salvage_heuristics / scavenger_protocol cut in cleanup).
+	var saved_techs = data.get("unlocked_techs", [])
+	unlocked_techs = []
+	for tid in saved_techs:
+		if tid in tech_tree:
+			unlocked_techs.append(tid)
 	repeatable_techs = data.get("repeatable_techs", {})
 
 # Action Logic (Scanning)
