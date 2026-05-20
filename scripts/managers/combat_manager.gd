@@ -2202,6 +2202,12 @@ func get_save_data_manager() -> Dictionary:
 	data["current_enemy_id"] = current_enemy["id"] if current_enemy else null
 	data["player_shield"] = player_shield
 	data["player_heat"] = player_heat
+	# Persist heat ceiling + vent so test-tool neutralization (Sys Config →
+	# COOL SHIP / FIT SHIP) survives reload. Without these, every restart
+	# reverts max_heat/vent_rate to file defaults (100 / 8) and a debug-fit
+	# player overheats instantly with no recourse short of opening Sys Config.
+	data["player_max_heat"] = player_max_heat
+	data["player_vent_rate"] = player_vent_rate
 	data["nanite_hot_timer"] = nanite_hot_timer
 	data["coolant_flush_timer"] = coolant_flush_timer
 	data["session_loot"] = session_loot
@@ -2219,6 +2225,10 @@ func load_save_data_manager(data: Dictionary):
 	in_combat = data.get("in_combat", false)
 	player_shield = data.get("player_shield", 0.0)
 	player_heat = data.get("player_heat", 0.0)
+	# Defaults match the file declaration so old saves load unchanged; saves
+	# from a debug-fit session restore the neutralized ceiling + vent.
+	player_max_heat = data.get("player_max_heat", 100.0)
+	player_vent_rate = data.get("player_vent_rate", 8.0)
 	nanite_hot_timer = data.get("nanite_hot_timer", 0.0)
 	coolant_flush_timer = data.get("coolant_flush_timer", 0.0)
 	session_loot = data.get("session_loot", {})
