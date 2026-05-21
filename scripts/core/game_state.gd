@@ -197,7 +197,7 @@ func set_active_manager(manager):
 
 func save_game():
 	var save_data = {
-		"version": 1, # Audit v1.0: Added versioning
+		"version": 2, # v2: P1 per-action/per-recipe mastery added to gathering/processing
 		"resources": resources.get_save_data(),
 		"gathering": gathering_manager.get_save_data_manager(),
 		"processing": processing_manager.get_save_data_manager(),
@@ -246,7 +246,17 @@ func save_game():
 func migrate_save(data: Dictionary, from_version: int) -> Dictionary:
 	print("Migrating save from v%d..." % from_version)
 	# v0 -> v1 (Initial Versioning)
-	data["version"] = 1
+	if from_version < 1:
+		pass  # nothing to add for legacy unversioned saves
+	# v1 -> v2 (P1 Mastery — per-action / per-recipe XP dicts)
+	if from_version < 2:
+		if data.has("gathering") and data["gathering"] is Dictionary:
+			if not data["gathering"].has("mastery"):
+				data["gathering"]["mastery"] = {}
+		if data.has("processing") and data["processing"] is Dictionary:
+			if not data["processing"].has("mastery"):
+				data["processing"]["mastery"] = {}
+	data["version"] = 2
 	return data
 
 func load_game():
@@ -263,7 +273,7 @@ func load_game():
 		
 		# Version Check & Migration
 		var ver = data.get("version", 0)
-		if ver < 1:
+		if ver < 2:
 			data = migrate_save(data, ver)
 			
 		resources.load_save_data(data.get("resources", {}))

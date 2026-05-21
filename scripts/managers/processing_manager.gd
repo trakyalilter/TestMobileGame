@@ -7,6 +7,18 @@ var action_progress: float = 0.0
 
 var events: Array = []
 
+# P1 Mastery — per-recipe long-tail layered learning. Mirror of gathering's
+# mastery: milestones at 10/25/50/75/100, −5% duration each (≤25% cap),
+# alt-recipe unlocked at 50, gold-tier cosmetic at 100. Persists across
+# warps; cleared only on hard reset.
+const MASTERY_XP_PER_COMPLETION := 1.0
+const MASTERY_MILESTONES: Array[int] = [10, 25, 50, 75, 100]
+const MASTERY_DURATION_BONUS_PER_MILESTONE := 0.05
+const MASTERY_DURATION_BONUS_MAX := 0.25
+const MASTERY_LEVEL_CAP := 100
+
+var mastery: Dictionary = {}  # {recipe_id: xp_total_float}
+
 var recipes: Dictionary = {
 	"sift_dirt_dry": {
 		"name": "Dry Sifting",
@@ -1150,6 +1162,74 @@ var recipes: Dictionary = {
 func _init():
 	super._init("Engineering")
 
+# --- P1 Mastery helpers (mirror of gathering_manager — see comments there) ---
+func _mastery_xp_needed_for_level(target: int) -> float:
+	if target <= 0 or target > MASTERY_LEVEL_CAP:
+		return 0.0
+	return float(25 + target * 5)
+
+func gain_mastery_xp(recipe_id: String, amount: float = MASTERY_XP_PER_COMPLETION) -> void:
+	if recipe_id == "" or amount <= 0.0:
+		return
+	var prev_level: int = get_mastery_level(recipe_id)
+	mastery[recipe_id] = float(mastery.get(recipe_id, 0.0)) + amount
+	var new_level: int = get_mastery_level(recipe_id)
+	if new_level > prev_level:
+		_notify_mastery_milestones(recipe_id, prev_level, new_level)
+
+func get_mastery_xp(recipe_id: String) -> float:
+	return float(mastery.get(recipe_id, 0.0))
+
+func get_mastery_level(recipe_id: String) -> int:
+	var xp: float = get_mastery_xp(recipe_id)
+	var level: int = 0
+	var threshold: float = 0.0
+	while level < MASTERY_LEVEL_CAP:
+		var needed: float = _mastery_xp_needed_for_level(level + 1)
+		if xp < threshold + needed:
+			break
+		threshold += needed
+		level += 1
+	return level
+
+func get_mastery_progress(recipe_id: String) -> Dictionary:
+	var xp: float = get_mastery_xp(recipe_id)
+	var level: int = get_mastery_level(recipe_id)
+	if level >= MASTERY_LEVEL_CAP:
+		return {"in_level": xp, "needed": 0.0, "at_cap": true}
+	var threshold: float = 0.0
+	for n in range(1, level + 1):
+		threshold += _mastery_xp_needed_for_level(n)
+	var next_req: float = _mastery_xp_needed_for_level(level + 1)
+	return {"in_level": xp - threshold, "needed": next_req, "at_cap": false}
+
+func get_mastery_duration_mult(recipe_id: String) -> float:
+	var level: int = get_mastery_level(recipe_id)
+	var milestones_passed: int = 0
+	for m in MASTERY_MILESTONES:
+		if level >= m:
+			milestones_passed += 1
+	var reduction: float = min(MASTERY_DURATION_BONUS_MAX,
+		float(milestones_passed) * MASTERY_DURATION_BONUS_PER_MILESTONE)
+	return 1.0 - reduction
+
+func is_mastery_alt_unlocked(recipe_id: String) -> bool:
+	return get_mastery_level(recipe_id) >= 50
+
+func _notify_mastery_milestones(recipe_id: String, prev_level: int, new_level: int) -> void:
+	var recipe_name: String = recipes.get(recipe_id, {}).get("name", recipe_id)
+	for m in MASTERY_MILESTONES:
+		if prev_level < m and new_level >= m:
+			var msg: String = ""
+			if m == 50:
+				msg = "%s — Mastery 50 ★ Alt-Recipe Unlocked" % recipe_name
+			elif m == 100:
+				msg = "%s — Mastery 100 ★ Gold Tier ★" % recipe_name
+			else:
+				var idx: int = MASTERY_MILESTONES.find(m) + 1
+				msg = "%s — Mastery %d · −%d%% Duration" % [recipe_name, m, idx * 5]
+			UITheme.show_notification(msg, Color(1.0, 0.84, 0.45))
+
 func get_recipe_speed_multiplier(recipe_id: String) -> float:
 	var multiplier = 1.0
 	
@@ -1211,6 +1291,12 @@ func get_recipe_speed_multiplier(recipe_id: String) -> float:
 	if GameState.warp_manager:
 		multiplier *= GameState.warp_manager.get_tree_processing_speed_bonus()
 
+	# P1 Mastery: per-recipe duration reduction folded into the speed
+	# multiplier so existing "effective_duration = base / multiplier" math holds.
+	var dur_mult: float = get_mastery_duration_mult(recipe_id)
+	if dur_mult > 0.0:
+		multiplier /= dur_mult
+
 	return multiplier
 
 func start_action(action_id: String):
@@ -1248,6 +1334,10 @@ func stop_action():
 func reset(decay_factor: float = 1.0) -> void:
 	super.reset(decay_factor)
 	stop_action()
+	# P1 Mastery is true meta-progression — persists across warp (decay_factor<1.0)
+	# and clears only on hard reset (decay_factor==1.0).
+	if decay_factor >= 1.0:
+		mastery = {}
 	print("Processing Reset.")
 
 func process_tick(delta_time: float):
@@ -1338,7 +1428,10 @@ func complete_process():
 		
 	add_xp(xp_reward)
 	events.append(["xp", "+%d XP" % xp_reward, current_recipe_id])
-	
+
+	# P1 Mastery: per-recipe XP (one tick per completion).
+	gain_mastery_xp(current_recipe_id)
+
 	# v61.0 Fix: Grant credits_output if present
 	if "credits_output" in current_recipe:
 		var cr_out = current_recipe["credits_output"]
@@ -1409,7 +1502,11 @@ func calculate_offline(delta: float):
 		total_xp = int(total_xp * GameState.bounty_manager.get_trophy_buff("processing_xp"))
 		
 	add_xp(total_xp)
-	
+
+	# P1 Mastery: batch-grant offline mastery XP (one per completion).
+	# Single call avoids spamming N notifications during a long catch-up.
+	gain_mastery_xp(current_recipe_id, float(actions) * MASTERY_XP_PER_COMPLETION)
+
 	# Consume
 	for item in input_reqs:
 		var qty = input_reqs[item]
@@ -1480,14 +1577,19 @@ func get_save_data_manager() -> Dictionary:
 	var data = get_save_data()
 	data["is_active"] = is_active
 	data["current_recipe_id"] = current_recipe_id
+	data["mastery"] = mastery  # P1
 	return data
 
 func load_save_data_manager(data: Dictionary):
 	load_save_data(data)
 	if data.is_empty(): return
-	
+
 	is_active = data.get("is_active", false)
 	current_recipe_id = data.get("current_recipe_id", "")
+	# P1 Mastery — defaults to empty so v1 saves load unchanged.
+	var saved_mastery = data.get("mastery", {})
+	if saved_mastery is Dictionary:
+		mastery = saved_mastery.duplicate()
 	
 	if is_active and not current_recipe_id.is_empty():
 		if current_recipe_id in recipes:

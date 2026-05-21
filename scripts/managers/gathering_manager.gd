@@ -12,6 +12,19 @@ var action_duration: float = 4.0
 
 var events: Array = [] # Buffer for UI
 
+# P1 Mastery — per-action long-tail layered learning. Each gather action
+# accumulates its own XP; milestones at 10/25/50/75/100 grant cumulative
+# duration reductions (capped at 25%), an alt-recipe unlock flag at 50,
+# and a Hearthstone-style gold-card cosmetic at 100. Persists across warps
+# (true meta-progression); cleared only on hard reset.
+const MASTERY_XP_PER_COMPLETION := 1.0
+const MASTERY_MILESTONES: Array[int] = [10, 25, 50, 75, 100]
+const MASTERY_DURATION_BONUS_PER_MILESTONE := 0.05
+const MASTERY_DURATION_BONUS_MAX := 0.25
+const MASTERY_LEVEL_CAP := 100
+
+var mastery: Dictionary = {}  # {action_id: xp_total_float}
+
 var actions: Dictionary = {
 	"gather_dirt": {
 		"name": "Excavate Soil",
@@ -192,6 +205,80 @@ var actions: Dictionary = {
 func _init():
 	super._init("Planetary Operations")
 
+# --- P1 Mastery helpers ---
+# XP curve: 25 + (next_level × 5) per level. Total to 100 ≈ 27,000 XP,
+# i.e. multi-day per maxed action — matches the Melvor-like prestige arc.
+func _mastery_xp_needed_for_level(target: int) -> float:
+	# Returns XP required to *reach* level `target` from level (target-1).
+	if target <= 0 or target > MASTERY_LEVEL_CAP:
+		return 0.0
+	return float(25 + target * 5)
+
+func gain_mastery_xp(action_id: String, amount: float = MASTERY_XP_PER_COMPLETION) -> void:
+	if action_id == "" or amount <= 0.0:
+		return
+	var prev_level: int = get_mastery_level(action_id)
+	mastery[action_id] = float(mastery.get(action_id, 0.0)) + amount
+	var new_level: int = get_mastery_level(action_id)
+	if new_level > prev_level:
+		_notify_mastery_milestones(action_id, prev_level, new_level)
+
+func get_mastery_xp(action_id: String) -> float:
+	return float(mastery.get(action_id, 0.0))
+
+func get_mastery_level(action_id: String) -> int:
+	var xp: float = get_mastery_xp(action_id)
+	var level: int = 0
+	var threshold: float = 0.0
+	while level < MASTERY_LEVEL_CAP:
+		var needed: float = _mastery_xp_needed_for_level(level + 1)
+		if xp < threshold + needed:
+			break
+		threshold += needed
+		level += 1
+	return level
+
+# Returns {in_level: float, needed: float, at_cap: bool} for UI progress bars.
+func get_mastery_progress(action_id: String) -> Dictionary:
+	var xp: float = get_mastery_xp(action_id)
+	var level: int = get_mastery_level(action_id)
+	if level >= MASTERY_LEVEL_CAP:
+		return {"in_level": xp, "needed": 0.0, "at_cap": true}
+	var threshold: float = 0.0
+	for n in range(1, level + 1):
+		threshold += _mastery_xp_needed_for_level(n)
+	var next_req: float = _mastery_xp_needed_for_level(level + 1)
+	return {"in_level": xp - threshold, "needed": next_req, "at_cap": false}
+
+# Returns the duration multiplier (1.0 = full duration, 0.75 = 25% faster).
+# Used by get_action_speed_multiplier to turn it into a speed boost.
+func get_mastery_duration_mult(action_id: String) -> float:
+	var level: int = get_mastery_level(action_id)
+	var milestones_passed: int = 0
+	for m in MASTERY_MILESTONES:
+		if level >= m:
+			milestones_passed += 1
+	var reduction: float = min(MASTERY_DURATION_BONUS_MAX,
+		float(milestones_passed) * MASTERY_DURATION_BONUS_PER_MILESTONE)
+	return 1.0 - reduction
+
+func is_mastery_alt_unlocked(action_id: String) -> bool:
+	return get_mastery_level(action_id) >= 50
+
+func _notify_mastery_milestones(action_id: String, prev_level: int, new_level: int) -> void:
+	var action_name: String = actions.get(action_id, {}).get("name", action_id)
+	for m in MASTERY_MILESTONES:
+		if prev_level < m and new_level >= m:
+			var msg: String = ""
+			if m == 50:
+				msg = "%s — Mastery 50 ★ Alt-Recipe Unlocked" % action_name
+			elif m == 100:
+				msg = "%s — Mastery 100 ★ Gold Tier ★" % action_name
+			else:
+				var idx: int = MASTERY_MILESTONES.find(m) + 1
+				msg = "%s — Mastery %d · −%d%% Duration" % [action_name, m, idx * 5]
+			UITheme.show_notification(msg, Color(1.0, 0.84, 0.45))
+
 # Audit v6.0 P1-19: Planetary Operations skill bonus - +1% yield per level
 func get_yield_multiplier() -> float:
 	var mult = 1.0 + (get_level() * 0.01)
@@ -244,7 +331,14 @@ func get_action_speed_multiplier(action_id: String) -> float:
 	# Audit v2.0 P1-9: Apply prestige gathering multiplier globally so UI can see it
 	if GameState.warp_manager:
 		multiplier *= GameState.warp_manager.get_gathering_multiplier()
-	
+
+	# P1 Mastery: per-action duration reduction. Returns 1.0 → 0.75 (max).
+	# Inverting to a speed factor (1/dur) keeps the existing "effective_duration
+	# = base / multiplier" math intact.
+	var dur_mult: float = get_mastery_duration_mult(action_id)
+	if dur_mult > 0.0:
+		multiplier /= dur_mult
+
 	return multiplier
 
 func start_action(action_id: String):
@@ -280,6 +374,10 @@ func stop_action():
 func reset(decay_factor: float = 1.0) -> void:
 	super.reset(decay_factor)
 	stop_action()
+	# P1 Mastery is true meta-progression — persists across warp (decay_factor<1.0)
+	# and clears only on hard reset (decay_factor==1.0).
+	if decay_factor >= 1.0:
+		mastery = {}
 	print("Gathering Reset.")
 
 # Called by Engine
@@ -341,6 +439,9 @@ func complete_action():
 	add_xp(xp_reward)
 	events.append(["xp", "+%d XP" % xp_reward, current_action_id])
 
+	# P1 Mastery: per-action XP (one tick per completion).
+	gain_mastery_xp(current_action_id)
+
 func calculate_offline(delta: float):
 	if not is_active or current_action.is_empty():
 		return null
@@ -363,7 +464,11 @@ func calculate_offline(delta: float):
 		total_xp = int(total_xp * GameState.bounty_manager.get_trophy_buff("gathering_xp"))
 		
 	add_xp(total_xp)
-	
+
+	# P1 Mastery: batch-grant offline mastery XP (one per completion).
+	# Single call avoids spawning N notifications during a long catch-up.
+	gain_mastery_xp(current_action_id, float(num_actions) * MASTERY_XP_PER_COMPLETION)
+
 	# v62.0 Fix: Get yield multiplier once for offline (same as online)
 	var yield_mult = get_yield_multiplier()
 	
@@ -423,14 +528,19 @@ func get_save_data_manager() -> Dictionary:
 	var data = get_save_data() # super
 	data["is_active"] = is_active
 	data["current_action_id"] = current_action_id
+	data["mastery"] = mastery  # P1
 	return data
 
 func load_save_data_manager(data: Dictionary):
 	load_save_data(data) # super
 	if data.is_empty(): return
-	
+
 	is_active = data.get("is_active", false)
 	current_action_id = data.get("current_action_id", "")
+	# P1 Mastery — defaults to empty so v1 saves load unchanged.
+	var saved_mastery = data.get("mastery", {})
+	if saved_mastery is Dictionary:
+		mastery = saved_mastery.duplicate()
 	
 	if is_active and not current_action_id.is_empty():
 		if current_action_id in actions:
