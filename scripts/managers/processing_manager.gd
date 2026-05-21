@@ -1216,6 +1216,16 @@ func get_mastery_duration_mult(recipe_id: String) -> float:
 func is_mastery_alt_unlocked(recipe_id: String) -> bool:
 	return get_mastery_level(recipe_id) >= 50
 
+# P1.3 Alt-recipe framework — returns the configured alt-recipe id for this
+# recipe IF mastery is unlocked AND the recipe has an `alt_recipe_id` field.
+# Content (per-recipe alt-recipes) is backfilled separately; until a recipe
+# defines `alt_recipe_id`, this returns "" and the toggle never surfaces.
+# The plumbing being live means content additions are pure data, no code.
+func get_alt_recipe_id_for(recipe_id: String) -> String:
+	if not is_mastery_alt_unlocked(recipe_id):
+		return ""
+	return recipes.get(recipe_id, {}).get("alt_recipe_id", "")
+
 func _notify_mastery_milestones(recipe_id: String, prev_level: int, new_level: int) -> void:
 	var recipe_name: String = recipes.get(recipe_id, {}).get("name", recipe_id)
 	for m in MASTERY_MILESTONES:
