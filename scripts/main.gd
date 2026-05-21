@@ -588,10 +588,13 @@ func _update_navigation_hints():
 
 	elif "m007b" in mm.active_missions:
 		# Designer: pulse the empty engine slot so the just-crafted Thruster
-		# closes its arc with a visible "equip me" target.
+		# closes its arc with a visible "equip me" target. Also dim non-engine
+		# modules in the Armory so the Thruster pops visually.
 		if current_page_name != "designer": target_to_pulse = designer_btn
 		else:
 			var dp = pages["designer"]
+			if dp.has_method("set_equip_focus_filter"):
+				dp.set_equip_focus_filter("engine")
 			if dp.has_method("get_slot_widget"):
 				dp.focus_slot("engine")
 				target_to_pulse = dp.get_slot_widget("engine")
@@ -666,10 +669,12 @@ func _update_navigation_hints():
 			target_to_pulse = page.get_module_widget("z1_kinetic")
 
 	elif "m015b" in mm.active_missions:
-		# Designer: pulse the empty weapon slot to close the weapon arc.
+		# Designer: pulse the empty weapon slot + dim non-weapon Armory cards.
 		if current_page_name != "designer": target_to_pulse = designer_btn
 		else:
 			var dp = pages["designer"]
+			if dp.has_method("set_equip_focus_filter"):
+				dp.set_equip_focus_filter("weapon")
 			if dp.has_method("get_slot_widget"):
 				dp.focus_slot("weapon")
 				target_to_pulse = dp.get_slot_widget("weapon")
@@ -747,10 +752,12 @@ func _update_navigation_hints():
 			target_to_pulse = page.get_module_widget("z1_battery")
 
 	elif "m022b" in mm.active_missions:
-		# Designer: pulse the empty battery slot to close the energy arc.
+		# Designer: pulse the empty battery slot + dim non-battery Armory cards.
 		if current_page_name != "designer": target_to_pulse = designer_btn
 		else:
 			var dp = pages["designer"]
+			if dp.has_method("set_equip_focus_filter"):
+				dp.set_equip_focus_filter("battery")
 			if dp.has_method("get_slot_widget"):
 				dp.focus_slot("battery")
 				target_to_pulse = dp.get_slot_widget("battery")
@@ -773,10 +780,12 @@ func _update_navigation_hints():
 			target_to_pulse = page.get_module_widget("z1_shield")
 
 	elif "m024c" in mm.active_missions:
-		# Designer: pulse the empty shield slot to close the defense arc.
+		# Designer: pulse the empty shield slot + dim non-shield Armory cards.
 		if current_page_name != "designer": target_to_pulse = designer_btn
 		else:
 			var dp = pages["designer"]
+			if dp.has_method("set_equip_focus_filter"):
+				dp.set_equip_focus_filter("shield")
 			if dp.has_method("get_slot_widget"):
 				dp.focus_slot("shield")
 				target_to_pulse = dp.get_slot_widget("shield")
@@ -1063,6 +1072,20 @@ func _update_navigation_hints():
 			var page = pages["combat"]
 			page.focus_zone("sector_alpha")
 			target_to_pulse = page.get_enemy_card("z5_alien_frigate")
+
+	# P1 Onboarding: clear the Designer's equip-mission Armory filter when
+	# no equip mission is active. set_equip_focus_filter and
+	# clear_equip_focus_filter are both idempotent so calling per-tick is cheap.
+	var _any_equip_active: bool = (
+		"m007b" in mm.active_missions
+		or "m015b" in mm.active_missions
+		or "m022b" in mm.active_missions
+		or "m024c" in mm.active_missions
+	)
+	if not _any_equip_active and pages.has("designer"):
+		var _dp = pages["designer"]
+		if _dp.has_method("clear_equip_focus_filter"):
+			_dp.clear_equip_focus_filter()
 
 	# Apply final decision
 	if target_to_pulse:

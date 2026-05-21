@@ -62,7 +62,7 @@ func init_missions():
 		["m007", "Mobility Check", "Craft a 'Basic Thruster' in the Shipyard.", "craft", "z1_engine", 1, 1000, 100, "m007b"],
 		# P1 Onboarding: close the engine arc — craft → equip. Without this the
 		# Thruster sat in inventory and the player never saw its +Evasion effect.
-		["m007b", "Spacewalk Test", "Equip the Basic Thruster in your Ship Designer (engine slot). Evasion goes up the moment it seats.", "loadout_check", "engine", 1, 500, 100, "m008"],
+		["m007b", "Spacewalk Test", "Open the Ship Designer, then DRAG the Basic Thruster from your Armory (right panel) onto an empty ENGINE slot. Evasion goes up the moment it seats.", "loadout_check", "engine", 1, 500, 100, "m008"],
 		["m008", "Materials Science", "Research the 'Materials Science' hub.", "research", "materials_science", 1, 300, 100, "m009"],
 		["m009", "Deforestation", "Gather 100 units of Wood.", "gather", "Wood", 100, 500, 100, "m010"],
 		["m010", "Organic Combustion", "Research 'Organic Combustion' to unlock the Kiln.", "research", "combustion", 1, 500, 150, "m011"],
@@ -75,7 +75,7 @@ func init_missions():
 		["m015", "Prototype Arsenal", "Craft a 'Mass Driver Mk.I' in the Shipyard.", "craft", "z1_kinetic", 1, 1500, 200, "m015b"],
 		# P1 Onboarding: close the weapon arc — craft → equip. Ammo comes next
 		# and now reads correctly as "feed your equipped weapon".
-		["m015b", "Weapons Hot", "Equip the Mass Driver in your Ship Designer (weapon slot). Your ship can finally deal damage.", "loadout_check", "weapon", 1, 500, 100, "m016"],
+		["m015b", "Weapons Hot", "Open the Ship Designer, then DRAG the Mass Driver from your Armory (right panel) onto an empty WEAPON slot. Your ship can finally deal damage.", "loadout_check", "weapon", 1, 500, 100, "m016"],
 		["m016", "Kinetic Munitions", "In the Engineering page, produce 100 Ferrite Rounds (SlugT1) to feed your weapon.", "gather", "SlugT1", 100, 1000, 100, "m023"],
 		# Shield Section Moved Here (m023 -> m024)
 		# P2-12: Combat Readiness Checkpoint - ensure player is equipped before first combat
@@ -89,12 +89,12 @@ func init_missions():
 		["m022", "Power Storage", "Craft a 'Basic Battery' in the Shipyard.", "craft", "z1_battery", 1, 1500, 150, "m022b"],
 		# P1 Onboarding: close the energy arc — craft → equip. Without this the
 		# Battery was a one-and-done craft with no ship-state payoff.
-		["m022b", "Power Online", "Equip the Basic Battery in your Ship Designer (battery slot). Energy capacity goes up — needed to power higher-tier weapons.", "loadout_check", "battery", 1, 500, 100, "m014"],
+		["m022b", "Power Online", "Open the Ship Designer, then DRAG the Basic Battery from your Armory (right panel) onto an empty BATTERY slot. Energy capacity goes up — needed to power higher-tier weapons.", "loadout_check", "battery", 1, 500, 100, "m014"],
 		["m023", "Hull Integrity", "Research 'Energy Fields' to unlock shielding.", "research", "energy_shields", 1, 1000, 150, "m024"],
 		["m024", "Aegis System", "Craft a 'Basic Shield' for protection.", "craft", "z1_shield", 1, 2500, 200, "m024c"],
 		# P1 Onboarding: close the shield arc — craft → equip. Player sees
 		# max_shield jump from 0 → positive the moment it seats.
-		["m024c", "Shields Up", "Equip the Basic Shield in your Ship Designer (shield slot). Incoming damage will hit your shield before your hull.", "loadout_check", "shield", 1, 500, 100, "m024b"],
+		["m024c", "Shields Up", "Open the Ship Designer, then DRAG the Basic Shield from your Armory (right panel) onto an empty SHIELD slot. Incoming damage hits the shield before your hull.", "loadout_check", "shield", 1, 500, 100, "m024b"],
 		# Split for onboarding: teach what consumables are + where to make them,
 		# THEN how to equip them (was one sudden compound objective).
 		["m024b", "Field Supplies", "Repair kits keep you alive in combat. In the Processing page, craft 5 Emergency Hull Patches and 5 Basic Shield Boosters.", "gather_multi", {"EmergencyPatch": 5, "BasicBooster": 5}, 10, 2000, 150, "m024b2"],

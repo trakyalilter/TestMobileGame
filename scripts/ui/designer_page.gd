@@ -35,6 +35,10 @@ var is_selection_mode: bool = false
 var focused_slot_idx: int = -1
 var focused_slot_type: String = ""
 var focused_slot_equipped_mid: String = ""
+# P1 Onboarding: coach-driven filter that dims non-matching Armory modules
+# while an equip mission is active. Separate from focused_slot_type so the
+# user's manual slot click always wins over the coach hint.
+var _equip_focus_filter_type: String = ""
 var all_slot_widgets: Array = []
 var armory_sort_mode: int = 0  # 0=Power, 1=Zone, 2=Rarity
 var _armory_banner: Label = null
@@ -130,7 +134,80 @@ func _ready():
 			if not is_repair_mode:
 				Input.set_default_cursor_shape(Input.CURSOR_ARROW))
 
+	# P1 Onboarding: persistent drag-drop hint banner — auto-dismisses on the
+	# player's first successful equip. Hooked here so it appears on first
+	# Designer visit and never re-appears once dismissed.
+	_build_drag_hint_banner_if_needed()
+	if manager and not manager.inventory_updated.is_connected(_check_drag_hint_dismissal):
+		manager.inventory_updated.connect(_check_drag_hint_dismissal)
+
 	trigger_refresh()
+
+# --- P1 Onboarding: equip-mission Armory filter ---
+# Coach calls these when an equip mission is active so the just-crafted
+# module visually pops vs the rest of the inventory. Guarded — calling with
+# the same value is a no-op so per-frame calls from the coach refresh stay
+# cheap.
+func set_equip_focus_filter(slot_type: String) -> void:
+	if _equip_focus_filter_type == slot_type:
+		return
+	_equip_focus_filter_type = slot_type
+	rebuild_storage()
+
+func clear_equip_focus_filter() -> void:
+	if _equip_focus_filter_type == "":
+		return
+	_equip_focus_filter_type = ""
+	rebuild_storage()
+
+# --- P1 Onboarding: drag-drop hint banner ---
+var _drag_hint_banner: Control = null
+
+func _build_drag_hint_banner_if_needed() -> void:
+	if GameState.game_settings.get("designer_drag_hint_seen", false):
+		return
+	var banner = PanelContainer.new()
+	banner.name = "DragHintBanner"
+	var sb = StyleBoxFlat.new()
+	sb.bg_color = Color(0.15, 0.13, 0.08, 0.92)
+	sb.border_color = Color(0.95, 0.86, 0.55, 0.70)
+	sb.set_border_width_all(1)
+	sb.set_corner_radius_all(4)
+	sb.content_margin_left = 14
+	sb.content_margin_right = 14
+	sb.content_margin_top = 8
+	sb.content_margin_bottom = 8
+	banner.add_theme_stylebox_override("panel", sb)
+	var lbl = Label.new()
+	lbl.text = "💡  Drag modules from your Armory (right panel) onto ship slots to equip them. This hint disappears after your first equip."
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	lbl.add_theme_font_size_override("font_size", 12)
+	lbl.add_theme_color_override("font_color", Color(0.95, 0.86, 0.55))
+	banner.add_child(lbl)
+	var vbox = $VBoxContainer
+	vbox.add_child(banner)
+	# Slot just below the title (index 0). Banner ends up above InfoPanel.
+	vbox.move_child(banner, 1)
+	_drag_hint_banner = banner
+
+func _check_drag_hint_dismissal() -> void:
+	if not _drag_hint_banner:
+		return
+	if GameState.game_settings.get("designer_drag_hint_seen", false):
+		return
+	if not manager:
+		return
+	var has_any: bool = false
+	for slot_mid in manager.loadout.values():
+		if slot_mid != null and slot_mid != "":
+			has_any = true
+			break
+	if has_any:
+		GameState.game_settings["designer_drag_hint_seen"] = true
+		GameState.save_game()
+		_drag_hint_banner.queue_free()
+		_drag_hint_banner = null
 
 var _consumable_blade: Control = null
 var _consumable_hull_slot: Control = null
@@ -1463,7 +1540,13 @@ func rebuild_storage():
 					item.compare_equipped_mid = focused_slot_equipped_mid if type_matches_focus else ""
 				item.setup(module_id, module_data, module_count)
 				item.clicked.connect(_on_card_clicked)
+				# Dim non-matching modules. User-click focus wins (focused_slot_type);
+				# otherwise the coach-driven equip-mission filter applies, so the
+				# just-crafted module stands out vs the rest of the Armory.
 				if focused_slot_type != "" and not type_matches_focus:
+					item.modulate = Color(1, 1, 1, 0.35)
+				elif focused_slot_type == "" and _equip_focus_filter_type != "" \
+						and module_slot_type != _equip_focus_filter_type:
 					item.modulate = Color(1, 1, 1, 0.35)
 				slot_count += 1
 
