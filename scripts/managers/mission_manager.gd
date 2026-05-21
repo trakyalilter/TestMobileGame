@@ -59,7 +59,10 @@ func init_missions():
 		["m005", "Mineral Washing", "Open the Engineering page and process Dirt to extract 100 Silicon and 80 Iron.", "gather_multi", {"Si": 100, "Fe": 80}, 180, 1000, 200, "m007"],
 		
 		# m006 Removed (Moved to m002b)
-		["m007", "Mobility Check", "Craft a 'Basic Thruster' in the Shipyard.", "craft", "z1_engine", 1, 1000, 100, "m008"],
+		["m007", "Mobility Check", "Craft a 'Basic Thruster' in the Shipyard.", "craft", "z1_engine", 1, 1000, 100, "m007b"],
+		# P1 Onboarding: close the engine arc — craft → equip. Without this the
+		# Thruster sat in inventory and the player never saw its +Evasion effect.
+		["m007b", "Spacewalk Test", "Equip the Basic Thruster in your Ship Designer (engine slot). Evasion goes up the moment it seats.", "loadout_check", "engine", 1, 500, 100, "m008"],
 		["m008", "Materials Science", "Research the 'Materials Science' hub.", "research", "materials_science", 1, 300, 100, "m009"],
 		["m009", "Deforestation", "Gather 100 units of Wood.", "gather", "Wood", 100, 500, 100, "m010"],
 		["m010", "Organic Combustion", "Research 'Organic Combustion' to unlock the Kiln.", "research", "combustion", 1, 500, 150, "m011"],
@@ -69,7 +72,10 @@ func init_missions():
 		["m013b", "Copper Prospecting", "Gather 100 Malachite Ore.", "gather", "Malachite", 100, 1200, 300, "m013c"],
 		["m013c", "Conductivity", "Refine 50 Copper in the Engineering tab.", "gather", "Cu", 50, 1500, 350, "m020"],
 		["m014", "Ballistics Theory", "Research 'Kinetic Weapons Theory' in the Research tree to unlock kinetic weapon modules.", "research", "kinetics_101", 1, 1200, 100, "m015"],
-		["m015", "Prototype Arsenal", "Craft a 'Mass Driver Mk.I' in the Shipyard.", "craft", "z1_kinetic", 1, 1500, 200, "m016"],
+		["m015", "Prototype Arsenal", "Craft a 'Mass Driver Mk.I' in the Shipyard.", "craft", "z1_kinetic", 1, 1500, 200, "m015b"],
+		# P1 Onboarding: close the weapon arc — craft → equip. Ammo comes next
+		# and now reads correctly as "feed your equipped weapon".
+		["m015b", "Weapons Hot", "Equip the Mass Driver in your Ship Designer (weapon slot). Your ship can finally deal damage.", "loadout_check", "weapon", 1, 500, 100, "m016"],
 		["m016", "Kinetic Munitions", "In the Engineering page, produce 100 Ferrite Rounds (SlugT1) to feed your weapon.", "gather", "SlugT1", 100, 1000, 100, "m023"],
 		# Shield Section Moved Here (m023 -> m024)
 		# P2-12: Combat Readiness Checkpoint - ensure player is equipped before first combat
@@ -80,13 +86,29 @@ func init_missions():
 		["m019", "Cybernetic Integration", "Craft 10 Basic Circuitry in the Engineering tab.", "gather", "Circuit", 10, 2000, 300, "m025"],
 		["m020", "Advanced Energy", "Research 'Power Systems' for batteries.", "research", "power_systems", 1, 500, 100, "m021"],
 		["m021", "Industrial Energy", "Craft 5 Basic Batteries in the Engineering tab.", "gather", "BatteryT1", 5, 1000, 100, "m022"],
-		["m022", "Power Storage", "Craft a 'Basic Battery' in the Shipyard.", "craft", "z1_battery", 1, 1500, 150, "m014"],
+		["m022", "Power Storage", "Craft a 'Basic Battery' in the Shipyard.", "craft", "z1_battery", 1, 1500, 150, "m022b"],
+		# P1 Onboarding: close the energy arc — craft → equip. Without this the
+		# Battery was a one-and-done craft with no ship-state payoff.
+		["m022b", "Power Online", "Equip the Basic Battery in your Ship Designer (battery slot). Energy capacity goes up — needed to power higher-tier weapons.", "loadout_check", "battery", 1, 500, 100, "m014"],
 		["m023", "Hull Integrity", "Research 'Energy Fields' to unlock shielding.", "research", "energy_shields", 1, 1000, 150, "m024"],
-		["m024", "Aegis System", "Craft a 'Basic Shield' for protection.", "craft", "z1_shield", 1, 2500, 200, "m024b"],
+		["m024", "Aegis System", "Craft a 'Basic Shield' for protection.", "craft", "z1_shield", 1, 2500, 200, "m024c"],
+		# P1 Onboarding: close the shield arc — craft → equip. Player sees
+		# max_shield jump from 0 → positive the moment it seats.
+		["m024c", "Shields Up", "Equip the Basic Shield in your Ship Designer (shield slot). Incoming damage will hit your shield before your hull.", "loadout_check", "shield", 1, 500, 100, "m024b"],
 		# Split for onboarding: teach what consumables are + where to make them,
 		# THEN how to equip them (was one sudden compound objective).
 		["m024b", "Field Supplies", "Repair kits keep you alive in combat. In the Processing page, craft 5 Emergency Hull Patches and 5 Basic Shield Boosters.", "gather_multi", {"EmergencyPatch": 5, "BasicBooster": 5}, 10, 2000, 150, "m024b2"],
-		["m024b2", "Combat Triage", "Now equip a Hull and a Shield repair kit in your Ship Designer's consumable slots. In combat, tap the HULL / SHLD buttons to spend one and patch up.", "equip_consumables", "1", 1, 2000, 200, "m016b"],
+		# Re-routed: m016b (catch-all weapon+shield equip) is now redundant —
+		# each module already has its own per-arc equip mission (m007b / m015b /
+		# m022b / m024c). m024b2 now flows into m016c "Combat Briefing", which
+		# orients the player before their first fight. m016b is kept in the
+		# data as an orphan for save-compat with any in-progress runs that
+		# happened to be sitting on it.
+		["m024b2", "Combat Triage", "Now equip a Hull and a Shield repair kit in your Ship Designer's consumable slots. In combat, tap the HULL / SHLD buttons to spend one and patch up.", "equip_consumables", "1", 1, 2000, 200, "m016c"],
+		# P1 Onboarding: combat orientation. Auto-completes when the player
+		# opens the Combat page (main.gd hooks page navigation into
+		# _update_progress("visit_page", page_name, 1)).
+		["m016c", "Combat Briefing", "Open the Combat page (left sidebar). Pick a sector → pick a target → ENGAGE. Your Shield absorbs hits first; your Hull takes overflow. Auto-consumables fire when each drops below the threshold you set in Research.", "visit_page", "combat", 1, 200, 50, "m017"],
 		["m025", "Refining Mastery", "Research 'Efficient Smelting' for alloys.", "research", "smelting", 1, 15000, 500, "m025b"],
 		["m025b", "Alloy Production", "Smelt 50 Steel in the Engineering tab (Basic Steel Smelting recipe).", "gather", "Steel", 50, 5000, 500, "m026"],
 		["m026", "Master Constructor", "Research 'Shipwright I' for hull reinforcement.", "research", "shipwright_1", 1, 5000, 500, "m026b"],
@@ -352,7 +374,7 @@ func sync_progress():
 					var st = mod.get("slot_type", "")
 					if st == "weapon": has_weapon = true
 					elif st == "shield": has_shield = true
-			
+
 			# Fail-safe: Check calculated stats (Base Corvette has 0 shield, >0 means shield equipped)
 			if sm.max_shield > 0: has_shield = true
 			# Base Corvette has 10 atk. If total attack > base, they have a weapon.
@@ -361,8 +383,24 @@ func sync_progress():
 				base_atk = sm.hulls[sm.active_hull]["stats"].get("atk", 0)
 			if (sm.attack_kinetic + sm.attack_energy + sm.attack_explosive) > base_atk:
 				has_weapon = true
-				
+
 			if has_weapon and has_shield:
+				m["current_qty"] = 1
+
+		# Per-module equip checkpoint — completes when ANY module of the
+		# named slot_type is equipped. Used by the post-craft equip missions
+		# (m007b engine / m022b battery / m015b weapon / m024c shield) to
+		# close each module's craft → equip → use arc.
+		elif m["type"] == "loadout_check":
+			var slot_target: String = str(m["target"])
+			var sm2 = GameState.shipyard_manager
+			var slot_filled = false
+			for mid_v in sm2.loadout.values():
+				if mid_v and mid_v in sm2.modules:
+					if sm2.modules[mid_v].get("slot_type", "") == slot_target:
+						slot_filled = true
+						break
+			if slot_filled:
 				m["current_qty"] = 1
 
 		elif m["type"] == "drop_rarity":

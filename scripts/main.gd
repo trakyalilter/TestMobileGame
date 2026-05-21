@@ -379,6 +379,11 @@ func switch_to(page_name):
 			return
 
 		current_page_name = page_name
+		# P1 Onboarding hook: bump any active visit_page missions (e.g. m016c
+		# "Combat Briefing") so the orientation step auto-completes the moment
+		# the player navigates to the page it points at.
+		if GameState.mission_manager:
+			GameState.mission_manager._update_progress("visit_page", page_name, 1)
 		_update_sidebar_styling()
 
 		# Per-page idle cursor (inert until art exists for the page)
@@ -580,7 +585,19 @@ func _update_navigation_hints():
 			var page = pages["shipyard"]
 			page.focus_module_tab("z1_engine")
 			target_to_pulse = page.get_module_widget("z1_engine")
-		
+
+	elif "m007b" in mm.active_missions:
+		# Designer: pulse the empty engine slot so the just-crafted Thruster
+		# closes its arc with a visible "equip me" target.
+		if current_page_name != "designer": target_to_pulse = designer_btn
+		else:
+			var dp = pages["designer"]
+			if dp.has_method("get_slot_widget"):
+				dp.focus_slot("engine")
+				target_to_pulse = dp.get_slot_widget("engine")
+			elif dp.has_method("get_coach_anchor"):
+				target_to_pulse = dp.get_coach_anchor("schematic")
+
 	elif "m008" in mm.active_missions:
 		# Research: Materials Science Hub
 		if current_page_name != "research": target_to_pulse = research_btn
@@ -647,7 +664,18 @@ func _update_navigation_hints():
 			var page = pages["shipyard"]
 			page.focus_module_tab("z1_kinetic")
 			target_to_pulse = page.get_module_widget("z1_kinetic")
-		
+
+	elif "m015b" in mm.active_missions:
+		# Designer: pulse the empty weapon slot to close the weapon arc.
+		if current_page_name != "designer": target_to_pulse = designer_btn
+		else:
+			var dp = pages["designer"]
+			if dp.has_method("get_slot_widget"):
+				dp.focus_slot("weapon")
+				target_to_pulse = dp.get_slot_widget("weapon")
+			elif dp.has_method("get_coach_anchor"):
+				target_to_pulse = dp.get_coach_anchor("schematic")
+
 	elif "m016" in mm.active_missions:
 		# Processing: Ferrite Rounds
 		if current_page_name != "processing": target_to_pulse = processing_btn
@@ -718,6 +746,17 @@ func _update_navigation_hints():
 			page.focus_module_tab("z1_battery")
 			target_to_pulse = page.get_module_widget("z1_battery")
 
+	elif "m022b" in mm.active_missions:
+		# Designer: pulse the empty battery slot to close the energy arc.
+		if current_page_name != "designer": target_to_pulse = designer_btn
+		else:
+			var dp = pages["designer"]
+			if dp.has_method("get_slot_widget"):
+				dp.focus_slot("battery")
+				target_to_pulse = dp.get_slot_widget("battery")
+			elif dp.has_method("get_coach_anchor"):
+				target_to_pulse = dp.get_coach_anchor("schematic")
+
 	elif "m023" in mm.active_missions:
 		# Research: Energy Shields
 		if current_page_name != "research": target_to_pulse = research_btn
@@ -732,6 +771,23 @@ func _update_navigation_hints():
 			var page = pages["shipyard"]
 			page.focus_module_tab("z1_shield")
 			target_to_pulse = page.get_module_widget("z1_shield")
+
+	elif "m024c" in mm.active_missions:
+		# Designer: pulse the empty shield slot to close the defense arc.
+		if current_page_name != "designer": target_to_pulse = designer_btn
+		else:
+			var dp = pages["designer"]
+			if dp.has_method("get_slot_widget"):
+				dp.focus_slot("shield")
+				target_to_pulse = dp.get_slot_widget("shield")
+			elif dp.has_method("get_coach_anchor"):
+				target_to_pulse = dp.get_coach_anchor("schematic")
+
+	elif "m016c" in mm.active_missions:
+		# Combat orientation — pulse the Combat tab until the player visits;
+		# the visit_page hook in switch_to() auto-completes the mission.
+		if current_page_name != "combat":
+			target_to_pulse = combat_btn
 
 	elif "m025" in mm.active_missions:
 		# Research: Smelting
