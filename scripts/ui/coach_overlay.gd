@@ -137,9 +137,13 @@ func start(page_name: String, steps: Array, anchor_provider: Node) -> void:
 	_active = true
 	visible = true
 	# Pages build their widgets via call_deferred; wait so anchors can be measured.
+	# Bail if the scene was reloaded under us (hard reset frees the overlay
+	# between frames; get_tree() returns null and process_frame access crashes).
+	if not is_inside_tree(): return
 	await get_tree().process_frame
+	if not is_inside_tree(): return
 	await get_tree().process_frame
-	if _active:
+	if _active and is_inside_tree():
 		_render()
 
 func _resolve_anchor(key: String) -> Control:
@@ -166,10 +170,14 @@ func _render() -> void:
 	# Heavy pages build their widgets a few frames after becoming visible.
 	# If the spotlight target isn't measurable yet, wait briefly and retry once.
 	if hole.size.x <= 1.0 and anchor_key != "":
+		if not is_inside_tree(): return
 		await get_tree().process_frame
+		if not is_inside_tree(): return
 		await get_tree().process_frame
-		# Bail if the tour ended or the player advanced during the wait.
-		if not _active or _idx >= _steps.size() or str(_steps[_idx].get("anchor", "")) != anchor_key:
+		# Bail if the tour ended, the player advanced during the wait, or
+		# the scene was reloaded out from under us.
+		if not is_inside_tree() or not _active or _idx >= _steps.size() \
+				or str(_steps[_idx].get("anchor", "")) != anchor_key:
 			return
 		hole = _measure(anchor_key, vp)
 
@@ -185,8 +193,9 @@ func _render() -> void:
 		if _hl_tween: _hl_tween.kill()
 
 	# Position the card once its size is known.
+	if not is_inside_tree(): return
 	await get_tree().process_frame
-	if not _active: return
+	if not is_inside_tree() or not _active: return
 	_place_card(vp)
 
 func _measure(anchor_key: String, vp: Vector2) -> Rect2:
