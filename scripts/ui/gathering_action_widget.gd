@@ -13,17 +13,21 @@ var parent_ui: Node
 @onready var time_lbl = $MarginContainer/VBoxContainer/TimeLabel
 @onready var prog_bar = $MarginContainer/VBoxContainer/ProgressBar
 
+# P1 Mastery — inline progress under the loot block. Created dynamically
+# (the .tscn isn't edited) and refreshed per tick in update_state().
+var _mastery_lbl: RichTextLabel
+
 func setup(p_aid: String, p_data: Dictionary, p_manager, p_parent):
 	aid = p_aid
 	data = p_data
 	manager = p_manager
 	parent_ui = p_parent
-	
+
 	name_lbl.text = data["name"]
 	name_lbl.add_theme_color_override("font_color", UITheme.CATEGORY_COLORS["ops"])
 	var req = data.get("level_req", 1)
 	lvl_lbl.text = "Lvl %d" % req
-	
+
 	UITheme.apply_card_style(self, "ops")
 	UITheme.apply_premium_button_style(btn, "ops")
 	prog_bar.accent = UITheme.CATEGORY_COLORS["ops"]
@@ -34,6 +38,16 @@ func setup(p_aid: String, p_data: Dictionary, p_manager, p_parent):
 	UITheme.inject_activity_header(self, "ops", glyph)
 	UITheme.wrap_in_io_panel(loot_lbl, "ops", "yield")
 	UITheme.pin_card_footer(self)
+
+	# Inline mastery line — sits between loot and the action button.
+	_mastery_lbl = RichTextLabel.new()
+	_mastery_lbl.name = "MasteryLabel"
+	_mastery_lbl.bbcode_enabled = true
+	_mastery_lbl.fit_content = true
+	_mastery_lbl.scroll_active = false
+	_mastery_lbl.add_theme_font_size_override("normal_font_size", 10)
+	$MarginContainer/VBoxContainer.add_child(_mastery_lbl)
+	$MarginContainer/VBoxContainer.move_child(_mastery_lbl, loot_lbl.get_index() + 1)
 
 func _on_button_pressed():
 	if GameState.combat_manager and GameState.combat_manager.in_combat:
@@ -46,8 +60,31 @@ func _on_button_pressed():
 
 	parent_ui.update_ui()
 
+func _refresh_mastery():
+	if not _mastery_lbl or not manager:
+		return
+	var level: int = manager.get_mastery_level(aid)
+	var prog: Dictionary = manager.get_mastery_progress(aid)
+	var text: String = ""
+	if level >= 100:
+		text = "[color=#ffd700][b]★ GOLD MASTERY · 100 ★[/b][/color]"
+		# Hearthstone-style gold name tint at the capstone.
+		name_lbl.add_theme_color_override("font_color", Color(1.0, 0.84, 0.20))
+	elif level >= 50:
+		text = "[color=#d4af37]✦ Mastery %d · %d / %d[/color]" % [
+			level, int(prog["in_level"]), int(prog["needed"])]
+	elif level > 0:
+		text = "[color=#b8a572]Mastery %d · %d / %d[/color]" % [
+			level, int(prog["in_level"]), int(prog["needed"])]
+	else:
+		# Show "Mastery 0" subtly so the system is discoverable from turn one.
+		text = "[color=#7a7268]Mastery 0 · %d / %d[/color]" % [
+			int(prog["in_level"]), int(prog["needed"])]
+	_mastery_lbl.text = text
+
 func update_state():
 	var is_this_active = (manager.is_active and manager.current_action_id == aid)
+	_refresh_mastery()
 	
 	var lvl = manager.get_level()
 	var req = data.get("level_req", 1)

@@ -13,6 +13,9 @@ var parent_ui: Node
 @onready var prog_bar = $MarginContainer/VBoxContainer/ProgressBar
 @onready var time_lbl = $MarginContainer/VBoxContainer/TimeLabel
 
+# P1 Mastery — inline progress under the output block. Created dynamically.
+var _mastery_lbl: RichTextLabel
+
 func setup(p_rid: String, p_data: Dictionary, p_manager, p_parent):
 	rid = p_rid
 	recipe = p_data
@@ -50,6 +53,16 @@ func setup(p_rid: String, p_data: Dictionary, p_manager, p_parent):
 		arrow.add_theme_color_override("font_color",
 			UITheme.CATEGORY_COLORS["engineering"].lightened(0.2))
 
+	# Inline mastery line — sits just under the output panel.
+	_mastery_lbl = RichTextLabel.new()
+	_mastery_lbl.name = "MasteryLabel"
+	_mastery_lbl.bbcode_enabled = true
+	_mastery_lbl.fit_content = true
+	_mastery_lbl.scroll_active = false
+	_mastery_lbl.add_theme_font_size_override("normal_font_size", 10)
+	$MarginContainer/VBoxContainer.add_child(_mastery_lbl)
+	$MarginContainer/VBoxContainer.move_child(_mastery_lbl, out_lbl.get_index() + 1)
+
 func _on_button_pressed():
 	if GameState.combat_manager and GameState.combat_manager.in_combat:
 		return
@@ -60,8 +73,29 @@ func _on_button_pressed():
 		manager.start_action(rid)
 	parent_ui.update_ui()
 
+func _refresh_mastery():
+	if not _mastery_lbl or not manager:
+		return
+	var level: int = manager.get_mastery_level(rid)
+	var prog: Dictionary = manager.get_mastery_progress(rid)
+	var text: String = ""
+	if level >= 100:
+		text = "[color=#ffd700][b]★ GOLD MASTERY · 100 ★[/b][/color]"
+		name_lbl.add_theme_color_override("font_color", Color(1.0, 0.84, 0.20))
+	elif level >= 50:
+		text = "[color=#d4af37]✦ Mastery %d · %d / %d[/color]" % [
+			level, int(prog["in_level"]), int(prog["needed"])]
+	elif level > 0:
+		text = "[color=#b8a572]Mastery %d · %d / %d[/color]" % [
+			level, int(prog["in_level"]), int(prog["needed"])]
+	else:
+		text = "[color=#7a7268]Mastery 0 · %d / %d[/color]" % [
+			int(prog["in_level"]), int(prog["needed"])]
+	_mastery_lbl.text = text
+
 func update_state():
 	var is_this_active = (manager.is_active and manager.current_recipe_id == rid)
+	_refresh_mastery()
 	var has_ingredients = true # Will be re-evaluated per item
 	
 	# Rebuild Ingredient String with Colors
