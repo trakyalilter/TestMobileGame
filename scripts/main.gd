@@ -1087,6 +1087,20 @@ func _update_navigation_hints():
 		if _dp.has_method("clear_equip_focus_filter"):
 			_dp.clear_equip_focus_filter()
 
+	# P1 Onboarding — Repair routing.
+	# When no mission demands a pulse, the hull is damaged, the player is on
+	# another page, and they are not mid-combat, pulse the Shipyard sidebar
+	# button so they know where to go. Once on Shipyard, the existing red-
+	# pulsing Repair button (shipyard_page._update_repair_button) takes over.
+	# Mission pulses always win — this is a pure fallback.
+	if target_to_pulse == null:
+		var sm_ref = GameState.shipyard_manager
+		var cm_ref = GameState.combat_manager
+		if sm_ref and sm_ref.current_hp < sm_ref.max_hp \
+				and current_page_name != "shipyard" \
+				and not (cm_ref and cm_ref.in_combat):
+			target_to_pulse = shipyard_btn
+
 	# Apply final decision
 	if target_to_pulse:
 		start_hint_pulse(target_to_pulse)
