@@ -119,8 +119,20 @@ func init_missions():
 		# P0 Fix: Progression Deadlock Re-alignment
 		["m027", "Scanning Horizon", "Research 'Asteroid Belt Authorization' in the Research tree to unlock the Asteroid Belt combat zone.", "research", "zone_2_access", 1, 5000, 500, "m028"],
 		["m028", "Belt Mining", "In the Mine page, mine 100 Cassiterite (tin ore).", "gather", "Cassiterite", 100, 10000, 2000, "m029"],
-		["m029", "Hardened Shell", "Craft 'Carbon Fiber Plate' in the Shipyard.", "craft", "z2_armor", 1, 15000, 5000, "m029b"],
-		["m029b", "Complex Electronics", "Craft 10 Advanced Circuits to prepare for heavier ships.", "gather", "AdvCircuit", 10, 20000, 5000, "m030"],
+		["m029", "Hardened Shell", "Craft 'Carbon Fiber Plate' in the Shipyard.", "craft", "z2_armor", 1, 15000, 5000, "m029a1"],
+		# v107 Mission flow — split the silent AdvCircuit wall into discoverable
+		# beats (Koster pattern-injection). m029b previously dropped the player
+		# off a cliff: lvl 45 Engineering + 4 unnamed research gates + a 5-input
+		# recipe none of whose intermediates had been introduced. Each beat
+		# below surfaces ONE node and delivers materials the final mission needs.
+		# Save-compat: in-flight players sitting on m029b stay valid (it still
+		# exists with the same id); only m029.next_mission_id was rerouted.
+		["m029a1", "Material Sciences", "Research 'Advanced Materials' in the Research tree to unlock heavier industrial recipes.", "research", "adv_materials", 1, 5000, 500, "m029a2"],
+		["m029a2", "Structural Doctrine", "Research 'Advanced Metallurgy' to fabricate universal components.", "research", "metallurgy_advanced", 1, 5000, 500, "m029a3"],
+		["m029a3", "First Components", "Craft 10 Structural Components in the Engineering tab. They are the universal building block of heavy industry.", "gather", "StructuralComponent", 10, 8000, 1000, "m029a4"],
+		["m029a4", "Chemical Heat", "Research 'Organic Combustion' to unlock Germanium extraction (needed for semiconductors).", "research", "combustion", 1, 5000, 500, "m029a5"],
+		["m029a5", "Factory Lights", "Research 'Factory Automation' — the last gate before Advanced Circuits.", "research", "automation", 1, 10000, 1000, "m029b"],
+		["m029b", "Complex Electronics", "Craft 5 Advanced Circuits in the Engineering tab. (Combines Semiconductor + Gold + Silver + Tin + Structural Components — your earlier research unlocked each one.)", "gather", "AdvCircuit", 5, 20000, 5000, "m030"],
 		# v103f: Removed forced Fabricator mission (m030b) — it gated nothing
 		# (Fabricator is optional QoL, still buildable). m030 -> m030c directly.
 		["m030", "Naval Expansion", "Research 'Shipwright II' to unlock Destroyer-class hulls.", "research", "shipwright_2", 1, 4000, 1000, "m030c"],
