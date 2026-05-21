@@ -141,7 +141,6 @@ Sectors/zones for combat, ship **hulls** (corvette → frigate → destroyer →
 
 ### Resume protocol for the other machine
 
-1. `git pull origin TestFitTool` (this commit has everything).
-2. Re-read this CLAUDE.md.
-3. Continue at **Step 4 — P1 Mastery layer + gold-card cosmetic** (table above).
-4. The Warp Mastery Tree foundation is complete + shippable. The 6 deferred mechanic nodes (E3/E4/E5/C3/C4/C5) can be backfilled at any time — start with **E5 Reclamation Foundry** (~30 min, new building entry only) for a quick win.
+1. Re-read this CLAUDE.md.
+2. Continue at **Step 4 — P1 Mastery layer + gold-card cosmetic** (table above).
+3. The Warp Mastery Tree foundation is complete + shippable. The 6 deferred mechanic nodes (E3/E4/E5/C3/C4/C5) can be backfilled at any time — start with **E5 Reclamation Foundry** (~30 min, new building entry only) for a quick win.
