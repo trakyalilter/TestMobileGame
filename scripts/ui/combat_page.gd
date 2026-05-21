@@ -198,11 +198,25 @@ func _on_filter_btn_pressed():
 	self.add_child(dlg)
 
 func refresh_zones():
+	# Preserve sector selection across the clear/rebuild. This function is
+	# connected to research_manager.tech_unlocked — every research the player
+	# completes while a sector is selected used to wipe the highlight AND
+	# leave the previous sector's enemy cards in the Targeting Data panel,
+	# making them un-engageable (request_fight() short-circuits when no zone
+	# is selected). Remember the prior zone id, rebuild, then re-select.
+	var prev_zid: String = ""
+	var prev_items: PackedInt32Array = zone_list.get_selected_items()
+	if prev_items.size() > 0:
+		prev_zid = str(zone_list.get_item_metadata(prev_items[0]))
+
 	zone_list.clear()
 	var zones = manager.get_available_zones()
+	var restore_idx: int = -1
 	for z in zones:
 		var idx = zone_list.add_item(z["data"]["name"])
 		zone_list.set_item_metadata(idx, z["id"])
+		if z["id"] == prev_zid:
+			restore_idx = idx
 		# v86.0: Color hazard zones differently
 		if z.get("is_hazard", false):
 			zone_list.set_item_custom_fg_color(idx, Color.YELLOW)
@@ -234,6 +248,19 @@ func refresh_zones():
 			tooltip += "%s: %s HP | %s ATK\n" % [boss_name, UITheme.format_num(boss_hp), UITheme.format_num(boss_atk)]
 		tooltip += "Recommended DPS: ~%s" % UITheme.format_num(rec_dps)
 		zone_list.set_item_tooltip(idx, tooltip)
+
+	# Restore prior selection so the player keeps their sector highlight
+	# after researches refresh this list. ItemList.select() does NOT fire
+	# item_selected, so the enemy panel stays as-is (correct for the same
+	# zone). If the zone vanished — unlikely, but defensive — wipe the
+	# stale enemy cards so the player isn't shown un-engageable targets.
+	if restore_idx >= 0:
+		zone_list.select(restore_idx)
+	elif prev_zid != "":
+		last_refreshed_zone = ""
+		if enemy_container:
+			for child in enemy_container.get_children():
+				child.queue_free()
 
 func _on_zone_list_item_selected(index):
 	var zid = zone_list.get_item_metadata(index)
