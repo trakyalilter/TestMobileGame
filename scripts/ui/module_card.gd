@@ -286,11 +286,14 @@ func _draw_tile_visual(item_name: String, slot_type: String, rarity: int, rarity
 	_apply_pulse(rarity)
 
 	add_child(tile_container)
+	# Armory tiles are tiny — request the translucent dim variant so the
+	# rarity frame + slot icon underneath still read instead of the card
+	# going fully black.
 	if sm and mid in sm.modules:
 		var status = sm.can_equip_module(mid)
-		UITheme.apply_locked_overlay(self, item_name, status["reason"], not status["can_equip"])
+		UITheme.apply_locked_overlay(self, item_name, status["reason"], not status["can_equip"], "", "ops", true)
 	else:
-		UITheme.apply_locked_overlay(self, item_name, "", false)
+		UITheme.apply_locked_overlay(self, item_name, "", false, "", "ops", true)
 
 ## Compact sort-key readout shown on the tile (power = what Sort·Power uses).
 func _get_power_readout(slot_type: String, stats: Dictionary) -> String:

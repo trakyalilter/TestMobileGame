@@ -266,6 +266,43 @@ func apply_progress_bar_style(pb: ProgressBar, category: String = "ops"):
 	pb.add_theme_constant_override("outline_size", 3)
 	pb.add_theme_font_size_override("font_size", 10)
 
+# Builds the compact mastery readout used by gathering / processing cards:
+# a tiny caption row ("MASTERY  LV N"  ⋯  "X / Y") above a thin progress
+# bar. Returns the refs the caller needs to update each tick.
+# Pass after_index = -1 to leave the panel at the end of `parent`.
+func build_mastery_panel(parent: VBoxContainer, after_index: int, category: String) -> Dictionary:
+	var box := VBoxContainer.new()
+	box.name = "MasteryPanel"
+	box.add_theme_constant_override("separation", 2)
+	parent.add_child(box)
+	if after_index >= 0 and after_index < parent.get_child_count():
+		parent.move_child(box, after_index)
+
+	var hdr := HBoxContainer.new()
+	hdr.add_theme_constant_override("separation", 6)
+	box.add_child(hdr)
+
+	var left := Label.new()
+	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	left.add_theme_font_size_override("font_size", 9)
+	hdr.add_child(left)
+
+	var right := Label.new()
+	right.add_theme_font_size_override("font_size", 9)
+	right.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	hdr.add_child(right)
+
+	var bar := ProgressBar.new()
+	bar.custom_minimum_size = Vector2(0, 5)
+	bar.show_percentage = false
+	bar.min_value = 0.0
+	bar.max_value = 100.0
+	apply_progress_bar_style(bar, category)
+	box.add_child(bar)
+
+	return {"box": box, "left": left, "right": right, "bar": bar}
+
+
 ## apply_segmented_bar_style: Creates a high-tech "Digital Gauge" look
 func apply_segmented_bar_style(pb: ProgressBar, category: String = "ops"):
 	if not pb: return
@@ -723,7 +760,7 @@ func apply_holographic_projection(panel: Control, category: String = "ops"):
 	return style
 
 ## apply_locked_overlay: Creates and manages a visual "LOCKED" state for Cards
-func apply_locked_overlay(card: Control, item_name: String, message: String, is_locked: bool, tech_id: String = "", category: String = "ops"):
+func apply_locked_overlay(card: Control, item_name: String, message: String, is_locked: bool, tech_id: String = "", category: String = "ops", dim_only: bool = false):
 	if not card: return
 	
 	var overlay_name = "LockedOverlay"
@@ -734,17 +771,21 @@ func apply_locked_overlay(card: Control, item_name: String, message: String, is_
 		return
 	
 	if not overlay:
-		# 1. Translucent darken — lets the rarity-styled tile underneath
-		# still read (slot icon, rarity frame, power readout) instead of
-		# blacking the whole card out and reducing it to "just text".
+		# Two modes:
+		#  · default (block)  — fully opaque black; big cards (gather/process/
+		#    recipes) have their own dense content that would clash if it
+		#    bled through.
+		#  · dim_only — translucent dark so the rarity-styled tile underneath
+		#    still reads (used by module_card, where the rarity frame + slot
+		#    icon are the only identity cues on a small ~64px tile).
 		overlay = ColorRect.new()
 		overlay.name = overlay_name
-		overlay.color = Color(0.02, 0.03, 0.05, 0.62)
+		overlay.color = Color(0.02, 0.03, 0.05, 0.62) if dim_only else Color(0, 0, 0, 1.0)
 		overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		overlay.mouse_filter = Control.MOUSE_FILTER_STOP # Block clicks
 		card.add_child(overlay)
-		# Stay the last sibling so the overlay paints above the tile visual
-		# (which is added to the card *after* this function runs in some flows).
+		# Stay the last sibling so the overlay paints above any child visuals
+		# the caller adds after this function runs.
 		card.move_child(overlay, card.get_child_count() - 1)
 		
 		# 2. Full-width padded container. A CenterContainer shrinks to its
@@ -764,33 +805,41 @@ func apply_locked_overlay(card: Control, item_name: String, message: String, is_
 		vbox.alignment = BoxContainer.ALIGNMENT_CENTER  # vertical centering
 		pad.add_child(vbox)
 
-		# Compact single-line name (clipped, not wrapped) — leaves room for
-		# the rarity tile to read through the translucent overlay.
 		var name_lbl = Label.new()
 		name_lbl.name = "ItemNameLabel"
 		name_lbl.text = item_name
 		name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		name_lbl.add_theme_font_size_override("font_size", 10)
 		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		name_lbl.autowrap_mode = TextServer.AUTOWRAP_OFF
-		name_lbl.clip_text = true
-		name_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-		name_lbl.add_theme_constant_override("outline_size", 3)
-		name_lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
 		var title_col = CATEGORY_COLORS.get(category, Color(0.1, 0.8, 1.0))
 		name_lbl.add_theme_color_override("font_color", title_col)
+		if dim_only:
+			# Compact single-line, clipped — leaves room for the rarity tile
+			# to read through the translucent overlay.
+			name_lbl.add_theme_font_size_override("font_size", 10)
+			name_lbl.autowrap_mode = TextServer.AUTOWRAP_OFF
+			name_lbl.clip_text = true
+			name_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+			name_lbl.add_theme_constant_override("outline_size", 3)
+			name_lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+		else:
+			name_lbl.add_theme_font_size_override("font_size", 12)
+			name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		vbox.add_child(name_lbl)
 
-		# Compact LOCKED badge so the underlying tile stays the dominant read.
 		var lock_lbl = Label.new()
 		lock_lbl.name = "LockHeading"
-		lock_lbl.text = "[ LOCKED ]"
 		lock_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		lock_lbl.add_theme_font_size_override("font_size", 11)
-		lock_lbl.add_theme_color_override("font_color", CATEGORY_COLORS["combat"].lightened(0.1))
-		lock_lbl.add_theme_constant_override("outline_size", 3)
-		lock_lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
 		lock_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		if dim_only:
+			lock_lbl.text = "[ LOCKED ]"
+			lock_lbl.add_theme_font_size_override("font_size", 11)
+			lock_lbl.add_theme_color_override("font_color", CATEGORY_COLORS["combat"].lightened(0.1))
+			lock_lbl.add_theme_constant_override("outline_size", 3)
+			lock_lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+		else:
+			lock_lbl.text = "LOCKED"
+			lock_lbl.add_theme_font_size_override("font_size", 14)
+			lock_lbl.add_theme_color_override("font_color", Color.WHITE)
 		vbox.add_child(lock_lbl)
 
 		var req_lbl = RichTextLabel.new()

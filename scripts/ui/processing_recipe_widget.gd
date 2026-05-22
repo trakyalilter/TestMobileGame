@@ -13,8 +13,11 @@ var parent_ui: Node
 @onready var prog_bar = $MarginContainer/VBoxContainer/ProgressBar
 @onready var time_lbl = $MarginContainer/VBoxContainer/TimeLabel
 
-# P1 Mastery — inline progress under the output block. Created dynamically.
-var _mastery_lbl: RichTextLabel
+# P1 Mastery — compact readout under the output block: caption row +
+# thin progress bar. Built once in setup(), refreshed in update_state().
+var _mastery_left_lbl: Label
+var _mastery_right_lbl: Label
+var _mastery_bar: ProgressBar
 
 func setup(p_rid: String, p_data: Dictionary, p_manager, p_parent):
 	rid = p_rid
@@ -41,7 +44,7 @@ func setup(p_rid: String, p_data: Dictionary, p_manager, p_parent):
 	var glyph = load("res://assets/cursors/pages/processing.svg") as Texture2D
 	UITheme.inject_activity_header(self, "engineering", glyph)
 	UITheme.wrap_in_io_panel(in_lbl, "engineering", "input")
-	UITheme.wrap_in_io_panel(out_lbl, "engineering", "output")
+	var out_panel = UITheme.wrap_in_io_panel(out_lbl, "engineering", "output")
 	# Gap sits above REFINE: INPUTS anchors under the header, while
 	# REFINE / OUTPUT / footer stay bottom-aligned across cards.
 	UITheme.pin_card_footer(self, "ArrowLabel")
@@ -53,15 +56,13 @@ func setup(p_rid: String, p_data: Dictionary, p_manager, p_parent):
 		arrow.add_theme_color_override("font_color",
 			UITheme.CATEGORY_COLORS["engineering"].lightened(0.2))
 
-	# Inline mastery line — sits just under the output panel.
-	_mastery_lbl = RichTextLabel.new()
-	_mastery_lbl.name = "MasteryLabel"
-	_mastery_lbl.bbcode_enabled = true
-	_mastery_lbl.fit_content = true
-	_mastery_lbl.scroll_active = false
-	_mastery_lbl.add_theme_font_size_override("normal_font_size", 10)
-	$MarginContainer/VBoxContainer.add_child(_mastery_lbl)
-	$MarginContainer/VBoxContainer.move_child(_mastery_lbl, out_lbl.get_index() + 1)
+	# Mastery panel sits directly under the OUTPUT panel.
+	var card_vbox = $MarginContainer/VBoxContainer
+	var after_idx = (out_panel.get_index() + 1) if out_panel else card_vbox.get_child_count()
+	var mp = UITheme.build_mastery_panel(card_vbox, after_idx, "engineering")
+	_mastery_left_lbl = mp["left"]
+	_mastery_right_lbl = mp["right"]
+	_mastery_bar = mp["bar"]
 
 func _on_button_pressed():
 	if GameState.combat_manager and GameState.combat_manager.in_combat:
@@ -74,24 +75,48 @@ func _on_button_pressed():
 	parent_ui.update_ui()
 
 func _refresh_mastery():
-	if not _mastery_lbl or not manager:
+	if not _mastery_bar or not manager:
 		return
-	var level: int = manager.get_mastery_level(rid)
-	var prog: Dictionary = manager.get_mastery_progress(rid)
-	var text: String = ""
+	var level = manager.get_mastery_level(rid)
+	var prog = manager.get_mastery_progress(rid)
+	var in_lvl = int(prog["in_level"])
+	var needed = int(prog["needed"])
+	if needed < 1:
+		needed = 1
+	var pct = float(in_lvl) / float(needed) * 100.0
+	if pct < 0.0: pct = 0.0
+	if pct > 100.0: pct = 100.0
+
+	var col_dim = Color(0.48, 0.45, 0.41)
+	var col_mid = Color(0.72, 0.65, 0.45)
+	var col_bright = Color(0.83, 0.69, 0.22)
+	var col_gold = Color(1.0, 0.84, 0.20)
+
 	if level >= 100:
-		text = "[color=#ffd700][b]★ GOLD MASTERY · 100 ★[/b][/color]"
-		name_lbl.add_theme_color_override("font_color", Color(1.0, 0.84, 0.20))
+		_mastery_left_lbl.text = "★ GOLD MASTERY"
+		_mastery_right_lbl.text = "LV 100"
+		_mastery_left_lbl.add_theme_color_override("font_color", col_gold)
+		_mastery_right_lbl.add_theme_color_override("font_color", col_gold)
+		_mastery_bar.value = 100.0
+		name_lbl.add_theme_color_override("font_color", col_gold)
 	elif level >= 50:
-		text = "[color=#d4af37]✦ Mastery %d · %d / %d[/color]" % [
-			level, int(prog["in_level"]), int(prog["needed"])]
+		_mastery_left_lbl.text = "✦ MASTERY  LV %d" % level
+		_mastery_right_lbl.text = "%d / %d" % [in_lvl, needed]
+		_mastery_left_lbl.add_theme_color_override("font_color", col_bright)
+		_mastery_right_lbl.add_theme_color_override("font_color", col_bright)
+		_mastery_bar.value = pct
 	elif level > 0:
-		text = "[color=#b8a572]Mastery %d · %d / %d[/color]" % [
-			level, int(prog["in_level"]), int(prog["needed"])]
+		_mastery_left_lbl.text = "MASTERY  LV %d" % level
+		_mastery_right_lbl.text = "%d / %d" % [in_lvl, needed]
+		_mastery_left_lbl.add_theme_color_override("font_color", col_mid)
+		_mastery_right_lbl.add_theme_color_override("font_color", col_mid)
+		_mastery_bar.value = pct
 	else:
-		text = "[color=#7a7268]Mastery 0 · %d / %d[/color]" % [
-			int(prog["in_level"]), int(prog["needed"])]
-	_mastery_lbl.text = text
+		_mastery_left_lbl.text = "MASTERY  LV 0"
+		_mastery_right_lbl.text = "%d / %d" % [in_lvl, needed]
+		_mastery_left_lbl.add_theme_color_override("font_color", col_dim)
+		_mastery_right_lbl.add_theme_color_override("font_color", col_dim)
+		_mastery_bar.value = pct
 
 func update_state():
 	var is_this_active = (manager.is_active and manager.current_recipe_id == rid)

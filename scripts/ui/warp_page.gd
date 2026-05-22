@@ -1,235 +1,377 @@
 extends Control
 
-@onready var shard_count = $VBox/Header/ShardCount
-@onready var shard_desc = $VBox/Header/ShardDesc
-@onready var gain_label = $VBox/WarpCore/Status/PotentialGain
-@onready var warp_btn = $HBox/ExecuteBtn
-@onready var back_btn = $HBox/BackBtn
+# Warp Core page — rebuilt as a scrollable, sectioned prestige screen.
+# Hierarchy is reversed from the old layout: the dominant readout is now
+# EXOTIC SHARDS + progress-to-next-shard (the actual climb), the warp
+# readiness panel commits to keeps-green / resets-red, EXECUTE WARP is a
+# heavy primary CTA (with confirmation) and RETURN is a small secondary,
+# the Mastery Tree sits at the bottom in a single coherent panel.
+#
+# First-warp teaching block auto-hides after total_warps >= 1 so it doesn't
+# eat the hero zone on every visit forever.
 
-# v107: Warp Mastery Tree UI ----------------------------------------------
-const SHARD_TEXT := "Shards"  # inline shard label — swap to "[img]…[/img]" bbcode later if/when a shard icon SVG is added
-const ACCENT_GOLD := Color(1.0, 0.82, 0.30)         # matches lira icon / header gold
-const ACCENT_PURPLE := Color(0.72, 0.45, 1.0)       # matches Exotic Matter shard color
-const COLOR_PURCHASED := Color(0.30, 0.95, 0.45)    # green checkmark state
-const COLOR_LOCKED := Color(0.55, 0.55, 0.62)       # greyed out
-const COLOR_AFFORD := Color(1.0, 0.82, 0.30)        # gold accent — affordable
-const COLOR_BRANCH_LOCK_BG := Color(0.08, 0.08, 0.10, 0.85)
+# ─── Palette ──────────────────────────────────────────────────────────────
+const COLOR_KEEPS := Color(0.45, 0.95, 0.55)
+const COLOR_RESETS := Color(0.95, 0.40, 0.40)
+const COLOR_SHARD := Color(0.78, 0.55, 1.0)        # Exotic Matter purple
+const COLOR_GOLD := Color(1.0, 0.82, 0.30)
+const COLOR_PURCHASED := Color(0.30, 0.95, 0.45)
+const COLOR_LOCKED := Color(0.55, 0.55, 0.62)
+const COLOR_AFFORD := Color(1.0, 0.82, 0.30)
+const COLOR_DIM := Color(0.62, 0.66, 0.76)
+const COLOR_BRANCH_LOCK_BG := Color(0.05, 0.06, 0.10, 0.92)
 
-var _tree_panel: PanelContainer = null
-var _avail_label: Label = null
-var _branch_columns: Dictionary = {}   # {branch_id: {column_vbox, lock_overlay}}
-var _node_widgets: Dictionary = {}     # {node_id: {root, status_lbl, buy_btn}}
+# Mirror of warp_manager.calculate_warp_gains() — kept in sync.
+const FIRST_SHARD_THRESHOLD := 500000.0
 
+# ─── State ────────────────────────────────────────────────────────────────
+var _wm  # GameState.warp_manager
+var _col: VBoxContainer
+
+# Header
+var _cycle_lbl: Label
+var _shards_big_lbl: Label
+var _shards_sub_lbl: Label
+var _progress_bar: ProgressBar
+var _progress_lbl: Label
+var _first_warp_panel: PanelContainer
+
+# Readiness
+var _gain_big_lbl: Label
+
+# Buttons
+var _warp_btn: Button
+var _back_btn: Button
+
+# Tree (procedural)
+var _tree_panel: PanelContainer
+var _avail_label: Label
+var _branch_columns: Dictionary = {}   # {branch_id: {column, lock}}
+var _node_widgets: Dictionary = {}     # {node_id: {root, style, btn, status}}
+
+
+# ─── Lifecycle ────────────────────────────────────────────────────────────
 func _ready():
-	_update_ui()
-	GameState.warp_manager.warped.connect(_on_warped)
-	GameState.warp_manager.tree_node_purchased.connect(_on_node_purchased)
-	_build_tree_section()
-	_refresh_tree()
+	_wm = GameState.warp_manager
+	_build_ui()
+	_wm.warped.connect(_on_warped)
+	_wm.tree_node_purchased.connect(_on_node_purchased)
+	$ConfirmationDialog.confirmed.connect(_on_confirm_warp)
+	_update_all()
 
+
+func _process(_delta):
+	if not visible: return
+	_update_dynamic()
+
+
+# Tutorial coach anchors — preserved from the old API so the coach overlay
+# still knows where to point.
 func get_coach_anchor(key: String) -> Control:
 	match key:
 		"gain":
-			return gain_label
+			return _gain_big_lbl
 		"warp_btn":
-			return warp_btn
+			return _warp_btn
 	return null
 
-func _process(_delta):
-	_update_dynamic_values()
 
-func _update_ui():
-	var wm = GameState.warp_manager
-	shard_count.text = "EXOTIC MATTER: %.1f Shards" % wm.warp_shards
+# ─── Layout scaffold ──────────────────────────────────────────────────────
+func _build_ui():
+	var pad = MarginContainer.new()
+	pad.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	for s in ["left", "right", "top", "bottom"]:
+		pad.add_theme_constant_override("margin_" + s, 20)
+	add_child(pad)
 
-	if wm.total_warps == 0:
-		shard_desc.text = "FIRST WARP — Permanently unlocks:\n• Prestige multipliers (Production / Combat / Gathering / XP)\n• Warp Tier scaling (doubles every 5 warps)\n• Starting resource package on each future warp"
-		shard_desc.add_theme_color_override("font_color", Color(0.6, 1.0, 0.8))
-	else:
-		var tier = wm.warp_tier if "warp_tier" in wm else int(wm.total_warps / 5)
-		shard_desc.text = "Warp %d  |  Tier %d  |  ×%.0f multiplier scale\n+%.0f%% Production | +%.0f%% Combat | +%.0f%% Gathering | +%.0f%% XP" % [
-			wm.total_warps,
-			tier,
-			pow(2, tier),
-			(wm.get_production_multiplier() - 1.0) * 100.0,
-			(wm.get_combat_multiplier() - 1.0) * 100.0,
-			(wm.get_gathering_multiplier() - 1.0) * 100.0,
-			(wm.get_xp_multiplier() - 1.0) * 100.0
-		]
-		shard_desc.add_theme_color_override("font_color", Color.WHITE)
+	var scroll = ScrollContainer.new()
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.size_flags_horizontal = Control.SIZE_FILL
+	scroll.size_flags_vertical = Control.SIZE_FILL
+	pad.add_child(scroll)
 
-func _update_dynamic_values():
-	var gains = GameState.warp_manager.calculate_warp_gains()
-	gain_label.text = "Potential Gains: +%d Shards" % gains
-	warp_btn.disabled = gains <= 0
+	var center = CenterContainer.new()
+	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(center)
 
-func _on_execute_btn_pressed():
-	# Confirmation logic
-	_show_confirmation()
+	_col = VBoxContainer.new()
+	_col.name = "WarpColumn"
+	_col.custom_minimum_size = Vector2(740, 0)
+	_col.add_theme_constant_override("separation", 14)
+	center.add_child(_col)
 
-func _show_confirmation():
-	var gains = GameState.warp_manager.calculate_warp_gains()
-	var msg = "WARP CORE RESONANCE DETECTED.\n\nExecuting this command will reset your Liras, Industrial Infrastructure, and Standard Materials.\n\nYou will gain %d EXOTIC MATTER SHARDS.\n\nPROCEED WITH SYSTEM RESTART?" % gains
-	
-	# For now, just execute if confirmed via prompt or simple button check
-	# In a real game we'd use a Modal.
-	GameState.warp_manager.execute_warp()
-
-func _on_warped(gains):
-	_update_ui()
-	UITheme.trigger_circuit_surge(shard_count)
-	var wm = GameState.warp_manager
-	gain_label.text = "WARP COMPLETE — +%d Shards gained  |  Total: %.1f  |  Next tier in %d warps" % [
-		gains,
-		wm.warp_shards,
-		5 - (wm.total_warps % 5)
-	]
-	gain_label.add_theme_color_override("font_color", Color(0.5, 1.0, 0.7))
-	# v107: Repaint Mastery Tree so newly-revealed branches uncover, and any
-	# new shards immediately show as spendable.
-	_refresh_tree()
-
-func _on_back_btn_pressed():
-	if get_tree().current_scene.has_method("switch_to"):
-		get_tree().current_scene.switch_to("mission")
+	_build_header()
+	_build_first_warp_block()
+	_build_readiness()
+	_build_buttons()
+	_build_tree_section()
 
 
-# === v107: Warp Mastery Tree UI ============================================
+# ─── HEADER: cycle + big shard readout + progress-to-next-shard bar ──────
+func _build_header():
+	var panel = PanelContainer.new()
+	panel.size_flags_horizontal = Control.SIZE_FILL
+	_col.add_child(panel)
 
+	var mc = MarginContainer.new()
+	mc.add_theme_constant_override("margin_left", 22)
+	mc.add_theme_constant_override("margin_right", 22)
+	mc.add_theme_constant_override("margin_top", 16)
+	mc.add_theme_constant_override("margin_bottom", 18)
+	panel.add_child(mc)
+
+	var v = VBoxContainer.new()
+	v.add_theme_constant_override("separation", 6)
+	mc.add_child(v)
+
+	_cycle_lbl = Label.new()
+	_cycle_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_cycle_lbl.add_theme_font_size_override("font_size", 13)
+	_cycle_lbl.add_theme_color_override("font_color", COLOR_DIM)
+	v.add_child(_cycle_lbl)
+
+	_shards_big_lbl = Label.new()
+	_shards_big_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_shards_big_lbl.add_theme_font_size_override("font_size", 34)
+	_shards_big_lbl.add_theme_color_override("font_color", COLOR_SHARD)
+	v.add_child(_shards_big_lbl)
+
+	_shards_sub_lbl = Label.new()
+	_shards_sub_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_shards_sub_lbl.add_theme_font_size_override("font_size", 11)
+	_shards_sub_lbl.add_theme_color_override("font_color", COLOR_DIM)
+	v.add_child(_shards_sub_lbl)
+
+	var spacer = Control.new()
+	spacer.custom_minimum_size = Vector2(0, 4)
+	v.add_child(spacer)
+
+	var cap = Label.new()
+	cap.text = "PROGRESS TO NEXT SHARD"
+	cap.add_theme_font_size_override("font_size", 10)
+	cap.add_theme_color_override("font_color", Color(0.55, 0.58, 0.66))
+	v.add_child(cap)
+
+	_progress_bar = ProgressBar.new()
+	_progress_bar.custom_minimum_size = Vector2(0, 10)
+	_progress_bar.show_percentage = false
+	_progress_bar.min_value = 0.0
+	_progress_bar.max_value = 100.0
+	UITheme.apply_progress_bar_style(_progress_bar, "research")
+	v.add_child(_progress_bar)
+
+	_progress_lbl = Label.new()
+	_progress_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_progress_lbl.add_theme_font_size_override("font_size", 10)
+	_progress_lbl.add_theme_color_override("font_color", COLOR_DIM)
+	v.add_child(_progress_lbl)
+
+	UITheme.apply_card_style(panel, "research")
+
+
+# ─── FIRST WARP teaching (auto-hidden once total_warps >= 1) ─────────────
+func _build_first_warp_block():
+	_first_warp_panel = PanelContainer.new()
+	_first_warp_panel.size_flags_horizontal = Control.SIZE_FILL
+	_col.add_child(_first_warp_panel)
+
+	var mc = MarginContainer.new()
+	for s in ["left", "right"]:
+		mc.add_theme_constant_override("margin_" + s, 18)
+	mc.add_theme_constant_override("margin_top", 12)
+	mc.add_theme_constant_override("margin_bottom", 14)
+	_first_warp_panel.add_child(mc)
+
+	var v = VBoxContainer.new()
+	v.add_theme_constant_override("separation", 5)
+	mc.add_child(v)
+
+	var title = Label.new()
+	title.text = "FIRST WARP — WHAT YOU'LL UNLOCK"
+	title.add_theme_font_size_override("font_size", 12)
+	title.add_theme_color_override("font_color", UITheme.CATEGORY_COLORS["mission"])
+	v.add_child(title)
+
+	var bullets = Label.new()
+	bullets.text = "• Prestige multipliers (Production / Combat / Gathering / XP)\n• Warp Tier scaling (doubles every 5 warps)\n• Starting resource package on each future warp"
+	bullets.add_theme_font_size_override("font_size", 11)
+	bullets.add_theme_color_override("font_color", Color(0.78, 0.86, 0.82))
+	v.add_child(bullets)
+
+	UITheme.apply_card_style(_first_warp_panel, "mission")
+
+
+# ─── READINESS: gains big + keeps/resets ──────────────────────────────────
+func _build_readiness():
+	var panel = PanelContainer.new()
+	panel.size_flags_horizontal = Control.SIZE_FILL
+	_col.add_child(panel)
+
+	var mc = MarginContainer.new()
+	for s in ["left", "right"]:
+		mc.add_theme_constant_override("margin_" + s, 22)
+	mc.add_theme_constant_override("margin_top", 14)
+	mc.add_theme_constant_override("margin_bottom", 16)
+	panel.add_child(mc)
+
+	var v = VBoxContainer.new()
+	v.add_theme_constant_override("separation", 8)
+	mc.add_child(v)
+
+	var title_row = HBoxContainer.new()
+	v.add_child(title_row)
+
+	var ttl = Label.new()
+	ttl.text = "WARP READINESS"
+	ttl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	ttl.add_theme_font_size_override("font_size", 13)
+	ttl.add_theme_color_override("font_color", COLOR_DIM)
+	title_row.add_child(ttl)
+
+	_gain_big_lbl = Label.new()
+	_gain_big_lbl.add_theme_font_size_override("font_size", 14)
+	_gain_big_lbl.add_theme_color_override("font_color", COLOR_SHARD)
+	title_row.add_child(_gain_big_lbl)
+
+	var rule = ColorRect.new()
+	rule.color = Color(1, 1, 1, 0.08)
+	rule.custom_minimum_size = Vector2(0, 1)
+	v.add_child(rule)
+
+	var keeps = Label.new()
+	keeps.text = "  ✓  KEEPS    Research · Ships · Exotic Matter · Warp Mastery"
+	keeps.add_theme_font_size_override("font_size", 11)
+	keeps.add_theme_color_override("font_color", COLOR_KEEPS)
+	v.add_child(keeps)
+
+	var resets = Label.new()
+	resets.text = "  ✗  RESETS   Liras · Buildings · Standard Resources · Skill levels (keep 30% XP)"
+	resets.add_theme_font_size_override("font_size", 11)
+	resets.add_theme_color_override("font_color", COLOR_RESETS)
+	v.add_child(resets)
+
+	UITheme.apply_card_style(panel, "ops")
+
+
+# ─── BUTTONS: small return + heavy execute (purple primary CTA) ──────────
+func _build_buttons():
+	var row = HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 18)
+	_col.add_child(row)
+
+	_back_btn = Button.new()
+	_back_btn.text = "← Return"
+	_back_btn.custom_minimum_size = Vector2(130, 44)
+	UITheme.apply_premium_button_style(_back_btn, "engineering")
+	_back_btn.add_theme_font_size_override("font_size", 12)
+	_back_btn.pressed.connect(_on_back_btn_pressed)
+	row.add_child(_back_btn)
+
+	_warp_btn = Button.new()
+	_warp_btn.text = "◈   EXECUTE WARP"
+	_warp_btn.custom_minimum_size = Vector2(380, 56)
+	UITheme.apply_premium_button_style(_warp_btn, "research")
+	_warp_btn.add_theme_font_size_override("font_size", 16)
+	_warp_btn.pressed.connect(_on_execute_btn_pressed)
+	row.add_child(_warp_btn)
+
+
+# ─── TREE: existing 4-state logic, restructured into the new column ──────
 func _build_tree_section():
-	# Widen + grow the parent VBox to accommodate the two-column tree.
-	var vb := $VBox
-	vb.offset_left = -400.0
-	vb.offset_right = 400.0
-	vb.offset_top = -340.0
-	vb.offset_bottom = 340.0
-
-	# v107: Reparent the existing Return/Execute button row INTO the VBox
-	# between WarpCore and the new tree, instead of letting it float as a
-	# bottom-anchored sibling that overlaps the tree cards. The HBox keeps
-	# its children (Return + Execute) but follows the natural VBox flow now.
-	var hbox = $HBox
-	if hbox and hbox.get_parent() != vb:
-		hbox.get_parent().remove_child(hbox)
-		# Reset anchors — VBox flow takes over horizontal positioning
-		hbox.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-		hbox.alignment = BoxContainer.ALIGNMENT_CENTER
-		hbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		vb.add_child(hbox)
-
-	var wm = GameState.warp_manager
-
 	_tree_panel = PanelContainer.new()
-	_tree_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_tree_panel.custom_minimum_size = Vector2(760, 340)
-	UITheme.apply_card_style(_tree_panel, "shipyard")
-	vb.add_child(_tree_panel)
+	_tree_panel.size_flags_horizontal = Control.SIZE_FILL
+	_col.add_child(_tree_panel)
 
-	var outer := MarginContainer.new()
+	var outer = MarginContainer.new()
 	for k in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
-		outer.add_theme_constant_override(k, 12)
+		outer.add_theme_constant_override(k, 14)
 	_tree_panel.add_child(outer)
 
-	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 8)
-	outer.add_child(col)
+	var c = VBoxContainer.new()
+	c.add_theme_constant_override("separation", 8)
+	outer.add_child(c)
 
-	var title := Label.new()
+	var title = Label.new()
 	title.text = "[ WARP MASTERY TREE ]"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 18)
-	title.add_theme_color_override("font_color", ACCENT_GOLD)
-	col.add_child(title)
+	title.add_theme_font_size_override("font_size", 16)
+	title.add_theme_color_override("font_color", COLOR_GOLD)
+	c.add_child(title)
 
 	_avail_label = Label.new()
 	_avail_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_avail_label.add_theme_font_size_override("font_size", 13)
+	_avail_label.add_theme_font_size_override("font_size", 12)
 	_avail_label.add_theme_color_override("font_color", Color.WHITE)
-	col.add_child(_avail_label)
+	c.add_child(_avail_label)
 
-	# v107: Wrap the two-column section in a ScrollContainer so the lower
-	# nodes (E4/E5/C4/C5) are reachable when the viewport doesn't have
-	# enough vertical room. Horizontal scroll is disabled — only vertical
-	# overflow scrolls. The header + warp-readiness + execute button row
-	# above stay anchored, so the EXECUTE WARP action is never hidden.
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	scroll.custom_minimum_size = Vector2(0, 240)
-	col.add_child(scroll)
-
-	var hb := HBoxContainer.new()
+	var hb = HBoxContainer.new()
 	hb.add_theme_constant_override("separation", 12)
 	hb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hb.size_flags_vertical = Control.SIZE_SHRINK_BEGIN  # let HBox grow to fit cards; scroll handles overflow
-	scroll.add_child(hb)
+	c.add_child(hb)
 
 	hb.add_child(_build_branch_column("engineering", "ENGINEERING"))
 	hb.add_child(_build_branch_column("combat", "COMBAT"))
 
+	UITheme.apply_card_style(_tree_panel, "shipyard")
 
-func _build_branch_column(branch_id: String, title: String) -> Control:
-	var wm = GameState.warp_manager
 
-	# Stack: branch column (nodes) + lock overlay on top
-	var col_panel := PanelContainer.new()
+func _build_branch_column(branch_id: String, title_text: String) -> Control:
+	var col_panel = PanelContainer.new()
 	col_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var col_style := StyleBoxFlat.new()
-	col_style.bg_color = Color(0.10, 0.10, 0.13, 0.85)
+
+	var col_style = StyleBoxFlat.new()
+	col_style.bg_color = Color(0.08, 0.09, 0.13, 0.85)
 	col_style.set_border_width_all(1)
-	col_style.border_color = ACCENT_GOLD
-	col_style.border_color.a = 0.25
-	col_style.set_corner_radius_all(2)
+	col_style.border_color = Color(COLOR_GOLD.r, COLOR_GOLD.g, COLOR_GOLD.b, 0.22)
 	col_panel.add_theme_stylebox_override("panel", col_style)
 
-	var stack := Control.new()
+	var stack = Control.new()
 	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	stack.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	col_panel.add_child(stack)
 
-	var mc := MarginContainer.new()
+	var mc = MarginContainer.new()
 	mc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	for k in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
 		mc.add_theme_constant_override(k, 8)
 	stack.add_child(mc)
 
-	var col := VBoxContainer.new()
+	var col = VBoxContainer.new()
 	col.add_theme_constant_override("separation", 6)
 	mc.add_child(col)
 
-	var hdr := Label.new()
-	hdr.text = title
+	var hdr = Label.new()
+	hdr.text = title_text
 	hdr.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hdr.add_theme_font_size_override("font_size", 14)
-	hdr.add_theme_color_override("font_color", ACCENT_GOLD)
+	hdr.add_theme_font_size_override("font_size", 13)
+	hdr.add_theme_color_override("font_color", COLOR_GOLD)
 	col.add_child(hdr)
 
-	for node_id in wm.TREE_NODES:
-		var node_data: Dictionary = wm.TREE_NODES[node_id]
+	for node_id in _wm.TREE_NODES:
+		var node_data = _wm.TREE_NODES[node_id]
 		if node_data.get("branch", "") != branch_id:
 			continue
 		col.add_child(_build_node_card(node_id))
 
-	# Branch lock overlay (covers the column when branch not yet revealed)
-	var lock := Panel.new()
+	# Branch lock overlay — covers the column when the branch isn't yet
+	# revealed by warp count. Stays the last child so it always paints on top.
+	var lock = Panel.new()
 	lock.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	lock.mouse_filter = Control.MOUSE_FILTER_STOP
-	var lock_sb := StyleBoxFlat.new()
+	var lock_sb = StyleBoxFlat.new()
 	lock_sb.bg_color = COLOR_BRANCH_LOCK_BG
-	lock_sb.set_corner_radius_all(2)
 	lock.add_theme_stylebox_override("panel", lock_sb)
 	stack.add_child(lock)
 
-	var lock_label := Label.new()
+	var lock_label = Label.new()
 	lock_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
 	lock_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lock_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	lock_label.add_theme_font_size_override("font_size", 14)
 	lock_label.add_theme_color_override("font_color", COLOR_LOCKED)
-	var reveal_at: int = int(wm.BRANCH_REVEAL_WARP.get(branch_id, 1))
-	lock_label.text = "🔒 UNLOCKS AT WARP #%d" % reveal_at
+	var reveal_at = int(_wm.BRANCH_REVEAL_WARP.get(branch_id, 1))
+	lock_label.text = "[ LOCKED ]   UNLOCKS AT WARP #%d" % reveal_at
 	lock.add_child(lock_label)
 
 	_branch_columns[branch_id] = {"column": col, "lock": lock}
@@ -237,52 +379,49 @@ func _build_branch_column(branch_id: String, title: String) -> Control:
 
 
 func _build_node_card(node_id: String) -> Control:
-	var wm = GameState.warp_manager
-	var node_data: Dictionary = wm.TREE_NODES[node_id]
+	var node_data = _wm.TREE_NODES[node_id]
 
-	var card := PanelContainer.new()
+	var card = PanelContainer.new()
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.13, 0.13, 0.17, 0.95)
+	var sb = StyleBoxFlat.new()
+	sb.bg_color = Color(0.10, 0.11, 0.16, 0.95)
 	sb.set_border_width_all(1)
 	sb.border_color = COLOR_LOCKED
-	sb.set_corner_radius_all(3)
-	sb.set_content_margin_all(8)
+	sb.content_margin_left = 9
+	sb.content_margin_right = 9
+	sb.content_margin_top = 7
+	sb.content_margin_bottom = 7
 	card.add_theme_stylebox_override("panel", sb)
 
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 4)
+	var v = VBoxContainer.new()
+	v.add_theme_constant_override("separation", 3)
 	card.add_child(v)
 
-	# Title row: name (expand) + state-driven action element (right-aligned).
-	# We instantiate BOTH a Button and a Label and toggle visibility in
-	# _refresh_node — keeps the card layout stable across state transitions.
-	var row := HBoxContainer.new()
+	var row = HBoxContainer.new()
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_theme_constant_override("separation", 8)
 	v.add_child(row)
 
-	var t := Label.new()
-	t.text = "%s — %s" % [node_id, node_data.get("name", "")]
+	var t = Label.new()
+	t.text = "%s · %s" % [node_id, node_data.get("name", "")]
 	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	t.add_theme_font_size_override("font_size", 12)
 	t.add_theme_color_override("font_color", Color.WHITE)
 	row.add_child(t)
 
-	var btn := Button.new()
+	var btn = Button.new()
 	btn.size_flags_horizontal = Control.SIZE_SHRINK_END
 	btn.add_theme_font_size_override("font_size", 11)
 	btn.pressed.connect(func(): _on_buy_pressed(node_id))
 	row.add_child(btn)
 
-	var status_lbl := Label.new()
+	var status_lbl = Label.new()
 	status_lbl.size_flags_horizontal = Control.SIZE_SHRINK_END
 	status_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	status_lbl.add_theme_font_size_override("font_size", 11)
 	row.add_child(status_lbl)
 
-	# Description below the title row, full width.
-	var desc := Label.new()
+	var desc = Label.new()
 	desc.text = str(node_data.get("desc", ""))
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	desc.add_theme_font_size_override("font_size", 10)
@@ -293,73 +432,166 @@ func _build_node_card(node_id: String) -> Control:
 	return card
 
 
+# ─── Refresh / update ─────────────────────────────────────────────────────
+func _update_all():
+	_refresh_header()
+	_refresh_first_warp_visibility()
+	_refresh_readiness()
+	_refresh_tree()
+
+
+func _refresh_header():
+	var n = int(_wm.total_warps)
+	_cycle_lbl.text = "WARP CYCLE   #%d   ▸   #%d" % [n, n + 1]
+	_shards_big_lbl.text = "◈   %.1f   EXOTIC SHARDS" % _wm.warp_shards
+	var tier = 0
+	if _wm.has_method("get_warp_tier"):
+		tier = int(_wm.get_warp_tier())
+	var prod_pct = (_wm.get_production_multiplier() - 1.0) * 100.0
+	_shards_sub_lbl.text = "Warp Tier  ×%d   ·   +%.0f%% production scale" % [int(pow(2, tier)), prod_pct]
+
+
+func _refresh_first_warp_visibility():
+	_first_warp_panel.visible = (int(_wm.total_warps) == 0)
+
+
+func _refresh_readiness():
+	var gains = int(_wm.calculate_warp_gains())
+	if gains > 0:
+		_gain_big_lbl.text = "POTENTIAL  +%d %s" % [gains, "SHARD" if gains == 1 else "SHARDS"]
+		_gain_big_lbl.add_theme_color_override("font_color", COLOR_SHARD.lightened(0.1))
+	else:
+		_gain_big_lbl.text = "NOT READY"
+		_gain_big_lbl.add_theme_color_override("font_color", Color(0.65, 0.55, 0.55))
+
+
+# Per-frame live values: progress bar + button enable state.
+func _update_dynamic():
+	if _warp_btn == null: return
+	var gains = int(_wm.calculate_warp_gains())
+	_warp_btn.disabled = (gains <= 0)
+
+	var score = _compute_progress_score()
+	var prev_thr = 0.0
+	if gains > 0:
+		prev_thr = FIRST_SHARD_THRESHOLD * pow(2.0, float(gains - 1))
+	var next_thr = FIRST_SHARD_THRESHOLD * pow(2.0, float(gains))
+	var span = next_thr - prev_thr
+	if span < 1.0: span = 1.0
+	var into = score - prev_thr
+	if into < 0.0: into = 0.0
+	if into > span: into = span
+	_progress_bar.value = (into / span) * 100.0
+	_progress_lbl.text = "%s / %s   (toward +%d %s)" % [
+		FormatUtils.format_number(score),
+		FormatUtils.format_number(next_thr),
+		gains + 1,
+		"shard" if gains + 1 == 1 else "shards"
+	]
+	# Refresh readiness label too (gains can change live).
+	_refresh_readiness()
+
+
+# Mirrors warp_manager.calculate_warp_gains() score computation exactly.
+func _compute_progress_score() -> float:
+	var total_credits = GameState.resources.lifetime_credits - _wm.credits_at_warp_start
+	var building_count = 0
+	for bid in GameState.infrastructure_manager.buildings:
+		building_count += GameState.infrastructure_manager.buildings[bid]
+	return float(total_credits) + float(building_count) * 1000.0
+
+
+# ─── Tree refresh (4-state cascade preserved) ─────────────────────────────
 func _refresh_tree():
-	if _tree_panel == null:
-		return
-	var wm = GameState.warp_manager
-	var avail_n: int = int(wm.get_available_shards())
-	_avail_label.text = "AVAILABLE: %d %s   |   SPENT: %d   |   EARNED: %d" % [
+	if _tree_panel == null: return
+	var avail_n = int(_wm.get_available_shards())
+	_avail_label.text = "AVAILABLE  %d %s     SPENT  %d     EARNED  %d" % [
 		avail_n, _shard_label(avail_n),
-		int(wm.warp_shards_spent),
-		int(wm.warp_shards)
+		int(_wm.warp_shards_spent),
+		int(_wm.warp_shards),
 	]
 	for branch_id in _branch_columns:
-		var lock: Control = _branch_columns[branch_id]["lock"]
-		lock.visible = not wm.is_branch_revealed(branch_id)
+		var lock = _branch_columns[branch_id]["lock"]
+		lock.visible = not _wm.is_branch_revealed(branch_id)
 	for node_id in _node_widgets:
 		_refresh_node(node_id)
 
 
 func _refresh_node(node_id: String):
-	var wm = GameState.warp_manager
-	var w: Dictionary = _node_widgets[node_id]
-	var sb: StyleBoxFlat = w["style"]
-	var btn: Button = w["btn"]
-	var status: Label = w["status"]
-	var cost: int = int(wm.TREE_NODES[node_id].get("cost", 0))
+	var w = _node_widgets[node_id]
+	var sb = w["style"]
+	var btn = w["btn"]
+	var status = w["status"]
+	var cost = int(_wm.TREE_NODES[node_id].get("cost", 0))
 
-	# Single source of truth for the right-hand element: button is for the
-	# affordable state only; every other state shows inline status text.
-	if wm.is_node_purchased(node_id):
+	if _wm.is_node_purchased(node_id):
 		sb.border_color = COLOR_PURCHASED
+		sb.bg_color = Color(0.08, 0.16, 0.10, 0.95)
 		btn.visible = false
 		status.visible = true
 		status.text = "✓ Acquired"
 		status.add_theme_color_override("font_color", COLOR_PURCHASED)
-	elif not wm.is_node_implemented(node_id):
-		# Mechanic-unlock node whose code path hasn't shipped yet — no
-		# shards at risk, distinct visual from "can't afford".
+	elif not _wm.is_node_implemented(node_id):
 		sb.border_color = COLOR_LOCKED
+		sb.bg_color = Color(0.09, 0.10, 0.13, 0.90)
 		btn.visible = false
 		status.visible = true
-		status.text = "Coming Soon · %d %s" % [cost, _shard_label(cost)]
+		status.text = "Soon · %d %s" % [cost, _shard_label(cost)]
 		status.add_theme_color_override("font_color", COLOR_LOCKED)
-	elif wm.can_purchase_node(node_id):
+	elif _wm.can_purchase_node(node_id):
 		sb.border_color = COLOR_AFFORD
+		sb.bg_color = Color(0.13, 0.11, 0.06, 0.95)
 		btn.visible = true
 		status.visible = false
-		btn.text = "Buy · %d %s" % [cost, _shard_label(cost)]
+		btn.text = "BUY · %d %s" % [cost, _shard_label(cost)]
 		btn.disabled = false
 	else:
 		sb.border_color = COLOR_LOCKED
+		sb.bg_color = Color(0.10, 0.11, 0.16, 0.95)
 		btn.visible = false
 		status.visible = true
-		var avail: int = int(wm.get_available_shards())
-		var need: int = max(0, cost - avail)
+		var avail = int(_wm.get_available_shards())
+		var need = cost - avail
+		if need < 0: need = 0
 		status.text = "Need %d more %s" % [need, _shard_label(need)]
 		status.add_theme_color_override("font_color", COLOR_LOCKED)
 
 
 func _shard_label(n: int) -> String:
-	# v107: singular vs plural so "1 Shard" reads naturally instead of "1 Shards".
 	return "Shard" if abs(n) == 1 else "Shards"
 
 
-func _on_buy_pressed(node_id: String):
-	var wm = GameState.warp_manager
-	if wm.purchase_node(node_id):
-		UITheme.trigger_circuit_surge(_avail_label)
+# ─── Actions ──────────────────────────────────────────────────────────────
+func _on_execute_btn_pressed():
+	var gains = int(_wm.calculate_warp_gains())
+	if gains <= 0: return
+	var s = "" if gains == 1 else "s"
+	$ConfirmationDialog.dialog_text = "Execute Warp will:\n\n+ Grant %d Exotic Shard%s\n\nReset: Liras, Buildings, Standard Resources, Skill levels (keep 30%% XP)\nKeep: Research, Ships, Exotic Matter, Warp Mastery purchases\n\nThis cannot be undone." % [gains, s]
+	$ConfirmationDialog.popup_centered()
+
+
+func _on_confirm_warp():
+	_wm.execute_warp()
+
+
+func _on_back_btn_pressed():
+	if get_tree().current_scene.has_method("switch_to"):
+		get_tree().current_scene.switch_to("mission")
+
+
+func _on_warped(gains):
+	_update_all()
+	UITheme.trigger_circuit_surge(_shards_big_lbl)
+	# Brief celebratory text on the readiness panel so the dopamine moment lands.
+	var s = "" if gains == 1 else "s"
+	_gain_big_lbl.text = "WARP COMPLETE · +%d SHARD%s" % [gains, s]
+	_gain_big_lbl.add_theme_color_override("font_color", COLOR_PURCHASED)
 
 
 func _on_node_purchased(_node_id: String):
 	_refresh_tree()
+
+
+func _on_buy_pressed(node_id: String):
+	if _wm.purchase_node(node_id):
+		UITheme.trigger_circuit_surge(_avail_label)
