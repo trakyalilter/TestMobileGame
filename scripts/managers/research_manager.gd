@@ -2,10 +2,11 @@ extends Skill
 
 signal activity_occurred
 
-var action_duration = 5.0
-var current_action = ""
-var is_active = false
-var action_progress = 0.0
+# v111.5: scan-loop vars stripped. `is_active` + `current_action` kept (read
+# externally by game_state / global_header / offline_boot_modal) but pinned
+# at falsey values — research has no foreground action anymore.
+var current_action: String = ""
+var is_active: bool = false
 
 # v56.0: Progression Pacing Extension - 2.5x credit costs for 30-40h playtime
 const COST_MULTIPLIER = 1.0 # Applied manually now
@@ -72,155 +73,257 @@ func _on_research_completed(active_tech_id):
 var tech_tree = {
 	"basic_engineering": {
 		"name": "Basic Engineering",
-		"description": "Unlocks:\n• Mineral Washing\n• Lithium Refining",
+		"tier": 1,
+		"category": "processing",
 		"cost": 125,
 		"type": "technology",
-		"parent": null
+		"parent": null,
+		"effects": [],
+		# v111.6 audit: "Lithium Refining" → "Refine Lithium" (real recipe id).
+		"unlocks": ["Mineral Washing", "Refine Lithium"],
+		"flavor": "",
 	},
+	# v111.6 audit batch G — applied_physics' unlocks were three downstream
+	# research-tech names (energy_shields, eff_scanning_1 [deleted!],
+	# core_overclocking), not items. Tree's parent/req_tech edges already
+	# show downstream techs — dropped from the prose.
 	"applied_physics": {
 		"name": "Applied Physics",
-		"description": "Unlocks: Energy Fields, Sensor Calibration (Operations), Reactor Overclocking (Ships)",
+		"tier": 1,
+		"category": "meta",
 		"cost": 625,
 		"type": "technology",
-		"parent": "basic_engineering"
+		"parent": "basic_engineering",
+		"effects": [],
+		"unlocks": [],
+		"flavor": "Gates the Energy Fields and Reactor Overclocking branches.",
 	},
 	"materials_science": {
 		"name": "Materials Science",
-		"description": "Unlocks:\n• Advanced Technologies",
+		"tier": 1,
+		"category": "meta",
 		"cost": 625,
 		"type": "technology",
-		"parent": "basic_engineering"
+		"parent": "basic_engineering",
+		"effects": [],
+		"unlocks": [],
+		"flavor": "Gates the Advanced Technologies branch.",
 	},
 	"industrial_logistics": {
 		"name": "Industrial Logistics",
-		"description": "Unlocks:\n• Advanced Technologies",
+		"tier": 1,
+		"category": "meta",
 		"cost": 625,
 		"type": "technology",
-		"parent": "basic_engineering"
+		"parent": "basic_engineering",
+		"effects": [],
+		"unlocks": [],
+		"flavor": "Gates the Advanced Technologies branch.",
 	},
 	"fluid_dynamics": {
 		"name": "Fluid Dynamics",
-		"description": "Unlocks:\n• Water Reclamation (Building)\n• Electrolysis (Crafting)\n• High-Flow Pumps (Operations)",
+		"tier": 1,
+		"category": "processing",
 		"cost": 125,
 		"type": "technology",
-		"parent": "applied_physics"
+		"parent": "applied_physics",
+		"effects": [],
+		# v111.6 audit:
+		#   • "Water Reclamation" — phantom (no recipe/building by that name)
+		#   • "Electrolysis" → "Water Electrolysis" (real recipe display name)
+		#   • "High-Flow Pumps" — that's a downstream research tech name,
+		#     not an item. Tree edge already shows it.
+		"unlocks": ["Water Electrolysis"],
+		"flavor": "",
 	},
+	# v110: schema refactor pilot — combustion / smelting / shipwright_1 are
+	# the first three converted to the structured format. UI now builds the
+	# tooltip from `effects` / `unlocks` / `flavor` + auto-derived REQUIRES;
+	# no more hand-typed bullets.
 	"combustion": {
 		"name": "Organic Combustion",
-		"description": "Unlocks:\n• Charcoal Kiln\n• Fly Ash Separation\n• HE Missile (Ammo)\n• Micro-Missile Launcher\n• Laser Cutters (Operations)\n• Carbon Hull Lattice (Ships)",
+		"tier": 1,
+		"category": "processing",
 		"cost": 125,
 		"type": "technology",
-		"parent": "materials_science"
+		"parent": "materials_science",
+		# v111.6 audit: dropped 3 dead/wrong-layer claims —
+		#   • "Fly Ash Separation"  — phantom (no such recipe / building anywhere)
+		#   • "Laser Cutters"       — that's a downstream research tech, not an
+		#                              item; the tree edge already shows it
+		#   • "Carbon Hull Lattice" — same (hull_hardening tech name)
+		"effects": [],
+		"unlocks": [
+			"Charcoal Kiln",
+			"HE Missile",
+			"Micro-Missile Launcher",
+		],
+		"flavor": "",
 	},
 	"smelting": {
 		"name": "Efficient Smelting",
 		# v61.0 Fix: Bronze Alloy doesn't exist, corrected to Galvanized Steel
-		"description": "Unlocks:\n• Steel Foundry\n• Galvanized Steel\n• Shipwright I, Processing Tungsten (Ships)",
+		"tier": 2,
+		"category": "processing",
 		"cost": 3750,  # Audit v41.0: Reduced from 3000 to smooth progression
 		"cost_items": {"Res1": 10, "Circuit": 5},
 		"type": "technology",
-		"parent": "combustion"
+		"parent": "combustion",
+		"effects": [],
+		# v111.6 audit: "Steel Foundry" → "Basic Steel Smelting" (real recipe).
+		"unlocks": ["Basic Steel Smelting", "Galvanized Steel"],
+		"flavor": "",
 	},
 	"shipwright_1": {
 		"name": "Shipwright I",
-		"description": "Unlocks:\n• Industrial Frigate (Hull)\n• [Requires: Efficient Smelting (Engineering)]",
+		"tier": 2,
+		"category": "ships",
 		"cost": 50000,
 		"cost_items": {"Steel":20,"Res1": 20,"Circuit": 10},
 		"type": "technology",
 		"parent": "power_systems",
-		"req_tech": "smelting"
+		"req_tech": "smelting",
+		"effects": [],
+		"unlocks": ["Industrial Frigate"],
+		"flavor": "",
 	},
 
 	"shipwright_2": {
 		"name": "Shipwright II",
-		"description": "Unlocks:\n• Destroyer Class",
+		"tier": 3,
+		"category": "ships",
 		"cost": 1000000,
 		"cost_items": {"Res2": 25},
 		"type": "technology",
-		"parent": "shipwright_1"
+		"parent": "shipwright_1",
+		"effects": [],
+		# v111.6 audit: hull's real display name in shipyard is "Destroyer"
+		# (was "Destroyer Class"). Drop the " Class" suffix so smart-linker
+		# can hyperlink it to the hull popup.
+		"unlocks": ["Destroyer"],
+		"flavor": "",
 	},
 	"adv_materials": {
 		"name": "Advanced Materials",
-		"description": "Unlocks:\n• Graphite Press\n• Factory Automation branch\n• Hydraulic Press branch",
+		"tier": 2,
+		"category": "processing",
 		"cost": 5000,
 		"cost_items": {"Res2": 5},
 		"type": "technology",
-		"parent": "smelting"
+		"parent": "smelting",
+		"effects": [],
+		"unlocks": ["Graphite Press"],
+		"flavor": "Gates the Factory Automation and Hydraulic Press branches.",
 	},
 	"energy_shields": {
 		"name": "Energy Fields",
-		"description": "Required for Shield Harmonics and Magnetic Funnels research.\n• [Requires: Applied Physics (Engineering)]",
+		"tier": 2,
+		"category": "combat",
 		"cost": 1250,
 		"type": "technology",
-		"parent": "eff_scanning_1",
-		"req_tech": "applied_physics"
+		# v111.5: re-parented from `eff_scanning_1` (Sensor Calibration) to
+		# `applied_physics`. Sensor Calibration was deleted as a dead tech —
+		# it boosted a Data currency that had no consumer and a scan loop no
+		# UI ever started.
+		"parent": "applied_physics",
+		"effects": [],
+		"unlocks": [],
+		"flavor": "Gates Shield Harmonics and Magnetic Funnels research.",
 	},
 	"field_theory": {
 		"name": "Field Theory",
 		# v105: restored after wrong-flag deletion — actually gates the IonField
 		# defensive consumable via shipyard CONSUMABLE_REQ_TECH map.
-		"description": "Unlocks:\n• Ion Field (Defensive Consumable)",
+		"tier": 2,
+		"category": "combat",
 		"cost": 37500,
 		"cost_items": {"Res2": 15},
 		"type": "technology",
-		"parent": "energy_shields"
+		"parent": "energy_shields",
+		"effects": [],
+		"unlocks": ["Ion Field"],
+		"flavor": "Defensive consumable for evasion windows.",
 	},
-	"eff_scanning_1": {
-		"name": "Sensor Calibration",
-		"description": "Bonus: +50% Scanning Yield\n• [Requires: Applied Physics (Engineering)]",
-		"cost": 375,
-		"type": "technology",
-		"parent": null,
-		"req_tech": "applied_physics"
-	},
+	# v111.5: eff_scanning_1 (Sensor Calibration) deleted. The tech boosted
+	# Data per Scan, but Data had no consumer in the game and the scan loop
+	# (start_scan / complete_action / scan_sector) was never started by any
+	# UI. Triple-dead feature — removed cleanly. energy_shields re-parented
+	# to applied_physics so the tree stays connected.
 
 	"automation": {
 		"name": "Factory Automation",
-		"description": "Unlocks:\n• Advanced Circuit (Crafting)\n• Required for Advanced Rocketry research",
+		"tier": 2,
+		"category": "processing",
 		"cost": 12500,
 		"cost_items": {"Res2": 25, "Circuit": 20},
 		"type": "technology",
-		"parent": "adv_materials"
+		"parent": "adv_materials",
+		"effects": [],
+		"unlocks": ["Advanced Circuit"],
+		"flavor": "Gates Advanced Rocketry research.",
 	},
 	"advanced_rocketry": {
 		"name": "Advanced Rocketry",
-		"description": "Unlocks:\n• Seeker Missile (Ammo Crafting)\n• [Requires: Factory Automation (Engineering)]",
+		"tier": 3,
+		"category": "combat",
 		"cost": 37500,
 		"cost_items": {"Steel": 100, "Circuit": 50},
 		"type": "technology",
-		"parent": "automation"
+		"parent": "automation",
+		"effects": [],
+		"unlocks": ["Seeker Missile"],
+		"flavor": "",
 	},
 	"sector_alpha_decryption": {
 		"name": "Sector Scanning (Alpha)",
-		"description": "Unlocks:\n• Sector Alpha",
+		"tier": 5,
+		"category": "zone",
 		"cost": 50000,
 		"cost_items": {"NavData": 15, "Res1": 50},
 		"type": "technology",
-		"parent": "zone_5_access"
+		"parent": "zone_5_access",
+		"effects": [],
+		"unlocks": ["Sector Alpha (scan)"],
+		"flavor": "",
 	},
 	"advanced_batteries": {
 		"name": "Advanced Battery Tech",
-		"description": "Unlocks:\n• Cobalt-Lithium Battery\n• Magnesium-Ion Cell\n• [Requires: Advanced Materials (Engineering)]",
+		"tier": 2,
+		"category": "processing",
 		"cost": 7500,
 		"cost_items": {"Co": 25, "Mg": 25, "Li": 25},
 		"type": "technology",
-		"parent": "adv_materials"
+		"parent": "adv_materials",
+		"effects": [],
+		# v111.6 audit:
+		#   • "Cobalt-Lithium Battery" → "Lithium-Cobalt Battery" (word order)
+		#   • "Magnesium-Ion Cell"     → "Magnesium-Ion Battery"
+		"unlocks": ["Lithium-Cobalt Battery", "Magnesium-Ion Battery"],
+		"flavor": "",
 	},
 	"xeno_archaeology": {
 		"name": "Xeno-Archaeology",
-		"description": "Unlocks:\n• Analyze Void Artifact",
+		"tier": 3,
+		"category": "meta",
 		"cost": 5000,
 		"cost_items": {"VoidArtifact": 1, "NavData": 5},
 		"type": "technology",
-		"parent": "sector_alpha_decryption"
+		"parent": "sector_alpha_decryption",
+		"effects": [],
+		"unlocks": ["Analyze Void Artifact"],
+		"flavor": "",
 	},
 	"warp_drive": {
 		"name": "Warp Drive Theory",
-		"description": "Unlocks:\n• Meson Oscillator (Crafting)\n• Required for Deep Space Navigation research",
+		"tier": 3,
+		"category": "meta",
 		"cost": 12500,
 		"cost_items": {"NavData": 50, "Ti": 200, "Res3": 10},
 		"type": "technology",
-		"parent": "shipwright_2"
+		"parent": "shipwright_2",
+		"effects": [],
+		"unlocks": ["Meson Oscillator"],
+		"flavor": "Required for Deep Space Navigation research.",
 	},
 	# --- v56.1: CONTENT GATES (Intermediate milestones) ---
 
@@ -230,12 +333,18 @@ var tech_tree = {
 	# ═══════════════════════════════════════════════════════════════
 	"zone_2_access": {
 		"name": "Asteroid Belt Authorization",
-		"description": "Unlocks:\n• Asteroid Belt zone\n• Zone 2 modules fabrication\n• [Requires: Shipwright I (Ships)]",
+		"tier": 2,
+		"category": "zone",
 		"cost": 30000,
 		"cost_items": {"Z1_Core": 1, "Fe": 40, "Cu": 20},
 		"type": "technology",
 		"parent": null,
-		"req_tech": "shipwright_1"
+		"req_tech": "shipwright_1",
+		"effects": [],
+		# v111.6 audit: "Asteroid Belt zone" → "Asteroid Belt" to match the
+		# combat zone's display name and let the smart-linker hyperlink it.
+		"unlocks": ["Asteroid Belt", "Zone 2 modules fabrication"],
+		"flavor": "",
 	},
 	# v102: Zone gates re-tuned into an escalating industrial-supply curve.
 	# Volumes from z4+ are impractical to hand-gather under the single-active-
@@ -244,393 +353,686 @@ var tech_tree = {
 	# numbers — MATERIAL_MULTIPLIER scales further; tune via playtest.
 	"zone_3_access": {
 		"name": "Mars Debris Clearance",
-		"description": "Unlocks:\n• Mars Debris Field\n• Zone 3 modules fabrication\n[Bulk refined materials — start automating]",
+		"tier": 3,
+		"category": "zone",
 		"cost": 75000,
 		"cost_items": {"Z2_Core": 1, "Steel": 200, "Circuit": 60},
 		"type": "technology",
-		"parent": "zone_2_access"
+		"parent": "zone_2_access",
+		"effects": [],
+		"unlocks": ["Mars Debris Field", "Zone 3 modules fabrication"],
+		"flavor": "Bulk refined materials — start automating.",
 	},
 	"zone_4_access": {
 		"name": "Cryofield Expedition",
-		"description": "Unlocks:\n• Cryofield zone\n• Zone 4 modules & Heavy Cruiser hull\n[Hand-supply is impractical here — build extraction]",
+		"tier": 4,
+		"category": "zone",
 		"cost": 187500,
 		"cost_items": {"Z3_Core": 2, "Steel": 600, "Ti": 350, "Circuit": 200},
 		"type": "technology",
-		"parent": "zone_3_access"
+		"parent": "zone_3_access",
+		"effects": [],
+		# v111.6 audit: hull entries renamed to drop " hull" suffix so they
+		# match shipyard_manager's actual hull display names. Smart-linker
+		# can now hyperlink each one to the hull info-card popup.
+		"unlocks": ["Cryofield zone", "Zone 4 modules", "Heavy Cruiser"],
+		"flavor": "Hand-supply is impractical here — build extraction.",
 	},
 	"zone_5_access": {
 		"name": "Sector Alpha Decryption",
-		"description": "Unlocks:\n• Sector Alpha\n• Zone 5 modules & Battlecruiser hull\n[Sustained automated output required]",
+		"tier": 5,
+		"category": "zone",
 		"cost": 468750,
 		"cost_items": {"Z4_Core": 2, "Steel": 1500, "AdvCircuit": 250, "Superalloy": 80},
 		"type": "technology",
-		"parent": "zone_4_access"
+		"parent": "zone_4_access",
+		"effects": [],
+		"unlocks": ["Sector Alpha", "Zone 5 modules", "Battlecruiser"],
+		"flavor": "Sustained automated output required.",
 	},
 	"zone_6_access": {
 		"name": "Deep Space Navigation",
-		"description": "Unlocks:\n• Sector Beta\n• Zone 6 modules & Capital Ship hull\n[Mature industrial base required]",
+		"tier": 6,
+		"category": "zone",
 		"cost": 1171875,
 		"cost_items": {"Z5_Core": 3, "Ti": 2000, "AdvCircuit": 600, "Superalloy": 300},
 		"type": "technology",
-		"parent": "zone_5_access"
+		"parent": "zone_5_access",
+		"effects": [],
+		"unlocks": ["Sector Beta", "Zone 6 modules", "Capital Ship"],
+		"flavor": "Mature industrial base required.",
 	},
 	"zone_7_access": {
 		"name": "Radiation Shielding",
-		"description": "Unlocks:\n• Sector Gamma\n• Zone 7 modules & Carrier hull\n[Heavy automation + Tungsten extraction]",
+		"tier": 7,
+		"category": "zone",
 		"cost": 2929687,
 		"cost_items": {"Z6_Core": 3, "AdvCircuit": 1500, "Superalloy": 900, "W": 200},
 		"type": "technology",
-		"parent": "zone_6_access"
+		"parent": "zone_6_access",
+		"effects": [],
+		"unlocks": ["Sector Gamma", "Zone 7 modules", "Carrier"],
+		"flavor": "Heavy automation + Tungsten extraction.",
 	},
 	"zone_8_access": {
 		"name": "Exotic Matter Analysis",
-		"description": "Unlocks:\n• Sector Delta\n• Zone 8 modules & Dreadnought hull\n[Full-scale industrial economy]",
+		"tier": 8,
+		"category": "zone",
 		"cost": 7324218,
 		"cost_items": {"Z7_Core": 4, "AdvCircuit": 3000, "Superalloy": 2200, "Ir": 60},
 		"type": "technology",
-		"parent": "zone_7_access"
+		"parent": "zone_7_access",
+		"effects": [],
+		"unlocks": ["Sector Delta", "Zone 8 modules", "Dreadnought"],
+		"flavor": "Full-scale industrial economy.",
 	},
 	"zone_9_access": {
 		"name": "Quarantine Protocols",
-		"description": "Unlocks:\n• Sector Zeta\n• Zone 9 modules & Titan hull\n[Deep automated supply chains]",
+		"tier": 9,
+		"category": "zone",
 		"cost": 18310546,
 		"cost_items": {"Z8_Core": 4, "AdvCircuit": 6000, "Superalloy": 5000, "Os": 40},
 		"type": "technology",
-		"parent": "zone_8_access"
+		"parent": "zone_8_access",
+		"effects": [],
+		"unlocks": ["Sector Zeta", "Zone 9 modules", "Titan"],
+		"flavor": "Deep automated supply chains.",
 	},
 	"zone_10_access": {
 		"name": "Void Navigation",
-		"description": "Unlocks:\n• Sector Epsilon\n• Zone 10 modules & Leviathan hull\n[End-game industrial empire]",
+		"tier": 10,
+		"category": "zone",
 		"cost": 45776367,
 		"cost_items": {"Z9_Core": 5, "AdvCircuit": 15000, "Superalloy": 12000, "ChronoCore": 10},
 		"type": "technology",
-		"parent": "zone_9_access"
+		"parent": "zone_9_access",
+		"effects": [],
+		"unlocks": ["Sector Epsilon", "Zone 10 modules", "Leviathan"],
+		"flavor": "End-game industrial empire.",
 	},
 	# --- NEW EARLY GAME GATES ---
 	"kinetics_101": {
 		"name": "Kinetic Weapons Theory",
-		"description": "Unlocks:\n• Basic Slug Factory (Building)\n• Lunar Trophy (Crafting)\n• [Requires: Applied Physics (Engineering)]",
+		"tier": 1,
+		"category": "combat",
 		"cost": 50,
 		"type": "technology",
 		"parent": null,
-		"req_tech": "applied_physics"
+		"req_tech": "applied_physics",
+		# v111.6 audit:
+		#   • "Basic Slug Factory" → real building is "Basic Kinetic Foundry"
+		#     (building_db key: basic_kinetic_foundry). Renamed.
+		#   • "Lunar Trophy" → phantom (no recipe / item by that name). Removed.
+		"effects": [],
+		"unlocks": ["Basic Kinetic Foundry"],
+		"flavor": "",
 	},
 	"power_systems": {
 		"name": "Power Systems",
-		"description": "Unlocks:\n• Basic Cell Factory (Building)\n• Basic Battery (Crafting)\n• [Requires: Applied Physics (Engineering)]",
+		"tier": 1,
+		"category": "infrastructure",
 		"cost": 300,
 		"type": "technology",
 		"parent": "kinetics_101",
-		"req_tech": "applied_physics"
+		"req_tech": "applied_physics",
+		"effects": [],
+		"unlocks": ["Basic Cell Factory", "Basic Battery"],
+		"flavor": "",
 	},
 	"laser_optics": {
 		"name": "Laser Optics",
 		# v105b: restored after wrong-flag deletion — actually gates Plasma Cell
 		# (CellT2 energy ammo) via shipyard ELEMENT_RESEARCH_REQS map.
-		"description": "Unlocks:\n• Plasma Cell (T2 Energy Ammo)",
+		"tier": 1,
+		"category": "combat",
 		"cost": 300,
 		"cost_items": {"Res1": 5},
 		"type": "technology",
 		"parent": "power_systems",
-		"req_tech": "fluid_dynamics"
+		"req_tech": "fluid_dynamics",
+		"effects": [],
+		"unlocks": ["Plasma Cell (T2 Energy Ammo)"],
+		"flavor": "",
 	},
 	"lightweight_alloys": {
 		"name": "Lightweight Alloys",
-		"description": "Unlocks:\n• Aluminum Smelting\n• Aluminum-Magnesium Alloy",
+		"tier": 1,
+		"category": "processing",
 		"cost": 200,
 		"cost_items": {"Res1": 3},
 		"type": "technology",
-		"parent": "materials_science"
+		"parent": "materials_science",
+		"effects": [],
+		# v111.6 audit: "Aluminum Smelting" — phantom (no recipe). Removed.
+		"unlocks": ["Aluminum-Magnesium Alloy"],
+		"flavor": "",
 	},
 	"basic_electronics": {
 		"name": "Basic Electronics",
-		"description": "Unlocks:\n• Standard Circuit Assembly (Industrial)",
+		"tier": 1,
+		"category": "processing",
 		"cost": 800,
 		"cost_items": {"Cu": 20, "Si": 20},
 		"type": "technology",
-		"parent": "industrial_logistics"
+		"parent": "industrial_logistics",
+		"effects": [],
+		"unlocks": ["Standard Circuit Assembly"],
+		"flavor": "",
 	},
 	# --- GATHERING UPGRADES ---
 	"diamond_drills": {
 		"name": "Diamond Tipped Drills",
-		"description": "Bonus:\n• +25% Excavate Soil speed\n• [Requires: Industrial Logistics (Engineering)]",
+		"tier": 1,
+		"category": "gathering",
 		"cost": 200,
 		"cost_items": {"Res1": 2},
 		"type": "technology",
 		"parent": null,
-		"req_tech": "industrial_logistics"
+		"req_tech": "industrial_logistics",
+		# v110 schema audit: legacy description said "+25%" but the actual
+		# mechanic in gathering_manager.get_action_speed_multiplier returns
+		# +50% (upgrades_db: bonus 0.50). Tooltip now reads the truth.
+		"effects": [
+			{"type": "action_speed", "id": "gather_dirt", "bonus": 0.50, "stacks": true,
+				"stack_chain": ["Ultrasonic Drills", "Plasma Bore"]},
+		],
+		"unlocks": [],
+		"flavor": "",
 	},
 	"high_flow_pumps": {
 		"name": "High-Flow Pumps",
-		"description": "Bonus:\n• +50% Pump Water speed\n• [Requires: Fluid Dynamics (Engineering)]",
+		"tier": 1,
+		"category": "gathering",
 		"cost": 250,
 		"cost_items": {"Res1": 2},
 		"type": "technology",
 		"parent": null,
-		"req_tech": "fluid_dynamics"
+		"req_tech": "fluid_dynamics",
+		"effects": [
+			{"type": "action_speed", "id": "collect_water", "bonus": 0.50, "stacks": true,
+				"stack_chain": ["Superfluid Intake", "Hydro-Vortex Arrays"]},
+		],
+		"unlocks": [],
+		"flavor": "",
 	},
 	"laser_cutters": {
 		"name": "Laser Cutters",
-		"description": "Bonus:\n• +50% Deforest Zone speed\n• [Requires: Organic Combustion (Engineering)]",
+		"tier": 1,
+		"category": "gathering",
 		"cost": 300,
 		"cost_items": {"Res1": 2},
 		"type": "technology",
 		"parent": null,
-		"req_tech": "combustion"
+		"req_tech": "combustion",
+		"effects": [
+			{"type": "action_speed", "id": "gather_wood", "bonus": 0.50, "stacks": true,
+				"stack_chain": ["Mono-Filament Wire", "Molecular Disassembler"]},
+		],
+		"unlocks": [],
+		"flavor": "",
 	},
 	"magnetic_funnels": {
 		"name": "Magnetic Funnels",
-		"description": "Bonus:\n• +25% Harvest Nebula speed",
+		"tier": 1,
+		"category": "gathering",
 		"cost": 2000,
 		"type": "technology",
-		"parent": "energy_shields"
+		"parent": "energy_shields",
+		# Solo-tier upgrade — no sibling chain, so no stack_chain field.
+		"effects": [
+			{"type": "action_speed", "id": "harvest_nebula", "bonus": 0.25, "stacks": false},
+		],
+		"unlocks": [],
+		"flavor": "",
 	},
 	# Gathering Tier 2 (+50%) & Tier 3 (+75%)
 	"ultrasonic_drills": {
 		"name": "Ultrasonic Drills",
-		"description": "Bonus:\n• +50% Excavate Soil speed",
+		"tier": 2,
+		"category": "gathering",
 		"cost": 1000,
 		"cost_items": {"Res1": 250},
 		"type": "technology",
-		"parent": "diamond_drills"
+		"parent": "diamond_drills",
+		"effects": [
+			{"type": "action_speed", "id": "gather_dirt", "bonus": 0.50, "stacks": true,
+				"stack_chain": ["Diamond Tipped Drills", "Plasma Bore"]},
+		],
+		"unlocks": [],
+		"flavor": "",
 	},
 	"plasma_bore": {
 		"name": "Plasma Bore",
-		"description": "Bonus:\n• +75% Excavate Soil speed",
+		"tier": 3,
+		"category": "gathering",
 		"cost": 5000,
 		"cost_items": {"Res2": 20},
 		"type": "technology",
-		"parent": "ultrasonic_drills"
+		"parent": "ultrasonic_drills",
+		"effects": [
+			{"type": "action_speed", "id": "gather_dirt", "bonus": 0.75, "stacks": true,
+				"stack_chain": ["Diamond Tipped Drills", "Ultrasonic Drills"]},
+		],
+		"unlocks": [],
+		"flavor": "",
 	},
 	"superfluid_intake": {
 		"name": "Superfluid Intake",
-		"description": "Bonus:\n• +50% Pump Water speed",
+		"tier": 2,
+		"category": "gathering",
 		"cost": 1500,
 		"cost_items": {"Res2": 15},
 		"type": "technology",
-		"parent": "high_flow_pumps"
+		"parent": "high_flow_pumps",
+		"effects": [
+			{"type": "action_speed", "id": "collect_water", "bonus": 0.50, "stacks": true,
+				"stack_chain": ["High-Flow Pumps", "Hydro-Vortex Arrays"]},
+		],
+		"unlocks": [],
+		"flavor": "",
 	},
 	"hydro_vortex": {
 		"name": "Hydro-Vortex Arrays",
-		"description": "Bonus:\n• +75% Pump Water speed",
+		"tier": 3,
+		"category": "gathering",
 		"cost": 7500,
 		"cost_items": {"Res3": 5, "AdvCircuit": 10},
 		"type": "technology",
-		"parent": "superfluid_intake"
+		"parent": "superfluid_intake",
+		"effects": [
+			{"type": "action_speed", "id": "collect_water", "bonus": 0.75, "stacks": true,
+				"stack_chain": ["High-Flow Pumps", "Superfluid Intake"]},
+		],
+		"unlocks": [],
+		"flavor": "",
 	},
 	"mono_filament": {
 		"name": "Mono-Filament Wire",
-		"description": "Bonus:\n• +50% Deforest Zone speed",
+		"tier": 2,
+		"category": "gathering",
 		"cost": 2000,
 		"cost_items": {"Res2": 15},
 		"type": "technology",
-		"parent": "laser_cutters"
+		"parent": "laser_cutters",
+		"effects": [
+			{"type": "action_speed", "id": "gather_wood", "bonus": 0.50, "stacks": true,
+				"stack_chain": ["Laser Cutters", "Molecular Disassembler"]},
+		],
+		"unlocks": [],
+		"flavor": "",
 	},
 	"molecular_disassembler": {
 		"name": "Molecular Disassembler",
-		"description": "Bonus:\n• +75% Deforest Zone speed",
+		"tier": 3,
+		"category": "gathering",
 		"cost": 10000,
 		"cost_items": {"Res3": 10, "AdvCircuit": 15},
 		"type": "technology",
-		"parent": "mono_filament"
+		"parent": "mono_filament",
+		"effects": [
+			{"type": "action_speed", "id": "gather_wood", "bonus": 0.75, "stacks": true,
+				"stack_chain": ["Laser Cutters", "Mono-Filament Wire"]},
+		],
+		"unlocks": [],
+		"flavor": "",
 	},
 	# --- PROCESSING UPGRADES ---
 	"fast_centrifuges": {
 		"name": "High-RPM Centrifuges",
-		"description": "Bonus:\n• +25% Mineral Washing speed",
+		"tier": 1,
+		"category": "processing",
 		"cost": 200,
 		"type": "technology",
-		"parent": "industrial_logistics"
+		"parent": "industrial_logistics",
+		"effects": [
+			{"type": "action_speed", "id": "centrifuge_dirt", "bonus": 0.25, "stacks": true,
+				"stack_chain": ["Mag-Lev Bearings", "Quantum Separators"]},
+		],
+		"unlocks": [],
+		"flavor": "",
 	},
 	"catalytic_electrodes": {
 		"name": "Catalytic Electrodes",
-		"description": "Bonus:\n• +25% Electrolysis speed",
+		"tier": 1,
+		"category": "processing",
 		"cost": 300,
 		"type": "technology",
-		"parent": "fluid_dynamics"
+		"parent": "fluid_dynamics",
+		"effects": [
+			{"type": "action_speed", "id": "electrolysis", "bonus": 0.25, "stacks": true,
+				"stack_chain": ["Ion-Exchange Membranes", "Resonance Splitters"]},
+		],
+		"unlocks": [],
+		"flavor": "",
 	},
 	"pyrolysis_control": {
 		"name": "Pyrolysis Control",
-		"description": "Bonus:\n• +25% Charcoal Kiln speed",
+		"tier": 1,
+		"category": "processing",
 		"cost": 400,
 		"cost_items": {"Res1": 5},
 		"type": "technology",
-		"parent": "combustion"
+		"parent": "combustion",
+		# Solo tier — only Charcoal Kiln has one buff in the chain.
+		"effects": [
+			{"type": "action_speed", "id": "charcoal_burning", "bonus": 0.25, "stacks": false},
+		],
+		"unlocks": [],
+		"flavor": "",
 	},
 	"blast_furnace": {
 		"name": "Blast Furnace",
-		"description": "Bonus:\n• +25% Steel Foundry speed",
+		"tier": 1,
+		"category": "processing",
 		"cost": 800,
 		"cost_items": {"Res1": 10},
 		"type": "technology",
-		"parent": "smelting"
+		"parent": "smelting",
+		# v110 schema audit: legacy description only mentioned "Steel Foundry"
+		# but upgrades_db gives the buff to BOTH smelt_steel_basic AND
+		# smelt_steel_oxygen. Tooltip now shows the truth.
+		"effects": [
+			{"type": "action_speed", "id": "smelt_steel_basic", "bonus": 0.25, "stacks": false},
+			{"type": "action_speed", "id": "smelt_steel_oxygen", "bonus": 0.25, "stacks": false},
+		],
+		"unlocks": [],
+		"flavor": "",
 	},
 	"hydraulic_press": {
 		"name": "Hydraulic Press",
-		"description": "Bonus:\n• +25% Graphite Press speed",
+		"tier": 1,
+		"category": "processing",
 		"cost": 1500,
 		"cost_items": {"Res1": 10},
 		"type": "technology",
-		"parent": "adv_materials"
+		"parent": "adv_materials",
+		"effects": [
+			{"type": "action_speed", "id": "press_graphite", "bonus": 0.25, "stacks": false},
+		],
+		"unlocks": [],
+		"flavor": "",
 	},
 	# Processing Tier 2 (+50%) & Tier 3 (+75%)
 	"maglev_bearings": {
 		"name": "Mag-Lev Bearings",
-		"description": "Bonus:\n• +50% Mineral Washing speed",
+		"tier": 2,
+		"category": "processing",
 		"cost": 1000,
 		"cost_items": {"Res2": 15},
 		"type": "technology",
-		"parent": "fast_centrifuges"
+		"parent": "fast_centrifuges",
+		"effects": [
+			{"type": "action_speed", "id": "centrifuge_dirt", "bonus": 0.50, "stacks": true,
+				"stack_chain": ["High-RPM Centrifuges", "Quantum Separators"]},
+		],
+		"unlocks": [],
+		"flavor": "",
 	},
 	"quantum_separators": {
 		"name": "Quantum Separators",
-		"description": "Bonus:\n• +75% Mineral Washing speed",
+		"tier": 3,
+		"category": "processing",
 		"cost": 5000,
 		"cost_items": {"Res3": 10, "AdvCircuit": 10},
 		"type": "technology",
-		"parent": "maglev_bearings"
+		"parent": "maglev_bearings",
+		"effects": [
+			{"type": "action_speed", "id": "centrifuge_dirt", "bonus": 0.75, "stacks": true,
+				"stack_chain": ["High-RPM Centrifuges", "Mag-Lev Bearings"]},
+		],
+		"unlocks": [],
+		"flavor": "",
 	},
 	"advanced_mineralogy": {
 		"name": "Advanced Mineralogy",
-		"description": "Industrial Centrifuges now have a chance to extract Titanium (Ti) from Dirt processing.",
+		"tier": 2,
+		"category": "processing",
 		"cost": 5000,
 		"cost_items": {"Si": 100, "Fe": 100},
 		"type": "technology",
-		"parent": "fast_centrifuges"
+		"parent": "fast_centrifuges",
+		"effects": [
+			{"type": "chance_drop", "id": "Ti", "context": "Dirt centrifuging"},
+		],
+		"unlocks": [],
+		"flavor": "Industrial Centrifuges learn to spot trace titanium.",
 	},
 	"ion_exchange": {
 		"name": "Ion-Exchange Membranes",
-		"description": "Bonus:\n• +50% Electrolysis speed",
+		"tier": 2,
+		"category": "processing",
 		"cost": 1500,
 		"cost_items": {"Res2": 15},
 		"type": "technology",
-		"parent": "catalytic_electrodes"
+		"parent": "catalytic_electrodes",
+		"effects": [
+			{"type": "action_speed", "id": "electrolysis", "bonus": 0.50, "stacks": true,
+				"stack_chain": ["Catalytic Electrodes", "Resonance Splitters"]},
+		],
+		"unlocks": [],
+		"flavor": "",
 	},
 	"resonance_splitters": {
 		"name": "Resonance Splitters",
-		"description": "Bonus:\n• +75% Electrolysis speed",
+		"tier": 3,
+		"category": "processing",
 		"cost": 7500,
 		"cost_items": {"Res3": 10, "AdvCircuit": 10},
 		"type": "technology",
-		"parent": "ion_exchange"
+		"parent": "ion_exchange",
+		"effects": [
+			{"type": "action_speed", "id": "electrolysis", "bonus": 0.75, "stacks": true,
+				"stack_chain": ["Catalytic Electrodes", "Ion-Exchange Membranes"]},
+		],
+		"unlocks": [],
+		"flavor": "",
 	},
 	# --- MILITARY UPGRADES ---
 	"processing_tungsten": {
 		"name": "Processing Tungsten",
-		"description": "Unlocks:\n• Tungsten Sabot Rounds (T2)\n• [Requires: Efficient Smelting (Engineering)]",
+		"tier": 2,
+		"category": "combat",
 		"cost": 1000,
 		"cost_items": {"Res1": 10},
 		"type": "technology",
-		"parent": "smelting"
+		"parent": "smelting",
+		"effects": [],
+		"unlocks": ["Tungsten Sabot Rounds (T2)"],
+		"flavor": "",
 	},
 	"ballistics_optimization": {
 		"name": "Ballistics Optimization",
 		# v105b: was claiming Tungsten Sabot (gated by processing_tungsten — not here).
 		# Real consumers: SlugT3 + SlugT4 crafting recipes.
-		"description": "Unlocks:\n• Depleted Uranium Rounds (T3 Ammo)\n• Hyper-Velocity Slug (T4 Ammo)",
+		"tier": 2,
+		"category": "combat",
 		"cost": 1500,
 		"cost_items": {"Res2": 15},
 		"type": "technology",
-		"parent": "processing_tungsten"
+		"parent": "processing_tungsten",
+		"effects": [],
+		"unlocks": ["Depleted Uranium Rounds (T3 Ammo)", "Hyper-Velocity Slug (T4 Ammo)"],
+		"flavor": "",
 	},
 	"energy_metrics": {
 		"name": "Energy Metrics",
-		"description": "Unlocks:\n• Hydrogen Reactor (Building)\n• Vaporizer Cell (T3 Ammo)\n• Orbital Gas Siphon (Building)\n• Uranium Isotope Centrifuge (Building)",
+		"tier": 2,
+		"category": "infrastructure",
 		"cost": 5000,
 		"cost_items": {"Res2": 20, "AdvCircuit": 10},
 		"type": "technology",
-		"parent": "fluid_dynamics"
+		"parent": "fluid_dynamics",
+		"effects": [],
+		"unlocks": [
+			"Hydrogen Reactor",
+			"Vaporizer Cell (T3 Ammo)",
+			"Orbital Gas Siphon",
+			"Uranium Isotope Centrifuge",
+		],
+		"flavor": "",
 	},
 	"cryogenic_systems": {
 		"name": "Cryogenic Systems",
-		"description": "Unlocks:\n• Helium Coolant Cell (Crafting)",
+		"tier": 3,
+		"category": "processing",
 		"cost": 25000,
 		"cost_items": {"He": 50, "Ti": 30},
 		"type": "technology",
-		"parent": "energy_metrics"
+		"parent": "energy_metrics",
+		"effects": [],
+		"unlocks": ["Helium Coolant Cell"],
+		"flavor": "",
 	},
 	# --- LOGISTICS UPGRADES ---
 	"automated_logistics": {
 		"name": "Automated Logistics",
-		"description": "Unlocks:\n• Drone Bay",
+		"tier": 2,
+		"category": "infrastructure",
 		"cost": 3000,
 		"cost_items": {"Cu": 25, "Fe":50, "Res1": 25},
 		"type": "technology",
-		"parent": "industrial_logistics"
+		"parent": "industrial_logistics",
+		"effects": [],
+		# v111.6 audit: drift fix — building's real display name in
+		# infrastructure_manager is "Drone Recovery Bay", not "Drone Bay".
+		# Now matches → smart-linker can hyperlink it in tooltips.
+		"unlocks": ["Drone Recovery Bay"],
+		"flavor": "",
 	},
 	"molecular_printing": {
 		"name": "Molecular Printing",
-		"description": "Unlocks:\n• Fabricator (+20% crafting)",
+		"tier": 3,
+		"category": "infrastructure",
 		"cost": 5000,
 		"cost_items": {"Circuit": 50, "Fiber": 20},
 		"type": "technology",
-		"parent": "shipwright_2"
+		"parent": "shipwright_2",
+		"effects": [],
+		# v111.6 audit: drift fix — building is "Molecular Fabricator", not
+		# "Fabricator". Bonus parenthetical "(+20% crafting)" dropped — if
+		# that's an actual mechanic, it should be a structured effect, not
+		# inline prose. Flagging for later balance check.
+		"unlocks": ["Molecular Fabricator"],
+		"flavor": "",
 	},
 	# --- END-GAME AUTOMATION (NEW) ---
 	"automated_smelting": {
 		"name": "Automated Smelting",
-		"description": "Unlocks:\n• Auto-Smelter",
+		"tier": 2,
+		"category": "infrastructure",
 		"cost": 2500,
 		"cost_items": {"Ti": 20},
 		"type": "technology",
-		"parent": "blast_furnace"
+		"parent": "blast_furnace",
+		"effects": [],
+		# v111.6 audit: drift fix — "Automated Smelter" is the building's
+		# real display name.
+		"unlocks": ["Automated Smelter"],
+		"flavor": "",
 	},
 	"oxygen_blast_furnace": {
 		"name": "Oxygen-Blast Furnaces",
-		"description": "Increases Steel yield from 1 to 5 per cycle.",
+		"tier": 2,
+		"category": "processing",
 		"cost": 5000,
 		"cost_items": {"Steel": 100, "O": 200},
 		"type": "technology",
-		"parent": "blast_furnace"
+		"parent": "blast_furnace",
+		# Special yield buff — quantified in flavor for now. If more yield-
+		# multiplier effects show up later, add a structured "yield_buff" type.
+		"effects": [],
+		"unlocks": [],
+		"flavor": "Steel yield: 1 → 5 per Foundry cycle.",
 	},
 	"industrial_electrolysis": {
 		"name": "Industrial Electrolysis",
-		"description": "Unlocks:\n• Hydro-Plant",
+		"tier": 2,
+		"category": "infrastructure",
 		"cost": 2500,
 		"cost_items": {"Si": 50},
 		"type": "technology",
-		"parent": "catalytic_electrodes"
+		"parent": "catalytic_electrodes",
+		"effects": [],
+		# v111.6 audit: drift fix — building is "Industrial Electrolysis
+		# Plant" (id: hydro_plant); "Hydro-Plant" was the internal-ID
+		# leaking into player-facing text.
+		"unlocks": ["Industrial Electrolysis Plant"],
+		"flavor": "",
 	},
 	"molecular_compression": {
 		"name": "Molecular Compression",
-		"description": "Unlocks:\n• Auto-Press",
+		"tier": 2,
+		"category": "infrastructure",
 		"cost": 3000,
 		"cost_items": {"Fe": 100},
 		"type": "technology",
-		"parent": "hydraulic_press"
+		"parent": "hydraulic_press",
+		"effects": [],
+		# v111.6 audit: drift fix — building is "Automated Carbon Press"
+		# (id: auto_press); "Auto-Press" was again the internal id leaking.
+		"unlocks": ["Automated Carbon Press"],
+		"flavor": "",
 	},
 	"mass_production_tactics": {
 		"name": "Mass Production Tactics",
-		"description": "Unlocks:\n• Munitions Factory",
+		"tier": 2,
+		"category": "infrastructure",
 		"cost": 5000,
 		"cost_items": {"Circuit": 20, "Steel": 20},
 		"type": "technology",
-		"parent": "automated_logistics"
+		"parent": "automated_logistics",
+		# v111.6 audit: "Munitions Factory" — phantom. The string `munitions_factory`
+		# is in infrastructure_manager.gd line 29 (INFRA_ENG_SCALED_BUILDINGS) as
+		# if it were a building id, but no entry exists in building_db. Either
+		# planned and never built, or renamed to heavy_ordnance_works.
+		# Tech currently grants nothing — flagged for design follow-up.
+		"effects": [],
+		"unlocks": [],
+		"flavor": "Industrial tactics — buildings TBD.",
 	},
 	"xeno_engineering": {
 		"name": "Xeno-Engineering",
-		"description": "Unlocks:\n• Alien Flora Cultivation\n• Analyzing Xeno-Materials",
+		"tier": 3,
+		"category": "processing",
 		"cost": 10000,
 		"cost_items": {"SalvageData": 10, "Circuit": 50},
 		"type": "technology",
-		"parent": "automated_logistics"
+		"parent": "automated_logistics",
+		# v111.6 audit: BOTH unlocks were phantoms — "Alien Flora Cultivation"
+		# and "Analyzing Xeno-Materials" have no matching recipe / building /
+		# action anywhere. Tech currently has no real effect — vestigial.
+		# Flagging for design follow-up (cut or build the missing content).
+		"effects": [],
+		"unlocks": [],
+		"flavor": "Xeno-research path — content TBD.",
 	},
 	# --- END-GAME SHIPS (NEW) ---
 	"capital_ship_engineering": {
 		"name": "Capital Ship Doctrine",
-		"description": "Required for Capital Ship Armament research.\n[Battlecruiser hull and capital modules unlock via Zone Access tech]",
+		"tier": 4,
+		"category": "ships",
 		"cost": 500000,
 		"cost_items": {"VoidArtifact": 20,"NavData": 75, "Res3":75}, # Audit v20.0: Added ColonyDataCore (Overseer Drop)
 		"type": "technology",
-		"parent": "shipwright_2"
+		"parent": "shipwright_2",
+		"effects": [],
+		"unlocks": [],
+		"flavor": "Gate for Capital Ship Armament. Battlecruiser hull + capital modules unlock via Zone Access tech.",
 	},
 	"capital_ship_armament": {
 		"name": "Capital Ship Armament",
-		"description": "Unlocks:\n• Photon Torpedo (T4 Ammo Crafting)\n• Munitions Factory tier (Building)",
+		"tier": 4,
+		"category": "combat",
 		"cost": 1000000,
 		"cost_items": {"VoidArtifact": 10, "Superalloy": 50, "AdvCircuit": 50},
 		"type": "technology",
-		"parent": "capital_ship_engineering"
+		"parent": "capital_ship_engineering",
+		# v111.6 audit: "Munitions Factory tier" → phantom (neither a building
+		# id nor a recognizable concept). Building dict has no `munitions_factory`
+		# entry — it's listed in INFRA_ENG_SCALED_BUILDINGS but never defined.
+		"effects": [],
+		"unlocks": ["Photon Torpedo (T4 Ammo)"],
+		"flavor": "",
 	},
 	"quantum_dynamics": {
 		"name": "Quantum Dynamics",
@@ -638,106 +1040,171 @@ var tech_tree = {
 		# and Antimatter Generator (Infrastructure) plus the Zero-Point Module
 		# defensive consumable via shipyard CONSUMABLE_REQ_TECH map. Original
 		# "Dreadnought Class" claim was phantom (Dreadnought is zone-gated).
-		"description": "Unlocks:\n• Fusion Core (Building)\n• Antimatter Generator (Building)\n• Zero-Point Module (Defensive Consumable)",
+		"tier": 4,
+		"category": "infrastructure",
 		"cost": 5000000,
 		"cost_items": {"QuantumCore": 20, "VoidArtifact": 50, "ColonyDataCore": 50, "RadIsotope": 1000, "Res3": 500, "ExoticIsotope": 20},
 		"type": "technology",
-		"parent": "capital_ship_engineering"
+		"parent": "capital_ship_engineering",
+		"effects": [],
+		"unlocks": ["Fusion Core", "Antimatter Generator", "Zero-Point Module"],
+		"flavor": "",
 	},
 	# New Zone Unlocks
 	"deep_space_nav": {
 		"name": "Deep Space Navigation",
-		"description": "Unlocks:\n• Sector Beta (Mining Colony)\n• Precious Metal Refining, Colony AI Integration (Engineering)\n• [Requires: Warp Drive Theory (Ships)]",
+		"tier": 3,
+		"category": "zone",
 		"cost": 100000,
 		"cost_items": {"NavData": 25, "Ti": 150, "Res3": 10},
 		"type": "technology",
 		"parent": null,
-		"req_tech": "warp_drive"
+		"req_tech": "warp_drive",
+		"effects": [],
+		# v111.6 audit: dropped 2 wrong-layer entries —
+		#   • "Precious Metal Refining" — that's the precious_metal_refining
+		#     tech, not an item. Tree edge (req_tech link) already shows it.
+		#   • "Colony AI Integration" — same (colony_automation tech).
+		"unlocks": ["Sector Beta (Mining Colony)"],
+		"flavor": "",
 	},
 	"radiation_shielding": {
 		"name": "Radiation Shielding Theory",
-		"description": "Unlocks:\n• Sector Gamma (Radioactive)\n• Required for Exotic Matter Analysis research",
+		"tier": 4,
+		"category": "zone",
 		"cost": 250000,
 		"cost_items": {"Co": 50, "Al": 100, "Superalloy": 25, "AdvCircuit": 15},
 		"type": "technology",
-		"parent": "deep_space_nav"
+		"parent": "deep_space_nav",
+		"effects": [],
+		"unlocks": ["Sector Gamma (Radioactive)"],
+		"flavor": "Gates Exotic Matter Analysis research.",
 	},
 	"exotic_matter_analysis": {
 		"name": "Exotic Matter Analysis",
-		"description": "Unlocks:\n• Sector Delta (Crystalline)",
+		"tier": 4,
+		"category": "zone",
 		"cost": 1000000,
 		"cost_items": {"Pt": 20, "RadIsotope": 50, "QuantumCore": 3},
 		"type": "technology",
-		"parent": "radiation_shielding"
+		"parent": "radiation_shielding",
+		"effects": [],
+		"unlocks": ["Sector Delta (Crystalline)"],
+		"flavor": "",
 	},
 	# --- EFFICIENCY BRANCH (MULTIPLIED YIELDS) ---
 	"efficiency_1": {
 		"name": "Efficiency I",
-		"description": "Yield Bonus:\n• x2 Output (Gathering & Processing)",
+		"tier": 3,
+		"category": "meta",
 		"cost": 250000,
 		"cost_items": {"Circuit": 250, "Steel": 500,"Res1": 1000, "Res2": 100},
 		"type": "technology",
-		"parent": "industrial_logistics"
+		"parent": "industrial_logistics",
+		"effects": [
+			{"type": "yield_multiplier", "factor": 2.0, "what": "Output (Gathering & Processing)"},
+		],
+		"unlocks": [],
+		"flavor": "",
 	},
 	"efficiency_2": {
 		"name": "Efficiency II",
-		"description": "Yield Bonus:\n• x4 Output (Gathering & Processing)",
+		"tier": 3,
+		"category": "meta",
 		"cost": 1000000,
 		"cost_items": {"AdvCircuit": 100, "Ti": 1000, "Res3": 50},
 		"type": "technology",
-		"parent": "efficiency_1"
+		"parent": "efficiency_1",
+		"effects": [
+			{"type": "yield_multiplier", "factor": 4.0, "what": "Output (Gathering & Processing)"},
+		],
+		"unlocks": [],
+		"flavor": "",
 	},
 	"efficiency_3": {
 		"name": "Efficiency III",
-		"description": "Yield Bonus:\n• x8 Output (Gathering & Processing)",
+		"tier": 4,
+		"category": "meta",
 		"cost": 5000000,
 		"cost_items": {"QuantumCore": 10, "U": 500, "Pt": 250},
 		"type": "technology",
-		"parent": "efficiency_2"
+		"parent": "efficiency_2",
+		"effects": [
+			{"type": "yield_multiplier", "factor": 8.0, "what": "Output (Gathering & Processing)"},
+		],
+		"unlocks": [],
+		"flavor": "",
 	},
 	"efficiency_4": {
 		"name": "Efficiency IV",
-		"description": "Yield Bonus:\n• x16 Output (Gathering & Processing)",
+		"tier": 4,
+		"category": "meta",
 		"cost": 25000000,
 		"cost_items": {"ExoticMatter": 5, "Os": 100, "VoidCrystal": 50},
 		"type": "technology",
-		"parent": "efficiency_3"
+		"parent": "efficiency_3",
+		"effects": [
+			{"type": "yield_multiplier", "factor": 16.0, "what": "Output (Gathering & Processing)"},
+		],
+		"unlocks": [],
+		"flavor": "",
 	},
 	"efficiency_5": {
 		"name": "Efficiency V",
-		"description": "Yield Bonus:\n• x32 Output (Gathering & Processing)",
+		"tier": 4,
+		"category": "meta",
 		"cost": 100000000,
 		"cost_items": {"ExoticIsotope": 25, "Neutronium": 5, "QuantumCore": 50},
 		"type": "technology",
-		"parent": "efficiency_4"
+		"parent": "efficiency_4",
+		"effects": [
+			{"type": "yield_multiplier", "factor": 32.0, "what": "Output (Gathering & Processing)"},
+		],
+		"unlocks": [],
+		"flavor": "",
 	},
 	# Mid-Game Technology
 	"metallurgy_advanced": {
 		"name": "Advanced Metallurgy",
-		"description": "Unlocks:\n• Stainless Steel Alloy",
+		"tier": 2,
+		"category": "processing",
 		"cost": 5000,
 		"cost_items": {"Ni": 100},
 		"type": "technology",
-		"parent": "smelting"
+		"parent": "smelting",
+		"effects": [],
+		"unlocks": ["Stainless Steel Alloy"],
+		"flavor": "",
 	},
 
 	"superalloy_engineering": {
 		"name": "Superalloy Engineering",
-		"description": "Unlocks:\n• Superalloy",
+		"tier": 3,
+		"category": "processing",
 		"cost": 100000,
 		"cost_items": {"Co": 100, "Ni": 100, "Cr": 50, "Ti": 100},
 		"type": "technology",
-		"parent": "metallurgy_advanced"
+		"parent": "metallurgy_advanced",
+		"effects": [],
+		"unlocks": ["Superalloy"],
+		"flavor": "",
 	},
 	# Late-Game Rare Metal Technologies
 	"precious_metal_refining": {
 		"name": "Precious Metal Refining",
-		"description": "Unlocks:\n• Platinum Extraction\n• Palladium Refining\n• Precious Metal Dredge\n• [Requires: Deep Space Navigation (Operations)]",
+		"tier": 3,
+		"category": "processing",
 		"cost": 15000, # Audit v64.1: Adjusted from 1500 to match Res2 tier
 		"cost_items": {"Ti": 200, "Res2": 25},
 		"type": "technology",
 		"parent": null,
-		"req_tech": "deep_space_nav"
+		"req_tech": "deep_space_nav",
+		"effects": [],
+		# v111.6 audit: "Palladium Refining" — phantom (no such recipe). The
+		# Pd recipes that exist are crafting (Palladium Fuel Cell), not
+		# refining. Dropped.
+		"unlocks": ["Platinum Extraction", "Precious Metal Dredge"],
+		"flavor": "",
 	},
 	"industrial_catalysis": {
 		"name": "Industrial Catalysis",
@@ -745,202 +1212,353 @@ var tech_tree = {
 		# processing_speed. Aligned: 0.25 in code (see get_efficiency_bonus),
 		# and description scoped to Crafting since gathering/research are
 		# untouched. Also gates 4 catalyst recipes/buildings.
-		"description": "Bonus:\n• +25% Crafting Speed\nUnlocks:\n• Platinum Catalyst Matrix + Silver Catalyst (Crafting)\n• Platinum / Silver Catalyst Bays (Buildings)",
+		"tier": 4,
+		"category": "processing",
 		"cost": 1000000,
 		"cost_items": {"Pt": 200, "Si": 200, "AdvCircuit": 20},
 		"type": "technology",
-		"parent": "precious_metal_refining"
+		"parent": "precious_metal_refining",
+		"effects": [
+			{"type": "bonus_yield", "bonus": 0.25, "what": "Crafting Speed"},
+		],
+		# v111.6 audit: "Platinum Catalyst Bay" → "Platinum Catalyst Chamber"
+		# (building's actual display name; "Bay" was id-derived).
+		"unlocks": [
+			"Platinum Catalyst Matrix",
+			"Silver Catalyst",
+			"Platinum Catalyst Chamber",
+			"Silver Catalyst Bay",
+		],
+		"flavor": "",
 	},
 	"fuel_cell_tech": {
 		"name": "Fuel Cell Technology",
-		"description": "Unlocks:\n• Hydrogen Fuel Cell",
+		"tier": 3,
+		"category": "processing",
 		"cost": 250000,
 		"cost_items": {"Pd": 30, "H": 500, "Circuit": 30},
 		"type": "technology",
-		"parent": "precious_metal_refining"
+		"parent": "precious_metal_refining",
+		# v111.6 audit: "Hydrogen Fuel Cell" — phantom (no such recipe; the
+		# only fuel-cell recipe is "Palladium Fuel Cell" already gated by
+		# precious_metal_refining). This tech currently has no unlock and
+		# no effect — likely vestigial. Flagging for design follow-up.
+		"effects": [],
+		"unlocks": [],
+		"flavor": "Hydrogen-fuel research path — implementation TBD.",
 	},
 	"iridium_metallurgy": {
 		"name": "Iridium Metallurgy",
-		"description": "Unlocks:\n• Iridium Extraction\n• Iridium Armor Plating",
+		"tier": 3,
+		"category": "processing",
 		"cost": 40000,
 		"cost_items": {"Pt": 50, "Res3": 10},
 		"type": "technology",
-		"parent": "superalloy_engineering"
+		"parent": "superalloy_engineering",
+		"effects": [],
+		# v111.6 audit: "Iridium Extraction" → "Mine Iridium Crystals" (real
+		# gathering action display name).
+		"unlocks": ["Mine Iridium Crystals", "Iridium Armor Plating"],
+		"flavor": "",
 	},
 	"exotic_metallurgy": {
 		"name": "Exotic Metallurgy",
-		"description": "Unlocks:\n• Osmium Harvesting\n• Osmium Armor Plating",
+		"tier": 4,
+		"category": "processing",
 		"cost": 2000000,
 		"cost_items": {"Ir": 100, "Res3": 50},
 		"type": "technology",
-		"parent": "iridium_metallurgy"
+		"parent": "iridium_metallurgy",
+		"effects": [],
+		# v111.6 audit:
+		#   • "Osmium Harvesting" → "Condense Osmium Vapor" (real gathering action)
+		#   • "Osmium Armor Plating" — phantom (no such recipe; only Osmium
+		#     Reactor Core and Osmium Condenser exist for Os). Removed.
+		"unlocks": ["Condense Osmium Vapor"],
+		"flavor": "",
 	},
 	# --- NEW LATE-GAME TECH (Expansion) ---
 	"colony_automation": {
 		"name": "Colony AI Integration",
-		"description": "Unlocks:\n• Colonial Auto-Extractor (Grants +5 Base Gathering Yield)\n• [Requires: Deep Space Navigation (Operations)]",
+		"tier": 3,
+		# v111.6 audit: "Colonial Auto-Extractor" was a phantom (no building
+		# or recipe by that name). The +5 gathering-yield bonus is the real
+		# (and only) effect of this tech — player notices it instantly on
+		# next gather drop. Re-categorised from "infrastructure" → "meta"
+		# since it now grants a passive bonus, not a building unlock.
+		"category": "meta",
 		"cost": 50000,
 		"cost_items": {"ColonyDataCore": 1, "ColonySalvage": 100, "AdvCircuit": 50},
 		"type": "technology",
 		"parent": null,
-		"req_tech": "deep_space_nav"
+		"req_tech": "deep_space_nav",
+		"effects": [
+			{"type": "flat_bonus", "amount": 5.0, "what": "Base Gathering Yield"},
+		],
+		"unlocks": [],
+		"flavor": "",
 	},
 	"void_physics": {
 		"name": "Extreme Void Physics",
-		"description": "Required for Void Navigation research.",
+		"tier": 4,
+		"category": "meta",
 		"cost": 5000000,
 		"cost_items": {"VoidCrystal": 20, "QuantumCore": 10, "AntimatterParticle": 5},
 		"type": "technology",
-		"parent": "exotic_matter_analysis"
+		"parent": "exotic_matter_analysis",
+		"effects": [],
+		"unlocks": [],
+		"flavor": "Gates Void Navigation research.",
 	},
 	# ENDGAME - Sector Epsilon unlock
 	"void_navigation": {
 		"name": "Void Navigation",
-		"description": "Unlocks:\n• Sector Epsilon - The Void\n• Void Rift Anchor (Auto)\n• Chrono-Siphon (Auto)\n• Void Weaponry/Shielding Optimization (Ships)",
+		"tier": 4,
+		"category": "zone",
 		"cost": 50000000,
 		"cost_items": {"QuantumCore": 30, "VoidCrystal": 50, "ExoticMatter": 20, "AncientTech": 5, "QuarantineClearance": 1, "BiohazardSample": 20},  # v58.0: Added clearance req
 		"type": "technology",
-		"parent": "void_physics"
+		"parent": "void_physics",
+		"effects": [],
+		# v111.6 audit: dropped "Void Weaponry/Shielding Optimization" — those
+		# are downstream research techs (void_weaponry_1 / void_shielding_1),
+		# not items. Tree's req_tech edges already show they unlock next.
+		"unlocks": [
+			"Sector Epsilon — The Void",
+			"Void Rift Anchor",
+			"Chrono-Siphon",
+		],
+		"flavor": "",
 	},
 	# ENDGAME SINKS - Iteration 7
 	"void_weaponry_1": {
 		"name": "Void Weaponry Optimization",
-		"description": "Bonus:\n• +5% Total Ship Damage\n• [Requires: Void Navigation (Operations)]",
 		# v105c: rebalanced 100M → 25M and materials halved to match 20% → 5%
 		# bonus nerf. Still above ENDGAME_RESEARCH_COST_GATE so stage-3 scaling
 		# (×20 × ×2 MATERIAL_MULTIPLIER = ×40 effective) still applies.
+		"tier": 4,
+		"category": "combat",
 		"cost": 25000000,
 		"cost_items": {"VoidEssence": 25, "ChronoCore": 10, "PrimordialShard": 3, "BiohazardSample": 5, "BioWeaponCoating": 5},
 		"type": "technology",
 		"parent": null,
-		"req_tech": "void_navigation"
+		"req_tech": "void_navigation",
+		"effects": [
+			{"type": "bonus_yield", "bonus": 0.05, "what": "Total Ship Damage"},
+		],
+		"unlocks": [],
+		"flavor": "",
 	},
 	"void_shielding_1": {
 		"name": "Void Shielding Optimization",
-		"description": "Bonus:\n• +5% Total Ship Shields\n• [Requires: Void Navigation (Operations)]",
 		# v105c: rebalanced 100M → 25M and materials halved to match 20% → 5%
 		# bonus nerf. Stage-3 scaling still applies.
+		"tier": 4,
+		"category": "combat",
 		"cost": 25000000,
 		"cost_items": {"OmegaPlating": 25, "VoidEssence": 10, "PrimordialShard": 3, "Os": 12, "BiohazardSample": 5, "RegenPlating": 4},
 		"type": "technology",
 		"parent": null,
-		"req_tech": "void_navigation"
+		"req_tech": "void_navigation",
+		"effects": [
+			{"type": "bonus_yield", "bonus": 0.05, "what": "Total Ship Shields"},
+		],
+		"unlocks": [],
+		"flavor": "",
 	},
 	"perfect_automation": {
 		"name": "Omni-Fabrication",
-		"description": "Bonus:\n• +30% Processing & Research Speed (Global)",
+		"tier": 4,
+		"category": "processing",
 		"cost": 10000000,
 		"cost_items": {"AICore": 5, "AncientTech": 5, "AdvCircuit": 200, "AIProcessor": 5},
 		"type": "technology",
-		"parent": "colony_automation"
+		"parent": "colony_automation",
+		"effects": [
+			{"type": "bonus_yield", "bonus": 0.30, "what": "Global Processing & Research Speed"},
+		],
+		"unlocks": [],
+		"flavor": "",
 	},
 	# --- EFFICIENCY & STAT EXPANSION (Phase 7) ---
 	"combat_heuristics": {
 		"name": "Combat Heuristics",
-		"description": "Bonus:\n• +20% Combat XP gain",
+		"tier": 1,
+		"category": "combat",
 		"cost": 1500,
 		"cost_items": {"Res1": 10},
 		"type": "technology",
-		"parent": "industrial_logistics"
+		"parent": "industrial_logistics",
+		"effects": [
+			{"type": "bonus_yield", "bonus": 0.20, "what": "Combat XP gain"},
+		],
+		"unlocks": [],
+		"flavor": "",
 	},
 	"shield_harmonics": {
 		"name": "Shield Harmonics",
-		"description": "Bonus:\n• +20% Shield Regeneration speed\n• [Requires: Energy Fields (Operations)]",
+		"tier": 2,
+		"category": "combat",
 		"cost": 2000,
 		"cost_items": {"Res1": 10},
 		"type": "technology",
-		"parent": "energy_shields"
+		"parent": "energy_shields",
+		"effects": [
+			{"type": "bonus_yield", "bonus": 0.20, "what": "Shield Regeneration speed"},
+		],
+		"unlocks": [],
+		"flavor": "",
 	},
 	"hull_hardening": {
 		"name": "Carbon Hull Lattice",
-		"description": "Bonus:\n• +15% Ship Max HP\n• [Requires: Organic Combustion (Engineering)]",
+		"tier": 2,
+		"category": "combat",
 		"cost": 1200,
 		"cost_items": {"Res1": 5, "MiteChitin": 50},
 		"type": "technology",
 		"parent": "shield_harmonics",
-		"req_tech": "combustion"
+		"req_tech": "combustion",
+		"effects": [
+			{"type": "bonus_yield", "bonus": 0.15, "what": "Ship Max HP"},
+		],
+		"unlocks": [],
+		"flavor": "",
 	},
 	"core_overclocking": {
 		"name": "Reactor Overclocking",
-		"description": "Bonus:\n• +10% Combat Attack Speed\n• [Requires: Applied Physics (Engineering)]",
+		"tier": 2,
+		"category": "combat",
 		"cost": 4000,
 		"cost_items": {"Res2": 10},
 		"type": "technology",
-		"parent": "applied_physics"
+		"parent": "applied_physics",
+		"effects": [
+			{"type": "bonus_yield", "bonus": 0.10, "what": "Combat Attack Speed"},
+		],
+		"unlocks": [],
+		"flavor": "",
 	},
 	"deep_core_optics": {
 		"name": "Deep Core Optics",
-		"description": "Bonus:\n• +1 Base Yield for all Gathering",
+		"tier": 1,
+		"category": "gathering",
 		"cost": 800,
 		"cost_items": {"Res1": 5},
 		"type": "technology",
-		"parent": "laser_cutters"
+		"parent": "laser_cutters",
+		"effects": [
+			{"type": "flat_bonus", "amount": 1.0, "what": "Base Yield (all Gathering)"},
+		],
+		"unlocks": [],
+		"flavor": "",
 	},
 	"nano_fabrication": {
 		"name": "Nano-Fabrication",
-		"description": "Bonus:\n• -15% Processing duration",
+		"tier": 2,
+		"category": "processing",
 		"cost": 5000,
 		"cost_items": {"Res2": 10},
 		"type": "technology",
-		"parent": "automation"
+		"parent": "automation",
+		"effects": [
+			{"type": "bonus_yield", "bonus": -0.15, "what": "Processing duration"},
+		],
+		"unlocks": [],
+		"flavor": "",
 	},
 	"industrial_automation": {
 		"name": "Industrial Automation",
-		"description": "Unlocks:\n• Electronics Assembler",
+		"tier": 2,
+		"category": "infrastructure",
 		"cost": 15000,
 		"cost_items": {"Circuit": 50, "Steel": 200},
 		"type": "technology",
-		"parent": "automated_smelting"
+		"parent": "automated_smelting",
+		"effects": [],
+		"unlocks": ["Electronics Assembler"],
+		"flavor": "",
 	},
 	"molecular_recycling": {
 		"name": "Molecular Recycling",
-		"description": "Unlocks:\n• Matter De-constructor",
+		"tier": 3,
+		"category": "infrastructure",
 		"cost": 50000,
 		"cost_items": {"Res2": 50, "AdvCircuit": 25},
 		"type": "technology",
-		"parent": "industrial_automation"
+		"parent": "industrial_automation",
+		"effects": [],
+		"unlocks": ["Matter De-constructor"],
+		"flavor": "",
 	},
 	"cryogenic_storage": {
 		"name": "Cryogenic Storage",
-		"description": "Unlocks:\n• Cryo-Storage Array",
+		"tier": 3,
+		"category": "infrastructure",
 		"cost": 30000,
 		"cost_items": {"Ti": 100, "Si": 200},
 		"type": "technology",
-		"parent": "cryogenic_systems"
+		"parent": "cryogenic_systems",
+		"effects": [],
+		"unlocks": ["Cryo-Storage Array"],
+		"flavor": "",
 	},
 	# v66.0: Auto-Repair Techs
 	"auto_repair_20": {
 		"name": "Emergency Auto-Repair I",
-		"description": "Automatically uses equipped hull/shield consumables when integrity drops below 20%.",
+		"tier": 2,
+		"category": "combat",
 		"cost": 5000,
 		"cost_items": {"Res1": 10, "MiteChitin": 25, "Mesh": 5},
 		"type": "technology",
-		"parent": "hull_hardening"
+		"parent": "hull_hardening",
+		"effects": [
+			{"type": "threshold", "at_pct": 0.20, "what": "hull/shield integrity"},
+		],
+		"unlocks": [],
+		"flavor": "Auto-fires equipped hull/shield consumables on trigger.",
 	},
 	"auto_repair_40": {
 		"name": "Emergency Auto-Repair II",
-		"description": "Increases auto-repair threshold to 40%.",
+		"tier": 3,
+		"category": "combat",
 		"cost": 15000,
 		"cost_items": {"Res2": 5, "Seal": 10, "Mesh": 10},
 		"type": "technology",
-		"parent": "auto_repair_20"
+		"parent": "auto_repair_20",
+		"effects": [
+			{"type": "threshold", "at_pct": 0.40, "what": "hull/shield integrity"},
+		],
+		"unlocks": [],
+		"flavor": "",
 	},
 	"auto_repair_60": {
 		"name": "Emergency Auto-Repair III",
-		"description": "Increases auto-repair threshold to 60%.",
+		"tier": 3,
+		"category": "combat",
 		"cost": 50000,
 		"cost_items": {"Res2": 5, "AdvCircuit": 15},
 		"type": "technology",
-		"parent": "auto_repair_40"
+		"parent": "auto_repair_40",
+		"effects": [
+			{"type": "threshold", "at_pct": 0.60, "what": "hull/shield integrity"},
+		],
+		"unlocks": [],
+		"flavor": "",
 	},
 	"auto_repair_80": {
 		"name": "Emergency Auto-Repair IV",
-		"description": "Increases auto-repair threshold to 80%.",
+		"tier": 4,
+		"category": "combat",
 		"cost": 200000,
 		"cost_items": {"Res3": 3},
 		"type": "technology",
-		"parent": "auto_repair_60"
-	}
+		"parent": "auto_repair_60",
+		"effects": [
+			{"type": "threshold", "at_pct": 0.80, "what": "hull/shield integrity"},
+		],
+		"unlocks": [],
+		"flavor": "",
+	},
 }
 
 var repeatable_tech_db = {
@@ -968,6 +1586,34 @@ var repeatable_tech_db = {
 		# zone-1 combat loot + salvage) so this recursion stays levelable.
 		"base_items": {"VoidArtifact": 5, "MiteChitin": 50, "Spodumene": 100},
 		"bonus_type": "gathering_yield_mult",
+		"bonus_value": 0.05
+	},
+	# v109: three new lanes paired to the offense/output trio above —
+	# defense, background production, and income velocity. VoidArtifact stays
+	# the shared combat gate (engineer/captain integration); secondary mats
+	# differ per lane to keep demand-breadth across production chains.
+	"defense_focus": {
+		"name": "Recursive Hardening (Defense)",
+		"description": "Infinite scaling: +5% Max Hull HP per level.",
+		"base_cost": 100000,
+		"base_items": {"VoidArtifact": 5, "Steel": 100, "Superalloy": 20},
+		"bonus_type": "hull_hp_mult",
+		"bonus_value": 0.05
+	},
+	"infrastructure_focus": {
+		"name": "Recursive Networking (Infrastructure)",
+		"description": "Infinite scaling: +5% Global Building Yield per level.",
+		"base_cost": 100000,
+		"base_items": {"VoidArtifact": 5, "AdvCircuit": 30, "Cu": 100},
+		"bonus_type": "building_yield_mult",
+		"bonus_value": 0.05
+	},
+	"wealth_focus": {
+		"name": "Recursive Acquisition (Wealth)",
+		"description": "Infinite scaling: +5% Lira rewards from combat, quests & bounties per level.",
+		"base_cost": 100000,
+		"base_items": {"VoidArtifact": 5, "PirateSalvage": 30, "Au": 5},
+		"bonus_type": "credit_reward_mult",
 		"bonus_value": 0.05
 	}
 }
@@ -1275,79 +1921,30 @@ func load_save_data_manager(data: Dictionary):
 			unlocked_techs.append(tid)
 	repeatable_techs = data.get("repeatable_techs", {})
 
-# Action Logic (Scanning)
+# v111.5: Scan-action + Data-currency machinery deleted. The original design
+# had Research = Astrophysics-skill-with-idle-scan-action producing a `data`
+# currency, but nothing ever started the scan loop in the UI and no system
+# consumed Data. Research is now exactly what the player perceives it as:
+# instant-click node unlocks.
+#
+# Kept as no-ops because external callers still hit these signatures:
+#   - game_state.gd:121     active_manager.process_tick(delta)
+#   - game_state.gd:192     active_manager.stop_action()
+#   - game_state.gd:362     research_manager.calculate_offline(delta)
+#   - global_header.gd:161  research_manager.is_active   (read)
+#   - offline_boot_modal:143  research_manager.is_active / current_action (read)
 
-func start_scan():
-	start_action("scan_sector")
-
-func start_action(action_id: String):
-	is_active = true
-	current_action = action_id
-	action_progress = 0.0
-
-func stop_action():
+func stop_action() -> void:
+	# No-op — there's no scan loop to stop. Kept so set_active_manager() can
+	# still call stop_action() when switching managers without erroring.
 	is_active = false
 	current_action = ""
-	action_progress = 0.0
 
-func get_data_yield_multiplier() -> float:
-	# astrophysics level bonus: +10% per level
-	return 1.0 + (get_level() * 0.1)
+func process_tick(_delta: float) -> void:
+	pass    # No tick work; research unlocks happen instantly on click.
 
-func complete_action():
-	var base_yield = 15
-	if "eff_scanning_1" in unlocked_techs:
-		base_yield = int(base_yield * 1.5)
-	
-	var scaled_yield = int(base_yield * get_data_yield_multiplier())
-	GameState.resources.add_currency("data", scaled_yield)
-	add_xp(25)
-
-func process_tick(delta: float):
-	if not is_active or current_action == "": return
-	
-	# Audit v8.0: Combine hub bonuses,	# v54.0: Research speed efficiency (Multiplicative)
-	var speed_mult = 1.0 + get_efficiency_bonus("research_speed")
-	
-	# v72.8: Trophy Buffs
-	if GameState.bounty_manager:
-		speed_mult *= GameState.bounty_manager.get_trophy_buff("research_speed")
-		
-	var required_time = action_duration / speed_mult
-	speed_mult *= get_research_speed_multiplier() # Re-added skill level multiplier
-	action_progress += delta * speed_mult
-	
-	if action_progress >= action_duration:
-		complete_action()
-		action_progress = 0.0 # Loop
-
-func calculate_offline(delta: float):
-	if not is_active or current_action == "": return null
-	
-	var speed_mult = 1.0 + get_efficiency_bonus("research_speed")
-	
-	# v72.8: Trophy Buffs
-	if GameState.bounty_manager:
-		speed_mult *= GameState.bounty_manager.get_trophy_buff("research_speed")
-		
-	speed_mult *= get_research_speed_multiplier() # Re-added skill level multiplier
-	var effective_duration = action_duration / speed_mult
-	
-	var actions = int(delta / effective_duration)
-	if actions <= 0: return null
-	
-	var base_yield = 15
-	if "eff_scanning_1" in unlocked_techs: 
-		base_yield = int(base_yield * 1.5)
-	
-	# v61.0 Fix: Remove duplicate speed_mult - actions count already factors in speed via effective_duration
-	var total_data = int(base_yield * actions * get_data_yield_multiplier())
-	var total_xp = int(25 * actions)
-	
-	GameState.resources.add_currency("data", total_data)
-	add_xp(total_xp)
-	
-	return "Research (Scanning):\nActions: %d\nData Gained: %d\nXP Gained: %d" % [actions, total_data, total_xp]
+func calculate_offline(_delta: float):
+	return null   # Nothing to accumulate offline; player gets no scan rewards.
 
 func get_auto_consume_threshold() -> float:
 	if is_tech_unlocked("auto_repair_80"): return 0.8

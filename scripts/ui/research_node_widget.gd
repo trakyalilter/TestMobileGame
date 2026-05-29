@@ -1,5 +1,20 @@
 extends PanelContainer
 
+# v111: Display-only research node.
+#
+# Previous behaviour was hover-tooltip (show structured info) + click-to-unlock.
+# That mixed an "informational" gesture with a "commit-resources" gesture on
+# the same control, which led to accidental unlocks.
+#
+# New behaviour:
+#   click  →  open research_detail_modal.gd (full-screen dim + centered card
+#             with EFFECTS / UNLOCKS / REQUIRES / FLAVOR + RESEARCH button)
+#   player explicitly commits by pressing RESEARCH in the modal.
+#
+# All tooltip rendering, smart-linking, and effect formatting now live in
+# research_detail_modal.gd. This widget is just a clickable card face that
+# shows name + cost and a state-tinted background.
+
 var nid: String
 var data: Dictionary
 var manager: RefCounted
@@ -7,7 +22,7 @@ var parent_graph: Node
 
 @onready var name_lbl = $MarginContainer/VBoxContainer/NameLabel
 @onready var cost_lbl = $MarginContainer/VBoxContainer/CostLabel
-@onready var desc_tip = $TooltipPanel
+@onready var desc_tip = $TooltipPanel              # kept for scene compat, hidden in setup
 @onready var desc_lbl = $TooltipPanel/MarginContainer/Label
 
 # Colors
@@ -18,131 +33,59 @@ const BORDER_LOCKED = Color(0.3, 0.3, 0.3)
 const BORDER_AVAILABLE = Color(1.0, 0.8, 0.2)
 const BORDER_UNLOCKED = Color(0.2, 1.0, 0.5)
 
+const _MODAL_SCRIPT := preload("res://scripts/ui/research_detail_modal.gd")
+
 var _header_panel: PanelContainer
 var _pulse_tween: Tween
+
 
 func setup(p_nid: String, p_data: Dictionary, p_manager, p_parent):
 	nid = p_nid
 	data = p_data
 	manager = p_manager
 	parent_graph = p_parent
-	
+
 	name_lbl.text = data["name"]
 	cost_lbl.text = "%d %s" % [data.get("cost", 0), UITheme.LIRA_ICON_BB]
-	desc_lbl.bbcode_enabled = true
-	desc_lbl.text = _apply_smart_linking(data["description"])
-	
-	desc_tip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	$TooltipPanel/MarginContainer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	desc_lbl.mouse_filter = Control.MOUSE_FILTER_PASS # Allow hover
-	
-	scale = Vector2(1,1) # Reset logic
-	
+
+	# v111: hover-tooltip retired. Hide the legacy TooltipPanel so the scene
+	# graph stays untouched but the player never sees it.
+	if desc_tip:
+		desc_tip.visible = false
+		desc_tip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	# v111.3: child Labels / RichTextLabels default to MOUSE_FILTER_STOP and
+	# were swallowing clicks before they reached the PanelContainer's
+	# gui_input — the player could only click the diegetic header (whose
+	# children DON'T absorb input). Switch every child to PASS so the whole
+	# card face is a hit target, then let gui_input fire on the root panel.
+	name_lbl.mouse_filter = Control.MOUSE_FILTER_PASS
+	cost_lbl.mouse_filter = Control.MOUSE_FILTER_PASS
+	var mc := get_node_or_null("MarginContainer")
+	if mc:
+		mc.mouse_filter = Control.MOUSE_FILTER_PASS
+		var vb := mc.get_node_or_null("VBoxContainer")
+		if vb:
+			vb.mouse_filter = Control.MOUSE_FILTER_PASS
+
+	scale = Vector2(1, 1)
 	update_state()
 
-# Smart Linker Logic
-var _link_cache: Dictionary = {}
-
-func _apply_smart_linking(text: String) -> String:
-	# Avoid re-processing if not needed
-	if text.contains("[url"): return text
-	
-	var processed = text
-	
-	# Collect all potential global terms
-	var terms = []
-	
-	# 1. Elements/Items
-	for symbol in ElementDB.ELEMENT_NAMES:
-		var ename = ElementDB.ELEMENT_NAMES[symbol]
-		terms.append({"name": ename, "id": symbol, "type": "item"})
-			
-	# 2. Ships
-	if GameState.shipyard_manager:
-		for hid in GameState.shipyard_manager.hulls:
-			var hname = GameState.shipyard_manager.hulls[hid]["name"]
-			terms.append({"name": hname, "id": hid, "type": "ship"})
-				
-		# 3. Modules
-		for mid in GameState.shipyard_manager.modules:
-			var mname = GameState.shipyard_manager.modules[mid]["name"]
-			terms.append({"name": mname, "id": mid, "type": "module"})
-	
-	# 4. Buildings
-	if GameState.infrastructure_manager:
-		for bid in GameState.infrastructure_manager.building_db:
-			var bname = GameState.infrastructure_manager.building_db[bid]["name"]
-			terms.append({"name": bname, "id": bid, "type": "building"})
-
-	# SORT BY LENGTH DESCENDING (Greedy Fix)
-	# This ensures "Osmium Armor" is matched before "Osmium"
-	terms.sort_custom(func(a, b): return a["name"].length() > b["name"].length())
-	
-	# Placeholder Strategy:
-	# Replace terms with unique tokens first to prevent partial matches inside existing links
-	# e.g. "Osmium Armor" -> "{{LINK_0}}" -> "Osmium" won't find it inside
-	var replacements = {}
-	var token_id = 0
-	
-	for t in terms:
-		if t["name"] in processed:
-			# Check if already linked checks for [url, which is too broad
-			# We trust the placeholder system to handle overlaps by length
-			# New check: Only link if NOT ALREADY LINKED
-			if not _is_linked(processed, t["name"]):
-				var token = "{{LINK_%d}}" % token_id
-				var link_bbcode = _make_link(t["name"], t["id"], t["type"])
-				
-				# Perform replacement with token
-				# We must ensure we don't partial match inside other tokens, but tokens are unique
-				# String.replace is safe because tokens don't contain other terms
-				if processed.contains(t["name"]):
-					processed = processed.replace(t["name"], token)
-					replacements[token] = link_bbcode
-					token_id += 1
-	
-	# Final Pass: Restore BBCodes
-	for token in replacements:
-		processed = processed.replace(token, replacements[token])
-				
-	return processed
-
-func _is_linked(text: String, phrase: String) -> bool:
-	return ("[url" in text and phrase + "[/url]" in text)
-
-func _make_link(display: String, id: String, type: String) -> String:
-	# Store type/id in url for the callback
-	var meta = {"id": id, "type": type}
-	var json = JSON.stringify(meta)
-	return "[url=%s][color=#44aaff]%s[/color][/url]" % [json, display]
 
 func _ready():
-	desc_lbl.meta_hover_started.connect(_on_meta_hover)
-	desc_lbl.meta_hover_ended.connect(_on_meta_exit)
 	_ensure_header()
+
 
 func _ensure_header():
 	if _header_panel: return
 	_header_panel = UITheme.inject_diegetic_header(self, "research")
-	
+
 	# Hide original spacing Control if it exists
 	var vbox = get_node("MarginContainer/VBoxContainer")
 	var spacer = vbox.get_node_or_null("Control")
 	if spacer: spacer.hide()
-	
-	# 5. Modernize Tooltip (TooltipPanel)
-	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.08, 0.08, 0.1, 0.85) # High translucency glassy look
-	style.set_border_width_all(2)
-	style.border_color = UITheme.CATEGORY_COLORS["research"]
-	style.set_corner_radius_all(4)
-	style.shadow_size = 12
-	style.shadow_color = Color(0, 0, 0, 0.5)
-	desc_tip.add_theme_stylebox_override("panel", style)
-	
-	# Add a small subtle header to the tooltip too if possible
-	# We can just use BBCode in the Label for now to simulate a header
-	
+
+
 func _cleanup_pulse():
 	if _pulse_tween:
 		_pulse_tween.kill()
@@ -152,54 +95,12 @@ func _cleanup_pulse():
 	style.shadow_size = 0
 	add_theme_stylebox_override("panel", style)
 
-var _active_info_card = null
-var info_card_scene = preload("res://scenes/ui/info_card.tscn")
-
-func _on_meta_hover(meta):
-	if _active_info_card: _active_info_card.queue_free()
-	
-	var data = JSON.parse_string(str(meta))
-	if not data: return
-	
-	var card = info_card_scene.instantiate()
-	
-	# Add to ModalLayer to avoid container stretching and ensure z-index
-	var main = self.get_tree().current_scene
-	var modal_layer = main.get_node_or_null("ModalLayer")
-	if modal_layer:
-		modal_layer.add_child(card)
-	else:
-		# Fallback
-		main.add_child(card)
-	
-	# Call setup AFTER adding to tree so @onready vars work
-	card.setup(data["id"], data["type"])
-	_active_info_card = card
-	
-	# Position near mouse
-	var mpos = get_global_mouse_position()
-	card.global_position = mpos + Vector2(20, 20)
-	
-	# Keep on screen
-	var viewport = get_viewport_rect().size
-	var card_size = Vector2(220, 100) # Fallback size if not ready
-	if card.size.x > 0: card_size = card.size
-	
-	if card.global_position.x + card_size.x > viewport.x:
-		card.global_position.x = mpos.x - card_size.x - 20
-	if card.global_position.y + card_size.y > viewport.y:
-		card.global_position.y = mpos.y - card_size.y - 20
-
-func _on_meta_exit(meta):
-	if _active_info_card:
-		_active_info_card.queue_free()
-		_active_info_card = null
 
 func update_state():
 	var is_repeatable = manager.repeatable_tech_db.has(nid)
 	var is_unlocked = manager.is_tech_unlocked(nid) if not is_repeatable else false
 	var can_unlock = manager.can_unlock(nid) if not is_repeatable else manager.can_unlock_repeatable(nid)
-	
+
 	if is_repeatable:
 		var lvl = manager.get_repeatable_level(nid)
 		name_lbl.text = manager.repeatable_tech_db[nid]["name"] + " (Lvl %d)" % lvl
@@ -212,13 +113,12 @@ func update_state():
 			var display_name = UITheme.LIRA_ICON_BB if res == "credits" else ElementDB.get_display_name(res)
 			cost_parts.append("[color=%s]%s %s[/color]" % [color, FormatUtils.format_number(req_qty), display_name])
 		cost_lbl.text = "[center]" + "\n".join(cost_parts) + "[/center]"
-	
+
 	name_lbl.add_theme_color_override("font_color", Color.WHITE) # Header handled color
 	var style = UITheme.apply_card_style(self, "research")
 	_ensure_header()
-	
 	_cleanup_pulse()
-	
+
 	if is_unlocked:
 		style.bg_color = COL_UNLOCKED
 		style.border_color = BORDER_UNLOCKED
@@ -231,12 +131,12 @@ func update_state():
 		var total_credits = GameState.resources.get_currency("credits")
 		var raw_credit_cost = data.get("cost", 0)
 		var credit_cost = int(raw_credit_cost * manager.COST_MULTIPLIER)
-		
+
 		# Credits check
 		if credit_cost > 0:
 			var color = "#00ff00" if total_credits >= credit_cost else "#888888"
 			cost_parts.append("[color=%s]%s %s[/color]" % [color, FormatUtils.format_number(credit_cost), UITheme.LIRA_ICON_BB])
-		
+
 		# Items check
 		if "cost_items" in data:
 			for item in data["cost_items"]:
@@ -246,100 +146,84 @@ func update_state():
 				var color = "#00ff00" if inv_qty >= req_qty else "#888888"
 				var display_name = ElementDB.get_display_name(item)
 				cost_parts.append("[color=%s]%s %s[/color]" % [color, FormatUtils.format_number(req_qty), display_name])
-		
+
 		cost_lbl.text = "[center]" + "\n".join(cost_parts) + "[/center]"
-		
+
 		if can_unlock:
 			style.bg_color = COL_AVAILABLE
 			style.border_color = BORDER_AVAILABLE
-			
-			# Start Pulse Tween
+			# Pulse cue: "this one is researchable right now"
 			_start_pulse(style)
 		else:
 			style.bg_color = COL_LOCKED
 			style.border_color = BORDER_LOCKED
-		
+
 	add_theme_stylebox_override("panel", style)
+
 
 func _start_pulse(style: StyleBoxFlat):
 	_pulse_tween = create_tween().set_loops()
 	_pulse_tween.tween_property(style, "border_color", Color(1.0, 1.0, 0.5), 0.8).set_trans(Tween.TRANS_SINE)
 	_pulse_tween.parallel().tween_property(style, "shadow_size", 8, 0.8).set_trans(Tween.TRANS_SINE)
 	_pulse_tween.parallel().tween_property(style, "shadow_color", Color(1.0, 0.8, 0.0, 0.5), 0.8)
-	
+
 	_pulse_tween.tween_property(style, "border_color", BORDER_AVAILABLE, 0.8).set_trans(Tween.TRANS_SINE)
 	_pulse_tween.parallel().tween_property(style, "shadow_size", 2, 0.8).set_trans(Tween.TRANS_SINE)
 	_pulse_tween.parallel().tween_property(style, "shadow_color", Color(1.0, 0.8, 0.0, 0.1), 0.8)
 
+
+# ─────────────────────────────────────────────────────────────────────
+# Click handling — drag-vs-click discrimination so panning the tree
+# doesn't accidentally open a modal on release.
+# ─────────────────────────────────────────────────────────────────────
 var _pressed_pos: Vector2 = Vector2.ZERO
 var _is_pressed: bool = false
 const DRAG_THRESHOLD = 5.0
+
 
 func _on_gui_input(event):
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
 			_is_pressed = true
 			_pressed_pos = event.global_position
+			# v111.1: tactile press cue — squeeze the node a touch the moment
+			# the mouse goes down, so the player knows the click landed even
+			# before the modal fades in (~120ms later).
+			_play_press_feedback()
 		else:
-			# Release
 			if _is_pressed:
 				var dist = event.global_position.distance_to(_pressed_pos)
 				_is_pressed = false
-				
-				# Only trigger if NOT a drag
 				if dist < DRAG_THRESHOLD:
-					_handle_unlock()
+					_open_detail_modal()
 
-func _handle_unlock():
-	var is_repeatable = manager.repeatable_tech_db.has(nid)
-	if is_repeatable:
-		if manager.unlock_repeatable_tech(nid):
-			update_state()
-			parent_graph.refresh_all() # Fix Medium: Refresh others on repeatable
-			# Local effect
-			UITheme.trigger_circuit_surge(self, Color.LIME)
-	elif not manager.is_tech_unlocked(nid):
-		if manager.unlock_tech(nid):
-			parent_graph.refresh_all()
 
-func _on_mouse_entered():
-	desc_tip.visible = true
-	_update_tooltip_position()
-	# move to front
-	z_index = 10
+# v111.1: A small scale + tint pulse triggered on mouse-down, decoupled from
+# the modal opening so the user sees something happen instantly even if the
+# modal takes a frame or two to construct.
+func _play_press_feedback() -> void:
+	pivot_offset = size * 0.5
+	var tw := create_tween().set_parallel(true)
+	tw.tween_property(self, "scale", Vector2(0.94, 0.94), 0.06).set_trans(Tween.TRANS_QUAD)
+	tw.tween_property(self, "modulate", Color(1.25, 1.20, 0.90), 0.06).set_trans(Tween.TRANS_QUAD)
+	tw.chain().tween_property(self, "scale", Vector2(1.0, 1.0), 0.12).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.chain().tween_property(self, "modulate", Color(1, 1, 1), 0.12)
 
-func _update_tooltip_position():
-	# Force the container to recalculate its size based on the new text
-	desc_tip.reset_size()
-	
-	# Default offset (increased to 130 to prevent edge overlap)
-	desc_tip.position = Vector2(130, 0)
-	
-	# Use combined_minimum_size for the most accurate calculation before a frame pass
-	# Note: desc_tip size might change if rich text wraps
-	var t_size = desc_tip.get_combined_minimum_size()
-	var global_scale = get_global_transform().get_scale()
-	var scaled_size = t_size * global_scale
-	
-	var global_pos = get_global_position() + desc_tip.position * global_scale
-	var screen_size = get_viewport_rect().size
-	
-	# Adjust X: if it goes off right, flip to left side of node
-	if global_pos.x + scaled_size.x > screen_size.x:
-		desc_tip.position.x = - (t_size.x + 20)
-		
-	# Re-calculate global_pos.y after X potential shift (though Y check is independent)
-	# Check Y: if it goes off bottom, shift it up
-	if global_pos.y + scaled_size.y > screen_size.y:
-		var overflow = (global_pos.y + scaled_size.y) - screen_size.y
-		# Convert global overflow back to local coordinates
-		desc_tip.position.y -= overflow / global_scale.y
-		
-	# FINAL SAFETY: Ensure it doesn't go off top of screen
-	var final_global_y = get_global_position().y + desc_tip.position.y * global_scale.y
-	if final_global_y < 0:
-		desc_tip.position.y = -get_global_position().y / global_scale.y
 
-func _on_mouse_exited():
-	desc_tip.visible = false
-	z_index = 0
+# v111: click no longer unlocks directly. Opens a modal where the player
+# reviews the structured info + cost, then commits via a RESEARCH button.
+func _open_detail_modal() -> void:
+	# If a modal is already open in the ModalLayer for ANY node, free it
+	# first so we don't stack overlapping cards.
+	var modal_layer: Node = get_tree().current_scene.get_node_or_null("ModalLayer") \
+		if get_tree().current_scene else null
+	if modal_layer:
+		var existing := modal_layer.get_node_or_null("_ResearchDetailModal")
+		if existing:
+			existing.queue_free()
+
+	var modal: Control = _MODAL_SCRIPT.new()
+	modal.name = "_ResearchDetailModal"
+	var parent_node: Node = modal_layer if modal_layer else get_tree().current_scene
+	parent_node.add_child(modal)
+	modal.start(nid, data, manager, parent_graph)

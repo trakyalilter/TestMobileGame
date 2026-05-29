@@ -15,9 +15,13 @@ var parent_ui: Node
 
 # P1 Mastery — compact readout under the output block: caption row +
 # thin progress bar. Built once in setup(), refreshed in update_state().
-var _mastery_left_lbl: Label
+var _mastery_left_lbl: RichTextLabel    # v109: bbcode so the MASTERY keyword
+										# can be underlined as the hover hint.
 var _mastery_right_lbl: Label
 var _mastery_bar: ProgressBar
+# v107: hover-popup info card. Created on mouse_entered, freed on _exited
+# or tree_exiting (handles widget destroy mid-hover so no orphan stays).
+var _mastery_info_card: Control = null
 
 func setup(p_rid: String, p_data: Dictionary, p_manager, p_parent):
 	rid = p_rid
@@ -63,6 +67,30 @@ func setup(p_rid: String, p_data: Dictionary, p_manager, p_parent):
 	_mastery_left_lbl = mp["left"]
 	_mastery_right_lbl = mp["right"]
 	_mastery_bar = mp["bar"]
+	# v107: Hovering the "MASTERY" keyword (LEFT label) opens a styled info
+	# card via UITheme.show_info_card. Bar + RIGHT label stay non-interactive
+	# so the keyword IS the affordance. Lifecycle: freed on mouse_exited
+	# and on widget tree_exiting (handles destroy-while-hovering).
+	# Godot 4 quirk: Label.mouse_filter defaults to IGNORE → no hover events
+	# fire. Set to PASS so the label captures hover but clicks still go
+	# through to the underlying card / button.
+	_mastery_left_lbl.mouse_filter = Control.MOUSE_FILTER_PASS
+	_mastery_left_lbl.mouse_entered.connect(_on_mastery_hover_enter)
+	_mastery_left_lbl.mouse_exited.connect(_on_mastery_hover_exit)
+	tree_exiting.connect(_free_mastery_info_card)
+
+func _on_mastery_hover_enter() -> void:
+	if _mastery_info_card and is_instance_valid(_mastery_info_card):
+		return
+	_mastery_info_card = UITheme.show_info_card(_mastery_left_lbl, "MASTERY", UITheme.get_mastery_tooltip())
+
+func _on_mastery_hover_exit() -> void:
+	_free_mastery_info_card()
+
+func _free_mastery_info_card() -> void:
+	if _mastery_info_card and is_instance_valid(_mastery_info_card):
+		_mastery_info_card.queue_free()
+	_mastery_info_card = null
 
 func _on_button_pressed():
 	if GameState.combat_manager and GameState.combat_manager.in_combat:
@@ -77,44 +105,59 @@ func _on_button_pressed():
 func _refresh_mastery():
 	if not _mastery_bar or not manager:
 		return
-	var level = manager.get_mastery_level(rid)
-	var prog = manager.get_mastery_progress(rid)
-	var in_lvl = int(prog["in_level"])
-	var needed = int(prog["needed"])
+	var level: int = manager.get_mastery_level(rid)
+	var prog: Dictionary = manager.get_mastery_progress(rid)
+	var in_lvl: int = int(prog["in_level"])
+	var needed: int = int(prog["needed"])
 	if needed < 1:
 		needed = 1
-	var pct = float(in_lvl) / float(needed) * 100.0
-	if pct < 0.0: pct = 0.0
-	if pct > 100.0: pct = 100.0
+	var pct: float = clamp(float(in_lvl) / float(needed) * 100.0, 0.0, 100.0)
 
-	var col_dim = Color(0.48, 0.45, 0.41)
-	var col_mid = Color(0.72, 0.65, 0.45)
-	var col_bright = Color(0.83, 0.69, 0.22)
-	var col_gold = Color(1.0, 0.84, 0.20)
+	# v107: Current cumulative bonus + next-milestone teaser, so the system
+	# explains itself at a glance instead of being a silent progress bar.
+	var bonus_pct: int = int(round((1.0 - manager.get_mastery_duration_mult(rid)) * 100.0))
+	var bonus_suffix: String = (" · −%d%%" % bonus_pct) if bonus_pct > 0 else ""
+	var next_m: int = 0
+	for m in manager.MASTERY_MILESTONES:
+		if level < m:
+			next_m = m
+			break
 
+	var col_dim := Color(0.48, 0.45, 0.41)
+	var col_mid := Color(0.72, 0.65, 0.45)
+	var col_bright := Color(0.83, 0.69, 0.22)
+	var col_gold := Color(1.0, 0.84, 0.20)
+
+	# v109: wrap MASTERY keyword in [u]...[/u] so the underline visually
+	# signals "hoverable" — same affordance as a hyperlink in the research
+	# tree's tooltip pattern.
 	if level >= 100:
-		_mastery_left_lbl.text = "★ GOLD MASTERY"
-		_mastery_right_lbl.text = "LV 100"
-		_mastery_left_lbl.add_theme_color_override("font_color", col_gold)
+		_mastery_left_lbl.text = "★ GOLD [u]MASTERY[/u]%s" % bonus_suffix
+		_mastery_right_lbl.text = "LV 100  ✓"
+		_mastery_left_lbl.add_theme_color_override("default_color", col_gold)
 		_mastery_right_lbl.add_theme_color_override("font_color", col_gold)
 		_mastery_bar.value = 100.0
 		name_lbl.add_theme_color_override("font_color", col_gold)
 	elif level >= 50:
-		_mastery_left_lbl.text = "✦ MASTERY  LV %d" % level
-		_mastery_right_lbl.text = "%d / %d" % [in_lvl, needed]
-		_mastery_left_lbl.add_theme_color_override("font_color", col_bright)
+		# v109: alt-recipe unlock retired; Lv 50 is now a "big-step" milestone
+		# (+10% duration in one shot). Brighter colour still distinguishes
+		# 50-99 from 1-49 so the leap feels like a state change, not just a
+		# bigger number.
+		_mastery_left_lbl.text = "✦ [u]MASTERY[/u]  LV %d%s" % [level, bonus_suffix]
+		_mastery_right_lbl.text = "%d / %d  ▸  LV %d" % [in_lvl, needed, next_m]
+		_mastery_left_lbl.add_theme_color_override("default_color", col_bright)
 		_mastery_right_lbl.add_theme_color_override("font_color", col_bright)
 		_mastery_bar.value = pct
 	elif level > 0:
-		_mastery_left_lbl.text = "MASTERY  LV %d" % level
-		_mastery_right_lbl.text = "%d / %d" % [in_lvl, needed]
-		_mastery_left_lbl.add_theme_color_override("font_color", col_mid)
+		_mastery_left_lbl.text = "[u]MASTERY[/u]  LV %d%s" % [level, bonus_suffix]
+		_mastery_right_lbl.text = "%d / %d  ▸  LV %d" % [in_lvl, needed, next_m]
+		_mastery_left_lbl.add_theme_color_override("default_color", col_mid)
 		_mastery_right_lbl.add_theme_color_override("font_color", col_mid)
 		_mastery_bar.value = pct
 	else:
-		_mastery_left_lbl.text = "MASTERY  LV 0"
-		_mastery_right_lbl.text = "%d / %d" % [in_lvl, needed]
-		_mastery_left_lbl.add_theme_color_override("font_color", col_dim)
+		_mastery_left_lbl.text = "[u]MASTERY[/u]  LV 0"
+		_mastery_right_lbl.text = "%d / %d  ▸  LV %d" % [in_lvl, needed, next_m]
+		_mastery_left_lbl.add_theme_color_override("default_color", col_dim)
 		_mastery_right_lbl.add_theme_color_override("font_color", col_dim)
 		_mastery_bar.value = pct
 
@@ -193,11 +236,15 @@ func update_state():
 		modulate = Color(1.2, 1, 1)
 		
 		var speed_mult = manager.get_recipe_speed_multiplier(rid)
-		var effective_duration = recipe["duration"] / speed_mult
-		var prog = (manager.action_progress / effective_duration) * 100.0
+		var effective_duration = float(recipe["duration"]) / speed_mult
+		# v108: Clamp display values — Godot can deliver a single big delta
+		# (frame stutter / tab refocus) that pushes action_progress past
+		# required_time for one frame before the manager's tick resets it.
+		var safe_progress: float = clamp(manager.action_progress, 0.0, effective_duration)
+		var prog = (safe_progress / effective_duration) * 100.0 if effective_duration > 0.0 else 0.0
 		prog_bar.active = true
 		prog_bar.value = prog
-		time_lbl.text = "%s / %s" % [FormatUtils.format_time(manager.action_progress), FormatUtils.format_time(effective_duration)]
+		time_lbl.text = "%s / %s" % [FormatUtils.format_time(safe_progress), FormatUtils.format_time(effective_duration)]
 	else:
 		prog_bar.active = false
 		prog_bar.value = 0

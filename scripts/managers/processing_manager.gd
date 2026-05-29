@@ -8,13 +8,17 @@ var action_progress: float = 0.0
 var events: Array = []
 
 # P1 Mastery — per-recipe long-tail layered learning. Mirror of gathering's
-# mastery: milestones at 10/25/50/75/100, −5% duration each (≤25% cap),
-# alt-recipe unlocked at 50, gold-tier cosmetic at 100. Persists across
-# warps; cleared only on hard reset.
+# mastery: milestones at 10/25/50/75/100, table-driven cumulative duration
+# reductions (cap 30%). Lv 50 is the "big-step" milestone (+10% in one shot)
+# replacing the cut alt-recipe unlock; Lv 100 still grants the Hearthstone
+# gold-tier cosmetic. Persists across warps; cleared only on hard reset.
 const MASTERY_XP_PER_COMPLETION := 1.0
 const MASTERY_MILESTONES: Array[int] = [10, 25, 50, 75, 100]
-const MASTERY_DURATION_BONUS_PER_MILESTONE := 0.05
-const MASTERY_DURATION_BONUS_MAX := 0.25
+# v109: cumulative bonus table, index = milestones_passed (0..5). Mirrors
+# gathering_manager.MASTERY_DURATION_BONUS_TABLE so the two skills stay in
+# lockstep — the player only learns one curve.
+const MASTERY_DURATION_BONUS_TABLE: Array[float] = [0.0, 0.05, 0.10, 0.20, 0.25, 0.30]
+const MASTERY_DURATION_BONUS_MAX := 0.30
 const MASTERY_LEVEL_CAP := 100
 
 var mastery: Dictionary = {}  # {recipe_id: xp_total_float}
@@ -1171,6 +1175,14 @@ func _mastery_xp_needed_for_level(target: int) -> float:
 func gain_mastery_xp(recipe_id: String, amount: float = MASTERY_XP_PER_COMPLETION) -> void:
 	if recipe_id == "" or amount <= 0.0:
 		return
+	# v107: First-encounter intro — see gathering_manager.gain_mastery_xp for
+	# rationale. Shared flag so it only fires once across both managers.
+	if not GameState.game_settings.get("mastery_intro_seen", false):
+		GameState.game_settings["mastery_intro_seen"] = true
+		UITheme.show_notification(
+			"✦ MASTERY UNLOCKED — Keep using actions for permanent speed bonuses. Hover the mastery bar for the milestone schedule.",
+			Color(1.0, 0.84, 0.45)
+		)
 	var prev_level: int = get_mastery_level(recipe_id)
 	mastery[recipe_id] = float(mastery.get(recipe_id, 0.0)) + amount
 	var new_level: int = get_mastery_level(recipe_id)
@@ -1204,13 +1216,15 @@ func get_mastery_progress(recipe_id: String) -> Dictionary:
 	return {"in_level": xp - threshold, "needed": next_req, "at_cap": false}
 
 func get_mastery_duration_mult(recipe_id: String) -> float:
+	# v109: table-driven (was flat 5%/milestone). Same big-step Lv 50 jump
+	# the gathering skill uses; see MASTERY_DURATION_BONUS_TABLE above.
 	var level: int = get_mastery_level(recipe_id)
 	var milestones_passed: int = 0
 	for m in MASTERY_MILESTONES:
 		if level >= m:
 			milestones_passed += 1
-	var reduction: float = min(MASTERY_DURATION_BONUS_MAX,
-		float(milestones_passed) * MASTERY_DURATION_BONUS_PER_MILESTONE)
+	var idx: int = clamp(milestones_passed, 0, MASTERY_DURATION_BONUS_TABLE.size() - 1)
+	var reduction: float = MASTERY_DURATION_BONUS_TABLE[idx]
 	return 1.0 - reduction
 
 func is_mastery_alt_unlocked(recipe_id: String) -> bool:
@@ -1227,17 +1241,14 @@ func get_alt_recipe_id_for(recipe_id: String) -> String:
 	return recipes.get(recipe_id, {}).get("alt_recipe_id", "")
 
 func _notify_mastery_milestones(recipe_id: String, prev_level: int, new_level: int) -> void:
+	# v110: uniform format — colour cue on the card communicates Lv 50 leap
+	# and Lv 100 cap; toast text stays neutral.
 	var recipe_name: String = recipes.get(recipe_id, {}).get("name", recipe_id)
 	for m in MASTERY_MILESTONES:
 		if prev_level < m and new_level >= m:
-			var msg: String = ""
-			if m == 50:
-				msg = "%s — Mastery 50 ★ Alt-Recipe Unlocked" % recipe_name
-			elif m == 100:
-				msg = "%s — Mastery 100 ★ Gold Tier ★" % recipe_name
-			else:
-				var idx: int = MASTERY_MILESTONES.find(m) + 1
-				msg = "%s — Mastery %d · −%d%% Duration" % [recipe_name, m, idx * 5]
+			var idx: int = MASTERY_MILESTONES.find(m) + 1
+			var pct: int = int(round(MASTERY_DURATION_BONUS_TABLE[idx] * 100.0))
+			var msg: String = "%s — Mastery %d · −%d%% Duration" % [recipe_name, m, pct]
 			UITheme.show_notification(msg, Color(1.0, 0.84, 0.45))
 
 func get_recipe_speed_multiplier(recipe_id: String) -> float:

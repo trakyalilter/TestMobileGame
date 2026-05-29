@@ -62,6 +62,23 @@ func _ready():
 	# every currency_added because credits feed the progress_score formula.
 	GameState.resources.currency_added.connect(_on_currency_added_for_warp_reveal)
 
+	# v109: Recursion discovery — the Recursion research tab is always visible
+	# but easily missed, and is unusable until the player has Void Artifacts
+	# (the shared gate item for every lane). Fire a one-shot pointer the first
+	# time one is acquired.
+	GameState.resources.element_added.connect(_on_element_added_for_recursion_reveal)
+
+func _on_element_added_for_recursion_reveal(symbol: String, _amount: float) -> void:
+	if symbol != "VoidArtifact":
+		return
+	if GameState.game_settings.get("recursion_revealed", false):
+		return
+	GameState.game_settings["recursion_revealed"] = true
+	UITheme.show_notification(
+		"⟨ RECURSION PROTOCOLS ONLINE ⟩  Spend Void Artifacts on the Research page's RECURSION tab for infinite, permanent global bonuses.",
+		Color(0.55, 0.85, 1.0)
+	)
+
 func _on_currency_added_for_warp_reveal(currency_type: String, _amount: float) -> void:
 	# Cheap fast-paths first — this fires on every credit gain.
 	if currency_type != "credits":

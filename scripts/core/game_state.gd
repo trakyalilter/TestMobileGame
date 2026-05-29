@@ -378,12 +378,30 @@ func process_offline_progress(delta: float):
 
 func hard_reset():
 	resources.reset()
+	# v107: resources.reset() intentionally KEEPS lifetime_credits because
+	# warp_manager.execute_warp() relies on it staying monotonic (the warp
+	# formula uses `lifetime_credits - credits_at_warp_start` as the delta).
+	# But hard reset is a brand-new playthrough — that lifetime number MUST
+	# be zeroed, otherwise calculate_warp_gains() returns > 0 immediately,
+	# the P0 fanfare trips on the first credit reward (e.g. first mission
+	# claim), and the Warp tab pops up on a fresh game.
+	resources.lifetime_credits = 0.0
 	gathering_manager.reset()
 	processing_manager.reset()
 	infrastructure_manager.reset()
 	shipyard_manager.reset()
 	research_manager.reset()
 	combat_manager.reset()
+	# v107: warp_manager MUST reset BEFORE mission_manager — the INTO THE VOID
+	# mission re-evaluates current_qty from warp_manager.total_warps every
+	# tick, so leaving warp state stale would auto-complete the mission on a
+	# fresh playthrough. Same path clears all Mastery Tree purchases.
+	if warp_manager: warp_manager.reset()
+	# Clear the P0 prestige-reveal flag so the fanfare can fire again for
+	# the new playthrough.
+	game_settings.erase("warp_first_revealed")
+	# v109: same for the Recursion discovery pointer.
+	game_settings.erase("recursion_revealed")
 	mission_manager.reset()
 	if quest_manager: quest_manager.reset()
 	# ... others

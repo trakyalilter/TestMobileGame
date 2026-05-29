@@ -14,13 +14,18 @@ var events: Array = [] # Buffer for UI
 
 # P1 Mastery — per-action long-tail layered learning. Each gather action
 # accumulates its own XP; milestones at 10/25/50/75/100 grant cumulative
-# duration reductions (capped at 25%), an alt-recipe unlock flag at 50,
-# and a Hearthstone-style gold-card cosmetic at 100. Persists across warps
-# (true meta-progression); cleared only on hard reset.
+# duration reductions (capped at 30%). Lv 50 is a "big-step" milestone
+# (+10% in one shot, not +5%) — replaces the v1 alt-recipe unlock with raw
+# speed so the long-grind midpoint still feels like a reward, not just
+# another linear step. Lv 100 caps with a Hearthstone-style gold cosmetic.
+# Persists across warps (true meta-progression); cleared only on hard reset.
 const MASTERY_XP_PER_COMPLETION := 1.0
 const MASTERY_MILESTONES: Array[int] = [10, 25, 50, 75, 100]
-const MASTERY_DURATION_BONUS_PER_MILESTONE := 0.05
-const MASTERY_DURATION_BONUS_MAX := 0.25
+# v109: per-milestone cumulative bonus table (was a flat 5% step). Index =
+# number of milestones passed (0..5). Lv 50 (index 3) jumps +10% instead of
+# the prior +5% so the midpoint reads as a real reward.
+const MASTERY_DURATION_BONUS_TABLE: Array[float] = [0.0, 0.05, 0.10, 0.20, 0.25, 0.30]
+const MASTERY_DURATION_BONUS_MAX := 0.30
 const MASTERY_LEVEL_CAP := 100
 
 var mastery: Dictionary = {}  # {action_id: xp_total_float}
@@ -63,7 +68,7 @@ var actions: Dictionary = {
 		"name": "Deforest Zone",
 		"loot_table": [["Wood", 1.0, 8, 10]],
 		"xp": 10,
-		"level_req": 5,
+		"level_req": 4,
 		"category": "terrestrial"
 	},
 	"mine_dolomite": {
@@ -104,7 +109,7 @@ var actions: Dictionary = {
 		"name": "Extract Lithium Salt",
 		"loot_table": [["Spodumene", 1.0, 1, 3]],
 		"xp": 10,
-		"level_req": 4,
+		"level_req": 6,
 		"research_req": "basic_engineering",
 		"category": "terrestrial"
 	},
@@ -217,6 +222,16 @@ func _mastery_xp_needed_for_level(target: int) -> float:
 func gain_mastery_xp(action_id: String, amount: float = MASTERY_XP_PER_COMPLETION) -> void:
 	if action_id == "" or amount <= 0.0:
 		return
+	# v107: First-encounter intro — fires once per save when ANY mastery XP
+	# is first awarded. Tells the player Mastery exists and points them at
+	# the bar's tooltip for the full schedule. Without this the system is
+	# silent; the bar exists but a new player has no idea what it does.
+	if not GameState.game_settings.get("mastery_intro_seen", false):
+		GameState.game_settings["mastery_intro_seen"] = true
+		UITheme.show_notification(
+			"✦ MASTERY UNLOCKED — Keep using actions for permanent speed bonuses. Hover the mastery bar for the milestone schedule.",
+			Color(1.0, 0.84, 0.45)
+		)
 	var prev_level: int = get_mastery_level(action_id)
 	mastery[action_id] = float(mastery.get(action_id, 0.0)) + amount
 	var new_level: int = get_mastery_level(action_id)
@@ -250,16 +265,18 @@ func get_mastery_progress(action_id: String) -> Dictionary:
 	var next_req: float = _mastery_xp_needed_for_level(level + 1)
 	return {"in_level": xp - threshold, "needed": next_req, "at_cap": false}
 
-# Returns the duration multiplier (1.0 = full duration, 0.75 = 25% faster).
+# Returns the duration multiplier (1.0 = full duration, 0.70 = 30% faster).
 # Used by get_action_speed_multiplier to turn it into a speed boost.
+# v109: table-driven so Lv 50 can be a +10% "big-step" milestone (replacing
+# the cut alt-recipe unlock) without retrofitting every call site.
 func get_mastery_duration_mult(action_id: String) -> float:
 	var level: int = get_mastery_level(action_id)
 	var milestones_passed: int = 0
 	for m in MASTERY_MILESTONES:
 		if level >= m:
 			milestones_passed += 1
-	var reduction: float = min(MASTERY_DURATION_BONUS_MAX,
-		float(milestones_passed) * MASTERY_DURATION_BONUS_PER_MILESTONE)
+	var idx: int = clamp(milestones_passed, 0, MASTERY_DURATION_BONUS_TABLE.size() - 1)
+	var reduction: float = MASTERY_DURATION_BONUS_TABLE[idx]
 	return 1.0 - reduction
 
 func is_mastery_alt_unlocked(action_id: String) -> bool:
@@ -276,17 +293,15 @@ func get_alt_recipe_id_for(action_id: String) -> String:
 	return actions.get(action_id, {}).get("alt_recipe_id", "")
 
 func _notify_mastery_milestones(action_id: String, prev_level: int, new_level: int) -> void:
+	# v110: uniform message format across all milestones. Lv 50 jump and
+	# Lv 100 cap are visible from the % itself + the card's tint shift —
+	# we don't shout "Big Step" or "Gold Tier" in the toast.
 	var action_name: String = actions.get(action_id, {}).get("name", action_id)
 	for m in MASTERY_MILESTONES:
 		if prev_level < m and new_level >= m:
-			var msg: String = ""
-			if m == 50:
-				msg = "%s — Mastery 50 ★ Alt-Recipe Unlocked" % action_name
-			elif m == 100:
-				msg = "%s — Mastery 100 ★ Gold Tier ★" % action_name
-			else:
-				var idx: int = MASTERY_MILESTONES.find(m) + 1
-				msg = "%s — Mastery %d · −%d%% Duration" % [action_name, m, idx * 5]
+			var idx: int = MASTERY_MILESTONES.find(m) + 1
+			var pct: int = int(round(MASTERY_DURATION_BONUS_TABLE[idx] * 100.0))
+			var msg: String = "%s — Mastery %d · −%d%% Duration" % [action_name, m, pct]
 			UITheme.show_notification(msg, Color(1.0, 0.84, 0.45))
 
 # Audit v6.0 P1-19: Planetary Operations skill bonus - +1% yield per level

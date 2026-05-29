@@ -53,7 +53,9 @@ const LATE_MODULE_ITEM_REQ_MULT = 1.75
 
 const EARLY_MODULE_REQ_TECHS = [
 	"kinetics_101", "laser_optics", "power_systems",
-	"lightweight_alloys", "basic_electronics", "eff_scanning_1",
+	"lightweight_alloys", "basic_electronics",
+	# v111.5: eff_scanning_1 removed from early-module gate list (tech was
+	# cut — it had no real effect on Data which had no consumer).
 	"energy_shields", "fluid_dynamics", "combustion"
 ]
 
@@ -1932,6 +1934,10 @@ func recalc_stats():
 	# v107: Warp Mastery Tree — C1 Hull Reinforcement (+10% Hull HP, all hulls)
 	if GameState.warp_manager:
 		max_hp = int(float(max_hp) * GameState.warp_manager.get_tree_hull_bonus())
+	# v109: Recursion — Recursive Hardening (infinite +5%/level Hull HP).
+	# Multiplicative on top of the warp tree's flat +10%; both compound.
+	if GameState.research_manager:
+		max_hp = int(float(max_hp) * (1.0 + GameState.research_manager.get_efficiency_bonus("hull_hp_mult")))
 	defense *= (1.0 + gem_totals.get("def_mult", 0.0))
 	attack_kinetic *= (1.0 + gem_totals.get("atk_kinetic_mult", 0.0))
 	attack_energy *= (1.0 + gem_totals.get("atk_energy_mult", 0.0))

@@ -159,7 +159,14 @@ func _generate_hunt_quest(min_diff: int, max_diff: int) -> Dictionary:
 	var qty = randi_range(8, 20)
 	var base_xp = enemy_data.get("xp", 10)
 	var diff_mult = pow(zone["data"]["difficulty"], 1.4)
-	var credit_reward = int(base_xp * qty * 3.0 * diff_mult)
+	# v107: Combat tasks pay ~1.2x per-minute over gather tasks at the same
+	# tier. Active attention + hull/consumable risk + gear investment are
+	# paid for in the formula constant, not just at high tiers where the
+	# diff_mult dominates. Was 3.0 — that made Z1 sweep pay 0.33x stockpile
+	# per minute and silently taught new players to ignore combat. The 10.0
+	# constant restores the design principle that risky/active tasks
+	# out-earn idle gather tasks per minute.
+	var credit_reward = int(base_xp * qty * 10.0 * diff_mult)
 	return {
 		"id": _gen_id(),
 		"type": "hunt",
@@ -203,6 +210,9 @@ func claim_quest(quest_id: String) -> bool:
 	var cred = q["reward_credits"]
 	if GameState.warp_manager:
 		cred = int(cred * GameState.warp_manager.get_production_multiplier())
+	# v109: Recursion — Recursive Acquisition (+5%/level Lira rewards)
+	if GameState.research_manager:
+		cred = int(cred * (1.0 + GameState.research_manager.get_efficiency_bonus("credit_reward_mult")))
 	GameState.resources.add_currency("credits", cred)
 	UITheme.show_notification("+%s Liras" % UITheme.format_num(cred), Color(1.0, 0.85, 0.3))
 

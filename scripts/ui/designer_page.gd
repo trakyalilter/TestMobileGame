@@ -13,7 +13,7 @@ extends Control
 @onready var stats_grid: GridContainer = $VBoxContainer/InfoPanel/MarginContainer/InfoHBox/StatsGrid
 @onready var btn_repair_mode: Button = $VBoxContainer/InfoPanel/MarginContainer/InfoHBox/BtnRepairMode
 
-@onready var storage_grid: GridContainer = $VBoxContainer/MainLayout/RightPanel/Margin/VBox/Scroll/UnifiedStorageGrid
+@onready var storage_grid: GridContainer = $VBoxContainer/MainLayout/RightPanel/Margin/VBox/Scroll/GutterMargin/UnifiedStorageGrid
 @onready var tab_frame: PanelContainer = $VBoxContainer/MainLayout/RightPanel/Margin/VBox/TabStripFrame
 @onready var tab_strip: HFlowContainer = $VBoxContainer/MainLayout/RightPanel/Margin/VBox/TabStripFrame/TabMargin/TabStrip
 
@@ -358,7 +358,10 @@ func _setup_bulk_actions():
 	_apply_filter_button_style(btn_scrap_junk, false, Color(0.30, 0.85, 0.40))
 	bulk_actions_container.add_child(btn_scrap_junk)
 
-	var scroll = storage_grid.get_parent()
+	# v111.7: storage_grid now lives inside a GutterMargin (reserves space for
+	# the v-scrollbar so cells don't run under it). Hop one extra .get_parent()
+	# to reach the Scroll and the surrounding VBox.
+	var scroll = storage_grid.get_parent().get_parent()
 	var v_box = scroll.get_parent()
 
 	# Armory context banner

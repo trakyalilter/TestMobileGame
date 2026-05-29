@@ -197,3 +197,17 @@ func load_save_data_manager(data: Dictionary):
 	credits_at_warp_start = data.get("credits_at_warp_start", 0.0)
 	purchased_nodes = data.get("purchased_nodes", {})
 	warp_shards_spent = float(data.get("warp_shards_spent", 0.0))
+
+# v107: Full reset for HARD RESET path only. WARP resets (execute_warp) must
+# never call this — they intentionally preserve shards, total_warps, and the
+# Mastery Tree purchases. Bug history: hard_reset() in game_state used to
+# skip warp_manager entirely, so total_warps stayed > 0 and the "Perform your
+# first Warp" mission auto-completed on a fresh game; tree purchases also
+# carried through. CLAUDE.md flagged this class explicitly.
+func reset(decay_factor: float = 1.0) -> void:
+	super.reset(decay_factor)
+	total_warps = 0
+	warp_shards = 0.0
+	warp_shards_spent = 0.0
+	purchased_nodes = {}
+	credits_at_warp_start = 0.0

@@ -31,7 +31,8 @@ var graphs = {
 			"field_theory",
 
 			# Missing Techs Restored (Audit)
-			"eff_scanning_1", "xeno_archaeology",
+			# v111.5: eff_scanning_1 removed; xeno_archaeology kept.
+			"xeno_archaeology",
 			
 			# v80.4: Zone Access Gates (required for hulls, modules, and combat zones)
 			"zone_2_access", "zone_3_access", "zone_4_access", "zone_5_access", "zone_6_access",
@@ -60,7 +61,7 @@ var graphs = {
 			"energy_shields": Vector2(40, 370),
 			"field_theory": Vector2(40, 430), # Child of Energy Fields — gates IonField consumable
 			"magnetic_funnels": Vector2(240, 370),
-			"eff_scanning_1": Vector2(40, 480), # Restored
+			# v111.5: eff_scanning_1 deleted — vacated slot at (40, 480).
 			"deep_core_optics": Vector2(240, 480), # Shifted right
 			
 			# Branch 5: Exploration (The Path to the Void)
@@ -252,11 +253,16 @@ var graphs = {
 		"container": null
 	},
 	"Recursion": {
-		"nodes": ["production_focus", "combat_focus", "gathering_focus"],
+		# v109: 3 → 6 lanes. Offense/output trio + defense/structure/income trio.
+		"nodes": ["production_focus", "combat_focus", "gathering_focus",
+			"defense_focus", "infrastructure_focus", "wealth_focus"],
 		"pos": {
 			"production_focus": Vector2(40, 40),
 			"combat_focus": Vector2(40, 180),
-			"gathering_focus": Vector2(40, 320)
+			"gathering_focus": Vector2(40, 320),
+			"defense_focus": Vector2(40, 460),
+			"infrastructure_focus": Vector2(40, 600),
+			"wealth_focus": Vector2(40, 740)
 		},
 		"container": null
 	}

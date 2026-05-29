@@ -356,6 +356,9 @@ func claim_contract(contract_id: String) -> bool:
 	# Award credits
 	var sm = GameState.shipyard_manager
 	var bonus_mult = 1.0 + sm.affix_bonuses.get("contract_negotiation", 0.0)
+	# v109: Recursion — Recursive Acquisition (+5%/level Lira rewards)
+	if GameState.research_manager:
+		bonus_mult *= (1.0 + GameState.research_manager.get_efficiency_bonus("credit_reward_mult"))
 	var final_reward = int(contract["reward_credits"] * bonus_mult)
 	
 	GameState.resources.add_currency("credits", final_reward)

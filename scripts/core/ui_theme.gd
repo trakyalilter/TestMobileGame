@@ -270,6 +270,178 @@ func apply_progress_bar_style(pb: ProgressBar, category: String = "ops"):
 # a tiny caption row ("MASTERY  LV N"  ⋯  "X / Y") above a thin progress
 # bar. Returns the refs the caller needs to update each tick.
 # Pass after_index = -1 to leave the panel at the end of `parent`.
+# v107: Mastery info-card body text — used by show_info_card on hover of the
+# "MASTERY" keyword on action/recipe cards. Single source of truth so the
+# wording stays consistent across gathering + processing widgets.
+func get_mastery_tooltip() -> String:
+	# v108: 5 milestone rows (cap is implicit at Lv 100). Body is rendered by
+	# show_info_card via RichTextLabel with bold/italics font-size overrides
+	# so [b]...[/b] doesn't blow the line height up to default bold size.
+	# v109: alt-recipe unlock retired; Lv 50 is now a big-step milestone with
+	# +10% instead of +5% (replacing the dead alt-recipe promise with raw
+	# speed). Cap moved to −30% to keep Lv 75/100 worth chasing. The actual
+	# mastery info card builds a structured grid via _build_mastery_body —
+	# this BBCode string is only the fallback for generic show_info_card use.
+	# v110: bare schedule — no "+1 XP / run" intro, no per-row tail text. Row
+	# colour alone signals Lv 50 leap (warm) + Lv 100 cap (gold). This BBCode
+	# string is the fallback path; the structured grid in _build_mastery_body
+	# is what the actual MASTERY tooltip renders.
+	return ("[color=#cfd6e0][b]Lv 10[/b]    −5%  duration[/color][br]"
+		+ "[color=#cfd6e0][b]Lv 25[/b]    −10% duration[/color][br]"
+		+ "[color=#f0db94][b]Lv 50[/b]    −20% duration[/color][br]"
+		+ "[color=#cfd6e0][b]Lv 75[/b]    −25% duration[/color][br]"
+		+ "[color=#ffce5c][b]Lv 100[/b]  −30% duration[/color]")
+
+# v107: Lightweight styled info card. Caller passes an anchor Control; the
+# popup parents itself under ModalLayer (or current_scene as fallback) and
+# positions just above the anchor. Caller owns lifecycle — queue_free on
+# mouse_exited / tree_exiting. Returns the popup Control.
+func show_info_card(anchor: Control, title: String, body: String) -> Control:
+	var root: Node = anchor.get_tree().current_scene
+	var modal_layer: Node = anchor.get_tree().root.find_child("ModalLayer", true, false)
+	var parent: Node = modal_layer if modal_layer else root
+
+	var card := PanelContainer.new()
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.08, 0.08, 0.11, 0.97)
+	sb.set_corner_radius_all(4)
+	sb.set_border_width_all(1)
+	sb.border_color = Color(0.65, 0.55, 0.20, 0.55)
+	sb.border_width_left = 3                        # accent left stripe
+	sb.content_margin_left = 12
+	sb.content_margin_right = 11
+	sb.content_margin_top = 9
+	sb.content_margin_bottom = 9
+	sb.shadow_color = Color(0, 0, 0, 0.55)
+	sb.shadow_size = 14
+	sb.shadow_offset = Vector2(0, 4)
+	card.add_theme_stylebox_override("panel", sb)
+	card.custom_minimum_size = Vector2(260, 0)
+
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 2)
+	card.add_child(vb)
+
+	# Slim uppercase caption + thin gold rule (replaces the heavy HSeparator).
+	var title_lbl := Label.new()
+	title_lbl.text = title
+	title_lbl.uppercase = true
+	title_lbl.add_theme_font_size_override("font_size", 11)
+	title_lbl.add_theme_color_override("font_color", Color(1.0, 0.84, 0.30))
+	vb.add_child(title_lbl)
+	var rule := ColorRect.new()
+	rule.color = Color(0.65, 0.55, 0.20, 0.40)
+	rule.custom_minimum_size = Vector2(0, 1)
+	vb.add_child(rule)
+
+	# v109: For MASTERY tooltips, build a structured aligned layout (intro +
+	# small caption + 3-col grid) instead of a free-text RichTextLabel. Three
+	# wins: columns actually align across rows, redundant "duration" word
+	# becomes a single section caption, and Lv 100 stands out as gold.
+	if title.to_upper() == "MASTERY":
+		_build_mastery_body(vb)
+	else:
+		# Generic fallback for any other info card.
+		var body_rt := RichTextLabel.new()
+		body_rt.bbcode_enabled = true
+		body_rt.fit_content = true
+		body_rt.scroll_active = false
+		body_rt.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		body_rt.custom_minimum_size = Vector2(237, 0)
+		body_rt.size_flags_horizontal = Control.SIZE_FILL
+		body_rt.add_theme_font_size_override("normal_font_size", 11)
+		body_rt.add_theme_font_size_override("bold_font_size", 11)
+		body_rt.add_theme_font_size_override("italics_font_size", 11)
+		body_rt.add_theme_font_size_override("bold_italics_font_size", 11)
+		body_rt.add_theme_font_size_override("mono_font_size", 11)
+		body_rt.add_theme_constant_override("line_separation", -2)
+		body_rt.add_theme_color_override("default_color", Color(0.86, 0.88, 0.92))
+		body_rt.text = body
+		vb.add_child(body_rt)
+
+	parent.add_child(card)
+
+	# v108.3: Position near the mouse cursor, NOT by anchor rect. Same proven
+	# pattern as scripts/ui/research_node_widget.gd `_on_meta_hover` — which has
+	# been working in-game for ages. Sidesteps every prior failure mode:
+	#   - no `await` (fit_content settle race)
+	#   - no anchor.get_global_rect() (broken when anchor lives inside a parent
+	#     with a transform / ScrollContainer / SubViewport)
+	#   - no `card.size.y` dependency at placement time (RichTextLabel measures
+	#     over several frames)
+	# Fallback size guards against card.size being (0,0) on the same frame.
+	var mpos: Vector2 = anchor.get_global_mouse_position()
+	var vp_size: Vector2 = anchor.get_viewport().get_visible_rect().size
+	var est_size: Vector2 = card.size if card.size.x > 1.0 else Vector2(260, 180)
+	var px: float = mpos.x + 20.0
+	var py: float = mpos.y + 20.0
+	if px + est_size.x > vp_size.x - 8.0:
+		px = mpos.x - est_size.x - 20.0
+	if py + est_size.y > vp_size.y - 8.0:
+		py = mpos.y - est_size.y - 20.0
+	card.position = Vector2(max(8.0, px), max(8.0, py))
+	return card
+
+# v109: structured body builder for the MASTERY info card. Intro + small gold
+# caption + 3-column grid (Lv key | duration cut | unlock note). Grid keeps
+# the % values vertically aligned and lets us drop the repeated "duration"
+# word — it's now stated once in the caption.
+func _build_mastery_body(parent: VBoxContainer) -> void:
+	# v110: "Show don't tell." Everything explanatory is gone — no "+1 XP per
+	# run" intro (the bar fills visibly), no "kept across Warps" promise (the
+	# player discovers persistence by Warping), no per-row "big step / Gold
+	# (cap)" suffix. Only the caption + numbers remain. Colour shift at Lv 50
+	# (warm bright) and Lv 100 (gold) is the silent reward signal.
+	var col_text := Color(0.83, 0.86, 0.90)
+	var col_mid_step := Color(0.94, 0.86, 0.58)     # warm bright — Lv 50 leap
+	var col_gold := Color(1.0, 0.81, 0.36)          # cap reward
+
+	# Section caption — only piece of "telling" we keep, because raw "−5%"
+	# is ambiguous (yield? damage? duration?). One word disambiguates 5 rows.
+	var caption := Label.new()
+	caption.text = "DURATION BONUS"
+	caption.uppercase = true
+	caption.add_theme_font_size_override("font_size", 9)
+	caption.add_theme_color_override("font_color", Color(0.78, 0.66, 0.28))
+	parent.add_child(caption)
+
+	# 2-col grid: Lv key (bold) | % cut. Row colour carries the milestone
+	# tier; no third "explainer" column.
+	var grid := GridContainer.new()
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 14)
+	grid.add_theme_constant_override("v_separation", 3)
+	parent.add_child(grid)
+
+	# rows: [key, pct, row_color]
+	var rows: Array = [
+		["Lv 10",  "−5%",   col_text],
+		["Lv 25",  "−10%",  col_text],
+		["Lv 50",  "−20%",  col_mid_step],   # warm bright cue — leap
+		["Lv 75",  "−25%",  col_text],
+		["Lv 100", "−30%",  col_gold],       # gold cue — cap
+	]
+	for r in rows:
+		var key_lbl := RichTextLabel.new()
+		key_lbl.bbcode_enabled = true
+		key_lbl.fit_content = true
+		key_lbl.scroll_active = false
+		key_lbl.add_theme_font_size_override("normal_font_size", 11)
+		key_lbl.add_theme_font_size_override("bold_font_size", 11)
+		key_lbl.add_theme_color_override("default_color", r[2])
+		key_lbl.text = "[b]%s[/b]" % r[0]
+		key_lbl.custom_minimum_size = Vector2(48, 0)   # fits "Lv 100" bold
+		grid.add_child(key_lbl)
+
+		var pct_lbl := Label.new()
+		pct_lbl.text = r[1]
+		pct_lbl.add_theme_font_size_override("font_size", 11)
+		pct_lbl.add_theme_color_override("font_color", r[2])
+		pct_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		pct_lbl.custom_minimum_size = Vector2(40, 0)
+		grid.add_child(pct_lbl)
+
 func build_mastery_panel(parent: VBoxContainer, after_index: int, category: String) -> Dictionary:
 	var box := VBoxContainer.new()
 	box.name = "MasteryPanel"
@@ -280,11 +452,24 @@ func build_mastery_panel(parent: VBoxContainer, after_index: int, category: Stri
 
 	var hdr := HBoxContainer.new()
 	hdr.add_theme_constant_override("separation", 6)
+	hdr.alignment = BoxContainer.ALIGNMENT_CENTER
 	box.add_child(hdr)
 
-	var left := Label.new()
+	# v109: LEFT mastery slot is a RichTextLabel so callers can wrap the
+	# "MASTERY" keyword in [u]...[/u] — that's the player's visual cue that
+	# the word is hoverable for the milestone schedule popup.
+	var left := RichTextLabel.new()
+	left.bbcode_enabled = true
+	left.fit_content = true
+	left.scroll_active = false
+	left.shortcut_keys_enabled = false
 	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	left.add_theme_font_size_override("font_size", 9)
+	left.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	left.mouse_filter = Control.MOUSE_FILTER_PASS
+	left.add_theme_font_size_override("normal_font_size", 9)
+	left.add_theme_font_size_override("bold_font_size", 9)
+	left.add_theme_font_size_override("italics_font_size", 9)
+	left.add_theme_font_size_override("bold_italics_font_size", 9)
 	hdr.add_child(left)
 
 	var right := Label.new()

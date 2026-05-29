@@ -972,6 +972,11 @@ func get_effective_yield(building_id: String, resource_symbol: String) -> float:
 	var base_qty = float(data["yield"][resource_symbol])
 	base_qty *= _eng_scale(building_id)     # P0.3 capped engineering scaling
 	base_qty *= _ore_throttle(building_id)  # P1.4 ore-tier handed to gathering
+	# v109: Recursion — Recursive Networking (infinite +5%/level building
+	# yield). Applied here (shared by process_tick AND offline catch-up) so
+	# online and offline production stay consistent.
+	if GameState.research_manager:
+		base_qty *= (1.0 + GameState.research_manager.get_efficiency_bonus("building_yield_mult"))
 	return base_qty
 
 func get_effective_interval(building_id: String) -> float:

@@ -1723,8 +1723,16 @@ func get_combat_loot_multiplier() -> float:
 	# 4. Warp Manager bonus
 	if GameState.warp_manager:
 		mult *= max(1.0, GameState.warp_manager.get_combat_multiplier())
-	
+
 	return mult
+
+# v109: Recursion — Recursive Acquisition (+5%/level Lira rewards). Applied
+# to combat credit drops (online + offline); quest_manager / bounty_manager
+# apply the same bonus to their own reward paths.
+func _credit_reward_mult() -> float:
+	if GameState.research_manager:
+		return 1.0 + GameState.research_manager.get_efficiency_bonus("credit_reward_mult")
+	return 1.0
 
 func get_effective_module_drop_chance(enemy_data: Dictionary) -> float:
 	var base = enemy_data.get("module_drop_chance", 0.0)
@@ -1773,7 +1781,9 @@ func win_fight():
 	for entry in current_enemy["loot"]:
 		var base_qty = randi_range(entry[1], entry[2])
 		var qty = int(ceil(float(base_qty) * loot_mult))
-		if entry[0] == "credits": GameState.resources.add_currency("credits", qty)
+		if entry[0] == "credits":
+			qty = int(qty * _credit_reward_mult())  # v109 Recursive Acquisition
+			GameState.resources.add_currency("credits", qty)
 		else: GameState.resources.add_element(entry[0], qty)
 		if entry[0] != "credits": GameState.note_production("combat", qty)  # P3.10
 		session_loot[entry[0]] = session_loot.get(entry[0], 0) + qty
@@ -2310,6 +2320,7 @@ func calculate_offline(delta: float) -> String:
 			var amount = randi_range(min_amt, max_amt)
 			# v61.0 Fix: credits in loot should be treated as currency
 			if item == "credits":
+				amount = int(amount * _credit_reward_mult())  # v109 Recursive Acquisition
 				GameState.resources.add_currency("credits", amount)
 				credits_earned += amount
 			else:
@@ -2326,6 +2337,7 @@ func calculate_offline(delta: float) -> String:
 				var amount = randi_range(min_amt, max_amt)
 				# v61.0 Fix: handle credits in rare_loot too
 				if item == "credits":
+					amount = int(amount * _credit_reward_mult())  # v109 Recursive Acquisition
 					GameState.resources.add_currency("credits", amount)
 					credits_earned += amount
 				else:

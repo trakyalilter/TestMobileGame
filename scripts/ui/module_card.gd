@@ -72,6 +72,12 @@ func _draw_tile_visual(item_name: String, slot_type: String, rarity: int, rarity
 	# Expand to fill the grid column; height stays fixed via min size.
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	custom_minimum_size = Vector2(0, TS)
+	# v111.7: keep cells square. EXPAND_FILL stretches us wider than TS in
+	# the grid (good — looks full), but the original code left height fixed
+	# at TS, producing 2:1 rectangles. Track our rendered width via the
+	# resized signal and bump min height to match so we render as a square.
+	if not resized.is_connected(_keep_square):
+		resized.connect(_keep_square)
 	var tile_container = Control.new()
 	tile_container.name = "TileVisual"
 	tile_container.custom_minimum_size = Vector2(0, TS)
@@ -1100,3 +1106,12 @@ func _drop_data(at_position: Vector2, p_data: Variant) -> void:
 	var p = get_parent()
 	if p and p.has_method("_drop_data"):
 		p._drop_data(at_position, p_data)
+
+# v111.7: hooked from _build_card_visual via resized.connect. When the grid
+# stretches us wider than our current min height, push min height up to match
+# so the cell renders as a square. Single-edge guard (size.x > min.y) means
+# this can't loop: bumping min.y doesn't change size.x in GridContainer, so
+# the next resized fire on the same width sees min.y == size.x and exits.
+func _keep_square() -> void:
+	if size.x > custom_minimum_size.y:
+		custom_minimum_size.y = size.x

@@ -20,6 +20,10 @@ var btn_exit: Button
 var chk_offline_combat: CheckBox
 var has_save: bool = false
 var _stars: Array = []
+# VFX: parallax drift + occasional shooting star.
+const _LAYER_SPEEDS := [5.0, 12.0, 24.0]   # px/sec, per depth layer
+var _drift_dir := Vector2.ZERO              # set in _ready
+var _shoot_t := 6.0                          # seconds until next shooting star
 
 func _ready():
 	set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -33,6 +37,8 @@ func _ready():
 
 	_animate_entrance()
 	_start_star_twinkle()
+	_drift_dir = Vector2(0.55, 0.85).normalized()
+	set_process(true)
 
 # ─────────────────────────────────────────────
 #  BACKGROUND
@@ -54,6 +60,7 @@ func _build_starfield():
 		star.position = Vector2(rng.randf() * vp.x, rng.randf() * vp.y)
 		var b = rng.randf_range(0.45, 1.0)
 		star.color = Color(b * 0.88, b * 0.92, b, rng.randf_range(0.20, 0.80))
+		star.set_meta("layer", i % 3)
 		add_child(star)
 		_stars.append(star)
 
@@ -305,6 +312,48 @@ func _start_star_twinkle():
 		tween.tween_interval(delay)
 		tween.tween_property(star, "color:a", base_a * 0.12, dur).set_trans(Tween.TRANS_SINE)
 		tween.tween_property(star, "color:a", base_a, dur * 0.65).set_trans(Tween.TRANS_SINE)
+
+func _process(delta: float) -> void:
+	if _stars.is_empty(): return
+	var vp := get_viewport().get_visible_rect().size
+	# Parallax drift — three depth layers move at different speeds along
+	# the same diagonal. Stars wrap to the opposite edge.
+	for star in _stars:
+		var layer: int = star.get_meta("layer", 0)
+		star.position += _drift_dir * _LAYER_SPEEDS[layer] * delta
+		if star.position.x > vp.x: star.position.x -= vp.x
+		if star.position.y > vp.y: star.position.y -= vp.y
+		if star.position.x < -4.0: star.position.x += vp.x
+		if star.position.y < -4.0: star.position.y += vp.y
+	# Occasional shooting star.
+	_shoot_t -= delta
+	if _shoot_t <= 0.0:
+		_spawn_shooting_star()
+		_shoot_t = randf_range(10.0, 22.0)
+
+func _spawn_shooting_star() -> void:
+	var vp := get_viewport().get_visible_rect().size
+	var streak := Line2D.new()
+	streak.width = 1.6
+	streak.default_color = Color(0.92, 0.96, 1.0, 0.9)
+	streak.add_point(Vector2.ZERO)        # head (motion direction)
+	streak.add_point(Vector2(-46, -34))   # tail (opposite of motion)
+	var start := Vector2(
+		randf_range(-30.0, vp.x * 0.50),
+		randf_range(-30.0, vp.y * 0.25))
+	streak.position = start
+	add_child(streak)
+	# Draw behind the centre panel: insert just before it in the child order.
+	if _center_panel and is_instance_valid(_center_panel):
+		move_child(streak, _center_panel.get_index())
+	var travel := Vector2(vp.x * 0.95, vp.y * 0.70)
+	var dur := randf_range(0.95, 1.40)
+	var tw := create_tween().set_parallel(true)
+	tw.tween_property(streak, "position", start + travel, dur) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.tween_property(streak, "modulate:a", 0.0, dur) \
+		.set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_IN)
+	tw.chain().tween_callback(streak.queue_free)
 
 # ─────────────────────────────────────────────
 #  HELPERS

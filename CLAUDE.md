@@ -98,6 +98,10 @@ Sectors/zones for combat, ship **hulls** (corvette → frigate → destroyer →
 
 - **Combat:** Z7–Z10 boss credibility pass (escalation curve ~8/10/12/13 min for tier-matched legendary). Z10 boss: HP 14.4M→20M, ATK 130K→200K, `resist_e` 0.45→0.55. Consumable cooldown 1.5s→10s. Heal pcts recalibrated: `ZeroPoint` 0.50→0.35, `AdvMaintenanceKit` 0.50→0.35, `NitroCoolant` 0.35→0.25. Rarity curve flattened: Legendary `[2.00, 2.80]→[1.40, 2.00]`, Unique `[3.50, 5.00]→[2.30, 3.30]`. (All in `combat_manager.gd` and `element_db.gd`, `shipyard_manager.gd`.)
 - **Economy:** Tier-scaled research costs (`research_manager.gd` — `MID/LATE/ENDGAME_RESEARCH_ITEM_REQ_MULT`). Building upkeep continuous sink (`infrastructure_manager.gd::_apply_upkeep` — Water/Dirt, count-scaled). Demand-breadth pass — 17 dead-end materials given thematic consumers, 5 latent hard deadlocks fixed (SalvageData, ColonyDataCore, ExoticIsotope, AntimatterParticle, TurretCore).
+- **P1 Mastery UX:** per-action mastery bar now shows current bonus + next-milestone teaser (gathering/processing widgets); hover the "MASTERY" keyword → styled `UITheme.show_info_card` popup (RichTextLabel, bbcode, deferred positioning); first-encounter intro notification (`game_settings["mastery_intro_seen"]`). `Label.mouse_filter` must be `PASS` for hover to fire (Godot 4 defaults Label to IGNORE).
+- **Quest rewards:** Sweep (combat) multiplier `3.0 → 10.0` in `quest_manager.gd::_generate_hunt_quest` — combat quests now out-earn idle gather quests per-minute (risk/active-attention principle). Stockpile untouched.
+- **Bugfixes:** gather duration-display desync (widgets read own `data["duration"]`, not shared `manager.action_duration`) + defensive clamp so progress never renders > total. Hard-reset now clears `warp_manager` state + `resources.lifetime_credits` + `warp_first_revealed`/`recursion_revealed` flags (previously INTO THE VOID mission auto-completed + tree purchases persisted on fresh game).
+- **Recursion tab (research):** 3 → 6 infinite repeatable lanes — added `defense_focus` (hull HP), `infrastructure_focus` (building yield), `wealth_focus` (Lira rewards). Discovery fanfare on first VoidArtifact (`recursion_revealed`).
 
 ### Build plan — Theory of Fun (Koster) learning-curve extension
 
@@ -106,12 +110,31 @@ Sectors/zones for combat, ship **hulls** (corvette → frigate → destroyer →
 | 1 — Skill cap 99→100 + milestone 100 hook | ✅ done | `scripts/core/skill.gd` |
 | 2 — Warp Mastery Tree (foundation + 4 stat nodes + UI) | ✅ done | Tree data in `warp_manager.gd::TREE_NODES` const. UI in `warp_page.gd::_build_tree_section()`. 4 stat hooks live in gathering/processing/shipyard/combat managers via `warp_manager.get_tree_*_bonus()`. 6 mechanic nodes (E3/E4/E5/C3/C4/C5) marked `"implemented": false` → show **COMING SOON** safely walled. |
 | 3 — P0 Prestige Discovery Fanfare | ✅ done | `main.gd::_on_currency_added_for_warp_reveal` + `_fire_warp_reveal_fanfare`. Warp tab gated on `game_settings["warp_first_revealed"]`. Backward compat for existing saves preserved. |
-| **4 — P1 Mastery layer + gold-card cosmetic at lvl 100** | **NEXT** | Per-recipe + per-gather-action XP. Milestones 10/25/50/75/100 grant conservative permanent buffs. Cap effective bonus at ≤25% total duration reduction. Gold-card cosmetic at 100 = Hearthstone-style metallic shiny gold header. Save data migration: add `mastery: {action_id: xp}` per manager. |
+| 4 — P1 Mastery layer + gold-card cosmetic at lvl 100 | ✅ done | Per-action XP in gathering/processing managers; milestones 10/25/50/75/100 (−5%/milestone duration, cap −25%; alt-recipe flag @50; gold @100). UX shipped (see Recent balance). |
 | 5 — P5 Unique-tier non-weapon modules | pending | Add `z*_unique_engine/sensor/missile/battery` to each zone boss `rare_loot` (3% each). Build-altering affixes. |
 | 6 — P3 Per-boss encounter mechanics | pending | Z3 turret deploys / Z5 enrage at 50% / Z7 alternating damage type / Z9 biohazard adds / Z10 3-phase. Pre-fight loadout solvable only — no new in-fight inputs. |
 | 7 — P4 Anomaly Contracts | pending | Random-rotating combat objectives. Gate via new research tech `anomaly_network`. NO FOMO — never-expiring rewards (premium game). |
 | 8 — P2 Sector Map mode | pending | 3–5 encounter expedition with route choice. Gate via new research tech `expeditionary_protocols`. Optional alt-path — zone select still works alongside. |
-| (deferred) Warp tree mechanic nodes | pending | Order: E5 Reclamation Foundry (~30 min, new building entry) → C3 aux slot → C4 Resonant tier → E4 overclock → E3 alt-recipe (largest) → C5 Cryo damage (very large — `resist_cryo` on every enemy). |
+| (deferred) Warp tree mechanic nodes | pending | Order: E5 Reclamation Foundry (~30 min, new building entry) → C3 aux slot → C4 Resonant tier → E4 overclock → E3 alt-recipe (largest). **C5 repurposed** — see Z11 spec below. |
+
+### 🔒 ENDGAME — Z11 Warp Gate + Cryo + NG+ (LOCKED SPEC, IN PROGRESS)
+
+**The vision:** clearing all 10 zone bosses auto-unlocks **Zone 11 "The Threshold"**, whose creatures are *unbeatable without Warping* — making the first Warp a hard progression gate (forced prestige / NG+). Later zones (Z12+) require progressively more Warps, PoE-map style.
+
+**Locked decisions:**
+- Z11 **auto-appears on Z10-boss kill** (no research gate).
+- Gate is **mechanical, not numeric**: Z11 enemies get `warp_hardened: true` → in `resolve_damage`, non-Cryo damage cut ~98% + combat-log *"WARP-HARDENED — Cryogenic armaments required."* `resist_cryo: -0.25`. The 98% floor makes balance non-fragile (binary have-Cryo/don't, not a stat race).
+- **Cryo = the signature first-Warp unlock** (NOT a tree purchase). Warping #1 grants Cryo weapon access for free → **one Warp suffices for Z11**. (Reconciliation: C5 was Combat-branch / warp #2, which contradicted "one warp enough" — so Cryo moved to the warp act itself.)
+- **Warp-tree node C5 repurposed**: "unlock Cryo" → **"Cryo Overcharge: +50% Cryo damage"** (amplifier, stays Combat branch).
+- First-warp shard math verified: end-of-Z10 `lifetime_credits` ≈ 5–50B → `floor(log2(score/500K))+1` ≈ **15–17 shards** into Engineering branch. Cryo itself is free from warping.
+- NG+ / Z12+: rotating "hardened" types + stacking map-mods per loop. Framework now, numbers later.
+
+**Build phases (multi-session, Cryo is the critical path — touches 10+ files + save migration):**
+1. **Cryo combat foundation** ← IN PROGRESS — `resolve_damage` 4th type, `resist_cryo` field (default 0, save-safe), `warp_hardened` flag handling. Inert until used.
+2. Cryo weapons + first-warp unlock — `atk_cryo` modules, Warp grants Cryo, UI damage-type teaching + loot filter.
+3. Z11 zone — def + warp_hardened enemies + boss w/ P3 mechanic + auto-appear on Z10 clear.
+4. Repurpose C5 → Cryo Overcharge amplifier.
+5. NG+ escalation framework (Z12+ tiers, map-mods) — large, future.
 
 ### Technical gotchas (do NOT repeat these mistakes)
 
