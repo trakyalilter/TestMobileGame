@@ -32,7 +32,7 @@ const MODULE_ZONE_LATE_START = 7
 
 # Stats that get rarity bonuses (damage, defense, HP, etc.)
 const BOOSTABLE_STATS = [
-	"atk_kinetic", "atk_energy", "atk_explosive",
+	"atk_kinetic", "atk_energy", "atk_explosive", "atk_cryo",  # v109: Cryo 4th type
 	"hp", "def", "eva", "accuracy", "crit_chance",
 	"max_shield", "shield_regen", "energy_capacity",
 	"atk_speed_bonus", "shield_regen_mult", "atk_speed_mult",
@@ -41,7 +41,7 @@ const BOOSTABLE_STATS = [
 
 # Zone scaling is applied only to flat/core stats.
 const ZONE_SCALABLE_STATS = [
-	"atk_kinetic", "atk_energy", "atk_explosive",
+	"atk_kinetic", "atk_energy", "atk_explosive", "atk_cryo",  # v109: Cryo 4th type
 	"hp", "def", "eva", "accuracy",
 	"max_shield", "shield_regen", "energy_capacity",
 	"atk_interval"
@@ -466,6 +466,22 @@ var modules: Dictionary = {
 	# Shield HP   = floor(40 × 2.2^(N-1)), regen = floor(HP × 0.05)
 	# Armor DEF   = floor(5 × 2.2^(N-1)), HP bonus = floor(20 × 2.2^(N-1))
 	# ═══════════════════════════════════════════════════════════════
+
+	# ── v109: CRYO — the 4th damage type, unlocked by the first Warp. ──
+	# Exotic-Matter self-charging (no ammo). The only damage that bites
+	# Warp-Hardened (Z11+) hulls. Granted on first Warp; Z11+ drops upgrades.
+	"cryo_lance": {
+		"name": "Cryo-Lance (Exotic)",
+		"slot_type": "weapon",
+		# v109: Strong enough to solo-carry the first Z11 clear (~15-18 min)
+		# when it's the player's only Cryo weapon; Z11 drops give more to fill
+		# the other slots and accelerate. Self-charging — no ammo.
+		"stats": {"atk_cryo": 40000, "energy_load": 30, "atk_interval": 2.0},
+		"cost": {},
+		"desc": "Exotic-Matter cryo cannon. Self-charging — no ammo. The only thing that bites Warp-Hardened hulls.",
+		"zone": 11,
+		"cryo": true
+	},
 
 	# ── ZONE 1: Lunar Orbit ──
 	"z1_kinetic": {
@@ -1389,6 +1405,16 @@ func _migrate_module_entries_from_resources() -> void:
 	if moved_any:
 		new_drops_alert = true
 		inventory_updated.emit()
+
+## v109: Grant a fixed module straight into inventory (no cost, no rarity roll).
+## Used by the first-Warp Cryo grant and Z11+ Cryo drops.
+func grant_module(mid: String, qty: int = 1) -> void:
+	if not mid in modules:
+		return
+	module_inventory[mid] = module_inventory.get(mid, 0) + qty
+	unseen_modules[mid] = true
+	new_drops_alert = true
+	inventory_updated.emit()
 
 func construct_hull(hull_id: String) -> bool:
 	if not hull_id in hulls: return false

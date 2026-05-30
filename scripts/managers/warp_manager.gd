@@ -31,8 +31,8 @@ const TREE_NODES := {
 		"desc": "Unlocks a 9th module slot (Auxiliary type — accepts any module).", "implemented": false},
 	"C4": {"branch": "combat", "cost": 5, "name": "Matrix Core Resonance",
 		"desc": "Unlocks the 4th Matrix Core tier (Resonant) with stronger affixes.", "implemented": false},
-	"C5": {"branch": "combat", "cost": 8, "name": "Cryogenic Armaments",
-		"desc": "Unlocks Cryo, a 4th damage type alongside Kinetic / Energy / Explosive.", "implemented": false},
+	"C5": {"branch": "combat", "cost": 8, "name": "Cryo Overcharge",
+		"desc": "+50% Cryo damage. (Cryo weapons themselves unlock on your first Warp — this overcharges them.)", "implemented": true},
 }
 
 # Branch reveal is derived from total_warps — no separate state needed.
@@ -102,7 +102,17 @@ func execute_warp():
 	var base_resources = {"Fe": 50, "Si": 30, "Wood": 20, "Water": 50}
 	for res in base_resources:
 		GameState.resources.add_element(res, base_resources[res] * current_bonus_shards)
-	
+
+	# v109: Cryo unlock — Warping permanently grants Cryogenic armaments, the
+	# key to the Z11 "Warp-Hardened" gate. This is the signature first-Warp
+	# reward (NOT a tree purchase), so a single Warp suffices for Z11. Runs
+	# AFTER shipyard_manager.reset() above so the granted weapon survives.
+	# Re-grants a Cryo-Lance if the player has none (covers warp resets).
+	GameState.game_settings["cryo_unlocked"] = true
+	var sm = GameState.shipyard_manager
+	if sm and sm.module_inventory.get("cryo_lance", 0) <= 0:
+		sm.grant_module("cryo_lance")
+
 	warped.emit(gains)
 	GameState.save_game()
 
@@ -178,6 +188,11 @@ func get_tree_hull_bonus() -> float:
 
 func get_tree_damage_bonus() -> float:
 	return 1.10 if is_node_purchased("C2") else 1.0
+
+# v109: C5 Cryo Overcharge — +50% Cryo damage (Cryo-only amplifier; stacks on
+# top of C2's general +10%). 1.0 when unpurchased.
+func get_tree_cryo_bonus() -> float:
+	return 1.50 if is_node_purchased("C5") else 1.0
 
 # === Save / Load =========================================================
 

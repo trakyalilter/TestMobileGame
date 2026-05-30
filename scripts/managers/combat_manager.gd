@@ -108,7 +108,8 @@ var loot_type_filter: Dictionary = {
 var loot_weapon_type_filter: Dictionary = {
 	"kinetic": true,
 	"energy": true,
-	"explosive": true
+	"explosive": true,
+	"cryo": true  # v109: 4th type
 }
 
 # Relative drop weight per slot type. Core combat gear stays dominant;
@@ -361,6 +362,15 @@ var zones = {
 		"difficulty": 10,
 		"enemies": ["z10_void_stalker", "z10_temporal_phantom", "z10_omega_sentinel", "z10_primordial_titan", "z10_boss_leviathan"],
 		"research_req": "zone_10_access"
+	},
+	# v109: Zone 11 — the Warp Gate. Auto-unlocks on Z10 boss kill (flag, not
+	# research). Enemies are warp_hardened (Cryo-only). See enemy_db Z11 block.
+	"the_threshold": {
+		"name": "Sector 11 — The Threshold",
+		"desc": "Warp-Hardened space. Hostiles are immune to conventional armaments — only Cryogenic weapons (unlocked by Warping) breach them.",
+		"difficulty": 11,
+		"enemies": ["z11_warp_revenant", "z11_phase_horror", "z11_null_sentinel", "z11_exotic_leviathan", "z11_boss_threshold_warden"],
+		"unlock_flag": "z11_unlocked"
 	}
 }
 
@@ -879,6 +889,62 @@ var enemy_db = {
 		"is_boss": true, "xp": 500000, "eva": 25, "zone": 10, "resist_k": -0.40, "resist_e": 0.55, "resist_x": 0.0, "dmg_type": "energy"
 	},
 
+	# ═══ ZONE 11: The Threshold — WARP-HARDENED (Cryo-only). The Warp Gate. ═══
+	# warp_hardened=true → conventional K/E/X damage is ~nullified in
+	# resolve_damage; only Cryo (the first-Warp unlock) bites. resist_cryo
+	# -0.25 = take 125% Cryo. Raw HP steps up from Z10, but the real wall is
+	# the player's firepower collapsing to a single Cryo weapon until Z11
+	# drops more (module_drop_pool = cryo_lance, rarity-rolled).
+	"z11_warp_revenant": {
+		"name": "Warp Revenant",
+		"stats": {"hp": 1500000, "max_shield": 250000, "atk": 36000, "def": 7000, "atk_interval": 2.0, "accuracy": 180},
+		"loot": [["ExoticMatter", 2, 5], ["PrimordialShard", 1, 3]],
+		"rare_loot": [["ChronoCore", 0.08, 1, 2]],
+		"module_drop_chance": 0.15,
+		"module_drop_pool": ["cryo_lance"],
+		"xp": 60000, "eva": 25, "zone": 11, "warp_hardened": true, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "resist_cryo": -0.25, "dmg_type": "energy"
+	},
+	"z11_phase_horror": {
+		"name": "Phase Horror",
+		"stats": {"hp": 2000000, "max_shield": 300000, "atk": 42000, "def": 8500, "atk_interval": 1.5, "accuracy": 190},
+		"loot": [["ChronoCore", 2, 4], ["VoidEssence", 3, 6]],
+		"rare_loot": [["OmegaPlating", 0.08, 1, 2]],
+		"module_drop_chance": 0.15,
+		"module_drop_pool": ["cryo_lance"],
+		"xp": 70000, "eva": 35, "zone": 11, "warp_hardened": true, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "resist_cryo": -0.25, "dmg_type": "explosive"
+	},
+	"z11_null_sentinel": {
+		"name": "Null Sentinel",
+		"stats": {"hp": 2600000, "max_shield": 280000, "atk": 38000, "def": 10000, "atk_interval": 2.5, "accuracy": 185},
+		"loot": [["OmegaPlating", 2, 4], ["PrimordialShard", 2, 4]],
+		"rare_loot": [["VoidEssence", 0.10, 2, 4]],
+		"module_drop_chance": 0.15,
+		"module_drop_pool": ["cryo_lance"],
+		"xp": 75000, "eva": 10, "zone": 11, "warp_hardened": true, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "resist_cryo": -0.25, "dmg_type": "kinetic"
+	},
+	"z11_exotic_leviathan": {
+		"name": "Exotic Leviathan",
+		"stats": {"hp": 3200000, "atk": 50000, "def": 8000, "atk_interval": 4.0, "accuracy": 175},
+		"loot": [["PrimordialShard", 3, 6], ["credits", 20000000, 40000000]],
+		"rare_loot": [["OmegaPlating", 0.10, 2, 3]],
+		"module_drop_chance": 0.15,
+		"module_drop_pool": ["cryo_lance"],
+		"xp": 80000, "eva": 5, "zone": 11, "warp_hardened": true, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "resist_cryo": -0.25, "dmg_type": "kinetic"
+	},
+	"z11_boss_threshold_warden": {
+		"name": "Threshold Warden",
+		# v109: The Warp Gate boss. Cryo-only. HP tuned so one first-Warp
+		# Cryo-Lance clears in ~15-18 min; more Cryo weapons accelerate it.
+		# A telegraphed P3 phase mechanic is added later (Step 6). Guaranteed
+		# Cryo-Lance drop on kill so the first clear pays the next slot.
+		"stats": {"hp": 22000000, "max_shield": 500000, "atk": 350000, "def": 52000, "atk_interval": 2.5, "accuracy": 260},
+		"loot": [["credits", 100000000, 200000000], ["ExoticMatter", 30, 60], ["ChronoCore", 10, 20], ["PrimordialShard", 20, 40]],
+		"rare_loot": [["cryo_lance", 1.0, 1, 1]],
+		"module_drop_chance": 0.30,
+		"module_drop_pool": ["cryo_lance"],
+		"is_boss": true, "xp": 1000000, "eva": 20, "zone": 11, "warp_hardened": true, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "resist_cryo": -0.25, "dmg_type": "energy"
+	},
+
 	# ═══ HAZARD ZONE: EMP Nexus — Boosted Z2 enemies ═══
 	"hz_emp_drone_1": {
 		"name": "EMP Assault Drone",
@@ -940,6 +1006,11 @@ func get_available_zones() -> Array:
 	var available = []
 	for zid in zones:
 		var data = zones[zid]
+		# v109: flag-gated zones (Z11 auto-unlocks on Z10 boss kill — no
+		# research node). Hidden until the game_settings flag is set.
+		var flag = data.get("unlock_flag", "")
+		if flag != "" and not GameState.game_settings.get(flag, false):
+			continue
 		var req = data.get("research_req")
 		if req:
 			if GameState.research_manager.is_tech_unlocked(req):
@@ -1045,6 +1116,8 @@ func spawn_enemy():
 		"resist_k": e_data.get("resist_k", 0.0),
 		"resist_e": e_data.get("resist_e", 0.0),
 		"resist_x": e_data.get("resist_x", 0.0),
+		"resist_cryo": e_data.get("resist_cryo", 0.0),       # v109: 4th type
+		"warp_hardened": e_data.get("warp_hardened", false), # v109: Z11 Cryo gate
 		"dmg_type": e_data.get("dmg_type", "kinetic") # v87.0: Typed enemy damage
 	}
 	
@@ -1053,7 +1126,11 @@ func spawn_enemy():
 	# Zones 1-2 untouched (early game stays gentle). First-pass curve — tune the
 	# two _zhp / _zdef knobs from playtest.
 	var _ezone := int(e_data.get("zone", current_zone.get("difficulty", 1)))
-	if _ezone >= 3:
+	# v109: warp_hardened (Z11+) enemies skip zone-steepening — their gate is
+	# the Cryo requirement, not inflated stats. Base stats ARE the intended
+	# effective values (only the bounded ENEMY_COMP catch-up below applies),
+	# which keeps Z11 tuning predictable instead of ×3.7-ballooned.
+	if _ezone >= 3 and not e_data.get("warp_hardened", false):
 		# v103c: gate via OFFENSE, not HP. HP-sponging just made fights long
 		# but still winnable (sustain race). Eased HP, kept DEF, added ATK so
 		# sub-zone defensive stats can't survive the kill time; zone-N gear can.
@@ -1163,7 +1240,8 @@ func spawn_enemy():
 				var w_type = "kinetic"
 				if m_stats.get("atk_energy", 0) > 0: w_type = "energy"
 				elif m_stats.get("atk_explosive", 0) > 0: w_type = "explosive"
-				
+				elif m_stats.get("atk_cryo", 0) > 0: w_type = "cryo"  # v109: 4th type
+
 				equipped_weapons.append({
 					"name": m_data["name"],
 					"type": w_type,
@@ -1173,6 +1251,7 @@ func spawn_enemy():
 					"dmg_k": m_stats.get("atk_kinetic", 0) * weapon_skill_mult * GameState.warp_manager.get_tree_damage_bonus(),
 					"dmg_e": m_stats.get("atk_energy", 0) * weapon_skill_mult * GameState.warp_manager.get_tree_damage_bonus(),
 					"dmg_x": m_stats.get("atk_explosive", 0) * weapon_skill_mult * GameState.warp_manager.get_tree_damage_bonus(),
+					"dmg_cryo": m_stats.get("atk_cryo", 0) * weapon_skill_mult * GameState.warp_manager.get_tree_damage_bonus() * GameState.warp_manager.get_tree_cryo_bonus(),  # v109: +C5 Cryo Overcharge
 					"slot_idx": int(s_idx),
 					"energy_load": m_stats.get("energy_load", 0)
 				})
@@ -1410,7 +1489,7 @@ func _execute_player_attack(weapon_idx: int):
 
 	# Manual consume check removed (Auto-only now)
 
-	player_heat += 2.0 + ((w["dmg_k"] + w["dmg_e"] + w["dmg_x"]) / 100.0)
+	player_heat += 2.0 + ((w["dmg_k"] + w["dmg_e"] + w["dmg_x"] + w.get("dmg_cryo", 0.0)) / 100.0)
 	heat_changed.emit(player_heat, player_max_heat)
 	if player_heat >= player_max_heat:
 		# Allowed to exceed max_heat numerically for dynamic high-speed cooling phase
@@ -1455,11 +1534,13 @@ func _execute_player_attack(weapon_idx: int):
 	var p_atk_k = w["dmg_k"]
 	var p_atk_e = w["dmg_e"]
 	var p_atk_x = w["dmg_x"]
+	var p_atk_cryo = w.get("dmg_cryo", 0.0)  # v109
 	if w["type"] == "energy" and _loadout_has_module(sm, "plasma_overcharger"):
 		p_atk_e *= 2.0
-	
+
 	var ammo_id = sm.ammo_loadout.get(w["slot_idx"])
-	var requires_ammo = w["slot_idx"] != -1 # All equipped weapons require ammo
+	# v109: Cryo weapons are Exotic-Matter self-charging — no ammo required.
+	var requires_ammo = w["slot_idx"] != -1 and w["type"] != "cryo"
 	
 	# v80.2 Fix: Enforce Ammo Type Compatibility
 	if ammo_id and ammo_id != "" and not sm.is_ammo_compatible(w["type"], ammo_id):
@@ -1526,9 +1607,10 @@ func _execute_player_attack(weapon_idx: int):
 	p_atk_k *= skill_dmg_mult * trinity_atk_mult
 	p_atk_e *= skill_dmg_mult * trinity_atk_mult * trinity_energy_mult
 	p_atk_x *= skill_dmg_mult * trinity_atk_mult * trinity_missile_mult
-	
+	p_atk_cryo *= skill_dmg_mult * trinity_atk_mult  # v109
+
 	var total_crit = sm.crit_chance + get_milestone_crit_bonus()
-	var res = resolve_damage(p_atk_k, p_atk_e, p_atk_x, enemy_shield, current_enemy["def"], current_zone.get("difficulty", 1), total_crit, true)
+	var res = resolve_damage(p_atk_k, p_atk_e, p_atk_x, enemy_shield, current_enemy["def"], current_zone.get("difficulty", 1), total_crit, true, p_atk_cryo)
 	enemy_shield = max(0, enemy_shield - res[0])
 	enemy_hp -= res[1]
 	
@@ -1609,8 +1691,15 @@ func _execute_enemy_attack():
 		if eres[1] > 0: combat_events.append({"type": "dmg_hull", "text": "-%d %s" % [eres[1], e_type_tag], "color": Color.RED, "side": "player"})
 	if sm.current_hp <= 0: lose_fight()
 
-func resolve_damage(atk_k, atk_e, atk_x, c_shield, c_armor, difficulty = 1, crit_chance = 0.05, is_player_attacker = false):
-	var shield_dmg_pot = (atk_k * 0.5) + (atk_e * 1.5) + (atk_x * 1.1)
+func resolve_damage(atk_k, atk_e, atk_x, c_shield, c_armor, difficulty = 1, crit_chance = 0.05, is_player_attacker = false, atk_cryo = 0.0):
+	# v109 Phase 1: Cryo is the 4th damage type. Inert until Cryo weapons ship
+	# (Phase 2) — atk_cryo / resist_cryo / warp_hardened all default to
+	# 0/0/false, so existing K/E/X combat is mathematically unchanged.
+	# Warp-Hardened (Z11+) enemies near-nullify conventional damage (×0.02);
+	# only Cryo bites — this is the mechanical prestige gate.
+	var _hardened: bool = is_player_attacker and current_enemy != null and current_enemy.get("warp_hardened", false)
+	var _noncryo_factor: float = 0.02 if _hardened else 1.0
+	var shield_dmg_pot = ((atk_k * 0.5) + (atk_e * 1.5) + (atk_x * 1.1)) * _noncryo_factor + (atk_cryo * 1.0)
 	var sm = GameState.shipyard_manager
 	
 	# v85.2: Vulnerable Status (+20% damage taken)
@@ -1652,6 +1741,7 @@ func resolve_damage(atk_k, atk_e, atk_x, c_shield, c_armor, difficulty = 1, crit
 	var arm_k = c_armor
 	var arm_e = c_armor * 0.7
 	var arm_x = c_armor * 0.2
+	var arm_cryo = c_armor * 0.5  # v109: Cryo penetration sits between Energy and Explosive
 	
 	# Reactive Armor Logic (Phase 19)
 	if has_reactive:
@@ -1665,6 +1755,7 @@ func resolve_damage(atk_k, atk_e, atk_x, c_shield, c_armor, difficulty = 1, crit
 	var hull_dmg_k = atk_k * 1.2 * max(_min_factor, 1.0 - arm_k / (arm_k + k))
 	var hull_dmg_e = atk_e * 0.9 * max(_min_factor, 1.0 - arm_e / (arm_e + k))
 	var hull_dmg_x = atk_x * 1.0 * max(_min_factor, 1.0 - arm_x / (arm_x + k))
+	var hull_dmg_cryo = atk_cryo * 1.0 * max(_min_factor, 1.0 - arm_cryo / (arm_cryo + k))  # v109
 	
 	# v86.0: Enemy Damage Type Resistances
 	if is_player_attacker and current_enemy:
@@ -1678,8 +1769,19 @@ func resolve_damage(atk_k, atk_e, atk_x, c_shield, c_armor, difficulty = 1, crit
 		hull_dmg_k *= (1.0 - rk)
 		hull_dmg_e *= (1.0 - re)
 		hull_dmg_x *= (1.0 - rx)
-	
-	var total_hull_dmg = (hull_dmg_k + hull_dmg_e + hull_dmg_x) * bleed_ratio
+		# v109: Cryo resist (defaults 0). Z11 warp_hardened enemies set
+		# resist_cryo ~ -0.25 (weak), so Cryo over-performs against them.
+		var rc = clamp(current_enemy.get("resist_cryo", 0.0), -0.40, 0.50)
+		hull_dmg_cryo *= (1.0 - rc)
+		# v109: Warp-Hardened nullifies conventional hull damage; Cryo exempt.
+		# Applied AFTER the resist clamp so it bypasses the 50% resist ceiling —
+		# this is a hard mechanical gate, not armor.
+		if _hardened:
+			hull_dmg_k *= 0.02
+			hull_dmg_e *= 0.02
+			hull_dmg_x *= 0.02
+
+	var total_hull_dmg = (hull_dmg_k + hull_dmg_e + hull_dmg_x + hull_dmg_cryo) * bleed_ratio
 	
 	# v85.2: Vulnerable/Thresholds applied to Hull too
 	if not is_player_attacker and enemy_vulnerable_timer > 0:
@@ -1801,6 +1903,11 @@ func win_fight():
 		combat_events.append({"type": "loot", "text": "BOSS CORE: %s" % core_name, "color": Color.ORANGE, "side": "enemy"})
 		log_msg("Looted Boss Core: %s" % core_name)
 		session_loot[core_id] = session_loot.get(core_id, 0) + 1
+		# v109: Z10 boss kill auto-unlocks Zone 11 "The Threshold" (the Warp
+		# Gate). Signposts that Warping is now the path — and what it grants.
+		if core_id == "Z10_Core" and not GameState.game_settings.get("z11_unlocked", false):
+			GameState.game_settings["z11_unlocked"] = true
+			UITheme.show_notification("⟨ SECTOR 11 DETECTED — THE THRESHOLD ⟩  Hostiles are Warp-Hardened, immune to conventional armaments. Execute a Warp Core reset to unlock Cryogenic weaponry.", Color(0.55, 0.85, 1.0))
 	# v85.2: Berserking Proc on Kill
 	var berserk_chance = GameState.shipyard_manager.affix_bonuses.get("berserk_on_kill", 0.0)
 	if berserk_chance > 0 and randf() < berserk_chance:

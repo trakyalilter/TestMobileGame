@@ -8,6 +8,7 @@ const DMG_COLORS := {
 	"kinetic": Color(1.0, 0.60, 0.24),
 	"energy": Color(0.30, 0.82, 1.0),
 	"explosive": Color(1.0, 0.55, 0.32),
+	"cryo": Color(0.70, 0.95, 1.0),  # v109: pale ice
 }
 
 var panel: PanelContainer
@@ -138,7 +139,7 @@ func _build_filter_sections():
 		type_column.add_child(cb)
 
 	_add_section_header("WEAPON TYPE", weapon_type_column)
-	for wt in ["kinetic", "energy", "explosive"]:
+	for wt in ["kinetic", "energy", "explosive", "cryo"]:
 		var cb = CheckBox.new()
 		cb.text = wt.capitalize()
 		cb.button_pressed = cm.loot_weapon_type_filter.get(wt, true)

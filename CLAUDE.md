@@ -78,7 +78,7 @@ Sectors/zones for combat, ship **hulls** (corvette → frigate → destroyer →
 
 ## Current Work State — pick up from here
 
-**Branch:** `TestFitTool` on `origin` (`https://github.com/trakyalilter/horizonidle-godot`). **Working dir:** `C:\Users\gokbe\Documents\horizonidle`. When resuming on a different machine, `git pull origin TestFitTool` to sync.
+**Branch:** `MissionFlow` on `origin` (`https://github.com/trakyalilter/horizonidle-godot`). **Working dir:** `C:\Users\gokbe\Documents\horizonidle`. When resuming on a different machine, `git pull origin MissionFlow` to sync. (Branch was `TestFitTool` earlier in the build; switched to `MissionFlow`.)
 
 ### Locked design decisions (do NOT relitigate)
 
@@ -117,7 +117,7 @@ Sectors/zones for combat, ship **hulls** (corvette → frigate → destroyer →
 | 8 — P2 Sector Map mode | pending | 3–5 encounter expedition with route choice. Gate via new research tech `expeditionary_protocols`. Optional alt-path — zone select still works alongside. |
 | (deferred) Warp tree mechanic nodes | pending | Order: E5 Reclamation Foundry (~30 min, new building entry) → C3 aux slot → C4 Resonant tier → E4 overclock → E3 alt-recipe (largest). **C5 repurposed** — see Z11 spec below. |
 
-### 🔒 ENDGAME — Z11 Warp Gate + Cryo + NG+ (LOCKED SPEC, IN PROGRESS)
+### 🔒 ENDGAME — Z11 Warp Gate + Cryo + NG+ (CORE COMPLETE; NG+ future)
 
 **The vision:** clearing all 10 zone bosses auto-unlocks **Zone 11 "The Threshold"**, whose creatures are *unbeatable without Warping* — making the first Warp a hard progression gate (forced prestige / NG+). Later zones (Z12+) require progressively more Warps, PoE-map style.
 
@@ -129,12 +129,15 @@ Sectors/zones for combat, ship **hulls** (corvette → frigate → destroyer →
 - First-warp shard math verified: end-of-Z10 `lifetime_credits` ≈ 5–50B → `floor(log2(score/500K))+1` ≈ **15–17 shards** into Engineering branch. Cryo itself is free from warping.
 - NG+ / Z12+: rotating "hardened" types + stacking map-mods per loop. Framework now, numbers later.
 
-**Build phases (multi-session, Cryo is the critical path — touches 10+ files + save migration):**
-1. **Cryo combat foundation** ← IN PROGRESS — `resolve_damage` 4th type, `resist_cryo` field (default 0, save-safe), `warp_hardened` flag handling. Inert until used.
-2. Cryo weapons + first-warp unlock — `atk_cryo` modules, Warp grants Cryo, UI damage-type teaching + loot filter.
-3. Z11 zone — def + warp_hardened enemies + boss w/ P3 mechanic + auto-appear on Z10 clear.
-4. Repurpose C5 → Cryo Overcharge amplifier.
-5. NG+ escalation framework (Z12+ tiers, map-mods) — large, future.
+**Build phases:**
+1. ✅ Cryo combat foundation — `resolve_damage` gains `atk_cryo` (9th param), `arm_cryo`, `hull_dmg_cryo`, `resist_cryo`, `warp_hardened` gate (non-Cryo ×0.02, both shield+hull, bypasses resist clamp).
+2. ✅ Cryo weapons + first-Warp unlock — `atk_cryo` in shipyard stat lists; `cryo_lance` module (`atk_cryo 40000`, self-charging/no-ammo); `shipyard.grant_module()`; combat weapon_states carry `dmg_cryo` + w_type "cryo"; attack passes `p_atk_cryo`, skips ammo for cryo; `execute_warp()` (and debug Force Warp) grant Cryo-Lance + set `game_settings["cryo_unlocked"]`.
+2b. ✅ Cryo UI — pale-ice color `(0.70,0.95,1.0)`, "CRY" tag, `_weapon_type` detects atk_cryo, loot weapon-type filter "cryo" entry.
+3. ✅ Z11 "The Threshold" — `zones["the_threshold"]` (diff 11, `unlock_flag: z11_unlocked`); 5 warp_hardened enemies (`resist_cryo -0.25`) + Threshold Warden boss (~22M base HP, guaranteed cryo_lance drop); Z10-boss kill (`core_id==Z10_Core`) sets flag + signpost; `get_available_zones` honors `unlock_flag`. **CRITICAL: `spawn_enemy` copies `resist_cryo`+`warp_hardened` into `current_enemy`** (gate was dead without it); **warp_hardened exempt from zone-steepening** (base≈effective, predictable tuning).
+4. ✅ C5 repurposed → "Cryo Overcharge: +50% Cryo damage" (`get_tree_cryo_bonus()`, implemented:true, wired into weapon_states dmg_cryo).
+5. ⏳ NG+ escalation framework (Z12+ tiers, map-mods) — large, future. Z11 flag-unlock persists through warp (only hard_reset clears `z11_unlocked`/`cryo_unlocked`).
+
+**Still open on the arc:** Step 6 (P3) gives the Threshold Warden a telegraphed phase mechanic (it's a strong straight Cryo-check for now). Optional Cryo coach card.
 
 ### Technical gotchas (do NOT repeat these mistakes)
 

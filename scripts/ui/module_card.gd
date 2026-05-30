@@ -353,12 +353,14 @@ func _get_module_icon(slot_type: String, stats: Dictionary) -> Texture2D:
 # the tag is the unambiguous backup).
 func _weapon_dmg_color(stats: Dictionary) -> Color:
 	match _weapon_type(stats):
+		"cryo": return Color(0.70, 0.95, 1.0)  # v109: pale ice (distinct from energy cyan)
 		"energy": return Color(0.32, 0.80, 1.0)
 		"explosive": return Color(1.0, 0.45, 0.30)
 		_: return Color(0.92, 0.66, 0.32)
 
 func _weapon_dmg_tag(stats: Dictionary) -> String:
 	match _weapon_type(stats):
+		"cryo": return "CRY"  # v109
 		"energy": return "NRG"
 		"explosive": return "EXP"
 		_: return "KIN"
@@ -423,6 +425,8 @@ func _weapon_dps(stats: Dictionary) -> float:
 # Mirrors combat_manager's weapon-type rule so the compare chevron only
 # appears between like-for-like damage types.
 func _weapon_type(stats: Dictionary) -> String:
+	if float(stats.get("atk_cryo", 0)) > 0.0:  # v109: 4th type
+		return "cryo"
 	if float(stats.get("atk_energy", 0)) > 0.0:
 		return "energy"
 	if float(stats.get("atk_explosive", 0)) > 0.0:

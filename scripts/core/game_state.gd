@@ -402,6 +402,10 @@ func hard_reset():
 	game_settings.erase("warp_first_revealed")
 	# v109: same for the Recursion discovery pointer.
 	game_settings.erase("recursion_revealed")
+	# v109: re-lock Cryo on a fresh game (it's a first-Warp unlock).
+	game_settings.erase("cryo_unlocked")
+	# v109: re-lock the Z11 Warp Gate on a fresh game.
+	game_settings.erase("z11_unlocked")
 	mission_manager.reset()
 	if quest_manager: quest_manager.reset()
 	# ... others
