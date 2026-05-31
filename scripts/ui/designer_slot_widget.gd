@@ -9,6 +9,7 @@ var pulse_tween: Tween
 
 var _active_gem_card = null
 var _info_card_scene = preload("res://scenes/ui/info_card.tscn")
+const MatrixCoreIcon = preload("res://scripts/ui/matrix_core_icon.gd")
 var _is_focused: bool = false
 
 @onready var type_lbl = $MarginContainer/VBoxContainer/TypeLabel
@@ -257,41 +258,34 @@ func refresh_state():
 			for i in range(m_data["sockets"].size()):
 				var gem = m_data["sockets"][i]
 				var item_idx = option_btn.item_count
-				# Draw actual Physical Socket Visual!
-				var sock_bg = Panel.new()
-				sock_bg.custom_minimum_size = Vector2(12, 12)
-				var sb = StyleBoxFlat.new()
-				sb.bg_color = Color(0.01, 0.01, 0.01, 0.9)
-				sb.border_width_left = 1; sb.border_width_top = 1; sb.border_width_right = 1; sb.border_width_bottom = 1;
-				sb.border_color = Color(0.4, 0.4, 0.4, 0.8)
-				
+				# v111.16: faceted crystal core visual (was a flat rotated square).
+				# The option_btn entries below still drive the right-click remove
+				# menu and must be kept exactly as-is.
+				var core := MatrixCoreIcon.new()
+				core.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+				core.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
 				if gem:
 					var gem_name = ElementDB.get_display_name(gem)
 					option_btn.add_item("Socket: Remove " + gem_name, item_idx)
 					option_btn.set_item_metadata(item_idx, {"action": "remove_gem", "socket_idx": i})
-					
-					var g_color = _get_gem_color(gem_name)
-					sb.bg_color = g_color
-					sb.border_color = g_color.lightened(0.6)
-					sb.shadow_color = g_color * Color(1, 1, 1, 0.4)
-					sb.shadow_size = 6
+					core.set_core(_get_gem_color(gem_name), false)
 				else:
 					option_btn.add_item("Socket: [Empty]", item_idx)
 					option_btn.set_item_disabled(item_idx, true)
-				
-				sock_bg.add_theme_stylebox_override("panel", sb)
-				sock_bg.pivot_offset = Vector2(6, 6)
-				sock_bg.rotation_degrees = 45 # Diamond layout
-				
+					core.set_core(Color(0.42, 0.47, 0.58), true)  # hollow empty socket
+
 				var sock_wrap = Control.new()
 				sock_wrap.custom_minimum_size = Vector2(20, 20)
-				sock_bg.position = Vector2(4, 4)
-				sock_wrap.add_child(sock_bg)
+				sock_wrap.add_child(core)
 				
-				# v83.9.1: Interactive Gem Removal
+				# v111.16: sockets are click-driven now (drag retired).
+				#   filled socket → click (or right-click) removes the core
+				#   empty socket  → click sockets the Matrix Core armed in the armory
+				sock_wrap.mouse_filter = Control.MOUSE_FILTER_STOP
+				var sock_i := i
 				if gem:
-					sock_wrap.mouse_filter = Control.MOUSE_FILTER_STOP
-					sock_wrap.tooltip_text = "Matrix Core: %s\n[Right-Click to remove]" % ElementDB.get_display_name(gem)
+					sock_wrap.tooltip_text = "Matrix Core: %s\n[Click to remove]" % ElementDB.get_display_name(gem)
 					var captured_gem = gem
 					sock_wrap.mouse_entered.connect(func():
 						# v111.13 CRASH FIX: a queued mouse_entered can fire after
@@ -324,15 +318,21 @@ func refresh_state():
 							_active_gem_card = null
 					)
 					sock_wrap.gui_input.connect(func(event):
-						if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
+						if event is InputEventMouseButton and event.pressed and event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT]:
 							if _active_gem_card:
 								_active_gem_card.queue_free()
 								_active_gem_card = null
-							if manager.remove_gem(equipped_id, i):
+							if manager.remove_gem(equipped_id, sock_i):
 								UITheme.trigger_circuit_surge(self)
 								parent_ui.trigger_refresh()
 					)
-				
+				else:
+					sock_wrap.tooltip_text = "Empty Matrix Socket\n[Click a Matrix Core, then click here to socket it]"
+					sock_wrap.gui_input.connect(func(event):
+						if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+							_socket_armed_core(equipped_id, sock_i)
+					)
+
 				h_box.add_child(sock_wrap)
 				
 			socket_anchor.add_child(h_box)
@@ -621,7 +621,10 @@ func _can_drop_data(at_position: Vector2, data: Variant) -> bool:
 			if equipped_id:
 				var m_data = manager.modules.get(equipped_id)
 				if m_data and m_data.has("sockets"):
-					return true
+					# Only accept (and highlight) when there is a free socket.
+					for g in m_data["sockets"]:
+						if g == null:
+							return true
 			return false
 		return data.get("slot_type") == slot_type
 	return false
@@ -679,10 +682,37 @@ func _payload_for(mid: String) -> Dictionary:
 	var m_data = manager.modules.get(mid, {})
 	if not m_data.is_empty():
 		return {"type": "module", "mid": mid, "slot_type": m_data.get("slot_type", "")}
+	# v111.16: Matrix Cores are inventory ELEMENTS, not modules. Present one as a
+	# gem payload so the shared equip routing sockets it into this slot's module
+	# (enables click-core → click-module, mirroring the module equip flow).
+	if _is_matrix_core(mid):
+		return {"type": "module", "mid": mid, "slot_type": "gem"}
 	var c_data = ElementDB.get_consumable_data(mid)
 	if not c_data.is_empty():
 		return {"type": "consumable", "mid": mid, "consumable_type": c_data.get("type", "hull")}
 	return {}
+
+func _is_matrix_core(mid: String) -> bool:
+	return mid != "" and ElementDB.get_elements_in_category("matrix_cores").has(mid)
+
+# Socket the armory's currently-armed Matrix Core into a SPECIFIC socket of the
+# module in this slot. Used by the per-socket pip click (precise targeting).
+func _socket_armed_core(module_id: String, socket_idx: int) -> void:
+	if not parent_ui or not parent_ui.has_method("get_armed_mid"):
+		return
+	var core_id: String = parent_ui.get_armed_mid()
+	if not _is_matrix_core(core_id):
+		UITheme.show_notification("Click a Matrix Core first, then a socket.", Color(1, 0.82, 0.4))
+		return
+	if manager.insert_gem(module_id, socket_idx, core_id):
+		UITheme.trigger_circuit_surge(self)
+		if parent_ui.has_method("notify_equipped"):
+			parent_ui.notify_equipped()       # clears the armed core + armory
+		# Rebuild the equipped slots LAST so the seated core shows (this frees &
+		# recreates this widget; queue_free defers, so the call is safe).
+		parent_ui.trigger_refresh()
+	else:
+		UITheme.show_notification("Couldn't socket that core.", Color(1, 0.5, 0.4))
 
 # True if this slot would accept the given module/consumable id (click-equip).
 func can_accept_module(mid: String) -> bool:

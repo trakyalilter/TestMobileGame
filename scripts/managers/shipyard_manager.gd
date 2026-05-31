@@ -329,6 +329,9 @@ var new_drops_alert: bool = false:
 var active_hull: String = "corvette_hull"
 var module_inventory: Dictionary = {}
 var unseen_modules: Dictionary = {}
+# v111.18 Phase 2: persistent Armory grid positions for the spatial inventory.
+# { item_id: {"x": int, "y": int} }. Items without an entry are auto-packed.
+var armory_layout: Dictionary = {}
 var loadout: Dictionary = {} # {slot_index: module_id}
 var ammo_loadout: Dictionary = {} # {slot_index: ammo_id}
 
@@ -2023,6 +2026,21 @@ func recalc_stats():
 	
 
 
+# v111.18 Phase 2: persistent Armory grid placement, as (page, x, y). A coord
+# of -1 means "no saved position" (auto-pack). Stored as a plain {p,x,y} dict
+# for JSON safety. Old saves (pre-pagination) stored just {x,y} → page 0.
+func get_armory_pos(item_id: String) -> Vector3i:
+	var p = armory_layout.get(item_id)
+	if typeof(p) != TYPE_DICTIONARY:
+		return Vector3i(-1, -1, -1)
+	return Vector3i(int(p.get("p", 0)), int(p.get("x", -1)), int(p.get("y", -1)))
+
+func set_armory_pos(item_id: String, page: int, gx: int, gy: int) -> void:
+	armory_layout[item_id] = {"p": page, "x": gx, "y": gy}
+
+func clear_armory_pos(item_id: String) -> void:
+	armory_layout.erase(item_id)
+
 func get_save_data_manager() -> Dictionary:
 	var data = {}
 	data["active_hull"] = active_hull
@@ -2035,6 +2053,7 @@ func get_save_data_manager() -> Dictionary:
 	data["consumable_shield_slot"] = consumable_shield_slot
 	data["custom_modules"] = custom_modules
 	data["loadout_presets"] = loadout_presets
+	data["armory_layout"] = armory_layout
 	return data
 
 func load_save_data_manager(data: Dictionary):
@@ -2061,6 +2080,8 @@ func load_save_data_manager(data: Dictionary):
 			
 	module_inventory = data.get("inventory", {})
 	unseen_modules = data.get("unseen_modules", {})
+	# Migration: old saves have no armory_layout → {} (everything auto-packs).
+	armory_layout = data.get("armory_layout", {})
 	_migrate_module_entries_from_resources()
 	_migrate_atk_interval_caps()
 

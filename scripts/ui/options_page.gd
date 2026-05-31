@@ -28,8 +28,11 @@ var _test_rarity: int = 2  # Rare default — best signal-to-noise for combat te
 var _test_weapon_type: int = 0  # 0=Mixed (rotate KIN/NRG/EXP), 1=KIN, 2=NRG, 3=EXP
 var _test_consumable_id: String = "Mesh"  # default to the most common hull consumable
 var _test_zone_tier: int = 2  # Z2 is the first gated zone (Z1 is always available)
-var _grant_symbol_edit: LineEdit  # arbitrary-material granter — symbol input
+var _grant_symbol_edit: LineEdit  # arbitrary-material granter — filter/typed input
 var _grant_amount_edit: LineEdit  # arbitrary-material granter — amount input
+var _grant_symbol_list: ItemList  # filterable suggestion dropdown
+var _grant_symbol_syms: Array = []  # symbols parallel to _grant_symbol_list rows
+var _grant_selected_symbol: String = ""  # symbol chosen from the dropdown
 
 
 func _ready() -> void:
@@ -579,7 +582,7 @@ func _build_material_granter(body: VBoxContainer) -> void:
 	body.add_child(title)
 
 	var hint := Label.new()
-	hint.text = "Enter element symbol (Fe, Si, Z3_Core, ExoticMatter, SalvagedAlloy, …) and amount. Adds straight to inventory."
+	hint.text = "Type to filter by name or symbol, pick from the list (shows friendly names), set an amount. Adds straight to inventory."
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hint.add_theme_font_size_override("font_size", 10)
 	hint.add_theme_color_override("font_color", Color(0.55, 0.58, 0.65))
@@ -590,15 +593,17 @@ func _build_material_granter(body: VBoxContainer) -> void:
 	body.add_child(row)
 
 	var s_lbl := Label.new()
-	s_lbl.text = "Symbol"
+	s_lbl.text = "Material"
 	s_lbl.add_theme_font_size_override("font_size", 11)
 	s_lbl.add_theme_color_override("font_color", Color(0.62, 0.66, 0.76))
 	row.add_child(s_lbl)
 
 	_grant_symbol_edit = LineEdit.new()
-	_grant_symbol_edit.placeholder_text = "Fe"
+	_grant_symbol_edit.placeholder_text = "type to filter (e.g. Navigation Data)"
 	_grant_symbol_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_grant_symbol_edit.custom_minimum_size = Vector2(120, 0)
+	_grant_symbol_edit.text_changed.connect(_on_grant_filter_changed)
+	_grant_symbol_edit.focus_entered.connect(func(): _on_grant_filter_changed(_grant_symbol_edit.text))
 	row.add_child(_grant_symbol_edit)
 
 	var a_lbl := Label.new()
@@ -613,24 +618,75 @@ func _build_material_granter(body: VBoxContainer) -> void:
 	_grant_amount_edit.custom_minimum_size = Vector2(100, 0)
 	row.add_child(_grant_amount_edit)
 
+	# Filterable suggestion list — shows "Friendly Name (SYMBOL)"; click to pick.
+	_grant_symbol_list = ItemList.new()
+	_grant_symbol_list.custom_minimum_size = Vector2(0, 160)
+	_grant_symbol_list.visible = false
+	_grant_symbol_list.item_selected.connect(_on_grant_symbol_picked)
+	body.add_child(_grant_symbol_list)
+
 	var btn := _primary_button("GRANT MATERIAL", FRAME_CAT)
 	btn.custom_minimum_size = Vector2(0, 38)
 	btn.pressed.connect(_on_test_grant_material_pressed)
 	body.add_child(btn)
+
+# Rebuild the suggestion list from ELEMENT_NAMES, filtered by `txt` (matches
+# friendly name OR symbol, case-insensitive). Sorted by friendly name.
+func _on_grant_filter_changed(txt: String) -> void:
+	if not _grant_symbol_list:
+		return
+	# Typing invalidates any prior dropdown selection until re-picked/resolved.
+	_grant_selected_symbol = ""
+	_grant_symbol_list.clear()
+	_grant_symbol_syms.clear()
+	var needle := txt.strip_edges().to_lower()
+	var rows: Array = []  # [display, symbol]
+	for sym in ElementDB.ELEMENT_NAMES:
+		var dn: String = ElementDB.ELEMENT_NAMES[sym]
+		if needle == "" or needle in dn.to_lower() or needle in String(sym).to_lower():
+			rows.append([dn, String(sym)])
+	rows.sort_custom(func(a, b): return a[0].naturalnocasecmp_to(b[0]) < 0)
+	var cap := mini(rows.size(), 200)
+	for i in range(cap):
+		_grant_symbol_list.add_item("%s  (%s)" % [rows[i][0], rows[i][1]])
+		_grant_symbol_syms.append(rows[i][1])
+	_grant_symbol_list.visible = _grant_symbol_syms.size() > 0
+
+func _on_grant_symbol_picked(idx: int) -> void:
+	if idx < 0 or idx >= _grant_symbol_syms.size():
+		return
+	_grant_selected_symbol = _grant_symbol_syms[idx]
+	# Show the friendly name in the field (the user asked to SEE the name).
+	_grant_symbol_edit.text = ElementDB.get_display_name(_grant_selected_symbol)
+	_grant_symbol_list.visible = false
+
+# Resolve the grant target: a dropdown pick wins; otherwise treat the typed
+# text as a raw symbol, or match it against a friendly name.
+func _resolve_grant_symbol() -> String:
+	var text := _grant_symbol_edit.text.strip_edges() if _grant_symbol_edit else ""
+	if _grant_selected_symbol != "" and (text == ElementDB.get_display_name(_grant_selected_symbol) or text == _grant_selected_symbol):
+		return _grant_selected_symbol
+	if text == "":
+		return ""
+	if text in ElementDB.ELEMENT_NAMES:  # typed a raw symbol
+		return text
+	var low := text.to_lower()
+	for sym in ElementDB.ELEMENT_NAMES:  # typed a friendly name
+		if ElementDB.ELEMENT_NAMES[sym].to_lower() == low:
+			return String(sym)
+	return ""
 
 
 func _on_test_grant_material_pressed() -> void:
 	if not GameState.resources:
 		UITheme.show_notification("Resources unavailable.", Color.RED)
 		return
-	var symbol: String = ""
-	if _grant_symbol_edit:
-		symbol = _grant_symbol_edit.text.strip_edges()
+	var symbol: String = _resolve_grant_symbol()
 	var amt_text: String = ""
 	if _grant_amount_edit:
 		amt_text = _grant_amount_edit.text.strip_edges()
 	if symbol == "":
-		UITheme.show_notification("Enter a material symbol.", Color.RED)
+		UITheme.show_notification("Pick a material from the list (or type a valid symbol/name).", Color.RED)
 		return
 	if not amt_text.is_valid_int():
 		UITheme.show_notification("Amount must be a whole number.", Color.RED)
@@ -640,6 +696,8 @@ func _on_test_grant_material_pressed() -> void:
 		UITheme.show_notification("Amount must be greater than 0.", Color.RED)
 		return
 	GameState.resources.add_element(symbol, amt)
+	if _grant_symbol_list:
+		_grant_symbol_list.visible = false
 	var dn: String = ElementDB.get_display_name(symbol)
 	UITheme.show_notification("+%d %s" % [amt, dn], Color(0.45, 1.0, 0.55))
 

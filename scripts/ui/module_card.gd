@@ -1,5 +1,7 @@
 extends PanelContainer
 
+const MatrixCoreIcon = preload("res://scripts/ui/matrix_core_icon.gd")
+
 var mid: String
 var data: Dictionary
 var count: int = 0
@@ -481,40 +483,56 @@ func _draw_gem_visual(gem_name: String, rarity_color: Color):
 		if child.name == "GemVisual":
 			child.free()
 			
+	# v111.16: match the empty-slot / module-tile cell so cores SIT IN a slot
+	# (expanding square cell, seated on the same dark socket plate) instead of
+	# floating at a fixed 40px size.
+	var TS := 64.0
+	size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	size_flags_vertical = Control.SIZE_FILL
+	custom_minimum_size = Vector2(0, TS)
+	if not resized.is_connected(_keep_square):
+		resized.connect(_keep_square)
+
 	var gem_container = Control.new()
 	gem_container.name = "GemVisual"
-	var grid_size = 40 # Match the module tile size for grid alignment
-	var visual_size = 25 # The specific size requested for the core visual
-	custom_minimum_size = Vector2(grid_size, grid_size)
-	gem_container.custom_minimum_size = Vector2(grid_size, grid_size)
+	gem_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	gem_container.mouse_filter = Control.MOUSE_FILTER_PASS
-	
-	var sock_bg = Panel.new()
-	var size = 15 # Diamond size
-	sock_bg.custom_minimum_size = Vector2(size, size)
-	sock_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var sb = StyleBoxFlat.new()
-	var g_color = _get_gem_color(gem_name)
 
-	
-	sb.bg_color = g_color
-	sb.border_width_left = 1; sb.border_width_top = 1; sb.border_width_right = 1; sb.border_width_bottom = 1;
-	sb.border_color = g_color.lightened(0.5)
-	sb.shadow_color = g_color * Color(1, 1, 1, 0.45)
-	sb.shadow_size = 4
-	
-	sock_bg.add_theme_stylebox_override("panel", sb)
-	sock_bg.pivot_offset = Vector2(size / 2.0, size / 2.0)
-	sock_bg.rotation_degrees = 45
-	
-	# Center the diamond within the 40x40 grid cell
-	sock_bg.position = Vector2((grid_size - size) / 2.0, (grid_size - size) / 2.0)
-	
+	# Socket backplate — identical to module tiles / empty slots, so a filled
+	# core cell reads as "core seated in a slot", flush with the empty cells.
+	var socket = Panel.new()
+	socket.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	socket.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var sock_sb = StyleBoxFlat.new()
+	sock_sb.bg_color = Color(0.03, 0.045, 0.07, 0.92)
+	sock_sb.set_corner_radius_all(5)
+	sock_sb.set_border_width_all(1)
+	sock_sb.border_color = Color(0.24, 0.36, 0.48, 0.85)
+	sock_sb.shadow_color = Color(0, 0, 0, 0.55)
+	sock_sb.shadow_size = 3
+	socket.add_theme_stylebox_override("panel", sock_sb)
+	gem_container.add_child(socket)
+
+	# Faceted crystal core, seated INSIDE the socket with the same 5px inset the
+	# module tiles use for their rarity plate. Added above the plate; the count
+	# badge / unseen orb / selection ring still paint on top of it.
+	var core := MatrixCoreIcon.new()
+	core.name = "Core"
+	core.anchor_right = 1.0
+	core.anchor_bottom = 1.0
+	core.offset_left = 5
+	core.offset_top = 5
+	core.offset_right = -5
+	core.offset_bottom = -5
+	core.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	core.set_core(_get_gem_color(gem_name))
+	gem_container.add_child(core)
+
 	if count > 1:
 		var badge_bg = ColorRect.new()
 		badge_bg.color = Color(0, 0, 0, 0.6)
-		# Position badge relative to the visual_size or just top-left of the 40x40
-		badge_bg.position = Vector2(6, 6) 
+		# Count badge pinned to the cell's top-left corner.
+		badge_bg.position = Vector2(6, 6)
 		
 		var count_lbl = Label.new()
 		count_lbl.text = str(count)
@@ -546,7 +564,7 @@ func _draw_gem_visual(gem_name: String, rarity_color: Color):
 	# Selection Highlight (Cyan Glow for Gems)
 	if is_selected:
 		var selection_panel = Panel.new()
-		selection_panel.custom_minimum_size = Vector2(grid_size, grid_size)
+		selection_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		selection_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var ssb = StyleBoxFlat.new()
 		ssb.bg_color = Color(0, 0, 0, 0)
@@ -562,14 +580,13 @@ func _draw_gem_visual(gem_name: String, rarity_color: Color):
 	var rarity = _get_module_rarity_safe(sm)
 	_apply_card_style(rarity, rarity_color, "gem")
 	_apply_pulse(rarity)
-	
-	gem_container.add_child(sock_bg)
+
 	add_child(gem_container)
 	
 	# Small glow tween to make the core feel alive
 	var glow_tween = create_tween().set_loops()
-	glow_tween.tween_property(sock_bg, "modulate", Color(1.2, 1.2, 1.2), 1.5).set_trans(Tween.TRANS_SINE)
-	glow_tween.tween_property(sock_bg, "modulate", Color(0.9, 0.9, 0.9), 1.5).set_trans(Tween.TRANS_SINE)
+	glow_tween.tween_property(core, "modulate", Color(1.2, 1.2, 1.2), 1.5).set_trans(Tween.TRANS_SINE)
+	glow_tween.tween_property(core, "modulate", Color(0.9, 0.9, 0.9), 1.5).set_trans(Tween.TRANS_SINE)
 
 
 func _get_module_rarity_safe(sm) -> int:

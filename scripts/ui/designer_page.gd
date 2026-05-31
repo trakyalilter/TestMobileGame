@@ -14,6 +14,16 @@ extends Control
 @onready var btn_repair_mode: Button = $VBoxContainer/InfoPanel/MarginContainer/InfoHBox/BtnRepairMode
 
 @onready var storage_grid: GridContainer = $VBoxContainer/MainLayout/RightPanel/Margin/VBox/Scroll/GutterMargin/UnifiedStorageGrid
+const SpatialInventory = preload("res://scripts/ui/spatial_inventory.gd")
+# v111.17 Phase 1: PoE-style spatial Armory. storage_grid (GridContainer) is
+# repurposed to hold a single SpatialInventory canvas that footprint-packs the
+# tiles (modules 2x2, cores/ammo/consumables 1x1).
+var _spatial: Control = null
+# v111.18 Phase 2b: page navigation for the paginated spatial Armory.
+var _page_nav: HBoxContainer = null
+var _page_prev_btn: Button = null
+var _page_next_btn: Button = null
+var _page_lbl: Label = null
 @onready var tab_frame: PanelContainer = $VBoxContainer/MainLayout/RightPanel/Margin/VBox/TabStripFrame
 @onready var tab_strip: HFlowContainer = $VBoxContainer/MainLayout/RightPanel/Margin/VBox/TabStripFrame/TabMargin/TabStrip
 
@@ -292,10 +302,19 @@ func _apply_designer_styles():
 	_apply_power_bar_style()
 	_refresh_filter_button_styles()
 	
-	# Fewer, larger tiles so loot reads instead of stacking narrow.
-	storage_grid.columns = 4
-	storage_grid.add_theme_constant_override("h_separation", 8)
-	storage_grid.add_theme_constant_override("v_separation", 8)
+	# v111.17 Phase 1: the GridContainer now just hosts the spatial canvas, which
+	# footprint-packs the tiles itself. One column, no separation = pure host.
+	storage_grid.columns = 1
+	storage_grid.add_theme_constant_override("h_separation", 0)
+	storage_grid.add_theme_constant_override("v_separation", 0)
+	_spatial = SpatialInventory.new()
+	_spatial.name = "SpatialInventory"
+	# Fill the column width (no side margins); cells size to the available width.
+	_spatial.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_spatial.cell_clicked.connect(_on_grid_cell_clicked)
+	_spatial.pages_changed.connect(_on_pages_changed)
+	storage_grid.add_child(_spatial)
+	_setup_page_nav()
 
 
 func _setup_filter_tabs():
@@ -1494,6 +1513,10 @@ func _rebuild_storage_after_drag() -> void:
 func rebuild_storage():
 	if not is_inside_tree():
 		return
+	# v111.17: spatial canvas is created in _apply_designer_styles(); bail if a
+	# signal fires a rebuild before that runs.
+	if _spatial == null:
+		return
 	# CRASH FIX: never free/rebuild armory cards while a drag is in progress.
 	# inventory_updated (combat loot, craft, equip, etc.) can fire mid-drag;
 	# rebuilding here queue_free()s the very node being dragged, which Godot's
@@ -1506,10 +1529,18 @@ func rebuild_storage():
 	_storage_rebuild_pending = false
 
 	var slot_count = 0
-	for child in storage_grid.get_children():
-		child.queue_free()
+	# v111.17 Phase 1: clear the spatial canvas (NOT storage_grid, whose only
+	# child is the canvas itself).
+	_spatial.begin()
 
 	var inv = manager.module_inventory
+	# v111.17: never show currently-equipped modules in the Armory. Build the set
+	# of equipped module ids from the loadout and skip them below.
+	var equipped_ids := {}
+	for _s in manager.loadout:
+		var _eq = manager.loadout[_s]
+		if _eq != null and _eq != "":
+			equipped_ids[_eq] = true
 	var sorted_mids = inv.keys()
 	sorted_mids.sort_custom(func(a, b):
 		var data_a = manager.modules.get(a, {})
@@ -1527,12 +1558,14 @@ func rebuild_storage():
 	)
 
 	for module_id in sorted_mids:
+		if module_id in equipped_ids:
+			continue   # equipped modules are hidden from the Armory
 		var module_count = inv[module_id]
 		if module_count > 0 and module_id in manager.modules:
 			var module_data = manager.modules[module_id]
 			if _is_module_visible_for_filter(module_data) and _module_matches_search(module_id, module_data):
 				var item = draggable_icon_scene.instantiate()
-				storage_grid.add_child(item)
+				_spatial.add_item(item, 2, 2, manager.get_armory_pos(module_id))   # gear modules: 2x2
 				var module_slot_type = module_data.get("slot_type", "")
 				var type_matches_focus = focused_slot_type != "" and module_slot_type == _slot_type_to_filter(focused_slot_type)
 				# Set selection + comparison baseline BEFORE setup() so the
@@ -1571,7 +1604,7 @@ func rebuild_storage():
 				if not _module_matches_search(ammo_id, fake_data):
 					continue
 				var ammo_card = draggable_icon_scene.instantiate()
-				storage_grid.add_child(ammo_card)
+				_spatial.add_item(ammo_card, 1, 1, manager.get_armory_pos(ammo_id))
 				ammo_card.setup(ammo_id, fake_data, qty)
 				ammo_card.is_selected = ammo_id in selected_mids
 				ammo_card.clicked.connect(_on_card_clicked)
@@ -1595,7 +1628,7 @@ func rebuild_storage():
 				if not _module_matches_search(consumable_id, fake_data):
 					continue
 				var consumable_card = draggable_icon_scene.instantiate()
-				storage_grid.add_child(consumable_card)
+				_spatial.add_item(consumable_card, 1, 1, manager.get_armory_pos(consumable_id))
 				consumable_card.setup(consumable_id, fake_data, qty)
 				consumable_card.is_selected = consumable_id in selected_mids
 				consumable_card.clicked.connect(_on_card_clicked)
@@ -1608,7 +1641,7 @@ func rebuild_storage():
 			var qty = GameState.resources.get_element_amount(core_id)
 			if qty > 0:
 				var core_card = draggable_icon_scene.instantiate()
-				storage_grid.add_child(core_card)
+				_spatial.add_item(core_card, 1, 1, manager.get_armory_pos(core_id))   # Matrix Core: 1x1
 				var display_name = ElementDB.get_display_name(core_id)
 				var fake_data = {
 					"name": display_name,
@@ -1617,6 +1650,12 @@ func rebuild_storage():
 					"stats": {},
 					"desc": ElementDB.get_element_description(core_id)
 				}
+				# v111.16: cores are click-to-arm like modules (drag retired).
+				# Clicking arms the core → an equipped module's empty matrix socket
+				# (which glows) then accepts it on click.
+				core_card.is_draggable = false
+				core_card.is_selected = (core_id == _armed_mid)
+				core_card.clicked.connect(_on_card_clicked)
 				core_card.setup(core_id, fake_data, qty)
 				slot_count += 1
 	
@@ -1624,14 +1663,9 @@ func rebuild_storage():
 	# equippable modules — they are shown in the Inventory page ("Other"),
 	# not the Armory. Matrix cores above stay: those socket into gear.
 
-	# v84.1: Fill remaining with Empty Slots (Premium Grid Look)
-	var min_slots = 28 # 4 columns * 7 rows
-	var needed = max(0, min_slots - slot_count)
-	for i in range(needed):
-		var empty = empty_slot_scene.instantiate()
-		storage_grid.add_child(empty)
-		# Match compact tile sizing
-		empty.custom_minimum_size = Vector2(40, 40)
+	# v111.17 Phase 1: no more empty-slot filler tiles — the spatial canvas draws
+	# its own empty cell-grid background. Lay everything out now.
+	_spatial.commit()
 
 func _module_matches_search(mid: String, module_data: Dictionary) -> bool:
 	# Empty search shows everything.
@@ -1739,7 +1773,15 @@ func _build_filter_counts() -> Dictionary:
 		return counts
 
 	var inv = manager.module_inventory
+	# Mirror rebuild_storage: equipped modules are hidden, so don't count them.
+	var equipped_ids := {}
+	for _s in manager.loadout:
+		var _eq = manager.loadout[_s]
+		if _eq != null and _eq != "":
+			equipped_ids[_eq] = true
 	for module_id in inv.keys():
+		if module_id in equipped_ids:
+			continue
 		var qty = int(inv[module_id])
 		if qty <= 0 or not manager.modules.has(module_id):
 			continue
@@ -1807,7 +1849,9 @@ func _normalize_filter_id(filter_id: String) -> String:
 			return "all"
 
 func get_module_widget(module_id: String) -> Control:
-	for child in storage_grid.get_children():
+	# v111.17: tiles now live under the spatial canvas, not storage_grid directly.
+	var host: Node = _spatial if _spatial else storage_grid
+	for child in host.get_children():
 		if child.get("mid") == module_id:
 			return child
 	return null
@@ -1923,6 +1967,69 @@ func _disarm_module() -> void:
 	_armed_mid = ""
 	_clear_slot_highlights()
 	rebuild_storage()
+
+# v111.18 Phase 2: clicking an empty grid cell while an item is "picked up"
+# (armed) relocates it there, on the CURRENTLY VIEWED page. Footprint: gear
+# modules 2x2, everything else 1x1. The canvas re-packs unpinned items around it.
+func _on_grid_cell_clicked(gx: int, gy: int) -> void:
+	if _armed_mid == "" or _spatial == null:
+		return
+	var fp := 2 if manager.modules.has(_armed_mid) else 1
+	if gx < 0 or gy < 0 or gx + fp > _spatial.cols or gy + fp > _spatial.page_rows:
+		return
+	manager.set_armory_pos(_armed_mid, _spatial.current_page, gx, gy)
+	GameState.save_game()
+	_disarm_module()   # clears the pick-up + rebuilds; the item now sits there
+
+# v111.18 Phase 2b: compact "‹ Page i / N ›" nav row directly under the grid.
+# Hidden while there is a single page; pages auto-increment as the grid fills.
+func _setup_page_nav() -> void:
+	var scroll = storage_grid.get_parent().get_parent()   # GutterMargin -> Scroll
+	var v_box = scroll.get_parent()
+
+	_page_nav = HBoxContainer.new()
+	_page_nav.alignment = BoxContainer.ALIGNMENT_CENTER
+	_page_nav.add_theme_constant_override("separation", 10)
+	_page_nav.visible = false
+
+	_page_prev_btn = Button.new()
+	_page_prev_btn.text = "‹"
+	_page_prev_btn.custom_minimum_size = Vector2(34, 26)
+	_apply_filter_button_style(_page_prev_btn, false, Color(0.65, 0.60, 0.82))
+	_page_prev_btn.pressed.connect(_on_page_prev)
+	_page_nav.add_child(_page_prev_btn)
+
+	_page_lbl = Label.new()
+	_page_lbl.add_theme_font_size_override("font_size", 11)
+	_page_lbl.add_theme_color_override("font_color", Color(0.78, 0.80, 0.88))
+	_page_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_page_nav.add_child(_page_lbl)
+
+	_page_next_btn = Button.new()
+	_page_next_btn.text = "›"
+	_page_next_btn.custom_minimum_size = Vector2(34, 26)
+	_apply_filter_button_style(_page_next_btn, false, Color(0.65, 0.60, 0.82))
+	_page_next_btn.pressed.connect(_on_page_next)
+	_page_nav.add_child(_page_next_btn)
+
+	v_box.add_child(_page_nav)
+	v_box.move_child(_page_nav, scroll.get_index() + 1)   # directly under the grid
+
+func _on_page_prev() -> void:
+	if _spatial:
+		_spatial.set_page(_spatial.current_page - 1)
+
+func _on_page_next() -> void:
+	if _spatial:
+		_spatial.set_page(_spatial.current_page + 1)
+
+func _on_pages_changed(count: int, current: int) -> void:
+	if not is_instance_valid(_page_lbl):
+		return
+	_page_lbl.text = "Page %d / %d" % [current + 1, count]
+	_page_prev_btn.disabled = current <= 0
+	_page_next_btn.disabled = current >= count - 1
+	_page_nav.visible = count > 1
 
 # Called by a slot widget after it successfully equips the armed module.
 func notify_equipped() -> void:
