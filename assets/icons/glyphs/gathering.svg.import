@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c1nsisrftpr41"
-path="res://.godot/imported/processing.svg-3e5725bc29aa1cc7ba0fad72e88171f7.ctex"
+uid="uid://dhqg00w7twj0r"
+path="res://.godot/imported/gathering.svg-5124f5dd00f13bd062aaa35a246c1644.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/cursors/pages/processing.svg"
-dest_files=["res://.godot/imported/processing.svg-3e5725bc29aa1cc7ba0fad72e88171f7.ctex"]
+source_file="res://assets/icons/glyphs/gathering.svg"
+dest_files=["res://.godot/imported/gathering.svg-5124f5dd00f13bd062aaa35a246c1644.ctex"]
 
 [params]
 

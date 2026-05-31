@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c2rk6nybxqun3"
-path="res://.godot/imported/research.svg-91b470c8247d18021e14edb466bcc9ab.ctex"
+uid="uid://bk8p1kf03uysg"
+path="res://.godot/imported/consumable_hull.svg-71fded486f13a73973704d7d9e5bde9c.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/cursors/pages/research.svg"
-dest_files=["res://.godot/imported/research.svg-91b470c8247d18021e14edb466bcc9ab.ctex"]
+source_file="res://assets/icons/modules/consumable_hull.svg"
+dest_files=["res://.godot/imported/consumable_hull.svg-71fded486f13a73973704d7d9e5bde9c.ctex"]
 
 [params]
 

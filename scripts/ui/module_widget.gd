@@ -106,10 +106,24 @@ func _update_stats_text():
 	var s_txt = ""
 	var stats = data.get("stats", {})
 	for k in stats:
+		# v110: energy is tier-derived; suppress the stale per-module stat and
+		# show the real POWER DRAW/SUPPLY line below.
+		if k == "energy_load" or k == "energy_capacity":
+			continue
 		var label = FormatUtils.format_stat_label(k)
 		var val = stats[k]
 		s_txt += "%s: %s\n" % [label, FormatUtils.format_stat_value(k, val)]
-		
+
+	# v110: derived power line
+	var stype = data.get("slot_type", "")
+	if manager and manager.has_method("get_module_energy_load"):
+		if stype in ["weapon", "shield", "armor", "engine", "sensor"]:
+			var draw = manager.get_module_energy_load(mid)
+			if draw > 0: s_txt += "POWER DRAW: %d\n" % draw
+		elif stype == "battery":
+			var supply = manager.get_module_energy_capacity(mid)
+			if supply > 0: s_txt += "POWER: +%d\n" % supply
+
 	# (Removed old text-prepend)
 		
 	var durability = int(data.get("durability", 100))
@@ -251,32 +265,18 @@ func _on_hover_exit():
 	pass
 
 func _make_custom_tooltip(_for_text: String) -> Control:
-	var panel = PanelContainer.new()
-	var sm = GameState.shipyard_manager
-	var rarity = int(data.get("rarity", sm.Rarity.COMMON))
-	var r_color = sm.RARITY_COLORS.get(rarity, Color(0.2, 0.2, 0.2))
-	
-	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.05, 0.05, 0.07, 0.98)
-	style.border_color = r_color
-	style.border_color.a = 0.8
-	style.set_border_width_all(1)
-	style.border_width_top = 4
-	style.set_corner_radius_all(2)
-	style.set_content_margin_all(12)
-	panel.add_theme_stylebox_override("panel", style)
-	
+	# v111.15 FRAME-IN-FRAME FIX: return a frameless RichTextLabel so the theme's
+	# `TooltipPanel` wrapper is the single frame (returning our own bordered
+	# PanelContainer nested two frames). Rarity stays visible via the bold
+	# rarity-coloured title in the body.
 	var rtl = RichTextLabel.new()
 	rtl.bbcode_enabled = true
 	rtl.fit_content = true
 	rtl.scroll_active = false
 	rtl.custom_minimum_size = Vector2(320, 0)
 	rtl.add_theme_color_override("default_color", Color(0.9, 0.9, 0.9))
-	
 	rtl.text = _build_comparison_tooltip()
-	panel.add_child(rtl)
-	
-	return panel
+	return rtl
 
 func _build_comparison_tooltip() -> String:
 	if not data: return ""
@@ -349,7 +349,7 @@ func _build_comparison_tooltip() -> String:
 	for k in my_stats:
 		# Filter out structural and redundant stats
 		if k == "atk_interval": continue
-		if k == "energy_load" and my_stats[k] == 0: continue
+		if k == "energy_load" or k == "energy_capacity": continue  # v110: derived now
 		if slot_type == "weapon" and (k == "atk_kinetic" or k == "atk_energy" or k == "atk_explosive"): continue
 		if slot_type == "shield" and k == "max_shield": continue
 		if slot_type == "armor" and k == "hp": continue

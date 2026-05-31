@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Hex hull plate base — warm repair-red so hull consumables read distinctly from shield boosters. -->
+  <polygon points="32,6 54,18 54,46 32,58 10,46 10,18" fill="#F26650"/>
+  <!-- Recessed inner hex (depth) — dark warm shadow keeps depth readable on dark UI. -->
+  <polygon points="32,12 48,21 48,43 32,52 16,43 16,21" fill="#1A0606"/>
+  <!-- Repair cross / patch indicator (same warm red so the symbol pops). -->
+  <path d="M27 21 H37 V28 H44 V38 H37 V45 H27 V38 H20 V28 H27 Z" fill="#F26650"/>
+</svg>

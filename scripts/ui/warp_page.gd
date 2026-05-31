@@ -97,7 +97,7 @@ func _build_ui():
 	_col = VBoxContainer.new()
 	_col.name = "WarpColumn"
 	_col.custom_minimum_size = Vector2(740, 0)
-	_col.add_theme_constant_override("separation", 14)
+	_col.add_theme_constant_override("separation", 16)
 	center.add_child(_col)
 
 	_build_header()
@@ -105,6 +105,26 @@ func _build_ui():
 	_build_readiness()
 	_build_buttons()
 	_build_tree_section()
+
+
+# Quiet supporting-panel style: subtle filled card with a thin left accent
+# stripe, NO corner-bracket CardChrome. Reserving the heavy bracketed chrome
+# for the two anchor sections (hero + tree) — instead of stamping it on every
+# panel — removes the rainbow-of-frames clutter and builds a real hierarchy.
+func _apply_flat_panel(panel: Control, accent: Color) -> void:
+	if not panel: return
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.085, 0.095, 0.135, 0.92)
+	sb.set_corner_radius_all(3)
+	sb.set_border_width_all(1)
+	var edge := accent
+	edge.a = 0.30
+	sb.border_color = edge
+	sb.border_width_left = 3            # accent stripe = quiet semantic cue
+	sb.shadow_color = Color(0, 0, 0, 0.28)
+	sb.shadow_size = 6
+	sb.shadow_offset = Vector2(0, 2)
+	panel.add_theme_stylebox_override("panel", sb)
 
 
 # ─── HEADER: cycle + big shard readout + progress-to-next-shard bar ──────
@@ -142,9 +162,19 @@ func _build_header():
 	_shards_sub_lbl.add_theme_color_override("font_color", COLOR_DIM)
 	v.add_child(_shards_sub_lbl)
 
-	var spacer = Control.new()
-	spacer.custom_minimum_size = Vector2(0, 4)
-	v.add_child(spacer)
+	# Faint rule cleanly separates the identity readout (shards / tier) above
+	# from the climb-to-next-shard below — sharper internal hierarchy than a
+	# blank gap.
+	var sp_top = Control.new()
+	sp_top.custom_minimum_size = Vector2(0, 6)
+	v.add_child(sp_top)
+	var hero_rule = ColorRect.new()
+	hero_rule.color = Color(1, 1, 1, 0.07)
+	hero_rule.custom_minimum_size = Vector2(0, 1)
+	v.add_child(hero_rule)
+	var sp_bot = Control.new()
+	sp_bot.custom_minimum_size = Vector2(0, 6)
+	v.add_child(sp_bot)
 
 	var cap = Label.new()
 	cap.text = "PROGRESS TO NEXT SHARD"
@@ -153,7 +183,7 @@ func _build_header():
 	v.add_child(cap)
 
 	_progress_bar = ProgressBar.new()
-	_progress_bar.custom_minimum_size = Vector2(0, 10)
+	_progress_bar.custom_minimum_size = Vector2(0, 12)
 	_progress_bar.show_percentage = false
 	_progress_bar.min_value = 0.0
 	_progress_bar.max_value = 100.0
@@ -198,7 +228,7 @@ func _build_first_warp_block():
 	bullets.add_theme_color_override("font_color", Color(0.78, 0.86, 0.82))
 	v.add_child(bullets)
 
-	UITheme.apply_card_style(_first_warp_panel, "mission")
+	_apply_flat_panel(_first_warp_panel, UITheme.CATEGORY_COLORS["mission"])
 
 
 # ─── READINESS: gains big + keeps/resets ──────────────────────────────────
@@ -250,7 +280,7 @@ func _build_readiness():
 	resets.add_theme_color_override("font_color", COLOR_RESETS)
 	v.add_child(resets)
 
-	UITheme.apply_card_style(panel, "ops")
+	_apply_flat_panel(panel, UITheme.CATEGORY_COLORS["ops"])
 
 
 # ─── BUTTONS: small return + heavy execute (purple primary CTA) ──────────
@@ -313,7 +343,10 @@ func _build_tree_section():
 	hb.add_child(_build_branch_column("engineering", "ENGINEERING"))
 	hb.add_child(_build_branch_column("combat", "COMBAT"))
 
-	UITheme.apply_card_style(_tree_panel, "shipyard")
+	# Unified to the warp-purple accent (was "shipyard" blue) so the two heavy
+	# bracketed anchors — hero + tree — share one cohesive prestige identity
+	# instead of being two different colours.
+	UITheme.apply_card_style(_tree_panel, "research")
 
 
 func _build_branch_column(branch_id: String, title_text: String) -> Control:
@@ -325,17 +358,20 @@ func _build_branch_column(branch_id: String, title_text: String) -> Control:
 	col_style.set_border_width_all(1)
 	col_style.border_color = Color(COLOR_GOLD.r, COLOR_GOLD.g, COLOR_GOLD.b, 0.22)
 	col_panel.add_theme_stylebox_override("panel", col_style)
+	# Safety net: a column must never paint past its own frame again.
+	col_panel.clip_contents = true
 
-	var stack = Control.new()
-	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	stack.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	col_panel.add_child(stack)
-
+	# v111.16 OVERFLOW FIX: parent the content MarginContainer and the lock
+	# overlay DIRECTLY to the PanelContainer. A PanelContainer fits every child
+	# to its full content rect (so they overlap) and sizes itself to the largest
+	# child's minimum size — which is exactly the overlay behaviour we want. The
+	# old code wrapped both in a plain Control, whose minimum size is always
+	# (0,0); that collapsed the column to zero height and its node/lock text
+	# spilled outside the panel. Lock is added LAST so it paints on top.
 	var mc = MarginContainer.new()
-	mc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	for k in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
 		mc.add_theme_constant_override(k, 8)
-	stack.add_child(mc)
+	col_panel.add_child(mc)
 
 	var col = VBoxContainer.new()
 	col.add_theme_constant_override("separation", 6)
@@ -355,19 +391,25 @@ func _build_branch_column(branch_id: String, title_text: String) -> Control:
 		col.add_child(_build_node_card(node_id))
 
 	# Branch lock overlay — covers the column when the branch isn't yet
-	# revealed by warp count. Stays the last child so it always paints on top.
+	# revealed by warp count. Added last so it always paints on top of content.
 	var lock = Panel.new()
-	lock.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	lock.mouse_filter = Control.MOUSE_FILTER_STOP
 	var lock_sb = StyleBoxFlat.new()
 	lock_sb.bg_color = COLOR_BRANCH_LOCK_BG
 	lock.add_theme_stylebox_override("panel", lock_sb)
-	stack.add_child(lock)
+	col_panel.add_child(lock)
 
 	var lock_label = Label.new()
-	lock_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	# FILL the lock panel and center text inside it. The old PRESET_CENTER sized
+	# the label to its un-wrapped text width and pinned it at the panel centre,
+	# so the banner ran off the right edge of the column (now visibly clipped).
+	# Full-rect + centered + word-wrap keeps it inside the column at any width.
+	lock_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	lock_label.offset_left = 8
+	lock_label.offset_right = -8
 	lock_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lock_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	lock_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	lock_label.add_theme_font_size_override("font_size", 14)
 	lock_label.add_theme_color_override("font_color", COLOR_LOCKED)
 	var reveal_at = int(_wm.BRANCH_REVEAL_WARP.get(branch_id, 1))

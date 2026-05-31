@@ -1324,8 +1324,15 @@ func recalc_energy():
 	# Reset warning on recalc
 	if gen >= cons: grid_warning_sent = false
 
+const INFRA_ENERGY_BUFFER := 1000000.0  # v110: infra grid's own surplus-buffer ceiling
+
 func process_tick(delta: float):
 	# Energy Management
+	# v110: the infra grid owns resources.max_energy now (it's the surplus
+	# buffer ceiling). The ship used to write this field; it no longer does, so
+	# we keep it at a stable buffer size here. Idempotent.
+	if GameState.resources and GameState.resources.max_energy < INFRA_ENERGY_BUFFER:
+		GameState.resources.set_max_energy(INFRA_ENERGY_BUFFER)
 	# 1. Generate energy from generators
 	if net_energy > 0:
 		GameState.resources.add_energy(net_energy * delta)

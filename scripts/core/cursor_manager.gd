@@ -31,9 +31,8 @@ const SIZE_LARGE  := 52
 const DEFAULT_SIZE := SIZE_MEDIUM
 
 # Which source texture feeds each built-in cursor slot. WAIT doubles as BUSY.
-# Only ARROW (the idle/neutral cursor) is swapped per page — POINTER /
-# FORBIDDEN / WAIT stay universal so the "can I click this?" affordance is
-# never sacrificed for flavour.
+# All four are universal — the same cursor set runs on every page. (Per-page
+# idle cursors were removed; the default ARROW cursor is now used everywhere.)
 var _sources := {
 	Input.CURSOR_ARROW:         CURSOR_DEFAULT,
 	Input.CURSOR_POINTING_HAND: CURSOR_POINTER,
@@ -42,18 +41,8 @@ var _sources := {
 	Input.CURSOR_BUSY:          CURSOR_WAIT,
 }
 
-# Per-page idle cursors live here, named by the internal page key:
-#   res://assets/cursors/pages/gathering.png   (Mine — e.g. pickaxe)
-#   res://assets/cursors/pages/processing.png  (Engineering — e.g. gears)
-#   res://assets/cursors/pages/combat.png      (e.g. reticle)
-# Any page without a file falls back to the universal default — so this is
-# completely inert until art is added.
-const PAGE_CURSOR_DIR := "res://assets/cursors/pages/"
-
 var _current_state: State = State.DEFAULT
 var _size: int = DEFAULT_SIZE
-var _page_default_tex: Texture2D = CURSOR_DEFAULT
-var _current_page: String = ""
 
 
 func _ready() -> void:
@@ -87,10 +76,7 @@ func _bake(px: int) -> void:
 	px = clampi(px, 12, 128)  # OS hardware-cursor ceiling is ~128
 	_size = px
 	for shape in _sources:
-		# ARROW uses the active page's idle cursor (defaults to the universal
-		# one), so re-baking on a size change keeps the page flavour.
-		var tex: Texture2D = _page_default_tex if shape == Input.CURSOR_ARROW else _sources[shape]
-		_apply_cursor(shape, tex)
+		_apply_cursor(shape, _sources[shape])
 
 
 # Resize `tex` to the current cursor size and register it against `shape`
@@ -107,26 +93,6 @@ func _apply_cursor(shape: int, tex: Texture2D) -> void:
 	if img.get_width() != _size or img.get_height() != _size:
 		img.resize(_size, _size, Image.INTERPOLATE_LANCZOS)
 	Input.set_custom_mouse_cursor(ImageTexture.create_from_image(img), shape, Vector2(_size, _size) * 0.5)
-
-
-## Swap the idle (ARROW) cursor for a page. Universal POINTER/FORBIDDEN/WAIT
-## are untouched. Pages without art at PAGE_CURSOR_DIR fall back to the
-## universal default, so this is a no-op until assets exist.
-func set_page_cursor(page_name: String) -> void:
-	if page_name == _current_page:
-		return
-	_current_page = page_name
-	var tex: Texture2D = CURSOR_DEFAULT
-	# SVG preferred (vector — crisp at every cursor size); PNG also accepted.
-	for ext in [".svg", ".png"]:
-		var path: String = PAGE_CURSOR_DIR + page_name + ext
-		if ResourceLoader.exists(path):
-			var loaded = load(path)
-			if loaded is Texture2D:
-				tex = loaded
-				break
-	_page_default_tex = tex
-	_apply_cursor(Input.CURSOR_ARROW, _page_default_tex)
 
 
 func _scan_existing(n: Node) -> void:

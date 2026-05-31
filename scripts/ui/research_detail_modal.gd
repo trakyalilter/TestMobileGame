@@ -110,7 +110,9 @@ func _build_ui() -> void:
 	sb.content_margin_top = 18
 	sb.content_margin_bottom = 18
 	_card.add_theme_stylebox_override("panel", sb)
-	add_child(_card)
+	# v111.13: removed a duplicate add_child(_card) here — the card is already
+	# parented to `center` (CenterContainer) on line 97. The leftover direct
+	# add_child triggered "already has a parent" and aborted modal build.
 
 	var vb := VBoxContainer.new()
 	vb.add_theme_constant_override("separation", 12)

@@ -139,7 +139,12 @@ func _build_filter_sections():
 		type_column.add_child(cb)
 
 	_add_section_header("WEAPON TYPE", weapon_type_column)
-	for wt in ["kinetic", "energy", "explosive", "cryo"]:
+	# v109: Cryo is the surprise first-Warp unlock — don't list it (spoiler)
+	# until the player has actually unlocked it.
+	var wtypes := ["kinetic", "energy", "explosive"]
+	if GameState.game_settings.get("cryo_unlocked", false):
+		wtypes.append("cryo")
+	for wt in wtypes:
 		var cb = CheckBox.new()
 		cb.text = wt.capitalize()
 		cb.button_pressed = cm.loot_weapon_type_filter.get(wt, true)

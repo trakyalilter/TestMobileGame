@@ -74,18 +74,19 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="HUD" type="MarginContainer" parent="Dashboard"]
+[node name="HUD" type="VBoxContainer" parent="Dashboard"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = -16.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_override_constants/margin_left = 16
-theme_override_constants/margin_top = 16
-theme_override_constants/margin_right = 16
-theme_override_constants/margin_bottom = 16
+theme_override_constants/separation = 0
 
 [node name="TopHUD" type="HBoxContainer" parent="Dashboard/HUD"]
 layout_mode = 2
@@ -94,7 +95,7 @@ mouse_filter = 2
 theme_override_constants/separation = 14
 
 [node name="NavPanel" type="PanelContainer" parent="Dashboard/HUD/TopHUD"]
-custom_minimum_size = Vector2(195, 215)
+custom_minimum_size = Vector2(320, 195)
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2
@@ -141,7 +142,7 @@ text = "SCANNING FOR ANOMALIES..."
 horizontal_alignment = 1
 
 [node name="TargetPanel" type="PanelContainer" parent="Dashboard/HUD/TopHUD"]
-custom_minimum_size = Vector2(260, 215)
+custom_minimum_size = Vector2(320, 195)
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2
@@ -172,14 +173,19 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 6
 
+[node name="TopMidSpacer" type="Control" parent="Dashboard/HUD"]
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+
 [node name="MidHUD" type="HBoxContainer" parent="Dashboard/HUD"]
 layout_mode = 2
-size_flags_vertical = 4
+size_flags_vertical = 0
 mouse_filter = 2
 theme_override_constants/separation = 14
 
 [node name="PlayerStatsOverlay" type="PanelContainer" parent="Dashboard/HUD/MidHUD"]
-custom_minimum_size = Vector2(225, 185)
+custom_minimum_size = Vector2(320, 195)
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2
@@ -258,7 +264,7 @@ size_flags_horizontal = 3
 mouse_filter = 2
 
 [node name="EnemyStatsOverlay" type="PanelContainer" parent="Dashboard/HUD/MidHUD"]
-custom_minimum_size = Vector2(225, 185)
+custom_minimum_size = Vector2(320, 195)
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2
@@ -320,16 +326,21 @@ layout_mode = 2
 value = 50.0
 show_percentage = false
 
+[node name="MidBottomSpacer" type="Control" parent="Dashboard/HUD"]
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+
 [node name="BottomHUD" type="HBoxContainer" parent="Dashboard/HUD"]
 layout_mode = 2
-size_flags_vertical = 8
+size_flags_vertical = 0
 mouse_filter = 2
 theme_override_constants/separation = 14
 
 [node name="ScannerOverlay" type="PanelContainer" parent="Dashboard/HUD/BottomHUD"]
-custom_minimum_size = Vector2(250, 145)
+custom_minimum_size = Vector2(250, 140)
 layout_mode = 2
-size_flags_vertical = 4
+size_flags_vertical = 8
 
 [node name="Margin" type="MarginContainer" parent="Dashboard/HUD/BottomHUD/ScannerOverlay"]
 layout_mode = 2
@@ -381,9 +392,9 @@ custom_minimum_size = Vector2(0, 20)
 layout_mode = 2
 
 [node name="AmmoOverlay" type="PanelContainer" parent="Dashboard/HUD/BottomHUD"]
-custom_minimum_size = Vector2(250, 128)
+custom_minimum_size = Vector2(250, 140)
 layout_mode = 2
-size_flags_vertical = 4
+size_flags_vertical = 8
 mouse_filter = 2
 
 [node name="Margin" type="MarginContainer" parent="Dashboard/HUD/BottomHUD/AmmoOverlay"]
@@ -416,9 +427,25 @@ size_flags_vertical = 3
 mouse_filter = 2
 theme_override_constants/separation = 4
 
+[node name="BottomSpacer" type="Control" parent="Dashboard/HUD/BottomHUD"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="ConsumablesContainer" type="HBoxContainer" parent="Dashboard/HUD/BottomHUD"]
+layout_mode = 2
+size_flags_vertical = 8
+
+[node name="ConsHullBtn" type="Button" parent="Dashboard/HUD/BottomHUD/ConsumablesContainer"]
+layout_mode = 2
+
+[node name="ConsShieldBtn" type="Button" parent="Dashboard/HUD/BottomHUD/ConsumablesContainer"]
+layout_mode = 2
+
 [node name="RetreatContainer" type="VBoxContainer" parent="Dashboard/HUD/BottomHUD"]
 layout_mode = 2
 mouse_filter = 2
+size_flags_vertical = 8
 alignment = 2
 
 [node name="RetreatBtn" type="Button" parent="Dashboard/HUD/BottomHUD/RetreatContainer"]
@@ -426,15 +453,6 @@ custom_minimum_size = Vector2(120, 40)
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.35, 0.35, 1)
 text = "RETREAT"
-
-[node name="ConsumablesContainer" type="HBoxContainer" parent="Dashboard/HUD/BottomHUD"]
-layout_mode = 2
-
-[node name="ConsHullBtn" type="Button" parent="Dashboard/HUD/BottomHUD/ConsumablesContainer"]
-layout_mode = 2
-
-[node name="ConsShieldBtn" type="Button" parent="Dashboard/HUD/BottomHUD/ConsumablesContainer"]
-layout_mode = 2
 
 [connection signal="item_selected" from="Dashboard/HUD/TopHUD/NavPanel/VBox/ZoneList" to="." method="_on_zone_list_item_selected"]
 [connection signal="pressed" from="Dashboard/HUD/BottomHUD/RetreatContainer/RetreatBtn" to="." method="_on_retreat_btn_pressed"]

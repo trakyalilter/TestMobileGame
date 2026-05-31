@@ -721,14 +721,10 @@ func _on_test_force_warp_pressed() -> void:
 		UITheme.show_notification("Warp manager unavailable.", Color.RED)
 		return
 	var wm = GameState.warp_manager
-	# The Warp sidebar tab is gated behind the "warp_drive" research tech, so a
-	# Force Warp alone wouldn't reveal the page in the nav. Force-unlock that
-	# tech here too so a single click puts the player into the testable state.
-	var rm = GameState.research_manager
-	if rm and not rm.is_tech_unlocked("warp_drive"):
-		if not "warp_drive" in rm.unlocked_techs:
-			rm.unlocked_techs.append("warp_drive")
-			rm.tech_unlocked.emit("warp_drive")
+	# v110: Warp tab now reveals on Zone 6 research; force the reveal flag
+	# directly so this debug button puts the player into the testable state
+	# regardless of research progress.
+	GameState.game_settings["warp_first_revealed"] = true
 	wm.total_warps += 1
 	wm.warp_shards += 1.0
 	# v109: mirror execute_warp's Cryo unlock so Phase 2 is testable without a

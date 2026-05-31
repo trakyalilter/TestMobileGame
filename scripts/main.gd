@@ -60,7 +60,10 @@ func _ready():
 	# v107: P0 Prestige Discovery Fanfare — detect the moment the player
 	# crosses the warp shard threshold for the first time. We listen on
 	# every currency_added because credits feed the progress_score formula.
-	GameState.resources.currency_added.connect(_on_currency_added_for_warp_reveal)
+	# v110: Warp Core reveals when Zone 6 research completes (a content
+	# milestone) rather than at an arbitrary credit threshold. tech_unlocked
+	# fires from research_manager.unlock_tech.
+	GameState.research_manager.tech_unlocked.connect(_on_tech_unlocked_for_warp_reveal)
 
 	# v109: Recursion discovery — the Recursion research tab is always visible
 	# but easily missed, and is unusable until the player has Void Artifacts
@@ -79,16 +82,12 @@ func _on_element_added_for_recursion_reveal(symbol: String, _amount: float) -> v
 		Color(0.55, 0.85, 1.0)
 	)
 
-func _on_currency_added_for_warp_reveal(currency_type: String, _amount: float) -> void:
-	# Cheap fast-paths first — this fires on every credit gain.
-	if currency_type != "credits":
+func _on_tech_unlocked_for_warp_reveal(tech_id: String) -> void:
+	# v110: Reveal the Warp Core when the player completes Zone 6 research.
+	if tech_id != "zone_6_access":
 		return
 	if GameState.game_settings.get("warp_first_revealed", false):
 		return
-	if GameState.warp_manager.calculate_warp_gains() <= 0:
-		return
-	# First-time crossing of the prestige threshold — flip the flag,
-	# reveal the Warp tab, and fire the fanfare.
 	GameState.game_settings["warp_first_revealed"] = true
 	_update_sidebar_styling()  # makes the Warp tab appear immediately
 	_fire_warp_reveal_fanfare()
@@ -403,9 +402,6 @@ func switch_to(page_name):
 			GameState.mission_manager._update_progress("visit_page", page_name, 1)
 		_update_sidebar_styling()
 
-		# Per-page idle cursor (inert until art exists for the page)
-		CursorManager.set_page_cursor(page_name)
-
 		# SMART NAVIGATION: Notify page it's been opened
 		if pages[page_name].has_method("on_page_enter"):
 			pages[page_name].on_page_enter()
@@ -475,20 +471,17 @@ func _update_sidebar_styling():
 	# Quests appear once the player has core gameplay loops available
 	quest_btn.visible = has_basic_eng
 	
-	# 3. Late Game: Warp Core unlocks the first time the player crosses the
-	# progress-score shard threshold. v107 moved this off the warp_drive
-	# research gate — research-gating muffled the "Warp Core Resonance
-	# Detected" surprise because the player chose to research it. Now the
-	# tab simply appears when the player earns their first earnable shard.
-	# Backward compat: existing saves where the player already had warp
-	# activity OR warp_drive researched silently flip the flag so the tab
-	# stays visible without re-firing the reveal.
+	# 3. Warp Core reveals when Zone 6 research (zone_6_access) completes — a
+	# content milestone, so the "Warp Core Resonance Detected" fanfare lands
+	# at a deliberate point in progression. The transition fanfare fires from
+	# _on_tech_unlocked_for_warp_reveal; this gate also reveals silently for
+	# saves that already passed Zone 6 (or already prestiged) before v110.
 	var revealed: bool = GameState.game_settings.get("warp_first_revealed", false)
 	if not revealed:
 		var wm_ref = GameState.warp_manager
-		if wm_ref.total_warps > 0 or wm_ref.warp_shards > 0:
+		if GameState.research_manager.is_tech_unlocked("zone_6_access"):
 			revealed = true
-		elif GameState.research_manager.is_tech_unlocked("warp_drive"):
+		elif wm_ref.total_warps > 0 or wm_ref.warp_shards > 0:
 			revealed = true
 		if revealed:
 			GameState.game_settings["warp_first_revealed"] = true

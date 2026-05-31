@@ -47,6 +47,43 @@ const ZONE_SCALABLE_STATS = [
 	"atk_interval"
 ]
 
+# v110: Battery-only energy model. Hulls provide ZERO energy. Every consumer
+# module (weapon/shield/armor/engine/sensor) draws CONSUMER_LOAD_BY_TIER[zone];
+# every battery supplies BATTERY_CAP_BY_TIER[zone]. Per hull tier, a full set of
+# tier-matched batteries exactly powers a full set of tier-matched consumers
+# (see design doc). Both are DERIVED by tier (not stored per-module stat) so the
+# whole ~50-module roster stays balanced from two tables. Index = tier-1.
+const CONSUMER_LOAD_BY_TIER := [10, 15, 25, 40, 60, 100, 150, 220, 350, 500]
+const BATTERY_CAP_BY_TIER   := [30, 60, 75, 150, 180, 350, 600, 750, 1330, 1700]
+const CONSUMER_SLOT_TYPES := ["weapon", "shield", "armor", "engine", "sensor"]
+
+# Energy a module-DEFINITION DRAWS (consumers) — works on the def dict so UI
+# that only has m_data (no id) can use it too.
+func get_def_energy_load(mdef: Dictionary) -> int:
+	if not (mdef.get("slot_type", "") in CONSUMER_SLOT_TYPES):
+		return 0
+	var z: int = int(mdef.get("zone", mdef.get("zone_difficulty", 1)))
+	z = clampi(z, 1, CONSUMER_LOAD_BY_TIER.size())
+	return CONSUMER_LOAD_BY_TIER[z - 1]
+
+func get_def_energy_capacity(mdef: Dictionary) -> int:
+	if mdef.get("slot_type", "") != "battery":
+		return 0
+	var z: int = int(mdef.get("zone", mdef.get("zone_difficulty", 1)))
+	z = clampi(z, 1, BATTERY_CAP_BY_TIER.size())
+	return BATTERY_CAP_BY_TIER[z - 1]
+
+# id-based wrappers (used by recalc / equip / per-id UI).
+func get_module_energy_load(mid: String) -> int:
+	if not mid in modules:
+		return 0
+	return get_def_energy_load(modules[mid])
+
+func get_module_energy_capacity(mid: String) -> int:
+	if not mid in modules:
+		return 0
+	return get_def_energy_capacity(modules[mid])
+
 # Mid/Late progression tuning for craftable module item requirements.
 const MID_MODULE_ITEM_REQ_MULT = 1.35
 const LATE_MODULE_ITEM_REQ_MULT = 1.75
@@ -350,6 +387,7 @@ var evasion = 0
 var accuracy = 0
 var crit_chance = 0.05 # 5% base
 var energy_used = 0
+var energy_capacity = 0  # v110: ship's own energy field, decoupled from resources.max_energy (infra grid)
 var attack_speed_bonus = 0.0
 var shield_regen_bonus = 0.0
 var jamming_strength = 0.0 # New: EW Enemy Slow % (0.0 to 1.0)
@@ -1592,73 +1630,47 @@ func equip_module(slot_idx: int, module_id: String) -> bool:
 		print("Equip Fail: No inventory.")
 		return false
 	
-	# Design Constraint: Enforce Energy Load (Audit Phase 18)
-	var potential_load = energy_used
-	var existing = loadout.get(slot_idx)
-	if existing and modules.has(existing):
-		potential_load -= modules[existing]["stats"].get("energy_load", 0)
-	potential_load += mod_data["stats"].get("energy_load", 0)
-	
-	# Note: Energy Capacity is hull + modules. We need to check against TOTAL capacity.
+	# v110: Battery-only energy guard. Capacity + load are DERIVED by tier
+	# (helpers); hulls contribute 0. Compute the loadout's load/capacity both
+	# BEFORE and AFTER this hypothetical equip, then block over-capacity — with
+	# an anti-softlock exception: always allow an equip that improves the net
+	# power margin, so an overloaded ship can always be repaired step by step.
 	var engineering_lvl = 1
 	if GameState.processing_manager:
 		engineering_lvl = GameState.processing_manager.get_level()
 	var skill_mult = 1.0 + (engineering_lvl * 0.01)
-	
 	var rm = GameState.research_manager
 	var phys_mult = 1.0
 	if rm:
 		phys_mult = 1.0 + rm.get_efficiency_bonus("applied_physics")
-		
-	var current_cap = hulls[active_hull]["stats"].get("energy_capacity", 100.0)
-	for s_idx in loadout:
-		if s_idx == slot_idx: continue
-		var mid = loadout[s_idx]
-		if mid and modules.has(mid):
-			current_cap += modules[mid]["stats"].get("energy_capacity", 0) * skill_mult
-	if mod_data["slot_type"] == "battery":
-		current_cap += mod_data["stats"].get("energy_capacity", 0) * skill_mult
-	current_cap *= phys_mult
-	
-	# ------------------------------------------------------------------
-	# Grid Safety Logic (Redesigned v2.0)
-	# ------------------------------------------------------------------
-	
-	# 1. Calc Old Capacity (Local Source of Truth)
-	var old_cap = hulls[active_hull]["stats"].get("energy_capacity", 100.0)
+	var cap_mult = skill_mult * phys_mult
+
+	var old_load := 0.0
+	var old_cap := 0.0
+	var new_load := 0.0
+	var new_cap := 0.0
 	for s_idx in loadout:
 		var mid = loadout[s_idx]
 		if mid and mid in modules:
-			old_cap += modules[mid]["stats"].get("energy_capacity", 0) * skill_mult
-	old_cap *= phys_mult
-			
-	# 2. Check Overload
-	if potential_load > current_cap:
-		# We are entering (or staying in) an Overloaded state.
-		# Strict Rule: Generally Forbidden.
-		# Exception A: Battery Upgrade (Anti-Softlock)
-		# If we are adding more capacity (upgrading battery), ALWAYS allow it.
-		# Using slightly relaxed comparison for float precision
-		if current_cap > (old_cap + 0.1):
-			print("Equip Warning: Grid Overloaded, but Capacity Improved (%f > %f). Allowed." % [current_cap, old_cap])
-			# Allow fallthrough
-		
-		# Exception B: Margin Improvement
-		# If we aren't adding capacity, but we are reducing load MORE than we are losing capacity?
-		# new_margin > old_margin
-		else:
-			var old_margin = old_cap - energy_used
-			var new_margin = current_cap - potential_load
-			
-			if new_margin > (old_margin + 0.1):
-				print("Equip Warning: Grid Overloaded, but Margin Improved (%f > %f). Allowed." % [new_margin, old_margin])
-				# Allow fallthrough
-			else:
-				print("Equip Fail: Grid Overloaded. Needs more battery modules. Potential: %f, Cap: %f (Old Cap: %f, Old Margin: %f, New Margin: %f)" % [potential_load, current_cap, old_cap, old_margin, new_margin])
-				UITheme.show_notification("Power %d / %d — equip a Battery module (or a bigger hull) before this." % [int(round(potential_load)), int(round(current_cap))], Color(1.0, 0.45, 0.35))
-				return false
+			old_load += get_module_energy_load(mid)
+			old_cap += get_module_energy_capacity(mid) * cap_mult
+			if s_idx != slot_idx:  # this slot is being replaced by the equip
+				new_load += get_module_energy_load(mid)
+				new_cap += get_module_energy_capacity(mid) * cap_mult
+	# Add the incoming module to the prospective state.
+	new_load += get_module_energy_load(module_id)
+	new_cap += get_module_energy_capacity(module_id) * cap_mult
+
+	if new_load > new_cap:
+		var old_margin = old_cap - old_load
+		var new_margin = new_cap - new_load
+		# Allow only if this equip improves the margin (anti-softlock).
+		if new_margin <= old_margin + 0.1:
+			UITheme.show_notification("Power %d / %d — equip more (or higher-tier) Battery modules first." % [int(round(new_load)), int(round(new_cap))], Color(1.0, 0.45, 0.35))
+			return false
 
 	# Unequip existing
+	var existing = loadout.get(slot_idx)
 	if existing:
 		module_inventory[existing] = module_inventory.get(existing, 0) + 1
 		
@@ -1847,7 +1859,9 @@ func recalc_stats():
 		atk_k += h.get("atk", 0)
 		defe += h.get("def", 0)
 		eva += h.get("eva", 0)
-		e_cap += h.get("energy_capacity", 0)
+		# v110: hulls provide ZERO energy — all capacity comes from batteries.
+		# (hull energy_capacity stat is now vestigial / display-only.)
+		# e_cap += h.get("energy_capacity", 0)
 		
 	# Audit v7.0: Merged Shipyard bonus into Engineering (Processing) skill
 	var engineering_lvl = 1
@@ -1872,8 +1886,9 @@ func recalc_stats():
 			eva += m.get("eva", 0) # v65.3 Fix: Flat stat, no skill_mult
 			acc += m.get("accuracy", 0)
 			crit += m.get("crit_chance", 0.0)
-			e_cap += m.get("energy_capacity", 0) * skill_mult
-			e_load += m.get("energy_load", 0)
+			# v110: derive energy supply (batteries) + draw (consumers) by tier.
+			e_cap += get_module_energy_capacity(mid) * skill_mult
+			e_load += get_module_energy_load(mid)
 			atk_speed_bon += m.get("atk_speed_mult", 0.0)
 			atk_speed_bon += m.get("atk_speed_bonus", 0.0)
 			s_reg_bon += m.get("shield_regen_mult", 0.0)
@@ -1985,10 +2000,17 @@ func recalc_stats():
 	# Audit v8.0 P1-25: Applied Physics Hub Bonus (+10% Energy Capacity)
 	if rm:
 		e_cap *= (1.0 + rm.get_efficiency_bonus("applied_physics"))
-	
-	if GameState.resources:
-		GameState.resources.set_max_energy(e_cap)
-	
+
+	# v110 Phase 1: ship energy capacity now lives on its own field. All ship
+	# combat/equip/UI reads use sm.energy_capacity. resources.max_energy is
+	# still mirrored (below) for the infrastructure grid, which currently
+	# borrows it as a storage ceiling — that coupling is separated in Phase 2
+	# when hull energy is removed (so removing it can't shrink the infra grid).
+	energy_capacity = e_cap
+	# v110: ship no longer writes resources.max_energy — that field is now the
+	# infrastructure grid's buffer ceiling (set by infrastructure_manager).
+	# Ship energy lives entirely on energy_capacity / energy_used.
+
 	# Was the ship full before this recalc? Then keep it full when max_hp
 	# grows (fixes "100/132 though I never fought"). Otherwise keep the
 	# absolute HP, only clamped to the new max — damage persists until you
@@ -1999,9 +2021,6 @@ func recalc_stats():
 		current_hp = int(clampf(float(current_hp), 1.0, float(max_hp)))
 	
 	
-	# Update Global Resources
-	if GameState.resources:
-		GameState.resources.set_max_energy(e_cap)
 
 
 func get_save_data_manager() -> Dictionary:
@@ -2135,7 +2154,28 @@ func reset(decay_factor: float = 1.0) -> void:
 	if active_hull in hulls:
 		for i in range(hulls[active_hull]["slots"].size()):
 			loadout[i] = null
+	# v110: battery-only energy — a fresh corvette needs powered batteries or
+	# it can't fit anything (hull provides 0 energy). Grant + auto-equip 2
+	# tier-1 batteries into the corvette's battery slots (covers its 6
+	# consumers exactly: 2×30 cap = 6×10 load). Runs on new game AND warp
+	# (both wipe inventory above).
+	_grant_and_equip_starter_batteries()
 	recalc_stats()
+
+# v110: seed the active hull's battery slots with tier-1 batteries.
+func _grant_and_equip_starter_batteries() -> void:
+	if not ("z1_battery" in modules) or not (active_hull in hulls):
+		return
+	module_inventory["z1_battery"] = 2
+	var slots: Array = hulls[active_hull].get("slots", [])
+	var placed := 0
+	for i in range(slots.size()):
+		if placed >= 2:
+			break
+		if slots[i] == "battery":
+			loadout[i] = "z1_battery"
+			module_inventory["z1_battery"] -= 1
+			placed += 1
 
 # v66.0: Consumable Management
 func equip_consumable(slot_type: String, item_id: String):

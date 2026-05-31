@@ -120,18 +120,9 @@ func _make_custom_tooltip(_for_text: String) -> Control:
 	if active_ammo == "":
 		return null
 
-	var panel = PanelContainer.new()
-
-	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.05, 0.05, 0.07, 0.98)
-	style.border_color = Color.GRAY
-	style.border_color.a = 0.8
-	style.set_border_width_all(1)
-	style.border_width_top = 4
-	style.set_corner_radius_all(2)
-	style.set_content_margin_all(12)
-	panel.add_theme_stylebox_override("panel", style)
-
+	# v111.15 FRAME-IN-FRAME FIX: return a frameless RichTextLabel so the theme's
+	# `TooltipPanel` wrapper is the single frame (returning our own bordered
+	# PanelContainer nested two frames).
 	var rtl = RichTextLabel.new()
 	rtl.bbcode_enabled = true
 	rtl.fit_content = true
@@ -186,5 +177,4 @@ func _make_custom_tooltip(_for_text: String) -> Control:
 	tt += "[center][font_size=10][color=gray][Right-click to unequip][/color][/font_size][/center]"
 
 	rtl.text = tt
-	panel.add_child(rtl)
-	return panel
+	return rtl

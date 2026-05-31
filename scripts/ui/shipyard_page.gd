@@ -109,7 +109,7 @@ func _update_stats_display():
 	if eva_lbl:
 		eva_lbl.text = "Eva: %.1f%%" % manager.evasion
 	if energy_lbl:
-		var e_max = GameState.resources.max_energy
+		var e_max = manager.energy_capacity  # v110: ship's own field
 		var e_used = manager.energy_used
 		energy_lbl.text = "Energy: %d/%d" % [e_used, e_max]
 		energy_lbl.modulate = Color(1, 0.3, 0.3) if e_used > e_max else Color.WHITE
@@ -164,9 +164,13 @@ func refresh_list():
 	for mid in sorted_mods:
 		var data = manager.modules[mid]
 		# Audit v80.1: Skip dropped loot and Unique (Drop-only) modules in Shipyard Crafting
-		if data.get("is_custom", false) or data.get("is_unique", false): 
-			continue 
-		
+		if data.get("is_custom", false) or data.get("is_unique", false):
+			continue
+		# v110: grant/drop-only modules have no cost (e.g. the Warp-granted
+		# Cryo-Lance) — never show them in the craft list.
+		if data.get("cost", {}).is_empty():
+			continue
+
 		var type = data.get("slot_type", "weapon")
 		var cat = "kinetic"
 		

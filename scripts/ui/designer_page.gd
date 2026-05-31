@@ -29,7 +29,7 @@ var selected_mids: Array[String] = []
 var btn_demolish_selected: Button
 var btn_clear: Button
 var btn_selection_toggle: Button
-var bulk_actions_container: HBoxContainer
+var bulk_actions_container: HFlowContainer
 var is_selection_mode: bool = false
 
 var focused_slot_idx: int = -1
@@ -41,7 +41,6 @@ var focused_slot_equipped_mid: String = ""
 var _equip_focus_filter_type: String = ""
 var all_slot_widgets: Array = []
 var armory_sort_mode: int = 0  # 0=Power, 1=Zone, 2=Rarity
-var _armory_banner: Label = null
 var _sort_buttons: Array = []
 var _preset_load_buttons: Array = []
 
@@ -59,17 +58,20 @@ const TEXT_DIM := Color(0.62, 0.57, 0.50)
 const TAB_BASE := Color(0.16, 0.11, 0.08)
 const TAB_EDGE := Color(0.44, 0.31, 0.21)
 
-const FILTER_ORDER := ["all", "weapon", "shield", "armor", "engine", "battery", "utility", "ordnance", "matrix"]
+# v111.15: full-word labels (no more WPN/SHD/ARM abbreviations) and the old
+# combined "ordnance" filter split into separate AMMO + CONSUMABLES tabs.
+const FILTER_ORDER := ["all", "weapon", "shield", "armor", "engine", "battery", "utility", "ammo", "consumables", "matrix"]
 const FILTER_LABELS := {
 	"all": "ALL",
-	"weapon": "WPN",
-	"shield": "SHD",
-	"armor": "ARM",
-	"engine": "ENG",
-	"battery": "BAT",
-	"utility": "UTL",
-	"ordnance": "ORD",
-	"matrix": "CORE",
+	"weapon": "WEAPONS",
+	"shield": "SHIELDS",
+	"armor": "ARMOR",
+	"engine": "ENGINES",
+	"battery": "BATTERIES",
+	"utility": "UTILITY",
+	"ammo": "AMMO",
+	"consumables": "CONSUMABLES",
+	"matrix": "MATRIX",
 }
 const FILTER_TOOLTIPS := {
 	"all": "Show all modules, ammo, and consumables.",
@@ -79,7 +81,8 @@ const FILTER_TOOLTIPS := {
 	"engine": "Engine modules.",
 	"battery": "Battery modules.",
 	"utility": "Sensors, reactors, cooling, and other utility modules.",
-	"ordnance": "Ammo and consumables.",
+	"ammo": "Ammunition for weapons.",
+	"consumables": "Hull and shield consumables.",
 	"matrix": "Matrix Cores for sockets.",
 }
 const ORDNANCE_AMMO_IDS := [
@@ -95,7 +98,10 @@ const FILTER_CONFIG := {
 	"engine": {"node": "EngineTab", "accent": Color(0.85, 0.79, 0.50)},
 	"battery": {"node": "BatteryTab", "accent": Color(0.80, 0.86, 0.56)},
 	"utility": {"node": "UtilityTab", "accent": Color(0.73, 0.67, 0.88)},
-	"ordnance": {"node": "OrdnanceTab", "accent": Color(0.93, 0.64, 0.42)},
+	# Reuse the existing scene "OrdnanceTab" node for AMMO; ConsumablesTab is
+	# created dynamically by _setup_filter_tabs (not in the .tscn).
+	"ammo": {"node": "OrdnanceTab", "accent": Color(0.93, 0.64, 0.42)},
+	"consumables": {"node": "ConsumablesTab", "accent": Color(0.55, 0.85, 0.55)},
 	"matrix": {"node": "MatrixTab", "accent": Color(0.85, 0.45, 0.85)},
 }
 
@@ -301,11 +307,13 @@ func _setup_filter_tabs():
 			tab_buttons[filter_id] = button
 			(button as Button).pressed.connect(_on_filter_pressed.bind(filter_id))
 			(button as Button).tooltip_text = FILTER_TOOLTIPS.get(filter_id, "")
-		elif filter_id == "matrix" and tab_strip.get_child_count() > 0:
-			# v83.9: Dynamically create Matrix tab if missing from scene
+		elif tab_strip.get_child_count() > 0:
+			# v111.15: dynamically create any tab missing from the .tscn
+			# (matrix, consumables). Duplicates the first tab button for
+			# consistent styling, then wires it.
 			var first_btn = tab_strip.get_child(0)
 			var new_btn = first_btn.duplicate()
-			new_btn.name = "MatrixTab"
+			new_btn.name = FILTER_CONFIG[filter_id]["node"]
 			tab_strip.add_child(new_btn)
 			tab_buttons[filter_id] = new_btn
 			new_btn.pressed.connect(_on_filter_pressed.bind(filter_id))
@@ -313,9 +321,16 @@ func _setup_filter_tabs():
 	_refresh_tab_labels()
 
 func _setup_bulk_actions():
-	bulk_actions_container = HBoxContainer.new()
-	bulk_actions_container.alignment = BoxContainer.ALIGNMENT_END
-	bulk_actions_container.add_theme_constant_override("separation", 10)
+	# v111.16: HFlowContainer (not HBox) so the action buttons WRAP within the
+	# Armory's fixed-width column instead of forcing it wider. Previously, toggling
+	# selection mode added "DEMOLISH SELECTED" + "CLEAR" to a non-wrapping HBox,
+	# whose min width (~700px) inflated RightPanel and stretched every grid cell.
+	# Wrapping keeps the panel at its 336px design width in every state.
+	bulk_actions_container = HFlowContainer.new()
+	bulk_actions_container.alignment = FlowContainer.ALIGNMENT_END
+	bulk_actions_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bulk_actions_container.add_theme_constant_override("h_separation", 10)
+	bulk_actions_container.add_theme_constant_override("v_separation", 6)
 	
 	btn_selection_toggle = Button.new()
 	btn_selection_toggle.text = "SELECT MODULES"
@@ -364,15 +379,9 @@ func _setup_bulk_actions():
 	var scroll = storage_grid.get_parent().get_parent()
 	var v_box = scroll.get_parent()
 
-	# Armory context banner
-	_armory_banner = Label.new()
-	_armory_banner.add_theme_font_size_override("font_size", 11)
-	_armory_banner.add_theme_color_override("font_color", Color(0.55, 0.80, 1.0))
-	_armory_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_armory_banner.text = ""
-	_armory_banner.visible = false
-	v_box.add_child(_armory_banner)
-	v_box.move_child(_armory_banner, scroll.get_index())
+	# v111.16: "Equipping for: … | Currently: …" context banner removed — the
+	# focused-slot highlight plus the slot's own tooltip already communicate
+	# which slot is being equipped, so the extra header row was redundant clutter.
 
 	# Sort mode buttons
 	var sort_row = HBoxContainer.new()
@@ -382,7 +391,7 @@ func _setup_bulk_actions():
 	# doesn't reserve a separation gap above the grid.
 	sort_row.visible = false
 	v_box.add_child(sort_row)
-	v_box.move_child(sort_row, _armory_banner.get_index() + 1)
+	v_box.move_child(sort_row, scroll.get_index())
 
 	_sort_buttons.clear()
 	for i in range(3):
@@ -404,7 +413,7 @@ func _setup_bulk_actions():
 	bulk_actions_container.visible = false
 
 	# Loadout Preset row (above sort buttons)
-	_setup_loadout_preset_row(v_box, _armory_banner.get_index())
+	_setup_loadout_preset_row(v_box, sort_row.get_index())
 
 	# Consolidated toolbar: SEARCH + SORT dropdown + MANAGE toggle.
 	# Hides the now-redundant sort button row.
@@ -586,32 +595,47 @@ func _setup_loadout_preset_row(parent: Node, insert_idx: int):
 	label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	preset_row.add_child(label)
 
+	# v111.16: 3 click-to-LOAD chips (1/2/3) + a single SAVE ▾ dropdown,
+	# replacing the old 6-button SAVE/LOAD grid. Click a numbered chip to load
+	# that preset; use SAVE ▾ to write the current build to a slot.
 	_preset_load_buttons = []
 	for i in [1, 2, 3]:
-		var preset_box = HBoxContainer.new()
-		preset_box.add_theme_constant_override("separation", 2)
-
-		var save_btn = Button.new()
-		save_btn.text = "SAVE %d" % i
-		save_btn.tooltip_text = "Save current ship setup to Preset %d" % i
-		save_btn.pressed.connect(_on_preset_save.bind(i))
-		save_btn.add_theme_font_size_override("font_size", 10)
-		_apply_filter_button_style(save_btn, false, Color(0.65, 0.85, 0.95))
-		preset_box.add_child(save_btn)
-
 		var load_btn = Button.new()
-		load_btn.text = "LOAD %d" % i
-		load_btn.tooltip_text = "Apply Preset %d to ship" % i
+		load_btn.text = "%d" % i
+		load_btn.tooltip_text = "Load Preset %d" % i
+		load_btn.custom_minimum_size = Vector2(34, 0)
 		load_btn.pressed.connect(_on_preset_load.bind(i))
-		load_btn.add_theme_font_size_override("font_size", 10)
+		load_btn.add_theme_font_size_override("font_size", 11)
 		_apply_filter_button_style(load_btn, false, Color(0.95, 0.80, 0.30))
-		preset_box.add_child(load_btn)
-
-		preset_row.add_child(preset_box)
+		preset_row.add_child(load_btn)
 		_preset_load_buttons.append(load_btn)
+
+	var save_menu = MenuButton.new()
+	save_menu.text = "SAVE ▾"
+	save_menu.tooltip_text = "Save the current ship build to a preset slot."
+	save_menu.add_theme_font_size_override("font_size", 10)
+	save_menu.flat = false
+	_apply_filter_button_style(save_menu, false, Color(0.55, 0.85, 0.95))
+	var save_popup = save_menu.get_popup()
+	for i in [1, 2, 3]:
+		save_popup.add_item("Save to Preset %d" % i, i)
+	save_popup.id_pressed.connect(_on_preset_save)
+	preset_row.add_child(save_menu)
 
 	parent.add_child(preset_row)
 	parent.move_child(preset_row, insert_idx)
+
+	# v111.16: thin divider above the loadout row separates the filter band
+	# (tabs) from the tools band (loadouts / sort / manage) so the toolbar
+	# reads as two grouped zones instead of one undifferentiated stack.
+	var divider = HSeparator.new()
+	var dsb := StyleBoxLine.new()
+	dsb.color = Color(0.45, 0.38, 0.30, 0.35)
+	dsb.thickness = 1
+	divider.add_theme_stylebox_override("separator", dsb)
+	parent.add_child(divider)
+	parent.move_child(divider, insert_idx)   # lands just above the preset row
+
 	_refresh_preset_buttons()
 
 func _refresh_preset_buttons():
@@ -677,6 +701,11 @@ func _on_selection_mode_toggled(toggled_on: bool):
 	rebuild_storage()
 
 func set_focused_slot(slot_idx: int, s_type: String, equipped_mid: String):
+	# v111.14.1: mutually exclusive with module-arm — focusing a slot clears
+	# any armed module so the two highlight systems never show at once.
+	if _armed_mid != "":
+		_armed_mid = ""
+		_clear_slot_highlights()
 	for w in all_slot_widgets:
 		if is_instance_valid(w): w.set_focus_highlight(false)
 	focused_slot_idx = slot_idx
@@ -686,8 +715,10 @@ func set_focused_slot(slot_idx: int, s_type: String, equipped_mid: String):
 		if is_instance_valid(w) and w.slot_idx == slot_idx:
 			w.set_focus_highlight(true)
 			break
-	_on_filter_changed(_slot_type_to_filter(s_type))
-	_update_armory_banner()
+	# v111.15: removed auto-filter on slot focus — it yanked the armory to a
+	# different tab on every slot click, which the player found disorienting.
+	# The slot still highlights; the armory stays on whatever tab the player
+	# chose. Clicking any compatible module still equips into the focused slot.
 
 func _slot_type_to_filter(s_type: String) -> String:
 	match s_type:
@@ -698,34 +729,6 @@ func _slot_type_to_filter(s_type: String) -> String:
 		"battery": return "battery"
 		"reactor", "sensor", "cooling": return "utility"
 		_: return s_type
-
-func _update_armory_banner():
-	if not _armory_banner: return
-	# Contextual: only occupies a row while equipping for a focused slot.
-	_armory_banner.visible = focused_slot_type != ""
-	if focused_slot_type == "":
-		_armory_banner.text = ""
-		return
-	if focused_slot_idx >= 0 and manager:
-		var eq = manager.loadout.get(focused_slot_idx, "")
-		focused_slot_equipped_mid = eq if eq else ""
-	var slot_num = _get_focused_slot_number()
-	var slot_label = "%s %d" % [focused_slot_type.to_upper(), slot_num]
-	if focused_slot_equipped_mid != "" and focused_slot_equipped_mid in manager.modules:
-		var eq_name = manager.modules[focused_slot_equipped_mid].get("name", "Unknown")
-		for suffix in [" (Common)", " (Uncommon)", " (Rare)", " (Legendary)", " (Unique)"]:
-			eq_name = eq_name.replace(suffix, "")
-		_armory_banner.text = "Equipping for: %s  |  Currently: %s" % [slot_label, eq_name.to_upper()]
-	else:
-		_armory_banner.text = "Equipping for: %s  |  Slot is empty" % slot_label
-
-func _get_focused_slot_number() -> int:
-	var n = 1
-	for w in all_slot_widgets:
-		if is_instance_valid(w) and w.slot_type == focused_slot_type:
-			if w.slot_idx == focused_slot_idx: break
-			n += 1
-	return n
 
 func _update_sort_button_styles():
 	var accent = Color(0.65, 0.60, 0.82)
@@ -789,13 +792,15 @@ func _refresh_filter_button_styles():
 		_apply_filter_button_style(button, visual_filter == filter_id, accent)
 
 func _apply_filter_button_style(button: Button, is_active: bool, accent: Color):
-	# Unselected: recessed dark chip with a dim accent edge + accent-dim text.
+	# v111.16: stronger active/inactive contrast so the active filter pops and
+	# the other 9 recede instead of forming a same-weight wall.
+	# Inactive = near-transparent ghost, very faint edge, dim text.
 	var normal = StyleBoxFlat.new()
-	normal.bg_color = Color(0.10, 0.08, 0.07, 0.92)
+	normal.bg_color = Color(0.10, 0.08, 0.07, 0.22)   # ghost (was 0.92)
 	normal.set_corner_radius_all(4)
 	normal.set_border_width_all(1)
 	var dim_edge: Color = accent
-	dim_edge.a = 0.30
+	dim_edge.a = 0.16                                  # very faint (was 0.30)
 	normal.border_color = dim_edge
 	normal.content_margin_left = 10
 	normal.content_margin_right = 10
@@ -803,23 +808,25 @@ func _apply_filter_button_style(button: Button, is_active: bool, accent: Color):
 	normal.content_margin_bottom = 5
 
 	var hover = normal.duplicate()
-	hover.bg_color = accent.lerp(Color.BLACK, 0.72)
+	hover.bg_color = accent.lerp(Color.BLACK, 0.70)
 	var hb: Color = accent
-	hb.a = 0.6
+	hb.a = 0.55
 	hover.border_color = hb
 
-	# Selected: filled accent plate, lit top edge, soft accent halo — the
-	# same "this is active" language as the card rarity frames.
+	# Active: bright filled accent plate, lit top edge, strong accent halo —
+	# unmistakably "this is the current filter".
 	var selected = normal.duplicate()
-	selected.bg_color = accent.lerp(Color.BLACK, 0.55)
+	selected.bg_color = accent.lerp(Color.BLACK, 0.40)   # more accent (was 0.55)
+	selected.bg_color.a = 1.0
 	selected.border_color = accent
+	selected.set_border_width_all(1)
 	selected.border_width_top = 2
-	selected.shadow_color = Color(accent.r, accent.g, accent.b, 0.30)
-	selected.shadow_size = 5
+	selected.shadow_color = Color(accent.r, accent.g, accent.b, 0.45)
+	selected.shadow_size = 7
 
 	var disabled = normal.duplicate()
-	disabled.bg_color = Color(0.09, 0.07, 0.06, 0.55)
-	disabled.border_color = Color(0.25, 0.20, 0.18, 0.45)
+	disabled.bg_color = Color(0.09, 0.07, 0.06, 0.18)
+	disabled.border_color = Color(0.25, 0.20, 0.18, 0.30)
 
 	button.add_theme_stylebox_override("normal", selected if is_active else normal)
 	button.add_theme_stylebox_override("hover", selected if is_active else hover)
@@ -827,11 +834,13 @@ func _apply_filter_button_style(button: Button, is_active: bool, accent: Color):
 	button.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 	button.add_theme_stylebox_override("disabled", disabled)
 
+	# Active text bright white-accent; inactive text deeply dimmed so it reads
+	# as a quiet option, not a competing label.
 	button.add_theme_color_override("font_color",
-		accent.lerp(Color.WHITE, 0.75) if is_active else accent.lerp(TEXT_DIM, 0.45))
-	button.add_theme_color_override("font_hover_color", accent.lerp(Color.WHITE, 0.6))
-	button.add_theme_color_override("font_pressed_color", accent.lerp(Color.WHITE, 0.85))
-	button.add_theme_color_override("font_disabled_color", Color(0.45, 0.40, 0.36))
+		accent.lerp(Color.WHITE, 0.88) if is_active else accent.lerp(TEXT_DIM, 0.72))
+	button.add_theme_color_override("font_hover_color", accent.lerp(Color.WHITE, 0.65))
+	button.add_theme_color_override("font_pressed_color", accent.lerp(Color.WHITE, 0.9))
+	button.add_theme_color_override("font_disabled_color", Color(0.40, 0.36, 0.33))
 	button.add_theme_font_size_override("font_size", 10)
 	button.button_pressed = is_active
 
@@ -844,9 +853,6 @@ func _on_visibility_changed():
 		focused_slot_type = ""
 		focused_slot_idx = -1
 		focused_slot_equipped_mid = ""
-		if _armory_banner:
-			_armory_banner.text = ""
-			_armory_banner.visible = false
 
 func _on_inventory_updated():
 	if visible:
@@ -875,7 +881,6 @@ func trigger_refresh():
 	rebuild_storage()
 	_refresh_tab_labels()
 	_refresh_filter_button_styles()
-	_update_armory_banner()
 	_refresh_preset_buttons()
 
 func update_header():
@@ -898,9 +903,8 @@ func update_header():
 		ship_name_lbl.tooltip_text = ""
 
 	# Power-grid math (used by both old ShipSpecs bar and new GRID line)
-	var e_cap = 100.0
-	if GameState.resources:
-		e_cap = GameState.resources.max_energy
+	# v110: ship energy capacity is the shipyard's own field now.
+	var e_cap = float(manager.energy_capacity)
 	var e_used = manager.energy_used
 	var grid_margin = e_cap - e_used
 
@@ -1050,11 +1054,11 @@ func _build_grid_bar(used: float, cap: float, margin: float) -> Control:
 	elif used > cap * 0.8:
 		fill_color = Color(1.0, 0.74, 0.31)
 		margin_color = Color(1.0, 0.80, 0.42)
-		margin_prefix = "MARGIN +%d kW" % int(margin)
+		margin_prefix = "MARGIN +%d" % int(margin)
 	else:
 		fill_color = Color(0.84, 0.70, 0.45)
 		margin_color = Color(0.80, 0.95, 0.55)
-		margin_prefix = "MARGIN +%d kW" % int(margin)
+		margin_prefix = "MARGIN +%d" % int(margin)
 
 	var bar = ProgressBar.new()
 	bar.custom_minimum_size = Vector2(0, 10)
@@ -1537,8 +1541,12 @@ func rebuild_storage():
 				# appeared on newly-dropped cards that got a second _update_ui()
 				# on hover.) Only same-type modules compare against the focused
 				# slot's equipped module so the indicator stays meaningful.
-				item.is_selected = module_id in selected_mids
-				item.is_draggable = not is_selection_mode
+				# v111.14: drag fully retired (crash-prone). Cards are never
+				# draggable now; equip happens via click-to-arm. The armed
+				# module reuses the is_selected highlight so the player sees
+				# which one is picked up.
+				item.is_selected = (module_id in selected_mids) or (module_id == _armed_mid)
+				item.is_draggable = false
 				if "compare_equipped_mid" in item:
 					item.compare_equipped_mid = focused_slot_equipped_mid if type_matches_focus else ""
 				item.setup(module_id, module_data, module_count)
@@ -1553,7 +1561,8 @@ func rebuild_storage():
 					item.modulate = Color(1, 1, 1, 0.35)
 				slot_count += 1
 
-	if active_filter in ["all", "ordnance", "ord"]:
+	# v111.15: ammo now its own filter (split from the combined ordnance tab).
+	if active_filter in ["all", "ammo"]:
 		for ammo_id in ORDNANCE_AMMO_IDS:
 			var qty = GameState.resources.get_element_amount(ammo_id)
 			if qty > 0:
@@ -1568,7 +1577,8 @@ func rebuild_storage():
 				ammo_card.clicked.connect(_on_card_clicked)
 				slot_count += 1
 
-	if active_filter in ["all", "ordnance", "ord"]:
+	# v111.15: consumables now their own filter (split from ordnance).
+	if active_filter in ["all", "consumables"]:
 		var consumables = ElementDB.get_elements_in_category("consumables")
 		for consumable_id in consumables:
 			var qty = GameState.resources.get_element_amount(consumable_id)
@@ -1691,7 +1701,7 @@ func _is_module_visible_for_filter(module_data: Dictionary) -> bool:
 			return module_type in ["shield", "engine", "battery", "sensor", "cooling", "reactor"]
 		"explosive":
 			return module_type == "weapon" and module_data.get("stats", {}).get("atk_explosive", 0) > 0
-		"ordnance", "ord":
+		"ammo", "consumables", "ordnance", "ord":
 			return false
 		"matrix":
 			return module_type in ["gem", "gem_synth"]
@@ -1755,18 +1765,20 @@ func _build_filter_counts() -> Dictionary:
 	if not GameState.resources:
 		return counts
 
-	var ordnance_count = 0
+	# v111.15: ammo + consumables counted separately for their own tabs.
+	var ammo_count = 0
 	for ammo_id in ORDNANCE_AMMO_IDS:
 		if GameState.resources.get_element_amount(ammo_id) > 0:
-			ordnance_count += 1
+			ammo_count += 1
+	counts["ammo"] = ammo_count
 
+	var consumable_count = 0
 	var consumables = ElementDB.get_elements_in_category("consumables")
 	for consumable_id in consumables:
 		if GameState.resources.get_element_amount(consumable_id) > 0:
-			ordnance_count += 1
+			consumable_count += 1
+	counts["consumables"] = consumable_count
 
-	counts["ordnance"] = ordnance_count
-	
 	# v83.9: Matrix Core Counts
 	var core_count = 0
 	var matrix_cores = ElementDB.get_elements_in_category("matrix_cores")
@@ -1774,9 +1786,9 @@ func _build_filter_counts() -> Dictionary:
 		if GameState.resources.get_element_amount(core_id) > 0:
 			core_count += 1
 	counts["matrix"] = core_count
-	
+
 	# Boss cores excluded from the Armory (they're Inventory materials).
-	counts["all"] += ordnance_count + core_count
+	counts["all"] += ammo_count + consumable_count + core_count
 	return counts
 
 func _normalize_filter_id(filter_id: String) -> String:
@@ -1785,8 +1797,8 @@ func _normalize_filter_id(filter_id: String) -> String:
 			return "weapon"
 		"sys":
 			return "systems"
-		"ord":
-			return "ordnance"
+		"ord", "ordnance":
+			return "ammo"   # v111.15: legacy alias → new AMMO tab
 		_:
 			if filter_id in FILTER_ORDER:
 				return filter_id
@@ -1839,15 +1851,105 @@ func _get_module_power_score(id: String, data: Dictionary) -> int:
 
 	return score
 func _on_card_clicked(p_mid: String):
-	if not is_selection_mode:
+	# Demolish multi-select mode keeps its existing toggle behaviour.
+	if is_selection_mode:
+		if p_mid in selected_mids:
+			selected_mids.erase(p_mid)
+		else:
+			selected_mids.append(p_mid)
+		_update_bulk_ui()
+		rebuild_storage()
 		return
-		
-	if p_mid in selected_mids:
-		selected_mids.erase(p_mid)
+
+	# v111.14.1: bidirectional, mutually-exclusive equip.
+	# SLOT-FIRST: if a slot is already focused (player clicked a slot, armory
+	# filtered to compatible modules), clicking a module equips it straight
+	# into that focused slot.
+	if focused_slot_idx >= 0:
+		_equip_to_focused_slot(p_mid)
+		return
+	# MODULE-FIRST: otherwise arm the module (compatible slots glow); click
+	# again to cancel.
+	if p_mid == _armed_mid:
+		_disarm_module()
 	else:
-		selected_mids.append(p_mid)
-	_update_bulk_ui()
+		_arm_module(p_mid)
+
+# Slot-first path: equip the clicked module into the currently-focused slot.
+func _equip_to_focused_slot(mid: String) -> void:
+	for w in all_slot_widgets:
+		if is_instance_valid(w) and w.slot_idx == focused_slot_idx:
+			if w.has_method("equip_id") and w.equip_id(mid):
+				UITheme.trigger_ui_thud(self, 1.0)
+				# trigger_refresh already fired inside equip; keep slot focused
+				# so the player can keep swapping modules into it rapidly.
+				rebuild_storage()
+			else:
+				UITheme.show_notification("Can't equip there.", Color(1, 0.5, 0.4))
+			return
+
+# ── v111.14 click-to-equip armed-module state ─────────────────────────
+var _armed_mid: String = ""
+
+func is_module_armed() -> bool:
+	return _armed_mid != ""
+
+func get_armed_mid() -> String:
+	return _armed_mid
+
+func _arm_module(mid: String) -> void:
+	# Mutually exclusive with slot-focus: arming a module clears any focused
+	# slot so only one highlight system is ever active on screen.
+	_clear_focused_slot()
+	_armed_mid = mid
+	_highlight_compatible_slots()
+	rebuild_storage()      # re-render so the armed card shows its highlight
+
+# Clears slot-focus state (highlight + filter banner) without re-rendering
+# the armory. Safe to call when nothing is focused.
+func _clear_focused_slot() -> void:
+	if focused_slot_idx < 0 and focused_slot_type == "":
+		return
+	focused_slot_idx = -1
+	focused_slot_type = ""
+	focused_slot_equipped_mid = ""
+	for w in all_slot_widgets:
+		if is_instance_valid(w) and w.has_method("set_focus_highlight"):
+			w.set_focus_highlight(false)
+
+func _disarm_module() -> void:
+	if _armed_mid == "":
+		return
+	_armed_mid = ""
+	_clear_slot_highlights()
 	rebuild_storage()
+
+# Called by a slot widget after it successfully equips the armed module.
+func notify_equipped() -> void:
+	_armed_mid = ""
+	_clear_slot_highlights()
+	rebuild_storage()
+
+func _highlight_compatible_slots() -> void:
+	for w in all_slot_widgets:
+		if is_instance_valid(w) and w.has_method("set_equip_highlight") and w.has_method("can_accept_module"):
+			w.set_equip_highlight(w.can_accept_module(_armed_mid))
+
+func _clear_slot_highlights() -> void:
+	for w in all_slot_widgets:
+		if is_instance_valid(w) and w.has_method("set_equip_highlight"):
+			w.set_equip_highlight(false)
+
+func _unhandled_input(event: InputEvent) -> void:
+	# Esc cancels whichever equip state is active (mutually exclusive).
+	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+		if _armed_mid != "":
+			_disarm_module()
+			get_viewport().set_input_as_handled()
+		elif focused_slot_idx >= 0:
+			_clear_focused_slot()
+			_on_filter_changed("all")    # restore the unfiltered armory
+			get_viewport().set_input_as_handled()
 
 func _update_bulk_ui():
 	if btn_demolish_selected:

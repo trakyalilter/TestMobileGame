@@ -205,7 +205,7 @@ func refresh_state():
 		ic.modulate = accent.lerp(Color.WHITE, 0.85)
 		ic.visible = true
 
-		stats_lbl.text = _build_card_stats(stats)
+		stats_lbl.text = _build_card_stats(stats, equipped_id)
 		if slot_type == "weapon":
 			stats_lbl.text = "%s · %s" % [UITheme.weapon_family_tag(stats), stats_lbl.text]
 
@@ -294,6 +294,12 @@ func refresh_state():
 					sock_wrap.tooltip_text = "Matrix Core: %s\n[Right-Click to remove]" % ElementDB.get_display_name(gem)
 					var captured_gem = gem
 					sock_wrap.mouse_entered.connect(func():
+						# v111.13 CRASH FIX: a queued mouse_entered can fire after
+						# this slot has been detached (drop completes → slot
+						# rebuild frees us). get_global_mouse_position() /
+						# get_viewport() on a node with a null viewport hard-
+						# crashes the engine. Bail if we're no longer in the tree.
+						if not is_inside_tree(): return
 						if _active_gem_card: _active_gem_card.queue_free()
 						var card = _info_card_scene.instantiate()
 						var main = get_tree().current_scene
@@ -499,7 +505,7 @@ func _stop_pulse():
 	pulse_tween = null
 	modulate = Color.WHITE
 
-func _build_card_stats(stats: Dictionary) -> String:
+func _build_card_stats(stats: Dictionary, mid: String = "") -> String:
 	var lines: Array[String] = []
 
 	if slot_type == "weapon":
@@ -507,12 +513,21 @@ func _build_card_stats(stats: Dictionary) -> String:
 		var interval = max(0.01, float(stats.get("atk_interval", 2.5)))
 		lines.append("DPS %.1f" % (float(dmg) / interval))
 
+	# v110: derived power (tier-based), replacing the stale energy_load stat.
+	if mid != "" and manager:
+		if slot_type in ["weapon", "shield", "armor", "engine", "sensor"]:
+			var draw = manager.get_module_energy_load(mid)
+			if draw > 0: lines.append("POWER DRAW %d" % draw)
+		elif slot_type == "battery":
+			var supply = manager.get_module_energy_capacity(mid)
+			if supply > 0: lines.append("POWER +%d" % supply)
+
 	var keys = stats.keys()
 	keys.sort()
 	for key in keys:
 		if key == "atk_interval": continue
 		var val = stats[key]
-		if key == "energy_load" and val == 0: continue
+		if key == "energy_load" or key == "energy_capacity": continue
 		if slot_type == "weapon" and key in ["atk_kinetic", "atk_energy", "atk_explosive"]: continue
 
 		var label = FormatUtils.format_stat_label(key)
@@ -524,7 +539,14 @@ func _build_card_stats(stats: Dictionary) -> String:
 	return "\n".join(lines)
 
 
+@warning_ignore("unreachable_code")
 func _get_drag_data(at_position: Vector2) -> Variant:
+	# v111.14: drag-to-unequip retired alongside drag-to-equip — the drag
+	# machinery (preview node + detached-node mouse calls) was the crash
+	# source. Right-click on a slot already unequips, so the gesture is
+	# covered. Returning null disables all slot dragging. (Body kept below
+	# for reference but is intentionally unreachable.)
+	return null
 	if slot_type.begins_with("consumable_"):
 		var c_type = "hull" if slot_type == "consumable_hull" else "shield"
 		var equipped_id = manager.get_consumable(c_type)
@@ -605,6 +627,12 @@ func _can_drop_data(at_position: Vector2, data: Variant) -> bool:
 	return false
 
 func _drop_data(at_position: Vector2, data: Variant) -> void:
+	# Legacy drag path — now just routes through the shared equip logic.
+	_equip_payload(data)
+
+# v111.14: shared equip routing used by BOTH the legacy drag _drop_data and
+# the new click-to-equip path (try_equip_armed). Returns true on success.
+func _equip_payload(data: Variant) -> bool:
 	if slot_type.begins_with("consumable_"):
 		var c_type = "hull" if slot_type == "consumable_hull" else "shield"
 		var item_id = data.get("mid", "")
@@ -612,10 +640,11 @@ func _drop_data(at_position: Vector2, data: Variant) -> void:
 			manager.equip_consumable(c_type, item_id)
 			UITheme.trigger_circuit_surge(self)
 			parent_ui.trigger_refresh()
-		return
+			return true
+		return false
 
 	var mid = data.get("mid")
-	
+
 	if data.get("type") == "module" and data.get("slot_type") == "gem":
 		var equipped_id = manager.loadout.get(slot_idx)
 		if equipped_id:
@@ -626,20 +655,59 @@ func _drop_data(at_position: Vector2, data: Variant) -> void:
 					if m_data["sockets"][i] == null:
 						socket_idx = i
 						break
-				
+
 				if socket_idx >= 0:
 					if manager.insert_gem(equipped_id, socket_idx, mid):
 						UITheme.trigger_circuit_surge(self)
 						parent_ui.trigger_refresh()
+						return true
 					else:
 						UITheme.show_notification("Failed to insert core.", Color.RED)
 				else:
 					UITheme.show_notification("No empty sockets available.", Color.RED)
-		return
+		return false
 
 	if manager.equip_module(slot_idx, mid):
 		UITheme.trigger_circuit_surge(self)
 		parent_ui.trigger_refresh()
+		return true
+	return false
+
+# v111.14: build a drop-style payload from a module/consumable id.
+func _payload_for(mid: String) -> Dictionary:
+	if mid == "": return {}
+	var m_data = manager.modules.get(mid, {})
+	if not m_data.is_empty():
+		return {"type": "module", "mid": mid, "slot_type": m_data.get("slot_type", "")}
+	var c_data = ElementDB.get_consumable_data(mid)
+	if not c_data.is_empty():
+		return {"type": "consumable", "mid": mid, "consumable_type": c_data.get("type", "hull")}
+	return {}
+
+# True if this slot would accept the given module/consumable id (click-equip).
+func can_accept_module(mid: String) -> bool:
+	var data := _payload_for(mid)
+	if data.is_empty(): return false
+	return _can_drop_data(Vector2.ZERO, data)
+
+# Equip a specific module/consumable id into this slot. Returns success.
+# Used by both the armed-module path (module-first) and the focused-slot
+# path (slot-first: armory click equips into the focused slot).
+func equip_id(mid: String) -> bool:
+	var data := _payload_for(mid)
+	if data.is_empty() or not _can_drop_data(Vector2.ZERO, data):
+		return false
+	return _equip_payload(data)
+
+# Equip the parent UI's currently-armed module into this slot. Returns success.
+func try_equip_armed() -> bool:
+	if not parent_ui or not parent_ui.has_method("get_armed_mid"):
+		return false
+	return equip_id(parent_ui.get_armed_mid())
+
+# Glow this slot while a compatible module is armed for equipping.
+func set_equip_highlight(on: bool) -> void:
+	modulate = Color(1.3, 1.3, 1.05) if on else Color(1, 1, 1)
 
 func _on_option_button_item_selected(index):
 	var data = option_btn.get_item_metadata(index)
@@ -684,10 +752,21 @@ func _gui_input(event):
 				manager.unequip_slot(slot_idx)
 			parent_ui.trigger_refresh()
 		elif event.button_index == MOUSE_BUTTON_LEFT:
-			if slot_type.begins_with("consumable_"):
-				if parent_ui and parent_ui.has_method("_on_filter_changed"):
-					parent_ui._on_filter_changed("ordnance")
+			# v111.14: armed-module equip takes priority. If the player has
+			# clicked a module in the armory (armed it), a left-click here
+			# equips it into this slot via the shared equip routing.
+			if parent_ui and parent_ui.has_method("is_module_armed") and parent_ui.is_module_armed():
+				if try_equip_armed():
 					UITheme.trigger_ui_thud(self, 1.0)
+					parent_ui.notify_equipped()
+				else:
+					UITheme.show_notification("Can't equip there.", Color(1, 0.5, 0.4))
+				return
+			if slot_type.begins_with("consumable_"):
+				# v111.15: no auto-filter on slot click (disorienting). Equip a
+				# consumable by clicking the consumable card to arm it, then
+				# clicking this slot (handled by the armed-check above).
+				UITheme.trigger_ui_thud(self, 1.0)
 			elif parent_ui and parent_ui.has_method("set_focused_slot"):
 				# Dict.get() returns the default ONLY when the key is missing; a stored
 				# null value comes through as null. Coerce to "" so the typed param holds.
@@ -862,31 +941,18 @@ func _make_custom_tooltip(_for_text: String) -> Control:
 	var m_data = manager.modules.get(equipped_id)
 	if not m_data: return null
 
-	var panel = PanelContainer.new()
-	var rarity = manager.get_module_rarity(equipped_id)
-	var r_color = manager.RARITY_COLORS.get(rarity, Color(0.2, 0.2, 0.2))
-
-	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.05, 0.04, 0.03, 0.98)
-	style.border_color = r_color
-	style.border_color.a = 0.85
-	style.set_border_width_all(2)
-	style.border_width_top = 5
-	style.set_corner_radius_all(3)
-	style.set_content_margin_all(12)
-	panel.add_theme_stylebox_override("panel", style)
-
+	# v111.15 FRAME-IN-FRAME FIX: return a frameless RichTextLabel so the theme's
+	# `TooltipPanel` wrapper is the single frame (returning our own bordered
+	# PanelContainer nested two frames). Rarity stays visible via the bold
+	# rarity-coloured title in the body.
 	var rtl = RichTextLabel.new()
 	rtl.bbcode_enabled = true
 	rtl.fit_content = true
 	rtl.scroll_active = false
 	rtl.custom_minimum_size = Vector2(340, 0)
 	rtl.add_theme_color_override("default_color", Color(0.92, 0.90, 0.86))
-
 	rtl.text = _build_module_tooltip(m_data)
-	panel.add_child(rtl)
-
-	return panel
+	return rtl
 
 func _build_module_tooltip(m_data: Dictionary) -> String:
 	var equipped_id = manager.loadout.get(slot_idx)
@@ -947,10 +1013,24 @@ func _build_module_tooltip(m_data: Dictionary) -> String:
 		tt += "[font_size=20][b]%s[/b][/font_size] [font_size=10][color=gray]Integrity Reinforcement[/color][/font_size]\n" % UITheme.format_num(hp_val)
 		tt += div
 
+	# v110: derived power (tier-based) — replaces the stale energy_load stat.
+	if manager:
+		if s_type in ["weapon", "shield", "armor", "engine", "sensor"]:
+			var draw = manager.get_def_energy_load(m_data)
+			if draw > 0:
+				tt += "[color=#ff9955]POWER DRAW: %d[/color]\n" % draw
+				tt += div
+		elif s_type == "battery":
+			var supply = manager.get_def_energy_capacity(m_data)
+			if supply > 0:
+				tt += "[color=#66dd66]POWER SUPPLY: +%d[/color]\n" % supply
+				tt += div
+
 	var keys = stats.keys()
 	keys.sort()
 	for key in keys:
 		if key == "atk_interval": continue
+		if key == "energy_load" or key == "energy_capacity": continue  # v110: derived
 		if s_type == "weapon" and key in ["atk_kinetic", "atk_energy", "atk_explosive"]: continue
 		if s_type == "shield" and key == "max_shield": continue
 		if s_type == "armor" and key == "hp": continue

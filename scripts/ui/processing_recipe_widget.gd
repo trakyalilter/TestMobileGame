@@ -45,7 +45,7 @@ func setup(p_rid: String, p_data: Dictionary, p_manager, p_parent):
 
 	# Themed "work order" card: crucible-motif backdrop + icon header, with a
 	# clear input -> (transform) -> output flow. Inputs recede, output pops.
-	var glyph = load("res://assets/cursors/pages/processing.svg") as Texture2D
+	var glyph = load("res://assets/icons/glyphs/processing.svg") as Texture2D
 	UITheme.inject_activity_header(self, "engineering", glyph)
 	UITheme.wrap_in_io_panel(in_lbl, "engineering", "input")
 	var out_panel = UITheme.wrap_in_io_panel(out_lbl, "engineering", "output")

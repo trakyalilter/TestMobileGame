@@ -777,19 +777,21 @@ func apply_instrument_style(button: Button, category: String = "ops"):
 	style_normal.bg_color = Color(0.1, 0.1, 0.15)
 	style_normal.set_border_width_all(1)
 	style_normal.border_color = Color(0.3, 0.3, 0.4)
-	
-	# Physical "Bevel" effect
+
+	# v111.12: Left "bevel" accent. Border width is now CONSTANT (3px) across
+	# normal/hover/pressed — previously it grew 3→5→8, which shrank the button's
+	# content area on hover, re-wrapping the label text and resizing the whole
+	# consumables card. State feedback comes from bg + border COLOUR only, so
+	# the content area (and therefore text wrap + button size) never changes.
 	style_normal.border_width_left = 3
 	style_normal.border_color = accent.lerp(Color.WHITE, 0.2)
-	
+
 	var style_hover = style_normal.duplicate()
 	style_hover.bg_color = accent.lerp(Color.BLACK, 0.7)
-	style_hover.border_width_left = 5
 	style_hover.border_color = accent
-	
+
 	var style_pressed = style_normal.duplicate()
 	style_pressed.bg_color = accent
-	style_pressed.border_width_left = 8
 	style_pressed.border_color = Color.WHITE
 	
 	button.add_theme_stylebox_override("normal", style_normal)

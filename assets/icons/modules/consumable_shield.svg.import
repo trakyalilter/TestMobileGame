@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c41sbr5nftjii"
-path="res://.godot/imported/combat.svg-961694915ae517d7b5d5be990c9a6483.ctex"
+uid="uid://cbdk873gs47qg"
+path="res://.godot/imported/consumable_shield.svg-c8b4d1217a750eadcf7b342dd310d1f5.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/cursors/pages/combat.svg"
-dest_files=["res://.godot/imported/combat.svg-961694915ae517d7b5d5be990c9a6483.ctex"]
+source_file="res://assets/icons/modules/consumable_shield.svg"
+dest_files=["res://.godot/imported/consumable_shield.svg-c8b4d1217a750eadcf7b342dd310d1f5.ctex"]
 
 [params]
 

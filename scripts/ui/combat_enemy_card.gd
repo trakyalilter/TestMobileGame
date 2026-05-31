@@ -1,84 +1,268 @@
 extends PanelContainer
 
+# v111.10: Targeting-Data datasheet redesign.
+#
+# Replaces the flat "Name / pipe-separated stats / CSV drops / mismatched
+# buttons" layout with a structured datasheet that sells the encounter:
+#
+#   [ Enemy Name ............. T<N> ]   <- header + tier badge
+#   ♥ HP   ⚔ ATK <TYPE>   ⛨ DEF       <- glanceable stat row
+#   [⛨ KIN]  [▼ EXP]                  <- inline resist/weak chips
+#   LOOT  drop1 ·drop2 · 4× T1 Module <- structured drop preview
+#   +N XP  ·  +M ₺                    <- predicted yield (decision driver)
+#   [ INFO ] [          ENGAGE     ] <- parallel actions, ENGAGE primary
+
 var eid
 var data
 var parent_ui
 
-@onready var name_lbl = $MarginContainer/VBoxContainer/NameLabel
-@onready var stats_lbl = $MarginContainer/VBoxContainer/StatsLabel
-@onready var loot_lbl = $MarginContainer/VBoxContainer/LootLabel
+@onready var vb: VBoxContainer = $MarginContainer/VBoxContainer
+
 
 func setup(p_eid, p_data, p_parent):
 	eid = p_eid
 	data = p_data
 	parent_ui = p_parent
-	
-	name_lbl.text = data["name"]
-	name_lbl.add_theme_color_override("font_color", UITheme.CATEGORY_COLORS["combat"])
-	
-	# v87.0: Show damage type in compact stats
-	var dmg_tag = "KIN"
+
+	# v111.10.2: drop apply_card_style + inject_diegetic_header. Outer
+	# Targeting Data panel already provides the framing — adding another
+	# bordered card per row produced the nested-panels "double frame"
+	# crowding the player called out. Cards now style as RECESSED ROWS
+	# (subtle bg + bottom hairline) which read as list items, not cards.
+	_apply_row_style()
+
+	# The .tscn carries legacy NameLabel / StatsLabel / LootLabel / Actions
+	# nodes. Clear them so the datasheet rebuilds with a clean slate; nothing
+	# downstream references those node names anymore.
+	for c in vb.get_children():
+		c.queue_free()
+	# Tighter VBox so rows pack closer.
+	vb.add_theme_constant_override("separation", 3)
+
+	_build_header()
+	_build_combined_stats_row()    # stats + affinity merged onto one line
+	_build_loot_inline()           # loot trimmed to a single line
+	_build_yield_row()
+	_build_actions_row()
+
+
+# Row-style background: faint dark tint with a 1px combat-accent bottom
+# hairline that doubles as the separator to the next card.
+func _apply_row_style() -> void:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.08, 0.07, 0.08, 0.55)
+	sb.border_color = Color(0.85, 0.40, 0.35, 0.32)
+	sb.border_width_bottom = 1
+	sb.content_margin_left = 10
+	sb.content_margin_right = 10
+	sb.content_margin_top = 7
+	sb.content_margin_bottom = 7
+	add_theme_stylebox_override("panel", sb)
+
+
+# ─── Header: name + tier badge ───────────────────────────────────────
+func _build_header() -> void:
+	var hb := HBoxContainer.new()
+	hb.add_theme_constant_override("separation", 8)
+	vb.add_child(hb)
+
+	var name_lbl := Label.new()
+	name_lbl.text = str(data["name"])
+	name_lbl.add_theme_font_size_override("font_size", 13)
+	name_lbl.add_theme_color_override("font_color", Color(0.96, 0.93, 0.85))
+	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_lbl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	hb.add_child(name_lbl)
+
+	# v111.10.3: T1/T2/T3 tier chip removed per design direction — engineer-
+	# speak that the player doesn't speak. HP/ATK numbers + the section's
+	# combat-red palette convey threat directly; explicit tier scaffolding
+	# adds noise without information the player can act on.
+
+
+# ─── Stats + affinity combined onto a single line ───────────────────
+func _build_combined_stats_row() -> void:
+	var hb := HBoxContainer.new()
+	hb.add_theme_constant_override("separation", 10)
+	vb.add_child(hb)
+
+	var hp := int(data["stats"]["hp"])
+	var atk := int(data["stats"]["atk"])
+	var def := int(data["stats"]["def"])
+
+	_add_stat_cell(hb, "♥", UITheme.format_num(hp), Color(0.95, 0.55, 0.55))
+
+	var dmg_tag := "KIN"
+	var dmg_col := Color(0.92, 0.66, 0.32)
 	match data.get("dmg_type", "kinetic"):
-		"energy": dmg_tag = "NRG"
-		"explosive": dmg_tag = "EXP"
-	stats_lbl.text = "HP: %s | ATK: %s %s | DEF: %d" % [UITheme.format_num(data["stats"]["hp"]), UITheme.format_num(data["stats"]["atk"]), dmg_tag, data["stats"]["def"]]
+		"energy":
+			dmg_tag = "NRG"
+			dmg_col = Color(0.32, 0.80, 1.0)
+		"explosive":
+			dmg_tag = "EXP"
+			dmg_col = Color(1.0, 0.55, 0.35)
+	_add_stat_cell(hb, "⚔", "%s %s" % [UITheme.format_num(atk), dmg_tag], dmg_col)
 
-	# Resistance / vulnerability one-liner
-	var rk = data.get("resist_k", 0.0)
-	var re = data.get("resist_e", 0.0)
-	var rx = data.get("resist_x", 0.0)
-	var resist_parts = []
-	var weak_parts = []
-	if rk > 0.05:   resist_parts.append("KIN")
-	elif rk < -0.05: weak_parts.append("KIN")
-	if re > 0.05:   resist_parts.append("NRG")
-	elif re < -0.05: weak_parts.append("NRG")
-	if rx > 0.05:   resist_parts.append("EXP")
-	elif rx < -0.05: weak_parts.append("EXP")
+	_add_stat_cell(hb, "⛨", str(def), Color(0.65, 0.85, 0.95))
 
-	# Phase A: stronger damage-triangle telegraph — colored BBCode at 12pt so
-	# the player actually reads RESIST/WEAK before clicking Fight.
-	var resist_bb = ""
-	if not resist_parts.is_empty():
-		resist_bb += "[color=#ff6e6e]⛨ RESIST %s[/color]" % ", ".join(resist_parts)
-	if not weak_parts.is_empty():
-		if resist_bb != "":
-			resist_bb += "   "
-		resist_bb += "[color=#6eff8a]▼ WEAK %s[/color]" % ", ".join(weak_parts)
+	# Right-align affinity chips on the same row, separator dot in between.
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hb.add_child(spacer)
 
-	if resist_bb != "":
-		if has_node("MarginContainer/VBoxContainer/ResistLabel"):
-			$MarginContainer/VBoxContainer/ResistLabel.queue_free()
-		var rl = RichTextLabel.new()
-		rl.name = "ResistLabel"
-		rl.bbcode_enabled = true
-		rl.fit_content = true
-		rl.scroll_active = false
-		rl.add_theme_font_size_override("normal_font_size", 12)
-		rl.text = resist_bb
-		$MarginContainer/VBoxContainer.add_child(rl)
-		$MarginContainer/VBoxContainer.move_child(rl, stats_lbl.get_index() + 1)
-	
-	UITheme.apply_card_style(self, "combat")
-	UITheme.inject_diegetic_header(self, "combat")
-	
-	if has_node("MarginContainer/VBoxContainer/Actions/FightBtn"):
-		UITheme.apply_premium_button_style($MarginContainer/VBoxContainer/Actions/FightBtn, "combat")
-	
-	var loot_txt = "Drops: "
-	for entry in data["loot"]:
-		var d_name = ElementDB.get_display_name(entry[0])
-		loot_txt += d_name + ", "
-	
-	# v71.4: Include modules in drop summary
-	var m_pool = data.get("module_drop_pool", [])
+	for entry in [
+		[float(data.get("resist_k", 0.0)), "KIN"],
+		[float(data.get("resist_e", 0.0)), "NRG"],
+		[float(data.get("resist_x", 0.0)), "EXP"],
+	]:
+		var val: float = entry[0]
+		var tag: String = entry[1]
+		if val > 0.05:
+			hb.add_child(_make_chip("⛨%s" % tag, Color(1.0, 0.45, 0.45), 8))
+		elif val < -0.05:
+			hb.add_child(_make_chip("▼%s" % tag, Color(0.50, 1.0, 0.55), 8))
+
+
+func _add_stat_cell(parent: Node, glyph: String, value: String, accent: Color) -> void:
+	var cell := HBoxContainer.new()
+	cell.add_theme_constant_override("separation", 3)
+	parent.add_child(cell)
+
+	var g := Label.new()
+	g.text = glyph
+	g.add_theme_font_size_override("font_size", 11)
+	g.add_theme_color_override("font_color", accent)
+	cell.add_child(g)
+
+	var v := Label.new()
+	v.text = value
+	v.add_theme_font_size_override("font_size", 11)
+	v.add_theme_color_override("font_color", Color(0.92, 0.92, 0.92))
+	cell.add_child(v)
+
+
+# ─── Loot inline: single line with a small caption prefix ──────────
+func _build_loot_inline() -> void:
+	var lbl := RichTextLabel.new()
+	lbl.bbcode_enabled = true
+	lbl.fit_content = true
+	lbl.scroll_active = false
+	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	lbl.add_theme_font_size_override("normal_font_size", 10)
+	lbl.add_theme_color_override("default_color", Color(0.78, 0.76, 0.72))
+
+	# v111.10.3: drop the "×" multiplication sign — reads as a math operator
+	# (Iron ×2-4 = "Iron times two minus four"?), not as a quantity. Plain
+	# space is cleaner ("Iron 2–4"). Same notation as "+5 XP" in the yield
+	# row below — no operator, just number-then-unit.
+	var parts: Array = []
+	for entry in data.get("loot", []):
+		var item_id: String = str(entry[0])
+		if item_id == "credits":
+			continue        # surfaced in the yield row instead
+		var display: String = ElementDB.get_display_name(item_id)
+		var lo: int = int(entry[1])
+		var hi: int = int(entry[2])
+		parts.append("%s %d–%d" % [display, lo, hi] if lo != hi else "%s %d" % [display, lo])
+
+	# v111.10.3: module pool surfaced as just "Module" — no count (was
+	# misleading: pool of 4 != 4 drops per kill), no T1/T2/T3 (engineer
+	# jargon), no zone name (the player already knows what zone they're in).
+	# Honest signal: "this enemy can drop a module," nothing more.
+	var m_pool: Array = data.get("module_drop_pool", [])
 	if m_pool.size() > 0:
-		loot_txt = loot_txt.trim_suffix(", ") + "\n+ %d Ship Modules" % m_pool.size()
-			
-	loot_lbl.text = loot_txt.trim_suffix(", ")
+		parts.append("Module")
+
+	lbl.text = "[color=#9a7c52]LOOT[/color]  " + "  ·  ".join(parts) if not parts.is_empty() \
+		else "[color=#9a7c52]LOOT[/color]  —"
+	vb.add_child(lbl)
+
+
+# ─── Yield row: predicted XP + Lira average ─────────────────────────
+func _build_yield_row() -> void:
+	var xp := int(data.get("xp", 0))
+	var credit_min := 0
+	var credit_max := 0
+	for entry in data.get("loot", []):
+		if str(entry[0]) == "credits":
+			credit_min = int(entry[1])
+			credit_max = int(entry[2])
+			break
+
+	var parts: Array = []
+	if xp > 0:
+		parts.append("+%d XP" % xp)
+	if credit_max > 0:
+		var avg: int = int((credit_min + credit_max) / 2.0)
+		parts.append("+%d %s" % [avg, UITheme.LIRA_ICON_BB])
+
+	if parts.is_empty():
+		return
+
+	var lbl := RichTextLabel.new()
+	lbl.bbcode_enabled = true
+	lbl.fit_content = true
+	lbl.scroll_active = false
+	lbl.add_theme_font_size_override("normal_font_size", 10)
+	lbl.add_theme_color_override("default_color", Color(0.55, 0.85, 0.45))
+	lbl.text = "  ·  ".join(parts)
+	vb.add_child(lbl)
+
+
+# ─── Action row: parallel buttons, ENGAGE primary ───────────────────
+func _build_actions_row() -> void:
+	var hb := HBoxContainer.new()
+	hb.add_theme_constant_override("separation", 8)
+	vb.add_child(hb)
+
+	var info_btn := Button.new()
+	info_btn.text = "INFO"
+	info_btn.custom_minimum_size = Vector2(50, 24)
+	info_btn.add_theme_font_size_override("font_size", 10)
+	info_btn.add_theme_color_override("font_color", Color(0.72, 0.74, 0.80))
+	info_btn.flat = true
+	info_btn.pressed.connect(_on_info_btn_pressed)
+	hb.add_child(info_btn)
+
+	var fight_btn := Button.new()
+	fight_btn.text = "ENGAGE"
+	fight_btn.custom_minimum_size = Vector2(0, 24)
+	fight_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	fight_btn.add_theme_font_size_override("font_size", 11)
+	fight_btn.pressed.connect(_on_fight_btn_pressed)
+	UITheme.apply_premium_button_style(fight_btn, "combat")
+	hb.add_child(fight_btn)
+
+
+# ─── Helpers ─────────────────────────────────────────────────────────
+func _make_chip(text: String, color: Color, font_size: int) -> Control:
+	var lbl := Label.new()
+	lbl.text = text
+	lbl.add_theme_font_size_override("font_size", font_size)
+	lbl.add_theme_color_override("font_color", color)
+
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = color
+	sb.bg_color.a = 0.15
+	sb.set_corner_radius_all(3)
+	sb.set_border_width_all(1)
+	var border := color
+	border.a = 0.45
+	sb.border_color = border
+	sb.content_margin_left = 6
+	sb.content_margin_right = 6
+	sb.content_margin_top = 1
+	sb.content_margin_bottom = 1
+
+	var chip := PanelContainer.new()
+	chip.add_theme_stylebox_override("panel", sb)
+	chip.add_child(lbl)
+	return chip
+
 
 func _on_fight_btn_pressed():
 	parent_ui.request_fight(eid)
+
 
 func _on_info_btn_pressed():
 	parent_ui.show_enemy_info(data)

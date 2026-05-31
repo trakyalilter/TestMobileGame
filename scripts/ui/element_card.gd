@@ -9,6 +9,25 @@ var amount
 @onready var name_lbl = $MarginContainer/VBoxContainer/NameLabel
 @onready var amt_lbl = $MarginContainer/VBoxContainer/AmountLabel
 
+func _ready() -> void:
+	# v111.16: match empty_slot.gd / module_card.gd grid-cell sizing so FILLED
+	# and EMPTY inventory cells are identical. Previously element cards were a
+	# fixed 108px SHRINK box while empty slots were 100px EXPAND_FILL + square,
+	# so filled and empty cells never matched. Expand to share the column width,
+	# fill the row height, and keep square.
+	size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	size_flags_vertical = Control.SIZE_FILL
+	if not resized.is_connected(_keep_square):
+		resized.connect(_keep_square)
+
+# Mirror of empty_slot._keep_square / module_card._keep_square: when the grid
+# stretches us wider than our min, bump min height to match so the cell renders
+# as a square. The guard prevents a layout loop (bumping min.y doesn't change
+# size.x in a GridContainer).
+func _keep_square() -> void:
+	if size.x > custom_minimum_size.y:
+		custom_minimum_size.y = size.x
+
 func setup(p_data, p_amount):
 	element_data = p_data
 	amount = p_amount

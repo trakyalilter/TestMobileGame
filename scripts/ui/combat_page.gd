@@ -376,7 +376,15 @@ func request_fight(eid):
 	var items = zone_list.get_selected_items()
 	if items.size() == 0: return
 	var zid = zone_list.get_item_metadata(items[0])
-	
+
+	# v111.16: every explicit ENGAGE press is a fresh run from the player's POV,
+	# so wipe the Expedition Yield panel now. start_expedition() already clears
+	# session_loot for a NEW zone, but it early-returns when you're already
+	# fighting in the SAME zone and only re-targeting — that path left stale yield
+	# on screen. Clearing here covers both expeditions and hazards uniformly, and
+	# fires only on a deliberate ENGAGE (not on post-kill auto-retargeting).
+	manager.session_loot.clear()
+
 	# v86.0: Route hazard zones to start_hazard (gauntlet mode)
 	if zid in manager.hazard_zones:
 		manager.start_hazard(zid)
@@ -403,13 +411,10 @@ func update_ui():
 	
 	p_stat_lbl.text = "ATK: %s | DEF: %s | EVA: %.0f | CRIT: %.0f%%" % [UITheme.format_num(sm.attack), UITheme.format_num(sm.defense), total_eva, total_crit]
 	
-	# Simplified Level Info
-	var lvl_info = "[Lv.%d]" % manager.get_level()
-	if manager.get_level() > 0:
-		lvl_info += " +%.1f%% DMG" % (manager.get_level() * 0.5)
-	
+	# Title shows just the hull name — combat level + bonus-damage readout
+	# removed from the card header per design (kept off to declutter the title).
 	var hull_name = sm.get_ship_name() if sm and sm.has_method("get_ship_name") else "USS HORIZON"
-	p_name_lbl.text = "%s %s" % [hull_name.to_upper(), lvl_info]
+	p_name_lbl.text = hull_name.to_upper()
 	
 	# Sync Block Bars
 	_update_block_bar(p_hp_bar, float(sm.current_hp) / max(1.0, sm.max_hp))
@@ -512,8 +517,11 @@ func update_ui():
 	else:
 		for pb in player_weapon_bars: pb.visible = false
 		e_attack_pb.visible = false
-		scanner_overlay.visible = false
-		ammo_overlay.visible = false
+		# v111.11 cockpit Stage 1: KEEP scanner_overlay (Expedition Yield) and
+		# ammo_overlay (Ordnance Feed) visible when out of combat. Panels now
+		# read as fixed regions that sit empty/dim until combat fills them,
+		# instead of materialising the moment combat starts and forcing the
+		# player to re-parse a new layout.
 		scan_lbl.text = "SCANNING FOR ANOMALIES..."
 
 	# Log - DISABLED (User Request)
@@ -529,10 +537,19 @@ func update_ui():
 	# Process Combat Events (Floating Text + Haptics)
 	while manager.combat_events.size() > 0:
 		var ev = manager.combat_events.pop_front()
-		if is_visible_in_tree():
-			UITheme.show_notification(ev["text"], ev["color"])
-		
-		# TACTILE: Damage-induced System Glitch 
+		var ev_type: String = ev.get("type", "")
+		# v111.11 Stage 2.1: per-hit damage no longer spams the global toast
+		# stack (which piled bottom-right, colliding with RETREAT). Damage
+		# now floats off the ship/target in the radar centre, where the hit
+		# visually lands. Non-damage events (kills, loot, level) still toast.
+		if ev_type == "damage":
+			if is_visible_in_tree():
+				_spawn_damage_float(str(ev["text"]), ev["color"], ev.get("side") == "player")
+		else:
+			if is_visible_in_tree():
+				UITheme.show_notification(ev["text"], ev["color"])
+
+		# TACTILE: Damage-induced System Glitch
 		if ev.get("side") == "player" and ev.get("type", "") == "damage":
 			if is_visible_in_tree():
 				_apply_hud_stress()
@@ -555,6 +572,35 @@ func _apply_hud_stress():
 	# PHASE 47: Visceral System Glitch
 	UITheme.trigger_system_glitch(hud, 12.0)
 	UITheme.trigger_ui_thud(self, 8.0)
+
+# v111.11 Stage 2.1: Centered floating damage text. Spawns off the radar
+# centre — left of centre for player-side hits, right for enemy-side — and
+# rises + fades over ~0.9s. Replaces the toast spam that piled in the
+# bottom-right corner over the RETREAT button.
+func _spawn_damage_float(text: String, color: Color, player_side: bool) -> void:
+	if not visualizer:
+		return
+	var lbl := Label.new()
+	lbl.text = text
+	lbl.add_theme_font_size_override("font_size", 16)
+	lbl.add_theme_color_override("font_color", color)
+	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	lbl.z_index = 50
+	visualizer.add_child(lbl)
+
+	var vp: Vector2 = visualizer.size
+	# Player hits float on the left third, enemy hits on the right third —
+	# matching the radar's left=player / right=enemy arc convention.
+	var base_x: float = vp.x * (0.40 if player_side else 0.60)
+	var base_y: float = vp.y * 0.44
+	lbl.position = Vector2(base_x + randf_range(-18.0, 18.0), base_y + randf_range(-8.0, 8.0))
+
+	var tw := lbl.create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(lbl, "position:y", lbl.position.y - 48.0, 0.9) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.tween_property(lbl, "modulate:a", 0.0, 0.9).set_delay(0.3)
+	tw.chain().tween_callback(lbl.queue_free)
 
 func show_enemy_info(data):
 	var dlg = enemy_info_scene.instantiate()

@@ -6,6 +6,7 @@ var current_zone = null
 var current_zone_id: String = "" # Track explicitly for saving
 var current_enemy = null
 var target_enemy_id = null
+var _enemy_enraged: bool = false  # v109: per-fight enrage state (P3 boss mechanic)
 
 # Battle State (Enemies only, player uses shipyard_manager.current_hp)
 var player_shield = 0.0
@@ -938,6 +939,7 @@ var enemy_db = {
 		# A telegraphed P3 phase mechanic is added later (Step 6). Guaranteed
 		# Cryo-Lance drop on kill so the first clear pays the next slot.
 		"stats": {"hp": 22000000, "max_shield": 500000, "atk": 350000, "def": 52000, "atk_interval": 2.5, "accuracy": 260},
+		"enrage_at": 0.5, "enrage_atk_mult": 1.5,  # v109: last-stand ATK surge below 50% HP — burst it down or out-sustain it
 		"loot": [["credits", 100000000, 200000000], ["ExoticMatter", 30, 60], ["ChronoCore", 10, 20], ["PrimordialShard", 20, 40]],
 		"rare_loot": [["cryo_lance", 1.0, 1, 1]],
 		"module_drop_chance": 0.30,
@@ -1073,6 +1075,14 @@ func set_target_enemy(enemy_id):
 		log_msg("SYSTEM CRITICAL: Hull integrity at 0%. Repairs required before engaging.")
 		return
 
+	# v110: whole-ship power gate. If the battery banks can't cover the total
+	# module draw, the ship can't operate in combat at all (not just per-weapon
+	# fail). Block entry with a clear pointer to the fix.
+	if sm and sm.energy_used > sm.energy_capacity:
+		log_msg("SHIP UNPOWERED: battery capacity %d < power draw %d. Equip more (or higher-tier) Battery modules." % [int(sm.energy_capacity), int(sm.energy_used)])
+		UITheme.show_notification("⚡ SHIP UNPOWERED — equip Battery modules to cover your power draw (%d / %d)." % [int(sm.energy_used), int(sm.energy_capacity)], Color(1.0, 0.45, 0.35))
+		return
+
 	if enemy_id and enemy_id in enemy_db:
 		GameState.set_active_manager(self)
 		target_enemy_id = enemy_id
@@ -1118,8 +1128,11 @@ func spawn_enemy():
 		"resist_x": e_data.get("resist_x", 0.0),
 		"resist_cryo": e_data.get("resist_cryo", 0.0),       # v109: 4th type
 		"warp_hardened": e_data.get("warp_hardened", false), # v109: Z11 Cryo gate
+		"enrage_at": e_data.get("enrage_at", 0.0),           # v109: P3 boss mechanic (HP fraction)
+		"enrage_atk_mult": e_data.get("enrage_atk_mult", 1.5),
 		"dmg_type": e_data.get("dmg_type", "kinetic") # v87.0: Typed enemy damage
 	}
+	_enemy_enraged = false  # v109: reset per-fight enrage state on spawn
 	
 	# v103b: Static zone-gap steepening (zone 3+). A complete sub-zone gear/set
 	# out-DPSes later content otherwise; both regular enemies AND bosses scale.
@@ -1466,10 +1479,8 @@ func _execute_player_attack(weapon_idx: int):
 	if overheat_lock > 0: return
 	
 	# P0 Hotfix: Grid Safety Check (Prevent Overload Exploit)
-	var max_energy = 0
-	if GameState.resources: max_energy = GameState.resources.max_energy
-	
-	if sm.energy_used > max_energy:
+	# v110: read the ship's own energy_capacity (decoupled from the infra grid).
+	if sm.energy_used > sm.energy_capacity:
 		# 10% chance to spam log (anti-spam)
 		if randf() < 0.1:
 			combat_events.append({"type": "miss", "text": "LOW POWER", "color": Color.RED, "side": "player"})
@@ -1634,8 +1645,27 @@ func _execute_player_attack(weapon_idx: int):
 	
 	if enemy_hp <= 0: win_fight()
 
+# v109: P3 boss mechanic — Enrage. When the enemy's HP first crosses below its
+# enrage_at fraction, it permanently surges ATK by enrage_atk_mult for the rest
+# of the fight. Telegraphed once. Solvable purely by pre-fight loadout: bring
+# enough Cryo burst to skip the window, or enough hull/consumables to outlast it
+# (no in-fight input — honours the auto-battler contract). Data-driven via the
+# enrage_at / enrage_atk_mult fields on any enemy (currently Threshold Warden).
+func _check_enrage() -> void:
+	if _enemy_enraged or current_enemy == null:
+		return
+	var thr := float(current_enemy.get("enrage_at", 0.0))
+	if thr <= 0.0 or enemy_max_hp <= 0:
+		return
+	if float(enemy_hp) / float(enemy_max_hp) <= thr:
+		_enemy_enraged = true
+		var mult := float(current_enemy.get("enrage_atk_mult", 1.5))
+		combat_events.append({"type": "status", "text": "⚠ ENRAGED — ATK ×%.1f" % mult, "color": Color(1.0, 0.35, 0.20), "side": "enemy"})
+		log_msg("%s has ENRAGED — incoming damage surging." % current_enemy.get("name", "Target"))
+
 func _execute_enemy_attack():
 	var sm = GameState.shipyard_manager
+	_check_enrage()  # v109: re-evaluate enrage before this swing (telegraph + buff)
 	var e_acc = current_enemy.get("accuracy", 0)
 	var total_eva = sm.evasion + get_milestone_evasion_bonus()
 	var dodge_chance = min(float(total_eva) / (float(total_eva) + 150.0 * (1.0 + float(e_acc) / 100.0)), 0.75)
@@ -1645,6 +1675,8 @@ func _execute_enemy_attack():
 		var difficulty = current_zone.get("difficulty", 1)
 		# v87.0: Enemy uses typed damage channels
 		var e_atk = current_enemy["atk"]
+		if _enemy_enraged:
+			e_atk = int(e_atk * float(current_enemy.get("enrage_atk_mult", 1.5)))  # v109
 		var e_type = current_enemy.get("dmg_type", "kinetic")
 		var e_atk_k = 0
 		var e_atk_e = 0
@@ -1839,22 +1871,60 @@ func _credit_reward_mult() -> float:
 func get_effective_module_drop_chance(enemy_data: Dictionary) -> float:
 	var base = enemy_data.get("module_drop_chance", 0.0)
 	if base <= 0: return 0.0
-	
-	var sm = GameState.shipyard_manager
+
+	# v109: Accuracy NO LONGER affects drop rate. The old (accuracy-100)/400
+	# bonus was uncapped and turned drops into a firehose at high accuracy
+	# (×3 at 900 acc, guaranteed past ~2100). Drop chance is now the enemy's
+	# flat base, modified ONLY by the bounded Xeno-Engineering research node
+	# (a deliberate +rare-loot investment).
 	var rm = GameState.research_manager
-	
-	# 1. Accuracy Bonus: +1% per 4 points above 100 (e.g. 500 Accuracy = +100%)
-	var acc_bonus = max(0, (sm.accuracy - 100) / 400.0)
-	
-	# 2. Xeno-Engineering Bonus (Rare Loot Chance)
 	var xeno_bonus = rm.get_efficiency_bonus("xeno_engineering") if rm else 0.0
-	
-	var total_mult = 1.0 + acc_bonus + xeno_bonus
-	return base * total_mult
+	return base * (1.0 + xeno_bonus)
 
 # Weighted pick over a drop pool using MODULE_DROP_WEIGHTS by slot type.
 # Entries whose slot type has weight <= 0 (e.g. battery) can never drop,
 # even if present in an enemy's pool. Returns "" if nothing is eligible.
+# v109: Roll a single MODULE drop — rarity roll → weighted base pick → loot
+# filter → generate. Extracted so bosses can call it 4-10× for a loot burst.
+# Touches modules only (never currency/materials/boss cores). Honours the loot
+# filter: a roll whose rarity/type is filtered out is skipped ("only loot you
+# keep is rolled").
+func _roll_one_module_drop(unlocked_pool: Array, sm) -> void:
+	var is_boss = current_enemy.get("is_boss", false)
+	var rarity = sm.roll_rarity(is_boss)
+	var base_id = _pick_weighted_base(unlocked_pool, sm)
+	if base_id == "":
+		return
+	var m_data = sm.modules.get(base_id, {})
+	var slot_type = m_data.get("slot_type", "weapon")
+	var is_rarity_ok = loot_filter.get(rarity, true)
+	var is_type_ok = loot_type_filter.get(slot_type, true)
+	# Weapon sub-filter by damage type (cryo > energy > explosive > kinetic).
+	if is_type_ok and slot_type == "weapon":
+		var wstats = m_data.get("stats", {})
+		var wtype = "kinetic"
+		if float(wstats.get("atk_cryo", 0)) > 0.0:
+			wtype = "cryo"
+		elif float(wstats.get("atk_energy", 0)) > 0.0:
+			wtype = "energy"
+		elif float(wstats.get("atk_explosive", 0)) > 0.0:
+			wtype = "explosive"
+		is_type_ok = loot_weapon_type_filter.get(wtype, true)
+	if is_rarity_ok and is_type_ok:
+		var zone_difficulty = int(current_zone.get("difficulty", 1))
+		var custom_id = sm.generate_module_drop(base_id, rarity, zone_difficulty)
+		if custom_id != "":
+			var w_name = sm.modules[custom_id]["name"]
+			var rarity_color = sm.RARITY_COLORS[rarity]
+			var rarity_label = sm.RARITY_LABELS.get(rarity, "")
+			if rarity_label == "":
+				rarity_label = "Common"
+			combat_events.append({"type": "loot", "text": "%s DROP" % rarity_label.to_upper(), "color": rarity_color, "side": "enemy"})
+			log_msg("Looted %s Module: %s" % [rarity_label, w_name])
+			session_loot[custom_id] = session_loot.get(custom_id, 0) + 1
+	else:
+		log_msg("Filtered out %s (%s) module drop." % [sm.RARITY_LABELS.get(rarity, "Common"), slot_type.capitalize()])
+
 func _pick_weighted_base(pool: Array, sm: Object) -> String:
 	var total := 0.0
 	var weighted := []
@@ -1997,46 +2067,18 @@ func win_fight():
 		if req == "" or GameState.research_manager.is_tech_unlocked(req):
 			unlocked_pool.append(mod_id)
 			
-	if drop_chance > 0 and unlocked_pool.size() > 0 and randf() < drop_chance:
-		var is_boss = current_enemy.get("is_boss", false)
-		var rarity = sm.roll_rarity(is_boss)
-
-		# v85.0: Apply Loot Filter
-		var base_id = _pick_weighted_base(unlocked_pool, sm)
-		if base_id != "":
-			var m_data = sm.modules.get(base_id, {})
-			var slot_type = m_data.get("slot_type", "weapon")
-
-			var is_rarity_ok = loot_filter.get(rarity, true)
-			var is_type_ok = loot_type_filter.get(slot_type, true)
-
-			# Weapon sub-filter by damage type (energy > explosive > kinetic,
-			# matching the weapon-type rule used everywhere else).
-			if is_type_ok and slot_type == "weapon":
-				var wstats = m_data.get("stats", {})
-				var wtype = "kinetic"
-				if float(wstats.get("atk_energy", 0)) > 0.0:
-					wtype = "energy"
-				elif float(wstats.get("atk_explosive", 0)) > 0.0:
-					wtype = "explosive"
-				is_type_ok = loot_weapon_type_filter.get(wtype, true)
-
-			if is_rarity_ok and is_type_ok:
-				var zone_difficulty = int(current_zone.get("difficulty", 1))
-				var custom_id = sm.generate_module_drop(base_id, rarity, zone_difficulty)
-				if custom_id != "":
-					var w_name = sm.modules[custom_id]["name"]
-					var rarity_color = sm.RARITY_COLORS[rarity]
-					var rarity_label = sm.RARITY_LABELS.get(rarity, "")
-					if rarity_label == "":
-						rarity_label = "Common"
-					combat_events.append({"type": "loot", "text": "%s DROP" % rarity_label.to_upper(), "color": rarity_color, "side": "enemy"})
-					log_msg("Looted %s Module: %s" % [rarity_label, w_name])
-					session_loot[custom_id] = session_loot.get(custom_id, 0) + 1
-			else:
-				var reason = "Rarity" if not is_rarity_ok else "Type"
-				if not is_rarity_ok and not is_type_ok: reason = "Rarity & Type"
-				log_msg("Filtered out %s (%s) module drop." % [sm.RARITY_LABELS.get(rarity, "Common"), slot_type.capitalize()])
+	# v109: MODULE drops only. Bosses burst — roll 4-10 modules (each
+	# independently rarity-rolled), drop_chance gate bypassed so a boss kill
+	# reliably showers gear. Regulars keep the single drop_chance-gated roll.
+	# Scoped to MODULES — Liras, materials, and boss cores (Lunar Cores etc.)
+	# are handled in their own blocks above and remain single-drop.
+	if unlocked_pool.size() > 0:
+		if current_enemy.get("is_boss", false):
+			var roll_count = randi_range(4, 10)
+			for _i in range(roll_count):
+				_roll_one_module_drop(unlocked_pool, sm)
+		elif drop_chance > 0 and randf() < drop_chance:
+			_roll_one_module_drop(unlocked_pool, sm)
 
 	add_xp(int(current_enemy["xp"] * (1.0 + GameState.research_manager.get_efficiency_bonus("combat_xp"))))
 	# Per-kill HUD timer resets at the moment of the kill; session timer keeps running.

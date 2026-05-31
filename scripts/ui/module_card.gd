@@ -5,7 +5,11 @@ var data: Dictionary
 var count: int = 0
 var pulse_tween: Tween
 var is_selected: bool = false
-var is_draggable: bool = true
+# v111.14: default OFF. Drag-and-drop equip is retired (it was the source of
+# the intermittent detached-node crash); equipping now uses click-to-arm →
+# click-slot. Left as a var so any legacy caller can still opt in, but no
+# armory/ammo/consumable card enables it anymore.
+var is_draggable: bool = false
 var compare_equipped_mid: String = ""
 
 signal clicked(p_mid: String)
@@ -138,7 +142,7 @@ func _draw_tile_visual(item_name: String, slot_type: String, rarity: int, rarity
 	emblem.add_theme_stylebox_override("panel", esb)
 	tile_container.add_child(emblem)
 
-	var icon_tex = _get_module_icon(slot_type, m_data.get("stats", {}))
+	var icon_tex = _get_module_icon(slot_type, m_data.get("stats", {}), m_data)
 	if icon_tex:
 		var icon = TextureRect.new()
 		icon.texture = icon_tex
@@ -334,13 +338,25 @@ func _get_type_char(s_type: String) -> String:
 # cached across every card instance.
 static var _icon_cache: Dictionary = {}
 
-func _get_module_icon(slot_type: String, stats: Dictionary) -> Texture2D:
+func _get_module_icon(slot_type: String, stats: Dictionary, m_data: Dictionary = {}) -> Texture2D:
 	var key = slot_type
 	if slot_type == "weapon":
 		key = "weapon_" + _weapon_type(stats)
+	# v111.9: split consumables into hull-patch and shield-booster icons.
+	# Was using a single `consumable.svg` (the medieval-potion placeholder)
+	# for every consumable, so the player couldn't distinguish a +10% Hull
+	# patch from a +10% Shield booster at a glance. Now the icon silhouette
+	# itself carries the type — hex plate = hull, capacitor = shield.
+	if slot_type == "consumable":
+		var ctype: String = str(m_data.get("consumable_type", ""))
+		if ctype == "hull":
+			key = "consumable_hull"
+		elif ctype == "shield":
+			key = "consumable_shield"
+		# else: fall through to plain "consumable" (any unknown type)
 	var valid = ["weapon_kinetic", "weapon_energy", "weapon_explosive",
 		"shield", "armor", "engine", "battery", "reactor", "sensor",
-		"cooling", "ammo", "consumable"]
+		"cooling", "ammo", "consumable", "consumable_hull", "consumable_shield"]
 	if not (key in valid):
 		key = "module"
 	if key in _icon_cache:
@@ -600,16 +616,26 @@ func _build_card_stats(slot_type: String, stats: Dictionary) -> String:
 		if stats.get("atk_energy", 0) > 0: lines.append("NRG - Strong vs Shield, Bypasses Armor")
 		if stats.get("atk_explosive", 0) > 0: lines.append("EXP - Bypasses Armor, Slower Fire")
 
+	# v110: derived power (tier-based) — replaces the stale energy_load stat.
+	var sm = GameState.shipyard_manager
+	if sm:
+		if slot_type in ["weapon", "shield", "armor", "engine", "sensor"]:
+			var draw = sm.get_module_energy_load(mid)
+			if draw > 0: lines.append("POWER DRAW: %d" % draw)
+		elif slot_type == "battery":
+			var supply = sm.get_module_energy_capacity(mid)
+			if supply > 0: lines.append("POWER: +%d" % supply)
+
 	var keys = stats.keys()
 	keys.sort()
-	
+
 	var ga_list = data.get("greater_affixes", [])
-	
+
 	for key in keys:
 		if key == "atk_interval":
 			continue
 		var val = stats[key]
-		if key == "energy_load" and val == 0:
+		if key == "energy_load" or key == "energy_capacity":
 			continue
 		var label = FormatUtils.format_stat_label(key)
 		var ga_prefix = "[color=#ffcc00]★[/color] " if key in ga_list else ""
@@ -794,27 +820,23 @@ func _show_demolish_menu():
 			UITheme.show_notification("Demolished for %s Liras & %s parts" % [UITheme.format_num(price), parts], rarity_color)
 		popup.queue_free()
 	)
-	popup.popup(Rect2i(get_global_mouse_position(), Vector2i(1, 1)))
+	# v111.13 CRASH FIX: get_global_mouse_position() hard-crashes if this card
+	# has been detached from the tree (null viewport). Guard before popping.
+	if is_inside_tree():
+		popup.popup(Rect2i(get_global_mouse_position(), Vector2i(1, 1)))
+	else:
+		popup.queue_free()
 
 func _make_custom_tooltip(_for_text: String) -> Control:
 	if data.is_empty():
 		return null
 
-	var sm = GameState.shipyard_manager
-	var rarity = _get_module_rarity_safe(sm)
-	var rarity_color = _get_rarity_color_safe(sm, rarity)
-
-	var panel = PanelContainer.new()
-	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.05, 0.04, 0.03, 0.98)
-	style.border_color = rarity_color
-	style.border_color.a = 0.85
-	style.set_border_width_all(2)
-	style.border_width_top = 5
-	style.set_corner_radius_all(3)
-	style.set_content_margin_all(12)
-	panel.add_theme_stylebox_override("panel", style)
-
+	# v111.15 FRAME-IN-FRAME FIX: return a frameless RichTextLabel. Godot wraps
+	# whatever this returns inside the theme's `TooltipPanel` (dark bg + cyan
+	# border + shadow, from sci_fi_theme.tres). Returning our own bordered
+	# PanelContainer produced two nested frames. Let the themed wrapper be the
+	# single frame; rarity is still signalled by the bold rarity-coloured title
+	# at the top of the body.
 	var rtl = RichTextLabel.new()
 	rtl.bbcode_enabled = true
 	rtl.fit_content = true
@@ -822,8 +844,7 @@ func _make_custom_tooltip(_for_text: String) -> Control:
 	rtl.custom_minimum_size = Vector2(340, 0)
 	rtl.add_theme_color_override("default_color", Color(0.92, 0.90, 0.86))
 	rtl.text = _build_comparison_tooltip_bbcode()
-	panel.add_child(rtl)
-	return panel
+	return rtl
 
 func _build_comparison_tooltip_bbcode() -> String:
 	if data.is_empty():
@@ -897,6 +918,20 @@ func _build_comparison_tooltip_bbcode() -> String:
 		tt += "[font_size=14][b]%s[/b][/font_size]\n" % gem_desc
 		tt += div
 
+	# v110: power is tier-DERIVED now (not the stale energy_load stat). Show the
+	# real draw for consumers / real supply for batteries.
+	if sm:
+		if slot_type in ["weapon", "shield", "armor", "engine", "sensor"]:
+			var draw = sm.get_module_energy_load(mid)
+			if draw > 0:
+				tt += "[color=#ff9955]POWER DRAW: %d[/color]\n" % draw
+				tt += div
+		elif slot_type == "battery":
+			var supply = sm.get_module_energy_capacity(mid)
+			if supply > 0:
+				tt += "[color=#66dd66]POWER SUPPLY: +%d[/color]\n" % supply
+				tt += div
+
 	var equipped_mid = ""
 	var equipped_stats = {}
 	if compare_equipped_mid != "" and sm and compare_equipped_mid in sm.modules:
@@ -918,7 +953,9 @@ func _build_comparison_tooltip_bbcode() -> String:
 		if key == "atk_interval":
 			continue
 		var val = my_stats[key]
-		if key == "energy_load" and val == 0:
+		# v110: energy is shown via the derived POWER DRAW/SUPPLY line above;
+		# suppress the stale per-module energy stats here.
+		if key == "energy_load" or key == "energy_capacity":
 			continue
 		if slot_type == "weapon" and key in ["atk_kinetic", "atk_energy", "atk_explosive"]:
 			continue

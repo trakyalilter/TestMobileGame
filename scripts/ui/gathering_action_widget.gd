@@ -48,7 +48,7 @@ func setup(p_aid: String, p_data: Dictionary, p_manager, p_parent):
 
 	# Themed "work order" card: drill-motif backdrop + icon header, with the
 	# yield framed as the payoff. Loot text still compiled in update_state().
-	var glyph = load("res://assets/cursors/pages/gathering.svg") as Texture2D
+	var glyph = load("res://assets/icons/glyphs/gathering.svg") as Texture2D
 	UITheme.inject_activity_header(self, "ops", glyph)
 	var loot_panel = UITheme.wrap_in_io_panel(loot_lbl, "ops", "yield")
 	UITheme.pin_card_footer(self)
