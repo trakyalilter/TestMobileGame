@@ -73,6 +73,8 @@ func get_coach_anchor(key: String) -> Control:
 			return _gain_big_lbl
 		"warp_btn":
 			return _warp_btn
+		"tree":
+			return _tree_panel
 	return null
 
 

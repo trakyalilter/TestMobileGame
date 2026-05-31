@@ -79,8 +79,8 @@ const STEPS := {
 		},
 		{
 			"anchor": "power",
-			"title": "Power Budget",
-			"body": "Every module draws power. Stay within your ship's capacity — overloading weakens performance.",
+			"title": "Batteries & Power",
+			"body": "Hulls supply NO power. Every weapon, shield, armor, engine and sensor DRAWS energy — and only BATTERY modules supply it. Fill your battery slots: if total draw exceeds battery supply, the ship can't engage at all. As you move to bigger hulls, craft higher-tier batteries to keep everything running.",
 		},
 		{
 			"anchor": "schematic",
@@ -107,7 +107,7 @@ const STEPS := {
 		{
 			"anchor": "enemies",
 			"title": "Weapon Damage Types",
-			"body": "Loot drops 3 weapon types. KINETIC: big hull damage but armor stops it. ENERGY: shreds shields, weak on bare hull. EXPLOSIVE: ignores most armor — a safe all-rounder. Enemies also resist or are weak to a type, so swap weapons to match the target.",
+			"body": "KINETIC: big hull damage but armor stops it. ENERGY: shreds shields, weak on bare hull. EXPLOSIVE: ignores most armor — a safe all-rounder. CRYO: unlocked by Warping — the ONLY damage that breaches Warp-Hardened hulls (Sector 11+). Enemies resist or are weak to a type, so swap weapons to match the target.",
 		},
 		{
 			"anchor": "consumables",
@@ -173,6 +173,11 @@ const STEPS := {
 			"anchor": "warp_btn",
 			"title": "When to Warp",
 			"body": "Warp once you have shards to gain. Every 5 warps raises your Warp Tier, doubling the bonus scale.",
+		},
+		{
+			"anchor": "tree",
+			"title": "Warp Mastery Tree",
+			"body": "Spend Exotic Matter Shards here on permanent upgrades. The Engineering branch opens on your first Warp, Combat on your second — each Warp reveals more. Your first Warp also grants Cryo weapons: the key to breaching Sector 11.",
 		},
 	],
 	"atlas": [
