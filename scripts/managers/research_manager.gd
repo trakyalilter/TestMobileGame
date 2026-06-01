@@ -884,25 +884,29 @@ var tech_tree = {
 		"flavor": "",
 	},
 	# v111: Cryo Armaments — gates crafting of Cryo weapons (repeater/cannon/
-	# lance). Requires cryo_unlocked (set by first Warp) AND cryogenic_systems
-	# research. ExoticMatter in the cost ensures the player has warped + farmed
-	# Z7+ at least briefly. This is the engineering-loop's prestige-specific
-	# purpose: during the re-climb, craft progressively stronger Cryo weapons.
+	# lance). Lives in the Ships tab (weapon tech). requires_warp gates it
+	# behind the first Warp (cryo_unlocked flag) — visible-but-locked before
+	# then, which teases the prestige reward. req_tech cryogenic_systems keeps
+	# the thematic cooling-tech prereq; parent null so it floats as a Ships-tab
+	# root (same pattern as void_weaponry_1). ExoticMatter in the cost ensures
+	# the player has warped + farmed Z7+. Engineering-loop's prestige purpose.
 	"cryo_armaments": {
 		"name": "Cryogenic Armaments",
 		"tier": 4,
-		"category": "shipyard",
+		"category": "ships",
 		"cost": 100000,
 		"cost_items": {"ExoticMatter": 5, "CryoEssence": 20, "AdvCircuit": 50},
 		"type": "technology",
-		"parent": "cryogenic_systems",
+		"parent": null,
+		"req_tech": "cryogenic_systems",
+		"requires_warp": true,
 		"effects": [],
 		"unlocks": [
 			"Cryo Repeater (Weapon Craft)",
 			"Cryo Cannon (Weapon Craft)",
 			"Cryo-Lance (Weapon Craft)",
 		],
-		"flavor": "Weaponize Exotic Matter — the only force that breaches Warp-Hardened hulls.",
+		"flavor": "Weaponize Exotic Matter — the only force that breaches Warp-Hardened hulls. Requires a Warp Core activation.",
 	},
 	# --- LOGISTICS UPGRADES ---
 	"automated_logistics": {
@@ -1777,7 +1781,13 @@ func can_unlock(tech_id: String) -> bool:
 	
 	if parent and not parent in unlocked_techs: return false
 	if req_tech and not req_tech in unlocked_techs: return false
-	
+
+	# v111: warp-gated techs (e.g. Cryogenic Armaments) stay locked until the
+	# player has performed their first Warp (cryo_unlocked). Visible-but-locked
+	# before then so they read as a prestige reward, not a hidden surprise.
+	if node.get("requires_warp", false) and not GameState.game_settings.get("cryo_unlocked", false):
+		return false
+
 	return true
 
 func unlock_tech(tech_id: String) -> bool:

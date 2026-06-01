@@ -202,6 +202,10 @@ var graphs = {
 
 			# Void / Endgame
 			"void_weaponry_1", "void_shielding_1",
+
+			# v111: Cryo (Warp-gated weapon tech) — floats as a root (parent null,
+			# req_tech cryogenic_systems). Gates crafting Cryo weapons for Z11.
+			"cryo_armaments",
 			
 			# Efficiency
 			"combat_heuristics", "shield_harmonics", "hull_hardening", "core_overclocking",

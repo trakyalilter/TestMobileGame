@@ -387,12 +387,16 @@ func _refresh_state() -> void:
 		_action_btn.disabled = false
 		_apply_btn_style(true)
 	else:
-		# Distinguish "missing parent" from "insufficient resources" if possible
+		# Distinguish warp-gate / missing-prereq / insufficient-resources.
 		var parent_id: String = str(_data.get("parent", ""))
 		var rt_id: String = str(_data.get("req_tech", ""))
 		var locked_by_parent: bool = parent_id != "" and not _manager.is_tech_unlocked(parent_id)
 		var locked_by_rt: bool = rt_id != "" and not _manager.is_tech_unlocked(rt_id)
-		if locked_by_parent or locked_by_rt:
+		# v111: warp-gated techs read as a prestige reward, not a resource wall.
+		var locked_by_warp: bool = _data.get("requires_warp", false) and not GameState.game_settings.get("cryo_unlocked", false)
+		if locked_by_warp:
+			_action_btn.text = "🌀  REQUIRES WARP CORE ACTIVATION"
+		elif locked_by_parent or locked_by_rt:
 			_action_btn.text = "🔒  LOCKED  ·  unlock prerequisites first"
 		else:
 			_action_btn.text = "INSUFFICIENT RESOURCES"
