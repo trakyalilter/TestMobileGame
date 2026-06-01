@@ -411,6 +411,23 @@ var recipes: Dictionary = {
 		"xp": 30,
 		"research_req": "fluid_dynamics"
 	},
+	# v111: CryoEssence production. Previously CryoEssence dropped ONLY from
+	# Zone 4 (Cryofield) with no craft path — which forced a post-warp
+	# backtrack-farm of a trivial early zone to gear the Cryo weapon tier.
+	# This manufactures it from the cryogenic gas chain (He from harvest_nebula,
+	# N from cryogenic_distillation, Li gathered) so the engineering loop
+	# supplies the prestige weapons. Z4 drop stays as a faster alternative.
+	"distill_cryo_essence": {
+		"name": "Cryo-Essence Condenser",
+		"description": "Supercool helium and nitrogen to a critical point, condensing concentrated Cryo-Essence — the active medium of cryogenic armaments.",
+		"input": {"He": 8, "N": 10, "Li": 2},
+		"output": {"CryoEssence": 2},
+		"duration": 10.0,
+		"level_req": 45,
+		"xp": 70,
+		"research_req": "cryogenic_systems",
+		"category": "components"
+	},
 	"nitrogen_coolant": {
 		"name": "Cryo-Shield Matrix",
 		"description": "Supercools shield generators for rapid integrity restoration. Restores 35% Shield.",
