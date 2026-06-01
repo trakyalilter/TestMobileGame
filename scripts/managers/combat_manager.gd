@@ -134,6 +134,7 @@ var hazard_state = {
 	"completed": false
 }
 var boss_kills: Dictionary = {} # {enemy_id: kill_count}
+var total_kills: int = 0 # all enemies defeated (active + offline) — telemetry + the offline-combat nudge
 var hazard_clears: Dictionary = {} # {hazard_zone_id: true}
 
 # Progression compensation so external multipliers (level/research/warp/trophy)
@@ -2084,7 +2085,9 @@ func win_fight():
 	# Per-kill HUD timer resets at the moment of the kill; session timer keeps running.
 	time_since_last_kill = 0.0
 	enemy_defeated.emit(current_enemy["id"])
-	
+	total_kills += 1
+	_maybe_offline_combat_nudge()
+
 	# v86.0: Track boss kills for hazard zone unlocks
 	if current_enemy.get("is_boss", false):
 		var eid = current_enemy["id"]
@@ -2103,6 +2106,23 @@ func win_fight():
 		return
 	
 	spawn_enemy()
+
+# One-time tip: once the player has fought meaningfully, surface that Offline
+# Combat exists (it's opt-in / off by default). Sim data showed a combat-main
+# is non-viable WITHOUT it (never prestiges) but casual-competitive WITH it —
+# so discoverability is the fix, not an enemy-reward rebalance. Flag persists
+# in game_settings (saved); hard_reset clears it so a fresh game re-nudges.
+const OFFLINE_COMBAT_NUDGE_AT := 15
+
+func _maybe_offline_combat_nudge() -> void:
+	if total_kills < OFFLINE_COMBAT_NUDGE_AT:
+		return
+	if GameState.game_settings.get("offline_combat", false):
+		return
+	if GameState.game_settings.get("offline_combat_nudge_seen", false):
+		return
+	GameState.game_settings["offline_combat_nudge_seen"] = true
+	UITheme.show_notification("TIP: Enable Offline Combat in Options to keep fighting and earning while you're away.", Color(0.55, 0.85, 1.0))
 
 func lose_fight():
 	var sm = GameState.shipyard_manager
@@ -2496,8 +2516,9 @@ func calculate_offline(delta: float) -> String:
 		# XP (removed defunct enemy_data.get("credits") - credits come from loot)
 		var xp = enemy_data.get("xp", 10)
 		total_xp += xp
-	
+
 	add_xp(total_xp)
+	total_kills += num_kills   # count offline kills (no per-kill signal offline)
 	
 	# Build report
 	var report = "Combat Offline Gains (%d kills):\n" % num_kills

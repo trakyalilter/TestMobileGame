@@ -406,6 +406,8 @@ func hard_reset():
 	game_settings.erase("cryo_unlocked")
 	# v109: re-lock the Z11 Warp Gate on a fresh game.
 	game_settings.erase("z11_unlocked")
+	# Re-arm the one-time "enable Offline Combat" tip for the new playthrough.
+	game_settings.erase("offline_combat_nudge_seen")
 	mission_manager.reset()
 	if quest_manager: quest_manager.reset()
 	# ... others

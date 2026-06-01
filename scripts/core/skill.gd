@@ -55,18 +55,19 @@ func add_xp(amount: float):
 	check_level_up()
 
 func check_level_up():
-	var next_level = level + 1
-	if next_level in xp_table:
-		var req_xp = xp_table[next_level]
-		while xp >= req_xp:
-			level += 1
-			next_level += 1
-			level_up.emit(level)
-			_check_milestones(level)
-			if next_level > max_level:
-				break
-			if next_level in xp_table:
-				req_xp = xp_table[next_level]
+	# v107a: clamp on max_level, NOT on xp_table size. The XP table runs to 120
+	# while the cap is 100; the old loop keyed off "next_level in xp_table", so
+	# once a skill hit 100 it kept ratcheting up to 120 (one level per add_xp).
+	# Loop while strictly below the cap so level can never exceed max_level.
+	while level < max_level:
+		var next_level = level + 1
+		if not next_level in xp_table:
+			break
+		if xp < xp_table[next_level]:
+			break
+		level += 1
+		level_up.emit(level)
+		_check_milestones(level)
 
 func _check_milestones(new_lvl: int):
 	# v107: 100 added as the capstone milestone — P1 Mastery hooks this to

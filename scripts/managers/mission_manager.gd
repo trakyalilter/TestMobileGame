@@ -1,5 +1,9 @@
 extends RefCounted
 
+# Verbose per-tick mission-progress tracing. Off in production (and during
+# headless balance-sim runs, where it would emit tens of thousands of lines).
+const DEBUG_LOG := false
+
 const CHAPTER_2_IDS = ["m027", "m028", "m029", "m029b", "m030", "m030c",
 	"m030e", "m030f", "m030g", "m030h",
 	"m031", "m032", "m032b", "m032d", "m032c", "m033", "m033b", "m033c"]
@@ -244,7 +248,7 @@ func _update_progress(type, target, amount):
 		var m = missions[mid]
 		if not m["completed"] and m["type"] == type and m["target"] == target:
 			m["current_qty"] += amount
-			print("[MissionDebug] ID: %s, Progress: %d/%d (added %d)" % [mid, m["current_qty"], m["target_qty"], amount])
+			if DEBUG_LOG: print("[MissionDebug] ID: %s, Progress: %d/%d (added %d)" % [mid, m["current_qty"], m["target_qty"], amount])
 			check_completion(m)
 			mission_updated.emit()
 
@@ -258,7 +262,7 @@ func _update_multi_progress(symbol, amount):
 				if to_add > 0:
 					m["multi_progress"][symbol] = current + to_add
 					m["current_qty"] += to_add
-					print("[MissionDebug] ID: %s, Multi-Progress: %d/%d (added %d %s)" % [mid, m["current_qty"], m["target_qty"], to_add, symbol])
+					if DEBUG_LOG: print("[MissionDebug] ID: %s, Multi-Progress: %d/%d (added %d %s)" % [mid, m["current_qty"], m["target_qty"], to_add, symbol])
 				
 				# Check overall completion
 				var all_done = true
