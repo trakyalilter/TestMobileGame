@@ -934,10 +934,10 @@ var enemy_db = {
 	},
 	"z11_boss_threshold_warden": {
 		"name": "Threshold Warden",
-		# v109: The Warp Gate boss. Cryo-only. HP tuned so one first-Warp
-		# Cryo-Lance clears in ~15-18 min; more Cryo weapons accelerate it.
-		# A telegraphed P3 phase mechanic is added later (Step 6). Guaranteed
-		# Cryo-Lance drop on kill so the first clear pays the next slot.
+		# v111: The Warp Gate boss. Cryo-only. With 3× crafted Cryo-Lance
+		# (10K atk_cryo each, resist -0.25 → ×1.25) the first clear takes
+		# ~19 min — tight, rewarding, and accelerated by Z11 regular drops.
+		# Guaranteed Cryo-Lance drop on kill so the first clear upgrades a slot.
 		"stats": {"hp": 22000000, "max_shield": 500000, "atk": 350000, "def": 52000, "atk_interval": 2.5, "accuracy": 260},
 		"enrage_at": 0.5, "enrage_atk_mult": 1.5,  # v109: last-stand ATK surge below 50% HP — burst it down or out-sustain it
 		"loot": [["credits", 100000000, 200000000], ["ExoticMatter", 30, 60], ["ChronoCore", 10, 20], ["PrimordialShard", 20, 40]],
@@ -1977,7 +1977,7 @@ func win_fight():
 		# Gate). Signposts that Warping is now the path — and what it grants.
 		if core_id == "Z10_Core" and not GameState.game_settings.get("z11_unlocked", false):
 			GameState.game_settings["z11_unlocked"] = true
-			UITheme.show_notification("⟨ SECTOR 11 DETECTED — THE THRESHOLD ⟩  Hostiles are Warp-Hardened, immune to conventional armaments. Execute a Warp Core reset to unlock Cryogenic weaponry.", Color(0.55, 0.85, 1.0))
+			UITheme.show_notification("⟨ SECTOR 11 DETECTED — THE THRESHOLD ⟩  Hostiles are Warp-Hardened, immune to conventional armaments. Execute a Warp Core reset to unlock Cryogenic tech, then research Cryogenic Armaments and craft Cryo weapons in the Shipyard.", Color(0.55, 0.85, 1.0))
 	# v85.2: Berserking Proc on Kill
 	var berserk_chance = GameState.shipyard_manager.affix_bonuses.get("berserk_on_kill", 0.0)
 	if berserk_chance > 0 and randf() < berserk_chance:

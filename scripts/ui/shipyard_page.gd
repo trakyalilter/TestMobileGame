@@ -134,6 +134,7 @@ func refresh_list():
 	_create_rack("kinetic", "Kinetic Weapons", Color(1.0, 0.32, 0.32, 0.5), rack_container)
 	_create_rack("explosive", "Explosive Weapons", Color(1.0, 0.5, 0.0, 0.5), rack_container) # Added
 	_create_rack("energy", "Energy Weapons", Color(0.0, 0.9, 1.0, 0.5), rack_container)
+	_create_rack("cryo", "Cryogenic Weapons", Color(0.70, 0.95, 1.0, 0.5), rack_container)
 	_create_rack("shield", "Shield Generators", Color(0.4, 0.6, 1.0, 0.5), rack_container)
 	_create_rack("armor", "Hull Armor", Color(0.6, 0.6, 0.6, 0.5), rack_container)
 	_create_rack("engine", "Engine Systems", Color(0.8, 1.0, 0.2, 0.5), rack_container)
@@ -178,7 +179,9 @@ func refresh_list():
 		match type:
 			"weapon":
 				var stats = data.get("stats", {})
-				if stats.get("atk_explosive", 0) > 0:
+				if stats.get("atk_cryo", 0) > 0:
+					cat = "cryo"
+				elif stats.get("atk_explosive", 0) > 0:
 					cat = "explosive"
 				elif stats.get("atk_kinetic", 0) > stats.get("atk_energy", 0):
 					cat = "kinetic"

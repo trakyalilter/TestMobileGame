@@ -513,24 +513,67 @@ var modules: Dictionary = {
 	# Armor DEF   = floor(5 × 2.2^(N-1)), HP bonus = floor(20 × 2.2^(N-1))
 	# ═══════════════════════════════════════════════════════════════
 
-	# ── v109: CRYO — the 4th damage type, unlocked by the first Warp. ──
+	# ── CRYO WEAPON TIER — the 4th damage type, unlocked by the first Warp. ──
 	# Exotic-Matter self-charging (no ammo). The only damage that bites
-	# Warp-Hardened (Z11+) hulls. Granted on first Warp; Z11+ drops upgrades.
-	"cryo_lance": {
-		"name": "Cryo-Lance (Exotic)",
+	# Warp-Hardened (Z11+) hulls. Warp grants the starter pistol; better
+	# Cryo weapons are CRAFTED via Shipyard craft_module (research: cryo_armaments)
+	# during the post-warp re-climb. Z11 drops rarity-rolled cryo_lance upgrades.
+	# All Cryo weapons use power_tier to decouple draw from zone 11.
+	"cryo_shard_pistol": {
+		"name": "Cryo Shard Pistol",
 		"slot_type": "weapon",
-		"rarity": Rarity.LEGENDARY,
-		# v109: Strong enough to solo-carry the first Z11 clear (~15-18 min)
-		# when it's the player's only Cryo weapon; Z11 drops give more to fill
-		# the other slots and accelerate. Self-charging — no ammo.
-		# power_tier 3 → 25 draw (not zone-11's 500) because this is a starter
-		# prestige weapon, equippable on a post-first-warp T3+ ship.
-		"stats": {"atk_cryo": 40000, "energy_load": 30, "atk_interval": 2.0},
+		"rarity": Rarity.UNCOMMON,
+		# v111: Starter Cryo granted on first Warp. ~Z1 power level (kinetic
+		# Z1 = 8 atk). Teaches "Cryo exists" without trivializing the re-climb.
+		# Against Z11 warp-hardened (22M HP) this does ~7.5 DPS — the player
+		# immediately understands they need to craft better Cryo weapons.
+		"stats": {"atk_cryo": 12, "atk_interval": 2.0},
 		"cost": {},
-		"desc": "Exotic-Matter cryo cannon. Self-charging — no ammo. The only thing that bites Warp-Hardened hulls.",
+		"desc": "Crude cryogenic sidearm. Proof-of-concept from the first Warp. Weak, but it's the only thing that hurts Warp-Hardened hulls.",
+		"zone": 11,
+		"power_tier": 1,
+		"cryo": true
+	},
+	"cryo_repeater": {
+		"name": "Cryo Repeater",
+		"slot_type": "weapon",
+		"rarity": Rarity.RARE,
+		# ~Z4 power level. First real Cryo investment, craftable early post-warp.
+		"stats": {"atk_cryo": 200, "atk_interval": 2.0},
+		"cost": {"credits": 50000, "ExoticMatter": 3, "CryoEssence": 10, "Steel": 50},
+		"desc": "Rapid-fire cryogenic projector. Exotic Matter coolant loop.",
 		"zone": 11,
 		"power_tier": 3,
-		"cryo": true
+		"cryo": true,
+		"research_req": "cryo_armaments"
+	},
+	"cryo_cannon": {
+		"name": "Cryo Cannon",
+		"slot_type": "weapon",
+		"rarity": Rarity.RARE,
+		# ~Z8 power level. Mid re-climb craft, serious Cryo investment.
+		"stats": {"atk_cryo": 2000, "atk_interval": 2.0},
+		"cost": {"credits": 500000, "ExoticMatter": 10, "CryoEssence": 30, "Superalloy": 20, "QuantumCore": 3},
+		"desc": "Heavy cryogenic battery. Exotic Matter capacitor banks sustain punishing fire.",
+		"zone": 11,
+		"power_tier": 6,
+		"cryo": true,
+		"research_req": "cryo_armaments"
+	},
+	"cryo_lance": {
+		"name": "Cryo-Lance",
+		"slot_type": "weapon",
+		"rarity": Rarity.LEGENDARY,
+		# ~Z10 power level. Endgame Cryo craft — the weapon that makes Z11
+		# beatable. 3× equipped → ~19 min Threshold Warden kill (first clear).
+		# Z11 drops rarity-rolled copies that can exceed this base via affixes.
+		"stats": {"atk_cryo": 10000, "atk_interval": 2.0},
+		"cost": {"credits": 5000000, "ExoticMatter": 25, "CryoEssence": 50, "Superalloy": 100, "ChronoCore": 5, "VoidCrystal": 10},
+		"desc": "Exotic-Matter cryo cannon. Self-charging — no ammo. The apex of cryogenic armaments.",
+		"zone": 11,
+		"power_tier": 8,
+		"cryo": true,
+		"research_req": "cryo_armaments"
 	},
 
 	# ── ZONE 1: Lunar Orbit ──

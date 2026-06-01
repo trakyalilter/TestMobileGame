@@ -785,12 +785,11 @@ func _on_test_force_warp_pressed() -> void:
 	GameState.game_settings["warp_first_revealed"] = true
 	wm.total_warps += 1
 	wm.warp_shards += 1.0
-	# v109: mirror execute_warp's Cryo unlock so Phase 2 is testable without a
-	# full world-reset warp — grant the Cryo-Lance + flag.
+	# v111: mirror execute_warp's Cryo unlock — grant the starter pistol + flag.
 	GameState.game_settings["cryo_unlocked"] = true
 	var sm = GameState.shipyard_manager
-	if sm and sm.module_inventory.get("cryo_lance", 0) <= 0:
-		sm.grant_module("cryo_lance")
+	if sm and sm.module_inventory.get("cryo_shard_pistol", 0) <= 0:
+		sm.grant_module("cryo_shard_pistol")
 	wm.warped.emit(1)   # repaints Warp page + reveals branch if threshold crossed
 	# Sidebar visibility only re-evaluates on page-switch, so force a refresh
 	# now — otherwise the newly-unlocked Warp tab won't appear in the nav

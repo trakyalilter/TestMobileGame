@@ -103,15 +103,16 @@ func execute_warp():
 	for res in base_resources:
 		GameState.resources.add_element(res, base_resources[res] * current_bonus_shards)
 
-	# v109: Cryo unlock — Warping permanently grants Cryogenic armaments, the
-	# key to the Z11 "Warp-Hardened" gate. This is the signature first-Warp
-	# reward (NOT a tree purchase), so a single Warp suffices for Z11. Runs
-	# AFTER shipyard_manager.reset() above so the granted weapon survives.
-	# Re-grants a Cryo-Lance if the player has none (covers warp resets).
+	# v111: Cryo unlock — Warping permanently grants Cryogenic armaments,
+	# the key to the Z11 "Warp-Hardened" gate. First Warp grants a starter
+	# Cryo Shard Pistol (~Z1 power) that proves the concept without
+	# trivializing the Z1-Z10 re-climb. Better Cryo weapons are CRAFTED
+	# with ExoticMatter (research: cryo_armaments). Runs AFTER
+	# shipyard_manager.reset() so the granted weapon survives.
 	GameState.game_settings["cryo_unlocked"] = true
 	var sm = GameState.shipyard_manager
-	if sm and sm.module_inventory.get("cryo_lance", 0) <= 0:
-		sm.grant_module("cryo_lance")
+	if sm and sm.module_inventory.get("cryo_shard_pistol", 0) <= 0:
+		sm.grant_module("cryo_shard_pistol")
 
 	warped.emit(gains)
 	GameState.save_game()

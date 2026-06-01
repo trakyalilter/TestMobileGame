@@ -883,6 +883,27 @@ var tech_tree = {
 		"unlocks": ["Helium Coolant Cell"],
 		"flavor": "",
 	},
+	# v111: Cryo Armaments — gates crafting of Cryo weapons (repeater/cannon/
+	# lance). Requires cryo_unlocked (set by first Warp) AND cryogenic_systems
+	# research. ExoticMatter in the cost ensures the player has warped + farmed
+	# Z7+ at least briefly. This is the engineering-loop's prestige-specific
+	# purpose: during the re-climb, craft progressively stronger Cryo weapons.
+	"cryo_armaments": {
+		"name": "Cryogenic Armaments",
+		"tier": 4,
+		"category": "shipyard",
+		"cost": 100000,
+		"cost_items": {"ExoticMatter": 5, "CryoEssence": 20, "AdvCircuit": 50},
+		"type": "technology",
+		"parent": "cryogenic_systems",
+		"effects": [],
+		"unlocks": [
+			"Cryo Repeater (Weapon Craft)",
+			"Cryo Cannon (Weapon Craft)",
+			"Cryo-Lance (Weapon Craft)",
+		],
+		"flavor": "Weaponize Exotic Matter — the only force that breaches Warp-Hardened hulls.",
+	},
 	# --- LOGISTICS UPGRADES ---
 	"automated_logistics": {
 		"name": "Automated Logistics",
