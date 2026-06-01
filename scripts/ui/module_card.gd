@@ -436,7 +436,7 @@ func _stat_score(stats: Dictionary) -> float:
 	return s
 
 func _weapon_dps(stats: Dictionary) -> float:
-	var dmg := float(stats.get("atk_kinetic", 0)) + float(stats.get("atk_energy", 0)) + float(stats.get("atk_explosive", 0))
+	var dmg := float(stats.get("atk_kinetic", 0)) + float(stats.get("atk_energy", 0)) + float(stats.get("atk_explosive", 0)) + float(stats.get("atk_cryo", 0))
 	var interval := maxf(0.01, float(stats.get("atk_interval", 2.5)))
 	return dmg / interval
 
@@ -624,14 +624,15 @@ func _build_card_stats(slot_type: String, stats: Dictionary) -> String:
 	var lines: Array[String] = []
 
 	if slot_type == "weapon":
-		var dmg = stats.get("atk_kinetic", 0) + stats.get("atk_energy", 0) + stats.get("atk_explosive", 0)
+		var dmg = stats.get("atk_kinetic", 0) + stats.get("atk_energy", 0) + stats.get("atk_explosive", 0) + stats.get("atk_cryo", 0)
 		var interval = max(0.01, float(stats.get("atk_interval", 2.5)))
 		lines.append("DPS: %.1f" % (float(dmg) / interval))
-		
+
 		# v87.0: Damage Type Strong/Weak (Condensed)
 		if stats.get("atk_kinetic", 0) > 0: lines.append("KIN - Strong vs Hull, Weak vs Shield")
 		if stats.get("atk_energy", 0) > 0: lines.append("NRG - Strong vs Shield, Bypasses Armor")
 		if stats.get("atk_explosive", 0) > 0: lines.append("EXP - Bypasses Armor, Slower Fire")
+		if stats.get("atk_cryo", 0) > 0: lines.append("CRY - Breaches Warp-Hardened, Weak vs Conventional")
 
 	# v110: derived power (tier-based) — replaces the stale energy_load stat.
 	var sm = GameState.shipyard_manager
@@ -893,14 +894,14 @@ func _build_comparison_tooltip_bbcode() -> String:
 
 	var my_stats = data.get("stats", {})
 	if slot_type == "weapon":
-		var dmg = my_stats.get("atk_kinetic", 0) + my_stats.get("atk_energy", 0) + my_stats.get("atk_explosive", 0)
+		var dmg = my_stats.get("atk_kinetic", 0) + my_stats.get("atk_energy", 0) + my_stats.get("atk_explosive", 0) + my_stats.get("atk_cryo", 0)
 		var interval = max(0.01, float(my_stats.get("atk_interval", 2.5)))
 		var dps = float(dmg) / interval
 		tt += "[font_size=20][b]%.1f DPS[/b][/font_size]\n" % dps
 		tt += "[font_size=9][color=gray]%s total damage, %.2f hits/s[/color][/font_size]\n" % [UITheme.format_num(dmg), 1.0 / interval]
-		
+
 		# v87.0: Damage Type Strong/Weak (Rich BBCode)
-		if my_stats.get("atk_kinetic", 0) > 0: 
+		if my_stats.get("atk_kinetic", 0) > 0:
 			tt += "[color=#99ccff][b]KINETIC[/b][/color]\n"
 			tt += "[color=green]  + Strong: Hull (+20%)[/color]\n"
 			tt += "[color=red]  - Weak: Shield (-50%)[/color]\n"
@@ -912,7 +913,12 @@ func _build_comparison_tooltip_bbcode() -> String:
 			tt += "[color=#ff804d][b]EXPLOSIVE[/b][/color]\n"
 			tt += "[color=green]  + Strong: Armor Bypass (80% pen)[/color]\n"
 			tt += "[color=red]  - Weak: Slower fire rate[/color]\n"
-			
+		if my_stats.get("atk_cryo", 0) > 0:
+			tt += "[color=#b3f0ff][b]CRYOGENIC[/b][/color]\n"
+			tt += "[color=green]  + Breaches Warp-Hardened hulls[/color]\n"
+			tt += "[color=green]  + Self-charging — no ammo[/color]\n"
+			tt += "[color=red]  - Weak: Conventional enemies resist[/color]\n"
+
 		tt += div
 	elif slot_type == "ammo":
 		tt += "[font_size=14][b]%s[/b][/font_size]\n" % _build_ammo_card_stats()
@@ -974,7 +980,7 @@ func _build_comparison_tooltip_bbcode() -> String:
 		# suppress the stale per-module energy stats here.
 		if key == "energy_load" or key == "energy_capacity":
 			continue
-		if slot_type == "weapon" and key in ["atk_kinetic", "atk_energy", "atk_explosive"]:
+		if slot_type == "weapon" and key in ["atk_kinetic", "atk_energy", "atk_explosive", "atk_cryo"]:
 			continue
 		if slot_type == "shield" and key == "max_shield":
 			continue
@@ -1114,56 +1120,128 @@ func _get_drag_data(_at_position: Vector2) -> Variant:
 		"consumable_type": data.get("consumable_type", ""),
 	}
 
-	var preview = load("res://scenes/ui/module_card.tscn").instantiate()
-	preview.setup(mid, data, count)
-
-	var preview_container = Control.new()
-	preview_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	preview_container.add_child(preview)
-	
-	preview.scale = Vector2(1.0, 1.0)
-	preview.modulate.a = 0.96
-	preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
-
-	var shadow = Panel.new()
-	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0, 0, 0, 0.45)
-	style.set_corner_radius_all(3)
-	style.shadow_color = Color(0, 0, 0, 0.45)
-	style.shadow_size = 12
-	style.shadow_offset = Vector2(0, 8)
-	shadow.add_theme_stylebox_override("panel", style)
-	
-	var p_size = custom_minimum_size
-	shadow.custom_minimum_size = p_size
-
-	preview_container.add_child(shadow)
-	preview_container.move_child(shadow, 0)
-	
-	preview.position = -p_size / 2.0
-	shadow.position = -p_size / 2.0
-
-	var queue = [preview_container]
-	while queue.size() > 0:
-		var n = queue.pop_front()
-		if n is Control:
-			n.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		queue.append_array(n.get_children())
-
-	set_drag_preview(preview_container)
-
+	# v112: LIGHTWEIGHT preview — a plain rarity-bordered name chip. The old
+	# path re-instantiated the full module_card.tscn and ran setup()/_update_ui()
+	# on a detached node; those detached-node calls were the drag crash source.
+	# A scriptless Panel+Label has no _ready/_process/mouse calls to misfire.
+	set_drag_preview(_make_drag_preview())
 	return drag_data
 
-func _can_drop_data(at_position: Vector2, p_data: Variant) -> bool:
-	var p = get_parent()
-	if p and p.has_method("_can_drop_data"):
-		return p._can_drop_data(at_position, p_data)
+# Builds the drag preview as a faithful, STATIC replica of the module's tile
+# (socket plate + rarity frame + slot emblem + icon) — or the faceted crystal
+# for Matrix Cores. Pure scriptless nodes with explicit sizes: no module_card
+# re-instantiation, no _ready/_update_ui/tweens/mouse calls (the crash source).
+# The colour/icon helpers are pure computation, so they're safe to call here.
+func _make_drag_preview() -> Control:
+	var sm = GameState.shipyard_manager
+	var slot_type = data.get("slot_type", "module")
+	var rarity = _get_module_rarity_safe(sm)
+	var rarity_color = _get_rarity_color_safe(sm, rarity)
+
+	var TS := 84.0
+	# Root rides at the cursor; the tile is offset so the cursor sits at its
+	# centre (matches the feel of "picking the tile up").
+	var root = Control.new()
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	var tile = Control.new()
+	tile.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tile.position = Vector2(-TS * 0.5, -TS * 0.5)
+	tile.size = Vector2(TS, TS)
+	tile.modulate.a = 0.95
+	root.add_child(tile)
+
+	# Socket backplate — identical recipe to the real tile / empty cell.
+	var socket = Panel.new()
+	socket.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	socket.size = Vector2(TS, TS)
+	var sock_sb = StyleBoxFlat.new()
+	sock_sb.bg_color = Color(0.03, 0.045, 0.07, 0.92)
+	sock_sb.set_corner_radius_all(5)
+	sock_sb.set_border_width_all(1)
+	sock_sb.border_color = Color(0.24, 0.36, 0.48, 0.85)
+	sock_sb.shadow_color = Color(0, 0, 0, 0.55)
+	sock_sb.shadow_size = 8
+	socket.add_theme_stylebox_override("panel", sock_sb)
+	tile.add_child(socket)
+
+	# Matrix Cores draw a faceted crystal; everything else uses the tile look.
+	if slot_type == "gem" or slot_type == "gem_synth":
+		var core := MatrixCoreIcon.new()
+		core.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		core.position = Vector2(5, 5)
+		core.size = Vector2(TS - 10, TS - 10)
+		core.set_core(_get_gem_color(data.get("name", "")))
+		tile.add_child(core)
+		return root
+
+	var top_rarity: bool = sm != null and rarity >= sm.Rarity.LEGENDARY
+	var slot_col = _get_slot_color(slot_type)
+	if slot_type == "weapon":
+		slot_col = _weapon_dmg_color(data.get("stats", {}))
+
+	# Rarity plate seated inside the socket (rim shows around).
+	var plate = Panel.new()
+	plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	plate.position = Vector2(5, 5)
+	plate.size = Vector2(TS - 10, TS - 10)
+	var sb = StyleBoxFlat.new()
+	sb.bg_color = _get_rarity_background(rarity)
+	sb.set_corner_radius_all(4)
+	sb.set_border_width_all(3 if top_rarity else 2)
+	sb.border_color = rarity_color
+	sb.shadow_color = Color(rarity_color.r, rarity_color.g, rarity_color.b, 0.4)
+	sb.shadow_size = 10
+	plate.add_theme_stylebox_override("panel", sb)
+	tile.add_child(plate)
+
+	# Centre emblem chip + icon (or type-letter fallback).
+	var em := TS * 0.5
+	var emblem = Panel.new()
+	emblem.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	emblem.position = Vector2((TS - em) * 0.5, (TS - em) * 0.5)
+	emblem.size = Vector2(em, em)
+	var esb = StyleBoxFlat.new()
+	esb.bg_color = slot_col.lerp(Color.BLACK, 0.62)
+	esb.set_corner_radius_all(5)
+	esb.set_border_width_all(1)
+	esb.border_color = slot_col.lerp(Color.WHITE, 0.1)
+	emblem.add_theme_stylebox_override("panel", esb)
+	tile.add_child(emblem)
+
+	var icon_tex = _get_module_icon(slot_type, data.get("stats", {}), data)
+	if icon_tex:
+		var icon = TextureRect.new()
+		icon.texture = icon_tex
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.position = Vector2(5, 5)
+		icon.size = Vector2(em - 10, em - 10)
+		icon.modulate = slot_col.lerp(Color.WHITE, 0.85)
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		emblem.add_child(icon)
+	else:
+		var letter = Label.new()
+		letter.text = _get_type_char(slot_type)
+		letter.add_theme_font_size_override("font_size", 22)
+		letter.add_theme_color_override("font_color", slot_col.lerp(Color.WHITE, 0.75))
+		letter.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		letter.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		letter.size = Vector2(em, em)
+		letter.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		emblem.add_child(letter)
+
+	return root
+
+# v112: steady armory cards are NEVER drop targets. Only empty grid cells (the
+# spatial canvas) and ship slots accept drops. Returning false here means a
+# dragged card hovering/dropping over another card is a clean no-op — severing
+# the dragged-item-vs-standing-item interaction that caused the crash.
+func _can_drop_data(_at_position: Vector2, _p_data: Variant) -> bool:
 	return false
 
-func _drop_data(at_position: Vector2, p_data: Variant) -> void:
-	var p = get_parent()
-	if p and p.has_method("_drop_data"):
-		p._drop_data(at_position, p_data)
+func _drop_data(_at_position: Vector2, _p_data: Variant) -> void:
+	pass
 
 # v111.7: hooked from _build_card_visual via resized.connect. When the grid
 # stretches us wider than our current min height, push min height up to match

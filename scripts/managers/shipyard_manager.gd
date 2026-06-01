@@ -62,6 +62,11 @@ const CONSUMER_SLOT_TYPES := ["weapon", "shield", "armor", "engine", "sensor"]
 func get_def_energy_load(mdef: Dictionary) -> int:
 	if not (mdef.get("slot_type", "") in CONSUMER_SLOT_TYPES):
 		return 0
+	# Explicit override for modules whose zone doesn't match their intended
+	# power tier (e.g. Cryo-Lance: zone 11 but starter prestige weapon).
+	if mdef.has("power_tier"):
+		var pt: int = clampi(int(mdef["power_tier"]), 1, CONSUMER_LOAD_BY_TIER.size())
+		return CONSUMER_LOAD_BY_TIER[pt - 1]
 	var z: int = int(mdef.get("zone", mdef.get("zone_difficulty", 1)))
 	z = clampi(z, 1, CONSUMER_LOAD_BY_TIER.size())
 	return CONSUMER_LOAD_BY_TIER[z - 1]
@@ -514,13 +519,17 @@ var modules: Dictionary = {
 	"cryo_lance": {
 		"name": "Cryo-Lance (Exotic)",
 		"slot_type": "weapon",
+		"rarity": Rarity.LEGENDARY,
 		# v109: Strong enough to solo-carry the first Z11 clear (~15-18 min)
 		# when it's the player's only Cryo weapon; Z11 drops give more to fill
 		# the other slots and accelerate. Self-charging — no ammo.
+		# power_tier 3 → 25 draw (not zone-11's 500) because this is a starter
+		# prestige weapon, equippable on a post-first-warp T3+ ship.
 		"stats": {"atk_cryo": 40000, "energy_load": 30, "atk_interval": 2.0},
 		"cost": {},
 		"desc": "Exotic-Matter cryo cannon. Self-charging — no ammo. The only thing that bites Warp-Hardened hulls.",
 		"zone": 11,
+		"power_tier": 3,
 		"cryo": true
 	},
 

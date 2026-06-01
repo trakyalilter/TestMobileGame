@@ -313,7 +313,7 @@ func _build_comparison_tooltip() -> String:
 	
 	# 2. PRIMARY STAT
 	if slot_type == "weapon":
-		var dmg = my_stats.get("atk_kinetic", 0) + my_stats.get("atk_energy", 0) + my_stats.get("atk_explosive", 0)
+		var dmg = my_stats.get("atk_kinetic", 0) + my_stats.get("atk_energy", 0) + my_stats.get("atk_explosive", 0) + my_stats.get("atk_cryo", 0)
 		var interval = max(0.01, float(my_stats.get("atk_interval", 2.5)))
 		var dps = float(dmg) / interval
 		tt += "[font_size=20][b]%.1f DPS[/b][/font_size]\n" % dps
@@ -324,6 +324,8 @@ func _build_comparison_tooltip() -> String:
 			tt += "[color=#ffe64d][b]ENERGY[/b][/color]  [color=gray]Strong vs Shield, bypasses Armor[/color]\n"
 		if my_stats.get("atk_explosive", 0) > 0:
 			tt += "[color=#ff804d][b]EXPLOSIVE[/b][/color]  [color=gray]Ignores most Armor[/color]\n"
+		if my_stats.get("atk_cryo", 0) > 0:
+			tt += "[color=#b3f0ff][b]CRYOGENIC[/b][/color]  [color=gray]Breaches Warp-Hardened, self-charging[/color]\n"
 		tt += div
 	elif slot_type == "shield":
 		var val = my_stats.get("max_shield", 0)
@@ -350,7 +352,7 @@ func _build_comparison_tooltip() -> String:
 		# Filter out structural and redundant stats
 		if k == "atk_interval": continue
 		if k == "energy_load" or k == "energy_capacity": continue  # v110: derived now
-		if slot_type == "weapon" and (k == "atk_kinetic" or k == "atk_energy" or k == "atk_explosive"): continue
+		if slot_type == "weapon" and (k == "atk_kinetic" or k == "atk_energy" or k == "atk_explosive" or k == "atk_cryo"): continue
 		if slot_type == "shield" and k == "max_shield": continue
 		if slot_type == "armor" and k == "hp": continue
 		

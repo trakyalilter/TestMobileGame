@@ -509,7 +509,7 @@ func _build_card_stats(stats: Dictionary, mid: String = "") -> String:
 	var lines: Array[String] = []
 
 	if slot_type == "weapon":
-		var dmg = stats.get("atk_kinetic", 0) + stats.get("atk_energy", 0) + stats.get("atk_explosive", 0)
+		var dmg = stats.get("atk_kinetic", 0) + stats.get("atk_energy", 0) + stats.get("atk_explosive", 0) + stats.get("atk_cryo", 0)
 		var interval = max(0.01, float(stats.get("atk_interval", 2.5)))
 		lines.append("DPS %.1f" % (float(dmg) / interval))
 
@@ -528,7 +528,7 @@ func _build_card_stats(stats: Dictionary, mid: String = "") -> String:
 		if key == "atk_interval": continue
 		var val = stats[key]
 		if key == "energy_load" or key == "energy_capacity": continue
-		if slot_type == "weapon" and key in ["atk_kinetic", "atk_energy", "atk_explosive"]: continue
+		if slot_type == "weapon" and key in ["atk_kinetic", "atk_energy", "atk_explosive", "atk_cryo"]: continue
 
 		var label = FormatUtils.format_stat_label(key)
 		lines.append("%s %s" % [label, FormatUtils.format_stat_value(key, val)])
@@ -1013,14 +1013,13 @@ func _build_module_tooltip(m_data: Dictionary) -> String:
 	var stats = m_data.get("stats", {})
 
 	if s_type == "weapon":
-		var dmg = stats.get("atk_kinetic", 0) + stats.get("atk_energy", 0) + stats.get("atk_explosive", 0)
+		var dmg = stats.get("atk_kinetic", 0) + stats.get("atk_energy", 0) + stats.get("atk_explosive", 0) + stats.get("atk_cryo", 0)
 		var interval = max(0.01, float(stats.get("atk_interval", 2.5)))
 		var dps = float(dmg) / interval
 		tt += "[font_size=20][b]%.1f DPS[/b][/font_size]\n" % dps
 		tt += "[font_size=9][color=gray]%s total damage, %.2f hits/s[/color][/font_size]\n" % [UITheme.format_num(dmg), 1.0 / interval]
 
 		# v87.0 parity: show the damage type + matchup on the EQUIPPED slot too
-		# (the armory card already did; the equipped tooltip didn't).
 		if stats.get("atk_kinetic", 0) > 0:
 			tt += "[color=#99ccff][b]KINETIC[/b][/color]\n"
 			tt += "[color=green]  + Strong: Hull (+20%)[/color]\n"
@@ -1033,6 +1032,11 @@ func _build_module_tooltip(m_data: Dictionary) -> String:
 			tt += "[color=#ff804d][b]EXPLOSIVE[/b][/color]\n"
 			tt += "[color=green]  + Strong: Armor Bypass (80% pen)[/color]\n"
 			tt += "[color=red]  - Weak: Slower fire rate[/color]\n"
+		if stats.get("atk_cryo", 0) > 0:
+			tt += "[color=#b3f0ff][b]CRYOGENIC[/b][/color]\n"
+			tt += "[color=green]  + Breaches Warp-Hardened hulls[/color]\n"
+			tt += "[color=green]  + Self-charging — no ammo[/color]\n"
+			tt += "[color=red]  - Weak: Conventional enemies resist[/color]\n"
 		tt += div
 	elif s_type == "shield":
 		var m_shield = stats.get("max_shield", 0)
@@ -1061,7 +1065,7 @@ func _build_module_tooltip(m_data: Dictionary) -> String:
 	for key in keys:
 		if key == "atk_interval": continue
 		if key == "energy_load" or key == "energy_capacity": continue  # v110: derived
-		if s_type == "weapon" and key in ["atk_kinetic", "atk_energy", "atk_explosive"]: continue
+		if s_type == "weapon" and key in ["atk_kinetic", "atk_energy", "atk_explosive", "atk_cryo"]: continue
 		if s_type == "shield" and key == "max_shield": continue
 		if s_type == "armor" and key == "hp": continue
 		
