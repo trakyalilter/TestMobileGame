@@ -411,20 +411,27 @@ var recipes: Dictionary = {
 		"xp": 30,
 		"research_req": "fluid_dynamics"
 	},
-	# v111: CryoEssence production. Previously CryoEssence dropped ONLY from
-	# Zone 4 (Cryofield) with no craft path — which forced a post-warp
-	# backtrack-farm of a trivial early zone to gear the Cryo weapon tier.
-	# This manufactures it from the cryogenic gas chain (He from harvest_nebula,
-	# N from cryogenic_distillation, Li gathered) so the engineering loop
-	# supplies the prestige weapons. Z4 drop stays as a faster alternative.
+	# v111: CryoEssence BULK production. CryoEssence used to drop ONLY from
+	# Zone 4 (Cryofield) with no craft path — forcing a post-warp backtrack to
+	# a trivial early zone to gear the Cryo weapon tier. This manufactures it
+	# from the cryogenic gas chain (He from harvest_nebula, N from
+	# cryogenic_distillation, Li gathered) so the engineering loop supplies the
+	# prestige weapons.
+	#
+	# Power gate: requires a PrimordialShard per batch — the deepest CONVENTIONAL
+	# drop (Z9-Z10, boss 20-50). This forces the player to master the top of the
+	# conventional climb before bulk-producing cryo power; it is NOT circular
+	# (Z9-Z10 fall to conventional weapons, unlike warp-hardened Z11). The mid-
+	# game Z4 CryoEssence drop stays intact for the small-quantity consumers
+	# (NitroCoolant, Titan Trophy); this craft is the endgame bulk path only.
 	"distill_cryo_essence": {
 		"name": "Cryo-Essence Condenser",
-		"description": "Supercool helium and nitrogen to a critical point, condensing concentrated Cryo-Essence — the active medium of cryogenic armaments.",
-		"input": {"He": 8, "N": 10, "Li": 2},
-		"output": {"CryoEssence": 2},
-		"duration": 10.0,
-		"level_req": 45,
-		"xp": 70,
+		"description": "Infuse supercooled helium-nitrogen with a Primordial Shard, condensing concentrated Cryo-Essence — the active medium of cryogenic armaments. The Shard's exotic resonance is what makes the essence bite Warp-Hardened hulls.",
+		"input": {"He": 8, "N": 10, "Li": 2, "PrimordialShard": 1},
+		"output": {"CryoEssence": 3},
+		"duration": 15.0,
+		"level_req": 60,
+		"xp": 120,
 		"research_req": "cryogenic_systems",
 		"category": "components"
 	},
