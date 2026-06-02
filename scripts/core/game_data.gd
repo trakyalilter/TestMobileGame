@@ -47,19 +47,44 @@ const CRAFT := {
 	},
 }
 
-# --- Research / tech (instant unlocks paid with resources) ---
+# --- Research / tech trees (instant unlocks paid with resources) ---
+# Each tech belongs to a category (a sub-tab) and connects to prereqs via "req".
+# "effects" grant passive bonuses applied by GameState.
+const TECH_CATS := [
+	{"id": "operations",  "label": "Operations"},
+	{"id": "engineering", "label": "Engineering"},
+]
+
 const TECH := {
+	# --- Operations tree (gathering) ---
 	"prospecting": {
-		"name": "Prospecting", "desc": "Unlock Crystal mining.",
-		"cost": {"IronPlate": 5}, "req": [],
+		"name": "Prospecting", "cat": "operations", "req": [],
+		"cost": {"IronPlate": 5}, "desc": "Unlock Crystal mining", "effects": {},
 	},
+	"deep_drilling": {
+		"name": "Deep Drilling", "cat": "operations", "req": ["prospecting"],
+		"cost": {"IronPlate": 15}, "desc": "+15% gather yield", "effects": {"gather_yield": 0.15},
+	},
+	"auto_excavator": {
+		"name": "Auto-Excavator", "cat": "operations", "req": ["deep_drilling"],
+		"cost": {"Circuit": 3}, "desc": "+20% gather speed", "effects": {"gather_speed": 0.20},
+	},
+	"rich_veins": {
+		"name": "Rich Veins", "cat": "operations", "req": ["deep_drilling"],
+		"cost": {"Crystal": 10}, "desc": "+25% gather yield", "effects": {"gather_yield": 0.25},
+	},
+	# --- Engineering tree (fabrication) ---
 	"electronics": {
-		"name": "Electronics", "desc": "Unlock Circuit assembly.",
-		"cost": {"IronPlate": 8, "Crystal": 3}, "req": ["prospecting"],
+		"name": "Electronics", "cat": "engineering", "req": ["prospecting"],
+		"cost": {"IronPlate": 8, "Crystal": 3}, "desc": "Unlock Circuit assembly", "effects": {},
 	},
 	"automation": {
-		"name": "Automation Core", "desc": "+25% global yield, permanently.",
-		"cost": {"Circuit": 5}, "req": ["electronics"],
+		"name": "Automation Core", "cat": "engineering", "req": ["electronics"],
+		"cost": {"Circuit": 5}, "desc": "+25% gather yield", "effects": {"gather_yield": 0.25},
+	},
+	"mass_fabrication": {
+		"name": "Mass Fabrication", "cat": "engineering", "req": ["automation"],
+		"cost": {"Circuit": 10}, "desc": "+30% craft speed", "effects": {"craft_speed": 0.30},
 	},
 }
 

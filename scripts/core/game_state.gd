@@ -76,10 +76,17 @@ func add_xp(skill_id: String, amt: int) -> void:
 	skills[skill_id] = int(skills.get(skill_id, 0)) + amt
 	skills_changed.emit()
 
+## Sum of a named effect across all unlocked tech (e.g. "gather_yield", "gather_speed").
+func tech_bonus(key: String) -> float:
+	var s := 0.0
+	for tid in unlocked_tech:
+		s += float(GameData.TECH.get(tid, {}).get("effects", {}).get(key, 0.0))
+	return s
+
 func yield_mult(skill_id: String) -> float:
 	var m := 1.0 + level_of(skill_id) * 0.02   # +2% per level
-	if unlocked_tech.has("automation"):
-		m *= 1.25
+	if skill_id == "harvesting":
+		m += tech_bonus("gather_yield")
 	return m
 
 # ---------------- Tech ----------------
@@ -130,10 +137,14 @@ func stop_task() -> void:
 	action_changed.emit()
 
 func current_duration() -> float:
-	if active_type == "gather":
-		return float(GameData.GATHER[active_id].get("duration", 3.0))
-	elif active_type == "craft":
-		return float(GameData.CRAFT[active_id].get("duration", 3.0))
+	return effective_duration(active_type, active_id)
+
+## Duration after research speed bonuses; works for any action, not just the active one.
+func effective_duration(type: String, id: String) -> float:
+	if type == "gather" and GameData.GATHER.has(id):
+		return float(GameData.GATHER[id].get("duration", 3.0)) / (1.0 + tech_bonus("gather_speed"))
+	elif type == "craft" and GameData.CRAFT.has(id):
+		return float(GameData.CRAFT[id].get("duration", 3.0)) / (1.0 + tech_bonus("craft_speed"))
 	return 0.0
 
 func _tick_active(delta: float) -> void:
