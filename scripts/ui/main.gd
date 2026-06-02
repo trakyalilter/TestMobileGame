@@ -6,6 +6,7 @@ const TABS := [
 	{"id": "gather",   "label": "Gather"},
 	{"id": "craft",    "label": "Craft"},
 	{"id": "combat",   "label": "Combat"},
+	{"id": "build",    "label": "Build"},
 	{"id": "research", "label": "Research"},
 	{"id": "stats",    "label": "More"},
 ]
@@ -21,6 +22,7 @@ const CYAN := "4fd2e0"
 const GREEN := "5ad17a"
 const RED := "e0654f"
 const PURP := "9a7ad6"
+const BUILD := "e0944f"
 
 var content: Control
 var pages := {}
@@ -29,6 +31,7 @@ var current := ""
 var gather_cat := "terrestrial"
 var craft_cat := "basics"
 var combat_zone := 0
+var build_cat := "power"
 var res_bar: HBoxContainer
 var active_label: Label
 var _active_bar: ProgressBar = null
@@ -174,6 +177,7 @@ func _refresh_current() -> void:
 		"gather":   _build_gather()
 		"craft":    _build_craft()
 		"combat":   _build_combat()
+		"build":    _build_infra()
 		"research": _build_research()
 		"stats":    _build_stats()
 
@@ -326,6 +330,72 @@ func _enemy_card(id: String, e: Dictionary) -> Control:
 	_action_controls(v, "combat", id, active, RED, "Engage", "Retreat")
 	return v.get_parent()
 
+# ============================================================ INFRASTRUCTURE
+func _build_infra() -> void:
+	var v := _clear("build")
+	_skill_banner(v, "INFRASTRUCTURE", "infrastructure", BUILD)
+	var p := GameState.infra_power()
+	var e := Label.new()
+	e.text = "⚡ %d kW gen  ·  %d kW use  ·  Grid %d%%" % [int(p["gen"]), int(p["cons"]), int(float(p["eff"]) * 100.0)]
+	e.add_theme_font_size_override("font_size", 11)
+	e.add_theme_color_override("font_color", Color.html(BUILD if float(p["eff"]) >= 1.0 else C_WARN))
+	v.add_child(e)
+	_subtabs(v, GameData.BUILDING_CATS, build_cat, BUILD, func(id: String) -> void:
+		build_cat = id
+		_build_infra())
+	var g := _grid(v)
+	var any := false
+	for bid in GameData.BUILDINGS:
+		var d: Dictionary = GameData.BUILDINGS[bid]
+		if d.get("category", "industry") != build_cat:
+			continue
+		any = true
+		g.add_child(_building_card(bid, d))
+	if not any:
+		_empty(v, "Nothing here.")
+
+func _building_card(bid: String, d: Dictionary) -> Control:
+	var unlocked := GameState.building_unlocked(bid)
+	var count := GameState.building_count(bid)
+	var v := _card(BUILD, unlocked or count > 0)
+	_card_head(v, "⌂", d["name"], "x%d" % count, BUILD, unlocked)
+	if not unlocked:
+		_locked(v, d, "infrastructure")
+		return v.get_parent()
+	if d.get("desc", "") != "":
+		_clbl(v, d["desc"], 10, C_DIM)
+	# effect (per building) lines
+	var eff_lines := []
+	for sym in d.get("yield", {}):
+		var nm := "Credits" if sym == "credits" else GameData.res_name(sym)
+		eff_lines.append(_line("+%s %s" % [str(d["yield"][sym]), nm], GREEN))
+	for sym in d.get("input", {}):
+		eff_lines.append(_line("-%d %s" % [int(d["input"][sym]), GameData.res_name(sym)], C_WARN))
+	if float(d.get("energy_gen", 0.0)) > 0.0:
+		eff_lines.append(_line("+%d kW" % int(d["energy_gen"]), CYAN))
+	if float(d.get("energy_cons", 0.0)) > 0.0:
+		eff_lines.append(_line("-%d kW" % int(d["energy_cons"]), C_WARN))
+	if not eff_lines.is_empty():
+		_inset(v, "PER UNIT / %.0fs" % float(d.get("interval", 1.0)), eff_lines, BUILD)
+	# cost
+	var maxed := d.has("max") and count >= int(d["max"])
+	if maxed:
+		v.add_child(_card_button("MAX BUILT", C_MUTED, false))
+	else:
+		var cost := GameState.building_cost(bid)
+		var cost_lines := []
+		for sym in cost:
+			var have: bool = GameState.credits >= int(cost[sym]) if sym == "credits" else GameState.amount(sym) >= int(cost[sym])
+			var label := "₡%s" % GameData.fmt(cost[sym]) if sym == "credits" else "%s %s" % [GameData.fmt(cost[sym]), GameData.res_name(sym)]
+			cost_lines.append(_line(label, GOLD if have else C_WARN))
+		_inset(v, "COST", cost_lines, BUILD)
+		var can := GameState.building_can_afford(bid)
+		var b := _card_button("Build", BUILD, can)
+		if can:
+			b.pressed.connect(func() -> void: GameState.build_building(bid))
+		v.add_child(b)
+	return v.get_parent()
+
 # ============================================================ RESEARCH
 func _build_research() -> void:
 	var v := _clear("research")
@@ -411,7 +481,7 @@ func _research_node(id: String) -> Control:
 func _build_stats() -> void:
 	var v := _clear("stats")
 	_section(v, "CREW", CYAN)
-	for sk in ["harvesting", "fabrication", "combat"]:
+	for sk in ["harvesting", "fabrication", "combat", "infrastructure"]:
 		_skill_banner(v, sk.to_upper(), sk, CYAN)
 	var crl := Label.new()
 	crl.text = "Credits: ₡%s" % GameData.fmt(GameState.credits)

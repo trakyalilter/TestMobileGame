@@ -14,6 +14,7 @@ var skills: Dictionary = {
 	"harvesting": 0,
 	"fabrication": 0,
 	"combat": 0,
+	"infrastructure": 0,
 }
 var unlocked_research: Dictionary = {}  # research_id -> true
 
@@ -25,6 +26,14 @@ var progress: float = 0.0
 # Combat
 var combat_hp: float = 0.0
 const HP_REGEN := 0.04
+
+# Infrastructure (passive production buildings — runs in the background always)
+var buildings: Dictionary = {}          # id -> count
+var building_throttle: Dictionary = {}  # id -> 0..1
+var _build_timers: Dictionary = {}      # id -> accumulated time
+var _build_frac: Dictionary = {}        # sym -> fractional carry
+var _infra_dirty := false
+var _infra_emit_accum := 0.0
 
 var pending_offline: String = ""
 
@@ -39,9 +48,16 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_tick_active(delta)
+	_tick_infra(delta)
 	var mx := combat_max_hp()
 	if combat_hp < mx:
 		combat_hp = minf(mx, combat_hp + mx * HP_REGEN * delta)
+	# Throttle resource-change signals from passive production to ~2/sec.
+	_infra_emit_accum += delta
+	if _infra_dirty and _infra_emit_accum >= 0.5:
+		_infra_emit_accum = 0.0
+		_infra_dirty = false
+		resources_changed.emit()
 	_save_accum += delta
 	if _save_accum >= AUTOSAVE_INTERVAL:
 		_save_accum = 0.0
@@ -104,6 +120,135 @@ func combat_max_hp() -> float:
 
 func combat_attack() -> float:
 	return 25.0 + level_of("combat") * 10.0
+
+# ---------------- Infrastructure ----------------
+func building_count(bid: String) -> int:
+	return int(buildings.get(bid, 0))
+
+func get_throttle(bid: String) -> float:
+	return float(building_throttle.get(bid, 1.0))
+
+func set_throttle(bid: String, v: float) -> void:
+	building_throttle[bid] = clampf(v, 0.0, 1.0)
+	resources_changed.emit()
+
+## Returns {"gen": kW, "cons": kW, "eff": 0..1}. Deficit throttles all production.
+func infra_power() -> Dictionary:
+	var gen := 0.0
+	var cons := 0.0
+	for bid in buildings:
+		var d: Dictionary = GameData.BUILDINGS.get(bid, {})
+		var t := get_throttle(bid)
+		gen += float(d.get("energy_gen", 0.0)) * buildings[bid] * t
+		cons += float(d.get("energy_cons", 0.0)) * buildings[bid] * t
+	var eff := 1.0 if cons <= gen or cons <= 0.0 else gen / cons
+	return {"gen": gen, "cons": cons, "eff": eff}
+
+func _global_yield_bonus() -> Dictionary:
+	var gyb := {}
+	for bid in buildings:
+		var yb: Dictionary = GameData.BUILDINGS.get(bid, {}).get("yield_bonus", {})
+		for res in yb:
+			gyb[res] = gyb.get(res, 0.0) + float(yb[res]) * buildings[bid]
+	return gyb
+
+func _tick_infra(delta: float) -> void:
+	if buildings.is_empty():
+		return
+	var eff: float = infra_power()["eff"]
+	var skill_speed := 1.0 + level_of("infrastructure") * 0.01
+	var gyb := _global_yield_bonus()
+	for bid in buildings:
+		var count: int = buildings[bid]
+		if count <= 0:
+			continue
+		var d: Dictionary = GameData.BUILDINGS.get(bid, {})
+		if d.get("yield", {}).is_empty() and d.get("input", {}).is_empty():
+			continue
+		var eff_interval: float = maxf(0.05, float(d.get("interval", 1.0)) / skill_speed)
+		var t := get_throttle(bid)
+		_build_timers[bid] = float(_build_timers.get(bid, 0.0)) + delta * eff * t
+		var guard := 0
+		while float(_build_timers[bid]) >= eff_interval and guard < 200:
+			guard += 1
+			_build_timers[bid] = float(_build_timers[bid]) - eff_interval
+			_produce_batch(bid, count, d, gyb)
+
+func _produce_batch(bid: String, count: int, d: Dictionary, gyb: Dictionary) -> void:
+	var inp: Dictionary = d.get("input", {})
+	for res in inp:
+		if amount(res) < int(inp[res]) * count:
+			return  # not enough fuel/feedstock this cycle
+	for res in inp:
+		resources[res] = amount(res) - int(inp[res]) * count
+		_infra_dirty = true
+	var eng_scaled := ["auto_smelter", "hydro_plant", "industrial_centrifuge", "munitions_factory"]
+	for res in d.get("yield", {}):
+		var qty := float(d["yield"][res]) * count * (1.0 + float(gyb.get(res, 0.0)))
+		if bid in eng_scaled:
+			qty *= 1.0 + (log(1.0 + level_of("fabrication")) / log(10.0)) * 5.0
+		_build_frac[res] = float(_build_frac.get(res, 0.0)) + qty
+		var whole := int(_build_frac[res])
+		if whole > 0:
+			_build_frac[res] = float(_build_frac[res]) - whole
+			if res == "credits":
+				credits += whole
+			else:
+				resources[res] = amount(res) + whole
+			_infra_dirty = true
+	add_xp("infrastructure", 1)
+
+func _credit_mult(c: int) -> float:
+	if c < 10: return pow(1.15, c)
+	if c < 25: return pow(1.15, 10) * pow(1.24, c - 10)
+	return pow(1.15, 10) * pow(1.24, 15) * pow(1.32, c - 25)
+
+func _item_mult(c: int) -> float:
+	if c < 10: return pow(1.15, c)
+	if c < 25: return pow(1.15, 10) * pow(1.20, c - 10)
+	return pow(1.15, 10) * pow(1.20, 15) * pow(1.26, c - 25)
+
+func building_cost(bid: String) -> Dictionary:
+	var d: Dictionary = GameData.BUILDINGS.get(bid, {})
+	var c := building_count(bid)
+	var out := {}
+	for res in d.get("cost", {}):
+		var base := float(d["cost"][res])
+		var m: float = _credit_mult(c) if res == "credits" else _item_mult(c)
+		out[res] = int(ceil(base * m))
+	return out
+
+func building_unlocked(bid: String) -> bool:
+	var rr: String = GameData.BUILDINGS.get(bid, {}).get("research_req", "")
+	return rr == "" or is_research_unlocked(rr)
+
+func building_can_afford(bid: String) -> bool:
+	var d: Dictionary = GameData.BUILDINGS.get(bid, {})
+	if not building_unlocked(bid):
+		return false
+	if d.has("max") and building_count(bid) >= int(d["max"]):
+		return false
+	var cost := building_cost(bid)
+	for res in cost:
+		if res == "credits":
+			if credits < int(cost[res]):
+				return false
+		elif amount(res) < int(cost[res]):
+			return false
+	return true
+
+func build_building(bid: String) -> bool:
+	if not building_can_afford(bid):
+		return false
+	var cost := building_cost(bid)
+	for res in cost:
+		if res == "credits":
+			credits -= int(cost[res])
+		else:
+			resources[res] = amount(res) - int(cost[res])
+	buildings[bid] = building_count(bid) + 1
+	resources_changed.emit()
+	return true
 
 # ---------------- Research ----------------
 func is_research_unlocked(rid: String) -> bool:
@@ -275,6 +420,45 @@ func _offline_loot(loot: Array, mult: float, reps: int) -> String:
 				s += "+%s %s  " % [GameData.fmt(got), GameData.res_name(row[0])]
 	return s
 
+## Buildings keep producing while away (bounded by available inputs).
+func _offline_infra(delta: float) -> void:
+	if buildings.is_empty() or delta < 5.0:
+		return
+	var eff: float = infra_power()["eff"]
+	var skill_speed := 1.0 + level_of("infrastructure") * 0.01
+	var gyb := _global_yield_bonus()
+	var eng_scaled := ["auto_smelter", "hydro_plant", "industrial_centrifuge", "munitions_factory"]
+	for bid in buildings:
+		var count: int = buildings[bid]
+		if count <= 0:
+			continue
+		var d: Dictionary = GameData.BUILDINGS.get(bid, {})
+		if d.get("yield", {}).is_empty() and d.get("input", {}).is_empty():
+			continue
+		var eff_interval: float = maxf(0.05, float(d.get("interval", 1.0)) / skill_speed)
+		var t := get_throttle(bid)
+		var cycles := int(delta * eff * t / eff_interval)
+		if cycles <= 0:
+			continue
+		var inp: Dictionary = d.get("input", {})
+		for res in inp:
+			cycles = mini(cycles, int(amount(res) / maxi(1, int(inp[res]) * count)))
+		if cycles <= 0:
+			continue
+		for res in inp:
+			resources[res] = amount(res) - int(inp[res]) * count * cycles
+		for res in d.get("yield", {}):
+			var qty := float(d["yield"][res]) * count * (1.0 + float(gyb.get(res, 0.0)))
+			if bid in eng_scaled:
+				qty *= 1.0 + (log(1.0 + level_of("fabrication")) / log(10.0)) * 5.0
+			var total := int(qty * cycles)
+			if total > 0:
+				if res == "credits":
+					credits += total
+				else:
+					resources[res] = amount(res) + total
+		add_xp("infrastructure", cycles)
+
 func _fmt_time(secs: float) -> String:
 	var s := int(secs)
 	var h := s / 3600
@@ -295,6 +479,8 @@ func save_game() -> void:
 		"active_id": active_id,
 		"progress": progress,
 		"combat_hp": combat_hp,
+		"buildings": buildings,
+		"building_throttle": building_throttle,
 		"time": Time.get_unix_time_from_system(),
 	}
 	var tmp := SAVE_PATH + ".tmp"
@@ -329,8 +515,14 @@ func load_game() -> void:
 	active_id = data.get("active_id", "")
 	progress = float(data.get("progress", 0.0))
 	combat_hp = float(data.get("combat_hp", 0.0))
+	buildings = data.get("buildings", {})
+	for k in buildings:
+		buildings[k] = int(buildings[k])
+	building_throttle = data.get("building_throttle", {})
 	var last := float(data.get("time", Time.get_unix_time_from_system()))
-	_apply_offline(Time.get_unix_time_from_system() - last)
+	var away := Time.get_unix_time_from_system() - last
+	_apply_offline(away)
+	_offline_infra(away)
 	resources_changed.emit()
 	skills_changed.emit()
 	research_changed.emit()
@@ -339,8 +531,12 @@ func load_game() -> void:
 func hard_reset() -> void:
 	resources = {}
 	credits = 0
-	skills = {"harvesting": 0, "fabrication": 0, "combat": 0}
+	skills = {"harvesting": 0, "fabrication": 0, "combat": 0, "infrastructure": 0}
 	unlocked_research = {}
+	buildings = {}
+	building_throttle = {}
+	_build_timers = {}
+	_build_frac = {}
 	pending_offline = ""
 	combat_hp = combat_max_hp()
 	stop_task()
