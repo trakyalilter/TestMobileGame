@@ -52,6 +52,7 @@ var build_cat := "power"
 var ship_view := "loadout"
 var ship_mod_slot := "weapon"
 var res_bar: HBoxContainer
+var safe_margin: MarginContainer
 var active_banner: PanelContainer
 var _banner_chip: PanelContainer
 var _banner_icon: Label
@@ -68,6 +69,7 @@ var _warp_armed := false
 
 func _ready() -> void:
 	DisplayServer.screen_set_orientation(DisplayServer.SCREEN_PORTRAIT)
+	_apply_theme()
 	_build()
 	GameState.resources_changed.connect(_on_resources)
 	GameState.skills_changed.connect(_refresh_current)
@@ -75,12 +77,44 @@ func _ready() -> void:
 	GameState.action_changed.connect(_refresh_current)
 	GameState.action_changed.connect(_refresh_banner)
 	GameState.bounty_changed.connect(_refresh_current)
+	get_viewport().size_changed.connect(_update_safe_area)
+	call_deferred("_update_safe_area")
 	_refresh_top()
 	_refresh_banner()
 	_show("gather")
 	if GameState.pending_offline != "":
 		_show_offline(GameState.pending_offline)
 		GameState.pending_offline = ""
+
+## Branded display font (Rajdhani) with Noto symbol fallbacks so glyph icons
+## render on devices whose system font lacks them.
+func _apply_theme() -> void:
+	var f = load("res://assets/fonts/Rajdhani-Medium.ttf")
+	if f is FontFile:
+		var fb: Array = []
+		var s2 = load("res://assets/fonts/NotoSansSymbols2-Regular.ttf")
+		var s1 = load("res://assets/fonts/NotoSansSymbols-VF.ttf")
+		if s2: fb.append(s2)
+		if s1: fb.append(s1)
+		f.fallbacks = fb
+		var th := Theme.new()
+		th.default_font = f
+		th.default_font_size = 14
+		theme = th
+
+## Pads the UI clear of the status bar / notch / gesture bar.
+func _update_safe_area() -> void:
+	if safe_margin == null:
+		return
+	var safe := DisplayServer.get_display_safe_area()
+	var ws := DisplayServer.window_get_size()
+	if ws.x <= 0 or ws.y <= 0:
+		return
+	var vp := get_viewport().get_visible_rect().size
+	var top := int(safe.position.y * vp.y / ws.y)
+	var bottom := int((ws.y - safe.position.y - safe.size.y) * vp.y / ws.y)
+	safe_margin.add_theme_constant_override("margin_top", maxi(top, 0))
+	safe_margin.add_theme_constant_override("margin_bottom", maxi(bottom, 0))
 
 func _process(_delta: float) -> void:
 	if GameState.active_type != "":
@@ -114,10 +148,12 @@ func _build() -> void:
 	bg.stretch_mode = TextureRect.STRETCH_SCALE
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(bg)
+	safe_margin = MarginContainer.new()
+	safe_margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(safe_margin)
 	var root := VBoxContainer.new()
-	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.add_theme_constant_override("separation", 0)
-	add_child(root)
+	safe_margin.add_child(root)
 
 	# ---- Top HUD ----
 	var top := PanelContainer.new()
@@ -903,62 +939,84 @@ func _research_node(id: String) -> Control:
 func _build_stats() -> void:
 	var v := _clear("stats")
 	_back_header(v)
+	# Credits banner
+	var cpanel := PanelContainer.new()
+	cpanel.add_theme_stylebox_override("panel", _card_style(_mix(GOLD, SURFACE, 0.86), _mix(GOLD, LINE, 0.4), 1, false))
+	var crow := HBoxContainer.new()
+	cpanel.add_child(crow)
+	var cl := Label.new()
+	cl.text = "CREDITS"
+	cl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	cl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	cl.add_theme_font_size_override("font_size", 12)
+	cl.add_theme_color_override("font_color", Color.html(C_DIM))
+	crow.add_child(cl)
+	var cv := Label.new()
+	cv.text = "₡%s" % GameData.fmt(GameState.credits)
+	cv.add_theme_font_size_override("font_size", 18)
+	cv.add_theme_color_override("font_color", Color.html(GOLD))
+	crow.add_child(cv)
+	v.add_child(cpanel)
+
 	_section(v, "CREW", CYAN)
 	for sk in ["harvesting", "fabrication", "combat", "infrastructure"]:
-		_skill_banner(v, sk.to_upper(), sk, CYAN)
-	var crl := Label.new()
-	crl.text = "Credits: ₡%s" % GameData.fmt(GameState.credits)
-	crl.add_theme_color_override("font_color", Color.html(GOLD))
-	v.add_child(crl)
+		_skill_banner(v, sk.capitalize(), sk, CYAN)
 
-	_section(v, "STORAGE  (tap Sell for credits)", CYAN)
+	_section(v, "Storage — tap Sell for credits", GOLD)
 	var any := false
 	for sym in GameData.RESOURCES:
 		var amt := GameState.amount(sym)
 		if amt <= 0:
 			continue
 		any = true
+		var panel := PanelContainer.new()
+		panel.add_theme_stylebox_override("panel", _bordered(SURFACE, LINE, 1, 10))
 		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 6)
+		row.add_theme_constant_override("separation", 8)
+		panel.add_child(row)
+		var dot := Panel.new()
+		dot.custom_minimum_size = Vector2(8, 8)
+		dot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		var ds := StyleBoxFlat.new()
+		ds.bg_color = GameData.color_for(sym)
+		ds.set_corner_radius_all(4)
+		dot.add_theme_stylebox_override("panel", ds)
+		row.add_child(dot)
 		var n := Label.new()
 		n.text = GameData.res_name(sym)
-		n.add_theme_color_override("font_color", GameData.color_for(sym))
 		n.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		n.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		n.add_theme_color_override("font_color", Color.html(C_TEXT))
 		row.add_child(n)
 		var a := Label.new()
 		a.text = GameData.fmt(amt)
-		a.add_theme_color_override("font_color", Color.html(C_TEXT))
+		a.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		a.add_theme_color_override("font_color", Color.html(C_DIM))
 		row.add_child(a)
 		var val := maxi(1, GameData.value_of(sym))
-		var sell := Button.new()
-		sell.text = "Sell ₡%s" % GameData.fmt(amt * val)
-		sell.focus_mode = Control.FOCUS_NONE
-		sell.add_theme_font_size_override("font_size", 11)
+		var sell := _card_button("Sell ₡%s" % GameData.fmt(amt * val), GOLD, true)
+		sell.custom_minimum_size = Vector2(96, 32)
+		sell.add_theme_font_size_override("font_size", 12)
 		sell.pressed.connect(func() -> void: GameState.sell_all(sym))
 		row.add_child(sell)
-		v.add_child(row)
+		v.add_child(panel)
 	if not any:
 		_empty(v, "Storage empty — go gather something.")
 
-	_section(v, "SYSTEM", CYAN)
-	var save_btn := Button.new()
-	save_btn.text = "Save Now"
-	save_btn.custom_minimum_size = Vector2(0, 40)
-	save_btn.focus_mode = Control.FOCUS_NONE
+	_section(v, "System", CYAN)
+	var save_btn := _card_button("Save Now", CYAN, true)
+	save_btn.custom_minimum_size = Vector2(0, 44)
 	save_btn.pressed.connect(func() -> void: GameState.save_game())
 	v.add_child(save_btn)
-	var reset_btn := Button.new()
-	reset_btn.text = "Reset Game"
-	reset_btn.custom_minimum_size = Vector2(0, 40)
-	reset_btn.focus_mode = Control.FOCUS_NONE
-	reset_btn.add_theme_color_override("font_color", Color.html(C_WARN))
+	var reset_btn := _card_button("⚠ Tap again to wipe save" if _reset_armed else "Reset Game", RED, true)
+	reset_btn.custom_minimum_size = Vector2(0, 44)
 	reset_btn.pressed.connect(func() -> void:
 		if _reset_armed:
 			GameState.hard_reset()
 			_show("gather")
 		else:
 			_reset_armed = true
-			reset_btn.text = "⚠ Tap again to wipe save")
+			_build_stats())
 	v.add_child(reset_btn)
 
 # ============================================================ SHARED CARD PIECES
