@@ -13,7 +13,7 @@ const BOTTOM := [
 const PAGE_IDS := ["gather", "craft", "combat", "research", "more", "build", "ship", "bounty", "warp", "stats"]
 const MORE_MENU := [
 	{"id": "build",  "label": "⌂  Infrastructure"},
-	{"id": "ship",   "label": "⛭  Shipyard"},
+	{"id": "ship",   "label": "⛭  Ship Designer"},
 	{"id": "bounty", "label": "◆  Bounty Board"},
 	{"id": "warp",   "label": "✦  Warp Core"},
 	{"id": "stats",  "label": "≡  Storage & Crew"},
@@ -168,7 +168,7 @@ func _make_nav_item(id: String, label: String) -> Button:
 	btn.flat = true
 	btn.focus_mode = Control.FOCUS_NONE
 	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	btn.custom_minimum_size = Vector2(0, 56)
+	btn.custom_minimum_size = Vector2(0, 48)
 	var empty := StyleBoxEmpty.new()
 	for st in ["normal", "hover", "pressed", "focus"]:
 		btn.add_theme_stylebox_override(st, empty)
@@ -181,7 +181,7 @@ func _make_nav_item(id: String, label: String) -> Button:
 	var icon := Label.new()
 	icon.text = NAV_ICON.get(id, "•")
 	icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	icon.add_theme_font_size_override("font_size", 19)
+	icon.add_theme_font_size_override("font_size", 17)
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vb.add_child(icon)
 	var lab := Label.new()
@@ -658,11 +658,16 @@ func _back_header(v: VBoxContainer) -> void:
 func _build_ship() -> void:
 	var v := _clear("ship")
 	_back_header(v)
+	var eyebrow := Label.new()
+	eyebrow.text = "⛭ SHIP DESIGNER"
+	eyebrow.add_theme_font_size_override("font_size", 16)
+	eyebrow.add_theme_color_override("font_color", Color.html(CYAN))
+	v.add_child(eyebrow)
 	var h: Dictionary = GameData.HULLS.get(GameState.active_hull, {})
 	var nm := Label.new()
-	nm.text = "⛭ " + h.get("name", "No Ship")
-	nm.add_theme_font_size_override("font_size", 16)
-	nm.add_theme_color_override("font_color", Color.html(CYAN))
+	nm.text = h.get("name", "No Ship")
+	nm.add_theme_font_size_override("font_size", 12)
+	nm.add_theme_color_override("font_color", Color.html(C_DIM))
 	v.add_child(nm)
 	var s := GameState.ship_stats()
 	if not s.is_empty():
@@ -1055,9 +1060,9 @@ func _card(accent: String, lit: bool) -> VBoxContainer:
 	var panel := PanelContainer.new()
 	panel.add_theme_stylebox_override("panel", _card_style(SURFACE, accent if lit else LINE, 1, lit))
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	panel.size_flags_vertical = Control.SIZE_FILL
+	panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 7)
+	v.add_theme_constant_override("separation", 6)
 	panel.add_child(v)
 	return v
 
@@ -1488,8 +1493,8 @@ func _nav_style() -> StyleBoxFlat:
 	s.border_color = Color.html(LINE)
 	s.content_margin_left = 4
 	s.content_margin_right = 4
-	s.content_margin_top = 3
-	s.content_margin_bottom = 3
+	s.content_margin_top = 2
+	s.content_margin_bottom = 2
 	return s
 
 func _grad_tex(top: String, bot: String) -> GradientTexture2D:
