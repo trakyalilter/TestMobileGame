@@ -27,6 +27,12 @@ var progress: float = 0.0
 var combat_hp: float = 0.0
 const HP_REGEN := 0.04
 
+# Shipyard
+var active_hull: String = ""
+var owned_hulls: Dictionary = {}        # hull_id -> true
+var module_inventory: Dictionary = {}   # module_id -> count (unequipped)
+var loadout: Dictionary = {}            # slot_index (as String) -> module_id
+
 # Infrastructure (passive production buildings — runs in the background always)
 var buildings: Dictionary = {}          # id -> count
 var building_throttle: Dictionary = {}  # id -> 0..1
@@ -43,6 +49,9 @@ var _save_accum := 0.0
 
 func _ready() -> void:
 	load_game()
+	if active_hull == "":
+		active_hull = "corvette_hull"
+		owned_hulls["corvette_hull"] = true
 	if combat_hp <= 0.0:
 		combat_hp = combat_max_hp()
 
@@ -115,11 +124,134 @@ func yield_mult(skill_id: String) -> float:
 	return 1.0 + level_of(skill_id) * 0.02
 
 # ---------------- Combat stats ----------------
+## Derived ship stats from the active hull + equipped modules.
+## Returns {} when no ship is equipped.
+func ship_stats() -> Dictionary:
+	if active_hull == "" or not GameData.HULLS.has(active_hull):
+		return {}
+	var h: Dictionary = GameData.HULLS[active_hull]
+	var s := {"atk": 0.0, "hp": float(h.get("hp", 100)), "def": 0.0, "shield": 0.0,
+		"energy_cap": float(h.get("energy_capacity", 0)), "energy_load": 0.0}
+	var dps := 0.0
+	var spd_bonus := 0.0
+	var spd_mult := 1.0
+	for k in loadout:
+		var m: Dictionary = GameData.MODULES.get(loadout[k], {})
+		var st: Dictionary = m.get("stats", {})
+		s.hp += float(st.get("hp", 0))
+		s.def += float(st.get("def", 0))
+		s.shield += float(st.get("max_shield", 0))
+		s.energy_cap += float(st.get("energy_capacity", 0))
+		s.energy_load += float(st.get("energy_load", 0))
+		spd_bonus += float(st.get("atk_speed_bonus", 0))
+		if st.has("atk_speed_mult"):
+			spd_mult *= float(st["atk_speed_mult"])
+		var dmg := float(st.get("atk_energy", 0)) + float(st.get("atk_kinetic", 0)) + float(st.get("atk_explosive", 0))
+		if dmg > 0.0:
+			dps += dmg / maxf(0.1, float(st.get("atk_interval", 1.0)))
+	dps = dps * (1.0 + spd_bonus) * spd_mult + float(h.get("atk", 0))
+	# Energy brownout: weapons underperform if load exceeds capacity.
+	if s.energy_load > s.energy_cap and s.energy_cap > 0.0:
+		dps *= s.energy_cap / s.energy_load
+	s.atk = dps
+	return s
+
 func combat_max_hp() -> float:
-	return 300.0 + level_of("combat") * 60.0
+	var s := ship_stats()
+	if s.is_empty():
+		return 100.0
+	return s["hp"] + s["shield"] + level_of("combat") * 20.0
 
 func combat_attack() -> float:
-	return 25.0 + level_of("combat") * 10.0
+	var s := ship_stats()
+	if s.is_empty():
+		return 5.0
+	return maxf(1.0, s["atk"] + level_of("combat") * 2.0)
+
+func combat_defense() -> float:
+	var s := ship_stats()
+	return s.get("def", 0.0) if not s.is_empty() else 0.0
+
+# ---------------- Shipyard ----------------
+func _afford_cost(cost: Dictionary) -> bool:
+	for sym in cost:
+		if sym == "credits":
+			if credits < int(cost[sym]):
+				return false
+		elif amount(sym) < int(cost[sym]):
+			return false
+	return true
+
+func _pay_cost(cost: Dictionary) -> void:
+	for sym in cost:
+		if sym == "credits":
+			credits -= int(cost[sym])
+		else:
+			resources[sym] = amount(sym) - int(cost[sym])
+
+func hull_owned(hid: String) -> bool:
+	return owned_hulls.has(hid)
+
+func hull_unlocked(hid: String) -> bool:
+	var rr: String = GameData.HULLS.get(hid, {}).get("research_req", "")
+	return rr == "" or is_research_unlocked(rr)
+
+func hull_can_get(hid: String) -> bool:
+	if not hull_unlocked(hid):
+		return false
+	if hull_owned(hid):
+		return true
+	return _afford_cost(GameData.HULLS.get(hid, {}).get("cost", {}))
+
+func select_hull(hid: String) -> bool:
+	if not GameData.HULLS.has(hid) or not hull_unlocked(hid):
+		return false
+	if not hull_owned(hid):
+		if not _afford_cost(GameData.HULLS[hid].get("cost", {})):
+			return false
+		_pay_cost(GameData.HULLS[hid].get("cost", {}))
+		owned_hulls[hid] = true
+	# Switching ships returns all equipped modules to inventory (slots differ).
+	for k in loadout:
+		module_inventory[loadout[k]] = int(module_inventory.get(loadout[k], 0)) + 1
+	loadout = {}
+	active_hull = hid
+	resources_changed.emit()
+	return true
+
+func module_unlocked(mid: String) -> bool:
+	var rr: String = GameData.MODULES.get(mid, {}).get("research_req", "")
+	return rr == "" or is_research_unlocked(rr)
+
+func module_can_buy(mid: String) -> bool:
+	return module_unlocked(mid) and _afford_cost(GameData.MODULES.get(mid, {}).get("cost", {}))
+
+func buy_module(mid: String) -> bool:
+	if not module_can_buy(mid):
+		return false
+	_pay_cost(GameData.MODULES[mid].get("cost", {}))
+	module_inventory[mid] = int(module_inventory.get(mid, 0)) + 1
+	resources_changed.emit()
+	return true
+
+func equip_module(mid: String) -> bool:
+	if int(module_inventory.get(mid, 0)) <= 0:
+		return false
+	var st: String = GameData.MODULES.get(mid, {}).get("slot", "")
+	var slots: Array = GameData.HULLS.get(active_hull, {}).get("slots", [])
+	for i in slots.size():
+		if slots[i] == st and not loadout.has(str(i)):
+			loadout[str(i)] = mid
+			module_inventory[mid] = int(module_inventory[mid]) - 1
+			resources_changed.emit()
+			return true
+	return false
+
+func unequip_slot(idx: String) -> void:
+	if loadout.has(idx):
+		module_inventory[loadout[idx]] = int(module_inventory.get(loadout[idx], 0)) + 1
+		loadout.erase(idx)
+		resources_changed.emit()
 
 # ---------------- Infrastructure ----------------
 func building_count(bid: String) -> int:
@@ -359,6 +491,7 @@ func _complete_active() -> void:
 		_roll_loot(e.get("loot", []), 1.0)
 		add_xp("combat", int(e.get("xp", 0)))
 		var dps: float = float(e.get("atk", 0)) / maxf(0.5, float(e.get("interval", 2.0)))
+		dps *= 100.0 / (100.0 + combat_defense())   # armor mitigation
 		combat_hp -= dps * current_duration()
 		if combat_hp <= 0.0:
 			combat_hp = combat_max_hp() * 0.25
@@ -399,6 +532,7 @@ func _apply_offline(delta: float) -> void:
 	elif active_type == "combat":
 		var e: Dictionary = GameData.ENEMIES[active_id]
 		var dps: float = float(e.get("atk", 0)) / maxf(0.5, float(e.get("interval", 2.0)))
+		dps *= 100.0 / (100.0 + combat_defense())
 		if combat_max_hp() * HP_REGEN - dps < 0.0:
 			return  # not sustainable; no offline farming
 		var summary := _offline_loot(e.get("loot", []), 1.0, reps)
@@ -479,6 +613,10 @@ func save_game() -> void:
 		"active_id": active_id,
 		"progress": progress,
 		"combat_hp": combat_hp,
+		"active_hull": active_hull,
+		"owned_hulls": owned_hulls.keys(),
+		"module_inventory": module_inventory,
+		"loadout": loadout,
 		"buildings": buildings,
 		"building_throttle": building_throttle,
 		"time": Time.get_unix_time_from_system(),
@@ -515,6 +653,14 @@ func load_game() -> void:
 	active_id = data.get("active_id", "")
 	progress = float(data.get("progress", 0.0))
 	combat_hp = float(data.get("combat_hp", 0.0))
+	active_hull = data.get("active_hull", "")
+	owned_hulls = {}
+	for hid in data.get("owned_hulls", []):
+		owned_hulls[hid] = true
+	module_inventory = data.get("module_inventory", {})
+	for k in module_inventory:
+		module_inventory[k] = int(module_inventory[k])
+	loadout = data.get("loadout", {})
 	buildings = data.get("buildings", {})
 	for k in buildings:
 		buildings[k] = int(buildings[k])
@@ -537,6 +683,10 @@ func hard_reset() -> void:
 	building_throttle = {}
 	_build_timers = {}
 	_build_frac = {}
+	active_hull = "corvette_hull"
+	owned_hulls = {"corvette_hull": true}
+	module_inventory = {}
+	loadout = {}
 	pending_offline = ""
 	combat_hp = combat_max_hp()
 	stop_task()

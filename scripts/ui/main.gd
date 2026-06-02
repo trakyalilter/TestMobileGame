@@ -2,13 +2,19 @@ extends Control
 ## Mobile shell for the ported horizonidle content: grid cards with category
 ## sub-tabs (gather/craft/combat) and a credit-funded research tree.
 
-const TABS := [
+# Bottom bar = primary loops; secondary systems live under "More".
+const BOTTOM := [
 	{"id": "gather",   "label": "Gather"},
 	{"id": "craft",    "label": "Craft"},
 	{"id": "combat",   "label": "Combat"},
-	{"id": "build",    "label": "Build"},
 	{"id": "research", "label": "Research"},
-	{"id": "stats",    "label": "More"},
+	{"id": "more",     "label": "More"},
+]
+const PAGE_IDS := ["gather", "craft", "combat", "research", "more", "build", "ship", "stats"]
+const MORE_MENU := [
+	{"id": "build", "label": "⌂  Infrastructure"},
+	{"id": "ship",  "label": "⛭  Shipyard"},
+	{"id": "stats", "label": "≡  Storage & Crew"},
 ]
 
 const C_BG := "0b1220"
@@ -32,6 +38,8 @@ var gather_cat := "terrestrial"
 var craft_cat := "basics"
 var combat_zone := 0
 var build_cat := "power"
+var ship_view := "loadout"
+var ship_mod_slot := "weapon"
 var res_bar: HBoxContainer
 var active_label: Label
 var _active_bar: ProgressBar = null
@@ -114,11 +122,11 @@ func _build() -> void:
 	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	root.add_child(content)
-	for t in TABS:
+	for pid in PAGE_IDS:
 		var page := _make_page()
 		page.visible = false
 		content.add_child(page)
-		pages[t.id] = page
+		pages[pid] = page
 
 	var bottom := PanelContainer.new()
 	_style_panel(bottom, C_PANEL)
@@ -126,7 +134,7 @@ func _build() -> void:
 	var tabs := HBoxContainer.new()
 	tabs.add_theme_constant_override("separation", 2)
 	bottom.add_child(tabs)
-	for t in TABS:
+	for t in BOTTOM:
 		var b := Button.new()
 		b.text = t.label
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -160,8 +168,9 @@ func _show(id: String) -> void:
 	_reset_armed = false
 	for pid in pages:
 		pages[pid].visible = (pid == id)
+	var hl: String = id if tab_buttons.has(id) else "more"
 	for bid in tab_buttons:
-		_style_tab(tab_buttons[bid], bid == id)
+		_style_tab(tab_buttons[bid], bid == hl)
 	_refresh_current()
 
 func _refresh_all() -> void:
@@ -178,7 +187,9 @@ func _refresh_current() -> void:
 		"craft":    _build_craft()
 		"combat":   _build_combat()
 		"build":    _build_infra()
+		"ship":     _build_ship()
 		"research": _build_research()
+		"more":     _build_more()
 		"stats":    _build_stats()
 
 func _clear(id: String) -> VBoxContainer:
@@ -333,6 +344,7 @@ func _enemy_card(id: String, e: Dictionary) -> Control:
 # ============================================================ INFRASTRUCTURE
 func _build_infra() -> void:
 	var v := _clear("build")
+	_back_header(v)
 	_skill_banner(v, "INFRASTRUCTURE", "infrastructure", BUILD)
 	var p := GameState.infra_power()
 	var e := Label.new()
@@ -395,6 +407,199 @@ func _building_card(bid: String, d: Dictionary) -> Control:
 			b.pressed.connect(func() -> void: GameState.build_building(bid))
 		v.add_child(b)
 	return v.get_parent()
+
+# ============================================================ MORE MENU
+func _build_more() -> void:
+	var v := _clear("more")
+	var t := Label.new()
+	t.text = "SYSTEMS"
+	t.add_theme_font_size_override("font_size", 16)
+	t.add_theme_color_override("font_color", Color.html(CYAN))
+	v.add_child(t)
+	for it in MORE_MENU:
+		var b := Button.new()
+		b.text = it["label"]
+		b.custom_minimum_size = Vector2(0, 54)
+		b.focus_mode = Control.FOCUS_NONE
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b.add_theme_font_size_override("font_size", 15)
+		b.add_theme_color_override("font_color", Color.html(C_TEXT))
+		for st in ["normal", "hover", "pressed"]:
+			b.add_theme_stylebox_override(st, _bordered("16243a", "2a3a55", 1, 8))
+		var pid: String = it["id"]
+		b.pressed.connect(func() -> void: _show(pid))
+		v.add_child(b)
+	_empty(v, "Fleet · Bounty · Warp coming next.")
+
+func _back_header(v: VBoxContainer) -> void:
+	var b := Button.new()
+	b.text = "‹  More"
+	b.flat = true
+	b.focus_mode = Control.FOCUS_NONE
+	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	b.add_theme_font_size_override("font_size", 13)
+	b.add_theme_color_override("font_color", Color.html(C_DIM))
+	b.pressed.connect(func() -> void: _show("more"))
+	v.add_child(b)
+
+# ============================================================ SHIPYARD
+func _build_ship() -> void:
+	var v := _clear("ship")
+	_back_header(v)
+	var h: Dictionary = GameData.HULLS.get(GameState.active_hull, {})
+	var nm := Label.new()
+	nm.text = "⛭ " + h.get("name", "No Ship")
+	nm.add_theme_font_size_override("font_size", 16)
+	nm.add_theme_color_override("font_color", Color.html(CYAN))
+	v.add_child(nm)
+	var s := GameState.ship_stats()
+	if not s.is_empty():
+		var st := Label.new()
+		st.text = "ATK %.0f  ·  HP %.0f  ·  DEF %.0f  ·  Shield %.0f" % [s["atk"], s["hp"], s["def"], s["shield"]]
+		st.add_theme_font_size_override("font_size", 11)
+		st.add_theme_color_override("font_color", Color.html(C_TEXT))
+		v.add_child(st)
+		var en := Label.new()
+		var over: bool = s["energy_load"] > s["energy_cap"] and s["energy_cap"] > 0.0
+		en.text = "Energy %d / %d kW%s" % [int(s["energy_load"]), int(s["energy_cap"]), "  ⚠ brownout" if over else ""]
+		en.add_theme_font_size_override("font_size", 10)
+		en.add_theme_color_override("font_color", Color.html(C_WARN if over else C_DIM))
+		v.add_child(en)
+	_subtabs(v, [{"id": "loadout", "label": "Loadout"}, {"id": "modules", "label": "Modules"}, {"id": "hulls", "label": "Hulls"}], ship_view, CYAN, func(id: String) -> void:
+		ship_view = id
+		_build_ship())
+	match ship_view:
+		"loadout": _ship_loadout(v, h)
+		"modules": _ship_modules(v)
+		"hulls": _ship_hulls(v)
+
+func _ship_loadout(v: VBoxContainer, h: Dictionary) -> void:
+	var slots: Array = h.get("slots", [])
+	if slots.is_empty():
+		_empty(v, "No ship.")
+		return
+	_section(v, "LOADOUT — tap Remove to unequip", CYAN)
+	var g := _grid(v)
+	for i in slots.size():
+		var stype: String = slots[i]
+		var key := str(i)
+		var equipped: String = GameState.loadout.get(key, "")
+		var c := _card(CYAN, equipped != "")
+		_card_head(c, "▢", GameData.SLOT_LABELS.get(stype, stype), "", CYAN, true)
+		if equipped != "":
+			_clbl(c, GameData.MODULES.get(equipped, {}).get("name", equipped), 12, C_TEXT)
+			var b := _card_button("Remove", CYAN, true)
+			b.pressed.connect(func() -> void: GameState.unequip_slot(key))
+			c.add_child(b)
+		else:
+			_clbl(c, "— empty —", 11, C_MUTED)
+		g.add_child(c.get_parent())
+
+func _ship_modules(v: VBoxContainer) -> void:
+	var slot_items := []
+	for st in ["weapon", "shield", "armor", "battery", "engine", "sensor", "cooling"]:
+		slot_items.append({"id": st, "label": GameData.SLOT_LABELS.get(st, st)})
+	_subtabs(v, slot_items, ship_mod_slot, CYAN, func(id: String) -> void:
+		ship_mod_slot = id
+		_build_ship())
+	var g := _grid(v)
+	var any := false
+	for mid in GameData.MODULES:
+		var m: Dictionary = GameData.MODULES[mid]
+		if m.get("slot", "") != ship_mod_slot:
+			continue
+		any = true
+		g.add_child(_module_card(mid, m))
+	if not any:
+		_empty(v, "No modules of this type.")
+
+func _module_card(mid: String, m: Dictionary) -> Control:
+	var unlocked := GameState.module_unlocked(mid)
+	var owned := int(GameState.module_inventory.get(mid, 0))
+	var c := _card(CYAN, unlocked)
+	_card_head(c, "▣", m.get("name", mid), ("x%d" % owned) if owned > 0 else "", CYAN, unlocked)
+	if not unlocked:
+		_locked(c, m, "combat")
+		return c.get_parent()
+	_inset(c, "STATS", _module_stat_lines(m.get("stats", {})), CYAN)
+	var cost_lines := []
+	for sym in m.get("cost", {}):
+		var have: bool = GameState.credits >= int(m["cost"][sym]) if sym == "credits" else GameState.amount(sym) >= int(m["cost"][sym])
+		var label := "₡%s" % GameData.fmt(m["cost"][sym]) if sym == "credits" else "%s %s" % [GameData.fmt(m["cost"][sym]), GameData.res_name(sym)]
+		cost_lines.append(_line(label, GOLD if have else C_WARN))
+	_inset(c, "COST", cost_lines, CYAN)
+	if owned > 0:
+		var eq := _card_button("Equip", CYAN, true)
+		eq.pressed.connect(func() -> void:
+			if not GameState.equip_module(mid):
+				pass)
+		c.add_child(eq)
+	var buy := _card_button("Buy", GOLD, GameState.module_can_buy(mid))
+	if GameState.module_can_buy(mid):
+		buy.pressed.connect(func() -> void: GameState.buy_module(mid))
+	c.add_child(buy)
+	return c.get_parent()
+
+func _ship_hulls(v: VBoxContainer) -> void:
+	_section(v, "HULLS", CYAN)
+	var g := _grid(v)
+	for hid in GameData.HULLS:
+		g.add_child(_hull_card(hid, GameData.HULLS[hid]))
+
+func _hull_card(hid: String, h: Dictionary) -> Control:
+	var unlocked := GameState.hull_unlocked(hid)
+	var owned := GameState.hull_owned(hid)
+	var active: bool = GameState.active_hull == hid
+	var c := _card(CYAN, unlocked or owned)
+	_card_head(c, "⛭", h.get("name", hid), "T%d" % int(h.get("tier", 0)), CYAN, unlocked)
+	if not unlocked:
+		_locked(c, h, "combat")
+		return c.get_parent()
+	_inset(c, "HULL", [
+		_line("HP %s" % GameData.fmt(h.get("hp", 0)), C_TEXT),
+		_line("ATK %d" % int(h.get("atk", 0)), C_WARN),
+		_line("%d slots" % (h.get("slots", []) as Array).size(), C_DIM),
+	], CYAN)
+	if active:
+		c.add_child(_card_button("ACTIVE", C_MUTED, false))
+	elif owned:
+		var sw := _card_button("Switch", CYAN, true)
+		sw.pressed.connect(func() -> void: GameState.select_hull(hid))
+		c.add_child(sw)
+	else:
+		var cost_lines := []
+		for sym in h.get("cost", {}):
+			var have: bool = GameState.credits >= int(h["cost"][sym]) if sym == "credits" else GameState.amount(sym) >= int(h["cost"][sym])
+			var label := "₡%s" % GameData.fmt(h["cost"][sym]) if sym == "credits" else "%s %s" % [GameData.fmt(h["cost"][sym]), GameData.res_name(sym)]
+			cost_lines.append(_line(label, GOLD if have else C_WARN))
+		if not cost_lines.is_empty():
+			_inset(c, "COST", cost_lines, CYAN)
+		var b := _card_button("Build", GOLD, GameState.hull_can_get(hid))
+		if GameState.hull_can_get(hid):
+			b.pressed.connect(func() -> void: GameState.select_hull(hid))
+		c.add_child(b)
+	return c.get_parent()
+
+func _module_stat_lines(stats: Dictionary) -> Array:
+	var labels := {
+		"atk_energy": "Energy Dmg", "atk_kinetic": "Kinetic Dmg", "atk_explosive": "Explosive Dmg",
+		"atk_interval": "Interval", "energy_load": "Energy Use", "energy_capacity": "Energy Cap",
+		"hp": "Hull HP", "def": "Armor", "max_shield": "Shield", "shield_regen": "Shield Regen",
+		"shield_regen_mult": "Regen x", "atk_speed_bonus": "Fire Rate +", "atk_speed_mult": "Fire Rate x",
+		"accuracy": "Accuracy", "crit_chance": "Crit", "eva": "Evasion", "jamming_strength": "Jamming",
+	}
+	var lines := []
+	for k in stats:
+		var v = stats[k]
+		var txt: String
+		if k == "atk_interval":
+			txt = "%s %.1fs" % [labels.get(k, k), float(v)]
+		elif k in ["atk_speed_bonus", "crit_chance", "eva"]:
+			txt = "%s %d%%" % [labels.get(k, k), int(float(v) * 100.0)]
+		else:
+			txt = "%s %s" % [labels.get(k, k), str(v)]
+		lines.append(_line(txt, C_TEXT))
+	return lines
 
 # ============================================================ RESEARCH
 func _build_research() -> void:
@@ -480,6 +685,7 @@ func _research_node(id: String) -> Control:
 # ============================================================ STATS / STORAGE
 func _build_stats() -> void:
 	var v := _clear("stats")
+	_back_header(v)
 	_section(v, "CREW", CYAN)
 	for sk in ["harvesting", "fabrication", "combat", "infrastructure"]:
 		_skill_banner(v, sk.to_upper(), sk, CYAN)
