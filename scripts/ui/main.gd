@@ -30,6 +30,8 @@ var _active_bar: ProgressBar = null
 var _reset_armed := false
 
 func _ready() -> void:
+	# Lock to portrait on mobile (project setting isn't always honored on-device).
+	DisplayServer.screen_set_orientation(DisplayServer.SCREEN_PORTRAIT)
 	_build()
 	GameState.resources_changed.connect(_on_resources)
 	GameState.skills_changed.connect(_refresh_current)
