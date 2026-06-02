@@ -1,0 +1,19 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Basket -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M36,58 L72,58 L66,82 L42,82 Z" />
+    <!-- Falling apple -->
+    <path
+        android:fillColor="#FFE082"
+        android:pathData="M54,34 m-8,0 a8,8 0 1,0 16,0 a8,8 0 1,0 -16,0" />
+    <!-- Stem -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2"
+        android:pathData="M54,26 L57,21" />
+</vector>
