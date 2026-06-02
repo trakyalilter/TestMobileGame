@@ -1,7 +1,10 @@
 # Godot 4+ specific
 .godot/
 /android/
+/build/
 /builds/
 /export/
+*.apk
+*.aab
 export_presets.cfg
 *.translation
