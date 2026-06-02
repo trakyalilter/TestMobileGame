@@ -19,22 +19,31 @@ const MORE_MENU := [
 	{"id": "stats",  "label": "≡  Storage & Crew"},
 ]
 
-const C_BG := "0b1220"
+# ---- Design system tokens ----
+const BG_TOP := "0d1426"      # app background gradient
+const BG_BOT := "060912"
+const SURFACE := "172238"     # card surface
+const SURFACE_HI := "1f2c48"  # raised chips / segmented
+const INSET := "0c1322"       # recessed wells
+const LINE := "2b374f"        # hairline borders / dividers
+const C_TEXT := "eef2fb"
+const C_DIM := "9aa7c2"
+const C_MUTED := "5d6b88"
+const C_WARN := "ecb44a"
+const GOLD := "ecb44a"
+const CYAN := "55d3e6"
+const GREEN := "5fd585"
+const RED := "ef6a52"
+const PURP := "b78ae8"
+const BUILD := "ef9a54"
+const C_BG := "0b1220"        # legacy refs
 const C_PANEL := "111c2e"
-const C_TEXT := "e6ebf2"
-const C_DIM := "8a93a5"
-const C_MUTED := "5a6478"
-const C_WARN := "d9a441"
-const GOLD := "d9b24c"
-const CYAN := "4fd2e0"
-const GREEN := "5ad17a"
-const RED := "e0654f"
-const PURP := "9a7ad6"
-const BUILD := "e0944f"
+const DOMAIN := {"gather": GOLD, "craft": CYAN, "combat": RED, "research": PURP, "more": CYAN}
+const NAV_ICON := {"gather": "↑", "craft": "⚙", "combat": "◎", "research": "✦", "more": "≡"}
 
 var content: Control
 var pages := {}
-var tab_buttons := {}
+var nav_items := {}
 var current := ""
 var gather_cat := "terrestrial"
 var craft_cat := "basics"
@@ -43,7 +52,13 @@ var build_cat := "power"
 var ship_view := "loadout"
 var ship_mod_slot := "weapon"
 var res_bar: HBoxContainer
-var active_label: Label
+var active_banner: PanelContainer
+var _banner_chip: PanelContainer
+var _banner_icon: Label
+var _banner_kind: Label
+var _banner_name: Label
+var _banner_time: Label
+var _banner_bar: ProgressBar
 var _active_bar: ProgressBar = null
 var _active_timer: Label = null
 var _combat_hp_bar: ProgressBar = null
@@ -58,8 +73,10 @@ func _ready() -> void:
 	GameState.skills_changed.connect(_refresh_current)
 	GameState.research_changed.connect(_refresh_all)
 	GameState.action_changed.connect(_refresh_current)
+	GameState.action_changed.connect(_refresh_banner)
 	GameState.bounty_changed.connect(_refresh_current)
 	_refresh_top()
+	_refresh_banner()
 	_show("gather")
 	if GameState.pending_offline != "":
 		_show_offline(GameState.pending_offline)
@@ -69,18 +86,21 @@ func _process(_delta: float) -> void:
 	if GameState.active_type != "":
 		var dur := GameState.current_duration()
 		if dur > 0.0:
+			var pct := clampf(GameState.progress / dur * 100.0, 0.0, 100.0)
 			if is_instance_valid(_active_bar):
-				_active_bar.value = clampf(GameState.progress / dur * 100.0, 0.0, 100.0)
+				_active_bar.value = pct
 			if is_instance_valid(_active_timer):
 				_active_timer.text = "%.1fs / %.1fs" % [GameState.progress, dur]
+			if is_instance_valid(_banner_bar):
+				_banner_bar.value = pct
+			if is_instance_valid(_banner_time):
+				_banner_time.text = "%.1fs" % maxf(0.0, dur - GameState.progress)
 	if is_instance_valid(_combat_hp_bar):
 		var mx := GameState.combat_max_hp()
 		_combat_hp_bar.max_value = mx
 		_combat_hp_bar.value = GameState.combat_hp
 		if is_instance_valid(_combat_hp_label):
 			_combat_hp_label.text = "%d / %d HP" % [int(GameState.combat_hp), int(mx)]
-	if active_label:
-		active_label.text = _active_text()
 
 func _on_resources() -> void:
 	_refresh_top()
@@ -88,9 +108,10 @@ func _on_resources() -> void:
 
 # ============================================================ SHELL
 func _build() -> void:
-	var bg := ColorRect.new()
-	bg.color = Color.html(C_BG)
+	var bg := TextureRect.new()
+	bg.texture = _grad_tex(BG_TOP, BG_BOT)
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	bg.stretch_mode = TextureRect.STRETCH_SCALE
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(bg)
 	var root := VBoxContainer.new()
@@ -98,30 +119,30 @@ func _build() -> void:
 	root.add_theme_constant_override("separation", 0)
 	add_child(root)
 
+	# ---- Top HUD ----
 	var top := PanelContainer.new()
-	_style_panel(top, C_PANEL)
+	top.add_theme_stylebox_override("panel", _hud_style())
 	root.add_child(top)
 	var topv := VBoxContainer.new()
-	topv.add_theme_constant_override("separation", 4)
+	topv.add_theme_constant_override("separation", 8)
 	top.add_child(topv)
 	var title := Label.new()
-	title.text = "✦ STELLAR FORGE"
-	title.add_theme_font_size_override("font_size", 17)
+	title.text = "✦  STELLAR FORGE"
+	title.add_theme_font_size_override("font_size", 15)
 	title.add_theme_color_override("font_color", Color.html(CYAN))
 	topv.add_child(title)
-	active_label = Label.new()
-	active_label.add_theme_font_size_override("font_size", 12)
-	active_label.add_theme_color_override("font_color", Color.html(C_DIM))
-	topv.add_child(active_label)
 	var scroll := ScrollContainer.new()
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.custom_minimum_size = Vector2(0, 26)
+	scroll.custom_minimum_size = Vector2(0, 30)
 	topv.add_child(scroll)
 	res_bar = HBoxContainer.new()
-	res_bar.add_theme_constant_override("separation", 14)
+	res_bar.add_theme_constant_override("separation", 6)
 	scroll.add_child(res_bar)
+	active_banner = _build_active_banner()
+	topv.add_child(active_banner)
 
+	# ---- Content ----
 	content = Control.new()
 	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -132,21 +153,52 @@ func _build() -> void:
 		content.add_child(page)
 		pages[pid] = page
 
+	# ---- Bottom nav ----
 	var bottom := PanelContainer.new()
-	_style_panel(bottom, C_PANEL)
+	bottom.add_theme_stylebox_override("panel", _nav_style())
 	root.add_child(bottom)
 	var tabs := HBoxContainer.new()
-	tabs.add_theme_constant_override("separation", 2)
+	tabs.add_theme_constant_override("separation", 0)
 	bottom.add_child(tabs)
 	for t in BOTTOM:
-		var b := Button.new()
-		b.text = t.label
-		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		b.custom_minimum_size = Vector2(0, 44)
-		b.focus_mode = Control.FOCUS_NONE
-		b.pressed.connect(_show.bind(t.id))
-		tabs.add_child(b)
-		tab_buttons[t.id] = b
+		tabs.add_child(_make_nav_item(t.id, t.label))
+
+func _make_nav_item(id: String, label: String) -> Button:
+	var btn := Button.new()
+	btn.flat = true
+	btn.focus_mode = Control.FOCUS_NONE
+	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn.custom_minimum_size = Vector2(0, 56)
+	var empty := StyleBoxEmpty.new()
+	for st in ["normal", "hover", "pressed", "focus"]:
+		btn.add_theme_stylebox_override(st, empty)
+	var vb := VBoxContainer.new()
+	vb.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	vb.alignment = BoxContainer.ALIGNMENT_CENTER
+	vb.add_theme_constant_override("separation", 3)
+	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	btn.add_child(vb)
+	var icon := Label.new()
+	icon.text = NAV_ICON.get(id, "•")
+	icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	icon.add_theme_font_size_override("font_size", 19)
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vb.add_child(icon)
+	var lab := Label.new()
+	lab.text = label
+	lab.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lab.add_theme_font_size_override("font_size", 10)
+	lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vb.add_child(lab)
+	var dc := CenterContainer.new()
+	dc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var dot := Panel.new()
+	dot.custom_minimum_size = Vector2(16, 3)
+	dc.add_child(dot)
+	vb.add_child(dc)
+	btn.pressed.connect(_show.bind(id))
+	nav_items[id] = {"icon": icon, "label": lab, "dot": dot}
+	return btn
 
 func _make_page() -> ScrollContainer:
 	var sc := ScrollContainer.new()
@@ -173,9 +225,9 @@ func _show(id: String) -> void:
 	_warp_armed = false
 	for pid in pages:
 		pages[pid].visible = (pid == id)
-	var hl: String = id if tab_buttons.has(id) else "more"
-	for bid in tab_buttons:
-		_style_tab(tab_buttons[bid], bid == hl)
+	var hl: String = id if nav_items.has(id) else "more"
+	for bid in nav_items:
+		_style_nav(bid, bid == hl)
 	_refresh_current()
 
 func _refresh_all() -> void:
@@ -960,56 +1012,87 @@ func _grid(v: VBoxContainer) -> GridContainer:
 func _subtabs(v: VBoxContainer, items: Array, current_id: String, accent: String, on_select: Callable) -> void:
 	var sc := ScrollContainer.new()
 	sc.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	sc.custom_minimum_size = Vector2(0, 36)
+	sc.custom_minimum_size = Vector2(0, 38)
 	sc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var hb := HBoxContainer.new()
-	hb.add_theme_constant_override("separation", 6)
+	hb.add_theme_constant_override("separation", 7)
 	sc.add_child(hb)
 	for it in items:
+		var on: bool = it["id"] == current_id
 		var b := Button.new()
 		b.text = it["label"]
 		b.focus_mode = Control.FOCUS_NONE
-		b.custom_minimum_size = Vector2(0, 30)
+		b.custom_minimum_size = Vector2(0, 32)
 		b.add_theme_font_size_override("font_size", 12)
-		var on: bool = it["id"] == current_id
-		b.add_theme_color_override("font_color", Color.html(accent if on else C_DIM))
-		b.add_theme_color_override("font_color_hover", Color.html(accent))
-		b.add_theme_color_override("font_color_pressed", Color.html(accent))
+		var fill := accent if on else SURFACE_HI
+		var txt := _ideal_text(accent) if on else C_DIM
+		b.add_theme_color_override("font_color", Color.html(txt))
+		b.add_theme_color_override("font_color_hover", Color.html(txt))
+		b.add_theme_color_override("font_color_pressed", Color.html(txt))
+		var sb := _bordered(fill, accent if on else LINE, 1, 16)
+		sb.content_margin_left = 14
+		sb.content_margin_right = 14
 		for state in ["normal", "hover", "pressed", "focus"]:
-			b.add_theme_stylebox_override(state, _bordered("1c2740" if on else "141d2e", accent if on else "2a3550", 1, 6))
+			b.add_theme_stylebox_override(state, sb)
 		var sel_id: String = it["id"]
 		b.pressed.connect(func() -> void: on_select.call(sel_id))
 		hb.add_child(b)
 	v.add_child(sc)
 
+func _style_nav(id: String, active: bool) -> void:
+	var item: Dictionary = nav_items[id]
+	var col: String = DOMAIN.get(id, CYAN) if active else C_MUTED
+	item["icon"].add_theme_color_override("font_color", Color.html(col))
+	item["label"].add_theme_color_override("font_color", Color.html(col))
+	var dot: Panel = item["dot"]
+	dot.visible = active
+	var ds := StyleBoxFlat.new()
+	ds.bg_color = Color.html(DOMAIN.get(id, CYAN))
+	ds.set_corner_radius_all(2)
+	dot.add_theme_stylebox_override("panel", ds)
+
 func _card(accent: String, lit: bool) -> VBoxContainer:
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", _bordered("1a2336", accent if lit else "2a3550", 2 if lit else 1))
+	panel.add_theme_stylebox_override("panel", _card_style(SURFACE, accent if lit else LINE, 1, lit))
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.size_flags_vertical = Control.SIZE_FILL
 	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 6)
+	v.add_theme_constant_override("separation", 7)
 	panel.add_child(v)
 	return v
 
 func _card_head(v: VBoxContainer, icon: String, name: String, badge: String, accent: String, lit: bool) -> void:
 	var hb := HBoxContainer.new()
-	hb.add_theme_constant_override("separation", 5)
-	var ic := Label.new()
-	ic.text = icon
-	ic.add_theme_font_size_override("font_size", 13)
-	ic.add_theme_color_override("font_color", Color.html(accent if lit else C_MUTED))
-	hb.add_child(ic)
+	hb.add_theme_constant_override("separation", 7)
+	if icon != "":
+		var chip := PanelContainer.new()
+		chip.custom_minimum_size = Vector2(26, 26)
+		chip.add_theme_stylebox_override("panel", _bordered(_mix(accent, INSET, 0.82) if lit else INSET, _mix(accent, LINE, 0.5) if lit else LINE, 1, 7))
+		var cc := CenterContainer.new()
+		chip.add_child(cc)
+		var ic := Label.new()
+		ic.text = icon
+		ic.add_theme_font_size_override("font_size", 13)
+		ic.add_theme_color_override("font_color", Color.html(accent if lit else C_MUTED))
+		cc.add_child(ic)
+		hb.add_child(chip)
 	var nm := Label.new()
 	nm.text = name
 	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	nm.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	nm.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	nm.add_theme_font_size_override("font_size", 13)
 	nm.add_theme_color_override("font_color", Color.html(C_TEXT if lit else C_MUTED))
 	hb.add_child(nm)
 	if badge != "":
 		var bd := PanelContainer.new()
-		bd.add_theme_stylebox_override("panel", _bordered("12192a", accent if lit else "2a3550", 1, 4))
+		bd.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		var bsb := _bordered(_mix(accent, INSET, 0.8) if lit else INSET, accent if lit else LINE, 1, 8)
+		bsb.content_margin_left = 7
+		bsb.content_margin_right = 7
+		bsb.content_margin_top = 2
+		bsb.content_margin_bottom = 2
+		bd.add_theme_stylebox_override("panel", bsb)
 		var bl := Label.new()
 		bl.text = badge
 		bl.add_theme_font_size_override("font_size", 9)
@@ -1020,15 +1103,18 @@ func _card_head(v: VBoxContainer, icon: String, name: String, badge: String, acc
 
 func _inset(v: VBoxContainer, title: String, lines: Array, accent: String, highlight := false) -> void:
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", _bordered("12192a", accent if highlight else "2a3550", 2 if highlight else 1, 5))
+	var sb := _bordered(INSET, accent if highlight else LINE, 1, 8)
+	if highlight:
+		sb.set_border_width_all(1)
+	panel.add_theme_stylebox_override("panel", sb)
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 1)
+	box.add_theme_constant_override("separation", 2)
 	panel.add_child(box)
 	var t := Label.new()
 	t.text = title
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	t.add_theme_font_size_override("font_size", 8)
-	t.add_theme_color_override("font_color", Color.html(C_MUTED))
+	t.add_theme_color_override("font_color", Color.html(accent if highlight else C_MUTED))
 	box.add_child(t)
 	for ln in lines:
 		_clbl(box, ln["text"], 12, ln["color"])
@@ -1049,20 +1135,31 @@ func _line(text: String, color: String) -> Dictionary:
 func _card_button(text: String, accent: String, enabled: bool) -> Button:
 	var b := Button.new()
 	b.text = text
-	b.custom_minimum_size = Vector2(0, 32)
+	b.custom_minimum_size = Vector2(0, 36)
 	b.focus_mode = Control.FOCUS_NONE
 	b.disabled = not enabled
-	for state in ["normal", "hover", "pressed", "disabled"]:
-		b.add_theme_stylebox_override(state, _bordered("12192a", accent if enabled else "2a3550", 1, 5))
-	b.add_theme_color_override("font_color", Color.html(accent if enabled else C_MUTED))
+	# Filled accent CTA with elevation; pressed state inset; disabled muted.
+	var normal := _bordered(accent if enabled else "232f48", _mix(accent, "ffffff", 0.75) if enabled else LINE, 1, 9)
+	if enabled:
+		normal.shadow_color = Color(0, 0, 0, 0.35)
+		normal.shadow_size = 4
+		normal.shadow_offset = Vector2(0, 2)
+	var pressed := _bordered(_mix(accent, "000000", 0.78) if enabled else "232f48", accent if enabled else LINE, 1, 9)
+	b.add_theme_stylebox_override("normal", normal)
+	b.add_theme_stylebox_override("hover", normal)
+	b.add_theme_stylebox_override("pressed", pressed)
+	b.add_theme_stylebox_override("disabled", _bordered("232f48", LINE, 1, 9))
+	var tc := _ideal_text(accent) if enabled else C_MUTED
+	b.add_theme_color_override("font_color", Color.html(tc))
+	b.add_theme_color_override("font_color_hover", Color.html(tc))
+	b.add_theme_color_override("font_color_pressed", Color.html(tc))
 	b.add_theme_color_override("font_color_disabled", Color.html(C_MUTED))
-	b.add_theme_color_override("font_color_hover", Color.html(accent))
-	b.add_theme_color_override("font_color_pressed", Color.html(C_TEXT))
+	b.add_theme_font_size_override("font_size", 13)
 	return b
 
 func _progress(v: VBoxContainer, active: bool, accent: String) -> void:
 	var wrap := Control.new()
-	wrap.custom_minimum_size = Vector2(0, 13)
+	wrap.custom_minimum_size = Vector2(0, 8)
 	var bar := ProgressBar.new()
 	bar.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	bar.show_percentage = false
@@ -1070,14 +1167,15 @@ func _progress(v: VBoxContainer, active: bool, accent: String) -> void:
 	bar.value = 0
 	_style_bar(bar, accent)
 	wrap.add_child(bar)
-	var lbl := Label.new()
-	lbl.text = "" if active else "READY"
-	lbl.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	lbl.add_theme_font_size_override("font_size", 8)
-	lbl.add_theme_color_override("font_color", Color.html(C_MUTED))
-	wrap.add_child(lbl)
+	if not active:
+		var lbl := Label.new()
+		lbl.text = "READY"
+		lbl.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		lbl.add_theme_font_size_override("font_size", 7)
+		lbl.add_theme_color_override("font_color", Color.html(C_MUTED))
+		wrap.add_child(lbl)
 	v.add_child(wrap)
 	if active:
 		_active_bar = bar
@@ -1088,31 +1186,60 @@ func _skill_banner(v: VBoxContainer, title: String, skill_id: String, accent: St
 	var base := GameState.xp_for_level(lvl)
 	var next := GameState.xp_for_level(lvl + 1)
 	var pct: float = 100.0 if next <= base else float(cur - base) / float(next - base) * 100.0
+	var panel := PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", _card_style(_mix(accent, SURFACE, 0.88), _mix(accent, LINE, 0.4), 1, false))
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 2)
+	box.add_theme_constant_override("separation", 5)
+	panel.add_child(box)
+	var hb := HBoxContainer.new()
 	var t := Label.new()
-	t.text = "%s — Lv %d" % [title, lvl]
-	t.add_theme_font_size_override("font_size", 15)
+	t.text = title
+	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	t.add_theme_font_size_override("font_size", 14)
 	t.add_theme_color_override("font_color", Color.html(accent))
-	box.add_child(t)
+	hb.add_child(t)
+	var lv := Label.new()
+	lv.text = "Lv %d" % lvl
+	lv.add_theme_font_size_override("font_size", 14)
+	lv.add_theme_color_override("font_color", Color.html(C_TEXT))
+	hb.add_child(lv)
+	box.add_child(hb)
 	var bar := ProgressBar.new()
-	bar.custom_minimum_size = Vector2(0, 7)
+	bar.custom_minimum_size = Vector2(0, 8)
 	bar.show_percentage = false
 	bar.max_value = 100
 	bar.value = pct
 	_style_bar(bar, accent)
 	box.add_child(bar)
-	v.add_child(box)
+	var xpl := Label.new()
+	xpl.text = "%s / %s XP" % [GameData.fmt(cur - base), GameData.fmt(next - base)]
+	xpl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	xpl.add_theme_font_size_override("font_size", 9)
+	xpl.add_theme_color_override("font_color", Color.html(C_MUTED))
+	box.add_child(xpl)
+	v.add_child(panel)
 
 func _section(v: VBoxContainer, text: String, accent: String) -> void:
 	if text == "":
 		return
+	var hb := HBoxContainer.new()
+	hb.add_theme_constant_override("separation", 7)
+	var tick := Panel.new()
+	tick.custom_minimum_size = Vector2(3, 12)
+	tick.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var ts := StyleBoxFlat.new()
+	ts.bg_color = Color.html(accent)
+	ts.set_corner_radius_all(2)
+	tick.add_theme_stylebox_override("panel", ts)
+	hb.add_child(tick)
 	var l := Label.new()
-	l.text = "[ %s ]" % text
+	l.text = text.to_upper()
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	l.add_theme_font_size_override("font_size", 11)
-	l.add_theme_color_override("font_color", Color.html(accent))
-	v.add_child(l)
+	l.add_theme_color_override("font_color", Color.html(C_DIM))
+	hb.add_child(l)
+	v.add_child(hb)
 
 func _connector(v: VBoxContainer) -> void:
 	var c := CenterContainer.new()
@@ -1128,20 +1255,106 @@ func _refresh_top() -> void:
 	for c in res_bar.get_children():
 		res_bar.remove_child(c)
 		c.queue_free()
-	var cr := Label.new()
-	cr.text = "₡ %s" % GameData.fmt(GameState.credits)
-	cr.add_theme_color_override("font_color", Color.html(GOLD))
-	cr.add_theme_font_size_override("font_size", 13)
-	res_bar.add_child(cr)
+	res_bar.add_child(_chip("₡", GameData.fmt(GameState.credits), GOLD, true))
 	for sym in GameData.RESOURCES:
 		var amt := GameState.amount(sym)
 		if amt <= 0:
 			continue
-		var l := Label.new()
-		l.text = "%s %s" % [GameData.res_name(sym), GameData.fmt(amt)]
-		l.add_theme_color_override("font_color", GameData.color_for(sym))
-		l.add_theme_font_size_override("font_size", 13)
-		res_bar.add_child(l)
+		res_bar.add_child(_chip(GameData.res_name(sym), GameData.fmt(amt), _hex(GameData.color_for(sym)), false))
+
+## A rounded resource pill: colored dot + name + value.
+func _chip(name: String, value: String, accent: String, strong: bool) -> Control:
+	var panel := PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", _bordered(_mix(accent, SURFACE_HI, 0.85) if strong else SURFACE_HI, _mix(accent, LINE, 0.6) if strong else LINE, 1, 14))
+	var hb := HBoxContainer.new()
+	hb.add_theme_constant_override("separation", 5)
+	panel.add_child(hb)
+	var dot := Panel.new()
+	dot.custom_minimum_size = Vector2(7, 7)
+	var ds := StyleBoxFlat.new()
+	ds.bg_color = Color.html(accent)
+	ds.set_corner_radius_all(4)
+	dot.add_theme_stylebox_override("panel", ds)
+	var dw := CenterContainer.new()
+	dw.add_child(dot)
+	hb.add_child(dw)
+	var nm := Label.new()
+	nm.text = name
+	nm.add_theme_font_size_override("font_size", 11)
+	nm.add_theme_color_override("font_color", Color.html(C_DIM))
+	hb.add_child(nm)
+	var vl := Label.new()
+	vl.text = value
+	vl.add_theme_font_size_override("font_size", 12)
+	vl.add_theme_color_override("font_color", Color.html(accent if strong else C_TEXT))
+	hb.add_child(vl)
+	return panel
+
+func _build_active_banner() -> PanelContainer:
+	var panel := PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", _bordered(INSET, LINE, 1, 12))
+	var hb := HBoxContainer.new()
+	hb.add_theme_constant_override("separation", 10)
+	panel.add_child(hb)
+	_banner_chip = PanelContainer.new()
+	_banner_chip.custom_minimum_size = Vector2(40, 40)
+	_banner_chip.add_theme_stylebox_override("panel", _bordered(SURFACE_HI, LINE, 1, 10))
+	var cc := CenterContainer.new()
+	_banner_chip.add_child(cc)
+	_banner_icon = Label.new()
+	_banner_icon.add_theme_font_size_override("font_size", 19)
+	cc.add_child(_banner_icon)
+	hb.add_child(_banner_chip)
+	var vb := VBoxContainer.new()
+	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vb.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	vb.add_theme_constant_override("separation", 3)
+	hb.add_child(vb)
+	_banner_kind = Label.new()
+	_banner_kind.add_theme_font_size_override("font_size", 9)
+	vb.add_child(_banner_kind)
+	_banner_name = Label.new()
+	_banner_name.add_theme_font_size_override("font_size", 14)
+	_banner_name.add_theme_color_override("font_color", Color.html(C_TEXT))
+	vb.add_child(_banner_name)
+	_banner_bar = ProgressBar.new()
+	_banner_bar.custom_minimum_size = Vector2(0, 5)
+	_banner_bar.show_percentage = false
+	_banner_bar.max_value = 100
+	vb.add_child(_banner_bar)
+	_banner_time = Label.new()
+	_banner_time.custom_minimum_size = Vector2(46, 0)
+	_banner_time.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_banner_time.add_theme_font_size_override("font_size", 14)
+	_banner_time.add_theme_color_override("font_color", Color.html(C_DIM))
+	hb.add_child(_banner_time)
+	return panel
+
+func _refresh_banner() -> void:
+	if _banner_icon == null:
+		return
+	var t := GameState.active_type
+	var accent := C_MUTED
+	var icon := "✦"
+	var kind := "IDLE"
+	var nm := "Tap an action to begin"
+	if t == "gather":
+		accent = GOLD; icon = "↑"; kind = "HARVESTING"; nm = GameData.GATHER[GameState.active_id]["name"]
+	elif t == "craft":
+		accent = CYAN; icon = "⚙"; kind = "ENGINEERING"; nm = GameData.CRAFT[GameState.active_id]["name"]
+	elif t == "combat":
+		accent = RED; icon = "◎"; kind = "IN COMBAT"; nm = GameData.ENEMIES[GameState.active_id]["name"]
+	_banner_icon.text = icon
+	_banner_icon.add_theme_color_override("font_color", Color.html(accent))
+	_banner_chip.add_theme_stylebox_override("panel", _bordered(_mix(accent, INSET, 0.8), accent, 1, 10))
+	_banner_kind.text = kind
+	_banner_kind.add_theme_color_override("font_color", Color.html(accent))
+	_banner_name.text = nm
+	_banner_bar.modulate.a = 1.0 if t != "" else 0.0
+	_style_bar(_banner_bar, accent)
+	if t == "":
+		_banner_time.text = ""
+		_banner_bar.value = 0.0
 
 # ============================================================ MODAL
 func _show_offline(text: String) -> void:
@@ -1231,10 +1444,71 @@ func _style_tab(b: Button, active: bool) -> void:
 
 func _style_bar(b: ProgressBar, accent: String) -> void:
 	var bg := StyleBoxFlat.new()
-	bg.bg_color = Color.html("0c1626")
-	bg.set_corner_radius_all(3)
+	bg.bg_color = Color.html("0a1120")
+	bg.set_corner_radius_all(6)
+	bg.set_border_width_all(1)
+	bg.border_color = Color.html(LINE)
 	var fg := StyleBoxFlat.new()
 	fg.bg_color = Color.html(accent)
-	fg.set_corner_radius_all(3)
+	fg.set_corner_radius_all(6)
 	b.add_theme_stylebox_override("background", bg)
 	b.add_theme_stylebox_override("fill", fg)
+
+# ---- Design helpers ----
+func _card_style(bg: String, border: String, width := 1, elevated := false) -> StyleBoxFlat:
+	var s := _bordered(bg, border, width, 14)
+	s.content_margin_left = 11
+	s.content_margin_right = 11
+	s.content_margin_top = 10
+	s.content_margin_bottom = 10
+	if elevated:
+		s.shadow_color = Color(0, 0, 0, 0.40)
+		s.shadow_size = 7
+		s.shadow_offset = Vector2(0, 3)
+	return s
+
+func _hud_style() -> StyleBoxFlat:
+	var s := StyleBoxFlat.new()
+	s.bg_color = Color.html("0f1830")
+	s.border_width_bottom = 1
+	s.border_color = Color.html(LINE)
+	s.content_margin_left = 12
+	s.content_margin_right = 12
+	s.content_margin_top = 10
+	s.content_margin_bottom = 10
+	s.shadow_color = Color(0, 0, 0, 0.35)
+	s.shadow_size = 6
+	s.shadow_offset = Vector2(0, 2)
+	return s
+
+func _nav_style() -> StyleBoxFlat:
+	var s := StyleBoxFlat.new()
+	s.bg_color = Color.html("0f1830")
+	s.border_width_top = 1
+	s.border_color = Color.html(LINE)
+	s.content_margin_left = 4
+	s.content_margin_right = 4
+	s.content_margin_top = 3
+	s.content_margin_bottom = 3
+	return s
+
+func _grad_tex(top: String, bot: String) -> GradientTexture2D:
+	var g := Gradient.new()
+	g.set_color(0, Color.html(top))
+	g.set_color(1, Color.html(bot))
+	var tex := GradientTexture2D.new()
+	tex.gradient = g
+	tex.fill_from = Vector2(0, 0)
+	tex.fill_to = Vector2(0, 1)
+	tex.width = 8
+	tex.height = 256
+	return tex
+
+func _mix(a: String, b: String, t: float) -> String:
+	return Color.html(a).lerp(Color.html(b), t).to_html(false)
+
+## Dark text on bright accents, light text on dark ones — keeps CTAs legible.
+func _ideal_text(accent: String) -> String:
+	var c := Color.html(accent)
+	var lum := 0.299 * c.r + 0.587 * c.g + 0.114 * c.b
+	return "0b1220" if lum > 0.55 else "f4f7fc"
