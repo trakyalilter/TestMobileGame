@@ -10,6 +10,27 @@ const RESOURCES := {
 	"IronPlate": {"name": "Iron Plate", "color": "d7dbe0"},
 	"Crystal":   {"name": "Crystal",    "color": "5ad1e0"},
 	"Circuit":   {"name": "Circuit",    "color": "6ad36a"},
+	"Artifact":  {"name": "Artifact",   "color": "b07ad6"},
+}
+
+# --- Combat targets (Skill: combat). loot rows = [symbol, chance, min, max] ---
+const ENEMIES := {
+	"scrap_drone": {
+		"name": "Scrap Drone", "hp": 20, "dmg": 0.8, "xp": 15, "level_req": 1,
+		"loot": [["Scrap", 1.0, 3, 6], ["IronOre", 0.5, 1, 2]],
+	},
+	"iron_raider": {
+		"name": "Iron Raider", "hp": 70, "dmg": 1.5, "xp": 45, "level_req": 3,
+		"loot": [["IronOre", 1.0, 3, 6], ["Artifact", 0.2, 1, 1]],
+	},
+	"crystal_sentinel": {
+		"name": "Crystal Sentinel", "hp": 180, "dmg": 3.0, "xp": 150, "level_req": 6,
+		"loot": [["Crystal", 1.0, 2, 4], ["Artifact", 0.5, 1, 2]],
+	},
+	"void_marauder": {
+		"name": "Void Marauder", "hp": 420, "dmg": 5.0, "xp": 420, "level_req": 10,
+		"loot": [["Crystal", 1.0, 4, 8], ["Circuit", 0.3, 1, 2], ["Artifact", 1.0, 1, 3]],
+	},
 }
 
 # --- Gathering actions (Skill: harvesting) ---
@@ -72,6 +93,10 @@ const TECH := {
 	"rich_veins": {
 		"name": "Rich Veins", "cat": "operations", "req": ["deep_drilling"],
 		"cost": {"Crystal": 10}, "desc": "+25% gather yield", "effects": {"gather_yield": 0.25},
+	},
+	"salvage_analysis": {
+		"name": "Salvage Analysis", "cat": "operations", "req": ["rich_veins"],
+		"cost": {"Artifact": 5}, "desc": "+30% gather yield", "effects": {"gather_yield": 0.30},
 	},
 	# --- Engineering tree (fabrication) ---
 	"electronics": {

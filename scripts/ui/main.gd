@@ -5,6 +5,7 @@ extends Control
 const TABS := [
 	{"id": "gather", "label": "Gather"},
 	{"id": "craft",  "label": "Craft"},
+	{"id": "combat", "label": "Combat"},
 	{"id": "tech",   "label": "Tech"},
 	{"id": "stats",  "label": "More"},
 ]
@@ -20,6 +21,7 @@ const C_WARN := "d9a441"
 const GOLD := "d9b24c"
 const CYAN := "4fd2e0"
 const GREEN := "5ad17a"
+const RED := "e0654f"
 const PURPLE := "2e2750"
 
 var content: Control
@@ -31,6 +33,8 @@ var res_bar: HBoxContainer
 var active_label: Label
 var _active_bar: ProgressBar = null
 var _active_timer: Label = null
+var _combat_hp_bar: ProgressBar = null
+var _combat_hp_label: Label = null
 var _reset_armed := false
 
 func _ready() -> void:
@@ -55,6 +59,12 @@ func _process(_delta: float) -> void:
 				_active_bar.value = clampf(GameState.progress / dur * 100.0, 0.0, 100.0)
 			if is_instance_valid(_active_timer):
 				_active_timer.text = "%.1fs / %.1fs" % [GameState.progress, dur]
+	if is_instance_valid(_combat_hp_bar):
+		var mx := GameState.combat_max_hp()
+		_combat_hp_bar.max_value = mx
+		_combat_hp_bar.value = GameState.combat_hp
+		if is_instance_valid(_combat_hp_label):
+			_combat_hp_label.text = "%d / %d HP" % [int(GameState.combat_hp), int(mx)]
 	if active_label:
 		active_label.text = _active_text()
 
@@ -158,9 +168,14 @@ func _refresh_all() -> void:
 	_refresh_current()
 
 func _refresh_current() -> void:
+	_active_bar = null
+	_active_timer = null
+	_combat_hp_bar = null
+	_combat_hp_label = null
 	match current:
 		"gather": _build_gather()
 		"craft":  _build_craft()
+		"combat": _build_combat()
 		"tech":   _build_tech()
 		"stats":  _build_stats()
 
@@ -234,8 +249,8 @@ func _craft_card(id: String, r: Dictionary) -> Control:
 		_locked(v, r, "fabrication")
 	return v.get_parent()
 
-func _action_controls(v: VBoxContainer, type: String, id: String, active: bool, accent: String) -> void:
-	var b := _card_button("Stop" if active else "Start", accent, true)
+func _action_controls(v: VBoxContainer, type: String, id: String, active: bool, accent: String, start_label := "Start", stop_label := "Stop") -> void:
+	var b := _card_button(stop_label if active else start_label, accent, true)
 	b.pressed.connect(func() -> void: GameState.start_task(type, id))
 	v.add_child(b)
 	var t := Label.new()
@@ -263,6 +278,65 @@ func _locked(v: VBoxContainer, def: Dictionary, skill: String) -> void:
 	r.add_theme_font_size_override("font_size", 10)
 	r.add_theme_color_override("font_color", Color.html(C_MUTED))
 	v.add_child(r)
+
+# ============================================================ COMBAT PAGE
+func _build_combat() -> void:
+	var v := _clear("combat")
+	_skill_banner(v, "BATTLE STATION", "combat", RED)
+
+	# Hull HP bar (live-updated in _process)
+	var hpbox := VBoxContainer.new()
+	hpbox.add_theme_constant_override("separation", 3)
+	var hb := HBoxContainer.new()
+	var hl := Label.new()
+	hl.text = "HULL INTEGRITY"
+	hl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hl.add_theme_font_size_override("font_size", 11)
+	hl.add_theme_color_override("font_color", Color.html(RED))
+	hb.add_child(hl)
+	_combat_hp_label = Label.new()
+	_combat_hp_label.text = "%d / %d HP" % [int(GameState.combat_hp), int(GameState.combat_max_hp())]
+	_combat_hp_label.add_theme_font_size_override("font_size", 10)
+	_combat_hp_label.add_theme_color_override("font_color", Color.html(C_DIM))
+	hb.add_child(_combat_hp_label)
+	hpbox.add_child(hb)
+	_combat_hp_bar = ProgressBar.new()
+	_combat_hp_bar.custom_minimum_size = Vector2(0, 10)
+	_combat_hp_bar.show_percentage = false
+	_combat_hp_bar.max_value = GameState.combat_max_hp()
+	_combat_hp_bar.value = GameState.combat_hp
+	_style_bar(_combat_hp_bar, RED)
+	hpbox.add_child(_combat_hp_bar)
+	var st := Label.new()
+	st.text = "Attack %.0f/s   ·   Regen %.0f/s" % [GameState.combat_attack(), GameState.combat_max_hp() * GameState.HP_REGEN]
+	st.add_theme_font_size_override("font_size", 10)
+	st.add_theme_color_override("font_color", Color.html(C_DIM))
+	hpbox.add_child(st)
+	v.add_child(hpbox)
+
+	_section(v, "HOSTILES", RED)
+	var g := _grid(v)
+	for id in GameData.ENEMIES:
+		g.add_child(_enemy_card(id, GameData.ENEMIES[id]))
+
+func _enemy_card(id: String, e: Dictionary) -> Control:
+	var unlocked := GameState.meets_requirements(e, "combat")
+	var active := (GameState.active_type == "combat" and GameState.active_id == id)
+	var v := _card(RED, unlocked or active)
+	_card_head(v, "◎", e["name"], "Lv %d" % int(e.get("level_req", 1)), RED, unlocked)
+	if unlocked:
+		_inset(v, "TARGET", [
+			_line("HP %d" % int(e["hp"]), C_TEXT),
+			_line("DMG %.1f/s" % float(e["dmg"]), C_WARN),
+		], RED)
+		var loot_lines := []
+		for entry in e.get("loot", []):
+			loot_lines.append(_line("%s %d-%d" % [GameData.res_name(entry[0]), int(entry[2]), int(entry[3])], _hex(GameData.color_for(entry[0]))))
+		_inset(v, "SALVAGE", loot_lines, RED)
+		_action_controls(v, "combat", id, active, RED, "Engage", "Retreat")
+	else:
+		_locked(v, e, "combat")
+	return v.get_parent()
 
 # ============================================================ TECH TREES
 func _build_tech() -> void:
@@ -634,6 +708,8 @@ func _active_text() -> String:
 		return "▶ Harvesting: " + GameData.GATHER[GameState.active_id]["name"]
 	elif GameState.active_type == "craft":
 		return "▶ Crafting: " + GameData.CRAFT[GameState.active_id]["name"]
+	elif GameState.active_type == "combat":
+		return "▶ Engaging: " + GameData.ENEMIES[GameState.active_id]["name"]
 	return "Idle — tap an action to begin"
 
 func _req_text(def: Dictionary, skill: String) -> String:

@@ -11,13 +11,18 @@ var resources: Dictionary = {}          # symbol -> int
 var skills: Dictionary = {              # skill_id -> total xp
 	"harvesting": 0,
 	"fabrication": 0,
+	"combat": 0,
 }
 var unlocked_tech: Dictionary = {}      # tech_id -> true
 
 # The single foreground task currently running.
-var active_type: String = ""            # "gather" | "craft" | ""
+var active_type: String = ""            # "gather" | "craft" | "combat" | ""
 var active_id: String = ""
 var progress: float = 0.0
+
+# Combat state
+var combat_hp: float = 0.0              # current hull HP (regenerates over time)
+const HP_REGEN := 0.04                  # fraction of max HP restored per second
 
 # Set during load(); main.gd reads & clears it to show the welcome-back modal.
 var pending_offline: String = ""
@@ -28,9 +33,15 @@ var _save_accum := 0.0
 
 func _ready() -> void:
 	load_game()
+	if combat_hp <= 0.0:
+		combat_hp = combat_max_hp()
 
 func _process(delta: float) -> void:
 	_tick_active(delta)
+	# Hull regenerates toward max whether fighting or not.
+	var mx := combat_max_hp()
+	if combat_hp < mx:
+		combat_hp = minf(mx, combat_hp + mx * HP_REGEN * delta)
 	_save_accum += delta
 	if _save_accum >= AUTOSAVE_INTERVAL:
 		_save_accum = 0.0
@@ -89,6 +100,13 @@ func yield_mult(skill_id: String) -> float:
 		m += tech_bonus("gather_yield")
 	return m
 
+# ---------------- Combat stats ----------------
+func combat_max_hp() -> float:
+	return 50.0 + level_of("combat") * 10.0
+
+func combat_attack() -> float:
+	return 5.0 + level_of("combat") * 2.0
+
 # ---------------- Tech ----------------
 func is_unlocked(tech_id: String) -> bool:
 	return unlocked_tech.has(tech_id)
@@ -145,6 +163,9 @@ func effective_duration(type: String, id: String) -> float:
 		return float(GameData.GATHER[id].get("duration", 3.0)) / (1.0 + tech_bonus("gather_speed"))
 	elif type == "craft" and GameData.CRAFT.has(id):
 		return float(GameData.CRAFT[id].get("duration", 3.0)) / (1.0 + tech_bonus("craft_speed"))
+	elif type == "combat" and GameData.ENEMIES.has(id):
+		# Time to destroy one enemy = its hull / our attack-per-second.
+		return maxf(0.5, float(GameData.ENEMIES[id]["hp"]) / combat_attack())
 	return 0.0
 
 func _tick_active(delta: float) -> void:
@@ -178,6 +199,18 @@ func _complete_active() -> void:
 		spend(r.get("inputs", {}))
 		add_resource(r["output"], int(r.get("amount", 1)))
 		add_xp("fabrication", int(r.get("xp", 0)))
+	elif active_type == "combat":
+		var e: Dictionary = GameData.ENEMIES[active_id]
+		# Roll loot for the kill.
+		for entry in e.get("loot", []):
+			if randf() < float(entry[1]):
+				add_resource(entry[0], randi_range(int(entry[2]), int(entry[3])))
+		add_xp("combat", int(e.get("xp", 0)))
+		# Take damage sustained over the fight; retreat if the hull is breached.
+		combat_hp -= float(e.get("dmg", 0.0)) * current_duration()
+		if combat_hp <= 0.0:
+			combat_hp = combat_max_hp() * 0.25
+			stop_task()
 
 # ---------------- Offline progress ----------------
 func _apply_offline(delta: float) -> void:
@@ -215,6 +248,23 @@ func _apply_offline(delta: float) -> void:
 		pending_offline = "Away for %s\n\nCrafted %s %s\n+%d Fabrication XP" % [
 			_fmt_time(delta), GameData.fmt(made), GameData.res_name(r["output"]),
 			int(r.get("xp", 0)) * count]
+	elif active_type == "combat":
+		var e: Dictionary = GameData.ENEMIES[active_id]
+		# Only auto-farm offline if the fight is sustainable (regen >= incoming damage).
+		var net: float = combat_max_hp() * HP_REGEN - float(e.get("dmg", 0.0))
+		if net < 0.0:
+			return
+		add_xp("combat", int(e.get("xp", 0)) * by_time)
+		var summary := ""
+		for entry in e.get("loot", []):
+			var avg: float = (int(entry[2]) + int(entry[3])) / 2.0 * float(entry[1])
+			var got := int(round(avg * by_time))
+			if got > 0:
+				add_resource(entry[0], got)
+				summary += "\n+%s %s" % [GameData.fmt(got), GameData.res_name(entry[0])]
+		combat_hp = combat_max_hp()
+		pending_offline = "Away for %s\n\nDestroyed %d %s%s\n+%d Combat XP" % [
+			_fmt_time(delta), by_time, e["name"], summary, int(e.get("xp", 0)) * by_time]
 
 func _fmt_time(secs: float) -> String:
 	var s := int(secs)
@@ -236,6 +286,7 @@ func save_game() -> void:
 		"active_type": active_type,
 		"active_id": active_id,
 		"progress": progress,
+		"combat_hp": combat_hp,
 		"time": Time.get_unix_time_from_system(),
 	}
 	var tmp := SAVE_PATH + ".tmp"
@@ -269,6 +320,7 @@ func load_game() -> void:
 	active_type = data.get("active_type", "")
 	active_id = data.get("active_id", "")
 	progress = float(data.get("progress", 0.0))
+	combat_hp = float(data.get("combat_hp", 0.0))
 
 	var last := float(data.get("time", Time.get_unix_time_from_system()))
 	_apply_offline(Time.get_unix_time_from_system() - last)
@@ -280,9 +332,10 @@ func load_game() -> void:
 
 func hard_reset() -> void:
 	resources = {}
-	skills = {"harvesting": 0, "fabrication": 0}
+	skills = {"harvesting": 0, "fabrication": 0, "combat": 0}
 	unlocked_tech = {}
 	pending_offline = ""
+	combat_hp = combat_max_hp()
 	stop_task()
 	if FileAccess.file_exists(SAVE_PATH):
 		DirAccess.remove_absolute(SAVE_PATH)
