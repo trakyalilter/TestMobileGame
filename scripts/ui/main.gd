@@ -10,11 +10,12 @@ const BOTTOM := [
 	{"id": "research", "label": "Research"},
 	{"id": "more",     "label": "More"},
 ]
-const PAGE_IDS := ["gather", "craft", "combat", "research", "more", "build", "ship", "stats"]
+const PAGE_IDS := ["gather", "craft", "combat", "research", "more", "build", "ship", "bounty", "stats"]
 const MORE_MENU := [
-	{"id": "build", "label": "⌂  Infrastructure"},
-	{"id": "ship",  "label": "⛭  Shipyard"},
-	{"id": "stats", "label": "≡  Storage & Crew"},
+	{"id": "build",  "label": "⌂  Infrastructure"},
+	{"id": "ship",   "label": "⛭  Shipyard"},
+	{"id": "bounty", "label": "◆  Bounty Board"},
+	{"id": "stats",  "label": "≡  Storage & Crew"},
 ]
 
 const C_BG := "0b1220"
@@ -55,6 +56,7 @@ func _ready() -> void:
 	GameState.skills_changed.connect(_refresh_current)
 	GameState.research_changed.connect(_refresh_all)
 	GameState.action_changed.connect(_refresh_current)
+	GameState.bounty_changed.connect(_refresh_current)
 	_refresh_top()
 	_show("gather")
 	if GameState.pending_offline != "":
@@ -188,6 +190,7 @@ func _refresh_current() -> void:
 		"combat":   _build_combat()
 		"build":    _build_infra()
 		"ship":     _build_ship()
+		"bounty":   _build_bounty()
 		"research": _build_research()
 		"more":     _build_more()
 		"stats":    _build_stats()
@@ -430,6 +433,104 @@ func _build_more() -> void:
 		b.pressed.connect(func() -> void: _show(pid))
 		v.add_child(b)
 	_empty(v, "Fleet · Bounty · Warp coming next.")
+
+# ============================================================ BOUNTY BOARD
+func _build_bounty() -> void:
+	var v := _clear("bounty")
+	_back_header(v)
+	var t := Label.new()
+	t.text = "◆ BOUNTY BOARD"
+	t.add_theme_font_size_override("font_size", 16)
+	t.add_theme_color_override("font_color", Color.html(GOLD))
+	v.add_child(t)
+
+	var rr := HBoxContainer.new()
+	var rt := Label.new()
+	var secs := int(GameState.bounty_refresh_timer)
+	rt.text = "Auto-refresh in %dh %dm" % [secs / 3600, (secs % 3600) / 60]
+	rt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rt.add_theme_font_size_override("font_size", 11)
+	rt.add_theme_color_override("font_color", Color.html(C_DIM))
+	rr.add_child(rt)
+	var cost := GameState.bounty_refresh_cost()
+	var rb := _card_button("Refresh ₡%s" % GameData.fmt(cost), GOLD, GameState.credits >= cost)
+	rb.custom_minimum_size = Vector2(150, 32)
+	if GameState.credits >= cost:
+		rb.pressed.connect(func() -> void: GameState.force_refresh_bounty())
+	rr.add_child(rb)
+	v.add_child(rr)
+
+	_section(v, "ACTIVE  (%d/%d)" % [GameState.bounty_active.size(), GameState.BOUNTY_MAX_ACTIVE], GOLD)
+	if GameState.bounty_active.is_empty():
+		_empty(v, "No active contracts — accept some below.")
+	for c in GameState.bounty_active:
+		v.add_child(_bounty_card(c, true))
+
+	_section(v, "AVAILABLE", GOLD)
+	if GameState.bounty_available.is_empty():
+		_empty(v, "Board is empty.")
+	for c in GameState.bounty_available:
+		v.add_child(_bounty_card(c, false))
+
+func _bounty_card(c: Dictionary, active: bool) -> Control:
+	var elite: bool = c.get("is_elite", false)
+	var panel := PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", _bordered("16243a", GOLD if elite else "2a3a55", 2 if elite else 1))
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 4)
+	panel.add_child(vb)
+	_lbl_wrap(vb, c.get("title", ""), 14, GOLD if elite else C_TEXT)
+	_lbl_wrap(vb, c.get("desc", ""), 10, C_DIM)
+	var reward := Label.new()
+	reward.text = "Reward: ₡%s" % GameData.fmt(c.get("reward_credits", 0))
+	reward.add_theme_font_size_override("font_size", 11)
+	reward.add_theme_color_override("font_color", Color.html(GOLD))
+	vb.add_child(reward)
+
+	var cid: String = c["id"]
+	if active:
+		if c["type"] == "hunt":
+			var pg := Label.new()
+			pg.text = "Progress: %d / %d" % [int(c["current_qty"]), int(c["target_qty"])]
+			pg.add_theme_font_size_override("font_size", 11)
+			pg.add_theme_color_override("font_color", Color.html(GREEN if c["completed"] else C_DIM))
+			vb.add_child(pg)
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 6)
+		if c["completed"]:
+			var claim := _card_button("Claim", GREEN, true)
+			claim.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			claim.pressed.connect(func() -> void: GameState.claim_contract(cid))
+			row.add_child(claim)
+		var ab := _card_button("Abandon", C_WARN, true)
+		ab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		ab.pressed.connect(func() -> void: GameState.abandon_contract(cid))
+		row.add_child(ab)
+		vb.add_child(row)
+	else:
+		var can := GameState.bounty_active.size() < GameState.BOUNTY_MAX_ACTIVE
+		if c["type"] == "delivery":
+			var need := int(c["target_qty"])
+			var have := GameState.amount(c["target"])
+			var nl := Label.new()
+			nl.text = "You have %s / %s" % [GameData.fmt(have), GameData.fmt(need)]
+			nl.add_theme_font_size_override("font_size", 10)
+			nl.add_theme_color_override("font_color", Color.html(GREEN if have >= need else C_WARN))
+			vb.add_child(nl)
+			can = can and have >= need
+		var acc := _card_button("Accept" if can else ("Slots Full" if GameState.bounty_active.size() >= GameState.BOUNTY_MAX_ACTIVE else "Need Materials"), GOLD, can)
+		if can:
+			acc.pressed.connect(func() -> void: GameState.accept_contract(cid))
+		vb.add_child(acc)
+	return panel
+
+func _lbl_wrap(parent: Node, text: String, size: int, color: String) -> void:
+	var l := Label.new()
+	l.text = text
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.add_theme_font_size_override("font_size", size)
+	l.add_theme_color_override("font_color", Color.html(color))
+	parent.add_child(l)
 
 func _back_header(v: VBoxContainer) -> void:
 	var b := Button.new()

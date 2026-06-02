@@ -54,6 +54,8 @@ func _ready() -> void:
 		owned_hulls["corvette_hull"] = true
 	if combat_hp <= 0.0:
 		combat_hp = combat_max_hp()
+	if bounty_available.is_empty() and bounty_active.is_empty():
+		generate_bounty_pool()
 
 func _process(delta: float) -> void:
 	_tick_active(delta)
@@ -67,6 +69,10 @@ func _process(delta: float) -> void:
 		_infra_emit_accum = 0.0
 		_infra_dirty = false
 		resources_changed.emit()
+	if bounty_refresh_timer > 0.0:
+		bounty_refresh_timer -= delta
+		if bounty_refresh_timer <= 0.0:
+			generate_bounty_pool()
 	_save_accum += delta
 	if _save_accum >= AUTOSAVE_INTERVAL:
 		_save_accum = 0.0
@@ -252,6 +258,175 @@ func unequip_slot(idx: String) -> void:
 		module_inventory[loadout[idx]] = int(module_inventory.get(loadout[idx], 0)) + 1
 		loadout.erase(idx)
 		resources_changed.emit()
+
+# ---------------- Bounty board ----------------
+signal bounty_changed
+
+const BOUNTY_MAX_ACTIVE := 3
+const BOUNTY_MAX_AVAIL := 6
+const BOUNTY_REFRESH := 28800.0   # 8 hours
+const DELIVERY_MATERIALS := {
+	1: [["Cu", 500, 1000, 25000], ["Fe", 300, 600, 40000], ["Si", 200, 400, 30000]],
+	2: [["Fe", 800, 1500, 100000], ["Cu", 300, 600, 75000], ["Steel", 100, 250, 150000]],
+	3: [["Steel", 250, 500, 250000], ["Ti", 100, 250, 400000], ["Circuit", 100, 200, 300000]],
+	4: [["Ti", 300, 600, 600000], ["W", 150, 300, 500000], ["Graphite", 200, 400, 400000]],
+	5: [["AdvCircuit", 100, 200, 1250000], ["Superalloy", 50, 150, 1500000], ["NavData", 100, 250, 1000000]],
+	6: [["ColonySalvage", 250, 500, 2000000], ["AdvCircuit", 150, 300, 1750000], ["Steel", 2000, 5000, 2500000]],
+	7: [["RadIsotope", 200, 500, 3000000], ["Pt", 100, 250, 3750000], ["Superalloy", 150, 300, 2750000]],
+	8: [["VoidCrystal", 50, 150, 5000000], ["Diamond", 30, 80, 4000000], ["ExoticMatter", 20, 50, 6000000]],
+	9: [["BiohazardSample", 100, 250, 7500000], ["MutatedTissue", 50, 150, 9000000], ["PathogenCore", 20, 50, 10000000]],
+	10: [["VoidEssence", 50, 100, 25000000], ["ChronoCore", 20, 50, 37500000], ["PrimordialShard", 10, 30, 50000000]],
+}
+
+var bounty_available: Array = []
+var bounty_active: Array = []
+var bounty_refresh_timer: float = 0.0
+var bounty_total: int = 0
+var _bounty_id := 0
+
+func _gen_bid() -> String:
+	_bounty_id += 1
+	return "b%d" % _bounty_id
+
+func bounty_max_diff() -> int:
+	return clampi(1 + int(level_of("combat") / 4.0), 1, 10)
+
+func _zones_in_range(mind: int, maxd: int) -> Array:
+	var out := []
+	for z in GameData.ZONES:
+		var diff := int(z.get("difficulty", 1))
+		if diff >= mind and diff <= maxd:
+			out.append(z)
+	return out
+
+func generate_bounty_pool() -> void:
+	bounty_available.clear()
+	var maxd := bounty_max_diff()
+	var mind := maxi(1, maxd - 1)
+	var attempts := 0
+	while bounty_available.size() < BOUNTY_MAX_AVAIL and attempts < 100:
+		attempts += 1
+		var c := {}
+		var roll := randf()
+		if roll < 0.4:
+			c = _gen_hunt(mind, maxd, false)
+		elif roll < 0.7:
+			c = _gen_delivery(mind, maxd)
+		else:
+			c = _gen_hunt(maxd, maxd, true)
+		if not c.is_empty():
+			var dup := false
+			for e in bounty_available:
+				if e["target"] == c["target"] and e["type"] == c["type"] and e.get("is_elite", false) == c.get("is_elite", false):
+					dup = true
+					break
+			if not dup:
+				bounty_available.append(c)
+	bounty_refresh_timer = BOUNTY_REFRESH
+	bounty_changed.emit()
+
+func _gen_hunt(mind: int, maxd: int, elite: bool) -> Dictionary:
+	var zs := _zones_in_range(mind, maxd)
+	if zs.is_empty():
+		return {}
+	var z: Dictionary = zs[randi() % zs.size()]
+	var ens: Array = z.get("enemies", [])
+	if ens.is_empty():
+		return {}
+	var eid: String = ens[randi() % ens.size()]
+	var e: Dictionary = GameData.ENEMIES.get(eid, {})
+	if e.is_empty():
+		return {}
+	var diff := int(z.get("difficulty", 1))
+	var base_xp := float(e.get("xp", 10))
+	var qty := 1 if elite else randi_range(5, 20)
+	var reward := int(base_xp * 300.0 * pow(diff, 1.5)) if elite else int(base_xp * qty * 5.0 * pow(diff, 1.8))
+	var title := ("★ ELITE: %s" % e["name"]) if elite else ("Hunt: %s" % e["name"])
+	var desc := "Destroy %s%d %s in %s." % ["the ELITE " if elite else "", qty, e["name"], z.get("name", "")]
+	return {"id": _gen_bid(), "type": "hunt", "title": title, "desc": desc,
+		"target": eid, "target_qty": qty, "current_qty": 0, "reward_credits": reward,
+		"zone_id": z.get("id", ""), "difficulty": diff, "completed": false, "is_elite": elite}
+
+func _gen_delivery(mind: int, maxd: int) -> Dictionary:
+	var tier := randi_range(mind, maxd)
+	var tmpl: Array = DELIVERY_MATERIALS.get(tier, [])
+	if tmpl.is_empty():
+		return {}
+	var t: Array = tmpl[randi() % tmpl.size()]
+	var qty := randi_range(int(t[1]), int(t[2]))
+	return {"id": _gen_bid(), "type": "delivery", "title": "Supply: %s" % GameData.res_name(t[0]),
+		"desc": "Deliver %d %s to the station." % [qty, GameData.res_name(t[0])],
+		"target": t[0], "target_qty": qty, "current_qty": 0, "reward_credits": int(t[3]),
+		"zone_id": "", "difficulty": tier, "completed": false, "is_elite": false}
+
+func _find_contract(arr: Array, cid: String) -> Variant:
+	for c in arr:
+		if c["id"] == cid:
+			return c
+	return null
+
+func accept_contract(cid: String) -> bool:
+	if bounty_active.size() >= BOUNTY_MAX_ACTIVE:
+		return false
+	var c = _find_contract(bounty_available, cid)
+	if c == null:
+		return false
+	if c["type"] == "delivery":
+		if amount(c["target"]) < int(c["target_qty"]):
+			return false
+		resources[c["target"]] = amount(c["target"]) - int(c["target_qty"])
+		c["current_qty"] = int(c["target_qty"])
+		c["completed"] = true
+	bounty_available.erase(c)
+	bounty_active.append(c)
+	resources_changed.emit()
+	bounty_changed.emit()
+	return true
+
+func claim_contract(cid: String) -> bool:
+	var c = _find_contract(bounty_active, cid)
+	if c == null or not c["completed"]:
+		return false
+	credits += int(c["reward_credits"])
+	bounty_active.erase(c)
+	bounty_total += 1
+	resources_changed.emit()
+	bounty_changed.emit()
+	return true
+
+func abandon_contract(cid: String) -> bool:
+	var c = _find_contract(bounty_active, cid)
+	if c == null:
+		return false
+	if c["type"] == "delivery" and int(c["current_qty"]) > 0:
+		resources[c["target"]] = amount(c["target"]) + int(c["current_qty"])
+	bounty_active.erase(c)
+	resources_changed.emit()
+	bounty_changed.emit()
+	return true
+
+func bounty_refresh_cost() -> int:
+	return bounty_max_diff() * 5000
+
+func force_refresh_bounty() -> bool:
+	var cost := bounty_refresh_cost()
+	if credits < cost:
+		return false
+	credits -= cost
+	generate_bounty_pool()
+	resources_changed.emit()
+	return true
+
+func bounty_on_kill(eid: String) -> void:
+	var changed := false
+	for c in bounty_active:
+		if c["type"] == "hunt" and c["target"] == eid and not c["completed"]:
+			c["current_qty"] = mini(int(c["current_qty"]) + 1, int(c["target_qty"]))
+			if int(c["current_qty"]) >= int(c["target_qty"]):
+				c["completed"] = true
+			changed = true
+	if changed:
+		bounty_changed.emit()
 
 # ---------------- Infrastructure ----------------
 func building_count(bid: String) -> int:
@@ -490,6 +665,7 @@ func _complete_active() -> void:
 		var e: Dictionary = GameData.ENEMIES[active_id]
 		_roll_loot(e.get("loot", []), 1.0)
 		add_xp("combat", int(e.get("xp", 0)))
+		bounty_on_kill(active_id)
 		var dps: float = float(e.get("atk", 0)) / maxf(0.5, float(e.get("interval", 2.0)))
 		dps *= 100.0 / (100.0 + combat_defense())   # armor mitigation
 		combat_hp -= dps * current_duration()
@@ -619,6 +795,11 @@ func save_game() -> void:
 		"loadout": loadout,
 		"buildings": buildings,
 		"building_throttle": building_throttle,
+		"bounty_available": bounty_available,
+		"bounty_active": bounty_active,
+		"bounty_refresh_timer": bounty_refresh_timer,
+		"bounty_total": bounty_total,
+		"bounty_id": _bounty_id,
 		"time": Time.get_unix_time_from_system(),
 	}
 	var tmp := SAVE_PATH + ".tmp"
@@ -665,6 +846,11 @@ func load_game() -> void:
 	for k in buildings:
 		buildings[k] = int(buildings[k])
 	building_throttle = data.get("building_throttle", {})
+	bounty_available = data.get("bounty_available", [])
+	bounty_active = data.get("bounty_active", [])
+	bounty_refresh_timer = float(data.get("bounty_refresh_timer", 0.0))
+	bounty_total = int(data.get("bounty_total", 0))
+	_bounty_id = int(data.get("bounty_id", 0))
 	var last := float(data.get("time", Time.get_unix_time_from_system()))
 	var away := Time.get_unix_time_from_system() - last
 	_apply_offline(away)
@@ -687,9 +873,14 @@ func hard_reset() -> void:
 	owned_hulls = {"corvette_hull": true}
 	module_inventory = {}
 	loadout = {}
+	bounty_available = []
+	bounty_active = []
+	bounty_refresh_timer = 0.0
+	bounty_total = 0
 	pending_offline = ""
 	combat_hp = combat_max_hp()
 	stop_task()
+	generate_bounty_pool()
 	if FileAccess.file_exists(SAVE_PATH):
 		DirAccess.remove_absolute(SAVE_PATH)
 	resources_changed.emit()
