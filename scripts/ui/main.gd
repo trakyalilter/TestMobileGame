@@ -1,34 +1,34 @@
 extends Control
-## Mobile-first shell: top resource HUD, swappable content pages, bottom tab bar.
-## Grid-card layout (gather/craft) + tabbed research trees, styled after the desktop build.
+## Mobile shell for the ported horizonidle content: grid cards with category
+## sub-tabs (gather/craft/combat) and a credit-funded research tree.
 
 const TABS := [
-	{"id": "gather", "label": "Gather"},
-	{"id": "craft",  "label": "Craft"},
-	{"id": "combat", "label": "Combat"},
-	{"id": "tech",   "label": "Tech"},
-	{"id": "stats",  "label": "More"},
+	{"id": "gather",   "label": "Gather"},
+	{"id": "craft",    "label": "Craft"},
+	{"id": "combat",   "label": "Combat"},
+	{"id": "research", "label": "Research"},
+	{"id": "stats",    "label": "More"},
 ]
 
-# Palette
 const C_BG := "0b1220"
 const C_PANEL := "111c2e"
 const C_TEXT := "e6ebf2"
 const C_DIM := "8a93a5"
 const C_MUTED := "5a6478"
 const C_WARN := "d9a441"
-# Per-page accents
 const GOLD := "d9b24c"
 const CYAN := "4fd2e0"
 const GREEN := "5ad17a"
 const RED := "e0654f"
-const PURPLE := "2e2750"
+const PURP := "9a7ad6"
 
 var content: Control
 var pages := {}
 var tab_buttons := {}
 var current := ""
-var tech_cat := "operations"
+var gather_cat := "terrestrial"
+var craft_cat := "basics"
+var combat_zone := 0
 var res_bar: HBoxContainer
 var active_label: Label
 var _active_bar: ProgressBar = null
@@ -38,12 +38,11 @@ var _combat_hp_label: Label = null
 var _reset_armed := false
 
 func _ready() -> void:
-	# Lock to portrait on mobile (project setting isn't always honored on-device).
 	DisplayServer.screen_set_orientation(DisplayServer.SCREEN_PORTRAIT)
 	_build()
 	GameState.resources_changed.connect(_on_resources)
 	GameState.skills_changed.connect(_refresh_current)
-	GameState.tech_changed.connect(_refresh_all)
+	GameState.research_changed.connect(_refresh_all)
 	GameState.action_changed.connect(_refresh_current)
 	_refresh_top()
 	_show("gather")
@@ -79,7 +78,6 @@ func _build() -> void:
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(bg)
-
 	var root := VBoxContainer.new()
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.add_theme_constant_override("separation", 0)
@@ -93,7 +91,7 @@ func _build() -> void:
 	top.add_child(topv)
 	var title := Label.new()
 	title.text = "✦ STELLAR FORGE"
-	title.add_theme_font_size_override("font_size", 18)
+	title.add_theme_font_size_override("font_size", 17)
 	title.add_theme_color_override("font_color", Color.html(CYAN))
 	topv.add_child(title)
 	active_label = Label.new()
@@ -106,7 +104,7 @@ func _build() -> void:
 	scroll.custom_minimum_size = Vector2(0, 26)
 	topv.add_child(scroll)
 	res_bar = HBoxContainer.new()
-	res_bar.add_theme_constant_override("separation", 16)
+	res_bar.add_theme_constant_override("separation", 14)
 	scroll.add_child(res_bar)
 
 	content = Control.new()
@@ -123,7 +121,7 @@ func _build() -> void:
 	_style_panel(bottom, C_PANEL)
 	root.add_child(bottom)
 	var tabs := HBoxContainer.new()
-	tabs.add_theme_constant_override("separation", 4)
+	tabs.add_theme_constant_override("separation", 2)
 	bottom.add_child(tabs)
 	for t in TABS:
 		var b := Button.new()
@@ -142,13 +140,13 @@ func _make_page() -> ScrollContainer:
 	var m := MarginContainer.new()
 	m.add_theme_constant_override("margin_left", 12)
 	m.add_theme_constant_override("margin_right", 12)
-	m.add_theme_constant_override("margin_top", 12)
-	m.add_theme_constant_override("margin_bottom", 12)
+	m.add_theme_constant_override("margin_top", 10)
+	m.add_theme_constant_override("margin_bottom", 10)
 	m.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	sc.add_child(m)
 	var v := VBoxContainer.new()
 	v.name = "List"
-	v.add_theme_constant_override("separation", 10)
+	v.add_theme_constant_override("separation", 9)
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	m.add_child(v)
 	return sc
@@ -173,11 +171,11 @@ func _refresh_current() -> void:
 	_combat_hp_bar = null
 	_combat_hp_label = null
 	match current:
-		"gather": _build_gather()
-		"craft":  _build_craft()
-		"combat": _build_combat()
-		"tech":   _build_tech()
-		"stats":  _build_stats()
+		"gather":   _build_gather()
+		"craft":    _build_craft()
+		"combat":   _build_combat()
+		"research": _build_research()
+		"stats":    _build_stats()
 
 func _clear(id: String) -> VBoxContainer:
 	var v: VBoxContainer = pages[id].find_child("List", true, false)
@@ -186,110 +184,94 @@ func _clear(id: String) -> VBoxContainer:
 		c.queue_free()
 	return v
 
-# ============================================================ GATHER / CRAFT PAGES
+# ============================================================ GATHER
 func _build_gather() -> void:
-	_active_bar = null
-	_active_timer = null
 	var v := _clear("gather")
 	_skill_banner(v, "PLANETARY HARVESTING", "harvesting", GOLD)
-	_section(v, "TERRESTRIAL OPERATIONS", GOLD)
+	_subtabs(v, GameData.GATHER_CATS, gather_cat, GOLD, func(id: String) -> void:
+		gather_cat = id
+		_build_gather())
 	var g := _grid(v)
+	var any := false
 	for id in GameData.GATHER:
-		g.add_child(_gather_card(id, GameData.GATHER[id]))
-
-func _build_craft() -> void:
-	_active_bar = null
-	_active_timer = null
-	var v := _clear("craft")
-	_skill_banner(v, "ENGINEERING", "fabrication", CYAN)
-	_section(v, "BASIC OPERATIONS", CYAN)
-	var g := _grid(v)
-	for id in GameData.CRAFT:
-		g.add_child(_craft_card(id, GameData.CRAFT[id]))
+		var a: Dictionary = GameData.GATHER[id]
+		if a.get("category", "terrestrial") != gather_cat:
+			continue
+		any = true
+		g.add_child(_gather_card(id, a))
+	if not any:
+		_empty(v, "No operations here yet.")
 
 func _gather_card(id: String, a: Dictionary) -> Control:
 	var unlocked := GameState.meets_requirements(a, "harvesting")
 	var active := (GameState.active_type == "gather" and GameState.active_id == id)
 	var v := _card(GOLD, unlocked or active)
-
 	_card_head(v, "↑", a["name"], "Lv %d" % int(a.get("level_req", 1)), GOLD, unlocked)
 	if unlocked:
-		_inset(v, "YIELD", [_line("%s: %d-%d" % [GameData.res_name(a["resource"]), int(a["min"]), int(a["max"])], C_TEXT)], GOLD)
+		_inset(v, "YIELD", _loot_lines(a.get("loot", [])), GOLD)
 		_action_controls(v, "gather", id, active, GOLD)
 	else:
 		_locked(v, a, "harvesting")
 	return v.get_parent()
+
+# ============================================================ CRAFT
+func _build_craft() -> void:
+	var v := _clear("craft")
+	_skill_banner(v, "ENGINEERING", "fabrication", CYAN)
+	_subtabs(v, GameData.CRAFT_CATS, craft_cat, CYAN, func(id: String) -> void:
+		craft_cat = id
+		_build_craft())
+	var g := _grid(v)
+	var any := false
+	for id in GameData.CRAFT:
+		var r: Dictionary = GameData.CRAFT[id]
+		if r.get("category", "misc") != craft_cat:
+			continue
+		any = true
+		g.add_child(_craft_card(id, r))
+	if not any:
+		_empty(v, "No recipes in this category.")
 
 func _craft_card(id: String, r: Dictionary) -> Control:
 	var unlocked := GameState.meets_requirements(r, "fabrication")
 	var active := (GameState.active_type == "craft" and GameState.active_id == id)
 	var affordable := GameState.can_afford(r.get("inputs", {}))
 	var v := _card(CYAN, unlocked or active)
-
 	_card_head(v, "⚙", r["name"], "Lv %d" % int(r.get("level_req", 1)), CYAN, unlocked)
 	if unlocked:
 		var in_lines := []
-		for sym in r["inputs"]:
+		for sym in r.get("inputs", {}):
 			in_lines.append(_line("%d %s" % [int(r["inputs"][sym]), GameData.res_name(sym)], _hex(GameData.color_for(sym))))
 		_inset(v, "INPUTS", in_lines, CYAN)
 		var d := Label.new()
-		d.text = "▼ REFINE ▼"
+		d.text = "▼"
 		d.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		d.add_theme_font_size_override("font_size", 9)
 		d.add_theme_color_override("font_color", Color.html(CYAN))
 		v.add_child(d)
-		_inset(v, "OUTPUT", [_line("%d %s" % [int(r.get("amount", 1)), GameData.res_name(r["output"])], C_TEXT)], CYAN, true)
+		var out_lines := []
+		for sym in r.get("outputs", {}):
+			out_lines.append(_line("%d %s" % [int(r["outputs"][sym]), GameData.res_name(sym)], C_TEXT))
+		for row in r.get("bonus", []):
+			out_lines.append(_line("+%d%% %s" % [int(float(row[1]) * 100.0), GameData.res_name(row[0])], _hex(GameData.color_for(row[0]))))
+		_inset(v, "OUTPUT", out_lines, CYAN, true)
 		if active or affordable:
 			_action_controls(v, "craft", id, active, CYAN)
 		else:
-			var b := _card_button("Missing Materials", C_MUTED, false)
-			v.add_child(b)
+			v.add_child(_card_button("Missing Materials", C_MUTED, false))
 			_progress(v, false, CYAN)
 	else:
 		_locked(v, r, "fabrication")
 	return v.get_parent()
 
-func _action_controls(v: VBoxContainer, type: String, id: String, active: bool, accent: String, start_label := "Start", stop_label := "Stop") -> void:
-	var b := _card_button(stop_label if active else start_label, accent, true)
-	b.pressed.connect(func() -> void: GameState.start_task(type, id))
-	v.add_child(b)
-	var t := Label.new()
-	var dur := GameState.effective_duration(type, id)
-	t.text = "%.1fs / %.1fs" % [GameState.progress if active else 0.0, dur]
-	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	t.add_theme_font_size_override("font_size", 10)
-	t.add_theme_color_override("font_color", Color.html(C_MUTED))
-	v.add_child(t)
-	if active:
-		_active_timer = t
-	_progress(v, active, accent)
-
-func _locked(v: VBoxContainer, def: Dictionary, skill: String) -> void:
-	var l := Label.new()
-	l.text = "LOCKED"
-	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	l.add_theme_font_size_override("font_size", 13)
-	l.add_theme_color_override("font_color", Color.html(C_WARN))
-	v.add_child(l)
-	var r := Label.new()
-	r.text = _req_text(def, skill)
-	r.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	r.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	r.add_theme_font_size_override("font_size", 10)
-	r.add_theme_color_override("font_color", Color.html(C_MUTED))
-	v.add_child(r)
-
-# ============================================================ COMBAT PAGE
+# ============================================================ COMBAT
 func _build_combat() -> void:
 	var v := _clear("combat")
 	_skill_banner(v, "BATTLE STATION", "combat", RED)
-
-	# Hull HP bar (live-updated in _process)
-	var hpbox := VBoxContainer.new()
-	hpbox.add_theme_constant_override("separation", 3)
+	# hull bar
 	var hb := HBoxContainer.new()
 	var hl := Label.new()
-	hl.text = "HULL INTEGRITY"
+	hl.text = "HULL"
 	hl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hl.add_theme_font_size_override("font_size", 11)
 	hl.add_theme_color_override("font_color", Color.html(RED))
@@ -299,81 +281,74 @@ func _build_combat() -> void:
 	_combat_hp_label.add_theme_font_size_override("font_size", 10)
 	_combat_hp_label.add_theme_color_override("font_color", Color.html(C_DIM))
 	hb.add_child(_combat_hp_label)
-	hpbox.add_child(hb)
+	v.add_child(hb)
 	_combat_hp_bar = ProgressBar.new()
-	_combat_hp_bar.custom_minimum_size = Vector2(0, 10)
+	_combat_hp_bar.custom_minimum_size = Vector2(0, 9)
 	_combat_hp_bar.show_percentage = false
 	_combat_hp_bar.max_value = GameState.combat_max_hp()
 	_combat_hp_bar.value = GameState.combat_hp
 	_style_bar(_combat_hp_bar, RED)
-	hpbox.add_child(_combat_hp_bar)
+	v.add_child(_combat_hp_bar)
 	var st := Label.new()
-	st.text = "Attack %.0f/s   ·   Regen %.0f/s" % [GameState.combat_attack(), GameState.combat_max_hp() * GameState.HP_REGEN]
+	st.text = "Attack %.0f   ·   Regen %.0f/s" % [GameState.combat_attack(), GameState.combat_max_hp() * GameState.HP_REGEN]
 	st.add_theme_font_size_override("font_size", 10)
 	st.add_theme_color_override("font_color", Color.html(C_DIM))
-	hpbox.add_child(st)
-	v.add_child(hpbox)
+	v.add_child(st)
 
-	_section(v, "HOSTILES", RED)
+	# zone sub-tabs
+	var zone_items := []
+	for z in GameData.ZONES:
+		zone_items.append({"id": z["id"], "label": z["name"]})
+	combat_zone = clampi(combat_zone, 0, GameData.ZONES.size() - 1)
+	var cur_zone_id: String = GameData.ZONES[combat_zone]["id"]
+	_subtabs(v, zone_items, cur_zone_id, RED, func(id: String) -> void:
+		for i in GameData.ZONES.size():
+			if GameData.ZONES[i]["id"] == id:
+				combat_zone = i
+		_build_combat())
+	var zone: Dictionary = GameData.ZONES[combat_zone]
+	_section(v, zone.get("desc", ""), RED)
 	var g := _grid(v)
-	for id in GameData.ENEMIES:
-		g.add_child(_enemy_card(id, GameData.ENEMIES[id]))
+	for eid in zone.get("enemies", []):
+		if GameData.ENEMIES.has(eid):
+			g.add_child(_enemy_card(eid, GameData.ENEMIES[eid]))
 
 func _enemy_card(id: String, e: Dictionary) -> Control:
-	var unlocked := GameState.meets_requirements(e, "combat")
 	var active := (GameState.active_type == "combat" and GameState.active_id == id)
-	var v := _card(RED, unlocked or active)
-	_card_head(v, "◎", e["name"], "Lv %d" % int(e.get("level_req", 1)), RED, unlocked)
-	if unlocked:
-		_inset(v, "TARGET", [
-			_line("HP %d" % int(e["hp"]), C_TEXT),
-			_line("DMG %.1f/s" % float(e["dmg"]), C_WARN),
-		], RED)
-		var loot_lines := []
-		for entry in e.get("loot", []):
-			loot_lines.append(_line("%s %d-%d" % [GameData.res_name(entry[0]), int(entry[2]), int(entry[3])], _hex(GameData.color_for(entry[0]))))
-		_inset(v, "SALVAGE", loot_lines, RED)
-		_action_controls(v, "combat", id, active, RED, "Engage", "Retreat")
-	else:
-		_locked(v, e, "combat")
+	var v := _card(RED, true)
+	_card_head(v, "◎", e["name"], "", RED, true)
+	_inset(v, "TARGET", [
+		_line("HP %d" % int(e["hp"]), C_TEXT),
+		_line("ATK %d / %.1fs" % [int(e.get("atk", 0)), float(e.get("interval", 2.0))], C_WARN),
+		_line("DEF %d" % int(e.get("def", 0)), C_DIM),
+	], RED)
+	_inset(v, "SALVAGE", _loot_lines(e.get("loot", [])), RED)
+	_action_controls(v, "combat", id, active, RED, "Engage", "Retreat")
 	return v.get_parent()
 
-# ============================================================ TECH TREES
-func _build_tech() -> void:
-	_active_bar = null
-	_active_timer = null
-	var v := _clear("tech")
+# ============================================================ RESEARCH
+func _build_research() -> void:
+	var v := _clear("research")
 	var title := Label.new()
 	title.text = "RESEARCH NETWORK"
 	title.add_theme_font_size_override("font_size", 16)
-	title.add_theme_color_override("font_color", Color.html(CYAN))
+	title.add_theme_color_override("font_color", Color.html(PURP))
 	v.add_child(title)
+	var cr := Label.new()
+	cr.text = "Credits: ₡%s   ·   sell materials in More" % GameData.fmt(GameState.credits)
+	cr.add_theme_font_size_override("font_size", 11)
+	cr.add_theme_color_override("font_color", Color.html(GOLD))
+	v.add_child(cr)
 
-	# Category sub-tabs
-	var tabs := HBoxContainer.new()
-	tabs.add_theme_constant_override("separation", 6)
-	v.add_child(tabs)
-	for cat in GameData.TECH_CATS:
-		var b := Button.new()
-		b.text = cat.label
-		b.focus_mode = Control.FOCUS_NONE
-		b.custom_minimum_size = Vector2(0, 34)
-		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		_style_subtab(b, cat.id == tech_cat)
-		b.pressed.connect(func() -> void:
-			tech_cat = cat.id
-			_build_tech()
-		)
-		tabs.add_child(b)
-
-	# Build the tree for the active category, grouped into tiers by depth.
+	# Progressive reveal: show researched, available, and frontier nodes; group by depth.
 	var tiers := {}
-	for id in GameData.TECH:
-		if GameData.TECH[id].get("cat", "") == tech_cat:
-			var d := _depth(id)
-			if not tiers.has(d):
-				tiers[d] = []
-			tiers[d].append(id)
+	for id in GameData.RESEARCH:
+		if not _research_visible(id):
+			continue
+		var d := _research_depth(id)
+		if not tiers.has(d):
+			tiers[d] = []
+		tiers[d].append(id)
 	var depths := tiers.keys()
 	depths.sort()
 	var first := true
@@ -388,114 +363,100 @@ func _build_tech() -> void:
 		row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		v.add_child(row)
 		for id in tiers[d]:
-			row.add_child(_tech_node(id))
+			row.add_child(_research_node(id))
 
-func _depth(id: String) -> int:
-	var reqs: Array = GameData.TECH[id].get("req", [])
-	if reqs.is_empty():
+func _research_visible(id: String) -> bool:
+	if GameState.is_research_unlocked(id):
+		return true
+	var p: String = GameData.RESEARCH[id].get("parent", "")
+	return p == "" or GameState.is_research_unlocked(p)
+
+func _research_depth(id: String) -> int:
+	var p: String = GameData.RESEARCH[id].get("parent", "")
+	if p == "" or not GameData.RESEARCH.has(p):
 		return 0
-	var m := 0
-	for r in reqs:
-		if GameData.TECH.has(r):
-			m = maxi(m, _depth(r) + 1)
-	return m
+	return _research_depth(p) + 1
 
-func _tech_node(id: String) -> Control:
-	var t: Dictionary = GameData.TECH[id]
-	var researched := GameState.is_unlocked(id)
-	var available := GameState.can_unlock(id)
-	var border := GREEN if researched else (GOLD if available else "453c6b")
-
+func _research_node(id: String) -> Control:
+	var t: Dictionary = GameData.RESEARCH[id]
+	var researched := GameState.is_research_unlocked(id)
+	var available := GameState.research_available(id)
+	var border := GREEN if researched else (PURP if available else "453c6b")
 	var panel := PanelContainer.new()
 	panel.add_theme_stylebox_override("panel", _bordered("241f3e", border, 2 if (available or researched) else 1))
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-
 	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 3)
+	v.add_theme_constant_override("separation", 2)
 	panel.add_child(v)
-
-	var name_l := Label.new()
-	name_l.text = t["name"]
-	name_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	name_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	name_l.add_theme_font_size_override("font_size", 13)
-	name_l.add_theme_color_override("font_color", Color.html(C_TEXT if (available or researched) else C_MUTED))
-	v.add_child(name_l)
-
+	_clbl(v, t.get("name", id), 13, C_TEXT if (available or researched) else C_MUTED)
 	if researched:
-		var ok := Label.new()
-		ok.text = "✓ Researched"
-		ok.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		ok.add_theme_font_size_override("font_size", 10)
-		ok.add_theme_color_override("font_color", Color.html(GREEN))
-		v.add_child(ok)
+		_clbl(v, "✓ Researched", 10, GREEN)
 	else:
-		var desc := Label.new()
-		desc.text = t.get("desc", "")
-		desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		desc.add_theme_font_size_override("font_size", 9)
-		desc.add_theme_color_override("font_color", Color.html(C_DIM))
-		v.add_child(desc)
-		for sym in t.get("cost", {}):
-			var c := Label.new()
-			c.text = "%d %s" % [int(t["cost"][sym]), GameData.res_name(sym)]
-			c.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			c.add_theme_font_size_override("font_size", 10)
-			var have := GameState.amount(sym) >= int(t["cost"][sym])
-			c.add_theme_color_override("font_color", Color.html(GOLD if have else C_WARN))
-			v.add_child(c)
-		# Whole-card tap target
+		var cred := int(t.get("credits", 0))
+		var have_cr := GameState.credits >= cred
+		_clbl(v, "₡%s" % GameData.fmt(cred), 11, GOLD if have_cr else C_WARN)
+		for sym in t.get("items", {}):
+			var have := GameState.amount(sym) >= int(t["items"][sym])
+			_clbl(v, "%d %s" % [int(t["items"][sym]), GameData.res_name(sym)], 10, GOLD if have else C_WARN)
 		var overlay := Button.new()
 		overlay.flat = true
 		overlay.focus_mode = Control.FOCUS_NONE
 		overlay.disabled = not available
 		overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		overlay.pressed.connect(func() -> void: GameState.unlock_tech(id))
+		overlay.pressed.connect(func() -> void: GameState.unlock_research(id))
 		panel.add_child(overlay)
 	return panel
 
-func _connector(v: VBoxContainer) -> void:
-	var c := CenterContainer.new()
-	var line := ColorRect.new()
-	line.color = Color.html(CYAN)
-	line.custom_minimum_size = Vector2(3, 16)
-	c.add_child(line)
-	v.add_child(c)
-
-# ============================================================ STATS PAGE
+# ============================================================ STATS / STORAGE
 func _build_stats() -> void:
-	_active_bar = null
-	_active_timer = null
 	var v := _clear("stats")
-	_section(v, "OPERATIONS", CYAN)
-	for sk in ["harvesting", "fabrication"]:
-		_skill_banner(v, sk.to_upper(), sk, CYAN if sk == "fabrication" else GOLD)
+	_section(v, "CREW", CYAN)
+	for sk in ["harvesting", "fabrication", "combat"]:
+		_skill_banner(v, sk.to_upper(), sk, CYAN)
+	var crl := Label.new()
+	crl.text = "Credits: ₡%s" % GameData.fmt(GameState.credits)
+	crl.add_theme_color_override("font_color", Color.html(GOLD))
+	v.add_child(crl)
 
-	_section(v, "STORAGE", CYAN)
+	_section(v, "STORAGE  (tap Sell for credits)", CYAN)
+	var any := false
 	for sym in GameData.RESOURCES:
+		var amt := GameState.amount(sym)
+		if amt <= 0:
+			continue
+		any = true
 		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 6)
 		var n := Label.new()
 		n.text = GameData.res_name(sym)
 		n.add_theme_color_override("font_color", GameData.color_for(sym))
 		n.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(n)
-		var amt := Label.new()
-		amt.text = GameData.fmt(GameState.amount(sym))
-		amt.add_theme_color_override("font_color", Color.html(C_TEXT))
-		row.add_child(amt)
+		var a := Label.new()
+		a.text = GameData.fmt(amt)
+		a.add_theme_color_override("font_color", Color.html(C_TEXT))
+		row.add_child(a)
+		var val := maxi(1, GameData.value_of(sym))
+		var sell := Button.new()
+		sell.text = "Sell ₡%s" % GameData.fmt(amt * val)
+		sell.focus_mode = Control.FOCUS_NONE
+		sell.add_theme_font_size_override("font_size", 11)
+		sell.pressed.connect(func() -> void: GameState.sell_all(sym))
+		row.add_child(sell)
 		v.add_child(row)
+	if not any:
+		_empty(v, "Storage empty — go gather something.")
 
 	_section(v, "SYSTEM", CYAN)
 	var save_btn := Button.new()
 	save_btn.text = "Save Now"
-	save_btn.custom_minimum_size = Vector2(0, 42)
+	save_btn.custom_minimum_size = Vector2(0, 40)
 	save_btn.focus_mode = Control.FOCUS_NONE
 	save_btn.pressed.connect(func() -> void: GameState.save_game())
 	v.add_child(save_btn)
 	var reset_btn := Button.new()
 	reset_btn.text = "Reset Game"
-	reset_btn.custom_minimum_size = Vector2(0, 42)
+	reset_btn.custom_minimum_size = Vector2(0, 40)
 	reset_btn.focus_mode = Control.FOCUS_NONE
 	reset_btn.add_theme_color_override("font_color", Color.html(C_WARN))
 	reset_btn.pressed.connect(func() -> void:
@@ -504,11 +465,53 @@ func _build_stats() -> void:
 			_show("gather")
 		else:
 			_reset_armed = true
-			reset_btn.text = "⚠ Tap again to wipe save"
-	)
+			reset_btn.text = "⚠ Tap again to wipe save")
 	v.add_child(reset_btn)
 
-# ============================================================ REUSABLE PIECES
+# ============================================================ SHARED CARD PIECES
+func _action_controls(v: VBoxContainer, type: String, id: String, active: bool, accent: String, start_label := "Start", stop_label := "Stop") -> void:
+	var b := _card_button(stop_label if active else start_label, accent, true)
+	b.pressed.connect(func() -> void: GameState.start_task(type, id))
+	v.add_child(b)
+	var t := Label.new()
+	t.text = "%.1fs / %.1fs" % [GameState.progress if active else 0.0, GameState.effective_duration(type, id)]
+	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	t.add_theme_font_size_override("font_size", 10)
+	t.add_theme_color_override("font_color", Color.html(C_MUTED))
+	v.add_child(t)
+	if active:
+		_active_timer = t
+	_progress(v, active, accent)
+
+func _locked(v: VBoxContainer, def: Dictionary, skill: String) -> void:
+	_clbl(v, "LOCKED", 13, C_WARN)
+	var r := Label.new()
+	r.text = _req_text(def, skill)
+	r.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	r.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	r.add_theme_font_size_override("font_size", 10)
+	r.add_theme_color_override("font_color", Color.html(C_MUTED))
+	v.add_child(r)
+
+func _loot_lines(loot: Array) -> Array:
+	var lines := []
+	for row in loot:
+		var is_credits: bool = row[0] == "credits"
+		var label := "Credits" if is_credits else GameData.res_name(row[0])
+		var txt := "%s%s %d-%d" % ["₡ " if is_credits else "", label, int(row[2]), int(row[3])]
+		if float(row[1]) < 1.0:
+			txt += " (%d%%)" % int(float(row[1]) * 100.0)
+		lines.append(_line(txt, GOLD if is_credits else _hex(GameData.color_for(row[0]))))
+	return lines
+
+func _empty(v: VBoxContainer, text: String) -> void:
+	var l := Label.new()
+	l.text = text
+	l.add_theme_color_override("font_color", Color.html(C_MUTED))
+	l.add_theme_font_size_override("font_size", 12)
+	v.add_child(l)
+
+# ============================================================ WIDGET HELPERS
 func _grid(v: VBoxContainer) -> GridContainer:
 	var g := GridContainer.new()
 	g.columns = 2
@@ -518,8 +521,31 @@ func _grid(v: VBoxContainer) -> GridContainer:
 	v.add_child(g)
 	return g
 
-## Creates a bordered card panel, adds it to nothing yet; returns the inner VBox.
-## Caller does `card.get_parent()` to retrieve the panel for placement.
+func _subtabs(v: VBoxContainer, items: Array, current_id: String, accent: String, on_select: Callable) -> void:
+	var sc := ScrollContainer.new()
+	sc.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	sc.custom_minimum_size = Vector2(0, 36)
+	sc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var hb := HBoxContainer.new()
+	hb.add_theme_constant_override("separation", 6)
+	sc.add_child(hb)
+	for it in items:
+		var b := Button.new()
+		b.text = it["label"]
+		b.focus_mode = Control.FOCUS_NONE
+		b.custom_minimum_size = Vector2(0, 30)
+		b.add_theme_font_size_override("font_size", 12)
+		var on: bool = it["id"] == current_id
+		b.add_theme_color_override("font_color", Color.html(accent if on else C_DIM))
+		b.add_theme_color_override("font_color_hover", Color.html(accent))
+		b.add_theme_color_override("font_color_pressed", Color.html(accent))
+		for state in ["normal", "hover", "pressed", "focus"]:
+			b.add_theme_stylebox_override(state, _bordered("1c2740" if on else "141d2e", accent if on else "2a3550", 1, 6))
+		var sel_id: String = it["id"]
+		b.pressed.connect(func() -> void: on_select.call(sel_id))
+		hb.add_child(b)
+	v.add_child(sc)
+
 func _card(accent: String, lit: bool) -> VBoxContainer:
 	var panel := PanelContainer.new()
 	panel.add_theme_stylebox_override("panel", _bordered("1a2336", accent if lit else "2a3550", 2 if lit else 1))
@@ -541,17 +567,19 @@ func _card_head(v: VBoxContainer, icon: String, name: String, badge: String, acc
 	var nm := Label.new()
 	nm.text = name
 	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	nm.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	nm.add_theme_font_size_override("font_size", 13)
 	nm.add_theme_color_override("font_color", Color.html(C_TEXT if lit else C_MUTED))
 	hb.add_child(nm)
-	var bd := PanelContainer.new()
-	bd.add_theme_stylebox_override("panel", _bordered("12192a", accent if lit else "2a3550", 1, 4))
-	var bl := Label.new()
-	bl.text = badge
-	bl.add_theme_font_size_override("font_size", 9)
-	bl.add_theme_color_override("font_color", Color.html(accent if lit else C_MUTED))
-	bd.add_child(bl)
-	hb.add_child(bd)
+	if badge != "":
+		var bd := PanelContainer.new()
+		bd.add_theme_stylebox_override("panel", _bordered("12192a", accent if lit else "2a3550", 1, 4))
+		var bl := Label.new()
+		bl.text = badge
+		bl.add_theme_font_size_override("font_size", 9)
+		bl.add_theme_color_override("font_color", Color.html(accent if lit else C_MUTED))
+		bd.add_child(bl)
+		hb.add_child(bd)
 	v.add_child(hb)
 
 func _inset(v: VBoxContainer, title: String, lines: Array, accent: String, highlight := false) -> void:
@@ -567,13 +595,17 @@ func _inset(v: VBoxContainer, title: String, lines: Array, accent: String, highl
 	t.add_theme_color_override("font_color", Color.html(C_MUTED))
 	box.add_child(t)
 	for ln in lines:
-		var l := Label.new()
-		l.text = ln["text"]
-		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		l.add_theme_font_size_override("font_size", 13)
-		l.add_theme_color_override("font_color", Color.html(ln["color"]))
-		box.add_child(l)
+		_clbl(box, ln["text"], 12, ln["color"])
 	v.add_child(panel)
+
+func _clbl(parent: Node, text: String, size: int, color: String) -> void:
+	var l := Label.new()
+	l.text = text
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.add_theme_font_size_override("font_size", size)
+	l.add_theme_color_override("font_color", Color.html(color))
+	parent.add_child(l)
 
 func _line(text: String, color: String) -> Dictionary:
 	return {"text": text, "color": color}
@@ -581,12 +613,11 @@ func _line(text: String, color: String) -> Dictionary:
 func _card_button(text: String, accent: String, enabled: bool) -> Button:
 	var b := Button.new()
 	b.text = text
-	b.custom_minimum_size = Vector2(0, 34)
+	b.custom_minimum_size = Vector2(0, 32)
 	b.focus_mode = Control.FOCUS_NONE
 	b.disabled = not enabled
 	for state in ["normal", "hover", "pressed", "disabled"]:
-		var sb := _bordered("12192a", accent if enabled else "2a3550", 1, 5)
-		b.add_theme_stylebox_override(state, sb)
+		b.add_theme_stylebox_override(state, _bordered("12192a", accent if enabled else "2a3550", 1, 5))
 	b.add_theme_color_override("font_color", Color.html(accent if enabled else C_MUTED))
 	b.add_theme_color_override("font_color_disabled", Color.html(C_MUTED))
 	b.add_theme_color_override("font_color_hover", Color.html(accent))
@@ -595,7 +626,7 @@ func _card_button(text: String, accent: String, enabled: bool) -> Button:
 
 func _progress(v: VBoxContainer, active: bool, accent: String) -> void:
 	var wrap := Control.new()
-	wrap.custom_minimum_size = Vector2(0, 14)
+	wrap.custom_minimum_size = Vector2(0, 13)
 	var bar := ProgressBar.new()
 	bar.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	bar.show_percentage = false
@@ -622,27 +653,14 @@ func _skill_banner(v: VBoxContainer, title: String, skill_id: String, accent: St
 	var next := GameState.xp_for_level(lvl + 1)
 	var pct: float = 100.0 if next <= base else float(cur - base) / float(next - base) * 100.0
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 3)
+	box.add_theme_constant_override("separation", 2)
 	var t := Label.new()
-	t.text = title
-	t.add_theme_font_size_override("font_size", 16)
+	t.text = "%s — Lv %d" % [title, lvl]
+	t.add_theme_font_size_override("font_size", 15)
 	t.add_theme_color_override("font_color", Color.html(accent))
 	box.add_child(t)
-	var hb := HBoxContainer.new()
-	var lv := Label.new()
-	lv.text = "Level %d" % lvl
-	lv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	lv.add_theme_font_size_override("font_size", 12)
-	lv.add_theme_color_override("font_color", Color.html(C_TEXT))
-	hb.add_child(lv)
-	var xp := Label.new()
-	xp.text = "%d / %d XP" % [cur, next]
-	xp.add_theme_font_size_override("font_size", 10)
-	xp.add_theme_color_override("font_color", Color.html(C_DIM))
-	hb.add_child(xp)
-	box.add_child(hb)
 	var bar := ProgressBar.new()
-	bar.custom_minimum_size = Vector2(0, 8)
+	bar.custom_minimum_size = Vector2(0, 7)
 	bar.show_percentage = false
 	bar.max_value = 100
 	bar.value = pct
@@ -651,11 +669,22 @@ func _skill_banner(v: VBoxContainer, title: String, skill_id: String, accent: St
 	v.add_child(box)
 
 func _section(v: VBoxContainer, text: String, accent: String) -> void:
+	if text == "":
+		return
 	var l := Label.new()
 	l.text = "[ %s ]" % text
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	l.add_theme_font_size_override("font_size", 11)
 	l.add_theme_color_override("font_color", Color.html(accent))
 	v.add_child(l)
+
+func _connector(v: VBoxContainer) -> void:
+	var c := CenterContainer.new()
+	var line := ColorRect.new()
+	line.color = Color.html(PURP)
+	line.custom_minimum_size = Vector2(3, 14)
+	c.add_child(line)
+	v.add_child(c)
 
 func _refresh_top() -> void:
 	if res_bar == null:
@@ -663,9 +692,17 @@ func _refresh_top() -> void:
 	for c in res_bar.get_children():
 		res_bar.remove_child(c)
 		c.queue_free()
+	var cr := Label.new()
+	cr.text = "₡ %s" % GameData.fmt(GameState.credits)
+	cr.add_theme_color_override("font_color", Color.html(GOLD))
+	cr.add_theme_font_size_override("font_size", 13)
+	res_bar.add_child(cr)
 	for sym in GameData.RESOURCES:
+		var amt := GameState.amount(sym)
+		if amt <= 0:
+			continue
 		var l := Label.new()
-		l.text = "%s %s" % [GameData.res_name(sym), GameData.fmt(GameState.amount(sym))]
+		l.text = "%s %s" % [GameData.res_name(sym), GameData.fmt(amt)]
 		l.add_theme_color_override("font_color", GameData.color_for(sym))
 		l.add_theme_font_size_override("font_size", 13)
 		res_bar.add_child(l)
@@ -684,25 +721,21 @@ func _show_offline(text: String) -> void:
 	panel.custom_minimum_size = Vector2(300, 0)
 	center.add_child(panel)
 	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 14)
+	v.add_theme_constant_override("separation", 12)
 	panel.add_child(v)
-	var t := Label.new()
-	t.text = "◷ Welcome Back, Commander"
-	t.add_theme_font_size_override("font_size", 16)
-	t.add_theme_color_override("font_color", Color.html(CYAN))
-	v.add_child(t)
+	_clbl(v, "◷ Welcome Back, Commander", 16, CYAN)
 	var body := Label.new()
 	body.text = text
 	body.add_theme_color_override("font_color", Color.html(C_TEXT))
 	v.add_child(body)
 	var ok := Button.new()
 	ok.text = "Collect"
-	ok.custom_minimum_size = Vector2(0, 42)
+	ok.custom_minimum_size = Vector2(0, 40)
 	ok.focus_mode = Control.FOCUS_NONE
 	ok.pressed.connect(func() -> void: overlay.queue_free())
 	v.add_child(ok)
 
-# ============================================================ TEXT HELPERS
+# ============================================================ TEXT
 func _active_text() -> String:
 	if GameState.active_type == "gather":
 		return "▶ Harvesting: " + GameData.GATHER[GameState.active_id]["name"]
@@ -716,9 +749,9 @@ func _req_text(def: Dictionary, skill: String) -> String:
 	var parts := []
 	if int(def.get("level_req", 1)) > 1:
 		parts.append("Lv %d %s" % [int(def["level_req"]), skill.capitalize()])
-	var tr: String = def.get("tech_req", "")
-	if tr != "":
-		parts.append("Research: " + GameData.TECH.get(tr, {}).get("name", tr))
+	var rr: String = def.get("research_req", "")
+	if rr != "":
+		parts.append("Research: " + GameData.RESEARCH.get(rr, {}).get("name", rr))
 	if parts.is_empty():
 		return "Locked"
 	return "Requires " + ", ".join(parts)
@@ -752,21 +785,13 @@ func _style_tab(b: Button, active: bool) -> void:
 	b.add_theme_color_override("font_color", Color.html(CYAN if active else C_MUTED))
 	b.add_theme_color_override("font_color_hover", Color.html(CYAN if active else C_DIM))
 	b.add_theme_color_override("font_color_pressed", Color.html(CYAN))
-	b.add_theme_font_size_override("font_size", 13)
+	b.add_theme_font_size_override("font_size", 12)
 	var bgc := "16273f" if active else "00000000"
 	for state in ["normal", "hover", "pressed", "focus"]:
 		var sb := StyleBoxFlat.new()
 		sb.bg_color = Color.html(bgc)
 		sb.set_corner_radius_all(8)
 		b.add_theme_stylebox_override(state, sb)
-
-func _style_subtab(b: Button, active: bool) -> void:
-	b.add_theme_font_size_override("font_size", 12)
-	b.add_theme_color_override("font_color", Color.html(CYAN if active else C_DIM))
-	b.add_theme_color_override("font_color_hover", Color.html(CYAN))
-	b.add_theme_color_override("font_color_pressed", Color.html(CYAN))
-	for state in ["normal", "hover", "pressed", "focus"]:
-		b.add_theme_stylebox_override(state, _bordered("241f3e" if active else "171326", CYAN if active else "453c6b", 1, 6))
 
 func _style_bar(b: ProgressBar, accent: String) -> void:
 	var bg := StyleBoxFlat.new()

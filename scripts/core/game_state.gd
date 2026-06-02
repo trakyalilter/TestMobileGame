@@ -1,30 +1,31 @@
 extends Node
 ## Core game engine. Autoloaded as `GameState`.
-## Single-active-task model (like Melvor/HorizonIdle) with offline progress.
+## Single-active-task model with offline progress. Content from GameData (ported
+## from horizonidle-godot): gather/craft/combat + a credit-funded research tree.
 
 signal resources_changed
 signal skills_changed
-signal tech_changed
+signal research_changed
 signal action_changed
 
 var resources: Dictionary = {}          # symbol -> int
-var skills: Dictionary = {              # skill_id -> total xp
+var credits: int = 0                    # research currency (earned by selling)
+var skills: Dictionary = {
 	"harvesting": 0,
 	"fabrication": 0,
 	"combat": 0,
 }
-var unlocked_tech: Dictionary = {}      # tech_id -> true
+var unlocked_research: Dictionary = {}  # research_id -> true
 
-# The single foreground task currently running.
+# Single foreground task
 var active_type: String = ""            # "gather" | "craft" | "combat" | ""
 var active_id: String = ""
 var progress: float = 0.0
 
-# Combat state
-var combat_hp: float = 0.0              # current hull HP (regenerates over time)
-const HP_REGEN := 0.04                  # fraction of max HP restored per second
+# Combat
+var combat_hp: float = 0.0
+const HP_REGEN := 0.04
 
-# Set during load(); main.gd reads & clears it to show the welcome-back modal.
 var pending_offline: String = ""
 
 const SAVE_PATH := "user://stellarforge_save.json"
@@ -38,7 +39,6 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_tick_active(delta)
-	# Hull regenerates toward max whether fighting or not.
 	var mx := combat_max_hp()
 	if combat_hp < mx:
 		combat_hp = minf(mx, combat_hp + mx * HP_REGEN * delta)
@@ -51,7 +51,7 @@ func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_WM_GO_BACK_REQUEST:
 		save_game()
 
-# ---------------- Resources ----------------
+# ---------------- Resources / credits ----------------
 func amount(sym: String) -> int:
 	return int(resources.get(sym, 0))
 
@@ -70,7 +70,15 @@ func spend(cost: Dictionary, times: int = 1) -> void:
 		resources[sym] = amount(sym) - int(cost[sym]) * times
 	resources_changed.emit()
 
-# ---------------- Skills / leveling ----------------
+func sell_all(sym: String) -> void:
+	var qty := amount(sym)
+	if qty <= 0:
+		return
+	credits += qty * maxi(1, GameData.value_of(sym))
+	resources[sym] = 0
+	resources_changed.emit()
+
+# ---------------- Skills ----------------
 func xp_for_level(lvl: int) -> int:
 	if lvl <= 1:
 		return 0
@@ -87,61 +95,52 @@ func add_xp(skill_id: String, amt: int) -> void:
 	skills[skill_id] = int(skills.get(skill_id, 0)) + amt
 	skills_changed.emit()
 
-## Sum of a named effect across all unlocked tech (e.g. "gather_yield", "gather_speed").
-func tech_bonus(key: String) -> float:
-	var s := 0.0
-	for tid in unlocked_tech:
-		s += float(GameData.TECH.get(tid, {}).get("effects", {}).get(key, 0.0))
-	return s
-
 func yield_mult(skill_id: String) -> float:
-	var m := 1.0 + level_of(skill_id) * 0.02   # +2% per level
-	if skill_id == "harvesting":
-		m += tech_bonus("gather_yield")
-	return m
+	return 1.0 + level_of(skill_id) * 0.02
 
 # ---------------- Combat stats ----------------
 func combat_max_hp() -> float:
-	return 50.0 + level_of("combat") * 10.0
+	return 300.0 + level_of("combat") * 60.0
 
 func combat_attack() -> float:
-	return 5.0 + level_of("combat") * 2.0
+	return 25.0 + level_of("combat") * 10.0
 
-# ---------------- Tech ----------------
-func is_unlocked(tech_id: String) -> bool:
-	return unlocked_tech.has(tech_id)
+# ---------------- Research ----------------
+func is_research_unlocked(rid: String) -> bool:
+	return unlocked_research.has(rid)
 
-func can_unlock(tech_id: String) -> bool:
-	if is_unlocked(tech_id):
+func research_available(rid: String) -> bool:
+	if is_research_unlocked(rid):
 		return false
-	var t: Dictionary = GameData.TECH.get(tech_id, {})
-	for r in t.get("req", []):
-		if not is_unlocked(r):
-			return false
-	return can_afford(t.get("cost", {}))
-
-func unlock_tech(tech_id: String) -> bool:
-	if not can_unlock(tech_id):
+	var t: Dictionary = GameData.RESEARCH.get(rid, {})
+	var parent: String = t.get("parent", "")
+	if parent != "" and not is_research_unlocked(parent):
 		return false
-	var t: Dictionary = GameData.TECH[tech_id]
-	spend(t.get("cost", {}))
-	unlocked_tech[tech_id] = true
-	tech_changed.emit()
+	return credits >= int(t.get("credits", 0)) and can_afford(t.get("items", {}))
+
+func unlock_research(rid: String) -> bool:
+	if not research_available(rid):
+		return false
+	var t: Dictionary = GameData.RESEARCH[rid]
+	credits -= int(t.get("credits", 0))
+	spend(t.get("items", {}))
+	unlocked_research[rid] = true
+	research_changed.emit()
 	return true
 
-# ---------------- Requirement checks ----------------
+# ---------------- Requirements ----------------
 func meets_requirements(def: Dictionary, skill_id: String) -> bool:
 	if level_of(skill_id) < int(def.get("level_req", 1)):
 		return false
-	var tr: String = def.get("tech_req", "")
-	if tr != "" and not is_unlocked(tr):
+	var rr: String = def.get("research_req", "")
+	if rr != "" and not is_research_unlocked(rr):
 		return false
 	return true
 
 # ---------------- Active task ----------------
 func start_task(type: String, id: String) -> void:
 	if active_type == type and active_id == id:
-		stop_task()   # tapping an active task toggles it off
+		stop_task()
 		return
 	active_type = type
 	active_id = id
@@ -157,22 +156,22 @@ func stop_task() -> void:
 func current_duration() -> float:
 	return effective_duration(active_type, active_id)
 
-## Duration after research speed bonuses; works for any action, not just the active one.
 func effective_duration(type: String, id: String) -> float:
 	if type == "gather" and GameData.GATHER.has(id):
-		return float(GameData.GATHER[id].get("duration", 3.0)) / (1.0 + tech_bonus("gather_speed"))
+		return float(GameData.GATHER[id].get("duration", 4.0))
 	elif type == "craft" and GameData.CRAFT.has(id):
-		return float(GameData.CRAFT[id].get("duration", 3.0)) / (1.0 + tech_bonus("craft_speed"))
+		return float(GameData.CRAFT[id].get("duration", 4.0))
 	elif type == "combat" and GameData.ENEMIES.has(id):
-		# Time to destroy one enemy = its hull / our attack-per-second.
-		return maxf(0.5, float(GameData.ENEMIES[id]["hp"]) / combat_attack())
+		var e: Dictionary = GameData.ENEMIES[id]
+		var dps := maxf(1.0, combat_attack() - float(e.get("def", 0)))
+		return maxf(0.5, float(e["hp"]) / dps)
 	return 0.0
 
 func _tick_active(delta: float) -> void:
 	if active_type == "":
 		return
 	if active_type == "craft" and not can_afford(GameData.CRAFT[active_id].get("inputs", {})):
-		stop_task()   # ran out of inputs
+		stop_task()
 		return
 	progress += delta
 	var dur := current_duration()
@@ -184,12 +183,21 @@ func _tick_active(delta: float) -> void:
 		if active_type == "":
 			break
 
+## Rolls a loot table [[sym, chance, min, max], ...], applying a yield multiplier.
+func _roll_loot(loot: Array, mult: float) -> void:
+	for row in loot:
+		if randf() < float(row[1]):
+			var amt := maxi(1, int(round(randi_range(int(row[2]), int(row[3])) * mult)))
+			if row[0] == "credits":
+				credits += amt
+				resources_changed.emit()
+			else:
+				add_resource(row[0], amt)
+
 func _complete_active() -> void:
 	if active_type == "gather":
 		var a: Dictionary = GameData.GATHER[active_id]
-		var amt := randi_range(int(a["min"]), int(a["max"]))
-		amt = maxi(1, int(round(amt * yield_mult("harvesting"))))
-		add_resource(a["resource"], amt)
+		_roll_loot(a.get("loot", []), yield_mult("harvesting"))
 		add_xp("harvesting", int(a.get("xp", 0)))
 	elif active_type == "craft":
 		var r: Dictionary = GameData.CRAFT[active_id]
@@ -197,92 +205,92 @@ func _complete_active() -> void:
 			stop_task()
 			return
 		spend(r.get("inputs", {}))
-		add_resource(r["output"], int(r.get("amount", 1)))
+		for sym in r.get("outputs", {}):
+			add_resource(sym, int(r["outputs"][sym]))
+		_roll_loot(r.get("bonus", []), 1.0)
 		add_xp("fabrication", int(r.get("xp", 0)))
 	elif active_type == "combat":
 		var e: Dictionary = GameData.ENEMIES[active_id]
-		# Roll loot for the kill.
-		for entry in e.get("loot", []):
-			if randf() < float(entry[1]):
-				add_resource(entry[0], randi_range(int(entry[2]), int(entry[3])))
+		_roll_loot(e.get("loot", []), 1.0)
 		add_xp("combat", int(e.get("xp", 0)))
-		# Take damage sustained over the fight; retreat if the hull is breached.
-		combat_hp -= float(e.get("dmg", 0.0)) * current_duration()
+		var dps: float = float(e.get("atk", 0)) / maxf(0.5, float(e.get("interval", 2.0)))
+		combat_hp -= dps * current_duration()
 		if combat_hp <= 0.0:
 			combat_hp = combat_max_hp() * 0.25
 			stop_task()
 
-# ---------------- Offline progress ----------------
+# ---------------- Offline ----------------
 func _apply_offline(delta: float) -> void:
 	if active_type == "" or delta < 5.0:
 		return
 	var dur := current_duration()
 	if dur <= 0.0:
 		return
-	var by_time := int(delta / dur)
-	if by_time <= 0:
+	var reps := int(delta / dur)
+	if reps <= 0:
 		return
 
 	if active_type == "gather":
 		var a: Dictionary = GameData.GATHER[active_id]
-		var avg: float = (int(a["min"]) + int(a["max"])) / 2.0
-		var per := maxi(1, int(round(avg * yield_mult("harvesting"))))
-		var total := per * by_time
-		add_resource(a["resource"], total)
-		add_xp("harvesting", int(a.get("xp", 0)) * by_time)
-		pending_offline = "Away for %s\n\n+%s %s\n+%d Harvesting XP" % [
-			_fmt_time(delta), GameData.fmt(total), GameData.res_name(a["resource"]),
-			int(a.get("xp", 0)) * by_time]
+		var summary := _offline_loot(a.get("loot", []), yield_mult("harvesting"), reps)
+		add_xp("harvesting", int(a.get("xp", 0)) * reps)
+		pending_offline = "Away for %s\n\n%s\n+%d Harvesting XP" % [_fmt_time(delta), summary, int(a.get("xp", 0)) * reps]
 	elif active_type == "craft":
 		var r: Dictionary = GameData.CRAFT[active_id]
 		var by_inputs := 0x7FFFFFFF
 		for sym in r.get("inputs", {}):
 			by_inputs = mini(by_inputs, int(amount(sym) / int(r["inputs"][sym])))
-		var count := mini(by_time, by_inputs)
+		var count := mini(reps, by_inputs)
 		if count <= 0:
 			return
 		spend(r.get("inputs", {}), count)
-		var made := int(r.get("amount", 1)) * count
-		add_resource(r["output"], made)
+		var summary := ""
+		for sym in r.get("outputs", {}):
+			var made := int(r["outputs"][sym]) * count
+			add_resource(sym, made)
+			summary += "\n+%s %s" % [GameData.fmt(made), GameData.res_name(sym)]
 		add_xp("fabrication", int(r.get("xp", 0)) * count)
-		pending_offline = "Away for %s\n\nCrafted %s %s\n+%d Fabrication XP" % [
-			_fmt_time(delta), GameData.fmt(made), GameData.res_name(r["output"]),
-			int(r.get("xp", 0)) * count]
+		pending_offline = "Away for %s\n%s\n+%d Fabrication XP" % [_fmt_time(delta), summary, int(r.get("xp", 0)) * count]
 	elif active_type == "combat":
 		var e: Dictionary = GameData.ENEMIES[active_id]
-		# Only auto-farm offline if the fight is sustainable (regen >= incoming damage).
-		var net: float = combat_max_hp() * HP_REGEN - float(e.get("dmg", 0.0))
-		if net < 0.0:
-			return
-		add_xp("combat", int(e.get("xp", 0)) * by_time)
-		var summary := ""
-		for entry in e.get("loot", []):
-			var avg: float = (int(entry[2]) + int(entry[3])) / 2.0 * float(entry[1])
-			var got := int(round(avg * by_time))
-			if got > 0:
-				add_resource(entry[0], got)
-				summary += "\n+%s %s" % [GameData.fmt(got), GameData.res_name(entry[0])]
+		var dps: float = float(e.get("atk", 0)) / maxf(0.5, float(e.get("interval", 2.0)))
+		if combat_max_hp() * HP_REGEN - dps < 0.0:
+			return  # not sustainable; no offline farming
+		var summary := _offline_loot(e.get("loot", []), 1.0, reps)
+		add_xp("combat", int(e.get("xp", 0)) * reps)
 		combat_hp = combat_max_hp()
-		pending_offline = "Away for %s\n\nDestroyed %d %s%s\n+%d Combat XP" % [
-			_fmt_time(delta), by_time, e["name"], summary, int(e.get("xp", 0)) * by_time]
+		pending_offline = "Away for %s\n\nDestroyed %d %s\n%s\n+%d Combat XP" % [_fmt_time(delta), reps, e["name"], summary, int(e.get("xp", 0)) * reps]
+
+func _offline_loot(loot: Array, mult: float, reps: int) -> String:
+	var s := ""
+	for row in loot:
+		var avg: float = (int(row[2]) + int(row[3])) / 2.0 * float(row[1])
+		var got := int(round(avg * mult * reps))
+		if got > 0:
+			if row[0] == "credits":
+				credits += got
+				s += "+₡%s  " % GameData.fmt(got)
+			else:
+				add_resource(row[0], got)
+				s += "+%s %s  " % [GameData.fmt(got), GameData.res_name(row[0])]
+	return s
 
 func _fmt_time(secs: float) -> String:
 	var s := int(secs)
 	var h := s / 3600
 	var m := (s % 3600) / 60
-	if h > 0:
-		return "%dh %dm" % [h, m]
-	if m > 0:
-		return "%dm %ds" % [m, s % 60]
+	if h > 0: return "%dh %dm" % [h, m]
+	if m > 0: return "%dm %ds" % [m, s % 60]
 	return "%ds" % s
 
 # ---------------- Save / load ----------------
 func save_game() -> void:
 	var data := {
-		"version": 1,
+		"version": 2,
 		"resources": resources,
+		"credits": credits,
 		"skills": skills,
-		"tech": unlocked_tech.keys(),
+		"research": unlocked_research.keys(),
 		"active_type": active_type,
 		"active_id": active_id,
 		"progress": progress,
@@ -311,29 +319,28 @@ func load_game() -> void:
 	if json.parse(txt) != OK or typeof(json.data) != TYPE_DICTIONARY:
 		return
 	var data: Dictionary = json.data
-
 	resources = data.get("resources", {})
+	credits = int(data.get("credits", 0))
 	skills = data.get("skills", skills)
-	unlocked_tech = {}
-	for t in data.get("tech", []):
-		unlocked_tech[t] = true
+	unlocked_research = {}
+	for r in data.get("research", []):
+		unlocked_research[r] = true
 	active_type = data.get("active_type", "")
 	active_id = data.get("active_id", "")
 	progress = float(data.get("progress", 0.0))
 	combat_hp = float(data.get("combat_hp", 0.0))
-
 	var last := float(data.get("time", Time.get_unix_time_from_system()))
 	_apply_offline(Time.get_unix_time_from_system() - last)
-
 	resources_changed.emit()
 	skills_changed.emit()
-	tech_changed.emit()
+	research_changed.emit()
 	action_changed.emit()
 
 func hard_reset() -> void:
 	resources = {}
+	credits = 0
 	skills = {"harvesting": 0, "fabrication": 0, "combat": 0}
-	unlocked_tech = {}
+	unlocked_research = {}
 	pending_offline = ""
 	combat_hp = combat_max_hp()
 	stop_task()
@@ -341,4 +348,4 @@ func hard_reset() -> void:
 		DirAccess.remove_absolute(SAVE_PATH)
 	resources_changed.emit()
 	skills_changed.emit()
-	tech_changed.emit()
+	research_changed.emit()
