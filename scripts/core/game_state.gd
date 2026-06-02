@@ -10,6 +10,11 @@ signal action_changed
 
 var resources: Dictionary = {}          # symbol -> int
 var credits: int = 0                    # research currency (earned by selling)
+var lifetime_credits: int = 0           # total credits ever earned (for prestige)
+# Warp / prestige
+var warp_shards: float = 0.0
+var total_warps: int = 0
+var credits_at_warp_start: int = 0
 var skills: Dictionary = {
 	"harvesting": 0,
 	"fabrication": 0,
@@ -90,6 +95,73 @@ func add_resource(sym: String, amt: int) -> void:
 	resources[sym] = amount(sym) + amt
 	resources_changed.emit()
 
+func gain_credits(n: int) -> void:
+	credits += n
+	lifetime_credits += n   # lifetime total drives prestige gains
+
+# ---------------- Warp / prestige multipliers ----------------
+func warp_tier() -> int:
+	return total_warps / 5
+
+func warp_gathering_mult() -> float:
+	return (1.0 + warp_shards * 0.015) * pow(2.0, warp_tier())
+
+func warp_xp_mult() -> float:
+	return (1.0 + warp_shards * 0.025) * pow(2.0, warp_tier())
+
+func warp_production_mult() -> float:
+	return (1.0 + warp_shards * 0.02) * pow(2.0, warp_tier())
+
+func warp_combat_mult() -> float:
+	return (1.0 + warp_shards * 0.03) * pow(2.0, warp_tier())
+
+## Shards that would be gained by warping now (0 = below threshold).
+func warp_gain_preview() -> int:
+	var earned := lifetime_credits - credits_at_warp_start
+	var bcount := 0
+	for bid in buildings:
+		bcount += int(buildings[bid])
+	var score := float(earned) + bcount * 1000.0
+	if score < 500000.0:
+		return 0
+	return int(floor(log(maxf(1.0, score / 500000.0)) / log(2.0)) + 1.0)
+
+func execute_warp() -> int:
+	var gains := warp_gain_preview()
+	if gains <= 0:
+		return 0
+	warp_shards += gains
+	total_warps += 1
+	credits_at_warp_start = lifetime_credits
+	var bonus := int(warp_shards)
+	# Reset the world. Research unlocks PERSIST (soft reset); skills keep 30% XP.
+	resources = {}
+	credits = 0
+	for sk in skills:
+		skills[sk] = int(skills[sk] * 0.3)
+	buildings = {}
+	building_throttle = {}
+	_build_timers = {}
+	_build_frac = {}
+	active_hull = "corvette_hull"
+	owned_hulls = {"corvette_hull": true}
+	module_inventory = {}
+	loadout = {}
+	bounty_active = []
+	stop_task()
+	# Starting package (does not feed the next prestige).
+	credits = bonus * 5000
+	for r in {"Fe": 50, "Si": 30, "Wood": 20, "Water": 50}:
+		resources[r] = {"Fe": 50, "Si": 30, "Wood": 20, "Water": 50}[r] * bonus
+	combat_hp = combat_max_hp()
+	generate_bounty_pool()
+	resources_changed.emit()
+	skills_changed.emit()
+	research_changed.emit()
+	action_changed.emit()
+	save_game()
+	return gains
+
 func can_afford(cost: Dictionary) -> bool:
 	for sym in cost:
 		if amount(sym) < int(cost[sym]):
@@ -105,7 +177,7 @@ func sell_all(sym: String) -> void:
 	var qty := amount(sym)
 	if qty <= 0:
 		return
-	credits += qty * maxi(1, GameData.value_of(sym))
+	gain_credits(qty * maxi(1, GameData.value_of(sym)))
 	resources[sym] = 0
 	resources_changed.emit()
 
@@ -123,11 +195,14 @@ func level_of(skill_id: String) -> int:
 	return lvl
 
 func add_xp(skill_id: String, amt: int) -> void:
-	skills[skill_id] = int(skills.get(skill_id, 0)) + amt
+	skills[skill_id] = int(skills.get(skill_id, 0)) + int(round(amt * warp_xp_mult()))
 	skills_changed.emit()
 
 func yield_mult(skill_id: String) -> float:
-	return 1.0 + level_of(skill_id) * 0.02
+	var m := 1.0 + level_of(skill_id) * 0.02
+	if skill_id == "harvesting":
+		m *= warp_gathering_mult()
+	return m
 
 # ---------------- Combat stats ----------------
 ## Derived ship stats from the active hull + equipped modules.
@@ -170,9 +245,8 @@ func combat_max_hp() -> float:
 
 func combat_attack() -> float:
 	var s := ship_stats()
-	if s.is_empty():
-		return 5.0
-	return maxf(1.0, s["atk"] + level_of("combat") * 2.0)
+	var base := 5.0 if s.is_empty() else maxf(1.0, s["atk"] + level_of("combat") * 2.0)
+	return base * warp_combat_mult()
 
 func combat_defense() -> float:
 	var s := ship_stats()
@@ -387,7 +461,7 @@ func claim_contract(cid: String) -> bool:
 	var c = _find_contract(bounty_active, cid)
 	if c == null or not c["completed"]:
 		return false
-	credits += int(c["reward_credits"])
+	gain_credits(int(c["reward_credits"]))
 	bounty_active.erase(c)
 	bounty_total += 1
 	resources_changed.emit()
@@ -491,7 +565,7 @@ func _produce_batch(bid: String, count: int, d: Dictionary, gyb: Dictionary) -> 
 		_infra_dirty = true
 	var eng_scaled := ["auto_smelter", "hydro_plant", "industrial_centrifuge", "munitions_factory"]
 	for res in d.get("yield", {}):
-		var qty := float(d["yield"][res]) * count * (1.0 + float(gyb.get(res, 0.0)))
+		var qty := float(d["yield"][res]) * count * (1.0 + float(gyb.get(res, 0.0))) * warp_production_mult()
 		if bid in eng_scaled:
 			qty *= 1.0 + (log(1.0 + level_of("fabrication")) / log(10.0)) * 5.0
 		_build_frac[res] = float(_build_frac.get(res, 0.0)) + qty
@@ -499,7 +573,7 @@ func _produce_batch(bid: String, count: int, d: Dictionary, gyb: Dictionary) -> 
 		if whole > 0:
 			_build_frac[res] = float(_build_frac[res]) - whole
 			if res == "credits":
-				credits += whole
+				gain_credits(whole)
 			else:
 				resources[res] = amount(res) + whole
 			_infra_dirty = true
@@ -641,7 +715,7 @@ func _roll_loot(loot: Array, mult: float) -> void:
 		if randf() < float(row[1]):
 			var amt := maxi(1, int(round(randi_range(int(row[2]), int(row[3])) * mult)))
 			if row[0] == "credits":
-				credits += amt
+				gain_credits(amt)
 				resources_changed.emit()
 			else:
 				add_resource(row[0], amt)
@@ -723,7 +797,7 @@ func _offline_loot(loot: Array, mult: float, reps: int) -> String:
 		var got := int(round(avg * mult * reps))
 		if got > 0:
 			if row[0] == "credits":
-				credits += got
+				gain_credits(got)
 				s += "+₡%s  " % GameData.fmt(got)
 			else:
 				add_resource(row[0], got)
@@ -758,13 +832,13 @@ func _offline_infra(delta: float) -> void:
 		for res in inp:
 			resources[res] = amount(res) - int(inp[res]) * count * cycles
 		for res in d.get("yield", {}):
-			var qty := float(d["yield"][res]) * count * (1.0 + float(gyb.get(res, 0.0)))
+			var qty := float(d["yield"][res]) * count * (1.0 + float(gyb.get(res, 0.0))) * warp_production_mult()
 			if bid in eng_scaled:
 				qty *= 1.0 + (log(1.0 + level_of("fabrication")) / log(10.0)) * 5.0
 			var total := int(qty * cycles)
 			if total > 0:
 				if res == "credits":
-					credits += total
+					gain_credits(total)
 				else:
 					resources[res] = amount(res) + total
 		add_xp("infrastructure", cycles)
@@ -783,6 +857,10 @@ func save_game() -> void:
 		"version": 2,
 		"resources": resources,
 		"credits": credits,
+		"lifetime_credits": lifetime_credits,
+		"warp_shards": warp_shards,
+		"total_warps": total_warps,
+		"credits_at_warp_start": credits_at_warp_start,
 		"skills": skills,
 		"research": unlocked_research.keys(),
 		"active_type": active_type,
@@ -826,6 +904,10 @@ func load_game() -> void:
 	var data: Dictionary = json.data
 	resources = data.get("resources", {})
 	credits = int(data.get("credits", 0))
+	lifetime_credits = int(data.get("lifetime_credits", credits))
+	warp_shards = float(data.get("warp_shards", 0.0))
+	total_warps = int(data.get("total_warps", 0))
+	credits_at_warp_start = int(data.get("credits_at_warp_start", 0))
 	skills = data.get("skills", skills)
 	unlocked_research = {}
 	for r in data.get("research", []):
@@ -863,6 +945,10 @@ func load_game() -> void:
 func hard_reset() -> void:
 	resources = {}
 	credits = 0
+	lifetime_credits = 0
+	warp_shards = 0.0
+	total_warps = 0
+	credits_at_warp_start = 0
 	skills = {"harvesting": 0, "fabrication": 0, "combat": 0, "infrastructure": 0}
 	unlocked_research = {}
 	buildings = {}

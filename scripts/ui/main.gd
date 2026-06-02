@@ -10,11 +10,12 @@ const BOTTOM := [
 	{"id": "research", "label": "Research"},
 	{"id": "more",     "label": "More"},
 ]
-const PAGE_IDS := ["gather", "craft", "combat", "research", "more", "build", "ship", "bounty", "stats"]
+const PAGE_IDS := ["gather", "craft", "combat", "research", "more", "build", "ship", "bounty", "warp", "stats"]
 const MORE_MENU := [
 	{"id": "build",  "label": "⌂  Infrastructure"},
 	{"id": "ship",   "label": "⛭  Shipyard"},
 	{"id": "bounty", "label": "◆  Bounty Board"},
+	{"id": "warp",   "label": "✦  Warp Core"},
 	{"id": "stats",  "label": "≡  Storage & Crew"},
 ]
 
@@ -48,6 +49,7 @@ var _active_timer: Label = null
 var _combat_hp_bar: ProgressBar = null
 var _combat_hp_label: Label = null
 var _reset_armed := false
+var _warp_armed := false
 
 func _ready() -> void:
 	DisplayServer.screen_set_orientation(DisplayServer.SCREEN_PORTRAIT)
@@ -168,6 +170,7 @@ func _make_page() -> ScrollContainer:
 func _show(id: String) -> void:
 	current = id
 	_reset_armed = false
+	_warp_armed = false
 	for pid in pages:
 		pages[pid].visible = (pid == id)
 	var hl: String = id if tab_buttons.has(id) else "more"
@@ -191,6 +194,7 @@ func _refresh_current() -> void:
 		"build":    _build_infra()
 		"ship":     _build_ship()
 		"bounty":   _build_bounty()
+		"warp":     _build_warp()
 		"research": _build_research()
 		"more":     _build_more()
 		"stats":    _build_stats()
@@ -531,6 +535,61 @@ func _lbl_wrap(parent: Node, text: String, size: int, color: String) -> void:
 	l.add_theme_font_size_override("font_size", size)
 	l.add_theme_color_override("font_color", Color.html(color))
 	parent.add_child(l)
+
+# ============================================================ WARP CORE
+func _build_warp() -> void:
+	var v := _clear("warp")
+	_back_header(v)
+	var t := Label.new()
+	t.text = "✦ WARP CORE"
+	t.add_theme_font_size_override("font_size", 16)
+	t.add_theme_color_override("font_color", Color.html(PURP))
+	v.add_child(t)
+	_lbl_wrap(v, "Collapse your empire into a Warp Core for permanent Warp Shards. Skills keep 30%% XP, buildings/ship reset — but researched tech stays unlocked.", 10, C_DIM)
+
+	var sh := Label.new()
+	sh.text = "Warp Shards: %s   ·   Warps: %d   ·   Tier %d" % [GameData.fmt(int(GameState.warp_shards)), GameState.total_warps, GameState.warp_tier()]
+	sh.add_theme_font_size_override("font_size", 13)
+	sh.add_theme_color_override("font_color", Color.html(PURP))
+	v.add_child(sh)
+
+	_section(v, "PERMANENT BONUSES", PURP)
+	var panel := PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", _bordered("241f3e", "453c6b", 1, 6))
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 2)
+	panel.add_child(box)
+	_clbl(box, "Gathering  +%d%%" % int((GameState.warp_gathering_mult() - 1.0) * 100.0), 12, GREEN)
+	_clbl(box, "All XP  +%d%%" % int((GameState.warp_xp_mult() - 1.0) * 100.0), 12, GREEN)
+	_clbl(box, "Production  +%d%%" % int((GameState.warp_production_mult() - 1.0) * 100.0), 12, GREEN)
+	_clbl(box, "Combat  +%d%%" % int((GameState.warp_combat_mult() - 1.0) * 100.0), 12, GREEN)
+	v.add_child(panel)
+
+	# Prestige preview
+	var earned: int = GameState.lifetime_credits - GameState.credits_at_warp_start
+	var bcount := 0
+	for bid in GameState.buildings:
+		bcount += int(GameState.buildings[bid])
+	var score: int = earned + bcount * 1000
+	var gain := GameState.warp_gain_preview()
+	_section(v, "WARP READOUT", PURP)
+	_lbl_wrap(v, "Progress score: ₡%s  (lifetime credits since last warp + buildings)" % GameData.fmt(score), 11, C_TEXT)
+	if gain <= 0:
+		_lbl_wrap(v, "Reach a score of ₡500K to earn your first Warp Shard.", 11, C_WARN)
+	else:
+		_lbl_wrap(v, "Warping now grants %d Warp Shard%s." % [gain, "s" if gain != 1 else ""], 12, GREEN)
+
+	var wb := _card_button(("⚠ Tap again to WARP (+%d)" % gain) if _warp_armed else ("WARP for %d Shards" % gain), PURP, gain > 0)
+	wb.custom_minimum_size = Vector2(0, 46)
+	if gain > 0:
+		wb.pressed.connect(func() -> void:
+			if _warp_armed:
+				GameState.execute_warp()
+				_show("warp")
+			else:
+				_warp_armed = true
+				_build_warp())
+	v.add_child(wb)
 
 func _back_header(v: VBoxContainer) -> void:
 	var b := Button.new()
