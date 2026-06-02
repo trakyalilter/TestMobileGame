@@ -28,9 +28,19 @@ var active_type: String = ""            # "gather" | "craft" | "combat" | ""
 var active_id: String = ""
 var progress: float = 0.0
 
-# Combat
-var combat_hp: float = 0.0
-const HP_REGEN := 0.04
+# Combat (real-time ship duel)
+var combat_hp: float = 0.0            # persistent hull HP
+var player_shield: float = 0.0        # regenerates fast in combat
+var player_heat: float = 0.0          # weapons add heat; overheat locks fire
+var _overheat_lock: float = 0.0
+var _weapons: Array = []              # live weapon states built from loadout
+var enemy_inst: Dictionary = {}       # live enemy instance
+var _enemy_timer: float = 0.0
+var combat_events: Array = []         # transient [{text,color,side,seq}] for UI popups
+var _event_seq: int = 0
+const HP_REGEN := 0.04                # hull regen/sec (fraction) out of combat
+const MAX_HEAT := 100.0
+const VENT_RATE := 8.0
 
 # Shipyard
 var active_hull: String = ""
@@ -66,7 +76,7 @@ func _process(delta: float) -> void:
 	_tick_active(delta)
 	_tick_infra(delta)
 	var mx := combat_max_hp()
-	if combat_hp < mx:
+	if active_type != "combat" and combat_hp < mx:
 		combat_hp = minf(mx, combat_hp + mx * HP_REGEN * delta)
 	# Throttle resource-change signals from passive production to ~2/sec.
 	_infra_emit_accum += delta
@@ -212,7 +222,8 @@ func ship_stats() -> Dictionary:
 		return {}
 	var h: Dictionary = GameData.HULLS[active_hull]
 	var s := {"atk": 0.0, "hp": float(h.get("hp", 100)), "def": 0.0, "shield": 0.0,
-		"energy_cap": float(h.get("energy_capacity", 0)), "energy_load": 0.0}
+		"energy_cap": float(h.get("energy_capacity", 0)), "energy_load": 0.0,
+		"acc": 15.0, "eva": 0.0, "crit": 0.05, "shield_regen": 0.0}
 	var dps := 0.0
 	var spd_bonus := 0.0
 	var spd_mult := 1.0
@@ -224,33 +235,72 @@ func ship_stats() -> Dictionary:
 		s.shield += float(st.get("max_shield", 0))
 		s.energy_cap += float(st.get("energy_capacity", 0))
 		s.energy_load += float(st.get("energy_load", 0))
+		s.acc += float(st.get("accuracy", 0))
+		s.eva += float(st.get("eva", 0))
+		s.crit += float(st.get("crit_chance", 0))
+		s.shield_regen += float(st.get("shield_regen", 0))
 		spd_bonus += float(st.get("atk_speed_bonus", 0))
 		if st.has("atk_speed_mult"):
 			spd_mult *= float(st["atk_speed_mult"])
 		var dmg := float(st.get("atk_energy", 0)) + float(st.get("atk_kinetic", 0)) + float(st.get("atk_explosive", 0))
 		if dmg > 0.0:
 			dps += dmg / maxf(0.1, float(st.get("atk_interval", 1.0)))
-	dps = dps * (1.0 + spd_bonus) * spd_mult + float(h.get("atk", 0))
-	# Energy brownout: weapons underperform if load exceeds capacity.
-	if s.energy_load > s.energy_cap and s.energy_cap > 0.0:
-		dps *= s.energy_cap / s.energy_load
-	s.atk = dps
+	s.atk = dps * (1.0 + spd_bonus) * spd_mult + float(h.get("atk", 0))
 	return s
+
+## Live weapon list built from equipped weapon modules (or the hull cannon).
+func ship_weapons() -> Array:
+	var spd_bonus := 0.0
+	var spd_mult := 1.0
+	for k in loadout:
+		var st: Dictionary = GameData.MODULES.get(loadout[k], {}).get("stats", {})
+		spd_bonus += float(st.get("atk_speed_bonus", 0))
+		if st.has("atk_speed_mult"):
+			spd_mult *= float(st["atk_speed_mult"])
+	var speed := (1.0 + spd_bonus) * spd_mult
+	var dmg_mult := (1.0 + level_of("combat") * 0.005) * warp_combat_mult()
+	var eng_mult := 1.0 + level_of("fabrication") * 0.01
+	var out := []
+	for k in loadout:
+		var m: Dictionary = GameData.MODULES.get(loadout[k], {})
+		if m.get("slot", "") != "weapon":
+			continue
+		var st: Dictionary = m.get("stats", {})
+		var ke := float(st.get("atk_energy", 0))
+		var kk := float(st.get("atk_kinetic", 0))
+		var kx := float(st.get("atk_explosive", 0))
+		var type := "kinetic"
+		if ke > 0: type = "energy"
+		elif kx > 0: type = "explosive"
+		out.append({"name": m.get("name", "Weapon"), "type": type,
+			"dmg_k": kk * eng_mult * dmg_mult, "dmg_e": ke * eng_mult * dmg_mult, "dmg_x": kx * eng_mult * dmg_mult,
+			"interval": maxf(0.3, float(st.get("atk_interval", 2.5)) / maxf(0.2, speed)), "timer": randf_range(0.0, 0.4)})
+	if out.is_empty():
+		var h: Dictionary = GameData.HULLS.get(active_hull, {})
+		out.append({"name": "Standard Cannon", "type": "kinetic",
+			"dmg_k": float(h.get("atk", 5)) * dmg_mult, "dmg_e": 0.0, "dmg_x": 0.0,
+			"interval": maxf(0.3, 3.0 / maxf(0.2, speed)), "timer": 0.0})
+	return out
 
 func combat_max_hp() -> float:
 	var s := ship_stats()
 	if s.is_empty():
 		return 100.0
-	return s["hp"] + s["shield"] + level_of("combat") * 20.0
+	return s["hp"] + level_of("combat") * 20.0
+
+func player_max_shield() -> float:
+	var s := ship_stats()
+	return s.get("shield", 0.0) if not s.is_empty() else 0.0
+
+## Average sustained DPS vs a target (used for offline + UI readout).
+func avg_player_dps() -> float:
+	var total := 0.0
+	for w in ship_weapons():
+		total += (float(w["dmg_k"]) + float(w["dmg_e"]) + float(w["dmg_x"])) / maxf(0.3, float(w["interval"]))
+	return total
 
 func combat_attack() -> float:
-	var s := ship_stats()
-	var base := 5.0 if s.is_empty() else maxf(1.0, s["atk"] + level_of("combat") * 2.0)
-	return base * warp_combat_mult()
-
-func combat_defense() -> float:
-	var s := ship_stats()
-	return s.get("def", 0.0) if not s.is_empty() else 0.0
+	return avg_player_dps()
 
 # ---------------- Shipyard ----------------
 func _afford_cost(cost: Dictionary) -> bool:
@@ -671,13 +721,187 @@ func start_task(type: String, id: String) -> void:
 	active_type = type
 	active_id = id
 	progress = 0.0
+	if type == "combat":
+		_init_combat(id)
 	action_changed.emit()
 
 func stop_task() -> void:
 	active_type = ""
 	active_id = ""
 	progress = 0.0
+	enemy_inst = {}
 	action_changed.emit()
+
+# ---------------- Real-time combat ----------------
+func _init_combat(eid: String) -> void:
+	_weapons = ship_weapons()
+	player_shield = player_max_shield()
+	player_heat = 0.0
+	_overheat_lock = 0.0
+	_enemy_timer = 0.0
+	combat_events.clear()
+	if combat_hp <= 0.0:
+		combat_hp = combat_max_hp()
+	_spawn_enemy_inst(eid)
+
+func _spawn_enemy_inst(eid: String) -> void:
+	var e: Dictionary = GameData.ENEMIES.get(eid, {})
+	enemy_inst = {
+		"id": eid, "name": e.get("name", eid),
+		"hp": float(e.get("hp", 10)), "max_hp": float(e.get("hp", 10)),
+		"shield": float(e.get("max_shield", 0)), "max_shield": float(e.get("max_shield", 0)),
+		"atk": float(e.get("atk", 1)), "def": float(e.get("def", 0)),
+		"acc": float(e.get("accuracy", 0)), "eva": float(e.get("eva", 0)),
+		"interval": maxf(0.5, float(e.get("interval", 2.5))),
+		"loot": e.get("loot", []), "xp": int(e.get("xp", 0)),
+	}
+
+func _combat_difficulty() -> int:
+	for z in GameData.ZONES:
+		if active_id in z.get("enemies", []):
+			return int(z.get("difficulty", 1))
+	return 1
+
+func _event(text: String, color: String, side: String) -> void:
+	combat_events.append({"text": text, "color": color, "side": side, "seq": _event_seq})
+	_event_seq += 1
+	while combat_events.size() > 14:
+		combat_events.pop_front()
+
+func _tick_combat(delta: float) -> void:
+	if enemy_inst.is_empty():
+		return
+	var ss := ship_stats()
+	var maxsh := player_max_shield()
+	# Heat venting (4x while overloaded / locked)
+	if player_heat > 0.0:
+		var vent := VENT_RATE
+		if player_heat > MAX_HEAT or _overheat_lock > 0.0:
+			vent *= 4.0
+		player_heat = maxf(0.0, player_heat - vent * delta)
+	if _overheat_lock > 0.0 and player_heat <= 0.0:
+		_overheat_lock = 0.0
+	# Shield regen (both sides)
+	if player_shield < maxsh:
+		player_shield = minf(maxsh, player_shield + float(ss.get("shield_regen", 0.0)) * delta)
+	if enemy_inst["shield"] < enemy_inst["max_shield"]:
+		enemy_inst["shield"] = minf(enemy_inst["max_shield"], enemy_inst["shield"] + minf(enemy_inst["max_shield"] * 0.01, 50.0) * delta)
+	# Player weapons fire on their own intervals
+	for w in _weapons:
+		w["timer"] = float(w["timer"]) + delta
+		var guard := 0
+		while float(w["timer"]) >= float(w["interval"]) and guard < 20:
+			guard += 1
+			w["timer"] = float(w["timer"]) - float(w["interval"])
+			_player_fire(w, ss)
+			if active_type != "combat":
+				return
+	# Enemy fires on its interval
+	_enemy_timer += delta
+	var eguard := 0
+	while _enemy_timer >= float(enemy_inst["interval"]) and eguard < 20:
+		eguard += 1
+		_enemy_timer -= float(enemy_inst["interval"])
+		_enemy_fire(ss)
+		if active_type != "combat":
+			return
+
+func _player_fire(w: Dictionary, ss: Dictionary) -> void:
+	if _overheat_lock > 0.0:
+		return
+	var dtot := float(w["dmg_k"]) + float(w["dmg_e"]) + float(w["dmg_x"])
+	player_heat += 2.0 + dtot / 100.0
+	if player_heat >= MAX_HEAT:
+		_overheat_lock = 1.0
+		_event("OVERHEAT", "ef9a54", "player")
+		return
+	var acc := float(ss.get("acc", 15.0))
+	var hit := clampf(acc / (acc + float(enemy_inst["eva"])), 0.2, 1.0)
+	if randf() > hit:
+		_event("MISS", "9aa7c2", "enemy")
+		return
+	var res := resolve_damage(float(w["dmg_k"]), float(w["dmg_e"]), float(w["dmg_x"]), enemy_inst["shield"], enemy_inst["def"], _combat_difficulty(), float(ss.get("crit", 0.05)))
+	enemy_inst["shield"] = maxf(0.0, enemy_inst["shield"] - res[0])
+	enemy_inst["hp"] -= res[1]
+	if res[0] > 0:
+		_event("-%d" % int(res[0]), "55d3e6", "enemy")
+	if res[1] > 0:
+		_event(("CRIT %d" % int(res[1])) if res[2] else ("-%d" % int(res[1])), "ecb44a" if res[2] else "ef6a52", "enemy")
+	if enemy_inst["hp"] <= 0.0:
+		_win_combat()
+
+func _enemy_fire(ss: Dictionary) -> void:
+	var eva := float(ss.get("eva", 0.0))
+	var e_acc := float(enemy_inst["acc"])
+	var dodge := minf(eva / (eva + 150.0 * (1.0 + e_acc / 100.0)), 0.75)
+	if randf() < dodge:
+		_event("DODGE", "9aa7c2", "player")
+		return
+	var res := resolve_damage(float(enemy_inst["atk"]), 0.0, 0.0, player_shield, float(ss.get("def", 0.0)), _combat_difficulty(), 0.05)
+	player_shield = maxf(0.0, player_shield - res[0])
+	combat_hp -= res[1]
+	if res[0] > 0:
+		_event("-%d" % int(res[0]), "55d3e6", "player")
+	if res[1] > 0:
+		_event("-%d" % int(res[1]), "ef6a52", "player")
+	if combat_hp <= 0.0:
+		_lose_combat()
+
+## Damage-type resolution: kinetic/energy/explosive vs shields then armor.
+func resolve_damage(atk_k: float, atk_e: float, atk_x: float, c_shield: float, c_armor: float, difficulty: int, crit_chance: float) -> Array:
+	var shield_pot := atk_k * 0.5 + atk_e * 1.5 + atk_x * 1.1
+	var dmg_shield := minf(c_shield, shield_pot)
+	var bleed := (shield_pot - dmg_shield) / shield_pot if shield_pot > 0.0 else 1.0
+	var k := maxf(20.0, float(difficulty) * 50.0)
+	var hk := atk_k * 1.2 * (1.0 - c_armor / (c_armor + k))
+	var he := atk_e * 0.9 * (1.0 - (c_armor * 0.7) / (c_armor * 0.7 + k))
+	var hx := atk_x * 1.0 * (1.0 - (c_armor * 0.2) / (c_armor * 0.2 + k))
+	var hull := (hk + he + hx) * bleed
+	var variance := randf_range(0.9, 1.1)
+	var is_crit := randf() < crit_chance
+	if is_crit:
+		variance *= 1.5
+	var minhull := 1.0 if (atk_k + atk_e + atk_x) > 0.0 else 0.0
+	return [dmg_shield * variance, maxf(minhull, hull * variance), is_crit]
+
+func _win_combat() -> void:
+	_roll_loot(enemy_inst["loot"], 1.0)
+	add_xp("combat", int(enemy_inst["xp"]))
+	bounty_on_kill(active_id)
+	_event("DESTROYED", "5fd585", "enemy")
+	_spawn_enemy_inst(active_id)   # auto re-engage (idle farming)
+
+func _lose_combat() -> void:
+	combat_hp = combat_max_hp() * 0.25
+	player_shield = 0.0
+	_event("HULL BREACH", "ef6a52", "player")
+	stop_task()
+
+func _offline_combat(delta: float) -> void:
+	var e: Dictionary = GameData.ENEMIES.get(active_id, {})
+	if e.is_empty():
+		return
+	var diff := _combat_difficulty()
+	var k := maxf(20.0, float(diff) * 50.0)
+	var pdps := avg_player_dps() * (1.0 - float(e.get("def", 0)) / (float(e.get("def", 0)) + k))
+	pdps = maxf(1.0, pdps)
+	var ehp := float(e.get("hp", 10)) + float(e.get("max_shield", 0))
+	var kill_time := ehp / pdps
+	if kill_time <= 0.0:
+		return
+	var reps := int(delta / kill_time)
+	if reps <= 0:
+		return
+	var pdef := float(ship_stats().get("def", 0.0))
+	var edps := float(e.get("atk", 0)) / maxf(0.5, float(e.get("interval", 2.5))) * (1.0 - pdef / (pdef + k))
+	var sustain := combat_max_hp() * HP_REGEN + float(ship_stats().get("shield_regen", 0.0))
+	if edps > sustain:
+		return   # not survivable unattended
+	var summary := _offline_loot(e.get("loot", []), 1.0, reps)
+	add_xp("combat", int(e.get("xp", 0)) * reps)
+	combat_hp = combat_max_hp()
+	player_shield = player_max_shield()
+	pending_offline = "Away for %s\n\nDestroyed %d %s\n%s\n+%d Combat XP" % [_fmt_time(delta), reps, e.get("name", ""), summary, int(e.get("xp", 0)) * reps]
 
 func current_duration() -> float:
 	return effective_duration(active_type, active_id)
@@ -687,14 +911,13 @@ func effective_duration(type: String, id: String) -> float:
 		return float(GameData.GATHER[id].get("duration", 4.0))
 	elif type == "craft" and GameData.CRAFT.has(id):
 		return float(GameData.CRAFT[id].get("duration", 4.0))
-	elif type == "combat" and GameData.ENEMIES.has(id):
-		var e: Dictionary = GameData.ENEMIES[id]
-		var dps := maxf(1.0, combat_attack() - float(e.get("def", 0)))
-		return maxf(0.5, float(e["hp"]) / dps)
 	return 0.0
 
 func _tick_active(delta: float) -> void:
 	if active_type == "":
+		return
+	if active_type == "combat":
+		_tick_combat(delta)
 		return
 	if active_type == "craft" and not can_afford(GameData.CRAFT[active_id].get("inputs", {})):
 		stop_task()
@@ -735,21 +958,13 @@ func _complete_active() -> void:
 			add_resource(sym, int(r["outputs"][sym]))
 		_roll_loot(r.get("bonus", []), 1.0)
 		add_xp("fabrication", int(r.get("xp", 0)))
-	elif active_type == "combat":
-		var e: Dictionary = GameData.ENEMIES[active_id]
-		_roll_loot(e.get("loot", []), 1.0)
-		add_xp("combat", int(e.get("xp", 0)))
-		bounty_on_kill(active_id)
-		var dps: float = float(e.get("atk", 0)) / maxf(0.5, float(e.get("interval", 2.0)))
-		dps *= 100.0 / (100.0 + combat_defense())   # armor mitigation
-		combat_hp -= dps * current_duration()
-		if combat_hp <= 0.0:
-			combat_hp = combat_max_hp() * 0.25
-			stop_task()
 
 # ---------------- Offline ----------------
 func _apply_offline(delta: float) -> void:
 	if active_type == "" or delta < 5.0:
+		return
+	if active_type == "combat":
+		_offline_combat(delta)
 		return
 	var dur := current_duration()
 	if dur <= 0.0:
@@ -779,16 +994,6 @@ func _apply_offline(delta: float) -> void:
 			summary += "\n+%s %s" % [GameData.fmt(made), GameData.res_name(sym)]
 		add_xp("fabrication", int(r.get("xp", 0)) * count)
 		pending_offline = "Away for %s\n%s\n+%d Fabrication XP" % [_fmt_time(delta), summary, int(r.get("xp", 0)) * count]
-	elif active_type == "combat":
-		var e: Dictionary = GameData.ENEMIES[active_id]
-		var dps: float = float(e.get("atk", 0)) / maxf(0.5, float(e.get("interval", 2.0)))
-		dps *= 100.0 / (100.0 + combat_defense())
-		if combat_max_hp() * HP_REGEN - dps < 0.0:
-			return  # not sustainable; no offline farming
-		var summary := _offline_loot(e.get("loot", []), 1.0, reps)
-		add_xp("combat", int(e.get("xp", 0)) * reps)
-		combat_hp = combat_max_hp()
-		pending_offline = "Away for %s\n\nDestroyed %d %s\n%s\n+%d Combat XP" % [_fmt_time(delta), reps, e["name"], summary, int(e.get("xp", 0)) * reps]
 
 func _offline_loot(loot: Array, mult: float, reps: int) -> String:
 	var s := ""
@@ -937,6 +1142,13 @@ func load_game() -> void:
 	var away := Time.get_unix_time_from_system() - last
 	_apply_offline(away)
 	_offline_infra(away)
+	# Re-arm the live duel if a combat task was active (transient state isn't saved).
+	if active_type == "combat":
+		if GameData.ENEMIES.has(active_id):
+			_init_combat(active_id)
+		else:
+			active_type = ""
+			active_id = ""
 	resources_changed.emit()
 	skills_changed.emit()
 	research_changed.emit()
@@ -964,6 +1176,9 @@ func hard_reset() -> void:
 	bounty_refresh_timer = 0.0
 	bounty_total = 0
 	pending_offline = ""
+	player_shield = 0.0
+	player_heat = 0.0
+	enemy_inst = {}
 	combat_hp = combat_max_hp()
 	stop_task()
 	generate_bounty_pool()

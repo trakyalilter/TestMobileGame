@@ -64,6 +64,14 @@ var _active_bar: ProgressBar = null
 var _active_timer: Label = null
 var _combat_hp_bar: ProgressBar = null
 var _combat_hp_label: Label = null
+var _enemy_hp_bar: ProgressBar = null
+var _enemy_hp_label: Label = null
+var _enemy_shield_bar: ProgressBar = null
+var _player_shield_bar: ProgressBar = null
+var _player_heat_bar: ProgressBar = null
+var _enemy_anchor: Control = null
+var _player_anchor: Control = null
+var _seen_events := 0
 var _reset_armed := false
 var _warp_armed := false
 
@@ -134,7 +142,24 @@ func _process(_delta: float) -> void:
 		_combat_hp_bar.max_value = mx
 		_combat_hp_bar.value = GameState.combat_hp
 		if is_instance_valid(_combat_hp_label):
-			_combat_hp_label.text = "%d / %d HP" % [int(GameState.combat_hp), int(mx)]
+			_combat_hp_label.text = "%d / %d" % [int(GameState.combat_hp), int(mx)]
+	if current == "combat" and GameState.active_type == "combat" and not GameState.enemy_inst.is_empty():
+		var e: Dictionary = GameState.enemy_inst
+		if is_instance_valid(_enemy_hp_bar):
+			_enemy_hp_bar.max_value = e["max_hp"]
+			_enemy_hp_bar.value = e["hp"]
+			if is_instance_valid(_enemy_hp_label):
+				_enemy_hp_label.text = "%d / %d" % [int(e["hp"]), int(e["max_hp"])]
+		if is_instance_valid(_enemy_shield_bar):
+			_enemy_shield_bar.max_value = maxf(1.0, e["max_shield"])
+			_enemy_shield_bar.value = e["shield"]
+		if is_instance_valid(_player_shield_bar):
+			_player_shield_bar.max_value = maxf(1.0, GameState.player_max_shield())
+			_player_shield_bar.value = GameState.player_shield
+		if is_instance_valid(_player_heat_bar):
+			_player_heat_bar.max_value = GameState.MAX_HEAT
+			_player_heat_bar.value = GameState.player_heat
+		_drain_combat_events()
 
 func _on_resources() -> void:
 	_refresh_top()
@@ -275,6 +300,13 @@ func _refresh_current() -> void:
 	_active_timer = null
 	_combat_hp_bar = null
 	_combat_hp_label = null
+	_enemy_hp_bar = null
+	_enemy_hp_label = null
+	_enemy_shield_bar = null
+	_player_shield_bar = null
+	_player_heat_bar = null
+	_enemy_anchor = null
+	_player_anchor = null
 	match current:
 		"gather":   _build_gather()
 		"craft":    _build_craft()
@@ -377,35 +409,13 @@ func _craft_card(id: String, r: Dictionary) -> Control:
 # ============================================================ COMBAT
 func _build_combat() -> void:
 	var v := _clear("combat")
-	_skill_banner(v, "BATTLE STATION", "combat", RED)
-	# hull bar
-	var hb := HBoxContainer.new()
-	var hl := Label.new()
-	hl.text = "HULL"
-	hl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hl.add_theme_font_size_override("font_size", 11)
-	hl.add_theme_color_override("font_color", Color.html(RED))
-	hb.add_child(hl)
-	_combat_hp_label = Label.new()
-	_combat_hp_label.text = "%d / %d HP" % [int(GameState.combat_hp), int(GameState.combat_max_hp())]
-	_combat_hp_label.add_theme_font_size_override("font_size", 10)
-	_combat_hp_label.add_theme_color_override("font_color", Color.html(C_DIM))
-	hb.add_child(_combat_hp_label)
-	v.add_child(hb)
-	_combat_hp_bar = ProgressBar.new()
-	_combat_hp_bar.custom_minimum_size = Vector2(0, 9)
-	_combat_hp_bar.show_percentage = false
-	_combat_hp_bar.max_value = GameState.combat_max_hp()
-	_combat_hp_bar.value = GameState.combat_hp
-	_style_bar(_combat_hp_bar, RED)
-	v.add_child(_combat_hp_bar)
-	var st := Label.new()
-	st.text = "Attack %.0f   ·   Regen %.0f/s" % [GameState.combat_attack(), GameState.combat_max_hp() * GameState.HP_REGEN]
-	st.add_theme_font_size_override("font_size", 10)
-	st.add_theme_color_override("font_color", Color.html(C_DIM))
-	v.add_child(st)
+	if GameState.active_type == "combat" and not GameState.enemy_inst.is_empty():
+		_build_battle(v)
+	else:
+		_build_targets(v)
 
-	# zone sub-tabs
+func _build_targets(v: VBoxContainer) -> void:
+	_skill_banner(v, "BATTLE STATION", "combat", RED)
 	var zone_items := []
 	for z in GameData.ZONES:
 		zone_items.append({"id": z["id"], "label": z["name"]})
@@ -424,17 +434,123 @@ func _build_combat() -> void:
 			g.add_child(_enemy_card(eid, GameData.ENEMIES[eid]))
 
 func _enemy_card(id: String, e: Dictionary) -> Control:
-	var active := (GameState.active_type == "combat" and GameState.active_id == id)
 	var v := _card(RED, true)
 	_card_head(v, "◎", e["name"], "", RED, true)
-	_inset(v, "TARGET", [
-		_line("HP %d" % int(e["hp"]), C_TEXT),
+	var stats := [
+		_line("HP %s" % GameData.fmt(e["hp"]), C_TEXT),
 		_line("ATK %d / %.1fs" % [int(e.get("atk", 0)), float(e.get("interval", 2.0))], C_WARN),
 		_line("DEF %d" % int(e.get("def", 0)), C_DIM),
-	], RED)
+	]
+	if int(e.get("max_shield", 0)) > 0:
+		stats.insert(1, _line("Shield %s" % GameData.fmt(e["max_shield"]), CYAN))
+	_inset(v, "TARGET", stats, RED)
 	_inset(v, "SALVAGE", _loot_lines(e.get("loot", [])), RED)
-	_action_controls(v, "combat", id, active, RED, "Engage", "Retreat")
+	var b := _card_button("Engage", RED, true)
+	b.pressed.connect(func() -> void: GameState.start_task("combat", id))
+	v.add_child(b)
 	return v.get_parent()
+
+# ---- Live battle view ----
+func _build_battle(v: VBoxContainer) -> void:
+	var e: Dictionary = GameState.enemy_inst
+	_skill_banner(v, "BATTLE STATION", "combat", RED)
+
+	# Enemy combatant
+	var ep := _card(RED, true)
+	_card_head(ep, "◎", e["name"], "", RED, true)
+	var er := HBoxContainer.new()
+	var ehl := Label.new()
+	ehl.text = "ENEMY HULL"
+	ehl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	ehl.add_theme_font_size_override("font_size", 9)
+	ehl.add_theme_color_override("font_color", Color.html(RED))
+	er.add_child(ehl)
+	_enemy_hp_label = Label.new()
+	_enemy_hp_label.add_theme_font_size_override("font_size", 9)
+	_enemy_hp_label.add_theme_color_override("font_color", Color.html(C_DIM))
+	er.add_child(_enemy_hp_label)
+	ep.add_child(er)
+	_enemy_hp_bar = _mk_bar(ep, RED, 9)
+	if float(e["max_shield"]) > 0.0:
+		_enemy_shield_bar = _mk_bar(ep, CYAN, 5)
+	_enemy_anchor = _add_anchor(ep)
+	v.add_child(ep.get_parent())
+
+	# Player combatant
+	var pp := _card(CYAN, true)
+	var hull: Dictionary = GameData.HULLS.get(GameState.active_hull, {})
+	_card_head(pp, "◇", hull.get("name", "Ship"), "%d guns" % GameState.ship_weapons().size(), CYAN, true)
+	var pr := HBoxContainer.new()
+	var phl := Label.new()
+	phl.text = "HULL"
+	phl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	phl.add_theme_font_size_override("font_size", 9)
+	phl.add_theme_color_override("font_color", Color.html(CYAN))
+	pr.add_child(phl)
+	_combat_hp_label = Label.new()
+	_combat_hp_label.add_theme_font_size_override("font_size", 9)
+	_combat_hp_label.add_theme_color_override("font_color", Color.html(C_DIM))
+	pr.add_child(_combat_hp_label)
+	pp.add_child(pr)
+	_combat_hp_bar = _mk_bar(pp, GREEN, 9)
+	if GameState.player_max_shield() > 0.0:
+		_player_shield_bar = _mk_bar(pp, CYAN, 5)
+	var heatl := Label.new()
+	heatl.text = "HEAT"
+	heatl.add_theme_font_size_override("font_size", 9)
+	heatl.add_theme_color_override("font_color", Color.html(BUILD))
+	pp.add_child(heatl)
+	_player_heat_bar = _mk_bar(pp, BUILD, 5)
+	_player_anchor = _add_anchor(pp)
+	v.add_child(pp.get_parent())
+
+	var rb := _card_button("⛒ Retreat", RED, true)
+	rb.custom_minimum_size = Vector2(0, 42)
+	rb.pressed.connect(func() -> void: GameState.stop_task())
+	v.add_child(rb)
+	_seen_events = GameState._event_seq   # only show events from here on
+
+func _drain_combat_events() -> void:
+	for ev in GameState.combat_events:
+		if int(ev.get("seq", -1)) >= _seen_events:
+			_seen_events = int(ev["seq"]) + 1
+			_spawn_popup(ev)
+
+func _spawn_popup(ev: Dictionary) -> void:
+	var anchor: Control = _enemy_anchor if ev.get("side", "enemy") == "enemy" else _player_anchor
+	if not is_instance_valid(anchor) or anchor.size.x < 20.0:
+		return
+	var l := Label.new()
+	l.text = ev["text"]
+	l.add_theme_font_size_override("font_size", 16)
+	l.add_theme_color_override("font_color", Color.html(ev["color"]))
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	l.position = Vector2(clampf(randf_range(16.0, anchor.size.x - 80.0), 8.0, maxf(8.0, anchor.size.x - 70.0)), anchor.size.y * 0.35)
+	anchor.add_child(l)
+	var tw := create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(l, "position:y", l.position.y - 32.0, 0.7)
+	tw.tween_property(l, "modulate:a", 0.0, 0.7).set_delay(0.2)
+	tw.set_parallel(false)
+	tw.tween_callback(l.queue_free)
+
+func _mk_bar(parent: VBoxContainer, accent: String, h: int) -> ProgressBar:
+	var b := ProgressBar.new()
+	b.custom_minimum_size = Vector2(0, h)
+	b.show_percentage = false
+	b.max_value = 100
+	b.value = 100
+	_style_bar(b, accent)
+	parent.add_child(b)
+	return b
+
+func _add_anchor(vbox: VBoxContainer) -> Control:
+	var a := Control.new()
+	a.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	a.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	a.clip_contents = false
+	vbox.get_parent().add_child(a)
+	return a
 
 # ============================================================ INFRASTRUCTURE
 func _build_infra() -> void:
