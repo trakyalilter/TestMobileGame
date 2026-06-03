@@ -34,17 +34,24 @@ gems (12), consumables (10), missions (43) — all generated 1:1 from source.
 
 ---
 
-## C. Systems present but DIFFERENT (🟇) — *behavioral divergences*
+## C. Systems formerly DIVERGENT — now fixed to match the original (✅)
 
-| System | Original | Mobile (current) | Impact |
-|---|---|---|---|
-| **XP / level curve** | RuneScape-style table, **cap 99**, milestones [10/25/50/75]. | `40·(lvl-1)^1.6`, **no cap**. | Levels scale differently; skill thresholds reached at different rates. |
-| **Gathering SPEED** | `base + Σ per-action techs (diamond/ultrasonic/plasma_bore, high_flow/superfluid/hydro, laser/mono/molecular, magnetic_funnels +0.25–0.75) × warp gathering mult`, + Biosphere +5%/bldg. | **Raw duration only** — no speed scaling at all. | Mobile gathering is much slower late-game; those speed research nodes do nothing. |
-| **Processing SPEED** | `1 + lvl·0.01 + recipe-techs(+0.25–0.75) + research(.45) + buildings(fabricator/catalyst +.60) + industrial_logistics + refinery_link` × `1.10(m10) × 1.11(m25)`. | `1 + refinery_link + research processing_speed`. | Missing skill-level, recipe-specific techs, building speed bonuses, processing milestones. |
-| **Processing special outputs** | oxygen_blast_furnace ×5 Steel, milestone-50 5% double-output, `scrap_rolls` extra rolls. | none. | A few recipes yield less than original. |
-| **Combat milestones** | +5% crit @ L10, +15 eva @ L25, +25% vent @ L75 (auto-consume unlock @ L50). | dmg `+0.5%/lvl` and HP `+20/lvl` present; **crit/eva/vent milestones absent**. | Slightly weaker high-combat-level survivability. |
-| **Energy grid** | battery **stores** surplus and **drains** to cover deficits; fuel generators ignore efficiency and run to jumpstart. | simple `eff = gen/cons` when in deficit, applied to all production; **no battery, no fuel priority**. | No energy banking; deficit behaviour is cruder. |
-| **Offline progress** | gathering + processing + **infrastructure** + research + fleet (+combat if toggled), cinematic modal. | **only the single active task** (gather/craft/research/combat); plain text banner. | **Buildings earn nothing while the app is closed**; combat always runs offline (no toggle). |
+All of the behavioural divergences below have been brought in line with the
+desktop game (verified headless):
+
+| System | Now matches original |
+|---|---|
+| **XP / level curve** | RuneScape-style table `floor(l + boost + 300·2^(l/7))/4` (boost +200 for l<20), **cap 99**. |
+| **Gathering SPEED** | `(1 + Σ per-action techs: diamond/ultrasonic/plasma_bore, high_flow/superfluid/hydro, laser/mono/molecular +0.25–0.75) × warp gathering mult`; warp moved out of yield into speed. *(Biosphere +5%/bldg still pending — building special effect, §D.)* |
+| **Processing SPEED** | `1 + fab·0.01 + recipe-techs + research(processing_speed) + industrial_logistics + refinery_link + buildings(fabricator .20 / catalyst .25 / silver .15)` × `1.10(m10) × 1.11(m25)`. |
+| **Processing outputs** | Efficiency multiplier (2–32×) now applied to craft outputs **and** bonus rolls; oxygen_blast_furnace ×5 Steel; milestone-50 5% double; `scrap_rolls` extra rolls. |
+| **Combat milestones** | +5% crit @ L10, +15 eva @ L25, +25% vent @ L75, auto-consume gated @ L50. |
+| **Energy grid** | grid battery (capacity = ship energy_cap) banks surplus and drains to cover deficits; fuel generators run at 100% to jumpstart (fractional fuel draw); milestone-10 +10% generation. |
+| **Offline progress** | infrastructure offline catch-up is battery-aware and grants Infra XP + a loot summary in the away report. |
+
+> Note: the earlier claim that "buildings earn nothing while closed" was
+> incorrect — offline infra was already credited via `_offline_infra` at load;
+> it is now battery/fuel-accurate and reported.
 
 ---
 

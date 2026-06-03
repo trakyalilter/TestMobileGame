@@ -50,6 +50,8 @@ var ammo_loadout: Dictionary = {}      # weapon slot index (String) -> ammo item
 var consumable_hull_slot: String = ""
 var consumable_shield_slot: String = ""
 var _consume_cd: float = 0.0
+const MAX_LEVEL := 99                  # skill level cap (matches desktop)
+var _xp_table: Array = []              # lazily built cumulative XP-to-level table
 const CONSUME_CD := 1.5
 const CONSUME_THRESHOLD := 0.5         # auto-trigger at 50% hull/shield
 const HP_REGEN := 0.04                # hull regen/sec (fraction) out of combat
@@ -89,6 +91,8 @@ const AFFIX_DB := {
 # Infrastructure (passive production buildings — runs in the background always)
 var buildings: Dictionary = {}          # id -> count
 var building_throttle: Dictionary = {}  # id -> 0..1
+var infra_energy: float = 0.0           # grid battery (capacity = ship energy_cap)
+var _fuel_frac: Dictionary = {}         # fractional fuel-generator consumption accumulator
 var _build_timers: Dictionary = {}      # id -> accumulated time
 var _build_frac: Dictionary = {}        # sym -> fractional carry
 var _infra_dirty := false
@@ -191,6 +195,7 @@ func execute_warp() -> int:
 		skills[sk] = int(skills[sk] * 0.3)
 	buildings = {}
 	building_throttle = {}
+	infra_energy = 0.0
 	_build_timers = {}
 	_build_frac = {}
 	active_hull = "corvette_hull"
@@ -233,14 +238,25 @@ func sell_all(sym: String) -> void:
 
 # ---------------- Skills ----------------
 func xp_for_level(lvl: int) -> int:
+	# RuneScape-style table (matches the desktop Skill class): steeper early game,
+	# capped at level 99.
+	if _xp_table.is_empty():
+		var total := 0.0
+		_xp_table.resize(MAX_LEVEL + 1)
+		for l in range(1, MAX_LEVEL + 1):
+			_xp_table[l] = int(total)
+			var boost := 200.0 if l < 20 else 0.0
+			total += floor(l + boost + 300.0 * pow(2.0, float(l) / 7.0)) / 4.0
 	if lvl <= 1:
 		return 0
-	return int(40.0 * pow(lvl - 1, 1.6))
+	if lvl > MAX_LEVEL:
+		return 0x7FFFFFFFFFFF       # unreachable — enforces the level cap
+	return int(_xp_table[lvl])
 
 func level_of(skill_id: String) -> int:
 	var xp := int(skills.get(skill_id, 0))
 	var lvl := 1
-	while xp >= xp_for_level(lvl + 1):
+	while lvl < MAX_LEVEL and xp >= xp_for_level(lvl + 1):
 		lvl += 1
 	return lvl
 
@@ -255,8 +271,8 @@ func yield_mult(skill_id: String) -> float:
 	if level_of("harvesting") >= 10:
 		m *= 1.10                                          # milestone 10: +10% yield
 	m *= research_efficiency_mult()                        # Efficiency I-V: 2x..32x
-	m *= warp_gathering_mult()
 	m *= 1.0 + affix_total("extractor_efficiency")
+	# NB: warp prestige boosts gathering via SPEED (see gather_speed_mult), not yield.
 	return m
 
 # ---------------- Combat stats ----------------
@@ -299,6 +315,11 @@ func ship_stats() -> Dictionary:
 	s.shield_regen *= 1.0 + gem_bonus("shield_regen_mult")
 	s.eva *= 1.0 + gem_bonus("eva_mult")
 	s.energy_cap *= 1.0 + gem_bonus("energy_capacity_mult") + research_bonus("applied_physics")
+	# Combat skill milestones (desktop Phase 21): +5% crit @ L10, +15 eva @ L25.
+	if level_of("combat") >= 10:
+		s.crit += 0.05
+	if level_of("combat") >= 25:
+		s.eva += 15.0
 	return s
 
 ## Live weapon list built from equipped weapon modules (or the hull cannon).
@@ -839,7 +860,11 @@ func set_throttle(bid: String, v: float) -> void:
 	building_throttle[bid] = clampf(v, 0.0, 1.0)
 	resources_changed.emit()
 
-## Returns {"gen": kW, "cons": kW, "eff": 0..1}. Deficit throttles all production.
+func _is_fuel_gen(d: Dictionary) -> bool:
+	return float(d.get("energy_gen", 0.0)) > 0.0 and not d.get("input", {}).is_empty()
+
+## Returns {"gen": kW, "cons": kW, "eff": 0..1}. Nominal readout for the UI
+## (assumes fuel available); the live tick also banks/drains the grid battery.
 func infra_power() -> Dictionary:
 	var gen := 0.0
 	var cons := 0.0
@@ -848,6 +873,8 @@ func infra_power() -> Dictionary:
 		var t := get_throttle(bid)
 		gen += float(d.get("energy_gen", 0.0)) * buildings[bid] * t
 		cons += float(d.get("energy_cons", 0.0)) * buildings[bid] * t
+	if level_of("infrastructure") >= 10:
+		gen *= 1.10                                       # milestone 10: +10% generation
 	var eff := 1.0 if cons <= gen or cons <= 0.0 else gen / cons
 	return {"gen": gen, "cons": cons, "eff": eff}
 
@@ -859,19 +886,79 @@ func _global_yield_bonus() -> Dictionary:
 			gyb[res] = gyb.get(res, 0.0) + float(yb[res]) * buildings[bid]
 	return gyb
 
+func _infra_skill_speed() -> float:
+	return 1.0 + level_of("infrastructure") * 0.01 + research_bonus("industrial_logistics") + research_bonus("industrial_catalysis")
+
+## Energy phase: pure generators always run; fuel generators run at 100% (ignoring
+## grid efficiency) to jumpstart, consuming fuel; surplus banks into the grid
+## battery (capacity = ship energy_cap) and is drained to cover deficits.
+## Returns grid efficiency 0..1 for the production phase.
+func _infra_energy_step(delta: float) -> float:
+	var skill_speed := _infra_skill_speed()
+	var gen := 0.0
+	var cons := 0.0
+	for bid in buildings:
+		var count: int = buildings[bid]
+		if count <= 0:
+			continue
+		var d: Dictionary = GameData.BUILDINGS.get(bid, {})
+		var t := get_throttle(bid)
+		cons += float(d.get("energy_cons", 0.0)) * count * t
+		var eg := float(d.get("energy_gen", 0.0))
+		if eg <= 0.0:
+			continue
+		if d.get("input", {}).is_empty():
+			gen += eg * count * t                          # pure generator (solar)
+		else:
+			var ei: float = maxf(0.05, float(d.get("interval", 1.0)) / skill_speed)
+			var inp: Dictionary = d["input"]
+			var can_fuel := true
+			for res in inp:
+				if amount(res) < float(inp[res]) * count * t * (delta / ei):
+					can_fuel = false
+					break
+			if can_fuel:
+				# Fractional fuel draw accumulated so small per-frame amounts don't
+				# round up to a whole unit every frame.
+				for res in inp:
+					var need := float(inp[res]) * count * t * (delta / ei)
+					_fuel_frac[res] = float(_fuel_frac.get(res, 0.0)) + need
+					var whole := int(_fuel_frac[res])
+					if whole > 0:
+						resources[res] = amount(res) - whole
+						_fuel_frac[res] = float(_fuel_frac[res]) - whole
+						_infra_dirty = true
+				gen += eg * count * t
+	if level_of("infrastructure") >= 10:
+		gen *= 1.10
+	var cap: float = ship_stats().get("energy_cap", 0.0)
+	var net := gen - cons
+	if net >= 0.0:
+		infra_energy = minf(cap, infra_energy + net * delta)
+		return 1.0
+	var deficit := -net * delta
+	if infra_energy >= deficit:
+		infra_energy -= deficit
+		return 1.0
+	if infra_energy > 0.0:
+		var eff := infra_energy / deficit
+		infra_energy = 0.0
+		return eff
+	return 0.0
+
 func _tick_infra(delta: float) -> void:
 	if buildings.is_empty():
 		return
-	var eff: float = infra_power()["eff"]
-	var skill_speed := 1.0 + level_of("infrastructure") * 0.01 + research_bonus("industrial_logistics") + research_bonus("industrial_catalysis")
+	var eff := _infra_energy_step(delta)
+	var skill_speed := _infra_skill_speed()
 	var gyb := _global_yield_bonus()
 	for bid in buildings:
 		var count: int = buildings[bid]
 		if count <= 0:
 			continue
 		var d: Dictionary = GameData.BUILDINGS.get(bid, {})
-		if d.get("yield", {}).is_empty() and d.get("input", {}).is_empty():
-			continue
+		if d.get("yield", {}).is_empty():
+			continue                                       # generators handled in energy step
 		var eff_interval: float = maxf(0.05, float(d.get("interval", 1.0)) / skill_speed)
 		var t := get_throttle(bid)
 		_build_timers[bid] = float(_build_timers.get(bid, 0.0)) + delta * eff * t
@@ -880,6 +967,44 @@ func _tick_infra(delta: float) -> void:
 			guard += 1
 			_build_timers[bid] = float(_build_timers[bid]) - eff_interval
 			_produce_batch(bid, count, d, gyb)
+
+## Offline infrastructure catch-up: runs the grid + production over `delta`,
+## returns a short loot summary (or "").
+func _offline_infra(delta: float) -> String:
+	if buildings.is_empty():
+		return ""
+	var eff := _infra_energy_step(delta)
+	if eff <= 0.0:
+		return ""
+	var skill_speed := _infra_skill_speed()
+	var gyb := _global_yield_bonus()
+	var before := {}
+	for sym in resources:
+		before[sym] = amount(sym)
+	var cr_before := credits
+	for bid in buildings:
+		var count: int = buildings[bid]
+		if count <= 0:
+			continue
+		var d: Dictionary = GameData.BUILDINGS.get(bid, {})
+		if d.get("yield", {}).is_empty():
+			continue
+		var eff_interval: float = maxf(0.05, float(d.get("interval", 1.0)) / skill_speed)
+		var cycles: int = int(delta * eff * get_throttle(bid) / eff_interval)
+		for _i in range(mini(cycles, 500000)):
+			_produce_batch(bid, count, d, gyb)            # self-limits when feedstock runs out
+		if cycles > 0:
+			add_xp("infrastructure", mini(cycles, 500000))
+	var parts := []
+	for sym in resources:
+		var made := amount(sym) - int(before.get(sym, 0))
+		if made > 0:
+			parts.append("+%s %s" % [GameData.fmt(made), GameData.res_name(sym)])
+	if credits - cr_before > 0:
+		parts.append("+₡%s" % GameData.fmt(credits - cr_before))
+	if parts.is_empty():
+		return ""
+	return "Infrastructure: " + ", ".join(parts)
 
 func _produce_batch(bid: String, count: int, d: Dictionary, gyb: Dictionary) -> void:
 	var inp: Dictionary = d.get("input", {})
@@ -1201,9 +1326,11 @@ func _tick_combat(delta: float) -> void:
 		return
 	var ss := ship_stats()
 	var maxsh := player_max_shield()
-	# Heat venting (4x while overloaded / locked)
+	# Heat venting (4x while overloaded / locked; +25% milestone @ combat L75)
 	if player_heat > 0.0:
 		var vent := VENT_RATE
+		if level_of("combat") >= 75:
+			vent *= 1.25
 		if player_heat > MAX_HEAT or _overheat_lock > 0.0:
 			vent *= 4.0
 		player_heat = maxf(0.0, player_heat - vent * delta)
@@ -1262,6 +1389,8 @@ func _tick_combat(delta: float) -> void:
 		_check_consume(maxsh)
 
 func _check_consume(maxsh: float) -> void:
+	if level_of("combat") < 50:          # auto-consume unlocks at combat L50 (desktop)
+		return
 	var th := auto_consume_threshold()   # gated by Auto-Repair research
 	if th <= 0.0:
 		return
@@ -1513,10 +1642,51 @@ func current_duration() -> float:
 
 func effective_duration(type: String, id: String) -> float:
 	if type == "gather" and GameData.GATHER.has(id):
-		return float(GameData.GATHER[id].get("duration", 4.0))
+		return float(GameData.GATHER[id].get("duration", 4.0)) / gather_speed_mult(id)
 	elif type == "craft" and GameData.CRAFT.has(id):
-		return float(GameData.CRAFT[id].get("duration", 4.0)) / (1.0 + affix_total("refinery_link") + research_bonus("processing_speed"))
+		return float(GameData.CRAFT[id].get("duration", 4.0)) / recipe_speed_mult(id)
 	return 0.0
+
+# Per-action gathering speed techs (ported from gathering_manager.get_action_speed_multiplier)
+const GATHER_SPEED_TECH := {
+	"gather_dirt": [["diamond_drills", 0.50], ["ultrasonic_drills", 0.50], ["plasma_bore", 0.75]],
+	"collect_water": [["high_flow_pumps", 0.50], ["superfluid_intake", 0.50], ["hydro_vortex", 0.75]],
+	"gather_wood": [["laser_cutters", 0.50], ["mono_filament", 0.50], ["molecular_disassembler", 0.75]],
+	"harvest_nebula": [["magnetic_funnels", 0.25]],
+}
+
+func gather_speed_mult(id: String) -> float:
+	var m := 1.0
+	for row in GATHER_SPEED_TECH.get(id, []):
+		if is_research_unlocked(row[0]):
+			m += float(row[1])
+	return m * warp_gathering_mult()                       # prestige boosts gather via speed
+
+# Per-recipe processing speed techs (ported from processing_manager.get_recipe_speed_multiplier)
+const RECIPE_SPEED_TECH := {
+	"centrifuge_dirt": [["fast_centrifuges", 0.25], ["maglev_bearings", 0.50], ["quantum_separators", 0.75]],
+	"electrolysis": [["catalytic_electrodes", 0.25], ["ion_exchange", 0.50], ["resonance_splitters", 0.75]],
+	"charcoal_burning": [["pyrolysis_control", 0.25]],
+	"smelt_steel_basic": [["blast_furnace", 0.25]],
+	"smelt_steel_oxygen": [["blast_furnace", 0.25]],
+	"press_graphite": [["hydraulic_press", 0.25]],
+}
+
+func recipe_speed_mult(id: String) -> float:
+	var m := 1.0 + level_of("fabrication") * 0.01           # +1% Engineering / level
+	for row in RECIPE_SPEED_TECH.get(id, []):
+		if is_research_unlocked(row[0]):
+			m += float(row[1])
+	m += research_bonus("processing_speed")                 # nano_fabrication / perfect_automation
+	m += research_bonus("industrial_logistics")             # hub +10%
+	m += affix_total("refinery_link")                       # module affix
+	# Infrastructure speed buildings
+	if int(buildings.get("fabricator", 0)) > 0: m += 0.20
+	if int(buildings.get("catalyst_chamber", 0)) > 0: m += 0.25
+	if int(buildings.get("silver_catalyst_bay", 0)) > 0: m += 0.15
+	if level_of("fabrication") >= 10: m *= 1.10             # milestone 10
+	if level_of("fabrication") >= 25: m *= 1.11             # milestone 25
+	return m
 
 func _tick_active(delta: float) -> void:
 	if active_type == "":
@@ -1559,10 +1729,37 @@ func _complete_active() -> void:
 			stop_task()
 			return
 		spend(r.get("inputs", {}))
-		for sym in r.get("outputs", {}):
-			add_resource(sym, int(r["outputs"][sym]))
-		_roll_loot(r.get("bonus", []), 1.0)
+		_grant_craft_outputs(active_id, r, 1)
 		add_xp("fabrication", int(r.get("xp", 0)))
+
+## Grants a recipe's outputs for `count` completions, applying the same yield
+## rules as the desktop processing_manager: efficiency multiplier (2–32×),
+## oxygen-blast-furnace ×5 Steel, milestone-50 5% double, plus the bonus table
+## (efficiency-scaled, with scrap-recycling extra rolls).
+func _grant_craft_outputs(rid: String, r: Dictionary, count: int) -> void:
+	var eff := research_efficiency_mult()
+	var oxy_steel: bool = is_research_unlocked("oxygen_blast_furnace")
+	var m50 := level_of("fabrication") >= 50
+	for sym in r.get("outputs", {}):
+		var per := float(r["outputs"][sym])
+		if sym == "Steel" and oxy_steel:
+			per *= 5.0
+		per *= eff
+		var total := per * count
+		if m50:                                            # 5% chance per unit to double
+			var doubles := 0
+			for _i in range(mini(count, 4096)):
+				if randf() < 0.05:
+					doubles += 1
+			total += per * doubles
+		add_resource(sym, int(round(total)))
+	# Bonus / output table — efficiency-scaled, scrap recycling adds rolls.
+	var rolls := 1
+	if rid == "recycle_scrap":
+		rolls += int(research_bonus("scrap_rolls"))
+	for _r in range(rolls):
+		for _c in range(count):
+			_roll_loot(r.get("bonus", []), eff)
 
 # ---------------- Offline ----------------
 func _apply_offline(delta: float) -> void:
@@ -1592,10 +1789,13 @@ func _apply_offline(delta: float) -> void:
 		if count <= 0:
 			return
 		spend(r.get("inputs", {}), count)
+		var before := {}
+		for sym in r.get("outputs", {}):
+			before[sym] = amount(sym)
+		_grant_craft_outputs(active_id, r, count)
 		var summary := ""
 		for sym in r.get("outputs", {}):
-			var made := int(r["outputs"][sym]) * count
-			add_resource(sym, made)
+			var made := amount(sym) - int(before[sym])
 			summary += "\n+%s %s" % [GameData.fmt(made), GameData.res_name(sym)]
 		add_xp("fabrication", int(r.get("xp", 0)) * count)
 		pending_offline = "Away for %s\n%s\n+%d Fabrication XP" % [_fmt_time(delta), summary, int(r.get("xp", 0)) * count]
@@ -1613,45 +1813,6 @@ func _offline_loot(loot: Array, mult: float, reps: int) -> String:
 				add_resource(row[0], got)
 				s += "+%s %s  " % [GameData.fmt(got), GameData.res_name(row[0])]
 	return s
-
-## Buildings keep producing while away (bounded by available inputs).
-func _offline_infra(delta: float) -> void:
-	if buildings.is_empty() or delta < 5.0:
-		return
-	var eff: float = infra_power()["eff"]
-	var skill_speed := 1.0 + level_of("infrastructure") * 0.01 + research_bonus("industrial_logistics") + research_bonus("industrial_catalysis")
-	var gyb := _global_yield_bonus()
-	var eng_scaled := ["auto_smelter", "hydro_plant", "industrial_centrifuge", "munitions_factory"]
-	for bid in buildings:
-		var count: int = buildings[bid]
-		if count <= 0:
-			continue
-		var d: Dictionary = GameData.BUILDINGS.get(bid, {})
-		if d.get("yield", {}).is_empty() and d.get("input", {}).is_empty():
-			continue
-		var eff_interval: float = maxf(0.05, float(d.get("interval", 1.0)) / skill_speed)
-		var t := get_throttle(bid)
-		var cycles := int(delta * eff * t / eff_interval)
-		if cycles <= 0:
-			continue
-		var inp: Dictionary = d.get("input", {})
-		for res in inp:
-			cycles = mini(cycles, int(amount(res) / maxi(1, int(inp[res]) * count)))
-		if cycles <= 0:
-			continue
-		for res in inp:
-			resources[res] = amount(res) - int(inp[res]) * count * cycles
-		for res in d.get("yield", {}):
-			var qty := float(d["yield"][res]) * count * (1.0 + float(gyb.get(res, 0.0))) * warp_production_mult()
-			if bid in eng_scaled:
-				qty *= 1.0 + (log(1.0 + level_of("fabrication")) / log(10.0)) * 5.0
-			var total := int(qty * cycles)
-			if total > 0:
-				if res == "credits":
-					gain_credits(total)
-				else:
-					resources[res] = amount(res) + total
-		add_xp("infrastructure", cycles)
 
 func _fmt_time(secs: float) -> String:
 	var s := int(secs)
@@ -1687,6 +1848,7 @@ func save_game() -> void:
 		"consumable_shield_slot": consumable_shield_slot,
 		"buildings": buildings,
 		"building_throttle": building_throttle,
+		"infra_energy": infra_energy,
 		"bounty_available": bounty_available,
 		"bounty_active": bounty_active,
 		"bounty_refresh_timer": bounty_refresh_timer,
@@ -1749,6 +1911,7 @@ func load_game() -> void:
 	for k in buildings:
 		buildings[k] = int(buildings[k])
 	building_throttle = data.get("building_throttle", {})
+	infra_energy = float(data.get("infra_energy", 0.0))
 	bounty_available = data.get("bounty_available", [])
 	bounty_active = data.get("bounty_active", [])
 	bounty_refresh_timer = float(data.get("bounty_refresh_timer", 0.0))
@@ -1767,7 +1930,12 @@ func load_game() -> void:
 	var last := float(data.get("time", Time.get_unix_time_from_system()))
 	var away := Time.get_unix_time_from_system() - last
 	_apply_offline(away)
-	_offline_infra(away)
+	var infra_report := _offline_infra(away)   # buildings keep producing while away
+	if infra_report != "":
+		if pending_offline == "":
+			pending_offline = "Away for %s\n\n%s" % [_fmt_time(away), infra_report]
+		else:
+			pending_offline += "\n" + infra_report
 	# Re-arm the live duel if a combat task was active (transient state isn't saved).
 	if active_type == "combat":
 		if GameData.ENEMIES.has(active_id):
@@ -1791,6 +1959,7 @@ func hard_reset() -> void:
 	unlocked_research = {}
 	buildings = {}
 	building_throttle = {}
+	infra_energy = 0.0
 	_build_timers = {}
 	_build_frac = {}
 	active_hull = "corvette_hull"
