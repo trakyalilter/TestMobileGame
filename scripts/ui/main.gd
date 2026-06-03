@@ -72,6 +72,12 @@ var drawer_panel: PanelContainer
 var drawer_scrim: ColorRect
 var drawer_open := false
 var _ham_badge: Panel
+var _ham_btn: Button
+var _coach_banner: PanelContainer
+var _coach_obj: Label
+var _coach_hint: Label
+var _pulse_tween: Tween
+var _pulse_target: Control
 var _welcome: Control = null
 var _welcome_done := false
 var current := ""
@@ -125,9 +131,106 @@ func _ready() -> void:
 	call_deferred("_update_safe_area")
 	_refresh_top()
 	_refresh_banner()
-	_show("gather")
+	# New players start on the Missions tutorial (like the desktop game).
+	_show("missions" if not GameState.has_mission_progress() else "gather")
 	_update_badges()
+	_update_coach()
 	_show_welcome()
+
+# ============================================================ COACHING
+# Pulses the next thing to tap based on the active tutorial mission, and shows a
+# directive banner — adapted from the desktop nav-hint system to the drawer UI.
+const COACH_PAGE := {"gather": "gather", "research": "research", "craft": "ship", "construct": "ship", "build": "build", "defeat": "combat"}
+
+func _page_label(id: String) -> String:
+	for t in NAV_ALL:
+		if t.id == id:
+			return t.label
+	return id.capitalize()
+
+func _coach_active_mission() -> String:
+	for mid in GameState.missions_active:
+		return mid              # the tutorial chain has one active mission at a time
+	return ""
+
+func _gather_action_for(sym: String) -> String:
+	var best := ""
+	var best_lvl := 99999
+	for gid in GameData.GATHER:
+		for row in GameData.GATHER[gid].get("loot", []):
+			if row[0] == sym:
+				var lvl := int(GameData.GATHER[gid].get("level_req", 1))
+				if lvl < best_lvl:
+					best_lvl = lvl
+					best = gid
+	return best
+
+func _update_coach() -> void:
+	if _coach_banner == null:
+		return
+	var mid := _coach_active_mission()
+	if mid == "" or not GameData.MISSIONS.has(mid):
+		_coach_banner.visible = false
+		_pulse_stop()
+		return
+	var m: Dictionary = GameData.MISSIONS[mid]
+	_coach_banner.visible = true
+	_coach_obj.text = "◆  OBJECTIVE: " + m.get("name", mid)
+	var claim := GameState.mission_completed(mid)
+	var page: String = COACH_PAGE.get(m.get("type", ""), "")
+	var card: String = m.get("target", "")
+	if m.get("type", "") == "gather":
+		card = _gather_action_for(card)
+	var pulse: Control = null
+	if claim:
+		_coach_hint.text = "✓ Reward ready — open ☰ → Missions and Claim."
+		if current != "missions":
+			pulse = _ham_btn
+		if drawer_open and nav_items.has("missions"):
+			pulse = nav_items["missions"]["btn"]
+	elif page == "":
+		_coach_hint.text = m.get("desc", "")
+	elif drawer_open and page != current and nav_items.has(page):
+		_coach_hint.text = "Open " + _page_label(page)
+		pulse = nav_items[page]["btn"]
+	elif page != current:
+		_coach_hint.text = m.get("desc", "") + "   ·   tap ☰ → " + _page_label(page)
+		pulse = _ham_btn
+	else:
+		_coach_hint.text = m.get("desc", "")
+		pulse = _coach_find_card(card)
+	_pulse_start(pulse)
+
+func _coach_find_card(id: String) -> Control:
+	if id == "" or not pages.has(current):
+		return null
+	var stack: Array = [pages[current]]
+	while stack.size() > 0:
+		var n = stack.pop_back()
+		if n is Control and n.has_meta("coach_id") and String(n.get_meta("coach_id")) == id:
+			return n
+		for ch in n.get_children():
+			stack.append(ch)
+	return null
+
+func _pulse_start(c: Control) -> void:
+	if c == _pulse_target and _pulse_tween != null and _pulse_tween.is_valid():
+		return
+	_pulse_stop()
+	if c == null or not is_instance_valid(c):
+		return
+	_pulse_target = c
+	_pulse_tween = c.create_tween().set_loops()
+	_pulse_tween.tween_property(c, "modulate", Color(1.45, 1.12, 0.5), 0.55).set_trans(Tween.TRANS_SINE)
+	_pulse_tween.tween_property(c, "modulate", Color.WHITE, 0.55).set_trans(Tween.TRANS_SINE)
+
+func _pulse_stop() -> void:
+	if _pulse_tween != null and _pulse_tween.is_valid():
+		_pulse_tween.kill()
+	_pulse_tween = null
+	if is_instance_valid(_pulse_target):
+		_pulse_target.modulate = Color.WHITE
+	_pulse_target = null
 
 # Branded intro splash shown on launch (tap or auto to continue); flows into the
 # offline "welcome back" report afterward if there is one.
@@ -172,7 +275,7 @@ func _show_welcome() -> void:
 	# Animate everything in, then hold and auto-continue.
 	for nd in [emblem, title, tag, prompt] + line_labels:
 		nd.modulate.a = 0.0
-	var tw := create_tween()
+	var tw := _welcome.create_tween()   # bound to the splash so an early skip kills it cleanly
 	tw.tween_property(emblem, "modulate:a", 1.0, 0.4)
 	tw.tween_property(title, "modulate:a", 1.0, 0.4)
 	tw.tween_property(tag, "modulate:a", 1.0, 0.3)
@@ -293,6 +396,7 @@ func _on_resources() -> void:
 	_refresh_top()
 	_update_badges()
 	if current in NO_TICK_REFRESH:
+		_update_coach()
 		return
 	_refresh_current()
 
@@ -301,6 +405,7 @@ func _on_resources() -> void:
 func _on_tick() -> void:
 	_update_badges()
 	if current in NO_TICK_REFRESH:
+		_update_coach()
 		return
 	_refresh_current()
 
@@ -350,6 +455,7 @@ func _build() -> void:
 	for st in ["normal", "hover", "pressed", "focus"]:
 		ham.add_theme_stylebox_override(st, empty_btn)
 	ham.pressed.connect(_toggle_drawer)
+	_ham_btn = ham
 	_ham_badge = _make_badge()
 	_ham_badge.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 	_ham_badge.offset_left = -16
@@ -375,6 +481,24 @@ func _build() -> void:
 	scroll.add_child(res_bar)
 	active_banner = _build_active_banner()
 	topv.add_child(active_banner)
+	# Coaching banner (tutorial guidance) — shows the current objective + a directive.
+	_coach_banner = PanelContainer.new()
+	_coach_banner.add_theme_stylebox_override("panel", _card_style(_mix(GOLD, SURFACE, 0.84), _mix(GOLD, LINE, 0.4), 1, false))
+	_coach_banner.visible = false
+	var cv := VBoxContainer.new()
+	cv.add_theme_constant_override("separation", 1)
+	_coach_banner.add_child(cv)
+	_coach_obj = Label.new()
+	_coach_obj.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_coach_obj.add_theme_font_size_override("font_size", _fs(12))
+	_coach_obj.add_theme_color_override("font_color", Color.html(GOLD))
+	cv.add_child(_coach_obj)
+	_coach_hint = Label.new()
+	_coach_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_coach_hint.add_theme_font_size_override("font_size", _fs(11))
+	_coach_hint.add_theme_color_override("font_color", Color.html(CYAN))
+	cv.add_child(_coach_hint)
+	topv.add_child(_coach_banner)
 
 	# ---- Content ----
 	content = Control.new()
@@ -527,6 +651,7 @@ func _open_drawer() -> void:
 	tw.tween_property(drawer_panel, "offset_left", 0.0, 0.18).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tw.tween_property(drawer_panel, "offset_right", DRAWER_W, 0.18).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tw.tween_property(drawer_scrim, "color", Color(0, 0, 0, 0.55), 0.18)
+	_update_coach()        # switch the pulse from the hamburger to the destination row
 
 func _close_drawer() -> void:
 	if not drawer_open:
@@ -538,6 +663,7 @@ func _close_drawer() -> void:
 	tw.tween_property(drawer_panel, "offset_right", 0.0, 0.16).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	tw.tween_property(drawer_scrim, "color", Color(0, 0, 0, 0.0), 0.16)
 	tw.chain().tween_callback(func() -> void: drawer.visible = false)
+	_update_coach()
 
 func _make_nav_item(id: String, label: String) -> Button:
 	var btn := Button.new()
@@ -641,6 +767,7 @@ func _refresh_current() -> void:
 	# and containers default to MOUSE_FILTER_STOP, which eats the drag.
 	if pages.has(current):
 		_scroll_passthrough(pages[current])
+	_update_coach()
 
 # Recursively switch non-interactive controls from STOP to PASS so the parent
 # ScrollContainer still receives touch-drag events. Buttons/sliders/inputs keep
@@ -681,6 +808,7 @@ func _gather_card(id: String, a: Dictionary) -> Control:
 	var unlocked := GameState.meets_requirements(a, "harvesting")
 	var active := (GameState.active_type == "gather" and GameState.active_id == id)
 	var v := _card(GOLD, unlocked or active, 238)
+	v.get_parent().set_meta("coach_id", id)
 	_card_head(v, "↑", a["name"], "Lv %d" % int(a.get("level_req", 1)), GOLD, unlocked)
 	if unlocked:
 		_inset(v, "YIELD", _loot_lines(a.get("loot", [])), GOLD)
@@ -712,6 +840,7 @@ func _craft_card(id: String, r: Dictionary) -> Control:
 	var active := (GameState.active_type == "craft" and GameState.active_id == id)
 	var affordable := GameState.can_afford(r.get("inputs", {}))
 	var v := _card(CYAN, unlocked or active, 248)
+	v.get_parent().set_meta("coach_id", id)
 	_card_head(v, "⚙", r["name"], "Lv %d" % int(r.get("level_req", 1)), CYAN, unlocked)
 	if unlocked:
 		var in_lines := []
@@ -816,6 +945,7 @@ func _enemy_card(id: String, e: Dictionary) -> Control:
 	# buttons line up across the pair.
 	var panel := v.get_parent()
 	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	panel.set_meta("coach_id", id)
 	_card_head(v, "◎", e["name"], "", RED, true)
 	var stats := [
 		_line("HP %s" % GameData.fmt(e["hp"]), C_TEXT),
@@ -1038,6 +1168,7 @@ func _building_card(bid: String, d: Dictionary) -> Control:
 	var unlocked := GameState.building_unlocked(bid)
 	var count := GameState.building_count(bid)
 	var v := _card(BUILD, unlocked or count > 0)
+	v.get_parent().set_meta("coach_id", bid)
 	_card_head(v, "⌂", d["name"], "x%d" % count, BUILD, unlocked)
 	if not unlocked:
 		_locked(v, d, "infrastructure")
@@ -1568,6 +1699,7 @@ func _module_card(mid: String, m: Dictionary) -> Control:
 	var unlocked := GameState.module_unlocked(mid)
 	var owned := int(GameState.module_inventory.get(mid, 0))
 	var c := _card(CYAN, unlocked)
+	c.get_parent().set_meta("coach_id", mid)
 	_card_head(c, "▣", m.get("name", mid), ("x%d" % owned) if owned > 0 else "", CYAN, unlocked)
 	if not unlocked:
 		_locked(c, m, "combat")
@@ -1602,6 +1734,7 @@ func _hull_card(hid: String, h: Dictionary) -> Control:
 	var owned := GameState.hull_owned(hid)
 	var active: bool = GameState.active_hull == hid
 	var c := _card(CYAN, unlocked or owned)
+	c.get_parent().set_meta("coach_id", hid)
 	_card_head(c, "⛭", h.get("name", hid), "T%d" % int(h.get("tier", 0)), CYAN, unlocked)
 	if not unlocked:
 		_locked(c, h, "combat")
@@ -1768,6 +1901,7 @@ func _research_node(id: String) -> Control:
 	var panel := Panel.new()
 	panel.custom_minimum_size = Vector2(RES_NODE_W, RES_NODE_H)
 	panel.clip_contents = true
+	panel.set_meta("coach_id", id)
 	panel.add_theme_stylebox_override("panel", _bordered(fill, border, 2 if (available or researched) else 1, 8))
 	panel.tooltip_text = t.get("desc", "")
 	var m := MarginContainer.new()

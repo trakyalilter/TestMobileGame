@@ -1328,6 +1328,15 @@ func _mission_init() -> void:
 func mission_completed(mid: String) -> bool:
 	return int(missions_progress.get(mid, 0)) >= int(GameData.MISSIONS.get(mid, {}).get("qty", 1))
 
+## True once the player has started the tutorial chain (claimed or made progress).
+func has_mission_progress() -> bool:
+	if not missions_claimed.is_empty():
+		return true
+	for mid in missions_progress:
+		if int(missions_progress[mid]) > 0:
+			return true
+	return false
+
 ## True when at least one active mission is finished and waiting to be claimed.
 func has_claimable_mission() -> bool:
 	for mid in missions_active:
