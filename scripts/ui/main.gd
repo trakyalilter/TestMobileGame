@@ -1294,16 +1294,25 @@ func _build_research() -> void:
 	var cw: float = maxx * RES_POS_SCALE + RES_NODE_W + RES_PAD * 2.0
 	var ch: float = maxy * RES_POS_SCALE + RES_NODE_H + RES_PAD * 2.0
 
-	# Horizontal scroller pans the wide tree; the page's own ScrollContainer
-	# handles vertical, so the canvas is given its full height as a min size.
+	# One both-axis scroller pans the wide/tall tree in 2D (desktop parity). The
+	# page's own vertical scroll is disabled for this page so the two scrollers
+	# don't compete for the same drag — that was blocking all movement.
+	pages["research"].vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	var hs := ScrollContainer.new()
-	hs.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	hs.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	hs.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	hs.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hs.custom_minimum_size = Vector2(0, ch)
+	hs.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	# Fill the page's content area (a disabled outer scroll sizes children to
+	# their min, not the viewport, so set the height explicitly).
+	var avail: float = pages["research"].size.y
+	if avail < 200.0:
+		avail = get_viewport_rect().size.y - 300.0
+	hs.custom_minimum_size = Vector2(0, maxf(340.0, avail - 112.0))
 	var canvas := Control.new()
 	canvas.custom_minimum_size = Vector2(cw, ch)
 	canvas.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	canvas.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	canvas.draw.connect(_draw_research_branches.bind(canvas, nodes, pos))
 	for nid in nodes:
 		if not GameData.RESEARCH.has(nid):
