@@ -38,6 +38,13 @@ var enemy_inst: Dictionary = {}       # live enemy instance
 var _enemy_timer: float = 0.0
 var combat_events: Array = []         # transient [{text,color,side,seq}] for UI popups
 var _event_seq: int = 0
+# Ammo + consumables (fittings)
+var ammo_loadout: Dictionary = {}      # weapon slot index (String) -> ammo item id
+var consumable_hull_slot: String = ""
+var consumable_shield_slot: String = ""
+var _consume_cd: float = 0.0
+const CONSUME_CD := 1.5
+const CONSUME_THRESHOLD := 0.5         # auto-trigger at 50% hull/shield
 const HP_REGEN := 0.04                # hull regen/sec (fraction) out of combat
 const MAX_HEAT := 100.0
 const VENT_RATE := 8.0
@@ -272,15 +279,37 @@ func ship_weapons() -> Array:
 		var type := "kinetic"
 		if ke > 0: type = "energy"
 		elif kx > 0: type = "explosive"
-		out.append({"name": m.get("name", "Weapon"), "type": type,
+		out.append({"name": m.get("name", "Weapon"), "type": type, "slot": str(k),
 			"dmg_k": kk * eng_mult * dmg_mult, "dmg_e": ke * eng_mult * dmg_mult, "dmg_x": kx * eng_mult * dmg_mult,
 			"interval": maxf(0.3, float(st.get("atk_interval", 2.5)) / maxf(0.2, speed)), "timer": randf_range(0.0, 0.4)})
 	if out.is_empty():
 		var h: Dictionary = GameData.HULLS.get(active_hull, {})
-		out.append({"name": "Standard Cannon", "type": "kinetic",
+		out.append({"name": "Standard Cannon", "type": "kinetic", "slot": "",
 			"dmg_k": float(h.get("atk", 5)) * dmg_mult, "dmg_e": 0.0, "dmg_x": 0.0,
 			"interval": maxf(0.3, 3.0 / maxf(0.2, speed)), "timer": 0.0})
 	return out
+
+## Flat ammo damage bonus by item id (faithful tiers), and which damage type it feeds.
+func ammo_bonus(ammo_id: String) -> Array:
+	if ammo_id.begins_with("Slug"):
+		var b := 5.0
+		if "T1S" in ammo_id: b = 10.0
+		elif "T2" in ammo_id: b = 15.0
+		elif "T3" in ammo_id: b = 30.0
+		elif "T4" in ammo_id: b = 60.0
+		return ["k", b]
+	elif ammo_id.begins_with("Cell"):
+		var b := 5.0
+		if "T2" in ammo_id: b = 15.0
+		elif "T3" in ammo_id: b = 30.0
+		elif "T4" in ammo_id: b = 60.0
+		return ["e", b]
+	elif "issile" in ammo_id or "orpedo" in ammo_id or "eeker" in ammo_id:
+		var b := 10.0
+		if "Seeker" in ammo_id: b = 25.0
+		elif "orpedo" in ammo_id: b = 60.0
+		return ["x", b]
+	return ["", 0.0]
 
 func combat_max_hp() -> float:
 	var s := ship_stats()
@@ -746,14 +775,30 @@ func _init_combat(eid: String) -> void:
 
 func _spawn_enemy_inst(eid: String) -> void:
 	var e: Dictionary = GameData.ENEMIES.get(eid, {})
+	var elite := randf() < 0.05
+	var hp := float(e.get("hp", 10))
+	var atk := float(e.get("atk", 1))
+	var xp := int(e.get("xp", 0))
+	var nm: String = e.get("name", eid)
+	var loot: Array = e.get("loot", [])
+	if elite:
+		hp *= 2.5
+		atk *= 1.8
+		xp = int(xp * 3)
+		nm = "ELITE " + nm
+		loot = loot.duplicate(true)
+		for row in loot:
+			row[2] = int(row[2] * 2.5)
+			row[3] = int(row[3] * 2.5)
 	enemy_inst = {
-		"id": eid, "name": e.get("name", eid),
-		"hp": float(e.get("hp", 10)), "max_hp": float(e.get("hp", 10)),
+		"id": eid, "name": nm, "elite": elite,
+		"hp": hp, "max_hp": hp,
 		"shield": float(e.get("max_shield", 0)), "max_shield": float(e.get("max_shield", 0)),
-		"atk": float(e.get("atk", 1)), "def": float(e.get("def", 0)),
+		"atk": atk, "def": float(e.get("def", 0)),
 		"acc": float(e.get("accuracy", 0)), "eva": float(e.get("eva", 0)),
 		"interval": maxf(0.5, float(e.get("interval", 2.5))),
-		"loot": e.get("loot", []), "xp": int(e.get("xp", 0)),
+		"loot": loot, "xp": xp,
+		"drop_chance": float(e.get("drop_chance", 0.0)), "drop_pool": e.get("drop_pool", []),
 	}
 
 func _combat_difficulty() -> int:
@@ -805,6 +850,50 @@ func _tick_combat(delta: float) -> void:
 		_enemy_fire(ss)
 		if active_type != "combat":
 			return
+	# Auto-consumables (repair / shield) when low
+	if _consume_cd > 0.0:
+		_consume_cd -= delta
+	else:
+		_check_consume(maxsh)
+
+func _check_consume(maxsh: float) -> void:
+	if consumable_hull_slot != "" and amount(consumable_hull_slot) > 0:
+		if combat_hp / maxf(1.0, combat_max_hp()) <= CONSUME_THRESHOLD:
+			_trigger_consume(consumable_hull_slot)
+			return
+	if consumable_shield_slot != "" and amount(consumable_shield_slot) > 0 and maxsh > 0.0:
+		if player_shield / maxsh <= CONSUME_THRESHOLD:
+			_trigger_consume(consumable_shield_slot)
+
+func _trigger_consume(item_id: String) -> void:
+	var d: Dictionary = GameData.CONSUMABLES.get(item_id, {})
+	if d.is_empty() or amount(item_id) < 1:
+		return
+	resources[item_id] = amount(item_id) - 1
+	_consume_cd = CONSUME_CD
+	var pct := float(d.get("heal_pct", 0.0))
+	if d.get("type", "hull") == "hull":
+		var amt := combat_max_hp() * pct
+		combat_hp = minf(combat_max_hp(), combat_hp + amt)
+		_event("+%d HP" % int(amt), "5fd585", "player")
+	else:
+		var amt := player_max_shield() * pct
+		player_shield = minf(player_max_shield(), player_shield + amt)
+		_event("+%d SHLD" % int(amt), "55d3e6", "player")
+
+func set_ammo(slot: String, ammo_id: String) -> void:
+	if ammo_id == "":
+		ammo_loadout.erase(slot)
+	else:
+		ammo_loadout[slot] = ammo_id
+	resources_changed.emit()
+
+func set_consumable(kind: String, item_id: String) -> void:
+	if kind == "hull":
+		consumable_hull_slot = item_id
+	else:
+		consumable_shield_slot = item_id
+	resources_changed.emit()
 
 func _player_fire(w: Dictionary, ss: Dictionary) -> void:
 	if _overheat_lock > 0.0:
@@ -820,7 +909,20 @@ func _player_fire(w: Dictionary, ss: Dictionary) -> void:
 	if randf() > hit:
 		_event("MISS", "9aa7c2", "enemy")
 		return
-	var res := resolve_damage(float(w["dmg_k"]), float(w["dmg_e"]), float(w["dmg_x"]), enemy_inst["shield"], enemy_inst["def"], _combat_difficulty(), float(ss.get("crit", 0.05)))
+	# Ammo: consume one round of the slot's loaded ammo for bonus damage.
+	var dk := float(w["dmg_k"])
+	var de := float(w["dmg_e"])
+	var dx := float(w["dmg_x"])
+	var ammo: String = ammo_loadout.get(w.get("slot", ""), "")
+	if ammo != "" and amount(ammo) > 0:
+		var ab := ammo_bonus(ammo)
+		if ab[0] != "":
+			resources[ammo] = amount(ammo) - 1
+			match ab[0]:
+				"k": dk += ab[1]
+				"e": de += ab[1]
+				"x": dx += ab[1]
+	var res := resolve_damage(dk, de, dx, enemy_inst["shield"], enemy_inst["def"], _combat_difficulty(), float(ss.get("crit", 0.05)))
 	enemy_inst["shield"] = maxf(0.0, enemy_inst["shield"] - res[0])
 	enemy_inst["hp"] -= res[1]
 	if res[0] > 0:
@@ -869,6 +971,19 @@ func _win_combat() -> void:
 	add_xp("combat", int(enemy_inst["xp"]))
 	bounty_on_kill(active_id)
 	_event("DESTROYED", "5fd585", "enemy")
+	# Module drop: roll the enemy's drop pool (unlocked modules only).
+	var dc: float = float(enemy_inst.get("drop_chance", 0.0))
+	if enemy_inst.get("elite", false):
+		dc = minf(1.0, dc * 3.0)
+	if dc > 0.0 and randf() < dc:
+		var pool := []
+		for mid in enemy_inst.get("drop_pool", []):
+			if GameData.MODULES.has(mid) and module_unlocked(mid):
+				pool.append(mid)
+		if not pool.is_empty():
+			var mid: String = pool[randi() % pool.size()]
+			module_inventory[mid] = int(module_inventory.get(mid, 0)) + 1
+			_event("MODULE: " + GameData.MODULES[mid].get("name", mid), "b78ae8", "enemy")
 	_spawn_enemy_inst(active_id)   # auto re-engage (idle farming)
 
 func _lose_combat() -> void:
@@ -1076,6 +1191,9 @@ func save_game() -> void:
 		"owned_hulls": owned_hulls.keys(),
 		"module_inventory": module_inventory,
 		"loadout": loadout,
+		"ammo_loadout": ammo_loadout,
+		"consumable_hull_slot": consumable_hull_slot,
+		"consumable_shield_slot": consumable_shield_slot,
 		"buildings": buildings,
 		"building_throttle": building_throttle,
 		"bounty_available": bounty_available,
@@ -1128,6 +1246,9 @@ func load_game() -> void:
 	module_inventory = data.get("module_inventory", {})
 	for k in module_inventory:
 		module_inventory[k] = int(module_inventory[k])
+	ammo_loadout = data.get("ammo_loadout", {})
+	consumable_hull_slot = data.get("consumable_hull_slot", "")
+	consumable_shield_slot = data.get("consumable_shield_slot", "")
 	loadout = data.get("loadout", {})
 	buildings = data.get("buildings", {})
 	for k in buildings:
@@ -1171,6 +1292,9 @@ func hard_reset() -> void:
 	owned_hulls = {"corvette_hull": true}
 	module_inventory = {}
 	loadout = {}
+	ammo_loadout = {}
+	consumable_hull_slot = ""
+	consumable_shield_slot = ""
 	bounty_available = []
 	bounty_active = []
 	bounty_refresh_timer = 0.0

@@ -834,13 +834,68 @@ func _build_ship() -> void:
 		en.add_theme_font_size_override("font_size", 10)
 		en.add_theme_color_override("font_color", Color.html(C_WARN if over else C_DIM))
 		v.add_child(en)
-	_subtabs(v, [{"id": "loadout", "label": "Loadout"}, {"id": "modules", "label": "Modules"}, {"id": "hulls", "label": "Hulls"}], ship_view, CYAN, func(id: String) -> void:
+	_subtabs(v, [{"id": "loadout", "label": "Loadout"}, {"id": "modules", "label": "Modules"}, {"id": "fittings", "label": "Fittings"}, {"id": "hulls", "label": "Hulls"}], ship_view, CYAN, func(id: String) -> void:
 		ship_view = id
 		_build_ship())
 	match ship_view:
 		"loadout": _ship_loadout(v, h)
 		"modules": _ship_modules(v)
+		"fittings": _ship_fittings(v, h)
 		"hulls": _ship_hulls(v)
+
+func _ship_fittings(v: VBoxContainer, h: Dictionary) -> void:
+	_section(v, "Auto-Consumables  (trigger at 50%)", CYAN)
+	_consumable_picker(v, "hull", "Hull Repair Kit", GameState.consumable_hull_slot)
+	_consumable_picker(v, "shield", "Shield Booster", GameState.consumable_shield_slot)
+	_section(v, "Weapon Ammo  (consumed per shot, +damage)", CYAN)
+	var slots: Array = h.get("slots", [])
+	var any := false
+	for i in slots.size():
+		if slots[i] == "weapon" and GameState.loadout.has(str(i)):
+			any = true
+			_ammo_picker(v, str(i), GameData.MODULES.get(GameState.loadout[str(i)], {}))
+	if not any:
+		_empty(v, "Equip weapons (Loadout) to load ammo.")
+
+func _consumable_picker(v: VBoxContainer, kind: String, title: String, current: String) -> void:
+	var c := _card(CYAN, true)
+	_card_head(c, "✦", title, "", CYAN, true)
+	_pick_button(c, kind == "hull" and current == "" or kind == "shield" and current == "", "None", current == "", func() -> void: GameState.set_consumable(kind, ""))
+	for cid in GameData.CONSUMABLES:
+		var d: Dictionary = GameData.CONSUMABLES[cid]
+		if d.get("type", "") != kind:
+			continue
+		var owned := GameState.amount(cid)
+		if owned <= 0 and cid != current:
+			continue
+		var label := "%s  x%d  (+%d%%)" % [d.get("name", cid), owned, int(float(d.get("heal_pct", 0)) * 100.0)]
+		_pick_button(c, cid == current, label, cid == current, func() -> void: GameState.set_consumable(kind, cid))
+	v.add_child(c.get_parent())
+
+func _ammo_picker(v: VBoxContainer, slot: String, m: Dictionary) -> void:
+	var st: Dictionary = m.get("stats", {})
+	var letter := "k"
+	if float(st.get("atk_energy", 0)) > 0: letter = "e"
+	elif float(st.get("atk_explosive", 0)) > 0: letter = "x"
+	var current: String = GameState.ammo_loadout.get(slot, "")
+	var c := _card(CYAN, true)
+	_card_head(c, "◆", m.get("name", "Weapon"), "", CYAN, true)
+	_pick_button(c, current == "", "No Ammo (base damage)", current == "", func() -> void: GameState.set_ammo(slot, ""))
+	for sym in GameData.RESOURCES:
+		var ab := GameState.ammo_bonus(sym)
+		if ab[0] != letter:
+			continue
+		var owned := GameState.amount(sym)
+		if owned <= 0 and sym != current:
+			continue
+		_pick_button(c, sym == current, "%s  x%s  (+%d dmg)" % [GameData.res_name(sym), GameData.fmt(owned), int(ab[1])], sym == current, func() -> void: GameState.set_ammo(slot, sym))
+	v.add_child(c.get_parent())
+
+func _pick_button(parent: VBoxContainer, _ignored: bool, label: String, active: bool, cb: Callable) -> void:
+	var b := _card_button(label, CYAN if active else C_MUTED, true)
+	b.add_theme_font_size_override("font_size", 12)
+	b.pressed.connect(cb)
+	parent.add_child(b)
 
 func _ship_loadout(v: VBoxContainer, h: Dictionary) -> void:
 	var slots: Array = h.get("slots", [])
