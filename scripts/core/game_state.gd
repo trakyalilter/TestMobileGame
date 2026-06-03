@@ -106,9 +106,8 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	_tick_active(delta)
 	_tick_infra(delta)
-	var mx := combat_max_hp()
-	if active_type != "combat" and combat_hp < mx:
-		combat_hp = minf(mx, combat_hp + mx * HP_REGEN * delta)
+	# Hull does NOT passively regenerate — repair via credits or in-combat consumables/sets.
+	combat_hp = minf(combat_hp, combat_max_hp())
 	# Throttle resource-change signals from passive production to ~2/sec.
 	_infra_emit_accum += delta
 	if _infra_dirty and _infra_emit_accum >= 0.5:
@@ -240,10 +239,14 @@ func add_xp(skill_id: String, amt: int) -> void:
 	skills_changed.emit()
 
 func yield_mult(skill_id: String) -> float:
-	var m := 1.0 + level_of(skill_id) * 0.02
-	if skill_id == "harvesting":
-		m *= warp_gathering_mult()
-		m *= 1.0 + affix_total("extractor_efficiency")
+	if skill_id != "harvesting":
+		return 1.0 + level_of(skill_id) * 0.01
+	var m := 1.0 + level_of("harvesting") * 0.01          # +1% per level (Planetary Operations)
+	if level_of("harvesting") >= 10:
+		m *= 1.10                                          # milestone 10: +10% yield
+	m *= research_efficiency_mult()                        # Efficiency I-V: 2x..32x
+	m *= warp_gathering_mult()
+	m *= 1.0 + affix_total("extractor_efficiency")
 	return m
 
 # ---------------- Combat stats ----------------
@@ -285,7 +288,7 @@ func ship_stats() -> Dictionary:
 	s.shield *= 1.0 + gem_bonus("max_shield_mult")
 	s.shield_regen *= 1.0 + gem_bonus("shield_regen_mult")
 	s.eva *= 1.0 + gem_bonus("eva_mult")
-	s.energy_cap *= 1.0 + gem_bonus("energy_capacity_mult")
+	s.energy_cap *= 1.0 + gem_bonus("energy_capacity_mult") + research_bonus("applied_physics")
 	return s
 
 ## Live weapon list built from equipped weapon modules (or the hull cannon).
@@ -350,7 +353,8 @@ func combat_max_hp() -> float:
 	var s := ship_stats()
 	if s.is_empty():
 		return 100.0
-	return s["hp"] + level_of("combat") * 20.0
+	var base: float = s["hp"] + level_of("combat") * 20.0
+	return base * (1.0 + research_bonus("max_hp_mult") + research_bonus("materials_science"))
 
 func player_max_shield() -> float:
 	var s := ship_stats()
@@ -675,6 +679,15 @@ func generate_bounty_pool() -> void:
 	bounty_refresh_timer = BOUNTY_REFRESH
 	bounty_changed.emit()
 
+## Unlocked module ids dropped by a zone's enemies (for bounty rewards).
+func _zone_module_pool(z: Dictionary) -> Array:
+	var pool := []
+	for eid in z.get("enemies", []):
+		for mid in GameData.ENEMIES.get(eid, {}).get("drop_pool", []):
+			if GameData.MODULES.has(mid) and module_unlocked(mid) and not pool.has(mid):
+				pool.append(mid)
+	return pool
+
 func _gen_hunt(mind: int, maxd: int, elite: bool) -> Dictionary:
 	var zs := _zones_in_range(mind, maxd)
 	if zs.is_empty():
@@ -695,6 +708,7 @@ func _gen_hunt(mind: int, maxd: int, elite: bool) -> Dictionary:
 	var desc := "Destroy %s%d %s in %s." % ["the ELITE " if elite else "", qty, e["name"], z.get("name", "")]
 	return {"id": _gen_bid(), "type": "hunt", "title": title, "desc": desc,
 		"target": eid, "target_qty": qty, "current_qty": 0, "reward_credits": reward,
+		"reward_pool": _zone_module_pool(z),
 		"zone_id": z.get("id", ""), "difficulty": diff, "completed": false, "is_elite": elite}
 
 func _gen_delivery(mind: int, maxd: int) -> Dictionary:
@@ -704,10 +718,15 @@ func _gen_delivery(mind: int, maxd: int) -> Dictionary:
 		return {}
 	var t: Array = tmpl[randi() % tmpl.size()]
 	var qty := randi_range(int(t[1]), int(t[2]))
+	var rpool := []
+	for z in GameData.ZONES:
+		if int(z.get("difficulty", 1)) == tier:
+			rpool = _zone_module_pool(z)
+			break
 	return {"id": _gen_bid(), "type": "delivery", "title": "Supply: %s" % GameData.res_name(t[0]),
 		"desc": "Deliver %d %s to the station." % [qty, GameData.res_name(t[0])],
 		"target": t[0], "target_qty": qty, "current_qty": 0, "reward_credits": int(t[3]),
-		"zone_id": "", "difficulty": tier, "completed": false, "is_elite": false}
+		"reward_pool": rpool, "zone_id": "", "difficulty": tier, "completed": false, "is_elite": false}
 
 func _find_contract(arr: Array, cid: String) -> Variant:
 	for c in arr:
@@ -739,6 +758,11 @@ func claim_contract(cid: String) -> bool:
 	if c == null or not c["completed"]:
 		return false
 	gain_credits(int(c["reward_credits"] * (1.0 + affix_total("contract_negotiation"))))  # Contract Negotiation
+	# Module reward: bounties have a high rarity floor (Rare+).
+	var rpool: Array = c.get("reward_pool", [])
+	if not rpool.is_empty():
+		var rarity := 3 if (int(c.get("difficulty", 1)) >= 8 or randf() < 0.25) else 2  # Legendary or Rare
+		generate_module(rpool[randi() % rpool.size()], rarity, int(c.get("difficulty", 1)))
 	bounty_active.erase(c)
 	bounty_total += 1
 	resources_changed.emit()
@@ -814,7 +838,7 @@ func _tick_infra(delta: float) -> void:
 	if buildings.is_empty():
 		return
 	var eff: float = infra_power()["eff"]
-	var skill_speed := 1.0 + level_of("infrastructure") * 0.01
+	var skill_speed := 1.0 + level_of("infrastructure") * 0.01 + research_bonus("industrial_logistics") + research_bonus("industrial_catalysis")
 	var gyb := _global_yield_bonus()
 	for bid in buildings:
 		var count: int = buildings[bid]
@@ -912,6 +936,62 @@ func build_building(bid: String) -> bool:
 func is_research_unlocked(rid: String) -> bool:
 	return unlocked_research.has(rid)
 
+# --- Research passive efficiency bonuses (ported from research_manager) ---
+func research_efficiency_mult() -> float:
+	if is_research_unlocked("efficiency_5"): return 32.0
+	if is_research_unlocked("efficiency_4"): return 16.0
+	if is_research_unlocked("efficiency_3"): return 8.0
+	if is_research_unlocked("efficiency_2"): return 4.0
+	if is_research_unlocked("efficiency_1"): return 2.0
+	return 1.0
+
+func auto_consume_threshold() -> float:
+	if is_research_unlocked("auto_repair_80"): return 0.8
+	if is_research_unlocked("auto_repair_60"): return 0.6
+	if is_research_unlocked("auto_repair_40"): return 0.4
+	if is_research_unlocked("auto_repair_20"): return 0.2
+	return 0.0
+
+func research_bonus(key: String) -> float:
+	match key:
+		"combat_xp": return 0.20 if is_research_unlocked("combat_heuristics") else 0.0
+		"shield_regen": return 0.20 if is_research_unlocked("shield_harmonics") else 0.0
+		"max_hp_mult": return 0.15 if is_research_unlocked("hull_hardening") else 0.0
+		"attack_speed": return 0.10 if is_research_unlocked("core_overclocking") else 0.0
+		"gathering_yield":
+			var y := 0.0
+			if is_research_unlocked("deep_core_optics"): y += 1.0
+			if is_research_unlocked("colony_automation"): y += 5.0
+			return y
+		"processing_speed":
+			var p := 0.0
+			if is_research_unlocked("nano_fabrication"): p += 0.15
+			if is_research_unlocked("perfect_automation"): p += 0.30
+			return p
+	if key == "applied_physics" and is_research_unlocked("applied_physics"): return 0.10
+	if key == "materials_science" and is_research_unlocked("materials_science"): return 0.10
+	if key == "industrial_logistics" and is_research_unlocked("industrial_logistics"): return 0.10
+	if key == "industrial_catalysis" and is_research_unlocked("industrial_catalysis"): return 0.15
+	if key == "xeno_engineering" and is_research_unlocked("xeno_engineering"): return 0.25
+	return 0.0
+
+const REPAIR_COST := {"corvette_hull": 1000, "frigate_hull": 5000, "destroyer_hull": 25000,
+	"battlecruiser_hull": 100000, "dreadnought_hull": 500000}
+
+func repair_cost() -> int:
+	return int(REPAIR_COST.get(active_hull, 1000))
+
+func repair_hull() -> bool:
+	if combat_hp >= combat_max_hp():
+		return false
+	var cost := repair_cost()
+	if credits < cost:
+		return false
+	credits -= cost
+	combat_hp = combat_max_hp()
+	resources_changed.emit()
+	return true
+
 func research_available(rid: String) -> bool:
 	if is_research_unlocked(rid):
 		return false
@@ -974,6 +1054,10 @@ func _init_combat(eid: String) -> void:
 func _spawn_enemy_inst(eid: String) -> void:
 	var e: Dictionary = GameData.ENEMIES.get(eid, {})
 	var elite := randf() < 0.05
+	for c in bounty_active:   # elite-hunt contracts force an elite spawn
+		if c.get("is_elite", false) and not c["completed"] and c["target"] == eid:
+			elite = true
+			break
 	var hp := float(e.get("hp", 10))
 	var atk := float(e.get("atk", 1))
 	var xp := int(e.get("xp", 0))
@@ -1026,14 +1110,14 @@ func _tick_combat(delta: float) -> void:
 		_overheat_lock = 0.0
 	# Shield regen (both sides)
 	if player_shield < maxsh:
-		player_shield = minf(maxsh, player_shield + float(ss.get("shield_regen", 0.0)) * delta)
+		player_shield = minf(maxsh, player_shield + float(ss.get("shield_regen", 0.0)) * (1.0 + research_bonus("shield_regen")) * delta)
 	if enemy_inst["shield"] < enemy_inst["max_shield"]:
 		enemy_inst["shield"] = minf(enemy_inst["max_shield"], enemy_inst["shield"] + minf(enemy_inst["max_shield"] * 0.01, 50.0) * delta)
 	# Set bonus: Patient Zero's Strain — hull regen during combat
 	if has_set_bonus("patient_zero") and combat_hp < combat_max_hp():
 		combat_hp = minf(combat_max_hp(), combat_hp + combat_max_hp() * 0.015 * delta)
 	# Player weapons fire on their own intervals (Heat-Sync Focus boosts rate when hot)
-	var fire_sf := 1.0
+	var fire_sf := 1.0 + research_bonus("attack_speed")
 	if player_heat >= MAX_HEAT * 0.4:
 		fire_sf += affix_total("heat_sync_focus")
 	for w in _weapons:
@@ -1062,12 +1146,15 @@ func _tick_combat(delta: float) -> void:
 		_check_consume(maxsh)
 
 func _check_consume(maxsh: float) -> void:
+	var th := auto_consume_threshold()   # gated by Auto-Repair research
+	if th <= 0.0:
+		return
 	if consumable_hull_slot != "" and amount(consumable_hull_slot) > 0:
-		if combat_hp / maxf(1.0, combat_max_hp()) <= CONSUME_THRESHOLD:
+		if combat_hp / maxf(1.0, combat_max_hp()) <= th:
 			_trigger_consume(consumable_hull_slot)
 			return
 	if consumable_shield_slot != "" and amount(consumable_shield_slot) > 0 and maxsh > 0.0:
-		if player_shield / maxsh <= CONSUME_THRESHOLD:
+		if player_shield / maxsh <= th:
 			_trigger_consume(consumable_shield_slot)
 
 func _trigger_consume(item_id: String) -> void:
@@ -1192,7 +1279,7 @@ func resolve_damage(atk_k: float, atk_e: float, atk_x: float, c_shield: float, c
 
 func _win_combat() -> void:
 	_roll_loot(enemy_inst["loot"], 1.0)
-	add_xp("combat", int(enemy_inst["xp"]))
+	add_xp("combat", int(enemy_inst["xp"] * (1.0 + research_bonus("combat_xp"))))
 	bounty_on_kill(active_id)
 	_event("DESTROYED", "5fd585", "enemy")
 	# On-kill affixes
@@ -1209,7 +1296,7 @@ func _win_combat() -> void:
 		add_resource(p, 1 + int(_combat_difficulty() / 3.0))
 		_event("SCAVENGED " + GameData.res_name(p), "55d3e6", "enemy")
 	# Rolled module drop (rarity + affixes)
-	var dc: float = float(enemy_inst.get("drop_chance", 0.0))
+	var dc: float = float(enemy_inst.get("drop_chance", 0.0)) * (1.0 + research_bonus("xeno_engineering"))
 	if enemy_inst.get("elite", false):
 		dc = minf(1.0, dc * 3.0)
 	if dc > 0.0 and randf() < dc:
@@ -1244,9 +1331,11 @@ func _win_combat() -> void:
 	_spawn_enemy_inst(active_id)   # auto re-engage (idle farming)
 
 func _lose_combat() -> void:
-	combat_hp = combat_max_hp() * 0.25
+	var cost := mini(repair_cost(), credits)   # repair fee on defeat (capped at available credits)
+	credits -= cost
+	combat_hp = combat_max_hp()
 	player_shield = 0.0
-	_event("HULL BREACH", "ef6a52", "player")
+	_event("HULL BREACH  −₡%s" % GameData.fmt(cost), "ef6a52", "player")
 	stop_task()
 
 func _offline_combat(delta: float) -> void:
@@ -1282,7 +1371,7 @@ func effective_duration(type: String, id: String) -> float:
 	if type == "gather" and GameData.GATHER.has(id):
 		return float(GameData.GATHER[id].get("duration", 4.0))
 	elif type == "craft" and GameData.CRAFT.has(id):
-		return float(GameData.CRAFT[id].get("duration", 4.0)) / (1.0 + affix_total("refinery_link"))
+		return float(GameData.CRAFT[id].get("duration", 4.0)) / (1.0 + affix_total("refinery_link") + research_bonus("processing_speed"))
 	return 0.0
 
 func _tick_active(delta: float) -> void:
@@ -1305,10 +1394,10 @@ func _tick_active(delta: float) -> void:
 			break
 
 ## Rolls a loot table [[sym, chance, min, max], ...], applying a yield multiplier.
-func _roll_loot(loot: Array, mult: float) -> void:
+func _roll_loot(loot: Array, mult: float, flat: int = 0) -> void:
 	for row in loot:
 		if randf() < float(row[1]):
-			var amt := maxi(1, int(round(randi_range(int(row[2]), int(row[3])) * mult)))
+			var amt := maxi(1, int(round((randi_range(int(row[2]), int(row[3])) + flat) * mult)))
 			if row[0] == "credits":
 				gain_credits(amt)
 				resources_changed.emit()
@@ -1318,7 +1407,7 @@ func _roll_loot(loot: Array, mult: float) -> void:
 func _complete_active() -> void:
 	if active_type == "gather":
 		var a: Dictionary = GameData.GATHER[active_id]
-		_roll_loot(a.get("loot", []), yield_mult("harvesting"))
+		_roll_loot(a.get("loot", []), yield_mult("harvesting"), int(research_bonus("gathering_yield")))
 		add_xp("harvesting", int(a.get("xp", 0)))
 	elif active_type == "craft":
 		var r: Dictionary = GameData.CRAFT[active_id]
@@ -1386,7 +1475,7 @@ func _offline_infra(delta: float) -> void:
 	if buildings.is_empty() or delta < 5.0:
 		return
 	var eff: float = infra_power()["eff"]
-	var skill_speed := 1.0 + level_of("infrastructure") * 0.01
+	var skill_speed := 1.0 + level_of("infrastructure") * 0.01 + research_bonus("industrial_logistics") + research_bonus("industrial_catalysis")
 	var gyb := _global_yield_bonus()
 	var eng_scaled := ["auto_smelter", "hydro_plant", "industrial_centrifuge", "munitions_factory"]
 	for bid in buildings:

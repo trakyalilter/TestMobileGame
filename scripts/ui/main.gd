@@ -416,6 +416,26 @@ func _build_combat() -> void:
 
 func _build_targets(v: VBoxContainer) -> void:
 	_skill_banner(v, "BATTLE STATION", "combat", RED)
+	# Hull status + repair (no passive regen)
+	var hp := GameState.combat_hp
+	var mhp := GameState.combat_max_hp()
+	var hrow := HBoxContainer.new()
+	hrow.add_theme_constant_override("separation", 8)
+	var hl := Label.new()
+	hl.text = "Hull  %d / %d" % [int(hp), int(mhp)]
+	hl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	hl.add_theme_font_size_override("font_size", 12)
+	hl.add_theme_color_override("font_color", Color.html(GREEN if hp >= mhp else C_WARN))
+	hrow.add_child(hl)
+	if hp < mhp:
+		var cost := GameState.repair_cost()
+		var rb := _card_button("Repair ₡%s" % GameData.fmt(cost), GREEN, GameState.credits >= cost)
+		rb.custom_minimum_size = Vector2(140, 34)
+		if GameState.credits >= cost:
+			rb.pressed.connect(func() -> void: GameState.repair_hull())
+		hrow.add_child(rb)
+	v.add_child(hrow)
 	var zone_items := []
 	for z in GameData.ZONES:
 		zone_items.append({"id": z["id"], "label": z["name"]})
