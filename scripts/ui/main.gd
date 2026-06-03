@@ -77,7 +77,7 @@ var craft_cat := "basics"
 var combat_zone := 0
 var research_tab := "Operations"
 var atlas_mode := "materials"
-var atlas_search := ""
+var atlas_mat_cat := "gathered"
 var _atlas_index := {}
 var build_cat := "power"
 var ship_view := "loadout"
@@ -225,8 +225,8 @@ func _build() -> void:
 	ham.text = "☰"
 	ham.flat = true
 	ham.focus_mode = Control.FOCUS_NONE
-	ham.custom_minimum_size = Vector2(44, 40)
-	ham.add_theme_font_size_override("font_size", _fs(22))
+	ham.custom_minimum_size = Vector2(56, 50)
+	ham.add_theme_font_size_override("font_size", _fs(28))
 	ham.add_theme_color_override("font_color", Color.html(CYAN))
 	ham.add_theme_color_override("font_color_hover", Color.html(CYAN))
 	ham.add_theme_color_override("font_color_pressed", Color.html(GOLD))
@@ -341,32 +341,32 @@ func _make_drawer_item(id: String, label: String, icon: String) -> Button:
 	btn.flat = true
 	btn.focus_mode = Control.FOCUS_NONE
 	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	btn.custom_minimum_size = Vector2(0, 52)
+	btn.custom_minimum_size = Vector2(0, 66)
 	var hb := HBoxContainer.new()
 	hb.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	hb.add_theme_constant_override("separation", 12)
+	hb.add_theme_constant_override("separation", 14)
 	hb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hb.offset_left = 12
 	hb.offset_right = -12
 	btn.add_child(hb)
 	var bar := Panel.new()                       # left accent bar (active indicator)
-	bar.custom_minimum_size = Vector2(4, 26)
+	bar.custom_minimum_size = Vector2(5, 34)
 	bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hb.add_child(bar)
 	var ic := Label.new()
 	ic.text = icon
-	ic.custom_minimum_size = Vector2(26, 0)
+	ic.custom_minimum_size = Vector2(30, 0)
 	ic.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	ic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	ic.add_theme_font_size_override("font_size", _fs(18))
+	ic.add_theme_font_size_override("font_size", _fs(22))
 	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hb.add_child(ic)
 	var lab := Label.new()
 	lab.text = label
 	lab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	lab.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	lab.add_theme_font_size_override("font_size", _fs(15))
+	lab.add_theme_font_size_override("font_size", _fs(17))
 	lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hb.add_child(lab)
 	btn.pressed.connect(_show.bind(id))
@@ -1756,33 +1756,74 @@ func _atlas_add(idx: Dictionary, sym: String, key: String, label: String) -> voi
 	if not idx[sym][key].has(label):
 		idx[sym][key].append(label)
 
+const ATLAS_CATS := [
+	{"id": "gathered", "label": "Gathered", "icon": "⛏"},
+	{"id": "crafted",  "label": "Crafted",  "icon": "⚙"},
+	{"id": "combat",   "label": "Combat",   "icon": "◎"},
+	{"id": "built",    "label": "Built",    "icon": "⌂"},
+	{"id": "other",    "label": "Other",    "icon": ""},
+]
+
 func _atlas_materials(v: VBoxContainer) -> void:
 	var idx := _atlas_get_index()
+	var cat_items := []
+	for c in ATLAS_CATS:
+		cat_items.append({"id": c.id, "label": c.label})
+	_subtabs(v, cat_items, atlas_mat_cat, CYAN, func(id: String) -> void:
+		atlas_mat_cat = id
+		_refresh_current())
+	var want_icon := ""
+	for c in ATLAS_CATS:
+		if c.id == atlas_mat_cat:
+			want_icon = c.icon
 	var n := 0
+	# Lightweight rows, filtered by source category so each view stays small/fast.
 	for sym in GameData.RESOURCES:
 		var info = idx.get(sym, null)
 		if info == null or (info["sources"].is_empty() and info["uses"].is_empty()):
 			continue
+		var match_cat := false
+		if atlas_mat_cat == "other":
+			match_cat = info["sources"].is_empty()
+		else:
+			for s in info["sources"]:
+				if (s as String).begins_with(want_icon):
+					match_cat = true
+					break
+		if not match_cat:
+			continue
 		n += 1
-		var c := _card(CYAN, true)
-		_card_head(c, "◆", GameData.res_name(sym), "₡%d" % GameData.value_of(sym), _hex(GameData.color_for(sym)), true)
+		var panel := PanelContainer.new()
+		panel.add_theme_stylebox_override("panel", _bordered(SURFACE, LINE, 1, 8))
+		panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var col := VBoxContainer.new()
+		col.add_theme_constant_override("separation", 2)
+		panel.add_child(col)
+		var nm := Label.new()
+		nm.text = "%s   ₡%d" % [GameData.res_name(sym), GameData.value_of(sym)]
+		nm.add_theme_font_size_override("font_size", _fs(13))
+		nm.add_theme_color_override("font_color", GameData.color_for(sym))
+		col.add_child(nm)
 		if not info["sources"].is_empty():
-			_atlas_line(c, "From: ", info["sources"], GREEN)
+			_atlas_line(col, "From: ", info["sources"], GREEN)
 		if not info["uses"].is_empty():
-			_atlas_line(c, "Used in: ", info["uses"], C_DIM)
-		v.add_child(c.get_parent())
+			_atlas_line(col, "Used in: ", info["uses"], C_DIM)
+		v.add_child(panel)
 	if n == 0:
 		_empty(v, "No materials catalogued.")
 
 func _atlas_line(parent: Node, prefix: String, items: Array, color: String) -> void:
 	var shown := items
 	var more := 0
-	if items.size() > 8:
-		shown = items.slice(0, 8)
-		more = items.size() - 8
+	if items.size() > 5:
+		shown = items.slice(0, 5)
+		more = items.size() - 5
 	var l := Label.new()
 	l.text = prefix + ", ".join(shown) + ("  +%d more" % more if more > 0 else "")
-	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	# Single clipped line (no autowrap) — autowrap shaping on ~250 labels made the
+	# Atlas page slow to open.
+	l.clip_text = true
+	l.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	l.add_theme_font_size_override("font_size", _fs(10))
 	l.add_theme_color_override("font_color", Color.html(color))
 	parent.add_child(l)
