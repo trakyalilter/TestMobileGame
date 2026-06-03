@@ -42,6 +42,21 @@ const C_BG := "0b1220"        # legacy refs
 const C_PANEL := "111c2e"
 const DOMAIN := {"gather": GOLD, "craft": CYAN, "combat": RED, "research": PURP, "more": CYAN}
 const NAV_ICON := {"gather": "↑", "craft": "⚙", "combat": "◎", "research": "✦", "more": "≡"}
+# Hamburger drawer — every page reachable from one slide-out menu.
+const NAV_ALL := [
+	{"id": "gather",   "label": "Gather",         "icon": "↑"},
+	{"id": "craft",    "label": "Craft",          "icon": "⚙"},
+	{"id": "combat",   "label": "Combat",         "icon": "◎"},
+	{"id": "research", "label": "Research",       "icon": "✦"},
+	{"id": "missions", "label": "Missions",       "icon": "✦"},
+	{"id": "build",    "label": "Infrastructure", "icon": "⌂"},
+	{"id": "ship",     "label": "Ship Designer",  "icon": "⛭"},
+	{"id": "bounty",   "label": "Bounty Board",   "icon": "◆"},
+	{"id": "warp",     "label": "Warp Core",      "icon": "✦"},
+	{"id": "atlas",    "label": "Atlas / Codex",  "icon": "❒"},
+	{"id": "stats",    "label": "Storage & Crew", "icon": "≡"},
+]
+const DRAWER_W := 480.0
 
 # Global text scale — bumps every font size for phone readability without
 # touching individual call sites. Tune this one number to rescale the whole UI.
@@ -52,6 +67,10 @@ func _fs(n: int) -> int:
 var content: Control
 var pages := {}
 var nav_items := {}
+var drawer: Control
+var drawer_panel: PanelContainer
+var drawer_scrim: ColorRect
+var drawer_open := false
 var current := ""
 var gather_cat := "terrestrial"
 var craft_cat := "basics"
@@ -200,11 +219,30 @@ func _build() -> void:
 	var topv := VBoxContainer.new()
 	topv.add_theme_constant_override("separation", 8)
 	top.add_child(topv)
+	var hdr := HBoxContainer.new()
+	hdr.add_theme_constant_override("separation", 10)
+	var ham := Button.new()
+	ham.text = "☰"
+	ham.flat = true
+	ham.focus_mode = Control.FOCUS_NONE
+	ham.custom_minimum_size = Vector2(44, 40)
+	ham.add_theme_font_size_override("font_size", _fs(22))
+	ham.add_theme_color_override("font_color", Color.html(CYAN))
+	ham.add_theme_color_override("font_color_hover", Color.html(CYAN))
+	ham.add_theme_color_override("font_color_pressed", Color.html(GOLD))
+	var empty_btn := StyleBoxEmpty.new()
+	for st in ["normal", "hover", "pressed", "focus"]:
+		ham.add_theme_stylebox_override(st, empty_btn)
+	ham.pressed.connect(_toggle_drawer)
+	hdr.add_child(ham)
 	var title := Label.new()
 	title.text = "✦  STELLAR FORGE"
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	title.add_theme_font_size_override("font_size", _fs(15))
 	title.add_theme_color_override("font_color", Color.html(CYAN))
-	topv.add_child(title)
+	hdr.add_child(title)
+	topv.add_child(hdr)
 	var scroll := ScrollContainer.new()
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -227,15 +265,141 @@ func _build() -> void:
 		content.add_child(page)
 		pages[pid] = page
 
-	# ---- Bottom nav ----
-	var bottom := PanelContainer.new()
-	bottom.add_theme_stylebox_override("panel", _nav_style())
-	root.add_child(bottom)
-	var tabs := HBoxContainer.new()
-	tabs.add_theme_constant_override("separation", 0)
-	bottom.add_child(tabs)
-	for t in BOTTOM:
-		tabs.add_child(_make_nav_item(t.id, t.label))
+	# ---- Slide-out navigation drawer (replaces the bottom nav) ----
+	_build_drawer()
+
+func _build_drawer() -> void:
+	drawer = Control.new()
+	drawer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	drawer.mouse_filter = Control.MOUSE_FILTER_STOP
+	drawer.visible = false
+	safe_margin.add_child(drawer)
+
+	drawer_scrim = ColorRect.new()
+	drawer_scrim.color = Color(0, 0, 0, 0.0)   # faded in on open
+	drawer_scrim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	drawer_scrim.mouse_filter = Control.MOUSE_FILTER_STOP
+	drawer_scrim.gui_input.connect(func(ev: InputEvent) -> void:
+		if (ev is InputEventMouseButton and ev.pressed) or (ev is InputEventScreenTouch and ev.pressed):
+			_close_drawer())
+	drawer.add_child(drawer_scrim)
+
+	drawer_panel = PanelContainer.new()
+	drawer_panel.add_theme_stylebox_override("panel", _card_style(_mix(SURFACE, BG_BOT, 0.5), LINE, 1, true))
+	drawer_panel.set_anchors_preset(Control.PRESET_LEFT_WIDE)
+	drawer_panel.offset_top = 0
+	drawer_panel.offset_bottom = 0
+	drawer_panel.offset_left = -DRAWER_W
+	drawer_panel.offset_right = 0
+	drawer.add_child(drawer_panel)
+
+	var m := MarginContainer.new()
+	for side in ["left", "right", "top", "bottom"]:
+		m.add_theme_constant_override("margin_" + side, 14)
+	drawer_panel.add_child(m)
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 6)
+	m.add_child(col)
+
+	var dh := HBoxContainer.new()
+	var dt := Label.new()
+	dt.text = "✦  NAVIGATE"
+	dt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	dt.add_theme_font_size_override("font_size", _fs(15))
+	dt.add_theme_color_override("font_color", Color.html(CYAN))
+	dh.add_child(dt)
+	var cx := Button.new()
+	cx.text = "✕"
+	cx.flat = true
+	cx.focus_mode = Control.FOCUS_NONE
+	cx.custom_minimum_size = Vector2(36, 36)
+	cx.add_theme_font_size_override("font_size", _fs(16))
+	cx.add_theme_color_override("font_color", Color.html(C_DIM))
+	var eb := StyleBoxEmpty.new()
+	for st in ["normal", "hover", "pressed", "focus"]:
+		cx.add_theme_stylebox_override(st, eb)
+	cx.pressed.connect(_close_drawer)
+	dh.add_child(cx)
+	col.add_child(dh)
+
+	var sep := HSeparator.new()
+	col.add_child(sep)
+
+	var list_sc := ScrollContainer.new()
+	list_sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	list_sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	col.add_child(list_sc)
+	var list := VBoxContainer.new()
+	list.add_theme_constant_override("separation", 4)
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	list_sc.add_child(list)
+	for t in NAV_ALL:
+		list.add_child(_make_drawer_item(t.id, t.label, t.icon))
+
+func _make_drawer_item(id: String, label: String, icon: String) -> Button:
+	var btn := Button.new()
+	btn.flat = true
+	btn.focus_mode = Control.FOCUS_NONE
+	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn.custom_minimum_size = Vector2(0, 52)
+	var hb := HBoxContainer.new()
+	hb.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	hb.add_theme_constant_override("separation", 12)
+	hb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hb.offset_left = 12
+	hb.offset_right = -12
+	btn.add_child(hb)
+	var bar := Panel.new()                       # left accent bar (active indicator)
+	bar.custom_minimum_size = Vector2(4, 26)
+	bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hb.add_child(bar)
+	var ic := Label.new()
+	ic.text = icon
+	ic.custom_minimum_size = Vector2(26, 0)
+	ic.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	ic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	ic.add_theme_font_size_override("font_size", _fs(18))
+	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hb.add_child(ic)
+	var lab := Label.new()
+	lab.text = label
+	lab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	lab.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	lab.add_theme_font_size_override("font_size", _fs(15))
+	lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hb.add_child(lab)
+	btn.pressed.connect(_show.bind(id))
+	nav_items[id] = {"btn": btn, "icon": ic, "label": lab, "bar": bar}
+	return btn
+
+func _toggle_drawer() -> void:
+	if drawer_open:
+		_close_drawer()
+	else:
+		_open_drawer()
+
+func _open_drawer() -> void:
+	if drawer_open:
+		return
+	drawer_open = true
+	drawer.visible = true
+	var tw := create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(drawer_panel, "offset_left", 0.0, 0.18).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.tween_property(drawer_panel, "offset_right", DRAWER_W, 0.18).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.tween_property(drawer_scrim, "color", Color(0, 0, 0, 0.55), 0.18)
+
+func _close_drawer() -> void:
+	if not drawer_open:
+		return
+	drawer_open = false
+	var tw := create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(drawer_panel, "offset_left", -DRAWER_W, 0.16).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tw.tween_property(drawer_panel, "offset_right", 0.0, 0.16).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tw.tween_property(drawer_scrim, "color", Color(0, 0, 0, 0.0), 0.16)
+	tw.chain().tween_callback(func() -> void: drawer.visible = false)
 
 func _make_nav_item(id: String, label: String) -> Button:
 	var btn := Button.new()
@@ -300,9 +464,9 @@ func _show(id: String) -> void:
 	GameState.equip_notice = ""        # transient; only shown right after a rejection
 	for pid in pages:
 		pages[pid].visible = (pid == id)
-	var hl: String = id if nav_items.has(id) else "more"
 	for bid in nav_items:
-		_style_nav(bid, bid == hl)
+		_style_nav(bid, bid == id)
+	_close_drawer()
 	_refresh_current()
 
 func _refresh_all() -> void:
@@ -1020,13 +1184,13 @@ func _build_warp() -> void:
 
 func _back_header(v: VBoxContainer) -> void:
 	var b := Button.new()
-	b.text = "‹  More"
+	b.text = "☰  Menu"
 	b.flat = true
 	b.focus_mode = Control.FOCUS_NONE
 	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	b.add_theme_font_size_override("font_size", _fs(13))
 	b.add_theme_color_override("font_color", Color.html(C_DIM))
-	b.pressed.connect(func() -> void: _show("more"))
+	b.pressed.connect(_open_drawer)
 	v.add_child(b)
 
 # ============================================================ SHIPYARD
@@ -1879,16 +2043,21 @@ func _subtabs(v: VBoxContainer, items: Array, current_id: String, accent: String
 	v.add_child(sc)
 
 func _style_nav(id: String, active: bool) -> void:
-	var item: Dictionary = nav_items[id]
-	var col: String = DOMAIN.get(id, CYAN) if active else C_MUTED
-	item["icon"].add_theme_color_override("font_color", Color.html(col))
-	item["label"].add_theme_color_override("font_color", Color.html(col))
-	var dot: Panel = item["dot"]
-	dot.visible = active
-	var ds := StyleBoxFlat.new()
-	ds.bg_color = Color.html(DOMAIN.get(id, CYAN))
-	ds.set_corner_radius_all(2)
-	dot.add_theme_stylebox_override("panel", ds)
+	var item = nav_items.get(id)
+	if item == null:
+		return
+	var accent: String = DOMAIN.get(id, CYAN)
+	item["icon"].add_theme_color_override("font_color", Color.html(accent if active else C_DIM))
+	item["label"].add_theme_color_override("font_color", Color.html(C_TEXT if active else C_DIM))
+	var bs := StyleBoxFlat.new()
+	bs.bg_color = Color.html(accent) if active else Color(0, 0, 0, 0)
+	bs.set_corner_radius_all(2)
+	item["bar"].add_theme_stylebox_override("panel", bs)
+	var nbg := StyleBoxFlat.new()
+	nbg.bg_color = Color.html(_mix(accent, SURFACE, 0.8)) if active else Color(0, 0, 0, 0)
+	nbg.set_corner_radius_all(8)
+	for st in ["normal", "hover", "pressed", "focus"]:
+		item["btn"].add_theme_stylebox_override(st, nbg)
 
 func _card(accent: String, lit: bool, min_h: int = 0) -> VBoxContainer:
 	var panel := PanelContainer.new()
