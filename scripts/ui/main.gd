@@ -111,12 +111,12 @@ func _ready() -> void:
 	_apply_theme()
 	_build()
 	GameState.resources_changed.connect(_on_resources)
-	GameState.skills_changed.connect(_refresh_current)
+	GameState.skills_changed.connect(_on_tick)
 	GameState.research_changed.connect(_refresh_all)
-	GameState.action_changed.connect(_refresh_current)
+	GameState.action_changed.connect(_on_tick)
 	GameState.action_changed.connect(_refresh_banner)
-	GameState.bounty_changed.connect(_refresh_current)
-	GameState.missions_changed.connect(_refresh_current)
+	GameState.bounty_changed.connect(_on_tick)
+	GameState.missions_changed.connect(_on_tick)
 	get_viewport().size_changed.connect(_update_safe_area)
 	call_deferred("_update_safe_area")
 	_refresh_top()
@@ -193,8 +193,22 @@ func _process(_delta: float) -> void:
 			_player_heat_bar.value = GameState.player_heat
 		_drain_combat_events()
 
+# Pages whose content is static/expensive (positioned node-graph, big codex) and
+# whose pan/scroll state must survive — don't rebuild them on passive ticks
+# (gather/craft/infra loops fire resources_changed + skills_changed constantly).
+const NO_TICK_REFRESH := ["research", "atlas"]
+
 func _on_resources() -> void:
 	_refresh_top()
+	if current in NO_TICK_REFRESH:
+		return
+	_refresh_current()
+
+# Guarded rebuild for frequent signals (skills/missions/bounty/action) — skips
+# the graph/codex pages so their pan/scroll survives passive loops.
+func _on_tick() -> void:
+	if current in NO_TICK_REFRESH:
+		return
 	_refresh_current()
 
 # ============================================================ SHELL
