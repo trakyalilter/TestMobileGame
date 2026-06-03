@@ -1022,9 +1022,51 @@ func repair_hull() -> bool:
 func _mission_init() -> void:
 	if missions_active.is_empty() and missions_claimed.is_empty() and not GameData.MISSION_ORDER.is_empty():
 		missions_active[GameData.MISSION_ORDER[0]] = true
+	_mission_sync()
 
 func mission_completed(mid: String) -> bool:
 	return int(missions_progress.get(mid, 0)) >= int(GameData.MISSIONS.get(mid, {}).get("qty", 1))
+
+# Retroactively reconcile active missions with current state (ported from the
+# desktop sync_progress). Lets a mission that became active AFTER its requirement
+# was already met — e.g. you researched Applied Physics before the mission asked —
+# register as done instead of waiting for an event that already fired.
+func _mission_sync() -> void:
+	var changed := false
+	for mid in missions_active.keys():
+		if missions_claimed.has(mid) or mission_completed(mid):
+			continue
+		var m: Dictionary = GameData.MISSIONS.get(mid, {})
+		var t: String = m.get("type", "")
+		var target: String = m.get("target", "")
+		var qty: int = int(m.get("qty", 1))
+		var cur: int = int(missions_progress.get(mid, 0))
+		var nv := cur
+		match t:
+			"research":
+				if is_research_unlocked(target):
+					nv = qty
+			"gather":
+				nv = maxi(cur, mini(amount(target), qty))
+			"craft":
+				var have := int(module_inventory.get(target, 0))
+				for k in loadout:
+					if loadout[k] == target:
+						have += 1
+				nv = maxi(cur, mini(have, qty))
+			"build":
+				nv = maxi(cur, mini(int(buildings.get(target, 0)), qty))
+			"construct":
+				var cur_tier := int(GameData.HULLS.get(active_hull, {}).get("tier", 0))
+				var tgt_tier := int(GameData.HULLS.get(target, {}).get("tier", 0))
+				if active_hull == target or hull_owned(target) or cur_tier >= tgt_tier:
+					nv = qty
+			# "defeat" is event-only (no persistent state to reconcile).
+		if nv != cur:
+			missions_progress[mid] = nv
+			changed = true
+	if changed:
+		missions_changed.emit()
 
 func _mission_event(type: String, target: String, amount: int) -> void:
 	var changed := false
@@ -1046,6 +1088,7 @@ func claim_mission(mid: String) -> bool:
 	var nxt: String = m.get("next", "")
 	if nxt != "" and GameData.MISSIONS.has(nxt) and not missions_claimed.has(nxt):
 		missions_active[nxt] = true
+	_mission_sync()   # the newly-activated mission may already be satisfied
 	missions_changed.emit()
 	return true
 
@@ -1720,6 +1763,7 @@ func load_game() -> void:
 	missions_claimed = {}
 	for mid in data.get("missions_claimed", []):
 		missions_claimed[mid] = true
+	_mission_sync()   # reconcile active missions with already-satisfied state on load
 	var last := float(data.get("time", Time.get_unix_time_from_system()))
 	var away := Time.get_unix_time_from_system() - last
 	_apply_offline(away)
