@@ -1,0 +1,126 @@
+name: Build & Release APK
+
+# Builds the Android APK in CI and attaches it to a GitHub Release, so the
+# binary lives on Releases instead of in git history.
+#  - Manual run (Actions → "Run workflow") → publishes a prerelease "dev-build-<n>".
+#  - Pushing a tag like v0.2  → publishes a normal release for that tag.
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+env:
+  GODOT_VERSION: "4.5"
+  EXPORT_NAME: StellarForge
+
+jobs:
+  android:
+    name: Export Android (debug-signed)
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install export templates
+        run: |
+          mkdir -p ~/.local/share/godot/export_templates
+          mkdir -p ~/.config
+          cp -r /root/.config/godot ~/.config/godot 2>/dev/null || true
+          cp -r /root/.local/share/godot/export_templates/* ~/.local/share/godot/export_templates/ 2>/dev/null || true
+          ls -la ~/.local/share/godot/export_templates/ || true
+
+      - name: Generate debug keystore
+        run: |
+          keytool -keyalg RSA -genkeypair -alias androiddebugkey \
+            -keypass android -keystore "$GITHUB_WORKSPACE/debug.keystore" \
+            -storepass android -dname "CN=Android Debug,O=Android,C=US" \
+            -validity 9999 -deststoretype pkcs12
+
+      - name: Configure Godot editor settings (SDK / JDK / keystore)
+        run: |
+          mkdir -p ~/.config/godot
+          CFG="$(ls ~/.config/godot/editor_settings-*.tres 2>/dev/null | head -n1)"
+          [ -z "$CFG" ] && CFG=~/.config/godot/editor_settings-4.5.tres
+          {
+            echo '[gd_resource type="EditorSettings" format=3]'
+            echo ''
+            echo '[resource]'
+            echo "export/android/android_sdk_path = \"${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/lib/android-sdk}}\""
+            echo "export/android/debug_keystore = \"$GITHUB_WORKSPACE/debug.keystore\""
+            echo 'export/android/debug_keystore_user = "androiddebugkey"'
+            echo 'export/android/debug_keystore_pass = "android"'
+            echo "export/android/java_sdk_path = \"${JAVA_HOME:-/usr/lib/jvm/default-jvm}\""
+          } > "$CFG"
+          echo "Wrote $CFG"; cat "$CFG"
+
+      - name: Write export preset
+        run: |
+          cat > export_presets.cfg <<EOF
+          [preset.0]
+          name="Android"
+          platform="Android"
+          runnable=true
+          export_filter="all_resources"
+          export_path="build/${EXPORT_NAME}.apk"
+          script_export_mode=2
+
+          [preset.0.options]
+          custom_template/debug=""
+          custom_template/release=""
+          gradle_build/use_gradle_build=false
+          architectures/armeabi-v7a=true
+          architectures/arm64-v8a=true
+          architectures/x86=false
+          architectures/x86_64=false
+          version/code=1
+          version/name="0.1"
+          package/unique_name="com.stellarforge.game"
+          package/name="Stellar Forge"
+          package/signed=true
+          screen/immersive_mode=true
+          user_data_backup/allow=false
+          permissions/internet=true
+          keystore/debug="$GITHUB_WORKSPACE/debug.keystore"
+          keystore/debug_user="androiddebugkey"
+          keystore/debug_password="android"
+          EOF
+          cat export_presets.cfg
+
+      - name: Import project
+        run: |
+          godot --headless --path . --import 2>&1 | tail -n 20 || true
+          godot --headless --path . --import 2>&1 | tail -n 20 || true
+
+      - name: Export debug APK
+        run: |
+          mkdir -p build
+          godot --headless --path . --export-debug "Android" "build/${EXPORT_NAME}.apk"
+          ls -la build/
+          test -f "build/${EXPORT_NAME}.apk"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.EXPORT_NAME }}-apk
+          path: build/${{ env.EXPORT_NAME }}.apk
+
+      - name: Publish prerelease (manual run)
+        if: github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: dev-build-${{ github.run_number }}
+          name: Dev build #${{ github.run_number }}
+          prerelease: true
+          files: build/${{ env.EXPORT_NAME }}.apk
+
+      - name: Publish release (tag push)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/${{ env.EXPORT_NAME }}.apk
