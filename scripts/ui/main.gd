@@ -1249,8 +1249,8 @@ func _module_stat_lines(stats: Dictionary) -> Array:
 # ============================================================ RESEARCH
 # Faithful port of the desktop research_page graph: per-discipline tabs, each a
 # 2D canvas of positioned nodes with parent→child branch lines drawn between them.
-const RES_NODE_W := 152.0
-const RES_NODE_H := 60.0
+const RES_NODE_W := 154.0
+const RES_NODE_H := 72.0
 const RES_POS_SCALE := 1.42
 const RES_PAD := 12.0
 
@@ -1291,8 +1291,10 @@ func _build_research() -> void:
 		var p: Vector2 = pos[nid]
 		maxx = maxf(maxx, p.x)
 		maxy = maxf(maxy, p.y)
-	var cw: float = maxx * RES_POS_SCALE + RES_NODE_W + RES_PAD * 2.0
-	var ch: float = maxy * RES_POS_SCALE + RES_NODE_H + RES_PAD * 2.0
+	# Node names are capped to 2 lines (below), so RES_NODE_H bounds every node;
+	# extra slack guarantees edge nodes pan fully into view.
+	var cw: float = maxx * RES_POS_SCALE + RES_NODE_W + RES_PAD * 4.0
+	var ch: float = maxy * RES_POS_SCALE + RES_NODE_H + RES_PAD * 4.0
 
 	# One both-axis scroller pans the wide/tall tree in 2D (desktop parity). The
 	# page's own vertical scroll is disabled for this page so the two scrollers
@@ -1348,11 +1350,16 @@ func _research_node(id: String) -> Control:
 	var available := GameState.research_available(id)
 	var border := GREEN if researched else (C_WARN if available else "39425e")
 	var fill := _mix(GREEN, INSET, 0.82) if researched else (_mix(PURP, INSET, 0.86) if available else "151b2c")
-	var panel := PanelContainer.new()
+	# Plain Panel (not PanelContainer) so the node keeps a fixed, uniform height
+	# regardless of name length; overflow is clipped instead of growing the node
+	# (which would push edge nodes past the canvas bounds).
+	var panel := Panel.new()
 	panel.custom_minimum_size = Vector2(RES_NODE_W, RES_NODE_H)
+	panel.clip_contents = true
 	panel.add_theme_stylebox_override("panel", _bordered(fill, border, 2 if (available or researched) else 1, 8))
 	panel.tooltip_text = t.get("desc", "")
 	var m := MarginContainer.new()
+	m.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	for side in ["left", "right", "top", "bottom"]:
 		m.add_theme_constant_override("margin_" + side, 6)
 	panel.add_child(m)
