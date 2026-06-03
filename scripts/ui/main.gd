@@ -231,26 +231,26 @@ func _make_nav_item(id: String, label: String) -> Button:
 	btn.flat = true
 	btn.focus_mode = Control.FOCUS_NONE
 	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	btn.custom_minimum_size = Vector2(0, 48)
+	btn.custom_minimum_size = Vector2(0, 62)
 	var empty := StyleBoxEmpty.new()
 	for st in ["normal", "hover", "pressed", "focus"]:
 		btn.add_theme_stylebox_override(st, empty)
 	var vb := VBoxContainer.new()
 	vb.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	vb.alignment = BoxContainer.ALIGNMENT_CENTER
-	vb.add_theme_constant_override("separation", 3)
+	vb.add_theme_constant_override("separation", 4)
 	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	btn.add_child(vb)
 	var icon := Label.new()
 	icon.text = NAV_ICON.get(id, "•")
 	icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	icon.add_theme_font_size_override("font_size", 17)
+	icon.add_theme_font_size_override("font_size", 21)
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vb.add_child(icon)
 	var lab := Label.new()
 	lab.text = label
 	lab.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lab.add_theme_font_size_override("font_size", 10)
+	lab.add_theme_font_size_override("font_size", 11)
 	lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vb.add_child(lab)
 	var dc := CenterContainer.new()
@@ -350,7 +350,7 @@ func _build_gather() -> void:
 func _gather_card(id: String, a: Dictionary) -> Control:
 	var unlocked := GameState.meets_requirements(a, "harvesting")
 	var active := (GameState.active_type == "gather" and GameState.active_id == id)
-	var v := _card(GOLD, unlocked or active)
+	var v := _card(GOLD, unlocked or active, 168)
 	_card_head(v, "↑", a["name"], "Lv %d" % int(a.get("level_req", 1)), GOLD, unlocked)
 	if unlocked:
 		_inset(v, "YIELD", _loot_lines(a.get("loot", [])), GOLD)
@@ -381,7 +381,7 @@ func _craft_card(id: String, r: Dictionary) -> Control:
 	var unlocked := GameState.meets_requirements(r, "fabrication")
 	var active := (GameState.active_type == "craft" and GameState.active_id == id)
 	var affordable := GameState.can_afford(r.get("inputs", {}))
-	var v := _card(CYAN, unlocked or active)
+	var v := _card(CYAN, unlocked or active, 214)
 	_card_head(v, "⚙", r["name"], "Lv %d" % int(r.get("level_req", 1)), CYAN, unlocked)
 	if unlocked:
 		var in_lines := []
@@ -1382,6 +1382,9 @@ func _action_controls(v: VBoxContainer, type: String, id: String, active: bool, 
 	_progress(v, active, accent)
 
 func _locked(v: VBoxContainer, def: Dictionary, skill: String) -> void:
+	var top := Control.new()
+	top.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	v.add_child(top)
 	_clbl(v, "LOCKED", 13, C_WARN)
 	var r := Label.new()
 	r.text = _req_text(def, skill)
@@ -1390,6 +1393,9 @@ func _locked(v: VBoxContainer, def: Dictionary, skill: String) -> void:
 	r.add_theme_font_size_override("font_size", 10)
 	r.add_theme_color_override("font_color", Color.html(C_MUTED))
 	v.add_child(r)
+	var bot := Control.new()
+	bot.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	v.add_child(bot)
 
 func _loot_lines(loot: Array) -> Array:
 	var lines := []
@@ -1461,11 +1467,16 @@ func _style_nav(id: String, active: bool) -> void:
 	ds.set_corner_radius_all(2)
 	dot.add_theme_stylebox_override("panel", ds)
 
-func _card(accent: String, lit: bool) -> VBoxContainer:
+func _card(accent: String, lit: bool, min_h: int = 0) -> VBoxContainer:
 	var panel := PanelContainer.new()
 	panel.add_theme_stylebox_override("panel", _card_style(SURFACE, accent if lit else LINE, 1, lit))
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	if min_h > 0:
+		# Uniform card height: locked and unlocked cards stay the same size.
+		panel.custom_minimum_size = Vector2(0, min_h)
+		panel.size_flags_vertical = Control.SIZE_FILL
+	else:
+		panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 6)
 	panel.add_child(v)
@@ -1898,8 +1909,8 @@ func _nav_style() -> StyleBoxFlat:
 	s.border_color = Color.html(LINE)
 	s.content_margin_left = 4
 	s.content_margin_right = 4
-	s.content_margin_top = 2
-	s.content_margin_bottom = 2
+	s.content_margin_top = 6
+	s.content_margin_bottom = 6
 	return s
 
 func _grad_tex(top: String, bot: String) -> GradientTexture2D:
