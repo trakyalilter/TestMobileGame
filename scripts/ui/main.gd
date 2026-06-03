@@ -1471,12 +1471,11 @@ func _card(accent: String, lit: bool, min_h: int = 0) -> VBoxContainer:
 	var panel := PanelContainer.new()
 	panel.add_theme_stylebox_override("panel", _card_style(SURFACE, accent if lit else LINE, 1, lit))
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	if min_h > 0:
-		# Uniform card height: locked and unlocked cards stay the same size.
+		# Uniform card height via a minimum size (NOT SIZE_FILL, which breaks
+		# the parent ScrollContainer's scroll range).
 		panel.custom_minimum_size = Vector2(0, min_h)
-		panel.size_flags_vertical = Control.SIZE_FILL
-	else:
-		panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 6)
 	panel.add_child(v)
