@@ -71,6 +71,7 @@ var drawer: Control
 var drawer_panel: PanelContainer
 var drawer_scrim: ColorRect
 var drawer_open := false
+var _ham_badge: Panel
 var current := ""
 var gather_cat := "terrestrial"
 var craft_cat := "basics"
@@ -123,6 +124,7 @@ func _ready() -> void:
 	_refresh_top()
 	_refresh_banner()
 	_show("gather")
+	_update_badges()
 	if GameState.pending_offline != "":
 		_show_offline(GameState.pending_offline)
 		GameState.pending_offline = ""
@@ -209,6 +211,7 @@ const NO_TICK_REFRESH := ["research", "atlas"]
 
 func _on_resources() -> void:
 	_refresh_top()
+	_update_badges()
 	if current in NO_TICK_REFRESH:
 		return
 	_refresh_current()
@@ -216,9 +219,19 @@ func _on_resources() -> void:
 # Guarded rebuild for frequent signals (skills/missions/bounty/action) — skips
 # the graph/codex pages so their pan/scroll survives passive loops.
 func _on_tick() -> void:
+	_update_badges()
 	if current in NO_TICK_REFRESH:
 		return
 	_refresh_current()
+
+# Notification beads: a claimable mission lights the ☰ button and the Missions row.
+func _update_badges() -> void:
+	var claim := GameState.has_claimable_mission()
+	if is_instance_valid(_ham_badge):
+		_ham_badge.visible = claim
+	var mi = nav_items.get("missions")
+	if mi != null and is_instance_valid(mi.get("badge")):
+		mi["badge"].visible = claim
 
 # ============================================================ SHELL
 func _build() -> void:
@@ -257,6 +270,12 @@ func _build() -> void:
 	for st in ["normal", "hover", "pressed", "focus"]:
 		ham.add_theme_stylebox_override(st, empty_btn)
 	ham.pressed.connect(_toggle_drawer)
+	_ham_badge = _make_badge()
+	_ham_badge.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	_ham_badge.offset_left = -16
+	_ham_badge.offset_top = 6
+	_ham_badge.offset_right = -4
+	ham.add_child(_ham_badge)
 	hdr.add_child(ham)
 	var title := Label.new()
 	title.text = "✦  STELLAR FORGE"
@@ -392,9 +411,25 @@ func _make_drawer_item(id: String, label: String, icon: String) -> Button:
 	lab.add_theme_font_size_override("font_size", _fs(17))
 	lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hb.add_child(lab)
+	var badge := _make_badge()
+	badge.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	hb.add_child(badge)
 	btn.pressed.connect(_show.bind(id))
-	nav_items[id] = {"btn": btn, "icon": ic, "label": lab, "bar": bar}
+	nav_items[id] = {"btn": btn, "icon": ic, "label": lab, "bar": bar, "badge": badge}
 	return btn
+
+func _make_badge() -> Panel:
+	var p := Panel.new()
+	p.custom_minimum_size = Vector2(12, 12)
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.visible = false
+	var s := StyleBoxFlat.new()
+	s.bg_color = Color.html(RED)
+	s.set_corner_radius_all(6)
+	s.set_border_width_all(2)
+	s.border_color = Color.html(SURFACE)
+	p.add_theme_stylebox_override("panel", s)
+	return p
 
 func _toggle_drawer() -> void:
 	if drawer_open:
@@ -1683,14 +1718,69 @@ func _research_node(id: String) -> Control:
 		status.add_theme_color_override("font_color", Color.html(GOLD if GameState.credits >= cred else C_WARN))
 	vb.add_child(status)
 	if not researched:
+		# Tap opens a detail modal with the full requirements (incl. material names)
+		# — even when not yet affordable, so the player can see what's needed.
 		var overlay := Button.new()
 		overlay.flat = true
 		overlay.focus_mode = Control.FOCUS_NONE
-		overlay.disabled = not available
 		overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		overlay.pressed.connect(func() -> void: GameState.unlock_research(id))
+		overlay.pressed.connect(func() -> void: _show_research_detail(id))
 		panel.add_child(overlay)
 	return panel
+
+## Research node detail modal: name, description, full requirements (credits +
+## each material with have/need), parent gate, and a Research button.
+func _show_research_detail(id: String) -> void:
+	var t: Dictionary = GameData.RESEARCH[id]
+	var researched := GameState.is_research_unlocked(id)
+	var available := GameState.research_available(id)
+	var overlay := ColorRect.new()
+	overlay.color = Color(0, 0, 0, 0.7)
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(overlay)
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.add_child(center)
+	var panel := PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", _bordered("1a2336", PURP, 2))
+	panel.custom_minimum_size = Vector2(360, 0)
+	center.add_child(panel)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 8)
+	panel.add_child(v)
+	_clbl(v, "✦  " + t.get("name", id), 16, PURP)
+	if t.get("desc", "") != "":
+		var d := Label.new()
+		d.text = t["desc"]
+		d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		d.add_theme_font_size_override("font_size", _fs(11))
+		d.add_theme_color_override("font_color", Color.html(C_DIM))
+		v.add_child(d)
+	var lines := []
+	var cred := int(t.get("credits", 0))
+	lines.append(_line("₡ Credits   %s / %s" % [GameData.fmt(GameState.credits), GameData.fmt(cred)], GOLD if GameState.credits >= cred else C_WARN))
+	for sym in t.get("items", {}):
+		var need := int(t["items"][sym])
+		var have := GameState.amount(sym)
+		lines.append(_line("%s   %s / %d" % [GameData.res_name(sym), GameData.fmt(have), need], GREEN if have >= need else C_WARN))
+	_inset(v, "REQUIREMENTS", lines, PURP)
+	var par: String = t.get("parent", "")
+	if par != "" and not GameState.is_research_unlocked(par):
+		_clbl(v, "🔒 First research: " + GameData.RESEARCH.get(par, {}).get("name", par), 11, C_WARN)
+	if researched:
+		_clbl(v, "✓ Researched", 13, GREEN)
+	else:
+		var rb := _card_button("Research", PURP, available)
+		rb.custom_minimum_size = Vector2(0, 42)
+		if available:
+			rb.pressed.connect(func() -> void:
+				GameState.unlock_research(id)
+				overlay.queue_free())
+		v.add_child(rb)
+	var cx := _card_button("Close", C_MUTED, true)
+	cx.custom_minimum_size = Vector2(0, 40)
+	cx.pressed.connect(func() -> void: overlay.queue_free())
+	v.add_child(cx)
 
 # Recursion tab: infinite repeatable research (+5%/level sinks).
 func _build_recursion(v: VBoxContainer) -> void:

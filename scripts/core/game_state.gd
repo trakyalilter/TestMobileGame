@@ -1328,6 +1328,13 @@ func _mission_init() -> void:
 func mission_completed(mid: String) -> bool:
 	return int(missions_progress.get(mid, 0)) >= int(GameData.MISSIONS.get(mid, {}).get("qty", 1))
 
+## True when at least one active mission is finished and waiting to be claimed.
+func has_claimable_mission() -> bool:
+	for mid in missions_active:
+		if mission_completed(mid) and not missions_claimed.has(mid):
+			return true
+	return false
+
 # Retroactively reconcile active missions with current state (ported from the
 # desktop sync_progress). Lets a mission that became active AFTER its requirement
 # was already met — e.g. you researched Applied Physics before the mission asked —
