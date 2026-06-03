@@ -357,7 +357,7 @@ func _build_gather() -> void:
 	_skill_banner(v, "PLANETARY HARVESTING", "harvesting", GOLD)
 	_subtabs(v, GameData.GATHER_CATS, gather_cat, GOLD, func(id: String) -> void:
 		gather_cat = id
-		_build_gather())
+		_refresh_current())
 	var g := _grid(v)
 	var any := false
 	for id in GameData.GATHER:
@@ -387,7 +387,7 @@ func _build_craft() -> void:
 	_skill_banner(v, "ENGINEERING", "fabrication", CYAN)
 	_subtabs(v, GameData.CRAFT_CATS, craft_cat, CYAN, func(id: String) -> void:
 		craft_cat = id
-		_build_craft())
+		_refresh_current())
 	var g := _grid(v)
 	var any := false
 	for id in GameData.CRAFT:
@@ -472,7 +472,7 @@ func _build_targets(v: VBoxContainer) -> void:
 		for i in GameData.ZONES.size():
 			if GameData.ZONES[i]["id"] == id:
 				combat_zone = i
-		_build_combat())
+		_refresh_current())
 	var zone: Dictionary = GameData.ZONES[combat_zone]
 	_section(v, zone.get("desc", ""), RED)
 	if not _zone_unlocked(zone):
@@ -633,7 +633,7 @@ func _build_infra() -> void:
 	v.add_child(e)
 	_subtabs(v, GameData.BUILDING_CATS, build_cat, BUILD, func(id: String) -> void:
 		build_cat = id
-		_build_infra())
+		_refresh_current())
 	var g := _grid(v)
 	var any := false
 	for bid in GameData.BUILDINGS:
@@ -928,7 +928,7 @@ func _build_warp() -> void:
 				_show("warp")
 			else:
 				_warp_armed = true
-				_build_warp())
+				_refresh_current())
 	v.add_child(wb)
 
 func _back_header(v: VBoxContainer) -> void:
@@ -972,7 +972,7 @@ func _build_ship() -> void:
 		v.add_child(en)
 	_subtabs(v, [{"id": "loadout", "label": "Loadout"}, {"id": "modules", "label": "Modules"}, {"id": "fittings", "label": "Fittings"}, {"id": "hulls", "label": "Hulls"}], ship_view, CYAN, func(id: String) -> void:
 		ship_view = id
-		_build_ship())
+		_refresh_current())
 	match ship_view:
 		"loadout": _ship_loadout(v, h)
 		"modules": _ship_modules(v)
@@ -1075,7 +1075,7 @@ func _ship_modules(v: VBoxContainer) -> void:
 		slot_items.append({"id": st, "label": GameData.SLOT_LABELS.get(st, st)})
 	_subtabs(v, slot_items, ship_mod_slot, CYAN, func(id: String) -> void:
 		ship_mod_slot = id
-		_build_ship())
+		_refresh_current())
 	# Owned rolled gear (rarity + affixes) for this slot
 	var owned_custom := []
 	for cid in GameState.custom_modules:
@@ -1280,7 +1280,7 @@ func _build_research() -> void:
 		tab_items.append({"id": t, "label": t})
 	_subtabs(v, tab_items, research_tab, PURP, func(id: String) -> void:
 		research_tab = id
-		_build_research())
+		_refresh_current())
 
 	var graph: Dictionary = GameData.RESEARCH_GRAPHS[research_tab]
 	var pos: Dictionary = graph["pos"]
@@ -1450,7 +1450,7 @@ func _build_stats() -> void:
 			_show("gather")
 		else:
 			_reset_armed = true
-			_build_stats())
+			_refresh_current())
 	v.add_child(reset_btn)
 
 func _storage_tile(sym: String) -> Control:
