@@ -293,6 +293,7 @@ func _show(id: String) -> void:
 	current = id
 	_reset_armed = false
 	_warp_armed = false
+	GameState.equip_notice = ""        # transient; only shown right after a rejection
 	for pid in pages:
 		pages[pid].visible = (pid == id)
 	var hl: String = id if nav_items.has(id) else "more"
@@ -1078,6 +1079,23 @@ func _ship_loadout(v: VBoxContainer, h: Dictionary) -> void:
 		g.add_child(c.get_parent())
 
 func _ship_modules(v: VBoxContainer) -> void:
+	if GameState.equip_notice != "":
+		var warn := Label.new()
+		warn.text = "⚠ " + GameState.equip_notice
+		warn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		warn.add_theme_font_size_override("font_size", _fs(11))
+		warn.add_theme_color_override("font_color", Color.html(RED))
+		v.add_child(warn)
+	# Live energy grid readout (load / capacity).
+	var ss := GameState.ship_stats()
+	if not ss.is_empty():
+		var grid := Label.new()
+		var load := int(ss.get("energy_load", 0.0))
+		var cap := int(ss.get("energy_cap", 0.0))
+		grid.text = "⚡ Grid load %d / %d" % [load, cap]
+		grid.add_theme_font_size_override("font_size", _fs(11))
+		grid.add_theme_color_override("font_color", Color.html(RED if load > cap else C_DIM))
+		v.add_child(grid)
 	var slot_items := []
 	for st in ["weapon", "shield", "armor", "battery", "engine", "sensor", "cooling"]:
 		slot_items.append({"id": st, "label": GameData.SLOT_LABELS.get(st, st)})

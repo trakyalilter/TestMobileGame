@@ -261,7 +261,9 @@ func level_of(skill_id: String) -> int:
 	return lvl
 
 func add_xp(skill_id: String, amt: int) -> void:
-	skills[skill_id] = int(skills.get(skill_id, 0)) + int(round(amt * warp_xp_mult()))
+	# Crew Quarters: +10% XP gain per building (desktop infrastructure xp_buff).
+	var xp_mult := warp_xp_mult() * (1.0 + building_count("crew_quarters") * 0.10)
+	skills[skill_id] = int(skills.get(skill_id, 0)) + int(round(amt * xp_mult))
 	skills_changed.emit()
 
 func yield_mult(skill_id: String) -> float:
@@ -465,6 +467,8 @@ func buy_module(mid: String) -> bool:
 	resources_changed.emit()
 	return true
 
+var equip_notice := ""                  # last equip rejection reason (shown in UI)
+
 func equip_module(mid: String) -> bool:
 	if int(module_inventory.get(mid, 0)) <= 0:
 		return false
@@ -472,8 +476,20 @@ func equip_module(mid: String) -> bool:
 	var slots: Array = GameData.HULLS.get(active_hull, {}).get("slots", [])
 	for i in slots.size():
 		if slots[i] == st and not loadout.has(str(i)):
+			# Grid-overload guard (desktop Phase 18): reject if equipping pushes
+			# energy load past capacity, unless the module itself adds capacity
+			# (a battery — anti-softlock exception).
+			var before := ship_stats()
 			loadout[str(i)] = mid
+			var after := ship_stats()
+			if float(after.get("energy_load", 0.0)) > float(after.get("energy_cap", 0.0)) \
+					and float(after.get("energy_cap", 0.0)) <= float(before.get("energy_cap", 0.0)) + 0.1:
+				loadout.erase(str(i))
+				equip_notice = "Grid overload — equip a Battery for more power."
+				resources_changed.emit()
+				return false
 			module_inventory[mid] = int(module_inventory[mid]) - 1
+			equip_notice = ""
 			resources_changed.emit()
 			return true
 	return false
@@ -957,8 +973,13 @@ func _tick_infra(delta: float) -> void:
 		if count <= 0:
 			continue
 		var d: Dictionary = GameData.BUILDINGS.get(bid, {})
-		if d.get("yield", {}).is_empty():
-			continue                                       # generators handled in energy step
+		if d.get("special", "") == "passive_gather":
+			_passive_gather_step(bid, count, delta * eff)
+			continue
+		# Process producers AND upkeep consumers (e.g. Crew Quarters' Food); skip
+		# pure/fuel generators (handled in the energy step).
+		if not _is_production_building(d):
+			continue
 		var eff_interval: float = maxf(0.05, float(d.get("interval", 1.0)) / skill_speed)
 		var t := get_throttle(bid)
 		_build_timers[bid] = float(_build_timers.get(bid, 0.0)) + delta * eff * t
@@ -967,6 +988,40 @@ func _tick_infra(delta: float) -> void:
 			guard += 1
 			_build_timers[bid] = float(_build_timers[bid]) - eff_interval
 			_produce_batch(bid, count, d, gyb)
+
+func _is_production_building(d: Dictionary) -> bool:
+	if not d.get("yield", {}).is_empty():
+		return true
+	# Upkeep consumer (has input, isn't a generator) — e.g. Crew Quarters.
+	return not d.get("input", {}).is_empty() and float(d.get("energy_gen", 0.0)) <= 0.0
+
+## Drone Recovery Bay: every 10s, each bay has a 25% chance to roll one entry
+## from a random unlocked gathering action's loot table (desktop passive_gather).
+func _passive_gather_step(bid: String, count: int, eff_delta: float) -> void:
+	var key := "_pg_" + bid
+	_build_timers[key] = float(_build_timers.get(key, 0.0)) + eff_delta
+	while float(_build_timers[key]) >= 10.0:
+		_build_timers[key] = float(_build_timers[key]) - 10.0
+		_passive_gather_roll(count)
+
+func _passive_gather_roll(bays: int) -> void:
+	var unlocked := []
+	for aid in GameData.GATHER:
+		var a: Dictionary = GameData.GATHER[aid]
+		if level_of("harvesting") < int(a.get("level_req", 1)):
+			continue
+		var req: String = a.get("research_req", "")
+		if req != "" and not is_research_unlocked(req):
+			continue
+		if not a.get("loot", []).is_empty():
+			unlocked.append(a)
+	if unlocked.is_empty():
+		return
+	for _i in range(bays):
+		if randf() < 0.25:
+			var a: Dictionary = unlocked.pick_random()
+			var row = (a["loot"] as Array).pick_random()
+			add_resource(row[0], maxi(1, randi_range(int(row[2]), int(row[3]))))
 
 ## Offline infrastructure catch-up: runs the grid + production over `delta`,
 ## returns a short loot summary (or "").
@@ -987,7 +1042,12 @@ func _offline_infra(delta: float) -> String:
 		if count <= 0:
 			continue
 		var d: Dictionary = GameData.BUILDINGS.get(bid, {})
-		if d.get("yield", {}).is_empty():
+		if d.get("special", "") == "passive_gather":
+			var pg_cycles: int = int(delta * eff * get_throttle(bid) / 10.0)
+			for _p in range(mini(pg_cycles, 500000)):
+				_passive_gather_roll(count)
+			continue
+		if not _is_production_building(d):
 			continue
 		var eff_interval: float = maxf(0.05, float(d.get("interval", 1.0)) / skill_speed)
 		var cycles: int = int(delta * eff * get_throttle(bid) / eff_interval)
@@ -1660,6 +1720,7 @@ func gather_speed_mult(id: String) -> float:
 	for row in GATHER_SPEED_TECH.get(id, []):
 		if is_research_unlocked(row[0]):
 			m += float(row[1])
+	m += building_count("biosphere_dome") * 0.05           # Biosphere Dome: +5% gather speed/bldg
 	return m * warp_gathering_mult()                       # prestige boosts gather via speed
 
 # Per-recipe processing speed techs (ported from processing_manager.get_recipe_speed_multiplier)
