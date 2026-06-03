@@ -72,6 +72,8 @@ var drawer_panel: PanelContainer
 var drawer_scrim: ColorRect
 var drawer_open := false
 var _ham_badge: Panel
+var _welcome: Control = null
+var _welcome_done := false
 var current := ""
 var gather_cat := "terrestrial"
 var craft_cat := "basics"
@@ -125,9 +127,87 @@ func _ready() -> void:
 	_refresh_banner()
 	_show("gather")
 	_update_badges()
-	if GameState.pending_offline != "":
-		_show_offline(GameState.pending_offline)
-		GameState.pending_offline = ""
+	_show_welcome()
+
+# Branded intro splash shown on launch (tap or auto to continue); flows into the
+# offline "welcome back" report afterward if there is one.
+func _show_welcome() -> void:
+	_welcome = Control.new()
+	_welcome.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_welcome.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(_welcome)
+	var bg := TextureRect.new()
+	bg.texture = _grad_tex(BG_TOP, BG_BOT)
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	bg.stretch_mode = TextureRect.STRETCH_SCALE
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_welcome.add_child(bg)
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_welcome.add_child(center)
+	var col := VBoxContainer.new()
+	col.alignment = BoxContainer.ALIGNMENT_CENTER
+	col.add_theme_constant_override("separation", 10)
+	center.add_child(col)
+	var emblem := _wlabel(col, "✦", 64, CYAN)
+	var title := _wlabel(col, "STELLAR FORGE", 38, C_TEXT)
+	var tag := _wlabel(col, "Mine · Craft · Conquer the Sectors", 14, GOLD)
+	var sp := Control.new()
+	sp.custom_minimum_size = Vector2(0, 26)
+	col.add_child(sp)
+	var boot := ["◇  Igniting reactor core", "◇  Calibrating fabrication bays", "◇  Syncing sector network", "◇  All systems nominal"]
+	var line_labels := []
+	for s in boot:
+		line_labels.append(_wlabel(col, s, 12, C_DIM))
+	var prompt := _wlabel(col, "tap to begin", 13, CYAN)
+	var tap := Button.new()
+	tap.flat = true
+	tap.focus_mode = Control.FOCUS_NONE
+	tap.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var eb := StyleBoxEmpty.new()
+	for st in ["normal", "hover", "pressed", "focus"]:
+		tap.add_theme_stylebox_override(st, eb)
+	tap.pressed.connect(_dismiss_welcome)
+	_welcome.add_child(tap)
+	# Animate everything in, then hold and auto-continue.
+	for nd in [emblem, title, tag, prompt] + line_labels:
+		nd.modulate.a = 0.0
+	var tw := create_tween()
+	tw.tween_property(emblem, "modulate:a", 1.0, 0.4)
+	tw.tween_property(title, "modulate:a", 1.0, 0.4)
+	tw.tween_property(tag, "modulate:a", 1.0, 0.3)
+	for l in line_labels:
+		tw.tween_property(l, "modulate:a", 1.0, 0.18)
+	tw.tween_property(prompt, "modulate:a", 1.0, 0.3)
+	tw.tween_callback(func() -> void:
+		var p := prompt.create_tween().set_loops()
+		p.tween_property(prompt, "modulate:a", 0.35, 0.7)
+		p.tween_property(prompt, "modulate:a", 1.0, 0.7))
+	tw.tween_interval(2.2)
+	tw.tween_callback(_dismiss_welcome)
+
+func _wlabel(parent: Node, text: String, size: int, color: String) -> Label:
+	var l := Label.new()
+	l.text = text
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.add_theme_font_size_override("font_size", _fs(size))
+	l.add_theme_color_override("font_color", Color.html(color))
+	parent.add_child(l)
+	return l
+
+func _dismiss_welcome() -> void:
+	if _welcome == null or _welcome_done:
+		return
+	_welcome_done = true
+	var t := create_tween()
+	t.tween_property(_welcome, "modulate:a", 0.0, 0.3)
+	t.tween_callback(func() -> void:
+		if is_instance_valid(_welcome):
+			_welcome.queue_free()
+		_welcome = null
+		if GameState.pending_offline != "":
+			_show_offline(GameState.pending_offline)
+			GameState.pending_offline = "")
 
 # Background-resume catch-up finished — show the same report modal as a cold launch.
 func _on_offline_ready() -> void:
