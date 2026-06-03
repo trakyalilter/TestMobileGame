@@ -321,6 +321,21 @@ func _refresh_current() -> void:
 		"research": _build_research()
 		"more":     _build_more()
 		"stats":    _build_stats()
+	# Let touch drags fall through cards to the page's ScrollContainer so the
+	# whole content surface scrolls (not just the dark background gaps). Panels
+	# and containers default to MOUSE_FILTER_STOP, which eats the drag.
+	if pages.has(current):
+		_scroll_passthrough(pages[current])
+
+# Recursively switch non-interactive controls from STOP to PASS so the parent
+# ScrollContainer still receives touch-drag events. Buttons/sliders/inputs keep
+# STOP so taps and drags on them keep working.
+func _scroll_passthrough(node: Node) -> void:
+	for c in node.get_children():
+		if c is Control and not (c is BaseButton or c is Slider or c is LineEdit or c is TextEdit or c is ScrollContainer):
+			if c.mouse_filter == Control.MOUSE_FILTER_STOP:
+				c.mouse_filter = Control.MOUSE_FILTER_PASS
+		_scroll_passthrough(c)
 
 func _clear(id: String) -> VBoxContainer:
 	var v: VBoxContainer = pages[id].find_child("List", true, false)
