@@ -117,6 +117,7 @@ func _ready() -> void:
 	GameState.action_changed.connect(_refresh_banner)
 	GameState.bounty_changed.connect(_on_tick)
 	GameState.missions_changed.connect(_on_tick)
+	GameState.offline_ready.connect(_on_offline_ready)
 	get_viewport().size_changed.connect(_update_safe_area)
 	call_deferred("_update_safe_area")
 	_refresh_top()
@@ -125,6 +126,14 @@ func _ready() -> void:
 	if GameState.pending_offline != "":
 		_show_offline(GameState.pending_offline)
 		GameState.pending_offline = ""
+
+# Background-resume catch-up finished — show the same report modal as a cold launch.
+func _on_offline_ready() -> void:
+	if GameState.pending_offline != "":
+		_show_offline(GameState.pending_offline)
+		GameState.pending_offline = ""
+	_refresh_top()
+	_refresh_current()
 
 ## Branded display font (Rajdhani) with Noto symbol fallbacks so glyph icons
 ## render on devices whose system font lacks them.

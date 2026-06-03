@@ -8,6 +8,7 @@ signal skills_changed
 signal research_changed
 signal action_changed
 signal missions_changed
+signal offline_ready          # emitted after a background-resume catch-up, for the UI modal
 
 # Missions (tutorial chain)
 var missions_active: Dictionary = {}     # mid -> true
@@ -99,6 +100,7 @@ var _infra_dirty := false
 var _infra_emit_accum := 0.0
 
 var pending_offline: String = ""
+var _bg_time := 0.0             # wall-clock when the app was backgrounded (0 = foreground)
 var offline_combat := false             # option: process combat while away (off by default, like desktop)
 
 const SAVE_PATH := "user://stellarforge_save.json"
@@ -139,6 +141,36 @@ func _process(delta: float) -> void:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_WM_GO_BACK_REQUEST:
 		save_game()
+	# Android freezes the process while backgrounded (no _process ticks), so we
+	# record when we leave and credit the elapsed time on return — same as a cold
+	# launch, but without needing a full reload.
+	elif what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_WM_WINDOW_FOCUS_OUT:
+		if _bg_time == 0.0:
+			_bg_time = Time.get_unix_time_from_system()
+			save_game()
+	elif what == NOTIFICATION_APPLICATION_RESUMED or what == NOTIFICATION_WM_WINDOW_FOCUS_IN:
+		if _bg_time > 0.0:
+			var delta := Time.get_unix_time_from_system() - _bg_time
+			_bg_time = 0.0
+			_catch_up_offline(delta)
+
+## Apply offline progress for `delta` seconds while the app was backgrounded
+## (mirrors the cold-launch path) and notify the UI to show the report.
+func _catch_up_offline(delta: float) -> void:
+	if delta < 5.0:
+		return
+	pending_offline = ""
+	_apply_offline(delta)
+	var infra := _offline_infra(delta)
+	if infra != "":
+		if pending_offline == "":
+			pending_offline = "Away for %s\n\n%s" % [_fmt_time(delta), infra]
+		else:
+			pending_offline += "\n" + infra
+	resources_changed.emit()
+	skills_changed.emit()
+	if pending_offline != "":
+		offline_ready.emit()
 
 # ---------------- Resources / credits ----------------
 func amount(sym: String) -> int:
