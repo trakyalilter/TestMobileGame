@@ -28,8 +28,8 @@ const SURFACE_HI := "1f2c48"  # raised chips / segmented
 const INSET := "0c1322"       # recessed wells
 const LINE := "2b374f"        # hairline borders / dividers
 const C_TEXT := "eef2fb"
-const C_DIM := "9aa7c2"
-const C_MUTED := "5d6b88"
+const C_DIM := "b3c0db"      # secondary text — lifted for contrast
+const C_MUTED := "8c9bbd"    # tertiary / locked text — lifted for contrast
 const C_WARN := "ecb44a"
 const GOLD := "ecb44a"
 const CYAN := "55d3e6"
@@ -55,6 +55,7 @@ var current := ""
 var gather_cat := "terrestrial"
 var craft_cat := "basics"
 var combat_zone := 0
+var research_tab := "Operations"
 var build_cat := "power"
 var ship_view := "loadout"
 var ship_mod_slot := "weapon"
@@ -371,7 +372,7 @@ func _build_gather() -> void:
 func _gather_card(id: String, a: Dictionary) -> Control:
 	var unlocked := GameState.meets_requirements(a, "harvesting")
 	var active := (GameState.active_type == "gather" and GameState.active_id == id)
-	var v := _card(GOLD, unlocked or active, 196)
+	var v := _card(GOLD, unlocked or active, 238)
 	_card_head(v, "↑", a["name"], "Lv %d" % int(a.get("level_req", 1)), GOLD, unlocked)
 	if unlocked:
 		_inset(v, "YIELD", _loot_lines(a.get("loot", [])), GOLD)
@@ -462,7 +463,9 @@ func _build_targets(v: VBoxContainer) -> void:
 	v.add_child(hrow)
 	var zone_items := []
 	for z in GameData.ZONES:
-		zone_items.append({"id": z["id"], "label": z["name"]})
+		# Locked zones (research-gated) get a padlock so progression reads clearly.
+		var lbl: String = z["name"] if _zone_unlocked(z) else "🔒 " + z["name"]
+		zone_items.append({"id": z["id"], "label": lbl})
 	combat_zone = clampi(combat_zone, 0, GameData.ZONES.size() - 1)
 	var cur_zone_id: String = GameData.ZONES[combat_zone]["id"]
 	_subtabs(v, zone_items, cur_zone_id, RED, func(id: String) -> void:
@@ -472,10 +475,31 @@ func _build_targets(v: VBoxContainer) -> void:
 		_build_combat())
 	var zone: Dictionary = GameData.ZONES[combat_zone]
 	_section(v, zone.get("desc", ""), RED)
+	if not _zone_unlocked(zone):
+		# Sector access is research-gated, exactly as in the desktop game.
+		var req: String = zone.get("research_req", "")
+		var rname: String = GameData.RESEARCH.get(req, {}).get("name", req)
+		var c := _card(RED, false)
+		_card_head(c, "🔒", "SECTOR LOCKED", "", RED, false)
+		var lr := Label.new()
+		lr.text = "Requires research: %s" % rname
+		lr.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lr.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		lr.add_theme_font_size_override("font_size", _fs(11))
+		lr.add_theme_color_override("font_color", Color.html(C_WARN))
+		c.add_child(lr)
+		var gb := _card_button("Go to Research", PURP, true)
+		gb.pressed.connect(func() -> void: _show("research"))
+		c.add_child(gb)
+		return
 	var g := _grid(v)
 	for eid in zone.get("enemies", []):
 		if GameData.ENEMIES.has(eid):
 			g.add_child(_enemy_card(eid, GameData.ENEMIES[eid]))
+
+func _zone_unlocked(zone: Dictionary) -> bool:
+	var req: String = zone.get("research_req", "")
+	return req == "" or GameState.is_research_unlocked(req)
 
 func _enemy_card(id: String, e: Dictionary) -> Control:
 	var v := _card(RED, true)
@@ -1223,77 +1247,129 @@ func _module_stat_lines(stats: Dictionary) -> Array:
 	return lines
 
 # ============================================================ RESEARCH
+# Faithful port of the desktop research_page graph: per-discipline tabs, each a
+# 2D canvas of positioned nodes with parent→child branch lines drawn between them.
+const RES_NODE_W := 152.0
+const RES_NODE_H := 60.0
+const RES_POS_SCALE := 1.42
+const RES_PAD := 12.0
+
 func _build_research() -> void:
 	var v := _clear("research")
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 8)
 	var title := Label.new()
 	title.text = "RESEARCH NETWORK"
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	title.add_theme_font_size_override("font_size", _fs(16))
 	title.add_theme_color_override("font_color", Color.html(PURP))
-	v.add_child(title)
+	head.add_child(title)
 	var cr := Label.new()
-	cr.text = "Credits: ₡%s   ·   sell materials in More" % GameData.fmt(GameState.credits)
-	cr.add_theme_font_size_override("font_size", _fs(11))
+	cr.text = "₡%s" % GameData.fmt(GameState.credits)
+	cr.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	cr.add_theme_font_size_override("font_size", _fs(13))
 	cr.add_theme_color_override("font_color", Color.html(GOLD))
-	v.add_child(cr)
+	head.add_child(cr)
+	v.add_child(head)
 
-	# Progressive reveal: show researched, available, and frontier nodes; group by depth.
-	var tiers := {}
-	for id in GameData.RESEARCH:
-		if not _research_visible(id):
+	if not GameData.RESEARCH_TABS.has(research_tab):
+		research_tab = GameData.RESEARCH_TABS[0]
+	var tab_items := []
+	for t in GameData.RESEARCH_TABS:
+		tab_items.append({"id": t, "label": t})
+	_subtabs(v, tab_items, research_tab, PURP, func(id: String) -> void:
+		research_tab = id
+		_build_research())
+
+	var graph: Dictionary = GameData.RESEARCH_GRAPHS[research_tab]
+	var pos: Dictionary = graph["pos"]
+	var nodes: Array = graph["nodes"]
+	var maxx := 0.0
+	var maxy := 0.0
+	for nid in pos:
+		var p: Vector2 = pos[nid]
+		maxx = maxf(maxx, p.x)
+		maxy = maxf(maxy, p.y)
+	var cw: float = maxx * RES_POS_SCALE + RES_NODE_W + RES_PAD * 2.0
+	var ch: float = maxy * RES_POS_SCALE + RES_NODE_H + RES_PAD * 2.0
+
+	# Horizontal scroller pans the wide tree; the page's own ScrollContainer
+	# handles vertical, so the canvas is given its full height as a min size.
+	var hs := ScrollContainer.new()
+	hs.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	hs.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	hs.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hs.custom_minimum_size = Vector2(0, ch)
+	var canvas := Control.new()
+	canvas.custom_minimum_size = Vector2(cw, ch)
+	canvas.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	canvas.draw.connect(_draw_research_branches.bind(canvas, nodes, pos))
+	for nid in nodes:
+		if not GameData.RESEARCH.has(nid):
 			continue
-		var d := _research_depth(id)
-		if not tiers.has(d):
-			tiers[d] = []
-		tiers[d].append(id)
-	var depths := tiers.keys()
-	depths.sort()
-	var first := true
-	for d in depths:
-		if not first:
-			_connector(v)
-		first = false
-		var row := GridContainer.new()
-		row.columns = 2
-		row.add_theme_constant_override("h_separation", 8)
-		row.add_theme_constant_override("v_separation", 8)
-		row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		v.add_child(row)
-		for id in tiers[d]:
-			row.add_child(_research_node(id))
+		var node := _research_node(nid)
+		node.position = (pos[nid] as Vector2) * RES_POS_SCALE + Vector2(RES_PAD, RES_PAD)
+		node.size = Vector2(RES_NODE_W, RES_NODE_H)
+		canvas.add_child(node)
+	hs.add_child(canvas)
+	v.add_child(hs)
 
-func _research_visible(id: String) -> bool:
-	if GameState.is_research_unlocked(id):
-		return true
-	var p: String = GameData.RESEARCH[id].get("parent", "")
-	return p == "" or GameState.is_research_unlocked(p)
-
-func _research_depth(id: String) -> int:
-	var p: String = GameData.RESEARCH[id].get("parent", "")
-	if p == "" or not GameData.RESEARCH.has(p):
-		return 0
-	return _research_depth(p) + 1
+func _draw_research_branches(canvas: Control, nodes: Array, pos: Dictionary) -> void:
+	for nid in nodes:
+		if not GameData.RESEARCH.has(nid):
+			continue
+		var par: String = GameData.RESEARCH[nid].get("parent", "")
+		# Cross-tab parents (not in this layout) are treated as roots — no line.
+		if par == "" or not pos.has(par) or not pos.has(nid):
+			continue
+		var p1: Vector2 = (pos[par] as Vector2) * RES_POS_SCALE + Vector2(RES_PAD + RES_NODE_W, RES_PAD + RES_NODE_H * 0.5)
+		var p2: Vector2 = (pos[nid] as Vector2) * RES_POS_SCALE + Vector2(RES_PAD, RES_PAD + RES_NODE_H * 0.5)
+		var col := Color.html(GREEN) if GameState.is_research_unlocked(nid) else Color(0.42, 0.46, 0.62, 0.7)
+		# Elbow connector (horizontal out of parent, vertical, into child) reads
+		# cleaner on dense trees than a single diagonal.
+		var midx := (p1.x + p2.x) * 0.5
+		canvas.draw_line(p1, Vector2(midx, p1.y), col, 2.0)
+		canvas.draw_line(Vector2(midx, p1.y), Vector2(midx, p2.y), col, 2.0)
+		canvas.draw_line(Vector2(midx, p2.y), p2, col, 2.0)
 
 func _research_node(id: String) -> Control:
 	var t: Dictionary = GameData.RESEARCH[id]
 	var researched := GameState.is_research_unlocked(id)
 	var available := GameState.research_available(id)
-	var border := GREEN if researched else (PURP if available else "453c6b")
+	var border := GREEN if researched else (C_WARN if available else "39425e")
+	var fill := _mix(GREEN, INSET, 0.82) if researched else (_mix(PURP, INSET, 0.86) if available else "151b2c")
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", _bordered("241f3e", border, 2 if (available or researched) else 1))
-	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 2)
-	panel.add_child(v)
-	_clbl(v, t.get("name", id), 13, C_TEXT if (available or researched) else C_MUTED)
+	panel.custom_minimum_size = Vector2(RES_NODE_W, RES_NODE_H)
+	panel.add_theme_stylebox_override("panel", _bordered(fill, border, 2 if (available or researched) else 1, 8))
+	panel.tooltip_text = t.get("desc", "")
+	var m := MarginContainer.new()
+	for side in ["left", "right", "top", "bottom"]:
+		m.add_theme_constant_override("margin_" + side, 6)
+	panel.add_child(m)
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 1)
+	vb.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	m.add_child(vb)
+	var nm := Label.new()
+	nm.text = t.get("name", id)
+	nm.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	nm.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	nm.add_theme_font_size_override("font_size", _fs(10))
+	nm.add_theme_color_override("font_color", Color.html(C_TEXT if (available or researched) else C_MUTED))
+	vb.add_child(nm)
+	var status := Label.new()
+	status.add_theme_font_size_override("font_size", _fs(10))
 	if researched:
-		_clbl(v, "✓ Researched", 10, GREEN)
+		status.text = "✓ Researched"
+		status.add_theme_color_override("font_color", Color.html(GREEN))
 	else:
 		var cred := int(t.get("credits", 0))
-		var have_cr := GameState.credits >= cred
-		_clbl(v, "₡%s" % GameData.fmt(cred), 11, GOLD if have_cr else C_WARN)
-		for sym in t.get("items", {}):
-			var have := GameState.amount(sym) >= int(t["items"][sym])
-			_clbl(v, "%d %s" % [int(t["items"][sym]), GameData.res_name(sym)], 10, GOLD if have else C_WARN)
+		var extra: int = t.get("items", {}).size()
+		status.text = "₡%s%s" % [GameData.fmt(cred), ("  +%d mat" % extra) if extra > 0 else ""]
+		status.add_theme_color_override("font_color", Color.html(GOLD if GameState.credits >= cred else C_WARN))
+	vb.add_child(status)
+	if not researched:
 		var overlay := Button.new()
 		overlay.flat = true
 		overlay.focus_mode = Control.FOCUS_NONE
@@ -1330,45 +1406,26 @@ func _build_stats() -> void:
 	for sk in ["harvesting", "fabrication", "combat", "infrastructure"]:
 		_skill_banner(v, sk.capitalize(), sk, CYAN)
 
-	_section(v, "Storage — tap Sell for credits", GOLD)
-	var any := false
+	_section(v, "Storage — tap a slot to sell", GOLD)
+	# Slot-by-slot grid (like the desktop inventory): owned materials fill tiles
+	# left-to-right, padded with empty slots to a minimum capacity.
+	var owned := []
 	for sym in GameData.RESOURCES:
-		var amt := GameState.amount(sym)
-		if amt <= 0:
-			continue
-		any = true
-		var panel := PanelContainer.new()
-		panel.add_theme_stylebox_override("panel", _bordered(SURFACE, LINE, 1, 10))
-		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 8)
-		panel.add_child(row)
-		var dot := Panel.new()
-		dot.custom_minimum_size = Vector2(8, 8)
-		dot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		var ds := StyleBoxFlat.new()
-		ds.bg_color = GameData.color_for(sym)
-		ds.set_corner_radius_all(4)
-		dot.add_theme_stylebox_override("panel", ds)
-		row.add_child(dot)
-		var n := Label.new()
-		n.text = GameData.res_name(sym)
-		n.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		n.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		n.add_theme_color_override("font_color", Color.html(C_TEXT))
-		row.add_child(n)
-		var a := Label.new()
-		a.text = GameData.fmt(amt)
-		a.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		a.add_theme_color_override("font_color", Color.html(C_DIM))
-		row.add_child(a)
-		var val := maxi(1, GameData.value_of(sym))
-		var sell := _card_button("Sell ₡%s" % GameData.fmt(amt * val), GOLD, true)
-		sell.custom_minimum_size = Vector2(96, 32)
-		sell.add_theme_font_size_override("font_size", _fs(12))
-		sell.pressed.connect(func() -> void: GameState.sell_all(sym))
-		row.add_child(sell)
-		v.add_child(panel)
-	if not any:
+		if GameState.amount(sym) > 0:
+			owned.append(sym)
+	var grid := GridContainer.new()
+	grid.columns = 4
+	grid.add_theme_constant_override("h_separation", 7)
+	grid.add_theme_constant_override("v_separation", 7)
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	v.add_child(grid)
+	for sym in owned:
+		grid.add_child(_storage_tile(sym))
+	var min_slots := 28
+	var total: int = maxi(min_slots, int(ceil(owned.size() / 4.0)) * 4)
+	for _i in range(total - owned.size()):
+		grid.add_child(_storage_slot_empty())
+	if owned.is_empty():
 		_empty(v, "Storage empty — go gather something.")
 
 	_section(v, "System", CYAN)
@@ -1386,6 +1443,65 @@ func _build_stats() -> void:
 			_reset_armed = true
 			_build_stats())
 	v.add_child(reset_btn)
+
+func _storage_tile(sym: String) -> Control:
+	var amt := GameState.amount(sym)
+	var rcol := _hex(GameData.color_for(sym))
+	var val: int = maxi(1, GameData.value_of(sym))
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(0, 90)
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.add_theme_stylebox_override("panel", _bordered(_mix(rcol, SURFACE, 0.9), rcol, 1, 8))
+	panel.tooltip_text = "%s — tap to sell all for ₡%s" % [GameData.res_name(sym), GameData.fmt(amt * val)]
+	var m := MarginContainer.new()
+	for side in ["left", "right", "top", "bottom"]:
+		m.add_theme_constant_override("margin_" + side, 5)
+	panel.add_child(m)
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 1)
+	vb.alignment = BoxContainer.ALIGNMENT_CENTER
+	m.add_child(vb)
+	var nm := Label.new()
+	nm.text = GameData.res_name(sym)
+	nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	nm.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	nm.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	nm.add_theme_font_size_override("font_size", _fs(9))
+	nm.add_theme_color_override("font_color", Color.html(rcol))
+	vb.add_child(nm)
+	var qty := Label.new()
+	qty.text = GameData.fmt(amt)
+	qty.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	qty.add_theme_font_size_override("font_size", _fs(14))
+	qty.add_theme_color_override("font_color", Color.html(C_TEXT))
+	vb.add_child(qty)
+	var pv := Label.new()
+	pv.text = "₡%s" % GameData.fmt(amt * val)
+	pv.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	pv.add_theme_font_size_override("font_size", _fs(9))
+	pv.add_theme_color_override("font_color", Color.html(GOLD))
+	vb.add_child(pv)
+	var overlay := Button.new()
+	overlay.flat = true
+	overlay.focus_mode = Control.FOCUS_NONE
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.pressed.connect(func() -> void: GameState.sell_all(sym))
+	panel.add_child(overlay)
+	return panel
+
+func _storage_slot_empty() -> Control:
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(0, 90)
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.add_theme_stylebox_override("panel", _bordered(INSET, LINE, 1, 8))
+	var cc := CenterContainer.new()
+	panel.add_child(cc)
+	var dot := Label.new()
+	dot.text = "·"
+	dot.add_theme_font_size_override("font_size", _fs(16))
+	dot.add_theme_color_override("font_color", Color.html(C_MUTED))
+	cc.add_child(dot)
+	return panel
 
 # ============================================================ SHARED CARD PIECES
 func _action_controls(v: VBoxContainer, type: String, id: String, active: bool, accent: String, start_label := "Start", stop_label := "Stop") -> void:
