@@ -10,8 +10,9 @@ const BOTTOM := [
 	{"id": "research", "label": "Research"},
 	{"id": "more",     "label": "More"},
 ]
-const PAGE_IDS := ["gather", "craft", "combat", "research", "more", "build", "ship", "bounty", "warp", "stats"]
+const PAGE_IDS := ["gather", "craft", "combat", "research", "more", "build", "ship", "bounty", "warp", "missions", "stats"]
 const MORE_MENU := [
+	{"id": "missions", "label": "✦  Missions"},
 	{"id": "build",  "label": "⌂  Infrastructure"},
 	{"id": "ship",   "label": "⛭  Ship Designer"},
 	{"id": "bounty", "label": "◆  Bounty Board"},
@@ -85,6 +86,7 @@ func _ready() -> void:
 	GameState.action_changed.connect(_refresh_current)
 	GameState.action_changed.connect(_refresh_banner)
 	GameState.bounty_changed.connect(_refresh_current)
+	GameState.missions_changed.connect(_refresh_current)
 	get_viewport().size_changed.connect(_update_safe_area)
 	call_deferred("_update_safe_area")
 	_refresh_top()
@@ -315,6 +317,7 @@ func _refresh_current() -> void:
 		"ship":     _build_ship()
 		"bounty":   _build_bounty()
 		"warp":     _build_warp()
+		"missions": _build_missions()
 		"research": _build_research()
 		"more":     _build_more()
 		"stats":    _build_stats()
@@ -620,6 +623,27 @@ func _building_card(bid: String, d: Dictionary) -> Control:
 		eff_lines.append(_line("-%d kW" % int(d["energy_cons"]), C_WARN))
 	if not eff_lines.is_empty():
 		_inset(v, "PER UNIT / %.0fs" % float(d.get("interval", 1.0)), eff_lines, BUILD)
+	# Throttle (any owned building — scales production and energy)
+	if count > 0:
+		var th := GameState.get_throttle(bid)
+		var trow := HBoxContainer.new()
+		trow.add_theme_constant_override("separation", 6)
+		var minus := _card_button("−", BUILD, th > 0.0)
+		minus.custom_minimum_size = Vector2(40, 30)
+		minus.pressed.connect(func() -> void: GameState.set_throttle(bid, th - 0.25))
+		trow.add_child(minus)
+		var tl := Label.new()
+		tl.text = "Throttle %d%%" % int(th * 100.0)
+		tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		tl.add_theme_font_size_override("font_size", 11)
+		tl.add_theme_color_override("font_color", Color.html(C_DIM))
+		trow.add_child(tl)
+		var plus := _card_button("+", BUILD, th < 1.0)
+		plus.custom_minimum_size = Vector2(40, 30)
+		plus.pressed.connect(func() -> void: GameState.set_throttle(bid, th + 0.25))
+		trow.add_child(plus)
+		v.add_child(trow)
 	# cost
 	var maxed := d.has("max") and count >= int(d["max"])
 	if maxed:
@@ -761,6 +785,53 @@ func _lbl_wrap(parent: Node, text: String, size: int, color: String) -> void:
 	parent.add_child(l)
 
 # ============================================================ WARP CORE
+func _build_missions() -> void:
+	var v := _clear("missions")
+	_back_header(v)
+	var t := Label.new()
+	t.text = "✦ MISSIONS"
+	t.add_theme_font_size_override("font_size", 16)
+	t.add_theme_color_override("font_color", Color.html(PURP))
+	v.add_child(t)
+	_lbl_wrap(v, "%d completed" % GameState.missions_claimed.size(), 11, C_DIM)
+	_section(v, "Active Objectives", PURP)
+	if GameState.missions_active.is_empty():
+		_empty(v, "All missions complete. Well done, Commander.")
+	for mid in GameState.missions_active:
+		v.add_child(_mission_card(mid))
+
+func _mission_card(mid: String) -> Control:
+	var m: Dictionary = GameData.MISSIONS[mid]
+	var done := GameState.mission_completed(mid)
+	var panel := PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", _card_style(SURFACE, GREEN if done else LINE, 1, done))
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 4)
+	panel.add_child(vb)
+	_lbl_wrap(vb, m.get("name", mid), 14, GREEN if done else C_TEXT)
+	_lbl_wrap(vb, m.get("desc", ""), 10, C_DIM)
+	var cur := int(GameState.missions_progress.get(mid, 0))
+	var qty := int(m.get("qty", 1))
+	if qty > 1:
+		var bar := ProgressBar.new()
+		bar.custom_minimum_size = Vector2(0, 7)
+		bar.show_percentage = false
+		bar.max_value = qty
+		bar.value = cur
+		_style_bar(bar, GREEN if done else PURP)
+		vb.add_child(bar)
+		_lbl_wrap(vb, "%s / %s" % [GameData.fmt(cur), GameData.fmt(qty)], 9, C_MUTED)
+	var rl := Label.new()
+	rl.text = "Reward: ₡%s" % GameData.fmt(m.get("cr", 0))
+	rl.add_theme_font_size_override("font_size", 11)
+	rl.add_theme_color_override("font_color", Color.html(GOLD))
+	vb.add_child(rl)
+	if done:
+		var b := _card_button("Claim Reward", GREEN, true)
+		b.pressed.connect(func() -> void: GameState.claim_mission(mid))
+		vb.add_child(b)
+	return panel
+
 func _build_warp() -> void:
 	var v := _clear("warp")
 	_back_header(v)

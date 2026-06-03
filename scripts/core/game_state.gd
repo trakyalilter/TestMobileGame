@@ -7,6 +7,12 @@ signal resources_changed
 signal skills_changed
 signal research_changed
 signal action_changed
+signal missions_changed
+
+# Missions (tutorial chain)
+var missions_active: Dictionary = {}     # mid -> true
+var missions_progress: Dictionary = {}   # mid -> count
+var missions_claimed: Dictionary = {}    # mid -> true
 
 var resources: Dictionary = {}          # symbol -> int
 var credits: int = 0                    # research currency (earned by selling)
@@ -33,6 +39,7 @@ var combat_hp: float = 0.0            # persistent hull HP
 var player_shield: float = 0.0        # regenerates fast in combat
 var player_heat: float = 0.0          # weapons add heat; overheat locks fire
 var _overheat_lock: float = 0.0
+var _broadside_timer: float = 0.0     # unique module: Broadside Array
 var _weapons: Array = []              # live weapon states built from loadout
 var enemy_inst: Dictionary = {}       # live enemy instance
 var _enemy_timer: float = 0.0
@@ -102,6 +109,7 @@ func _ready() -> void:
 		combat_hp = combat_max_hp()
 	if bounty_available.is_empty() and bounty_active.is_empty():
 		generate_bounty_pool()
+	_mission_init()
 
 func _process(delta: float) -> void:
 	_tick_active(delta)
@@ -133,6 +141,8 @@ func amount(sym: String) -> int:
 
 func add_resource(sym: String, amt: int) -> void:
 	resources[sym] = amount(sym) + amt
+	if amt > 0 and not missions_active.is_empty():
+		_mission_event("gather", sym, amt)
 	resources_changed.emit()
 
 func gain_credits(n: int) -> void:
@@ -409,6 +419,7 @@ func select_hull(hid: String) -> bool:
 			return false
 		_pay_cost(GameData.HULLS[hid].get("cost", {}))
 		owned_hulls[hid] = true
+		_mission_event("construct", hid, 1)
 	# Switching ships returns all equipped modules to inventory (slots differ).
 	for k in loadout:
 		module_inventory[loadout[k]] = int(module_inventory.get(loadout[k], 0)) + 1
@@ -429,6 +440,7 @@ func buy_module(mid: String) -> bool:
 		return false
 	_pay_cost(GameData.MODULES[mid].get("cost", {}))
 	module_inventory[mid] = int(module_inventory.get(mid, 0)) + 1
+	_mission_event("craft", mid, 1)
 	resources_changed.emit()
 	return true
 
@@ -459,6 +471,19 @@ func module_def(mid: String) -> Dictionary:
 	if GameData.SET_MODULES.has(mid):
 		return GameData.SET_MODULES[mid]
 	return GameData.MODULES.get(mid, {})
+
+## True if a module (base id) is equipped — including rolled instances of it.
+func loadout_has_module(base_id: String) -> bool:
+	for mid in loadout.values():
+		if mid == base_id or module_def(mid).get("base", "") == base_id:
+			return true
+	return false
+
+func _current_zone_id() -> String:
+	for z in GameData.ZONES:
+		if active_id in z.get("enemies", []):
+			return z.get("id", "")
+	return ""
 
 # ---------------- Set bonuses + gem sockets ----------------
 func equipped_set_counts() -> Dictionary:
@@ -929,6 +954,7 @@ func build_building(bid: String) -> bool:
 		else:
 			resources[res] = amount(res) - int(cost[res])
 	buildings[bid] = building_count(bid) + 1
+	_mission_event("build", bid, 1)
 	resources_changed.emit()
 	return true
 
@@ -992,6 +1018,37 @@ func repair_hull() -> bool:
 	resources_changed.emit()
 	return true
 
+# --- Missions ---
+func _mission_init() -> void:
+	if missions_active.is_empty() and missions_claimed.is_empty() and not GameData.MISSION_ORDER.is_empty():
+		missions_active[GameData.MISSION_ORDER[0]] = true
+
+func mission_completed(mid: String) -> bool:
+	return int(missions_progress.get(mid, 0)) >= int(GameData.MISSIONS.get(mid, {}).get("qty", 1))
+
+func _mission_event(type: String, target: String, amount: int) -> void:
+	var changed := false
+	for mid in missions_active.keys():
+		var m: Dictionary = GameData.MISSIONS.get(mid, {})
+		if m.get("type", "") == type and m.get("target", "") == target and not mission_completed(mid):
+			missions_progress[mid] = mini(int(m.get("qty", 1)), int(missions_progress.get(mid, 0)) + amount)
+			changed = true
+	if changed:
+		missions_changed.emit()
+
+func claim_mission(mid: String) -> bool:
+	if not missions_active.has(mid) or not mission_completed(mid) or missions_claimed.has(mid):
+		return false
+	var m: Dictionary = GameData.MISSIONS[mid]
+	gain_credits(int(int(m.get("cr", 0)) * warp_production_mult()))   # prestige-scaled reward
+	missions_claimed[mid] = true
+	missions_active.erase(mid)
+	var nxt: String = m.get("next", "")
+	if nxt != "" and GameData.MISSIONS.has(nxt) and not missions_claimed.has(nxt):
+		missions_active[nxt] = true
+	missions_changed.emit()
+	return true
+
 func research_available(rid: String) -> bool:
 	if is_research_unlocked(rid):
 		return false
@@ -1008,6 +1065,7 @@ func unlock_research(rid: String) -> bool:
 	credits -= int(t.get("credits", 0))
 	spend(t.get("items", {}))
 	unlocked_research[rid] = true
+	_mission_event("research", rid, 1)
 	research_changed.emit()
 	return true
 
@@ -1120,6 +1178,16 @@ func _tick_combat(delta: float) -> void:
 	var fire_sf := 1.0 + research_bonus("attack_speed")
 	if player_heat >= MAX_HEAT * 0.4:
 		fire_sf += affix_total("heat_sync_focus")
+	if loadout_has_module("warp_stabilizer"):
+		fire_sf += 0.15
+	# Broadside Array: periodic heavy kinetic salvo
+	if loadout_has_module("broadside_array"):
+		_broadside_timer += delta
+		if _broadside_timer >= 20.0:
+			_broadside_timer = 0.0
+			_broadside_fire()
+			if active_type != "combat":
+				return
 	for w in _weapons:
 		w["timer"] = float(w["timer"]) + delta * fire_sf
 		var guard := 0
@@ -1130,8 +1198,13 @@ func _tick_combat(delta: float) -> void:
 			if active_type != "combat":
 				return
 	# Enemy fires on its interval
-	# Set bonus: Cryo-Lord's Chill — enemies attack 15% slower
-	_enemy_timer += delta * (0.85 if has_set_bonus("cryo") else 1.0)
+	# Enemy attack slow: Cryo-Lord set (-15%) and Chrono Stabilizer (-20%)
+	var eslow := 1.0
+	if has_set_bonus("cryo"):
+		eslow *= 0.85
+	if loadout_has_module("chrono_stabilizer"):
+		eslow *= 0.8
+	_enemy_timer += delta * eslow
 	var eguard := 0
 	while _enemy_timer >= float(enemy_inst["interval"]) and eguard < 20:
 		eguard += 1
@@ -1205,6 +1278,8 @@ func _player_fire(w: Dictionary, ss: Dictionary) -> void:
 	var dk := float(w["dmg_k"])
 	var de := float(w["dmg_e"])
 	var dx := float(w["dmg_x"])
+	if w.get("type", "") == "energy" and loadout_has_module("plasma_overcharger"):
+		de *= 2.0   # Plasma Overcharger
 	var ammo: String = ammo_loadout.get(w.get("slot", ""), "")
 	if ammo != "" and amount(ammo) > 0:
 		var ab := ammo_bonus(ammo)
@@ -1242,8 +1317,14 @@ func _enemy_fire(ss: Dictionary) -> void:
 	if randf() < dodge:
 		_event("DODGE", "9aa7c2", "player")
 		return
-	var res := resolve_damage(float(enemy_inst["atk"]), 0.0, 0.0, player_shield, float(ss.get("def", 0.0)), _combat_difficulty(), 0.05)
-	# Set bonus: Sovereign's Prism — 15% chance to reflect all incoming damage
+	var pdef := float(ss.get("def", 0.0))
+	if loadout_has_module("reactive_armor"):
+		pdef *= 1.0 + (1.0 - combat_hp / maxf(1.0, combat_max_hp()))   # Reactive Armor
+	var res := resolve_damage(float(enemy_inst["atk"]), 0.0, 0.0, player_shield, pdef, _combat_difficulty(), 0.05)
+	# Exotic Shield Matrix: 30% damage reduction in Sector Gamma
+	if loadout_has_module("exotic_shield_matrix") and _current_zone_id() == "sector_gamma":
+		res[1] = int(res[1] * 0.7)
+	# Set bonus: Sovereign's Prism — 15% chance to fully reflect incoming damage
 	if has_set_bonus("sovereign") and randf() < 0.15:
 		var refl: float = res[0] + res[1]
 		enemy_inst["hp"] -= refl
@@ -1251,6 +1332,10 @@ func _enemy_fire(ss: Dictionary) -> void:
 		if enemy_inst["hp"] <= 0.0:
 			_win_combat()
 		return
+	# Reflective Sheath: 20% chance to reflect 50% back (player still takes the hit)
+	if loadout_has_module("reflective_sheath") and randf() < 0.20:
+		enemy_inst["hp"] -= int((res[0] + res[1]) * 0.5)
+		_event("REFL", "9aa7c2", "enemy")
 	player_shield = maxf(0.0, player_shield - res[0])
 	combat_hp -= res[1]
 	if res[0] > 0:
@@ -1259,6 +1344,21 @@ func _enemy_fire(ss: Dictionary) -> void:
 		_event("-%d" % int(res[1]), "ef6a52", "player")
 	if combat_hp <= 0.0:
 		_lose_combat()
+
+## Broadside Array: a heavy kinetic salvo (5x equipped kinetic damage).
+func _broadside_fire() -> void:
+	var total_k := 0.0
+	for w in _weapons:
+		if w["type"] == "kinetic":
+			total_k += float(w["dmg_k"])
+	if total_k <= 0.0:
+		return
+	var res := resolve_damage(total_k * 5.0, 0.0, 0.0, float(enemy_inst["shield"]), enemy_inst["def"], _combat_difficulty(), 0.10)
+	enemy_inst["shield"] = maxf(0.0, enemy_inst["shield"] - res[0])
+	enemy_inst["hp"] -= res[1]
+	_event("BROADSIDE %d" % int(res[0] + res[1]), "ecb44a", "enemy")
+	if enemy_inst["hp"] <= 0.0:
+		_win_combat()
 
 ## Damage-type resolution: kinetic/energy/explosive vs shields then armor.
 func resolve_damage(atk_k: float, atk_e: float, atk_x: float, c_shield: float, c_armor: float, difficulty: int, crit_chance: float) -> Array:
@@ -1281,6 +1381,7 @@ func _win_combat() -> void:
 	_roll_loot(enemy_inst["loot"], 1.0)
 	add_xp("combat", int(enemy_inst["xp"] * (1.0 + research_bonus("combat_xp"))))
 	bounty_on_kill(active_id)
+	_mission_event("defeat", active_id, 1)
 	_event("DESTROYED", "5fd585", "enemy")
 	# On-kill affixes
 	var cap := minf(affix_total("capacitor_pulse"), 0.30)
@@ -1548,6 +1649,9 @@ func save_game() -> void:
 		"bounty_refresh_timer": bounty_refresh_timer,
 		"bounty_total": bounty_total,
 		"bounty_id": _bounty_id,
+		"missions_active": missions_active.keys(),
+		"missions_progress": missions_progress,
+		"missions_claimed": missions_claimed.keys(),
 		"time": Time.get_unix_time_from_system(),
 	}
 	var tmp := SAVE_PATH + ".tmp"
@@ -1607,6 +1711,15 @@ func load_game() -> void:
 	bounty_refresh_timer = float(data.get("bounty_refresh_timer", 0.0))
 	bounty_total = int(data.get("bounty_total", 0))
 	_bounty_id = int(data.get("bounty_id", 0))
+	missions_active = {}
+	for mid in data.get("missions_active", []):
+		missions_active[mid] = true
+	missions_progress = data.get("missions_progress", {})
+	for k in missions_progress:
+		missions_progress[k] = int(missions_progress[k])
+	missions_claimed = {}
+	for mid in data.get("missions_claimed", []):
+		missions_claimed[mid] = true
 	var last := float(data.get("time", Time.get_unix_time_from_system()))
 	var away := Time.get_unix_time_from_system() - last
 	_apply_offline(away)
@@ -1648,6 +1761,10 @@ func hard_reset() -> void:
 	bounty_active = []
 	bounty_refresh_timer = 0.0
 	bounty_total = 0
+	missions_active = {}
+	missions_progress = {}
+	missions_claimed = {}
+	_mission_init()
 	pending_offline = ""
 	player_shield = 0.0
 	player_heat = 0.0

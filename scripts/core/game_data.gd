@@ -730,6 +730,53 @@ const CONSUMABLES := {
 	"ZeroPoint": {"type": "shield", "heal_pct": 0.5, "name": "Zero-Point Injector"},
 }
 
+const MISSIONS := {
+	"m001": {"name": "Stranded in Orbit", "desc": "Gather 350 Dirt to begin basic repairs.", "type": "gather", "target": "Dirt", "qty": 350, "cr": 600, "xp": 50, "next": "m002"},
+	"m002": {"name": "Analytical Breakthrough", "desc": "Research 'Basic Engineering' to unlock refining.", "type": "research", "target": "basic_engineering", "qty": 1, "cr": 300, "xp": 50, "next": "m002b"},
+	"m002b": {"name": "Applied Physics", "desc": "Research the 'Applied Physics' hub.", "type": "research", "target": "applied_physics", "qty": 1, "cr": 300, "xp": 100, "next": "m003"},
+	"m003": {"name": "Pump Master", "desc": "Research 'Fluid Dynamics' to unlock water collection.", "type": "research", "target": "fluid_dynamics", "qty": 1, "cr": 300, "xp": 50, "next": "m004"},
+	"m004": {"name": "Hydration", "desc": "Gather 350 units of Water.", "type": "gather", "target": "Water", "qty": 350, "cr": 500, "xp": 100, "next": "m005"},
+	"m007": {"name": "Mobility Check", "desc": "Craft 'Ion Thrusters' in the Shipyard.", "type": "craft", "target": "basic_thruster", "qty": 1, "cr": 1000, "xp": 100, "next": "m008"},
+	"m008": {"name": "Materials Science", "desc": "Research the 'Materials Science' hub.", "type": "research", "target": "materials_science", "qty": 1, "cr": 300, "xp": 100, "next": "m009"},
+	"m009": {"name": "Deforestation", "desc": "Gather 100 units of Wood.", "type": "gather", "target": "Wood", "qty": 100, "cr": 500, "xp": 100, "next": "m010"},
+	"m010": {"name": "Organic Combustion", "desc": "Research 'Organic Combustion' to unlock the Kiln.", "type": "research", "target": "combustion", "qty": 1, "cr": 500, "xp": 150, "next": "m011"},
+	"m011": {"name": "Essential Carbon", "desc": "Use the Charcoal Kiln to produce 50 Carbon.", "type": "gather", "target": "C", "qty": 50, "cr": 600, "xp": 150, "next": "m012"},
+	"m012": {"name": "Lithium Discovery", "desc": "Gather 60 Lithium Ore.", "type": "gather", "target": "Spodumene", "qty": 60, "cr": 800, "xp": 200, "next": "m013"},
+	"m013": {"name": "Voltaic Storage", "desc": "Refine 30 Lithium in the Engineering tab.", "type": "gather", "target": "Li", "qty": 30, "cr": 1000, "xp": 250, "next": "m020"},
+	"m014": {"name": "Ballistics Theory", "desc": "Research 'Kinetics 101' for weapons technology.", "type": "research", "target": "kinetics_101", "qty": 1, "cr": 1200, "xp": 100, "next": "m015"},
+	"m015": {"name": "Prototype Arsenal", "desc": "Craft a 'Mass Driver' in the Shipyard.", "type": "craft", "target": "railgun_mk1", "qty": 1, "cr": 1500, "xp": 200, "next": "m016"},
+	"m016": {"name": "Kinetic Munitions", "desc": "Produce 100 Ferrite Rounds for your weapon.", "type": "gather", "target": "SlugT1", "qty": 100, "cr": 1000, "xp": 100, "next": "m023"},
+	"m017": {"name": "Target Locked", "desc": "Defeat 1 Lunar Drone in Lunar Orbit.", "type": "defeat", "target": "lunar_drone", "qty": 1, "cr": 2500, "xp": 500, "next": "m018"},
+	"m018": {"name": "Industrial Logistics", "desc": "Research the 'Industrial Logistics' hub.", "type": "research", "target": "industrial_logistics", "qty": 1, "cr": 500, "xp": 100, "next": "m018b"},
+	"m018b": {"name": "Automated Intelligence", "desc": "Research 'Automated Logistics' for circuitry.", "type": "research", "target": "automated_logistics", "qty": 1, "cr": 1000, "xp": 200, "next": "m019"},
+	"m019": {"name": "Cybernetic Integration", "desc": "Craft 5 Basic Circuitry in the Engineering tab.", "type": "gather", "target": "Circuit", "qty": 5, "cr": 2000, "xp": 300, "next": "m025"},
+	"m020": {"name": "Advanced Energy", "desc": "Research 'Power Systems' for batteries.", "type": "research", "target": "power_systems", "qty": 1, "cr": 500, "xp": 100, "next": "m021"},
+	"m021": {"name": "Industrial Energy", "desc": "Craft 5 Basic Batteries in the Engineering tab.", "type": "gather", "target": "BatteryT1", "qty": 5, "cr": 1000, "xp": 100, "next": "m022"},
+	"m022": {"name": "Power Storage", "desc": "Craft a 'Basic Battery Module' in the Shipyard.", "type": "craft", "target": "battery_t1", "qty": 1, "cr": 1500, "xp": 150, "next": "m014"},
+	"m023": {"name": "Hull Integrity", "desc": "Research 'Energy Fields' to unlock shielding.", "type": "research", "target": "energy_shields", "qty": 1, "cr": 1000, "xp": 150, "next": "m024"},
+	"m024": {"name": "Aegis System", "desc": "Craft a 'Deflector Shield' for protection.", "type": "craft", "target": "basic_shield", "qty": 1, "cr": 2500, "xp": 200, "next": "m016b"},
+	"m025": {"name": "Refining Mastery", "desc": "Research 'Efficient Smelting' for alloys.", "type": "research", "target": "smelting", "qty": 1, "cr": 15000, "xp": 500, "next": "m026"},
+	"m026": {"name": "Master Constructor", "desc": "Research 'Shipwright I' for hull reinforcement.", "type": "research", "target": "shipwright_1", "qty": 1, "cr": 5000, "xp": 500, "next": "m026b"},
+	"m026b": {"name": "Fleet Modernization I", "desc": "Construct an 'Industrial Frigate' in the Shipyard.", "type": "construct", "target": "frigate_hull", "qty": 1, "cr": 10000, "xp": 1000, "next": "m027"},
+	"m027": {"name": "Scanning Horizon", "desc": "Unlock 'Asteroid Belt' to expand operations.", "type": "research", "target": "asteroid_clearance", "qty": 1, "cr": 5000, "xp": 500, "next": "m028"},
+	"m028": {"name": "Belt Mining", "desc": "Mine 1000 Cassiterite in the Asteroid Belt.", "type": "gather", "target": "Cassiterite", "qty": 1000, "cr": 10000, "xp": 2000, "next": "m029"},
+	"m029": {"name": "Hardened Shell", "desc": "Craft 'Titanium Plating' in the Shipyard.", "type": "craft", "target": "titanium_armor", "qty": 1, "cr": 15000, "xp": 5000, "next": "m029b"},
+	"m029b": {"name": "Complex Electronics", "desc": "Craft 10 Advanced Circuits to prepare for heavier ships.", "type": "gather", "target": "AdvCircuit", "qty": 10, "cr": 20000, "xp": 5000, "next": "m030"},
+	"m030": {"name": "Naval Expansion", "desc": "Research 'Shipwright II' to unlock Destroyer-class hulls.", "type": "research", "target": "shipwright_2", "qty": 1, "cr": 4000, "xp": 1000, "next": "m030b"},
+	"m030b": {"name": "Deep Space Comms", "desc": "Build a 'Fabricator' to prepare for the long journey.", "type": "build", "target": "fabricator", "qty": 1, "cr": 30000, "xp": 5000, "next": "m030c"},
+	"m030c": {"name": "Fleet Modernization II", "desc": "Construct an 'Escort Destroyer' in the Shipyard.", "type": "construct", "target": "destroyer_hull", "qty": 1, "cr": 25000, "xp": 2000, "next": "m031"},
+	"m031": {"name": "Deep Space Signal", "desc": "Unlock 'Sector Alpha' via decryption.", "type": "research", "target": "sector_alpha_decryption", "qty": 1, "cr": 50000, "xp": 10000, "next": "m032"},
+	"m032": {"name": "Alpha Sector Dominance", "desc": "Defeat 3 Xenon Patrol Frigates in Sector Alpha.", "type": "defeat", "target": "alien_frigate", "qty": 3, "cr": 75000, "xp": 15000, "next": "m032b"},
+	"m032b": {"name": "Expanding Horizons", "desc": "Research 'Deep Space Navigation' to unlock Sector Beta.", "type": "research", "target": "deep_space_nav", "qty": 1, "cr": 50000, "xp": 5000, "next": "m032d"},
+	"m032d": {"name": "Void Research", "desc": "Gather 5 Void Artifacts dropped by Sector Alpha ships.", "type": "gather", "target": "VoidArtifact", "qty": 5, "cr": 100000, "xp": 10000, "next": "m032c"},
+	"m032c": {"name": "Capital Doctrine", "desc": "Construct a 'Battlecruiser' in the Shipyard.", "type": "construct", "target": "battlecruiser_hull", "qty": 1, "cr": 250000, "xp": 25000, "next": "m033"},
+	"m033": {"name": "Beta Sector Expansion", "desc": "Defeat 5 Ore Guardians in Sector Beta to expand your influence.", "type": "defeat", "target": "ore_guardian", "qty": 5, "cr": 150000, "xp": 25000, "next": "m033b"},
+	"m033b": {"name": "Deep Space Signals", "desc": "Research 'Radiation Shielding Theory' to unlock Sector Gamma.", "type": "research", "target": "radiation_shielding", "qty": 1, "cr": 100000, "xp": 10000, "next": "m033c"},
+	"m033c": {"name": "Titan Construction", "desc": "Construct a 'Dreadnought' in the Shipyard.", "type": "construct", "target": "dreadnought_hull", "qty": 1, "cr": 1000000, "xp": 50000, "next": "m034"},
+	"m034": {"name": "Gamma Sector Control", "desc": "Defeat 3 Gamma Colossus in Sector Gamma to finalize supremacy.", "type": "defeat", "target": "gamma_colossus", "qty": 3, "cr": 300000, "xp": 50000, "next": ""},
+}
+const MISSION_ORDER := ["m001", "m002", "m002b", "m003", "m004", "m007", "m008", "m009", "m010", "m011", "m012", "m013", "m014", "m015", "m016", "m017", "m018", "m018b", "m019", "m020", "m021", "m022", "m023", "m024", "m025", "m026", "m026b", "m027", "m028", "m029", "m029b", "m030", "m030b", "m030c", "m031", "m032", "m032b", "m032d", "m032c", "m033", "m033b", "m033c", "m034"]
+
 func res_name(sym: String) -> String:
 	return RESOURCES.get(sym, {}).get("name", sym)
 

@@ -32,20 +32,26 @@ Legend: ✅ faithful (1:1 logic) · 🟡 faithful core, minor gaps · ❌ not po
 | **Bounty board** | ✅ | Hunt/elite/delivery, pool, refresh, difficulty scaling, **rolled module reward** on claim, elite-hunt forces elite spawn. |
 | **Warp / Prestige** | ✅ | Shard formula (lifetime credits + buildings, log2), tier×2 multipliers, 30% XP-decay reset, research persists. |
 
-## Not ported
-| System | Note |
+## Newly ported
+| System | Status | Notes |
+|---|---|---|
+| **Missions** | ✅ | 43-mission tutorial chain, event-tracked (gather/research/craft/construct/build/defeat), prestige-scaled credit rewards, auto-advancing chain. New Missions page. |
+| **Unique-module effects** | ✅ | All 7 wired: Warp Stabilizer (+15% fire rate), Chrono Stabilizer (−20% enemy speed), Plasma Overcharger (2× energy), Reflective Sheath (20% reflect 50%), Reactive Armor (mitigation scales as hull drops), Exotic Shield Matrix (−30% in Sector Gamma), Broadside Array (20s kinetic salvo). |
+| **Infrastructure throttle** | ✅ | Per-building throttle control (0–100%) added to the Build page. |
+
+## Verified-absent / equivalent (faithful)
+| Item | Why |
 |---|---|
-| **Trophies** | Bounty/zone reward items that buff yield/xp/combat — no obtain source in the port. |
-| **Missions** | 47-step tutorial chain + its credit/XP rewards. |
-| **Module crafting** | Modules are bought/dropped (original also crafts them via recipes). |
-| **A few unique-module effects** | reflective/reactive/exotic/broadside, electronic-warfare jamming. |
-| **Gem crafting source** | Gems drop from combat instead of gem-synth recipes (effects identical). |
+| **Trophies** | The `get_trophy_buff` reads Trophy_X items but **nothing in the source awards them** — they're unobtainable in the original too. Correctly absent. |
+| **Module crafting** | Original `craft_module` pays the module's material cost — identical to the port's buy-with-materials. |
+| **Gem source** | The source has **no gem-synth recipe**; gems come from drops — matched. |
 | **Fleet** | Removed from the game by the owner. |
 
 ## Summary
-All content is a 1:1 data port and every gameplay loop matches the original's logic,
-including the **research passive-bonus layer**, the **repair (no-free-regen) model**,
-research-gated auto-consume, gather-yield formula, and bounty module rewards. The
-remaining items are reward/flavor layers (Trophies, Missions) and a few endgame
-sub-features — none of which change how any system works.
+Content is a 1:1 data port and **every system matches the original's logic** —
+including the research passive-bonus layer, repair (no-free-regen) model,
+research-gated auto-consume, gather-yield formula, bounty module rewards, the
+mission chain, all unique-module combat effects, and per-building throttling. The
+only things not present are features that are **also absent/unused in the source**
+(Trophies) or already equivalent (module crafting, gem source).
 </content>
