@@ -42,6 +42,12 @@ const C_PANEL := "111c2e"
 const DOMAIN := {"gather": GOLD, "craft": CYAN, "combat": RED, "research": PURP, "more": CYAN}
 const NAV_ICON := {"gather": "↑", "craft": "⚙", "combat": "◎", "research": "✦", "more": "≡"}
 
+# Global text scale — bumps every font size for phone readability without
+# touching individual call sites. Tune this one number to rescale the whole UI.
+const FONT_SCALE := 1.28
+func _fs(n: int) -> int:
+	return int(round(n * FONT_SCALE))
+
 var content: Control
 var pages := {}
 var nav_items := {}
@@ -109,7 +115,7 @@ func _apply_theme() -> void:
 		f.fallbacks = fb
 		var th := Theme.new()
 		th.default_font = f
-		th.default_font_size = 14
+		th.default_font_size = _fs(14)
 		theme = th
 
 ## Pads the UI clear of the status bar / notch / gesture bar.
@@ -191,13 +197,13 @@ func _build() -> void:
 	top.add_child(topv)
 	var title := Label.new()
 	title.text = "✦  STELLAR FORGE"
-	title.add_theme_font_size_override("font_size", 15)
+	title.add_theme_font_size_override("font_size", _fs(15))
 	title.add_theme_color_override("font_color", Color.html(CYAN))
 	topv.add_child(title)
 	var scroll := ScrollContainer.new()
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.custom_minimum_size = Vector2(0, 30)
+	scroll.custom_minimum_size = Vector2(0, 38)
 	topv.add_child(scroll)
 	res_bar = HBoxContainer.new()
 	res_bar.add_theme_constant_override("separation", 6)
@@ -231,7 +237,7 @@ func _make_nav_item(id: String, label: String) -> Button:
 	btn.flat = true
 	btn.focus_mode = Control.FOCUS_NONE
 	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	btn.custom_minimum_size = Vector2(0, 62)
+	btn.custom_minimum_size = Vector2(0, 78)
 	var empty := StyleBoxEmpty.new()
 	for st in ["normal", "hover", "pressed", "focus"]:
 		btn.add_theme_stylebox_override(st, empty)
@@ -244,13 +250,13 @@ func _make_nav_item(id: String, label: String) -> Button:
 	var icon := Label.new()
 	icon.text = NAV_ICON.get(id, "•")
 	icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	icon.add_theme_font_size_override("font_size", 21)
+	icon.add_theme_font_size_override("font_size", _fs(21))
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vb.add_child(icon)
 	var lab := Label.new()
 	lab.text = label
 	lab.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lab.add_theme_font_size_override("font_size", 11)
+	lab.add_theme_font_size_override("font_size", _fs(11))
 	lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vb.add_child(lab)
 	var dc := CenterContainer.new()
@@ -365,7 +371,7 @@ func _build_gather() -> void:
 func _gather_card(id: String, a: Dictionary) -> Control:
 	var unlocked := GameState.meets_requirements(a, "harvesting")
 	var active := (GameState.active_type == "gather" and GameState.active_id == id)
-	var v := _card(GOLD, unlocked or active, 168)
+	var v := _card(GOLD, unlocked or active, 196)
 	_card_head(v, "↑", a["name"], "Lv %d" % int(a.get("level_req", 1)), GOLD, unlocked)
 	if unlocked:
 		_inset(v, "YIELD", _loot_lines(a.get("loot", [])), GOLD)
@@ -396,7 +402,7 @@ func _craft_card(id: String, r: Dictionary) -> Control:
 	var unlocked := GameState.meets_requirements(r, "fabrication")
 	var active := (GameState.active_type == "craft" and GameState.active_id == id)
 	var affordable := GameState.can_afford(r.get("inputs", {}))
-	var v := _card(CYAN, unlocked or active, 214)
+	var v := _card(CYAN, unlocked or active, 248)
 	_card_head(v, "⚙", r["name"], "Lv %d" % int(r.get("level_req", 1)), CYAN, unlocked)
 	if unlocked:
 		var in_lines := []
@@ -406,7 +412,7 @@ func _craft_card(id: String, r: Dictionary) -> Control:
 		var d := Label.new()
 		d.text = "▼"
 		d.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		d.add_theme_font_size_override("font_size", 9)
+		d.add_theme_font_size_override("font_size", _fs(9))
 		d.add_theme_color_override("font_color", Color.html(CYAN))
 		v.add_child(d)
 		var out_lines := []
@@ -443,7 +449,7 @@ func _build_targets(v: VBoxContainer) -> void:
 	hl.text = "Hull  %d / %d" % [int(hp), int(mhp)]
 	hl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	hl.add_theme_font_size_override("font_size", 12)
+	hl.add_theme_font_size_override("font_size", _fs(12))
 	hl.add_theme_color_override("font_color", Color.html(GREEN if hp >= mhp else C_WARN))
 	hrow.add_child(hl)
 	if hp < mhp:
@@ -500,11 +506,11 @@ func _build_battle(v: VBoxContainer) -> void:
 	var ehl := Label.new()
 	ehl.text = "ENEMY HULL"
 	ehl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	ehl.add_theme_font_size_override("font_size", 9)
+	ehl.add_theme_font_size_override("font_size", _fs(9))
 	ehl.add_theme_color_override("font_color", Color.html(RED))
 	er.add_child(ehl)
 	_enemy_hp_label = Label.new()
-	_enemy_hp_label.add_theme_font_size_override("font_size", 9)
+	_enemy_hp_label.add_theme_font_size_override("font_size", _fs(9))
 	_enemy_hp_label.add_theme_color_override("font_color", Color.html(C_DIM))
 	er.add_child(_enemy_hp_label)
 	ep.add_child(er)
@@ -522,11 +528,11 @@ func _build_battle(v: VBoxContainer) -> void:
 	var phl := Label.new()
 	phl.text = "HULL"
 	phl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	phl.add_theme_font_size_override("font_size", 9)
+	phl.add_theme_font_size_override("font_size", _fs(9))
 	phl.add_theme_color_override("font_color", Color.html(CYAN))
 	pr.add_child(phl)
 	_combat_hp_label = Label.new()
-	_combat_hp_label.add_theme_font_size_override("font_size", 9)
+	_combat_hp_label.add_theme_font_size_override("font_size", _fs(9))
 	_combat_hp_label.add_theme_color_override("font_color", Color.html(C_DIM))
 	pr.add_child(_combat_hp_label)
 	pp.add_child(pr)
@@ -535,7 +541,7 @@ func _build_battle(v: VBoxContainer) -> void:
 		_player_shield_bar = _mk_bar(pp, CYAN, 5)
 	var heatl := Label.new()
 	heatl.text = "HEAT"
-	heatl.add_theme_font_size_override("font_size", 9)
+	heatl.add_theme_font_size_override("font_size", _fs(9))
 	heatl.add_theme_color_override("font_color", Color.html(BUILD))
 	pp.add_child(heatl)
 	_player_heat_bar = _mk_bar(pp, BUILD, 5)
@@ -560,7 +566,7 @@ func _spawn_popup(ev: Dictionary) -> void:
 		return
 	var l := Label.new()
 	l.text = ev["text"]
-	l.add_theme_font_size_override("font_size", 16)
+	l.add_theme_font_size_override("font_size", _fs(16))
 	l.add_theme_color_override("font_color", Color.html(ev["color"]))
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	l.position = Vector2(clampf(randf_range(16.0, anchor.size.x - 80.0), 8.0, maxf(8.0, anchor.size.x - 70.0)), anchor.size.y * 0.35)
@@ -598,7 +604,7 @@ func _build_infra() -> void:
 	var p := GameState.infra_power()
 	var e := Label.new()
 	e.text = "⚡ %d kW gen  ·  %d kW use  ·  Grid %d%%" % [int(p["gen"]), int(p["cons"]), int(float(p["eff"]) * 100.0)]
-	e.add_theme_font_size_override("font_size", 11)
+	e.add_theme_font_size_override("font_size", _fs(11))
 	e.add_theme_color_override("font_color", Color.html(BUILD if float(p["eff"]) >= 1.0 else C_WARN))
 	v.add_child(e)
 	_subtabs(v, GameData.BUILDING_CATS, build_cat, BUILD, func(id: String) -> void:
@@ -651,7 +657,7 @@ func _building_card(bid: String, d: Dictionary) -> Control:
 		tl.text = "Throttle %d%%" % int(th * 100.0)
 		tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		tl.add_theme_font_size_override("font_size", 11)
+		tl.add_theme_font_size_override("font_size", _fs(11))
 		tl.add_theme_color_override("font_color", Color.html(C_DIM))
 		trow.add_child(tl)
 		var plus := _card_button("+", BUILD, th < 1.0)
@@ -683,7 +689,7 @@ func _build_more() -> void:
 	var v := _clear("more")
 	var t := Label.new()
 	t.text = "SYSTEMS"
-	t.add_theme_font_size_override("font_size", 16)
+	t.add_theme_font_size_override("font_size", _fs(16))
 	t.add_theme_color_override("font_color", Color.html(CYAN))
 	v.add_child(t)
 	for it in MORE_MENU:
@@ -692,7 +698,7 @@ func _build_more() -> void:
 		b.custom_minimum_size = Vector2(0, 54)
 		b.focus_mode = Control.FOCUS_NONE
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		b.add_theme_font_size_override("font_size", 15)
+		b.add_theme_font_size_override("font_size", _fs(15))
 		b.add_theme_color_override("font_color", Color.html(C_TEXT))
 		for st in ["normal", "hover", "pressed"]:
 			b.add_theme_stylebox_override(st, _bordered("16243a", "2a3a55", 1, 8))
@@ -707,7 +713,7 @@ func _build_bounty() -> void:
 	_back_header(v)
 	var t := Label.new()
 	t.text = "◆ BOUNTY BOARD"
-	t.add_theme_font_size_override("font_size", 16)
+	t.add_theme_font_size_override("font_size", _fs(16))
 	t.add_theme_color_override("font_color", Color.html(GOLD))
 	v.add_child(t)
 
@@ -716,7 +722,7 @@ func _build_bounty() -> void:
 	var secs := int(GameState.bounty_refresh_timer)
 	rt.text = "Auto-refresh in %dh %dm" % [secs / 3600, (secs % 3600) / 60]
 	rt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	rt.add_theme_font_size_override("font_size", 11)
+	rt.add_theme_font_size_override("font_size", _fs(11))
 	rt.add_theme_color_override("font_color", Color.html(C_DIM))
 	rr.add_child(rt)
 	var cost := GameState.bounty_refresh_cost()
@@ -750,7 +756,7 @@ func _bounty_card(c: Dictionary, active: bool) -> Control:
 	_lbl_wrap(vb, c.get("desc", ""), 10, C_DIM)
 	var reward := Label.new()
 	reward.text = "Reward: ₡%s" % GameData.fmt(c.get("reward_credits", 0))
-	reward.add_theme_font_size_override("font_size", 11)
+	reward.add_theme_font_size_override("font_size", _fs(11))
 	reward.add_theme_color_override("font_color", Color.html(GOLD))
 	vb.add_child(reward)
 
@@ -759,7 +765,7 @@ func _bounty_card(c: Dictionary, active: bool) -> Control:
 		if c["type"] == "hunt":
 			var pg := Label.new()
 			pg.text = "Progress: %d / %d" % [int(c["current_qty"]), int(c["target_qty"])]
-			pg.add_theme_font_size_override("font_size", 11)
+			pg.add_theme_font_size_override("font_size", _fs(11))
 			pg.add_theme_color_override("font_color", Color.html(GREEN if c["completed"] else C_DIM))
 			vb.add_child(pg)
 		var row := HBoxContainer.new()
@@ -781,7 +787,7 @@ func _bounty_card(c: Dictionary, active: bool) -> Control:
 			var have := GameState.amount(c["target"])
 			var nl := Label.new()
 			nl.text = "You have %s / %s" % [GameData.fmt(have), GameData.fmt(need)]
-			nl.add_theme_font_size_override("font_size", 10)
+			nl.add_theme_font_size_override("font_size", _fs(10))
 			nl.add_theme_color_override("font_color", Color.html(GREEN if have >= need else C_WARN))
 			vb.add_child(nl)
 			can = can and have >= need
@@ -795,7 +801,7 @@ func _lbl_wrap(parent: Node, text: String, size: int, color: String) -> void:
 	var l := Label.new()
 	l.text = text
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	l.add_theme_font_size_override("font_size", size)
+	l.add_theme_font_size_override("font_size", _fs(size))
 	l.add_theme_color_override("font_color", Color.html(color))
 	parent.add_child(l)
 
@@ -805,7 +811,7 @@ func _build_missions() -> void:
 	_back_header(v)
 	var t := Label.new()
 	t.text = "✦ MISSIONS"
-	t.add_theme_font_size_override("font_size", 16)
+	t.add_theme_font_size_override("font_size", _fs(16))
 	t.add_theme_color_override("font_color", Color.html(PURP))
 	v.add_child(t)
 	_lbl_wrap(v, "%d completed" % GameState.missions_claimed.size(), 11, C_DIM)
@@ -838,7 +844,7 @@ func _mission_card(mid: String) -> Control:
 		_lbl_wrap(vb, "%s / %s" % [GameData.fmt(cur), GameData.fmt(qty)], 9, C_MUTED)
 	var rl := Label.new()
 	rl.text = "Reward: ₡%s" % GameData.fmt(m.get("cr", 0))
-	rl.add_theme_font_size_override("font_size", 11)
+	rl.add_theme_font_size_override("font_size", _fs(11))
 	rl.add_theme_color_override("font_color", Color.html(GOLD))
 	vb.add_child(rl)
 	if done:
@@ -852,14 +858,14 @@ func _build_warp() -> void:
 	_back_header(v)
 	var t := Label.new()
 	t.text = "✦ WARP CORE"
-	t.add_theme_font_size_override("font_size", 16)
+	t.add_theme_font_size_override("font_size", _fs(16))
 	t.add_theme_color_override("font_color", Color.html(PURP))
 	v.add_child(t)
 	_lbl_wrap(v, "Collapse your empire into a Warp Core for permanent Warp Shards. Skills keep 30%% XP, buildings/ship reset — but researched tech stays unlocked.", 10, C_DIM)
 
 	var sh := Label.new()
 	sh.text = "Warp Shards: %s   ·   Warps: %d   ·   Tier %d" % [GameData.fmt(int(GameState.warp_shards)), GameState.total_warps, GameState.warp_tier()]
-	sh.add_theme_font_size_override("font_size", 13)
+	sh.add_theme_font_size_override("font_size", _fs(13))
 	sh.add_theme_color_override("font_color", Color.html(PURP))
 	v.add_child(sh)
 
@@ -907,7 +913,7 @@ func _back_header(v: VBoxContainer) -> void:
 	b.flat = true
 	b.focus_mode = Control.FOCUS_NONE
 	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	b.add_theme_font_size_override("font_size", 13)
+	b.add_theme_font_size_override("font_size", _fs(13))
 	b.add_theme_color_override("font_color", Color.html(C_DIM))
 	b.pressed.connect(func() -> void: _show("more"))
 	v.add_child(b)
@@ -918,26 +924,26 @@ func _build_ship() -> void:
 	_back_header(v)
 	var eyebrow := Label.new()
 	eyebrow.text = "⛭ SHIP DESIGNER"
-	eyebrow.add_theme_font_size_override("font_size", 16)
+	eyebrow.add_theme_font_size_override("font_size", _fs(16))
 	eyebrow.add_theme_color_override("font_color", Color.html(CYAN))
 	v.add_child(eyebrow)
 	var h: Dictionary = GameData.HULLS.get(GameState.active_hull, {})
 	var nm := Label.new()
 	nm.text = h.get("name", "No Ship")
-	nm.add_theme_font_size_override("font_size", 12)
+	nm.add_theme_font_size_override("font_size", _fs(12))
 	nm.add_theme_color_override("font_color", Color.html(C_DIM))
 	v.add_child(nm)
 	var s := GameState.ship_stats()
 	if not s.is_empty():
 		var st := Label.new()
 		st.text = "ATK %.0f  ·  HP %.0f  ·  DEF %.0f  ·  Shield %.0f" % [s["atk"], s["hp"], s["def"], s["shield"]]
-		st.add_theme_font_size_override("font_size", 11)
+		st.add_theme_font_size_override("font_size", _fs(11))
 		st.add_theme_color_override("font_color", Color.html(C_TEXT))
 		v.add_child(st)
 		var en := Label.new()
 		var over: bool = s["energy_load"] > s["energy_cap"] and s["energy_cap"] > 0.0
 		en.text = "Energy %d / %d kW%s" % [int(s["energy_load"]), int(s["energy_cap"]), "  ⚠ brownout" if over else ""]
-		en.add_theme_font_size_override("font_size", 10)
+		en.add_theme_font_size_override("font_size", _fs(10))
 		en.add_theme_color_override("font_color", Color.html(C_WARN if over else C_DIM))
 		v.add_child(en)
 	_subtabs(v, [{"id": "loadout", "label": "Loadout"}, {"id": "modules", "label": "Modules"}, {"id": "fittings", "label": "Fittings"}, {"id": "hulls", "label": "Hulls"}], ship_view, CYAN, func(id: String) -> void:
@@ -999,7 +1005,7 @@ func _ammo_picker(v: VBoxContainer, slot: String, m: Dictionary) -> void:
 
 func _pick_button(parent: VBoxContainer, _ignored: bool, label: String, active: bool, cb: Callable) -> void:
 	var b := _card_button(label, CYAN if active else C_MUTED, true)
-	b.add_theme_font_size_override("font_size", 12)
+	b.add_theme_font_size_override("font_size", _fs(12))
 	b.pressed.connect(cb)
 	parent.add_child(b)
 
@@ -1097,7 +1103,7 @@ func _custom_module_card(cid: String) -> Control:
 			for gem in GameData.GEMS:
 				if GameState.amount(gem) > 0:
 					var gb := _card_button("Socket %s x%d" % [GameData.GEMS[gem]["name"], GameState.amount(gem)], "3a9fff", true)
-					gb.add_theme_font_size_override("font_size", 11)
+					gb.add_theme_font_size_override("font_size", _fs(11))
 					gb.pressed.connect(func() -> void: GameState.socket_gem(cid, gem))
 					c.add_child(gb)
 		for i in sockets.size():
@@ -1105,7 +1111,7 @@ func _custom_module_card(cid: String) -> Control:
 			if gid2 != null and gid2 != "":
 				var idx := i
 				var rb := _card_button("Remove " + GameData.GEMS.get(gid2, {}).get("name", gid2), C_MUTED, true)
-				rb.add_theme_font_size_override("font_size", 11)
+				rb.add_theme_font_size_override("font_size", _fs(11))
 				rb.pressed.connect(func() -> void: GameState.unsocket_gem(cid, idx))
 				c.add_child(rb)
 	var row := HBoxContainer.new()
@@ -1221,12 +1227,12 @@ func _build_research() -> void:
 	var v := _clear("research")
 	var title := Label.new()
 	title.text = "RESEARCH NETWORK"
-	title.add_theme_font_size_override("font_size", 16)
+	title.add_theme_font_size_override("font_size", _fs(16))
 	title.add_theme_color_override("font_color", Color.html(PURP))
 	v.add_child(title)
 	var cr := Label.new()
 	cr.text = "Credits: ₡%s   ·   sell materials in More" % GameData.fmt(GameState.credits)
-	cr.add_theme_font_size_override("font_size", 11)
+	cr.add_theme_font_size_override("font_size", _fs(11))
 	cr.add_theme_color_override("font_color", Color.html(GOLD))
 	v.add_child(cr)
 
@@ -1310,12 +1316,12 @@ func _build_stats() -> void:
 	cl.text = "CREDITS"
 	cl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	cl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	cl.add_theme_font_size_override("font_size", 12)
+	cl.add_theme_font_size_override("font_size", _fs(12))
 	cl.add_theme_color_override("font_color", Color.html(C_DIM))
 	crow.add_child(cl)
 	var cv := Label.new()
 	cv.text = "₡%s" % GameData.fmt(GameState.credits)
-	cv.add_theme_font_size_override("font_size", 18)
+	cv.add_theme_font_size_override("font_size", _fs(18))
 	cv.add_theme_color_override("font_color", Color.html(GOLD))
 	crow.add_child(cv)
 	v.add_child(cpanel)
@@ -1358,7 +1364,7 @@ func _build_stats() -> void:
 		var val := maxi(1, GameData.value_of(sym))
 		var sell := _card_button("Sell ₡%s" % GameData.fmt(amt * val), GOLD, true)
 		sell.custom_minimum_size = Vector2(96, 32)
-		sell.add_theme_font_size_override("font_size", 12)
+		sell.add_theme_font_size_override("font_size", _fs(12))
 		sell.pressed.connect(func() -> void: GameState.sell_all(sym))
 		row.add_child(sell)
 		v.add_child(panel)
@@ -1389,7 +1395,7 @@ func _action_controls(v: VBoxContainer, type: String, id: String, active: bool, 
 	var t := Label.new()
 	t.text = "%.1fs / %.1fs" % [GameState.progress if active else 0.0, GameState.effective_duration(type, id)]
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	t.add_theme_font_size_override("font_size", 10)
+	t.add_theme_font_size_override("font_size", _fs(10))
 	t.add_theme_color_override("font_color", Color.html(C_MUTED))
 	v.add_child(t)
 	if active:
@@ -1405,7 +1411,7 @@ func _locked(v: VBoxContainer, def: Dictionary, skill: String) -> void:
 	r.text = _req_text(def, skill)
 	r.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	r.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	r.add_theme_font_size_override("font_size", 10)
+	r.add_theme_font_size_override("font_size", _fs(10))
 	r.add_theme_color_override("font_color", Color.html(C_MUTED))
 	v.add_child(r)
 	var bot := Control.new()
@@ -1427,7 +1433,7 @@ func _empty(v: VBoxContainer, text: String) -> void:
 	var l := Label.new()
 	l.text = text
 	l.add_theme_color_override("font_color", Color.html(C_MUTED))
-	l.add_theme_font_size_override("font_size", 12)
+	l.add_theme_font_size_override("font_size", _fs(12))
 	v.add_child(l)
 
 # ============================================================ WIDGET HELPERS
@@ -1454,7 +1460,7 @@ func _subtabs(v: VBoxContainer, items: Array, current_id: String, accent: String
 		b.text = it["label"]
 		b.focus_mode = Control.FOCUS_NONE
 		b.custom_minimum_size = Vector2(0, 32)
-		b.add_theme_font_size_override("font_size", 12)
+		b.add_theme_font_size_override("font_size", _fs(12))
 		var fill := accent if on else SURFACE_HI
 		var txt := _ideal_text(accent) if on else C_DIM
 		b.add_theme_color_override("font_color", Color.html(txt))
@@ -1507,7 +1513,7 @@ func _card_head(v: VBoxContainer, icon: String, name: String, badge: String, acc
 		chip.add_child(cc)
 		var ic := Label.new()
 		ic.text = icon
-		ic.add_theme_font_size_override("font_size", 13)
+		ic.add_theme_font_size_override("font_size", _fs(13))
 		ic.add_theme_color_override("font_color", Color.html(accent if lit else C_MUTED))
 		cc.add_child(ic)
 		hb.add_child(chip)
@@ -1516,7 +1522,7 @@ func _card_head(v: VBoxContainer, icon: String, name: String, badge: String, acc
 	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	nm.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	nm.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	nm.add_theme_font_size_override("font_size", 13)
+	nm.add_theme_font_size_override("font_size", _fs(13))
 	nm.add_theme_color_override("font_color", Color.html(C_TEXT if lit else C_MUTED))
 	hb.add_child(nm)
 	if badge != "":
@@ -1530,7 +1536,7 @@ func _card_head(v: VBoxContainer, icon: String, name: String, badge: String, acc
 		bd.add_theme_stylebox_override("panel", bsb)
 		var bl := Label.new()
 		bl.text = badge
-		bl.add_theme_font_size_override("font_size", 9)
+		bl.add_theme_font_size_override("font_size", _fs(9))
 		bl.add_theme_color_override("font_color", Color.html(accent if lit else C_MUTED))
 		bd.add_child(bl)
 		hb.add_child(bd)
@@ -1548,7 +1554,7 @@ func _inset(v: VBoxContainer, title: String, lines: Array, accent: String, highl
 	var t := Label.new()
 	t.text = title
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	t.add_theme_font_size_override("font_size", 8)
+	t.add_theme_font_size_override("font_size", _fs(8))
 	t.add_theme_color_override("font_color", Color.html(accent if highlight else C_MUTED))
 	box.add_child(t)
 	for ln in lines:
@@ -1560,7 +1566,7 @@ func _clbl(parent: Node, text: String, size: int, color: String) -> void:
 	l.text = text
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	l.add_theme_font_size_override("font_size", size)
+	l.add_theme_font_size_override("font_size", _fs(size))
 	l.add_theme_color_override("font_color", Color.html(color))
 	parent.add_child(l)
 
@@ -1589,7 +1595,7 @@ func _card_button(text: String, accent: String, enabled: bool) -> Button:
 	b.add_theme_color_override("font_color_hover", Color.html(tc))
 	b.add_theme_color_override("font_color_pressed", Color.html(tc))
 	b.add_theme_color_override("font_color_disabled", Color.html(C_MUTED))
-	b.add_theme_font_size_override("font_size", 13)
+	b.add_theme_font_size_override("font_size", _fs(13))
 	return b
 
 func _progress(v: VBoxContainer, active: bool, accent: String) -> void:
@@ -1608,7 +1614,7 @@ func _progress(v: VBoxContainer, active: bool, accent: String) -> void:
 		lbl.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		lbl.add_theme_font_size_override("font_size", 7)
+		lbl.add_theme_font_size_override("font_size", _fs(7))
 		lbl.add_theme_color_override("font_color", Color.html(C_MUTED))
 		wrap.add_child(lbl)
 	v.add_child(wrap)
@@ -1630,12 +1636,12 @@ func _skill_banner(v: VBoxContainer, title: String, skill_id: String, accent: St
 	var t := Label.new()
 	t.text = title
 	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	t.add_theme_font_size_override("font_size", 14)
+	t.add_theme_font_size_override("font_size", _fs(14))
 	t.add_theme_color_override("font_color", Color.html(accent))
 	hb.add_child(t)
 	var lv := Label.new()
 	lv.text = "Lv %d" % lvl
-	lv.add_theme_font_size_override("font_size", 14)
+	lv.add_theme_font_size_override("font_size", _fs(14))
 	lv.add_theme_color_override("font_color", Color.html(C_TEXT))
 	hb.add_child(lv)
 	box.add_child(hb)
@@ -1649,7 +1655,7 @@ func _skill_banner(v: VBoxContainer, title: String, skill_id: String, accent: St
 	var xpl := Label.new()
 	xpl.text = "%s / %s XP" % [GameData.fmt(cur - base), GameData.fmt(next - base)]
 	xpl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	xpl.add_theme_font_size_override("font_size", 9)
+	xpl.add_theme_font_size_override("font_size", _fs(9))
 	xpl.add_theme_color_override("font_color", Color.html(C_MUTED))
 	box.add_child(xpl)
 	v.add_child(panel)
@@ -1671,7 +1677,7 @@ func _section(v: VBoxContainer, text: String, accent: String) -> void:
 	l.text = text.to_upper()
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	l.add_theme_font_size_override("font_size", 11)
+	l.add_theme_font_size_override("font_size", _fs(11))
 	l.add_theme_color_override("font_color", Color.html(C_DIM))
 	hb.add_child(l)
 	v.add_child(hb)
@@ -1715,12 +1721,12 @@ func _chip(name: String, value: String, accent: String, strong: bool) -> Control
 	hb.add_child(dw)
 	var nm := Label.new()
 	nm.text = name
-	nm.add_theme_font_size_override("font_size", 11)
+	nm.add_theme_font_size_override("font_size", _fs(11))
 	nm.add_theme_color_override("font_color", Color.html(C_DIM))
 	hb.add_child(nm)
 	var vl := Label.new()
 	vl.text = value
-	vl.add_theme_font_size_override("font_size", 12)
+	vl.add_theme_font_size_override("font_size", _fs(12))
 	vl.add_theme_color_override("font_color", Color.html(accent if strong else C_TEXT))
 	hb.add_child(vl)
 	return panel
@@ -1737,7 +1743,7 @@ func _build_active_banner() -> PanelContainer:
 	var cc := CenterContainer.new()
 	_banner_chip.add_child(cc)
 	_banner_icon = Label.new()
-	_banner_icon.add_theme_font_size_override("font_size", 19)
+	_banner_icon.add_theme_font_size_override("font_size", _fs(19))
 	cc.add_child(_banner_icon)
 	hb.add_child(_banner_chip)
 	var vb := VBoxContainer.new()
@@ -1746,10 +1752,10 @@ func _build_active_banner() -> PanelContainer:
 	vb.add_theme_constant_override("separation", 3)
 	hb.add_child(vb)
 	_banner_kind = Label.new()
-	_banner_kind.add_theme_font_size_override("font_size", 9)
+	_banner_kind.add_theme_font_size_override("font_size", _fs(9))
 	vb.add_child(_banner_kind)
 	_banner_name = Label.new()
-	_banner_name.add_theme_font_size_override("font_size", 14)
+	_banner_name.add_theme_font_size_override("font_size", _fs(14))
 	_banner_name.add_theme_color_override("font_color", Color.html(C_TEXT))
 	vb.add_child(_banner_name)
 	_banner_bar = ProgressBar.new()
@@ -1760,7 +1766,7 @@ func _build_active_banner() -> PanelContainer:
 	_banner_time = Label.new()
 	_banner_time.custom_minimum_size = Vector2(46, 0)
 	_banner_time.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_banner_time.add_theme_font_size_override("font_size", 14)
+	_banner_time.add_theme_font_size_override("font_size", _fs(14))
 	_banner_time.add_theme_color_override("font_color", Color.html(C_DIM))
 	hb.add_child(_banner_time)
 	return panel
@@ -1869,7 +1875,7 @@ func _style_tab(b: Button, active: bool) -> void:
 	b.add_theme_color_override("font_color", Color.html(CYAN if active else C_MUTED))
 	b.add_theme_color_override("font_color_hover", Color.html(CYAN if active else C_DIM))
 	b.add_theme_color_override("font_color_pressed", Color.html(CYAN))
-	b.add_theme_font_size_override("font_size", 12)
+	b.add_theme_font_size_override("font_size", _fs(12))
 	var bgc := "16273f" if active else "00000000"
 	for state in ["normal", "hover", "pressed", "focus"]:
 		var sb := StyleBoxFlat.new()
