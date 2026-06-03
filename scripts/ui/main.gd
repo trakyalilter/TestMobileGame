@@ -911,7 +911,11 @@ func _ship_loadout(v: VBoxContainer, h: Dictionary) -> void:
 		var c := _card(CYAN, equipped != "")
 		_card_head(c, "▢", GameData.SLOT_LABELS.get(stype, stype), "", CYAN, true)
 		if equipped != "":
-			_clbl(c, GameData.MODULES.get(equipped, {}).get("name", equipped), 12, C_TEXT)
+			var md: Dictionary = GameState.module_def(equipped)
+			var rcol: String = GameState.RARITY_COLOR.get(int(md.get("rarity", 0)), C_TEXT)
+			_clbl(c, md.get("name", equipped), 12, rcol)
+			for aid in md.get("affixes", {}):
+				_clbl(c, _affix_text(aid, md["affixes"][aid]), 9, GameState.RARITY_COLOR.get(3, GOLD))
 			var b := _card_button("Remove", CYAN, true)
 			b.pressed.connect(func() -> void: GameState.unequip_slot(key))
 			c.add_child(b)
@@ -926,6 +930,17 @@ func _ship_modules(v: VBoxContainer) -> void:
 	_subtabs(v, slot_items, ship_mod_slot, CYAN, func(id: String) -> void:
 		ship_mod_slot = id
 		_build_ship())
+	# Owned rolled gear (rarity + affixes) for this slot
+	var owned_custom := []
+	for cid in GameState.custom_modules:
+		if GameState.custom_modules[cid].get("slot", "") == ship_mod_slot and int(GameState.module_inventory.get(cid, 0)) > 0:
+			owned_custom.append(cid)
+	if not owned_custom.is_empty():
+		_section(v, "Your Salvaged Gear", PURP)
+		var ig := _grid(v)
+		for cid in owned_custom:
+			ig.add_child(_custom_module_card(cid))
+	_section(v, "Module Shop", CYAN)
 	var g := _grid(v)
 	var any := false
 	for mid in GameData.MODULES:
@@ -936,6 +951,38 @@ func _ship_modules(v: VBoxContainer) -> void:
 		g.add_child(_module_card(mid, m))
 	if not any:
 		_empty(v, "No modules of this type.")
+
+func _custom_module_card(cid: String) -> Control:
+	var md: Dictionary = GameState.custom_modules[cid]
+	var rcol: String = GameState.RARITY_COLOR.get(int(md.get("rarity", 0)), C_TEXT)
+	var owned := int(GameState.module_inventory.get(cid, 0))
+	var c := _card(rcol, true)
+	_card_head(c, "◆", md.get("name", cid), ("x%d" % owned) if owned > 1 else "", rcol, true)
+	_inset(c, "STATS", _module_stat_lines(md.get("stats", {})), rcol)
+	if not md.get("affixes", {}).is_empty():
+		var alines := []
+		for aid in md["affixes"]:
+			alines.append(_line(_affix_text(aid, md["affixes"][aid]), rcol))
+		_inset(c, "AFFIXES", alines, rcol, true)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+	var eq := _card_button("Equip", CYAN, true)
+	eq.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	eq.pressed.connect(func() -> void: GameState.equip_module(cid))
+	row.add_child(eq)
+	var sell := _card_button("Sell ₡%s" % GameData.fmt(GameState.RARITY_SELL.get(int(md.get("rarity", 0)), 100)), GOLD, true)
+	sell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	sell.pressed.connect(func() -> void: GameState.sell_module(cid))
+	row.add_child(sell)
+	c.add_child(row)
+	return c.get_parent()
+
+func _affix_text(aid: String, val: float) -> String:
+	var cfg: Dictionary = GameState.AFFIX_DB.get(aid, {})
+	var d: String = cfg.get("desc", aid)
+	if "%d%%" in d:
+		return "◆ " + (d % int(round(val * 100.0)))
+	return "◆ " + cfg.get("name", aid)
 
 func _module_card(mid: String, m: Dictionary) -> Control:
 	var unlocked := GameState.module_unlocked(mid)

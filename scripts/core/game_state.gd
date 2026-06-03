@@ -54,6 +54,30 @@ var active_hull: String = ""
 var owned_hulls: Dictionary = {}        # hull_id -> true
 var module_inventory: Dictionary = {}   # module_id -> count (unequipped)
 var loadout: Dictionary = {}            # slot_index (as String) -> module_id
+var custom_modules: Dictionary = {}     # custom_id -> rolled module instance (rarity + affixes)
+
+# --- Module rarity / affix system ---
+const RARITY_LABEL := {0: "", 1: "Uncommon", 2: "Rare", 3: "Legendary", 4: "Unique"}
+const RARITY_COLOR := {0: "9aa7c2", 1: "35d935", 2: "3a9fff", 3: "ffcc33", 4: "ff44cc"}
+const RARITY_RANGE := {1: [0.05, 0.08], 2: [0.11, 0.15], 3: [0.18, 0.22], 4: [0.23, 0.27]}
+const RARITY_SELL := {0: 100, 1: 500, 2: 2500, 3: 15000, 4: 40000}
+const BOOSTABLE := ["atk_kinetic", "atk_energy", "atk_explosive", "hp", "def", "eva", "accuracy",
+	"crit_chance", "max_shield", "shield_regen", "energy_capacity", "atk_speed_bonus",
+	"shield_regen_mult", "atk_speed_mult", "jamming_strength", "atk_interval"]
+const ZONE_SCALABLE := ["atk_kinetic", "atk_energy", "atk_explosive", "hp", "def", "eva",
+	"accuracy", "max_shield", "shield_regen", "energy_capacity", "atk_interval"]
+const AFFIX_DB := {
+	"static_burst":     {"name": "Static Burst", "type": "tactical", "range": [0.03, 0.08], "limit_to": ["weapon"], "desc": "%d%% shock on hit (resets enemy timer)"},
+	"void_strike":      {"name": "Void Strike", "type": "tactical", "range": [0.03, 0.08], "limit_to": ["weapon"], "desc": "%d%% chance to bypass shields"},
+	"heat_sync_focus":  {"name": "Heat-Sync Focus", "type": "tactical", "range": [0.05, 0.12], "limit_to": ["weapon", "cooling"], "desc": "+%d%% fire rate while Heat > 40%%"},
+	"capacitor_pulse":  {"name": "Capacitor Pulse", "type": "tactical", "range": [0.02, 0.05], "limit_to": ["shield", "battery"], "desc": "Restore %d%% shield on kill"},
+	"nanite_resurgence":{"name": "Nanite Resurgence", "type": "tactical", "range": [0.02, 0.05], "limit_to": ["armor"], "desc": "Restore %d%% hull on kill"},
+	"extractor_efficiency": {"name": "Extractor Efficiency", "type": "industrial", "range": [0.03, 0.10], "limit_to": ["sensor"], "desc": "+%d%% gather yield"},
+	"refinery_link":    {"name": "Refinery Link", "type": "industrial", "range": [0.03, 0.10], "limit_to": ["sensor"], "desc": "+%d%% craft speed"},
+	"nano_scavenger":   {"name": "Nano-Scavenger", "type": "industrial", "range": [0.03, 0.10], "limit_to": ["sensor"], "desc": "%d%% chance to scavenge parts on kill"},
+	"contract_negotiation": {"name": "Contract Negotiation", "type": "economy", "range": [0.03, 0.10], "limit_to": ["sensor"], "desc": "+%d%% bounty credits"},
+	"logistician_edge": {"name": "Logistician's Edge", "type": "economy", "range": [0.03, 0.10], "limit_to": ["sensor"], "desc": "-%d%% delivery material cost"},
+}
 
 # Infrastructure (passive production buildings — runs in the background always)
 var buildings: Dictionary = {}          # id -> count
@@ -219,6 +243,7 @@ func yield_mult(skill_id: String) -> float:
 	var m := 1.0 + level_of(skill_id) * 0.02
 	if skill_id == "harvesting":
 		m *= warp_gathering_mult()
+		m *= 1.0 + affix_total("extractor_efficiency")
 	return m
 
 # ---------------- Combat stats ----------------
@@ -235,7 +260,7 @@ func ship_stats() -> Dictionary:
 	var spd_bonus := 0.0
 	var spd_mult := 1.0
 	for k in loadout:
-		var m: Dictionary = GameData.MODULES.get(loadout[k], {})
+		var m: Dictionary = module_def(loadout[k])
 		var st: Dictionary = m.get("stats", {})
 		s.hp += float(st.get("hp", 0))
 		s.def += float(st.get("def", 0))
@@ -260,7 +285,7 @@ func ship_weapons() -> Array:
 	var spd_bonus := 0.0
 	var spd_mult := 1.0
 	for k in loadout:
-		var st: Dictionary = GameData.MODULES.get(loadout[k], {}).get("stats", {})
+		var st: Dictionary = module_def(loadout[k]).get("stats", {})
 		spd_bonus += float(st.get("atk_speed_bonus", 0))
 		if st.has("atk_speed_mult"):
 			spd_mult *= float(st["atk_speed_mult"])
@@ -269,7 +294,7 @@ func ship_weapons() -> Array:
 	var eng_mult := 1.0 + level_of("fabrication") * 0.01
 	var out := []
 	for k in loadout:
-		var m: Dictionary = GameData.MODULES.get(loadout[k], {})
+		var m: Dictionary = module_def(loadout[k])
 		if m.get("slot", "") != "weapon":
 			continue
 		var st: Dictionary = m.get("stats", {})
@@ -396,7 +421,7 @@ func buy_module(mid: String) -> bool:
 func equip_module(mid: String) -> bool:
 	if int(module_inventory.get(mid, 0)) <= 0:
 		return false
-	var st: String = GameData.MODULES.get(mid, {}).get("slot", "")
+	var st: String = module_def(mid).get("slot", "")
 	var slots: Array = GameData.HULLS.get(active_hull, {}).get("slots", [])
 	for i in slots.size():
 		if slots[i] == st and not loadout.has(str(i)):
@@ -411,6 +436,97 @@ func unequip_slot(idx: String) -> void:
 		module_inventory[loadout[idx]] = int(module_inventory.get(loadout[idx], 0)) + 1
 		loadout.erase(idx)
 		resources_changed.emit()
+
+# ---------------- Module rarity / affixes ----------------
+## Unified lookup: rolled custom instance, else the base catalogue module.
+func module_def(mid: String) -> Dictionary:
+	if custom_modules.has(mid):
+		return custom_modules[mid]
+	return GameData.MODULES.get(mid, {})
+
+func roll_rarity(is_boss: bool) -> int:
+	var r := randf()
+	var leg := 0.05 if is_boss else 0.02
+	if r < leg:
+		return 3
+	elif r < leg + 0.10:
+		return 2
+	elif r < leg + 0.40:
+		return 1
+	return 0
+
+## Creates a rolled module instance (or the base for Common); returns its id.
+func generate_module(base_id: String, rarity: int, zone_diff: int) -> String:
+	if not GameData.MODULES.has(base_id):
+		return ""
+	if rarity == 0:
+		module_inventory[base_id] = int(module_inventory.get(base_id, 0)) + 1
+		return base_id
+	var base: Dictionary = GameData.MODULES[base_id]
+	var zmult := pow(1.30, maxi(0, zone_diff - 1))
+	var rng: Array = RARITY_RANGE[rarity]
+	var stats := {}
+	for sk in base.get("stats", {}):
+		var bv := float(base["stats"][sk])
+		if BOOSTABLE.has(sk):
+			var scaled := bv
+			if ZONE_SCALABLE.has(sk):
+				scaled = maxf(0.25, bv / zmult) if sk == "atk_interval" else bv * zmult
+			var bonus := randf_range(rng[0], rng[1])
+			if sk == "atk_interval":
+				stats[sk] = snappedf(maxf(0.25, scaled / (1.0 + bonus * 0.4)), 0.01)
+			else:
+				stats[sk] = snappedf(scaled * (1.0 + bonus), 0.1) if scaled < 50.0 else float(int(round(scaled * (1.0 + bonus))))
+		else:
+			stats[sk] = bv
+	# Affixes: pick N from the slot-eligible pool.
+	var slot: String = base.get("slot", "")
+	var pool := []
+	for aid in AFFIX_DB:
+		if (AFFIX_DB[aid]["limit_to"] as Array).has(slot):
+			pool.append(aid)
+	if pool.is_empty():
+		for aid in AFFIX_DB:
+			if AFFIX_DB[aid]["type"] in ["industrial", "economy"]:
+				pool.append(aid)
+	var n: int = mini({2: 1, 3: 2, 4: 3}.get(rarity, 0), pool.size())
+	pool.shuffle()
+	var affixes := {}
+	for i in n:
+		affixes[pool[i]] = randf_range(AFFIX_DB[pool[i]]["range"][0], AFFIX_DB[pool[i]]["range"][1])
+	var cid := "cm_%s_%d_%d" % [base_id, Time.get_ticks_msec(), randi() % 100000]
+	custom_modules[cid] = {
+		"name": "%s (%s)" % [base.get("name", base_id), RARITY_LABEL[rarity]],
+		"slot": slot, "stats": stats, "desc": base.get("desc", ""),
+		"rarity": rarity, "affixes": affixes, "base": base_id,
+	}
+	module_inventory[cid] = int(module_inventory.get(cid, 0)) + 1
+	return cid
+
+## Sum of an affix value across equipped (loadout) custom modules.
+func affix_total(key: String) -> float:
+	var s := 0.0
+	for mid in loadout.values():
+		if custom_modules.has(mid):
+			s += float(custom_modules[mid].get("affixes", {}).get(key, 0.0))
+	return s
+
+func sell_module(mid: String) -> bool:
+	if int(module_inventory.get(mid, 0)) <= 0:
+		return false
+	var price := 100
+	if custom_modules.has(mid):
+		price = int(RARITY_SELL.get(int(custom_modules[mid].get("rarity", 0)), 100))
+	else:
+		price = maxi(50, int(float(GameData.MODULES.get(mid, {}).get("cost", {}).get("credits", 200)) * 0.25))
+	module_inventory[mid] = int(module_inventory[mid]) - 1
+	if module_inventory[mid] <= 0:
+		module_inventory.erase(mid)
+		if custom_modules.has(mid):
+			custom_modules.erase(mid)
+	gain_credits(price)
+	resources_changed.emit()
+	return true
 
 # ---------------- Bounty board ----------------
 signal bounty_changed
@@ -525,10 +641,11 @@ func accept_contract(cid: String) -> bool:
 	if c == null:
 		return false
 	if c["type"] == "delivery":
-		if amount(c["target"]) < int(c["target_qty"]):
+		var need := int(c["target_qty"] * (1.0 - affix_total("logistician_edge")))  # Logistician's Edge
+		if amount(c["target"]) < need:
 			return false
-		resources[c["target"]] = amount(c["target"]) - int(c["target_qty"])
-		c["current_qty"] = int(c["target_qty"])
+		resources[c["target"]] = amount(c["target"]) - need
+		c["current_qty"] = need
 		c["completed"] = true
 	bounty_available.erase(c)
 	bounty_active.append(c)
@@ -540,7 +657,7 @@ func claim_contract(cid: String) -> bool:
 	var c = _find_contract(bounty_active, cid)
 	if c == null or not c["completed"]:
 		return false
-	gain_credits(int(c["reward_credits"]))
+	gain_credits(int(c["reward_credits"] * (1.0 + affix_total("contract_negotiation"))))  # Contract Negotiation
 	bounty_active.erase(c)
 	bounty_total += 1
 	resources_changed.emit()
@@ -831,9 +948,12 @@ func _tick_combat(delta: float) -> void:
 		player_shield = minf(maxsh, player_shield + float(ss.get("shield_regen", 0.0)) * delta)
 	if enemy_inst["shield"] < enemy_inst["max_shield"]:
 		enemy_inst["shield"] = minf(enemy_inst["max_shield"], enemy_inst["shield"] + minf(enemy_inst["max_shield"] * 0.01, 50.0) * delta)
-	# Player weapons fire on their own intervals
+	# Player weapons fire on their own intervals (Heat-Sync Focus boosts rate when hot)
+	var fire_sf := 1.0
+	if player_heat >= MAX_HEAT * 0.4:
+		fire_sf += affix_total("heat_sync_focus")
 	for w in _weapons:
-		w["timer"] = float(w["timer"]) + delta
+		w["timer"] = float(w["timer"]) + delta * fire_sf
 		var guard := 0
 		while float(w["timer"]) >= float(w["interval"]) and guard < 20:
 			guard += 1
@@ -922,8 +1042,19 @@ func _player_fire(w: Dictionary, ss: Dictionary) -> void:
 				"k": dk += ab[1]
 				"e": de += ab[1]
 				"x": dx += ab[1]
-	var res := resolve_damage(dk, de, dx, enemy_inst["shield"], enemy_inst["def"], _combat_difficulty(), float(ss.get("crit", 0.05)))
-	enemy_inst["shield"] = maxf(0.0, enemy_inst["shield"] - res[0])
+	# Static Burst: chance to reset the enemy's attack timer on hit.
+	var sb := affix_total("static_burst")
+	if sb > 0.0 and randf() < sb:
+		_enemy_timer = 0.0
+		_event("SHOCK", "ecb44a", "enemy")
+	# Void Strike: chance to bypass the shield entirely.
+	var vs := affix_total("void_strike")
+	var voided: bool = vs > 0.0 and randf() < vs
+	var res := resolve_damage(dk, de, dx, 0.0 if voided else float(enemy_inst["shield"]), enemy_inst["def"], _combat_difficulty(), float(ss.get("crit", 0.05)))
+	if voided:
+		_event("VOID", "ff44cc", "enemy")
+	else:
+		enemy_inst["shield"] = maxf(0.0, enemy_inst["shield"] - res[0])
 	enemy_inst["hp"] -= res[1]
 	if res[0] > 0:
 		_event("-%d" % int(res[0]), "55d3e6", "enemy")
@@ -971,7 +1102,20 @@ func _win_combat() -> void:
 	add_xp("combat", int(enemy_inst["xp"]))
 	bounty_on_kill(active_id)
 	_event("DESTROYED", "5fd585", "enemy")
-	# Module drop: roll the enemy's drop pool (unlocked modules only).
+	# On-kill affixes
+	var cap := minf(affix_total("capacitor_pulse"), 0.30)
+	if cap > 0.0:
+		player_shield = minf(player_max_shield(), player_shield + player_max_shield() * cap)
+	var nan := minf(affix_total("nanite_resurgence"), 0.30)
+	if nan > 0.0:
+		combat_hp = minf(combat_max_hp(), combat_hp + combat_max_hp() * nan)
+	var scav := affix_total("nano_scavenger")
+	if scav > 0.0 and randf() < scav:
+		var parts := ["Circuit", "Chip", "AdvCircuit"]
+		var p: String = parts[randi() % parts.size()]
+		add_resource(p, 1 + int(_combat_difficulty() / 3.0))
+		_event("SCAVENGED " + GameData.res_name(p), "55d3e6", "enemy")
+	# Rolled module drop (rarity + affixes)
 	var dc: float = float(enemy_inst.get("drop_chance", 0.0))
 	if enemy_inst.get("elite", false):
 		dc = minf(1.0, dc * 3.0)
@@ -981,9 +1125,11 @@ func _win_combat() -> void:
 			if GameData.MODULES.has(mid) and module_unlocked(mid):
 				pool.append(mid)
 		if not pool.is_empty():
-			var mid: String = pool[randi() % pool.size()]
-			module_inventory[mid] = int(module_inventory.get(mid, 0)) + 1
-			_event("MODULE: " + GameData.MODULES[mid].get("name", mid), "b78ae8", "enemy")
+			var base_id: String = pool[randi() % pool.size()]
+			var rarity := roll_rarity(enemy_inst.get("elite", false))
+			var cid := generate_module(base_id, rarity, _combat_difficulty())
+			if cid != "":
+				_event("%s DROP" % (RARITY_LABEL[rarity] if rarity > 0 else "MODULE").to_upper(), RARITY_COLOR.get(rarity, "b78ae8"), "enemy")
 	_spawn_enemy_inst(active_id)   # auto re-engage (idle farming)
 
 func _lose_combat() -> void:
@@ -1025,7 +1171,7 @@ func effective_duration(type: String, id: String) -> float:
 	if type == "gather" and GameData.GATHER.has(id):
 		return float(GameData.GATHER[id].get("duration", 4.0))
 	elif type == "craft" and GameData.CRAFT.has(id):
-		return float(GameData.CRAFT[id].get("duration", 4.0))
+		return float(GameData.CRAFT[id].get("duration", 4.0)) / (1.0 + affix_total("refinery_link"))
 	return 0.0
 
 func _tick_active(delta: float) -> void:
@@ -1190,6 +1336,7 @@ func save_game() -> void:
 		"active_hull": active_hull,
 		"owned_hulls": owned_hulls.keys(),
 		"module_inventory": module_inventory,
+		"custom_modules": custom_modules,
 		"loadout": loadout,
 		"ammo_loadout": ammo_loadout,
 		"consumable_hull_slot": consumable_hull_slot,
@@ -1246,6 +1393,7 @@ func load_game() -> void:
 	module_inventory = data.get("module_inventory", {})
 	for k in module_inventory:
 		module_inventory[k] = int(module_inventory[k])
+	custom_modules = data.get("custom_modules", {})
 	ammo_loadout = data.get("ammo_loadout", {})
 	consumable_hull_slot = data.get("consumable_hull_slot", "")
 	consumable_shield_slot = data.get("consumable_shield_slot", "")
@@ -1291,6 +1439,7 @@ func hard_reset() -> void:
 	active_hull = "corvette_hull"
 	owned_hulls = {"corvette_hull": true}
 	module_inventory = {}
+	custom_modules = {}
 	loadout = {}
 	ammo_loadout = {}
 	consumable_hull_slot = ""
