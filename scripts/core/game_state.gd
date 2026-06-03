@@ -99,6 +99,7 @@ var _infra_dirty := false
 var _infra_emit_accum := 0.0
 
 var pending_offline: String = ""
+var offline_combat := false             # option: process combat while away (off by default, like desktop)
 
 const SAVE_PATH := "user://stellarforge_save.json"
 const AUTOSAVE_INTERVAL := 15.0
@@ -1910,7 +1911,8 @@ func _apply_offline(delta: float) -> void:
 	if active_type == "" or delta < 5.0:
 		return
 	if active_type == "combat":
-		_offline_combat(delta)
+		if offline_combat:
+			_offline_combat(delta)
 		return
 	var dur := current_duration()
 	if dur <= 0.0:
@@ -1975,6 +1977,7 @@ func save_game() -> void:
 		"lifetime_credits": lifetime_credits,
 		"storage_upgrades": storage_upgrades,
 		"repeatable_research": repeatable_research,
+		"offline_combat": offline_combat,
 		"warp_shards": warp_shards,
 		"total_warps": total_warps,
 		"credits_at_warp_start": credits_at_warp_start,
@@ -2032,6 +2035,7 @@ func load_game() -> void:
 	lifetime_credits = int(data.get("lifetime_credits", credits))
 	storage_upgrades = int(data.get("storage_upgrades", 0))
 	repeatable_research = data.get("repeatable_research", {})
+	offline_combat = bool(data.get("offline_combat", false))
 	for k in repeatable_research:
 		repeatable_research[k] = int(repeatable_research[k])
 	warp_shards = float(data.get("warp_shards", 0.0))

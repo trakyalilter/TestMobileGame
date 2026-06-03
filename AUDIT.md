@@ -64,14 +64,17 @@ desktop game (verified headless):
 | **Repeatable / Recursion research** | `production_focus`/`combat_focus`/`gathering_focus`, +5%/level, cost `base·1.3^lvl` / items `·1.2^lvl`. | New **Recursion** tab; bonuses wired to processing speed / ship damage / gather yield. |
 | **Grid-overload enforcement** | Equip blocked if energy load > capacity, unless the module adds capacity (battery anti-softlock). | Ship page shows live grid load/capacity + rejection notice. |
 | **Building special effects** | Drone Bay 25% passive gather, Crew Quarters +10% XP/bldg, Biosphere +5% gather speed, infra-L10 +10% gen. | All wired (online + offline); upkeep consumers (Crew Quarters Food) now consume input. |
+| **Atlas / Codex** | Materials codex (per-item sources & uses across all systems) + enemies grouped by zone. | New **Atlas** page under More. |
+| **Enemy "Intel" modal** | Full stats, guaranteed/rare drops, and module drop pool with lock icons. | ⓘ button on every enemy card (combat + atlas). |
+| **Options: offline-combat toggle** | Process combat while away (off by default, like desktop). | Toggle in Storage & Crew → System; saved. |
 
 ### ❌ Still missing
 | System | What it is in the original | Status |
 |---|---|---|
-| **Atlas / Encyclopedia** | Materials+enemies codex: every item's sources & uses, net-growth/min, enemy intel with drop pools & lock states. | Not ported (large UI). |
-| **Enemy "Intel" modal** | Tap enemy → modal with full module drop pool + lock icons. | Card shows TARGET/SALVAGE only. |
-| **Options page / offline-combat toggle** | Options page with `offline_combat` switch. | No options page; combat always runs offline. |
 | **Fleet** | Expedition passive-income system. | **Intentionally removed by owner**; `fleet_logistics_*`/`automated_expeditions` nodes orphaned. |
+
+> The only "missing" system left is **Fleet**, which the owner deliberately
+> removed from the game.
 
 ---
 

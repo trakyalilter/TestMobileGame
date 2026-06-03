@@ -10,13 +10,14 @@ const BOTTOM := [
 	{"id": "research", "label": "Research"},
 	{"id": "more",     "label": "More"},
 ]
-const PAGE_IDS := ["gather", "craft", "combat", "research", "more", "build", "ship", "bounty", "warp", "missions", "stats"]
+const PAGE_IDS := ["gather", "craft", "combat", "research", "more", "build", "ship", "bounty", "warp", "missions", "atlas", "stats"]
 const MORE_MENU := [
 	{"id": "missions", "label": "✦  Missions"},
 	{"id": "build",  "label": "⌂  Infrastructure"},
 	{"id": "ship",   "label": "⛭  Ship Designer"},
 	{"id": "bounty", "label": "◆  Bounty Board"},
 	{"id": "warp",   "label": "✦  Warp Core"},
+	{"id": "atlas",  "label": "❒  Atlas / Codex"},
 	{"id": "stats",  "label": "≡  Storage & Crew"},
 ]
 
@@ -56,6 +57,9 @@ var gather_cat := "terrestrial"
 var craft_cat := "basics"
 var combat_zone := 0
 var research_tab := "Operations"
+var atlas_mode := "materials"
+var atlas_search := ""
+var _atlas_index := {}
 var build_cat := "power"
 var ship_view := "loadout"
 var ship_mod_slot := "weapon"
@@ -326,6 +330,7 @@ func _refresh_current() -> void:
 		"bounty":   _build_bounty()
 		"warp":     _build_warp()
 		"missions": _build_missions()
+		"atlas":    _build_atlas()
 		"research": _build_research()
 		"more":     _build_more()
 		"stats":    _build_stats()
@@ -522,10 +527,83 @@ func _enemy_card(id: String, e: Dictionary) -> Control:
 	var spacer := Control.new()
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	v.add_child(spacer)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
 	var b := _card_button("Engage", RED, true)
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	b.pressed.connect(func() -> void: GameState.start_task("combat", id))
-	v.add_child(b)
+	row.add_child(b)
+	var intel := _card_button("ⓘ", CYAN, true)
+	intel.custom_minimum_size = Vector2(46, 0)
+	intel.pressed.connect(func() -> void: _show_enemy_intel(id))
+	row.add_child(intel)
+	v.add_child(row)
 	return panel
+
+## Enemy "Intel" modal — full stats, guaranteed/rare drops, and the module
+## drop pool with lock states (ported from the desktop enemy_info_modal).
+func _show_enemy_intel(eid: String) -> void:
+	var e: Dictionary = GameData.ENEMIES.get(eid, {})
+	if e.is_empty():
+		return
+	var overlay := ColorRect.new()
+	overlay.color = Color(0, 0, 0, 0.7)
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(overlay)
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.add_child(center)
+	var panel := PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", _bordered("1a2336", RED, 2))
+	panel.custom_minimum_size = Vector2(340, 0)
+	center.add_child(panel)
+	var sc := ScrollContainer.new()
+	sc.custom_minimum_size = Vector2(0, 560)
+	sc.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	panel.add_child(sc)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 8)
+	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	sc.add_child(v)
+	_clbl(v, "◎ Intel: " + e.get("name", eid), 16, RED)
+	var stat_lines := [
+		_line("HP %s" % GameData.fmt(e.get("hp", 0)), C_TEXT),
+		_line("ATK %d / %.1fs" % [int(e.get("atk", 0)), float(e.get("interval", 2.0))], C_WARN),
+		_line("DEF %d" % int(e.get("def", 0)), C_DIM),
+		_line("Accuracy %d   ·   Evasion %d" % [int(e.get("accuracy", 0)), int(e.get("eva", 0))], C_DIM),
+		_line("XP %d" % int(e.get("xp", 0)), GREEN),
+	]
+	if int(e.get("max_shield", 0)) > 0:
+		stat_lines.insert(1, _line("Shield %s" % GameData.fmt(e["max_shield"]), CYAN))
+	_inset(v, "COMBAT STATS", stat_lines, RED)
+	var guaranteed := []
+	var rare := []
+	for row2 in e.get("loot", []):
+		if float(row2[1]) >= 1.0:
+			guaranteed.append(_line("%s %d-%d" % [GameData.res_name(row2[0]), int(row2[2]), int(row2[3])], _hex(GameData.color_for(row2[0]))))
+		else:
+			rare.append(_line("★ %s %d-%d  (%d%%)" % [GameData.res_name(row2[0]), int(row2[2]), int(row2[3]), int(float(row2[1]) * 100.0)], PURP))
+	if not guaranteed.is_empty():
+		_inset(v, "GUARANTEED DROPS", guaranteed, GOLD)
+	if not rare.is_empty():
+		_inset(v, "RARE DROPS", rare, PURP)
+	var pool: Array = e.get("drop_pool", [])
+	var chance := float(e.get("drop_chance", 0.0))
+	if chance > 0.0 and not pool.is_empty():
+		var mlines := []
+		for mid in pool:
+			var m: Dictionary = GameData.MODULES.get(mid, {})
+			if m.is_empty():
+				continue
+			var unlocked := GameState.module_unlocked(mid)
+			var nm: String = ("%s  [%s]" % [m.get("name", mid), GameData.SLOT_LABELS.get(m.get("slot", ""), "")])
+			mlines.append(_line(("» " if unlocked else "🔒 ") + nm, CYAN if unlocked else C_MUTED))
+		var head := "SUBSPACE SIGNAL — %d%% / kill" % int(round(chance * 100.0))
+		_inset(v, head, mlines, CYAN)
+	var ok := _card_button("Close", CYAN, true)
+	ok.custom_minimum_size = Vector2(0, 42)
+	ok.pressed.connect(func() -> void: overlay.queue_free())
+	v.add_child(ok)
 
 # ---- Live battle view ----
 func _build_battle(v: VBoxContainer) -> void:
@@ -1452,6 +1530,121 @@ func _build_recursion(v: VBoxContainer) -> void:
 		c.add_child(b)
 		v.add_child(c.get_parent())     # attach the card panel to the page
 
+# ============================================================ ATLAS / CODEX
+func _build_atlas() -> void:
+	var v := _clear("atlas")
+	_back_header(v)
+	_clbl(v, "ATLAS / CODEX", 16, CYAN)
+	_subtabs(v, [{"id": "materials", "label": "Materials"}, {"id": "enemies", "label": "Enemies"}], atlas_mode, CYAN, func(id: String) -> void:
+		atlas_mode = id
+		_refresh_current())
+	if atlas_mode == "materials":
+		_atlas_materials(v)
+	else:
+		_atlas_enemies(v)
+
+func _atlas_get_index() -> Dictionary:
+	if not _atlas_index.is_empty():
+		return _atlas_index
+	var idx := {}
+	for gid in GameData.GATHER:
+		var a: Dictionary = GameData.GATHER[gid]
+		for row in a.get("loot", []):
+			_atlas_add(idx, row[0], "sources", "⛏ " + a.get("name", gid))
+	for rid in GameData.CRAFT:
+		var r: Dictionary = GameData.CRAFT[rid]
+		for s in r.get("outputs", {}):
+			_atlas_add(idx, s, "sources", "⚙ " + r.get("name", rid))
+		for row in r.get("bonus", []):
+			_atlas_add(idx, row[0], "sources", "⚙ " + r.get("name", rid))
+		for s in r.get("inputs", {}):
+			_atlas_add(idx, s, "uses", "⚙ " + r.get("name", rid))
+	for eid in GameData.ENEMIES:
+		var e: Dictionary = GameData.ENEMIES[eid]
+		for row in e.get("loot", []):
+			_atlas_add(idx, row[0], "sources", "◎ " + e.get("name", eid))
+	for bid in GameData.BUILDINGS:
+		var b: Dictionary = GameData.BUILDINGS[bid]
+		for s in b.get("yield", {}):
+			_atlas_add(idx, s, "sources", "⌂ " + b.get("name", bid))
+		for s in b.get("input", {}):
+			_atlas_add(idx, s, "uses", "⌂ " + b.get("name", bid))
+		for s in b.get("cost", {}):
+			if s != "credits":
+				_atlas_add(idx, s, "uses", "⌂ " + b.get("name", bid))
+	for hid in GameData.HULLS:
+		for s in GameData.HULLS[hid].get("cost", {}):
+			if s != "credits":
+				_atlas_add(idx, s, "uses", "⛭ " + GameData.HULLS[hid].get("name", hid))
+	for mid in GameData.MODULES:
+		for s in GameData.MODULES[mid].get("cost", {}):
+			if s != "credits":
+				_atlas_add(idx, s, "uses", "▣ " + GameData.MODULES[mid].get("name", mid))
+	for tid in GameData.RESEARCH:
+		for s in GameData.RESEARCH[tid].get("items", {}):
+			_atlas_add(idx, s, "uses", "✦ " + GameData.RESEARCH[tid].get("name", tid))
+	_atlas_index = idx
+	return idx
+
+func _atlas_add(idx: Dictionary, sym: String, key: String, label: String) -> void:
+	if not idx.has(sym):
+		idx[sym] = {"sources": [], "uses": []}
+	if not idx[sym][key].has(label):
+		idx[sym][key].append(label)
+
+func _atlas_materials(v: VBoxContainer) -> void:
+	var idx := _atlas_get_index()
+	var n := 0
+	for sym in GameData.RESOURCES:
+		var info = idx.get(sym, null)
+		if info == null or (info["sources"].is_empty() and info["uses"].is_empty()):
+			continue
+		n += 1
+		var c := _card(CYAN, true)
+		_card_head(c, "◆", GameData.res_name(sym), "₡%d" % GameData.value_of(sym), _hex(GameData.color_for(sym)), true)
+		if not info["sources"].is_empty():
+			_atlas_line(c, "From: ", info["sources"], GREEN)
+		if not info["uses"].is_empty():
+			_atlas_line(c, "Used in: ", info["uses"], C_DIM)
+		v.add_child(c.get_parent())
+	if n == 0:
+		_empty(v, "No materials catalogued.")
+
+func _atlas_line(parent: Node, prefix: String, items: Array, color: String) -> void:
+	var shown := items
+	var more := 0
+	if items.size() > 8:
+		shown = items.slice(0, 8)
+		more = items.size() - 8
+	var l := Label.new()
+	l.text = prefix + ", ".join(shown) + ("  +%d more" % more if more > 0 else "")
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.add_theme_font_size_override("font_size", _fs(10))
+	l.add_theme_color_override("font_color", Color.html(color))
+	parent.add_child(l)
+
+func _atlas_enemies(v: VBoxContainer) -> void:
+	for z in GameData.ZONES:
+		_section(v, "%s  (★%d)" % [z.get("name", ""), int(z.get("difficulty", 1))], RED)
+		for eid in z.get("enemies", []):
+			if not GameData.ENEMIES.has(eid):
+				continue
+			var e: Dictionary = GameData.ENEMIES[eid]
+			var c := _card(RED, true)
+			var badge := "DROPS" if (float(e.get("drop_chance", 0.0)) > 0.0 and not (e.get("drop_pool", []) as Array).is_empty()) else ""
+			_card_head(c, "◎", e.get("name", eid), badge, RED, true)
+			var stats := [
+				_line("HP %s   DEF %d" % [GameData.fmt(e.get("hp", 0)), int(e.get("def", 0))], C_TEXT),
+				_line("ATK %d / %.1fs" % [int(e.get("atk", 0)), float(e.get("interval", 2.0))], C_WARN),
+			]
+			if int(e.get("max_shield", 0)) > 0:
+				stats.append(_line("Shield %s" % GameData.fmt(e["max_shield"]), CYAN))
+			_inset(c, "STATS", stats, RED)
+			var ib := _card_button("ⓘ Intel", CYAN, true)
+			ib.pressed.connect(func() -> void: _show_enemy_intel(eid))
+			c.add_child(ib)
+			v.add_child(c.get_parent())
+
 # ============================================================ STATS / STORAGE
 func _build_stats() -> void:
 	var v := _clear("stats")
@@ -1511,6 +1704,14 @@ func _build_stats() -> void:
 	v.add_child(up)
 
 	_section(v, "System", CYAN)
+	# Options: offline-combat toggle (off by default, like desktop).
+	var oc := GameState.offline_combat
+	var oc_btn := _card_button("Offline Combat: %s" % ("ON" if oc else "OFF"), GREEN if oc else C_MUTED, true)
+	oc_btn.custom_minimum_size = Vector2(0, 44)
+	oc_btn.pressed.connect(func() -> void:
+		GameState.offline_combat = not GameState.offline_combat
+		_refresh_current())
+	v.add_child(oc_btn)
 	var save_btn := _card_button("Save Now", CYAN, true)
 	save_btn.custom_minimum_size = Vector2(0, 44)
 	save_btn.pressed.connect(func() -> void: GameState.save_game())
