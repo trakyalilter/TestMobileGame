@@ -144,10 +144,40 @@ func amount(sym: String) -> int:
 	return int(resources.get(sym, 0))
 
 func add_resource(sym: String, amt: int) -> void:
+	# Storage cap: a new material is dropped when all slots are full (desktop
+	# resources.gd). Existing stacks are unbounded.
+	if amt > 0 and amount(sym) <= 0 and used_slots() >= max_slots():
+		return
 	resources[sym] = amount(sym) + amt
 	if amt > 0 and not missions_active.is_empty():
 		_mission_event("gather", sym, amt)
 	resources_changed.emit()
+
+# ---- Storage slots ----
+const BASE_SLOTS := 28
+var storage_upgrades := 0
+
+func used_slots() -> int:
+	var n := 0
+	for sym in resources:
+		if int(resources[sym]) > 0:
+			n += 1
+	return n
+
+func max_slots() -> int:
+	return BASE_SLOTS + storage_upgrades
+
+func storage_upgrade_cost() -> int:
+	return int(floor(1000.0 * pow(1.5, storage_upgrades)))
+
+func upgrade_storage() -> bool:
+	var cost := storage_upgrade_cost()
+	if credits < cost:
+		return false
+	credits -= cost
+	storage_upgrades += 1
+	resources_changed.emit()
+	return true
 
 func gain_credits(n: int) -> void:
 	credits += n
@@ -274,6 +304,7 @@ func yield_mult(skill_id: String) -> float:
 		m *= 1.10                                          # milestone 10: +10% yield
 	m *= research_efficiency_mult()                        # Efficiency I-V: 2x..32x
 	m *= 1.0 + affix_total("extractor_efficiency")
+	m *= 1.0 + research_bonus("gathering_yield_mult")      # Recursion: gathering_focus
 	# NB: warp prestige boosts gathering via SPEED (see gather_speed_mult), not yield.
 	return m
 
@@ -334,7 +365,7 @@ func ship_weapons() -> Array:
 		if st.has("atk_speed_mult"):
 			spd_mult *= float(st["atk_speed_mult"])
 	var speed := (1.0 + spd_bonus) * spd_mult
-	var dmg_mult := (1.0 + level_of("combat") * 0.005) * warp_combat_mult()
+	var dmg_mult := (1.0 + level_of("combat") * 0.005) * warp_combat_mult() * (1.0 + research_bonus("combat_damage"))
 	var eng_mult := 1.0 + level_of("fabrication") * 0.01
 	var out := []
 	for k in loadout:
@@ -1178,13 +1209,65 @@ func research_bonus(key: String) -> float:
 			var p := 0.0
 			if is_research_unlocked("nano_fabrication"): p += 0.15
 			if is_research_unlocked("perfect_automation"): p += 0.30
-			return p
+			return p + _repeatable_bonus("processing_speed")
 	if key == "applied_physics" and is_research_unlocked("applied_physics"): return 0.10
 	if key == "materials_science" and is_research_unlocked("materials_science"): return 0.10
 	if key == "industrial_logistics" and is_research_unlocked("industrial_logistics"): return 0.10
 	if key == "industrial_catalysis" and is_research_unlocked("industrial_catalysis"): return 0.15
 	if key == "xeno_engineering" and is_research_unlocked("xeno_engineering"): return 0.25
-	return 0.0
+	# gathering_yield_mult / combat_damage come purely from repeatable research.
+	return _repeatable_bonus(key)
+
+# ---- Repeatable / Recursion research (infinite +5%/level sinks) ----
+const REPEATABLE := {
+	"production_focus": {"name": "Recursive Optimization", "field": "Industry", "desc": "+5% Global Processing Speed / level", "base_cost": 100000, "items": {"VoidArtifact": 5, "AdvCircuit": 50, "Bauxite": 100, "Quartz": 100, "PtOre": 25}, "bonus_type": "processing_speed", "bonus_value": 0.05},
+	"combat_focus": {"name": "Recursive Calibration", "field": "Combat", "desc": "+5% Total Ship Damage / level", "base_cost": 100000, "items": {"VoidArtifact": 5, "QuantumCore": 5, "Malachite": 100}, "bonus_type": "combat_damage", "bonus_value": 0.05},
+	"gathering_focus": {"name": "Recursive Logistics", "field": "Gathering", "desc": "+5% Global Gathering Yield / level", "base_cost": 100000, "items": {"VoidArtifact": 5, "DroneCore": 50, "Spodumene": 100}, "bonus_type": "gathering_yield_mult", "bonus_value": 0.05},
+}
+const REPEATABLE_ORDER := ["production_focus", "combat_focus", "gathering_focus"]
+var repeatable_research: Dictionary = {}   # id -> level
+
+func _repeatable_bonus(bonus_type: String) -> float:
+	var b := 0.0
+	for rid in repeatable_research:
+		var rd: Dictionary = REPEATABLE.get(rid, {})
+		if rd.get("bonus_type", "") == bonus_type:
+			b += int(repeatable_research[rid]) * float(rd.get("bonus_value", 0.0))
+	return b
+
+func repeatable_level(rid: String) -> int:
+	return int(repeatable_research.get(rid, 0))
+
+func repeatable_cost(rid: String) -> Dictionary:
+	var rd: Dictionary = REPEATABLE[rid]
+	var lvl := repeatable_level(rid)
+	var c := {"credits": int(float(rd["base_cost"]) * pow(1.3, lvl))}
+	for res in rd.get("items", {}):
+		c[res] = int(float(rd["items"][res]) * pow(1.2, lvl))
+	return c
+
+func can_unlock_repeatable(rid: String) -> bool:
+	var c := repeatable_cost(rid)
+	if credits < int(c["credits"]):
+		return false
+	for res in c:
+		if res == "credits":
+			continue
+		if amount(res) < int(c[res]):
+			return false
+	return true
+
+func unlock_repeatable(rid: String) -> bool:
+	if not can_unlock_repeatable(rid):
+		return false
+	var c := repeatable_cost(rid)
+	credits -= int(c["credits"])
+	for res in c:
+		if res != "credits":
+			resources[res] = amount(res) - int(c[res])
+	repeatable_research[rid] = repeatable_level(rid) + 1
+	research_changed.emit()
+	return true
 
 const REPAIR_COST := {"corvette_hull": 1000, "frigate_hull": 5000, "destroyer_hull": 25000,
 	"battlecruiser_hull": 100000, "dreadnought_hull": 500000}
@@ -1890,6 +1973,8 @@ func save_game() -> void:
 		"resources": resources,
 		"credits": credits,
 		"lifetime_credits": lifetime_credits,
+		"storage_upgrades": storage_upgrades,
+		"repeatable_research": repeatable_research,
 		"warp_shards": warp_shards,
 		"total_warps": total_warps,
 		"credits_at_warp_start": credits_at_warp_start,
@@ -1945,6 +2030,10 @@ func load_game() -> void:
 	resources = data.get("resources", {})
 	credits = int(data.get("credits", 0))
 	lifetime_credits = int(data.get("lifetime_credits", credits))
+	storage_upgrades = int(data.get("storage_upgrades", 0))
+	repeatable_research = data.get("repeatable_research", {})
+	for k in repeatable_research:
+		repeatable_research[k] = int(repeatable_research[k])
 	warp_shards = float(data.get("warp_shards", 0.0))
 	total_warps = int(data.get("total_warps", 0))
 	credits_at_warp_start = int(data.get("credits_at_warp_start", 0))
@@ -2021,6 +2110,8 @@ func hard_reset() -> void:
 	buildings = {}
 	building_throttle = {}
 	infra_energy = 0.0
+	storage_upgrades = 0
+	repeatable_research = {}
 	_build_timers = {}
 	_build_frac = {}
 	active_hull = "corvette_hull"

@@ -1299,14 +1299,20 @@ func _build_research() -> void:
 	head.add_child(cr)
 	v.add_child(head)
 
-	if not GameData.RESEARCH_TABS.has(research_tab):
-		research_tab = GameData.RESEARCH_TABS[0]
+	var tabs: Array = GameData.RESEARCH_TABS.duplicate()
+	tabs.append("Recursion")
+	if not tabs.has(research_tab):
+		research_tab = tabs[0]
 	var tab_items := []
-	for t in GameData.RESEARCH_TABS:
+	for t in tabs:
 		tab_items.append({"id": t, "label": t})
 	_subtabs(v, tab_items, research_tab, PURP, func(id: String) -> void:
 		research_tab = id
 		_refresh_current())
+
+	if research_tab == "Recursion":
+		_build_recursion(v)
+		return
 
 	var graph: Dictionary = GameData.RESEARCH_GRAPHS[research_tab]
 	var pos: Dictionary = graph["pos"]
@@ -1421,6 +1427,31 @@ func _research_node(id: String) -> Control:
 		panel.add_child(overlay)
 	return panel
 
+# Recursion tab: infinite repeatable research (+5%/level sinks).
+func _build_recursion(v: VBoxContainer) -> void:
+	pages["research"].vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	_section(v, "Recursion — infinite upgrades (+5% / level)", PURP)
+	for rid in GameState.REPEATABLE_ORDER:
+		var rd: Dictionary = GameState.REPEATABLE[rid]
+		var lvl := GameState.repeatable_level(rid)
+		var c := _card(PURP, true)
+		_card_head(c, "∞", rd["name"], "Lv %d" % lvl, PURP, true)
+		_clbl(c, "%s · %s" % [rd["field"], rd["desc"]], 11, C_DIM)
+		_clbl(c, "Current bonus: +%d%%" % int(round(lvl * float(rd["bonus_value"]) * 100.0)), 11, GREEN)
+		var cost: Dictionary = GameState.repeatable_cost(rid)
+		var cost_lines := []
+		for res in cost:
+			var have: bool = (GameState.credits >= int(cost[res])) if res == "credits" else (GameState.amount(res) >= int(cost[res]))
+			var lbl: String = ("₡%s" % GameData.fmt(cost[res])) if res == "credits" else ("%s %s" % [GameData.fmt(cost[res]), GameData.res_name(res)])
+			cost_lines.append(_line(lbl, GOLD if have else C_WARN))
+		_inset(c, "NEXT LEVEL COST", cost_lines, PURP)
+		var can := GameState.can_unlock_repeatable(rid)
+		var b := _card_button("Research Lv %d" % (lvl + 1), PURP, can)
+		if can:
+			b.pressed.connect(func() -> void: GameState.unlock_repeatable(rid))
+		c.add_child(b)
+		v.add_child(c.get_parent())     # attach the card panel to the page
+
 # ============================================================ STATS / STORAGE
 func _build_stats() -> void:
 	var v := _clear("stats")
@@ -1448,9 +1479,11 @@ func _build_stats() -> void:
 	for sk in ["harvesting", "fabrication", "combat", "infrastructure"]:
 		_skill_banner(v, sk.capitalize(), sk, CYAN)
 
-	_section(v, "Storage — tap a slot to sell", GOLD)
+	var used := GameState.used_slots()
+	var cap := GameState.max_slots()
+	_section(v, "Storage  %d / %d slots — tap a slot to sell" % [used, cap], GOLD)
 	# Slot-by-slot grid (like the desktop inventory): owned materials fill tiles
-	# left-to-right, padded with empty slots to a minimum capacity.
+	# left-to-right, padded with empty slots up to the current capacity.
 	var owned := []
 	for sym in GameData.RESOURCES:
 		if GameState.amount(sym) > 0:
@@ -1463,12 +1496,19 @@ func _build_stats() -> void:
 	v.add_child(grid)
 	for sym in owned:
 		grid.add_child(_storage_tile(sym))
-	var min_slots := 28
-	var total: int = maxi(min_slots, int(ceil(owned.size() / 4.0)) * 4)
+	var total: int = maxi(cap, int(ceil(owned.size() / 4.0)) * 4)
 	for _i in range(total - owned.size()):
 		grid.add_child(_storage_slot_empty())
 	if owned.is_empty():
 		_empty(v, "Storage empty — go gather something.")
+	# Expand storage (credit sink): +1 slot at 1000·1.5^n.
+	var up_cost := GameState.storage_upgrade_cost()
+	var can_up := GameState.credits >= up_cost
+	var up := _card_button("Expand Storage  +1 slot   ₡%s" % GameData.fmt(up_cost), GOLD, can_up)
+	up.custom_minimum_size = Vector2(0, 42)
+	if can_up:
+		up.pressed.connect(func() -> void: GameState.upgrade_storage())
+	v.add_child(up)
 
 	_section(v, "System", CYAN)
 	var save_btn := _card_button("Save Now", CYAN, true)
