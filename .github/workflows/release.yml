@@ -47,15 +47,19 @@ jobs:
           mkdir -p ~/.config/godot
           CFG="$(ls ~/.config/godot/editor_settings-*.tres 2>/dev/null | head -n1)"
           [ -z "$CFG" ] && CFG=~/.config/godot/editor_settings-4.5.tres
+          # Derive a real JDK home (must contain bin/) from the keytool binary.
+          JDK="$(dirname "$(dirname "$(readlink -f "$(command -v keytool)")")")"
+          echo "Detected JDK: $JDK"; ls "$JDK/bin/java" || true
+          SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/lib/android-sdk}}"
           {
             echo '[gd_resource type="EditorSettings" format=3]'
             echo ''
             echo '[resource]'
-            echo "export/android/android_sdk_path = \"${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/lib/android-sdk}}\""
+            echo "export/android/android_sdk_path = \"$SDK\""
             echo "export/android/debug_keystore = \"$GITHUB_WORKSPACE/debug.keystore\""
             echo 'export/android/debug_keystore_user = "androiddebugkey"'
             echo 'export/android/debug_keystore_pass = "android"'
-            echo "export/android/java_sdk_path = \"${JAVA_HOME:-/usr/lib/jvm/default-jvm}\""
+            echo "export/android/java_sdk_path = \"$JDK\""
           } > "$CFG"
           echo "Wrote $CFG"; cat "$CFG"
 
