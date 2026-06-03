@@ -55,18 +55,23 @@ desktop game (verified headless):
 
 ---
 
-## D. Systems MISSING entirely (❌)
+## D. Systems MISSING entirely
 
+### ✅ Now implemented
+| System | What it is | Notes |
+|---|---|---|
+| **Storage slot cap + upgrade** | 28-slot cap, new materials dropped when full, Expand Storage at `1000·1.5^n`. | Storage page shows used/max + upgrade button; persists through prestige. |
+| **Repeatable / Recursion research** | `production_focus`/`combat_focus`/`gathering_focus`, +5%/level, cost `base·1.3^lvl` / items `·1.2^lvl`. | New **Recursion** tab; bonuses wired to processing speed / ship damage / gather yield. |
+| **Grid-overload enforcement** | Equip blocked if energy load > capacity, unless the module adds capacity (battery anti-softlock). | Ship page shows live grid load/capacity + rejection notice. |
+| **Building special effects** | Drone Bay 25% passive gather, Crew Quarters +10% XP/bldg, Biosphere +5% gather speed, infra-L10 +10% gen. | All wired (online + offline); upkeep consumers (Crew Quarters Food) now consume input. |
+
+### ❌ Still missing
 | System | What it is in the original | Status |
 |---|---|---|
-| **Atlas / Encyclopedia** | Full materials+enemies codex: every item's sources & uses across all managers, net-growth/min, enemy intel with drop pools & lock states. | Not ported. (Mobile shows stats on the combat card only.) |
-| **Storage slot cap + upgrade** | 28-slot cap; new materials beyond cap are dropped; buy `+1 slot` for `1000·1.5^n` credits. | Not ported — mobile storage is **unlimited**, no upgrade sink. |
-| **Repeatable / Recursion research** | `production_focus` / `combat_focus` / `gathering_focus`: infinite +5%/level, cost `base·1.3^lvl` / items `·1.2^lvl`. The 4th research tab. | Not ported (dropped the Recursion tab; nodes aren't in the tech tree). |
-| **Fleet** | 5 expedition types, deploy hulls to passive-income missions, risk/damage/repair, Administration skill. | **Intentionally removed by owner.** Research nodes `fleet_logistics_1/2`, `automated_expeditions` are now orphaned (purchasable, no effect). |
-| **Grid-overload enforcement** | Equipping a module that exceeds energy capacity is **blocked** (with battery-upgrade exceptions). | Mobile tracks `energy_load`/`energy_cap` but **never blocks** equipping. |
-| **Building special effects** | Drone Recovery Bay (25% passive gather roll), Crew Quarters (+10% XP/bldg), Biosphere Dome (+5% gather speed), infra-L10 (+10% generation). | None of these effects implemented (data exists, behaviour doesn't). |
-| **Offline-combat toggle / Options page** | Options page with `offline_combat` switch + save/reset. | No options page; combat is **always** processed offline. |
-| **Enemy "Intel" modal** | Tap enemy → modal with full drop pool + module variants + lock icons. | Card shows TARGET/SALVAGE only; no module-drop preview. |
+| **Atlas / Encyclopedia** | Materials+enemies codex: every item's sources & uses, net-growth/min, enemy intel with drop pools & lock states. | Not ported (large UI). |
+| **Enemy "Intel" modal** | Tap enemy → modal with full module drop pool + lock icons. | Card shows TARGET/SALVAGE only. |
+| **Options page / offline-combat toggle** | Options page with `offline_combat` switch. | No options page; combat always runs offline. |
+| **Fleet** | Expedition passive-income system. | **Intentionally removed by owner**; `fleet_logistics_*`/`automated_expeditions` nodes orphaned. |
 
 ---
 
