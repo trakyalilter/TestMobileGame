@@ -503,6 +503,11 @@ func _zone_unlocked(zone: Dictionary) -> bool:
 
 func _enemy_card(id: String, e: Dictionary) -> Control:
 	var v := _card(RED, true)
+	# Fill the grid row so both cards in a row match the taller one (enemies have
+	# varying stat/loot line counts); a spacer pushes Engage to the bottom so the
+	# buttons line up across the pair.
+	var panel := v.get_parent()
+	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_card_head(v, "◎", e["name"], "", RED, true)
 	var stats := [
 		_line("HP %s" % GameData.fmt(e["hp"]), C_TEXT),
@@ -513,10 +518,13 @@ func _enemy_card(id: String, e: Dictionary) -> Control:
 		stats.insert(1, _line("Shield %s" % GameData.fmt(e["max_shield"]), CYAN))
 	_inset(v, "TARGET", stats, RED)
 	_inset(v, "SALVAGE", _loot_lines(e.get("loot", [])), RED)
+	var spacer := Control.new()
+	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	v.add_child(spacer)
 	var b := _card_button("Engage", RED, true)
 	b.pressed.connect(func() -> void: GameState.start_task("combat", id))
 	v.add_child(b)
-	return v.get_parent()
+	return panel
 
 # ---- Live battle view ----
 func _build_battle(v: VBoxContainer) -> void:
@@ -1591,6 +1599,9 @@ func _subtabs(v: VBoxContainer, items: Array, current_id: String, accent: String
 		var b := Button.new()
 		b.text = it["label"]
 		b.focus_mode = Control.FOCUS_NONE
+		# PASS so a horizontal drag over a tab reaches the strip's ScrollContainer
+		# (which then scrolls and cancels the tap); a clean tap still selects.
+		b.mouse_filter = Control.MOUSE_FILTER_PASS
 		b.custom_minimum_size = Vector2(0, 32)
 		b.add_theme_font_size_override("font_size", _fs(12))
 		var fill := accent if on else SURFACE_HI
