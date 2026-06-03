@@ -902,6 +902,16 @@ func _ship_loadout(v: VBoxContainer, h: Dictionary) -> void:
 	if slots.is_empty():
 		_empty(v, "No ship.")
 		return
+	var counts := GameState.equipped_set_counts()
+	if not counts.is_empty():
+		_section(v, "Set Bonuses", PURP)
+		for sn in counts:
+			var sd: Dictionary = GameData.SETS.get(sn, {})
+			var active: bool = counts[sn] >= 3
+			var txt := "%s — %d/3" % [sn, counts[sn]]
+			if active and sd.get("bonus_desc", "") != "":
+				txt += "  ✓ " + sd["bonus_desc"]
+			_clbl(v, txt, 11, GOLD if active else C_DIM)
 	_section(v, "LOADOUT — tap Remove to unequip", CYAN)
 	var g := _grid(v)
 	for i in slots.size():
@@ -964,6 +974,34 @@ func _custom_module_card(cid: String) -> Control:
 		for aid in md["affixes"]:
 			alines.append(_line(_affix_text(aid, md["affixes"][aid]), rcol))
 		_inset(c, "AFFIXES", alines, rcol, true)
+	# Gem sockets
+	var sockets: Array = md.get("sockets", [])
+	if sockets.size() > 0:
+		var slines := []
+		var has_empty := false
+		for i in sockets.size():
+			var gid = sockets[i]
+			if gid != null and gid != "":
+				slines.append(_line("◆ " + GameData.GEMS.get(gid, {}).get("name", gid), "3a9fff"))
+			else:
+				slines.append(_line("◇ empty socket", C_MUTED))
+				has_empty = true
+		_inset(c, "SOCKETS", slines, "3a9fff")
+		if has_empty:
+			for gem in GameData.GEMS:
+				if GameState.amount(gem) > 0:
+					var gb := _card_button("Socket %s x%d" % [GameData.GEMS[gem]["name"], GameState.amount(gem)], "3a9fff", true)
+					gb.add_theme_font_size_override("font_size", 11)
+					gb.pressed.connect(func() -> void: GameState.socket_gem(cid, gem))
+					c.add_child(gb)
+		for i in sockets.size():
+			var gid2 = sockets[i]
+			if gid2 != null and gid2 != "":
+				var idx := i
+				var rb := _card_button("Remove " + GameData.GEMS.get(gid2, {}).get("name", gid2), C_MUTED, true)
+				rb.add_theme_font_size_override("font_size", 11)
+				rb.pressed.connect(func() -> void: GameState.unsocket_gem(cid, idx))
+				c.add_child(rb)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 6)
 	var eq := _card_button("Equip", CYAN, true)

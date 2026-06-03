@@ -278,6 +278,14 @@ func ship_stats() -> Dictionary:
 		if dmg > 0.0:
 			dps += dmg / maxf(0.1, float(st.get("atk_interval", 1.0)))
 	s.atk = dps * (1.0 + spd_bonus) * spd_mult + float(h.get("atk", 0))
+	# Gem core global multipliers
+	s.crit += gem_bonus("crit_chance")
+	s.hp *= 1.0 + gem_bonus("hp_mult")
+	s.def *= 1.0 + gem_bonus("def_mult")
+	s.shield *= 1.0 + gem_bonus("max_shield_mult")
+	s.shield_regen *= 1.0 + gem_bonus("shield_regen_mult")
+	s.eva *= 1.0 + gem_bonus("eva_mult")
+	s.energy_cap *= 1.0 + gem_bonus("energy_capacity_mult")
 	return s
 
 ## Live weapon list built from equipped weapon modules (or the hull cannon).
@@ -304,8 +312,10 @@ func ship_weapons() -> Array:
 		var type := "kinetic"
 		if ke > 0: type = "energy"
 		elif kx > 0: type = "explosive"
+		var gk := 1.0 + gem_bonus("atk_kinetic_mult")
+		var ge := 1.0 + gem_bonus("atk_energy_mult")
 		out.append({"name": m.get("name", "Weapon"), "type": type, "slot": str(k),
-			"dmg_k": kk * eng_mult * dmg_mult, "dmg_e": ke * eng_mult * dmg_mult, "dmg_x": kx * eng_mult * dmg_mult,
+			"dmg_k": kk * eng_mult * dmg_mult * gk, "dmg_e": ke * eng_mult * dmg_mult * ge, "dmg_x": kx * eng_mult * dmg_mult,
 			"interval": maxf(0.3, float(st.get("atk_interval", 2.5)) / maxf(0.2, speed)), "timer": randf_range(0.0, 0.4)})
 	if out.is_empty():
 		var h: Dictionary = GameData.HULLS.get(active_hull, {})
@@ -442,7 +452,69 @@ func unequip_slot(idx: String) -> void:
 func module_def(mid: String) -> Dictionary:
 	if custom_modules.has(mid):
 		return custom_modules[mid]
+	if GameData.SET_MODULES.has(mid):
+		return GameData.SET_MODULES[mid]
 	return GameData.MODULES.get(mid, {})
+
+# ---------------- Set bonuses + gem sockets ----------------
+func equipped_set_counts() -> Dictionary:
+	var counts := {}
+	for mid in loadout.values():
+		var sn: String = module_def(mid).get("set", "")
+		if sn != "":
+			counts[sn] = int(counts.get(sn, 0)) + 1
+	return counts
+
+func has_set_bonus(bonus_key: String) -> bool:
+	var counts := equipped_set_counts()
+	for sn in counts:
+		if counts[sn] >= 3 and GameData.SETS.get(sn, {}).get("bonus", "") == bonus_key:
+			return true
+	return false
+
+## Sum of a gem effect across gems socketed into equipped modules.
+func gem_bonus(key: String) -> float:
+	var s := 0.0
+	for mid in loadout.values():
+		for gid in module_def(mid).get("sockets", []):
+			if gid != null and gid != "" and GameData.GEMS.has(gid):
+				s += float(GameData.GEMS[gid]["effects"].get(key, 0.0))
+	return s
+
+## Insert a gem (from inventory) into the first empty socket of a custom module.
+func socket_gem(cid: String, gem_id: String) -> bool:
+	if not custom_modules.has(cid) or amount(gem_id) <= 0:
+		return false
+	var sockets: Array = custom_modules[cid].get("sockets", [])
+	for i in sockets.size():
+		if sockets[i] == null or sockets[i] == "":
+			sockets[i] = gem_id
+			resources[gem_id] = amount(gem_id) - 1
+			resources_changed.emit()
+			return true
+	return false
+
+func unsocket_gem(cid: String, idx: int) -> void:
+	if not custom_modules.has(cid):
+		return
+	var sockets: Array = custom_modules[cid].get("sockets", [])
+	if idx >= 0 and idx < sockets.size() and sockets[idx] != null and sockets[idx] != "":
+		add_resource(sockets[idx], 1)
+		sockets[idx] = null
+		resources_changed.emit()
+
+## Drop a set piece as a mutable custom instance (with sockets).
+func _grant_set_piece(base_id: String) -> void:
+	var t: Dictionary = GameData.SET_MODULES.get(base_id, {})
+	if t.is_empty():
+		return
+	var cid := "set_%s_%d" % [base_id, randi() % 1000000]
+	custom_modules[cid] = {
+		"name": t.get("name", base_id), "slot": t.get("slot", ""), "stats": t.get("stats", {}).duplicate(),
+		"desc": t.get("desc", ""), "rarity": 4, "affixes": {}, "set": t.get("set", ""),
+		"base": base_id, "sockets": [null, null, null],
+	}
+	module_inventory[cid] = int(module_inventory.get(cid, 0)) + 1
 
 func roll_rarity(is_boss: bool) -> int:
 	var r := randf()
@@ -494,11 +566,20 @@ func generate_module(base_id: String, rarity: int, zone_diff: int) -> String:
 	var affixes := {}
 	for i in n:
 		affixes[pool[i]] = randf_range(AFFIX_DB[pool[i]]["range"][0], AFFIX_DB[pool[i]]["range"][1])
+	# Sockets: Unique = 3, Legendary = 1-3, Rare = 30% chance of 1.
+	var sockets := []
+	if rarity == 4:
+		sockets = [null, null, null]
+	elif rarity == 3:
+		for _i in randi() % 3 + 1:
+			sockets.append(null)
+	elif rarity == 2 and randf() < 0.3:
+		sockets = [null]
 	var cid := "cm_%s_%d_%d" % [base_id, Time.get_ticks_msec(), randi() % 100000]
 	custom_modules[cid] = {
 		"name": "%s (%s)" % [base.get("name", base_id), RARITY_LABEL[rarity]],
 		"slot": slot, "stats": stats, "desc": base.get("desc", ""),
-		"rarity": rarity, "affixes": affixes, "base": base_id,
+		"rarity": rarity, "affixes": affixes, "base": base_id, "sockets": sockets,
 	}
 	module_inventory[cid] = int(module_inventory.get(cid, 0)) + 1
 	return cid
@@ -948,6 +1029,9 @@ func _tick_combat(delta: float) -> void:
 		player_shield = minf(maxsh, player_shield + float(ss.get("shield_regen", 0.0)) * delta)
 	if enemy_inst["shield"] < enemy_inst["max_shield"]:
 		enemy_inst["shield"] = minf(enemy_inst["max_shield"], enemy_inst["shield"] + minf(enemy_inst["max_shield"] * 0.01, 50.0) * delta)
+	# Set bonus: Patient Zero's Strain — hull regen during combat
+	if has_set_bonus("patient_zero") and combat_hp < combat_max_hp():
+		combat_hp = minf(combat_max_hp(), combat_hp + combat_max_hp() * 0.015 * delta)
 	# Player weapons fire on their own intervals (Heat-Sync Focus boosts rate when hot)
 	var fire_sf := 1.0
 	if player_heat >= MAX_HEAT * 0.4:
@@ -962,7 +1046,8 @@ func _tick_combat(delta: float) -> void:
 			if active_type != "combat":
 				return
 	# Enemy fires on its interval
-	_enemy_timer += delta
+	# Set bonus: Cryo-Lord's Chill — enemies attack 15% slower
+	_enemy_timer += delta * (0.85 if has_set_bonus("cryo") else 1.0)
 	var eguard := 0
 	while _enemy_timer >= float(enemy_inst["interval"]) and eguard < 20:
 		eguard += 1
@@ -1071,6 +1156,14 @@ func _enemy_fire(ss: Dictionary) -> void:
 		_event("DODGE", "9aa7c2", "player")
 		return
 	var res := resolve_damage(float(enemy_inst["atk"]), 0.0, 0.0, player_shield, float(ss.get("def", 0.0)), _combat_difficulty(), 0.05)
+	# Set bonus: Sovereign's Prism — 15% chance to reflect all incoming damage
+	if has_set_bonus("sovereign") and randf() < 0.15:
+		var refl: float = res[0] + res[1]
+		enemy_inst["hp"] -= refl
+		_event("REFLECT %d" % int(refl), "ff44cc", "enemy")
+		if enemy_inst["hp"] <= 0.0:
+			_win_combat()
+		return
 	player_shield = maxf(0.0, player_shield - res[0])
 	combat_hp -= res[1]
 	if res[0] > 0:
@@ -1130,6 +1223,24 @@ func _win_combat() -> void:
 			var cid := generate_module(base_id, rarity, _combat_difficulty())
 			if cid != "":
 				_event("%s DROP" % (RARITY_LABEL[rarity] if rarity > 0 else "MODULE").to_upper(), RARITY_COLOR.get(rarity, "b78ae8"), "enemy")
+	# Set-piece drop: bosses drop their themed set pieces (8% chance).
+	for sn in GameData.SETS:
+		var sd: Dictionary = GameData.SETS[sn]
+		if sd.get("boss", "") == active_id and randf() < 0.08:
+			var pieces: Array = sd.get("pieces", [])
+			if not pieces.is_empty():
+				_grant_set_piece(pieces[randi() % pieces.size()])
+				_event("SET PIECE!", "ff44cc", "enemy")
+			break
+	# Gem drop (rare; quality scales with zone difficulty).
+	if randf() < 0.03:
+		var diff := _combat_difficulty()
+		var tier := "Cracked" if diff < 4 else ("Stable" if diff < 8 else "Pristine")
+		var colors := ["Crimson", "Cobalt", "Topaz", "Amethyst"]
+		var gid := "%s%sCore" % [tier, colors[randi() % colors.size()]]
+		if GameData.GEMS.has(gid):
+			add_resource(gid, 1)
+			_event("GEM: " + GameData.GEMS[gid]["name"], "3a9fff", "enemy")
 	_spawn_enemy_inst(active_id)   # auto re-engage (idle farming)
 
 func _lose_combat() -> void:
