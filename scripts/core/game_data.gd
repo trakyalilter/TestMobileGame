@@ -742,7 +742,8 @@ const MISSIONS := {
 	"m002": {"name": "Analytical Breakthrough", "desc": "Research 'Basic Engineering' to unlock refining.", "type": "research", "target": "basic_engineering", "qty": 1, "cr": 300, "xp": 50, "next": "m002b"},
 	"m002b": {"name": "Applied Physics", "desc": "Research the 'Applied Physics' hub.", "type": "research", "target": "applied_physics", "qty": 1, "cr": 300, "xp": 100, "next": "m003"},
 	"m003": {"name": "Pump Master", "desc": "Research 'Fluid Dynamics' to unlock water collection.", "type": "research", "target": "fluid_dynamics", "qty": 1, "cr": 300, "xp": 50, "next": "m004"},
-	"m004": {"name": "Hydration", "desc": "Gather 350 units of Water.", "type": "gather", "target": "Water", "qty": 350, "cr": 500, "xp": 100, "next": "m007"},
+	"m004": {"name": "Hydration", "desc": "Gather 350 units of Water.", "type": "gather", "target": "Water", "qty": 350, "cr": 500, "xp": 100, "next": "m005"},
+	"m005": {"name": "Mineral Washing", "desc": "Recover 75 Silicon and 75 Iron from Dirt.", "type": "gather_multi", "target": {"Si": 75, "Fe": 75}, "qty": 150, "cr": 1000, "xp": 200, "next": "m007"},
 	"m007": {"name": "Mobility Check", "desc": "Craft 'Ion Thrusters' in the Shipyard.", "type": "craft", "target": "basic_thruster", "qty": 1, "cr": 1000, "xp": 100, "next": "m008"},
 	"m008": {"name": "Materials Science", "desc": "Research the 'Materials Science' hub.", "type": "research", "target": "materials_science", "qty": 1, "cr": 300, "xp": 100, "next": "m009"},
 	"m009": {"name": "Deforestation", "desc": "Gather 100 units of Wood.", "type": "gather", "target": "Wood", "qty": 100, "cr": 500, "xp": 100, "next": "m010"},
@@ -761,7 +762,8 @@ const MISSIONS := {
 	"m021": {"name": "Industrial Energy", "desc": "Craft 5 Basic Batteries in the Engineering tab.", "type": "gather", "target": "BatteryT1", "qty": 5, "cr": 1000, "xp": 100, "next": "m022"},
 	"m022": {"name": "Power Storage", "desc": "Craft a 'Basic Battery Module' in the Shipyard.", "type": "craft", "target": "battery_t1", "qty": 1, "cr": 1500, "xp": 150, "next": "m014"},
 	"m023": {"name": "Hull Integrity", "desc": "Research 'Energy Fields' to unlock shielding.", "type": "research", "target": "energy_shields", "qty": 1, "cr": 1000, "xp": 150, "next": "m024"},
-	"m024": {"name": "Aegis System", "desc": "Craft a 'Deflector Shield' for protection.", "type": "craft", "target": "basic_shield", "qty": 1, "cr": 2500, "xp": 200, "next": "m017"},
+	"m024": {"name": "Aegis System", "desc": "Craft a 'Deflector Shield' for protection.", "type": "craft", "target": "basic_shield", "qty": 1, "cr": 2500, "xp": 200, "next": "m016b"},
+	"m016b": {"name": "Combat Ready", "desc": "Equip a Weapon and a Shield in the Ship Designer.", "type": "loadout_check", "target": "combat_ready", "qty": 1, "cr": 300, "xp": 100, "next": "m017"},
 	"m025": {"name": "Refining Mastery", "desc": "Research 'Efficient Smelting' for alloys.", "type": "research", "target": "smelting", "qty": 1, "cr": 15000, "xp": 500, "next": "m026"},
 	"m026": {"name": "Master Constructor", "desc": "Research 'Shipwright I' for hull reinforcement.", "type": "research", "target": "shipwright_1", "qty": 1, "cr": 5000, "xp": 500, "next": "m026b"},
 	"m026b": {"name": "Fleet Modernization I", "desc": "Construct an 'Industrial Frigate' in the Shipyard.", "type": "construct", "target": "frigate_hull", "qty": 1, "cr": 10000, "xp": 1000, "next": "m027"},
@@ -782,7 +784,7 @@ const MISSIONS := {
 	"m033c": {"name": "Titan Construction", "desc": "Construct a 'Dreadnought' in the Shipyard.", "type": "construct", "target": "dreadnought_hull", "qty": 1, "cr": 1000000, "xp": 50000, "next": "m034"},
 	"m034": {"name": "Gamma Sector Control", "desc": "Defeat 3 Gamma Colossus in Sector Gamma to finalize supremacy.", "type": "defeat", "target": "gamma_colossus", "qty": 3, "cr": 300000, "xp": 50000, "next": ""},
 }
-const MISSION_ORDER := ["m001", "m002", "m002b", "m003", "m004", "m007", "m008", "m009", "m010", "m011", "m012", "m013", "m014", "m015", "m016", "m017", "m018", "m018b", "m019", "m020", "m021", "m022", "m023", "m024", "m025", "m026", "m026b", "m027", "m028", "m029", "m029b", "m030", "m030b", "m030c", "m031", "m032", "m032b", "m032d", "m032c", "m033", "m033b", "m033c", "m034"]
+const MISSION_ORDER := ["m001", "m002", "m002b", "m003", "m004", "m005", "m007", "m008", "m009", "m010", "m011", "m012", "m013", "m014", "m015", "m016", "m017", "m018", "m018b", "m019", "m020", "m021", "m022", "m023", "m024", "m016b", "m025", "m026", "m026b", "m027", "m028", "m029", "m029b", "m030", "m030b", "m030c", "m031", "m032", "m032b", "m032d", "m032c", "m033", "m033b", "m033c", "m034"]
 
 func res_name(sym: String) -> String:
 	return RESOURCES.get(sym, {}).get("name", sym)

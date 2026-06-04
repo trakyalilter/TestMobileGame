@@ -1345,7 +1345,35 @@ func _mission_repair() -> void:
 		missions_changed.emit()
 
 func mission_completed(mid: String) -> bool:
-	return int(missions_progress.get(mid, 0)) >= int(GameData.MISSIONS.get(mid, {}).get("qty", 1))
+	var m: Dictionary = GameData.MISSIONS.get(mid, {})
+	match m.get("type", ""):
+		"gather_multi":               # need N of each material at once (inventory-based)
+			return multi_have(m) >= int(m.get("qty", 1))
+		"loadout_check":              # ship has a weapon + a shield equipped
+			return is_combat_ready()
+	return int(missions_progress.get(mid, 0)) >= int(m.get("qty", 1))
+
+## Summed inventory progress toward a gather_multi mission's per-material goals.
+func multi_have(m: Dictionary) -> int:
+	var p := 0
+	var tgt = m.get("target", {})
+	if tgt is Dictionary:
+		for s in tgt:
+			p += mini(amount(s), int(tgt[s]))
+	return p
+
+func is_combat_ready() -> bool:
+	var has_w := false
+	var has_s := false
+	for k in loadout:
+		var st: String = module_def(loadout[k]).get("slot", "")
+		if st == "weapon":
+			has_w = true
+		elif st == "shield":
+			has_s = true
+	if not has_s and ship_stats().get("shield", 0.0) > 0.0:
+		has_s = true
+	return has_w and has_s
 
 ## True once the player has started the tutorial chain (claimed or made progress).
 func has_mission_progress() -> bool:
@@ -1374,7 +1402,7 @@ func _mission_sync() -> void:
 			continue
 		var m: Dictionary = GameData.MISSIONS.get(mid, {})
 		var t: String = m.get("type", "")
-		var target: String = m.get("target", "")
+		var target = m.get("target", "")   # may be a Dictionary for gather_multi
 		var qty: int = int(m.get("qty", 1))
 		var cur: int = int(missions_progress.get(mid, 0))
 		var nv := cur

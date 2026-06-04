@@ -140,7 +140,7 @@ func _ready() -> void:
 # ============================================================ COACHING
 # Pulses the next thing to tap based on the active tutorial mission, and shows a
 # directive banner — adapted from the desktop nav-hint system to the drawer UI.
-const COACH_PAGE := {"gather": "gather", "research": "research", "craft": "ship", "construct": "ship", "build": "build", "defeat": "combat"}
+const COACH_PAGE := {"gather": "gather", "gather_multi": "craft", "research": "research", "craft": "ship", "construct": "ship", "build": "build", "defeat": "combat", "loadout_check": "ship"}
 
 func _page_label(id: String) -> String:
 	for t in NAV_ALL:
@@ -178,7 +178,8 @@ func _update_coach() -> void:
 	_coach_obj.text = "◆  OBJECTIVE: " + m.get("name", mid)
 	var claim := GameState.mission_completed(mid)
 	var page: String = COACH_PAGE.get(m.get("type", ""), "")
-	var card: String = m.get("target", "")
+	var tgt = m.get("target", "")
+	var card: String = tgt if tgt is String else ""   # gather_multi target is a Dictionary
 	if m.get("type", "") == "gather":
 		card = _gather_action_for(card)
 	var pulse: Control = null
@@ -1375,8 +1376,18 @@ func _mission_card(mid: String) -> Control:
 	panel.add_child(vb)
 	_lbl_wrap(vb, m.get("name", mid), 14, GREEN if done else C_TEXT)
 	_lbl_wrap(vb, m.get("desc", ""), 10, C_DIM)
+	var mtype: String = m.get("type", "")
 	var cur := int(GameState.missions_progress.get(mid, 0))
 	var qty := int(m.get("qty", 1))
+	if mtype == "gather_multi":
+		cur = GameState.multi_have(m)
+		for s in m.get("target", {}):
+			var need := int(m["target"][s])
+			var have := mini(GameState.amount(s), need)
+			_lbl_wrap(vb, "%s  %d / %d" % [GameData.res_name(s), have, need], 10, GREEN if have >= need else C_DIM)
+	elif mtype == "loadout_check":
+		cur = qty if done else 0
+		_lbl_wrap(vb, ("✓ Weapon + Shield equipped" if done else "Equip a Weapon and a Shield"), 10, GREEN if done else C_WARN)
 	if qty > 1:
 		var bar := ProgressBar.new()
 		bar.custom_minimum_size = Vector2(0, 7)
