@@ -117,6 +117,7 @@ func _ready() -> void:
 	if bounty_available.is_empty() and bounty_active.is_empty():
 		generate_bounty_pool()
 	_mission_init()
+	_mission_repair()
 
 func _process(delta: float) -> void:
 	_tick_active(delta)
@@ -1324,6 +1325,24 @@ func _mission_init() -> void:
 	if missions_active.is_empty() and missions_claimed.is_empty() and not GameData.MISSION_ORDER.is_empty():
 		missions_active[GameData.MISSION_ORDER[0]] = true
 	_mission_sync()
+
+## Recover a stalled tutorial chain: if there's no active mission but unclaimed
+## ones remain (e.g. an old save whose chain hit a since-fixed dead link),
+## re-activate the next unclaimed mission by walking the chain from the start.
+func _mission_repair() -> void:
+	if not missions_active.is_empty() or missions_claimed.is_empty():
+		return
+	if GameData.MISSION_ORDER.is_empty():
+		return
+	var cur: String = GameData.MISSION_ORDER[0]
+	var guard := 0
+	while cur != "" and missions_claimed.has(cur) and guard < 200:
+		guard += 1
+		cur = GameData.MISSIONS.get(cur, {}).get("next", "")
+	if cur != "" and GameData.MISSIONS.has(cur) and not missions_claimed.has(cur):
+		missions_active[cur] = true
+		_mission_sync()
+		missions_changed.emit()
 
 func mission_completed(mid: String) -> bool:
 	return int(missions_progress.get(mid, 0)) >= int(GameData.MISSIONS.get(mid, {}).get("qty", 1))
