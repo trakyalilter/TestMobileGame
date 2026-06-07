@@ -1165,11 +1165,12 @@ func _build_infra() -> void:
 	_back_header(v)
 	_skill_banner(v, "INFRASTRUCTURE", "infrastructure", BUILD)
 	var p := GameState.infra_power()
-	var e := Label.new()
-	e.text = "⚡ %d kW gen  ·  %d kW use  ·  Grid %d%%" % [int(p["gen"]), int(p["cons"]), int(float(p["eff"]) * 100.0)]
-	e.add_theme_font_size_override("font_size", _fs(11))
-	e.add_theme_color_override("font_color", Color.html(BUILD if float(p["eff"]) >= 1.0 else C_WARN))
-	v.add_child(e)
+	var eff := int(float(p["eff"]) * 100.0)
+	_stat_strip(v, [
+		["⚡ GEN", "%d kW" % int(p["gen"]), GREEN],
+		["USE", "%d kW" % int(p["cons"]), GOLD],
+		["GRID", "%d%%" % eff, BUILD if float(p["eff"]) >= 1.0 else RED],
+	])
 	_subtabs(v, GameData.BUILDING_CATS, build_cat, BUILD, func(id: String) -> void:
 		build_cat = id
 		_refresh_current())
@@ -1509,17 +1510,37 @@ func _build_ship() -> void:
 	v.add_child(nm)
 	var s := GameState.ship_stats()
 	if not s.is_empty():
-		var st := Label.new()
-		st.text = "ATK %.0f  ·  HP %.0f  ·  DEF %.0f  ·  Shield %.0f" % [s["atk"], s["hp"], s["def"], s["shield"]]
-		st.add_theme_font_size_override("font_size", _fs(11))
-		st.add_theme_color_override("font_color", Color.html(C_TEXT))
-		v.add_child(st)
-		var en := Label.new()
+		_stat_strip(v, [
+			["ATK", "%.0f" % s["atk"], RED],
+			["HP", GameData.fmt(s["hp"]), GREEN],
+			["DEF", "%.0f" % s["def"], CYAN],
+			["SHIELD", GameData.fmt(s["shield"]), "3a9fff"],
+		])
 		var over: bool = s["energy_load"] > s["energy_cap"] and s["energy_cap"] > 0.0
-		en.text = "Energy %d / %d kW%s" % [int(s["energy_load"]), int(s["energy_cap"]), "  ⚠ brownout" if over else ""]
-		en.add_theme_font_size_override("font_size", _fs(10))
-		en.add_theme_color_override("font_color", Color.html(C_WARN if over else C_DIM))
-		v.add_child(en)
+		var erow := HBoxContainer.new()
+		erow.add_theme_constant_override("separation", 8)
+		var elab := Label.new()
+		elab.text = "⚡ Energy"
+		elab.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		elab.add_theme_font_size_override("font_size", _fs(10))
+		elab.add_theme_color_override("font_color", Color.html(C_DIM))
+		erow.add_child(elab)
+		var ebar := ProgressBar.new()
+		ebar.custom_minimum_size = Vector2(0, 8)
+		ebar.show_percentage = false
+		ebar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		ebar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		ebar.max_value = maxf(1.0, float(s["energy_cap"]))
+		ebar.value = float(s["energy_load"])
+		_style_bar(ebar, RED if over else CYAN)
+		erow.add_child(ebar)
+		var eval := Label.new()
+		eval.text = "%d / %d kW%s" % [int(s["energy_load"]), int(s["energy_cap"]), "  ⚠" if over else ""]
+		eval.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		eval.add_theme_font_size_override("font_size", _fs(10))
+		eval.add_theme_color_override("font_color", Color.html(C_WARN if over else C_DIM))
+		erow.add_child(eval)
+		v.add_child(erow)
 	_subtabs(v, [{"id": "loadout", "label": "Loadout"}, {"id": "modules", "label": "Modules"}, {"id": "fittings", "label": "Fittings"}, {"id": "hulls", "label": "Hulls"}], ship_view, CYAN, func(id: String) -> void:
 		ship_view = id
 		_refresh_current())
@@ -1582,6 +1603,35 @@ func _pick_button(parent: VBoxContainer, _ignored: bool, label: String, active: 
 	b.add_theme_font_size_override("font_size", _fs(12))
 	b.pressed.connect(cb)
 	parent.add_child(b)
+
+## A wrapping row of compact stat pills: each [label, value, accent_hex].
+func _stat_strip(v: VBoxContainer, pairs: Array) -> void:
+	var fc := HFlowContainer.new()
+	fc.add_theme_constant_override("h_separation", 6)
+	fc.add_theme_constant_override("v_separation", 6)
+	for p in pairs:
+		var pill := PanelContainer.new()
+		var sb := _bordered(_mix(p[2], INSET, 0.86), _mix(p[2], LINE, 0.55), 1, 8)
+		sb.content_margin_left = 9
+		sb.content_margin_right = 9
+		sb.content_margin_top = 3
+		sb.content_margin_bottom = 3
+		pill.add_theme_stylebox_override("panel", sb)
+		var hb := HBoxContainer.new()
+		hb.add_theme_constant_override("separation", 5)
+		pill.add_child(hb)
+		var l := Label.new()
+		l.text = p[0]
+		l.add_theme_font_size_override("font_size", _fs(9))
+		l.add_theme_color_override("font_color", Color.html(C_DIM))
+		hb.add_child(l)
+		var val := Label.new()
+		val.text = str(p[1])
+		val.add_theme_font_size_override("font_size", _fs(12))
+		val.add_theme_color_override("font_color", Color.html(p[2]))
+		hb.add_child(val)
+		fc.add_child(pill)
+	v.add_child(fc)
 
 func _ship_loadout(v: VBoxContainer, h: Dictionary) -> void:
 	var slots: Array = h.get("slots", [])
