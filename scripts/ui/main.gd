@@ -73,6 +73,7 @@ var drawer_scrim: ColorRect
 var drawer_open := false
 var _ham_badge: Panel
 var _ham_btn: Button
+var _hdr_credits: Label
 var _coach_banner: PanelContainer
 var _coach_obj: Label
 var _coach_hint: Label
@@ -471,6 +472,24 @@ func _build() -> void:
 	title.add_theme_font_size_override("font_size", _fs(15))
 	title.add_theme_color_override("font_color", Color.html(CYAN))
 	hdr.add_child(title)
+	# Credits live in the header (primary currency, always visible) rather than
+	# buried in the horizontally-scrolling resource bar.
+	var cpill := PanelContainer.new()
+	cpill.add_theme_stylebox_override("panel", _bordered(_mix(GOLD, INSET, 0.82), _mix(GOLD, LINE, 0.5), 1, 10))
+	cpill.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var ch := HBoxContainer.new()
+	ch.add_theme_constant_override("separation", 4)
+	cpill.add_child(ch)
+	var cmark := Label.new()
+	cmark.text = "₡"
+	cmark.add_theme_font_size_override("font_size", _fs(15))
+	cmark.add_theme_color_override("font_color", Color.html(GOLD))
+	ch.add_child(cmark)
+	_hdr_credits = Label.new()
+	_hdr_credits.add_theme_font_size_override("font_size", _fs(15))
+	_hdr_credits.add_theme_color_override("font_color", Color.html(GOLD))
+	ch.add_child(_hdr_credits)
+	hdr.add_child(cpill)
 	topv.add_child(hdr)
 	var scroll := ScrollContainer.new()
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
@@ -2641,17 +2660,26 @@ func _connector(v: VBoxContainer) -> void:
 	v.add_child(c)
 
 func _refresh_top() -> void:
+	if is_instance_valid(_hdr_credits):
+		_hdr_credits.text = GameData.fmt(GameState.credits)
 	if res_bar == null:
 		return
 	for c in res_bar.get_children():
 		res_bar.remove_child(c)
 		c.queue_free()
-	res_bar.add_child(_chip("₡", GameData.fmt(GameState.credits), GOLD, true))
+	var any := false
 	for sym in GameData.RESOURCES:
 		var amt := GameState.amount(sym)
 		if amt <= 0:
 			continue
+		any = true
 		res_bar.add_child(_chip(GameData.res_name(sym), GameData.fmt(amt), _hex(GameData.color_for(sym)), false))
+	if not any:
+		var hint := Label.new()
+		hint.text = "No materials yet — gather to begin"
+		hint.add_theme_font_size_override("font_size", _fs(10))
+		hint.add_theme_color_override("font_color", Color.html(C_MUTED))
+		res_bar.add_child(hint)
 
 ## A rounded resource pill: colored dot + name + value.
 func _chip(name: String, value: String, accent: String, strong: bool) -> Control:
@@ -2741,7 +2769,8 @@ func _refresh_banner() -> void:
 	_banner_kind.text = kind
 	_banner_kind.add_theme_color_override("font_color", Color.html(accent))
 	_banner_name.text = nm
-	_banner_bar.modulate.a = 1.0 if t != "" else 0.0
+	_banner_name.add_theme_color_override("font_color", Color.html(C_TEXT if t != "" else C_DIM))
+	_banner_bar.visible = t != ""        # collapse the bar's row when idle (tighter header)
 	_style_bar(_banner_bar, accent)
 	if t == "":
 		_banner_time.text = ""
