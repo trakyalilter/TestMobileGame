@@ -128,6 +128,7 @@ func _ready() -> void:
 	GameState.bounty_changed.connect(_on_tick)
 	GameState.missions_changed.connect(_on_tick)
 	GameState.offline_ready.connect(_on_offline_ready)
+	GameState.action_reward.connect(_on_action_reward)
 	get_viewport().size_changed.connect(_update_safe_area)
 	call_deferred("_update_safe_area")
 	_refresh_top()
@@ -313,6 +314,30 @@ func _dismiss_welcome() -> void:
 		if GameState.pending_offline != "":
 			_show_offline(GameState.pending_offline)
 			GameState.pending_offline = "")
+
+# Floating "+N" reward feedback on action completion (game-feel juice). Shown on
+# the active loop pages so it doesn't distract when you're reading other screens.
+func _on_action_reward(text: String, accent: String) -> void:
+	if not (current in ["gather", "craft"]):
+		return
+	var holder := Control.new()
+	holder.size = Vector2(get_viewport_rect().size.x, 28)
+	holder.position = Vector2(0, 332)
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(holder)
+	var l := Label.new()
+	l.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.text = text
+	l.add_theme_font_size_override("font_size", _fs(16))
+	l.add_theme_color_override("font_color", Color.html(accent))
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.add_child(l)
+	var tw := holder.create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(holder, "position:y", 288.0, 0.85).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.tween_property(holder, "modulate:a", 0.0, 0.85).set_delay(0.12)
+	tw.chain().tween_callback(holder.queue_free)
 
 # Background-resume catch-up finished — show the same report modal as a cold launch.
 func _on_offline_ready() -> void:

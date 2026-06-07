@@ -9,6 +9,7 @@ signal research_changed
 signal action_changed
 signal missions_changed
 signal offline_ready          # emitted after a background-resume catch-up, for the UI modal
+signal action_reward(text: String, accent: String)   # floating "+N" feedback on the active page
 
 # Missions (tutorial chain)
 var missions_active: Dictionary = {}     # mid -> true
@@ -1958,10 +1959,37 @@ func _roll_loot(loot: Array, mult: float, flat: int = 0) -> void:
 			else:
 				add_resource(row[0], amt)
 
+func _loot_snapshot(items) -> Dictionary:
+	var snap := {}
+	for it in items:
+		var sym = it[0] if it is Array else it
+		snap[sym] = amount(sym)
+	return snap
+
+## Surface the single largest gain from the just-completed action as floating text.
+func _emit_reward(before: Dictionary, items) -> void:
+	var best := ""
+	var bestg := 0
+	for it in items:
+		var sym = it[0] if it is Array else it
+		if sym == "credits":
+			continue
+		var g := amount(sym) - int(before.get(sym, 0))
+		if g > bestg:
+			bestg = g
+			best = sym
+	if best != "":
+		action_reward.emit("+%s %s" % [GameData.fmt(bestg), GameData.res_name(best)], RESOURCES_COLOR(best))
+
+func RESOURCES_COLOR(sym: String) -> String:
+	return GameData.RESOURCES.get(sym, {}).get("color", "5fd585")
+
 func _complete_active() -> void:
 	if active_type == "gather":
 		var a: Dictionary = GameData.GATHER[active_id]
+		var before := _loot_snapshot(a.get("loot", []))
 		_roll_loot(a.get("loot", []), yield_mult("harvesting"), int(research_bonus("gathering_yield")))
+		_emit_reward(before, a.get("loot", []))
 		add_xp("harvesting", int(a.get("xp", 0)))
 	elif active_type == "craft":
 		var r: Dictionary = GameData.CRAFT[active_id]
@@ -1969,7 +1997,9 @@ func _complete_active() -> void:
 			stop_task()
 			return
 		spend(r.get("inputs", {}))
+		var before := _loot_snapshot(r.get("outputs", {}).keys())
 		_grant_craft_outputs(active_id, r, 1)
+		_emit_reward(before, r.get("outputs", {}).keys())
 		add_xp("fabrication", int(r.get("xp", 0)))
 
 ## Grants a recipe's outputs for `count` completions, applying the same yield
