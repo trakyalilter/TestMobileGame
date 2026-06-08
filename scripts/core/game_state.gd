@@ -9,8 +9,8 @@ signal research_changed
 signal action_changed
 signal missions_changed
 signal offline_ready          # emitted after a background-resume catch-up, for the UI modal
-signal action_reward(text: String, accent: String)   # floating "+N" feedback on the active page
 signal level_up(skill_id: String, level: int)        # skill leveled up — celebratory popup
+var _suppress_fx := false                            # mute transient juice during offline catch-up
 
 # Missions (tutorial chain)
 var missions_active: Dictionary = {}     # mid -> true
@@ -163,8 +163,10 @@ func _catch_up_offline(delta: float) -> void:
 	if delta < 5.0:
 		return
 	pending_offline = ""
+	_suppress_fx = true
 	_apply_offline(delta)
 	var infra := _offline_infra(delta)
+	_suppress_fx = false
 	if infra != "":
 		if pending_offline == "":
 			pending_offline = "Away for %s\n\n%s" % [_fmt_time(delta), infra]
@@ -333,8 +335,8 @@ func add_xp(skill_id: String, amt: int) -> void:
 	skills[skill_id] = int(skills.get(skill_id, 0)) + int(round(amt * xp_mult))
 	skills_changed.emit()
 	var after := level_of(skill_id)
-	if after > before:
-		level_up.emit(skill_id, after)
+	if after > before and not _suppress_fx:
+		level_up.emit(skill_id, after)   # not while applying offline — the report covers it
 
 func yield_mult(skill_id: String) -> float:
 	if skill_id != "harvesting":
@@ -1971,30 +1973,50 @@ func _loot_snapshot(items) -> Dictionary:
 		snap[sym] = amount(sym)
 	return snap
 
-## Surface the single largest gain from the just-completed action as floating text.
-func _emit_reward(before: Dictionary, items) -> void:
-	var best := ""
-	var bestg := 0
-	for it in items:
-		var sym = it[0] if it is Array else it
-		if sym == "credits":
-			continue
-		var g := amount(sym) - int(before.get(sym, 0))
-		if g > bestg:
-			bestg = g
-			best = sym
-	if best != "":
-		action_reward.emit("+%s %s" % [GameData.fmt(bestg), GameData.res_name(best)], RESOURCES_COLOR(best))
-
-func RESOURCES_COLOR(sym: String) -> String:
-	return GameData.RESOURCES.get(sym, {}).get("color", "5fd585")
+## Glanceable production rate of the active task — the idle-appropriate readout
+## (e.g. "▲ 340 Dirt/min") shown ambiently on the active banner.
+func action_rate_text() -> String:
+	if active_type == "gather" and GameData.GATHER.has(active_id):
+		var a: Dictionary = GameData.GATHER[active_id]
+		var dur := effective_duration("gather", active_id)
+		if dur <= 0.0:
+			return ""
+		var ym := yield_mult("harvesting")
+		var best := ""
+		var bestrate := 0.0
+		for row in a.get("loot", []):
+			if row[0] == "credits":
+				continue
+			var avg := (int(row[2]) + int(row[3])) / 2.0 * float(row[1])
+			var rate := avg * ym / dur * 60.0
+			if rate > bestrate:
+				bestrate = rate
+				best = row[0]
+		if best == "":
+			return ""
+		return "▲ %s %s/min" % [GameData.fmt(int(bestrate)), GameData.res_name(best)]
+	elif active_type == "craft" and GameData.CRAFT.has(active_id):
+		var r: Dictionary = GameData.CRAFT[active_id]
+		var dur := effective_duration("craft", active_id)
+		if dur <= 0.0:
+			return ""
+		var eff := research_efficiency_mult()
+		var best := ""
+		var bestrate := 0.0
+		for sym in r.get("outputs", {}):
+			var rate := float(r["outputs"][sym]) * eff / dur * 60.0
+			if rate > bestrate:
+				bestrate = rate
+				best = sym
+		if best == "":
+			return ""
+		return "▲ %s %s/min" % [GameData.fmt(int(bestrate)), GameData.res_name(best)]
+	return ""
 
 func _complete_active() -> void:
 	if active_type == "gather":
 		var a: Dictionary = GameData.GATHER[active_id]
-		var before := _loot_snapshot(a.get("loot", []))
 		_roll_loot(a.get("loot", []), yield_mult("harvesting"), int(research_bonus("gathering_yield")))
-		_emit_reward(before, a.get("loot", []))
 		add_xp("harvesting", int(a.get("xp", 0)))
 	elif active_type == "craft":
 		var r: Dictionary = GameData.CRAFT[active_id]
@@ -2002,9 +2024,7 @@ func _complete_active() -> void:
 			stop_task()
 			return
 		spend(r.get("inputs", {}))
-		var before := _loot_snapshot(r.get("outputs", {}).keys())
 		_grant_craft_outputs(active_id, r, 1)
-		_emit_reward(before, r.get("outputs", {}).keys())
 		add_xp("fabrication", int(r.get("xp", 0)))
 
 ## Grants a recipe's outputs for `count` completions, applying the same yield
@@ -2213,8 +2233,10 @@ func load_game() -> void:
 	_mission_sync()   # reconcile active missions with already-satisfied state on load
 	var last := float(data.get("time", Time.get_unix_time_from_system()))
 	var away := Time.get_unix_time_from_system() - last
+	_suppress_fx = true
 	_apply_offline(away)
 	var infra_report := _offline_infra(away)   # buildings keep producing while away
+	_suppress_fx = false
 	if infra_report != "":
 		if pending_offline == "":
 			pending_offline = "Away for %s\n\n%s" % [_fmt_time(away), infra_report]

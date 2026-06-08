@@ -128,7 +128,6 @@ func _ready() -> void:
 	GameState.bounty_changed.connect(_on_tick)
 	GameState.missions_changed.connect(_on_tick)
 	GameState.offline_ready.connect(_on_offline_ready)
-	GameState.action_reward.connect(_on_action_reward)
 	GameState.level_up.connect(_on_level_up)
 	get_viewport().size_changed.connect(_update_safe_area)
 	call_deferred("_update_safe_area")
@@ -316,36 +315,13 @@ func _dismiss_welcome() -> void:
 			_show_offline(GameState.pending_offline)
 			GameState.pending_offline = "")
 
-# Floating "+N" reward feedback on action completion (game-feel juice). Shown on
-# the active loop pages so it doesn't distract when you're reading other screens.
-func _on_action_reward(text: String, accent: String) -> void:
-	if not (current in ["gather", "craft"]):
-		return
-	var holder := Control.new()
-	holder.size = Vector2(get_viewport_rect().size.x, 28)
-	holder.position = Vector2(0, 332)
-	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(holder)
-	var l := Label.new()
-	l.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	l.text = text
-	l.add_theme_font_size_override("font_size", _fs(16))
-	l.add_theme_color_override("font_color", Color.html(accent))
-	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	holder.add_child(l)
-	var tw := holder.create_tween()
-	tw.set_parallel(true)
-	tw.tween_property(holder, "position:y", 288.0, 0.85).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tw.tween_property(holder, "modulate:a", 0.0, 0.85).set_delay(0.12)
-	tw.chain().tween_callback(holder.queue_free)
-
 const SKILL_TITLE := {"harvesting": "HARVESTING", "fabrication": "ENGINEERING", "combat": "COMBAT", "infrastructure": "INFRASTRUCTURE"}
 
 # Milestone celebration: a centered "LEVEL UP" badge with a scale-pop + fade.
 func _on_level_up(skill_id: String, level: int) -> void:
 	var accent: String = DOMAIN.get({"harvesting": "gather", "fabrication": "craft", "combat": "combat", "infrastructure": "build"}.get(skill_id, ""), GOLD)
 	_celebrate("⬆  LEVEL UP", "%s  Lv %d" % [SKILL_TITLE.get(skill_id, skill_id.to_upper()), level], accent)
+	_refresh_banner()   # yield/rate changed
 
 ## Reusable centered celebration badge (scale-pop + hold + fade-up).
 func _celebrate(title: String, subtitle: String, accent: String) -> void:
@@ -2884,6 +2860,11 @@ func _refresh_banner() -> void:
 	_banner_icon.text = icon
 	_banner_icon.add_theme_color_override("font_color", Color.html(accent))
 	_banner_chip.add_theme_stylebox_override("panel", _bordered(_mix(accent, INSET, 0.8), accent, 1, 10))
+	# Ambient idle readout: the production rate, not a popup per cycle.
+	if t != "":
+		var rate := GameState.action_rate_text()
+		if rate != "":
+			kind += "      " + rate
 	_banner_kind.text = kind
 	_banner_kind.add_theme_color_override("font_color", Color.html(accent))
 	_banner_name.text = nm
