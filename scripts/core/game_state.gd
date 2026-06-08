@@ -2002,9 +2002,14 @@ func _loot_snapshot(items) -> Dictionary:
 ## Glanceable production rate of the active task — the idle-appropriate readout
 ## (e.g. "▲ 340 Dirt/min") shown ambiently on the active banner.
 func action_rate_text() -> String:
-	if active_type == "gather" and GameData.GATHER.has(active_id):
-		var a: Dictionary = GameData.GATHER[active_id]
-		var dur := effective_duration("gather", active_id)
+	return rate_text(active_type, active_id)
+
+## Production rate of any gather/craft action (dominant output per minute), so
+## cards can show it before you start — lets idle players compare actions.
+func rate_text(type: String, id: String) -> String:
+	if type == "gather" and GameData.GATHER.has(id):
+		var a: Dictionary = GameData.GATHER[id]
+		var dur := effective_duration("gather", id)
 		if dur <= 0.0:
 			return ""
 		var ym := yield_mult("harvesting")
@@ -2021,9 +2026,9 @@ func action_rate_text() -> String:
 		if best == "":
 			return ""
 		return "▲ %s %s/min" % [GameData.fmt(int(bestrate)), GameData.res_name(best)]
-	elif active_type == "craft" and GameData.CRAFT.has(active_id):
-		var r: Dictionary = GameData.CRAFT[active_id]
-		var dur := effective_duration("craft", active_id)
+	elif type == "craft" and GameData.CRAFT.has(id):
+		var r: Dictionary = GameData.CRAFT[id]
+		var dur := effective_duration("craft", id)
 		if dur <= 0.0:
 			return ""
 		var eff := research_efficiency_mult()
@@ -2038,6 +2043,30 @@ func action_rate_text() -> String:
 			return ""
 		return "▲ %s %s/min" % [GameData.fmt(int(bestrate)), GameData.res_name(best)]
 	return ""
+
+## Per-building production rate (dominant yield/min at the given/current count).
+func building_rate_text(bid: String) -> String:
+	var d: Dictionary = GameData.BUILDINGS.get(bid, {})
+	var yld: Dictionary = d.get("yield", {})
+	if yld.is_empty():
+		return ""
+	var n := maxi(1, building_count(bid))     # owned count, or a per-1 preview
+	var ei: float = maxf(0.05, float(d.get("interval", 1.0)) / _infra_skill_speed())
+	var gyb := _global_yield_bonus()
+	var eng_scaled := ["auto_smelter", "hydro_plant", "industrial_centrifuge", "munitions_factory"]
+	var best := ""
+	var bestrate := 0.0
+	for sym in yld:
+		var per := float(yld[sym]) * n * (1.0 + float(gyb.get(sym, 0.0))) * warp_production_mult()
+		if bid in eng_scaled:
+			per *= 1.0 + (log(1.0 + level_of("fabrication")) / log(10.0)) * 5.0
+		var rate := per * (60.0 / ei)
+		if rate > bestrate:
+			bestrate = rate
+			best = sym
+	if best == "":
+		return ""
+	return "▲ %s %s/min" % [GameData.fmt(int(bestrate)), GameData.res_name(best)]
 
 func _complete_active() -> void:
 	if active_type == "gather":

@@ -865,11 +865,14 @@ func _build_gather() -> void:
 func _gather_card(id: String, a: Dictionary) -> Control:
 	var unlocked := GameState.meets_requirements(a, "harvesting")
 	var active := (GameState.active_type == "gather" and GameState.active_id == id)
-	var v := _card(GOLD, unlocked or active, 238)
+	var v := _card(GOLD, unlocked or active, 262)
 	v.get_parent().set_meta("coach_id", id)
 	_card_head(v, "↑", a["name"], "Lv %d" % int(a.get("level_req", 1)), GOLD, unlocked)
 	if unlocked:
 		_inset(v, "YIELD", _loot_lines(a.get("loot", [])), GOLD)
+		var rt := GameState.rate_text("gather", id)
+		if rt != "":
+			_clbl(v, rt, 10, GREEN)
 		_action_controls(v, "gather", id, active, GOLD)
 	else:
 		_locked(v, a, "harvesting")
@@ -897,7 +900,7 @@ func _craft_card(id: String, r: Dictionary) -> Control:
 	var unlocked := GameState.meets_requirements(r, "fabrication")
 	var active := (GameState.active_type == "craft" and GameState.active_id == id)
 	var affordable := GameState.can_afford(r.get("inputs", {}))
-	var v := _card(CYAN, unlocked or active, 248)
+	var v := _card(CYAN, unlocked or active, 272)
 	v.get_parent().set_meta("coach_id", id)
 	_card_head(v, "⚙", r["name"], "Lv %d" % int(r.get("level_req", 1)), CYAN, unlocked)
 	if unlocked:
@@ -917,6 +920,9 @@ func _craft_card(id: String, r: Dictionary) -> Control:
 		for row in r.get("bonus", []):
 			out_lines.append(_line("+%d%% %s" % [int(float(row[1]) * 100.0), GameData.res_name(row[0])], _hex(GameData.color_for(row[0]))))
 		_inset(v, "OUTPUT", out_lines, CYAN, true)
+		var rt := GameState.rate_text("craft", id)
+		if rt != "":
+			_clbl(v, rt, 10, GREEN)
 		if active or affordable:
 			_action_controls(v, "craft", id, active, CYAN)
 		else:
@@ -1270,6 +1276,9 @@ func _building_card(bid: String, d: Dictionary) -> Control:
 		eff_lines.append(_line("-%d kW" % int(d["energy_cons"]), C_WARN))
 	if not eff_lines.is_empty():
 		_inset(v, "PER UNIT / %.0fs" % float(d.get("interval", 1.0)), eff_lines, BUILD)
+	var brt := GameState.building_rate_text(bid)
+	if brt != "":
+		_clbl(v, brt, 10, GREEN if count > 0 else C_DIM)
 	# Throttle (any owned building — scales production and energy)
 	if count > 0:
 		var th := GameState.get_throttle(bid)
