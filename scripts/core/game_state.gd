@@ -476,6 +476,32 @@ func avg_player_dps() -> float:
 func combat_attack() -> float:
 	return avg_player_dps()
 
+## Idle combat preview for an enemy: time-to-kill + whether you can win/farm it.
+func combat_preview(eid: String) -> Dictionary:
+	var e: Dictionary = GameData.ENEMIES.get(eid, {})
+	if e.is_empty():
+		return {}
+	var diff := 1
+	for z in GameData.ZONES:
+		if eid in z.get("enemies", []):
+			diff = int(z.get("difficulty", 1))
+			break
+	var k := maxf(20.0, float(diff) * 50.0)
+	var raw_dps := avg_player_dps()
+	var pdps := maxf(0.001, raw_dps * (1.0 - float(e.get("def", 0)) / (float(e.get("def", 0)) + k)))
+	var ehp := float(e.get("hp", 10)) + float(e.get("max_shield", 0))
+	var ttk := ehp / pdps
+	var pdef := float(ship_stats().get("def", 0.0))
+	var edps := float(e.get("atk", 0)) / maxf(0.5, float(e.get("interval", 2.5))) * (1.0 - pdef / (pdef + k))
+	var sustain := combat_max_hp() * HP_REGEN + float(ship_stats().get("shield_regen", 0.0))
+	var self_ehp := combat_max_hp() + player_max_shield()
+	return {
+		"has_weapon": raw_dps > 0.0,
+		"ttk": ttk,
+		"win": edps * ttk < self_ehp,        # survive a single kill
+		"farmable": edps <= sustain,         # can farm indefinitely (regen outpaces incoming)
+	}
+
 # ---------------- Shipyard ----------------
 func _afford_cost(cost: Dictionary) -> bool:
 	for sym in cost:

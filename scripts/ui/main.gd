@@ -1014,6 +1014,29 @@ func _enemy_card(id: String, e: Dictionary) -> Control:
 		stats.insert(1, _line("Shield %s" % GameData.fmt(e["max_shield"]), CYAN))
 	_inset(v, "TARGET", stats, RED)
 	_inset(v, "SALVAGE", _loot_lines(e.get("loot", [])), RED)
+	# Idle combat preview: can you win/farm this, and how fast?
+	var pv := GameState.combat_preview(id)
+	if not pv.is_empty():
+		var ptxt := ""
+		var pcol := ""
+		if not pv["has_weapon"]:
+			ptxt = "⚠ Equip a weapon"
+			pcol = C_WARN
+		elif pv["farmable"]:
+			ptxt = "✓ Farmable · ~%ds/kill" % int(ceil(pv["ttk"]))
+			pcol = GREEN
+		elif pv["win"]:
+			ptxt = "◐ Winnable · ~%ds/kill" % int(ceil(pv["ttk"]))
+			pcol = GOLD
+		else:
+			ptxt = "✗ Too strong"
+			pcol = RED
+		var pl := Label.new()
+		pl.text = ptxt
+		pl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		pl.add_theme_font_size_override("font_size", _fs(10))
+		pl.add_theme_color_override("font_color", Color.html(pcol))
+		v.add_child(pl)
 	var spacer := Control.new()
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	v.add_child(spacer)
