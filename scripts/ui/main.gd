@@ -345,6 +345,10 @@ const SKILL_TITLE := {"harvesting": "HARVESTING", "fabrication": "ENGINEERING", 
 # Milestone celebration: a centered "LEVEL UP" badge with a scale-pop + fade.
 func _on_level_up(skill_id: String, level: int) -> void:
 	var accent: String = DOMAIN.get({"harvesting": "gather", "fabrication": "craft", "combat": "combat", "infrastructure": "build"}.get(skill_id, ""), GOLD)
+	_celebrate("⬆  LEVEL UP", "%s  Lv %d" % [SKILL_TITLE.get(skill_id, skill_id.to_upper()), level], accent)
+
+## Reusable centered celebration badge (scale-pop + hold + fade-up).
+func _celebrate(title: String, subtitle: String, accent: String) -> void:
 	var holder := Control.new()
 	holder.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
 	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -352,22 +356,22 @@ func _on_level_up(skill_id: String, level: int) -> void:
 	add_child(holder)
 	var pill := PanelContainer.new()
 	pill.add_theme_stylebox_override("panel", _card_style(_mix(accent, BG_BOT, 0.45), accent, 2, true))
-	pill.position = Vector2(-130, -40)
-	pill.custom_minimum_size = Vector2(260, 0)
+	pill.position = Vector2(-140, -40)
+	pill.custom_minimum_size = Vector2(280, 0)
 	holder.add_child(pill)
 	var vb := VBoxContainer.new()
 	vb.alignment = BoxContainer.ALIGNMENT_CENTER
 	vb.add_theme_constant_override("separation", 2)
 	pill.add_child(vb)
-	_wlabel(vb, "⬆  LEVEL UP", 13, accent)
-	_wlabel(vb, "%s  Lv %d" % [SKILL_TITLE.get(skill_id, skill_id.to_upper()), level], 18, C_TEXT)
+	_wlabel(vb, title, 13, accent)
+	_wlabel(vb, subtitle, 18, C_TEXT)
 	holder.pivot_offset = Vector2.ZERO
 	holder.scale = Vector2(0.7, 0.7)
 	holder.modulate.a = 0.0
 	var tw := holder.create_tween()
 	tw.tween_property(holder, "scale", Vector2(1.0, 1.0), 0.22).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tw.parallel().tween_property(holder, "modulate:a", 1.0, 0.18)
-	tw.tween_interval(0.9)
+	tw.tween_interval(1.0)
 	tw.tween_property(holder, "modulate:a", 0.0, 0.4)
 	tw.parallel().tween_property(holder, "position:y", -28.0, 0.4).as_relative()
 	tw.tween_callback(holder.queue_free)
@@ -1482,7 +1486,10 @@ func _mission_card(mid: String) -> Control:
 	vb.add_child(rl)
 	if done:
 		var b := _card_button("Claim Reward", GREEN, true)
-		b.pressed.connect(func() -> void: GameState.claim_mission(mid))
+		b.pressed.connect(func() -> void:
+			var cr := int(int(m.get("cr", 0)) * GameState.warp_production_mult())
+			if GameState.claim_mission(mid):
+				_celebrate("✦  MISSION COMPLETE", "+₡%s" % GameData.fmt(cr), GREEN))
 		vb.add_child(b)
 	return panel
 
@@ -1712,9 +1719,11 @@ func _ship_loadout(v: VBoxContainer, h: Dictionary) -> void:
 		var stype: String = slots[i]
 		var key := str(i)
 		var equipped: String = GameState.loadout.get(key, "")
-		var c := _card(CYAN, equipped != "")
-		_card_head(c, "▢", GameData.SLOT_LABELS.get(stype, stype), "", CYAN, true)
-		if equipped != "":
+		var filled := equipped != ""
+		var c := _card(CYAN, filled)
+		# Filled slots read bright; empty slots are de-emphasised so equipped gear pops.
+		_card_head(c, "▣" if filled else "▢", GameData.SLOT_LABELS.get(stype, stype), "", CYAN, filled)
+		if filled:
 			var md: Dictionary = GameState.module_def(equipped)
 			var rcol: String = GameState.RARITY_COLOR.get(int(md.get("rarity", 0)), C_TEXT)
 			_clbl(c, md.get("name", equipped), 12, rcol)
@@ -1724,7 +1733,8 @@ func _ship_loadout(v: VBoxContainer, h: Dictionary) -> void:
 			b.pressed.connect(func() -> void: GameState.unequip_slot(key))
 			c.add_child(b)
 		else:
-			_clbl(c, "— empty —", 11, C_MUTED)
+			_clbl(c, "Empty", 11, C_MUTED)
+			_clbl(c, "fit from Modules ›", 9, "5d6b88")
 		g.add_child(c.get_parent())
 
 func _ship_modules(v: VBoxContainer) -> void:
