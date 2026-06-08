@@ -10,6 +10,7 @@ signal action_changed
 signal missions_changed
 signal offline_ready          # emitted after a background-resume catch-up, for the UI modal
 signal action_reward(text: String, accent: String)   # floating "+N" feedback on the active page
+signal level_up(skill_id: String, level: int)        # skill leveled up — celebratory popup
 
 # Missions (tutorial chain)
 var missions_active: Dictionary = {}     # mid -> true
@@ -328,8 +329,12 @@ func level_of(skill_id: String) -> int:
 func add_xp(skill_id: String, amt: int) -> void:
 	# Crew Quarters: +10% XP gain per building (desktop infrastructure xp_buff).
 	var xp_mult := warp_xp_mult() * (1.0 + building_count("crew_quarters") * 0.10)
+	var before := level_of(skill_id)
 	skills[skill_id] = int(skills.get(skill_id, 0)) + int(round(amt * xp_mult))
 	skills_changed.emit()
+	var after := level_of(skill_id)
+	if after > before:
+		level_up.emit(skill_id, after)
 
 func yield_mult(skill_id: String) -> float:
 	if skill_id != "harvesting":

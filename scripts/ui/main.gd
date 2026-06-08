@@ -129,6 +129,7 @@ func _ready() -> void:
 	GameState.missions_changed.connect(_on_tick)
 	GameState.offline_ready.connect(_on_offline_ready)
 	GameState.action_reward.connect(_on_action_reward)
+	GameState.level_up.connect(_on_level_up)
 	get_viewport().size_changed.connect(_update_safe_area)
 	call_deferred("_update_safe_area")
 	_refresh_top()
@@ -338,6 +339,38 @@ func _on_action_reward(text: String, accent: String) -> void:
 	tw.tween_property(holder, "position:y", 288.0, 0.85).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tw.tween_property(holder, "modulate:a", 0.0, 0.85).set_delay(0.12)
 	tw.chain().tween_callback(holder.queue_free)
+
+const SKILL_TITLE := {"harvesting": "HARVESTING", "fabrication": "ENGINEERING", "combat": "COMBAT", "infrastructure": "INFRASTRUCTURE"}
+
+# Milestone celebration: a centered "LEVEL UP" badge with a scale-pop + fade.
+func _on_level_up(skill_id: String, level: int) -> void:
+	var accent: String = DOMAIN.get({"harvesting": "gather", "fabrication": "craft", "combat": "combat", "infrastructure": "build"}.get(skill_id, ""), GOLD)
+	var holder := Control.new()
+	holder.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.z_index = 120
+	add_child(holder)
+	var pill := PanelContainer.new()
+	pill.add_theme_stylebox_override("panel", _card_style(_mix(accent, BG_BOT, 0.45), accent, 2, true))
+	pill.position = Vector2(-130, -40)
+	pill.custom_minimum_size = Vector2(260, 0)
+	holder.add_child(pill)
+	var vb := VBoxContainer.new()
+	vb.alignment = BoxContainer.ALIGNMENT_CENTER
+	vb.add_theme_constant_override("separation", 2)
+	pill.add_child(vb)
+	_wlabel(vb, "⬆  LEVEL UP", 13, accent)
+	_wlabel(vb, "%s  Lv %d" % [SKILL_TITLE.get(skill_id, skill_id.to_upper()), level], 18, C_TEXT)
+	holder.pivot_offset = Vector2.ZERO
+	holder.scale = Vector2(0.7, 0.7)
+	holder.modulate.a = 0.0
+	var tw := holder.create_tween()
+	tw.tween_property(holder, "scale", Vector2(1.0, 1.0), 0.22).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_property(holder, "modulate:a", 1.0, 0.18)
+	tw.tween_interval(0.9)
+	tw.tween_property(holder, "modulate:a", 0.0, 0.4)
+	tw.parallel().tween_property(holder, "position:y", -28.0, 0.4).as_relative()
+	tw.tween_callback(holder.queue_free)
 
 # Background-resume catch-up finished — show the same report modal as a cold launch.
 func _on_offline_ready() -> void:
