@@ -60,7 +60,7 @@ const DRAWER_W := 480.0
 
 # Global text scale — bumps every font size for phone readability without
 # touching individual call sites. Tune this one number to rescale the whole UI.
-const FONT_SCALE := 1.28
+const FONT_SCALE := 1.45
 func _fs(n: int) -> int:
 	return int(round(n * FONT_SCALE))
 
@@ -532,7 +532,7 @@ func _build() -> void:
 	var scroll := ScrollContainer.new()
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.custom_minimum_size = Vector2(0, 38)
+	scroll.custom_minimum_size = Vector2(0, 44)
 	topv.add_child(scroll)
 	res_bar = HBoxContainer.new()
 	res_bar.add_theme_constant_override("separation", 6)
@@ -645,7 +645,7 @@ func _make_drawer_item(id: String, label: String, icon: String) -> Button:
 	btn.flat = true
 	btn.focus_mode = Control.FOCUS_NONE
 	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	btn.custom_minimum_size = Vector2(0, 66)
+	btn.custom_minimum_size = Vector2(0, 74)
 	var hb := HBoxContainer.new()
 	hb.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	hb.add_theme_constant_override("separation", 14)
@@ -865,7 +865,7 @@ func _build_gather() -> void:
 func _gather_card(id: String, a: Dictionary) -> Control:
 	var unlocked := GameState.meets_requirements(a, "harvesting")
 	var active := (GameState.active_type == "gather" and GameState.active_id == id)
-	var v := _card(GOLD, unlocked or active, 262)
+	var v := _card(GOLD, unlocked or active, 300)
 	v.get_parent().set_meta("coach_id", id)
 	_card_head(v, "↑", a["name"], "Lv %d" % int(a.get("level_req", 1)), GOLD, unlocked)
 	if unlocked:
@@ -900,7 +900,7 @@ func _craft_card(id: String, r: Dictionary) -> Control:
 	var unlocked := GameState.meets_requirements(r, "fabrication")
 	var active := (GameState.active_type == "craft" and GameState.active_id == id)
 	var affordable := GameState.can_afford(r.get("inputs", {}))
-	var v := _card(CYAN, unlocked or active, 272)
+	var v := _card(CYAN, unlocked or active, 312)
 	v.get_parent().set_meta("coach_id", id)
 	_card_head(v, "⚙", r["name"], "Lv %d" % int(r.get("level_req", 1)), CYAN, unlocked)
 	if unlocked:
@@ -1944,8 +1944,8 @@ func _module_stat_lines(stats: Dictionary) -> Array:
 # ============================================================ RESEARCH
 # Faithful port of the desktop research_page graph: per-discipline tabs, each a
 # 2D canvas of positioned nodes with parent→child branch lines drawn between them.
-const RES_NODE_W := 154.0
-const RES_NODE_H := 72.0
+const RES_NODE_W := 174.0
+const RES_NODE_H := 88.0
 const RES_POS_SCALE := 1.42
 const RES_PAD := 12.0
 
@@ -2420,7 +2420,7 @@ func _storage_tile(sym: String) -> Control:
 	var rcol := _hex(GameData.color_for(sym))
 	var val: int = maxi(1, GameData.value_of(sym))
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(0, 90)
+	panel.custom_minimum_size = Vector2(0, 104)
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.add_theme_stylebox_override("panel", _bordered(_mix(rcol, SURFACE, 0.9), rcol, 1, 8))
 	panel.tooltip_text = "%s — tap to sell all for ₡%s" % [GameData.res_name(sym), GameData.fmt(amt * val)]
@@ -2462,7 +2462,7 @@ func _storage_tile(sym: String) -> Control:
 
 func _storage_slot_empty() -> Control:
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(0, 90)
+	panel.custom_minimum_size = Vector2(0, 104)
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.add_theme_stylebox_override("panel", _bordered(INSET, LINE, 1, 8))
 	var cc := CenterContainer.new()
@@ -2536,7 +2536,7 @@ func _grid(v: VBoxContainer) -> GridContainer:
 func _subtabs(v: VBoxContainer, items: Array, current_id: String, accent: String, on_select: Callable) -> void:
 	var sc := ScrollContainer.new()
 	sc.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	sc.custom_minimum_size = Vector2(0, 38)
+	sc.custom_minimum_size = Vector2(0, 44)
 	sc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var hb := HBoxContainer.new()
 	hb.add_theme_constant_override("separation", 7)
@@ -2549,7 +2549,7 @@ func _subtabs(v: VBoxContainer, items: Array, current_id: String, accent: String
 		# PASS so a horizontal drag over a tab reaches the strip's ScrollContainer
 		# (which then scrolls and cancels the tap); a clean tap still selects.
 		b.mouse_filter = Control.MOUSE_FILTER_PASS
-		b.custom_minimum_size = Vector2(0, 32)
+		b.custom_minimum_size = Vector2(0, 38)
 		b.add_theme_font_size_override("font_size", _fs(12))
 		var fill := accent if on else SURFACE_HI
 		var txt := _ideal_text(accent) if on else C_DIM
