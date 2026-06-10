@@ -76,6 +76,7 @@ var _ham_btn: Button
 var _hdr_credits: Label
 var _drift: Control
 var _drift_y := 0.0
+var _hit_flash: ColorRect
 var _coach_banner: PanelContainer
 var _coach_obj: Label
 var _coach_hint: Label
@@ -592,6 +593,13 @@ func _build() -> void:
 
 	# ---- Slide-out navigation drawer (replaces the bottom nav) ----
 	_build_drawer()
+	# Red vignette flashed when the player's hull takes a hit (combat drama).
+	_hit_flash = ColorRect.new()
+	_hit_flash.color = Color(0.95, 0.25, 0.18, 0.0)
+	_hit_flash.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_hit_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_hit_flash.z_index = 90
+	add_child(_hit_flash)
 
 func _build_drawer() -> void:
 	drawer = Control.new()
@@ -823,6 +831,24 @@ func _show(id: String) -> void:
 		_style_nav(bid, bid == id)
 	_close_drawer()
 	_refresh_current()
+	_animate_page_in(id)
+
+## Staggered fade-in of the page's top-level blocks on NAVIGATION only (tick
+## rebuilds skip this) — pages arrive instead of just appearing. Alpha-only so
+## container layout is untouched.
+func _animate_page_in(id: String) -> void:
+	var list = pages[id].find_child("List", true, false)
+	if list == null:
+		return
+	var i := 0
+	for child in list.get_children():
+		if not (child is Control) or i >= 8:
+			break
+		child.modulate.a = 0.0
+		var tw: Tween = child.create_tween()
+		tw.tween_interval(0.035 * i)
+		tw.tween_property(child, "modulate:a", 1.0, 0.16)
+		i += 1
 
 func _refresh_all() -> void:
 	_refresh_top()
@@ -1227,19 +1253,45 @@ func _spawn_popup(ev: Dictionary) -> void:
 	var anchor: Control = _enemy_anchor if ev.get("side", "enemy") == "enemy" else _player_anchor
 	if not is_instance_valid(anchor) or anchor.size.x < 20.0:
 		return
+	var is_crit: bool = String(ev["text"]).begins_with("CRIT")
 	var l := Label.new()
 	l.text = ev["text"]
-	l.add_theme_font_size_override("font_size", _fs(16))
+	l.add_theme_font_size_override("font_size", _fs(20 if is_crit else 16))
 	l.add_theme_color_override("font_color", Color.html(ev["color"]))
+	# Black outline keeps numbers readable over any art.
+	l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	l.add_theme_constant_override("outline_size", 7)
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	l.position = Vector2(clampf(randf_range(16.0, anchor.size.x - 80.0), 8.0, maxf(8.0, anchor.size.x - 70.0)), anchor.size.y * 0.35)
 	anchor.add_child(l)
+	# Scale-pop entrance (bigger for crits), then drift up and fade.
+	l.pivot_offset = Vector2(30, 12)
+	l.scale = Vector2(1.5, 1.5) if is_crit else Vector2(1.25, 1.25)
 	var tw := create_tween()
-	tw.set_parallel(true)
-	tw.tween_property(l, "position:y", l.position.y - 32.0, 0.7)
-	tw.tween_property(l, "modulate:a", 0.0, 0.7).set_delay(0.2)
-	tw.set_parallel(false)
+	tw.tween_property(l, "scale", Vector2(1.0, 1.0), 0.16).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_property(l, "position:y", l.position.y - 34.0, 0.75)
+	tw.parallel().tween_property(l, "modulate:a", 0.0, 0.75).set_delay(0.25)
 	tw.tween_callback(l.queue_free)
+	# Taking hull damage lands physically: screen nudge + red vignette flash.
+	if ev.get("side", "") == "player" and String(ev.get("color", "")) == "ef6a52":
+		_shake()
+		_flash_hit()
+
+func _shake() -> void:
+	if safe_margin == null:
+		return
+	var tw := create_tween()
+	tw.tween_property(safe_margin, "position:x", 5.0, 0.04)
+	tw.tween_property(safe_margin, "position:x", -4.0, 0.05)
+	tw.tween_property(safe_margin, "position:x", 2.0, 0.04)
+	tw.tween_property(safe_margin, "position:x", 0.0, 0.04)
+
+func _flash_hit() -> void:
+	if _hit_flash == null:
+		return
+	_hit_flash.color = Color(0.95, 0.25, 0.18, 0.14)
+	var tw := create_tween()
+	tw.tween_property(_hit_flash, "color:a", 0.0, 0.30)
 
 func _mk_bar(parent: VBoxContainer, accent: String, h: int) -> ProgressBar:
 	var b := ProgressBar.new()
