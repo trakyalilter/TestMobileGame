@@ -74,6 +74,8 @@ var drawer_open := false
 var _ham_badge: Panel
 var _ham_btn: Button
 var _hdr_credits: Label
+var _drift: Control
+var _drift_y := 0.0
 var _coach_banner: PanelContainer
 var _coach_obj: Label
 var _coach_hint: Label
@@ -391,6 +393,13 @@ func _update_safe_area() -> void:
 	safe_margin.add_theme_constant_override("margin_bottom", maxi(bottom, 0))
 
 func _process(_delta: float) -> void:
+	# Ambient starfield drift + twinkle (very slow; reads as a living sky).
+	if is_instance_valid(_drift):
+		_drift_y += _delta * 5.0
+		if _drift_y >= 1280.0:
+			_drift_y -= 1280.0
+		_drift.position.y = _drift_y
+		_drift.modulate.a = 0.62 + 0.30 * sin(Time.get_ticks_msec() / 1000.0 * 0.7)
 	if GameState.active_type != "":
 		var dur := GameState.current_duration()
 		if dur > 0.0:
@@ -466,6 +475,18 @@ func _build() -> void:
 	bg.stretch_mode = TextureRect.STRETCH_SCALE
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(bg)
+	# Ambient motion: a sparse star layer drifting slowly downward, twinkling.
+	_drift = Control.new()
+	_drift.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_drift)
+	for off in [-1280.0, 0.0]:
+		var layer := TextureRect.new()
+		layer.texture = _star_layer_tex()
+		layer.position = Vector2(0, off)
+		layer.size = Vector2(720, 1280)
+		layer.stretch_mode = TextureRect.STRETCH_SCALE
+		layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_drift.add_child(layer)
 	safe_margin = MarginContainer.new()
 	safe_margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(safe_margin)
@@ -595,7 +616,19 @@ func _build_drawer() -> void:
 	drawer_panel.offset_bottom = 0
 	drawer_panel.offset_left = -DRAWER_W
 	drawer_panel.offset_right = 0
+	drawer_panel.clip_contents = true
 	drawer.add_child(drawer_panel)
+	# The drawer lives in the same universe — starfield under a dark scrim.
+	var dbg := TextureRect.new()
+	dbg.texture = _space_tex()
+	dbg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	dbg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	dbg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	drawer_panel.add_child(dbg)
+	var dtint := ColorRect.new()
+	dtint.color = Color(0.05, 0.08, 0.15, 0.78)
+	dtint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	drawer_panel.add_child(dtint)
 
 	var m := MarginContainer.new()
 	for side in ["left", "right", "top", "bottom"]:
@@ -2745,6 +2778,22 @@ func _skill_banner(v: VBoxContainer, title: String, skill_id: String, accent: St
 	var pct: float = 100.0 if next <= base else float(cur - base) / float(next - base) * 100.0
 	var panel := PanelContainer.new()
 	panel.add_theme_stylebox_override("panel", _card_style(_mix(accent, SURFACE, 0.88), _mix(accent, LINE, 0.4), 1, true))
+	# Oversized watermark glyph behind the content — page identity at a glance.
+	var wm_glyph: String = {"harvesting": "↑", "fabrication": "⚙", "combat": "◎", "infrastructure": "⌂"}.get(skill_id, "✦")
+	var wm_wrap := MarginContainer.new()
+	wm_wrap.add_theme_constant_override("margin_right", 14)
+	wm_wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var wm := Label.new()
+	wm.text = wm_glyph
+	wm.size_flags_horizontal = Control.SIZE_SHRINK_END
+	wm.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	wm.add_theme_font_size_override("font_size", _fs(44))
+	var wm_col := Color.html(accent)
+	wm_col.a = 0.12
+	wm.add_theme_color_override("font_color", wm_col)
+	wm.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	wm_wrap.add_child(wm)
+	panel.add_child(wm_wrap)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 5)
 	panel.add_child(box)
@@ -3032,6 +3081,11 @@ func _style_bar(b: ProgressBar, accent: String) -> void:
 	var fg := StyleBoxFlat.new()
 	fg.bg_color = Color.html(accent)
 	fg.set_corner_radius_all(6)
+	# Energy-glow on the fill — bars read as charged conduits.
+	var glow := Color.html(accent)
+	glow.a = 0.45
+	fg.shadow_color = glow
+	fg.shadow_size = 3
 	b.add_theme_stylebox_override("background", bg)
 	b.add_theme_stylebox_override("fill", fg)
 
@@ -3093,6 +3147,27 @@ func _grad_tex(top: String, bot: String) -> GradientTexture2D:
 	return tex
 
 var _space_cache: ImageTexture = null
+var _star_layer_cache: ImageTexture = null
+
+## Sparse transparent star layer for the slow parallax drift.
+func _star_layer_tex() -> ImageTexture:
+	if _star_layer_cache != null:
+		return _star_layer_cache
+	var w := 720
+	var h := 1280
+	var img := Image.create(w, h, false, Image.FORMAT_RGBA8)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 4242
+	for _i in range(130):
+		var x := rng.randi_range(0, w - 2)
+		var y := rng.randi_range(0, h - 2)
+		var lum := rng.randf_range(0.4, 1.0)
+		var col := Color(lum, lum, lum * 1.05, rng.randf_range(0.35, 0.8))
+		img.set_pixel(x, y, col)
+		if lum > 0.8:
+			img.set_pixel(x + 1, y, Color(col.r, col.g, col.b, col.a * 0.6))
+	_star_layer_cache = ImageTexture.create_from_image(img)
+	return _star_layer_cache
 
 ## Procedural deep-space backdrop: vertical gradient + nebula blooms + starfield.
 ## Generated once and cached — this is what makes the app read as a *game*.
