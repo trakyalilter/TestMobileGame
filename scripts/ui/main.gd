@@ -243,7 +243,7 @@ func _show_welcome() -> void:
 	_welcome.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(_welcome)
 	var bg := TextureRect.new()
-	bg.texture = _grad_tex(BG_TOP, BG_BOT)
+	bg.texture = _space_tex()
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	bg.stretch_mode = TextureRect.STRETCH_SCALE
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -461,7 +461,7 @@ func _update_badges() -> void:
 # ============================================================ SHELL
 func _build() -> void:
 	var bg := TextureRect.new()
-	bg.texture = _grad_tex(BG_TOP, BG_BOT)
+	bg.texture = _space_tex()
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	bg.stretch_mode = TextureRect.STRETCH_SCALE
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -2687,20 +2687,25 @@ func _line(text: String, color: String) -> Dictionary:
 func _card_button(text: String, accent: String, enabled: bool) -> Button:
 	var b := Button.new()
 	b.text = text
-	b.custom_minimum_size = Vector2(0, 36)
+	b.custom_minimum_size = Vector2(0, 44)
 	b.focus_mode = Control.FOCUS_NONE
 	b.disabled = not enabled
-	# Filled accent CTA with elevation; pressed state inset; disabled muted.
-	var normal := _bordered(accent if enabled else "232f48", _mix(accent, "ffffff", 0.75) if enabled else LINE, 1, 9)
+	# Chunky game CTA: darker bottom edge fakes a 3D bevel; pressing flattens the
+	# edge and nudges the label down — classic mobile-game button feel.
+	var normal := _bordered(accent if enabled else "232f48", _mix(accent, "000000", 0.45) if enabled else LINE, 1, 10)
 	if enabled:
+		normal.border_width_bottom = 4
+		normal.content_margin_bottom = 9
 		normal.shadow_color = Color(0, 0, 0, 0.35)
 		normal.shadow_size = 4
 		normal.shadow_offset = Vector2(0, 2)
-	var pressed := _bordered(_mix(accent, "000000", 0.78) if enabled else "232f48", accent if enabled else LINE, 1, 9)
+	var pressed := _bordered(_mix(accent, "000000", 0.30) if enabled else "232f48", _mix(accent, "000000", 0.45) if enabled else LINE, 1, 10)
+	if enabled:
+		pressed.content_margin_top = 9
 	b.add_theme_stylebox_override("normal", normal)
 	b.add_theme_stylebox_override("hover", normal)
 	b.add_theme_stylebox_override("pressed", pressed)
-	b.add_theme_stylebox_override("disabled", _bordered("232f48", LINE, 1, 9))
+	b.add_theme_stylebox_override("disabled", _bordered("232f48", LINE, 1, 10))
 	var tc := _ideal_text(accent) if enabled else C_MUTED
 	b.add_theme_color_override("font_color", Color.html(tc))
 	b.add_theme_color_override("font_color_hover", Color.html(tc))
@@ -2739,7 +2744,7 @@ func _skill_banner(v: VBoxContainer, title: String, skill_id: String, accent: St
 	var next := GameState.xp_for_level(lvl + 1)
 	var pct: float = 100.0 if next <= base else float(cur - base) / float(next - base) * 100.0
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", _card_style(_mix(accent, SURFACE, 0.88), _mix(accent, LINE, 0.4), 1, false))
+	panel.add_theme_stylebox_override("panel", _card_style(_mix(accent, SURFACE, 0.88), _mix(accent, LINE, 0.4), 1, true))
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 5)
 	panel.add_child(box)
@@ -2791,7 +2796,16 @@ func _section(v: VBoxContainer, text: String, accent: String) -> void:
 	l.add_theme_font_size_override("font_size", _fs(11))
 	l.add_theme_color_override("font_color", Color.html(C_DIM))
 	hb.add_child(l)
-	v.add_child(hb)
+	# Console-style framing: a faint accent rule under the title.
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 4)
+	col.add_child(hb)
+	var rule := ColorRect.new()
+	rule.color = Color(Color.html(accent), 0.25)
+	rule.custom_minimum_size = Vector2(0, 1)
+	rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(rule)
+	v.add_child(col)
 
 func _connector(v: VBoxContainer) -> void:
 	var c := CenterContainer.new()
@@ -3029,9 +3043,16 @@ func _card_style(bg: String, border: String, width := 1, elevated := false) -> S
 	s.content_margin_top = 10
 	s.content_margin_bottom = 10
 	if elevated:
-		s.shadow_color = Color(0, 0, 0, 0.40)
-		s.shadow_size = 7
-		s.shadow_offset = Vector2(0, 3)
+		# Neon glow in the card's own accent — active/unlocked content radiates.
+		var glow := Color.html(border)
+		glow.a = 0.22
+		s.shadow_color = glow
+		s.shadow_size = 9
+		s.shadow_offset = Vector2(0, 0)
+	else:
+		s.shadow_color = Color(0, 0, 0, 0.30)
+		s.shadow_size = 4
+		s.shadow_offset = Vector2(0, 2)
 	return s
 
 func _hud_style() -> StyleBoxFlat:
@@ -3070,6 +3091,74 @@ func _grad_tex(top: String, bot: String) -> GradientTexture2D:
 	tex.width = 8
 	tex.height = 256
 	return tex
+
+var _space_cache: ImageTexture = null
+
+## Procedural deep-space backdrop: vertical gradient + nebula blooms + starfield.
+## Generated once and cached — this is what makes the app read as a *game*.
+func _space_tex() -> ImageTexture:
+	if _space_cache != null:
+		return _space_cache
+	var w := 720
+	var h := 1280
+	var img := Image.create(w, h, false, Image.FORMAT_RGBA8)
+	var top := Color.html(BG_TOP)
+	var bot := Color.html(BG_BOT)
+	var band := 8
+	for y in range(0, h, band):
+		img.fill_rect(Rect2i(0, y, w, band), top.lerp(bot, float(y) / float(h)))
+	# Nebula blooms — soft radial tints in the brand colours.
+	var blobs := [
+		[Vector2i(560, 160), 460, Color(0.45, 0.30, 0.85, 0.07)],
+		[Vector2i(90, 760), 520, Color(0.20, 0.65, 0.80, 0.05)],
+		[Vector2i(420, 1180), 420, Color(0.85, 0.55, 0.25, 0.04)],
+	]
+	for bdef in blobs:
+		var bsize: int = bdef[1]
+		var grad := Gradient.new()
+		grad.set_color(0, bdef[2])
+		grad.set_color(1, Color(bdef[2].r, bdef[2].g, bdef[2].b, 0.0))
+		var rt := GradientTexture2D.new()
+		rt.gradient = grad
+		rt.fill = GradientTexture2D.FILL_RADIAL
+		rt.fill_from = Vector2(0.5, 0.5)
+		rt.fill_to = Vector2(0.5, 0.0)
+		rt.width = bsize
+		rt.height = bsize
+		var bimg := rt.get_image()
+		bimg.convert(Image.FORMAT_RGBA8)
+		img.blend_rect(bimg, Rect2i(0, 0, bsize, bsize), bdef[0] - Vector2i(bsize / 2, bsize / 2))
+	# Starfield — deterministic so every launch looks the same.
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20771
+	for _i in range(420):
+		var x := rng.randi_range(0, w - 2)
+		var y2 := rng.randi_range(0, h - 2)
+		var lum := rng.randf_range(0.25, 1.0)
+		var tint := rng.randf()
+		var col := Color(lum, lum, lum * 1.06, rng.randf_range(0.5, 1.0))
+		if tint < 0.12:
+			col = Color(lum * 0.7, lum * 0.9, lum, col.a)        # cool blue
+		elif tint > 0.92:
+			col = Color(lum, lum * 0.85, lum * 0.6, col.a)       # warm gold
+		img.set_pixel(x, y2, col)
+		if lum > 0.82:
+			img.set_pixel(x + 1, y2, Color(col.r, col.g, col.b, col.a * 0.7))
+			img.set_pixel(x, y2 + 1, Color(col.r, col.g, col.b, col.a * 0.7))
+	# A handful of hero stars with a cross flare.
+	for _j in range(7):
+		var hx := rng.randi_range(4, w - 5)
+		var hy := rng.randi_range(4, h - 5)
+		var hc := Color(1, 1, 1, 0.9)
+		img.set_pixel(hx, hy, hc)
+		for d in range(1, 3):
+			var fa := 0.45 / d
+			img.set_pixel(hx + d, hy, Color(1, 1, 1, fa))
+			img.set_pixel(hx - d, hy, Color(1, 1, 1, fa))
+			img.set_pixel(hx, hy + d, Color(1, 1, 1, fa))
+			img.set_pixel(hx, hy - d, Color(1, 1, 1, fa))
+	_space_cache = ImageTexture.create_from_image(img)
+	return _space_cache
 
 func _mix(a: String, b: String, t: float) -> String:
 	return Color.html(a).lerp(Color.html(b), t).to_html(false)
