@@ -616,7 +616,7 @@ func _build_drawer() -> void:
 	cx.text = "✕"
 	cx.flat = true
 	cx.focus_mode = Control.FOCUS_NONE
-	cx.custom_minimum_size = Vector2(36, 36)
+	cx.custom_minimum_size = Vector2(48, 48)
 	cx.add_theme_font_size_override("font_size", _fs(16))
 	cx.add_theme_color_override("font_color", Color.html(C_DIM))
 	var eb := StyleBoxEmpty.new()
@@ -1029,10 +1029,10 @@ func _enemy_card(id: String, e: Dictionary) -> Control:
 			ptxt = "⚠ Equip a weapon"
 			pcol = C_WARN
 		elif pv["farmable"]:
-			ptxt = "✓ Farmable · ~%ds/kill" % int(ceil(pv["ttk"]))
+			ptxt = "✓ Farmable · %ds / kill" % int(ceil(pv["ttk"]))
 			pcol = GREEN
 		elif pv["win"]:
-			ptxt = "◐ Winnable · ~%ds/kill" % int(ceil(pv["ttk"]))
+			ptxt = "◐ Winnable · %ds / kill" % int(ceil(pv["ttk"]))
 			pcol = GOLD
 		else:
 			ptxt = "✗ Too strong"
@@ -1743,6 +1743,16 @@ func _ship_loadout(v: VBoxContainer, h: Dictionary) -> void:
 		else:
 			_clbl(c, "Empty", 11, C_MUTED)
 			_clbl(c, "fit from Modules ›", 9, "5d6b88")
+			# Tap an empty slot to jump straight to Modules pre-filtered to this type.
+			var overlay := Button.new()
+			overlay.flat = true
+			overlay.focus_mode = Control.FOCUS_NONE
+			overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			overlay.pressed.connect(func() -> void:
+				ship_view = "modules"
+				ship_mod_slot = stype
+				_refresh_current())
+			c.get_parent().add_child(overlay)
 		g.add_child(c.get_parent())
 
 func _ship_modules(v: VBoxContainer) -> void:
@@ -2362,7 +2372,13 @@ func _build_stats() -> void:
 
 	var used := GameState.used_slots()
 	var cap := GameState.max_slots()
-	_section(v, "Storage  %d / %d slots — tap a slot to sell" % [used, cap], GOLD)
+	# Total inventory worth — the honest credit readout for a sell-driven economy.
+	var worth := 0
+	for sym in GameData.RESOURCES:
+		var amt := GameState.amount(sym)
+		if amt > 0:
+			worth += amt * maxi(1, GameData.value_of(sym))
+	_section(v, "Storage  %d / %d slots  ·  worth ₡%s — tap a slot to sell" % [used, cap, GameData.fmt(worth)], GOLD)
 	# Slot-by-slot grid (like the desktop inventory): owned materials fill tiles
 	# left-to-right, padded with empty slots up to the current capacity.
 	var owned := []
