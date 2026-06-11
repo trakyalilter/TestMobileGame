@@ -358,7 +358,7 @@ func ship_stats() -> Dictionary:
 	var h: Dictionary = GameData.HULLS[active_hull]
 	var s := {"atk": 0.0, "hp": float(h.get("hp", 100)), "def": 0.0, "shield": 0.0,
 		"energy_cap": float(h.get("energy_capacity", 0)), "energy_load": 0.0,
-		"acc": 15.0, "eva": 0.0, "crit": 0.05, "shield_regen": 0.0}
+		"acc": 100.0, "eva": 0.0, "crit": 0.05, "shield_regen": 0.0}
 	var dps := 0.0
 	var spd_bonus := 0.0
 	var spd_mult := 1.0
@@ -1748,7 +1748,7 @@ func _player_fire(w: Dictionary, ss: Dictionary) -> void:
 		_overheat_lock = 1.0
 		_event("OVERHEAT", "ef9a54", "player")
 		return
-	var acc := float(ss.get("acc", 15.0))
+	var acc := float(ss.get("acc", 100.0))
 	var hit := clampf(acc / (acc + float(enemy_inst["eva"])), 0.2, 1.0)
 	if randf() > hit:
 		_event("MISS", "9aa7c2", "enemy")
