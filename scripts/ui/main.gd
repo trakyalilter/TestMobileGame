@@ -925,7 +925,10 @@ func _build_gather() -> void:
 func _gather_card(id: String, a: Dictionary) -> Control:
 	var unlocked := GameState.meets_requirements(a, "harvesting")
 	var active := (GameState.active_type == "gather" and GameState.active_id == id)
-	var v := _card(GOLD, unlocked or active, 348)
+	var v := _card(GOLD, unlocked or active)
+	# Rows self-equalize: every card stretches to its row partner's height with
+	# the controls pinned to the bottom — locked and unlocked always align.
+	v.get_parent().size_flags_vertical = Control.SIZE_EXPAND_FILL
 	v.get_parent().set_meta("coach_id", id)
 	_card_head(v, "↑", a["name"], "Lv %d" % int(a.get("level_req", 1)), GOLD, unlocked)
 	if unlocked:
@@ -933,6 +936,9 @@ func _gather_card(id: String, a: Dictionary) -> Control:
 		var rt := GameState.rate_text("gather", id)
 		if rt != "":
 			_clbl(v, rt, 10, GREEN)
+		var fill := Control.new()
+		fill.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		v.add_child(fill)
 		_action_controls(v, "gather", id, active, GOLD)
 	else:
 		_locked(v, a, "harvesting")
@@ -960,7 +966,8 @@ func _craft_card(id: String, r: Dictionary) -> Control:
 	var unlocked := GameState.meets_requirements(r, "fabrication")
 	var active := (GameState.active_type == "craft" and GameState.active_id == id)
 	var affordable := GameState.can_afford(r.get("inputs", {}))
-	var v := _card(CYAN, unlocked or active, 364)
+	var v := _card(CYAN, unlocked or active)
+	v.get_parent().size_flags_vertical = Control.SIZE_EXPAND_FILL
 	v.get_parent().set_meta("coach_id", id)
 	_card_head(v, "⚙", r["name"], "Lv %d" % int(r.get("level_req", 1)), CYAN, unlocked)
 	if unlocked:
@@ -983,6 +990,9 @@ func _craft_card(id: String, r: Dictionary) -> Control:
 		var rt := GameState.rate_text("craft", id)
 		if rt != "":
 			_clbl(v, rt, 10, GREEN)
+		var fill := Control.new()
+		fill.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		v.add_child(fill)
 		if active or affordable:
 			_action_controls(v, "craft", id, active, CYAN)
 		else:
@@ -1342,6 +1352,7 @@ func _building_card(bid: String, d: Dictionary) -> Control:
 	var unlocked := GameState.building_unlocked(bid)
 	var count := GameState.building_count(bid)
 	var v := _card(BUILD, unlocked or count > 0)
+	v.get_parent().size_flags_vertical = Control.SIZE_EXPAND_FILL
 	v.get_parent().set_meta("coach_id", bid)
 	_card_head(v, "⌂", d["name"], "x%d" % count, BUILD, unlocked)
 	if not unlocked:
@@ -1386,6 +1397,9 @@ func _building_card(bid: String, d: Dictionary) -> Control:
 		plus.pressed.connect(func() -> void: GameState.set_throttle(bid, th + 0.25))
 		trow.add_child(plus)
 		v.add_child(trow)
+	var bfill := Control.new()
+	bfill.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	v.add_child(bfill)
 	# cost
 	var maxed := d.has("max") and count >= int(d["max"])
 	if maxed:
@@ -1892,6 +1906,7 @@ func _custom_module_card(cid: String) -> Control:
 	var rcol: String = GameState.RARITY_COLOR.get(int(md.get("rarity", 0)), C_TEXT)
 	var owned := int(GameState.module_inventory.get(cid, 0))
 	var c := _card(rcol, true)
+	c.get_parent().size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_card_head(c, "◆", md.get("name", cid), ("x%d" % owned) if owned > 1 else "", rcol, true)
 	_inset(c, "STATS", _module_stat_lines(md.get("stats", {})), rcol)
 	if not md.get("affixes", {}).is_empty():
@@ -1951,12 +1966,16 @@ func _module_card(mid: String, m: Dictionary) -> Control:
 	var unlocked := GameState.module_unlocked(mid)
 	var owned := int(GameState.module_inventory.get(mid, 0))
 	var c := _card(CYAN, unlocked)
+	c.get_parent().size_flags_vertical = Control.SIZE_EXPAND_FILL
 	c.get_parent().set_meta("coach_id", mid)
 	_card_head(c, "▣", m.get("name", mid), ("x%d" % owned) if owned > 0 else "", CYAN, unlocked)
 	if not unlocked:
 		_locked(c, m, "combat")
 		return c.get_parent()
 	_inset(c, "STATS", _module_stat_lines(m.get("stats", {})), CYAN)
+	var mfill := Control.new()
+	mfill.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	c.add_child(mfill)
 	var cost_lines := []
 	for sym in m.get("cost", {}):
 		var have: bool = GameState.credits >= int(m["cost"][sym]) if sym == "credits" else GameState.amount(sym) >= int(m["cost"][sym])
@@ -1986,6 +2005,7 @@ func _hull_card(hid: String, h: Dictionary) -> Control:
 	var owned := GameState.hull_owned(hid)
 	var active: bool = GameState.active_hull == hid
 	var c := _card(CYAN, unlocked or owned)
+	c.get_parent().size_flags_vertical = Control.SIZE_EXPAND_FILL
 	c.get_parent().set_meta("coach_id", hid)
 	_card_head(c, "⛭", h.get("name", hid), "T%d" % int(h.get("tier", 0)), CYAN, unlocked)
 	if not unlocked:
@@ -1996,6 +2016,9 @@ func _hull_card(hid: String, h: Dictionary) -> Control:
 		_line("ATK %d" % int(h.get("atk", 0)), C_WARN),
 		_line("%d slots" % (h.get("slots", []) as Array).size(), C_DIM),
 	], CYAN)
+	var hfill := Control.new()
+	hfill.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	c.add_child(hfill)
 	if active:
 		c.add_child(_card_button("ACTIVE", C_MUTED, false))
 	elif owned:
