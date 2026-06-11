@@ -1239,6 +1239,27 @@ func _build_battle(v: VBoxContainer) -> void:
 	_player_anchor = _add_anchor(pp)
 	v.add_child(pp.get_parent())
 
+	# Manual consumables (desktop combat page): hull / shield kits on demand,
+	# shared cooldown — the early-game survival tool.
+	var crow := HBoxContainer.new()
+	crow.add_theme_constant_override("separation", 8)
+	for kind in ["hull", "shield"]:
+		var item: String = GameState.consumable_hull_slot if kind == "hull" else GameState.consumable_shield_slot
+		if item == "" or GameState.amount(item) <= 0:
+			for cid in GameData.CONSUMABLES:
+				if GameData.CONSUMABLES[cid].get("type", "") == kind and GameState.amount(cid) > 0:
+					item = cid
+					break
+		var owned := GameState.amount(item) if item != "" else 0
+		var lbl := ("🛠 Repair" if kind == "hull" else "✦ Shield") + ("  x%d" % owned if owned > 0 else "")
+		var cb := _card_button(lbl, GREEN if kind == "hull" else CYAN, owned > 0)
+		cb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		if owned > 0:
+			var k: String = kind
+			cb.pressed.connect(func() -> void: GameState.use_manual_consumable(k))
+		crow.add_child(cb)
+	v.add_child(crow)
+
 	var rb := _card_button("⛒ Retreat", RED, true)
 	rb.custom_minimum_size = Vector2(0, 42)
 	rb.pressed.connect(func() -> void: GameState.stop_task())

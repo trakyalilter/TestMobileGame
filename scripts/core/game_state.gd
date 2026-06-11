@@ -1685,9 +1685,7 @@ func _tick_combat(delta: float) -> void:
 		_check_consume(maxsh)
 
 func _check_consume(maxsh: float) -> void:
-	if level_of("combat") < 50:          # auto-consume unlocks at combat L50 (desktop)
-		return
-	var th := auto_consume_threshold()   # gated by Auto-Repair research
+	var th := auto_consume_threshold()   # gated by Auto-Repair research (desktop parity)
 	if th <= 0.0:
 		return
 	if consumable_hull_slot != "" and amount(consumable_hull_slot) > 0:
@@ -1697,6 +1695,19 @@ func _check_consume(maxsh: float) -> void:
 	if consumable_shield_slot != "" and amount(consumable_shield_slot) > 0 and maxsh > 0.0:
 		if player_shield / maxsh <= th:
 			_trigger_consume(consumable_shield_slot)
+
+func use_manual_consumable(kind: String) -> void:
+	if _consume_cd > 0.0 or active_type != "combat":
+		return
+	var item: String = consumable_hull_slot if kind == "hull" else consumable_shield_slot
+	if item == "" or amount(item) <= 0:
+		for cid in GameData.CONSUMABLES:
+			if GameData.CONSUMABLES[cid].get("type", "") == kind and amount(cid) > 0:
+				item = cid
+				break
+	if item != "" and amount(item) > 0:
+		_trigger_consume(item)
+		resources_changed.emit()
 
 func _trigger_consume(item_id: String) -> void:
 	var d: Dictionary = GameData.CONSUMABLES.get(item_id, {})
