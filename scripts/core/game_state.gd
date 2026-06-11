@@ -57,7 +57,6 @@ const MAX_LEVEL := 99                  # skill level cap (matches desktop)
 var _xp_table: Array = []              # lazily built cumulative XP-to-level table
 const CONSUME_CD := 1.5
 const CONSUME_THRESHOLD := 0.5         # auto-trigger at 50% hull/shield
-const HP_REGEN := 0.04                # hull regen/sec (fraction) out of combat
 const MAX_HEAT := 100.0
 const VENT_RATE := 8.0
 
@@ -363,18 +362,23 @@ func ship_stats() -> Dictionary:
 	var dps := 0.0
 	var spd_bonus := 0.0
 	var spd_mult := 1.0
+	# Engineering skill scales module stats (desktop recalc_stats); eva/acc/crit
+	# stay flat there too.
+	var eng := 1.0 + level_of("fabrication") * 0.01
+	s["regen_bonus"] = 0.0
 	for k in loadout:
 		var m: Dictionary = module_def(loadout[k])
 		var st: Dictionary = m.get("stats", {})
-		s.hp += float(st.get("hp", 0))
-		s.def += float(st.get("def", 0))
-		s.shield += float(st.get("max_shield", 0))
-		s.energy_cap += float(st.get("energy_capacity", 0))
+		s.hp += float(st.get("hp", 0)) * eng
+		s.def += float(st.get("def", 0)) * eng
+		s.shield += float(st.get("max_shield", 0)) * eng
+		s.energy_cap += float(st.get("energy_capacity", 0)) * eng
 		s.energy_load += float(st.get("energy_load", 0))
 		s.acc += float(st.get("accuracy", 0))
 		s.eva += float(st.get("eva", 0))
 		s.crit += float(st.get("crit_chance", 0))
-		s.shield_regen += float(st.get("shield_regen", 0))
+		s.shield_regen += float(st.get("shield_regen", 0)) * eng
+		s["regen_bonus"] += float(st.get("shield_regen_mult", 0)) + float(st.get("shield_regen_bonus", 0))
 		spd_bonus += float(st.get("atk_speed_bonus", 0))
 		if st.has("atk_speed_mult"):
 			spd_mult *= float(st["atk_speed_mult"])
@@ -459,8 +463,9 @@ func combat_max_hp() -> float:
 	var s := ship_stats()
 	if s.is_empty():
 		return 100.0
-	var base: float = s["hp"] + level_of("combat") * 20.0
-	return base * (1.0 + research_bonus("max_hp_mult") + research_bonus("materials_science"))
+	# Desktop max_hp = (hull + modules x eng) x (1 + max_hp_mult + materials_science)
+	# — no combat-level HP term in the original.
+	return float(s["hp"]) * (1.0 + research_bonus("max_hp_mult") + research_bonus("materials_science"))
 
 func player_max_shield() -> float:
 	var s := ship_stats()
@@ -493,7 +498,7 @@ func combat_preview(eid: String) -> Dictionary:
 	var ttk := ehp / pdps
 	var pdef := float(ship_stats().get("def", 0.0))
 	var edps := float(e.get("atk", 0)) / maxf(0.5, float(e.get("interval", 2.5))) * (1.0 - pdef / (pdef + k))
-	var sustain := combat_max_hp() * HP_REGEN + float(ship_stats().get("shield_regen", 0.0))
+	var sustain := float(ship_stats().get("shield_regen", 0.0)) + (50.0 if has_set_bonus("patient_zero") else 0.0)
 	var self_ehp := combat_max_hp() + player_max_shield()
 	return {
 		"has_weapon": raw_dps > 0.0,
@@ -1552,6 +1557,17 @@ func _init_combat(eid: String) -> void:
 
 func _spawn_enemy_inst(eid: String) -> void:
 	var e: Dictionary = GameData.ENEMIES.get(eid, {})
+	# Progression compensation (desktop): enemy baseline scales against the
+	# player's permanent external multipliers so TTK doesn't collapse late-game.
+	var prog := clampf((1.0 + level_of("combat") * 0.005) \
+		* (1.0 + level_of("fabrication") * 0.01) \
+		* (1.0 + maxf(0.0, research_bonus("attack_speed"))) \
+		* maxf(1.0, warp_combat_mult()), 1.0, 6.0)
+	var over := maxf(0.0, prog - 1.0)
+	var is_boss: bool = e.get("is_boss", false)
+	var hp_comp := 0.42 if is_boss else 0.28
+	var sh_comp := 0.36 if is_boss else 0.24
+	var atk_comp := 0.28 if is_boss else 0.18
 	var elite := randf() < 0.05
 	for c in bounty_active:   # elite-hunt contracts force an elite spawn
 		if c.get("is_elite", false) and not c["completed"] and c["target"] == eid:
@@ -1559,6 +1575,13 @@ func _spawn_enemy_inst(eid: String) -> void:
 			break
 	var hp := float(e.get("hp", 10))
 	var atk := float(e.get("atk", 1))
+	var shd := float(e.get("max_shield", 0))
+	var df := float(e.get("def", 0))
+	if over > 0.0:
+		hp = maxf(1.0, roundf(hp * (1.0 + over * hp_comp)))
+		shd = maxf(0.0, roundf(shd * (1.0 + over * sh_comp)))
+		atk = maxf(1.0, roundf(atk * (1.0 + over * atk_comp)))
+		df = maxf(0.0, roundf(df * (1.0 + over * 0.12)))
 	var xp := int(e.get("xp", 0))
 	var nm: String = e.get("name", eid)
 	var loot: Array = e.get("loot", [])
@@ -1574,8 +1597,8 @@ func _spawn_enemy_inst(eid: String) -> void:
 	enemy_inst = {
 		"id": eid, "name": nm, "elite": elite,
 		"hp": hp, "max_hp": hp,
-		"shield": float(e.get("max_shield", 0)), "max_shield": float(e.get("max_shield", 0)),
-		"atk": atk, "def": float(e.get("def", 0)),
+		"shield": shd, "max_shield": shd,
+		"atk": atk, "def": df,
 		"acc": float(e.get("accuracy", 0)), "eva": float(e.get("eva", 0)),
 		"interval": maxf(0.5, float(e.get("interval", 2.5))),
 		"loot": loot, "xp": xp,
@@ -1611,12 +1634,12 @@ func _tick_combat(delta: float) -> void:
 		_overheat_lock = 0.0
 	# Shield regen (both sides)
 	if player_shield < maxsh:
-		player_shield = minf(maxsh, player_shield + float(ss.get("shield_regen", 0.0)) * (1.0 + research_bonus("shield_regen")) * delta)
+		player_shield = minf(maxsh, player_shield + float(ss.get("shield_regen", 0.0)) * (1.0 + research_bonus("shield_regen") + float(ss.get("regen_bonus", 0.0))) * delta)
 	if enemy_inst["shield"] < enemy_inst["max_shield"]:
 		enemy_inst["shield"] = minf(enemy_inst["max_shield"], enemy_inst["shield"] + minf(enemy_inst["max_shield"] * 0.01, 50.0) * delta)
 	# Set bonus: Patient Zero's Strain — hull regen during combat
 	if has_set_bonus("patient_zero") and combat_hp < combat_max_hp():
-		combat_hp = minf(combat_max_hp(), combat_hp + combat_max_hp() * 0.015 * delta)
+		combat_hp = minf(combat_max_hp(), combat_hp + 50.0 * delta)
 	# Player weapons fire on their own intervals (Heat-Sync Focus boosts rate when hot)
 	var fire_sf := 1.0 + research_bonus("attack_speed")
 	if player_heat >= MAX_HEAT * 0.4:
@@ -1901,7 +1924,7 @@ func _offline_combat(delta: float) -> void:
 		return
 	var pdef := float(ship_stats().get("def", 0.0))
 	var edps := float(e.get("atk", 0)) / maxf(0.5, float(e.get("interval", 2.5))) * (1.0 - pdef / (pdef + k))
-	var sustain := combat_max_hp() * HP_REGEN + float(ship_stats().get("shield_regen", 0.0))
+	var sustain := float(ship_stats().get("shield_regen", 0.0)) + (50.0 if has_set_bonus("patient_zero") else 0.0)
 	if edps > sustain:
 		return   # not survivable unattended
 	var summary := _offline_loot(e.get("loot", []), 1.0, reps)
