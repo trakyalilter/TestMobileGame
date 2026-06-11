@@ -96,7 +96,6 @@ var _atlas_index := {}
 var build_cat := "power"
 var ship_view := "loadout"
 var ship_mod_slot := "weapon"
-var res_bar: HBoxContainer
 var safe_margin: MarginContainer
 var active_banner: PanelContainer
 var _banner_chip: PanelContainer
@@ -552,14 +551,6 @@ func _build() -> void:
 	ch.add_child(_hdr_credits)
 	hdr.add_child(cpill)
 	topv.add_child(hdr)
-	var scroll := ScrollContainer.new()
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.custom_minimum_size = Vector2(0, 50)
-	topv.add_child(scroll)
-	res_bar = HBoxContainer.new()
-	res_bar.add_theme_constant_override("separation", 6)
-	scroll.add_child(res_bar)
 	active_banner = _build_active_banner()
 	topv.add_child(active_banner)
 	# Coaching banner (tutorial guidance) — shows the current objective + a directive.
@@ -2969,54 +2960,9 @@ func _connector(v: VBoxContainer) -> void:
 	v.add_child(c)
 
 func _refresh_top() -> void:
+	# Header shows credits only — material holdings live on the Storage page.
 	if is_instance_valid(_hdr_credits):
 		_hdr_credits.text = GameData.fmt(GameState.credits)
-	if res_bar == null:
-		return
-	for c in res_bar.get_children():
-		res_bar.remove_child(c)
-		c.queue_free()
-	var any := false
-	for sym in GameData.RESOURCES:
-		var amt := GameState.amount(sym)
-		if amt <= 0:
-			continue
-		any = true
-		res_bar.add_child(_chip(GameData.res_name(sym), GameData.fmt(amt), _hex(GameData.color_for(sym)), false))
-	if not any:
-		var hint := Label.new()
-		hint.text = "No materials yet — gather to begin"
-		hint.add_theme_font_size_override("font_size", _fs(10))
-		hint.add_theme_color_override("font_color", Color.html(C_MUTED))
-		res_bar.add_child(hint)
-
-## A rounded resource pill: colored dot + name + value.
-func _chip(name: String, value: String, accent: String, strong: bool) -> Control:
-	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", _bordered(_mix(accent, SURFACE_HI, 0.85) if strong else SURFACE_HI, _mix(accent, LINE, 0.6) if strong else LINE, 1, 14))
-	var hb := HBoxContainer.new()
-	hb.add_theme_constant_override("separation", 5)
-	panel.add_child(hb)
-	var dot := Panel.new()
-	dot.custom_minimum_size = Vector2(7, 7)
-	var ds := StyleBoxFlat.new()
-	ds.bg_color = Color.html(accent)
-	ds.set_corner_radius_all(4)
-	dot.add_theme_stylebox_override("panel", ds)
-	var dw := CenterContainer.new()
-	dw.add_child(dot)
-	hb.add_child(dw)
-	var nm := Label.new()
-	nm.text = name
-	nm.add_theme_font_size_override("font_size", _fs(11))
-	nm.add_theme_color_override("font_color", Color.html(C_DIM))
-	hb.add_child(nm)
-	var vl := Label.new()
-	vl.text = value
-	vl.add_theme_font_size_override("font_size", _fs(12))
-	vl.add_theme_color_override("font_color", Color.html(accent if strong else C_TEXT))
-	hb.add_child(vl)
-	return panel
 
 func _build_active_banner() -> PanelContainer:
 	var panel := PanelContainer.new()
