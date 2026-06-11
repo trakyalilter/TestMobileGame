@@ -2661,6 +2661,28 @@ func _grid(v: VBoxContainer) -> GridContainer:
 	g.add_theme_constant_override("h_separation", 8)
 	g.add_theme_constant_override("v_separation", 8)
 	g.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# Self-equalizing: every card's min height is raised to the tallest card's
+	# natural height, so ALL rows match (locked, unlocked, active) at any text
+	# scale. Measured one frame AFTER the first real-width layout — autowrap
+	# labels report garbage minimums until they've been fitted once.
+	var applied := [false]
+	g.sort_children.connect(func() -> void:
+		if applied[0] or g.size.x < 100.0:
+			return
+		applied[0] = true
+		g.get_tree().process_frame.connect(func() -> void:
+			if not is_instance_valid(g):
+				return
+			var maxh := 0.0
+			for ch in g.get_children():
+				if ch is Control:
+					maxh = maxf(maxh, (ch as Control).get_combined_minimum_size().y)
+			if maxh <= 0.0:
+				return
+			for ch in g.get_children():
+				if ch is Control:
+					(ch as Control).custom_minimum_size.y = maxh,
+			CONNECT_ONE_SHOT))
 	v.add_child(g)
 	return g
 
