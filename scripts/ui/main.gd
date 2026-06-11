@@ -56,13 +56,14 @@ const NAV_ALL := [
 	{"id": "atlas",    "label": "Atlas / Codex",  "icon": "❒"},
 	{"id": "stats",    "label": "Storage & Crew", "icon": "≡"},
 ]
-const DRAWER_W := 480.0
+const DRAWER_W := 540.0
 
 # Global text scale — bumps every font size for phone readability without
 # touching individual call sites. Tune this one number to rescale the whole UI.
-const FONT_SCALE := 1.45
+const FONT_SCALE := 1.65
 func _fs(n: int) -> int:
-	return int(round(n * FONT_SCALE))
+	# Floor keeps ALL text readable — no squint-print anywhere (mobile-game type).
+	return maxi(int(round(n * FONT_SCALE)), 14)
 
 var content: Control
 var pages := {}
@@ -508,7 +509,7 @@ func _build() -> void:
 	ham.text = "☰"
 	ham.flat = true
 	ham.focus_mode = Control.FOCUS_NONE
-	ham.custom_minimum_size = Vector2(56, 50)
+	ham.custom_minimum_size = Vector2(64, 58)
 	ham.add_theme_font_size_override("font_size", _fs(28))
 	ham.add_theme_color_override("font_color", Color.html(CYAN))
 	ham.add_theme_color_override("font_color_hover", Color.html(CYAN))
@@ -554,7 +555,7 @@ func _build() -> void:
 	var scroll := ScrollContainer.new()
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.custom_minimum_size = Vector2(0, 44)
+	scroll.custom_minimum_size = Vector2(0, 50)
 	topv.add_child(scroll)
 	res_bar = HBoxContainer.new()
 	res_bar.add_theme_constant_override("separation", 6)
@@ -686,7 +687,7 @@ func _make_drawer_item(id: String, label: String, icon: String) -> Button:
 	btn.flat = true
 	btn.focus_mode = Control.FOCUS_NONE
 	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	btn.custom_minimum_size = Vector2(0, 74)
+	btn.custom_minimum_size = Vector2(0, 86)
 	var hb := HBoxContainer.new()
 	hb.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	hb.add_theme_constant_override("separation", 14)
@@ -924,7 +925,7 @@ func _build_gather() -> void:
 func _gather_card(id: String, a: Dictionary) -> Control:
 	var unlocked := GameState.meets_requirements(a, "harvesting")
 	var active := (GameState.active_type == "gather" and GameState.active_id == id)
-	var v := _card(GOLD, unlocked or active, 300)
+	var v := _card(GOLD, unlocked or active, 348)
 	v.get_parent().set_meta("coach_id", id)
 	_card_head(v, "↑", a["name"], "Lv %d" % int(a.get("level_req", 1)), GOLD, unlocked)
 	if unlocked:
@@ -959,7 +960,7 @@ func _craft_card(id: String, r: Dictionary) -> Control:
 	var unlocked := GameState.meets_requirements(r, "fabrication")
 	var active := (GameState.active_type == "craft" and GameState.active_id == id)
 	var affordable := GameState.can_afford(r.get("inputs", {}))
-	var v := _card(CYAN, unlocked or active, 312)
+	var v := _card(CYAN, unlocked or active, 364)
 	v.get_parent().set_meta("coach_id", id)
 	_card_head(v, "⚙", r["name"], "Lv %d" % int(r.get("level_req", 1)), CYAN, unlocked)
 	if unlocked:
@@ -2039,9 +2040,12 @@ func _module_stat_lines(stats: Dictionary) -> Array:
 # ============================================================ RESEARCH
 # Faithful port of the desktop research_page graph: per-discipline tabs, each a
 # 2D canvas of positioned nodes with parent→child branch lines drawn between them.
-const RES_NODE_W := 174.0
-const RES_NODE_H := 88.0
-const RES_POS_SCALE := 1.42
+const RES_NODE_W := 200.0
+const RES_NODE_H := 104.0
+# Independent axis scales: y is stretched further so the taller big-type nodes
+# never overlap (tightest original row gap is 50px).
+const RES_SX := 1.55
+const RES_SY := 2.25
 const RES_PAD := 12.0
 
 func _build_research() -> void:
@@ -2089,8 +2093,8 @@ func _build_research() -> void:
 		maxy = maxf(maxy, p.y)
 	# Node names are capped to 2 lines (below), so RES_NODE_H bounds every node;
 	# extra slack guarantees edge nodes pan fully into view.
-	var cw: float = maxx * RES_POS_SCALE + RES_NODE_W + RES_PAD * 4.0
-	var ch: float = maxy * RES_POS_SCALE + RES_NODE_H + RES_PAD * 4.0
+	var cw: float = maxx * RES_SX + RES_NODE_W + RES_PAD * 4.0
+	var ch: float = maxy * RES_SY + RES_NODE_H + RES_PAD * 4.0
 
 	# One both-axis scroller pans the wide/tall tree in 2D (desktop parity). The
 	# page's own vertical scroll is disabled for this page so the two scrollers
@@ -2116,7 +2120,8 @@ func _build_research() -> void:
 		if not GameData.RESEARCH.has(nid):
 			continue
 		var node := _research_node(nid)
-		node.position = (pos[nid] as Vector2) * RES_POS_SCALE + Vector2(RES_PAD, RES_PAD)
+		var np: Vector2 = pos[nid]
+		node.position = Vector2(np.x * RES_SX + RES_PAD, np.y * RES_SY + RES_PAD)
 		node.size = Vector2(RES_NODE_W, RES_NODE_H)
 		canvas.add_child(node)
 	hs.add_child(canvas)
@@ -2130,8 +2135,10 @@ func _draw_research_branches(canvas: Control, nodes: Array, pos: Dictionary) -> 
 		# Cross-tab parents (not in this layout) are treated as roots — no line.
 		if par == "" or not pos.has(par) or not pos.has(nid):
 			continue
-		var p1: Vector2 = (pos[par] as Vector2) * RES_POS_SCALE + Vector2(RES_PAD + RES_NODE_W, RES_PAD + RES_NODE_H * 0.5)
-		var p2: Vector2 = (pos[nid] as Vector2) * RES_POS_SCALE + Vector2(RES_PAD, RES_PAD + RES_NODE_H * 0.5)
+		var pp: Vector2 = pos[par]
+		var pn: Vector2 = pos[nid]
+		var p1 := Vector2(pp.x * RES_SX + RES_PAD + RES_NODE_W, pp.y * RES_SY + RES_PAD + RES_NODE_H * 0.5)
+		var p2 := Vector2(pn.x * RES_SX + RES_PAD, pn.y * RES_SY + RES_PAD + RES_NODE_H * 0.5)
 		var col := Color.html(GREEN) if GameState.is_research_unlocked(nid) else Color(0.42, 0.46, 0.62, 0.7)
 		# Elbow connector (horizontal out of parent, vertical, into child) reads
 		# cleaner on dense trees than a single diagonal.
@@ -2521,7 +2528,7 @@ func _storage_tile(sym: String) -> Control:
 	var rcol := _hex(GameData.color_for(sym))
 	var val: int = maxi(1, GameData.value_of(sym))
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(0, 104)
+	panel.custom_minimum_size = Vector2(0, 122)
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.add_theme_stylebox_override("panel", _bordered(_mix(rcol, SURFACE, 0.9), rcol, 1, 8))
 	panel.tooltip_text = "%s — tap to sell all for ₡%s" % [GameData.res_name(sym), GameData.fmt(amt * val)]
@@ -2563,7 +2570,7 @@ func _storage_tile(sym: String) -> Control:
 
 func _storage_slot_empty() -> Control:
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(0, 104)
+	panel.custom_minimum_size = Vector2(0, 122)
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.add_theme_stylebox_override("panel", _bordered(INSET, LINE, 1, 8))
 	var cc := CenterContainer.new()
@@ -2637,7 +2644,7 @@ func _grid(v: VBoxContainer) -> GridContainer:
 func _subtabs(v: VBoxContainer, items: Array, current_id: String, accent: String, on_select: Callable) -> void:
 	var sc := ScrollContainer.new()
 	sc.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	sc.custom_minimum_size = Vector2(0, 44)
+	sc.custom_minimum_size = Vector2(0, 54)
 	sc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var hb := HBoxContainer.new()
 	hb.add_theme_constant_override("separation", 7)
@@ -2650,7 +2657,7 @@ func _subtabs(v: VBoxContainer, items: Array, current_id: String, accent: String
 		# PASS so a horizontal drag over a tab reaches the strip's ScrollContainer
 		# (which then scrolls and cancels the tap); a clean tap still selects.
 		b.mouse_filter = Control.MOUSE_FILTER_PASS
-		b.custom_minimum_size = Vector2(0, 38)
+		b.custom_minimum_size = Vector2(0, 46)
 		b.add_theme_font_size_override("font_size", _fs(12))
 		var fill := accent if on else SURFACE_HI
 		var txt := _ideal_text(accent) if on else C_DIM
@@ -2772,7 +2779,7 @@ func _line(text: String, color: String) -> Dictionary:
 func _card_button(text: String, accent: String, enabled: bool) -> Button:
 	var b := Button.new()
 	b.text = text
-	b.custom_minimum_size = Vector2(0, 44)
+	b.custom_minimum_size = Vector2(0, 54)
 	b.focus_mode = Control.FOCUS_NONE
 	b.disabled = not enabled
 	# Chunky game CTA: darker bottom edge fakes a 3D bevel; pressing flattens the
@@ -2801,7 +2808,7 @@ func _card_button(text: String, accent: String, enabled: bool) -> Button:
 
 func _progress(v: VBoxContainer, active: bool, accent: String) -> void:
 	var wrap := Control.new()
-	wrap.custom_minimum_size = Vector2(0, 8)
+	wrap.custom_minimum_size = Vector2(0, 16)
 	var bar := ProgressBar.new()
 	bar.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	bar.show_percentage = false
@@ -3144,10 +3151,10 @@ func _style_bar(b: ProgressBar, accent: String) -> void:
 # ---- Design helpers ----
 func _card_style(bg: String, border: String, width := 1, elevated := false) -> StyleBoxFlat:
 	var s := _bordered(bg, border, width, 14)
-	s.content_margin_left = 11
-	s.content_margin_right = 11
-	s.content_margin_top = 10
-	s.content_margin_bottom = 10
+	s.content_margin_left = 14
+	s.content_margin_right = 14
+	s.content_margin_top = 12
+	s.content_margin_bottom = 12
 	if elevated:
 		# Neon glow in the card's own accent — active/unlocked content radiates.
 		var glow := Color.html(border)
