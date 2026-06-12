@@ -1,0 +1,1753 @@
+{
+  "analyze_artifact": {
+    "description": "Decipher the secrets of the artifact.",
+    "duration": 10.0,
+    "input": {
+      "VoidArtifact": 1
+    },
+    "level_req": 50,
+    "name": "Analyze Void Artifact",
+    "output_table": [
+      [
+        "Cu",
+        1.0,
+        10,
+        20
+      ],
+      [
+        "Chip",
+        0.3,
+        1,
+        2
+      ],
+      [
+        "NavData",
+        0.2,
+        1,
+        2
+      ],
+      [
+        "AncientTech",
+        0.05,
+        1,
+        1
+      ]
+    ],
+    "research_req": "xeno_archaeology",
+    "xp": 200
+  },
+  "assemble_circuit_standard": {
+    "description": "Fabricate circuits from raw conductive materials. No Drone Core required.",
+    "duration": 6.0,
+    "input": {
+      "Cu": 2,
+      "Resin": 1,
+      "Si": 3
+    },
+    "level_req": 12,
+    "name": "Standard Circuit Assembly",
+    "output": {
+      "Circuit": 3
+    },
+    "research_req": "basic_electronics",
+    "xp": 40
+  },
+  "centrifuge_dirt": {
+    "category": "basics",
+    "description": "Wash Dirt with Water to extract Iron more efficiently.",
+    "duration": 3.0,
+    "input": {
+      "Dirt": 5,
+      "Water": 5
+    },
+    "level_req": 1,
+    "name": "Mineral Washing",
+    "output": {
+      "Fe": 5,
+      "Si": 3
+    },
+    "research_req": "basic_engineering",
+    "xp": 5
+  },
+  "charcoal_burning": {
+    "category": "basics",
+    "description": "Burn Wood to produce Carbon. The backbone of metallurgy.",
+    "duration": 4.0,
+    "input": {
+      "Wood": 5
+    },
+    "level_req": 3,
+    "name": "Charcoal Kiln",
+    "output": {
+      "C": 16
+    },
+    "xp": 5
+  },
+  "craft_adv_circuit": {
+    "description": "High-performance integrated circuit. Silver traces and tin solder for low-loss interconnects.",
+    "duration": 15.0,
+    "input": {
+      "Ag": 2,
+      "Au": 1,
+      "Semiconductor": 1,
+      "Sn": 1,
+      "StructuralComponent": 2
+    },
+    "level_req": 45,
+    "name": "Advanced Circuitry",
+    "output": {
+      "AdvCircuit": 1
+    },
+    "research_req": "automation",
+    "xp": 80
+  },
+  "craft_adv_maintenance_kit": {
+    "category": "consumables_hull",
+    "description": "High-tech repair kit. Restores 50% Hull Integrity. Galvanised plating and zinc inhibitor resist corrosion.",
+    "duration": 15.0,
+    "input": {
+      "AlWire": 3,
+      "Circuit": 5,
+      "GalvanizedSteel": 5,
+      "Steel": 50,
+      "Superalloy": 1,
+      "Ti": 15,
+      "Zn": 4
+    },
+    "level_req": 40,
+    "name": "Adv. Maintenance Kit",
+    "output": {
+      "AdvMaintenanceKit": 1
+    },
+    "research_req": "basic_electronics",
+    "xp": 40
+  },
+  "craft_ai_core": {
+    "description": "Synthesize a high-bandwidth AI processing core.",
+    "duration": 20.0,
+    "input": {
+      "AdvCircuit": 5,
+      "Chip": 25,
+      "NavData": 2
+    },
+    "level_req": 50,
+    "name": "AI Logic Core",
+    "output": {
+      "AICore": 1
+    },
+    "research_req": "automation",
+    "xp": 150
+  },
+  "craft_ai_processor": {
+    "description": "Quantum-entangled processing substrate for sentient AI.",
+    "duration": 60.0,
+    "input": {
+      "AICore": 5,
+      "AdvCircuit": 20,
+      "QuantumCore": 1
+    },
+    "level_req": 65,
+    "name": "Sentient AI Processor",
+    "output": {
+      "AIProcessor": 1
+    },
+    "research_req": "void_navigation",
+    "xp": 500
+  },
+  "craft_aluminum_alloy": {
+    "description": "Lightweight aerospace alloy. High strength-to-weight ratio.",
+    "duration": 5.0,
+    "input": {
+      "Al": 3,
+      "Mg": 1
+    },
+    "level_req": 24,
+    "name": "Aluminum-Magnesium Alloy",
+    "output": {
+      "AlMgAlloy": 2
+    },
+    "research_req": "lightweight_alloys",
+    "xp": 30
+  },
+  "craft_aluminum_wire": {
+    "description": "High-conductivity cables.",
+    "duration": 5.0,
+    "input": {
+      "Al": 2,
+      "Resin": 1
+    },
+    "level_req": 30,
+    "name": "Aluminum Wiring",
+    "output": {
+      "AlWire": 2
+    },
+    "research_req": "basic_electronics",
+    "xp": 35
+  },
+  "craft_basic_booster": {
+    "category": "consumables_shield",
+    "description": "Crude energy cells. Restores 15% Shield Integrity.",
+    "duration": 10.0,
+    "input": {
+      "BatteryT1": 1,
+      "Si": 20
+    },
+    "level_req": 2,
+    "name": "Basic Shield Booster",
+    "output": {
+      "BasicBooster": 1
+    },
+    "xp": 5
+  },
+  "craft_battery_t1": {
+    "description": "Basic energy storage for ships.",
+    "duration": 10.0,
+    "input": {
+      "Fe": 2,
+      "Li": 5
+    },
+    "level_req": 6,
+    "name": "Assemble Basic Battery",
+    "output": {
+      "BatteryT1": 1
+    },
+    "research_req": "power_systems",
+    "xp": 60
+  },
+  "craft_battery_t2": {
+    "description": "Advanced high-density battery. Requires Sulfur for electrolyte.",
+    "duration": 20.0,
+    "input": {
+      "AdvCircuit": 5,
+      "BatteryT1": 10,
+      "Chip": 5,
+      "Graphite": 5,
+      "StructuralComponent": 3
+    },
+    "level_req": 55,
+    "name": "Graphene Matrix Battery",
+    "output": {
+      "BatteryT2": 1
+    },
+    "research_req": "adv_materials",
+    "xp": 200
+  },
+  "craft_battery_t3": {
+    "description": "Experimental infinite energy containment.",
+    "duration": 60.0,
+    "input": {
+      "BatteryT2": 1,
+      "Circuit": 20,
+      "NanoSubstrate": 2,
+      "VoidArtifact": 1
+    },
+    "level_req": 80,
+    "name": "Zero-Point Module",
+    "output": {
+      "BatteryT3": 1
+    },
+    "research_req": "warp_drive",
+    "xp": 800
+  },
+  "craft_capacitor_shard": {
+    "category": "consumables_shield",
+    "description": "Basic energy storage. Restores 10% Shield Integrity.",
+    "duration": 5.0,
+    "input": {
+      "Al": 2,
+      "Si": 5
+    },
+    "level_req": 20,
+    "name": "Capacitor Shard",
+    "output": {
+      "CapacitorShard": 1
+    },
+    "xp": 20
+  },
+  "craft_carbon_fiber": {
+    "description": "Reinforce Carbon strands.",
+    "duration": 5.0,
+    "input": {
+      "C": 3
+    },
+    "level_req": 8,
+    "name": "Carbon Fiber",
+    "output": {
+      "Fiber": 1
+    },
+    "research_req": "combustion",
+    "xp": 10
+  },
+  "craft_cell_t1": {
+    "description": "Cut silicate for lenses.",
+    "duration": 5.0,
+    "input": {
+      "Si": 1
+    },
+    "level_req": 2,
+    "name": "Focus Crystal",
+    "output": {
+      "CellT1": 20
+    },
+    "xp": 7
+  },
+  "craft_cell_t2": {
+    "description": "Contain superheated gas.",
+    "duration": 10.0,
+    "input": {
+      "H": 5,
+      "Resin": 1
+    },
+    "level_req": 34,
+    "name": "Plasma Cell",
+    "output": {
+      "CellT2": 20
+    },
+    "xp": 40
+  },
+  "craft_cell_t3": {
+    "description": "Matter-disintegrating energy.",
+    "duration": 15.0,
+    "input": {
+      "CellT2": 20,
+      "StructuralComponent": 5,
+      "U": 1
+    },
+    "level_req": 58,
+    "name": "Vaporizer Cell",
+    "output": {
+      "CellT3": 20
+    },
+    "research_req": "energy_metrics",
+    "xp": 120
+  },
+  "craft_cell_t4": {
+    "description": "Unstable fusion plasma containment. Extreme damage.",
+    "duration": 20.0,
+    "input": {
+      "He": 10,
+      "NanoSubstrate": 2,
+      "Superalloy": 1,
+      "SuperconductingMagnet": 2,
+      "U": 3
+    },
+    "level_req": 65,
+    "name": "Heavy Plasma Cell",
+    "output": {
+      "CellT4": 20
+    },
+    "research_req": "energy_metrics",
+    "xp": 180
+  },
+  "craft_chip": {
+    "description": "High-precision logic unit. Requires nitrogen cooling for etching.",
+    "duration": 20.0,
+    "input": {
+      "Au": 1,
+      "N": 5,
+      "Semiconductor": 2
+    },
+    "level_req": 40,
+    "name": "Chip Fabrication",
+    "output": {
+      "Chip": 1
+    },
+    "research_req": "adv_materials",
+    "xp": 60
+  },
+  "craft_chitin_patch": {
+    "category": "consumables_hull",
+    "description": "Utilize mite chitin for emergency hull repairs. Restores 15% Hull Integrity.",
+    "duration": 8.0,
+    "input": {
+      "MiteChitin": 10,
+      "Steel": 5
+    },
+    "level_req": 5,
+    "name": "Biosynthetic Hull Patch",
+    "output": {
+      "ChitinPatch": 1
+    },
+    "research_req": "basic_engineering",
+    "xp": 8
+  },
+  "craft_circuit": {
+    "description": "Combine conductive copper traces with silicon wafers.",
+    "duration": 6.0,
+    "input": {
+      "Cu": 3,
+      "Si": 4
+    },
+    "level_req": 6,
+    "name": "Basic Circuitry",
+    "output": {
+      "Circuit": 2
+    },
+    "xp": 50
+  },
+  "craft_cobalt_battery": {
+    "description": "Advanced battery tech. High energy density.",
+    "duration": 10.0,
+    "input": {
+      "Al": 2,
+      "Circuit": 1,
+      "Co": 3,
+      "Li": 2
+    },
+    "level_req": 15,
+    "name": "Lithium-Cobalt Battery",
+    "output": {
+      "CoBattery": 1
+    },
+    "research_req": "advanced_batteries",
+    "xp": 100
+  },
+  "craft_coolant_cell": {
+    "description": "Pressurized helium and nitrogen for weapon cooling, charged with recovered cryo-essence.",
+    "duration": 15.0,
+    "input": {
+      "CryoEssence": 3,
+      "He": 10,
+      "Li": 2,
+      "NitroCoolant": 5,
+      "Steel": 2
+    },
+    "level_req": 42,
+    "name": "Helium Coolant Cell",
+    "output": {
+      "CoolantCell": 1
+    },
+    "research_req": "cryogenic_systems",
+    "xp": 80
+  },
+  "craft_cryo_coolant": {
+    "category": "processing",
+    "description": "Compress helium and nitrogen into supercooled fluid.",
+    "duration": 10.0,
+    "input": {
+      "He": 15,
+      "N": 10,
+      "Water": 5
+    },
+    "level_req": 20,
+    "name": "Cryogenic Coolant",
+    "output": {
+      "NitroCoolant": 1
+    },
+    "xp": 30
+  },
+  "craft_emergency_patch": {
+    "category": "consumables_hull",
+    "description": "Quick patch from basic metals. Restores 10% Hull Integrity.",
+    "duration": 10.0,
+    "input": {
+      "Fe": 20
+    },
+    "level_req": 1,
+    "name": "Emergency Hull Patch",
+    "output": {
+      "EmergencyPatch": 1
+    },
+    "xp": 10
+  },
+  "craft_hydraulics": {
+    "description": "Precision machined actuator.",
+    "duration": 10.0,
+    "input": {
+      "Resin": 1,
+      "Steel": 2
+    },
+    "level_req": 10,
+    "name": "Hydraulic Servo",
+    "output": {
+      "Hydraulics": 1
+    },
+    "research_req": "industrial_logistics",
+    "xp": 40
+  },
+  "craft_ion_field": {
+    "category": "consumables_shield",
+    "description": "Projected ion barrier. Restores 25% Shield Integrity.",
+    "duration": 15.0,
+    "input": {
+      "AlWire": 5,
+      "MgBattery": 1
+    },
+    "level_req": 18,
+    "name": "Ion Field Projector",
+    "output": {
+      "IonField": 1
+    },
+    "research_req": "basic_electronics",
+    "xp": 25
+  },
+  "craft_iridium_plate": {
+    "description": "Nearly indestructible Ir plating. Ultimate defense.",
+    "duration": 25.0,
+    "input": {
+      "Graphite": 10,
+      "Ir": 8,
+      "Ti": 20
+    },
+    "level_req": 28,
+    "name": "Iridium Armor Plating",
+    "output": {
+      "IrPlate": 5
+    },
+    "research_req": "iridium_metallurgy",
+    "xp": 400
+  },
+  "craft_iridium_tungsten_alloy": {
+    "description": "Ir-W armor-piercing penetrator cores.",
+    "duration": 12.0,
+    "input": {
+      "Ir": 3,
+      "W": 5
+    },
+    "level_req": 26,
+    "name": "Iridium-Tungsten Alloy",
+    "output": {
+      "IrWAlloy": 4
+    },
+    "research_req": "iridium_metallurgy",
+    "xp": 250
+  },
+  "craft_magnet": {
+    "description": "Sn-Nb alloy magnets for advanced shielding and engines.",
+    "duration": 15.0,
+    "input": {
+      "Cu": 10,
+      "Fe": 10,
+      "Sn": 20
+    },
+    "level_req": 35,
+    "name": "Superconducting Magnet",
+    "output": {
+      "SuperconductingMagnet": 1
+    },
+    "research_req": "metallurgy_advanced",
+    "xp": 200
+  },
+  "craft_mg_ion_battery": {
+    "description": "Lightweight alternative to Li-ion. Fast charging.",
+    "duration": 8.0,
+    "input": {
+      "AlWire": 2,
+      "Mg": 4,
+      "Mn": 2
+    },
+    "level_req": 14,
+    "name": "Magnesium-Ion Battery",
+    "output": {
+      "MgBattery": 1
+    },
+    "research_req": "advanced_batteries",
+    "xp": 80
+  },
+  "craft_missile_t1": {
+    "description": "Standard high-explosive ordnance.",
+    "duration": 12.0,
+    "input": {
+      "C": 2,
+      "Fe": 5
+    },
+    "level_req": 5,
+    "name": "HE Missile",
+    "output": {
+      "MissileT1": 20
+    },
+    "research_req": "combustion",
+    "xp": 20
+  },
+  "craft_missile_t2": {
+    "description": "Guided missile with logic circuits.",
+    "duration": 20.0,
+    "input": {
+      "Circuit": 1,
+      "PirateSalvage": 2,
+      "Steel": 2,
+      "StructuralComponent": 3,
+      "TargetingChip": 1
+    },
+    "level_req": 25,
+    "name": "Seeker Missile",
+    "output": {
+      "MissileT2": 20
+    },
+    "research_req": "advanced_rocketry",
+    "xp": 50
+  },
+  "craft_missile_t3": {
+    "description": "High-yield thermobaric ordnance in a corrosion-resistant casing.",
+    "duration": 30.0,
+    "input": {
+      "AlMgAlloy": 2,
+      "GalvanizedSteel": 3,
+      "H": 20,
+      "StainlessSteel": 4,
+      "Steel": 5,
+      "StructuralComponent": 5
+    },
+    "level_req": 48,
+    "name": "Heavy Missile",
+    "output": {
+      "MissileT3": 20
+    },
+    "research_req": "advanced_rocketry",
+    "xp": 100
+  },
+  "craft_missile_t4": {
+    "description": "Antimatter-infused capital buster.",
+    "duration": 45.0,
+    "input": {
+      "ExoticMatter": 1,
+      "NanoSubstrate": 3,
+      "OsCore": 2,
+      "Superalloy": 2
+    },
+    "level_req": 65,
+    "name": "Photon Torpedo",
+    "output": {
+      "MissileT4": 20
+    },
+    "research_req": "capital_ship_armament",
+    "xp": 250
+  },
+  "craft_nano_substrate": {
+    "description": "Molecular-scale lattice from structural components and lightweight metals. Capital-grade fabrication.",
+    "duration": 15.0,
+    "input": {
+      "Al": 3,
+      "Mg": 2,
+      "Ni": 1,
+      "StructuralComponent": 5
+    },
+    "level_req": 55,
+    "name": "Nano-Substrate",
+    "output": {
+      "NanoSubstrate": 1
+    },
+    "research_req": "automation",
+    "xp": 200
+  },
+  "craft_nanoweave": {
+    "category": "consumables_hull",
+    "description": "Weave fiber for hull reinforcement. Restores 25% Hull Integrity.",
+    "duration": 15.0,
+    "input": {
+      "Fiber": 5,
+      "Si": 10
+    },
+    "level_req": 15,
+    "name": "Nanoweave Mesh",
+    "output": {
+      "Mesh": 1
+    },
+    "xp": 25
+  },
+  "craft_omega_accelerator": {
+    "category": "endgame",
+    "description": "Massively increases all production rates. Ultimate prestige item.",
+    "duration": 180.0,
+    "input": {
+      "ChronoCore": 3,
+      "NanoSubstrate": 5,
+      "OmegaPlating": 5,
+      "PurifiedCompound": 4,
+      "QuantumCore": 5,
+      "VoidEssence": 5
+    },
+    "level_req": 95,
+    "name": "Omega Accelerator",
+    "output": {
+      "OmegaAccelerator": 1
+    },
+    "research_req": "exotic_metallurgy",
+    "xp": 10000
+  },
+  "craft_osmium_core": {
+    "description": "Densest material. Extreme HP and mass.",
+    "duration": 30.0,
+    "input": {
+      "Os": 5,
+      "QuantumCore": 1,
+      "VoidCrystal": 2
+    },
+    "level_req": 30,
+    "name": "Osmium Reactor Core",
+    "output": {
+      "OsCore": 1
+    },
+    "research_req": "exotic_metallurgy",
+    "xp": 800
+  },
+  "craft_palladium_cell": {
+    "credits_cost": 20000,
+    "description": "Pd-H2 fuel cell. High efficiency energy generation.",
+    "duration": 15.0,
+    "input": {
+      "Circuit": 3,
+      "H": 20,
+      "Pd": 5
+    },
+    "level_req": 30,
+    "name": "Palladium Fuel Cell",
+    "output": {
+      "PdFuelCell": 1
+    },
+    "research_req": "fuel_cell_tech",
+    "xp": 100
+  },
+  "craft_platinum_catalyst": {
+    "description": "Pt-ceramic catalyst. Increases ALL processing speed by 25%.",
+    "duration": 20.0,
+    "input": {
+      "AdvCircuit": 5,
+      "Pt": 10,
+      "Si": 50
+    },
+    "level_req": 25,
+    "name": "Platinum Catalyst Matrix",
+    "output": {
+      "PtCatalyst": 1
+    },
+    "research_req": "industrial_catalysis",
+    "xp": 300
+  },
+  "craft_polymer": {
+    "description": "Synthesize resin from hydrocarbons.",
+    "duration": 5.0,
+    "input": {
+      "C": 1,
+      "H": 2,
+      "O": 1
+    },
+    "level_req": 10,
+    "name": "Polymer Resin",
+    "output": {
+      "Resin": 1
+    },
+    "xp": 10
+  },
+  "craft_primordial_armor": {
+    "category": "endgame",
+    "description": "Legendary armor forged from titan remains. Best-in-slot defense.",
+    "duration": 120.0,
+    "input": {
+      "CompositeWeave": 8,
+      "IrPlate": 5,
+      "NanoSubstrate": 3,
+      "OmegaPlating": 10,
+      "PrimordialShard": 3
+    },
+    "level_req": 90,
+    "name": "Primordial Forge",
+    "output": {
+      "PrimordialArmor": 1
+    },
+    "research_req": "exotic_metallurgy",
+    "xp": 5000
+  },
+  "craft_regenerative_plating": {
+    "category": "endgame",
+    "description": "Self-healing armor using bio-hazard compounds.",
+    "duration": 40.0,
+    "input": {
+      "BiohazardSample": 20,
+      "IrPlate": 3,
+      "PathogenCore": 1
+    },
+    "level_req": 72,
+    "name": "Regenerative Hull Plating",
+    "output": {
+      "RegenPlating": 2
+    },
+    "research_req": "zone_9_access",
+    "xp": 1500
+  },
+  "craft_reinforced_plating": {
+    "category": "components",
+    "description": "Forge salvaged combat alloy and scavenged circuitry into a Tier-1 reinforced hull plate — the cornerstone of early ship-frame upgrades.",
+    "duration": 12.0,
+    "input": {
+      "DamagedCircuitry": 2,
+      "SalvagedAlloy": 4,
+      "Steel": 10
+    },
+    "level_req": 8,
+    "name": "Reinforced Plating",
+    "output": {
+      "ReinforcedPlating": 1
+    },
+    "xp": 60
+  },
+  "craft_sealant": {
+    "category": "consumables_hull",
+    "description": "Mix polymer for rapid hull patching. Restores 35% Hull Integrity.",
+    "duration": 15.0,
+    "input": {
+      "Resin": 10,
+      "Steel": 8
+    },
+    "level_req": 25,
+    "name": "Hull Sealant",
+    "output": {
+      "Seal": 1
+    },
+    "research_req": "metallurgy_advanced",
+    "xp": 30
+  },
+  "craft_semiconductor": {
+    "description": "Dope Silicon with Germanium for conductivity.",
+    "duration": 10.0,
+    "input": {
+      "Germanium": 1,
+      "Si": 2
+    },
+    "level_req": 38,
+    "name": "Semiconductor Wafer",
+    "output": {
+      "Semiconductor": 1
+    },
+    "research_req": "adv_materials",
+    "xp": 50
+  },
+  "craft_silver_catalyst": {
+    "description": "High-efficiency chemical catalyst. +15% Processing Speed.",
+    "duration": 15.0,
+    "input": {
+      "Ag": 10,
+      "Circuit": 5,
+      "Si": 20
+    },
+    "level_req": 30,
+    "name": "Silver Catalyst",
+    "output": {
+      "AgCatalyst": 1
+    },
+    "research_req": "industrial_catalysis",
+    "xp": 150
+  },
+  "craft_slug_t1": {
+    "description": "Mass produce iron slugs.",
+    "duration": 5.0,
+    "input": {
+      "Fe": 1
+    },
+    "level_req": 1,
+    "name": "Ferrite Rounds",
+    "output": {
+      "SlugT1": 20
+    },
+    "xp": 5
+  },
+  "craft_slug_t1s": {
+    "description": "Armor-piercing heavy slugs.",
+    "duration": 10.0,
+    "input": {
+      "Steel": 1
+    },
+    "level_req": 24,
+    "name": "Steel Slugs",
+    "output": {
+      "SlugT1S": 20
+    },
+    "xp": 20
+  },
+  "craft_slug_t2": {
+    "description": "Heavy kinetic penetrators.",
+    "duration": 10.0,
+    "input": {
+      "Steel": 1,
+      "W": 1
+    },
+    "level_req": 32,
+    "name": "Tungsten Sabot",
+    "output": {
+      "SlugT2": 20
+    },
+    "research_req": "processing_tungsten",
+    "xp": 40
+  },
+  "craft_slug_t3": {
+    "description": "Armor-shredding heavy rounds.",
+    "duration": 15.0,
+    "input": {
+      "SlugT2": 20,
+      "StructuralComponent": 5,
+      "U": 1
+    },
+    "level_req": 55,
+    "name": "Depleted Uranium Round",
+    "output": {
+      "SlugT3": 20
+    },
+    "research_req": "ballistics_optimization",
+    "xp": 120
+  },
+  "craft_slug_t4": {
+    "description": "Tungsten-Superalloy sabot for railguns. Extreme kinetic impact.",
+    "duration": 20.0,
+    "input": {
+      "IrWAlloy": 4,
+      "NanoSubstrate": 2,
+      "Superalloy": 1,
+      "U": 3,
+      "W": 10
+    },
+    "level_req": 65,
+    "name": "Hyper-Velocity Slug",
+    "output": {
+      "SlugT4": 50
+    },
+    "research_req": "ballistics_optimization",
+    "xp": 180
+  },
+  "craft_stainless_steel": {
+    "description": "Fe-Cr-Ni alloy. Superior corrosion resistance and strength.",
+    "duration": 8.0,
+    "input": {
+      "Cr": 2,
+      "Fe": 5,
+      "Ni": 1
+    },
+    "level_req": 30,
+    "name": "Stainless Steel Alloy",
+    "output": {
+      "StainlessSteel": 4
+    },
+    "research_req": "metallurgy_advanced",
+    "xp": 60
+  },
+  "craft_structural_component": {
+    "description": "Precision-machined universal assembly from base metals. Required for advanced fabrication.",
+    "duration": 8.0,
+    "input": {
+      "C": 3,
+      "Cu": 5,
+      "Fe": 10,
+      "Li": 2,
+      "Si": 5
+    },
+    "level_req": 40,
+    "name": "Structural Component",
+    "output": {
+      "StructuralComponent": 1
+    },
+    "research_req": "metallurgy_advanced",
+    "xp": 80
+  },
+  "craft_superalloy": {
+    "description": "Heat-resistant alloy for engines and reactors.",
+    "duration": 10.0,
+    "input": {
+      "Al": 2,
+      "Co": 2,
+      "Cr": 1,
+      "Fe": 2,
+      "Ni": 2,
+      "Ti": 1
+    },
+    "level_req": 18,
+    "name": "Superalloy",
+    "output": {
+      "Superalloy": 1
+    },
+    "research_req": "superalloy_engineering",
+    "xp": 200
+  },
+  "craft_temporal_module": {
+    "category": "endgame",
+    "description": "Manipulates local time flow. Grants massive combat speed boost.",
+    "duration": 90.0,
+    "input": {
+      "AdvCircuit": 20,
+      "ChronoCore": 5,
+      "NanoSubstrate": 5,
+      "QuantumCore": 10
+    },
+    "level_req": 85,
+    "name": "Temporal Stabilizer",
+    "output": {
+      "TemporalModule": 1
+    },
+    "research_req": "exotic_metallurgy",
+    "xp": 3000
+  },
+  "craft_trophy_alpha": {
+    "category": "trophies",
+    "description": "Bind Xeno Fragments into an Alpha Trophy. Grants +15% Research Speed permanently.",
+    "duration": 90.0,
+    "input": {
+      "AdvCircuit": 10,
+      "Superalloy": 5,
+      "XenoFragment": 25
+    },
+    "level_req": 50,
+    "name": "Sector Alpha Trophy",
+    "output": {
+      "Trophy_Alpha": 1
+    },
+    "research_req": "zone_5_access",
+    "xp": 600
+  },
+  "craft_trophy_belt": {
+    "category": "trophies",
+    "description": "Reforge Pirate Salvage into a Belt Trophy. Grants +20% Mining Yield permanently.",
+    "duration": 45.0,
+    "input": {
+      "Cu": 20,
+      "PirateSalvage": 50,
+      "Steel": 30
+    },
+    "level_req": 20,
+    "name": "Asteroid Belt Trophy",
+    "output": {
+      "Trophy_Belt": 1
+    },
+    "research_req": "zone_2_access",
+    "xp": 150
+  },
+  "craft_trophy_delta": {
+    "category": "trophies",
+    "description": "Compress Neutronium into a Delta Trophy. Grants +15% Kinetic Damage permanently.",
+    "duration": 120.0,
+    "input": {
+      "ExoticMatter": 5,
+      "Neutronium": 20,
+      "Superalloy": 10
+    },
+    "level_req": 70,
+    "name": "Delta Sector Trophy",
+    "output": {
+      "Trophy_Delta": 1
+    },
+    "research_req": "zone_8_access",
+    "xp": 1200
+  },
+  "craft_trophy_lunar": {
+    "category": "trophies",
+    "description": "Forge a trophy from Mite Chitin shards. Grants +25% Gathering XP permanently.",
+    "duration": 30.0,
+    "input": {
+      "Circuit": 10,
+      "Cu": 20,
+      "MiteChitin": 50
+    },
+    "level_req": 10,
+    "name": "Lunar Conquest Trophy",
+    "output": {
+      "Trophy_Lunar": 1
+    },
+    "research_req": "kinetics_101",
+    "xp": 80
+  },
+  "craft_trophy_mars": {
+    "category": "trophies",
+    "description": "Restore Martian Relics into a memorial trophy. Grants +25% Processing XP permanently.",
+    "duration": 60.0,
+    "input": {
+      "AdvCircuit": 5,
+      "MartianRelics": 40,
+      "Steel": 40
+    },
+    "level_req": 30,
+    "name": "Martian Relic Trophy",
+    "output": {
+      "Trophy_Mars": 1
+    },
+    "research_req": "zone_3_access",
+    "xp": 250
+  },
+  "craft_trophy_titan": {
+    "category": "trophies",
+    "description": "Condense Cryo Essence into a Titan Trophy. Grants +10% Ship Speed permanently.",
+    "duration": 75.0,
+    "input": {
+      "CryoEssence": 30,
+      "Superalloy": 5,
+      "Ti": 50
+    },
+    "level_req": 40,
+    "name": "Titan Cryofield Trophy",
+    "output": {
+      "Trophy_Titan": 1
+    },
+    "research_req": "zone_4_access",
+    "xp": 400
+  },
+  "craft_turret_core": {
+    "description": "Fabricate an automated turret control core from circuits and structural alloy.",
+    "duration": 25.0,
+    "input": {
+      "AdvCircuit": 5,
+      "Circuit": 20,
+      "StainlessSteel": 10,
+      "Steel": 30
+    },
+    "level_req": 35,
+    "name": "Turret Core",
+    "output": {
+      "TurretCore": 1
+    },
+    "xp": 90
+  },
+  "craft_turret_targeting": {
+    "category": "salvage",
+    "description": "Assemble a precision targeting computer from advanced circuits.",
+    "duration": 20.0,
+    "input": {
+      "AdvCircuit": 3,
+      "Circuit": 10,
+      "Steel": 20
+    },
+    "level_req": 45,
+    "name": "Targeting Array Fabrication",
+    "output": {
+      "TargetingChip": 1
+    },
+    "research_req": "deep_space_nav",
+    "xp": 100
+  },
+  "craft_void_battery": {
+    "category": "endgame",
+    "description": "Ultimate power storage using void essence compression.",
+    "duration": 60.0,
+    "input": {
+      "ExoticMatter": 5,
+      "NuclearFuel": 5,
+      "QuantumCore": 2,
+      "VoidEssence": 10
+    },
+    "level_req": 80,
+    "name": "Void Battery",
+    "output": {
+      "VoidBattery": 1
+    },
+    "research_req": "exotic_metallurgy",
+    "xp": 2000
+  },
+  "craft_zero_point": {
+    "category": "consumables_shield",
+    "description": "Vacuum energy extraction. Restores 50% Shield Integrity.",
+    "duration": 20.0,
+    "input": {
+      "BatteryT3": 1,
+      "Superalloy": 2
+    },
+    "level_req": 42,
+    "name": "Zero-Point Injector",
+    "output": {
+      "ZeroPoint": 1
+    },
+    "research_req": "energy_metrics",
+    "xp": 60
+  },
+  "cryogenic_distillation": {
+    "description": "Extract Nitrogen from liquid Hydrogen/Oxygen mix.",
+    "duration": 20.0,
+    "input": {
+      "H": 10,
+      "O": 10
+    },
+    "level_req": 25,
+    "name": "Cryogenic Distillation",
+    "output": {
+      "N": 5
+    },
+    "research_req": "fluid_dynamics",
+    "xp": 30
+  },
+  "decode_ancient_tech": {
+    "category": "endgame",
+    "description": "Compress void artifacts into quantum-entangled processing cores.",
+    "duration": 90.0,
+    "input": {
+      "AdvCircuit": 5,
+      "VoidArtifact": 10,
+      "VoidCrystal": 3
+    },
+    "level_req": 70,
+    "name": "Quantum Core Synthesis",
+    "output": {
+      "QuantumCore": 2
+    },
+    "research_req": "exotic_matter_analysis",
+    "xp": 500
+  },
+  "decode_manifest": {
+    "category": "salvage",
+    "credits_output": 12500,
+    "description": "Cross-reference navigation data to reveal hidden coordinates and bounty.",
+    "duration": 15.0,
+    "input": {
+      "NavData": 3
+    },
+    "level_req": 15,
+    "name": "Decode Encrypted Data",
+    "output": {
+
+    },
+    "xp": 30
+  },
+  "decrypt_nav_data": {
+    "credits_cost": 500,
+    "description": "Synthesize navigation data from salvaged schematics and Liras.",
+    "duration": 30.0,
+    "input": {
+      "SalvageData": 5
+    },
+    "level_req": 20,
+    "name": "Decrypt Nav-Data",
+    "output": {
+      "NavData": 1
+    },
+    "research_req": "basic_engineering",
+    "xp": 50
+  },
+  "distill_cryo_essence": {
+    "category": "components",
+    "description": "Infuse supercooled helium-nitrogen with a Primordial Shard, condensing concentrated Cryo-Essence — the active medium of cryogenic armaments. The Shard's exotic resonance is what makes the essence bite Warp-Hardened hulls.",
+    "duration": 15.0,
+    "input": {
+      "He": 8,
+      "Li": 2,
+      "N": 10,
+      "PrimordialShard": 1
+    },
+    "level_req": 60,
+    "name": "Cryo-Essence Condenser",
+    "output": {
+      "CryoEssence": 3
+    },
+    "research_req": "cryogenic_systems",
+    "xp": 120
+  },
+  "distill_void_essence": {
+    "category": "endgame",
+    "description": "Concentrate void energy into pure exotic matter.",
+    "duration": 45.0,
+    "input": {
+      "VoidEssence": 20
+    },
+    "level_req": 75,
+    "name": "Void Distillation",
+    "output": {
+      "ExoticMatter": 10
+    },
+    "research_req": "exotic_matter_analysis",
+    "xp": 1500
+  },
+  "electrolysis": {
+    "category": "basics",
+    "description": "Split Water into Hydrogen and Oxygen.",
+    "duration": 2.0,
+    "input": {
+      "Water": 5
+    },
+    "level_req": 2,
+    "name": "Water Electrolysis",
+    "output": {
+      "H": 20,
+      "O": 10
+    },
+    "research_req": "fluid_dynamics",
+    "xp": 5
+  },
+  "electrolysis_nickel_catalyst": {
+    "description": "Ni catalyst speeds H2 production. More efficient.",
+    "duration": 20.0,
+    "input": {
+      "Ni": 1,
+      "Water": 10
+    },
+    "level_req": 12,
+    "name": "Nickel-Catalyzed Electrolysis",
+    "output": {
+      "H": 30,
+      "O": 20
+    },
+    "research_req": "catalytic_electrodes",
+    "xp": 300
+  },
+  "extract_germanium": {
+    "description": "Extract trace Germanium from refined Silicon.",
+    "duration": 8.0,
+    "input": {
+      "Cu": 5,
+      "Si": 10
+    },
+    "level_req": 36,
+    "name": "Germanium Extraction",
+    "output": {
+      "Germanium": 1
+    },
+    "research_req": "combustion",
+    "xp": 40
+  },
+  "galvanize_steel": {
+    "description": "Zinc-coated steel. Corrosion resistant.",
+    "duration": 4.0,
+    "input": {
+      "Steel": 2,
+      "Zn": 1
+    },
+    "level_req": 25,
+    "name": "Galvanized Steel",
+    "output": {
+      "GalvanizedSteel": 2
+    },
+    "research_req": "smelting",
+    "xp": 40
+  },
+  "gold_leaching": {
+    "description": "Dissolve gold from soil using chemical solvents.",
+    "duration": 20.0,
+    "input": {
+      "Dirt": 70,
+      "H": 10,
+      "Water": 30
+    },
+    "level_req": 48,
+    "name": "Chemical Leaching",
+    "output": {
+      "Au": 5
+    },
+    "research_req": "industrial_electrolysis",
+    "xp": 100
+  },
+  "nitrogen_coolant": {
+    "category": "consumables_shield",
+    "description": "Supercools shield generators for rapid integrity restoration. Restores 35% Shield.",
+    "duration": 15.0,
+    "input": {
+      "AlMgAlloy": 10,
+      "Circuit": 5,
+      "Li": 5,
+      "N": 250
+    },
+    "level_req": 32,
+    "name": "Cryo-Shield Matrix",
+    "output": {
+      "NitroCoolant": 1
+    },
+    "research_req": "fluid_dynamics",
+    "xp": 60
+  },
+  "press_graphite": {
+    "description": "Compress Carbon into high-density Graphite.",
+    "duration": 6.0,
+    "input": {
+      "C": 5
+    },
+    "level_req": 25,
+    "name": "Graphite Press",
+    "output": {
+      "Graphite": 1
+    },
+    "research_req": "adv_materials",
+    "xp": 20
+  },
+  "process_colony_salvage": {
+    "category": "salvage",
+    "description": "Extract advanced components from colonial wreckage.",
+    "duration": 30.0,
+    "input": {
+      "Circuit": 5,
+      "ColonySalvage": 10
+    },
+    "level_req": 40,
+    "name": "Process Colony Salvage",
+    "output": {
+      "AdvCircuit": 3
+    },
+    "research_req": "deep_space_nav",
+    "xp": 150
+  },
+  "process_dolomite": {
+    "description": "Extract Magnesium from Dolomite through heating.",
+    "duration": 6.0,
+    "input": {
+      "C": 1,
+      "Dolomite": 4
+    },
+    "level_req": 15,
+    "name": "Dolomite Calcination",
+    "output": {
+      "Mg": 1
+    },
+    "research_req": "combustion",
+    "xp": 15
+  },
+  "process_rad_isotope": {
+    "category": "endgame",
+    "description": "Process unstable isotopes into concentrated nuclear fuel.",
+    "duration": 45.0,
+    "input": {
+      "H": 20,
+      "RadIsotope": 5,
+      "Steel": 10
+    },
+    "level_req": 55,
+    "name": "Refine Radioactive Isotopes",
+    "output": {
+      "NuclearFuel": 2
+    },
+    "research_req": "radiation_shielding",
+    "xp": 200
+  },
+  "purify_biohazard": {
+    "category": "endgame",
+    "description": "Extract valuable compounds from hazardous samples.",
+    "duration": 20.0,
+    "input": {
+      "BiohazardSample": 20
+    },
+    "level_req": 65,
+    "name": "Pathogen Purification",
+    "output": {
+      "PurifiedCompound": 5
+    },
+    "output_table": [
+      [
+        "PathogenCore",
+        0.2,
+        1,
+        1
+      ]
+    ],
+    "research_req": "zone_9_access",
+    "xp": 800
+  },
+  "reclaim_damaged_circuitry": {
+    "category": "components",
+    "description": "Cannibalise finished Circuits into a Damaged Circuitry substitute. Lossy (6:1) — Tech enemies drop it far faster — but this is the deadlock safety net.",
+    "duration": 15.0,
+    "input": {
+      "Circuit": 6
+    },
+    "level_req": 8,
+    "name": "Stripped Circuitry (Fallback)",
+    "output": {
+      "DamagedCircuitry": 1
+    },
+    "xp": 10
+  },
+  "reclaim_salvaged_alloy": {
+    "category": "components",
+    "description": "Crudely re-smelt bulk Steel into a Salvaged Alloy substitute. Wildly inefficient (8:1) — farming Heavy enemies is far better — but it guarantees you can never hard-lock.",
+    "duration": 15.0,
+    "input": {
+      "Steel": 8
+    },
+    "level_req": 8,
+    "name": "Improvised Alloy (Fallback)",
+    "output": {
+      "SalvagedAlloy": 1
+    },
+    "xp": 10
+  },
+  "refine_cassiterite": {
+    "description": "Smelt Cassiterite to extract Tin (Sn).",
+    "duration": 6.0,
+    "input": {
+      "C": 1,
+      "Cassiterite": 3
+    },
+    "level_req": 20,
+    "name": "Tin Smelting",
+    "output": {
+      "Sn": 2
+    },
+    "research_req": "smelting",
+    "xp": 25
+  },
+  "refine_chromite": {
+    "description": "Reduce Chromite to Chromium (Cr) via aluminum thermite.",
+    "duration": 8.0,
+    "input": {
+      "Al": 1,
+      "Chromite": 3
+    },
+    "level_req": 25,
+    "name": "Chromium Reduction",
+    "output": {
+      "Cr": 2
+    },
+    "research_req": "metallurgy_advanced",
+    "xp": 35
+  },
+  "refine_diamond_lens": {
+    "description": "Cut a flawless diamond into a precision sensor lens and decode it into exotic research data.",
+    "duration": 30.0,
+    "input": {
+      "AdvCircuit": 5,
+      "Au": 2,
+      "Diamond": 1
+    },
+    "level_req": 60,
+    "name": "Diamond Sensor Lens",
+    "output": {
+      "Res3": 2
+    },
+    "xp": 150
+  },
+  "refine_germanite": {
+    "description": "Directly smelt Germanite ore for high-purity Germanium.",
+    "duration": 10.0,
+    "input": {
+      "Germanit": 3
+    },
+    "level_req": 35,
+    "name": "Germanite Refining",
+    "output": {
+      "Germanium": 2
+    },
+    "research_req": "adv_materials",
+    "xp": 50
+  },
+  "refine_gold": {
+    "description": "Sift large amounts of dirt for Gold flakes.",
+    "duration": 12.0,
+    "input": {
+      "Dirt": 100,
+      "Water": 100
+    },
+    "level_req": 20,
+    "name": "Gold Panning",
+    "output": {
+      "Au": 1
+    },
+    "research_req": "basic_engineering",
+    "xp": 30
+  },
+  "refine_lithium": {
+    "description": "Extract Lithium from Spodumene crystals.",
+    "duration": 5.0,
+    "input": {
+      "Spodumene": 2
+    },
+    "level_req": 3,
+    "name": "Refine Lithium",
+    "output": {
+      "Li": 1
+    },
+    "research_req": "basic_engineering",
+    "xp": 7
+  },
+  "refine_pentlandite": {
+    "description": "Process Pentlandite for Nickel (Ni).",
+    "duration": 6.0,
+    "input": {
+      "C": 1,
+      "Pentlandite": 3
+    },
+    "level_req": 22,
+    "name": "Nickel Extraction",
+    "output": {
+      "Ni": 2
+    },
+    "output_table": [
+      [
+        "Co",
+        0.4,
+        1,
+        1
+      ]
+    ],
+    "research_req": "smelting",
+    "xp": 30
+  },
+  "refine_platinum_ore": {
+    "description": "Extract pure Pt from asteroid samples.",
+    "duration": 8.0,
+    "input": {
+      "PtOre": 10
+    },
+    "level_req": 20,
+    "name": "Platinum Extraction",
+    "output": {
+      "Pt": 2
+    },
+    "output_table": [
+      [
+        "Pd",
+        0.3,
+        1,
+        2
+      ]
+    ],
+    "research_req": "precious_metal_refining",
+    "xp": 100
+  },
+  "sift_dirt_dry": {
+    "category": "basics",
+    "description": "Manually sift through dirt for metallic fragments. No water required.",
+    "duration": 5.0,
+    "input": {
+      "Dirt": 10
+    },
+    "level_req": 1,
+    "name": "Dry Sifting",
+    "output": {
+      "Fe": 3
+    },
+    "output_table": [
+      [
+        "Si",
+        0.2,
+        1,
+        1
+      ]
+    ],
+    "research_req": "basic_engineering",
+    "xp": 3
+  },
+  "smelt_bauxite": {
+    "description": "Extract Aluminum from Bauxite ore using oxygen.",
+    "duration": 3.0,
+    "input": {
+      "Bauxite": 3,
+      "O": 2
+    },
+    "level_req": 16,
+    "name": "Bauxite Smelting",
+    "output": {
+      "Al": 2
+    },
+    "research_req": "basic_engineering",
+    "xp": 15
+  },
+  "smelt_copper": {
+    "description": "Refine Malachite ore into pure Copper.",
+    "duration": 5.0,
+    "input": {
+      "C": 1,
+      "Malachite": 2
+    },
+    "level_req": 5,
+    "name": "Copper Smelting",
+    "output": {
+      "Cu": 1
+    },
+    "research_req": "basic_engineering",
+    "xp": 15
+  },
+  "smelt_quartz": {
+    "description": "Refine Quartz into industrial Silicon.",
+    "duration": 6.0,
+    "input": {
+      "C": 1,
+      "Quartz": 2
+    },
+    "level_req": 20,
+    "name": "Silicon Smelting",
+    "output": {
+      "Si": 1
+    },
+    "xp": 20
+  },
+  "smelt_steel_basic": {
+    "description": "Foundry smelting of Iron and Carbon into Steel.",
+    "duration": 5.0,
+    "input": {
+      "C": 2,
+      "Fe": 5
+    },
+    "level_req": 12,
+    "name": "Basic Steel Smelting",
+    "output": {
+      "Steel": 5
+    },
+    "research_req": "smelting",
+    "xp": 20
+  },
+  "smelt_steel_oxygen": {
+    "description": "Use Oxygen to blast smelt Steel efficiently. Manganese deoxidises the melt for a higher yield.",
+    "duration": 5.0,
+    "input": {
+      "C": 4,
+      "Fe": 10,
+      "Mn": 2,
+      "O": 4
+    },
+    "level_req": 40,
+    "name": "Oxygen-Enriched Smelting",
+    "output": {
+      "Steel": 10
+    },
+    "research_req": "smelting",
+    "xp": 25
+  },
+  "smelt_zinc": {
+    "description": "Extract Zinc from ore via carbon reduction.",
+    "duration": 4.0,
+    "input": {
+      "C": 1,
+      "ZincOre": 3
+    },
+    "level_req": 18,
+    "name": "Zinc Reduction",
+    "output": {
+      "Zn": 2
+    },
+    "output_table": [
+      [
+        "Ag",
+        0.4,
+        1,
+        1
+      ]
+    ],
+    "xp": 12
+  },
+  "synthesize_bioweapon": {
+    "category": "endgame",
+    "description": "Synthesize pathogen samples into biological weapon coating.",
+    "duration": 30.0,
+    "input": {
+      "BiohazardSample": 15,
+      "PathogenCore": 2
+    },
+    "level_req": 70,
+    "name": "Bio-Agent Synthesis",
+    "output": {
+      "BioWeaponCoating": 3
+    },
+    "research_req": "zone_9_access",
+    "xp": 1200
+  },
+  "upgrade_exotic_artifact": {
+    "description": "Merge Rare artifacts with advanced tech to unlock capital-class research.",
+    "duration": 60.0,
+    "input": {
+      "AdvCircuit": 2,
+      "NavData": 5,
+      "Res2": 5,
+      "XenoFragment": 3
+    },
+    "level_req": 60,
+    "name": "Compile Exotic Artifact",
+    "output": {
+      "Res3": 1
+    },
+    "research_req": "sector_alpha_decryption",
+    "xp": 300
+  },
+  "upgrade_rare_artifact": {
+    "description": "Combine Common artifacts and recovered Martian relics with circuits to create Rare research data.",
+    "duration": 8.0,
+    "input": {
+      "Circuit": 10,
+      "MartianRelics": 5,
+      "Res1": 100
+    },
+    "level_req": 35,
+    "name": "Synthesize Rare Artifact",
+    "output": {
+      "Res2": 1
+    },
+    "research_req": "smelting",
+    "xp": 100
+  }
+}

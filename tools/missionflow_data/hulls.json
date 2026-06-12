@@ -1,0 +1,344 @@
+{
+  "battlecruiser_hull": {
+    "cost": {
+      "QuantumCore": 25,
+      "Superalloy": 500,
+      "credits": 810000
+    },
+    "name": "Battlecruiser",
+    "research_req": "zone_5_access",
+    "slots": [
+      "weapon",
+      "weapon",
+      "weapon",
+      "weapon",
+      "shield",
+      "shield",
+      "shield",
+      "armor",
+      "armor",
+      "engine",
+      "battery",
+      "battery",
+      "battery",
+      "battery",
+      "sensor",
+      "sensor"
+    ],
+    "stats": {
+      "atk": 194,
+      "energy_capacity": 570,
+      "hp": 1874
+    },
+    "tier": 5,
+    "visual": "res://assets/ships/5.png"
+  },
+  "capital_hull": {
+    "cost": {
+      "AdvCircuit": 1000,
+      "VoidArtifact": 50,
+      "credits": 2430000
+    },
+    "name": "Capital Ship",
+    "research_req": "zone_6_access",
+    "slots": [
+      "weapon",
+      "weapon",
+      "weapon",
+      "weapon",
+      "shield",
+      "shield",
+      "shield",
+      "armor",
+      "armor",
+      "armor",
+      "engine",
+      "engine",
+      "battery",
+      "battery",
+      "battery",
+      "battery",
+      "sensor",
+      "sensor"
+    ],
+    "stats": {
+      "atk": 426,
+      "energy_capacity": 1255,
+      "hp": 4124
+    },
+    "tier": 6,
+    "visual": "res://assets/ships/5.png"
+  },
+  "carrier_hull": {
+    "cost": {
+      "ExoticMatter": 100,
+      "credits": 7290000
+    },
+    "name": "Carrier",
+    "research_req": "zone_7_access",
+    "slots": [
+      "weapon",
+      "weapon",
+      "weapon",
+      "weapon",
+      "weapon",
+      "shield",
+      "shield",
+      "shield",
+      "shield",
+      "armor",
+      "armor",
+      "armor",
+      "engine",
+      "engine",
+      "battery",
+      "battery",
+      "battery",
+      "battery",
+      "sensor",
+      "sensor"
+    ],
+    "stats": {
+      "atk": 937,
+      "energy_capacity": 2760,
+      "hp": 9073
+    },
+    "tier": 7,
+    "visual": "res://assets/ships/5.png"
+  },
+  "corvette_hull": {
+    "cost": {
+      "credits": 0
+    },
+    "name": "Corvette",
+    "slots": [
+      "weapon",
+      "weapon",
+      "shield",
+      "armor",
+      "engine",
+      "battery",
+      "battery",
+      "sensor"
+    ],
+    "stats": {
+      "atk": 12,
+      "energy_capacity": 25,
+      "hp": 120
+    },
+    "tier": 1,
+    "visual": "res://assets/ships/1.png"
+  },
+  "cruiser_hull": {
+    "cost": {
+      "AdvCircuit": 50,
+      "Ti": 200,
+      "credits": 270000
+    },
+    "name": "Heavy Cruiser",
+    "research_req": "zone_4_access",
+    "slots": [
+      "weapon",
+      "weapon",
+      "weapon",
+      "shield",
+      "shield",
+      "shield",
+      "armor",
+      "armor",
+      "engine",
+      "battery",
+      "battery",
+      "battery",
+      "sensor",
+      "sensor"
+    ],
+    "stats": {
+      "atk": 88,
+      "energy_capacity": 260,
+      "hp": 852
+    },
+    "tier": 4,
+    "visual": "res://assets/ships/4.png"
+  },
+  "destroyer_hull": {
+    "cost": {
+      "Circuit": 20,
+      "Steel": 100,
+      "credits": 90000
+    },
+    "name": "Destroyer",
+    "research_req": "shipwright_2",
+    "slots": [
+      "weapon",
+      "weapon",
+      "weapon",
+      "shield",
+      "shield",
+      "armor",
+      "armor",
+      "engine",
+      "battery",
+      "battery",
+      "battery",
+      "sensor"
+    ],
+    "stats": {
+      "atk": 40,
+      "energy_capacity": 120,
+      "hp": 387
+    },
+    "tier": 3,
+    "visual": "res://assets/ships/3.png"
+  },
+  "dreadnought_hull": {
+    "cost": {
+      "ExoticMatter": 200,
+      "credits": 21870000
+    },
+    "name": "Dreadnought",
+    "research_req": "zone_8_access",
+    "slots": [
+      "weapon",
+      "weapon",
+      "weapon",
+      "weapon",
+      "weapon",
+      "shield",
+      "shield",
+      "shield",
+      "shield",
+      "armor",
+      "armor",
+      "armor",
+      "engine",
+      "engine",
+      "battery",
+      "battery",
+      "battery",
+      "battery",
+      "battery",
+      "sensor",
+      "sensor",
+      "sensor"
+    ],
+    "stats": {
+      "atk": 2062,
+      "energy_capacity": 6075,
+      "hp": 19960
+    },
+    "tier": 8,
+    "visual": "res://assets/ships/5.png"
+  },
+  "frigate_hull": {
+    "cost": {
+      "Steel": 50,
+      "credits": 30000
+    },
+    "name": "Industrial Frigate",
+    "research_req": "shipwright_1",
+    "slots": [
+      "weapon",
+      "weapon",
+      "shield",
+      "shield",
+      "armor",
+      "armor",
+      "engine",
+      "battery",
+      "battery",
+      "sensor"
+    ],
+    "stats": {
+      "atk": 25,
+      "energy_capacity": 75,
+      "hp": 200
+    },
+    "tier": 2,
+    "visual": "res://assets/ships/2.png"
+  },
+  "leviathan_hull": {
+    "cost": {
+      "PrimordialShard": 1000,
+      "credits": 196830000
+    },
+    "name": "Leviathan",
+    "research_req": "zone_10_access",
+    "slots": [
+      "weapon",
+      "weapon",
+      "weapon",
+      "weapon",
+      "weapon",
+      "weapon",
+      "shield",
+      "shield",
+      "shield",
+      "shield",
+      "shield",
+      "armor",
+      "armor",
+      "armor",
+      "armor",
+      "engine",
+      "engine",
+      "battery",
+      "battery",
+      "battery",
+      "battery",
+      "battery",
+      "battery",
+      "sensor",
+      "sensor",
+      "sensor"
+    ],
+    "stats": {
+      "atk": 9981,
+      "energy_capacity": 29400,
+      "hp": 96609
+    },
+    "tier": 10,
+    "visual": "res://assets/ships/5.png"
+  },
+  "titan_hull": {
+    "cost": {
+      "Neutronium": 500,
+      "credits": 65610000
+    },
+    "name": "Titan",
+    "research_req": "zone_9_access",
+    "slots": [
+      "weapon",
+      "weapon",
+      "weapon",
+      "weapon",
+      "weapon",
+      "weapon",
+      "shield",
+      "shield",
+      "shield",
+      "shield",
+      "armor",
+      "armor",
+      "armor",
+      "armor",
+      "engine",
+      "engine",
+      "battery",
+      "battery",
+      "battery",
+      "battery",
+      "battery",
+      "sensor",
+      "sensor",
+      "sensor"
+    ],
+    "stats": {
+      "atk": 4537,
+      "energy_capacity": 13365,
+      "hp": 43913
+    },
+    "tier": 9,
+    "visual": "res://assets/ships/5.png"
+  }
+}

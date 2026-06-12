@@ -1,0 +1,1312 @@
+{
+  "adv_circuit_foundry": {
+    "category": "industry",
+    "cost": {
+      "Circuit": 200,
+      "Steel": 3000,
+      "Superalloy": 120,
+      "credits": 2000000
+    },
+    "description": "+1.2 AdvCircuit (-5 Circuit, -4 Si, -2 Germanium)",
+    "energy_cons": 3500.0,
+    "energy_gen": 0.0,
+    "input": {
+      "Circuit": 5,
+      "Germanium": 2,
+      "Si": 4
+    },
+    "interval": 5.0,
+    "name": "Advanced Circuit Foundry",
+    "research_req": "nano_fabrication",
+    "yield": {
+      "AdvCircuit": 1.2
+    }
+  },
+  "adv_fuel_cell_array": {
+    "category": "power",
+    "cost": {
+      "AdvCircuit": 80,
+      "Ti": 150,
+      "credits": 800000
+    },
+    "description": "+60000.0 kW (-2 Pd-Cells)",
+    "energy_cons": 0.0,
+    "energy_gen": 60000.0,
+    "input": {
+      "PdFuelCell": 2
+    },
+    "interval": 10.0,
+    "name": "Advanced Fuel Cell Array",
+    "research_req": "fuel_cell_tech"
+  },
+  "advanced_ballistics_plant": {
+    "category": "industry",
+    "cost": {
+      "Al": 50,
+      "Steel": 100,
+      "credits": 125000
+    },
+    "description": "+3.1 Slug T2 (-3.1 Steel, -1.3 Al)",
+    "energy_cons": 2500.0,
+    "energy_gen": 0.0,
+    "input": {
+      "Al": 1.3,
+      "Steel": 3.1
+    },
+    "interval": 5.0,
+    "name": "Advanced Ballistics Plant",
+    "research_req": "processing_tungsten",
+    "yield": {
+      "SlugT2": 3.1
+    }
+  },
+  "antimatter_generator": {
+    "category": "power",
+    "cost": {
+      "QuantumCore": 10,
+      "VoidArtifact": 50,
+      "credits": 25000000
+    },
+    "description": "+16000000.0 kW (-1 Quantum Core)",
+    "energy_cons": 0.0,
+    "energy_gen": 16000000.0,
+    "input": {
+      "QuantumCore": 1
+    },
+    "interval": 20.0,
+    "name": "Antimatter Generator",
+    "research_req": "quantum_dynamics"
+  },
+  "auto_excavator": {
+    "category": "extraction",
+    "cost": {
+      "Fe": 2000,
+      "Si": 5000,
+      "credits": 250000
+    },
+    "description": "+10 Dirt",
+    "energy_cons": 15.0,
+    "energy_gen": 0.0,
+    "interval": 5.0,
+    "name": "Auto-Excavator (XL)",
+    "yield": {
+      "Dirt": 10
+    }
+  },
+  "auto_press": {
+    "category": "industry",
+    "cost": {
+      "Fe": 100,
+      "Hydraulics": 5,
+      "credits": 7500
+    },
+    "description": "+0.8 Graphite (-4.2 Carbon)",
+    "energy_cons": 1500.0,
+    "energy_gen": 0.0,
+    "input": {
+      "C": 4.2
+    },
+    "interval": 5.0,
+    "name": "Automated Carbon Press",
+    "research_req": "molecular_compression",
+    "yield": {
+      "Graphite": 0.8
+    }
+  },
+  "auto_smelter": {
+    "category": "industry",
+    "cost": {
+      "Circuit": 5,
+      "Ti": 20,
+      "credits": 6250
+    },
+    "description": "+2.5 Steel",
+    "energy_cons": 120.0,
+    "energy_gen": 0.0,
+    "input": {
+      "C": 1.3,
+      "Fe": 2.5,
+      "O": 2.5
+    },
+    "interval": 5.0,
+    "name": "Automated Smelter",
+    "research_req": "automated_smelting",
+    "yield": {
+      "Steel": 2.5
+    }
+  },
+  "basic_cell_factory": {
+    "category": "industry",
+    "cost": {
+      "Cu": 20,
+      "Si": 100,
+      "credits": 12500
+    },
+    "description": "+10 Cell T1 (-5 Si)",
+    "energy_cons": 50.0,
+    "energy_gen": 0.0,
+    "input": {
+      "Si": 5
+    },
+    "interval": 5.0,
+    "name": "Basic Cell Factory",
+    "research_req": "power_systems",
+    "yield": {
+      "CellT1": 10
+    }
+  },
+  "basic_kinetic_foundry": {
+    "category": "industry",
+    "cost": {
+      "Fe": 100,
+      "Si": 50,
+      "credits": 12500
+    },
+    "description": "+10 Slug T1 (-5 Fe)",
+    "energy_cons": 50.0,
+    "energy_gen": 0.0,
+    "input": {
+      "Fe": 5
+    },
+    "interval": 5.0,
+    "name": "Basic Kinetic Foundry",
+    "research_req": "kinetics_101",
+    "yield": {
+      "SlugT1": 10
+    }
+  },
+  "bauxite_mine": {
+    "category": "extraction",
+    "cost": {
+      "AdvCircuit": 120,
+      "Steel": 1500,
+      "credits": 800000
+    },
+    "description": "Basic aluminum ore extraction.",
+    "energy_cons": 160.0,
+    "energy_gen": 0.0,
+    "interval": 5.0,
+    "name": "Bauxite Mine",
+    "research_req": "metallurgy_advanced",
+    "yield": {
+      "Bauxite": 1.0
+    }
+  },
+  "bauxite_miner": {
+    "category": "extraction",
+    "cost": {
+      "Superalloy": 100,
+      "Ti": 500,
+      "credits": 1000000
+    },
+    "description": "+2.5 Bauxite (Industrial)",
+    "energy_cons": 4500.0,
+    "energy_gen": 0.0,
+    "interval": 5.0,
+    "name": "Bauxite Strip Miner",
+    "research_req": "adv_materials",
+    "yield": {
+      "Bauxite": 2.5
+    }
+  },
+  "bio_harvester": {
+    "category": "extraction",
+    "cost": {
+      "Circuit": 50,
+      "Steel": 500,
+      "credits": 250000
+    },
+    "description": "Automated wood collection.",
+    "energy_cons": 40.0,
+    "energy_gen": 0.0,
+    "interval": 5.0,
+    "name": "Bio-Harvester",
+    "research_req": "laser_cutters",
+    "yield": {
+      "Wood": 10
+    }
+  },
+  "biomass_plant": {
+    "category": "power",
+    "cost": {
+      "Circuit": 20,
+      "Steel": 200,
+      "credits": 150000
+    },
+    "description": "+1000.0 kW (-5 Wood)",
+    "energy_cons": 0.0,
+    "energy_gen": 1000.0,
+    "input": {
+      "Wood": 5
+    },
+    "interval": 10.0,
+    "name": "Biomass Plant",
+    "research_req": "combustion"
+  },
+  "biosphere_dome": {
+    "category": "logistics",
+    "cost": {
+      "FertileSoil": 10,
+      "Si": 50,
+      "Steel": 150,
+      "credits": 30000
+    },
+    "description": "+5% Gather Speed",
+    "energy_cons": 50.0,
+    "energy_gen": 0.0,
+    "max": 5,
+    "name": "Biosphere Dome",
+    "research_req": "industrial_logistics",
+    "special": "gather_speed_buff"
+  },
+  "brine_extractor": {
+    "category": "extraction",
+    "cost": {
+      "Superalloy": 100,
+      "Ti": 500,
+      "credits": 1000000
+    },
+    "description": "+1.7 Spodumene (Efficient)",
+    "energy_cons": 120.0,
+    "energy_gen": 0.0,
+    "interval": 5.0,
+    "name": "Lithium Brine Well",
+    "research_req": "basic_engineering",
+    "yield": {
+      "Spodumene": 1.7
+    }
+  },
+  "catalyst_chamber": {
+    "category": "logistics",
+    "cost": {
+      "AdvCircuit": 30,
+      "PtCatalyst": 5,
+      "Superalloy": 20,
+      "credits": 500000
+    },
+    "description": "+25% Processing Speed",
+    "energy_cons": 1200.0,
+    "energy_gen": 0.0,
+    "max": 1,
+    "name": "Platinum Catalyst Chamber",
+    "research_req": "industrial_catalysis",
+    "special": "global_catalyst"
+  },
+  "chromite_excavator": {
+    "category": "extraction",
+    "cost": {
+      "AdvCircuit": 200,
+      "Steel": 2500,
+      "Superalloy": 100,
+      "credits": 1000000
+    },
+    "description": "Chromium ore extraction.",
+    "energy_cons": 1800.0,
+    "energy_gen": 0.0,
+    "interval": 5.0,
+    "name": "Chromite Excavator",
+    "research_req": "superalloy_engineering",
+    "yield": {
+      "Chromite": 0.2
+    }
+  },
+  "chromium_forge": {
+    "category": "industry",
+    "cost": {
+      "AdvCircuit": 150,
+      "Steel": 2000,
+      "Superalloy": 50,
+      "credits": 900000
+    },
+    "description": "Advanced alloys forge.",
+    "energy_cons": 1800.0,
+    "energy_gen": 0.0,
+    "input": {
+      "Al": 0.6,
+      "Chromite": 1.9
+    },
+    "interval": 5.0,
+    "name": "Chromium Forge",
+    "research_req": "superalloy_engineering",
+    "yield": {
+      "Cr": 1.3
+    }
+  },
+  "chrono_siphon": {
+    "category": "extraction",
+    "cost": {
+      "Superalloy": 1000,
+      "VoidEssence": 50,
+      "credits": 25000000
+    },
+    "description": "+0.3 Chrono Core",
+    "energy_cons": 127500.0,
+    "energy_gen": 0.0,
+    "interval": 10.0,
+    "name": "Chrono-Siphon",
+    "research_req": "void_navigation",
+    "yield": {
+      "ChronoCore": 0.3
+    }
+  },
+  "coal_burner": {
+    "category": "power",
+    "cost": {
+      "Fe": 10,
+      "credits": 375
+    },
+    "description": "+60.0 kW (-1 C)",
+    "energy_cons": 0.0,
+    "energy_gen": 60.0,
+    "input": {
+      "C": 1
+    },
+    "interval": 10.0,
+    "name": "Carbon Generator",
+    "research_req": "combustion"
+  },
+  "composite_loom": {
+    "category": "industry",
+    "cost": {
+      "Fiber": 20,
+      "Steel": 75,
+      "credits": 15000
+    },
+    "description": "+0.6 Composite Weave (-6.3 Fiber, -1.3 Resin)",
+    "energy_cons": 3000.0,
+    "energy_gen": 0.0,
+    "input": {
+      "Fiber": 6.3,
+      "Resin": 1.3
+    },
+    "interval": 5.0,
+    "name": "Composite Loom",
+    "research_req": "adv_materials",
+    "yield": {
+      "CompositeWeave": 0.6
+    }
+  },
+  "copper_mine": {
+    "category": "extraction",
+    "cost": {
+      "Circuit": 80,
+      "Steel": 600,
+      "credits": 350000
+    },
+    "description": "Basic malachite extraction.",
+    "energy_cons": 80.0,
+    "energy_gen": 0.0,
+    "interval": 5.0,
+    "name": "Copper Mine",
+    "research_req": "basic_electronics",
+    "yield": {
+      "Malachite": 0.4
+    }
+  },
+  "copper_smelter": {
+    "category": "industry",
+    "cost": {
+      "Circuit": 50,
+      "Ti": 200,
+      "credits": 250000
+    },
+    "description": "Automated copper smelting.",
+    "energy_cons": 80.0,
+    "energy_gen": 0.0,
+    "input": {
+      "C": 1,
+      "Malachite": 2
+    },
+    "interval": 5.0,
+    "name": "Copper Smelter",
+    "research_req": "basic_electronics",
+    "yield": {
+      "Cu": 1
+    }
+  },
+  "deep_crust_drill": {
+    "category": "extraction",
+    "cost": {
+      "Superalloy": 100,
+      "Ti": 500,
+      "credits": 1000000
+    },
+    "description": "+1.7 Malachite (Heavy)",
+    "energy_cons": 120.0,
+    "energy_gen": 0.0,
+    "interval": 5.0,
+    "name": "Deep-Crust Drill",
+    "research_req": "basic_engineering",
+    "yield": {
+      "Malachite": 1.7
+    }
+  },
+  "dolomite_quarry": {
+    "category": "extraction",
+    "cost": {
+      "AdvCircuit": 80,
+      "Steel": 1200,
+      "credits": 700000
+    },
+    "description": "Magnesium source extraction.",
+    "energy_cons": 160.0,
+    "energy_gen": 0.0,
+    "interval": 5.0,
+    "name": "Dolomite Quarry",
+    "research_req": "metallurgy_advanced",
+    "yield": {
+      "Dolomite": 0.8
+    }
+  },
+  "drone_bay": {
+    "category": "logistics",
+    "cost": {
+      "Circuit": 10,
+      "Ti": 20,
+      "credits": 5000
+    },
+    "description": "+Scrap (Zone Scavenging)",
+    "energy_cons": 150.0,
+    "energy_gen": 0.0,
+    "max": 1,
+    "name": "Drone Recovery Bay",
+    "research_req": "automated_logistics",
+    "special": "passive_gather"
+  },
+  "electronics_assembler": {
+    "category": "industry",
+    "cost": {
+      "Circuit": 100,
+      "SalvageData": 20,
+      "Ti": 50,
+      "credits": 25000
+    },
+    "description": "+1.3 Circuit (-2.5 Si, -2.5 Cu, -1.3 Resin)",
+    "energy_cons": 1500.0,
+    "energy_gen": 0.0,
+    "input": {
+      "Cu": 2.5,
+      "Resin": 1.3,
+      "Si": 2.5
+    },
+    "interval": 5.0,
+    "name": "Electronics Assembler",
+    "research_req": "industrial_automation",
+    "yield": {
+      "Circuit": 1.3
+    }
+  },
+  "fabricator": {
+    "category": "industry",
+    "cost": {
+      "Circuit": 50,
+      "Fiber": 20,
+      "Ti": 50,
+      "credits": 12500
+    },
+    "description": "-20% Crafting Time",
+    "energy_cons": 1500.0,
+    "energy_gen": 0.0,
+    "max": 1,
+    "name": "Molecular Fabricator",
+    "research_req": "molecular_printing",
+    "special": "craft_buff"
+  },
+  "fission_reactor": {
+    "category": "power",
+    "cost": {
+      "AdvCircuit": 50,
+      "Ti": 200,
+      "credits": 1200000
+    },
+    "description": "+250000.0 kW (-5 Uranium)",
+    "energy_cons": 0.0,
+    "energy_gen": 250000.0,
+    "input": {
+      "U": 5
+    },
+    "interval": 10.0,
+    "name": "Fission Reactor",
+    "research_req": "radiation_shielding"
+  },
+  "fusion_reactor": {
+    "category": "power",
+    "cost": {
+      "AdvCircuit": 100,
+      "Superalloy": 200,
+      "VoidEssence": 20,
+      "credits": 25000000
+    },
+    "description": "+4000000.0 kW",
+    "energy_cons": 0.0,
+    "energy_gen": 4000000.0,
+    "name": "Fusion Core",
+    "research_req": "quantum_dynamics"
+  },
+  "geothermal_well": {
+    "category": "power",
+    "cost": {
+      "Hydraulics": 50,
+      "Ti": 100,
+      "credits": 400000
+    },
+    "description": "+250.0 kW (Stable)",
+    "energy_cons": 0.0,
+    "energy_gen": 250.0,
+    "name": "Geothermal Well",
+    "research_req": "fluid_dynamics"
+  },
+  "germanite_excavator": {
+    "category": "extraction",
+    "cost": {
+      "Chip": 100,
+      "Steel": 2000,
+      "Ti": 150,
+      "credits": 1200000
+    },
+    "description": "Sulfide ore excavation.",
+    "energy_cons": 120.0,
+    "energy_gen": 0.0,
+    "interval": 5.0,
+    "name": "Germanite Excavator",
+    "research_req": "basic_electronics",
+    "yield": {
+      "Germanit": 0.4
+    }
+  },
+  "germanium_smelter": {
+    "category": "industry",
+    "cost": {
+      "Chip": 100,
+      "Steel": 1500,
+      "Ti": 200,
+      "credits": 1500000
+    },
+    "description": "Automated germanium refining.",
+    "energy_cons": 80.0,
+    "energy_gen": 0.0,
+    "input": {
+      "Germanit": 3.1
+    },
+    "interval": 5.0,
+    "name": "Germanium Smelter",
+    "research_req": "basic_electronics",
+    "yield": {
+      "Germanium": 0.6
+    }
+  },
+  "heavy_ordnance_works": {
+    "category": "industry",
+    "cost": {
+      "Superalloy": 50,
+      "U": 20,
+      "credits": 2500000
+    },
+    "description": "+0.8 Slug T3 (-0.8 U, -2.1 Superalloy)",
+    "energy_cons": 15000.0,
+    "energy_gen": 0.0,
+    "input": {
+      "Superalloy": 2.1,
+      "U": 0.8
+    },
+    "interval": 5.0,
+    "name": "Heavy Ordnance Works",
+    "research_req": "capital_ship_armament",
+    "yield": {
+      "SlugT3": 0.8
+    }
+  },
+  "high_energy_cell_plant": {
+    "category": "industry",
+    "cost": {
+      "Resin": 50,
+      "Si": 100,
+      "credits": 125000
+    },
+    "description": "+3.1 Cell T2 (-1.9 Si, -1.3 Resin)",
+    "energy_cons": 2500.0,
+    "energy_gen": 0.0,
+    "input": {
+      "Resin": 1.3,
+      "Si": 1.9
+    },
+    "interval": 5.0,
+    "name": "High-Energy Cell Plant",
+    "research_req": "advanced_batteries",
+    "yield": {
+      "CellT2": 3.1
+    }
+  },
+  "hydro_plant": {
+    "category": "industry",
+    "cost": {
+      "Circuit": 10,
+      "Si": 50,
+      "credits": 6250
+    },
+    "description": "+5 H, +2.5 O (-2.5 Water)",
+    "energy_cons": 100.0,
+    "energy_gen": 0.0,
+    "input": {
+      "Water": 2.5
+    },
+    "interval": 5.0,
+    "name": "Industrial Electrolysis Plant",
+    "research_req": "industrial_electrolysis",
+    "yield": {
+      "H": 5,
+      "O": 2.5
+    }
+  },
+  "hydrogen_reactor": {
+    "category": "power",
+    "cost": {
+      "Circuit": 50,
+      "NavData": 5,
+      "Steel": 200,
+      "credits": 50000
+    },
+    "description": "+4000.0 kW",
+    "energy_cons": 0.0,
+    "energy_gen": 4000.0,
+    "input": {
+      "H": 10
+    },
+    "interval": 10.0,
+    "name": "Hydrogen Reactor",
+    "research_req": "energy_metrics"
+  },
+  "industrial_centrifuge": {
+    "category": "industry",
+    "cost": {
+      "Circuit": 100,
+      "Si": 2000,
+      "Steel": 1000,
+      "credits": 500000
+    },
+    "description": "+5 Fe, +1.7 Si (-8.3 Dirt, -8.3 Water)",
+    "energy_cons": 180.0,
+    "energy_gen": 0.0,
+    "input": {
+      "Dirt": 8.3,
+      "Water": 8.3
+    },
+    "interval": 5.0,
+    "name": "Industrial Centrifuge",
+    "research_req": "automated_logistics",
+    "yield": {
+      "Fe": 5,
+      "Si": 1.7
+    }
+  },
+  "industrial_kiln": {
+    "category": "industry",
+    "cost": {
+      "Hydraulics": 20,
+      "Steel": 300,
+      "credits": 150000
+    },
+    "description": "Automated wood carbonization.",
+    "energy_cons": 35.0,
+    "energy_gen": 0.0,
+    "input": {
+      "Wood": 1.3
+    },
+    "interval": 5.0,
+    "name": "Industrial Kiln",
+    "research_req": "combustion",
+    "yield": {
+      "C": 6.0
+    }
+  },
+  "industrial_pump": {
+    "category": "extraction",
+    "cost": {
+      "Fe": 2000,
+      "Si": 5000,
+      "credits": 250000
+    },
+    "description": "+10 Water",
+    "energy_cons": 25.0,
+    "energy_gen": 0.0,
+    "interval": 5.0,
+    "name": "Industrial Pump",
+    "yield": {
+      "Water": 10
+    }
+  },
+  "iridium_drill": {
+    "category": "extraction",
+    "cost": {
+      "Chip": 200,
+      "Steel": 4000,
+      "Ti": 500,
+      "credits": 3000000
+    },
+    "description": "Deep-void crystal extraction.",
+    "energy_cons": 37500.0,
+    "energy_gen": 0.0,
+    "interval": 10.0,
+    "name": "Iridium Drill",
+    "research_req": "iridium_metallurgy",
+    "yield": {
+      "Ir": 0.4
+    }
+  },
+  "lithium_extractor": {
+    "category": "extraction",
+    "cost": {
+      "Circuit": 100,
+      "Steel": 750,
+      "credits": 400000
+    },
+    "description": "Basic spodumene extraction.",
+    "energy_cons": 80.0,
+    "energy_gen": 0.0,
+    "interval": 5.0,
+    "name": "Lithium Extractor",
+    "research_req": "basic_electronics",
+    "yield": {
+      "Spodumene": 0.5
+    }
+  },
+  "lithium_refinery": {
+    "category": "industry",
+    "cost": {
+      "Hydraulics": 50,
+      "Steel": 500,
+      "credits": 450000
+    },
+    "description": "Automated lithium purification.",
+    "energy_cons": 80.0,
+    "energy_gen": 0.0,
+    "input": {
+      "Spodumene": 2
+    },
+    "interval": 5.0,
+    "name": "Lithium Refinery",
+    "research_req": "basic_electronics",
+    "yield": {
+      "Li": 1
+    }
+  },
+  "manganese_dredge": {
+    "category": "extraction",
+    "cost": {
+      "AdvCircuit": 100,
+      "Ti": 400,
+      "credits": 850000
+    },
+    "description": "+1.3 Manganese (Seafloor Mining)",
+    "energy_cons": 240.0,
+    "energy_gen": 0.0,
+    "interval": 5.0,
+    "name": "Manganese Dredge",
+    "research_req": "metallurgy_advanced",
+    "yield": {
+      "Mn": 1.3
+    }
+  },
+  "matter_deconstructor": {
+    "category": "industry",
+    "cost": {
+      "AdvCircuit": 50,
+      "Ti": 1000,
+      "credits": 250000
+    },
+    "description": "+0.5 Circuit, +0.1 Alloy (Copper processing)",
+    "energy_cons": 3500.0,
+    "energy_gen": 0.0,
+    "input": {
+      "Cu": 2500
+    },
+    "interval": 5.0,
+    "name": "Matter De-constructor",
+    "research_req": "molecular_recycling",
+    "yield": {
+      "Circuit": 0.5,
+      "Superalloy": 0.1
+    }
+  },
+  "nickel_mine": {
+    "category": "extraction",
+    "cost": {
+      "AdvCircuit": 150,
+      "Steel": 2000,
+      "Superalloy": 50,
+      "credits": 900000
+    },
+    "description": "Pentlandite extraction.",
+    "energy_cons": 1200.0,
+    "energy_gen": 0.0,
+    "interval": 5.0,
+    "name": "Nickel Mine",
+    "research_req": "superalloy_engineering",
+    "yield": {
+      "Pentlandite": 0.3
+    }
+  },
+  "nickel_refinery": {
+    "category": "industry",
+    "cost": {
+      "AdvCircuit": 100,
+      "Steel": 1500,
+      "Superalloy": 30,
+      "credits": 800000
+    },
+    "description": "Automated nickel extraction.",
+    "energy_cons": 1200.0,
+    "energy_gen": 0.0,
+    "input": {
+      "C": 0.8,
+      "Pentlandite": 2.5
+    },
+    "interval": 5.0,
+    "name": "Nickel Refinery",
+    "research_req": "superalloy_engineering",
+    "yield": {
+      "Ni": 1.7
+    }
+  },
+  "nitrogen_tank": {
+    "category": "logistics",
+    "cost": {
+      "Circuit": 25,
+      "Ti": 100,
+      "credits": 12500
+    },
+    "description": "+10% Nitrogen Yield",
+    "energy_cons": 35.0,
+    "energy_gen": 0.0,
+    "name": "Cryo-Storage Array",
+    "research_req": "cryogenic_storage",
+    "yield_bonus": {
+      "N": 0.1
+    }
+  },
+  "orbital_siphon": {
+    "category": "extraction",
+    "cost": {
+      "Superalloy": 100,
+      "Ti": 500,
+      "credits": 1000000
+    },
+    "description": "+4 H, +2 He, +2 N",
+    "energy_cons": 750.0,
+    "energy_gen": 0.0,
+    "interval": 10.0,
+    "name": "Orbital Gas Siphon",
+    "research_req": "energy_metrics",
+    "yield": {
+      "H": 4,
+      "He": 2,
+      "N": 2
+    }
+  },
+  "orbital_solar_relay": {
+    "category": "power",
+    "cost": {
+      "Chip": 150,
+      "W": 200,
+      "credits": 5000000
+    },
+    "description": "+1000000.0 kW (Constant)",
+    "energy_cons": 0.0,
+    "energy_gen": 1000000.0,
+    "name": "Orbital Solar Relay",
+    "research_req": "energy_metrics"
+  },
+  "osmium_condenser": {
+    "category": "extraction",
+    "cost": {
+      "Chip": 300,
+      "Steel": 5000,
+      "Ti": 800,
+      "W": 100,
+      "credits": 5000000
+    },
+    "description": "Heavy metal recovery.",
+    "energy_cons": 37500.0,
+    "energy_gen": 0.0,
+    "interval": 10.0,
+    "name": "Osmium Condenser",
+    "research_req": "exotic_metallurgy",
+    "yield": {
+      "Os": 0.3
+    }
+  },
+  "palladium_generator": {
+    "category": "power",
+    "cost": {
+      "Circuit": 40,
+      "PdFuelCell": 20,
+      "credits": 250000
+    },
+    "description": "+15000.0 kW",
+    "energy_cons": 0.0,
+    "energy_gen": 15000.0,
+    "input": {
+      "H": 1
+    },
+    "interval": 10.0,
+    "name": "Palladium Fuel Cell Generator",
+    "research_req": "fuel_cell_tech"
+  },
+  "platinum_drill": {
+    "category": "extraction",
+    "cost": {
+      "Chip": 150,
+      "Steel": 3000,
+      "Ti": 300,
+      "credits": 2000000
+    },
+    "description": "Precious metal extraction.",
+    "energy_cons": 12000.0,
+    "energy_gen": 0.0,
+    "interval": 10.0,
+    "name": "Platinum Drill",
+    "research_req": "precious_metal_refining",
+    "yield": {
+      "PtOre": 1.0
+    }
+  },
+  "precious_dredge": {
+    "category": "extraction",
+    "cost": {
+      "QuantumCore": 10,
+      "Superalloy": 100,
+      "Ti": 500,
+      "credits": 1000000
+    },
+    "description": "+2 Pt, +1 Ir",
+    "energy_cons": 12000.0,
+    "energy_gen": 0.0,
+    "interval": 10.0,
+    "name": "Precious Metal Dredge",
+    "research_req": "precious_metal_refining",
+    "yield": {
+      "Ir": 1,
+      "PtOre": 2
+    }
+  },
+  "quartz_excavator": {
+    "category": "extraction",
+    "cost": {
+      "Superalloy": 100,
+      "Ti": 500,
+      "credits": 1000000
+    },
+    "description": "+2.5 Quartz (High Speed)",
+    "energy_cons": 4500.0,
+    "energy_gen": 0.0,
+    "interval": 5.0,
+    "name": "Quartz Resonator",
+    "research_req": "adv_materials",
+    "yield": {
+      "Quartz": 2.5
+    }
+  },
+  "quartz_mine": {
+    "category": "extraction",
+    "cost": {
+      "Circuit": 150,
+      "Steel": 1000,
+      "Ti": 100,
+      "credits": 600000
+    },
+    "description": "Basic silica excavation.",
+    "energy_cons": 80.0,
+    "energy_gen": 0.0,
+    "interval": 5.0,
+    "name": "Quartz Mine",
+    "research_req": "basic_electronics",
+    "yield": {
+      "Quartz": 0.3
+    }
+  },
+  "silicon_furnace": {
+    "category": "industry",
+    "cost": {
+      "Hydraulics": 100,
+      "Steel": 500,
+      "Ti": 100,
+      "credits": 500000
+    },
+    "description": "Automated silicon refining.",
+    "energy_cons": 80.0,
+    "energy_gen": 0.0,
+    "input": {
+      "C": 1,
+      "Quartz": 2
+    },
+    "interval": 5.0,
+    "name": "Silicon Furnace",
+    "research_req": "basic_electronics",
+    "yield": {
+      "Si": 1
+    }
+  },
+  "silver_catalyst_bay": {
+    "category": "logistics",
+    "cost": {
+      "AgCatalyst": 5,
+      "Circuit": 20,
+      "credits": 100000
+    },
+    "description": "+15% Processing Speed",
+    "energy_cons": 1200.0,
+    "energy_gen": 0.0,
+    "max": 1,
+    "name": "Silver Catalyst Bay",
+    "research_req": "industrial_catalysis",
+    "special": "global_catalyst"
+  },
+  "solar_panel": {
+    "category": "power",
+    "cost": {
+      "Si": 5,
+      "credits": 125
+    },
+    "description": "+15.0 kW",
+    "energy_cons": 0.0,
+    "energy_gen": 15.0,
+    "name": "Solar Array"
+  },
+  "superalloy_forge": {
+    "category": "industry",
+    "cost": {
+      "Circuit": 150,
+      "Steel": 2500,
+      "Ti": 200,
+      "credits": 1200000
+    },
+    "description": "+1.0 Superalloy (-4 Steel, -2 Ni, -1 Cr, -1 Ti)",
+    "energy_cons": 1800.0,
+    "energy_gen": 0.0,
+    "input": {
+      "Cr": 1,
+      "Ni": 2,
+      "Steel": 4,
+      "Ti": 1
+    },
+    "interval": 5.0,
+    "name": "Superalloy Forge",
+    "research_req": "superalloy_engineering",
+    "yield": {
+      "Superalloy": 1.0
+    }
+  },
+  "terraforming_processor": {
+    "category": "logistics",
+    "cost": {
+      "Circuit": 20,
+      "Steel": 100,
+      "credits": 20000
+    },
+    "description": "+1 Fertile Soil (+5% Gather Speed)",
+    "energy_cons": 50.0,
+    "energy_gen": 0.0,
+    "input": {
+      "Dirt": 25,
+      "Water": 5
+    },
+    "interval": 10.0,
+    "name": "Terraforming Processor",
+    "research_req": "industrial_logistics",
+    "yield": {
+      "FertileSoil": 1
+    }
+  },
+  "tin_mine": {
+    "category": "extraction",
+    "cost": {
+      "Circuit": 100,
+      "Steel": 800,
+      "Ti": 50,
+      "credits": 500000
+    },
+    "description": "Cassiterite extraction.",
+    "energy_cons": 80.0,
+    "energy_gen": 0.0,
+    "interval": 5.0,
+    "name": "Tin Mine",
+    "research_req": "basic_electronics",
+    "yield": {
+      "Cassiterite": 0.4
+    }
+  },
+  "tin_smelter": {
+    "category": "industry",
+    "cost": {
+      "Hydraulics": 50,
+      "Steel": 400,
+      "Ti": 100,
+      "credits": 400000
+    },
+    "description": "Automated tin smelting.",
+    "energy_cons": 80.0,
+    "energy_gen": 0.0,
+    "input": {
+      "C": 1,
+      "Cassiterite": 3
+    },
+    "interval": 5.0,
+    "name": "Tin Smelter",
+    "research_req": "basic_electronics",
+    "yield": {
+      "Sn": 2
+    }
+  },
+  "titanium_refinery": {
+    "category": "industry",
+    "cost": {
+      "Circuit": 100,
+      "Steel": 1500,
+      "credits": 850000
+    },
+    "description": "+1.5 Ti (-3 Dolomite)",
+    "energy_cons": 1200.0,
+    "energy_gen": 0.0,
+    "input": {
+      "Dolomite": 3
+    },
+    "interval": 5.0,
+    "name": "Titanium Refinery",
+    "research_req": "metallurgy_advanced",
+    "yield": {
+      "Ti": 1.5
+    }
+  },
+  "tungsten_drill": {
+    "category": "extraction",
+    "cost": {
+      "Hydraulics": 15,
+      "Steel": 500,
+      "Ti": 300,
+      "credits": 45000
+    },
+    "description": "+2.0 Tungsten",
+    "energy_cons": 1500.0,
+    "energy_gen": 0.0,
+    "interval": 5.0,
+    "name": "Heavy Tungsten Drill",
+    "research_req": "smelting",
+    "yield": {
+      "W": 2.0
+    }
+  },
+  "uranium_centrifuge": {
+    "category": "extraction",
+    "cost": {
+      "AdvCircuit": 5,
+      "Si": 250,
+      "Steel": 500,
+      "credits": 50000
+    },
+    "description": "+1.0 Uranium",
+    "energy_cons": 750.0,
+    "energy_gen": 0.0,
+    "interval": 5.0,
+    "name": "Uranium Isotope Centrifuge",
+    "research_req": "energy_metrics",
+    "yield": {
+      "U": 1.0
+    }
+  },
+  "void_anchor": {
+    "category": "extraction",
+    "cost": {
+      "QuantumCore": 10,
+      "Superalloy": 500,
+      "credits": 5000000
+    },
+    "description": "+1.3 Void Essence",
+    "energy_cons": 85000.0,
+    "energy_gen": 0.0,
+    "interval": 10.0,
+    "name": "Void Rift Anchor",
+    "research_req": "void_navigation",
+    "yield": {
+      "VoidEssence": 1.3
+    }
+  },
+  "void_crystallizer": {
+    "category": "industry",
+    "cost": {
+      "QuantumCore": 25,
+      "Superalloy": 1000,
+      "credits": 10000000
+    },
+    "description": "+1.0 Void Crystal (-2.5 Essence)",
+    "energy_cons": 85000.0,
+    "energy_gen": 0.0,
+    "input": {
+      "VoidEssence": 2.5
+    },
+    "interval": 10.0,
+    "name": "Void Crystallizer",
+    "research_req": "void_navigation",
+    "yield": {
+      "VoidCrystal": 1
+    }
+  },
+  "zero_point_cell_synthesizer": {
+    "category": "industry",
+    "cost": {
+      "ExoticMatter": 20,
+      "QuantumCore": 10,
+      "credits": 1000000
+    },
+    "description": "+0.7 Cell T3",
+    "energy_cons": 25000.0,
+    "energy_gen": 0.0,
+    "input": {
+      "ExoticMatter": 0.7,
+      "QuantumCore": 0.7
+    },
+    "interval": 5.0,
+    "name": "Zero-Point Cell Synthesizer",
+    "research_req": "exotic_metallurgy",
+    "yield": {
+      "CellT3": 0.7
+    }
+  },
+  "zinc_mine": {
+    "category": "extraction",
+    "cost": {
+      "AdvCircuit": 100,
+      "Steel": 1500,
+      "credits": 750000
+    },
+    "description": "Zinc ore extraction.",
+    "energy_cons": 160.0,
+    "energy_gen": 0.0,
+    "interval": 5.0,
+    "name": "Zinc Mine",
+    "research_req": "metallurgy_advanced",
+    "yield": {
+      "ZincOre": 0.4
+    }
+  },
+  "zinc_smelter": {
+    "category": "industry",
+    "cost": {
+      "AdvCircuit": 50,
+      "Steel": 1000,
+      "credits": 600000
+    },
+    "description": "Automated zinc reduction.",
+    "energy_cons": 160.0,
+    "energy_gen": 0.0,
+    "input": {
+      "C": 1.3,
+      "ZincOre": 3.8
+    },
+    "interval": 5.0,
+    "name": "Zinc Smelter",
+    "research_req": "metallurgy_advanced",
+    "yield": {
+      "Zn": 2.5
+    }
+  }
+}

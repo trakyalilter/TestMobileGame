@@ -1,0 +1,76 @@
+{
+  "combat_focus": {
+    "base_cost": 100000,
+    "base_items": {
+      "Malachite": 750,
+      "QuantumCore": 38,
+      "VoidArtifact": 5
+    },
+    "bonus_type": "combat_damage",
+    "bonus_value": 0.05,
+    "description": "Infinite scaling: +5% Total Ship Damage per level.",
+    "name": "Recursive Calibration (Combat)"
+  },
+  "defense_focus": {
+    "base_cost": 100000,
+    "base_items": {
+      "Steel": 750,
+      "Superalloy": 150,
+      "VoidArtifact": 5
+    },
+    "bonus_type": "hull_hp_mult",
+    "bonus_value": 0.05,
+    "description": "Infinite scaling: +5% Max Hull HP per level.",
+    "name": "Recursive Hardening (Defense)"
+  },
+  "gathering_focus": {
+    "base_cost": 100000,
+    "base_items": {
+      "MiteChitin": 375,
+      "Spodumene": 750,
+      "VoidArtifact": 5
+    },
+    "bonus_type": "gathering_yield_mult",
+    "bonus_value": 0.05,
+    "description": "Infinite scaling: +5% Global Gathering Yield per level.",
+    "name": "Recursive Logistics (Gathering)"
+  },
+  "infrastructure_focus": {
+    "base_cost": 100000,
+    "base_items": {
+      "AdvCircuit": 225,
+      "Cu": 750,
+      "VoidArtifact": 5
+    },
+    "bonus_type": "building_yield_mult",
+    "bonus_value": 0.05,
+    "description": "Infinite scaling: +5% Global Building Yield per level.",
+    "name": "Recursive Networking (Infrastructure)"
+  },
+  "production_focus": {
+    "base_cost": 100000,
+    "base_items": {
+      "AdvCircuit": 375,
+      "Bauxite": 750,
+      "PtOre": 188,
+      "Quartz": 750,
+      "VoidArtifact": 5
+    },
+    "bonus_type": "processing_speed",
+    "bonus_value": 0.05,
+    "description": "Infinite scaling: +5% Global Processing Speed per level.",
+    "name": "Recursive Optimization (Industry)"
+  },
+  "wealth_focus": {
+    "base_cost": 100000,
+    "base_items": {
+      "Au": 38,
+      "PirateSalvage": 225,
+      "VoidArtifact": 5
+    },
+    "bonus_type": "credit_reward_mult",
+    "bonus_value": 0.05,
+    "description": "Infinite scaling: +5% Lira rewards from combat, quests & bounties per level.",
+    "name": "Recursive Acquisition (Wealth)"
+  }
+}

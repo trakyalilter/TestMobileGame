@@ -1,0 +1,1947 @@
+{
+  "cracked_amethyst_core": {
+    "cost": {
+      "CrackedAmethystCore": 3,
+      "credits": 50000
+    },
+    "desc": "Fuses 3 Cracked Amethyst cores into 1 Stable version.",
+    "name": "Fuse Stable Amethyst",
+    "slot_type": "gem_synth",
+    "stats": {
+
+    },
+    "zone": 3
+  },
+  "cracked_cobalt_core": {
+    "cost": {
+      "CrackedCobaltCore": 3,
+      "credits": 50000
+    },
+    "desc": "Fuses 3 Cracked Cobalt cores into 1 Stable version.",
+    "name": "Fuse Stable Cobalt",
+    "slot_type": "gem_synth",
+    "stats": {
+
+    },
+    "zone": 3
+  },
+  "cracked_crimson_core": {
+    "cost": {
+      "CrackedCrimsonCore": 3,
+      "credits": 50000
+    },
+    "desc": "Fuses 3 Cracked Crimson cores into 1 Stable version.",
+    "name": "Fuse Stable Crimson",
+    "slot_type": "gem_synth",
+    "stats": {
+
+    },
+    "zone": 3
+  },
+  "cracked_topaz_core": {
+    "cost": {
+      "CrackedTopazCore": 3,
+      "credits": 50000
+    },
+    "desc": "Fuses 3 Cracked Topaz cores into 1 Stable version.",
+    "name": "Fuse Stable Topaz",
+    "slot_type": "gem_synth",
+    "stats": {
+
+    },
+    "zone": 3
+  },
+  "cryo_cannon": {
+    "cost": {
+      "CryoEssence": 53,
+      "ExoticMatter": 18,
+      "QuantumCore": 6,
+      "Superalloy": 35,
+      "credits": 500000
+    },
+    "cryo": true,
+    "desc": "Heavy cryogenic battery. Exotic Matter capacitor banks sustain punishing fire.",
+    "name": "Cryo Cannon",
+    "power_tier": 6,
+    "rarity": 2,
+    "research_req": "cryo_armaments",
+    "slot_type": "weapon",
+    "stats": {
+      "atk_cryo": 2000,
+      "atk_interval": 2.0
+    },
+    "zone": 11
+  },
+  "cryo_lance": {
+    "cost": {
+      "ChronoCore": 9,
+      "CryoEssence": 88,
+      "ExoticMatter": 44,
+      "Superalloy": 175,
+      "VoidCrystal": 18,
+      "credits": 5000000
+    },
+    "cryo": true,
+    "desc": "Exotic-Matter cryo cannon. Self-charging — no ammo. The apex of cryogenic armaments.",
+    "name": "Cryo-Lance",
+    "power_tier": 8,
+    "rarity": 3,
+    "research_req": "cryo_armaments",
+    "slot_type": "weapon",
+    "stats": {
+      "atk_cryo": 10000,
+      "atk_interval": 2.0
+    },
+    "zone": 11
+  },
+  "cryo_repeater": {
+    "cost": {
+      "CryoEssence": 18,
+      "ExoticMatter": 6,
+      "Steel": 88,
+      "credits": 50000
+    },
+    "cryo": true,
+    "desc": "Rapid-fire cryogenic projector. Exotic Matter coolant loop.",
+    "name": "Cryo Repeater",
+    "power_tier": 3,
+    "rarity": 2,
+    "research_req": "cryo_armaments",
+    "slot_type": "weapon",
+    "stats": {
+      "atk_cryo": 200,
+      "atk_interval": 2.0
+    },
+    "zone": 11
+  },
+  "cryo_shard_pistol": {
+    "cost": {
+
+    },
+    "cryo": true,
+    "desc": "Crude cryogenic sidearm. Proof-of-concept from the first Warp. Weak, but it's the only thing that hurts Warp-Hardened hulls.",
+    "name": "Cryo Shard Pistol",
+    "power_tier": 1,
+    "rarity": 1,
+    "slot_type": "weapon",
+    "stats": {
+      "atk_cryo": 12,
+      "atk_interval": 2.0
+    },
+    "zone": 11
+  },
+  "faraday_hull": {
+    "cost": {
+
+    },
+    "desc": "EMP-shielded armor plating with integrated electromagnetic dampeners. Grants immunity to weapon jamming in the EMP Nexus.",
+    "is_unique": true,
+    "name": "Faraday Hull",
+    "rarity": 4,
+    "slot_type": "armor",
+    "special": "emp_immunity",
+    "stats": {
+      "def": 20,
+      "hp": 80
+    },
+    "zone": 2
+  },
+  "matrix_synthesis": {
+    "cost": {
+      "NavData": 10,
+      "Res1": 25,
+      "credits": 20000
+    },
+    "desc": "Synthesize a random Cracked Matrix Core.",
+    "name": "Matrix Synthesis",
+    "research_req": "zone_2_access",
+    "slot_type": "gem",
+    "stats": {
+
+    },
+    "zone": 2
+  },
+  "stable_amethyst_core": {
+    "cost": {
+      "StableAmethystCore": 3,
+      "credits": 250000
+    },
+    "desc": "Fuses 3 Stable Amethyst cores into 1 Pristine version.",
+    "name": "Fuse Pristine Amethyst",
+    "slot_type": "gem_synth",
+    "stats": {
+
+    },
+    "zone": 5
+  },
+  "stable_cobalt_core": {
+    "cost": {
+      "StableCobaltCore": 3,
+      "credits": 250000
+    },
+    "desc": "Fuses 3 Stable Cobalt cores into 1 Pristine version.",
+    "name": "Fuse Pristine Cobalt",
+    "slot_type": "gem_synth",
+    "stats": {
+
+    },
+    "zone": 5
+  },
+  "stable_crimson_core": {
+    "cost": {
+      "StableCrimsonCore": 3,
+      "credits": 250000
+    },
+    "desc": "Fuses 3 Stable Crimson cores into 1 Pristine version.",
+    "name": "Fuse Pristine Crimson",
+    "slot_type": "gem_synth",
+    "stats": {
+
+    },
+    "zone": 5
+  },
+  "stable_topaz_core": {
+    "cost": {
+      "StableTopazCore": 3,
+      "credits": 250000
+    },
+    "desc": "Fuses 3 Stable Topaz cores into 1 Pristine version.",
+    "name": "Fuse Pristine Topaz",
+    "slot_type": "gem_synth",
+    "stats": {
+
+    },
+    "zone": 5
+  },
+  "z10_armor": {
+    "cost": {
+      "OmegaPlating": 9,
+      "PrimordialShard": 6,
+      "credits": 1810891
+    },
+    "desc": "Forged from primordial matter.",
+    "name": "Primordial Bulkhead",
+    "research_req": "zone_10_access",
+    "slot_type": "armor",
+    "stats": {
+      "def": 6022,
+      "hp": 24152
+    },
+    "zone": 10
+  },
+  "z10_battery": {
+    "cost": {
+      "OmegaPlating": 9,
+      "PrimordialShard": 9,
+      "credits": 2100000
+    },
+    "name": "Omega Battery",
+    "research_req": "zone_10_access",
+    "slot_type": "battery",
+    "stats": {
+      "energy_capacity": 60369
+    },
+    "zone": 10
+  },
+  "z10_energy": {
+    "cost": {
+      "ChronoCore": 9,
+      "VoidEssence": 9,
+      "credits": 2414522
+    },
+    "desc": "Tears through spacetime itself.",
+    "name": "Chrono Disruptor",
+    "research_req": "zone_10_access",
+    "slot_type": "weapon",
+    "stats": {
+      "atk_energy": 12047,
+      "atk_interval": 2.0,
+      "energy_load": 450
+    },
+    "zone": 10
+  },
+  "z10_engine": {
+    "cost": {
+      "OmegaPlating": 9,
+      "PrimordialShard": 4,
+      "credits": 2200000
+    },
+    "name": "Leviathan Engine",
+    "research_req": "zone_10_access",
+    "slot_type": "engine",
+    "stats": {
+      "eva": 15
+    },
+    "zone": 10
+  },
+  "z10_kinetic": {
+    "cost": {
+      "OmegaPlating": 18,
+      "PrimordialShard": 9,
+      "credits": 2414522
+    },
+    "desc": "Final evolution of kinetic warfare.",
+    "name": "Omega Cannon",
+    "research_req": "zone_10_access",
+    "slot_type": "weapon",
+    "stats": {
+      "atk_interval": 2.0,
+      "atk_kinetic": 9751,
+      "energy_load": 400
+    },
+    "zone": 10
+  },
+  "z10_missile": {
+    "cost": {
+      "ChronoCore": 9,
+      "PrimordialShard": 14,
+      "credits": 3018153
+    },
+    "desc": "Erases matter from existence.",
+    "name": "Void Annihilator",
+    "research_req": "zone_10_access",
+    "slot_type": "weapon",
+    "stats": {
+      "atk_explosive": 21747,
+      "atk_interval": 4.0,
+      "energy_load": 500
+    },
+    "zone": 10
+  },
+  "z10_sensor": {
+    "cost": {
+      "OmegaPlating": 9,
+      "PrimordialShard": 9,
+      "credits": 2500000
+    },
+    "name": "Oracle Array",
+    "research_req": "zone_10_access",
+    "slot_type": "sensor",
+    "stats": {
+      "accuracy": 120
+    },
+    "zone": 10
+  },
+  "z10_shield": {
+    "cost": {
+      "PrimordialShard": 9,
+      "VoidEssence": 18,
+      "credits": 1810891
+    },
+    "desc": "Reality-bending shield barrier.",
+    "name": "Void Aegis",
+    "research_req": "zone_10_access",
+    "slot_type": "shield",
+    "stats": {
+      "max_shield": 48304,
+      "shield_regen": 2415
+    },
+    "zone": 10
+  },
+  "z10_unique_armor": {
+    "cost": {
+
+    },
+    "desc": "Primordial matter hull.",
+    "is_unique": true,
+    "name": "Leviathan's Hide",
+    "rarity": 4,
+    "set_id": "leviathans_crown",
+    "slot_type": "armor",
+    "stats": {
+      "def": 9635,
+      "hp": 38643
+    },
+    "zone": 10
+  },
+  "z10_unique_shield": {
+    "cost": {
+
+    },
+    "desc": "Void-sovereign barrier field.",
+    "is_unique": true,
+    "name": "Leviathan's Dominion",
+    "rarity": 4,
+    "set_id": "leviathans_crown",
+    "slot_type": "shield",
+    "stats": {
+      "max_shield": 77286,
+      "shield_regen": 3864
+    },
+    "zone": 10
+  },
+  "z10_unique_weapon": {
+    "cost": {
+
+    },
+    "desc": "Reality-ending void warhead.",
+    "is_unique": true,
+    "name": "Leviathan's Maw",
+    "rarity": 4,
+    "set_id": "leviathans_crown",
+    "slot_type": "weapon",
+    "stats": {
+      "atk_explosive": 34795,
+      "atk_interval": 4.0,
+      "energy_load": 600
+    },
+    "zone": 10
+  },
+  "z1_armor": {
+    "cost": {
+      "Fe": 25,
+      "credits": 1500
+    },
+    "desc": "Basic hull plating. Reduces incoming damage.",
+    "name": "Iron Plate",
+    "slot_type": "armor",
+    "stats": {
+      "def": 5,
+      "hp": 20
+    },
+    "zone": 1
+  },
+  "z1_battery": {
+    "cost": {
+      "Fe": 10,
+      "credits": 1000
+    },
+    "name": "Basic Battery",
+    "slot_type": "battery",
+    "stats": {
+      "energy_capacity": 50
+    },
+    "zone": 1
+  },
+  "z1_energy": {
+    "cost": {
+      "Si": 30,
+      "credits": 2000
+    },
+    "desc": "Fast-firing energy beam. Strong vs shields.",
+    "name": "Pulse Laser Mk.I",
+    "slot_type": "weapon",
+    "stats": {
+      "atk_energy": 10,
+      "atk_interval": 2.0,
+      "energy_load": 8
+    },
+    "zone": 1
+  },
+  "z1_engine": {
+    "cost": {
+      "Fe": 15,
+      "credits": 1200
+    },
+    "name": "Basic Thruster",
+    "slot_type": "engine",
+    "stats": {
+      "eva": 4
+    },
+    "zone": 1
+  },
+  "z1_kinetic": {
+    "cost": {
+      "Fe": 30,
+      "credits": 2000
+    },
+    "desc": "Magnetic projectile cannon. Reliable hull damage.",
+    "name": "Mass Driver Mk.I",
+    "slot_type": "weapon",
+    "stats": {
+      "atk_interval": 2.0,
+      "atk_kinetic": 8,
+      "energy_load": 5
+    },
+    "zone": 1
+  },
+  "z1_missile": {
+    "cost": {
+      "Cu": 10,
+      "Fe": 20,
+      "credits": 2500
+    },
+    "desc": "Explosive payload. High armor penetration.",
+    "name": "Micro-Missile Launcher",
+    "slot_type": "weapon",
+    "stats": {
+      "atk_explosive": 18,
+      "atk_interval": 4.0,
+      "energy_load": 10
+    },
+    "zone": 1
+  },
+  "z1_sensor": {
+    "cost": {
+      "Si": 20,
+      "credits": 1500
+    },
+    "name": "Lidar Array",
+    "slot_type": "sensor",
+    "stats": {
+      "accuracy": 30
+    },
+    "zone": 1
+  },
+  "z1_shield": {
+    "cost": {
+      "Si": 20,
+      "credits": 1500
+    },
+    "desc": "Entry-level energy barrier.",
+    "name": "Basic Shield",
+    "slot_type": "shield",
+    "stats": {
+      "max_shield": 40,
+      "shield_regen": 2
+    },
+    "zone": 1
+  },
+  "z1_unique_armor": {
+    "cost": {
+
+    },
+    "desc": "Blueprint-perfect hull reinforcement.",
+    "is_unique": true,
+    "name": "Architect's Plating",
+    "rarity": 4,
+    "set_id": "architects_regalia",
+    "slot_type": "armor",
+    "stats": {
+      "def": 8,
+      "hp": 32
+    },
+    "zone": 1
+  },
+  "z1_unique_shield": {
+    "cost": {
+
+    },
+    "desc": "Geometrically perfect barrier field.",
+    "is_unique": true,
+    "name": "Architect's Ward",
+    "rarity": 4,
+    "set_id": "architects_regalia",
+    "slot_type": "shield",
+    "stats": {
+      "max_shield": 64,
+      "shield_regen": 3
+    },
+    "zone": 1
+  },
+  "z1_unique_weapon": {
+    "cost": {
+
+    },
+    "desc": "Precision-engineered energy weapon.",
+    "is_unique": true,
+    "name": "Architect's Beam",
+    "rarity": 4,
+    "set_id": "architects_regalia",
+    "slot_type": "weapon",
+    "stats": {
+      "atk_energy": 16,
+      "atk_interval": 2.0,
+      "energy_load": 12
+    },
+    "zone": 1
+  },
+  "z2_armor": {
+    "cost": {
+      "C": 41,
+      "Fe": 27,
+      "credits": 3300
+    },
+    "desc": "Lightweight composite armor.",
+    "name": "Carbon Fiber Plate",
+    "research_req": "zone_2_access",
+    "slot_type": "armor",
+    "stats": {
+      "def": 11,
+      "hp": 44
+    },
+    "zone": 2
+  },
+  "z2_battery": {
+    "cost": {
+      "Cu": 34,
+      "Si": 14,
+      "credits": 2500
+    },
+    "name": "Improved Battery",
+    "research_req": "zone_2_access",
+    "slot_type": "battery",
+    "stats": {
+      "energy_capacity": 110
+    },
+    "zone": 2
+  },
+  "z2_energy": {
+    "cost": {
+      "Cu": 27,
+      "Si": 81,
+      "credits": 4400
+    },
+    "desc": "Focused plasma stream. Melts shields.",
+    "name": "Plasma Cutter",
+    "research_req": "zone_2_access",
+    "slot_type": "weapon",
+    "stats": {
+      "atk_energy": 22,
+      "atk_interval": 2.0,
+      "energy_load": 15
+    },
+    "zone": 2
+  },
+  "z2_engine": {
+    "cost": {
+      "Cu": 41,
+      "Si": 21,
+      "credits": 2800
+    },
+    "name": "Plasma Drive",
+    "research_req": "zone_2_access",
+    "slot_type": "engine",
+    "stats": {
+      "eva": 5
+    },
+    "zone": 2
+  },
+  "z2_kinetic": {
+    "cost": {
+      "Cu": 27,
+      "Fe": 81,
+      "credits": 4400
+    },
+    "desc": "Electromagnetic accelerator. Armor-piercing.",
+    "name": "Gauss Rifle",
+    "research_req": "zone_2_access",
+    "slot_type": "weapon",
+    "stats": {
+      "atk_interval": 2.0,
+      "atk_kinetic": 18,
+      "energy_load": 10
+    },
+    "zone": 2
+  },
+  "z2_missile": {
+    "cost": {
+      "C": 41,
+      "Fe": 54,
+      "credits": 5500
+    },
+    "desc": "Blast warhead. Devastating hull damage.",
+    "name": "Concussion Missile",
+    "research_req": "zone_2_access",
+    "slot_type": "weapon",
+    "stats": {
+      "atk_explosive": 40,
+      "atk_interval": 4.0,
+      "energy_load": 18
+    },
+    "zone": 2
+  },
+  "z2_sensor": {
+    "cost": {
+      "Cu": 27,
+      "Si": 54,
+      "credits": 3500
+    },
+    "name": "Optical Scanner",
+    "research_req": "zone_2_access",
+    "slot_type": "sensor",
+    "stats": {
+      "accuracy": 40
+    },
+    "zone": 2
+  },
+  "z2_shield": {
+    "cost": {
+      "Cu": 54,
+      "Si": 27,
+      "credits": 3300
+    },
+    "desc": "Improved barrier with regen coils.",
+    "name": "Deflector Shield",
+    "research_req": "zone_2_access",
+    "slot_type": "shield",
+    "stats": {
+      "max_shield": 88,
+      "shield_regen": 4
+    },
+    "zone": 2
+  },
+  "z2_unique_armor": {
+    "cost": {
+
+    },
+    "desc": "Silicate-hardened hull plating.",
+    "is_unique": true,
+    "name": "Monolith's Shell",
+    "rarity": 4,
+    "set_id": "monoliths_bedrock",
+    "slot_type": "armor",
+    "stats": {
+      "def": 17,
+      "hp": 70
+    },
+    "zone": 2
+  },
+  "z2_unique_shield": {
+    "cost": {
+
+    },
+    "desc": "Stone-resonance energy barrier.",
+    "is_unique": true,
+    "name": "Monolith's Barrier",
+    "rarity": 4,
+    "set_id": "monoliths_bedrock",
+    "slot_type": "shield",
+    "stats": {
+      "max_shield": 140,
+      "shield_regen": 6
+    },
+    "zone": 2
+  },
+  "z2_unique_weapon": {
+    "cost": {
+
+    },
+    "desc": "Crystalline projectile launcher.",
+    "is_unique": true,
+    "name": "Monolith's Shatter",
+    "rarity": 4,
+    "set_id": "monoliths_bedrock",
+    "slot_type": "weapon",
+    "stats": {
+      "atk_interval": 2.0,
+      "atk_kinetic": 28,
+      "energy_load": 18
+    },
+    "zone": 2
+  },
+  "z3_armor": {
+    "cost": {
+      "Steel": 41,
+      "Ti": 14,
+      "credits": 7260
+    },
+    "desc": "Layered ceramic-metal composite.",
+    "name": "Composite Plate",
+    "research_req": "zone_3_access",
+    "slot_type": "armor",
+    "stats": {
+      "def": 24,
+      "hp": 97
+    },
+    "zone": 3
+  },
+  "z3_battery": {
+    "cost": {
+      "CoBattery": 5,
+      "Mn": 11,
+      "credits": 6000
+    },
+    "name": "Co-Li Battery",
+    "research_req": "zone_3_access",
+    "slot_type": "battery",
+    "stats": {
+      "energy_capacity": 242
+    },
+    "zone": 3
+  },
+  "z3_energy": {
+    "cost": {
+      "Si": 135,
+      "Ti": 21,
+      "credits": 9680
+    },
+    "desc": "Helium-cooled beam. Extreme shield damage.",
+    "name": "Cryo Beam",
+    "research_req": "zone_3_access",
+    "slot_type": "weapon",
+    "stats": {
+      "atk_energy": 48,
+      "atk_interval": 2.0,
+      "energy_load": 25
+    },
+    "zone": 3
+  },
+  "z3_engine": {
+    "cost": {
+      "Steel": 34,
+      "Ti": 14,
+      "credits": 6500
+    },
+    "name": "Ion Engine",
+    "research_req": "zone_3_access",
+    "slot_type": "engine",
+    "stats": {
+      "eva": 6
+    },
+    "zone": 3
+  },
+  "z3_kinetic": {
+    "cost": {
+      "Steel": 54,
+      "Ti": 21,
+      "credits": 9680
+    },
+    "desc": "Rapid-fire ballistic weapon.",
+    "name": "Autocannon",
+    "research_req": "zone_3_access",
+    "slot_type": "weapon",
+    "stats": {
+      "atk_interval": 2.0,
+      "atk_kinetic": 39,
+      "energy_load": 18
+    },
+    "zone": 3
+  },
+  "z3_missile": {
+    "cost": {
+      "C": 54,
+      "Steel": 81,
+      "credits": 12100
+    },
+    "desc": "Armor-busting ordnance.",
+    "name": "Heavy Torpedo",
+    "research_req": "zone_3_access",
+    "slot_type": "weapon",
+    "stats": {
+      "atk_explosive": 87,
+      "atk_interval": 4.0,
+      "energy_load": 30
+    },
+    "zone": 3
+  },
+  "z3_sensor": {
+    "cost": {
+      "Circuit": 21,
+      "Ti": 14,
+      "credits": 8000
+    },
+    "name": "Deep Space Radar",
+    "research_req": "zone_3_access",
+    "slot_type": "sensor",
+    "stats": {
+      "accuracy": 50
+    },
+    "zone": 3
+  },
+  "z3_shield": {
+    "cost": {
+      "Circuit": 14,
+      "Ti": 34,
+      "credits": 7260
+    },
+    "desc": "Military-grade energy barrier.",
+    "name": "Hardened Shield",
+    "research_req": "zone_3_access",
+    "slot_type": "shield",
+    "stats": {
+      "max_shield": 194,
+      "shield_regen": 9
+    },
+    "zone": 3
+  },
+  "z3_unique_armor": {
+    "cost": {
+
+    },
+    "desc": "Battle-scarred Martian alloy.",
+    "is_unique": true,
+    "name": "Warmaster's Bulkhead",
+    "rarity": 4,
+    "set_id": "warmasters_arsenal",
+    "slot_type": "armor",
+    "stats": {
+      "def": 38,
+      "hp": 155
+    },
+    "zone": 3
+  },
+  "z3_unique_shield": {
+    "cost": {
+
+    },
+    "desc": "Command-grade barrier matrix.",
+    "is_unique": true,
+    "name": "Warmaster's Aegis",
+    "rarity": 4,
+    "set_id": "warmasters_arsenal",
+    "slot_type": "shield",
+    "stats": {
+      "max_shield": 310,
+      "shield_regen": 14
+    },
+    "zone": 3
+  },
+  "z3_unique_weapon": {
+    "cost": {
+
+    },
+    "desc": "Mars-forged magnetic accelerator.",
+    "is_unique": true,
+    "name": "Warmaster's Railgun",
+    "rarity": 4,
+    "set_id": "warmasters_arsenal",
+    "slot_type": "weapon",
+    "stats": {
+      "atk_interval": 2.0,
+      "atk_kinetic": 62,
+      "energy_load": 30
+    },
+    "zone": 3
+  },
+  "z4_armor": {
+    "cost": {
+      "GalvanizedSteel": 14,
+      "Steel": 81,
+      "Ti": 27,
+      "credits": 15972
+    },
+    "desc": "Corrosion-resistant alloy plating.",
+    "name": "Stainless Armor",
+    "research_req": "zone_4_access",
+    "slot_type": "armor",
+    "stats": {
+      "def": 53,
+      "hp": 213
+    },
+    "zone": 4
+  },
+  "z4_battery": {
+    "cost": {
+      "AdvCircuit": 7,
+      "Mg": 41,
+      "credits": 14000
+    },
+    "name": "Mg-Ion Cell",
+    "research_req": "zone_4_access",
+    "slot_type": "battery",
+    "stats": {
+      "energy_capacity": 532
+    },
+    "zone": 4
+  },
+  "z4_energy": {
+    "cost": {
+      "AdvCircuit": 7,
+      "Ti": 81,
+      "credits": 21296
+    },
+    "desc": "Concentrated ion stream.",
+    "name": "Ion Lance",
+    "research_req": "zone_4_access",
+    "slot_type": "weapon",
+    "stats": {
+      "atk_energy": 106,
+      "atk_interval": 2.0,
+      "energy_load": 40
+    },
+    "zone": 4
+  },
+  "z4_engine": {
+    "cost": {
+      "AdvCircuit": 7,
+      "Ti": 68,
+      "credits": 15000
+    },
+    "name": "Cryo-Pulse Drive",
+    "research_req": "zone_4_access",
+    "slot_type": "engine",
+    "stats": {
+      "eva": 7
+    },
+    "zone": 4
+  },
+  "z4_kinetic": {
+    "cost": {
+      "AdvCircuit": 7,
+      "Steel": 108,
+      "credits": 21296
+    },
+    "desc": "High-velocity slug launcher.",
+    "name": "Railgun Mk.II",
+    "research_req": "zone_4_access",
+    "slot_type": "weapon",
+    "stats": {
+      "atk_interval": 2.0,
+      "atk_kinetic": 86,
+      "energy_load": 30
+    },
+    "zone": 4
+  },
+  "z4_missile": {
+    "cost": {
+      "Chip": 14,
+      "Steel": 135,
+      "credits": 26620
+    },
+    "desc": "Splits into sub-munitions on impact.",
+    "name": "Cluster Warhead",
+    "research_req": "zone_4_access",
+    "slot_type": "weapon",
+    "stats": {
+      "atk_explosive": 192,
+      "atk_interval": 4.0,
+      "energy_load": 45
+    },
+    "zone": 4
+  },
+  "z4_sensor": {
+    "cost": {
+      "AdvCircuit": 14,
+      "Au": 7,
+      "Ti": 41,
+      "credits": 18000
+    },
+    "name": "Phased Array",
+    "research_req": "zone_4_access",
+    "slot_type": "sensor",
+    "stats": {
+      "accuracy": 60
+    },
+    "zone": 4
+  },
+  "z4_shield": {
+    "cost": {
+      "AdvCircuit": 11,
+      "Ti": 54,
+      "credits": 15972
+    },
+    "desc": "Supercooled barrier matrix.",
+    "name": "Cryo Shield",
+    "research_req": "zone_4_access",
+    "slot_type": "shield",
+    "stats": {
+      "max_shield": 426,
+      "shield_regen": 21
+    },
+    "zone": 4
+  },
+  "z4_unique_armor": {
+    "cost": {
+
+    },
+    "desc": "Ice-tempered composite armor.",
+    "is_unique": true,
+    "name": "Overseer's Carapace",
+    "rarity": 4,
+    "set_id": "overseers_command",
+    "slot_type": "armor",
+    "stats": {
+      "def": 84,
+      "hp": 340
+    },
+    "zone": 4
+  },
+  "z4_unique_shield": {
+    "cost": {
+
+    },
+    "desc": "Cryo-stabilized barrier dome.",
+    "is_unique": true,
+    "name": "Overseer's Dome",
+    "rarity": 4,
+    "set_id": "overseers_command",
+    "slot_type": "shield",
+    "stats": {
+      "max_shield": 681,
+      "shield_regen": 33
+    },
+    "zone": 4
+  },
+  "z4_unique_weapon": {
+    "cost": {
+
+    },
+    "desc": "Cryo-focused targeting lance.",
+    "is_unique": true,
+    "name": "Overseer's Lance",
+    "rarity": 4,
+    "set_id": "overseers_command",
+    "slot_type": "weapon",
+    "stats": {
+      "atk_energy": 169,
+      "atk_interval": 2.0,
+      "energy_load": 50
+    },
+    "zone": 4
+  },
+  "z5_armor": {
+    "cost": {
+      "StainlessSteel": 11,
+      "Steel": 135,
+      "Superalloy": 21,
+      "credits": 35138
+    },
+    "desc": "Dense metamaterial hull plating.",
+    "name": "Superalloy Plate",
+    "research_req": "zone_5_access",
+    "slot_type": "armor",
+    "stats": {
+      "def": 117,
+      "hp": 469
+    },
+    "zone": 5
+  },
+  "z5_battery": {
+    "cost": {
+      "QuantumCore": 2,
+      "Si": 175,
+      "credits": 32000
+    },
+    "name": "Quantum Cell",
+    "research_req": "zone_5_access",
+    "slot_type": "battery",
+    "stats": {
+      "energy_capacity": 1171
+    },
+    "zone": 5
+  },
+  "z5_energy": {
+    "cost": {
+      "Au": 18,
+      "QuantumCore": 4,
+      "Ti": 175,
+      "credits": 46851
+    },
+    "desc": "Accelerated particles strip shields instantly.",
+    "name": "Particle Beam",
+    "research_req": "zone_5_access",
+    "slot_type": "weapon",
+    "stats": {
+      "atk_energy": 234,
+      "atk_interval": 2.0,
+      "energy_load": 60
+    },
+    "zone": 5
+  },
+  "z5_engine": {
+    "cost": {
+      "Chip": 14,
+      "Superalloy": 21,
+      "credits": 35000
+    },
+    "name": "Superalloy Engine",
+    "research_req": "zone_5_access",
+    "slot_type": "engine",
+    "stats": {
+      "eva": 9
+    },
+    "zone": 5
+  },
+  "z5_kinetic": {
+    "cost": {
+      "QuantumCore": 4,
+      "Superalloy": 35,
+      "credits": 46851
+    },
+    "desc": "Capital-grade magnetic accelerator.",
+    "name": "Gauss Cannon",
+    "research_req": "zone_5_access",
+    "slot_type": "weapon",
+    "stats": {
+      "atk_interval": 2.0,
+      "atk_kinetic": 189,
+      "energy_load": 50
+    },
+    "zone": 5
+  },
+  "z5_missile": {
+    "cost": {
+      "Chip": 27,
+      "Superalloy": 41,
+      "credits": 58564
+    },
+    "desc": "AI-guided ordnance. Never misses.",
+    "name": "Seeker Torpedo",
+    "research_req": "zone_5_access",
+    "slot_type": "weapon",
+    "stats": {
+      "atk_explosive": 422,
+      "atk_interval": 4.0,
+      "energy_load": 70
+    },
+    "zone": 5
+  },
+  "z5_sensor": {
+    "cost": {
+      "AICore": 2,
+      "Chip": 27,
+      "credits": 42000
+    },
+    "name": "AI Targeting",
+    "research_req": "zone_5_access",
+    "slot_type": "sensor",
+    "stats": {
+      "accuracy": 70
+    },
+    "zone": 5
+  },
+  "z5_shield": {
+    "cost": {
+      "AdvCircuit": 35,
+      "StainlessSteel": 14,
+      "VoidArtifact": 9,
+      "credits": 35138
+    },
+    "desc": "Reverse-engineered alien shielding.",
+    "name": "Xenon Barrier",
+    "research_req": "zone_5_access",
+    "slot_type": "shield",
+    "stats": {
+      "max_shield": 937,
+      "shield_regen": 46
+    },
+    "zone": 5
+  },
+  "z5_unique_armor": {
+    "cost": {
+
+    },
+    "desc": "Alien-alloy hull reinforcement.",
+    "is_unique": true,
+    "name": "Harbinger's Bastion",
+    "rarity": 4,
+    "set_id": "harbingers_wrath",
+    "slot_type": "armor",
+    "stats": {
+      "def": 187,
+      "hp": 750
+    },
+    "zone": 5
+  },
+  "z5_unique_shield": {
+    "cost": {
+
+    },
+    "desc": "Xenon phase-shift barrier.",
+    "is_unique": true,
+    "name": "Harbinger's Veil",
+    "rarity": 4,
+    "set_id": "harbingers_wrath",
+    "slot_type": "shield",
+    "stats": {
+      "max_shield": 1499,
+      "shield_regen": 73
+    },
+    "zone": 5
+  },
+  "z5_unique_weapon": {
+    "cost": {
+
+    },
+    "desc": "Xenon doomsday missile platform.",
+    "is_unique": true,
+    "name": "Harbinger's Fury",
+    "rarity": 4,
+    "set_id": "harbingers_wrath",
+    "slot_type": "weapon",
+    "stats": {
+      "atk_explosive": 675,
+      "atk_interval": 4.0,
+      "energy_load": 90
+    },
+    "zone": 5
+  },
+  "z6_armor": {
+    "cost": {
+      "Ir": 14,
+      "Superalloy": 54,
+      "credits": 77304
+    },
+    "desc": "Ultra-dense rare earth plating.",
+    "name": "Iridium Armor",
+    "research_req": "zone_6_access",
+    "slot_type": "armor",
+    "stats": {
+      "def": 257,
+      "hp": 1031
+    },
+    "zone": 6
+  },
+  "z6_battery": {
+    "cost": {
+      "AdvCircuit": 27,
+      "ReactiveCore": 3,
+      "credits": 75000
+    },
+    "name": "Reactive Core",
+    "research_req": "zone_6_access",
+    "slot_type": "battery",
+    "stats": {
+      "energy_capacity": 2577
+    },
+    "zone": 6
+  },
+  "z6_energy": {
+    "cost": {
+      "AdvCircuit": 53,
+      "QuantumCore": 9,
+      "credits": 103072
+    },
+    "desc": "Sustained plasma discharge.",
+    "name": "Plasma Lancer",
+    "research_req": "zone_6_access",
+    "slot_type": "weapon",
+    "stats": {
+      "atk_energy": 514,
+      "atk_interval": 2.0,
+      "energy_load": 90
+    },
+    "zone": 6
+  },
+  "z6_engine": {
+    "cost": {
+      "QuantumCore": 4,
+      "Superalloy": 70,
+      "credits": 80000
+    },
+    "name": "Antimatter Engine",
+    "research_req": "zone_6_access",
+    "slot_type": "engine",
+    "stats": {
+      "eva": 10
+    },
+    "zone": 6
+  },
+  "z6_kinetic": {
+    "cost": {
+      "AdvCircuit": 41,
+      "Superalloy": 68,
+      "credits": 103072
+    },
+    "desc": "Colony-siege grade ballistic weapon.",
+    "name": "Siege Cannon",
+    "research_req": "zone_6_access",
+    "slot_type": "weapon",
+    "stats": {
+      "atk_interval": 2.0,
+      "atk_kinetic": 416,
+      "energy_load": 80
+    },
+    "zone": 6
+  },
+  "z6_missile": {
+    "cost": {
+      "QuantumCore": 9,
+      "Superalloy": 105,
+      "credits": 128840
+    },
+    "desc": "Annihilation-class ordnance.",
+    "name": "Antimatter Warhead",
+    "research_req": "zone_6_access",
+    "slot_type": "weapon",
+    "stats": {
+      "atk_explosive": 928,
+      "atk_interval": 4.0,
+      "energy_load": 100
+    },
+    "zone": 6
+  },
+  "z6_sensor": {
+    "cost": {
+      "AdvCircuit": 44,
+      "QuantumCore": 6,
+      "credits": 95000
+    },
+    "name": "Quantum Scanner",
+    "research_req": "zone_6_access",
+    "slot_type": "sensor",
+    "stats": {
+      "accuracy": 80
+    },
+    "zone": 6
+  },
+  "z6_shield": {
+    "cost": {
+      "QuantumCore": 9,
+      "VoidArtifact": 27,
+      "credits": 77304
+    },
+    "desc": "Adapts to incoming damage patterns.",
+    "name": "Reactive Barrier",
+    "research_req": "zone_6_access",
+    "slot_type": "shield",
+    "stats": {
+      "max_shield": 2062,
+      "shield_regen": 103
+    },
+    "zone": 6
+  },
+  "z6_unique_armor": {
+    "cost": {
+
+    },
+    "desc": "Gamma-hardened ultra-plating.",
+    "is_unique": true,
+    "name": "Colossus Bulwark",
+    "rarity": 4,
+    "set_id": "colossus_dominion",
+    "slot_type": "armor",
+    "stats": {
+      "def": 411,
+      "hp": 1649
+    },
+    "zone": 6
+  },
+  "z6_unique_shield": {
+    "cost": {
+
+    },
+    "desc": "Radiation-dampening barrier.",
+    "is_unique": true,
+    "name": "Colossus Aegis",
+    "rarity": 4,
+    "set_id": "colossus_dominion",
+    "slot_type": "shield",
+    "stats": {
+      "max_shield": 3299,
+      "shield_regen": 164
+    },
+    "zone": 6
+  },
+  "z6_unique_weapon": {
+    "cost": {
+
+    },
+    "desc": "Colony-siege superweapon.",
+    "is_unique": true,
+    "name": "Colossus Cannon",
+    "rarity": 4,
+    "set_id": "colossus_dominion",
+    "slot_type": "weapon",
+    "stats": {
+      "atk_interval": 2.0,
+      "atk_kinetic": 665,
+      "energy_load": 120
+    },
+    "zone": 6
+  },
+  "z7_armor": {
+    "cost": {
+      "ExoticMatter": 9,
+      "Os": 9,
+      "credits": 170069
+    },
+    "desc": "Densest material known to science.",
+    "name": "Osmium Core Plate",
+    "research_req": "zone_7_access",
+    "slot_type": "armor",
+    "stats": {
+      "def": 565,
+      "hp": 2268
+    },
+    "zone": 7
+  },
+  "z7_battery": {
+    "cost": {
+      "ExoticMatter": 9,
+      "VoidCrystal": 9,
+      "credits": 170000
+    },
+    "name": "Exotic Matrix",
+    "research_req": "zone_7_access",
+    "slot_type": "battery",
+    "stats": {
+      "energy_capacity": 5669
+    },
+    "zone": 7
+  },
+  "z7_energy": {
+    "cost": {
+      "ExoticMatter": 18,
+      "VoidCrystal": 9,
+      "credits": 226758
+    },
+    "desc": "Drains energy from realspace.",
+    "name": "Void Beam",
+    "research_req": "zone_7_access",
+    "slot_type": "weapon",
+    "stats": {
+      "atk_energy": 1131,
+      "atk_interval": 2.0,
+      "energy_load": 140
+    },
+    "zone": 7
+  },
+  "z7_engine": {
+    "cost": {
+      "ExoticMatter": 9,
+      "Ir": 9,
+      "credits": 180000
+    },
+    "name": "Void Engine",
+    "research_req": "zone_7_access",
+    "slot_type": "engine",
+    "stats": {
+      "eva": 11
+    },
+    "zone": 7
+  },
+  "z7_kinetic": {
+    "cost": {
+      "ExoticMatter": 18,
+      "Ir": 18,
+      "IrWAlloy": 9,
+      "credits": 226758
+    },
+    "desc": "Fires neutron-dense projectiles.",
+    "name": "Neutron Slugger",
+    "research_req": "zone_7_access",
+    "slot_type": "weapon",
+    "stats": {
+      "atk_interval": 2.0,
+      "atk_kinetic": 916,
+      "energy_load": 120
+    },
+    "zone": 7
+  },
+  "z7_missile": {
+    "cost": {
+      "ExoticMatter": 27,
+      "QuantumCore": 18,
+      "credits": 283448
+    },
+    "desc": "Creates micro-singularity on impact.",
+    "name": "Singularity Bomb",
+    "research_req": "zone_7_access",
+    "slot_type": "weapon",
+    "stats": {
+      "atk_explosive": 2042,
+      "atk_interval": 4.0,
+      "energy_load": 160
+    },
+    "zone": 7
+  },
+  "z7_sensor": {
+    "cost": {
+      "ExoticMatter": 9,
+      "VoidCrystal": 9,
+      "credits": 210000
+    },
+    "name": "Exotic Lens",
+    "research_req": "zone_7_access",
+    "slot_type": "sensor",
+    "stats": {
+      "accuracy": 90
+    },
+    "zone": 7
+  },
+  "z7_shield": {
+    "cost": {
+      "ExoticMatter": 14,
+      "VoidCrystal": 9,
+      "credits": 170069
+    },
+    "desc": "Exotic matter barrier. Near-impervious.",
+    "name": "Exotic Shield Matrix",
+    "research_req": "zone_7_access",
+    "slot_type": "shield",
+    "stats": {
+      "max_shield": 4536,
+      "shield_regen": 226
+    },
+    "zone": 7
+  },
+  "z7_unique_armor": {
+    "cost": {
+
+    },
+    "desc": "Exotic-matter woven hull.",
+    "is_unique": true,
+    "name": "Sovereign's Mantle",
+    "rarity": 4,
+    "set_id": "sovereigns_prism",
+    "slot_type": "armor",
+    "stats": {
+      "def": 904,
+      "hp": 3628
+    },
+    "zone": 7
+  },
+  "z7_unique_shield": {
+    "cost": {
+
+    },
+    "desc": "Reality-bending shield aura.",
+    "is_unique": true,
+    "name": "Sovereign's Corona",
+    "rarity": 4,
+    "set_id": "sovereigns_prism",
+    "slot_type": "shield",
+    "stats": {
+      "max_shield": 7257,
+      "shield_regen": 361
+    },
+    "zone": 7
+  },
+  "z7_unique_weapon": {
+    "cost": {
+
+    },
+    "desc": "Prismatic energy cascade.",
+    "is_unique": true,
+    "name": "Sovereign's Ray",
+    "rarity": 4,
+    "set_id": "sovereigns_prism",
+    "slot_type": "weapon",
+    "stats": {
+      "atk_energy": 1809,
+      "atk_interval": 2.0,
+      "energy_load": 180
+    },
+    "zone": 7
+  },
+  "z8_armor": {
+    "cost": {
+      "Diamond": 9,
+      "VoidCrystal": 9,
+      "credits": 374151
+    },
+    "desc": "Carbon-lattice super-structure.",
+    "name": "Diamond Core Plate",
+    "research_req": "zone_8_access",
+    "slot_type": "armor",
+    "stats": {
+      "def": 1244,
+      "hp": 4990
+    },
+    "zone": 8
+  },
+  "z8_battery": {
+    "cost": {
+      "Os": 9,
+      "VoidCrystal": 27,
+      "credits": 400000
+    },
+    "name": "Void Battery",
+    "research_req": "zone_8_access",
+    "slot_type": "battery",
+    "stats": {
+      "energy_capacity": 12473
+    },
+    "zone": 8
+  },
+  "z8_energy": {
+    "cost": {
+      "ExoticMatter": 18,
+      "VoidCrystal": 18,
+      "credits": 498868
+    },
+    "desc": "Refracted energy cascade.",
+    "name": "Prism Annihilator",
+    "research_req": "zone_8_access",
+    "slot_type": "weapon",
+    "stats": {
+      "atk_energy": 2489,
+      "atk_interval": 2.0,
+      "energy_load": 200
+    },
+    "zone": 8
+  },
+  "z8_engine": {
+    "cost": {
+      "Os": 9,
+      "VoidCrystal": 18,
+      "credits": 420000
+    },
+    "name": "Quantum Drive",
+    "research_req": "zone_8_access",
+    "slot_type": "engine",
+    "stats": {
+      "eva": 12
+    },
+    "zone": 8
+  },
+  "z8_kinetic": {
+    "cost": {
+      "Os": 9,
+      "VoidCrystal": 18,
+      "credits": 498868
+    },
+    "desc": "Crystal-focused kinetic lance.",
+    "name": "Prismatic Railgun",
+    "research_req": "zone_8_access",
+    "slot_type": "weapon",
+    "stats": {
+      "atk_interval": 2.0,
+      "atk_kinetic": 2015,
+      "energy_load": 180
+    },
+    "zone": 8
+  },
+  "z8_missile": {
+    "cost": {
+      "QuantumCore": 35,
+      "VoidCrystal": 18,
+      "credits": 623585
+    },
+    "desc": "Exists in superposition until detonation.",
+    "name": "Quantum Torpedo",
+    "research_req": "zone_8_access",
+    "slot_type": "weapon",
+    "stats": {
+      "atk_explosive": 4493,
+      "atk_interval": 4.0,
+      "energy_load": 240
+    },
+    "zone": 8
+  },
+  "z8_sensor": {
+    "cost": {
+      "Os": 9,
+      "VoidArtifact": 18,
+      "credits": 480000
+    },
+    "name": "Omni-Scanner",
+    "research_req": "zone_8_access",
+    "slot_type": "sensor",
+    "stats": {
+      "accuracy": 100
+    },
+    "zone": 8
+  },
+  "z8_shield": {
+    "cost": {
+      "ExoticMatter": 18,
+      "VoidCrystal": 14,
+      "credits": 374151
+    },
+    "desc": "Crystal lattice energy barrier.",
+    "name": "Prismatic Barrier",
+    "research_req": "zone_8_access",
+    "slot_type": "shield",
+    "stats": {
+      "max_shield": 9980,
+      "shield_regen": 499
+    },
+    "zone": 8
+  },
+  "z8_unique_armor": {
+    "cost": {
+
+    },
+    "desc": "Diamond-lattice containment hull.",
+    "is_unique": true,
+    "name": "Warden's Containment",
+    "rarity": 4,
+    "set_id": "wardens_quarantine",
+    "slot_type": "armor",
+    "stats": {
+      "def": 1990,
+      "hp": 7984
+    },
+    "zone": 8
+  },
+  "z8_unique_shield": {
+    "cost": {
+
+    },
+    "desc": "Prismatic containment barrier.",
+    "is_unique": true,
+    "name": "Warden's Lockdown",
+    "rarity": 4,
+    "set_id": "wardens_quarantine",
+    "slot_type": "shield",
+    "stats": {
+      "max_shield": 15968,
+      "shield_regen": 798
+    },
+    "zone": 8
+  },
+  "z8_unique_weapon": {
+    "cost": {
+
+    },
+    "desc": "Crystal-focused annihilation beam.",
+    "is_unique": true,
+    "name": "Warden's Scalpel",
+    "rarity": 4,
+    "set_id": "wardens_quarantine",
+    "slot_type": "weapon",
+    "stats": {
+      "atk_energy": 3982,
+      "atk_interval": 2.0,
+      "energy_load": 280
+    },
+    "zone": 8
+  },
+  "z9_armor": {
+    "cost": {
+      "Neutronium": 9,
+      "Os": 9,
+      "credits": 823132
+    },
+    "desc": "Neutron-star density alloy.",
+    "name": "Neutronium Plate",
+    "research_req": "zone_9_access",
+    "slot_type": "armor",
+    "stats": {
+      "def": 2737,
+      "hp": 10978
+    },
+    "zone": 9
+  },
+  "z9_battery": {
+    "cost": {
+      "Diamond": 4,
+      "Neutronium": 18,
+      "credits": 900000
+    },
+    "name": "Neutronium Core",
+    "research_req": "zone_9_access",
+    "slot_type": "battery",
+    "stats": {
+      "energy_capacity": 27440
+    },
+    "zone": 9
+  },
+  "z9_energy": {
+    "cost": {
+      "ChronoCore": 4,
+      "Neutronium": 18,
+      "credits": 1097510
+    },
+    "desc": "Extracts energy from vacuum fluctuations.",
+    "name": "Zero-Point Beam",
+    "research_req": "zone_9_access",
+    "slot_type": "weapon",
+    "stats": {
+      "atk_energy": 5476,
+      "atk_interval": 2.0,
+      "energy_load": 300
+    },
+    "zone": 9
+  },
+  "z9_engine": {
+    "cost": {
+      "ChronoCore": 4,
+      "Neutronium": 9,
+      "credits": 950000
+    },
+    "name": "Temporal Drive",
+    "research_req": "zone_9_access",
+    "slot_type": "engine",
+    "stats": {
+      "eva": 13
+    },
+    "zone": 9
+  },
+  "z9_kinetic": {
+    "cost": {
+      "BiohazardSample": 35,
+      "Neutronium": 18,
+      "credits": 1097510
+    },
+    "desc": "Bio-corrosive projectiles.",
+    "name": "Pathogen Cannon",
+    "research_req": "zone_9_access",
+    "slot_type": "weapon",
+    "stats": {
+      "atk_interval": 2.0,
+      "atk_kinetic": 4432,
+      "energy_load": 260
+    },
+    "zone": 9
+  },
+  "z9_missile": {
+    "cost": {
+      "BiohazardSample": 53,
+      "Neutronium": 18,
+      "credits": 1371888
+    },
+    "desc": "Viral payload. Corrodes all matter.",
+    "name": "Biohazard Warhead",
+    "research_req": "zone_9_access",
+    "slot_type": "weapon",
+    "stats": {
+      "atk_explosive": 9885,
+      "atk_interval": 4.0,
+      "energy_load": 350
+    },
+    "zone": 9
+  },
+  "z9_sensor": {
+    "cost": {
+      "ChronoCore": 6,
+      "Neutronium": 9,
+      "credits": 1100000
+    },
+    "name": "Temporal Tracker",
+    "research_req": "zone_9_access",
+    "slot_type": "sensor",
+    "stats": {
+      "accuracy": 110
+    },
+    "zone": 9
+  },
+  "z9_shield": {
+    "cost": {
+      "Neutronium": 14,
+      "PathogenCore": 9,
+      "credits": 823132
+    },
+    "desc": "Containment-grade barrier field.",
+    "name": "Quarantine Barrier",
+    "research_req": "zone_9_access",
+    "slot_type": "shield",
+    "stats": {
+      "max_shield": 21956,
+      "shield_regen": 1097
+    },
+    "zone": 9
+  },
+  "z9_unique_armor": {
+    "cost": {
+
+    },
+    "desc": "Neutron-star density plating.",
+    "is_unique": true,
+    "name": "Titan's Aegis",
+    "rarity": 4,
+    "set_id": "titans_legacy",
+    "slot_type": "armor",
+    "stats": {
+      "def": 4379,
+      "hp": 17564
+    },
+    "zone": 9
+  },
+  "z9_unique_shield": {
+    "cost": {
+
+    },
+    "desc": "Containment-grade mega-barrier.",
+    "is_unique": true,
+    "name": "Titan's Bulwark",
+    "rarity": 4,
+    "set_id": "titans_legacy",
+    "slot_type": "shield",
+    "stats": {
+      "max_shield": 35129,
+      "shield_regen": 1755
+    },
+    "zone": 9
+  },
+  "z9_unique_weapon": {
+    "cost": {
+
+    },
+    "desc": "Neutronium-core mass driver.",
+    "is_unique": true,
+    "name": "Titan's Wrath",
+    "rarity": 4,
+    "set_id": "titans_legacy",
+    "slot_type": "weapon",
+    "stats": {
+      "atk_interval": 2.0,
+      "atk_kinetic": 7091,
+      "energy_load": 400
+    },
+    "zone": 9
+  }
+}

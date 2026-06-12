@@ -1,0 +1,82 @@
+{
+  "architects_regalia": {
+    "bonus": {
+      "atk_speed_pct": 25,
+      "hp_regen_flat": 20
+    },
+    "name": "Architect's Regalia",
+    "pieces": 3
+  },
+  "colossus_dominion": {
+    "bonus": {
+      "all_dmg_pct": 22,
+      "evasion_flat": 12
+    },
+    "name": "Colossus Dominion",
+    "pieces": 3
+  },
+  "harbingers_wrath": {
+    "bonus": {
+      "enemy_def_reduce_pct": 20,
+      "missile_dmg_pct": 30
+    },
+    "name": "Harbinger's Wrath",
+    "pieces": 3
+  },
+  "leviathans_crown": {
+    "bonus": {
+      "all_dmg_pct": 35,
+      "hp_regen_flat": 3000
+    },
+    "name": "Leviathan's Crown",
+    "pieces": 3
+  },
+  "monoliths_bedrock": {
+    "bonus": {
+      "def_pct": 20,
+      "reflect_pct": 10
+    },
+    "name": "Monolith's Bedrock",
+    "pieces": 3
+  },
+  "overseers_command": {
+    "bonus": {
+      "accuracy_flat": 120,
+      "shield_regen_pct": 22
+    },
+    "name": "Overseer's Command",
+    "pieces": 3
+  },
+  "sovereigns_prism": {
+    "bonus": {
+      "def_flat": 800,
+      "energy_dmg_pct": 22
+    },
+    "name": "Sovereign's Prism",
+    "pieces": 3
+  },
+  "titans_legacy": {
+    "bonus": {
+      "all_dmg_pct": 28,
+      "def_flat": 1500
+    },
+    "name": "Titan's Legacy",
+    "pieces": 3
+  },
+  "wardens_quarantine": {
+    "bonus": {
+      "crit_chance": 16,
+      "shield_hp_pct": 35
+    },
+    "name": "Warden's Quarantine",
+    "pieces": 3
+  },
+  "warmasters_arsenal": {
+    "bonus": {
+      "atk_pct": 18,
+      "crit_chance": 20
+    },
+    "name": "Warmaster's Arsenal",
+    "pieces": 3
+  }
+}

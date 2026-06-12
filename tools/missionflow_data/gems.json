@@ -1,0 +1,53 @@
+{
+  "CrackedAmethystCore": {
+    "def_mult": 0.02,
+    "hp_mult": 0.02
+  },
+  "CrackedCobaltCore": {
+    "eva_mult": 0.02,
+    "max_shield_mult": 0.02,
+    "shield_regen_mult": 0.02
+  },
+  "CrackedCrimsonCore": {
+    "atk_energy_mult": 0.02,
+    "atk_kinetic_mult": 0.02,
+    "crit_chance": 0.02
+  },
+  "CrackedTopazCore": {
+    "energy_capacity_mult": 0.02
+  },
+  "PristineAmethystCore": {
+    "def_mult": 0.1,
+    "hp_mult": 0.1
+  },
+  "PristineCobaltCore": {
+    "eva_mult": 0.1,
+    "max_shield_mult": 0.1,
+    "shield_regen_mult": 0.1
+  },
+  "PristineCrimsonCore": {
+    "atk_energy_mult": 0.1,
+    "atk_kinetic_mult": 0.1,
+    "crit_chance": 0.1
+  },
+  "PristineTopazCore": {
+    "energy_capacity_mult": 0.1
+  },
+  "StableAmethystCore": {
+    "def_mult": 0.05,
+    "hp_mult": 0.05
+  },
+  "StableCobaltCore": {
+    "eva_mult": 0.05,
+    "max_shield_mult": 0.05,
+    "shield_regen_mult": 0.05
+  },
+  "StableCrimsonCore": {
+    "atk_energy_mult": 0.05,
+    "atk_kinetic_mult": 0.05,
+    "crit_chance": 0.05
+  },
+  "StableTopazCore": {
+    "energy_capacity_mult": 0.05
+  }
+}
