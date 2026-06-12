@@ -10,12 +10,13 @@ const BOTTOM := [
 	{"id": "research", "label": "Research"},
 	{"id": "more",     "label": "More"},
 ]
-const PAGE_IDS := ["gather", "craft", "combat", "research", "more", "build", "ship", "bounty", "warp", "missions", "atlas", "stats", "hazard"]
+const PAGE_IDS := ["gather", "craft", "combat", "research", "more", "build", "ship", "bounty", "standing", "warp", "missions", "atlas", "stats", "hazard"]
 const MORE_MENU := [
 	{"id": "missions", "label": "✦  Missions"},
 	{"id": "build",  "label": "⌂  Infrastructure"},
 	{"id": "ship",   "label": "⛭  Ship Designer"},
 	{"id": "bounty", "label": "◆  Bounty Board"},
+	{"id": "standing", "label": "▤  Standing Orders"},
 	{"id": "hazard", "label": "☢  Hazard Zones"},
 	{"id": "warp",   "label": "✦  Warp Core"},
 	{"id": "atlas",  "label": "❒  Atlas / Codex"},
@@ -53,6 +54,7 @@ const NAV_ALL := [
 	{"id": "build",    "label": "Infrastructure", "icon": "⌂"},
 	{"id": "ship",     "label": "Ship Designer",  "icon": "⛭"},
 	{"id": "bounty",   "label": "Bounty Board",   "icon": "◆"},
+	{"id": "standing", "label": "Standing Orders", "icon": "▤"},
 	{"id": "hazard",   "label": "Hazard Zones",   "icon": "☢"},
 	{"id": "warp",     "label": "Warp Core",      "icon": "✦"},
 	{"id": "atlas",    "label": "Atlas / Codex",  "icon": "❒"},
@@ -98,6 +100,7 @@ var _atlas_index := {}
 var build_cat := "power"
 var ship_view := "loadout"
 var ship_mod_slot := "weapon"
+var warp_view := "core"   # "core" | "mastery" — Warp Core page sub-view
 var safe_margin: MarginContainer
 var active_banner: PanelContainer
 var _banner_chip: PanelContainer
@@ -133,6 +136,7 @@ func _ready() -> void:
 	GameState.action_changed.connect(_on_tick)
 	GameState.action_changed.connect(_refresh_banner)
 	GameState.bounty_changed.connect(_on_tick)
+	GameState.standing_orders_changed.connect(_on_tick)
 	GameState.missions_changed.connect(_on_tick)
 	GameState.offline_ready.connect(_on_offline_ready)
 	GameState.level_up.connect(_on_level_up)
@@ -876,6 +880,7 @@ func _refresh_current() -> void:
 		"build":    _build_infra()
 		"ship":     _build_ship()
 		"bounty":   _build_bounty()
+		"standing": _build_standing()
 		"warp":     _build_warp()
 		"missions": _build_missions()
 		"atlas":    _build_atlas()
@@ -1646,6 +1651,87 @@ func _lbl_wrap(parent: Node, text: String, size: int, color: String) -> void:
 	l.add_theme_color_override("font_color", Color.html(color))
 	parent.add_child(l)
 
+# ============================================================ STANDING ORDERS
+# Second quest board (distinct from Bounties): passive tracking on every slot at
+# once, instant claim with auto-replace, no accept/abandon, manual reroll.
+func _build_standing() -> void:
+	var v := _clear("standing")
+	_back_header(v)
+	var t := Label.new()
+	t.text = "▤ STANDING ORDERS"
+	t.add_theme_font_size_override("font_size", _fs(16))
+	t.add_theme_color_override("font_color", Color.html(CYAN))
+	v.add_child(t)
+	_lbl_wrap(v, "Passive jobs tracked automatically — gather orders sync from your inventory, sweep orders count kills. Claim grants credits + a material bonus and auto-replaces the slot.", 10, C_DIM)
+
+	var rr := HBoxContainer.new()
+	rr.add_theme_constant_override("separation", 6)
+	var done := 0
+	for q in GameState.standing_orders():
+		if q.get("completed", false) and not q.get("claimed", false):
+			done += 1
+	var st := Label.new()
+	st.text = "%d ready to claim · %d completed" % [done, GameState.standing_total]
+	st.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	st.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	st.add_theme_font_size_override("font_size", _fs(11))
+	st.add_theme_color_override("font_color", Color.html(C_DIM))
+	rr.add_child(st)
+	var rcost := GameState.standing_reroll_cost()
+	var rb := _card_button("Reroll ₡%s" % GameData.fmt(rcost), CYAN, GameState.credits >= rcost)
+	rb.custom_minimum_size = Vector2(160, 40)
+	if GameState.credits >= rcost:
+		rb.pressed.connect(func() -> void: GameState.reroll_standing_orders())
+	rr.add_child(rb)
+	v.add_child(rr)
+
+	_section(v, "ORDERS  (%d)" % GameState.standing_orders().size(), CYAN)
+	if GameState.standing_orders().is_empty():
+		_empty(v, "Board is empty.")
+	for i in GameState.standing_orders().size():
+		v.add_child(_standing_card(i, GameState.standing_orders()[i]))
+
+func _standing_card(idx: int, q: Dictionary) -> Control:
+	var complete: bool = q.get("completed", false)
+	var panel := PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", _bordered("16243a", GREEN if complete else "2a3a55", 2 if complete else 1))
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 4)
+	panel.add_child(vb)
+	var ttag := "▤ " if q.get("type", "") == "gather" else "◎ "
+	_lbl_wrap(vb, ttag + q.get("title", ""), 14, GREEN if complete else C_TEXT)
+	_lbl_wrap(vb, q.get("desc", ""), 10, C_DIM)
+	# Reward line: credits + (optional) material bonus.
+	var rtxt := "Reward: ₡%s" % GameData.fmt(q.get("reward_credits", 0))
+	var mat: Dictionary = q.get("reward_material", {})
+	if not mat.is_empty():
+		rtxt += "  +%d %s" % [int(mat["qty"]), GameData.res_name(mat["id"])]
+	var reward := Label.new()
+	reward.text = rtxt
+	reward.add_theme_font_size_override("font_size", _fs(11))
+	reward.add_theme_color_override("font_color", Color.html(GOLD))
+	vb.add_child(reward)
+	# Progress bar (gather syncs from inventory; hunt counts kills).
+	var cur := int(q.get("current_qty", 0))
+	var tgt := maxi(1, int(q.get("target_qty", 1)))
+	var pg := Label.new()
+	pg.text = "Progress: %s / %s" % [GameData.fmt(cur), GameData.fmt(tgt)]
+	pg.add_theme_font_size_override("font_size", _fs(11))
+	pg.add_theme_color_override("font_color", Color.html(GREEN if complete else C_DIM))
+	vb.add_child(pg)
+	var bar := ProgressBar.new()
+	bar.custom_minimum_size = Vector2(0, 8)
+	bar.show_percentage = false
+	bar.max_value = tgt
+	bar.value = cur
+	_style_bar(bar, GREEN if complete else CYAN)
+	vb.add_child(bar)
+	if complete:
+		var claim := _card_button("Claim", GREEN, true)
+		claim.pressed.connect(func() -> void: GameState.claim_standing_order(idx))
+		vb.add_child(claim)
+	return panel
+
 # ============================================================ WARP CORE
 func _build_missions() -> void:
 	var v := _clear("missions")
@@ -1715,6 +1801,14 @@ func _build_warp() -> void:
 	t.add_theme_font_size_override("font_size", _fs(16))
 	t.add_theme_color_override("font_color", Color.html(PURP))
 	v.add_child(t)
+	_subtabs(v, [{"id": "core", "label": "Warp Core"}, {"id": "mastery", "label": "Mastery Tree"}], warp_view, PURP, func(id: String) -> void:
+		warp_view = id
+		_refresh_current())
+	match warp_view:
+		"mastery": _warp_mastery(v)
+		_:         _warp_core(v)
+
+func _warp_core(v: VBoxContainer) -> void:
 	_lbl_wrap(v, "Collapse your empire into a Warp Core for permanent Warp Shards. Skills keep 30%% XP, buildings/ship reset — but researched tech stays unlocked.", 10, C_DIM)
 
 	var sh := Label.new()
@@ -1760,6 +1854,66 @@ func _build_warp() -> void:
 				_warp_armed = true
 				_refresh_current())
 	v.add_child(wb)
+
+# Warp Mastery Tree — 2 branches × 5 nodes, spent via available shards. Purchased
+# nodes persist across warps (true meta-progression).
+func _warp_mastery(v: VBoxContainer) -> void:
+	var avail := GameState.available_warp_shards()
+	var sh := Label.new()
+	sh.text = "Available Shards: %s   ·   Spent: %s" % [GameData.fmt(int(avail)), GameData.fmt(int(GameState.warp_shards_spent))]
+	sh.add_theme_font_size_override("font_size", _fs(13))
+	sh.add_theme_color_override("font_color", Color.html(PURP))
+	v.add_child(sh)
+	_lbl_wrap(v, "Spend Warp Shards on permanent mastery nodes. Purchases survive every Warp. Branches unlock as you Warp.", 10, C_DIM)
+	_warp_branch(v, "engineering", "ENGINEERING", GREEN)
+	_warp_branch(v, "combat", "COMBAT", RED)
+
+func _warp_branch(v: VBoxContainer, branch: String, title: String, accent: String) -> void:
+	var revealed := GameState.is_branch_revealed(branch)
+	_section(v, title, accent)
+	if not revealed:
+		var need := int(GameState.BRANCH_REVEAL_WARP[branch])
+		_empty(v, "Warp %d time%s to reveal this branch." % [need, "s" if need != 1 else ""])
+		return
+	for nid in GameState.TREE_BRANCH_ORDER[branch]:
+		v.add_child(_warp_node_card(nid))
+
+func _warp_node_card(nid: String) -> Control:
+	var node: Dictionary = GameState.TREE_NODES[nid]
+	var bought := GameState.is_node_purchased(nid)
+	var can := GameState.can_purchase_node(nid)
+	var impl: bool = node.get("implemented", true)
+	# Lit when purchased; accent-bordered when affordable; dim otherwise.
+	var border := GOLD if bought else (CYAN if can else "2a3a55")
+	var panel := PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", _bordered("16243a", border, 2 if (bought or can) else 1))
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 3)
+	panel.add_child(vb)
+	var head := Label.new()
+	head.text = ("✔ " if bought else "") + node.get("name", nid)
+	head.add_theme_font_size_override("font_size", _fs(13))
+	head.add_theme_color_override("font_color", Color.html(GOLD if bought else C_TEXT))
+	vb.add_child(head)
+	_lbl_wrap(vb, node.get("desc", ""), 10, C_DIM)
+	var cost := Label.new()
+	cost.text = "Cost: %d Shard%s" % [int(node["cost"]), "s" if int(node["cost"]) != 1 else ""]
+	cost.add_theme_font_size_override("font_size", _fs(10))
+	cost.add_theme_color_override("font_color", Color.html(PURP))
+	vb.add_child(cost)
+	if bought:
+		_clbl(vb, "PURCHASED", 11, GOLD)
+	elif not impl:
+		_clbl(vb, "Coming soon", 10, C_MUTED)
+	else:
+		var afford := GameState.available_warp_shards() >= float(node["cost"])
+		var b := _card_button("Purchase" if afford else "Need %d Shards" % int(node["cost"]), PURP, can)
+		if can:
+			b.pressed.connect(func() -> void:
+				GameState.purchase_tree_node(nid)
+				_refresh_current())
+		vb.add_child(b)
+	return panel
 
 func _back_header(v: VBoxContainer) -> void:
 	var b := Button.new()
@@ -1993,6 +2147,52 @@ func _ship_loadout(v: VBoxContainer, h: Dictionary) -> void:
 				_refresh_current())
 			c.get_parent().add_child(overlay)
 		g.add_child(c.get_parent())
+	_loadout_presets(v)
+
+# 3 saved-build preset slots wired to the Phase-7 engine API. Save snapshots the
+# current loadout/ammo/consumables; Load swaps to it; Clear empties the slot.
+func _loadout_presets(v: VBoxContainer) -> void:
+	_section(v, "LOADOUT PRESETS — save & swap builds", CYAN)
+	for i in [1, 2, 3]:
+		var preset: Dictionary = GameState.loadout_presets.get(i, {})
+		var empty := GameState.is_loadout_preset_empty(i)
+		var nm: String = preset.get("name", "")
+		if nm == "":
+			nm = "Build %d" % i
+		var panel := PanelContainer.new()
+		panel.add_theme_stylebox_override("panel", _bordered("16243a", "2a3a55", 1))
+		var vb := VBoxContainer.new()
+		vb.add_theme_constant_override("separation", 4)
+		panel.add_child(vb)
+		var head := Label.new()
+		head.text = "Slot %d:  %s" % [i, nm if not empty else "— empty —"]
+		head.add_theme_font_size_override("font_size", _fs(13))
+		head.add_theme_color_override("font_color", Color.html(CYAN if not empty else C_MUTED))
+		vb.add_child(head)
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 6)
+		var save := _card_button("Save", CYAN, true)
+		save.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		save.pressed.connect(func() -> void:
+			GameState.save_loadout_preset(i)
+			_refresh_current())
+		row.add_child(save)
+		var load := _card_button("Load", GREEN, not empty)
+		load.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		if not empty:
+			load.pressed.connect(func() -> void:
+				GameState.load_loadout_preset(i)
+				_refresh_current())
+		row.add_child(load)
+		var clear := _card_button("Clear", C_WARN, not empty)
+		clear.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		if not empty:
+			clear.pressed.connect(func() -> void:
+				GameState.clear_loadout_preset(i)
+				_refresh_current())
+		row.add_child(clear)
+		vb.add_child(row)
+		v.add_child(panel)
 
 func _ship_modules(v: VBoxContainer) -> void:
 	if GameState.equip_notice != "":

@@ -25,6 +25,43 @@ var lifetime_credits: int = 0           # total credits ever earned (for prestig
 var warp_shards: float = 0.0
 var total_warps: int = 0
 var credits_at_warp_start: int = 0
+# v107 Warp Mastery Tree (ported from ref_warp_manager.gd ~L13-47). Earned
+# warp_shards still drive the global multipliers; warp_shards_spent tracks tree
+# purchases. Available = shards - spent. Purchased nodes persist ACROSS warps
+# (true meta-progression — only hard_reset clears them).
+const TREE_NODES := {
+	# Engineering branch (revealed at warp #1) ---------------------------
+	"E1": {"branch": "engineering", "cost": 1, "name": "Yield Calibration",
+		"desc": "+10% Gathering yield.", "implemented": true},
+	"E2": {"branch": "engineering", "cost": 2, "name": "Recipe Efficiency",
+		"desc": "-10% Processing duration.", "implemented": true},
+	"E3": {"branch": "engineering", "cost": 3, "name": "Alt-Recipe Slot",
+		"desc": "Unlocks alt-recipe variants on chosen recipes.", "implemented": false},
+	"E4": {"branch": "engineering", "cost": 5, "name": "Building Overclock",
+		"desc": "Buildings can be throttled up to 200% at +50% input cost per unit produced.", "implemented": false},
+	"E5": {"branch": "engineering", "cost": 8, "name": "Reclamation Foundry",
+		"desc": "Unlocks a building that auto-converts surplus raw materials into Liras at a slow rate.", "implemented": false},
+	# Combat branch (revealed at warp #2) --------------------------------
+	"C1": {"branch": "combat", "cost": 1, "name": "Hull Reinforcement",
+		"desc": "+10% Hull HP on all hulls.", "implemented": true},
+	"C2": {"branch": "combat", "cost": 2, "name": "Weapon Tuning",
+		"desc": "+10% module damage.", "implemented": true},
+	"C3": {"branch": "combat", "cost": 3, "name": "Auxiliary Slot",
+		"desc": "Unlocks a 9th module slot (Auxiliary type — accepts any module).", "implemented": false},
+	"C4": {"branch": "combat", "cost": 5, "name": "Matrix Core Resonance",
+		"desc": "Unlocks the 4th Matrix Core tier (Resonant) with stronger affixes.", "implemented": false},
+	"C5": {"branch": "combat", "cost": 8, "name": "Cryo Overcharge",
+		"desc": "+50% Cryo damage. (Cryo weapons unlock on your first Warp — this overcharges them.)", "implemented": true},
+}
+# Branch reveal derived from total_warps (no separate state).
+const BRANCH_REVEAL_WARP := {"engineering": 1, "combat": 2}
+# Ordered node chains per branch (prereq = the prior node in the branch).
+const TREE_BRANCH_ORDER := {
+	"engineering": ["E1", "E2", "E3", "E4", "E5"],
+	"combat": ["C1", "C2", "C3", "C4", "C5"],
+}
+var purchased_nodes: Dictionary = {}  # {node_id: true} — persists across warps
+var warp_shards_spent: float = 0.0    # cumulative spend; available = shards - spent
 # v111: Warping permanently unlocks Cryogenic armaments — the key to the Z11
 # "Warp-Hardened" gate. Persists across prestiges (set once on the first Warp).
 var cryo_unlocked: bool = false
@@ -188,6 +225,7 @@ func _ready() -> void:
 		combat_hp = combat_max_hp()
 	if bounty_available.is_empty() and bounty_active.is_empty():
 		generate_bounty_pool()
+	ensure_standing_board()
 	_mission_init()
 	_mission_repair()
 
@@ -259,6 +297,8 @@ func add_resource(sym: String, amt: int) -> void:
 	resources[sym] = amount(sym) + amt
 	if amt > 0 and not missions_active.is_empty():
 		_mission_event("gather", sym, amt)
+	if amt > 0:
+		_standing_track_gather(sym, amt)
 	resources_changed.emit()
 
 # ---- Storage slots ----
@@ -306,6 +346,65 @@ func warp_production_mult() -> float:
 
 func warp_combat_mult() -> float:
 	return (1.0 + warp_shards * 0.03) * pow(2.0, warp_tier())
+
+# ---------------- Warp Mastery Tree (ref_warp_manager ~L138-196) ----------------
+func available_warp_shards() -> float:
+	return maxf(0.0, warp_shards - warp_shards_spent)
+
+func is_branch_revealed(branch: String) -> bool:
+	if not branch in BRANCH_REVEAL_WARP:
+		return false
+	return total_warps >= int(BRANCH_REVEAL_WARP[branch])
+
+func is_node_purchased(node_id: String) -> bool:
+	return bool(purchased_nodes.get(node_id, false))
+
+func is_node_implemented(node_id: String) -> bool:
+	if not node_id in TREE_NODES:
+		return false
+	return bool(TREE_NODES[node_id].get("implemented", true))
+
+func can_purchase_node(node_id: String) -> bool:
+	# Faithful to ref_warp_manager.can_purchase_node (~L156-166): nodes are
+	# INDEPENDENT — no in-branch prereq chain. A node is buyable once its branch
+	# is revealed, it is implemented, and you can afford it. (A prereq chain would
+	# strand the implemented C5 Cryo Overcharge behind the unimplemented C3/C4.)
+	if not node_id in TREE_NODES:
+		return false
+	if is_node_purchased(node_id):
+		return false
+	if not is_node_implemented(node_id):
+		return false  # unfinished mechanic nodes refuse purchase (desktop parity)
+	var node: Dictionary = TREE_NODES[node_id]
+	if not is_branch_revealed(node["branch"]):
+		return false
+	return available_warp_shards() >= float(node["cost"])
+
+func purchase_tree_node(node_id: String) -> bool:
+	if not can_purchase_node(node_id):
+		return false
+	warp_shards_spent += float(TREE_NODES[node_id]["cost"])
+	purchased_nodes[node_id] = true
+	if active_type == "combat":
+		combat_hp = minf(maxf(combat_hp, 1.0), combat_max_hp())   # keep current HP within the (now larger) C1 ceiling
+	resources_changed.emit()
+	return true
+
+# Effect queries — folded into the matching stat getters. 1.0 means "not bought".
+func tree_gathering_bonus() -> float:
+	return 1.10 if is_node_purchased("E1") else 1.0          # E1: +10% gather yield
+
+func tree_processing_speed_bonus() -> float:
+	return (1.0 / 0.9) if is_node_purchased("E2") else 1.0   # E2: -10% duration
+
+func tree_hull_bonus() -> float:
+	return 1.10 if is_node_purchased("C1") else 1.0          # C1: +10% hull HP
+
+func tree_damage_bonus() -> float:
+	return 1.10 if is_node_purchased("C2") else 1.0          # C2: +10% module damage
+
+func tree_cryo_bonus() -> float:
+	return 1.50 if is_node_purchased("C5") else 1.0          # C5: +50% Cryo damage
 
 ## Shards that would be gained by warping now (0 = below threshold).
 func warp_gain_preview() -> int:
@@ -363,6 +462,10 @@ func execute_warp() -> int:
 	cryo_unlocked = true
 	combat_hp = combat_max_hp()
 	generate_bounty_pool()
+	# Standing Orders are zone-tiered + track inventory — regenerate against the
+	# fresh post-warp world (mirrors the bounty pool refresh above).
+	standing_board = []
+	_standing_fill()
 	# Warp goal missions (goal_002/goal_003) track total_warps.
 	_mission_event("warp_perform", "warp", 1)
 	_mission_sync()
@@ -435,6 +538,7 @@ func yield_mult(skill_id: String) -> float:
 	m *= research_efficiency_mult()                        # Efficiency I-V: 2x..32x
 	m *= 1.0 + affix_total("extractor_efficiency")
 	m *= 1.0 + research_bonus("gathering_yield_mult")      # Recursion: gathering_focus
+	m *= tree_gathering_bonus()                            # E1 Yield Calibration: +10%
 	# NB: warp prestige boosts gathering via SPEED (see gather_speed_mult), not yield.
 	return m
 
@@ -546,7 +650,7 @@ func ship_weapons() -> Array:
 	# v80.1 Trinity: atk-speed boost (capped), and damage multipliers.
 	spd_bonus = minf(spd_bonus + trinity_bonus("atk_speed_pct") / 100.0, MAX_ATK_SPEED_MULT - 1.0)
 	var speed := (1.0 + spd_bonus) * spd_mult
-	var dmg_mult := (1.0 + level_of("combat") * 0.005) * warp_combat_mult() * (1.0 + research_bonus("combat_damage"))
+	var dmg_mult := (1.0 + level_of("combat") * 0.005) * warp_combat_mult() * (1.0 + research_bonus("combat_damage")) * tree_damage_bonus()  # C2 Weapon Tuning: +10%
 	# Trinity all/atk damage % applies to every type; energy/missile % stack on top.
 	var trin_all := 1.0 + (trinity_bonus("atk_pct") + trinity_bonus("all_dmg_pct")) / 100.0
 	var trin_e := 1.0 + trinity_bonus("energy_dmg_pct") / 100.0
@@ -572,7 +676,7 @@ func ship_weapons() -> Array:
 			"dmg_k": kk * eng_mult * dmg_mult * gk * trin_all,
 			"dmg_e": ke * eng_mult * dmg_mult * ge * trin_all * trin_e,
 			"dmg_x": kx * eng_mult * dmg_mult * trin_all * trin_x,
-			"dmg_cryo": kc * eng_mult * dmg_mult * trin_all,
+			"dmg_cryo": kc * eng_mult * dmg_mult * trin_all * tree_cryo_bonus(),
 			"interval": maxf(0.3, float(st.get("atk_interval", 2.5)) / maxf(0.2, speed)), "timer": randf_range(0.0, 0.4)})
 	if out.is_empty():
 		var h: Dictionary = GameData.HULLS.get(active_hull, {})
@@ -611,7 +715,7 @@ func combat_max_hp() -> float:
 	# — no combat-level HP term in the original.
 	# v109: Recursive Hardening (defense_focus) applies hull_hp_mult multiplicatively.
 	return float(s["hp"]) * (1.0 + research_bonus("max_hp_mult") + research_bonus("materials_science")) \
-		* (1.0 + research_bonus("hull_hp_mult"))
+		* (1.0 + research_bonus("hull_hp_mult")) * tree_hull_bonus()   # C1 Hull Reinforcement: +10%
 
 func player_max_shield() -> float:
 	var s := ship_stats()
@@ -1247,6 +1351,242 @@ func bounty_on_kill(eid: String) -> void:
 			changed = true
 	if changed:
 		bounty_changed.emit()
+
+# ---------------- Standing Orders board ----------------
+# Faithful port of ref_quest_manager.gd. A SECOND quest board, distinct from
+# Bounties: 6 passive-tracked slots (gather / hunt non-boss), 55/45 split,
+# instant claim with auto-replacement (no accept/abandon), material rewards from
+# a DEDICATED per-tier table (distinct from bounty delivery materials), manual
+# reroll at 2500×max_diff credits, no timed refresh.
+signal standing_orders_changed
+
+const STANDING_BOARD_SIZE := 6
+const STANDING_REROLL_BASE := 2500
+# Per-tier material reward pool: [material_id, min_qty, max_qty] (ref ~L13-24).
+const STANDING_MATERIAL_REWARDS := {
+	1: [["Cu", 100, 250], ["Fe", 80, 180], ["Si", 50, 150]],
+	2: [["Steel", 40, 100], ["Cu", 200, 500], ["Circuit", 25, 60]],
+	3: [["Ti", 60, 150], ["Steel", 150, 350], ["AdvCircuit", 30, 80]],
+	4: [["W", 80, 200], ["Ti", 200, 450], ["Graphite", 100, 250]],
+	5: [["Superalloy", 30, 80], ["AdvCircuit", 80, 200], ["NavData", 50, 120]],
+	6: [["AdvCircuit", 150, 350], ["ColonySalvage", 100, 250], ["Superalloy", 60, 150]],
+	7: [["RadIsotope", 80, 200], ["Pt", 50, 120], ["Superalloy", 100, 250]],
+	8: [["VoidCrystal", 20, 60], ["Diamond", 15, 40], ["ExoticMatter", 10, 30]],
+	9: [["BiohazardSample", 40, 100], ["MutatedTissue", 25, 70], ["PathogenCore", 10, 25]],
+	10: [["VoidEssence", 20, 50], ["ChronoCore", 10, 25], ["PrimordialShard", 5, 15]],
+}
+
+var standing_board: Array = []
+var standing_total: int = 0
+var _standing_id := 0
+
+func standing_orders() -> Array:
+	return standing_board
+
+func _gen_sid() -> String:
+	_standing_id += 1
+	return "so%d" % _standing_id
+
+## Max difficulty from zones whose research gate is unlocked (ref _get_max_difficulty).
+func standing_max_diff() -> int:
+	var md := 1
+	for z in GameData.ZONES:
+		var req: String = z.get("research_req", "")
+		if req == "" or is_research_unlocked(req):
+			md = maxi(md, int(z.get("difficulty", 1)))
+	return md
+
+func _standing_fill() -> void:
+	var attempts := 0
+	while standing_board.size() < STANDING_BOARD_SIZE and attempts < 100:
+		attempts += 1
+		var q := _gen_standing_order()
+		if not q.is_empty():
+			standing_board.append(q)
+	standing_orders_changed.emit()
+
+func _gen_standing_order() -> Dictionary:
+	var maxd := standing_max_diff()
+	var mind := maxi(1, maxd - 1)
+	# 55% gather, 45% hunt (non-boss).
+	if randf() < 0.55:
+		return _gen_standing_gather(mind, maxd)
+	return _gen_standing_hunt(mind, maxd)
+
+## Retry wrapper for single-slot replacement: a lone empty roll (e.g. a tier with
+## no delivery-material template, or no valid hunt zone) must never shrink the
+## board below STANDING_BOARD_SIZE. Falls back through the type split a few times.
+func _gen_standing_order_retry() -> Dictionary:
+	for _i in 20:
+		var q := _gen_standing_order()
+		if not q.is_empty():
+			return q
+	return {}
+
+func _gen_standing_gather(mind: int, maxd: int) -> Dictionary:
+	# DELIVERY_MATERIALS tops out at tier 10; clamp so high-zone (Z11) players
+	# still draw gather orders instead of always rolling empty at tier 11.
+	var tier := mini(randi_range(mind, maxd), 10)
+	var tmpl: Array = DELIVERY_MATERIALS.get(tier, [])
+	if tmpl.is_empty():
+		return {}
+	var t: Array = tmpl[randi() % tmpl.size()]
+	var mat_id: String = t[0]
+	# Orders demand smaller quantities than bounties (they aren't consumed).
+	# Floor at 1 so a small material range can never produce a 0/0 auto-complete.
+	var qty := maxi(1, int(randf_range(float(t[1]), float(t[2])) * 0.6))
+	var credits_r := int(float(t[3]) * 0.4)
+	var dn := GameData.res_name(mat_id)
+	return {
+		"id": _gen_sid(), "type": "gather",
+		"title": "Stockpile: %s" % dn,
+		"desc": "Acquire %d units of %s." % [qty, dn],
+		"target": mat_id, "target_qty": qty, "current_qty": 0,
+		"reward_credits": credits_r, "reward_material": _roll_standing_material(tier),
+		"difficulty": tier, "completed": false, "claimed": false,
+	}
+
+func _gen_standing_hunt(mind: int, maxd: int) -> Dictionary:
+	var valid := _zones_in_range(mind, maxd)
+	if valid.is_empty():
+		return {}
+	var z: Dictionary = valid[randi() % valid.size()]
+	var diff := int(z.get("difficulty", 1))
+	# Prefer non-boss for orders; bosses are bounty territory.
+	var non_boss := []
+	for eid in z.get("enemies", []):
+		if not GameData.ENEMIES.get(eid, {}).get("is_boss", false):
+			non_boss.append(eid)
+	if non_boss.is_empty():
+		non_boss = z.get("enemies", [])
+	if non_boss.is_empty():
+		return {}
+	var enemy_id: String = non_boss[randi() % non_boss.size()]
+	var e: Dictionary = GameData.ENEMIES.get(enemy_id, {})
+	if e.is_empty():
+		return {}
+	var qty := randi_range(8, 20)
+	var base_xp := float(e.get("xp", 10))
+	var diff_mult := pow(float(diff), 1.4)
+	var credit_reward := int(base_xp * qty * 10.0 * diff_mult)
+	return {
+		"id": _gen_sid(), "type": "hunt",
+		"title": "Sweep: %s" % e.get("name", enemy_id),
+		"desc": "Destroy %d %s in %s." % [qty, e.get("name", enemy_id), z.get("name", "")],
+		"target": enemy_id, "target_qty": qty, "current_qty": 0,
+		"reward_credits": credit_reward, "reward_material": _roll_standing_material(diff),
+		"difficulty": diff, "completed": false, "claimed": false,
+	}
+
+func _roll_standing_material(tier: int) -> Dictionary:
+	# 60% chance to roll a material reward in addition to credits.
+	if randf() > 0.6:
+		return {}
+	var pool: Array = STANDING_MATERIAL_REWARDS.get(tier, [])
+	if pool.is_empty():
+		return {}
+	var pick: Array = pool[randi() % pool.size()]
+	return {"id": pick[0], "qty": randi_range(int(pick[1]), int(pick[2]))}
+
+## Increment gather progress on resource gain (ref _on_element_added). Progress is
+## additive (not re-read from inventory) so spending materials never regresses it.
+func _standing_track_gather(sym: String, amt: int) -> void:
+	if standing_board.is_empty():
+		return
+	var changed := false
+	for q in standing_board:
+		if q.get("claimed", false) or q.get("completed", false) or q["type"] != "gather":
+			continue
+		if q["target"] == sym:
+			q["current_qty"] = mini(int(q["current_qty"]) + amt, int(q["target_qty"]))
+			if int(q["current_qty"]) >= int(q["target_qty"]):
+				q["completed"] = true
+			changed = true
+	if changed:
+		standing_orders_changed.emit()
+
+## Pull current inventory levels into gather orders so existing stockpiles count.
+func sync_standing_gather() -> void:
+	var changed := false
+	for q in standing_board:
+		if q.get("claimed", false) or q["type"] != "gather":
+			continue
+		var have := amount(q["target"])
+		if have > int(q["current_qty"]):
+			q["current_qty"] = mini(have, int(q["target_qty"]))
+			if int(q["current_qty"]) >= int(q["target_qty"]):
+				q["completed"] = true
+			changed = true
+	if changed:
+		standing_orders_changed.emit()
+
+## Hunt progress on enemy kill (called from _win_combat).
+func standing_on_kill(eid: String) -> void:
+	var changed := false
+	for q in standing_board:
+		if q.get("claimed", false) or q.get("completed", false) or q["type"] != "hunt":
+			continue
+		if q["target"] == eid:
+			q["current_qty"] = mini(int(q["current_qty"]) + 1, int(q["target_qty"]))
+			if int(q["current_qty"]) >= int(q["target_qty"]):
+				q["completed"] = true
+			changed = true
+	if changed:
+		standing_orders_changed.emit()
+
+func _find_standing(i: int) -> Variant:
+	if i < 0 or i >= standing_board.size():
+		return null
+	return standing_board[i]
+
+## Instant claim: grants credits + material reward (ref claim_quest ~L199-235),
+## then auto-replaces the slot. The slot is removed BEFORE rewards are granted so
+## the add_resource hook (which re-emits standing_orders_changed) never rebuilds
+## the board with the just-claimed order still showing a Claim button.
+func claim_standing_order(i: int) -> bool:
+	var q = _find_standing(i)
+	if q == null or not q.get("completed", false) or q.get("claimed", false):
+		return false
+	var cred := int(float(q["reward_credits"]) * warp_production_mult() * credit_reward_mult())
+	var mat: Dictionary = q.get("reward_material", {})
+	q["claimed"] = true
+	standing_total += 1
+	standing_board.remove_at(i)
+	# Replace first so the board is whole before reward side effects fire.
+	var fresh := _gen_standing_order_retry()
+	if not fresh.is_empty():
+		standing_board.append(fresh)
+	gain_credits(cred)
+	if not mat.is_empty():
+		add_resource(mat["id"], int(mat["qty"]))
+	resources_changed.emit()
+	standing_orders_changed.emit()
+	return true
+
+func standing_reroll_cost() -> int:
+	return STANDING_REROLL_BASE * standing_max_diff()
+
+## Manual reroll: keep completed-but-unclaimed orders, reroll the rest.
+func reroll_standing_orders() -> bool:
+	var cost := standing_reroll_cost()
+	if credits < cost:
+		return false
+	credits -= cost
+	var kept := []
+	for q in standing_board:
+		if q.get("completed", false) and not q.get("claimed", false):
+			kept.append(q)
+	standing_board = kept
+	_standing_fill()
+	resources_changed.emit()
+	standing_orders_changed.emit()
+	return true
+
+func ensure_standing_board() -> void:
+	if standing_board.is_empty():
+		_standing_fill()
+	else:
+		sync_standing_gather()
 
 # ---------------- Infrastructure ----------------
 # ── v109 Infrastructure rebalance (ported from ref_infrastructure_manager.gd
@@ -2403,6 +2743,22 @@ func _player_fire(w: Dictionary, ss: Dictionary) -> void:
 		_event("-%d" % int(res[0]), "55d3e6", "enemy")
 	if res[1] > 0:
 		_event(("CRIT %d" % int(res[1])) if res[2] else ("-%d" % int(res[1])), "ecb44a" if res[2] else "ef6a52", "enemy")
+	# v86.0 resist feedback (ref_combat_manager ~L1636-1644): the dominant-type
+	# resistance vs this hit. Low % per hit (anti-spam) so the player learns that
+	# damage-type choice matters without popup spam.
+	# Only when the hit actually landed hull damage, so the resist/weak cue
+	# reflects real mitigation rather than a fully shield-absorbed swing.
+	if not enemy_inst.is_empty() and res[1] > 0:
+		var dom := 0.0
+		match wtype:
+			"energy": dom = float(enemy_inst.get("resist_e", 0.0))
+			"explosive": dom = float(enemy_inst.get("resist_x", 0.0))
+			"cryo": dom = float(enemy_inst.get("resist_cryo", 0.0))
+			_: dom = float(enemy_inst.get("resist_k", 0.0))
+		if dom >= 0.20 and randf() < 0.15:
+			_event("RESISTED", "9aa7c2", "enemy")
+		elif dom <= -0.20 and randf() < 0.15:
+			_event("WEAK SPOT", "5fd585", "enemy")
 	if enemy_inst["hp"] <= 0.0:
 		_win_combat()
 
@@ -2571,6 +2927,7 @@ func _win_combat() -> void:
 	_roll_loot(enemy_inst["loot"], get_combat_loot_multiplier())
 	add_xp("combat", int(enemy_inst["xp"] * (1.0 + research_bonus("combat_xp"))))
 	bounty_on_kill(active_id)
+	standing_on_kill(active_id)
 	_mission_event("defeat", active_id, 1)
 	_event("DESTROYED", "5fd585", "enemy")
 	# On-kill affixes
@@ -2868,6 +3225,7 @@ func recipe_speed_mult(id: String) -> float:
 	if int(buildings.get("silver_catalyst_bay", 0)) > 0: m += 0.15
 	if level_of("fabrication") >= 10: m *= 1.10             # milestone 10
 	if level_of("fabrication") >= 25: m *= 1.11             # milestone 25
+	m *= tree_processing_speed_bonus()                      # E2 Recipe Efficiency: -10% duration
 	return m
 
 func _tick_active(delta: float) -> void:
@@ -3094,6 +3452,8 @@ func save_game() -> void:
 		"offline_combat": offline_combat,
 		"warp_shards": warp_shards,
 		"total_warps": total_warps,
+		"purchased_nodes": purchased_nodes,
+		"warp_shards_spent": warp_shards_spent,
 		"cryo_unlocked": cryo_unlocked,
 		"credits_at_warp_start": credits_at_warp_start,
 		"skills": skills,
@@ -3119,6 +3479,9 @@ func save_game() -> void:
 		"bounty_refresh_timer": bounty_refresh_timer,
 		"bounty_total": bounty_total,
 		"bounty_id": _bounty_id,
+		"standing_board": standing_board,
+		"standing_total": standing_total,
+		"standing_id": _standing_id,
 		"missions_active": missions_active.keys(),
 		"missions_progress": missions_progress,
 		"missions_claimed": missions_claimed.keys(),
@@ -3159,6 +3522,8 @@ func load_game() -> void:
 		repeatable_research[k] = int(repeatable_research[k])
 	warp_shards = float(data.get("warp_shards", 0.0))
 	total_warps = int(data.get("total_warps", 0))
+	purchased_nodes = data.get("purchased_nodes", {})
+	warp_shards_spent = float(data.get("warp_shards_spent", 0.0))
 	# Back-compat: pre-v111 saves with warps predate the flag — infer it.
 	cryo_unlocked = bool(data.get("cryo_unlocked", total_warps > 0))
 	credits_at_warp_start = int(data.get("credits_at_warp_start", 0))
@@ -3202,6 +3567,10 @@ func load_game() -> void:
 	bounty_refresh_timer = float(data.get("bounty_refresh_timer", 0.0))
 	bounty_total = int(data.get("bounty_total", 0))
 	_bounty_id = int(data.get("bounty_id", 0))
+	standing_board = data.get("standing_board", [])
+	standing_total = int(data.get("standing_total", 0))
+	_standing_id = int(data.get("standing_id", 0))
+	ensure_standing_board()   # populate fresh saves / sync gather progress on load
 	missions_active = {}
 	for mid in data.get("missions_active", []):
 		missions_active[mid] = true
@@ -3250,6 +3619,8 @@ func hard_reset() -> void:
 	lifetime_credits = 0
 	warp_shards = 0.0
 	total_warps = 0
+	purchased_nodes = {}
+	warp_shards_spent = 0.0
 	cryo_unlocked = false
 	credits_at_warp_start = 0
 	skills = {"harvesting": 0, "fabrication": 0, "combat": 0, "infrastructure": 0}
@@ -3277,6 +3648,9 @@ func hard_reset() -> void:
 	bounty_active = []
 	bounty_refresh_timer = 0.0
 	bounty_total = 0
+	standing_board = []
+	standing_total = 0
+	_standing_id = 0
 	missions_active = {}
 	missions_progress = {}
 	missions_claimed = {}
@@ -3288,6 +3662,7 @@ func hard_reset() -> void:
 	combat_hp = combat_max_hp()
 	stop_task()
 	generate_bounty_pool()
+	_standing_fill()
 	if FileAccess.file_exists(SAVE_PATH):
 		DirAccess.remove_absolute(SAVE_PATH)
 	resources_changed.emit()

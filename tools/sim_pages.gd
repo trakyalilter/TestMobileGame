@@ -7,9 +7,10 @@ extends SceneTree
 func _init() -> void:
 	process_frame.connect(_run, CONNECT_ONE_SHOT)
 
-# Recursively collect all Label text under a node.
+# Recursively collect all Label AND Button text under a node (button labels carry
+# load-bearing UI like "Save"/"Load"/"Reroll"/"Claim").
 func _collect_text(node: Node, out: Array) -> void:
-	if node is Label:
+	if node is Label or node is Button:
 		out.append(node.text)
 	for c in node.get_children():
 		_collect_text(c, out)
@@ -123,6 +124,47 @@ func _run() -> void:
 		gs.stop_task()
 	else:
 		print("NOTE hazard run did not start (unlock/counter gate) — skipping wave assert")
+
+	# --- Phase 8 Task 2: Standing Orders board page (6 orders, claim/reroll).
+	main._show("standing")
+	await process_frame
+	var so := []
+	_collect_text(main.pages["standing"], so)
+	# An order title is "Stockpile: X" (gather) or "Sweep: X" (hunt), plus a Reroll
+	# button and a Progress readout.
+	if (_has(so, "Stockpile") or _has(so, "Sweep")) and _has(so, "Reroll") and _has(so, "Progress"):
+		print("PASS standing orders: order target + Reroll + Progress present")
+	else:
+		print("FAIL standing orders missing — got: %s" % str(so))
+		fail = true
+
+	# --- Phase 8 Task 1: Warp Mastery Tree sub-view (branch + node names).
+	# Give the player warps so both branches reveal, and shards to spend.
+	gs.total_warps = 2
+	gs.warp_shards = 20.0
+	main.warp_view = "mastery"
+	main._show("warp")
+	await process_frame
+	var wm := []
+	_collect_text(main.pages["warp"], wm)
+	if _has(wm, "ENGINEERING") and _has(wm, "COMBAT") and _has(wm, "Yield Calibration") and _has(wm, "Hull Reinforcement"):
+		print("PASS warp mastery: branch headers + node names present")
+	else:
+		print("FAIL warp mastery missing — got: %s" % str(wm))
+		fail = true
+	main.warp_view = "core"
+
+	# --- Phase 8 Task 3: loadout preset controls (Save / Load / Clear).
+	main.ship_view = "loadout"
+	main._show("ship")
+	await process_frame
+	var lp := []
+	_collect_text(main.pages["ship"], lp)
+	if _has(lp, "LOADOUT PRESETS") and _has(lp, "Save") and _has(lp, "Load") and _has(lp, "Slot 1"):
+		print("PASS loadout presets: Save/Load + Slot label present")
+	else:
+		print("FAIL loadout presets missing — got: %s" % str(lp))
+		fail = true
 
 	if fail:
 		print("PAGES: FAIL")
