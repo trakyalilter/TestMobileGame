@@ -10,10 +10,11 @@ const BOTTOM := [
 	{"id": "research", "label": "Research"},
 	{"id": "more",     "label": "More"},
 ]
-const PAGE_IDS := ["gather", "craft", "combat", "research", "more", "build", "ship", "bounty", "standing", "warp", "missions", "atlas", "stats", "hazard"]
+const PAGE_IDS := ["gather", "craft", "combat", "research", "more", "build", "shipyard", "ship", "bounty", "standing", "warp", "missions", "atlas", "stats", "hazard"]
 const MORE_MENU := [
 	{"id": "missions", "label": "✦  Missions"},
 	{"id": "build",  "label": "⌂  Infrastructure"},
+	{"id": "shipyard", "label": "⚒  Shipyard"},
 	{"id": "ship",   "label": "⛭  Ship Designer"},
 	{"id": "bounty", "label": "◆  Bounty Board"},
 	{"id": "standing", "label": "▤  Standing Orders"},
@@ -52,6 +53,7 @@ const NAV_ALL := [
 	{"id": "research", "label": "Research",       "icon": "✦"},
 	{"id": "missions", "label": "Missions",       "icon": "✦"},
 	{"id": "build",    "label": "Infrastructure", "icon": "⌂"},
+	{"id": "shipyard", "label": "Shipyard",       "icon": "⚒"},
 	{"id": "ship",     "label": "Ship Designer",  "icon": "⛭"},
 	{"id": "bounty",   "label": "Bounty Board",   "icon": "◆"},
 	{"id": "standing", "label": "Standing Orders", "icon": "▤"},
@@ -99,6 +101,8 @@ var atlas_mat_cat := "gathered"
 var _atlas_index := {}
 var build_cat := "power"
 var ship_view := "loadout"
+var shipyard_view := "modules"  # Shipyard (fabrication) sub-tab — separate from ship_view
+var armory_sort := "power"      # Armory sort: "power" | "zone" | "rarity"
 var ship_mod_slot := "weapon"
 var warp_view := "core"   # "core" | "mastery" — Warp Core page sub-view
 var safe_margin: MarginContainer
@@ -153,7 +157,7 @@ func _ready() -> void:
 # ============================================================ COACHING
 # Pulses the next thing to tap based on the active tutorial mission, and shows a
 # directive banner — adapted from the desktop nav-hint system to the drawer UI.
-const COACH_PAGE := {"gather": "gather", "gather_multi": "craft", "research": "research", "craft": "ship", "construct": "ship", "build": "build", "defeat": "combat", "loadout_check": "ship"}
+const COACH_PAGE := {"gather": "gather", "gather_multi": "craft", "research": "research", "craft": "shipyard", "construct": "shipyard", "build": "build", "defeat": "combat", "loadout_check": "ship", "loadout_rare_weapon": "ship", "equip_consumables": "ship", "drop_rarity": "combat"}
 
 func _page_label(id: String) -> String:
 	for t in NAV_ALL:
@@ -826,6 +830,16 @@ func _make_page() -> ScrollContainer:
 # ============================================================ NAV
 func _show(id: String) -> void:
 	current = id
+	# When the coach sends the player to the Shipyard, land on the sub-tab that
+	# matches the active fabrication step (construct → Hulls, craft → Modules).
+	if id == "shipyard":
+		var amid := _coach_active_mission()
+		if amid != "" and GameData.MISSIONS.has(amid):
+			var mtype: String = GameData.MISSIONS[amid].get("type", "")
+			if mtype == "construct":
+				shipyard_view = "hulls"
+			elif mtype == "craft":
+				shipyard_view = "modules"
 	GameState.mission_visit_page(id)   # drive visit_page missions (e.g. Combat Briefing)
 	_reset_armed = false
 	_warp_armed = false
@@ -878,6 +892,7 @@ func _refresh_current() -> void:
 		"craft":    _build_craft()
 		"combat":   _build_combat()
 		"build":    _build_infra()
+		"shipyard": _build_shipyard()
 		"ship":     _build_ship()
 		"bounty":   _build_bounty()
 		"standing": _build_standing()
@@ -1927,6 +1942,28 @@ func _back_header(v: VBoxContainer) -> void:
 	v.add_child(b)
 
 # ============================================================ SHIPYARD
+# Fabrication page: craft/buy modules (Module Shop) + construct/repair hulls.
+# Loadout/Armory/Fittings live on the Ship Designer page.
+func _build_shipyard() -> void:
+	var v := _clear("shipyard")
+	_back_header(v)
+	var eyebrow := Label.new()
+	eyebrow.text = "⚒ SHIPYARD"
+	eyebrow.add_theme_font_size_override("font_size", _fs(16))
+	eyebrow.add_theme_color_override("font_color", Color.html(CYAN))
+	v.add_child(eyebrow)
+	var sub := Label.new()
+	sub.text = "Fabricate modules & construct hulls"
+	sub.add_theme_font_size_override("font_size", _fs(12))
+	sub.add_theme_color_override("font_color", Color.html(C_DIM))
+	v.add_child(sub)
+	_subtabs(v, [{"id": "modules", "label": "Modules"}, {"id": "hulls", "label": "Hulls"}], shipyard_view, CYAN, func(id: String) -> void:
+		shipyard_view = id
+		_refresh_current())
+	match shipyard_view:
+		"modules": _shipyard_modules(v)
+		"hulls": _ship_hulls(v)
+
 func _build_ship() -> void:
 	var v := _clear("ship")
 	_back_header(v)
@@ -1974,14 +2011,17 @@ func _build_ship() -> void:
 		eval.add_theme_color_override("font_color", Color.html(C_WARN if over else C_DIM))
 		erow.add_child(eval)
 		v.add_child(erow)
-	_subtabs(v, [{"id": "loadout", "label": "Loadout"}, {"id": "modules", "label": "Modules"}, {"id": "fittings", "label": "Fittings"}, {"id": "hulls", "label": "Hulls"}], ship_view, CYAN, func(id: String) -> void:
+	# Ship Designer = LOADOUT: equipped slots, the Armory (owned-module pool you
+	# equip FROM), and ammo/consumable fittings. Fabrication lives in the Shipyard.
+	if ship_view in ["modules", "hulls"]:
+		ship_view = "loadout"   # legacy state migration (those tabs moved to Shipyard)
+	_subtabs(v, [{"id": "loadout", "label": "Loadout"}, {"id": "armory", "label": "Armory"}, {"id": "fittings", "label": "Fittings"}], ship_view, CYAN, func(id: String) -> void:
 		ship_view = id
 		_refresh_current())
 	match ship_view:
 		"loadout": _ship_loadout(v, h)
-		"modules": _ship_modules(v)
+		"armory": _ship_armory(v)
 		"fittings": _ship_fittings(v, h)
-		"hulls": _ship_hulls(v)
 
 func _ship_fittings(v: VBoxContainer, h: Dictionary) -> void:
 	_section(v, "Auto-Consumables  (trigger at 50%)", CYAN)
@@ -2135,14 +2175,14 @@ func _ship_loadout(v: VBoxContainer, h: Dictionary) -> void:
 			c.add_child(b)
 		else:
 			_clbl(c, "Empty", 11, C_MUTED)
-			_clbl(c, "fit from Modules ›", 9, "5d6b88")
-			# Tap an empty slot to jump straight to Modules pre-filtered to this type.
+			_clbl(c, "fit from Armory ›", 9, "5d6b88")
+			# Tap an empty slot to jump straight to the Armory pre-filtered to this type.
 			var overlay := Button.new()
 			overlay.flat = true
 			overlay.focus_mode = Control.FOCUS_NONE
 			overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 			overlay.pressed.connect(func() -> void:
-				ship_view = "modules"
+				ship_view = "armory"
 				ship_mod_slot = stype
 				_refresh_current())
 			c.get_parent().add_child(overlay)
@@ -2194,7 +2234,49 @@ func _loadout_presets(v: VBoxContainer) -> void:
 		vb.add_child(row)
 		v.add_child(panel)
 
-func _ship_modules(v: VBoxContainer) -> void:
+# Slot filter strip shared by the Shipyard's Module Shop and the Armory.
+func _ship_slot_tabs(v: VBoxContainer) -> void:
+	var slot_items := []
+	for st in ["weapon", "shield", "armor", "battery", "engine", "sensor", "cooling"]:
+		slot_items.append({"id": st, "label": GameData.SLOT_LABELS.get(st, st)})
+	_subtabs(v, slot_items, ship_mod_slot, CYAN, func(id: String) -> void:
+		ship_mod_slot = id
+		_refresh_current())
+
+# Live energy grid readout (load / capacity) — shown atop Armory + Module Shop.
+func _grid_readout(v: VBoxContainer) -> void:
+	var ss := GameState.ship_stats()
+	if ss.is_empty():
+		return
+	var grid := Label.new()
+	var load := int(ss.get("energy_load", 0.0))
+	var cap := int(ss.get("energy_cap", 0.0))
+	grid.text = "⚡ Grid load %d / %d" % [load, cap]
+	grid.add_theme_font_size_override("font_size", _fs(11))
+	grid.add_theme_color_override("font_color", Color.html(RED if load > cap else C_DIM))
+	v.add_child(grid)
+
+# A "power" score for sorting the Armory: prefer an explicit power if one ever
+# exists, else sum the module's combat-relevant base stats (faithful order).
+func _module_power(stats: Dictionary) -> float:
+	var p := 0.0
+	for k in stats:
+		if k == "atk_interval":
+			continue   # lower is better — skip so it doesn't invert the sort
+		p += abs(float(stats[k]))
+	return p
+
+# Resolve an owned module's display fields whether it's a rolled custom instance
+# or a plain base module from MODULES.
+func _owned_module_def(mid: String) -> Dictionary:
+	if GameState.custom_modules.has(mid):
+		return GameState.custom_modules[mid]
+	return GameData.MODULES.get(mid, {})
+
+# ====================================================== SHIP DESIGNER · ARMORY
+# Your owned/unequipped module pool. Tap a card to equip it (GameState.equip_module).
+# Sortable by Power / Zone / Rarity to mirror the desktop designer's armory.
+func _ship_armory(v: VBoxContainer) -> void:
 	if GameState.equip_notice != "":
 		var warn := Label.new()
 		warn.text = "⚠ " + GameState.equip_notice
@@ -2202,32 +2284,71 @@ func _ship_modules(v: VBoxContainer) -> void:
 		warn.add_theme_font_size_override("font_size", _fs(11))
 		warn.add_theme_color_override("font_color", Color.html(RED))
 		v.add_child(warn)
-	# Live energy grid readout (load / capacity).
-	var ss := GameState.ship_stats()
-	if not ss.is_empty():
-		var grid := Label.new()
-		var load := int(ss.get("energy_load", 0.0))
-		var cap := int(ss.get("energy_cap", 0.0))
-		grid.text = "⚡ Grid load %d / %d" % [load, cap]
-		grid.add_theme_font_size_override("font_size", _fs(11))
-		grid.add_theme_color_override("font_color", Color.html(RED if load > cap else C_DIM))
-		v.add_child(grid)
-	var slot_items := []
-	for st in ["weapon", "shield", "armor", "battery", "engine", "sensor", "cooling"]:
-		slot_items.append({"id": st, "label": GameData.SLOT_LABELS.get(st, st)})
-	_subtabs(v, slot_items, ship_mod_slot, CYAN, func(id: String) -> void:
-		ship_mod_slot = id
+	_grid_readout(v)
+	_ship_slot_tabs(v)
+	# Sort control (matches desktop armory_sort_mode).
+	_subtabs(v, [{"id": "power", "label": "Power"}, {"id": "zone", "label": "Zone"}, {"id": "rarity", "label": "Rarity"}], armory_sort, PURP, func(id: String) -> void:
+		armory_sort = id
 		_refresh_current())
-	# Owned rolled gear (rarity + affixes) for this slot
-	var owned_custom := []
+	# Collect every owned module for this slot: rolled customs + base modules.
+	var owned := []
 	for cid in GameState.custom_modules:
 		if GameState.custom_modules[cid].get("slot", "") == ship_mod_slot and int(GameState.module_inventory.get(cid, 0)) > 0:
-			owned_custom.append(cid)
-	if not owned_custom.is_empty():
-		_section(v, "Your Salvaged Gear", PURP)
-		var ig := _grid(v)
-		for cid in owned_custom:
-			ig.add_child(_custom_module_card(cid))
+			owned.append(cid)
+	for mid in GameData.MODULES:
+		if GameData.MODULES[mid].get("slot", "") == ship_mod_slot and int(GameState.module_inventory.get(mid, 0)) > 0:
+			owned.append(mid)
+	if owned.is_empty():
+		_section(v, "Armory — owned gear", PURP)
+		_empty(v, "No gear yet — craft modules in the Shipyard or defeat enemies for drops.")
+		return
+	# Stable sort by the chosen key (descending power/rarity, ascending zone).
+	owned.sort_custom(func(a: String, b: String) -> bool:
+		var da := _owned_module_def(a)
+		var db := _owned_module_def(b)
+		match armory_sort:
+			"rarity":
+				return int(da.get("rarity", 0)) > int(db.get("rarity", 0))
+			"zone":
+				return int(da.get("zone", 0)) < int(db.get("zone", 0))
+			_:
+				return _module_power(da.get("stats", {})) > _module_power(db.get("stats", {}))
+		)
+	_section(v, "Armory — tap to equip", PURP)
+	var ig := _grid(v)
+	for mid in owned:
+		ig.add_child(_armory_card(mid))
+
+# A single owned-module card with stats + rarity color + TAP-to-equip. Rolled
+# customs reuse the full _custom_module_card (sockets/affixes/sell); plain base
+# modules get a compact equip card here.
+func _armory_card(mid: String) -> Control:
+	if GameState.custom_modules.has(mid):
+		return _custom_module_card(mid)
+	var m: Dictionary = GameData.MODULES.get(mid, {})
+	var owned := int(GameState.module_inventory.get(mid, 0))
+	var c := _card(CYAN, true)
+	c.get_parent().size_flags_vertical = Control.SIZE_EXPAND_FILL
+	c.get_parent().set_meta("coach_id", mid)
+	_card_head(c, "▣", m.get("name", mid), ("x%d" % owned) if owned > 1 else "", CYAN, true)
+	_inset(c, "STATS", _module_stat_lines(m.get("stats", {})), CYAN)
+	var eq := _card_button("Equip", CYAN, true)
+	eq.pressed.connect(func() -> void: GameState.equip_module(mid))
+	c.add_child(eq)
+	return c.get_parent()
+
+# ====================================================== SHIPYARD · MODULE SHOP
+# Fabrication: craft/buy new modules. The owned pool moved to the Designer's Armory.
+func _shipyard_modules(v: VBoxContainer) -> void:
+	if GameState.equip_notice != "":
+		var warn := Label.new()
+		warn.text = "⚠ " + GameState.equip_notice
+		warn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		warn.add_theme_font_size_override("font_size", _fs(11))
+		warn.add_theme_color_override("font_color", Color.html(RED))
+		v.add_child(warn)
+	_grid_readout(v)
+	_ship_slot_tabs(v)
 	_section(v, "Module Shop", CYAN)
 	var g := _grid(v)
 	var any := false

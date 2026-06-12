@@ -166,6 +166,60 @@ func _run() -> void:
 		print("FAIL loadout presets missing — got: %s" % str(lp))
 		fail = true
 
+	# --- Ship split: Shipyard (Modules+Hulls) vs Ship Designer (Loadout/Armory/Fittings).
+	# Shipyard · Modules sub-tab → must show the MODULE SHOP.
+	main.shipyard_view = "modules"
+	main._show("shipyard")
+	await process_frame
+	var sm := []
+	_collect_text(main.pages["shipyard"], sm)
+	if _has(sm, "SHIPYARD") and _has(sm, "MODULE SHOP"):
+		print("PASS shipyard modules: MODULE SHOP present")
+	else:
+		print("FAIL shipyard modules missing MODULE SHOP — got: %s" % str(sm))
+		fail = true
+	# Shipyard · Hulls sub-tab → must show the HULLS section.
+	main.shipyard_view = "hulls"
+	main._show("shipyard")
+	await process_frame
+	var sh := []
+	_collect_text(main.pages["shipyard"], sh)
+	if _has(sh, "HULLS"):
+		print("PASS shipyard hulls: HULLS section present")
+	else:
+		print("FAIL shipyard hulls missing — got: %s" % str(sh))
+		fail = true
+
+	# Ship Designer · Armory sub-tab → owned-pool with a sort control (Power/Zone/Rarity)
+	# and a tap-to-equip action. The starter gear was equipped above, so add a spare
+	# owned module so the Armory has at least one card.
+	gs.module_inventory["z1_armor"] = int(gs.module_inventory.get("z1_armor", 0)) + 1
+	main.ship_mod_slot = "armor"
+	main.ship_view = "armory"
+	main._show("ship")
+	await process_frame
+	var ar := []
+	_collect_text(main.pages["ship"], ar)
+	# "Armory" label (sub-tab) + the sort control's three labels + Equip action.
+	if _has(ar, "Armory") and _has(ar, "Power") and _has(ar, "Zone") and _has(ar, "Rarity") and _has(ar, "Equip"):
+		print("PASS armory: label + sort (Power/Zone/Rarity) + Equip present")
+	else:
+		print("FAIL armory missing — got: %s" % str(ar))
+		fail = true
+	# Ship Designer must NOT show the MODULE SHOP anymore (fabrication moved).
+	if _has(ar, "MODULE SHOP"):
+		print("FAIL ship designer still shows MODULE SHOP — got: %s" % str(ar))
+		fail = true
+	else:
+		print("PASS ship designer: no MODULE SHOP (fabrication split out)")
+
+	# --- COACH_PAGE routing for the split.
+	if main.COACH_PAGE.get("craft", "") == "shipyard" and main.COACH_PAGE.get("construct", "") == "shipyard" and main.COACH_PAGE.get("loadout_check", "") == "ship":
+		print("PASS coach routing: craft/construct→shipyard, loadout_check→ship")
+	else:
+		print("FAIL coach routing wrong — got: %s" % str(main.COACH_PAGE))
+		fail = true
+
 	if fail:
 		print("PAGES: FAIL")
 		quit(1)
