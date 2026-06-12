@@ -1603,6 +1603,14 @@ func _spawn_enemy_inst(eid: String) -> void:
 		"interval": maxf(0.5, float(e.get("interval", 2.5))),
 		"loot": loot, "xp": xp,
 		"drop_chance": float(e.get("drop_chance", 0.0)), "drop_pool": e.get("drop_pool", []),
+		# Combat-parity data (desktop v109): typed damage + per-type resistances.
+		"zone": int(e.get("zone", 1)),
+		"dmg_type": String(e.get("dmg_type", "kinetic")),
+		"resist_k": float(e.get("resist_k", 0.0)),
+		"resist_e": float(e.get("resist_e", 0.0)),
+		"resist_x": float(e.get("resist_x", 0.0)),
+		"resist_cryo": float(e.get("resist_cryo", 0.0)),
+		"warp_hardened": bool(e.get("warp_hardened", false)),
 	}
 
 func _combat_difficulty() -> int:
@@ -1776,7 +1784,7 @@ func _player_fire(w: Dictionary, ss: Dictionary) -> void:
 	# Void Strike: chance to bypass the shield entirely.
 	var vs := affix_total("void_strike")
 	var voided: bool = vs > 0.0 and randf() < vs
-	var res := resolve_damage(dk, de, dx, 0.0 if voided else float(enemy_inst["shield"]), enemy_inst["def"], _combat_difficulty(), float(ss.get("crit", 0.05)))
+	var res := resolve_damage(dk, de, dx, 0.0 if voided else float(enemy_inst["shield"]), enemy_inst["def"], _combat_difficulty(), float(ss.get("crit", 0.05)), true)
 	if voided:
 		_event("VOID", "ff44cc", "enemy")
 	else:
@@ -1797,9 +1805,18 @@ func _enemy_fire(ss: Dictionary) -> void:
 		_event("DODGE", "9aa7c2", "player")
 		return
 	var pdef := float(ss.get("def", 0.0))
-	if loadout_has_module("reactive_armor"):
-		pdef *= 1.0 + (1.0 - combat_hp / maxf(1.0, combat_max_hp()))   # Reactive Armor
-	var res := resolve_damage(float(enemy_inst["atk"]), 0.0, 0.0, player_shield, pdef, _combat_difficulty(), 0.05)
+	# Typed enemy fire (desktop v109): route the enemy's atk into the slot
+	# matching its dmg_type so the player's armor-type mitigation behaves as
+	# desktop. Reactive Armor is now handled inside resolve_damage (via k).
+	var atk := float(enemy_inst["atk"])
+	var e_k := 0.0
+	var e_e := 0.0
+	var e_x := 0.0
+	match String(enemy_inst.get("dmg_type", "kinetic")):
+		"energy": e_e = atk
+		"explosive": e_x = atk
+		_: e_k = atk
+	var res := resolve_damage(e_k, e_e, e_x, player_shield, pdef, _combat_difficulty(), 0.05, false)
 	# Exotic Shield Matrix: 30% damage reduction in Sector Gamma
 	if loadout_has_module("exotic_shield_matrix") and _current_zone_id() == "sector_gamma":
 		res[1] = int(res[1] * 0.7)
@@ -1832,28 +1849,64 @@ func _broadside_fire() -> void:
 			total_k += float(w["dmg_k"])
 	if total_k <= 0.0:
 		return
-	var res := resolve_damage(total_k * 5.0, 0.0, 0.0, float(enemy_inst["shield"]), enemy_inst["def"], _combat_difficulty(), 0.10)
+	var res := resolve_damage(total_k * 5.0, 0.0, 0.0, float(enemy_inst["shield"]), enemy_inst["def"], _combat_difficulty(), 0.10, true)
 	enemy_inst["shield"] = maxf(0.0, enemy_inst["shield"] - res[0])
 	enemy_inst["hp"] -= res[1]
 	_event("BROADSIDE %d" % int(res[0] + res[1]), "ecb44a", "enemy")
 	if enemy_inst["hp"] <= 0.0:
 		_win_combat()
 
-## Damage-type resolution: kinetic/energy/explosive vs shields then armor.
-func resolve_damage(atk_k: float, atk_e: float, atk_x: float, c_shield: float, c_armor: float, difficulty: int, crit_chance: float) -> Array:
-	var shield_pot := atk_k * 0.5 + atk_e * 1.5 + atk_x * 1.1
+## Damage-type resolution: kinetic/energy/explosive(/cryo) vs shields then armor.
+## Ported from desktop v109 combat_manager.resolve_damage:
+##   * k = DEF_K_CONSTANT + DEF_K_ZONE_SCALE * pow(zone_diff, DEF_K_ZONE_EXP)
+##   * armor mitigation clamped so >=(1-MAX_DAMAGE_REDUCTION) of each type lands
+##   * when the player is the attacker, the current enemy's per-type resistances
+##     (resist_k/e/x/cryo, clamped -0.4..0.5) reduce each hull-damage type
+##   * warp_hardened enemies near-nullify conventional (K/E/X) damage (x0.02)
+## Cryo is the 4th type; it stays inert (atk_cryo defaults 0) until Cryo weapons
+## ship, so existing K/E/X math is unchanged where no cryo/resist data applies.
+func resolve_damage(atk_k: float, atk_e: float, atk_x: float, c_shield: float, c_armor: float, difficulty: int, crit_chance: float, is_player_attacker: bool = false, atk_cryo: float = 0.0) -> Array:
+	var hardened: bool = is_player_attacker and not enemy_inst.is_empty() and bool(enemy_inst.get("warp_hardened", false))
+	var noncryo := 0.02 if hardened else 1.0
+	var shield_pot := (atk_k * 0.5 + atk_e * 1.5 + atk_x * 1.1) * noncryo + atk_cryo * 1.0
 	var dmg_shield := minf(c_shield, shield_pot)
 	var bleed := (shield_pot - dmg_shield) / shield_pot if shield_pot > 0.0 else 1.0
-	var k := maxf(20.0, float(difficulty) * 50.0)
-	var hk := atk_k * 1.2 * (1.0 - c_armor / (c_armor + k))
-	var he := atk_e * 0.9 * (1.0 - (c_armor * 0.7) / (c_armor * 0.7 + k))
-	var hx := atk_x * 1.0 * (1.0 - (c_armor * 0.2) / (c_armor * 0.2 + k))
-	var hull := (hk + he + hx) * bleed
+	var k := GameData.DEF_K_CONSTANT + GameData.DEF_K_ZONE_SCALE * pow(float(difficulty), GameData.DEF_K_ZONE_EXP)
+	# Reactive Armor: low HP effectively raises k (better mitigation) on the player.
+	if not is_player_attacker and loadout_has_module("reactive_armor"):
+		var hp_ratio := combat_hp / maxf(1.0, combat_max_hp())
+		k *= 1.0 + (1.0 - hp_ratio)
+	var arm_k := c_armor
+	var arm_e := c_armor * 0.7
+	var arm_x := c_armor * 0.2
+	var arm_cryo := c_armor * 0.5
+	var min_factor := 1.0 - GameData.MAX_DAMAGE_REDUCTION
+	var hk := atk_k * 1.2 * maxf(min_factor, 1.0 - arm_k / (arm_k + k))
+	var he := atk_e * 0.9 * maxf(min_factor, 1.0 - arm_e / (arm_e + k))
+	var hx := atk_x * 1.0 * maxf(min_factor, 1.0 - arm_x / (arm_x + k))
+	var hc := atk_cryo * 1.0 * maxf(min_factor, 1.0 - arm_cryo / (arm_cryo + k))
+	# Enemy per-type resistances (player attacks only). Negative = weakness.
+	if is_player_attacker and not enemy_inst.is_empty():
+		var rk := clampf(float(enemy_inst.get("resist_k", 0.0)), -0.40, 0.50)
+		var re := clampf(float(enemy_inst.get("resist_e", 0.0)), -0.40, 0.50)
+		var rx := clampf(float(enemy_inst.get("resist_x", 0.0)), -0.40, 0.50)
+		var rc := clampf(float(enemy_inst.get("resist_cryo", 0.0)), -0.40, 0.50)
+		hk *= 1.0 - rk
+		he *= 1.0 - re
+		hx *= 1.0 - rx
+		hc *= 1.0 - rc
+		# Warp-Hardened nullifies conventional hull damage (Cryo exempt); applied
+		# after the resist clamp so it is a hard gate, not armor.
+		if hardened:
+			hk *= 0.02
+			he *= 0.02
+			hx *= 0.02
+	var hull := (hk + he + hx + hc) * bleed
 	var variance := randf_range(0.9, 1.1)
 	var is_crit := randf() < crit_chance
 	if is_crit:
 		variance *= 1.5
-	var minhull := 1.0 if (atk_k + atk_e + atk_x) > 0.0 else 0.0
+	var minhull := 1.0 if (atk_k + atk_e + atk_x + atk_cryo) > 0.0 else 0.0
 	return [dmg_shield * variance, maxf(minhull, hull * variance), is_crit]
 
 func _win_combat() -> void:

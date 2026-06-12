@@ -1829,7 +1829,7 @@ func _ship_loadout(v: VBoxContainer, h: Dictionary) -> void:
 		for sn in counts:
 			var sd: Dictionary = GameData.SETS.get(sn, {})
 			var active: bool = counts[sn] >= 3
-			var txt := "%s — %d/3" % [sn, counts[sn]]
+			var txt := "%s — %d/3" % [sd.get("name", sn), counts[sn]]
 			if active and sd.get("bonus_desc", "") != "":
 				txt += "  ✓ " + sd["bonus_desc"]
 			_clbl(v, txt, 11, GOLD if active else C_DIM)
