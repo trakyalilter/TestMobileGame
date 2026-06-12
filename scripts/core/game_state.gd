@@ -1685,6 +1685,15 @@ func research_available(rid: String) -> bool:
 	var parent: String = t.get("parent", "")
 	if parent != "" and not is_research_unlocked(parent):
 		return false
+	# req_tech: real prerequisites distinct from the parent edge. Desktop can_unlock
+	# requires every one unlocked (faithful to ref_research_manager.gd ~L1783).
+	for rt in t.get("req_tech", []):
+		if String(rt) != "" and not is_research_unlocked(String(rt)):
+			return false
+	# requires_warp: prestige-gated tech (e.g. Cryogenic Armaments) stays locked
+	# until the player has performed their first Warp (desktop ~L1788).
+	if bool(t.get("requires_warp", false)) and total_warps <= 0:
+		return false
 	return credits >= int(t.get("credits", 0)) and can_afford(t.get("items", {}))
 
 func unlock_research(rid: String) -> bool:
@@ -1801,6 +1810,9 @@ func _spawn_enemy_inst(eid: String) -> void:
 		"warp_hardened": bool(e.get("warp_hardened", false)),
 		"enrage_at": float(e.get("enrage_at", 0.0)),
 		"enrage_atk_mult": float(e.get("enrage_atk_mult", 1.5)),
+		# v80.1 boss-core drop: granted on kill so zone_N_access research unlocks.
+		"is_boss": bool(e.get("is_boss", false)),
+		"boss_core": String(e.get("boss_core", "")),
 	}
 	# v109 reset per-fight enrage; v85.2 vulnerable wears off between fights.
 	_enemy_enraged = false
@@ -2252,6 +2264,12 @@ func _win_combat() -> void:
 	var killed_id: String = String(enemy_inst.get("id", active_id))
 	if bool(enemy_inst.get("is_boss", false)) or GameData.ENEMIES.get(killed_id, {}).get("is_boss", false):
 		boss_kills[killed_id] = int(boss_kills.get(killed_id, 0)) + 1
+		# v80.1 Boss Core drop: zone bosses grant their ZN_Core, which gates the
+		# zone_N_access research (desktop ref_combat_manager.gd ~L1964-1975).
+		var core_id: String = String(enemy_inst.get("boss_core", GameData.ENEMIES.get(killed_id, {}).get("boss_core", "")))
+		if core_id != "":
+			add_resource(core_id, 1)
+			_event("BOSS CORE: " + GameData.res_name(core_id), "ffa040", "enemy")
 	# v109 Z10 boss kill auto-unlocks Zone 11 "The Threshold" (flag, not research).
 	if killed_id == "z10_boss_leviathan" and not game_flags.get("z11_unlocked", false):
 		game_flags["z11_unlocked"] = true

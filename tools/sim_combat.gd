@@ -9,10 +9,22 @@ func _init() -> void:
 func _run() -> void:
 	var gs = root.get_node("GameState")
 	gs.hard_reset()
-	for mid in ["z1_kinetic", "z1_energy", "z1_shield", "z1_battery", "z1_engine"]:
+	# Battery first so the grid has capacity before the consumers load it (v110
+	# battery-only energy model — every consumer now draws power by tier).
+	for mid in ["z1_battery", "z1_kinetic", "z1_energy", "z1_shield", "z1_engine"]:
 		gs.module_inventory[mid] = int(gs.module_inventory.get(mid, 0)) + 1
 		var ok: bool = gs.equip_module(mid)
 		print("equip %s -> %s" % [mid, ok])
+
+	# Ammo (desktop v109): kinetic→Slug, energy→Cell — weapons can't fire dry.
+	gs.add_resource("SlugT1", 9999)
+	gs.add_resource("CellT1", 9999)
+	for k in gs.loadout:
+		var wm: Dictionary = gs.module_def(gs.loadout[k])
+		if wm.get("slot", "") == "weapon":
+			var wst: Dictionary = wm.get("stats", {})
+			if float(wst.get("atk_kinetic", 0)) > 0: gs.set_ammo(str(k), "SlugT1")
+			elif float(wst.get("atk_energy", 0)) > 0: gs.set_ammo(str(k), "CellT1")
 
 	var ss: Dictionary = gs.ship_stats()
 	print("ship: hp=%.0f def=%.0f shield=%.0f acc=%.0f energy_load=%.0f/%.0f" % [

@@ -89,8 +89,9 @@ func _run() -> void:
 	gs.stop_task()
 	gs.loadout.clear()
 	gs.custom_modules.clear()
-	# power the grid so set-piece weapons can equip
-	_equip(gs, "z1_battery"); _equip(gs, "z1_battery")
+	# Power the grid so the z6 set pieces can equip. v110 battery-only energy:
+	# each z6 consumer draws 100, so supply tier-matched z6 batteries (350 each).
+	_equip(gs, "z6_battery"); _equip(gs, "z6_battery")
 	# pick a set with clear stat bonus: colossus_dominion (all_dmg_pct 22, evasion_flat 12)
 	var set_id := "colossus_dominion"
 	var pieces: Array = GameData.SETS.get(set_id, {}).get("pieces", [])

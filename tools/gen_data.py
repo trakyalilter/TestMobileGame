@@ -229,6 +229,14 @@ lines.append("}")
 lines.append("")
 
 # RESEARCH (tech tree). desc = description/flavor; parent chain preserved.
+# req_tech (a real prerequisite distinct from parent) is normalized to a list so
+# game_state can require ALL of them unlocked. requires_warp gates prestige tech.
+def req_tech_list(t):
+    rt = t.get("req_tech")
+    if not rt:
+        return []
+    return rt if isinstance(rt, list) else [rt]
+
 lines.append("const RESEARCH := {")
 for tid, t in tech.items():
     d = {
@@ -237,6 +245,8 @@ for tid, t in tech.items():
         "credits": int(t.get("cost", 0)),
         "items": t.get("cost_items", {}),
         "parent": t.get("parent") or "",
+        "req_tech": req_tech_list(t),
+        "requires_warp": bool(t.get("requires_warp", False)),
         "category": t.get("category", ""),
     }
     lines.append(f"\t{g(tid)}: {g(d)},")
@@ -277,6 +287,9 @@ for eid, en in enemies.items():
         "enrage_at": float(en.get("enrage_at", 0.0)),
         "enrage_atk_mult": float(en.get("enrage_atk_mult", 1.5)),
         "is_boss": en.get("is_boss", False),
+        # v80.1 boss-core drop: zone bosses grant their ZN_Core on kill (gates
+        # zone_N_access research). Empty string for non-boss / coreless enemies.
+        "boss_core": en.get("boss_core") or "",
         "drop_chance": en.get("module_drop_chance", 0.0),
         "drop_pool": en.get("module_drop_pool", []),
         "loot": loot,
@@ -403,6 +416,33 @@ for hid, h in hulls.items():
 lines.append("}")
 lines.append('const SLOT_LABELS := {"weapon": "Weapon", "shield": "Shield", "engine": "Engine", "battery": "Battery", "sensor": "Sensor", "cooling": "Cooling", "armor": "Armor", "gem": "Core", "gem_synth": "Core"}')
 
+# v110 battery-only energy model (desktop ref_shipyard_manager.gd ~L56-79):
+# every consumer module DRAWS CONSUMER_LOAD_BY_TIER[tier]; every battery SUPPLIES
+# BATTERY_CAP_BY_TIER[tier]. Desktop DERIVES these by tier (not stored per-module)
+# from the module's power_tier override, else its zone. We BAKE the derived value
+# into the emitted stats so game_state's existing st.get("energy_load") /
+# st.get("energy_capacity") reads draw/supply power faithfully. Index = tier-1.
+CONSUMER_LOAD_BY_TIER = [10, 15, 25, 40, 60, 100, 150, 220, 350, 500]
+BATTERY_CAP_BY_TIER   = [30, 60, 75, 150, 180, 350, 600, 750, 1330, 1700]
+CONSUMER_SLOT_TYPES = ["weapon", "shield", "armor", "engine", "sensor"]
+
+def module_tier(mo):
+    if mo.get("power_tier"):
+        t = int(mo["power_tier"])
+    else:
+        t = int(mo.get("zone", mo.get("zone_difficulty", 1)))
+    return max(1, min(t, len(CONSUMER_LOAD_BY_TIER)))
+
+def derive_energy_stats(mo, stats):
+    """Bake desktop tier->load / tier->capacity into a copy of the stats dict."""
+    slot = mo.get("slot_type", "")
+    st = dict(stats)
+    if slot in CONSUMER_SLOT_TYPES:
+        st["energy_load"] = CONSUMER_LOAD_BY_TIER[module_tier(mo) - 1]
+    elif slot == "battery":
+        st["energy_capacity"] = BATTERY_CAP_BY_TIER[module_tier(mo) - 1]
+    return st
+
 # Split set/unique modules out into SET_MODULES; everything else into MODULES.
 set_module_ids = {mid for mid, m in modules.items() if m.get("set_id")}
 lines.append("const MODULES := {")
@@ -412,10 +452,13 @@ for mid, mo in modules.items():
     d = {
         "name": mo.get("name", mid),
         "slot": mo.get("slot_type", ""),
-        "stats": mo.get("stats", {}),
+        "stats": derive_energy_stats(mo, mo.get("stats", {})),
         "cost": mo.get("cost", {}),
         "desc": (mo.get("desc", "") or "").replace("\n", " "),
+        "zone": int(mo.get("zone", mo.get("zone_difficulty", 1))),
     }
+    if mo.get("power_tier"): d["power_tier"] = int(mo["power_tier"])
+    if mo.get("rarity") is not None: d["rarity"] = mo["rarity"]
     if mo.get("research_req"): d["research_req"] = mo["research_req"]
     lines.append(f"\t{g(mid)}: {g(d)},")
 lines.append("}")
@@ -446,11 +489,13 @@ for mid, m in modules.items():
     d = {
         "name": m.get("name", mid),
         "slot": m.get("slot_type", ""),
-        "stats": m.get("stats", {}),
+        "stats": derive_energy_stats(m, m.get("stats", {})),
         "desc": (m.get("desc", "") or "").replace("\n", " "),
         "rarity": m.get("rarity", 4),
+        "zone": int(m.get("zone", m.get("zone_difficulty", 1))),
         "set": sid,
     }
+    if m.get("power_tier"): d["power_tier"] = int(m["power_tier"])
     lines.append(f"\t{g(mid)}: {g(d)},")
 lines.append("}")
 
