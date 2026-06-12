@@ -137,7 +137,7 @@ func _ready() -> void:
 	GameState.resources_changed.connect(_on_resources)
 	GameState.skills_changed.connect(_on_tick)
 	GameState.research_changed.connect(_refresh_all)
-	GameState.action_changed.connect(_on_tick)
+	GameState.action_changed.connect(_on_action_changed)
 	GameState.action_changed.connect(_refresh_banner)
 	GameState.bounty_changed.connect(_on_tick)
 	GameState.standing_orders_changed.connect(_on_tick)
@@ -339,6 +339,10 @@ func _on_level_up(skill_id: String, level: int) -> void:
 	var accent: String = DOMAIN.get({"harvesting": "gather", "fabrication": "craft", "combat": "combat", "infrastructure": "build"}.get(skill_id, ""), GOLD)
 	_celebrate("⬆  LEVEL UP", "%s  Lv %d" % [SKILL_TITLE.get(skill_id, skill_id.to_upper()), level], accent)
 	_refresh_banner()   # yield/rate changed
+	# A level-up can unlock new cards on the list pages; the idle-loop guard
+	# suppresses passive rebuilds, so refresh here so unlocks appear at once.
+	if current in IDLE_LOOP_PAGES:
+		_refresh_current()
 
 ## Reusable centered celebration badge (scale-pop + hold + fade-up).
 func _celebrate(title: String, subtitle: String, accent: String) -> void:
@@ -459,6 +463,15 @@ func _process(_delta: float) -> void:
 # whose pan/scroll state must survive — don't rebuild them on passive ticks
 # (gather/craft/infra loops fire resources_changed + skills_changed constantly).
 const NO_TICK_REFRESH := ["research", "atlas"]
+# Idle-loop pages: while an action is actively looping, every completion fires
+# resources_changed + skills_changed. A full grid rebuild on each one destroys
+# and recreates every card (and the progress-bar node), which reads as a freeze
+# /flicker at 100%. The active card's bar already animates smoothly in _process,
+# so on these pages we update only the lightweight chrome during a loop and defer
+# the structural rebuild to navigation / action start-stop / level-up (which can
+# add or unlock cards). When idle (active_type == ""), rebuild as normal so
+# browsing and craft affordability stay live.
+const IDLE_LOOP_PAGES := ["gather", "craft", "build"]
 
 func _on_resources() -> void:
 	_refresh_top()
@@ -466,15 +479,28 @@ func _on_resources() -> void:
 	if current in NO_TICK_REFRESH:
 		_update_coach()
 		return
+	if current in IDLE_LOOP_PAGES and GameState.active_type != "":
+		_update_coach()
+		return
 	_refresh_current()
 
 # Guarded rebuild for frequent signals (skills/missions/bounty/action) — skips
-# the graph/codex pages so their pan/scroll survives passive loops.
+# the graph/codex pages so their pan/scroll survives passive loops, and skips
+# the destructive grid rebuild on idle-loop pages while an action is running.
 func _on_tick() -> void:
 	_update_badges()
 	if current in NO_TICK_REFRESH:
 		_update_coach()
 		return
+	if current in IDLE_LOOP_PAGES and GameState.active_type != "":
+		_update_coach()
+		_refresh_banner()
+		return
+	_refresh_current()
+
+# Action started/stopped: the active card's controls change (Start↔Stop, the
+# active highlight), so always do a full structural rebuild.
+func _on_action_changed() -> void:
 	_refresh_current()
 
 # Notification beads: a claimable mission lights the ☰ button and the Missions row.
