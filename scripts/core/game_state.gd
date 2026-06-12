@@ -2077,10 +2077,13 @@ func _enemy_fire(ss: Dictionary) -> void:
 				return
 	player_shield = maxf(0.0, player_shield - res[0])
 	combat_hp -= res[1]
+	# v109 typed enemy-damage readout: tag hull damage with the enemy's dmg_type
+	# (KIN/NRG/EXP) so the popup tells the player what's hurting them.
+	var dtag: String = {"energy": "NRG", "explosive": "EXP"}.get(String(enemy_inst.get("dmg_type", "kinetic")), "KIN")
 	if res[0] > 0:
-		_event("-%d" % int(res[0]), "55d3e6", "player")
+		_event("-%d %s" % [int(res[0]), dtag], "55d3e6", "player")
 	if res[1] > 0:
-		_event("-%d" % int(res[1]), "ef6a52", "player")
+		_event("-%d %s" % [int(res[1]), dtag], "ef6a52", "player")
 	if combat_hp <= 0.0:
 		_lose_combat()
 
@@ -2281,6 +2284,10 @@ func _lose_combat() -> void:
 # has >=1 kill; it runs max_waves waves (regular pool, elite at max_waves-2, boss
 # at max_waves-1), scaling enemy hp/atk/shield x(1+wave*0.20). First clear grants
 # a reward. EMP hazards jam weapons unless the counter module is equipped.
+## Public read of the per-fight enrage state for the live battle readout.
+func enemy_enraged() -> bool:
+	return _enemy_enraged
+
 func is_hazard_unlocked(zone_id: String) -> bool:
 	var hz: Dictionary = GameData.HAZARD_ZONES.get(zone_id, {})
 	if hz.is_empty():

@@ -10,12 +10,13 @@ const BOTTOM := [
 	{"id": "research", "label": "Research"},
 	{"id": "more",     "label": "More"},
 ]
-const PAGE_IDS := ["gather", "craft", "combat", "research", "more", "build", "ship", "bounty", "warp", "missions", "atlas", "stats"]
+const PAGE_IDS := ["gather", "craft", "combat", "research", "more", "build", "ship", "bounty", "warp", "missions", "atlas", "stats", "hazard"]
 const MORE_MENU := [
 	{"id": "missions", "label": "✦  Missions"},
 	{"id": "build",  "label": "⌂  Infrastructure"},
 	{"id": "ship",   "label": "⛭  Ship Designer"},
 	{"id": "bounty", "label": "◆  Bounty Board"},
+	{"id": "hazard", "label": "☢  Hazard Zones"},
 	{"id": "warp",   "label": "✦  Warp Core"},
 	{"id": "atlas",  "label": "❒  Atlas / Codex"},
 	{"id": "stats",  "label": "≡  Storage & Crew"},
@@ -52,6 +53,7 @@ const NAV_ALL := [
 	{"id": "build",    "label": "Infrastructure", "icon": "⌂"},
 	{"id": "ship",     "label": "Ship Designer",  "icon": "⛭"},
 	{"id": "bounty",   "label": "Bounty Board",   "icon": "◆"},
+	{"id": "hazard",   "label": "Hazard Zones",   "icon": "☢"},
 	{"id": "warp",     "label": "Warp Core",      "icon": "✦"},
 	{"id": "atlas",    "label": "Atlas / Codex",  "icon": "❒"},
 	{"id": "stats",    "label": "Storage & Crew", "icon": "≡"},
@@ -115,6 +117,8 @@ var _player_shield_bar: ProgressBar = null
 var _player_heat_bar: ProgressBar = null
 var _enemy_anchor: Control = null
 var _player_anchor: Control = null
+var _enrage_chip: Control = null      # live ENRAGED indicator in the battle view
+var _wave_label: Label = null         # live hazard "WAVE x/y" counter
 var _seen_events := 0
 var _reset_armed := false
 var _warp_armed := false
@@ -435,6 +439,10 @@ func _process(_delta: float) -> void:
 		if is_instance_valid(_player_heat_bar):
 			_player_heat_bar.max_value = GameState.MAX_HEAT
 			_player_heat_bar.value = GameState.player_heat
+		if is_instance_valid(_enrage_chip):
+			_enrage_chip.visible = GameState.enemy_enraged()
+		if is_instance_valid(_wave_label) and GameState.hazard_state.get("active", false):
+			_wave_label.text = "WAVE %d/%d" % [int(GameState.hazard_state["wave"]) + 1, int(GameState.hazard_state["max_waves"])]
 		_drain_combat_events()
 
 # Pages whose content is static/expensive (positioned node-graph, big codex) and
@@ -859,6 +867,8 @@ func _refresh_current() -> void:
 	_player_heat_bar = null
 	_enemy_anchor = null
 	_player_anchor = null
+	_enrage_chip = null
+	_wave_label = null
 	match current:
 		"gather":   _build_gather()
 		"craft":    _build_craft()
@@ -872,6 +882,7 @@ func _refresh_current() -> void:
 		"research": _build_research()
 		"more":     _build_more()
 		"stats":    _build_stats()
+		"hazard":   _build_hazard()
 	# Let touch drags fall through cards to the page's ScrollContainer so the
 	# whole content surface scrolls (not just the dark background gaps). Panels
 	# and containers default to MOUSE_FILTER_STOP, which eats the drag.
@@ -1064,6 +1075,54 @@ func _zone_unlocked(zone: Dictionary) -> bool:
 	var req: String = zone.get("research_req", "")
 	return req == "" or GameState.is_research_unlocked(req)
 
+# ---- Damage-type / resistance widgets (v109 headline mechanic) ----
+# A short type tag + accent for an enemy's own attack damage type.
+func _dmg_type_tag(dmg_type: String) -> Array:
+	match dmg_type:
+		"energy":    return ["NRG", CYAN]
+		"explosive": return ["EXP", BUILD]
+		"cryo":      return ["CRYO", "8fdcff"]
+		_:           return ["KIN", GOLD]
+
+# A compact color-coded chip (rounded pill). weak = green (good for player),
+# resist = red/grey (bad for player). Reused on cards, intel, and atlas.
+func _tag_chip(text: String, accent: String) -> Control:
+	var pill := PanelContainer.new()
+	pill.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var sb := _bordered(_mix(accent, INSET, 0.82), _mix(accent, LINE, 0.5), 1, 7)
+	sb.content_margin_left = 7
+	sb.content_margin_right = 7
+	sb.content_margin_top = 2
+	sb.content_margin_bottom = 2
+	pill.add_theme_stylebox_override("panel", sb)
+	var l := Label.new()
+	l.text = text
+	l.add_theme_font_size_override("font_size", _fs(9))
+	l.add_theme_color_override("font_color", Color.html(accent))
+	pill.add_child(l)
+	return pill
+
+# Row of WEAK / RESIST affinity chips for an enemy plus a "Deals: TYPE" chip.
+# Negative resist = the enemy takes MORE of that type → ▼ WEAK (green, target it).
+# Positive resist = takes LESS → ⛨ RESIST (red, avoid that weapon).
+func _affinity_row(e: Dictionary) -> Control:
+	var fc := HFlowContainer.new()
+	fc.add_theme_constant_override("h_separation", 5)
+	fc.add_theme_constant_override("v_separation", 5)
+	# The enemy's own attack type — tells the player which armor matters.
+	var dt: Array = _dmg_type_tag(String(e.get("dmg_type", "kinetic")))
+	fc.add_child(_tag_chip("⚔ DEALS %s" % dt[0], dt[1]))
+	# Warp-hardened: conventional damage is near-useless; flag it loudly.
+	if bool(e.get("warp_hardened", false)):
+		fc.add_child(_tag_chip("⚠ WARP-HARDENED · USE CRYO", PURP))
+	for entry in [["resist_k", "KIN"], ["resist_e", "NRG"], ["resist_x", "EXP"], ["resist_cryo", "CRYO"]]:
+		var val := float(e.get(entry[0], 0.0))
+		if val < -0.05:
+			fc.add_child(_tag_chip("▼ WEAK %s %d%%" % [entry[1], int(round(-val * 100.0))], GREEN))
+		elif val > 0.05:
+			fc.add_child(_tag_chip("⛨ RESIST %s %d%%" % [entry[1], int(round(val * 100.0))], RED))
+	return fc
+
 func _enemy_card(id: String, e: Dictionary) -> Control:
 	var v := _card(RED, true)
 	# Fill the grid row so both cards in a row match the taller one (enemies have
@@ -1081,6 +1140,8 @@ func _enemy_card(id: String, e: Dictionary) -> Control:
 	if int(e.get("max_shield", 0)) > 0:
 		stats.insert(1, _line("Shield %s" % GameData.fmt(e["max_shield"]), CYAN))
 	_inset(v, "TARGET", stats, RED)
+	# Headline mechanic: weakness / resist chips so the player picks the right gun.
+	v.add_child(_affinity_row(e))
 	_inset(v, "SALVAGE", _loot_lines(e.get("loot", [])), RED)
 	# Idle combat preview: can you win/farm this, and how fast?
 	var pv := GameState.combat_preview(id)
@@ -1157,6 +1218,13 @@ func _show_enemy_intel(eid: String) -> void:
 	if int(e.get("max_shield", 0)) > 0:
 		stat_lines.insert(1, _line("Shield %s" % GameData.fmt(e["max_shield"]), CYAN))
 	_inset(v, "COMBAT STATS", stat_lines, RED)
+	# Damage-type profile (the headline mechanic) — full affinity breakdown.
+	_section(v, "Damage Profile", GREEN)
+	var dt: Array = _dmg_type_tag(String(e.get("dmg_type", "kinetic")))
+	_clbl(v, "Attacks with %s damage" % dt[0], 11, dt[1])
+	v.add_child(_affinity_row(e))
+	if bool(e.get("enrage_at", 0.0) > 0.0):
+		_clbl(v, "☠ Enrages below %d%% HP  (x%.1f ATK)" % [int(round(float(e["enrage_at"]) * 100.0)), float(e.get("enrage_atk_mult", 1.5))], 10, "ff5933")
 	var guaranteed := []
 	var rare := []
 	for row2 in e.get("loot", []):
@@ -1191,9 +1259,34 @@ func _build_battle(v: VBoxContainer) -> void:
 	var e: Dictionary = GameState.enemy_inst
 	_skill_banner(v, "BATTLE STATION", "combat", RED)
 
+	# Hazard wave counter — live "WAVE x/y" during a gauntlet run.
+	if GameState.hazard_state.get("active", false):
+		var hz: Dictionary = GameData.HAZARD_ZONES.get(GameState.hazard_state["zone_id"], {})
+		var wv := _card(PURP, true)
+		_card_head(wv, "☢", hz.get("name", "Hazard Zone"), "", PURP, true)
+		_wave_label = Label.new()
+		_wave_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_wave_label.add_theme_font_size_override("font_size", _fs(15))
+		_wave_label.add_theme_color_override("font_color", Color.html(PURP))
+		_wave_label.text = "WAVE %d/%d" % [int(GameState.hazard_state["wave"]) + 1, int(GameState.hazard_state["max_waves"])]
+		wv.add_child(_wave_label)
+		v.add_child(wv.get_parent())
+
 	# Enemy combatant
 	var ep := _card(RED, true)
 	_card_head(ep, "◎", e["name"], "", RED, true)
+	# Live affinity readout: weakness / resist + the enemy's own damage type so
+	# the player can pick the right weapon mid-fight.
+	ep.add_child(_affinity_row(e))
+	# ENRAGED indicator — hidden until the enemy enrages (or a telegraph for bosses
+	# that enrage below a HP threshold).
+	_enrage_chip = _tag_chip("☠ ENRAGED", "ff5933")
+	_enrage_chip.visible = GameState.enemy_enraged()
+	var erow := HBoxContainer.new()
+	erow.add_child(_enrage_chip)
+	if not GameState.enemy_enraged() and float(e.get("enrage_at", 0.0)) > 0.0:
+		erow.add_child(_tag_chip("☠ enrages < %d%% HP" % int(round(float(e["enrage_at"]) * 100.0)), C_WARN))
+	ep.add_child(erow)
 	var er := HBoxContainer.new()
 	var ehl := Label.new()
 	ehl.text = "ENEMY HULL"
@@ -1819,21 +1912,54 @@ func _stat_strip(v: VBoxContainer, pairs: Array) -> void:
 		fc.add_child(pill)
 	v.add_child(fc)
 
+# Human-readable label for a trinity bonus key (matches GameData bonus dicts).
+func _trinity_bonus_label(key: String, val: float) -> String:
+	var names := {
+		"atk_speed_pct": "Attack Speed", "hp_regen_flat": "Hull Regen", "all_dmg_pct": "All Damage",
+		"evasion_flat": "Evasion", "enemy_def_reduce_pct": "Enemy DEF Shred", "missile_dmg_pct": "Missile Damage",
+		"def_pct": "Defense", "reflect_pct": "Damage Reflect", "accuracy_flat": "Accuracy",
+		"shield_regen_pct": "Shield Regen", "def_flat": "Defense", "energy_dmg_pct": "Energy Damage",
+		"crit_chance": "Crit Chance", "shield_hp_pct": "Shield HP", "atk_pct": "Attack",
+	}
+	var nm: String = names.get(key, key.replace("_", " ").capitalize())
+	var suffix := "%" if key.ends_with("_pct") or key.ends_with("_chance") else ""
+	return "+%d%s %s" % [int(round(val)), suffix, nm]
+
+# Trinity-set panel: active sets first (full bonus list), then in-progress sets
+# so the player can discover what each one grants. Reused on Ship and the sim.
+func _trinity_view(v: VBoxContainer) -> void:
+	var counts := GameState.equipped_set_counts()
+	_section(v, "Trinity Set Bonuses", PURP)
+	var active := GameState.active_trinity_sets()
+	# Show every set: active ones lit with their full bonus list, others as
+	# discoverable progress (equip all 3 pieces to activate).
+	for sn in GameData.SETS:
+		var sd: Dictionary = GameData.SETS.get(sn, {})
+		var have := int(counts.get(sn, 0))
+		var pieces := int(GameData.TRINITY_SET_BONUSES.get(sn, {}).get("pieces", 3))
+		var is_active: bool = sn in active
+		# Hide sets the player has zero progress on AND no active bonus, unless none
+		# are active yet (so the page always teaches what's available).
+		var c := _card(PURP, is_active)
+		var badge := "%d/%d" % [have, pieces]
+		_card_head(c, "✦" if is_active else "○", sd.get("name", sn), badge, PURP, is_active)
+		var blines := []
+		var bonus: Dictionary = GameData.TRINITY_SET_BONUSES.get(sn, {})
+		for k in bonus:
+			if k == "name" or k == "pieces":
+				continue
+			blines.append(_line(_trinity_bonus_label(k, float(bonus[k])), GOLD if is_active else C_MUTED))
+		if sd.get("bonus_desc", "") != "":
+			blines.append(_line("✦ " + sd["bonus_desc"], PURP if is_active else C_MUTED))
+		_inset(c, "ACTIVE" if is_active else "EQUIP 3 PIECES TO ACTIVATE", blines, PURP, is_active)
+		v.add_child(c.get_parent())
+
 func _ship_loadout(v: VBoxContainer, h: Dictionary) -> void:
 	var slots: Array = h.get("slots", [])
 	if slots.is_empty():
 		_empty(v, "No ship.")
 		return
-	var counts := GameState.equipped_set_counts()
-	if not counts.is_empty():
-		_section(v, "Set Bonuses", PURP)
-		for sn in counts:
-			var sd: Dictionary = GameData.SETS.get(sn, {})
-			var active: bool = counts[sn] >= 3
-			var txt := "%s — %d/3" % [sd.get("name", sn), counts[sn]]
-			if active and sd.get("bonus_desc", "") != "":
-				txt += "  ✓ " + sd["bonus_desc"]
-			_clbl(v, txt, 11, GOLD if active else C_DIM)
+	_trinity_view(v)
 	_section(v, "LOADOUT — tap Remove to unequip", CYAN)
 	var g := _grid(v)
 	for i in slots.size():
@@ -2449,6 +2575,69 @@ func _atlas_line(parent: Node, prefix: String, items: Array, color: String) -> v
 	l.add_theme_color_override("font_color", Color.html(color))
 	parent.add_child(l)
 
+# ============================================================ HAZARD ZONES
+# Gauntlet runs (GameData.HAZARD_ZONES): locked until the unlock boss falls,
+# warn if the counter module isn't fitted, then a max-waves gauntlet that calls
+# GameState.start_hazard. Live wave counter shows on the battle view.
+func _build_hazard() -> void:
+	var v := _clear("hazard")
+	_back_header(v)
+	var eyebrow := Label.new()
+	eyebrow.text = "☢ HAZARD ZONES"
+	eyebrow.add_theme_font_size_override("font_size", _fs(16))
+	eyebrow.add_theme_color_override("font_color", Color.html(PURP))
+	v.add_child(eyebrow)
+	_section(v, "Wave-survival gauntlets. Defeat the unlock boss, fit the counter module, then clear every wave for a one-time reward.", PURP)
+
+	# Active run banner.
+	if GameState.hazard_state.get("active", false):
+		var ahz: Dictionary = GameData.HAZARD_ZONES.get(GameState.hazard_state["zone_id"], {})
+		var rc := _card(GREEN, true)
+		_card_head(rc, "☢", "IN PROGRESS — " + ahz.get("name", ""), "", GREEN, true)
+		_clbl(rc, "WAVE %d/%d" % [int(GameState.hazard_state["wave"]) + 1, int(GameState.hazard_state["max_waves"])], 15, GREEN)
+		var go := _card_button("Go to Battle", RED, true)
+		go.pressed.connect(func() -> void: _show("combat"))
+		rc.add_child(go)
+		v.add_child(rc.get_parent())
+
+	for hz_id in GameData.HAZARD_ZONES:
+		var hz: Dictionary = GameData.HAZARD_ZONES[hz_id]
+		var unlocked := GameState.is_hazard_unlocked(hz_id)
+		var c := _card(PURP, unlocked)
+		var badge := "★%d" % int(hz.get("difficulty", 1))
+		_card_head(c, "☢", hz.get("name", hz_id), badge, PURP, unlocked)
+		var ht: String = hz.get("hazard_type", "")
+		_clbl(c, hz.get("desc", ""), 11, C_DIM)
+		var info := [
+			_line("Type: %s" % ht.replace("_", " ").to_upper(), PURP),
+			_line("Waves: %d  (elite + boss finale)" % int(hz.get("max_waves", 7)), C_TEXT),
+		]
+		_inset(c, "GAUNTLET", info, PURP)
+		if not unlocked:
+			# Tell the player exactly which boss to defeat.
+			var boss_id: String = hz.get("unlock_boss", "")
+			var boss_nm: String = GameData.ENEMIES.get(boss_id, {}).get("name", boss_id)
+			_clbl(c, "🔒 LOCKED — defeat %s to unlock" % boss_nm, 11, C_WARN)
+		else:
+			# Counter-module warning: survivable but punishing without it.
+			var counter: String = hz.get("counter_module", "")
+			if counter != "" and not GameState.has_counter_module(hz_id):
+				var cm_nm: String = GameData.MODULES.get(counter, {}).get("name", counter)
+				_clbl(c, "⚠ Fit %s (Ship › Modules) or weapons jam!" % cm_nm, 11, RED)
+			elif counter != "":
+				_clbl(c, "✓ %s equipped" % GameData.MODULES.get(counter, {}).get("name", counter), 10, GREEN)
+			if hz.get("first_clear_reward", "") != "" and not GameState.hazard_clears.get(hz_id, false):
+				_clbl(c, "First-clear reward: %s" % GameData.res_name(hz["first_clear_reward"]), 10, GOLD)
+			var running: bool = GameState.hazard_state.get("active", false)
+			var eb := _card_button("☢ Enter Gauntlet" if not running else "Run in progress", RED, not running and GameState.active_hull != "")
+			if not running and GameState.active_hull != "":
+				var zid: String = hz_id
+				eb.pressed.connect(func() -> void:
+					if GameState.start_hazard(zid):
+						_show("combat"))
+			c.add_child(eb)
+		v.add_child(c.get_parent())
+
 func _atlas_enemies(v: VBoxContainer) -> void:
 	for z in GameData.ZONES:
 		_section(v, "%s  (★%d)" % [z.get("name", ""), int(z.get("difficulty", 1))], RED)
@@ -2466,6 +2655,38 @@ func _atlas_enemies(v: VBoxContainer) -> void:
 			if int(e.get("max_shield", 0)) > 0:
 				stats.append(_line("Shield %s" % GameData.fmt(e["max_shield"]), CYAN))
 			_inset(c, "STATS", stats, RED)
+			c.add_child(_affinity_row(e))
+			var ib := _card_button("ⓘ Intel", CYAN, true)
+			ib.pressed.connect(func() -> void: _show_enemy_intel(eid))
+			c.add_child(ib)
+			v.add_child(c.get_parent())
+	# Hazard-zone gauntlet enemies aren't in any sector pool — list them so the
+	# codex is complete (incl. hz_ drones / elites / overlords).
+	var hz_seen := {}
+	for hz_id in GameData.HAZARD_ZONES:
+		var hz: Dictionary = GameData.HAZARD_ZONES[hz_id]
+		var pool: Array = []
+		pool.append_array(hz.get("enemy_pool", []))
+		if hz.get("elite_enemy", "") != "":
+			pool.append(hz["elite_enemy"])
+		if hz.get("boss_enemy", "") != "":
+			pool.append(hz["boss_enemy"])
+		_section(v, "☢ %s  (Hazard)" % hz.get("name", hz_id), PURP)
+		for eid in pool:
+			if hz_seen.has(eid) or not GameData.ENEMIES.has(eid):
+				continue
+			hz_seen[eid] = true
+			var e: Dictionary = GameData.ENEMIES[eid]
+			var c := _card(PURP, true)
+			_card_head(c, "☢", e.get("name", eid), "", PURP, true)
+			var stats := [
+				_line("HP %s   DEF %d" % [GameData.fmt(e.get("hp", 0)), int(e.get("def", 0))], C_TEXT),
+				_line("ATK %d / %.1fs" % [int(e.get("atk", 0)), float(e.get("interval", 2.0))], C_WARN),
+			]
+			if int(e.get("max_shield", 0)) > 0:
+				stats.append(_line("Shield %s" % GameData.fmt(e["max_shield"]), CYAN))
+			_inset(c, "STATS", stats, PURP)
+			c.add_child(_affinity_row(e))
 			var ib := _card_button("ⓘ Intel", CYAN, true)
 			ib.pressed.connect(func() -> void: _show_enemy_intel(eid))
 			c.add_child(ib)
@@ -3039,7 +3260,14 @@ func _refresh_banner() -> void:
 	elif t == "craft":
 		accent = CYAN; icon = "⚙"; kind = "ENGINEERING"; nm = GameData.CRAFT[GameState.active_id]["name"]
 	elif t == "combat":
-		accent = RED; icon = "◎"; kind = "IN COMBAT"; nm = GameData.ENEMIES[GameState.active_id]["name"]
+		accent = RED; icon = "◎"; kind = "IN COMBAT"
+		# During a hazard gauntlet active_id is the hazard zone, not an enemy —
+		# read the live enemy instance (or the hazard name) instead.
+		if GameState.hazard_state.get("active", false):
+			icon = "☢"; kind = "HAZARD"
+			nm = String(GameState.enemy_inst.get("name", GameData.HAZARD_ZONES.get(GameState.active_id, {}).get("name", "Hazard")))
+		else:
+			nm = GameData.ENEMIES.get(GameState.active_id, {}).get("name", "Combat")
 	_banner_icon.text = icon
 	_banner_icon.add_theme_color_override("font_color", Color.html(accent))
 	_banner_chip.add_theme_stylebox_override("panel", _bordered(_mix(accent, INSET, 0.8), accent, 1, 10))
@@ -3093,7 +3321,9 @@ func _active_text() -> String:
 	elif GameState.active_type == "craft":
 		return "▶ Crafting: " + GameData.CRAFT[GameState.active_id]["name"]
 	elif GameState.active_type == "combat":
-		return "▶ Engaging: " + GameData.ENEMIES[GameState.active_id]["name"]
+		if GameState.hazard_state.get("active", false):
+			return "☢ Hazard: " + String(GameState.enemy_inst.get("name", "—"))
+		return "▶ Engaging: " + GameData.ENEMIES.get(GameState.active_id, {}).get("name", "Combat")
 	return "Idle — tap an action to begin"
 
 func _req_text(def: Dictionary, skill: String) -> String:
