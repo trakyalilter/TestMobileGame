@@ -936,12 +936,20 @@ func _build_gather() -> void:
 		_refresh_current())
 	var g := _grid(v)
 	var any := false
+	var ids := []
 	for id in GameData.GATHER:
-		var a: Dictionary = GameData.GATHER[id]
-		if a.get("category", "terrestrial") != gather_cat:
-			continue
+		if GameData.GATHER[id].get("category", "terrestrial") == gather_cat:
+			ids.append(id)
+	# Order cards by unlock level (then name) so the earliest operations lead.
+	ids.sort_custom(func(a: String, b: String) -> bool:
+		var la := int(GameData.GATHER[a].get("level_req", 1))
+		var lb := int(GameData.GATHER[b].get("level_req", 1))
+		if la != lb:
+			return la < lb
+		return String(GameData.GATHER[a].get("name", a)) < String(GameData.GATHER[b].get("name", b)))
+	for id in ids:
 		any = true
-		g.add_child(_gather_card(id, a))
+		g.add_child(_gather_card(id, GameData.GATHER[id]))
 	if not any:
 		_empty(v, "No operations here yet.")
 
@@ -976,12 +984,20 @@ func _build_craft() -> void:
 		_refresh_current())
 	var g := _grid(v)
 	var any := false
+	var ids := []
 	for id in GameData.CRAFT:
-		var r: Dictionary = GameData.CRAFT[id]
-		if r.get("category", "misc") != craft_cat:
-			continue
+		if GameData.CRAFT[id].get("category", "misc") == craft_cat:
+			ids.append(id)
+	# Order recipes by unlock level (then name) so early recipes lead.
+	ids.sort_custom(func(a: String, b: String) -> bool:
+		var la := int(GameData.CRAFT[a].get("level_req", 1))
+		var lb := int(GameData.CRAFT[b].get("level_req", 1))
+		if la != lb:
+			return la < lb
+		return String(GameData.CRAFT[a].get("name", a)) < String(GameData.CRAFT[b].get("name", b)))
+	for id in ids:
 		any = true
-		g.add_child(_craft_card(id, r))
+		g.add_child(_craft_card(id, GameData.CRAFT[id]))
 	if not any:
 		_empty(v, "No recipes in this category.")
 
