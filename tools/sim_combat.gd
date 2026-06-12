@@ -9,12 +9,17 @@ func _init() -> void:
 func _run() -> void:
 	var gs = root.get_node("GameState")
 	gs.hard_reset()
-	# Battery first so the grid has capacity before the consumers load it (v110
-	# battery-only energy model — every consumer now draws power by tier).
-	for mid in ["z1_battery", "z1_kinetic", "z1_energy", "z1_shield", "z1_engine"]:
+	# v110 battery-only energy model: hulls supply ZERO energy, batteries supply
+	# all capacity. The basic z1 starter (kinetic+energy+shield+armor = 4 consumers
+	# @ 10 load = 40) needs the corvette's TWO battery slots (2 x 30 = 60 cap) to
+	# fit the grid. Batteries first so capacity exists before consumers load it.
+	var fit_ok := true
+	for mid in ["z1_battery", "z1_battery", "z1_kinetic", "z1_energy", "z1_shield", "z1_armor"]:
 		gs.module_inventory[mid] = int(gs.module_inventory.get(mid, 0)) + 1
 		var ok: bool = gs.equip_module(mid)
 		print("equip %s -> %s" % [mid, ok])
+		if not ok:
+			fit_ok = false
 
 	# Ammo (desktop v109): kinetic→Slug, energy→Cell — weapons can't fire dry.
 	gs.add_resource("SlugT1", 9999)
@@ -30,6 +35,9 @@ func _run() -> void:
 	print("ship: hp=%.0f def=%.0f shield=%.0f acc=%.0f energy_load=%.0f/%.0f" % [
 		float(ss.get("hp", 0)), float(ss.get("def", 0)), float(ss.get("shield", 0)),
 		float(ss.get("acc", 0)), float(ss.get("energy_load", 0)), float(ss.get("energy_cap", 0))])
+	var grid_ok: bool = fit_ok and float(ss.get("energy_load", 0)) <= float(ss.get("energy_cap", 0)) + 0.01
+	print("GRID: %s (load %.0f <= cap %.0f)" % ["FITS" if grid_ok else "OVERLOAD",
+		float(ss.get("energy_load", 0)), float(ss.get("energy_cap", 0))])
 	print("weapons: %d  avg_dps=%.1f" % [gs.ship_weapons().size(), gs.avg_player_dps()])
 
 	gs.start_task("combat", "z1_lunar_drone")
@@ -59,8 +67,10 @@ func _run() -> void:
 	print("---")
 	print("kill_time=%.1fs  player_hp=%.0f/%.0f  killed=%s" % [
 		t, gs.combat_hp, gs.combat_max_hp(), str(killed)])
-	if killed and gs.combat_hp > 0.0 and t >= 5.0 and t <= 15.0:
-		print("RESULT: PASS (drone killed in ~%.1fs, player survived)" % t)
+	if grid_ok and killed and gs.combat_hp > 0.0 and t >= 5.0 and t <= 15.0:
+		print("RESULT: PASS (starter fits grid, drone killed in ~%.1fs, player survived)" % t)
+	elif not grid_ok:
+		print("RESULT: FAIL (starter loadout overloads the grid)")
 	elif killed and gs.combat_hp > 0.0:
 		print("RESULT: KILLED but timing outside 5-15s window (t=%.1f)" % t)
 	else:

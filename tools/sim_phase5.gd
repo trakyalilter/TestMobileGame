@@ -33,9 +33,10 @@ func _run() -> void:
 func _verify_combat_and_grid(gs) -> void:
 	print("--- V2: combat regression + grid fit ---")
 	gs.hard_reset()
-	# Battery first so the grid has capacity before the consumers load it (the
-	# equip guard checks load<=cap incrementally; players always run a battery).
-	var loadout := ["z1_battery", "z1_kinetic", "z1_energy", "z1_shield", "z1_armor"]
+	# v110 battery-only energy: hulls supply ZERO energy. The basic z1 starter
+	# (4 consumers @ 10 = 40 load) needs the corvette's TWO battery slots
+	# (2 x 30 = 60 cap) to fit. Batteries first so capacity exists before consumers.
+	var loadout := ["z1_battery", "z1_battery", "z1_kinetic", "z1_energy", "z1_shield", "z1_armor"]
 	var all_equipped := true
 	for mid in loadout:
 		gs.module_inventory[mid] = int(gs.module_inventory.get(mid, 0)) + 1
@@ -148,10 +149,12 @@ func _verify_research_gating(gs) -> void:
 		gs.unlocked_research[String(rt)] = true
 	if ct.get("parent", "") != "":
 		gs.unlocked_research[String(ct["parent"])] = true
-	gs.total_warps = 0
+	# v111: the warp gate is now the persistent cryo_unlocked flag (set on the
+	# first Warp), not total_warps directly.
+	gs.cryo_unlocked = false
 	var pre_warp: bool = gs.research_available("cryo_armaments")
 	_chk("cryo_armaments NOT available before warp", not pre_warp)
-	gs.total_warps = 1
+	gs.cryo_unlocked = true
 	var post_warp: bool = gs.research_available("cryo_armaments")
 	_chk("cryo_armaments available after warp", post_warp)
 

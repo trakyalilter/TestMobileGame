@@ -25,6 +25,9 @@ var lifetime_credits: int = 0           # total credits ever earned (for prestig
 var warp_shards: float = 0.0
 var total_warps: int = 0
 var credits_at_warp_start: int = 0
+# v111: Warping permanently unlocks Cryogenic armaments — the key to the Z11
+# "Warp-Hardened" gate. Persists across prestiges (set once on the first Warp).
+var cryo_unlocked: bool = false
 var skills: Dictionary = {
 	"harvesting": 0,
 	"fabrication": 0,
@@ -54,6 +57,13 @@ var ammo_loadout: Dictionary = {}      # weapon slot index (String) -> ammo item
 var consumable_hull_slot: String = ""
 var consumable_shield_slot: String = ""
 var _consume_cd: float = 0.0
+# Loadout Presets — 3 saved builds for quick swap (desktop ref ~L347-352).
+# Each: {name, loadout (slot->mid), ammo_loadout (slot->ammo), consumable_hull, consumable_shield}.
+var loadout_presets: Dictionary = {
+	1: {"name": "", "loadout": {}, "ammo_loadout": {}, "consumable_hull": "", "consumable_shield": ""},
+	2: {"name": "", "loadout": {}, "ammo_loadout": {}, "consumable_hull": "", "consumable_shield": ""},
+	3: {"name": "", "loadout": {}, "ammo_loadout": {}, "consumable_hull": "", "consumable_shield": ""},
+}
 const MAX_LEVEL := 99                  # skill level cap (matches desktop)
 var _xp_table: Array = []              # lazily built cumulative XP-to-level table
 const CONSUME_CD := 1.5
@@ -326,16 +336,31 @@ func execute_warp() -> int:
 	infra_energy = 0.0
 	_build_timers = {}
 	_build_frac = {}
+	_upkeep_timer = 0.0
+	upkeep_efficiency = 1.0
 	active_hull = "corvette_hull"
 	owned_hulls = {"corvette_hull": true}
 	module_inventory = {}
 	loadout = {}
+	ammo_loadout = {}
+	consumable_hull_slot = ""
+	consumable_shield_slot = ""
+	for i in [1, 2, 3]:
+		loadout_presets[i] = {"name": "", "loadout": {}, "ammo_loadout": {}, "consumable_hull": "", "consumable_shield": ""}
 	bounty_active = []
 	stop_task()
 	# Starting package (does not feed the next prestige).
 	credits = bonus * 5000
 	for r in {"Fe": 50, "Si": 30, "Wood": 20, "Water": 50}:
 		resources[r] = {"Fe": 50, "Si": 30, "Wood": 20, "Water": 50}[r] * bonus
+	# v111: Cryo unlock — Warping permanently grants Cryogenic armaments, the only
+	# weapons that bite Z11 Warp-Hardened hulls. The FIRST Warp grants a starter
+	# Cryo Shard Pistol (~Z1 power); guard on the flag so re-warps don't duplicate
+	# it (desktop warp_manager ~L106-116). Runs AFTER the world reset above so the
+	# granted weapon survives into the fresh run.
+	if not cryo_unlocked:
+		module_inventory["cryo_shard_pistol"] = int(module_inventory.get("cryo_shard_pistol", 0)) + 1
+	cryo_unlocked = true
 	combat_hp = combat_max_hp()
 	generate_bounty_pool()
 	# Warp goal missions (goal_002/goal_003) track total_warps.
@@ -420,8 +445,11 @@ func ship_stats() -> Dictionary:
 	if active_hull == "" or not GameData.HULLS.has(active_hull):
 		return {}
 	var h: Dictionary = GameData.HULLS[active_hull]
+	# v110: hulls provide ZERO energy — all capacity comes from batteries (the
+	# hull energy_capacity stat is now vestigial / display-only). Batteries had
+	# their capacity baked into module stats in Phase 5.
 	var s := {"atk": 0.0, "hp": float(h.get("hp", 100)), "def": 0.0, "shield": 0.0,
-		"energy_cap": float(h.get("energy_capacity", 0)), "energy_load": 0.0,
+		"energy_cap": 0.0, "energy_load": 0.0,
 		"acc": 100.0, "eva": 0.0, "crit": 0.05, "shield_regen": 0.0}
 	var dps := 0.0
 	var spd_bonus := 0.0
@@ -721,8 +749,81 @@ func unequip_slot(idx: String) -> void:
 	if loadout.has(idx):
 		module_inventory[loadout[idx]] = int(module_inventory.get(loadout[idx], 0)) + 1
 		loadout.erase(idx)
+		ammo_loadout.erase(idx)
 		_mission_sync()
 		resources_changed.emit()
+
+# ---------------- Loadout presets ----------------
+# Faithful port of ref_shipyard_manager save/load/clear_loadout_preset
+# (~L2667-2748), adapted to the mobile equip API (equip_module(mid) auto-assigns
+# the first free matching slot, so the same module set reproduces the same slot
+# keys — ammo is keyed by those slot strings). Engine-side only (UI is Phase 8).
+func _preset_has_no_modules(preset: Dictionary) -> bool:
+	for k in preset.get("loadout", {}):
+		var v = preset["loadout"][k]
+		if v != null and v != "":
+			return false
+	return true
+
+func save_loadout_preset(idx: int) -> bool:
+	if not loadout_presets.has(idx):
+		return false
+	var preset: Dictionary = loadout_presets[idx]
+	preset["loadout"] = loadout.duplicate(true)
+	preset["ammo_loadout"] = ammo_loadout.duplicate(true)
+	preset["consumable_hull"] = consumable_hull_slot
+	preset["consumable_shield"] = consumable_shield_slot
+	if preset["name"] == "":
+		preset["name"] = "Build %d" % idx
+	resources_changed.emit()
+	return true
+
+# Returns {"loaded": int, "skipped": int}.
+func load_loadout_preset(idx: int) -> Dictionary:
+	if not loadout_presets.has(idx):
+		return {"loaded": 0, "skipped": 0}
+	var preset: Dictionary = loadout_presets[idx]
+	if _preset_has_no_modules(preset):
+		return {"loaded": 0, "skipped": 0}
+	# Step 1: return every currently-equipped module to inventory.
+	for slot in loadout.keys().duplicate():
+		unequip_slot(slot)
+	# Step 2: equip preset modules (equip_module handles inventory/slot/energy/research).
+	var loaded := 0
+	var skipped := 0
+	for raw_slot in preset["loadout"]:
+		var mid = preset["loadout"][raw_slot]
+		if mid == null or mid == "":
+			continue
+		if equip_module(mid):
+			loaded += 1
+		else:
+			skipped += 1
+	# Step 3: restore ammo for slots that still hold a weapon.
+	for raw_slot in preset.get("ammo_loadout", {}):
+		var s := str(raw_slot)
+		if loadout.has(s) and loadout[s] != null and loadout[s] != "":
+			ammo_loadout[s] = preset["ammo_loadout"][raw_slot]
+	# Step 4: restore consumables only if the player still owns at least one.
+	var hull_c: String = preset.get("consumable_hull", "")
+	consumable_hull_slot = hull_c if hull_c != "" and amount(hull_c) > 0 else ""
+	var shield_c: String = preset.get("consumable_shield", "")
+	consumable_shield_slot = shield_c if shield_c != "" and amount(shield_c) > 0 else ""
+	_mission_sync()
+	resources_changed.emit()
+	return {"loaded": loaded, "skipped": skipped}
+
+func clear_loadout_preset(idx: int) -> bool:
+	if not loadout_presets.has(idx):
+		return false
+	loadout_presets[idx] = {"name": "", "loadout": {}, "ammo_loadout": {}, "consumable_hull": "", "consumable_shield": ""}
+	resources_changed.emit()
+	return true
+
+func is_loadout_preset_empty(idx: int) -> bool:
+	if not loadout_presets.has(idx):
+		return true
+	return _preset_has_no_modules(loadout_presets[idx])
 
 # ---------------- Module rarity / affixes ----------------
 ## Unified lookup: rolled custom instance, else the base catalogue module.
@@ -1148,6 +1249,103 @@ func bounty_on_kill(eid: String) -> void:
 		bounty_changed.emit()
 
 # ---------------- Infrastructure ----------------
+# ── v109 Infrastructure rebalance (ported from ref_infrastructure_manager.gd
+# P0/P1 constants ~L14-42). Mobile previously ran the old over-scaled formulas;
+# these bring it to desktop parity. ──
+# P0.3: cap the engineering yield bonus (was 1+log10(1+fab)*5 → ~11x at fab 99).
+const INFRA_ENG_SCALE_COEF := 1.0   # log coefficient (was 5.0)
+const INFRA_ENG_SCALE_CAP := 3.0    # hard ceiling on the engineering multiplier
+# P0.2: diminishing returns on stacked buildings — linear to KNEE, then a
+# saturating tail (asymptote = KNEE + TAIL).
+const INFRA_DR_KNEE := 10
+const INFRA_DR_TAIL := 10
+# Single source of truth for engineering-scaled buildings. munitions_factory is
+# carried verbatim from desktop (a dead id — no such building — kept for parity).
+const INFRA_ENG_SCALED_BUILDINGS := ["auto_smelter", "hydro_plant", "industrial_centrifuge",
+	"munitions_factory", "titanium_refinery", "superalloy_forge", "adv_circuit_foundry"]
+# P1.4: gathering owns the ore tier — raw ore/metal extractors are throttled so
+# active gathering is the primary source and infra ore-mining is a trickle.
+const INFRA_ORE_EXTRACTION_MULT := 0.5
+const INFRA_ORE_EXTRACTORS := ["lithium_extractor", "brine_extractor", "copper_mine",
+	"deep_crust_drill", "tin_mine", "quartz_mine", "quartz_excavator", "zinc_mine",
+	"bauxite_mine", "bauxite_miner", "dolomite_quarry", "manganese_dredge", "nickel_mine",
+	"chromite_excavator", "tungsten_drill", "germanite_excavator", "platinum_drill",
+	"precious_dredge", "iridium_drill", "osmium_condenser"]
+# v104: continuous building-upkeep sink. Every building drains a little of the
+# cheapest glut mats per interval; per-building cost grows with total count.
+# Drain-if-available only — never goes negative, never punishes AFK.
+const UPKEEP_INTERVAL := 60.0
+const UPKEEP_BASE := {"Water": 2.0, "Dirt": 1.0}   # per building, per interval, pre-growth
+const UPKEEP_COUNT_GROWTH := 0.05                   # +5% per-building cost per building owned
+const UPKEEP_GROWTH_CAP := 8.0                      # growth multiplier ceiling
+var _upkeep_timer: float = 0.0
+# P2.6: proportional upkeep throttle — when upkeep mats run short buildings
+# produce at the affordable fraction. Transient (recomputed; not saved).
+var upkeep_efficiency: float = 1.0
+
+# P0.3: capped engineering yield multiplier (single source of truth — used by
+# _produce_batch AND building_rate_text so the UI can't disagree with reality).
+func _eng_scale(bid: String) -> float:
+	if not bid in INFRA_ENG_SCALED_BUILDINGS:
+		return 1.0
+	return clampf(1.0 + (log(1.0 + level_of("fabrication")) / log(10.0)) * INFRA_ENG_SCALE_COEF,
+		1.0, INFRA_ENG_SCALE_CAP)
+
+# P0.2: diminishing returns on stacked buildings. Linear up to KNEE, then a
+# saturating tail (ceiling = KNEE + TAIL). Applied to BOTH yield and input so
+# surplus buildings idle rather than burn inputs for no extra output.
+func _dr_units(count: int) -> float:
+	if count <= INFRA_DR_KNEE:
+		return float(count)
+	var extra := float(count - INFRA_DR_KNEE)
+	return float(INFRA_DR_KNEE) + extra / (1.0 + extra / float(INFRA_DR_TAIL))
+
+# P1.4: yield multiplier for raw ore extractors (gathering owns the ore tier).
+func _ore_throttle(bid: String) -> float:
+	return INFRA_ORE_EXTRACTION_MULT if bid in INFRA_ORE_EXTRACTORS else 1.0
+
+# v104: charge `intervals` full upkeep periods (1 online, many for offline
+# catch-up). Drain-if-available only. Returns {res: consumed} for reporting.
+func _apply_upkeep(intervals: int) -> Dictionary:
+	var consumed := {}
+	if intervals <= 0:
+		return consumed
+	var total := 0
+	for bid in buildings:
+		total += maxi(0, int(buildings[bid]))
+	if total <= 0:
+		return consumed
+	var growth: float = minf(UPKEEP_GROWTH_CAP, 1.0 + float(total) * UPKEEP_COUNT_GROWTH)
+	for res in UPKEEP_BASE:
+		var demand: float = float(UPKEEP_BASE[res]) * float(total) * growth * float(intervals)
+		if demand <= 0.0:
+			continue
+		var take: float = minf(demand, amount(res))   # never negative, never a hard gate
+		if take > 0.0:
+			resources[res] = amount(res) - take
+			consumed[res] = take
+			_infra_dirty = true
+	return consumed
+
+# P2.6: affordable fraction of upkeep for `intervals` periods WITHOUT consuming
+# — the bottleneck (min) ratio across upkeep resources.
+func _upkeep_efficiency_for(intervals: int) -> float:
+	if intervals <= 0:
+		return 1.0
+	var total := 0
+	for bid in buildings:
+		total += maxi(0, int(buildings[bid]))
+	if total <= 0:
+		return 1.0
+	var growth: float = minf(UPKEEP_GROWTH_CAP, 1.0 + float(total) * UPKEEP_COUNT_GROWTH)
+	var eff := 1.0
+	for res in UPKEEP_BASE:
+		var demand: float = float(UPKEEP_BASE[res]) * float(total) * growth * float(intervals)
+		if demand <= 0.0:
+			continue
+		eff = minf(eff, clampf(amount(res) / demand, 0.0, 1.0))
+	return eff
+
 func building_count(bid: String) -> int:
 	return int(buildings.get(bid, 0))
 
@@ -1252,13 +1450,15 @@ func _tick_infra(delta: float) -> void:
 	var eff := _infra_energy_step(delta)
 	var skill_speed := _infra_skill_speed()
 	var gyb := _global_yield_bonus()
+	# v109 P2.6: production advances at energy_eff * upkeep_eff (last cycle's throttle).
+	var prod_eff := eff * upkeep_efficiency
 	for bid in buildings:
 		var count: int = buildings[bid]
 		if count <= 0:
 			continue
 		var d: Dictionary = GameData.BUILDINGS.get(bid, {})
 		if d.get("special", "") == "passive_gather":
-			_passive_gather_step(bid, count, delta * eff)
+			_passive_gather_step(bid, count, delta * prod_eff)
 			continue
 		# Process producers AND upkeep consumers (e.g. Crew Quarters' Food); skip
 		# pure/fuel generators (handled in the energy step).
@@ -1266,12 +1466,21 @@ func _tick_infra(delta: float) -> void:
 			continue
 		var eff_interval: float = maxf(0.05, float(d.get("interval", 1.0)) / skill_speed)
 		var t := get_throttle(bid)
-		_build_timers[bid] = float(_build_timers.get(bid, 0.0)) + delta * eff * t
+		_build_timers[bid] = float(_build_timers.get(bid, 0.0)) + delta * prod_eff * t
 		var guard := 0
 		while float(_build_timers[bid]) >= eff_interval and guard < 200:
 			guard += 1
 			_build_timers[bid] = float(_build_timers[bid]) - eff_interval
 			_produce_batch(bid, count, d, gyb)
+	# v104: continuous upkeep sink — only charged while the grid is live, so an
+	# idle/unpowered base never bleeds mats. Accumulate then charge whole intervals.
+	if eff > 0.0:
+		_upkeep_timer += delta
+		if _upkeep_timer >= UPKEEP_INTERVAL:
+			var n: int = int(_upkeep_timer / UPKEEP_INTERVAL)
+			_upkeep_timer -= float(n) * UPKEEP_INTERVAL
+			upkeep_efficiency = _upkeep_efficiency_for(n)   # P2.6 throttle for next cycle
+			_apply_upkeep(n)
 
 func _is_production_building(d: Dictionary) -> bool:
 	if not d.get("yield", {}).is_empty():
@@ -1287,6 +1496,7 @@ func _passive_gather_step(bid: String, count: int, eff_delta: float) -> void:
 	while float(_build_timers[key]) >= 10.0:
 		_build_timers[key] = float(_build_timers[key]) - 10.0
 		_passive_gather_roll(count)
+		add_resource("Cu", count)   # v109: guaranteed +1 Cu/bay/10s (ref ~L1507)
 
 func _passive_gather_roll(bays: int) -> void:
 	var unlocked := []
@@ -1317,6 +1527,10 @@ func _offline_infra(delta: float) -> String:
 		return ""
 	var skill_speed := _infra_skill_speed()
 	var gyb := _global_yield_bonus()
+	# v109 P2.6: throttle offline production by the upkeep fraction the player can
+	# afford over the away window (the actual drain happens once at the end).
+	upkeep_efficiency = _upkeep_efficiency_for(int(delta / UPKEEP_INTERVAL))
+	var prod_eff := eff * upkeep_efficiency
 	var before := {}
 	for sym in resources:
 		before[sym] = amount(sym)
@@ -1327,18 +1541,22 @@ func _offline_infra(delta: float) -> String:
 			continue
 		var d: Dictionary = GameData.BUILDINGS.get(bid, {})
 		if d.get("special", "") == "passive_gather":
-			var pg_cycles: int = int(delta * eff * get_throttle(bid) / 10.0)
+			var pg_cycles: int = int(delta * prod_eff * get_throttle(bid) / 10.0)
 			for _p in range(mini(pg_cycles, 500000)):
 				_passive_gather_roll(count)
+			if pg_cycles > 0:
+				add_resource("Cu", count * mini(pg_cycles, 500000))   # v109 guaranteed Cu
 			continue
 		if not _is_production_building(d):
 			continue
 		var eff_interval: float = maxf(0.05, float(d.get("interval", 1.0)) / skill_speed)
-		var cycles: int = int(delta * eff * get_throttle(bid) / eff_interval)
+		var cycles: int = int(delta * prod_eff * get_throttle(bid) / eff_interval)
 		for _i in range(mini(cycles, 500000)):
 			_produce_batch(bid, count, d, gyb)            # self-limits when feedstock runs out
 		if cycles > 0:
 			add_xp("infrastructure", mini(cycles, 500000))
+	# v104: offline upkeep — closed-form, whole intervals only.
+	_apply_upkeep(int(delta / UPKEEP_INTERVAL))
 	var parts := []
 	for sym in resources:
 		var made := amount(sym) - int(before.get(sym, 0))
@@ -1351,20 +1569,22 @@ func _offline_infra(delta: float) -> String:
 	return "Infrastructure: " + ", ".join(parts)
 
 func _produce_batch(bid: String, count: int, d: Dictionary, gyb: Dictionary) -> void:
+	# v109 P0.2: diminishing returns — effective units replace raw count on BOTH
+	# input draw and yield, so over-stacked buildings idle instead of burning feed.
+	var units := _dr_units(count)
 	var inp: Dictionary = d.get("input", {})
 	for res in inp:
-		if amount(res) < int(inp[res]) * count:
+		if amount(res) < float(inp[res]) * units:
 			return  # not enough fuel/feedstock this cycle
 	for res in inp:
-		resources[res] = amount(res) - int(inp[res]) * count
+		resources[res] = amount(res) - float(inp[res]) * units
 		_infra_dirty = true
-	var eng_scaled := ["auto_smelter", "hydro_plant", "industrial_centrifuge", "munitions_factory"]
 	# v109: Recursive Networking (infrastructure_focus) — infinite +5%/level building yield.
 	var net_mult := 1.0 + research_bonus("building_yield_mult")
+	var eng := _eng_scale(bid)              # P0.3 capped engineering scaling
+	var ore := _ore_throttle(bid)           # P1.4 ore tier handed to gathering
 	for res in d.get("yield", {}):
-		var qty := float(d["yield"][res]) * count * (1.0 + float(gyb.get(res, 0.0))) * warp_production_mult() * net_mult
-		if bid in eng_scaled:
-			qty *= 1.0 + (log(1.0 + level_of("fabrication")) / log(10.0)) * 5.0
+		var qty := float(d["yield"][res]) * units * eng * ore * (1.0 + float(gyb.get(res, 0.0))) * warp_production_mult() * net_mult
 		_build_frac[res] = float(_build_frac.get(res, 0.0)) + qty
 		var whole := int(_build_frac[res])
 		if whole > 0:
@@ -1374,7 +1594,23 @@ func _produce_batch(bid: String, count: int, d: Dictionary, gyb: Dictionary) -> 
 			else:
 				resources[res] = amount(res) + whole
 			_infra_dirty = true
+	# Research-gated byproducts (desktop _produce_batch ~L1456-1468): statistical
+	# expectation of 0.2 per effective unit, accumulated fractionally.
+	if bid == "hydro_plant" and is_research_unlocked("fluid_dynamics"):
+		_infra_byproduct("N", units * 0.2)
+	elif bid == "industrial_centrifuge" and is_research_unlocked("advanced_mineralogy"):
+		_infra_byproduct("Ti", units * 0.2)
 	add_xp("infrastructure", 1)
+
+## Accumulate a fractional byproduct expectation and bank whole units.
+func _infra_byproduct(res: String, expected: float) -> void:
+	var key := "_bp_" + res
+	_build_frac[key] = float(_build_frac.get(key, 0.0)) + expected
+	var whole := int(_build_frac[key])
+	if whole > 0:
+		_build_frac[key] = float(_build_frac[key]) - whole
+		resources[res] = amount(res) + whole
+		_infra_dirty = true
 
 func _credit_mult(c: int) -> float:
 	if c < 10: return pow(1.15, c)
@@ -1539,11 +1775,24 @@ func unlock_repeatable(rid: String) -> bool:
 	research_changed.emit()
 	return true
 
+# Full-repair (100% missing HP) cost per hull. Desktop's get_full_repair_cost
+# (ref ~L2166-2174) only defines 5 tiers; the other 5 are filled in here with
+# monotonic tier-scaled values (desktop is itself incomplete — see Phase 7 notes):
+# t1 1k, t2 5k, t3 25k, t4 50k, t5 100k, t6 200k, t7 300k, t8 500k, t9 1M, t10 2M.
 const REPAIR_COST := {"corvette_hull": 1000, "frigate_hull": 5000, "destroyer_hull": 25000,
-	"battlecruiser_hull": 100000, "dreadnought_hull": 500000}
+	"cruiser_hull": 50000, "battlecruiser_hull": 100000, "capital_hull": 200000,
+	"carrier_hull": 300000, "dreadnought_hull": 500000, "titan_hull": 1000000,
+	"leviathan_hull": 2000000}
 
+## Repair cost scales with damage taken (desktop get_repair_cost ~L2176-2185):
+## 0 at full HP, max(10, full_cost * missing/max) otherwise.
 func repair_cost() -> int:
-	return int(REPAIR_COST.get(active_hull, 1000))
+	var maxhp := combat_max_hp()
+	if maxhp <= 0.0 or combat_hp >= maxhp:
+		return 0
+	var full := float(REPAIR_COST.get(active_hull, 1000))
+	var ratio := (maxhp - combat_hp) / maxhp
+	return maxi(10, int(full * ratio))
 
 func repair_hull() -> bool:
 	if combat_hp >= combat_max_hp():
@@ -1773,8 +2022,10 @@ func research_available(rid: String) -> bool:
 		if String(rt) != "" and not is_research_unlocked(String(rt)):
 			return false
 	# requires_warp: prestige-gated tech (e.g. Cryogenic Armaments) stays locked
-	# until the player has performed their first Warp (desktop ~L1788).
-	if bool(t.get("requires_warp", false)) and total_warps <= 0:
+	# until the player has Warped at least once (desktop ~L1788). Gated on the
+	# persistent cryo_unlocked flag — set on the first Warp, equivalent to the
+	# old total_warps>0 check but the flag is the real semantic gate.
+	if bool(t.get("requires_warp", false)) and not cryo_unlocked:
 		return false
 	return credits >= int(t.get("credits", 0)) and can_afford(t.get("items", {}))
 
@@ -2711,13 +2962,13 @@ func building_rate_text(bid: String) -> String:
 	var n := maxi(1, building_count(bid))     # owned count, or a per-1 preview
 	var ei: float = maxf(0.05, float(d.get("interval", 1.0)) / _infra_skill_speed())
 	var gyb := _global_yield_bonus()
-	var eng_scaled := ["auto_smelter", "hydro_plant", "industrial_centrifuge", "munitions_factory"]
+	var units := _dr_units(n)                  # v109 P0.2 diminishing returns
+	var eng := _eng_scale(bid)                 # v109 P0.3 capped engineering scaling
+	var ore := _ore_throttle(bid)              # v109 P1.4 ore throttle
 	var best := ""
 	var bestrate := 0.0
 	for sym in yld:
-		var per := float(yld[sym]) * n * (1.0 + float(gyb.get(sym, 0.0))) * warp_production_mult()
-		if bid in eng_scaled:
-			per *= 1.0 + (log(1.0 + level_of("fabrication")) / log(10.0)) * 5.0
+		var per := float(yld[sym]) * units * eng * ore * (1.0 + float(gyb.get(sym, 0.0))) * warp_production_mult()
 		var rate := per * (60.0 / ei)
 		if rate > bestrate:
 			bestrate = rate
@@ -2843,6 +3094,7 @@ func save_game() -> void:
 		"offline_combat": offline_combat,
 		"warp_shards": warp_shards,
 		"total_warps": total_warps,
+		"cryo_unlocked": cryo_unlocked,
 		"credits_at_warp_start": credits_at_warp_start,
 		"skills": skills,
 		"research": unlocked_research.keys(),
@@ -2858,6 +3110,7 @@ func save_game() -> void:
 		"ammo_loadout": ammo_loadout,
 		"consumable_hull_slot": consumable_hull_slot,
 		"consumable_shield_slot": consumable_shield_slot,
+		"loadout_presets": loadout_presets,
 		"buildings": buildings,
 		"building_throttle": building_throttle,
 		"infra_energy": infra_energy,
@@ -2906,6 +3159,8 @@ func load_game() -> void:
 		repeatable_research[k] = int(repeatable_research[k])
 	warp_shards = float(data.get("warp_shards", 0.0))
 	total_warps = int(data.get("total_warps", 0))
+	# Back-compat: pre-v111 saves with warps predate the flag — infer it.
+	cryo_unlocked = bool(data.get("cryo_unlocked", total_warps > 0))
 	credits_at_warp_start = int(data.get("credits_at_warp_start", 0))
 	skills = data.get("skills", skills)
 	unlocked_research = {}
@@ -2926,6 +3181,16 @@ func load_game() -> void:
 	ammo_loadout = data.get("ammo_loadout", {})
 	consumable_hull_slot = data.get("consumable_hull_slot", "")
 	consumable_shield_slot = data.get("consumable_shield_slot", "")
+	# Presets: JSON stringifies the int slot keys — re-key to int on load.
+	var lp: Dictionary = data.get("loadout_presets", {})
+	if not lp.is_empty():
+		var restored := {}
+		for raw_idx in lp:
+			restored[int(raw_idx)] = lp[raw_idx]
+		for i in [1, 2, 3]:
+			if not restored.has(i):
+				restored[i] = {"name": "", "loadout": {}, "ammo_loadout": {}, "consumable_hull": "", "consumable_shield": ""}
+		loadout_presets = restored
 	loadout = data.get("loadout", {})
 	buildings = data.get("buildings", {})
 	for k in buildings:
@@ -2985,6 +3250,7 @@ func hard_reset() -> void:
 	lifetime_credits = 0
 	warp_shards = 0.0
 	total_warps = 0
+	cryo_unlocked = false
 	credits_at_warp_start = 0
 	skills = {"harvesting": 0, "fabrication": 0, "combat": 0, "infrastructure": 0}
 	unlocked_research = {}
@@ -2995,6 +3261,8 @@ func hard_reset() -> void:
 	repeatable_research = {}
 	_build_timers = {}
 	_build_frac = {}
+	_upkeep_timer = 0.0
+	upkeep_efficiency = 1.0
 	active_hull = "corvette_hull"
 	owned_hulls = {"corvette_hull": true}
 	module_inventory = {}
@@ -3003,6 +3271,8 @@ func hard_reset() -> void:
 	ammo_loadout = {}
 	consumable_hull_slot = ""
 	consumable_shield_slot = ""
+	for i in [1, 2, 3]:
+		loadout_presets[i] = {"name": "", "loadout": {}, "ammo_loadout": {}, "consumable_hull": "", "consumable_shield": ""}
 	bounty_available = []
 	bounty_active = []
 	bounty_refresh_timer = 0.0
