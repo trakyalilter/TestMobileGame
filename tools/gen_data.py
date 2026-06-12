@@ -273,6 +273,9 @@ for eid, en in enemies.items():
         "resist_x": en.get("resist_x", 0.0),
         "resist_cryo": en.get("resist_cryo", 0.0),
         "warp_hardened": en.get("warp_hardened", False),
+        # v109 P3 boss mechanic: per-enemy Enrage (HP fraction + ATK surge).
+        "enrage_at": float(en.get("enrage_at", 0.0)),
+        "enrage_atk_mult": float(en.get("enrage_atk_mult", 1.5)),
         "is_boss": en.get("is_boss", False),
         "drop_chance": en.get("module_drop_chance", 0.0),
         "drop_pool": en.get("module_drop_pool", []),
@@ -297,6 +300,30 @@ for zid, z in sorted(zones.items(), key=lambda kv: kv[1].get("difficulty", 1)):
         d["research_req"] = z["research_req"]
     lines.append(f"\t{g(d)},")
 lines.append("]")
+lines.append("")
+
+# HAZARD_ZONES — gauntlet "dungeons" (v86.0). Unlocked once unlock_boss has a
+# kill; runs max_waves waves (regular pool, elite at max_waves-2, boss at
+# max_waves-1), scaling enemy hp/atk/shield x(1+wave*0.20). Data-driven so any
+# future hazard works without code changes.
+hazard_zones = load("hazard_zones.json")
+lines.append("const HAZARD_ZONES := {")
+for hz_id, hz in hazard_zones.items():
+    d = {
+        "name": hz.get("name", hz_id),
+        "desc": hz.get("desc", ""),
+        "unlock_boss": hz.get("unlock_boss", ""),
+        "counter_module": hz.get("counter_module", ""),
+        "hazard_type": hz.get("hazard_type", ""),
+        "max_waves": int(hz.get("max_waves", 7)),
+        "enemy_pool": [e for e in hz.get("enemy_pool", []) if e in enemies],
+        "elite_enemy": hz.get("elite_enemy", ""),
+        "boss_enemy": hz.get("boss_enemy", ""),
+        "first_clear_reward": hz.get("first_clear_reward", ""),
+        "difficulty": int(hz.get("zone_difficulty", 3)),
+    }
+    lines.append(f"\t{g(hz_id)}: {g(d)},")
+lines.append("}")
 lines.append("")
 
 # RESEARCH_GRAPHS — auto-laid-out per-category tab. The mobile research view
@@ -535,5 +562,5 @@ lines.append("")
 open(OUT, "w").write("\n".join(lines))
 print(f"Wrote {OUT}")
 print(f"  resources={len(RES)} gather={len(gather)} craft={len(recipes)} research={len(tech)} "
-      f"enemies={len(enemies)} zones={len(zones)} hulls={len(hulls)} modules={len(modules)} "
+      f"enemies={len(enemies)} zones={len(zones)} hazards={len(hazard_zones)} hulls={len(hulls)} modules={len(modules)} "
       f"sets={len(trinity_sets)} gems={len(gems)} consumables={len(consumables)} missions={len(missions)}")

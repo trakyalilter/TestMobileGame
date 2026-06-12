@@ -60,6 +60,30 @@ const CONSUME_THRESHOLD := 0.5         # auto-trigger at 50% hull/shield
 const MAX_HEAT := 100.0
 const VENT_RATE := 8.0
 
+# v87.0 Enemy typed-damage balance compensation (desktop combat_manager):
+# energy enemies hit shields x1.5 and explosive bypass 80% armor, so their raw
+# atk is scaled down before being routed into the e/x channel.
+const ENEMY_ENERGY_ATK_COMP := 0.75
+const ENEMY_EXPLOSIVE_ATK_COMP := 0.85
+
+# v80.1 Combat safety caps — anti-exploit hard ceilings (desktop apply_safety_caps).
+const MAX_ATK_SPEED_MULT := 3.0          # Max 3x base fire rate (+200%)
+const MAX_EVASION := 75.0                # Enemies always >=25% hit chance
+const MAX_CRIT_CHANCE := 0.50            # No guaranteed-crit loops
+const MAX_CRIT_DAMAGE := 3.0             # Caps burst spikes (crit variance mult)
+const MAX_SHIELD_REGEN_PERCENT := 5.0    # % of max shield per second
+const MAX_HP_REGEN_PERCENT := 2.0        # % of max HP per second
+const MAX_ENEMY_SLOW := 0.50             # Jamming can't freeze enemies
+const MAX_REFLECT_PERCENT := 0.10        # Reflect capped
+
+# v86.0 Hazard-zone (gauntlet) runtime state. zone_id "" means no hazard active.
+var hazard_state: Dictionary = {"active": false, "zone_id": "", "wave": 0, "max_waves": 7}
+var boss_kills: Dictionary = {}          # enemy_id -> kill count (hazard unlocks, z11 flag)
+var hazard_clears: Dictionary = {}       # hazard_zone_id -> true (first-clear reward gate)
+var game_flags: Dictionary = {}          # persistent unlock flags (e.g. z11_unlocked)
+var _enemy_enraged: bool = false         # v109 per-fight enrage state (reset on spawn)
+var enemy_vulnerable_timer: float = 0.0  # v85.2 when >0 enemy takes +20% damage
+
 # Shipyard
 var active_hull: String = ""
 var owned_hulls: Dictionary = {}        # hull_id -> true
@@ -386,6 +410,13 @@ func ship_stats() -> Dictionary:
 		if dmg > 0.0:
 			dps += dmg / maxf(0.1, float(st.get("atk_interval", 1.0)))
 	s.atk = dps * (1.0 + spd_bonus) * spd_mult + float(h.get("atk", 0))
+	s["atk_speed_bonus"] = spd_bonus
+	s["hp_regen"] = 0.0
+	s["jamming_strength"] = 0.0
+	for k in loadout:
+		var jst: Dictionary = module_def(loadout[k]).get("stats", {})
+		s["jamming_strength"] += float(jst.get("jamming_strength", 0))
+		s["hp_regen"] += float(jst.get("hp_regen", 0)) * eng
 	# Gem core global multipliers
 	s.crit += gem_bonus("crit_chance")
 	s.hp *= 1.0 + gem_bonus("hp_mult")
@@ -399,6 +430,31 @@ func ship_stats() -> Dictionary:
 		s.crit += 0.05
 	if level_of("combat") >= 25:
 		s.eva += 15.0
+	# v80.1 Trinity set stat bonuses (desktop _apply_trinity_stat_bonuses).
+	# Damage % bonuses (atk_pct / all_dmg_pct / *_dmg_pct) are applied in the
+	# weapon damage path (ship_weapons / _player_fire); here we fold in the
+	# defensive/utility ones that live as ship stats.
+	s["atk_speed_bonus"] += trinity_bonus("atk_speed_pct") / 100.0
+	s.def += trinity_bonus("def_flat")
+	if trinity_bonus("def_pct") > 0.0:
+		s.def *= 1.0 + trinity_bonus("def_pct") / 100.0
+	s.crit += trinity_bonus("crit_chance") / 100.0
+	s.eva += trinity_bonus("evasion_flat")
+	s.acc += trinity_bonus("accuracy_flat")
+	s["hp_regen"] += trinity_bonus("hp_regen_flat")
+	if trinity_bonus("shield_hp_pct") > 0.0:
+		s.shield *= 1.0 + trinity_bonus("shield_hp_pct") / 100.0
+	if trinity_bonus("shield_regen_pct") > 0.0:
+		s.shield_regen *= 1.0 + trinity_bonus("shield_regen_pct") / 100.0
+	# v80.1 Safety caps — anti-exploit ceilings on the values combat consumes.
+	s["atk_speed_bonus"] = minf(s["atk_speed_bonus"], MAX_ATK_SPEED_MULT - 1.0)
+	s.eva = minf(s.eva, MAX_EVASION)
+	s.crit = minf(s.crit, MAX_CRIT_CHANCE)
+	s["jamming_strength"] = minf(s["jamming_strength"], MAX_ENEMY_SLOW)
+	if s.shield > 0.0:
+		s.shield_regen = minf(s.shield_regen, s.shield * MAX_SHIELD_REGEN_PERCENT / 100.0)
+	if s.hp > 0.0:
+		s["hp_regen"] = minf(s["hp_regen"], s.hp * MAX_HP_REGEN_PERCENT / 100.0)
 	return s
 
 ## Live weapon list built from equipped weapon modules (or the hull cannon).
@@ -410,8 +466,14 @@ func ship_weapons() -> Array:
 		spd_bonus += float(st.get("atk_speed_bonus", 0))
 		if st.has("atk_speed_mult"):
 			spd_mult *= float(st["atk_speed_mult"])
+	# v80.1 Trinity: atk-speed boost (capped), and damage multipliers.
+	spd_bonus = minf(spd_bonus + trinity_bonus("atk_speed_pct") / 100.0, MAX_ATK_SPEED_MULT - 1.0)
 	var speed := (1.0 + spd_bonus) * spd_mult
 	var dmg_mult := (1.0 + level_of("combat") * 0.005) * warp_combat_mult() * (1.0 + research_bonus("combat_damage"))
+	# Trinity all/atk damage % applies to every type; energy/missile % stack on top.
+	var trin_all := 1.0 + (trinity_bonus("atk_pct") + trinity_bonus("all_dmg_pct")) / 100.0
+	var trin_e := 1.0 + trinity_bonus("energy_dmg_pct") / 100.0
+	var trin_x := 1.0 + trinity_bonus("missile_dmg_pct") / 100.0
 	var eng_mult := 1.0 + level_of("fabrication") * 0.01
 	var out := []
 	for k in loadout:
@@ -422,18 +484,23 @@ func ship_weapons() -> Array:
 		var ke := float(st.get("atk_energy", 0))
 		var kk := float(st.get("atk_kinetic", 0))
 		var kx := float(st.get("atk_explosive", 0))
+		var kc := float(st.get("atk_cryo", 0))
 		var type := "kinetic"
-		if ke > 0: type = "energy"
+		if kc > 0: type = "cryo"
+		elif ke > 0: type = "energy"
 		elif kx > 0: type = "explosive"
 		var gk := 1.0 + gem_bonus("atk_kinetic_mult")
 		var ge := 1.0 + gem_bonus("atk_energy_mult")
 		out.append({"name": m.get("name", "Weapon"), "type": type, "slot": str(k),
-			"dmg_k": kk * eng_mult * dmg_mult * gk, "dmg_e": ke * eng_mult * dmg_mult * ge, "dmg_x": kx * eng_mult * dmg_mult,
+			"dmg_k": kk * eng_mult * dmg_mult * gk * trin_all,
+			"dmg_e": ke * eng_mult * dmg_mult * ge * trin_all * trin_e,
+			"dmg_x": kx * eng_mult * dmg_mult * trin_all * trin_x,
+			"dmg_cryo": kc * eng_mult * dmg_mult * trin_all,
 			"interval": maxf(0.3, float(st.get("atk_interval", 2.5)) / maxf(0.2, speed)), "timer": randf_range(0.0, 0.4)})
 	if out.is_empty():
 		var h: Dictionary = GameData.HULLS.get(active_hull, {})
 		out.append({"name": "Standard Cannon", "type": "kinetic", "slot": "",
-			"dmg_k": float(h.get("atk", 5)) * dmg_mult, "dmg_e": 0.0, "dmg_x": 0.0,
+			"dmg_k": float(h.get("atk", 5)) * dmg_mult, "dmg_e": 0.0, "dmg_x": 0.0, "dmg_cryo": 0.0,
 			"interval": maxf(0.3, 3.0 / maxf(0.2, speed)), "timer": 0.0})
 	return out
 
@@ -475,7 +542,7 @@ func player_max_shield() -> float:
 func avg_player_dps() -> float:
 	var total := 0.0
 	for w in ship_weapons():
-		total += (float(w["dmg_k"]) + float(w["dmg_e"]) + float(w["dmg_x"])) / maxf(0.3, float(w["interval"]))
+		total += (float(w["dmg_k"]) + float(w["dmg_e"]) + float(w["dmg_x"]) + float(w.get("dmg_cryo", 0.0))) / maxf(0.3, float(w["interval"]))
 	return total
 
 func combat_attack() -> float:
@@ -641,6 +708,27 @@ func has_set_bonus(bonus_key: String) -> bool:
 		if counts[sn] >= 3 and GameData.SETS.get(sn, {}).get("bonus", "") == bonus_key:
 			return true
 	return false
+
+# v80.1 Trinity sets (desktop _get_active_trinity_sets): a set_id is "active"
+# when at least its `pieces` count is equipped. Generalizes the legacy
+# has_set_bonus hooks to the full 10-set data-driven system.
+func active_trinity_sets() -> Array:
+	var counts := equipped_set_counts()
+	var out := []
+	for sn in counts:
+		var req := int(GameData.TRINITY_SET_BONUSES.get(sn, {}).get("pieces", 3))
+		if int(counts[sn]) >= req:
+			out.append(sn)
+	return out
+
+# Sum of a trinity bonus key across all active sets (desktop _get_set_bonus_value).
+func trinity_bonus(key: String) -> float:
+	var total := 0.0
+	for sn in active_trinity_sets():
+		var b: Dictionary = GameData.TRINITY_SET_BONUSES.get(sn, {})
+		if b.has(key):
+			total += float(b[key])
+	return total
 
 ## Sum of a gem effect across gems socketed into equipped modules.
 func gem_bonus(key: String) -> float:
@@ -1611,9 +1699,22 @@ func _spawn_enemy_inst(eid: String) -> void:
 		"resist_x": float(e.get("resist_x", 0.0)),
 		"resist_cryo": float(e.get("resist_cryo", 0.0)),
 		"warp_hardened": bool(e.get("warp_hardened", false)),
+		"enrage_at": float(e.get("enrage_at", 0.0)),
+		"enrage_atk_mult": float(e.get("enrage_atk_mult", 1.5)),
 	}
+	# v109 reset per-fight enrage; v85.2 vulnerable wears off between fights.
+	_enemy_enraged = false
+	enemy_vulnerable_timer = 0.0
+	# Trinity: Harbinger's Wrath — reduce this enemy's effective DEF on spawn.
+	var def_red := trinity_bonus("enemy_def_reduce_pct")
+	if def_red > 0.0:
+		enemy_inst["def"] = maxf(0.0, float(enemy_inst["def"]) * (1.0 - def_red / 100.0))
 
 func _combat_difficulty() -> int:
+	# Active hazard run uses the hazard zone's difficulty.
+	if hazard_state.get("active", false):
+		var hz: Dictionary = GameData.HAZARD_ZONES.get(hazard_state["zone_id"], {})
+		return int(hz.get("difficulty", 3))
 	for z in GameData.ZONES:
 		if active_id in z.get("enemies", []):
 			return int(z.get("difficulty", 1))
@@ -1640,11 +1741,17 @@ func _tick_combat(delta: float) -> void:
 		player_heat = maxf(0.0, player_heat - vent * delta)
 	if _overheat_lock > 0.0 and player_heat <= 0.0:
 		_overheat_lock = 0.0
+	# v85.2 Vulnerable status timer counts down each tick.
+	if enemy_vulnerable_timer > 0.0:
+		enemy_vulnerable_timer = maxf(0.0, enemy_vulnerable_timer - delta)
 	# Shield regen (both sides)
 	if player_shield < maxsh:
 		player_shield = minf(maxsh, player_shield + float(ss.get("shield_regen", 0.0)) * (1.0 + research_bonus("shield_regen") + float(ss.get("regen_bonus", 0.0))) * delta)
 	if enemy_inst["shield"] < enemy_inst["max_shield"]:
 		enemy_inst["shield"] = minf(enemy_inst["max_shield"], enemy_inst["shield"] + minf(enemy_inst["max_shield"] * 0.01, 50.0) * delta)
+	# Unified HP regen (Trinity hp_regen_flat + modules), capped in ship_stats.
+	if float(ss.get("hp_regen", 0.0)) > 0.0 and combat_hp < combat_max_hp():
+		combat_hp = minf(combat_max_hp(), combat_hp + float(ss["hp_regen"]) * delta)
 	# Set bonus: Patient Zero's Strain — hull regen during combat
 	if has_set_bonus("patient_zero") and combat_hp < combat_max_hp():
 		combat_hp = minf(combat_max_hp(), combat_hp + 50.0 * delta)
@@ -1678,6 +1785,8 @@ func _tick_combat(delta: float) -> void:
 		eslow *= 0.85
 	if loadout_has_module("chrono_stabilizer"):
 		eslow *= 0.8
+	# Electronic warfare: jamming slows the enemy timer (capped at MAX_ENEMY_SLOW).
+	eslow *= maxf(1.0 - MAX_ENEMY_SLOW, 1.0 - float(ss.get("jamming_strength", 0.0)))
 	_enemy_timer += delta * eslow
 	var eguard := 0
 	while _enemy_timer >= float(enemy_inst["interval"]) and eguard < 20:
@@ -1750,23 +1859,37 @@ func set_consumable(kind: String, item_id: String) -> void:
 func _player_fire(w: Dictionary, ss: Dictionary) -> void:
 	if _overheat_lock > 0.0:
 		return
-	var dtot := float(w["dmg_k"]) + float(w["dmg_e"]) + float(w["dmg_x"])
+	var dtot := float(w["dmg_k"]) + float(w["dmg_e"]) + float(w["dmg_x"]) + float(w.get("dmg_cryo", 0.0))
 	player_heat += 2.0 + dtot / 100.0
 	if player_heat >= MAX_HEAT:
 		_overheat_lock = 1.0
 		_event("OVERHEAT", "ef9a54", "player")
 		return
+	# v86.0 EMP Storm hazard: weapons jam (40% without the Faraday counter, 10% with).
+	if hazard_state.get("active", false) and _active_hazard_type() == "emp_storm":
+		var jam_chance := 0.10 if loadout_has_module("faraday_hull") else 0.40
+		if randf() < jam_chance:
+			_event("EMP JAM", "ecb44a", "enemy")
+			return
 	var acc := float(ss.get("acc", 100.0))
 	var hit := clampf(acc / (acc + float(enemy_inst["eva"])), 0.2, 1.0)
 	if randf() > hit:
 		_event("MISS", "9aa7c2", "enemy")
 		return
+	# v85.2 Lucky Hit: chance to apply Vulnerable (+20% damage taken for 3s).
+	var lucky := 0.10 + affix_total("lucky_hit_chance")
+	if randf() < lucky:
+		var vchance := affix_total("vuln_on_hit")
+		if vchance > 0.0 and randf() < vchance:
+			enemy_vulnerable_timer = 3.0
+			_event("EXPOSED!", "b78ae8", "enemy")
 	# Ammo (desktop v109): every slotted non-cryo weapon REQUIRES compatible
 	# ammo to fire (kinetic→Slug, energy→Cell, explosive→Missile). The hull
 	# standard cannon (slot "") and cryo weapons are exempt and fire for free.
 	var dk := float(w["dmg_k"])
 	var de := float(w["dmg_e"])
 	var dx := float(w["dmg_x"])
+	var dc := float(w.get("dmg_cryo", 0.0))
 	var wtype := String(w.get("type", "kinetic"))
 	if wtype == "energy" and loadout_has_module("plasma_overcharger"):
 		de *= 2.0   # Plasma Overcharger
@@ -1796,7 +1919,7 @@ func _player_fire(w: Dictionary, ss: Dictionary) -> void:
 	# Void Strike: chance to bypass the shield entirely.
 	var vs := affix_total("void_strike")
 	var voided: bool = vs > 0.0 and randf() < vs
-	var res := resolve_damage(dk, de, dx, 0.0 if voided else float(enemy_inst["shield"]), enemy_inst["def"], _combat_difficulty(), float(ss.get("crit", 0.05)), true)
+	var res := resolve_damage(dk, de, dx, 0.0 if voided else float(enemy_inst["shield"]), enemy_inst["def"], _combat_difficulty(), float(ss.get("crit", 0.05)), true, dc)
 	if voided:
 		_event("VOID", "ff44cc", "enemy")
 	else:
@@ -1817,33 +1940,40 @@ func _enemy_fire(ss: Dictionary) -> void:
 		_event("DODGE", "9aa7c2", "player")
 		return
 	var pdef := float(ss.get("def", 0.0))
+	_check_enrage()   # v109: re-evaluate enrage before this swing (telegraph + buff)
 	# Typed enemy fire (desktop v109): route the enemy's atk into the slot
 	# matching its dmg_type so the player's armor-type mitigation behaves as
 	# desktop. Reactive Armor is now handled inside resolve_damage (via k).
+	# v87.0 typed-damage compensation: energy/explosive enemies hit harder per
+	# point (x1.5 shields / 80% armor bypass) so their raw atk is scaled down.
 	var atk := float(enemy_inst["atk"])
+	if _enemy_enraged:
+		atk *= float(enemy_inst.get("enrage_atk_mult", 1.5))
 	var e_k := 0.0
 	var e_e := 0.0
 	var e_x := 0.0
 	match String(enemy_inst.get("dmg_type", "kinetic")):
-		"energy": e_e = atk
-		"explosive": e_x = atk
+		"energy": e_e = atk * ENEMY_ENERGY_ATK_COMP
+		"explosive": e_x = atk * ENEMY_EXPLOSIVE_ATK_COMP
 		_: e_k = atk
 	var res := resolve_damage(e_k, e_e, e_x, player_shield, pdef, _combat_difficulty(), 0.05, false)
 	# Exotic Shield Matrix: 30% damage reduction in Sector Gamma
 	if loadout_has_module("exotic_shield_matrix") and _current_zone_id() == "sector_gamma":
 		res[1] = int(res[1] * 0.7)
-	# Set bonus: Sovereign's Prism — 15% chance to fully reflect incoming damage
-	if has_set_bonus("sovereign") and randf() < 0.15:
-		var refl: float = res[0] + res[1]
-		enemy_inst["hp"] -= refl
-		_event("REFLECT %d" % int(refl), "ff44cc", "enemy")
-		if enemy_inst["hp"] <= 0.0:
-			_win_combat()
-		return
-	# Reflective Sheath: 20% chance to reflect 50% back (player still takes the hit)
-	if loadout_has_module("reflective_sheath") and randf() < 0.20:
-		enemy_inst["hp"] -= int((res[0] + res[1]) * 0.5)
-		_event("REFL", "9aa7c2", "enemy")
+	# v80.1 Unified reflect (desktop): Monolith's Bedrock set (reflect_pct) +
+	# Reflective Sheath module (+20%), clamped to MAX_REFLECT_PERCENT.
+	var reflect_pct := trinity_bonus("reflect_pct") / 100.0
+	if loadout_has_module("reflective_sheath"):
+		reflect_pct += 0.20
+	reflect_pct = minf(reflect_pct, MAX_REFLECT_PERCENT)
+	if reflect_pct > 0.0:
+		var ref_dmg := int((res[0] + res[1]) * reflect_pct)
+		if ref_dmg > 0:
+			enemy_inst["hp"] -= ref_dmg
+			_event("REFLECT %d" % ref_dmg, "9aa7c2", "enemy")
+			if enemy_inst["hp"] <= 0.0:
+				_win_combat()
+				return
 	player_shield = maxf(0.0, player_shield - res[0])
 	combat_hp -= res[1]
 	if res[0] > 0:
@@ -1852,6 +1982,21 @@ func _enemy_fire(ss: Dictionary) -> void:
 		_event("-%d" % int(res[1]), "ef6a52", "player")
 	if combat_hp <= 0.0:
 		_lose_combat()
+
+# v109 P3 boss mechanic — Enrage. When the enemy's HP first crosses below its
+# enrage_at fraction it permanently surges ATK by enrage_atk_mult for the rest
+# of the fight. Telegraphed once. Data-driven (enrage_at / enrage_atk_mult on
+# any enemy; currently the Threshold Warden).
+func _check_enrage() -> void:
+	if _enemy_enraged or enemy_inst.is_empty():
+		return
+	var thr := float(enemy_inst.get("enrage_at", 0.0))
+	if thr <= 0.0 or float(enemy_inst.get("max_hp", 0.0)) <= 0.0:
+		return
+	if float(enemy_inst["hp"]) / float(enemy_inst["max_hp"]) <= thr:
+		_enemy_enraged = true
+		var mult := float(enemy_inst.get("enrage_atk_mult", 1.5))
+		_event("ENRAGED x%.1f" % mult, "ff5933", "enemy")
 
 ## Broadside Array: a heavy kinetic salvo (5x equipped kinetic damage).
 func _broadside_fire() -> void:
@@ -1881,6 +2026,18 @@ func resolve_damage(atk_k: float, atk_e: float, atk_x: float, c_shield: float, c
 	var hardened: bool = is_player_attacker and not enemy_inst.is_empty() and bool(enemy_inst.get("warp_hardened", false))
 	var noncryo := 0.02 if hardened else 1.0
 	var shield_pot := (atk_k * 0.5 + atk_e * 1.5 + atk_x * 1.1) * noncryo + atk_cryo * 1.0
+	# v85.2 Vulnerable status: enemy takes +20% damage while the timer is live.
+	if not is_player_attacker and enemy_vulnerable_timer > 0.0:
+		shield_pot *= 1.2
+	# v85.2 Healthy/Injured affix bonuses (player attacks only).
+	if is_player_attacker and not enemy_inst.is_empty():
+		var ehp_pct := float(enemy_inst["hp"]) / maxf(1.0, float(enemy_inst["max_hp"]))
+		if ehp_pct >= 0.8:
+			var bh := affix_total("dmg_healthy")
+			if bh > 0.0: shield_pot *= 1.0 + bh
+		elif ehp_pct <= 0.35:
+			var bi := affix_total("dmg_injured")
+			if bi > 0.0: shield_pot *= 1.0 + bi
 	var dmg_shield := minf(c_shield, shield_pot)
 	var bleed := (shield_pot - dmg_shield) / shield_pot if shield_pot > 0.0 else 1.0
 	var k := GameData.DEF_K_CONSTANT + GameData.DEF_K_ZONE_SCALE * pow(float(difficulty), GameData.DEF_K_ZONE_EXP)
@@ -1914,10 +2071,22 @@ func resolve_damage(atk_k: float, atk_e: float, atk_x: float, c_shield: float, c
 			he *= 0.02
 			hx *= 0.02
 	var hull := (hk + he + hx + hc) * bleed
+	# v85.2 Vulnerable + Healthy/Injured also scale the hull total (desktop parity).
+	if not is_player_attacker and enemy_vulnerable_timer > 0.0:
+		hull *= 1.2
+	if is_player_attacker and not enemy_inst.is_empty():
+		var ehp_pct2 := float(enemy_inst["hp"]) / maxf(1.0, float(enemy_inst["max_hp"]))
+		if ehp_pct2 >= 0.8:
+			var bh2 := affix_total("dmg_healthy")
+			if bh2 > 0.0: hull *= 1.0 + bh2
+		elif ehp_pct2 <= 0.35:
+			var bi2 := affix_total("dmg_injured")
+			if bi2 > 0.0: hull *= 1.0 + bi2
 	var variance := randf_range(0.9, 1.1)
 	var is_crit := randf() < crit_chance
+	# v80.1 Crit damage cap (variance multiplier ceiling).
 	if is_crit:
-		variance *= 1.5
+		variance *= minf(1.5, MAX_CRIT_DAMAGE)
 	var minhull := 1.0 if (atk_k + atk_e + atk_x + atk_cryo) > 0.0 else 0.0
 	return [dmg_shield * variance, maxf(minhull, hull * variance), is_crit]
 
@@ -1973,6 +2142,24 @@ func _win_combat() -> void:
 		if GameData.GEMS.has(gid):
 			add_resource(gid, 1)
 			_event("GEM: " + GameData.GEMS[gid]["name"], "3a9fff", "enemy")
+	# v86.0 Track boss kills (hazard unlocks + Z11 flag). Use the live enemy id
+	# (hazard waves override active_id with their pool enemy).
+	var killed_id: String = String(enemy_inst.get("id", active_id))
+	if bool(enemy_inst.get("is_boss", false)) or GameData.ENEMIES.get(killed_id, {}).get("is_boss", false):
+		boss_kills[killed_id] = int(boss_kills.get(killed_id, 0)) + 1
+	# v109 Z10 boss kill auto-unlocks Zone 11 "The Threshold" (flag, not research).
+	if killed_id == "z10_boss_leviathan" and not game_flags.get("z11_unlocked", false):
+		game_flags["z11_unlocked"] = true
+		_event("SECTOR 11 DETECTED", "8cd9ff", "player")
+	# v86.0 Hazard gauntlet progression: advance the wave instead of re-engaging.
+	if hazard_state.get("active", false):
+		hazard_state["wave"] = int(hazard_state["wave"]) + 1
+		if int(hazard_state["wave"]) >= int(hazard_state["max_waves"]):
+			_complete_hazard_zone()
+		else:
+			_spawn_hazard_wave_enemy()
+			_event("WAVE %d/%d" % [int(hazard_state["wave"]) + 1, int(hazard_state["max_waves"])], "ecb44a", "player")
+		return
 	_spawn_enemy_inst(active_id)   # auto re-engage (idle farming)
 
 func _lose_combat() -> void:
@@ -1981,6 +2168,104 @@ func _lose_combat() -> void:
 	combat_hp = combat_max_hp()
 	player_shield = 0.0
 	_event("HULL BREACH  −₡%s" % GameData.fmt(cost), "ef6a52", "player")
+	# v86.0 Hazard: ejected on death — abandon the gauntlet run.
+	if hazard_state.get("active", false):
+		_event("HAZARD FAILED", "ef6a52", "player")
+		_reset_hazard_state()
+	stop_task()
+
+# ---------------- v86.0 Hazard zones (gauntlet dungeons) ----------------
+# Data-driven from GameData.HAZARD_ZONES. A hazard unlocks once its unlock_boss
+# has >=1 kill; it runs max_waves waves (regular pool, elite at max_waves-2, boss
+# at max_waves-1), scaling enemy hp/atk/shield x(1+wave*0.20). First clear grants
+# a reward. EMP hazards jam weapons unless the counter module is equipped.
+func is_hazard_unlocked(zone_id: String) -> bool:
+	var hz: Dictionary = GameData.HAZARD_ZONES.get(zone_id, {})
+	if hz.is_empty():
+		return false
+	var unlock_boss: String = hz.get("unlock_boss", "")
+	return unlock_boss == "" or int(boss_kills.get(unlock_boss, 0)) > 0
+
+func has_counter_module(zone_id: String) -> bool:
+	var hz: Dictionary = GameData.HAZARD_ZONES.get(zone_id, {})
+	if hz.is_empty():
+		return false
+	var counter: String = hz.get("counter_module", "")
+	return counter == "" or loadout_has_module(counter)
+
+func _active_hazard_type() -> String:
+	if not hazard_state.get("active", false):
+		return ""
+	return GameData.HAZARD_ZONES.get(hazard_state["zone_id"], {}).get("hazard_type", "")
+
+func _reset_hazard_state() -> void:
+	hazard_state = {"active": false, "zone_id": "", "wave": 0, "max_waves": 7}
+
+## Enter a hazard gauntlet. Gated by the unlock boss + counter module. Returns
+## true if entry succeeded. Adapts the desktop start_hazard to mobile's task flow.
+func start_hazard(zone_id: String) -> bool:
+	var hz: Dictionary = GameData.HAZARD_ZONES.get(zone_id, {})
+	if hz.is_empty():
+		return false
+	if not is_hazard_unlocked(zone_id):
+		_event("LOCKED", "ef6a52", "player")
+		return false
+	var counter: String = hz.get("counter_module", "")
+	if counter != "" and not loadout_has_module(counter):
+		_event("REQUIRES %s" % counter.to_upper(), "ef6a52", "player")
+		return false
+	if active_hull == "":
+		return false
+	hazard_state = {"active": true, "zone_id": zone_id, "wave": 0, "max_waves": int(hz.get("max_waves", 7))}
+	active_type = "combat"
+	active_id = zone_id
+	progress = 0.0
+	_weapons = ship_weapons()
+	if combat_hp <= 0.0:
+		combat_hp = combat_max_hp()
+	player_shield = player_max_shield()
+	player_heat = 0.0
+	_overheat_lock = 0.0
+	_enemy_timer = 0.0
+	combat_events.clear()
+	_spawn_hazard_wave_enemy()
+	_event("HAZARD: %s" % String(hz.get("name", zone_id)).to_upper(), "ecb44a", "player")
+	_event("WAVE 1/%d" % int(hazard_state["max_waves"]), "ecb44a", "player")
+	action_changed.emit()
+	return true
+
+func _spawn_hazard_wave_enemy() -> void:
+	var hz: Dictionary = GameData.HAZARD_ZONES.get(hazard_state["zone_id"], {})
+	var wave := int(hazard_state["wave"])
+	var max_waves := int(hazard_state["max_waves"])
+	var pool: Array = hz.get("enemy_pool", [])
+	var eid: String = pool[0] if not pool.is_empty() else ""
+	if wave == max_waves - 1:
+		eid = hz.get("boss_enemy", eid)
+	elif wave == max_waves - 2:
+		eid = hz.get("elite_enemy", eid)
+	elif not pool.is_empty():
+		eid = pool[wave % pool.size()]
+	_spawn_enemy_inst(eid)
+	# Scale stats by wave progression (+20% per wave), then refill HP/shield.
+	var wave_mult := 1.0 + float(wave) * 0.20
+	enemy_inst["max_hp"] = float(enemy_inst["max_hp"]) * wave_mult
+	enemy_inst["hp"] = enemy_inst["max_hp"]
+	enemy_inst["atk"] = float(enemy_inst["atk"]) * wave_mult
+	enemy_inst["max_shield"] = float(enemy_inst.get("max_shield", 0.0)) * wave_mult
+	enemy_inst["shield"] = enemy_inst["max_shield"]
+
+func _complete_hazard_zone() -> void:
+	var hz_id: String = hazard_state["zone_id"]
+	var hz: Dictionary = GameData.HAZARD_ZONES.get(hz_id, {})
+	_event("HAZARD CLEARED!", "ffcc33", "player")
+	if not hazard_clears.get(hz_id, false):
+		hazard_clears[hz_id] = true
+		var reward: String = hz.get("first_clear_reward", "")
+		if reward != "":
+			add_resource(reward, 1)
+			_event("FIRST CLEAR REWARD", "ffcc33", "player")
+	_reset_hazard_state()
 	stop_task()
 
 func _offline_combat(delta: float) -> void:
@@ -2310,6 +2595,9 @@ func save_game() -> void:
 		"missions_active": missions_active.keys(),
 		"missions_progress": missions_progress,
 		"missions_claimed": missions_claimed.keys(),
+		"boss_kills": boss_kills,
+		"hazard_clears": hazard_clears,
+		"game_flags": game_flags,
 		"time": Time.get_unix_time_from_system(),
 	}
 	var tmp := SAVE_PATH + ".tmp"
@@ -2384,6 +2672,11 @@ func load_game() -> void:
 	missions_claimed = {}
 	for mid in data.get("missions_claimed", []):
 		missions_claimed[mid] = true
+	boss_kills = data.get("boss_kills", {})
+	for k in boss_kills:
+		boss_kills[k] = int(boss_kills[k])
+	hazard_clears = data.get("hazard_clears", {})
+	game_flags = data.get("game_flags", {})
 	_mission_sync()   # reconcile active missions with already-satisfied state on load
 	var last := float(data.get("time", Time.get_unix_time_from_system()))
 	var away := Time.get_unix_time_from_system() - last
