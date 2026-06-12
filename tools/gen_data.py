@@ -552,12 +552,76 @@ lines.append("")
 # ({name, desc, type, target, qty, cr, xp, next}). MISSION_ORDER follows the
 # m-chain via next_mission from m001 (the prestige goal_* cores are kept in
 # MISSIONS but not in the tutorial walk order).
+#
+# Mobile description overrides: the desktop tutorial text references the
+# desktop UI (drag-and-drop Ship Designer with an "Armory" panel, a left
+# sidebar, "Engineering/Processing/Mine/Shipyard" page names, and trophies)
+# which don't exist on mobile. Mobile UI: bottom bar = Gather · Craft ·
+# Combat · Research · More; modules are BUILT and hulls CONSTRUCTED in the
+# Ship Designer (tap to equip; ammo + consumable slots live there too);
+# materials/ammo/consumables are crafted on the Craft tab. These overrides
+# fix the instructions for mobile WITHOUT changing any mission
+# type/target/qty/reward/chain (the gameplay loop is identical).
+MOBILE_MISSION_DESC = {
+    "m005": "On the Craft tab, process Dirt to extract 100 Silicon and 80 Iron.",
+    "m007": "In the Ship Designer, build a Basic Thruster (Ion Thrusters).",
+    "m007b": "In the Ship Designer, tap your Basic Thruster to equip it into an ENGINE slot. Evasion rises the moment it's seated.",
+    "m011": "On the Craft tab, produce 50 Carbon (Charcoal Kiln recipe).",
+    "m012": "On the Gather tab, extract 100 Spodumene (the lithium-bearing ore).",
+    "m013": "On the Craft tab, refine 50 Lithium.",
+    "m013b": "On the Gather tab, extract 100 Malachite (copper ore).",
+    "m013c": "On the Craft tab, refine 50 Copper.",
+    "m015": "In the Ship Designer, build a Mass Driver Mk.I.",
+    "m015b": "In the Ship Designer, tap your Mass Driver to equip it into a WEAPON slot. Your ship can finally deal damage.",
+    "m016": "On the Craft tab, produce 100 Ferrite Rounds (SlugT1), then load them into your weapon's ammo slot in the Ship Designer.",
+    "m016b": "In the Ship Designer, equip a WEAPON and a SHIELD.",
+    "m016c": "Open the Combat tab, pick a sector, choose a target, and ENGAGE. Your shield soaks hits first; your hull takes the overflow. Once you research Auto-Repair, kits fire automatically at the threshold.",
+    "m019": "On the Craft tab, craft 10 Basic Circuitry.",
+    "m021": "On the Craft tab, craft 5 Basic Batteries (BatteryT1).",
+    "m022": "In the Ship Designer, build a Basic Battery module.",
+    "m022b": "In the Ship Designer, tap your Basic Battery to equip it into a BATTERY slot. Energy capacity rises — needed to power your weapons and shields.",
+    "m024": "In the Ship Designer, build a Basic Shield.",
+    "m024b": "Repair kits keep you alive in combat. On the Craft tab, craft 5 Emergency Hull Patches and 5 Basic Shield Boosters.",
+    "m024b2": "In the Ship Designer, fit a Hull and a Shield repair kit into your consumable slots. In combat, tap the Repair / Shield buttons to spend one and patch up.",
+    "m024c": "In the Ship Designer, tap your Basic Shield to equip it into a SHIELD slot. Incoming damage hits the shield before your hull.",
+    "m025b": "On the Craft tab, smelt 50 Steel (Basic Steel Smelting recipe).",
+    "m026b": "In the Ship Designer, construct an Industrial Frigate hull.",
+    "m026c": "Defeated enemies drop gear of varying rarity. Farm Lunar Orbit on the Combat tab until you get a RARE (blue) module drop.",
+    "m026d": "In the Ship Designer, equip at least one RARE+ weapon.",
+    "m028": "On the Gather tab, mine 100 Cassiterite (tin ore).",
+    "m029": "In the Ship Designer, build the Carbon Fiber Plate armor module.",
+    "m029a3": "On the Craft tab, craft 10 Structural Components — the universal building block of heavy industry.",
+    "m029b": "On the Craft tab, craft 5 Advanced Circuits (Semiconductor + Gold + Silver + Tin + Structural Components — your earlier research unlocked each one).",
+    "m030c": "In the Ship Designer, construct a Destroyer hull.",
+    "m030f": "On the Combat tab, defeat 3 Scavenger Mechs in the Mars Debris zone.",
+    "m030h": "On the Combat tab, defeat 3 Ice Wraiths in the Cryofield. They drop Cryo Essence.",
+    "m032c": "In the Ship Designer, construct a Battlecruiser.",
+    "m032d": "Void Artifacts drop from Sector Alpha ships — defeat them on the Combat tab until you collect 5.",
+    "m033c": "In the Ship Designer, construct a Dreadnought.",
+}
+
+def _mobile_desc(m):
+    mid = m.get("id", "")
+    if mid in MOBILE_MISSION_DESC:
+        return MOBILE_MISSION_DESC[mid]
+    d = m.get("description", "") or ""
+    # Catch-all terminology fixes for any line not explicitly overridden
+    # (e.g. the research chain's "in the Research tree" → "Research tab").
+    d = (d.replace("Research tree", "Research tab")
+          .replace("Engineering page", "Craft tab")
+          .replace("Engineering tab", "Craft tab")
+          .replace("Processing page", "Craft tab")
+          .replace("Mine page", "Gather tab")
+          .replace("the Shipyard", "the Ship Designer")
+          .replace("left sidebar", "More menu"))
+    return d
+
 def mission_dict(m):
     tgt = m.get("target", "")
     # gather_multi targets are dicts {sym: qty}
     return {
         "name": m.get("name", m.get("id", "")),
-        "desc": m.get("description", ""),
+        "desc": _mobile_desc(m),
         "type": m.get("type", "gather"),
         "target": tgt,
         "qty": int(m.get("target_qty", 1)),
