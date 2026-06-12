@@ -1761,21 +1761,33 @@ func _player_fire(w: Dictionary, ss: Dictionary) -> void:
 	if randf() > hit:
 		_event("MISS", "9aa7c2", "enemy")
 		return
-	# Ammo: consume one round of the slot's loaded ammo for bonus damage.
+	# Ammo (desktop v109): every slotted non-cryo weapon REQUIRES compatible
+	# ammo to fire (kinetic→Slug, energy→Cell, explosive→Missile). The hull
+	# standard cannon (slot "") and cryo weapons are exempt and fire for free.
 	var dk := float(w["dmg_k"])
 	var de := float(w["dmg_e"])
 	var dx := float(w["dmg_x"])
-	if w.get("type", "") == "energy" and loadout_has_module("plasma_overcharger"):
+	var wtype := String(w.get("type", "kinetic"))
+	if wtype == "energy" and loadout_has_module("plasma_overcharger"):
 		de *= 2.0   # Plasma Overcharger
+	var requires_ammo := String(w.get("slot", "")) != "" and wtype != "cryo"
 	var ammo: String = ammo_loadout.get(w.get("slot", ""), "")
-	if ammo != "" and amount(ammo) > 0:
-		var ab := ammo_bonus(ammo)
-		if ab[0] != "":
-			resources[ammo] = amount(ammo) - 1
-			match ab[0]:
-				"k": dk += ab[1]
-				"e": de += ab[1]
-				"x": dx += ab[1]
+	var ab: Array = ammo_bonus(ammo) if ammo != "" else ["", 0.0]
+	var ammo_ok: bool = ammo != "" and amount(ammo) > 0 \
+		and ((wtype == "kinetic" and ab[0] == "k") \
+			or (wtype == "energy" and ab[0] == "e") \
+			or (wtype == "explosive" and ab[0] == "x"))
+	if ammo_ok:
+		resources[ammo] = amount(ammo) - 1
+		match ab[0]:
+			"k": dk += ab[1]
+			"e": de += ab[1]
+			"x": dx += ab[1]
+	elif requires_ammo:
+		# No compatible ammo loaded — the weapon can't fire (desktop parity).
+		if randf() < 0.12:
+			_event("NO AMMO", "ef6a52", "enemy")
+		return
 	# Static Burst: chance to reset the enemy's attack timer on hit.
 	var sb := affix_total("static_burst")
 	if sb > 0.0 and randf() < sb:
