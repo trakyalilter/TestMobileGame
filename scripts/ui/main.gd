@@ -144,6 +144,8 @@ func _ready() -> void:
 	GameState.missions_changed.connect(_on_tick)
 	GameState.offline_ready.connect(_on_offline_ready)
 	GameState.level_up.connect(_on_level_up)
+	GameState.feature_revealed.connect(func(title: String, msg: String) -> void:
+		_celebrate(title, msg, PURP))
 	get_viewport().size_changed.connect(_update_safe_area)
 	call_deferred("_update_safe_area")
 	_refresh_top()
@@ -687,7 +689,8 @@ func _build_drawer() -> void:
 	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	list_sc.add_child(list)
 	for t in NAV_ALL:
-		list.add_child(_make_drawer_item(t.id, t.label, t.icon))
+		if _nav_visible(t.id):
+			list.add_child(_make_drawer_item(t.id, t.label, t.icon))
 
 func _make_drawer_item(id: String, label: String, icon: String) -> Button:
 	var btn := Button.new()
@@ -1071,12 +1074,15 @@ func _build_targets(v: VBoxContainer) -> void:
 			rb.pressed.connect(func() -> void: GameState.repair_hull())
 		hrow.add_child(rb)
 	v.add_child(hrow)
+	# Desktop parity (get_available_zones): locked sectors are HIDDEN entirely —
+	# their names/descriptions stay secret until the gating research/flag lands.
 	var zone_items := []
 	for z in GameData.ZONES:
-		# Locked zones (research-gated) get a padlock so progression reads clearly.
-		var lbl: String = z["name"] if _zone_unlocked(z) else "🔒 " + z["name"]
-		zone_items.append({"id": z["id"], "label": lbl})
+		if _zone_unlocked(z):
+			zone_items.append({"id": z["id"], "label": z["name"]})
 	combat_zone = clampi(combat_zone, 0, GameData.ZONES.size() - 1)
+	if not _zone_unlocked(GameData.ZONES[combat_zone]):
+		combat_zone = 0   # selection fell on a hidden sector — snap to Lunar Orbit
 	var cur_zone_id: String = GameData.ZONES[combat_zone]["id"]
 	_subtabs(v, zone_items, cur_zone_id, RED, func(id: String) -> void:
 		for i in GameData.ZONES.size():
@@ -1108,8 +1114,24 @@ func _build_targets(v: VBoxContainer) -> void:
 			g.add_child(_enemy_card(eid, GameData.ENEMIES[eid]))
 
 func _zone_unlocked(zone: Dictionary) -> bool:
+	var fl: String = zone.get("unlock_flag", "")
+	if fl != "" and not GameState.game_flags.get(fl, false):
+		return false
 	var req: String = zone.get("research_req", "")
 	return req == "" or GameState.is_research_unlocked(req)
+
+## Desktop parity: late-game systems stay hidden from navigation until their
+## reveal moment (Warp Core @ Zone 6 research; Hazards once one is unlocked).
+func _nav_visible(id: String) -> bool:
+	match id:
+		"warp":
+			return GameState.game_flags.get("warp_revealed", false)
+		"hazard":
+			for hid in GameData.HAZARD_ZONES:
+				if GameState.is_hazard_unlocked(hid):
+					return true
+			return false
+	return true
 
 # ---- Damage-type / resistance widgets (v109 headline mechanic) ----
 # A short type tag + accent for an enemy's own attack damage type.
@@ -1570,6 +1592,8 @@ func _build_more() -> void:
 	t.add_theme_color_override("font_color", Color.html(CYAN))
 	v.add_child(t)
 	for it in MORE_MENU:
+		if not _nav_visible(it["id"]):
+			continue
 		var b := Button.new()
 		b.text = it["label"]
 		b.custom_minimum_size = Vector2(0, 54)
@@ -2998,9 +3022,12 @@ func _atlas_enemies(v: VBoxContainer) -> void:
 			c.add_child(ib)
 			v.add_child(c.get_parent())
 	# Hazard-zone gauntlet enemies aren't in any sector pool — list them so the
-	# codex is complete (incl. hz_ drones / elites / overlords).
+	# codex is complete (incl. hz_ drones / elites / overlords). Hidden until
+	# the hazard is unlocked (desktop never lists them before that).
 	var hz_seen := {}
 	for hz_id in GameData.HAZARD_ZONES:
+		if not GameState.is_hazard_unlocked(hz_id):
+			continue
 		var hz: Dictionary = GameData.HAZARD_ZONES[hz_id]
 		var pool: Array = []
 		pool.append_array(hz.get("enemy_pool", []))

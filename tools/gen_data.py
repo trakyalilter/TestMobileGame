@@ -311,6 +311,8 @@ for zid, z in sorted(zones.items(), key=lambda kv: kv[1].get("difficulty", 1)):
     }
     if z.get("research_req"):
         d["research_req"] = z["research_req"]
+    if z.get("unlock_flag"):
+        d["unlock_flag"] = z["unlock_flag"]
     lines.append(f"\t{g(d)},")
 lines.append("]")
 lines.append("")

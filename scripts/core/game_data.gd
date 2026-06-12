@@ -574,7 +574,7 @@ const ZONES := [
 	{"id": "sector_delta", "name": "Sector Delta", "desc": "Crystal nebula. Prismatic entities and void anomalies.", "difficulty": 8, "enemies": ["z8_prism_drone", "z8_crystal_golem", "z8_void_stalker", "z8_nebula_phantom", "z8_boss_warden"], "research_req": "zone_8_access"},
 	{"id": "sector_zeta", "name": "Sector Zeta", "desc": "Quarantine zone. Biological horrors and rogue AI.", "difficulty": 9, "enemies": ["z9_plague_drone", "z9_bio_horror", "z9_rogue_ai", "z9_quarantine_mech", "z9_boss_patient_zero"], "research_req": "zone_9_access"},
 	{"id": "sector_epsilon", "name": "Sector Epsilon", "desc": "Beyond known space. Primordial entities and temporal anomalies.", "difficulty": 10, "enemies": ["z10_void_stalker", "z10_temporal_phantom", "z10_omega_sentinel", "z10_primordial_titan", "z10_boss_leviathan"], "research_req": "zone_10_access"},
-	{"id": "the_threshold", "name": "Sector 11 — The Threshold", "desc": "Warp-Hardened space. Hostiles are immune to conventional armaments — only Cryogenic weapons (unlocked by Warping) breach them.", "difficulty": 11, "enemies": ["z11_warp_revenant", "z11_phase_horror", "z11_null_sentinel", "z11_exotic_leviathan", "z11_boss_threshold_warden"]},
+	{"id": "the_threshold", "name": "Sector 11 — The Threshold", "desc": "Warp-Hardened space. Hostiles are immune to conventional armaments — only Cryogenic weapons (unlocked by Warping) breach them.", "difficulty": 11, "enemies": ["z11_warp_revenant", "z11_phase_horror", "z11_null_sentinel", "z11_exotic_leviathan", "z11_boss_threshold_warden"], "unlock_flag": "z11_unlocked"},
 ]
 
 const HAZARD_ZONES := {

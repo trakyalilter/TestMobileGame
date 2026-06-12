@@ -10,6 +10,7 @@ signal action_changed
 signal missions_changed
 signal offline_ready          # emitted after a background-resume catch-up, for the UI modal
 signal level_up(skill_id: String, level: int)        # skill leveled up — celebratory popup
+signal feature_revealed(title: String, msg: String)  # late-game system reveal fanfare (desktop parity)
 var _suppress_fx := false                            # mute transient juice during offline catch-up
 
 # Missions (tutorial chain)
@@ -295,6 +296,12 @@ func add_resource(sym: String, amt: int) -> void:
 	if amt > 0 and amount(sym) <= 0 and used_slots() >= max_slots():
 		return
 	resources[sym] = amount(sym) + amt
+	# One-shot Recursion pointer on first Void Artifact (desktop v109).
+	if sym == "VoidArtifact" and amt > 0 and not game_flags.get("recursion_revealed", false):
+		game_flags["recursion_revealed"] = true
+		if not _suppress_fx:
+			feature_revealed.emit("⟨ RECURSION PROTOCOLS ONLINE ⟩",
+				"Spend Void Artifacts on the Research page's RECURSION tab for permanent global bonuses.")
 	if amt > 0 and not missions_active.is_empty():
 		_mission_event("gather", sym, amt)
 	if amt > 0:
@@ -2376,6 +2383,11 @@ func unlock_research(rid: String) -> bool:
 	credits -= int(t.get("credits", 0))
 	spend(t.get("items", {}))
 	unlocked_research[rid] = true
+	# Warp Core stays hidden until Zone 6 research (desktop v110 reveal moment).
+	if rid == "zone_6_access" and not game_flags.get("warp_revealed", false):
+		game_flags["warp_revealed"] = true
+		feature_revealed.emit("⟨ WARP CORE RESONANCE ⟩",
+			"A new prestige system is online — open WARP CORE in the menu to spend Exotic Matter Shards.")
 	_mission_event("research", rid, 1)
 	# discover missions (e.g. goal_001 -> sector_epsilon): a zone is "discovered"
 	# the moment its gating research is unlocked.
@@ -3589,6 +3601,11 @@ func load_game() -> void:
 		boss_kills[k] = int(boss_kills[k])
 	hazard_clears = data.get("hazard_clears", {})
 	game_flags = data.get("game_flags", {})
+	# Reveal back-compat: saves that already passed a milestone shouldn't re-hide it.
+	if is_research_unlocked("zone_6_access") or total_warps > 0:
+		game_flags["warp_revealed"] = true
+	if amount("VoidArtifact") > 0:
+		game_flags["recursion_revealed"] = true
 	_mission_sync()   # reconcile active missions with already-satisfied state on load
 	var last := float(data.get("time", Time.get_unix_time_from_system()))
 	var away := Time.get_unix_time_from_system() - last
