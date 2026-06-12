@@ -814,6 +814,7 @@ func _make_page() -> ScrollContainer:
 # ============================================================ NAV
 func _show(id: String) -> void:
 	current = id
+	GameState.mission_visit_page(id)   # drive visit_page missions (e.g. Combat Briefing)
 	_reset_armed = false
 	_warp_armed = false
 	GameState.equip_notice = ""        # transient; only shown right after a rejection

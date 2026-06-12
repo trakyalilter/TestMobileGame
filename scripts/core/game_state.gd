@@ -16,6 +16,7 @@ var _suppress_fx := false                            # mute transient juice duri
 var missions_active: Dictionary = {}     # mid -> true
 var missions_progress: Dictionary = {}   # mid -> count
 var missions_claimed: Dictionary = {}    # mid -> true
+var _mission_completed_seen: Dictionary = {}  # mid -> true (live-eval completion edge, UI-refresh only)
 
 var resources: Dictionary = {}          # symbol -> int
 var credits: int = 0                    # research currency (earned by selling)
@@ -301,6 +302,9 @@ func execute_warp() -> int:
 		resources[r] = {"Fe": 50, "Si": 30, "Wood": 20, "Water": 50}[r] * bonus
 	combat_hp = combat_max_hp()
 	generate_bounty_pool()
+	# Warp goal missions (goal_002/goal_003) track total_warps.
+	_mission_event("warp_perform", "warp", 1)
+	_mission_sync()
 	resources_changed.emit()
 	skills_changed.emit()
 	research_changed.emit()
@@ -532,7 +536,9 @@ func combat_max_hp() -> float:
 		return 100.0
 	# Desktop max_hp = (hull + modules x eng) x (1 + max_hp_mult + materials_science)
 	# — no combat-level HP term in the original.
-	return float(s["hp"]) * (1.0 + research_bonus("max_hp_mult") + research_bonus("materials_science"))
+	# v109: Recursive Hardening (defense_focus) applies hull_hp_mult multiplicatively.
+	return float(s["hp"]) * (1.0 + research_bonus("max_hp_mult") + research_bonus("materials_science")) \
+		* (1.0 + research_bonus("hull_hp_mult"))
 
 func player_max_shield() -> float:
 	var s := ship_stats()
@@ -661,6 +667,7 @@ func equip_module(mid: String) -> bool:
 				return false
 			module_inventory[mid] = int(module_inventory[mid]) - 1
 			equip_notice = ""
+			_mission_sync()   # loadout_check / loadout_rare_weapon missions re-check on equip
 			resources_changed.emit()
 			return true
 	return false
@@ -669,6 +676,7 @@ func unequip_slot(idx: String) -> void:
 	if loadout.has(idx):
 		module_inventory[loadout[idx]] = int(module_inventory.get(loadout[idx], 0)) + 1
 		loadout.erase(idx)
+		_mission_sync()
 		resources_changed.emit()
 
 # ---------------- Module rarity / affixes ----------------
@@ -1011,7 +1019,7 @@ func claim_contract(cid: String) -> bool:
 	var c = _find_contract(bounty_active, cid)
 	if c == null or not c["completed"]:
 		return false
-	gain_credits(int(c["reward_credits"] * (1.0 + affix_total("contract_negotiation"))))  # Contract Negotiation
+	gain_credits(int(c["reward_credits"] * (1.0 + affix_total("contract_negotiation")) * credit_reward_mult()))  # Contract Negotiation + Recursive Acquisition
 	# Module reward: bounties have a high rarity floor (Rare+).
 	var rpool: Array = c.get("reward_pool", [])
 	if not rpool.is_empty():
@@ -1095,7 +1103,9 @@ func _global_yield_bonus() -> Dictionary:
 	return gyb
 
 func _infra_skill_speed() -> float:
-	return 1.0 + level_of("infrastructure") * 0.01 + research_bonus("industrial_logistics") + research_bonus("industrial_catalysis")
+	# Desktop get_effective_interval uses only the Industrial Logistics hub bonus.
+	# (industrial_catalysis is a processing-speed bonus, applied in recipe_speed_mult.)
+	return 1.0 + level_of("infrastructure") * 0.01 + research_bonus("industrial_logistics")
 
 ## Energy phase: pure generators always run; fuel generators run at 100% (ignoring
 ## grid efficiency) to jumpstart, consuming fuel; surplus banks into the grid
@@ -1267,8 +1277,10 @@ func _produce_batch(bid: String, count: int, d: Dictionary, gyb: Dictionary) -> 
 		resources[res] = amount(res) - int(inp[res]) * count
 		_infra_dirty = true
 	var eng_scaled := ["auto_smelter", "hydro_plant", "industrial_centrifuge", "munitions_factory"]
+	# v109: Recursive Networking (infrastructure_focus) — infinite +5%/level building yield.
+	var net_mult := 1.0 + research_bonus("building_yield_mult")
 	for res in d.get("yield", {}):
-		var qty := float(d["yield"][res]) * count * (1.0 + float(gyb.get(res, 0.0))) * warp_production_mult()
+		var qty := float(d["yield"][res]) * count * (1.0 + float(gyb.get(res, 0.0))) * warp_production_mult() * net_mult
 		if bid in eng_scaled:
 			qty *= 1.0 + (log(1.0 + level_of("fabrication")) / log(10.0)) * 5.0
 		_build_frac[res] = float(_build_frac.get(res, 0.0)) + qty
@@ -1355,38 +1367,53 @@ func auto_consume_threshold() -> float:
 	if is_research_unlocked("auto_repair_20"): return 0.2
 	return 0.0
 
+# Faithful port of ref_research_manager.gd::get_efficiency_bonus (v105/v109):
+# accumulate into a single bonus (no early returns), and the repeatable-research
+# loop ALWAYS applies for every bonus_type (the v105 fix that un-broke the
+# Recursive Optimization / Calibration / Logistics / Networking endgame sinks).
 func research_bonus(key: String) -> float:
+	var bonus := 0.0
 	match key:
-		"combat_xp": return 0.20 if is_research_unlocked("combat_heuristics") else 0.0
-		"shield_regen": return 0.20 if is_research_unlocked("shield_harmonics") else 0.0
-		"max_hp_mult": return 0.15 if is_research_unlocked("hull_hardening") else 0.0
-		"attack_speed": return 0.10 if is_research_unlocked("core_overclocking") else 0.0
+		"combat_xp":
+			if is_research_unlocked("combat_heuristics"): bonus += 0.20
+		"shield_regen":
+			if is_research_unlocked("shield_harmonics"): bonus += 0.20
+		"max_hp_mult":
+			if is_research_unlocked("hull_hardening"): bonus += 0.15
+		"attack_speed":
+			if is_research_unlocked("core_overclocking"): bonus += 0.10
 		"gathering_yield":
-			var y := 0.0
-			if is_research_unlocked("deep_core_optics"): y += 1.0
-			if is_research_unlocked("colony_automation"): y += 5.0
-			return y
+			if is_research_unlocked("deep_core_optics"): bonus += 1.0
+			if is_research_unlocked("colony_automation"): bonus += 5.0
 		"processing_speed":
-			var p := 0.0
-			if is_research_unlocked("nano_fabrication"): p += 0.15
-			if is_research_unlocked("perfect_automation"): p += 0.30
-			return p + _repeatable_bonus("processing_speed")
-	if key == "applied_physics" and is_research_unlocked("applied_physics"): return 0.10
-	if key == "materials_science" and is_research_unlocked("materials_science"): return 0.10
-	if key == "industrial_logistics" and is_research_unlocked("industrial_logistics"): return 0.10
-	if key == "industrial_catalysis" and is_research_unlocked("industrial_catalysis"): return 0.15
-	if key == "xeno_engineering" and is_research_unlocked("xeno_engineering"): return 0.25
-	# gathering_yield_mult / combat_damage come purely from repeatable research.
-	return _repeatable_bonus(key)
+			if is_research_unlocked("nano_fabrication"): bonus += 0.15
+			if is_research_unlocked("perfect_automation"): bonus += 0.30
+			# v105b: folded into processing speed, bumped 0.15 -> 0.25.
+			if is_research_unlocked("industrial_catalysis"): bonus += 0.25
+		"research_speed":
+			if is_research_unlocked("perfect_automation"): bonus += 0.30
+	# Hub node passive bonuses (desktop Audit v8.0 P1-25).
+	if key == "applied_physics" and is_research_unlocked("applied_physics"): bonus += 0.10
+	if key == "materials_science" and is_research_unlocked("materials_science"): bonus += 0.10
+	if key == "industrial_logistics" and is_research_unlocked("industrial_logistics"): bonus += 0.10
+	if key == "xeno_engineering" and is_research_unlocked("xeno_engineering"): bonus += 0.25
+	# Recursive (infinite endgame) bonuses — always summed, for every bonus_type.
+	bonus += _repeatable_bonus(key)
+	return bonus
 
 # ---- Repeatable / Recursion research (infinite +5%/level sinks) ----
-const REPEATABLE := {
-	"production_focus": {"name": "Recursive Optimization", "field": "Industry", "desc": "+5% Global Processing Speed / level", "base_cost": 100000, "items": {"VoidArtifact": 5, "AdvCircuit": 50, "Bauxite": 100, "Quartz": 100, "PtOre": 25}, "bonus_type": "processing_speed", "bonus_value": 0.05},
-	"combat_focus": {"name": "Recursive Calibration", "field": "Combat", "desc": "+5% Total Ship Damage / level", "base_cost": 100000, "items": {"VoidArtifact": 5, "QuantumCore": 5, "Malachite": 100}, "bonus_type": "combat_damage", "bonus_value": 0.05},
-	"gathering_focus": {"name": "Recursive Logistics", "field": "Gathering", "desc": "+5% Global Gathering Yield / level", "base_cost": 100000, "items": {"VoidArtifact": 5, "DroneCore": 50, "Spodumene": 100}, "bonus_type": "gathering_yield_mult", "bonus_value": 0.05},
-}
-const REPEATABLE_ORDER := ["production_focus", "combat_focus", "gathering_focus"]
+# Definitions live in GameData.REPEATABLE (generated from repeatable_tech.json),
+# matching the desktop repeatable_tech_db. Exposed via these getters so existing
+# call sites (and main.gd's GameState.REPEATABLE / REPEATABLE_ORDER reads) keep
+# working without an autoload-in-const dependency.
+var REPEATABLE: Dictionary = GameData.REPEATABLE
+var REPEATABLE_ORDER: Array = GameData.REPEATABLE_ORDER
 var repeatable_research: Dictionary = {}   # id -> level
+
+# v109 Recursive Acquisition (wealth_focus): +5%/level Lira from combat, quests
+# & bounties. Returns a multiplier (1.0 + credit_reward_mult bonus).
+func credit_reward_mult() -> float:
+	return 1.0 + research_bonus("credit_reward_mult")
 
 func _repeatable_bonus(bonus_type: String) -> float:
 	var b := 0.0
@@ -1451,6 +1478,11 @@ func repair_hull() -> bool:
 func _mission_init() -> void:
 	if missions_active.is_empty() and missions_claimed.is_empty() and not GameData.MISSION_ORDER.is_empty():
 		missions_active[GameData.MISSION_ORDER[0]] = true
+	# Core-goal missions (goal_*) have no `next` chain — they're always active
+	# until claimed, matching desktop mission_manager.init_missions().
+	for gid in GameData.MISSION_GOALS:
+		if not missions_claimed.has(gid):
+			missions_active[gid] = true
 	_mission_sync()
 
 ## Recover a stalled tutorial chain: if there's no active mission but unclaimed
@@ -1476,9 +1508,54 @@ func mission_completed(mid: String) -> bool:
 	match m.get("type", ""):
 		"gather_multi":               # need N of each material at once (inventory-based)
 			return multi_have(m) >= int(m.get("qty", 1))
-		"loadout_check":              # ship has a weapon + a shield equipped
-			return is_combat_ready()
+		"loadout_check":              # ship has a weapon + a shield equipped (or a named slot filled)
+			return _loadout_check_met(m)
+		"equip_consumables":          # both consumable slots stocked with >= qty
+			return _equip_consumables_met(m)
+		"drop_rarity":                # own / equip a module of rarity >= target
+			return _has_module_rarity(int(m.get("target", "0")))
+		"loadout_rare_weapon":        # equipped weapon of rarity >= target
+			return _has_rare_weapon_equipped(int(m.get("target", "0")))
 	return int(missions_progress.get(mid, 0)) >= int(m.get("qty", 1))
+
+## Per-slot loadout check (desktop): "combat_ready" needs weapon+shield; a named
+## slot_type target (engine/weapon/shield/battery) is met when ANY such module is equipped.
+func _loadout_check_met(m: Dictionary) -> bool:
+	var target := str(m.get("target", ""))
+	if target == "combat_ready" or target == "":
+		return is_combat_ready()
+	for k in loadout:
+		if module_def(loadout[k]).get("slot", "") == target:
+			return true
+	return false
+
+## Rarity of a module instance id (rolled instances carry "rarity"; base/set
+## modules use their data "rarity", defaulting to 0 = common).
+func module_rarity(mid: String) -> int:
+	return int(module_def(mid).get("rarity", 0))
+
+func _has_module_rarity(target_rarity: int) -> bool:
+	for inv_mid in module_inventory:
+		if module_rarity(inv_mid) >= target_rarity:
+			return true
+	for eq_mid in loadout.values():
+		if eq_mid != "" and module_rarity(eq_mid) >= target_rarity:
+			return true
+	return false
+
+func _has_rare_weapon_equipped(target_rarity: int) -> bool:
+	for mid in loadout.values():
+		if mid != "" and module_def(mid).get("slot", "") == "weapon" \
+			and module_rarity(mid) >= target_rarity:
+			return true
+	return false
+
+func _equip_consumables_met(m: Dictionary) -> bool:
+	# Desktop reads the required count from the mission target ("1").
+	var req := int(str(m.get("target", "1")))
+	var hull_ok := consumable_hull_slot != "" and amount(consumable_hull_slot) >= req
+	var shield_ok := consumable_shield_slot != "" and amount(consumable_shield_slot) >= req
+	return hull_ok and shield_ok
 
 ## Summed inventory progress toward a gather_multi mission's per-material goals.
 func multi_have(m: Dictionary) -> int:
@@ -1525,7 +1602,15 @@ func has_claimable_mission() -> bool:
 func _mission_sync() -> void:
 	var changed := false
 	for mid in missions_active.keys():
-		if missions_claimed.has(mid) or mission_completed(mid):
+		if missions_claimed.has(mid):
+			continue
+		if mission_completed(mid):
+			# Live-evaluated types (equip_consumables / drop_rarity /
+			# loadout_rare_weapon / loadout_check) report completion without a
+			# stored progress value — flag a UI refresh the first time we see it done.
+			if not _mission_completed_seen.has(mid):
+				_mission_completed_seen[mid] = true
+				changed = true
 			continue
 		var m: Dictionary = GameData.MISSIONS.get(mid, {})
 		var t: String = m.get("type", "")
@@ -1552,7 +1637,12 @@ func _mission_sync() -> void:
 				var tgt_tier := int(GameData.HULLS.get(target, {}).get("tier", 0))
 				if active_hull == target or hull_owned(target) or cur_tier >= tgt_tier:
 					nv = qty
-			# "defeat" is event-only (no persistent state to reconcile).
+			"warp_perform":
+				nv = maxi(cur, mini(total_warps, qty))
+			# "defeat", "discover", "visit_page" are event-only (no persistent
+			# state to reconcile). equip_consumables / drop_rarity /
+			# loadout_rare_weapon / loadout_check are evaluated live in
+			# mission_completed(), so they need no progress reconcile here.
 		if nv != cur:
 			missions_progress[mid] = nv
 			changed = true
@@ -1569,11 +1659,16 @@ func _mission_event(type: String, target: String, amount: int) -> void:
 	if changed:
 		missions_changed.emit()
 
+## Page-navigation hook for visit_page missions (e.g. m016c "Combat Briefing"
+## auto-completes when the Combat page is opened). Called from main.gd::_show().
+func mission_visit_page(page_id: String) -> void:
+	_mission_event("visit_page", page_id, 1)
+
 func claim_mission(mid: String) -> bool:
 	if not missions_active.has(mid) or not mission_completed(mid) or missions_claimed.has(mid):
 		return false
 	var m: Dictionary = GameData.MISSIONS[mid]
-	gain_credits(int(int(m.get("cr", 0)) * warp_production_mult()))   # prestige-scaled reward
+	gain_credits(int(int(m.get("cr", 0)) * warp_production_mult() * credit_reward_mult()))   # prestige- + Recursive-Acquisition-scaled reward
 	missions_claimed[mid] = true
 	missions_active.erase(mid)
 	var nxt: String = m.get("next", "")
@@ -1600,6 +1695,11 @@ func unlock_research(rid: String) -> bool:
 	spend(t.get("items", {}))
 	unlocked_research[rid] = true
 	_mission_event("research", rid, 1)
+	# discover missions (e.g. goal_001 -> sector_epsilon): a zone is "discovered"
+	# the moment its gating research is unlocked.
+	for z in GameData.ZONES:
+		if z.get("research_req", "") == rid:
+			_mission_event("discover", z.get("id", ""), 1)
 	research_changed.emit()
 	return true
 
@@ -1854,6 +1954,7 @@ func set_consumable(kind: String, item_id: String) -> void:
 		consumable_hull_slot = item_id
 	else:
 		consumable_shield_slot = item_id
+	_mission_sync()   # equip_consumables missions evaluate live consumable slots
 	resources_changed.emit()
 
 func _player_fire(w: Dictionary, ss: Dictionary) -> void:
@@ -2124,6 +2225,7 @@ func _win_combat() -> void:
 			var cid := generate_module(base_id, rarity, _combat_difficulty())
 			if cid != "":
 				_event("%s DROP" % (RARITY_LABEL[rarity] if rarity > 0 else "MODULE").to_upper(), RARITY_COLOR.get(rarity, "b78ae8"), "enemy")
+				_mission_sync()   # drop_rarity missions re-check on a new module drop
 	# Set-piece drop: bosses drop their themed set pieces (8% chance).
 	for sn in GameData.SETS:
 		var sd: Dictionary = GameData.SETS[sn]
@@ -2371,7 +2473,8 @@ func _roll_loot(loot: Array, mult: float, flat: int = 0) -> void:
 		if randf() < float(row[1]):
 			var amt := maxi(1, int(round((randi_range(int(row[2]), int(row[3])) + flat) * mult)))
 			if row[0] == "credits":
-				gain_credits(amt)
+				# v109 Recursive Acquisition (wealth_focus): +5%/level Lira from combat.
+				gain_credits(int(amt * credit_reward_mult()))
 				resources_changed.emit()
 			else:
 				add_resource(row[0], amt)
@@ -2672,6 +2775,10 @@ func load_game() -> void:
 	missions_claimed = {}
 	for mid in data.get("missions_claimed", []):
 		missions_claimed[mid] = true
+	# Surface core-goal missions for saves that predate them (no `next` chain).
+	for gid in GameData.MISSION_GOALS:
+		if not missions_claimed.has(gid):
+			missions_active[gid] = true
 	boss_kills = data.get("boss_kills", {})
 	for k in boss_kills:
 		boss_kills[k] = int(boss_kills[k])

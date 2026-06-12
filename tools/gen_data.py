@@ -540,6 +540,29 @@ for mid in missions:
     if mid.startswith("m") and mid not in seen:
         order.append(mid)
 lines.append('const MISSION_ORDER := %s' % g(order))
+# MISSION_GOALS — standalone "core goal" missions that are always active (no
+# `next` chain pointer). Desktop's mission_manager activates these on init
+# alongside the tutorial head; mobile surfaces them the same way.
+goals = [mid for mid, m in missions.items() if m.get("active", False) and mid not in seen]
+lines.append('const MISSION_GOALS := %s' % g(goals))
+lines.append("")
+
+# REPEATABLE — infinite-scaling recursion research (from repeatable_tech.json).
+# Mobile schema: {name, desc, base_cost, items, bonus_type, bonus_value}.
+def repeatable_dict(r):
+    return {
+        "name": r.get("name", ""),
+        "desc": r.get("description", ""),
+        "base_cost": int(r.get("base_cost", 100000)),
+        "items": dict(r.get("base_items", {})),
+        "bonus_type": r.get("bonus_type", ""),
+        "bonus_value": float(r.get("bonus_value", 0.05)),
+    }
+lines.append("const REPEATABLE := {")
+for rid, r in repeatable.items():
+    lines.append(f"\t{g(rid)}: {g(repeatable_dict(r))},")
+lines.append("}")
+lines.append('const REPEATABLE_ORDER := %s' % g(sorted(repeatable.keys())))
 lines.append("")
 
 # helpers (unchanged API the runtime depends on)

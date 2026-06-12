@@ -934,6 +934,17 @@ const MISSIONS := {
 	"m034": {"name": "[ENDGAME] Gamma Sector Control", "desc": "Defeat 3 Gamma Colossus in Sector Gamma to finalize supremacy.", "type": "defeat", "target": "z6_boss_colossus", "qty": 3, "cr": 1290000, "xp": 50000, "next": ""},
 }
 const MISSION_ORDER := ["m001", "m002", "m002b", "m003", "m004", "m005", "m007", "m007b", "m008", "m009", "m010", "m011", "m012", "m013", "m013b", "m013c", "m020", "m021", "m022", "m022b", "m014", "m015", "m015b", "m016", "m023", "m024", "m024c", "m024b", "m024b2", "m016c", "m017", "m018", "m018b", "m019", "m025", "m025b", "m026", "m026b", "m026c", "m026d", "m026e", "m027", "m028", "m029", "m029a1", "m029a2", "m029a3", "m029a4", "m029a5", "m029b", "m030", "m030c", "m030e", "m030f", "m030g", "m030h", "m031", "m032", "m032b", "m032d", "m032c", "m033", "m033b", "m033c", "m034", "m016b"]
+const MISSION_GOALS := ["goal_001", "goal_002", "goal_003"]
+
+const REPEATABLE := {
+	"combat_focus": {"name": "Recursive Calibration (Combat)", "desc": "Infinite scaling: +5% Total Ship Damage per level.", "base_cost": 100000, "items": {"Malachite": 750, "QuantumCore": 38, "VoidArtifact": 5}, "bonus_type": "combat_damage", "bonus_value": 0.05},
+	"defense_focus": {"name": "Recursive Hardening (Defense)", "desc": "Infinite scaling: +5% Max Hull HP per level.", "base_cost": 100000, "items": {"Steel": 750, "Superalloy": 150, "VoidArtifact": 5}, "bonus_type": "hull_hp_mult", "bonus_value": 0.05},
+	"gathering_focus": {"name": "Recursive Logistics (Gathering)", "desc": "Infinite scaling: +5% Global Gathering Yield per level.", "base_cost": 100000, "items": {"MiteChitin": 375, "Spodumene": 750, "VoidArtifact": 5}, "bonus_type": "gathering_yield_mult", "bonus_value": 0.05},
+	"infrastructure_focus": {"name": "Recursive Networking (Infrastructure)", "desc": "Infinite scaling: +5% Global Building Yield per level.", "base_cost": 100000, "items": {"AdvCircuit": 225, "Cu": 750, "VoidArtifact": 5}, "bonus_type": "building_yield_mult", "bonus_value": 0.05},
+	"production_focus": {"name": "Recursive Optimization (Industry)", "desc": "Infinite scaling: +5% Global Processing Speed per level.", "base_cost": 100000, "items": {"AdvCircuit": 375, "Bauxite": 750, "PtOre": 188, "Quartz": 750, "VoidArtifact": 5}, "bonus_type": "processing_speed", "bonus_value": 0.05},
+	"wealth_focus": {"name": "Recursive Acquisition (Wealth)", "desc": "Infinite scaling: +5% Lira rewards from combat, quests & bounties per level.", "base_cost": 100000, "items": {"Au": 38, "PirateSalvage": 225, "VoidArtifact": 5}, "bonus_type": "credit_reward_mult", "bonus_value": 0.05},
+}
+const REPEATABLE_ORDER := ["combat_focus", "defense_focus", "gathering_focus", "infrastructure_focus", "production_focus", "wealth_focus"]
 
 func res_name(sym: String) -> String:
 	return RESOURCES.get(sym, {}).get("name", sym)
