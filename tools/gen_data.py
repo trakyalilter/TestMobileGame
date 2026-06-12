@@ -339,36 +339,147 @@ for hz_id, hz in hazard_zones.items():
 lines.append("}")
 lines.append("")
 
-# RESEARCH_GRAPHS — auto-laid-out per-category tab. The mobile research view
-# draws nodes at pos[id] and parent branches via RESEARCH[id].parent, so a
-# tier-column / stacked-row layout reproduces the desktop tree shape.
+# RESEARCH_GRAPHS — faithful port of the desktop research-page design
+# (research_page.gd). Two parts:
+#   1. Tab membership is HAND-CURATED per the desktop `graphs` node lists
+#      (not category-derived) — e.g. zone gates + efficiency live in
+#      Operations, and the kinetics/power/laser gateway nodes appear on both
+#      Engineering and Ships, exactly like desktop. List ORDER matters: the
+#      layout consumes it (roots and sibling order follow the list).
+#   2. Positions come from the desktop `calculate_layout` algorithm: a
+#      recursive parent-tree layout — depth = column, children stacked to the
+#      right of their parent, parent vertically centered on its children,
+#      root trees stacked with a gap. Cross-tab parents are treated as roots.
+# Positions are emitted in mobile pixels (node 200x104; the view's
+# RES_SX/RES_SY are 1.0).
+TAB_NODES = {
+    "Operations": [
+        # Early Game - Mining & Drilling
+        "energy_shields", "industrial_logistics",
+        "diamond_drills", "ultrasonic_drills", "plasma_bore",
+        # Liquids
+        "high_flow_pumps", "superfluid_intake", "hydro_vortex",
+        # Deforestation
+        "laser_cutters", "mono_filament", "molecular_disassembler",
+        # Gases / Nebula
+        "magnetic_funnels", "deep_core_optics",
+        # Exploration / Sectors
+        "sector_alpha_decryption", "deep_space_nav", "radiation_shielding",
+        "exotic_matter_analysis", "void_physics", "void_navigation",
+        "field_theory",
+        "xeno_archaeology",
+        # Zone Access Gates
+        "zone_2_access", "zone_3_access", "zone_4_access", "zone_5_access",
+        "zone_6_access", "zone_7_access", "zone_8_access", "zone_9_access",
+        "zone_10_access",
+        # Efficiency Branch
+        "efficiency_1", "efficiency_2", "efficiency_3", "efficiency_4", "efficiency_5",
+    ],
+    "Engineering": [
+        "basic_engineering", "applied_physics", "materials_science", "industrial_logistics",
+        # Fluids & Electro
+        "fluid_dynamics", "catalytic_electrodes", "ion_exchange", "resonance_splitters",
+        "industrial_electrolysis", "energy_metrics", "cryogenic_systems", "cryogenic_storage",
+        # Combustion & Smelting
+        "combustion", "pyrolysis_control", "smelting", "blast_furnace", "automated_smelting",
+        "oxygen_blast_furnace", "metallurgy_advanced", "superalloy_engineering",
+        "iridium_metallurgy", "exotic_metallurgy",
+        # Materials
+        "adv_materials", "hydraulic_press", "molecular_compression",
+        "kinetics_101", "laser_optics", "power_systems", "lightweight_alloys",
+        # High Tech & Automation
+        "fast_centrifuges", "maglev_bearings", "quantum_separators", "advanced_mineralogy",
+        "automation", "automated_logistics", "industrial_automation", "molecular_recycling",
+        "xeno_engineering", "mass_production_tactics", "nano_fabrication", "data_clustering",
+        "precious_metal_refining", "industrial_catalysis", "fuel_cell_tech",
+        "colony_automation", "perfect_automation",
+        "basic_electronics", "advanced_batteries",
+    ],
+    "Ships": [
+        # Early Gates (from Applied Physics)
+        "kinetics_101", "power_systems", "laser_optics",
+        # Shipwright Chain
+        "shipwright_1", "shipwright_2", "molecular_printing",
+        "capital_ship_engineering", "capital_ship_armament", "quantum_dynamics",
+        # Warp & Navigation
+        "warp_drive", "warp_stabilizer",
+        # Military Techs
+        "processing_tungsten", "ballistics_optimization", "advanced_rocketry",
+        # Void / Endgame
+        "void_weaponry_1", "void_shielding_1",
+        # Cryo (Warp-gated weapon tech, floats as a root)
+        "cryo_armaments",
+        # Efficiency passives
+        "combat_heuristics", "shield_harmonics", "hull_hardening", "core_overclocking",
+        # Auto-Repair
+        "auto_repair_20", "auto_repair_40", "auto_repair_60", "auto_repair_80",
+    ],
+}
+TAB_ORDER = ["Operations", "Engineering", "Ships"]
+
+RES_X0, RES_Y0 = 16.0, 16.0   # canvas origin
+RES_LEVEL_X = 240.0           # column stride (node 200 wide + 40 elbow gap)
+RES_NODE_H = 124.0            # row slot (node 104 tall + 20)
+RES_SIB_GAP = 16.0            # gap between sibling subtrees
+RES_TREE_GAP = 48.0           # gap between root trees
+
+def tree_layout(node_list):
+    """Desktop research_page.calculate_layout, ported: parent-tree layout."""
+    nodes_set = set(node_list)
+    local_tree = {}
+    roots = []
+    for nid in node_list:
+        p = tech[nid].get("parent")
+        if not p or p not in nodes_set:
+            roots.append(nid)
+        else:
+            local_tree.setdefault(p, []).append(nid)
+    pos = {}
+
+    def layout(nid, depth, start_y):
+        children = local_tree.get(nid, [])
+        if not children:
+            pos[nid] = (RES_X0 + depth * RES_LEVEL_X, start_y)
+            return RES_NODE_H
+        total_h = 0.0
+        cy = start_y
+        for i, child in enumerate(children):
+            h = layout(child, depth + 1, cy)
+            total_h += h
+            cy += h
+            if i < len(children) - 1:
+                total_h += RES_SIB_GAP
+                cy += RES_SIB_GAP
+        mid_y = start_y + total_h / 2.0 - RES_NODE_H / 2.0
+        pos[nid] = (RES_X0 + depth * RES_LEVEL_X, mid_y)
+        return max(RES_NODE_H, total_h)
+
+    cur_y = RES_Y0
+    for root in roots:
+        cur_y += layout(root, 0, cur_y) + RES_TREE_GAP
+    return pos
+
+# Sanity: every tech must appear on at least one tab (fallback by category,
+# appended at the end so the curated layout stays intact).
+_listed = set()
+for _ids in TAB_NODES.values():
+    _listed.update(_ids)
 CAT_TAB = {
     "gathering": "Operations", "infrastructure": "Operations", "meta": "Operations",
     "processing": "Engineering",
     "ships": "Ships", "combat": "Ships", "zone": "Ships",
 }
-TAB_ORDER = ["Operations", "Engineering", "Ships"]
-COL_W = 220.0
-ROW_H = 110.0
-tab_nodes = {tab: [] for tab in TAB_ORDER}
 for tid, t in tech.items():
-    tab = CAT_TAB.get(t.get("category", ""), "Engineering")
-    tab_nodes[tab].append(tid)
+    if tid not in _listed:
+        TAB_NODES[CAT_TAB.get(t.get("category", ""), "Engineering")].append(tid)
+
 lines.append("const RESEARCH_TABS := %s" % g(TAB_ORDER))
 lines.append("const RESEARCH_GRAPHS := {")
 for tab in TAB_ORDER:
-    ids = tab_nodes[tab]
-    # column = tier, row = running index within that tier
-    row_count = {}
-    pos_items = []
-    for tid in sorted(ids, key=lambda x: (tech[x].get("tier", 0), x)):
-        tier = int(tech[tid].get("tier", 0))
-        row = row_count.get(tier, 0)
-        row_count[tier] = row + 1
-        pos_items.append((tid, tier * COL_W + 40.0, row * ROW_H + 40.0))
-    pos_str = "{" + ", ".join('%s: Vector2(%g, %g)' % (g(t), x, y) for t, x, y in pos_items) + "}"
-    node_ids = [t for t, _, _ in pos_items]
-    lines.append(f"\t{g(tab)}: {{\"nodes\": {g(node_ids)}, \"pos\": {pos_str}}},")
+    ids = [tid for tid in TAB_NODES[tab] if tid in tech]   # skip ghost ids
+    pos = tree_layout(ids)
+    pos_str = "{" + ", ".join('%s: Vector2(%g, %g)' % (g(t), x, y) for t, (x, y) in pos.items()) + "}"
+    lines.append(f"\t{g(tab)}: {{\"nodes\": {g(ids)}, \"pos\": {pos_str}}},")
 lines.append("}")
 lines.append("")
 

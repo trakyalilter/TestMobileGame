@@ -2541,10 +2541,10 @@ func _module_stat_lines(stats: Dictionary) -> Array:
 # 2D canvas of positioned nodes with parent→child branch lines drawn between them.
 const RES_NODE_W := 200.0
 const RES_NODE_H := 104.0
-# Independent axis scales: y is stretched further so the taller big-type nodes
-# never overlap (tightest original row gap is 50px).
-const RES_SX := 1.55
-const RES_SY := 2.25
+# RESEARCH_GRAPHS positions are generated in mobile pixels (desktop tree
+# layout with node-sized slots baked in), so no axis stretching is needed.
+const RES_SX := 1.0
+const RES_SY := 1.0
 const RES_PAD := 12.0
 
 func _build_research() -> void:
