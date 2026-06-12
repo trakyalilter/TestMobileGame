@@ -74,6 +74,19 @@ var skills: Dictionary = {
 }
 var unlocked_research: Dictionary = {}  # research_id -> true
 
+# ---------------- Per-action Mastery (ported from desktop gathering_manager /
+# processing_manager — identical logic for both skills) ----------------
+# Each gather action id and craft recipe id accumulates its OWN mastery XP total
+# (a float), separate from skill XP. Milestones at 10/25/50/75/100 grant
+# cumulative duration reductions (capped 30%) that SPEED UP the action. Gather
+# and craft ids share one dict — they never collide.
+const MASTERY_XP_PER_COMPLETION := 1.0          # +1 mastery XP per completed loop
+const MASTERY_MILESTONES := [10, 25, 50, 75, 100]
+# Cumulative duration-reduction table indexed by # milestones passed (0..5).
+const MASTERY_DURATION_BONUS_TABLE := [0.0, 0.05, 0.10, 0.20, 0.25, 0.30]
+const MASTERY_LEVEL_CAP := 100
+var mastery: Dictionary = {}  # {action_id / recipe_id: xp_total_float}
+
 # Single foreground task
 var active_type: String = ""            # "gather" | "craft" | "combat" | ""
 var active_id: String = ""
@@ -548,6 +561,67 @@ func yield_mult(skill_id: String) -> float:
 	m *= tree_gathering_bonus()                            # E1 Yield Calibration: +10%
 	# NB: warp prestige boosts gathering via SPEED (see gather_speed_mult), not yield.
 	return m
+
+# ---------------- Per-action Mastery ----------------
+## XP required to REACH `target` from `target-1` (desktop _mastery_xp_needed_for_level).
+func mastery_xp_needed(target: int) -> float:
+	if target <= 0 or target > MASTERY_LEVEL_CAP:
+		return 0.0
+	return 25.0 + float(target) * 5.0
+
+func mastery_xp(id: String) -> float:
+	return float(mastery.get(id, 0.0))
+
+## Current mastery level for an action/recipe id (0..100).
+func mastery_level(id: String) -> int:
+	var xp := mastery_xp(id)
+	var level := 0
+	var threshold := 0.0
+	while level < MASTERY_LEVEL_CAP:
+		var needed := mastery_xp_needed(level + 1)
+		if xp < threshold + needed:
+			break
+		threshold += needed
+		level += 1
+	return level
+
+## Progress within the current level → {in_level, needed, at_cap} for a bar.
+func mastery_progress(id: String) -> Dictionary:
+	var xp := mastery_xp(id)
+	var level := mastery_level(id)
+	if level >= MASTERY_LEVEL_CAP:
+		return {"in_level": 0.0, "needed": 0.0, "at_cap": true}
+	var threshold := 0.0
+	for n in range(1, level + 1):
+		threshold += mastery_xp_needed(n)
+	var needed := mastery_xp_needed(level + 1)
+	return {"in_level": xp - threshold, "needed": needed, "at_cap": false}
+
+## Number of mastery milestones passed at this id's current level (0..5).
+func mastery_milestones_passed(id: String) -> int:
+	var level := mastery_level(id)
+	var passed := 0
+	for m in MASTERY_MILESTONES:
+		if level >= int(m):
+			passed += 1
+	return passed
+
+## Duration multiplier from mastery: 1.0 → 0.70 (max). <1.0 means faster.
+func mastery_dur_mult(id: String) -> float:
+	var idx: int = clampi(mastery_milestones_passed(id), 0, MASTERY_DURATION_BONUS_TABLE.size() - 1)
+	return 1.0 - float(MASTERY_DURATION_BONUS_TABLE[idx])
+
+## Next mastery milestone LEVEL above the current one (0 if at/over cap) — UI teaser.
+func next_mastery_milestone(id: String) -> int:
+	var level := mastery_level(id)
+	for m in MASTERY_MILESTONES:
+		if level < int(m):
+			return int(m)
+	return 0
+
+## Credit mastery XP for `n` completed loops (online: n=1; offline: n=batch).
+func gain_mastery_xp(id: String, n: float = MASTERY_XP_PER_COMPLETION) -> void:
+	mastery[id] = mastery_xp(id) + n
 
 # ---------------- Combat stats ----------------
 ## Derived ship stats from the active hull + equipped modules.
@@ -3211,6 +3285,7 @@ func gather_speed_mult(id: String) -> float:
 		if is_research_unlocked(row[0]):
 			m += float(row[1])
 	m += building_count("biosphere_dome") * 0.05           # Biosphere Dome: +5% gather speed/bldg
+	m *= 1.0 / mastery_dur_mult(id)                        # per-action Mastery: faster as it levels
 	return m * warp_gathering_mult()                       # prestige boosts gather via speed
 
 # Per-recipe processing speed techs (ported from processing_manager.get_recipe_speed_multiplier)
@@ -3238,6 +3313,7 @@ func recipe_speed_mult(id: String) -> float:
 	if level_of("fabrication") >= 10: m *= 1.10             # milestone 10
 	if level_of("fabrication") >= 25: m *= 1.11             # milestone 25
 	m *= tree_processing_speed_bonus()                      # E2 Recipe Efficiency: -10% duration
+	m *= 1.0 / mastery_dur_mult(id)                         # per-recipe Mastery: faster as it levels
 	return m
 
 func _tick_active(delta: float) -> void:
@@ -3352,6 +3428,7 @@ func _complete_active() -> void:
 		var a: Dictionary = GameData.GATHER[active_id]
 		_roll_loot(a.get("loot", []), yield_mult("harvesting"), int(research_bonus("gathering_yield")))
 		add_xp("harvesting", int(a.get("xp", 0)))
+		gain_mastery_xp(active_id)                          # per-action Mastery: +1 per loop
 	elif active_type == "craft":
 		var r: Dictionary = GameData.CRAFT[active_id]
 		if not can_afford(r.get("inputs", {})):
@@ -3360,6 +3437,7 @@ func _complete_active() -> void:
 		spend(r.get("inputs", {}))
 		_grant_craft_outputs(active_id, r, 1)
 		add_xp("fabrication", int(r.get("xp", 0)))
+		gain_mastery_xp(active_id)                          # per-recipe Mastery: +1 per loop
 
 ## Grants a recipe's outputs for `count` completions, applying the same yield
 ## rules as the desktop processing_manager: efficiency multiplier (2–32×),
@@ -3409,6 +3487,7 @@ func _apply_offline(delta: float) -> void:
 		var a: Dictionary = GameData.GATHER[active_id]
 		var summary := _offline_loot(a.get("loot", []), yield_mult("harvesting"), reps)
 		add_xp("harvesting", int(a.get("xp", 0)) * reps)
+		gain_mastery_xp(active_id, float(reps))             # batch Mastery for offline loops
 		pending_offline = "Away for %s\n\n%s\n+%d Harvesting XP" % [_fmt_time(delta), summary, int(a.get("xp", 0)) * reps]
 	elif active_type == "craft":
 		var r: Dictionary = GameData.CRAFT[active_id]
@@ -3428,6 +3507,7 @@ func _apply_offline(delta: float) -> void:
 			var made := amount(sym) - int(before[sym])
 			summary += "\n+%s %s" % [GameData.fmt(made), GameData.res_name(sym)]
 		add_xp("fabrication", int(r.get("xp", 0)) * count)
+		gain_mastery_xp(active_id, float(count))            # batch Mastery for offline loops
 		pending_offline = "Away for %s\n%s\n+%d Fabrication XP" % [_fmt_time(delta), summary, int(r.get("xp", 0)) * count]
 
 func _offline_loot(loot: Array, mult: float, reps: int) -> String:
@@ -3469,6 +3549,7 @@ func save_game() -> void:
 		"cryo_unlocked": cryo_unlocked,
 		"credits_at_warp_start": credits_at_warp_start,
 		"skills": skills,
+		"mastery": mastery,
 		"research": unlocked_research.keys(),
 		"active_type": active_type,
 		"active_id": active_id,
@@ -3540,6 +3621,12 @@ func load_game() -> void:
 	cryo_unlocked = bool(data.get("cryo_unlocked", total_warps > 0))
 	credits_at_warp_start = int(data.get("credits_at_warp_start", 0))
 	skills = data.get("skills", skills)
+	# Per-action Mastery — defaults to empty so pre-mastery saves load unchanged.
+	mastery = {}
+	var saved_mastery = data.get("mastery", {})
+	if saved_mastery is Dictionary:
+		for k in saved_mastery:
+			mastery[k] = float(saved_mastery[k])
 	unlocked_research = {}
 	for r in data.get("research", []):
 		unlocked_research[r] = true
@@ -3641,6 +3728,7 @@ func hard_reset() -> void:
 	cryo_unlocked = false
 	credits_at_warp_start = 0
 	skills = {"harvesting": 0, "fabrication": 0, "combat": 0, "infrastructure": 0}
+	mastery = {}
 	unlocked_research = {}
 	buildings = {}
 	building_throttle = {}

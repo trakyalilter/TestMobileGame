@@ -119,6 +119,12 @@ var _skill_bar: ProgressBar = null      # skill XP bar in the page banner — up
 var _skill_xp_label: Label = null
 var _skill_lv_label: Label = null
 var _skill_banner_id := ""
+# Active gather/craft card's Mastery row — refreshed live in _process (the page is
+# not rebuilt on loop completion, so the active action's bar must self-update).
+var _mastery_bar: ProgressBar = null
+var _mastery_left: Label = null
+var _mastery_right: Label = null
+var _mastery_id := ""
 var _combat_hp_bar: ProgressBar = null
 var _combat_hp_label: Label = null
 var _enemy_hp_bar: ProgressBar = null
@@ -448,6 +454,10 @@ func _process(_delta: float) -> void:
 			_skill_xp_label.text = "%s / %s XP" % [GameData.fmt(cur - base), GameData.fmt(nxt - base)]
 		if is_instance_valid(_skill_lv_label):
 			_skill_lv_label.text = "Lv %d" % lvl
+	# Active card's Mastery row advances live (the page is not rebuilt per loop).
+	if _mastery_id != "" and is_instance_valid(_mastery_bar) \
+			and is_instance_valid(_mastery_left) and is_instance_valid(_mastery_right):
+		_fill_mastery_row(_mastery_id, _mastery_left, _mastery_right, _mastery_bar)
 	if is_instance_valid(_combat_hp_bar):
 		var mx := GameState.combat_max_hp()
 		_combat_hp_bar.max_value = mx
@@ -926,6 +936,10 @@ func _refresh_current() -> void:
 	_skill_xp_label = null
 	_skill_lv_label = null
 	_skill_banner_id = ""
+	_mastery_bar = null
+	_mastery_left = null
+	_mastery_right = null
+	_mastery_id = ""
 	_combat_hp_bar = null
 	_combat_hp_label = null
 	_enemy_hp_bar = null
@@ -1017,6 +1031,7 @@ func _gather_card(id: String, a: Dictionary) -> Control:
 		var rt := GameState.rate_text("gather", id)
 		if rt != "":
 			_clbl(v, rt, 10, GREEN)
+		_mastery_row(v, id, GOLD, active)
 		var fill := Control.new()
 		fill.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		v.add_child(fill)
@@ -1079,6 +1094,7 @@ func _craft_card(id: String, r: Dictionary) -> Control:
 		var rt := GameState.rate_text("craft", id)
 		if rt != "":
 			_clbl(v, rt, 10, GREEN)
+		_mastery_row(v, id, CYAN, active)
 		var fill := Control.new()
 		fill.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		v.add_child(fill)
@@ -3790,6 +3806,66 @@ func _style_tab(b: Button, active: bool) -> void:
 		sb.bg_color = Color.html(bgc)
 		sb.set_corner_radius_all(8)
 		b.add_theme_stylebox_override(state, sb)
+
+# Compact per-action Mastery row on a gather/craft card (mirrors desktop
+# gathering_action_widget formatting, adapted to the mobile card style): a caption
+# row "MASTERY  LV n  ·  −x% time" + right teaser "in / needed ▸ LV m", and a thin
+# progress bar. The ACTIVE card's nodes are captured into members for live refresh.
+func _mastery_row(v: VBoxContainer, id: String, accent: String, active: bool) -> void:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 2)
+	var cap := HBoxContainer.new()
+	var left := Label.new()
+	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	left.add_theme_font_size_override("font_size", _fs(8))
+	cap.add_child(left)
+	var right := Label.new()
+	right.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	right.add_theme_font_size_override("font_size", _fs(8))
+	cap.add_child(right)
+	box.add_child(cap)
+	var bar := ProgressBar.new()
+	bar.custom_minimum_size = Vector2(0, 5)
+	bar.show_percentage = false
+	bar.max_value = 100
+	_style_bar(bar, accent)
+	box.add_child(bar)
+	v.add_child(box)
+	_fill_mastery_row(id, left, right, bar)
+	if active:
+		_mastery_id = id
+		_mastery_left = left
+		_mastery_right = right
+		_mastery_bar = bar
+
+# Shared text/value fill so the static build and the live _process refresh agree.
+func _fill_mastery_row(id: String, left: Label, right: Label, bar: ProgressBar) -> void:
+	var level := GameState.mastery_level(id)
+	var prog := GameState.mastery_progress(id)
+	var in_lvl := int(prog["in_level"])
+	var needed := maxi(1, int(prog["needed"]))
+	var pct := clampf(float(in_lvl) / float(needed) * 100.0, 0.0, 100.0)
+	var bonus_pct := int(round((1.0 - GameState.mastery_dur_mult(id)) * 100.0))
+	var suffix := ("  ·  −%d%% time" % bonus_pct) if bonus_pct > 0 else ""
+	var next_m := GameState.next_mastery_milestone(id)
+	# Brighten with progress so a leveled action reads as "alive" vs a fresh one.
+	var col := C_MUTED
+	if level >= 100:
+		col = GOLD
+	elif level >= 50:
+		col = GOLD
+	elif level > 0:
+		col = C_DIM
+	if level >= 100:
+		left.text = "MASTERY  LV 100  ✓%s" % suffix
+		right.text = "LV 100 ✓"
+		bar.value = 100.0
+	else:
+		left.text = "MASTERY  LV %d%s" % [level, suffix]
+		right.text = "%d / %d  ▸  LV %d" % [in_lvl, needed, next_m]
+		bar.value = pct
+	left.add_theme_color_override("font_color", Color.html(col))
+	right.add_theme_color_override("font_color", Color.html(col))
 
 func _style_bar(b: ProgressBar, accent: String) -> void:
 	var bg := StyleBoxFlat.new()
