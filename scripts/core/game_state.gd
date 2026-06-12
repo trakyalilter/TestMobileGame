@@ -84,6 +84,7 @@ var hazard_clears: Dictionary = {}       # hazard_zone_id -> true (first-clear r
 var game_flags: Dictionary = {}          # persistent unlock flags (e.g. z11_unlocked)
 var _enemy_enraged: bool = false         # v109 per-fight enrage state (reset on spawn)
 var enemy_vulnerable_timer: float = 0.0  # v85.2 when >0 enemy takes +20% damage
+var _player_berserk_timer: float = 0.0   # v85.2 Overdrive: +25% fire rate while >0
 
 # Shipyard
 var active_hull: String = ""
@@ -95,24 +96,59 @@ var custom_modules: Dictionary = {}     # custom_id -> rolled module instance (r
 # --- Module rarity / affix system ---
 const RARITY_LABEL := {0: "", 1: "Uncommon", 2: "Rare", 3: "Legendary", 4: "Unique"}
 const RARITY_COLOR := {0: "9aa7c2", 1: "35d935", 2: "3a9fff", 3: "ffcc33", 4: "ff44cc"}
-const RARITY_RANGE := {1: [0.05, 0.08], 2: [0.11, 0.15], 3: [0.18, 0.22], 4: [0.23, 0.27]}
-const RARITY_SELL := {0: 100, 1: 500, 2: 2500, 3: 15000, 4: 40000}
+# v71.0 RARITY_STAT_RANGE (desktop ref_shipyard_manager.gd ~L20-26). These multiply
+# the base module stat: Uncommon 1.30-1.50x, Rare 2.30-2.65x, Legendary 3.00-3.80x,
+# Unique 4.50-6.00x. (Mobile previously ran ~10x weaker at 1.05-1.27x.)
+const RARITY_RANGE := {1: [0.30, 0.50], 2: [1.30, 1.65], 3: [2.00, 2.80], 4: [3.50, 5.00]}
+# v100 RARITY_SELL_PRICES / RARITY_SPARE_PARTS (desktop ref ~L2563/2571).
+const RARITY_SELL := {0: 100, 1: 750, 2: 5000, 3: 30000, 4: 100000}
+const RARITY_SPARE_PARTS := {0: 1, 1: 3, 2: 8, 3: 25, 4: 75}
+# Desktop module zone-scaling curve (ref ~L29-31): early steps x1.34, late x1.28
+# (late start at zone 7), replacing mobile's flat pow(1.30, …).
+const MODULE_ZONE_SCALE_EARLY := 1.34
+const MODULE_ZONE_SCALE_LATE := 1.28
+const MODULE_ZONE_LATE_START := 7
 const BOOSTABLE := ["atk_kinetic", "atk_energy", "atk_explosive", "hp", "def", "eva", "accuracy",
 	"crit_chance", "max_shield", "shield_regen", "energy_capacity", "atk_speed_bonus",
 	"shield_regen_mult", "atk_speed_mult", "jamming_strength", "atk_interval"]
 const ZONE_SCALABLE := ["atk_kinetic", "atk_energy", "atk_explosive", "hp", "def", "eva",
 	"accuracy", "max_shield", "shield_regen", "energy_capacity", "atk_interval"]
+# v74.0 Module Affix System — full desktop AFFIX_DB (ref_shipyard_manager.gd ~L122-252).
+# `scaling`: "flat" → floor(raw * 1.8^(zone-1)); "linear_tier" → raw * zone; else
+# percent → raw/100 (a [0..1] fraction). `range` holds INTEGER endpoints (desktop).
+# Slot mapping note: desktop "cooling" slot has no mobile equivalent (mobile slots:
+# weapon/shield/armor/engine/battery/sensor) — heat_sync_focus drops "cooling" and
+# stays weapon-only.
 const AFFIX_DB := {
-	"static_burst":     {"name": "Static Burst", "type": "tactical", "range": [0.03, 0.08], "limit_to": ["weapon"], "desc": "%d%% shock on hit (resets enemy timer)"},
-	"void_strike":      {"name": "Void Strike", "type": "tactical", "range": [0.03, 0.08], "limit_to": ["weapon"], "desc": "%d%% chance to bypass shields"},
-	"heat_sync_focus":  {"name": "Heat-Sync Focus", "type": "tactical", "range": [0.05, 0.12], "limit_to": ["weapon", "cooling"], "desc": "+%d%% fire rate while Heat > 40%%"},
-	"capacitor_pulse":  {"name": "Capacitor Pulse", "type": "tactical", "range": [0.02, 0.05], "limit_to": ["shield", "battery"], "desc": "Restore %d%% shield on kill"},
-	"nanite_resurgence":{"name": "Nanite Resurgence", "type": "tactical", "range": [0.02, 0.05], "limit_to": ["armor"], "desc": "Restore %d%% hull on kill"},
-	"extractor_efficiency": {"name": "Extractor Efficiency", "type": "industrial", "range": [0.03, 0.10], "limit_to": ["sensor"], "desc": "+%d%% gather yield"},
-	"refinery_link":    {"name": "Refinery Link", "type": "industrial", "range": [0.03, 0.10], "limit_to": ["sensor"], "desc": "+%d%% craft speed"},
-	"nano_scavenger":   {"name": "Nano-Scavenger", "type": "industrial", "range": [0.03, 0.10], "limit_to": ["sensor"], "desc": "%d%% chance to scavenge parts on kill"},
-	"contract_negotiation": {"name": "Contract Negotiation", "type": "economy", "range": [0.03, 0.10], "limit_to": ["sensor"], "desc": "+%d%% bounty credits"},
-	"logistician_edge": {"name": "Logistician's Edge", "type": "economy", "range": [0.03, 0.10], "limit_to": ["sensor"], "desc": "-%d%% delivery material cost"},
+	# --- TACTICAL (Weapon, Sensor) ---
+	"static_burst":     {"name": "Static Burst", "type": "tactical", "scaling": "percent", "range": [3, 8], "limit_to": ["weapon"], "desc": "%d%% shock on hit (resets enemy timer)"},
+	"void_strike":      {"name": "Void Strike", "type": "tactical", "scaling": "percent", "range": [3, 8], "limit_to": ["weapon"], "desc": "%d%% chance to bypass shields"},
+	"flat_atk":         {"name": "Sharpened Edge", "type": "tactical", "scaling": "flat", "range": [2, 5], "limit_to": ["weapon"], "desc": "+%d flat attack damage"},
+	"flat_accuracy":    {"name": "Targeting Computer", "type": "tactical", "scaling": "flat", "range": [5, 15], "limit_to": ["weapon", "sensor"], "desc": "+%d flat accuracy"},
+	"heat_sync_focus":  {"name": "Heat-Sync Focus", "type": "tactical", "scaling": "percent", "range": [5, 12], "limit_to": ["weapon"], "desc": "+%d%% fire rate while Heat > 40%%"},
+	# --- DEFENSIVE (Armor, Shield) ---
+	"flat_hp":          {"name": "Reinforced Layers", "type": "defensive", "scaling": "flat", "range": [5, 15], "limit_to": ["armor"], "desc": "+%d flat hull integrity"},
+	"flat_def":         {"name": "Damped Plating", "type": "defensive", "scaling": "flat", "range": [1, 3], "limit_to": ["armor"], "desc": "+%d flat defense"},
+	"flat_shield":      {"name": "Flux Capacitor", "type": "defensive", "scaling": "flat", "range": [10, 30], "limit_to": ["shield"], "desc": "+%d flat shield capacity"},
+	"capacitor_pulse":  {"name": "Capacitor Pulse", "type": "defensive", "scaling": "percent", "range": [2, 5], "limit_to": ["shield", "battery"], "desc": "Restore %d%% shield on kill"},
+	"nanite_resurgence":{"name": "Nanite Resurgence", "type": "defensive", "scaling": "percent", "range": [2, 5], "limit_to": ["armor"], "desc": "Restore %d%% hull on kill"},
+	# --- INDUSTRIAL / ECONOMY (Sensor) ---
+	"refinery_link":    {"name": "Refinery Link", "type": "industrial", "scaling": "percent", "range": [3, 10], "limit_to": ["sensor"], "desc": "+%d%% craft speed"},
+	"extractor_efficiency": {"name": "Extractor Efficiency", "type": "industrial", "scaling": "percent", "range": [3, 10], "limit_to": ["sensor"], "desc": "+%d%% gather yield"},
+	"nano_scavenger":   {"name": "Nano-Scavenger", "type": "industrial", "scaling": "percent", "range": [3, 10], "limit_to": ["sensor"], "desc": "%d%% chance to scavenge parts on kill"},
+	"contract_negotiation": {"name": "Contract Negotiation", "type": "economy", "scaling": "percent", "range": [3, 10], "limit_to": ["sensor"], "desc": "+%d%% bounty credits"},
+	"logistician_edge": {"name": "Logistician's Edge", "type": "economy", "scaling": "percent", "range": [3, 10], "limit_to": ["sensor"], "desc": "-%d%% delivery material cost"},
+	# --- v85.1 Combat affixes ---
+	"combat_sight":     {"name": "Combat Sight", "type": "tactical", "scaling": "percent", "range": [2, 5], "limit_to": ["weapon", "sensor"], "desc": "+%d%% critical strike chance"},
+	"reflexive_plating":{"name": "Reflexive Plating", "type": "defensive", "scaling": "flat", "range": [2, 5], "limit_to": ["armor", "engine"], "desc": "+%d flat evasion"},
+	"hull_heal_on_hit": {"name": "Nanite Syringe", "type": "defensive", "scaling": "linear_tier", "range": [1, 3], "limit_to": ["weapon", "armor"], "desc": "Restore %d hull on every hit"},
+	"shield_heal_on_hit":{"name": "Shield Siphon", "type": "defensive", "scaling": "linear_tier", "range": [1, 3], "limit_to": ["weapon", "shield"], "desc": "Restore %d shield on every hit"},
+	# --- v85.3 Refined combat affixes ---
+	"lucky_hit_chance": {"name": "Tactical Breach Chance", "type": "tactical", "scaling": "percent", "range": [5, 10], "limit_to": ["weapon", "sensor"], "desc": "+%d%% tactical breach chance"},
+	"dmg_healthy":      {"name": "Precision Calibration", "type": "tactical", "scaling": "percent", "range": [10, 20], "limit_to": ["weapon"], "desc": "+%d%% damage vs high-integrity (>80%% hull)"},
+	"dmg_injured":      {"name": "Structural Exploitation", "type": "tactical", "scaling": "percent", "range": [15, 30], "limit_to": ["weapon"], "desc": "+%d%% damage vs damaged (<35%% hull)"},
+	"vuln_on_hit":      {"name": "Exposing Pulse", "type": "tactical", "scaling": "percent", "range": [5, 12], "limit_to": ["weapon"], "desc": "%d%% chance to Expose enemies (20%% more dmg) for 3s"},
+	"berserk_on_kill":  {"name": "Overdrive Catalyst", "type": "tactical", "scaling": "percent", "range": [8, 15], "limit_to": ["weapon", "engine"], "desc": "%d%% chance on kill to enter Overdrive (+25%% atk speed) for 5s"},
 }
 
 # Infrastructure (passive production buildings — runs in the background always)
@@ -413,6 +449,15 @@ func ship_stats() -> Dictionary:
 		var dmg := float(st.get("atk_energy", 0)) + float(st.get("atk_kinetic", 0)) + float(st.get("atk_explosive", 0))
 		if dmg > 0.0:
 			dps += dmg / maxf(0.1, float(st.get("atk_interval", 1.0)))
+	# v80.1/v85.1 Flat affix bonuses BEFORE gem/set multipliers (desktop recalc_stats
+	# ~L1966-1974). flat_atk folds into the aggregated attack as a flat damage add.
+	s.hp += affix_total("flat_hp")
+	s.shield += affix_total("flat_shield")
+	s.def += affix_total("flat_def")
+	s.acc += affix_total("flat_accuracy")
+	s.crit += affix_total("combat_sight")
+	s.eva += affix_total("reflexive_plating")
+	dps += affix_total("flat_atk")
 	s.atk = dps * (1.0 + spd_bonus) * spd_mult + float(h.get("atk", 0))
 	s["atk_speed_bonus"] = spd_bonus
 	s["hp_regen"] = 0.0
@@ -793,6 +838,14 @@ func roll_rarity(is_boss: bool) -> int:
 		return 1
 	return 0
 
+## Desktop module zone-scaling curve (ref get_module_zone_multiplier ~L2286): early
+## steps x1.34, then x1.28 from zone 7 on. Replaces mobile's flat pow(1.30, …).
+func module_zone_mult(zone_diff: int) -> float:
+	var diff := maxi(1, zone_diff)
+	var early_steps := mini(diff - 1, MODULE_ZONE_LATE_START - 1)
+	var late_steps := maxi(0, diff - MODULE_ZONE_LATE_START)
+	return pow(MODULE_ZONE_SCALE_EARLY, early_steps) * pow(MODULE_ZONE_SCALE_LATE, late_steps)
+
 ## Creates a rolled module instance (or the base for Common); returns its id.
 func generate_module(base_id: String, rarity: int, zone_diff: int) -> String:
 	if not GameData.MODULES.has(base_id):
@@ -801,7 +854,7 @@ func generate_module(base_id: String, rarity: int, zone_diff: int) -> String:
 		module_inventory[base_id] = int(module_inventory.get(base_id, 0)) + 1
 		return base_id
 	var base: Dictionary = GameData.MODULES[base_id]
-	var zmult := pow(1.30, maxi(0, zone_diff - 1))
+	var zmult := module_zone_mult(zone_diff)
 	var rng: Array = RARITY_RANGE[rarity]
 	var stats := {}
 	for sk in base.get("stats", {}):
@@ -812,7 +865,12 @@ func generate_module(base_id: String, rarity: int, zone_diff: int) -> String:
 				scaled = maxf(0.25, bv / zmult) if sk == "atk_interval" else bv * zmult
 			var bonus := randf_range(rng[0], rng[1])
 			if sk == "atk_interval":
-				stats[sk] = snappedf(maxf(0.25, scaled / (1.0 + bonus * 0.4)), 0.01)
+				# Desktop ref ~L2354-2359: coefficient 0.15, capped at -40% (0.6x
+				# base) and an absolute 0.25s (4Hz) floor, so high-rarity rolls don't
+				# compound DPS into outliers now that the bonus range is larger.
+				var boosted := scaled / (1.0 + bonus * 0.15)
+				boosted = maxf(boosted, scaled * 0.6)
+				stats[sk] = snappedf(maxf(0.25, boosted), 0.01)
 			else:
 				stats[sk] = snappedf(scaled * (1.0 + bonus), 0.1) if scaled < 50.0 else float(int(round(scaled * (1.0 + bonus))))
 		else:
@@ -827,11 +885,26 @@ func generate_module(base_id: String, rarity: int, zone_diff: int) -> String:
 		for aid in AFFIX_DB:
 			if AFFIX_DB[aid]["type"] in ["industrial", "economy"]:
 				pool.append(aid)
-	var n: int = mini({2: 1, 3: 2, 4: 3}.get(rarity, 0), pool.size())
+	# v101 affix count per rarity: Uncommon 1, Rare 2, Legendary 3, Unique 4.
+	var n: int = mini({1: 1, 2: 2, 3: 3, 4: 4}.get(rarity, 0), pool.size())
 	pool.shuffle()
 	var affixes := {}
+	var greater_affixes := []
 	for i in n:
-		affixes[pool[i]] = randf_range(AFFIX_DB[pool[i]]["range"][0], AFFIX_DB[pool[i]]["range"][1])
+		var aid: String = pool[i]
+		var cfg: Dictionary = AFFIX_DB[aid]
+		# v101 Greater Affix: 15% chance to pin value to range[1] * 2.0.
+		var is_greater := randf() < 0.15
+		var raw_val: float = float(cfg["range"][1]) * 2.0 if is_greater else float(randi_range(int(cfg["range"][0]), int(cfg["range"][1])))
+		if is_greater:
+			greater_affixes.append(aid)
+		# Scaling modes (desktop generate_module_drop ~L2422-2430).
+		var final_val := 0.0
+		match cfg.get("scaling", "percent"):
+			"flat": final_val = floor(raw_val * pow(1.8, maxi(0, zone_diff - 1)))
+			"linear_tier": final_val = raw_val * zone_diff
+			_: final_val = raw_val / 100.0
+		affixes[aid] = final_val
 	# Sockets: Unique = 3, Legendary = 1-3, Rare = 30% chance of 1.
 	var sockets := []
 	if rarity == 4:
@@ -846,6 +919,7 @@ func generate_module(base_id: String, rarity: int, zone_diff: int) -> String:
 		"name": "%s (%s)" % [base.get("name", base_id), RARITY_LABEL[rarity]],
 		"slot": slot, "stats": stats, "desc": base.get("desc", ""),
 		"rarity": rarity, "affixes": affixes, "base": base_id, "sockets": sockets,
+		"greater_affixes": greater_affixes,
 	}
 	module_inventory[cid] = int(module_inventory.get(cid, 0)) + 1
 	return cid
@@ -862,10 +936,18 @@ func sell_module(mid: String) -> bool:
 	if int(module_inventory.get(mid, 0)) <= 0:
 		return false
 	var price := 100
+	var rarity := 0
 	if custom_modules.has(mid):
-		price = int(RARITY_SELL.get(int(custom_modules[mid].get("rarity", 0)), 100))
+		rarity = int(custom_modules[mid].get("rarity", 0))
+		price = int(RARITY_SELL.get(rarity, 100))
 	else:
+		# Crafted modules: 25% of credit cost (desktop get_sell_price ~L2581).
 		price = maxi(50, int(float(GameData.MODULES.get(mid, {}).get("cost", {}).get("credits", 200)) * 0.25))
+		rarity = int(GameData.MODULES.get(mid, {}).get("rarity", 0))
+	# v100 Demolish parity: grant RARITY_SPARE_PARTS alongside credits (ref ~L2571).
+	# Mobile has no separate demolish action, so the spare-parts yield is folded into
+	# the sell path (the SparePart element already exists in GameData).
+	add_resource("SparePart", int(RARITY_SPARE_PARTS.get(rarity, 1)))
 	module_inventory[mid] = int(module_inventory[mid]) - 1
 	if module_inventory[mid] <= 0:
 		module_inventory.erase(mid)
@@ -1832,6 +1914,23 @@ func _combat_difficulty() -> int:
 			return int(z.get("difficulty", 1))
 	return 1
 
+# v101 Combat Loot Scaling (desktop ref_combat_manager.gd ~L1838-1861): keeps combat
+# resource drops in pace with gathering/processing progression. +1%/combat level,
+# +15%/zone tier above 1, times the efficiency research tier (x1.5..x4) and the warp
+# combat multiplier. Base/early stays ~1.0.
+func get_combat_loot_multiplier() -> float:
+	var mult := 1.0
+	mult += level_of("combat") * 0.01
+	mult += maxf(0.0, float(_combat_difficulty() - 1)) * 0.15
+	# Efficiency research tiers (same x1.5..x4 factor as get_combat_loot_multiplier).
+	if is_research_unlocked("efficiency_5"): mult *= 4.0
+	elif is_research_unlocked("efficiency_4"): mult *= 3.0
+	elif is_research_unlocked("efficiency_3"): mult *= 2.5
+	elif is_research_unlocked("efficiency_2"): mult *= 2.0
+	elif is_research_unlocked("efficiency_1"): mult *= 1.5
+	mult *= maxf(1.0, warp_combat_mult())
+	return mult
+
 func _event(text: String, color: String, side: String) -> void:
 	combat_events.append({"text": text, "color": color, "side": side, "seq": _event_seq})
 	_event_seq += 1
@@ -1873,6 +1972,10 @@ func _tick_combat(delta: float) -> void:
 		fire_sf += affix_total("heat_sync_focus")
 	if loadout_has_module("warp_stabilizer"):
 		fire_sf += 0.15
+	# v85.2 Overdrive (berserk_on_kill): +25% fire rate for 5s after a proc'd kill.
+	if _player_berserk_timer > 0.0:
+		_player_berserk_timer = maxf(0.0, _player_berserk_timer - delta)
+		fire_sf *= 1.25
 	# Broadside Array: periodic heavy kinetic salvo
 	if loadout_has_module("broadside_array"):
 		_broadside_timer += delta
@@ -1989,6 +2092,13 @@ func _player_fire(w: Dictionary, ss: Dictionary) -> void:
 	if randf() > hit:
 		_event("MISS", "9aa7c2", "enemy")
 		return
+	# v85.1 Heal-on-hit affixes (ref ~L1518-1525): restore hull / shield per landed hit.
+	var hull_heal := affix_total("hull_heal_on_hit")
+	if hull_heal > 0.0:
+		combat_hp = minf(combat_max_hp(), combat_hp + hull_heal)
+	var shield_heal := affix_total("shield_heal_on_hit")
+	if shield_heal > 0.0:
+		player_shield = minf(player_max_shield(), player_shield + shield_heal)
 	# v85.2 Lucky Hit: chance to apply Vulnerable (+20% damage taken for 3s).
 	var lucky := 0.10 + affix_total("lucky_hit_chance")
 	if randf() < lucky:
@@ -2207,7 +2317,7 @@ func resolve_damage(atk_k: float, atk_e: float, atk_x: float, c_shield: float, c
 	return [dmg_shield * variance, maxf(minhull, hull * variance), is_crit]
 
 func _win_combat() -> void:
-	_roll_loot(enemy_inst["loot"], 1.0)
+	_roll_loot(enemy_inst["loot"], get_combat_loot_multiplier())
 	add_xp("combat", int(enemy_inst["xp"] * (1.0 + research_bonus("combat_xp"))))
 	bounty_on_kill(active_id)
 	_mission_event("defeat", active_id, 1)
@@ -2219,28 +2329,35 @@ func _win_combat() -> void:
 	var nan := minf(affix_total("nanite_resurgence"), 0.30)
 	if nan > 0.0:
 		combat_hp = minf(combat_max_hp(), combat_hp + combat_max_hp() * nan)
+	# v85.2 Overdrive Catalyst: chance on kill to surge fire rate for 5s (ref ~L1982).
+	var berserk := affix_total("berserk_on_kill")
+	if berserk > 0.0 and randf() < berserk:
+		_player_berserk_timer = 5.0
+		_event("OVERDRIVEN!", "ff6a40", "player")
 	var scav := affix_total("nano_scavenger")
 	if scav > 0.0 and randf() < scav:
 		var parts := ["Circuit", "Chip", "AdvCircuit"]
 		var p: String = parts[randi() % parts.size()]
 		add_resource(p, 1 + int(_combat_difficulty() / 3.0))
 		_event("SCAVENGED " + GameData.res_name(p), "55d3e6", "enemy")
-	# Rolled module drop (rarity + affixes)
-	var dc: float = float(enemy_inst.get("drop_chance", 0.0)) * (1.0 + research_bonus("xeno_engineering"))
-	if enemy_inst.get("elite", false):
-		dc = minf(1.0, dc * 3.0)
-	if dc > 0.0 and randf() < dc:
-		var pool := []
-		for mid in enemy_inst.get("drop_pool", []):
-			if GameData.MODULES.has(mid) and module_unlocked(mid):
-				pool.append(mid)
-		if not pool.is_empty():
-			var base_id: String = pool[randi() % pool.size()]
-			var rarity := roll_rarity(enemy_inst.get("elite", false))
-			var cid := generate_module(base_id, rarity, _combat_difficulty())
-			if cid != "":
-				_event("%s DROP" % (RARITY_LABEL[rarity] if rarity > 0 else "MODULE").to_upper(), RARITY_COLOR.get(rarity, "b78ae8"), "enemy")
-				_mission_sync()   # drop_rarity missions re-check on a new module drop
+	# Rolled module drop (rarity + affixes). v109: bosses burst — roll 4-10 modules
+	# bypassing the drop-chance gate (ref ~L2075-2081); regulars keep the single
+	# drop_chance-gated roll.
+	var pool := []
+	for mid in enemy_inst.get("drop_pool", []):
+		if GameData.MODULES.has(mid) and module_unlocked(mid):
+			pool.append(mid)
+	if not pool.is_empty():
+		var is_boss: bool = bool(enemy_inst.get("is_boss", false))
+		if is_boss:
+			for _i in randi_range(4, 10):
+				_roll_one_module_drop(pool)
+		else:
+			var dc: float = float(enemy_inst.get("drop_chance", 0.0)) * (1.0 + research_bonus("xeno_engineering"))
+			if enemy_inst.get("elite", false):
+				dc = minf(1.0, dc * 3.0)
+			if dc > 0.0 and randf() < dc:
+				_roll_one_module_drop(pool)
 	# Set-piece drop: bosses drop their themed set pieces (8% chance).
 	for sn in GameData.SETS:
 		var sd: Dictionary = GameData.SETS[sn]
@@ -2284,6 +2401,18 @@ func _win_combat() -> void:
 			_event("WAVE %d/%d" % [int(hazard_state["wave"]) + 1, int(hazard_state["max_waves"])], "ecb44a", "player")
 		return
 	_spawn_enemy_inst(active_id)   # auto re-engage (idle farming)
+
+# v109 single rarity-rolled module drop from the unlocked pool (ref _roll_one_module_drop
+# ~L1892). Bosses call this 4-10x; regulars once behind the drop_chance gate.
+func _roll_one_module_drop(pool: Array) -> void:
+	if pool.is_empty():
+		return
+	var base_id: String = pool[randi() % pool.size()]
+	var rarity := roll_rarity(bool(enemy_inst.get("is_boss", false)) or enemy_inst.get("elite", false))
+	var cid := generate_module(base_id, rarity, _combat_difficulty())
+	if cid != "":
+		_event("%s DROP" % (RARITY_LABEL[rarity] if rarity > 0 else "MODULE").to_upper(), RARITY_COLOR.get(rarity, "b78ae8"), "enemy")
+		_mission_sync()   # drop_rarity missions re-check on a new module drop
 
 func _lose_combat() -> void:
 	var cost := mini(repair_cost(), credits)   # repair fee on defeat (capped at available credits)
@@ -2415,7 +2544,24 @@ func _offline_combat(delta: float) -> void:
 	var sustain := float(ship_stats().get("shield_regen", 0.0)) + (50.0 if has_set_bonus("patient_zero") else 0.0)
 	if edps > sustain:
 		return   # not survivable unattended
-	var summary := _offline_loot(e.get("loot", []), 1.0, reps)
+	# v101 offline parity: loot scales by the same combat multiplier as online, and
+	# each kill rolls module drops (ref calculate_offline ~L2449-2511).
+	var summary := _offline_loot(e.get("loot", []), get_combat_loot_multiplier(), reps)
+	var pool := []
+	for mid in e.get("drop_pool", []):
+		if GameData.MODULES.has(mid) and module_unlocked(mid):
+			pool.append(mid)
+	if not pool.is_empty():
+		var dc: float = float(e.get("drop_chance", 0.0)) * (1.0 + research_bonus("xeno_engineering"))
+		var mods := 0
+		for _i in reps:
+			if dc > 0.0 and randf() < dc:
+				var base_id: String = pool[randi() % pool.size()]
+				var rarity := roll_rarity(false)
+				if generate_module(base_id, rarity, diff) != "":
+					mods += 1
+		if mods > 0:
+			summary += "+%d Modules  " % mods
 	add_xp("combat", int(e.get("xp", 0)) * reps)
 	combat_hp = combat_max_hp()
 	player_shield = player_max_shield()
