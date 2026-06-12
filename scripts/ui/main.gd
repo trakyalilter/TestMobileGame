@@ -115,6 +115,10 @@ var _banner_time: Label
 var _banner_bar: ProgressBar
 var _active_bar: ProgressBar = null
 var _active_timer: Label = null
+var _skill_bar: ProgressBar = null      # skill XP bar in the page banner — updated live
+var _skill_xp_label: Label = null
+var _skill_lv_label: Label = null
+var _skill_banner_id := ""
 var _combat_hp_bar: ProgressBar = null
 var _combat_hp_label: Label = null
 var _enemy_hp_bar: ProgressBar = null
@@ -431,6 +435,19 @@ func _process(_delta: float) -> void:
 				_banner_bar.value = pct
 			if is_instance_valid(_banner_time):
 				_banner_time.text = "%.1fs" % maxf(0.0, dur - GameState.progress)
+	# Skill XP banner advances live too (it's only built on a structural refresh,
+	# which no longer fires every loop completion).
+	if _skill_banner_id != "" and is_instance_valid(_skill_bar):
+		var sk := _skill_banner_id
+		var lvl := GameState.level_of(sk)
+		var cur := int(GameState.skills.get(sk, 0))
+		var base := GameState.xp_for_level(lvl)
+		var nxt := GameState.xp_for_level(lvl + 1)
+		_skill_bar.value = 100.0 if nxt <= base else float(cur - base) / float(nxt - base) * 100.0
+		if is_instance_valid(_skill_xp_label):
+			_skill_xp_label.text = "%s / %s XP" % [GameData.fmt(cur - base), GameData.fmt(nxt - base)]
+		if is_instance_valid(_skill_lv_label):
+			_skill_lv_label.text = "Lv %d" % lvl
 	if is_instance_valid(_combat_hp_bar):
 		var mx := GameState.combat_max_hp()
 		_combat_hp_bar.max_value = mx
@@ -905,6 +922,10 @@ func _refresh_all() -> void:
 func _refresh_current() -> void:
 	_active_bar = null
 	_active_timer = null
+	_skill_bar = null
+	_skill_xp_label = null
+	_skill_lv_label = null
+	_skill_banner_id = ""
 	_combat_hp_bar = null
 	_combat_hp_label = null
 	_enemy_hp_bar = null
@@ -3552,6 +3573,12 @@ func _skill_banner(v: VBoxContainer, title: String, skill_id: String, accent: St
 	xpl.add_theme_color_override("font_color", Color.html(C_MUTED))
 	box.add_child(xpl)
 	v.add_child(panel)
+	# Keep handles so _process can advance the XP bar/labels live (the page is
+	# no longer rebuilt on every loop completion).
+	_skill_bar = bar
+	_skill_xp_label = xpl
+	_skill_lv_label = lv
+	_skill_banner_id = skill_id
 
 func _section(v: VBoxContainer, text: String, accent: String) -> void:
 	if text == "":
