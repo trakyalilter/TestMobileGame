@@ -170,11 +170,11 @@ func _ready() -> void:
 	call_deferred("_update_safe_area")
 	_refresh_top()
 	_refresh_banner()
-	# New players start on the Missions tutorial (like the desktop game).
-	_show("missions" if not GameState.has_mission_progress() else "gather")
-	_update_badges()
-	_update_coach()
-	_show_welcome()
+	# Boot lands on the Melvor-style character-select screen. No slot is active yet;
+	# the game UI underneath is built but stays hidden behind the overlay until the
+	# player picks a slot (Play) or creates a new character. _enter_game() runs the
+	# original in-game entry flow once a slot is live.
+	_show_char_select()
 
 # ============================================================ COACHING
 # Pulses the next thing to tap based on the active tutorial mission, and shows a
@@ -535,6 +535,192 @@ func _dismiss_welcome() -> void:
 		if GameState.pending_offline != "":
 			_show_offline(GameState.pending_offline)
 			GameState.pending_offline = "")
+
+# ============================================================ CHARACTER SELECT
+var _char_select: Control = null
+
+## Relative-time helper for slot summaries ("just now / 5m ago / 3h ago / 2d ago").
+func _fmt_ago(unix: float) -> String:
+	if unix <= 0.0:
+		return "never"
+	var d := Time.get_unix_time_from_system() - unix
+	if d < 60.0: return "just now"
+	if d < 3600.0: return "%dm ago" % int(d / 60.0)
+	if d < 86400.0: return "%dh ago" % int(d / 3600.0)
+	return "%dd ago" % int(d / 86400.0)
+
+## Melvor-style title screen: "STELLAR FORGE" + a list of save slots. Filled slots
+## show a summary + Play/Delete; empty slots offer "+ New Character". Shown on boot.
+func _show_char_select() -> void:
+	_char_select = Control.new()
+	_char_select.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_char_select.mouse_filter = Control.MOUSE_FILTER_STOP
+	_char_select.z_index = 50
+	add_child(_char_select)
+	var bg := TextureRect.new()
+	bg.texture = _space_tex()
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	bg.stretch_mode = TextureRect.STRETCH_SCALE
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_char_select.add_child(bg)
+	var scrim := ColorRect.new()           # darken the starfield for card contrast
+	scrim.color = Color(0, 0, 0, 0.55)
+	scrim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_char_select.add_child(scrim)
+	var sc := ScrollContainer.new()
+	sc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_char_select.add_child(sc)
+	var center := CenterContainer.new()
+	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	sc.add_child(center)
+	var mc := MarginContainer.new()
+	for s in ["left", "right"]:
+		mc.add_theme_constant_override("margin_" + s, 22)
+	for s in ["top", "bottom"]:
+		mc.add_theme_constant_override("margin_" + s, 34)
+	mc.custom_minimum_size = Vector2(get_viewport_rect().size.x, 0)
+	center.add_child(mc)
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 12)
+	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	mc.add_child(col)
+	_wlabel(col, "✦", 52, CYAN)
+	_wlabel(col, "STELLAR FORGE", 34, C_TEXT)
+	_wlabel(col, "Select Commander", 14, GOLD)
+	var sp := Control.new()
+	sp.custom_minimum_size = Vector2(0, 10)
+	col.add_child(sp)
+	for n in range(1, GameState.SLOT_COUNT + 1):
+		col.add_child(_slot_card(n))
+
+## A single slot row: a filled card (name + summary + Play/Delete) or a "+ New
+## Character" prompt. `n` is 1..SLOT_COUNT.
+func _slot_card(n: int) -> Control:
+	var summary: Dictionary = GameState.slot_summary(n)
+	var filled: bool = summary.get("exists", false)
+	var accent := CYAN if filled else C_MUTED
+	var v := _card(accent, filled, 96)
+	var mc := MarginContainer.new()
+	for s in ["left", "right", "top", "bottom"]:
+		mc.add_theme_constant_override("margin_" + s, 8)
+	# _card returns the inner VBox; reparent its contents into a padded margin.
+	var panel := v.get_parent()
+	panel.remove_child(v)
+	panel.add_child(mc)
+	mc.add_child(v)
+	if not filled:
+		var hb := HBoxContainer.new()
+		hb.add_theme_constant_override("separation", 8)
+		v.add_child(hb)
+		var lbl := Label.new()
+		lbl.text = "＋  New Character"
+		lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		lbl.add_theme_font_size_override("font_size", _fs(15))
+		lbl.add_theme_color_override("font_color", Color.html(C_DIM))
+		hb.add_child(lbl)
+		var slot_lbl := Label.new()
+		slot_lbl.text = "Slot %d" % n
+		slot_lbl.add_theme_font_size_override("font_size", _fs(11))
+		slot_lbl.add_theme_color_override("font_color", Color.html(C_MUTED))
+		hb.add_child(slot_lbl)
+		var create := _card_button("Create", GREEN, true)
+		create.pressed.connect(_prompt_new_character.bind(n))
+		v.add_child(create)
+		return panel
+	# Filled slot.
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 8)
+	v.add_child(head)
+	var nm := Label.new()
+	nm.text = String(summary.get("name", "Commander"))
+	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	nm.add_theme_font_size_override("font_size", _fs(17))
+	nm.add_theme_color_override("font_color", Color.html(C_TEXT))
+	head.add_child(nm)
+	var slot_lbl2 := Label.new()
+	slot_lbl2.text = "Slot %d" % n
+	slot_lbl2.add_theme_font_size_override("font_size", _fs(10))
+	slot_lbl2.add_theme_color_override("font_color", Color.html(C_MUTED))
+	head.add_child(slot_lbl2)
+	var summ := Label.new()
+	summ.text = "Combat Lv %d   ·   ₡%s   ·   %s   ·   %s" % [
+		int(summary.get("combat_level", 1)), GameData.fmt(int(summary.get("credits", 0))),
+		String(summary.get("sector", "Lunar Orbit")), _fmt_ago(float(summary.get("last_played", 0.0)))]
+	summ.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	summ.add_theme_font_size_override("font_size", _fs(11))
+	summ.add_theme_color_override("font_color", Color.html(C_DIM))
+	v.add_child(summ)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	v.add_child(row)
+	var play := _card_button("▶  Play", CYAN, true)
+	play.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	play.pressed.connect(_play_slot.bind(n))
+	row.add_child(play)
+	var del := _card_button("🗑", RED, true)
+	del.custom_minimum_size = Vector2(64, 54)
+	del.pressed.connect(_confirm_delete_slot.bind(n))
+	row.add_child(del)
+	return panel
+
+## Name-entry modal → create a fresh character in slot n and enter the game.
+func _prompt_new_character(n: int) -> void:
+	_modal("NEW COMMANDER", GREEN, func(v: VBoxContainer, close: Callable) -> void:
+		_clbl(v, "Name your commander", 12, C_DIM)
+		var edit := LineEdit.new()
+		edit.text = "Commander"
+		edit.max_length = 16
+		edit.select_all_on_focus = true
+		edit.custom_minimum_size = Vector2(0, 48)
+		edit.add_theme_font_size_override("font_size", _fs(15))
+		v.add_child(edit)
+		var go := _card_button("Begin", GREEN, true)
+		go.pressed.connect(func() -> void:
+			var nm: String = edit.text.strip_edges()
+			if nm == "":
+				nm = "Commander"
+			close.call()
+			GameState.new_character(n, nm)
+			_enter_game())
+		v.add_child(go))
+
+func _play_slot(n: int) -> void:
+	GameState.select_slot(n)
+	_enter_game()
+
+func _confirm_delete_slot(n: int) -> void:
+	var summary: Dictionary = GameState.slot_summary(n)
+	_modal("DELETE COMMANDER", RED, func(v: VBoxContainer, close: Callable) -> void:
+		_clbl(v, "Permanently delete %s (Slot %d)?" % [String(summary.get("name", "Commander")), n], 13, C_TEXT)
+		_clbl(v, "This cannot be undone.", 11, C_MUTED)
+		var del := _card_button("Delete", RED, true)
+		del.pressed.connect(func() -> void:
+			GameState.delete_slot(n)
+			close.call()
+			_rebuild_char_select())
+		v.add_child(del))
+
+## Tear down and rebuild the character-select overlay (after create/delete).
+func _rebuild_char_select() -> void:
+	if is_instance_valid(_char_select):
+		_char_select.queue_free()
+	_char_select = null
+	_show_char_select()
+
+## A slot is now active — remove the select overlay, refresh the UI to the loaded
+## save, land on the right page, and run the original welcome + offline flow.
+func _enter_game() -> void:
+	if is_instance_valid(_char_select):
+		_char_select.queue_free()
+	_char_select = null
+	_refresh_all()
+	_refresh_banner()
+	_show("missions" if not GameState.has_mission_progress() else "gather")
+	_update_badges()
+	_update_coach()
+	_show_welcome()
 
 const SKILL_TITLE := {"harvesting": "HARVESTING", "fabrication": "ENGINEERING", "combat": "COMBAT", "infrastructure": "INFRASTRUCTURE"}
 

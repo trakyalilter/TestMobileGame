@@ -229,12 +229,55 @@ var pending_offline: String = ""
 var _bg_time := 0.0             # wall-clock when the app was backgrounded (0 = foreground)
 var offline_combat := false             # option: process combat while away (off by default, like desktop)
 
+# Legacy single-save path (pre-slots). Kept only for the one-time migration below.
 const SAVE_PATH := "user://stellarforge_save.json"
+# Melvor-style multi-slot saves. Each slot is an independent self-contained save.
+const SLOT_COUNT := 4
+var current_slot := 0                    # 0 = no slot active (character-select screen)
+var character_name := "Commander"        # active character's display name
+var _created_at := 0.0                   # unix time this character was created (slot metadata)
 const AUTOSAVE_INTERVAL := 15.0
 var _save_accum := 0.0
 
+func slot_path(n: int) -> String:
+	return "user://save_slot_%d.json" % n
+
 func _ready() -> void:
-	load_game()
+	# Boot deferred: NO slot is loaded here anymore. The UI shows a character-select
+	# screen first, then calls select_slot()/new_character() which runs enter_slot().
+	# We only run the one-time legacy migration and leave state at fresh defaults.
+	_migrate_legacy_save()
+
+## One-time migration: a pre-slots single save becomes Slot 1 so existing players
+## keep their progress. Only runs if the legacy file exists and Slot 1 does not.
+func _migrate_legacy_save() -> void:
+	if not FileAccess.file_exists(SAVE_PATH):
+		return
+	if FileAccess.file_exists(slot_path(1)):
+		return
+	# Read the legacy JSON, stamp a default name, and write it as Slot 1.
+	var f := FileAccess.open(SAVE_PATH, FileAccess.READ)
+	if f == null:
+		return
+	var txt := f.get_as_text()
+	f.close()
+	var json := JSON.new()
+	if json.parse(txt) != OK or typeof(json.data) != TYPE_DICTIONARY:
+		return
+	var data: Dictionary = json.data
+	if not data.has("character_name"):
+		data["character_name"] = "Commander"
+	if not data.has("created_at"):
+		data["created_at"] = Time.get_unix_time_from_system()
+	var out := FileAccess.open(slot_path(1), FileAccess.WRITE)
+	if out == null:
+		return
+	out.store_string(JSON.stringify(data, "\t"))
+	out.close()
+
+## Runs AFTER a slot becomes active (load_game / new_character) — the post-load init
+## that used to live in _ready. Brings transient state up to a playable baseline.
+func enter_slot() -> void:
 	if active_hull == "":
 		active_hull = "corvette_hull"
 		owned_hulls["corvette_hull"] = true
@@ -264,16 +307,20 @@ func _process(delta: float) -> void:
 	_save_accum += delta
 	if _save_accum >= AUTOSAVE_INTERVAL:
 		_save_accum = 0.0
-		save_game()
+		if current_slot != 0:        # never autosave to disk while at character-select
+			save_game()
 
 func _notification(what: int) -> void:
+	# Saves are gated on an active slot — quitting/backgrounding at the
+	# character-select screen must not write a half-initialized state to disk.
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_WM_GO_BACK_REQUEST:
-		save_game()
+		if current_slot != 0:
+			save_game()
 	# Android freezes the process while backgrounded (no _process ticks), so we
 	# record when we leave and credit the elapsed time on return — same as a cold
 	# launch, but without needing a full reload.
 	elif what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_WM_WINDOW_FOCUS_OUT:
-		if _bg_time == 0.0:
+		if _bg_time == 0.0 and current_slot != 0:
 			_bg_time = Time.get_unix_time_from_system()
 			save_game()
 	elif what == NOTIFICATION_APPLICATION_RESUMED or what == NOTIFICATION_WM_WINDOW_FOCUS_IN:
@@ -3644,22 +3691,28 @@ func save_game() -> void:
 		"boss_kills": boss_kills,
 		"hazard_clears": hazard_clears,
 		"game_flags": game_flags,
+		"character_name": character_name,
+		"created_at": _created_at,
 		"time": Time.get_unix_time_from_system(),
 	}
-	var tmp := SAVE_PATH + ".tmp"
+	if current_slot == 0:        # no active slot — nothing to write to
+		return
+	var path := slot_path(current_slot)
+	var tmp := path + ".tmp"
 	var f := FileAccess.open(tmp, FileAccess.WRITE)
 	if f == null:
 		return
 	f.store_string(JSON.stringify(data, "\t"))
 	f.close()
-	if FileAccess.file_exists(SAVE_PATH):
-		DirAccess.copy_absolute(SAVE_PATH, SAVE_PATH + ".bak")
-	DirAccess.rename_absolute(tmp, SAVE_PATH)
+	if FileAccess.file_exists(path):
+		DirAccess.copy_absolute(path, path + ".bak")
+	DirAccess.rename_absolute(tmp, path)
 
 func load_game() -> void:
-	if not FileAccess.file_exists(SAVE_PATH):
+	var path := slot_path(current_slot) if current_slot != 0 else SAVE_PATH
+	if not FileAccess.file_exists(path):
 		return
-	var f := FileAccess.open(SAVE_PATH, FileAccess.READ)
+	var f := FileAccess.open(path, FileAccess.READ)
 	if f == null:
 		return
 	var txt := f.get_as_text()
@@ -3751,6 +3804,8 @@ func load_game() -> void:
 		boss_kills[k] = int(boss_kills[k])
 	hazard_clears = data.get("hazard_clears", {})
 	game_flags = data.get("game_flags", {})
+	character_name = String(data.get("character_name", "Commander"))
+	_created_at = float(data.get("created_at", 0.0))
 	# Reveal back-compat: saves that already passed a milestone shouldn't re-hide it.
 	if is_research_unlocked("zone_6_access") or total_warps > 0:
 		game_flags["warp_revealed"] = true
@@ -3831,8 +3886,94 @@ func hard_reset() -> void:
 	stop_task()
 	generate_bounty_pool()
 	_standing_fill()
-	if FileAccess.file_exists(SAVE_PATH):
-		DirAccess.remove_absolute(SAVE_PATH)
+	character_name = "Commander"
+	_created_at = 0.0
+	# NB: hard_reset only clears IN-MEMORY state now. It must NOT delete any slot
+	# file, so creating a new character can't wipe a sibling slot. The active slot's
+	# on-disk file is overwritten naturally on the next save_game() (e.g. new_character).
 	resources_changed.emit()
 	skills_changed.emit()
 	research_changed.emit()
+
+# ---------------- Save slots (Melvor-style character select) ----------------
+## Read slot n's save WITHOUT touching live state and summarize it for the picker.
+## Returns {exists=false} for empty/corrupt slots.
+func slot_summary(n: int) -> Dictionary:
+	var path := slot_path(n)
+	if not FileAccess.file_exists(path):
+		return {"exists": false}
+	var f := FileAccess.open(path, FileAccess.READ)
+	if f == null:
+		return {"exists": false}
+	var txt := f.get_as_text()
+	f.close()
+	var json := JSON.new()
+	if json.parse(txt) != OK or typeof(json.data) != TYPE_DICTIONARY:
+		return {"exists": false}
+	var data: Dictionary = json.data
+	# Combat level from the saved combat XP via the same xp→level table.
+	var combat_xp := 0
+	var sk = data.get("skills", {})
+	if sk is Dictionary:
+		combat_xp = int(sk.get("combat", 0))
+	var lvl := 1
+	while lvl < MAX_LEVEL and combat_xp >= xp_for_level(lvl + 1):
+		lvl += 1
+	# Sector label = furthest-unlocked combat zone, derived from saved research.
+	var research := {}
+	for r in data.get("research", []):
+		research[r] = true
+	var gf = data.get("game_flags", {})
+	if not (gf is Dictionary):
+		gf = {}
+	var sector := "Lunar Orbit"
+	for z in GameData.ZONES:
+		var unlocked := false
+		if z.has("unlock_flag"):
+			# Flag-gated zones (e.g. The Threshold) need the flag set — NOT open by default.
+			unlocked = bool(gf.get(z["unlock_flag"], false))
+		else:
+			var req: String = String(z.get("research_req", ""))
+			unlocked = (req == "" or research.has(req))
+		if unlocked:
+			sector = String(z.get("name", sector))
+	return {
+		"exists": true,
+		"name": String(data.get("character_name", "Commander")),
+		"combat_level": lvl,
+		"credits": int(data.get("credits", 0)),
+		"sector": sector,
+		"last_played": float(data.get("time", 0.0)),
+	}
+
+## Activate slot n: load its save (computes offline) and run post-load init.
+func select_slot(n: int) -> void:
+	current_slot = n
+	load_game()
+	enter_slot()
+
+## Create a fresh character in slot n. Resets in-memory state (without deleting any
+## sibling slot file), stamps the name, runs post-load init, and writes the slot file.
+func new_character(n: int, name: String) -> void:
+	hard_reset()
+	current_slot = n
+	character_name = name if name.strip_edges() != "" else "Commander"
+	_created_at = Time.get_unix_time_from_system()
+	enter_slot()
+	save_game()
+
+## Delete slot n's save (and its .bak). Clears current_slot if it was active.
+func delete_slot(n: int) -> void:
+	var path := slot_path(n)
+	if FileAccess.file_exists(path):
+		DirAccess.remove_absolute(path)
+	if FileAccess.file_exists(path + ".bak"):
+		DirAccess.remove_absolute(path + ".bak")
+	if current_slot == n:
+		current_slot = 0
+
+func has_any_save() -> bool:
+	for n in range(1, SLOT_COUNT + 1):
+		if FileAccess.file_exists(slot_path(n)):
+			return true
+	return false

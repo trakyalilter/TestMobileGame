@@ -69,6 +69,10 @@ func _run() -> void:
 	gs.mastery.erase("gather_dirt")
 
 	# ---- Persistence round-trip ----
+	# Saves now target the active slot; activate one so save/load hit disk.
+	for n in range(1, gs.SLOT_COUNT + 1):
+		gs.delete_slot(n)
+	gs.current_slot = 1
 	gs.stop_task()                                 # don't persist a live task into the save file
 	gs.mastery["gather_dirt"] = 123.0
 	gs.mastery["smelt_steel_basic"] = 7.5

@@ -27,8 +27,19 @@ func _run() -> void:
 	root.add_child(main)
 	await process_frame
 	await process_frame
-	# Give the player gear + research so combat/ship/research pages have content.
+	# Boot now lands on character-select (no slot loaded). Enter a fresh slot so the
+	# in-game state (hull, standing board, missions, bounty) is initialized, then
+	# dismiss the select overlay before driving the pages.
 	var gs = root.get_node("GameState")
+	for n in range(1, gs.SLOT_COUNT + 1):
+		gs.delete_slot(n)
+	gs.new_character(1, "Tester")
+	if is_instance_valid(main._char_select):
+		main._char_select.queue_free()
+		main._char_select = null
+	main._refresh_all()
+	await process_frame
+	# Give the player gear + research so combat/ship/research pages have content.
 	for mid in ["z1_kinetic", "z1_energy", "z1_shield", "z1_battery"]:
 		gs.module_inventory[mid] = 1
 		gs.equip_module(mid)

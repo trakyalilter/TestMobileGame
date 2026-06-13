@@ -57,6 +57,14 @@ func _run() -> void:
 		main._welcome.queue_free()
 		main._welcome = null
 	var gs = root.get_node("GameState")
+	# Boot now lands on character-select (deferred load). Enter a fresh slot so the
+	# default hull / combat baseline is initialized before driving combat.
+	for n in range(1, gs.SLOT_COUNT + 1):
+		gs.delete_slot(n)
+	gs.new_character(1, "Tester")
+	if is_instance_valid(main._char_select):
+		main._char_select.queue_free()
+		main._char_select = null
 	_unlock_all(gs)
 
 	# ============================================================ TASK 1: COACH
