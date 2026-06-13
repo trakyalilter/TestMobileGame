@@ -282,6 +282,16 @@ func get_mastery_duration_mult(action_id: String) -> float:
 func is_mastery_alt_unlocked(action_id: String) -> bool:
 	return get_mastery_level(action_id) >= 50
 
+# Infra↔Mastery link: first action whose PRIMARY loot (first entry) is `symbol`.
+# Lets extraction buildings attribute to the gathering action's Mastery.
+func get_action_id_for_output(symbol: String) -> String:
+	for aid in actions:
+		var lt = actions[aid].get("loot_table", [])
+		if lt is Array and lt.size() > 0 and lt[0] is Array and lt[0].size() > 0:
+			if String(lt[0][0]) == symbol:
+				return aid
+	return ""
+
 # P1.3 Alt-recipe framework — returns the configured alt-recipe id for this
 # action IF mastery is unlocked AND the action has an `alt_recipe_id` field.
 # Content (per-action alt-recipes) is backfilled separately; until an action

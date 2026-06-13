@@ -602,7 +602,7 @@ var recipes: Dictionary = {
 	# Lithium Chain
 	"refine_lithium": {
 		"name": "Refine Lithium",
-		"description": "Extract Lithium from Spodumene crystals.",
+		"description": "Extract Lithium from raw Lithium Ore.",
 		"input": {"Spodumene": 2},
 		"output": {"Li": 1},
 		"duration": 5.0,
@@ -1253,6 +1253,16 @@ func get_mastery_duration_mult(recipe_id: String) -> float:
 
 func is_mastery_alt_unlocked(recipe_id: String) -> bool:
 	return get_mastery_level(recipe_id) >= 50
+
+# Infra↔Mastery link: first recipe whose output produces `symbol`. Lets the
+# infrastructure manager attribute a producing building to the Mastery of the
+# recipe that crafts the same material (insertion-order = canonical recipe).
+func get_recipe_id_for_output(symbol: String) -> String:
+	for rid in recipes:
+		var out = recipes[rid].get("output", {})
+		if out is Dictionary and out.has(symbol):
+			return rid
+	return ""
 
 # P1.3 Alt-recipe framework — returns the configured alt-recipe id for this
 # recipe IF mastery is unlocked AND the recipe has an `alt_recipe_id` field.

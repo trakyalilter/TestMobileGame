@@ -14,6 +14,7 @@ var parent_ui: Node
 
 var production_timer: float = 0.0
 var production_interval: float = 1.0
+var _mastery_lbl: Label
 
 func setup(p_bid: String, p_data: Dictionary, p_manager, p_parent):
 	bid = p_bid
@@ -105,7 +106,16 @@ func _ensure_header():
 		stats_text = "-%.1f kW %s" % [cons, yield_text]
 		stats_lbl.add_theme_color_override("font_color", Color.TOMATO)
 	stats_lbl.text = stats_text
-	
+
+	# Infra↔Mastery readout — populated by update_state(), hidden when unlinked.
+	_mastery_lbl = Label.new()
+	_mastery_lbl.add_theme_font_size_override("font_size", 10)
+	_mastery_lbl.add_theme_color_override("font_color", Color(1.0, 0.84, 0.4))
+	_mastery_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_mastery_lbl.visible = false
+	$MarginContainer/VBoxContainer.add_child(_mastery_lbl)
+	$MarginContainer/VBoxContainer.move_child(_mastery_lbl, stats_lbl.get_index() + 1)
+
 	var cost_str = ""
 	for res in data["cost"]:
 		var display_name = UITheme.LIRA_ICON_BB if res == "credits" else ElementDB.get_display_name(res)
@@ -169,6 +179,9 @@ func update_state():
 	else:
 		count_lbl.text = "Owned: %d" % count
 	
+	# Infra↔Mastery: linked Mastery level + the output bonus it grants (count>0).
+	_update_mastery_readout(count)
+
 	# Refresh Cost Display (Iter8 Scaling)
 	var current_costs = manager.get_building_cost(bid)
 	var cost_str = ""
@@ -265,3 +278,16 @@ func _on_buy_button_pressed():
 		tween.tween_property(self, "scale", Vector2(1.05, 1.05), 0.1)
 		tween.tween_property(self, "scale", Vector2(1.0, 1.0), 0.1)
 		parent_ui.update_ui()
+
+func _update_mastery_readout(count: int) -> void:
+	if not _mastery_lbl: return
+	if count <= 0:
+		_mastery_lbl.visible = false
+		return
+	var info: Dictionary = manager.get_building_mastery_info(bid)
+	if not info.get("linked", false):
+		_mastery_lbl.visible = false
+		return
+	var disp: String = ElementDB.get_display_name(info.get("symbol", ""))
+	_mastery_lbl.text = "⚙ %s Mastery  Lv %d  (+%d%% output)" % [disp, int(info.get("level", 0)), int(round(info.get("bonus_pct", 0.0)))]
+	_mastery_lbl.visible = true
