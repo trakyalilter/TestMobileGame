@@ -572,16 +572,17 @@ func _show_char_select() -> void:
 	sc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_char_select.add_child(sc)
-	var center := CenterContainer.new()
-	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	sc.add_child(center)
+	# Fill the scroller's own width (the logical 720, NOT the physical pixel
+	# width) so cards never run off the right edge; tall content scrolls. The
+	# previous get_viewport_rect() min-width forced the device's raw pixel width.
 	var mc := MarginContainer.new()
+	mc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	mc.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	for s in ["left", "right"]:
 		mc.add_theme_constant_override("margin_" + s, 22)
 	for s in ["top", "bottom"]:
-		mc.add_theme_constant_override("margin_" + s, 34)
-	mc.custom_minimum_size = Vector2(get_viewport_rect().size.x, 0)
-	center.add_child(mc)
+		mc.add_theme_constant_override("margin_" + s, 40)
+	sc.add_child(mc)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 12)
 	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -607,6 +608,7 @@ func _slot_card(n: int) -> Control:
 		mc.add_theme_constant_override("margin_" + s, 8)
 	# _card returns the inner VBox; reparent its contents into a padded margin.
 	var panel := v.get_parent()
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL   # fill the column, don't overflow
 	panel.remove_child(v)
 	panel.add_child(mc)
 	mc.add_child(v)
@@ -615,7 +617,7 @@ func _slot_card(n: int) -> Control:
 		hb.add_theme_constant_override("separation", 8)
 		v.add_child(hb)
 		var lbl := Label.new()
-		lbl.text = "＋  New Character"
+		lbl.text = "+  New Character"
 		lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		lbl.add_theme_font_size_override("font_size", _fs(15))
 		lbl.add_theme_color_override("font_color", Color.html(C_DIM))
