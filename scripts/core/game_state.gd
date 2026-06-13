@@ -17,6 +17,7 @@ var _suppress_fx := false                            # mute transient juice duri
 var missions_active: Dictionary = {}     # mid -> true
 var missions_progress: Dictionary = {}   # mid -> count
 var missions_claimed: Dictionary = {}    # mid -> true
+var _rm_paid: Dictionary = {}            # research_multi mid -> credits already paid pro-rata
 var _mission_completed_seen: Dictionary = {}  # mid -> true (live-eval completion edge, UI-refresh only)
 
 var resources: Dictionary = {}          # symbol -> int
@@ -2561,7 +2562,12 @@ func claim_mission(mid: String) -> bool:
 	if not missions_active.has(mid) or not mission_completed(mid) or missions_claimed.has(mid):
 		return false
 	var m: Dictionary = GameData.MISSIONS[mid]
-	gain_credits(int(int(m.get("cr", 0)) * warp_production_mult() * credit_reward_mult()))   # prestige- + Recursive-Acquisition-scaled reward
+	# research_multi already paid most/all of its credits pro-rata as techs were
+	# unlocked (see unlock_research); only the unpaid remainder is due here.
+	var cr_due := int(m.get("cr", 0))
+	if m.get("type", "") == "research_multi":
+		cr_due = maxi(0, cr_due - int(_rm_paid.get(mid, 0)))
+	gain_credits(int(cr_due * warp_production_mult() * credit_reward_mult()))   # prestige- + Recursive-Acquisition-scaled reward
 	missions_claimed[mid] = true
 	missions_active.erase(mid)
 	var nxt: String = m.get("next", "")
@@ -2599,6 +2605,21 @@ func unlock_research(rid: String) -> bool:
 	credits -= int(t.get("credits", 0))
 	spend(t.get("items", {}))
 	unlocked_research[rid] = true
+	# A research_multi mission bundles several techs but only pays out on claim —
+	# which left players unable to afford the LATER techs in the bundle (the old
+	# separate missions each paid a reward that funded the next research). Pay the
+	# bundle's credit reward pro-rata as each tech unlocks so the funding flow is
+	# restored; the remainder (and XP) is settled on claim. Same total credits.
+	for amid in missions_active:
+		var am: Dictionary = GameData.MISSIONS.get(amid, {})
+		if am.get("type", "") != "research_multi" or missions_claimed.has(amid):
+			continue
+		var techs = am.get("target", [])
+		if techs is Array and rid in techs and techs.size() > 0:
+			var share := int(int(am.get("cr", 0)) / techs.size())
+			if share > 0:
+				gain_credits(int(share * warp_production_mult() * credit_reward_mult()))
+				_rm_paid[amid] = int(_rm_paid.get(amid, 0)) + share
 	# Warp Core stays hidden until Zone 6 research (desktop v110 reveal moment).
 	if rid == "zone_6_access" and not game_flags.get("warp_revealed", false):
 		game_flags["warp_revealed"] = true
@@ -3744,6 +3765,7 @@ func save_game() -> void:
 		"standing_id": _standing_id,
 		"missions_active": missions_active.keys(),
 		"missions_progress": missions_progress,
+		"rm_paid": _rm_paid,
 		"missions_claimed": missions_claimed.keys(),
 		"boss_kills": boss_kills,
 		"hazard_clears": hazard_clears,
@@ -3847,6 +3869,9 @@ func load_game() -> void:
 	for mid in data.get("missions_active", []):
 		missions_active[mid] = true
 	missions_progress = data.get("missions_progress", {})
+	_rm_paid = data.get("rm_paid", {})
+	for k in _rm_paid:
+		_rm_paid[k] = int(_rm_paid[k])
 	for k in missions_progress:
 		missions_progress[k] = int(missions_progress[k])
 	missions_claimed = {}
@@ -3933,6 +3958,7 @@ func hard_reset() -> void:
 	missions_active = {}
 	missions_progress = {}
 	missions_claimed = {}
+	_rm_paid = {}
 	_mission_init()
 	pending_offline = ""
 	player_shield = 0.0
