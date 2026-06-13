@@ -10,6 +10,7 @@ signal game_loaded
 var gathering_manager : RefCounted
 var processing_manager : RefCounted
 var infrastructure_manager : RefCounted
+var fleet_manager : RefCounted
 var shipyard_manager : RefCounted
 var research_manager : RefCounted
 var combat_manager : RefCounted
@@ -92,6 +93,7 @@ func _ready():
 	combat_manager = load("res://scripts/managers/combat_manager.gd").new()
 	mission_manager = load("res://scripts/managers/mission_manager.gd").new()
 	warp_manager = load("res://scripts/managers/warp_manager.gd").new()
+	fleet_manager = load("res://scripts/managers/fleet_manager.gd").new()
 	bounty_manager = load("res://scripts/managers/bounty_manager.gd").new()
 	quest_manager = load("res://scripts/managers/quest_manager.gd").new()
 
@@ -207,6 +209,7 @@ func save_game():
 		"combat": combat_manager.get_save_data_manager(),
 		"mission": mission_manager.get_save_data_manager(),
 		"prestige": warp_manager.get_save_data_manager(),
+		"fleet": fleet_manager.get_save_data_manager(),
 		"bounty": bounty_manager.get_save_data_manager(),
 		"quest": quest_manager.get_save_data_manager(),
 		"game_settings": game_settings,  # v52.1
@@ -288,6 +291,7 @@ func load_game():
 		combat_manager.load_save_data_manager(data.get("combat", {}))
 		mission_manager.load_save_data_manager(data.get("mission", {}))
 		warp_manager.load_save_data_manager(data.get("prestige", {}))
+		fleet_manager.load_save_data_manager(data.get("fleet", {}))
 		bounty_manager.load_save_data_manager(data.get("bounty", {}))
 		quest_manager.load_save_data_manager(data.get("quest", {}))
 		
@@ -397,6 +401,7 @@ func hard_reset():
 	# tick, so leaving warp state stale would auto-complete the mission on a
 	# fresh playthrough. Same path clears all Mastery Tree purchases.
 	if warp_manager: warp_manager.reset()
+	if fleet_manager: fleet_manager.reset()
 	# Clear the P0 prestige-reveal flag so the fanfare can fire again for
 	# the new playthrough.
 	game_settings.erase("warp_first_revealed")
