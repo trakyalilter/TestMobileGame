@@ -330,6 +330,13 @@ func _update_coach() -> void:
 	elif page != current:
 		_coach_hint.text = m.get("desc", "") + "   ·   tap ☰ → " + _page_label(page)
 		pulse = _ham_btn
+	elif drawer_open:
+		# Already on the right page but the drawer is open over it — the target card
+		# is occluded, so don't ring it (the ring draws on top of the drawer and
+		# looks like it points at random menu rows). Nudge the player to close the
+		# menu; the card re-highlights once it's shut.
+		_coach_hint.text = "Close the menu to continue ›"
+		pulse = null
 	elif card != "":
 		_coach_hint.text = "👆 Tap the highlighted card to continue"
 		pulse = _coach_find_card(card)
@@ -430,12 +437,13 @@ func _position_coach_ptr() -> void:
 	var pad := 5.0
 	_coach_ring.position = local - Vector2(pad, pad)
 	_coach_ring.size = gr.size + Vector2(pad, pad) * 2.0
-	# Chip sits just above the target (or below if there's no room at the top).
+	# Chip straddles the target's top-left edge — clearly attached to the card
+	# without floating up into whatever sits above it (e.g. the sub-tab row).
 	var chip_sz := _coach_chip.size
-	var cx: float = clampf(local.x + gr.size.x / 2.0 - chip_sz.x / 2.0, 8.0, _coach_ptr.size.x - chip_sz.x - 8.0)
-	var cy := local.y - chip_sz.y - 8.0
-	if cy < 4.0:
-		cy = local.y + gr.size.y + 8.0
+	var cx: float = clampf(local.x + 10.0, 8.0, _coach_ptr.size.x - chip_sz.x - 8.0)
+	var cy := local.y - chip_sz.y * 0.55       # ~half over the top edge of the target
+	if cy < 4.0:                                # target hugs the screen top — drop it just inside
+		cy = local.y + 6.0
 	_coach_chip.position = Vector2(cx, cy)
 
 func _pulse_stop() -> void:
@@ -1007,6 +1015,7 @@ func _open_drawer() -> void:
 		return
 	drawer_open = true
 	drawer.visible = true
+	_update_coach()   # re-evaluate the coach target for the open-drawer state
 	var tw := create_tween()
 	tw.set_parallel(true)
 	tw.tween_property(drawer_panel, "offset_left", 0.0, 0.18).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
@@ -1018,6 +1027,7 @@ func _close_drawer() -> void:
 	if not drawer_open:
 		return
 	drawer_open = false
+	_update_coach()   # restore the on-page card highlight now the menu is closing
 	var tw := create_tween()
 	tw.set_parallel(true)
 	tw.tween_property(drawer_panel, "offset_left", -DRAWER_W, 0.16).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
