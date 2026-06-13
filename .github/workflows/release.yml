@@ -35,12 +35,15 @@ jobs:
           cp -r /root/.local/share/godot/export_templates/* ~/.local/share/godot/export_templates/ 2>/dev/null || true
           ls -la ~/.local/share/godot/export_templates/ || true
 
-      - name: Generate debug keystore
+      - name: Use the committed stable debug keystore
         run: |
-          keytool -keyalg RSA -genkeypair -alias androiddebugkey \
-            -keypass android -keystore "$GITHUB_WORKSPACE/debug.keystore" \
-            -storepass android -dname "CN=Android Debug,O=Android,C=US" \
-            -validity 9999 -deststoretype pkcs12
+          # A FIXED keystore (ci-debug.keystore, committed) is reused on every
+          # build so all dev APKs share one signature — Android can then install
+          # each new build as an update instead of rejecting it with "package
+          # conflicts with an existing package". (Debug key: not for Play Store;
+          # production uses a real release key from a secret.)
+          cp "$GITHUB_WORKSPACE/ci-debug.keystore" "$GITHUB_WORKSPACE/debug.keystore"
+          keytool -list -keystore "$GITHUB_WORKSPACE/debug.keystore" -storepass android | head -n 3
 
       - name: Configure Godot editor settings (SDK / JDK / keystore)
         run: |
@@ -82,8 +85,8 @@ jobs:
           architectures/arm64-v8a=true
           architectures/x86=false
           architectures/x86_64=false
-          version/code=1
-          version/name="0.1"
+          version/code=${{ github.run_number }}
+          version/name="0.1.${{ github.run_number }}"
           package/unique_name="com.stellarforge.game"
           package/name="Stellar Forge"
           package/signed=true
