@@ -103,6 +103,9 @@ var enemy_inst: Dictionary = {}       # live enemy instance
 var _enemy_timer: float = 0.0
 var combat_events: Array = []         # transient [{text,color,side,seq}] for UI popups
 var _event_seq: int = 0
+# Running tally of every item collected this combat engagement (item_id -> qty).
+# Transient (not persisted); reset on each new engagement. Desktop session-loot parity.
+var session_loot: Dictionary = {}
 # Ammo + consumables (fittings)
 var ammo_loadout: Dictionary = {}      # weapon slot index (String) -> ammo item id
 var consumable_hull_slot: String = ""
@@ -1101,10 +1104,10 @@ func unsocket_gem(cid: String, idx: int) -> void:
 		resources_changed.emit()
 
 ## Drop a set piece as a mutable custom instance (with sockets).
-func _grant_set_piece(base_id: String) -> void:
+func _grant_set_piece(base_id: String) -> String:
 	var t: Dictionary = GameData.SET_MODULES.get(base_id, {})
 	if t.is_empty():
-		return
+		return ""
 	var cid := "set_%s_%d" % [base_id, randi() % 1000000]
 	custom_modules[cid] = {
 		"name": t.get("name", base_id), "slot": t.get("slot", ""), "stats": t.get("stats", {}).duplicate(),
@@ -1112,6 +1115,7 @@ func _grant_set_piece(base_id: String) -> void:
 		"base": base_id, "sockets": [null, null, null],
 	}
 	module_inventory[cid] = int(module_inventory.get(cid, 0)) + 1
+	return cid
 
 func roll_rarity(is_boss: bool) -> int:
 	var r := randf()
@@ -2507,6 +2511,8 @@ func _init_combat(eid: String) -> void:
 	_overheat_lock = 0.0
 	_enemy_timer = 0.0
 	combat_events.clear()
+	# Fresh engagement — clear the session-loot tally (desktop clears on zone entry).
+	session_loot = {}
 	if combat_hp <= 0.0:
 		combat_hp = combat_max_hp()
 	_spawn_enemy_inst(eid)
@@ -3010,7 +3016,7 @@ func resolve_damage(atk_k: float, atk_e: float, atk_x: float, c_shield: float, c
 	return [dmg_shield * variance, maxf(minhull, hull * variance), is_crit]
 
 func _win_combat() -> void:
-	_roll_loot(enemy_inst["loot"], get_combat_loot_multiplier())
+	_roll_loot(enemy_inst["loot"], get_combat_loot_multiplier(), 0, true)
 	add_xp("combat", int(enemy_inst["xp"] * (1.0 + research_bonus("combat_xp"))))
 	bounty_on_kill(active_id)
 	standing_on_kill(active_id)
@@ -3032,7 +3038,9 @@ func _win_combat() -> void:
 	if scav > 0.0 and randf() < scav:
 		var parts := ["Circuit", "Chip", "AdvCircuit"]
 		var p: String = parts[randi() % parts.size()]
-		add_resource(p, 1 + int(_combat_difficulty() / 3.0))
+		var pq := 1 + int(_combat_difficulty() / 3.0)
+		add_resource(p, pq)
+		_log_session_loot(p, pq)
 		_event("SCAVENGED " + GameData.res_name(p), "55d3e6", "enemy")
 	# Rolled module drop (rarity + affixes). v109: bosses burst — roll 4-10 modules
 	# bypassing the drop-chance gate (ref ~L2075-2081); regulars keep the single
@@ -3058,7 +3066,8 @@ func _win_combat() -> void:
 		if sd.get("boss", "") == active_id and randf() < 0.08:
 			var pieces: Array = sd.get("pieces", [])
 			if not pieces.is_empty():
-				_grant_set_piece(pieces[randi() % pieces.size()])
+				var scid := _grant_set_piece(pieces[randi() % pieces.size()])
+				_log_session_loot(scid, 1)
 				_event("SET PIECE!", "ff44cc", "enemy")
 			break
 	# Gem drop (rare; quality scales with zone difficulty).
@@ -3069,6 +3078,7 @@ func _win_combat() -> void:
 		var gid := "%s%sCore" % [tier, colors[randi() % colors.size()]]
 		if GameData.GEMS.has(gid):
 			add_resource(gid, 1)
+			_log_session_loot(gid, 1)
 			_event("GEM: " + GameData.GEMS[gid]["name"], "3a9fff", "enemy")
 	# v86.0 Track boss kills (hazard unlocks + Z11 flag). Use the live enemy id
 	# (hazard waves override active_id with their pool enemy).
@@ -3080,6 +3090,7 @@ func _win_combat() -> void:
 		var core_id: String = String(enemy_inst.get("boss_core", GameData.ENEMIES.get(killed_id, {}).get("boss_core", "")))
 		if core_id != "":
 			add_resource(core_id, 1)
+			_log_session_loot(core_id, 1)
 			_event("BOSS CORE: " + GameData.res_name(core_id), "ffa040", "enemy")
 	# v109 Z10 boss kill auto-unlocks Zone 11 "The Threshold" (flag, not research).
 	if killed_id == "z10_boss_leviathan" and not game_flags.get("z11_unlocked", false):
@@ -3105,6 +3116,7 @@ func _roll_one_module_drop(pool: Array) -> void:
 	var rarity := roll_rarity(bool(enemy_inst.get("is_boss", false)) or enemy_inst.get("elite", false))
 	var cid := generate_module(base_id, rarity, _combat_difficulty())
 	if cid != "":
+		_log_session_loot(cid, 1)
 		_event("%s DROP" % (RARITY_LABEL[rarity] if rarity > 0 else "MODULE").to_upper(), RARITY_COLOR.get(rarity, "b78ae8"), "enemy")
 		_mission_sync()   # drop_rarity missions re-check on a new module drop
 
@@ -3178,6 +3190,7 @@ func start_hazard(zone_id: String) -> bool:
 	_overheat_lock = 0.0
 	_enemy_timer = 0.0
 	combat_events.clear()
+	session_loot = {}   # fresh hazard run — clear the session-loot tally
 	_spawn_hazard_wave_enemy()
 	_event("HAZARD: %s" % String(hz.get("name", zone_id)).to_upper(), "ecb44a", "player")
 	_event("WAVE 1/%d" % int(hazard_state["max_waves"]), "ecb44a", "player")
@@ -3336,16 +3349,29 @@ func _tick_active(delta: float) -> void:
 			break
 
 ## Rolls a loot table [[sym, chance, min, max], ...], applying a yield multiplier.
-func _roll_loot(loot: Array, mult: float, flat: int = 0) -> void:
+# Accumulate a combat drop into the per-engagement session tally (desktop session-loot).
+# Called ONLY at combat grant sites, never from generic add_resource, so it never
+# double-counts gather/craft yields.
+func _log_session_loot(id: String, qty: int) -> void:
+	if id == "" or qty <= 0:
+		return
+	session_loot[id] = int(session_loot.get(id, 0)) + qty
+
+func _roll_loot(loot: Array, mult: float, flat: int = 0, log_session: bool = false) -> void:
 	for row in loot:
 		if randf() < float(row[1]):
 			var amt := maxi(1, int(round((randi_range(int(row[2]), int(row[3])) + flat) * mult)))
 			if row[0] == "credits":
 				# v109 Recursive Acquisition (wealth_focus): +5%/level Lira from combat.
-				gain_credits(int(amt * credit_reward_mult()))
+				var cr := int(amt * credit_reward_mult())
+				gain_credits(cr)
+				if log_session:
+					_log_session_loot("credits", cr)
 				resources_changed.emit()
 			else:
 				add_resource(row[0], amt)
+				if log_session:
+					_log_session_loot(row[0], amt)
 
 func _loot_snapshot(items) -> Dictionary:
 	var snap := {}

@@ -89,6 +89,11 @@ var _coach_obj: Label
 var _coach_hint: Label
 var _pulse_tween: Tween
 var _pulse_target: Control
+# Unmissable on-target pointer: a glowing animated ring + a "👆 Tap here" chip that
+# overlay (and track) the resolved coach target. Built lazily, hidden when no target.
+var _coach_ptr: Control = null
+var _coach_ring: Panel = null
+var _coach_chip: PanelContainer = null
 var _welcome: Control = null
 var _welcome_done := false
 var current := ""
@@ -136,6 +141,10 @@ var _enemy_anchor: Control = null
 var _player_anchor: Control = null
 var _enrage_chip: Control = null      # live ENRAGED indicator in the battle view
 var _wave_label: Label = null         # live hazard "WAVE x/y" counter
+# Live "SALVAGE THIS RUN" panel — the session-loot container + the snapshot used
+# to detect changes so _process only rebuilds rows when a drop actually lands.
+var _loot_panel: VBoxContainer = null
+var _loot_seen_count := -1
 var _seen_events := 0
 var _reset_armed := false
 var _warp_armed := false
@@ -169,7 +178,10 @@ func _ready() -> void:
 # ============================================================ COACHING
 # Pulses the next thing to tap based on the active tutorial mission, and shows a
 # directive banner — adapted from the desktop nav-hint system to the drawer UI.
-const COACH_PAGE := {"gather": "gather", "gather_multi": "craft", "research": "research", "craft": "shipyard", "construct": "shipyard", "build": "build", "defeat": "combat", "loadout_check": "ship", "loadout_rare_weapon": "ship", "equip_consumables": "ship", "drop_rarity": "combat"}
+# Base page per mission type. NOTE: "gather" is resolved dynamically (gather vs
+# craft) by _coach_resolve, since several "gather" missions target crafted materials
+# (the desc says "On the Craft tab"). visit_page routes to its own target page.
+const COACH_PAGE := {"gather": "gather", "gather_multi": "craft", "research": "research", "craft": "shipyard", "construct": "shipyard", "build": "build", "defeat": "combat", "loadout_check": "ship", "loadout_rare_weapon": "ship", "equip_consumables": "ship", "drop_rarity": "combat", "warp_perform": "warp", "discover": "warp"}
 
 func _page_label(id: String) -> String:
 	for t in NAV_ALL:
@@ -194,6 +206,99 @@ func _gather_action_for(sym: String) -> String:
 					best = gid
 	return best
 
+# The earliest-unlocked CRAFT recipe that outputs `sym` — used to point "gather"
+# missions whose material is actually crafted (e.g. Carbon, Lithium, Steel) at the
+# right Craft card instead of a non-existent gather action.
+func _craft_recipe_for(sym: String) -> String:
+	var best := ""
+	var best_lvl := 99999
+	for cid in GameData.CRAFT:
+		if GameData.CRAFT[cid].get("outputs", {}).has(sym):
+			var lvl := int(GameData.CRAFT[cid].get("level_req", 1))
+			if lvl < best_lvl:
+				best_lvl = lvl
+				best = cid
+	return best
+
+# The CRAFT recipe that produces ALL the outputs of a gather_multi target dict
+# (e.g. {Fe, Si} -> Mineral Washing; {BasicBooster, EmergencyPatch} -> falls back to
+# the recipe for the first output, since those are two separate recipes).
+func _craft_recipe_for_multi(target: Dictionary) -> String:
+	for cid in GameData.CRAFT:
+		var outs: Dictionary = GameData.CRAFT[cid].get("outputs", {})
+		var all := outs.size() > 0
+		for sym in target:
+			if not outs.has(sym):
+				all = false
+				break
+		if all:
+			return cid
+	# No single recipe covers every output — point at the recipe for the first one.
+	for sym in target:
+		var r := _craft_recipe_for(sym)
+		if r != "":
+			return r
+	return ""
+
+# Earliest-zone enemy whose loot table drops `sym` — for "gather" missions that
+# actually want a combat drop (e.g. Void Artifact: "defeat them on the Combat tab").
+func _enemy_dropping(sym: String) -> String:
+	var best := ""
+	var best_zone := 99999
+	for eid in GameData.ENEMIES:
+		for row in GameData.ENEMIES[eid].get("loot", []):
+			if row[0] == sym:
+				var z := int(GameData.ENEMIES[eid].get("zone", 99))
+				if z < best_zone:
+					best_zone = z
+					best = eid
+	return best
+
+# Research tab ("Operations"/"Engineering"/"Ships") that contains a research node —
+# so the coach selects the right tab before the node card is built.
+func _research_tab_for(node_id: String) -> String:
+	for tab in GameData.RESEARCH_GRAPHS:
+		if (GameData.RESEARCH_GRAPHS[tab].get("nodes", []) as Array).has(node_id):
+			return tab
+	return ""
+
+# Zone sub-tab index that contains `eid` — so the coach can select the right sector
+# before the enemy card is built into the combat grid.
+func _zone_index_for_enemy(eid: String) -> int:
+	for i in GameData.ZONES.size():
+		if (GameData.ZONES[i].get("enemies", []) as Array).has(eid):
+			return i
+	return -1
+
+# Resolves the active coach mission to a {page, card} pair. `card` is "" for
+# navigate-only steps (loadout/warp/visit_page). Centralizes the page-split routing
+# so _update_coach and the verifier agree.
+func _coach_resolve(m: Dictionary) -> Dictionary:
+	var type: String = m.get("type", "")
+	var tgt = m.get("target", "")
+	if type == "gather":
+		var sym: String = tgt if tgt is String else ""
+		var ga := _gather_action_for(sym)
+		if ga != "":
+			return {"page": "gather", "card": ga}
+		var cr := _craft_recipe_for(sym)
+		if cr != "":
+			return {"page": "craft", "card": cr}     # crafted material → Craft card
+		var ed := _enemy_dropping(sym)
+		if ed != "":
+			return {"page": "combat", "card": ed}    # combat-drop material → enemy card
+		return {"page": "gather", "card": ""}
+	if type == "gather_multi":
+		return {"page": "craft", "card": _craft_recipe_for_multi(tgt if tgt is Dictionary else {})}
+	if type == "visit_page":
+		return {"page": String(tgt), "card": ""}     # target IS the page id
+	var page: String = COACH_PAGE.get(type, "")
+	var card: String = tgt if tgt is String else ""
+	# Navigate-only steps point at a page, not a card.
+	if type in ["loadout_check", "loadout_rare_weapon", "equip_consumables", "warp_perform", "discover", "drop_rarity"]:
+		card = ""
+	return {"page": page, "card": card}
+
 func _update_coach() -> void:
 	if _coach_banner == null:
 		return
@@ -206,14 +311,12 @@ func _update_coach() -> void:
 	_coach_banner.visible = true
 	_coach_obj.text = "◆  OBJECTIVE: " + m.get("name", mid)
 	var claim := GameState.mission_completed(mid)
-	var page: String = COACH_PAGE.get(m.get("type", ""), "")
-	var tgt = m.get("target", "")
-	var card: String = tgt if tgt is String else ""   # gather_multi target is a Dictionary
-	if m.get("type", "") == "gather":
-		card = _gather_action_for(card)
+	var res := _coach_resolve(m)
+	var page: String = res["page"]
+	var card: String = res["card"]
 	var pulse: Control = null
 	if claim:
-		_coach_hint.text = "✓ Reward ready — open ☰ → Missions and Claim."
+		_coach_hint.text = "✓ Reward ready — open ☰ → Missions, then tap Claim."
 		if current != "missions":
 			pulse = _ham_btn
 		if drawer_open and nav_items.has("missions"):
@@ -221,14 +324,20 @@ func _update_coach() -> void:
 	elif page == "":
 		_coach_hint.text = m.get("desc", "")
 	elif drawer_open and page != current and nav_items.has(page):
-		_coach_hint.text = "Open " + _page_label(page)
+		_coach_hint.text = "Tap " + _page_label(page) + " to continue"
 		pulse = nav_items[page]["btn"]
 	elif page != current:
 		_coach_hint.text = m.get("desc", "") + "   ·   tap ☰ → " + _page_label(page)
 		pulse = _ham_btn
+	elif card != "":
+		_coach_hint.text = "👆 Tap the highlighted card to continue"
+		pulse = _coach_find_card(card)
+		# Card not in the tree yet (combat enemy lives behind a zone sub-tab) — point
+		# at the page so the player at least knows they're on the right screen.
+		if pulse == null:
+			_coach_hint.text = m.get("desc", "")
 	else:
 		_coach_hint.text = m.get("desc", "")
-		pulse = _coach_find_card(card)
 	_pulse_start(pulse)
 
 func _coach_find_card(id: String) -> Control:
@@ -243,6 +352,48 @@ func _coach_find_card(id: String) -> Control:
 			stack.append(ch)
 	return null
 
+# Lazily builds the pointer overlay (glowing ring + "👆 Tap here" chip). The overlay
+# is a full-rect, input-transparent Control layered above the page content but below
+# the drawer/welcome, so the highlighted card stays fully tappable.
+func _ensure_coach_ptr() -> void:
+	if _coach_ptr != null and is_instance_valid(_coach_ptr):
+		return
+	_coach_ptr = Control.new()
+	_coach_ptr.name = "CoachPointer"
+	_coach_ptr.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_coach_ptr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_coach_ptr.visible = false
+	add_child(_coach_ptr)
+	# Glowing animated ring framing the target.
+	_coach_ring = Panel.new()
+	_coach_ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var rs := StyleBoxFlat.new()
+	rs.bg_color = Color(0, 0, 0, 0)
+	rs.set_border_width_all(3)
+	rs.border_color = Color.html(GOLD)
+	rs.set_corner_radius_all(12)
+	rs.shadow_color = Color.html(GOLD)
+	rs.shadow_color.a = 0.55
+	rs.shadow_size = 10
+	_coach_ring.add_theme_stylebox_override("panel", rs)
+	_coach_ptr.add_child(_coach_ring)
+	# Floating "👆 Tap here" chip pinned just above the target.
+	_coach_chip = PanelContainer.new()
+	_coach_chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var cs := _bordered(GOLD, _mix(GOLD, "000000", 0.4), 1, 9)
+	cs.content_margin_left = 12
+	cs.content_margin_right = 12
+	cs.content_margin_top = 5
+	cs.content_margin_bottom = 5
+	_coach_chip.add_theme_stylebox_override("panel", cs)
+	var cl := Label.new()
+	cl.text = "👆 Tap here"
+	cl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cl.add_theme_font_size_override("font_size", _fs(11))
+	cl.add_theme_color_override("font_color", Color.html(BG_BOT))
+	_coach_chip.add_child(cl)
+	_coach_ptr.add_child(_coach_chip)
+
 func _pulse_start(c: Control) -> void:
 	if c == _pulse_target and _pulse_tween != null and _pulse_tween.is_valid():
 		return
@@ -250,9 +401,41 @@ func _pulse_start(c: Control) -> void:
 	if c == null or not is_instance_valid(c):
 		return
 	_pulse_target = c
-	_pulse_tween = c.create_tween().set_loops()
-	_pulse_tween.tween_property(c, "modulate", Color(1.45, 1.12, 0.5), 0.55).set_trans(Tween.TRANS_SINE)
-	_pulse_tween.tween_property(c, "modulate", Color.WHITE, 0.55).set_trans(Tween.TRANS_SINE)
+	_ensure_coach_ptr()
+	_coach_ptr.visible = true
+	# Keep the overlay drawn above the page content so the ring isn't occluded.
+	move_child(_coach_ptr, get_child_count() - 1)
+	_position_coach_ptr()
+	# Breathing glow on the ring (modulate loop on the overlay, NOT the target —
+	# the target stays at full opacity and fully interactive).
+	_pulse_tween = _coach_ring.create_tween().set_loops()
+	_pulse_tween.tween_property(_coach_ring, "modulate", Color(1.0, 1.0, 1.0, 0.45), 0.6).set_trans(Tween.TRANS_SINE)
+	_pulse_tween.tween_property(_coach_ring, "modulate", Color(1.4, 1.25, 0.6, 1.0), 0.6).set_trans(Tween.TRANS_SINE)
+
+# Overlay the ring + chip on the current target's screen rect. Called every frame
+# while a target exists so the pointer tracks scroll / layout changes.
+func _position_coach_ptr() -> void:
+	if not is_instance_valid(_coach_ptr) or not is_instance_valid(_pulse_target):
+		return
+	# Suppressed while the intro splash covers the screen, or while the drawer is
+	# open over the page (the nav-button pulse uses the same overlay path below).
+	if (_welcome != null and not _welcome_done) \
+			or not _pulse_target.is_visible_in_tree() or _pulse_target.size.x < 2.0:
+		_coach_ptr.visible = false
+		return
+	_coach_ptr.visible = true
+	var gr := _pulse_target.get_global_rect()
+	var local := gr.position - _coach_ptr.global_position
+	var pad := 5.0
+	_coach_ring.position = local - Vector2(pad, pad)
+	_coach_ring.size = gr.size + Vector2(pad, pad) * 2.0
+	# Chip sits just above the target (or below if there's no room at the top).
+	var chip_sz := _coach_chip.size
+	var cx: float = clampf(local.x + gr.size.x / 2.0 - chip_sz.x / 2.0, 8.0, _coach_ptr.size.x - chip_sz.x - 8.0)
+	var cy := local.y - chip_sz.y - 8.0
+	if cy < 4.0:
+		cy = local.y + gr.size.y + 8.0
+	_coach_chip.position = Vector2(cx, cy)
 
 func _pulse_stop() -> void:
 	if _pulse_tween != null and _pulse_tween.is_valid():
@@ -261,6 +444,8 @@ func _pulse_stop() -> void:
 	if is_instance_valid(_pulse_target):
 		_pulse_target.modulate = Color.WHITE
 	_pulse_target = null
+	if is_instance_valid(_coach_ptr):
+		_coach_ptr.visible = false
 
 # Branded intro splash shown on launch (tap or auto to continue); flows into the
 # offline "welcome back" report afterward if there is one.
@@ -429,6 +614,9 @@ func _process(_delta: float) -> void:
 			_drift_y -= 1280.0
 		_drift.position.y = _drift_y
 		_drift.modulate.a = 0.62 + 0.30 * sin(Time.get_ticks_msec() / 1000.0 * 0.7)
+	# Keep the coach pointer glued to its target as the page scrolls / relayouts.
+	if is_instance_valid(_pulse_target) and is_instance_valid(_coach_ptr) and _coach_ptr.visible:
+		_position_coach_ptr()
 	if GameState.active_type != "":
 		var dur := GameState.current_duration()
 		if dur > 0.0:
@@ -484,6 +672,15 @@ func _process(_delta: float) -> void:
 			_enrage_chip.visible = GameState.enemy_enraged()
 		if is_instance_valid(_wave_label) and GameState.hazard_state.get("active", false):
 			_wave_label.text = "WAVE %d/%d" % [int(GameState.hazard_state["wave"]) + 1, int(GameState.hazard_state["max_waves"])]
+		# SALVAGE THIS RUN — rebuild rows only when the session-loot tally changed.
+		# Signature = entry count + total qty, so both new ids and qty bumps are caught.
+		if is_instance_valid(_loot_panel):
+			var sig := GameState.session_loot.size()
+			for _q in GameState.session_loot.values():
+				sig += int(_q)
+			if sig != _loot_seen_count:
+				_loot_seen_count = sig
+				_rebuild_loot_rows()
 		_drain_combat_events()
 
 # Pages whose content is static/expensive (positioned node-graph, big codex) and
@@ -896,6 +1093,35 @@ func _show(id: String) -> void:
 				shipyard_view = "hulls"
 			elif mtype == "craft":
 				shipyard_view = "modules"
+	# When the coach sends the player to Combat (defeat, or a "gather" mission whose
+	# material is a combat drop), pre-select the sector holding the target enemy so
+	# its card (and the pointer) is reachable.
+	if id == "combat":
+		var amid := _coach_active_mission()
+		if amid != "" and GameData.MISSIONS.has(amid):
+			var rc := _coach_resolve(GameData.MISSIONS[amid])
+			if rc["page"] == "combat" and rc["card"] != "":
+				var zi := _zone_index_for_enemy(rc["card"])
+				if zi >= 0 and _zone_unlocked(GameData.ZONES[zi]):
+					combat_zone = zi
+	# Gather/Craft/Research/Shipyard cards live behind a category/tab/slot sub-tab —
+	# pre-select the one holding the coach target so the highlighted card renders.
+	if id in ["gather", "craft", "research", "shipyard"]:
+		var amid := _coach_active_mission()
+		if amid != "" and GameData.MISSIONS.has(amid):
+			var rc := _coach_resolve(GameData.MISSIONS[amid])
+			if rc["page"] == id and rc["card"] != "":
+				var cid: String = rc["card"]
+				if id == "gather" and GameData.GATHER.has(cid):
+					gather_cat = String(GameData.GATHER[cid].get("category", gather_cat))
+				elif id == "craft" and GameData.CRAFT.has(cid):
+					craft_cat = String(GameData.CRAFT[cid].get("category", craft_cat))
+				elif id == "research":
+					var rt := _research_tab_for(cid)
+					if rt != "":
+						research_tab = rt
+				elif id == "shipyard" and shipyard_view == "modules" and GameData.MODULES.has(cid):
+					ship_mod_slot = String(GameData.MODULES[cid].get("slot", ship_mod_slot))
 	GameState.mission_visit_page(id)   # drive visit_page missions (e.g. Combat Briefing)
 	_reset_armed = false
 	_warp_armed = false
@@ -951,6 +1177,8 @@ func _refresh_current() -> void:
 	_player_anchor = null
 	_enrage_chip = null
 	_wave_label = null
+	_loot_panel = null
+	_loot_seen_count = -1
 	match current:
 		"gather":   _build_gather()
 		"craft":    _build_craft()
@@ -1454,6 +1682,18 @@ func _build_battle(v: VBoxContainer) -> void:
 	_player_anchor = _add_anchor(pp)
 	v.add_child(pp.get_parent())
 
+	# Session loot — a running "SALVAGE THIS RUN" tally of everything dropped this
+	# engagement (desktop session-loot parity). Rows live-rebuild in _process only
+	# when GameState.session_loot changes (see _loot_seen_count).
+	var lp := _card(GOLD, true)
+	_card_head(lp, "◆", "SALVAGE THIS RUN", "", GOLD, true)
+	_loot_panel = VBoxContainer.new()
+	_loot_panel.add_theme_constant_override("separation", 2)
+	lp.add_child(_loot_panel)
+	v.add_child(lp.get_parent())
+	_loot_seen_count = -1
+	_rebuild_loot_rows()
+
 	# Manual consumables (desktop combat page): hull / shield kits on demand,
 	# shared cooldown — the early-game survival tool.
 	var crow := HBoxContainer.new()
@@ -1480,6 +1720,33 @@ func _build_battle(v: VBoxContainer) -> void:
 	rb.pressed.connect(func() -> void: GameState.stop_task())
 	v.add_child(rb)
 	_seen_events = GameState._event_seq   # only show events from here on
+
+# Resolve a session-loot id to a (display name, hex color) pair. Handles rolled /
+# set / base modules (rarity-colored display name) and plain resources (element color).
+func _loot_display(id: String) -> Array:
+	if id == "credits":
+		return ["Credits", GOLD]
+	if GameState.custom_modules.has(id):
+		var md: Dictionary = GameState.custom_modules[id]
+		return [String(md.get("name", id)), GameState.RARITY_COLOR.get(int(md.get("rarity", 0)), C_TEXT)]
+	if GameData.MODULES.has(id):
+		return [String(GameData.MODULES[id].get("name", id)), GameState.RARITY_COLOR.get(0, C_TEXT)]
+	return [GameData.res_name(id), _hex(GameData.color_for(id))]
+
+# Rebuild the SALVAGE THIS RUN rows from GameState.session_loot. Cheap and only
+# called when the loot dictionary actually grew (tracked by _loot_seen_count).
+func _rebuild_loot_rows() -> void:
+	if not is_instance_valid(_loot_panel):
+		return
+	for ch in _loot_panel.get_children():
+		ch.queue_free()
+	var loot: Dictionary = GameState.session_loot
+	if loot.is_empty():
+		_clbl(_loot_panel, "[ NO YIELD YET ]", 11, C_MUTED)
+		return
+	for id in loot:
+		var disp := _loot_display(id)
+		_clbl(_loot_panel, "%s × %s" % [disp[0], GameData.fmt(int(loot[id]))], 12, disp[1])
 
 func _drain_combat_events() -> void:
 	for ev in GameState.combat_events:
