@@ -2318,12 +2318,40 @@ func repair_hull() -> bool:
 func _mission_init() -> void:
 	if missions_active.is_empty() and missions_claimed.is_empty() and not GameData.MISSION_ORDER.is_empty():
 		missions_active[GameData.MISSION_ORDER[0]] = true
-	# Core-goal missions (goal_*) have no `next` chain — they're always active
-	# until claimed, matching desktop mission_manager.init_missions().
-	for gid in GameData.MISSION_GOALS:
-		if not missions_claimed.has(gid):
-			missions_active[gid] = true
+	_surface_core_goals()
 	_mission_sync()
+
+## The [CORE GOAL] missions (goal_*) are long-term prestige objectives — keep
+## them hidden during the guided tutorial so a new player only sees the tutorial
+## chain, then reveal them once the tutorial is finished (desktop shows them, but
+## on mobile the early screen is busy enough). Removing them while the tutorial
+## runs also cleans up older saves that surfaced them too early.
+func _tutorial_done() -> bool:
+	# Walk the real next-chain from the first mission and find the LAST
+	# [TUTORIAL]-tagged mission actually on it; the tutorial is over once that's
+	# claimed. (Scanning all MISSIONS would deadlock on orphaned tutorial
+	# missions like m016b that aren't reachable via `next`.)
+	var cur: String = GameData.MISSION_ORDER[0] if not GameData.MISSION_ORDER.is_empty() else "m001"
+	var last_tut := ""
+	var seen := {}
+	var guard := 0
+	while cur != "" and not seen.has(cur) and guard < 500:
+		guard += 1
+		seen[cur] = true
+		if String(GameData.MISSIONS.get(cur, {}).get("name", "")).begins_with("[TUTORIAL]"):
+			last_tut = cur
+		cur = GameData.MISSIONS.get(cur, {}).get("next", "")
+	return last_tut == "" or missions_claimed.has(last_tut)
+
+func _surface_core_goals() -> void:
+	var ready := _tutorial_done()
+	for gid in GameData.MISSION_GOALS:
+		if missions_claimed.has(gid):
+			continue
+		if ready:
+			missions_active[gid] = true
+		else:
+			missions_active.erase(gid)   # stay hidden until the tutorial ends
 
 ## Recover a stalled tutorial chain: if there's no active mission but unclaimed
 ## ones remain (e.g. an old save whose chain hit a since-fixed dead link),
@@ -2514,6 +2542,7 @@ func claim_mission(mid: String) -> bool:
 	var nxt: String = m.get("next", "")
 	if nxt != "" and GameData.MISSIONS.has(nxt) and not missions_claimed.has(nxt):
 		missions_active[nxt] = true
+	_surface_core_goals()   # claiming the last tutorial mission reveals the core goals
 	_mission_sync()   # the newly-activated mission may already be satisfied
 	missions_changed.emit()
 	return true
@@ -3795,10 +3824,9 @@ func load_game() -> void:
 	missions_claimed = {}
 	for mid in data.get("missions_claimed", []):
 		missions_claimed[mid] = true
-	# Surface core-goal missions for saves that predate them (no `next` chain).
-	for gid in GameData.MISSION_GOALS:
-		if not missions_claimed.has(gid):
-			missions_active[gid] = true
+	# Core goals stay hidden until the tutorial is done (also strips them from
+	# older saves that surfaced them during the tutorial).
+	_surface_core_goals()
 	boss_kills = data.get("boss_kills", {})
 	for k in boss_kills:
 		boss_kills[k] = int(boss_kills[k])
