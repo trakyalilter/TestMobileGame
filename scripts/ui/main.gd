@@ -4302,6 +4302,13 @@ func _mastery_row(v: VBoxContainer, id: String, accent: String, active: bool) ->
 	box.add_child(bar)
 	v.add_child(box)
 	_fill_mastery_row(id, left, right, bar)
+	# Tap the row to see the full milestone schedule (desktop's MASTERY tooltip).
+	var tap := Button.new()
+	tap.flat = true
+	tap.focus_mode = Control.FOCUS_NONE
+	tap.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	tap.pressed.connect(_open_mastery_schedule.bind(id))
+	box.add_child(tap)
 	if active:
 		_mastery_id = id
 		_mastery_left = left
@@ -4327,15 +4334,43 @@ func _fill_mastery_row(id: String, left: Label, right: Label, bar: ProgressBar) 
 	elif level > 0:
 		col = C_DIM
 	if level >= 100:
-		left.text = "MASTERY  LV 100  ✓%s" % suffix
+		left.text = "MASTERY ⓘ  LV 100  ✓%s" % suffix
 		right.text = "LV 100 ✓"
 		bar.value = 100.0
 	else:
-		left.text = "MASTERY  LV %d%s" % [level, suffix]
+		left.text = "MASTERY ⓘ  LV %d%s" % [level, suffix]
 		right.text = "%d / %d  ▸  LV %d" % [in_lvl, needed, next_m]
 		bar.value = pct
 	left.add_theme_color_override("font_color", Color.html(col))
 	right.add_theme_color_override("font_color", Color.html(col))
+
+## Milestone schedule popup (desktop's tappable MASTERY tooltip): lists every
+## mastery milestone and its speed bonus, marking the ones already reached.
+func _open_mastery_schedule(id: String) -> void:
+	_modal("MASTERY", GOLD, _mastery_schedule_body.bind(id))
+
+func _mastery_schedule_body(v: VBoxContainer, _close: Callable, id: String) -> void:
+	var nm := ""
+	if GameData.GATHER.has(id):
+		nm = GameData.GATHER[id].get("name", id)
+	elif GameData.CRAFT.has(id):
+		nm = GameData.CRAFT[id].get("name", id)
+	var level := GameState.mastery_level(id)
+	var cur_bonus := int(round((1.0 - GameState.mastery_dur_mult(id)) * 100.0))
+	_clbl(v, nm, 13, C_TEXT)
+	_clbl(v, "Mastery LV %d   ·   −%d%% action time now" % [level, cur_bonus], 11, GOLD if cur_bonus > 0 else C_DIM)
+	_clbl(v, "Each completion earns +1 Mastery XP (online & offline). Faster actions at every milestone:", 10, C_DIM)
+	var lines := []
+	var ms: Array = GameState.MASTERY_MILESTONES
+	var tbl: Array = GameState.MASTERY_DURATION_BONUS_TABLE
+	for i in ms.size():
+		var m: int = int(ms[i])
+		var red := int(round(float(tbl[i + 1]) * 100.0)) if (i + 1) < tbl.size() else 0
+		var done := level >= m
+		var mark := "✓ " if done else "•  "
+		var col: String = (GOLD if m >= 50 else GREEN) if done else C_MUTED
+		lines.append(_line("%sLv %-3d  −%d%% action time" % [mark, m, red], col))
+	_inset(v, "MILESTONES", lines, GOLD)
 
 func _style_bar(b: ProgressBar, accent: String) -> void:
 	var bg := StyleBoxFlat.new()
