@@ -109,6 +109,7 @@ var ship_view := "loadout"
 var shipyard_view := "modules"  # Shipyard (fabrication) sub-tab — separate from ship_view
 var armory_sort := "power"      # Armory sort: "power" | "zone" | "rarity"
 var ship_mod_slot := "weapon"
+var ship_target_slot := -1      # slot index the Armory equips INTO (slot-first flow; -1 = browse/auto)
 var warp_view := "core"   # "core" | "mastery" — Warp Core page sub-view
 var safe_margin: MarginContainer
 var active_banner: PanelContainer
@@ -2387,6 +2388,8 @@ func _build_ship() -> void:
 		ship_view = "loadout"   # legacy state migration (those tabs moved to Shipyard)
 	_subtabs(v, [{"id": "loadout", "label": "Loadout"}, {"id": "armory", "label": "Armory"}, {"id": "fittings", "label": "Fittings"}], ship_view, CYAN, func(id: String) -> void:
 		ship_view = id
+		if id != "armory":
+			ship_target_slot = -1     # leaving the slot-first flow
 		_refresh_current())
 	match ship_view:
 		"loadout": _ship_loadout(v, h)
@@ -2524,7 +2527,7 @@ func _ship_loadout(v: VBoxContainer, h: Dictionary) -> void:
 		_empty(v, "No ship.")
 		return
 	_trinity_view(v)
-	_section(v, "LOADOUT — tap Remove to unequip", CYAN)
+	_section(v, "SHIP SLOTS — tap a slot to fit or swap a module", CYAN)
 	var g := _grid(v)
 	for i in slots.size():
 		var stype: String = slots[i]
@@ -2540,24 +2543,183 @@ func _ship_loadout(v: VBoxContainer, h: Dictionary) -> void:
 			_clbl(c, md.get("name", equipped), 12, rcol)
 			for aid in md.get("affixes", {}):
 				_clbl(c, _affix_text(aid, md["affixes"][aid]), 9, GameState.RARITY_COLOR.get(3, GOLD))
-			var b := _card_button("Remove", CYAN, true)
-			b.pressed.connect(func() -> void: GameState.unequip_slot(key))
-			c.add_child(b)
+			_clbl(c, "tap to manage ›", 9, "5d6b88")
 		else:
 			_clbl(c, "Empty", 11, C_MUTED)
-			_clbl(c, "fit from Armory ›", 9, "5d6b88")
-			# Tap an empty slot to jump straight to the Armory pre-filtered to this type.
-			var overlay := Button.new()
-			overlay.flat = true
-			overlay.focus_mode = Control.FOCUS_NONE
-			overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-			overlay.pressed.connect(func() -> void:
-				ship_view = "armory"
-				ship_mod_slot = stype
-				_refresh_current())
-			c.get_parent().add_child(overlay)
+			_clbl(c, "tap to fit from Armory ›", 9, "5d6b88")
+		# Whole slot is tappable: empty → Armory for this slot; filled → slot menu.
+		var idx := i
+		var st := stype
+		var eq := equipped
+		var tap := Button.new()
+		tap.flat = true
+		tap.focus_mode = Control.FOCUS_NONE
+		tap.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		tap.pressed.connect(func() -> void:
+			if eq != "":
+				_open_slot_menu(idx, st, eq)
+			else:
+				_open_slot_armory(idx, st))
+		c.get_parent().add_child(tap)
 		g.add_child(c.get_parent())
 	_loadout_presets(v)
+
+## Open the Armory targeted at a specific slot index (slot-first equip flow).
+func _open_slot_armory(idx: int, stype: String) -> void:
+	ship_target_slot = idx
+	ship_mod_slot = stype
+	ship_view = "armory"
+	_refresh_current()
+
+## Filled-slot menu: shows the equipped module + Unequip / Open Armory / Cancel.
+func _open_slot_menu(idx: int, stype: String, equipped: String) -> void:
+	var md: Dictionary = GameState.module_def(equipped)
+	var body := func(v: VBoxContainer, close: Callable) -> void:
+		var rcol: String = GameState.RARITY_COLOR.get(int(md.get("rarity", 0)), C_TEXT)
+		_clbl(v, "%s slot" % GameData.SLOT_LABELS.get(stype, stype), 11, C_DIM)
+		_clbl(v, md.get("name", equipped), 16, rcol)
+		_inset(v, "STATS", _module_stat_lines(md.get("stats", {})), CYAN)
+		for aid in md.get("affixes", {}):
+			_clbl(v, _affix_text(aid, md["affixes"][aid]), 10, GameState.RARITY_COLOR.get(3, GOLD))
+		var une := _card_button("Unequip", RED, true)
+		une.custom_minimum_size = Vector2(0, 44)
+		une.pressed.connect(func() -> void:
+			GameState.unequip_slot(str(idx))
+			close.call())
+		v.add_child(une)
+		var arm := _card_button("Open Armory  ›", CYAN, true)
+		arm.custom_minimum_size = Vector2(0, 44)
+		arm.pressed.connect(func() -> void:
+			close.call()
+			_open_slot_armory(idx, stype))
+		v.add_child(arm)
+	_modal("MANAGE SLOT", CYAN, body)
+
+## Generic centered modal. `body.call(content_vbox, close_callable)` fills it;
+## a Cancel button + tap-outside both dismiss. Used by the slot-first equip flow.
+func _modal(title: String, accent: String, body: Callable) -> void:
+	var overlay := ColorRect.new()
+	overlay.color = Color(0, 0, 0, 0.7)
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(overlay)
+	var close := func() -> void:
+		if is_instance_valid(overlay):
+			overlay.queue_free()
+	var scrim := Button.new()                 # tap outside the panel to dismiss
+	scrim.flat = true
+	scrim.focus_mode = Control.FOCUS_NONE
+	scrim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	scrim.pressed.connect(func() -> void: close.call())
+	overlay.add_child(scrim)
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.add_child(center)
+	var panel := PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", _bordered("1a2336", accent, 2))
+	panel.custom_minimum_size = Vector2(340, 0)
+	center.add_child(panel)
+	var sc := ScrollContainer.new()
+	sc.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	sc.custom_minimum_size = Vector2(0, mini(520, int(get_viewport_rect().size.y * 0.7)))
+	panel.add_child(sc)
+	var mc := MarginContainer.new()
+	mc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	for s in ["left", "right", "top", "bottom"]:
+		mc.add_theme_constant_override("margin_" + s, 12)
+	sc.add_child(mc)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 8)
+	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	mc.add_child(v)
+	_clbl(v, title, 15, accent)
+	body.call(v, close)
+	var cancel := _card_button("Cancel", C_MUTED, true)
+	cancel.custom_minimum_size = Vector2(0, 42)
+	cancel.pressed.connect(func() -> void: close.call())
+	v.add_child(cancel)
+
+## Owned-module detail modal: stats + Equip (into the targeted slot) + Cancel.
+func _open_module_detail(mid: String) -> void:
+	_modal("MODULE", rcol_for(mid), _module_detail_body.bind(mid))
+
+func _module_detail_body(v: VBoxContainer, close: Callable, mid: String) -> void:
+	var md: Dictionary = GameState.module_def(mid)
+	var rcol: String = GameState.RARITY_COLOR.get(int(md.get("rarity", 0)), C_TEXT)
+	var rlabel: String = GameState.RARITY_LABEL.get(int(md.get("rarity", 0)), "")
+	_clbl(v, md.get("name", mid), 16, rcol)
+	if rlabel != "":
+		_clbl(v, rlabel, 10, rcol)
+	_clbl(v, "%s  ·  owned x%d" % [GameData.SLOT_LABELS.get(md.get("slot", ""), ""), int(GameState.module_inventory.get(mid, 0))], 10, C_DIM)
+	_inset(v, "STATS", _module_stat_lines(md.get("stats", {})), CYAN)
+	for aid in md.get("affixes", {}):
+		_clbl(v, _affix_text(aid, md["affixes"][aid]), 10, GameState.RARITY_COLOR.get(3, GOLD))
+	# Custom (rolled) modules: keep their sockets + sell reachable from the detail.
+	if GameState.custom_modules.has(mid):
+		var sockets: Array = md.get("sockets", [])
+		if sockets.size() > 0:
+			var slines := []
+			for gid in sockets:
+				slines.append(_line(("◆ " + GameData.GEMS.get(gid, {}).get("name", gid)) if (gid != null and gid != "") else "◇ empty socket", "3a9fff" if (gid != null and gid != "") else C_MUTED))
+			_inset(v, "SOCKETS", slines, "3a9fff")
+			var has_empty := false
+			for gid in sockets:
+				if gid == null or gid == "":
+					has_empty = true
+			if has_empty:
+				for gem in GameData.GEMS:
+					if GameState.amount(gem) > 0:
+						var gb := _card_button("Socket %s x%d" % [GameData.GEMS[gem]["name"], GameState.amount(gem)], "3a9fff", true)
+						gb.add_theme_font_size_override("font_size", _fs(11))
+						gb.pressed.connect(_socket_and_reopen.bind(mid, gem, close))
+						v.add_child(gb)
+			for i in sockets.size():
+				if sockets[i] != null and sockets[i] != "":
+					var rb := _card_button("Remove " + GameData.GEMS.get(sockets[i], {}).get("name", sockets[i]), C_MUTED, true)
+					rb.add_theme_font_size_override("font_size", _fs(11))
+					rb.pressed.connect(_unsocket_and_reopen.bind(mid, i, close))
+					v.add_child(rb)
+		var sell := _card_button("Sell ₡%s" % GameData.fmt(GameState.RARITY_SELL.get(int(md.get("rarity", 0)), 100)), GOLD, true)
+		sell.pressed.connect(_sell_and_close.bind(mid, close))
+		v.add_child(sell)
+	var note := Label.new()                      # inline error slot (grid overload, etc.)
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	note.add_theme_font_size_override("font_size", _fs(11))
+	note.add_theme_color_override("font_color", Color.html(RED))
+	note.visible = false
+	var eq := _card_button("Equip", GREEN, true)
+	eq.custom_minimum_size = Vector2(0, 46)
+	eq.pressed.connect(_do_equip.bind(mid, close, note))
+	v.add_child(eq)
+	v.add_child(note)
+
+func _do_equip(mid: String, close: Callable, note: Label) -> void:
+	var ok: bool = GameState.equip_module_to_slot(ship_target_slot, mid) if ship_target_slot >= 0 else GameState.equip_module(mid)
+	if ok:
+		close.call()
+		ship_target_slot = -1
+		ship_view = "loadout"        # return to the slot grid so the fit is visible
+		_refresh_current()
+	elif is_instance_valid(note):
+		note.text = "⚠ " + (GameState.equip_notice if GameState.equip_notice != "" else "Can't equip here.")
+		note.visible = true
+
+func _socket_and_reopen(mid: String, gem: String, close: Callable) -> void:
+	GameState.socket_gem(mid, gem)
+	close.call()
+	_open_module_detail(mid)
+
+func _unsocket_and_reopen(mid: String, idx: int, close: Callable) -> void:
+	GameState.unsocket_gem(mid, idx)
+	close.call()
+	_open_module_detail(mid)
+
+func _sell_and_close(mid: String, close: Callable) -> void:
+	GameState.sell_module(mid)
+	close.call()
+	_refresh_current()
+
+func rcol_for(mid: String) -> String:
+	return GameState.RARITY_COLOR.get(int(GameState.module_def(mid).get("rarity", 0)), CYAN)
 
 # 3 saved-build preset slots wired to the Phase-7 engine API. Save snapshots the
 # current loadout/ammo/consumables; Load swaps to it; Clear empties the slot.
@@ -2655,7 +2817,18 @@ func _ship_armory(v: VBoxContainer) -> void:
 		warn.add_theme_color_override("font_color", Color.html(RED))
 		v.add_child(warn)
 	_grid_readout(v)
-	_ship_slot_tabs(v)
+	if ship_target_slot >= 0:
+		# Slot-first flow: the slot is fixed; show what we're fitting + a way back.
+		_section(v, "FITTING  %s  SLOT" % GameData.SLOT_LABELS.get(ship_mod_slot, ship_mod_slot).to_upper(), GREEN)
+		var back := _card_button("‹ Back to slots", C_MUTED, true)
+		back.pressed.connect(func() -> void:
+			ship_target_slot = -1
+			ship_view = "loadout"
+			_refresh_current())
+		v.add_child(back)
+	else:
+		# Browse mode (opened via the Armory tab): pick a slot type to view.
+		_ship_slot_tabs(v)
 	# Sort control (matches desktop armory_sort_mode).
 	_subtabs(v, [{"id": "power", "label": "Power"}, {"id": "zone", "label": "Zone"}, {"id": "rarity", "label": "Rarity"}], armory_sort, PURP, func(id: String) -> void:
 		armory_sort = id
@@ -2684,10 +2857,30 @@ func _ship_armory(v: VBoxContainer) -> void:
 			_:
 				return _module_power(da.get("stats", {})) > _module_power(db.get("stats", {}))
 		)
-	_section(v, "Armory — tap to equip", PURP)
+	_section(v, "Armory — tap a module for details", PURP)
 	var ig := _grid(v)
 	for mid in owned:
-		ig.add_child(_armory_card(mid))
+		ig.add_child(_armory_tile(mid))
+
+## Compact owned-module tile: name (rarity color) + key stats; tap → detail modal
+## (stats + Equip/Cancel). The detail equips into ship_target_slot when set.
+func _armory_tile(mid: String) -> Control:
+	var md: Dictionary = _owned_module_def(mid)
+	var rcol: String = GameState.RARITY_COLOR.get(int(md.get("rarity", 0)), CYAN)
+	var owned := int(GameState.module_inventory.get(mid, 0))
+	var c := _card(rcol, true)
+	c.get_parent().size_flags_vertical = Control.SIZE_EXPAND_FILL
+	c.get_parent().set_meta("coach_id", mid)
+	_card_head(c, "▣", md.get("name", mid), ("x%d" % owned) if owned > 1 else "", rcol, true)
+	_inset(c, "STATS", _module_stat_lines(md.get("stats", {})), CYAN)
+	_clbl(c, "tap for details ›", 9, "5d6b88")
+	var tap := Button.new()
+	tap.flat = true
+	tap.focus_mode = Control.FOCUS_NONE
+	tap.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	tap.pressed.connect(func() -> void: _open_module_detail(mid))
+	c.get_parent().add_child(tap)
+	return c.get_parent()
 
 # A single owned-module card with stats + rarity color + TAP-to-equip. Rolled
 # customs reuse the full _custom_module_card (sockets/affixes/sell); plain base

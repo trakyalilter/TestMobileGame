@@ -200,9 +200,10 @@ func _run() -> void:
 	await process_frame
 	var ar := []
 	_collect_text(main.pages["ship"], ar)
-	# "Armory" label (sub-tab) + the sort control's three labels + Equip action.
-	if _has(ar, "Armory") and _has(ar, "Power") and _has(ar, "Zone") and _has(ar, "Rarity") and _has(ar, "Equip"):
-		print("PASS armory: label + sort (Power/Zone/Rarity) + Equip present")
+	# "Armory" label (sub-tab) + sort control (Power/Zone/Rarity) + tap-to-detail tiles
+	# (Equip now lives in the per-module detail modal, not inline on the tile).
+	if _has(ar, "Armory") and _has(ar, "Power") and _has(ar, "Zone") and _has(ar, "Rarity") and _has(ar, "details"):
+		print("PASS armory: label + sort (Power/Zone/Rarity) + tap-to-detail tiles")
 	else:
 		print("FAIL armory missing — got: %s" % str(ar))
 		fail = true

@@ -941,6 +941,43 @@ func unequip_slot(idx: String) -> void:
 		_mission_sync()
 		resources_changed.emit()
 
+## Equip a module into a SPECIFIC slot index (the slot-first Designer flow).
+## Swaps out whatever currently occupies the slot, validates the slot type and
+## the energy grid (same anti-softlock battery exception as equip_module), and
+## rolls back cleanly on rejection so nothing is lost.
+func equip_module_to_slot(idx: int, mid: String) -> bool:
+	if int(module_inventory.get(mid, 0)) <= 0:
+		return false
+	var slots: Array = GameData.HULLS.get(active_hull, {}).get("slots", [])
+	if idx < 0 or idx >= slots.size():
+		return false
+	if module_def(mid).get("slot", "") != slots[idx]:
+		return false
+	var key := str(idx)
+	var prev: String = loadout.get(key, "")   # current occupant (swapped out on success)
+	var before := ship_stats()
+	if prev != "":
+		module_inventory[prev] = int(module_inventory.get(prev, 0)) + 1
+		loadout.erase(key)
+	loadout[key] = mid
+	var after := ship_stats()
+	if float(after.get("energy_load", 0.0)) > float(after.get("energy_cap", 0.0)) \
+			and float(after.get("energy_cap", 0.0)) <= float(before.get("energy_cap", 0.0)) + 0.1:
+		# Roll back to the pre-swap state.
+		loadout.erase(key)
+		if prev != "":
+			loadout[key] = prev
+			module_inventory[prev] = int(module_inventory.get(prev, 0)) - 1
+		equip_notice = "Grid overload — equip a Battery for more power."
+		resources_changed.emit()
+		return false
+	module_inventory[mid] = int(module_inventory[mid]) - 1
+	ammo_loadout.erase(key)   # a swapped weapon clears the old slot's ammo binding
+	equip_notice = ""
+	_mission_sync()
+	resources_changed.emit()
+	return true
+
 # ---------------- Loadout presets ----------------
 # Faithful port of ref_shipyard_manager save/load/clear_loadout_preset
 # (~L2667-2748), adapted to the mobile equip API (equip_module(mid) auto-assigns
