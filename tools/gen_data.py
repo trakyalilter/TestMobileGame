@@ -743,29 +743,174 @@ def mission_dict(m):
         "next": m.get("next_mission", "") or "",
     }
 
+# ---------------------------------------------------------------------------
+# MOBILE TUTORIAL CURATION (flow pass).
+# The desktop chain interleaves short same-type runs (e.g. 3 researches in a
+# row, the lithium→copper ore/refine dance) and — worse — orders two research
+# missions BEFORE the tech they actually depend on, which softlocks on mobile:
+#   * power_systems (m020) is requested BEFORE kinetics_101 (m014), but
+#     power_systems' PARENT is kinetics_101 → it cannot be unlocked first.
+#   * the engine equip (m007b) is required BEFORE any battery, but on mobile
+#     hulls supply ZERO energy, so equipping ANY consumer (engine/weapon/shield)
+#     grid-overloads until a battery is fitted.
+# This pass authors an explicit, dependency-safe mobile order: it MERGES
+# adjacent same-type runs into single research_multi / gather_multi missions
+# (summing rewards, keeping the run's [TUTORIAL] tag) and REGROUPS by theme so
+# each beat (research a thing → build/equip what it unlocks) stays together,
+# with the power beat moved ahead of the first consumer equip and kinetics_101
+# ahead of power_systems. Beats whose relative order doesn't matter are left
+# exactly as desktop had them (conservative). Nothing is dropped.
+#
+# Each entry is either an existing desktop mission id (carried verbatim, mobile
+# desc applied) or a MERGE spec dict that fuses a run of adjacent same-type
+# desktop missions into one. `target` for a merged research_multi is the Array
+# of tech ids; for a merged gather_multi it is the {sym: qty} dict.
+MERGE = "MERGE"
+def _m(mid):
+    return {"src": [mid]}
+def _merge(mid, name, mtype, target, qty, desc, src, tag="[TUTORIAL]"):
+    return {MERGE: True, "id": mid, "name": "%s %s" % (tag, name),
+            "type": mtype, "target": target, "qty": qty, "desc": desc, "src": src}
+
+CURATED_CHAIN = [
+    # --- Engine boot: arrive, learn the foundational sciences, refine first metals.
+    _m("m001"),                                  # gather Dirt
+    _merge("m002", "Foundational Research", "research_multi",
+           ["basic_engineering", "applied_physics", "fluid_dynamics"], 3,
+           "On the Research tab, unlock the three foundational techs: Basic "
+           "Engineering, Applied Physics and Fluid Dynamics. They open refining, "
+           "energy fields and water collection.",
+           ["m002", "m002b", "m003"]),
+    _m("m004"),                                  # gather Water (needs fluid_dynamics)
+    _m("m005"),                                  # gather_multi {Fe, Si} (Mineral Washing)
+    # --- Power FIRST: hulls give no energy on mobile, so a battery must be seated
+    #     before any consumer equips. kinetics_101 leads because power_systems'
+    #     parent IS kinetics_101 (desktop ordered it the other way — a softlock).
+    _m("m014"),                                  # research kinetics_101
+    _m("m020"),                                  # research power_systems (parent now met)
+    _m("m021"),                                  # craft BatteryT1 cells
+    _m("m022"),                                  # build battery module
+    _m("m022b"),                                 # equip battery (grid now has capacity)
+    # --- Mobility: engine module + equip (grid supported now).
+    _m("m007"),                                  # craft engine
+    _m("m007b"),                                 # equip engine
+    # --- Weapons: build a kinetic weapon, seat it, feed it ammo.
+    _m("m015"),                                  # craft kinetic weapon
+    _m("m015b"),                                 # equip weapon
+    _m("m016"),                                  # craft ammo (SlugT1)
+    # --- Materials & carbon: needed before the lithium/copper refine.
+    _m("m008"),                                  # research materials_science
+    _m("m009"),                                  # gather Wood
+    _m("m010"),                                  # research combustion (kiln)
+    _m("m011"),                                  # craft Carbon
+    # --- Refining run merged: mine + refine Lithium and Copper into one goal.
+    _merge("m012", "Lithium & Copper Refining", "gather_multi",
+           {"Li": 50, "Cu": 50}, 100,
+           "Mine Spodumene and Malachite on the Gather tab, then refine them on "
+           "the Craft tab into 50 Lithium and 50 Copper.",
+           ["m012", "m013", "m013b", "m013c"]),
+    # --- Shields & field kits.
+    _m("m023"),                                  # research energy_shields
+    _m("m024"),                                  # build shield
+    _m("m024c"),                                 # equip shield
+    _m("m024b"),                                 # craft repair/booster kits (gather_multi)
+    _m("m024b2"),                                # equip consumables
+    # --- First combat.
+    _m("m016c"),                                 # visit Combat page
+    _m("m017"),                                  # defeat z1_lunar_drone
+    # --- Logistics & circuitry (research run merged).
+    _merge("m018", "Logistics Network", "research_multi",
+           ["industrial_logistics", "automated_logistics"], 2,
+           "On the Research tab, unlock Industrial Logistics and then Automated "
+           "Logistics — the backbone for circuitry and drones.",
+           ["m018", "m018b"]),
+    _m("m019"),                                  # craft Circuit
+    # --- Steel, first reinforced hull, elite salvage, the boss.
+    _m("m025"),                                  # research smelting
+    _m("m025b"),                                 # smelt Steel
+    _m("m026"),                                  # research shipwright_1
+    _m("m026b"),                                 # construct frigate_hull
+    _m("m026c"),                                 # drop_rarity (farm a Rare)
+    _m("m026d"),                                 # equip a Rare weapon
+    _m("m026e"),                                 # defeat z1_boss_architect
+    # --- CHAPTER 2: Asteroid Belt + advanced industry (two research runs merged).
+    _m("m027"),                                  # research zone_2_access
+    _m("m028"),                                  # gather Cassiterite
+    _m("m029"),                                  # craft z2_armor
+    _merge("m029a1", "Advanced Materials & Metallurgy", "research_multi",
+           ["adv_materials", "metallurgy_advanced"], 2,
+           "On the Research tab, unlock Advanced Materials and Advanced "
+           "Metallurgy to fabricate universal structural components.",
+           ["m029a1", "m029a2"]),
+    _m("m029a3"),                                # craft StructuralComponent
+    _merge("m029a4", "Combustion & Automation", "research_multi",
+           ["combustion", "automation"], 2,
+           "On the Research tab, unlock Organic Combustion and Factory "
+           "Automation — the last gates before Advanced Circuits.",
+           ["m029a4", "m029a5"]),
+    _m("m029b"),                                 # craft AdvCircuit
+    # --- CHAPTER 2 tail: hulls, sectors, bosses (left in desktop order — already
+    #     a clean research→build/defeat cadence with no adjacent same-type runs).
+    _m("m030"), _m("m030c"), _m("m030e"), _m("m030f"), _m("m030g"), _m("m030h"),
+    _m("m031"), _m("m032"), _m("m032b"), _m("m032d"), _m("m032c"),
+    _m("m033"), _m("m033b"), _m("m033c"), _m("m034"),
+]
+
+def _build_curated():
+    """Resolve CURATED_CHAIN into an ordered list of (id, mobile_mission_dict),
+    relinking `next` along the new order. Merged missions sum cr/xp of their run
+    and keep the type/target the spec declares."""
+    out = []          # [(id, dict)]
+    for entry in CURATED_CHAIN:
+        if entry.get(MERGE):
+            srcs = [missions[s] for s in entry["src"]]
+            cr = sum(int(s.get("reward_cr", 0)) for s in srcs)
+            xp = sum(int(s.get("reward_xp", 0)) for s in srcs)
+            d = {
+                "name": entry["name"],
+                "desc": entry["desc"],
+                "type": entry["type"],
+                "target": entry["target"],
+                "qty": int(entry["qty"]),
+                "cr": cr, "xp": xp, "next": "",
+            }
+            out.append((entry["id"], d))
+        else:
+            mid = entry["src"][0]
+            out.append((mid, mission_dict(missions[mid])))
+    # Relink next along the curated order.
+    for i in range(len(out)):
+        out[i][1]["next"] = out[i + 1][0] if i + 1 < len(out) else ""
+    return out
+
+curated = _build_curated()
+curated_ids = [mid for mid, _ in curated]
+curated_set = set(curated_ids)
+# All desktop mission ids consumed by the curated chain (merged sources too) —
+# anything left over (orphans like m016b, the goal_* cores) is emitted as-is.
+consumed = set()
+for entry in CURATED_CHAIN:
+    consumed.update(entry["src"])
+
 lines.append("const MISSIONS := {")
+for mid, d in curated:
+    lines.append(f"\t{g(mid)}: {g(d)},")
+# Emit every remaining desktop mission verbatim (goal_* cores + orphans) so the
+# data stays complete and _tutorial_done()/MISSION_GOALS still resolve.
 for mid, m in missions.items():
+    if mid in curated_set or mid in consumed:
+        continue
     lines.append(f"\t{g(mid)}: {g(mission_dict(m))},")
 lines.append("}")
 
-# Build MISSION_ORDER by walking next_mission from m001.
-order = []
-present = set(missions.keys())
-cur = "m001" if "m001" in present else (sorted(present)[0] if present else "")
-seen = set()
-while cur and cur in present and cur not in seen:
-    seen.add(cur)
-    order.append(cur)
-    cur = missions[cur].get("next_mission", "") or ""
-# append any leftover m-missions not reached by the walk (keeps data complete)
-for mid in missions:
-    if mid.startswith("m") and mid not in seen:
-        order.append(mid)
+# MISSION_ORDER follows the curated chain.
+order = list(curated_ids)
 lines.append('const MISSION_ORDER := %s' % g(order))
 # MISSION_GOALS — standalone "core goal" missions that are always active (no
 # `next` chain pointer). Desktop's mission_manager activates these on init
 # alongside the tutorial head; mobile surfaces them the same way.
-goals = [mid for mid, m in missions.items() if m.get("active", False) and mid not in seen]
+goals = [mid for mid, m in missions.items()
+         if m.get("active", False) and mid not in curated_set and mid not in consumed]
 lines.append('const MISSION_GOALS := %s' % g(goals))
 lines.append("")
 

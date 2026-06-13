@@ -2376,6 +2376,8 @@ func mission_completed(mid: String) -> bool:
 	match m.get("type", ""):
 		"gather_multi":               # need N of each material at once (inventory-based)
 			return multi_have(m) >= int(m.get("qty", 1))
+		"research_multi":             # need ALL listed techs unlocked (mirrors gather_multi)
+			return research_multi_have(m) >= int(m.get("qty", 1))
 		"loadout_check":              # ship has a weapon + a shield equipped (or a named slot filled)
 			return _loadout_check_met(m)
 		"equip_consumables":          # both consumable slots stocked with >= qty
@@ -2434,6 +2436,27 @@ func multi_have(m: Dictionary) -> int:
 			p += mini(amount(s), int(tgt[s]))
 	return p
 
+## Count of unlocked techs toward a research_multi mission's tech list (mirrors
+## multi_have). target is an Array of tech ids; completes when ALL are unlocked.
+func research_multi_have(m: Dictionary) -> int:
+	var p := 0
+	var tgt = m.get("target", [])
+	if tgt is Array:
+		for tid in tgt:
+			if is_research_unlocked(String(tid)):
+				p += 1
+	return p
+
+## First not-yet-unlocked tech in a research_multi list — the coach points at this
+## node so the player has a concrete next tap. Returns "" when all are unlocked.
+func research_multi_first_locked(m: Dictionary) -> String:
+	var tgt = m.get("target", [])
+	if tgt is Array:
+		for tid in tgt:
+			if not is_research_unlocked(String(tid)):
+				return String(tid)
+	return ""
+
 func is_combat_ready() -> bool:
 	var has_w := false
 	var has_s := false
@@ -2490,6 +2513,8 @@ func _mission_sync() -> void:
 			"research":
 				if is_research_unlocked(target):
 					nv = qty
+			"research_multi":
+				nv = maxi(cur, research_multi_have(m))
 			"gather":
 				nv = maxi(cur, mini(amount(target), qty))
 			"craft":
@@ -2580,6 +2605,9 @@ func unlock_research(rid: String) -> bool:
 		feature_revealed.emit("⟨ WARP CORE RESONANCE ⟩",
 			"A new prestige system is online — open WARP CORE in the menu to spend Exotic Matter Shards.")
 	_mission_event("research", rid, 1)
+	# research_multi missions track an Array target, so they don't match the
+	# string-keyed event above — reconcile them from current unlock state instead.
+	_mission_sync()
 	# discover missions (e.g. goal_001 -> sector_epsilon): a zone is "discovered"
 	# the moment its gating research is unlocked.
 	for z in GameData.ZONES:

@@ -182,7 +182,7 @@ func _ready() -> void:
 # Base page per mission type. NOTE: "gather" is resolved dynamically (gather vs
 # craft) by _coach_resolve, since several "gather" missions target crafted materials
 # (the desc says "On the Craft tab"). visit_page routes to its own target page.
-const COACH_PAGE := {"gather": "gather", "gather_multi": "craft", "research": "research", "craft": "shipyard", "construct": "shipyard", "build": "build", "defeat": "combat", "loadout_check": "ship", "loadout_rare_weapon": "ship", "equip_consumables": "ship", "drop_rarity": "combat", "warp_perform": "warp", "discover": "warp"}
+const COACH_PAGE := {"gather": "gather", "gather_multi": "craft", "research": "research", "research_multi": "research", "craft": "shipyard", "construct": "shipyard", "build": "build", "defeat": "combat", "loadout_check": "ship", "loadout_rare_weapon": "ship", "equip_consumables": "ship", "drop_rarity": "combat", "warp_perform": "warp", "discover": "warp"}
 
 func _page_label(id: String) -> String:
 	for t in NAV_ALL:
@@ -291,6 +291,13 @@ func _coach_resolve(m: Dictionary) -> Dictionary:
 		return {"page": "gather", "card": ""}
 	if type == "gather_multi":
 		return {"page": "craft", "card": _craft_recipe_for_multi(tgt if tgt is Dictionary else {})}
+	if type == "research_multi":
+		# Point at the FIRST not-yet-unlocked tech so the player has a concrete next
+		# tap; once all are unlocked the card resolves to "" (navigate-only, claim).
+		var locked := GameState.research_multi_first_locked(m)
+		if locked == "" and tgt is Array and not (tgt as Array).is_empty():
+			locked = String((tgt as Array)[0])
+		return {"page": "research", "card": locked}
 	if type == "visit_page":
 		return {"page": String(tgt), "card": ""}     # target IS the page id
 	var page: String = COACH_PAGE.get(type, "")
@@ -2351,6 +2358,12 @@ func _mission_card(mid: String) -> Control:
 			var need := int(m["target"][s])
 			var have := mini(GameState.amount(s), need)
 			_lbl_wrap(vb, "%s  %d / %d" % [GameData.res_name(s), have, need], 10, GREEN if have >= need else C_DIM)
+	elif mtype == "research_multi":
+		cur = GameState.research_multi_have(m)
+		for tid in m.get("target", []):
+			var got := GameState.is_research_unlocked(String(tid))
+			var tname: String = GameData.RESEARCH.get(String(tid), {}).get("name", String(tid))
+			_lbl_wrap(vb, "%s %s" % ["✓" if got else "○", tname], 10, GREEN if got else C_DIM)
 	elif mtype == "loadout_check":
 		cur = qty if done else 0
 		_lbl_wrap(vb, ("✓ Weapon + Shield equipped" if done else "Equip a Weapon and a Shield"), 10, GREEN if done else C_WARN)

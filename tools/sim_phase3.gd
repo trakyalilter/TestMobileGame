@@ -113,11 +113,13 @@ func _run() -> void:
 	gs.repeatable_research.clear()
 
 	# ============ 4. MISSIONS ============
-	# Reset mission state to a fresh chain.
+	# Reset mission state to a fresh chain. Clear research too so the merged
+	# research_multi partial-completion check (4c) is deterministic.
 	gs.missions_active.clear()
 	gs.missions_progress.clear()
 	gs.missions_claimed.clear()
 	gs._mission_completed_seen.clear()
+	gs.unlocked_research.clear()
 	gs._mission_init()
 
 	# Goal missions surfaced (always active)
@@ -132,11 +134,17 @@ func _run() -> void:
 	var m002_active = gs.missions_active.has("m002")
 	p("(4b) m001 gather complete + claim + advance to m002", m001_done and gs.missions_claimed.has("m001") and m002_active)
 
-	# m002: research basic_engineering (event-driven)
+	# m002: merged research_multi (Foundational Research) — needs ALL 3 techs, then
+	# advances to m004 (the curated chain dropped the separate m002b/m003 steps).
+	gs.credits = 999999999   # afford all three foundational unlocks
 	gs.unlock_research("basic_engineering")
+	var m002_partial = not gs.mission_completed("m002")   # 1/3 — still incomplete
+	gs.unlock_research("applied_physics")
+	gs.unlock_research("fluid_dynamics")
 	var m002_done = gs.mission_completed("m002")
 	gs.claim_mission("m002")
-	p("(4c) m002 research event completes + advances", m002_done and gs.missions_claimed.has("m002") and gs.missions_active.has("m002b"))
+	p("(4c) m002 research_multi completes after all 3 techs + advances to m004",
+		m002_partial and m002_done and gs.missions_claimed.has("m002") and gs.missions_active.has("m004"))
 
 	# NEW TYPE: warp_perform (goal_002 needs 1 warp)
 	var warps_before = gs.total_warps
@@ -226,33 +234,33 @@ func _run() -> void:
 	gs.credits = 999999999
 	gs._mission_init()
 
+	# Curated mobile chain: m001 → m002(research_multi×3) → m004 → m005 →
+	# m014(kinetics_101) → m020(power_systems). Power beat is now AHEAD of the
+	# engine equip (mobile hulls give no energy, so a battery must seat first).
 	var walk_ok := true
 	var trace := []
 	# m001 gather Dirt 350
 	gs.add_resource("Dirt", 400); gs._mission_sync()
 	walk_ok = walk_ok and gs.claim_mission("m001"); trace.append("m001" if gs.missions_claimed.has("m001") else "m001!")
-	# m002 research basic_engineering
+	# m002 merged research_multi (basic_engineering + applied_physics + fluid_dynamics)
 	gs.unlock_research("basic_engineering")
-	walk_ok = walk_ok and gs.claim_mission("m002"); trace.append("m002" if gs.missions_claimed.has("m002") else "m002!")
-	# m002b research applied_physics
 	gs.unlock_research("applied_physics")
-	walk_ok = walk_ok and gs.claim_mission("m002b"); trace.append("m002b" if gs.missions_claimed.has("m002b") else "m002b!")
-	# m003 research fluid_dynamics
 	gs.unlock_research("fluid_dynamics")
-	walk_ok = walk_ok and gs.claim_mission("m003"); trace.append("m003" if gs.missions_claimed.has("m003") else "m003!")
+	walk_ok = walk_ok and gs.claim_mission("m002"); trace.append("m002" if gs.missions_claimed.has("m002") else "m002!")
 	# m004 gather Water 350
 	gs.add_resource("Water", 400); gs._mission_sync()
 	walk_ok = walk_ok and gs.claim_mission("m004"); trace.append("m004" if gs.missions_claimed.has("m004") else "m004!")
 	# m005 gather_multi {Si:100, Fe:80}
 	gs.add_resource("Si", 120); gs.add_resource("Fe", 100); gs._mission_sync()
 	walk_ok = walk_ok and gs.claim_mission("m005"); trace.append("m005" if gs.missions_claimed.has("m005") else "m005!")
-	# m007 craft z1_engine
-	gs.module_inventory["z1_engine"] = 1; gs._mission_event("craft", "z1_engine", 1); gs._mission_sync()
-	walk_ok = walk_ok and gs.claim_mission("m007"); trace.append("m007" if gs.missions_claimed.has("m007") else "m007!")
-	# m007b loadout_check engine (equip the engine)
-	gs.equip_module("z1_engine")
-	walk_ok = walk_ok and gs.claim_mission("m007b"); trace.append("m007b" if gs.missions_claimed.has("m007b") else "m007b!")
-	p("(6) tutorial chain m001->m007b advances via mixed events", walk_ok and gs.missions_active.has("m008"), " ".join(trace))
+	# m014 research kinetics_101 (parent of power_systems — researched FIRST now)
+	gs.unlock_research("kinetics_101")
+	walk_ok = walk_ok and gs.claim_mission("m014"); trace.append("m014" if gs.missions_claimed.has("m014") else "m014!")
+	# m020 research power_systems (parent prerequisite kinetics_101 now met)
+	gs.unlock_research("power_systems")
+	walk_ok = walk_ok and gs.claim_mission("m020"); trace.append("m020" if gs.missions_claimed.has("m020") else "m020!")
+	p("(6) curated chain m001->m020 advances via mixed events (incl. research_multi)",
+		walk_ok and gs.missions_active.has("m021"), " ".join(trace))
 
 	print("===== END PHASE 3 =====")
 	quit()
