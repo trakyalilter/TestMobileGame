@@ -1,7 +1,6 @@
 extends PanelContainer
 
 const MatrixCoreIcon = preload("res://scripts/ui/matrix_core_icon.gd")
-const RARITY_FRAME_SHADER = preload("res://assets/shaders/rarity_frame.gdshader")
 
 var mid: String
 var data: Dictionary
@@ -32,6 +31,10 @@ func setup(p_mid: String, p_data: Dictionary, p_count: int):
 func _ready():
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	mouse_entered.connect(_on_mouse_enter)
+	# v111.20: rarity-framed hover tooltip (manual ModalLayer popup) replaces the
+	# generic cyan _make_custom_tooltip so the info card frame matches the rarity.
+	mouse_exited.connect(func(): UITheme.hide_item_tooltip(self))
+	tree_exiting.connect(func(): UITheme.hide_item_tooltip(self))
 	_update_ui()
 
 func _on_mouse_enter():
@@ -39,6 +42,8 @@ func _on_mouse_enter():
 	if sm and sm.get("unseen_modules") != null and sm.unseen_modules.get(mid, false):
 		sm.unseen_modules.erase(mid)
 		_update_ui()
+	if not data.is_empty():
+		UITheme.show_item_tooltip(self, _build_comparison_tooltip_bbcode())
 
 func _update_ui():
 	if not is_inside_tree() or data.is_empty():
@@ -298,7 +303,7 @@ func _draw_tile_visual(item_name: String, slot_type: String, rarity: int, rarity
 	add_theme_stylebox_override("panel", StyleBoxEmpty.new())
 	_apply_pulse(rarity)
 
-	_attach_rarity_fx(tile_container, rarity, rarity_color)
+	UITheme.attach_rarity_fx(tile_container, rarity, rarity_color)
 	add_child(tile_container)
 	# Armory tiles are tiny — request the translucent dim variant so the
 	# rarity frame + slot icon underneath still read instead of the card
@@ -585,55 +590,13 @@ func _draw_gem_visual(gem_name: String, rarity_color: Color):
 
 	# Cores carry their tier in data ("rarity": 2/3/4 for Cracked/Stable/Pristine),
 	# so use that for the shimmer rather than the modules-only lookup.
-	_attach_rarity_fx(gem_container, int(data.get("rarity", rarity)), rarity_color)
+	UITheme.attach_rarity_fx(gem_container, int(data.get("rarity", rarity)), rarity_color)
 	add_child(gem_container)
 	
 	# Small glow tween to make the core feel alive
 	var glow_tween = create_tween().set_loops()
 	glow_tween.tween_property(core, "modulate", Color(1.2, 1.2, 1.2), 1.5).set_trans(Tween.TRANS_SINE)
 	glow_tween.tween_property(core, "modulate", Color(0.9, 0.9, 0.9), 1.5).set_trans(Tween.TRANS_SINE)
-
-# v111.19: animated ARAM-style rarity frame for rare+ cards. Adds a GPU-shaded
-# overlay (animates via TIME, zero per-frame GDScript) on top of the card frame;
-# the centre stays transparent so the icon shows through. The overlay is parented
-# to the per-rebuild TileVisual/GemVisual host, so it's recreated cleanly on each
-# _update_ui and never double-stacks. Tier escalation:
-#   RARE      → subtle rarity-tinted shimmer, no sparkle
-#   LEGENDARY → brighter + faster + faint sparkle
-#   UNIQUE    → holographic rainbow + strongest glow + sparkle
-func _attach_rarity_fx(host: Control, rarity: int, rarity_color: Color) -> void:
-	var sm = GameState.shipyard_manager
-	if not sm or rarity < sm.Rarity.RARE:
-		return
-	var fx := ColorRect.new()
-	fx.name = "RarityFX"
-	fx.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	fx.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	fx.color = Color.WHITE   # ignored; the shader writes COLOR directly
-	var mat := ShaderMaterial.new()
-	mat.shader = RARITY_FRAME_SHADER
-	mat.set_shader_parameter("rarity_color", rarity_color)
-	match rarity:
-		sm.Rarity.RARE:
-			mat.set_shader_parameter("intensity", 0.70)
-			mat.set_shader_parameter("rainbow", 0.0)
-			mat.set_shader_parameter("speed", 0.8)
-			mat.set_shader_parameter("sparkle", 0.0)
-			mat.set_shader_parameter("border", 0.11)
-		sm.Rarity.LEGENDARY:
-			mat.set_shader_parameter("intensity", 0.95)
-			mat.set_shader_parameter("rainbow", 0.35)
-			mat.set_shader_parameter("speed", 1.3)
-			mat.set_shader_parameter("sparkle", 1.0)
-			mat.set_shader_parameter("border", 0.13)
-		_:  # UNIQUE (and any higher tier)
-			mat.set_shader_parameter("intensity", 1.15)
-			mat.set_shader_parameter("rainbow", 1.0)
-			mat.set_shader_parameter("speed", 1.7)
-			mat.set_shader_parameter("sparkle", 1.0)
-			mat.set_shader_parameter("border", 0.15)
-	fx.material = mat
-	host.add_child(fx)
 
 
 func _get_module_rarity_safe(sm) -> int:
@@ -892,24 +855,6 @@ func _show_demolish_menu():
 	else:
 		popup.queue_free()
 
-func _make_custom_tooltip(_for_text: String) -> Control:
-	if data.is_empty():
-		return null
-
-	# v111.15 FRAME-IN-FRAME FIX: return a frameless RichTextLabel. Godot wraps
-	# whatever this returns inside the theme's `TooltipPanel` (dark bg + cyan
-	# border + shadow, from sci_fi_theme.tres). Returning our own bordered
-	# PanelContainer produced two nested frames. Let the themed wrapper be the
-	# single frame; rarity is still signalled by the bold rarity-coloured title
-	# at the top of the body.
-	var rtl = RichTextLabel.new()
-	rtl.bbcode_enabled = true
-	rtl.fit_content = true
-	rtl.scroll_active = false
-	rtl.custom_minimum_size = Vector2(340, 0)
-	rtl.add_theme_color_override("default_color", Color(0.92, 0.90, 0.86))
-	rtl.text = _build_comparison_tooltip_bbcode()
-	return rtl
 
 func _build_comparison_tooltip_bbcode() -> String:
 	if data.is_empty():
@@ -925,7 +870,7 @@ func _build_comparison_tooltip_bbcode() -> String:
 	var display_name = _get_clean_name(data.get("name", "Item")).to_upper()
 
 	var tt = ""
-	var div = "[color=#3d3d3d]-------------------------------[/color]\n"
+	var div = "[color=#41526e]──────────────────────────────[/color]\n"
 
 	tt += "[b][color=#%s]%s[/color][/b]\n" % [rarity_color_hex, display_name]
 	tt += "[font_size=10][color=gray]%s %s[/color][/font_size]\n" % [rarity_label, slot_type.capitalize()]

@@ -31,6 +31,12 @@ func setup(idx: int, s_type: String, p_ui, p_manager):
 func _ready():
 	_apply_base_style()
 	option_btn.visible = false
+	# v111.20: slot-level hover → rarity-framed module tooltip (manual popup),
+	# replacing the generic cyan _make_custom_tooltip.
+	if not mouse_entered.is_connected(_on_slot_hover):
+		mouse_entered.connect(_on_slot_hover)
+		mouse_exited.connect(_on_slot_unhover)
+		tree_exiting.connect(_on_slot_unhover)
 	# Only refresh if setup() already ran; otherwise the empty slot_type falls
 	# through to the module-render path and bleeds set labels into consumable slots.
 	if slot_type != "":
@@ -245,8 +251,9 @@ func refresh_state():
 
 		_apply_card_style(rarity, rarity_color)
 		_apply_pulse(rarity)
-		
-		tooltip_text = _build_module_tooltip(m_data)
+		# v111.19: rare+ equipped modules shimmer like the armory tiles.
+		UITheme.attach_rarity_fx(self, rarity, rarity_color)
+		# v111.20: tooltip is now a rarity-framed manual popup (see _on_slot_hover).
 
 		# Make physical sockets in the SocketAnchor
 		if m_data.has("sockets"):
@@ -346,6 +353,7 @@ func refresh_state():
 		rarity_badge.visible = false
 		_ensure_type_icon().visible = false
 		_apply_base_style()
+		UITheme.attach_rarity_fx(self, 0, Color.WHITE)   # clear any prior shimmer
 		tooltip_text = "Empty %s Slot\nDrag a module here to equip" % slot_type.capitalize()
 
 	# Populate Inventory Options
@@ -965,24 +973,22 @@ func _style_repair_button(btn: Button, hover_color: Color):
 
 # TOOLTIP
 
-func _make_custom_tooltip(_for_text: String) -> Control:
+# v111.20: equipped-module hover → shared rarity-framed tooltip (manual popup).
+# Consumable slots fall through to their plain tooltip_text; empty slots show
+# nothing here.
+func _on_slot_hover() -> void:
+	if not is_inside_tree() or slot_type.begins_with("consumable_"):
+		return
 	var equipped_id = manager.loadout.get(slot_idx)
-	if not equipped_id: return null
+	if not equipped_id:
+		return
 	var m_data = manager.modules.get(equipped_id)
-	if not m_data: return null
+	if not m_data:
+		return
+	UITheme.show_item_tooltip(self, _build_module_tooltip(m_data))
 
-	# v111.15 FRAME-IN-FRAME FIX: return a frameless RichTextLabel so the theme's
-	# `TooltipPanel` wrapper is the single frame (returning our own bordered
-	# PanelContainer nested two frames). Rarity stays visible via the bold
-	# rarity-coloured title in the body.
-	var rtl = RichTextLabel.new()
-	rtl.bbcode_enabled = true
-	rtl.fit_content = true
-	rtl.scroll_active = false
-	rtl.custom_minimum_size = Vector2(340, 0)
-	rtl.add_theme_color_override("default_color", Color(0.92, 0.90, 0.86))
-	rtl.text = _build_module_tooltip(m_data)
-	return rtl
+func _on_slot_unhover() -> void:
+	UITheme.hide_item_tooltip(self)
 
 func _build_module_tooltip(m_data: Dictionary) -> String:
 	var equipped_id = manager.loadout.get(slot_idx)
@@ -993,7 +999,7 @@ func _build_module_tooltip(m_data: Dictionary) -> String:
 
 	var rarity_color_hex = manager.RARITY_COLORS.get(rarity, Color.GRAY).to_html(false)
 	var s_type = m_data.get("slot_type", "weapon")
-	var div = "[color=#3d3d3d]-------------------------------[/color]\n"
+	var div = "[color=#41526e]──────────────────────────────[/color]\n"
 
 	var tt = ""
 

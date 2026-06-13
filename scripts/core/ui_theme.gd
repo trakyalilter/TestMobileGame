@@ -7,6 +7,9 @@ signal research_navigation_requested(tech_id: String)
 # live CardChrome overlay repaints without a page rebuild.
 signal chrome_changed
 
+# v111.19: animated rarity-frame shader, shared by armory tiles + equipped slots.
+const RARITY_FRAME_SHADER = preload("res://assets/shaders/rarity_frame.gdshader")
+
 # Card frame / "soul" chrome styles, selectable in Sys Config.
 # Default is INDUSTRIAL (matches the diegetic engineering-console copy).
 const CHROME_INDUSTRIAL := 0
@@ -105,6 +108,140 @@ func apply_card_style(panel: Control, category: String = "ops") -> StyleBoxFlat:
 	# by the same accent — switches live with the Sys Config setting.
 	_attach_chrome(panel, accent)
 	return style
+
+# v111.19: animated rarity-frame overlay (shimmer + orbiting highlight + soft
+# twinkles) for rare+ cards. Shared by armory tiles (module_card) AND equipped
+# slots (designer_slot_widget) so both shine identically. Idempotent: removes any
+# prior overlay first, and a sub-RARE call simply clears it (use that to wipe the
+# fx when a slot empties). Each tier glows in its own rarity colour — no rainbow.
+func attach_rarity_fx(host: Control, rarity: int, rarity_color: Color) -> void:
+	if not is_instance_valid(host):
+		return
+	var existing := host.get_node_or_null("RarityFX")
+	if existing:
+		host.remove_child(existing)   # detach now so re-add can't collide on name
+		existing.queue_free()
+	var sm = GameState.shipyard_manager
+	var rare_tier: int = int(sm.Rarity.RARE) if sm else 2
+	var legendary_tier: int = int(sm.Rarity.LEGENDARY) if sm else 3
+	if rarity < rare_tier:
+		return
+
+	var fx := ColorRect.new()
+	fx.name = "RarityFX"
+	fx.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	fx.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	fx.color = Color.WHITE   # ignored; the shader writes COLOR directly
+
+	var mat := ShaderMaterial.new()
+	mat.shader = RARITY_FRAME_SHADER
+	mat.set_shader_parameter("rarity_color", rarity_color)
+	mat.set_shader_parameter("rainbow", 0.0)   # rarity-coloured, not a rainbow
+	if rarity == rare_tier:
+		mat.set_shader_parameter("intensity", 0.70)
+		mat.set_shader_parameter("speed", 0.8)
+		mat.set_shader_parameter("sparkle", 0.0)
+		mat.set_shader_parameter("border", 0.12)
+	elif rarity == legendary_tier:
+		mat.set_shader_parameter("intensity", 1.0)
+		mat.set_shader_parameter("speed", 1.25)
+		mat.set_shader_parameter("sparkle", 1.0)
+		mat.set_shader_parameter("border", 0.13)
+	else:  # UNIQUE (and any higher tier)
+		mat.set_shader_parameter("intensity", 1.25)
+		mat.set_shader_parameter("speed", 1.6)
+		mat.set_shader_parameter("sparkle", 1.0)
+		mat.set_shader_parameter("border", 0.14)
+	fx.material = mat
+
+	# Feed the live pixel size so the border stays uniform on non-square cards.
+	fx.resized.connect(func():
+		if is_instance_valid(fx) and fx.size.x > 0.0 and fx.size.y > 0.0:
+			mat.set_shader_parameter("rect_px", fx.size))
+	host.add_child(fx)
+
+# ── v111.20: shared rarity-framed item tooltip ─────────────────────────────
+# A single hover tooltip shown via a manual ModalLayer popup (NOT Godot's generic
+# cyan TooltipPanel), so the frame is rarity-coloured + shimmers like the cards.
+# One global instance; anchor-tracked so a fast A->B hover never clears B's card
+# when A's late mouse_exited fires.
+var _item_tooltip: Control = null
+var _item_tooltip_anchor: Control = null
+
+func show_item_tooltip(anchor: Control, bbcode: String) -> void:
+	_free_item_tooltip()
+	if not is_instance_valid(anchor) or not anchor.is_inside_tree() or bbcode == "":
+		return
+	var modal := anchor.get_tree().root.find_child("ModalLayer", true, false)
+	var parent: Node = modal if modal else anchor.get_tree().current_scene
+	if parent == null:
+		return
+
+	var card := PanelContainer.new()
+	card.name = "ItemTooltip"
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE   # never steals the hover
+
+	# ONE consistent premium template for every module info card (NOT per-rarity —
+	# rarity still reads from the title colour in the body text). Deep glassy
+	# panel, refined steel-cyan frame with a slightly heavier top accent, rounded
+	# corners, generous padding and a soft drop shadow.
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.055, 0.062, 0.088, 0.985)
+	sb.set_corner_radius_all(6)
+	sb.set_border_width_all(1)
+	sb.border_width_top = 3
+	sb.border_color = Color(0.46, 0.60, 0.82, 0.55)
+	sb.content_margin_left = 14
+	sb.content_margin_right = 14
+	sb.content_margin_top = 11
+	sb.content_margin_bottom = 12
+	sb.shadow_color = Color(0, 0, 0, 0.55)
+	sb.shadow_size = 14
+	sb.shadow_offset = Vector2(0, 4)
+	card.add_theme_stylebox_override("panel", sb)
+
+	var rtl := RichTextLabel.new()
+	rtl.bbcode_enabled = true
+	rtl.fit_content = true
+	rtl.scroll_active = false
+	rtl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	rtl.custom_minimum_size = Vector2(328, 0)
+	rtl.add_theme_color_override("default_color", Color(0.90, 0.91, 0.95))
+	# Comfortable baseline sizes + line spacing (inline [font_size] tags in the
+	# body still win where set).
+	rtl.add_theme_font_size_override("normal_font_size", 12)
+	rtl.add_theme_font_size_override("bold_font_size", 12)
+	rtl.add_theme_constant_override("line_separation", 3)
+	rtl.text = bbcode
+	card.add_child(rtl)
+	parent.add_child(card)
+
+	# Position near the mouse, flipped away from the viewport edges.
+	var mpos := anchor.get_global_mouse_position()
+	var vp := anchor.get_viewport().get_visible_rect().size
+	var est := card.size if card.size.x > 1.0 else Vector2(360.0, 240.0)
+	var px := mpos.x + 18.0
+	var py := mpos.y + 18.0
+	if px + est.x > vp.x - 8.0:
+		px = mpos.x - est.x - 18.0
+	if py + est.y > vp.y - 8.0:
+		py = mpos.y - est.y - 18.0
+	card.position = Vector2(maxf(8.0, px), maxf(8.0, py))
+
+	_item_tooltip = card
+	_item_tooltip_anchor = anchor
+
+func hide_item_tooltip(anchor: Control = null) -> void:
+	# Only the owner (or a forced null) may clear it.
+	if anchor != null and anchor != _item_tooltip_anchor:
+		return
+	_free_item_tooltip()
+
+func _free_item_tooltip() -> void:
+	if is_instance_valid(_item_tooltip):
+		_item_tooltip.queue_free()
+	_item_tooltip = null
+	_item_tooltip_anchor = null
 
 # Adds (or refreshes) the CardChrome overlay on a styled card. Idempotent:
 # re-applying a style on the same panel just updates the accent.
@@ -582,6 +719,14 @@ func apply_sidebar_button_style(button: Button, is_active: bool):
 		Color(0.90, 0.95, 1.00) if is_active else Color(0.50, 0.55, 0.68))
 	button.add_theme_color_override("font_hover_color",   Color(0.78, 0.90, 1.00))
 	button.add_theme_color_override("font_pressed_color", Color(1.00, 1.00, 1.00))
+	# v111.21: tint the white SVG nav icon in lockstep with the label, and keep a
+	# consistent icon size + icon↔label gap.
+	button.add_theme_color_override("icon_normal_color",
+		Color(0.90, 0.95, 1.00) if is_active else Color(0.50, 0.55, 0.68))
+	button.add_theme_color_override("icon_hover_color",   Color(0.78, 0.90, 1.00))
+	button.add_theme_color_override("icon_pressed_color", Color(1.00, 1.00, 1.00))
+	button.add_theme_constant_override("icon_max_width", 18)
+	button.add_theme_constant_override("h_separation", 10)
 
 func apply_modal_style(panel: PanelContainer):
 	if not panel: return

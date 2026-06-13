@@ -297,7 +297,7 @@ func _build_comparison_tooltip() -> String:
 		display_name = display_name.replace(suffix, "")
 		
 	var rarity_color = sm.RARITY_COLORS.get(rarity, Color.WHITE)
-	var div = "[color=#3d3d3d]-------------------------------[/color]\n"
+	var div = "[color=#41526e]──────────────────────────────[/color]\n"
 
 	tt = "" # Reset tt as it was already initialized
 	tt += "[b][color=#%s]%s[/color][/b]\n" % [rarity_color.to_html(), data.get("name", "Unknown Item")]
@@ -334,7 +334,7 @@ func _build_comparison_tooltip() -> String:
 	elif slot_type == "armor":
 		var hp_val = my_stats.get("hp", 0)
 		tt += "[center][font_size=20][b]%s[/b][/font_size] [font_size=10][color=gray]Integrity Reinforcement[/color][/font_size][/center]\n" % UITheme.format_num(hp_val)
-		tt += "[color=gray]----------------------------------[/color]\n"
+		tt += "[color=#41526e]──────────────────────────────[/color]\n"
 
 	# 3. STAT COMPARISON
 	var equipped_mid = null
