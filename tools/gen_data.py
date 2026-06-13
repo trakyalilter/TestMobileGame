@@ -205,6 +205,16 @@ for cid in _used_cats:
     lines.append(f'\t{{"id": {g(cid)}, "label": {g(RACK_LABELS.get(cid, cid.replace("_", " ").title()))}}},')
 lines.append("]")
 lines.append("const CRAFT := {")
+# Mobile tutorial pacing: a few recipes the TUTORIAL forces you to craft gate on
+# a Fabrication level the player can't reach yet at that point in the (mobile-
+# reordered) mission flow — e.g. the basic battery needed Fab 6 while the player
+# is Fab 2. Cap those gates to a reachable level so the tutorial never dead-ends.
+# (Verified against a fab-XP walk of the tutorial chain — lower bound.)
+MOBILE_RECIPE_LEVEL = {
+    "craft_battery_t1": 1,          # Basic Battery — needed very early (Fab 2); was 6
+    "smelt_steel_basic": 8,         # Steel — tutorial m025b (player ~Fab 11); was 12
+    "craft_structural_component": 10,  # Structural Components — tutorial m029a3 (player ~Fab 12); was 40
+}
 for rid, r in recipes.items():
     inputs = dict(r.get("input", {}))
     outputs = dict(r.get("output", {}))
@@ -218,7 +228,7 @@ for rid, r in recipes.items():
         "outputs": outputs,
         "bonus": r.get("output_table", []),
         "xp": r.get("xp", 0),
-        "level_req": r.get("level_req", 1),
+        "level_req": MOBILE_RECIPE_LEVEL.get(rid, r.get("level_req", 1)),
         "duration": r.get("duration", 4.0),
         "category": _recipe_cat[rid],
     }
