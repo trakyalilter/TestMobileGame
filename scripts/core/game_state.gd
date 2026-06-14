@@ -3398,7 +3398,8 @@ func _offline_combat(delta: float) -> void:
 	if e.is_empty():
 		return
 	var diff := _combat_difficulty()
-	var k := maxf(20.0, float(diff) * 50.0)
+	# Match online armor mitigation (DEF_K), not the old max(20, diff*50).
+	var k := GameData.DEF_K_CONSTANT + GameData.DEF_K_ZONE_SCALE * pow(float(diff), GameData.DEF_K_ZONE_EXP)
 	var pdps := avg_player_dps() * (1.0 - float(e.get("def", 0)) / (float(e.get("def", 0)) + k))
 	pdps = maxf(1.0, pdps)
 	var ehp := float(e.get("hp", 10)) + float(e.get("max_shield", 0))
@@ -3410,9 +3411,18 @@ func _offline_combat(delta: float) -> void:
 		return
 	var pdef := float(ship_stats().get("def", 0.0))
 	var edps := float(e.get("atk", 0)) / maxf(0.5, float(e.get("interval", 2.5))) * (1.0 - pdef / (pdef + k))
-	var sustain := float(ship_stats().get("shield_regen", 0.0)) + (50.0 if has_set_bonus("patient_zero") else 0.0)
-	if edps > sustain:
-		return   # not survivable unattended
+	var regen := float(ship_stats().get("shield_regen", 0.0)) + (50.0 if has_set_bonus("patient_zero") else 0.0)
+	# Survivable iff the player WINS each duel — kills the enemy before its damage
+	# drains the HP+shield pool (regen offsets dps). The old check compared dps to
+	# shield-regen alone, wrongly failing fights that are easily won online because
+	# the shield/hull pool absorbs the hits over the short kill time.
+	var net_edps := edps - regen
+	if net_edps > 0.0:
+		var pool := combat_max_hp() + player_max_shield()
+		var survive_time := pool / net_edps
+		if kill_time >= survive_time:
+			return   # would die before the kill — not farmable unattended
+	# else: out-sustains the enemy outright — always survives.
 	# v101 offline parity: loot scales by the same combat multiplier as online, and
 	# each kill rolls module drops (ref calculate_offline ~L2449-2511).
 	var summary := _offline_loot(e.get("loot", []), get_combat_loot_multiplier(), reps)
