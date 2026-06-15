@@ -127,7 +127,9 @@ var combat_zone := 0
 var research_tab := "Operations"
 var atlas_mode := "materials"
 var atlas_mat_cat := "gathered"
+var atlas_query := ""
 var _atlas_index := {}
+var _atlas_results: VBoxContainer = null   # results container refilled live on search
 var build_cat := "power"
 var ship_view := "loadout"
 var shipyard_view := "modules"  # Shipyard (fabrication) sub-tab — separate from ship_view
@@ -3942,13 +3944,48 @@ func _build_atlas() -> void:
 	var v := _clear("atlas")
 	_back_header(v)
 	_clbl(v, "ATLAS / CODEX", 16, CYAN)
+	# Search box: filters materials & enemies by name. Typing refills only the
+	# results container below (not this field), so focus / the keyboard stay put.
+	var se := LineEdit.new()
+	se.placeholder_text = "Search materials & enemies…"
+	se.text = atlas_query
+	se.clear_button_enabled = true
+	se.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	se.add_theme_font_size_override("font_size", _fs(13))
+	se.text_changed.connect(func(t: String) -> void:
+		atlas_query = t
+		_atlas_rebuild_results())
+	v.add_child(se)
 	_subtabs(v, [{"id": "materials", "label": "Materials"}, {"id": "enemies", "label": "Enemies"}], atlas_mode, CYAN, func(id: String) -> void:
 		atlas_mode = id
 		_refresh_current())
+	var rv := VBoxContainer.new()
+	rv.add_theme_constant_override("separation", 8)
+	rv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	v.add_child(rv)
+	_atlas_results = rv
+	_atlas_fill_results()
+
+func _atlas_fill_results() -> void:
+	if not is_instance_valid(_atlas_results):
+		return
 	if atlas_mode == "materials":
-		_atlas_materials(v)
+		_atlas_materials(_atlas_results)
 	else:
-		_atlas_enemies(v)
+		_atlas_enemies(_atlas_results)
+	_scroll_passthrough(_atlas_results)   # keep new rows touch-droppable for scroll
+
+func _atlas_rebuild_results() -> void:
+	if not is_instance_valid(_atlas_results):
+		return
+	for c in _atlas_results.get_children():
+		_atlas_results.remove_child(c)
+		c.queue_free()
+	_atlas_fill_results()
+
+func _atlas_matches(name: String) -> bool:
+	var q := atlas_query.strip_edges().to_lower()
+	return q == "" or q in name.to_lower()
 
 func _atlas_get_index() -> Dictionary:
 	if not _atlas_index.is_empty():
@@ -4009,12 +4046,16 @@ const ATLAS_CATS := [
 
 func _atlas_materials(v: VBoxContainer) -> void:
 	var idx := _atlas_get_index()
-	var cat_items := []
-	for c in ATLAS_CATS:
-		cat_items.append({"id": c.id, "label": c.label})
-	_subtabs(v, cat_items, atlas_mat_cat, CYAN, func(id: String) -> void:
-		atlas_mat_cat = id
-		_refresh_current())
+	var searching := atlas_query.strip_edges() != ""
+	# While searching, the category sub-filter is irrelevant (we match by name across
+	# every category), so hide the category tabs to avoid implying a sub-scope.
+	if not searching:
+		var cat_items := []
+		for c in ATLAS_CATS:
+			cat_items.append({"id": c.id, "label": c.label})
+		_subtabs(v, cat_items, atlas_mat_cat, CYAN, func(id: String) -> void:
+			atlas_mat_cat = id
+			_refresh_current())
 	var want_icon := ""
 	for c in ATLAS_CATS:
 		if c.id == atlas_mat_cat:
@@ -4025,14 +4066,18 @@ func _atlas_materials(v: VBoxContainer) -> void:
 		var info = idx.get(sym, null)
 		if info == null or (info["sources"].is_empty() and info["uses"].is_empty()):
 			continue
-		var match_cat := false
-		if atlas_mat_cat == "other":
-			match_cat = info["sources"].is_empty()
-		else:
-			for s in info["sources"]:
-				if (s as String).begins_with(want_icon):
-					match_cat = true
-					break
+		if not _atlas_matches(GameData.res_name(sym)):
+			continue
+		# Name search spans all categories; otherwise filter by the source category.
+		var match_cat := searching
+		if not searching:
+			if atlas_mat_cat == "other":
+				match_cat = info["sources"].is_empty()
+			else:
+				for s in info["sources"]:
+					if (s as String).begins_with(want_icon):
+						match_cat = true
+						break
 		if not match_cat:
 			continue
 		n += 1
@@ -4053,7 +4098,7 @@ func _atlas_materials(v: VBoxContainer) -> void:
 			_atlas_line(col, "Used in: ", info["uses"], C_DIM)
 		v.add_child(panel)
 	if n == 0:
-		_empty(v, "No materials catalogued.")
+		_empty(v, "No materials found." if atlas_query.strip_edges() != "" else "No materials catalogued.")
 
 func _atlas_line(parent: Node, prefix: String, items: Array, color: String) -> void:
 	var shown := items
@@ -4135,11 +4180,19 @@ func _build_hazard() -> void:
 		v.add_child(c.get_parent())
 
 func _atlas_enemies(v: VBoxContainer) -> void:
+	var found := 0
 	for z in GameData.ZONES:
-		_section(v, "%s  (★%d)" % [z.get("name", ""), int(z.get("difficulty", 1))], RED)
+		# Collect this zone's matching enemies first so an empty section header is
+		# never shown while searching.
+		var zids := []
 		for eid in z.get("enemies", []):
-			if not GameData.ENEMIES.has(eid):
-				continue
+			if GameData.ENEMIES.has(eid) and _atlas_matches(GameData.ENEMIES[eid].get("name", eid)):
+				zids.append(eid)
+		if zids.is_empty():
+			continue
+		_section(v, "%s  (★%d)" % [z.get("name", ""), int(z.get("difficulty", 1))], RED)
+		for eid in zids:
+			found += 1
 			var e: Dictionary = GameData.ENEMIES[eid]
 			var c := _card(RED, true)
 			var badge := "DROPS" if (float(e.get("drop_chance", 0.0)) > 0.0 and not (e.get("drop_pool", []) as Array).is_empty()) else ""
@@ -4170,11 +4223,16 @@ func _atlas_enemies(v: VBoxContainer) -> void:
 			pool.append(hz["elite_enemy"])
 		if hz.get("boss_enemy", "") != "":
 			pool.append(hz["boss_enemy"])
-		_section(v, "☢ %s  (Hazard)" % hz.get("name", hz_id), PURP)
+		var hz_ids := []
 		for eid in pool:
-			if hz_seen.has(eid) or not GameData.ENEMIES.has(eid):
-				continue
+			if not hz_seen.has(eid) and GameData.ENEMIES.has(eid) and _atlas_matches(GameData.ENEMIES[eid].get("name", eid)):
+				hz_ids.append(eid)
+		if hz_ids.is_empty():
+			continue
+		_section(v, "☢ %s  (Hazard)" % hz.get("name", hz_id), PURP)
+		for eid in hz_ids:
 			hz_seen[eid] = true
+			found += 1
 			var e: Dictionary = GameData.ENEMIES[eid]
 			var c := _card(PURP, true)
 			_card_head(c, "☢", e.get("name", eid), "", PURP, true)
@@ -4190,6 +4248,8 @@ func _atlas_enemies(v: VBoxContainer) -> void:
 			ib.pressed.connect(func() -> void: _show_enemy_intel(eid))
 			c.add_child(ib)
 			v.add_child(c.get_parent())
+	if found == 0 and atlas_query.strip_edges() != "":
+		_empty(v, "No enemies found.")
 
 # ============================================================ STATS / STORAGE
 func _build_stats() -> void:
