@@ -54,7 +54,7 @@ func _run() -> void:
 	var v0 := sc.scroll_vertical
 	print("scroll before drag: %d" % v0)
 
-	print("gate: modal=%d drawer=%s char_select=%s welcome=%s" % [main._modal_depth, str(main.drawer_open), str(is_instance_valid(main._char_select)), str(is_instance_valid(main._welcome))])
+	print("gate: modals=%d drawer=%s char_select=%s welcome=%s" % [main._modal_stack.size(), str(main.drawer_open), str(is_instance_valid(main._char_select)), str(is_instance_valid(main._welcome))])
 
 	# Drive press + upward drag + release directly through the handler (headless
 	# input routing for synthetic touch is unreliable; this exercises the same path).

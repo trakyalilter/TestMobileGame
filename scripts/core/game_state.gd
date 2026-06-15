@@ -3440,11 +3440,11 @@ func _offline_combat(delta: float) -> void:
 				if generate_module(base_id, rarity, diff) != "":
 					mods += 1
 		if mods > 0:
-			summary += "+%d Modules  " % mods
+			summary += "\nModules\t+%d" % mods
 	add_xp("combat", int(e.get("xp", 0)) * reps)
 	combat_hp = combat_max_hp()
 	player_shield = player_max_shield()
-	pending_offline = "Away for %s\n\nDestroyed %d %s\n%s\n+%d Combat XP" % [_fmt_time(delta), reps, e.get("name", ""), summary, int(e.get("xp", 0)) * reps]
+	pending_offline = "Away for %s\n\nDestroyed %d %s\n%s\nCombat XP\t+%d" % [_fmt_time(delta), reps, e.get("name", ""), summary, int(e.get("xp", 0)) * reps]
 
 func current_duration() -> float:
 	return effective_duration(active_type, active_id)
@@ -3686,7 +3686,7 @@ func _apply_offline(delta: float) -> void:
 		var summary := _offline_loot(a.get("loot", []), yield_mult("harvesting"), reps)
 		add_xp("harvesting", int(a.get("xp", 0)) * reps)
 		gain_mastery_xp(active_id, float(reps))             # batch Mastery for offline loops
-		pending_offline = "Away for %s\n\n%s\n+%d Harvesting XP" % [_fmt_time(delta), summary, int(a.get("xp", 0)) * reps]
+		pending_offline = "Away for %s\n\n%s\nHarvesting XP\t+%d" % [_fmt_time(delta), summary, int(a.get("xp", 0)) * reps]
 	elif active_type == "craft":
 		var r: Dictionary = GameData.CRAFT[active_id]
 		var by_inputs := 0x7FFFFFFF
@@ -3700,27 +3700,30 @@ func _apply_offline(delta: float) -> void:
 		for sym in r.get("outputs", {}):
 			before[sym] = amount(sym)
 		_grant_craft_outputs(active_id, r, count)
-		var summary := ""
+		var rows := []
 		for sym in r.get("outputs", {}):
 			var made := amount(sym) - int(before[sym])
-			summary += "\n+%s %s" % [GameData.fmt(made), GameData.res_name(sym)]
+			rows.append("%s\t+%s" % [GameData.res_name(sym), GameData.fmt(made)])
+		var summary := "\n".join(rows)
 		add_xp("fabrication", int(r.get("xp", 0)) * count)
 		gain_mastery_xp(active_id, float(count))            # batch Mastery for offline loops
-		pending_offline = "Away for %s\n%s\n+%d Fabrication XP" % [_fmt_time(delta), summary, int(r.get("xp", 0)) * count]
+		pending_offline = "Away for %s\n%s\nFabrication XP\t+%d" % [_fmt_time(delta), summary, int(r.get("xp", 0)) * count]
 
 func _offline_loot(loot: Array, mult: float, reps: int) -> String:
-	var s := ""
+	# Returns tab-delimited "Name\t+Qty" rows joined by newlines, so the report
+	# modal can render a clean two-column list instead of a run-on paragraph.
+	var rows := []
 	for row in loot:
 		var avg: float = (int(row[2]) + int(row[3])) / 2.0 * float(row[1])
 		var got := int(round(avg * mult * reps))
 		if got > 0:
 			if row[0] == "credits":
 				gain_credits(got)
-				s += "+₡%s  " % GameData.fmt(got)
+				rows.append("Credits\t+₡%s" % GameData.fmt(got))
 			else:
 				add_resource(row[0], got)
-				s += "+%s %s  " % [GameData.fmt(got), GameData.res_name(row[0])]
-	return s
+				rows.append("%s\t+%s" % [GameData.res_name(row[0]), GameData.fmt(got)])
+	return "\n".join(rows)
 
 func _fmt_time(secs: float) -> String:
 	var s := int(secs)

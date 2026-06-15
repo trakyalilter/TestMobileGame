@@ -117,7 +117,9 @@ var _drag_last_h := 0
 var _drag_last_ms := 0
 var _drag_vel := 0.0
 var _drag_vel_h := 0.0
-var _modal_depth := 0
+# Open modal overlays (top of stack = frontmost). Drag-scroll targets the top
+# modal's own scroll container so its content scrolls instead of the page behind.
+var _modal_stack: Array = []
 var gather_cat := "terrestrial"
 var craft_cat := "basics"
 var combat_zone := 0
@@ -1487,18 +1489,18 @@ func _refresh_current(preserve_scroll: bool = false) -> void:
 			pages[current].set_deferred("scroll_vertical", saved_scroll)
 	_update_coach()
 
-# Count overlays/modals so the drag-scroll handler stands down while one is open
-# (otherwise a drag would scroll the page behind the modal).
+# Register an overlay/modal so the drag-scroll handler scrolls ITS content (not
+# the page behind it) while it's open.
 func _track_modal(o: Node) -> void:
-	_modal_depth += 1
-	o.tree_exiting.connect(func() -> void: _modal_depth = maxi(0, _modal_depth - 1))
+	_modal_stack.append(o)
+	o.tree_exiting.connect(func() -> void: _modal_stack.erase(o))
 
 # Global drag-to-scroll. _input runs before GUI, so we see the drag even when it
 # starts over a card's tap Button. We don't consume the PRESS (so a clean tap
 # still clicks), but once the finger moves past the deadzone we scroll and cancel
 # the tap.
 func _input(event: InputEvent) -> void:
-	if _modal_depth > 0 or drawer_open or is_instance_valid(_char_select) or is_instance_valid(_welcome):
+	if drawer_open or is_instance_valid(_char_select) or is_instance_valid(_welcome):
 		return
 	if event is InputEventScreenTouch:
 		_drag_is_touch = true
@@ -1573,6 +1575,11 @@ func _drag_end() -> void:
 # Innermost scrollable ScrollContainer under a point (subtab strips, the research
 # 2D canvas, or the page itself), or null if nothing there can scroll.
 func _scrollable_at(pos: Vector2) -> ScrollContainer:
+	# A modal is frontmost — only its own content scrolls (never the page behind).
+	for i in range(_modal_stack.size() - 1, -1, -1):
+		var m = _modal_stack[i]
+		if is_instance_valid(m):
+			return _deepest_scroll(m, pos)
 	if current == "" or not pages.has(current):
 		return null
 	return _deepest_scroll(pages[current], pos)
@@ -4684,14 +4691,39 @@ func _show_offline(text: String) -> void:
 	v.add_theme_constant_override("separation", 12)
 	mc.add_child(v)
 	_clbl(v, "◷ Welcome Back, Commander", 16, CYAN)
-	var body := Label.new()
-	body.text = text
-	# Bounded width + word-wrap so the loot list wraps instead of running off the
-	# right edge (the panel would otherwise stretch to the longest single line).
-	body.custom_minimum_size = Vector2(300, 0)
-	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	body.add_theme_color_override("font_color", Color.html(C_TEXT))
-	v.add_child(body)
+	# Render the report line-by-line. Loot/XP rows are "Name\t+Qty" → a two-column
+	# row (name left, amount right); header lines (no tab) render as plain text.
+	for raw in text.split("\n"):
+		var line := String(raw)
+		if line.strip_edges() == "":
+			var sp := Control.new()
+			sp.custom_minimum_size = Vector2(0, 4)
+			v.add_child(sp)
+		elif "\t" in line:
+			var parts := line.split("\t")
+			var rrow := HBoxContainer.new()
+			rrow.custom_minimum_size = Vector2(300, 0)
+			var nm := Label.new()
+			nm.text = String(parts[0])
+			nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			nm.add_theme_font_size_override("font_size", _fs(13))
+			nm.add_theme_color_override("font_color", Color.html(C_TEXT))
+			rrow.add_child(nm)
+			var qty := Label.new()
+			qty.text = String(parts[1]) if parts.size() > 1 else ""
+			qty.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			qty.add_theme_font_size_override("font_size", _fs(13))
+			qty.add_theme_color_override("font_color", Color.html(GOLD))
+			rrow.add_child(qty)
+			v.add_child(rrow)
+		else:
+			var hl := Label.new()
+			hl.text = line
+			hl.custom_minimum_size = Vector2(300, 0)
+			hl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			hl.add_theme_font_size_override("font_size", _fs(13))
+			hl.add_theme_color_override("font_color", Color.html(C_TEXT))
+			v.add_child(hl)
 	var ok := Button.new()
 	ok.text = "Collect"
 	ok.custom_minimum_size = Vector2(0, 40)
