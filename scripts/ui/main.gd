@@ -142,6 +142,8 @@ var _enemy_anchor: Control = null
 var _player_anchor: Control = null
 var _enrage_chip: Control = null      # live ENRAGED indicator in the battle view
 var _wave_label: Label = null         # live hazard "WAVE x/y" counter
+var _enemy_atk_bar: ProgressBar = null  # enemy attack-timer bar (live)
+var _weapon_rows: Array = []          # per-weapon {bar, ammo, slot, needs_ammo} — live fire/ammo readout
 # Live "SALVAGE THIS RUN" panel — the session-loot container + the snapshot used
 # to detect changes so _process only rebuilds rows when a drop actually lands.
 var _loot_panel: VBoxContainer = null
@@ -872,6 +874,32 @@ func _process(_delta: float) -> void:
 		if is_instance_valid(_player_heat_bar):
 			_player_heat_bar.max_value = GameState.MAX_HEAT
 			_player_heat_bar.value = GameState.player_heat
+		if is_instance_valid(_enemy_atk_bar):
+			var ei := maxf(0.5, float(e.get("interval", 2.5)))
+			_enemy_atk_bar.max_value = ei
+			_enemy_atk_bar.value = clampf(GameState._enemy_timer, 0.0, ei)
+		# Per-weapon fire cooldown + live ammo count.
+		for wr in _weapon_rows:
+			var bar: ProgressBar = wr["bar"]
+			if not is_instance_valid(bar):
+				continue
+			var w: Dictionary = wr["w"]
+			var has_ammo := true
+			if wr["needs_ammo"]:
+				var aid: String = GameState.ammo_loadout.get(wr["slot"], "")
+				var cnt := GameState.amount(aid) if aid != "" else 0
+				has_ammo = aid != "" and cnt > 0
+				if is_instance_valid(wr["ammo"]):
+					wr["ammo"].text = ("⦿ %s" % GameData.fmt(cnt)) if has_ammo else "NO AMMO"
+					wr["ammo"].add_theme_color_override("font_color", Color.html(GOLD if has_ammo else "ef6a52"))
+			elif is_instance_valid(wr["ammo"]):
+				wr["ammo"].text = "∞"
+				wr["ammo"].add_theme_color_override("font_color", Color.html(C_MUTED))
+			if not w.is_empty():
+				var iv := maxf(0.1, float(w.get("interval", 1.0)))
+				bar.max_value = iv
+				bar.value = clampf(float(w.get("timer", 0.0)), 0.0, iv)
+			bar.modulate = Color.WHITE if has_ammo else Color(0.5, 0.5, 0.5, 0.55)
 		if is_instance_valid(_enrage_chip):
 			_enrage_chip.visible = GameState.enemy_enraged()
 		if is_instance_valid(_wave_label) and GameState.hazard_state.get("active", false):
@@ -1383,6 +1411,8 @@ func _refresh_current() -> void:
 	_player_anchor = null
 	_enrage_chip = null
 	_wave_label = null
+	_enemy_atk_bar = null
+	_weapon_rows = []
 	_loot_panel = null
 	_loot_seen_count = -1
 	match current:
@@ -1857,6 +1887,13 @@ func _build_battle(v: VBoxContainer) -> void:
 	_enemy_hp_bar = _mk_bar(ep, RED, 9)
 	if float(e["max_shield"]) > 0.0:
 		_enemy_shield_bar = _mk_bar(ep, CYAN, 5)
+	# Enemy attack timer — fills toward its next strike (desktop combat HUD).
+	var eatkl := Label.new()
+	eatkl.text = "NEXT ATTACK"
+	eatkl.add_theme_font_size_override("font_size", _fs(8))
+	eatkl.add_theme_color_override("font_color", Color.html(C_MUTED))
+	ep.add_child(eatkl)
+	_enemy_atk_bar = _mk_bar(ep, "ef6a52", 5)
 	_enemy_anchor = _add_anchor(ep)
 	v.add_child(ep.get_parent())
 
@@ -1887,6 +1924,36 @@ func _build_battle(v: VBoxContainer) -> void:
 	_player_heat_bar = _mk_bar(pp, BUILD, 5)
 	_player_anchor = _add_anchor(pp)
 	v.add_child(pp.get_parent())
+
+	# WEAPON SYSTEMS — per-weapon fire-cooldown bar + live ammo count (desktop's
+	# weapon battery). Each row's bar/ammo label is refreshed every frame in
+	# _process; a weapon that needs ammo and has none reads "NO AMMO" and dims.
+	_weapon_rows = []
+	if not GameState._weapons.is_empty():
+		var wc := _card(GOLD, true)
+		_card_head(wc, "⌖", "WEAPON SYSTEMS", "", GOLD, true)
+		for w in GameState._weapons:
+			var slot: String = str(w.get("slot", ""))
+			var wtype: String = str(w.get("type", "kinetic"))
+			var needs_ammo: bool = slot != "" and wtype != "cryo"
+			var head := HBoxContainer.new()
+			head.add_theme_constant_override("separation", 6)
+			var nm := Label.new()
+			nm.text = str(w.get("name", "Weapon"))
+			nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			nm.add_theme_font_size_override("font_size", _fs(10))
+			nm.add_theme_color_override("font_color", Color.html(C_TEXT))
+			head.add_child(nm)
+			var ammo := Label.new()
+			ammo.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			ammo.add_theme_font_size_override("font_size", _fs(10))
+			head.add_child(ammo)
+			wc.add_child(head)
+			var bar := _mk_bar(wc, GOLD, 6)
+			bar.max_value = 100
+			# Store the live weapon dict (the engine mutates w["timer"] in place).
+			_weapon_rows.append({"bar": bar, "ammo": ammo, "slot": slot, "needs_ammo": needs_ammo, "w": w})
+		v.add_child(wc.get_parent())
 
 	# Session loot — a running "SALVAGE THIS RUN" tally of everything dropped this
 	# engagement (desktop session-loot parity). Rows live-rebuild in _process only
