@@ -780,6 +780,13 @@ func _enter_game() -> void:
 	_show_welcome()
 
 const SKILL_TITLE := {"harvesting": "HARVESTING", "fabrication": "ENGINEERING", "combat": "COMBAT", "infrastructure": "INFRASTRUCTURE"}
+# Mixed-case skill name for inline copy. The crafting skill is "Engineering"
+# (its internal id is "fabrication"); always show that, never "Fabrication", so
+# the skill reads the same everywhere.
+const SKILL_LABEL := {"harvesting": "Harvesting", "fabrication": "Engineering", "combat": "Combat", "infrastructure": "Infrastructure"}
+
+func _skill_label(id: String) -> String:
+	return SKILL_LABEL.get(id, id.capitalize())
 
 # Milestone celebration: a centered "LEVEL UP" badge with a scale-pop + fade.
 func _on_level_up(skill_id: String, level: int) -> void:
@@ -4320,7 +4327,7 @@ func _build_stats() -> void:
 
 	_section(v, "CREW", CYAN)
 	for sk in ["harvesting", "fabrication", "combat", "infrastructure"]:
-		_skill_banner(v, sk.capitalize(), sk, CYAN)
+		_skill_banner(v, _skill_label(sk), sk, CYAN)
 
 	var used := GameState.used_slots()
 	var cap := GameState.max_slots()
@@ -5046,7 +5053,7 @@ func _active_text() -> String:
 func _req_text(def: Dictionary, skill: String) -> String:
 	var parts := []
 	if int(def.get("level_req", 1)) > 1:
-		parts.append("Lv %d %s" % [int(def["level_req"]), skill.capitalize()])
+		parts.append("Lv %d %s" % [int(def["level_req"]), _skill_label(skill)])
 	var rr: String = def.get("research_req", "")
 	if rr != "":
 		parts.append("Research: " + GameData.RESEARCH.get(rr, {}).get("name", rr))

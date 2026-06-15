@@ -3713,7 +3713,7 @@ func _apply_offline(delta: float) -> void:
 		var summary := "\n".join(rows)
 		add_xp("fabrication", int(r.get("xp", 0)) * count)
 		gain_mastery_xp(active_id, float(count))            # batch Mastery for offline loops
-		pending_offline = "Away for %s\n%s\nFabrication XP\t+%d" % [_fmt_time(delta), summary, int(r.get("xp", 0)) * count]
+		pending_offline = "Away for %s\n%s\nEngineering XP\t+%d" % [_fmt_time(delta), summary, int(r.get("xp", 0)) * count]
 
 func _offline_loot(loot: Array, mult: float, reps: int, log_session: bool = false) -> String:
 	# Returns tab-delimited "Name\t+Qty" rows joined by newlines, so the report
