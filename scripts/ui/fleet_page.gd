@@ -180,7 +180,7 @@ func _update_states() -> void:
 	var cap: int = _mgr.get_fleet_capacity()
 	_cap_lbl.text = "Fleet:  %d / %d" % [count, cap]
 	_cap_lbl.add_theme_color_override("font_color", Color(0.85, 0.95, 1.0) if count < cap else Color(1.0, 0.6, 0.4))
-	_power_lbl.text = "Fleet Power:  %s" % FormatUtils.format_number(_mgr.get_fleet_power())
+	_power_lbl.text = "Fleet Strength:  %s  ·  combat support next phase" % FormatUtils.format_number(_mgr.get_fleet_power())
 	var full: bool = count >= cap
 	for r in _build_rows:
 		var btn: Button = r["btn"]
