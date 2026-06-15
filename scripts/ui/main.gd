@@ -370,6 +370,11 @@ func _update_coach() -> void:
 		# menu; the card re-highlights once it's shut.
 		_coach_hint.text = "Close the menu to continue ›"
 		pulse = null
+	elif card != "" and _coach_step_in_progress(res):
+		# Player already started the required process (the highlighted card's action
+		# is the active task) — stop blinking; the banner just confirms it's underway.
+		_coach_hint.text = "✓ In progress — keep it running"
+		pulse = null
 	elif card != "":
 		_coach_hint.text = "👆 Tap the highlighted card to continue"
 		pulse = _coach_find_card(card)
@@ -380,6 +385,21 @@ func _update_coach() -> void:
 	else:
 		_coach_hint.text = m.get("desc", "")
 	_pulse_start(pulse)
+
+# True when the active task IS the coach's highlighted card (the player has started
+# the required gather/craft/combat process), so the blinking highlight can stop.
+func _coach_step_in_progress(res: Dictionary) -> bool:
+	var card: String = res.get("card", "")
+	if card == "" or GameState.active_type == "":
+		return false
+	match res.get("page", ""):
+		"gather":
+			return GameState.active_type == "gather" and GameState.active_id == card
+		"craft", "shipyard":
+			return GameState.active_type == "craft" and GameState.active_id == card
+		"combat":
+			return GameState.active_type == "combat" and GameState.active_id == card
+	return false
 
 func _coach_find_card(id: String) -> Control:
 	if id == "" or not pages.has(current):
