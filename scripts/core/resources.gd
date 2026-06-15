@@ -165,11 +165,14 @@ func get_used_slots() -> int:
 	# Let's do a soft check or just return size
 	return elements.size()
 
-func reset():
+func reset(keep_storage := false):
 	elements.clear()
 	currencies.clear()
 	energy = 0.0
-	storage_upgrades = 0
+	# Paid slot expansions are permanent meta — kept across warp (prestige),
+	# cleared only on a hard reset.
+	if not keep_storage:
+		storage_upgrades = 0
 
 # Resource Discovery System
 func get_resource_info(symbol: String) -> Dictionary:
