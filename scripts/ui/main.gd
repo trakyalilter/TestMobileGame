@@ -2018,8 +2018,9 @@ func _loot_display(id: String) -> Array:
 	if GameState.custom_modules.has(id):
 		var md: Dictionary = GameState.custom_modules[id]
 		return [String(md.get("name", id)), GameState.RARITY_COLOR.get(int(md.get("rarity", 0)), C_TEXT)]
-	if GameData.MODULES.has(id):
-		return [String(GameData.MODULES[id].get("name", id)), GameState.RARITY_COLOR.get(0, C_TEXT)]
+	if GameData.MODULES.has(id) or GameData.SET_MODULES.has(id):
+		var bd: Dictionary = GameData.MODULES.get(id, GameData.SET_MODULES.get(id, {}))
+		return [String(bd.get("name", id)), GameState.RARITY_COLOR.get(int(bd.get("rarity", 0)), C_TEXT)]
 	return [GameData.res_name(id), _hex(GameData.color_for(id))]
 
 # Rebuild the SALVAGE THIS RUN rows from GameState.session_loot. Cheap and only
@@ -4079,12 +4080,28 @@ func _locked(v: VBoxContainer, def: Dictionary, skill: String) -> void:
 func _loot_lines(loot: Array) -> Array:
 	var lines := []
 	for row in loot:
-		var is_credits: bool = row[0] == "credits"
-		var label := "Credits" if is_credits else GameData.res_name(row[0])
+		var sym: String = row[0]
+		var is_credits: bool = sym == "credits"
+		var label: String
+		var col: String
+		if is_credits:
+			label = "Credits"
+			col = GOLD
+		elif GameData.MODULES.has(sym) or GameData.SET_MODULES.has(sym):
+			# Module drops (unique set pieces live in SET_MODULES) carry a display
+			# name + rarity — show those, not the raw "z1_unique_weapon" id. Checked
+			# BEFORE res_name because the loot symbol also has an auto-generated
+			# resource stub whose name is the raw id.
+			var md: Dictionary = GameData.MODULES.get(sym, GameData.SET_MODULES.get(sym, {}))
+			label = String(md.get("name", sym))
+			col = GameState.RARITY_COLOR.get(int(md.get("rarity", 0)), C_TEXT)
+		else:
+			label = GameData.res_name(sym)
+			col = _hex(GameData.color_for(sym))
 		var txt := "%s%s %d-%d" % ["₡ " if is_credits else "", label, int(row[2]), int(row[3])]
 		if float(row[1]) < 1.0:
 			txt += " (%d%%)" % int(float(row[1]) * 100.0)
-		lines.append(_line(txt, GOLD if is_credits else _hex(GameData.color_for(row[0]))))
+		lines.append(_line(txt, col))
 	return lines
 
 func _empty(v: VBoxContainer, text: String) -> void:
