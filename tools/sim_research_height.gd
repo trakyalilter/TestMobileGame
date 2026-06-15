@@ -23,7 +23,7 @@ func _run() -> void:
 	await process_frame
 
 	var fail := false
-	for tab in ["Operations", "Engineering", "Ships"]:
+	for tab in ["Operations", "Zones", "Engineering", "Ships"]:
 		main.research_tab = tab
 		main._show("atlas")   # leave research first so resize fires cleanly
 		await process_frame

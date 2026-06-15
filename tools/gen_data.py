@@ -380,12 +380,15 @@ TAB_NODES = {
         "exotic_matter_analysis", "void_physics", "void_navigation",
         "field_theory",
         "xeno_archaeology",
-        # Zone Access Gates
+        # Efficiency Branch
+        "efficiency_1", "efficiency_2", "efficiency_3", "efficiency_4", "efficiency_5",
+    ],
+    # Zone-access authorizations get their own tab — a single linear progression
+    # gate chain, kept separate from the Operations utility tree.
+    "Zones": [
         "zone_2_access", "zone_3_access", "zone_4_access", "zone_5_access",
         "zone_6_access", "zone_7_access", "zone_8_access", "zone_9_access",
         "zone_10_access",
-        # Efficiency Branch
-        "efficiency_1", "efficiency_2", "efficiency_3", "efficiency_4", "efficiency_5",
     ],
     "Engineering": [
         "basic_engineering", "applied_physics", "materials_science", "industrial_logistics",
@@ -427,7 +430,7 @@ TAB_NODES = {
         "auto_repair_20", "auto_repair_40", "auto_repair_60", "auto_repair_80",
     ],
 }
-TAB_ORDER = ["Operations", "Engineering", "Ships"]
+TAB_ORDER = ["Operations", "Zones", "Engineering", "Ships"]
 
 RES_X0, RES_Y0 = 16.0, 16.0   # canvas origin
 RES_LEVEL_X = 240.0           # column stride (node 200 wide + 40 elbow gap)

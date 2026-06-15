@@ -12,7 +12,7 @@ func _find_canvas(node: Node) -> Control:
 	# many children (distinguishes it from subtab strips and node cards).
 	if node is Control:
 		var cs: Control = node
-		if cs.custom_minimum_size.x >= 300.0 and cs.custom_minimum_size.y >= 300.0 and cs.get_child_count() > 3:
+		if cs.custom_minimum_size.x >= 300.0 and cs.get_child_count() > 3:
 			return cs
 	for c in node.get_children():
 		var r := _find_canvas(c)
@@ -38,7 +38,7 @@ func _run() -> void:
 
 	var fail := false
 	var max_cw := 0.0
-	for tab in ["Operations", "Engineering", "Ships"]:
+	for tab in ["Operations", "Zones", "Engineering", "Ships"]:
 		main.research_tab = tab
 		main._show("research")
 		await process_frame
