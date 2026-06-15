@@ -3730,7 +3730,7 @@ func _offline_loot(loot: Array, mult: float, reps: int, log_session: bool = fals
 				add_resource(row[0], got)
 				if log_session:
 					_log_session_loot(row[0], got)
-				rows.append("%s\t+%s" % [GameData.res_name(row[0]), GameData.fmt(got)])
+				rows.append("%s\t+%s" % [GameData.item_name(row[0]), GameData.fmt(got)])
 	return "\n".join(rows)
 
 func _fmt_time(secs: float) -> String:

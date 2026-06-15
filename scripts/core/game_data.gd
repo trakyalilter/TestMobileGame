@@ -941,6 +941,16 @@ const REPEATABLE_ORDER := ["combat_focus", "defense_focus", "gathering_focus", "
 func res_name(sym: String) -> String:
 	return RESOURCES.get(sym, {}).get("name", sym)
 
+# Display name for any loot symbol: module drops (incl. unique SET_MODULES) resolve
+# to their proper name, NOT the raw id. Checked before RESOURCES because loot
+# symbols also have an auto-generated resource stub whose name is the raw id.
+func item_name(sym: String) -> String:
+	if MODULES.has(sym):
+		return MODULES[sym].get("name", sym)
+	if SET_MODULES.has(sym):
+		return SET_MODULES[sym].get("name", sym)
+	return res_name(sym)
+
 func color_for(sym: String) -> Color:
 	return Color.html(RESOURCES.get(sym, {}).get("color", "ffffff"))
 
