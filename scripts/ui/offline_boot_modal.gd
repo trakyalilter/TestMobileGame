@@ -81,21 +81,28 @@ func _log(msg: String):
 
 func _parse_and_display_report():
 	var bbcode := ""
-	var lines = report_text.split("\n")
-	for line in lines:
-		if line.strip_edges().begins_with("+"):
-			var parts = line.split(":")
-			if parts.size() == 2:
-				var raw_item_name = parts[0].replace("+", "").strip_edges()
-				var amount = parts[1].strip_edges()
-				
-				# Sanitize the item name
-				var item_name = raw_item_name
+	for line in report_text.split("\n"):
+		var s := line.strip_edges()
+		if s == "":
+			bbcode += "\n"
+			continue
+		if s.begins_with("+") or s.begins_with("-"):
+			# Resource gain (+) or drain (-): "<sign> Name: amount"
+			var neg := s.begins_with("-")
+			var body := s.substr(1).strip_edges()
+			var colon := body.find(":")
+			if colon >= 0:
+				var item_name := body.substr(0, colon).strip_edges()
+				var amount := body.substr(colon + 1).strip_edges()
 				if "_" in item_name:
-					item_name = item_name.replace("_", " ").capitalize()
-					
-				bbcode += "[color=#b0b0cc]> %s[/color]    [color=#00ffff]%s[/color]\n" % [item_name.to_upper(), amount]
-	
+					item_name = item_name.replace("_", " ")
+				var val_color := "#ff8a7a" if neg else "#00ffff"
+				bbcode += "[color=#b0b0cc]%s %s[/color]    [color=%s]%s[/color]\n" % ["–" if neg else ">", item_name.to_upper(), val_color, amount]
+			else:
+				bbcode += "[color=#b0b0cc]%s[/color]\n" % s
+		else:
+			# Headline / section header / cap notice — previously dropped entirely.
+			bbcode += "[color=#ffd24a]%s[/color]\n" % s
 	loot_display.text = bbcode
 
 func _on_continue_pressed():
