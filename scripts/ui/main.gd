@@ -4060,8 +4060,10 @@ func _atlas_materials(v: VBoxContainer) -> void:
 	for c in ATLAS_CATS:
 		if c.id == atlas_mat_cat:
 			want_icon = c.icon
-	var n := 0
-	# Lightweight rows, filtered by source category so each view stays small/fast.
+	var shown := 0
+	var total := 0
+	# Cap rendered rows so the list stays light (scrolling/searching hundreds of
+	# resource panels stuttered). The remainder is summarised; search narrows it.
 	for sym in GameData.RESOURCES:
 		var info = idx.get(sym, null)
 		if info == null or (info["sources"].is_empty() and info["uses"].is_empty()):
@@ -4080,41 +4082,68 @@ func _atlas_materials(v: VBoxContainer) -> void:
 						break
 		if not match_cat:
 			continue
-		n += 1
-		var panel := PanelContainer.new()
-		panel.add_theme_stylebox_override("panel", _bordered(SURFACE, LINE, 1, 8))
-		panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		var col := VBoxContainer.new()
-		col.add_theme_constant_override("separation", 2)
-		panel.add_child(col)
-		var nm := Label.new()
-		nm.text = "%s   ₡%d" % [GameData.res_name(sym), GameData.value_of(sym)]
-		nm.add_theme_font_size_override("font_size", _fs(13))
-		nm.add_theme_color_override("font_color", GameData.color_for(sym))
-		col.add_child(nm)
-		if not info["sources"].is_empty():
-			_atlas_line(col, "From: ", info["sources"], GREEN)
-		if not info["uses"].is_empty():
-			_atlas_line(col, "Used in: ", info["uses"], C_DIM)
-		v.add_child(panel)
-	if n == 0:
+		total += 1
+		if shown >= ATLAS_MAX_ROWS:
+			continue   # counted for the summary, but don't build a node
+		shown += 1
+		v.add_child(_atlas_material_card(sym, info))
+	if total == 0:
 		_empty(v, "No materials found." if atlas_query.strip_edges() != "" else "No materials catalogued.")
+	elif total > shown:
+		_clbl(v, "Showing %d of %d — type to search." % [shown, total], 10, C_DIM)
 
-func _atlas_line(parent: Node, prefix: String, items: Array, color: String) -> void:
+const ATLAS_MAX_ROWS := 40
+
+# Modular, readable material card: a name + value header, then labelled FROM /
+# USED IN blocks that wrap (capped at a few entries each).
+func _atlas_material_card(sym: String, info: Dictionary) -> Control:
+	var panel := PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", _bordered(SURFACE, LINE, 1, 8))
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var m := MarginContainer.new()
+	for side in ["left", "right", "top", "bottom"]:
+		m.add_theme_constant_override("margin_" + side, 9)
+	panel.add_child(m)
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 5)
+	m.add_child(col)
+	var hrow := HBoxContainer.new()
+	var nm := Label.new()
+	nm.text = GameData.res_name(sym)
+	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	nm.add_theme_font_size_override("font_size", _fs(14))
+	nm.add_theme_color_override("font_color", GameData.color_for(sym))
+	hrow.add_child(nm)
+	var val := Label.new()
+	val.text = "₡%d" % GameData.value_of(sym)
+	val.add_theme_font_size_override("font_size", _fs(12))
+	val.add_theme_color_override("font_color", Color.html(GOLD))
+	hrow.add_child(val)
+	col.add_child(hrow)
+	if not info["sources"].is_empty():
+		_atlas_kv(col, "FROM", info["sources"], GREEN)
+	if not info["uses"].is_empty():
+		_atlas_kv(col, "USED IN", info["uses"], C_DIM)
+	return panel
+
+# A labelled, wrapping list block (eyebrow + body), capped at 8 entries.
+func _atlas_kv(parent: Node, label_text: String, items: Array, color: String) -> void:
+	var eb := Label.new()
+	eb.text = label_text
+	eb.add_theme_font_size_override("font_size", _fs(8))
+	eb.add_theme_color_override("font_color", Color.html(C_MUTED))
+	parent.add_child(eb)
 	var shown := items
 	var more := 0
-	if items.size() > 5:
-		shown = items.slice(0, 5)
-		more = items.size() - 5
-	var l := Label.new()
-	l.text = prefix + ", ".join(shown) + ("  +%d more" % more if more > 0 else "")
-	# Single clipped line (no autowrap) — autowrap shaping on ~250 labels made the
-	# Atlas page slow to open.
-	l.clip_text = true
-	l.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	l.add_theme_font_size_override("font_size", _fs(10))
-	l.add_theme_color_override("font_color", Color.html(color))
-	parent.add_child(l)
+	if items.size() > 8:
+		shown = items.slice(0, 8)
+		more = items.size() - 8
+	var body := Label.new()
+	body.text = ", ".join(shown) + ("  +%d more" % more if more > 0 else "")
+	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	body.add_theme_font_size_override("font_size", _fs(11))
+	body.add_theme_color_override("font_color", Color.html(color))
+	parent.add_child(body)
 
 # ============================================================ HAZARD ZONES
 # Gauntlet runs (GameData.HAZARD_ZONES): locked until the unlock boss falls,
@@ -4181,6 +4210,7 @@ func _build_hazard() -> void:
 
 func _atlas_enemies(v: VBoxContainer) -> void:
 	var found := 0
+	var truncated := false
 	for z in GameData.ZONES:
 		# Collect this zone's matching enemies first so an empty section header is
 		# never shown while searching.
@@ -4190,8 +4220,14 @@ func _atlas_enemies(v: VBoxContainer) -> void:
 				zids.append(eid)
 		if zids.is_empty():
 			continue
+		if found >= ATLAS_MAX_ROWS:
+			truncated = true
+			break
 		_section(v, "%s  (★%d)" % [z.get("name", ""), int(z.get("difficulty", 1))], RED)
 		for eid in zids:
+			if found >= ATLAS_MAX_ROWS:
+				truncated = true
+				break
 			found += 1
 			var e: Dictionary = GameData.ENEMIES[eid]
 			var c := _card(RED, true)
@@ -4229,8 +4265,14 @@ func _atlas_enemies(v: VBoxContainer) -> void:
 				hz_ids.append(eid)
 		if hz_ids.is_empty():
 			continue
+		if found >= ATLAS_MAX_ROWS:
+			truncated = true
+			break
 		_section(v, "☢ %s  (Hazard)" % hz.get("name", hz_id), PURP)
 		for eid in hz_ids:
+			if found >= ATLAS_MAX_ROWS:
+				truncated = true
+				break
 			hz_seen[eid] = true
 			found += 1
 			var e: Dictionary = GameData.ENEMIES[eid]
@@ -4250,6 +4292,8 @@ func _atlas_enemies(v: VBoxContainer) -> void:
 			v.add_child(c.get_parent())
 	if found == 0 and atlas_query.strip_edges() != "":
 		_empty(v, "No enemies found.")
+	elif truncated:
+		_clbl(v, "Showing first %d — type to search." % ATLAS_MAX_ROWS, 10, C_DIM)
 
 # ============================================================ STATS / STORAGE
 func _build_stats() -> void:

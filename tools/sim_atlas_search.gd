@@ -20,6 +20,13 @@ func _count(node: Node, needle: String) -> int:
 			n += 1
 	return n
 
+func _count_panels(node: Node) -> int:
+	var n := 0
+	for c in node.get_children():
+		if c is PanelContainer:
+			n += 1
+	return n
+
 func _find_lineedit(node: Node) -> LineEdit:
 	if node is LineEdit:
 		return node
@@ -60,6 +67,15 @@ func _run() -> void:
 		quit(1)
 		return
 	print("PASS Atlas has a search field")
+
+	# Render cap: the materials results must be bounded (no hundreds of panels).
+	var panels := _count_panels(main._atlas_results)
+	print("materials panels rendered (no search): %d (cap %d)" % [panels, main.ATLAS_MAX_ROWS])
+	if panels <= main.ATLAS_MAX_ROWS:
+		print("PASS materials list is capped for performance")
+	else:
+		print("FAIL materials list exceeds the render cap")
+		fail = true
 
 	# Materials: search for "Iron" → only matching rows; non-matches gone.
 	var iron_name: String = gd.res_name("Fe")
