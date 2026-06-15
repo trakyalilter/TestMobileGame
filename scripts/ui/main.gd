@@ -3261,6 +3261,20 @@ func _module_detail_body(v: VBoxContainer, close: Callable, mid: String) -> void
 	_inset(v, "STATS", _module_stat_lines(md.get("stats", {})), CYAN)
 	for aid in md.get("affixes", {}):
 		_clbl(v, _affix_text(aid, md["affixes"][aid]), 10, GameState.RARITY_COLOR.get(3, GOLD))
+	# Set pieces: surface the set + its trinity bonus + equipped progress, so the
+	# real payoff (the bonus at full set) is visible (desktop "(Set) [x/3]" intent).
+	var set_id: String = md.get("set", "")
+	if set_id != "" and GameData.SETS.has(set_id):
+		var sd: Dictionary = GameData.SETS[set_id]
+		var have := int(GameState.equipped_set_counts().get(set_id, 0))
+		var bonus: Dictionary = GameData.TRINITY_SET_BONUSES.get(set_id, {})
+		var pieces := int(bonus.get("pieces", 3))
+		var blines := []
+		for k in bonus:
+			if k == "name" or k == "pieces":
+				continue
+			blines.append(_line(_trinity_bonus_label(k, float(bonus[k])), GOLD if have >= pieces else C_MUTED))
+		_inset(v, "✦ SET: %s  (%d/%d equipped)" % [sd.get("name", set_id), have, pieces], blines, PURP)
 	# Custom (rolled) modules: keep their sockets + sell reachable from the detail.
 	if GameState.custom_modules.has(mid):
 		var sockets: Array = md.get("sockets", [])

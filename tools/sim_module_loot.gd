@@ -35,6 +35,20 @@ func _run() -> void:
 	else:
 		print("FAIL set-piece loot wrong (res=%d pieces=%d)" % [gs.amount("z2_unique_weapon"), _count_set_pieces(gs, "z2_unique_weapon")])
 		fail = true
+
+	# Set piece must be scaled to the rarity-4 band (not raw base). Monolith's
+	# Shatter base atk_kinetic is 28; scaled should clear ~3x that.
+	var base_atk := float(GameData.SET_MODULES["z2_unique_weapon"]["stats"]["atk_kinetic"])
+	var piece_atk := 0.0
+	for cid in gs.custom_modules:
+		if gs.custom_modules[cid].get("base", "") == "z2_unique_weapon":
+			piece_atk = float(gs.custom_modules[cid]["stats"].get("atk_kinetic", 0))
+	print("set piece atk_kinetic = %.1f (base %.0f)" % [piece_atk, base_atk])
+	if piece_atk >= base_atk * 3.0:
+		print("PASS set piece scaled to rarity-4 power band")
+	else:
+		print("FAIL set piece not scaled (%.1f < %.0f)" % [piece_atk, base_atk * 3.0])
+		fail = true
 	if gs.amount("faraday_hull") == 0 and int(gs.module_inventory.get("faraday_hull", 0)) == 1:
 		print("PASS counter-module loot granted to inventory")
 	else:

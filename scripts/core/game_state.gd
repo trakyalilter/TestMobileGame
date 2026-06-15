@@ -1197,14 +1197,42 @@ func _grant_set_piece(base_id: String) -> String:
 	var t: Dictionary = GameData.SET_MODULES.get(base_id, {})
 	if t.is_empty():
 		return ""
+	# Scale to the rarity-4 (Unique) power band like a rolled Unique, so set pieces
+	# live up to their rarity instead of being out-statted by rolled rare/legendary
+	# gear (mobile rolled-rarity scaling is far higher than desktop's). Their extra
+	# payoff over a rolled Unique is the trinity SET BONUS; no random affixes.
+	var stats := _scale_module_stats(t.get("stats", {}), 4, int(t.get("zone", 1)))
 	var cid := "set_%s_%d" % [base_id, randi() % 1000000]
 	custom_modules[cid] = {
-		"name": t.get("name", base_id), "slot": t.get("slot", ""), "stats": t.get("stats", {}).duplicate(),
+		"name": t.get("name", base_id), "slot": t.get("slot", ""), "stats": stats,
 		"desc": t.get("desc", ""), "rarity": 4, "affixes": {}, "set": t.get("set", ""),
 		"base": base_id, "sockets": [null, null, null],
 	}
 	module_inventory[cid] = int(module_inventory.get(cid, 0)) + 1
 	return cid
+
+# Shared per-stat rarity/zone scaling (used by rolled modules and set pieces) so
+# both tiers use identical math. Returns a new stats dict.
+func _scale_module_stats(base_stats: Dictionary, rarity: int, zone_diff: int) -> Dictionary:
+	var zmult := module_zone_mult(zone_diff)
+	var rng: Array = RARITY_RANGE.get(rarity, [0.0, 0.0])
+	var stats := {}
+	for sk in base_stats:
+		var bv := float(base_stats[sk])
+		if BOOSTABLE.has(sk):
+			var scaled := bv
+			if ZONE_SCALABLE.has(sk):
+				scaled = maxf(0.25, bv / zmult) if sk == "atk_interval" else bv * zmult
+			var bonus := randf_range(rng[0], rng[1])
+			if sk == "atk_interval":
+				var boosted := scaled / (1.0 + bonus * 0.15)
+				boosted = maxf(boosted, scaled * 0.6)
+				stats[sk] = snappedf(maxf(0.25, boosted), 0.01)
+			else:
+				stats[sk] = snappedf(scaled * (1.0 + bonus), 0.1) if scaled < 50.0 else float(int(round(scaled * (1.0 + bonus))))
+		else:
+			stats[sk] = bv
+	return stats
 
 func roll_rarity(is_boss: bool) -> int:
 	var r := randf()
@@ -1233,27 +1261,9 @@ func generate_module(base_id: String, rarity: int, zone_diff: int) -> String:
 		module_inventory[base_id] = int(module_inventory.get(base_id, 0)) + 1
 		return base_id
 	var base: Dictionary = GameData.MODULES[base_id]
-	var zmult := module_zone_mult(zone_diff)
-	var rng: Array = RARITY_RANGE[rarity]
-	var stats := {}
-	for sk in base.get("stats", {}):
-		var bv := float(base["stats"][sk])
-		if BOOSTABLE.has(sk):
-			var scaled := bv
-			if ZONE_SCALABLE.has(sk):
-				scaled = maxf(0.25, bv / zmult) if sk == "atk_interval" else bv * zmult
-			var bonus := randf_range(rng[0], rng[1])
-			if sk == "atk_interval":
-				# Desktop ref ~L2354-2359: coefficient 0.15, capped at -40% (0.6x
-				# base) and an absolute 0.25s (4Hz) floor, so high-rarity rolls don't
-				# compound DPS into outliers now that the bonus range is larger.
-				var boosted := scaled / (1.0 + bonus * 0.15)
-				boosted = maxf(boosted, scaled * 0.6)
-				stats[sk] = snappedf(maxf(0.25, boosted), 0.01)
-			else:
-				stats[sk] = snappedf(scaled * (1.0 + bonus), 0.1) if scaled < 50.0 else float(int(round(scaled * (1.0 + bonus))))
-		else:
-			stats[sk] = bv
+	# atk_interval/0.15 coefficient, -40% cap and 0.25s floor live in the shared
+	# scaler (desktop ref ~L2354-2359) so set pieces roll identically.
+	var stats := _scale_module_stats(base.get("stats", {}), rarity, zone_diff)
 	# Affixes: pick N from the slot-eligible pool.
 	var slot: String = base.get("slot", "")
 	var pool := []
