@@ -3460,10 +3460,19 @@ func _build_research() -> void:
 	if avail < 200.0:
 		avail = get_viewport_rect().size.y - 300.0
 	hs.custom_minimum_size = Vector2(0, maxf(340.0, avail - 112.0))
+	# Fit the tree to the screen WIDTH so right-edge nodes don't hang off the
+	# visible area (the original complaint: the tree drifts outside the view).
+	# Scale down only — never enlarge — with a floor so deep trees stay legible;
+	# anything past the floor still pans horizontally. Vertical panning is kept.
+	var avail_w: float = pages["research"].size.x
+	if avail_w < 100.0:
+		avail_w = 720.0 - RES_PAD * 2.0
+	var fit: float = clampf(avail_w / cw, 0.62, 1.0)
 	var canvas := Control.new()
 	canvas.custom_minimum_size = Vector2(cw, ch)
 	canvas.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	canvas.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	canvas.scale = Vector2(fit, fit)
 	canvas.draw.connect(_draw_research_branches.bind(canvas, nodes, pos))
 	for nid in nodes:
 		if not GameData.RESEARCH.has(nid):
@@ -3473,7 +3482,14 @@ func _build_research() -> void:
 		node.position = Vector2(np.x * RES_SX + RES_PAD, np.y * RES_SY + RES_PAD)
 		node.size = Vector2(RES_NODE_W, RES_NODE_H)
 		canvas.add_child(node)
-	hs.add_child(canvas)
+	# A plain frame carries the SCALED footprint so the scroller measures the
+	# fitted size (a child's `scale` doesn't change its combined minimum size).
+	var frame := Control.new()
+	frame.custom_minimum_size = Vector2(cw * fit, ch * fit)
+	frame.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	frame.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	frame.add_child(canvas)
+	hs.add_child(frame)
 	v.add_child(hs)
 
 func _draw_research_branches(canvas: Control, nodes: Array, pos: Dictionary) -> void:
