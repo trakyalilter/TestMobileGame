@@ -3425,7 +3425,7 @@ func _offline_combat(delta: float) -> void:
 	# else: out-sustains the enemy outright — always survives.
 	# v101 offline parity: loot scales by the same combat multiplier as online, and
 	# each kill rolls module drops (ref calculate_offline ~L2449-2511).
-	var summary := _offline_loot(e.get("loot", []), get_combat_loot_multiplier(), reps)
+	var summary := _offline_loot(e.get("loot", []), get_combat_loot_multiplier(), reps, true)
 	var pool := []
 	for mid in e.get("drop_pool", []):
 		if GameData.MODULES.has(mid) and module_unlocked(mid):
@@ -3437,8 +3437,10 @@ func _offline_combat(delta: float) -> void:
 			if dc > 0.0 and randf() < dc:
 				var base_id: String = pool[randi() % pool.size()]
 				var rarity := roll_rarity(false)
-				if generate_module(base_id, rarity, diff) != "":
+				var gid := generate_module(base_id, rarity, diff)
+				if gid != "":
 					mods += 1
+					_log_session_loot(gid, 1)   # show offline module drops in SALVAGE THIS RUN
 		if mods > 0:
 			summary += "\nModules\t+%d" % mods
 	add_xp("combat", int(e.get("xp", 0)) * reps)
@@ -3709,9 +3711,11 @@ func _apply_offline(delta: float) -> void:
 		gain_mastery_xp(active_id, float(count))            # batch Mastery for offline loops
 		pending_offline = "Away for %s\n%s\nFabrication XP\t+%d" % [_fmt_time(delta), summary, int(r.get("xp", 0)) * count]
 
-func _offline_loot(loot: Array, mult: float, reps: int) -> String:
+func _offline_loot(loot: Array, mult: float, reps: int, log_session: bool = false) -> String:
 	# Returns tab-delimited "Name\t+Qty" rows joined by newlines, so the report
 	# modal can render a clean two-column list instead of a run-on paragraph.
+	# When log_session is set (offline combat), also feed the SALVAGE THIS RUN
+	# tally so returning players see what they farmed while away.
 	var rows := []
 	for row in loot:
 		var avg: float = (int(row[2]) + int(row[3])) / 2.0 * float(row[1])
@@ -3719,9 +3723,13 @@ func _offline_loot(loot: Array, mult: float, reps: int) -> String:
 		if got > 0:
 			if row[0] == "credits":
 				gain_credits(got)
+				if log_session:
+					_log_session_loot("credits", got)
 				rows.append("Credits\t+₡%s" % GameData.fmt(got))
 			else:
 				add_resource(row[0], got)
+				if log_session:
+					_log_session_loot(row[0], got)
 				rows.append("%s\t+%s" % [GameData.res_name(row[0]), GameData.fmt(got)])
 	return "\n".join(rows)
 
