@@ -35,20 +35,27 @@ func _run() -> void:
 
 	var fail := false
 
-	# Crew list on the Stats page must show "Engineering", not "Fabrication".
+	# Crew skill bars are no longer duplicated on the Stats page.
 	main._show("stats")
 	await process_frame
 	var t := []
 	_collect_text(main.pages["stats"], t)
-	if _has(t, "Engineering"):
-		print("PASS stats crew shows Engineering")
-	else:
-		print("FAIL stats crew missing Engineering")
+	if _has(t, "CREW"):
+		print("FAIL stats page still shows the CREW section")
 		fail = true
-	for s in t:
-		if s == "Fabrication" or s.begins_with("Fabrication "):
-			print("FAIL stats crew still shows a 'Fabrication' label: %s" % s)
-			fail = true
+	else:
+		print("PASS stats page no longer duplicates crew stats")
+
+	# The Engineering skill bar still lives on its own page (Craft).
+	main._show("craft")
+	await process_frame
+	var st := []
+	_collect_text(main.pages["craft"], st)
+	if _has(st, "ENGINEERING"):
+		print("PASS Engineering skill bar present on its own page (Craft)")
+	else:
+		print("FAIL Engineering skill bar missing on Craft")
+		fail = true
 
 	# Recipe lock text uses the same skill name.
 	var rt: String = main._req_text({"level_req": 8}, "fabrication")

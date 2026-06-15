@@ -4345,10 +4345,8 @@ func _build_stats() -> void:
 	crow.add_child(cv)
 	v.add_child(cpanel)
 
-	_section(v, "CREW", CYAN)
-	for sk in ["harvesting", "fabrication", "combat", "infrastructure"]:
-		_skill_banner(v, _skill_label(sk), sk, CYAN)
-
+	# (Crew skill bars live on their own pages — Harvesting on Gather, Engineering
+	# on Shipyard, etc. — so they're not duplicated here.)
 	var used := GameState.used_slots()
 	var cap := GameState.max_slots()
 	# Total inventory worth — the honest credit readout for a sell-driven economy.
