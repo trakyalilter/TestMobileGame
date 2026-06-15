@@ -3535,6 +3535,25 @@ func _log_session_loot(id: String, qty: int) -> void:
 		return
 	session_loot[id] = int(session_loot.get(id, 0)) + qty
 
+# Older saves added unique gear (set pieces, counter modules) into `resources` as
+# raw ids. Move any such stacks into the Armory as owned gear so they're equippable
+# instead of sitting in Storage.
+func _migrate_module_resources() -> void:
+	var to_remove := []
+	for sym in resources:
+		var n := int(resources[sym])
+		if n <= 0:
+			continue
+		if GameData.SET_MODULES.has(sym):
+			for _i in n:
+				_grant_set_piece(sym)
+			to_remove.append(sym)
+		elif GameData.MODULES.has(sym):
+			module_inventory[sym] = int(module_inventory.get(sym, 0)) + n
+			to_remove.append(sym)
+	for sym in to_remove:
+		resources.erase(sym)
+
 func _roll_loot(loot: Array, mult: float, flat: int = 0, log_session: bool = false) -> void:
 	for row in loot:
 		if randf() < float(row[1]):
@@ -3547,9 +3566,22 @@ func _roll_loot(loot: Array, mult: float, flat: int = 0, log_session: bool = fal
 					_log_session_loot("credits", cr)
 				resources_changed.emit()
 			else:
-				add_resource(row[0], amt)
-				if log_session:
-					_log_session_loot(row[0], amt)
+				var sym: String = row[0]
+				if GameData.SET_MODULES.has(sym):
+					# Unique set pieces are GEAR, not a storage resource — grant each as
+					# an owned module instance so it lands in the Armory.
+					for _i in amt:
+						var scid := _grant_set_piece(sym)
+						if log_session and scid != "":
+							_log_session_loot(scid, 1)
+				elif GameData.MODULES.has(sym):
+					module_inventory[sym] = int(module_inventory.get(sym, 0)) + amt
+					if log_session:
+						_log_session_loot(sym, amt)
+				else:
+					add_resource(sym, amt)
+					if log_session:
+						_log_session_loot(sym, amt)
 
 func _loot_snapshot(items) -> Dictionary:
 	var snap := {}
@@ -3731,10 +3763,21 @@ func _offline_loot(loot: Array, mult: float, reps: int, log_session: bool = fals
 					_log_session_loot("credits", got)
 				rows.append("Credits\t+₡%s" % GameData.fmt(got))
 			else:
-				add_resource(row[0], got)
-				if log_session:
-					_log_session_loot(row[0], got)
-				rows.append("%s\t+%s" % [GameData.item_name(row[0]), GameData.fmt(got)])
+				var sym: String = row[0]
+				if GameData.SET_MODULES.has(sym):
+					for _i in got:
+						var scid := _grant_set_piece(sym)
+						if log_session and scid != "":
+							_log_session_loot(scid, 1)
+				elif GameData.MODULES.has(sym):
+					module_inventory[sym] = int(module_inventory.get(sym, 0)) + got
+					if log_session:
+						_log_session_loot(sym, got)
+				else:
+					add_resource(sym, got)
+					if log_session:
+						_log_session_loot(sym, got)
+				rows.append("%s\t+%s" % [GameData.item_name(sym), GameData.fmt(got)])
 	return "\n".join(rows)
 
 func _fmt_time(secs: float) -> String:
@@ -3862,6 +3905,7 @@ func load_game() -> void:
 	for k in module_inventory:
 		module_inventory[k] = int(module_inventory[k])
 	custom_modules = data.get("custom_modules", {})
+	_migrate_module_resources()   # move gear wrongly stored as resources into the Armory
 	ammo_loadout = data.get("ammo_loadout", {})
 	consumable_hull_slot = data.get("consumable_hull_slot", "")
 	consumable_shield_slot = data.get("consumable_shield_slot", "")
