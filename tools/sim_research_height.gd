@@ -45,6 +45,17 @@ func _run() -> void:
 		else:
 			print("FAIL %s: scroller (%.0f) taller than page (%.0f) — nodes fall off-screen" % [tab, hs_h, page_h])
 			fail = true
+		# Bottom pad: the frame must extend past the scaled tree so the last row can
+		# scroll clear of the screen edge / nav bar.
+		var frame: Control = hs.get_child(0)
+		var canvas: Control = frame.get_child(0)
+		var pad: float = frame.custom_minimum_size.y - canvas.custom_minimum_size.y * canvas.scale.y
+		print("%s: bottom pad=%.0f" % [tab, pad])
+		if pad >= 100.0:
+			print("PASS %s: scroll content has bottom clearance" % tab)
+		else:
+			print("FAIL %s: insufficient bottom clearance (%.0f)" % [tab, pad])
+			fail = true
 		# If the tree is taller than the scroller, vertical scrolling must be possible.
 		var content_h: float = hs.get_child(0).custom_minimum_size.y
 		var vbar := hs.get_v_scroll_bar()

@@ -3792,8 +3792,11 @@ func _build_research() -> void:
 		canvas.add_child(node)
 	# A plain frame carries the SCALED footprint so the scroller measures the
 	# fitted size (a child's `scale` doesn't change its combined minimum size).
+	# Add a fixed (unscaled) bottom pad so the last row can scroll up clear of the
+	# screen edge / system nav bar instead of resting under it at max scroll.
+	const RES_BOTTOM_PAD := 140.0
 	var frame := Control.new()
-	frame.custom_minimum_size = Vector2(cw * fit, ch * fit)
+	frame.custom_minimum_size = Vector2(cw * fit, ch * fit + RES_BOTTOM_PAD)
 	frame.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	frame.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	frame.add_child(canvas)
