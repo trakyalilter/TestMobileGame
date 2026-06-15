@@ -3301,15 +3301,75 @@ func _module_detail_body(v: VBoxContainer, close: Callable, mid: String) -> void
 	v.add_child(note)
 
 func _do_equip(mid: String, close: Callable, note: Label) -> void:
-	var ok: bool = GameState.equip_module_to_slot(ship_target_slot, mid) if ship_target_slot >= 0 else GameState.equip_module(mid)
-	if ok:
-		close.call()
-		ship_target_slot = -1
-		ship_view = "loadout"        # return to the slot grid so the fit is visible
-		_refresh_current()
-	elif is_instance_valid(note):
-		note.text = "⚠ " + (GameState.equip_notice if GameState.equip_notice != "" else "Can't equip here.")
-		note.visible = true
+	# Slot-first flow (opened from a specific slot): equip straight into it.
+	if ship_target_slot >= 0:
+		if GameState.equip_module_to_slot(ship_target_slot, mid):
+			close.call()
+			ship_target_slot = -1
+			ship_view = "loadout"
+			_refresh_current()
+		elif is_instance_valid(note):
+			note.text = "⚠ " + (GameState.equip_notice if GameState.equip_notice != "" else "Can't equip here.")
+			note.visible = true
+		return
+	# Browse flow: the hull may have several slots of this type. With more than one,
+	# let the player choose which slot to fill or replace (instead of silently
+	# filling the first empty one, or doing nothing when they're all full).
+	var stype: String = GameState.module_def(mid).get("slot", "")
+	var idxs := _hull_slot_indices(stype)
+	if idxs.is_empty():
+		if is_instance_valid(note):
+			note.text = "⚠ This hull has no %s slot." % GameData.SLOT_LABELS.get(stype, stype)
+			note.visible = true
+		return
+	if idxs.size() == 1:
+		if GameState.equip_module_to_slot(int(idxs[0]), mid):
+			close.call()
+			ship_view = "loadout"
+			_refresh_current()
+		elif is_instance_valid(note):
+			note.text = "⚠ " + (GameState.equip_notice if GameState.equip_notice != "" else "Can't equip here.")
+			note.visible = true
+		return
+	close.call()
+	_open_equip_slot_picker(mid, idxs)
+
+# Hull slot indices that accept a given module slot type.
+func _hull_slot_indices(stype: String) -> Array:
+	var out := []
+	var slots: Array = GameData.HULLS.get(GameState.active_hull, {}).get("slots", [])
+	for i in slots.size():
+		if slots[i] == stype:
+			out.append(i)
+	return out
+
+# Pick which of several same-type slots to equip a module into (shows each slot's
+# current occupant; selecting swaps it in).
+func _open_equip_slot_picker(mid: String, idxs: Array) -> void:
+	var stype: String = GameState.module_def(mid).get("slot", "")
+	_modal("Equip to which %s slot?" % GameData.SLOT_LABELS.get(stype, stype), CYAN, func(v: VBoxContainer, close: Callable) -> void:
+		var note := Label.new()
+		note.add_theme_font_size_override("font_size", _fs(11))
+		note.add_theme_color_override("font_color", Color.html(RED))
+		note.visible = false
+		var n := 1
+		for raw in idxs:
+			var idx: int = int(raw)
+			var occ: String = GameState.loadout.get(str(idx), "")
+			var occ_name: String = "Empty" if occ == "" else String(GameState.module_def(occ).get("name", occ))
+			var b := _card_button("Slot %d  ·  %s" % [n, occ_name], CYAN if occ == "" else GOLD, true)
+			b.custom_minimum_size = Vector2(0, 46)
+			b.pressed.connect(func() -> void:
+				if GameState.equip_module_to_slot(idx, mid):
+					close.call()
+					ship_view = "loadout"
+					_refresh_current()
+				elif is_instance_valid(note):
+					note.text = "⚠ " + (GameState.equip_notice if GameState.equip_notice != "" else "Can't equip here.")
+					note.visible = true)
+			v.add_child(b)
+			n += 1
+		v.add_child(note))
 
 func _socket_and_reopen(mid: String, gem: String, close: Callable) -> void:
 	GameState.socket_gem(mid, gem)
