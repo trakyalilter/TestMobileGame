@@ -9,268 +9,84 @@ var manager: RefCounted
 # Each tab has a Control which acts as a Canvas for custom drawing
 var node_scene = preload("res://scenes/ui/research_node_widget.tscn")
 
+# ── Research tabs (data-driven) ─────────────────────────────────────────────
+# Each entry is just a list of tech ids. Node POSITIONS are auto-computed by
+# calculate_layout() from each tech's `parent`, so there are no manual
+# coordinates — re-categorizing is purely editing these lists. A tech whose
+# parent lives in another tab is drawn as a floating root in its own tab. Tabs
+# are created (in this order) by the loop in _ready().
 var graphs = {
-	"Operations": {
+	"Gathering": {
 		"nodes": [
-			# Early Game - Mining & Drilling
-			"energy_shields", "industrial_logistics",
 			"diamond_drills", "ultrasonic_drills", "plasma_bore",
-			
-			# Liquids
 			"high_flow_pumps", "superfluid_intake", "hydro_vortex",
-			
-			# Deforestation
 			"laser_cutters", "mono_filament", "molecular_disassembler",
-			
-			# Gases / Nebula
 			"magnetic_funnels", "deep_core_optics",
-			
-			# Exploration / Sectors
-			"sector_alpha_decryption", "deep_space_nav", "radiation_shielding",
-			"exotic_matter_analysis", "void_physics", "void_navigation",
-			"field_theory",
-
-			# Missing Techs Restored (Audit)
-			# v111.5: eff_scanning_1 removed; xeno_archaeology kept.
-			"xeno_archaeology",
-			
-			# v80.4: Zone Access Gates (required for hulls, modules, and combat zones)
-			"zone_2_access", "zone_3_access", "zone_4_access", "zone_5_access", "zone_6_access",
-			"zone_7_access", "zone_8_access", "zone_9_access", "zone_10_access",
-			
-			# Efficiency Branch
-			"efficiency_1", "efficiency_2", "efficiency_3", "efficiency_4", "efficiency_5"
 		],
-		"pos": {
-			# Branch 1: Liquids (Pumps)
-			"high_flow_pumps": Vector2(40, 40),
-			"superfluid_intake": Vector2(240, 40),
-			"hydro_vortex": Vector2(440, 40),
-			
-			# Branch 2: Deforestation (Lasers)
-			"laser_cutters": Vector2(40, 150),
-			"mono_filament": Vector2(240, 150),
-			"molecular_disassembler": Vector2(440, 150),
-			
-			# Branch 3: Excavation (Drills) - Moved down
-			"diamond_drills": Vector2(40, 260),
-			"ultrasonic_drills": Vector2(240, 260),
-			"plasma_bore": Vector2(440, 260),
-
-			# Branch 4: Utility & Gases
-			"energy_shields": Vector2(40, 370),
-			"field_theory": Vector2(40, 430), # Child of Energy Fields — gates IonField consumable
-			"magnetic_funnels": Vector2(240, 370),
-			# v111.5: eff_scanning_1 deleted — vacated slot at (40, 480).
-			"deep_core_optics": Vector2(240, 480), # Shifted right
-			
-			# Branch 5: Exploration (The Path to the Void)
-			"sector_alpha_decryption": Vector2(40, 600),
-			"xeno_archaeology": Vector2(40, 700), # Restored (Child of Sector Alpha)
-			
-			"deep_space_nav": Vector2(240, 600),
-			"radiation_shielding": Vector2(440, 600),
-			"exotic_matter_analysis": Vector2(640, 600),
-			"void_physics": Vector2(840, 600),
-			"void_navigation": Vector2(1040, 600),
-			
-			
-			# Branch 7: Zone Access Gates (v80.4 — Required for Hulls & Modules)
-			"zone_2_access": Vector2(40, 850),
-			"zone_3_access": Vector2(240, 850),
-			"zone_4_access": Vector2(440, 850),
-			"zone_5_access": Vector2(640, 850),
-			"zone_6_access": Vector2(840, 850),
-			"zone_7_access": Vector2(1040, 850),
-			"zone_8_access": Vector2(1240, 850),
-			"zone_9_access": Vector2(1440, 850),
-			"zone_10_access": Vector2(1640, 850),
-			
-			# Branch 8: Efficiency (Yield Boosts)
-			"efficiency_1": Vector2(240, 370),
-			"efficiency_2": Vector2(440, 370),
-			"efficiency_3": Vector2(640, 370),
-			"efficiency_4": Vector2(840, 370),
-			"efficiency_5": Vector2(1040, 370)
-		},
-		"container": null # Assigned in _ready
+		"container": null
 	},
-	"Engineering": {
+	"Industry": {
 		"nodes": [
-			# Layout 0
-			"basic_engineering", "applied_physics", "materials_science", "industrial_logistics",
-			
-			# Layout 1: Fluids & Electro
+			"basic_engineering", "applied_physics", "materials_science",
+			"combustion", "pyrolysis_control", "smelting", "blast_furnace",
+			"automated_smelting", "oxygen_blast_furnace",
+			"metallurgy_advanced", "superalloy_engineering", "iridium_metallurgy", "exotic_metallurgy",
+			"adv_materials", "hydraulic_press", "molecular_compression", "lightweight_alloys",
 			"fluid_dynamics", "catalytic_electrodes", "ion_exchange", "resonance_splitters",
-			"industrial_electrolysis", "energy_metrics", "cryogenic_systems", "cryogenic_storage",
-			
-			# Layout 2: Combustion & Smelting
-			"combustion", "pyrolysis_control", "smelting", "blast_furnace", "automated_smelting", 
-			"oxygen_blast_furnace", "metallurgy_advanced", "superalloy_engineering", "iridium_metallurgy", "exotic_metallurgy",
-			
-			# Layout 3: Materials
-			"adv_materials", "hydraulic_press", "molecular_compression",
-			"kinetics_101", "laser_optics", "power_systems", "lightweight_alloys",
-			
-			# Layout 4: High Tech & Automation
-			"fast_centrifuges", "maglev_bearings", "quantum_separators", "advanced_mineralogy",
-			"automation", "automated_logistics", "industrial_automation", "molecular_recycling", "xeno_engineering",
-			"mass_production_tactics", "nano_fabrication", "data_clustering",
+			"industrial_electrolysis", "energy_metrics",
+			"cryogenic_systems", "cryogenic_storage",
 			"precious_metal_refining", "industrial_catalysis", "fuel_cell_tech",
-			"colony_automation", "perfect_automation",
-			"basic_electronics", "advanced_batteries" # Added advanced_batteries
 		],
-		"pos": {
-			"basic_engineering": Vector2(40, 400),
-			
-			# Upper Branch: Fluid Dynamics -> Electrolysis -> Cryo
-			"fluid_dynamics": Vector2(240, 100),
-			"catalytic_electrodes": Vector2(440, 40),
-			"ion_exchange": Vector2(640, 40),
-			"resonance_splitters": Vector2(840, 40),
-			"industrial_electrolysis": Vector2(640, 110),
-			
-			"energy_metrics": Vector2(440, 180),
-			"cryogenic_systems": Vector2(640, 180),
-			"cryogenic_storage": Vector2(840, 180),
-			
-			# Mid-Upper: Combustion -> Smelting Chain (The Backbone)
-			"combustion": Vector2(240, 300),
-			"pyrolysis_control": Vector2(440, 300),
-			
-			"smelting": Vector2(240, 400),
-			"blast_furnace": Vector2(440, 400),
-			"automated_smelting": Vector2(640, 400),
-			"oxygen_blast_furnace": Vector2(840, 400),
-			
-			"metallurgy_advanced": Vector2(640, 330),
-			"superalloy_engineering": Vector2(840, 330),
-			"iridium_metallurgy": Vector2(1040, 330),
-			"exotic_metallurgy": Vector2(1240, 330),
-			
-			"precious_metal_refining": Vector2(1040, 250), # From Deep Space Nav (handled in graph logic or floating?)
-			# Actually precious_metal_refining parent is deep_space_nav which is in Operations. 
-			# We'll rely on cross-tab logic or just visualize it here as a root/floating node if parent missing
-			"industrial_catalysis": Vector2(1240, 250),
-			"fuel_cell_tech": Vector2(1240, 180),
-			
-			# Mid: Materials
-			"materials_science": Vector2(240, 500),
-			"lightweight_alloys": Vector2(440, 500),
-			"adv_materials": Vector2(440, 580),
-			"hydraulic_press": Vector2(640, 580),
-			"molecular_compression": Vector2(840, 580),
-			"advanced_batteries": Vector2(640, 650),
-			"automation": Vector2(440, 650), # Added Factory Automation
-
-			# Lower: Logistics & Centrifuges
-			"industrial_logistics": Vector2(240, 750),
-			"basic_electronics": Vector2(440, 820), # Restored Node
-			"fast_centrifuges": Vector2(440, 750),
-			"maglev_bearings": Vector2(640, 750),
-			"quantum_separators": Vector2(840, 750),
-			"advanced_mineralogy": Vector2(640, 820),
-			
-			"automated_logistics": Vector2(440, 900),
-			"mass_production_tactics": Vector2(640, 900),
-			"xeno_engineering": Vector2(640, 970),
-			"industrial_automation": Vector2(640, 1040),
-			"molecular_recycling": Vector2(840, 1040),
-			
-			"colony_automation": Vector2(840, 1120),
-			"perfect_automation": Vector2(1040, 1120),
-			
-			"nano_fabrication": Vector2(640, 1190),
-			"data_clustering": Vector2(440, 1190),
-		},
+		"container": null
+	},
+	"Automation": {
+		"nodes": [
+			"industrial_logistics", "automated_logistics", "mass_production_tactics",
+			"industrial_automation", "molecular_recycling", "colony_automation", "perfect_automation",
+			"fast_centrifuges", "maglev_bearings", "quantum_separators", "advanced_mineralogy",
+			"automation", "nano_fabrication", "xeno_engineering",
+			"basic_electronics", "advanced_batteries",
+			"efficiency_1", "efficiency_2", "efficiency_3", "efficiency_4", "efficiency_5",
+		],
 		"container": null
 	},
 	"Ships": {
 		"nodes": [
-			# Early Gates (from Applied Physics)
-			"kinetics_101", "power_systems", "laser_optics",
-			
-			# Shipwright Chain
 			"shipwright_1", "shipwright_2", "molecular_printing",
 			"capital_ship_engineering", "capital_ship_armament", "quantum_dynamics",
-
-			# Warp & Navigation
 			"warp_drive", "warp_stabilizer",
-
-			# Military Techs (Processing Tungsten -> Ballistics)
-			"processing_tungsten", "ballistics_optimization", "advanced_rocketry",
-
-			# Void / Endgame
-			"void_weaponry_1", "void_shielding_1",
-
-			# v111: Cryo (Warp-gated weapon tech) — floats as a root (parent null,
-			# req_tech cryogenic_systems). Gates crafting Cryo weapons for Z11.
-			"cryo_armaments",
-			
-			# Efficiency
-			"combat_heuristics", "shield_harmonics", "hull_hardening", "core_overclocking",
-			
-			# Auto-Repair (Audit v66.0)
-			"auto_repair_20", "auto_repair_40", "auto_repair_60", "auto_repair_80"
 		],
-		"pos": {
-			# Column 1: Basics
-			"kinetics_101": Vector2(40, 40),
-			"power_systems": Vector2(40, 120),
-			"laser_optics": Vector2(40, 200),
-			
-			# Column 2: Early Shipwright
-			"shipwright_1": Vector2(240, 200),
-			"shipwright_2": Vector2(440, 200),
-			"molecular_printing": Vector2(640, 200),
-			
-			# Column 3: Advanced Ships
-			"capital_ship_engineering": Vector2(440, 320),
-			"capital_ship_armament": Vector2(640, 320),
-			"quantum_dynamics": Vector2(840, 320),
-
-			# Column 4: Weapons Tech (Lower Branch)
-			"processing_tungsten": Vector2(40, 500),
-			"ballistics_optimization": Vector2(240, 500),
-			"advanced_rocketry": Vector2(440, 500), # Sits under automation usually, moved here for mil-tech coherence
-			
-			# Column 5: Warp
-			"warp_drive": Vector2(440, 80),
-			"warp_stabilizer": Vector2(640, 80),
-			
-			# Column 6: Void High-End
-			"void_weaponry_1": Vector2(1040, 320),
-			"void_shielding_1": Vector2(1040, 400),
-			
-			# Passives / Utilities
-			"shield_harmonics": Vector2(240, 600),
-			"hull_hardening": Vector2(240, 680),
-			"core_overclocking": Vector2(240, 760),
-			
-			# Auto-Repair Branch (Right of Hull Hardening)
-			"auto_repair_20": Vector2(440, 680),
-			"auto_repair_40": Vector2(640, 680),
-			"auto_repair_60": Vector2(840, 680),
-			"auto_repair_80": Vector2(1040, 680),
-			"combat_heuristics": Vector2(40, 840)
-		},
+		"container": null
+	},
+	"Combat": {
+		"nodes": [
+			"kinetics_101", "power_systems", "laser_optics",
+			"processing_tungsten", "ballistics_optimization", "advanced_rocketry",
+			"energy_shields", "field_theory", "shield_harmonics", "hull_hardening", "core_overclocking",
+			"auto_repair_20", "auto_repair_40", "auto_repair_60", "auto_repair_80",
+			"void_weaponry_1", "void_shielding_1",
+			"combat_heuristics", "cryo_armaments",
+		],
+		"container": null
+	},
+	"Sectors": {
+		"nodes": [
+			"zone_2_access", "zone_3_access", "zone_4_access", "zone_5_access", "zone_6_access",
+			"zone_7_access", "zone_8_access", "zone_9_access", "zone_10_access",
+			"sector_alpha_decryption", "deep_space_nav", "radiation_shielding",
+			"exotic_matter_analysis", "void_physics", "void_navigation", "xeno_archaeology",
+		],
 		"container": null
 	},
 	"Recursion": {
-		# v109: 3 → 6 lanes. Offense/output trio + defense/structure/income trio.
-		"nodes": ["production_focus", "combat_focus", "gathering_focus",
-			"defense_focus", "infrastructure_focus", "wealth_focus"],
-		"pos": {
-			"production_focus": Vector2(40, 40),
-			"combat_focus": Vector2(40, 180),
-			"gathering_focus": Vector2(40, 320),
-			"defense_focus": Vector2(40, 460),
-			"infrastructure_focus": Vector2(40, 600),
-			"wealth_focus": Vector2(40, 740)
-		},
+		"nodes": [
+			"production_focus", "combat_focus", "gathering_focus",
+			"defense_focus", "infrastructure_focus", "wealth_focus",
+		],
 		"container": null
 	}
 }
+
 
 func _ready():
 	manager = GameState.research_manager
@@ -284,28 +100,23 @@ func _ready():
 		GameState.resources.element_added.connect(_on_resource_changed)
 		GameState.resources.currency_added.connect(_on_resource_changed)
 	
-	# Dynamic tab creation for Recursion
-	var rec_tab = Control.new()
-	rec_tab.name = "Recursion"
-	tabs.add_child(rec_tab)
-	var scroll = ScrollContainer.new()
-	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	rec_tab.add_child(scroll)
-	var area = Control.new()
-	area.name = "GraphArea"
-	scroll.add_child(area)
-	
-	# Graphs are Panels inside TabContainer
-	graphs["Operations"]["container"] = $VBoxContainer/TabContainer/Operations/ScrollContainer/GraphArea
-	graphs["Engineering"]["container"] = $VBoxContainer/TabContainer/Engineering/ScrollContainer/GraphArea
-	graphs["Ships"]["container"] = $VBoxContainer/TabContainer/Ships/ScrollContainer/GraphArea
-	graphs["Recursion"]["container"] = area
-	
-	# Add panning support to all graph areas
-	_setup_panning($VBoxContainer/TabContainer/Operations/ScrollContainer)
-	_setup_panning($VBoxContainer/TabContainer/Engineering/ScrollContainer)
-	_setup_panning($VBoxContainer/TabContainer/Ships/ScrollContainer)
-	_setup_panning(scroll)
+	# All research tabs are built dynamically from `graphs` (the scene's
+	# TabContainer starts empty), in dictionary order. Each tab is a
+	# Control → ScrollContainer → GraphArea; node positions inside are computed
+	# by calculate_layout() during build_graphs().
+	for tab_name in graphs:
+		var tab_root := Control.new()
+		tab_root.name = tab_name
+		tabs.add_child(tab_root)
+		var tab_scroll := ScrollContainer.new()
+		tab_scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		tab_root.add_child(tab_scroll)
+		var area := Control.new()
+		area.name = "GraphArea"
+		area.mouse_filter = Control.MOUSE_FILTER_PASS
+		tab_scroll.add_child(area)
+		graphs[tab_name]["container"] = area
+		_setup_panning(tab_scroll)
 	
 	call_deferred("build_graphs")
 	call_deferred("_on_mission_updated") # Initial check
