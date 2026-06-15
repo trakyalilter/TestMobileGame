@@ -3684,7 +3684,12 @@ func _module_stat_lines(stats: Dictionary) -> Array:
 		var txt: String
 		if k == "atk_interval":
 			txt = "%s %.1fs" % [labels.get(k, k), float(v)]
-		elif k in ["atk_speed_bonus", "crit_chance", "eva"]:
+		elif k == "eva":
+			# Evasion is a FLAT stat (dodge = eva/(eva+k)), not a percentage — show
+			# the raw points, trimmed to a decimal only when fractional.
+			var ev := float(v)
+			txt = "%s %s" % [labels.get(k, k), ("%.0f" % ev) if ev == floor(ev) else ("%.1f" % ev)]
+		elif k in ["atk_speed_bonus", "crit_chance"]:
 			txt = "%s %d%%" % [labels.get(k, k), int(float(v) * 100.0)]
 		else:
 			txt = "%s %s" % [labels.get(k, k), str(v)]
