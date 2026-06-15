@@ -54,7 +54,7 @@ var graphs = {
 		"nodes": [
 			"shipwright_1", "shipwright_2", "molecular_printing",
 			"capital_ship_engineering", "capital_ship_armament", "quantum_dynamics",
-			"warp_drive", "warp_stabilizer",
+			"warp_drive",
 		],
 		"container": null
 	},
@@ -234,9 +234,10 @@ func build_graphs():
 		
 		# Add Nodes
 		for nid in g_data["nodes"]:
-			if nid not in manager.tech_tree: continue
-			
-			var data = manager.tech_tree[nid]
+			# Recursion tab nodes live in repeatable_tech_db, not tech_tree.
+			if nid not in manager.tech_tree and not manager.repeatable_tech_db.has(nid): continue
+
+			var data = manager.tech_tree[nid] if nid in manager.tech_tree else manager.repeatable_tech_db[nid]
 			var node_widget = node_scene.instantiate()
 			container.add_child(node_widget)
 			
@@ -268,8 +269,9 @@ func calculate_layout(nodes_list: Array) -> Dictionary:
 	for n in nodes_list: nodes_set[n] = true
 	
 	for nid in nodes_list:
-		if nid not in manager.tech_tree: continue
-		var p_id = manager.tech_tree[nid].get("parent")
+		if nid not in manager.tech_tree and not manager.repeatable_tech_db.has(nid): continue
+		# Repeatables have no parent → laid out as roots in their tab.
+		var p_id = manager.tech_tree[nid].get("parent") if nid in manager.tech_tree else null
 		
 		# If parent not in this tab, treat as root for this view
 		if not p_id or p_id not in nodes_set:
@@ -330,8 +332,8 @@ func _on_graph_draw(container, tab_name, positions):
 	var g_data = graphs[tab_name]
 	
 	for nid in g_data["nodes"]:
-		if nid not in manager.tech_tree: continue
-		var node_data = manager.tech_tree[nid]
+		if nid not in manager.tech_tree and not manager.repeatable_tech_db.has(nid): continue
+		var node_data = manager.tech_tree[nid] if nid in manager.tech_tree else manager.repeatable_tech_db[nid]
 		var parent = node_data.get("parent")
 		
 		if parent and parent in positions and nid in positions:
