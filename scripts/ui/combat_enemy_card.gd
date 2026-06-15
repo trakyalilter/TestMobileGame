@@ -110,10 +110,15 @@ func _build_combined_stats_row() -> void:
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hb.add_child(spacer)
 
+	# v111: Warp-Hardened (Z11+) nullify conventional damage; only Cryo bites.
+	if data.get("warp_hardened", false):
+		hb.add_child(_make_chip("❄CRYO-ONLY", Color(0.45, 0.85, 1.0), 8))
+
 	for entry in [
 		[float(data.get("resist_k", 0.0)), "KIN"],
 		[float(data.get("resist_e", 0.0)), "NRG"],
 		[float(data.get("resist_x", 0.0)), "EXP"],
+		[float(data.get("resist_cryo", 0.0)), "CRY"],
 	]:
 		var val: float = entry[0]
 		var tag: String = entry[1]
