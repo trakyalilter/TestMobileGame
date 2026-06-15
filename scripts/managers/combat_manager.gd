@@ -2446,10 +2446,38 @@ func reset(decay_factor: float = 1.0) -> void:
 	retreat()
 
 # v52.1: Offline Combat (opt-in via game_settings)
+# Can the player actually beat the current enemy? Offline combat is a
+# continuation of a winnable fight, not free progress on a wall. Generous by
+# design (ignores armor/resist mitigation) so it only ever blocks a fight that
+# is unwinnable by a wide margin.
+func _offline_winnable() -> bool:
+	if not current_enemy: return false
+	var conv_dps := 0.0
+	var cryo_dps := 0.0
+	for w in player_weapon_states:
+		var iv: float = max(MIN_ATTACK_INTERVAL, float(w.get("interval", 2.5)))
+		conv_dps += (float(w.get("dmg_k", 0.0)) + float(w.get("dmg_e", 0.0)) + float(w.get("dmg_x", 0.0))) / iv
+		cryo_dps += float(w.get("dmg_cryo", 0.0)) / iv
+	var hardened: bool = current_enemy.get("warp_hardened", false)
+	# Warp-hardened (Z11+) enemies need Cryo; conventional weapons do x0.02 and
+	# can NEVER kill them — no Cryo output is unwinnable regardless of duration.
+	if hardened and cryo_dps <= 0.0:
+		return false
+	var dps: float = cryo_dps + (conv_dps * (0.02 if hardened else 1.0))
+	if dps <= 0.0:
+		return false
+	# Under-power guard: can't kill within ~30 min of continuous fire → not a farm.
+	var enemy_ehp: float = float(max(enemy_max_hp, enemy_hp)) + float(enemy_max_shield)
+	return enemy_ehp <= 0.0 or (enemy_ehp / dps) <= 1800.0
+
 func calculate_offline(delta: float) -> String:
 	if not in_combat or not current_zone or not current_enemy:
 		return ""
-	
+	# Don't award offline kills against an enemy the ship can't actually beat
+	# (warp-hardened with no Cryo, or grossly under-tier).
+	if not _offline_winnable():
+		return ""
+
 	# Estimate kills based on average combat duration
 	var avg_kill_time = 10.0 # Approximate seconds per kill
 	var num_kills = int(delta / avg_kill_time)
