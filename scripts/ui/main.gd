@@ -2047,9 +2047,9 @@ func _show_enemy_intel(eid: String) -> void:
 	var rare := []
 	for row2 in e.get("loot", []):
 		if float(row2[1]) >= 1.0:
-			guaranteed.append(_line("%s %d-%d" % [GameData.res_name(row2[0]), int(row2[2]), int(row2[3])], _hex(GameData.color_for(row2[0]))))
+			guaranteed.append(_line("%s %d-%d" % [GameData.item_name(row2[0]), int(row2[2]), int(row2[3])], _hex(GameData.color_for(row2[0]))))
 		else:
-			rare.append(_line("★ %s %d-%d  (%d%%)" % [GameData.res_name(row2[0]), int(row2[2]), int(row2[3]), int(float(row2[1]) * 100.0)], PURP))
+			rare.append(_line("★ %s %d-%d  (%d%%)" % [GameData.item_name(row2[0]), int(row2[2]), int(row2[3]), int(float(row2[1]) * 100.0)], PURP))
 	if not guaranteed.is_empty():
 		_inset(v, "GUARANTEED DROPS", guaranteed, GOLD)
 	if not rare.is_empty():
@@ -4163,7 +4163,7 @@ func _atlas_materials(v: VBoxContainer) -> void:
 		var info = idx.get(sym, null)
 		if info == null or (info["sources"].is_empty() and info["uses"].is_empty()):
 			continue
-		if not _atlas_matches(GameData.res_name(sym)):
+		if not _atlas_matches(GameData.item_name(sym)):
 			continue
 		# Name search spans all categories; otherwise filter by the source category.
 		var match_cat := searching
@@ -4204,7 +4204,7 @@ func _atlas_material_card(sym: String, info: Dictionary) -> Control:
 	m.add_child(col)
 	var hrow := HBoxContainer.new()
 	var nm := Label.new()
-	nm.text = GameData.res_name(sym)
+	nm.text = GameData.item_name(sym)
 	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	nm.add_theme_font_size_override("font_size", _fs(14))
 	nm.add_theme_color_override("font_color", GameData.color_for(sym))

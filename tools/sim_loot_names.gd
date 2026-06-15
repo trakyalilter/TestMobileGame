@@ -55,6 +55,21 @@ func _run() -> void:
 			fail = true
 	card.queue_free()
 
+	# The enemy Intel modal's RARE DROPS must resolve names too (not raw ids).
+	main._show_enemy_intel(eid)
+	await process_frame
+	var it := []
+	_collect_text(main, it)
+	for raw in ["z1_unique_weapon", "z1_unique_armor", "z1_unique_shield"]:
+		if _has(it, raw):
+			print("FAIL raw id leaked into Intel modal: %s" % raw)
+			fail = true
+	if _has(it, "Architect's Beam"):
+		print("PASS Intel modal shows display names")
+	else:
+		print("FAIL Intel modal missing display name")
+		fail = true
+
 	if fail:
 		print("LOOT_NAMES: FAIL")
 		quit(1)
