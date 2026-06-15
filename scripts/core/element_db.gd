@@ -287,6 +287,17 @@ func get_category(symbol: String) -> String:
 func get_elements_in_category(category: String) -> Array:
 	return CATEGORIES.get(category, [])
 
+# Progression-critical, low-volume drops that must NOT be silently lost to the
+# inventory slot cap (boss cores gate zone research; matrix cores socket gear;
+# endgame/special are rare one-offs). Bulk basics keep the cap as a sink.
+var _slot_protected: Dictionary = {}
+func is_slot_protected(symbol: String) -> bool:
+	if _slot_protected.is_empty():
+		for cat in ["boss_cores", "matrix_cores", "endgame", "special"]:
+			for s in CATEGORIES.get(cat, []):
+				_slot_protected[s] = true
+	return _slot_protected.has(symbol)
+
 ## Get consumable data (type, heal_pct)
 func get_consumable_data(id: String) -> Dictionary:
 	return CONSUMABLE_DATA.get(id, {})
