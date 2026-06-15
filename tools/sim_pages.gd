@@ -83,7 +83,11 @@ func _run() -> void:
 		print("FAIL hazard view missing — got: %s" % str(hz))
 		fail = true
 
-	# --- Task 4: trinity view on the ship loadout.
+	# --- Task 4: trinity view on the ship loadout. The trinity panel now only
+	# surfaces sets the player has a piece equipped for, so fit one Architect's
+	# Regalia module first.
+	gs.module_inventory["z1_unique_armor"] = 1
+	gs.equip_module("z1_unique_armor")
 	main.ship_view = "loadout"
 	main._show("ship")
 	await process_frame
@@ -94,6 +98,12 @@ func _run() -> void:
 	else:
 		print("FAIL trinity view missing — got: %s" % str(tv))
 		fail = true
+	# And it must NOT list a set the player has zero pieces of (Leviathan's Crown).
+	if _has(tv, "Leviathan's Crown"):
+		print("FAIL trinity view shows an un-owned set (Leviathan's Crown)")
+		fail = true
+	else:
+		print("PASS trinity view: un-owned sets hidden")
 
 	# --- Task 2: battle view with a hazard-style enemy; affinity + wave readout.
 	gs.start_task("combat", "z1_lunar_drone")

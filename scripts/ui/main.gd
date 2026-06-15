@@ -2786,21 +2786,30 @@ func _trinity_bonus_label(key: String, val: float) -> String:
 	var suffix := "%" if key.ends_with("_pct") or key.ends_with("_chance") else ""
 	return "+%d%s %s" % [int(round(val)), suffix, nm]
 
-# Trinity-set panel: active sets first (full bonus list), then in-progress sets
-# so the player can discover what each one grants. Reused on Ship and the sim.
+# Trinity-set panel: only sets the player has a piece of are shown — active ones
+# lit with their full bonus list, in-progress ones as discoverable progress. Sets
+# with zero equipped pieces are hidden (no point listing the whole catalog on the
+# loadout). Reused on Ship and the sim.
 func _trinity_view(v: VBoxContainer) -> void:
 	var counts := GameState.equipped_set_counts()
+	# Nothing from any set equipped → don't show the section header at all.
+	var any_progress := false
+	for sn in GameData.SETS:
+		if int(counts.get(sn, 0)) > 0:
+			any_progress = true
+			break
+	if not any_progress:
+		return
 	_section(v, "Trinity Set Bonuses", PURP)
 	var active := GameState.active_trinity_sets()
-	# Show every set: active ones lit with their full bonus list, others as
-	# discoverable progress (equip all 3 pieces to activate).
 	for sn in GameData.SETS:
 		var sd: Dictionary = GameData.SETS.get(sn, {})
 		var have := int(counts.get(sn, 0))
+		# Only surface sets the player actually has a module equipped for.
+		if have <= 0:
+			continue
 		var pieces := int(GameData.TRINITY_SET_BONUSES.get(sn, {}).get("pieces", 3))
 		var is_active: bool = sn in active
-		# Hide sets the player has zero progress on AND no active bonus, unless none
-		# are active yet (so the page always teaches what's available).
 		var c := _card(PURP, is_active)
 		var badge := "%d/%d" % [have, pieces]
 		_card_head(c, "✦" if is_active else "○", sd.get("name", sn), badge, PURP, is_active)
