@@ -938,7 +938,7 @@ func _on_resources() -> void:
 	if current in IDLE_LOOP_PAGES and GameState.active_type != "":
 		_update_coach()
 		return
-	_refresh_current()
+	_refresh_current(true)
 
 # Guarded rebuild for frequent signals (skills/missions/bounty/action) — skips
 # the graph/codex pages so their pan/scroll survives passive loops, and skips
@@ -952,7 +952,7 @@ func _on_tick() -> void:
 		_update_coach()
 		_refresh_banner()
 		return
-	_refresh_current()
+	_refresh_current(true)
 
 # Action started/stopped: the active card's controls change (Start↔Stop, the
 # active highlight), so always do a full structural rebuild.
@@ -1366,6 +1366,11 @@ func _show(id: String) -> void:
 		_style_nav(bid, bid == id)
 	_close_drawer()
 	_refresh_current()
+	# A tab switch lands at the top of the new page (conventional, and deterministic
+	# across platforms — don't depend on the rebuild's content-clear happening to
+	# clamp the offset). Tick rebuilds use _refresh_current(true) and are exempt.
+	if pages.has(id):
+		pages[id].set_deferred("scroll_vertical", 0)
 	_animate_page_in(id)
 
 ## Staggered fade-in of the page's top-level blocks on NAVIGATION only (tick
@@ -1389,7 +1394,16 @@ func _refresh_all() -> void:
 	_refresh_top()
 	_refresh_current()
 
-func _refresh_current() -> void:
+func _refresh_current(preserve_scroll: bool = false) -> void:
+	# A passive tick (resource/skill completion) can fire while the player is
+	# scrolled partway down a page. Rebuilding the "List" VBox resets the
+	# ScrollContainer to the top, yanking the view back up mid-read. On tick-driven
+	# same-page rebuilds we capture the scroll offset and restore it after the
+	# rebuild; navigation (_show / _refresh_all) passes the default false so a tab
+	# switch still lands at the top.
+	var saved_scroll := 0
+	if preserve_scroll and pages.has(current):
+		saved_scroll = pages[current].scroll_vertical
 	_active_bar = null
 	_active_timer = null
 	_skill_bar = null
@@ -1436,6 +1450,8 @@ func _refresh_current() -> void:
 	# and containers default to MOUSE_FILTER_STOP, which eats the drag.
 	if pages.has(current):
 		_scroll_passthrough(pages[current])
+		if preserve_scroll and saved_scroll > 0:
+			pages[current].set_deferred("scroll_vertical", saved_scroll)
 	_update_coach()
 
 # Recursively switch non-interactive controls from STOP to PASS so the parent
