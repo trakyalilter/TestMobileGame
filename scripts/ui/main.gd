@@ -4468,14 +4468,22 @@ func _show_offline(text: String) -> void:
 	overlay.add_child(center)
 	var panel := PanelContainer.new()
 	panel.add_theme_stylebox_override("panel", _bordered("1a2336", CYAN, 2))
-	panel.custom_minimum_size = Vector2(300, 0)
+	panel.custom_minimum_size = Vector2(320, 0)
 	center.add_child(panel)
+	var mc := MarginContainer.new()
+	for s in ["left", "right", "top", "bottom"]:
+		mc.add_theme_constant_override("margin_" + s, 14)
+	panel.add_child(mc)
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 12)
-	panel.add_child(v)
+	mc.add_child(v)
 	_clbl(v, "◷ Welcome Back, Commander", 16, CYAN)
 	var body := Label.new()
 	body.text = text
+	# Bounded width + word-wrap so the loot list wraps instead of running off the
+	# right edge (the panel would otherwise stretch to the longest single line).
+	body.custom_minimum_size = Vector2(300, 0)
+	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	body.add_theme_color_override("font_color", Color.html(C_TEXT))
 	v.add_child(body)
 	var ok := Button.new()
