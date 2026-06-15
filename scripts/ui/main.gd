@@ -10,7 +10,7 @@ const BOTTOM := [
 	{"id": "research", "label": "Research"},
 	{"id": "more",     "label": "More"},
 ]
-const PAGE_IDS := ["gather", "craft", "combat", "research", "more", "build", "shipyard", "ship", "bounty", "standing", "warp", "missions", "atlas", "stats", "hazard"]
+const PAGE_IDS := ["gather", "craft", "combat", "research", "more", "build", "shipyard", "ship", "bounty", "standing", "warp", "missions", "atlas", "stats", "hazard", "settings"]
 const MORE_MENU := [
 	{"id": "missions", "label": "✦  Missions"},
 	{"id": "build",  "label": "⌂  Infrastructure"},
@@ -21,7 +21,8 @@ const MORE_MENU := [
 	{"id": "hazard", "label": "☢  Hazard Zones"},
 	{"id": "warp",   "label": "✦  Warp Core"},
 	{"id": "atlas",  "label": "❒  Atlas / Codex"},
-	{"id": "stats",  "label": "≡  Storage & Crew"},
+	{"id": "stats",  "label": "≡  Storage"},
+	{"id": "settings", "label": "⚙  Settings"},
 ]
 
 # ---- Design system tokens ----
@@ -60,7 +61,8 @@ const NAV_ALL := [
 	{"id": "hazard",   "label": "Hazard Zones",   "icon": "☢"},
 	{"id": "warp",     "label": "Warp Core",      "icon": "✦"},
 	{"id": "atlas",    "label": "Atlas / Codex",  "icon": "❒"},
-	{"id": "stats",    "label": "Storage & Crew", "icon": "≡"},
+	{"id": "stats",    "label": "Storage",        "icon": "≡"},
+	{"id": "settings", "label": "Settings",       "icon": "⚙"},
 ]
 const DRAWER_W := 540.0
 
@@ -1512,6 +1514,7 @@ func _refresh_current(preserve_scroll: bool = false) -> void:
 		"more":     _build_more()
 		"stats":    _build_stats()
 		"hazard":   _build_hazard()
+		"settings": _build_settings()
 	# Let touch drags fall through cards to the page's ScrollContainer so the
 	# whole content surface scrolls (not just the dark background gaps). Panels
 	# and containers default to MOUSE_FILTER_STOP, which eats the drag.
@@ -4384,8 +4387,13 @@ func _build_stats() -> void:
 		up.pressed.connect(func() -> void: GameState.upgrade_storage())
 	v.add_child(up)
 
+# ============================================================ SETTINGS
+func _build_settings() -> void:
+	var v := _clear("settings")
+	_back_header(v)
+	_clbl(v, "SETTINGS", 16, CYAN)
 	_section(v, "System", CYAN)
-	# Options: offline-combat toggle (off by default, like desktop).
+	# Offline-combat toggle (off by default, like desktop).
 	var oc := GameState.offline_combat
 	var oc_btn := _card_button("Offline Combat: %s" % ("ON" if oc else "OFF"), GREEN if oc else C_MUTED, true)
 	oc_btn.custom_minimum_size = Vector2(0, 44)
@@ -4393,10 +4401,7 @@ func _build_stats() -> void:
 		GameState.offline_combat = not GameState.offline_combat
 		_refresh_current())
 	v.add_child(oc_btn)
-	var save_btn := _card_button("Save Now", CYAN, true)
-	save_btn.custom_minimum_size = Vector2(0, 44)
-	save_btn.pressed.connect(func() -> void: GameState.save_game())
-	v.add_child(save_btn)
+	_clbl(v, "Progress saves automatically.", 10, C_DIM)
 	var reset_btn := _card_button("⚠ Tap again to wipe save" if _reset_armed else "Reset Game", RED, true)
 	reset_btn.custom_minimum_size = Vector2(0, 44)
 	reset_btn.pressed.connect(func() -> void:
