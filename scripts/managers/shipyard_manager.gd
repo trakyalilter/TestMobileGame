@@ -2143,6 +2143,7 @@ func load_save_data_manager(data: Dictionary):
 	for key in saved_ammo:
 		ammo_loadout[int(key)] = saved_ammo[key]
 	recalc_stats()
+	_repower_if_unpowered()  # v110: re-power pre-battery loadouts under the battery-only model
 	current_hp = data.get("hp", max_hp)
 
 	# Restore loadout presets (JSON string keys → int)
@@ -2249,6 +2250,41 @@ func _grant_and_equip_starter_batteries() -> void:
 			loadout[i] = "z1_battery"
 			module_inventory["z1_battery"] -= 1
 			placed += 1
+
+# Highest-capacity battery the player currently owns (for the v110 re-power
+# migration below); "" if none.
+func _best_owned_battery() -> String:
+	var best := ""
+	var best_cap := 0
+	for mid in module_inventory:
+		if int(module_inventory.get(mid, 0)) <= 0: continue
+		if modules.get(mid, {}).get("slot_type", "") != "battery": continue
+		var cap := get_module_energy_capacity(mid)
+		if cap > best_cap:
+			best_cap = cap
+			best = mid
+	return best
+
+# v110 migration: pre-battery saves (the hull used to supply energy) load with
+# consumers but no batteries → "SHIP UNPOWERED". Fill empty battery slots (best
+# owned battery, else a granted z1) until the grid is positive, so a migrated
+# ship is never stranded.
+func _repower_if_unpowered() -> void:
+	if active_hull not in hulls: return
+	if energy_used <= energy_capacity: return
+	var slots: Array = hulls[active_hull].get("slots", [])
+	for i in range(slots.size()):
+		if energy_used <= energy_capacity: return
+		if slots[i] != "battery" or loadout.get(i) != null: continue
+		var bat := _best_owned_battery()
+		if bat == "":
+			if not ("z1_battery" in modules): return
+			module_inventory["z1_battery"] = int(module_inventory.get("z1_battery", 0)) + 1
+			bat = "z1_battery"
+		loadout[i] = bat
+		if int(module_inventory.get(bat, 0)) > 0:
+			module_inventory[bat] -= 1
+		recalc_stats()
 
 # v66.0: Consumable Management
 func equip_consumable(slot_type: String, item_id: String):
