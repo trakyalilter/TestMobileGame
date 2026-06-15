@@ -130,6 +130,7 @@ var atlas_mat_cat := "gathered"
 var atlas_query := ""
 var _atlas_index := {}
 var _atlas_results: VBoxContainer = null   # results container refilled live on search
+var _research_hs: ScrollContainer = null   # research 2D scroller, sized to the visible page
 var build_cat := "power"
 var ship_view := "loadout"
 var shipyard_view := "modules"  # Shipyard (fabrication) sub-tab — separate from ship_view
@@ -3755,12 +3756,18 @@ func _build_research() -> void:
 	hs.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	hs.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hs.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	# Fill the page's content area (a disabled outer scroll sizes children to
-	# their min, not the viewport, so set the height explicitly).
+	# Size the scroller to the VISIBLE page area (a disabled outer scroll sizes its
+	# child to min, not the viewport). It must NOT exceed the visible height, or the
+	# scroller overflows below the screen and its lower nodes become unreachable
+	# (the page's own vertical scroll is off). Use a logical fallback — never the
+	# physical viewport — then correct to the real size on layout/resize.
+	_research_hs = hs
 	var avail: float = pages["research"].size.y
 	if avail < 200.0:
-		avail = get_viewport_rect().size.y - 300.0
-	hs.custom_minimum_size = Vector2(0, maxf(340.0, avail - 112.0))
+		avail = 820.0   # logical page height fallback (header+banners+nav chrome)
+	hs.custom_minimum_size = Vector2(0, maxf(300.0, avail - 112.0))
+	# Correct to the real page height next frame (size is often stale at build time).
+	call_deferred("_size_research_scroller")
 	# Fit the tree to the screen WIDTH so right-edge nodes don't hang off the
 	# visible area (the original complaint: the tree drifts outside the view).
 	# Scale down only — never enlarge — with a floor so deep trees stay legible;
@@ -3792,6 +3799,16 @@ func _build_research() -> void:
 	frame.add_child(canvas)
 	hs.add_child(frame)
 	v.add_child(hs)
+
+# Clamp the research scroller to the real visible page height so it scrolls
+# internally instead of overflowing below the screen. Re-run on every page resize.
+func _size_research_scroller() -> void:
+	if not is_instance_valid(_research_hs) or not pages.has("research"):
+		return
+	var ph: float = pages["research"].size.y
+	if ph < 200.0:
+		return   # not laid out yet; the resized signal will call us again
+	_research_hs.custom_minimum_size.y = maxf(300.0, ph - 112.0)
 
 func _draw_research_branches(canvas: Control, nodes: Array, pos: Dictionary) -> void:
 	for nid in nodes:
