@@ -117,6 +117,7 @@ var _drag_last_h := 0
 var _drag_last_ms := 0
 var _drag_vel := 0.0
 var _drag_vel_h := 0.0
+var _drag_cancel_btn: BaseButton = null   # button disabled mid-drag to suppress its tap
 # Open modal overlays (top of stack = frontmost). Drag-scroll targets the top
 # modal's own scroll container so its content scrolls instead of the page behind.
 var _modal_stack: Array = []
@@ -1352,6 +1353,7 @@ func _show(id: String) -> void:
 	_drag_active = false
 	_drag_vel = 0.0
 	_drag_vel_h = 0.0
+	_drag_uncancel()
 	# When the coach sends the player to the Shipyard, land on the sub-tab that
 	# matches the active fabrication step (construct → Hulls, craft → Modules).
 	if id == "shipyard":
@@ -1511,8 +1513,6 @@ func _input(event: InputEvent) -> void:
 	elif event is InputEventScreenDrag:
 		_drag_move(event.position)
 	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not _drag_is_touch:
-		if event.position.x < 0.0:
-			return   # ignore our own injected tap-cancel release
 		if event.pressed:
 			_drag_begin(event.position)
 		else:
@@ -1542,13 +1542,17 @@ func _drag_move(pos: Vector2) -> void:
 		if d.length() < DRAG_DEADZONE:
 			return
 		_drag_moved = true
-		# Cancel the tap the card/button started: inject a mouse release off-screen
-		# so it releases OUTSIDE its rect and never emits `pressed`.
-		var cancel := InputEventMouseButton.new()
-		cancel.button_index = MOUSE_BUTTON_LEFT
-		cancel.pressed = false
-		cancel.position = Vector2(-100, -100)
-		Input.parse_input_event(cancel)
+		# Cancel the tap the card/button under the finger started: disable it for the
+		# duration of the drag. Disabling clears the button's press state, so the
+		# finger-up won't fire `pressed` (which on Android's touch→mouse emulation
+		# would otherwise open the card you only meant to scroll past). Re-enabled in
+		# _drag_end. The card tap-overlays are transparent, so this is invisible.
+		var root := _drag_root()
+		if root != null:
+			var b := _button_at(root, _drag_start)
+			if b != null and not b.disabled:
+				b.disabled = true
+				_drag_cancel_btn = b
 		_drag_last_ms = Time.get_ticks_msec()
 	# Scroll relative to where the gesture began (1:1 with the finger).
 	if _drag_target.vertical_scroll_mode != ScrollContainer.SCROLL_MODE_DISABLED:
@@ -1568,9 +1572,37 @@ func _drag_move(pos: Vector2) -> void:
 func _drag_end() -> void:
 	_drag_active = false
 	_drag_is_touch = false
+	_drag_uncancel()
 	if not _drag_moved:
 		_drag_vel = 0.0
 		_drag_vel_h = 0.0
+
+# Re-enable the button a drag temporarily disabled to suppress its tap.
+func _drag_uncancel() -> void:
+	if _drag_cancel_btn != null and is_instance_valid(_drag_cancel_btn):
+		_drag_cancel_btn.disabled = false
+	_drag_cancel_btn = null
+
+# The subtree a drag operates within: the frontmost open modal, else the page.
+func _drag_root() -> Node:
+	for i in range(_modal_stack.size() - 1, -1, -1):
+		if is_instance_valid(_modal_stack[i]):
+			return _modal_stack[i]
+	return pages.get(current, null)
+
+# Deepest visible BaseButton whose global rect contains the point (the tap that a
+# drag should cancel), or null.
+func _button_at(node: Node, pos: Vector2) -> BaseButton:
+	var result: BaseButton = null
+	for c in node.get_children():
+		if c is CanvasItem and not (c as CanvasItem).visible:
+			continue
+		var deeper := _button_at(c, pos)
+		if deeper != null:
+			result = deeper
+	if result == null and node is BaseButton and (node as Control).get_global_rect().has_point(pos):
+		result = node
+	return result
 
 # Innermost scrollable ScrollContainer under a point (subtab strips, the research
 # 2D canvas, or the page itself), or null if nothing there can scroll.

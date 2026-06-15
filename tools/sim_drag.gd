@@ -6,6 +6,15 @@ extends SceneTree
 func _init() -> void:
 	process_frame.connect(_run, CONNECT_ONE_SHOT)
 
+func _first_button(node: Node) -> BaseButton:
+	for c in node.get_children():
+		if c is BaseButton and (c as Control).is_visible_in_tree():
+			return c
+		var r := _first_button(c)
+		if r != null:
+			return r
+	return null
+
 func _run() -> void:
 	var scene: PackedScene = load("res://scenes/main.tscn")
 	var main = scene.instantiate()
@@ -73,6 +82,36 @@ func _run() -> void:
 	else:
 		print("FAIL drag over card did not scroll (%d -> %d)" % [v0, v1])
 		fail = true
+
+	# --- Tap-suppression: a drag that starts on a card button must disable that
+	# button for the gesture (so the finger-up doesn't fire its tap), then re-enable.
+	var btn := _first_button(sc)
+	if btn == null:
+		print("NOTE no button found on page to test tap-suppression")
+	else:
+		var bc := btn.get_global_rect().get_center()
+		print("testing tap-suppression on button at %s (disabled=%s)" % [str(bc), str(btn.disabled)])
+		# Real drag past the deadzone → button disabled during the gesture.
+		main._drag_begin(bc)
+		main._drag_move(bc - Vector2(0, 40))
+		var mid_disabled := btn.disabled
+		main._drag_move(bc - Vector2(0, 80))
+		main._drag_end()
+		var after_enabled := not btn.disabled
+		if mid_disabled and after_enabled:
+			print("PASS drag disabled the button mid-gesture and re-enabled it after")
+		else:
+			print("FAIL tap-suppression wrong (mid_disabled=%s after_enabled=%s)" % [str(mid_disabled), str(after_enabled)])
+			fail = true
+		# A pure tap (no movement past deadzone) must leave the button enabled.
+		main._drag_begin(bc)
+		main._drag_move(bc + Vector2(0, 3))
+		main._drag_end()
+		if not btn.disabled:
+			print("PASS pure tap left the button enabled (click still works)")
+		else:
+			print("FAIL pure tap disabled the button")
+			fail = true
 
 	# Let inertia glide settle (should not error or jump wildly).
 	for _i in range(30):
