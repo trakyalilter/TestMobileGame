@@ -4267,7 +4267,7 @@ func _storage_tile(sym: String) -> Control:
 	panel.custom_minimum_size = Vector2(0, 122)
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.add_theme_stylebox_override("panel", _bordered(_mix(rcol, SURFACE, 0.9), rcol, 1, 8))
-	panel.tooltip_text = "%s — tap to sell all for ₡%s" % [GameData.res_name(sym), GameData.fmt(amt * val)]
+	panel.tooltip_text = "%s — tap to sell (choose quantity)" % GameData.res_name(sym)
 	var m := MarginContainer.new()
 	for side in ["left", "right", "top", "bottom"]:
 		m.add_theme_constant_override("margin_" + side, 5)
@@ -4300,9 +4300,67 @@ func _storage_tile(sym: String) -> Control:
 	overlay.flat = true
 	overlay.focus_mode = Control.FOCUS_NONE
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	overlay.pressed.connect(func() -> void: GameState.sell_all(sym))
+	overlay.pressed.connect(func() -> void: _open_sell_picker(sym))
 	panel.add_child(overlay)
 	return panel
+
+# Sell-quantity picker: a slider + quick-set buttons so a tap no longer dumps the
+# whole stack. Confirms with "Sell N → ₡Y"; Cancel (added by _modal) backs out.
+func _open_sell_picker(sym: String) -> void:
+	var owned: int = GameState.amount(sym)
+	if owned <= 0:
+		return
+	var val: int = maxi(1, GameData.value_of(sym))
+	_modal("Sell " + GameData.res_name(sym), GOLD, func(v: VBoxContainer, close: Callable) -> void:
+		var state := {"qty": owned}
+		_clbl(v, "Owned %s  ·  ₡%d each" % [GameData.fmt(owned), val], 11, C_DIM)
+		var readout := Label.new()
+		readout.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		readout.add_theme_font_size_override("font_size", _fs(15))
+		readout.add_theme_color_override("font_color", Color.html(GOLD))
+		v.add_child(readout)
+		var sl := HSlider.new()
+		sl.min_value = 1
+		sl.max_value = owned
+		sl.step = 1
+		sl.value = owned
+		sl.custom_minimum_size = Vector2(0, 30)
+		v.add_child(sl)
+		var sync := func() -> void:
+			readout.text = "Sell %s  →  ₡%s" % [GameData.fmt(int(state["qty"])), GameData.fmt(int(state["qty"]) * val)]
+		var set_qty := func(q: int) -> void:
+			state["qty"] = clampi(q, 1, owned)
+			sl.set_value_no_signal(state["qty"])
+			sync.call()
+		sl.value_changed.connect(func(value: float) -> void:
+			state["qty"] = clampi(int(value), 1, owned)
+			sync.call())
+		var row1 := HBoxContainer.new()
+		row1.add_theme_constant_override("separation", 6)
+		for delta in [-10, -1, 1, 10]:
+			var b := _card_button("%+d" % delta, CYAN, true)
+			b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			var dlt: int = delta
+			b.pressed.connect(func() -> void: set_qty.call(int(state["qty"]) + dlt))
+			row1.add_child(b)
+		v.add_child(row1)
+		var row2 := HBoxContainer.new()
+		row2.add_theme_constant_override("separation", 6)
+		for spec in [["25%", maxi(1, owned / 4)], ["50%", maxi(1, owned / 2)], ["Max", owned]]:
+			var b := _card_button(String(spec[0]), CYAN, true)
+			b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			var q: int = int(spec[1])
+			b.pressed.connect(func() -> void: set_qty.call(q))
+			row2.add_child(b)
+		v.add_child(row2)
+		var sell := _card_button("Sell", GOLD, true)
+		sell.custom_minimum_size = Vector2(0, 44)
+		sell.pressed.connect(func() -> void:
+			GameState.sell_resource(sym, int(state["qty"]))
+			close.call()
+			_refresh_current())
+		v.add_child(sell)
+		sync.call())
 
 func _storage_slot_empty() -> Control:
 	var panel := PanelContainer.new()

@@ -559,11 +559,15 @@ func spend(cost: Dictionary, times: int = 1) -> void:
 	resources_changed.emit()
 
 func sell_all(sym: String) -> void:
-	var qty := amount(sym)
+	sell_resource(sym, amount(sym))
+
+# Sell a chosen quantity of a resource (clamped to what's owned).
+func sell_resource(sym: String, qty: int) -> void:
+	qty = clampi(qty, 0, amount(sym))
 	if qty <= 0:
 		return
 	gain_credits(qty * maxi(1, GameData.value_of(sym)))
-	resources[sym] = 0
+	resources[sym] = amount(sym) - qty
 	resources_changed.emit()
 
 # ---------------- Skills ----------------
