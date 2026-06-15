@@ -3050,7 +3050,93 @@ func _ship_loadout(v: VBoxContainer, h: Dictionary) -> void:
 				_open_slot_armory(idx, st))
 		c.get_parent().add_child(tap)
 		g.add_child(c.get_parent())
+	# Fittings as cards too (parity with module slots): the two auto-consumables and
+	# one ammo card per equipped weapon. Tapping opens a picker modal.
+	_section(v, "FITTINGS — tap to load ammo & consumables", CYAN)
+	var fg := _grid(v)
+	var hull_c: String = GameState.consumable_hull_slot
+	_fitting_card(fg, "Hull Repair Kit", _consumable_label(hull_c), hull_c != "",
+		func() -> void: _open_consumable_picker("hull", "Hull Repair Kit"))
+	var shield_c: String = GameState.consumable_shield_slot
+	_fitting_card(fg, "Shield Booster", _consumable_label(shield_c), shield_c != "",
+		func() -> void: _open_consumable_picker("shield", "Shield Booster"))
+	for i in slots.size():
+		if slots[i] != "weapon" or not GameState.loadout.has(str(i)):
+			continue
+		var wslot := str(i)
+		var wmod: Dictionary = GameState.module_def(GameState.loadout[wslot])
+		var cur_ammo: String = GameState.ammo_loadout.get(wslot, "")
+		_fitting_card(fg, "Ammo · " + String(wmod.get("name", "Weapon")), _ammo_label(cur_ammo), cur_ammo != "",
+			func() -> void: _open_ammo_picker(wslot, wmod))
 	_loadout_presets(v)
+
+# A loadout fitting card (consumable or ammo) styled like a module slot card.
+func _fitting_card(grid: GridContainer, title: String, current_label: String, filled: bool, on_tap: Callable) -> void:
+	var c := _card(CYAN, filled)
+	_card_head(c, "▣" if filled else "▢", title, "", CYAN, filled)
+	_clbl(c, current_label, 12, CYAN if filled else C_MUTED)
+	_clbl(c, "tap to manage ›", 9, "5d6b88")
+	var tap := Button.new()
+	tap.flat = true
+	tap.focus_mode = Control.FOCUS_NONE
+	tap.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	tap.pressed.connect(on_tap)
+	c.get_parent().add_child(tap)
+	grid.add_child(c.get_parent())
+
+func _consumable_label(cid: String) -> String:
+	if cid == "":
+		return "None"
+	var d: Dictionary = GameData.CONSUMABLES.get(cid, {})
+	return "%s  x%d" % [d.get("name", cid), GameState.amount(cid)]
+
+func _ammo_label(sym: String) -> String:
+	if sym == "":
+		return "No Ammo (base)"
+	return "%s  x%s" % [GameData.res_name(sym), GameData.fmt(GameState.amount(sym))]
+
+# Picker modal that closes + refreshes on selection (shared by the loadout fitting
+# cards). One option per row.
+func _fit_pick(v: VBoxContainer, label: String, active: bool, cb: Callable, close: Callable) -> void:
+	var b := _card_button(label, CYAN if active else C_MUTED, true)
+	b.add_theme_font_size_override("font_size", _fs(12))
+	b.custom_minimum_size = Vector2(0, 40)
+	b.pressed.connect(func() -> void:
+		cb.call()
+		close.call()
+		_refresh_current())
+	v.add_child(b)
+
+func _open_consumable_picker(kind: String, title: String) -> void:
+	_modal(title, CYAN, func(v: VBoxContainer, close: Callable) -> void:
+		var cur: String = GameState.consumable_hull_slot if kind == "hull" else GameState.consumable_shield_slot
+		_fit_pick(v, "None", cur == "", func() -> void: GameState.set_consumable(kind, ""), close)
+		for cid in GameData.CONSUMABLES:
+			var d: Dictionary = GameData.CONSUMABLES[cid]
+			if d.get("type", "") != kind:
+				continue
+			var owned := GameState.amount(cid)
+			if owned <= 0 and cid != cur:
+				continue
+			var label := "%s  x%d  (+%d%%)" % [d.get("name", cid), owned, int(float(d.get("heal_pct", 0)) * 100.0)]
+			_fit_pick(v, label, cid == cur, func() -> void: GameState.set_consumable(kind, cid), close))
+
+func _open_ammo_picker(slot: String, m: Dictionary) -> void:
+	var st: Dictionary = m.get("stats", {})
+	var letter := "k"
+	if float(st.get("atk_energy", 0)) > 0: letter = "e"
+	elif float(st.get("atk_explosive", 0)) > 0: letter = "x"
+	_modal("Ammo · " + String(m.get("name", "Weapon")), CYAN, func(v: VBoxContainer, close: Callable) -> void:
+		var cur: String = GameState.ammo_loadout.get(slot, "")
+		_fit_pick(v, "No Ammo (base damage)", cur == "", func() -> void: GameState.set_ammo(slot, ""), close)
+		for sym in GameData.RESOURCES:
+			var ab := GameState.ammo_bonus(sym)
+			if ab[0] != letter:
+				continue
+			var owned := GameState.amount(sym)
+			if owned <= 0 and sym != cur:
+				continue
+			_fit_pick(v, "%s  x%s  (+%d dmg)" % [GameData.res_name(sym), GameData.fmt(owned), int(ab[1])], sym == cur, func() -> void: GameState.set_ammo(slot, sym), close))
 
 ## Open the Armory targeted at a specific slot index (slot-first equip flow).
 func _open_slot_armory(idx: int, stype: String) -> void:
