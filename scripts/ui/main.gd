@@ -97,6 +97,27 @@ var _coach_chip: PanelContainer = null
 var _welcome: Control = null
 var _welcome_done := false
 var current := ""
+
+# --- Global drag-to-scroll -------------------------------------------------
+# Cards are covered by full-rect tap Buttons, which consume touch drags so the
+# page can't be scrolled by dragging on a card. We intercept drags in _input
+# (runs before GUI), scroll the innermost scrollable container under the finger,
+# and cancel the pending tap so a drag doesn't also fire a click. Inertia gives
+# a flick a little glide. Disabled while an overlay/drawer/char-select is up.
+const DRAG_DEADZONE := 10.0
+var _drag_active := false
+var _drag_moved := false
+var _drag_is_touch := false
+var _drag_target: ScrollContainer = null
+var _drag_start := Vector2.ZERO
+var _drag_scroll0_v := 0
+var _drag_scroll0_h := 0
+var _drag_last_v := 0
+var _drag_last_h := 0
+var _drag_last_ms := 0
+var _drag_vel := 0.0
+var _drag_vel_h := 0.0
+var _modal_depth := 0
 var gather_cat := "terrestrial"
 var craft_cat := "basics"
 var combat_zone := 0
@@ -813,6 +834,14 @@ func _update_safe_area() -> void:
 	safe_margin.add_theme_constant_override("margin_bottom", maxi(bottom, 0))
 
 func _process(_delta: float) -> void:
+	# Drag-scroll inertia: after a flick, keep gliding with a little friction.
+	if not _drag_active and is_instance_valid(_drag_target) and (absf(_drag_vel) > 6.0 or absf(_drag_vel_h) > 6.0):
+		if _drag_target.vertical_scroll_mode != ScrollContainer.SCROLL_MODE_DISABLED:
+			_drag_target.scroll_vertical = int(_drag_target.scroll_vertical + _drag_vel * _delta)
+		if _drag_target.horizontal_scroll_mode != ScrollContainer.SCROLL_MODE_DISABLED:
+			_drag_target.scroll_horizontal = int(_drag_target.scroll_horizontal + _drag_vel_h * _delta)
+		_drag_vel *= 0.90
+		_drag_vel_h *= 0.90
 	# Ambient starfield drift + twinkle (very slow; reads as a living sky).
 	if is_instance_valid(_drift):
 		_drift_y += _delta * 5.0
@@ -1317,6 +1346,10 @@ func _make_page() -> ScrollContainer:
 # ============================================================ NAV
 func _show(id: String) -> void:
 	current = id
+	# Drop any drag-scroll inertia so a flick doesn't keep gliding the old page.
+	_drag_active = false
+	_drag_vel = 0.0
+	_drag_vel_h = 0.0
 	# When the coach sends the player to the Shipyard, land on the sub-tab that
 	# matches the active fabrication step (construct → Hulls, craft → Modules).
 	if id == "shipyard":
@@ -1453,6 +1486,117 @@ func _refresh_current(preserve_scroll: bool = false) -> void:
 		if preserve_scroll and saved_scroll > 0:
 			pages[current].set_deferred("scroll_vertical", saved_scroll)
 	_update_coach()
+
+# Count overlays/modals so the drag-scroll handler stands down while one is open
+# (otherwise a drag would scroll the page behind the modal).
+func _track_modal(o: Node) -> void:
+	_modal_depth += 1
+	o.tree_exiting.connect(func() -> void: _modal_depth = maxi(0, _modal_depth - 1))
+
+# Global drag-to-scroll. _input runs before GUI, so we see the drag even when it
+# starts over a card's tap Button. We don't consume the PRESS (so a clean tap
+# still clicks), but once the finger moves past the deadzone we scroll and cancel
+# the tap.
+func _input(event: InputEvent) -> void:
+	if _modal_depth > 0 or drawer_open or is_instance_valid(_char_select) or is_instance_valid(_welcome):
+		return
+	if event is InputEventScreenTouch:
+		_drag_is_touch = true
+		if event.pressed:
+			_drag_begin(event.position)
+		else:
+			_drag_end()
+	elif event is InputEventScreenDrag:
+		_drag_move(event.position)
+	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not _drag_is_touch:
+		if event.position.x < 0.0:
+			return   # ignore our own injected tap-cancel release
+		if event.pressed:
+			_drag_begin(event.position)
+		else:
+			_drag_end()
+	elif event is InputEventMouseMotion and (event.button_mask & MOUSE_BUTTON_MASK_LEFT) and not _drag_is_touch:
+		_drag_move(event.position)
+
+func _drag_begin(pos: Vector2) -> void:
+	_drag_target = _scrollable_at(pos)
+	_drag_active = _drag_target != null
+	_drag_moved = false
+	_drag_start = pos
+	_drag_vel = 0.0
+	_drag_vel_h = 0.0
+	if _drag_active:
+		_drag_scroll0_v = _drag_target.scroll_vertical
+		_drag_scroll0_h = _drag_target.scroll_horizontal
+		_drag_last_v = _drag_target.scroll_vertical
+		_drag_last_h = _drag_target.scroll_horizontal
+		_drag_last_ms = Time.get_ticks_msec()
+
+func _drag_move(pos: Vector2) -> void:
+	if not _drag_active or not is_instance_valid(_drag_target):
+		return
+	var d := pos - _drag_start
+	if not _drag_moved:
+		if d.length() < DRAG_DEADZONE:
+			return
+		_drag_moved = true
+		# Cancel the tap the card/button started: inject a mouse release off-screen
+		# so it releases OUTSIDE its rect and never emits `pressed`.
+		var cancel := InputEventMouseButton.new()
+		cancel.button_index = MOUSE_BUTTON_LEFT
+		cancel.pressed = false
+		cancel.position = Vector2(-100, -100)
+		Input.parse_input_event(cancel)
+		_drag_last_ms = Time.get_ticks_msec()
+	# Scroll relative to where the gesture began (1:1 with the finger).
+	if _drag_target.vertical_scroll_mode != ScrollContainer.SCROLL_MODE_DISABLED:
+		_drag_target.scroll_vertical = _drag_scroll0_v - int(d.y)
+	if _drag_target.horizontal_scroll_mode != ScrollContainer.SCROLL_MODE_DISABLED:
+		_drag_target.scroll_horizontal = _drag_scroll0_h - int(d.x)
+	# Velocity (scroll units/sec) from actual movement, for release inertia.
+	var now := Time.get_ticks_msec()
+	var dt := maxf(0.001, float(now - _drag_last_ms) / 1000.0)
+	_drag_vel = clampf(float(_drag_target.scroll_vertical - _drag_last_v) / dt, -3500.0, 3500.0)
+	_drag_vel_h = clampf(float(_drag_target.scroll_horizontal - _drag_last_h) / dt, -3500.0, 3500.0)
+	_drag_last_v = _drag_target.scroll_vertical
+	_drag_last_h = _drag_target.scroll_horizontal
+	_drag_last_ms = now
+	get_viewport().set_input_as_handled()
+
+func _drag_end() -> void:
+	_drag_active = false
+	_drag_is_touch = false
+	if not _drag_moved:
+		_drag_vel = 0.0
+		_drag_vel_h = 0.0
+
+# Innermost scrollable ScrollContainer under a point (subtab strips, the research
+# 2D canvas, or the page itself), or null if nothing there can scroll.
+func _scrollable_at(pos: Vector2) -> ScrollContainer:
+	if current == "" or not pages.has(current):
+		return null
+	return _deepest_scroll(pages[current], pos)
+
+func _deepest_scroll(node: Node, pos: Vector2) -> ScrollContainer:
+	var found: ScrollContainer = null
+	if node is ScrollContainer:
+		var sc := node as ScrollContainer
+		if sc.visible and sc.get_global_rect().has_point(pos) and _can_scroll(sc):
+			found = sc
+	for c in node.get_children():
+		if c is CanvasItem and not (c as CanvasItem).visible:
+			continue
+		var deeper := _deepest_scroll(c, pos)
+		if deeper != null:
+			found = deeper
+	return found
+
+func _can_scroll(sc: ScrollContainer) -> bool:
+	var vb := sc.get_v_scroll_bar()
+	var hb := sc.get_h_scroll_bar()
+	var v: bool = sc.vertical_scroll_mode != ScrollContainer.SCROLL_MODE_DISABLED and (vb.max_value - vb.page) > 1.0
+	var h: bool = sc.horizontal_scroll_mode != ScrollContainer.SCROLL_MODE_DISABLED and (hb.max_value - hb.page) > 1.0
+	return v or h
 
 # Recursively switch non-interactive controls from STOP to PASS so the parent
 # ScrollContainer still receives touch-drag events. Buttons/sliders/inputs keep
@@ -1793,6 +1937,7 @@ func _show_enemy_intel(eid: String) -> void:
 	overlay.color = Color(0, 0, 0, 0.7)
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(overlay)
+	_track_modal(overlay)
 	var center := CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	overlay.add_child(center)
@@ -2906,6 +3051,7 @@ func _modal(title: String, accent: String, body: Callable) -> void:
 	overlay.color = Color(0, 0, 0, 0.7)
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(overlay)
+	_track_modal(overlay)
 	var close := func() -> void:
 		if is_instance_valid(overlay):
 			overlay.queue_free()
@@ -3576,6 +3722,7 @@ func _show_research_detail(id: String) -> void:
 	overlay.color = Color(0, 0, 0, 0.7)
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(overlay)
+	_track_modal(overlay)
 	var center := CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	overlay.add_child(center)
@@ -4521,6 +4668,7 @@ func _show_offline(text: String) -> void:
 	overlay.color = Color(0, 0, 0, 0.65)
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(overlay)
+	_track_modal(overlay)
 	var center := CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	overlay.add_child(center)
