@@ -3560,6 +3560,44 @@ func _owned_module_def(mid: String) -> Dictionary:
 # ====================================================== SHIP DESIGNER · ARMORY
 # Your owned/unequipped module pool. Tap a card to equip it (GameState.equip_module).
 # Sortable by Power / Zone / Rarity to mirror the desktop designer's armory.
+# Bulk-sell "scrap junk" controls — the answer to a crowded Armory. Sells every
+# UNEQUIPPED module at or below a chosen rarity (across ALL slots, not just the
+# open tab), with a confirm dialog. Pairs with the loot filter (stops the clutter)
+# and sort (organises what's left).
+func _armory_scrap_row(v: VBoxContainer) -> void:
+	var row := HFlowContainer.new()
+	row.add_theme_constant_override("h_separation", 6)
+	row.add_theme_constant_override("v_separation", 6)
+	var any := false
+	for spec in [["Commons", 0], ["≤ Uncommon", 1], ["≤ Rare", 2]]:
+		var maxr: int = int(spec[1])
+		var cnt: int = GameState.count_bulk_sell(maxr)
+		if cnt <= 0:
+			continue
+		any = true
+		var b := _card_button("Scrap %s (%d)" % [String(spec[0]), cnt], GOLD, true)
+		b.add_theme_font_size_override("font_size", _fs(10))
+		b.pressed.connect(_confirm_scrap.bind(maxr, String(spec[0])))
+		row.add_child(b)
+	if any:
+		v.add_child(row)
+
+func _confirm_scrap(max_rarity: int, label: String) -> void:
+	var cnt := GameState.count_bulk_sell(max_rarity)
+	if cnt <= 0:
+		return
+	_modal("Scrap junk?", GOLD, func(mv: VBoxContainer, close: Callable) -> void:
+		_clbl(mv, "Sell %d unequipped %s module%s for credits + spare parts?" % [cnt, label, "" if cnt == 1 else "s"], 12, C_TEXT)
+		_clbl(mv, "Equipped gear is never sold.", 10, C_DIM)
+		var go := _card_button("Sell %d" % cnt, GOLD, true)
+		go.custom_minimum_size = Vector2(0, 44)
+		go.pressed.connect(func() -> void:
+			var sold := GameState.bulk_sell_by_rarity(max_rarity)
+			close.call()
+			_refresh_current()
+			GameState.equip_notice = "Scrapped %d module%s." % [sold, "" if sold == 1 else "s"])
+		mv.add_child(go))
+
 func _ship_armory(v: VBoxContainer) -> void:
 	if GameState.equip_notice != "":
 		var warn := Label.new()
@@ -3585,6 +3623,7 @@ func _ship_armory(v: VBoxContainer) -> void:
 	_subtabs(v, [{"id": "power", "label": "Power"}, {"id": "zone", "label": "Zone"}, {"id": "rarity", "label": "Rarity"}], armory_sort, PURP, func(id: String) -> void:
 		armory_sort = id
 		_refresh_current())
+	_armory_scrap_row(v)
 	# Collect every owned module for this slot: rolled customs + base modules.
 	var owned := []
 	for cid in GameState.custom_modules:

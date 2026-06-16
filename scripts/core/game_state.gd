@@ -2424,6 +2424,43 @@ func _loadout_check_met(m: Dictionary) -> bool:
 func module_rarity(mid: String) -> int:
 	return int(module_def(mid).get("rarity", 0))
 
+# ── Bulk sell (QoL: "Scrap Junk" — desktop bulk_demolish_by_rarity) ──
+# Sells every NON-EQUIPPED owned module at or below max_rarity. Returns the count
+# sold. Honours the same per-module sell payout (credits + spare parts).
+func bulk_sell_by_rarity(max_rarity: int) -> int:
+	var equipped := {}
+	for mid in loadout.values():
+		if mid != "":
+			equipped[mid] = true
+	var candidates: Array = []
+	for mid in module_inventory.keys():
+		if equipped.has(mid):
+			continue
+		if module_rarity(mid) > max_rarity:
+			continue
+		candidates.append(mid)
+	var count := 0
+	for mid in candidates:
+		var qty := int(module_inventory.get(mid, 0))
+		for _i in qty:
+			if sell_module(mid):
+				count += 1
+	return count
+
+# How many non-equipped modules a bulk sell at max_rarity would scrap.
+func count_bulk_sell(max_rarity: int) -> int:
+	var equipped := {}
+	for mid in loadout.values():
+		if mid != "":
+			equipped[mid] = true
+	var n := 0
+	for mid in module_inventory.keys():
+		if equipped.has(mid):
+			continue
+		if module_rarity(mid) <= max_rarity:
+			n += int(module_inventory.get(mid, 0))
+	return n
+
 func _has_module_rarity(target_rarity: int) -> bool:
 	for inv_mid in module_inventory:
 		if module_rarity(inv_mid) >= target_rarity:
