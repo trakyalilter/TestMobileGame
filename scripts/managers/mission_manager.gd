@@ -211,7 +211,12 @@ func init_missions():
 			"multi_progress": {}, # For gather_multi
 			"completed": false,
 			"claimed": false,
-			"active": (mid == "m001" or mid.begins_with("goal")) # Tutorial starts at m001, Core Goals always active
+			# Tutorial starts at m001. Core Goals are NOT active from the start —
+			# showing endgame/prestige goals (warp, 5 warps, final sector) at 0%
+			# to a brand-new player is pure confusion. They reveal when relevant
+			# via _check_goal_reveals() (warp goals at Warp-Core reveal; the
+			# 5-warp veteran goal after the first warp).
+			"active": (mid == "m001")
 		}
 		if missions[mid]["active"]:
 			active_missions.append(mid)
@@ -323,10 +328,34 @@ func get_save_data_manager() -> Dictionary:
 		}
 	return {"missions": m_data}
 
+# Reveal long-term Core Goals only when the player can actually engage them,
+# so early-game Mission Control shows the tutorial, not 0%-progress endgame
+# goals. Safe to call every tick (cheap; no-ops once revealed/completed).
+func _check_goal_reveals() -> bool:
+	var changed := false
+	# The Great Expedition (reach the final sector) + Into the Void (first warp)
+	# surface at the Warp-Core reveal — the milestone where the meta game opens.
+	if GameState.game_settings.get("warp_first_revealed", false):
+		changed = _reveal_goal("goal_001") or changed
+		changed = _reveal_goal("goal_002") or changed
+	# "Perform 5 Warps" only makes sense once the player has warped at least once.
+	if GameState.warp_manager and GameState.warp_manager.total_warps >= 1:
+		changed = _reveal_goal("goal_003") or changed
+	return changed
+
+func _reveal_goal(gid: String) -> bool:
+	if not gid in missions: return false
+	var m = missions[gid]
+	if m["active"] or m["completed"]: return false
+	m["active"] = true
+	if not gid in active_missions:
+		active_missions.append(gid)
+	return true
+
 func sync_progress():
 	if not GameState.resources: return
-	
-	var changed = false
+
+	var changed = _check_goal_reveals()
 	for mid in active_missions:
 		var m = missions[mid]
 		if m["completed"]: continue
