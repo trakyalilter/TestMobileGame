@@ -1240,15 +1240,17 @@ func _scale_module_stats(base_stats: Dictionary, rarity: int, zone_diff: int) ->
 	return stats
 
 func roll_rarity(is_boss: bool) -> int:
+	# Desktop v82.0 "Restricted Rarity": enemies drop Uncommon+ only — Common is
+	# crafting-only and never dropped (this was the source of the inventory flood).
+	# Weights match desktop roll_rarity: Legendary 4%/15%, Rare 26%/35%, else Uncommon.
 	var r := randf()
-	var leg := 0.05 if is_boss else 0.02
+	var leg := 0.15 if is_boss else 0.04
+	var rare := 0.35 if is_boss else 0.26
 	if r < leg:
 		return 3
-	elif r < leg + 0.10:
+	elif r < leg + rare:
 		return 2
-	elif r < leg + 0.40:
-		return 1
-	return 0
+	return 1
 
 ## Desktop module zone-scaling curve (ref get_module_zone_multiplier ~L2286): early
 ## steps x1.34, then x1.28 from zone 7 on. Replaces mobile's flat pow(1.30, …).
