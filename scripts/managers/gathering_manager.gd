@@ -437,11 +437,12 @@ func complete_action():
 	for entry in loot_table:
 		var element = entry[0]
 		var chance = entry[1]
-		var min_amt = entry[2]
-		var max_amt = entry[3]
-		
+		# v112: deterministic gather yield — the fixed value shown on the card
+		# (top of the old min-max range). Quantity RNG on the most-repeated
+		# action added noise without a decision; deterministic reads cleaner and
+		# makes offline closed-form. The drop CHANCE still gates bonus drops.
 		if randf() < chance:
-			var amount = randi_range(min_amt, max_amt)
+			var amount = int(entry[3])
 
 			# Apply Yield Bonus from research
 			if GameState.research_manager:
@@ -452,18 +453,16 @@ func complete_action():
 
 			# Audit v6.0 P1-19: Apply skill yield multiplier
 			amount = int(float(amount) * get_yield_multiplier())
-				
+
 			GameState.resources.add_element(element, amount)
 			GameState.note_production("gather", amount)  # P3.10
 			events.append(["loot", {"symbol": element, "amount": amount}, current_action_id])
 			dropped_any = true
-			
+
 	if not dropped_any:
 		var entry = loot_table[0]
 		var element = entry[0]
-		var min_amt = entry[2]
-		var max_amt = entry[3]
-		var amount = randi_range(min_amt, max_amt)
+		var amount = int(entry[3])
 		GameState.resources.add_element(element, amount)
 		GameState.note_production("gather", amount)  # P3.10
 		events.append(["loot", {"symbol": element, "amount": amount}, current_action_id])
@@ -507,46 +506,29 @@ func calculate_offline(delta: float):
 	# v62.0 Fix: Get yield multiplier once for offline (same as online)
 	var yield_mult = get_yield_multiplier()
 	
-	for i in range(num_actions):
-		var dropped_any = false
-		for entry in loot_table:
-			var element = entry[0]
-			var chance = entry[1]
-			var min_amt = entry[2]
-			var max_amt = entry[3]
-			
-			if randf() < chance:
-				var amount = randi_range(min_amt, max_amt)
-
-				if GameState.research_manager:
-					amount += int(GameState.research_manager.get_efficiency_bonus("gathering_yield"))
-					# v105: gathering_focus multiplicative bonus (see online path)
-					amount = int(float(amount) * (1.0 + GameState.research_manager.get_efficiency_bonus("gathering_yield_mult")))
-
-				# v62.0 Fix: Apply yield multiplier like online does
-				amount = int(float(amount) * yield_mult)
-					
-				GameState.resources.add_element(element, amount)
-				loot_summary[element] = loot_summary.get(element, 0) + amount; GameState.note_production("gather", amount)  # P3.10
-				dropped_any = true
-		
-		if not dropped_any:
-			var entry = loot_table[0]
-			var element = entry[0]
-			var min_amt = entry[2]
-			var max_amt = entry[3]
-			var amount = randi_range(min_amt, max_amt)
-			
-			if GameState.research_manager:
-				amount += int(GameState.research_manager.get_efficiency_bonus("gathering_yield"))
-				# v105: gathering_focus multiplicative bonus (see online path)
-				amount = int(float(amount) * (1.0 + GameState.research_manager.get_efficiency_bonus("gathering_yield_mult")))
-
-			# v62.0 Fix: Apply yield multiplier for fallback drops too
-			amount = int(float(amount) * yield_mult)
-				
-			GameState.resources.add_element(element, amount)
-			loot_summary[element] = loot_summary.get(element, 0) + amount; GameState.note_production("gather", amount)  # P3.10
+	# v112: CLOSED-FORM offline gather. With deterministic yields each entry just
+	# contributes fixed_qty x drop_chance x num_actions (chance<1 => expected
+	# value, matching the old sampled average). No per-action loop -> no ~28k-iter
+	# randf hitch on resume (the checklist's ANR/mobile risk). Mult order mirrors
+	# the online complete_action path so online and offline stay consistent.
+	var yield_flat := 0
+	var yield_mult2 := 1.0
+	if GameState.research_manager:
+		yield_flat = int(GameState.research_manager.get_efficiency_bonus("gathering_yield"))
+		yield_mult2 = 1.0 + GameState.research_manager.get_efficiency_bonus("gathering_yield_mult")
+	for entry in loot_table:
+		var element = entry[0]
+		var chance: float = float(entry[1])
+		# Per-action yield when it drops — same truncation order as online.
+		var per_drop: int = int(entry[3]) + yield_flat
+		per_drop = int(float(per_drop) * yield_mult2)
+		per_drop = int(float(per_drop) * yield_mult)
+		var total: int = int(float(per_drop) * chance * float(num_actions))
+		if total <= 0:
+			continue
+		GameState.resources.add_element(element, total)
+		loot_summary[element] = loot_summary.get(element, 0) + total
+		GameState.note_production("gather", total)  # P3.10
 	
 	var report = "Off-World Operations (%s):\n" % current_action['name']
 	report += "Time: %dm %ds\n" % [int(delta / 60), int(delta) % 60]
@@ -598,10 +580,10 @@ func get_current_rate() -> Dictionary:
 	for entry in loot_table:
 		var symbol = entry[0]
 		var chance = entry[1]
-		var min_amt = entry[2]
-		var max_amt = entry[3]
-		var avg_amt = (min_amt + max_amt) / 2.0
-		
+		# v112: yields are deterministic now (fixed at the top of the old range),
+		# so project the fixed value, not a min/max average.
+		var avg_amt = float(entry[3])
+
 		# Resource Yield Bonus
 		if GameState.research_manager:
 			avg_amt += GameState.research_manager.get_efficiency_bonus("gathering_yield")
