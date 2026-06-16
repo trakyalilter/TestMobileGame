@@ -46,7 +46,7 @@ func _boot() -> void:
 		cm.enemy_defeated.connect(_on_kill)
 
 	print("[WF] Fixed loadout: T%d Legendary (mixed weapons). Boss = T%d zone boss." % [FIXED_TIER, FIXED_TIER])
-	print("[WF] combat reads fleet power? NO (P1 sink-only) -> fleeted==unfleeted is expected.")
+	print("[WF] combat reads fleet? YES (P2 wired) -> TTK(fleet) should approach TTK(projected).")
 	print("[WF] ----------------------------------------------------------------------------------")
 	print("[WF] warp | shards | combatMult | TTK(no fleet) | fleet cnt/cap | fleetPwr | TTK(fleet) | TTK(projected 0.25x/ship)")
 
