@@ -36,23 +36,21 @@ func _boot() -> void:
 	var pm = GameState.processing_manager
 	im.energy_efficiency = 1.0            # full grid (isolate yield math from power)
 
-	# Active baseline is constant across Recursion (building_yield_mult is infra-
-	# only), so measure it once.
-	var active_per_min: float = _measure_active()
-
-	print("[PARITY] active smelt_steel_oxygen = %.0f Steel/min (proc_lvl %d)" % [active_per_min, PROC_LEVEL])
-	print("[PARITY] infra = %d auto_smelters. Target: infra 30-70%% of active; >=100%% = active dead." % SMELTERS)
-	print("[PARITY] -------------------------------------------------------------")
-	print("[PARITY] recursionLvl | bldgYieldMult | infra Steel/min | infra/active")
+	print("[PARITY] proc_lvl %d, %d auto_smelters. Target: infra 30-70%% of active; >=100%% = active dead." % [PROC_LEVEL, SMELTERS])
+	print("[PARITY] v112 fix: building_yield_mult is now ratio-preserving (lifts active too) -> ratio should be FLAT across Recursion.")
+	print("[PARITY] -----------------------------------------------------------------------------")
+	print("[PARITY] recursionLvl | bldgYieldMult | active Steel/min | infra Steel/min | infra/active")
 	for lvl in RECURSION_LEVELS:
 		GameState.research_manager.repeatable_techs["infrastructure_focus"] = int(lvl)
 		var bym: float = GameState.research_manager.get_efficiency_bonus("building_yield_mult")
+		# Active now ALSO scales with Recursion (the fix), so re-measure per level.
+		var active_per_min: float = _measure_active()
 		var infra_per_min: float = _measure_infra()
 		var ratio: float = (infra_per_min / active_per_min * 100.0) if active_per_min > 0.0 else 0.0
 		var flag: String = ""
 		if ratio >= 100.0: flag = "  <-- ACTIVE OBSOLETE"
-		elif ratio > 70.0: flag = "  <-- above target band"
-		print("[PARITY] %d | x%.2f | %.0f | %.0f%%%s" % [int(lvl), 1.0 + bym, infra_per_min, ratio, flag])
+		elif ratio > 70.0: flag = "  <-- above band"
+		print("[PARITY] %d | x%.2f | %.0f | %.0f | %.0f%%%s" % [int(lvl), 1.0 + bym, active_per_min, infra_per_min, ratio, flag])
 	print("[PARITY] done")
 	get_tree().quit(0)
 
