@@ -4,6 +4,11 @@ extends Node
 const SUFFIXES = ["", "K", "M", "B", "T", "q", "Q", "s", "S", "O", "N", "d"]
 
 static func format_number(val: float) -> String:
+	# v112 (BigNumber plan, Phase 1): guard non-finite. INF/NaN products (a
+	# rate/DPS/damage computed before a clamp) otherwise render as "infe308" /
+	# "nan". UITheme.format_num already guards; this protects every direct caller.
+	if not is_finite(val):
+		return "∞" if val > 0.0 else ("-∞" if val < 0.0 else "0")
 	var abs_val = abs(val)
 	var sign_str = "-" if val < 0 else ""
 
