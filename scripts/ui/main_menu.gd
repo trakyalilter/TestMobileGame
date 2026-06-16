@@ -15,7 +15,6 @@ var _menu_root: Control
 var _options_root: Control
 var btn_continue: Button
 var btn_new_game: Button
-var btn_options: Button
 var btn_exit: Button
 var chk_offline_combat: CheckBox
 var has_save: bool = false
@@ -201,15 +200,10 @@ func _build_main_menu(parent: VBoxContainer):
 
 	_add_sep(vbox, 14, 12)
 
-	# Settings + Exit row
+	# Exit row
 	var bottom = HBoxContainer.new()
 	bottom.add_theme_constant_override("separation", 10)
 	vbox.add_child(bottom)
-
-	btn_options = _make_btn("⚙  SETTINGS", 14, "settings")
-	btn_options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	btn_options.custom_minimum_size = Vector2(0, 44)
-	bottom.add_child(btn_options)
 
 	btn_exit = _make_btn("✕  EXIT", 14, "exit")
 	btn_exit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -218,7 +212,6 @@ func _build_main_menu(parent: VBoxContainer):
 
 	btn_continue.pressed.connect(_on_continue_pressed)
 	btn_new_game.pressed.connect(_on_new_game_pressed)
-	btn_options.pressed.connect(_on_options_pressed)
 	btn_exit.pressed.connect(_on_exit_pressed)
 
 	if has_save:
@@ -503,7 +496,7 @@ func _begin_load(is_new_game: bool) -> void:
 	if _loading: return
 	_loading = true
 
-	for b in [btn_continue, btn_new_game, btn_options, btn_exit]:
+	for b in [btn_continue, btn_new_game, btn_exit]:
 		if is_instance_valid(b): b.disabled = true
 
 	_show_loading_overlay()

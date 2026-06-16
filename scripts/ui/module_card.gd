@@ -42,7 +42,8 @@ func _on_mouse_enter():
 	if sm and sm.get("unseen_modules") != null and sm.unseen_modules.get(mid, false):
 		sm.unseen_modules.erase(mid)
 		_update_ui()
-	if not data.is_empty():
+	# Don't pop info cards on other tiles while a drag is in progress.
+	if not data.is_empty() and not (is_inside_tree() and get_viewport().gui_is_dragging()):
 		UITheme.show_item_tooltip(self, _build_comparison_tooltip_bbcode())
 
 func _update_ui():
@@ -1096,6 +1097,7 @@ func _build_comparison_tooltip_bbcode() -> String:
 func _get_drag_data(_at_position: Vector2) -> Variant:
 	if not is_draggable or data.is_empty() or mid == "":
 		return null
+	UITheme.hide_item_tooltip()   # clear the hover info card as the drag begins
 
 	var slot_type = data.get("slot_type", "")
 	var dtype = "module"

@@ -195,7 +195,7 @@ func _build_drag_hint_banner_if_needed() -> void:
 	sb.content_margin_bottom = 8
 	banner.add_theme_stylebox_override("panel", sb)
 	var lbl = Label.new()
-	lbl.text = "💡  Drag modules from your Armory (right panel) onto ship slots to equip them. This hint disappears after your first equip."
+	lbl.text = "💡  Drag a module from your Armory (right panel) onto a matching ship slot — or click it, then click the slot. This hint disappears after your first equip."
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	lbl.add_theme_font_size_override("font_size", 12)
@@ -1574,12 +1574,14 @@ func rebuild_storage():
 				# appeared on newly-dropped cards that got a second _update_ui()
 				# on hover.) Only same-type modules compare against the focused
 				# slot's equipped module so the indicator stays meaningful.
-				# v111.14: drag fully retired (crash-prone). Cards are never
-				# draggable now; equip happens via click-to-arm. The armed
-				# module reuses the is_selected highlight so the player sees
-				# which one is picked up.
+				# v112: drag-to-equip restored. The crash sources are now guarded
+				# (rebuild deferred while gui_is_dragging; lightweight static drag
+				# preview; is_inside_tree checks on hover/popups). Slots reject any
+				# non-matching slot_type via _can_drop_data, and module cards aren't
+				# drop targets, so a drag can only land on a compatible ship slot.
+				# Click-to-arm still works alongside it.
 				item.is_selected = (module_id in selected_mids) or (module_id == _armed_mid)
-				item.is_draggable = false
+				item.is_draggable = true
 				if "compare_equipped_mid" in item:
 					item.compare_equipped_mid = focused_slot_equipped_mid if type_matches_focus else ""
 				item.setup(module_id, module_data, module_count)
@@ -1631,6 +1633,7 @@ func rebuild_storage():
 				_spatial.add_item(consumable_card, 1, 1, manager.get_armory_pos(consumable_id))
 				consumable_card.setup(consumable_id, fake_data, qty)
 				consumable_card.is_selected = consumable_id in selected_mids
+				consumable_card.is_draggable = true   # drag onto a consumable slot
 				consumable_card.clicked.connect(_on_card_clicked)
 				slot_count += 1
 

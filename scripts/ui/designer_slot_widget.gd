@@ -354,7 +354,7 @@ func refresh_state():
 		_ensure_type_icon().visible = false
 		_apply_base_style()
 		UITheme.attach_rarity_fx(self, 0, Color.WHITE)   # clear any prior shimmer
-		tooltip_text = "Empty %s Slot\nDrag a module here to equip" % slot_type.capitalize()
+		tooltip_text = "Empty %s Slot\nDrag a matching module here (or click a module, then click here)" % slot_type.capitalize()
 
 	# Populate Inventory Options
 	var inv = manager.module_inventory
@@ -415,7 +415,7 @@ func _refresh_consumable_state():
 	else:
 		name_lbl.text = ""
 		stats_lbl.text = "--"
-		tooltip_text = "Drag a Consumable here"
+		tooltip_text = "Drag a consumable here (or click one, then click here)"
 
 	var items = ElementDB.get_elements_in_category("consumables")
 	var idx = 2
@@ -978,6 +978,8 @@ func _style_repair_button(btn: Button, hover_color: Color):
 # nothing here.
 func _on_slot_hover() -> void:
 	if not is_inside_tree() or slot_type.begins_with("consumable_"):
+		return
+	if get_viewport().gui_is_dragging():
 		return
 	var equipped_id = manager.loadout.get(slot_idx)
 	if not equipped_id:
