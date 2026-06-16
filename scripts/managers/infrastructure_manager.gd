@@ -1756,10 +1756,24 @@ func load_save_data_manager(data: Dictionary):
 
 func reset(decay_factor: float = 1.0) -> void:
 	super.reset(decay_factor)
+	# DESIGN (locked): buildings are RUN-state, not meta — they fully vanish on
+	# every reset (warp AND hard reset), deliberately ignoring decay_factor, just
+	# like materials/modules. You rebuild the infra layer each prestige (faster
+	# each run via retained research + warp mults + the glut). This is NOT a
+	# decay bug; do not "fix" it to persist. (Sanity checklist #10, confirmed.)
 	buildings.clear()
 	generation = 0.0
 	consumption = 0.0
 	net_energy = 0.0
 	energy_efficiency = 1.0
 	production_timers.clear()
+	# Clear all per-building derived state too, so nothing points at a building
+	# that no longer exists (stale throttles / upkeep / mastery-link cache would
+	# otherwise survive into the next run). Sanity checklist: "Hard reset clears
+	# all infra state."
+	building_throttles.clear()
+	_mastery_link_cache.clear()
+	_upkeep_timer = 0.0
+	upkeep_efficiency = 1.0
+	grid_warning_sent = false
 	recalc_energy()
