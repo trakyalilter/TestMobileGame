@@ -180,6 +180,18 @@ const STEPS := {
 			"body": "Spend Exotic Matter Shards here on permanent upgrades. The Engineering branch opens on your first Warp, Combat on your second — each Warp reveals more. Your first Warp also grants Cryo weapons: the key to breaching Sector 11.",
 		},
 	],
+	"fleet": [
+		{
+			"anchor": "build",
+			"title": "Battle Fleet",
+			"body": "Forge your material surplus into warships. Capacity grows with every Warp, and build costs are glut basics (Water/Dirt/Steel) — this is the sink for your overflowing stockpiles.",
+		},
+		{
+			"anchor": "power",
+			"title": "Combat Support",
+			"body": "Each fleet ship adds +25% of your ship's damage in combat, up to +100% with a full fleet. The roster persists across Warps — it's prestige progression that fights beside you.",
+		},
+	],
 	"atlas": [
 		{
 			"anchor": "list",

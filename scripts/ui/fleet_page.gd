@@ -194,6 +194,14 @@ func _update_states() -> void:
 		btn.disabled = not _mgr.can_build(r["hid"])
 		r["cost_lbl"].text = _format_cost(r["hid"])
 
+# First-visit coach tour anchors (see CoachMarks.STEPS["fleet"]).
+func get_coach_anchor(key: String) -> Control:
+	match key:
+		"build": return _build_list
+		"power": return _power_lbl
+		"capacity": return _cap_lbl
+	return null
+
 func _format_cost(hid: String) -> String:
 	var parts: Array = []
 	var cost: Dictionary = _mgr.get_hull_cost(hid)

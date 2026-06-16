@@ -1576,14 +1576,16 @@ func calculate_offline(delta: float):
 		for item in current_recipe["output"]:
 			var qty = current_recipe["output"][item]
 			
-			# Apply Steel Scalability (Oxygen-Blast Furnace)
+			# Apply Steel Scalability (Oxygen-Blast Furnace).
+			# v112: was *= 2 offline vs *= 5 online — offline silently paid 60%
+			# less on the same buff. Matched to the online complete_process path.
 			if item == "Steel" and GameState.research_manager.is_tech_unlocked("oxygen_blast_furnace"):
-				qty *= 2
-				
+				qty *= 5
+
 			# Efficiency Research Multiplier
 			if GameState.research_manager:
 				qty *= GameState.research_manager.get_efficiency_multiplier()
-				
+
 			var total = qty * actions
 			GameState.resources.add_element(item, total); GameState.note_production("process", total); GameState.note_craft_material(item, total)  # P3.10 / Phase 0 (offline fallback)
 			loot_summary[item] = loot_summary.get(item, 0) + total
