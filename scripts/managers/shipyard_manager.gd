@@ -49,12 +49,18 @@ const ZONE_SCALABLE_STATS = [
 
 # v110: Battery-only energy model. Hulls provide ZERO energy. Every consumer
 # module (weapon/shield/armor/engine/sensor) draws CONSUMER_LOAD_BY_TIER[zone];
-# every battery supplies BATTERY_CAP_BY_TIER[zone]. Per hull tier, a full set of
-# tier-matched batteries exactly powers a full set of tier-matched consumers
-# (see design doc). Both are DERIVED by tier (not stored per-module stat) so the
-# whole ~50-module roster stays balanced from two tables. Index = tier-1.
+# every battery supplies BATTERY_CAP_BY_TIER[zone]. v112: battery supply gives
+# each hull tier ~25% power HEADROOM over a full tier-matched consumer set. It
+# used to be exactly 1:1 ("exactly powers"), which left ZERO room — slotting any
+# higher-tier drop tripped energy_used>energy_capacity and hard-blocked combat
+# ("SHIP UNPOWERED"), so a drop's dopamine became "why can't I use it." 25%
+# headroom lets the player slot a few next-tier modules before needing battery
+# upgrades; a multi-tier leap still requires investment, so the battery economy
+# stays a real (non-punishing) constraint. Both DERIVED by tier (not stored
+# per-module) so the whole ~50-module roster stays balanced. Index = tier-1.
+# Save-safe: energy is derived, so existing loadouts just gain headroom.
 const CONSUMER_LOAD_BY_TIER := [10, 15, 25, 40, 60, 100, 150, 220, 350, 500]
-const BATTERY_CAP_BY_TIER   := [30, 60, 75, 150, 180, 350, 600, 750, 1330, 1700]
+const BATTERY_CAP_BY_TIER   := [40, 80, 100, 200, 240, 460, 800, 1000, 1750, 2250]
 const CONSUMER_SLOT_TYPES := ["weapon", "shield", "armor", "engine", "sensor"]
 
 # Energy a module-DEFINITION DRAWS (consumers) — works on the def dict so UI
