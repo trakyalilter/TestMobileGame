@@ -4117,6 +4117,35 @@ func _research_node(id: String) -> Control:
 
 ## Research node detail modal: name, description, full requirements (credits +
 ## each material with have/need), parent gate, and a Research button.
+# Everything a research tech unlocks (recipes, modules, buildings, hulls, zones,
+# follow-on techs) — gathered by scanning what gates on this tech id, so the detail
+# modal can show "what do I get?" (desktop research_detail UNLOCKS section).
+func _research_unlocks(rid: String) -> Array:
+	var out := []
+	for cid in GameData.CRAFT:
+		if GameData.CRAFT[cid].get("research_req", "") == rid:
+			out.append("⚙ " + String(GameData.CRAFT[cid].get("name", cid)))
+	for gid in GameData.GATHER:
+		if GameData.GATHER[gid].get("research_req", "") == rid:
+			out.append("⛏ " + String(GameData.GATHER[gid].get("name", gid)))
+	for mid in GameData.MODULES:
+		if GameData.MODULES[mid].get("research_req", "") == rid:
+			out.append("▣ " + String(GameData.MODULES[mid].get("name", mid)))
+	for bid in GameData.BUILDINGS:
+		if GameData.BUILDINGS[bid].get("research_req", "") == rid:
+			out.append("⌂ " + String(GameData.BUILDINGS[bid].get("name", bid)))
+	for hid in GameData.HULLS:
+		if GameData.HULLS[hid].get("research_req", "") == rid:
+			out.append("⛭ " + String(GameData.HULLS[hid].get("name", hid)))
+	for z in GameData.ZONES:
+		if z.get("research_req", "") == rid:
+			out.append("◎ " + String(z.get("name", "")))
+	for tid in GameData.RESEARCH:
+		var rt: Dictionary = GameData.RESEARCH[tid]
+		if rt.get("parent", "") == rid or (rt.get("req_tech", []) as Array).has(rid):
+			out.append("✦ " + String(rt.get("name", tid)))
+	return out
+
 func _show_research_detail(id: String) -> void:
 	var t: Dictionary = GameData.RESEARCH[id]
 	var researched := GameState.is_research_unlocked(id)
@@ -4133,9 +4162,15 @@ func _show_research_detail(id: String) -> void:
 	panel.add_theme_stylebox_override("panel", _bordered("1a2336", PURP, 2))
 	panel.custom_minimum_size = Vector2(360, 0)
 	center.add_child(panel)
+	# Scroll the body — with the UNLOCKS list a tech can exceed the screen height.
+	var dsc := ScrollContainer.new()
+	dsc.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	dsc.custom_minimum_size = Vector2(0, mini(560, int(get_viewport_rect().size.y * 0.7)))
+	panel.add_child(dsc)
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 8)
-	panel.add_child(v)
+	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	dsc.add_child(v)
 	_clbl(v, "✦  " + t.get("name", id), 16, PURP)
 	if t.get("desc", "") != "":
 		var d := Label.new()
@@ -4144,6 +4179,17 @@ func _show_research_detail(id: String) -> void:
 		d.add_theme_font_size_override("font_size", _fs(11))
 		d.add_theme_color_override("font_color", Color.html(C_DIM))
 		v.add_child(d)
+	# What researching this grants (recipes / modules / buildings / hulls / zones /
+	# follow-on techs) — desktop parity.
+	var unlocks := _research_unlocks(id)
+	if not unlocks.is_empty():
+		var ulines := []
+		var cap := mini(14, unlocks.size())
+		for i in cap:
+			ulines.append(_line(unlocks[i], CYAN))
+		if unlocks.size() > cap:
+			ulines.append(_line("+%d more" % (unlocks.size() - cap), C_MUTED))
+		_inset(v, "UNLOCKS", ulines, CYAN)
 	var lines := []
 	var cred := int(t.get("credits", 0))
 	lines.append(_line("₡ Credits   %s / %s" % [GameData.fmt(GameState.credits), GameData.fmt(cred)], GOLD if GameState.credits >= cred else C_WARN))

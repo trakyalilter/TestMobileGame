@@ -434,9 +434,11 @@ TAB_ORDER = ["Operations", "Zones", "Engineering", "Ships"]
 
 RES_X0, RES_Y0 = 16.0, 16.0   # canvas origin
 RES_LEVEL_X = 240.0           # column stride (node 200 wide + 40 elbow gap)
-RES_NODE_H = 124.0            # row slot (node 104 tall + 20)
-RES_SIB_GAP = 16.0            # gap between sibling subtrees
-RES_TREE_GAP = 48.0           # gap between root trees
+# Vertical spacing tightened for the portrait mobile view (less empty scroll):
+# row slot just above the 104-tall node, slim sibling/root gaps.
+RES_NODE_H = 110.0            # row slot (node 104 tall + 6)
+RES_SIB_GAP = 8.0             # gap between sibling subtrees
+RES_TREE_GAP = 22.0          # gap between root trees
 
 def tree_layout(node_list):
     """Desktop research_page.calculate_layout, ported: parent-tree layout."""
