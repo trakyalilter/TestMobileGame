@@ -176,6 +176,7 @@ var _weapon_rows: Array = []          # per-weapon {bar, ammo, slot, needs_ammo}
 # Live "SALVAGE THIS RUN" panel — the session-loot container + the snapshot used
 # to detect changes so _process only rebuilds rows when a drop actually lands.
 var _loot_panel: VBoxContainer = null
+var _loot_scroll: ScrollContainer = null   # caps the salvage list height; scrolls past it
 var _loot_seen_count := -1
 var _seen_events := 0
 var _reset_armed := false
@@ -2192,10 +2193,30 @@ func _build_battle(v: VBoxContainer) -> void:
 	# engagement (desktop session-loot parity). Rows live-rebuild in _process only
 	# when GameState.session_loot changes (see _loot_seen_count).
 	var lp := _card(GOLD, true)
-	_card_head(lp, "◆", "SALVAGE THIS RUN", "", GOLD, true)
+	var lhdr := HBoxContainer.new()
+	lhdr.add_theme_constant_override("separation", 6)
+	var lt := Label.new()
+	lt.text = "◆  SALVAGE THIS RUN"
+	lt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	lt.add_theme_font_size_override("font_size", _fs(12))
+	lt.add_theme_color_override("font_color", Color.html(GOLD))
+	lhdr.add_child(lt)
+	var fbtn := _card_button("⚙ Filter", CYAN, true)
+	fbtn.add_theme_font_size_override("font_size", _fs(10))
+	fbtn.pressed.connect(_open_loot_filter)
+	lhdr.add_child(fbtn)
+	lp.add_child(lhdr)
+	# Cap the salvage list height and scroll within it — a day of farming can drop
+	# hundreds of distinct rows, which otherwise stretched the page endlessly.
+	_loot_scroll = ScrollContainer.new()
+	_loot_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_loot_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	_loot_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	lp.add_child(_loot_scroll)
 	_loot_panel = VBoxContainer.new()
 	_loot_panel.add_theme_constant_override("separation", 2)
-	lp.add_child(_loot_panel)
+	_loot_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_loot_scroll.add_child(_loot_panel)
 	v.add_child(lp.get_parent())
 	_loot_seen_count = -1
 	_rebuild_loot_rows()
@@ -2250,10 +2271,59 @@ func _rebuild_loot_rows() -> void:
 	var loot: Dictionary = GameState.session_loot
 	if loot.is_empty():
 		_clbl(_loot_panel, "[ NO YIELD YET ]", 11, C_MUTED)
+		if is_instance_valid(_loot_scroll):
+			_loot_scroll.custom_minimum_size.y = 0
 		return
 	for id in loot:
 		var disp := _loot_display(id)
 		_clbl(_loot_panel, "%s × %s" % [disp[0], GameData.fmt(int(loot[id]))], 12, disp[1])
+	# Grow with content up to ~9 rows, then cap and scroll inside.
+	if is_instance_valid(_loot_scroll):
+		var row_h := _fs(12) + 8
+		_loot_scroll.custom_minimum_size.y = float(mini(loot.size(), 9) * row_h)
+
+# Loot filter modal (desktop parity): toggle which module drops to keep by rarity,
+# slot, and weapon damage type. Filtered drops are skipped at roll time.
+func _open_loot_filter() -> void:
+	_modal("LOOT FILTER", CYAN, func(v: VBoxContainer, _close: Callable) -> void:
+		_clbl(v, "Only loot you keep is rolled — filtered drops are skipped entirely.", 9, C_MUTED)
+		_clbl(v, "RARITY", 11, CYAN)
+		var rr := HFlowContainer.new()
+		rr.add_theme_constant_override("h_separation", 6)
+		rr.add_theme_constant_override("v_separation", 6)
+		for r in [0, 1, 2, 3, 4]:
+			var rlabel: String = GameState.RARITY_LABEL.get(r, "")
+			if rlabel == "":
+				rlabel = "Common"
+			_filter_toggle(rr, GameState.loot_filter, r, rlabel, GameState.RARITY_COLOR.get(r, C_TEXT))
+		v.add_child(rr)
+		_clbl(v, "SLOT", 11, CYAN)
+		var sr := HFlowContainer.new()
+		sr.add_theme_constant_override("h_separation", 6)
+		sr.add_theme_constant_override("v_separation", 6)
+		for slot in ["weapon", "armor", "shield", "engine", "battery", "sensor"]:
+			_filter_toggle(sr, GameState.loot_type_filter, slot, String(GameData.SLOT_LABELS.get(slot, slot)), CYAN)
+		v.add_child(sr)
+		_clbl(v, "WEAPON DAMAGE TYPE", 11, CYAN)
+		var wr := HFlowContainer.new()
+		wr.add_theme_constant_override("h_separation", 6)
+		wr.add_theme_constant_override("v_separation", 6)
+		for wt in ["kinetic", "energy", "explosive", "cryo"]:
+			_filter_toggle(wr, GameState.loot_weapon_type_filter, wt, wt.capitalize(), CYAN)
+		v.add_child(wr))
+
+# A single keep/skip toggle pill bound to a filter dict key.
+func _filter_toggle(parent: Node, dict: Dictionary, key, label: String, accent: String) -> void:
+	var on := bool(dict.get(key, true))
+	var b := _card_button(("● " if on else "○ ") + label, accent, true)
+	b.add_theme_font_size_override("font_size", _fs(10))
+	b.modulate.a = 1.0 if on else 0.38
+	b.pressed.connect(func() -> void:
+		var nv := not bool(dict.get(key, true))
+		dict[key] = nv
+		b.text = ("● " if nv else "○ ") + label
+		b.modulate.a = 1.0 if nv else 0.38)
+	parent.add_child(b)
 
 func _drain_combat_events() -> void:
 	for ev in GameState.combat_events:

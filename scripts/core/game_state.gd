@@ -107,6 +107,11 @@ var _event_seq: int = 0
 # Running tally of every item collected this combat engagement (item_id -> qty).
 # Transient (not persisted); reset on each new engagement. Desktop session-loot parity.
 var session_loot: Dictionary = {}
+# v85.0 Loot Filter — "only loot you keep is rolled": a module drop whose rarity,
+# slot, or (for weapons) damage type is toggled off is skipped entirely.
+var loot_filter: Dictionary = {0: true, 1: true, 2: true, 3: true, 4: true}
+var loot_type_filter: Dictionary = {"weapon": true, "armor": true, "shield": true, "engine": true, "battery": true, "sensor": true}
+var loot_weapon_type_filter: Dictionary = {"kinetic": true, "energy": true, "explosive": true, "cryo": true}
 # Ammo + consumables (fittings)
 var ammo_loadout: Dictionary = {}      # weapon slot index (String) -> ammo item id
 var consumable_hull_slot: String = ""
@@ -3290,11 +3295,35 @@ func _roll_one_module_drop(pool: Array) -> void:
 		return
 	var base_id: String = pool[randi() % pool.size()]
 	var rarity := roll_rarity(bool(enemy_inst.get("is_boss", false)) or enemy_inst.get("elite", false))
+	if not loot_drop_kept(base_id, rarity):
+		return   # filtered out — skipped entirely (desktop "only loot you keep is rolled")
 	var cid := generate_module(base_id, rarity, _combat_difficulty())
 	if cid != "":
 		_log_session_loot(cid, 1)
 		_event("%s DROP" % (RARITY_LABEL[rarity] if rarity > 0 else "MODULE").to_upper(), RARITY_COLOR.get(rarity, "b78ae8"), "enemy")
 		_mission_sync()   # drop_rarity missions re-check on a new module drop
+
+# Loot-filter gate: true if a drop of this base module at this rarity should be
+# kept (not filtered out). Honours rarity, slot, and weapon damage-type toggles.
+func loot_drop_kept(base_id: String, rarity: int) -> bool:
+	if not bool(loot_filter.get(rarity, true)):
+		return false
+	var m: Dictionary = GameData.MODULES.get(base_id, {})
+	var slot: String = m.get("slot", "")
+	if slot != "" and not bool(loot_type_filter.get(slot, true)):
+		return false
+	if slot == "weapon":
+		var st: Dictionary = m.get("stats", {})
+		var wtype := "kinetic"
+		if float(st.get("atk_cryo", 0)) > 0.0:
+			wtype = "cryo"
+		elif float(st.get("atk_energy", 0)) > 0.0:
+			wtype = "energy"
+		elif float(st.get("atk_explosive", 0)) > 0.0:
+			wtype = "explosive"
+		if not bool(loot_weapon_type_filter.get(wtype, true)):
+			return false
+	return true
 
 func _lose_combat() -> void:
 	var cost := mini(repair_cost(), credits)   # repair fee on defeat (capped at available credits)
@@ -3451,6 +3480,8 @@ func _offline_combat(delta: float) -> void:
 			if dc > 0.0 and randf() < dc:
 				var base_id: String = pool[randi() % pool.size()]
 				var rarity := roll_rarity(false)
+				if not loot_drop_kept(base_id, rarity):
+					continue   # honour the loot filter offline too
 				var gid := generate_module(base_id, rarity, diff)
 				if gid != "":
 					mods += 1
@@ -3829,6 +3860,9 @@ func save_game() -> void:
 		"ammo_loadout": ammo_loadout,
 		"consumable_hull_slot": consumable_hull_slot,
 		"consumable_shield_slot": consumable_shield_slot,
+		"loot_filter": loot_filter,
+		"loot_type_filter": loot_type_filter,
+		"loot_weapon_type_filter": loot_weapon_type_filter,
 		"loadout_presets": loadout_presets,
 		"buildings": buildings,
 		"building_throttle": building_throttle,
@@ -3919,6 +3953,14 @@ func load_game() -> void:
 	ammo_loadout = data.get("ammo_loadout", {})
 	consumable_hull_slot = data.get("consumable_hull_slot", "")
 	consumable_shield_slot = data.get("consumable_shield_slot", "")
+	# Loot filter (rarity keys are stringified by JSON — re-key to int).
+	var lf: Dictionary = data.get("loot_filter", {})
+	for r in lf:
+		loot_filter[int(r)] = bool(lf[r])
+	for sk in data.get("loot_type_filter", {}):
+		loot_type_filter[sk] = bool(data["loot_type_filter"][sk])
+	for wk in data.get("loot_weapon_type_filter", {}):
+		loot_weapon_type_filter[wk] = bool(data["loot_weapon_type_filter"][wk])
 	# Presets: JSON stringifies the int slot keys — re-key to int on load.
 	var lp: Dictionary = data.get("loadout_presets", {})
 	if not lp.is_empty():
