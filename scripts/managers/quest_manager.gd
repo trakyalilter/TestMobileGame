@@ -85,8 +85,16 @@ func _get_max_difficulty() -> int:
 	for zid in cm.zones:
 		var z = cm.zones[zid]
 		var req = z.get("research_req", "")
-		if req == "" or rm.is_tech_unlocked(req):
-			max_diff = max(max_diff, z["difficulty"])
+		var flag = z.get("unlock_flag", "")
+		# A zone counts as reachable only if BOTH its research gate AND its
+		# unlock-flag gate are satisfied. Bug: the_threshold (Z11, difficulty 11)
+		# has an empty research_req — it gates via unlock_flag "z11_unlocked" —
+		# so the old req=="" check counted it as unlocked for everyone, and a
+		# brand-new player got T10-T11 quest rolls.
+		var research_ok: bool = (req == "" or rm.is_tech_unlocked(req))
+		var flag_ok: bool = (flag == "" or GameState.game_settings.get(flag, false))
+		if research_ok and flag_ok:
+			max_diff = max(max_diff, int(z["difficulty"]))
 	return max_diff
 
 func _fill_board():
@@ -100,6 +108,10 @@ func _fill_board():
 
 func _generate_quest() -> Dictionary:
 	var max_diff = _get_max_difficulty()
+	# delivery_materials / material_rewards only define tiers 1-10, so never
+	# roll above 10 even once Z11 is unlocked — a tier-11 roll hits an empty
+	# table and yields a blank quest. (Tier-11 reward tables are a future add.)
+	max_diff = min(max_diff, 10)
 	var min_diff = max(1, max_diff - 1)
 	# 55% gather, 45% hunt
 	if randf() < 0.55:
