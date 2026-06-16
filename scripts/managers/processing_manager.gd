@@ -1670,11 +1670,17 @@ func get_current_rate() -> Dictionary:
 	if "output" in recipe:
 		for item in recipe["output"]:
 			var rate = recipe["output"][item] * actions_per_min
-			
+
+			# v112: match the actual production paths (complete_process /
+			# calculate_offline) — the Oxygen-Blast Furnace x5 Steel scalar was
+			# missing here, so the displayed active rate understated Steel 5x.
+			if item == "Steel" and GameState.research_manager and GameState.research_manager.is_tech_unlocked("oxygen_blast_furnace"):
+				rate *= 5
+
 			# Efficiency Research Multiplier
 			if GameState.research_manager:
 				rate *= GameState.research_manager.get_efficiency_multiplier()
-				
+
 			rates[item] = rate
 			
 	# Probability Outputs

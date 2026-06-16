@@ -16,7 +16,7 @@ var events: Array = []
 # P0.3: cap the engineering yield bonus so idle industry buildings can't
 # obsolete active processing (was 1 + log10(1+eng)*5 → ~11x at eng 99).
 const INFRA_ENG_SCALE_COEF := 1.0   # log coefficient (was 5.0)
-const INFRA_ENG_SCALE_CAP  := 3.0   # hard ceiling on the engineering multiplier
+const INFRA_ENG_SCALE_CAP  := 2.0   # hard ceiling on the engineering multiplier (v112: 3.0->2.0, trims the infra baseline into the 30-70%-of-active parity band)
 # P0.2: diminishing returns on stacked buildings — linear to KNEE, then a
 # saturating tail (asymptote = KNEE + TAIL). Infra is a parallel baseline,
 # not an infinite scaling path.

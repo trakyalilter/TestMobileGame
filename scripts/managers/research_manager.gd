@@ -1627,7 +1627,7 @@ var repeatable_tech_db = {
 	},
 	"infrastructure_focus": {
 		"name": "Recursive Networking (Infrastructure)",
-		"description": "Infinite scaling: +5% Global Building Yield per level.",
+		"description": "Infinite scaling: +5% Global Production Yield per level — lifts both your buildings AND active crafting/gathering equally.",
 		"base_cost": 100000,
 		"base_items": {"VoidArtifact": 5, "AdvCircuit": 30, "Cu": 100},
 		"bonus_type": "building_yield_mult",
@@ -1853,12 +1853,20 @@ func unlock_repeatable_tech(tech_id: String) -> bool:
 	return false
 
 func get_efficiency_multiplier() -> float:
-	if is_tech_unlocked("efficiency_5"): return 32.0
-	if is_tech_unlocked("efficiency_4"): return 16.0
-	if is_tech_unlocked("efficiency_3"): return 8.0
-	if is_tech_unlocked("efficiency_2"): return 4.0
-	if is_tech_unlocked("efficiency_1"): return 2.0
-	return 1.0
+	var tier := 1.0
+	if is_tech_unlocked("efficiency_5"): tier = 32.0
+	elif is_tech_unlocked("efficiency_4"): tier = 16.0
+	elif is_tech_unlocked("efficiency_3"): tier = 8.0
+	elif is_tech_unlocked("efficiency_2"): tier = 4.0
+	elif is_tech_unlocked("efficiency_1"): tier = 2.0
+	# v112 parity fix: the Recursion infrastructure_focus bonus (building_yield_mult)
+	# now also lifts ACTIVE production here, exactly as it lifts infra in
+	# infrastructure_manager.get_effective_yield(). This makes that lane a
+	# RATIO-PRESERVING global-production multiplier — infinite scaling without
+	# letting idle infra ever out-produce active crafting (the core-loop killer
+	# the sanity checklist flagged). Active processing + gathering both route
+	# their output through this multiplier.
+	return tier * (1.0 + get_efficiency_bonus("building_yield_mult"))
 
 func get_efficiency_bonus(bonus_type: String) -> float:
 	# v105: Refactored to accumulate into a single bonus instead of early-returning
