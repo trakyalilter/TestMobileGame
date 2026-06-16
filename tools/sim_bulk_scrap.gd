@@ -85,11 +85,60 @@ func _run() -> void:
 		print("FAIL Armory missing scrap controls")
 		fail = true
 
+	# --- Batched scrap of a huge stacked common count must be fast + correct
+	# (this is what froze the game: ~2000 per-item signal emissions).
+	gs.module_inventory["z1_kinetic"] = 2000   # base module, rarity 0, one stack
+	var cr_before: int = gs.credits
+	var t0 := Time.get_ticks_msec()
+	var big_sold: int = gs.bulk_sell_by_rarity(0)
+	var dt := Time.get_ticks_msec() - t0
+	print("batched scrap: sold=%d in %dms, credits +%d" % [big_sold, dt, gs.credits - cr_before])
+	if big_sold >= 2000 and not gs.module_inventory.has("z1_kinetic") and gs.credits > cr_before:
+		print("PASS batched bulk-sell cleared a 2000-stack")
+	else:
+		print("FAIL batched bulk-sell wrong")
+		fail = true
+	if dt < 2000:
+		print("PASS batched scrap completed quickly (%dms)" % dt)
+	else:
+		print("FAIL batched scrap too slow (%dms)" % dt)
+		fail = true
+
+	# --- Armory render cap: thousands of owned modules must not all build cards.
+	for i in range(120):
+		gs.custom_modules["wmany_%d" % i] = {"name": "Spare %d" % i, "slot": "shield", "rarity": 2, "stats": {"max_shield": 10}, "affixes": {}}
+		gs.module_inventory["wmany_%d" % i] = 1
+	main.ship_mod_slot = "shield"
+	main.ship_view = "armory"
+	main._show("ship")
+	await process_frame
+	var tiles := _count_meta(main.pages["ship"], "coach_id")
+	var txt2 := []
+	_collect_text(main.pages["ship"], txt2)
+	var has_note := false
+	for t in txt2:
+		if t.begins_with("Showing ") and "of 120" in t:
+			has_note = true
+	print("armory tiles rendered=%d (owned 120), note=%s" % [tiles, str(has_note)])
+	if tiles <= main.ARMORY_MAX and has_note:
+		print("PASS Armory caps rendered tiles + notes the remainder")
+	else:
+		print("FAIL Armory did not cap rendering (tiles=%d)" % tiles)
+		fail = true
+
 	if fail:
 		print("BULK_SCRAP: FAIL")
 		quit(1)
 	print("BULK_SCRAP: PASS")
 	quit()
+
+func _count_meta(node: Node, key: String) -> int:
+	var n := 0
+	if node is Control and node.has_meta(key):
+		n += 1
+	for c in node.get_children():
+		n += _count_meta(c, key)
+	return n
 
 func _collect_text(node: Node, out: Array) -> void:
 	if node is Label or node is Button:

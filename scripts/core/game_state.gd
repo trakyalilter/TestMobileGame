@@ -1329,18 +1329,9 @@ func affix_total(key: String) -> float:
 func sell_module(mid: String) -> bool:
 	if int(module_inventory.get(mid, 0)) <= 0:
 		return false
-	var price := 100
-	var rarity := 0
-	if custom_modules.has(mid):
-		rarity = int(custom_modules[mid].get("rarity", 0))
-		price = int(RARITY_SELL.get(rarity, 100))
-	else:
-		# Crafted modules: 25% of credit cost (desktop get_sell_price ~L2581).
-		price = maxi(50, int(float(GameData.MODULES.get(mid, {}).get("cost", {}).get("credits", 200)) * 0.25))
-		rarity = int(GameData.MODULES.get(mid, {}).get("rarity", 0))
+	var rarity := module_rarity(mid)
+	var price := _module_sell_price(mid, rarity)
 	# v100 Demolish parity: grant RARITY_SPARE_PARTS alongside credits (ref ~L2571).
-	# Mobile has no separate demolish action, so the spare-parts yield is folded into
-	# the sell path (the SparePart element already exists in GameData).
 	add_resource("SparePart", int(RARITY_SPARE_PARTS.get(rarity, 1)))
 	module_inventory[mid] = int(module_inventory[mid]) - 1
 	if module_inventory[mid] <= 0:
@@ -1350,6 +1341,13 @@ func sell_module(mid: String) -> bool:
 	gain_credits(price)
 	resources_changed.emit()
 	return true
+
+# Per-unit sell price for a module (rolled custom → rarity table; crafted base →
+# 25% of its credit cost).
+func _module_sell_price(mid: String, rarity: int) -> int:
+	if custom_modules.has(mid):
+		return int(RARITY_SELL.get(rarity, 100))
+	return maxi(50, int(float(GameData.MODULES.get(mid, {}).get("cost", {}).get("credits", 200)) * 0.25))
 
 # ---------------- Bounty board ----------------
 signal bounty_changed
@@ -2426,26 +2424,39 @@ func module_rarity(mid: String) -> int:
 
 # ── Bulk sell (QoL: "Scrap Junk" — desktop bulk_demolish_by_rarity) ──
 # Sells every NON-EQUIPPED owned module at or below max_rarity. Returns the count
-# sold. Honours the same per-module sell payout (credits + spare parts).
+# sold. Batched: totals are accumulated and the inventory mutated in one pass with
+# a SINGLE signal emission — selling thousands of stacked commons no longer fires
+# thousands of UI rebuilds (which froze/crashed the game).
 func bulk_sell_by_rarity(max_rarity: int) -> int:
 	var equipped := {}
 	for mid in loadout.values():
 		if mid != "":
 			equipped[mid] = true
-	var candidates: Array = []
-	for mid in module_inventory.keys():
+	var total_credits := 0
+	var total_parts := 0
+	var sold := 0
+	for mid in module_inventory.keys().duplicate():
 		if equipped.has(mid):
 			continue
-		if module_rarity(mid) > max_rarity:
+		var rarity := module_rarity(mid)
+		if rarity > max_rarity:
 			continue
-		candidates.append(mid)
-	var count := 0
-	for mid in candidates:
 		var qty := int(module_inventory.get(mid, 0))
-		for _i in qty:
-			if sell_module(mid):
-				count += 1
-	return count
+		if qty <= 0:
+			continue
+		total_credits += _module_sell_price(mid, rarity) * qty
+		total_parts += int(RARITY_SPARE_PARTS.get(rarity, 1)) * qty
+		sold += qty
+		module_inventory.erase(mid)
+		if custom_modules.has(mid):
+			custom_modules.erase(mid)
+	if sold > 0:
+		gain_credits(total_credits)
+		if total_parts > 0:
+			add_resource("SparePart", total_parts)
+		_mission_sync()
+		resources_changed.emit()
+	return sold
 
 # How many non-equipped modules a bulk sell at max_rarity would scrap.
 func count_bulk_sell(max_rarity: int) -> int:

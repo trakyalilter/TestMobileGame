@@ -137,6 +137,7 @@ var build_cat := "power"
 var ship_view := "loadout"
 var shipyard_view := "modules"  # Shipyard (fabrication) sub-tab — separate from ship_view
 var armory_sort := "power"      # Armory sort: "power" | "zone" | "rarity"
+const ARMORY_MAX := 60          # cap rendered Armory tiles (thousands froze the page)
 var ship_mod_slot := "weapon"
 var ship_target_slot := -1      # slot index the Armory equips INTO (slot-first flow; -1 = browse/auto)
 var warp_view := "core"   # "core" | "mastery" — Warp Core page sub-view
@@ -3648,10 +3649,18 @@ func _ship_armory(v: VBoxContainer) -> void:
 			_:
 				return _module_power(da.get("stats", {})) > _module_power(db.get("stats", {}))
 		)
+	# Cap rendered tiles — a heavy farm can own thousands of modules and building a
+	# card for each froze the page. Show the top ARMORY_MAX (after sorting) and note
+	# the rest; sort/scrap narrow it down.
+	var total := owned.size()
+	if total > ARMORY_MAX:
+		owned = owned.slice(0, ARMORY_MAX)
 	_section(v, "Armory — tap a module for details", PURP)
 	var ig := _grid(v)
 	for mid in owned:
 		ig.add_child(_armory_tile(mid))
+	if total > ARMORY_MAX:
+		_clbl(v, "Showing %d of %d — sort or scrap to narrow." % [ARMORY_MAX, total], 10, C_DIM)
 
 ## Compact owned-module tile: name (rarity color) + key stats; tap → detail modal
 ## (stats + Equip/Cancel). The detail equips into ship_target_slot when set.
