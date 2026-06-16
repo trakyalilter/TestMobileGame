@@ -244,14 +244,27 @@ func _gather_action_for(sym: String) -> String:
 # missions whose material is actually crafted (e.g. Carbon, Lithium, Steel) at the
 # right Craft card instead of a non-existent gather action.
 func _craft_recipe_for(sym: String) -> String:
+	# Pick the recipe that produces `sym` the player is most able to use, so the
+	# coach points at the right card. Prefer ones whose RESEARCH is unlocked (and
+	# then level met) over a lower-level recipe gated behind research they lack —
+	# e.g. Advanced Circuit's recipe (research: Automation, unlocked) over Process
+	# Colony Salvage (lower level but research: Deep Space Nav, not yet unlocked).
 	var best := ""
+	var best_score := -1
 	var best_lvl := 99999
+	var lv := GameState.level_of("fabrication")
 	for cid in GameData.CRAFT:
-		if GameData.CRAFT[cid].get("outputs", {}).has(sym):
-			var lvl := int(GameData.CRAFT[cid].get("level_req", 1))
-			if lvl < best_lvl:
-				best_lvl = lvl
-				best = cid
+		var r: Dictionary = GameData.CRAFT[cid]
+		if not r.get("outputs", {}).has(sym):
+			continue
+		var lvl := int(r.get("level_req", 1))
+		var rr: String = r.get("research_req", "")
+		var research_ok: bool = rr == "" or GameState.is_research_unlocked(rr)
+		var score := (2 if (research_ok and lv >= lvl) else (1 if research_ok else 0))
+		if score > best_score or (score == best_score and lvl < best_lvl):
+			best_score = score
+			best_lvl = lvl
+			best = cid
 	return best
 
 # The CRAFT recipe that produces ALL the outputs of a gather_multi target dict
