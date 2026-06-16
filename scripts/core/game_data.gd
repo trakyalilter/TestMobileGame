@@ -950,6 +950,19 @@ func item_name(sym: String) -> String:
 		return MODULES[sym].get("name", sym)
 	if SET_MODULES.has(sym):
 		return SET_MODULES[sym].get("name", sym)
+	# Generated instance ids (cm_<base>_<ts>_<rand>, set_<base>_<rand>) that no
+	# longer have a live custom entry (sold/scrapped) — derive the base name.
+	var parts := sym.split("_")
+	var b := ""
+	if parts.size() >= 4 and parts[0] == "cm":
+		b = "_".join(parts.slice(1, parts.size() - 2))
+	elif parts.size() >= 3 and parts[0] == "set":
+		b = "_".join(parts.slice(1, parts.size() - 1))
+	if b != "":
+		if MODULES.has(b):
+			return MODULES[b].get("name", b)
+		if SET_MODULES.has(b):
+			return SET_MODULES[b].get("name", b)
 	return res_name(sym)
 
 func color_for(sym: String) -> Color:
