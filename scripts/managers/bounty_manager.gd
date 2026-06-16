@@ -51,14 +51,20 @@ func get_trophy_buff(buff_type: String) -> float:
 			if res.get_element_amount("Trophy_Lunar") > 0: mult += 0.25
 		"mining_yield":
 			if res.get_element_amount("Trophy_Belt") > 0: mult += 0.20
+			# v112: Omega Accelerator capstone — "massively increases all production".
+			if res.get_element_amount("OmegaAccelerator") > 0: mult += 0.50
 		"processing_xp":
 			if res.get_element_amount("Trophy_Mars") > 0: mult += 0.25
 		"ship_speed":
 			if res.get_element_amount("Trophy_Titan") > 0: mult += 0.10
+			# v112: Temporal Stabilizer capstone — "massive combat speed boost".
+			if res.get_element_amount("TemporalModule") > 0: mult += 0.30
 		"research_speed":
 			if res.get_element_amount("Trophy_Alpha") > 0: mult += 0.15
 		"infrastructure_yield":
 			if res.get_element_amount("Trophy_Beta") > 0: mult += 0.20
+			# v112: Omega Accelerator capstone also boosts always-on infra yield.
+			if res.get_element_amount("OmegaAccelerator") > 0: mult += 0.50
 		"energy_dmg":
 			if res.get_element_amount("Trophy_Gamma") > 0: mult += 0.15
 		"kinetic_dmg":

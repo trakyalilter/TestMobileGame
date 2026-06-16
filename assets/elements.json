@@ -1529,7 +1529,7 @@
     "category": "Component",
     "tier": 2,
     "base_value": 100,
-    "description": "Advanced industrial or operational component."
+    "description": "Omega-class production core. While held: +50% gathering yield and +50% infrastructure yield. Permanent passive — one is enough."
   },
   {
     "symbol": "MissileT4",
@@ -1548,7 +1548,7 @@
     "category": "Component",
     "tier": 2,
     "base_value": 100,
-    "description": "Advanced industrial or operational component."
+    "description": "Titan-forged plating. While held: +30% hull HP on every ship. Permanent passive — one is enough."
   },
   {
     "atomic_number": -926,
@@ -1615,7 +1615,7 @@
     "category": "Component",
     "tier": 2,
     "base_value": 100,
-    "description": "Advanced industrial or operational component."
+    "description": "Localized time-dilation field. While held: +30% ship attack speed in combat. Permanent passive — one is enough."
   },
   {
     "atomic_number": -932,
@@ -1625,7 +1625,7 @@
     "category": "Component",
     "tier": 2,
     "base_value": 100,
-    "description": "Advanced industrial or operational component."
+    "description": "Void-compressed power cell. While held: +40% ship energy capacity. Permanent passive — one is enough."
   },
   {
     "atomic_number": -933,

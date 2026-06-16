@@ -2024,7 +2024,14 @@ func recalc_stats():
 	attack_speed_bonus = atk_speed_bon
 	if GameState.bounty_manager:
 		attack_speed_bonus += (GameState.bounty_manager.get_trophy_buff("ship_speed") - 1.0)
-		
+
+	# v112: Primordial Armor capstone — "best-in-slot defense" = +30% hull HP.
+	# Self-contained presence check (not via get_trophy_buff, so the global
+	# Trophy_Epsilon bonus doesn't silently leak into HP).
+	if GameState.resources and GameState.resources.get_element_amount("PrimordialArmor") > 0:
+		max_hp = int(max_hp * 1.30)
+		if max_hp <= 0: max_hp = 10
+
 	shield_regen_bonus = s_reg_bon
 	jamming_strength = jam_str
 	
@@ -2076,6 +2083,10 @@ func recalc_stats():
 	# borrows it as a storage ceiling — that coupling is separated in Phase 2
 	# when hull energy is removed (so removing it can't shrink the infra grid).
 	energy_capacity = e_cap
+	# v112: Void Battery capstone — "ultimate power storage" = +40% ship energy
+	# capacity (stacks on the v112 battery headroom; lets the player slot more).
+	if GameState.resources and GameState.resources.get_element_amount("VoidBattery") > 0:
+		energy_capacity = int(energy_capacity * 1.40)
 	# v110: ship no longer writes resources.max_energy — that field is now the
 	# infrastructure grid's buffer ceiling (set by infrastructure_manager).
 	# Ship energy lives entirely on energy_capacity / energy_used.
