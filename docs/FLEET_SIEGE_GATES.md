@@ -23,15 +23,45 @@
 
 ## The warp math (anti-treadmill)
 
-The danger: if the fleet merely *cancels* the per-warp enemy buff, the player treads water and resents warping. Fix — the **multipliers already beat the enemy buff; the fleet is surplus on top** (never rely on the decaying marginal slot to hold the line).
+**Implemented model (v112 — reconciled to code).** The earlier draft of this
+section described a per-warp enemy buff (×1.20/warp) that the code never
+implemented. The real model:
 
-| per warp | value |
+- **Enemies do NOT scale per warp.** They scale per **zone** only — the static
+  zone-steepening curve in `combat_manager` (`_zhp` / `_zatk`, zones 3→10) runs
+  HP ×1.7→3.45 and ATK ×1.7→3.1. That curve is identical on every run.
+- **Player power rises every warp** via two stacked levers in
+  `warp_manager.get_combat_multiplier()`:
+
+  | lever | effect |
+  |---|---|
+  | Shards (cumulative; earned each warp ≈ `log2(run_progress/500k)+1`) | **+3% combat / shard** |
+  | Warp tier (**locked backbone**, do not restructure) | **×2 every 5 warps** = `2^floor(total_warps/5)` |
+
+**Result — net stronger by construction.** Enemies are fixed per zone while the
+player's multiplier strictly increases every warp (more shards, plus a ×2 at
+each 5-warp tier). Gear and levels reset, but shards + research + 30% XP + the
+Warp Mastery Tree persist, so run N+1 reaches any given zone *faster* than run
+N. There is no per-warp enemy buff to cancel — the treadmill the old table
+feared cannot occur in the current zone roster.
+
+> Note: `get_external_progression_combat_mult()` (a 6×-clamped "enemy
+> progression compensation") is currently **uncalled / dead** — enemies are not
+> scaled up to match player level/research/warp, which further favors the player
+> each warp. If a future build wires it in, it must be re-tuned against this
+> table. (Tracked in SANITY_CHECKLIST "Multiplier clamps actually bind".)
+
+**Future (NG+ / siege — not yet built).** The ×1.20/loop enemy buff is the
+*forward target* for post-Z11 loop content (Z12+ sectors, siege gates), where
+each NG+ loop re-hardens enemies and the fleet + multipliers must out-scale it.
+At that point the fleet is the surplus on top (never the decaying marginal slot
+holding the line):
+
+| per NG+ loop (future spec) | value |
 |---|---|
 | Enemy combat power | ×1.20 |
-| Combat shard-multiplier growth (ship + every fleet ship) | ×1.30 → **+8%/warp floor** |
+| Combat multiplier growth (ship + every fleet ship) | target ≥ ×1.30 → **+8%/loop floor** |
 | Fleet capacity | +1 slot (bonus + the siege tool) |
-
-**Result:** every warp = net stronger (multipliers) + a bigger fleet (new toy) + progress toward the next siege.
 
 ---
 
