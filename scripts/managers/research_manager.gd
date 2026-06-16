@@ -94,7 +94,9 @@ var tech_tree = {
 		"cost": 625,
 		"type": "technology",
 		"parent": "basic_engineering",
-		"effects": [],
+		"effects": [
+			{"type": "bonus_yield", "bonus": 0.10, "what": "Ship Energy Capacity"},
+		],
 		"unlocks": [],
 		"flavor": "Gates the Energy Fields and Reactor Overclocking branches.",
 	},
@@ -105,7 +107,9 @@ var tech_tree = {
 		"cost": 625,
 		"type": "technology",
 		"parent": "basic_engineering",
-		"effects": [],
+		"effects": [
+			{"type": "bonus_yield", "bonus": 0.10, "what": "Ship Max HP"},
+		],
 		"unlocks": [],
 		"flavor": "Gates the Advanced Technologies branch.",
 	},
@@ -116,8 +120,10 @@ var tech_tree = {
 		"cost": 625,
 		"type": "technology",
 		"parent": "basic_engineering",
-		"effects": [],
-		"unlocks": [],
+		"effects": [
+			{"type": "bonus_yield", "bonus": 0.10, "what": "Global Production Speed"},
+		],
+		"unlocks": ["Terraforming Processor", "Biosphere Dome"],
 		"flavor": "Gates the Advanced Technologies branch.",
 	},
 	"fluid_dynamics": {
@@ -227,7 +233,7 @@ var tech_tree = {
 		# UI ever started.
 		"parent": "applied_physics",
 		"effects": [],
-		"unlocks": [],
+		"unlocks": ["Shield Booster"],
 		"flavor": "Gates Shield Harmonics and Magnetic Funnels research.",
 	},
 	"field_theory": {
@@ -908,6 +914,25 @@ var tech_tree = {
 		],
 		"flavor": "Weaponize Exotic Matter — the only force that breaches Warp-Hardened hulls. Requires a Warp Core activation.",
 	},
+	# v113 (NG+ P3, WT2): Corrosion Armaments — gates crafting the Corrosion
+	# Blaster (the Z12 Rift element weapon). Ships tab; req_tech cryo_armaments
+	# (master Cryo first), requires_warp. Costs step up past cryo_armaments.
+	"corrosion_armaments": {
+		"name": "Corrosion Armaments",
+		"tier": 5,
+		"category": "ships",
+		"cost": 500000,
+		"cost_items": {"ExoticMatter": 15, "CryoEssence": 40, "OmegaPlating": 30},
+		"type": "technology",
+		"parent": null,
+		"req_tech": "cryo_armaments",
+		"requires_warp": true,
+		"effects": [],
+		"unlocks": [
+			"Corrosion Blaster (Weapon Craft)",
+		],
+		"flavor": "Acid-plasma armaments — etch through Corrosion-hardened hulls in the Rift. Requires mastery of Cryogenic Armaments.",
+	},
 	# --- LOGISTICS UPGRADES ---
 	"automated_logistics": {
 		"name": "Automated Logistics",
@@ -998,23 +1023,10 @@ var tech_tree = {
 		"unlocks": ["Automated Carbon Press"],
 		"flavor": "",
 	},
-	"mass_production_tactics": {
-		"name": "Mass Production Tactics",
-		"tier": 2,
-		"category": "infrastructure",
-		"cost": 5000,
-		"cost_items": {"Circuit": 20, "Steel": 20},
-		"type": "technology",
-		"parent": "automated_logistics",
-		# v111.6 audit: "Munitions Factory" — phantom. The string `munitions_factory`
-		# is in infrastructure_manager.gd line 29 (INFRA_ENG_SCALED_BUILDINGS) as
-		# if it were a building id, but no entry exists in building_db. Either
-		# planned and never built, or renamed to heavy_ordnance_works.
-		# Tech currently grants nothing — flagged for design follow-up.
-		"effects": [],
-		"unlocks": [],
-		"flavor": "Industrial tactics — buildings TBD.",
-	},
+	# v111.7: mass_production_tactics DELETED — genuine no-op. Its "Munitions
+	# Factory" building was never built (no building_db entry), it granted no
+	# effect, had no children, and no consumer referenced it. Removed cleanly;
+	# old saves drop the id via the unknown-tech load filter.
 	"xeno_engineering": {
 		"name": "Xeno-Engineering",
 		"tier": 3,
@@ -1023,27 +1035,20 @@ var tech_tree = {
 		"cost_items": {"SalvageData": 10, "Circuit": 50},
 		"type": "technology",
 		"parent": "automated_logistics",
-		# v111.6 audit: BOTH unlocks were phantoms — "Alien Flora Cultivation"
-		# and "Analyzing Xeno-Materials" have no matching recipe / building /
-		# action anywhere. Tech currently has no real effect — vestigial.
-		# Flagging for design follow-up (cut or build the missing content).
-		"effects": [],
+		# v111.6 audit: the two prose "unlocks" were phantom recipe names.
+		# CORRECTED v111.7: this tech is NOT vestigial — it grants +25% rare-loot
+		# via get_efficiency_bonus("xeno_engineering") (combat_manager loot rolls).
+		# Metadata `effects` now reflects that; do NOT delete this tech.
+		"effects": [
+			{"type": "bonus_yield", "bonus": 0.25, "what": "Rare Loot / Module Drop Chance"},
+		],
 		"unlocks": [],
-		"flavor": "Xeno-research path — content TBD.",
+		"flavor": "Boosts rare loot & module-drop chance by 25% (read by combat loot rolls).",
 	},
 	# --- END-GAME SHIPS (NEW) ---
-	"capital_ship_engineering": {
-		"name": "Capital Ship Doctrine",
-		"tier": 4,
-		"category": "ships",
-		"cost": 500000,
-		"cost_items": {"VoidArtifact": 20,"NavData": 75, "Res3":75}, # Audit v20.0: Added ColonyDataCore (Overseer Drop)
-		"type": "technology",
-		"parent": "shipwright_2",
-		"effects": [],
-		"unlocks": [],
-		"flavor": "Gate for Capital Ship Armament. Battlecruiser hull + capital modules unlock via Zone Access tech.",
-	},
+	# v111.7: capital_ship_engineering collapsed — it was a pure bridge (empty
+	# effects/unlocks; flagged in SANITY_CHECKLIST as a paid no-op). Its children
+	# (capital_ship_armament, quantum_dynamics) re-parented to shipwright_2.
 	"capital_ship_armament": {
 		"name": "Capital Ship Armament",
 		"tier": 4,
@@ -1051,7 +1056,7 @@ var tech_tree = {
 		"cost": 1000000,
 		"cost_items": {"VoidArtifact": 10, "Superalloy": 50, "AdvCircuit": 50},
 		"type": "technology",
-		"parent": "capital_ship_engineering",
+		"parent": "shipwright_2",
 		# v111.6 audit: "Munitions Factory tier" → phantom (neither a building
 		# id nor a recognizable concept). Building dict has no `munitions_factory`
 		# entry — it's listed in INFRA_ENG_SCALED_BUILDINGS but never defined.
@@ -1070,7 +1075,7 @@ var tech_tree = {
 		"cost": 5000000,
 		"cost_items": {"QuantumCore": 20, "VoidArtifact": 50, "ColonyDataCore": 50, "RadIsotope": 1000, "Res3": 500, "ExoticIsotope": 20},
 		"type": "technology",
-		"parent": "capital_ship_engineering",
+		"parent": "shipwright_2",
 		"effects": [],
 		"unlocks": ["Fusion Core", "Antimatter Generator", "Zero-Point Module"],
 		"flavor": "",
@@ -1264,13 +1269,13 @@ var tech_tree = {
 		"cost_items": {"Pd": 30, "H": 500, "Circuit": 30},
 		"type": "technology",
 		"parent": "precious_metal_refining",
-		# v111.6 audit: "Hydrogen Fuel Cell" — phantom (no such recipe; the
-		# only fuel-cell recipe is "Palladium Fuel Cell" already gated by
-		# precious_metal_refining). This tech currently has no unlock and
-		# no effect — likely vestigial. Flagging for design follow-up.
+		# CORRECTED v111.7: NOT vestigial — this tech gates the Palladium Fuel
+		# Cell recipe (craft_palladium_cell, research_req fuel_cell_tech in
+		# processing_manager). The old "Hydrogen Fuel Cell" prose was phantom;
+		# real unlock now reflected in `unlocks`.
 		"effects": [],
-		"unlocks": [],
-		"flavor": "Hydrogen-fuel research path — implementation TBD.",
+		"unlocks": ["Palladium Fuel Cell"],
+		"flavor": "",
 	},
 	"iridium_metallurgy": {
 		"name": "Iridium Metallurgy",
@@ -1323,18 +1328,9 @@ var tech_tree = {
 		"unlocks": [],
 		"flavor": "",
 	},
-	"void_physics": {
-		"name": "Extreme Void Physics",
-		"tier": 4,
-		"category": "meta",
-		"cost": 5000000,
-		"cost_items": {"VoidCrystal": 20, "QuantumCore": 10, "AntimatterParticle": 5},
-		"type": "technology",
-		"parent": "exotic_matter_analysis",
-		"effects": [],
-		"unlocks": [],
-		"flavor": "Gates Void Navigation research.",
-	},
+	# v111.7: void_physics collapsed — pure bridge (empty effects/unlocks, only
+	# gated void_navigation research). void_navigation re-parented to its
+	# grandparent exotic_matter_analysis.
 	# ENDGAME - Sector Epsilon unlock
 	"void_navigation": {
 		"name": "Void Navigation",
@@ -1343,7 +1339,7 @@ var tech_tree = {
 		"cost": 50000000,
 		"cost_items": {"QuantumCore": 30, "VoidCrystal": 50, "ExoticMatter": 20, "AncientTech": 5, "QuarantineClearance": 1, "BiohazardSample": 20},  # v58.0: Added clearance req
 		"type": "technology",
-		"parent": "void_physics",
+		"parent": "exotic_matter_analysis",
 		"effects": [],
 		# v111.6 audit: dropped "Void Weaponry/Shielding Optimization" — those
 		# are downstream research techs (void_weaponry_1 / void_shielding_1),

@@ -108,8 +108,10 @@ const EARLY_MODULE_REQ_TECHS = [
 ]
 
 const LATE_MODULE_REQ_TECHS = [
-	"capital_ship_engineering", "quantum_dynamics", "xeno_engineering",
-	"exotic_matter_analysis", "void_navigation", "void_physics"
+	# v111.7: dropped capital_ship_engineering + void_physics (collapsed bridge
+	# techs). Neither was ever a module research_req, so this is inert tidy-up.
+	"quantum_dynamics", "xeno_engineering",
+	"exotic_matter_analysis", "void_navigation"
 ]
 
 const MID_MODULE_ITEMS = [
@@ -580,6 +582,25 @@ var modules: Dictionary = {
 		"power_tier": 8,
 		"cryo": true,
 		"research_req": "cryo_armaments"
+	},
+
+	# ── CORROSION WEAPON (NG+ WT2 / Z12) — the 2nd exotic element. ──
+	# v113 (NG+ P3): same exotic channel as Cryo (atk_cryo, self-charging/no-ammo),
+	# but stats.exotic_element = "corrosion" tags it so the multi-phase gate credits
+	# it ONLY against Corrosion phases. A Cryo loadout does ×0.15 on the Rift
+	# Warden's Corrosion phase → you swap to a Corrosion preset. Guaranteed drop
+	# from the Rift Warden's first clear; craftable thereafter (corrosion_armaments).
+	# NOTE: UI still tints it Cryo-ice until per-element weapon coloring ships (P3b).
+	"corrosion_blaster": {
+		"name": "Corrosion Blaster",
+		"slot_type": "weapon",
+		"rarity": Rarity.LEGENDARY,
+		"stats": {"atk_cryo": 12000, "atk_interval": 2.0, "exotic_element": "corrosion"},
+		"cost": {"credits": 8000000, "ExoticMatter": 30, "CryoEssence": 40, "Superalloy": 120, "ChronoCore": 8, "VoidCrystal": 15},
+		"desc": "Acid-plasma projector. Etches through Corrosion-hardened hulls where cryogenic fire just glazes the surface.",
+		"zone": 12,
+		"power_tier": 8,
+		"research_req": "corrosion_armaments"
 	},
 
 	# ── ZONE 1: Lunar Orbit ──

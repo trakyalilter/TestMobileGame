@@ -7,6 +7,7 @@ var current_zone_id: String = "" # Track explicitly for saving
 var current_enemy = null
 var target_enemy_id = null
 var _enemy_enraged: bool = false  # v109: per-fight enrage state (P3 boss mechanic)
+var _current_phase_idx: int = -1  # v113 (NG+ P1): per-fight multi-phase band index (telegraph dedupe)
 
 # Battle State (Enemies only, player uses shipyard_manager.current_hp)
 var player_shield = 0.0
@@ -360,6 +361,17 @@ var zones = {
 		"difficulty": 11,
 		"enemies": ["z11_warp_revenant", "z11_phase_horror", "z11_null_sentinel", "z11_exotic_leviathan", "z11_boss_threshold_warden"],
 		"unlock_flag": "z11_unlocked"
+	},
+	# v113 (NG+ P3, WT2): Zone 12 — The Rift. CORROSION element. Clear-gated:
+	# unlocks on (Z11 boss cleared + Warp), NOT research (wiring in P3 step 4).
+	# Trash are conventional (any weapon clears them); the Rift Warden is the
+	# 2-phase gate (Cryo → Corrosion) — swap to a Corrosion preset for phase 2.
+	"the_rift": {
+		"name": "Sector 12 — The Rift",
+		"desc": "A corrosive tear in space. The Rift Warden hardens against Cryo, then Corrosion — breach each phase with the matching armament.",
+		"difficulty": 12,
+		"enemies": ["z12_acid_revenant", "z12_rust_horror", "z12_corrosion_sentinel", "z12_caustic_leviathan", "z12_boss_rift_warden"],
+		"unlock_flag": "z12_unlocked"
 	}
 }
 
@@ -935,6 +947,66 @@ var enemy_db = {
 		"is_boss": true, "xp": 1000000, "eva": 20, "zone": 11, "warp_hardened": true, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "resist_cryo": -0.25, "dmg_type": "energy"
 	},
 
+	# ═══ ZONE 12: The Rift — CORROSION (NG+ WT2). Multi-phase boss gate. ═══
+	# v113 (NG+ P3): trash are conventional (any weapon clears them) — their acid
+	# DoT enemy-attack is a follow-up (needs the player-debuff hook), so for now
+	# they use energy/kinetic/explosive dmg_type. The Rift Warden is the 2-phase
+	# gate. resist_cryo stays 0.0: the exotic channel is shared by Cryo+Corrosion
+	# weapons, so a per-element resist isn't possible yet — the PHASE gate is the
+	# element puzzle. Numbers are first-pass; sim-tuned in P5.
+	"z12_acid_revenant": {
+		"name": "Acid Revenant",
+		"stats": {"hp": 1800000, "max_shield": 300000, "atk": 90000, "def": 12000, "atk_interval": 2.0, "accuracy": 280},
+		"loot": [["ExoticMatter", 3, 7], ["PrimordialShard", 2, 5]],
+		"rare_loot": [["ChronoCore", 0.10, 1, 3]],
+		"module_drop_chance": 0.12,
+		"module_drop_pool": ["corrosion_blaster"],
+		"xp": 120000, "eva": 30, "zone": 12, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "resist_cryo": 0.0, "dmg_type": "energy"
+	},
+	"z12_rust_horror": {
+		"name": "Rust Horror",
+		"stats": {"hp": 2400000, "max_shield": 350000, "atk": 100000, "def": 15000, "atk_interval": 1.5, "accuracy": 290},
+		"loot": [["ChronoCore", 3, 6], ["VoidEssence", 4, 8]],
+		"rare_loot": [["OmegaPlating", 0.10, 1, 3]],
+		"module_drop_chance": 0.12,
+		"module_drop_pool": ["corrosion_blaster"],
+		"xp": 135000, "eva": 38, "zone": 12, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "resist_cryo": 0.0, "dmg_type": "explosive"
+	},
+	"z12_corrosion_sentinel": {
+		"name": "Corrosion Sentinel",
+		"stats": {"hp": 3000000, "max_shield": 320000, "atk": 95000, "def": 18000, "atk_interval": 2.5, "accuracy": 285},
+		"loot": [["OmegaPlating", 3, 6], ["PrimordialShard", 3, 6]],
+		"rare_loot": [["VoidEssence", 0.12, 2, 5]],
+		"module_drop_chance": 0.12,
+		"module_drop_pool": ["corrosion_blaster"],
+		"xp": 145000, "eva": 12, "zone": 12, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "resist_cryo": 0.0, "dmg_type": "kinetic"
+	},
+	"z12_caustic_leviathan": {
+		"name": "Caustic Leviathan",
+		"stats": {"hp": 3600000, "atk": 120000, "def": 13000, "atk_interval": 4.0, "accuracy": 270},
+		"loot": [["PrimordialShard", 4, 8], ["credits", 40000000, 80000000]],
+		"rare_loot": [["OmegaPlating", 0.12, 2, 4]],
+		"module_drop_chance": 0.12,
+		"module_drop_pool": ["corrosion_blaster"],
+		"xp": 155000, "eva": 5, "zone": 12, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "resist_cryo": 0.0, "dmg_type": "kinetic"
+	},
+	"z12_boss_rift_warden": {
+		"name": "Rift Warden",
+		# v113 (NG+ P3, WT2): the first MULTI-PHASE gate. Phase 1 hardens against
+		# all-but-Cryo, phase 2 against all-but-Corrosion (each off-element ×0.15).
+		# Phased bosses skip zone-steepening (base = effective). First clear is
+		# ACTIVE: swap Cryo→Corrosion preset at the PHASE 2 telegraph. Guaranteed
+		# Corrosion Blaster drop so the first clear arms you for the idle farm.
+		"stats": {"hp": 50000000, "max_shield": 800000, "atk": 600000, "def": 70000, "atk_interval": 2.5, "accuracy": 300},
+		"phases": ["cryo", "corrosion"], "phase_cut": 0.15,
+		"enrage_at": 0.4, "enrage_atk_mult": 1.5,
+		"loot": [["credits", 200000000, 400000000], ["ExoticMatter", 50, 100], ["ChronoCore", 20, 40], ["PrimordialShard", 40, 80]],
+		"rare_loot": [["corrosion_blaster", 1.0, 1, 1]],
+		"module_drop_chance": 0.30,
+		"module_drop_pool": ["corrosion_blaster"],
+		"is_boss": true, "xp": 2500000, "eva": 22, "zone": 12, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "resist_cryo": 0.0, "dmg_type": "energy"
+	},
+
 	# ═══ HAZARD ZONE: EMP Nexus — Boosted Z2 enemies ═══
 	"hz_emp_drone_1": {
 		"name": "EMP Assault Drone",
@@ -1116,11 +1188,14 @@ func spawn_enemy():
 		"resist_x": e_data.get("resist_x", 0.0),
 		"resist_cryo": e_data.get("resist_cryo", 0.0),       # v109: 4th type
 		"warp_hardened": e_data.get("warp_hardened", false), # v109: Z11 Cryo gate
+		"phases": e_data.get("phases", []),                  # v113 (NG+ P1): multi-phase element gate
+		"phase_cut": e_data.get("phase_cut", 0.15),          # v113: off-element damage factor
 		"enrage_at": e_data.get("enrage_at", 0.0),           # v109: P3 boss mechanic (HP fraction)
 		"enrage_atk_mult": e_data.get("enrage_atk_mult", 1.5),
 		"dmg_type": e_data.get("dmg_type", "kinetic") # v87.0: Typed enemy damage
 	}
 	_enemy_enraged = false  # v109: reset per-fight enrage state on spawn
+	_current_phase_idx = -1  # v113 (NG+ P1): reset phase band so the opening phase telegraphs
 	
 	# v103b: Static zone-gap steepening (zone 3+). A complete sub-zone gear/set
 	# out-DPSes later content otherwise; both regular enemies AND bosses scale.
@@ -1131,7 +1206,7 @@ func spawn_enemy():
 	# the Cryo requirement, not inflated stats. Base stats ARE the intended
 	# effective values (only the bounded ENEMY_COMP catch-up below applies),
 	# which keeps Z11 tuning predictable instead of ×3.7-ballooned.
-	if _ezone >= 3 and not e_data.get("warp_hardened", false):
+	if _ezone >= 3 and not e_data.get("warp_hardened", false) and (e_data.get("phases", []) as Array).is_empty():
 		# v103c: gate via OFFENSE, not HP. HP-sponging just made fights long
 		# but still winnable (sustain race). Eased HP, kept DEF, added ATK so
 		# sub-zone defensive stats can't survive the kill time; zone-N gear can.
@@ -1222,16 +1297,23 @@ func spawn_enemy():
 	# v80.1: Apply safety caps after all bonuses are computed
 	apply_safety_caps()
 	
+	_rebuild_player_weapon_states()
+
+# v113 (NG+ P2): rebuild the per-fight weapon snapshot from the CURRENT loadout.
+# Called on enemy spawn AND on an in-fight loadout swap (multi-phase boss gate),
+# so both paths share one code path. Resets weapon timers (fresh fire schedule).
+func _rebuild_player_weapon_states() -> void:
+	var sm = GameState.shipyard_manager
 	player_max_shield = sm.max_shield
 	player_weapon_states.clear()
 	var equipped_weapons = []
-	
+
 	# v65.4: Engineering skill_mult applied to weapon damage
 	var engineering_lvl = 1
 	if GameState.processing_manager:
 		engineering_lvl = GameState.processing_manager.get_level()
 	var weapon_skill_mult = 1.0 + (engineering_lvl * 0.01)
-	
+
 	for s_idx in sm.loadout:
 		var mid = sm.loadout[s_idx]
 		if mid and mid in sm.modules:
@@ -1246,6 +1328,10 @@ func spawn_enemy():
 				equipped_weapons.append({
 					"name": m_data["name"],
 					"type": w_type,
+					# v113 (NG+ P2): exotic subtype for the multi-phase gate. Cryo
+					# weapons default "cryo"; future elements (corrosion/thermal/…)
+					# set stats.exotic_element. Only consulted for the exotic channel.
+					"exotic_type": str(m_stats.get("exotic_element", "cryo")),
 					"timer": randf_range(0.0, 0.5),
 					"interval": m_stats.get("atk_interval", 2.5),
 					# v107: Warp Mastery Tree — C2 Weapon Tuning (+10% module damage)
@@ -1258,6 +1344,42 @@ func spawn_enemy():
 				})
 	player_weapon_states.append_array(equipped_weapons)
 	log_msg("Readying Weapon Battery: %d systems online." % player_weapon_states.size())
+
+# v113 (NG+ P2): the in-fight loadout swap — the active gate for multi-phase
+# bosses. The auto-battler contract forbids in-FIGHT inputs EXCEPT this, and only
+# against a multi-phase boss (each phase demands a different element; you swap to
+# the matching preset). Re-equips the preset, resyncs combat-relevant ship stats,
+# then rebuilds the weapon snapshot. Cost: weapon cooldowns reset (a fair tempo
+# hit) — NO free heal (current HP/shield untouched). Returns true if it applied.
+func swap_loadout_in_combat(preset_idx: int) -> bool:
+	if not can_swap_loadout_in_combat():
+		return false
+	var sm = GameState.shipyard_manager
+	if sm.is_loadout_preset_empty(preset_idx):
+		return false
+	var res = sm.load_loadout_preset(preset_idx)
+	if int(res.get("loaded", 0)) <= 0:
+		return false
+	# Resync the combat-relevant ship state from the new loadout (set bonuses,
+	# unique-module flags, safety caps), then the weapon snapshot.
+	_apply_trinity_stat_bonuses(sm)
+	apply_safety_caps()
+	active_trinity_sets = _get_active_trinity_sets()
+	has_reflective = _loadout_has_module(sm, "reflective_sheath")
+	has_reactive = _loadout_has_module(sm, "reactive_armor")
+	has_exotic_matrix = _loadout_has_module(sm, "exotic_shield_matrix")
+	_rebuild_player_weapon_states()
+	combat_events.append({"type": "status", "text": "⟳ LOADOUT SWAPPED", "color": Color(0.70, 0.95, 1.0), "side": "player"})
+	log_msg("Reconfigured loadout mid-engagement — weapon battery recalibrating.")
+	return true
+
+# v113 (NG+ P2): the swap is only legal against a multi-phase boss (the locked
+# exception to "no in-fight inputs"). Single-phase / warp_hardened / normal
+# enemies never expose it — the auto-battler contract stays intact everywhere else.
+func can_swap_loadout_in_combat() -> bool:
+	if not in_combat or current_enemy == null:
+		return false
+	return (current_enemy.get("phases", []) as Array).size() > 1
 
 func retreat():
 	in_combat = false
@@ -1615,10 +1737,11 @@ func _execute_player_attack(weapon_idx: int):
 	p_atk_cryo *= skill_dmg_mult * trinity_atk_mult  # v109
 
 	var total_crit = sm.crit_chance + get_milestone_crit_bonus()
-	var res = resolve_damage(p_atk_k, p_atk_e, p_atk_x, enemy_shield, current_enemy["def"], current_zone.get("difficulty", 1), total_crit, true, p_atk_cryo)
+	var res = resolve_damage(p_atk_k, p_atk_e, p_atk_x, enemy_shield, current_enemy["def"], current_zone.get("difficulty", 1), total_crit, true, p_atk_cryo, w.get("exotic_type", "cryo"))
 	enemy_shield = max(0, enemy_shield - res[0])
 	enemy_hp -= res[1]
-	
+	_check_phase_transition()  # v113 (NG+ P1): telegraph if this hit crossed an HP band
+
 	# v86.0: Typed damage labels
 	var type_tag = "KIN"
 	if p_atk_e > p_atk_k and p_atk_e > p_atk_x: type_tag = "NRG"
@@ -1638,6 +1761,67 @@ func _execute_player_attack(weapon_idx: int):
 		combat_events.append({"type": "weakness", "text": "WEAK SPOT", "color": Color.GREEN, "side": "enemy"})
 	
 	if enemy_hp <= 0: win_fight()
+
+# v113 (NG+ P1): which HP band (phase) is the boss in right now? Full HP → phase
+# 0, near-death → phase n-1. Even split: with n phases each band is 1/n of HP.
+func _phase_index(n: int) -> int:
+	if n <= 1 or enemy_max_hp <= 0:
+		return 0
+	var frac: float = clampf(float(enemy_hp) / float(enemy_max_hp), 0.0, 1.0)
+	return clampi(int((1.0 - frac) * float(n)), 0, n - 1)
+
+# v113 (NG+ P1): per-channel damage multipliers for the boss phase-gate. This is
+# the generalization of the Z11 warp_hardened Cryo wall. A boss with a `phases`
+# list (e.g. ["cryo","corrosion","thermal"]) splits its HP into N bands; in the
+# current band only that phase's element deals full damage, every other channel
+# is cut to `phase_cut` (default 0.15). warp_hardened stays its own binary branch
+# (Cryo-only, ×0.02) so Z11 behaviour is byte-identical. Player attacks only;
+# enemy attacks + non-gated enemies always return all-1.0 (combat unchanged).
+# An element with no weapon channel yet (corrosion/thermal/radiation/graviton)
+# matches nothing → that whole band is cut, i.e. unbeatable until P3 ships the
+# weapon — the intended forward gate.
+func _get_breach_factors(is_player_attacker: bool, weapon_exotic: String = "cryo") -> Dictionary:
+	if not is_player_attacker or current_enemy == null:
+		return {"k": 1.0, "e": 1.0, "x": 1.0, "cryo": 1.0}
+	# Z11 binary gate: conventional ×0.02; the exotic channel breaches only if the
+	# weapon's exotic type is Cryo (the first-warp unlock). At first warp Cryo is
+	# the only exotic that exists, so this stays byte-identical to shipped Z11.
+	if current_enemy.get("warp_hardened", false):
+		return {"k": 0.02, "e": 0.02, "x": 0.02, "cryo": 1.0 if weapon_exotic == "cryo" else 0.02}
+	# NG+ multi-phase gate. The exotic channel is full only when the attacking
+	# weapon's exotic type matches the current phase element (cryo vs corrosion vs
+	# thermal …) — so a Cryo loadout does NOT breach a Corrosion phase. This is the
+	# forcing function behind the loadout-preset swap: bring the right element.
+	var phases: Array = current_enemy.get("phases", [])
+	if phases.is_empty():
+		return {"k": 1.0, "e": 1.0, "x": 1.0, "cryo": 1.0}
+	var breach: String = str(phases[_phase_index(phases.size())]).to_lower()
+	var cut: float = float(current_enemy.get("phase_cut", 0.15))
+	return {
+		"k": 1.0 if breach == "kinetic" else cut,
+		"e": 1.0 if breach == "energy" else cut,
+		"x": 1.0 if breach == "explosive" else cut,
+		"cryo": 1.0 if breach == weapon_exotic else cut,
+	}
+
+# v113 (NG+ P1): multi-phase boss telegraph. Mirrors _check_enrage — fires once
+# each time the boss crosses into a new HP band, announcing which element now
+# breaches. Pure feedback; the gate itself is recomputed live in resolve_damage.
+# Solvable by pre-fight loadout only (bring every phase's element), honouring the
+# auto-battler contract. Single-phase / warp_hardened enemies never transition.
+func _check_phase_transition() -> void:
+	if current_enemy == null:
+		return
+	var phases: Array = current_enemy.get("phases", [])
+	if phases.size() <= 1 or enemy_max_hp <= 0:
+		return
+	var idx := _phase_index(phases.size())
+	if idx == _current_phase_idx:
+		return
+	_current_phase_idx = idx
+	var elem: String = str(phases[idx]).to_upper()
+	combat_events.append({"type": "status", "text": "⚠ PHASE %d — %s-HARDENED" % [idx + 1, elem], "color": Color(0.70, 0.95, 1.0), "side": "enemy"})
+	log_msg("%s — PHASE %d: only %s armaments breach it now." % [current_enemy.get("name", "Target"), idx + 1, elem.capitalize()])
 
 # v109: P3 boss mechanic — Enrage. When the enemy's HP first crosses below its
 # enrage_at fraction, it permanently surges ATK by enrage_atk_mult for the rest
@@ -1717,15 +1901,22 @@ func _execute_enemy_attack():
 		if eres[1] > 0: combat_events.append({"type": "dmg_hull", "text": "-%d %s" % [eres[1], e_type_tag], "color": Color.RED, "side": "player"})
 	if sm.current_hp <= 0: lose_fight()
 
-func resolve_damage(atk_k, atk_e, atk_x, c_shield, c_armor, difficulty = 1, crit_chance = 0.05, is_player_attacker = false, atk_cryo = 0.0):
+func resolve_damage(atk_k, atk_e, atk_x, c_shield, c_armor, difficulty = 1, crit_chance = 0.05, is_player_attacker = false, atk_cryo = 0.0, p_weapon_exotic = "cryo"):
 	# v109 Phase 1: Cryo is the 4th damage type. Inert until Cryo weapons ship
 	# (Phase 2) — atk_cryo / resist_cryo / warp_hardened all default to
 	# 0/0/false, so existing K/E/X combat is mathematically unchanged.
 	# Warp-Hardened (Z11+) enemies near-nullify conventional damage (×0.02);
 	# only Cryo bites — this is the mechanical prestige gate.
-	var _hardened: bool = is_player_attacker and current_enemy != null and current_enemy.get("warp_hardened", false)
-	var _noncryo_factor: float = 0.02 if _hardened else 1.0
-	var shield_dmg_pot = ((atk_k * 0.5) + (atk_e * 1.5) + (atk_x * 1.1)) * _noncryo_factor + (atk_cryo * 1.0)
+	# v113 (NG+ P1): boss phase-gate per-channel factors. Generalizes the Z11
+	# warp_hardened binary Cryo wall into a data-driven per-phase element gate
+	# (see _get_breach_factors). All 1.0 for non-gated enemies AND every enemy
+	# attack, so conventional K/E/X combat is mathematically unchanged.
+	var _bf := _get_breach_factors(is_player_attacker, str(p_weapon_exotic))
+	var _f_k: float = _bf["k"]
+	var _f_e: float = _bf["e"]
+	var _f_x: float = _bf["x"]
+	var _f_cryo: float = _bf["cryo"]
+	var shield_dmg_pot = (atk_k * 0.5 * _f_k) + (atk_e * 1.5 * _f_e) + (atk_x * 1.1 * _f_x) + (atk_cryo * 1.0 * _f_cryo)
 	var sm = GameState.shipyard_manager
 	
 	# v85.2: Vulnerable Status (+20% damage taken)
@@ -1799,13 +1990,14 @@ func resolve_damage(atk_k, atk_e, atk_x, c_shield, c_armor, difficulty = 1, crit
 		# resist_cryo ~ -0.25 (weak), so Cryo over-performs against them.
 		var rc = clamp(current_enemy.get("resist_cryo", 0.0), -0.40, 0.50)
 		hull_dmg_cryo *= (1.0 - rc)
-		# v109: Warp-Hardened nullifies conventional hull damage; Cryo exempt.
-		# Applied AFTER the resist clamp so it bypasses the 50% resist ceiling —
-		# this is a hard mechanical gate, not armor.
-		if _hardened:
-			hull_dmg_k *= 0.02
-			hull_dmg_e *= 0.02
-			hull_dmg_x *= 0.02
+		# v113 (NG+ P1): apply the phase-gate per-channel factors AFTER the resist
+		# clamp so the gate bypasses the 50% resist ceiling — a hard mechanical
+		# wall, not armor. warp_hardened → k/e/x ×0.02, cryo full (Z11, unchanged);
+		# NG+ phases → off-element channels ×phase_cut. Non-gated enemies: all 1.0.
+		hull_dmg_k *= _f_k
+		hull_dmg_e *= _f_e
+		hull_dmg_x *= _f_x
+		hull_dmg_cryo *= _f_cryo
 
 	var total_hull_dmg = (hull_dmg_k + hull_dmg_e + hull_dmg_x + hull_dmg_cryo) * bleed_ratio
 	
@@ -1972,6 +2164,13 @@ func win_fight():
 		if core_id == "Z10_Core" and not GameState.game_settings.get("z11_unlocked", false):
 			GameState.game_settings["z11_unlocked"] = true
 			UITheme.show_notification("⟨ SECTOR 11 DETECTED — THE THRESHOLD ⟩  Hostiles are Warp-Hardened, immune to conventional armaments. Execute a Warp Core reset to unlock Cryogenic tech, then research Cryogenic Armaments and craft Cryo weapons in the Shipyard.", Color(0.55, 0.85, 1.0))
+	# v113 (NG+ P3): clearing the Z11 Threshold Warden flags the Rift frontier.
+	# Z12 "The Rift" (Corrosion tier) then reveals on the NEXT Warp — the locked
+	# clear-gated pacing (clear boss → Warp → next zone). The Warden has no
+	# boss_core, so detect by id. Flag persists across Warp; cleared on hard reset.
+	if current_enemy.get("id", "") == "z11_boss_threshold_warden" and not GameState.game_settings.get("z11_cleared", false):
+		GameState.game_settings["z11_cleared"] = true
+		UITheme.show_notification("⟨ FRONTIER BREACHED — THE RIFT BECKONS ⟩  The Threshold Warden falls. Execute a Warp Core reset to push into Sector 12 — The Rift, where the Warden hardens against Cryo, then Corrosion. Bring both, and swap loadout presets mid-fight.", Color(0.6, 0.9, 0.7))
 	# v85.2: Berserking Proc on Kill
 	var berserk_chance = GameState.shipyard_manager.affix_bonuses.get("berserk_on_kill", 0.0)
 	if berserk_chance > 0 and randf() < berserk_chance:
@@ -2471,6 +2670,26 @@ func _offline_winnable() -> bool:
 		var iv: float = max(MIN_ATTACK_INTERVAL, float(w.get("interval", 2.5)))
 		conv_dps += (float(w.get("dmg_k", 0.0)) + float(w.get("dmg_e", 0.0)) + float(w.get("dmg_x", 0.0))) / iv
 		cryo_dps += float(w.get("dmg_cryo", 0.0)) / iv
+	# v113 (NG+ P1): multi-phase boss — must breach EVERY phase band; the worst
+	# band governs whether an offline farm is viable. Elements with no weapon
+	# channel yet (corrosion/thermal/…) make the band unbeatable → not a farm.
+	var _phases: Array = current_enemy.get("phases", [])
+	if not _phases.is_empty():
+		var _cut: float = float(current_enemy.get("phase_cut", 0.15))
+		var _worst := -1.0
+		for _ph in _phases:
+			var _pe: String = str(_ph).to_lower()
+			var _bd := 0.0
+			match _pe:
+				"cryo": _bd = cryo_dps + conv_dps * _cut
+				"kinetic", "energy", "explosive": _bd = conv_dps + cryo_dps * _cut
+				_: _bd = (conv_dps + cryo_dps) * _cut
+			if _worst < 0.0 or _bd < _worst:
+				_worst = _bd
+		if _worst <= 0.0:
+			return false
+		var _ehp: float = float(max(enemy_max_hp, enemy_hp)) + float(enemy_max_shield)
+		return _ehp <= 0.0 or (_ehp / _worst) <= 1800.0
 	var hardened: bool = current_enemy.get("warp_hardened", false)
 	# Warp-hardened (Z11+) enemies need Cryo; conventional weapons do x0.02 and
 	# can NEVER kill them — no Cryo output is unwinnable regardless of duration.

@@ -1,6 +1,8 @@
 # NG+ — Recursion Depth (endgame past Z11) — design doc v0.1
 
-**Status:** Spec LOCKED. Build **blocked on BigNumber adoption** (hard precursor — see §Dependencies).
+**Status:** Spec LOCKED. **Shipped & sim-verified** (`scripts/sim/phase_gate_spike.gd`): **P1** (multi-phase engine — HP→phase bands, per-element gate, telegraph; Z11 byte-identical), **P2-core** (in-fight loadout-preset swap + typed-exotic gating), and the **first P3 tier — Z12 "The Rift" / Corrosion**: `corrosion_blaster` weapon (`exotic_element: corrosion`), Rift Warden 2-phase boss (Cryo→Corrosion), Z12 zone + 4 trash, `corrosion_armaments` research, and the **clear-gate unlock wiring** (clear Z11 boss → flag → next Warp reveals Z12; hard-reset clears it). BigNumber is **harden-and-defer, NOT blocking** the planned ladder (`docs/BIGNUMBER_PLAN.md`).
+
+**Remaining:** P2 — Threshold Relic slot + master-key drop + cross-warp persist + the combat-page swap UI button (UI not headless-verifiable). P3 — `corrosion_plating` resist module + acid-DoT enemy attack (the defensive axis) + per-element weapon UI coloring; then WT3–5 (Thermal/Radiation/Graviton) as content drops. P4 — Fleet siege gates. P5 — sim-tune the HP/cut/scaling curves.
 **Player fantasy:** *Each Warp you breach a deeper hostile frontier — master a new exotic element, beat its multi-phase Warden in a hands-on gauntlet, then claim the key that turns that wall into your farm.*
 
 **Loop served:** **Prestige** (the D30+ warp tail) + **Combat** (the gates) + **Meta** (per-element resist/weapon crafting).
@@ -101,7 +103,7 @@ Starting gate HP: WT1 **500K**, WT2 **5M**, WT3 **50M**, WT4 **500M**, WT5 **5B*
 
 ## Dependencies & phased build
 
-- **P0 — BigNumber adoption** *(PRECURSOR, blocks all of NG+):* a mantissa/exponent (or equivalent) number type for HP, ATK, damage, credits, `lifetime_credits`, and the prestige-score/shard formula, with a save migration. Separate design doc. **Build this first.**
+- **P0 — BigNumber adoption** *(precursor — RESOLVED as harden-and-defer, see `docs/BIGNUMBER_PLAN.md`):* Phase-1 hardening (the `is_finite` format guard) is done; the full mantissa/exponent rewrite is deferred behind a **1e15 live-value tripwire**, because the planned 6-tier ladder (WT5 enemy HP ~2.2B) stays comfortably under 2^53. **No longer blocks NG+ at the planned scale** — revisit only if a tier's live values would cross the tripwire.
 - **P1 — NG+ framework:** World-Tier/element data; clear-gated zone reveal on (frontier-clear + warp); cumulative multi-phase boss (per-phase hardened element + ×0.15 soft cut); phase telegraph UI.
 - **P2 — Active-gate kit:** in-fight loadout-preset tap-swap; the **Relic slot**; master-key drop / equip / cross-warp persistence; the "boss now idle-farmable" state.
 - **P3 — Element content (per tier, content cadence):** resist module + element weapon + craftables + themed zone + enemies. One element = one drop.

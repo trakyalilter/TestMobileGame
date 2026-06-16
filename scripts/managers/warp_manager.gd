@@ -114,6 +114,14 @@ func execute_warp():
 	if sm and sm.module_inventory.get("cryo_shard_pistol", 0) <= 0:
 		sm.grant_module("cryo_shard_pistol")
 
+	# v113 (NG+ P3): clear-gated frontier — if the Threshold Warden (Z11 boss) has
+	# been cleared, THIS Warp reveals Zone 12 "The Rift" (Corrosion tier). Mirrors
+	# the Z11-on-Z10-kill signpost; persists across future Warps (hard reset only).
+	if GameState.game_settings.get("z11_cleared", false) and not GameState.game_settings.get("z12_unlocked", false):
+		GameState.game_settings["z12_unlocked"] = true
+		if UITheme:
+			UITheme.show_notification("⟨ SECTOR 12 UNLOCKED — THE RIFT ⟩  The Warp tears a corrosive frontier open. The Rift Warden gates it with Cryo then Corrosion phases — craft Corrosion Armaments and swap presets mid-fight.", Color(0.6, 0.9, 0.7))
+
 	warped.emit(gains)
 	GameState.save_game()
 
