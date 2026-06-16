@@ -1596,7 +1596,13 @@ func _execute_player_attack(weapon_idx: int):
 		combat_dmg_bonus = GameState.research_manager.get_efficiency_bonus("combat_damage")
 		if GameState.research_manager.is_tech_unlocked("void_weaponry_1"):
 			void_weap_bonus = 0.05
-	var skill_dmg_mult = (1.0 + (get_level() * 0.005)) * GameState.warp_manager.get_combat_multiplier() * (1.0 + combat_dmg_bonus) * (1.0 + void_weap_bonus)
+	# v112 Fleet P2 (soft role): the warp-built fleet adds 0.25x/ship of the main
+	# ship's damage, capped at +100% — the surplus-on-top accelerator from the
+	# design doc. 1.0 (no-op) when locked/empty, so pre-warp combat is unchanged.
+	var fleet_dmg_mult := 1.0
+	if GameState.fleet_manager:
+		fleet_dmg_mult = GameState.fleet_manager.get_combat_dps_mult()
+	var skill_dmg_mult = (1.0 + (get_level() * 0.005)) * GameState.warp_manager.get_combat_multiplier() * (1.0 + combat_dmg_bonus) * (1.0 + void_weap_bonus) * fleet_dmg_mult
 	
 	# v80.1: Trinity Damage Multipliers
 	var trinity_atk_mult = 1.0 + (_get_set_bonus_value("atk_pct") + _get_set_bonus_value("all_dmg_pct")) / 100.0

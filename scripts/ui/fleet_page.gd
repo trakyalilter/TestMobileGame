@@ -65,7 +65,7 @@ func _build_ui() -> void:
 	col.add_child(title)
 
 	var subtitle := Label.new()
-	subtitle.text = "Forge your material surplus into a battle-fleet. Capacity grows with every Warp. (Combat support arrives next phase.)"
+	subtitle.text = "Forge your material surplus into a battle-fleet. Capacity grows with every Warp. Each ship adds +25% of your ship's damage in combat (up to +100%)."
 	subtitle.add_theme_font_size_override("font_size", 12)
 	subtitle.add_theme_color_override("font_color", Color(0.6, 0.7, 0.85))
 	subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -180,7 +180,12 @@ func _update_states() -> void:
 	var cap: int = _mgr.get_fleet_capacity()
 	_cap_lbl.text = "Fleet:  %d / %d" % [count, cap]
 	_cap_lbl.add_theme_color_override("font_color", Color(0.85, 0.95, 1.0) if count < cap else Color(1.0, 0.6, 0.4))
-	_power_lbl.text = "Fleet Strength:  %s  ·  combat support next phase" % FormatUtils.format_number(_mgr.get_fleet_power())
+	# v112 P2: fleet now contributes to combat — show the live +X% damage bonus.
+	var bonus_pct: int = _mgr.get_combat_bonus_pct() if _mgr.has_method("get_combat_bonus_pct") else 0
+	if bonus_pct > 0:
+		_power_lbl.text = "Fleet Strength:  %s  ·  +%d%% ship damage in combat" % [FormatUtils.format_number(_mgr.get_fleet_power()), bonus_pct]
+	else:
+		_power_lbl.text = "Fleet Strength:  %s  ·  build ships to add combat damage" % FormatUtils.format_number(_mgr.get_fleet_power())
 	var full: bool = count >= cap
 	for r in _build_rows:
 		var btn: Button = r["btn"]

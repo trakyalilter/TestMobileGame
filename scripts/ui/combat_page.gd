@@ -410,6 +410,12 @@ func update_ui():
 	var total_crit = (sm.crit_chance + crit_bonus) * 100.0
 	
 	p_stat_lbl.text = "ATK: %s | DEF: %s | EVA: %.0f | CRIT: %.0f%%" % [UITheme.format_num(sm.attack), UITheme.format_num(sm.defense), total_eva, total_crit]
+	# v112 Fleet P2: surface the fleet's live combat contribution so it reads as
+	# power, not a dead roster number.
+	if GameState.fleet_manager and GameState.fleet_manager.has_method("get_combat_bonus_pct"):
+		var fb: int = GameState.fleet_manager.get_combat_bonus_pct()
+		if fb > 0:
+			p_stat_lbl.text += " | ⚔ FLEET +%d%%" % fb
 	
 	# Title shows just the hull name — combat level + bonus-damage readout
 	# removed from the card header per design (kept off to declutter the title).

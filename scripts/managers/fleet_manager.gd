@@ -65,6 +65,29 @@ func get_fleet_power() -> float:
 		total += get_hull_power(String(s.get("hull_id", "")))
 	return total
 
+# v112 (P2 — soft role): combat contribution. Each fleet ship adds a flat
+# fraction of the MAIN ship's effective damage (the doc's "0.25x the main
+# ship's power"), capped at +100% so a full cap-4 fleet ~doubles output while
+# the main ship stays the single biggest piece. Capacity past 4 grows the
+# roster for the FUTURE siege (hard) role — it does NOT keep raising the soft
+# zone-combat bonus. Returned as a damage MULTIPLIER folded into
+# combat_manager's skill_dmg_mult. 1.0 when the fleet is locked or empty, so
+# pre-warp / fleetless combat is byte-identical to before.
+const FLEET_COMBAT_FRACTION := 0.25   # per ship, of the main ship's damage
+const FLEET_COMBAT_CAP := 1.0         # max +100% (full cap-4 fleet)
+
+func get_combat_dps_mult() -> float:
+	if not is_unlocked():
+		return 1.0
+	var n: int = get_fleet_count()
+	if n <= 0:
+		return 1.0
+	return 1.0 + min(FLEET_COMBAT_CAP, FLEET_COMBAT_FRACTION * float(n))
+
+# +X% the fleet currently contributes to ship damage (for the combat HUD line).
+func get_combat_bonus_pct() -> int:
+	return int(round((get_combat_dps_mult() - 1.0) * 100.0))
+
 func get_hull_name(hull_id: String) -> String:
 	return String(FLEET_HULLS.get(hull_id, {}).get("name", hull_id))
 
