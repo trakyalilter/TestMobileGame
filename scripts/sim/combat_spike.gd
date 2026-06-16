@@ -1,31 +1,37 @@
 extends Node
 
 # ============================================================================
-# TTK SPIKE — deterministic on-tier boss time-to-kill measurement.
+# WARP x FLEET TTK SPIKE — does each warp leave the player net stronger, and
+# does the fleet add combat power?
 #
-# For each representative tier, builds a tier-matched LEGENDARY loadout (the
-# v106 balance target's assumed gear) via the same fit pipeline the debug Test
-# Fit Tool uses (construct hull by tier -> generate_module_drop per slot ->
-# tier-banded ammo), sets a tier-appropriate combat level, then fights that
-# tier's zone boss as a damage race (HP topped on death, deaths counted) up to
-# a 30-min cap. Reports energy used/capacity (validates the v112 battery
-# headroom), boss HP, deaths, and TTK.
-#
-# No warp bonus (0 warps) -> measures BASE on-tier combat power, which is the
-# context the v106 TTK targets (Z7 ~8min, Z10 ~13min) were set in.
+# Holds a FIXED tier-matched Legendary loadout (T7) and measures boss TTK across
+# warps 0..3, with and without a built fleet:
+#   - Warp power: total_warps + warp_shards are set to model a player who has
+#     re-climbed to T7 at warp W. Shard model = ~16 shards / warp (a Z10-depth
+#     climb banks floor(log2(score/500k))+1 ~= 16; cumulative). warp_tier =
+#     floor(W/5) = 0 for W<=4, so warps 1-3 grow ONLY via shards (+3%/shard).
+#   - Fleet: built to capacity (1 + total_warps) from granted glut. Combat does
+#     NOT read fleet power (P1 = sink only), so fleeted TTK == unfleeted TTK by
+#     construction — this run PROVES that empirically. Also reports
+#     get_fleet_power() and the PROJECTED TTK if the fleet were wired at the doc
+#     spec (0.25x main-ship power / ship, +100% cap).
 #
 # Run: tools/run_sim.ps1 -Scene "res://scenes/combat_spike.tscn"
 # ============================================================================
 
 const DT := 0.25
-const TIERS := [3, 5, 7, 10]          # early-mid, mid, v106 ~8min, v106 ~13min
-const RARITY := 3                      # Rarity.LEGENDARY (matches v106 assumption)
-const MAX_FIGHT_S := 1800.0            # 30-min cap -> DNF
+const FIXED_TIER := 7                  # mid-late: warp mult meaningful, fight long enough to time
+const WARPS := [0, 1, 2, 3]
+const SHARDS_PER_WARP := 16            # ~floor(log2(Z10 score/500k))+1, cumulative
+const RARITY := 3                      # Rarity.LEGENDARY
+const MAX_FIGHT_S := 1800.0
 const WTYPES := ["kinetic", "energy", "missile"]
+const FLEET_SHIP_FRACTION := 0.25      # doc spec: each fleet ship ~= 0.25x main power
+const FLEET_BONUS_CAP := 1.0           # doc spec: full fleet ~= +100% effective power
 
 var _killed := false
 var _boss_id := ""
-var _deaths := 0
+var _zid := ""
 
 func _ready() -> void:
 	call_deferred("_boot")
@@ -35,20 +41,32 @@ func _boot() -> void:
 	GameState.hard_reset()
 	seed(777)
 	_unlock_everything()
-
 	var cm = GameState.combat_manager
 	if cm.has_signal("enemy_defeated"):
 		cm.enemy_defeated.connect(_on_kill)
 
-	print("[TTK] tier | hull | energy(used/cap) | headroom | boss | bossHP | maxHP%lost | TTK")
-	print("[TTK] --------------------------------------------------------------------------")
-	for t in TIERS:
-		_measure_tier(int(t))
-	print("[TTK] done")
+	print("[WF] Fixed loadout: T%d Legendary (mixed weapons). Boss = T%d zone boss." % [FIXED_TIER, FIXED_TIER])
+	print("[WF] combat reads fleet power? NO (P1 sink-only) -> fleeted==unfleeted is expected.")
+	print("[WF] ----------------------------------------------------------------------------------")
+	print("[WF] warp | shards | combatMult | TTK(no fleet) | fleet cnt/cap | fleetPwr | TTK(fleet) | TTK(projected 0.25x/ship)")
+
+	# Fit the loadout ONCE so loadout-roll RNG (Legendary affixes) doesn't drift
+	# between warps — the only systematic variable across rows is the warp mult.
+	_fit_tier(FIXED_TIER)
+	var zb: Array = _find_zone_boss(FIXED_TIER)
+	if zb.is_empty():
+		print("[WF] no zone/boss at T%d" % FIXED_TIER)
+		get_tree().quit(1)
+		return
+	_zid = str(zb[0])
+	_boss_id = str(zb[1])
+
+	for w in WARPS:
+		_run_warp(int(w))
+	print("[WF] done")
 	get_tree().quit(0)
 
 func _unlock_everything() -> void:
-	# Free-unlock every zone gate so start_expedition() accepts the zone.
 	var rm = GameState.research_manager
 	for n in range(2, 11):
 		var tech: String = "zone_%d_access" % n
@@ -58,30 +76,49 @@ func _unlock_everything() -> void:
 	GameState.game_settings["cryo_unlocked"] = true
 	GameState.resources.add_currency("credits", 1000000000.0)
 
-func _ammo_for(suffix: String, tier: int) -> String:
-	var at: int = 1
-	if tier <= 2: at = 1
-	elif tier <= 5: at = 2
-	elif tier <= 8: at = 3
-	else: at = 4
-	match suffix:
-		"kinetic": return "SlugT%d" % at
-		"energy": return "CellT%d" % at
-		"missile": return "MissileT%d" % at
-	return ""
+func _run_warp(w: int) -> void:
+	var wm = GameState.warp_manager
 
-func _measure_tier(t: int) -> void:
+	# --- Model the warp state: warps + cumulative shards (tier stays 0 for W<=4)
+	wm.total_warps = w
+	wm.warp_shards = float(w) * float(SHARDS_PER_WARP)
+	wm.warp_shards_spent = 0.0
+	var cmult: float = wm.get_combat_multiplier()
+
+	# --- TTK with NO fleet (loadout already fit once in _boot) ---
+	GameState.fleet_manager.ships.clear()
+	var ttk_nofleet: float = _fight(_zid, _boss_id)
+
+	# --- Build a fleet to capacity from granted glut, then re-measure ---
+	_grant_glut()
+	var built: int = _build_fleet_to_cap()
+	var fcap: int = GameState.fleet_manager.get_fleet_capacity()
+	var fpwr: float = GameState.fleet_manager.get_fleet_power()
+	var ttk_fleet: float = _fight(_zid, _boss_id)
+
+	# --- Projected TTK if fleet were wired at the doc spec (0.25x/ship, +100% cap) ---
+	var fleet_bonus: float = min(FLEET_BONUS_CAP, FLEET_SHIP_FRACTION * float(built))
+	var ttk_proj: float = (ttk_nofleet / (1.0 + fleet_bonus)) if ttk_nofleet > 0.0 else -1.0
+
+	print("[WF] W%d | %d | %.2fx | %s | %d/%d | %d | %s | %s" % [
+		w, int(wm.warp_shards), cmult,
+		_fmt(ttk_nofleet), built, fcap, int(fpwr),
+		_fmt(ttk_fleet), _fmt(ttk_proj)])
+
+func _fmt(s: float) -> String:
+	if s < 0.0:
+		return "DNF"
+	return "%.0fs(%.1fm)" % [s, s / 60.0]
+
+# ---------------------------------------------------------------------------
+func _fit_tier(t: int) -> void:
 	var sm = GameState.shipyard_manager
-	var cm = GameState.combat_manager
-
-	# --- Construct the tier-t hull (data-driven; mirror Test Fit Tool) ---
 	var hid: String = ""
 	for h in sm.hulls:
 		if int(sm.hulls[h].get("tier", 0)) == t:
 			hid = h
 			break
 	if hid == "":
-		print("[TTK] T%d: no hull at this tier" % t)
 		return
 	sm.unequip_all()
 	sm.active_hull = hid
@@ -90,8 +127,6 @@ func _measure_tier(t: int) -> void:
 	for i in range(slots.size()):
 		sm.loadout[i] = null
 	sm.ammo_loadout = {}
-
-	# --- Fit a tier-matched LEGENDARY loadout, mixed weapons ---
 	var wp: int = 0
 	for i in range(slots.size()):
 		var st: String = str(slots[i])
@@ -115,81 +150,73 @@ func _measure_tier(t: int) -> void:
 			continue
 		sm.loadout[i] = mid
 		if wsfx != "":
-			var ammo: String = _ammo_for(wsfx, t)
-			if ammo != "":
-				GameState.resources.add_element(ammo, 200000)
-				sm.ammo_loadout[i] = ammo
-
-	# Tier-appropriate combat level so skill_dmg_mult (1 + lvl*0.005) reflects a
-	# real player at this depth, not a level-1 floor. ~tier*9 (T10 -> ~90).
-	var clvl: int = clampi(t * 9, 1, 100)
-	GameState.combat_manager.level = clvl
-
+			var at: int = 4
+			if t <= 8: at = 3
+			if t <= 5: at = 2
+			if t <= 2: at = 1
+			var ammo: String = {"kinetic": "SlugT%d", "energy": "CellT%d", "missile": "MissileT%d"}[wsfx] % at
+			GameState.resources.add_element(ammo, 200000)
+			sm.ammo_loadout[i] = ammo
+	GameState.combat_manager.level = clampi(t * 9, 1, 100)
 	sm.recalc_stats()
 	sm.current_hp = sm.max_hp
 	_neutralize_heat()
 
-	# --- Find the zone at this difficulty + its boss ---
-	var zid: String = ""
-	_boss_id = ""
+func _find_zone_boss(t: int) -> Array:
+	var cm = GameState.combat_manager
 	for z in cm.zones:
 		if int(cm.zones[z].get("difficulty", 0)) == t:
-			zid = str(z)
 			for e in cm.zones[z]["enemies"]:
 				if cm.enemy_db.get(e, {}).get("is_boss", false):
-					_boss_id = str(e)
-					break
-			break
-	if zid == "" or _boss_id == "":
-		print("[TTK] T%d: no zone/boss found" % t)
-		return
-	var boss_hp: float = float(cm.enemy_db[_boss_id]["stats"]["hp"])
-	var e_used: int = int(sm.energy_used)
-	var e_cap: int = int(sm.energy_capacity)
-	var headroom_pct: float = (float(e_cap - e_used) / float(max(1, e_cap))) * 100.0
+					return [str(z), str(e)]
+	return []
 
-	# --- Fight the boss as a damage race (top HP on death, count deaths) ---
+func _fight(zid: String, boss_id: String) -> float:
+	var sm = GameState.shipyard_manager
+	var cm = GameState.combat_manager
 	_killed = false
-	_deaths = 0
+	sm.current_hp = sm.max_hp
 	cm.start_expedition(zid)
-	cm.set_target_enemy(_boss_id)
-	var unpowered: bool = (sm.energy_used > sm.energy_capacity) or (not cm.in_combat)
+	cm.set_target_enemy(boss_id)
+	if not cm.in_combat:
+		return -1.0
 	var steps: int = int(MAX_FIGHT_S / DT)
-	var ttk: float = -1.0
-	var min_hp_frac: float = 1.0   # track how close to death (survivability proxy)
 	for i in range(steps):
 		if _killed:
-			ttk = float(i) * DT
-			break
-		# Pure OFFENSIVE damage race: top HP each tick so the player never dies.
-		# (Avoids the handle_module_defeat crash on custom modules AND isolates
-		# "how long to kill" from survivability, which consumables/repairs cover
-		# in real play.) Record the lowest HP fraction reached as a survivability
-		# proxy: <~0.3 means the loadout would need heals to hold the fight.
-		if sm.max_hp > 0:
-			var frac: float = float(sm.current_hp) / float(sm.max_hp)
-			if frac < min_hp_frac:
-				min_hp_frac = frac
-		sm.current_hp = sm.max_hp
+			return float(i) * DT
+		sm.current_hp = sm.max_hp   # pure offensive damage race
 		if not cm.in_combat:
 			cm.start_expedition(zid)
-			cm.set_target_enemy(_boss_id)
+			cm.set_target_enemy(boss_id)
 			if not cm.in_combat:
-				break   # can't even enter (e.g. still unpowered) — bail
+				return -1.0
 		cm.process_tick(DT)
-	if _killed and ttk < 0.0:
-		ttk = MAX_FIGHT_S
-	_deaths = int(round((1.0 - min_hp_frac) * 100.0))   # reuse as "max HP% lost"
+	return -1.0
 
-	var ttk_str: String = ("DNF >%.0fmin" % (MAX_FIGHT_S / 60.0))
-	if ttk >= 0.0:
-		ttk_str = "%.0fs (%.1fmin)" % [ttk, ttk / 60.0]
-	var flag: String = ""
-	if unpowered:
-		flag = "  [UNPOWERED]"
-	print("[TTK] T%d | %s | %d/%d | %.0f%% | %s | %d | %d | %s%s" % [
-		t, hid, e_used, e_cap, headroom_pct, _boss_id,
-		int(boss_hp), _deaths, ttk_str, flag])
+func _grant_glut() -> void:
+	var r = GameState.resources
+	for sym in ["Water", "Dirt", "Steel", "Circuit", "AdvCircuit", "Superalloy"]:
+		r.add_element(sym, 5000000)
+
+func _build_fleet_to_cap() -> int:
+	var fm = GameState.fleet_manager
+	var built: int = 0
+	var guard: int = 0
+	while fm.get_fleet_count() < fm.get_fleet_capacity() and guard < 100:
+		guard += 1
+		var buildable: Array = fm.get_buildable_hulls()
+		var picked: String = ""
+		var best_pwr: float = -1.0
+		for hid in buildable:
+			if fm.can_build(hid) and fm.get_hull_power(hid) > best_pwr:
+				best_pwr = fm.get_hull_power(hid)
+				picked = hid
+		if picked == "":
+			break
+		if not fm.build_ship(picked):
+			break
+		built += 1
+	return built
 
 func _neutralize_heat() -> void:
 	var cm = GameState.combat_manager
