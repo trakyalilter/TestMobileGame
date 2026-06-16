@@ -10,6 +10,7 @@ signal game_loaded
 var gathering_manager : RefCounted
 var processing_manager : RefCounted
 var infrastructure_manager : RefCounted
+var fleet_manager : RefCounted
 var shipyard_manager : RefCounted
 var research_manager : RefCounted
 var combat_manager : RefCounted
@@ -92,6 +93,7 @@ func _ready():
 	combat_manager = load("res://scripts/managers/combat_manager.gd").new()
 	mission_manager = load("res://scripts/managers/mission_manager.gd").new()
 	warp_manager = load("res://scripts/managers/warp_manager.gd").new()
+	fleet_manager = load("res://scripts/managers/fleet_manager.gd").new()
 	bounty_manager = load("res://scripts/managers/bounty_manager.gd").new()
 	quest_manager = load("res://scripts/managers/quest_manager.gd").new()
 
@@ -207,6 +209,7 @@ func save_game():
 		"combat": combat_manager.get_save_data_manager(),
 		"mission": mission_manager.get_save_data_manager(),
 		"prestige": warp_manager.get_save_data_manager(),
+		"fleet": fleet_manager.get_save_data_manager(),
 		"bounty": bounty_manager.get_save_data_manager(),
 		"quest": quest_manager.get_save_data_manager(),
 		"game_settings": game_settings,  # v52.1
@@ -268,9 +271,19 @@ func load_game():
 	var json = JSON.new()
 	var error = json.parse(content)
 	
+	# Corrupt primary save → recover from the .bak backup before booting fresh.
+	# A half-written savegame.json must never silently cost a player their save.
+	if error != OK and FileAccess.file_exists("user://savegame.bak"):
+		push_warning("savegame.json parse failed (%s) — recovering from savegame.bak" % json.get_error_message())
+		var bak_file = FileAccess.open("user://savegame.bak", FileAccess.READ)
+		if bak_file:
+			error = json.parse(bak_file.get_as_text())
+			if error == OK:
+				print("Recovered save from savegame.bak")
+
 	if error == OK:
 		var data = json.data
-		
+
 		# Version Check & Migration
 		var ver = data.get("version", 0)
 		if ver < 2:
@@ -288,6 +301,7 @@ func load_game():
 		combat_manager.load_save_data_manager(data.get("combat", {}))
 		mission_manager.load_save_data_manager(data.get("mission", {}))
 		warp_manager.load_save_data_manager(data.get("prestige", {}))
+		fleet_manager.load_save_data_manager(data.get("fleet", {}))
 		bounty_manager.load_save_data_manager(data.get("bounty", {}))
 		quest_manager.load_save_data_manager(data.get("quest", {}))
 		
@@ -336,13 +350,20 @@ func load_game():
 		if delta > 10:
 			var capped_delta = min(delta, OFFLINE_DELTA_CAP_SECONDS)
 			process_offline_progress(capped_delta)
-			# Transparency: never silently swallow time — tell the returning
-			# player their earnings were capped so it doesn't feel like a bug.
-			if delta > OFFLINE_DELTA_CAP_SECONDS and offline_report != "":
-				var cap_hrs = int(OFFLINE_DELTA_CAP_SECONDS / 3600.0)
-				offline_report = "Offline earnings are capped at %d hours.\n\n%s" % [cap_hrs, offline_report]
+			if offline_report != "":
+				# Lead with an elapsed-time headline — the genre's #1 retention
+				# beat, previously buried under unsummed per-manager lines.
+				var header = "While you were away — %s\n" % FormatUtils.format_playtime(capped_delta)
+				# Transparency: never silently swallow time past the cap.
+				if delta > OFFLINE_DELTA_CAP_SECONDS:
+					header += "(earnings capped at %dh)\n" % int(OFFLINE_DELTA_CAP_SECONDS / 3600.0)
+				offline_report = "%s\n%s" % [header, offline_report]
 	else:
-		print("JSON Parse Error: ", json.get_error_message())
+		# Both savegame.json and .bak are unreadable. Preserve the corrupt file for
+		# manual recovery so the next autosave doesn't bury the evidence; boot fresh.
+		push_error("Save load failed (json + bak unreadable): %s" % json.get_error_message())
+		if FileAccess.file_exists("user://savegame.json"):
+			DirAccess.copy_absolute("user://savegame.json", "user://savegame.corrupt.json")
 	
 	game_loaded.emit()
 
@@ -397,6 +418,7 @@ func hard_reset():
 	# tick, so leaving warp state stale would auto-complete the mission on a
 	# fresh playthrough. Same path clears all Mastery Tree purchases.
 	if warp_manager: warp_manager.reset()
+	if fleet_manager: fleet_manager.reset()
 	# Clear the P0 prestige-reveal flag so the fanfare can fire again for
 	# the new playthrough.
 	game_settings.erase("warp_first_revealed")

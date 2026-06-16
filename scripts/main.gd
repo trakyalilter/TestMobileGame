@@ -17,6 +17,7 @@ extends Control
 @onready var bounty_btn = $HBoxContainer/Sidebar/VBoxContainer/BountyBtn
 @onready var quest_btn = $HBoxContainer/Sidebar/VBoxContainer/QuestBtn
 @onready var warp_btn = $HBoxContainer/Sidebar/VBoxContainer/WarpBtn
+@onready var fleet_btn = $HBoxContainer/Sidebar/VBoxContainer/FleetBtn
 @onready var sidebar_list = $HBoxContainer/Sidebar/VBoxContainer
 @onready var sidebar_panel = $HBoxContainer/Sidebar
 
@@ -114,7 +115,43 @@ func _on_research_navigation_requested(tech_id: String):
 func _apply_global_styles():
 	background.color = UITheme.COLORS["background"]
 	_style_sidebar_panel()
+	_apply_sidebar_icons()
 	_update_sidebar_styling()
+
+# v111.21: replace the emoji nav glyphs with crisp white SVG line-icons set as
+# each button's `icon` (tinted per-state by apply_sidebar_button_style). Runs
+# once; the icons live in res://assets/icons/nav/.
+func _apply_sidebar_icons() -> void:
+	_set_nav(mission_btn, "missions", "Missions")
+	_set_nav(bounty_btn, "bounties", "Bounties")
+	_set_nav(quest_btn, "quests", "Quests")
+	_set_nav(gathering_btn, "mine", "Mine")
+	_set_nav(processing_btn, "engineering", "Engineering")
+	_set_nav(infrastructure_btn, "infrastructure", "Infrastructure")
+	_set_nav(research_btn, "research", "Research Lab")
+	_set_nav(shipyard_btn, "shipyard", "Shipyard")
+	_set_nav(designer_btn, "designer", "Ship Designer")
+	_set_nav(combat_btn, "combat", "Combat")
+	_set_nav(warp_btn, "warp", "Warp Core")
+	_set_nav(fleet_btn, "fleet", "Fleet")
+	_set_nav(inventory_btn, "inventory", "Inventory")
+	_set_nav(atlas_btn, "atlas", "Atlas")
+	_set_nav(options_btn, "config", "Sys Config")
+	_set_nav(menu_btn, "menu", "Main Menu")
+	# Menu button isn't restyled per-page, so give its icon a fixed dim tint.
+	if is_instance_valid(menu_btn):
+		menu_btn.add_theme_color_override("icon_normal_color", Color(0.50, 0.55, 0.68))
+
+func _set_nav(btn: Button, icon_name: String, label: String) -> void:
+	if not is_instance_valid(btn):
+		return
+	var tex = load("res://assets/icons/nav/%s.svg" % icon_name)
+	if tex:
+		btn.icon = tex
+	btn.text = label
+	btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	btn.add_theme_constant_override("icon_max_width", 18)
+	btn.add_theme_constant_override("h_separation", 10)
 
 func _style_sidebar_panel():
 	var style := StyleBoxFlat.new()
@@ -198,6 +235,16 @@ func _init_pages():
 	page_container.add_child(p_warp)
 	p_warp.visible = false
 	pages["warp"] = p_warp
+
+	# Built directly from the script (no .tscn): the page is 100% code-built, and
+	# a hand-authored scene whose script ext_resource lacks an imported uid fails
+	# to attach the script at load → the page renders as a script-less empty
+	# Control. Instantiating the script (which `extends Control`) sidesteps that.
+	var p_fleet = load("res://scripts/ui/fleet_page.gd").new()
+	p_fleet.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	page_container.add_child(p_fleet)
+	p_fleet.visible = false
+	pages["fleet"] = p_fleet
 
 	if modal_layer:
 		offline_modal = preload("res://scenes/ui/offline_boot_modal.tscn").instantiate()
@@ -430,7 +477,11 @@ func _get_btn_for_page(page_name: String) -> Button:
 		"bounty": return bounty_btn
 		"quest": return quest_btn
 		"warp": return warp_btn
+		"fleet": return fleet_btn
 	return null
+
+func _on_fleet_btn_pressed():
+	switch_to("fleet")
 
 func _on_shipyard_alert_changed(state: bool):
 	if state and current_page_name != "designer":
@@ -454,6 +505,7 @@ func _update_sidebar_styling():
 
 	UITheme.apply_sidebar_button_style(bounty_btn, current_page_name == "bounty")
 	UITheme.apply_sidebar_button_style(quest_btn, current_page_name == "quest")
+	UITheme.apply_sidebar_button_style(fleet_btn, current_page_name == "fleet")
 	
 	# THEMATIC: Progressive Disclosure (Early & Mid-Game Gates)
 	var has_basic_eng = GameState.research_manager.is_tech_unlocked("applied_physics")
@@ -486,6 +538,11 @@ func _update_sidebar_styling():
 		if revealed:
 			GameState.game_settings["warp_first_revealed"] = true
 	warp_btn.visible = revealed
+
+	# Fleet Command reveals post-first-warp (alongside the Z11 endgame), where the
+	# material glut exists to sink. See docs/FLEET_SIEGE_GATES.md.
+	if is_instance_valid(fleet_btn):
+		fleet_btn.visible = GameState.fleet_manager.is_unlocked() if GameState.fleet_manager else false
 	
 
 
@@ -508,6 +565,12 @@ func _update_sidebar_styling():
 	if is_instance_valid(warp_btn) and warp_btn.visible:
 		var wc := Color(0.78, 0.50, 1.00) if current_page_name != "warp" else Color(0.92, 0.72, 1.00)
 		warp_btn.add_theme_color_override("font_color", wc)
+		warp_btn.add_theme_color_override("icon_normal_color", wc)
+
+	if is_instance_valid(fleet_btn) and fleet_btn.visible:
+		var fc := Color(0.40, 0.78, 1.00) if current_page_name != "fleet" else Color(0.72, 0.92, 1.00)
+		fleet_btn.add_theme_color_override("font_color", fc)
+		fleet_btn.add_theme_color_override("icon_normal_color", fc)
 
 func _process(delta):
 	# 1. Navigation Logic & Disclosure Check (Once per second is enough)

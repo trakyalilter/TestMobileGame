@@ -201,7 +201,7 @@ var building_db: Dictionary = {
 	},
 	"brine_extractor": {
 		"name": "Lithium Brine Well",
-		"description": "+1.7 Spodumene (Efficient)",
+		"description": "+1.7 Lithium Ore (Efficient)",
 		"cost": {"credits": 1000000, "Ti": 500,"Superalloy":100},
 		"energy_gen": 0.0,
 		"energy_cons": 120.0,
@@ -880,6 +880,19 @@ var _upkeep_timer: float = 0.0
 # destroys buildings. 1.0 = fully supplied. Transient (recomputed; not saved).
 var upkeep_efficiency: float = 1.0
 
+# ── Infra ↔ Mastery feedback (player request) ───────────────────────────────
+# A building that produces a material feeds that material's crafting/gathering
+# Mastery, and that Mastery raises the building's output. The loop is BOUNDED
+# and non-compounding by construction: infra XP is per production *cycle* (not
+# per unit produced), and Mastery scales only YIELD (never the cycle interval),
+# so higher output can't accelerate its own XP. Mastery itself lives in the
+# processing/gathering managers (per recipe/action) and already persists across
+# warp — nothing new to save here.
+const INFRA_MASTERY_XP_FACTOR := 0.15       # one infra cycle = 15% of an active completion
+const INFRA_MASTERY_EFF_PER_LEVEL := 0.002  # +0.2% building output per linked Mastery level
+const INFRA_MASTERY_EFF_MAX := 0.20         # ceiling: +20% output at Mastery 100
+var _mastery_link_cache: Dictionary = {}    # building_id -> {"mgr","id","symbol"} or {} (no link)
+
 func _init():
 	super._init("Infrastructure")
 
@@ -965,6 +978,91 @@ func _dr_units(count: int) -> float:
 func _ore_throttle(building_id: String) -> float:
 	return INFRA_ORE_EXTRACTION_MULT if building_id in INFRA_ORE_EXTRACTORS else 1.0
 
+# Resolve (and cache) which Mastery a building feeds: its highest-yield material
+# routed to the processing recipe (industry) or gathering action (extraction)
+# that makes the same symbol. {} = no link (power/buff buildings).
+func get_building_mastery_link(building_id: String) -> Dictionary:
+	if _mastery_link_cache.has(building_id):
+		return _mastery_link_cache[building_id]
+	# Don't cache until both source managers exist, or a startup miss freezes.
+	if not (GameState.processing_manager and GameState.gathering_manager):
+		return {}
+	var link: Dictionary = _resolve_mastery_link(building_id)
+	_mastery_link_cache[building_id] = link
+	return link
+
+func _resolve_mastery_link(building_id: String) -> Dictionary:
+	var data: Dictionary = building_db.get(building_id, {})
+	if data.is_empty(): return {}
+	var yields: Dictionary = data.get("yield", {})
+	if yields.is_empty(): return {}
+	# Primary = highest-yield symbol (deterministic for multi-output buildings).
+	var primary: String = ""
+	var best: float = -1.0
+	for sym in yields:
+		var amt: float = float(yields[sym])
+		if amt > best:
+			best = amt
+			primary = sym
+	if primary == "": return {}
+	var category: String = data.get("category", "")
+	if category == "extraction":
+		var aid: String = _gathering_action_for(primary)
+		if aid != "": return {"mgr": "gathering", "id": aid, "symbol": primary}
+		var rfx: String = _processing_recipe_for(primary)
+		if rfx != "": return {"mgr": "processing", "id": rfx, "symbol": primary}
+	else:
+		var rid: String = _processing_recipe_for(primary)
+		if rid != "": return {"mgr": "processing", "id": rid, "symbol": primary}
+		var afx: String = _gathering_action_for(primary)
+		if afx != "": return {"mgr": "gathering", "id": afx, "symbol": primary}
+	return {}
+
+func _processing_recipe_for(symbol: String) -> String:
+	var pm = GameState.processing_manager
+	if pm and pm.has_method("get_recipe_id_for_output"):
+		return pm.get_recipe_id_for_output(symbol)
+	return ""
+
+func _gathering_action_for(symbol: String) -> String:
+	var gm = GameState.gathering_manager
+	if gm and gm.has_method("get_action_id_for_output"):
+		return gm.get_action_id_for_output(symbol)
+	return ""
+
+func _linked_mastery_level(link: Dictionary) -> int:
+	if link.is_empty(): return 0
+	var mgr = GameState.processing_manager if link.get("mgr") == "processing" else GameState.gathering_manager
+	if mgr and mgr.has_method("get_mastery_level"):
+		return int(mgr.get_mastery_level(link.get("id", "")))
+	return 0
+
+# Bounded output multiplier from the linked Mastery (1.0 = no link / level 0).
+func get_mastery_efficiency_mult(building_id: String) -> float:
+	var link: Dictionary = get_building_mastery_link(building_id)
+	if link.is_empty(): return 1.0
+	var lvl: int = _linked_mastery_level(link)
+	return 1.0 + min(float(lvl) * INFRA_MASTERY_EFF_PER_LEVEL, INFRA_MASTERY_EFF_MAX)
+
+# UI helper for the building card: {"linked",[ "symbol","level","bonus_pct" ]}.
+func get_building_mastery_info(building_id: String) -> Dictionary:
+	var link: Dictionary = get_building_mastery_link(building_id)
+	if link.is_empty():
+		return {"linked": false}
+	var lvl: int = _linked_mastery_level(link)
+	var bonus: float = min(float(lvl) * INFRA_MASTERY_EFF_PER_LEVEL, INFRA_MASTERY_EFF_MAX)
+	return {"linked": true, "symbol": link.get("symbol", ""), "level": lvl, "bonus_pct": bonus * 100.0}
+
+# Award Mastery XP to the linked recipe/action (no-op if unlinked). One call per
+# production cycle; `cycles` batches the offline catch-up.
+func _award_infra_mastery_xp(building_id: String, cycles: float) -> void:
+	if cycles <= 0.0: return
+	var link: Dictionary = get_building_mastery_link(building_id)
+	if link.is_empty(): return
+	var mgr = GameState.processing_manager if link.get("mgr") == "processing" else GameState.gathering_manager
+	if mgr and mgr.has_method("gain_mastery_xp"):
+		mgr.gain_mastery_xp(link.get("id", ""), INFRA_MASTERY_XP_FACTOR * cycles)
+
 func get_effective_yield(building_id: String, resource_symbol: String) -> float:
 	var data = building_db.get(building_id)
 	if not data or not "yield" in data or not resource_symbol in data["yield"]: return 0.0
@@ -977,6 +1075,9 @@ func get_effective_yield(building_id: String, resource_symbol: String) -> float:
 	# online and offline production stay consistent.
 	if GameState.research_manager:
 		base_qty *= (1.0 + GameState.research_manager.get_efficiency_bonus("building_yield_mult"))
+	# Infra↔Mastery feedback: the produced material's Mastery raises output
+	# (bounded). Shared by process_tick + offline so both stay consistent.
+	base_qty *= get_mastery_efficiency_mult(building_id)
 	return base_qty
 
 func get_effective_interval(building_id: String) -> float:
@@ -1069,7 +1170,7 @@ func get_building_adjusted_rate(building_id: String) -> Dictionary:
 			# P0.3: same capped scaling as production (was inconsistent here —
 			# only 3 buildings vs 7 in get_effective_yield). Per-single-building
 			# rate, so no DR (DR is an aggregate cap, see get_total_resource_rates).
-			var base_qty = float(data["yield"][res]) * _eng_scale(building_id) * _ore_throttle(building_id)
+			var base_qty = float(data["yield"][res]) * _eng_scale(building_id) * _ore_throttle(building_id) * get_mastery_efficiency_mult(building_id)
 
 			var total_yield_mult = 1.0 + global_yield_bonuses.get(res, 0.0)
 			
@@ -1429,6 +1530,8 @@ func process_tick(delta: float):
 						
 						# Production complete
 						activity_occurred.emit()
+						# Infra↔Mastery: one mastery tick per completed production cycle.
+						_award_infra_mastery_xp(bid, 1.0)
 						for res in data["yield"]:
 							var qty = get_effective_yield(bid, res)
 							
@@ -1567,6 +1670,7 @@ func calculate_offline(delta: float) -> String:
 					var total = qty * _dr_units(count) * cycles  # P0.2 DR
 					GameState.resources.add_element(res, total); GameState.note_production("infra", total)  # P3.10
 					loot_summary[res] = loot_summary.get(res, 0.0) + total
+				_award_infra_mastery_xp(bid, float(cycles))
 
 	# Pass 2: General Production
 	for bid in buildings:
@@ -1604,6 +1708,7 @@ func calculate_offline(delta: float) -> String:
 					var total = qty * _dr_units(count) * cycles  # P0.2 DR
 					GameState.resources.add_element(res, total); GameState.note_production("infra", total)  # P3.10
 					loot_summary[res] = loot_summary.get(res, 0.0) + total
+				_award_infra_mastery_xp(bid, float(cycles))
 
 	
 	if not loot_summary.is_empty():

@@ -46,7 +46,10 @@ func add_element(symbol: String, amount: float):
 	
 	# Slot Check
 	if not elements.has(symbol):
-		if elements.size() >= get_max_slots():
+		# Progression-critical drops (boss cores, matrix cores, endgame, special)
+		# are kept over-cap rather than silently lost — dropping a Z#_Core would
+		# soft-lock zone-access research. Bulk basics still hit the cap (the sink).
+		if elements.size() >= get_max_slots() and not ElementDB.is_slot_protected(symbol):
 			# Inventory full: this output is being silently lost. Tell the
 			# player (throttled) instead of failing invisibly.
 			var now := Time.get_ticks_msec()
@@ -165,11 +168,14 @@ func get_used_slots() -> int:
 	# Let's do a soft check or just return size
 	return elements.size()
 
-func reset():
+func reset(keep_storage := false):
 	elements.clear()
 	currencies.clear()
 	energy = 0.0
-	storage_upgrades = 0
+	# Paid slot expansions are permanent meta — kept across warp (prestige),
+	# cleared only on a hard reset.
+	if not keep_storage:
+		storage_upgrades = 0
 
 # Resource Discovery System
 func get_resource_info(symbol: String) -> Dictionary:

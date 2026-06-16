@@ -46,16 +46,25 @@ func setup(data):
 			dmg_type_color = Color(1.0, 0.5, 0.3) # Orange-Red
 	add_header("Attacks With: %s" % dmg_type_label, dmg_type_color)
 
-	# v86.0: Damage Type Resistances
+	# v86.0 / v111: Damage Type Resistances (incl. Cryo + Warp-Hardened)
 	var rk = data.get("resist_k", 0.0)
 	var re = data.get("resist_e", 0.0)
 	var rx = data.get("resist_x", 0.0)
-	
-	if rk != 0.0 or re != 0.0 or rx != 0.0:
+	var rc = data.get("resist_cryo", 0.0)
+
+	if data.get("warp_hardened", false):
+		# Z11+ Warp-Hardened: conventional damage is x0.02; only Cryo works.
+		add_header("Damage Resistances", Color(0.8, 0.8, 0.9))
+		add_item_label("❄ WARP-HARDENED — only Cryo damage works (conventional ×0.02)", Color(0.45, 0.85, 1.0))
+		_add_resist_label("CRY", rc, Color(0.5, 0.9, 1.0))
+		add_item_label("▶ BEST DAMAGE TYPE: CRYO", Color(0.45, 1.0, 0.55))
+	elif rk != 0.0 or re != 0.0 or rx != 0.0 or rc != 0.0:
 		add_header("Damage Resistances", Color(0.8, 0.8, 0.9))
 		_add_resist_label("KIN", rk, Color(0.6, 0.8, 1.0))
 		_add_resist_label("NRG", re, Color(1.0, 0.9, 0.3))
 		_add_resist_label("EXP", rx, Color(1.0, 0.5, 0.3))
+		if rc != 0.0:
+			_add_resist_label("CRY", rc, Color(0.5, 0.9, 1.0))
 		# Phase A: surface THE answer — the damage type with the lowest
 		# resist (or strongest weakness) is the recommended attack type.
 		var best_type = "KIN"
@@ -66,6 +75,9 @@ func setup(data):
 		if rx < best_val:
 			best_type = "EXP"
 			best_val = rx
+		if rc != 0.0 and rc < best_val:
+			best_type = "CRYO"
+			best_val = rc
 		add_item_label("▶ BEST DAMAGE TYPE: %s" % best_type, Color(0.45, 1.0, 0.55))
 
 	# Guaranteed Loot Header

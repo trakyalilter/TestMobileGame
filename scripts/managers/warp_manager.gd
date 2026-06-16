@@ -82,7 +82,7 @@ func execute_warp():
 	var current_bonus_shards = warp_shards
 	
 	# RESET WORLD
-	GameState.resources.reset()
+	GameState.resources.reset(true)  # keep paid storage upgrades across warp (prestige)
 	# Audit v42.0: Removed duplicate infrastructure_manager.reset() - handled below with decay
 	
 	# Reset Skill Levels with Partial Decay (Prestige Tier 1: Keep 30% XP)

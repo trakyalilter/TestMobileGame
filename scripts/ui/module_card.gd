@@ -31,6 +31,10 @@ func setup(p_mid: String, p_data: Dictionary, p_count: int):
 func _ready():
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	mouse_entered.connect(_on_mouse_enter)
+	# v111.20: rarity-framed hover tooltip (manual ModalLayer popup) replaces the
+	# generic cyan _make_custom_tooltip so the info card frame matches the rarity.
+	mouse_exited.connect(func(): UITheme.hide_item_tooltip(self))
+	tree_exiting.connect(func(): UITheme.hide_item_tooltip(self))
 	_update_ui()
 
 func _on_mouse_enter():
@@ -38,6 +42,8 @@ func _on_mouse_enter():
 	if sm and sm.get("unseen_modules") != null and sm.unseen_modules.get(mid, false):
 		sm.unseen_modules.erase(mid)
 		_update_ui()
+	if not data.is_empty():
+		UITheme.show_item_tooltip(self, _build_comparison_tooltip_bbcode())
 
 func _update_ui():
 	if not is_inside_tree() or data.is_empty():
@@ -297,6 +303,7 @@ func _draw_tile_visual(item_name: String, slot_type: String, rarity: int, rarity
 	add_theme_stylebox_override("panel", StyleBoxEmpty.new())
 	_apply_pulse(rarity)
 
+	UITheme.attach_rarity_fx(tile_container, rarity, rarity_color)
 	add_child(tile_container)
 	# Armory tiles are tiny — request the translucent dim variant so the
 	# rarity frame + slot icon underneath still read instead of the card
@@ -581,6 +588,9 @@ func _draw_gem_visual(gem_name: String, rarity_color: Color):
 	_apply_card_style(rarity, rarity_color, "gem")
 	_apply_pulse(rarity)
 
+	# Cores carry their tier in data ("rarity": 2/3/4 for Cracked/Stable/Pristine),
+	# so use that for the shimmer rather than the modules-only lookup.
+	UITheme.attach_rarity_fx(gem_container, int(data.get("rarity", rarity)), rarity_color)
 	add_child(gem_container)
 	
 	# Small glow tween to make the core feel alive
@@ -845,24 +855,6 @@ func _show_demolish_menu():
 	else:
 		popup.queue_free()
 
-func _make_custom_tooltip(_for_text: String) -> Control:
-	if data.is_empty():
-		return null
-
-	# v111.15 FRAME-IN-FRAME FIX: return a frameless RichTextLabel. Godot wraps
-	# whatever this returns inside the theme's `TooltipPanel` (dark bg + cyan
-	# border + shadow, from sci_fi_theme.tres). Returning our own bordered
-	# PanelContainer produced two nested frames. Let the themed wrapper be the
-	# single frame; rarity is still signalled by the bold rarity-coloured title
-	# at the top of the body.
-	var rtl = RichTextLabel.new()
-	rtl.bbcode_enabled = true
-	rtl.fit_content = true
-	rtl.scroll_active = false
-	rtl.custom_minimum_size = Vector2(340, 0)
-	rtl.add_theme_color_override("default_color", Color(0.92, 0.90, 0.86))
-	rtl.text = _build_comparison_tooltip_bbcode()
-	return rtl
 
 func _build_comparison_tooltip_bbcode() -> String:
 	if data.is_empty():
@@ -878,7 +870,7 @@ func _build_comparison_tooltip_bbcode() -> String:
 	var display_name = _get_clean_name(data.get("name", "Item")).to_upper()
 
 	var tt = ""
-	var div = "[color=#3d3d3d]-------------------------------[/color]\n"
+	var div = "[color=#41526e]──────────────────────────────[/color]\n"
 
 	tt += "[b][color=#%s]%s[/color][/b]\n" % [rarity_color_hex, display_name]
 	tt += "[font_size=10][color=gray]%s %s[/color][/font_size]\n" % [rarity_label, slot_type.capitalize()]

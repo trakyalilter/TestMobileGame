@@ -133,7 +133,7 @@ func _make_custom_tooltip(_for_text: String) -> Control:
 	var ammo_name = ElementDB.get_display_name(active_ammo).to_upper()
 	var tt = "[center][b][font_size=16][color=#aaaaaa]%s[/color][/font_size][/b]\n" % ammo_name
 	tt += "[i][font_size=10][color=gray]Common Ammo[/color][/font_size][/i][/center]\n"
-	tt += "[color=gray]--------------------------------[/color]\n"
+	tt += "[color=#41526e]──────────────────────────────[/color]\n"
 
 	var bonus = 0.0
 	var type_label = "Damage"
@@ -172,7 +172,7 @@ func _make_custom_tooltip(_for_text: String) -> Control:
 
 	if bonus > 0:
 		tt += "[center][font_size=20][b][color=%s]+%.1f[/color][/b][/font_size] [font_size=10][color=gray]%s Bonus[/color][/font_size][/center]\n" % [color_label, bonus, type_label]
-		tt += "[color=gray]--------------------------------[/color]\n"
+		tt += "[color=#41526e]──────────────────────────────[/color]\n"
 
 	tt += "[center][font_size=10][color=gray][Right-click to unequip][/color][/font_size][/center]"
 
