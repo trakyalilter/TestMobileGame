@@ -270,29 +270,16 @@ func get_milestone_heat_mult() -> float:
 func is_auto_consume_unlocked() -> bool:
 	return get_level() >= 50 # Auto-Consume at Lv.50
 
-func get_external_progression_combat_mult() -> float:
-	var rm = GameState.research_manager
-	var bm = GameState.bounty_manager
-	var combat_mult = 1.0 + (get_level() * 0.005)
-	var processing_mult = 1.0
-	if GameState.processing_manager:
-		processing_mult += GameState.processing_manager.get_level() * 0.01
-	
-	var research_speed_mult = 1.0
-	if rm:
-		research_speed_mult += max(0.0, rm.get_efficiency_bonus("attack_speed"))
-	
-	var warp_mult = 1.0
-	if GameState.warp_manager:
-		warp_mult = max(1.0, GameState.warp_manager.get_combat_multiplier())
-	
-	var trophy_mult = 1.0
-	if bm:
-		var dmg_mult = (max(1.0, bm.get_trophy_buff("kinetic_dmg")) + max(1.0, bm.get_trophy_buff("energy_dmg"))) * 0.5
-		var speed_mult = max(1.0, bm.get_trophy_buff("ship_speed"))
-		trophy_mult = dmg_mult * speed_mult
-	
-	return clamp(combat_mult * processing_mult * research_speed_mult * warp_mult * trophy_mult, 1.0, 6.0)
+# v112: Removed dead get_external_progression_combat_mult() — a 6×-clamped
+# "enemy progression compensation" that had ZERO callers (verified repo-wide).
+# It was meant to scale enemies up to match player level/research/warp/trophy so
+# zones stayed hard, but it never ran. A TTK spike (scripts/sim/combat_spike.gd)
+# confirmed on-tier boss fights are already in the v106 ballpark WITHOUT it
+# (T7 ~15min, T10 ~24min on an unoptimized tier-matched Legendary loadout), and
+# scaling old zones back up would fight the genre's "re-clear fast once you out-
+# level it" power fantasy. If NG+/siege ever needs per-loop enemy scaling it
+# should be its own deliberate system, not this dead clamp. (Resolves the sanity
+# checklist "Multiplier clamps actually bind" item — answer: it didn't bind.)
 
 # v80.1: Formula-driven zones — 10 zones with proper research gates
 var zones = {

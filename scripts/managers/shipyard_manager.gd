@@ -1812,6 +1812,14 @@ func handle_module_defeat():
 				loadout[slot_idx] = custom_id
 				mid = custom_id
 		
+		# Guard: a loadout slot can reference a module id that's no longer in
+		# `modules` — e.g. the custom-instance id collision noted in the sanity
+		# checklist (custom_<base>_<ticks> can repeat under rapid losses when
+		# Time.get_ticks_msec() doesn't advance between conversions). An
+		# unguarded modules[mid] here hard-crashed the combat-loss path; skip
+		# the stale ref instead.
+		if not (mid in modules):
+			continue
 		var m = modules[mid]
 		var current_dur = m.get("durability", 100)
 		m["durability"] = max(0, current_dur - loss)
