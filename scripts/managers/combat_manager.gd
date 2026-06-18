@@ -1813,14 +1813,20 @@ func _execute_player_attack(weapon_idx: int):
 	# nothing" moment is never a mystery. No-op when ungated / not hardened.
 	if _tier_gate_on():
 		var _thz := int(current_enemy.get("tier_hardened", 0))
-		if _thz > 0 and not sm.module_pierces_tier(str(w.get("mid", "")), _thz):
-			p_atk_k *= TIER_FLOOR
-			p_atk_e *= TIER_FLOOR
-			p_atk_x *= TIER_FLOOR
-			p_atk_cryo *= TIER_FLOOR
-			if randf() < 0.12:
-				combat_events.append({"type": "resist", "text": "HARDENED", "color": Color(0.62, 0.72, 0.85), "side": "enemy"})
-				log_msg("HARDENED HULL — Sector %d armaments required." % _thz)
+		if _thz > 0:
+			# v115: graduated penetration vs the enemy's tier armor (honest, tunable),
+			# replacing the binary x TIER_FLOOR. Tier-matched gear = 1.0 (no-op); each
+			# tier under cuts damage hard. Log shows the ACTUAL % so it reads as an
+			# armor/penetration mismatch, not a mystery.
+			var _pen: float = sm.module_tier_penetration(str(w.get("mid", "")), _thz)
+			if _pen < 1.0:
+				p_atk_k *= _pen
+				p_atk_e *= _pen
+				p_atk_x *= _pen
+				p_atk_cryo *= _pen
+				if randf() < 0.12:
+					combat_events.append({"type": "resist", "text": "ARMORED", "color": Color(0.62, 0.72, 0.85), "side": "enemy"})
+					log_msg("LOW PENETRATION - Sector %d armor cuts your damage to %d%%." % [_thz, int(round(_pen * 100.0))])
 
 	var total_crit = sm.crit_chance + get_milestone_crit_bonus()
 	var res = resolve_damage(p_atk_k, p_atk_e, p_atk_x, enemy_shield, current_enemy["def"], current_zone.get("difficulty", 1), total_crit, true, p_atk_cryo, w.get("exotic_type", "cryo"))

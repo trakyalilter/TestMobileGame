@@ -18,11 +18,16 @@ const RARITY_LABELS = {
 }
 
 const RARITY_STAT_RANGE = {
-	Rarity.COMMON: [0.00, 0.00],    # 1.00x fixed — baseline crafted
-	Rarity.UNCOMMON: [0.30, 0.50],  # 1.30x–1.50x — within-zone upgrade
-	Rarity.RARE: [1.30, 1.65],      # 2.30x–2.65x — beats next zone Common (zone scale 2.2x)
-	Rarity.LEGENDARY: [2.00, 2.80], # 3.00x–3.80x — stays relevant into next zone
-	Rarity.UNIQUE: [3.50, 5.00],    # 4.50x–6.00x — replaced by N+1 Legendary
+	# v115: rarity COMPRESSED so a full tier step (~2.2x) out-scales every rarity
+	# below Unique -> Sector N Common > Sector N-1 Legendary by raw stats (kills the
+	# "my old Rare drop dominates the next-zone craft" dead-common problem). Rarity
+	# is now a within-tier bump + affixes; only UNIQUE still leapfrogs one tier (the
+	# jackpot skip-key). The honest penetration wall enforces it in combat.
+	Rarity.COMMON: [0.00, 0.00],    # 1.00x fixed - baseline crafted
+	Rarity.UNCOMMON: [0.10, 0.20],  # 1.10x-1.20x - within-zone upgrade
+	Rarity.RARE: [0.25, 0.45],      # 1.25x-1.45x - within-zone (< next-Common 2.2x)
+	Rarity.LEGENDARY: [0.55, 0.85], # 1.55x-1.85x - best-in-zone, still < next Common
+	Rarity.UNIQUE: [1.40, 2.20],    # 2.40x-3.20x - jackpot: leapfrogs ONE tier, then retires
 }
 
 # v114 (Zone Tier-Gate): the per-zone signature alloy each Z2-Z10 common module
@@ -1582,13 +1587,27 @@ func construct_hull(hull_id: String) -> bool:
 	# free slot on the new hull. equip_module() enforces type / energy /
 	# uniqueness, so anything that no longer fits simply stays in inventory
 	# (never lost) instead of forcing a full manual re-equip.
+	#
+	# Batteries FIRST: capacity is battery-derived (hulls supply 0) and the
+	# step-wise equip checks power per module — placing a consumer before any
+	# battery tests it against 0 capacity, which rejects it (and used to spam
+	# the power warning once per consumer), silently dropping modules that
+	# actually fit. Equip silently: internal migration, the ship-status
+	# indicator reports the final power state once.
+	var _carry_ordered: Array = []
 	for _mid in _carry:
+		if _mid in modules and modules[_mid].get("slot_type", "") == "battery":
+			_carry_ordered.append(_mid)
+	for _mid in _carry:
+		if not (_mid in modules and modules[_mid].get("slot_type", "") == "battery"):
+			_carry_ordered.append(_mid)
+	for _mid in _carry_ordered:
 		if not _mid in modules:
 			continue
 		var _mtype = modules[_mid].get("slot_type", "")
 		for _s in range(hull_data["slots"].size()):
 			if loadout.get(_s) == null and hull_data["slots"][_s] == _mtype:
-				if module_inventory.get(_mid, 0) > 0 and equip_module(_s, _mid):
+				if module_inventory.get(_mid, 0) > 0 and equip_module(_s, _mid, true):
 					break
 
 	# Recalculate to get new max_hp
@@ -1676,8 +1695,10 @@ func craft_module(module_id: String) -> bool:
 	inventory_updated.emit() # Fix: Signal for UI update
 	return true
 
-func equip_module(slot_idx: int, module_id: String) -> bool:
-	# Used by Designer UI
+func equip_module(slot_idx: int, module_id: String, silent: bool = false) -> bool:
+	# Used by Designer UI. silent=true for internal bulk re-equip (hull switch,
+	# preset load): suppresses per-step power/research toasts — the final
+	# recalc + ship-status indicator reports the real power state once.
 	if not active_hull in hulls:
 		print("Equip Fail: Active hull not found or invalid.")
 		return false
@@ -1696,7 +1717,8 @@ func equip_module(slot_idx: int, module_id: String) -> bool:
 	var status = can_equip_module(module_id)
 	if not status["can_equip"]:
 		print("Equip Fail: ", status["reason"])
-		UITheme.show_notification(status["reason"], Color.RED)
+		if not silent:
+			UITheme.show_notification(status["reason"], Color.RED)
 		return false
 		
 	var mod_data = modules[module_id]
@@ -1751,7 +1773,8 @@ func equip_module(slot_idx: int, module_id: String) -> bool:
 		var new_margin = new_cap - new_load
 		# Allow only if this equip improves the margin (anti-softlock).
 		if new_margin <= old_margin + 0.1:
-			UITheme.show_notification("Power %d / %d — equip more (or higher-tier) Battery modules first." % [int(round(new_load)), int(round(new_cap))], Color(1.0, 0.45, 0.35))
+			if not silent:
+				UITheme.show_notification("Power %d / %d — equip more (or higher-tier) Battery modules first." % [int(round(new_load)), int(round(new_cap))], Color(1.0, 0.45, 0.35))
 			return false
 
 	# Unequip existing
@@ -2565,6 +2588,13 @@ func generate_module_drop(base_module_id: String, rarity: int = Rarity.UNCOMMON,
 		"rarity": rarity,
 		"base_module": base_module_id,
 		"zone_difficulty": max(1, zone_difficulty),
+		# v115 FIX: carry the base module's TIER onto the drop so the tier-gate
+		# (get_module_tier / module_tier_penetration) reads it. Without this, rolled
+		# drops had no zone/power_tier -> get_module_tier()=0 -> every drop (even a
+		# tier-matched Legendary, and the Unique skip-key) was treated as tier 0 and
+		# could NEVER pierce a hardened enemy.
+		"zone": int(base.get("zone", max(1, zone_difficulty))),
+		"power_tier": int(base.get("power_tier", base.get("zone", max(1, zone_difficulty)))),
 		"affixes": custom_affixes,
 		"greater_affixes": greater_affixes, # v85.2: Track GA affixes
 		"sockets": sockets,
@@ -2612,18 +2642,32 @@ func get_module_tier(module_id: String) -> int:
 	var m = modules.get(module_id, {})
 	return int(m.get("power_tier", m.get("zone", 0)))
 
-# Does this module pierce a tier_hardened: z enemy? Tier-z+ gear pierces (the craft
-# path); a Unique exactly one zone below pierces too (the jackpot skip-key — ONE
-# zone only). Everything else is floored. z<=0 = not hardened → always pierces.
-func module_pierces_tier(module_id: String, z: int) -> bool:
+# v115: HONEST tier wall. A module's penetration vs a tier_hardened: z enemy is a
+# GRADUATED curve on the tier deficit -- readable as a penetration-vs-armor mismatch
+# (the cards show the numbers), not an arbitrary binary flag, and tunable hard<->soft
+# with ONE knob. Replaces the old all-or-nothing x TIER_FLOOR floor.
+#   eff_tier = get_module_tier (+1 if Unique -- superior penetration, the skip-key)
+#   deficit  = z - eff_tier
+#   deficit <= 0 -> 1.0 (tier-matched or better: full effect)
+#   deficit >= 1 -> TIER_PEN_PER_TIER ^ deficit, floored at TIER_PEN_FLOOR
+# TIER_PEN_PER_TIER IS the hard<->soft dial: 0.15 = HARD (1 under -> 15%, 2 -> 2.25%);
+# 0.35 = medium; 0.55 = soft (1 under -> 55%, brute-forceable). Sim-tune, never hand-wave.
+const TIER_PEN_PER_TIER := 0.15
+const TIER_PEN_FLOOR := 0.02
+func module_tier_penetration(module_id: String, z: int) -> float:
 	if z <= 0:
-		return true
+		return 1.0
 	var mt := get_module_tier(module_id)
-	if mt >= z:
-		return true
-	if mt == z - 1 and get_module_rarity(module_id) == Rarity.UNIQUE:
-		return true
-	return false
+	if get_module_rarity(module_id) == Rarity.UNIQUE:
+		mt += 1   # Unique = superior penetration -> the one-zone jackpot skip-key
+	var deficit := z - mt
+	if deficit <= 0:
+		return 1.0
+	return max(TIER_PEN_FLOOR, pow(TIER_PEN_PER_TIER, deficit))
+
+# Boolean form kept for UI badges / callers that just need "fully pierces?".
+func module_pierces_tier(module_id: String, z: int) -> bool:
+	return module_tier_penetration(module_id, z) >= 1.0
 
 # Defensive half of the gate: the fraction of armor / shield retained vs a
 # tier_hardened: z enemy. Sub-tier ARMOR/SHIELD modules keep only `floor_f` (~0.02)
@@ -2641,7 +2685,9 @@ func get_tier_defense_factors(z: int, floor_f: float) -> Dictionary:
 	for mid in loadout.values():
 		if mid and mid in modules:
 			var st = modules[mid].get("slot_type", "")
-			var f: float = 1.0 if module_pierces_tier(mid, z) else floor_f
+			# v115: graduated penetration, mirrors the offense wall (floor_f kept for
+			# signature compat; the curve carries its own TIER_PEN_FLOOR).
+			var f: float = module_tier_penetration(mid, z)
 			if st == "armor":
 				var d: float = modules[mid]["stats"].get("def", 0)
 				arm_full += d
@@ -2855,16 +2901,29 @@ func load_loadout_preset(idx: int) -> Dictionary:
 		if loadout.get(slot):
 			unequip_slot(slot)
 
-	# Step 2: Equip preset modules in order. equip_module handles inventory
-	# accounting, slot-type validation, energy capacity, and research gates.
+	# Step 2: Equip preset modules. equip_module handles inventory accounting,
+	# slot-type validation, energy capacity, and research gates. Batteries
+	# FIRST (establish capacity before consumers, else the per-step power check
+	# rejects consumers against 0 capacity) and silently (internal bulk equip —
+	# the returned loaded/skipped summary informs the player, not per-step
+	# toasts).
 	var loaded = 0
 	var skipped = 0
+	var _slot_order: Array = []
 	for raw_slot in preset["loadout"]:
+		var _bm = preset["loadout"][raw_slot]
+		if _bm != null and _bm != "" and _bm in modules and modules[_bm].get("slot_type", "") == "battery":
+			_slot_order.append(raw_slot)
+	for raw_slot in preset["loadout"]:
+		var _bm = preset["loadout"][raw_slot]
+		if not (_bm != null and _bm != "" and _bm in modules and modules[_bm].get("slot_type", "") == "battery"):
+			_slot_order.append(raw_slot)
+	for raw_slot in _slot_order:
 		var slot_idx = int(raw_slot)
 		var mid = preset["loadout"][raw_slot]
 		if mid == null or mid == "":
 			continue
-		if equip_module(slot_idx, mid):
+		if equip_module(slot_idx, mid, true):
 			loaded += 1
 		else:
 			skipped += 1
