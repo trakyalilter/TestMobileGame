@@ -1540,13 +1540,11 @@ func rebuild_storage():
 	_spatial.begin()
 
 	var inv = manager.module_inventory
-	# v111.17: never show currently-equipped modules in the Armory. Build the set
-	# of equipped module ids from the loadout and skip them below.
-	var equipped_ids := {}
-	for _s in manager.loadout:
-		var _eq = manager.loadout[_s]
-		if _eq != null and _eq != "":
-			equipped_ids[_eq] = true
+	# module_inventory holds only UNEQUIPPED copies — equip_module decrements the
+	# stack on equip and unequip increments it back — so the count is already the
+	# spare count. (The old v111.17 "skip any id that also appears in loadout" hid
+	# the whole stack when one copy was equipped, vanishing legitimate spares:
+	# 1 Mass Driver equipped + 6 in storage rendered as 0. Don't skip.)
 	var sorted_mids = inv.keys()
 	sorted_mids.sort_custom(func(a, b):
 		var data_a = manager.modules.get(a, {})
@@ -1564,8 +1562,6 @@ func rebuild_storage():
 	)
 
 	for module_id in sorted_mids:
-		if module_id in equipped_ids:
-			continue   # equipped modules are hidden from the Armory
 		var module_count = inv[module_id]
 		if module_count > 0 and module_id in manager.modules:
 			var module_data = manager.modules[module_id]
@@ -1782,15 +1778,10 @@ func _build_filter_counts() -> Dictionary:
 		return counts
 
 	var inv = manager.module_inventory
-	# Mirror rebuild_storage: equipped modules are hidden, so don't count them.
-	var equipped_ids := {}
-	for _s in manager.loadout:
-		var _eq = manager.loadout[_s]
-		if _eq != null and _eq != "":
-			equipped_ids[_eq] = true
+	# Mirror rebuild_storage: the inventory count already excludes equipped copies
+	# (decremented on equip), so count every stack that has spares — don't skip an
+	# id just because it's also equipped, or a 1-equipped/N-spare stack vanishes.
 	for module_id in inv.keys():
-		if module_id in equipped_ids:
-			continue
 		var qty = int(inv[module_id])
 		if qty <= 0 or not manager.modules.has(module_id):
 			continue
