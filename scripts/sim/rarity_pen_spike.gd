@@ -258,54 +258,41 @@ func _amp(r: float) -> float:
 	return r
 
 # ---------------------------------------------------------------------------
-# SECTION 5: matrix cores socketed into a module slot. Verifies a socketed gem's
-# bonus reaches COMBAT, not just the display aggregate. Crimson = atk_kinetic_mult
-# (applied to sm.attack_kinetic in recalc_stats); but per-weapon combat reads raw
-# module stats (dmg_k), so this checks whether offensive sockets do real damage.
+# SECTION 5 (v118): matrix-core TYPE-MATCHING. The SAME core yields a different
+# facet by host slot category. Verifies the Phase-1 aggregation: Crimson in a
+# weapon -> crit_damage (offense); in armor -> damage_reduction (defense), NEVER
+# offense; in engine -> heat_eff (utility). (Phase 2 wires facets into combat.)
 func _section_cores(sm, cm) -> void:
-	print("[RPS] ##### SECTION 5: MATRIX CORES socketed into a weapon slot #####")
-	var mid: String = sm.generate_module_drop("z5_kinetic", R_LEGENDARY, 5)
-	var socks: Array = sm.modules.get(mid, {}).get("sockets", [])
-	if mid == "" or socks.size() == 0:
-		print("[RPS] (no socketed Legendary generated - skip)")
-		return
+	print("[RPS] ##### SECTION 5: MATRIX CORE FACETS (v118 type-matching) #####")
+	GameState.resources.add_element("PristineCrimsonCore", 3)
+	# Pristine Crimson: weapon crit_damage 0.30 / defense damage_reduction 0.06 / utility heat_eff 0.20
+	var wb: Dictionary = _socket_and_aggregate(sm, sm.generate_module_drop("z5_kinetic", R_LEGENDARY, 5), "PristineCrimsonCore")
+	print("[RPS] Crimson in WEAPON -> %s" % str(wb))
+	_chk("Crimson/weapon = crit_damage 0.30 (offense facet)", abs(float(wb.get("crit_damage", 0.0)) - 0.30) < 0.001)
+	_chk("Crimson/weapon has NO defense bonus", not wb.has("damage_reduction"))
+	var ab: Dictionary = _socket_and_aggregate(sm, sm.generate_module_drop("z5_armor", R_LEGENDARY, 5), "PristineCrimsonCore")
+	print("[RPS] Crimson in ARMOR  -> %s" % str(ab))
+	_chk("Crimson/armor = damage_reduction 0.06 (defense facet)", abs(float(ab.get("damage_reduction", 0.0)) - 0.06) < 0.001)
+	_chk("Crimson/armor has NO offense (no aggro on armor)", not ab.has("crit_damage"))
+	var eb: Dictionary = _socket_and_aggregate(sm, sm.generate_module_drop("z5_engine", R_LEGENDARY, 5), "PristineCrimsonCore")
+	if not eb.is_empty():
+		print("[RPS] Crimson in ENGINE -> %s" % str(eb))
+		_chk("Crimson/engine = heat_eff 0.20 (utility facet)", abs(float(eb.get("heat_eff", 0.0)) - 0.20) < 0.001)
+		_chk("Crimson/engine has NO offense", not eb.has("crit_damage"))
+
+# Equip a single socketed module, insert one core, recalc, return a copy of the
+# resulting gem_bonuses (the facet chosen by the host slot category).
+func _socket_and_aggregate(sm, mid: String, core: String) -> Dictionary:
+	if mid == "" or sm.modules.get(mid, {}).get("sockets", []).size() == 0:
+		return {}
 	var hull_id: String = ""
 	for h in sm.hulls:
 		hull_id = str(h)
 		break
 	sm.active_hull = hull_id
 	sm.loadout = {0: mid}
-	sm.recalc_stats()
-	cm._rebuild_player_weapon_states()
-	var atk0: float = float(sm.attack_kinetic)
-	var dmg0: float = _weapon_dmg_k(cm)
-	GameState.resources.add_element("PristineCrimsonCore", 1)
-	var ok: bool = sm.insert_gem(mid, 0, "PristineCrimsonCore")
-	cm._rebuild_player_weapon_states()
-	var atk1: float = float(sm.attack_kinetic)
-	var dmg1: float = _weapon_dmg_k(cm)
-	var ar: float = (atk1 / atk0) if atk0 > 0.0 else 0.0
-	var dr: float = (dmg1 / dmg0) if dmg0 > 0.0 else 0.0
-	print("[RPS] PristineCrimson (atk_kinetic_mult 0.10) inserted: ok=%s" % str(ok))
-	print("[RPS]   display  sm.attack_kinetic : %.1f -> %.1f  (x%.3f)" % [atk0, atk1, ar])
-	print("[RPS]   COMBAT   weapon dmg_k      : %.1f -> %.1f  (x%.3f)" % [dmg0, dmg1, dr])
-	_chk("Crimson reaches DISPLAY attack_kinetic (~+10%)", abs(ar - 1.10) < 0.03)
-	_chk("Crimson reaches COMBAT dmg_k (~+10%) -- socket must do real damage", abs(dr - 1.10) < 0.03)
-	# contrast: defensive cores feed combat aggregates the engine actually reads
-	if socks.size() >= 2:
-		var hp0: float = float(sm.max_hp)
-		GameState.resources.add_element("PristineAmethystCore", 1)
-		sm.insert_gem(mid, 1, "PristineAmethystCore")
-		var hp1: float = float(sm.max_hp)
-		var hr: float = (hp1 / hp0) if hp0 > 0.0 else 0.0
-		print("[RPS]   Amethyst hp_mult: max_hp %.0f -> %.0f  (x%.3f)" % [hp0, hp1, hr])
-		_chk("Amethyst reaches COMBAT max_hp (~+10%, defensive cores DO work)", abs(hr - 1.10) < 0.03)
-
-func _weapon_dmg_k(cm) -> float:
-	for w in cm.player_weapon_states:
-		if float(w.get("dmg_k", 0.0)) > 0.0:
-			return float(w["dmg_k"])
-	return 0.0
+	sm.insert_gem(mid, 0, core)
+	return sm.gem_bonuses.duplicate(true)
 
 # ---------------------------------------------------------------------------
 func _dps_max(sm, base_id: String, rarity: int, zone: int, samples: int) -> float:
