@@ -265,7 +265,7 @@ func _amp(r: float) -> float:
 func _section_cores(sm, cm) -> void:
 	print("[RPS] ##### SECTION 5: MATRIX CORE FACETS (v118 type-matching) #####")
 	GameState.resources.add_element("PristineCrimsonCore", 3)
-	# Pristine Crimson: weapon crit_damage 0.30 / defense damage_reduction 0.06 / utility heat_eff 0.20
+	# Pristine Crimson: weapon crit_damage 0.30 / defense damage_reduction 0.06 / utility ammo_eff 0.20
 	var wb: Dictionary = _socket_and_aggregate(sm, sm.generate_module_drop("z5_kinetic", R_LEGENDARY, 5), "PristineCrimsonCore")
 	print("[RPS] Crimson in WEAPON -> %s" % str(wb))
 	_chk("Crimson/weapon = crit_damage 0.30 (offense facet)", abs(float(wb.get("crit_damage", 0.0)) - 0.30) < 0.001)
@@ -277,7 +277,7 @@ func _section_cores(sm, cm) -> void:
 	var eb: Dictionary = _socket_and_aggregate(sm, sm.generate_module_drop("z5_engine", R_LEGENDARY, 5), "PristineCrimsonCore")
 	if not eb.is_empty():
 		print("[RPS] Crimson in ENGINE -> %s" % str(eb))
-		_chk("Crimson/engine = heat_eff 0.20 (utility facet)", abs(float(eb.get("heat_eff", 0.0)) - 0.20) < 0.001)
+		_chk("Crimson/engine = ammo_eff 0.20 (utility facet)", abs(float(eb.get("ammo_eff", 0.0)) - 0.20) < 0.001)
 		_chk("Crimson/engine has NO offense", not eb.has("crit_damage"))
 
 # Equip a single socketed module, insert one core, recalc, return a copy of the
