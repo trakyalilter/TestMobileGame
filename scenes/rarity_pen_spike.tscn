@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/sim/rarity_pen_spike.gd" id="1_rpspike"]
+
+[node name="RarityPenSpike" type="Node"]
+script = ExtResource("1_rpspike")

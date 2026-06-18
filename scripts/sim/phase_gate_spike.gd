@@ -203,6 +203,14 @@ func _boot() -> void:
 	_eq_b("tier3 UNIQUE vs Z4 pierces (skip-key)", smT.module_pierces_tier("__t_uniq_z3", 4), true)
 	_eq_b("tier3 UNIQUE vs Z5 FLOORED (Z-2, one zone only)", smT.module_pierces_tier("__t_uniq_z3", 5), false)
 
+	# v115: graduated penetration curve (the honest, tunable wall). Knob = 0.15/tier.
+	_eq_b("pen tier3 vs Z3 = 1.0 (matched)", abs(smT.module_tier_penetration("__t_common_z3", 3) - 1.0) < 0.0001, true)
+	_eq_b("pen tier3 vs Z4 = 0.15 (1 under)", abs(smT.module_tier_penetration("__t_common_z3", 4) - 0.15) < 0.0001, true)
+	_eq_b("pen tier3 vs Z5 = 0.0225 (2 under)", abs(smT.module_tier_penetration("__t_common_z3", 5) - 0.0225) < 0.0001, true)
+	_eq_b("pen tier3 vs Z7 floored 0.02 (deep deficit)", abs(smT.module_tier_penetration("__t_common_z3", 7) - 0.02) < 0.0001, true)
+	_eq_b("pen UNIQUE tier3 vs Z4 = 1.0 (skip-key +1 pen)", abs(smT.module_tier_penetration("__t_uniq_z3", 4) - 1.0) < 0.0001, true)
+	_eq_b("pen UNIQUE tier3 vs Z5 = 0.15 (1 under after +1)", abs(smT.module_tier_penetration("__t_uniq_z3", 5) - 0.15) < 0.0001, true)
+
 	print("[PHASE] ---- v114 defense factors (sub-tier armor/shield floored) ----")
 	smT.modules["__t_arm_z2"] = {"zone": 2, "slot_type": "armor", "stats": {"def": 100}}
 	smT.modules["__t_arm_z5"] = {"zone": 5, "slot_type": "armor", "stats": {"def": 100}}
@@ -249,7 +257,8 @@ func _boot() -> void:
 	cm.current_zone = cm.zones["cryofield"]
 	cm.target_enemy_id = "z4_frost_hulk"
 	cm.spawn_enemy()
-	_eq_b("gate ON + sub-tier armor: def factor floored ~0.02", abs(cm._tier_def_factor - 0.02) < 0.001, true)
+	# v115: graduated penetration - z2 armor is 2 tiers under Z4 = 0.15^2 = 0.0225.
+	_eq_b("gate ON + sub-tier armor: def factor ~0.0225 (2 tiers under)", abs(cm._tier_def_factor - 0.0225) < 0.001, true)
 	# Gate OFF → no flooring even against a hardened-band enemy.
 	GameState.game_settings["tier_gate_enabled"] = false
 	cm.spawn_enemy()
