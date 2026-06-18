@@ -1579,11 +1579,18 @@ func _gen_sid() -> String:
 ## Max difficulty from zones whose research gate is unlocked (ref _get_max_difficulty).
 func standing_max_diff() -> int:
 	var md := 1
+	# v0.2.1: a zone counts as reachable only if BOTH its research gate AND its
+	# unlock-flag gate are met. Z11 has an empty research_req (it gates via
+	# unlock_flag "z11_unlocked"), so the old req=="" check let brand-new players
+	# roll T10-T11 orders. Cap at 10 — reward tables only define tiers 1-10.
 	for z in GameData.ZONES:
 		var req: String = z.get("research_req", "")
-		if req == "" or is_research_unlocked(req):
+		var flag: String = z.get("unlock_flag", "")
+		var research_ok: bool = req == "" or is_research_unlocked(req)
+		var flag_ok: bool = flag == "" or game_flags.get(flag, false)
+		if research_ok and flag_ok:
 			md = maxi(md, int(z.get("difficulty", 1)))
-	return md
+	return mini(md, 10)
 
 func _standing_fill() -> void:
 	var attempts := 0
@@ -3645,10 +3652,13 @@ func _migrate_module_resources() -> void:
 	for sym in to_remove:
 		resources.erase(sym)
 
-func _roll_loot(loot: Array, mult: float, flat: int = 0, log_session: bool = false) -> void:
+func _roll_loot(loot: Array, mult: float, flat: int = 0, log_session: bool = false, deterministic: bool = false) -> void:
 	for row in loot:
 		if randf() < float(row[1]):
-			var amt := maxi(1, int(round((randi_range(int(row[2]), int(row[3])) + flat) * mult)))
+			# v0.2.1 deterministic gather yield: quantity is the fixed value (top of
+			# range), not a min-max roll. Combat keeps its range RNG (deterministic=false).
+			var base_q := int(row[3]) if deterministic else randi_range(int(row[2]), int(row[3]))
+			var amt := maxi(1, int(round((base_q + flat) * mult)))
 			if row[0] == "credits":
 				# v109 Recursive Acquisition (wealth_focus): +5%/level Lira from combat.
 				var cr := int(amt * credit_reward_mult())
@@ -3753,7 +3763,7 @@ func building_rate_text(bid: String) -> String:
 func _complete_active() -> void:
 	if active_type == "gather":
 		var a: Dictionary = GameData.GATHER[active_id]
-		_roll_loot(a.get("loot", []), yield_mult("harvesting"), int(research_bonus("gathering_yield")))
+		_roll_loot(a.get("loot", []), yield_mult("harvesting"), int(research_bonus("gathering_yield")), false, true)
 		add_xp("harvesting", int(a.get("xp", 0)))
 		gain_mastery_xp(active_id)                          # per-action Mastery: +1 per loop
 	elif active_type == "craft":
@@ -3812,7 +3822,7 @@ func _apply_offline(delta: float) -> void:
 
 	if active_type == "gather":
 		var a: Dictionary = GameData.GATHER[active_id]
-		var summary := _offline_loot(a.get("loot", []), yield_mult("harvesting"), reps)
+		var summary := _offline_loot(a.get("loot", []), yield_mult("harvesting"), reps, false, true)
 		add_xp("harvesting", int(a.get("xp", 0)) * reps)
 		gain_mastery_xp(active_id, float(reps))             # batch Mastery for offline loops
 		pending_offline = "Away for %s\n\n%s\nHarvesting XP\t+%d" % [_fmt_time(delta), summary, int(a.get("xp", 0)) * reps]
@@ -3838,14 +3848,17 @@ func _apply_offline(delta: float) -> void:
 		gain_mastery_xp(active_id, float(count))            # batch Mastery for offline loops
 		pending_offline = "Away for %s\n%s\nEngineering XP\t+%d" % [_fmt_time(delta), summary, int(r.get("xp", 0)) * count]
 
-func _offline_loot(loot: Array, mult: float, reps: int, log_session: bool = false) -> String:
+func _offline_loot(loot: Array, mult: float, reps: int, log_session: bool = false, deterministic: bool = false) -> String:
 	# Returns tab-delimited "Name\t+Qty" rows joined by newlines, so the report
 	# modal can render a clean two-column list instead of a run-on paragraph.
 	# When log_session is set (offline combat), also feed the SALVAGE THIS RUN
 	# tally so returning players see what they farmed while away.
 	var rows := []
 	for row in loot:
-		var avg: float = (int(row[2]) + int(row[3])) / 2.0 * float(row[1])
+		# Deterministic gather: per-drop quantity is the fixed max, so expected
+		# value is max * chance (matches the closed-form desktop v0.2.1 offline).
+		var per: float = float(int(row[3])) if deterministic else (int(row[2]) + int(row[3])) / 2.0
+		var avg: float = per * float(row[1])
 		var got := int(round(avg * mult * reps))
 		if got > 0:
 			if row[0] == "credits":
