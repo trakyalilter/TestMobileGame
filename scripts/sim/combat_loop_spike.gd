@@ -36,6 +36,7 @@ func _boot() -> void:
 	_test_ammo(cm, sm)
 	_test_restore_on_kill(cm, sm)
 	_test_death(cm, sm)   # last: lose_fight mutates module durability
+	_probe_heat(cm, sm)
 
 	print("[CLS] ============================================================")
 	print("[CLS] RESULT: %d passed, %d failed" % [_pass, _fail])
@@ -217,6 +218,83 @@ func _test_restore_on_kill(cm, sm) -> void:
 	sm.gem_bonuses = {}
 
 # ---------------------------------------------------------------------------
+# Measurement (not pass/fail): does heat throttle sustained fire? Heat is a FIXED
+# mechanic (cap 100, vent 8 — nothing in gear/research raises them) while heat/shot
+# = 2 + dmg/100 GROWS with weapon damage. So uptime should fall as damage scales.
+func _probe_heat(cm, sm) -> void:
+	print("[CLS] ##### HEAT-REMOVED GUARD: high-dmg weapons must fire at full uptime (no heat throttle) #####")
+	print("[CLS]   (pre-removal, z10 sat at 0%% uptime — overheated on shot 1 and never fired)")
+	var specs: Array = [
+		{"w": "z1_kinetic", "a": "SlugT1", "n": 1},
+		{"w": "z10_kinetic", "a": "SlugT4", "n": 1},
+		{"w": "z10_kinetic", "a": "SlugT4", "n": 6},
+	]
+	for spec in specs:
+		seed(4242)
+		var hot: Dictionary = _heat_run(cm, sm, str(spec["w"]), str(spec["a"]), 30.0, int(spec["n"]), false)
+		seed(4242)
+		var cold: Dictionary = _heat_run(cm, sm, str(spec["w"]), str(spec["a"]), 30.0, int(spec["n"]), true)
+		var ratio: float = (float(hot["shots"]) / float(cold["shots"]) if float(cold["shots"]) > 0.0 else 1.0)
+		print("[CLS] %-12s x%d  heat/shot=%-4.0f : fired %4.0f vs %4.0f baseline = %3.0f%% uptime  (peak_heat=%.0f  locks=%d)" % [
+			spec["w"], int(spec["n"]), hot["hps"], hot["shots"], cold["shots"], ratio * 100.0, hot["peak"], hot["locks"]])
+		_chk("%s x%d fires at full uptime (heat removed)" % [str(spec["w"]), int(spec["n"])], ratio > 0.9)
+
+func _heat_run(cm, sm, base: String, ammo: String, secs: float, n_weapons: int, neutralize: bool) -> Dictionary:
+	var blank: Dictionary = {"shots": 0.0, "hps": 0.0, "peak": 0.0, "locks": 0}
+	if not (base in sm.modules):
+		return blank
+	var hull_id: String = ""
+	for h in sm.hulls:
+		hull_id = str(h)
+		break
+	sm.active_hull = hull_id
+	sm.loadout = {0: base}
+	sm.ammo_loadout = {0: ammo}
+	GameState.resources.add_element(ammo, 100000000)
+	sm.recalc_stats()
+	sm.energy_capacity = 1000000000.0
+	sm.energy_used = 0
+	sm.gem_bonuses = {}
+	cm._rebuild_player_weapon_states()
+	if cm.player_weapon_states.is_empty():
+		return blank
+	# simulate a full weapon bay: N identical weapons all pooling into ONE heat bar
+	var base_state: Dictionary = cm.player_weapon_states[0].duplicate(true)
+	cm.player_weapon_states.clear()
+	for k in range(maxi(1, n_weapons)):
+		cm.player_weapon_states.append(base_state.duplicate(true))
+	cm.player_heat = 0.0
+	cm.overheat_lock = 0.0
+	# heat-OFF baseline lifts the ceiling so the lock can never fire; heat-ON uses the real defaults
+	cm.player_max_heat = (1.0e9 if neutralize else 100.0)
+	cm.player_vent_rate = 8.0
+	cm.is_jammed = false
+	cm.in_combat = true
+	cm.current_zone = {"difficulty": 1, "id": "", "enemies": []}
+	cm.current_zone_id = ""
+	cm.current_enemy = _kin_enemy(0, 0)
+	cm.enemy_hp = 1.0e9         # precision-safe: small enough that low per-hit dmg still registers
+	cm.enemy_max_hp = 1.0e9
+	cm.enemy_shield = 0
+	var interval: float = maxf(0.3, float(base_state["interval"]))
+	var dmg: float = float(base_state["dmg_k"]) + float(base_state["dmg_e"]) + float(base_state["dmg_x"]) + float(base_state.get("dmg_cryo", 0.0))
+	var hps: float = 2.0 + dmg / 100.0
+	var a0: float = GameState.resources.get_element_amount(ammo)
+	var peak: float = 0.0
+	var locks: int = 0
+	var was_locked: bool = false
+	var dt: float = 0.1
+	for i in range(int(secs / dt)):
+		sm.energy_used = 0
+		cm.enemy_hp = 1.0e9     # keep the enemy alive so win_fight/respawn never fires
+		cm.process_tick(dt)
+		peak = maxf(peak, float(cm.player_heat))
+		if cm.overheat_lock > 0.0 and not was_locked:
+			locks += 1
+		was_locked = cm.overheat_lock > 0.0
+	var shots: float = a0 - GameState.resources.get_element_amount(ammo)
+	return {"shots": shots, "hps": hps, "peak": peak, "locks": locks}
+
 func _chk(label: String, cond: bool) -> void:
 	if cond:
 		_pass += 1
