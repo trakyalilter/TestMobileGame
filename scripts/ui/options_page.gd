@@ -788,8 +788,8 @@ func _on_test_force_warp_pressed() -> void:
 	# v111: mirror execute_warp's Cryo unlock — grant the starter pistol + flag.
 	GameState.game_settings["cryo_unlocked"] = true
 	var sm = GameState.shipyard_manager
-	if sm and sm.module_inventory.get("cryo_shard_pistol", 0) <= 0:
-		sm.grant_module("cryo_shard_pistol")
+	if sm and sm.module_inventory.get("cryo_lance", 0) <= 0:
+		sm.grant_module("cryo_lance")  # v113: debug grants a USABLE Cryo weapon (real warp grants none)
 	wm.warped.emit(1)   # repaints Warp page + reveals branch if threshold crossed
 	# Sidebar visibility only re-evaluates on page-switch, so force a refresh
 	# now — otherwise the newly-unlocked Warp tab won't appear in the nav
@@ -918,7 +918,19 @@ func _on_save_btn_pressed() -> void:
 
 
 func _on_reset_btn_pressed() -> void:
-	$ConfirmationDialog.popup_centered()
+	# v112: themed modal (was the primitive Window ConfirmationDialog).
+	var body := "Delete your save and restart from scratch?\n\n"
+	body += "[color=#f06b6b]Everything is wiped — Liras, ships, research, Warp Mastery, prestige.[/color]\n\n"
+	body += "[color=#ffb454][b]⚠  This cannot be undone.[/b][/color]"
+	UITheme.show_confirm({
+		"title": "Confirm Hard Reset",
+		"body": body,
+		"confirm_text": "Yes, Delete Everything",
+		"cancel_text": "Cancel",
+		"accent": Color(0.95, 0.40, 0.40),   # alarm red frame
+		"danger": true,
+		"on_confirm": Callable(self, "_on_confirmation_dialog_confirmed"),
+	})
 
 
 func _on_confirmation_dialog_confirmed() -> void:

@@ -104,23 +104,45 @@ func execute_warp():
 		GameState.resources.add_element(res, base_resources[res] * current_bonus_shards)
 
 	# v111: Cryo unlock — Warping permanently grants Cryogenic armaments,
-	# the key to the Z11 "Warp-Hardened" gate. First Warp grants a starter
-	# Cryo Shard Pistol (~Z1 power) that proves the concept without
-	# trivializing the Z1-Z10 re-climb. Better Cryo weapons are CRAFTED
-	# with ExoticMatter (research: cryo_armaments). Runs AFTER
-	# shipyard_manager.reset() so the granted weapon survives.
+	# the key to the Z11 "Warp-Hardened" gate. v113: NO free weapon is granted --
+	# every Cryo weapon is CRAFTED from Cryo Catalyst (Sector 10) + research
+	# (cryo_armaments), the Cryo Repeater first. The Forge Cryogenic Arms mission
+	# guides research -> craft -> breach; this flag just opens the research.
 	GameState.game_settings["cryo_unlocked"] = true
 	var sm = GameState.shipyard_manager
-	if sm and sm.module_inventory.get("cryo_shard_pistol", 0) <= 0:
-		sm.grant_module("cryo_shard_pistol")
+
+	# v113 (NG+): Z11 "The Threshold" is warp-gated. Clearing the Z10 boss arms
+	# z10_cleared; THIS Warp (which also grants Cryo above) breaches Sector 11 --
+	# so the player always has Cryo the instant Z11 appears. Mirrors the
+	# clear-boss -> Warp -> next-zone pattern used for Z11 -> Z12.
+	if GameState.game_settings.get("z10_cleared", false) and not GameState.game_settings.get("z11_unlocked", false):
+		GameState.game_settings["z11_unlocked"] = true
+		if GameState.combat_manager:
+			GameState.combat_manager.zones_changed.emit()
+		if UITheme:
+			UITheme.show_notification("SECTOR 11 BREACHED - The Threshold. Conventional fire barely scratches these warp-hardened hulls; Cryo armaments are the key - craft stronger Cryo via Cryogenic Armaments research.", Color(0.55, 0.85, 1.0))
 
 	# v113 (NG+ P3): clear-gated frontier — if the Threshold Warden (Z11 boss) has
 	# been cleared, THIS Warp reveals Zone 12 "The Rift" (Corrosion tier). Mirrors
 	# the Z11-on-Z10-kill signpost; persists across future Warps (hard reset only).
 	if GameState.game_settings.get("z11_cleared", false) and not GameState.game_settings.get("z12_unlocked", false):
 		GameState.game_settings["z12_unlocked"] = true
+		if GameState.combat_manager:  # v113: refresh the sector list so Z12 shows
+			GameState.combat_manager.zones_changed.emit()
 		if UITheme:
 			UITheme.show_notification("⟨ SECTOR 12 UNLOCKED — THE RIFT ⟩  The Warp tears a corrosive frontier open. The Rift Warden gates it with Cryo then Corrosion phases — craft Corrosion Armaments and swap presets mid-fight.", Color(0.6, 0.9, 0.7))
+
+	# v113 (NG+ P2): Threshold Relics (master keys) persist across Warp. The reset
+	# above wiped the module inventory, so re-grant + re-equip any relic the player
+	# has earned (the "<id>_earned" game_settings flag, set on the boss's first
+	# clear). Cleared only on hard reset.
+	if sm:
+		for _mid in sm.modules:
+			if sm.modules[_mid].get("slot_type", "") == "relic" and GameState.game_settings.get(_mid + "_earned", false):
+				if sm.module_inventory.get(_mid, 0) <= 0:
+					sm.module_inventory[_mid] = 1
+				if sm.equipped_relic == "":
+					sm.equipped_relic = _mid
 
 	warped.emit(gains)
 	GameState.save_game()

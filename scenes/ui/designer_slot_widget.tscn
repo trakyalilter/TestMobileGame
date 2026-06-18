@@ -3,9 +3,12 @@
 [ext_resource type="Script" path="res://scripts/ui/designer_slot_widget.gd" id="1_script"]
 
 [node name="DesignerSlotWidget" type="PanelContainer"]
-custom_minimum_size = Vector2(124, 210)
+custom_minimum_size = Vector2(124, 124)
 offset_right = 124.0
-offset_bottom = 210.0
+offset_bottom = 124.0
+clip_contents = true
+size_flags_horizontal = 4
+size_flags_vertical = 4
 script = ExtResource("1_script")
 
 [node name="MarginContainer" type="MarginContainer" parent="."]

@@ -140,7 +140,7 @@ var ELEMENT_NAMES = {
 	"PirateManifest": "Pirate Manifest",
 	"PirateSalvage": "Pirate Salvage",
 	"MartianRelics": "Martian Relics",
-	"CryoEssence": "Cryo Essence",
+	"CryoEssence": "Glacial Essence",
 	"XenoFragment": "Xeno Fragment",
 	"ColonySalvage": "Colony Salvage",
 	"TurretCore": "Turret Core",
@@ -178,6 +178,7 @@ var ELEMENT_NAMES = {
 	"ChronoCore": "Chrono Core",
 	"OmegaPlating": "Omega Plating",
 	"PrimordialShard": "Primordial Shard",
+	"CryoCatalyst": "Cryo Catalyst",
 	
 	# P1-12: Endgame Crafted Items
 	"VoidBattery": "Void Battery",
@@ -195,7 +196,7 @@ var ELEMENT_NAMES = {
 	"Z1_Core": "Lunar Core",
 	"Z2_Core": "Asteroid Core",
 	"Z3_Core": "Debris Core",
-	"Z4_Core": "Cryofield Core",
+	"Z4_Core": "Glacier Core",
 	"Z5_Core": "Alpha Core",
 	"Z6_Core": "Beta Core",
 	"Z7_Core": "Gamma Core",
@@ -224,7 +225,7 @@ var CATEGORIES = {
 				"ColonyDataCore", "RadIsotope", "CryoCell",
 				"PirateSalvage", "MartianRelics", "CryoEssence", "XenoFragment"],
 	# Audit v4.0: Endgame category for ultimate items
-	"endgame": ["VoidEssence", "ChronoCore", "OmegaPlating", "PrimordialShard", 
+	"endgame": ["VoidEssence", "ChronoCore", "OmegaPlating", "PrimordialShard", "CryoCatalyst", 
 				"VoidBattery", "TemporalModule", "PrimordialArmor", "OmegaAccelerator"],
 	"boss_cores": ["Z1_Core", "Z2_Core", "Z3_Core", "Z4_Core", "Z5_Core", 
 					"Z6_Core", "Z7_Core", "Z8_Core", "Z9_Core", "Z10_Core"],

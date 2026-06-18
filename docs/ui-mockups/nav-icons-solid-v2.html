@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Horizon Idle — Solid Nav Icons (refined)</title>
+<style>
+  :root{ --bg:#0b0e16; --dim:#7f8aa8; --active:#e6f3ff; --accent:#61c7ff; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#14141f;color:#e6e6f2;
+    font-family:"Bahnschrift","Segoe UI Variable Display",Eurostile,Arial,sans-serif;padding:30px 28px 70px}
+  h1{font-size:19px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#fff}
+  .sub{font-size:12px;color:#9a9ab2;letter-spacing:.5px;margin:4px 0 22px;max-width:1000px;line-height:1.55}
+  .wrap{display:flex;gap:40px;flex-wrap:wrap;align-items:flex-start}
+
+  .bar{width:240px;background:#0b0e16;border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:8px 0}
+  .sec{font-size:9px;letter-spacing:2px;color:#48597a;padding:12px 0 5px 16px}
+  .row{display:flex;align-items:center;gap:11px;padding:7px 0 7px 14px;color:var(--dim);position:relative}
+  .row .ic{width:19px;height:19px;flex:none;--c:var(--dim);--bg:#0b0e16}
+  .row span{font-size:13px;letter-spacing:.3px}
+  .row.on{color:var(--active);background:rgba(26,34,55,.88)}
+  .row.on::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent)}
+  .row.on .ic{--c:var(--active)}
+  .tag{margin-left:auto;margin-right:12px;font-size:8px;letter-spacing:1px;color:#5bd6a0;
+    border:1px solid rgba(91,214,160,.4);border-radius:3px;padding:1px 4px}
+
+  .panel{display:flex;flex-direction:column;gap:6px}
+  .ptitle{font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#fff;margin-bottom:6px}
+  .big{display:flex;flex-wrap:wrap;gap:18px}
+  .bcell{display:flex;flex-direction:column;align-items:center;gap:6px;width:78px}
+  .bcell .ic{width:40px;height:40px;--c:#cfe0f5;--bg:#14141f}
+  .bcell.fix .ic{--c:#9fe7c4}
+  .bcell small{font-size:9px;color:#9a9ab2;letter-spacing:.5px;text-align:center}
+  .bcell.fix small{color:#5bd6a0}
+
+  /* SOLID render: filled silhouette + etched (bg-stroke) detail seams */
+  .ic .prim{fill:var(--c);stroke:none;fill-rule:evenodd}
+  .ic .det{fill:none;stroke:var(--bg);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+</style>
+</head>
+<body>
+  <h1>Solid Nav Icons — Refined</h1>
+  <div class="sub">Your 4 notes addressed (marked <span style="color:#5bd6a0">FIXED</span>): pickaxe tilted CCW · gear now a true symmetric 8-tooth cog · Shipyard is a rocket-in-gantry (space dock, not a naval anchor) · Combat is a starfighter firing (space combat, not a sword duel). Shown in-sidebar at ~19px + large.</div>
+
+  <div class="wrap">
+    <div class="panel">
+      <div class="ptitle">In sidebar · ~19px</div>
+      <div class="bar">
+        <div class="sec">OPERATIONS</div>
+        <div class="row"><svg class="ic" viewBox="0 0 24 24" data-i="flag"></svg><span>Missions</span></div>
+        <div class="row"><svg class="ic" viewBox="0 0 24 24" data-i="mine"></svg><span>Mine</span><span class="tag">FIXED</span></div>
+        <div class="row"><svg class="ic" viewBox="0 0 24 24" data-i="gear"></svg><span>Engineering</span><span class="tag">FIXED</span></div>
+        <div class="row"><svg class="ic" viewBox="0 0 24 24" data-i="flask"></svg><span>Research Lab</span></div>
+        <div class="sec">SHIP</div>
+        <div class="row"><svg class="ic" viewBox="0 0 24 24" data-i="shipyard"></svg><span>Shipyard</span><span class="tag">FIXED</span></div>
+        <div class="row"><svg class="ic" viewBox="0 0 24 24" data-i="designer"></svg><span>Ship Designer</span></div>
+        <div class="row on"><svg class="ic" viewBox="0 0 24 24" data-i="combat"></svg><span>Combat</span><span class="tag">FIXED</span></div>
+        <div class="sec">REFERENCE</div>
+        <div class="row"><svg class="ic" viewBox="0 0 24 24" data-i="box"></svg><span>Inventory</span></div>
+        <div class="row"><svg class="ic" viewBox="0 0 24 24" data-i="book"></svg><span>Atlas</span></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="ptitle">Large — the 4 fixes</div>
+      <div class="big" id="bigfix"></div>
+      <div class="ptitle" style="margin-top:22px">Unchanged (for cohesion)</div>
+      <div class="big" id="bigrest"></div>
+    </div>
+  </div>
+
+<script>
+function gearPath(cx,cy,teeth,rO,rI,twFrac){
+  const step=Math.PI*2/teeth, half=step/2, to=half*twFrac;
+  let p=[];
+  for(let i=0;i<teeth;i++){
+    const a=i*step;
+    p.push([cx+Math.cos(a-half)*rI, cy+Math.sin(a-half)*rI]);
+    p.push([cx+Math.cos(a-to)*rO,   cy+Math.sin(a-to)*rO]);
+    p.push([cx+Math.cos(a+to)*rO,   cy+Math.sin(a+to)*rO]);
+    p.push([cx+Math.cos(a+half)*rI, cy+Math.sin(a+half)*rI]);
+  }
+  return 'M'+p.map(q=>q[0].toFixed(2)+' '+q[1].toFixed(2)).join(' L')+' Z';
+}
+// center hole (reverse winding via evenodd) so the gear reads as a cog
+const gearHole = 'M8.6 12 a3.4 3.4 0 1 0 6.8 0 a3.4 3.4 0 1 0 -6.8 0';
+
+const G = {
+  flag: `<g class="prim"><rect x="6" y="3" width="2.2" height="18" rx="1"/><path d="M8.2 4 H18.5 L15.3 8 L18.5 12 H8.2 Z"/></g>`,
+
+  // FIXED — pickaxe tilted counter-clockwise
+  mine: `<g class="prim" transform="rotate(-18 12 12)">
+           <path d="M3 9.4 Q12 3.4 21 9.4 L20.2 11.5 Q12 6 3.8 11.5 Z"/>
+           <rect x="10.9" y="8.6" width="2.2" height="12.6" rx="1"/>
+         </g>`,
+
+  // FIXED — symmetric generated gear with a real centre hole
+  gear: `<g class="prim"><path d="${gearPath(12,12,8,10,6.8,0.52)} ${gearHole}"/></g>`,
+
+  flask: `<g class="prim"><path d="M9.2 3 H14.8 V4.6 H13.4 V9.4 L18.8 18.6 Q20 21 17.2 21 H6.8 Q4 21 5.2 18.6 L10.6 9.4 V4.6 H9.2 Z"/></g>
+          <g class="det"><path d="M7.7 15 H16.3"/></g>`,
+
+  // FIXED — rocket in a gantry frame (space dock)
+  shipyard: `<g class="prim">
+      <path d="M12 2.4 Q14.3 4.6 14.3 8.6 L14.3 15 L16.7 19.6 L13 17.6 L11 17.6 L7.3 19.6 L9.7 15 L9.7 8.6 Q9.7 4.6 12 2.4 Z"/>
+      <path d="M4.2 5 H6 V7 H5.2 V17 H6 V19 H4.2 Z"/>
+      <path d="M19.8 5 H18 V7 H18.8 V17 H18 V19 H19.8 Z"/>
+    </g>
+    <g class="det"><path d="M10.6 8.6 a1.5 1.5 0 1 0 3 0 a1.5 1.5 0 1 0 -3 0"/></g>`,
+
+  designer: `<g class="prim"><path d="M3.5 3.5 H20.5 V20.5 H3.5 Z M11 5 H5 V11 H11 Z M19 5 H13 V11 H19 Z M11 13 H5 V19 H11 Z M19 13 H13 V19 H19 Z"/></g>`,
+
+  // FIXED — starfighter firing twin bolts (space combat)
+  combat: `<g class="prim">
+      <path d="M12 4 L18.5 19 L12 15.4 L5.5 19 Z"/>
+      <rect x="7.6" y="1.5" width="1.9" height="6" rx="0.9" transform="rotate(-10 8.55 4.5)"/>
+      <rect x="14.5" y="1.5" width="1.9" height="6" rx="0.9" transform="rotate(10 15.45 4.5)"/>
+    </g>
+    <g class="det"><path d="M12 9.5 V13.5"/></g>`,
+
+  box: `<g class="prim"><path d="M12 2.4 L20.6 6.9 L20.6 17.1 L12 21.6 L3.4 17.1 L3.4 6.9 Z"/></g>
+        <g class="det"><path d="M12 11.5 L12 21.6 M12 11.5 L3.4 6.9 M12 11.5 L20.6 6.9"/></g>`,
+
+  book: `<g class="prim"><path d="M12 5.3 Q7.4 2.7 3.3 4.1 V18.9 Q7.4 17.5 12 20 Q16.6 17.5 20.7 18.9 V4.1 Q16.6 2.7 12 5.3 Z"/></g>
+         <g class="det"><path d="M12 5.3 V20"/></g>`,
+};
+
+document.querySelectorAll('svg.ic[data-i]').forEach(s => s.innerHTML = G[s.dataset.i]);
+
+const fixed = {mine:'Mine', gear:'Engineering', shipyard:'Shipyard', combat:'Combat'};
+const rest  = {flag:'Missions', flask:'Research', designer:'Designer', box:'Inventory', book:'Atlas'};
+function fill(id, set, isFix){
+  const host = document.getElementById(id);
+  for(const [k,name] of Object.entries(set)){
+    const c = document.createElement('div'); c.className = 'bcell'+(isFix?' fix':'');
+    c.innerHTML = `<svg class="ic" viewBox="0 0 24 24">${G[k]}</svg><small>${name}</small>`;
+    host.appendChild(c);
+  }
+}
+fill('bigfix', fixed, true);
+fill('bigrest', rest, false);
+</script>
+</body>
+</html>

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Horizon Idle — Schematic Icons v2</title>
+<style>
+  :root{ --bg:#14141f; --text:#e6e6f2; --dim:#9a9ab2; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:radial-gradient(120% 80% at 70% 0%,#1b1b2b,var(--bg) 60%);color:var(--text);
+    font-family:"Bahnschrift","Segoe UI Variable Display",Eurostile,Arial,sans-serif;padding:30px 26px 80px}
+  h1{font-size:19px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#fff}
+  .sub{font-size:12px;color:var(--dim);letter-spacing:1px;margin:4px 0 6px;max-width:1000px;line-height:1.55}
+  .changed{font-size:12px;color:#bfe9ff;letter-spacing:.5px;margin:10px 0 4px;max-width:1000px;line-height:1.6}
+  .changed b{color:#fff}
+  table{border-collapse:separate;margin-top:14px}
+  th{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);padding:0 22px 14px;font-weight:600}
+  th .big{display:block;color:#fff;font-size:13px;letter-spacing:2px}
+  td{padding:11px 22px;text-align:center;vertical-align:middle;border-top:1px solid rgba(255,255,255,.05)}
+  .rowlabel{text-align:left;font-size:12px;letter-spacing:1px;color:#fff;white-space:nowrap}
+  .rowlabel small{display:block;color:var(--dim);font-size:10px;letter-spacing:1px;text-transform:uppercase}
+
+  .chip{width:66px;height:66px;border-radius:7px;display:inline-grid;place-items:center;position:relative;
+    border:1px solid rgba(255,255,255,.10)}
+  .chip svg{width:50px;height:50px;display:block;filter:drop-shadow(0 0 3px var(--glow))}
+  .mini{width:34px;height:34px;border-radius:5px;display:inline-grid;place-items:center;margin-left:12px;
+    border:1px solid rgba(255,255,255,.08);vertical-align:middle}
+  .mini svg{width:25px;height:25px;filter:drop-shadow(0 0 2px var(--glow))}
+  .legend{font-size:11px;color:var(--dim);margin-top:4px}
+
+  /* schematic stroke system: primary bright outline, secondary dim detail */
+  .s svg [data-p]{stroke:var(--ico);stroke-width:4;fill:var(--fill);stroke-linejoin:round;stroke-linecap:round}
+  .s svg [data-d]{stroke:var(--ico);stroke-width:2.4;fill:none;opacity:.55;stroke-linejoin:round;stroke-linecap:round}
+  .s svg [data-n]{fill:var(--ico);stroke:none}
+  .mini svg [data-p]{stroke-width:5;fill:var(--fill)}
+  .mini svg [data-d]{display:none}      /* drop fine detail at grid size */
+  .mini svg [data-n]{display:none}
+</style>
+</head>
+<body>
+  <h1>Schematic Icons — Refined (v2)</h1>
+  <div class="sub">The line direction, pushed from "blueprint diagram" toward "powered HUD readout" so it survives the armory grid and reads as loot, not a wiring chart. Big = ~50px · the chip beside it = ~25px (real grid size).</div>
+  <div class="changed">What changed vs v1 → <b>heavier two-weight stroke</b> (bright 4px silhouette + dim 2.4px inner detail = depth without a solid fill) · <b>faint inner fill</b> gives the glyph body so it's not hollow · <b>vertex nodes</b> at structural corners (targeting-computer character) · <b>soft glow</b> so it reads as projected, not printed · at 24px the fine detail + nodes auto-drop and the stroke thickens, so it never turns to mush.</div>
+
+  <table>
+    <tr><th></th><th><span class="big">REFINED</span>~50px</th><th><span class="big">GRID</span>~25px</th><th></th></tr>
+
+    <!-- WEAPON KINETIC -->
+    <tr class="s" style="--slot:#eba852;--ico:#fcdfb0;--fill:rgba(235,168,82,.15);--glow:rgba(235,168,82,.55);--emb:#3a2a13">
+      <td class="rowlabel">Weapon<small>Kinetic</small></td>
+      <td><span class="chip" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+        <rect data-p x="10" y="26" width="30" height="14" rx="2"/>
+        <path data-p d="M40 29 H55 V37 H40 Z"/>
+        <path data-p d="M17 40 V49 H26 V40"/>
+        <line data-d x1="15" y1="33" x2="35" y2="33"/>
+        <circle data-n cx="55" cy="33" r="2.6"/><circle data-n cx="13" cy="29" r="2.2"/></svg></span></td>
+      <td><span class="mini" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+        <rect data-p x="10" y="26" width="30" height="14" rx="2"/><path data-p d="M40 29 H55 V37 H40 Z"/><path data-p d="M17 40 V49 H26 V40"/></svg></span></td>
+      <td class="legend">barrel + receiver + grip</td>
+    </tr>
+
+    <!-- SHIELD -->
+    <tr class="s" style="--slot:#80b8f2;--ico:#cfe3fb;--fill:rgba(128,184,242,.16);--glow:rgba(128,184,242,.55);--emb:#1d3047">
+      <td class="rowlabel">Shield<small>Deflector</small></td>
+      <td><span class="chip" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+        <path data-p d="M32 7 L52 16 V33 Q52 49 32 57 Q12 49 12 33 V16 Z"/>
+        <path data-d d="M32 16 L44 21.5 V33 Q44 43 32 48 Q20 43 20 33 V21.5 Z"/>
+        <path data-d d="M26 32 l4 5 9-12"/>
+        <circle data-n cx="32" cy="7" r="2.6"/><circle data-n cx="12" cy="16" r="2.2"/><circle data-n cx="52" cy="16" r="2.2"/></svg></span></td>
+      <td><span class="mini" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+        <path data-p d="M32 7 L52 16 V33 Q52 49 32 57 Q12 49 12 33 V16 Z"/></svg></span></td>
+      <td class="legend">plate + inner ring + check</td>
+    </tr>
+
+    <!-- AMMO -->
+    <tr class="s" style="--slot:#e09957;--ico:#fbd4ab;--fill:rgba(224,153,87,.15);--glow:rgba(224,153,87,.5);--emb:#382613">
+      <td class="rowlabel">Ammo<small>Munitions</small></td>
+      <td><span class="chip" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+        <path data-p d="M25 16 Q32 7 39 16 V44 H25 Z"/>
+        <path data-p d="M24 44 H40 V52 H24 Z"/>
+        <line data-d x1="25" y1="40" x2="39" y2="40"/>
+        <line data-d x1="32" y1="20" x2="32" y2="38"/>
+        <circle data-n cx="32" cy="10" r="2.4"/></svg></span></td>
+      <td><span class="mini" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+        <path data-p d="M25 16 Q32 7 39 16 V44 H25 Z"/><path data-p d="M24 44 H40 V52 H24 Z"/></svg></span></td>
+      <td class="legend">single bold shell</td>
+    </tr>
+
+    <!-- HULL REPAIR -->
+    <tr class="s" style="--slot:#e98b6a;--ico:#ffd2c2;--fill:rgba(233,139,106,.16);--glow:rgba(233,139,106,.5);--emb:#3a1c14">
+      <td class="rowlabel">Hull Repair<small>Consumable</small></td>
+      <td><span class="chip" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+        <polygon data-p points="32,8 52,19 52,45 32,56 12,45 12,19"/>
+        <path data-d d="M28 24 H36 V31 H43 V37 H36 V44 H28 V37 H21 V31 H28 Z"/>
+        <circle data-n cx="32" cy="8" r="2.4"/><circle data-n cx="52" cy="19" r="2.1"/><circle data-n cx="52" cy="45" r="2.1"/>
+        <circle data-n cx="32" cy="56" r="2.4"/><circle data-n cx="12" cy="45" r="2.1"/><circle data-n cx="12" cy="19" r="2.1"/></svg></span></td>
+      <td><span class="mini" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+        <polygon data-p points="32,8 52,19 52,45 32,56 12,45 12,19"/>
+        <path data-d style="display:block;opacity:1;stroke-width:5" d="M28 24 H36 V31 H43 V37 H36 V44 H28 V37 H21 V31 H28 Z"/></svg></span></td>
+      <td class="legend">hex node-frame + cross</td>
+    </tr>
+
+    <!-- ENGINE -->
+    <tr class="s" style="--slot:#d6c96e;--ico:#f4ecc0;--fill:rgba(214,201,110,.15);--glow:rgba(214,201,110,.5);--emb:#3a3517">
+      <td class="rowlabel">Engine<small>Propulsion</small></td>
+      <td><span class="chip" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+        <path data-p d="M26 10 H38 L43 36 H21 Z"/>
+        <path data-p d="M22 36 H42 V41 H22 Z"/>
+        <path data-d d="M27 43 l2.5 10 2.5-6 2.5 6 2.5-10"/>
+        <line data-d x1="29" y1="18" x2="35" y2="18"/>
+        <circle data-n cx="26" cy="10" r="2.3"/><circle data-n cx="38" cy="10" r="2.3"/></svg></span></td>
+      <td><span class="mini" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+        <path data-p d="M26 10 H38 L43 36 H21 Z"/><path data-p d="M22 36 H42 V41 H22 Z"/></svg></span></td>
+      <td class="legend">nozzle + thrust plume</td>
+    </tr>
+
+    <!-- SENSOR -->
+    <tr class="s" style="--slot:#a69478;--ico:#e9ddc7;--fill:rgba(166,148,120,.14);--glow:rgba(166,148,120,.5);--emb:#2c281f">
+      <td class="rowlabel">Sensor<small>Targeting</small></td>
+      <td><span class="chip" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+        <circle data-p cx="32" cy="32" r="21"/>
+        <circle data-d cx="32" cy="32" r="12"/>
+        <path data-d d="M32 11 V20 M32 44 V53 M11 32 H20 M44 32 H53"/>
+        <line data-d x1="32" y1="32" x2="49" y2="20"/>
+        <circle data-n cx="32" cy="32" r="3.4"/></svg></span></td>
+      <td><span class="mini" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+        <circle data-p cx="32" cy="32" r="21"/><circle data-n style="display:block" cx="32" cy="32" r="5"/></svg></span></td>
+      <td class="legend">dish + sweep + crosshair</td>
+    </tr>
+  </table>
+
+  <!-- TUNING STRIP -->
+  <div class="changed" style="margin-top:30px">How far to push it — pick the dial (shield, shown big):</div>
+  <table>
+    <tr><th><span class="big">A</span>outline only</th><th><span class="big">B</span>+ inner fill</th><th><span class="big">C</span>+ fill + nodes + glow</th></tr>
+    <tr>
+      <td style="--slot:#80b8f2;--ico:#cfe3fb;--fill:none;--glow:transparent;--emb:#1d3047">
+        <span class="chip" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+          <path data-p style="fill:none" d="M32 7 L52 16 V33 Q52 49 32 57 Q12 49 12 33 V16 Z"/>
+          <path data-d d="M32 16 L44 21.5 V33 Q44 43 32 48 Q20 43 20 33 V21.5 Z"/></svg></span>
+      </td>
+      <td style="--slot:#80b8f2;--ico:#cfe3fb;--fill:rgba(128,184,242,.16);--glow:transparent;--emb:#1d3047">
+        <span class="chip" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+          <path data-p d="M32 7 L52 16 V33 Q52 49 32 57 Q12 49 12 33 V16 Z"/>
+          <path data-d d="M32 16 L44 21.5 V33 Q44 43 32 48 Q20 43 20 33 V21.5 Z"/></svg></span>
+      </td>
+      <td style="--slot:#80b8f2;--ico:#cfe3fb;--fill:rgba(128,184,242,.16);--glow:rgba(128,184,242,.6);--emb:#1d3047">
+        <span class="chip" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+          <path data-p d="M32 7 L52 16 V33 Q52 49 32 57 Q12 49 12 33 V16 Z"/>
+          <path data-d d="M32 16 L44 21.5 V33 Q44 43 32 48 Q20 43 20 33 V21.5 Z"/>
+          <path data-d d="M26 32 l4 5 9-12"/>
+          <circle data-n cx="32" cy="7" r="2.6"/><circle data-n cx="12" cy="16" r="2.2"/><circle data-n cx="52" cy="16" r="2.2"/></svg></span>
+      </td>
+    </tr>
+  </table>
+  <div class="legend" style="margin-top:14px">Note: the <b>glow</b> is shown here via CSS; Godot's SVG rasterizer (thorvg) doesn't do blur filters, so in-engine the glow would be applied at the Godot layer (a soft duplicate behind the icon, or on the emblem) — cheap and optional. Everything else (two-weight strokes, inner fill, nodes) bakes straight into the SVG.</div>
+</body>
+</html>

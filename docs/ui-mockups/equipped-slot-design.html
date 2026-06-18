@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Horizon Idle — Equipped Module Slot</title>
+<style>
+  :root{
+    --bg:#14141f; --socket:#0a0e16; --dim:#8b93a8;
+    --leg:#ffcc00;        /* Legendary — Vivid Gold (RARITY_COLORS) */
+    --rare:#0099ff; --common:#b3b3b3; --unique:#ff33cc;
+    --crimson:#ff4444;    /* matrix core */
+    --wpn:#eba852;        /* weapon slot accent */
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:radial-gradient(120% 80% at 70% 0%,#1b1b2b,var(--bg) 60%);color:#e6e6f2;
+    font-family:"Bahnschrift","Segoe UI Variable Display",Eurostile,Arial,sans-serif;padding:30px 28px 70px}
+  h1{font-size:19px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#fff}
+  .sub{font-size:12px;color:#9a9ab2;letter-spacing:.5px;margin:4px 0 8px;max-width:1000px;line-height:1.55}
+  .cat{font-size:12px;letter-spacing:3px;text-transform:uppercase;color:#ffe07a;margin:26px 0 14px;
+    border-bottom:1px solid rgba(255,255,255,.08);padding-bottom:6px}
+  .row{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start}
+  .stack{display:flex;flex-direction:column;align-items:center;gap:8px}
+  .caption{font-size:11px;color:var(--dim);letter-spacing:1px}
+
+  /* ===== the square slot ===== */
+  .slot{
+    width:158px;height:158px;            /* SQUARE — fixed, never changes */
+    position:relative;border-radius:7px;
+    background:linear-gradient(180deg,#161a26,#0e1119);
+    border:1px solid rgba(120,140,175,.35);
+    display:flex;flex-direction:column;align-items:center;
+    padding:9px 8px 7px;overflow:hidden;
+  }
+  .slot.lg{width:200px;height:200px;padding:12px 10px 9px}
+
+  /* rarity framing: border colour + glow, NO text label */
+  .slot.r-common{border-color:rgba(179,179,179,.55)}
+  .slot.r-rare  {border-color:var(--rare);box-shadow:0 0 12px rgba(0,153,255,.30),inset 0 0 10px rgba(0,153,255,.10)}
+  .slot.r-leg   {border-color:var(--leg);box-shadow:0 0 16px rgba(255,204,0,.38),inset 0 0 12px rgba(255,204,0,.12)}
+  .slot.r-leg::before{ /* legendary corner ticks */
+    content:"";position:absolute;inset:3px;border-radius:5px;pointer-events:none;
+    background:
+      linear-gradient(var(--leg),var(--leg)) left top/14px 2px no-repeat,
+      linear-gradient(var(--leg),var(--leg)) left top/2px 14px no-repeat,
+      linear-gradient(var(--leg),var(--leg)) right top/14px 2px no-repeat,
+      linear-gradient(var(--leg),var(--leg)) right top/2px 14px no-repeat,
+      linear-gradient(var(--leg),var(--leg)) left bottom/14px 2px no-repeat,
+      linear-gradient(var(--leg),var(--leg)) left bottom/2px 14px no-repeat,
+      linear-gradient(var(--leg),var(--leg)) right bottom/14px 2px no-repeat,
+      linear-gradient(var(--leg),var(--leg)) right bottom/2px 14px no-repeat;
+    opacity:.9}
+
+  /* empty slot */
+  .slot.empty{border-style:dashed;border-color:rgba(120,140,175,.30);background:#0c0f17}
+  .slot.empty .emptymark{margin:auto;color:#3f495f;font-size:11px;letter-spacing:2px}
+
+  /* NAME (top) — clean module name, rarity-tinted, no rarity word */
+  .nm{font-size:12px;font-weight:600;line-height:1.18;text-align:center;letter-spacing:.4px;
+    height:30px;display:flex;align-items:center;justify-content:center}
+  .lg .nm{font-size:14px;height:36px}
+  .r-leg .nm{color:#ffe79a}
+  .r-rare .nm{color:#bfe0ff}
+  .r-common .nm{color:#dfe2ea}
+
+  /* ICON (centre) on a dark emblem chip */
+  .emblem{flex:1;display:flex;align-items:center;justify-content:center;width:100%}
+  .chip{width:52px;height:52px;border-radius:8px;display:grid;place-items:center;
+    background:#0c1018;border:1px solid rgba(120,140,175,.30)}
+  .lg .chip{width:66px;height:66px}
+  .chip svg{width:74%;height:74%;display:block}
+  .chip svg .p{fill:#ffffff;fill-opacity:.16;stroke:#ffffff;stroke-width:4;stroke-linejoin:round;stroke-linecap:round}
+  .chip svg .d{fill:none;stroke:#ffffff;stroke-width:2.4;stroke-opacity:.55;stroke-linecap:round}
+  .chip svg .n{fill:#ffffff}
+  /* weapon icon picks up a warm tint; legendary nudges toward gold */
+  .r-leg .chip svg{filter:drop-shadow(0 0 4px rgba(255,204,0,.5))}
+  .r-leg .chip{border-color:rgba(255,204,0,.4)}
+
+  /* SOCKETS (lower) — matrix-core diamonds, filled or hollow */
+  .sockets{display:flex;gap:9px;justify-content:center;padding:4px 0 5px}
+  .sock{width:14px;height:14px;transform:rotate(45deg);border-radius:2px}
+  .lg .sock{width:16px;height:16px}
+  .sock.filled{background:var(--crimson);box-shadow:0 0 6px rgba(255,68,68,.6);border:1px solid #ffb0b0}
+  .sock.empty{background:rgba(0,0,0,.45);border:1px solid rgba(150,165,190,.7)}
+
+  /* UNEQUIP (bottom) */
+  .uneq{font-size:11px;letter-spacing:1px;color:#ff7a6e;padding:2px 0;cursor:pointer}
+  .uneq:hover{color:#ff9b91}
+
+  .note{font-size:11px;color:var(--dim);margin-top:6px;max-width:900px;line-height:1.5}
+</style>
+</head>
+<body>
+  <h1>Equipped Module Slot — Square Redesign</h1>
+  <div class="sub">Your spec: square slot · Name (no rarity word) → Icon → Matrix-Core Sockets → Unequip. Rarity is shown by the <b>frame colour + glow</b>, not text. Slots stay a fixed square in every state (empty / any rarity) — that's requirement #1.</div>
+
+  <!-- HERO: the legendary weapon -->
+  <div class="cat">Legendary Weapon — equipped (showcase)</div>
+  <div class="row" style="align-items:center">
+    <div class="stack">
+      <div class="slot lg r-leg">
+        <div class="nm">Phased Railgun<br>Mk.III</div>
+        <div class="emblem"><div class="chip"><svg viewBox="0 0 64 64">
+          <rect class="p" x="10" y="26" width="30" height="14" rx="2"/>
+          <path class="p" d="M40 29 H55 V37 H40 Z"/>
+          <path class="p" d="M17 40 V49 H26 V40"/>
+          <line class="d" x1="15" y1="33" x2="35" y2="33"/>
+          <circle class="n" cx="55" cy="33" r="2.6"/><circle class="n" cx="13" cy="29" r="2.2"/>
+        </svg></div></div>
+        <div class="sockets"><span class="sock filled"></span><span class="sock empty"></span></div>
+        <div class="uneq">✕ Unequip</div>
+      </div>
+      <div class="caption">200 × 200</div>
+    </div>
+
+    <div class="note" style="max-width:420px">
+      <b>Top</b> — clean name (“Phased Railgun Mk.III”), gold-tinted; the gold frame already says <i>legendary</i>, so no “Legendary” text.<br><br>
+      <b>Centre</b> — the schematic weapon icon on a dark emblem, with a faint gold halo on legendary.<br><br>
+      <b>Lower</b> — Matrix-Core sockets (here: 1 filled crimson core + 1 empty). Click a socket to slot/remove a core.<br><br>
+      <b>Bottom</b> — Unequip.<br><br>
+      Frame: gold border + glow + corner ticks. Durability / repair move to right-click + hover (off the face), keeping it to your four elements.
+    </div>
+  </div>
+
+  <!-- CONSISTENCY: same square in every state -->
+  <div class="cat">Same square size in every state (requirement #1)</div>
+  <div class="row">
+    <div class="stack">
+      <div class="slot empty"><div class="emptymark">+ EMPTY</div></div>
+      <div class="caption">Empty</div>
+    </div>
+    <div class="stack">
+      <div class="slot r-common">
+        <div class="nm">Mass Driver<br>Mk.I</div>
+        <div class="emblem"><div class="chip"><svg viewBox="0 0 64 64">
+          <rect class="p" x="10" y="26" width="30" height="14" rx="2"/><path class="p" d="M40 29 H55 V37 H40 Z"/>
+          <path class="p" d="M17 40 V49 H26 V40"/><circle class="n" cx="55" cy="33" r="2.6"/></svg></div></div>
+        <div class="sockets"><span class="sock empty"></span></div>
+        <div class="uneq">✕ Unequip</div>
+      </div>
+      <div class="caption">Common</div>
+    </div>
+    <div class="stack">
+      <div class="slot r-rare">
+        <div class="nm">Conductive<br>Railgun Mk.II</div>
+        <div class="emblem"><div class="chip"><svg viewBox="0 0 64 64">
+          <rect class="p" x="11" y="27" width="20" height="12" rx="2"/><path class="p" d="M31 27 L45 22 L45 44 L31 39 Z"/>
+          <path class="d" d="M48 26 q5 7 0 14"/><circle class="n" cx="45" cy="33" r="2.4"/></svg></div></div>
+        <div class="sockets"><span class="sock filled"></span><span class="sock empty"></span></div>
+        <div class="uneq">✕ Unequip</div>
+      </div>
+      <div class="caption">Rare</div>
+    </div>
+    <div class="stack">
+      <div class="slot r-leg">
+        <div class="nm">Phased Railgun<br>Mk.III</div>
+        <div class="emblem"><div class="chip"><svg viewBox="0 0 64 64">
+          <rect class="p" x="10" y="26" width="30" height="14" rx="2"/><path class="p" d="M40 29 H55 V37 H40 Z"/>
+          <path class="p" d="M17 40 V49 H26 V40"/><line class="d" x1="15" y1="33" x2="35" y2="33"/>
+          <circle class="n" cx="55" cy="33" r="2.6"/><circle class="n" cx="13" cy="29" r="2.2"/></svg></div></div>
+        <div class="sockets"><span class="sock filled"></span><span class="sock empty"></span></div>
+        <div class="uneq">✕ Unequip</div>
+      </div>
+      <div class="caption">Legendary</div>
+    </div>
+  </div>
+  <div class="note">All four are the exact same 158×158 square — equipped or empty, common or legendary, the slot never resizes. Name is clipped to a fixed 2-line zone so a long name can't grow the card.</div>
+
+</body>
+</html>

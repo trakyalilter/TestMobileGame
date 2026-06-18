@@ -41,7 +41,7 @@ var graphs = {
 	},
 	"Automation": {
 		"nodes": [
-			"industrial_logistics", "automated_logistics", "mass_production_tactics",
+			"industrial_logistics", "automated_logistics",
 			"industrial_automation", "molecular_recycling", "colony_automation", "perfect_automation",
 			"fast_centrifuges", "maglev_bearings", "quantum_separators", "advanced_mineralogy",
 			"automation", "nano_fabrication", "xeno_engineering",
@@ -53,7 +53,7 @@ var graphs = {
 	"Ships": {
 		"nodes": [
 			"shipwright_1", "shipwright_2", "molecular_printing",
-			"capital_ship_engineering", "capital_ship_armament", "quantum_dynamics",
+			"capital_ship_armament", "quantum_dynamics",
 			"warp_drive",
 		],
 		"container": null
@@ -65,7 +65,13 @@ var graphs = {
 			"energy_shields", "field_theory", "shield_harmonics", "hull_hardening", "core_overclocking",
 			"auto_repair_20", "auto_repair_40", "auto_repair_60", "auto_repair_80",
 			"void_weaponry_1", "void_shielding_1",
-			"combat_heuristics", "cryo_armaments",
+			"combat_heuristics",
+		],
+		"container": null
+	},
+	"Warp Tech": {
+		"nodes": [
+			"cryo_armaments", "corrosion_armaments",
 		],
 		"container": null
 	},
@@ -74,7 +80,7 @@ var graphs = {
 			"zone_2_access", "zone_3_access", "zone_4_access", "zone_5_access", "zone_6_access",
 			"zone_7_access", "zone_8_access", "zone_9_access", "zone_10_access",
 			"sector_alpha_decryption", "deep_space_nav", "radiation_shielding",
-			"exotic_matter_analysis", "void_physics", "void_navigation", "xeno_archaeology",
+			"exotic_matter_analysis", "void_navigation", "xeno_archaeology",
 		],
 		"container": null
 	},
@@ -120,6 +126,7 @@ func _ready():
 	
 	call_deferred("build_graphs")
 	call_deferred("_on_mission_updated") # Initial check
+	call_deferred("_update_tab_visibility") # v113: hide all-gated tabs (e.g. Warp Tech pre-warp)
 
 func _on_resource_changed(_a=null, _b=null):
 	refresh_all()
@@ -245,6 +252,7 @@ func build_graphs():
 			node_widget.position = pos
 			node_widget.scale = Vector2(0.75, 0.75)
 			node_widget.setup(nid, data, manager, self)
+			node_widget.visible = not _is_node_hidden(nid)  # v113: tier-gated visibility
 			
 			# Approx size of scaled node (w=180, h=80 roughly)
 			max_pos.x = max(max_pos.x, pos.x + 200.0)
@@ -259,6 +267,15 @@ func build_graphs():
 		container.queue_redraw()
 
 # --- Dynamic Tree Layout Algorithm ---
+# v113 (NG+): a tech with requires_flag stays HIDDEN (not rendered) until that
+# game_settings flag is set — e.g. Corrosion Armaments appears only once Z12 is
+# unlocked, so the Warp Tech tab isn't cluttered with next-tier tech at Z11.
+func _is_node_hidden(nid: String) -> bool:
+	if not nid in manager.tech_tree: return false
+	if manager.is_tech_unlocked(nid): return false
+	var rf := str(manager.tech_tree[nid].get("requires_flag", ""))
+	return rf != "" and not GameState.game_settings.get(rf, false)
+
 func calculate_layout(nodes_list: Array) -> Dictionary:
 	var final_pos = {}
 	var local_tree = {} # { parent_id: [child_id, ...] }
@@ -387,6 +404,20 @@ func _draw_bezier_path(container: Control, p1: Vector2, p2: Vector2, color: Colo
 	# Draw Core Line
 	container.draw_polyline(points, color, 2.5, true)
 
+# v113 (NG+): hide a whole tab when every node in it is tier-gated-hidden — so
+# the Warp Tech tab doesn't show (empty) until the first warp reveals Cryogenic
+# Armaments, and so it reappears the moment cryo_unlocked / z12_unlocked flips.
+func _update_tab_visibility() -> void:
+	for i in range(tabs.get_tab_count()):
+		var ctrl = tabs.get_tab_control(i)
+		if ctrl == null or not (ctrl.name in graphs): continue
+		var all_hidden := true
+		for nid in graphs[ctrl.name]["nodes"]:
+			if not _is_node_hidden(nid):
+				all_hidden = false
+				break
+		tabs.set_tab_hidden(i, all_hidden)
+
 func refresh_all():
 	# Re-check states of all nodes
 	for tab_name in graphs:
@@ -395,6 +426,12 @@ func refresh_all():
 		for child in container.get_children():
 			if child.has_method("update_state"):
 				child.update_state()
+			# v113: tier-gated nodes show/hide as their flag flips (Cryogenic
+			# Armaments on first warp, Corrosion on Z12 unlock).
+			var _cnid = child.get("nid")
+			if _cnid != null:
+				child.visible = not _is_node_hidden(str(_cnid))
+	_update_tab_visibility()
 
 func get_coach_anchor(key: String) -> Control:
 	match key:

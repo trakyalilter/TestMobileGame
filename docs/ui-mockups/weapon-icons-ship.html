@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Horizon Idle — Ship Weapon Icons</title>
+<style>
+  :root{ --leg:#ffcc00; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:radial-gradient(120% 80% at 70% 0%,#1b1b2b,#14141f 60%);color:#e6e6f2;
+    font-family:"Bahnschrift","Segoe UI Variable Display",Eurostile,Arial,sans-serif;padding:30px 28px 70px}
+  h1{font-size:19px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#fff}
+  .sub{font-size:12px;color:#9a9ab2;letter-spacing:.5px;margin:4px 0 6px;max-width:1000px;line-height:1.55}
+  .note{font-size:12px;color:#bfe9ff;margin:10px 0 22px;max-width:1000px;line-height:1.6}
+  .note b{color:#fff}
+  .row{display:flex;gap:26px;flex-wrap:wrap}
+  .cell{display:flex;flex-direction:column;align-items:center;gap:10px}
+  .big{width:96px;height:96px;border-radius:8px;background:#10131c;border:1px solid rgba(120,140,175,.3);display:grid;place-items:center}
+  .big svg{width:76px;height:76px}
+  .slot{width:124px;height:124px;border-radius:7px;background:linear-gradient(180deg,#1c1708,#120f08);
+    border:1.5px solid var(--leg);box-shadow:0 0 14px rgba(255,204,0,.35);display:grid;place-items:center}
+  .emblem{width:56px;height:56px;border-radius:8px;background:#0c1018;border:1px solid rgba(255,204,0,.35);display:grid;place-items:center}
+  .emblem svg{width:42px;height:42px;filter:drop-shadow(0 0 3px rgba(255,204,0,.45))}
+  .nm{font-size:11px;color:#fff;letter-spacing:1px}
+  .nm small{display:block;color:#9a9ab2;font-size:9px;letter-spacing:.5px}
+  svg .p{fill:#fff;fill-opacity:.15;stroke:#fff;stroke-width:3.2;stroke-linejoin:round;stroke-linecap:round}
+  svg .d{fill:none;stroke:#fff;stroke-width:2.2;stroke-opacity:.6;stroke-linecap:round;stroke-linejoin:round}
+  svg .n{fill:#fff}
+</style>
+</head>
+<body>
+  <h1>Ship-Mounted Weapon Icons</h1>
+  <div class="sub">Hull hardpoint armaments — turret housings on a mount plate, heavy barrels, a missile pod. No grips, stocks or magazines.</div>
+  <div class="note">Kinetic = <b>twin-barrel railgun turret</b> on a mount. Energy = <b>beam turret</b>: focusing prongs + a beam firing up (no arcs). Explosive = <b>missile pod</b>: a launcher box with 4 tubes. Cryo = <b>cryo turret</b> with a crystal emitter.</div>
+
+  <div class="row" id="big"></div>
+  <div style="height:30px"></div>
+  <div class="row" id="slots"></div>
+
+<script>
+const W = {
+  kinetic: { name:'Kinetic', sub:'railgun turret · KIN',
+    svg:`<g class="p">
+       <path d="M14 51 H50 L45 45 H19 Z"/>
+       <path d="M20 45 Q20 32 32 32 Q44 32 44 45 Z"/>
+       <rect x="25.5" y="9" width="5" height="25" rx="1.5"/>
+       <rect x="33.5" y="9" width="5" height="25" rx="1.5"/>
+     </g>
+     <g class="n"><circle cx="28" cy="10.5" r="1.6"/><circle cx="36" cy="10.5" r="1.6"/></g>` },
+
+  energy: { name:'Energy', sub:'beam turret · NRG',
+    svg:`<g class="p">
+       <path d="M14 51 H50 L45 45 H19 Z"/>
+       <path d="M20 45 Q20 33 32 33 Q44 33 44 45 Z"/>
+       <path d="M28.5 34 L27.5 18 H36.5 L35.5 34 Z"/>
+     </g>
+     <g class="d"><path d="M27.5 18 L23 10 M36.5 18 L41 10"/><path d="M32 16 V4"/></g>
+     <g class="n"><circle cx="32" cy="17" r="1.9"/></g>` },
+
+  explosive: { name:'Explosive', sub:'missile pod · EXP',
+    svg:`<g class="p">
+       <path d="M13 52 H51 L46 47 H18 Z"/>
+       <rect x="15" y="13" width="34" height="34" rx="3"/>
+     </g>
+     <g class="d"><path d="M21 19 H43"/></g>
+     <g class="n">
+       <circle cx="25" cy="25" r="3"/><circle cx="39" cy="25" r="3"/>
+       <circle cx="25" cy="38" r="3"/><circle cx="39" cy="38" r="3"/>
+     </g>` },
+
+  cryo: { name:'Cryo', sub:'cryo turret · CRY',
+    svg:`<g class="p">
+       <path d="M14 51 H50 L45 45 H19 Z"/>
+       <path d="M20 45 Q20 33 32 33 Q44 33 44 45 Z"/>
+       <rect x="28.5" y="13" width="7" height="21" rx="2"/>
+     </g>
+     <g class="d"><path d="M32 12 V2 M27 5 L37 11 M27 11 L37 5"/></g>
+     <g class="n"><circle cx="32" cy="11.5" r="1.5"/></g>` },
+
+  corrosion: { name:'Corrosion', sub:'acid turret · COR ✦new',
+    svg:`<g class="p">
+       <path d="M14 51 H50 L45 45 H19 Z"/>
+       <path d="M20 45 Q20 33 32 33 Q44 33 44 45 Z"/>
+       <path d="M27 34 L25 19 L39 19 L37 34 Z"/>
+     </g>
+     <g class="d"><path d="M25 19 H39"/></g>
+     <g class="n">
+       <path d="M27 9 Q29.5 13 27 15 Q24.5 13 27 9 Z"/>
+       <path d="M32 4 Q34.5 8 32 10 Q29.5 8 32 4 Z"/>
+       <path d="M37 9 Q39.5 13 37 15 Q34.5 13 37 9 Z"/>
+     </g>` },
+};
+
+const bigHost = document.getElementById('big');
+const slotHost = document.getElementById('slots');
+for(const k of Object.keys(W)){
+  const w = W[k];
+  const b = document.createElement('div'); b.className='cell';
+  b.innerHTML = `<div class="big"><svg viewBox="0 0 64 64">${w.svg}</svg></div><span class="nm">${w.name}<small>${w.sub}</small></span>`;
+  bigHost.appendChild(b);
+  const s = document.createElement('div'); s.className='cell';
+  s.innerHTML = `<div class="slot"><div class="emblem"><svg viewBox="0 0 64 64">${w.svg}</svg></div></div><span class="nm">in slot · ${w.name}</span>`;
+  slotHost.appendChild(s);
+}
+</script>
+</body>
+</html>

@@ -10,7 +10,6 @@ var parent_ui: Node
 @onready var cost_lbl = $MarginContainer/VBoxContainer/CostLabel
 @onready var research_lbl = $MarginContainer/VBoxContainer/ResearchLabel
 @onready var btn = $MarginContainer/VBoxContainer/Button
-@onready var ship_icon = $MarginContainer/VBoxContainer/ShipIcon
 
 func setup(p_hid: String, p_data: Dictionary, p_manager, p_parent):
 	hid = p_hid
@@ -28,10 +27,7 @@ func setup(p_hid: String, p_data: Dictionary, p_manager, p_parent):
 	UITheme.apply_premium_button_style(btn, "shipyard")
 	
 	slot_lbl.text = "HP: %d | ATK: %d\nSlots: %d" % [data["stats"].get("hp",0), data["stats"].get("atk",0), data["slots"].size()]
-	
-	if data.has("visual"):
-		ship_icon.texture = load(data["visual"])
-	
+
 	# Cost text handled dynamically in update_state
 	cost_lbl.text = ""
 	research_lbl.hide()

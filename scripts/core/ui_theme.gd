@@ -6,6 +6,10 @@ signal research_navigation_requested(tech_id: String)
 # Emitted when the player switches card frame style in Sys Config so every
 # live CardChrome overlay repaints without a page rebuild.
 signal chrome_changed
+# Structured gain feed ("Cargo Manifest" popups) — distinct from the plain
+# notification_requested toast. main.gd renders these as icon-chip + name +
+# delta + dim total pills, coalescing repeats of the same key. See show_reward.
+signal reward_requested(info: Dictionary)
 
 # v111.19: animated rarity-frame shader, shared by armory tiles + equipped slots.
 const RARITY_FRAME_SHADER = preload("res://assets/shaders/rarity_frame.gdshader")
@@ -26,6 +30,47 @@ const LIRA_ICON_BB := "[img=14 color=#ffd14c]res://assets/icons/lira.svg[/img]"
 
 func show_notification(text: Variant, color: Color = Color.WHITE):
 	notification_requested.emit(text, color)
+
+# Fire a "Cargo Manifest" gain popup. `info` keys:
+#   kind        "loot" | "xp"
+#   key         coalesce key (same key ticks up instead of stacking)
+#   symbol      element symbol for the chip (loot)
+#   name        display name / label line ("Iron", "Gathering XP")
+#   amount      numeric delta (drives coalescing accumulation + the +N readout)
+#   total_text  pre-formatted dim secondary ("115", "Lvl 12")
+#   accent      base accent Color
+#   hot         optional bool — crit/jackpot punch (brighter flash)
+#   tag         optional String — "CRIT" / "JACKPOT" suffix on the name line
+func show_reward(info: Dictionary) -> void:
+	reward_requested.emit(info)
+
+# XP gain events arrive pre-formatted as "+N XP"; recover the integer for the
+# manifest delta / coalescing. Tolerates a raw number too.
+func parse_xp_amount(data) -> int:
+	if data is int or data is float:
+		return int(data)
+	var s := str(data).replace("+", "").replace("XP", "").strip_edges()
+	return int(s) if s.is_valid_int() else 0
+
+# Accent hue for an element/material by ElementDB category, so the manifest
+# popup (and any future per-element tint) reads by colour at a glance:
+# metals steel-blue, ores bronze, components cyan, ammo orange, exotics purple,
+# everything else the loot green. Currency = lira gold.
+func element_accent(symbol: String) -> Color:
+	if symbol == "credits":
+		return Color(1.0, 0.82, 0.30)
+	match ElementDB.get_category(symbol):
+		"ores": return Color(0.80, 0.64, 0.42)
+		"basic_metals": return Color(0.56, 0.72, 0.90)
+		"advanced_metals": return Color(0.40, 0.85, 0.95)
+		"rare_metals": return Color(0.95, 0.82, 0.48)
+		"alloys": return Color(0.74, 0.80, 0.88)
+		"components": return Color(0.35, 0.80, 1.0)
+		"batteries": return Color(0.85, 0.95, 0.38)
+		"ammo": return Color(1.0, 0.62, 0.28)
+		"special", "endgame", "boss_cores": return Color(0.78, 0.55, 1.0)
+		"matrix_cores": return Color(0.95, 0.48, 0.58)
+		_: return Color(0.40, 0.90, 0.60)
 
 func format_number(value: float) -> String:
 	if not is_finite(value): return "!!!" 
@@ -519,6 +564,208 @@ func show_info_card(anchor: Control, title: String, body: String) -> Control:
 		py = mpos.y - est_size.y - 20.0
 	card.position = Vector2(max(8.0, px), max(8.0, py))
 	return card
+
+# ─── Themed modal confirm / alert dialog ────────────────────────────────────
+# Drop-in replacement for Godot's primitive Window-based ConfirmationDialog /
+# AcceptDialog. Builds a chrome-framed in-scene modal on the ModalLayer: a
+# dimmed click-blocking backdrop, a diegetic command-bar title, a BBCode body,
+# and premium Confirm/Cancel buttons. Backdrop-click and the Cancel button both
+# dismiss (and fire on_cancel). Enter confirms (Confirm grabs focus).
+#
+#   opts = {
+#     title:        String,              # header (rendered uppercase)
+#     body:         String,              # BBCode
+#     confirm_text: String  = "Confirm",
+#     cancel_text:  String  = "Cancel",  # "" → single-button alert mode
+#     accent:       Color   = warp purple,
+#     danger:       bool    = false,     # Confirm reads destructive (red)
+#     on_confirm:   Callable,            # invoked after dismiss
+#     on_cancel:    Callable,            # optional
+#   }
+# Returns the overlay Control (it self-frees on either choice).
+func show_confirm(opts: Dictionary) -> Control:
+	var tree := get_tree()
+	if not tree: return null
+	var scene: Node = tree.current_scene
+	var modal_layer: Node = tree.root.find_child("ModalLayer", true, false)
+	var parent: Node = modal_layer if modal_layer else scene
+	if not parent: return null
+
+	var accent: Color = opts.get("accent", Color(0.78, 0.55, 1.0))   # warp purple
+	var is_danger: bool = bool(opts.get("danger", false))
+	var cancel_text: String = String(opts.get("cancel_text", "Cancel"))
+
+	# Full-rect overlay; the dim ColorRect swallows clicks behind the dialog.
+	var overlay := Control.new()
+	overlay.name = "ConfirmModal"
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0, 0.62)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.add_child(dim)
+
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overlay.add_child(center)
+
+	# Chrome-framed panel (square corners + faint accent border, like the cards).
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(440, 0)
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.07, 0.07, 0.11, 0.985)
+	sb.set_corner_radius_all(0)
+	sb.set_border_width_all(1)
+	var bcol: Color = accent
+	bcol.a = 0.55
+	sb.border_color = bcol
+	sb.shadow_color = Color(0, 0, 0, 0.6)
+	sb.shadow_size = 26
+	sb.shadow_offset = Vector2(0, 10)
+	sb.content_margin_left = 0
+	sb.content_margin_right = 0
+	sb.content_margin_top = 0
+	sb.content_margin_bottom = 0
+	panel.add_theme_stylebox_override("panel", sb)
+	center.add_child(panel)
+
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 0)
+	panel.add_child(vb)
+
+	# Title bar — dark accent-tinted command bar with a crisp accent underline.
+	var header := PanelContainer.new()
+	var hsb := StyleBoxFlat.new()
+	hsb.bg_color = accent.lerp(Color.BLACK, 0.80)
+	hsb.border_width_bottom = 2
+	hsb.border_color = accent
+	hsb.content_margin_left = 16
+	hsb.content_margin_right = 16
+	hsb.content_margin_top = 11
+	hsb.content_margin_bottom = 11
+	header.add_theme_stylebox_override("panel", hsb)
+	vb.add_child(header)
+
+	var title_lbl := Label.new()
+	title_lbl.text = String(opts.get("title", "CONFIRM"))
+	title_lbl.uppercase = true
+	title_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title_lbl.add_theme_font_size_override("font_size", 15)
+	title_lbl.add_theme_color_override("font_color", Color.WHITE)
+	header.add_child(title_lbl)
+
+	# Body.
+	var body_margin := MarginContainer.new()
+	body_margin.add_theme_constant_override("margin_left", 20)
+	body_margin.add_theme_constant_override("margin_right", 20)
+	body_margin.add_theme_constant_override("margin_top", 16)
+	body_margin.add_theme_constant_override("margin_bottom", 18)
+	vb.add_child(body_margin)
+
+	var body_rt := RichTextLabel.new()
+	body_rt.bbcode_enabled = true
+	body_rt.fit_content = true
+	body_rt.scroll_active = false
+	body_rt.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	body_rt.custom_minimum_size = Vector2(400, 0)
+	body_rt.add_theme_font_size_override("normal_font_size", 13)
+	body_rt.add_theme_font_size_override("bold_font_size", 13)
+	body_rt.add_theme_color_override("default_color", Color(0.86, 0.88, 0.92))
+	body_rt.text = String(opts.get("body", ""))
+	body_margin.add_child(body_rt)
+
+	# Button row.
+	var btn_margin := MarginContainer.new()
+	btn_margin.add_theme_constant_override("margin_left", 16)
+	btn_margin.add_theme_constant_override("margin_right", 16)
+	btn_margin.add_theme_constant_override("margin_bottom", 16)
+	vb.add_child(btn_margin)
+
+	var btn_row := HBoxContainer.new()
+	btn_row.add_theme_constant_override("separation", 12)
+	btn_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	btn_margin.add_child(btn_row)
+
+	# Shared cancel path (Cancel button + backdrop click).
+	var do_cancel := func():
+		if not is_instance_valid(overlay): return
+		overlay.queue_free()
+		var cc = opts.get("on_cancel", null)
+		if cc is Callable and (cc as Callable).is_valid(): (cc as Callable).call()
+
+	if cancel_text != "":
+		var cancel_btn := Button.new()
+		cancel_btn.text = cancel_text
+		cancel_btn.custom_minimum_size = Vector2(140, 42)
+		cancel_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_style_dialog_button(cancel_btn, Color(0.55, 0.57, 0.66), false)
+		cancel_btn.pressed.connect(do_cancel)
+		btn_row.add_child(cancel_btn)
+
+	var confirm_btn := Button.new()
+	confirm_btn.text = String(opts.get("confirm_text", "Confirm"))
+	confirm_btn.custom_minimum_size = Vector2(140, 42)
+	confirm_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var confirm_accent: Color = Color(0.95, 0.40, 0.40) if is_danger else accent
+	_style_dialog_button(confirm_btn, confirm_accent, true)
+	confirm_btn.pressed.connect(func():
+		if not is_instance_valid(overlay): return
+		overlay.queue_free()
+		var cb = opts.get("on_confirm", null)
+		if cb is Callable and (cb as Callable).is_valid(): (cb as Callable).call()
+	)
+	btn_row.add_child(confirm_btn)
+
+	dim.gui_input.connect(func(ev):
+		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+			do_cancel.call()
+	)
+
+	parent.add_child(overlay)
+	_attach_chrome(panel, accent)        # L-bracket corner ornament, on-brand
+	confirm_btn.grab_focus()             # Enter confirms
+	return overlay
+
+# Color-parameterised dialog button (sibling to the category-keyed
+# apply_premium_button_style). prominent → filled primary; else subdued outline.
+func _style_dialog_button(button: Button, accent: Color, prominent: bool) -> void:
+	var normal := StyleBoxFlat.new()
+	normal.set_corner_radius_all(4)
+	normal.set_border_width_all(1)
+	normal.border_width_top = 2
+	if prominent:
+		normal.bg_color = accent.lerp(Color(0.04, 0.04, 0.07), 0.45)
+		normal.border_color = accent
+	else:
+		normal.bg_color = COLORS["sidebar"].lerp(accent, 0.05)
+		var b: Color = accent
+		b.a = 0.5
+		normal.border_color = b
+	normal.content_margin_left = 10
+	normal.content_margin_right = 10
+	normal.content_margin_top = 6
+	normal.content_margin_bottom = 6
+
+	var hover := normal.duplicate()
+	hover.bg_color = accent.lerp(Color.BLACK, 0.28) if prominent else accent.lerp(Color.BLACK, 0.45)
+	hover.border_color = accent
+	hover.shadow_color = Color(accent.r, accent.g, accent.b, 0.35)
+	hover.shadow_size = 6
+
+	var pressed := normal.duplicate()
+	pressed.bg_color = accent
+	pressed.border_color = Color.WHITE
+
+	button.add_theme_stylebox_override("normal", normal)
+	button.add_theme_stylebox_override("hover", hover)
+	button.add_theme_stylebox_override("pressed", pressed)
+	button.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	button.add_theme_color_override("font_color", Color.WHITE)
+	button.add_theme_color_override("font_hover_color", Color.WHITE)
+	button.add_theme_color_override("font_pressed_color", Color(0.05, 0.06, 0.08))
+	button.add_theme_font_size_override("font_size", 14)
 
 # v109: structured body builder for the MASTERY info card. Intro + small gold
 # caption + 3-column grid (Lv key | duration cut | unlock note). Grid keeps
@@ -1402,6 +1649,8 @@ func pin_card_footer(card: PanelContainer, before_node_name: String = "Button") 
 var _module_icon_cache: Dictionary = {}
 
 func weapon_family(stats: Dictionary) -> String:
+	if float(stats.get("atk_cryo", 0)) > 0.0:
+		return "cryo"
 	if float(stats.get("atk_energy", 0)) > 0.0:
 		return "energy"
 	if float(stats.get("atk_explosive", 0)) > 0.0:
@@ -1410,12 +1659,14 @@ func weapon_family(stats: Dictionary) -> String:
 
 func weapon_family_color(stats: Dictionary) -> Color:
 	match weapon_family(stats):
+		"cryo": return Color(0.70, 0.95, 1.0)
 		"energy": return Color(0.32, 0.80, 1.0)
 		"explosive": return Color(1.0, 0.45, 0.30)
 		_: return Color(0.92, 0.66, 0.32)
 
 func weapon_family_tag(stats: Dictionary) -> String:
 	match weapon_family(stats):
+		"cryo": return "CRY"
 		"energy": return "NRG"
 		"explosive": return "EXP"
 		_: return "KIN"
@@ -1424,7 +1675,10 @@ func module_type_icon(slot_type: String, stats: Dictionary) -> Texture2D:
 	var key = slot_type
 	if slot_type == "weapon":
 		key = "weapon_" + weapon_family(stats)
-	var valid = ["weapon_kinetic", "weapon_energy", "weapon_explosive",
+		# Corrosion uses the cryo channel but is tagged exotic — own turret icon.
+		if str(stats.get("exotic_element", "")) == "corrosion":
+			key = "weapon_corrosion"
+	var valid = ["weapon_kinetic", "weapon_energy", "weapon_explosive", "weapon_cryo", "weapon_corrosion",
 		"shield", "armor", "engine", "battery", "reactor", "sensor",
 		"cooling", "ammo", "consumable"]
 	if not (key in valid):

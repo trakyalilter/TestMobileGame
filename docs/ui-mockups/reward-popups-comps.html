@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Horizon Idle — Reward Popup Comps</title>
+<style>
+  :root{
+    --bg:#14141f; --panel:#262638; --deep:#0a0b12;
+    --text:#e6e6f2; --dim:#9a9ab2;
+    --green:#66e699;      /* loot Color(0.4,0.9,0.6) */
+    --gold:#ffcc26;       /* xp Color(1.0,0.8,0.15) */
+    --cyan:#33d6ff; --steel:#8fb7d6; --amber:#ffb454;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:radial-gradient(120% 80% at 70% 0%, #1b1b2b 0%, var(--bg) 60%);
+    color:var(--text);font-family:"Bahnschrift","Segoe UI Variable Display",Eurostile,Arial,sans-serif;
+    padding:30px 26px 80px;}
+  h1{font-size:19px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#fff}
+  .sub{font-size:12px;color:var(--dim);letter-spacing:1px;margin:4px 0 26px}
+  .grid{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start}
+  .col{flex:1;min-width:300px;background:rgba(255,255,255,.015);
+    border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:18px 18px 22px}
+  .col h2{font-size:14px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#fff;margin-bottom:3px}
+  .col .num{font-size:11px;color:var(--dim);letter-spacing:2px}
+  .col .note{font-size:11px;color:var(--dim);line-height:1.5;margin:10px 0 18px;min-height:46px}
+  .stage{display:flex;flex-direction:column;align-items:flex-end;gap:8px;min-height:230px;
+    justify-content:flex-end;padding:10px;border-radius:6px;
+    background:linear-gradient(180deg,transparent,rgba(0,0,0,.18));overflow:hidden}
+  .replay{margin-top:14px;font-size:11px;letter-spacing:1px;color:var(--dim);
+    background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:5px;
+    padding:6px 12px;cursor:pointer}
+  .replay:hover{background:rgba(255,255,255,.1);color:#fff}
+
+  /* shared element chip (icon stand-in) */
+  .chip{width:26px;height:26px;border-radius:6px;display:grid;place-items:center;
+    font-size:11px;font-weight:700;letter-spacing:0;flex:none}
+
+  /* float-in animation */
+  @keyframes popIn{0%{opacity:0;transform:translateY(14px) scale(.7)}
+    55%{opacity:1;transform:translateY(0) scale(1.08)}100%{transform:translateY(0) scale(1)}}
+  .anim{animation:popIn .45s cubic-bezier(.2,1.3,.5,1) both}
+
+  /* ============ 0 · CURRENT (reference) ============ */
+  .cur{background:rgba(38,38,56,.95);border:1px solid;border-radius:6px;
+    padding:6px 15px;font-size:14px;box-shadow:0 2px 6px rgba(0,0,0,.5);letter-spacing:.5px}
+  .cur.fe{border-color:#9fe6c2;color:var(--green)}
+  .cur.si{border-color:#9fe6c2;color:var(--green)}
+  .cur.xp{border-color:#ffe28a;color:var(--gold)}
+
+  /* ============ A · CARGO MANIFEST ============ */
+  .mani{display:flex;align-items:center;gap:11px;background:rgba(14,16,24,.94);
+    border-left:3px solid;border-radius:5px;padding:7px 14px 7px 11px;min-width:188px;
+    box-shadow:0 3px 10px rgba(0,0,0,.45)}
+  .mani .chip{background:linear-gradient(160deg,#2b3550,#161c2b);border:1px solid rgba(255,255,255,.14)}
+  .mani .body{display:flex;flex-direction:column;line-height:1.15;flex:1}
+  .mani .name{font-size:10px;letter-spacing:2px;color:var(--dim);text-transform:uppercase}
+  .mani .delta{font-size:17px;font-weight:700}
+  .mani .total{font-size:11px;color:var(--dim);align-self:flex-end;font-variant-numeric:tabular-nums}
+  .mani.fe{border-left-color:var(--steel)} .mani.fe .chip{color:var(--steel)} .mani.fe .delta{color:#cfe4f5}
+  .mani.si{border-left-color:var(--green)} .mani.si .chip{color:var(--green)} .mani.si .delta{color:#bff0d4}
+  .mani.xp{border-left-color:var(--gold);background:linear-gradient(90deg,rgba(40,32,8,.95),rgba(14,16,24,.94))}
+  .mani.xp .chip{background:none;border:none;color:var(--gold);font-size:18px}
+  .mani.xp .delta{color:var(--gold)} .mani.xp .name{color:#c9a94e}
+  /* coalesce flash */
+  @keyframes tick{0%{transform:scale(1)}40%{transform:scale(1.28);color:#fff}100%{transform:scale(1)}}
+  .ticking{animation:tick .35s ease-out}
+
+  /* ============ B · TELEMETRY HUD ============ */
+  .telem{display:flex;align-items:center;gap:9px;font-family:"Consolas","Courier New",monospace;
+    font-size:13px;padding:2px 4px;text-shadow:0 0 7px rgba(0,0,0,.8)}
+  .telem .bar{width:3px;height:15px;border-radius:1px;flex:none}
+  .telem .sym{font-weight:700;letter-spacing:1px}
+  .telem .d{font-weight:700}
+  .telem .tot{color:var(--dim);font-size:11px}
+  .telem .dots{flex:1;border-bottom:1px dotted rgba(255,255,255,.14);margin:0 2px;min-width:18px;height:10px}
+  .telem.fe .bar{background:var(--steel)} .telem.fe .sym,.telem.fe .d{color:var(--steel)}
+  .telem.si .bar{background:var(--green)} .telem.si .sym,.telem.si .d{color:var(--green)}
+  .telem.xp .bar{background:var(--gold)} .telem.xp .sym,.telem.xp .d{color:var(--gold)}
+
+  /* ============ C · REWARD TOKEN ============ */
+  .tokwrap{display:flex;align-items:center;gap:10px}
+  .tok{width:52px;height:52px;flex:none;position:relative;display:grid;place-items:center;
+    clip-path:polygon(50% 0,93% 25%,93% 75%,50% 100%,7% 75%,7% 25%);
+    font-size:13px;font-weight:800;letter-spacing:0}
+  .tok .badge{position:absolute;right:-6px;top:-6px;background:#0c0e16;border:1.5px solid;
+    border-radius:11px;min-width:22px;height:22px;display:grid;place-items:center;
+    font-size:12px;font-weight:700;font-family:Bahnschrift,sans-serif;padding:0 4px}
+  .tok.fe{background:radial-gradient(circle at 38% 30%,#7ba6c9,#2c5680 62%,#16304a);color:#eaf4ff}
+  .tok.fe .badge{border-color:var(--steel);color:#cfe4f5}
+  .tok.si{background:radial-gradient(circle at 38% 30%,#7be0a8,#2c8055 62%,#14402a);color:#eafff3}
+  .tok.si .badge{border-color:var(--green);color:#bff0d4}
+  .tok.xp{background:radial-gradient(circle at 38% 30%,#ffe79a,#d99b1f 62%,#7a5410);color:#3a2a06}
+  .tok.xp .badge{border-color:var(--gold);color:var(--gold)}
+  .tok .glow{position:absolute;inset:-8px;border-radius:50%;filter:blur(9px);opacity:.5;z-index:-1}
+  .tok.fe .glow{background:var(--steel)} .tok.si .glow{background:var(--green)} .tok.xp .glow{background:var(--gold)}
+  .toklabel{font-size:13px;font-weight:600}
+  .tok.fe ~ .toklabel{color:#cfe4f5}
+</style>
+</head>
+<body>
+  <h1>Reward Popups — 3 Directions</h1>
+  <div class="sub">live palette from ui_theme.gd · your real rewards: +5 Fe (115) · +3 Si (69) · +5 XP · click REPLAY to re-fire the motion</div>
+
+  <div class="grid">
+
+    <!-- CURRENT -->
+    <div class="col">
+      <div class="num">REFERENCE</div>
+      <h2>Current</h2>
+      <div class="note">One pill style for everything. Raw symbol text, delta+total same size, XP = same pill in gold. Flavorless fade-drift.</div>
+      <div class="stage" id="s0">
+        <div class="cur fe anim">+5 FE (115)</div>
+        <div class="cur si anim" style="animation-delay:.15s">+3 SI (69)</div>
+        <div class="cur xp anim" style="animation-delay:.3s">+5 XP</div>
+      </div>
+      <div class="replay" onclick="replay('s0')">▶ REPLAY</div>
+    </div>
+
+    <!-- A -->
+    <div class="col">
+      <div class="num">DIRECTION 01</div>
+      <h2>Cargo Manifest</h2>
+      <div class="note">Icon chip + NAME + big delta in element color; running total dim &amp; right-aligned (reference, not headline). XP is its own warm-lit row. Repeats COALESCE — same element ticks up instead of stacking.</div>
+      <div class="stage" id="sA">
+        <div class="mani fe anim"><div class="chip">Fe</div><div class="body"><span class="name">Iron</span><span class="delta" id="feD">+5</span></div><span class="total" id="feT">115</span></div>
+        <div class="mani si anim" style="animation-delay:.15s"><div class="chip">Si</div><div class="body"><span class="name">Silicon</span><span class="delta">+3</span></div><span class="total">69</span></div>
+        <div class="mani xp anim" style="animation-delay:.3s"><div class="chip">★</div><div class="body"><span class="name">Processing XP</span><span class="delta">+5</span></div><span class="total">lvl 12</span></div>
+      </div>
+      <div class="replay" onclick="replayA()">▶ REPLAY + COALESCE</div>
+    </div>
+
+    <!-- B -->
+    <div class="col">
+      <div class="num">DIRECTION 02</div>
+      <h2>Telemetry HUD</h2>
+      <div class="note">No pill — a ship's cargo console printing acquisitions. Color bar + mono symbol + delta, total trails dim after a dotted leader. Lightest weight; disappears into the HUD instead of stacking boxes on it.</div>
+      <div class="stage" id="sB" style="align-items:stretch">
+        <div class="telem fe anim"><span class="bar"></span><span class="sym">Fe</span><span class="d">+5</span><span class="dots"></span><span class="tot">115</span></div>
+        <div class="telem si anim" style="animation-delay:.15s"><span class="bar"></span><span class="sym">Si</span><span class="d">+3</span><span class="dots"></span><span class="tot">69</span></div>
+        <div class="telem xp anim" style="animation-delay:.3s"><span class="bar"></span><span class="sym">XP</span><span class="d">+5</span><span class="dots"></span><span class="tot">▸ lvl 12</span></div>
+      </div>
+      <div class="replay" onclick="replay('sB')">▶ REPLAY</div>
+    </div>
+
+    <!-- C -->
+    <div class="col">
+      <div class="num">DIRECTION 03</div>
+      <h2>Reward Token</h2>
+      <div class="note">Each gain is a faceted element token that pops with overshoot, count on a corner badge. Max juice / collectible feel. Best dopamine — but tiring over a long session unless capped &amp; coalesced. Reserve for big/rare drops?</div>
+      <div class="stage" id="sC">
+        <div class="tokwrap anim"><div class="tok fe"><span class="glow"></span>Fe<span class="badge">+5</span></div><span class="toklabel" style="color:#cfe4f5">Iron · 115</span></div>
+        <div class="tokwrap anim" style="animation-delay:.15s"><div class="tok si"><span class="glow"></span>Si<span class="badge">+3</span></div><span class="toklabel" style="color:#bff0d4">Silicon · 69</span></div>
+        <div class="tokwrap anim" style="animation-delay:.3s"><div class="tok xp"><span class="glow"></span>XP<span class="badge">+5</span></div><span class="toklabel" style="color:var(--gold)">Lvl 12</span></div>
+      </div>
+      <div class="replay" onclick="replay('sC')">▶ REPLAY</div>
+    </div>
+
+  </div>
+
+<script>
+  function replay(id){
+    const s=document.getElementById(id);
+    s.querySelectorAll('.anim').forEach(el=>{el.classList.remove('anim');void el.offsetWidth;el.classList.add('anim');});
+  }
+  // Direction A also demonstrates coalescing: the Iron row ticks +5 → +10 → +15
+  function replayA(){
+    replay('sA');
+    const d=document.getElementById('feD'), t=document.getElementById('feT');
+    let dv=5, tv=115;
+    let n=0;
+    clearInterval(window._ci);
+    d.textContent='+5'; t.textContent='115';
+    window._ci=setInterval(()=>{
+      n++; if(n>2){clearInterval(window._ci);return;}
+      dv+=5; tv+=5;
+      d.textContent='+'+dv; t.textContent=tv;
+      d.classList.remove('ticking');void d.offsetWidth;d.classList.add('ticking');
+    },650);
+  }
+</script>
+</body>
+</html>

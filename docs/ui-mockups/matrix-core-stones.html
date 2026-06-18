@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Horizon Idle — Matrix Core Stones</title>
+<style>
+  :root{ --bg:#14141f; --text:#e6e6f2; --dim:#9a9ab2; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:radial-gradient(120% 80% at 70% 0%,#1b1b2b,var(--bg) 60%);color:var(--text);
+    font-family:"Bahnschrift","Segoe UI Variable Display",Eurostile,Arial,sans-serif;padding:30px 28px 80px}
+  h1{font-size:19px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#fff}
+  .sub{font-size:12px;color:var(--dim);letter-spacing:.5px;margin:4px 0 6px;max-width:1000px;line-height:1.5}
+  .cat{font-size:12px;letter-spacing:3px;text-transform:uppercase;color:#ffd0dc;
+    margin:28px 0 12px;border-bottom:1px solid rgba(255,255,255,.08);padding-bottom:6px}
+  .grid{display:flex;flex-wrap:wrap;gap:22px;align-items:flex-end}
+  .cell{display:flex;flex-direction:column;align-items:center;gap:9px}
+  /* real socket backplate: dark recessed plate the core sits in */
+  .sock{width:74px;height:74px;border-radius:7px;display:grid;place-items:center;
+    background:#080c14;border:1px solid rgba(80,120,160,.45);
+    box-shadow:inset 0 0 7px rgba(0,0,0,.6)}
+  .sock.big{width:104px;height:104px}
+  .sock svg{width:100%;height:100%;display:block}
+  .nm{font-size:11px;color:#fff;letter-spacing:.5px;text-align:center}
+  .nm small{display:block;color:var(--dim);font-size:9px;letter-spacing:1px;text-transform:uppercase}
+  .legend{font-size:11px;color:var(--dim);margin-top:10px;max-width:1000px;line-height:1.55}
+  .mini{width:36px;height:36px;border-radius:5px;background:#080c14;border:1px solid rgba(80,120,160,.4);display:grid;place-items:center}
+  .mini svg{width:100%;height:100%}
+</style>
+</head>
+<body>
+  <h1>Matrix Cores — As Stones</h1>
+  <div class="sub">Right now the in-engine core reads as a glowing energy core (white-hot nucleus + plasma halo). These are solid, top-lit, faceted GEMSTONES — mineral, not plasma. Colour-agnostic: the facet light/shadow are white/black overlays on the base gem colour, so all 4 core colours (and any future ones) work from one routine.</div>
+
+  <!-- ============ RECOMMENDED: CUT GEM ============ -->
+  <div class="cat">01 · Cut Gem  — the 4 core colours</div>
+  <div class="grid" id="cutrow"></div>
+
+  <!-- ============ TIERS ============ -->
+  <div class="cat">Tier progression  (Crimson) — cut quality rises with tier</div>
+  <div class="grid" id="tierrow"></div>
+  <div class="legend">Cracked = chipped + a fracture line, duller. Stable = clean cut. Pristine = extra facets + brighter rim + sparkle. The stone literally looks more refined as it upgrades — readable progression with zero text.</div>
+
+  <!-- ============ ALT VIBES ============ -->
+  <div class="cat">Other stone vibes  (Amethyst) — if "cut jewel" feels too clean</div>
+  <div class="grid" id="altrow"></div>
+  <div class="legend">Rough Crystal = raw mined shard (asymmetric, matte). Cabochon = polished tumbled stone (smooth dome). My pick is <b>01 Cut Gem</b> — it reads "valuable socketable gem" instantly and the tier-as-cut-quality progression is a free win.</div>
+
+  <div class="legend" style="margin-top:18px">All shown on the real dark socket plate. In-engine this replaces <b>MatrixCoreIcon._draw()</b> — still procedural, still recoloured per gem, still pure <code>_draw()</code> (no per-frame cost).</div>
+
+<script>
+const COLORS = {Crimson:'#ff4444', Cobalt:'#44ccff', Topaz:'#ffcc00', Amethyst:'#aa44ff'};
+
+// point-top hex gem geometry
+const V = [[32,10],[47.6,21],[47.6,43],[32,54],[16.4,43],[16.4,21]];
+const T = V.map(([x,y])=>[ +(32+(x-32)*0.42).toFixed(2), +(32+(y-32)*0.42).toFixed(2) ]);
+const facetLight = [0.16,-0.10,-0.30,-0.20,0.22,0.38]; // per edge i→i+1 (+white / -black)
+function pts(a){return a.map(p=>p.join(',')).join(' ');}
+
+// Build one cut-gem SVG. opts: {rim, extra, sparkle}
+function cutGem(color, o={}){
+  const rim = o.rim ?? 0.5;
+  let s = `<svg viewBox="0 0 64 64">`;
+  s += `<polygon points="${pts(V)}" fill="${color}"/>`;            // base
+  for(let i=0;i<6;i++){
+    const j=(i+1)%6;
+    const f=[V[i],V[j],T[j],T[i]];
+    const l=facetLight[i];
+    const col = l>=0 ? '#ffffff':'#000000';
+    s += `<polygon points="${pts(f)}" fill="${col}" opacity="${Math.abs(l).toFixed(2)}"/>`;
+  }
+  s += `<polygon points="${pts(T)}" fill="${color}"/>`;            // table base
+  s += `<polygon points="${pts(T)}" fill="#fff" opacity="0.40"/>`; // table light
+  // facet edge hairlines (cut definition)
+  s += `<g stroke="#000" stroke-opacity="0.22" stroke-width="1">`;
+  for(let i=0;i<6;i++) s += `<line x1="${V[i][0]}" y1="${V[i][1]}" x2="${T[i][0]}" y2="${T[i][1]}"/>`;
+  s += `</g>`;
+  if(o.extra){ // pristine: split table with extra spokes
+    s += `<g stroke="#fff" stroke-opacity="0.30" stroke-width="0.8">`;
+    for(let i=0;i<6;i++) s += `<line x1="32" y1="32" x2="${T[i][0]}" y2="${T[i][1]}"/>`;
+    s += `</g>`;
+  }
+  // rim
+  const rimpts = pts(V)+' '+V[0].join(',');
+  s += `<polyline points="${rimpts}" fill="none" stroke="#fff" stroke-opacity="${rim}" stroke-width="1.6" stroke-linejoin="round"/>`;
+  // glint upper-left
+  s += `<line x1="22" y1="20" x2="27.5" y2="14.5" stroke="#fff" stroke-width="2.4" stroke-linecap="round" opacity="0.9"/>`;
+  if(o.sparkle){
+    s += `<g fill="#fff"><circle cx="41" cy="16" r="1.6"/><circle cx="20" cy="40" r="1.2" opacity="0.8"/></g>`;
+    s += `<path d="M41 12 l1 4 4 1 -4 1 -1 4 -1 -4 -4 -1 4 -1 z" fill="#fff" opacity="0.9"/>`;
+  }
+  s += `</svg>`;
+  return s;
+}
+
+// Cracked: chipped corner + fracture, dulled
+function crackedGem(color){
+  let s = cutGem(color, {rim:0.32});
+  // overlay dull + a crack + a chip at v1 (in socket-bg colour)
+  s = s.replace('</svg>', '') ;
+  s += `<polygon points="${pts(V)}" fill="#000" opacity="0.20"/>`;          // dull
+  s += `<polyline points="22,12 30,30 26,44" fill="none" stroke="#000" stroke-opacity="0.5" stroke-width="1.4"/>`; // crack
+  s += `<polyline points="22,12 30,30 26,44" fill="none" stroke="#fff" stroke-opacity="0.18" stroke-width="0.8"/>`;
+  s += `<polygon points="44,17 47.6,21 41,24" fill="#080c14"/>`;            // chipped corner
+  s += `</svg>`;
+  return s;
+}
+
+// Rough crystal: asymmetric raw shard, matte
+function roughGem(color){
+  const O=[[30,7],[47,16],[51,40],[35,57],[16,47],[13,21]];
+  const C=[[31,30],[39,26],[40,38],[30,42],[24,34]]; // inner core-ish (not centred)
+  let s=`<svg viewBox="0 0 64 64"><polygon points="${pts(O)}" fill="${color}"/>`;
+  // a few big facet planes
+  s+=`<polygon points="${O[5].join(',')} ${O[0].join(',')} ${C[0].join(',')} ${C[4].join(',')}" fill="#fff" opacity="0.30"/>`;
+  s+=`<polygon points="${O[0].join(',')} ${O[1].join(',')} ${C[1].join(',')} ${C[0].join(',')}" fill="#fff" opacity="0.14"/>`;
+  s+=`<polygon points="${O[1].join(',')} ${O[2].join(',')} ${C[2].join(',')} ${C[1].join(',')}" fill="#000" opacity="0.12"/>`;
+  s+=`<polygon points="${O[2].join(',')} ${O[3].join(',')} ${C[3].join(',')} ${C[2].join(',')}" fill="#000" opacity="0.30"/>`;
+  s+=`<polygon points="${O[3].join(',')} ${O[4].join(',')} ${C[4].join(',')} ${C[3].join(',')}" fill="#000" opacity="0.18"/>`;
+  s+=`<polygon points="${pts(C)}" fill="#fff" opacity="0.16"/>`;
+  s+=`<polyline points="${pts(O)} ${O[0].join(',')}" fill="none" stroke="#fff" stroke-opacity="0.35" stroke-width="1.3"/>`;
+  s+=`<line x1="22" y1="18" x2="27" y2="13" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity="0.8"/>`;
+  s+=`</svg>`;
+  return s;
+}
+
+// Cabochon: smooth polished dome
+function caboGem(color){
+  return `<svg viewBox="0 0 64 64">
+    <defs><radialGradient id="cg" cx="38%" cy="32%" r="75%">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.55"/>
+      <stop offset="38%" stop-color="${color}"/>
+      <stop offset="100%" stop-color="#000" stop-opacity="0.55"/></radialGradient></defs>
+    <ellipse cx="32" cy="33" rx="21" ry="23" fill="${color}"/>
+    <ellipse cx="32" cy="33" rx="21" ry="23" fill="url(#cg)"/>
+    <ellipse cx="32" cy="33" rx="21" ry="23" fill="none" stroke="#fff" stroke-opacity="0.3" stroke-width="1.4"/>
+    <ellipse cx="25" cy="24" rx="6" ry="4" fill="#fff" opacity="0.55" transform="rotate(-30 25 24)"/>
+  </svg>`;
+}
+
+function cell(html, name, sub, big){
+  return `<div class="cell"><span class="sock ${big?'big':''}">${html}</span><span class="nm">${name}<small>${sub}</small></span></div>`;
+}
+
+// rows
+let cut='';
+for(const [n,c] of Object.entries(COLORS)) cut += cell(cutGem(c), n, 'core', true)
+  // add a grid-size mini next to each
+  .replace('</div>', `<span class="mini">${cutGem(c)}</span></div>`);
+document.getElementById('cutrow').innerHTML = cut;
+
+document.getElementById('tierrow').innerHTML =
+  cell(crackedGem(COLORS.Crimson),'Cracked','tier 1',true) +
+  cell(cutGem(COLORS.Crimson),'Stable','tier 2',true) +
+  cell(cutGem(COLORS.Crimson,{rim:0.8,extra:true,sparkle:true}),'Pristine','tier 3',true);
+
+document.getElementById('altrow').innerHTML =
+  cell(roughGem(COLORS.Amethyst),'Rough Crystal','raw shard',true) +
+  cell(caboGem(COLORS.Amethyst),'Cabochon','polished',true) +
+  cell(cutGem(COLORS.Amethyst),'Cut Gem','(for compare)',true);
+</script>
+</body>
+</html>

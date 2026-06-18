@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Horizon Idle — Weapon Icons v2</title>
+<style>
+  :root{ --leg:#ffcc00; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:radial-gradient(120% 80% at 70% 0%,#1b1b2b,#14141f 60%);color:#e6e6f2;
+    font-family:"Bahnschrift","Segoe UI Variable Display",Eurostile,Arial,sans-serif;padding:30px 28px 70px}
+  h1{font-size:19px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#fff}
+  .sub{font-size:12px;color:#9a9ab2;letter-spacing:.5px;margin:4px 0 6px;max-width:1000px;line-height:1.55}
+  .note{font-size:12px;color:#bfe9ff;margin:10px 0 22px;max-width:1000px;line-height:1.6}
+  .note b{color:#fff}
+  .row{display:flex;gap:26px;flex-wrap:wrap}
+  .cell{display:flex;flex-direction:column;align-items:center;gap:10px}
+  /* big preview on a plain dark chip */
+  .big{width:96px;height:96px;border-radius:8px;background:#10131c;border:1px solid rgba(120,140,175,.3);display:grid;place-items:center}
+  .big svg{width:74px;height:74px}
+  /* in the real gold equipped-slot emblem at true size */
+  .slot{width:124px;height:124px;border-radius:7px;background:linear-gradient(180deg,#1c1708,#120f08);
+    border:1.5px solid var(--leg);box-shadow:0 0 14px rgba(255,204,0,.35);display:grid;place-items:center;position:relative}
+  .emblem{width:54px;height:54px;border-radius:8px;background:#0c1018;border:1px solid rgba(255,204,0,.35);display:grid;place-items:center}
+  .emblem svg{width:40px;height:40px;filter:drop-shadow(0 0 3px rgba(255,204,0,.45))}
+  .nm{font-size:11px;color:#fff;letter-spacing:1px}
+  .nm small{display:block;color:#9a9ab2;font-size:9px;letter-spacing:.5px}
+
+  /* schematic style — matches the rest of the module icon set */
+  svg .p{fill:#fff;fill-opacity:.15;stroke:#fff;stroke-width:3.4;stroke-linejoin:round;stroke-linecap:round}
+  svg .d{fill:none;stroke:#fff;stroke-width:2.2;stroke-opacity:.6;stroke-linecap:round;stroke-linejoin:round}
+  svg .n{fill:#fff}
+</style>
+</head>
+<body>
+  <h1>Weapon Icons — Redesign</h1>
+  <div class="sub">Each now reads as an actual weapon: a body + <b>grip</b> + barrel + a damage-type muzzle, with real proportions. Shown big, and at the true ~40px inside the gold equipped-slot emblem.</div>
+  <div class="note">Kinetic = carbine (magazine + rail). <b>Energy = laser rifle: straight barrel + top energy cell + a forward beam bolt — no concentric arcs, so no more speaker.</b> Explosive = missile in a finned tube. Cryo = frost cannon with a crystal muzzle.</div>
+
+  <div class="row" id="big"></div>
+  <div style="height:30px"></div>
+  <div class="row" id="slots"></div>
+
+<script>
+const W = {
+  kinetic: {
+    name:'Kinetic', sub:'carbine · KIN',
+    svg:`<g class="p">
+       <rect x="11" y="27" width="24" height="12" rx="2"/>
+       <path d="M35 30 H54 V36 H35 Z"/>
+       <rect x="52" y="28.5" width="4" height="9" rx="1"/>
+       <path d="M16 39 V47 H21.5 V39"/>
+       <path d="M26 39 H33 V50 H26 Z"/>
+     </g>
+     <g class="d"><path d="M16 23 H29"/></g>
+     <g class="n"><circle cx="56" cy="33" r="1.9"/></g>`
+  },
+  energy: {
+    name:'Energy', sub:'laser · NRG',
+    svg:`<g class="p">
+       <rect x="10" y="28" width="22" height="11" rx="2"/>
+       <path d="M32 31 H47 V36 H32 Z"/>
+       <rect x="13" y="22.5" width="13" height="5" rx="2"/>
+       <path d="M16 39 V47 H21.5 V39"/>
+     </g>
+     <g class="d"><path d="M50 33.5 H60 M55 30.5 L60 33.5 L55 36.5"/></g>
+     <g class="n"><circle cx="47" cy="33.5" r="1.8"/></g>`
+  },
+  explosive: {
+    name:'Explosive', sub:'missile · EXP',
+    svg:`<g class="p">
+       <rect x="11" y="29" width="26" height="10" rx="2"/>
+       <path d="M37 28 L51 34 L37 40 Z"/>
+       <path d="M16 39 V47 H21.5 V39"/>
+     </g>
+     <g class="d"><path d="M11 29 L6 24 M11 39 L6 44"/><path d="M17 34 H33"/></g>
+     <g class="n"><circle cx="51" cy="34" r="1.9"/></g>`
+  },
+  cryo: {
+    name:'Cryo', sub:'frost · CRY',
+    svg:`<g class="p">
+       <rect x="10" y="27" width="22" height="12" rx="2"/>
+       <path d="M32 30 H45 V36 H32 Z"/>
+       <path d="M16 39 V47 H21.5 V39"/>
+     </g>
+     <g class="d"><path d="M51 27 V40 M45 30 L57 37 M45 37 L57 30"/></g>
+     <g class="n"><circle cx="51" cy="33.5" r="1.5"/></g>`
+  },
+};
+
+const bigHost = document.getElementById('big');
+const slotHost = document.getElementById('slots');
+for(const k of Object.keys(W)){
+  const w = W[k];
+  const b = document.createElement('div'); b.className='cell';
+  b.innerHTML = `<div class="big"><svg viewBox="0 0 64 64">${w.svg}</svg></div><span class="nm">${w.name}<small>${w.sub}</small></span>`;
+  bigHost.appendChild(b);
+
+  const s = document.createElement('div'); s.className='cell';
+  s.innerHTML = `<div class="slot"><div class="emblem"><svg viewBox="0 0 64 64">${w.svg}</svg></div></div><span class="nm">in slot · ${w.name}</span>`;
+  slotHost.appendChild(s);
+}
+</script>
+</body>
+</html>

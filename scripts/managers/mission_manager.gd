@@ -144,8 +144,8 @@ func init_missions():
 		# Mission bridge from Asteroid Belt to Sector Alpha (zones 3-4 introduction)
 		["m030e", "Mars Beachhead", "Research 'Mars Debris Clearance' in the Research tree to unlock the Mars Debris combat zone.", "research", "zone_3_access", 1, 40000, 5000, "m030f"],
 		["m030f", "Salvage Operations", "Defeat 3 Scavenger Mechs in the Mars Debris combat zone. Their relics can later be forged into a Mars Trophy.", "defeat", "z3_scavenger_mech", 3, 60000, 8000, "m030g"],
-		["m030g", "Cryofield Survey", "Research 'Cryofield Expedition' in the Research tree to unlock the Cryofield combat zone.", "research", "zone_4_access", 1, 80000, 10000, "m030h"],
-		["m030h", "Frozen Frontier", "Defeat 3 Ice Wraiths in the Cryofield. Cryo Essence powers Titan Trophy crafting.", "defeat", "z4_ice_wraith", 3, 100000, 12000, "m031"],
+		["m030g", "Glacier Belt Survey", "Research 'Glacier Belt Expedition' in the Research tree to unlock the Glacier Belt combat zone.", "research", "zone_4_access", 1, 80000, 10000, "m030h"],
+		["m030h", "Frozen Frontier", "Defeat 3 Ice Wraiths in the Glacier Belt. Glacial Essence powers Titan Trophy crafting.", "defeat", "z4_ice_wraith", 3, 100000, 12000, "m031"],
 
 		# P0 Fix: Sector Alpha Push
 		["m031", "Deep Space Signal", "Research 'Sector Scanning (Alpha)' in the Research tree to detect Sector Alpha space.", "research", "sector_alpha_decryption", 1, 50000, 10000, "m032"],
@@ -167,7 +167,10 @@ func init_missions():
 		["m034", "Gamma Sector Control", "Defeat 3 Gamma Colossus in Sector Gamma to finalize supremacy.", "defeat", "z6_boss_colossus", 3, 300000, 50000, ""],
 		["goal_001", "THE GREAT EXPEDITION", "Reach Sector Epsilon and discover the Primordial Core.", "discover", "sector_epsilon", 1, 0, 1000000, ""],
 		["goal_002", "INTO THE VOID", "Perform your first Warp. Your Liras and materials reset, but you gain Exotic Matter Shards for permanent multipliers that make each run stronger.", "warp_perform", "warp", 1, 0, 250000, ""],
-		["goal_003", "PRESTIGE VETERAN", "Perform 5 Warps total to fully unlock Warp Tier scaling.", "warp_perform", "warp", 5, 0, 2000000, ""]
+		["goal_003", "PRESTIGE VETERAN", "Perform 5 Warps total to fully unlock Warp Tier scaling.", "warp_perform", "warp", 5, 0, 2000000, ""],
+		["goal_cryo_1", "FORGE CRYOGENIC ARMS", "The Threshold (Sector 11) is warp-hardened - only Cryo weapons breach it. Research Cryogenic Armaments in the new Warp Tech research tab.", "research", "cryo_armaments", 1, 3000000, 0, "goal_cryo_2"],
+		["goal_cryo_2", "FORGE CRYOGENIC ARMS", "Craft a Cryo Lance in the Shipyard. It needs Cryo Catalyst - farm it from Sector 10 enemies.", "craft", "cryo_lance", 1, 6000000, 0, "goal_cryo_3"],
+		["goal_cryo_3", "BREACH THE THRESHOLD", "Destroy a Warp Revenant in The Threshold (Sector 11) with your Cryo armaments.", "defeat", "z11_warp_revenant", 1, 15000000, 0, ""]
 	]
 	
 	for i in range(m_list.size()):
@@ -341,6 +344,10 @@ func _check_goal_reveals() -> bool:
 	# "Perform 5 Warps" only makes sense once the player has warped at least once.
 	if GameState.warp_manager and GameState.warp_manager.total_warps >= 1:
 		changed = _reveal_goal("goal_003") or changed
+		# v113 (NG+): the Cryo arming chain reveals once Z11 is unlocked (player
+		# cleared Z10 and warped). Hand-holds research -> craft -> breach.
+		if GameState.game_settings.get("z11_unlocked", false):
+			changed = _reveal_goal("goal_cryo_1") or changed
 	return changed
 
 func _reveal_goal(gid: String) -> bool:

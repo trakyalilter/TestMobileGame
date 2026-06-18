@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Horizon Idle — Item Icon Directions</title>
+<style>
+  :root{ --bg:#14141f; --text:#e6e6f2; --dim:#9a9ab2; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:radial-gradient(120% 80% at 70% 0%,#1b1b2b,var(--bg) 60%);color:var(--text);
+    font-family:"Bahnschrift","Segoe UI Variable Display",Eurostile,Arial,sans-serif;padding:30px 26px 80px}
+  h1{font-size:19px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#fff}
+  .sub{font-size:12px;color:var(--dim);letter-spacing:1px;margin:4px 0 8px;max-width:980px;line-height:1.5}
+  table{border-collapse:separate;border-spacing:0 0;margin-top:18px}
+  th{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);padding:0 18px 14px;font-weight:600}
+  th .big{display:block;color:#fff;font-size:13px;letter-spacing:2px}
+  td{padding:9px 18px;text-align:center;vertical-align:middle;border-top:1px solid rgba(255,255,255,.05)}
+  .rowlabel{text-align:left;font-size:12px;letter-spacing:1px;color:#fff;white-space:nowrap}
+  .rowlabel small{display:block;color:var(--dim);font-size:10px;letter-spacing:1px;text-transform:uppercase}
+
+  /* the real tile chip: dark slot-tinted emblem on a rarity-ish plate */
+  .chip{width:64px;height:64px;border-radius:7px;display:inline-grid;place-items:center;position:relative;
+    border:1px solid rgba(255,255,255,.10)}
+  .chip svg{width:46px;height:46px;display:block}
+  /* tiny strip proves 32px legibility */
+  .mini{width:34px;height:34px;border-radius:5px;display:inline-grid;place-items:center;margin-left:10px;
+    border:1px solid rgba(255,255,255,.08);vertical-align:middle}
+  .mini svg{width:24px;height:24px}
+  .cur{outline:1px dashed rgba(255,255,255,.12)}
+  .legend{font-size:11px;color:var(--dim);margin-top:6px}
+</style>
+</head>
+<body>
+  <h1>Item Icons — 3 Directions</h1>
+  <div class="sub">Each icon sits on its real in-game emblem chip (dark = slot-color × black, icon = slot-color × white — the actual render tint). 6 representative types span the current inconsistency: bold silhouette (weapon/armor/ammo), duotone (shield), and the colour-baked consumable badges. Big = ~46px · the small chip beside each = ~24px (proves it survives the armory grid).</div>
+  <div class="legend">Columns → <b>Current</b> (today's art) · <b>01 Duotone</b> · <b>02 Schematic</b> · <b>03 Beveled Badge</b></div>
+
+  <table>
+    <tr>
+      <th></th>
+      <th><span class="big">CURRENT</span>mixed styles</th>
+      <th><span class="big">01 · DUOTONE</span>solid + dark inset</th>
+      <th><span class="big">02 · SCHEMATIC</span>even-stroke line</th>
+      <th><span class="big">03 · BEVELED</span>stamped insignia</th>
+    </tr>
+
+    <!-- ============ WEAPON (KINETIC) ============ -->
+    <tr style="--slot:#eba852;--emb:#3a2a13;--ico:#fbf2e4">
+      <td class="rowlabel">Weapon<small>Kinetic</small></td>
+      <!-- CURRENT: rotated rifle silhouette -->
+      <td>
+        <span class="chip cur" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+          <g fill="var(--ico)"><rect x="8" y="46" width="34" height="9" rx="3"/><rect x="13" y="32" width="22" height="18" rx="4"/>
+          <g transform="rotate(-37 24 40)"><rect x="20" y="33" width="36" height="13" rx="2"/><rect x="52" y="30" width="7" height="19" rx="2"/></g></g>
+          <g transform="rotate(-37 24 40)"><rect x="56" y="36" width="5" height="7" fill="#0A0D12"/></g></svg></span>
+      </td>
+      <!-- 01 DUOTONE: clean side railgun, dark muzzle inset -->
+      <td>
+        <span class="chip" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+          <rect x="10" y="27" width="34" height="13" rx="3" fill="var(--ico)"/>
+          <rect x="40" y="29.5" width="16" height="8" rx="2" fill="var(--ico)"/>
+          <rect x="52" y="30.5" width="4" height="6" rx="1" fill="#0A0D12"/>
+          <rect x="16" y="40" width="9" height="9" rx="2" fill="var(--ico)"/>
+          <rect x="19.5" y="31" width="5" height="6" rx="1" fill="#0A0D12"/></svg></span>
+        <span class="mini" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+          <rect x="10" y="27" width="34" height="13" rx="3" fill="var(--ico)"/><rect x="40" y="29.5" width="16" height="8" rx="2" fill="var(--ico)"/>
+          <rect x="52" y="30.5" width="4" height="6" rx="1" fill="#0A0D12"/><rect x="16" y="40" width="9" height="9" rx="2" fill="var(--ico)"/></svg></span>
+      </td>
+      <!-- 02 SCHEMATIC -->
+      <td>
+        <span class="chip" style="background:var(--emb)"><svg viewBox="0 0 64 64" fill="none" stroke="var(--ico)" stroke-width="3.2" stroke-linejoin="round">
+          <rect x="11" y="28" width="32" height="12" rx="2"/><path d="M43 31 H55 V37 H43"/><path d="M18 40 V48 H25 V40"/></svg></span>
+        <span class="mini" style="background:var(--emb)"><svg viewBox="0 0 64 64" fill="none" stroke="var(--ico)" stroke-width="4" stroke-linejoin="round">
+          <rect x="11" y="28" width="32" height="12" rx="2"/><path d="M43 31 H55 V37 H43"/></svg></span>
+      </td>
+      <!-- 03 BEVELED -->
+      <td>
+        <span class="chip" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+          <defs><linearGradient id="bw" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="var(--slot)"/></linearGradient></defs>
+          <rect x="10" y="27" width="34" height="13" rx="3" fill="url(#bw)"/><rect x="40" y="29.5" width="16" height="8" rx="2" fill="url(#bw)"/>
+          <rect x="16" y="40" width="9" height="9" rx="2" fill="url(#bw)"/>
+          <rect x="10" y="27" width="34" height="3" rx="1.5" fill="#fff" opacity=".5"/></svg></span>
+      </td>
+    </tr>
+
+    <!-- ============ SHIELD ============ -->
+    <tr style="--slot:#80b8f2;--emb:#1d3047;--ico:#e4eefb">
+      <td class="rowlabel">Shield<small>Deflector</small></td>
+      <td>
+        <span class="chip cur" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+          <path fill="var(--ico)" d="M32 6 L54 16 V32 Q54 50 32 58 Q10 50 10 32 V16 Z"/>
+          <path fill="#0A0D12" d="M32 16 L44 21 V32 Q44 42 32 47 Q20 42 20 32 V21 Z"/></svg></span>
+      </td>
+      <td>
+        <span class="chip" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+          <path fill="var(--ico)" d="M32 7 L53 16 V33 Q53 49 32 57 Q11 49 11 33 V16 Z"/>
+          <path fill="#0A0D12" d="M32 17 L45 22.5 V33 Q45 43 32 48 Q19 43 19 33 V22.5 Z"/>
+          <path fill="var(--ico)" d="M28 31 l3 4 7-9 2.4 2-9 12 -6-7z"/></svg></span>
+        <span class="mini" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+          <path fill="var(--ico)" d="M32 7 L53 16 V33 Q53 49 32 57 Q11 49 11 33 V16 Z"/>
+          <path fill="#0A0D12" d="M32 17 L45 22.5 V33 Q45 43 32 48 Q19 43 19 33 V22.5 Z"/></svg></span>
+      </td>
+      <td>
+        <span class="chip" style="background:var(--emb)"><svg viewBox="0 0 64 64" fill="none" stroke="var(--ico)" stroke-width="3.2" stroke-linejoin="round">
+          <path d="M32 8 L52 17 V33 Q52 48 32 56 Q12 48 12 33 V17 Z"/><path d="M32 18 L44 23 V33 Q44 42 32 47 Q20 42 20 33 V23 Z"/></svg></span>
+        <span class="mini" style="background:var(--emb)"><svg viewBox="0 0 64 64" fill="none" stroke="var(--ico)" stroke-width="4" stroke-linejoin="round">
+          <path d="M32 8 L52 17 V33 Q52 48 32 56 Q12 48 12 33 V17 Z"/></svg></span>
+      </td>
+      <td>
+        <span class="chip" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+          <defs><linearGradient id="bs" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="var(--slot)"/></linearGradient></defs>
+          <path fill="url(#bs)" d="M32 7 L53 16 V33 Q53 49 32 57 Q11 49 11 33 V16 Z"/>
+          <path fill="#0A0D12" opacity=".55" d="M32 17 L45 22.5 V33 Q45 43 32 48 Q19 43 19 33 V22.5 Z"/>
+          <path fill="#fff" opacity=".5" d="M32 7 L53 16 V19 L32 10 L11 19 V16 Z"/></svg></span>
+      </td>
+    </tr>
+
+    <!-- ============ AMMO ============ -->
+    <tr style="--slot:#e09957;--emb:#382613;--ico:#fbeede">
+      <td class="rowlabel">Ammo<small>Munitions</small></td>
+      <td>
+        <span class="chip cur" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+          <g fill="var(--ico)"><path d="M16 22 L16 50 L26 50 L26 22 Q21 14 16 22 Z"/><path d="M30 22 L30 50 L40 50 L40 22 Q35 14 30 22 Z"/><path d="M44 22 L44 50 L54 50 L54 22 Q49 14 44 22 Z"/></g>
+          <g fill="#0A0D12"><rect x="16" y="44" width="10" height="3"/><rect x="30" y="44" width="10" height="3"/><rect x="44" y="44" width="10" height="3"/></g></svg></span>
+      </td>
+      <td>
+        <span class="chip" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+          <path fill="var(--ico)" d="M24 15 Q32 6 40 15 V44 H24 Z"/>
+          <rect x="23" y="44" width="18" height="9" rx="2" fill="var(--ico)"/>
+          <rect x="23" y="40" width="18" height="3.4" fill="#0A0D12"/>
+          <path fill="#0A0D12" d="M28 17 Q32 12 36 17 V24 H28 Z"/></svg></span>
+        <span class="mini" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+          <path fill="var(--ico)" d="M24 15 Q32 6 40 15 V44 H24 Z"/><rect x="23" y="44" width="18" height="9" rx="2" fill="var(--ico)"/>
+          <rect x="23" y="40" width="18" height="3.4" fill="#0A0D12"/></svg></span>
+      </td>
+      <td>
+        <span class="chip" style="background:var(--emb)"><svg viewBox="0 0 64 64" fill="none" stroke="var(--ico)" stroke-width="3.2" stroke-linejoin="round">
+          <path d="M25 16 Q32 8 39 16 V45 H25 Z"/><path d="M24 45 H40 V52 H24 Z"/><line x1="25" y1="41" x2="39" y2="41"/></svg></span>
+        <span class="mini" style="background:var(--emb)"><svg viewBox="0 0 64 64" fill="none" stroke="var(--ico)" stroke-width="4" stroke-linejoin="round">
+          <path d="M25 16 Q32 8 39 16 V45 H25 Z"/><path d="M24 45 H40 V52 H24 Z"/></svg></span>
+      </td>
+      <td>
+        <span class="chip" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+          <defs><linearGradient id="ba" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="var(--slot)"/></linearGradient></defs>
+          <path fill="url(#ba)" d="M24 15 Q32 6 40 15 V44 H24 Z"/><rect x="23" y="44" width="18" height="9" rx="2" fill="url(#ba)"/>
+          <path fill="#fff" opacity=".55" d="M24 15 Q32 6 40 15 V18 Q32 11 24 18 Z"/></svg></span>
+      </td>
+    </tr>
+
+    <!-- ============ HULL REPAIR ============ -->
+    <tr style="--slot:#e98b6a;--emb:#3a1c14;--ico:#ffe6dd">
+      <td class="rowlabel">Hull Repair<small>Consumable</small></td>
+      <td>
+        <span class="chip cur" style="background:#2a0f0a"><svg viewBox="0 0 64 64">
+          <polygon points="32,6 54,18 54,46 32,58 10,46 10,18" fill="#F26650"/>
+          <polygon points="32,12 48,21 48,43 32,52 16,43 16,21" fill="#1A0606"/>
+          <path d="M27 21 H37 V28 H44 V38 H37 V45 H27 V38 H20 V28 H27 Z" fill="#F26650"/></svg></span>
+        <div class="legend" style="margin-top:6px">baked red</div>
+      </td>
+      <td>
+        <span class="chip" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+          <polygon points="32,8 52,19 52,45 32,56 12,45 12,19" fill="var(--ico)"/>
+          <polygon points="32,15 46,23 46,41 32,49 18,41 18,23" fill="#0A0D12"/>
+          <path d="M28 23 H36 V30 H43 V38 H36 V45 H28 V38 H21 V30 H28 Z" fill="var(--ico)"/></svg></span>
+        <span class="mini" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+          <polygon points="32,8 52,19 52,45 32,56 12,45 12,19" fill="var(--ico)"/>
+          <path d="M28 23 H36 V30 H43 V38 H36 V45 H28 V38 H21 V30 H28 Z" fill="#0A0D12"/></svg></span>
+        <div class="legend" style="margin-top:6px">colour from chip</div>
+      </td>
+      <td>
+        <span class="chip" style="background:var(--emb)"><svg viewBox="0 0 64 64" fill="none" stroke="var(--ico)" stroke-width="3.2" stroke-linejoin="round">
+          <polygon points="32,9 51,20 51,44 32,55 13,44 13,20"/><path d="M28 24 H36 V31 H43 V37 H36 V44 H28 V37 H21 V31 H28 Z"/></svg></span>
+        <span class="mini" style="background:var(--emb)"><svg viewBox="0 0 64 64" fill="none" stroke="var(--ico)" stroke-width="4" stroke-linejoin="round">
+          <polygon points="32,9 51,20 51,44 32,55 13,44 13,20"/><path d="M27 26 H37 V44 H27 Z M21 31 H43 V37 H21 Z"/></svg></span>
+      </td>
+      <td>
+        <span class="chip" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+          <defs><linearGradient id="bh" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="var(--slot)"/></linearGradient></defs>
+          <polygon points="32,8 52,19 52,45 32,56 12,45 12,19" fill="url(#bh)"/>
+          <polygon points="32,15 46,23 46,41 32,49 18,41 18,23" fill="#0A0D12" opacity=".5"/>
+          <path d="M28 23 H36 V30 H43 V38 H36 V45 H28 V38 H21 V30 H28 Z" fill="url(#bh)"/></svg></span>
+      </td>
+    </tr>
+
+    <!-- ============ ENGINE ============ -->
+    <tr style="--slot:#d6c96e;--emb:#3a3517;--ico:#fbf6dc">
+      <td class="rowlabel">Engine<small>Propulsion</small></td>
+      <td>
+        <span class="chip cur" style="background:var(--emb)"><svg viewBox="0 0 64 64"><circle cx="32" cy="30" r="3" fill="var(--ico)" opacity=".4"/>
+          <text x="32" y="40" font-size="26" fill="var(--ico)" text-anchor="middle" font-family="Arial" opacity=".6">E</text></svg></span>
+        <div class="legend" style="margin-top:6px">letter fallback*</div>
+      </td>
+      <td>
+        <span class="chip" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+          <path fill="var(--ico)" d="M26 10 H38 L44 34 H20 Z"/>
+          <rect x="22" y="34" width="20" height="7" rx="2" fill="var(--ico)"/>
+          <path fill="var(--ico)" d="M25 41 L28 54 32 46 36 54 39 41 Z"/>
+          <rect x="28" y="16" width="8" height="12" rx="2" fill="#0A0D12"/></svg></span>
+        <span class="mini" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+          <path fill="var(--ico)" d="M26 10 H38 L44 34 H20 Z"/><rect x="22" y="34" width="20" height="7" rx="2" fill="var(--ico)"/>
+          <path fill="var(--ico)" d="M25 41 L28 54 32 46 36 54 39 41 Z"/></svg></span>
+      </td>
+      <td>
+        <span class="chip" style="background:var(--emb)"><svg viewBox="0 0 64 64" fill="none" stroke="var(--ico)" stroke-width="3.2" stroke-linejoin="round">
+          <path d="M27 11 H37 L43 35 H21 Z"/><path d="M22 35 H42 V41 H22 Z"/><path d="M26 42 l3 11 3-7 3 7 3-11"/></svg></span>
+        <span class="mini" style="background:var(--emb)"><svg viewBox="0 0 64 64" fill="none" stroke="var(--ico)" stroke-width="4" stroke-linejoin="round">
+          <path d="M27 11 H37 L43 35 H21 Z"/><path d="M26 42 l4 11 2-6 2 6 4-11"/></svg></span>
+      </td>
+      <td>
+        <span class="chip" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+          <defs><linearGradient id="be" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="var(--slot)"/></linearGradient></defs>
+          <path fill="url(#be)" d="M26 10 H38 L44 34 H20 Z"/><rect x="22" y="34" width="20" height="7" rx="2" fill="url(#be)"/>
+          <path fill="url(#be)" d="M25 41 L28 54 32 46 36 54 39 41 Z"/>
+          <path fill="#fff" opacity=".5" d="M26 10 H38 L39 14 H25 Z"/></svg></span>
+      </td>
+    </tr>
+
+    <!-- ============ SENSOR ============ -->
+    <tr style="--slot:#a69478;--emb:#2c281f;--ico:#efe9dc">
+      <td class="rowlabel">Sensor<small>Targeting</small></td>
+      <td>
+        <span class="chip cur" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+          <text x="32" y="42" font-size="26" fill="var(--ico)" text-anchor="middle" font-family="Arial" opacity=".6">V</text></svg></span>
+        <div class="legend" style="margin-top:6px">letter fallback*</div>
+      </td>
+      <td>
+        <span class="chip" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+          <circle cx="32" cy="32" r="22" fill="var(--ico)"/>
+          <circle cx="32" cy="32" r="14" fill="#0A0D12"/>
+          <circle cx="32" cy="32" r="5" fill="var(--ico)"/>
+          <rect x="30.5" y="4" width="3" height="12" fill="var(--ico)"/></svg></span>
+        <span class="mini" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+          <circle cx="32" cy="32" r="22" fill="var(--ico)"/><circle cx="32" cy="32" r="14" fill="#0A0D12"/><circle cx="32" cy="32" r="5" fill="var(--ico)"/></svg></span>
+      </td>
+      <td>
+        <span class="chip" style="background:var(--emb)"><svg viewBox="0 0 64 64" fill="none" stroke="var(--ico)" stroke-width="3.2">
+          <circle cx="32" cy="32" r="21"/><circle cx="32" cy="32" r="5" fill="var(--ico)"/><path d="M32 4 V13 M32 51 V60 M4 32 H13 M51 32 H60"/></svg></span>
+        <span class="mini" style="background:var(--emb)"><svg viewBox="0 0 64 64" fill="none" stroke="var(--ico)" stroke-width="4">
+          <circle cx="32" cy="32" r="20"/><circle cx="32" cy="32" r="5" fill="var(--ico)"/></svg></span>
+      </td>
+      <td>
+        <span class="chip" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+          <defs><radialGradient id="bv" cx="40%" cy="32%"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="var(--slot)"/></radialGradient></defs>
+          <circle cx="32" cy="32" r="22" fill="url(#bv)"/><circle cx="32" cy="32" r="14" fill="#0A0D12" opacity=".6"/>
+          <circle cx="32" cy="32" r="5" fill="#fff"/></svg></span>
+      </td>
+    </tr>
+  </table>
+  <div class="legend" style="margin-top:18px">* Engine &amp; Sensor currently render the letter fallback in some paths — the redesign gives every type a real glyph (and adds the missing <b>weapon_cryo</b>).</div>
+</body>
+</html>

@@ -199,35 +199,39 @@ func update_ui():
 		var type = ev[0]
 		var data = ev[1]
 		var target_id = ev[2]
-		
-		var display_text = ""
-		if data is Dictionary:
-			var symbol = data.get("symbol", "item")
-			var amount = data.get("amount", 0)
-			
-			var total = 0
-			if symbol == "credits":
-				total = GameState.resources.get_currency("credits")
-			else:
-				total = GameState.resources.get_element_amount(symbol)
-				
-			var prefix = "+"
-			if data.get("is_critical"): prefix = "CRITICAL! +"
-			if data.get("is_jackpot"): prefix = "JACKPOT! +"
-			
-			display_text = "%s%s %s (%s)" % [prefix, UITheme.format_number(amount), symbol, UITheme.format_number(total)]
-		else:
-			display_text = str(data)
-		
+
+		# Only surface a popup when its source recipe is on this visible page.
 		var target_w = null
 		for w in widgets:
 			if w.rid == target_id:
 				target_w = w
 				break
-				
-		if target_w:
-			var color = Color(0.4, 0.9, 0.6)
-			if type == "xp": color = Color(1.0, 0.8, 0.15)
-			
-			if is_visible_in_tree():
-				UITheme.show_notification(display_text, color)
+		if not target_w or not is_visible_in_tree():
+			continue
+
+		if type == "xp":
+			UITheme.show_reward({
+				"kind": "xp", "key": "xp:process", "name": "Processing XP",
+				"amount": UITheme.parse_xp_amount(data),
+				"total_text": "Lvl %d" % manager.get_level(),
+				"accent": Color(1.0, 0.8, 0.15),
+			})
+		elif data is Dictionary:
+			var symbol = data.get("symbol", "item")
+			var amount = int(data.get("amount", 0))
+			var total = 0
+			if symbol == "credits":
+				total = GameState.resources.get_currency("credits")
+			else:
+				total = GameState.resources.get_element_amount(symbol)
+			var tag = ""
+			if data.get("is_critical"): tag = "CRITICAL"
+			elif data.get("is_jackpot"): tag = "JACKPOT"
+			UITheme.show_reward({
+				"kind": "loot", "key": symbol, "symbol": symbol,
+				"name": ElementDB.get_display_name(symbol),
+				"amount": amount,
+				"total_text": UITheme.format_number(total),
+				"accent": UITheme.element_accent(symbol),
+				"hot": tag != "", "tag": tag,
+			})

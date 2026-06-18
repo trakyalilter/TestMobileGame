@@ -24,19 +24,6 @@ const MASTERY_LEVEL_CAP := 100
 var mastery: Dictionary = {}  # {recipe_id: xp_total_float}
 
 var recipes: Dictionary = {
-	"sift_dirt_dry": {
-		"name": "Dry Sifting",
-		"description": "Manually sift through dirt for metallic fragments. No water required.",
-		"input": {"Dirt": 10},
-		# Low efficiency but early access
-		"output": {"Fe": 3},
-		"output_table": [["Si", 0.2, 1, 1]],
-		"duration": 5.0,
-		"level_req": 1,
-		"xp": 3,
-		"research_req": "basic_engineering",
-		"category": "basics"
-	},
 	"charcoal_burning": {
 		"name": "Charcoal Kiln",
 		"description": "Burn Wood to produce Carbon. The backbone of metallurgy.",
@@ -1117,8 +1104,8 @@ var recipes: Dictionary = {
 		"category": "trophies"
 	},
 	"craft_trophy_titan": {
-		"name": "Titan Cryofield Trophy",
-		"description": "Condense Cryo Essence into a Titan Trophy. Grants +10% Ship Speed permanently.",
+		"name": "Titan Glacier Trophy",
+		"description": "Condense Glacial Essence into a Titan Trophy. Grants +10% Ship Speed permanently.",
 		"input": {"CryoEssence": 30, "Ti": 50, "Superalloy": 5},
 		"output": {"Trophy_Titan": 1},
 		"duration": 75.0,

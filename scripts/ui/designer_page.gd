@@ -614,11 +614,11 @@ func _setup_loadout_preset_row(parent: Node, insert_idx: int):
 	label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	preset_row.add_child(label)
 
-	# v111.16: 3 click-to-LOAD chips (1/2/3) + a single SAVE ▾ dropdown,
+	# v111.16: click-to-LOAD chips (1–5) + a single SAVE ▾ dropdown,
 	# replacing the old 6-button SAVE/LOAD grid. Click a numbered chip to load
 	# that preset; use SAVE ▾ to write the current build to a slot.
 	_preset_load_buttons = []
-	for i in [1, 2, 3]:
+	for i in [1, 2, 3, 4, 5]:
 		var load_btn = Button.new()
 		load_btn.text = "%d" % i
 		load_btn.tooltip_text = "Load Preset %d" % i
@@ -636,7 +636,7 @@ func _setup_loadout_preset_row(parent: Node, insert_idx: int):
 	save_menu.flat = false
 	_apply_filter_button_style(save_menu, false, Color(0.55, 0.85, 0.95))
 	var save_popup = save_menu.get_popup()
-	for i in [1, 2, 3]:
+	for i in [1, 2, 3, 4, 5]:
 		save_popup.add_item("Save to Preset %d" % i, i)
 	save_popup.id_pressed.connect(_on_preset_save)
 	preset_row.add_child(save_menu)
@@ -659,7 +659,7 @@ func _setup_loadout_preset_row(parent: Node, insert_idx: int):
 
 func _refresh_preset_buttons():
 	if not manager: return
-	for i in range(3):
+	for i in range(5):
 		var idx = i + 1
 		var btn = _preset_load_buttons[i]
 		var empty = manager.is_loadout_preset_empty(idx)
@@ -695,17 +695,23 @@ func _on_scrap_by_rarity(max_rarity: int):
 		var name = "Common" if max_rarity == 0 else "Junk"
 		UITheme.show_notification("No %s modules to scrap." % name, Color(0.7, 0.7, 0.7))
 		return
-	# Confirmation dialog
-	var dlg = ConfirmationDialog.new()
-	dlg.title = "Bulk Demolish"
-	dlg.dialog_text = "Demolish %d non-equipped module(s)?\n\nYou will receive Liras, Spare Parts, and zone salvage." % count
-	dlg.confirmed.connect(func():
+	# v112: themed modal (was the primitive Window ConfirmationDialog).
+	var plural = "" if count == 1 else "s"
+	var body = "Demolish [b]%d[/b] non-equipped module%s?\n\n" % [count, plural]
+	body += "[color=#73e88c]You'll receive Liras, Spare Parts, and zone salvage.[/color]"
+	var on_ok := func():
 		var scrapped = manager.bulk_demolish_by_rarity(max_rarity)
 		UITheme.show_notification("Demolished %d module(s)" % scrapped, Color(0.95, 0.55, 0.25))
 		trigger_refresh()
-	)
-	add_child(dlg)
-	dlg.popup_centered()
+	UITheme.show_confirm({
+		"title": "Bulk Demolish",
+		"body": body,
+		"confirm_text": "Demolish",
+		"cancel_text": "Cancel",
+		"accent": Color(1.0, 0.8, 0.2),   # inventory gold
+		"danger": true,                    # destroys modules → red confirm
+		"on_confirm": on_ok,
+	})
 
 func _on_selection_mode_toggled(toggled_on: bool):
 	is_selection_mode = toggled_on

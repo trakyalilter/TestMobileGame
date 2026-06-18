@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Horizon Idle — Nav Icon Styles</title>
+<style>
+  :root{ --bg:#0b0e16; --dim:#7f8aa8; --active:#e6f3ff; --accent:#61c7ff; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#14141f;color:#e6e6f2;
+    font-family:"Bahnschrift","Segoe UI Variable Display",Eurostile,Arial,sans-serif;padding:30px 28px 70px}
+  h1{font-size:19px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#fff}
+  .sub{font-size:12px;color:#9a9ab2;letter-spacing:.5px;margin:4px 0 24px;max-width:1000px;line-height:1.55}
+  .cols{display:flex;gap:30px;flex-wrap:wrap;align-items:flex-start}
+  .col{display:flex;flex-direction:column;gap:14px}
+  .label{font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#fff}
+  .label small{display:block;color:#9a9ab2;font-size:10px;letter-spacing:.5px;text-transform:none;margin-top:2px;max-width:220px;line-height:1.4}
+
+  /* sidebar mock */
+  .bar{width:236px;background:#0b0e16;border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:8px 0;overflow:hidden}
+  .sec{font-size:9px;letter-spacing:2px;color:#48597a;padding:12px 0 5px 16px}
+  .row{display:flex;align-items:center;gap:11px;padding:7px 0 7px 14px;color:var(--dim);position:relative}
+  .row .ic{width:19px;height:19px;flex:none;--c:var(--dim);--bg:#0b0e16}
+  .row span{font-size:13px;letter-spacing:.3px}
+  .row.on{color:var(--active);background:rgba(26,34,55,.88)}
+  .row.on::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent)}
+  .row.on .ic{--c:var(--active)}
+
+  /* big preview strip */
+  .big{display:flex;gap:16px;flex-wrap:wrap;padding:12px 4px 0}
+  .big .ic{width:30px;height:30px;--c:#cfe0f5;--bg:#0b0e16}
+
+  /* ===== style modes ===== */
+  .line .prim, .line .det{fill:none;stroke:var(--c);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+  .line .det{stroke-width:1.7;opacity:.7}
+  .solid .prim{fill:var(--c);stroke:none}
+  .solid .det{fill:var(--bg);stroke:none}
+  .duo .prim{fill:var(--c);stroke:none}
+  .duo .det{fill:var(--c);fill-opacity:.40;stroke:none}
+</style>
+</head>
+<body>
+  <h1>Sidebar Icon — 3 Style Directions</h1>
+  <div class="sub">Same glyph set, three drawing languages, shown in the real sidebar (dark bg, labels, Combat = active) at the true ~19px, plus a larger strip. The tint pipeline is unchanged — these all stay white SVGs tinted dim-grey / cyan per state.</div>
+
+  <div class="cols">
+
+    <!-- ============ LINE ============ -->
+    <div class="col">
+      <div class="label">01 · Line<small>refined outline — quiet, app-standard, lightest at small size (close to today, cleaned up)</small></div>
+      <div class="bar line">
+        <div class="sec">OPERATIONS</div>
+        <div class="row"><svg class="ic" viewBox="0 0 24 24" data-i="flag"></svg><span>Missions</span></div>
+        <div class="row"><svg class="ic" viewBox="0 0 24 24" data-i="mine"></svg><span>Mine</span></div>
+        <div class="row"><svg class="ic" viewBox="0 0 24 24" data-i="gear"></svg><span>Engineering</span></div>
+        <div class="row"><svg class="ic" viewBox="0 0 24 24" data-i="flask"></svg><span>Research Lab</span></div>
+        <div class="sec">SHIP</div>
+        <div class="row"><svg class="ic" viewBox="0 0 24 24" data-i="anchor"></svg><span>Shipyard</span></div>
+        <div class="row on"><svg class="ic" viewBox="0 0 24 24" data-i="swords"></svg><span>Combat</span></div>
+        <div class="sec">REFERENCE</div>
+        <div class="row"><svg class="ic" viewBox="0 0 24 24" data-i="box"></svg><span>Inventory</span></div>
+        <div class="row"><svg class="ic" viewBox="0 0 24 24" data-i="book"></svg><span>Atlas</span></div>
+      </div>
+      <div class="big line" data-big></div>
+    </div>
+
+    <!-- ============ SOLID ============ -->
+    <div class="col">
+      <div class="label">02 · Solid<small>filled silhouettes, detail as negative-space cutout — strong presence, reads boldest when active</small></div>
+      <div class="bar solid">
+        <div class="sec">OPERATIONS</div>
+        <div class="row"><svg class="ic" viewBox="0 0 24 24" data-i="flag"></svg><span>Missions</span></div>
+        <div class="row"><svg class="ic" viewBox="0 0 24 24" data-i="mine"></svg><span>Mine</span></div>
+        <div class="row"><svg class="ic" viewBox="0 0 24 24" data-i="gear"></svg><span>Engineering</span></div>
+        <div class="row"><svg class="ic" viewBox="0 0 24 24" data-i="flask"></svg><span>Research Lab</span></div>
+        <div class="sec">SHIP</div>
+        <div class="row"><svg class="ic" viewBox="0 0 24 24" data-i="anchor"></svg><span>Shipyard</span></div>
+        <div class="row on"><svg class="ic" viewBox="0 0 24 24" data-i="swords"></svg><span>Combat</span></div>
+        <div class="sec">REFERENCE</div>
+        <div class="row"><svg class="ic" viewBox="0 0 24 24" data-i="box"></svg><span>Inventory</span></div>
+        <div class="row"><svg class="ic" viewBox="0 0 24 24" data-i="book"></svg><span>Atlas</span></div>
+      </div>
+      <div class="big solid" data-big></div>
+    </div>
+
+    <!-- ============ DUOTONE ============ -->
+    <div class="col">
+      <div class="label">03 · Duotone<small>filled + a dimmer secondary plane — depth &amp; richness, ties to the "physical console" feel</small></div>
+      <div class="bar duo">
+        <div class="sec">OPERATIONS</div>
+        <div class="row"><svg class="ic" viewBox="0 0 24 24" data-i="flag"></svg><span>Missions</span></div>
+        <div class="row"><svg class="ic" viewBox="0 0 24 24" data-i="mine"></svg><span>Mine</span></div>
+        <div class="row"><svg class="ic" viewBox="0 0 24 24" data-i="gear"></svg><span>Engineering</span></div>
+        <div class="row"><svg class="ic" viewBox="0 0 24 24" data-i="flask"></svg><span>Research Lab</span></div>
+        <div class="sec">SHIP</div>
+        <div class="row"><svg class="ic" viewBox="0 0 24 24" data-i="anchor"></svg><span>Shipyard</span></div>
+        <div class="row on"><svg class="ic" viewBox="0 0 24 24" data-i="swords"></svg><span>Combat</span></div>
+        <div class="sec">REFERENCE</div>
+        <div class="row"><svg class="ic" viewBox="0 0 24 24" data-i="box"></svg><span>Inventory</span></div>
+        <div class="row"><svg class="ic" viewBox="0 0 24 24" data-i="book"></svg><span>Atlas</span></div>
+      </div>
+      <div class="big duo" data-big></div>
+    </div>
+
+  </div>
+
+  <div class="sub" style="margin-top:24px">My read: <b>Line</b> keeps nav quiet and utilitarian (icons shouldn't shout louder than the active-state highlight). <b>Solid</b> has the most presence and pairs well with a content area full of detailed item tiles. <b>Duotone</b> is the richest and most on-brand for the console aesthetic, but the most work to keep clean at 19px. For a sidebar I lean <b>Line</b> or <b>Solid</b>; Duotone if you want max polish.</div>
+
+<script>
+// Each glyph defined once with .prim (silhouette) + optional .det (detail plane).
+// The three style modes (CSS) render the same geometry as outline / fill / duotone.
+const G = {
+  flag: `<g class="prim"><rect x="6" y="3" width="2.2" height="18" rx="1"/><path d="M8.2 4 H18.5 L15.3 8 L18.5 12 H8.2 Z"/></g>`,
+  mine: `<g class="prim"><path d="M3 11 Q12 4.5 21 11 L21 8.6 Q12 2.2 3 8.6 Z"/><rect x="10.9" y="8" width="2.2" height="13" rx="1"/></g>`,
+  gear: `<g class="prim"><path d="M12 2 l1.6 2.3 2.7-.7 .3 2.8 2.7 .9-1.1 2.6 1.8 2.1-2.2 1.7 .5 2.8-2.8 .2-1 2.6L12 20l-2.5-1.4-2.8-.2 .5-2.8-2.2-1.7 1.8-2.1L4.4 8.1l2.7-.9 .3-2.8 2.7 .7Z"/></g>
+          <g class="det"><circle cx="12" cy="12" r="3.4"/></g>`,
+  flask: `<g class="prim"><path d="M9.2 3 H14.8 V4.6 H13.4 V9.4 L18.8 18.6 Q20 21 17.2 21 H6.8 Q4 21 5.2 18.6 L10.6 9.4 V4.6 H9.2 Z"/></g>
+          <g class="det"><path d="M7.7 15 H16.3 L18.8 18.6 Q20 21 17.2 21 H6.8 Q4 21 5.2 18.6 Z"/></g>`,
+  anchor: `<g class="prim"><circle cx="12" cy="4.4" r="2.5"/><rect x="10.9" y="6" width="2.2" height="14" rx="1"/><rect x="8" y="9" width="8" height="2" rx="1"/><path d="M4.5 12 Q4.5 20 12 20 Q19.5 20 19.5 12 L17.4 12 Q17.4 17.6 12 17.6 Q6.6 17.6 6.6 12 Z"/></g>
+            <g class="det"><circle cx="12" cy="4.4" r="0.9"/></g>`,
+  swords: `<g class="prim"><path d="M3.5 3 L6 3 L15.5 13.6 L13.7 15.4 L3.5 5 Z"/><path d="M20.5 3 L18 3 L8.5 13.6 L10.3 15.4 L20.5 5 Z"/><rect x="12.4" y="14.6" width="2" height="6.4" rx="1" transform="rotate(45 13.4 17.8)"/><rect x="9.6" y="14.6" width="2" height="6.4" rx="1" transform="rotate(-45 10.6 17.8)"/></g>`,
+  box: `<g class="prim"><path d="M12 2.4 L20.6 6.9 L20.6 17.1 L12 21.6 L3.4 17.1 L3.4 6.9 Z"/></g>
+        <g class="det"><path d="M12 2.4 L20.6 6.9 L12 11.5 L3.4 6.9 Z"/></g>`,
+  book: `<g class="prim"><path d="M12 5.3 Q7.4 2.7 3.3 4.1 V18.9 Q7.4 17.5 12 20 V5.3 Z"/><path d="M12 5.3 Q16.6 2.7 20.7 4.1 V18.9 Q16.6 17.5 12 20 V5.3 Z"/></g>
+         <g class="det"><rect x="11.2" y="5" width="1.6" height="15" rx=".6"/></g>`,
+};
+document.querySelectorAll('svg.ic[data-i]').forEach(s => s.innerHTML = G[s.dataset.i]);
+document.querySelectorAll('[data-big]').forEach(b => {
+  for (const k of Object.keys(G)) {
+    const s = document.createElementNS('http://www.w3.org/2000/svg','svg');
+    s.setAttribute('viewBox','0 0 24 24'); s.setAttribute('class','ic'); s.innerHTML = G[k];
+    b.appendChild(s);
+  }
+});
+</script>
+</body>
+</html>

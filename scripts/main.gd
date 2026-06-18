@@ -36,6 +36,7 @@ var coach_overlay = null
 # Claim badges — shown on Mission / Quest sidebar buttons when rewards are ready
 var mission_claim_badge: Control = null
 var quest_claim_badge: Control = null
+var warp_action_badge: Control = null  # v113 (NG+): "warp to breach Sector 11" nudge
 var _claim_badge_tick: float = 0.0
 
 func _ready():
@@ -259,6 +260,9 @@ func _init_pages():
 
 # Feature 66.1: Global Notification Stack (Melvor-style)
 var notification_container: VBoxContainer
+# Cargo Manifest reward popups: live pills keyed for coalescing.
+# {key: {panel, delta_lbl, total_lbl, accum:int, tween, accent:Color}}
+var _reward_pills: Dictionary = {}
 
 func _init_notifications():
 	var margin = MarginContainer.new()
@@ -276,57 +280,246 @@ func _init_notifications():
 	
 	$ModalLayer.add_child(margin)
 	UITheme.notification_requested.connect(_spawn_notification)
+	UITheme.reward_requested.connect(_spawn_reward)
 
+# System / status toast — shares the Cargo Manifest pill chassis (dark bg,
+# left accent stripe, soft shadow) so rewards and system messages read as one
+# family in the shared feed. A leading status glyph (inferred from the intent
+# colour) replaces the reward icon chip.
 func _spawn_notification(text: String, color: Color):
 	var panel = PanelContainer.new()
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.size_flags_horizontal = Control.SIZE_SHRINK_END
 	var style = StyleBoxFlat.new()
-	style.bg_color = UITheme.COLORS["panel_bg"]
-	style.bg_color.a = 0.95
-	style.set_border_width_all(1)
-	style.border_color = color.lerp(Color.WHITE, 0.4)
-	style.corner_radius_top_left = 6
-	style.corner_radius_top_right = 6
-	style.corner_radius_bottom_right = 6
-	style.corner_radius_bottom_left = 6
-	style.shadow_color = Color(0, 0, 0, 0.5)
-	style.shadow_size = 4
+	style.bg_color = Color(0.055, 0.065, 0.10, 0.95)
+	style.set_corner_radius_all(5)
+	style.border_width_left = 3
+	style.border_color = color
+	style.shadow_color = Color(0, 0, 0, 0.45)
+	style.shadow_size = 6
+	style.shadow_offset = Vector2(0, 2)
 	panel.add_theme_stylebox_override("panel", style)
-	
+
 	var margin = MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 15)
+	margin.add_theme_constant_override("margin_left", 11)
 	margin.add_theme_constant_override("margin_right", 15)
-	margin.add_theme_constant_override("margin_top", 5)
-	margin.add_theme_constant_override("margin_bottom", 5)
+	margin.add_theme_constant_override("margin_top", 7)
+	margin.add_theme_constant_override("margin_bottom", 7)
 	panel.add_child(margin)
-	
+
+	var row = HBoxContainer.new()
+	row.add_theme_constant_override("separation", 9)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	margin.add_child(row)
+
+	var glyph = Label.new()
+	glyph.text = _status_glyph(color)
+	glyph.custom_minimum_size = Vector2(16, 0)
+	glyph.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	glyph.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	glyph.add_theme_font_size_override("font_size", 15)
+	glyph.add_theme_color_override("font_color", color)
+	glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(glyph)
+
 	var msg = Label.new()
 	msg.text = text
-	msg.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	msg.add_theme_color_override("font_color", color)
-	msg.add_theme_font_size_override("font_size", 14)
-	UITheme.apply_segmented_font(msg, color)
-	margin.add_child(msg)
-	# Right-align the notification to form a neat column
-	panel.size_flags_horizontal = Control.SIZE_SHRINK_END
+	msg.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	msg.add_theme_color_override("font_color", color.lerp(Color.WHITE, 0.2))
+	msg.add_theme_font_size_override("font_size", 13)
+	msg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(msg)
+
 	notification_container.add_child(panel)
-	# Max 5 notifications visibly tracking
-	var active_nodes = []
-	for c in notification_container.get_children():
-		if not c.is_queued_for_deletion():
-			active_nodes.append(c)
-	while active_nodes.size() > 5:
-		var oldest = active_nodes.pop_front()
-		oldest.queue_free()
-	
-	# Tween Flow: Fade In (0.2s) -> Hold (1.5s) -> Fade Out (0.3s)
+	_prune_feed()
+
+	# Fade In (0.2s) -> Hold (1.6s) -> Fade Out (0.3s) -> free.
 	panel.modulate.a = 0.0
 	var tween = panel.create_tween()
 	tween.tween_property(panel, "modulate:a", 1.0, 0.2).set_trans(Tween.TRANS_SINE)
-	tween.tween_interval(1.5)
-	
-	# Drift right while fading out
+	tween.tween_interval(1.6)
 	tween.tween_property(panel, "modulate:a", 0.0, 0.3)
 	tween.tween_callback(panel.queue_free)
+
+# Status glyph inferred from the intent colour callers already pass:
+# alert (red/orange) ! · info (cyan/blue/purple) i · success (green) ✓ ·
+# state/neutral (gold/amber/grey) ›.
+func _status_glyph(c: Color) -> String:
+	if c.b > 0.7 and c.b >= c.r * 0.8: return "i"
+	if c.g > 0.65 and c.r < 0.75: return "✓"
+	if c.r > 0.7 and c.g < 0.6: return "!"
+	return "›"
+
+# ── Cargo Manifest reward popup ──
+# Icon chip + NAME + big delta (accent) + dim total, on a dark pill with a
+# left accent stripe. Repeats of the same `key` COALESCE: the live pill's
+# delta ticks up and its lifetime resets, instead of spawning a fresh stack.
+func _spawn_reward(info: Dictionary):
+	var key: String = str(info.get("key", info.get("symbol", info.get("name", "?"))))
+	var amount: int = int(info.get("amount", 0))
+	var accent: Color = info.get("accent", Color(0.40, 0.90, 0.60))
+
+	# Coalesce into an existing live pill for this key.
+	if _reward_pills.has(key):
+		var e = _reward_pills[key]
+		if is_instance_valid(e["panel"]):
+			e["accum"] = int(e["accum"]) + amount
+			e["delta_lbl"].text = "+%s" % UITheme.format_number(e["accum"])
+			e["total_lbl"].text = str(info.get("total_text", ""))
+			_reward_restart_life(key)
+			_reward_flash(e["delta_lbl"], bool(info.get("hot", false)))
+			return
+		_reward_pills.erase(key)
+
+	var pill := _build_reward_pill(info, accent)
+	notification_container.add_child(pill["panel"])
+	_reward_pills[key] = pill
+	_prune_feed()
+
+	pill["panel"].modulate.a = 0.0
+	_reward_restart_life(key)
+	_reward_flash(pill["delta_lbl"], bool(info.get("hot", false)))
+
+func _build_reward_pill(info: Dictionary, accent: Color) -> Dictionary:
+	var is_xp: bool = str(info.get("kind", "loot")) == "xp"
+
+	var panel := PanelContainer.new()
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.size_flags_horizontal = Control.SIZE_SHRINK_END
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.055, 0.065, 0.10, 0.95)
+	if is_xp:
+		# XP rows read warm-lit so progression is distinct from cargo.
+		style.bg_color = Color(0.11, 0.085, 0.03, 0.95)
+	style.set_corner_radius_all(5)
+	style.border_width_left = 3
+	style.border_color = accent
+	style.shadow_color = Color(0, 0, 0, 0.45)
+	style.shadow_size = 6
+	style.shadow_offset = Vector2(0, 2)
+	panel.add_theme_stylebox_override("panel", style)
+
+	var m := MarginContainer.new()
+	m.add_theme_constant_override("margin_left", 10)
+	m.add_theme_constant_override("margin_right", 14)
+	m.add_theme_constant_override("margin_top", 6)
+	m.add_theme_constant_override("margin_bottom", 6)
+	panel.add_child(m)
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	m.add_child(row)
+
+	# Icon chip — symbol for loot, ★ for XP.
+	var chip := PanelContainer.new()
+	chip.custom_minimum_size = Vector2(26, 26)
+	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var chip_sb := StyleBoxFlat.new()
+	chip_sb.bg_color = accent.lerp(Color.BLACK, 0.70) if not is_xp else Color(0, 0, 0, 0)
+	chip_sb.set_corner_radius_all(6)
+	if not is_xp:
+		chip_sb.set_border_width_all(1)
+		chip_sb.border_color = accent.lerp(Color.WHITE, 0.1)
+	chip.add_theme_stylebox_override("panel", chip_sb)
+	var chip_lbl := Label.new()
+	chip_lbl.text = "★" if is_xp else _chip_abbrev(str(info.get("symbol", "?")))
+	chip_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	chip_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	chip_lbl.add_theme_font_size_override("font_size", 16 if is_xp else 11)
+	chip_lbl.add_theme_color_override("font_color", accent if is_xp else accent.lerp(Color.WHITE, 0.7))
+	chip.add_child(chip_lbl)
+	row.add_child(chip)
+
+	# Name + delta column.
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 0)
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(col)
+
+	var name_lbl := Label.new()
+	var name_txt: String = str(info.get("name", ""))
+	var tag: String = str(info.get("tag", ""))
+	if tag != "":
+		name_txt = "%s · %s" % [name_txt, tag]
+	name_lbl.text = name_txt.to_upper()
+	name_lbl.add_theme_font_size_override("font_size", 10)
+	name_lbl.add_theme_color_override("font_color", Color(0.62, 0.66, 0.76) if not info.get("hot", false) else Color(1.0, 0.85, 0.4))
+	col.add_child(name_lbl)
+
+	var delta_lbl := Label.new()
+	delta_lbl.text = "+%s" % UITheme.format_number(int(info.get("amount", 0)))
+	delta_lbl.add_theme_font_size_override("font_size", 17)
+	delta_lbl.add_theme_color_override("font_color", accent.lerp(Color.WHITE, 0.25))
+	col.add_child(delta_lbl)
+
+	# Spacer pushes the running total to the right edge.
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	spacer.custom_minimum_size = Vector2(14, 0)
+	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(spacer)
+
+	var total_lbl := Label.new()
+	total_lbl.text = str(info.get("total_text", ""))
+	total_lbl.add_theme_font_size_override("font_size", 11)
+	total_lbl.add_theme_color_override("font_color", Color(0.55, 0.58, 0.66))
+	total_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	total_lbl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(total_lbl)
+
+	return {"panel": panel, "delta_lbl": delta_lbl, "total_lbl": total_lbl,
+		"accum": int(info.get("amount", 0)), "tween": null, "accent": accent}
+
+# (Re)start a pill's life: full opacity → hold → fade → self-cleanup. Called on
+# spawn and on every coalesce so an actively-ticking pill never expires.
+func _reward_restart_life(key: String) -> void:
+	if not _reward_pills.has(key): return
+	var e = _reward_pills[key]
+	var panel: Control = e["panel"]
+	if not is_instance_valid(panel): return
+	if e["tween"] and (e["tween"] as Tween).is_valid():
+		e["tween"].kill()
+	# Animate from the CURRENT alpha → 1.0: on spawn that's the 0→1 fade-in;
+	# on coalesce it recovers a pill that may have been mid fade-out.
+	var tw := panel.create_tween()
+	tw.tween_property(panel, "modulate:a", 1.0, 0.18)
+	tw.tween_interval(1.6)
+	tw.tween_property(panel, "modulate:a", 0.0, 0.35)
+	tw.tween_callback(func():
+		_reward_pills.erase(key)
+		if is_instance_valid(panel): panel.queue_free())
+	e["tween"] = tw
+
+# Quick scale-pop on the delta when a gain lands (white-hot for crit/jackpot).
+func _reward_flash(lbl: Label, hot: bool) -> void:
+	if not is_instance_valid(lbl): return
+	lbl.pivot_offset = lbl.size * 0.5
+	var base: Color = lbl.get_theme_color("font_color")
+	var flash_col: Color = Color.WHITE if hot else base.lerp(Color.WHITE, 0.6)
+	var tw := lbl.create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(lbl, "scale", Vector2(1.22, 1.22) if hot else Vector2(1.12, 1.12), 0.08)
+	tw.tween_property(lbl, "modulate", flash_col, 0.08)
+	tw.chain().set_parallel(true)
+	tw.tween_property(lbl, "scale", Vector2.ONE, 0.18)
+	tw.tween_property(lbl, "modulate", Color.WHITE, 0.25)
+
+# Element symbols are often full words ("Dirt", "Bauxite"); the 26px chip shows
+# a 2-char abbreviation. Real periodic symbols ("Fe", "Si") pass through whole.
+func _chip_abbrev(sym: String) -> String:
+	return sym if sym.length() <= 2 else sym.substr(0, 2)
+
+# Cap the shared feed (reward pills + system toasts) at 5 visible entries.
+func _prune_feed() -> void:
+	var live: Array = []
+	for c in notification_container.get_children():
+		if not c.is_queued_for_deletion():
+			live.append(c)
+	while live.size() > 5:
+		var oldest = live.pop_front()
+		oldest.queue_free()
 
 # ── Claim Badges (Mission / Quest sidebar buttons) ──
 func _init_claim_badges():
@@ -334,6 +527,11 @@ func _init_claim_badges():
 	mission_btn.add_child(mission_claim_badge)
 	quest_claim_badge = _build_claim_badge(Color(1.0, 0.78, 0.22))   # gold — quest rewards
 	quest_btn.add_child(quest_claim_badge)
+	# v113 (NG+): "warp to breach Sector 11" nudge on the Warp button, lit after the
+	# Z10 boss is cleared until the player warps (which unlocks Z11 + grants Cryo).
+	warp_action_badge = _build_claim_badge(Color(0.55, 0.85, 1.0))
+	if is_instance_valid(warp_btn):
+		warp_btn.add_child(warp_action_badge)
 	_update_claim_badges()
 
 func _build_claim_badge(bg: Color) -> Control:
@@ -392,6 +590,15 @@ func _update_claim_badges():
 			lbl.text = str(n) if n < 99 else "99+"
 		quest_claim_badge.visible = (n > 0) and quest_btn.visible
 
+	# v113 (NG+): Warp nudge — lit while the Z10 boss is cleared but the player
+	# hasn't warped yet (warping unlocks Z11). Auto-clears the moment they warp.
+	if warp_action_badge and is_instance_valid(warp_btn):
+		var wlbl = warp_action_badge.get_node_or_null("CountLabel")
+		if wlbl:
+			wlbl.text = "!"
+		var needs_warp: bool = GameState.game_settings.get("z10_cleared", false) and not GameState.game_settings.get("z11_unlocked", false)
+		warp_action_badge.visible = needs_warp and warp_btn.visible
+
 # ── First-visit Coach Marks ──
 func _init_coach_overlay():
 	if not GameState.game_settings.has("coach_seen"):
@@ -422,6 +629,36 @@ func _maybe_show_coach(page_name: String):
 	var page_node = pages.get(page_name)
 	stop_hint_pulse()  # don't fight the tour with the nav pulse
 	coach_overlay.start(page_name, steps, page_node)
+
+# v113 (NG+): anchor provider for the milestone coach (the warp-after-Z10 nudge),
+# which spotlights a sidebar nav button rather than a page widget.
+func get_coach_anchor(key: String) -> Control:
+	if key == "warp_nav" and is_instance_valid(warp_btn):
+		return warp_btn
+	return null
+
+# v113 (NG+): one-time coaching card after the Z10 boss falls, steering the player
+# to Warp (the only path to Sector 11 + Cryo). Re-checked on the badge tick; fires
+# once, only while Z10 is cleared but the player hasn't warped yet.
+func _maybe_show_warp_coach() -> void:
+	if coach_overlay == null or _coach_active():
+		return
+	var seen: Dictionary = GameState.game_settings.get("coach_seen", {})
+	if seen.get("warp_milestone", false):
+		return
+	if not GameState.game_settings.get("z10_cleared", false):
+		return
+	if GameState.game_settings.get("z11_unlocked", false):
+		return  # already warped past it
+	if not (is_instance_valid(warp_btn) and warp_btn.visible):
+		return
+	if offline_modal and is_instance_valid(offline_modal) and offline_modal.visible:
+		return
+	var steps: Array = CoachMarks.get_steps("warp_milestone")
+	if steps.is_empty():
+		return
+	stop_hint_pulse()
+	coach_overlay.start("warp_milestone", steps, self)
 
 func _on_coach_finished(page_name: String):
 	var seen: Dictionary = GameState.game_settings.get("coach_seen", {})
@@ -585,6 +822,7 @@ func _process(delta):
 	if _claim_badge_tick >= 0.25:
 		_claim_badge_tick = 0.0
 		_update_claim_badges()
+		_maybe_show_warp_coach()
 
 func _update_navigation_hints():
 	# A page tour owns the spotlight while it's open — don't double up.
@@ -648,8 +886,6 @@ func _update_navigation_hints():
 			var widget = page.get_widget_by_aid("centrifuge_dirt")
 			if widget and not (pm.is_active and pm.current_recipe_id == "centrifuge_dirt"):
 				target_to_pulse = widget.btn
-				
-			if widget: target_to_pulse = widget
 			
 	elif "m007" in mm.active_missions:
 		# Shipyard: Ion Thrusters

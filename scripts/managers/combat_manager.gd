@@ -47,6 +47,7 @@ var _last_ammo_warn_ms: int = 0
 
 signal enemy_defeated(enemy_id)
 signal combat_started() # v72.8: For Elite bounty detection
+signal zones_changed() # v113 (NG+): a flag-gated zone (Z11/Z12) unlocked → refresh the sector list
 
 # Buffs
 var active_buffs = {} # {buff_name: duration}
@@ -305,8 +306,8 @@ var zones = {
 		"research_req": "zone_3_access"
 	},
 	"cryofield": {
-		"name": "Cryofield",
-		"desc": "Frozen deep-space anomaly. Cryo-adapted hostiles.",
+		"name": "Glacier Belt",
+		"desc": "Frozen deep-space anomaly. Ice-adapted hostiles.",
 		"difficulty": 4,
 		"enemies": ["z4_ice_wraith", "z4_cryo_sentinel", "z4_frost_hulk", "z4_glacial_drone", "z4_boss_overseer"],
 		"research_req": "zone_4_access"
@@ -356,7 +357,7 @@ var zones = {
 	# v109: Zone 11 — the Warp Gate. Auto-unlocks on Z10 boss kill (flag, not
 	# research). Enemies are warp_hardened (Cryo-only). See enemy_db Z11 block.
 	"the_threshold": {
-		"name": "Sector 11 — The Threshold",
+		"name": "The Threshold",
 		"desc": "Warp-Hardened space. Hostiles are immune to conventional armaments — only Cryogenic weapons (unlocked by Warping) breach them.",
 		"difficulty": 11,
 		"enemies": ["z11_warp_revenant", "z11_phase_horror", "z11_null_sentinel", "z11_exotic_leviathan", "z11_boss_threshold_warden"],
@@ -553,7 +554,7 @@ var enemy_db = {
 		"xp": 120, "eva": 25, "zone": 4, "resist_k": -0.25, "resist_e": 0.30, "resist_x": 0.0, "dmg_type": "energy"
 	},
 	"z4_cryo_sentinel": {
-		"name": "Cryo Sentinel",
+		"name": "Frost Sentinel",
 		"stats": {"hp": 2765, "max_shield": 800, "atk": 160, "def": 32, "atk_interval": 2.5, "accuracy": 55},
 		"loot": [["Ti", 5, 12], ["credits", 1000, 2000], ["Res2", 1, 3], ["CryoEssence", 1, 3]],
 		"rare_loot": [["Chip", 0.10, 1, 3]],
@@ -580,7 +581,7 @@ var enemy_db = {
 		"xp": 135, "eva": 18, "zone": 4, "resist_k": -0.15, "resist_e": 0.30, "resist_x": 0.0, "dmg_type": "energy"
 	},
 	"z4_boss_overseer": {
-		"name": "Cryo Overseer",
+		"name": "Glacial Overseer",
 		"stats": {"hp": 51110, "max_shield": 1277, "atk": 766, "def": 191, "atk_interval": 2.5, "accuracy": 85},
 		"loot": [["credits", 15000, 30000], ["Ti", 30, 60], ["AdvCircuit", 5, 12], ["Res2", 10, 20], ["CryoEssence", 5, 12]],
 		"rare_loot": [["z4_unique_weapon", 0.03, 1, 1], ["z4_unique_armor", 0.03, 1, 1], ["z4_unique_shield", 0.03, 1, 1]],
@@ -837,7 +838,7 @@ var enemy_db = {
 	"z10_void_stalker": {
 		"name": "Void Reaver",
 		"stats": {"hp": 420000, "max_shield": 150000, "atk": 14375, "def": 2900, "atk_interval": 2.0, "accuracy": 160},
-		"loot": [["PrimordialShard", 1, 3], ["VoidEssence", 1, 2]],
+		"loot": [["PrimordialShard", 1, 3], ["VoidEssence", 1, 2], ["CryoCatalyst", 1, 3]],
 		"rare_loot": [["ChronoCore", 0.05, 1, 1]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z10_kinetic", "z10_energy", "z10_missile", "z10_shield", "z10_armor"],
@@ -846,7 +847,7 @@ var enemy_db = {
 	"z10_temporal_phantom": {
 		"name": "Temporal Phantom",
 		"stats": {"hp": 528384, "max_shield": 200000, "atk": 18105, "def": 3627, "atk_interval": 1.5, "accuracy": 170},
-		"loot": [["ChronoCore", 1, 2], ["VoidEssence", 2, 4]],
+		"loot": [["ChronoCore", 1, 2], ["VoidEssence", 2, 4], ["CryoCatalyst", 1, 3]],
 		"rare_loot": [["PrimordialShard", 0.08, 1, 2]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z10_kinetic", "z10_energy", "z10_missile", "z10_shield", "z10_armor"],
@@ -855,7 +856,7 @@ var enemy_db = {
 	"z10_omega_sentinel": {
 		"name": "Omega Sentinel",
 		"stats": {"hp": 600000, "max_shield": 180000, "atk": 16250, "def": 4000, "atk_interval": 2.5, "accuracy": 165},
-		"loot": [["OmegaPlating", 1, 3], ["PrimordialShard", 1, 2]],
+		"loot": [["OmegaPlating", 1, 3], ["PrimordialShard", 1, 2], ["CryoCatalyst", 1, 3]],
 		"rare_loot": [["VoidEssence", 0.10, 1, 3]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z10_kinetic", "z10_energy", "z10_missile", "z10_shield", "z10_armor"],
@@ -864,7 +865,7 @@ var enemy_db = {
 	"z10_primordial_titan": {
 		"name": "Primordial Titan",
 		"stats": {"hp": 1050000, "atk": 20000, "def": 3400, "atk_interval": 4.0, "accuracy": 158},
-		"loot": [["PrimordialShard", 2, 5], ["credits", 5000000, 10000000]],
+		"loot": [["PrimordialShard", 2, 5], ["credits", 5000000, 10000000], ["CryoCatalyst", 2, 4]],
 		"rare_loot": [["OmegaPlating", 0.08, 1, 2]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z10_kinetic", "z10_energy", "z10_shield", "z10_armor", "z10_sensor", "z10_engine"],
@@ -882,7 +883,7 @@ var enemy_db = {
 		#   res_e  0.45→0.65→0.55   (still punishes NRG-on-NRG-resist; survivable)
 		# Boss stays WEAK KIN at −0.40 — swapping loadout is the real reward.
 		"stats": {"hp": 20000000, "max_shield": 144872, "atk": 200000, "def": 21730, "atk_interval": 3.0, "accuracy": 250},
-		"loot": [["credits", 50000000, 100000000], ["PrimordialShard", 20, 50], ["ChronoCore", 5, 12]],
+		"loot": [["credits", 50000000, 100000000], ["PrimordialShard", 20, 50], ["ChronoCore", 5, 12], ["CryoCatalyst", 10, 25]],
 		"rare_loot": [["z10_unique_weapon", 0.03, 1, 1], ["z10_unique_armor", 0.03, 1, 1], ["z10_unique_shield", 0.03, 1, 1]],
 		"boss_core": "Z10_Core",
 		"module_drop_chance": 0.25,
@@ -999,6 +1000,7 @@ var enemy_db = {
 		# Corrosion Blaster drop so the first clear arms you for the idle farm.
 		"stats": {"hp": 50000000, "max_shield": 800000, "atk": 600000, "def": 70000, "atk_interval": 2.5, "accuracy": 300},
 		"phases": ["cryo", "corrosion"], "phase_cut": 0.15,
+		"relic_drop": "rift_relic",  # v113 (NG+ P2): guaranteed master key on first clear
 		"enrage_at": 0.4, "enrage_atk_mult": 1.5,
 		"loot": [["credits", 200000000, 400000000], ["ExoticMatter", 50, 100], ["ChronoCore", 20, 40], ["PrimordialShard", 40, 80]],
 		"rare_loot": [["corrosion_blaster", 1.0, 1, 1]],
@@ -1125,6 +1127,19 @@ func start_expedition(zone_id: String):
 	heat_changed.emit(player_heat, player_max_heat)
 	log_msg("Warped to %s." % current_zone["name"])
 
+# ── v114: Zone Tier-Gate (front/back sector-hardening) — docs/ZONE_TIER_GATE.md ──
+# A tier_hardened: Z enemy (the back-half e3/e4 + boss of Z2-Z10) floors SUB-TIER
+# gear to TIER_FLOOR: offense (this weapon ~2% damage) AND defense (sub-tier
+# armor/shield ~2% effective). Tier-Z gear pierces; a Unique exactly one zone below
+# pierces too (jackpot skip-key). Forces a re-gear into the zone's common set.
+# New-game-only via game_settings.tier_gate_enabled (old saves stay ungated).
+const TIER_FLOOR := 0.02
+var _tier_def_factor: float = 1.0     # armor multiplier vs the current hardened enemy (1.0 = ungated)
+var _tier_shield_factor: float = 1.0  # shield-pool multiplier vs the current hardened enemy
+
+func _tier_gate_on() -> bool:
+	return bool(GameState.game_settings.get("tier_gate_enabled", false))
+
 func set_target_enemy(enemy_id):
 	# v62.0 Fix: Prevent crash if current_zone is null
 	if current_zone == null:
@@ -1163,6 +1178,17 @@ func spawn_enemy():
 	var sm = GameState.shipyard_manager
 	var eid = target_enemy_id if target_enemy_id else current_zone["enemies"][randi() % current_zone["enemies"].size()]
 	var e_data = enemy_db[eid]
+	# v114 (Zone Tier-Gate): derive the front/back split from the enemy's position
+	# in the zone roster — e1/e2 = front (salvage yard, materials only), e3/e4/boss
+	# = hardened back half (tier_hardened = zone difficulty). Z2-Z10 only (Z1 is the
+	# ungated bootstrap; Z11+ uses its own warp/exotic gate). An explicit def field
+	# overrides. Single source of truth — no per-enemy hand-annotation to drift.
+	var _zdiff: int = int(current_zone.get("difficulty", 1)) if current_zone else 1
+	var _eidx: int = (current_zone["enemies"] as Array).find(eid) if (current_zone and current_zone.has("enemies")) else -1
+	var _in_gate_band: bool = (_zdiff >= 2 and _zdiff <= 10)
+	var _is_back: bool = (_eidx >= 2) or bool(e_data.get("is_boss", false))  # e3/e4/boss
+	var _derived_th: int = _zdiff if (_in_gate_band and _is_back) else 0
+	var _derived_dm: bool = not (_in_gate_band and not _is_back)  # front half (e1/e2) → no module drops
 	current_enemy = {
 		"id": eid,
 		"name": e_data["name"],
@@ -1190,6 +1216,8 @@ func spawn_enemy():
 		"warp_hardened": e_data.get("warp_hardened", false), # v109: Z11 Cryo gate
 		"phases": e_data.get("phases", []),                  # v113 (NG+ P1): multi-phase element gate
 		"phase_cut": e_data.get("phase_cut", 0.15),          # v113: off-element damage factor
+		"tier_hardened": e_data.get("tier_hardened", _derived_th),    # v114: derived from zone position (def overrides)
+		"drops_modules": e_data.get("drops_modules", _derived_dm),    # v114: front half (e1/e2) = false → materials only
 		"enrage_at": e_data.get("enrage_at", 0.0),           # v109: P3 boss mechanic (HP fraction)
 		"enrage_atk_mult": e_data.get("enrage_atk_mult", 1.5),
 		"dmg_type": e_data.get("dmg_type", "kinetic") # v87.0: Typed enemy damage
@@ -1299,6 +1327,20 @@ func spawn_enemy():
 	
 	_rebuild_player_weapon_states()
 
+	# v114: compute this enemy's tier-gate defense factors (armor + shield-pool
+	# multipliers). Sub-tier armor/shield collapse to ~TIER_FLOOR; the floored
+	# shield factor shrinks player_max_shield so the pool itself caps lower. Both
+	# 1.0 when ungated or the enemy isn't tier_hardened, so combat is unchanged.
+	var _thz := int(current_enemy.get("tier_hardened", 0))
+	if _tier_gate_on() and _thz > 0:
+		var _df = sm.get_tier_defense_factors(_thz, TIER_FLOOR)
+		_tier_def_factor = float(_df["def"])
+		_tier_shield_factor = float(_df["shield"])
+		player_max_shield = sm.max_shield * _tier_shield_factor
+	else:
+		_tier_def_factor = 1.0
+		_tier_shield_factor = 1.0
+
 # v113 (NG+ P2): rebuild the per-fight weapon snapshot from the CURRENT loadout.
 # Called on enemy spawn AND on an in-fight loadout swap (multi-phase boss gate),
 # so both paths share one code path. Resets weapon timers (fresh fire schedule).
@@ -1328,6 +1370,10 @@ func _rebuild_player_weapon_states() -> void:
 				equipped_weapons.append({
 					"name": m_data["name"],
 					"type": w_type,
+					# v114: tier-gate identity for the offense floor (see _execute_player_attack).
+					"mid": mid,
+					"tier": sm.get_module_tier(mid),
+					"rarity": sm.get_module_rarity(mid),
 					# v113 (NG+ P2): exotic subtype for the multi-phase gate. Cryo
 					# weapons default "cryo"; future elements (corrosion/thermal/…)
 					# set stats.exotic_element. Only consulted for the exotic channel.
@@ -1736,6 +1782,21 @@ func _execute_player_attack(weapon_idx: int):
 	p_atk_x *= skill_dmg_mult * trinity_atk_mult * trinity_missile_mult
 	p_atk_cryo *= skill_dmg_mult * trinity_atk_mult  # v109
 
+	# v114: Zone Tier-Gate offense floor. Against a tier_hardened back-half enemy a
+	# SUB-TIER weapon barely scratches it (×TIER_FLOOR, all channels) — tier-Z gear
+	# (or a Unique one zone below) pierces. Telegraphed so the "my stronger gun does
+	# nothing" moment is never a mystery. No-op when ungated / not hardened.
+	if _tier_gate_on():
+		var _thz := int(current_enemy.get("tier_hardened", 0))
+		if _thz > 0 and not sm.module_pierces_tier(str(w.get("mid", "")), _thz):
+			p_atk_k *= TIER_FLOOR
+			p_atk_e *= TIER_FLOOR
+			p_atk_x *= TIER_FLOOR
+			p_atk_cryo *= TIER_FLOOR
+			if randf() < 0.12:
+				combat_events.append({"type": "resist", "text": "HARDENED", "color": Color(0.62, 0.72, 0.85), "side": "enemy"})
+				log_msg("HARDENED HULL — Sector %d armaments required." % _thz)
+
 	var total_crit = sm.crit_chance + get_milestone_crit_bonus()
 	var res = resolve_damage(p_atk_k, p_atk_e, p_atk_x, enemy_shield, current_enemy["def"], current_zone.get("difficulty", 1), total_crit, true, p_atk_cryo, w.get("exotic_type", "cryo"))
 	enemy_shield = max(0, enemy_shield - res[0])
@@ -1867,7 +1928,14 @@ func _execute_enemy_attack():
 			_:
 				e_atk_k = e_atk
 		# Enemy uses base crit 5%
-		var eres = resolve_damage(e_atk_k, e_atk_e, e_atk_x, player_shield, sm.defense, difficulty, 0.05, false)
+		# v114: Zone Tier-Gate defense floor — sub-tier armor's mitigation collapses
+		# (factor computed on spawn). The shield half rode in via the floored
+		# player_max_shield. Telegraphed (throttled) so melting on old plating reads
+		# as "wrong gear," not "unfair." _tier_def_factor is 1.0 when ungated.
+		if _tier_def_factor < 0.999 and randf() < 0.12:
+			combat_events.append({"type": "resist", "text": "ARMOR OUTCLASSED", "color": Color(1.0, 0.55, 0.40), "side": "player"})
+			log_msg("ARMOR OUTCLASSED — Sector %d plating required." % int(current_enemy.get("tier_hardened", 0)))
+		var eres = resolve_damage(e_atk_k, e_atk_e, e_atk_x, player_shield, sm.defense * _tier_def_factor, difficulty, 0.05, false)
 		
 		# v80.1: Unified Reflect Logic (Reflective Sheath + Monolith's Bedrock)
 		var reflect_pct = _get_set_bonus_value("reflect_pct") / 100.0
@@ -1889,7 +1957,16 @@ func _execute_enemy_attack():
 		# v61.0 Fix: Use current_zone_id instead of current_zone.get("id")
 		if has_exotic_matrix and current_zone_id == "sector_gamma":
 			eres[1] = int(eres[1] * 0.7) # 30% reduction
-			
+
+		# v113 (NG+ P2): Threshold Relic — the master key. Equipped IN its keyed
+		# zone, it slashes incoming damage so the gate boss is survivable enough
+		# to idle-farm (the "active first clear, then farm" payoff). Inert in any
+		# other zone, so it never becomes a universal god-item.
+		var _relic_f: float = sm.get_relic_reduction_factor(current_zone_id)
+		if _relic_f < 1.0:
+			eres[0] = int(eres[0] * _relic_f)
+			eres[1] = int(eres[1] * _relic_f)
+
 		player_shield = max(0, player_shield - eres[0])
 		sm.current_hp -= eres[1]
 		# v87.0: Typed damage labels for enemy attacks
@@ -2161,8 +2238,8 @@ func win_fight():
 		session_loot[core_id] = session_loot.get(core_id, 0) + 1
 		# v109: Z10 boss kill auto-unlocks Zone 11 "The Threshold" (the Warp
 		# Gate). Signposts that Warping is now the path — and what it grants.
-		if core_id == "Z10_Core" and not GameState.game_settings.get("z11_unlocked", false):
-			GameState.game_settings["z11_unlocked"] = true
+		if core_id == "Z10_Core" and not GameState.game_settings.get("z10_cleared", false) and not GameState.game_settings.get("z11_unlocked", false):
+			GameState.game_settings["z10_cleared"] = true  # v113: Z11 now unlocks on the NEXT Warp (directs the player to prestige), not here
 			UITheme.show_notification("⟨ SECTOR 11 DETECTED — THE THRESHOLD ⟩  Hostiles are Warp-Hardened, immune to conventional armaments. Execute a Warp Core reset to unlock Cryogenic tech, then research Cryogenic Armaments and craft Cryo weapons in the Shipyard.", Color(0.55, 0.85, 1.0))
 	# v113 (NG+ P3): clearing the Z11 Threshold Warden flags the Rift frontier.
 	# Z12 "The Rift" (Corrosion tier) then reveals on the NEXT Warp — the locked
@@ -2171,6 +2248,20 @@ func win_fight():
 	if current_enemy.get("id", "") == "z11_boss_threshold_warden" and not GameState.game_settings.get("z11_cleared", false):
 		GameState.game_settings["z11_cleared"] = true
 		UITheme.show_notification("⟨ FRONTIER BREACHED — THE RIFT BECKONS ⟩  The Threshold Warden falls. Execute a Warp Core reset to push into Sector 12 — The Rift, where the Warden hardens against Cryo, then Corrosion. Bring both, and swap loadout presets mid-fight.", Color(0.6, 0.9, 0.7))
+	# v113 (NG+ P2): boss master-key drop. A boss with a relic_drop grants its
+	# Threshold Relic exactly once (guaranteed, no affixes), flags it earned (so it
+	# persists across Warp + re-grants), and auto-equips it if the Relic slot is
+	# empty — so the active first-clear immediately flips the boss to farmable.
+	var _rdrop: String = current_enemy.get("relic_drop", "")
+	if _rdrop != "":
+		var _smr = GameState.shipyard_manager
+		if _smr and not GameState.game_settings.get(_rdrop + "_earned", false) and _smr.module_inventory.get(_rdrop, 0) <= 0:
+			_smr.module_inventory[_rdrop] = 1
+			GameState.game_settings[_rdrop + "_earned"] = true
+			if _smr.equipped_relic == "":
+				_smr.equipped_relic = _rdrop
+			var _rname = _smr.modules.get(_rdrop, {}).get("name", "Threshold Relic")
+			UITheme.show_notification("⟨ MASTER KEY — %s ⟩  Auto-equipped to your Relic slot. The Warden's onslaught is now survivable — farm it at will." % _rname, Color(0.9, 0.82, 0.4))
 	# v85.2: Berserking Proc on Kill
 	var berserk_chance = GameState.shipyard_manager.affix_bonuses.get("berserk_on_kill", 0.0)
 	if berserk_chance > 0 and randf() < berserk_chance:
@@ -2249,7 +2340,12 @@ func win_fight():
 		log_msg("Nano-Scavenger triggered: Found %d %s" % [qty, drop])
 	
 	# v71.0: Module Rarity Drop System
+	# v114 (Zone Tier-Gate): front-half enemies (drops_modules=false) are the
+	# salvage yard — materials only, no module rolls. The Uncommon+ ladder drops
+	# only from the hardened back half + boss. No-op when the gate is off.
 	var drop_chance = get_effective_module_drop_chance(current_enemy)
+	if _tier_gate_on() and not current_enemy.get("drops_modules", true):
+		drop_chance = 0.0
 
 	var drop_pool = current_enemy.get("module_drop_pool", [])
 	

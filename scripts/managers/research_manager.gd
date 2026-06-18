@@ -370,7 +370,7 @@ var tech_tree = {
 		"flavor": "Bulk refined materials — start automating.",
 	},
 	"zone_4_access": {
-		"name": "Cryofield Expedition",
+		"name": "Glacier Belt Expedition",
 		"tier": 4,
 		"category": "zone",
 		"cost": 187500,
@@ -381,7 +381,7 @@ var tech_tree = {
 		# v111.6 audit: hull entries renamed to drop " hull" suffix so they
 		# match shipyard_manager's actual hull display names. Smart-linker
 		# can now hyperlink each one to the hull info-card popup.
-		"unlocks": ["Cryofield zone", "Zone 4 modules", "Heavy Cruiser"],
+		"unlocks": ["Glacier Belt zone", "Zone 4 modules", "Heavy Cruiser"],
 		"flavor": "Hand-supply is impractical here — build extraction.",
 	},
 	"zone_5_access": {
@@ -906,6 +906,7 @@ var tech_tree = {
 		"parent": null,
 		"req_tech": "cryogenic_systems",
 		"requires_warp": true,
+		"requires_flag": "cryo_unlocked",
 		"effects": [],
 		"unlocks": [
 			"Cryo Repeater (Weapon Craft)",
@@ -926,6 +927,7 @@ var tech_tree = {
 		"type": "technology",
 		"parent": null,
 		"req_tech": "cryo_armaments",
+		"requires_flag": "z12_unlocked",
 		"requires_warp": true,
 		"effects": [],
 		"unlocks": [
@@ -1782,6 +1784,13 @@ func can_unlock(tech_id: String) -> bool:
 	# player has performed their first Warp (cryo_unlocked). Visible-but-locked
 	# before then so they read as a prestige reward, not a hidden surprise.
 	if node.get("requires_warp", false) and not GameState.game_settings.get("cryo_unlocked", false):
+		return false
+
+	# v113 (NG+): tier-gated techs (Corrosion Armaments + future tiers) stay locked
+	# until their world-tier flag is set (e.g. z12_unlocked). Paired with hidden
+	# research-tree rendering so they don't even appear before the tier opens.
+	var req_flag: String = str(node.get("requires_flag", ""))
+	if req_flag != "" and not GameState.game_settings.get(req_flag, false):
 		return false
 
 	return true

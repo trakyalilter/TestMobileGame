@@ -33,7 +33,7 @@ func _apply_base_style():
 	frame.content_margin_bottom = 5
 	add_theme_stylebox_override("panel", frame)
 
-func refresh_state():
+func refresh_state():	
 	if not is_node_ready():
 		return
 	if not manager:

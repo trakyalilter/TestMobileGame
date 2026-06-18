@@ -108,6 +108,53 @@ func _ensure_type_icon() -> TextureRect:
 		v.move_child(ic, 0)
 	return ic
 
+# Square equipped-module layout: Name (top) → Icon (centre) → Matrix-Core
+# Sockets (lower) → Unequip (bottom). Only sizes + positions change — the
+# rarity frame, name tint, type icon and socket visuals are the existing
+# design, just rearranged. Rarity reads from the frame, so the type label,
+# rarity-badge text and the stats/durability line come off the face.
+func _arrange_module_square() -> void:
+	var v = $MarginContainer/VBoxContainer
+	# No name on the face — it's in the hover info card. Everything except
+	# Icon → Sockets → Unequip comes off, so the square holds fixed content.
+	type_lbl.visible = false
+	rarity_badge.visible = false
+	stats_lbl.visible = false
+	name_lbl.visible = false
+	option_btn.visible = false
+	for n in ["SetLabel", "FooterSpacer", "QuickRepairBtn"]:
+		var node = v.get_node_or_null(n)
+		if node: node.visible = false
+
+	# Top balancer (≈ the bottom socket+unequip band) so the EXPAND icon's
+	# region is symmetric and the icon sits in the card CENTRE, not the top.
+	var topbal = v.get_node_or_null("TopBalance")
+	if not topbal:
+		topbal = Control.new()
+		topbal.name = "TopBalance"
+		topbal.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		v.add_child(topbal)
+	topbal.visible = true
+	topbal.custom_minimum_size = Vector2(0, 32)
+
+	var ic = v.get_node_or_null("TypeIcon")
+	if ic:
+		ic.visible = true
+		ic.custom_minimum_size = Vector2(0, 40)
+		ic.size_flags_vertical = Control.SIZE_EXPAND_FILL  # fills/centres the middle
+	# Reserve the socket band so the centred icon is the SAME size whether the
+	# module has 0, 1 or 3 sockets.
+	socket_anchor.custom_minimum_size = Vector2(0, 22)
+
+	# Order: TopBalance → Icon (centre) → Sockets (arc) → Unequip (bottom).
+	var uneq = v.get_node_or_null("QuickUnequipBtn")
+	var order := [topbal, ic, socket_anchor, uneq]
+	var i := 0
+	for n in order:
+		if is_instance_valid(n):
+			v.move_child(n, i)
+			i += 1
+
 func set_focus_highlight(on: bool):
 	_is_focused = on
 	if is_occupied and not slot_type.begins_with("consumable_") and manager:
@@ -137,6 +184,26 @@ func refresh_state():
 	_stop_pulse()
 	_ensure_footer_spacer()
 
+	# Reset the face each refresh (visibility + default order) so a slot that
+	# was equipped doesn't bleed its square-layout overrides into the empty or
+	# consumable state. The equipped path re-applies its overrides via _arrange.
+	type_lbl.visible = true
+	stats_lbl.visible = true
+	rarity_badge.visible = true
+	name_lbl.visible = true
+	var _vb = $MarginContainer/VBoxContainer
+	_vb.move_child(type_lbl, 0)
+	_vb.move_child(name_lbl, 1)
+	_vb.move_child(rarity_badge, 2)
+	_vb.move_child(stats_lbl, 3)
+	_vb.move_child(socket_anchor, 4)
+	# The square-layout top balancer + reserved socket band are equipped-only;
+	# strip them so empty/consumable slots don't show a phantom gap. _arrange
+	# re-creates/re-shows them for the equipped state.
+	var _tb = _vb.get_node_or_null("TopBalance")
+	if _tb: _tb.visible = false
+	socket_anchor.custom_minimum_size = Vector2(0, 0)
+
 	# CONSUMABLE LOGIC
 	if slot_type.begins_with("consumable_"):
 		_refresh_consumable_state()
@@ -164,6 +231,10 @@ func refresh_state():
 			return
 
 		var clean_name = _get_clean_name(m_data.get("name", "Unknown"))
+		# Cap the on-face name to ~2 lines so a long affixed name can't grow the
+		# square; the full name stays in the hover tooltip.
+		if clean_name.length() > 34:
+			clean_name = clean_name.substr(0, 33).strip_edges() + "…"
 		name_lbl.text = clean_name.to_upper()
 		
 		# v83.9: Set Name Display for equipped slots
@@ -258,10 +329,19 @@ func refresh_state():
 		# Make physical sockets in the SocketAnchor
 		if m_data.has("sockets"):
 			option_btn.add_separator("--- Matrix Cores ---")
-			var h_box = HBoxContainer.new()
-			h_box.alignment = BoxContainer.ALIGNMENT_CENTER
-			h_box.add_theme_constant_override("separation", 8)
-			
+			# v112: lay the sockets on a parabolic arc (centre highest, nearest
+			# the icon; outer sockets splay down) instead of a flat row, so a
+			# 3-socket module reads as a curved cradle under the icon. h_box is a
+			# plain Control now (manual positioning), not an HBoxContainer.
+			var n_sock: int = m_data["sockets"].size()
+			var sd := 16.0
+			var sgap := 12.0
+			var arc_depth := 8.0
+			var h_box = Control.new()
+			h_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			h_box.custom_minimum_size = Vector2(
+				float(n_sock) * sd + float(maxi(0, n_sock - 1)) * sgap, sd + arc_depth)
+
 			for i in range(m_data["sockets"].size()):
 				var gem = m_data["sockets"][i]
 				var item_idx = option_btn.item_count
@@ -276,16 +356,27 @@ func refresh_state():
 					var gem_name = ElementDB.get_display_name(gem)
 					option_btn.add_item("Socket: Remove " + gem_name, item_idx)
 					option_btn.set_item_metadata(item_idx, {"action": "remove_gem", "socket_idx": i})
-					core.set_core(_get_gem_color(gem_name), false)
+					core.set_core(_get_gem_color(gem_name), false, MatrixCoreIcon.tier_from_name(gem))
 				else:
 					option_btn.add_item("Socket: [Empty]", item_idx)
 					option_btn.set_item_disabled(item_idx, true)
 					core.set_core(Color(0.42, 0.47, 0.58), true)  # hollow empty socket
 
 				var sock_wrap = Control.new()
-				sock_wrap.custom_minimum_size = Vector2(20, 20)
+				sock_wrap.custom_minimum_size = Vector2(sd, sd)
+				sock_wrap.size = Vector2(sd, sd)
 				sock_wrap.add_child(core)
-				
+				# Arc placement: x sequential, y a parabola. Bowl ∪ (classic
+				# y=x²): outer sockets ride high near the icon, centre dips —
+				# so 3 sockets cradle under the icon. A lone socket sits flat
+				# at mid-band (a single point can't show a curve).
+				# Explicit float types — this codebase chokes on `:=` inference
+				# through ternaries (see CLAUDE.md gotchas).
+				var _ci: float = float(n_sock - 1) / 2.0
+				var _t: float = 0.0 if n_sock <= 1 else (float(i) - _ci) / maxf(1.0, _ci)
+				var _y: float = (arc_depth * 0.5) if n_sock <= 1 else (arc_depth * (1.0 - _t * _t))
+				sock_wrap.position = Vector2(float(i) * (sd + sgap), _y)
+
 				# v111.16: sockets are click-driven now (drag retired).
 				#   filled socket → click (or right-click) removes the core
 				#   empty socket  → click sockets the Matrix Core armed in the armory
@@ -347,8 +438,12 @@ func refresh_state():
 		
 		option_btn.add_item("Unequip", option_btn.item_count)
 		option_btn.set_item_metadata(option_btn.item_count - 1, "unequip")
+
+		# Square face: Name → Icon → Sockets → Unequip (size + position only).
+		_arrange_module_square()
 	else:
 		name_lbl.text = ""
+		name_lbl.visible = false   # empty slot leads with the type label
 		stats_lbl.text = "--"
 		rarity_badge.visible = false
 		_ensure_type_icon().visible = false

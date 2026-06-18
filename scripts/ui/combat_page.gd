@@ -54,6 +54,14 @@ func _ready():
 	GameState.game_loaded.connect(refresh_zones)
 	if GameState.research_manager:
 		GameState.research_manager.tech_unlocked.connect(func(_id): refresh_zones())
+	# v113 (NG+): flag-gated zones (Z11/Z12) unlock via game_settings, not research,
+	# so they fire neither game_loaded nor tech_unlocked. Refresh on the dedicated
+	# zones_changed signal (the moment a flag is set, even mid-combat) AND whenever
+	# this page is shown (catch-all for warp / navigation).
+	if manager and manager.has_signal("zones_changed") and not manager.zones_changed.is_connected(refresh_zones):
+		manager.zones_changed.connect(refresh_zones)
+	if not visibility_changed.is_connected(_on_combat_visibility_changed):
+		visibility_changed.connect(_on_combat_visibility_changed)
 	
 	# HUD Stress & Console Interaction
 	
@@ -93,6 +101,7 @@ func _ready():
 
 	_setup_loot_filter_button()
 	_build_combat_timers()
+	_build_loadout_swap_row()
 
 var p_xp_bar: ProgressBar
 var p_xp_label: Label
@@ -262,6 +271,13 @@ func refresh_zones():
 			for child in enemy_container.get_children():
 				child.queue_free()
 
+func _on_combat_visibility_changed() -> void:
+	# v113 (NG+): re-read available zones each time the Combat page is shown, so a
+	# sector unlocked while elsewhere (e.g. Z11 on a Z10-boss kill, Z12 post-warp)
+	# is present. refresh_zones preserves the current sector selection.
+	if is_visible_in_tree():
+		refresh_zones()
+
 func _on_zone_list_item_selected(index):
 	var zid = zone_list.get_item_metadata(index)
 	refresh_enemies(zid)
@@ -401,6 +417,7 @@ func update_ui():
 	# Update Haptics & Visualizer
 	radar_display.queue_redraw()
 	_refresh_combat_timers()
+	_refresh_loadout_swap_row()
 
 	# Player Stats
 	var sm = GameState.shipyard_manager
@@ -1149,6 +1166,64 @@ func _refresh_combat_timers() -> void:
 		combat_timer_row.visible = true
 	session_timer_lbl.text = "SESSION  %s" % _fmt_session(manager.combat_session_time)
 	kill_timer_lbl.text = "LAST KILL  %s" % _fmt_kill(manager.time_since_last_kill)
+
+
+# v113 (NG+ P2): in-combat loadout-swap selector — the Melvor-style equipment-set
+# swap. Configure up to 5 presets in the Ship Designer; during a MULTI-PHASE boss
+# fight (can_swap_loadout_in_combat — the sanctioned auto-battler exception) tap a
+# numbered chip to swap to that preset and breach the current phase's element.
+var loadout_swap_row: HBoxContainer = null
+var _swap_buttons: Array = []
+
+func _build_loadout_swap_row() -> void:
+	var center = $Dashboard/HUD/TopHUD/CenterInfo
+	if center == null:
+		return
+	loadout_swap_row = HBoxContainer.new()
+	loadout_swap_row.name = "LoadoutSwap"
+	loadout_swap_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	loadout_swap_row.add_theme_constant_override("separation", 6)
+	center.add_child(loadout_swap_row)
+
+	var lbl := Label.new()
+	lbl.text = "SWAP LOADOUT ▸"
+	lbl.add_theme_color_override("font_color", Color(0.70, 0.95, 1.0))
+	lbl.add_theme_font_size_override("font_size", 11)
+	lbl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	loadout_swap_row.add_child(lbl)
+
+	_swap_buttons = []
+	for i in [1, 2, 3, 4, 5]:
+		var b := Button.new()
+		b.text = "%d" % i
+		b.tooltip_text = "Swap to Loadout %d" % i
+		b.custom_minimum_size = Vector2(30, 0)
+		b.add_theme_font_size_override("font_size", 11)
+		b.pressed.connect(_on_combat_swap_pressed.bind(i))
+		loadout_swap_row.add_child(b)
+		_swap_buttons.append(b)
+
+	loadout_swap_row.visible = false
+
+func _refresh_loadout_swap_row() -> void:
+	if loadout_swap_row == null:
+		return
+	var show_row: bool = manager.can_swap_loadout_in_combat()
+	if loadout_swap_row.visible != show_row:
+		loadout_swap_row.visible = show_row
+	if not show_row:
+		return
+	var sm = GameState.shipyard_manager
+	for i in range(_swap_buttons.size()):
+		var idx: int = i + 1
+		var b: Button = _swap_buttons[i]
+		var empty: bool = sm.is_loadout_preset_empty(idx)
+		b.disabled = empty
+		b.tooltip_text = ("Loadout %d — empty (save one in the Ship Designer)" % idx) if empty else ("Swap to Loadout %d" % idx)
+
+func _on_combat_swap_pressed(idx: int) -> void:
+	if manager and manager.swap_loadout_in_combat(idx):
+		UITheme.show_notification("Swapped to Loadout %d" % idx, Color(0.70, 0.95, 1.0))
 
 
 # Clock-style mm:ss (or h:mm:ss past an hour). Always shows a whole-second

@@ -352,6 +352,10 @@ func _get_module_icon(slot_type: String, stats: Dictionary, m_data: Dictionary =
 	var key = slot_type
 	if slot_type == "weapon":
 		key = "weapon_" + _weapon_type(stats)
+		# Corrosion rides the cryo channel (atk_cryo) but is tagged exotic — give
+		# it its own ship-turret icon instead of falling back to the cryo one.
+		if str(stats.get("exotic_element", "")) == "corrosion":
+			key = "weapon_corrosion"
 	# v111.9: split consumables into hull-patch and shield-booster icons.
 	# Was using a single `consumable.svg` (the medieval-potion placeholder)
 	# for every consumable, so the player couldn't distinguish a +10% Hull
@@ -364,7 +368,7 @@ func _get_module_icon(slot_type: String, stats: Dictionary, m_data: Dictionary =
 		elif ctype == "shield":
 			key = "consumable_shield"
 		# else: fall through to plain "consumable" (any unknown type)
-	var valid = ["weapon_kinetic", "weapon_energy", "weapon_explosive",
+	var valid = ["weapon_kinetic", "weapon_energy", "weapon_explosive", "weapon_cryo", "weapon_corrosion",
 		"shield", "armor", "engine", "battery", "reactor", "sensor",
 		"cooling", "ammo", "consumable", "consumable_hull", "consumable_shield"]
 	if not (key in valid):
@@ -533,7 +537,9 @@ func _draw_gem_visual(gem_name: String, rarity_color: Color):
 	core.offset_right = -5
 	core.offset_bottom = -5
 	core.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	core.set_core(_get_gem_color(gem_name))
+	# Tier from the element key (mid, e.g. "CrackedCrimsonCore") — robust even if
+	# the display name drops the tier word.
+	core.set_core(_get_gem_color(gem_name), false, MatrixCoreIcon.tier_from_name(mid))
 	gem_container.add_child(core)
 
 	if count > 1:
@@ -1165,7 +1171,7 @@ func _make_drag_preview() -> Control:
 		core.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		core.position = Vector2(5, 5)
 		core.size = Vector2(TS - 10, TS - 10)
-		core.set_core(_get_gem_color(data.get("name", "")))
+		core.set_core(_get_gem_color(str(data.get("name", ""))), false, MatrixCoreIcon.tier_from_name(mid))
 		tile.add_child(core)
 		return root
 

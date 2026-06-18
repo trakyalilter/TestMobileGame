@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Horizon Idle — Matrix Core Tiers (refined)</title>
+<style>
+  :root{ --bg:#14141f; --text:#e6e6f2; --dim:#9a9ab2; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:radial-gradient(120% 80% at 70% 0%,#1b1b2b,var(--bg) 60%);color:var(--text);
+    font-family:"Bahnschrift","Segoe UI Variable Display",Eurostile,Arial,sans-serif;padding:30px 28px 80px}
+  h1{font-size:19px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#fff}
+  .sub{font-size:12px;color:var(--dim);letter-spacing:.5px;margin:4px 0 6px;max-width:1000px;line-height:1.55}
+  .changed{font-size:12px;color:#ffd0dc;letter-spacing:.3px;margin:10px 0 2px;max-width:1000px;line-height:1.6}
+  .changed b{color:#fff}
+  .cat{font-size:12px;letter-spacing:3px;text-transform:uppercase;color:#ffd0dc;margin:26px 0 14px;
+    border-bottom:1px solid rgba(255,255,255,.08);padding-bottom:6px}
+  .grid{display:flex;flex-wrap:wrap;gap:26px;align-items:flex-end}
+  .cell{display:flex;flex-direction:column;align-items:center;gap:9px}
+  .sock{width:120px;height:120px;border-radius:8px;display:grid;place-items:center;
+    background:#080c14;border:1px solid rgba(80,120,160,.45);box-shadow:inset 0 0 8px rgba(0,0,0,.6)}
+  .sock svg{width:100%;height:100%;display:block}
+  .nm{font-size:12px;color:#fff;letter-spacing:1px;text-align:center}
+  .nm small{display:block;color:var(--dim);font-size:9px;letter-spacing:1px;text-transform:uppercase}
+  .mini{width:38px;height:38px;border-radius:6px;background:#080c14;border:1px solid rgba(80,120,160,.4);display:grid;place-items:center}
+  .mini svg{width:100%;height:100%}
+  .row2{display:flex;gap:14px;align-items:center}
+  .legend{font-size:11px;color:var(--dim);margin-top:14px;max-width:1000px;line-height:1.55}
+</style>
+</head>
+<body>
+  <h1>Matrix Core — Tier Refinement</h1>
+  <div class="sub">Same Cut Gem, three grades. Shown big + at grid size, in two colours so the read holds across hues.</div>
+  <div class="changed">
+    <b>Cracked</b> — was a scribble + a dark "bite". Now: muted low-contrast facets, a real <b>fracture</b> (dark depth + a lit edge beside it) with a hairline branch, two internal <b>inclusions</b>, a <b>chipped point</b> with a frosty fresh-break face, dim rim, glint killed.<br>
+    <b>Pristine</b> — was pie-spokes + floating sparkles. Now: a finer <b>brilliant cut</b> (12-facet ridge lines), a crisp <b>double rim</b>, <b>two</b> specular glints (gems sparkle in 2 spots), and a subtle colour <b>grade-shimmer</b> just outside the rim — no plasma nucleus.
+  </div>
+
+  <div class="cat">Crimson</div>
+  <div class="grid" id="crimson"></div>
+
+  <div class="cat">Cobalt</div>
+  <div class="grid" id="cobalt"></div>
+
+  <div class="legend">If anything still reads off — fracture too busy, chip too aggressive, pristine shimmer too strong — say which dial and I'll tune before porting to <code>MatrixCoreIcon._draw()</code>.</div>
+
+<script>
+const COLORS = {Crimson:'#ff4444', Cobalt:'#44ccff', Topaz:'#ffcc00', Amethyst:'#aa44ff'};
+const V = [[32,10],[47.6,21],[47.6,43],[32,54],[16.4,43],[16.4,21]];
+const T = V.map(([x,y])=>[ +(32+(x-32)*0.42).toFixed(2), +(32+(y-32)*0.42).toFixed(2) ]);
+const FL = [0.16,-0.10,-0.30,-0.20,0.22,0.38];        // edge i→i+1 light (+white/-black)
+const pts = a => a.map(p=>p.join(',')).join(' ');
+const mid = (a,b)=>[ +((a[0]+b[0])/2).toFixed(2), +((a[1]+b[1])/2).toFixed(2) ];
+const scale = (a,k)=>a.map(([x,y])=>[ +(32+(x-32)*k).toFixed(2), +(32+(y-32)*k).toFixed(2) ]);
+
+// ---- STABLE (reference) ----
+function gem(color, o={}){
+  const mute = o.mute ?? 1.0;
+  let s = `<svg viewBox="0 0 64 64">`;
+  if(o.pristine){                                  // grade-shimmer halo behind
+    s += `<polygon points="${pts(scale(V,1.14))}" fill="${color}" opacity="0.16"/>`;
+    s += `<polygon points="${pts(scale(V,1.07))}" fill="${color}" opacity="0.22"/>`;
+  }
+  s += `<polygon points="${pts(V)}" fill="${color}"/>`;
+  for(let i=0;i<6;i++){
+    const f=[V[i],V[(i+1)%6],T[(i+1)%6],T[i]];
+    const l=FL[i]*mute;
+    s += `<polygon points="${pts(f)}" fill="${l>=0?'#fff':'#000'}" opacity="${Math.abs(l).toFixed(2)}"/>`;
+  }
+  s += `<polygon points="${pts(T)}" fill="${color}"/>`;
+  s += `<polygon points="${pts(T)}" fill="#fff" opacity="${(0.40*mute).toFixed(2)}"/>`;
+  // cut-edge hairlines (vertex → table)
+  s += `<g stroke="#000" stroke-opacity="${(0.22*mute).toFixed(2)}" stroke-width="1">`;
+  for(let i=0;i<6;i++) s += `<line x1="${V[i][0]}" y1="${V[i][1]}" x2="${T[i][0]}" y2="${T[i][1]}"/>`;
+  s += `</g>`;
+  if(o.pristine){                                  // 12-facet brilliant ridges
+    s += `<g stroke="#fff" stroke-opacity="0.40" stroke-width="0.9" stroke-linecap="round">`;
+    for(let i=0;i<6;i++){ const mo=mid(V[i],V[(i+1)%6]), mt=mid(T[i],T[(i+1)%6]); s+=`<line x1="${mo[0]}" y1="${mo[1]}" x2="${mt[0]}" y2="${mt[1]}"/>`; }
+    s += `</g>`;
+  }
+  // rim
+  const rim = o.rim ?? 0.5;
+  s += `<polyline points="${pts(V)} ${V[0].join(',')}" fill="none" stroke="#fff" stroke-opacity="${rim}" stroke-width="1.7" stroke-linejoin="round"/>`;
+  if(o.pristine){                                  // crisp inner rim
+    s += `<polyline points="${pts(scale(V,0.9))} ${scale(V,0.9)[0].join(',')}" fill="none" stroke="#fff" stroke-opacity="0.28" stroke-width="0.8" stroke-linejoin="round"/>`;
+  }
+  // glints
+  if((o.glint??1)>0)
+    s += `<line x1="22" y1="20" x2="27.5" y2="14.5" stroke="#fff" stroke-width="2.4" stroke-linecap="round" opacity="${o.glint??0.9}"/>`;
+  if(o.pristine)
+    s += `<line x1="40" y1="40" x2="44" y2="36" stroke="#fff" stroke-width="1.8" stroke-linecap="round" opacity="0.8"/>`;
+  s += `</svg>`;
+  return s;
+}
+
+// ---- CRACKED ----
+function cracked(color){
+  let s = `<svg viewBox="0 0 64 64">`;
+  s += `<polygon points="${pts(V)}" fill="${color}"/>`;
+  // muted facets (55% contrast)
+  for(let i=0;i<6;i++){
+    const f=[V[i],V[(i+1)%6],T[(i+1)%6],T[i]];
+    const l=FL[i]*0.5;
+    s += `<polygon points="${pts(f)}" fill="${l>=0?'#fff':'#000'}" opacity="${Math.abs(l).toFixed(2)}"/>`;
+  }
+  s += `<polygon points="${pts(T)}" fill="${color}"/>`;
+  s += `<polygon points="${pts(T)}" fill="#fff" opacity="0.18"/>`;
+  // dull wash
+  s += `<polygon points="${pts(V)}" fill="#000" opacity="0.20"/>`;
+  // internal inclusions
+  s += `<ellipse cx="27" cy="35" rx="2.4" ry="1.6" fill="#000" opacity="0.30" transform="rotate(20 27 35)"/>`;
+  s += `<ellipse cx="37" cy="29" rx="1.5" ry="1.1" fill="#000" opacity="0.24"/>`;
+  // fracture: dark depth + lit edge + branch
+  s += `<polyline points="45.5,24 36,33 30,43" fill="none" stroke="#000" stroke-opacity="0.55" stroke-width="1.6" stroke-linejoin="round"/>`;
+  s += `<polyline points="46.2,24.6 36.8,33.6 30.8,43.4" fill="none" stroke="#fff" stroke-opacity="0.18" stroke-width="0.7"/>`;
+  s += `<polyline points="36,33 31,30" fill="none" stroke="#000" stroke-opacity="0.45" stroke-width="1.2"/>`;
+  // chipped point at v1: tiny sliver removed + frosty fresh-break face
+  s += `<polygon points="44.6,17.4 47.6,21 45.4,24.4" fill="#080c14"/>`;
+  s += `<line x1="44.6" y1="17.4" x2="45.4" y2="24.4" stroke="#fff" stroke-opacity="0.32" stroke-width="1"/>`;
+  // dim rim, broken at the chip (two segments skip the chipped corner)
+  s += `<polyline points="${pts([V[1],V[2],V[3],V[4],V[5],V[0]])} 44.6,17.4" fill="none" stroke="#fff" stroke-opacity="0.24" stroke-width="1.3" stroke-linejoin="round"/>`;
+  // faint glint only
+  s += `<line x1="23" y1="19" x2="26" y2="16" stroke="#fff" stroke-width="1.6" stroke-linecap="round" opacity="0.30"/>`;
+  s += `</svg>`;
+  return s;
+}
+
+function cell(svg,name,sub){return `<div class="cell"><span class="sock">${svg}</span>
+  <div class="row2"><span class="mini">${svg}</span><span class="nm">${name}<small>${sub}</small></span></div></div>`;}
+
+function build(id,color){
+  document.getElementById(id).innerHTML =
+    cell(cracked(color),'Cracked','tier 1') +
+    cell(gem(color),'Stable','tier 2') +
+    cell(gem(color,{rim:0.8, pristine:true}),'Pristine','tier 3');
+}
+build('crimson', COLORS.Crimson);
+build('cobalt', COLORS.Cobalt);
+</script>
+</body>
+</html>

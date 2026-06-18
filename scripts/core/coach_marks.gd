@@ -11,6 +11,15 @@ extends RefCounted
 #          bounty, quest, warp, atlas.
 
 const STEPS := {
+	# v113 (NG+): milestone coach, fired on the first Z10-boss kill (not a page
+	# visit). Anchors to the Warp Core nav button; steers the player to prestige.
+	"warp_milestone": [
+		{
+			"anchor": "warp_nav",
+			"title": "The Threshold Awaits",
+			"body": "Sector 10 cleared! The frontier beyond is Warp-Hardened - conventional weapons barely scratch it. Open the Warp Core (here) and execute a reset: it permanently unlocks Cryogenic armaments (the only thing that pierces these hulls) and reveals Sector 11. Your research and Warp Mastery carry over, and every run gets faster.",
+		},
+	],
 	"gathering": [
 		{
 			"anchor": "first_action",

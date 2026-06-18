@@ -32,7 +32,12 @@ var elements_db: Array = []
 
 # v52.1: Game Settings (opt-in features)
 var game_settings: Dictionary = {
-	"offline_combat": false  # Disabled by default
+	"offline_combat": false,  # Disabled by default
+	# v114 (Zone Tier-Gate): gates the front/back sector-hardening system.
+	# Default true → a brand-new game (no save) is gated. New Game (hard_reset)
+	# re-sets it true. Loading a PRE-feature save (no key) flips it false in
+	# load_game so already-cleared zones aren't retroactively re-walled.
+	"tier_gate_enabled": true
 }
 
 # Auto-save
@@ -309,6 +314,11 @@ func load_game():
 		var saved_settings = data.get("game_settings", {})
 		for key in saved_settings:
 			game_settings[key] = saved_settings[key]
+		# v114 (Zone Tier-Gate): new-game-only rollout. A save written before this
+		# feature has no flag → ungate it so the hardened back-halves don't suddenly
+		# wall zones the player already cleared. New/post-feature saves carry it.
+		if not saved_settings.has("tier_gate_enabled"):
+			game_settings["tier_gate_enabled"] = false
 
 		# Restore lifetime play time (defaults to 0 for pre-existing saves).
 		# Re-anchor the clock so the load gap isn't counted as play time.
@@ -429,8 +439,13 @@ func hard_reset():
 	# v109: re-lock the Z11 Warp Gate on a fresh game.
 	game_settings.erase("z11_unlocked")
 	# v113 (NG+): re-lock the Z12 Rift frontier + its clear-gate flag.
+	game_settings.erase("z10_cleared")
 	game_settings.erase("z11_cleared")
 	game_settings.erase("z12_unlocked")
+	# v113 (NG+ P2): re-lock earned Threshold Relics (master keys) + empty the slot.
+	# (shipyard_manager.reset() above wiped inventory but leaves equipped_relic.)
+	game_settings.erase("rift_relic_earned")
+	if shipyard_manager: shipyard_manager.equipped_relic = ""
 	# Re-arm the one-time "enable Offline Combat" tip for the new playthrough.
 	game_settings.erase("offline_combat_nudge_seen")
 	mission_manager.reset()
@@ -445,6 +460,9 @@ func hard_reset():
 
 	# Re-show first-visit page tours on a fresh playthrough
 	game_settings["coach_seen"] = {}
+
+	# v114: New Game is a gated playthrough (front/back sector-hardening on).
+	game_settings["tier_gate_enabled"] = true
 
 	# New Game = brand new lifetime clock (Warp prestige does NOT reset this)
 	total_playtime = 0.0

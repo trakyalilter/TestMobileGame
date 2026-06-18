@@ -30,6 +30,12 @@ func _ready():
 			GameState.resources.currency_removed.connect(_on_resource_changed)
 	if manager and not manager.inventory_updated.is_connected(_on_inventory_updated):
 		manager.inventory_updated.connect(_on_inventory_updated)
+	# v113: refresh craft cards the instant ANY research completes. A tech unlock
+	# may fire no resource event (debug/free unlock, or research paid on another
+	# screen), so a "RESEARCH:" lock could otherwise linger until the next resource
+	# tick. Listen to tech_unlocked directly so the card clears immediately.
+	if GameState.research_manager and not GameState.research_manager.tech_unlocked.is_connected(_on_tech_unlocked):
+		GameState.research_manager.tech_unlocked.connect(_on_tech_unlocked)
 	
 	# UI Robustness: Ensure parent containers don't block mouse events
 	$VBoxContainer/StatsPanel.mouse_filter = Control.MOUSE_FILTER_PASS
@@ -76,6 +82,9 @@ func _on_resource_changed(_a=null, _b=null):
 
 func _on_inventory_updated():
 	_on_resource_changed()
+
+func _on_tech_unlocked(_tech_id = null):
+	_on_resource_changed()  # re-evaluate every craft card's research lock
 
 func _update_repair_button():
 	if not repair_btn: return
@@ -134,7 +143,7 @@ func refresh_list():
 	_create_rack("kinetic", "Kinetic Weapons", Color(1.0, 0.32, 0.32, 0.5), rack_container)
 	_create_rack("explosive", "Explosive Weapons", Color(1.0, 0.5, 0.0, 0.5), rack_container) # Added
 	_create_rack("energy", "Energy Weapons", Color(0.0, 0.9, 1.0, 0.5), rack_container)
-	_create_rack("cryo", "Cryogenic Weapons", Color(0.70, 0.95, 1.0, 0.5), rack_container)
+	_create_rack("cryo", "Special Weapons", Color(0.72, 0.55, 1.0, 0.5), rack_container)  # v113: exotic-element weapons (Cryo + Corrosion + future tiers) share this rack
 	_create_rack("shield", "Shield Generators", Color(0.4, 0.6, 1.0, 0.5), rack_container)
 	_create_rack("armor", "Hull Armor", Color(0.6, 0.6, 0.6, 0.5), rack_container)
 	_create_rack("engine", "Engine Systems", Color(0.8, 1.0, 0.2, 0.5), rack_container)

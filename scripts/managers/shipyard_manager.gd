@@ -346,17 +346,27 @@ var unseen_modules: Dictionary = {}
 # { item_id: {"x": int, "y": int} }. Items without an entry are auto-packed.
 var armory_layout: Dictionary = {}
 var loadout: Dictionary = {} # {slot_index: module_id}
+# v113 (NG+ P2): the dedicated Relic slot — a single Threshold Relic (master key),
+# SEPARATE from the hull's weapon/armor grid (never competes for a hull slot).
+# Persists across Warp (re-granted in execute_warp); cleared only on hard reset.
+var equipped_relic: String = ""
 var ammo_loadout: Dictionary = {} # {slot_index: ammo_id}
 
 # v66.0: Consumable Slots
 var consumable_hull_slot: String = "" # e.g. "Mesh"
 var consumable_shield_slot: String = "" # e.g. "BasicBooster"
 
-# Loadout Presets — 3 saved builds for quick swap (Kinetic / Energy / Boss DPS etc.)
+# Loadout Presets — 5 saved builds (Melvor-style equipment sets) for quick swap.
+# v113 (NG+ P2): bumped 3→5 so multi-phase NG+ bosses can be answered with one
+# preset per element (Cryo / Corrosion / …), tap-swapped mid-fight. Old 3-preset
+# saves migrate cleanly — the load handler only restores indices present here, so
+# 4 & 5 simply start empty.
 var loadout_presets: Dictionary = {
 	1: {"name": "", "loadout": {}, "ammo_loadout": {}, "consumable_hull": "", "consumable_shield": ""},
 	2: {"name": "", "loadout": {}, "ammo_loadout": {}, "consumable_hull": "", "consumable_shield": ""},
-	3: {"name": "", "loadout": {}, "ammo_loadout": {}, "consumable_hull": "", "consumable_shield": ""}
+	3: {"name": "", "loadout": {}, "ammo_loadout": {}, "consumable_hull": "", "consumable_shield": ""},
+	4: {"name": "", "loadout": {}, "ammo_loadout": {}, "consumable_hull": "", "consumable_shield": ""},
+	5: {"name": "", "loadout": {}, "ammo_loadout": {}, "consumable_hull": "", "consumable_shield": ""}
 }
 
 # v72.3: Research Requirements for non-module equipment (Ammo, Consumables)
@@ -523,61 +533,25 @@ var modules: Dictionary = {
 
 	# ── CRYO WEAPON TIER — the 4th damage type, unlocked by the first Warp. ──
 	# Exotic-Matter self-charging (no ammo). The only damage that bites
-	# Warp-Hardened (Z11+) hulls. Warp grants the starter pistol; better
+	# Warp-Hardened (Z11+) hulls. v113: NO free starter weapon — ALL
 	# Cryo weapons are CRAFTED via Shipyard craft_module (research: cryo_armaments)
 	# during the post-warp re-climb. Z11 drops rarity-rolled cryo_lance upgrades.
 	# All Cryo weapons use power_tier to decouple draw from zone 11.
-	"cryo_shard_pistol": {
-		"name": "Cryo Shard Pistol",
-		"slot_type": "weapon",
-		"rarity": Rarity.UNCOMMON,
-		# v111: Starter Cryo granted on first Warp. ~Z1 power level (kinetic
-		# Z1 = 8 atk). Teaches "Cryo exists" without trivializing the re-climb.
-		# Against Z11 warp-hardened (22M HP) this does ~7.5 DPS — the player
-		# immediately understands they need to craft better Cryo weapons.
-		"stats": {"atk_cryo": 12, "atk_interval": 2.0},
-		"cost": {},
-		"desc": "Crude cryogenic sidearm. Proof-of-concept from the first Warp. Weak, but it's the only thing that hurts Warp-Hardened hulls.",
-		"zone": 11,
-		"power_tier": 1,
-		"cryo": true
-	},
-	"cryo_repeater": {
-		"name": "Cryo Repeater",
-		"slot_type": "weapon",
-		"rarity": Rarity.RARE,
-		# ~Z4 power level. First real Cryo investment, craftable early post-warp.
-		"stats": {"atk_cryo": 200, "atk_interval": 2.0},
-		"cost": {"credits": 50000, "ExoticMatter": 3, "CryoEssence": 10, "Steel": 50},
-		"desc": "Rapid-fire cryogenic projector. Exotic Matter coolant loop.",
-		"zone": 11,
-		"power_tier": 3,
-		"cryo": true,
-		"research_req": "cryo_armaments"
-	},
-	"cryo_cannon": {
-		"name": "Cryo Cannon",
-		"slot_type": "weapon",
-		"rarity": Rarity.RARE,
-		# ~Z8 power level. Mid re-climb craft, serious Cryo investment.
-		"stats": {"atk_cryo": 2000, "atk_interval": 2.0},
-		"cost": {"credits": 500000, "ExoticMatter": 10, "CryoEssence": 30, "Superalloy": 20, "QuantumCore": 3},
-		"desc": "Heavy cryogenic battery. Exotic Matter capacitor banks sustain punishing fire.",
-		"zone": 11,
-		"power_tier": 6,
-		"cryo": true,
-		"research_req": "cryo_armaments"
-	},
+	# v113: the free Cryo Shard Pistol was CUT — Warping no longer hands out a
+	# (useless ~Z1-power) weapon. v113: collapsed to ONE craftable Cryo weapon, the
+	# Cryo Lance below (RARE entry, Cryo Catalyst + research) — Z11 drops it
+	# rarity-rolled and the boss a guaranteed one; a LEGENDARY roll (with affixes)
+	# is the real Warden-killer, same craft-then-farm loop as every zone.
 	"cryo_lance": {
-		"name": "Cryo-Lance",
+		"name": "Cryo Lance",
 		"slot_type": "weapon",
-		"rarity": Rarity.LEGENDARY,
+		"rarity": Rarity.RARE,
 		# ~Z10 power level. Endgame Cryo craft — the weapon that makes Z11
 		# beatable. 3× equipped → ~19 min Threshold Warden kill (first clear).
 		# Z11 drops rarity-rolled copies that can exceed this base via affixes.
-		"stats": {"atk_cryo": 10000, "atk_interval": 2.0},
-		"cost": {"credits": 5000000, "ExoticMatter": 25, "CryoEssence": 50, "Superalloy": 100, "ChronoCore": 5, "VoidCrystal": 10},
-		"desc": "Exotic-Matter cryo cannon. Self-charging — no ammo. The apex of cryogenic armaments.",
+		"stats": {"atk_cryo": 4000, "atk_interval": 2.0},
+		"cost": {"credits": 2000000, "ExoticMatter": 15, "CryoCatalyst": 12, "Superalloy": 50},
+		"desc": "Exotic-Matter cryo lance. Self-charging, no ammo. The only thing that breaches Warp-Hardened hulls - farm The Threshold for legendary-grade rolls.",
 		"zone": 11,
 		"power_tier": 8,
 		"cryo": true,
@@ -596,11 +570,31 @@ var modules: Dictionary = {
 		"slot_type": "weapon",
 		"rarity": Rarity.LEGENDARY,
 		"stats": {"atk_cryo": 12000, "atk_interval": 2.0, "exotic_element": "corrosion"},
-		"cost": {"credits": 8000000, "ExoticMatter": 30, "CryoEssence": 40, "Superalloy": 120, "ChronoCore": 8, "VoidCrystal": 15},
+		"cost": {"credits": 8000000, "ExoticMatter": 30, "CryoCatalyst": 20, "Superalloy": 120, "ChronoCore": 8, "VoidCrystal": 15},
 		"desc": "Acid-plasma projector. Etches through Corrosion-hardened hulls where cryogenic fire just glazes the surface.",
 		"zone": 12,
 		"power_tier": 8,
 		"research_req": "corrosion_armaments"
+	},
+
+	# ── THRESHOLD RELIC (NG+ master key) — the Rift Warden's drop. ──
+	# v113 (NG+ P2): dedicated Relic slot (slot_type "relic", NOT a hull slot).
+	# While equipped IN its keyed zone, incoming damage is slashed to ~8% so the
+	# gate boss becomes survivable → idle-farmable (the "active clear once, then
+	# farm" payoff). Empty cost = not craftable; only the boss drops it. Persists
+	# across Warp. relic_reduction is P5-tunable.
+	"rift_relic": {
+		"name": "Threshold Relic — Rift",
+		"slot_type": "relic",
+		"rarity": Rarity.LEGENDARY,
+		"unique": true,
+		"stats": {},
+		"relic_zone": "the_rift",
+		"relic_reduction": 0.92,
+		"relic_for": "z12_boss_rift_warden",
+		"cost": {},
+		"desc": "A master key wrenched from the Rift Warden's core. Equipped, the Rift's corrosive fury barely scratches your hull — clear the gate once, then farm it at will.",
+		"zone": 12
 	},
 
 	# ── ZONE 1: Lunar Orbit ──
@@ -2152,6 +2146,7 @@ func get_save_data_manager() -> Dictionary:
 	data["custom_modules"] = custom_modules
 	data["loadout_presets"] = loadout_presets
 	data["armory_layout"] = armory_layout
+	data["equipped_relic"] = equipped_relic  # v113 (NG+ P2)
 	return data
 
 func load_save_data_manager(data: Dictionary):
@@ -2180,6 +2175,16 @@ func load_save_data_manager(data: Dictionary):
 	unseen_modules = data.get("unseen_modules", {})
 	# Migration: old saves have no armory_layout → {} (everything auto-packs).
 	armory_layout = data.get("armory_layout", {})
+	equipped_relic = data.get("equipped_relic", "")  # v113 (NG+ P2)
+	# v113: scrub any equipped/owned module whose def no longer exists (e.g. the
+	# removed free Cryo Shard Pistol) so a stale id can't dangle into recalc/UI.
+	for _s in loadout.keys():
+		var _mid = loadout[_s]
+		if _mid != null and _mid != "" and not (_mid in modules):
+			loadout[_s] = null
+	for _mid in module_inventory.keys():
+		if not (_mid in modules):
+			module_inventory.erase(_mid)
 	_migrate_module_entries_from_resources()
 	_migrate_atk_interval_caps()
 
@@ -2591,6 +2596,56 @@ func get_module_durability(module_id: String) -> int:
 	var m = modules.get(module_id, {})
 	return int(m.get("durability", 100))
 
+# ── v114: Zone Tier-Gate helpers (see docs/ZONE_TIER_GATE.md) ──
+# A module's effective tier = power_tier when set (exotic weapons like cryo_lance,
+# whose `zone` is the unlock zone, not the power band), else its `zone`.
+func get_module_tier(module_id: String) -> int:
+	var m = modules.get(module_id, {})
+	return int(m.get("power_tier", m.get("zone", 0)))
+
+# Does this module pierce a tier_hardened: z enemy? Tier-z+ gear pierces (the craft
+# path); a Unique exactly one zone below pierces too (the jackpot skip-key — ONE
+# zone only). Everything else is floored. z<=0 = not hardened → always pierces.
+func module_pierces_tier(module_id: String, z: int) -> bool:
+	if z <= 0:
+		return true
+	var mt := get_module_tier(module_id)
+	if mt >= z:
+		return true
+	if mt == z - 1 and get_module_rarity(module_id) == Rarity.UNIQUE:
+		return true
+	return false
+
+# Defensive half of the gate: the fraction of armor / shield retained vs a
+# tier_hardened: z enemy. Sub-tier ARMOR/SHIELD modules keep only `floor_f` (~0.02)
+# of their stat; piercing ones keep all. Returned as multipliers so combat scales
+# the FINAL sm.defense / sm.max_shield (preserving set/matrix/research bonuses
+# proportionally) rather than re-deriving them. No armor/shield modules → 1.0
+# (nothing to floor; bare hull base is not a gated module).
+func get_tier_defense_factors(z: int, floor_f: float) -> Dictionary:
+	if z <= 0:
+		return {"def": 1.0, "shield": 1.0}
+	var arm_full := 0.0
+	var arm_keep := 0.0
+	var sh_full := 0.0
+	var sh_keep := 0.0
+	for mid in loadout.values():
+		if mid and mid in modules:
+			var st = modules[mid].get("slot_type", "")
+			var f: float = 1.0 if module_pierces_tier(mid, z) else floor_f
+			if st == "armor":
+				var d: float = modules[mid]["stats"].get("def", 0)
+				arm_full += d
+				arm_keep += d * f
+			elif st == "shield":
+				var s: float = modules[mid]["stats"].get("max_shield", 0)
+				sh_full += s
+				sh_keep += s * f
+	return {
+		"def": (arm_keep / arm_full) if arm_full > 0.0 else 1.0,
+		"shield": (sh_keep / sh_full) if sh_full > 0.0 else 1.0,
+	}
+
 # v71.5: Check if module can be equipped (Prerequisite check)
 # Returns: {"can_equip": bool, "reason": String}
 func can_equip_module(module_id: String) -> Dictionary:
@@ -2828,6 +2883,35 @@ func clear_loadout_preset(idx: int) -> bool:
 func is_loadout_preset_empty(idx: int) -> bool:
 	if not idx in loadout_presets: return true
 	return _preset_has_no_modules(loadout_presets[idx])
+
+# ── Threshold Relic slot (NG+ P2 master key) ──
+# v113: relics live in a dedicated single slot, separate from the hull grid.
+# equip/unequip validate slot_type + ownership; the combat effect is read via
+# get_relic_reduction_factor (applied to incoming damage in the keyed zone only).
+func equip_relic(relic_id: String) -> bool:
+	if not relic_id in modules: return false
+	if modules[relic_id].get("slot_type", "") != "relic": return false
+	if module_inventory.get(relic_id, 0) <= 0: return false
+	equipped_relic = relic_id
+	inventory_updated.emit()
+	return true
+
+func unequip_relic() -> void:
+	if equipped_relic != "":
+		equipped_relic = ""
+		inventory_updated.emit()
+
+# Incoming-damage multiplier from the equipped relic IN the given zone (1.0 = no
+# effect). A relic only bites in its keyed zone, so it can't become a universal
+# god-item — it's the farm-enabler for its tier's gate boss, nothing else.
+func get_relic_reduction_factor(zone_id: String) -> float:
+	if equipped_relic == "" or not equipped_relic in modules:
+		return 1.0
+	var r = modules[equipped_relic]
+	if str(r.get("relic_zone", "")) != zone_id:
+		return 1.0
+	var red: float = clampf(float(r.get("relic_reduction", 0.0)), 0.0, 0.99)
+	return 1.0 - red
 
 func repair_module(slot_idx: int, cost_credits: int, cost_parts: int) -> bool:
 	if GameState.resources.get_currency("credits") < cost_credits: return false

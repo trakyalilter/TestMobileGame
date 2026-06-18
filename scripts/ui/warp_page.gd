@@ -610,8 +610,22 @@ func _on_execute_btn_pressed():
 	var gains = int(_wm.calculate_warp_gains())
 	if gains <= 0: return
 	var s = "" if gains == 1 else "s"
-	$ConfirmationDialog.dialog_text = "Execute Warp will:\n\n+ Grant %d Exotic Shard%s\n\nReset: Liras, Buildings, Standard Resources, Skill levels (keep 30%% XP)\nKeep: Research, Ships, Exotic Matter, Warp Mastery purchases\n\nThis cannot be undone." % [gains, s]
-	$ConfirmationDialog.popup_centered()
+	# v112: themed in-scene modal (was the primitive Window ConfirmationDialog).
+	# Colour-codes the grant (purple), reset (red) and keep (green) lines, with
+	# the irreversibility warning in amber — all on the warp/prestige palette.
+	var body := "[b]Warp Core spin-up authorised.[/b]\n\n"
+	body += "[color=#c78cff]✦  Grant %d Exotic Shard%s[/color]\n\n" % [gains, s]
+	body += "[color=#f06b6b]RESET[/color]    Liras · Buildings · Standard Resources · Skill levels  [color=#8b8f9c](keep 30% XP)[/color]\n"
+	body += "[color=#73e88c]KEEP[/color]     Research · Ships · Exotic Matter · Warp Mastery purchases\n\n"
+	body += "[color=#ffb454][b]⚠  This cannot be undone.[/b][/color]"
+	UITheme.show_confirm({
+		"title": "Confirm Warp",
+		"body": body,
+		"confirm_text": "Execute Warp",
+		"cancel_text": "Cancel",
+		"accent": COLOR_SHARD,
+		"on_confirm": Callable(self, "_on_confirm_warp"),
+	})
 
 
 func _on_confirm_warp():

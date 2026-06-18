@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Horizon Idle — Full Icon Set (Schematic)</title>
+<style>
+  :root{ --bg:#14141f; --text:#e6e6f2; --dim:#9a9ab2; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:radial-gradient(120% 80% at 70% 0%,#1b1b2b,var(--bg) 60%);color:var(--text);
+    font-family:"Bahnschrift","Segoe UI Variable Display",Eurostile,Arial,sans-serif;padding:30px 28px 80px}
+  h1{font-size:19px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#fff}
+  .sub{font-size:12px;color:var(--dim);letter-spacing:.5px;margin:4px 0 22px;max-width:1000px;line-height:1.5}
+  .cat{font-size:12px;letter-spacing:3px;text-transform:uppercase;color:#bfe9ff;
+    margin:26px 0 12px;border-bottom:1px solid rgba(255,255,255,.08);padding-bottom:6px}
+  .grid{display:flex;flex-wrap:wrap;gap:20px}
+  .cell{display:flex;flex-direction:column;align-items:center;gap:8px;width:104px}
+  .chip{width:72px;height:72px;border-radius:8px;display:grid;place-items:center;position:relative;
+    border:1px solid rgba(255,255,255,.10)}
+  .chip svg{width:54px;height:54px;display:block;filter:drop-shadow(0 0 3px var(--glow))}
+  .nm{font-size:11px;color:#fff;letter-spacing:.5px;text-align:center;line-height:1.2}
+  .nm small{display:block;color:var(--dim);font-size:9px;letter-spacing:1px;text-transform:uppercase}
+
+  /* schematic stroke system */
+  svg [data-p]{stroke:var(--ico);stroke-width:4;fill:var(--fill);stroke-linejoin:round;stroke-linecap:round}
+  svg [data-d]{stroke:var(--ico);stroke-width:2.4;fill:none;opacity:.55;stroke-linejoin:round;stroke-linecap:round}
+  svg [data-n]{fill:var(--ico);stroke:none}
+
+  /* grid-size proof strip */
+  .mini{width:36px;height:36px;border-radius:6px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.08)}
+  .mini svg{width:27px;height:27px;filter:drop-shadow(0 0 2px var(--glow))}
+  .mini svg [data-d], .mini svg [data-n]{display:none}
+  .mini svg [data-p]{stroke-width:5}
+  .strip{display:flex;flex-wrap:wrap;gap:12px;margin-top:8px}
+  .legend{font-size:11px;color:var(--dim);margin-top:8px;max-width:1000px;line-height:1.5}
+</style>
+</head>
+<body>
+  <h1>Full Icon Set — Schematic (refined)</h1>
+  <div class="sub">Every module type + all 4 weapon families, on their real slot-tinted emblem chips. Each is distinct by SILHOUETTE first (so they separate before the colour tint even applies). Shield tick removed → deflector ring + core node. Hull-Repair cross centered.</div>
+
+  <!-- ===================== WEAPONS ===================== -->
+  <div class="cat">Weapons — by damage family</div>
+  <div class="grid">
+    <div class="cell" style="--slot:#eba852;--ico:#fcdfb0;--fill:rgba(235,168,82,.15);--glow:rgba(235,168,82,.5);--emb:#3a2a13">
+      <span class="chip" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+        <rect data-p x="10" y="26" width="30" height="14" rx="2"/><path data-p d="M40 29 H55 V37 H40 Z"/><path data-p d="M17 40 V49 H26 V40"/>
+        <line data-d x1="15" y1="33" x2="35" y2="33"/><circle data-n cx="55" cy="33" r="2.6"/></svg></span>
+      <span class="nm">Kinetic<small>slug · KIN</small></span>
+    </div>
+    <div class="cell" style="--slot:#5bc8ff;--ico:#c4ecff;--fill:rgba(91,200,255,.15);--glow:rgba(91,200,255,.55);--emb:#0f2c3c">
+      <span class="chip" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+        <rect data-p x="11" y="27" width="20" height="12" rx="2"/><path data-p d="M31 27 L45 22 V44 L31 39 Z"/>
+        <path data-d d="M48 26 q5 7 0 14"/><path data-d d="M52 24 q8 9 0 18"/><circle data-n cx="45" cy="33" r="2.4"/></svg></span>
+      <span class="nm">Energy<small>beam · NRG</small></span>
+    </div>
+    <div class="cell" style="--slot:#ff7a52;--ico:#ffc6b3;--fill:rgba(255,122,82,.15);--glow:rgba(255,122,82,.5);--emb:#3a1a11">
+      <span class="chip" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+        <rect data-p x="12" y="28" width="26" height="12" rx="2"/><path data-p d="M38 27 L53 34 L38 41 Z"/>
+        <path data-d d="M12 28 L8 23 M12 40 L8 45"/><line data-d x1="18" y1="34" x2="34" y2="34"/><circle data-n cx="53" cy="34" r="2.4"/></svg></span>
+      <span class="nm">Explosive<small>missile · EXP</small></span>
+    </div>
+    <div class="cell" style="--slot:#9fe8ff;--ico:#d9f6ff;--fill:rgba(159,232,255,.14);--glow:rgba(159,232,255,.55);--emb:#16323b">
+      <span class="chip" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+        <rect data-p x="10" y="27" width="24" height="13" rx="2"/><path data-p d="M34 29 H47 V37 H34 Z"/>
+        <g data-d><line x1="51" y1="26" x2="51" y2="40"/><line x1="45" y1="29.5" x2="57" y2="36.5"/><line x1="45" y1="36.5" x2="57" y2="29.5"/></g>
+        <circle data-n cx="51" cy="33" r="1.9"/></svg></span>
+      <span class="nm">Cryo<small>frost · CRY ✦new</small></span>
+    </div>
+  </div>
+
+  <!-- ===================== DEFENSE ===================== -->
+  <div class="cat">Defense</div>
+  <div class="grid">
+    <div class="cell" style="--slot:#80b8f2;--ico:#cfe3fb;--fill:rgba(128,184,242,.16);--glow:rgba(128,184,242,.55);--emb:#1d3047">
+      <span class="chip" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+        <path data-p d="M32 7 L52 16 V33 Q52 49 32 57 Q12 49 12 33 V16 Z"/>
+        <path data-d d="M32 16 L44 21.5 V33 Q44 43 32 48 Q20 43 20 33 V21.5 Z"/>
+        <circle data-n cx="32" cy="31" r="3.2"/><circle data-n cx="32" cy="7" r="2.4"/></svg></span>
+      <span class="nm">Shield<small>deflector — fixed</small></span>
+    </div>
+    <div class="cell" style="--slot:#c7baa8;--ico:#ece4d6;--fill:rgba(199,186,168,.15);--glow:rgba(199,186,168,.45);--emb:#2f2a22">
+      <span class="chip" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+        <path data-p d="M12 23 L32 13 L52 23 L52 29 L32 19 L12 29 Z"/>
+        <path data-d d="M12 33 L32 23 L52 33 L52 39 L32 29 L12 39 Z"/>
+        <path data-d d="M12 43 L32 33 L52 43 L52 49 L32 39 L12 49 Z"/></svg></span>
+      <span class="nm">Armor<small>hull plating</small></span>
+    </div>
+  </div>
+
+  <!-- ===================== POWER ===================== -->
+  <div class="cat">Power</div>
+  <div class="grid">
+    <div class="cell" style="--slot:#d6c96e;--ico:#f4ecc0;--fill:rgba(214,201,110,.15);--glow:rgba(214,201,110,.5);--emb:#3a3517">
+      <span class="chip" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+        <path data-p d="M26 10 H38 L43 36 H21 Z"/><path data-p d="M22 36 H42 V41 H22 Z"/>
+        <path data-d d="M27 43 l2.5 10 2.5-6 2.5 6 2.5-10"/><circle data-n cx="26" cy="10" r="2.3"/><circle data-n cx="38" cy="10" r="2.3"/></svg></span>
+      <span class="nm">Engine<small>propulsion</small></span>
+    </div>
+    <div class="cell" style="--slot:#d6c96e;--ico:#f4ecc0;--fill:rgba(214,201,110,.15);--glow:rgba(214,201,110,.5);--emb:#3a3517">
+      <span class="chip" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+        <rect data-p x="12" y="22" width="36" height="20" rx="3"/><rect data-p x="48" y="28" width="5" height="8" rx="1"/>
+        <line data-d x1="19" y1="28" x2="19" y2="36"/><line data-d x1="26" y1="28" x2="26" y2="36"/><line data-d x1="33" y1="28" x2="33" y2="36"/></svg></span>
+      <span class="nm">Battery<small>energy cell</small></span>
+    </div>
+    <div class="cell" style="--slot:#d6c96e;--ico:#f4ecc0;--fill:rgba(214,201,110,.15);--glow:rgba(214,201,110,.5);--emb:#3a3517">
+      <span class="chip" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+        <circle data-p cx="32" cy="32" r="20"/><circle data-d cx="32" cy="32" r="9"/>
+        <g data-d><line x1="32" y1="12" x2="32" y2="23"/><line x1="32" y1="41" x2="32" y2="52"/><line x1="12" y1="32" x2="23" y2="32"/><line x1="41" y1="32" x2="52" y2="32"/></g>
+        <circle data-n cx="32" cy="32" r="3.6"/></svg></span>
+      <span class="nm">Reactor<small>core</small></span>
+    </div>
+  </div>
+
+  <!-- ===================== SYSTEMS ===================== -->
+  <div class="cat">Systems</div>
+  <div class="grid">
+    <div class="cell" style="--slot:#a69478;--ico:#e9ddc7;--fill:rgba(166,148,120,.14);--glow:rgba(166,148,120,.5);--emb:#2c281f">
+      <span class="chip" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+        <circle data-p cx="32" cy="32" r="21"/><circle data-d cx="32" cy="32" r="12"/>
+        <path data-d d="M32 11 V20 M32 44 V53 M11 32 H20 M44 32 H53"/><line data-d x1="32" y1="32" x2="49" y2="20"/><circle data-n cx="32" cy="32" r="3.4"/></svg></span>
+      <span class="nm">Sensor<small>targeting</small></span>
+    </div>
+    <div class="cell" style="--slot:#a69478;--ico:#e9ddc7;--fill:rgba(166,148,120,.14);--glow:rgba(166,148,120,.5);--emb:#2c281f">
+      <span class="chip" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+        <rect data-p x="14" y="18" width="36" height="22" rx="3"/>
+        <line data-d x1="22" y1="18" x2="22" y2="40"/><line data-d x1="30" y1="18" x2="30" y2="40"/><line data-d x1="38" y1="18" x2="38" y2="40"/>
+        <path data-d d="M24 44 l3 5 3-5 M34 44 l3 5 3-5"/></svg></span>
+      <span class="nm">Cooling<small>heatsink</small></span>
+    </div>
+  </div>
+
+  <!-- ===================== MUNITIONS ===================== -->
+  <div class="cat">Munitions</div>
+  <div class="grid">
+    <div class="cell" style="--slot:#e09957;--ico:#fbd4ab;--fill:rgba(224,153,87,.15);--glow:rgba(224,153,87,.5);--emb:#382613">
+      <span class="chip" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+        <path data-p d="M25 16 Q32 7 39 16 V44 H25 Z"/><path data-p d="M24 44 H40 V52 H24 Z"/>
+        <line data-d x1="25" y1="40" x2="39" y2="40"/><line data-d x1="32" y1="20" x2="32" y2="38"/><circle data-n cx="32" cy="10" r="2.4"/></svg></span>
+      <span class="nm">Ammo<small>munitions</small></span>
+    </div>
+  </div>
+
+  <!-- ===================== CONSUMABLES ===================== -->
+  <div class="cat">Consumables</div>
+  <div class="grid">
+    <div class="cell" style="--slot:#e98b6a;--ico:#ffd2c2;--fill:rgba(233,139,106,.16);--glow:rgba(233,139,106,.5);--emb:#3a1c14">
+      <span class="chip" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+        <polygon data-p points="32,8 52,19 52,45 32,56 12,45 12,19"/>
+        <path data-n d="M28 21 H36 V29 H44 V37 H36 V45 H28 V37 H20 V29 H28 Z"/></svg></span>
+      <span class="nm">Hull Repair<small>cross centered</small></span>
+    </div>
+    <div class="cell" style="--slot:#6fb6e6;--ico:#cfe8fb;--fill:rgba(111,182,230,.16);--glow:rgba(111,182,230,.5);--emb:#15293a">
+      <span class="chip" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+        <rect data-p x="22" y="12" width="20" height="40" rx="3"/><rect data-p x="28" y="7" width="8" height="5" rx="1"/>
+        <path data-n d="M34 17 L25 35 H31 L29 47 L40 28 H33 Z"/></svg></span>
+      <span class="nm">Shield Booster<small>capacitor</small></span>
+    </div>
+  </div>
+
+  <!-- ===================== CORE / FALLBACK ===================== -->
+  <div class="cat">Matrix Core &amp; fallback</div>
+  <div class="grid">
+    <div class="cell" style="--slot:#f2778a;--ico:#ffc9d2;--fill:rgba(242,119,138,.16);--glow:rgba(242,119,138,.55);--emb:#3a1620">
+      <span class="chip" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+        <polygon data-p points="32,7 47,21 39,53 25,53 17,21"/>
+        <path data-d d="M17 21 H47 M32 7 L25 53 M32 7 L39 53"/><circle data-n cx="32" cy="30" r="3"/></svg></span>
+      <span class="nm">Matrix Core<small>procedural in-engine</small></span>
+    </div>
+    <div class="cell" style="--slot:#9aa0b0;--ico:#dde0e8;--fill:rgba(154,160,176,.14);--glow:rgba(154,160,176,.45);--emb:#23252e">
+      <span class="chip" style="background:var(--emb)"><svg viewBox="0 0 64 64">
+        <rect data-p x="16" y="16" width="32" height="32" rx="4"/><circle data-d cx="32" cy="32" r="8"/>
+        <circle data-n cx="32" cy="32" r="3"/><circle data-n cx="20" cy="20" r="1.8"/><circle data-n cx="44" cy="20" r="1.8"/><circle data-n cx="20" cy="44" r="1.8"/><circle data-n cx="44" cy="44" r="1.8"/></svg></span>
+      <span class="nm">Module<small>generic fallback</small></span>
+    </div>
+  </div>
+
+  <!-- ===================== GRID-SIZE PROOF ===================== -->
+  <div class="cat">At armory grid size (~27px) — the busiest ones still read apart</div>
+  <div class="strip">
+    <span class="mini" style="--slot:#eba852;--ico:#fcdfb0;--fill:rgba(235,168,82,.15);--glow:rgba(235,168,82,.5);background:#3a2a13"><svg viewBox="0 0 64 64"><rect data-p x="10" y="26" width="30" height="14" rx="2"/><path data-p d="M40 29 H55 V37 H40 Z"/><path data-p d="M17 40 V49 H26 V40"/></svg></span>
+    <span class="mini" style="--slot:#5bc8ff;--ico:#c4ecff;--fill:rgba(91,200,255,.15);--glow:rgba(91,200,255,.5);background:#0f2c3c"><svg viewBox="0 0 64 64"><rect data-p x="11" y="27" width="20" height="12" rx="2"/><path data-p d="M31 27 L45 22 V44 L31 39 Z"/></svg></span>
+    <span class="mini" style="--slot:#ff7a52;--ico:#ffc6b3;--fill:rgba(255,122,82,.15);--glow:rgba(255,122,82,.5);background:#3a1a11"><svg viewBox="0 0 64 64"><rect data-p x="12" y="28" width="26" height="12" rx="2"/><path data-p d="M38 27 L53 34 L38 41 Z"/></svg></span>
+    <span class="mini" style="--slot:#9fe8ff;--ico:#d9f6ff;--fill:rgba(159,232,255,.14);--glow:rgba(159,232,255,.5);background:#16323b"><svg viewBox="0 0 64 64"><rect data-p x="10" y="27" width="24" height="13" rx="2"/><path data-p d="M34 29 H47 V37 H34 Z"/></svg></span>
+    <span class="mini" style="--slot:#80b8f2;--ico:#cfe3fb;--fill:rgba(128,184,242,.16);--glow:rgba(128,184,242,.5);background:#1d3047"><svg viewBox="0 0 64 64"><path data-p d="M32 7 L52 16 V33 Q52 49 32 57 Q12 49 12 33 V16 Z"/></svg></span>
+    <span class="mini" style="--slot:#c7baa8;--ico:#ece4d6;--fill:rgba(199,186,168,.15);--glow:rgba(199,186,168,.45);background:#2f2a22"><svg viewBox="0 0 64 64"><path data-p d="M12 23 L32 13 L52 23 L52 29 L32 19 L12 29 Z"/><path data-p d="M12 35 L32 25 L52 35 L52 41 L32 31 L12 41 Z"/></svg></span>
+    <span class="mini" style="--slot:#d6c96e;--ico:#f4ecc0;--fill:rgba(214,201,110,.15);--glow:rgba(214,201,110,.5);background:#3a3517"><svg viewBox="0 0 64 64"><path data-p d="M26 10 H38 L43 36 H21 Z"/><path data-p d="M22 36 H42 V41 H22 Z"/></svg></span>
+    <span class="mini" style="--slot:#d6c96e;--ico:#f4ecc0;--fill:rgba(214,201,110,.15);--glow:rgba(214,201,110,.5);background:#3a3517"><svg viewBox="0 0 64 64"><rect data-p x="12" y="22" width="36" height="20" rx="3"/><rect data-p x="48" y="28" width="5" height="8" rx="1"/></svg></span>
+    <span class="mini" style="--slot:#d6c96e;--ico:#f4ecc0;--fill:rgba(214,201,110,.15);--glow:rgba(214,201,110,.5);background:#3a3517"><svg viewBox="0 0 64 64"><circle data-p cx="32" cy="32" r="20"/><circle data-n style="display:block" cx="32" cy="32" r="5"/></svg></span>
+    <span class="mini" style="--slot:#a69478;--ico:#e9ddc7;--fill:rgba(166,148,120,.14);--glow:rgba(166,148,120,.5);background:#2c281f"><svg viewBox="0 0 64 64"><circle data-p cx="32" cy="32" r="21"/><circle data-n style="display:block" cx="32" cy="32" r="5"/></svg></span>
+    <span class="mini" style="--slot:#a69478;--ico:#e9ddc7;--fill:rgba(166,148,120,.14);--glow:rgba(166,148,120,.5);background:#2c281f"><svg viewBox="0 0 64 64"><rect data-p x="14" y="18" width="36" height="22" rx="3"/><line data-p x1="22" y1="20" x2="22" y2="38"/><line data-p x1="32" y1="20" x2="32" y2="38"/><line data-p x1="42" y1="20" x2="42" y2="38"/></svg></span>
+    <span class="mini" style="--slot:#e09957;--ico:#fbd4ab;--fill:rgba(224,153,87,.15);--glow:rgba(224,153,87,.5);background:#382613"><svg viewBox="0 0 64 64"><path data-p d="M25 16 Q32 7 39 16 V44 H25 Z"/><path data-p d="M24 44 H40 V52 H24 Z"/></svg></span>
+    <span class="mini" style="--slot:#e98b6a;--ico:#ffd2c2;--fill:rgba(233,139,106,.16);--glow:rgba(233,139,106,.5);background:#3a1c14"><svg viewBox="0 0 64 64"><polygon data-p points="32,8 52,19 52,45 32,56 12,45 12,19"/><path data-p style="fill:var(--ico)" d="M28 21 H36 V29 H44 V37 H36 V45 H28 V37 H20 V29 H28 Z"/></svg></span>
+    <span class="mini" style="--slot:#6fb6e6;--ico:#cfe8fb;--fill:rgba(111,182,230,.16);--glow:rgba(111,182,230,.5);background:#15293a"><svg viewBox="0 0 64 64"><rect data-p x="22" y="12" width="20" height="40" rx="3"/><path data-p style="fill:var(--ico)" d="M34 17 L25 35 H31 L29 47 L40 28 H33 Z"/></svg></span>
+    <span class="mini" style="--slot:#f2778a;--ico:#ffc9d2;--fill:rgba(242,119,138,.16);--glow:rgba(242,119,138,.5);background:#3a1620"><svg viewBox="0 0 64 64"><polygon data-p points="32,7 47,21 39,53 25,53 17,21"/></svg></span>
+  </div>
+
+  <div class="legend">Distinct silhouettes: Kinetic = blocky receiver+grip · Energy = flared emitter horn · Explosive = warhead cone + tail fins · Cryo = snowflake muzzle · Battery = horizontal cell + charge bars · Reactor = radiating core · Sensor = dish + single sweep · Cooling = finned heatsink. Color is the tint on top; shape carries identity first. Glow shown via CSS (engine-layer in Godot).</div>
+</body>
+</html>

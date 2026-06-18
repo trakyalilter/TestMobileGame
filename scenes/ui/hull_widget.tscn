@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://scripts/ui/hull_widget.gd" id="1_script"]
 
 [node name="HullWidget" type="PanelContainer"]
-custom_minimum_size = Vector2(0, 215)
+custom_minimum_size = Vector2(0, 150)
 size_flags_horizontal = 3
 script = ExtResource("1_script")
 
@@ -25,12 +25,6 @@ theme_override_font_sizes/font_size = 15
 text = "Hull Name"
 horizontal_alignment = 1
 autowrap_mode = 2
-
-[node name="ShipIcon" type="TextureRect" parent="MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(0, 72)
-layout_mode = 2
-expand_mode = 1
-stretch_mode = 5
 
 [node name="SlotsLabel" type="Label" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
