@@ -1943,6 +1943,12 @@ func remove_gem(module_id: String, socket_idx: int) -> bool:
 	inventory_updated.emit()
 	return true
 
+# v117: gem (matrix core) damage multipliers, exposed for the per-weapon combat
+# path so offensive cores (Crimson) boost REAL combat damage, not just display.
+var gem_atk_k_mult: float = 0.0
+var gem_atk_e_mult: float = 0.0
+var gem_atk_x_mult: float = 0.0
+
 func recalc_stats():
 	# Capture the pre-recalc damage fraction. Loadout / research / hull /
 	# trophy changes all re-run this outside combat; without this the final
@@ -2108,6 +2114,12 @@ func recalc_stats():
 	attack_energy *= (1.0 + gem_totals.get("atk_energy_mult", 0.0))
 	attack_explosive *= (1.0 + gem_totals.get("atk_explosive_mult", 0.0))
 	attack = attack_kinetic + attack_energy + attack_explosive
+	# v117 FIX: expose gem damage mults for the per-weapon combat path
+	# (_rebuild_player_weapon_states -> dmg_k). Without this, Crimson cores boosted
+	# only this DISPLAY aggregate, not the raw-stat dmg_k combat reads -> 0 real dmg.
+	gem_atk_k_mult = gem_totals.get("atk_kinetic_mult", 0.0)
+	gem_atk_e_mult = gem_totals.get("atk_energy_mult", 0.0)
+	gem_atk_x_mult = gem_totals.get("atk_explosive_mult", 0.0)
 	crit_chance += gem_totals.get("crit_chance", 0.0)
 	max_shield *= (1.0 + gem_totals.get("max_shield_mult", 0.0))
 	shield_regen *= (1.0 + gem_totals.get("shield_regen_mult", 0.0))
