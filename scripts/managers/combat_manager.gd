@@ -1406,11 +1406,9 @@ func _rebuild_player_weapon_states() -> void:
 					"timer": randf_range(0.0, 0.5),
 					"interval": m_stats.get("atk_interval", 2.5),
 					# v107: Warp Mastery Tree — C2 Weapon Tuning (+10% module damage)
-					# v117: apply gem (matrix core) damage mults so socketed offensive
-					# cores boost REAL per-weapon combat damage, not just the display stat.
-					"dmg_k": m_stats.get("atk_kinetic", 0) * weapon_skill_mult * GameState.warp_manager.get_tree_damage_bonus() * (1.0 + sm.gem_atk_k_mult),
-					"dmg_e": m_stats.get("atk_energy", 0) * weapon_skill_mult * GameState.warp_manager.get_tree_damage_bonus() * (1.0 + sm.gem_atk_e_mult),
-					"dmg_x": m_stats.get("atk_explosive", 0) * weapon_skill_mult * GameState.warp_manager.get_tree_damage_bonus() * (1.0 + sm.gem_atk_x_mult),
+					"dmg_k": m_stats.get("atk_kinetic", 0) * weapon_skill_mult * GameState.warp_manager.get_tree_damage_bonus(),
+					"dmg_e": m_stats.get("atk_energy", 0) * weapon_skill_mult * GameState.warp_manager.get_tree_damage_bonus(),
+					"dmg_x": m_stats.get("atk_explosive", 0) * weapon_skill_mult * GameState.warp_manager.get_tree_damage_bonus(),
 					"dmg_cryo": m_stats.get("atk_cryo", 0) * weapon_skill_mult * GameState.warp_manager.get_tree_damage_bonus() * GameState.warp_manager.get_tree_cryo_bonus(),  # v109: +C5 Cryo Overcharge
 					"slot_idx": int(s_idx),
 					"energy_load": m_stats.get("energy_load", 0)

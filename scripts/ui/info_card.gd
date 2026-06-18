@@ -191,10 +191,16 @@ func _setup_gem(id: String):
 
 	desc_lbl.text = ElementDB.get_element_description(id)
 
-	var effects = sm.GEM_GLOBAL_EFFECTS.get(id, {})
-	for k in effects:
-		var label = k.replace("_mult", "").replace("_", " ").capitalize()
-		_add_stat(label, "+%.0f%%" % (effects[k] * 100.0), Color(0.45, 1.0, 0.55))
+	# v118: show all three matrix-core facets (weapon / defense / utility) so the
+	# player sees what the core gives in each slot and decides where to socket it.
+	var facets = sm.GEM_FACETS.get(id, {})
+	var cat_name = {"weapon": "Weapon", "defense": "Armor/Shield", "utility": "Engine/Sensor"}
+	for cat in ["weapon", "defense", "utility"]:
+		var facet = facets.get(cat, {})
+		for k in facet:
+			var pretty = String(k).replace("_mult", "").replace("_flat", "").replace("_eff", "_efficiency").replace("_", " ").capitalize()
+			var val_str = ("+%d" % int(facet[k])) if String(k).ends_with("_flat") else ("+%d%%" % int(round(float(facet[k]) * 100.0)))
+			_add_stat("[%s] %s" % [cat_name[cat], pretty], val_str, Color(0.45, 1.0, 0.55))
 
 func _add_stat(label: String, value: String, val_color: Color = Color.WHITE):
 	var box = HBoxContainer.new()

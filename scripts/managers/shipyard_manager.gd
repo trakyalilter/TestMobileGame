@@ -294,23 +294,28 @@ const AFFIX_NAMING = {
 	"berserk_on_kill": {"prefix": "Neural", "suffix": "of the Reckless"}
 }
 
-# Step 6: Gem/Matrix Core Effects
-const GEM_GLOBAL_EFFECTS = {
-	"CrackedCrimsonCore": {"atk_kinetic_mult": 0.02, "atk_energy_mult": 0.02, "crit_chance": 0.02},
-	"StableCrimsonCore": {"atk_kinetic_mult": 0.05, "atk_energy_mult": 0.05, "crit_chance": 0.05},
-	"PristineCrimsonCore": {"atk_kinetic_mult": 0.10, "atk_energy_mult": 0.10, "crit_chance": 0.10},
-	
-	"CrackedCobaltCore": {"max_shield_mult": 0.02, "shield_regen_mult": 0.02, "eva_mult": 0.02},
-	"StableCobaltCore": {"max_shield_mult": 0.05, "shield_regen_mult": 0.05, "eva_mult": 0.05},
-	"PristineCobaltCore": {"max_shield_mult": 0.10, "shield_regen_mult": 0.10, "eva_mult": 0.10},
-	
-	"CrackedTopazCore": {"energy_capacity_mult": 0.02},
-	"StableTopazCore": {"energy_capacity_mult": 0.05},
-	"PristineTopazCore": {"energy_capacity_mult": 0.10},
-	
-	"CrackedAmethystCore": {"def_mult": 0.02, "hp_mult": 0.02},
-	"StableAmethystCore": {"def_mult": 0.05, "hp_mult": 0.05},
-	"PristineAmethystCore": {"def_mult": 0.10, "hp_mult": 0.10}
+# Step 6 (v118 redesign): Matrix-core FACETS. PoE-style type-matching — a core's
+# effect depends on the HOST module's slot category (weapon=offense / armor+shield=
+# defense / engine+sensor+other=utility). Soft per-core, compounds over long runs.
+# Two facets SOFTEN (never break) a gate, both offense-only & capped in combat:
+# armor_pen (tier wall) and resist_pierce (resist gate). See docs/MATRIX_CORES.md.
+const GEM_FACETS = {
+	# CRIMSON (Wrath) — crit damage / damage reduction / heat efficiency
+	"CrackedCrimsonCore":  {"weapon": {"crit_damage": 0.06}, "defense": {"damage_reduction": 0.015}, "utility": {"heat_eff": 0.04}},
+	"StableCrimsonCore":   {"weapon": {"crit_damage": 0.15}, "defense": {"damage_reduction": 0.03},  "utility": {"heat_eff": 0.10}},
+	"PristineCrimsonCore": {"weapon": {"crit_damage": 0.30}, "defense": {"damage_reduction": 0.06},  "utility": {"heat_eff": 0.20}},
+	# COBALT (Surge) — attack speed / shield regen / energy efficiency
+	"CrackedCobaltCore":   {"weapon": {"attack_speed": 0.02}, "defense": {"shield_regen_mult": 0.06}, "utility": {"energy_eff": 0.02}},
+	"StableCobaltCore":    {"weapon": {"attack_speed": 0.05}, "defense": {"shield_regen_mult": 0.15}, "utility": {"energy_eff": 0.05}},
+	"PristineCobaltCore":  {"weapon": {"attack_speed": 0.10}, "defense": {"shield_regen_mult": 0.30}, "utility": {"energy_eff": 0.10}},
+	# TOPAZ (Focus) — armor penetration (tier-wall softener) / evasion / accuracy
+	"CrackedTopazCore":    {"weapon": {"armor_pen": 0.03}, "defense": {"evasion_flat": 2.0},  "utility": {"accuracy_flat": 5.0}},
+	"StableTopazCore":     {"weapon": {"armor_pen": 0.07}, "defense": {"evasion_flat": 5.0},  "utility": {"accuracy_flat": 12.0}},
+	"PristineTopazCore":   {"weapon": {"armor_pen": 0.12}, "defense": {"evasion_flat": 10.0}, "utility": {"accuracy_flat": 25.0}},
+	# AMETHYST (Harmonics) — resist pierce (resist-gate softener) / max hull / restore-on-kill
+	"CrackedAmethystCore":  {"weapon": {"resist_pierce": 0.03}, "defense": {"max_hull_mult": 0.02}, "utility": {"restore_on_kill": 0.02}},
+	"StableAmethystCore":   {"weapon": {"resist_pierce": 0.06}, "defense": {"max_hull_mult": 0.05}, "utility": {"restore_on_kill": 0.04}},
+	"PristineAmethystCore": {"weapon": {"resist_pierce": 0.12}, "defense": {"max_hull_mult": 0.10}, "utility": {"restore_on_kill": 0.08}},
 }
 
 var affix_bonuses = {
@@ -1943,11 +1948,18 @@ func remove_gem(module_id: String, socket_idx: int) -> bool:
 	inventory_updated.emit()
 	return true
 
-# v117: gem (matrix core) damage multipliers, exposed for the per-weapon combat
-# path so offensive cores (Crimson) boost REAL combat damage, not just display.
-var gem_atk_k_mult: float = 0.0
-var gem_atk_e_mult: float = 0.0
-var gem_atk_x_mult: float = 0.0
+# v118: aggregated matrix-core facet bonuses (the 12 new keys), keyed by host slot
+# category. Recomputed each recalc_stats; consumed by combat (Phase 2).
+var gem_bonuses: Dictionary = {}
+
+# Map a module's slot_type to its gem facet category: weapons -> offense, armor/
+# shield -> defense, everything else (engine/sensor/battery/...) -> utility.
+func _gem_slot_category(slot_type: String) -> String:
+	if slot_type == "weapon":
+		return "weapon"
+	if slot_type == "armor" or slot_type == "shield":
+		return "defense"
+	return "utility"
 
 func recalc_stats():
 	# Capture the pre-recalc damage fraction. Loadout / research / hull /
@@ -2089,18 +2101,19 @@ func recalc_stats():
 	shield_regen_bonus = s_reg_bon
 	jamming_strength = jam_str
 	
-	# Step 6: Gem (Matrix Core) Bonuses Accumulation
-	var gem_totals = {}
+	# Step 6 (v118): Matrix-core facet accumulation. Each socketed gem contributes
+	# the facet matching its HOST module's slot category (weapon/defense/utility).
+	gem_bonuses = {}
 	for mid in loadout.values():
 		if mid and mid in modules and modules[mid].has("sockets"):
+			var host_cat: String = _gem_slot_category(modules[mid].get("slot_type", ""))
 			for gem in modules[mid]["sockets"]:
-				if gem and gem in GEM_GLOBAL_EFFECTS:
-					var eff = GEM_GLOBAL_EFFECTS[gem]
-					for k in eff:
-						gem_totals[k] = gem_totals.get(k, 0.0) + eff[k]
+				if gem and gem in GEM_FACETS:
+					var facet: Dictionary = GEM_FACETS[gem].get(host_cat, {})
+					for k in facet:
+						gem_bonuses[k] = gem_bonuses.get(k, 0.0) + facet[k]
 						
-	# Apply Gem Multipliers
-	max_hp *= (1.0 + gem_totals.get("hp_mult", 0.0))
+	# v118: matrix-core stat bonuses now apply in combat (Phase 2), not here.
 
 	# v107: Warp Mastery Tree — C1 Hull Reinforcement (+10% Hull HP, all hulls)
 	if GameState.warp_manager:
@@ -2109,29 +2122,14 @@ func recalc_stats():
 	# Multiplicative on top of the warp tree's flat +10%; both compound.
 	if GameState.research_manager:
 		max_hp = int(float(max_hp) * (1.0 + GameState.research_manager.get_efficiency_bonus("hull_hp_mult")))
-	defense *= (1.0 + gem_totals.get("def_mult", 0.0))
-	attack_kinetic *= (1.0 + gem_totals.get("atk_kinetic_mult", 0.0))
-	attack_energy *= (1.0 + gem_totals.get("atk_energy_mult", 0.0))
-	attack_explosive *= (1.0 + gem_totals.get("atk_explosive_mult", 0.0))
 	attack = attack_kinetic + attack_energy + attack_explosive
-	# v117 FIX: expose gem damage mults for the per-weapon combat path
-	# (_rebuild_player_weapon_states -> dmg_k). Without this, Crimson cores boosted
-	# only this DISPLAY aggregate, not the raw-stat dmg_k combat reads -> 0 real dmg.
-	gem_atk_k_mult = gem_totals.get("atk_kinetic_mult", 0.0)
-	gem_atk_e_mult = gem_totals.get("atk_energy_mult", 0.0)
-	gem_atk_x_mult = gem_totals.get("atk_explosive_mult", 0.0)
-	crit_chance += gem_totals.get("crit_chance", 0.0)
-	max_shield *= (1.0 + gem_totals.get("max_shield_mult", 0.0))
-	shield_regen *= (1.0 + gem_totals.get("shield_regen_mult", 0.0))
 
 	# v105b: void_shielding_1 +5% Total Ship Shields. Endgame sink that
 	# had no consumer despite a 100M-credit unlock cost.
 	# Nerfed 20% → 5% (v105c): 20% stacked too hard on shield gem mults.
 	if rm and rm.is_tech_unlocked("void_shielding_1"):
 		max_shield *= 1.05
-	evasion *= (1.0 + gem_totals.get("eva_mult", 0.0))
-	e_cap *= (1.0 + gem_totals.get("energy_capacity_mult", 0.0))
-	jamming_strength += gem_totals.get("jamming_strength", 0.0)
+	# v118: evasion / energy / etc. gem bonuses now apply in combat (Phase 2).
 	
 	# Audit v8.0 P1-25: Applied Physics Hub Bonus (+10% Energy Capacity)
 	if rm:
