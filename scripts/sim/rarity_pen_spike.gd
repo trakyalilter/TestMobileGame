@@ -2,18 +2,17 @@ extends Node
 
 # ============================================================================
 # RARITY x PENETRATION SPIKE (v115) — verifies the "tier dominates rarity +
-# honest penetration wall" rebalance with REAL manager calls (no re-derivation).
+# honest penetration wall" rebalance with REAL manager calls, across ALL three
+# conventional weapon types (kinetic / energy / missile=explosive).
 #
-#   SECTION 1  Rarity x tier DPS ladder. Drives generate_module_drop and the
-#              tooltip DPS formula (atk_* / atk_interval). Asserts the design rule:
-#                 Z(N) Common  >  Z(N-1) Legendary    (tier dominates rarity)
-#                 Z(N) Unique  >  Z(N+1) Common        (Unique still leapfrogs)
+#   SECTION 1  Rarity x tier DPS ladder, per weapon type. Drives
+#              generate_module_drop + the tooltip DPS formula. Asserts:
+#                 Z(N) Common  >  Z(N-1) Legendary   (tier dominates rarity)
+#                 Z(N) Unique  >  Z(N+1) Common       (Unique leapfrogs)
 #
-#   SECTION 2  Honest penetration wall vs a tier_hardened enemy. Shows effective
-#              DPS (= raw x module_tier_penetration) + ~TTK, and asserts:
-#                 under-tier gear (incl. Legendary) is WALLED (pen < 1)
-#                 tier-matched Common PIERCES; Z(N-1) Unique PIERCES (skip-key)
-#                 eff_dps(Z(N) Common) > eff_dps(Z(N-1) Legendary)  <-- the thesis
+#   SECTION 2  Penetration wall at every hardened zone Z2..Z10, per weapon type:
+#                 under-tier Legendary WALLED, under-tier Unique PIERCES
+#                 (skip-key), own-tier Common PIERCES & out-effs the Legendary.
 #
 # Rarity enum ints (mirror shipyard_manager): COMMON0 UNCOMMON1 RARE2 LEG3 UNIQ4.
 # Run: res://scenes/rarity_pen_spike.tscn  (headless, self-quits).
@@ -22,6 +21,7 @@ extends Node
 const SAMPLES := 120          # rolls per rarity to estimate the ceiling (max roll)
 const LADDER_ZONES := [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 const WALL_TIERS := [2, 3, 4, 5, 6, 7, 8, 9, 10]   # every tier_hardened mainline zone
+const WTYPES := ["kinetic", "energy", "missile"]    # missile = explosive damage type
 
 const R_COMMON := 0
 const R_UNCOMMON := 1
@@ -42,8 +42,12 @@ func _boot() -> void:
 	var sm = GameState.shipyard_manager
 	var cm = GameState.combat_manager
 
-	_section_ladder(sm)
-	_section_wall(sm, cm)
+	print("[RPS] ##### SECTION 1: RARITY x TIER DPS LADDER (per weapon type) #####")
+	for wt in WTYPES:
+		_section_ladder(sm, str(wt))
+	print("[RPS] ##### SECTION 2: HONEST PENETRATION WALL Z2..Z10 (per weapon type) #####")
+	for wt in WTYPES:
+		_section_wall(sm, cm, str(wt))
 
 	print("[RPS] ============================================================")
 	print("[RPS] RESULT: %d passed, %d failed" % [_pass, _fail])
@@ -51,67 +55,68 @@ func _boot() -> void:
 	get_tree().quit(0 if _fail == 0 else 1)
 
 # ---------------------------------------------------------------------------
-func _section_ladder(sm) -> void:
-	print("[RPS] ===== SECTION 1: RARITY x TIER DPS LADDER (kinetic weapon, max roll) =====")
-	print("[RPS] Zone |  Common | Uncmn(mx)| Rare(mx) | Lgnd(mx) | Uniq(mx)")
+func _section_ladder(sm, wtype: String) -> void:
+	print("[RPS] --- LADDER [%s] (max-roll DPS) ---" % wtype)
+	print("[RPS] Zone |  Common | Uncmn | Rare  | Lgnd  |  Uniq")
 	var common := {}
 	var legend := {}
 	var uniq := {}
 	for z in LADDER_ZONES:
-		var base_id: String = "z%d_kinetic" % int(z)
+		var zi: int = int(z)
+		var base_id: String = "z%d_%s" % [zi, wtype]
 		if not (base_id in sm.modules):
 			continue
-		var c: float = _dps_max(sm, base_id, R_COMMON, int(z), 1)
-		var un: float = _dps_max(sm, base_id, R_UNCOMMON, int(z), SAMPLES)
-		var r: float = _dps_max(sm, base_id, R_RARE, int(z), SAMPLES)
-		var l: float = _dps_max(sm, base_id, R_LEGENDARY, int(z), SAMPLES)
-		var u: float = _dps_max(sm, base_id, R_UNIQUE, int(z), SAMPLES)
-		common[int(z)] = c
-		legend[int(z)] = l
-		uniq[int(z)] = u
-		print("[RPS] Z%-3d | %7.1f | %8.1f | %8.1f | %8.1f | %8.1f" % [int(z), c, un, r, l, u])
-
-	print("[RPS] ----- ordering asserts (tier dominates rarity) -----")
+		var c: float = _dps_max(sm, base_id, R_COMMON, zi, 1)
+		var un: float = _dps_max(sm, base_id, R_UNCOMMON, zi, SAMPLES)
+		var r: float = _dps_max(sm, base_id, R_RARE, zi, SAMPLES)
+		var l: float = _dps_max(sm, base_id, R_LEGENDARY, zi, SAMPLES)
+		var u: float = _dps_max(sm, base_id, R_UNIQUE, zi, SAMPLES)
+		common[zi] = c
+		legend[zi] = l
+		uniq[zi] = u
+		print("[RPS] Z%-3d | %7.1f | %5.1f | %5.1f | %5.1f | %6.1f" % [zi, c, un, r, l, u])
 	for z in LADDER_ZONES:
-		var zn: int = int(z) + 1
-		if common.has(zn) and legend.has(int(z)):
-			_chk("Z%d Common (%.1f) > Z%d Legendary-max (%.1f)" % [zn, float(common[zn]), int(z), float(legend[int(z)])], float(common[zn]) > float(legend[int(z)]))
-	for z in LADDER_ZONES:
-		var zn2: int = int(z) + 1
-		if uniq.has(int(z)) and common.has(zn2):
-			_chk("Z%d Unique-max (%.1f) > Z%d Common (%.1f) [leapfrog]" % [int(z), float(uniq[int(z)]), zn2, float(common[zn2])], float(uniq[int(z)]) > float(common[zn2]))
+		var zi2: int = int(z)
+		var zn: int = zi2 + 1
+		if common.has(zn) and legend.has(zi2):
+			_chk("[%s] Z%d Common (%.1f) > Z%d Legendary (%.1f)" % [wtype, zn, float(common[zn]), zi2, float(legend[zi2])], float(common[zn]) > float(legend[zi2]))
+		if uniq.has(zi2) and common.has(zn):
+			_chk("[%s] Z%d Unique (%.1f) > Z%d Common (%.1f) [leapfrog]" % [wtype, zi2, float(uniq[zi2]), zn, float(common[zn])], float(uniq[zi2]) > float(common[zn]))
 
 # ---------------------------------------------------------------------------
-func _section_wall(sm, cm) -> void:
-	print("[RPS] ===== SECTION 2: HONEST PENETRATION WALL across every hardened zone =====")
-	print("[RPS] Per zone T: own-tier Common (craft path), under-tier (T-1) Legendary (should")
-	print("[RPS] WALL), under-tier (T-1) Unique (skip-key). th = enemy tier_hardened. eff = DPS")
-	print("[RPS] after penetration (raw x pen). PRC=pierces, WALL=walled.")
-	print("[RPS] zone enemy(th)                  | T-1 Legendary    | T-1 Unique       | T Common")
-	print("[RPS]                                  | pen / eff / vd   | pen / eff / vd   | pen / eff / vd")
+func _section_wall(sm, cm, wtype: String) -> void:
+	print("[RPS] --- WALL [%s] (under-tier Legendary should WALL, own Common PIERCE) ---" % wtype)
+	var ok: int = 0
+	var tot: int = 0
 	for T in WALL_TIERS:
 		var ti: int = int(T)
 		var enemy := _backhalf_enemy(cm, ti)
 		if enemy.is_empty():
-			print("[RPS] Z%-2d  (no hardened back-half enemy found - skip)" % ti)
 			continue
 		var th: int = int(enemy["th"])
-		var legb := _gen_best(sm, "z%d_kinetic" % (ti - 1), R_LEGENDARY, ti - 1)
-		var unib := _gen_best(sm, "z%d_kinetic" % (ti - 1), R_UNIQUE, ti - 1)
-		var comb := _gen_best(sm, "z%d_kinetic" % ti, R_COMMON, ti)
+		var legb := _gen_best(sm, "z%d_%s" % [ti - 1, wtype], R_LEGENDARY, ti - 1)
+		var unib := _gen_best(sm, "z%d_%s" % [ti - 1, wtype], R_UNIQUE, ti - 1)
+		var comb := _gen_best(sm, "z%d_%s" % [ti, wtype], R_COMMON, ti)
 		var lp: float = sm.module_tier_penetration(str(legb["mid"]), th)
 		var up: float = sm.module_tier_penetration(str(unib["mid"]), th)
 		var cp: float = sm.module_tier_penetration(str(comb["mid"]), th)
 		var le: float = float(legb["dps"]) * lp
-		var ue: float = float(unib["dps"]) * up
 		var ce: float = float(comb["dps"]) * cp
-		print("[RPS] Z%-2d  %-25s(%d)| %.2f %7.1f %-4s| %.2f %7.1f %-4s| %.2f %7.1f %-4s" % [
-			ti, str(enemy["id"]), th,
-			lp, le, _verdict(lp), up, ue, _verdict(up), cp, ce, _verdict(cp)])
-		_chk("Z%d under-tier Legendary WALLED" % ti, lp < 1.0)
-		_chk("Z%d under-tier Unique PIERCES (skip-key)" % ti, up >= 1.0)
-		_chk("Z%d own-tier Common PIERCES (craft path)" % ti, cp >= 1.0)
-		_chk("Z%d eff Common (%.1f) > eff under-Legendary (%.1f)" % [ti, ce, le], ce > le)
+		print("[RPS] Z%-2d %-22s| underLeg %.2f %-4s eff%8.1f | Uniq %.2f %-4s | Common %.2f %-4s eff%8.1f" % [
+			ti, str(enemy["id"]), lp, _verdict(lp), le, up, _verdict(up), cp, _verdict(cp), ce])
+		var a: bool = lp < 1.0          # under-tier Legendary walled
+		var b: bool = up >= 1.0         # under-tier Unique pierces (skip-key)
+		var c2: bool = cp >= 1.0        # own-tier Common pierces
+		var d: bool = ce > le           # weaker-raw Common out-effs the Legendary
+		for cond in [a, b, c2, d]:
+			tot += 1
+			if cond:
+				ok += 1
+		if not (a and b and c2 and d):
+			print("[RPS]   FAIL [%s] Z%d  (leg<1=%s uniq>=1=%s com>=1=%s effCom>effLeg=%s)" % [wtype, ti, str(a), str(b), str(c2), str(d)])
+	_pass += ok
+	_fail += (tot - ok)
+	print("[RPS]   [%s] wall checks: %d/%d passed" % [wtype, ok, tot])
 
 # ---------------------------------------------------------------------------
 func _dps_max(sm, base_id: String, rarity: int, zone: int, samples: int) -> float:
@@ -157,15 +162,6 @@ func _backhalf_enemy(cm, t: int) -> Dictionary:
 				var e = cm.enemy_db.get(eid, {})
 				return {"id": eid, "hp": float(e.get("stats", {}).get("hp", 1)), "th": cm.get_enemy_tier_hardened(eid, str(z))}
 	return {}
-
-func _fmt_ttk(s: float) -> String:
-	if s < 0.0:
-		return "inf"
-	if s >= 3600.0:
-		return "%.0fh" % (s / 3600.0)
-	if s >= 120.0:
-		return "%.0fm" % (s / 60.0)
-	return "%.0fs" % s
 
 func _chk(label: String, cond: bool) -> void:
 	if cond:
