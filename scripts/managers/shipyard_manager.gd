@@ -1962,6 +1962,32 @@ func _gem_slot_category(slot_type: String) -> String:
 		return "defense"
 	return "utility"
 
+# v118: matrix-core facet text helpers (designer socket UI + gem inspect card).
+const GEM_STAT_LABELS := {
+	"crit_damage": "Crit Damage", "attack_speed": "Attack Speed",
+	"armor_pen": "Armor Penetration", "resist_pierce": "Resist Pierce",
+	"damage_reduction": "Damage Reduction", "shield_regen_mult": "Shield Regen",
+	"evasion_flat": "Evasion", "max_hull_mult": "Max Hull",
+	"ammo_eff": "Ammo Efficiency", "energy_eff": "Energy Efficiency",
+	"accuracy_flat": "Accuracy", "restore_on_kill": "Restore on Kill",
+}
+
+func format_gem_stat(key: String, val) -> String:
+	var label: String = GEM_STAT_LABELS.get(key, key.replace("_", " ").capitalize())
+	if key.ends_with("_flat"):
+		return "+%d %s" % [int(val), label]
+	return "+%d%% %s" % [int(round(float(val) * 100.0)), label]
+
+# The bonus a gem actually provides in a given host slot type (its slot-matched facet).
+func get_gem_facet_text(gem_id: String, slot_type: String) -> String:
+	if not GEM_FACETS.has(gem_id):
+		return ""
+	var facet: Dictionary = GEM_FACETS[gem_id].get(_gem_slot_category(slot_type), {})
+	var parts: Array = []
+	for k in facet:
+		parts.append(format_gem_stat(String(k), facet[k]))
+	return ", ".join(parts)
+
 func recalc_stats():
 	# Capture the pre-recalc damage fraction. Loadout / research / hull /
 	# trophy changes all re-run this outside combat; without this the final

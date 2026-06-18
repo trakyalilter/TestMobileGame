@@ -383,7 +383,8 @@ func refresh_state():
 				sock_wrap.mouse_filter = Control.MOUSE_FILTER_STOP
 				var sock_i := i
 				if gem:
-					sock_wrap.tooltip_text = "Matrix Core: %s\n[Click to remove]" % ElementDB.get_display_name(gem)
+					var _facet_txt: String = manager.get_gem_facet_text(gem, slot_type)
+					sock_wrap.tooltip_text = "Matrix Core: %s\n%s  (active in this %s slot)\n[Click to remove]" % [ElementDB.get_display_name(gem), _facet_txt, slot_type.capitalize()]
 					var captured_gem = gem
 					sock_wrap.mouse_entered.connect(func():
 						# v111.13 CRASH FIX: a queued mouse_entered can fire after
@@ -398,7 +399,7 @@ func refresh_state():
 						var modal = main.get_node_or_null("ModalLayer")
 						if modal: modal.add_child(card)
 						else: main.add_child(card)
-						card.setup(captured_gem, "gem")
+						card.setup(captured_gem, "gem", slot_type)
 						var mpos = get_global_mouse_position()
 						var vp = get_viewport().get_visible_rect().size
 						card.global_position = mpos + Vector2(20, -20)
@@ -425,7 +426,7 @@ func refresh_state():
 								parent_ui.trigger_refresh()
 					)
 				else:
-					sock_wrap.tooltip_text = "Empty Matrix Socket\n[Click a Matrix Core, then click here to socket it]"
+					sock_wrap.tooltip_text = "Empty Matrix Socket — a core here gives its %s-slot bonus\n[Click a Matrix Core, then click here to socket it]" % slot_type.capitalize()
 					sock_wrap.gui_input.connect(func(event):
 						if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 							_socket_armed_core(equipped_id, sock_i)

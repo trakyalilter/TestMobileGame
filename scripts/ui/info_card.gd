@@ -6,7 +6,10 @@ extends PanelContainer
 @onready var stats_container = $MarginContainer/VBoxContainer/StatsContainer
 @onready var cost_lbl = $MarginContainer/VBoxContainer/CostLabel
 
-func setup(id: String, type: String):
+var _host_slot_ctx: String = ""
+
+func setup(id: String, type: String, host_slot: String = ""):
+	_host_slot_ctx = host_slot
 	
 	# Force reset size
 	custom_minimum_size = Vector2(220, 0)
@@ -195,12 +198,19 @@ func _setup_gem(id: String):
 	# player sees what the core gives in each slot and decides where to socket it.
 	var facets = sm.GEM_FACETS.get(id, {})
 	var cat_name = {"weapon": "Weapon", "defense": "Armor/Shield", "utility": "Engine/Sensor"}
+	# v118 Phase 3: when inspecting a socket in a known slot, the facet for THAT slot
+	# category is ACTIVE here — mark it bright; dim the other two (what you'd get if
+	# you socketed it elsewhere). No host slot (armory inspect) -> all shown plainly.
+	var active_cat = sm._gem_slot_category(_host_slot_ctx) if _host_slot_ctx != "" else ""
 	for cat in ["weapon", "defense", "utility"]:
 		var facet = facets.get(cat, {})
+		var is_active = (active_cat == "" or cat == active_cat)
 		for k in facet:
 			var pretty = String(k).replace("_mult", "").replace("_flat", "").replace("_eff", "_efficiency").replace("_", " ").capitalize()
 			var val_str = ("+%d" % int(facet[k])) if String(k).ends_with("_flat") else ("+%d%%" % int(round(float(facet[k]) * 100.0)))
-			_add_stat("[%s] %s" % [cat_name[cat], pretty], val_str, Color(0.45, 1.0, 0.55))
+			var prefix = "▶ " if (active_cat != "" and cat == active_cat) else ""
+			var col = Color(0.45, 1.0, 0.55) if is_active else Color(0.5, 0.55, 0.62)
+			_add_stat("%s[%s] %s" % [prefix, cat_name[cat], pretty], val_str, col)
 
 func _add_stat(label: String, value: String, val_color: Color = Color.WHITE):
 	var box = HBoxContainer.new()
