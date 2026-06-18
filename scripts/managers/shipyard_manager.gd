@@ -300,10 +300,11 @@ const AFFIX_NAMING = {
 # Two facets SOFTEN (never break) a gate, both offense-only & capped in combat:
 # armor_pen (tier wall) and resist_pierce (resist gate). See docs/MATRIX_CORES.md.
 const GEM_FACETS = {
-	# CRIMSON (Wrath) — crit damage / damage reduction / heat efficiency
-	"CrackedCrimsonCore":  {"weapon": {"crit_damage": 0.06}, "defense": {"damage_reduction": 0.015}, "utility": {"heat_eff": 0.04}},
-	"StableCrimsonCore":   {"weapon": {"crit_damage": 0.15}, "defense": {"damage_reduction": 0.03},  "utility": {"heat_eff": 0.10}},
-	"PristineCrimsonCore": {"weapon": {"crit_damage": 0.30}, "defense": {"damage_reduction": 0.06},  "utility": {"heat_eff": 0.20}},
+	# CRIMSON (Wrath) — crit damage / damage reduction / ammo efficiency
+	# (ammo_eff = % chance to not consume ammo on fire; heat mechanic removed)
+	"CrackedCrimsonCore":  {"weapon": {"crit_damage": 0.06}, "defense": {"damage_reduction": 0.015}, "utility": {"ammo_eff": 0.04}},
+	"StableCrimsonCore":   {"weapon": {"crit_damage": 0.15}, "defense": {"damage_reduction": 0.03},  "utility": {"ammo_eff": 0.10}},
+	"PristineCrimsonCore": {"weapon": {"crit_damage": 0.30}, "defense": {"damage_reduction": 0.06},  "utility": {"ammo_eff": 0.20}},
 	# COBALT (Surge) — attack speed / shield regen / energy efficiency
 	"CrackedCobaltCore":   {"weapon": {"attack_speed": 0.02}, "defense": {"shield_regen_mult": 0.06}, "utility": {"energy_eff": 0.02}},
 	"StableCobaltCore":    {"weapon": {"attack_speed": 0.05}, "defense": {"shield_regen_mult": 0.15}, "utility": {"energy_eff": 0.05}},
