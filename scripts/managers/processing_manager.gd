@@ -422,6 +422,66 @@ var recipes: Dictionary = {
 		"research_req": "cryogenic_systems",
 		"category": "components"
 	},
+	# ── v114 (Zone Tier-Gate): per-zone signature-alloy refines (docs/ZONE_TIER_GATE.md).
+	# Each Z2-Z10 common weapon/armor/shield needs its zone alloy (injected at craft
+	# time when the gate is on). Refined from the zone's signature material — a revived
+	# dead/thin drop, or the minted raw (Z4 Rimeplate, Z10 Aeon) — + a processed
+	# co-input, so Processing is pulled into mandatory demand. ~3 signature + 2 co →
+	# 1 alloy (Z4 reference; ratios are sim/playtest knobs). Gated by zone access.
+	"refine_chondrite_alloy": {
+		"name": "Chondrite Alloy",
+		"description": "Smelt asteroid-pirate salvage into workable hull alloy — the Asteroid Belt's gear-grade stock.",
+		"input": {"PirateSalvage": 3, "Circuit": 2}, "output": {"ChondriteAlloy": 1},
+		"duration": 12.0, "level_req": 15, "xp": 25, "research_req": "zone_2_access", "category": "alloys"
+	},
+	"refine_wreckforged_alloy": {
+		"name": "Wreckforged Alloy",
+		"description": "Reforge Martian war-debris into structural plate.",
+		"input": {"MartianRelics": 3, "Steel": 2}, "output": {"WreckforgedAlloy": 1},
+		"duration": 13.0, "level_req": 25, "xp": 35, "research_req": "zone_3_access", "category": "alloys"
+	},
+	"refine_rime_alloy": {
+		"name": "Rime Alloy",
+		"description": "Temper frost-fused hull scrap with glacial essence into cold-rated alloy.",
+		"input": {"RimeplateScrap": 3, "CryoEssence": 2}, "output": {"RimeAlloy": 1},
+		"duration": 14.0, "level_req": 35, "xp": 50, "research_req": "zone_4_access", "category": "alloys"
+	},
+	"refine_xenoforged_alloy": {
+		"name": "Xenoforged Alloy",
+		"description": "Reverse-engineer xenon fragments into an exotic structural alloy.",
+		"input": {"XenoFragment": 3, "AdvCircuit": 2}, "output": {"XenoforgedAlloy": 1},
+		"duration": 15.0, "level_req": 45, "xp": 70, "research_req": "zone_5_access", "category": "alloys"
+	},
+	"refine_colony_alloy": {
+		"name": "Colony-Forged Alloy",
+		"description": "Recast colony reactor-salvage into a heavy mining-grade alloy.",
+		"input": {"ColonySalvage": 3, "Superalloy": 2}, "output": {"ColonyAlloy": 1},
+		"duration": 15.0, "level_req": 55, "xp": 95, "research_req": "zone_6_access", "category": "alloys"
+	},
+	"refine_gamma_alloy": {
+		"name": "Gamma Alloy",
+		"description": "Stabilize charged exotic isotopes into a radiation-tempered alloy.",
+		"input": {"ExoticIsotope": 3, "VoidCrystal": 2}, "output": {"GammaAlloy": 1},
+		"duration": 16.0, "level_req": 65, "xp": 120, "research_req": "zone_7_access", "category": "alloys"
+	},
+	"refine_prismatic_alloy": {
+		"name": "Prismatic Alloy",
+		"description": "Lattice antimatter particles into a prismatic crystalline alloy.",
+		"input": {"AntimatterParticle": 3, "VoidCrystal": 2}, "output": {"PrismaticAlloy": 1},
+		"duration": 16.0, "level_req": 72, "xp": 150, "research_req": "zone_8_access", "category": "alloys"
+	},
+	"refine_bioforged_alloy": {
+		"name": "Bioforged Alloy",
+		"description": "Bind biohazard residue with regenerative plating into a self-knitting bio-alloy.",
+		"input": {"BiohazardSample": 3, "RegenPlating": 1}, "output": {"BioforgedAlloy": 1},
+		"duration": 17.0, "level_req": 80, "xp": 190, "research_req": "zone_9_access", "category": "alloys"
+	},
+	"refine_aeon_alloy": {
+		"name": "Aeon Alloy",
+		"description": "Fuse aeon residuum with void essence into a primordial-grade alloy.",
+		"input": {"AeonResiduum": 3, "VoidEssence": 2}, "output": {"AeonAlloy": 1},
+		"duration": 18.0, "level_req": 88, "xp": 240, "research_req": "zone_10_access", "category": "alloys"
+	},
 	"nitrogen_coolant": {
 		"name": "Cryo-Shield Matrix",
 		"description": "Supercools shield generators for rapid integrity restoration. Restores 35% Shield.",

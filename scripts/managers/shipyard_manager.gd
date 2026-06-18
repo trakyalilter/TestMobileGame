@@ -25,6 +25,13 @@ const RARITY_STAT_RANGE = {
 	Rarity.UNIQUE: [3.50, 5.00],    # 4.50x–6.00x — replaced by N+1 Legendary
 }
 
+# v114 (Zone Tier-Gate): the per-zone signature alloy each Z2-Z10 common module
+# requires (injected at craft time by get_effective_module_cost). See docs/ZONE_TIER_GATE.md.
+const TIER_ALLOY_BY_ZONE := {
+	2: "ChondriteAlloy", 3: "WreckforgedAlloy", 4: "RimeAlloy", 5: "XenoforgedAlloy",
+	6: "ColonyAlloy", 7: "GammaAlloy", 8: "PrismaticAlloy", 9: "BioforgedAlloy", 10: "AeonAlloy",
+}
+
 # Drop scaling curve per zone (kept controlled and tapering in late game).
 const MODULE_ZONE_SCALE_EARLY = 1.34
 const MODULE_ZONE_SCALE_LATE = 1.28
@@ -1609,17 +1616,19 @@ func craft_module(module_id: String) -> bool:
 		if not GameState.research_manager.is_tech_unlocked(mod_data["research_req"]):
 			return false
 	
+	# v114: effective cost includes the zone tier-gate alloy when the gate is on.
+	var craft_cost = get_effective_module_cost(mod_data)
 	# Check Cost
-	for res in mod_data["cost"]:
-		var qty = mod_data["cost"][res]
+	for res in craft_cost:
+		var qty = craft_cost[res]
 		if res == "credits":
 			if GameState.resources.get_currency("credits") < qty: return false
 		else:
 			if GameState.resources.get_element_amount(res) < qty: return false
-			
+
 	# Consume
-	for res in mod_data["cost"]:
-		var qty = mod_data["cost"][res]
+	for res in craft_cost:
+		var qty = craft_cost[res]
 		if res == "credits":
 			GameState.resources.remove_currency("credits", qty)
 		else:
@@ -2645,6 +2654,24 @@ func get_tier_defense_factors(z: int, floor_f: float) -> Dictionary:
 		"def": (arm_keep / arm_full) if arm_full > 0.0 else 1.0,
 		"shield": (sh_keep / sh_full) if sh_full > 0.0 else 1.0,
 	}
+
+# v114: a module's effective craft cost. Injects the zone signature alloy for Z2-Z10
+# common (no-rarity) weapon/armor/shield ONLY when the tier gate is on — so ungated /
+# pre-feature saves keep their base costs and never need an alloy they can't craft.
+# +5 weapon / +6 shield / +8 armor (Z4 reference; tune). Returns a copy (never mutates
+# the module's stored cost). Use this everywhere a common module's cost is read.
+func get_effective_module_cost(m_data: Dictionary) -> Dictionary:
+	var base: Dictionary = (m_data.get("cost", {}) as Dictionary).duplicate()
+	if not bool(GameState.game_settings.get("tier_gate_enabled", false)):
+		return base
+	var z: int = int(m_data.get("zone", 0))
+	var st: String = str(m_data.get("slot_type", ""))
+	if z >= 2 and z <= 10 and (st == "weapon" or st == "armor" or st == "shield") and not m_data.has("rarity"):
+		var alloy: String = str(TIER_ALLOY_BY_ZONE.get(z, ""))
+		if alloy != "":
+			var qty: int = 8 if st == "armor" else (6 if st == "shield" else 5)
+			base[alloy] = int(base.get(alloy, 0)) + qty
+	return base
 
 # v71.5: Check if module can be equipped (Prerequisite check)
 # Returns: {"can_equip": bool, "reason": String}

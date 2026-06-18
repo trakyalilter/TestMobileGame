@@ -177,7 +177,8 @@ func update_state():
 
 	var affordable = true
 	var cost_str = "[center]"
-	var cost_data = data.get("cost", {})
+	# v114: effective cost surfaces the Zone Tier-Gate alloy requirement (gate on only).
+	var cost_data = GameState.shipyard_manager.get_effective_module_cost(data)
 	
 	for res in cost_data:
 		var qty = cost_data[res]

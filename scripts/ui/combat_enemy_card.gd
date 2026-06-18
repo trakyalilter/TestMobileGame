@@ -110,6 +110,17 @@ func _build_combined_stats_row() -> void:
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hb.add_child(spacer)
 
+	# v114: Zone Tier-Gate pre-fight warning. Back-half (e3/e4/boss) enemies reject
+	# sub-tier gear (~2% effect both ways) — flag it BEFORE the player engages so
+	# the wall is never a surprise. Keyed to the BROWSED zone (current_zone isn't
+	# set until a fight starts). Gated on tier_gate_enabled; not double-shown on
+	# warp_hardened enemies (those return 0 here).
+	var _cm = parent_ui.manager if parent_ui else null
+	if _cm and bool(GameState.game_settings.get("tier_gate_enabled", false)):
+		var _th: int = _cm.get_enemy_tier_hardened(eid, str(parent_ui.last_refreshed_zone))
+		if _th > 0:
+			hb.add_child(_make_chip("⚠ HARDENED", Color(1.0, 0.62, 0.30), 8))
+
 	# v111: Warp-Hardened (Z11+) nullify conventional damage; only Cryo bites.
 	if data.get("warp_hardened", false):
 		hb.add_child(_make_chip("❄CRYO-ONLY", Color(0.45, 0.85, 1.0), 8))

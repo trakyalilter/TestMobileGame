@@ -547,7 +547,7 @@ var enemy_db = {
 	"z4_ice_wraith": {
 		"name": "Ice Wraith",
 		"stats": {"hp": 2200, "max_shield": 600, "atk": 125, "def": 25, "atk_interval": 1.5, "accuracy": 50},
-		"loot": [["CoolantCell", 1, 3], ["credits", 800, 1500], ["Res2", 1, 3], ["CryoEssence", 1, 3]],
+		"loot": [["CoolantCell", 1, 3], ["credits", 800, 1500], ["Res2", 1, 3], ["CryoEssence", 1, 3], ["RimeplateScrap", 3, 6]],  # v114: Z4 front signature raw
 		"rare_loot": [["AdvCircuit", 0.08, 1, 2]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z4_kinetic", "z4_energy", "z4_missile", "z4_shield", "z4_armor"],
@@ -556,7 +556,7 @@ var enemy_db = {
 	"z4_cryo_sentinel": {
 		"name": "Frost Sentinel",
 		"stats": {"hp": 2765, "max_shield": 800, "atk": 160, "def": 32, "atk_interval": 2.5, "accuracy": 55},
-		"loot": [["Ti", 5, 12], ["credits", 1000, 2000], ["Res2", 1, 3], ["CryoEssence", 1, 3]],
+		"loot": [["Ti", 5, 12], ["credits", 1000, 2000], ["Res2", 1, 3], ["CryoEssence", 1, 3], ["RimeplateScrap", 3, 6]],  # v114: Z4 front signature raw
 		"rare_loot": [["Chip", 0.10, 1, 3]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z4_kinetic", "z4_energy", "z4_missile", "z4_shield", "z4_armor"],
@@ -838,7 +838,7 @@ var enemy_db = {
 	"z10_void_stalker": {
 		"name": "Void Reaver",
 		"stats": {"hp": 420000, "max_shield": 150000, "atk": 14375, "def": 2900, "atk_interval": 2.0, "accuracy": 160},
-		"loot": [["PrimordialShard", 1, 3], ["VoidEssence", 1, 2], ["CryoCatalyst", 1, 3]],
+		"loot": [["PrimordialShard", 1, 3], ["VoidEssence", 1, 2], ["CryoCatalyst", 1, 3], ["AeonResiduum", 3, 6]],  # v114: Z10 front signature raw
 		"rare_loot": [["ChronoCore", 0.05, 1, 1]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z10_kinetic", "z10_energy", "z10_missile", "z10_shield", "z10_armor"],
@@ -847,7 +847,7 @@ var enemy_db = {
 	"z10_temporal_phantom": {
 		"name": "Temporal Phantom",
 		"stats": {"hp": 528384, "max_shield": 200000, "atk": 18105, "def": 3627, "atk_interval": 1.5, "accuracy": 170},
-		"loot": [["ChronoCore", 1, 2], ["VoidEssence", 2, 4], ["CryoCatalyst", 1, 3]],
+		"loot": [["ChronoCore", 1, 2], ["VoidEssence", 2, 4], ["CryoCatalyst", 1, 3], ["AeonResiduum", 3, 6]],  # v114: Z10 front signature raw
 		"rare_loot": [["PrimordialShard", 0.08, 1, 2]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z10_kinetic", "z10_energy", "z10_missile", "z10_shield", "z10_armor"],
@@ -1140,6 +1140,37 @@ var _tier_shield_factor: float = 1.0  # shield-pool multiplier vs the current ha
 func _tier_gate_on() -> bool:
 	return bool(GameState.game_settings.get("tier_gate_enabled", false))
 
+# Derived tier_hardened for an enemy by its position in the CURRENT zone roster:
+# e3/e4 + boss of Z2-Z10 = the hardened back half (returns the zone difficulty);
+# e1/e2 (front salvage), Z1 (bootstrap) and Z11+ (warp/exotic gate) return 0.
+# Single source of truth for spawn_enemy AND the combat-page pre-fight badge.
+# An explicit def `tier_hardened` still overrides at spawn time.
+func get_enemy_tier_hardened(eid: String, zone_id_override: String = "") -> int:
+	# zone_id_override lets the combat-page pre-fight list query a BROWSED zone
+	# (current_zone is only set once a fight starts). Defaults to current_zone.
+	var zone = current_zone
+	if zone_id_override != "" and zone_id_override in zones:
+		zone = zones[zone_id_override]
+	if zone == null:
+		return 0
+	var zdiff: int = int(zone.get("difficulty", 1))
+	if zdiff < 2 or zdiff > 10:
+		return 0
+	var roster: Array = zone.get("enemies", [])
+	var is_back: bool = (roster.find(eid) >= 2) or bool(enemy_db.get(eid, {}).get("is_boss", false))
+	return zdiff if is_back else 0
+
+# Is this enemy the front-half salvage yard (e1/e2 of Z2-Z10)? Those drop materials
+# only — no module rolls.
+func enemy_is_front_salvage(eid: String) -> bool:
+	if current_zone == null:
+		return false
+	var zdiff: int = int(current_zone.get("difficulty", 1))
+	if zdiff < 2 or zdiff > 10:
+		return false
+	var idx: int = (current_zone.get("enemies", []) as Array).find(eid)
+	return idx >= 0 and idx < 2 and not bool(enemy_db.get(eid, {}).get("is_boss", false))
+
 func set_target_enemy(enemy_id):
 	# v62.0 Fix: Prevent crash if current_zone is null
 	if current_zone == null:
@@ -1178,17 +1209,6 @@ func spawn_enemy():
 	var sm = GameState.shipyard_manager
 	var eid = target_enemy_id if target_enemy_id else current_zone["enemies"][randi() % current_zone["enemies"].size()]
 	var e_data = enemy_db[eid]
-	# v114 (Zone Tier-Gate): derive the front/back split from the enemy's position
-	# in the zone roster — e1/e2 = front (salvage yard, materials only), e3/e4/boss
-	# = hardened back half (tier_hardened = zone difficulty). Z2-Z10 only (Z1 is the
-	# ungated bootstrap; Z11+ uses its own warp/exotic gate). An explicit def field
-	# overrides. Single source of truth — no per-enemy hand-annotation to drift.
-	var _zdiff: int = int(current_zone.get("difficulty", 1)) if current_zone else 1
-	var _eidx: int = (current_zone["enemies"] as Array).find(eid) if (current_zone and current_zone.has("enemies")) else -1
-	var _in_gate_band: bool = (_zdiff >= 2 and _zdiff <= 10)
-	var _is_back: bool = (_eidx >= 2) or bool(e_data.get("is_boss", false))  # e3/e4/boss
-	var _derived_th: int = _zdiff if (_in_gate_band and _is_back) else 0
-	var _derived_dm: bool = not (_in_gate_band and not _is_back)  # front half (e1/e2) → no module drops
 	current_enemy = {
 		"id": eid,
 		"name": e_data["name"],
@@ -1216,8 +1236,8 @@ func spawn_enemy():
 		"warp_hardened": e_data.get("warp_hardened", false), # v109: Z11 Cryo gate
 		"phases": e_data.get("phases", []),                  # v113 (NG+ P1): multi-phase element gate
 		"phase_cut": e_data.get("phase_cut", 0.15),          # v113: off-element damage factor
-		"tier_hardened": e_data.get("tier_hardened", _derived_th),    # v114: derived from zone position (def overrides)
-		"drops_modules": e_data.get("drops_modules", _derived_dm),    # v114: front half (e1/e2) = false → materials only
+		"tier_hardened": e_data.get("tier_hardened", get_enemy_tier_hardened(eid)),     # v114: derived from zone position (def overrides)
+		"drops_modules": e_data.get("drops_modules", not enemy_is_front_salvage(eid)),  # v114: front half (e1/e2) → materials only
 		"enrage_at": e_data.get("enrage_at", 0.0),           # v109: P3 boss mechanic (HP fraction)
 		"enrage_atk_mult": e_data.get("enrage_atk_mult", 1.5),
 		"dmg_type": e_data.get("dmg_type", "kinetic") # v87.0: Typed enemy damage

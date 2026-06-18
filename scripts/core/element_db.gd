@@ -179,7 +179,21 @@ var ELEMENT_NAMES = {
 	"OmegaPlating": "Omega Plating",
 	"PrimordialShard": "Primordial Shard",
 	"CryoCatalyst": "Cryo Catalyst",
-	
+
+	# v114 (Zone Tier-Gate): 2 minted signature raws (Z4/Z10) + 9 per-zone alloys
+	# refined from each zone's signature material. See docs/ZONE_TIER_GATE.md.
+	"RimeplateScrap": "Rimeplate Scrap",
+	"AeonResiduum": "Aeon Residuum",
+	"ChondriteAlloy": "Chondrite Alloy",
+	"WreckforgedAlloy": "Wreckforged Alloy",
+	"RimeAlloy": "Rime Alloy",
+	"XenoforgedAlloy": "Xenoforged Alloy",
+	"ColonyAlloy": "Colony-Forged Alloy",
+	"GammaAlloy": "Gamma Alloy",
+	"PrismaticAlloy": "Prismatic Alloy",
+	"BioforgedAlloy": "Bioforged Alloy",
+	"AeonAlloy": "Aeon Alloy",
+
 	# P1-12: Endgame Crafted Items
 	"VoidBattery": "Void Battery",
 	"TemporalModule": "Temporal Stabilizer",
@@ -211,7 +225,8 @@ var CATEGORIES = {
 	"basic_metals": ["Fe", "Cu", "Al", "Mg", "Sn", "Zn"],
 	"advanced_metals": ["Ti", "Co", "Ni", "Cr", "Mn", "W"],
 	"rare_metals": ["Au", "Ag", "Pt", "Pd", "Ir", "Os", "Rh", "U", "Germanium"],
-	"alloys": ["Steel", "Bronze", "Graphite", "StainlessSteel", "GalvanizedSteel", "Superalloy", "AlMgAlloy", "IrWAlloy"],
+	"alloys": ["Steel", "Bronze", "Graphite", "StainlessSteel", "GalvanizedSteel", "Superalloy", "AlMgAlloy", "IrWAlloy",
+				"ChondriteAlloy", "WreckforgedAlloy", "RimeAlloy", "XenoforgedAlloy", "ColonyAlloy", "GammaAlloy", "PrismaticAlloy", "BioforgedAlloy", "AeonAlloy"],
 	"components": ["Circuit", "AdvCircuit", "Chip", "Hydraulics", "AlWire", "Resin", "Fiber", "ReinforcedPlating"],
 	"batteries": ["BatteryT1", "BatteryT2", "BatteryT3", "CoBattery", "MgBattery", "PdFuelCell"],
 	"consumables": ["Mesh", "Seal", "EmergencyPatch", "BasicBooster", "ChitinPatch", "NitroCoolant", "AdvMaintenanceKit", "CapacitorShard", "IonField", "ZeroPoint"],  # Audit v2.0: Early/Mid consumables
@@ -223,7 +238,8 @@ var CATEGORIES = {
 				"MiteChitin", "SalvageData", "StolenCargo",
 				"SwarmFragment", "PirateManifest", "ColonySalvage", "TurretCore", 
 				"ColonyDataCore", "RadIsotope", "CryoCell",
-				"PirateSalvage", "MartianRelics", "CryoEssence", "XenoFragment"],
+				"PirateSalvage", "MartianRelics", "CryoEssence", "XenoFragment",
+				"RimeplateScrap", "AeonResiduum"],  # v114: minted Zone Tier-Gate raws
 	# Audit v4.0: Endgame category for ultimate items
 	"endgame": ["VoidEssence", "ChronoCore", "OmegaPlating", "PrimordialShard", "CryoCatalyst", 
 				"VoidBattery", "TemporalModule", "PrimordialArmor", "OmegaAccelerator"],
