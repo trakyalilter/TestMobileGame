@@ -160,7 +160,6 @@ func _fit_tier(t: int) -> void:
 	GameState.combat_manager.level = clampi(t * 9, 1, 100)
 	sm.recalc_stats()
 	sm.current_hp = sm.max_hp
-	_neutralize_heat()
 
 func _find_zone_boss(t: int) -> Array:
 	var cm = GameState.combat_manager
@@ -217,15 +216,6 @@ func _build_fleet_to_cap() -> int:
 			break
 		built += 1
 	return built
-
-func _neutralize_heat() -> void:
-	var cm = GameState.combat_manager
-	if not cm:
-		return
-	cm.player_heat = 0.0
-	cm.overheat_lock = 0.0
-	cm.player_max_heat = 1000000000.0
-	cm.player_vent_rate = 1000000000.0
 
 func _on_kill(eid = null, _b = null, _c = null) -> void:
 	if str(eid) == _boss_id:
