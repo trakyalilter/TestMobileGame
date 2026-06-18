@@ -2114,7 +2114,15 @@ func recalc_stats():
 					for k in facet:
 						gem_bonuses[k] = gem_bonuses.get(k, 0.0) + facet[k]
 						
-	# v118: matrix-core stat bonuses now apply in combat (Phase 2), not here.
+	# v118 Phase 2: apply the STAT-aggregate facets here; the rest (crit_damage,
+	# armor_pen, resist_pierce, damage_reduction, ammo_eff, restore_on_kill) are
+	# consumed live in combat_manager.
+	evasion += int(round(gem_bonuses.get("evasion_flat", 0.0)))
+	accuracy += int(round(gem_bonuses.get("accuracy_flat", 0.0)))
+	shield_regen = int(round(float(shield_regen) * (1.0 + gem_bonuses.get("shield_regen_mult", 0.0))))
+	max_hp = int(round(float(max_hp) * (1.0 + gem_bonuses.get("max_hull_mult", 0.0))))
+	energy_used = int(round(float(energy_used) * (1.0 - gem_bonuses.get("energy_eff", 0.0))))
+	attack_speed_bonus += gem_bonuses.get("attack_speed", 0.0)
 
 	# v107: Warp Mastery Tree — C1 Hull Reinforcement (+10% Hull HP, all hulls)
 	if GameState.warp_manager:

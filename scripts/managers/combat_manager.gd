@@ -1740,7 +1740,9 @@ func _execute_player_attack(weapon_idx: int):
 		
 	if ammo_id and ammo_id != "":
 		if GameState.resources.get_element_amount(ammo_id) > 0:
-			GameState.resources.remove_element(ammo_id, 1)
+			# v118: Crimson ammo_eff (utility facet) — chance to not consume ammo.
+			if randf() >= sm.gem_bonuses.get("ammo_eff", 0.0):
+				GameState.resources.remove_element(ammo_id, 1)
 			
 			# Audit Phase 19: Use flat bonuses from elements.json where possible, or standardized flat tiers
 			# Descriptions say: +5, +15, +30
@@ -1819,6 +1821,9 @@ func _execute_player_attack(weapon_idx: int):
 			# tier under cuts damage hard. Log shows the ACTUAL % so it reads as an
 			# armor/penetration mismatch, not a mystery.
 			var _pen: float = sm.module_tier_penetration(str(w.get("mid", "")), _thz)
+			# v118: Topaz armor_pen softens the wall — bump the floor (capped +0.20),
+			# never past 1.0. Only helps when under-tier; a full tier still walls.
+			_pen = minf(1.0, _pen + clampf(sm.gem_bonuses.get("armor_pen", 0.0), 0.0, 0.20))
 			if _pen < 1.0:
 				p_atk_k *= _pen
 				p_atk_e *= _pen
@@ -2100,6 +2105,14 @@ func resolve_damage(atk_k, atk_e, atk_x, c_shield, c_armor, difficulty = 1, crit
 		var rk = _amp_resist(current_enemy.get("resist_k", 0.0))
 		var re = _amp_resist(current_enemy.get("resist_e", 0.0))
 		var rx = _amp_resist(current_enemy.get("resist_x", 0.0))
+		# v118: Amethyst resist_pierce softens the resist gate — shave positive
+		# resistances toward 0 (capped 0.30), never flips a weakness. 0.80 -> min 0.50,
+		# so the wrong type stays a penalty and switching is still worthwhile.
+		var _rp: float = clampf(sm.gem_bonuses.get("resist_pierce", 0.0), 0.0, 0.30)
+		if _rp > 0.0:
+			if rk > 0.0: rk = maxf(rk - _rp, 0.0)
+			if re > 0.0: re = maxf(re - _rp, 0.0)
+			if rx > 0.0: rx = maxf(rx - _rp, 0.0)
 		# Phase A: capture per-type pre/post-resist so we can see whether
 		# players actually adapt their damage type to the enemy.
 		GameState.note_damage(hull_dmg_k, hull_dmg_e, hull_dmg_x,
@@ -2135,9 +2148,19 @@ func resolve_damage(atk_k, atk_e, atk_x, c_shield, c_armor, difficulty = 1, crit
 			var bonus = sm.affix_bonuses.get("dmg_injured", 0.0)
 			if bonus > 0: total_hull_dmg *= (1.0 + bonus)
 	
+	# v118: Crimson damage_reduction (defense facet) — flat % off incoming damage
+	# when the ENEMY attacks. Capped 0.50 so a full set can't trivialize defense.
+	if not is_player_attacker:
+		var _dr: float = clampf(sm.gem_bonuses.get("damage_reduction", 0.0), 0.0, 0.50)
+		if _dr > 0.0:
+			total_hull_dmg *= (1.0 - _dr)
+			damage_to_shield *= (1.0 - _dr)
 	var variance = randf_range(0.9, 1.1)
 	var is_crit = randf() < crit_chance
-	if is_crit: variance *= 1.5
+	# v118: Crimson crit_damage (weapon facet) boosts the player's crit multiplier
+	# (base 1.5x). Player attacks only.
+	if is_crit:
+		variance *= (1.5 + (sm.gem_bonuses.get("crit_damage", 0.0) if is_player_attacker else 0.0))
 	return [int(damage_to_shield * variance), int(max(1.0 if (atk_k + atk_e + atk_x) > 0 else 0, total_hull_dmg * variance)), is_crit]
 
 # v101: Combat Loot Scaling System
@@ -2414,6 +2437,11 @@ func win_fight():
 			_roll_one_module_drop(unlocked_pool, sm)
 
 	add_xp(int(current_enemy["xp"] * (1.0 + GameState.research_manager.get_efficiency_bonus("combat_xp"))))
+	# v118: Amethyst restore_on_kill (utility facet) — heal % max HP + shield per kill.
+	var _rok: float = sm.gem_bonuses.get("restore_on_kill", 0.0)
+	if _rok > 0.0:
+		sm.current_hp = min(sm.max_hp, sm.current_hp + int(sm.max_hp * _rok))
+		player_shield = minf(player_max_shield, player_shield + player_max_shield * _rok)
 	# Per-kill HUD timer resets at the moment of the kill; session timer keeps running.
 	time_since_last_kill = 0.0
 	enemy_defeated.emit(current_enemy["id"])
