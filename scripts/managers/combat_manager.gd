@@ -18,12 +18,6 @@ var enemy_max_hp = 100
 var enemy_shield = 0.0
 var enemy_max_shield = 0.0
 
-# Thermal State (Audit v12.0)
-var player_heat = 0.0
-var player_max_heat = 100.0
-var player_vent_rate = 8.0 # Units per second
-var overheat_lock = 0.0 # Timer when overheat occurs
-signal heat_changed(current, maximum)
 
 
 # Battery State
@@ -64,7 +58,6 @@ var time_since_last_kill: float = 0.0
 
 # Balanced Phase 2 Buffs
 var broadside_timer = 0.0
-var coolant_flush_timer = 0.0
 
 # Forensic 3: Logic Fixes
 var shield_regen_accumulator = 0.0
@@ -1118,9 +1111,6 @@ func start_expedition(zone_id: String):
 	spawn_enemy()
 	player_shield = player_max_shield # FIX: Restore shields on enter
 	shield_regen_accumulator = 0.0
-	player_heat = 0.0
-	overheat_lock = 0.0
-	heat_changed.emit(player_heat, player_max_heat)
 	log_msg("Warped to %s." % current_zone["name"])
 
 # ── v114: Zone Tier-Gate (front/back sector-hardening) — docs/ZONE_TIER_GATE.md ──
@@ -1199,9 +1189,6 @@ func set_target_enemy(enemy_id):
 		spawn_enemy()
 		player_shield = player_max_shield # FIX: Restore shields on target
 		shield_regen_accumulator = 0.0
-		player_heat = 0.0
-		overheat_lock = 0.0
-		heat_changed.emit(player_heat, player_max_heat)
 		log_msg("Targeting: %s" % enemy_db[enemy_id]["name"])
 	else:
 		target_enemy_id = null
@@ -1541,18 +1528,14 @@ func process_tick(delta: float):
 	if sm.current_hp > sm.max_hp:
 		sm.current_hp = sm.max_hp
 	
-	# Heat system removed (v118): was a fixed 100-cap that silently zeroed any
-	# weapon doing >=~9800 dmg/shot. No per-tick venting / overheat lock anymore.
-
 	# v65.0 Fix: Enemy Shield Regen moved to generic accumulator and Capped (Removed old logic)
 
 	if _loadout_has_module(sm, "warp_stabilizer"):
 		p_speed_mult += 0.15
 
-	# Servo Overclock (formerly Heat-Sync Focus): flat attack-speed affix, now
-	# unconditional since heat is gone.
-	if sm.affix_bonuses.get("heat_sync_focus", 0.0) > 0:
-		p_speed_mult += sm.affix_bonuses["heat_sync_focus"]
+	# Servo Overclock: flat attack-speed affix.
+	if sm.affix_bonuses.get("servo_overclock", 0.0) > 0:
+		p_speed_mult += sm.affix_bonuses["servo_overclock"]
 
 	# v85.2: Berserking Logic (+25% Attack Speed)
 	if player_berserk_timer > 0:
@@ -1659,8 +1642,6 @@ func _execute_player_attack(weapon_idx: int):
 			return
 
 	# Manual consume check removed (Auto-only now)
-
-	# (heat-add + overheat lock removed in v118 — weapon now fires unconditionally)
 	
 	# Hit Resolution (Accuracy vs Evasion)
 	var p_acc = sm.accuracy
@@ -2632,10 +2613,7 @@ func start_hazard(zone_id: String) -> bool:
 	var sm = GameState.shipyard_manager
 	player_shield = sm.max_shield
 	shield_regen_accumulator = 0.0
-	player_heat = 0.0
-	overheat_lock = 0.0
-	heat_changed.emit(player_heat, player_max_heat)
-	
+
 	_spawn_hazard_wave_enemy()
 	log_msg("ENTERING: %s — WAVE 1/%d" % [hz["name"], hazard_state["max_waves"]])
 	combat_events.append({"type": "status", "text": "HAZARD: %s" % hz["name"].to_upper(), "color": Color.YELLOW, "side": "player"})
@@ -2731,13 +2709,7 @@ func get_save_data_manager() -> Dictionary:
 	data["current_zone_id"] = current_zone_id
 	data["current_enemy_id"] = current_enemy["id"] if current_enemy else null
 	data["player_shield"] = player_shield
-	data["player_heat"] = player_heat
-	# Heat system removed (v118). These three persist inert purely for save
-	# round-trip compat (old saves load unchanged; nothing reads them anymore).
-	data["player_max_heat"] = player_max_heat
-	data["player_vent_rate"] = player_vent_rate
 	data["nanite_hot_timer"] = nanite_hot_timer
-	data["coolant_flush_timer"] = coolant_flush_timer
 	data["session_loot"] = session_loot
 	data["loot_filter"] = loot_filter
 	data["loot_type_filter"] = loot_type_filter
@@ -2752,13 +2724,7 @@ func load_save_data_manager(data: Dictionary):
 	
 	in_combat = data.get("in_combat", false)
 	player_shield = data.get("player_shield", 0.0)
-	player_heat = data.get("player_heat", 0.0)
-	# Defaults match the file declaration so old saves load unchanged; saves
-	# from a debug-fit session restore the neutralized ceiling + vent.
-	player_max_heat = data.get("player_max_heat", 100.0)
-	player_vent_rate = data.get("player_vent_rate", 8.0)
 	nanite_hot_timer = data.get("nanite_hot_timer", 0.0)
-	coolant_flush_timer = data.get("coolant_flush_timer", 0.0)
 	session_loot = data.get("session_loot", {})
 	
 	# v85.0: Loot Filter Loading

@@ -161,7 +161,7 @@ const AFFIX_DB = {
 		"range": [5, 15], "limit_to": ["weapon", "sensor"],
 		"desc": "+%d Flat Accuracy."
 	},
-	"heat_sync_focus": {
+	"servo_overclock": {
 		"name": "Servo Overclock", "type": "tactical", "scaling": "percent",
 		"range": [5, 12], "limit_to": ["weapon"],
 		"desc": "+%d%% Attack Speed."
@@ -277,7 +277,7 @@ const AFFIX_NAMING = {
 	"void_strike": {"prefix": "Phased", "suffix": "of the Void"},
 	"flat_atk": {"prefix": "Charged", "suffix": "of Lethality"},
 	"flat_accuracy": {"prefix": "Calibrated", "suffix": "of Precision"},
-	"heat_sync_focus": {"prefix": "Overclocked", "suffix": "of Haste"},
+	"servo_overclock": {"prefix": "Overclocked", "suffix": "of Haste"},
 	"flat_hp": {"prefix": "Reinforced", "suffix": "of Bulwark"},
 	"flat_def": {"prefix": "Hardened", "suffix": "of Bastion"},
 	"flat_shield": {"prefix": "Flux", "suffix": "of the Aegis"},
@@ -335,7 +335,7 @@ var affix_bonuses = {
 	"static_burst": 0.0,
 	"capacitor_pulse": 0.0,
 	"void_strike": 0.0,
-	"heat_sync_focus": 0.0,
+	"servo_overclock": 0.0,
 	"nanite_resurgence": 0.0,
 	"refinery_link": 0.0,
 	"extractor_efficiency": 0.0,
@@ -2256,6 +2256,12 @@ func load_save_data_manager(data: Dictionary):
 	
 	custom_modules = data.get("custom_modules", {})
 	for cm_id in custom_modules:
+		# v118: heat removed — migrate the legacy "heat_sync_focus" affix key
+		# (re-skinned to Servo Overclock) on existing rolled gear.
+		var _afx = custom_modules[cm_id].get("affixes", null)
+		if _afx is Dictionary and _afx.has("heat_sync_focus"):
+			_afx["servo_overclock"] = _afx["heat_sync_focus"]
+			_afx.erase("heat_sync_focus")
 		modules[cm_id] = custom_modules[cm_id]
 	
 	# Convert JSON string keys back to int if needed or handle direct

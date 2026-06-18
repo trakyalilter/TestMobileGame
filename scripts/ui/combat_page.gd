@@ -14,7 +14,6 @@ extends Control
 @onready var p_stat_lbl = $Dashboard/HUD/MidHUD/PlayerStatsOverlay/Margin/VBox/StatsLabel
 @onready var p_hp_lbl = $Dashboard/HUD/MidHUD/PlayerStatsOverlay/Margin/VBox/Grid/HealthLabel
 @onready var p_sh_lbl = $Dashboard/HUD/MidHUD/PlayerStatsOverlay/Margin/VBox/Grid/ShieldLabel
-@onready var p_heat_bar = $Dashboard/HUD/MidHUD/PlayerStatsOverlay/Margin/VBox/HeatBar
 @onready var weapon_battery = $Dashboard/HUD/MidHUD/PlayerStatsOverlay/Margin/VBox/WeaponBattery
 @onready var p_buff_container = $Dashboard/HUD/MidHUD/PlayerStatsOverlay/Margin/VBox/BuffContainer
 
@@ -86,26 +85,15 @@ func _ready():
 	_setup_hp_bars()
 	_setup_consumable_buttons()
 	
-	# Heat system removed — hide the legacy Heat Bar node (kept in scene for compat).
-	if p_heat_bar:
-		p_heat_bar.visible = false
-
 	# Explicit Signal Connections (Defensive)
 	if not btn_retreat.is_connected("pressed", _on_retreat_btn_pressed): btn_retreat.pressed.connect(_on_retreat_btn_pressed)
 	
-	if not manager.heat_changed.is_connected(_on_heat_changed):
-		manager.heat_changed.connect(_on_heat_changed)
-	
-	# Initial Sync
-	_on_heat_changed(manager.player_heat, manager.player_max_heat)
-
 	_setup_loot_filter_button()
 	_build_combat_timers()
 	_build_loadout_swap_row()
 
 var p_xp_bar: ProgressBar
 var p_xp_label: Label
-var p_heat_label: Label
 var p_hp_bar: HBoxContainer
 var p_sh_bar: HBoxContainer
 var e_hp_bar: HBoxContainer
@@ -931,18 +919,6 @@ func _update_atmosphere(delta):
 
 func _on_retreat_btn_pressed():
 	manager.retreat()
-
-func _on_heat_changed(current: float, maximum: float):
-	if p_heat_bar:
-		p_heat_bar.max_value = maximum
-		p_heat_bar.value = current
-		
-		# Update Heat Label
-		if p_heat_label:
-			var pct = 0.0
-			if maximum > 0:
-				pct = (current / maximum) * 100.0
-			p_heat_label.text = "%.0f%%" % pct
 
 func _create_centered_label(parent: Control) -> Label:
 	var lbl = Label.new()

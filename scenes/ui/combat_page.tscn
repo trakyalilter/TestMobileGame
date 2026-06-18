@@ -241,14 +241,6 @@ text = "ATK: 0 | DEF: 0"
 horizontal_alignment = 1
 text_overrun_behavior = 3
 
-[node name="HeatBar" type="ProgressBar" parent="Dashboard/HUD/MidHUD/PlayerStatsOverlay/Margin/VBox"]
-custom_minimum_size = Vector2(0, 6)
-layout_mode = 2
-theme_override_styles/background = SubResource("StyleBoxFlat_hp_bg")
-theme_override_styles/fill = SubResource("StyleBoxFlat_hp_fill")
-value = 50.0
-show_percentage = false
-
 [node name="WeaponBattery" type="VBoxContainer" parent="Dashboard/HUD/MidHUD/PlayerStatsOverlay/Margin/VBox"]
 layout_mode = 2
 theme_override_constants/separation = 3
