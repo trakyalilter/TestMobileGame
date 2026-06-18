@@ -2009,6 +2009,19 @@ func _execute_enemy_attack():
 		if eres[1] > 0: combat_events.append({"type": "dmg_hull", "text": "-%d %s" % [eres[1], e_type_tag], "color": Color.RED, "side": "player"})
 	if sm.current_hp <= 0: lose_fight()
 
+# v116: amplify authored damage-type RESISTANCES toward an 80% wall so the wrong
+# damage type is a ~5x TTK penalty (forces type-switching), while WEAKNESSES keep
+# their authored value. The authored data maxes at 0.45, so a flat clamp bump did
+# nothing -- this scales the positive side up (0.45 -> 0.80) and preserves the
+# triangle's spread. Soft axis (x0.20 is still grindable in idle); the HARD gate
+# stays the tier-penetration wall (don't double-hard-gate tier AND type).
+const RESIST_AMP := 1.78    # 0.45 (authored max) * 1.78 ~= 0.80
+const RESIST_MAX := 0.80
+func _amp_resist(r: float) -> float:
+	if r > 0.0:
+		return clamp(r * RESIST_AMP, 0.0, RESIST_MAX)
+	return clamp(r, -0.40, 0.0)
+
 func resolve_damage(atk_k, atk_e, atk_x, c_shield, c_armor, difficulty = 1, crit_chance = 0.05, is_player_attacker = false, atk_cryo = 0.0, p_weapon_exotic = "cryo"):
 	# v109 Phase 1: Cryo is the 4th damage type. Inert until Cryo weapons ship
 	# (Phase 2) — atk_cryo / resist_cryo / warp_hardened all default to
@@ -2084,9 +2097,9 @@ func resolve_damage(atk_k, atk_e, atk_x, c_shield, c_armor, difficulty = 1, crit
 	
 	# v86.0: Enemy Damage Type Resistances
 	if is_player_attacker and current_enemy:
-		var rk = clamp(current_enemy.get("resist_k", 0.0), -0.40, 0.50)
-		var re = clamp(current_enemy.get("resist_e", 0.0), -0.40, 0.50)
-		var rx = clamp(current_enemy.get("resist_x", 0.0), -0.40, 0.50)
+		var rk = _amp_resist(current_enemy.get("resist_k", 0.0))
+		var re = _amp_resist(current_enemy.get("resist_e", 0.0))
+		var rx = _amp_resist(current_enemy.get("resist_x", 0.0))
 		# Phase A: capture per-type pre/post-resist so we can see whether
 		# players actually adapt their damage type to the enemy.
 		GameState.note_damage(hull_dmg_k, hull_dmg_e, hull_dmg_x,
