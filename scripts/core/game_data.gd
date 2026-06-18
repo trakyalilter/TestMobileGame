@@ -8,10 +8,10 @@ const DEF_K_ZONE_EXP := 1.3
 const MAX_DAMAGE_REDUCTION := 0.8
 
 const RESOURCES := {
-	"Water": {"name": "Water", "color": "b0895a", "value": 0},
+	"Water": {"name": "Water", "color": "b0895a", "value": 1},
 	"SparePart": {"name": "Spare Parts", "color": "5ad1e0", "value": 10},
-	"Dirt": {"name": "Dirt", "color": "b0895a", "value": 0},
-	"Wood": {"name": "Wood", "color": "b0895a", "value": 0},
+	"Dirt": {"name": "Dirt", "color": "b0895a", "value": 1},
+	"Wood": {"name": "Wood", "color": "b0895a", "value": 2},
 	"Spodumene": {"name": "Lithium Ore", "color": "b0895a", "value": 5},
 	"Bauxite": {"name": "Bauxite Ore", "color": "b0895a", "value": 5},
 	"ZincOre": {"name": "Zinc Ore", "color": "b0895a", "value": 5},
