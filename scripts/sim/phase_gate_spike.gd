@@ -252,6 +252,35 @@ func _boot() -> void:
 	GameState.game_settings["tier_gate_enabled"] = true
 	smT.loadout = _saved_loadout
 
+	print("[PHASE] ---- v114 content: alloys, refines, re-pointed costs ----")
+	GameState.game_settings["tier_gate_enabled"] = true
+	var z4arm = smT.get_effective_module_cost(smT.modules.get("z4_armor", {}))
+	_eq_b("gate ON: z4_armor needs RimeAlloy 8", int(z4arm.get("RimeAlloy", 0)) == 8, true)
+	var z4wpn = smT.get_effective_module_cost(smT.modules.get("z4_kinetic", {}))
+	_eq_b("gate ON: z4_kinetic needs RimeAlloy 5", int(z4wpn.get("RimeAlloy", 0)) == 5, true)
+	var z4shl = smT.get_effective_module_cost(smT.modules.get("z4_shield", {}))
+	_eq_b("gate ON: z4_shield needs RimeAlloy 6", int(z4shl.get("RimeAlloy", 0)) == 6, true)
+	var z7wpn = smT.get_effective_module_cost(smT.modules.get("z7_kinetic", {}))
+	_eq_b("gate ON: z7_kinetic needs GammaAlloy 5", int(z7wpn.get("GammaAlloy", 0)) == 5, true)
+	GameState.game_settings["tier_gate_enabled"] = false
+	var z4arm_off = smT.get_effective_module_cost(smT.modules.get("z4_armor", {}))
+	_eq_b("gate OFF: z4_armor has NO alloy (base cost)", not z4arm_off.has("RimeAlloy"), true)
+	GameState.game_settings["tier_gate_enabled"] = true
+	var clance = smT.get_effective_module_cost(smT.modules.get("cryo_lance", {}))
+	_eq_b("cryo_lance (RARE/z11) gets NO alloy", not clance.has("RimeAlloy") and not clance.has("AeonAlloy"), true)
+	_eq_b("RimeAlloy display name", ElementDB.get_display_name("RimeAlloy") == "Rime Alloy", true)
+	_eq_b("RimeplateScrap display name", ElementDB.get_display_name("RimeplateScrap") == "Rimeplate Scrap", true)
+	_eq_b("refine_rime_alloy recipe exists", "refine_rime_alloy" in GameState.processing_manager.recipes, true)
+	_eq_b("refine_prismatic_alloy recipe exists", "refine_prismatic_alloy" in GameState.processing_manager.recipes, true)
+	var iw_has_scrap := false
+	for _e in cm.enemy_db.get("z4_ice_wraith", {}).get("loot", []):
+		if (_e as Array).size() > 0 and str(_e[0]) == "RimeplateScrap": iw_has_scrap = true
+	_eq_b("Z4 ice_wraith drops RimeplateScrap", iw_has_scrap, true)
+	var vr_has_aeon := false
+	for _e in cm.enemy_db.get("z10_void_stalker", {}).get("loot", []):
+		if (_e as Array).size() > 0 and str(_e[0]) == "AeonResiduum": vr_has_aeon = true
+	_eq_b("Z10 void_stalker drops AeonResiduum", vr_has_aeon, true)
+
 	if _fails == 0:
 		print("[PHASE] ALL PASS")
 	else:
