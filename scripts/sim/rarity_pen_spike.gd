@@ -50,6 +50,7 @@ func _boot() -> void:
 		_section_wall(sm, cm, str(wt))
 
 	_section_resist(sm, cm)
+	_section_ttk(sm, cm)
 
 	print("[RPS] ============================================================")
 	print("[RPS] RESULT: %d passed, %d failed" % [_pass, _fail])
@@ -135,11 +136,15 @@ func _section_resist(sm, cm) -> void:
 	var base_x: float = _avg_hull(cm, 0.0, 0.0, A, none, N)
 	print("[RPS] no-resist hull (atk=1000): KIN %.0f  NRG %.0f  EXP %.0f  (intrinsic type-vs-hull)" % [base_k, base_e, base_x])
 
-	# 1) kin-RESIST enemy vs KIN weapon -> ~halved (the user's exact case)
+	# 1) kin-RESIST vs KIN weapon. v116: authored 0.5 AMPLIFIES to 0.80 -> does ~20%.
 	var kr: Dictionary = {"resist_k": 0.5, "resist_e": 0.0, "resist_x": 0.0}
 	var kin_vs_kr: float = _avg_hull(cm, A, 0.0, 0.0, kr, N)
-	print("[RPS] kin-RESIST(0.5) vs KIN: %.0f  (x%.2f of no-resist %.0f)" % [kin_vs_kr, kin_vs_kr / base_k, base_k])
-	_chk("KIN vs kin-resist(0.5) ~= 0.5x no-resist", abs(kin_vs_kr / base_k - 0.5) < 0.05)
+	print("[RPS] kin-RESIST(0.5->amp0.80) vs KIN: %.0f  (x%.2f of no-resist %.0f)" % [kin_vs_kr, kin_vs_kr / base_k, base_k])
+	_chk("KIN vs kin-resist(0.5->0.80) ~= 0.20x", abs(kin_vs_kr / base_k - 0.20) < 0.05)
+	# v116: explicit amplification curve (positives scaled to <=0.80, weakness intact)
+	_chk("amp(0.45) ~= 0.80", abs(float(cm._amp_resist(0.45)) - 0.80) < 0.01)
+	_chk("amp(0.25) ~= 0.445", abs(float(cm._amp_resist(0.25)) - 0.445) < 0.01)
+	_chk("amp(-0.40) = -0.40 (weakness intact)", abs(float(cm._amp_resist(-0.40)) + 0.40) < 0.001)
 
 	# 2) vs that kin-resist enemy, the other types out-damage kinetic (switch!)
 	var nrg_vs_kr: float = _avg_hull(cm, 0.0, A, 0.0, kr, N)
@@ -158,8 +163,8 @@ func _section_resist(sm, cm) -> void:
 	#    under-tier kin weapon = pen 0.15 applied to atk BEFORE resolve_damage.
 	var pen: float = 0.15
 	var kin_pen_resist: float = _avg_hull(cm, A * pen, 0.0, 0.0, kr, N)
-	print("[RPS] under-tier KIN (pen .15) vs kin-RESIST(.5): %.0f  (expect ~%.0f = base x.15 x.5)" % [kin_pen_resist, base_k * pen * 0.5])
-	_chk("penetration x resistance compose (~base*0.075)", abs(kin_pen_resist / base_k - pen * 0.5) < 0.02)
+	print("[RPS] under-tier KIN (pen .15) vs kin-RESIST(amp0.80): %.0f  (expect ~%.0f = base x.15 x.20)" % [kin_pen_resist, base_k * pen * 0.20])
+	_chk("penetration x resistance compose (~base*0.030)", abs(kin_pen_resist / base_k - pen * 0.20) < 0.02)
 
 	# context: do real enemies actually carry resistances?
 	var with_resist: int = 0
@@ -181,6 +186,75 @@ func _avg_hull(cm, atk_k: float, atk_e: float, atk_x: float, enemy: Dictionary, 
 		var res: Array = cm.resolve_damage(atk_k, atk_e, atk_x, 0.0, 0.0, 1, 0.0, true, 0.0, "cryo")
 		tot += float(res[1])
 	return tot / float(samples)
+
+# ---------------------------------------------------------------------------
+# SECTION 4: real TTK by weapon type vs strongly-resisted enemies. Builds the
+# current-tier Common weapon of each type, computes hull dps via resolve_damage
+# (armor/shield=0 isolates resist), TTK = hp/dps. Shows the wrong type is now a
+# big TTK penalty (force switch) and asserts every enemy still has a viable type.
+func _section_ttk(sm, cm) -> void:
+	print("[RPS] ##### SECTION 4: TTK BY WEAPON TYPE vs resisted enemies (amplified <=80%) #####")
+	print("[RPS] current-tier Common weapon each type; armor/shield=0; TTK = hp / eff-dps.")
+	print("[RPS] enemy (tier, hp)                  | KIN ttk | NRG ttk | EXP ttk | wrong/right")
+	var tier_map: Dictionary = _enemy_tier_map(cm)
+	var shown: int = 0
+	for eid in cm.enemy_db:
+		if shown >= 8:
+			break
+		var e = cm.enemy_db[eid]
+		if e.get("is_boss", false) or e.get("warp_hardened", false):
+			continue
+		var tier: int = int(tier_map.get(str(eid), 0))
+		if tier < 1 or not (("z%d_kinetic" % tier) in sm.modules):
+			continue
+		if max(float(e.get("resist_k", 0.0)), max(float(e.get("resist_e", 0.0)), float(e.get("resist_x", 0.0)))) < 0.40:
+			continue   # only enemies that strongly resist a type
+		var hp: float = float(e.get("stats", {}).get("hp", 1))
+		var tk: float = _ttk_for(sm, cm, e, tier, hp, "kinetic")
+		var tn: float = _ttk_for(sm, cm, e, tier, hp, "energy")
+		var tx: float = _ttk_for(sm, cm, e, tier, hp, "missile")
+		var best: float = min(tk, min(tn, tx))
+		var worst: float = max(tk, max(tn, tx))
+		var gap: float = (worst / best) if best > 0.0 else 0.0
+		print("[RPS] %-32s(t%d,%d)| %6.0fs | %6.0fs | %6.0fs | %.1fx" % [str(eid), tier, int(hp), tk, tn, tx, gap])
+		shown += 1
+	# safety: amplification must never leave an enemy with NO viable type
+	var trapped: int = 0
+	for eid in cm.enemy_db:
+		var e = cm.enemy_db[eid]
+		if e.get("warp_hardened", false):
+			continue
+		var amin: float = min(_amp(float(e.get("resist_k", 0.0))), min(_amp(float(e.get("resist_e", 0.0))), _amp(float(e.get("resist_x", 0.0)))))
+		if amin >= 0.60:
+			trapped += 1
+	_chk("no enemy resists ALL K/E/X >= 0.60 (a viable type always exists)", trapped == 0)
+	print("[RPS] trapped enemies (no viable type): %d" % trapped)
+
+func _enemy_tier_map(cm) -> Dictionary:
+	var m: Dictionary = {}
+	for z in cm.zones:
+		var diff: int = int(cm.zones[z].get("difficulty", 0))
+		for eid in cm.zones[z].get("enemies", []):
+			m[str(eid)] = diff
+	return m
+
+func _ttk_for(sm, cm, enemy: Dictionary, tier: int, hp: float, wtype: String) -> float:
+	var base_id: String = "z%d_%s" % [tier, wtype]
+	if not (base_id in sm.modules):
+		return -1.0
+	var st: Dictionary = sm.modules[base_id].get("stats", {})
+	var ak: float = float(st.get("atk_kinetic", 0))
+	var ae: float = float(st.get("atk_energy", 0))
+	var ax: float = float(st.get("atk_explosive", 0))
+	var interval: float = maxf(0.1, float(st.get("atk_interval", 2.5)))
+	var per_hit: float = _avg_hull(cm, ak, ae, ax, enemy, 250)
+	var dps: float = per_hit / interval
+	return (hp / dps) if dps > 0.0 else -1.0
+
+func _amp(r: float) -> float:
+	if r > 0.0:
+		return minf(r * 1.78, 0.80)
+	return r
 
 # ---------------------------------------------------------------------------
 func _dps_max(sm, base_id: String, rarity: int, zone: int, samples: int) -> float:
