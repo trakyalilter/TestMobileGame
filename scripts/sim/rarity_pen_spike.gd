@@ -345,6 +345,11 @@ func _section_core_combat(sm, cm) -> void:
 		_chk("armor_pen CAPPED +0.20 (3x Pristine 0.36 -> 0.20)", abs(capped - 0.20) < 0.001)
 		_chk("armor_pen still WALLS a full tier (under-tier eff < 1.0)", under_eff < 1.0)
 
+	# (d) Phase 3 facet-text helper (the designer socket UI reads this)
+	print("[RPS] facet text Crimson/weapon='%s'  /armor='%s'" % [sm.get_gem_facet_text("PristineCrimsonCore", "weapon"), sm.get_gem_facet_text("PristineCrimsonCore", "armor")])
+	_chk("get_gem_facet_text Crimson/weapon shows Crit Damage", "Crit Damage" in str(sm.get_gem_facet_text("PristineCrimsonCore", "weapon")))
+	_chk("get_gem_facet_text Crimson/armor shows Damage Reduction", "Damage Reduction" in str(sm.get_gem_facet_text("PristineCrimsonCore", "armor")))
+
 func _equip_one(sm, mid: String) -> void:
 	if mid == "":
 		return
