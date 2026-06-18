@@ -1162,13 +1162,18 @@ func get_enemy_tier_hardened(eid: String, zone_id_override: String = "") -> int:
 
 # Is this enemy the front-half salvage yard (e1/e2 of Z2-Z10)? Those drop materials
 # only — no module rolls.
-func enemy_is_front_salvage(eid: String) -> bool:
-	if current_zone == null:
+func enemy_is_front_salvage(eid: String, zone_id_override: String = "") -> bool:
+	# zone_id_override mirrors get_enemy_tier_hardened — lets the pre-fight card query
+	# a BROWSED zone (current_zone is only set once a fight starts).
+	var zone = current_zone
+	if zone_id_override != "" and zone_id_override in zones:
+		zone = zones[zone_id_override]
+	if zone == null:
 		return false
-	var zdiff: int = int(current_zone.get("difficulty", 1))
+	var zdiff: int = int(zone.get("difficulty", 1))
 	if zdiff < 2 or zdiff > 10:
 		return false
-	var idx: int = (current_zone.get("enemies", []) as Array).find(eid)
+	var idx: int = (zone.get("enemies", []) as Array).find(eid)
 	return idx >= 0 and idx < 2 and not bool(enemy_db.get(eid, {}).get("is_boss", false))
 
 func set_target_enemy(enemy_id):

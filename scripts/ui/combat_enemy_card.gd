@@ -185,8 +185,15 @@ func _build_loot_inline() -> void:
 	# misleading: pool of 4 != 4 drops per kill), no T1/T2/T3 (engineer
 	# jargon), no zone name (the player already knows what zone they're in).
 	# Honest signal: "this enemy can drop a module," nothing more.
+	# v114: front-half (e1/e2) of a gated Z2-Z10 zone drops materials ONLY — its def
+	# still carries a module_drop_pool, but the loot roll is suppressed, so don't tease
+	# "Module" on the card. Keyed to the browsed zone (current_zone isn't set yet).
 	var m_pool: Array = data.get("module_drop_pool", [])
-	if m_pool.size() > 0:
+	var _drops_modules: bool = m_pool.size() > 0
+	if _drops_modules and parent_ui and bool(GameState.game_settings.get("tier_gate_enabled", false)):
+		if parent_ui.manager.enemy_is_front_salvage(eid, str(parent_ui.last_refreshed_zone)):
+			_drops_modules = false
+	if _drops_modules:
 		parts.append("Module")
 
 	lbl.text = "[color=#9a7c52]LOOT[/color]  " + "  ·  ".join(parts) if not parts.is_empty() \
