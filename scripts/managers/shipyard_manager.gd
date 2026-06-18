@@ -300,11 +300,11 @@ const AFFIX_NAMING = {
 # Two facets SOFTEN (never break) a gate, both offense-only & capped in combat:
 # armor_pen (tier wall) and resist_pierce (resist gate). See docs/MATRIX_CORES.md.
 const GEM_FACETS = {
-	# CRIMSON (Wrath) — crit damage / damage reduction / ammo efficiency
-	# (ammo_eff = % chance to not consume ammo on fire; heat mechanic removed)
-	"CrackedCrimsonCore":  {"weapon": {"crit_damage": 0.06}, "defense": {"damage_reduction": 0.015}, "utility": {"ammo_eff": 0.04}},
-	"StableCrimsonCore":   {"weapon": {"crit_damage": 0.15}, "defense": {"damage_reduction": 0.03},  "utility": {"ammo_eff": 0.10}},
-	"PristineCrimsonCore": {"weapon": {"crit_damage": 0.30}, "defense": {"damage_reduction": 0.06},  "utility": {"ammo_eff": 0.20}},
+	# CRIMSON (Wrath) — crit chance+damage / damage reduction / ammo efficiency
+	# (weapon bundles crit_chance so crit_damage isn't dead at the 5% base crit)
+	"CrackedCrimsonCore":  {"weapon": {"crit_chance": 0.02, "crit_damage": 0.06}, "defense": {"damage_reduction": 0.015}, "utility": {"ammo_eff": 0.04}},
+	"StableCrimsonCore":   {"weapon": {"crit_chance": 0.04, "crit_damage": 0.15}, "defense": {"damage_reduction": 0.03},  "utility": {"ammo_eff": 0.10}},
+	"PristineCrimsonCore": {"weapon": {"crit_chance": 0.08, "crit_damage": 0.30}, "defense": {"damage_reduction": 0.06},  "utility": {"ammo_eff": 0.20}},
 	# COBALT (Surge) — attack speed / shield regen / energy efficiency
 	"CrackedCobaltCore":   {"weapon": {"attack_speed": 0.02}, "defense": {"shield_regen_mult": 0.06}, "utility": {"energy_eff": 0.02}},
 	"StableCobaltCore":    {"weapon": {"attack_speed": 0.05}, "defense": {"shield_regen_mult": 0.15}, "utility": {"energy_eff": 0.05}},
@@ -317,6 +317,18 @@ const GEM_FACETS = {
 	"CrackedAmethystCore":  {"weapon": {"resist_pierce": 0.03}, "defense": {"max_hull_mult": 0.02}, "utility": {"restore_on_kill": 0.02}},
 	"StableAmethystCore":   {"weapon": {"resist_pierce": 0.06}, "defense": {"max_hull_mult": 0.05}, "utility": {"restore_on_kill": 0.04}},
 	"PristineAmethystCore": {"weapon": {"resist_pierce": 0.12}, "defense": {"max_hull_mult": 0.10}, "utility": {"restore_on_kill": 0.08}},
+}
+
+# v118: aggregate caps per facet — the most any number of sockets can grant. Sized so
+# ~4-5 cores reach the cap (past that, more of the same facet is wasted -> pushes a
+# diverse matrix), and so a maxed T10 hull (up to 18 weapon / 27 defense / 33 utility
+# sockets) can't stack to absurd or BROKEN values (energy_eff/ammo_eff stay < 1.0).
+const GEM_FACET_CAPS := {
+	"crit_chance": 0.35, "crit_damage": 1.50, "attack_speed": 0.40,
+	"shield_regen_mult": 1.20, "max_hull_mult": 0.40,
+	"evasion_flat": 50.0, "accuracy_flat": 120.0,
+	"ammo_eff": 0.40, "energy_eff": 0.30, "restore_on_kill": 0.25,
+	"damage_reduction": 0.30, "armor_pen": 0.20, "resist_pierce": 0.30,
 }
 
 var affix_bonuses = {
@@ -2140,9 +2152,15 @@ func recalc_stats():
 					for k in facet:
 						gem_bonuses[k] = gem_bonuses.get(k, 0.0) + facet[k]
 						
-	# v118 Phase 2: apply the STAT-aggregate facets here; the rest (crit_damage,
-	# armor_pen, resist_pierce, damage_reduction, ammo_eff, restore_on_kill) are
-	# consumed live in combat_manager.
+	# v118: clamp each facet to its aggregate cap (bounds the max-stack — a maxed T10
+	# hull can't push any facet past its GEM_FACET_CAPS ceiling).
+	for _gk in gem_bonuses:
+		if GEM_FACET_CAPS.has(_gk):
+			gem_bonuses[_gk] = minf(float(gem_bonuses[_gk]), float(GEM_FACET_CAPS[_gk]))
+	# v118 Phase 2: apply the STAT-aggregate facets here; the rest (crit_chance,
+	# crit_damage, armor_pen, resist_pierce, damage_reduction, ammo_eff,
+	# restore_on_kill) are consumed live in combat_manager.
+	crit_chance += gem_bonuses.get("crit_chance", 0.0)
 	evasion += int(round(gem_bonuses.get("evasion_flat", 0.0)))
 	accuracy += int(round(gem_bonuses.get("accuracy_flat", 0.0)))
 	shield_regen = int(round(float(shield_regen) * (1.0 + gem_bonuses.get("shield_regen_mult", 0.0))))
