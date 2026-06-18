@@ -52,6 +52,7 @@ func _boot() -> void:
 	_section_resist(sm, cm)
 	_section_ttk(sm, cm)
 	_section_cores(sm, cm)
+	_section_core_combat(sm, cm)
 
 	print("[RPS] ============================================================")
 	print("[RPS] RESULT: %d passed, %d failed" % [_pass, _fail])
@@ -293,6 +294,73 @@ func _socket_and_aggregate(sm, mid: String, core: String) -> Dictionary:
 	sm.loadout = {0: mid}
 	sm.insert_gem(mid, 0, core)
 	return sm.gem_bonuses.duplicate(true)
+
+# ---------------------------------------------------------------------------
+# SECTION 6 (Phase 2): facets reach combat, and the two wall-softeners are capped.
+func _section_core_combat(sm, cm) -> void:
+	print("[RPS] ##### SECTION 6: MATRIX CORE COMBAT EFFECTS (Phase 2) #####")
+	GameState.resources.add_element("PristineTopazCore", 5)
+	GameState.resources.add_element("PristineAmethystCore", 6)
+
+	# (a) aggregate facets reach ship stats
+	var amid: String = sm.generate_module_drop("z5_armor", R_LEGENDARY, 5)
+	_equip_one(sm, amid)
+	var ev0: float = float(sm.evasion)
+	sm.insert_gem(amid, 0, "PristineTopazCore")          # Topaz/armor = evasion_flat 10
+	print("[RPS] Topaz/armor evasion: %.0f -> %.0f" % [ev0, float(sm.evasion)])
+	_chk("Topaz/armor adds ~+10 evasion (aggregate reaches ship)", abs((float(sm.evasion) - ev0) - 10.0) < 1.5)
+	var amid2: String = sm.generate_module_drop("z5_armor", R_LEGENDARY, 5)
+	_equip_one(sm, amid2)
+	var hp0: float = float(sm.max_hp)
+	sm.insert_gem(amid2, 0, "PristineAmethystCore")      # Amethyst/armor = max_hull_mult 0.10
+	print("[RPS] Amethyst/armor max_hp: %.0f -> %.0f" % [hp0, float(sm.max_hp)])
+	_chk("Amethyst/armor boosts max_hp ~+10%", abs(float(sm.max_hp) / hp0 - 1.10) < 0.03)
+
+	# (b) resist_pierce (weapon) softens the resist gate via REAL resolve_damage, capped 0.30
+	var base_k: float = 1200.0   # atk 1000 kinetic x1.2 vs-hull, armor/shield 0
+	var enemy: Dictionary = {"resist_k": 0.80, "resist_e": 0.0, "resist_x": 0.0}
+	var w1: String = sm.generate_module_drop("z5_kinetic", R_LEGENDARY, 5)
+	_equip_one(sm, w1)
+	sm.insert_gem(w1, 0, "PristineAmethystCore")         # weapon resist_pierce 0.12
+	var d1: float = _avg_hull(cm, 1000.0, 0.0, 0.0, enemy, 400)
+	print("[RPS] 1x Amethyst weapon vs 0.80-resist: dmg=%.0f (eff resist %.2f)" % [d1, 1.0 - d1 / base_k])
+	_chk("resist_pierce 0.12 softens 0.80->0.68 (dmg ~base*0.32)", abs(d1 / base_k - 0.32) < 0.04)
+	var wU: String = sm.generate_module_drop("z5_kinetic", R_UNIQUE, 5)
+	if sm.modules.get(wU, {}).get("sockets", []).size() >= 3:
+		_equip_one(sm, wU)
+		_socket_n(sm, wU, "PristineAmethystCore", 3)     # 0.36 -> CAP 0.30
+		var d3: float = _avg_hull(cm, 1000.0, 0.0, 0.0, enemy, 400)
+		print("[RPS] 3x Amethyst weapon (capped) vs 0.80-resist: dmg=%.0f (eff resist %.2f)" % [d3, 1.0 - d3 / base_k])
+		_chk("resist_pierce CAPPED 0.30 (0.80->0.50 floor, dmg ~base*0.50)", abs(d3 / base_k - 0.50) < 0.04)
+
+	# (c) armor_pen (weapon) softens the tier wall but is capped +0.20 (wall still holds)
+	var wU2: String = sm.generate_module_drop("z5_kinetic", R_UNIQUE, 5)
+	if sm.modules.get(wU2, {}).get("sockets", []).size() >= 3:
+		_equip_one(sm, wU2)
+		_socket_n(sm, wU2, "PristineTopazCore", 3)        # armor_pen 0.36 -> cap 0.20
+		var ap: float = float(sm.gem_bonuses.get("armor_pen", 0.0))
+		var capped: float = minf(ap, 0.20)
+		var under_eff: float = minf(1.0, 0.15 + capped)   # 1-tier-under base 0.15
+		print("[RPS] armor_pen raw=%.2f capped=%.2f -> under-tier 0.15 becomes %.2f" % [ap, capped, under_eff])
+		_chk("armor_pen CAPPED +0.20 (3x Pristine 0.36 -> 0.20)", abs(capped - 0.20) < 0.001)
+		_chk("armor_pen still WALLS a full tier (under-tier eff < 1.0)", under_eff < 1.0)
+
+func _equip_one(sm, mid: String) -> void:
+	if mid == "":
+		return
+	var hull_id: String = ""
+	for h in sm.hulls:
+		hull_id = str(h)
+		break
+	sm.active_hull = hull_id
+	sm.loadout = {0: mid}
+	sm.recalc_stats()
+
+func _socket_n(sm, mid: String, core: String, n: int) -> void:
+	var socks: Array = sm.modules.get(mid, {}).get("sockets", [])
+	for i in range(n):
+		if i < socks.size():
+			sm.insert_gem(mid, i, core)
 
 # ---------------------------------------------------------------------------
 func _dps_max(sm, base_id: String, rarity: int, zone: int, samples: int) -> float:
