@@ -1848,7 +1848,8 @@ func handle_module_defeat():
 		if not mid.begins_with("custom_"):
 			var base_data = modules.get(mid)
 			if base_data:
-				var custom_id = "custom_%s_%d" % [mid, Time.get_ticks_msec() + slot_idx]
+				var custom_id = "custom_%s_%d_%d" % [mid, Time.get_ticks_msec() + slot_idx, _drop_seq]
+				_drop_seq += 1
 				var custom_module = base_data.duplicate(true)
 				custom_module["is_custom"] = true
 				custom_module["base_module"] = mid
@@ -2436,6 +2437,12 @@ func is_ammo_compatible(weapon_type: String, ammo_id: String) -> bool:
 		return "Missile" in ammo_id or "Torpedo" in ammo_id or ammo_id == "missile"
 	return false
 
+# v115: monotonic counter so custom-module ids are unique even when many roll in
+# the same millisecond. Time.get_ticks_msec() alone collides under batch/offline
+# loot -- the second roll overwrote the first in `modules` (silent loss; could even
+# swap a Legendary's entry for a Unique, corrupting which module you actually hold).
+var _drop_seq: int = 0
+
 # v71.0: Generate a rarity-boosted module drop from a base module ID
 func generate_module_drop(base_module_id: String, rarity: int = Rarity.UNCOMMON, zone_difficulty: int = 1) -> String:
 	if base_module_id not in modules:
@@ -2450,7 +2457,8 @@ func generate_module_drop(base_module_id: String, rarity: int = Rarity.UNCOMMON,
 		return base_module_id
 	
 	var base = modules[base_module_id]
-	var custom_id = "custom_%s_%d" % [base_module_id, Time.get_ticks_msec()]
+	var custom_id = "custom_%s_%d_%d" % [base_module_id, Time.get_ticks_msec(), _drop_seq]
+	_drop_seq += 1
 	var zone_mult = get_module_zone_multiplier(zone_difficulty)
 	
 	# Apply stat bonuses based on rarity tier
