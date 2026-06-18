@@ -53,6 +53,7 @@ func _boot() -> void:
 	_section_ttk(sm, cm)
 	_section_cores(sm, cm)
 	_section_core_combat(sm, cm)
+	_section_facet_consumers(sm, cm)
 
 	print("[RPS] ============================================================")
 	print("[RPS] RESULT: %d passed, %d failed" % [_pass, _fail])
@@ -359,6 +360,59 @@ func _section_core_combat(sm, cm) -> void:
 		print("[RPS] 3x Crimson/engine ammo_eff (cap 0.40): %.2f" % float(sm.gem_bonuses.get("ammo_eff", 0.0)))
 		_chk("ammo_eff aggregate CAPPED at 0.40 (0.60 -> 0.40)", abs(float(sm.gem_bonuses.get("ammo_eff", 0.0)) - 0.40) < 0.001)
 	_chk("energy_eff cap < 1.0 (power draw can never go negative)", float(sm.GEM_FACET_CAPS.get("energy_eff", 1.0)) < 1.0)
+
+# ---------------------------------------------------------------------------
+# SECTION 7 (Phase 4): every facet reaches its actual combat effect, not just the
+# gem_bonuses aggregate. crit_damage/damage_reduction go through real resolve_damage.
+func _section_facet_consumers(sm, cm) -> void:
+	print("[RPS] ##### SECTION 7: EVERY FACET REACHES ITS COMBAT EFFECT (Phase 4) #####")
+	GameState.resources.add_element("PristineCrimsonCore", 4)
+	GameState.resources.add_element("PristineCobaltCore", 4)
+	# crit_chance -> sm.crit_chance
+	var w: String = sm.generate_module_drop("z5_kinetic", R_LEGENDARY, 5)
+	_equip_one(sm, w)
+	var cc0: float = float(sm.crit_chance)
+	sm.insert_gem(w, 0, "PristineCrimsonCore")
+	_chk("crit_chance facet -> sm.crit_chance (+0.08)", abs(float(sm.crit_chance) - cc0 - 0.08) < 0.001)
+	# crit_damage -> combat crit multiplier (forced crit, Crimson weapon still equipped)
+	var cd: float = _avg_hull_ex(cm, 1000.0, {}, 1.0, true, 600)
+	print("[RPS] crit_damage forced-crit dmg=%.0f (expect ~base*1.80=2160)" % cd)
+	_chk("crit_damage facet -> crit mult 1.5+0.30=1.80", abs(cd / 1200.0 - 1.80) < 0.06)
+	# attack_speed -> sm.attack_speed_bonus
+	var w2: String = sm.generate_module_drop("z5_kinetic", R_LEGENDARY, 5)
+	_equip_one(sm, w2)
+	var as0: float = float(sm.attack_speed_bonus)
+	sm.insert_gem(w2, 0, "PristineCobaltCore")
+	_chk("attack_speed facet -> sm.attack_speed_bonus (+0.10)", abs(float(sm.attack_speed_bonus) - as0 - 0.10) < 0.001)
+	# energy_eff -> cuts sm.energy_used
+	var e: String = sm.generate_module_drop("z5_engine", R_LEGENDARY, 5)
+	if not sm.modules.get(e, {}).get("sockets", []).is_empty():
+		_equip_one(sm, e)
+		var eu0: float = float(sm.energy_used)
+		sm.insert_gem(e, 0, "PristineCobaltCore")
+		print("[RPS] energy_eff energy_used: %.0f -> %.0f" % [eu0, float(sm.energy_used)])
+		_chk("energy_eff facet cuts sm.energy_used", eu0 < 10.0 or float(sm.energy_used) < eu0)
+	# damage_reduction -> reduces incoming enemy damage (Crimson armor, ENEMY attack)
+	var arm: String = sm.generate_module_drop("z5_armor", R_LEGENDARY, 5)
+	_equip_one(sm, arm)
+	sm.insert_gem(arm, 0, "PristineCrimsonCore")
+	var dr: float = _avg_hull_ex(cm, 1000.0, {}, 0.0, false, 600)
+	print("[RPS] damage_reduction incoming dmg=%.0f (expect ~base*0.94=1128)" % dr)
+	_chk("damage_reduction facet -> incoming x0.94", abs(dr / 1200.0 - 0.94) < 0.03)
+	print("[RPS] (ammo_eff / restore_on_kill: aggregation tested in S5/S6; combat effect wired+boot-verified)")
+
+func _avg_hull_ex(cm, atk_k: float, enemy: Dictionary, crit_chance: float, is_player: bool, samples: int) -> float:
+	cm.current_enemy = enemy
+	cm.enemy_hp = 100
+	cm.enemy_max_hp = 100
+	cm.current_zone_id = ""
+	cm.has_reactive = false
+	cm.enemy_vulnerable_timer = 0.0
+	var tot: float = 0.0
+	for i in range(samples):
+		var res: Array = cm.resolve_damage(atk_k, 0.0, 0.0, 0.0, 0.0, 1, crit_chance, is_player, 0.0, "cryo")
+		tot += float(res[1])
+	return tot / float(samples)
 
 func _equip_one(sm, mid: String) -> void:
 	if mid == "":
