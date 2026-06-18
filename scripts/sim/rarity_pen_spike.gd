@@ -49,6 +49,8 @@ func _boot() -> void:
 	for wt in WTYPES:
 		_section_wall(sm, cm, str(wt))
 
+	_section_resist(sm, cm)
+
 	print("[RPS] ============================================================")
 	print("[RPS] RESULT: %d passed, %d failed" % [_pass, _fail])
 	print("[RPS] %s" % ("ALL PASS" if _fail == 0 else "*** FAILURES ***"))
@@ -117,6 +119,68 @@ func _section_wall(sm, cm, wtype: String) -> void:
 	_pass += ok
 	_fail += (tot - ok)
 	print("[RPS]   [%s] wall checks: %d/%d passed" % [wtype, ok, tot])
+
+# ---------------------------------------------------------------------------
+# SECTION 3: damage-type resistance via the REAL resolve_damage. armor=shield=0
+# isolates the resist axis; ±10% variance averaged over N. Confirms resist
+# reduces same-type damage, the triangle rewards switching, and resist composes
+# with the tier-penetration wall (independent multipliers).
+func _section_resist(sm, cm) -> void:
+	print("[RPS] ##### SECTION 3: DAMAGE-TYPE RESISTANCE (real resolve_damage, armor/shield=0) #####")
+	var N: int = 400
+	var A: float = 1000.0
+	var none: Dictionary = {"resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0}
+	var base_k: float = _avg_hull(cm, A, 0.0, 0.0, none, N)
+	var base_e: float = _avg_hull(cm, 0.0, A, 0.0, none, N)
+	var base_x: float = _avg_hull(cm, 0.0, 0.0, A, none, N)
+	print("[RPS] no-resist hull (atk=1000): KIN %.0f  NRG %.0f  EXP %.0f  (intrinsic type-vs-hull)" % [base_k, base_e, base_x])
+
+	# 1) kin-RESIST enemy vs KIN weapon -> ~halved (the user's exact case)
+	var kr: Dictionary = {"resist_k": 0.5, "resist_e": 0.0, "resist_x": 0.0}
+	var kin_vs_kr: float = _avg_hull(cm, A, 0.0, 0.0, kr, N)
+	print("[RPS] kin-RESIST(0.5) vs KIN: %.0f  (x%.2f of no-resist %.0f)" % [kin_vs_kr, kin_vs_kr / base_k, base_k])
+	_chk("KIN vs kin-resist(0.5) ~= 0.5x no-resist", abs(kin_vs_kr / base_k - 0.5) < 0.05)
+
+	# 2) vs that kin-resist enemy, the other types out-damage kinetic (switch!)
+	var nrg_vs_kr: float = _avg_hull(cm, 0.0, A, 0.0, kr, N)
+	var exp_vs_kr: float = _avg_hull(cm, 0.0, 0.0, A, kr, N)
+	print("[RPS] vs kin-RESIST enemy: KIN %.0f  NRG %.0f  EXP %.0f  (-> switch off kinetic)" % [kin_vs_kr, nrg_vs_kr, exp_vs_kr])
+	_chk("NRG out-damages resisted KIN", nrg_vs_kr > kin_vs_kr)
+	_chk("EXP out-damages resisted KIN", exp_vs_kr > kin_vs_kr)
+
+	# 3) WEAKNESS (resist_k = -0.40): KIN does ~1.4x
+	var kw: Dictionary = {"resist_k": -0.40, "resist_e": 0.0, "resist_x": 0.0}
+	var kin_vs_kw: float = _avg_hull(cm, A, 0.0, 0.0, kw, N)
+	print("[RPS] kin-WEAK(-0.40) vs KIN: %.0f  (x%.2f)" % [kin_vs_kw, kin_vs_kw / base_k])
+	_chk("KIN vs kin-WEAK(-0.40) ~= 1.4x", abs(kin_vs_kw / base_k - 1.4) < 0.05)
+
+	# 4) resist COMPOSES with the tier-penetration wall (both reductions apply).
+	#    under-tier kin weapon = pen 0.15 applied to atk BEFORE resolve_damage.
+	var pen: float = 0.15
+	var kin_pen_resist: float = _avg_hull(cm, A * pen, 0.0, 0.0, kr, N)
+	print("[RPS] under-tier KIN (pen .15) vs kin-RESIST(.5): %.0f  (expect ~%.0f = base x.15 x.5)" % [kin_pen_resist, base_k * pen * 0.5])
+	_chk("penetration x resistance compose (~base*0.075)", abs(kin_pen_resist / base_k - pen * 0.5) < 0.02)
+
+	# context: do real enemies actually carry resistances?
+	var with_resist: int = 0
+	for eid in cm.enemy_db:
+		var e = cm.enemy_db[eid]
+		if abs(float(e.get("resist_k", 0.0))) > 0.001 or abs(float(e.get("resist_e", 0.0))) > 0.001 or abs(float(e.get("resist_x", 0.0))) > 0.001:
+			with_resist += 1
+	print("[RPS] enemy_db: %d / %d enemies carry K/E/X resistances" % [with_resist, cm.enemy_db.size()])
+
+func _avg_hull(cm, atk_k: float, atk_e: float, atk_x: float, enemy: Dictionary, samples: int) -> float:
+	cm.current_enemy = enemy
+	cm.enemy_hp = 100
+	cm.enemy_max_hp = 100
+	cm.current_zone_id = ""
+	cm.has_reactive = false
+	cm.enemy_vulnerable_timer = 0.0
+	var tot: float = 0.0
+	for i in range(samples):
+		var res: Array = cm.resolve_damage(atk_k, atk_e, atk_x, 0.0, 0.0, 1, 0.0, true, 0.0, "cryo")
+		tot += float(res[1])
+	return tot / float(samples)
 
 # ---------------------------------------------------------------------------
 func _dps_max(sm, base_id: String, rarity: int, zone: int, samples: int) -> float:
