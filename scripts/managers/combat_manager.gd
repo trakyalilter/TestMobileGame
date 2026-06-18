@@ -265,10 +265,6 @@ func get_milestone_evasion_bonus() -> int:
 	if get_level() >= 25: return 15 # +15 Evasion at Lv.25
 	return 0
 
-func get_milestone_heat_mult() -> float:
-	if get_level() >= 75: return 1.25 # +25% Heat Dissipation at Lv.75
-	return 1.0
-
 func is_auto_consume_unlocked() -> bool:
 	return get_level() >= 50 # Auto-Consume at Lv.50
 
@@ -1545,35 +1541,19 @@ func process_tick(delta: float):
 	if sm.current_hp > sm.max_hp:
 		sm.current_hp = sm.max_hp
 	
-	if overheat_lock > 0:
-		# Require 0% purge to resume fire
-		if player_heat <= 0.0:
-			overheat_lock = 0.0
-	if player_heat > 0:
-		var current_vent_rate = player_vent_rate * get_milestone_heat_mult()
-		
-		# Turbo Cooling: 4x vent when overloaded or during overheat lock
-		var frame_vent_rate = current_vent_rate
-		if player_heat > player_max_heat or overheat_lock > 0:
-			frame_vent_rate *= 4.0
-			
-		player_heat = max(0, player_heat - frame_vent_rate * delta)
-		heat_changed.emit(player_heat, player_max_heat)
-	# 80% speed penalty removed per user request for full performance until overheat
-	
+	# Heat system removed (v118): was a fixed 100-cap that silently zeroed any
+	# weapon doing >=~9800 dmg/shot. No per-tick venting / overheat lock anymore.
+
 	# v65.0 Fix: Enemy Shield Regen moved to generic accumulator and Capped (Removed old logic)
-	
+
 	if _loadout_has_module(sm, "warp_stabilizer"):
 		p_speed_mult += 0.15
-		
-	# v74.0: Heat-Sync Focus (Threshold: 40%)
-	if sm.affix_bonuses.get("heat_sync_focus", 0.0) > 0 and player_heat >= (player_max_heat * 0.4):
+
+	# Servo Overclock (formerly Heat-Sync Focus): flat attack-speed affix, now
+	# unconditional since heat is gone.
+	if sm.affix_bonuses.get("heat_sync_focus", 0.0) > 0:
 		p_speed_mult += sm.affix_bonuses["heat_sync_focus"]
 
-	if coolant_flush_timer > 0:
-		coolant_flush_timer -= delta
-		p_speed_mult *= 2.0
-		
 	# v85.2: Berserking Logic (+25% Attack Speed)
 	if player_berserk_timer > 0:
 		player_berserk_timer -= delta
@@ -1657,8 +1637,7 @@ func _process_regeneration(delta: float):
 func _execute_player_attack(weapon_idx: int):
 	var w = player_weapon_states[weapon_idx]
 	var sm = GameState.shipyard_manager
-	if overheat_lock > 0: return
-	
+
 	# P0 Hotfix: Grid Safety Check (Prevent Overload Exploit)
 	# v110: read the ship's own energy_capacity (decoupled from the infra grid).
 	if sm.energy_used > sm.energy_capacity:
@@ -1681,12 +1660,7 @@ func _execute_player_attack(weapon_idx: int):
 
 	# Manual consume check removed (Auto-only now)
 
-	player_heat += 2.0 + ((w["dmg_k"] + w["dmg_e"] + w["dmg_x"] + w.get("dmg_cryo", 0.0)) / 100.0)
-	heat_changed.emit(player_heat, player_max_heat)
-	if player_heat >= player_max_heat:
-		# Allowed to exceed max_heat numerically for dynamic high-speed cooling phase
-		overheat_lock = 1.0 # Logic changed: Locks until heat == 0
-		return
+	# (heat-add + overheat lock removed in v118 — weapon now fires unconditionally)
 	
 	# Hit Resolution (Accuracy vs Evasion)
 	var p_acc = sm.accuracy
@@ -2758,10 +2732,8 @@ func get_save_data_manager() -> Dictionary:
 	data["current_enemy_id"] = current_enemy["id"] if current_enemy else null
 	data["player_shield"] = player_shield
 	data["player_heat"] = player_heat
-	# Persist heat ceiling + vent so test-tool neutralization (Sys Config →
-	# COOL SHIP / FIT SHIP) survives reload. Without these, every restart
-	# reverts max_heat/vent_rate to file defaults (100 / 8) and a debug-fit
-	# player overheats instantly with no recourse short of opening Sys Config.
+	# Heat system removed (v118). These three persist inert purely for save
+	# round-trip compat (old saves load unchanged; nothing reads them anymore).
 	data["player_max_heat"] = player_max_heat
 	data["player_vent_rate"] = player_vent_rate
 	data["nanite_hot_timer"] = nanite_hot_timer

@@ -162,9 +162,9 @@ const AFFIX_DB = {
 		"desc": "+%d Flat Accuracy."
 	},
 	"heat_sync_focus": {
-		"name": "Heat-Sync Focus", "type": "tactical", "scaling": "percent",
-		"range": [5, 12], "limit_to": ["weapon", "cooling"],
-		"desc": "+%d%% Attack Speed while Heat is above 40%%."
+		"name": "Servo Overclock", "type": "tactical", "scaling": "percent",
+		"range": [5, 12], "limit_to": ["weapon"],
+		"desc": "+%d%% Attack Speed."
 	},
 
 	# --- DEFENSIVE (Armor, Shield) ---
@@ -277,7 +277,7 @@ const AFFIX_NAMING = {
 	"void_strike": {"prefix": "Phased", "suffix": "of the Void"},
 	"flat_atk": {"prefix": "Charged", "suffix": "of Lethality"},
 	"flat_accuracy": {"prefix": "Calibrated", "suffix": "of Precision"},
-	"heat_sync_focus": {"prefix": "Thermal", "suffix": "of Venting"},
+	"heat_sync_focus": {"prefix": "Overclocked", "suffix": "of Haste"},
 	"flat_hp": {"prefix": "Reinforced", "suffix": "of Bulwark"},
 	"flat_def": {"prefix": "Hardened", "suffix": "of Bastion"},
 	"flat_shield": {"prefix": "Flux", "suffix": "of the Aegis"},

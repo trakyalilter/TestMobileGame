@@ -86,9 +86,9 @@ func _ready():
 	_setup_hp_bars()
 	_setup_consumable_buttons()
 	
-	# Create Label for Heat Bar (which is already in scene)
+	# Heat system removed — hide the legacy Heat Bar node (kept in scene for compat).
 	if p_heat_bar:
-		p_heat_label = _create_centered_label(p_heat_bar)
+		p_heat_bar.visible = false
 
 	# Explicit Signal Connections (Defensive)
 	if not btn_retreat.is_connected("pressed", _on_retreat_btn_pressed): btn_retreat.pressed.connect(_on_retreat_btn_pressed)
