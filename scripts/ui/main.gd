@@ -10,7 +10,7 @@ const BOTTOM := [
 	{"id": "research", "label": "Research"},
 	{"id": "more",     "label": "More"},
 ]
-const PAGE_IDS := ["gather", "craft", "combat", "research", "more", "build", "shipyard", "ship", "bounty", "standing", "warp", "missions", "atlas", "stats", "hazard", "settings"]
+const PAGE_IDS := ["gather", "craft", "combat", "research", "more", "build", "shipyard", "ship", "bounty", "standing", "warp", "fleet", "missions", "atlas", "stats", "hazard", "settings"]
 const MORE_MENU := [
 	{"id": "missions", "label": "✦  Missions"},
 	{"id": "build",  "label": "⌂  Infrastructure"},
@@ -20,6 +20,7 @@ const MORE_MENU := [
 	{"id": "standing", "label": "▤  Standing Orders"},
 	{"id": "hazard", "label": "☢  Hazard Zones"},
 	{"id": "warp",   "label": "✦  Warp Core"},
+	{"id": "fleet",  "label": "❖  Fleet Command"},
 	{"id": "atlas",  "label": "❒  Atlas / Codex"},
 	{"id": "stats",  "label": "≡  Storage"},
 	{"id": "settings", "label": "⚙  Settings"},
@@ -60,6 +61,7 @@ const NAV_ALL := [
 	{"id": "standing", "label": "Standing Orders", "icon": "▤"},
 	{"id": "hazard",   "label": "Hazard Zones",   "icon": "☢"},
 	{"id": "warp",     "label": "Warp Core",      "icon": "✦"},
+	{"id": "fleet",    "label": "Fleet Command",  "icon": "❖"},
 	{"id": "atlas",    "label": "Atlas / Codex",  "icon": "❒"},
 	{"id": "stats",    "label": "Storage",        "icon": "≡"},
 	{"id": "settings", "label": "Settings",       "icon": "⚙"},
@@ -1523,6 +1525,7 @@ func _refresh_current(preserve_scroll: bool = false) -> void:
 		"bounty":   _build_bounty()
 		"standing": _build_standing()
 		"warp":     _build_warp()
+		"fleet":    _build_fleet()
 		"missions": _build_missions()
 		"atlas":    _build_atlas()
 		"research": _build_research()
@@ -1900,6 +1903,8 @@ func _nav_visible(id: String) -> bool:
 	match id:
 		"warp":
 			return GameState.game_flags.get("warp_revealed", false)
+		"fleet":
+			return GameState.fleet_unlocked()   # after the first warp
 		"hazard":
 			for hid in GameData.HAZARD_ZONES:
 				if GameState.is_hazard_unlocked(hid):
@@ -2790,6 +2795,53 @@ func _mission_card(mid: String) -> Control:
 				_celebrate("✦  MISSION COMPLETE", "+₡%s" % GameData.fmt(cr), GREEN))
 		vb.add_child(b)
 	return panel
+
+# Fleet Command (v0.2.1 soft role): build escort ships that boost combat damage.
+func _build_fleet() -> void:
+	var v := _clear("fleet")
+	_back_header(v)
+	_clbl(v, "❖ FLEET COMMAND", 16, CYAN)
+	if not GameState.fleet_unlocked():
+		_empty(v, "Perform your first Warp to commission a fleet.")
+		return
+	_section(v, "Fleet  %d / %d   ·   +%d%% combat damage" % [GameState.fleet_count(), GameState.fleet_capacity(), GameState.fleet_combat_bonus_pct()], CYAN)
+	_clbl(v, "Each ship adds 25% of your ship's damage (max +100%).", 10, C_DIM)
+	# Owned ships.
+	if GameState.fleet_ships.is_empty():
+		_empty(v, "No ships yet — build one below.")
+	else:
+		for i in GameState.fleet_ships.size():
+			var hid: String = String(GameState.fleet_ships[i].get("hull_id", ""))
+			var c := _card(CYAN, true)
+			_card_head(c, "⛭", String(GameState.FLEET_HULLS.get(hid, {}).get("name", hid)), "", CYAN, true)
+			var idx := i
+			var scrap := _card_button("Scrap (no refund)", RED, true)
+			scrap.pressed.connect(func() -> void:
+				GameState.fleet_scrap(idx)
+				_refresh_current())
+			c.add_child(scrap)
+			v.add_child(c.get_parent())
+	# Buildable hulls (unlocked by warp depth).
+	_section(v, "COMMISSION", GOLD)
+	var full := GameState.fleet_count() >= GameState.fleet_capacity()
+	for hid in GameState.fleet_buildable_hulls():
+		var hd: Dictionary = GameState.FLEET_HULLS[hid]
+		var can := GameState.fleet_can_build(hid)
+		var c := _card(GOLD, can)
+		_card_head(c, "▣", String(hd.get("name", hid)), "", GOLD, can)
+		var cl := []
+		for sym in hd.get("cost", {}):
+			var need := int(hd["cost"][sym])
+			cl.append(_line("%s %s" % [GameData.fmt(need), GameData.res_name(sym)], GOLD if GameState.amount(sym) >= need else C_WARN))
+		_inset(c, "COST", cl, GOLD)
+		var b := _card_button("Fleet full" if full else "Build", GOLD, can)
+		if can:
+			var h: String = String(hid)
+			b.pressed.connect(func() -> void:
+				GameState.fleet_build(h)
+				_refresh_current())
+		c.add_child(b)
+		v.add_child(c.get_parent())
 
 func _build_warp() -> void:
 	var v := _clear("warp")

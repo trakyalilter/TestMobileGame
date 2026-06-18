@@ -867,10 +867,81 @@ func avg_player_dps() -> float:
 	var total := 0.0
 	for w in ship_weapons():
 		total += (float(w["dmg_k"]) + float(w["dmg_e"]) + float(w["dmg_x"]) + float(w.get("dmg_cryo", 0.0))) / maxf(0.3, float(w["interval"]))
-	return total
+	return total * fleet_combat_mult()   # v0.2.1 Fleet soft-role contribution
 
 func combat_attack() -> float:
 	return avg_player_dps()
+
+# ---------------- Fleet (v0.2.1 soft role) ----------------
+# Unlocks after the first warp. Build escort ships from glut resources; each adds
+# a fraction of the main ship's damage in combat, capped at +100% (a full 4-ship
+# fleet ~doubles output). Capacity grows with warps so the roster scales with
+# prestige depth. Ships: Array of {hull_id}.
+const FLEET_CAP_BASE := 1
+const FLEET_UNLOCK_MIN_WARPS := 1
+const FLEET_COMBAT_FRACTION := 0.25
+const FLEET_COMBAT_CAP := 1.0
+const FLEET_HULLS := {
+	"fleet_frigate": {"name": "Fleet Frigate", "power": 100, "min_warps": 1,
+		"cost": {"Water": 40000, "Dirt": 20000, "Steel": 5000, "Circuit": 2000}},
+	"fleet_destroyer": {"name": "Fleet Destroyer", "power": 320, "min_warps": 3,
+		"cost": {"Water": 120000, "Dirt": 60000, "Steel": 18000, "Circuit": 8000, "AdvCircuit": 500}},
+	"fleet_cruiser": {"name": "Fleet Cruiser", "power": 850, "min_warps": 6,
+		"cost": {"Water": 300000, "Dirt": 150000, "Steel": 50000, "AdvCircuit": 2500, "Superalloy": 800}},
+}
+var fleet_ships: Array = []
+
+func fleet_unlocked() -> bool:
+	return total_warps >= FLEET_UNLOCK_MIN_WARPS
+
+func fleet_capacity() -> int:
+	return FLEET_CAP_BASE + total_warps
+
+func fleet_count() -> int:
+	return fleet_ships.size()
+
+func fleet_combat_mult() -> float:
+	if not fleet_unlocked() or fleet_ships.is_empty():
+		return 1.0
+	return 1.0 + minf(FLEET_COMBAT_CAP, FLEET_COMBAT_FRACTION * float(fleet_ships.size()))
+
+func fleet_combat_bonus_pct() -> int:
+	return int(round((fleet_combat_mult() - 1.0) * 100.0))
+
+func fleet_buildable_hulls() -> Array:
+	var out := []
+	for hid in FLEET_HULLS:
+		if total_warps >= int(FLEET_HULLS[hid].get("min_warps", 1)):
+			out.append(hid)
+	return out
+
+func fleet_can_build(hull_id: String) -> bool:
+	if not fleet_unlocked() or not FLEET_HULLS.has(hull_id):
+		return false
+	if total_warps < int(FLEET_HULLS[hull_id].get("min_warps", 1)):
+		return false
+	if fleet_count() >= fleet_capacity():
+		return false
+	for res in FLEET_HULLS[hull_id].get("cost", {}):
+		if amount(res) < int(FLEET_HULLS[hull_id]["cost"][res]):
+			return false
+	return true
+
+func fleet_build(hull_id: String) -> bool:
+	if not fleet_can_build(hull_id):
+		return false
+	for res in FLEET_HULLS[hull_id].get("cost", {}):
+		resources[res] = amount(res) - int(FLEET_HULLS[hull_id]["cost"][res])
+	fleet_ships.append({"hull_id": hull_id})
+	resources_changed.emit()
+	return true
+
+func fleet_scrap(index: int) -> bool:
+	if index < 0 or index >= fleet_ships.size():
+		return false
+	fleet_ships.remove_at(index)
+	resources_changed.emit()
+	return true
 
 ## Idle combat preview for an enemy: time-to-kill + whether you can win/farm it.
 func combat_preview(eid: String) -> Dictionary:
@@ -3063,7 +3134,10 @@ func _player_fire(w: Dictionary, ss: Dictionary) -> void:
 	# Void Strike: chance to bypass the shield entirely.
 	var vs := affix_total("void_strike")
 	var voided: bool = vs > 0.0 and randf() < vs
-	var res := resolve_damage(dk, de, dx, 0.0 if voided else float(enemy_inst["shield"]), enemy_inst["def"], _combat_difficulty(), float(ss.get("crit", 0.05)), true, dc)
+	# v0.2.1 Fleet (soft role): escort ships add a fraction of the main ship's
+	# damage, folded into every weapon's output.
+	var fmult := fleet_combat_mult()
+	var res := resolve_damage(dk * fmult, de * fmult, dx * fmult, 0.0 if voided else float(enemy_inst["shield"]), enemy_inst["def"], _combat_difficulty(), float(ss.get("crit", 0.05)), true, dc * fmult)
 	if voided:
 		_event("VOID", "ff44cc", "enemy")
 	else:
@@ -3904,6 +3978,7 @@ func save_game() -> void:
 		"offline_combat": offline_combat,
 		"warp_shards": warp_shards,
 		"total_warps": total_warps,
+		"fleet_ships": fleet_ships,
 		"purchased_nodes": purchased_nodes,
 		"warp_shards_spent": warp_shards_spent,
 		"cryo_unlocked": cryo_unlocked,
@@ -3985,6 +4060,7 @@ func load_game() -> void:
 		repeatable_research[k] = int(repeatable_research[k])
 	warp_shards = float(data.get("warp_shards", 0.0))
 	total_warps = int(data.get("total_warps", 0))
+	fleet_ships = data.get("fleet_ships", [])
 	purchased_nodes = data.get("purchased_nodes", {})
 	warp_shards_spent = float(data.get("warp_shards_spent", 0.0))
 	# Back-compat: pre-v111 saves with warps predate the flag — infer it.
@@ -4106,6 +4182,7 @@ func hard_reset() -> void:
 	lifetime_credits = 0
 	warp_shards = 0.0
 	total_warps = 0
+	fleet_ships = []
 	purchased_nodes = {}
 	warp_shards_spent = 0.0
 	cryo_unlocked = false
