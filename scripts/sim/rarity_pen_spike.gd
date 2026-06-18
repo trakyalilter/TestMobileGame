@@ -269,7 +269,7 @@ func _section_cores(sm, cm) -> void:
 	# Pristine Crimson: weapon crit_damage 0.30 / defense damage_reduction 0.06 / utility ammo_eff 0.20
 	var wb: Dictionary = _socket_and_aggregate(sm, sm.generate_module_drop("z5_kinetic", R_LEGENDARY, 5), "PristineCrimsonCore")
 	print("[RPS] Crimson in WEAPON -> %s" % str(wb))
-	_chk("Crimson/weapon = crit_damage 0.30 (offense facet)", abs(float(wb.get("crit_damage", 0.0)) - 0.30) < 0.001)
+	_chk("Crimson/weapon = crit_chance 0.08 + crit_damage 0.30 (self-sufficient crit)", abs(float(wb.get("crit_chance", 0.0)) - 0.08) < 0.001 and abs(float(wb.get("crit_damage", 0.0)) - 0.30) < 0.001)
 	_chk("Crimson/weapon has NO defense bonus", not wb.has("damage_reduction"))
 	var ab: Dictionary = _socket_and_aggregate(sm, sm.generate_module_drop("z5_armor", R_LEGENDARY, 5), "PristineCrimsonCore")
 	print("[RPS] Crimson in ARMOR  -> %s" % str(ab))
@@ -349,6 +349,16 @@ func _section_core_combat(sm, cm) -> void:
 	print("[RPS] facet text Crimson/weapon='%s'  /armor='%s'" % [sm.get_gem_facet_text("PristineCrimsonCore", "weapon"), sm.get_gem_facet_text("PristineCrimsonCore", "armor")])
 	_chk("get_gem_facet_text Crimson/weapon shows Crit Damage", "Crit Damage" in str(sm.get_gem_facet_text("PristineCrimsonCore", "weapon")))
 	_chk("get_gem_facet_text Crimson/armor shows Damage Reduction", "Damage Reduction" in str(sm.get_gem_facet_text("PristineCrimsonCore", "armor")))
+
+	# (e) aggregate caps: stacking the same facet past its cap is clamped (bounds max-stack)
+	GameState.resources.add_element("PristineCrimsonCore", 3)
+	var eng: String = sm.generate_module_drop("z5_engine", R_UNIQUE, 5)
+	if sm.modules.get(eng, {}).get("sockets", []).size() >= 3:
+		_equip_one(sm, eng)
+		_socket_n(sm, eng, "PristineCrimsonCore", 3)   # utility ammo_eff 3x0.20=0.60 -> cap 0.40
+		print("[RPS] 3x Crimson/engine ammo_eff (cap 0.40): %.2f" % float(sm.gem_bonuses.get("ammo_eff", 0.0)))
+		_chk("ammo_eff aggregate CAPPED at 0.40 (0.60 -> 0.40)", abs(float(sm.gem_bonuses.get("ammo_eff", 0.0)) - 0.40) < 0.001)
+	_chk("energy_eff cap < 1.0 (power draw can never go negative)", float(sm.GEM_FACET_CAPS.get("energy_eff", 1.0)) < 1.0)
 
 func _equip_one(sm, mid: String) -> void:
 	if mid == "":
