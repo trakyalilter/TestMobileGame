@@ -1,1997 +1,2017 @@
 {
-  "adv_materials": {
-    "category": "processing",
-    "cost": 5000,
-    "cost_items": {
-      "Res2": 13
-    },
-    "effects": [],
-    "flavor": "Gates the Factory Automation and Hydraulic Press branches.",
-    "name": "Advanced Materials",
-    "parent": "smelting",
-    "tier": 2,
-    "type": "technology",
-    "unlocks": [
-      "Graphite Press"
-    ]
+ "adv_materials": {
+  "category": "processing",
+  "cost": 5000,
+  "cost_items": {
+   "Res2": 13
   },
-  "advanced_batteries": {
-    "category": "processing",
-    "cost": 7500,
-    "cost_items": {
-      "Co": 25,
-      "Li": 25,
-      "Mg": 25
-    },
-    "effects": [],
-    "flavor": "",
-    "name": "Advanced Battery Tech",
-    "parent": "adv_materials",
-    "tier": 2,
-    "type": "technology",
-    "unlocks": [
-      "Lithium-Cobalt Battery",
-      "Magnesium-Ion Battery"
-    ]
+  "effects": [],
+  "flavor": "Gates the Factory Automation and Hydraulic Press branches.",
+  "name": "Advanced Materials",
+  "parent": "smelting",
+  "tier": 2,
+  "type": "technology",
+  "unlocks": [
+   "Graphite Press"
+  ]
+ },
+ "advanced_batteries": {
+  "category": "processing",
+  "cost": 7500,
+  "cost_items": {
+   "Co": 25,
+   "Li": 25,
+   "Mg": 25
   },
-  "advanced_mineralogy": {
-    "category": "processing",
-    "cost": 5000,
-    "cost_items": {
-      "Fe": 100,
-      "Si": 100
-    },
-    "effects": [
-      {
-        "context": "Dirt centrifuging",
-        "id": "Ti",
-        "type": "chance_drop"
-      }
+  "effects": [],
+  "flavor": "",
+  "name": "Advanced Battery Tech",
+  "parent": "adv_materials",
+  "tier": 2,
+  "type": "technology",
+  "unlocks": [
+   "Lithium-Cobalt Battery",
+   "Magnesium-Ion Battery"
+  ]
+ },
+ "advanced_mineralogy": {
+  "category": "processing",
+  "cost": 5000,
+  "cost_items": {
+   "Fe": 100,
+   "Si": 100
+  },
+  "effects": [
+   {
+    "context": "Dirt centrifuging",
+    "id": "Ti",
+    "type": "chance_drop"
+   }
+  ],
+  "flavor": "Industrial Centrifuges learn to spot trace titanium.",
+  "name": "Advanced Mineralogy",
+  "parent": "fast_centrifuges",
+  "tier": 2,
+  "type": "technology",
+  "unlocks": []
+ },
+ "advanced_rocketry": {
+  "category": "combat",
+  "cost": 37500,
+  "cost_items": {
+   "Circuit": 125,
+   "Steel": 250
+  },
+  "effects": [],
+  "flavor": "",
+  "name": "Advanced Rocketry",
+  "parent": "automation",
+  "tier": 3,
+  "type": "technology",
+  "unlocks": [
+   "Seeker Missile"
+  ]
+ },
+ "applied_physics": {
+  "category": "meta",
+  "cost": 625,
+  "effects": [],
+  "flavor": "Gates the Energy Fields and Reactor Overclocking branches.",
+  "name": "Applied Physics",
+  "parent": "basic_engineering",
+  "tier": 1,
+  "type": "technology",
+  "unlocks": []
+ },
+ "auto_repair_20": {
+  "category": "combat",
+  "cost": 5000,
+  "cost_items": {
+   "Mesh": 5,
+   "MiteChitin": 25,
+   "Res1": 10
+  },
+  "effects": [
+   {
+    "at_pct": 0.2,
+    "type": "threshold",
+    "what": "hull/shield integrity"
+   }
+  ],
+  "flavor": "Auto-fires equipped hull/shield consumables on trigger.",
+  "name": "Emergency Auto-Repair I",
+  "parent": "hull_hardening",
+  "tier": 2,
+  "type": "technology",
+  "unlocks": []
+ },
+ "auto_repair_40": {
+  "category": "combat",
+  "cost": 15000,
+  "cost_items": {
+   "Mesh": 25,
+   "Res2": 13,
+   "Seal": 25
+  },
+  "effects": [
+   {
+    "at_pct": 0.4,
+    "type": "threshold",
+    "what": "hull/shield integrity"
+   }
+  ],
+  "flavor": "",
+  "name": "Emergency Auto-Repair II",
+  "parent": "auto_repair_20",
+  "tier": 3,
+  "type": "technology",
+  "unlocks": []
+ },
+ "auto_repair_60": {
+  "category": "combat",
+  "cost": 50000,
+  "cost_items": {
+   "AdvCircuit": 38,
+   "Res2": 13
+  },
+  "effects": [
+   {
+    "at_pct": 0.6,
+    "type": "threshold",
+    "what": "hull/shield integrity"
+   }
+  ],
+  "flavor": "",
+  "name": "Emergency Auto-Repair III",
+  "parent": "auto_repair_40",
+  "tier": 3,
+  "type": "technology",
+  "unlocks": []
+ },
+ "auto_repair_80": {
+  "category": "combat",
+  "cost": 200000,
+  "cost_items": {
+   "Res3": 23
+  },
+  "effects": [
+   {
+    "at_pct": 0.8,
+    "type": "threshold",
+    "what": "hull/shield integrity"
+   }
+  ],
+  "flavor": "",
+  "name": "Emergency Auto-Repair IV",
+  "parent": "auto_repair_60",
+  "tier": 4,
+  "type": "technology",
+  "unlocks": []
+ },
+ "automated_logistics": {
+  "category": "infrastructure",
+  "cost": 3000,
+  "cost_items": {
+   "Cu": 25,
+   "Fe": 50,
+   "Res1": 25
+  },
+  "effects": [],
+  "flavor": "",
+  "name": "Automated Logistics",
+  "parent": "industrial_logistics",
+  "tier": 2,
+  "type": "technology",
+  "unlocks": [
+   "Drone Recovery Bay"
+  ]
+ },
+ "automated_smelting": {
+  "category": "infrastructure",
+  "cost": 2500,
+  "cost_items": {
+   "Ti": 20
+  },
+  "effects": [],
+  "flavor": "",
+  "name": "Automated Smelting",
+  "parent": "blast_furnace",
+  "tier": 2,
+  "type": "technology",
+  "unlocks": [
+   "Automated Smelter"
+  ]
+ },
+ "automation": {
+  "category": "processing",
+  "cost": 12500,
+  "cost_items": {
+   "Circuit": 50,
+   "Res2": 63
+  },
+  "effects": [],
+  "flavor": "Gates Advanced Rocketry research.",
+  "name": "Factory Automation",
+  "parent": "adv_materials",
+  "tier": 2,
+  "type": "technology",
+  "unlocks": [
+   "Advanced Circuit"
+  ]
+ },
+ "ballistics_optimization": {
+  "category": "combat",
+  "cost": 1500,
+  "cost_items": {
+   "Res2": 38
+  },
+  "effects": [],
+  "flavor": "",
+  "name": "Ballistics Optimization",
+  "parent": "processing_tungsten",
+  "tier": 2,
+  "type": "technology",
+  "unlocks": [
+   "Depleted Uranium Rounds (T3 Ammo)",
+   "Hyper-Velocity Slug (T4 Ammo)"
+  ]
+ },
+ "basic_electronics": {
+  "category": "processing",
+  "cost": 800,
+  "cost_items": {
+   "Cu": 20,
+   "Si": 20
+  },
+  "effects": [],
+  "flavor": "",
+  "name": "Basic Electronics",
+  "parent": "industrial_logistics",
+  "tier": 1,
+  "type": "technology",
+  "unlocks": [
+   "Standard Circuit Assembly"
+  ]
+ },
+ "basic_engineering": {
+  "category": "processing",
+  "cost": 125,
+  "effects": [],
+  "flavor": "",
+  "name": "Basic Engineering",
+  "parent": null,
+  "tier": 1,
+  "type": "technology",
+  "unlocks": [
+   "Mineral Washing",
+   "Refine Lithium"
+  ]
+ },
+ "blast_furnace": {
+  "category": "processing",
+  "cost": 800,
+  "cost_items": {
+   "Res1": 10
+  },
+  "effects": [
+   {
+    "bonus": 0.25,
+    "id": "smelt_steel_basic",
+    "stacks": false,
+    "type": "action_speed"
+   },
+   {
+    "bonus": 0.25,
+    "id": "smelt_steel_oxygen",
+    "stacks": false,
+    "type": "action_speed"
+   }
+  ],
+  "flavor": "",
+  "name": "Blast Furnace",
+  "parent": "smelting",
+  "tier": 1,
+  "type": "technology",
+  "unlocks": []
+ },
+ "capital_ship_armament": {
+  "category": "combat",
+  "cost": 1000000,
+  "cost_items": {
+   "AdvCircuit": 1000,
+   "Superalloy": 1000,
+   "VoidArtifact": 10
+  },
+  "effects": [],
+  "flavor": "",
+  "name": "Capital Ship Armament",
+  "parent": "capital_ship_engineering",
+  "tier": 4,
+  "type": "technology",
+  "unlocks": [
+   "Photon Torpedo (T4 Ammo)"
+  ]
+ },
+ "capital_ship_engineering": {
+  "category": "ships",
+  "cost": 500000,
+  "cost_items": {
+   "NavData": 75,
+   "Res3": 563,
+   "VoidArtifact": 20
+  },
+  "effects": [],
+  "flavor": "Gate for Capital Ship Armament. Battlecruiser hull + capital modules unlock via Zone Access tech.",
+  "name": "Capital Ship Doctrine",
+  "parent": "shipwright_2",
+  "tier": 4,
+  "type": "technology",
+  "unlocks": []
+ },
+ "catalytic_electrodes": {
+  "category": "processing",
+  "cost": 300,
+  "effects": [
+   {
+    "bonus": 0.25,
+    "id": "electrolysis",
+    "stack_chain": [
+     "Ion-Exchange Membranes",
+     "Resonance Splitters"
     ],
-    "flavor": "Industrial Centrifuges learn to spot trace titanium.",
-    "name": "Advanced Mineralogy",
-    "parent": "fast_centrifuges",
-    "tier": 2,
-    "type": "technology",
-    "unlocks": []
+    "stacks": true,
+    "type": "action_speed"
+   }
+  ],
+  "flavor": "",
+  "name": "Catalytic Electrodes",
+  "parent": "fluid_dynamics",
+  "tier": 1,
+  "type": "technology",
+  "unlocks": []
+ },
+ "colony_automation": {
+  "category": "meta",
+  "cost": 50000,
+  "cost_items": {
+   "AdvCircuit": 125,
+   "ColonyDataCore": 1,
+   "ColonySalvage": 250
   },
-  "advanced_rocketry": {
-    "category": "combat",
-    "cost": 37500,
-    "cost_items": {
-      "Circuit": 125,
-      "Steel": 250
-    },
-    "effects": [],
-    "flavor": "",
-    "name": "Advanced Rocketry",
-    "parent": "automation",
-    "tier": 3,
-    "type": "technology",
-    "unlocks": [
-      "Seeker Missile"
-    ]
+  "effects": [
+   {
+    "amount": 5.0,
+    "type": "flat_bonus",
+    "what": "Base Gathering Yield"
+   }
+  ],
+  "flavor": "",
+  "name": "Colony AI Integration",
+  "parent": null,
+  "req_tech": "deep_space_nav",
+  "tier": 3,
+  "type": "technology",
+  "unlocks": []
+ },
+ "combat_heuristics": {
+  "category": "combat",
+  "cost": 1500,
+  "cost_items": {
+   "Res1": 10
   },
-  "applied_physics": {
-    "category": "meta",
-    "cost": 625,
-    "effects": [],
-    "flavor": "Gates the Energy Fields and Reactor Overclocking branches.",
-    "name": "Applied Physics",
-    "parent": "basic_engineering",
-    "tier": 1,
-    "type": "technology",
-    "unlocks": []
+  "effects": [
+   {
+    "bonus": 0.2,
+    "type": "bonus_yield",
+    "what": "Combat XP gain"
+   }
+  ],
+  "flavor": "",
+  "name": "Combat Heuristics",
+  "parent": "industrial_logistics",
+  "tier": 1,
+  "type": "technology",
+  "unlocks": []
+ },
+ "combustion": {
+  "category": "processing",
+  "cost": 125,
+  "effects": [],
+  "flavor": "",
+  "name": "Organic Combustion",
+  "parent": "materials_science",
+  "tier": 1,
+  "type": "technology",
+  "unlocks": [
+   "Charcoal Kiln",
+   "HE Missile",
+   "Micro-Missile Launcher"
+  ]
+ },
+ "core_overclocking": {
+  "category": "combat",
+  "cost": 4000,
+  "cost_items": {
+   "Res2": 25
   },
-  "auto_repair_20": {
-    "category": "combat",
-    "cost": 5000,
-    "cost_items": {
-      "Mesh": 5,
-      "MiteChitin": 25,
-      "Res1": 10
-    },
-    "effects": [
-      {
-        "at_pct": 0.2,
-        "type": "threshold",
-        "what": "hull/shield integrity"
-      }
+  "effects": [
+   {
+    "bonus": 0.1,
+    "type": "bonus_yield",
+    "what": "Combat Attack Speed"
+   }
+  ],
+  "flavor": "",
+  "name": "Reactor Overclocking",
+  "parent": "applied_physics",
+  "tier": 2,
+  "type": "technology",
+  "unlocks": []
+ },
+ "cryo_armaments": {
+  "category": "ships",
+  "cost": 100000,
+  "cost_items": {
+   "AdvCircuit": 1000,
+   "CryoEssence": 400,
+   "ExoticMatter": 5
+  },
+  "effects": [],
+  "flavor": "Weaponize Exotic Matter \u2014 the only force that breaches Warp-Hardened hulls. Requires a Warp Core activation.",
+  "name": "Cryogenic Armaments",
+  "parent": null,
+  "req_tech": "cryogenic_systems",
+  "requires_warp": true,
+  "tier": 4,
+  "type": "technology",
+  "unlocks": [
+   "Cryo Repeater (Weapon Craft)",
+   "Cryo Cannon (Weapon Craft)",
+   "Cryo-Lance (Weapon Craft)"
+  ]
+ },
+ "cryogenic_storage": {
+  "category": "infrastructure",
+  "cost": 30000,
+  "cost_items": {
+   "Si": 500,
+   "Ti": 250
+  },
+  "effects": [],
+  "flavor": "",
+  "name": "Cryogenic Storage",
+  "parent": "cryogenic_systems",
+  "tier": 3,
+  "type": "technology",
+  "unlocks": [
+   "Cryo-Storage Array"
+  ]
+ },
+ "cryogenic_systems": {
+  "category": "processing",
+  "cost": 25000,
+  "cost_items": {
+   "He": 125,
+   "Ti": 75
+  },
+  "effects": [],
+  "flavor": "",
+  "name": "Cryogenic Systems",
+  "parent": "energy_metrics",
+  "tier": 3,
+  "type": "technology",
+  "unlocks": [
+   "Helium Coolant Cell"
+  ]
+ },
+ "deep_core_optics": {
+  "category": "gathering",
+  "cost": 800,
+  "cost_items": {
+   "Res1": 5
+  },
+  "effects": [
+   {
+    "amount": 1.0,
+    "type": "flat_bonus",
+    "what": "Base Yield (all Gathering)"
+   }
+  ],
+  "flavor": "",
+  "name": "Deep Core Optics",
+  "parent": "laser_cutters",
+  "tier": 1,
+  "type": "technology",
+  "unlocks": []
+ },
+ "deep_space_nav": {
+  "category": "zone",
+  "cost": 100000,
+  "cost_items": {
+   "NavData": 25,
+   "Res3": 25,
+   "Ti": 375
+  },
+  "effects": [],
+  "flavor": "",
+  "name": "Deep Space Navigation",
+  "parent": null,
+  "req_tech": "warp_drive",
+  "tier": 3,
+  "type": "technology",
+  "unlocks": [
+   "Sector Beta (Mining Colony)"
+  ]
+ },
+ "diamond_drills": {
+  "category": "gathering",
+  "cost": 200,
+  "cost_items": {
+   "Res1": 2
+  },
+  "effects": [
+   {
+    "bonus": 0.5,
+    "id": "gather_dirt",
+    "stack_chain": [
+     "Ultrasonic Drills",
+     "Plasma Bore"
     ],
-    "flavor": "Auto-fires equipped hull/shield consumables on trigger.",
-    "name": "Emergency Auto-Repair I",
-    "parent": "hull_hardening",
-    "tier": 2,
-    "type": "technology",
-    "unlocks": []
+    "stacks": true,
+    "type": "action_speed"
+   }
+  ],
+  "flavor": "",
+  "name": "Diamond Tipped Drills",
+  "parent": null,
+  "req_tech": "industrial_logistics",
+  "tier": 1,
+  "type": "technology",
+  "unlocks": []
+ },
+ "efficiency_1": {
+  "category": "meta",
+  "cost": 250000,
+  "cost_items": {
+   "Circuit": 1875,
+   "Res1": 7500,
+   "Res2": 750,
+   "Steel": 3750
   },
-  "auto_repair_40": {
-    "category": "combat",
-    "cost": 15000,
-    "cost_items": {
-      "Mesh": 25,
-      "Res2": 13,
-      "Seal": 25
-    },
-    "effects": [
-      {
-        "at_pct": 0.4,
-        "type": "threshold",
-        "what": "hull/shield integrity"
-      }
+  "effects": [
+   {
+    "factor": 2.0,
+    "type": "yield_multiplier",
+    "what": "Output (Gathering & Processing)"
+   }
+  ],
+  "flavor": "",
+  "name": "Efficiency I",
+  "parent": "industrial_logistics",
+  "tier": 3,
+  "type": "technology",
+  "unlocks": []
+ },
+ "efficiency_2": {
+  "category": "meta",
+  "cost": 1000000,
+  "cost_items": {
+   "AdvCircuit": 2000,
+   "Res3": 1000,
+   "Ti": 20000
+  },
+  "effects": [
+   {
+    "factor": 4.0,
+    "type": "yield_multiplier",
+    "what": "Output (Gathering & Processing)"
+   }
+  ],
+  "flavor": "",
+  "name": "Efficiency II",
+  "parent": "efficiency_1",
+  "tier": 3,
+  "type": "technology",
+  "unlocks": []
+ },
+ "efficiency_3": {
+  "category": "meta",
+  "cost": 5000000,
+  "cost_items": {
+   "Pt": 5000,
+   "QuantumCore": 200,
+   "U": 10000
+  },
+  "effects": [
+   {
+    "factor": 8.0,
+    "type": "yield_multiplier",
+    "what": "Output (Gathering & Processing)"
+   }
+  ],
+  "flavor": "",
+  "name": "Efficiency III",
+  "parent": "efficiency_2",
+  "tier": 4,
+  "type": "technology",
+  "unlocks": []
+ },
+ "efficiency_4": {
+  "category": "meta",
+  "cost": 25000000,
+  "cost_items": {
+   "ExoticMatter": 5,
+   "Os": 2000,
+   "VoidCrystal": 1000
+  },
+  "effects": [
+   {
+    "factor": 16.0,
+    "type": "yield_multiplier",
+    "what": "Output (Gathering & Processing)"
+   }
+  ],
+  "flavor": "",
+  "name": "Efficiency IV",
+  "parent": "efficiency_3",
+  "tier": 4,
+  "type": "technology",
+  "unlocks": []
+ },
+ "efficiency_5": {
+  "category": "meta",
+  "cost": 100000000,
+  "cost_items": {
+   "ExoticIsotope": 500,
+   "Neutronium": 100,
+   "QuantumCore": 1000
+  },
+  "effects": [
+   {
+    "factor": 32.0,
+    "type": "yield_multiplier",
+    "what": "Output (Gathering & Processing)"
+   }
+  ],
+  "flavor": "",
+  "name": "Efficiency V",
+  "parent": "efficiency_4",
+  "tier": 4,
+  "type": "technology",
+  "unlocks": []
+ },
+ "energy_metrics": {
+  "category": "infrastructure",
+  "cost": 5000,
+  "cost_items": {
+   "AdvCircuit": 25,
+   "Res2": 50
+  },
+  "effects": [],
+  "flavor": "",
+  "name": "Energy Metrics",
+  "parent": "fluid_dynamics",
+  "tier": 2,
+  "type": "technology",
+  "unlocks": [
+   "Hydrogen Reactor",
+   "Vaporizer Cell (T3 Ammo)",
+   "Orbital Gas Siphon",
+   "Uranium Isotope Centrifuge"
+  ]
+ },
+ "energy_shields": {
+  "category": "combat",
+  "cost": 1250,
+  "effects": [],
+  "flavor": "Gates Shield Harmonics and Magnetic Funnels research.",
+  "name": "Energy Fields",
+  "parent": "applied_physics",
+  "tier": 2,
+  "type": "technology",
+  "unlocks": []
+ },
+ "exotic_matter_analysis": {
+  "category": "zone",
+  "cost": 1000000,
+  "cost_items": {
+   "Pt": 400,
+   "QuantumCore": 60,
+   "RadIsotope": 1000
+  },
+  "effects": [],
+  "flavor": "",
+  "name": "Exotic Matter Analysis",
+  "parent": "radiation_shielding",
+  "tier": 4,
+  "type": "technology",
+  "unlocks": [
+   "Sector Delta (Crystalline)"
+  ]
+ },
+ "exotic_metallurgy": {
+  "category": "processing",
+  "cost": 2000000,
+  "cost_items": {
+   "Ir": 2000,
+   "Res3": 1000
+  },
+  "effects": [],
+  "flavor": "",
+  "name": "Exotic Metallurgy",
+  "parent": "iridium_metallurgy",
+  "tier": 4,
+  "type": "technology",
+  "unlocks": [
+   "Condense Osmium Vapor"
+  ]
+ },
+ "fast_centrifuges": {
+  "category": "processing",
+  "cost": 200,
+  "effects": [
+   {
+    "bonus": 0.25,
+    "id": "centrifuge_dirt",
+    "stack_chain": [
+     "Mag-Lev Bearings",
+     "Quantum Separators"
     ],
-    "flavor": "",
-    "name": "Emergency Auto-Repair II",
-    "parent": "auto_repair_20",
-    "tier": 3,
-    "type": "technology",
-    "unlocks": []
+    "stacks": true,
+    "type": "action_speed"
+   }
+  ],
+  "flavor": "",
+  "name": "High-RPM Centrifuges",
+  "parent": "industrial_logistics",
+  "tier": 1,
+  "type": "technology",
+  "unlocks": []
+ },
+ "field_theory": {
+  "category": "combat",
+  "cost": 37500,
+  "cost_items": {
+   "Res2": 38
   },
-  "auto_repair_60": {
-    "category": "combat",
-    "cost": 50000,
-    "cost_items": {
-      "AdvCircuit": 38,
-      "Res2": 13
-    },
-    "effects": [
-      {
-        "at_pct": 0.6,
-        "type": "threshold",
-        "what": "hull/shield integrity"
-      }
+  "effects": [],
+  "flavor": "Defensive consumable for evasion windows.",
+  "name": "Field Theory",
+  "parent": "energy_shields",
+  "tier": 2,
+  "type": "technology",
+  "unlocks": [
+   "Ion Field"
+  ]
+ },
+ "fluid_dynamics": {
+  "category": "processing",
+  "cost": 125,
+  "effects": [],
+  "flavor": "",
+  "name": "Fluid Dynamics",
+  "parent": "applied_physics",
+  "tier": 1,
+  "type": "technology",
+  "unlocks": [
+   "Water Electrolysis"
+  ]
+ },
+ "fuel_cell_tech": {
+  "category": "processing",
+  "cost": 250000,
+  "cost_items": {
+   "Circuit": 225,
+   "H": 3750,
+   "Pd": 225
+  },
+  "effects": [],
+  "flavor": "Hydrogen-fuel research path \u2014 implementation TBD.",
+  "name": "Fuel Cell Technology",
+  "parent": "precious_metal_refining",
+  "tier": 3,
+  "type": "technology",
+  "unlocks": []
+ },
+ "high_flow_pumps": {
+  "category": "gathering",
+  "cost": 250,
+  "cost_items": {
+   "Res1": 2
+  },
+  "effects": [
+   {
+    "bonus": 0.5,
+    "id": "collect_water",
+    "stack_chain": [
+     "Superfluid Intake",
+     "Hydro-Vortex Arrays"
     ],
-    "flavor": "",
-    "name": "Emergency Auto-Repair III",
-    "parent": "auto_repair_40",
-    "tier": 3,
-    "type": "technology",
-    "unlocks": []
+    "stacks": true,
+    "type": "action_speed"
+   }
+  ],
+  "flavor": "",
+  "name": "High-Flow Pumps",
+  "parent": null,
+  "req_tech": "fluid_dynamics",
+  "tier": 1,
+  "type": "technology",
+  "unlocks": []
+ },
+ "hull_hardening": {
+  "category": "combat",
+  "cost": 1200,
+  "cost_items": {
+   "MiteChitin": 50,
+   "Res1": 5
   },
-  "auto_repair_80": {
-    "category": "combat",
-    "cost": 200000,
-    "cost_items": {
-      "Res3": 23
-    },
-    "effects": [
-      {
-        "at_pct": 0.8,
-        "type": "threshold",
-        "what": "hull/shield integrity"
-      }
+  "effects": [
+   {
+    "bonus": 0.15,
+    "type": "bonus_yield",
+    "what": "Ship Max HP"
+   }
+  ],
+  "flavor": "",
+  "name": "Carbon Hull Lattice",
+  "parent": "shield_harmonics",
+  "req_tech": "combustion",
+  "tier": 2,
+  "type": "technology",
+  "unlocks": []
+ },
+ "hydraulic_press": {
+  "category": "processing",
+  "cost": 1500,
+  "cost_items": {
+   "Res1": 10
+  },
+  "effects": [
+   {
+    "bonus": 0.25,
+    "id": "press_graphite",
+    "stacks": false,
+    "type": "action_speed"
+   }
+  ],
+  "flavor": "",
+  "name": "Hydraulic Press",
+  "parent": "adv_materials",
+  "tier": 1,
+  "type": "technology",
+  "unlocks": []
+ },
+ "hydro_vortex": {
+  "category": "gathering",
+  "cost": 7500,
+  "cost_items": {
+   "AdvCircuit": 25,
+   "Res3": 13
+  },
+  "effects": [
+   {
+    "bonus": 0.75,
+    "id": "collect_water",
+    "stack_chain": [
+     "High-Flow Pumps",
+     "Superfluid Intake"
     ],
-    "flavor": "",
-    "name": "Emergency Auto-Repair IV",
-    "parent": "auto_repair_60",
-    "tier": 4,
-    "type": "technology",
-    "unlocks": []
+    "stacks": true,
+    "type": "action_speed"
+   }
+  ],
+  "flavor": "",
+  "name": "Hydro-Vortex Arrays",
+  "parent": "superfluid_intake",
+  "tier": 3,
+  "type": "technology",
+  "unlocks": []
+ },
+ "industrial_automation": {
+  "category": "infrastructure",
+  "cost": 15000,
+  "cost_items": {
+   "Circuit": 125,
+   "Steel": 500
   },
-  "automated_logistics": {
-    "category": "infrastructure",
-    "cost": 3000,
-    "cost_items": {
-      "Cu": 25,
-      "Fe": 50,
-      "Res1": 25
-    },
-    "effects": [],
-    "flavor": "",
-    "name": "Automated Logistics",
-    "parent": "industrial_logistics",
-    "tier": 2,
-    "type": "technology",
-    "unlocks": [
-      "Drone Recovery Bay"
-    ]
+  "effects": [],
+  "flavor": "",
+  "name": "Industrial Automation",
+  "parent": "automated_smelting",
+  "tier": 2,
+  "type": "technology",
+  "unlocks": [
+   "Electronics Assembler"
+  ]
+ },
+ "industrial_catalysis": {
+  "category": "processing",
+  "cost": 1000000,
+  "cost_items": {
+   "AdvCircuit": 400,
+   "Pt": 4000,
+   "Si": 4000
   },
-  "automated_smelting": {
-    "category": "infrastructure",
-    "cost": 2500,
-    "cost_items": {
-      "Ti": 20
-    },
-    "effects": [],
-    "flavor": "",
-    "name": "Automated Smelting",
-    "parent": "blast_furnace",
-    "tier": 2,
-    "type": "technology",
-    "unlocks": [
-      "Automated Smelter"
-    ]
+  "effects": [
+   {
+    "bonus": 0.25,
+    "type": "bonus_yield",
+    "what": "Crafting Speed"
+   }
+  ],
+  "flavor": "",
+  "name": "Industrial Catalysis",
+  "parent": "precious_metal_refining",
+  "tier": 4,
+  "type": "technology",
+  "unlocks": [
+   "Platinum Catalyst Matrix",
+   "Silver Catalyst",
+   "Platinum Catalyst Chamber",
+   "Silver Catalyst Bay"
+  ]
+ },
+ "industrial_electrolysis": {
+  "category": "infrastructure",
+  "cost": 2500,
+  "cost_items": {
+   "Si": 50
   },
-  "automation": {
-    "category": "processing",
-    "cost": 12500,
-    "cost_items": {
-      "Circuit": 50,
-      "Res2": 63
-    },
-    "effects": [],
-    "flavor": "Gates Advanced Rocketry research.",
-    "name": "Factory Automation",
-    "parent": "adv_materials",
-    "tier": 2,
-    "type": "technology",
-    "unlocks": [
-      "Advanced Circuit"
-    ]
+  "effects": [],
+  "flavor": "",
+  "name": "Industrial Electrolysis",
+  "parent": "catalytic_electrodes",
+  "tier": 2,
+  "type": "technology",
+  "unlocks": [
+   "Industrial Electrolysis Plant"
+  ]
+ },
+ "industrial_logistics": {
+  "category": "meta",
+  "cost": 625,
+  "effects": [],
+  "flavor": "Gates the Advanced Technologies branch.",
+  "name": "Industrial Logistics",
+  "parent": "basic_engineering",
+  "tier": 1,
+  "type": "technology",
+  "unlocks": []
+ },
+ "ion_exchange": {
+  "category": "processing",
+  "cost": 1500,
+  "cost_items": {
+   "Res2": 38
   },
-  "ballistics_optimization": {
-    "category": "combat",
-    "cost": 1500,
-    "cost_items": {
-      "Res2": 38
-    },
-    "effects": [],
-    "flavor": "",
-    "name": "Ballistics Optimization",
-    "parent": "processing_tungsten",
-    "tier": 2,
-    "type": "technology",
-    "unlocks": [
-      "Depleted Uranium Rounds (T3 Ammo)",
-      "Hyper-Velocity Slug (T4 Ammo)"
-    ]
-  },
-  "basic_electronics": {
-    "category": "processing",
-    "cost": 800,
-    "cost_items": {
-      "Cu": 20,
-      "Si": 20
-    },
-    "effects": [],
-    "flavor": "",
-    "name": "Basic Electronics",
-    "parent": "industrial_logistics",
-    "tier": 1,
-    "type": "technology",
-    "unlocks": [
-      "Standard Circuit Assembly"
-    ]
-  },
-  "basic_engineering": {
-    "category": "processing",
-    "cost": 125,
-    "effects": [],
-    "flavor": "",
-    "name": "Basic Engineering",
-    "parent": null,
-    "tier": 1,
-    "type": "technology",
-    "unlocks": [
-      "Mineral Washing",
-      "Refine Lithium"
-    ]
-  },
-  "blast_furnace": {
-    "category": "processing",
-    "cost": 800,
-    "cost_items": {
-      "Res1": 10
-    },
-    "effects": [
-      {
-        "bonus": 0.25,
-        "id": "smelt_steel_basic",
-        "stacks": false,
-        "type": "action_speed"
-      },
-      {
-        "bonus": 0.25,
-        "id": "smelt_steel_oxygen",
-        "stacks": false,
-        "type": "action_speed"
-      }
+  "effects": [
+   {
+    "bonus": 0.5,
+    "id": "electrolysis",
+    "stack_chain": [
+     "Catalytic Electrodes",
+     "Resonance Splitters"
     ],
-    "flavor": "",
-    "name": "Blast Furnace",
-    "parent": "smelting",
-    "tier": 1,
-    "type": "technology",
-    "unlocks": []
+    "stacks": true,
+    "type": "action_speed"
+   }
+  ],
+  "flavor": "",
+  "name": "Ion-Exchange Membranes",
+  "parent": "catalytic_electrodes",
+  "tier": 2,
+  "type": "technology",
+  "unlocks": []
+ },
+ "iridium_metallurgy": {
+  "category": "processing",
+  "cost": 40000,
+  "cost_items": {
+   "Pt": 125,
+   "Res3": 25
   },
-  "capital_ship_armament": {
-    "category": "combat",
-    "cost": 1000000,
-    "cost_items": {
-      "AdvCircuit": 1000,
-      "Superalloy": 1000,
-      "VoidArtifact": 10
-    },
-    "effects": [],
-    "flavor": "",
-    "name": "Capital Ship Armament",
-    "parent": "capital_ship_engineering",
-    "tier": 4,
-    "type": "technology",
-    "unlocks": [
-      "Photon Torpedo (T4 Ammo)"
-    ]
+  "effects": [],
+  "flavor": "",
+  "name": "Iridium Metallurgy",
+  "parent": "superalloy_engineering",
+  "tier": 3,
+  "type": "technology",
+  "unlocks": [
+   "Mine Iridium Crystals",
+   "Iridium Armor Plating"
+  ]
+ },
+ "kinetics_101": {
+  "category": "combat",
+  "cost": 50,
+  "effects": [],
+  "flavor": "",
+  "name": "Kinetic Weapons Theory",
+  "parent": null,
+  "req_tech": "applied_physics",
+  "tier": 1,
+  "type": "technology",
+  "unlocks": [
+   "Basic Kinetic Foundry"
+  ]
+ },
+ "laser_cutters": {
+  "category": "gathering",
+  "cost": 300,
+  "cost_items": {
+   "Res1": 2
   },
-  "capital_ship_engineering": {
-    "category": "ships",
-    "cost": 500000,
-    "cost_items": {
-      "NavData": 75,
-      "Res3": 563,
-      "VoidArtifact": 20
-    },
-    "effects": [],
-    "flavor": "Gate for Capital Ship Armament. Battlecruiser hull + capital modules unlock via Zone Access tech.",
-    "name": "Capital Ship Doctrine",
-    "parent": "shipwright_2",
-    "tier": 4,
-    "type": "technology",
-    "unlocks": []
-  },
-  "catalytic_electrodes": {
-    "category": "processing",
-    "cost": 300,
-    "effects": [
-      {
-        "bonus": 0.25,
-        "id": "electrolysis",
-        "stack_chain": [
-          "Ion-Exchange Membranes",
-          "Resonance Splitters"
-        ],
-        "stacks": true,
-        "type": "action_speed"
-      }
+  "effects": [
+   {
+    "bonus": 0.5,
+    "id": "gather_wood",
+    "stack_chain": [
+     "Mono-Filament Wire",
+     "Molecular Disassembler"
     ],
-    "flavor": "",
-    "name": "Catalytic Electrodes",
-    "parent": "fluid_dynamics",
-    "tier": 1,
-    "type": "technology",
-    "unlocks": []
+    "stacks": true,
+    "type": "action_speed"
+   }
+  ],
+  "flavor": "",
+  "name": "Laser Cutters",
+  "parent": null,
+  "req_tech": "combustion",
+  "tier": 1,
+  "type": "technology",
+  "unlocks": []
+ },
+ "laser_optics": {
+  "category": "combat",
+  "cost": 300,
+  "cost_items": {
+   "Res1": 5
   },
-  "colony_automation": {
-    "category": "meta",
-    "cost": 50000,
-    "cost_items": {
-      "AdvCircuit": 125,
-      "ColonyDataCore": 1,
-      "ColonySalvage": 250
-    },
-    "effects": [
-      {
-        "amount": 5.0,
-        "type": "flat_bonus",
-        "what": "Base Gathering Yield"
-      }
+  "effects": [],
+  "flavor": "",
+  "name": "Laser Optics",
+  "parent": "power_systems",
+  "req_tech": "fluid_dynamics",
+  "tier": 1,
+  "type": "technology",
+  "unlocks": [
+   "Plasma Cell (T2 Energy Ammo)"
+  ]
+ },
+ "lightweight_alloys": {
+  "category": "processing",
+  "cost": 200,
+  "cost_items": {
+   "Res1": 3
+  },
+  "effects": [],
+  "flavor": "",
+  "name": "Lightweight Alloys",
+  "parent": "materials_science",
+  "tier": 1,
+  "type": "technology",
+  "unlocks": [
+   "Aluminum-Magnesium Alloy"
+  ]
+ },
+ "maglev_bearings": {
+  "category": "processing",
+  "cost": 1000,
+  "cost_items": {
+   "Res2": 38
+  },
+  "effects": [
+   {
+    "bonus": 0.5,
+    "id": "centrifuge_dirt",
+    "stack_chain": [
+     "High-RPM Centrifuges",
+     "Quantum Separators"
     ],
-    "flavor": "",
-    "name": "Colony AI Integration",
-    "parent": null,
-    "req_tech": "deep_space_nav",
-    "tier": 3,
-    "type": "technology",
-    "unlocks": []
+    "stacks": true,
+    "type": "action_speed"
+   }
+  ],
+  "flavor": "",
+  "name": "Mag-Lev Bearings",
+  "parent": "fast_centrifuges",
+  "tier": 2,
+  "type": "technology",
+  "unlocks": []
+ },
+ "magnetic_funnels": {
+  "category": "gathering",
+  "cost": 2000,
+  "effects": [
+   {
+    "bonus": 0.25,
+    "id": "harvest_nebula",
+    "stacks": false,
+    "type": "action_speed"
+   }
+  ],
+  "flavor": "",
+  "name": "Magnetic Funnels",
+  "parent": "energy_shields",
+  "tier": 1,
+  "type": "technology",
+  "unlocks": []
+ },
+ "mass_production_tactics": {
+  "category": "infrastructure",
+  "cost": 5000,
+  "cost_items": {
+   "Circuit": 20,
+   "Steel": 20
   },
-  "combat_heuristics": {
-    "category": "combat",
-    "cost": 1500,
-    "cost_items": {
-      "Res1": 10
-    },
-    "effects": [
-      {
-        "bonus": 0.2,
-        "type": "bonus_yield",
-        "what": "Combat XP gain"
-      }
+  "effects": [],
+  "flavor": "Industrial tactics \u2014 buildings TBD.",
+  "name": "Mass Production Tactics",
+  "parent": "automated_logistics",
+  "tier": 2,
+  "type": "technology",
+  "unlocks": []
+ },
+ "materials_science": {
+  "category": "meta",
+  "cost": 625,
+  "effects": [],
+  "flavor": "Gates the Advanced Technologies branch.",
+  "name": "Materials Science",
+  "parent": "basic_engineering",
+  "tier": 1,
+  "type": "technology",
+  "unlocks": []
+ },
+ "metallurgy_advanced": {
+  "category": "processing",
+  "cost": 5000,
+  "cost_items": {
+   "Ni": 100
+  },
+  "effects": [],
+  "flavor": "",
+  "name": "Advanced Metallurgy",
+  "parent": "smelting",
+  "tier": 2,
+  "type": "technology",
+  "unlocks": [
+   "Stainless Steel Alloy"
+  ]
+ },
+ "molecular_compression": {
+  "category": "infrastructure",
+  "cost": 3000,
+  "cost_items": {
+   "Fe": 100
+  },
+  "effects": [],
+  "flavor": "",
+  "name": "Molecular Compression",
+  "parent": "hydraulic_press",
+  "tier": 2,
+  "type": "technology",
+  "unlocks": [
+   "Automated Carbon Press"
+  ]
+ },
+ "molecular_disassembler": {
+  "category": "gathering",
+  "cost": 10000,
+  "cost_items": {
+   "AdvCircuit": 38,
+   "Res3": 25
+  },
+  "effects": [
+   {
+    "bonus": 0.75,
+    "id": "gather_wood",
+    "stack_chain": [
+     "Laser Cutters",
+     "Mono-Filament Wire"
     ],
-    "flavor": "",
-    "name": "Combat Heuristics",
-    "parent": "industrial_logistics",
-    "tier": 1,
-    "type": "technology",
-    "unlocks": []
+    "stacks": true,
+    "type": "action_speed"
+   }
+  ],
+  "flavor": "",
+  "name": "Molecular Disassembler",
+  "parent": "mono_filament",
+  "tier": 3,
+  "type": "technology",
+  "unlocks": []
+ },
+ "molecular_printing": {
+  "category": "infrastructure",
+  "cost": 5000,
+  "cost_items": {
+   "Circuit": 50,
+   "Fiber": 20
   },
-  "combustion": {
-    "category": "processing",
-    "cost": 125,
-    "effects": [],
-    "flavor": "",
-    "name": "Organic Combustion",
-    "parent": "materials_science",
-    "tier": 1,
-    "type": "technology",
-    "unlocks": [
-      "Charcoal Kiln",
-      "HE Missile",
-      "Micro-Missile Launcher"
-    ]
+  "effects": [],
+  "flavor": "",
+  "name": "Molecular Printing",
+  "parent": "shipwright_2",
+  "tier": 3,
+  "type": "technology",
+  "unlocks": [
+   "Molecular Fabricator"
+  ]
+ },
+ "molecular_recycling": {
+  "category": "infrastructure",
+  "cost": 50000,
+  "cost_items": {
+   "AdvCircuit": 63,
+   "Res2": 125
   },
-  "core_overclocking": {
-    "category": "combat",
-    "cost": 4000,
-    "cost_items": {
-      "Res2": 25
-    },
-    "effects": [
-      {
-        "bonus": 0.1,
-        "type": "bonus_yield",
-        "what": "Combat Attack Speed"
-      }
+  "effects": [],
+  "flavor": "",
+  "name": "Molecular Recycling",
+  "parent": "industrial_automation",
+  "tier": 3,
+  "type": "technology",
+  "unlocks": [
+   "Matter De-constructor"
+  ]
+ },
+ "mono_filament": {
+  "category": "gathering",
+  "cost": 2000,
+  "cost_items": {
+   "Res2": 38
+  },
+  "effects": [
+   {
+    "bonus": 0.5,
+    "id": "gather_wood",
+    "stack_chain": [
+     "Laser Cutters",
+     "Molecular Disassembler"
     ],
-    "flavor": "",
-    "name": "Reactor Overclocking",
-    "parent": "applied_physics",
-    "tier": 2,
-    "type": "technology",
-    "unlocks": []
+    "stacks": true,
+    "type": "action_speed"
+   }
+  ],
+  "flavor": "",
+  "name": "Mono-Filament Wire",
+  "parent": "laser_cutters",
+  "tier": 2,
+  "type": "technology",
+  "unlocks": []
+ },
+ "nano_fabrication": {
+  "category": "processing",
+  "cost": 5000,
+  "cost_items": {
+   "Res2": 25
   },
-  "cryo_armaments": {
-    "category": "ships",
-    "cost": 100000,
-    "cost_items": {
-      "AdvCircuit": 1000,
-      "CryoEssence": 400,
-      "ExoticMatter": 5
-    },
-    "effects": [],
-    "flavor": "Weaponize Exotic Matter — the only force that breaches Warp-Hardened hulls. Requires a Warp Core activation.",
-    "name": "Cryogenic Armaments",
-    "parent": null,
-    "req_tech": "cryogenic_systems",
-    "requires_warp": true,
-    "tier": 4,
-    "type": "technology",
-    "unlocks": [
-      "Cryo Repeater (Weapon Craft)",
-      "Cryo Cannon (Weapon Craft)",
-      "Cryo-Lance (Weapon Craft)"
-    ]
+  "effects": [
+   {
+    "bonus": -0.15,
+    "type": "bonus_yield",
+    "what": "Processing duration"
+   }
+  ],
+  "flavor": "",
+  "name": "Nano-Fabrication",
+  "parent": "automation",
+  "tier": 2,
+  "type": "technology",
+  "unlocks": []
+ },
+ "oxygen_blast_furnace": {
+  "category": "processing",
+  "cost": 5000,
+  "cost_items": {
+   "O": 200,
+   "Steel": 100
   },
-  "cryogenic_storage": {
-    "category": "infrastructure",
-    "cost": 30000,
-    "cost_items": {
-      "Si": 500,
-      "Ti": 250
-    },
-    "effects": [],
-    "flavor": "",
-    "name": "Cryogenic Storage",
-    "parent": "cryogenic_systems",
-    "tier": 3,
-    "type": "technology",
-    "unlocks": [
-      "Cryo-Storage Array"
-    ]
+  "effects": [],
+  "flavor": "Steel yield: 1 \u2192 5 per Foundry cycle.",
+  "name": "Oxygen-Blast Furnaces",
+  "parent": "blast_furnace",
+  "tier": 2,
+  "type": "technology",
+  "unlocks": []
+ },
+ "perfect_automation": {
+  "category": "processing",
+  "cost": 10000000,
+  "cost_items": {
+   "AICore": 100,
+   "AIProcessor": 100,
+   "AdvCircuit": 4000,
+   "AncientTech": 5
   },
-  "cryogenic_systems": {
-    "category": "processing",
-    "cost": 25000,
-    "cost_items": {
-      "He": 125,
-      "Ti": 75
-    },
-    "effects": [],
-    "flavor": "",
-    "name": "Cryogenic Systems",
-    "parent": "energy_metrics",
-    "tier": 3,
-    "type": "technology",
-    "unlocks": [
-      "Helium Coolant Cell"
-    ]
+  "effects": [
+   {
+    "bonus": 0.3,
+    "type": "bonus_yield",
+    "what": "Global Processing & Research Speed"
+   }
+  ],
+  "flavor": "",
+  "name": "Omni-Fabrication",
+  "parent": "colony_automation",
+  "tier": 4,
+  "type": "technology",
+  "unlocks": []
+ },
+ "plasma_bore": {
+  "category": "gathering",
+  "cost": 5000,
+  "cost_items": {
+   "Res2": 50
   },
-  "deep_core_optics": {
-    "category": "gathering",
-    "cost": 800,
-    "cost_items": {
-      "Res1": 5
-    },
-    "effects": [
-      {
-        "amount": 1.0,
-        "type": "flat_bonus",
-        "what": "Base Yield (all Gathering)"
-      }
+  "effects": [
+   {
+    "bonus": 0.75,
+    "id": "gather_dirt",
+    "stack_chain": [
+     "Diamond Tipped Drills",
+     "Ultrasonic Drills"
     ],
-    "flavor": "",
-    "name": "Deep Core Optics",
-    "parent": "laser_cutters",
-    "tier": 1,
-    "type": "technology",
-    "unlocks": []
+    "stacks": true,
+    "type": "action_speed"
+   }
+  ],
+  "flavor": "",
+  "name": "Plasma Bore",
+  "parent": "ultrasonic_drills",
+  "tier": 3,
+  "type": "technology",
+  "unlocks": []
+ },
+ "power_systems": {
+  "category": "infrastructure",
+  "cost": 300,
+  "effects": [],
+  "flavor": "",
+  "name": "Power Systems",
+  "parent": "kinetics_101",
+  "req_tech": "applied_physics",
+  "tier": 1,
+  "type": "technology",
+  "unlocks": [
+   "Basic Cell Factory",
+   "Basic Battery"
+  ]
+ },
+ "precious_metal_refining": {
+  "category": "processing",
+  "cost": 15000,
+  "cost_items": {
+   "Res2": 63,
+   "Ti": 500
   },
-  "deep_space_nav": {
-    "category": "zone",
-    "cost": 100000,
-    "cost_items": {
-      "NavData": 25,
-      "Res3": 25,
-      "Ti": 375
-    },
-    "effects": [],
-    "flavor": "",
-    "name": "Deep Space Navigation",
-    "parent": null,
-    "req_tech": "warp_drive",
-    "tier": 3,
-    "type": "technology",
-    "unlocks": [
-      "Sector Beta (Mining Colony)"
-    ]
+  "effects": [],
+  "flavor": "",
+  "name": "Precious Metal Refining",
+  "parent": null,
+  "req_tech": "deep_space_nav",
+  "tier": 3,
+  "type": "technology",
+  "unlocks": [
+   "Platinum Extraction",
+   "Precious Metal Dredge"
+  ]
+ },
+ "processing_tungsten": {
+  "category": "combat",
+  "cost": 1000,
+  "cost_items": {
+   "Res1": 10
   },
-  "diamond_drills": {
-    "category": "gathering",
-    "cost": 200,
-    "cost_items": {
-      "Res1": 2
-    },
-    "effects": [
-      {
-        "bonus": 0.5,
-        "id": "gather_dirt",
-        "stack_chain": [
-          "Ultrasonic Drills",
-          "Plasma Bore"
-        ],
-        "stacks": true,
-        "type": "action_speed"
-      }
+  "effects": [],
+  "flavor": "",
+  "name": "Processing Tungsten",
+  "parent": "smelting",
+  "tier": 2,
+  "type": "technology",
+  "unlocks": [
+   "Tungsten Sabot Rounds (T2)"
+  ]
+ },
+ "pyrolysis_control": {
+  "category": "processing",
+  "cost": 400,
+  "cost_items": {
+   "Res1": 5
+  },
+  "effects": [
+   {
+    "bonus": 0.25,
+    "id": "charcoal_burning",
+    "stacks": false,
+    "type": "action_speed"
+   }
+  ],
+  "flavor": "",
+  "name": "Pyrolysis Control",
+  "parent": "combustion",
+  "tier": 1,
+  "type": "technology",
+  "unlocks": []
+ },
+ "quantum_dynamics": {
+  "category": "infrastructure",
+  "cost": 5000000,
+  "cost_items": {
+   "ColonyDataCore": 50,
+   "ExoticIsotope": 400,
+   "QuantumCore": 400,
+   "RadIsotope": 20000,
+   "Res3": 10000,
+   "VoidArtifact": 50
+  },
+  "effects": [],
+  "flavor": "",
+  "name": "Quantum Dynamics",
+  "parent": "capital_ship_engineering",
+  "tier": 4,
+  "type": "technology",
+  "unlocks": [
+   "Fusion Core",
+   "Antimatter Generator",
+   "Zero-Point Module"
+  ]
+ },
+ "quantum_separators": {
+  "category": "processing",
+  "cost": 5000,
+  "cost_items": {
+   "AdvCircuit": 25,
+   "Res3": 25
+  },
+  "effects": [
+   {
+    "bonus": 0.75,
+    "id": "centrifuge_dirt",
+    "stack_chain": [
+     "High-RPM Centrifuges",
+     "Mag-Lev Bearings"
     ],
-    "flavor": "",
-    "name": "Diamond Tipped Drills",
-    "parent": null,
-    "req_tech": "industrial_logistics",
-    "tier": 1,
-    "type": "technology",
-    "unlocks": []
+    "stacks": true,
+    "type": "action_speed"
+   }
+  ],
+  "flavor": "",
+  "name": "Quantum Separators",
+  "parent": "maglev_bearings",
+  "tier": 3,
+  "type": "technology",
+  "unlocks": []
+ },
+ "radiation_shielding": {
+  "category": "zone",
+  "cost": 250000,
+  "cost_items": {
+   "AdvCircuit": 113,
+   "Al": 750,
+   "Co": 375,
+   "Superalloy": 188
   },
-  "efficiency_1": {
-    "category": "meta",
-    "cost": 250000,
-    "cost_items": {
-      "Circuit": 1875,
-      "Res1": 7500,
-      "Res2": 750,
-      "Steel": 3750
-    },
-    "effects": [
-      {
-        "factor": 2.0,
-        "type": "yield_multiplier",
-        "what": "Output (Gathering & Processing)"
-      }
+  "effects": [],
+  "flavor": "Gates Exotic Matter Analysis research.",
+  "name": "Radiation Shielding Theory",
+  "parent": "deep_space_nav",
+  "tier": 4,
+  "type": "technology",
+  "unlocks": [
+   "Sector Gamma (Radioactive)"
+  ]
+ },
+ "resonance_splitters": {
+  "category": "processing",
+  "cost": 7500,
+  "cost_items": {
+   "AdvCircuit": 25,
+   "Res3": 25
+  },
+  "effects": [
+   {
+    "bonus": 0.75,
+    "id": "electrolysis",
+    "stack_chain": [
+     "Catalytic Electrodes",
+     "Ion-Exchange Membranes"
     ],
-    "flavor": "",
-    "name": "Efficiency I",
-    "parent": "industrial_logistics",
-    "tier": 3,
-    "type": "technology",
-    "unlocks": []
+    "stacks": true,
+    "type": "action_speed"
+   }
+  ],
+  "flavor": "",
+  "name": "Resonance Splitters",
+  "parent": "ion_exchange",
+  "tier": 3,
+  "type": "technology",
+  "unlocks": []
+ },
+ "sector_alpha_decryption": {
+  "category": "zone",
+  "cost": 50000,
+  "cost_items": {
+   "NavData": 15,
+   "Res1": 125
   },
-  "efficiency_2": {
-    "category": "meta",
-    "cost": 1000000,
-    "cost_items": {
-      "AdvCircuit": 2000,
-      "Res3": 1000,
-      "Ti": 20000
-    },
-    "effects": [
-      {
-        "factor": 4.0,
-        "type": "yield_multiplier",
-        "what": "Output (Gathering & Processing)"
-      }
+  "effects": [],
+  "flavor": "",
+  "name": "Sector Scanning (Alpha)",
+  "parent": "zone_5_access",
+  "tier": 5,
+  "type": "technology",
+  "unlocks": [
+   "Sector Alpha (scan)"
+  ]
+ },
+ "shield_harmonics": {
+  "category": "combat",
+  "cost": 2000,
+  "cost_items": {
+   "Res1": 10
+  },
+  "effects": [
+   {
+    "bonus": 0.2,
+    "type": "bonus_yield",
+    "what": "Shield Regeneration speed"
+   }
+  ],
+  "flavor": "",
+  "name": "Shield Harmonics",
+  "parent": "energy_shields",
+  "tier": 2,
+  "type": "technology",
+  "unlocks": []
+ },
+ "shipwright_1": {
+  "category": "ships",
+  "cost": 50000,
+  "cost_items": {
+   "Circuit": 25,
+   "Res1": 50,
+   "Steel": 50
+  },
+  "effects": [],
+  "flavor": "",
+  "name": "Shipwright I",
+  "parent": "power_systems",
+  "req_tech": "smelting",
+  "tier": 2,
+  "type": "technology",
+  "unlocks": [
+   "Industrial Frigate"
+  ]
+ },
+ "shipwright_2": {
+  "category": "ships",
+  "cost": 1000000,
+  "cost_items": {
+   "Res2": 500
+  },
+  "effects": [],
+  "flavor": "",
+  "name": "Shipwright II",
+  "parent": "shipwright_1",
+  "tier": 3,
+  "type": "technology",
+  "unlocks": [
+   "Destroyer"
+  ]
+ },
+ "smelting": {
+  "category": "processing",
+  "cost": 3750,
+  "cost_items": {
+   "Circuit": 5,
+   "Res1": 10
+  },
+  "effects": [],
+  "flavor": "",
+  "name": "Efficient Smelting",
+  "parent": "combustion",
+  "tier": 2,
+  "type": "technology",
+  "unlocks": [
+   "Basic Steel Smelting",
+   "Galvanized Steel"
+  ]
+ },
+ "superalloy_engineering": {
+  "category": "processing",
+  "cost": 100000,
+  "cost_items": {
+   "Co": 250,
+   "Cr": 125,
+   "Ni": 250,
+   "Ti": 250
+  },
+  "effects": [],
+  "flavor": "",
+  "name": "Superalloy Engineering",
+  "parent": "metallurgy_advanced",
+  "tier": 3,
+  "type": "technology",
+  "unlocks": [
+   "Superalloy"
+  ]
+ },
+ "superfluid_intake": {
+  "category": "gathering",
+  "cost": 1500,
+  "cost_items": {
+   "Res2": 38
+  },
+  "effects": [
+   {
+    "bonus": 0.5,
+    "id": "collect_water",
+    "stack_chain": [
+     "High-Flow Pumps",
+     "Hydro-Vortex Arrays"
     ],
-    "flavor": "",
-    "name": "Efficiency II",
-    "parent": "efficiency_1",
-    "tier": 3,
-    "type": "technology",
-    "unlocks": []
+    "stacks": true,
+    "type": "action_speed"
+   }
+  ],
+  "flavor": "",
+  "name": "Superfluid Intake",
+  "parent": "high_flow_pumps",
+  "tier": 2,
+  "type": "technology",
+  "unlocks": []
+ },
+ "ultrasonic_drills": {
+  "category": "gathering",
+  "cost": 1000,
+  "cost_items": {
+   "Res1": 250
   },
-  "efficiency_3": {
-    "category": "meta",
-    "cost": 5000000,
-    "cost_items": {
-      "Pt": 5000,
-      "QuantumCore": 200,
-      "U": 10000
-    },
-    "effects": [
-      {
-        "factor": 8.0,
-        "type": "yield_multiplier",
-        "what": "Output (Gathering & Processing)"
-      }
+  "effects": [
+   {
+    "bonus": 0.5,
+    "id": "gather_dirt",
+    "stack_chain": [
+     "Diamond Tipped Drills",
+     "Plasma Bore"
     ],
-    "flavor": "",
-    "name": "Efficiency III",
-    "parent": "efficiency_2",
-    "tier": 4,
-    "type": "technology",
-    "unlocks": []
-  },
-  "efficiency_4": {
-    "category": "meta",
-    "cost": 25000000,
-    "cost_items": {
-      "ExoticMatter": 5,
-      "Os": 2000,
-      "VoidCrystal": 1000
-    },
-    "effects": [
-      {
-        "factor": 16.0,
-        "type": "yield_multiplier",
-        "what": "Output (Gathering & Processing)"
-      }
-    ],
-    "flavor": "",
-    "name": "Efficiency IV",
-    "parent": "efficiency_3",
-    "tier": 4,
-    "type": "technology",
-    "unlocks": []
-  },
-  "efficiency_5": {
-    "category": "meta",
-    "cost": 100000000,
-    "cost_items": {
-      "ExoticIsotope": 500,
-      "Neutronium": 100,
-      "QuantumCore": 1000
-    },
-    "effects": [
-      {
-        "factor": 32.0,
-        "type": "yield_multiplier",
-        "what": "Output (Gathering & Processing)"
-      }
-    ],
-    "flavor": "",
-    "name": "Efficiency V",
-    "parent": "efficiency_4",
-    "tier": 4,
-    "type": "technology",
-    "unlocks": []
-  },
-  "energy_metrics": {
-    "category": "infrastructure",
-    "cost": 5000,
-    "cost_items": {
-      "AdvCircuit": 25,
-      "Res2": 50
-    },
-    "effects": [],
-    "flavor": "",
-    "name": "Energy Metrics",
-    "parent": "fluid_dynamics",
-    "tier": 2,
-    "type": "technology",
-    "unlocks": [
-      "Hydrogen Reactor",
-      "Vaporizer Cell (T3 Ammo)",
-      "Orbital Gas Siphon",
-      "Uranium Isotope Centrifuge"
-    ]
-  },
-  "energy_shields": {
-    "category": "combat",
-    "cost": 1250,
-    "effects": [],
-    "flavor": "Gates Shield Harmonics and Magnetic Funnels research.",
-    "name": "Energy Fields",
-    "parent": "applied_physics",
-    "tier": 2,
-    "type": "technology",
-    "unlocks": []
-  },
-  "exotic_matter_analysis": {
-    "category": "zone",
-    "cost": 1000000,
-    "cost_items": {
-      "Pt": 400,
-      "QuantumCore": 60,
-      "RadIsotope": 1000
-    },
-    "effects": [],
-    "flavor": "",
-    "name": "Exotic Matter Analysis",
-    "parent": "radiation_shielding",
-    "tier": 4,
-    "type": "technology",
-    "unlocks": [
-      "Sector Delta (Crystalline)"
-    ]
-  },
-  "exotic_metallurgy": {
-    "category": "processing",
-    "cost": 2000000,
-    "cost_items": {
-      "Ir": 2000,
-      "Res3": 1000
-    },
-    "effects": [],
-    "flavor": "",
-    "name": "Exotic Metallurgy",
-    "parent": "iridium_metallurgy",
-    "tier": 4,
-    "type": "technology",
-    "unlocks": [
-      "Condense Osmium Vapor"
-    ]
-  },
-  "fast_centrifuges": {
-    "category": "processing",
-    "cost": 200,
-    "effects": [
-      {
-        "bonus": 0.25,
-        "id": "centrifuge_dirt",
-        "stack_chain": [
-          "Mag-Lev Bearings",
-          "Quantum Separators"
-        ],
-        "stacks": true,
-        "type": "action_speed"
-      }
-    ],
-    "flavor": "",
-    "name": "High-RPM Centrifuges",
-    "parent": "industrial_logistics",
-    "tier": 1,
-    "type": "technology",
-    "unlocks": []
-  },
-  "field_theory": {
-    "category": "combat",
-    "cost": 37500,
-    "cost_items": {
-      "Res2": 38
-    },
-    "effects": [],
-    "flavor": "Defensive consumable for evasion windows.",
-    "name": "Field Theory",
-    "parent": "energy_shields",
-    "tier": 2,
-    "type": "technology",
-    "unlocks": [
-      "Ion Field"
-    ]
-  },
-  "fluid_dynamics": {
-    "category": "processing",
-    "cost": 125,
-    "effects": [],
-    "flavor": "",
-    "name": "Fluid Dynamics",
-    "parent": "applied_physics",
-    "tier": 1,
-    "type": "technology",
-    "unlocks": [
-      "Water Electrolysis"
-    ]
-  },
-  "fuel_cell_tech": {
-    "category": "processing",
-    "cost": 250000,
-    "cost_items": {
-      "Circuit": 225,
-      "H": 3750,
-      "Pd": 225
-    },
-    "effects": [],
-    "flavor": "Hydrogen-fuel research path — implementation TBD.",
-    "name": "Fuel Cell Technology",
-    "parent": "precious_metal_refining",
-    "tier": 3,
-    "type": "technology",
-    "unlocks": []
-  },
-  "high_flow_pumps": {
-    "category": "gathering",
-    "cost": 250,
-    "cost_items": {
-      "Res1": 2
-    },
-    "effects": [
-      {
-        "bonus": 0.5,
-        "id": "collect_water",
-        "stack_chain": [
-          "Superfluid Intake",
-          "Hydro-Vortex Arrays"
-        ],
-        "stacks": true,
-        "type": "action_speed"
-      }
-    ],
-    "flavor": "",
-    "name": "High-Flow Pumps",
-    "parent": null,
-    "req_tech": "fluid_dynamics",
-    "tier": 1,
-    "type": "technology",
-    "unlocks": []
-  },
-  "hull_hardening": {
-    "category": "combat",
-    "cost": 1200,
-    "cost_items": {
-      "MiteChitin": 50,
-      "Res1": 5
-    },
-    "effects": [
-      {
-        "bonus": 0.15,
-        "type": "bonus_yield",
-        "what": "Ship Max HP"
-      }
-    ],
-    "flavor": "",
-    "name": "Carbon Hull Lattice",
-    "parent": "shield_harmonics",
-    "req_tech": "combustion",
-    "tier": 2,
-    "type": "technology",
-    "unlocks": []
-  },
-  "hydraulic_press": {
-    "category": "processing",
-    "cost": 1500,
-    "cost_items": {
-      "Res1": 10
-    },
-    "effects": [
-      {
-        "bonus": 0.25,
-        "id": "press_graphite",
-        "stacks": false,
-        "type": "action_speed"
-      }
-    ],
-    "flavor": "",
-    "name": "Hydraulic Press",
-    "parent": "adv_materials",
-    "tier": 1,
-    "type": "technology",
-    "unlocks": []
-  },
-  "hydro_vortex": {
-    "category": "gathering",
-    "cost": 7500,
-    "cost_items": {
-      "AdvCircuit": 25,
-      "Res3": 13
-    },
-    "effects": [
-      {
-        "bonus": 0.75,
-        "id": "collect_water",
-        "stack_chain": [
-          "High-Flow Pumps",
-          "Superfluid Intake"
-        ],
-        "stacks": true,
-        "type": "action_speed"
-      }
-    ],
-    "flavor": "",
-    "name": "Hydro-Vortex Arrays",
-    "parent": "superfluid_intake",
-    "tier": 3,
-    "type": "technology",
-    "unlocks": []
-  },
-  "industrial_automation": {
-    "category": "infrastructure",
-    "cost": 15000,
-    "cost_items": {
-      "Circuit": 125,
-      "Steel": 500
-    },
-    "effects": [],
-    "flavor": "",
-    "name": "Industrial Automation",
-    "parent": "automated_smelting",
-    "tier": 2,
-    "type": "technology",
-    "unlocks": [
-      "Electronics Assembler"
-    ]
-  },
-  "industrial_catalysis": {
-    "category": "processing",
-    "cost": 1000000,
-    "cost_items": {
-      "AdvCircuit": 400,
-      "Pt": 4000,
-      "Si": 4000
-    },
-    "effects": [
-      {
-        "bonus": 0.25,
-        "type": "bonus_yield",
-        "what": "Crafting Speed"
-      }
-    ],
-    "flavor": "",
-    "name": "Industrial Catalysis",
-    "parent": "precious_metal_refining",
-    "tier": 4,
-    "type": "technology",
-    "unlocks": [
-      "Platinum Catalyst Matrix",
-      "Silver Catalyst",
-      "Platinum Catalyst Chamber",
-      "Silver Catalyst Bay"
-    ]
-  },
-  "industrial_electrolysis": {
-    "category": "infrastructure",
-    "cost": 2500,
-    "cost_items": {
-      "Si": 50
-    },
-    "effects": [],
-    "flavor": "",
-    "name": "Industrial Electrolysis",
-    "parent": "catalytic_electrodes",
-    "tier": 2,
-    "type": "technology",
-    "unlocks": [
-      "Industrial Electrolysis Plant"
-    ]
-  },
-  "industrial_logistics": {
-    "category": "meta",
-    "cost": 625,
-    "effects": [],
-    "flavor": "Gates the Advanced Technologies branch.",
-    "name": "Industrial Logistics",
-    "parent": "basic_engineering",
-    "tier": 1,
-    "type": "technology",
-    "unlocks": []
-  },
-  "ion_exchange": {
-    "category": "processing",
-    "cost": 1500,
-    "cost_items": {
-      "Res2": 38
-    },
-    "effects": [
-      {
-        "bonus": 0.5,
-        "id": "electrolysis",
-        "stack_chain": [
-          "Catalytic Electrodes",
-          "Resonance Splitters"
-        ],
-        "stacks": true,
-        "type": "action_speed"
-      }
-    ],
-    "flavor": "",
-    "name": "Ion-Exchange Membranes",
-    "parent": "catalytic_electrodes",
-    "tier": 2,
-    "type": "technology",
-    "unlocks": []
-  },
-  "iridium_metallurgy": {
-    "category": "processing",
-    "cost": 40000,
-    "cost_items": {
-      "Pt": 125,
-      "Res3": 25
-    },
-    "effects": [],
-    "flavor": "",
-    "name": "Iridium Metallurgy",
-    "parent": "superalloy_engineering",
-    "tier": 3,
-    "type": "technology",
-    "unlocks": [
-      "Mine Iridium Crystals",
-      "Iridium Armor Plating"
-    ]
-  },
-  "kinetics_101": {
-    "category": "combat",
-    "cost": 50,
-    "effects": [],
-    "flavor": "",
-    "name": "Kinetic Weapons Theory",
-    "parent": null,
-    "req_tech": "applied_physics",
-    "tier": 1,
-    "type": "technology",
-    "unlocks": [
-      "Basic Kinetic Foundry"
-    ]
-  },
-  "laser_cutters": {
-    "category": "gathering",
-    "cost": 300,
-    "cost_items": {
-      "Res1": 2
-    },
-    "effects": [
-      {
-        "bonus": 0.5,
-        "id": "gather_wood",
-        "stack_chain": [
-          "Mono-Filament Wire",
-          "Molecular Disassembler"
-        ],
-        "stacks": true,
-        "type": "action_speed"
-      }
-    ],
-    "flavor": "",
-    "name": "Laser Cutters",
-    "parent": null,
-    "req_tech": "combustion",
-    "tier": 1,
-    "type": "technology",
-    "unlocks": []
-  },
-  "laser_optics": {
-    "category": "combat",
-    "cost": 300,
-    "cost_items": {
-      "Res1": 5
-    },
-    "effects": [],
-    "flavor": "",
-    "name": "Laser Optics",
-    "parent": "power_systems",
-    "req_tech": "fluid_dynamics",
-    "tier": 1,
-    "type": "technology",
-    "unlocks": [
-      "Plasma Cell (T2 Energy Ammo)"
-    ]
-  },
-  "lightweight_alloys": {
-    "category": "processing",
-    "cost": 200,
-    "cost_items": {
-      "Res1": 3
-    },
-    "effects": [],
-    "flavor": "",
-    "name": "Lightweight Alloys",
-    "parent": "materials_science",
-    "tier": 1,
-    "type": "technology",
-    "unlocks": [
-      "Aluminum-Magnesium Alloy"
-    ]
-  },
-  "maglev_bearings": {
-    "category": "processing",
-    "cost": 1000,
-    "cost_items": {
-      "Res2": 38
-    },
-    "effects": [
-      {
-        "bonus": 0.5,
-        "id": "centrifuge_dirt",
-        "stack_chain": [
-          "High-RPM Centrifuges",
-          "Quantum Separators"
-        ],
-        "stacks": true,
-        "type": "action_speed"
-      }
-    ],
-    "flavor": "",
-    "name": "Mag-Lev Bearings",
-    "parent": "fast_centrifuges",
-    "tier": 2,
-    "type": "technology",
-    "unlocks": []
-  },
-  "magnetic_funnels": {
-    "category": "gathering",
-    "cost": 2000,
-    "effects": [
-      {
-        "bonus": 0.25,
-        "id": "harvest_nebula",
-        "stacks": false,
-        "type": "action_speed"
-      }
-    ],
-    "flavor": "",
-    "name": "Magnetic Funnels",
-    "parent": "energy_shields",
-    "tier": 1,
-    "type": "technology",
-    "unlocks": []
-  },
-  "mass_production_tactics": {
-    "category": "infrastructure",
-    "cost": 5000,
-    "cost_items": {
-      "Circuit": 20,
-      "Steel": 20
-    },
-    "effects": [],
-    "flavor": "Industrial tactics — buildings TBD.",
-    "name": "Mass Production Tactics",
-    "parent": "automated_logistics",
-    "tier": 2,
-    "type": "technology",
-    "unlocks": []
-  },
-  "materials_science": {
-    "category": "meta",
-    "cost": 625,
-    "effects": [],
-    "flavor": "Gates the Advanced Technologies branch.",
-    "name": "Materials Science",
-    "parent": "basic_engineering",
-    "tier": 1,
-    "type": "technology",
-    "unlocks": []
-  },
-  "metallurgy_advanced": {
-    "category": "processing",
-    "cost": 5000,
-    "cost_items": {
-      "Ni": 100
-    },
-    "effects": [],
-    "flavor": "",
-    "name": "Advanced Metallurgy",
-    "parent": "smelting",
-    "tier": 2,
-    "type": "technology",
-    "unlocks": [
-      "Stainless Steel Alloy"
-    ]
-  },
-  "molecular_compression": {
-    "category": "infrastructure",
-    "cost": 3000,
-    "cost_items": {
-      "Fe": 100
-    },
-    "effects": [],
-    "flavor": "",
-    "name": "Molecular Compression",
-    "parent": "hydraulic_press",
-    "tier": 2,
-    "type": "technology",
-    "unlocks": [
-      "Automated Carbon Press"
-    ]
-  },
-  "molecular_disassembler": {
-    "category": "gathering",
-    "cost": 10000,
-    "cost_items": {
-      "AdvCircuit": 38,
-      "Res3": 25
-    },
-    "effects": [
-      {
-        "bonus": 0.75,
-        "id": "gather_wood",
-        "stack_chain": [
-          "Laser Cutters",
-          "Mono-Filament Wire"
-        ],
-        "stacks": true,
-        "type": "action_speed"
-      }
-    ],
-    "flavor": "",
-    "name": "Molecular Disassembler",
-    "parent": "mono_filament",
-    "tier": 3,
-    "type": "technology",
-    "unlocks": []
-  },
-  "molecular_printing": {
-    "category": "infrastructure",
-    "cost": 5000,
-    "cost_items": {
-      "Circuit": 50,
-      "Fiber": 20
-    },
-    "effects": [],
-    "flavor": "",
-    "name": "Molecular Printing",
-    "parent": "shipwright_2",
-    "tier": 3,
-    "type": "technology",
-    "unlocks": [
-      "Molecular Fabricator"
-    ]
-  },
-  "molecular_recycling": {
-    "category": "infrastructure",
-    "cost": 50000,
-    "cost_items": {
-      "AdvCircuit": 63,
-      "Res2": 125
-    },
-    "effects": [],
-    "flavor": "",
-    "name": "Molecular Recycling",
-    "parent": "industrial_automation",
-    "tier": 3,
-    "type": "technology",
-    "unlocks": [
-      "Matter De-constructor"
-    ]
-  },
-  "mono_filament": {
-    "category": "gathering",
-    "cost": 2000,
-    "cost_items": {
-      "Res2": 38
-    },
-    "effects": [
-      {
-        "bonus": 0.5,
-        "id": "gather_wood",
-        "stack_chain": [
-          "Laser Cutters",
-          "Molecular Disassembler"
-        ],
-        "stacks": true,
-        "type": "action_speed"
-      }
-    ],
-    "flavor": "",
-    "name": "Mono-Filament Wire",
-    "parent": "laser_cutters",
-    "tier": 2,
-    "type": "technology",
-    "unlocks": []
-  },
-  "nano_fabrication": {
-    "category": "processing",
-    "cost": 5000,
-    "cost_items": {
-      "Res2": 25
-    },
-    "effects": [
-      {
-        "bonus": -0.15,
-        "type": "bonus_yield",
-        "what": "Processing duration"
-      }
-    ],
-    "flavor": "",
-    "name": "Nano-Fabrication",
-    "parent": "automation",
-    "tier": 2,
-    "type": "technology",
-    "unlocks": []
-  },
-  "oxygen_blast_furnace": {
-    "category": "processing",
-    "cost": 5000,
-    "cost_items": {
-      "O": 200,
-      "Steel": 100
-    },
-    "effects": [],
-    "flavor": "Steel yield: 1 → 5 per Foundry cycle.",
-    "name": "Oxygen-Blast Furnaces",
-    "parent": "blast_furnace",
-    "tier": 2,
-    "type": "technology",
-    "unlocks": []
-  },
-  "perfect_automation": {
-    "category": "processing",
-    "cost": 10000000,
-    "cost_items": {
-      "AICore": 100,
-      "AIProcessor": 100,
-      "AdvCircuit": 4000,
-      "AncientTech": 5
-    },
-    "effects": [
-      {
-        "bonus": 0.3,
-        "type": "bonus_yield",
-        "what": "Global Processing & Research Speed"
-      }
-    ],
-    "flavor": "",
-    "name": "Omni-Fabrication",
-    "parent": "colony_automation",
-    "tier": 4,
-    "type": "technology",
-    "unlocks": []
-  },
-  "plasma_bore": {
-    "category": "gathering",
-    "cost": 5000,
-    "cost_items": {
-      "Res2": 50
-    },
-    "effects": [
-      {
-        "bonus": 0.75,
-        "id": "gather_dirt",
-        "stack_chain": [
-          "Diamond Tipped Drills",
-          "Ultrasonic Drills"
-        ],
-        "stacks": true,
-        "type": "action_speed"
-      }
-    ],
-    "flavor": "",
-    "name": "Plasma Bore",
-    "parent": "ultrasonic_drills",
-    "tier": 3,
-    "type": "technology",
-    "unlocks": []
-  },
-  "power_systems": {
-    "category": "infrastructure",
-    "cost": 300,
-    "effects": [],
-    "flavor": "",
-    "name": "Power Systems",
-    "parent": "kinetics_101",
-    "req_tech": "applied_physics",
-    "tier": 1,
-    "type": "technology",
-    "unlocks": [
-      "Basic Cell Factory",
-      "Basic Battery"
-    ]
-  },
-  "precious_metal_refining": {
-    "category": "processing",
-    "cost": 15000,
-    "cost_items": {
-      "Res2": 63,
-      "Ti": 500
-    },
-    "effects": [],
-    "flavor": "",
-    "name": "Precious Metal Refining",
-    "parent": null,
-    "req_tech": "deep_space_nav",
-    "tier": 3,
-    "type": "technology",
-    "unlocks": [
-      "Platinum Extraction",
-      "Precious Metal Dredge"
-    ]
-  },
-  "processing_tungsten": {
-    "category": "combat",
-    "cost": 1000,
-    "cost_items": {
-      "Res1": 10
-    },
-    "effects": [],
-    "flavor": "",
-    "name": "Processing Tungsten",
-    "parent": "smelting",
-    "tier": 2,
-    "type": "technology",
-    "unlocks": [
-      "Tungsten Sabot Rounds (T2)"
-    ]
-  },
-  "pyrolysis_control": {
-    "category": "processing",
-    "cost": 400,
-    "cost_items": {
-      "Res1": 5
-    },
-    "effects": [
-      {
-        "bonus": 0.25,
-        "id": "charcoal_burning",
-        "stacks": false,
-        "type": "action_speed"
-      }
-    ],
-    "flavor": "",
-    "name": "Pyrolysis Control",
-    "parent": "combustion",
-    "tier": 1,
-    "type": "technology",
-    "unlocks": []
-  },
-  "quantum_dynamics": {
-    "category": "infrastructure",
-    "cost": 5000000,
-    "cost_items": {
-      "ColonyDataCore": 50,
-      "ExoticIsotope": 400,
-      "QuantumCore": 400,
-      "RadIsotope": 20000,
-      "Res3": 10000,
-      "VoidArtifact": 50
-    },
-    "effects": [],
-    "flavor": "",
-    "name": "Quantum Dynamics",
-    "parent": "capital_ship_engineering",
-    "tier": 4,
-    "type": "technology",
-    "unlocks": [
-      "Fusion Core",
-      "Antimatter Generator",
-      "Zero-Point Module"
-    ]
-  },
-  "quantum_separators": {
-    "category": "processing",
-    "cost": 5000,
-    "cost_items": {
-      "AdvCircuit": 25,
-      "Res3": 25
-    },
-    "effects": [
-      {
-        "bonus": 0.75,
-        "id": "centrifuge_dirt",
-        "stack_chain": [
-          "High-RPM Centrifuges",
-          "Mag-Lev Bearings"
-        ],
-        "stacks": true,
-        "type": "action_speed"
-      }
-    ],
-    "flavor": "",
-    "name": "Quantum Separators",
-    "parent": "maglev_bearings",
-    "tier": 3,
-    "type": "technology",
-    "unlocks": []
-  },
-  "radiation_shielding": {
-    "category": "zone",
-    "cost": 250000,
-    "cost_items": {
-      "AdvCircuit": 113,
-      "Al": 750,
-      "Co": 375,
-      "Superalloy": 188
-    },
-    "effects": [],
-    "flavor": "Gates Exotic Matter Analysis research.",
-    "name": "Radiation Shielding Theory",
-    "parent": "deep_space_nav",
-    "tier": 4,
-    "type": "technology",
-    "unlocks": [
-      "Sector Gamma (Radioactive)"
-    ]
-  },
-  "resonance_splitters": {
-    "category": "processing",
-    "cost": 7500,
-    "cost_items": {
-      "AdvCircuit": 25,
-      "Res3": 25
-    },
-    "effects": [
-      {
-        "bonus": 0.75,
-        "id": "electrolysis",
-        "stack_chain": [
-          "Catalytic Electrodes",
-          "Ion-Exchange Membranes"
-        ],
-        "stacks": true,
-        "type": "action_speed"
-      }
-    ],
-    "flavor": "",
-    "name": "Resonance Splitters",
-    "parent": "ion_exchange",
-    "tier": 3,
-    "type": "technology",
-    "unlocks": []
-  },
-  "sector_alpha_decryption": {
-    "category": "zone",
-    "cost": 50000,
-    "cost_items": {
-      "NavData": 15,
-      "Res1": 125
-    },
-    "effects": [],
-    "flavor": "",
-    "name": "Sector Scanning (Alpha)",
-    "parent": "zone_5_access",
-    "tier": 5,
-    "type": "technology",
-    "unlocks": [
-      "Sector Alpha (scan)"
-    ]
-  },
-  "shield_harmonics": {
-    "category": "combat",
-    "cost": 2000,
-    "cost_items": {
-      "Res1": 10
-    },
-    "effects": [
-      {
-        "bonus": 0.2,
-        "type": "bonus_yield",
-        "what": "Shield Regeneration speed"
-      }
-    ],
-    "flavor": "",
-    "name": "Shield Harmonics",
-    "parent": "energy_shields",
-    "tier": 2,
-    "type": "technology",
-    "unlocks": []
-  },
-  "shipwright_1": {
-    "category": "ships",
-    "cost": 50000,
-    "cost_items": {
-      "Circuit": 25,
-      "Res1": 50,
-      "Steel": 50
-    },
-    "effects": [],
-    "flavor": "",
-    "name": "Shipwright I",
-    "parent": "power_systems",
-    "req_tech": "smelting",
-    "tier": 2,
-    "type": "technology",
-    "unlocks": [
-      "Industrial Frigate"
-    ]
-  },
-  "shipwright_2": {
-    "category": "ships",
-    "cost": 1000000,
-    "cost_items": {
-      "Res2": 500
-    },
-    "effects": [],
-    "flavor": "",
-    "name": "Shipwright II",
-    "parent": "shipwright_1",
-    "tier": 3,
-    "type": "technology",
-    "unlocks": [
-      "Destroyer"
-    ]
-  },
-  "smelting": {
-    "category": "processing",
-    "cost": 3750,
-    "cost_items": {
-      "Circuit": 5,
-      "Res1": 10
-    },
-    "effects": [],
-    "flavor": "",
-    "name": "Efficient Smelting",
-    "parent": "combustion",
-    "tier": 2,
-    "type": "technology",
-    "unlocks": [
-      "Basic Steel Smelting",
-      "Galvanized Steel"
-    ]
-  },
-  "superalloy_engineering": {
-    "category": "processing",
-    "cost": 100000,
-    "cost_items": {
-      "Co": 250,
-      "Cr": 125,
-      "Ni": 250,
-      "Ti": 250
-    },
-    "effects": [],
-    "flavor": "",
-    "name": "Superalloy Engineering",
-    "parent": "metallurgy_advanced",
-    "tier": 3,
-    "type": "technology",
-    "unlocks": [
-      "Superalloy"
-    ]
-  },
-  "superfluid_intake": {
-    "category": "gathering",
-    "cost": 1500,
-    "cost_items": {
-      "Res2": 38
-    },
-    "effects": [
-      {
-        "bonus": 0.5,
-        "id": "collect_water",
-        "stack_chain": [
-          "High-Flow Pumps",
-          "Hydro-Vortex Arrays"
-        ],
-        "stacks": true,
-        "type": "action_speed"
-      }
-    ],
-    "flavor": "",
-    "name": "Superfluid Intake",
-    "parent": "high_flow_pumps",
-    "tier": 2,
-    "type": "technology",
-    "unlocks": []
-  },
-  "ultrasonic_drills": {
-    "category": "gathering",
-    "cost": 1000,
-    "cost_items": {
-      "Res1": 250
-    },
-    "effects": [
-      {
-        "bonus": 0.5,
-        "id": "gather_dirt",
-        "stack_chain": [
-          "Diamond Tipped Drills",
-          "Plasma Bore"
-        ],
-        "stacks": true,
-        "type": "action_speed"
-      }
-    ],
-    "flavor": "",
-    "name": "Ultrasonic Drills",
-    "parent": "diamond_drills",
-    "tier": 2,
-    "type": "technology",
-    "unlocks": []
-  },
-  "void_navigation": {
-    "category": "zone",
-    "cost": 50000000,
-    "cost_items": {
-      "AncientTech": 5,
-      "BiohazardSample": 20,
-      "ExoticMatter": 20,
-      "QuantumCore": 600,
-      "QuarantineClearance": 1,
-      "VoidCrystal": 1000
-    },
-    "effects": [],
-    "flavor": "",
-    "name": "Void Navigation",
-    "parent": "void_physics",
-    "tier": 4,
-    "type": "technology",
-    "unlocks": [
-      "Sector Epsilon — The Void",
-      "Void Rift Anchor",
-      "Chrono-Siphon"
-    ]
-  },
-  "void_physics": {
-    "category": "meta",
-    "cost": 5000000,
-    "cost_items": {
-      "AntimatterParticle": 100,
-      "QuantumCore": 200,
-      "VoidCrystal": 400
-    },
-    "effects": [],
-    "flavor": "Gates Void Navigation research.",
-    "name": "Extreme Void Physics",
-    "parent": "exotic_matter_analysis",
-    "tier": 4,
-    "type": "technology",
-    "unlocks": []
-  },
-  "void_shielding_1": {
-    "category": "combat",
-    "cost": 25000000,
-    "cost_items": {
-      "BiohazardSample": 5,
-      "OmegaPlating": 500,
-      "Os": 240,
-      "PrimordialShard": 60,
-      "RegenPlating": 80,
-      "VoidEssence": 200
-    },
-    "effects": [
-      {
-        "bonus": 0.05,
-        "type": "bonus_yield",
-        "what": "Total Ship Shields"
-      }
-    ],
-    "flavor": "",
-    "name": "Void Shielding Optimization",
-    "parent": null,
-    "req_tech": "void_navigation",
-    "tier": 4,
-    "type": "technology",
-    "unlocks": []
-  },
-  "void_weaponry_1": {
-    "category": "combat",
-    "cost": 25000000,
-    "cost_items": {
-      "BioWeaponCoating": 100,
-      "BiohazardSample": 5,
-      "ChronoCore": 200,
-      "PrimordialShard": 60,
-      "VoidEssence": 500
-    },
-    "effects": [
-      {
-        "bonus": 0.05,
-        "type": "bonus_yield",
-        "what": "Total Ship Damage"
-      }
-    ],
-    "flavor": "",
-    "name": "Void Weaponry Optimization",
-    "parent": null,
-    "req_tech": "void_navigation",
-    "tier": 4,
-    "type": "technology",
-    "unlocks": []
-  },
-  "warp_drive": {
-    "category": "meta",
-    "cost": 12500,
-    "cost_items": {
-      "NavData": 50,
-      "Res3": 25,
-      "Ti": 500
-    },
-    "effects": [],
-    "flavor": "Required for Deep Space Navigation research.",
-    "name": "Warp Drive Theory",
-    "parent": "shipwright_2",
-    "tier": 3,
-    "type": "technology",
-    "unlocks": [
-      "Meson Oscillator"
-    ]
-  },
-  "xeno_archaeology": {
-    "category": "meta",
-    "cost": 5000,
-    "cost_items": {
-      "NavData": 5,
-      "VoidArtifact": 1
-    },
-    "effects": [],
-    "flavor": "",
-    "name": "Xeno-Archaeology",
-    "parent": "sector_alpha_decryption",
-    "tier": 3,
-    "type": "technology",
-    "unlocks": [
-      "Analyze Void Artifact"
-    ]
-  },
-  "xeno_engineering": {
-    "category": "processing",
-    "cost": 10000,
-    "cost_items": {
-      "Circuit": 50,
-      "SalvageData": 10
-    },
-    "effects": [],
-    "flavor": "Xeno-research path — content TBD.",
-    "name": "Xeno-Engineering",
-    "parent": "automated_logistics",
-    "tier": 3,
-    "type": "technology",
-    "unlocks": []
-  },
-  "zone_10_access": {
-    "category": "zone",
-    "cost": 45776367,
-    "cost_items": {
-      "AdvCircuit": 300000,
-      "ChronoCore": 200,
-      "Superalloy": 240000,
-      "Z9_Core": 5
-    },
-    "effects": [],
-    "flavor": "End-game industrial empire.",
-    "name": "Void Navigation",
-    "parent": "zone_9_access",
-    "tier": 10,
-    "type": "technology",
-    "unlocks": [
-      "Sector Epsilon",
-      "Zone 10 modules",
-      "Leviathan"
-    ]
-  },
-  "zone_2_access": {
-    "category": "zone",
-    "cost": 30000,
-    "cost_items": {
-      "Cu": 50,
-      "Fe": 100,
-      "Z1_Core": 1
-    },
-    "effects": [],
-    "flavor": "",
-    "name": "Asteroid Belt Authorization",
-    "parent": null,
-    "req_tech": "shipwright_1",
-    "tier": 2,
-    "type": "technology",
-    "unlocks": [
-      "Asteroid Belt",
-      "Zone 2 modules fabrication"
-    ]
-  },
-  "zone_3_access": {
-    "category": "zone",
-    "cost": 75000,
-    "cost_items": {
-      "Circuit": 150,
-      "Steel": 500,
-      "Z2_Core": 1
-    },
-    "effects": [],
-    "flavor": "Bulk refined materials — start automating.",
-    "name": "Mars Debris Clearance",
-    "parent": "zone_2_access",
-    "tier": 3,
-    "type": "technology",
-    "unlocks": [
-      "Mars Debris Field",
-      "Zone 3 modules fabrication"
-    ]
-  },
-  "zone_4_access": {
-    "category": "zone",
-    "cost": 187500,
-    "cost_items": {
-      "Circuit": 1500,
-      "Steel": 4500,
-      "Ti": 2625,
-      "Z3_Core": 2
-    },
-    "effects": [],
-    "flavor": "Hand-supply is impractical here — build extraction.",
-    "name": "Cryofield Expedition",
-    "parent": "zone_3_access",
-    "tier": 4,
-    "type": "technology",
-    "unlocks": [
-      "Cryofield zone",
-      "Zone 4 modules",
-      "Heavy Cruiser"
-    ]
-  },
-  "zone_5_access": {
-    "category": "zone",
-    "cost": 468750,
-    "cost_items": {
-      "AdvCircuit": 1875,
-      "Steel": 11250,
-      "Superalloy": 600,
-      "Z4_Core": 2
-    },
-    "effects": [],
-    "flavor": "Sustained automated output required.",
-    "name": "Sector Alpha Decryption",
-    "parent": "zone_4_access",
-    "tier": 5,
-    "type": "technology",
-    "unlocks": [
-      "Sector Alpha",
-      "Zone 5 modules",
-      "Battlecruiser"
-    ]
-  },
-  "zone_6_access": {
-    "category": "zone",
-    "cost": 1171875,
-    "cost_items": {
-      "AdvCircuit": 12000,
-      "Superalloy": 6000,
-      "Ti": 40000,
-      "Z5_Core": 3
-    },
-    "effects": [],
-    "flavor": "Mature industrial base required.",
-    "name": "Deep Space Navigation",
-    "parent": "zone_5_access",
-    "tier": 6,
-    "type": "technology",
-    "unlocks": [
-      "Sector Beta",
-      "Zone 6 modules",
-      "Capital Ship"
-    ]
-  },
-  "zone_7_access": {
-    "category": "zone",
-    "cost": 2929687,
-    "cost_items": {
-      "AdvCircuit": 30000,
-      "Superalloy": 18000,
-      "W": 4000,
-      "Z6_Core": 3
-    },
-    "effects": [],
-    "flavor": "Heavy automation + Tungsten extraction.",
-    "name": "Radiation Shielding",
-    "parent": "zone_6_access",
-    "tier": 7,
-    "type": "technology",
-    "unlocks": [
-      "Sector Gamma",
-      "Zone 7 modules",
-      "Carrier"
-    ]
-  },
-  "zone_8_access": {
-    "category": "zone",
-    "cost": 7324218,
-    "cost_items": {
-      "AdvCircuit": 60000,
-      "Ir": 1200,
-      "Superalloy": 44000,
-      "Z7_Core": 4
-    },
-    "effects": [],
-    "flavor": "Full-scale industrial economy.",
-    "name": "Exotic Matter Analysis",
-    "parent": "zone_7_access",
-    "tier": 8,
-    "type": "technology",
-    "unlocks": [
-      "Sector Delta",
-      "Zone 8 modules",
-      "Dreadnought"
-    ]
-  },
-  "zone_9_access": {
-    "category": "zone",
-    "cost": 18310546,
-    "cost_items": {
-      "AdvCircuit": 120000,
-      "Os": 800,
-      "Superalloy": 100000,
-      "Z8_Core": 4
-    },
-    "effects": [],
-    "flavor": "Deep automated supply chains.",
-    "name": "Quarantine Protocols",
-    "parent": "zone_8_access",
-    "tier": 9,
-    "type": "technology",
-    "unlocks": [
-      "Sector Zeta",
-      "Zone 9 modules",
-      "Titan"
-    ]
-  }
+    "stacks": true,
+    "type": "action_speed"
+   }
+  ],
+  "flavor": "",
+  "name": "Ultrasonic Drills",
+  "parent": "diamond_drills",
+  "tier": 2,
+  "type": "technology",
+  "unlocks": []
+ },
+ "void_navigation": {
+  "category": "zone",
+  "cost": 50000000,
+  "cost_items": {
+   "AncientTech": 5,
+   "BiohazardSample": 20,
+   "ExoticMatter": 20,
+   "QuantumCore": 600,
+   "QuarantineClearance": 1,
+   "VoidCrystal": 1000
+  },
+  "effects": [],
+  "flavor": "",
+  "name": "Void Navigation",
+  "parent": "void_physics",
+  "tier": 4,
+  "type": "technology",
+  "unlocks": [
+   "Sector Epsilon \u2014 The Void",
+   "Void Rift Anchor",
+   "Chrono-Siphon"
+  ]
+ },
+ "void_physics": {
+  "category": "meta",
+  "cost": 5000000,
+  "cost_items": {
+   "AntimatterParticle": 100,
+   "QuantumCore": 200,
+   "VoidCrystal": 400
+  },
+  "effects": [],
+  "flavor": "Gates Void Navigation research.",
+  "name": "Extreme Void Physics",
+  "parent": "exotic_matter_analysis",
+  "tier": 4,
+  "type": "technology",
+  "unlocks": []
+ },
+ "void_shielding_1": {
+  "category": "combat",
+  "cost": 25000000,
+  "cost_items": {
+   "BiohazardSample": 5,
+   "OmegaPlating": 500,
+   "Os": 240,
+   "PrimordialShard": 60,
+   "RegenPlating": 80,
+   "VoidEssence": 200
+  },
+  "effects": [
+   {
+    "bonus": 0.05,
+    "type": "bonus_yield",
+    "what": "Total Ship Shields"
+   }
+  ],
+  "flavor": "",
+  "name": "Void Shielding Optimization",
+  "parent": null,
+  "req_tech": "void_navigation",
+  "tier": 4,
+  "type": "technology",
+  "unlocks": []
+ },
+ "void_weaponry_1": {
+  "category": "combat",
+  "cost": 25000000,
+  "cost_items": {
+   "BioWeaponCoating": 100,
+   "BiohazardSample": 5,
+   "ChronoCore": 200,
+   "PrimordialShard": 60,
+   "VoidEssence": 500
+  },
+  "effects": [
+   {
+    "bonus": 0.05,
+    "type": "bonus_yield",
+    "what": "Total Ship Damage"
+   }
+  ],
+  "flavor": "",
+  "name": "Void Weaponry Optimization",
+  "parent": null,
+  "req_tech": "void_navigation",
+  "tier": 4,
+  "type": "technology",
+  "unlocks": []
+ },
+ "warp_drive": {
+  "category": "meta",
+  "cost": 12500,
+  "cost_items": {
+   "NavData": 50,
+   "Res3": 25,
+   "Ti": 500
+  },
+  "effects": [],
+  "flavor": "Required for Deep Space Navigation research.",
+  "name": "Warp Drive Theory",
+  "parent": "shipwright_2",
+  "tier": 3,
+  "type": "technology",
+  "unlocks": [
+   "Meson Oscillator"
+  ]
+ },
+ "xeno_archaeology": {
+  "category": "meta",
+  "cost": 5000,
+  "cost_items": {
+   "NavData": 5,
+   "VoidArtifact": 1
+  },
+  "effects": [],
+  "flavor": "",
+  "name": "Xeno-Archaeology",
+  "parent": "sector_alpha_decryption",
+  "tier": 3,
+  "type": "technology",
+  "unlocks": [
+   "Analyze Void Artifact"
+  ]
+ },
+ "xeno_engineering": {
+  "category": "processing",
+  "cost": 10000,
+  "cost_items": {
+   "Circuit": 50,
+   "SalvageData": 10
+  },
+  "effects": [],
+  "flavor": "Xeno-research path \u2014 content TBD.",
+  "name": "Xeno-Engineering",
+  "parent": "automated_logistics",
+  "tier": 3,
+  "type": "technology",
+  "unlocks": []
+ },
+ "zone_10_access": {
+  "category": "zone",
+  "cost": 45776367,
+  "cost_items": {
+   "AdvCircuit": 300000,
+   "ChronoCore": 200,
+   "Superalloy": 240000,
+   "Z9_Core": 5
+  },
+  "effects": [],
+  "flavor": "End-game industrial empire.",
+  "name": "Void Navigation",
+  "parent": "zone_9_access",
+  "tier": 10,
+  "type": "technology",
+  "unlocks": [
+   "Sector Epsilon",
+   "Zone 10 modules",
+   "Leviathan"
+  ]
+ },
+ "zone_2_access": {
+  "category": "zone",
+  "cost": 30000,
+  "cost_items": {
+   "Cu": 50,
+   "Fe": 100,
+   "Z1_Core": 1
+  },
+  "effects": [],
+  "flavor": "",
+  "name": "Asteroid Belt Authorization",
+  "parent": null,
+  "req_tech": "shipwright_1",
+  "tier": 2,
+  "type": "technology",
+  "unlocks": [
+   "Asteroid Belt",
+   "Zone 2 modules fabrication"
+  ]
+ },
+ "zone_3_access": {
+  "category": "zone",
+  "cost": 75000,
+  "cost_items": {
+   "Circuit": 150,
+   "Steel": 500,
+   "Z2_Core": 1
+  },
+  "effects": [],
+  "flavor": "Bulk refined materials \u2014 start automating.",
+  "name": "Mars Debris Clearance",
+  "parent": "zone_2_access",
+  "tier": 3,
+  "type": "technology",
+  "unlocks": [
+   "Mars Debris Field",
+   "Zone 3 modules fabrication"
+  ]
+ },
+ "zone_4_access": {
+  "category": "zone",
+  "cost": 187500,
+  "cost_items": {
+   "Circuit": 1500,
+   "Steel": 4500,
+   "Ti": 2625,
+   "Z3_Core": 2
+  },
+  "effects": [],
+  "flavor": "Hand-supply is impractical here \u2014 build extraction.",
+  "name": "Cryofield Expedition",
+  "parent": "zone_3_access",
+  "tier": 4,
+  "type": "technology",
+  "unlocks": [
+   "Cryofield zone",
+   "Zone 4 modules",
+   "Heavy Cruiser"
+  ]
+ },
+ "zone_5_access": {
+  "category": "zone",
+  "cost": 468750,
+  "cost_items": {
+   "AdvCircuit": 1875,
+   "Steel": 11250,
+   "Superalloy": 600,
+   "Z4_Core": 2
+  },
+  "effects": [],
+  "flavor": "Sustained automated output required.",
+  "name": "Sector Alpha Decryption",
+  "parent": "zone_4_access",
+  "tier": 5,
+  "type": "technology",
+  "unlocks": [
+   "Sector Alpha",
+   "Zone 5 modules",
+   "Battlecruiser"
+  ]
+ },
+ "zone_6_access": {
+  "category": "zone",
+  "cost": 1171875,
+  "cost_items": {
+   "AdvCircuit": 12000,
+   "Superalloy": 6000,
+   "Ti": 40000,
+   "Z5_Core": 3
+  },
+  "effects": [],
+  "flavor": "Mature industrial base required.",
+  "name": "Deep Space Navigation",
+  "parent": "zone_5_access",
+  "tier": 6,
+  "type": "technology",
+  "unlocks": [
+   "Sector Beta",
+   "Zone 6 modules",
+   "Capital Ship"
+  ]
+ },
+ "zone_7_access": {
+  "category": "zone",
+  "cost": 2929687,
+  "cost_items": {
+   "AdvCircuit": 30000,
+   "Superalloy": 18000,
+   "W": 4000,
+   "Z6_Core": 3
+  },
+  "effects": [],
+  "flavor": "Heavy automation + Tungsten extraction.",
+  "name": "Radiation Shielding",
+  "parent": "zone_6_access",
+  "tier": 7,
+  "type": "technology",
+  "unlocks": [
+   "Sector Gamma",
+   "Zone 7 modules",
+   "Carrier"
+  ]
+ },
+ "zone_8_access": {
+  "category": "zone",
+  "cost": 7324218,
+  "cost_items": {
+   "AdvCircuit": 60000,
+   "Ir": 1200,
+   "Superalloy": 44000,
+   "Z7_Core": 4
+  },
+  "effects": [],
+  "flavor": "Full-scale industrial economy.",
+  "name": "Exotic Matter Analysis",
+  "parent": "zone_7_access",
+  "tier": 8,
+  "type": "technology",
+  "unlocks": [
+   "Sector Delta",
+   "Zone 8 modules",
+   "Dreadnought"
+  ]
+ },
+ "zone_9_access": {
+  "category": "zone",
+  "cost": 18310546,
+  "cost_items": {
+   "AdvCircuit": 120000,
+   "Os": 800,
+   "Superalloy": 100000,
+   "Z8_Core": 4
+  },
+  "effects": [],
+  "flavor": "Deep automated supply chains.",
+  "name": "Quarantine Protocols",
+  "parent": "zone_8_access",
+  "tier": 9,
+  "type": "technology",
+  "unlocks": [
+   "Sector Zeta",
+   "Zone 9 modules",
+   "Titan"
+  ]
+ },
+ "corrosion_armaments": {
+  "name": "Corrosion Armaments",
+  "category": "ships",
+  "cost": 500000,
+  "cost_items": {
+   "ExoticMatter": 15,
+   "CryoEssence": 40,
+   "OmegaPlating": 30
+  },
+  "effects": [],
+  "flavor": "Corrosion-channel armaments \u2014 breach the Rift Warden's second phase.",
+  "parent": "cryo_armaments",
+  "req_tech": "cryo_armaments",
+  "requires_warp": true,
+  "tier": 5,
+  "type": "technology",
+  "unlocks": [
+   "Corrosion Blaster"
+  ]
+ }
 }

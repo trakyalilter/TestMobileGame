@@ -819,6 +819,9 @@ func ship_weapons() -> Array:
 			"dmg_e": ke * eng_mult * dmg_mult * ge * trin_all * trin_e,
 			"dmg_x": kx * eng_mult * dmg_mult * trin_all * trin_x,
 			"dmg_cryo": kc * eng_mult * dmg_mult * trin_all * tree_cryo_bonus(),
+			# v0.2.1 NG+: exotic channel type (cryo by default, corrosion for Z12
+			# armaments) — gates which phase the exotic damage breaches.
+			"exotic_type": String(st.get("exotic_element", m.get("exotic_type", "cryo"))),
 			"interval": maxf(0.3, float(st.get("atk_interval", 2.5)) / maxf(0.2, speed)), "timer": randf_range(0.0, 0.4)})
 	if out.is_empty():
 		var h: Dictionary = GameData.HULLS.get(active_hull, {})
@@ -3468,6 +3471,10 @@ func _win_combat() -> void:
 	if killed_id == "z10_boss_leviathan" and not game_flags.get("z11_unlocked", false):
 		game_flags["z11_unlocked"] = true
 		_event("SECTOR 11 DETECTED", "8cd9ff", "player")
+	# v0.2.1 NG+ P3: clearing the Z11 Threshold Warden reveals Zone 12 "The Rift".
+	if killed_id == "z11_boss_threshold_warden" and not game_flags.get("z12_unlocked", false):
+		game_flags["z12_unlocked"] = true
+		_event("SECTOR 12 — THE RIFT DETECTED", "8fdcff", "player")
 	# v86.0 Hazard gauntlet progression: advance the wave instead of re-engaging.
 	if hazard_state.get("active", false):
 		hazard_state["wave"] = int(hazard_state["wave"]) + 1

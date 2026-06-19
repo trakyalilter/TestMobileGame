@@ -304,6 +304,9 @@ for eid, en in enemies.items():
         "drop_pool": en.get("module_drop_pool", []),
         "loot": loot,
         "xp": en.get("xp", 0),
+        # v0.2.1 NG+ P1: multi-phase boss gate (element bands + off-element cut).
+        "phases": en.get("phases", []),
+        "phase_cut": float(en.get("phase_cut", 0.15)),
     }
     lines.append(f"\t{g(eid)}: {g(d)},")
 lines.append("}")
@@ -424,6 +427,8 @@ TAB_NODES = {
         "void_weaponry_1", "void_shielding_1",
         # Cryo (Warp-gated weapon tech, floats as a root)
         "cryo_armaments",
+        # Corrosion (NG+ Z12 weapon tech — chains off cryo_armaments)
+        "corrosion_armaments",
         # Efficiency passives
         "combat_heuristics", "shield_harmonics", "hull_hardening", "core_overclocking",
         # Auto-Repair

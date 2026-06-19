@@ -1,144 +1,157 @@
 {
-  "asteroid_belt": {
-    "desc": "Dense asteroid field. Pirates and territorial fauna.",
-    "difficulty": 2,
-    "enemies": [
-      "z2_pirate_skiff",
-      "z2_silicate_golem",
-      "z2_claim_jumper",
-      "z2_ore_hauler",
-      "z2_boss_monolith"
-    ],
-    "name": "Asteroid Belt",
-    "research_req": "zone_2_access"
-  },
-  "cryofield": {
-    "desc": "Frozen deep-space anomaly. Cryo-adapted hostiles.",
-    "difficulty": 4,
-    "enemies": [
-      "z4_ice_wraith",
-      "z4_cryo_sentinel",
-      "z4_frost_hulk",
-      "z4_glacial_drone",
-      "z4_boss_overseer"
-    ],
-    "name": "Cryofield",
-    "research_req": "zone_4_access"
-  },
-  "lunar_orbit": {
-    "desc": "Low threat sector populated by rogue mining drones.",
-    "difficulty": 1,
-    "enemies": [
-      "z1_dust_mite",
-      "z1_lunar_drone",
-      "z1_scrap_collector",
-      "z1_survey_probe",
-      "z1_boss_architect"
-    ],
-    "name": "Lunar Orbit"
-  },
-  "mars_debris": {
-    "desc": "War-torn debris. Salvage mechs and derelict defenses.",
-    "difficulty": 3,
-    "enemies": [
-      "z3_scavenger_mech",
-      "z3_martian_sentry",
-      "z3_salvage_swarm",
-      "z3_derelict_frigate",
-      "z3_boss_warmaster"
-    ],
-    "name": "Mars Debris Field",
-    "research_req": "zone_3_access"
-  },
-  "sector_alpha": {
-    "desc": "Xenon-controlled territory. Advanced alien technology.",
-    "difficulty": 5,
-    "enemies": [
-      "z5_xenon_scout",
-      "z5_xenon_corvette",
-      "z5_alien_frigate",
-      "z5_alien_probe",
-      "z5_boss_harbinger"
-    ],
-    "name": "Sector Alpha",
-    "research_req": "zone_5_access"
-  },
-  "sector_beta": {
-    "desc": "Abandoned mining colony. Automated defense systems.",
-    "difficulty": 6,
-    "enemies": [
-      "z6_defense_turret",
-      "z6_mining_golem",
-      "z6_rad_beast",
-      "z6_ore_guardian",
-      "z6_boss_colossus"
-    ],
-    "name": "Sector Beta",
-    "research_req": "zone_6_access"
-  },
-  "sector_delta": {
-    "desc": "Crystal nebula. Prismatic entities and void anomalies.",
-    "difficulty": 8,
-    "enemies": [
-      "z8_prism_drone",
-      "z8_crystal_golem",
-      "z8_void_stalker",
-      "z8_nebula_phantom",
-      "z8_boss_warden"
-    ],
-    "name": "Sector Delta",
-    "research_req": "zone_8_access"
-  },
-  "sector_epsilon": {
-    "desc": "Beyond known space. Primordial entities and temporal anomalies.",
-    "difficulty": 10,
-    "enemies": [
-      "z10_void_stalker",
-      "z10_temporal_phantom",
-      "z10_omega_sentinel",
-      "z10_primordial_titan",
-      "z10_boss_leviathan"
-    ],
-    "name": "Sector Epsilon",
-    "research_req": "zone_10_access"
-  },
-  "sector_gamma": {
-    "desc": "Deep space void. Energy wraiths and exotic matter.",
-    "difficulty": 7,
-    "enemies": [
-      "z7_shard_swarm",
-      "z7_energy_wraith",
-      "z7_void_hunter",
-      "z7_gamma_beast",
-      "z7_boss_sovereign"
-    ],
-    "name": "Sector Gamma",
-    "research_req": "zone_7_access"
-  },
-  "sector_zeta": {
-    "desc": "Quarantine zone. Biological horrors and rogue AI.",
-    "difficulty": 9,
-    "enemies": [
-      "z9_plague_drone",
-      "z9_bio_horror",
-      "z9_rogue_ai",
-      "z9_quarantine_mech",
-      "z9_boss_patient_zero"
-    ],
-    "name": "Sector Zeta",
-    "research_req": "zone_9_access"
-  },
-  "the_threshold": {
-    "desc": "Warp-Hardened space. Hostiles are immune to conventional armaments — only Cryogenic weapons (unlocked by Warping) breach them.",
-    "difficulty": 11,
-    "enemies": [
-      "z11_warp_revenant",
-      "z11_phase_horror",
-      "z11_null_sentinel",
-      "z11_exotic_leviathan",
-      "z11_boss_threshold_warden"
-    ],
-    "name": "Sector 11 — The Threshold",
-    "unlock_flag": "z11_unlocked"
-  }
+ "asteroid_belt": {
+  "desc": "Dense asteroid field. Pirates and territorial fauna.",
+  "difficulty": 2,
+  "enemies": [
+   "z2_pirate_skiff",
+   "z2_silicate_golem",
+   "z2_claim_jumper",
+   "z2_ore_hauler",
+   "z2_boss_monolith"
+  ],
+  "name": "Asteroid Belt",
+  "research_req": "zone_2_access"
+ },
+ "cryofield": {
+  "desc": "Frozen deep-space anomaly. Cryo-adapted hostiles.",
+  "difficulty": 4,
+  "enemies": [
+   "z4_ice_wraith",
+   "z4_cryo_sentinel",
+   "z4_frost_hulk",
+   "z4_glacial_drone",
+   "z4_boss_overseer"
+  ],
+  "name": "Cryofield",
+  "research_req": "zone_4_access"
+ },
+ "lunar_orbit": {
+  "desc": "Low threat sector populated by rogue mining drones.",
+  "difficulty": 1,
+  "enemies": [
+   "z1_dust_mite",
+   "z1_lunar_drone",
+   "z1_scrap_collector",
+   "z1_survey_probe",
+   "z1_boss_architect"
+  ],
+  "name": "Lunar Orbit"
+ },
+ "mars_debris": {
+  "desc": "War-torn debris. Salvage mechs and derelict defenses.",
+  "difficulty": 3,
+  "enemies": [
+   "z3_scavenger_mech",
+   "z3_martian_sentry",
+   "z3_salvage_swarm",
+   "z3_derelict_frigate",
+   "z3_boss_warmaster"
+  ],
+  "name": "Mars Debris Field",
+  "research_req": "zone_3_access"
+ },
+ "sector_alpha": {
+  "desc": "Xenon-controlled territory. Advanced alien technology.",
+  "difficulty": 5,
+  "enemies": [
+   "z5_xenon_scout",
+   "z5_xenon_corvette",
+   "z5_alien_frigate",
+   "z5_alien_probe",
+   "z5_boss_harbinger"
+  ],
+  "name": "Sector Alpha",
+  "research_req": "zone_5_access"
+ },
+ "sector_beta": {
+  "desc": "Abandoned mining colony. Automated defense systems.",
+  "difficulty": 6,
+  "enemies": [
+   "z6_defense_turret",
+   "z6_mining_golem",
+   "z6_rad_beast",
+   "z6_ore_guardian",
+   "z6_boss_colossus"
+  ],
+  "name": "Sector Beta",
+  "research_req": "zone_6_access"
+ },
+ "sector_delta": {
+  "desc": "Crystal nebula. Prismatic entities and void anomalies.",
+  "difficulty": 8,
+  "enemies": [
+   "z8_prism_drone",
+   "z8_crystal_golem",
+   "z8_void_stalker",
+   "z8_nebula_phantom",
+   "z8_boss_warden"
+  ],
+  "name": "Sector Delta",
+  "research_req": "zone_8_access"
+ },
+ "sector_epsilon": {
+  "desc": "Beyond known space. Primordial entities and temporal anomalies.",
+  "difficulty": 10,
+  "enemies": [
+   "z10_void_stalker",
+   "z10_temporal_phantom",
+   "z10_omega_sentinel",
+   "z10_primordial_titan",
+   "z10_boss_leviathan"
+  ],
+  "name": "Sector Epsilon",
+  "research_req": "zone_10_access"
+ },
+ "sector_gamma": {
+  "desc": "Deep space void. Energy wraiths and exotic matter.",
+  "difficulty": 7,
+  "enemies": [
+   "z7_shard_swarm",
+   "z7_energy_wraith",
+   "z7_void_hunter",
+   "z7_gamma_beast",
+   "z7_boss_sovereign"
+  ],
+  "name": "Sector Gamma",
+  "research_req": "zone_7_access"
+ },
+ "sector_zeta": {
+  "desc": "Quarantine zone. Biological horrors and rogue AI.",
+  "difficulty": 9,
+  "enemies": [
+   "z9_plague_drone",
+   "z9_bio_horror",
+   "z9_rogue_ai",
+   "z9_quarantine_mech",
+   "z9_boss_patient_zero"
+  ],
+  "name": "Sector Zeta",
+  "research_req": "zone_9_access"
+ },
+ "the_threshold": {
+  "desc": "Warp-Hardened space. Hostiles are immune to conventional armaments \u2014 only Cryogenic weapons (unlocked by Warping) breach them.",
+  "difficulty": 11,
+  "enemies": [
+   "z11_warp_revenant",
+   "z11_phase_horror",
+   "z11_null_sentinel",
+   "z11_exotic_leviathan",
+   "z11_boss_threshold_warden"
+  ],
+  "name": "Sector 11 \u2014 The Threshold",
+  "unlock_flag": "z11_unlocked"
+ },
+ "the_rift": {
+  "name": "Sector 12 \u2014 The Rift",
+  "desc": "A corrosive tear in space. The Rift Warden hardens against Cryo, then Corrosion \u2014 breach each phase with the matching armament.",
+  "difficulty": 12,
+  "enemies": [
+   "z12_acid_revenant",
+   "z12_rust_horror",
+   "z12_corrosion_sentinel",
+   "z12_caustic_leviathan",
+   "z12_boss_rift_warden"
+  ],
+  "unlock_flag": "z12_unlocked"
+ }
 }
