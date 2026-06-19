@@ -185,6 +185,13 @@ func _boot() -> void:
 	_eq_b("goal_cryo_2 = craft cryo_lance", str(mm.missions.get("goal_cryo_2", {}).get("target", "")) == "cryo_lance", true)
 	_eq_b("goal_cryo_3 = defeat z11_warp_revenant", str(mm.missions.get("goal_cryo_3", {}).get("target", "")) == "z11_warp_revenant", true)
 
+	print("[PHASE] ---- v119 Z1 explosive teach beat (m026d2/d3) ----")
+	_eq_b("m026d -> m026d2 (rerouted)", str(mm.missions.get("m026d", {}).get("next_mission", "")) == "m026d2", true)
+	_eq_b("m026d2 = gather MissileT1 (HE Missiles)", str(mm.missions.get("m026d2", {}).get("type", "")) == "gather" and str(mm.missions.get("m026d2", {}).get("target", "")) == "MissileT1", true)
+	_eq_b("m026d3 = loadout_rare_weapon_type explosive x1", str(mm.missions.get("m026d3", {}).get("type", "")) == "loadout_rare_weapon_type" and str(mm.missions.get("m026d3", {}).get("target", "")) == "explosive" and int(mm.missions.get("m026d3", {}).get("target_qty", 0)) == 1, true)
+	_eq_b("m026d3 -> m026e (boss)", str(mm.missions.get("m026d3", {}).get("next_mission", "")) == "m026e", true)
+	_eq_b("Z1 boss weak to explosive (resist_x<0)", float(cm.enemy_db.get("z1_boss_architect", {}).get("resist_x", 0.0)) < 0.0, true)
+
 	print("[PHASE] ---- Corrosion research tier-gated to Z12 ----")
 	_eq_b("corrosion_armaments requires_flag=z12_unlocked", str(GameState.research_manager.tech_tree.get("corrosion_armaments", {}).get("requires_flag", "")) == "z12_unlocked", true)
 	_eq_b("cryo_armaments requires_flag=cryo_unlocked (hidden pre-warp)", str(GameState.research_manager.tech_tree.get("cryo_armaments", {}).get("requires_flag", "")) == "cryo_unlocked", true)

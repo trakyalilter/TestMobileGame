@@ -1243,12 +1243,21 @@ func spawn_enemy():
 	# effective values (only the bounded ENEMY_COMP catch-up below applies),
 	# which keeps Z11 tuning predictable instead of ×3.7-ballooned.
 	if _ezone >= 3 and not e_data.get("warp_hardened", false) and (e_data.get("phases", []) as Array).is_empty():
-		# v103c: gate via OFFENSE, not HP. HP-sponging just made fights long
-		# but still winnable (sustain race). Eased HP, kept DEF, added ATK so
-		# sub-zone defensive stats can't survive the kill time; zone-N gear can.
-		var _zhp: float = 1.7 + 0.25 * float(_ezone - 3)   # z3 ≈1.7× … z10 ≈3.45×
-		var _zdef: float = 1.7                             # 0.80 mitig clamp keeps it killable
-		var _zatk: float = 1.7 + 0.20 * float(_ezone - 3)  # z3 ≈1.7× … z10 ≈3.1× — the real gate
+		# v120: SOFT-GATE recalibration. The old v103c curve (atk 1.7→3.1×) was
+		# tuned assuming the player carries core/affix EHP — a freshly-crafted
+		# CLEAN current-tier Common (the intended back-half solution) couldn't
+		# survive it from z6 on (sim-confirmed). Eased so a clean Common clears
+		# the back half at every zone; the gate now lives in the Common's raw
+		# tier-step lead over a (lower-base) carried N-1 Legendary, not in
+		# enemy ATK that only core-EHP gear can outlast. Tune vs gating_spike.
+		# Rises through z8, then PLATEAUS: past z8 the ATK ramp outpaced what a
+		# sustain-less clean Common can tank (it died at z9/z10 e3 while a carried
+		# Legendary's heal-on-hit affixes outlasted it — inverting the cycle). The
+		# cap holds z9-z10 at z8's Common-survivable level; the late-game gate is
+		# the boss + the warp wall (Z11), not ever-climbing regular ATK.
+		var _zhp: float = min(2.10, 1.45 + 0.13 * float(_ezone - 3))  # z3 ≈1.45× … z8+ ≈2.10×
+		var _zdef: float = 1.5                                        # 0.80 mitig clamp keeps it killable
+		var _zatk: float = min(1.95, 1.45 + 0.10 * float(_ezone - 3)) # z3 ≈1.45× … z8+ ≈1.95×
 		current_enemy["max_hp"] = int(current_enemy["max_hp"] * _zhp)
 		current_enemy["def"] = int(current_enemy["def"] * _zdef)
 		current_enemy["atk"] = int(current_enemy["atk"] * _zatk)
@@ -1358,11 +1367,8 @@ func _rebuild_player_weapon_states() -> void:
 	player_weapon_states.clear()
 	var equipped_weapons = []
 
-	# v65.4: Engineering skill_mult applied to weapon damage
-	var engineering_lvl = 1
-	if GameState.processing_manager:
-		engineering_lvl = GameState.processing_manager.get_level()
-	var weapon_skill_mult = 1.0 + (engineering_lvl * 0.01)
+	# v119: Engineering skill no longer buffs weapon damage — combat damage is
+	# loadout/warp/research-driven (matches the balance model the sims use).
 
 	for s_idx in sm.loadout:
 		var mid = sm.loadout[s_idx]
@@ -1389,10 +1395,10 @@ func _rebuild_player_weapon_states() -> void:
 					"timer": randf_range(0.0, 0.5),
 					"interval": m_stats.get("atk_interval", 2.5),
 					# v107: Warp Mastery Tree — C2 Weapon Tuning (+10% module damage)
-					"dmg_k": m_stats.get("atk_kinetic", 0) * weapon_skill_mult * GameState.warp_manager.get_tree_damage_bonus(),
-					"dmg_e": m_stats.get("atk_energy", 0) * weapon_skill_mult * GameState.warp_manager.get_tree_damage_bonus(),
-					"dmg_x": m_stats.get("atk_explosive", 0) * weapon_skill_mult * GameState.warp_manager.get_tree_damage_bonus(),
-					"dmg_cryo": m_stats.get("atk_cryo", 0) * weapon_skill_mult * GameState.warp_manager.get_tree_damage_bonus() * GameState.warp_manager.get_tree_cryo_bonus(),  # v109: +C5 Cryo Overcharge
+					"dmg_k": m_stats.get("atk_kinetic", 0) * GameState.warp_manager.get_tree_damage_bonus(),
+					"dmg_e": m_stats.get("atk_energy", 0) * GameState.warp_manager.get_tree_damage_bonus(),
+					"dmg_x": m_stats.get("atk_explosive", 0) * GameState.warp_manager.get_tree_damage_bonus(),
+					"dmg_cryo": m_stats.get("atk_cryo", 0) * GameState.warp_manager.get_tree_damage_bonus() * GameState.warp_manager.get_tree_cryo_bonus(),  # v109: +C5 Cryo Overcharge
 					"slot_idx": int(s_idx),
 					"energy_load": m_stats.get("energy_load", 0)
 				})
@@ -2808,7 +2814,7 @@ func _offline_winnable() -> bool:
 	var enemy_ehp: float = float(max(enemy_max_hp, enemy_hp)) + float(enemy_max_shield)
 	return enemy_ehp <= 0.0 or (enemy_ehp / dps) <= 1800.0
 
-func calculate_offline(delta: float) -> String:
+func calculate_offline(delta: float):
 	if not in_combat or not current_zone or not current_enemy:
 		return ""
 	# Don't award offline kills against an enemy the ship can't actually beat
@@ -2866,13 +2872,20 @@ func calculate_offline(delta: float) -> String:
 	add_xp(total_xp)
 	total_kills += num_kills   # count offline kills (no per-kill signal offline)
 	
-	# Build report
-	var report = "Combat Offline Gains (%d kills):\n" % num_kills
-	for item in loot_summary:
-		var d_name = "Liras" if item == "credits" else (ElementDB.get_display_name(item) if ElementDB else item)
-		report += " + %s: %d\n" % [d_name, loot_summary[item]]
+	# v112: structured offline block (was a formatted string). Liras fold into
+	# `gains` under "credits" so the ledger renders them as one row.
+	var gains = loot_summary.duplicate()
 	if credits_earned > 0:
-		report += " + Liras: %d\n" % credits_earned
-	report += " + XP: %d" % total_xp
-	
-	return report
+		gains["credits"] = credits_earned
+	return {
+		"category": "combat",
+		"title": "Combat Sweep",
+		"action": "",
+		"time_sec": int(delta),
+		"actions": num_kills,
+		"xp": total_xp,
+		"gains": gains,
+		"drains": {},
+		"notes": [],
+		"status": "active",
+	}

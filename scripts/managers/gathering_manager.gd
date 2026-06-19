@@ -530,16 +530,20 @@ func calculate_offline(delta: float):
 		loot_summary[element] = loot_summary.get(element, 0) + total
 		GameState.note_production("gather", total)  # P3.10
 	
-	var report = "Off-World Operations (%s):\n" % current_action['name']
-	report += "Time: %dm %ds\n" % [int(delta / 60), int(delta) % 60]
-	report += "Actions Completed: %d\n" % num_actions
-	report += "XP Gained: %d\n" % total_xp
-	report += "Loot Gathered:\n"
-	
-	for item in loot_summary:
-		report += " - %s: %d\n" % [item, loot_summary[item]]
-		
-	return report
+	# v112: structured offline block (was a formatted string) — the telemetry
+	# welcome modal aggregates these numerically. See game_state.offline_report_data.
+	return {
+		"category": "gathering",
+		"title": "Off-World Operations",
+		"action": current_action.get("name", current_action_id),
+		"time_sec": int(delta),
+		"actions": num_actions,
+		"xp": total_xp,
+		"gains": loot_summary.duplicate(),
+		"drains": {},
+		"notes": [],
+		"status": "active",
+	}
 
 func get_save_data_manager() -> Dictionary:
 	var data = get_save_data() # super

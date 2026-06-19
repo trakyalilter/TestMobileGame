@@ -182,6 +182,10 @@ func _build_testing_section() -> void:
 
 	body.add_child(HSeparator.new())
 
+	_build_offline_debug(body)
+
+	body.add_child(HSeparator.new())
+
 	var tele_title := Label.new()
 	tele_title.text = "Balance Telemetry (debug)"
 	tele_title.add_theme_font_size_override("font_size", 12)
@@ -706,6 +710,36 @@ func _build_warp_debug(body: VBoxContainer) -> void:
 	reset_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	reset_btn.pressed.connect(_on_test_reset_warp_reveal_pressed)
 	row2.add_child(reset_btn)
+
+
+func _build_offline_debug(body: VBoxContainer) -> void:
+	var title := Label.new()
+	title.text = "Offline Welcome (debug)"
+	title.add_theme_font_size_override("font_size", 12)
+	title.add_theme_color_override("font_color", Color(0.66, 0.7, 0.8))
+	body.add_child(title)
+
+	var hint := Label.new()
+	hint.text = "Replays the offline welcome-back telemetry with a sample 15h report (multiple activities + a long material list, so the scrollable cargo ledger is exercised)."
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hint.add_theme_font_size_override("font_size", 10)
+	hint.add_theme_color_override("font_color", Color(0.55, 0.58, 0.65))
+	body.add_child(hint)
+
+	var btn := _primary_button("PREVIEW OFFLINE WELCOME", FRAME_CAT)
+	btn.custom_minimum_size = Vector2(0, 38)
+	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn.pressed.connect(_on_test_offline_preview_pressed)
+	body.add_child(btn)
+
+
+func _on_test_offline_preview_pressed() -> void:
+	var main_scene = get_tree().current_scene
+	var modal = main_scene.get("offline_modal") if main_scene else null
+	if modal and is_instance_valid(modal) and modal.has_method("debug_preview"):
+		modal.debug_preview()
+	else:
+		UITheme.show_notification("Offline modal unavailable.", Color.RED)
 
 
 func _on_test_grant_liras_pressed() -> void:

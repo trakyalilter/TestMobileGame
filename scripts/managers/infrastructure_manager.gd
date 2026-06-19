@@ -1622,13 +1622,18 @@ func process_tick(delta: float):
 			upkeep_efficiency = _upkeep_efficiency_for(n)  # P2.6 throttle for next cycle
 			_apply_upkeep(n)
 
-func calculate_offline(delta: float) -> String:
+func calculate_offline(delta: float):
 	# Offline Industry
 	# 1. Energy check (static)
 	if net_energy < 0:
-		return "Infrastructure:\nGrid Offline (Negative Energy)."
-	
-	var report = ""
+		# v112: structured offline block (was a formatted string).
+		return {
+			"category": "infrastructure", "title": "Infrastructure Grid", "action": "",
+			"time_sec": int(delta), "actions": 0, "xp": 0,
+			"gains": {}, "drains": {}, "status": "standby",
+			"notes": ["Grid offline — negative energy."],
+		}
+
 	var loot_summary = {}
 
 	# P2.6: throttle offline production by the upkeep fraction the player can
@@ -1711,29 +1716,37 @@ func calculate_offline(delta: float) -> String:
 				_award_infra_mastery_xp(bid, float(cycles))
 
 	
-	if not loot_summary.is_empty():
-		report += "Infrastructure Production (Offline):\n"
-		for item in loot_summary:
-			report += " + %s: %s\n" % [item, FormatUtils.format_number(loot_summary[item])]
-			
+	# v112: structured offline block (was a formatted string).
+	var notes: Array = []
+
 	# Audit v9.0 P2-23: Special Buff Reporting
 	if get_building_count("biosphere_dome") > 0:
 		var bonus = get_building_count("biosphere_dome") * 5
-		report += " + Biosphere Domes: +%d%% Gather Speed Active\n" % bonus
+		notes.append("Biosphere Domes: +%d%% gather speed active" % bonus)
 
 	# v104: Offline upkeep — closed-form, whole intervals only. Grid is
 	# guaranteed live here (negative-energy case returned early above).
 	var upkeep := _apply_upkeep(int(delta / UPKEEP_INTERVAL))
-	if not upkeep.is_empty():
-		report += "Infrastructure Upkeep (Offline):\n"
-		for item in upkeep:
-			report += " - %s: %s\n" % [item, FormatUtils.format_number(upkeep[item])]
 
 	# Transparency: never silently throttle — tell the player why output was low.
 	if upkeep_efficiency < 0.999:
-		report += "Infrastructure throttled to %d%% — upkeep ran short.\n" % int(upkeep_efficiency * 100.0)
+		notes.append("Throttled to %d%% — upkeep ran short." % int(upkeep_efficiency * 100.0))
 
-	return report
+	if loot_summary.is_empty() and upkeep.is_empty() and notes.is_empty():
+		return null
+
+	return {
+		"category": "infrastructure",
+		"title": "Infrastructure Grid",
+		"action": "",
+		"time_sec": int(delta),
+		"actions": 0,
+		"xp": 0,
+		"gains": loot_summary.duplicate(),
+		"drains": upkeep.duplicate(),
+		"notes": notes,
+		"status": "active",
+	}
 
 func get_save_data_manager() -> Dictionary:
 	var data = get_save_data()

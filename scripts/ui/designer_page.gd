@@ -1611,6 +1611,7 @@ func rebuild_storage():
 				_spatial.add_item(ammo_card, 1, 1, manager.get_armory_pos(ammo_id))
 				ammo_card.setup(ammo_id, fake_data, qty)
 				ammo_card.is_selected = ammo_id in selected_mids
+				ammo_card.is_draggable = true   # drag onto a weapon's ammo slot (was missed when drag-to-equip was restored)
 				ammo_card.clicked.connect(_on_card_clicked)
 				slot_count += 1
 

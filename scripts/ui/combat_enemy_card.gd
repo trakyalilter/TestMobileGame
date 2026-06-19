@@ -90,7 +90,7 @@ func _build_combined_stats_row() -> void:
 	var atk := int(data["stats"]["atk"])
 	var def := int(data["stats"]["def"])
 
-	_add_stat_cell(hb, "♥", UITheme.format_num(hp), Color(0.95, 0.55, 0.55))
+	_add_stat_cell(hb, "hp", "♥", UITheme.format_num(hp), Color(0.95, 0.55, 0.55))
 
 	var dmg_tag := "KIN"
 	var dmg_col := Color(0.92, 0.66, 0.32)
@@ -101,9 +101,9 @@ func _build_combined_stats_row() -> void:
 		"explosive":
 			dmg_tag = "EXP"
 			dmg_col = Color(1.0, 0.55, 0.35)
-	_add_stat_cell(hb, "⚔", "%s %s" % [UITheme.format_num(atk), dmg_tag], dmg_col)
+	_add_stat_cell(hb, "atk", "⚔", "%s %s" % [UITheme.format_num(atk), dmg_tag], dmg_col)
 
-	_add_stat_cell(hb, "⛨", str(def), Color(0.65, 0.85, 0.95))
+	_add_stat_cell(hb, "def", "⛨", str(def), Color(0.65, 0.85, 0.95))
 
 	# Right-align affinity chips on the same row, separator dot in between.
 	var spacer := Control.new()
@@ -139,22 +139,50 @@ func _build_combined_stats_row() -> void:
 			hb.add_child(_make_chip("▼%s" % tag, Color(0.50, 1.0, 0.55), 8))
 
 
-func _add_stat_cell(parent: Node, glyph: String, value: String, accent: Color) -> void:
+func _add_stat_cell(parent: Node, icon_key: String, fallback_glyph: String, value: String, accent: Color) -> void:
 	var cell := HBoxContainer.new()
-	cell.add_theme_constant_override("separation", 3)
+	cell.add_theme_constant_override("separation", 4)
 	parent.add_child(cell)
 
-	var g := Label.new()
-	g.text = glyph
-	g.add_theme_font_size_override("font_size", 11)
-	g.add_theme_color_override("font_color", accent)
-	cell.add_child(g)
+	# v115: custom SVG stat glyph — HP heart / ATK target-reticle (no more
+	# melee crossed-swords in a ship-combat game) / DEF shield. White art tinted
+	# per-stat via modulate. Falls back to the unicode glyph until the editor
+	# reimports the new SVGs (load() returns null until then) — no broken state.
+	var tex := _stat_icon(icon_key)
+	if tex:
+		var ir := TextureRect.new()
+		ir.texture = tex
+		ir.modulate = accent
+		# EXPAND_IGNORE_SIZE: don't let the 64px source texture dictate the min
+		# size (the default KEEP_SIZE made the icons render huge). Pin to 15px.
+		ir.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ir.custom_minimum_size = Vector2(15, 15)
+		ir.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		ir.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		ir.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		ir.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cell.add_child(ir)
+	else:
+		var g := Label.new()
+		g.text = fallback_glyph
+		g.add_theme_font_size_override("font_size", 11)
+		g.add_theme_color_override("font_color", accent)
+		cell.add_child(g)
 
 	var v := Label.new()
 	v.text = value
 	v.add_theme_font_size_override("font_size", 11)
 	v.add_theme_color_override("font_color", Color(0.92, 0.92, 0.92))
 	cell.add_child(v)
+
+
+# Loads a stat glyph SVG, or null if it isn't imported yet (→ glyph fallback).
+# ResourceLoader.exists guards against console error-spam pre-reimport.
+func _stat_icon(key: String) -> Texture2D:
+	var path := "res://assets/icons/glyphs/%s.svg" % key
+	if ResourceLoader.exists(path):
+		return load(path) as Texture2D
+	return null
 
 
 # ─── Loot inline: single line with a small caption prefix ──────────

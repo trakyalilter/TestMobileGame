@@ -89,7 +89,6 @@ func _setup_ship(id: String):
 	
 	var stats = data["stats"]
 	_add_stat("Hull Points", str(stats["hp"]))
-	_add_stat("Base Attack", str(stats["atk"]))
 	_add_stat("Capacity", str(stats["energy_capacity"]))
 	_add_stat("Slots", str(data["slots"].size()))
 	

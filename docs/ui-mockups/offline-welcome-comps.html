@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Horizon Idle — Offline Welcome-Back Comps</title>
+<style>
+  :root{
+    --void:#000;            /* the modal's true black backdrop */
+    --bg:#0e0f17; --panel:#14151f; --panel2:#1b1d28; --deep:#0a0b12;
+    --text:#e6e6f2; --dim:#9a9ab2; --faint:#5a5b70;
+    --gold:#ffd24a;         /* headline gold (current) */
+    --cyan:#33d6ff;         /* SYSTEM RESTORE cyan */
+    --green:#66e699;        /* loot / positive */
+    --steel:#8fb7d6;        /* metals */
+    --amber:#ffb454;
+    --red:#ff8a7a;          /* drains / upkeep */
+    --purple:#c78cff;       /* exotic / prestige */
+    --lira:#ffd14c;         /* Liras */
+    /* category accents (CATEGORY_COLORS) */
+    --ops:#ff9d33;          /* gathering / off-world ops */
+    --eng:#33ccff;          /* processing / engineering */
+    --infra:#66e066;        /* infrastructure */
+    --combat:#ff5050;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#070710;color:var(--text);
+    font-family:"Bahnschrift","Segoe UI Variable Display",Eurostile,Arial,sans-serif;
+    padding:30px 26px 90px;}
+  .num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+  .mono{font-family:"Consolas","Courier New",monospace}
+
+  h1{font-size:20px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#fff}
+  .lead{font-size:12.5px;color:var(--dim);line-height:1.6;letter-spacing:.4px;margin:8px 0 4px;max-width:920px}
+  .lead b{color:var(--gold);font-weight:600}
+  .rec{margin:14px 0 30px;font-size:12.5px;color:var(--text);background:rgba(102,230,153,.07);
+    border:1px solid rgba(102,230,153,.22);border-left:3px solid var(--green);border-radius:6px;
+    padding:11px 15px;max-width:920px;line-height:1.6}
+  .rec b{color:var(--green)}
+
+  .case{margin:0 0 44px}
+  .caption{display:flex;align-items:baseline;gap:14px;margin-bottom:4px}
+  .caption .tag{font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;
+    color:#fff;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);
+    border-radius:5px;padding:3px 10px}
+  .caption h2{font-size:16px;font-weight:600;letter-spacing:1.5px;color:#fff}
+  .why{font-size:12px;color:var(--dim);line-height:1.55;margin:5px 0 14px;max-width:880px}
+  .why .pro{color:var(--green)} .why .con{color:var(--amber)}
+
+  /* the 16:9 game viewport — true-black like the real modal */
+  .screen{position:relative;width:100%;max-width:920px;aspect-ratio:16/9;background:var(--void);
+    border:1px solid rgba(255,255,255,.08);border-radius:8px;overflow:hidden;
+    box-shadow:0 18px 50px rgba(0,0,0,.6)}
+  .replay{margin:10px 0 0;font-size:11px;letter-spacing:1.5px;color:var(--dim);
+    background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:5px;
+    padding:6px 13px;cursor:pointer;text-transform:uppercase}
+  .replay:hover{background:rgba(255,255,255,.1);color:#fff}
+
+  /* faint boot-log strip (shared lead-in flavour, kept short) */
+  .bootlog{position:absolute;top:14px;left:18px;font-family:"Consolas",monospace;font-size:9.5px;
+    letter-spacing:1px;color:var(--faint);line-height:1.7;text-transform:uppercase}
+  .bootlog .ok{color:#3a6e4a}
+
+  /* reveal animation */
+  @keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  @keyframes pop{0%{opacity:0;transform:scale(.6)}60%{opacity:1;transform:scale(1.12)}100%{transform:scale(1)}}
+  @keyframes sweep{from{width:0}}
+  .replaying .rv{animation:rise .55s cubic-bezier(.2,.9,.3,1) both}
+  .replaying .rv2{animation:pop .5s cubic-bezier(.2,1.3,.5,1) both}
+  .replaying .rv-bar>span{animation:sweep 1.1s cubic-bezier(.3,.9,.3,1) both}
+
+  /* ======================================================================
+     A · MISSION DEBRIEF  — premium framed dossier, reuses Cargo-Manifest chips
+     ====================================================================== */
+  .a-wrap{position:absolute;inset:0;display:grid;place-items:center;padding:30px}
+  .a-card{width:660px;background:linear-gradient(180deg,#10111b,#0c0d15);
+    border:1px solid rgba(255,210,74,.30);position:relative}
+  /* L-bracket chrome corners */
+  .a-card::before,.a-card::after{content:"";position:absolute;width:16px;height:16px;pointer-events:none}
+  .a-card::before{top:-1px;left:-1px;border-top:2px solid var(--gold);border-left:2px solid var(--gold)}
+  .a-card::after{bottom:-1px;right:-1px;border-bottom:2px solid var(--gold);border-right:2px solid var(--gold)}
+  .a-corner{position:absolute;width:16px;height:16px;pointer-events:none}
+  .a-corner.tr{top:-1px;right:-1px;border-top:2px solid var(--gold);border-right:2px solid var(--gold)}
+  .a-corner.bl{bottom:-1px;left:-1px;border-bottom:2px solid var(--gold);border-left:2px solid var(--gold)}
+  .a-head{display:flex;justify-content:space-between;align-items:center;
+    background:linear-gradient(90deg,rgba(255,210,74,.14),rgba(255,210,74,.02));
+    border-bottom:2px solid var(--gold);padding:11px 18px}
+  .a-head .t{font-size:14px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:#fff}
+  .a-head .t span{color:var(--gold);margin-right:7px}
+  .a-head .away{font-size:12px;letter-spacing:1px;color:var(--gold);text-transform:uppercase}
+  .a-head .away b{font-size:16px;font-weight:700;margin-left:5px}
+  .a-hero{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:rgba(255,255,255,.06);
+    margin:16px 18px 6px;border:1px solid rgba(255,255,255,.07)}
+  .a-hero .cell{background:#0c0d15;padding:11px 8px;text-align:center}
+  .a-hero .v{font-size:25px;font-weight:700;line-height:1;letter-spacing:.5px}
+  .a-hero .k{font-size:9.5px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;margin-top:5px}
+  .a-hero .loot .v{color:var(--green)} .a-hero .xp .v{color:var(--gold)} .a-hero .act .v{color:var(--text)}
+  .a-list{padding:8px 18px 4px;display:flex;flex-direction:column;gap:8px}
+  .a-act{background:rgba(255,255,255,.022);border-left:3px solid var(--c);border-radius:0 5px 5px 0;
+    padding:8px 12px}
+  .a-act .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px}
+  .a-act .nm{font-size:12.5px;font-weight:600;letter-spacing:.6px;color:#fff}
+  .a-act .nm em{color:var(--c);font-style:normal;font-weight:700;letter-spacing:1.5px;
+    font-size:10px;text-transform:uppercase;margin-right:8px}
+  .a-act .meta{font-size:10.5px;color:var(--dim);letter-spacing:.5px}
+  .a-act .meta .xpv{color:var(--gold)}
+  .a-chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{display:flex;align-items:center;gap:7px;background:rgba(10,12,20,.85);
+    border-left:3px solid var(--g,#888);border-radius:4px;padding:3px 9px 3px 7px}
+  .chip .ic{width:18px;height:18px;border-radius:4px;display:grid;place-items:center;font-size:9px;
+    font-weight:800;background:linear-gradient(160deg,#2b3550,#161c2b);border:1px solid rgba(255,255,255,.14);
+    color:var(--g)}
+  .chip .nme{font-size:9px;letter-spacing:1.5px;color:var(--dim);text-transform:uppercase}
+  .chip .dl{font-size:13px;font-weight:700;color:var(--g);margin-left:2px}
+  .chip.drain{border-left-color:var(--red)} .chip.drain .dl{color:var(--red)} .chip.drain .ic{color:var(--red)}
+  .a-foot{display:flex;justify-content:space-between;align-items:center;
+    border-top:1px solid rgba(255,255,255,.07);margin:8px 0 0;padding:12px 18px}
+  .a-foot .sys{font-size:10px;letter-spacing:2px;color:var(--faint);text-transform:uppercase}
+  .btn{font-size:12.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;
+    border-radius:4px;padding:9px 18px;color:#fff;border:1px solid var(--ops);
+    border-top-width:2px;background:linear-gradient(180deg,rgba(255,157,51,.28),rgba(255,157,51,.10))}
+  .btn:hover{background:rgba(255,157,51,.4);box-shadow:0 0 14px rgba(255,157,51,.4)}
+
+  /* ======================================================================
+     B · TACTICAL TELEMETRY  — diegetic console, radial elapsed gauge, ledger
+     ====================================================================== */
+  .b-wrap{position:absolute;inset:0;padding:26px 38px;
+    background:
+      repeating-linear-gradient(0deg,transparent 0 3px,rgba(51,214,255,.025) 3px 4px),
+      radial-gradient(120% 80% at 50% -10%,rgba(51,214,255,.08),transparent 60%)}
+  .b-corner{position:absolute;width:22px;height:22px;border-color:rgba(51,214,255,.5)}
+  .b-corner.tl{top:14px;left:18px;border-top:1px solid;border-left:1px solid}
+  .b-corner.tr{top:14px;right:18px;border-top:1px solid;border-right:1px solid}
+  .b-corner.br{bottom:14px;right:18px;border-bottom:1px solid;border-right:1px solid}
+  .b-corner.bl{bottom:14px;left:18px;border-bottom:1px solid;border-left:1px solid}
+  .b-title{text-align:center;font-family:Consolas,monospace;font-size:11px;letter-spacing:4px;
+    color:var(--cyan);text-transform:uppercase;text-shadow:0 0 10px rgba(51,214,255,.5);margin:2px 0 14px}
+  .b-mid{display:flex;gap:26px;align-items:center;justify-content:center;margin-bottom:14px}
+  .gauge{width:128px;height:128px;border-radius:50%;flex:none;display:grid;place-items:center;
+    background:conic-gradient(var(--cyan) 0 63%,rgba(51,214,255,.12) 63% 100%);
+    box-shadow:0 0 22px rgba(51,214,255,.25)}
+  .gauge .inner{width:104px;height:104px;border-radius:50%;background:#070b12;display:grid;place-items:center;
+    text-align:center;border:1px solid rgba(51,214,255,.25)}
+  .gauge .big{font-size:21px;font-weight:700;color:#fff;line-height:1}
+  .gauge .lbl{font-size:8px;letter-spacing:3px;color:var(--cyan);text-transform:uppercase;margin-top:4px}
+  .b-channels{font-family:Consolas,monospace;font-size:11.5px;min-width:280px}
+  .b-channels .ch{display:flex;align-items:center;gap:8px;padding:3px 0;letter-spacing:.5px}
+  .b-channels .led{width:8px;height:8px;border-radius:50%;flex:none}
+  .b-channels .on{background:var(--green);box-shadow:0 0 8px var(--green)}
+  .b-channels .off{background:#33405a}
+  .b-channels .cn{color:var(--text);min-width:118px;text-transform:uppercase}
+  .b-channels .dots{flex:1;border-bottom:1px dotted rgba(255,255,255,.18);margin:0 4px;height:9px}
+  .b-channels .vv{color:var(--cyan)} .b-channels .st{color:var(--faint);min-width:54px;text-align:right}
+  .b-channels .off~.st,.b-channels .ch.idle .cn{color:var(--faint)}
+  .b-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:0 auto 14px;max-width:560px}
+  .b-stat{border:1px solid rgba(51,214,255,.25);background:rgba(51,214,255,.04);padding:8px 11px;position:relative}
+  .b-stat .k{font-size:8.5px;letter-spacing:2px;color:var(--cyan);text-transform:uppercase}
+  .b-stat .v{font-family:Consolas,monospace;font-size:20px;font-weight:700;color:#fff;margin-top:3px}
+  .b-ledger{max-width:560px;margin:0 auto;font-family:Consolas,monospace;font-size:11px}
+  .b-ledger .lh{font-size:9px;letter-spacing:3px;color:var(--cyan);text-transform:uppercase;margin-bottom:6px}
+  .b-row{display:flex;align-items:center;gap:9px;padding:2px 0}
+  .b-row .tk{width:3px;height:13px;background:var(--g);flex:none}
+  .b-row .sy{color:var(--text);min-width:64px;letter-spacing:1px}
+  .b-row .bar{flex:1;height:8px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden}
+  .b-row .bar>span{display:block;height:100%;background:var(--g);border-radius:2px}
+  .b-row .am{min-width:74px;text-align:right;color:var(--g);font-weight:700}
+  .b-row.drain .sy,.b-row.drain .am{color:var(--red)} .b-row.drain .tk{background:var(--red)}
+  .b-btn{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);
+    font-family:Consolas,monospace;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--cyan);
+    border:1px solid var(--cyan);background:rgba(51,214,255,.08);padding:9px 26px;cursor:pointer;border-radius:3px}
+  .b-btn:hover{background:rgba(51,214,255,.2);box-shadow:0 0 16px rgba(51,214,255,.4);color:#fff}
+
+  /* ======================================================================
+     C · SALVAGE MANIFEST  — loot is the hero, faceted recovered-cargo tokens
+     ====================================================================== */
+  .c-wrap{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;padding:24px;gap:0}
+  .c-eyebrow{font-size:10px;letter-spacing:5px;color:var(--dim);text-transform:uppercase}
+  .c-hero{font-size:30px;font-weight:700;letter-spacing:4px;text-transform:uppercase;color:#fff;
+    margin:4px 0 2px;text-shadow:0 0 22px rgba(255,210,74,.25)}
+  .c-hero span{color:var(--gold)}
+  .c-away{font-size:11px;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:20px}
+  .c-tokens{display:flex;gap:18px;margin-bottom:24px}
+  .tok{width:96px;text-align:center}
+  .tok .hex{width:80px;height:88px;margin:0 auto;position:relative;display:grid;place-items:center;
+    clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);
+    background:linear-gradient(160deg,var(--g),#0a0c14 130%);
+    box-shadow:0 0 0 1px rgba(255,255,255,.12) inset,0 8px 20px rgba(0,0,0,.5)}
+  .tok .hex::after{content:"";position:absolute;inset:0;
+    clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);
+    background:linear-gradient(160deg,rgba(255,255,255,.22),transparent 45%)}
+  .tok .sym{position:relative;font-size:13px;font-weight:800;letter-spacing:1px;color:#fff;
+    text-shadow:0 1px 3px rgba(0,0,0,.6)}
+  .tok .ct{font-size:18px;font-weight:700;color:#fff;margin-top:9px;line-height:1}
+  .tok .nm{font-size:9px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;margin-top:3px}
+  .c-rule{width:540px;max-width:90%;border-top:1px solid rgba(255,255,255,.1);margin-bottom:12px}
+  .c-manifest{width:540px;max-width:90%}
+  .c-manifest .mh{font-size:9px;letter-spacing:3px;color:var(--faint);text-transform:uppercase;margin-bottom:7px}
+  .c-line{display:flex;align-items:baseline;gap:10px;font-size:11.5px;padding:3px 0;letter-spacing:.4px}
+  .c-line .cdot{width:6px;height:6px;border-radius:50%;background:var(--c);flex:none;transform:translateY(-1px)}
+  .c-line .cn{color:var(--text)} .c-line .cn em{color:var(--dim);font-style:normal}
+  .c-line .ct{margin-left:auto;color:var(--dim)} .c-line .cx{color:var(--gold);font-weight:600}
+  .c-btn{margin-top:24px;font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;
+    color:#0a0a0a;cursor:pointer;border:none;border-radius:5px;padding:11px 30px;
+    background:linear-gradient(180deg,#ffe27a,var(--gold));box-shadow:0 0 20px rgba(255,210,74,.35)}
+  .c-btn:hover{box-shadow:0 0 28px rgba(255,210,74,.6)}
+</style>
+</head>
+<body>
+
+  <h1>Offline Welcome-Back · Redesign Directions</h1>
+  <p class="lead">The return screen is the idle genre's <b>single biggest retention beat</b> — the "fat report"
+    dopamine hit. Today it's flat left-aligned text on a void. Same sample data in every mock:
+    <b>15h 11m</b> away · Excavate Soil (911m, 13,675 actions, +109.4K XP, +218,800 Dirt), plus a
+    Refinery + Infrastructure block to show how each design <b>scales to multiple activities</b> and handles
+    upkeep <b>drains</b> (red) and Liras.</p>
+  <p class="rec"><b>My pick: A (Mission Debrief).</b> It's the most scannable, scales cleanly to N activity
+    blocks, surfaces the hero numbers first, and reuses the <b>Cargo-Manifest loot chips</b> we already shipped —
+    so it feels native, not bolted on. B is the coolest theme but monospace+glow costs readability at a glance;
+    C celebrates loot hardest but buries per-skill XP, which matters for a skilling idle. Easy to graft C's
+    loot tokens into A's loot row if you want more treasure-punch.</p>
+
+  <!-- ============================ A ============================ -->
+  <div class="case">
+    <div class="caption"><span class="tag">A</span><h2>Mission Debrief</h2></div>
+    <p class="why">Framed dossier with chrome corners + command-bar header. Hero stat strip leads with the big
+      numbers; each activity is a category-tinted row with loot chips.
+      <span class="pro">+ Scannable, scales to N blocks, reuses shipped chip style, clear contextual CTA.</span>
+      <span class="con">– Densest of the three; less "wow" than C.</span></p>
+    <div class="screen" id="sa">
+      <div class="bootlog">&gt; core reactor online<br><span class="ok">&gt; aux power [ ok ]</span><br>&gt; logistics synced<br><span class="ok">&gt; integrity 100%</span></div>
+      <div class="a-wrap">
+        <div class="a-card">
+          <span class="a-corner tr"></span><span class="a-corner bl"></span>
+          <div class="a-head rv">
+            <div class="t"><span>◈</span>Welcome Back, Commander</div>
+            <div class="away">Away<b class="num">15h 11m</b></div>
+          </div>
+          <div class="a-hero rv">
+            <div class="cell loot"><div class="v num">218.8K</div><div class="k">Units Hauled</div></div>
+            <div class="cell xp"><div class="v num">109.4K</div><div class="k">Total XP</div></div>
+            <div class="cell act"><div class="v num">13,675</div><div class="k">Actions</div></div>
+          </div>
+          <div class="a-list">
+            <div class="a-act rv" style="--c:var(--ops)">
+              <div class="top"><div class="nm"><em>Off-World Ops</em>Excavate Soil</div>
+                <div class="meta num">911m · 13,675 actions · <span class="xpv">+109,400 XP</span></div></div>
+              <div class="a-chips">
+                <div class="chip" style="--g:var(--green)"><span class="ic">DRT</span><span class="nme">Dirt</span><span class="dl num">+218,800</span></div>
+              </div>
+            </div>
+            <div class="a-act rv" style="--c:var(--eng)">
+              <div class="top"><div class="nm"><em>Refinery Bay</em>Smelt Iron</div>
+                <div class="meta num">120m · 1,440 cycles · <span class="xpv">+24,000 XP</span></div></div>
+              <div class="a-chips">
+                <div class="chip" style="--g:var(--steel)"><span class="ic">Fe</span><span class="nme">Iron</span><span class="dl num">+4,200</span></div>
+                <div class="chip drain"><span class="ic">H₂O</span><span class="nme">Water</span><span class="dl num">−800</span></div>
+                <div class="chip drain"><span class="ic">DRT</span><span class="nme">Dirt</span><span class="dl num">−800</span></div>
+              </div>
+            </div>
+            <div class="a-act rv" style="--c:var(--infra)">
+              <div class="top"><div class="nm"><em>Infra Grid</em>Always-On</div>
+                <div class="meta">automated production</div></div>
+              <div class="a-chips">
+                <div class="chip" style="--g:var(--green)"><span class="ic">Si</span><span class="nme">Silicon</span><span class="dl num">+9,500</span></div>
+                <div class="chip" style="--g:var(--lira)"><span class="ic">⛁</span><span class="nme">Liras</span><span class="dl num">+12,400</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="a-foot rv">
+            <div class="sys">All systems nominal</div>
+            <button class="btn">Continue Gathering ▸</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <button class="replay" data-t="sa">▶ Replay reveal</button>
+  </div>
+
+  <!-- ============================ B ============================ -->
+  <div class="case">
+    <div class="caption"><span class="tag">B</span><h2>Tactical Telemetry</h2></div>
+    <p class="why">Full diegetic console: radial elapsed-time gauge, status-LED activity channels, monospace
+      telemetry blocks, scanline grid, a cargo ledger with bars.
+      <span class="pro">+ Strongest space-station fantasy; the boot-log flavour grows up into the whole screen.</span>
+      <span class="con">– Monospace + glow + bars are heavier to read; risks "cool but busy".</span></p>
+    <div class="screen" id="sb">
+      <div class="b-wrap">
+        <span class="b-corner tl"></span><span class="b-corner tr"></span><span class="b-corner br"></span><span class="b-corner bl"></span>
+        <div class="b-title rv">Offline Telemetry // Station Log — Restore Complete</div>
+        <div class="b-mid">
+          <div class="gauge rv2"><div class="inner"><div><div class="big num">15h 11m</div><div class="lbl">Elapsed</div></div></div></div>
+          <div class="b-channels rv">
+            <div class="ch"><span class="led on"></span><span class="cn">Off-World Ops</span><span class="dots"></span><span class="vv num">911m</span><span class="st">ACTIVE</span></div>
+            <div class="ch"><span class="led on"></span><span class="cn">Refinery Bay</span><span class="dots"></span><span class="vv num">120m</span><span class="st">ACTIVE</span></div>
+            <div class="ch"><span class="led on"></span><span class="cn">Infra Grid</span><span class="dots"></span><span class="vv">auto</span><span class="st">ACTIVE</span></div>
+            <div class="ch idle"><span class="led off"></span><span class="cn">Combat</span><span class="dots"></span><span class="vv">—</span><span class="st">STANDBY</span></div>
+          </div>
+        </div>
+        <div class="b-stats rv">
+          <div class="b-stat"><div class="k">XP Accrued</div><div class="v num">109,400</div></div>
+          <div class="b-stat"><div class="k">Units Hauled</div><div class="v num">218,800</div></div>
+          <div class="b-stat"><div class="k">Actions</div><div class="v num">13,675</div></div>
+        </div>
+        <div class="b-ledger rv rv-bar">
+          <div class="lh">Cargo Ledger</div>
+          <div class="b-row" style="--g:var(--green)"><span class="tk"></span><span class="sy">DIRT</span><span class="bar"><span style="width:96%"></span></span><span class="am num">+218,800</span></div>
+          <div class="b-row" style="--g:var(--steel)"><span class="tk"></span><span class="sy">Fe</span><span class="bar"><span style="width:22%"></span></span><span class="am num">+4,200</span></div>
+          <div class="b-row" style="--g:var(--green)"><span class="tk"></span><span class="sy">Si</span><span class="bar"><span style="width:34%"></span></span><span class="am num">+9,500</span></div>
+          <div class="b-row drain"><span class="tk"></span><span class="sy">WATER</span><span class="bar"><span style="width:8%"></span></span><span class="am num">−800</span></div>
+        </div>
+        <button class="b-btn">◈ Resume Operations</button>
+      </div>
+    </div>
+    <button class="replay" data-t="sb">▶ Replay reveal</button>
+  </div>
+
+  <!-- ============================ C ============================ -->
+  <div class="case">
+    <div class="caption"><span class="tag">C</span><h2>Salvage Manifest</h2></div>
+    <p class="why">Loot is the hero: faceted recovered-cargo tokens front and centre, activities demoted to a
+      compact manifest log below.
+      <span class="pro">+ Biggest dopamine punch; loot reads as treasure; ties to "Cargo Manifest" naming.</span>
+      <span class="con">– Per-skill XP gets buried; weaker when the haul is just one or two materials.</span></p>
+    <div class="screen" id="sc">
+      <div class="bootlog">&gt; core reactor online<br><span class="ok">&gt; integrity 100%</span></div>
+      <div class="c-wrap">
+        <div class="c-eyebrow rv">System Restore Complete</div>
+        <div class="c-hero rv">Cargo <span>Recovered</span></div>
+        <div class="c-away rv num">While you were away · 15h 11m</div>
+        <div class="c-tokens">
+          <div class="tok rv2"><div class="hex" style="--g:#6b5a3a"><span class="sym">DIRT</span></div><div class="ct num">218.8K</div><div class="nm">Dirt</div></div>
+          <div class="tok rv2"><div class="hex" style="--g:#3f6488"><span class="sym">Fe</span></div><div class="ct num">4,200</div><div class="nm">Iron</div></div>
+          <div class="tok rv2"><div class="hex" style="--g:#2f6e44"><span class="sym">Si</span></div><div class="ct num">9,500</div><div class="nm">Silicon</div></div>
+          <div class="tok rv2"><div class="hex" style="--g:#8a6e1f"><span class="sym">⛁</span></div><div class="ct num">12.4K</div><div class="nm">Liras</div></div>
+        </div>
+        <div class="c-rule rv"></div>
+        <div class="c-manifest rv">
+          <div class="mh">Manifest Log</div>
+          <div class="c-line"><span class="cdot" style="--c:var(--ops)"></span><span class="cn">Off-World Ops <em>· Excavate Soil</em></span><span class="ct num">911m&nbsp;&nbsp;<span class="cx">+109.4K XP</span></span></div>
+          <div class="c-line"><span class="cdot" style="--c:var(--eng)"></span><span class="cn">Refinery Bay <em>· Smelt Iron</em></span><span class="ct num">120m&nbsp;&nbsp;<span class="cx">+24K XP</span></span></div>
+          <div class="c-line"><span class="cdot" style="--c:var(--infra)"></span><span class="cn">Infra Grid <em>· automated</em></span><span class="ct">—&nbsp;&nbsp;<span class="cx">+Liras</span></span></div>
+        </div>
+        <button class="c-btn">Claim &amp; Continue ▸</button>
+      </div>
+    </div>
+    <button class="replay" data-t="sc">▶ Replay reveal</button>
+  </div>
+
+<script>
+  function play(el){ el.classList.remove('replaying'); void el.offsetWidth; el.classList.add('replaying'); }
+  document.querySelectorAll('.replay').forEach(b=>{
+    b.addEventListener('click',()=>play(document.getElementById(b.dataset.t)));
+  });
+  // auto-play each once on load for the first impression
+  window.addEventListener('load',()=>document.querySelectorAll('.screen').forEach((s,i)=>setTimeout(()=>play(s),200+i*120)));
+</script>
+</body>
+</html>

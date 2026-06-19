@@ -27,7 +27,12 @@ var quest_manager : RefCounted
 var active_manager : RefCounted = null
 var was_resetted: bool = false
 
-var offline_report: String = ""
+var offline_report: String = ""   # legacy string (dead offline_modal.gd guards on it)
+# v112: structured offline report consumed by the telemetry welcome modal.
+# Array of activity blocks (see any manager's calculate_offline) + headline meta.
+var offline_report_data: Array = []
+var offline_away_sec: float = 0.0
+var offline_capped: bool = false
 var elements_db: Array = []
 
 # v52.1: Game Settings (opt-in features)
@@ -360,14 +365,9 @@ func load_game():
 		if delta > 10:
 			var capped_delta = min(delta, OFFLINE_DELTA_CAP_SECONDS)
 			process_offline_progress(capped_delta)
-			if offline_report != "":
-				# Lead with an elapsed-time headline — the genre's #1 retention
-				# beat, previously buried under unsummed per-manager lines.
-				var header = "While you were away — %s\n" % FormatUtils.format_playtime(capped_delta)
-				# Transparency: never silently swallow time past the cap.
-				if delta > OFFLINE_DELTA_CAP_SECONDS:
-					header += "(earnings capped at %dh)\n" % int(OFFLINE_DELTA_CAP_SECONDS / 3600.0)
-				offline_report = "%s\n%s" % [header, offline_report]
+			# v112: the telemetry welcome modal builds its own headline from these.
+			offline_away_sec = capped_delta
+			offline_capped = delta > OFFLINE_DELTA_CAP_SECONDS
 	else:
 		# Both savegame.json and .bak are unreadable. Preserve the corrupt file for
 		# manual recovery so the next autosave doesn't bury the evidence; boot fresh.
@@ -379,20 +379,22 @@ func load_game():
 
 func process_offline_progress(delta: float):
 	print("Processing offline progress for ", delta, " seconds.")
-	var reports = []
-	
+	# v112: each manager now returns a structured block dict (or null/"" when
+	# nothing happened). A non-empty dict is truthy; null and "" are falsy.
+	var reports: Array = []
+
 	var g_report = gathering_manager.calculate_offline(delta)
 	if g_report: reports.append(g_report)
-	
+
 	var p_report = processing_manager.calculate_offline(delta)
 	if p_report: reports.append(p_report)
 
 	var i_report = infrastructure_manager.calculate_offline(delta)
 	if i_report: reports.append(i_report)
-	
+
 	var r_report = research_manager.calculate_offline(delta)
 	if r_report: reports.append(r_report)
-	
+
 	# v52.1: Optional offline combat
 	if game_settings.get("offline_combat", false):
 		var c_report = combat_manager.calculate_offline(delta)
@@ -400,12 +402,14 @@ func process_offline_progress(delta: float):
 	elif combat_manager.in_combat:
 		# Player left mid-fight with offline combat off — explain the silence
 		# instead of letting them think combat is broken.
-		reports.append("Combat was paused while you were away. Turn on Offline Combat in Options to keep fighting offline.")
-	
-	if not reports.is_empty():
-		offline_report = "\n\n".join(reports)
-	else:
-		offline_report = ""
+		reports.append({
+			"category": "combat", "title": "Combat", "action": "",
+			"time_sec": int(delta), "actions": 0, "xp": 0,
+			"gains": {}, "drains": {}, "status": "standby",
+			"notes": ["Paused — enable Offline Combat in Options to keep fighting while away."],
+		})
+
+	offline_report_data = reports
 
 func hard_reset():
 	resources.reset()

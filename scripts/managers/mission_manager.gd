@@ -118,7 +118,12 @@ func init_missions():
 		["m026", "Master Constructor", "Research 'Shipwright I' for hull reinforcement.", "research", "shipwright_1", 1, 5000, 500, "m026b"],
 		["m026b", "Hull Modernization I", "Construct an 'Industrial Frigate' in the Shipyard.", "construct", "frigate_hull", 1, 10000, 1000, "m026c"],
 		["m026c", "Elite Salvage", "Defeated enemies drop gear of varying rarity. Farm Lunar Orbit until you get a RARE (blue) module drop.", "drop_rarity", "2", 1, 5000, 500, "m026d"],
-		["m026d", "Combat Overhaul", "Equip at least 1 RARE+ Weapon.", "loadout_rare_weapon", "2", 1, 10000, 1000, "m026e"],
+		["m026d", "Combat Overhaul", "Equip at least 1 RARE+ Weapon.", "loadout_rare_weapon", "2", 1, 10000, 1000, "m026d2"],
+		# v119: type-matching teach beat before the Z1 boss. The Architect RESISTS
+		# kinetic + energy (+0.25) but is WEAK to explosive (-0.30), so the right TYPE
+		# beats raw rarity. Combustion is already unlocked (smelting required it at m025).
+		["m026d2", "Munitions Run", "The Rogue Architect shrugs off KINETIC and ENERGY fire - but it's WEAK to EXPLOSIVE. Produce 60 HE Missiles in the Engineering tab to arm a missile launcher.", "gather", "MissileT1", 60, 8000, 800, "m026d3"],
+		["m026d3", "Explosive Payload", "Equip a RARE+ EXPLOSIVE weapon: farm Lunar Orbit until a blue-or-better Micro-Missile Launcher drops, then equip it (fill the other slot with any explosive too). Explosive hits the Architect's weakness and the rare punch finishes it - the right TYPE and tier both matter.", "loadout_rare_weapon_type", "explosive", 1, 12000, 1200, "m026e"],
 		["m026e", "Final Confrontation", "Defeat the Rogue Architect boss in Lunar Orbit.", "defeat", "z1_boss_architect", 1, 25000, 2500, "m027"],
 		# P0 Fix: Progression Deadlock Re-alignment
 		["m027", "Scanning Horizon", "Research 'Asteroid Belt Authorization' in the Research tree to unlock the Asteroid Belt combat zone.", "research", "zone_2_access", 1, 5000, 500, "m028"],
@@ -429,11 +434,9 @@ func sync_progress():
 
 			# Fail-safe: Check calculated stats (Base Corvette has 0 shield, >0 means shield equipped)
 			if sm.max_shield > 0: has_shield = true
-			# Base Corvette has 10 atk. If total attack > base, they have a weapon.
-			var base_atk = 0
-			if sm.active_hull in sm.hulls:
-				base_atk = sm.hulls[sm.active_hull]["stats"].get("atk", 0)
-			if (sm.attack_kinetic + sm.attack_energy + sm.attack_explosive) > base_atk:
+			# v119: hull base attack removed — aggregate attack is weapons-only now,
+			# so any nonzero total means a weapon is equipped.
+			if (sm.attack_kinetic + sm.attack_energy + sm.attack_explosive) > 0:
 				has_weapon = true
 
 			if has_weapon and has_shield:
@@ -485,6 +488,25 @@ func sync_progress():
 						
 			if has_weapon:
 				m["current_qty"] = 1
+
+		# v119: equip N RARE+ weapons of a given damage type — teaches that the right
+		# TYPE *and* tier matter (a rare explosive vs the kin/energy-resistant Z1 boss).
+		elif m["type"] == "loadout_rare_weapon_type":
+			var want_type: String = str(m["target"])
+			var sm = GameState.shipyard_manager
+			var cnt := 0
+			for mid_in_slot in sm.loadout.values():
+				if mid_in_slot and mid_in_slot in sm.modules:
+					var md = sm.modules[mid_in_slot]
+					if md.get("slot_type", "") == "weapon" and sm.get_module_rarity(mid_in_slot) >= 2:  # 2 = Rarity.RARE
+						var st = md.get("stats", {})
+						var wt := "kinetic"
+						if st.get("atk_energy", 0) > 0: wt = "energy"
+						elif st.get("atk_explosive", 0) > 0: wt = "explosive"
+						elif st.get("atk_cryo", 0) > 0: wt = "cryo"
+						if wt == want_type:
+							cnt += 1
+			m["current_qty"] = min(cnt, m["target_qty"])
 
 		elif m["type"] == "equip_consumables":
 			var required_qty = int(m["target"])

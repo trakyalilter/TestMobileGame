@@ -26,7 +26,11 @@ const RARITY_STAT_RANGE = {
 	Rarity.COMMON: [0.00, 0.00],    # 1.00x fixed - baseline crafted
 	Rarity.UNCOMMON: [0.10, 0.20],  # 1.10x-1.20x - within-zone upgrade
 	Rarity.RARE: [0.25, 0.45],      # 1.25x-1.45x - within-zone (< next-Common 2.2x)
-	Rarity.LEGENDARY: [0.55, 0.85], # 1.55x-1.85x - best-in-zone, still < next Common
+	Rarity.LEGENDARY: [0.40, 0.55], # v120: 1.40x-1.55x (was 1.55-1.85). Trimmed so a carried
+	                                # N-1 Legendary's base+rarity sits clearly UNDER a clean
+	                                # next-tier Common (2.2x) — its affixes/cores are then a
+	                                # comfort margin, not a tier-leapfrog. Keeps Common > Leg
+	                                # without nerfing the affix system. Still > Rare (3 affixes).
 	Rarity.UNIQUE: [1.40, 2.20],    # 2.40x-3.20x - jackpot: leapfrogs ONE tier, then retires
 }
 
@@ -457,7 +461,7 @@ var hulls: Dictionary = {
 	# v80.1: 10 formula-driven hulls — HP = floor(80 × 2.2^(N-1)), Slots = 6 + 2N
 	"corvette_hull": {
 		"name": "Corvette",
-		"stats": {"hp": 120, "atk": 12, "energy_capacity": 25},
+		"stats": {"hp": 120, "energy_capacity": 25},
 		"cost": {"credits": 0},
 		"slots": ["weapon", "weapon", "shield", "armor", "engine", "battery", "battery", "sensor"], # 8
 		"visual": "res://assets/ships/1.png",
@@ -465,7 +469,7 @@ var hulls: Dictionary = {
 	},
 	"frigate_hull": {
 		"name": "Industrial Frigate",
-		"stats": {"hp": 200, "atk": 25, "energy_capacity": 75},
+		"stats": {"hp": 200, "energy_capacity": 75},
 		"cost": {"credits": 30000, "Steel": 50},
 		"slots": ["weapon", "weapon", "shield", "shield","armor", "armor", "engine", "battery", "battery", "sensor"], # 10
 		"research_req": "shipwright_1",
@@ -474,7 +478,7 @@ var hulls: Dictionary = {
 	},
 	"destroyer_hull": {
 		"name": "Destroyer",
-		"stats": {"hp": 387, "atk": 40, "energy_capacity": 120},
+		"stats": {"hp": 387, "energy_capacity": 120},
 		"cost": {"credits": 90000, "Steel": 100, "Circuit": 20},
 		"slots": ["weapon", "weapon", "weapon", "shield", "shield", "armor", "armor", "engine", "battery", "battery", "battery", "sensor"], # 12
 		"research_req": "shipwright_2",
@@ -483,7 +487,7 @@ var hulls: Dictionary = {
 	},
 	"cruiser_hull": {
 		"name": "Heavy Cruiser",
-		"stats": {"hp": 852, "atk": 88, "energy_capacity": 260},
+		"stats": {"hp": 852, "energy_capacity": 260},
 		"cost": {"credits": 270000, "Ti": 200, "AdvCircuit": 50},
 		"slots": ["weapon", "weapon", "weapon", "shield", "shield", "shield", "armor", "armor", "engine", "battery", "battery", "battery", "sensor", "sensor"], # 14
 		"research_req": "zone_4_access",
@@ -492,7 +496,7 @@ var hulls: Dictionary = {
 	},
 	"battlecruiser_hull": {
 		"name": "Battlecruiser",
-		"stats": {"hp": 1874, "atk": 194, "energy_capacity": 570},
+		"stats": {"hp": 1874, "energy_capacity": 570},
 		"cost": {"credits": 810000, "Superalloy": 500, "QuantumCore": 25},
 		"slots": ["weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "armor", "armor", "engine", "battery", "battery", "battery", "battery", "sensor", "sensor"], # 16
 		"research_req": "zone_5_access",
@@ -501,7 +505,7 @@ var hulls: Dictionary = {
 	},
 	"capital_hull": {
 		"name": "Capital Ship",
-		"stats": {"hp": 4124, "atk": 426, "energy_capacity": 1255},
+		"stats": {"hp": 4124, "energy_capacity": 1255},
 		"cost": {"credits": 2430000, "AdvCircuit": 1000, "VoidArtifact": 50},
 		"slots": ["weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "armor", "armor", "armor", "engine", "engine", "battery", "battery", "battery", "battery", "sensor", "sensor"], # 18
 		"research_req": "zone_6_access",
@@ -510,7 +514,7 @@ var hulls: Dictionary = {
 	},
 	"carrier_hull": {
 		"name": "Carrier",
-		"stats": {"hp": 9073, "atk": 937, "energy_capacity": 2760},
+		"stats": {"hp": 9073, "energy_capacity": 2760},
 		"cost": {"credits": 7290000, "ExoticMatter": 100},
 		"slots": ["weapon", "weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "armor", "armor", "armor", "engine", "engine", "battery", "battery", "battery", "battery", "sensor", "sensor"], # 20
 		"research_req": "zone_7_access",
@@ -519,7 +523,7 @@ var hulls: Dictionary = {
 	},
 	"dreadnought_hull": {
 		"name": "Dreadnought",
-		"stats": {"hp": 19960, "atk": 2062, "energy_capacity": 6075},
+		"stats": {"hp": 19960, "energy_capacity": 6075},
 		"cost": {"credits": 21870000, "ExoticMatter": 200},
 		"slots": ["weapon", "weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "armor", "armor", "armor", "engine", "engine", "battery", "battery", "battery", "battery", "battery", "sensor", "sensor", "sensor"], # 22
 		"research_req": "zone_8_access",
@@ -528,7 +532,7 @@ var hulls: Dictionary = {
 	},
 	"titan_hull": {
 		"name": "Titan",
-		"stats": {"hp": 43913, "atk": 4537, "energy_capacity": 13365},
+		"stats": {"hp": 43913, "energy_capacity": 13365},
 		"cost": {"credits": 65610000, "Neutronium": 500},
 		"slots": ["weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "armor", "armor", "armor", "armor", "engine", "engine", "battery", "battery", "battery", "battery", "battery", "sensor", "sensor", "sensor"], # 24
 		"research_req": "zone_9_access",
@@ -537,7 +541,7 @@ var hulls: Dictionary = {
 	},
 	"leviathan_hull": {
 		"name": "Leviathan",
-		"stats": {"hp": 96609, "atk": 9981, "energy_capacity": 29400},
+		"stats": {"hp": 96609, "energy_capacity": 29400},
 		"cost": {"credits": 196830000, "PrimordialShard": 1000},
 		"slots": ["weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "shield", "armor", "armor", "armor", "armor", "engine", "engine", "battery", "battery", "battery", "battery", "battery", "battery", "sensor", "sensor", "sensor"], # 26
 		"research_req": "zone_10_access",
@@ -1760,15 +1764,13 @@ func equip_module(slot_idx: int, module_id: String, silent: bool = false) -> boo
 	# BEFORE and AFTER this hypothetical equip, then block over-capacity — with
 	# an anti-softlock exception: always allow an equip that improves the net
 	# power margin, so an overloaded ship can always be repaired step by step.
-	var engineering_lvl = 1
-	if GameState.processing_manager:
-		engineering_lvl = GameState.processing_manager.get_level()
-	var skill_mult = 1.0 + (engineering_lvl * 0.01)
+	# v119: Engineering skill no longer scales energy capacity (removed from
+	# recalc_stats too — keep this guard consistent). applied_physics research stays.
 	var rm = GameState.research_manager
 	var phys_mult = 1.0
 	if rm:
 		phys_mult = 1.0 + rm.get_efficiency_bonus("applied_physics")
-	var cap_mult = skill_mult * phys_mult
+	var cap_mult = phys_mult
 
 	var old_load := 0.0
 	var old_cap := 0.0
@@ -2030,18 +2032,18 @@ func recalc_stats():
 		var h = hulls[active_hull]["stats"]
 		hp += h.get("hp", 0)
 		shield += h.get("max_shield", 0)
-		atk_k += h.get("atk", 0)
+		# v119: hull base attack removed — combat damage comes entirely from equipped
+		# weapon modules, so the hull `atk` no longer feeds the aggregate (it was never
+		# read in combat and only inflated the displayed attack stat).
 		defe += h.get("def", 0)
 		eva += h.get("eva", 0)
 		# v110: hulls provide ZERO energy — all capacity comes from batteries.
 		# (hull energy_capacity stat is now vestigial / display-only.)
 		# e_cap += h.get("energy_capacity", 0)
 		
-	# Audit v7.0: Merged Shipyard bonus into Engineering (Processing) skill
-	var engineering_lvl = 1
-	if GameState.processing_manager:
-		engineering_lvl = GameState.processing_manager.get_level()
-	var skill_mult = 1.0 + (engineering_lvl * 0.01)
+	# v119: Engineering (Processing) skill no longer buffs ship stats — combat is
+	# loadout/hull/warp/research-driven, matching the balance model the sims assume
+	# (they run an Engineering-level-1 player). Engineering stays a crafting skill.
 	
 	for mid in loadout.values():
 		if mid:
@@ -2049,19 +2051,19 @@ func recalc_stats():
 				continue
 				
 			var m = modules[mid]["stats"]
-			hp += m.get("hp", 0) * skill_mult
-			shield += m.get("max_shield", 0) * skill_mult
-			s_reg += m.get("shield_regen", 0) * skill_mult
-			hp_regen += m.get("hp_regen", 0) * skill_mult # v80.1: Native HP Regen support
-			atk_k += m.get("atk_kinetic", 0) * skill_mult
-			atk_e += m.get("atk_energy", 0) * skill_mult
-			atk_x += m.get("atk_explosive", 0) * skill_mult
-			defe += m.get("def", 0) * skill_mult
-			eva += m.get("eva", 0) # v65.3 Fix: Flat stat, no skill_mult
+			hp += m.get("hp", 0)
+			shield += m.get("max_shield", 0)
+			s_reg += m.get("shield_regen", 0)
+			hp_regen += m.get("hp_regen", 0) # v80.1: Native HP Regen support
+			atk_k += m.get("atk_kinetic", 0)
+			atk_e += m.get("atk_energy", 0)
+			atk_x += m.get("atk_explosive", 0)
+			defe += m.get("def", 0)
+			eva += m.get("eva", 0) # v65.3 Fix: Flat stat
 			acc += m.get("accuracy", 0)
 			crit += m.get("crit_chance", 0.0)
 			# v110: derive energy supply (batteries) + draw (consumers) by tier.
-			e_cap += get_module_energy_capacity(mid) * skill_mult
+			e_cap += get_module_energy_capacity(mid)
 			e_load += get_module_energy_load(mid)
 			atk_speed_bon += m.get("atk_speed_mult", 0.0)
 			atk_speed_bon += m.get("atk_speed_bonus", 0.0)

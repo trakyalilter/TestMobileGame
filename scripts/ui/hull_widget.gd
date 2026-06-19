@@ -26,7 +26,7 @@ func setup(p_hid: String, p_data: Dictionary, p_manager, p_parent):
 	UITheme.apply_card_style(self, "shipyard")
 	UITheme.apply_premium_button_style(btn, "shipyard")
 	
-	slot_lbl.text = "HP: %d | ATK: %d\nSlots: %d" % [data["stats"].get("hp",0), data["stats"].get("atk",0), data["slots"].size()]
+	slot_lbl.text = "HP: %d\nSlots: %d" % [data["stats"].get("hp",0), data["slots"].size()]
 
 	# Cost text handled dynamically in update_state
 	cost_lbl.text = ""

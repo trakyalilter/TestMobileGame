@@ -359,6 +359,10 @@ func _build_comparison_tooltip() -> String:
 		
 		var label = FormatUtils.format_stat_label(k)
 		var val = my_stats[k]
+		# v119: skip non-numeric stats (e.g. exotic_element "cryo"/"corrosion") — they
+		# can't be diffed and crash the String-int subtraction below.
+		if not (val is int or val is float):
+			continue
 		var delta_str = ""
 		
 		if equipped_mid and equipped_mid != mid and k != "energy_load":

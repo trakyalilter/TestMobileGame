@@ -1664,18 +1664,23 @@ func calculate_offline(delta: float):
 		total_credits = current_recipe["credits_output"] * actions
 		GameState.resources.add_currency("credits", total_credits)
 
-	var report = "Engineering (%s):\n" % current_recipe['name']
-	report += "Time Adjusted: %dm\n" % int(delta / 60)
-	report += "Actions Completed: %d\n" % actions
-	report += "XP Gained: %d\n" % total_xp
+	# v112: structured offline block (was a formatted string). Liras fold into
+	# `gains` under the "credits" key so the ledger renders them as one row.
+	var gains = loot_summary.duplicate()
 	if total_credits > 0:
-		report += "Liras Earned: %d\n" % total_credits
-	report += "Produced:\n"
-	
-	for item in loot_summary:
-		report += " + %s: %d\n" % [item, loot_summary[item]]
-		
-	return report
+		gains["credits"] = total_credits
+	return {
+		"category": "processing",
+		"title": "Engineering",
+		"action": current_recipe.get("name", current_recipe_id),
+		"time_sec": int(delta),
+		"actions": actions,
+		"xp": total_xp,
+		"gains": gains,
+		"drains": {},
+		"notes": [],
+		"status": "active",
+	}
 
 func get_save_data_manager() -> Dictionary:
 	var data = get_save_data()

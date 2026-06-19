@@ -1,6 +1,5 @@
 extends Control
 
-@onready var anim = $AnimationPlayer
 @onready var panel = $Panel
 @onready var title_lbl = $Panel/VBoxContainer/TitleLabel
 @onready var stats_lbl = $Panel/VBoxContainer/StatsLabel
@@ -160,8 +159,6 @@ func setup(data):
 			add_item_label("%s» %s [%s]" % [lock_prefix, module_name.to_upper(), slot_type.to_upper()], col)
 
 	visible = true
-	# Animation pop in?
-	# anim.play("pop_in")
 
 func add_header(text, color):
 	var l = Label.new()
