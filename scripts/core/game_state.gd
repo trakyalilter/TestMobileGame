@@ -153,6 +153,7 @@ var boss_kills: Dictionary = {}          # enemy_id -> kill count (hazard unlock
 var hazard_clears: Dictionary = {}       # hazard_zone_id -> true (first-clear reward gate)
 var game_flags: Dictionary = {}          # persistent unlock flags (e.g. z11_unlocked)
 var _enemy_enraged: bool = false         # v109 per-fight enrage state (reset on spawn)
+var _phase_idx: int = -1                  # v0.2.1 NG+ P1: current boss phase band (telegraph dedupe)
 var enemy_vulnerable_timer: float = 0.0  # v85.2 when >0 enemy takes +20% damage
 var _player_berserk_timer: float = 0.0   # v85.2 Overdrive: +25% fire rate while >0
 
@@ -2882,6 +2883,8 @@ func _spawn_enemy_inst(eid: String) -> void:
 		"resist_x": float(e.get("resist_x", 0.0)),
 		"resist_cryo": float(e.get("resist_cryo", 0.0)),
 		"warp_hardened": bool(e.get("warp_hardened", false)),
+		"phases": e.get("phases", []),                 # v0.2.1 NG+ P1: multi-phase element gate
+		"phase_cut": float(e.get("phase_cut", 0.15)),  # off-element damage factor in a phase
 		"enrage_at": float(e.get("enrage_at", 0.0)),
 		"enrage_atk_mult": float(e.get("enrage_atk_mult", 1.5)),
 		# v80.1 boss-core drop: granted on kill so zone_N_access research unlocks.
@@ -2891,6 +2894,7 @@ func _spawn_enemy_inst(eid: String) -> void:
 	# v109 reset per-fight enrage; v85.2 vulnerable wears off between fights.
 	_enemy_enraged = false
 	enemy_vulnerable_timer = 0.0
+	_phase_idx = -1   # v0.2.1 NG+ P1: reset phase band so the opening phase telegraphs
 	# Trinity: Harbinger's Wrath — reduce this enemy's effective DEF on spawn.
 	var def_red := trinity_bonus("enemy_def_reduce_pct")
 	if def_red > 0.0:
@@ -3137,12 +3141,16 @@ func _player_fire(w: Dictionary, ss: Dictionary) -> void:
 	# v0.2.1 Fleet (soft role): escort ships add a fraction of the main ship's
 	# damage, folded into every weapon's output.
 	var fmult := fleet_combat_mult()
-	var res := resolve_damage(dk * fmult, de * fmult, dx * fmult, 0.0 if voided else float(enemy_inst["shield"]), enemy_inst["def"], _combat_difficulty(), float(ss.get("crit", 0.05)), true, dc * fmult)
+	# v0.2.1 NG+ P1: the firing weapon's exotic type gates the phase exotic channel
+	# (cryo weapons breach cryo phases, corrosion weapons breach corrosion, etc.).
+	var wexotic := String(w.get("exotic_type", "cryo"))
+	var res := resolve_damage(dk * fmult, de * fmult, dx * fmult, 0.0 if voided else float(enemy_inst["shield"]), enemy_inst["def"], _combat_difficulty(), float(ss.get("crit", 0.05)), true, dc * fmult, wexotic)
 	if voided:
 		_event("VOID", "ff44cc", "enemy")
 	else:
 		enemy_inst["shield"] = maxf(0.0, enemy_inst["shield"] - res[0])
 	enemy_inst["hp"] -= res[1]
+	_check_phase_transition()   # v0.2.1 NG+ P1: telegraph when the boss enters a new band
 	if res[0] > 0:
 		_event("-%d" % int(res[0]), "55d3e6", "enemy")
 	if res[1] > 0:
@@ -3259,10 +3267,62 @@ func _broadside_fire() -> void:
 ##   * warp_hardened enemies near-nullify conventional (K/E/X) damage (x0.02)
 ## Cryo is the 4th type; it stays inert (atk_cryo defaults 0) until Cryo weapons
 ## ship, so existing K/E/X math is unchanged where no cryo/resist data applies.
-func resolve_damage(atk_k: float, atk_e: float, atk_x: float, c_shield: float, c_armor: float, difficulty: int, crit_chance: float, is_player_attacker: bool = false, atk_cryo: float = 0.0) -> Array:
-	var hardened: bool = is_player_attacker and not enemy_inst.is_empty() and bool(enemy_inst.get("warp_hardened", false))
-	var noncryo := 0.02 if hardened else 1.0
-	var shield_pot := (atk_k * 0.5 + atk_e * 1.5 + atk_x * 1.1) * noncryo + atk_cryo * 1.0
+# v0.2.1 NG+ P1: which HP band (phase) the boss is in. Full HP -> 0, near-death
+# -> n-1; each band is 1/n of HP.
+func _phase_index(n: int) -> int:
+	if n <= 1 or enemy_inst.is_empty():
+		return 0
+	var mx := float(enemy_inst.get("max_hp", 0.0))
+	if mx <= 0.0:
+		return 0
+	var frac: float = clampf(float(enemy_inst.get("hp", 0.0)) / mx, 0.0, 1.0)
+	return clampi(int((1.0 - frac) * float(n)), 0, n - 1)
+
+# Per-channel damage multipliers for the boss phase gate (player attacks only).
+# Generalizes the Z11 warp_hardened cryo wall: a boss with a `phases` list splits
+# HP into bands; in the current band only the matching element deals full damage,
+# others are cut to phase_cut. The exotic (cryo) channel breaches only if the
+# firing weapon's exotic_type matches the phase element.
+func _breach_factors(weapon_exotic: String) -> Dictionary:
+	if enemy_inst.is_empty():
+		return {"k": 1.0, "e": 1.0, "x": 1.0, "cryo": 1.0}
+	if bool(enemy_inst.get("warp_hardened", false)):
+		return {"k": 0.02, "e": 0.02, "x": 0.02, "cryo": 1.0 if weapon_exotic == "cryo" else 0.02}
+	var phases: Array = enemy_inst.get("phases", [])
+	if phases.is_empty():
+		return {"k": 1.0, "e": 1.0, "x": 1.0, "cryo": 1.0}
+	var breach: String = str(phases[_phase_index(phases.size())]).to_lower()
+	var cut: float = float(enemy_inst.get("phase_cut", 0.15))
+	return {
+		"k": 1.0 if breach == "kinetic" else cut,
+		"e": 1.0 if breach == "energy" else cut,
+		"x": 1.0 if breach == "explosive" else cut,
+		"cryo": 1.0 if breach == weapon_exotic else cut,
+	}
+
+# Multi-phase boss telegraph — fires once each time the boss crosses into a new
+# HP band, announcing which element now breaches.
+func _check_phase_transition() -> void:
+	if enemy_inst.is_empty():
+		return
+	var phases: Array = enemy_inst.get("phases", [])
+	if phases.size() <= 1:
+		return
+	var idx := _phase_index(phases.size())
+	if idx == _phase_idx:
+		return
+	_phase_idx = idx
+	var elem: String = str(phases[idx]).to_upper()
+	_event("⚠ PHASE %d — %s ONLY" % [idx + 1, elem], "8fdcff", "enemy")
+
+func resolve_damage(atk_k: float, atk_e: float, atk_x: float, c_shield: float, c_armor: float, difficulty: int, crit_chance: float, is_player_attacker: bool = false, atk_cryo: float = 0.0, weapon_exotic: String = "cryo") -> Array:
+	# Phase/hardened breach gate (player attacks only); all-1.0 otherwise.
+	var bf := _breach_factors(weapon_exotic) if is_player_attacker else {"k": 1.0, "e": 1.0, "x": 1.0, "cryo": 1.0}
+	var bk := float(bf["k"])
+	var be := float(bf["e"])
+	var bx := float(bf["x"])
+	var bc := float(bf["cryo"])
+	var shield_pot: float = atk_k * 0.5 * bk + atk_e * 1.5 * be + atk_x * 1.1 * bx + atk_cryo * 1.0 * bc
 	# v85.2 Vulnerable status: enemy takes +20% damage while the timer is live.
 	if not is_player_attacker and enemy_vulnerable_timer > 0.0:
 		shield_pot *= 1.2
@@ -3301,12 +3361,12 @@ func resolve_damage(atk_k: float, atk_e: float, atk_x: float, c_shield: float, c
 		he *= 1.0 - re
 		hx *= 1.0 - rx
 		hc *= 1.0 - rc
-		# Warp-Hardened nullifies conventional hull damage (Cryo exempt); applied
-		# after the resist clamp so it is a hard gate, not armor.
-		if hardened:
-			hk *= 0.02
-			he *= 0.02
-			hx *= 0.02
+		# Phase/hardened breach gate, applied after the resist clamp so it is a hard
+		# gate, not armor. (bf is all-1.0 for non-gated enemies → unchanged.)
+		hk *= bk
+		he *= be
+		hx *= bx
+		hc *= bc
 	var hull := (hk + he + hx + hc) * bleed
 	# v85.2 Vulnerable + Healthy/Injured also scale the hull total (desktop parity).
 	if not is_player_attacker and enemy_vulnerable_timer > 0.0:
