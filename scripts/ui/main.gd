@@ -93,7 +93,7 @@ var _coach_obj: Label
 var _coach_hint: Label
 var _pulse_tween: Tween
 var _pulse_target: Control
-# Unmissable on-target pointer: a glowing animated ring + a "👆 Tap here" chip that
+# Unmissable on-target pointer: a glowing animated ring + a "▸ Tap here" chip that
 # overlay (and track) the resolved coach target. Built lazily, hidden when no target.
 var _coach_ptr: Control = null
 var _coach_ring: Panel = null
@@ -418,7 +418,7 @@ func _update_coach() -> void:
 		_coach_hint.text = "✓ In progress — keep it running"
 		pulse = null
 	elif card != "":
-		_coach_hint.text = "👆 Tap the highlighted card to continue"
+		_coach_hint.text = "▸ Tap the highlighted card to continue"
 		pulse = _coach_find_card(card)
 		# Card not in the tree yet (combat enemy lives behind a zone sub-tab) — point
 		# at the page so the player at least knows they're on the right screen.
@@ -455,7 +455,7 @@ func _coach_find_card(id: String) -> Control:
 			stack.append(ch)
 	return null
 
-# Lazily builds the pointer overlay (glowing ring + "👆 Tap here" chip). The overlay
+# Lazily builds the pointer overlay (glowing ring + "▸ Tap here" chip). The overlay
 # is a full-rect, input-transparent Control layered above the page content but below
 # the drawer/welcome, so the highlighted card stays fully tappable.
 func _ensure_coach_ptr() -> void:
@@ -480,7 +480,7 @@ func _ensure_coach_ptr() -> void:
 	rs.shadow_size = 10
 	_coach_ring.add_theme_stylebox_override("panel", rs)
 	_coach_ptr.add_child(_coach_ring)
-	# Floating "👆 Tap here" chip pinned just above the target.
+	# Floating "▸ Tap here" chip pinned just above the target.
 	_coach_chip = PanelContainer.new()
 	_coach_chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var cs := _bordered(GOLD, _mix(GOLD, "000000", 0.4), 1, 9)
@@ -490,7 +490,7 @@ func _ensure_coach_ptr() -> void:
 	cs.content_margin_bottom = 5
 	_coach_chip.add_theme_stylebox_override("panel", cs)
 	var cl := Label.new()
-	cl.text = "👆 Tap here"
+	cl.text = "▸ Tap here"
 	cl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	cl.add_theme_font_size_override("font_size", _fs(11))
 	cl.add_theme_color_override("font_color", Color.html(BG_BOT))
@@ -791,7 +791,7 @@ func _slot_card(n: int) -> Control:
 		ren.custom_minimum_size = Vector2(56, 50)
 		ren.pressed.connect(_prompt_rename_character.bind(n))
 		row.add_child(ren)
-		var del := _card_button("🗑", RED, true)
+		var del := _card_button("✕", RED, true)
 		del.custom_minimum_size = Vector2(56, 50)
 		del.pressed.connect(_confirm_delete_slot.bind(n))
 		row.add_child(del)
@@ -2075,7 +2075,7 @@ func _build_targets(v: VBoxContainer) -> void:
 		var req: String = zone.get("research_req", "")
 		var rname: String = GameData.RESEARCH.get(req, {}).get("name", req)
 		var c := _card(RED, false)
-		_card_head(c, "🔒", "SECTOR LOCKED", "", RED, false)
+		_card_head(c, "⊘", "SECTOR LOCKED", "", RED, false)
 		var lr := Label.new()
 		lr.text = "Requires research: %s" % rname
 		lr.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -2286,7 +2286,7 @@ func _show_enemy_intel(eid: String) -> void:
 				continue
 			var unlocked := GameState.module_unlocked(mid)
 			var nm: String = ("%s  [%s]" % [m.get("name", mid), GameData.SLOT_LABELS.get(m.get("slot", ""), "")])
-			mlines.append(_line(("» " if unlocked else "🔒 ") + nm, CYAN if unlocked else C_MUTED))
+			mlines.append(_line(("» " if unlocked else "⊘ ") + nm, CYAN if unlocked else C_MUTED))
 		var head := "SUBSPACE SIGNAL — %d%% / kill" % int(round(chance * 100.0))
 		_inset(v, head, mlines, CYAN)
 	var ok := _card_button("Close", CYAN, true)
@@ -2479,7 +2479,7 @@ func _build_battle(v: VBoxContainer) -> void:
 					item = cid
 					break
 		var owned := GameState.amount(item) if item != "" else 0
-		var lbl := ("🛠 Repair" if kind == "hull" else "✦ Shield") + ("  x%d" % owned if owned > 0 else "")
+		var lbl := ("⚒ Repair" if kind == "hull" else "✦ Shield") + ("  x%d" % owned if owned > 0 else "")
 		var cb := _card_button(lbl, GREEN if kind == "hull" else CYAN, owned > 0)
 		cb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		if owned > 0:
@@ -4489,7 +4489,7 @@ func _show_research_detail(id: String) -> void:
 	_inset(v, "REQUIREMENTS", lines, PURP)
 	var par: String = t.get("parent", "")
 	if par != "" and not GameState.is_research_unlocked(par):
-		_clbl(v, "🔒 First research: " + GameData.RESEARCH.get(par, {}).get("name", par), 11, C_WARN)
+		_clbl(v, "⊘ First research: " + GameData.RESEARCH.get(par, {}).get("name", par), 11, C_WARN)
 	if researched:
 		_clbl(v, "✓ Researched", 13, GREEN)
 	else:
@@ -4802,7 +4802,7 @@ func _build_hazard() -> void:
 			# Tell the player exactly which boss to defeat.
 			var boss_id: String = hz.get("unlock_boss", "")
 			var boss_nm: String = GameData.ENEMIES.get(boss_id, {}).get("name", boss_id)
-			_clbl(c, "🔒 LOCKED — defeat %s to unlock" % boss_nm, 11, C_WARN)
+			_clbl(c, "⊘ LOCKED — defeat %s to unlock" % boss_nm, 11, C_WARN)
 		else:
 			# Counter-module warning: survivable but punishing without it.
 			var counter: String = hz.get("counter_module", "")
