@@ -128,6 +128,8 @@ var _modal_stack: Array = []
 var gather_cat := "terrestrial"
 var craft_cat := "basics"
 var munitions_type := "all"   # Munitions sub-filter: all / kinetic / energy / explosive
+var craft_query := ""         # Craft search — matches across ALL categories (output material / name)
+var _craft_results: VBoxContainer = null   # craft grid wrapper, refilled live on search
 var combat_zone := 0
 var research_tab := "Operations"
 var atlas_mode := "materials"
@@ -1965,29 +1967,62 @@ func _gather_card(id: String, a: Dictionary) -> Control:
 func _build_craft() -> void:
 	var v := _clear("craft")
 	_skill_banner(v, "ENGINEERING", "fabrication", CYAN)
-	_subtabs(v, GameData.CRAFT_CATS, craft_cat, CYAN, func(id: String) -> void:
-		craft_cat = id
-		_refresh_current())
-	# Munitions mixes three ammo damage types (Slugs=kinetic, Cells=energy,
-	# Missiles=explosive); a second-level filter lets the player jump straight to
-	# the type their weapons use.
-	if craft_cat == "munitions":
-		_subtabs(v, [
-			{"id": "all", "label": "All"},
-			{"id": "kinetic", "label": "Kinetic"},
-			{"id": "energy", "label": "Energy"},
-			{"id": "explosive", "label": "Explosive"},
-		], munitions_type, GOLD, func(id: String) -> void:
-			munitions_type = id
+	# Search box: matches recipes by name OR output material across EVERY category,
+	# so you find a recipe even when you're on the wrong tab. Typing refills only the
+	# results wrapper (focus / keyboard stay put).
+	var se := LineEdit.new()
+	se.placeholder_text = "Search recipes & output materials…"
+	se.text = craft_query
+	se.clear_button_enabled = true
+	se.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	se.add_theme_font_size_override("font_size", _fs(13))
+	se.text_changed.connect(func(t: String) -> void:
+		craft_query = t
+		_debounce("craft", 0.18, _craft_rebuild_results))
+	v.add_child(se)
+	# Category tabs are only meaningful when not searching (search spans all tabs).
+	if craft_query.strip_edges() == "":
+		_subtabs(v, GameData.CRAFT_CATS, craft_cat, CYAN, func(id: String) -> void:
+			craft_cat = id
 			_refresh_current())
-	var g := _grid(v)
-	var any := false
+		# Munitions mixes three ammo damage types (Slugs=kinetic, Cells=energy,
+		# Missiles=explosive); a second-level filter jumps to the matching type.
+		if craft_cat == "munitions":
+			_subtabs(v, [
+				{"id": "all", "label": "All"},
+				{"id": "kinetic", "label": "Kinetic"},
+				{"id": "energy", "label": "Energy"},
+				{"id": "explosive", "label": "Explosive"},
+			], munitions_type, GOLD, func(id: String) -> void:
+				munitions_type = id
+				_refresh_current())
+	# Results wrapper — refilled live on search without rebuilding the whole page.
+	var rv := VBoxContainer.new()
+	rv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	v.add_child(rv)
+	_craft_results = rv
+	_craft_fill_results()
+
+# Build the recipe grid into the live wrapper. When searching, ignore the category
+# and match by recipe name / output material across all categories; otherwise show
+# the selected category (and munitions type sub-filter).
+func _craft_fill_results() -> void:
+	if not is_instance_valid(_craft_results):
+		return
+	var v := _craft_results
+	var q := craft_query.strip_edges().to_lower()
+	var searching := q != ""
 	var ids := []
 	for id in GameData.CRAFT:
-		if GameData.CRAFT[id].get("category", "misc") != craft_cat:
-			continue
-		if craft_cat == "munitions" and munitions_type != "all" and _ammo_type_of(GameData.CRAFT[id]) != munitions_type:
-			continue
+		var r: Dictionary = GameData.CRAFT[id]
+		if searching:
+			if not _craft_matches(r, q):
+				continue
+		else:
+			if r.get("category", "misc") != craft_cat:
+				continue
+			if craft_cat == "munitions" and munitions_type != "all" and _ammo_type_of(r) != munitions_type:
+				continue
 		ids.append(id)
 	# Order recipes by unlock level (then name) so early recipes lead.
 	ids.sort_custom(func(a: String, b: String) -> bool:
@@ -1996,11 +2031,35 @@ func _build_craft() -> void:
 		if la != lb:
 			return la < lb
 		return String(GameData.CRAFT[a].get("name", a)) < String(GameData.CRAFT[b].get("name", b)))
+	if ids.is_empty():
+		_empty(v, "No recipes match “%s”." % craft_query.strip_edges() if searching else "No recipes in this category.")
+		return
+	var g := _grid(v)
 	for id in ids:
-		any = true
 		g.add_child(_craft_card(id, GameData.CRAFT[id]))
-	if not any:
-		_empty(v, "No recipes in this category.")
+	_scroll_passthrough(v)   # keep new cards touch-droppable for scroll
+
+func _craft_rebuild_results() -> void:
+	if not is_instance_valid(_craft_results):
+		return
+	for c in _craft_results.get_children():
+		_craft_results.remove_child(c)
+		c.queue_free()
+	_craft_fill_results()
+
+# A recipe matches the query if the query is in its name, or in any output
+# material's display name / symbol (the "output material" search the player wants),
+# or a bonus output's name.
+func _craft_matches(r: Dictionary, q: String) -> bool:
+	if q in String(r.get("name", "")).to_lower():
+		return true
+	for sym in r.get("outputs", {}):
+		if q in GameData.res_name(sym).to_lower() or q in String(sym).to_lower():
+			return true
+	for row in r.get("bonus", []):
+		if q in GameData.res_name(row[0]).to_lower():
+			return true
+	return false
 
 # Ammo damage type of a munitions recipe, from its output symbol (Slug=kinetic,
 # Cell=energy, Missile/Torpedo=explosive). "" if the recipe isn't ammo.
