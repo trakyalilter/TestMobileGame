@@ -147,7 +147,6 @@ var _research_zoom := 1.0          # user zoom (persists across rebuilds / tab s
 var _research_base_fit := 1.0      # auto-fit-to-width scale computed per tree
 var _res_cw := 0.0
 var _res_ch := 0.0
-var _research_zoom_label: Label = null
 var _touches := {}                 # active finger index -> screen position
 var _pinch_active := false
 var _pinch_start_dist := 0.0
@@ -4289,41 +4288,6 @@ func _build_research() -> void:
 		_build_recursion(v)
 		return
 
-	# Pinch to zoom the tree, or use these controls — cards scale up so dense
-	# branches stay readable. Zoom persists across tab switches.
-	var zbar := HBoxContainer.new()
-	zbar.add_theme_constant_override("separation", 6)
-	var zhint := Label.new()
-	zhint.text = "⛶ Pinch or use ± to zoom"
-	zhint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	zhint.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	zhint.add_theme_font_size_override("font_size", _fs(10))
-	zhint.add_theme_color_override("font_color", Color.html(C_DIM))
-	zbar.add_child(zhint)
-	var zout := _card_button("−", PURP, true)
-	zout.custom_minimum_size = Vector2(46, 34)
-	zout.pressed.connect(func() -> void: _research_zoom_step(1.0 / 1.25))
-	zbar.add_child(zout)
-	_research_zoom_label = Label.new()
-	_research_zoom_label.custom_minimum_size = Vector2(54, 0)
-	_research_zoom_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_research_zoom_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_research_zoom_label.add_theme_font_size_override("font_size", _fs(11))
-	_research_zoom_label.add_theme_color_override("font_color", Color.html(C_TEXT))
-	zbar.add_child(_research_zoom_label)
-	var zin := _card_button("+", PURP, true)
-	zin.custom_minimum_size = Vector2(46, 34)
-	zin.pressed.connect(func() -> void: _research_zoom_step(1.25))
-	zbar.add_child(zin)
-	var zreset := _card_button("⟳", C_MUTED, true)
-	zreset.custom_minimum_size = Vector2(46, 34)
-	zreset.pressed.connect(func() -> void:
-		_research_zoom = 1.0
-		_refresh_current())
-	zbar.add_child(zreset)
-	v.add_child(zbar)
-	_update_research_zoom_label()
-
 	var graph: Dictionary = GameData.RESEARCH_GRAPHS[research_tab]
 	var pos: Dictionary = graph["pos"]
 	var nodes: Array = graph["nodes"]
@@ -4411,19 +4375,8 @@ func _size_research_scroller() -> void:
 		return   # not laid out yet; the resized signal will call us again
 	_research_hs.custom_minimum_size.y = maxf(300.0, ph - 112.0)
 
-func _update_research_zoom_label() -> void:
-	if is_instance_valid(_research_zoom_label):
-		_research_zoom_label.text = "%d%%" % int(round(_research_zoom * 100.0))
-
-# Step the tree zoom from the +/- controls, keeping the view centred.
-func _research_zoom_step(mult: float) -> void:
-	var focal := Vector2.ZERO
-	if is_instance_valid(_research_hs):
-		focal = _research_hs.get_global_rect().position + _research_hs.size * 0.5
-	_set_research_zoom(_research_zoom * mult, focal)
-
 # Rescale the tree live (no rebuild). `focal` (screen px) stays pinned under the
-# fingers / view centre so zooming feels anchored rather than jumping to a corner.
+# fingers so zooming feels anchored rather than jumping to a corner.
 func _set_research_zoom(z: float, focal: Vector2) -> void:
 	z = clampf(z, RES_ZOOM_MIN, RES_ZOOM_MAX)
 	if not (is_instance_valid(_research_canvas) and is_instance_valid(_research_frame) and is_instance_valid(_research_hs)):
@@ -4443,7 +4396,6 @@ func _set_research_zoom(z: float, focal: Vector2) -> void:
 	hs.scroll_vertical = sy
 	hs.set_deferred("scroll_horizontal", sx)   # re-apply after the frame relayouts
 	hs.set_deferred("scroll_vertical", sy)
-	_update_research_zoom_label()
 
 # Two-finger pinch bookkeeping (research tree only). _touches is maintained in _input.
 func _update_pinch_state() -> void:
