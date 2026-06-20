@@ -756,6 +756,10 @@ func _slot_card(n: int) -> Control:
 	play.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	play.pressed.connect(_play_slot.bind(n))
 	row.add_child(play)
+	var ren := _card_button("✎", GOLD, true)
+	ren.custom_minimum_size = Vector2(64, 54)
+	ren.pressed.connect(_prompt_rename_character.bind(n))
+	row.add_child(ren)
 	var del := _card_button("🗑", RED, true)
 	del.custom_minimum_size = Vector2(64, 54)
 	del.pressed.connect(_confirm_delete_slot.bind(n))
@@ -786,6 +790,25 @@ func _prompt_new_character(n: int) -> void:
 func _play_slot(n: int) -> void:
 	GameState.select_slot(n)
 	_enter_game()
+
+## Rename an existing commander from the select screen (Play/Delete already there).
+func _prompt_rename_character(n: int) -> void:
+	var summary: Dictionary = GameState.slot_summary(n)
+	_modal("RENAME COMMANDER", GOLD, func(v: VBoxContainer, close: Callable) -> void:
+		_clbl(v, "New name for your commander", 12, C_DIM)
+		var edit := LineEdit.new()
+		edit.text = String(summary.get("name", "Commander"))
+		edit.max_length = 16
+		edit.select_all_on_focus = true
+		edit.custom_minimum_size = Vector2(0, 48)
+		edit.add_theme_font_size_override("font_size", _fs(15))
+		v.add_child(edit)
+		var go := _card_button("Save", GOLD, true)
+		go.pressed.connect(func() -> void:
+			GameState.rename_slot(n, edit.text)
+			close.call()
+			_rebuild_char_select())
+		v.add_child(go))
 
 func _confirm_delete_slot(n: int) -> void:
 	var summary: Dictionary = GameState.slot_summary(n)

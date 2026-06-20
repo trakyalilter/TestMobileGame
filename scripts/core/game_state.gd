@@ -4377,6 +4377,39 @@ func slot_summary(n: int) -> Dictionary:
 		"last_played": float(data.get("time", 0.0)),
 	}
 
+## Rename slot n's commander in place. Called from the character-select screen
+## (no slot loaded), so it rewrites just the name field of the slot's save file —
+## atomically (tmp + .bak + rename), mirroring save_game. Empty -> "Commander".
+func rename_slot(n: int, new_name: String) -> bool:
+	var nm := new_name.strip_edges()
+	if nm == "":
+		nm = "Commander"
+	var path := slot_path(n)
+	if not FileAccess.file_exists(path):
+		return false
+	var rf := FileAccess.open(path, FileAccess.READ)
+	if rf == null:
+		return false
+	var txt := rf.get_as_text()
+	rf.close()
+	var json := JSON.new()
+	if json.parse(txt) != OK or typeof(json.data) != TYPE_DICTIONARY:
+		return false
+	var data: Dictionary = json.data
+	data["character_name"] = nm
+	var tmp := path + ".tmp"
+	var wf := FileAccess.open(tmp, FileAccess.WRITE)
+	if wf == null:
+		return false
+	wf.store_string(JSON.stringify(data, "\t"))
+	wf.close()
+	if FileAccess.file_exists(path):
+		DirAccess.copy_absolute(path, path + ".bak")
+	DirAccess.rename_absolute(tmp, path)
+	if current_slot == n:        # reflect live if this slot is somehow active
+		character_name = nm
+	return true
+
 ## Activate slot n: load its save (computes offline) and run post-load init.
 func select_slot(n: int) -> void:
 	current_slot = n
