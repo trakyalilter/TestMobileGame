@@ -134,6 +134,8 @@ var atlas_mat_cat := "gathered"
 var atlas_query := ""
 var _atlas_index := {}
 var _atlas_results: VBoxContainer = null   # results container refilled live on search
+var storage_query := ""                    # Storage page material-name filter
+var _storage_results: VBoxContainer = null # storage grid wrapper refilled live on search
 var _research_hs: ScrollContainer = null   # research 2D scroller, sized to the visible page
 var build_cat := "power"
 var ship_view := "loadout"
@@ -4724,25 +4726,24 @@ func _build_stats() -> void:
 		if amt > 0:
 			worth += amt * maxi(1, GameData.value_of(sym))
 	_section(v, "Storage  %d / %d slots  ·  worth ₡%s — tap a slot to sell" % [used, cap, GameData.fmt(worth)], GOLD)
-	# Slot-by-slot grid (like the desktop inventory): owned materials fill tiles
-	# left-to-right, padded with empty slots up to the current capacity.
-	var owned := []
-	for sym in GameData.RESOURCES:
-		if GameState.amount(sym) > 0:
-			owned.append(sym)
-	var grid := GridContainer.new()
-	grid.columns = 4
-	grid.add_theme_constant_override("h_separation", 7)
-	grid.add_theme_constant_override("v_separation", 7)
-	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	v.add_child(grid)
-	for sym in owned:
-		grid.add_child(_storage_tile(sym))
-	var total: int = maxi(cap, int(ceil(owned.size() / 4.0)) * 4)
-	for _i in range(total - owned.size()):
-		grid.add_child(_storage_slot_empty())
-	if owned.is_empty():
-		_empty(v, "Storage empty — go gather something.")
+	# Search box: filters the material grid by name. Typing refills only the grid
+	# wrapper below (not this field), so focus / the keyboard stay put.
+	var se := LineEdit.new()
+	se.placeholder_text = "Search materials…"
+	se.text = storage_query
+	se.clear_button_enabled = true
+	se.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	se.add_theme_font_size_override("font_size", _fs(13))
+	se.text_changed.connect(func(t: String) -> void:
+		storage_query = t
+		_storage_rebuild_grid())
+	v.add_child(se)
+	# Grid wrapper — refilled live on search without rebuilding the whole page.
+	var gw := VBoxContainer.new()
+	gw.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	v.add_child(gw)
+	_storage_results = gw
+	_storage_fill_grid()
 	# Expand storage (credit sink): +1 slot at 1000·1.5^n.
 	var up_cost := GameState.storage_upgrade_cost()
 	var can_up := GameState.credits >= up_cost
@@ -4751,6 +4752,48 @@ func _build_stats() -> void:
 	if can_up:
 		up.pressed.connect(func() -> void: GameState.upgrade_storage())
 	v.add_child(up)
+
+# Build the storage tile grid into the live wrapper, honoring the search filter.
+# Empty padding slots are only drawn for the full (unfiltered) view so a search
+# shows just its matches.
+func _storage_fill_grid() -> void:
+	if not is_instance_valid(_storage_results):
+		return
+	var q := storage_query.strip_edges().to_lower()
+	var owned := []
+	for sym in GameData.RESOURCES:
+		if GameState.amount(sym) <= 0:
+			continue
+		if q != "" and not (q in GameData.res_name(sym).to_lower() or q in sym.to_lower()):
+			continue
+		owned.append(sym)
+	var grid := GridContainer.new()
+	grid.columns = 4
+	grid.add_theme_constant_override("h_separation", 7)
+	grid.add_theme_constant_override("v_separation", 7)
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_storage_results.add_child(grid)
+	for sym in owned:
+		grid.add_child(_storage_tile(sym))
+	if q == "":
+		# Pad with empty slots up to capacity only in the unfiltered view.
+		var cap := GameState.max_slots()
+		var total: int = maxi(cap, int(ceil(owned.size() / 4.0)) * 4)
+		for _i in range(total - owned.size()):
+			grid.add_child(_storage_slot_empty())
+		if owned.is_empty():
+			_empty(_storage_results, "Storage empty — go gather something.")
+	elif owned.is_empty():
+		_empty(_storage_results, "No materials match “%s”." % storage_query.strip_edges())
+	_scroll_passthrough(_storage_results)   # keep new tiles touch-droppable for scroll
+
+func _storage_rebuild_grid() -> void:
+	if not is_instance_valid(_storage_results):
+		return
+	for c in _storage_results.get_children():
+		_storage_results.remove_child(c)
+		c.queue_free()
+	_storage_fill_grid()
 
 # ============================================================ SETTINGS
 func _build_settings() -> void:
