@@ -139,6 +139,22 @@ var storage_query := ""                    # Storage page material-name filter
 var _storage_results: VBoxContainer = null # storage grid wrapper refilled live on search
 var _debounce_gen := {}                     # per-key generation counters for _debounce
 var _research_hs: ScrollContainer = null   # research 2D scroller, sized to the visible page
+# Research-tree pinch zoom: a user multiplier on top of the auto-fit scale, driven
+# by two-finger pinch (focal-preserving) and the on-screen +/- controls.
+var _research_canvas: Control = null
+var _research_frame: Control = null
+var _research_zoom := 1.0          # user zoom (persists across rebuilds / tab switches)
+var _research_base_fit := 1.0      # auto-fit-to-width scale computed per tree
+var _res_cw := 0.0
+var _res_ch := 0.0
+var _research_zoom_label: Label = null
+var _touches := {}                 # active finger index -> screen position
+var _pinch_active := false
+var _pinch_start_dist := 0.0
+var _pinch_start_zoom := 1.0
+const RES_ZOOM_MIN := 0.5
+const RES_ZOOM_MAX := 2.6
+const RES_BOTTOM_PAD := 140.0      # unscaled pad so the last tree row clears the screen edge
 var build_cat := "power"
 var ship_view := "loadout"
 var shipyard_view := "modules"  # Shipyard (fabrication) sub-tab — separate from ship_view
@@ -1710,14 +1726,36 @@ func _track_modal(o: Node) -> void:
 func _input(event: InputEvent) -> void:
 	if drawer_open or is_instance_valid(_char_select) or is_instance_valid(_welcome):
 		return
+	# Trackpad / OS pinch gesture (desktop + some devices) zooms the research tree.
+	if event is InputEventMagnifyGesture:
+		if current == "research" and is_instance_valid(_research_canvas):
+			_set_research_zoom(_research_zoom * event.factor, event.position)
+			get_viewport().set_input_as_handled()
+		return
 	if event is InputEventScreenTouch:
 		_drag_is_touch = true
+		if event.pressed:
+			_touches[event.index] = event.position
+		else:
+			_touches.erase(event.index)
+		_update_pinch_state()
+		if _pinch_active:                       # two fingers on the tree -> zoom, not scroll
+			get_viewport().set_input_as_handled()
+			return
 		if event.pressed:
 			_drag_begin(event.position)
 		else:
 			_drag_end()
+		return
 	elif event is InputEventScreenDrag:
+		if _touches.has(event.index):
+			_touches[event.index] = event.position
+		if _pinch_active:
+			_pinch_update()
+			get_viewport().set_input_as_handled()
+			return
 		_drag_move(event.position)
+		return
 	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not _drag_is_touch:
 		if event.pressed:
 			_drag_begin(event.position)
@@ -4251,6 +4289,41 @@ func _build_research() -> void:
 		_build_recursion(v)
 		return
 
+	# Pinch to zoom the tree, or use these controls — cards scale up so dense
+	# branches stay readable. Zoom persists across tab switches.
+	var zbar := HBoxContainer.new()
+	zbar.add_theme_constant_override("separation", 6)
+	var zhint := Label.new()
+	zhint.text = "⛶ Pinch or use ± to zoom"
+	zhint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	zhint.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	zhint.add_theme_font_size_override("font_size", _fs(10))
+	zhint.add_theme_color_override("font_color", Color.html(C_DIM))
+	zbar.add_child(zhint)
+	var zout := _card_button("−", PURP, true)
+	zout.custom_minimum_size = Vector2(46, 34)
+	zout.pressed.connect(func() -> void: _research_zoom_step(1.0 / 1.25))
+	zbar.add_child(zout)
+	_research_zoom_label = Label.new()
+	_research_zoom_label.custom_minimum_size = Vector2(54, 0)
+	_research_zoom_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_research_zoom_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_research_zoom_label.add_theme_font_size_override("font_size", _fs(11))
+	_research_zoom_label.add_theme_color_override("font_color", Color.html(C_TEXT))
+	zbar.add_child(_research_zoom_label)
+	var zin := _card_button("+", PURP, true)
+	zin.custom_minimum_size = Vector2(46, 34)
+	zin.pressed.connect(func() -> void: _research_zoom_step(1.25))
+	zbar.add_child(zin)
+	var zreset := _card_button("⟳", C_MUTED, true)
+	zreset.custom_minimum_size = Vector2(46, 34)
+	zreset.pressed.connect(func() -> void:
+		_research_zoom = 1.0
+		_refresh_current())
+	zbar.add_child(zreset)
+	v.add_child(zbar)
+	_update_research_zoom_label()
+
 	var graph: Dictionary = GameData.RESEARCH_GRAPHS[research_tab]
 	var pos: Dictionary = graph["pos"]
 	var nodes: Array = graph["nodes"]
@@ -4294,12 +4367,19 @@ func _build_research() -> void:
 	if avail_w < 100.0:
 		avail_w = 720.0 - RES_PAD * 2.0
 	var fit: float = clampf(avail_w / cw, 0.62, 1.0)
+	# Base auto-fit, then the user's pinch zoom on top. Stored so pinch / +- can
+	# rescale live without a rebuild.
+	_research_base_fit = fit
+	_res_cw = cw
+	_res_ch = ch
+	var eff: float = fit * _research_zoom
 	var canvas := Control.new()
 	canvas.custom_minimum_size = Vector2(cw, ch)
 	canvas.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	canvas.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	canvas.scale = Vector2(fit, fit)
+	canvas.scale = Vector2(eff, eff)
 	canvas.draw.connect(_draw_research_branches.bind(canvas, nodes, pos))
+	_research_canvas = canvas
 	for nid in nodes:
 		if not GameData.RESEARCH.has(nid):
 			continue
@@ -4312,13 +4392,13 @@ func _build_research() -> void:
 	# fitted size (a child's `scale` doesn't change its combined minimum size).
 	# Add a fixed (unscaled) bottom pad so the last row can scroll up clear of the
 	# screen edge / system nav bar instead of resting under it at max scroll.
-	const RES_BOTTOM_PAD := 140.0
 	var frame := Control.new()
-	frame.custom_minimum_size = Vector2(cw * fit, ch * fit + RES_BOTTOM_PAD)
+	frame.custom_minimum_size = Vector2(cw * eff, ch * eff + RES_BOTTOM_PAD)
 	frame.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	frame.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	frame.add_child(canvas)
 	hs.add_child(frame)
+	_research_frame = frame
 	v.add_child(hs)
 
 # Clamp the research scroller to the real visible page height so it scrolls
@@ -4330,6 +4410,62 @@ func _size_research_scroller() -> void:
 	if ph < 200.0:
 		return   # not laid out yet; the resized signal will call us again
 	_research_hs.custom_minimum_size.y = maxf(300.0, ph - 112.0)
+
+func _update_research_zoom_label() -> void:
+	if is_instance_valid(_research_zoom_label):
+		_research_zoom_label.text = "%d%%" % int(round(_research_zoom * 100.0))
+
+# Step the tree zoom from the +/- controls, keeping the view centred.
+func _research_zoom_step(mult: float) -> void:
+	var focal := Vector2.ZERO
+	if is_instance_valid(_research_hs):
+		focal = _research_hs.get_global_rect().position + _research_hs.size * 0.5
+	_set_research_zoom(_research_zoom * mult, focal)
+
+# Rescale the tree live (no rebuild). `focal` (screen px) stays pinned under the
+# fingers / view centre so zooming feels anchored rather than jumping to a corner.
+func _set_research_zoom(z: float, focal: Vector2) -> void:
+	z = clampf(z, RES_ZOOM_MIN, RES_ZOOM_MAX)
+	if not (is_instance_valid(_research_canvas) and is_instance_valid(_research_frame) and is_instance_valid(_research_hs)):
+		return
+	var hs := _research_hs
+	var old_eff: float = _research_base_fit * _research_zoom
+	var new_eff: float = _research_base_fit * z
+	var rel: Vector2 = focal - hs.get_global_rect().position
+	var canvas_pt: Vector2 = (Vector2(hs.scroll_horizontal, hs.scroll_vertical) + rel) / maxf(0.0001, old_eff)
+	_research_zoom = z
+	_research_canvas.scale = Vector2(new_eff, new_eff)
+	_research_frame.custom_minimum_size = Vector2(_res_cw * new_eff, _res_ch * new_eff + RES_BOTTOM_PAD)
+	var target: Vector2 = canvas_pt * new_eff - rel
+	var sx := int(maxf(0.0, target.x))
+	var sy := int(maxf(0.0, target.y))
+	hs.scroll_horizontal = sx
+	hs.scroll_vertical = sy
+	hs.set_deferred("scroll_horizontal", sx)   # re-apply after the frame relayouts
+	hs.set_deferred("scroll_vertical", sy)
+	_update_research_zoom_label()
+
+# Two-finger pinch bookkeeping (research tree only). _touches is maintained in _input.
+func _update_pinch_state() -> void:
+	var want: bool = current == "research" and is_instance_valid(_research_canvas) and _touches.size() >= 2
+	if want and not _pinch_active:
+		_pinch_active = true
+		_drag_active = false          # cancel any single-finger scroll that had started
+		_drag_vel = 0.0
+		_drag_vel_h = 0.0
+		var pts: Array = _touches.values()
+		_pinch_start_dist = maxf(1.0, pts[0].distance_to(pts[1]))
+		_pinch_start_zoom = _research_zoom
+	elif not want and _pinch_active:
+		_pinch_active = false
+
+func _pinch_update() -> void:
+	if _touches.size() < 2:
+		return
+	var pts: Array = _touches.values()
+	var dist: float = maxf(1.0, pts[0].distance_to(pts[1]))
+	var focal: Vector2 = (pts[0] + pts[1]) * 0.5
+	_set_research_zoom(_pinch_start_zoom * dist / _pinch_start_dist, focal)
 
 func _draw_research_branches(canvas: Control, nodes: Array, pos: Dictionary) -> void:
 	for nid in nodes:
