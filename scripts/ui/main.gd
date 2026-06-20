@@ -4503,8 +4503,9 @@ func _atlas_materials(v: VBoxContainer) -> void:
 
 const ATLAS_MAX_ROWS := 40
 
-# Modular, readable material card: a name + value header, then labelled FROM /
-# USED IN blocks that wrap (capped at a few entries each).
+# Lightweight material card: just the name, value, and an Info button. The heavy
+# FROM / USED IN detail is deferred to a tap (_show_material_info) so the list
+# stays cheap to render and scroll even with many matches.
 func _atlas_material_card(sym: String, info: Dictionary) -> Control:
 	var panel := PanelContainer.new()
 	panel.add_theme_stylebox_override("panel", _bordered(SURFACE, LINE, 1, 8))
@@ -4513,29 +4514,49 @@ func _atlas_material_card(sym: String, info: Dictionary) -> Control:
 	for side in ["left", "right", "top", "bottom"]:
 		m.add_theme_constant_override("margin_" + side, 9)
 	panel.add_child(m)
-	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 5)
-	m.add_child(col)
 	var hrow := HBoxContainer.new()
+	hrow.add_theme_constant_override("separation", 8)
+	m.add_child(hrow)
 	var nm := Label.new()
 	nm.text = GameData.item_name(sym)
 	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	nm.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	nm.add_theme_font_size_override("font_size", _fs(14))
 	nm.add_theme_color_override("font_color", GameData.color_for(sym))
 	hrow.add_child(nm)
 	var val := Label.new()
 	val.text = "₡%d" % GameData.value_of(sym)
+	val.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	val.add_theme_font_size_override("font_size", _fs(12))
 	val.add_theme_color_override("font_color", Color.html(GOLD))
 	hrow.add_child(val)
-	col.add_child(hrow)
-	if not info["sources"].is_empty():
-		_atlas_kv(col, "FROM", info["sources"], GREEN)
-	if not info["uses"].is_empty():
-		_atlas_kv(col, "USED IN", info["uses"], C_DIM)
+	var ib := _card_button("ⓘ Info", CYAN, true)
+	ib.pressed.connect(func() -> void: _show_material_info(sym, info))
+	hrow.add_child(ib)
 	return panel
 
-# A labelled, wrapping list block (eyebrow + body), capped at 8 entries.
+# Material detail modal: value, optional description, and the FROM / USED IN
+# source-and-use blocks (the data that used to render on every card).
+func _show_material_info(sym: String, info: Dictionary) -> void:
+	_modal("MATERIAL", CYAN, _material_info_body.bind(sym, info))
+
+func _material_info_body(v: VBoxContainer, _close: Callable, sym: String, info: Dictionary) -> void:
+	_clbl(v, GameData.item_name(sym), 16, _hex(GameData.color_for(sym)))
+	_clbl(v, "Value  ₡%d" % GameData.value_of(sym), 11, GOLD)
+	var desc := String(GameData.RESOURCES.get(sym, {}).get("desc", ""))
+	if desc != "":
+		_lbl_wrap(v, desc, 11, C_TEXT)
+	var sources: Array = info.get("sources", [])
+	var uses: Array = info.get("uses", [])
+	if not sources.is_empty():
+		_atlas_kv(v, "FROM", sources, GREEN)
+	if not uses.is_empty():
+		_atlas_kv(v, "USED IN", uses, C_DIM)
+	if sources.is_empty() and uses.is_empty():
+		_clbl(v, "No recorded sources or uses.", 10, C_DIM)
+
+# A labelled, wrapping list block (eyebrow + body). Rendered only inside the
+# material detail modal now, so it lists generously before truncating.
 func _atlas_kv(parent: Node, label_text: String, items: Array, color: String) -> void:
 	var eb := Label.new()
 	eb.text = label_text
@@ -4544,9 +4565,9 @@ func _atlas_kv(parent: Node, label_text: String, items: Array, color: String) ->
 	parent.add_child(eb)
 	var shown := items
 	var more := 0
-	if items.size() > 8:
-		shown = items.slice(0, 8)
-		more = items.size() - 8
+	if items.size() > 24:
+		shown = items.slice(0, 24)
+		more = items.size() - 24
 	var body := Label.new()
 	body.text = ", ".join(shown) + ("  +%d more" % more if more > 0 else "")
 	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
