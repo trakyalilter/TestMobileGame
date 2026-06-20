@@ -226,9 +226,18 @@ func _page_label(id: String) -> String:
 	return id.capitalize()
 
 func _coach_active_mission() -> String:
+	# Prefer the actionable chapter/tutorial mission for the coach pointer — a
+	# [CORE GOAL] (e.g. "perform your first Warp") can point at a page that isn't
+	# in the menu yet, which dead-ends the "tap ☰ → …" guidance. Core goals still
+	# show in the Missions list; they just don't hijack the pointer.
+	var first := ""
+	var actionable := ""
 	for mid in GameState.missions_active:
-		return mid              # the tutorial chain has one active mission at a time
-	return ""
+		if first == "":
+			first = mid
+		if actionable == "" and not String(GameData.MISSIONS.get(mid, {}).get("name", "")).begins_with("[CORE GOAL]"):
+			actionable = mid
+	return actionable if actionable != "" else first
 
 func _gather_action_for(sym: String) -> String:
 	var best := ""
@@ -383,8 +392,15 @@ func _update_coach() -> void:
 		_coach_hint.text = "Tap " + _page_label(page) + " to continue"
 		pulse = nav_items[page]["btn"]
 	elif page != current:
-		_coach_hint.text = m.get("desc", "") + "   ·   tap ☰ → " + _page_label(page)
-		pulse = _ham_btn
+		if drawer_open:
+			# Target page isn't a tappable menu row yet (not unlocked/revealed) — the
+			# nav_items.has(page) branch above already failed, so don't dead-end the
+			# pointer on the hamburger while the menu is open.
+			_coach_hint.text = m.get("desc", "")
+			pulse = null
+		else:
+			_coach_hint.text = m.get("desc", "") + "   ·   tap ☰ → " + _page_label(page)
+			pulse = _ham_btn
 	elif drawer_open:
 		# Already on the right page but the drawer is open over it — the target card
 		# is occluded, so don't ring it (the ring draws on top of the drawer and
