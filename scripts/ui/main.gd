@@ -157,6 +157,7 @@ const RES_BOTTOM_PAD := 140.0      # unscaled pad so the last tree row clears th
 var build_cat := "power"
 var ship_view := "loadout"
 var shipyard_view := "modules"  # Shipyard (fabrication) sub-tab — separate from ship_view
+var shipyard_zone := 0          # Shipyard shop secondary filter: 0 = all, else a zone difficulty
 var armory_sort := "power"      # Armory sort: "power" | "zone" | "rarity"
 var armory_zone := 0            # Armory secondary filter: 0 = all, else a zone difficulty
 const ARMORY_MAX := 60          # cap rendered Armory tiles (thousands froze the page)
@@ -1112,7 +1113,7 @@ func _process(_delta: float) -> void:
 # them on passive ticks (gather/craft/infra loops fire resources_changed +
 # skills_changed constantly), which otherwise flickers/jumps the view. These pages
 # refresh explicitly from their own interaction handlers instead.
-const NO_TICK_REFRESH := ["research", "atlas", "ship"]
+const NO_TICK_REFRESH := ["research", "atlas", "ship", "shipyard"]
 # Idle-loop pages: while an action is actively looping, every completion fires
 # resources_changed + skills_changed. A full grid rebuild on each one destroys
 # and recreates every card (and the progress-bar node), which reads as a freeze
@@ -4123,6 +4124,23 @@ func _shipyard_modules(v: VBoxContainer) -> void:
 		v.add_child(warn)
 	_grid_readout(v)
 	_ship_slot_tabs(v)
+	# Secondary zone filter — only zones you've UNLOCKED are offered, by their real
+	# names, so the chip row never spoils how many zones lie ahead. "All Zones" keeps
+	# the shop's normal forward preview.
+	var unlocked_zones := []
+	for z in GameData.ZONES:
+		if _zone_unlocked(z):
+			unlocked_zones.append(int(z.get("difficulty", 0)))
+	unlocked_zones.sort()
+	if shipyard_zone != 0 and not (shipyard_zone in unlocked_zones):
+		shipyard_zone = 0
+	if unlocked_zones.size() > 1:
+		var zitems := [{"id": "0", "label": "All Zones"}]
+		for z in unlocked_zones:
+			zitems.append({"id": str(z), "label": _zone_name(z)})
+		_subtabs(v, zitems, str(shipyard_zone), CYAN, func(id: String) -> void:
+			shipyard_zone = int(id)
+			_refresh_current())
 	_section(v, "Module Shop", CYAN)
 	var g := _grid(v)
 	var any := false
@@ -4130,10 +4148,12 @@ func _shipyard_modules(v: VBoxContainer) -> void:
 		var m: Dictionary = GameData.MODULES[mid]
 		if m.get("slot", "") != ship_mod_slot:
 			continue
+		if shipyard_zone != 0 and _module_zone(mid) != shipyard_zone:
+			continue
 		any = true
 		g.add_child(_module_card(mid, m))
 	if not any:
-		_empty(v, "No modules of this type.")
+		_empty(v, "No modules in this zone for this slot.")
 
 func _custom_module_card(cid: String) -> Control:
 	var md: Dictionary = GameState.custom_modules[cid]
@@ -4219,12 +4239,14 @@ func _module_card(mid: String, m: Dictionary) -> Control:
 	if owned > 0:
 		var eq := _card_button("Equip", CYAN, true)
 		eq.pressed.connect(func() -> void:
-			if not GameState.equip_module(mid):
-				pass)
+			GameState.equip_module(mid)
+			_refresh_current())
 		c.add_child(eq)
 	var buy := _card_button("Buy", GOLD, GameState.module_can_buy(mid))
 	if GameState.module_can_buy(mid):
-		buy.pressed.connect(func() -> void: GameState.buy_module(mid))
+		buy.pressed.connect(func() -> void:
+			GameState.buy_module(mid)
+			_refresh_current())
 	c.add_child(buy)
 	return c.get_parent()
 
@@ -4257,7 +4279,9 @@ func _hull_card(hid: String, h: Dictionary) -> Control:
 		c.add_child(_card_button("ACTIVE", C_MUTED, false))
 	elif owned:
 		var sw := _card_button("Switch", CYAN, true)
-		sw.pressed.connect(func() -> void: GameState.select_hull(hid))
+		sw.pressed.connect(func() -> void:
+			GameState.select_hull(hid)
+			_refresh_current())
 		c.add_child(sw)
 	else:
 		var cost_lines := []
@@ -4269,7 +4293,9 @@ func _hull_card(hid: String, h: Dictionary) -> Control:
 			_inset(c, "COST", cost_lines, CYAN)
 		var b := _card_button("Build", GOLD, GameState.hull_can_get(hid))
 		if GameState.hull_can_get(hid):
-			b.pressed.connect(func() -> void: GameState.select_hull(hid))
+			b.pressed.connect(func() -> void:
+				GameState.select_hull(hid)
+				_refresh_current())
 		c.add_child(b)
 	return c.get_parent()
 
