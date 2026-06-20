@@ -158,6 +158,7 @@ var build_cat := "power"
 var ship_view := "loadout"
 var shipyard_view := "modules"  # Shipyard (fabrication) sub-tab — separate from ship_view
 var armory_sort := "power"      # Armory sort: "power" | "zone" | "rarity"
+var armory_zone := 0            # Armory secondary filter: 0 = all, else a zone difficulty
 const ARMORY_MAX := 60          # cap rendered Armory tiles (thousands froze the page)
 var ship_mod_slot := "weapon"
 var ship_target_slot := -1      # slot index the Armory equips INTO (slot-first flow; -1 = browse/auto)
@@ -3919,6 +3920,27 @@ func _owned_module_def(mid: String) -> Dictionary:
 		return GameState.custom_modules[mid]
 	return GameData.MODULES.get(mid, {})
 
+# The zone (difficulty) a module belongs to. Custom rolls/set pieces carry it on
+# their base module, so resolve through "base" when the instance lacks it.
+func _module_zone(mid: String) -> int:
+	var d := _owned_module_def(mid)
+	var z := int(d.get("zone", 0))
+	if z > 0:
+		return z
+	var base := String(d.get("base", ""))
+	if GameData.MODULES.has(base):
+		return int(GameData.MODULES[base].get("zone", 0))
+	if GameData.SET_MODULES.has(base):
+		return int(GameData.SET_MODULES[base].get("zone", 0))
+	return 0
+
+# Original zone display name for a difficulty number (e.g. 2 -> "Asteroid Belt").
+func _zone_name(z: int) -> String:
+	for zd in GameData.ZONES:
+		if int(zd.get("difficulty", -1)) == z:
+			return String(zd.get("name", "Zone %d" % z))
+	return "Zone %d" % z
+
 # ====================================================== SHIP DESIGNER · ARMORY
 # Your owned/unequipped module pool. Tap a card to equip it (GameState.equip_module).
 # Sortable by Power / Zone / Rarity to mirror the desktop designer's armory.
@@ -3981,11 +4003,6 @@ func _ship_armory(v: VBoxContainer) -> void:
 	else:
 		# Browse mode (opened via the Armory tab): pick a slot type to view.
 		_ship_slot_tabs(v)
-	# Sort control (matches desktop armory_sort_mode).
-	_subtabs(v, [{"id": "power", "label": "Power"}, {"id": "zone", "label": "Zone"}, {"id": "rarity", "label": "Rarity"}], armory_sort, PURP, func(id: String) -> void:
-		armory_sort = id
-		_refresh_current())
-	_armory_scrap_row(v)
 	# Collect every owned module for this slot: rolled customs + base modules.
 	var owned := []
 	for cid in GameState.custom_modules:
@@ -3994,6 +4011,39 @@ func _ship_armory(v: VBoxContainer) -> void:
 	for mid in GameData.MODULES:
 		if GameData.MODULES[mid].get("slot", "") == ship_mod_slot and int(GameState.module_inventory.get(mid, 0)) > 0:
 			owned.append(mid)
+	# Zones represented in the owned gear. You only own gear from zones you've
+	# played, so these are inherently unlocked — no locked-zone spoilers, and no
+	# empty sections. Drives the optional secondary zone filter.
+	var zones_present := {}
+	for mid in owned:
+		var mz := _module_zone(mid)
+		if mz > 0:
+			zones_present[mz] = true
+	if armory_zone != 0 and not zones_present.has(armory_zone):
+		armory_zone = 0   # selection no longer valid (e.g. slot changed)
+	# Sort control (matches desktop armory_sort_mode).
+	_subtabs(v, [{"id": "power", "label": "Power"}, {"id": "zone", "label": "Zone"}, {"id": "rarity", "label": "Rarity"}], armory_sort, PURP, func(id: String) -> void:
+		armory_sort = id
+		_refresh_current())
+	# Secondary filter: narrow to one zone's gear (only zones you own gear from,
+	# by their real names). Shown only when there's more than one to choose.
+	if zones_present.size() > 1:
+		var zkeys := zones_present.keys()
+		zkeys.sort()
+		var zitems := [{"id": "0", "label": "All Zones"}]
+		for z in zkeys:
+			zitems.append({"id": str(z), "label": _zone_name(z)})
+		_subtabs(v, zitems, str(armory_zone), CYAN, func(id: String) -> void:
+			armory_zone = int(id)
+			_refresh_current())
+	_armory_scrap_row(v)
+	# Apply the zone filter.
+	if armory_zone != 0:
+		var filtered := []
+		for mid in owned:
+			if _module_zone(mid) == armory_zone:
+				filtered.append(mid)
+		owned = filtered
 	if owned.is_empty():
 		_section(v, "Armory — owned gear", PURP)
 		_empty(v, "No gear yet — craft modules in the Shipyard or defeat enemies for drops.")
@@ -4006,7 +4056,7 @@ func _ship_armory(v: VBoxContainer) -> void:
 			"rarity":
 				return int(da.get("rarity", 0)) > int(db.get("rarity", 0))
 			"zone":
-				return int(da.get("zone", 0)) < int(db.get("zone", 0))
+				return _module_zone(a) < _module_zone(b)
 			_:
 				return _module_power(da.get("stats", {})) > _module_power(db.get("stats", {}))
 		)
