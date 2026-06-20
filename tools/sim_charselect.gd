@@ -49,9 +49,9 @@ func _run() -> void:
 	_ck(is_instance_valid(main._char_select), "char-select overlay built on boot")
 	var ct := []
 	_collect_text(main._char_select, ct)
-	_ck(_has(ct, "STELLAR FORGE") and _has(ct, "Select Commander"), "title header present")
-	_ck(_has(ct, "Nova") and _has(ct, "Play"), "filled slot shows name + Play")
-	_ck(_has(ct, "New Character") and _has(ct, "Create"), "empty slot shows New Character")
+	_ck(_has(ct, "STELLAR FORGE") and _has(ct, "COMMANDER ROSTER"), "title header present")
+	_ck(_has(ct, "Nova") and _has(ct, "DEPLOY"), "filled slot shows name + Deploy")
+	_ck(_has(ct, "New Commander") and _has(ct, "CREATE COMMANDER"), "empty slot shows recruit + Create")
 
 	# --- Play the filled slot → enters the game.
 	main._play_slot(1)
