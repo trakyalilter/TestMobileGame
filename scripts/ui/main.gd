@@ -811,7 +811,11 @@ func _enter_game() -> void:
 	if is_instance_valid(_char_select):
 		_char_select.queue_free()
 	_char_select = null
-	_refresh_all()
+	# _show() rebuilds the target page itself, so only refresh the header here —
+	# calling _refresh_all() first would build the (wrong) current page and then
+	# immediately rebuild again in _show(), a redundant double-build that settles
+	# visibly on entry.
+	_refresh_top()
 	_refresh_banner()
 	_show("missions" if not GameState.has_mission_progress() else "gather")
 	_update_badges()
@@ -891,6 +895,9 @@ func _apply_theme() -> void:
 		theme = th
 
 ## Pads the UI clear of the status bar / notch / gesture bar.
+var _safe_top := -1
+var _safe_bottom := -1
+
 func _update_safe_area() -> void:
 	if safe_margin == null:
 		return
@@ -899,10 +906,18 @@ func _update_safe_area() -> void:
 	if ws.x <= 0 or ws.y <= 0:
 		return
 	var vp := get_viewport().get_visible_rect().size
-	var top := int(safe.position.y * vp.y / ws.y)
-	var bottom := int((ws.y - safe.position.y - safe.size.y) * vp.y / ws.y)
-	safe_margin.add_theme_constant_override("margin_top", maxi(top, 0))
-	safe_margin.add_theme_constant_override("margin_bottom", maxi(bottom, 0))
+	var top := maxi(int(safe.position.y * vp.y / ws.y), 0)
+	var bottom := maxi(int((ws.y - safe.position.y - safe.size.y) * vp.y / ws.y), 0)
+	# Idempotent: the viewport size_changed signal fires repeatedly (orientation
+	# lock, keyboard, window settle on boot). Re-applying the same margins forces a
+	# relayout that shifts the whole UI — the one-time jump seen on launch. Skip when
+	# nothing changed.
+	if top == _safe_top and bottom == _safe_bottom:
+		return
+	_safe_top = top
+	_safe_bottom = bottom
+	safe_margin.add_theme_constant_override("margin_top", top)
+	safe_margin.add_theme_constant_override("margin_bottom", bottom)
 
 func _process(_delta: float) -> void:
 	# Drag-scroll inertia: after a flick, keep gliding with a little friction.
