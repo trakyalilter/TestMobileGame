@@ -2689,7 +2689,7 @@ func _building_card(bid: String, d: Dictionary) -> Control:
 		for sym in cost:
 			var have: bool = GameState.credits >= int(cost[sym]) if sym == "credits" else GameState.amount(sym) >= int(cost[sym])
 			var label := "₡%s" % GameData.fmt(cost[sym]) if sym == "credits" else "%s %s" % [GameData.fmt(cost[sym]), GameData.res_name(sym)]
-			cost_lines.append(_line(label, GOLD if have else C_WARN))
+			cost_lines.append(_line(label, GREEN if have else C_WARN))
 		_inset(v, "COST", cost_lines, BUILD)
 		var can := GameState.building_can_afford(bid)
 		var b := _card_button("Build", BUILD, can)
@@ -3011,7 +3011,7 @@ func _build_fleet() -> void:
 		var cl := []
 		for sym in hd.get("cost", {}):
 			var need := int(hd["cost"][sym])
-			cl.append(_line("%s %s" % [GameData.fmt(need), GameData.res_name(sym)], GOLD if GameState.amount(sym) >= need else C_WARN))
+			cl.append(_line("%s %s" % [GameData.fmt(need), GameData.res_name(sym)], GREEN if GameState.amount(sym) >= need else C_WARN))
 		_inset(c, "COST", cl, GOLD)
 		var b := _card_button("Fleet full" if full else "Build", GOLD, can)
 		if can:
@@ -3604,7 +3604,7 @@ func _module_detail_body(v: VBoxContainer, close: Callable, mid: String) -> void
 		for k in bonus:
 			if k == "name" or k == "pieces":
 				continue
-			blines.append(_line(_trinity_bonus_label(k, float(bonus[k])), GOLD if have >= pieces else C_MUTED))
+			blines.append(_line(_trinity_bonus_label(k, float(bonus[k])), GREEN if have >= pieces else C_MUTED))
 		_inset(v, "✦ SET: %s  (%d/%d equipped)" % [sd.get("name", set_id), have, pieces], blines, PURP)
 	# Custom (rolled) modules: keep their sockets + sell reachable from the detail.
 	if GameState.custom_modules.has(mid):
@@ -4063,7 +4063,7 @@ func _module_card(mid: String, m: Dictionary) -> Control:
 	for sym in m.get("cost", {}):
 		var have: bool = GameState.credits >= int(m["cost"][sym]) if sym == "credits" else GameState.amount(sym) >= int(m["cost"][sym])
 		var label := "₡%s" % GameData.fmt(m["cost"][sym]) if sym == "credits" else "%s %s" % [GameData.fmt(m["cost"][sym]), GameData.res_name(sym)]
-		cost_lines.append(_line(label, GOLD if have else C_WARN))
+		cost_lines.append(_line(label, GREEN if have else C_WARN))
 	_inset(c, "COST", cost_lines, CYAN)
 	if owned > 0:
 		var eq := _card_button("Equip", CYAN, true)
@@ -4113,7 +4113,7 @@ func _hull_card(hid: String, h: Dictionary) -> Control:
 		for sym in h.get("cost", {}):
 			var have: bool = GameState.credits >= int(h["cost"][sym]) if sym == "credits" else GameState.amount(sym) >= int(h["cost"][sym])
 			var label := "₡%s" % GameData.fmt(h["cost"][sym]) if sym == "credits" else "%s %s" % [GameData.fmt(h["cost"][sym]), GameData.res_name(sym)]
-			cost_lines.append(_line(label, GOLD if have else C_WARN))
+			cost_lines.append(_line(label, GREEN if have else C_WARN))
 		if not cost_lines.is_empty():
 			_inset(c, "COST", cost_lines, CYAN)
 		var b := _card_button("Build", GOLD, GameState.hull_can_get(hid))
@@ -4333,7 +4333,7 @@ func _research_node(id: String) -> Control:
 		var cred := int(t.get("credits", 0))
 		var extra: int = t.get("items", {}).size()
 		status.text = "₡%s%s" % [GameData.fmt(cred), ("  +%d mat" % extra) if extra > 0 else ""]
-		status.add_theme_color_override("font_color", Color.html(GOLD if GameState.credits >= cred else C_WARN))
+		status.add_theme_color_override("font_color", Color.html(GREEN if GameState.credits >= cred else C_WARN))
 	vb.add_child(status)
 	if not researched:
 		# Tap opens a detail modal with the full requirements (incl. material names)
@@ -4423,7 +4423,7 @@ func _show_research_detail(id: String) -> void:
 		_inset(v, "UNLOCKS", ulines, CYAN)
 	var lines := []
 	var cred := int(t.get("credits", 0))
-	lines.append(_line("₡ Credits   %s / %s" % [GameData.fmt(GameState.credits), GameData.fmt(cred)], GOLD if GameState.credits >= cred else C_WARN))
+	lines.append(_line("₡ Credits   %s / %s" % [GameData.fmt(GameState.credits), GameData.fmt(cred)], GREEN if GameState.credits >= cred else C_WARN))
 	for sym in t.get("items", {}):
 		var need := int(t["items"][sym])
 		var have := GameState.amount(sym)
@@ -4463,7 +4463,7 @@ func _build_recursion(v: VBoxContainer) -> void:
 		for res in cost:
 			var have: bool = (GameState.credits >= int(cost[res])) if res == "credits" else (GameState.amount(res) >= int(cost[res]))
 			var lbl: String = ("₡%s" % GameData.fmt(cost[res])) if res == "credits" else ("%s %s" % [GameData.fmt(cost[res]), GameData.res_name(res)])
-			cost_lines.append(_line(lbl, GOLD if have else C_WARN))
+			cost_lines.append(_line(lbl, GREEN if have else C_WARN))
 		_inset(c, "NEXT LEVEL COST", cost_lines, PURP)
 		var can := GameState.can_unlock_repeatable(rid)
 		var b := _card_button("Research Lv %d" % (lvl + 1), PURP, can)
