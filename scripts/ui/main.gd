@@ -1059,20 +1059,28 @@ func _on_tick() -> void:
 # Throttle them: rebuild immediately on the first tick, then at most once per
 # window, with a single trailing rebuild to catch the latest state. Live bars/
 # timers still update every frame in _process, so the page never looks frozen.
-const TICK_REFRESH_MS := 300
+# The window is short while something is actively running (the player is watching
+# values move), but long when idle — passive infra/bounty accumulation doesn't
+# need a snappy redraw, and a calm cadence stops the periodic idle jump.
+const TICK_REFRESH_MS_ACTIVE := 300
+const TICK_REFRESH_MS_IDLE := 2000
 var _tick_refresh_last := 0
 var _tick_refresh_pending := false
 
+func _tick_refresh_window() -> int:
+	return TICK_REFRESH_MS_ACTIVE if GameState.active_type != "" else TICK_REFRESH_MS_IDLE
+
 func _request_tick_refresh() -> void:
+	var win := _tick_refresh_window()
 	var now := Time.get_ticks_msec()
-	if now - _tick_refresh_last >= TICK_REFRESH_MS:
+	if now - _tick_refresh_last >= win:
 		_tick_refresh_last = now
 		_refresh_current(true)
 		return
 	if _tick_refresh_pending:
 		return
 	_tick_refresh_pending = true
-	var wait := float(TICK_REFRESH_MS - (now - _tick_refresh_last)) / 1000.0
+	var wait := float(win - (now - _tick_refresh_last)) / 1000.0
 	await get_tree().create_timer(maxf(0.01, wait)).timeout
 	_tick_refresh_pending = false
 	# Don't rebuild a page that's since opted out (navigated to a graph/codex page,
