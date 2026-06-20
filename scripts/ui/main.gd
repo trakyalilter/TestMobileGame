@@ -1106,10 +1106,12 @@ func _process(_delta: float) -> void:
 				_rebuild_loot_rows()
 		_drain_combat_events()
 
-# Pages whose content is static/expensive (positioned node-graph, big codex) and
-# whose pan/scroll state must survive — don't rebuild them on passive ticks
-# (gather/craft/infra loops fire resources_changed + skills_changed constantly).
-const NO_TICK_REFRESH := ["research", "atlas"]
+# Pages whose content is static/expensive (positioned node-graph, big codex) or
+# is changed only by the player's own actions (the Ship Designer) — don't rebuild
+# them on passive ticks (gather/craft/infra loops fire resources_changed +
+# skills_changed constantly), which otherwise flickers/jumps the view. These pages
+# refresh explicitly from their own interaction handlers instead.
+const NO_TICK_REFRESH := ["research", "atlas", "ship"]
 # Idle-loop pages: while an action is actively looping, every completion fires
 # resources_changed + skills_changed. A full grid rebuild on each one destroys
 # and recreates every card (and the progress-bar node), which reads as a freeze
