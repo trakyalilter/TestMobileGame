@@ -3667,6 +3667,34 @@ func _open_slot_armory(idx: int, stype: String) -> void:
 	ship_view = "armory"
 	_refresh_current()
 
+# After a weapon is equipped/swapped into slot `idx`, direct the player to choose
+# ammo: a swap clears the slot's ammo binding, so a non-cryo weapon lands with no
+# ammo selected. Only prompts when the player actually owns matching ammo (else
+# there's nothing to pick). Cryo weapons use no ammo and are skipped.
+func _prompt_ammo_if_needed(idx: int) -> void:
+	var key := str(idx)
+	var mid: String = GameState.loadout.get(key, "")
+	if mid == "":
+		return
+	var md: Dictionary = GameState.module_def(mid)
+	if md.get("slot", "") != "weapon":
+		return
+	var st: Dictionary = md.get("stats", {})
+	if float(st.get("atk_cryo", 0)) > 0:
+		return   # cryo weapons fire without ammo
+	var letter := "k"
+	if float(st.get("atk_energy", 0)) > 0: letter = "e"
+	elif float(st.get("atk_explosive", 0)) > 0: letter = "x"
+	# Only prompt if there's ammo of this type to choose; otherwise skip silently.
+	var has_ammo := false
+	for sym in GameData.RESOURCES:
+		if String(GameState.ammo_bonus(sym)[0]) == letter and GameState.amount(sym) > 0:
+			has_ammo = true
+			break
+	if not has_ammo:
+		return
+	_open_ammo_picker(key, md)
+
 ## Filled-slot menu: shows the equipped module + Unequip / Open Armory / Cancel.
 func _open_slot_menu(idx: int, stype: String, equipped: String) -> void:
 	var md: Dictionary = GameState.module_def(equipped)
@@ -3811,10 +3839,12 @@ func _do_equip(mid: String, close: Callable, note: Label) -> void:
 	# Slot-first flow (opened from a specific slot): equip straight into it.
 	if ship_target_slot >= 0:
 		if GameState.equip_module_to_slot(ship_target_slot, mid):
+			var eq_idx := ship_target_slot
 			close.call()
 			ship_target_slot = -1
 			ship_view = "loadout"
 			_refresh_current()
+			_prompt_ammo_if_needed(eq_idx)
 		elif is_instance_valid(note):
 			note.text = "⚠ " + (GameState.equip_notice if GameState.equip_notice != "" else "Can't equip here.")
 			note.visible = true
@@ -3834,6 +3864,7 @@ func _do_equip(mid: String, close: Callable, note: Label) -> void:
 			close.call()
 			ship_view = "loadout"
 			_refresh_current()
+			_prompt_ammo_if_needed(int(idxs[0]))
 		elif is_instance_valid(note):
 			note.text = "⚠ " + (GameState.equip_notice if GameState.equip_notice != "" else "Can't equip here.")
 			note.visible = true
@@ -3871,6 +3902,7 @@ func _open_equip_slot_picker(mid: String, idxs: Array) -> void:
 					close.call()
 					ship_view = "loadout"
 					_refresh_current()
+					_prompt_ammo_if_needed(idx)
 				elif is_instance_valid(note):
 					note.text = "⚠ " + (GameState.equip_notice if GameState.equip_notice != "" else "Can't equip here.")
 					note.visible = true)
