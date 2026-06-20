@@ -4492,7 +4492,7 @@ func _atlas_materials(v: VBoxContainer) -> void:
 		if not match_cat:
 			continue
 		total += 1
-		if shown >= ATLAS_MAX_ROWS:
+		if shown >= ATLAS_MAT_MAX_ROWS:
 			continue   # counted for the summary, but don't build a node
 		shown += 1
 		v.add_child(_atlas_material_card(sym, info))
@@ -4502,6 +4502,11 @@ func _atlas_materials(v: VBoxContainer) -> void:
 		_clbl(v, "Showing %d of %d — type to search." % [shown, total], 10, C_DIM)
 
 const ATLAS_MAX_ROWS := 40
+# Material cards are lightweight (name + value + Info button), so the materials
+# list can show the whole catalogue without the stutter that the old inline-detail
+# cards caused. Enemies stay capped at ATLAS_MAX_ROWS — those cards still render
+# stats/affinity/intel inline and are heavier.
+const ATLAS_MAT_MAX_ROWS := 300
 
 # Lightweight material card: just the name, value, and an Info button. The heavy
 # FROM / USED IN detail is deferred to a tap (_show_material_info) so the list
