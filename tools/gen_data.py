@@ -214,6 +214,7 @@ MOBILE_RECIPE_LEVEL = {
     "craft_battery_t1": 1,          # Basic Battery — needed very early (Fab 2); was 6
     "smelt_steel_basic": 8,         # Steel — tutorial m025b (player ~Fab 11); was 12
     "craft_structural_component": 10,  # Structural Components — tutorial m029a3 (player ~Fab 12); was 40
+    "craft_adv_circuit": 35,        # Advanced Circuit — mission m029b (player ~Fab 38); was 45
 }
 for rid, r in recipes.items():
     inputs = dict(r.get("input", {}))
@@ -915,10 +916,13 @@ for entry in CURATED_CHAIN:
 lines.append("const MISSIONS := {")
 for mid, d in curated:
     lines.append(f"\t{g(mid)}: {g(d)},")
-# Emit every remaining desktop mission verbatim (goal_* cores + orphans) so the
-# data stays complete and _tutorial_done()/MISSION_GOALS still resolve.
+# Emit every remaining desktop mission verbatim (goal_* cores) so the data stays
+# complete and _tutorial_done()/MISSION_GOALS still resolve. Inert tutorial orphans
+# are dropped — the granular chain already covers them (m016b "equip weapon+shield"
+# is redundant with m015b "equip weapon" + m024c "equip shield").
+SKIP_ORPHANS = {"m016b"}
 for mid, m in missions.items():
-    if mid in curated_set or mid in consumed:
+    if mid in curated_set or mid in consumed or mid in SKIP_ORPHANS:
         continue
     lines.append(f"\t{g(mid)}: {g(mission_dict(m))},")
 lines.append("}")
