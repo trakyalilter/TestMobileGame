@@ -3634,6 +3634,10 @@ func _modal(title: String, accent: String, body: Callable) -> void:
 	var overlay := ColorRect.new()
 	overlay.color = Color(0, 0, 0, 0.7)
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	# Above everything — the character-select overlay (z 50) and the combat hit-flash
+	# (z 90). Without this a modal opened from the select screen renders behind it and
+	# is unreachable (looks like a freeze on Rename / Create / Delete).
+	overlay.z_index = 100
 	add_child(overlay)
 	_track_modal(overlay)
 	var close := func() -> void:
