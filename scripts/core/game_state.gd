@@ -3814,6 +3814,52 @@ func _migrate_module_resources() -> void:
 	for sym in to_remove:
 		resources.erase(sym)
 
+# Legacy set pieces were granted UNSCALED (raw base SET_MODULE stats) before the
+# rarity-4 scaling existed, leaving them weaker than rolled legendaries. Upgrade
+# them on load: (1) custom set instances still at ~base power get rescaled to the
+# rarity-4 band; (2) raw base SET_MODULE ids sitting in the loadout/armory are
+# converted into scaled set instances. Properly-scaled pieces (>=4.5x base) are
+# left untouched, so this never double-scales.
+func _set_stats_unscaled(cur: Dictionary, base: Dictionary) -> bool:
+	for k in base:
+		if k == "atk_interval" or k == "energy_load" or k == "atk_speed_mult":
+			continue
+		var b := float(base[k])
+		if b <= 0.0:
+			continue
+		# A real rarity-4 roll is >=4.5x base; <=2x means it never got scaled.
+		return float(cur.get(k, 0.0)) <= b * 2.0
+	return false
+
+func _migrate_set_pieces() -> void:
+	# (1) Rescale unscaled custom set instances (covers both equipped and owned).
+	for cid in custom_modules.keys():
+		var cm: Dictionary = custom_modules[cid]
+		var base_id: String = cm.get("base", "")
+		if String(cm.get("set", "")) == "" or not GameData.SET_MODULES.has(base_id):
+			continue
+		var base_stats: Dictionary = GameData.SET_MODULES[base_id].get("stats", {})
+		if _set_stats_unscaled(cm.get("stats", {}), base_stats):
+			cm["stats"] = _scale_module_stats(base_stats, 4, int(GameData.SET_MODULES[base_id].get("zone", 1)))
+			cm["rarity"] = 4
+	# (2) Equipped raw base SET_MODULE ids -> scaled custom in the same slot.
+	for slot in loadout.keys():
+		var mid = loadout[slot]
+		if typeof(mid) == TYPE_STRING and GameData.SET_MODULES.has(mid):
+			var cid := _grant_set_piece(mid)     # makes a scaled custom (+1 inventory)
+			if cid != "":
+				module_inventory[cid] = int(module_inventory.get(cid, 0)) - 1   # it's equipped, not in the pool
+				if int(module_inventory.get(cid, 0)) <= 0:
+					module_inventory.erase(cid)
+				loadout[slot] = cid
+	# (3) Owned (unequipped) raw base SET_MODULE ids -> scaled customs.
+	for mid in module_inventory.keys():
+		if GameData.SET_MODULES.has(mid):
+			var cnt := int(module_inventory[mid])
+			module_inventory.erase(mid)
+			for _i in range(maxi(0, cnt)):
+				_grant_set_piece(mid)
+
 func _roll_loot(loot: Array, mult: float, flat: int = 0, log_session: bool = false, deterministic: bool = false) -> void:
 	for row in loot:
 		if randf() < float(row[1]):
@@ -4177,6 +4223,7 @@ func load_game() -> void:
 		module_inventory[k] = int(module_inventory[k])
 	custom_modules = data.get("custom_modules", {})
 	_migrate_module_resources()   # move gear wrongly stored as resources into the Armory
+	_migrate_set_pieces()         # upgrade legacy unscaled set pieces to rarity-4 scaling
 	ammo_loadout = data.get("ammo_loadout", {})
 	consumable_hull_slot = data.get("consumable_hull_slot", "")
 	consumable_shield_slot = data.get("consumable_shield_slot", "")
