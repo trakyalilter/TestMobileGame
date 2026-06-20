@@ -1930,12 +1930,10 @@ func _craft_card(id: String, r: Dictionary) -> Control:
 	if unlocked:
 		var in_lines := []
 		for sym in r.get("inputs", {}):
-			# QoL (desktop parity): show have / need per input, green when you have
-			# enough of that material, amber when short — so you can see at a glance
-			# what's missing (matches the research REQUIREMENTS readout).
+			# QoL (desktop parity): show the required input, green when you have enough
+			# of that material, amber when short — so missing inputs read at a glance.
 			var need: int = int(r["inputs"][sym])
-			var have: int = GameState.amount(sym)
-			in_lines.append(_line("%s   %s / %d" % [GameData.res_name(sym), GameData.fmt(have), need], GREEN if have >= need else C_WARN))
+			in_lines.append(_line("%d %s" % [need, GameData.res_name(sym)], GREEN if GameState.amount(sym) >= need else C_WARN))
 		_inset(v, "INPUTS", in_lines, CYAN)
 		var d := Label.new()
 		d.text = "▼"
