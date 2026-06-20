@@ -1091,7 +1091,17 @@ var _tick_refresh_pending := false
 func _tick_refresh_window() -> int:
 	return TICK_REFRESH_MS_ACTIVE if GameState.active_type != "" else TICK_REFRESH_MS_IDLE
 
+# A rebuild destroys and recreates the page's nodes — including a focused search
+# field, which drops focus and dismisses the on-screen keyboard. Never rebuild the
+# page out from under an active text input; the next tick after the field is
+# dismissed will catch up.
+func _text_input_focused() -> bool:
+	var f = get_viewport().gui_get_focus_owner()
+	return f is LineEdit or f is TextEdit
+
 func _request_tick_refresh() -> void:
+	if _text_input_focused():
+		return
 	var win := _tick_refresh_window()
 	var now := Time.get_ticks_msec()
 	if now - _tick_refresh_last >= win:
@@ -1105,10 +1115,12 @@ func _request_tick_refresh() -> void:
 	await get_tree().create_timer(maxf(0.01, wait)).timeout
 	_tick_refresh_pending = false
 	# Don't rebuild a page that's since opted out (navigated to a graph/codex page,
-	# or an idle-loop page that started looping) — match the live-handler guards.
+	# an idle-loop page, or while a text field is focused — match the entry guards).
+	if _text_input_focused():
+		return
 	if current in NO_TICK_REFRESH:
 		return
-	if current in IDLE_LOOP_PAGES and GameState.active_type != "":
+	if current in IDLE_LOOP_PAGES:
 		return
 	_tick_refresh_last = Time.get_ticks_msec()
 	_refresh_current(true)
