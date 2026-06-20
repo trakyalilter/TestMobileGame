@@ -127,6 +127,7 @@ var _drag_cancel_btn: BaseButton = null   # button disabled mid-drag to suppress
 var _modal_stack: Array = []
 var gather_cat := "terrestrial"
 var craft_cat := "basics"
+var munitions_type := "all"   # Munitions sub-filter: all / kinetic / energy / explosive
 var combat_zone := 0
 var research_tab := "Operations"
 var atlas_mode := "materials"
@@ -1866,12 +1867,27 @@ func _build_craft() -> void:
 	_subtabs(v, GameData.CRAFT_CATS, craft_cat, CYAN, func(id: String) -> void:
 		craft_cat = id
 		_refresh_current())
+	# Munitions mixes three ammo damage types (Slugs=kinetic, Cells=energy,
+	# Missiles=explosive); a second-level filter lets the player jump straight to
+	# the type their weapons use.
+	if craft_cat == "munitions":
+		_subtabs(v, [
+			{"id": "all", "label": "All"},
+			{"id": "kinetic", "label": "Kinetic"},
+			{"id": "energy", "label": "Energy"},
+			{"id": "explosive", "label": "Explosive"},
+		], munitions_type, GOLD, func(id: String) -> void:
+			munitions_type = id
+			_refresh_current())
 	var g := _grid(v)
 	var any := false
 	var ids := []
 	for id in GameData.CRAFT:
-		if GameData.CRAFT[id].get("category", "misc") == craft_cat:
-			ids.append(id)
+		if GameData.CRAFT[id].get("category", "misc") != craft_cat:
+			continue
+		if craft_cat == "munitions" and munitions_type != "all" and _ammo_type_of(GameData.CRAFT[id]) != munitions_type:
+			continue
+		ids.append(id)
 	# Order recipes by unlock level (then name) so early recipes lead.
 	ids.sort_custom(func(a: String, b: String) -> bool:
 		var la := int(GameData.CRAFT[a].get("level_req", 1))
@@ -1885,6 +1901,16 @@ func _build_craft() -> void:
 	if not any:
 		_empty(v, "No recipes in this category.")
 
+# Ammo damage type of a munitions recipe, from its output symbol (Slug=kinetic,
+# Cell=energy, Missile/Torpedo=explosive). "" if the recipe isn't ammo.
+func _ammo_type_of(r: Dictionary) -> String:
+	for sym in r.get("outputs", {}):
+		match String(GameState.ammo_bonus(sym)[0]):
+			"k": return "kinetic"
+			"e": return "energy"
+			"x": return "explosive"
+	return ""
+
 func _craft_card(id: String, r: Dictionary) -> Control:
 	var unlocked := GameState.meets_requirements(r, "fabrication")
 	var active := (GameState.active_type == "craft" and GameState.active_id == id)
@@ -1893,6 +1919,14 @@ func _craft_card(id: String, r: Dictionary) -> Control:
 	v.get_parent().size_flags_vertical = Control.SIZE_EXPAND_FILL
 	v.get_parent().set_meta("coach_id", id)
 	_card_head(v, "⚙", r["name"], "Lv %d" % int(r.get("level_req", 1)), CYAN, unlocked)
+	# Ammo: show a color-coded damage-type chip so the player can tell kinetic /
+	# energy / explosive apart at a glance (matches the weapon affinity colors).
+	var ammo_type := _ammo_type_of(r)
+	if ammo_type != "":
+		var tag: Array = _dmg_type_tag(ammo_type)
+		var trow := HBoxContainer.new()
+		trow.add_child(_tag_chip("⦿ %s" % String(tag[0]), String(tag[1])))
+		v.add_child(trow)
 	if unlocked:
 		var in_lines := []
 		for sym in r.get("inputs", {}):
