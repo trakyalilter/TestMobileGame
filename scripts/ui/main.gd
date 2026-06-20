@@ -682,88 +682,125 @@ func _show_char_select() -> void:
 	col.add_theme_constant_override("separation", 12)
 	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	mc.add_child(col)
-	_wlabel(col, "✦", 52, CYAN)
-	_wlabel(col, "STELLAR FORGE", 34, C_TEXT)
-	_wlabel(col, "Select Commander", 14, GOLD)
+	# Title block: emblem in a glowing ring, wordmark, roster tagline.
+	var ew := CenterContainer.new()
+	ew.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	col.add_child(ew)
+	ew.add_child(_emblem("✦", CYAN, 88))
+	_wlabel(col, "STELLAR FORGE", 32, C_TEXT)
+	_wlabel(col, "◆   COMMANDER ROSTER   ◆", 12, GOLD)
 	var sp := Control.new()
-	sp.custom_minimum_size = Vector2(0, 10)
+	sp.custom_minimum_size = Vector2(0, 14)
 	col.add_child(sp)
 	for n in range(1, GameState.SLOT_COUNT + 1):
 		col.add_child(_slot_card(n))
 
-## A single slot row: a filled card (name + summary + Play/Delete) or a "+ New
-## Character" prompt. `n` is 1..SLOT_COUNT.
+# Circular insignia: a ringed disc with a centered glyph/initial. Used for the
+# title crest and per-commander avatars on the roster.
+func _emblem(glyph: String, accent: String, size: int) -> Control:
+	var p := PanelContainer.new()
+	p.custom_minimum_size = Vector2(size, size)
+	p.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	p.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	p.add_theme_stylebox_override("panel", _bordered(_mix(accent, INSET, 0.72), accent, 2, int(size / 2.0)))
+	var cc := CenterContainer.new()
+	p.add_child(cc)
+	var l := Label.new()
+	l.text = glyph
+	l.add_theme_font_size_override("font_size", _fs(int(size * 0.42)))
+	l.add_theme_color_override("font_color", Color.html(accent))
+	cc.add_child(l)
+	return p
+
+## A roster entry: a filled commander card (emblem + name + stat chips + Deploy/
+## Rename/Delete) or an empty "Recruit" slot with a Create button. `n` is 1..SLOT_COUNT.
 func _slot_card(n: int) -> Control:
 	var summary: Dictionary = GameState.slot_summary(n)
 	var filled: bool = summary.get("exists", false)
 	var accent := CYAN if filled else C_MUTED
-	var v := _card(accent, filled, 96)
-	var mc := MarginContainer.new()
+	var panel := PanelContainer.new()
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var bg := _mix(accent, SURFACE, 0.86) if filled else INSET
+	panel.add_theme_stylebox_override("panel", _bordered(bg, _mix(accent, LINE, 0.45) if filled else LINE, 2 if filled else 1, 14))
+	var pad := MarginContainer.new()
 	for s in ["left", "right", "top", "bottom"]:
-		mc.add_theme_constant_override("margin_" + s, 8)
-	# _card returns the inner VBox; reparent its contents into a padded margin.
-	var panel := v.get_parent()
-	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL   # fill the column, don't overflow
-	panel.remove_child(v)
-	panel.add_child(mc)
-	mc.add_child(v)
-	if not filled:
-		var hb := HBoxContainer.new()
-		hb.add_theme_constant_override("separation", 8)
-		v.add_child(hb)
-		var lbl := Label.new()
-		lbl.text = "+  New Character"
-		lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		lbl.add_theme_font_size_override("font_size", _fs(15))
-		lbl.add_theme_color_override("font_color", Color.html(C_DIM))
-		hb.add_child(lbl)
-		var slot_lbl := Label.new()
-		slot_lbl.text = "Slot %d" % n
-		slot_lbl.add_theme_font_size_override("font_size", _fs(11))
-		slot_lbl.add_theme_color_override("font_color", Color.html(C_MUTED))
-		hb.add_child(slot_lbl)
-		var create := _card_button("Create", GREEN, true)
-		create.pressed.connect(_prompt_new_character.bind(n))
-		v.add_child(create)
-		return panel
-	# Filled slot.
-	var head := HBoxContainer.new()
-	head.add_theme_constant_override("separation", 8)
-	v.add_child(head)
-	var nm := Label.new()
-	nm.text = String(summary.get("name", "Commander"))
-	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	nm.add_theme_font_size_override("font_size", _fs(17))
-	nm.add_theme_color_override("font_color", Color.html(C_TEXT))
-	head.add_child(nm)
-	var slot_lbl2 := Label.new()
-	slot_lbl2.text = "Slot %d" % n
-	slot_lbl2.add_theme_font_size_override("font_size", _fs(10))
-	slot_lbl2.add_theme_color_override("font_color", Color.html(C_MUTED))
-	head.add_child(slot_lbl2)
-	var summ := Label.new()
-	summ.text = "Combat Lv %d   ·   ₡%s   ·   %s   ·   %s" % [
-		int(summary.get("combat_level", 1)), GameData.fmt(int(summary.get("credits", 0))),
-		String(summary.get("sector", "Lunar Orbit")), _fmt_ago(float(summary.get("last_played", 0.0)))]
-	summ.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	summ.add_theme_font_size_override("font_size", _fs(11))
-	summ.add_theme_color_override("font_color", Color.html(C_DIM))
-	v.add_child(summ)
+		pad.add_theme_constant_override("margin_" + s, 12)
+	panel.add_child(pad)
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 11)
+	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	pad.add_child(col)
+
+	# Identity row: circular emblem + name/stats.
+	var top := HBoxContainer.new()
+	top.add_theme_constant_override("separation", 12)
+	col.add_child(top)
+	var idv := VBoxContainer.new()
+	idv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	idv.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	idv.add_theme_constant_override("separation", 5)
+
+	if filled:
+		var nm_str := String(summary.get("name", "Commander"))
+		top.add_child(_emblem(nm_str.substr(0, 1).to_upper(), accent, 58))
+		top.add_child(idv)
+		var nm := Label.new()
+		nm.text = nm_str
+		nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		nm.add_theme_font_size_override("font_size", _fs(18))
+		nm.add_theme_color_override("font_color", Color.html(C_TEXT))
+		idv.add_child(nm)
+		var chips := HFlowContainer.new()
+		chips.add_theme_constant_override("h_separation", 6)
+		chips.add_theme_constant_override("v_separation", 6)
+		chips.add_child(_tag_chip("⚔ Lv %d" % int(summary.get("combat_level", 1)), RED))
+		chips.add_child(_tag_chip("₡ %s" % GameData.fmt(int(summary.get("credits", 0))), GOLD))
+		chips.add_child(_tag_chip("◎ %s" % String(summary.get("sector", "Lunar Orbit")), CYAN))
+		idv.add_child(chips)
+		var ago := Label.new()
+		ago.text = "⏱ %s   ·   Slot %d" % [_fmt_ago(float(summary.get("last_played", 0.0))), n]
+		ago.add_theme_font_size_override("font_size", _fs(10))
+		ago.add_theme_color_override("font_color", Color.html(C_MUTED))
+		idv.add_child(ago)
+	else:
+		top.add_child(_emblem("+", accent, 58))
+		top.add_child(idv)
+		var t := Label.new()
+		t.text = "New Commander"
+		t.add_theme_font_size_override("font_size", _fs(16))
+		t.add_theme_color_override("font_color", Color.html(C_DIM))
+		idv.add_child(t)
+		var st := Label.new()
+		st.text = "Empty Slot %d — recruit a commander" % n
+		st.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		st.add_theme_font_size_override("font_size", _fs(11))
+		st.add_theme_color_override("font_color", Color.html(C_MUTED))
+		idv.add_child(st)
+
+	# Action row.
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
-	v.add_child(row)
-	var play := _card_button("▶  Play", CYAN, true)
-	play.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	play.pressed.connect(_play_slot.bind(n))
-	row.add_child(play)
-	var ren := _card_button("✎", GOLD, true)
-	ren.custom_minimum_size = Vector2(64, 54)
-	ren.pressed.connect(_prompt_rename_character.bind(n))
-	row.add_child(ren)
-	var del := _card_button("🗑", RED, true)
-	del.custom_minimum_size = Vector2(64, 54)
-	del.pressed.connect(_confirm_delete_slot.bind(n))
-	row.add_child(del)
+	col.add_child(row)
+	if filled:
+		var play := _card_button("▶  DEPLOY", CYAN, true)
+		play.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		play.custom_minimum_size = Vector2(0, 50)
+		play.pressed.connect(_play_slot.bind(n))
+		row.add_child(play)
+		var ren := _card_button("✎", GOLD, true)
+		ren.custom_minimum_size = Vector2(56, 50)
+		ren.pressed.connect(_prompt_rename_character.bind(n))
+		row.add_child(ren)
+		var del := _card_button("🗑", RED, true)
+		del.custom_minimum_size = Vector2(56, 50)
+		del.pressed.connect(_confirm_delete_slot.bind(n))
+		row.add_child(del)
+	else:
+		var create := _card_button("＋  CREATE COMMANDER", GREEN, true)
+		create.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		create.custom_minimum_size = Vector2(0, 50)
+		create.pressed.connect(_prompt_new_character.bind(n))
+		row.add_child(create)
 	return panel
 
 ## Name-entry modal → create a fresh character in slot n and enter the game.
