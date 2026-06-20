@@ -2544,7 +2544,9 @@ func _building_card(bid: String, d: Dictionary) -> Control:
 		trow.add_theme_constant_override("separation", 6)
 		var minus := _card_button("−", BUILD, th > 0.0)
 		minus.custom_minimum_size = Vector2(40, 30)
-		minus.pressed.connect(func() -> void: GameState.set_throttle(bid, th - 0.25))
+		minus.pressed.connect(func() -> void:
+			GameState.set_throttle(bid, th - 0.25)
+			_refresh_current())
 		trow.add_child(minus)
 		var tl := Label.new()
 		tl.text = "Throttle %d%%" % int(th * 100.0)
@@ -2555,7 +2557,9 @@ func _building_card(bid: String, d: Dictionary) -> Control:
 		trow.add_child(tl)
 		var plus := _card_button("+", BUILD, th < 1.0)
 		plus.custom_minimum_size = Vector2(40, 30)
-		plus.pressed.connect(func() -> void: GameState.set_throttle(bid, th + 0.25))
+		plus.pressed.connect(func() -> void:
+			GameState.set_throttle(bid, th + 0.25)
+			_refresh_current())
 		trow.add_child(plus)
 		v.add_child(trow)
 	var bfill := Control.new()
@@ -2576,7 +2580,13 @@ func _building_card(bid: String, d: Dictionary) -> Control:
 		var can := GameState.building_can_afford(bid)
 		var b := _card_button("Build", BUILD, can)
 		if can:
-			b.pressed.connect(func() -> void: GameState.build_building(bid))
+			# Build is a user-initiated structural change. The build page is an
+			# IDLE_LOOP_PAGE, so while an action is looping the resources_changed
+			# signal won't rebuild it — refresh explicitly so the new count/cost
+			# (and spent resources) show immediately instead of looking like a no-op.
+			b.pressed.connect(func() -> void:
+				GameState.build_building(bid)
+				_refresh_current())
 		v.add_child(b)
 	return v.get_parent()
 
