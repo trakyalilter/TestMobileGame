@@ -4501,11 +4501,9 @@ func _atlas_materials(v: VBoxContainer) -> void:
 	elif total > shown:
 		_clbl(v, "Showing %d of %d — type to search." % [shown, total], 10, C_DIM)
 
-const ATLAS_MAX_ROWS := 40
-# Material cards are lightweight (name + value + Info button), so the materials
-# list can show the whole catalogue without the stutter that the old inline-detail
-# cards caused. Enemies stay capped at ATLAS_MAX_ROWS — those cards still render
-# stats/affinity/intel inline and are heavier.
+# Atlas cards (materials AND enemies) are now lightweight — name + Info button,
+# detail deferred to a tap modal — so both lists can render the whole catalogue
+# without the stutter the old inline-detail cards caused. A generous safety cap.
 const ATLAS_MAT_MAX_ROWS := 300
 
 # Lightweight material card: just the name, value, and an Info button. The heavy
@@ -4655,31 +4653,16 @@ func _atlas_enemies(v: VBoxContainer) -> void:
 				zids.append(eid)
 		if zids.is_empty():
 			continue
-		if found >= ATLAS_MAX_ROWS:
+		if found >= ATLAS_MAT_MAX_ROWS:
 			truncated = true
 			break
 		_section(v, "%s  (★%d)" % [z.get("name", ""), int(z.get("difficulty", 1))], RED)
 		for eid in zids:
-			if found >= ATLAS_MAX_ROWS:
+			if found >= ATLAS_MAT_MAX_ROWS:
 				truncated = true
 				break
 			found += 1
-			var e: Dictionary = GameData.ENEMIES[eid]
-			var c := _card(RED, true)
-			var badge := "DROPS" if (float(e.get("drop_chance", 0.0)) > 0.0 and not (e.get("drop_pool", []) as Array).is_empty()) else ""
-			_card_head(c, "◎", e.get("name", eid), badge, RED, true)
-			var stats := [
-				_line("HP %s   DEF %d" % [GameData.fmt(e.get("hp", 0)), int(e.get("def", 0))], C_TEXT),
-				_line("ATK %d / %.1fs" % [int(e.get("atk", 0)), float(e.get("interval", 2.0))], C_WARN),
-			]
-			if int(e.get("max_shield", 0)) > 0:
-				stats.append(_line("Shield %s" % GameData.fmt(e["max_shield"]), CYAN))
-			_inset(c, "STATS", stats, RED)
-			c.add_child(_affinity_row(e))
-			var ib := _card_button("ⓘ Intel", CYAN, true)
-			ib.pressed.connect(func() -> void: _show_enemy_intel(eid))
-			c.add_child(ib)
-			v.add_child(c.get_parent())
+			v.add_child(_atlas_enemy_card(eid, "◎", RED))
 	# Hazard-zone gauntlet enemies aren't in any sector pool — list them so the
 	# codex is complete (incl. hz_ drones / elites / overlords). Hidden until
 	# the hazard is unlocked (desktop never lists them before that).
@@ -4700,35 +4683,55 @@ func _atlas_enemies(v: VBoxContainer) -> void:
 				hz_ids.append(eid)
 		if hz_ids.is_empty():
 			continue
-		if found >= ATLAS_MAX_ROWS:
+		if found >= ATLAS_MAT_MAX_ROWS:
 			truncated = true
 			break
 		_section(v, "☢ %s  (Hazard)" % hz.get("name", hz_id), PURP)
 		for eid in hz_ids:
-			if found >= ATLAS_MAX_ROWS:
+			if found >= ATLAS_MAT_MAX_ROWS:
 				truncated = true
 				break
 			hz_seen[eid] = true
 			found += 1
-			var e: Dictionary = GameData.ENEMIES[eid]
-			var c := _card(PURP, true)
-			_card_head(c, "☢", e.get("name", eid), "", PURP, true)
-			var stats := [
-				_line("HP %s   DEF %d" % [GameData.fmt(e.get("hp", 0)), int(e.get("def", 0))], C_TEXT),
-				_line("ATK %d / %.1fs" % [int(e.get("atk", 0)), float(e.get("interval", 2.0))], C_WARN),
-			]
-			if int(e.get("max_shield", 0)) > 0:
-				stats.append(_line("Shield %s" % GameData.fmt(e["max_shield"]), CYAN))
-			_inset(c, "STATS", stats, PURP)
-			c.add_child(_affinity_row(e))
-			var ib := _card_button("ⓘ Intel", CYAN, true)
-			ib.pressed.connect(func() -> void: _show_enemy_intel(eid))
-			c.add_child(ib)
-			v.add_child(c.get_parent())
+			v.add_child(_atlas_enemy_card(eid, "☢", PURP))
 	if found == 0 and atlas_query.strip_edges() != "":
 		_empty(v, "No enemies found.")
 	elif truncated:
-		_clbl(v, "Showing first %d — type to search." % ATLAS_MAX_ROWS, 10, C_DIM)
+		_clbl(v, "Showing first %d — type to search." % ATLAS_MAT_MAX_ROWS, 10, C_DIM)
+
+# Lightweight enemy card: icon + name, an optional DROPS badge, and an Intel
+# button that opens the full _show_enemy_intel modal. Stats / affinity / loot are
+# deferred to that modal so the list stays cheap to build and scroll.
+func _atlas_enemy_card(eid: String, icon: String, accent: String) -> Control:
+	var e: Dictionary = GameData.ENEMIES[eid]
+	var panel := PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", _bordered(SURFACE, LINE, 1, 8))
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var m := MarginContainer.new()
+	for side in ["left", "right", "top", "bottom"]:
+		m.add_theme_constant_override("margin_" + side, 9)
+	panel.add_child(m)
+	var hrow := HBoxContainer.new()
+	hrow.add_theme_constant_override("separation", 8)
+	m.add_child(hrow)
+	var nm := Label.new()
+	nm.text = "%s %s" % [icon, e.get("name", eid)]
+	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	nm.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	nm.add_theme_font_size_override("font_size", _fs(14))
+	nm.add_theme_color_override("font_color", Color.html(accent))
+	hrow.add_child(nm)
+	if float(e.get("drop_chance", 0.0)) > 0.0 and not (e.get("drop_pool", []) as Array).is_empty():
+		var bd := Label.new()
+		bd.text = "DROPS"
+		bd.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		bd.add_theme_font_size_override("font_size", _fs(9))
+		bd.add_theme_color_override("font_color", Color.html(GOLD))
+		hrow.add_child(bd)
+	var ib := _card_button("ⓘ Intel", CYAN, true)
+	ib.pressed.connect(func() -> void: _show_enemy_intel(eid))
+	hrow.add_child(ib)
+	return panel
 
 # ============================================================ STATS / STORAGE
 func _build_stats() -> void:
