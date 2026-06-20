@@ -5162,22 +5162,22 @@ func _grid(v: VBoxContainer) -> GridContainer:
 	return g
 
 func _subtabs(v: VBoxContainer, items: Array, current_id: String, accent: String, on_select: Callable) -> void:
-	var sc := ScrollContainer.new()
-	sc.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	sc.custom_minimum_size = Vector2(0, 54)
-	sc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var hb := HBoxContainer.new()
-	hb.add_theme_constant_override("separation", 7)
-	sc.add_child(hb)
+	# Chips wrap onto multiple rows instead of a single horizontally-scrolling strip,
+	# so a page with many categories (Craft has 14) shows them all at once — no
+	# left/right sliding to reach a tab. Few-tab pages still render as one row.
+	var flow := HFlowContainer.new()
+	flow.add_theme_constant_override("h_separation", 7)
+	flow.add_theme_constant_override("v_separation", 7)
+	flow.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	for it in items:
 		var on: bool = it["id"] == current_id
 		var b := Button.new()
 		b.text = it["label"]
 		b.focus_mode = Control.FOCUS_NONE
-		# PASS so a horizontal drag over a tab reaches the strip's ScrollContainer
+		# PASS so a vertical drag over a chip reaches the page ScrollContainer
 		# (which then scrolls and cancels the tap); a clean tap still selects.
 		b.mouse_filter = Control.MOUSE_FILTER_PASS
-		b.custom_minimum_size = Vector2(0, 46)
+		b.custom_minimum_size = Vector2(0, 42)
 		b.add_theme_font_size_override("font_size", _fs(12))
 		var fill := accent if on else SURFACE_HI
 		var txt := _ideal_text(accent) if on else C_DIM
@@ -5191,8 +5191,8 @@ func _subtabs(v: VBoxContainer, items: Array, current_id: String, accent: String
 			b.add_theme_stylebox_override(state, sb)
 		var sel_id: String = it["id"]
 		b.pressed.connect(func() -> void: on_select.call(sel_id))
-		hb.add_child(b)
-	v.add_child(sc)
+		flow.add_child(b)
+	v.add_child(flow)
 
 func _style_nav(id: String, active: bool) -> void:
 	var item = nav_items.get(id)
