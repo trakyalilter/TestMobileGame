@@ -3660,6 +3660,22 @@ func _open_ammo_picker(slot: String, m: Dictionary) -> void:
 				continue
 			_fit_pick(v, "%s  x%s  (+%d dmg)" % [GameData.res_name(sym), GameData.fmt(owned), int(ab[1])], sym == cur, func() -> void: GameState.set_ammo(slot, sym), close))
 
+# Auto-assign equip (Shipyard shop / quick-equip buttons): equip into the first
+# free matching slot, then direct the player to ammo for that slot like the
+# slot-first flow does. Finds the slot the module landed in.
+func _equip_from_shop(mid: String) -> void:
+	var before := {}
+	for k in GameState.loadout:
+		before[k] = GameState.loadout[k]
+	var ok := GameState.equip_module(mid)
+	_refresh_current()
+	if not ok:
+		return
+	for k in GameState.loadout:
+		if not before.has(k) and String(GameState.loadout[k]) == mid:
+			_prompt_ammo_if_needed(int(k))
+			return
+
 ## Open the Armory targeted at a specific slot index (slot-first equip flow).
 func _open_slot_armory(idx: int, stype: String) -> void:
 	ship_target_slot = idx
@@ -4199,7 +4215,7 @@ func _armory_card(mid: String) -> Control:
 	_card_head(c, "▣", m.get("name", mid), ("x%d" % owned) if owned > 1 else "", CYAN, true)
 	_inset(c, "STATS", _module_stat_lines(m.get("stats", {})), CYAN)
 	var eq := _card_button("Equip", CYAN, true)
-	eq.pressed.connect(func() -> void: GameState.equip_module(mid))
+	eq.pressed.connect(func() -> void: _equip_from_shop(mid))
 	c.add_child(eq)
 	return c.get_parent()
 
@@ -4291,7 +4307,7 @@ func _custom_module_card(cid: String) -> Control:
 	row.add_theme_constant_override("separation", 6)
 	var eq := _card_button("Equip", CYAN, true)
 	eq.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	eq.pressed.connect(func() -> void: GameState.equip_module(cid))
+	eq.pressed.connect(func() -> void: _equip_from_shop(cid))
 	row.add_child(eq)
 	var sell := _card_button("Sell ₡%s" % GameData.fmt(GameState.RARITY_SELL.get(int(md.get("rarity", 0)), 100)), GOLD, true)
 	sell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -4329,9 +4345,7 @@ func _module_card(mid: String, m: Dictionary) -> Control:
 	_inset(c, "COST", cost_lines, CYAN)
 	if owned > 0:
 		var eq := _card_button("Equip", CYAN, true)
-		eq.pressed.connect(func() -> void:
-			GameState.equip_module(mid)
-			_refresh_current())
+		eq.pressed.connect(func() -> void: _equip_from_shop(mid))
 		c.add_child(eq)
 	var buy := _card_button("Buy", GOLD, GameState.module_can_buy(mid))
 	if GameState.module_can_buy(mid):
