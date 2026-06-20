@@ -281,7 +281,7 @@ const CRAFT_CATS := [
 	{"id": "consumables_shield", "label": "Shield Kits"},
 	{"id": "research", "label": "Research & Artifacts"},
 	{"id": "salvage", "label": "Salvage"},
-	{"id": "endgame", "label": "Endgame"},
+	{"id": "endgame", "label": "Exotic Fabrication"},
 	{"id": "trophies", "label": "Trophies"},
 ]
 const CRAFT := {

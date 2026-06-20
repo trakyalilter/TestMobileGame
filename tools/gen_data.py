@@ -175,7 +175,7 @@ RACK_LABELS = {
     "materials": "Advanced Materials", "components": "Components", "electronics": "Electronics",
     "batteries": "Power Cells", "munitions": "Munitions", "consumables_hull": "Hull Repair",
     "consumables_shield": "Shield Kits", "research": "Research & Artifacts", "salvage": "Salvage",
-    "endgame": "Endgame", "processing": "Processing", "trophies": "Trophies",
+    "endgame": "Exotic Fabrication", "processing": "Processing", "trophies": "Trophies",
 }
 RACK_ORDER = ["basics", "smelting", "alloys", "materials", "components", "electronics",
               "batteries", "munitions", "consumables_hull", "consumables_shield", "research",
