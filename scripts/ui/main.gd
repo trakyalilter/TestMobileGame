@@ -136,6 +136,7 @@ var _atlas_index := {}
 var _atlas_results: VBoxContainer = null   # results container refilled live on search
 var storage_query := ""                    # Storage page material-name filter
 var _storage_results: VBoxContainer = null # storage grid wrapper refilled live on search
+var _debounce_gen := {}                     # per-key generation counters for _debounce
 var _research_hs: ScrollContainer = null   # research 2D scroller, sized to the visible page
 var build_cat := "power"
 var ship_view := "loadout"
@@ -1715,6 +1716,17 @@ func _scroll_passthrough(node: Node) -> void:
 			if c.mouse_filter == Control.MOUSE_FILTER_STOP:
 				c.mouse_filter = Control.MOUSE_FILTER_PASS
 		_scroll_passthrough(c)
+
+# Coalesce a burst of rapid calls (e.g. a search field's per-keystroke signal)
+# into a single deferred run. Each call bumps a per-key generation; after `secs`
+# of quiet the latest call's generation still matches and runs `cb` once. Keeps a
+# heavy rebuild from firing on every keystroke.
+func _debounce(key: String, secs: float, cb: Callable) -> void:
+	var g: int = int(_debounce_gen.get(key, 0)) + 1
+	_debounce_gen[key] = g
+	await get_tree().create_timer(secs).timeout
+	if int(_debounce_gen.get(key, 0)) == g:
+		cb.call()
 
 func _clear(id: String) -> VBoxContainer:
 	var v: VBoxContainer = pages[id].find_child("List", true, false)
@@ -4351,7 +4363,7 @@ func _build_atlas() -> void:
 	se.add_theme_font_size_override("font_size", _fs(13))
 	se.text_changed.connect(func(t: String) -> void:
 		atlas_query = t
-		_atlas_rebuild_results())
+		_debounce("atlas", 0.18, _atlas_rebuild_results))
 	v.add_child(se)
 	_subtabs(v, [{"id": "materials", "label": "Materials"}, {"id": "enemies", "label": "Enemies"}], atlas_mode, CYAN, func(id: String) -> void:
 		atlas_mode = id
@@ -4736,7 +4748,7 @@ func _build_stats() -> void:
 	se.add_theme_font_size_override("font_size", _fs(13))
 	se.text_changed.connect(func(t: String) -> void:
 		storage_query = t
-		_storage_rebuild_grid())
+		_debounce("storage", 0.18, _storage_rebuild_grid))
 	v.add_child(se)
 	# Grid wrapper — refilled live on search without rebuilding the whole page.
 	var gw := VBoxContainer.new()
