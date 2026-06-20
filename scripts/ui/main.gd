@@ -1038,7 +1038,7 @@ func _on_resources() -> void:
 	if current in IDLE_LOOP_PAGES and GameState.active_type != "":
 		_update_coach()
 		return
-	_refresh_current(true)
+	_request_tick_refresh()
 
 # Guarded rebuild for frequent signals (skills/missions/bounty/action) — skips
 # the graph/codex pages so their pan/scroll survives passive loops, and skips
@@ -1052,6 +1052,36 @@ func _on_tick() -> void:
 		_update_coach()
 		_refresh_banner()
 		return
+	_request_tick_refresh()
+
+# Passive signals (resources/skills/infra) can fire many times a second. A full
+# page rebuild on each one resets the ScrollContainer and flickers/jumps the view.
+# Throttle them: rebuild immediately on the first tick, then at most once per
+# window, with a single trailing rebuild to catch the latest state. Live bars/
+# timers still update every frame in _process, so the page never looks frozen.
+const TICK_REFRESH_MS := 300
+var _tick_refresh_last := 0
+var _tick_refresh_pending := false
+
+func _request_tick_refresh() -> void:
+	var now := Time.get_ticks_msec()
+	if now - _tick_refresh_last >= TICK_REFRESH_MS:
+		_tick_refresh_last = now
+		_refresh_current(true)
+		return
+	if _tick_refresh_pending:
+		return
+	_tick_refresh_pending = true
+	var wait := float(TICK_REFRESH_MS - (now - _tick_refresh_last)) / 1000.0
+	await get_tree().create_timer(maxf(0.01, wait)).timeout
+	_tick_refresh_pending = false
+	# Don't rebuild a page that's since opted out (navigated to a graph/codex page,
+	# or an idle-loop page that started looping) — match the live-handler guards.
+	if current in NO_TICK_REFRESH:
+		return
+	if current in IDLE_LOOP_PAGES and GameState.active_type != "":
+		return
+	_tick_refresh_last = Time.get_ticks_msec()
 	_refresh_current(true)
 
 # Action started/stopped: the active card's controls change (Start↔Stop, the
@@ -1507,8 +1537,15 @@ func _refresh_current(preserve_scroll: bool = false) -> void:
 	# rebuild; navigation (_show / _refresh_all) passes the default false so a tab
 	# switch still lands at the top.
 	var saved_scroll := 0
+	var pinned_list: Control = null
 	if preserve_scroll and pages.has(current):
 		saved_scroll = pages[current].scroll_vertical
+		# Clearing the List collapses its height to 0, which makes the ScrollContainer
+		# clamp scroll to the top for a frame (the visible "jump"). Pin the List to its
+		# current height across the rebuild so content never collapses, then release.
+		pinned_list = pages[current].find_child("List", true, false)
+		if pinned_list != null:
+			pinned_list.custom_minimum_size.y = pinned_list.size.y
 	_active_bar = null
 	_active_timer = null
 	_skill_bar = null
@@ -1558,7 +1595,14 @@ func _refresh_current(preserve_scroll: bool = false) -> void:
 	if pages.has(current):
 		_scroll_passthrough(pages[current])
 		if preserve_scroll and saved_scroll > 0:
+			# Height is pinned, so the content hasn't collapsed — restore immediately
+			# (no top-flash) and again deferred as a safety net after relayout.
+			pages[current].scroll_vertical = saved_scroll
 			pages[current].set_deferred("scroll_vertical", saved_scroll)
+		if pinned_list != null:
+			# Release the height pin after layout settles so the page returns to its
+			# natural size; restored scroll is already valid by then.
+			pinned_list.set_deferred("custom_minimum_size", Vector2(pinned_list.custom_minimum_size.x, 0.0))
 	_update_coach()
 
 # Register an overlay/modal so the drag-scroll handler scrolls ITS content (not
