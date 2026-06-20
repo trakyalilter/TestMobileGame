@@ -185,7 +185,7 @@ def _has(rid, *kw):
 def recipe_category(rid, data):
     if data.get("category"):
         return data["category"]
-    if _has(rid, "slug", "cell_t", "craft_cell", "rounds"): return "munitions"
+    if _has(rid, "slug", "cell_t", "craft_cell", "rounds", "missile", "torpedo"): return "munitions"
     if "battery" in rid: return "batteries"
     if _has(rid, "circuit", "chip", "semiconductor", "hydraulics"): return "electronics"
     if _has(rid, "artifact", "res1", "res2", "res3", "nav_data", "decrypt"): return "research"

@@ -421,7 +421,7 @@
     "xp": 80
   },
   "craft_cryo_coolant": {
-    "category": "processing",
+    "category": "consumables_shield",
     "description": "Compress helium and nitrogen into supercooled fluid.",
     "duration": 10.0,
     "input": {
