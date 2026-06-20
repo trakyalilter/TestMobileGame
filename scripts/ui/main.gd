@@ -1035,20 +1035,26 @@ func _on_resources() -> void:
 	if current in NO_TICK_REFRESH:
 		_update_coach()
 		return
-	if current in IDLE_LOOP_PAGES and GameState.active_type != "":
+	# Idle-loop pages (gather/craft/build) never rebuild on a passive tick — whether
+	# an action is running OR the player is idle with buildings producing in the
+	# background. A full rebuild recreates the cards and visibly jumps the view; the
+	# active card animates in _process, and structural changes come from navigation,
+	# action start/stop, level-up, research, and explicit taps (which refresh
+	# themselves). This is why the jump vanished while gathering and returned on stop.
+	if current in IDLE_LOOP_PAGES:
 		_update_coach()
 		return
 	_request_tick_refresh()
 
 # Guarded rebuild for frequent signals (skills/missions/bounty/action) — skips
 # the graph/codex pages so their pan/scroll survives passive loops, and skips
-# the destructive grid rebuild on idle-loop pages while an action is running.
+# the destructive grid rebuild on idle-loop pages (active or idle).
 func _on_tick() -> void:
 	_update_badges()
 	if current in NO_TICK_REFRESH:
 		_update_coach()
 		return
-	if current in IDLE_LOOP_PAGES and GameState.active_type != "":
+	if current in IDLE_LOOP_PAGES:
 		_update_coach()
 		_refresh_banner()
 		return
