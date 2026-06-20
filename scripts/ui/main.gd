@@ -1545,15 +1545,8 @@ func _refresh_current(preserve_scroll: bool = false) -> void:
 	# rebuild; navigation (_show / _refresh_all) passes the default false so a tab
 	# switch still lands at the top.
 	var saved_scroll := 0
-	var pinned_list: Control = null
 	if preserve_scroll and pages.has(current):
 		saved_scroll = pages[current].scroll_vertical
-		# Clearing the List collapses its height to 0, which makes the ScrollContainer
-		# clamp scroll to the top for a frame (the visible "jump"). Pin the List to its
-		# current height across the rebuild so content never collapses, then release.
-		pinned_list = pages[current].find_child("List", true, false)
-		if pinned_list != null:
-			pinned_list.custom_minimum_size.y = pinned_list.size.y
 	_active_bar = null
 	_active_timer = null
 	_skill_bar = null
@@ -1603,14 +1596,11 @@ func _refresh_current(preserve_scroll: bool = false) -> void:
 	if pages.has(current):
 		_scroll_passthrough(pages[current])
 		if preserve_scroll and saved_scroll > 0:
-			# Height is pinned, so the content hasn't collapsed — restore immediately
-			# (no top-flash) and again deferred as a safety net after relayout.
+			# The new content is already re-added at this point, so the scroll range
+			# is intact — restore immediately (no top-flash) and again deferred as a
+			# safety net once layout settles.
 			pages[current].scroll_vertical = saved_scroll
 			pages[current].set_deferred("scroll_vertical", saved_scroll)
-		if pinned_list != null:
-			# Release the height pin after layout settles so the page returns to its
-			# natural size; restored scroll is already valid by then.
-			pinned_list.set_deferred("custom_minimum_size", Vector2(pinned_list.custom_minimum_size.x, 0.0))
 	_update_coach()
 
 # Register an overlay/modal so the drag-scroll handler scrolls ITS content (not
