@@ -1115,7 +1115,16 @@ func _process(_delta: float) -> void:
 # them on passive ticks (gather/craft/infra loops fire resources_changed +
 # skills_changed constantly), which otherwise flickers/jumps the view. These pages
 # refresh explicitly from their own interaction handlers instead.
-const NO_TICK_REFRESH := ["research", "atlas", "ship", "shipyard", "combat"]
+# Pages that must NOT be rebuilt by high-frequency passive signals (resources_changed
+# / skills_changed fire constantly from gather/craft/infra loops), which recreates
+# their cards and flickers/jumps the view. Every page here refreshes instead from:
+# navigation, action start/stop, level-up, research_changed (_refresh_all), and its
+# own interaction handlers (buy/sell/equip/build/claim/etc. all call _refresh_current).
+# The header, notification badges and coach still update every tick (those run before
+# the early-return in _on_resources/_on_tick). Live combat/progress bars animate in
+# _process, independent of rebuilds.
+const NO_TICK_REFRESH := ["research", "atlas", "ship", "shipyard", "combat",
+	"more", "bounty", "standing", "warp", "fleet", "missions", "stats", "hazard", "settings"]
 # Idle-loop pages: while an action is actively looping, every completion fires
 # resources_changed + skills_changed. A full grid rebuild on each one destroys
 # and recreates every card (and the progress-bar node), which reads as a freeze
@@ -2909,7 +2918,9 @@ func _build_bounty() -> void:
 	var rb := _card_button("Refresh ₡%s" % GameData.fmt(cost), GOLD, GameState.credits >= cost)
 	rb.custom_minimum_size = Vector2(150, 32)
 	if GameState.credits >= cost:
-		rb.pressed.connect(func() -> void: GameState.force_refresh_bounty())
+		rb.pressed.connect(func() -> void:
+			GameState.force_refresh_bounty()
+			_refresh_current())
 	rr.add_child(rb)
 	v.add_child(rr)
 
@@ -2953,11 +2964,15 @@ func _bounty_card(c: Dictionary, active: bool) -> Control:
 		if c["completed"]:
 			var claim := _card_button("Claim", GREEN, true)
 			claim.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			claim.pressed.connect(func() -> void: GameState.claim_contract(cid))
+			claim.pressed.connect(func() -> void:
+				GameState.claim_contract(cid)
+				_refresh_current())
 			row.add_child(claim)
 		var ab := _card_button("Abandon", C_WARN, true)
 		ab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		ab.pressed.connect(func() -> void: GameState.abandon_contract(cid))
+		ab.pressed.connect(func() -> void:
+			GameState.abandon_contract(cid)
+			_refresh_current())
 		row.add_child(ab)
 		vb.add_child(row)
 	else:
@@ -2973,7 +2988,9 @@ func _bounty_card(c: Dictionary, active: bool) -> Control:
 			can = can and have >= need
 		var acc := _card_button("Accept" if can else ("Slots Full" if GameState.bounty_active.size() >= GameState.BOUNTY_MAX_ACTIVE else "Need Materials"), GOLD, can)
 		if can:
-			acc.pressed.connect(func() -> void: GameState.accept_contract(cid))
+			acc.pressed.connect(func() -> void:
+				GameState.accept_contract(cid)
+				_refresh_current())
 		vb.add_child(acc)
 	return panel
 
@@ -3015,7 +3032,9 @@ func _build_standing() -> void:
 	var rb := _card_button("Reroll ₡%s" % GameData.fmt(rcost), CYAN, GameState.credits >= rcost)
 	rb.custom_minimum_size = Vector2(160, 40)
 	if GameState.credits >= rcost:
-		rb.pressed.connect(func() -> void: GameState.reroll_standing_orders())
+		rb.pressed.connect(func() -> void:
+			GameState.reroll_standing_orders()
+			_refresh_current())
 	rr.add_child(rb)
 	v.add_child(rr)
 
@@ -3062,7 +3081,9 @@ func _standing_card(idx: int, q: Dictionary) -> Control:
 	vb.add_child(bar)
 	if complete:
 		var claim := _card_button("Claim", GREEN, true)
-		claim.pressed.connect(func() -> void: GameState.claim_standing_order(idx))
+		claim.pressed.connect(func() -> void:
+			GameState.claim_standing_order(idx)
+			_refresh_current())
 		vb.add_child(claim)
 	return panel
 
@@ -3129,7 +3150,8 @@ func _mission_card(mid: String) -> Control:
 		b.pressed.connect(func() -> void:
 			var cr := int(int(m.get("cr", 0)) * GameState.warp_production_mult())
 			if GameState.claim_mission(mid):
-				_celebrate("✦  MISSION COMPLETE", "+₡%s" % GameData.fmt(cr), GREEN))
+				_celebrate("✦  MISSION COMPLETE", "+₡%s" % GameData.fmt(cr), GREEN)
+			_refresh_current())
 		vb.add_child(b)
 	return panel
 
@@ -5248,7 +5270,9 @@ func _build_stats() -> void:
 	var up := _card_button("Expand Storage  +1 slot   ₡%s" % GameData.fmt(up_cost), GOLD, can_up)
 	up.custom_minimum_size = Vector2(0, 42)
 	if can_up:
-		up.pressed.connect(func() -> void: GameState.upgrade_storage())
+		up.pressed.connect(func() -> void:
+			GameState.upgrade_storage()
+			_refresh_current())
 	v.add_child(up)
 
 # Build the storage tile grid into the live wrapper, honoring the search filter.
