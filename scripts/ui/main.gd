@@ -2159,7 +2159,9 @@ func _build_targets(v: VBoxContainer) -> void:
 		var rb := _card_button("Repair ₡%s" % GameData.fmt(cost), GREEN, GameState.credits >= cost)
 		rb.custom_minimum_size = Vector2(140, 34)
 		if GameState.credits >= cost:
-			rb.pressed.connect(func() -> void: GameState.repair_hull())
+			rb.pressed.connect(func() -> void:
+				GameState.repair_hull()
+				_refresh_current())
 		hrow.add_child(rb)
 	v.add_child(hrow)
 	# Desktop parity (get_available_zones): locked sectors are HIDDEN entirely —
@@ -2593,7 +2595,9 @@ func _build_battle(v: VBoxContainer) -> void:
 		cb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		if owned > 0:
 			var k: String = kind
-			cb.pressed.connect(func() -> void: GameState.use_manual_consumable(k))
+			cb.pressed.connect(func() -> void:
+				GameState.use_manual_consumable(k)
+				_refresh_current())
 		crow.add_child(cb)
 	v.add_child(crow)
 
