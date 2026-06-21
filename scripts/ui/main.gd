@@ -1115,7 +1115,7 @@ func _process(_delta: float) -> void:
 # them on passive ticks (gather/craft/infra loops fire resources_changed +
 # skills_changed constantly), which otherwise flickers/jumps the view. These pages
 # refresh explicitly from their own interaction handlers instead.
-const NO_TICK_REFRESH := ["research", "atlas", "ship", "shipyard"]
+const NO_TICK_REFRESH := ["research", "atlas", "ship", "shipyard", "combat"]
 # Idle-loop pages: while an action is actively looping, every completion fires
 # resources_changed + skills_changed. A full grid rebuild on each one destroys
 # and recreates every card (and the progress-bar node), which reads as a freeze
