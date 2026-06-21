@@ -2189,6 +2189,11 @@ func _offline_infra(delta: float) -> String:
 			add_xp("infrastructure", mini(cycles, 500000))
 	# v104: offline upkeep — closed-form, whole intervals only.
 	_apply_upkeep(int(delta / UPKEEP_INTERVAL))
+	# The offline-window upkeep fraction must NOT leak into live production: live
+	# recomputes it each upkeep interval from real stock. Leaving it stale (often ~0
+	# after a long away window that drained Water/Dirt) silently froze buildings
+	# until the next 60s tick — the "auto-excavator stopped, reopen fixed it" bug.
+	upkeep_efficiency = 1.0
 	var parts := []
 	for sym in resources:
 		var made := amount(sym) - int(before.get(sym, 0))
