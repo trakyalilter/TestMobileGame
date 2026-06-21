@@ -139,6 +139,9 @@ var _atlas_index := {}
 var _atlas_results: VBoxContainer = null   # results container refilled live on search
 var storage_query := ""                    # Storage page material-name filter
 var _storage_results: VBoxContainer = null # storage grid wrapper refilled live on search
+var _storage_qty_labels := {}              # sym -> qty Label, for live in-place updates
+var _storage_tile_syms := []               # owned syms currently tiled (detect structure change)
+var _storage_worth_label: Label = null     # the "Storage X/Y · worth ₡Z" header, updated live
 var _debounce_gen := {}                     # per-key generation counters for _debounce
 var _research_hs: ScrollContainer = null   # research 2D scroller, sized to the visible page
 # Research-tree pinch zoom: a user multiplier on top of the auto-fit scale, driven
@@ -1149,6 +1152,8 @@ const IDLE_LOOP_PAGES := ["gather", "craft", "build"]
 func _on_resources() -> void:
 	_refresh_top()
 	_update_badges()
+	if current == "stats":
+		_storage_live_update()   # in-place tile/worth refresh (no rebuild, no jump)
 	if current in NO_TICK_REFRESH:
 		_update_coach()
 		return
@@ -5261,7 +5266,7 @@ func _build_stats() -> void:
 		if amt > 0:
 			worth += amt * maxi(1, GameData.value_of(sym))
 	var full := used >= cap
-	_section(v, "Storage  %d / %d slots  ·  worth ₡%s — tap a slot to sell" % [used, cap, GameData.fmt(worth)], RED if full else GOLD)
+	_storage_worth_label = _section(v, "Storage  %d / %d slots  ·  worth ₡%s — tap a slot to sell" % [used, cap, GameData.fmt(worth)], RED if full else GOLD)
 	if full:
 		_clbl(v, "⚠ STORAGE FULL — new material types are being lost. Sell below or expand storage.", 11, RED)
 	# Search box: filters the material grid by name. Typing refills only the grid
@@ -5300,6 +5305,7 @@ func _storage_fill_grid() -> void:
 	if not is_instance_valid(_storage_results):
 		return
 	var q := storage_query.strip_edges().to_lower()
+	_storage_qty_labels = {}
 	var owned := []
 	for sym in GameData.RESOURCES:
 		if GameState.amount(sym) <= 0:
@@ -5307,6 +5313,7 @@ func _storage_fill_grid() -> void:
 		if q != "" and not (q in GameData.res_name(sym).to_lower() or q in sym.to_lower()):
 			continue
 		owned.append(sym)
+	_storage_tile_syms = owned.duplicate()
 	var grid := GridContainer.new()
 	grid.columns = 4
 	grid.add_theme_constant_override("h_separation", 7)
@@ -5334,6 +5341,40 @@ func _storage_rebuild_grid() -> void:
 		_storage_results.remove_child(c)
 		c.queue_free()
 	_storage_fill_grid()
+
+# Live storage refresh on resource ticks WITHOUT a grid rebuild (which would jump
+# the page). Updates each tile's quantity label and the worth header in place. If
+# the set of owned materials changed (a new type appeared, or one was sold/depleted
+# to 0), the grid structure must change — only then do a full rebuild.
+func _storage_live_update() -> void:
+	if not is_instance_valid(_storage_results):
+		return
+	var q := storage_query.strip_edges().to_lower()
+	# Detect a structure change against the currently-tiled set.
+	var owned := []
+	for sym in GameData.RESOURCES:
+		if GameState.amount(sym) <= 0:
+			continue
+		if q != "" and not (q in GameData.res_name(sym).to_lower() or q in sym.to_lower()):
+			continue
+		owned.append(sym)
+	if owned != _storage_tile_syms:
+		_storage_rebuild_grid()
+		return
+	# Same set — just refresh quantities (and total worth) in place.
+	for sym in _storage_qty_labels:
+		var l = _storage_qty_labels[sym]
+		if is_instance_valid(l):
+			l.text = GameData.fmt(GameState.amount(sym))
+	if is_instance_valid(_storage_worth_label):
+		var used := GameState.used_slots()
+		var cap := GameState.max_slots()
+		var worth := 0
+		for sym in GameData.RESOURCES:
+			var amt := GameState.amount(sym)
+			if amt > 0:
+				worth += amt * maxi(1, GameData.value_of(sym))
+		_storage_worth_label.text = ("Storage  %d / %d slots  ·  worth ₡%s — tap a slot to sell" % [used, cap, GameData.fmt(worth)]).to_upper()
 
 # ============================================================ SETTINGS
 func _build_settings() -> void:
@@ -5392,6 +5433,7 @@ func _storage_tile(sym: String) -> Control:
 	qty.add_theme_font_size_override("font_size", _fs(14))
 	qty.add_theme_color_override("font_color", Color.html(C_TEXT))
 	vb.add_child(qty)
+	_storage_qty_labels[sym] = qty   # for live in-place quantity updates
 	var pv := Label.new()
 	pv.text = "₡%s" % GameData.fmt(amt * val)
 	pv.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -5824,9 +5866,9 @@ func _skill_banner(v: VBoxContainer, title: String, skill_id: String, accent: St
 	_skill_lv_label = lv
 	_skill_banner_id = skill_id
 
-func _section(v: VBoxContainer, text: String, accent: String) -> void:
+func _section(v: VBoxContainer, text: String, accent: String) -> Label:
 	if text == "":
-		return
+		return null
 	var hb := HBoxContainer.new()
 	hb.add_theme_constant_override("separation", 7)
 	var tick := Panel.new()
@@ -5854,6 +5896,7 @@ func _section(v: VBoxContainer, text: String, accent: String) -> void:
 	rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.add_child(rule)
 	v.add_child(col)
+	return l
 
 func _connector(v: VBoxContainer) -> void:
 	var c := CenterContainer.new()
