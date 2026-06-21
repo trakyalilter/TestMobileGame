@@ -234,6 +234,7 @@ var _infra_dirty := false
 var _infra_emit_accum := 0.0
 
 var pending_offline: String = ""
+var _offline_lost := {}         # distinct material types dropped (storage full) during the away window
 var _bg_time := 0.0             # wall-clock when the app was backgrounded (0 = foreground)
 var offline_combat := false             # option: process combat while away (off by default, like desktop)
 
@@ -343,6 +344,7 @@ func _catch_up_offline(delta: float) -> void:
 	if delta < 5.0:
 		return
 	pending_offline = ""
+	_offline_lost = {}
 	_suppress_fx = true
 	_apply_offline(delta)
 	var infra := _offline_infra(delta)
@@ -352,10 +354,23 @@ func _catch_up_offline(delta: float) -> void:
 			pending_offline = "Away for %s\n\n%s" % [_fmt_time(delta), infra]
 		else:
 			pending_offline += "\n" + infra
+	_append_offline_storage_note(delta)
 	resources_changed.emit()
 	skills_changed.emit()
 	if pending_offline != "":
 		offline_ready.emit()
+
+# If storage filled and new material types were dropped while away, append a
+# heads-up to the return report so the player knows drops were being lost.
+func _append_offline_storage_note(delta: float) -> void:
+	if _offline_lost.is_empty():
+		return
+	var n := _offline_lost.size()
+	var note := "⚠ Storage full — %d new material type%s lost while away. Sell or expand storage." % [n, "" if n == 1 else "s"]
+	if pending_offline == "":
+		pending_offline = "Away for %s\n\n%s" % [_fmt_time(delta), note]
+	else:
+		pending_offline += "\n\n" + note
 
 # ---------------- Resources / credits ----------------
 func amount(sym: String) -> int:
@@ -365,7 +380,9 @@ func add_resource(sym: String, amt: int) -> void:
 	# Storage cap: a new material is dropped when all slots are full (desktop
 	# resources.gd). Existing stacks are unbounded.
 	if amt > 0 and amount(sym) <= 0 and used_slots() >= max_slots():
-		if not _suppress_fx:
+		if _suppress_fx:
+			_offline_lost[sym] = true   # tally distinct types lost while away (for the return report)
+		else:
 			storage_full.emit()   # warn the player their new drops are being lost
 		return
 	resources[sym] = amount(sym) + amt
@@ -4304,6 +4321,7 @@ func load_game() -> void:
 	_mission_sync()   # reconcile active missions with already-satisfied state on load
 	var last := float(data.get("time", Time.get_unix_time_from_system()))
 	var away := Time.get_unix_time_from_system() - last
+	_offline_lost = {}
 	_suppress_fx = true
 	_apply_offline(away)
 	var infra_report := _offline_infra(away)   # buildings keep producing while away
@@ -4313,6 +4331,7 @@ func load_game() -> void:
 			pending_offline = "Away for %s\n\n%s" % [_fmt_time(away), infra_report]
 		else:
 			pending_offline += "\n" + infra_report
+	_append_offline_storage_note(away)
 	# Re-arm the live duel if a combat task was active (transient state isn't saved).
 	if active_type == "combat":
 		if GameData.ENEMIES.has(active_id):
