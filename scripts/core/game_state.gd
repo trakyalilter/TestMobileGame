@@ -1906,10 +1906,16 @@ const INFRA_ORE_EXTRACTORS := ["lithium_extractor", "brine_extractor", "copper_m
 # v104: continuous building-upkeep sink. Every building drains a little of the
 # cheapest glut mats per interval; per-building cost grows with total count.
 # Drain-if-available only — never goes negative, never punishes AFK.
+# Building running costs are ENERGY (energy_cons via the grid) plus each
+# building's own recipe INPUT (consumed in _produce_batch). There is no flat
+# per-building material upkeep: an extractor like the Auto-Excavator needs only
+# enough energy, and a converter only consumes its actual recipe inputs (e.g.
+# Dirt+Water -> Fe+Si). UPKEEP_BASE empty disables the old generic drain
+# (_apply_upkeep / _upkeep_efficiency_for then no-op to full efficiency).
 const UPKEEP_INTERVAL := 60.0
-const UPKEEP_BASE := {"Water": 2.0, "Dirt": 1.0}   # per building, per interval, pre-growth
-const UPKEEP_COUNT_GROWTH := 0.05                   # +5% per-building cost per building owned
-const UPKEEP_GROWTH_CAP := 8.0                      # growth multiplier ceiling
+const UPKEEP_BASE := {}                             # disabled — energy + recipe inputs only
+const UPKEEP_COUNT_GROWTH := 0.05                   # (retained; unused while UPKEEP_BASE is empty)
+const UPKEEP_GROWTH_CAP := 8.0
 var _upkeep_timer: float = 0.0
 # P2.6: proportional upkeep throttle — when upkeep mats run short buildings
 # produce at the affordable fraction. Transient (recomputed; not saved).
