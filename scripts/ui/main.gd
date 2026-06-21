@@ -224,6 +224,7 @@ func _ready() -> void:
 	GameState.level_up.connect(_on_level_up)
 	GameState.feature_revealed.connect(func(title: String, msg: String) -> void:
 		_celebrate(title, msg, PURP))
+	GameState.storage_full.connect(_on_storage_full)
 	get_viewport().size_changed.connect(_update_safe_area)
 	call_deferred("_update_safe_area")
 	_refresh_top()
@@ -922,6 +923,16 @@ func _on_level_up(skill_id: String, level: int) -> void:
 		_refresh_current()
 
 ## Reusable centered celebration badge (scale-pop + hold + fade-up).
+# Storage full -> a new material drop was just lost. Drops fire many times a
+# second while full, so throttle the toast to once per 10s.
+var _storage_warn_ms := 0
+func _on_storage_full() -> void:
+	var now := Time.get_ticks_msec()
+	if now - _storage_warn_ms < 10000:
+		return
+	_storage_warn_ms = now
+	_celebrate("⚠ STORAGE FULL", "New drops are being lost — sell or expand storage", RED)
+
 func _celebrate(title: String, subtitle: String, accent: String) -> void:
 	var holder := Control.new()
 	holder.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
@@ -5249,7 +5260,10 @@ func _build_stats() -> void:
 		var amt := GameState.amount(sym)
 		if amt > 0:
 			worth += amt * maxi(1, GameData.value_of(sym))
-	_section(v, "Storage  %d / %d slots  ·  worth ₡%s — tap a slot to sell" % [used, cap, GameData.fmt(worth)], GOLD)
+	var full := used >= cap
+	_section(v, "Storage  %d / %d slots  ·  worth ₡%s — tap a slot to sell" % [used, cap, GameData.fmt(worth)], RED if full else GOLD)
+	if full:
+		_clbl(v, "⚠ STORAGE FULL — new material types are being lost. Sell below or expand storage.", 11, RED)
 	# Search box: filters the material grid by name. Typing refills only the grid
 	# wrapper below (not this field), so focus / the keyboard stay put.
 	var se := LineEdit.new()

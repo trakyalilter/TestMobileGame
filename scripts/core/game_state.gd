@@ -11,6 +11,7 @@ signal missions_changed
 signal offline_ready          # emitted after a background-resume catch-up, for the UI modal
 signal level_up(skill_id: String, level: int)        # skill leveled up — celebratory popup
 signal feature_revealed(title: String, msg: String)  # late-game system reveal fanfare (desktop parity)
+signal storage_full          # a new material was dropped because all storage slots are full
 var _suppress_fx := false                            # mute transient juice during offline catch-up
 
 # Missions (tutorial chain)
@@ -364,6 +365,8 @@ func add_resource(sym: String, amt: int) -> void:
 	# Storage cap: a new material is dropped when all slots are full (desktop
 	# resources.gd). Existing stacks are unbounded.
 	if amt > 0 and amount(sym) <= 0 and used_slots() >= max_slots():
+		if not _suppress_fx:
+			storage_full.emit()   # warn the player their new drops are being lost
 		return
 	resources[sym] = amount(sym) + amt
 	# One-shot Recursion pointer on first Void Artifact (desktop v109).
