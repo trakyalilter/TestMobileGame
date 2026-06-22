@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1438" height="810" viewBox="0 0 1438 810" preserveAspectRatio="none" role="img">
+<title>Horizon Idle store page background 1438 by 810</title>
+<desc>Wide ambient space backdrop for the store page: a deep-space vista with planets, a shooting star, a starfield, and a richly lit golden planetary horizon, with a calm open center for overlaid page content.</desc>
+<defs>
+<clipPath id="frame"><rect x="0" y="0" width="1438" height="810"/></clipPath>
+<linearGradient id="sky1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#04050e"/><stop offset="0.55" stop-color="#070f20"/><stop offset="1" stop-color="#0b1a32"/></linearGradient>
+<radialGradient id="neb1" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#2f74b5" stop-opacity="0.34"/><stop offset="1" stop-color="#2f74b5" stop-opacity="0"/></radialGradient>
+<radialGradient id="nebp" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#6a44a0" stop-opacity="0.24"/><stop offset="1" stop-color="#6a44a0" stop-opacity="0"/></radialGradient>
+<radialGradient id="pbody" cx="0.5" cy="0.42" r="0.62"><stop offset="0" stop-color="#0e2438"/><stop offset="0.55" stop-color="#0a182a"/><stop offset="1" stop-color="#050e1a"/></radialGradient>
+<radialGradient id="mottleL" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#173049" stop-opacity="0.5"/><stop offset="1" stop-color="#173049" stop-opacity="0"/></radialGradient>
+<radialGradient id="mottleD" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#04101d" stop-opacity="0.6"/><stop offset="1" stop-color="#04101d" stop-opacity="0"/></radialGradient>
+<radialGradient id="dawn" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#a8762f" stop-opacity="0.4"/><stop offset="1" stop-color="#a8762f" stop-opacity="0"/></radialGradient>
+<radialGradient id="atmoMain" cx="0.5" cy="0.5" r="0.5"><stop offset="0.80" stop-color="#ff9d3c" stop-opacity="0"/><stop offset="0.840" stop-color="#ffe9a8" stop-opacity="0"/><stop offset="0.847" stop-color="#fff0d0" stop-opacity="0.7"/><stop offset="0.853" stop-color="#ffd14c" stop-opacity="0.5"/><stop offset="0.870" stop-color="#ff9d3c" stop-opacity="0.28"/><stop offset="0.905" stop-color="#e0742e" stop-opacity="0.13"/><stop offset="0.95" stop-color="#c85a2a" stop-opacity="0.05"/><stop offset="1" stop-color="#c85a2a" stop-opacity="0"/></radialGradient>
+<radialGradient id="atmoOuter" cx="0.5" cy="0.5" r="0.5"><stop offset="0.66" stop-color="#ffb347" stop-opacity="0"/><stop offset="0.705" stop-color="#ffb347" stop-opacity="0.11"/><stop offset="0.82" stop-color="#ff9d3c" stop-opacity="0.05"/><stop offset="1" stop-color="#ff9d3c" stop-opacity="0"/></radialGradient>
+<radialGradient id="sunbloom" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#fff7e2" stop-opacity="0.75"/><stop offset="0.25" stop-color="#ffeab0" stop-opacity="0.5"/><stop offset="0.55" stop-color="#ffce6a" stop-opacity="0.22"/><stop offset="1" stop-color="#ffce6a" stop-opacity="0"/></radialGradient>
+<radialGradient id="distBody" cx="0.5" cy="0.5" r="0.55" fx="0.36" fy="0.36"><stop offset="0" stop-color="#436f99"/><stop offset="0.5" stop-color="#234a6c"/><stop offset="1" stop-color="#0c2138"/></radialGradient>
+<radialGradient id="starGlow" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#ffffff" stop-opacity="0.8"/><stop offset="0.4" stop-color="#cfe0ff" stop-opacity="0.35"/><stop offset="1" stop-color="#cfe0ff" stop-opacity="0"/></radialGradient>
+<radialGradient id="shead" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#ffffff"/><stop offset="0.5" stop-color="#7fe3ff" stop-opacity="0.55"/><stop offset="1" stop-color="#7fe3ff" stop-opacity="0"/></radialGradient>
+<linearGradient id="streak1" gradientUnits="userSpaceOnUse" x1="820" y1="260" x2="1280" y2="90"><stop offset="0" stop-color="#eafdff" stop-opacity="0.9"/><stop offset="0.45" stop-color="#bdf2ff" stop-opacity="0.35"/><stop offset="1" stop-color="#bdf2ff" stop-opacity="0"/></linearGradient>
+<linearGradient id="streakG" gradientUnits="userSpaceOnUse" x1="820" y1="260" x2="1250" y2="101"><stop offset="0" stop-color="#7fe3ff" stop-opacity="0.45"/><stop offset="1" stop-color="#7fe3ff" stop-opacity="0"/></linearGradient>
+</defs>
+<g clip-path="url(#frame)">
+<rect width="1438" height="810" fill="url(#sky1)"/>
+<ellipse cx="280" cy="200" rx="520" ry="320" fill="url(#neb1)"/>
+<ellipse cx="1180" cy="170" rx="460" ry="280" fill="url(#nebp)"/>
+<g fill="#ffffff">
+<circle cx="80" cy="80" r="0.7" opacity="0.45"/><circle cx="260" cy="140" r="0.5" opacity="0.3"/><circle cx="440" cy="80" r="0.6" opacity="0.35"/><circle cx="640" cy="150" r="0.5" opacity="0.28"/><circle cx="860" cy="90" r="0.6" opacity="0.35"/><circle cx="1060" cy="150" r="0.5" opacity="0.3"/><circle cx="1280" cy="80" r="0.6" opacity="0.35"/><circle cx="1380" cy="160" r="0.5" opacity="0.3"/><circle cx="140" cy="260" r="0.5" opacity="0.28"/><circle cx="360" cy="340" r="0.5" opacity="0.26"/><circle cx="600" cy="300" r="0.5" opacity="0.24"/><circle cx="900" cy="360" r="0.5" opacity="0.24"/><circle cx="1160" cy="320" r="0.5" opacity="0.24"/><circle cx="1340" cy="360" r="0.5" opacity="0.26"/><circle cx="60" cy="420" r="0.5" opacity="0.24"/><circle cx="1400" cy="460" r="0.5" opacity="0.24"/><circle cx="220" cy="500" r="0.5" opacity="0.2"/><circle cx="1240" cy="500" r="0.5" opacity="0.2"/></g>
+<g>
+<circle cx="260" cy="140" r="0.9" fill="#cfe0ff" opacity="0.55"/><circle cx="640" cy="150" r="0.8" fill="#ffffff" opacity="0.5"/><circle cx="1060" cy="150" r="0.8" fill="#fff0d8" opacity="0.45"/><circle cx="1380" cy="160" r="0.8" fill="#ffffff" opacity="0.5"/><circle cx="360" cy="340" r="0.8" fill="#cfe0ff" opacity="0.45"/><circle cx="900" cy="360" r="0.7" fill="#ffffff" opacity="0.45"/><circle cx="1340" cy="360" r="0.7" fill="#fff0d8" opacity="0.4"/><circle cx="140" cy="260" r="0.8" fill="#ffffff" opacity="0.5"/><circle cx="1160" cy="320" r="0.7" fill="#cfe0ff" opacity="0.4"/><circle cx="600" cy="300" r="0.7" fill="#ffffff" opacity="0.45"/></g>
+<g>
+<circle cx="140" cy="80" r="6" fill="url(#starGlow)"/><polygon points="140,74 141,79 146,80 141,81 140,86 139,81 134,80 139,79" fill="#ffffff" opacity="0.8"/><circle cx="140" cy="80" r="1.2" fill="#ffffff"/>
+<circle cx="1300" cy="90" r="6" fill="url(#starGlow)"/><polygon points="1300,84 1301,89 1306,90 1301,91 1300,96 1299,91 1294,90 1299,89" fill="#eaf2ff" opacity="0.75"/><circle cx="1300" cy="90" r="1.2" fill="#ffffff"/>
+<circle cx="1380" cy="460" r="5" fill="url(#starGlow)"/><polygon points="1380,455 1381,459 1385,460 1381,461 1380,465 1379,461 1375,460 1379,459" fill="#ffffff" opacity="0.7"/><circle cx="1380" cy="460" r="1.1" fill="#ffffff"/></g>
+<circle cx="240" cy="540" r="70" fill="url(#distBody)"/>
+<path d="M240,470 a70,70 0 0 1 0,140 a72,70 0 0 0 0,-140" fill="#081522" opacity="0.45"/>
+<circle cx="240" cy="540" r="70" fill="none" stroke="#5a86ad" stroke-width="0.8" opacity="0.3"/>
+<circle cx="1230" cy="180" r="34" fill="url(#distBody)"/>
+<path d="M1230,146 a34,34 0 0 1 0,68 a35,34 0 0 0 0,-68" fill="#081522" opacity="0.45"/>
+<circle cx="1230" cy="180" r="34" fill="none" stroke="#5a86ad" stroke-width="0.7" opacity="0.3"/>
+<polygon points="823.5,269.4 816.5,250.6 1252,100" fill="url(#streakG)"/>
+<polygon points="821.4,263.8 818.6,256.2 1280,90" fill="url(#streak1)"/>
+<g fill="#dffaff"><circle cx="903" cy="229" r="1.2" opacity="0.8"/><circle cx="972" cy="204" r="0.9" opacity="0.55"/><circle cx="1050" cy="175" r="0.7" opacity="0.4"/></g>
+<circle cx="820" cy="260" r="13" fill="url(#shead)"/><circle cx="820" cy="260" r="3.2" fill="#fff"/>
+<circle cx="719" cy="1700" r="1050" fill="url(#pbody)"/>
+<ellipse cx="520" cy="752" rx="320" ry="44" fill="url(#mottleL)"/>
+<ellipse cx="950" cy="780" rx="280" ry="34" fill="url(#mottleL)" opacity="0.7"/>
+<ellipse cx="300" cy="740" rx="180" ry="30" fill="url(#mottleD)"/>
+<ellipse cx="700" cy="745" rx="420" ry="54" fill="url(#dawn)"/>
+<circle cx="719" cy="1700" r="1527" fill="url(#atmoOuter)"/>
+<circle cx="719" cy="1700" r="1239" fill="url(#atmoMain)"/>
+<circle cx="719" cy="1700" r="1050" fill="none" stroke="#ffe7b0" stroke-width="1.4" opacity="0.4"/>
+<circle cx="900" cy="666" r="150" fill="url(#sunbloom)"/>
+</g>
+</svg>

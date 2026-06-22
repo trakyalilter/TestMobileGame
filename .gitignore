@@ -37,3 +37,7 @@ user://
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Claude Code local agent state (machine-specific; not shared)
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
