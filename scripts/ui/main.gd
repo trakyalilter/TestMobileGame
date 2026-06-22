@@ -934,7 +934,13 @@ func _on_storage_full() -> void:
 	if now - _storage_warn_ms < 10000:
 		return
 	_storage_warn_ms = now
-	_celebrate("⚠ STORAGE FULL", "New drops are being lost — sell or expand storage", RED)
+	_celebrate("⚠ STORAGE FULL", "New drops are being lost!", RED)
+
+# Centre a celebrate pill horizontally by its real laid-out width (called deferred,
+# after layout). Keeps the toast centred even if its text made it wider than 280.
+func _center_pill(pill: Control) -> void:
+	if is_instance_valid(pill):
+		pill.position = Vector2(-pill.size.x / 2.0, -40.0)
 
 func _celebrate(title: String, subtitle: String, accent: String) -> void:
 	var holder := Control.new()
@@ -952,7 +958,10 @@ func _celebrate(title: String, subtitle: String, accent: String) -> void:
 	vb.add_theme_constant_override("separation", 2)
 	pill.add_child(vb)
 	_wlabel(vb, title, 13, accent)
-	_wlabel(vb, subtitle, 18, C_TEXT)
+	_wlabel(vb, subtitle, 16, C_TEXT)
+	# Re-centre by the pill's ACTUAL laid-out width next frame (a longer message grows
+	# the pill; the fixed -140 offset would otherwise push it off the right edge).
+	call_deferred("_center_pill", pill)
 	holder.pivot_offset = Vector2.ZERO
 	holder.scale = Vector2(0.7, 0.7)
 	holder.modulate.a = 0.0
