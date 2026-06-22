@@ -213,6 +213,13 @@ func _unlock_everything() -> void:
 		if tech in rm.tech_tree and not (tech in rm.unlocked_techs):
 			rm.unlocked_techs.append(tech)
 	GameState.resources.add_currency("credits", 1000000000.0)
+	# CRITICAL: the inventory is slot-limited (28 base). Over a full z2-z10 run it
+	# fills with accumulated loot, so add_element() silently DROPS new types — and
+	# the tier-4 ammo (SlugT4/CellT4/MissileT4, first needed at z9) never gets a slot,
+	# leaving z9+ weapons with ZERO ammo → they can't fire → false "DNF" (it looked
+	# like a balance wall but was a harness artifact). Model a real late-game player
+	# with ample storage so ammo is never silently lost.
+	GameState.resources.storage_upgrades = 100000
 
 func _on_kill(eid = null, _b = null, _c = null) -> void:
 	if str(eid) == _target:
