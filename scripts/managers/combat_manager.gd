@@ -1494,7 +1494,11 @@ func _apply_trinity_stat_bonuses(sm):
 	sm.evasion += _get_set_bonus_value("evasion_flat")
 	
 	# Accuracy
-	sm.accuracy = (sm.affix_bonuses.get("accuracy", 0.0) if "affix_bonuses" in sm else 100.0) + _get_set_bonus_value("accuracy_flat")
+	# v120 FIX: this was '=' reading a bogus affix_bonuses["accuracy"] key (no such key →
+	# always 0.0), which WIPED the recalc'd accuracy (base 100 + sensors + gem accuracy_flat)
+	# on every combat entry — flooring hit chance at ~20% game-wide and making late zones
+	# unkillable. Now additive, matching the def/crit/evasion set-bonus lines above.
+	sm.accuracy += _get_set_bonus_value("accuracy_flat")
 	
 	# HP Regen
 	sm.hp_regen = sm.hp_regen + _get_set_bonus_value("hp_regen_flat")
