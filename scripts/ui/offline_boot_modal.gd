@@ -59,8 +59,7 @@ func debug_preview():
 			"category": "infrastructure", "title": "Infrastructure Grid", "action": "",
 			"time_sec": 54660, "actions": 0, "xp": 0,
 			"gains": {"Si": 9500, "Al": 6100, "Cu": 4200, "Mn": 3050, "Ti": 1875, "Ni": 980, "credits": 12400},
-			"drains": {"Water": 3200, "Dirt": 1800},
-			"notes": ["Throttled to 82% — upkeep ran short."], "status": "active",
+			"drains": {}, "notes": [], "status": "active",
 		},
 		{
 			"category": "combat", "title": "Combat Sweep", "action": "",

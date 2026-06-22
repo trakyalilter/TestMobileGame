@@ -861,24 +861,8 @@ var building_db: Dictionary = {
 
 var production_timers: Dictionary = {}
 
-# v104: Continuous building-upkeep sink. The economy glut comes from continuous
-# raw production vs. one-time gate costs. Research tier-scaling (Lever 1) drains
-# stockpiles at gates, but a finite sink still loses to an infinite source over
-# a multi-day idle. Upkeep is the forever-drain: every building consumes a small
-# amount of the cheapest glut mats per minute, and the per-building cost itself
-# grows with total building count so the appetite scales over the long curve.
-# Safety: drain-if-available only — if the player can't pay, NOTHING stalls and
-# NOTHING goes negative. It only ever removes surplus, never punishes AFK.
-const UPKEEP_INTERVAL := 60.0
-const UPKEEP_BASE := {"Water": 2.0, "Dirt": 1.0}  # per building, per interval, pre-growth
-const UPKEEP_COUNT_GROWTH := 0.05                  # +5% per-building cost per building owned
-const UPKEEP_GROWTH_CAP := 8.0                     # growth multiplier ceiling
-var _upkeep_timer: float = 0.0
-# P2.6: proportional upkeep throttle. When upkeep mats run short, buildings
-# produce at the fraction you can afford (bottleneck resource ratio) instead
-# of upkeep being a silent free pass. Smooth, self-recovering, never
-# destroys buildings. 1.0 = fully supplied. Transient (recomputed; not saved).
-var upkeep_efficiency: float = 1.0
+# v120: building upkeep REMOVED. Grid energy availability (energy_efficiency)
+# and per-recipe input materials are the only infrastructure sinks now.
 
 # ── Infra ↔ Mastery feedback (player request) ───────────────────────────────
 # A building that produces a material feeds that material's crafting/gathering
@@ -896,53 +880,7 @@ var _mastery_link_cache: Dictionary = {}    # building_id -> {"mgr","id","symbol
 func _init():
 	super._init("Infrastructure")
 
-# Returns {res: amount_consumed} for reporting. intervals = number of full
-# UPKEEP_INTERVAL periods to charge (1 online, many for an offline catch-up).
-func _apply_upkeep(intervals: int) -> Dictionary:
-	var consumed: Dictionary = {}
-	if intervals <= 0:
-		return consumed
-	var total: int = 0
-	for bid in buildings:
-		var c: int = buildings[bid]
-		if c > 0:
-			total += c
-	if total <= 0:
-		return consumed
-	var growth: float = min(UPKEEP_GROWTH_CAP, 1.0 + float(total) * UPKEEP_COUNT_GROWTH)
-	for res in UPKEEP_BASE:
-		var demand: float = float(UPKEEP_BASE[res]) * float(total) * growth * float(intervals)
-		if demand <= 0.0:
-			continue
-		var avail: float = GameState.resources.get_element_amount(res)
-		var take: float = min(demand, avail)  # never negative, never a hard gate
-		if take > 0.0:
-			GameState.resources.remove_element(res, take)
-			consumed[res] = take
-	return consumed
-
-# P2.6: affordable fraction of upkeep for `intervals` periods WITHOUT
-# consuming — the bottleneck (min) ratio across upkeep resources. Production
-# is scaled by this so a shortfall throttles output proportionally.
-func _upkeep_efficiency_for(intervals: int) -> float:
-	if intervals <= 0:
-		return 1.0
-	var total: int = 0
-	for bid in buildings:
-		var c: int = buildings[bid]
-		if c > 0:
-			total += c
-	if total <= 0:
-		return 1.0
-	var growth: float = min(UPKEEP_GROWTH_CAP, 1.0 + float(total) * UPKEEP_COUNT_GROWTH)
-	var eff: float = 1.0
-	for res in UPKEEP_BASE:
-		var demand: float = float(UPKEEP_BASE[res]) * float(total) * growth * float(intervals)
-		if demand <= 0.0:
-			continue
-		var avail: float = GameState.resources.get_element_amount(res)
-		eff = min(eff, clamp(avail / demand, 0.0, 1.0))
-	return eff
+# v120: _apply_upkeep + _upkeep_efficiency_for removed with building upkeep.
 
 func get_building_count(building_id: String) -> int:
 	return buildings.get(building_id, 0)
@@ -1506,7 +1444,7 @@ func process_tick(delta: float):
 				if not bid in production_timers: production_timers[bid] = 0.0
 					
 				var eff_interval = get_effective_interval(bid)
-				production_timers[bid] += delta * energy_efficiency * upkeep_efficiency  # P2.6
+				production_timers[bid] += delta * energy_efficiency
 				
 				if production_timers[bid] >= eff_interval:
 					# Check if building needs inputs
@@ -1574,7 +1512,7 @@ func process_tick(delta: float):
 			
 			elif data.get("special", "") == "passive_gather":
 				if not bid in production_timers: production_timers[bid] = 0.0
-				production_timers[bid] += delta * energy_efficiency * upkeep_efficiency  # P2.6
+				production_timers[bid] += delta * energy_efficiency
 				
 				if production_timers[bid] >= 10.0:
 					# Passive Gather from unlocked gathering actions
@@ -1611,16 +1549,6 @@ func process_tick(delta: float):
 
 					production_timers[bid] = 0.0
 
-	# v104: Continuous upkeep sink — only charged while the grid is live, so an
-	# idle/unpowered base never bleeds mats. Closed-form: accumulate then charge
-	# whole intervals at once (no per-frame removal churn).
-	if energy_efficiency > 0:
-		_upkeep_timer += delta
-		if _upkeep_timer >= UPKEEP_INTERVAL:
-			var n: int = int(_upkeep_timer / UPKEEP_INTERVAL)
-			_upkeep_timer -= float(n) * UPKEEP_INTERVAL
-			upkeep_efficiency = _upkeep_efficiency_for(n)  # P2.6 throttle for next cycle
-			_apply_upkeep(n)
 
 func calculate_offline(delta: float):
 	# Offline Industry
@@ -1636,11 +1564,6 @@ func calculate_offline(delta: float):
 
 	var loot_summary = {}
 
-	# P2.6: throttle offline production by the upkeep fraction the player can
-	# afford over the whole window (computed up front, non-consuming; the
-	# actual drain still happens once at the end via _apply_upkeep).
-	upkeep_efficiency = _upkeep_efficiency_for(int(delta / UPKEEP_INTERVAL))
-	
 	# Offline Industry: Two-Pass 'Jump-Start' Logic
 	# Pass 1: Fuel & Energy Priority (Ensures consumers have inputs ready)
 	var fuel_buildings = ["solar_panel", "coal_burner", "hydro_plant", "palladium_generator", "hydrogen_reactor"]
@@ -1655,7 +1578,7 @@ func calculate_offline(delta: float):
 			var eff_interval = get_effective_interval(bid)
 			# Effective cycles reduced by throttle
 			var base_cycles = int(delta / eff_interval)
-			var cycles = int(base_cycles * throttle * upkeep_efficiency)  # P2.6
+			var cycles = int(base_cycles * throttle)
 			
 			if "input" in data:
 				var max_cycles = cycles
@@ -1688,7 +1611,7 @@ func calculate_offline(delta: float):
 		if "yield" in data:
 			var eff_interval = get_effective_interval(bid)
 			var base_cycles = int(delta / eff_interval)
-			var cycles = int(base_cycles * throttle * upkeep_efficiency)  # P2.6
+			var cycles = int(base_cycles * throttle)
 			
 			# If building has input requirements, calculate max possible cycles
 			if "input" in data:
@@ -1724,15 +1647,8 @@ func calculate_offline(delta: float):
 		var bonus = get_building_count("biosphere_dome") * 5
 		notes.append("Biosphere Domes: +%d%% gather speed active" % bonus)
 
-	# v104: Offline upkeep — closed-form, whole intervals only. Grid is
-	# guaranteed live here (negative-energy case returned early above).
-	var upkeep := _apply_upkeep(int(delta / UPKEEP_INTERVAL))
 
-	# Transparency: never silently throttle — tell the player why output was low.
-	if upkeep_efficiency < 0.999:
-		notes.append("Throttled to %d%% — upkeep ran short." % int(upkeep_efficiency * 100.0))
-
-	if loot_summary.is_empty() and upkeep.is_empty() and notes.is_empty():
+	if loot_summary.is_empty() and notes.is_empty():
 		return null
 
 	return {
@@ -1743,7 +1659,7 @@ func calculate_offline(delta: float):
 		"actions": 0,
 		"xp": 0,
 		"gains": loot_summary.duplicate(),
-		"drains": upkeep.duplicate(),
+		"drains": {},
 		"notes": notes,
 		"status": "active",
 	}
@@ -1781,12 +1697,10 @@ func reset(decay_factor: float = 1.0) -> void:
 	energy_efficiency = 1.0
 	production_timers.clear()
 	# Clear all per-building derived state too, so nothing points at a building
-	# that no longer exists (stale throttles / upkeep / mastery-link cache would
+	# that no longer exists (stale throttles / mastery-link cache would
 	# otherwise survive into the next run). Sanity checklist: "Hard reset clears
 	# all infra state."
 	building_throttles.clear()
 	_mastery_link_cache.clear()
-	_upkeep_timer = 0.0
-	upkeep_efficiency = 1.0
 	grid_warning_sent = false
 	recalc_energy()
