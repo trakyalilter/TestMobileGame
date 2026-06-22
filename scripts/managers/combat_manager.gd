@@ -250,16 +250,19 @@ func _loadout_has_module(sm: Object, base_module_id: String) -> bool:
 	return false
 
 # Combat Milestone Bonuses (Phase 21)
+# v120: combat leveling removed. The crit/evasion milestones were combat-XP power
+# perks — neutralized to 0 so a high-level LEGACY save can't keep them (the soft-gate
+# balance assumes no combat-level bonus). Auto-Consume is gated on the auto_repair_*
+# RESEARCH nodes (the live _check_auto_consume gate already uses get_auto_consume_threshold);
+# this helper now mirrors that research gate instead of a combat level.
 func get_milestone_crit_bonus() -> float:
-	if get_level() >= 10: return 0.05 # +5% Crit at Lv.10
 	return 0.0
 
 func get_milestone_evasion_bonus() -> int:
-	if get_level() >= 25: return 15 # +15 Evasion at Lv.25
 	return 0
 
 func is_auto_consume_unlocked() -> bool:
-	return get_level() >= 50 # Auto-Consume at Lv.50
+	return GameState.research_manager.get_auto_consume_threshold() > 0.0
 
 # v112: Removed dead get_external_progression_combat_mult() — a 6×-clamped
 # "enemy progression compensation" that had ZERO callers (verified repo-wide).
@@ -1268,7 +1271,9 @@ func spawn_enemy():
 	# gear is still the real lever to out-power content. Partial catch-up via
 	# the ENEMY_COMP_* fractions (<0.5), so zone pacing stays readable.
 	var _is_boss := bool(current_enemy.get("is_boss", false))
-	var _ext_mult: float = (1.0 + get_level() * 0.005)
+	# v120: combat leveling removed — enemies scale ONLY against the warp grind
+	# multiplier now (better gear, not combat XP, is the lever that out-powers a zone).
+	var _ext_mult: float = 1.0
 	if GameState.warp_manager:
 		_ext_mult *= max(1.0, GameState.warp_manager.get_combat_multiplier())
 	if _ext_mult > 1.0:
@@ -1344,19 +1349,11 @@ func spawn_enemy():
 	
 	_rebuild_player_weapon_states()
 
-	# v114: compute this enemy's tier-gate defense factors (armor + shield-pool
-	# multipliers). Sub-tier armor/shield collapse to ~TIER_FLOOR; the floored
-	# shield factor shrinks player_max_shield so the pool itself caps lower. Both
-	# 1.0 when ungated or the enemy isn't tier_hardened, so combat is unchanged.
-	var _thz := int(current_enemy.get("tier_hardened", 0))
-	if _tier_gate_on() and _thz > 0:
-		var _df = sm.get_tier_defense_factors(_thz, TIER_FLOOR)
-		_tier_def_factor = float(_df["def"])
-		_tier_shield_factor = float(_df["shield"])
-		player_max_shield = sm.max_shield * _tier_shield_factor
-	else:
-		_tier_def_factor = 1.0
-		_tier_shield_factor = 1.0
+	# v120: tier-hardening defense floor removed — no sub-tier armor/shield collapse.
+	# Kept as 1.0 no-op multipliers so the resolve_damage call sites and shield-pool
+	# math below are untouched.
+	_tier_def_factor = 1.0
+	_tier_shield_factor = 1.0
 
 # v113 (NG+ P2): rebuild the per-fight weapon snapshot from the CURRENT loadout.
 # Called on enemy spawn AND on an in-fight loadout swap (multi-phase boss gate),
@@ -1758,7 +1755,9 @@ func _execute_player_attack(weapon_idx: int):
 	var fleet_dmg_mult := 1.0
 	if GameState.fleet_manager:
 		fleet_dmg_mult = GameState.fleet_manager.get_combat_dps_mult()
-	var skill_dmg_mult = (1.0 + (get_level() * 0.005)) * GameState.warp_manager.get_combat_multiplier() * (1.0 + combat_dmg_bonus) * (1.0 + void_weap_bonus) * fleet_dmg_mult
+	# v120: combat leveling removed — the (1.0 + level*0.005) term is gone. Player
+	# combat power now comes from gear + warp + research, never from a combat XP bar.
+	var skill_dmg_mult = GameState.warp_manager.get_combat_multiplier() * (1.0 + combat_dmg_bonus) * (1.0 + void_weap_bonus) * fleet_dmg_mult
 	
 	# v80.1: Trinity Damage Multipliers
 	var trinity_atk_mult = 1.0 + (_get_set_bonus_value("atk_pct") + _get_set_bonus_value("all_dmg_pct")) / 100.0
@@ -1770,29 +1769,9 @@ func _execute_player_attack(weapon_idx: int):
 	p_atk_x *= skill_dmg_mult * trinity_atk_mult * trinity_missile_mult
 	p_atk_cryo *= skill_dmg_mult * trinity_atk_mult  # v109
 
-	# v114: Zone Tier-Gate offense floor. Against a tier_hardened back-half enemy a
-	# SUB-TIER weapon barely scratches it (×TIER_FLOOR, all channels) — tier-Z gear
-	# (or a Unique one zone below) pierces. Telegraphed so the "my stronger gun does
-	# nothing" moment is never a mystery. No-op when ungated / not hardened.
-	if _tier_gate_on():
-		var _thz := int(current_enemy.get("tier_hardened", 0))
-		if _thz > 0:
-			# v115: graduated penetration vs the enemy's tier armor (honest, tunable),
-			# replacing the binary x TIER_FLOOR. Tier-matched gear = 1.0 (no-op); each
-			# tier under cuts damage hard. Log shows the ACTUAL % so it reads as an
-			# armor/penetration mismatch, not a mystery.
-			var _pen: float = sm.module_tier_penetration(str(w.get("mid", "")), _thz)
-			# v118: Topaz armor_pen softens the wall — bump the floor (capped +0.20),
-			# never past 1.0. Only helps when under-tier; a full tier still walls.
-			_pen = minf(1.0, _pen + clampf(sm.gem_bonuses.get("armor_pen", 0.0), 0.0, 0.20))
-			if _pen < 1.0:
-				p_atk_k *= _pen
-				p_atk_e *= _pen
-				p_atk_x *= _pen
-				p_atk_cryo *= _pen
-				if randf() < 0.12:
-					combat_events.append({"type": "resist", "text": "ARMORED", "color": Color(0.62, 0.72, 0.85), "side": "enemy"})
-					log_msg("LOW PENETRATION - Sector %d armor cuts your damage to %d%%." % [_thz, int(round(_pen * 100.0))])
+	# v120: tier-hardening offense floor removed — the soft numeric gate (rarity
+	# curve + per-zone enemy tuning) drives progression now; no per-tier damage
+	# penalty. (Warp-Hardened Z11 Cryo wall is separate, in resolve_damage.)
 
 	var total_crit = sm.crit_chance + get_milestone_crit_bonus()
 	var res = resolve_damage(p_atk_k, p_atk_e, p_atk_x, enemy_shield, current_enemy["def"], current_zone.get("difficulty", 1), total_crit, true, p_atk_cryo, w.get("exotic_type", "cryo"))
@@ -1925,13 +1904,6 @@ func _execute_enemy_attack():
 			_:
 				e_atk_k = e_atk
 		# Enemy uses base crit 5%
-		# v114: Zone Tier-Gate defense floor — sub-tier armor's mitigation collapses
-		# (factor computed on spawn). The shield half rode in via the floored
-		# player_max_shield. Telegraphed (throttled) so melting on old plating reads
-		# as "wrong gear," not "unfair." _tier_def_factor is 1.0 when ungated.
-		if _tier_def_factor < 0.999 and randf() < 0.12:
-			combat_events.append({"type": "resist", "text": "ARMOR OUTCLASSED", "color": Color(1.0, 0.55, 0.40), "side": "player"})
-			log_msg("ARMOR OUTCLASSED — Sector %d plating required." % int(current_enemy.get("tier_hardened", 0)))
 		var eres = resolve_damage(e_atk_k, e_atk_e, e_atk_x, player_shield, sm.defense * _tier_def_factor, difficulty, 0.05, false)
 		
 		# v80.1: Unified Reflect Logic (Reflective Sheath + Monolith's Bedrock)
@@ -2129,10 +2101,8 @@ func resolve_damage(atk_k, atk_e, atk_x, c_shield, c_armor, difficulty = 1, crit
 func get_combat_loot_multiplier() -> float:
 	var mult = 1.0
 	
-	# 1. Combat Skill Level bonus (+1% per level, e.g. Lvl 50 = +50%)
-	mult += get_level() * 0.01
-	
-	# 2. Zone Difficulty bonus (+15% per zone tier above 1)
+	# Zone Difficulty bonus (+15% per zone tier above 1). The old +1%/combat-level
+	# loot bonus was dropped with combat leveling — gear + zone tier drive loot now.
 	var zone_diff = current_zone.get("difficulty", 1) if current_zone else 1
 	mult += max(0, (zone_diff - 1)) * 0.15
 	
@@ -2368,11 +2338,11 @@ func win_fight():
 		log_msg("Nano-Scavenger triggered: Found %d %s" % [qty, drop])
 	
 	# v71.0: Module Rarity Drop System
-	# v114 (Zone Tier-Gate): front-half enemies (drops_modules=false) are the
-	# salvage yard — materials only, no module rolls. The Uncommon+ ladder drops
-	# only from the hardened back half + boss. No-op when the gate is off.
+	# v120: front-half (e1/e2) enemies are the salvage yard — materials only, no
+	# module rolls (always-on demand-spine routing). Module gear drops only from the
+	# back half (e3/e4) + boss. drops_modules is set per-enemy at spawn_enemy.
 	var drop_chance = get_effective_module_drop_chance(current_enemy)
-	if _tier_gate_on() and not current_enemy.get("drops_modules", true):
+	if not current_enemy.get("drops_modules", true):
 		drop_chance = 0.0
 
 	var drop_pool = current_enemy.get("module_drop_pool", [])
@@ -2556,7 +2526,7 @@ func _execute_broadside_burst():
 		combat_dmg_bonus_b = GameState.research_manager.get_efficiency_bonus("combat_damage")
 		if GameState.research_manager.is_tech_unlocked("void_weaponry_1"):
 			void_weap_bonus_b = 0.05
-	var skill_dmg_mult = (1.0 + (get_level() * 0.005)) * (1.0 + combat_dmg_bonus_b) * (1.0 + void_weap_bonus_b)
+	var skill_dmg_mult = (1.0 + combat_dmg_bonus_b) * (1.0 + void_weap_bonus_b)  # v120: combat-level term removed
 	var res = resolve_damage(total_atk_k * 5.0 * skill_dmg_mult, 0, 0, enemy_shield, current_enemy["def"], current_zone.get("difficulty", 1), 0.1, true) # 10% base crit for volley
 	
 	enemy_shield = max(0, enemy_shield - res[0])

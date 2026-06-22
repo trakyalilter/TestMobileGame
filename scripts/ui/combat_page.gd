@@ -80,8 +80,8 @@ func _ready():
 	radar_display.draw.connect(_on_radar_draw)
 	
 
-	# PHASE 22: Inject XP Bar programmatically
-	_setup_xp_bar()
+	# v120: combat XP bar removed with combat leveling — it was dead UI (its value
+	# was never updated and nothing listened to Skill.level_up).
 	_setup_hp_bars()
 	_setup_consumable_buttons()
 	
@@ -92,8 +92,6 @@ func _ready():
 	_build_combat_timers()
 	_build_loadout_swap_row()
 
-var p_xp_bar: ProgressBar
-var p_xp_label: Label
 var p_hp_bar: HBoxContainer
 var p_sh_bar: HBoxContainer
 var e_hp_bar: HBoxContainer
@@ -142,35 +140,6 @@ func _update_block_bar(bar: HBoxContainer, percent: float):
 		else:
 			blocks[i].color = accent.lerp(Color.BLACK, 0.9)
 			blocks[i].modulate.a = 0.3
-
-func _setup_xp_bar():
-	# Create bar
-	p_xp_bar = ProgressBar.new()
-	p_xp_bar.custom_minimum_size = Vector2(0, 6) # Thin but visible
-	p_xp_bar.show_percentage = false
-	
-	# Premium Style
-	var sb_bg = StyleBoxFlat.new()
-	sb_bg.bg_color = Color(0.1, 0.1, 0.1, 0.8)
-	sb_bg.border_width_bottom = 1
-	sb_bg.border_color = Color(0, 0, 0)
-	
-	var sb_fill = StyleBoxFlat.new()
-	sb_fill.bg_color = Color(0.7, 0.4, 1.0) # Combat Purple/Veterancy
-	sb_fill.set_corner_radius_all(1)
-	
-	p_xp_bar.add_theme_stylebox_override("background", sb_bg)
-	p_xp_bar.add_theme_stylebox_override("fill", sb_fill)
-	
-	# Add to HUD
-	var container = $Dashboard/HUD/MidHUD/PlayerStatsOverlay/Margin/VBox
-	container.add_child(p_xp_bar)
-	
-	# Create Label for XP Bar
-	p_xp_label = _create_centered_label(p_xp_bar)
-	if p_xp_label: p_xp_label.add_theme_font_size_override("font_size", 8)
-
-	container.move_child(p_xp_bar, 1)
 
 func _setup_loot_filter_button():
 	var btn = Button.new()
