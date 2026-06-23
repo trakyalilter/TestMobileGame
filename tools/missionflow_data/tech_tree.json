@@ -1300,9 +1300,9 @@
   "category": "processing",
   "cost": 10000000,
   "cost_items": {
-   "AICore": 100,
-   "AIProcessor": 100,
-   "AdvCircuit": 4000,
+   "AICore": 25,
+   "AIProcessor": 25,
+   "AdvCircuit": 2000,
    "AncientTech": 5
   },
   "effects": [
@@ -1423,7 +1423,7 @@
    "ExoticIsotope": 400,
    "QuantumCore": 400,
    "RadIsotope": 20000,
-   "Res3": 10000,
+   "Res3": 3500,
    "VoidArtifact": 50
   },
   "effects": [],
@@ -1812,9 +1812,9 @@
   "category": "zone",
   "cost": 45776367,
   "cost_items": {
-   "AdvCircuit": 300000,
-   "ChronoCore": 200,
-   "Superalloy": 240000,
+   "AdvCircuit": 6500,
+   "ChronoCore": 2000,
+   "Superalloy": 2800,
    "Z9_Core": 5
   },
   "effects": [],
@@ -1833,8 +1833,8 @@
   "category": "zone",
   "cost": 30000,
   "cost_items": {
-   "Cu": 50,
-   "Fe": 100,
+   "Cu": 120,
+   "Fe": 200,
    "Z1_Core": 1
   },
   "effects": [],
@@ -1872,9 +1872,9 @@
   "category": "zone",
   "cost": 187500,
   "cost_items": {
-   "Circuit": 1500,
-   "Steel": 4500,
-   "Ti": 2625,
+   "Circuit": 200,
+   "Steel": 1000,
+   "Ti": 150,
    "Z3_Core": 2
   },
   "effects": [],
@@ -1893,9 +1893,9 @@
   "category": "zone",
   "cost": 468750,
   "cost_items": {
-   "AdvCircuit": 1875,
-   "Steel": 11250,
-   "Superalloy": 600,
+   "AdvCircuit": 200,
+   "Steel": 1500,
+   "Superalloy": 40,
    "Z4_Core": 2
   },
   "effects": [],
@@ -1914,9 +1914,9 @@
   "category": "zone",
   "cost": 1171875,
   "cost_items": {
-   "AdvCircuit": 12000,
-   "Superalloy": 6000,
-   "Ti": 40000,
+   "AdvCircuit": 400,
+   "Superalloy": 120,
+   "Ti": 400,
    "Z5_Core": 3
   },
   "effects": [],
@@ -1935,9 +1935,9 @@
   "category": "zone",
   "cost": 2929687,
   "cost_items": {
-   "AdvCircuit": 30000,
-   "Superalloy": 18000,
-   "W": 4000,
+   "AdvCircuit": 800,
+   "Superalloy": 300,
+   "W": 2000,
    "Z6_Core": 3
   },
   "effects": [],
@@ -1956,9 +1956,9 @@
   "category": "zone",
   "cost": 7324218,
   "cost_items": {
-   "AdvCircuit": 60000,
-   "Ir": 1200,
-   "Superalloy": 44000,
+   "AdvCircuit": 1600,
+   "Ir": 1500,
+   "Superalloy": 700,
    "Z7_Core": 4
   },
   "effects": [],
@@ -1977,9 +1977,9 @@
   "category": "zone",
   "cost": 18310546,
   "cost_items": {
-   "AdvCircuit": 120000,
-   "Os": 800,
-   "Superalloy": 100000,
+   "AdvCircuit": 3200,
+   "Os": 1500,
+   "Superalloy": 1400,
    "Z8_Core": 4
   },
   "effects": [],
