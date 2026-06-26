@@ -221,8 +221,8 @@ func _ready() -> void:
 	GameState.action_changed.connect(_on_action_changed)
 	GameState.action_changed.connect(_refresh_banner)
 	GameState.bounty_changed.connect(_on_tick)
-	GameState.standing_orders_changed.connect(_on_tick)
-	GameState.missions_changed.connect(_on_tick)
+	GameState.standing_orders_changed.connect(_on_orders_changed)
+	GameState.missions_changed.connect(_on_missions_changed)
 	GameState.offline_ready.connect(_on_offline_ready)
 	GameState.level_up.connect(_on_level_up)
 	GameState.feature_revealed.connect(func(title: String, msg: String) -> void:
@@ -903,6 +903,7 @@ func _enter_game() -> void:
 	_refresh_banner()
 	_show("missions" if not GameState.has_mission_progress() else "gather")
 	_update_badges()
+	_prime_notifications()
 	_update_coach()
 	_show_welcome()
 
@@ -935,6 +936,76 @@ func _on_storage_full() -> void:
 		return
 	_storage_warn_ms = now
 	_celebrate("⚠ STORAGE FULL", "New drops are being lost!", RED)
+
+# --- Idle-progress notifications -------------------------------------------
+# Toast once when a mission finishes or a standing order completes in the
+# background, nudging the player to come claim it. Edge-detected per id
+# (announce once, mute until claimed/cleared) and silenced during offline
+# catch-up — the Welcome Back modal lists those instead.
+var _notified_missions := {}
+var _notified_orders := {}
+
+# Mission display name, minus the "[CORE GOAL]" tag the early-chain missions carry.
+func _mission_title(mid: String) -> String:
+	var nm: String = GameData.MISSIONS.get(mid, {}).get("name", mid)
+	if nm.begins_with("[CORE GOAL]"):
+		nm = nm.substr(11).strip_edges()
+	return nm
+
+func _on_missions_changed() -> void:
+	if not GameState._suppress_fx:
+		for mid in GameState.missions_active:
+			if GameState.missions_claimed.has(mid) or not GameState.mission_completed(mid):
+				_notified_missions.erase(mid)
+				continue
+			if not _notified_missions.has(mid):
+				_notified_missions[mid] = true
+				_celebrate("✦  MISSION READY", _mission_title(mid), PURP)
+	_on_tick()
+
+func _on_orders_changed() -> void:
+	if not GameState._suppress_fx:
+		var live := {}
+		for q in GameState.standing_orders():
+			var sid := String(q.get("id", ""))
+			live[sid] = true
+			if q.get("claimed", false) or not q.get("completed", false):
+				_notified_orders.erase(sid)
+				continue
+			if not _notified_orders.has(sid):
+				_notified_orders[sid] = true
+				_celebrate("▤  ORDER READY", String(q.get("title", "Standing Order")), CYAN)
+		# Drop ids no longer on the board so the dict can't grow unbounded.
+		for sid in _notified_orders.keys():
+			if not live.has(sid):
+				_notified_orders.erase(sid)
+	_on_tick()
+
+# On entering a save, mark everything already claimable as "seen" so we don't
+# dump a stack of toasts on load — only NEW completions during play announce.
+func _prime_notifications() -> void:
+	_notified_missions.clear()
+	_notified_orders.clear()
+	for mid in GameState.missions_active:
+		if GameState.mission_completed(mid) and not GameState.missions_claimed.has(mid):
+			_notified_missions[mid] = true
+	for q in GameState.standing_orders():
+		if q.get("completed", false) and not q.get("claimed", false):
+			_notified_orders[String(q.get("id", ""))] = true
+
+# Lines appended to the Welcome Back modal: missions/orders that finished while
+# away and are waiting to be claimed. "Name\t<tag>" renders as a two-column row.
+func _ready_to_claim_report() -> String:
+	var lines := []
+	for mid in GameState.missions_active:
+		if GameState.mission_completed(mid) and not GameState.missions_claimed.has(mid):
+			lines.append("%s\t✦ ready" % _mission_title(mid))
+	for q in GameState.standing_orders():
+		if q.get("completed", false) and not q.get("claimed", false):
+			lines.append("%s\t▤ ready" % String(q.get("title", "Order")))
+	if lines.is_empty():
+		return ""
+	return "★ Ready to Claim\n" + "\n".join(lines)
 
 # Centre a celebrate pill horizontally by its real laid-out width (called deferred,
 # after layout). Keeps the toast centred even if its text made it wider than 280.
@@ -6001,6 +6072,11 @@ func _refresh_banner() -> void:
 
 # ============================================================ MODAL
 func _show_offline(text: String) -> void:
+	# Append any missions/orders that finished while away, so the welcome-back
+	# report doubles as a "go claim these" checklist.
+	var claim := _ready_to_claim_report()
+	if claim != "":
+		text = (text + "\n\n" if text.strip_edges() != "" else "") + claim
 	var overlay := ColorRect.new()
 	overlay.color = Color(0, 0, 0, 0.65)
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
