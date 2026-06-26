@@ -27,7 +27,7 @@ const RARITY_STAT_RANGE = {
 	Rarity.UNCOMMON: [0.10, 0.20],  # 1.10x-1.20x - within-zone upgrade
 	Rarity.RARE: [0.25, 0.45],      # 1.25x-1.45x - within-zone (< next-Common 2.2x)
 	Rarity.LEGENDARY: [0.40, 0.55], # v120: 1.40x-1.55x (was 1.55-1.85). Trimmed so a carried
-	                                # N-1 Legendary's base+rarity sits clearly UNDER a clean
+									# N-1 Legendary's base+rarity sits clearly UNDER a clean
 	                                # next-tier Common (2.2x) — its affixes/cores are then a
 	                                # comfort margin, not a tier-leapfrog. Keeps Common > Leg
 	                                # without nerfing the affix system. Still > Rare (3 affixes).

@@ -17,10 +17,24 @@ var widgets = []
 var logistics_rack: VBoxContainer
 var logistics_grid: GridContainer
 
+# v116: category tabs (matches the processing page + armory filter bar). One
+# rack visible at a time, toggled by a wrapping tab strip.
+var _tab_strip: HFlowContainer
+var _tab_buttons := {}      # {tab_id: Button}
+var _tab_racks := {}        # {tab_id: rack VBoxContainer}
+var _active_tab: String = ""
+var TAB_DEFS := [
+	{"id": "power",      "label": "Power",       "color": Color(1.00, 0.80, 0.20)},
+	{"id": "extraction", "label": "Extraction",  "color": Color(1.00, 0.60, 0.20)},
+	{"id": "industry",   "label": "Fabrication", "color": Color(0.20, 0.80, 1.00)},
+	{"id": "logistics",  "label": "Logistics",   "color": Color(0.60, 0.40, 1.00)},
+]
+
 func _ready():
 	manager = GameState.infrastructure_manager
 	$VBoxContainer/ScrollContainer.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_ALWAYS
 	_setup_logistics_rack()
+	_setup_tabs()
 	_setup_multi_buy_toggles()
 	_connect_signals()
 	call_deferred("refresh_list")
@@ -43,6 +57,10 @@ func _on_resources_changed(_a=null, _b=null):
 func get_coach_anchor(key: String) -> Control:
 	match key:
 		"first_building":
+			# Anchor to a VISIBLE building (active tab's first), not a hidden one.
+			var g = _grid_for_tab(_active_tab)
+			if g and g.get_child_count() > 0:
+				return g.get_child(0)
 			return widgets[0] if not widgets.is_empty() else null
 		"energy":
 			return net_lbl
@@ -113,6 +131,7 @@ func _setup_logistics_rack():
 	logistics_rack.add_theme_constant_override("separation", 10)
 	
 	var header = Label.new()
+	header.name = "Header"   # so _setup_tabs can hide it (the tab labels the section)
 	header.text = "[ COMMAND & LOGISTICS ]"
 	header.add_theme_font_size_override("font_size", 12)
 	header.add_theme_color_override("font_color", Color(0.6, 0.4, 1.0, 0.5))
@@ -152,6 +171,8 @@ func refresh_list():
 			target_grid.add_child(w)
 			w.setup(bid, data, manager, self)
 			widgets.append(w)
+
+	_build_tabs()
 
 # Removed _process derived updates - using signals + throttled refreshes now
 
@@ -199,3 +220,120 @@ func get_building_widget(building_id: String) -> Control:
 		if w.bid == building_id:
 			return w
 	return null
+
+
+# ─── Category tabs ───────────────────────────────────────────────────────────
+func _setup_tabs():
+	# Map each tab to its rack VBox and hide the in-rack header (the tab labels
+	# the section now), matching the processing page.
+	_tab_racks = {
+		"power":      $VBoxContainer/ScrollContainer/BladeContainer/EnergyRack,
+		"extraction": $VBoxContainer/ScrollContainer/BladeContainer/MiningRack,
+		"industry":   $VBoxContainer/ScrollContainer/BladeContainer/ProductionRack,
+		"logistics":  logistics_rack,
+	}
+	for tab_id in _tab_racks:
+		var rack = _tab_racks[tab_id]
+		var hdr = rack.get_node_or_null("Header")
+		if hdr:
+			hdr.visible = false
+
+	_tab_strip = HFlowContainer.new()
+	_tab_strip.add_theme_constant_override("h_separation", 6)
+	_tab_strip.add_theme_constant_override("v_separation", 6)
+	var vb = $VBoxContainer
+	vb.add_child(_tab_strip)
+	vb.move_child(_tab_strip, $VBoxContainer/ScrollContainer.get_index())
+
+
+func _build_tabs():
+	if not _tab_strip:
+		return
+	_tab_buttons.clear()
+	for c in _tab_strip.get_children():
+		c.queue_free()
+
+	var first_tab := ""
+	for t in TAB_DEFS:
+		var tab_id: String = String(t["id"])
+		var grid = _grid_for_tab(tab_id)
+		if not grid or grid.get_child_count() == 0:
+			continue
+		if first_tab == "":
+			first_tab = tab_id
+		var btn = Button.new()
+		btn.text = String(t["label"])
+		btn.focus_mode = Control.FOCUS_NONE
+		btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		btn.pressed.connect(_show_tab.bind(tab_id))
+		_tab_strip.add_child(btn)
+		_tab_buttons[tab_id] = btn
+
+	var keep: bool = _active_tab != "" and _tab_buttons.has(_active_tab)
+	_show_tab(_active_tab if keep else first_tab)
+
+
+func _show_tab(tab_id: String) -> void:
+	if tab_id == "" or not _tab_racks.has(tab_id):
+		return
+	_active_tab = tab_id
+	for id in _tab_racks:
+		_tab_racks[id].visible = (id == tab_id)
+	for id in _tab_buttons:
+		_style_tab_button(_tab_buttons[id], id == tab_id, _tab_color(id))
+	var sc = $VBoxContainer/ScrollContainer
+	if sc is ScrollContainer:
+		sc.scroll_vertical = 0
+
+
+func _grid_for_tab(tab_id: String) -> GridContainer:
+	match tab_id:
+		"power": return energy_grid
+		"extraction": return mining_grid
+		"industry": return production_grid
+		"logistics": return logistics_grid
+	return null
+
+
+func _tab_color(tab_id: String) -> Color:
+	for t in TAB_DEFS:
+		if String(t["id"]) == tab_id:
+			return t["color"]
+	return Color.WHITE
+
+
+# Mirrors the armory filter-bar style: inactive = ghost; active = filled accent.
+func _style_tab_button(button: Button, is_active: bool, accent: Color) -> void:
+	var normal := StyleBoxFlat.new()
+	normal.bg_color = Color(0.10, 0.08, 0.07, 0.22)
+	normal.set_corner_radius_all(4)
+	normal.set_border_width_all(1)
+	var dim_edge: Color = accent
+	dim_edge.a = 0.16
+	normal.border_color = dim_edge
+	normal.content_margin_left = 11
+	normal.content_margin_right = 11
+	normal.content_margin_top = 5
+	normal.content_margin_bottom = 5
+
+	var hover := normal.duplicate()
+	hover.bg_color = accent.lerp(Color.BLACK, 0.70)
+	var hb: Color = accent
+	hb.a = 0.55
+	hover.border_color = hb
+
+	var selected := normal.duplicate()
+	selected.bg_color = accent.lerp(Color.BLACK, 0.40)
+	selected.bg_color.a = 1.0
+	selected.border_color = accent
+	selected.border_width_top = 2
+	selected.shadow_color = Color(accent.r, accent.g, accent.b, 0.45)
+	selected.shadow_size = 7
+
+	button.add_theme_stylebox_override("normal", selected if is_active else normal)
+	button.add_theme_stylebox_override("hover", selected if is_active else hover)
+	button.add_theme_stylebox_override("pressed", selected)
+	button.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	button.add_theme_font_size_override("font_size", 11)
+	button.add_theme_color_override("font_color", Color.WHITE if is_active else Color(0.70, 0.70, 0.75))
+	button.add_theme_color_override("font_hover_color", Color.WHITE)

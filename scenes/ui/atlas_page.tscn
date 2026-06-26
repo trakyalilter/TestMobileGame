@@ -42,14 +42,14 @@ theme_override_constants/separation = 10
 layout_mode = 2
 theme_override_colors/font_color = Color(0.4, 0.8, 1, 1)
 theme_override_font_sizes/font_size = 24
-text = "📖 ATLAS"
+text = "ATLAS"
 
 [node name="HSeparator" type="HSeparator" parent="HBoxContainer/LeftPanel/MarginContainer/VBoxContainer"]
 layout_mode = 2
 
 [node name="SearchBox" type="LineEdit" parent="HBoxContainer/LeftPanel/MarginContainer/VBoxContainer"]
 layout_mode = 2
-placeholder_text = "🔍 Search by name..."
+placeholder_text = "Search by name..."
 
 [node name="CategoryFilter" type="HBoxContainer" parent="HBoxContainer/LeftPanel/MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -161,7 +161,7 @@ horizontal_alignment = 1
 layout_mode = 2
 theme_override_colors/font_color = Color(0.4, 1, 0.6, 1)
 theme_override_font_sizes/font_size = 16
-text = "📥 Sources"
+text = "Sources"
 
 [node name="SourcesList" type="VBoxContainer" parent="HBoxContainer/RightPanel/MarginContainer/VBoxContainer/ScrollContainer/Details"]
 layout_mode = 2
@@ -171,7 +171,7 @@ theme_override_constants/separation = 5
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.6, 0.4, 1)
 theme_override_font_sizes/font_size = 16
-text = "📤 Uses"
+text = "Uses"
 
 [node name="UsesList" type="VBoxContainer" parent="HBoxContainer/RightPanel/MarginContainer/VBoxContainer/ScrollContainer/Details"]
 layout_mode = 2

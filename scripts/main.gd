@@ -739,6 +739,9 @@ func _update_sidebar_styling():
 	UITheme.apply_sidebar_button_style(inventory_btn, current_page_name == "inventory")
 	UITheme.apply_sidebar_button_style(atlas_btn, current_page_name == "atlas")
 	UITheme.apply_sidebar_button_style(options_btn, current_page_name == "options")
+	# v116: Main Menu was the only nav button missing the shared flat style, so it
+	# kept Godot's default boxed button look. Always inactive (it changes scene).
+	UITheme.apply_sidebar_button_style(menu_btn, false)
 
 	UITheme.apply_sidebar_button_style(bounty_btn, current_page_name == "bounty")
 	UITheme.apply_sidebar_button_style(quest_btn, current_page_name == "quest")

@@ -59,7 +59,5 @@
 <circle cx="400" cy="606" r="130" fill="url(#sunbloom)"/>
 <text class="wm" x="300" y="450" font-size="70" font-weight="900" fill="#f3f8ff" text-anchor="middle">HORIZON</text>
 <text class="wm" x="300" y="528" font-size="52" font-weight="700" fill="#ffd14c" letter-spacing="18" text-anchor="middle">IDLE</text>
-<rect x="265" y="546" width="70" height="3" fill="#ffd14c" opacity="0.8"/>
-<text class="tg" x="300" y="576" font-size="15" font-weight="500" fill="#9cc2e6" letter-spacing="4" text-anchor="middle">GATHER · CRAFT · FIGHT · ASCEND</text>
 </g>
 </svg>

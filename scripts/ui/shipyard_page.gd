@@ -14,6 +14,26 @@ var module_widget_scene = preload("res://scenes/ui/module_widget.tscn")
 var widgets = []
 var racks = {} # {category_id: GridContainer/HBoxContainer}
 
+# v116: category tabs (matches processing/infra + armory filter bar). The 4
+# weapon racks merge into one "Weapons" tab (their headers act as sub-headers);
+# the rest are single-category tabs. Only the active tab's racks are shown.
+var _tab_strip: HFlowContainer
+var _tab_buttons := {}       # {tab_id: Button}
+var _rack_vboxes := {}       # {category_id: rack VBoxContainer}
+var _active_tab: String = ""
+var TAB_DEFS := [
+	{"id": "hulls",   "label": "Hulls",        "color": Color(0.40, 0.90, 0.60), "cats": ["hulls"]},
+	{"id": "weapons", "label": "Weapons",      "color": Color(1.00, 0.40, 0.35), "cats": ["kinetic", "explosive", "energy", "cryo"]},
+	{"id": "shield",  "label": "Shields",      "color": Color(0.40, 0.60, 1.00), "cats": ["shield"]},
+	{"id": "armor",   "label": "Armor",        "color": Color(0.65, 0.65, 0.65), "cats": ["armor"]},
+	{"id": "engine",  "label": "Engines",      "color": Color(0.80, 1.00, 0.20), "cats": ["engine"]},
+	{"id": "battery", "label": "Power Cores",  "color": Color(1.00, 1.00, 0.20), "cats": ["battery"]},
+	{"id": "cooling", "label": "Cooling",      "color": Color(0.20, 0.65, 1.00), "cats": ["cooling"]},
+	{"id": "sensor",  "label": "Sensors",      "color": Color(0.60, 0.20, 1.00), "cats": ["sensor"]},
+	{"id": "ammo",    "label": "Ordnance",     "color": Color(1.00, 0.60, 0.30), "cats": ["ammo"]},
+	{"id": "gem",     "label": "Matrix Cores", "color": Color(0.80, 0.30, 0.80), "cats": ["gem"]},
+]
+
 func _ready():
 	manager = GameState.shipyard_manager
 	
@@ -52,11 +72,17 @@ func _ready():
 	UITheme.apply_premium_button_style(repair_btn, "shipyard")
 
 	_style_stats_panel()
+	_setup_tabs()
 	call_deferred("refresh_list")
 
 func get_coach_anchor(key: String) -> Control:
 	match key:
 		"first_item":
+			# Anchor to a VISIBLE item in the active tab, not a hidden rack.
+			for cat in _cats_of_tab(_active_tab):
+				var sid = String(cat)
+				if racks.has(sid) and racks[sid].get_child_count() > 0:
+					return racks[sid].get_child(0)
 			return widgets[0] if not widgets.is_empty() else null
 		"stats":
 			return $VBoxContainer/StatsPanel
@@ -214,14 +240,9 @@ func refresh_list():
 		w.update_state()
 		widgets.append(w)
 
-	# v80.1: Hide empty racks (no hulls or modules)
-	for cat_id in racks:
-		var grid = racks[cat_id]
-		var rack_vbox = grid.get_parent().get_parent() if grid.get_parent() is ScrollContainer else grid.get_parent()
-		if grid.get_child_count() == 0:
-			rack_vbox.hide()
-		else:
-			rack_vbox.show()
+	# v116: tab visibility supersedes the old per-rack empty-hiding — _show_tab
+	# reveals only the active tab's non-empty racks.
+	_build_tabs()
 
 func _get_module_power_score(id: String, data: Dictionary) -> int:
 	# Tier Heuristic: Calculate a "Power Score" based on primary stat or cost
@@ -265,6 +286,7 @@ func _create_rack(id: String, title: String, color: Color, parent: Node, horizon
 	parent.add_child(rack_vbox)
 	
 	var header = Label.new()
+	header.name = "Header"   # so the tab system can hide it on single-category tabs
 	header.text = "[ %s ]" % title.to_upper()
 	header.add_theme_font_size_override("font_size", 12)
 	header.add_theme_color_override("font_color", color)
@@ -292,8 +314,9 @@ func _create_rack(id: String, title: String, color: Color, parent: Node, horizon
 	var sep = HSeparator.new()
 	sep.modulate = Color(1, 1, 1, 0.1)
 	rack_vbox.add_child(sep)
-	
+
 	racks[id] = rack_grid
+	_rack_vboxes[id] = rack_vbox
 
 func get_module_widget(module_id: String) -> Control:
 	for w in widgets:
@@ -323,6 +346,142 @@ func focus_module_tab(module_id: String):
 	if not w:
 		return
 	_last_focus_mid = module_id
+	var tab_id = _tab_for_cat(_cat_of_widget(w))
+	if tab_id != "" and _active_tab != tab_id:
+		_show_tab(tab_id)
 	var sc = $VBoxContainer/ScrollContainer
 	if sc is ScrollContainer:
 		sc.call_deferred("ensure_control_visible", w)
+
+
+# ─── Category tabs ───────────────────────────────────────────────────────────
+func _setup_tabs():
+	_tab_strip = HFlowContainer.new()
+	_tab_strip.add_theme_constant_override("h_separation", 6)
+	_tab_strip.add_theme_constant_override("v_separation", 6)
+	var vb = $VBoxContainer
+	vb.add_child(_tab_strip)
+	vb.move_child(_tab_strip, $VBoxContainer/ScrollContainer.get_index())
+
+
+func _build_tabs():
+	if not _tab_strip:
+		return
+	# Hide headers on single-category tabs (the tab labels the section); keep
+	# them on merged tabs (Weapons) where they act as sub-headers.
+	for cat_id in _rack_vboxes:
+		var hdr = _rack_vboxes[cat_id].get_node_or_null("Header")
+		if hdr:
+			hdr.visible = _cats_of_tab(_tab_for_cat(cat_id)).size() > 1
+
+	_tab_buttons.clear()
+	for c in _tab_strip.get_children():
+		c.queue_free()
+
+	var first_tab := ""
+	for t in TAB_DEFS:
+		var tab_id: String = String(t["id"])
+		if _tab_item_count(t["cats"]) == 0:
+			continue
+		if first_tab == "":
+			first_tab = tab_id
+		var btn = Button.new()
+		btn.text = String(t["label"])
+		btn.focus_mode = Control.FOCUS_NONE
+		btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		btn.pressed.connect(_show_tab.bind(tab_id))
+		_tab_strip.add_child(btn)
+		_tab_buttons[tab_id] = btn
+
+	var keep: bool = _active_tab != "" and _tab_buttons.has(_active_tab)
+	_show_tab(_active_tab if keep else first_tab)
+
+
+func _show_tab(tab_id: String) -> void:
+	if tab_id == "":
+		return
+	_active_tab = tab_id
+	var active_cats = _cats_of_tab(tab_id)
+	for cat_id in _rack_vboxes:
+		var show_it: bool = (cat_id in active_cats) and racks.has(cat_id) and racks[cat_id].get_child_count() > 0
+		_rack_vboxes[cat_id].visible = show_it
+	for id in _tab_buttons:
+		_style_tab_button(_tab_buttons[id], id == tab_id, _tab_color(id))
+	var sc = $VBoxContainer/ScrollContainer
+	if sc is ScrollContainer:
+		sc.scroll_vertical = 0
+
+
+func _tab_item_count(cats: Array) -> int:
+	var n := 0
+	for cat in cats:
+		var sid := String(cat)
+		if racks.has(sid):
+			n += racks[sid].get_child_count()
+	return n
+
+
+func _cats_of_tab(tab_id: String) -> Array:
+	for t in TAB_DEFS:
+		if String(t["id"]) == tab_id:
+			return t["cats"]
+	return []
+
+
+func _tab_for_cat(cat: String) -> String:
+	for t in TAB_DEFS:
+		if cat in t["cats"]:
+			return String(t["id"])
+	return ""
+
+
+func _tab_color(tab_id: String) -> Color:
+	for t in TAB_DEFS:
+		if String(t["id"]) == tab_id:
+			return t["color"]
+	return Color.WHITE
+
+
+func _cat_of_widget(w) -> String:
+	var p = w.get_parent()
+	for cat_id in racks:
+		if racks[cat_id] == p:
+			return cat_id
+	return ""
+
+
+# Mirrors the armory filter-bar style: inactive = ghost; active = filled accent.
+func _style_tab_button(button: Button, is_active: bool, accent: Color) -> void:
+	var normal := StyleBoxFlat.new()
+	normal.bg_color = Color(0.10, 0.08, 0.07, 0.22)
+	normal.set_corner_radius_all(4)
+	normal.set_border_width_all(1)
+	var dim_edge: Color = accent
+	dim_edge.a = 0.16
+	normal.border_color = dim_edge
+	normal.content_margin_left = 11
+	normal.content_margin_right = 11
+	normal.content_margin_top = 5
+	normal.content_margin_bottom = 5
+
+	var hover := normal.duplicate()
+	hover.bg_color = accent.lerp(Color.BLACK, 0.70)
+	var hb: Color = accent
+	hb.a = 0.55
+	hover.border_color = hb
+
+	var selected := normal.duplicate()
+	selected.bg_color = accent.lerp(Color.BLACK, 0.40)
+	selected.bg_color.a = 1.0
+	selected.border_color = accent
+	selected.border_width_top = 2
+	selected.shadow_color = Color(accent.r, accent.g, accent.b, 0.45)
+	selected.shadow_size = 7
+
+	button.add_theme_stylebox_override("normal", selected if is_active else normal)
+	button.add_theme_stylebox_override("hover", selected if is_active else hover)
+	button.add_theme_stylebox_override("pressed", selected)
+	button.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	button.add_theme_font_size_override("font_size", 11)
+	button.add_theme_color_override("font_color", Color.WHITE if is_active else Color(0.70, 0.70, 0.75))
+	button.add_theme_color_override("font_hover_color", Color.WHITE)

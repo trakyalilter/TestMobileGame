@@ -53,6 +53,16 @@ const CATEGORY_STRIPE = {
 	"shipyard":   Color(0.30, 0.70, 0.95),  # cyan   — rocket
 	"research":   Color(0.80, 0.55, 0.95),  # violet — science
 }
+# v116: source/use type icons reuse the (white, tintable) nav SVGs instead of
+# colourful emoji. Tinted per-type via modulate.
+const TYPE_ICON_PATHS = {
+	"gathering":  "res://assets/icons/nav/mine.svg",
+	"processing": "res://assets/icons/nav/engineering.svg",
+	"combat":     "res://assets/icons/nav/combat.svg",
+	"building":   "res://assets/icons/nav/infrastructure.svg",
+	"shipyard":   "res://assets/icons/nav/shipyard.svg",
+	"research":   "res://assets/icons/nav/research.svg",
+}
 
 func _ready():
 	_setup_mode_switch()
@@ -175,21 +185,28 @@ func build_enemy_database():
 	var cm = GameState.combat_manager
 	if not cm: return
 	
-	# Map enemies to zones with difficulty
+	# v116: only enemies from UNLOCKED zones — the atlas shouldn't list (or
+	# spoil) enemies the player can't yet reach. Built from available zones only
+	# (get_available_zones honours unlock_flag + research_req + hazards).
 	var enemy_to_zone = {}
 	var enemy_to_zone_diff = {}
-	for zid in cm.zones:
-		var zdata = cm.zones[zid]
-		for eid in zdata["enemies"]:
+	for entry in cm.get_available_zones():
+		var zdata = entry["data"]
+		var z_enemies = zdata.get("enemies", [])
+		if z_enemies.is_empty() and entry.get("is_hazard", false):
+			z_enemies = cm.hazard_zones.get(entry["id"], {}).get("enemies", [])
+		for eid in z_enemies:
 			enemy_to_zone[eid] = zdata["name"]
 			enemy_to_zone_diff[eid] = zdata.get("difficulty", 0)
-	
+
 	for eid in cm.enemy_db:
+		if not eid in enemy_to_zone:
+			continue   # belongs only to locked/unreachable zones — hide it
 		var e_data = cm.enemy_db[eid]
 		enemy_db[eid] = {
 			"name": e_data["name"],
-			"zone": enemy_to_zone.get(eid, "Unknown Region"),
-			"zone_difficulty": enemy_to_zone_diff.get(eid, 0),
+			"zone": enemy_to_zone[eid],
+			"zone_difficulty": enemy_to_zone_diff[eid],
 			"stats": e_data["stats"],
 			"loot": e_data["loot"],
 			"rare_loot": e_data.get("rare_loot", []),
@@ -568,19 +585,20 @@ func _build_enemy_card(eid: String, e: Dictionary) -> Control:
 	var interval = e["stats"].get("atk_interval", 2.0)
 	var enemy_dps = float(atk) / max(0.5, interval)
 	var enemy_ehp = e["stats"].get("hp", 0) + e["stats"].get("max_shield", 0)
+	# v116: the stripe still colour-codes danger at a glance, but the threat
+	# WORD (TRIVIAL / OK / LETHAL / …) is no longer shown.
 	var stripe_color = Color(0.5, 0.5, 0.55)
-	var threat_short = ""
 	if sm and sm.attack_kinetic + sm.attack_energy + sm.attack_explosive > 0 and sm.max_hp > 0:
 		var p_dps = float(sm.attack_kinetic + sm.attack_energy + sm.attack_explosive)
 		var p_ehp = float(sm.max_hp + sm.max_shield)
 		var p_ttk = float(enemy_ehp) / max(1.0, p_dps)
 		var e_ttk = float(p_ehp) / max(1.0, enemy_dps)
 		var ratio = e_ttk / max(0.01, p_ttk)
-		if ratio >= 3.0:    stripe_color = Color(0.45, 1.00, 0.50); threat_short = "TRIVIAL"
-		elif ratio >= 1.5:  stripe_color = Color(0.55, 0.95, 0.70); threat_short = "OK"
-		elif ratio >= 0.75: stripe_color = Color(1.00, 0.85, 0.30); threat_short = "TOUGH"
-		elif ratio >= 0.35: stripe_color = Color(1.00, 0.50, 0.20); threat_short = "LETHAL"
-		else:               stripe_color = Color(1.00, 0.30, 0.30); threat_short = "★ DEADLY"
+		if ratio >= 3.0:    stripe_color = Color(0.45, 1.00, 0.50)
+		elif ratio >= 1.5:  stripe_color = Color(0.55, 0.95, 0.70)
+		elif ratio >= 0.75: stripe_color = Color(1.00, 0.85, 0.30)
+		elif ratio >= 0.35: stripe_color = Color(1.00, 0.50, 0.20)
+		else:               stripe_color = Color(1.00, 0.30, 0.30)
 
 	var is_boss = e.get("boss_core", "") != ""
 	if is_boss:
@@ -643,14 +661,6 @@ func _build_enemy_card(eid: String, e: Dictionary) -> Control:
 	name_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	hbox.add_child(name_lbl)
 
-	if threat_short != "":
-		var th_lbl = Label.new()
-		th_lbl.text = threat_short
-		th_lbl.add_theme_font_size_override("font_size", 10)
-		th_lbl.add_theme_color_override("font_color", stripe_color)
-		th_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		hbox.add_child(th_lbl)
-
 	panel.add_child(btn)
 	return panel
 
@@ -697,7 +707,7 @@ func _display_material_details(mat_id):
 
 	if net_label:
 		if rate == 0:
-			net_label.text = "⏸  NET GROWTH: 0.00 /min"
+			net_label.text = "—  NET GROWTH: 0.00 /min"
 			net_label.modulate = Color(0.7, 0.7, 0.7)
 		elif rate > 0:
 			net_label.text = "▲ NET GROWTH: +%.2f /min" % rate
@@ -712,14 +722,12 @@ func _display_material_details(mat_id):
 	if mat["sources"].is_empty(): _add_label(sources_list, "No sources found", Color(0.5, 0.5, 0.5))
 	else:
 		for source in mat["sources"]:
-			var icon = _get_type_icon(source["type"])
-			_add_label(sources_list, "%s %s (%s)" % [icon, source["name"], source["rate"]], _get_type_color(source["type"]))
-	
+			_add_source_row(sources_list, source["type"], "%s (%s)" % [source["name"], source["rate"]], _get_type_color(source["type"]))
+
 	if mat["uses"].is_empty(): _add_label(uses_list, "No uses found", Color(0.5, 0.5, 0.5))
 	else:
 		for use in mat["uses"]:
-			var icon = _get_type_icon(use["type"])
-			_add_label(uses_list, "%s %s (%s)" % [icon, use["name"], use["rate"]], _get_type_color(use["type"]))
+			_add_source_row(uses_list, use["type"], "%s (%s)" % [use["name"], use["rate"]], _get_type_color(use["type"]))
 
 func _display_enemy_details(eid):
 	var e = enemy_db.get(eid)
@@ -735,37 +743,8 @@ func _display_enemy_details(eid):
 	var enemy_dps = float(atk) / max(0.5, interval)
 	var enemy_ehp = e["stats"].get("hp", 0) + e["stats"].get("max_shield", 0)
 
-	# Compute player power
-	var sm = GameState.shipyard_manager
-	var player_dps = 0.0
-	var player_ehp = 0.0
-	if sm:
-		player_dps = float(sm.attack_kinetic + sm.attack_energy + sm.attack_explosive)
-		player_ehp = float(sm.max_hp + sm.max_shield)
-
-	# Threat rating
-	var threat = "UNKNOWN"
-	var threat_color = Color(0.7, 0.7, 0.7)
-	if player_dps > 0 and player_ehp > 0:
-		# Time to kill comparison: how much HP enemy strips of player vs player strips of enemy
-		var player_ttk = float(enemy_ehp) / max(1.0, player_dps)
-		var enemy_ttk = float(player_ehp) / max(1.0, enemy_dps)
-		var ratio = enemy_ttk / max(0.01, player_ttk)
-		if ratio >= 3.0:
-			threat = "TRIVIAL"
-			threat_color = Color(0.45, 1.00, 0.50)
-		elif ratio >= 1.5:
-			threat = "MANAGEABLE"
-			threat_color = Color(0.55, 0.95, 0.70)
-		elif ratio >= 0.75:
-			threat = "DANGEROUS"
-			threat_color = Color(1.0, 0.85, 0.30)
-		elif ratio >= 0.35:
-			threat = "LETHAL"
-			threat_color = Color(1.0, 0.50, 0.20)
-		else:
-			threat = "OVERWHELMING"
-			threat_color = Color(1.0, 0.30, 0.30)
+	# v116: player-relative threat rating removed — the atlas is a reference, not
+	# a "can my current ship win?" calculator.
 
 	# Build resistance & weakness chip strings
 	var rk = e_raw.get("resist_k", 0.0)
@@ -782,7 +761,6 @@ func _display_enemy_details(eid):
 
 	var desc_parts = []
 	desc_parts.append("ZONE: %s  ★%d   |   XP: %d" % [e["zone"], e["zone_difficulty"], e["xp"]])
-	desc_parts.append("THREAT: %s" % threat)
 	desc_parts.append("Effective HP: %s    |    DPS: %.1f    |    Attacks with: %s" % [
 		UITheme.format_num(enemy_ehp),
 		enemy_dps,
@@ -794,7 +772,7 @@ func _display_enemy_details(eid):
 		desc_parts.append("WEAK TO: " + "  ".join(weak_chips))
 
 	desc_label.text = "\n".join(desc_parts)
-	desc_label.add_theme_color_override("font_color", threat_color)
+	desc_label.add_theme_color_override("font_color", Color(0.82, 0.86, 0.92))
 
 	if net_label: net_label.text = ""
 	
@@ -868,15 +846,35 @@ func _add_label(parent, text, color):
 	lbl.add_theme_color_override("font_color", color)
 	parent.add_child(lbl)
 
-func _get_type_icon(type: String) -> String:
-	match type:
-		"gathering": return "⛏️"
-		"processing": return "⚙️"
-		"combat": return "⚔️"
-		"building": return "🏭"
-		"shipyard": return "🚀"
-		"research": return "🔬"
-		_: return "📦"
+func _type_icon_tex(type: String) -> Texture2D:
+	var path = TYPE_ICON_PATHS.get(type, "res://assets/icons/nav/inventory.svg")
+	if ResourceLoader.exists(path):
+		return load(path) as Texture2D
+	return null
+
+# Source/use row: tinted nav icon + "Name (rate)" label (replaces the old
+# emoji-prefixed plain label).
+func _add_source_row(parent, type: String, text: String, color: Color):
+	var row = HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+	var tex = _type_icon_tex(type)
+	if tex:
+		var ir = TextureRect.new()
+		ir.texture = tex
+		ir.modulate = color
+		ir.expand_mode = TextureRect.EXPAND_IGNORE_SIZE   # honour the 15px size, not the 24px source
+		ir.custom_minimum_size = Vector2(15, 15)
+		ir.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		ir.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		ir.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(ir)
+	var lbl = Label.new()
+	lbl.text = text
+	lbl.add_theme_color_override("font_color", color)
+	lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	row.add_child(lbl)
+	parent.add_child(row)
 
 func _get_type_color(type: String) -> Color:
 	match type:
