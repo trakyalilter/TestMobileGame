@@ -865,11 +865,17 @@ func _update_navigation_hints():
 				target_to_pulse = widget.btn
 				
 	elif "m002" in mm.active_missions:
-		# Research Basic Engineering
+		# Foundational Research (merged): walk the player through the prereq chain
+		# basic_engineering -> applied_physics -> fluid_dynamics in ONE visit — pulse
+		# whichever node is next un-researched (chain order = availability order).
 		if current_page_name != "research": target_to_pulse = research_btn
 		else:
-			var widget = pages["research"].get_node_widget("basic_engineering")
-			if widget: target_to_pulse = widget
+			var _rm = GameState.research_manager
+			for _t in ["basic_engineering", "applied_physics", "fluid_dynamics"]:
+				if not _rm.is_tech_unlocked(_t):
+					var widget = pages["research"].get_node_widget(_t)
+					if widget: target_to_pulse = widget
+					break
 			
 	elif "m003" in mm.active_missions:
 		# Research Fluid Dynamics

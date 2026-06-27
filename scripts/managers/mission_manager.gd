@@ -55,7 +55,12 @@ func init_missions():
 	var m_list = [
 		# ID, Name, Desc, Type, Target, TargetQty, RewardCr, RewardXP, NextID
 		["m001", "Stranded in Orbit", "Gather 350 Dirt to begin basic repairs.", "gather", "Dirt", 350, 600, 50, "m002"],
-		["m002", "Analytical Breakthrough", "Research 'Basic Engineering' to unlock refining.", "research", "basic_engineering", 1, 300, 50, "m002b"],
+		# P-onboard: merged the 3 consecutive foundational researches into ONE step so the
+		# player visits the Research tab ONCE instead of bouncing Research<->Mission x3.
+		# basic_engineering -> applied_physics -> fluid_dynamics is a linear prereq chain,
+		# so targeting the LAST one requires unlocking all three in a single visit. The old
+		# m002b/m003 remain defined below as orphans for in-flight saves.
+		["m002", "Foundational Research", "Open the Research tab and unlock the starter chain in one sitting: Basic Engineering, then Applied Physics, then Fluid Dynamics — each unlocks the next. (Applied Physics also brings your Shipyard, Designer and Combat screens online.)", "research", "fluid_dynamics", 1, 900, 200, "m004"],
 		# P0-30: Physics Paradox Fix - Applied Physics moved here
 		["m002b", "Applied Physics", "Research the 'Applied Physics' hub.", "research", "applied_physics", 1, 300, 100, "m003"],
 		["m003", "Pump Master", "Research 'Fluid Dynamics' to unlock water collection.", "research", "fluid_dynamics", 1, 300, 50, "m004"],
