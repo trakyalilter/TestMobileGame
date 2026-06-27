@@ -27,12 +27,12 @@ var graphs = {
 	},
 	"Industry": {
 		"nodes": [
-			"basic_engineering", "applied_physics", "materials_science",
+			"basic_engineering", "materials_science",
 			"combustion", "pyrolysis_control", "smelting", "blast_furnace",
 			"automated_smelting", "oxygen_blast_furnace",
 			"metallurgy_advanced", "superalloy_engineering", "iridium_metallurgy", "exotic_metallurgy",
 			"adv_materials", "hydraulic_press", "molecular_compression", "lightweight_alloys",
-			"fluid_dynamics", "catalytic_electrodes", "ion_exchange", "resonance_splitters",
+			"catalytic_electrodes", "ion_exchange", "resonance_splitters",
 			"industrial_electrolysis", "energy_metrics",
 			"cryogenic_systems", "cryogenic_storage",
 			"precious_metal_refining", "industrial_catalysis", "fuel_cell_tech",

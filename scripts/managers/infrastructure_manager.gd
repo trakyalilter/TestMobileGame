@@ -67,7 +67,7 @@ var building_db: Dictionary = {
 		"cost": {"credits": 400000, "Ti": 100, "Hydraulics": 50},
 		"energy_gen": 250.0,
 		"energy_cons": 0.0,
-		"research_req": "fluid_dynamics",
+		"research_req": "basic_engineering",
 		"category": "power"
 	},
 	"biomass_plant": {
@@ -1495,7 +1495,7 @@ func process_tick(delta: float):
 						
 						# Statistical expectation (Audit v5.0 - O(1) Performance Foundation)
 						if bid == "hydro_plant":
-							if GameState.research_manager and GameState.research_manager.is_tech_unlocked("fluid_dynamics"):
+							if GameState.research_manager and GameState.research_manager.is_tech_unlocked("basic_engineering"):
 								var expected = _dr_units(count) * throttle * 0.2  # P0.2 DR
 								var floor_exp = floor(expected)
 								var extra = 1 if randf() < (expected - floor_exp) else 0

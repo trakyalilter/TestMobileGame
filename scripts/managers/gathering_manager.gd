@@ -53,7 +53,7 @@ var actions: Dictionary = {
 		"loot_table": [["Water", 1.0, 8, 10]],
 		"xp": 12,
 		"level_req": 3,
-		"research_req": "fluid_dynamics",
+		"research_req": "basic_engineering",
 		"category": "terrestrial"
 	},
 	"mine_cassiterite": {

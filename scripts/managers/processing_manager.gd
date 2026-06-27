@@ -42,7 +42,7 @@ var recipes: Dictionary = {
 		"duration": 2.0,
 		"level_req": 2,
 		"xp": 5,
-		"research_req": "fluid_dynamics",
+		"research_req": "basic_engineering",
 		"category": "basics"
 	},
 	"centrifuge_dirt": {
@@ -396,7 +396,7 @@ var recipes: Dictionary = {
 		"duration": 20.0,
 		"level_req": 25,
 		"xp": 30,
-		"research_req": "fluid_dynamics"
+		"research_req": "basic_engineering"
 	},
 	# v111: CryoEssence BULK production. CryoEssence used to drop ONLY from
 	# Zone 4 (Cryofield) with no craft path — forcing a post-warp backtrack to
@@ -490,7 +490,7 @@ var recipes: Dictionary = {
 		"duration": 15.0,
 		"level_req": 32,
 		"xp": 60,
-		"research_req": "fluid_dynamics",
+		"research_req": "basic_engineering",
 		"category": "consumables_shield"
 	},
 	"refine_diamond_lens": {

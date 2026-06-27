@@ -751,7 +751,7 @@ func _update_sidebar_styling():
 	UITheme.apply_sidebar_button_style(fleet_btn, current_page_name == "fleet")
 	
 	# THEMATIC: Progressive Disclosure (Early & Mid-Game Gates)
-	var has_basic_eng = GameState.research_manager.is_tech_unlocked("applied_physics")
+	var has_basic_eng = GameState.research_manager.is_tech_unlocked("basic_engineering")
 	var has_shipwright = GameState.research_manager.is_tech_unlocked("shipwright_1")
 	
 	# 1. Ship management & Combat become available at Applied Physics
@@ -865,23 +865,18 @@ func _update_navigation_hints():
 				target_to_pulse = widget.btn
 				
 	elif "m002" in mm.active_missions:
-		# Foundational Research (merged): walk the player through the prereq chain
-		# basic_engineering -> applied_physics -> fluid_dynamics in ONE visit — pulse
-		# whichever node is next un-researched (chain order = availability order).
+		# Foundational Research: a single research now — Applied Physics + Fluid Dynamics
+		# were folded into Basic Engineering. Pulse the Basic Engineering node.
 		if current_page_name != "research": target_to_pulse = research_btn
 		else:
-			var _rm = GameState.research_manager
-			for _t in ["basic_engineering", "applied_physics", "fluid_dynamics"]:
-				if not _rm.is_tech_unlocked(_t):
-					var widget = pages["research"].get_node_widget(_t)
-					if widget: target_to_pulse = widget
-					break
+			var widget = pages["research"].get_node_widget("basic_engineering")
+			if widget: target_to_pulse = widget
 			
 	elif "m003" in mm.active_missions:
-		# Research Fluid Dynamics
+		# Orphan (in-flight saves): re-pointed to Basic Engineering.
 		if current_page_name != "research": target_to_pulse = research_btn
 		else:
-			var widget = pages["research"].get_node_widget("fluid_dynamics")
+			var widget = pages["research"].get_node_widget("basic_engineering")
 			if widget: target_to_pulse = widget
 			
 	elif "m004" in mm.active_missions:
@@ -1250,10 +1245,10 @@ func _update_navigation_hints():
 
 	# ── Previously-undirected tutorial steps ──
 	elif "m002b" in mm.active_missions:
-		# Research: Applied Physics
+		# Orphan (in-flight saves): re-pointed to Basic Engineering.
 		if current_page_name != "research": target_to_pulse = research_btn
 		else:
-			var widget = pages["research"].get_node_widget("applied_physics")
+			var widget = pages["research"].get_node_widget("basic_engineering")
 			if widget: target_to_pulse = widget
 
 	elif "m013b" in mm.active_missions:

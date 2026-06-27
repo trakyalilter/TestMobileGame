@@ -78,28 +78,18 @@ var tech_tree = {
 		"cost": 125,
 		"type": "technology",
 		"parent": null,
-		"effects": [],
-		# v111.6 audit: "Lithium Refining" → "Refine Lithium" (real recipe id).
-		"unlocks": ["Mineral Washing", "Refine Lithium"],
-		"flavor": "",
-	},
-	# v111.6 audit batch G — applied_physics' unlocks were three downstream
-	# research-tech names (energy_shields, eff_scanning_1 [deleted!],
-	# core_overclocking), not items. Tree's parent/req_tech edges already
-	# show downstream techs — dropped from the prose.
-	"applied_physics": {
-		"name": "Applied Physics",
-		"tier": 1,
-		"category": "meta",
-		"cost": 625,
-		"type": "technology",
-		"parent": "basic_engineering",
+		# Absorbs the deleted Applied Physics hub bonus (+10% Ship Energy Capacity).
 		"effects": [
 			{"type": "bonus_yield", "bonus": 0.10, "what": "Ship Energy Capacity"},
 		],
-		"unlocks": [],
-		"flavor": "Gates the Energy Fields and Reactor Overclocking branches.",
+		# The single foundational unlock — opens refining, water, and the ship/combat
+		# branches that Applied Physics + Fluid Dynamics used to gate.
+		"unlocks": ["Mineral Washing", "Refine Lithium", "Water Electrolysis"],
+		"flavor": "The foundation of everything — opens your refinery, water and ship systems.",
 	},
+	# applied_physics + fluid_dynamics DELETED — folded into basic_engineering so the
+	# player does a single foundational research. Their dependents were re-parented to
+	# basic_engineering; AP's +10% Energy-Capacity hub bonus moved there too.
 	"materials_science": {
 		"name": "Materials Science",
 		"tier": 1,
@@ -125,22 +115,6 @@ var tech_tree = {
 		],
 		"unlocks": ["Terraforming Processor", "Biosphere Dome"],
 		"flavor": "Gates the Advanced Technologies branch.",
-	},
-	"fluid_dynamics": {
-		"name": "Fluid Dynamics",
-		"tier": 1,
-		"category": "processing",
-		"cost": 125,
-		"type": "technology",
-		"parent": "applied_physics",
-		"effects": [],
-		# v111.6 audit:
-		#   • "Water Reclamation" — phantom (no recipe/building by that name)
-		#   • "Electrolysis" → "Water Electrolysis" (real recipe display name)
-		#   • "High-Flow Pumps" — that's a downstream research tech name,
-		#     not an item. Tree edge already shows it.
-		"unlocks": ["Water Electrolysis"],
-		"flavor": "",
 	},
 	# v110: schema refactor pilot — combustion / smelting / shipwright_1 are
 	# the first three converted to the structured format. UI now builds the
@@ -231,7 +205,7 @@ var tech_tree = {
 		# `applied_physics`. Sensor Calibration was deleted as a dead tech —
 		# it boosted a Data currency that had no consumer and a scan loop no
 		# UI ever started.
-		"parent": "applied_physics",
+		"parent": "basic_engineering",
 		"effects": [],
 		"unlocks": ["Shield Booster"],
 		"flavor": "Gates Shield Harmonics and Magnetic Funnels research.",
@@ -464,7 +438,7 @@ var tech_tree = {
 		"cost": 50,
 		"type": "technology",
 		"parent": null,
-		"req_tech": "applied_physics",
+		"req_tech": "basic_engineering",
 		# v111.6 audit:
 		#   • "Basic Slug Factory" → real building is "Basic Kinetic Foundry"
 		#     (building_db key: basic_kinetic_foundry). Renamed.
@@ -480,7 +454,7 @@ var tech_tree = {
 		"cost": 300,
 		"type": "technology",
 		"parent": "kinetics_101",
-		"req_tech": "applied_physics",
+		"req_tech": "basic_engineering",
 		"effects": [],
 		"unlocks": ["Basic Cell Factory", "Basic Battery"],
 		"flavor": "",
@@ -495,7 +469,7 @@ var tech_tree = {
 		"cost_items": {"Res1": 5},
 		"type": "technology",
 		"parent": "power_systems",
-		"req_tech": "fluid_dynamics",
+		"req_tech": "basic_engineering",
 		"effects": [],
 		"unlocks": ["Plasma Cell (T2 Energy Ammo)"],
 		"flavor": "",
@@ -553,7 +527,7 @@ var tech_tree = {
 		"cost_items": {"Res1": 2},
 		"type": "technology",
 		"parent": null,
-		"req_tech": "fluid_dynamics",
+		"req_tech": "basic_engineering",
 		"effects": [
 			{"type": "action_speed", "id": "collect_water", "bonus": 0.50, "stacks": true,
 				"stack_chain": ["Superfluid Intake", "Hydro-Vortex Arrays"]},
@@ -703,7 +677,7 @@ var tech_tree = {
 		"category": "processing",
 		"cost": 300,
 		"type": "technology",
-		"parent": "fluid_dynamics",
+		"parent": "basic_engineering",
 		"effects": [
 			{"type": "action_speed", "id": "electrolysis", "bonus": 0.25, "stacks": true,
 				"stack_chain": ["Ion-Exchange Membranes", "Resonance Splitters"]},
@@ -867,7 +841,7 @@ var tech_tree = {
 		"cost": 5000,
 		"cost_items": {"Res2": 20, "AdvCircuit": 10},
 		"type": "technology",
-		"parent": "fluid_dynamics",
+		"parent": "basic_engineering",
 		"effects": [],
 		"unlocks": [
 			"Hydrogen Reactor",
@@ -1454,7 +1428,7 @@ var tech_tree = {
 		"cost": 4000,
 		"cost_items": {"Res2": 10},
 		"type": "technology",
-		"parent": "applied_physics",
+		"parent": "basic_engineering",
 		"effects": [
 			{"type": "bonus_yield", "bonus": 0.10, "what": "Combat Attack Speed"},
 		],
@@ -1904,8 +1878,8 @@ func get_efficiency_bonus(bonus_type: String) -> float:
 			if "perfect_automation" in unlocked_techs: bonus += 0.30
 
 	# Hub Node Passive Bonuses (Audit v8.0 P1-25)
-	if bonus_type == "applied_physics" and is_tech_unlocked("applied_physics"):
-		bonus += 0.10 # +10% Energy Capacity
+	if bonus_type == "basic_engineering" and is_tech_unlocked("basic_engineering"):
+		bonus += 0.10 # +10% Energy Capacity (absorbed from the deleted Applied Physics hub)
 	if bonus_type == "materials_science" and is_tech_unlocked("materials_science"):
 		bonus += 0.10 # +10% Max Hull HP
 	if bonus_type == "industrial_logistics" and is_tech_unlocked("industrial_logistics"):

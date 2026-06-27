@@ -55,15 +55,14 @@ func init_missions():
 	var m_list = [
 		# ID, Name, Desc, Type, Target, TargetQty, RewardCr, RewardXP, NextID
 		["m001", "Stranded in Orbit", "Gather 350 Dirt to begin basic repairs.", "gather", "Dirt", 350, 600, 50, "m002"],
-		# P-onboard: merged the 3 consecutive foundational researches into ONE step so the
-		# player visits the Research tab ONCE instead of bouncing Research<->Mission x3.
-		# basic_engineering -> applied_physics -> fluid_dynamics is a linear prereq chain,
-		# so targeting the LAST one requires unlocking all three in a single visit. The old
-		# m002b/m003 remain defined below as orphans for in-flight saves.
-		["m002", "Foundational Research", "In the Research tab, unlock all THREE foundational techs (they chain): Basic Engineering -> Applied Physics -> Fluid Dynamics. Just keep tapping the glowing node — the bar fills 1/3, 2/3, 3/3. (Applied Physics also brings your Shipyard, Designer and Combat screens online.)", "research_multi", ["basic_engineering", "applied_physics", "fluid_dynamics"], 3, 900, 200, "m004"],
+		# P-onboard: a single foundational research. Applied Physics + Fluid Dynamics were
+		# folded into Basic Engineering, so one research opens refining, water, and the
+		# ship/combat screens. m002b/m003 below are re-pointed to basic_engineering so any
+		# in-flight save mid-chain auto-completes.
+		["m002", "Foundational Research", "Open the Research tab and unlock Basic Engineering. One research opens your refinery, water collection, and your Shipyard, Designer and Combat screens — your whole early game.", "research", "basic_engineering", 1, 900, 200, "m004"],
 		# P0-30: Physics Paradox Fix - Applied Physics moved here
-		["m002b", "Applied Physics", "Research the 'Applied Physics' hub.", "research", "applied_physics", 1, 300, 100, "m003"],
-		["m003", "Pump Master", "Research 'Fluid Dynamics' to unlock water collection.", "research", "fluid_dynamics", 1, 300, 50, "m004"],
+		["m002b", "Foundational Research", "Unlock Basic Engineering in the Research tab.", "research", "basic_engineering", 1, 300, 100, "m003"],
+		["m003", "Pump Master", "Unlock Basic Engineering in the Research tab.", "research", "basic_engineering", 1, 300, 50, "m004"],
 		["m004", "Hydration", "Gather 350 units of Water.", "gather", "Water", 350, 500, 100, "m005"],
 		["m005", "Mineral Washing", "Open the Engineering page and process Dirt to extract 100 Silicon and 80 Iron.", "gather_multi", {"Si": 100, "Fe": 80}, 180, 1000, 200, "m007"],
 		

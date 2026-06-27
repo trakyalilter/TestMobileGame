@@ -120,7 +120,7 @@ const EARLY_MODULE_REQ_TECHS = [
 	"lightweight_alloys", "basic_electronics",
 	# v111.5: eff_scanning_1 removed from early-module gate list (tech was
 	# cut — it had no real effect on Data which had no consumer).
-	"energy_shields", "fluid_dynamics", "combustion"
+	"energy_shields", "combustion"
 ]
 
 const LATE_MODULE_REQ_TECHS = [
@@ -1769,7 +1769,7 @@ func equip_module(slot_idx: int, module_id: String, silent: bool = false) -> boo
 	var rm = GameState.research_manager
 	var phys_mult = 1.0
 	if rm:
-		phys_mult = 1.0 + rm.get_efficiency_bonus("applied_physics")
+		phys_mult = 1.0 + rm.get_efficiency_bonus("basic_engineering")
 	var cap_mult = phys_mult
 
 	var old_load := 0.0
@@ -2188,7 +2188,7 @@ func recalc_stats():
 	
 	# Audit v8.0 P1-25: Applied Physics Hub Bonus (+10% Energy Capacity)
 	if rm:
-		e_cap *= (1.0 + rm.get_efficiency_bonus("applied_physics"))
+		e_cap *= (1.0 + rm.get_efficiency_bonus("basic_engineering"))
 
 	# v110 Phase 1: ship energy capacity now lives on its own field. All ship
 	# combat/equip/UI reads use sm.energy_capacity. resources.max_energy is
