@@ -60,7 +60,7 @@ func init_missions():
 		# basic_engineering -> applied_physics -> fluid_dynamics is a linear prereq chain,
 		# so targeting the LAST one requires unlocking all three in a single visit. The old
 		# m002b/m003 remain defined below as orphans for in-flight saves.
-		["m002", "Foundational Research", "Open the Research tab and unlock the starter chain in one sitting: Basic Engineering, then Applied Physics, then Fluid Dynamics — each unlocks the next. (Applied Physics also brings your Shipyard, Designer and Combat screens online.)", "research", "fluid_dynamics", 1, 900, 200, "m004"],
+		["m002", "Foundational Research", "In the Research tab, unlock all THREE foundational techs (they chain): Basic Engineering -> Applied Physics -> Fluid Dynamics. Just keep tapping the glowing node — the bar fills 1/3, 2/3, 3/3. (Applied Physics also brings your Shipyard, Designer and Combat screens online.)", "research_multi", ["basic_engineering", "applied_physics", "fluid_dynamics"], 3, 900, 200, "m004"],
 		# P0-30: Physics Paradox Fix - Applied Physics moved here
 		["m002b", "Applied Physics", "Research the 'Applied Physics' hub.", "research", "applied_physics", 1, 300, 100, "m003"],
 		["m003", "Pump Master", "Research 'Fluid Dynamics' to unlock water collection.", "research", "fluid_dynamics", 1, 300, 50, "m004"],
@@ -253,6 +253,7 @@ func _on_currency_added(type, amount):
 
 func _on_tech_unlocked(tech_id):
 	_update_progress("research", tech_id, 1)
+	_update_research_multi(tech_id)
 
 func _on_module_crafted(module_id):
 	_update_progress("craft", module_id, 1)
@@ -301,6 +302,24 @@ func _update_multi_progress(symbol, amount):
 				
 				mission_updated.emit()
 
+
+# research_multi: one mission that requires several techs (the founding chain). Each
+# unlocked tech is tracked in multi_progress so the card shows clean "N / total"
+# progress instead of sitting at 0/1 until the very last one lands.
+func _update_research_multi(tech_id):
+	for mid in active_missions:
+		var m = missions[mid]
+		if m["completed"] or m["type"] != "research_multi":
+			continue
+		if tech_id in m["target"] and not m["multi_progress"].get(tech_id, false):
+			m["multi_progress"][tech_id] = true
+			var done := 0
+			for t in m["target"]:
+				if m["multi_progress"].get(t, false):
+					done += 1
+			m["current_qty"] = done
+			check_completion(m)
+			mission_updated.emit()
 
 func check_completion(mission):
 	if mission["current_qty"] >= mission["target_qty"]:
@@ -408,6 +427,14 @@ func sync_progress():
 		elif m["type"] == "research":
 			if GameState.research_manager.is_tech_unlocked(m["target"]):
 				m["current_qty"] = 1
+
+		elif m["type"] == "research_multi":
+			var done := 0
+			for t in m["target"]:
+				if GameState.research_manager.is_tech_unlocked(t):
+					m["multi_progress"][t] = true
+					done += 1
+			m["current_qty"] = done
 				
 		elif m["type"] == "craft":
 			var inv_count = GameState.shipyard_manager.module_inventory.get(m["target"], 0)
