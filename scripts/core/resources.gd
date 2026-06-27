@@ -27,16 +27,17 @@ func _ready():
 # first launch (_ready, when empty) and on New Game (game_state.hard_reset) — NEVER
 # on Warp (prestige has its own starter package). Tune the amounts here.
 func seed_starter_kit() -> void:
-	add_currency("credits", 10000)
-	# "Light" tuning: clear the two worst grind walls (Dirt/Water, 350 each) + the first
-	# refine (Fe/Si) and arm the first fight (ammo) — but KEEP the mid-chain as real
-	# skilling: the player still gathers Wood, mines Lithium/Copper, and crafts a battery
-	# on the way to the weapon. Dirt is left just SHORT of m001's 350 so they still
-	# perform their FIRST gather (the core-loop intro) before the rest fast-forwards.
+	add_currency("credits", 1500)
+	# Small HEAD-START only: every amount is below its mission target, so the player
+	# still gathers and PROCESSES the rest of each. That's the crucial part — skipping
+	# those actions skips the skill XP the chain's recipe gates depend on (e.g. Basic
+	# Shield Booster needs Engineering Lv.2; the player clears Lv.2 while doing the
+	# Si/Fe refine at m005). A little of everything, no auto-completes, no under-
+	# levelling. Dirt is left short of m001's 350 so the first gather is still taught.
 	var kit := {
-		"Dirt": 320, "Water": 400,
-		"Fe": 200, "Si": 200,
-		"SlugT1": 150,
+		"Dirt": 120, "Water": 100,
+		"Fe": 25, "Si": 30,
+		"SlugT1": 25,
 	}
 	for sym in kit:
 		add_element(sym, int(kit[sym]))
