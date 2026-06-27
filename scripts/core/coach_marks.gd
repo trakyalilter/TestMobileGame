@@ -89,17 +89,17 @@ const STEPS := {
 		{
 			"anchor": "power",
 			"title": "Batteries & Power",
-			"body": "Hulls supply NO power. Every weapon, shield, armor, engine and sensor DRAWS energy — and only BATTERY modules supply it. Fill your battery slots: if total draw exceeds battery supply, the ship can't engage at all. As you move to bigger hulls, craft higher-tier batteries to keep everything running.",
+			"body": "Modules draw power; only battery modules supply it. Keep batteries equipped — if draw exceeds supply, your ship can't engage at all.",
 		},
 		{
 			"anchor": "schematic",
 			"title": "Matrix Cores",
-			"body": "In your armory's MATRIX CORES rack: 'Matrix Synthesis' rolls a random core; fuse 3 of one kind into the next tier (Cracked → Stable → Pristine) for a bigger bonus. Crimson = attack, Cobalt = shield/evasion, Topaz = power, Amethyst = defense/hull.",
+			"body": "Matrix Cores are equippable bonus chips. Use Matrix Synthesis to roll one, then fuse 3 of a kind into a stronger tier.",
 		},
 		{
 			"anchor": "schematic",
 			"title": "Matrix Sockets",
-			"body": "Modules with ◆ slots accept Matrix Cores. Drag a core from your armory onto an equipped, socketed module — the bonus is global no matter which module holds it. Higher tiers are stronger.",
+			"body": "Modules with ◆ slots hold Matrix Cores. Drag a core onto a socketed, equipped module — the bonus applies globally, so placement doesn't matter.",
 		},
 	],
 	"combat": [
@@ -116,7 +116,7 @@ const STEPS := {
 		{
 			"anchor": "enemies",
 			"title": "Weapon Damage Types",
-			"body": "KINETIC: big hull damage but armor stops it. ENERGY: shreds shields, weak on bare hull. EXPLOSIVE: ignores most armor — a safe all-rounder. CRYO: unlocked by Warping — the ONLY damage that breaches Warp-Hardened hulls (Sector 11+). Enemies resist or are weak to a type, so swap weapons to match the target.",
+			"body": "Each enemy resists some damage types and is weak to others — check its info panel before engaging. Swap your weapons to match the weakness for far faster kills.",
 		},
 		{
 			"anchor": "consumables",
@@ -140,7 +140,7 @@ const STEPS := {
 		{
 			"anchor": "grid",
 			"title": "Inventory",
-			"body": "All your materials live here. Cargo is slot-limited — when it fills, NEW gathered materials are LOST (not paused). Expand storage below, or sell/process what you don't need, to make room.",
+			"body": "All your materials live here, and cargo is slot-limited — when it's full, newly gathered materials are lost. Expand storage below or clear out what you don't need.",
 		},
 		{
 			"anchor": "storage",
