@@ -760,8 +760,12 @@ func _update_sidebar_styling():
 	combat_btn.visible = has_basic_eng
 
 	
-	# v72.0: Bounty Board unlocks at Asteroid Clearance (first real combat sector)
-	var has_asteroid_clearance = GameState.research_manager.is_tech_unlocked("asteroid_clearance")
+	# v72.0: Bounty Board unlocks at the first real combat sector (Asteroid Belt).
+	# P-onboard FIX: this was gated on "asteroid_clearance" — a tech defined NOWHERE,
+	# so is_tech_unlocked() was always false and the (fully-built, ticking, save-
+	# persisted) Bounty Board was permanently unreachable. The real Asteroid-Belt
+	# access tech is zone_2_access (researched by mission m027).
+	var has_asteroid_clearance = GameState.research_manager.is_tech_unlocked("zone_2_access")
 	bounty_btn.visible = has_asteroid_clearance
 	# Quests appear once the player has core gameplay loops available
 	quest_btn.visible = has_basic_eng
@@ -1228,6 +1232,8 @@ func _update_navigation_hints():
 		if current_page_name != "inventory": target_to_pulse = inventory_btn
 	elif "m019c" in mm.active_missions:
 		if current_page_name != "infrastructure": target_to_pulse = infrastructure_btn
+	elif "m027b" in mm.active_missions:
+		if current_page_name != "bounty": target_to_pulse = bounty_btn
 
 	# P-onboard: the warp decision must NOT go dark. Once the Z10 boss is down, pulse
 	# the Warp Core until the player warps (goal_002 = warp_perform). The existing
@@ -1415,6 +1421,17 @@ func _update_navigation_hints():
 		var _dp = pages["designer"]
 		if _dp.has_method("clear_equip_focus_filter"):
 			_dp.clear_equip_focus_filter()
+
+	# P-onboard: deliberate hands-off stretch (Z5 → Z10). By the Sector chapter the
+	# player has been shown every system; stop herding them with the per-step pulse —
+	# these mid-game steps teach no NEW mechanic (just "clear zone N"). The Objective
+	# chip + claim badge keep the floor safe, and the repair fallback below still fires.
+	# (Tunable: edit this id list to move the hand-holding cutoff.)
+	if target_to_pulse != null:
+		for _wid in ["m031", "m032", "m032b", "m032c", "m033", "m033b", "m033c", "m034"]:
+			if _wid in mm.active_missions:
+				target_to_pulse = null
+				break
 
 	# P1 Onboarding — Repair routing.
 	# When no mission demands a pulse, the hull is damaged, the player is on

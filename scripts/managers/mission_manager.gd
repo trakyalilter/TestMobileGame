@@ -131,7 +131,10 @@ func init_missions():
 		["m026d3", "Explosive Payload", "Equip a RARE+ EXPLOSIVE weapon: farm Lunar Orbit until a blue-or-better Micro-Missile Launcher drops, then equip it (fill the other slot with any explosive too). Explosive hits the Architect's weakness and the rare punch finishes it - the right TYPE and tier both matter.", "loadout_rare_weapon_type", "explosive", 1, 12000, 1200, "m026e"],
 		["m026e", "Final Confrontation", "Defeat the Rogue Architect boss in Lunar Orbit.", "defeat", "z1_boss_architect", 1, 25000, 2500, "m027"],
 		# P0 Fix: Progression Deadlock Re-alignment
-		["m027", "Scanning Horizon", "Research 'Asteroid Belt Authorization' in the Research tree to unlock the Asteroid Belt combat zone.", "research", "zone_2_access", 1, 5000, 500, "m028"],
+		["m027", "Scanning Horizon", "Research 'Asteroid Belt Authorization' in the Research tree to unlock the Asteroid Belt combat zone.", "research", "zone_2_access", 1, 5000, 500, "m027b"],
+		# P-onboard: introduce the Bounty Board the moment it unlocks (Asteroid Belt).
+		# visit_page → auto-completes on navigation, can never soft-lock.
+		["m027b", "Open Contracts", "Open the Bounty Board (left sidebar — it just unlocked). Accept a contract: it pays out in the background while you do anything else. Optional, always-on income.", "visit_page", "bounty", 1, 6000, 500, "m028"],
 		["m028", "Belt Mining", "In the Mine page, mine 100 Cassiterite (tin ore).", "gather", "Cassiterite", 100, 10000, 2000, "m029"],
 		["m029", "Hardened Shell", "Craft 'Carbon Fiber Plate' in the Shipyard.", "craft", "z2_armor", 1, 15000, 5000, "m029a1"],
 		# v107 Mission flow — split the silent AdvCircuit wall into discoverable
