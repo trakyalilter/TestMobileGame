@@ -28,17 +28,14 @@ func _ready():
 # on Warp (prestige has its own starter package). Tune the amounts here.
 func seed_starter_kit() -> void:
 	add_currency("credits", 10000)
-	# Dirt is left just SHORT of mission m001's 350 so the player still performs their
-	# FIRST gather (the core-loop intro) — only briefly. Everything else auto-satisfies
-	# the early gather/process missions, so the chain flies through claim -> research ->
-	# craft -> equip to the first fight, ammo + battery already in hand.
+	# "Light" tuning: clear the two worst grind walls (Dirt/Water, 350 each) + the first
+	# refine (Fe/Si) and arm the first fight (ammo) — but KEEP the mid-chain as real
+	# skilling: the player still gathers Wood, mines Lithium/Copper, and crafts a battery
+	# on the way to the weapon. Dirt is left just SHORT of m001's 350 so they still
+	# perform their FIRST gather (the core-loop intro) before the rest fast-forwards.
 	var kit := {
 		"Dirt": 320, "Water": 400,
 		"Fe": 200, "Si": 200,
-		"Wood": 120, "C": 60,
-		"Spodumene": 120, "Li": 60,
-		"Malachite": 120, "Cu": 60,
-		"BatteryT1": 8,
 		"SlugT1": 150,
 	}
 	for sym in kit:
