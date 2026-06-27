@@ -18,11 +18,31 @@ var _last_full_warn_ms: int = 0  # throttle for the inventory-full warning
 func _ready():
 	# Initial Starter Kit if elements are empty (New Game)
 	if elements.is_empty() and currencies.is_empty():
-		add_currency("credits", 100)
-		add_element("Dirt", 50)
-		add_element("Water", 50)
-	
+		seed_starter_kit()
+
 	cleanup_inventory()
+
+# New-game "Distress Cache": a generous starter so a first-time player reaches their
+# first fight in minutes instead of grinding ~10 materials up from zero. Granted on
+# first launch (_ready, when empty) and on New Game (game_state.hard_reset) — NEVER
+# on Warp (prestige has its own starter package). Tune the amounts here.
+func seed_starter_kit() -> void:
+	add_currency("credits", 10000)
+	# Dirt is left just SHORT of mission m001's 350 so the player still performs their
+	# FIRST gather (the core-loop intro) — only briefly. Everything else auto-satisfies
+	# the early gather/process missions, so the chain flies through claim -> research ->
+	# craft -> equip to the first fight, ammo + battery already in hand.
+	var kit := {
+		"Dirt": 320, "Water": 400,
+		"Fe": 200, "Si": 200,
+		"Wood": 120, "C": 60,
+		"Spodumene": 120, "Li": 60,
+		"Malachite": 120, "Cu": 60,
+		"BatteryT1": 8,
+		"SlugT1": 150,
+	}
+	for sym in kit:
+		add_element(sym, int(kit[sym]))
 
 func get_max_slots() -> int:
 	return base_slots + storage_upgrades

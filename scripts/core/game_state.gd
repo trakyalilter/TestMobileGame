@@ -413,6 +413,7 @@ func process_offline_progress(delta: float):
 
 func hard_reset():
 	resources.reset()
+	resources.seed_starter_kit()  # New Game gets the same Distress Cache as a first launch
 	# v107: resources.reset() intentionally KEEPS lifetime_credits because
 	# warp_manager.execute_warp() relies on it staying monotonic (the warp
 	# formula uses `lifetime_credits - credits_at_warp_start` as the delta).
