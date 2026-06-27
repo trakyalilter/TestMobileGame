@@ -257,6 +257,9 @@ func _init_pages():
 	header_widget = preload("res://scenes/ui/global_header.tscn").instantiate()
 	$HBoxContainer/Content.add_child(header_widget)
 	$HBoxContainer/Content.move_child(header_widget, 0) # Top of VBox
+	# P-onboard: the header's Current-Objective chip taps through to the Missions page.
+	if header_widget.has_signal("objective_pressed"):
+		header_widget.objective_pressed.connect(func(): switch_to("mission"))
 
 # Feature 66.1: Global Notification Stack (Melvor-style)
 var notification_container: VBoxContainer
@@ -1218,6 +1221,20 @@ func _update_navigation_hints():
 			var page = pages["combat"]
 			page.focus_zone("sector_gamma")
 			target_to_pulse = page.get_enemy_card("z6_boss_colossus")
+
+	# P-onboard: new teaching steps — pulse the nav button until the player visits
+	# (visit_page auto-completes on navigation; both pages are always reachable).
+	elif "m019b" in mm.active_missions:
+		if current_page_name != "inventory": target_to_pulse = inventory_btn
+	elif "m019c" in mm.active_missions:
+		if current_page_name != "infrastructure": target_to_pulse = infrastructure_btn
+
+	# P-onboard: the warp decision must NOT go dark. Once the Z10 boss is down, pulse
+	# the Warp Core until the player warps (goal_002 = warp_perform). The existing
+	# warp_milestone coach card explains it; this is the breadcrumb that drives them.
+	elif "goal_002" in mm.active_missions and GameState.game_settings.get("z10_cleared", false):
+		if current_page_name != "warp" and is_instance_valid(warp_btn) and warp_btn.visible:
+			target_to_pulse = warp_btn
 
 	# ── Previously-undirected tutorial steps ──
 	elif "m002b" in mm.active_missions:

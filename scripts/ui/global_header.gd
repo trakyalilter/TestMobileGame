@@ -1,9 +1,14 @@
 extends PanelContainer
 
-@onready var credits_lbl = $MarginContainer/HBoxContainer/CreditsLabel	
+@onready var credits_lbl = $MarginContainer/HBoxContainer/CreditsLabel
 @onready var task_lbl = $MarginContainer/HBoxContainer/TaskLabel
 
-var stability_lbl: Label 
+# P-onboard: emitted when the player taps the Current-Objective chip → main switches
+# to the Missions page.
+signal objective_pressed
+var objective_btn: Button
+
+var stability_lbl: Label
 var credits_led: ColorRect
 var stability_led: ColorRect
 
@@ -33,7 +38,8 @@ func _ready():
 	
 	# 2. Add Status LEDs & Enhanced Labels (NOW AFTER LABELS EXIST)
 	_setup_leds()
-	
+	_setup_objective_chip()
+
 func _setup_leds():
 	var hbox = $MarginContainer/HBoxContainer
 	
@@ -90,6 +96,39 @@ func _setup_leds():
 var last_mission_id: String = ""
 var last_completed_state: bool = false
 
+# P-onboard: persistent "Current Objective" chip. Surfaces the active mission as a
+# one-line, tappable sentence so a player who never opens the Missions page still
+# always knows the next step (and sees when one is ready to CLAIM).
+func _setup_objective_chip() -> void:
+	objective_btn = Button.new()
+	objective_btn.name = "ObjectiveChip"
+	objective_btn.flat = true
+	objective_btn.focus_mode = Control.FOCUS_NONE
+	objective_btn.clip_text = true
+	objective_btn.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	objective_btn.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	objective_btn.add_theme_font_size_override("font_size", 12)
+	objective_btn.tooltip_text = "Open Missions"
+	objective_btn.pressed.connect(func(): objective_pressed.emit())
+	$MarginContainer/HBoxContainer.add_child(objective_btn)
+	update_objective()
+
+func update_objective() -> void:
+	if not is_instance_valid(objective_btn) or not GameState.mission_manager:
+		return
+	var obj: Dictionary = GameState.mission_manager.get_active_objective()
+	if obj.is_empty():
+		objective_btn.visible = false
+		return
+	objective_btn.visible = true
+	var nm: String = str(obj.get("name", ""))
+	var br := nm.find("] ")
+	if br != -1:
+		nm = nm.substr(br + 2)
+	var is_ready: bool = obj.get("completed", false) and not obj.get("claimed", false)
+	objective_btn.text = ("✓ CLAIM: " if is_ready else "▸ ") + nm
+	objective_btn.add_theme_color_override("font_color", Color(0.45, 1.0, 0.55) if is_ready else UITheme.COLORS["accent"])
+
 
 
 
@@ -102,6 +141,7 @@ func _process(_delta):
 	# Poll for task status
 	update_task_status()
 	update_stability()
+	update_objective()
 
 func update_stability():
 	if not GameState.infrastructure_manager: return

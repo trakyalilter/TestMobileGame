@@ -140,7 +140,7 @@ const STEPS := {
 		{
 			"anchor": "grid",
 			"title": "Inventory",
-			"body": "All your materials live here. Slots are limited — some gathering actions stop when storage is full.",
+			"body": "All your materials live here. Cargo is slot-limited — when it fills, NEW gathered materials are LOST (not paused). Expand storage below, or sell/process what you don't need, to make room.",
 		},
 		{
 			"anchor": "storage",

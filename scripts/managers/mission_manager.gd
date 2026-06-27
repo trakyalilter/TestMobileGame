@@ -87,7 +87,12 @@ func init_missions():
 		["m017", "Target Locked", "Defeat 1 Lunar Drone in Lunar Orbit.", "defeat", "z1_lunar_drone", 1, 2500, 500, "m018"],
 		["m018", "Industrial Logistics", "Research the 'Industrial Logistics' hub.", "research", "industrial_logistics", 1, 500, 100, "m018b"],
 		["m018b", "Automated Intelligence", "Research 'Automated Logistics' for circuitry.", "research", "automated_logistics", 1, 1000, 200, "m019"],
-		["m019", "Cybernetic Integration", "Craft 10 Basic Circuitry in the Engineering tab.", "gather", "Circuit", 10, 2000, 300, "m025"],
+		["m019", "Cybernetic Integration", "Craft 10 Basic Circuitry in the Engineering tab.", "gather", "Circuit", 10, 2000, 300, "m019b"],
+		# P-onboard: close two long-standing teaching holes before the smelting push.
+		# Both are visit_page (auto-complete on navigation → can never soft-lock) and
+		# fire the existing per-page coach card the moment the player lands.
+		["m019b", "Cargo Hold", "Open your Inventory (left sidebar). Cargo is slot-limited — when it fills, NEW gathered materials are LOST, not paused. Expand storage here as you take on more material types.", "visit_page", "inventory", 1, 2000, 200, "m019c"],
+		["m019c", "Background Industry", "Open Infrastructure (left sidebar). Buildings auto-produce in the background — always running while you gather, fight, or are offline. Build them whenever you can; the background should always pay.", "visit_page", "infrastructure", 1, 2000, 200, "m025"],
 		["m020", "Advanced Energy", "Research 'Power Systems' for batteries.", "research", "power_systems", 1, 500, 100, "m021"],
 		["m021", "Industrial Energy", "Craft 5 Basic Batteries in the Engineering tab.", "gather", "BatteryT1", 5, 1000, 100, "m022"],
 		["m022", "Power Storage", "Craft a 'Basic Battery' in the Shipyard.", "craft", "z1_battery", 1, 1500, 150, "m022b"],
@@ -593,3 +598,23 @@ func count_claimable_missions() -> int:
 		if m and m["completed"] and not m["claimed"]:
 			n += 1
 	return n
+
+func get_active_objective() -> Dictionary:
+	# The single mission the header "Current Objective" chip should surface: prefer a
+	# completed-unclaimed step (reads "CLAIM"), else the active tutorial step (m*),
+	# else any active goal. Returns {} when there's nothing to show.
+	var best: Dictionary = {}
+	var best_rank := 99
+	for mid in active_missions:
+		var m = missions.get(mid)
+		if m == null or m.get("claimed", false):
+			continue
+		var rank := 2
+		if m.get("completed", false):
+			rank = 0
+		elif str(mid).begins_with("m"):
+			rank = 1
+		if rank < best_rank:
+			best_rank = rank
+			best = m
+	return best
