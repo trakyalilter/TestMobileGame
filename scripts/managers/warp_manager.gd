@@ -23,7 +23,7 @@ const TREE_NODES := {
 	"ENG_3": {"branch": "engineering", "cost": 3, "name": "Alt-Recipe Codex",
 		"desc": "Unlocks alt-recipe variants per processing tier.", "implemented": false, "prereq": ["ENG_2"]},
 	"ENG_4": {"branch": "engineering", "cost": 4, "name": "Industrial Memory",
-		"desc": "-20% infrastructure build cost.", "implemented": false, "prereq": ["ENG_1"]},
+		"desc": "-20% infrastructure build cost.", "implemented": true, "prereq": ["ENG_1"]},
 	"ENG_5": {"branch": "engineering", "cost": 5, "name": "Building Overclock",
 		"desc": "Throttle buildings to 200% output at +50% input/unit.", "implemented": false, "prereq": ["ENG_4"]},
 	"ENG_6": {"branch": "engineering", "cost": 6, "name": "Resonant Foundry",
@@ -63,7 +63,7 @@ const TREE_NODES := {
 	"REC_7": {"branch": "recursion", "cost": 8, "name": "Accelerated Tiering",
 		"desc": "Warp Tier increments every 4 warps instead of 5.", "implemented": true, "prereq": ["REC_6"]},
 	"REC_4": {"branch": "recursion", "cost": 5, "name": "Resonance Tuning",
-		"desc": "Warp-Core Charge +25% efficiency and a higher bonus-shard cap.", "implemented": false, "prereq": ["REC_1"]},
+		"desc": "Warp-Core Charge +25% efficiency and a higher bonus-shard cap.", "implemented": true, "prereq": ["REC_1"]},
 	"REC_Q1": {"branch": "recursion", "cost": 2, "name": "Bulk Fabrication",
 		"desc": "Unlock craft x10 / craft-to-target in processing.", "implemented": false},
 	"REC_Q2": {"branch": "recursion", "cost": 3, "name": "Automated Logistics",
@@ -71,9 +71,9 @@ const TREE_NODES := {
 	"REC_Q3": {"branch": "recursion", "cost": 3, "name": "Loadout Presets",
 		"desc": "Save module/ammo presets with one-tap equip.", "implemented": false, "prereq": ["REC_Q1"]},
 	"REC_Q4": {"branch": "recursion", "cost": 3, "name": "Offline Coffer",
-		"desc": "Raise the global offline cap 24h -> 36h.", "implemented": false},
+		"desc": "Raise the global offline cap 24h -> 36h.", "implemented": true},
 	"REC_Q5": {"branch": "recursion", "cost": 5, "name": "Extended Coffer",
-		"desc": "Raise the global offline cap 36h -> 48h.", "implemented": false, "prereq": ["REC_Q4"]},
+		"desc": "Raise the global offline cap 36h -> 48h.", "implemented": true, "prereq": ["REC_Q4"]},
 	"REC_S1": {"branch": "recursion", "cost": 3, "step": 2, "repeatable": true, "name": "Shard Resonance",
 		"desc": "+3% warp shards earned per level.", "implemented": true, "prereq": ["REC_1"]},
 	"REC_S2": {"branch": "recursion", "cost": 2, "step": 1, "repeatable": true, "cap": 10, "name": "Blueprint Bandwidth",
@@ -381,6 +381,16 @@ func get_blueprint_rebuild_frac() -> float:
 		return 0.0
 	return min(0.50 + 0.05 * float(get_node_level("REC_S2")), 1.0)
 
+# ENG_4 Industrial Memory: infrastructure build-cost multiplier.
+func get_tree_build_cost_mult() -> float:
+	return 0.80 if is_node_purchased("ENG_4") else 1.0
+
+# REC_Q4 / REC_Q5 Coffers: global offline-cap multiplier (24h base -> 36h -> 48h).
+func get_tree_offline_cap_mult() -> float:
+	if is_node_purchased("REC_Q5"): return 2.0
+	if is_node_purchased("REC_Q4"): return 1.5
+	return 1.0
+
 # === v121: Warp-Core Charge sink =========================================
 # Per-tick basket the Core consumes. Spread WIDE across the PRIMITIVE pyramid:
 # bulk raws (Dirt/Water/Wood) carry the dominant weight; the raw ORES
@@ -448,14 +458,19 @@ const CHARGE_BONUS_FRAC_CAP := 0.5
 const CHARGE_BONUS_ABS_CAP := 5
 
 func get_charge_bonus_shards(base_shards: int = -1) -> int:
-	if warp_charge < CHARGE_PER_BONUS_SHARD: return 0
-	var raw: float = floor(log(warp_charge / CHARGE_PER_BONUS_SHARD) / log(2.0)) + 1.0
+	var per: float = CHARGE_PER_BONUS_SHARD
+	var abs_cap: int = CHARGE_BONUS_ABS_CAP
+	if is_node_purchased("REC_4"):   # v122 REC_4 Resonance Tuning: +25% efficiency, +1 cap
+		per /= 1.25
+		abs_cap += 1
+	if warp_charge < per: return 0
+	var raw: float = floor(log(warp_charge / per) / log(2.0)) + 1.0
 	var bonus := int(max(0.0, raw))
 	if base_shards < 0:
 		base_shards = calculate_warp_gains()
 	var cap_by_base: int = (max(int(floor(float(base_shards) * CHARGE_BONUS_FRAC_CAP)), 1) if base_shards > 0 else 0)
 	bonus = int(min(bonus, cap_by_base))
-	bonus = int(min(bonus, CHARGE_BONUS_ABS_CAP))
+	bonus = int(min(bonus, abs_cap))
 	return bonus
 
 # === Save / Load =========================================================

@@ -1305,19 +1305,21 @@ func get_building_cost(building_id: String) -> Dictionary:
 	var buy_qty = buy_multiplier
 	
 	var total_scaled_cost = {}
-	
+	# v122 ENG_4 Industrial Memory: -20% infrastructure build cost (Warp Tree).
+	var build_cost_mult: float = GameState.warp_manager.get_tree_build_cost_mult() if GameState.warp_manager else 1.0
+
 	for res in data["cost"]:
 		var base_cost = float(data["cost"][res])
 		var total_mult = 0.0
-		
+
 		if res == "credits":
 			total_mult = _get_total_scaling_credits(current_count, buy_qty)
 		elif _is_resource_passively_produced(res):
 			total_mult = _get_total_scaling_passive(current_count, buy_qty)
 		else:
 			total_mult = _get_total_scaling_non_passive(current_count, buy_qty)
-			
-		total_scaled_cost[res] = int(ceil(base_cost * total_mult))
+
+		total_scaled_cost[res] = int(ceil(base_cost * total_mult * build_cost_mult))
 			
 	return total_scaled_cost
 

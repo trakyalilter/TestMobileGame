@@ -370,11 +370,14 @@ func load_game():
 		var delta = current_time - last_time
 		
 		if delta > 10:
-			var capped_delta = min(delta, OFFLINE_DELTA_CAP_SECONDS)
+			# v122 REC_Q4/Q5 Coffers: Warp Tree raises the 24h base cap (×1.5 / ×2).
+			var cap_mult: float = warp_manager.get_tree_offline_cap_mult() if warp_manager else 1.0
+			var eff_cap: float = OFFLINE_DELTA_CAP_SECONDS * cap_mult
+			var capped_delta = min(delta, eff_cap)
 			process_offline_progress(capped_delta)
 			# v112: the telemetry welcome modal builds its own headline from these.
 			offline_away_sec = capped_delta
-			offline_capped = delta > OFFLINE_DELTA_CAP_SECONDS
+			offline_capped = delta > eff_cap
 	else:
 		# Both savegame.json and .bak are unreadable. Preserve the corrupt file for
 		# manual recovery so the next autosave doesn't bury the evidence; boot fresh.
