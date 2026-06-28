@@ -1134,6 +1134,9 @@ func get_effective_yield(building_id: String, resource_symbol: String) -> float:
 	# Infra↔Mastery feedback: the produced material's Mastery raises output
 	# (bounded). Shared by process_tick + offline so both stay consistent.
 	base_qty *= get_mastery_efficiency_mult(building_id)
+	# v122: Warp Tree ENG_S1 Resource Surge — +6% infra yield per level.
+	if GameState.warp_manager:
+		base_qty *= GameState.warp_manager.get_tree_infra_bonus()
 	return base_qty
 
 func get_effective_interval(building_id: String) -> float:

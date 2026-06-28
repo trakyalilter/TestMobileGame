@@ -355,6 +355,7 @@ func _build_tree_section():
 
 	hb.add_child(_build_branch_column("engineering", "ENGINEERING"))
 	hb.add_child(_build_branch_column("combat", "COMBAT"))
+	hb.add_child(_build_branch_column("recursion", "RECURSION"))  # v122
 
 	# Unified to the warp-purple accent (was "shipyard" blue) so the two heavy
 	# bracketed anchors — hero + tree — share one cohesive prestige identity
@@ -483,7 +484,7 @@ func _build_node_card(node_id: String) -> Control:
 	desc.add_theme_color_override("font_color", Color(0.72, 0.75, 0.82))
 	v.add_child(desc)
 
-	_node_widgets[node_id] = {"root": card, "style": sb, "btn": btn, "status": status_lbl}
+	_node_widgets[node_id] = {"root": card, "style": sb, "btn": btn, "status": status_lbl, "title": t}
 	return card
 
 
@@ -590,38 +591,59 @@ func _refresh_node(node_id: String):
 	var sb = w["style"]
 	var btn = w["btn"]
 	var status = w["status"]
-	var cost = int(_wm.TREE_NODES[node_id].get("cost", 0))
+	var is_rep: bool = _wm._is_repeatable(node_id)
+	var lvl: int = _wm.get_node_level(node_id)
+	var cost: int = int(_wm.get_node_cost(node_id))   # v122: next-level cost for repeatables
 
-	if _wm.is_node_purchased(node_id):
-		sb.border_color = COLOR_PURCHASED
-		sb.bg_color = Color(0.08, 0.16, 0.10, 0.95)
-		btn.visible = false
-		status.visible = true
-		status.text = "✓ Acquired"
-		status.add_theme_color_override("font_color", COLOR_PURCHASED)
-	elif not _wm.is_node_implemented(node_id):
+	# v122: title shows the current level on repeatable spines.
+	if w.has("title"):
+		var nm: String = str(_wm.TREE_NODES[node_id].get("name", ""))
+		if is_rep:
+			w["title"].text = "%s · %s  (Lv %d)" % [node_id, nm, lvl]
+		else:
+			w["title"].text = "%s · %s" % [node_id, nm]
+
+	# Unimplemented stub.
+	if not _wm.is_node_implemented(node_id):
 		sb.border_color = COLOR_LOCKED
 		sb.bg_color = Color(0.09, 0.10, 0.13, 0.90)
 		btn.visible = false
 		status.visible = true
 		status.text = "Soon · %d %s" % [cost, _shard_label(cost)]
 		status.add_theme_color_override("font_color", COLOR_LOCKED)
-	elif _wm.can_purchase_node(node_id):
+		return
+
+	# Affordable (next level for repeatables, or first buy for finite).
+	if _wm.can_purchase_node(node_id):
 		sb.border_color = COLOR_AFFORD
 		sb.bg_color = Color(0.13, 0.11, 0.06, 0.95)
 		btn.visible = true
 		status.visible = false
-		btn.text = "BUY · %d %s" % [cost, _shard_label(cost)]
+		btn.text = ("UP · %d %s" % [cost, _shard_label(cost)]) if is_rep else ("BUY · %d %s" % [cost, _shard_label(cost)])
 		btn.disabled = false
+		return
+
+	# Not purchasable now: fully owned/maxed, or gated, or unaffordable.
+	btn.visible = false
+	status.visible = true
+	var at_cap: bool = false
+	if is_rep:
+		var cap: int = int(_wm.TREE_NODES[node_id].get("cap", 0))
+		at_cap = cap > 0 and lvl >= cap
+	if (not is_rep and _wm.is_node_purchased(node_id)) or at_cap:
+		sb.border_color = COLOR_PURCHASED
+		sb.bg_color = Color(0.08, 0.16, 0.10, 0.95)
+		status.text = ("✓ Max (Lv %d)" % lvl) if is_rep else "✓ Acquired"
+		status.add_theme_color_override("font_color", COLOR_PURCHASED)
 	else:
 		sb.border_color = COLOR_LOCKED
 		sb.bg_color = Color(0.10, 0.11, 0.16, 0.95)
-		btn.visible = false
-		status.visible = true
-		var avail = int(_wm.get_available_shards())
-		var need = cost - avail
-		if need < 0: need = 0
-		status.text = "Need %d more %s" % [need, _shard_label(need)]
+		var pre: String = ("Lv %d · " % lvl) if (is_rep and lvl > 0) else ""
+		var avail: int = int(_wm.get_available_shards())
+		if avail < cost:
+			status.text = "%sNeed %d more %s" % [pre, cost - avail, _shard_label(cost - avail)]
+		else:
+			status.text = "%sLocked" % pre   # prereq / branch gate
 		status.add_theme_color_override("font_color", COLOR_LOCKED)
 
 
