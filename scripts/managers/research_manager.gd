@@ -1327,6 +1327,41 @@ var tech_tree = {
 		],
 		"flavor": "",
 	},
+	# ========== Phase B: LATE DEEP-CRAFT GATES ==========
+	"neutronium_synthesis": {
+		"name": "Neutronium Synthesis",
+		"tier": 5,
+		"category": "processing",
+		"cost": 75000000,
+		"cost_items": {"Z9_Core": 2, "Neutronium": 3, "VoidEssence": 5, "QuantumCore": 30},
+		"type": "technology",
+		"parent": "void_navigation",
+		"effects": [],
+		"unlocks": [
+			"Bio-Reactor Synthesis",
+			"Void Lattice Weave",
+			"Neutronium Condenser",
+			"Bio-Reactor Vat",
+		],
+		"flavor": "Compress neutron-star matter into workable plate — the spine of capital fabrication.",
+	},
+	"primordial_engineering": {
+		"name": "Primordial Engineering",
+		"tier": 5,
+		"category": "processing",
+		"cost": 150000000,
+		"cost_items": {"Z10_Core": 2, "PrimordialShard": 4, "OmegaPlating": 4, "ChronoCore": 5},
+		"type": "technology",
+		"parent": "neutronium_synthesis",
+		"effects": [],
+		"unlocks": [
+			"Omega Forge",
+			"Primordial Crystallizer",
+			"Omega Foundry",
+			"Primordial Extractor",
+		],
+		"flavor": "Bind primordial matter into stable matrices — the deepest craft in the game.",
+	},
 	# ENDGAME SINKS - Iteration 7
 	"void_weaponry_1": {
 		"name": "Void Weaponry Optimization",

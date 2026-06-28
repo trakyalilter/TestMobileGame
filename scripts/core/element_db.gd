@@ -200,6 +200,14 @@ var ELEMENT_NAMES = {
 	"PrimordialArmor": "Primordial Armor",
 	"OmegaAccelerator": "Omega Accelerator",
 
+	# Phase B: late-tier deep-craft intermediates (Z8-10 module spine)
+	"StructuralLattice": "Structural Lattice",
+	"NeutroniumPlate": "Neutronium Plate",
+	"OmegaComposite": "Omega Composite",
+	"BioReactorCore": "Bio-Reactor Core",
+	"PrimordialMatrix": "Primordial Matrix",
+	"VoidLattice": "Void Lattice",
+
 	# Reclaimed Components — combat-exclusive progression salvage (Tier 1).
 	# Torn from specific enemy archetypes; gate crafting; hard-to-craft fallback.
 	"SalvagedAlloy": "Salvaged Alloy",
@@ -241,8 +249,9 @@ var CATEGORIES = {
 				"PirateSalvage", "MartianRelics", "CryoEssence", "XenoFragment",
 				"RimeplateScrap", "AeonResiduum"],  # v114: minted Zone Tier-Gate raws
 	# Audit v4.0: Endgame category for ultimate items
-	"endgame": ["VoidEssence", "ChronoCore", "OmegaPlating", "PrimordialShard", "CryoCatalyst", 
-				"VoidBattery", "TemporalModule", "PrimordialArmor", "OmegaAccelerator"],
+	"endgame": ["VoidEssence", "ChronoCore", "OmegaPlating", "PrimordialShard", "CryoCatalyst",
+				"VoidBattery", "TemporalModule", "PrimordialArmor", "OmegaAccelerator",
+				"StructuralLattice", "NeutroniumPlate", "OmegaComposite", "BioReactorCore", "PrimordialMatrix", "VoidLattice"],
 	"boss_cores": ["Z1_Core", "Z2_Core", "Z3_Core", "Z4_Core", "Z5_Core", 
 					"Z6_Core", "Z7_Core", "Z8_Core", "Z9_Core", "Z10_Core"],
 	"matrix_cores": ["CrackedCrimsonCore", "StableCrimsonCore", "PristineCrimsonCore",

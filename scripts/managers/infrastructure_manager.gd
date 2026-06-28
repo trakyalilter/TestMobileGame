@@ -26,7 +26,8 @@ const INFRA_DR_TAIL := 10
 # duplicated & inconsistent: 7 here-equivalent vs only 3 in
 # get_building_adjusted_rate, so the UI rate disagreed with production).
 const INFRA_ENG_SCALED_BUILDINGS := ["auto_smelter", "hydro_plant", "industrial_centrifuge",
-	"munitions_factory", "titanium_refinery", "superalloy_forge", "adv_circuit_foundry"]
+	"munitions_factory", "titanium_refinery", "superalloy_forge", "adv_circuit_foundry",
+	"au_refinery", "semiconductor_furnace", "structural_press", "chip_fab"]
 # P1.4: gathering owns the ore tier. Raw ORE/metal extractors that duplicate a
 # gather action are throttled so active gathering is the primary source and
 # infra ore-mining is a convenience trickle (on top of P0.2 DR). Bulk
@@ -455,6 +456,55 @@ var building_db: Dictionary = {
 		"research_req": "void_navigation",
 		"category": "extraction"
 	},
+	# ========== Phase B: LATE-TIER BULK CONVERTER BAND (Z8-10 spine) ==========
+	# First infra source of Neutronium (previously NONE). void_navigation tier.
+	"neutronium_condenser": {
+		"name": "Neutronium Condenser",
+		"description": "+0.4 Neutronium",
+		"cost": {"credits": 30000000, "Superalloy": 1500, "VoidCrystal": 40, "QuantumCore": 20},
+		"energy_gen": 0.0,
+		"energy_cons": 150000.0,
+		"yield": {"Neutronium": 0.4},
+		"interval": 10.0,
+		"research_req": "neutronium_synthesis",
+		"category": "extraction"
+	},
+	"bioreactor_vat": {
+		"name": "Bio-Reactor Vat",
+		"description": "+0.2 Bio-Reactor Core (-6 Biohazard Sample, -0.5 Pathogen Core, -1 Quantum Core)",
+		"cost": {"credits": 35000000, "Superalloy": 1200, "QuantumCore": 25, "Neutronium": 30},
+		"energy_gen": 0.0,
+		"energy_cons": 160000.0,
+		"yield": {"BioReactorCore": 0.2},
+		"input": {"BiohazardSample": 6, "QuantumCore": 1, "PathogenCore": 0.5},
+		"interval": 10.0,
+		"research_req": "neutronium_synthesis",
+		"category": "industry"
+	},
+	"omega_foundry": {
+		"name": "Omega Foundry",
+		"description": "+0.15 Omega Composite (-3 Omega Plating, -1 Neutronium Plate, -15 Adv Circuit)",
+		"cost": {"credits": 45000000, "Neutronium": 60, "OmegaPlating": 30, "AdvCircuit": 200},
+		"energy_gen": 0.0,
+		"energy_cons": 180000.0,
+		"yield": {"OmegaComposite": 0.15},
+		"input": {"OmegaPlating": 3, "NeutroniumPlate": 1, "AdvCircuit": 15},
+		"interval": 10.0,
+		"research_req": "primordial_engineering",
+		"category": "industry"
+	},
+	"primordial_extractor": {
+		"name": "Primordial Extractor",
+		"description": "+0.1 Primordial Matrix (-2.5 Primordial Shard, -1.5 Diamond, -1 Void Lattice)",
+		"cost": {"credits": 60000000, "Neutronium": 100, "PrimordialShard": 25, "OmegaComposite": 5},
+		"energy_gen": 0.0,
+		"energy_cons": 200000.0,
+		"yield": {"PrimordialMatrix": 0.1},
+		"input": {"PrimordialShard": 2.5, "Diamond": 1.5, "VoidLattice": 1},
+		"interval": 10.0,
+		"research_req": "primordial_engineering",
+		"category": "industry"
+	},
 	"industrial_centrifuge": {
 		"name": "Industrial Centrifuge",
 		"description": "+5 Fe, +1.7 Si (-8.3 Dirt, -8.3 Water)",
@@ -766,14 +816,67 @@ var building_db: Dictionary = {
 		"research_req": "superalloy_engineering",
 		"category": "industry"
 	},
+	# ========== Phase C: MID-SPINE CONVERTERS (fill the hollow mid) ==========
+	# Input->output converters mirroring the real processing recipes so infra
+	# now DEEPENS the electronics/structural spine instead of skipping it.
+	# Feeders for adv_circuit_foundry (below) + chip_fab; au_refinery is Au's
+	# first infra source (deferred here from Phase A). NOT ore-throttled.
+	"au_refinery": {
+		"name": "Gold Refinery",
+		"description": "+1.5 Au (-40 Dirt, -40 Water)",
+		"cost": {"credits": 700000, "Steel": 1200, "Circuit": 80},
+		"energy_gen": 0.0,
+		"energy_cons": 1000.0,
+		"yield": {"Au": 1.5},
+		"input": {"Dirt": 40, "Water": 40},
+		"interval": 5.0,
+		"research_req": "industrial_electrolysis",
+		"category": "industry"
+	},
+	"semiconductor_furnace": {
+		"name": "Semiconductor Furnace",
+		"description": "+1.5 Semiconductor (-3 Si, -1.5 Germanium)",
+		"cost": {"credits": 950000, "Steel": 1500, "Circuit": 120},
+		"energy_gen": 0.0,
+		"energy_cons": 1400.0,
+		"yield": {"Semiconductor": 1.5},
+		"input": {"Si": 3, "Germanium": 1.5},
+		"interval": 5.0,
+		"research_req": "nano_fabrication",
+		"category": "industry"
+	},
+	"structural_press": {
+		"name": "Structural Press",
+		"description": "+1.0 StructuralComponent (-10 Fe, -5 Cu, -5 Si, -3 C, -2 Li)",
+		"cost": {"credits": 1100000, "Steel": 2200, "Ti": 150, "Circuit": 120},
+		"energy_gen": 0.0,
+		"energy_cons": 1600.0,
+		"yield": {"StructuralComponent": 1.0},
+		"input": {"Fe": 10, "Cu": 5, "Si": 5, "C": 3, "Li": 2},
+		"interval": 5.0,
+		"research_req": "metallurgy_advanced",
+		"category": "industry"
+	},
+	"chip_fab": {
+		"name": "Chip Fabrication Line",
+		"description": "+0.8 Chip (-1.6 Semiconductor, -0.8 Au, -4 N)",
+		"cost": {"credits": 1500000, "Steel": 2500, "Superalloy": 100, "Circuit": 150},
+		"energy_gen": 0.0,
+		"energy_cons": 2400.0,
+		"yield": {"Chip": 0.8},
+		"input": {"Semiconductor": 1.6, "Au": 0.8, "N": 4},
+		"interval": 5.0,
+		"research_req": "nano_fabrication",
+		"category": "industry"
+	},
 	"adv_circuit_foundry": {
 		"name": "Advanced Circuit Foundry",
-		"description": "+1.2 AdvCircuit (-5 Circuit, -4 Si, -2 Germanium)",
+		"description": "+1.2 AdvCircuit (-2.4 Semiconductor, -1.2 Au, -2.4 StructuralComponent)",
 		"cost": {"credits": 2000000, "Steel": 3000, "Superalloy": 120, "Circuit": 200},
 		"energy_gen": 0.0,
 		"energy_cons": 3500.0,
 		"yield": {"AdvCircuit": 1.2},
-		"input": {"Circuit": 5, "Si": 4, "Germanium": 2},
+		"input": {"Semiconductor": 2.4, "Au": 1.2, "StructuralComponent": 2.4},
 		"interval": 5.0,
 		"research_req": "nano_fabrication",
 		"category": "industry"

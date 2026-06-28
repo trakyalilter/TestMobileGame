@@ -693,8 +693,8 @@ var recipes: Dictionary = {
 	"refine_gold": {
 		"name": "Gold Panning",
 		"description": "Sift large amounts of dirt for Gold flakes.",
-		"input": {"Dirt": 100, "Water": 100},
-		"output": {"Au": 1},
+		"input": {"Dirt": 50, "Water": 50},
+		"output": {"Au": 2},
 		"duration": 12.0,
 		"level_req": 20, # Increased from 6
 		"xp": 30,
@@ -780,6 +780,16 @@ var recipes: Dictionary = {
 		"level_req": 15, # Increased from 4
 		"xp": 15, # Reduced from 25
 		"research_req": "combustion"
+	},
+	"refine_titanium": {
+		"name": "Titanium Reduction",
+		"description": "Reduce Dolomite ore into metallic Titanium sponge — the hand path before the Titanium Refinery.",
+		"input": {"Dolomite": 2},
+		"output": {"Ti": 1},
+		"duration": 8.0,
+		"level_req": 15,
+		"xp": 25,
+		"research_req": "adv_materials"
 	},
 	# Removed misplaced alloys here (moved up)
 	"craft_cobalt_battery": {
@@ -962,6 +972,78 @@ var recipes: Dictionary = {
 		"level_req": 75,
 		"xp": 1500,
 		"research_req": "exotic_matter_analysis",
+		"category": "endgame"
+	},
+	# ========== Phase B: LATE DEEP-CRAFT SPINE (Z8-10 module intermediates) ==========
+	# Z8 depth rung: crafted intermediate ABOVE QuantumCore so Z8's longest root > Z7's.
+	"refine_structural_lattice": {
+		"name": "Structural Lattice Press",
+		"description": "Bind a quantum core into an osmium-superalloy frame for capital-grade structure.",
+		"input": {"QuantumCore": 1, "Os": 3, "Superalloy": 8},
+		"output": {"StructuralLattice": 1},
+		"duration": 30.0,
+		"level_req": 78,
+		"xp": 1600,
+		"research_req": "zone_8_access",
+		"category": "endgame"
+	},
+	# Rung 1 intermediate gated at Z8 (Neutronium drop + mid Superalloy).
+	"refine_neutronium_plate": {
+		"name": "Neutronium Press",
+		"description": "Compress raw Neutronium with osmium and superalloy into structural plate.",
+		"input": {"Neutronium": 4, "Os": 2, "Superalloy": 5},
+		"output": {"NeutroniumPlate": 1},
+		"duration": 32.0,
+		"level_req": 80,
+		"xp": 1800,
+		"research_req": "zone_8_access",
+		"category": "endgame"
+	},
+	# Rung 1 intermediates gated at neutronium_synthesis (Z9 drops + mid QuantumCore).
+	"synth_bioreactor_core": {
+		"name": "Bio-Reactor Synthesis",
+		"description": "Culture pathogen samples around a quantum core into a self-sustaining bio-reactor.",
+		"input": {"BiohazardSample": 12, "PathogenCore": 3, "QuantumCore": 2},
+		"output": {"BioReactorCore": 1},
+		"duration": 35.0,
+		"level_req": 82,
+		"xp": 2000,
+		"research_req": "neutronium_synthesis",
+		"category": "endgame"
+	},
+	"weave_void_lattice": {
+		"name": "Void Lattice Weave",
+		"description": "Crystallize void essence around a quantum-core scaffold into a load-bearing lattice.",
+		"input": {"VoidEssence": 6, "VoidCrystal": 4, "QuantumCore": 2},
+		"output": {"VoidLattice": 1},
+		"duration": 35.0,
+		"level_req": 85,
+		"xp": 2200,
+		"research_req": "neutronium_synthesis",
+		"category": "endgame"
+	},
+	# Rung 2 intermediates (deeper — consume rung-1 intermediates + mid gate).
+	"forge_omega_composite": {
+		"name": "Omega Forge",
+		"description": "Laminate omega plating over a neutronium plate with advanced circuitry.",
+		"input": {"OmegaPlating": 6, "NeutroniumPlate": 2, "AdvCircuit": 30},
+		"output": {"OmegaComposite": 1},
+		"duration": 60.0,
+		"level_req": 90,
+		"xp": 4000,
+		"research_req": "primordial_engineering",
+		"category": "endgame"
+	},
+	# Rung 3 intermediate (deepest Z10 root: VoidEssence->VoidCrystal->VoidLattice->PrimordialMatrix).
+	"crystallize_primordial_matrix": {
+		"name": "Primordial Crystallizer",
+		"description": "Bind a primordial shard to diamond and a void lattice into a stable matrix.",
+		"input": {"PrimordialShard": 5, "Diamond": 3, "VoidLattice": 2},
+		"output": {"PrimordialMatrix": 1},
+		"duration": 90.0,
+		"level_req": 95,
+		"xp": 6000,
+		"research_req": "primordial_engineering",
 		"category": "endgame"
 	},
 	# ========== v86.0: UNIVERSAL COMPONENT CHAIN ==========

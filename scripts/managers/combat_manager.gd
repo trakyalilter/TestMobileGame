@@ -558,7 +558,7 @@ var enemy_db = {
 		"name": "Frost Hulk",
 		"stats": {"hp": 5000, "atk": 138, "def": 40, "atk_interval": 4.0, "accuracy": 48},
 		"loot": [["Steel", 8, 18], ["Fe", 15, 35], ["Res2", 1, 3], ["CryoEssence", 1, 2]],
-		"rare_loot": [["Ti", 0.15, 3, 8]],
+		"rare_loot": [["Ti", 0.15, 3, 8], ["Au", 0.20, 1, 3]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z4_kinetic", "z4_energy", "z4_shield", "z4_armor", "z4_sensor", "z4_engine"],
 		"xp": 130, "eva": 5, "zone": 4, "resist_k": -0.30, "resist_e": 0.25, "resist_x": 0.15, "dmg_type": "kinetic"
@@ -597,7 +597,7 @@ var enemy_db = {
 		"name": "Xenon Corvette",
 		"stats": {"hp": 6636, "max_shield": 2000, "atk": 352, "def": 70, "atk_interval": 2.0, "accuracy": 70},
 		"loot": [["credits", 4000, 8000], ["Ti", 10, 25], ["Res2", 2, 5], ["XenoFragment", 1, 3]],
-		"rare_loot": [["Superalloy", 0.08, 1, 3]],
+		"rare_loot": [["Superalloy", 0.08, 1, 3], ["Au", 0.25, 2, 5]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z5_kinetic", "z5_energy", "z5_missile", "z5_shield", "z5_armor"],
 		"xp": 350, "eva": 15, "zone": 5, "resist_k": 0.30, "resist_e": 0.0, "resist_x": -0.30, "dmg_type": "energy"

@@ -762,7 +762,7 @@ var modules: Dictionary = {
 		"name": "Railgun Mk.II",
 		"slot_type": "weapon",
 		"stats": {"atk_kinetic": 86, "energy_load": 30, "atk_interval": 2.0},
-		"cost": {"credits": 21296, "Steel": 80, "AdvCircuit": 5},
+		"cost": {"credits": 21296, "Steel": 80, "AdvCircuit": 9},
 		"desc": "High-velocity slug launcher.",
 		"zone": 4, "research_req": "zone_4_access"
 	},
@@ -770,7 +770,7 @@ var modules: Dictionary = {
 		"name": "Ion Lance",
 		"slot_type": "weapon",
 		"stats": {"atk_energy": 106, "energy_load": 40, "atk_interval": 2.0},
-		"cost": {"credits": 21296, "Ti": 60, "AdvCircuit": 5},
+		"cost": {"credits": 21296, "Ti": 60, "AdvCircuit": 9},
 		"desc": "Concentrated ion stream.",
 		"zone": 4, "research_req": "zone_4_access"
 	},
@@ -778,7 +778,7 @@ var modules: Dictionary = {
 		"name": "Cluster Warhead",
 		"slot_type": "weapon",
 		"stats": {"atk_explosive": 192, "energy_load": 45, "atk_interval": 4.0},
-		"cost": {"credits": 26620, "Steel": 100, "Chip": 10},
+		"cost": {"credits": 26620, "Steel": 100, "Chip": 18},
 		"desc": "Splits into sub-munitions on impact.",
 		"zone": 4, "research_req": "zone_4_access"
 	},
@@ -786,7 +786,7 @@ var modules: Dictionary = {
 		"name": "Cryo Shield",
 		"slot_type": "shield",
 		"stats": {"max_shield": 426, "shield_regen": 21},
-		"cost": {"credits": 15972, "Ti": 40, "AdvCircuit": 8},
+		"cost": {"credits": 15972, "Ti": 40, "AdvCircuit": 14},
 		"desc": "Supercooled barrier matrix.",
 		"zone": 4, "research_req": "zone_4_access"
 	},
@@ -888,7 +888,7 @@ var modules: Dictionary = {
 		"name": "Neutron Slugger",
 		"slot_type": "weapon",
 		"stats": {"atk_kinetic": 916, "energy_load": 120, "atk_interval": 2.0},
-		"cost": {"credits": 226758, "ExoticMatter": 10, "Ir": 10, "IrWAlloy": 5},
+		"cost": {"credits": 226758, "ExoticMatter": 10, "Ir": 10, "IrWAlloy": 5, "AdvCircuit": 40},
 		"desc": "Fires neutron-dense projectiles.",
 		"zone": 7, "research_req": "zone_7_access"
 	},
@@ -896,7 +896,7 @@ var modules: Dictionary = {
 		"name": "Void Beam",
 		"slot_type": "weapon",
 		"stats": {"atk_energy": 1131, "energy_load": 140, "atk_interval": 2.0},
-		"cost": {"credits": 226758, "ExoticMatter": 10, "VoidCrystal": 5},
+		"cost": {"credits": 226758, "ExoticMatter": 10, "VoidCrystal": 5, "AdvCircuit": 40},
 		"desc": "Drains energy from realspace.",
 		"zone": 7, "research_req": "zone_7_access"
 	},
@@ -904,7 +904,7 @@ var modules: Dictionary = {
 		"name": "Singularity Bomb",
 		"slot_type": "weapon",
 		"stats": {"atk_explosive": 2042, "energy_load": 160, "atk_interval": 4.0},
-		"cost": {"credits": 283448, "ExoticMatter": 15, "QuantumCore": 10},
+		"cost": {"credits": 283448, "ExoticMatter": 15, "QuantumCore": 10, "Chip": 55},
 		"desc": "Creates micro-singularity on impact.",
 		"zone": 7, "research_req": "zone_7_access"
 	},
@@ -912,7 +912,7 @@ var modules: Dictionary = {
 		"name": "Exotic Shield Matrix",
 		"slot_type": "shield",
 		"stats": {"max_shield": 4536, "shield_regen": 226},
-		"cost": {"credits": 170069, "ExoticMatter": 8, "VoidCrystal": 5},
+		"cost": {"credits": 170069, "ExoticMatter": 8, "VoidCrystal": 5, "AdvCircuit": 35},
 		"desc": "Exotic matter barrier. Near-impervious.",
 		"zone": 7, "research_req": "zone_7_access"
 	},
@@ -930,7 +930,7 @@ var modules: Dictionary = {
 		"name": "Prismatic Railgun",
 		"slot_type": "weapon",
 		"stats": {"atk_kinetic": 2015, "energy_load": 180, "atk_interval": 2.0},
-		"cost": {"credits": 498868, "VoidCrystal": 10, "Os": 5},
+		"cost": {"credits": 498868, "VoidCrystal": 10, "StructuralLattice": 2, "NeutroniumPlate": 2, "Steel": 4500},
 		"desc": "Crystal-focused kinetic lance.",
 		"zone": 8, "research_req": "zone_8_access"
 	},
@@ -938,7 +938,7 @@ var modules: Dictionary = {
 		"name": "Prism Annihilator",
 		"slot_type": "weapon",
 		"stats": {"atk_energy": 2489, "energy_load": 200, "atk_interval": 2.0},
-		"cost": {"credits": 498868, "VoidCrystal": 10, "ExoticMatter": 10},
+		"cost": {"credits": 498868, "VoidCrystal": 10, "ExoticMatter": 10, "StructuralLattice": 2, "Ti": 3500},
 		"desc": "Refracted energy cascade.",
 		"zone": 8, "research_req": "zone_8_access"
 	},
@@ -946,7 +946,7 @@ var modules: Dictionary = {
 		"name": "Quantum Torpedo",
 		"slot_type": "weapon",
 		"stats": {"atk_explosive": 4493, "energy_load": 240, "atk_interval": 4.0},
-		"cost": {"credits": 623585, "QuantumCore": 20, "VoidCrystal": 10},
+		"cost": {"credits": 623585, "QuantumCore": 20, "StructuralLattice": 3, "NeutroniumPlate": 3, "Steel": 5500},
 		"desc": "Exists in superposition until detonation.",
 		"zone": 8, "research_req": "zone_8_access"
 	},
@@ -954,7 +954,7 @@ var modules: Dictionary = {
 		"name": "Prismatic Barrier",
 		"slot_type": "shield",
 		"stats": {"max_shield": 9980, "shield_regen": 499},
-		"cost": {"credits": 374151, "VoidCrystal": 8, "ExoticMatter": 10},
+		"cost": {"credits": 374151, "VoidCrystal": 8, "ExoticMatter": 10, "StructuralLattice": 1, "Ti": 3000},
 		"desc": "Crystal lattice energy barrier.",
 		"zone": 8, "research_req": "zone_8_access"
 	},
@@ -962,7 +962,7 @@ var modules: Dictionary = {
 		"name": "Diamond Core Plate",
 		"slot_type": "armor",
 		"stats": {"def": 1244, "hp": 4990},
-		"cost": {"credits": 374151, "Diamond": 5, "VoidCrystal": 5},
+		"cost": {"credits": 374151, "Diamond": 5, "VoidCrystal": 5, "StructuralLattice": 2, "NeutroniumPlate": 2, "Steel": 4000},
 		"desc": "Carbon-lattice super-structure.",
 		"zone": 8, "research_req": "zone_8_access"
 	},
@@ -972,7 +972,7 @@ var modules: Dictionary = {
 		"name": "Pathogen Cannon",
 		"slot_type": "weapon",
 		"stats": {"atk_kinetic": 4432, "energy_load": 260, "atk_interval": 2.0},
-		"cost": {"credits": 1097510, "Neutronium": 10, "BiohazardSample": 20},
+		"cost": {"credits": 1097510, "BiohazardSample": 20, "BioReactorCore": 3, "Neutronium": 180, "Steel": 9000},
 		"desc": "Bio-corrosive projectiles.",
 		"zone": 9, "research_req": "zone_9_access"
 	},
@@ -980,7 +980,7 @@ var modules: Dictionary = {
 		"name": "Zero-Point Beam",
 		"slot_type": "weapon",
 		"stats": {"atk_energy": 5476, "energy_load": 300, "atk_interval": 2.0},
-		"cost": {"credits": 1097510, "Neutronium": 10, "ChronoCore": 2},
+		"cost": {"credits": 1097510, "ChronoCore": 2, "BioReactorCore": 3, "Neutronium": 180, "Ti": 8000},
 		"desc": "Extracts energy from vacuum fluctuations.",
 		"zone": 9, "research_req": "zone_9_access"
 	},
@@ -988,7 +988,7 @@ var modules: Dictionary = {
 		"name": "Biohazard Warhead",
 		"slot_type": "weapon",
 		"stats": {"atk_explosive": 9885, "energy_load": 350, "atk_interval": 4.0},
-		"cost": {"credits": 1371888, "BiohazardSample": 30, "Neutronium": 10},
+		"cost": {"credits": 1371888, "BiohazardSample": 30, "BioReactorCore": 4, "Neutronium": 200, "Steel": 11000},
 		"desc": "Viral payload. Corrodes all matter.",
 		"zone": 9, "research_req": "zone_9_access"
 	},
@@ -996,7 +996,7 @@ var modules: Dictionary = {
 		"name": "Quarantine Barrier",
 		"slot_type": "shield",
 		"stats": {"max_shield": 21956, "shield_regen": 1097},
-		"cost": {"credits": 823132, "Neutronium": 8, "PathogenCore": 5},
+		"cost": {"credits": 823132, "PathogenCore": 5, "BioReactorCore": 2, "Neutronium": 150, "Ti": 7000},
 		"desc": "Containment-grade barrier field.",
 		"zone": 9, "research_req": "zone_9_access"
 	},
@@ -1004,7 +1004,7 @@ var modules: Dictionary = {
 		"name": "Neutronium Plate",
 		"slot_type": "armor",
 		"stats": {"def": 2737, "hp": 10978},
-		"cost": {"credits": 823132, "Neutronium": 5, "Os": 5},
+		"cost": {"credits": 823132, "Os": 5, "NeutroniumPlate": 4, "Neutronium": 180, "Steel": 9000},
 		"desc": "Neutron-star density alloy.",
 		"zone": 9, "research_req": "zone_9_access"
 	},
@@ -1014,7 +1014,7 @@ var modules: Dictionary = {
 		"name": "Omega Cannon",
 		"slot_type": "weapon",
 		"stats": {"atk_kinetic": 9751, "energy_load": 400, "atk_interval": 2.0},
-		"cost": {"credits": 2414522, "PrimordialShard": 5, "OmegaPlating": 10},
+		"cost": {"credits": 2414522, "PrimordialShard": 5, "PrimordialMatrix": 3, "OmegaComposite": 2, "Neutronium": 200, "Steel": 13000},
 		"desc": "Final evolution of kinetic warfare.",
 		"zone": 10, "research_req": "zone_10_access"
 	},
@@ -1022,7 +1022,7 @@ var modules: Dictionary = {
 		"name": "Chrono Disruptor",
 		"slot_type": "weapon",
 		"stats": {"atk_energy": 12047, "energy_load": 450, "atk_interval": 2.0},
-		"cost": {"credits": 2414522, "ChronoCore": 5, "VoidEssence": 5},
+		"cost": {"credits": 2414522, "ChronoCore": 5, "PrimordialMatrix": 3, "OmegaComposite": 2, "Neutronium": 200, "Ti": 11000},
 		"desc": "Tears through spacetime itself.",
 		"zone": 10, "research_req": "zone_10_access"
 	},
@@ -1030,7 +1030,7 @@ var modules: Dictionary = {
 		"name": "Void Annihilator",
 		"slot_type": "weapon",
 		"stats": {"atk_explosive": 21747, "energy_load": 500, "atk_interval": 4.0},
-		"cost": {"credits": 3018153, "PrimordialShard": 8, "ChronoCore": 5},
+		"cost": {"credits": 3018153, "PrimordialShard": 8, "PrimordialMatrix": 4, "OmegaComposite": 3, "Neutronium": 220, "Steel": 15000},
 		"desc": "Erases matter from existence.",
 		"zone": 10, "research_req": "zone_10_access"
 	},
@@ -1038,7 +1038,7 @@ var modules: Dictionary = {
 		"name": "Void Aegis",
 		"slot_type": "shield",
 		"stats": {"max_shield": 48304, "shield_regen": 2415},
-		"cost": {"credits": 1810891, "VoidEssence": 10, "PrimordialShard": 5},
+		"cost": {"credits": 1810891, "VoidEssence": 10, "PrimordialMatrix": 2, "OmegaComposite": 2, "Neutronium": 170, "Ti": 9000},
 		"desc": "Reality-bending shield barrier.",
 		"zone": 10, "research_req": "zone_10_access"
 	},
@@ -1046,7 +1046,7 @@ var modules: Dictionary = {
 		"name": "Primordial Bulkhead",
 		"slot_type": "armor",
 		"stats": {"def": 6022, "hp": 24152},
-		"cost": {"credits": 1810891, "PrimordialShard": 3, "OmegaPlating": 5},
+		"cost": {"credits": 1810891, "PrimordialShard": 3, "PrimordialMatrix": 3, "OmegaComposite": 2, "Neutronium": 200, "Steel": 13000},
 		"desc": "Forged from primordial matter.",
 		"zone": 10, "research_req": "zone_10_access"
 	},

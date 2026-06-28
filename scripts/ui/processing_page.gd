@@ -33,6 +33,7 @@ var TAB_DEFS := [
 	{"id": "munitions",   "label": "Munitions",   "color": Color(0.95, 0.55, 0.25), "cats": ["munitions_kinetic", "munitions_energy", "munitions_explosive"]},
 	{"id": "repair",      "label": "Repair Kits", "color": Color(0.30, 0.90, 0.60), "cats": ["consumables_hull", "consumables_shield"]},
 	{"id": "research",    "label": "Research",    "color": Color(0.80, 0.45, 1.00), "cats": ["research"]},
+	{"id": "endgame",     "label": "Endgame",     "color": Color(0.85, 0.45, 0.85), "cats": ["endgame"]},
 ]
 # Sub-headers for merged tabs: sub_category_id → [label, accent].
 var SUB_DEFS := {
