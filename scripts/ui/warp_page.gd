@@ -38,6 +38,7 @@ var _first_warp_panel: PanelContainer
 
 # Readiness
 var _gain_big_lbl: Label
+var _charge_lbl: Label  # v121: Warp-Core Charge (Resonance) readout
 
 # Buttons
 var _warp_btn: Button
@@ -282,6 +283,16 @@ func _build_readiness():
 	resets.add_theme_color_override("font_color", COLOR_RESETS)
 	v.add_child(resets)
 
+	# v121: Warp-Core Charge (Resonance) readout strip
+	var charge_rule = ColorRect.new()
+	charge_rule.color = Color(1, 1, 1, 0.08)
+	charge_rule.custom_minimum_size = Vector2(0, 1)
+	v.add_child(charge_rule)
+	_charge_lbl = Label.new()
+	_charge_lbl.add_theme_font_size_override("font_size", 11)
+	_charge_lbl.add_theme_color_override("font_color", COLOR_SHARD)
+	v.add_child(_charge_lbl)
+
 	_apply_flat_panel(panel, UITheme.CATEGORY_COLORS["ops"])
 
 
@@ -507,6 +518,19 @@ func _refresh_readiness():
 	else:
 		_gain_big_lbl.text = "NOT READY"
 		_gain_big_lbl.add_theme_color_override("font_color", Color(0.65, 0.55, 0.55))
+
+	# v121: Warp-Core Charge readout (current Resonance + projected bonus + gross draw rate).
+	if _wm != null and _charge_lbl != null:
+		var rate := 0.0
+		for sym in _wm.CHARGE_BASKET:
+			rate += float(_wm.CHARGE_BASKET[sym])
+		rate *= _wm.get_charge_rate_mult()
+		var bonus := int(_wm.get_charge_bonus_shards(gains))
+		_charge_lbl.text = "◈ RESONANCE  %s   →  +%d bonus %s   (draining ~%s surplus/s)" % [
+			FormatUtils.format_number(_wm.warp_charge),
+			bonus, ("shard" if bonus == 1 else "shards"),
+			FormatUtils.format_number(rate),
+		]
 
 
 # Per-frame live values: progress bar + button enable state.

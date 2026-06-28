@@ -124,7 +124,8 @@ func _process(delta):
 	# 1. Background Automation (Infrastructure)
 	if infrastructure_manager: infrastructure_manager.process_tick(delta)
 	if bounty_manager: bounty_manager.process_tick(delta)
-	
+	if warp_manager: warp_manager.process_charge(delta)  # v121: Warp-Core Charge sink (always-on)
+
 	# 2. Active Foreground Task
 	# In Python it was one active manager. 
 	# In Godot we can stick to that or allow parallel.
@@ -209,7 +210,7 @@ func set_active_manager(manager):
 
 func save_game():
 	var save_data = {
-		"version": 2, # v2: P1 per-action/per-recipe mastery added to gathering/processing
+		"version": 3, # v3: warp_charge (Warp-Core Charge / Resonance) added to prestige
 		"resources": resources.get_save_data(),
 		"gathering": gathering_manager.get_save_data_manager(),
 		"processing": processing_manager.get_save_data_manager(),
@@ -269,7 +270,13 @@ func migrate_save(data: Dictionary, from_version: int) -> Dictionary:
 		if data.has("processing") and data["processing"] is Dictionary:
 			if not data["processing"].has("mastery"):
 				data["processing"]["mastery"] = {}
-	data["version"] = 2
+	# v2 -> v3 (Warp-Core Charge / Resonance). Additive; load defaults warp_charge
+	# to 0.0 anyway, so this just backfills the prestige dict for cleanliness.
+	if from_version < 3:
+		if data.has("prestige") and data["prestige"] is Dictionary:
+			if not data["prestige"].has("warp_charge"):
+				data["prestige"]["warp_charge"] = 0.0
+	data["version"] = 3
 	return data
 
 func load_game():
@@ -296,7 +303,7 @@ func load_game():
 
 		# Version Check & Migration
 		var ver = data.get("version", 0)
-		if ver < 2:
+		if ver < 3:
 			data = migrate_save(data, ver)
 			
 		resources.load_save_data(data.get("resources", {}))
@@ -391,6 +398,23 @@ func process_offline_progress(delta: float):
 
 	var i_report = infrastructure_manager.calculate_offline(delta)
 	if i_report: reports.append(i_report)
+
+	# v121: Warp-Core Charge consumes offline-produced surplus base materials in
+	# ONE closed-form pass (rate*delta per symbol, clamped by inventory above the
+	# reserve floor — bounded O(basket), no per-second sim). delta is already
+	# capped upstream; offline accrual is additionally STOCK-bounded by the slot
+	# cap, so real offline charge is min(rate*delta, surplus stock).
+	if warp_manager:
+		var charge_gained = warp_manager.process_charge(delta)
+		if charge_gained > 0.0:
+			var pending = warp_manager.get_charge_bonus_shards()
+			reports.append({
+				"category": "prestige", "title": "Warp-Core Charge", "action": "Resonance",
+				"time_sec": int(delta), "actions": 0, "xp": 0,
+				"gains": {}, "drains": {},
+				"notes": ["+%s Resonance accrued (redeemable as +%d bonus shards at your next ready Warp)." % [
+					FormatUtils.format_number(charge_gained), pending]],
+			})
 
 	var r_report = research_manager.calculate_offline(delta)
 	if r_report: reports.append(r_report)

@@ -46,6 +46,14 @@ var credits_at_warp_start: float = 0.0 # To prevent infinite shard loop
 var purchased_nodes: Dictionary = {}  # {node_id: true} — persists across warps
 var warp_shards_spent: float = 0.0    # cumulative spend; available = shards - spent
 
+# v121: Warp-Core Charge ("Resonance") — per-RUN accumulator. The Warp Core
+# continuously consumes a basket of BASE materials (fed by always-on infra)
+# ABOVE a reserve floor and accrues charge; charge converts to BONUS shards at
+# execute_warp, then resets to 0. This is the continuous, tier-scaling
+# base-material sink that makes building MANY primitive extractors finally pay.
+# It NEVER gates active skilling — only surplus above CHARGE_RESERVE is eaten.
+var warp_charge: float = 0.0
+
 func get_warp_tier() -> int:
 	# Tier increases every 5 warps
 	return int(total_warps / 5)
@@ -71,13 +79,16 @@ func calculate_warp_gains() -> int:
 	return int(shards)
 
 func execute_warp():
-	var gains = calculate_warp_gains()
-	if gains <= 0: return
+	var base_gains = calculate_warp_gains()
+	if base_gains <= 0: return
+	var charge_bonus = get_charge_bonus_shards(base_gains)   # v121: Warp-Core Charge
+	var gains = base_gains + charge_bonus
 	
 	warp_shards += gains
 	total_warps += 1
 	credits_at_warp_start = GameState.resources.lifetime_credits
-	
+	warp_charge = 0.0   # v121: Resonance is per-run — spent at warp
+
 	# Cache shard count for post-reset bonuses
 	var current_bonus_shards = warp_shards
 	
@@ -225,6 +236,83 @@ func get_tree_damage_bonus() -> float:
 func get_tree_cryo_bonus() -> float:
 	return 1.50 if is_node_purchased("C5") else 1.0
 
+# === v121: Warp-Core Charge sink =========================================
+# Per-tick basket the Core consumes. Spread WIDE across the PRIMITIVE pyramid:
+# bulk raws (Dirt/Water/Wood) carry the dominant weight; the raw ORES
+# (Malachite/Cassiterite/Bauxite/Quartz/Dolomite/ZincOre — the DR-uncapped ore
+# extractors) fan demand to those 21 buildings; Fe/Si/C (low weight) are the
+# converter-fed channel that keeps active processing relevant. Cu/Steel/Ti are
+# intentionally OMITTED (pure converter outputs, 10/10-capped, can't be stacked).
+# Values = units demanded/sec at tier 0, mult 1.0.
+const CHARGE_BASKET := {
+	"Dirt": 70.0, "Water": 70.0, "Wood": 55.0,
+	"Malachite": 4.0, "Cassiterite": 4.0, "Bauxite": 6.0,
+	"Quartz": 3.0, "Dolomite": 4.0, "ZincOre": 4.0,
+	"Fe": 6.0, "Si": 6.0, "C": 4.0,
+}
+# Per-symbol floor: the Core only eats inventory ABOVE this, so an active
+# gatherer/processor of the same material is never starved — only true surplus.
+const CHARGE_RESERVE := {
+	"Dirt": 5000.0, "Water": 5000.0, "Wood": 5000.0,
+	"Malachite": 1000.0, "Cassiterite": 1000.0, "Bauxite": 1000.0,
+	"Quartz": 1000.0, "Dolomite": 1000.0, "ZincOre": 1000.0,
+	"Fe": 2000.0, "Si": 2000.0, "C": 2000.0,
+}
+const CHARGE_RESERVE_DEFAULT := 1000.0
+const CHARGE_PER_UNIT := 1.0
+# Each warp_tier multiplies the demand RATE (and thus charge gained) — LINEAR
+# (1 + 0.6*tier), tracking linear extractor stacking NOT the 2^tier production
+# mult. tier0=1x, tier2=2.2x, tier5=4x.
+const CHARGE_TIER_COEF := 0.6
+
+func get_charge_rate_mult() -> float:
+	return 1.0 + CHARGE_TIER_COEF * float(get_warp_tier())
+
+# Called every background tick (online) and once with elapsed delta (offline).
+# Consumes a tier-scaled basket of base materials ABOVE the per-symbol reserve
+# floor, accruing warp_charge. Each symbol independent: consume
+# min(want, max(0, have - reserve)) — a shortfall just zeroes THAT symbol's
+# contribution (partial accrual), never blocks others, never drops the active
+# gatherer below the floor. Returns charge gained.
+func process_charge(delta: float) -> float:
+	if delta <= 0.0: return 0.0
+	var tmult := get_charge_rate_mult()
+	var gained := 0.0
+	for sym in CHARGE_BASKET:
+		var want: float = float(CHARGE_BASKET[sym]) * tmult * delta
+		if want <= 0.0: continue
+		var reserve: float = float(CHARGE_RESERVE.get(sym, CHARGE_RESERVE_DEFAULT))
+		var have: float = GameState.resources.get_element_amount(sym)
+		var avail: float = have - reserve
+		if avail <= 0.0: continue
+		var take: float = min(want, avail)
+		if take <= 0.0: continue
+		# remove_element is all-or-nothing; take <= have, so it always succeeds.
+		if GameState.resources.remove_element(sym, take):
+			gained += take * CHARGE_PER_UNIT
+	if gained > 0.0:
+		warp_charge += gained
+	return gained
+
+# Bonus shards the current warp_charge is worth. Log-scaled so early charge
+# gives a real boost but saturates hard. Capped to +50% of the run's BASE shards
+# (with a +1 floor once past the knee) AND an absolute +5, so it can never
+# out-earn the progress_score climb that anchors the shard economy.
+const CHARGE_PER_BONUS_SHARD := 250000.0
+const CHARGE_BONUS_FRAC_CAP := 0.5
+const CHARGE_BONUS_ABS_CAP := 5
+
+func get_charge_bonus_shards(base_shards: int = -1) -> int:
+	if warp_charge < CHARGE_PER_BONUS_SHARD: return 0
+	var raw: float = floor(log(warp_charge / CHARGE_PER_BONUS_SHARD) / log(2.0)) + 1.0
+	var bonus := int(max(0.0, raw))
+	if base_shards < 0:
+		base_shards = calculate_warp_gains()
+	var cap_by_base: int = (max(int(floor(float(base_shards) * CHARGE_BONUS_FRAC_CAP)), 1) if base_shards > 0 else 0)
+	bonus = int(min(bonus, cap_by_base))
+	bonus = int(min(bonus, CHARGE_BONUS_ABS_CAP))
+	return bonus
+
 # === Save / Load =========================================================
 
 func get_save_data_manager() -> Dictionary:
@@ -234,6 +322,7 @@ func get_save_data_manager() -> Dictionary:
 	data["credits_at_warp_start"] = credits_at_warp_start
 	data["purchased_nodes"] = purchased_nodes
 	data["warp_shards_spent"] = warp_shards_spent
+	data["warp_charge"] = warp_charge          # v121: Warp-Core Charge
 	return data
 
 func load_save_data_manager(data: Dictionary):
@@ -243,6 +332,7 @@ func load_save_data_manager(data: Dictionary):
 	credits_at_warp_start = data.get("credits_at_warp_start", 0.0)
 	purchased_nodes = data.get("purchased_nodes", {})
 	warp_shards_spent = float(data.get("warp_shards_spent", 0.0))
+	warp_charge = float(data.get("warp_charge", 0.0))   # v121: defaults 0 on old saves
 
 # v107: Full reset for HARD RESET path only. WARP resets (execute_warp) must
 # never call this — they intentionally preserve shards, total_warps, and the
@@ -257,3 +347,4 @@ func reset(decay_factor: float = 1.0) -> void:
 	warp_shards_spent = 0.0
 	purchased_nodes = {}
 	credits_at_warp_start = 0.0
+	warp_charge = 0.0   # v121: Warp-Core Charge cleared on hard reset
