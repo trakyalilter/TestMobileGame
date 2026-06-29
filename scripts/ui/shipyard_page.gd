@@ -7,7 +7,6 @@ extends Control
 @onready var energy_lbl = $VBoxContainer/StatsPanel/HBoxContainer/EnergyLabel
 @onready var rack_container = $VBoxContainer/ScrollContainer/RackContainer
 
-var repair_btn: Button
 var manager: RefCounted
 var hull_widget_scene = preload("res://scenes/ui/hull_widget.tscn")
 var module_widget_scene = preload("res://scenes/ui/module_widget.tscn")
@@ -61,16 +60,8 @@ func _ready():
 	$VBoxContainer/StatsPanel.mouse_filter = Control.MOUSE_FILTER_PASS
 	$VBoxContainer/StatsPanel/HBoxContainer.mouse_filter = Control.MOUSE_FILTER_PASS
 	
-	# Create Repair Button dynamically
-	repair_btn = Button.new()
-	repair_btn.text = "Repair (0 Liras)"
-	repair_btn.custom_minimum_size = Vector2(120, 30) # Ensure it's clickable
-	repair_btn.mouse_filter = Control.MOUSE_FILTER_STOP # Detect clicks
-	repair_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	repair_btn.pressed.connect(_on_repair_pressed)
-	$VBoxContainer/StatsPanel/HBoxContainer.add_child(repair_btn)
-	UITheme.apply_premium_button_style(repair_btn, "shipyard")
-
+	# v124: Lira/kit repair button removed — hull is restored by using consumables
+	# (the combat-HUD repair-kit buttons, no cooldown out of combat).
 	_style_stats_panel()
 	_setup_tabs()
 	call_deferred("refresh_list")
@@ -95,7 +86,6 @@ func _style_stats_panel():
 			child.add_theme_font_size_override("font_size", 13)
 
 func _process(_delta):
-	_update_repair_button()
 	_update_stats_display()
 
 func _on_mission_updated():
@@ -112,28 +102,6 @@ func _on_inventory_updated():
 func _on_tech_unlocked(_tech_id = null):
 	_on_resource_changed()  # re-evaluate every craft card's research lock
 
-func _update_repair_button():
-	if not repair_btn: return
-	var cost = manager.get_repair_cost()
-	
-	# Audit v68.0: Combat awareness for repairing
-	if GameState.combat_manager and GameState.combat_manager.in_combat:
-		repair_btn.text = "In Combat"
-		repair_btn.disabled = true
-		repair_btn.modulate = Color.WHITE
-	elif cost == 0:
-		repair_btn.text = "Hull OK"
-		repair_btn.disabled = true
-		repair_btn.modulate = Color.WHITE
-	else:
-		repair_btn.text = "Repair (%d Liras)" % cost
-		repair_btn.disabled = not manager.can_repair()
-		
-		# Make the button flashy to catch the player's eye
-		var t = Time.get_ticks_msec() / 200.0
-		var pulse = (sin(t) + 1.0) / 2.0
-		repair_btn.modulate = Color.WHITE.lerp(Color(1.0, 0.2, 0.2), pulse)
-
 func _update_stats_display():
 	if hp_lbl:
 		hp_lbl.text = "HP: %d / %d" % [manager.current_hp, manager.max_hp]
@@ -149,12 +117,9 @@ func _update_stats_display():
 		energy_lbl.text = "Energy: %d/%d" % [e_used, e_max]
 		energy_lbl.modulate = Color(1, 0.3, 0.3) if e_used > e_max else Color.WHITE
 
-func _on_repair_pressed():
-	print("[UI] Repair button pressed!")
-	if manager.repair_hull():
-		print("[UI] Repair successful, refreshing UI...")
-		_update_stats_display()
-		_update_repair_button()
+# v124: _on_repair_pressed / repair button removed — repair is now done by using
+# repair-kit consumables (combat HUD), no Liras. shipyard_manager.repair_hull()
+# remains (kit-based) for any programmatic callers.
 
 
 func refresh_list():

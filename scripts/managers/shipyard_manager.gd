@@ -2350,27 +2350,23 @@ func can_repair() -> bool:
 	return has_damage and can_afford
 
 func repair_hull() -> bool:
-	print("[Repair] Attempting repair...")
-	
-	# Audit v68.0: Prevent repairs during active combat
+	# v124: hull repair CONSUMES the equipped hull repair kit (no Liras). Out of
+	# combat consumables have no cooldown, so this tops up to full by spending
+	# kits one at a time. No kit/stock -> can't repair; craft an Emergency Patch
+	# (20 Fe, lvl 1, no research — the always-available anti-softlock floor).
 	if GameState.combat_manager and GameState.combat_manager.in_combat:
-		print("[Repair] Failed: Combat in progress.")
 		return false
-		
 	if current_hp >= max_hp:
-		print("[Repair] Failed: Already at max HP (%f/%d)" % [current_hp, max_hp])
 		return false
-	
-	var cost = get_repair_cost()
-	var credits_val = GameState.resources.get_currency("credits")
-	
-	if credits_val < cost:
-		print("[Repair] Failed: Insufficient credits (%f < %d)" % [credits_val, cost])
+	var kit = consumable_hull_slot
+	if kit == "" or GameState.resources.get_element_amount(kit) < 1:
+		print("[Repair] No hull repair kit equipped/stocked.")
 		return false
-	
-	GameState.resources.remove_currency("credits", cost)
-	current_hp = max_hp
-	print("[Repair] Success! New HP: %d" % current_hp)
+	var cm = GameState.combat_manager
+	var guard := 0
+	while current_hp < max_hp and GameState.resources.get_element_amount(kit) >= 1 and guard < 200:
+		cm.use_manual_consumable("hull")
+		guard += 1
 	return true
 	
 func reset(decay_factor: float = 1.0) -> void:

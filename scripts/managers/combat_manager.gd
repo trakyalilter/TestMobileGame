@@ -1451,6 +1451,7 @@ func can_swap_loadout_in_combat() -> bool:
 func retreat():
 	in_combat = false
 	current_enemy = null
+	consumable_cooldown = 0.0   # v124: clear so out-of-combat repair-kit buttons aren't stuck disabled by a stale cooldown
 	log_msg("Emergency Warp engaged!")
 
 func stop_action():
@@ -2431,12 +2432,9 @@ func _maybe_offline_combat_nudge() -> void:
 
 func lose_fight():
 	var sm = GameState.shipyard_manager
-	var cost = sm.get_full_repair_cost(sm.active_hull)
-	var current_credits = GameState.resources.get_currency("credits")
-	if cost > current_credits:
-		cost = current_credits
-	GameState.resources.add_currency("credits", -cost)
-	
+	# v124: no Lira death penalty — losing costs the consumed kits (to re-heal)
+	# + module durability damage below, not credits.
+
 	# v100.0: Module Durability System
 	sm.handle_module_defeat()
 	
@@ -2488,7 +2486,7 @@ func _warn_no_ammo():
 	})
 
 func use_manual_consumable(type: String):
-	if consumable_cooldown > 0: return
+	if in_combat and consumable_cooldown > 0: return   # v124: no cooldown out of combat
 	
 	var sm = GameState.shipyard_manager
 	var item_id = ""
@@ -2527,10 +2525,15 @@ func _trigger_consumable(item_id: String, sm: Object):
 	if data.is_empty(): return
 	
 	GameState.resources.remove_element(item_id, 1)
-	consumable_cooldown = consumable_cooldown_max
-	
+	# v124: cooldown only applies IN combat — out of combat (repairing between
+	# fights) consumables fire freely so the player can top up to full.
+	if in_combat:
+		consumable_cooldown = consumable_cooldown_max
+
 	var heal_pct = data.get("heal_pct", 0.0)
-	heal_pct *= _kit_tier_factor(sm) * kit_potency_dbg   # v3: kits weaken on big hulls; _dbg=1.0 in normal play
+	heal_pct *= kit_potency_dbg
+	if in_combat:
+		heal_pct *= _kit_tier_factor(sm)   # v3: kits weaken on big hulls IN COMBAT (death tension); full strength for out-of-combat repair
 	var type = data.get("type", "hull")
 	var dname = data.get("name", "Consumable")
 	
