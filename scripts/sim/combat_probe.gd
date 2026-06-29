@@ -27,9 +27,9 @@ const ZONES := [
 	{"zone": "sector_epsilon", "boss": "z10_boss_leviathan",   "t": 10, "hull": "leviathan_hull"},
 ]
 
-const MODE := "matrix"   # "matrix" (full win-rate) | "tune" (2D ATK×HP gate sweep) | "diag" (ship state)
-const ATK_MULTS := [1.4, 1.9, 2.5]   # ×current (v1-baked) boss atk — search UP for the cons=Y~80% gate
-const HP_MULTS := [0.70, 1.0]        # ×current baked hp (1.0 keeps v1's ×0.50; 0.70 → ~×0.35 of original)
+const MODE := "matrix"   # "matrix" (full win-rate) | "tune" (kit×ATK death-tension sweep) | "diag" (ship state)
+const KIT_POTS := [0.25, 0.40, 0.60]   # ×consumable heal_pct (nerfed; kits help but don't guarantee)
+const ATK_MULTS := [1.3, 1.6, 2.0]     # ×v2 boss atk — death tension needs HARDER bosses than v2 (v2 was tuned for full-kit sustain, so kits couldn't matter); push bare ~30%, kits recover to ~80%
 const TUNE_TRIALS := 10
 
 func _ready() -> void:
@@ -44,12 +44,11 @@ func _ready() -> void:
 				_run(String(z["zone"]), String(z["boss"]), int(z["t"]), [String(z["hull"])], [2, 3, 4])
 	get_tree().quit()
 
-# Per zone, sweep boss-HP multipliers at LEGENDARY (the target rarity) and report
-# cons=N / cons=Y win-rate + median kill time, so the knee that lands the matched
-# hull in the "~50% bare / ~70-80% kits" band is visible in one run. HP is the
-# primary lever: it cuts the DPS-wall AND shortens the fight (less exposure ->
-# better survival). atk stays at 1.0 here; if a zone's cons=N stays far below
-# cons=Y even at deep HP trims, that zone also needs an ATK trim.
+# Death-tension sweep: per zone, vary KIT POTENCY (×heal_pct) and boss ATK, report
+# LEG+kits (target ~80% — kits help but the fight is losable) + LEG bare (the
+# kit-independent ramp, keep ~50%) + median kill time. Kit potency is the primary
+# lever (full kits = infinite sustain on big hulls); ATK softens if the nerf
+# over-craters. HP stays at v2 (×1.0).
 func _tune() -> void:
 	for z in ZONES:
 		var zone := String(z["zone"])
@@ -58,31 +57,25 @@ func _tune() -> void:
 		var hull := String(z["hull"])
 		var e: Dictionary = GameState.combat_manager.enemy_db.get(boss, {})
 		var base_atk := int(e.get("stats", {}).get("atk", 0))
-		var base_hp := int(e.get("stats", {}).get("hp", 0))
-		print("[TUNE] === Z%d %s vs %s  (v1 baked hp=%d atk=%d) ===" % [ztier, hull, boss, base_hp, base_atk])
-		for hp_raw in HP_MULTS:
-			for atk_raw in ATK_MULTS:
-				var hm := float(hp_raw)
+		print("[TUNE] === Z%d %s vs %s  (v2 atk=%d; target LEG+kits ~80%% w/ death risk) ===" % [ztier, hull, boss, base_atk])
+		for atk_raw in ATK_MULTS:
+			for kit_raw in KIT_POTS:
 				var am := float(atk_raw)
-				var ly := 0   # LEGENDARY + kits (target ~80%)
-				var ln := 0   # LEGENDARY bare   (target ~25%)
-				var ry := 0   # RARE + kits      (target ~30% — the gate)
+				var kp := float(kit_raw)
+				var ly := 0   # LEG + kits (target ~80%)
+				var ln := 0   # LEG bare   (kit-independent ramp)
 				var lyt := []
 				for t in range(TUNE_TRIALS):
-					var a: Dictionary = _test(hull, zone, boss, ztier, 3, true, t, hm, am)
+					var a: Dictionary = _test(hull, zone, boss, ztier, 3, true, t, 1.0, am, kp)
 					if a["won"]:
 						ly += 1
 						lyt.append(a["t"])
-					var b: Dictionary = _test(hull, zone, boss, ztier, 3, false, t, hm, am)
+					var b: Dictionary = _test(hull, zone, boss, ztier, 3, false, t, 1.0, am, kp)
 					if b["won"]:
 						ln += 1
-					var c: Dictionary = _test(hull, zone, boss, ztier, 2, true, t, hm, am)
-					if c["won"]:
-						ry += 1
-				print("[TUNE] Z%-2d hp=%-9d atk=%-7d | LEG kits %3d%% bare %3d%% med=%ss | RARE kits %3d%%" % [
-					ztier, int(base_hp * hm), int(base_atk * am),
-					int(round(100.0 * ly / TUNE_TRIALS)), int(round(100.0 * ln / TUNE_TRIALS)), _med(lyt),
-					int(round(100.0 * ry / TUNE_TRIALS))])
+				print("[TUNE] Z%-2d atk=%-7d kit×%.2f | LEG kits %3d%% bare %3d%% med=%ss" % [
+					ztier, int(base_atk * am), kp,
+					int(round(100.0 * ly / TUNE_TRIALS)), int(round(100.0 * ln / TUNE_TRIALS)), _med(lyt)])
 
 # Builds the matched hull at the given rarity and reports WHY a cell wins or
 # loses: power (eu>ec or weapons stripped), dps (weapons fire but weak), or
@@ -209,12 +202,13 @@ func _equip(idx: int, suffix: String, ztier: int, rarity: int) -> bool:
 	sm.recalc_stats()
 	return ok
 
-func _build_ship(hull: String, zone: String, boss: String, ztier: int, rarity: int, use_cons: bool, trial: int) -> void:
+func _build_ship(hull: String, zone: String, boss: String, ztier: int, rarity: int, use_cons: bool, trial: int, kit_pot: float = 1.0) -> void:
 	GameState.hard_reset()
 	_fund()
 	seed(hash("%s_%d_%d" % [hull, rarity, trial]))   # paired across cons; reproducible
 	var sm = GameState.shipyard_manager
 	var cm = GameState.combat_manager
+	cm.kit_potency_dbg = kit_pot   # death-tension sweep: scale consumable heal_pct
 	if cm.in_combat: cm.retreat()
 	sm.construct_hull(hull)
 	sm.active_hull = hull
@@ -247,8 +241,8 @@ func _build_ship(hull: String, zone: String, boss: String, ztier: int, rarity: i
 		sm.unequip_consumable("hull")
 		sm.unequip_consumable("shield")
 
-func _test(hull: String, zone: String, boss: String, ztier: int, rarity: int, use_cons: bool, trial: int, hp_mult: float = 1.0, atk_mult: float = 1.0) -> Dictionary:
-	_build_ship(hull, zone, boss, ztier, rarity, use_cons, trial)
+func _test(hull: String, zone: String, boss: String, ztier: int, rarity: int, use_cons: bool, trial: int, hp_mult: float = 1.0, atk_mult: float = 1.0, kit_pot: float = 1.0) -> Dictionary:
+	_build_ship(hull, zone, boss, ztier, rarity, use_cons, trial, kit_pot)
 	var sm = GameState.shipyard_manager
 	var cm = GameState.combat_manager
 	cm.start_expedition(zone)
