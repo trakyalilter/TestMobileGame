@@ -2198,7 +2198,7 @@ func _craft_card(id: String, r: Dictionary) -> Control:
 			# QoL (desktop parity): show the required input, green when you have enough
 			# of that material, amber when short — so missing inputs read at a glance.
 			var need: int = int(r["inputs"][sym])
-			in_lines.append(_line("%d %s" % [need, GameData.res_name(sym)], GREEN if GameState.amount(sym) >= need else C_WARN))
+			in_lines.append(_line("%d %s" % [need, GameData.res_name(sym)], GREEN if GameState.amount(sym) >= need else C_WARN, sym))
 		_inset(v, "INPUTS", in_lines, CYAN)
 		var d := Label.new()
 		d.text = "▼"
@@ -2208,9 +2208,9 @@ func _craft_card(id: String, r: Dictionary) -> Control:
 		v.add_child(d)
 		var out_lines := []
 		for sym in r.get("outputs", {}):
-			out_lines.append(_line("%d %s" % [int(r["outputs"][sym]), GameData.res_name(sym)], C_TEXT))
+			out_lines.append(_line("%d %s" % [int(r["outputs"][sym]), GameData.res_name(sym)], C_TEXT, sym))
 		for row in r.get("bonus", []):
-			out_lines.append(_line("+%d%% %s" % [int(float(row[1]) * 100.0), GameData.res_name(row[0])], _hex(GameData.color_for(row[0]))))
+			out_lines.append(_line("+%d%% %s" % [int(float(row[1]) * 100.0), GameData.res_name(row[0])], _hex(GameData.color_for(row[0])), row[0]))
 		_inset(v, "OUTPUT", out_lines, CYAN, true)
 		var rt := GameState.rate_text("craft", id)
 		if rt != "":
@@ -2476,9 +2476,9 @@ func _show_enemy_intel(eid: String) -> void:
 	var rare := []
 	for row2 in e.get("loot", []):
 		if float(row2[1]) >= 1.0:
-			guaranteed.append(_line("%s %d-%d" % [GameData.item_name(row2[0]), int(row2[2]), int(row2[3])], _hex(GameData.color_for(row2[0]))))
+			guaranteed.append(_line("%s %d-%d" % [GameData.item_name(row2[0]), int(row2[2]), int(row2[3])], _hex(GameData.color_for(row2[0])), row2[0]))
 		else:
-			rare.append(_line("★ %s %d-%d  (%d%%)" % [GameData.item_name(row2[0]), int(row2[2]), int(row2[3]), int(float(row2[1]) * 100.0)], PURP))
+			rare.append(_line("★ %s %d-%d  (%d%%)" % [GameData.item_name(row2[0]), int(row2[2]), int(row2[3]), int(float(row2[1]) * 100.0)], PURP, row2[0]))
 	if not guaranteed.is_empty():
 		_inset(v, "GUARANTEED DROPS", guaranteed, GOLD)
 	if not rare.is_empty():
@@ -2908,7 +2908,7 @@ func _building_card(bid: String, d: Dictionary) -> Control:
 		var nm := "Credits" if sym == "credits" else GameData.res_name(sym)
 		eff_lines.append(_line("+%s %s" % [str(d["yield"][sym]), nm], GREEN))
 	for sym in d.get("input", {}):
-		eff_lines.append(_line("-%d %s" % [int(d["input"][sym]), GameData.res_name(sym)], C_WARN))
+		eff_lines.append(_line("-%d %s" % [int(d["input"][sym]), GameData.res_name(sym)], C_WARN, sym))
 	if float(d.get("energy_gen", 0.0)) > 0.0:
 		eff_lines.append(_line("+%d kW" % int(d["energy_gen"]), CYAN))
 	if float(d.get("energy_cons", 0.0)) > 0.0:
@@ -3291,7 +3291,7 @@ func _build_fleet() -> void:
 		var cl := []
 		for sym in hd.get("cost", {}):
 			var need := int(hd["cost"][sym])
-			cl.append(_line("%s %s" % [GameData.fmt(need), GameData.res_name(sym)], GREEN if GameState.amount(sym) >= need else C_WARN))
+			cl.append(_line("%s %s" % [GameData.fmt(need), GameData.res_name(sym)], GREEN if GameState.amount(sym) >= need else C_WARN, sym))
 		_inset(c, "COST", cl, GOLD)
 		var b := _card_button("Fleet full" if full else "Build", GOLD, can)
 		if can:
@@ -4882,7 +4882,7 @@ func _show_research_detail(id: String) -> void:
 	for sym in t.get("items", {}):
 		var need := int(t["items"][sym])
 		var have := GameState.amount(sym)
-		lines.append(_line("%s   %s / %d" % [GameData.res_name(sym), GameData.fmt(have), need], GREEN if have >= need else C_WARN))
+		lines.append(_line("%s   %s / %d" % [GameData.res_name(sym), GameData.fmt(have), need], GREEN if have >= need else C_WARN, sym))
 	_inset(v, "REQUIREMENTS", lines, PURP)
 	var par: String = t.get("parent", "")
 	if par != "" and not GameState.is_research_unlocked(par):
@@ -5499,6 +5499,10 @@ func _storage_tile(sym: String) -> Control:
 	vb.add_theme_constant_override("separation", 1)
 	vb.alignment = BoxContainer.ALIGNMENT_CENTER
 	m.add_child(vb)
+	var ic := _mat_icon(sym, 34)
+	if ic != null:
+		ic.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		vb.add_child(ic)
 	var nm := Label.new()
 	nm.text = GameData.res_name(sym)
 	nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -5801,6 +5805,37 @@ func _card_head(v: VBoxContainer, icon: String, name: String, badge: String, acc
 		hb.add_child(bd)
 	v.add_child(hb)
 
+# --- Material icons (ported from the desktop assets/icons/materials) --------
+# 64x64 monochrome SVGs keyed by resource symbol, tinted by the material's color.
+# Cached. Symbols with no icon (equipment instances, credits, blueprints) return
+# null and the caller falls back to the plain text / colour treatment.
+var _mat_icon_cache := {}
+
+func _mat_icon_tex(sym: String) -> Texture2D:
+	if _mat_icon_cache.has(sym):
+		return _mat_icon_cache[sym]
+	var tex: Texture2D = null
+	var path := "res://assets/icons/materials/%s.svg" % sym
+	if ResourceLoader.exists(path):
+		tex = load(path)
+	_mat_icon_cache[sym] = tex
+	return tex
+
+# A square TextureRect for a material's icon (tinted by its colour), or null when
+# the symbol has no icon. px = side length in virtual pixels.
+func _mat_icon(sym: String, px: int) -> TextureRect:
+	var tex := _mat_icon_tex(sym)
+	if tex == null:
+		return null
+	var t := TextureRect.new()
+	t.texture = tex
+	t.custom_minimum_size = Vector2(px, px)
+	t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	t.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	t.modulate = GameData.color_for(sym)
+	t.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return t
+
 func _inset(v: VBoxContainer, title: String, lines: Array, accent: String, highlight := false) -> void:
 	var panel := PanelContainer.new()
 	var sb := _bordered(INSET, accent if highlight else LINE, 1, 8)
@@ -5817,7 +5852,22 @@ func _inset(v: VBoxContainer, title: String, lines: Array, accent: String, highl
 	t.add_theme_color_override("font_color", Color.html(accent if highlight else C_MUTED))
 	box.add_child(t)
 	for ln in lines:
-		_clbl(box, ln["text"], 12, ln["color"])
+		var sym: String = ln.get("sym", "")
+		var icon: TextureRect = _mat_icon(sym, 18) if sym != "" else null
+		if icon != null:
+			# Material row: tinted icon + label, centred together.
+			var row := HBoxContainer.new()
+			row.alignment = BoxContainer.ALIGNMENT_CENTER
+			row.add_theme_constant_override("separation", 5)
+			row.add_child(icon)
+			var lbl := Label.new()
+			lbl.text = ln["text"]
+			lbl.add_theme_font_size_override("font_size", _fs(12))
+			lbl.add_theme_color_override("font_color", Color.html(ln["color"]))
+			row.add_child(lbl)
+			box.add_child(row)
+		else:
+			_clbl(box, ln["text"], 12, ln["color"])
 	v.add_child(panel)
 
 func _clbl(parent: Node, text: String, size: int, color: String) -> void:
@@ -5829,8 +5879,9 @@ func _clbl(parent: Node, text: String, size: int, color: String) -> void:
 	l.add_theme_color_override("font_color", Color.html(color))
 	parent.add_child(l)
 
-func _line(text: String, color: String) -> Dictionary:
-	return {"text": text, "color": color}
+func _line(text: String, color: String, sym := "") -> Dictionary:
+	# sym (optional): material symbol — when it has an icon, _inset draws it.
+	return {"text": text, "color": color, "sym": sym}
 
 func _card_button(text: String, accent: String, enabled: bool) -> Button:
 	var b := Button.new()
