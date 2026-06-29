@@ -35,6 +35,7 @@ var consumable_cooldown = 0.0
 # fight regardless of damage type or gear. Pair with the heal_pct values in
 # element_db: top-tier consumables now restore ~35% per cycle, not 50%.
 var consumable_cooldown_max = 10.0
+var kit_potency_dbg: float = 1.0  # sim-only knob: scales consumable heal_pct for the death-tension sweep; 1.0 = normal play
 
 # Throttle for the "no ammo" combat warning so it doesn't spam every tick.
 var _last_ammo_warn_ms: int = 0
@@ -728,7 +729,7 @@ var enemy_db = {
 	"z7_boss_sovereign": {
 		"name": "Sovereign Prism",
 		# v106: Late-game escalation pass — HP 952K→1.4M, ATK 10.2K→14K. Target ~8 min for tier-matched legendary clears (was ~6 min).
-		"stats": {"hp": 490000, "max_shield": 13605, "atk": 4620, "def": 2040, "atk_interval": 2.5, "accuracy": 170},
+		"stats": {"hp": 490000, "max_shield": 13605, "atk": 6006, "def": 2040, "atk_interval": 2.5, "accuracy": 170},
 		"loot": [["credits", 1000000, 2000000], ["ExoticMatter", 15, 30], ["Os", 3, 8], ["Res3", 15, 30]],
 		"rare_loot": [["z7_unique_weapon", 0.03, 1, 1], ["z7_unique_armor", 0.03, 1, 1], ["z7_unique_shield", 0.03, 1, 1]],
 		"boss_core": "Z7_Core",
@@ -777,7 +778,7 @@ var enemy_db = {
 	"z8_boss_warden": {
 		"name": "Prismatic Warden",
 		# v106: Late-game escalation pass — HP 2.39M→4M, ATK 23.9K→38K. Target ~10 min for tier-matched legendary.
-		"stats": {"hp": 1400000, "max_shield": 29932, "atk": 10260, "def": 4489, "atk_interval": 2.5, "accuracy": 200},
+		"stats": {"hp": 1400000, "max_shield": 29932, "atk": 12200, "def": 4489, "atk_interval": 2.5, "accuracy": 200},
 		"loot": [["credits", 3000000, 6000000], ["VoidCrystal", 20, 50], ["Diamond", 2, 5], ["Res3", 20, 40]],
 		"rare_loot": [["z8_unique_weapon", 0.03, 1, 1], ["z8_unique_armor", 0.03, 1, 1], ["z8_unique_shield", 0.03, 1, 1]],
 		"boss_core": "Z8_Core",
@@ -826,7 +827,7 @@ var enemy_db = {
 	"z9_boss_patient_zero": {
 		"name": "Patient Zero",
 		# v106: Late-game escalation pass — HP 5.93M→10M, ATK 56K→90K. Target ~12 min for tier-matched legendary, smoothing the ramp into Z10's 13 min finale.
-		"stats": {"hp": 3500000, "max_shield": 65851, "atk": 18000, "def": 9877, "atk_interval": 2.5, "accuracy": 230},
+		"stats": {"hp": 3500000, "max_shield": 65851, "atk": 23400, "def": 9877, "atk_interval": 2.5, "accuracy": 230},
 		"loot": [["credits", 10000000, 20000000], ["Neutronium", 10, 25], ["PathogenCore", 3, 8], ["Res3", 30, 50], ["QuarantineClearance", 1, 1]],
 		"rare_loot": [["z9_unique_weapon", 0.03, 1, 1], ["z9_unique_armor", 0.03, 1, 1], ["z9_unique_shield", 0.03, 1, 1]],
 		"boss_core": "Z9_Core",
@@ -883,7 +884,7 @@ var enemy_db = {
 		#                            endurance; off-meta still ~16 min penalty)
 		#   res_e  0.45→0.65→0.55   (still punishes NRG-on-NRG-resist; survivable)
 		# Boss stays WEAK KIN at −0.40 — swapping loadout is the real reward.
-		"stats": {"hp": 7000000, "max_shield": 144872, "atk": 54000, "def": 21730, "atk_interval": 3.0, "accuracy": 250},
+		"stats": {"hp": 7000000, "max_shield": 144872, "atk": 70200, "def": 21730, "atk_interval": 3.0, "accuracy": 250},
 		"loot": [["credits", 50000000, 100000000], ["PrimordialShard", 20, 50], ["ChronoCore", 5, 12], ["CryoCatalyst", 10, 25]],
 		"rare_loot": [["z10_unique_weapon", 0.03, 1, 1], ["z10_unique_armor", 0.03, 1, 1], ["z10_unique_shield", 0.03, 1, 1]],
 		"boss_core": "Z10_Core",
@@ -2499,6 +2500,26 @@ func use_manual_consumable(type: String):
 	if item_id != "" and GameState.resources.get_element_amount(item_id) >= 1:
 		_trigger_consumable(item_id, sm)
 
+# v3 death-tension: repair kits heal a % of hull HP + shield, which balloons into
+# near-infinite sustain on the huge late-game hulls (leviathan ~96k HP + ~140k
+# shield). Scale kit potency down by hull tier so late fights stay LOSABLE even
+# with kits. Tiers 1-3 (corvette/frigate/destroyer) keep full kits — early game
+# and the Z1-Z3 balance are untouched; mid hulls 0.55x; big hulls (7-10) 0.30x.
+func _kit_tier_factor(sm: Object) -> float:
+	# Per-tier, sim-tuned so Legendary+kits lands ~80% (death tension) on each
+	# zone's matched hull. Non-uniform because kits scale with each hull's HP+shield
+	# differently (the titan's kits are most over-effective → harshest cut at t9).
+	var t: int = int(sm.hulls.get(sm.active_hull, {}).get("tier", 1))
+	match t:
+		1, 2, 3: return 1.0    # corvette/frigate/destroyer — early game + Z1-Z3 untouched
+		4: return 0.35
+		5: return 0.20
+		6: return 0.45
+		7: return 0.35
+		8: return 0.30
+		9: return 0.20
+		_: return 0.30         # tier 10 (leviathan) and beyond
+
 func _trigger_consumable(item_id: String, sm: Object):
 	if GameState.resources.get_element_amount(item_id) < 1: return
 	
@@ -2509,6 +2530,7 @@ func _trigger_consumable(item_id: String, sm: Object):
 	consumable_cooldown = consumable_cooldown_max
 	
 	var heal_pct = data.get("heal_pct", 0.0)
+	heal_pct *= _kit_tier_factor(sm) * kit_potency_dbg   # v3: kits weaken on big hulls; _dbg=1.0 in normal play
 	var type = data.get("type", "hull")
 	var dname = data.get("name", "Consumable")
 	
