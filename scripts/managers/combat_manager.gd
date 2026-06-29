@@ -368,6 +368,15 @@ var zones = {
 	}
 }
 
+# Look up a zone's display NAME by its difficulty tier (1-12). Modules carry their
+# source `zone` (= tier); this maps it to the sector name ("Lunar Orbit", "Sector
+# Alpha", …) for provenance UI. Falls back to "Sector N" if no zone matches.
+func get_zone_name(tier: int) -> String:
+	for k in zones:
+		if int(zones[k].get("difficulty", 0)) == tier:
+			return str(zones[k].get("name", ""))
+	return "Sector %d" % tier
+
 # v86.0: Hazard Zone Definitions
 var hazard_zones = {
 	"emp_nexus": {

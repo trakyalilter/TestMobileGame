@@ -1,0 +1,2035 @@
+{
+  "building_count": 75,
+  "buildings": [
+    {
+      "category": "power",
+      "credits": 125.0,
+      "credits_per_unit_hr": -1.0,
+      "energy_cons": 0.0,
+      "energy_gen": 15.0,
+      "eng_scaled": false,
+      "id": "solar_panel",
+      "inputs": {
+
+      },
+      "interval": 1.0,
+      "material_cost": {
+        "Si": 5
+      },
+      "name": "Solar Array",
+      "ore_throttled": false,
+      "primary_material": "",
+      "primary_per_hour_at_1": 0.0,
+      "primary_per_hour_ceiling": 0.0,
+      "research_req": "",
+      "yields": {
+
+      }
+    },
+    {
+      "category": "power",
+      "credits": 375.0,
+      "credits_per_unit_hr": -1.0,
+      "energy_cons": 0.0,
+      "energy_gen": 60.0,
+      "eng_scaled": false,
+      "id": "coal_burner",
+      "inputs": {
+        "C": 1
+      },
+      "interval": 10.0,
+      "material_cost": {
+        "Fe": 10
+      },
+      "name": "Carbon Generator",
+      "ore_throttled": false,
+      "primary_material": "",
+      "primary_per_hour_at_1": 0.0,
+      "primary_per_hour_ceiling": 0.0,
+      "research_req": "combustion",
+      "yields": {
+
+      }
+    },
+    {
+      "category": "power",
+      "credits": 400000.0,
+      "credits_per_unit_hr": -1.0,
+      "energy_cons": 0.0,
+      "energy_gen": 250.0,
+      "eng_scaled": false,
+      "id": "geothermal_well",
+      "inputs": {
+
+      },
+      "interval": 1.0,
+      "material_cost": {
+        "Hydraulics": 50,
+        "Ti": 100
+      },
+      "name": "Geothermal Well",
+      "ore_throttled": false,
+      "primary_material": "",
+      "primary_per_hour_at_1": 0.0,
+      "primary_per_hour_ceiling": 0.0,
+      "research_req": "basic_engineering",
+      "yields": {
+
+      }
+    },
+    {
+      "category": "power",
+      "credits": 150000.0,
+      "credits_per_unit_hr": -1.0,
+      "energy_cons": 0.0,
+      "energy_gen": 1000.0,
+      "eng_scaled": false,
+      "id": "biomass_plant",
+      "inputs": {
+        "Wood": 5
+      },
+      "interval": 10.0,
+      "material_cost": {
+        "Circuit": 20,
+        "Steel": 200
+      },
+      "name": "Biomass Plant",
+      "ore_throttled": false,
+      "primary_material": "",
+      "primary_per_hour_at_1": 0.0,
+      "primary_per_hour_ceiling": 0.0,
+      "research_req": "combustion",
+      "yields": {
+
+      }
+    },
+    {
+      "category": "power",
+      "credits": 250000.0,
+      "credits_per_unit_hr": -1.0,
+      "energy_cons": 0.0,
+      "energy_gen": 15000.0,
+      "eng_scaled": false,
+      "id": "palladium_generator",
+      "inputs": {
+        "H": 1
+      },
+      "interval": 10.0,
+      "material_cost": {
+        "Circuit": 40,
+        "PdFuelCell": 20
+      },
+      "name": "Palladium Fuel Cell Generator",
+      "ore_throttled": false,
+      "primary_material": "",
+      "primary_per_hour_at_1": 0.0,
+      "primary_per_hour_ceiling": 0.0,
+      "research_req": "fuel_cell_tech",
+      "yields": {
+
+      }
+    },
+    {
+      "category": "power",
+      "credits": 50000.0,
+      "credits_per_unit_hr": -1.0,
+      "energy_cons": 0.0,
+      "energy_gen": 4000.0,
+      "eng_scaled": false,
+      "id": "hydrogen_reactor",
+      "inputs": {
+        "H": 10
+      },
+      "interval": 10.0,
+      "material_cost": {
+        "Circuit": 50,
+        "NavData": 5,
+        "Steel": 200
+      },
+      "name": "Hydrogen Reactor",
+      "ore_throttled": false,
+      "primary_material": "",
+      "primary_per_hour_at_1": 0.0,
+      "primary_per_hour_ceiling": 0.0,
+      "research_req": "energy_metrics",
+      "yields": {
+
+      }
+    },
+    {
+      "category": "power",
+      "credits": 800000.0,
+      "credits_per_unit_hr": -1.0,
+      "energy_cons": 0.0,
+      "energy_gen": 60000.0,
+      "eng_scaled": false,
+      "id": "adv_fuel_cell_array",
+      "inputs": {
+        "PdFuelCell": 2
+      },
+      "interval": 10.0,
+      "material_cost": {
+        "AdvCircuit": 80,
+        "Ti": 150
+      },
+      "name": "Advanced Fuel Cell Array",
+      "ore_throttled": false,
+      "primary_material": "",
+      "primary_per_hour_at_1": 0.0,
+      "primary_per_hour_ceiling": 0.0,
+      "research_req": "fuel_cell_tech",
+      "yields": {
+
+      }
+    },
+    {
+      "category": "power",
+      "credits": 1200000.0,
+      "credits_per_unit_hr": -1.0,
+      "energy_cons": 0.0,
+      "energy_gen": 250000.0,
+      "eng_scaled": false,
+      "id": "fission_reactor",
+      "inputs": {
+        "U": 5
+      },
+      "interval": 10.0,
+      "material_cost": {
+        "AdvCircuit": 50,
+        "Ti": 200
+      },
+      "name": "Fission Reactor",
+      "ore_throttled": false,
+      "primary_material": "",
+      "primary_per_hour_at_1": 0.0,
+      "primary_per_hour_ceiling": 0.0,
+      "research_req": "radiation_shielding",
+      "yields": {
+
+      }
+    },
+    {
+      "category": "power",
+      "credits": 5000000.0,
+      "credits_per_unit_hr": -1.0,
+      "energy_cons": 0.0,
+      "energy_gen": 1000000.0,
+      "eng_scaled": false,
+      "id": "orbital_solar_relay",
+      "inputs": {
+
+      },
+      "interval": 1.0,
+      "material_cost": {
+        "Chip": 150,
+        "W": 200
+      },
+      "name": "Orbital Solar Relay",
+      "ore_throttled": false,
+      "primary_material": "",
+      "primary_per_hour_at_1": 0.0,
+      "primary_per_hour_ceiling": 0.0,
+      "research_req": "energy_metrics",
+      "yields": {
+
+      }
+    },
+    {
+      "category": "power",
+      "credits": 25000000.0,
+      "credits_per_unit_hr": -1.0,
+      "energy_cons": 0.0,
+      "energy_gen": 4000000.0,
+      "eng_scaled": false,
+      "id": "fusion_reactor",
+      "inputs": {
+
+      },
+      "interval": 1.0,
+      "material_cost": {
+        "AdvCircuit": 100,
+        "Superalloy": 200,
+        "VoidEssence": 20
+      },
+      "name": "Fusion Core",
+      "ore_throttled": false,
+      "primary_material": "",
+      "primary_per_hour_at_1": 0.0,
+      "primary_per_hour_ceiling": 0.0,
+      "research_req": "quantum_dynamics",
+      "yields": {
+
+      }
+    },
+    {
+      "category": "power",
+      "credits": 25000000.0,
+      "credits_per_unit_hr": -1.0,
+      "energy_cons": 0.0,
+      "energy_gen": 16000000.0,
+      "eng_scaled": false,
+      "id": "antimatter_generator",
+      "inputs": {
+        "QuantumCore": 1
+      },
+      "interval": 20.0,
+      "material_cost": {
+        "QuantumCore": 10,
+        "VoidArtifact": 50
+      },
+      "name": "Antimatter Generator",
+      "ore_throttled": false,
+      "primary_material": "",
+      "primary_per_hour_at_1": 0.0,
+      "primary_per_hour_ceiling": 0.0,
+      "research_req": "quantum_dynamics",
+      "yields": {
+
+      }
+    },
+    {
+      "category": "extraction",
+      "credits": 250000.0,
+      "credits_per_unit_hr": 31.2250199840128,
+      "energy_cons": 15.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "auto_excavator",
+      "inputs": {
+
+      },
+      "interval": 5.0,
+      "material_cost": {
+        "Fe": 2000,
+        "Si": 5000
+      },
+      "name": "Auto-Excavator (XL)",
+      "ore_throttled": false,
+      "primary_material": "Dirt",
+      "primary_per_hour_at_1": 8006.4,
+      "primary_per_hour_ceiling": 160128.0,
+      "research_req": "",
+      "yields": {
+        "Dirt": 10
+      }
+    },
+    {
+      "category": "extraction",
+      "credits": 250000.0,
+      "credits_per_unit_hr": 34.7222222222222,
+      "energy_cons": 25.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "industrial_pump",
+      "inputs": {
+
+      },
+      "interval": 5.0,
+      "material_cost": {
+        "Fe": 2000,
+        "Si": 5000
+      },
+      "name": "Industrial Pump",
+      "ore_throttled": false,
+      "primary_material": "Water",
+      "primary_per_hour_at_1": 7200.0,
+      "primary_per_hour_ceiling": 144000.0,
+      "research_req": "",
+      "yields": {
+        "Water": 10
+      }
+    },
+    {
+      "category": "extraction",
+      "credits": 250000.0,
+      "credits_per_unit_hr": 34.7222222222222,
+      "energy_cons": 40.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "bio_harvester",
+      "inputs": {
+
+      },
+      "interval": 5.0,
+      "material_cost": {
+        "Circuit": 50,
+        "Steel": 500
+      },
+      "name": "Bio-Harvester",
+      "ore_throttled": false,
+      "primary_material": "Wood",
+      "primary_per_hour_at_1": 7200.0,
+      "primary_per_hour_ceiling": 144000.0,
+      "research_req": "laser_cutters",
+      "yields": {
+        "Wood": 10
+      }
+    },
+    {
+      "category": "extraction",
+      "credits": 400000.0,
+      "credits_per_unit_hr": 2222.22222222222,
+      "energy_cons": 80.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "lithium_extractor",
+      "inputs": {
+
+      },
+      "interval": 5.0,
+      "material_cost": {
+        "Circuit": 100,
+        "Steel": 750
+      },
+      "name": "Lithium Extractor",
+      "ore_throttled": true,
+      "primary_material": "Spodumene",
+      "primary_per_hour_at_1": 180.0,
+      "primary_per_hour_ceiling": 3600.0,
+      "research_req": "basic_electronics",
+      "yields": {
+        "Spodumene": 0.5
+      }
+    },
+    {
+      "category": "extraction",
+      "credits": 1000000.0,
+      "credits_per_unit_hr": 1633.98692810458,
+      "energy_cons": 120.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "brine_extractor",
+      "inputs": {
+
+      },
+      "interval": 5.0,
+      "material_cost": {
+        "Superalloy": 100,
+        "Ti": 500
+      },
+      "name": "Lithium Brine Well",
+      "ore_throttled": true,
+      "primary_material": "Spodumene",
+      "primary_per_hour_at_1": 612.0,
+      "primary_per_hour_ceiling": 12240.0,
+      "research_req": "basic_engineering",
+      "yields": {
+        "Spodumene": 1.7
+      }
+    },
+    {
+      "category": "extraction",
+      "credits": 350000.0,
+      "credits_per_unit_hr": 2430.55555555556,
+      "energy_cons": 80.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "copper_mine",
+      "inputs": {
+
+      },
+      "interval": 5.0,
+      "material_cost": {
+        "Circuit": 80,
+        "Steel": 600
+      },
+      "name": "Copper Mine",
+      "ore_throttled": true,
+      "primary_material": "Malachite",
+      "primary_per_hour_at_1": 144.0,
+      "primary_per_hour_ceiling": 2880.0,
+      "research_req": "basic_electronics",
+      "yields": {
+        "Malachite": 0.4
+      }
+    },
+    {
+      "category": "extraction",
+      "credits": 1000000.0,
+      "credits_per_unit_hr": 1633.98692810458,
+      "energy_cons": 120.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "deep_crust_drill",
+      "inputs": {
+
+      },
+      "interval": 5.0,
+      "material_cost": {
+        "Superalloy": 100,
+        "Ti": 500
+      },
+      "name": "Deep-Crust Drill",
+      "ore_throttled": true,
+      "primary_material": "Malachite",
+      "primary_per_hour_at_1": 612.0,
+      "primary_per_hour_ceiling": 12240.0,
+      "research_req": "basic_engineering",
+      "yields": {
+        "Malachite": 1.7
+      }
+    },
+    {
+      "category": "extraction",
+      "credits": 500000.0,
+      "credits_per_unit_hr": 3472.22222222222,
+      "energy_cons": 80.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "tin_mine",
+      "inputs": {
+
+      },
+      "interval": 5.0,
+      "material_cost": {
+        "Circuit": 100,
+        "Steel": 800,
+        "Ti": 50
+      },
+      "name": "Tin Mine",
+      "ore_throttled": true,
+      "primary_material": "Cassiterite",
+      "primary_per_hour_at_1": 144.0,
+      "primary_per_hour_ceiling": 2880.0,
+      "research_req": "basic_electronics",
+      "yields": {
+        "Cassiterite": 0.4
+      }
+    },
+    {
+      "category": "extraction",
+      "credits": 600000.0,
+      "credits_per_unit_hr": 5555.55555555556,
+      "energy_cons": 80.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "quartz_mine",
+      "inputs": {
+
+      },
+      "interval": 5.0,
+      "material_cost": {
+        "Circuit": 150,
+        "Steel": 1000,
+        "Ti": 100
+      },
+      "name": "Quartz Mine",
+      "ore_throttled": true,
+      "primary_material": "Quartz",
+      "primary_per_hour_at_1": 108.0,
+      "primary_per_hour_ceiling": 2160.0,
+      "research_req": "basic_electronics",
+      "yields": {
+        "Quartz": 0.3
+      }
+    },
+    {
+      "category": "extraction",
+      "credits": 1000000.0,
+      "credits_per_unit_hr": 1111.11111111111,
+      "energy_cons": 4500.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "quartz_excavator",
+      "inputs": {
+
+      },
+      "interval": 5.0,
+      "material_cost": {
+        "Superalloy": 100,
+        "Ti": 500
+      },
+      "name": "Quartz Resonator",
+      "ore_throttled": true,
+      "primary_material": "Quartz",
+      "primary_per_hour_at_1": 900.0,
+      "primary_per_hour_ceiling": 18000.0,
+      "research_req": "adv_materials",
+      "yields": {
+        "Quartz": 2.5
+      }
+    },
+    {
+      "category": "extraction",
+      "credits": 50000.0,
+      "credits_per_unit_hr": 69.4444444444444,
+      "energy_cons": 750.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "uranium_centrifuge",
+      "inputs": {
+
+      },
+      "interval": 5.0,
+      "material_cost": {
+        "AdvCircuit": 5,
+        "Si": 250,
+        "Steel": 500
+      },
+      "name": "Uranium Isotope Centrifuge",
+      "ore_throttled": false,
+      "primary_material": "U",
+      "primary_per_hour_at_1": 720.0,
+      "primary_per_hour_ceiling": 14400.0,
+      "research_req": "energy_metrics",
+      "yields": {
+        "U": 1.0
+      }
+    },
+    {
+      "category": "extraction",
+      "credits": 45000.0,
+      "credits_per_unit_hr": 62.5,
+      "energy_cons": 1500.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "tungsten_drill",
+      "inputs": {
+
+      },
+      "interval": 5.0,
+      "material_cost": {
+        "Hydraulics": 15,
+        "Steel": 500,
+        "Ti": 300
+      },
+      "name": "Heavy Tungsten Drill",
+      "ore_throttled": true,
+      "primary_material": "W",
+      "primary_per_hour_at_1": 720.0,
+      "primary_per_hour_ceiling": 14400.0,
+      "research_req": "smelting",
+      "yields": {
+        "W": 2.0
+      }
+    },
+    {
+      "category": "extraction",
+      "credits": 750000.0,
+      "credits_per_unit_hr": 5208.33333333333,
+      "energy_cons": 160.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "zinc_mine",
+      "inputs": {
+
+      },
+      "interval": 5.0,
+      "material_cost": {
+        "AdvCircuit": 100,
+        "Steel": 1500
+      },
+      "name": "Zinc Mine",
+      "ore_throttled": true,
+      "primary_material": "ZincOre",
+      "primary_per_hour_at_1": 144.0,
+      "primary_per_hour_ceiling": 2880.0,
+      "research_req": "metallurgy_advanced",
+      "yields": {
+        "ZincOre": 0.4
+      }
+    },
+    {
+      "category": "extraction",
+      "credits": 800000.0,
+      "credits_per_unit_hr": 2222.22222222222,
+      "energy_cons": 160.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "bauxite_mine",
+      "inputs": {
+
+      },
+      "interval": 5.0,
+      "material_cost": {
+        "AdvCircuit": 120,
+        "Steel": 1500
+      },
+      "name": "Bauxite Mine",
+      "ore_throttled": true,
+      "primary_material": "Bauxite",
+      "primary_per_hour_at_1": 360.0,
+      "primary_per_hour_ceiling": 7200.0,
+      "research_req": "metallurgy_advanced",
+      "yields": {
+        "Bauxite": 1.0
+      }
+    },
+    {
+      "category": "extraction",
+      "credits": 1000000.0,
+      "credits_per_unit_hr": 1111.11111111111,
+      "energy_cons": 4500.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "bauxite_miner",
+      "inputs": {
+
+      },
+      "interval": 5.0,
+      "material_cost": {
+        "Superalloy": 100,
+        "Ti": 500
+      },
+      "name": "Bauxite Strip Miner",
+      "ore_throttled": true,
+      "primary_material": "Bauxite",
+      "primary_per_hour_at_1": 900.0,
+      "primary_per_hour_ceiling": 18000.0,
+      "research_req": "adv_materials",
+      "yields": {
+        "Bauxite": 2.5
+      }
+    },
+    {
+      "category": "extraction",
+      "credits": 700000.0,
+      "credits_per_unit_hr": 2430.55555555556,
+      "energy_cons": 160.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "dolomite_quarry",
+      "inputs": {
+
+      },
+      "interval": 5.0,
+      "material_cost": {
+        "AdvCircuit": 80,
+        "Steel": 1200
+      },
+      "name": "Dolomite Quarry",
+      "ore_throttled": true,
+      "primary_material": "Dolomite",
+      "primary_per_hour_at_1": 288.0,
+      "primary_per_hour_ceiling": 5760.0,
+      "research_req": "metallurgy_advanced",
+      "yields": {
+        "Dolomite": 0.8
+      }
+    },
+    {
+      "category": "extraction",
+      "credits": 850000.0,
+      "credits_per_unit_hr": 1816.23931623932,
+      "energy_cons": 240.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "manganese_dredge",
+      "inputs": {
+
+      },
+      "interval": 5.0,
+      "material_cost": {
+        "AdvCircuit": 100,
+        "Ti": 400
+      },
+      "name": "Manganese Dredge",
+      "ore_throttled": true,
+      "primary_material": "Mn",
+      "primary_per_hour_at_1": 468.0,
+      "primary_per_hour_ceiling": 9360.0,
+      "research_req": "metallurgy_advanced",
+      "yields": {
+        "Mn": 1.3
+      }
+    },
+    {
+      "category": "extraction",
+      "credits": 900000.0,
+      "credits_per_unit_hr": 8333.33333333333,
+      "energy_cons": 1200.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "nickel_mine",
+      "inputs": {
+
+      },
+      "interval": 5.0,
+      "material_cost": {
+        "AdvCircuit": 150,
+        "Steel": 2000,
+        "Superalloy": 50
+      },
+      "name": "Nickel Mine",
+      "ore_throttled": true,
+      "primary_material": "Pentlandite",
+      "primary_per_hour_at_1": 108.0,
+      "primary_per_hour_ceiling": 2160.0,
+      "research_req": "superalloy_engineering",
+      "yields": {
+        "Pentlandite": 0.3
+      }
+    },
+    {
+      "category": "extraction",
+      "credits": 1000000.0,
+      "credits_per_unit_hr": 13888.8888888889,
+      "energy_cons": 1800.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "chromite_excavator",
+      "inputs": {
+
+      },
+      "interval": 5.0,
+      "material_cost": {
+        "AdvCircuit": 200,
+        "Steel": 2500,
+        "Superalloy": 100
+      },
+      "name": "Chromite Excavator",
+      "ore_throttled": true,
+      "primary_material": "Chromite",
+      "primary_per_hour_at_1": 72.0,
+      "primary_per_hour_ceiling": 1440.0,
+      "research_req": "superalloy_engineering",
+      "yields": {
+        "Chromite": 0.2
+      }
+    },
+    {
+      "category": "extraction",
+      "credits": 2000000.0,
+      "credits_per_unit_hr": 11111.1111111111,
+      "energy_cons": 12000.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "platinum_drill",
+      "inputs": {
+
+      },
+      "interval": 10.0,
+      "material_cost": {
+        "Chip": 150,
+        "Steel": 3000,
+        "Ti": 300
+      },
+      "name": "Platinum Drill",
+      "ore_throttled": true,
+      "primary_material": "PtOre",
+      "primary_per_hour_at_1": 180.0,
+      "primary_per_hour_ceiling": 3600.0,
+      "research_req": "precious_metal_refining",
+      "yields": {
+        "PtOre": 1.0
+      }
+    },
+    {
+      "category": "extraction",
+      "credits": 1200000.0,
+      "credits_per_unit_hr": 8333.33333333333,
+      "energy_cons": 120.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "germanite_excavator",
+      "inputs": {
+
+      },
+      "interval": 5.0,
+      "material_cost": {
+        "Chip": 100,
+        "Steel": 2000,
+        "Ti": 150
+      },
+      "name": "Germanite Excavator",
+      "ore_throttled": true,
+      "primary_material": "Germanit",
+      "primary_per_hour_at_1": 144.0,
+      "primary_per_hour_ceiling": 2880.0,
+      "research_req": "basic_electronics",
+      "yields": {
+        "Germanit": 0.4
+      }
+    },
+    {
+      "category": "extraction",
+      "credits": 3000000.0,
+      "credits_per_unit_hr": 41666.6666666667,
+      "energy_cons": 37500.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "iridium_drill",
+      "inputs": {
+
+      },
+      "interval": 10.0,
+      "material_cost": {
+        "Chip": 200,
+        "Steel": 4000,
+        "Ti": 500
+      },
+      "name": "Iridium Drill",
+      "ore_throttled": true,
+      "primary_material": "Ir",
+      "primary_per_hour_at_1": 72.0,
+      "primary_per_hour_ceiling": 1440.0,
+      "research_req": "iridium_metallurgy",
+      "yields": {
+        "Ir": 0.4
+      }
+    },
+    {
+      "category": "extraction",
+      "credits": 5000000.0,
+      "credits_per_unit_hr": 92592.5925925926,
+      "energy_cons": 37500.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "osmium_condenser",
+      "inputs": {
+
+      },
+      "interval": 10.0,
+      "material_cost": {
+        "Chip": 300,
+        "Steel": 5000,
+        "Ti": 800,
+        "W": 100
+      },
+      "name": "Osmium Condenser",
+      "ore_throttled": true,
+      "primary_material": "Os",
+      "primary_per_hour_at_1": 54.0,
+      "primary_per_hour_ceiling": 1080.0,
+      "research_req": "exotic_metallurgy",
+      "yields": {
+        "Os": 0.3
+      }
+    },
+    {
+      "category": "extraction",
+      "credits": 1000000.0,
+      "credits_per_unit_hr": 694.444444444444,
+      "energy_cons": 750.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "orbital_siphon",
+      "inputs": {
+
+      },
+      "interval": 10.0,
+      "material_cost": {
+        "Superalloy": 100,
+        "Ti": 500
+      },
+      "name": "Orbital Gas Siphon",
+      "ore_throttled": false,
+      "primary_material": "H",
+      "primary_per_hour_at_1": 1440.0,
+      "primary_per_hour_ceiling": 28800.0,
+      "research_req": "energy_metrics",
+      "yields": {
+        "H": 4,
+        "He": 2,
+        "N": 2
+      }
+    },
+    {
+      "category": "extraction",
+      "credits": 1000000.0,
+      "credits_per_unit_hr": 2777.77777777778,
+      "energy_cons": 12000.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "precious_dredge",
+      "inputs": {
+
+      },
+      "interval": 10.0,
+      "material_cost": {
+        "QuantumCore": 10,
+        "Superalloy": 100,
+        "Ti": 500
+      },
+      "name": "Precious Metal Dredge",
+      "ore_throttled": true,
+      "primary_material": "PtOre",
+      "primary_per_hour_at_1": 360.0,
+      "primary_per_hour_ceiling": 7200.0,
+      "research_req": "precious_metal_refining",
+      "yields": {
+        "Ir": 1,
+        "PtOre": 2
+      }
+    },
+    {
+      "category": "extraction",
+      "credits": 5000000.0,
+      "credits_per_unit_hr": 10683.7606837607,
+      "energy_cons": 85000.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "void_anchor",
+      "inputs": {
+
+      },
+      "interval": 10.0,
+      "material_cost": {
+        "QuantumCore": 10,
+        "Superalloy": 500
+      },
+      "name": "Void Rift Anchor",
+      "ore_throttled": false,
+      "primary_material": "VoidEssence",
+      "primary_per_hour_at_1": 468.0,
+      "primary_per_hour_ceiling": 9360.0,
+      "research_req": "void_navigation",
+      "yields": {
+        "VoidEssence": 1.3
+      }
+    },
+    {
+      "category": "extraction",
+      "credits": 25000000.0,
+      "credits_per_unit_hr": 231481.481481481,
+      "energy_cons": 127500.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "chrono_siphon",
+      "inputs": {
+
+      },
+      "interval": 10.0,
+      "material_cost": {
+        "Superalloy": 1000,
+        "VoidEssence": 50
+      },
+      "name": "Chrono-Siphon",
+      "ore_throttled": false,
+      "primary_material": "ChronoCore",
+      "primary_per_hour_at_1": 108.0,
+      "primary_per_hour_ceiling": 2160.0,
+      "research_req": "void_navigation",
+      "yields": {
+        "ChronoCore": 0.3
+      }
+    },
+    {
+      "category": "extraction",
+      "credits": 30000000.0,
+      "credits_per_unit_hr": 208333.333333333,
+      "energy_cons": 150000.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "neutronium_condenser",
+      "inputs": {
+
+      },
+      "interval": 10.0,
+      "material_cost": {
+        "QuantumCore": 20,
+        "Superalloy": 1500,
+        "VoidCrystal": 40
+      },
+      "name": "Neutronium Condenser",
+      "ore_throttled": false,
+      "primary_material": "Neutronium",
+      "primary_per_hour_at_1": 144.0,
+      "primary_per_hour_ceiling": 2880.0,
+      "research_req": "neutronium_synthesis",
+      "yields": {
+        "Neutronium": 0.4
+      }
+    },
+    {
+      "category": "industry",
+      "credits": 35000000.0,
+      "credits_per_unit_hr": 486111.111111111,
+      "energy_cons": 160000.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "bioreactor_vat",
+      "inputs": {
+        "BiohazardSample": 6,
+        "PathogenCore": 0.5,
+        "QuantumCore": 1
+      },
+      "interval": 10.0,
+      "material_cost": {
+        "Neutronium": 30,
+        "QuantumCore": 25,
+        "Superalloy": 1200
+      },
+      "name": "Bio-Reactor Vat",
+      "ore_throttled": false,
+      "primary_material": "BioReactorCore",
+      "primary_per_hour_at_1": 72.0,
+      "primary_per_hour_ceiling": 1440.0,
+      "research_req": "neutronium_synthesis",
+      "yields": {
+        "BioReactorCore": 0.2
+      }
+    },
+    {
+      "category": "industry",
+      "credits": 45000000.0,
+      "credits_per_unit_hr": 833333.333333333,
+      "energy_cons": 180000.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "omega_foundry",
+      "inputs": {
+        "AdvCircuit": 15,
+        "NeutroniumPlate": 1,
+        "OmegaPlating": 3
+      },
+      "interval": 10.0,
+      "material_cost": {
+        "AdvCircuit": 200,
+        "Neutronium": 60,
+        "OmegaPlating": 30
+      },
+      "name": "Omega Foundry",
+      "ore_throttled": false,
+      "primary_material": "OmegaComposite",
+      "primary_per_hour_at_1": 54.0,
+      "primary_per_hour_ceiling": 1080.0,
+      "research_req": "primordial_engineering",
+      "yields": {
+        "OmegaComposite": 0.15
+      }
+    },
+    {
+      "category": "industry",
+      "credits": 60000000.0,
+      "credits_per_unit_hr": 1666666.66666667,
+      "energy_cons": 200000.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "primordial_extractor",
+      "inputs": {
+        "Diamond": 1.5,
+        "PrimordialShard": 2.5,
+        "VoidLattice": 1
+      },
+      "interval": 10.0,
+      "material_cost": {
+        "Neutronium": 100,
+        "OmegaComposite": 5,
+        "PrimordialShard": 25
+      },
+      "name": "Primordial Extractor",
+      "ore_throttled": false,
+      "primary_material": "PrimordialMatrix",
+      "primary_per_hour_at_1": 36.0,
+      "primary_per_hour_ceiling": 720.0,
+      "research_req": "primordial_engineering",
+      "yields": {
+        "PrimordialMatrix": 0.1
+      }
+    },
+    {
+      "category": "industry",
+      "credits": 500000.0,
+      "credits_per_unit_hr": 106.753025950033,
+      "energy_cons": 180.0,
+      "energy_gen": 0.0,
+      "eng_scaled": true,
+      "id": "industrial_centrifuge",
+      "inputs": {
+        "Dirt": 8.3,
+        "Water": 8.3
+      },
+      "interval": 5.0,
+      "material_cost": {
+        "Circuit": 100,
+        "Si": 2000,
+        "Steel": 1000
+      },
+      "name": "Industrial Centrifuge",
+      "ore_throttled": false,
+      "primary_material": "Fe",
+      "primary_per_hour_at_1": 4683.70798439033,
+      "primary_per_hour_ceiling": 93674.1596878066,
+      "research_req": "automated_logistics",
+      "yields": {
+        "Fe": 5,
+        "Si": 1.7
+      }
+    },
+    {
+      "category": "industry",
+      "credits": 150000.0,
+      "credits_per_unit_hr": 34.7222222222222,
+      "energy_cons": 35.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "industrial_kiln",
+      "inputs": {
+        "Wood": 1.3
+      },
+      "interval": 5.0,
+      "material_cost": {
+        "Hydraulics": 20,
+        "Steel": 300
+      },
+      "name": "Industrial Kiln",
+      "ore_throttled": false,
+      "primary_material": "C",
+      "primary_per_hour_at_1": 4320.0,
+      "primary_per_hour_ceiling": 86400.0,
+      "research_req": "combustion",
+      "yields": {
+        "C": 6.0
+      }
+    },
+    {
+      "category": "industry",
+      "credits": 6250.0,
+      "credits_per_unit_hr": 2.66882564875084,
+      "energy_cons": 120.0,
+      "energy_gen": 0.0,
+      "eng_scaled": true,
+      "id": "auto_smelter",
+      "inputs": {
+        "C": 1.3,
+        "Fe": 2.5,
+        "O": 2.5
+      },
+      "interval": 5.0,
+      "material_cost": {
+        "Circuit": 5,
+        "Ti": 20
+      },
+      "name": "Automated Smelter",
+      "ore_throttled": false,
+      "primary_material": "Steel",
+      "primary_per_hour_at_1": 2341.85399219517,
+      "primary_per_hour_ceiling": 46837.0798439033,
+      "research_req": "automated_smelting",
+      "yields": {
+        "Steel": 2.5
+      }
+    },
+    {
+      "category": "industry",
+      "credits": 250000.0,
+      "credits_per_unit_hr": 347.222222222222,
+      "energy_cons": 80.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "copper_smelter",
+      "inputs": {
+        "C": 1,
+        "Malachite": 2
+      },
+      "interval": 5.0,
+      "material_cost": {
+        "Circuit": 50,
+        "Ti": 200
+      },
+      "name": "Copper Smelter",
+      "ore_throttled": false,
+      "primary_material": "Cu",
+      "primary_per_hour_at_1": 720.0,
+      "primary_per_hour_ceiling": 14400.0,
+      "research_req": "basic_electronics",
+      "yields": {
+        "Cu": 1
+      }
+    },
+    {
+      "category": "industry",
+      "credits": 400000.0,
+      "credits_per_unit_hr": 277.777777777778,
+      "energy_cons": 80.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "tin_smelter",
+      "inputs": {
+        "C": 1,
+        "Cassiterite": 3
+      },
+      "interval": 5.0,
+      "material_cost": {
+        "Hydraulics": 50,
+        "Steel": 400,
+        "Ti": 100
+      },
+      "name": "Tin Smelter",
+      "ore_throttled": false,
+      "primary_material": "Sn",
+      "primary_per_hour_at_1": 1440.0,
+      "primary_per_hour_ceiling": 28800.0,
+      "research_req": "basic_electronics",
+      "yields": {
+        "Sn": 2
+      }
+    },
+    {
+      "category": "industry",
+      "credits": 600000.0,
+      "credits_per_unit_hr": 333.333333333333,
+      "energy_cons": 160.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "zinc_smelter",
+      "inputs": {
+        "C": 1.3,
+        "ZincOre": 3.8
+      },
+      "interval": 5.0,
+      "material_cost": {
+        "AdvCircuit": 50,
+        "Steel": 1000
+      },
+      "name": "Zinc Smelter",
+      "ore_throttled": false,
+      "primary_material": "Zn",
+      "primary_per_hour_at_1": 1800.0,
+      "primary_per_hour_ceiling": 36000.0,
+      "research_req": "metallurgy_advanced",
+      "yields": {
+        "Zn": 2.5
+      }
+    },
+    {
+      "category": "industry",
+      "credits": 500000.0,
+      "credits_per_unit_hr": 694.444444444444,
+      "energy_cons": 80.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "silicon_furnace",
+      "inputs": {
+        "C": 1,
+        "Quartz": 2
+      },
+      "interval": 5.0,
+      "material_cost": {
+        "Hydraulics": 100,
+        "Steel": 500,
+        "Ti": 100
+      },
+      "name": "Silicon Furnace",
+      "ore_throttled": false,
+      "primary_material": "Si",
+      "primary_per_hour_at_1": 720.0,
+      "primary_per_hour_ceiling": 14400.0,
+      "research_req": "basic_electronics",
+      "yields": {
+        "Si": 1
+      }
+    },
+    {
+      "category": "industry",
+      "credits": 450000.0,
+      "credits_per_unit_hr": 625.0,
+      "energy_cons": 80.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "lithium_refinery",
+      "inputs": {
+        "Spodumene": 2
+      },
+      "interval": 5.0,
+      "material_cost": {
+        "Hydraulics": 50,
+        "Steel": 500
+      },
+      "name": "Lithium Refinery",
+      "ore_throttled": false,
+      "primary_material": "Li",
+      "primary_per_hour_at_1": 720.0,
+      "primary_per_hour_ceiling": 14400.0,
+      "research_req": "basic_electronics",
+      "yields": {
+        "Li": 1
+      }
+    },
+    {
+      "category": "industry",
+      "credits": 800000.0,
+      "credits_per_unit_hr": 653.59477124183,
+      "energy_cons": 1200.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "nickel_refinery",
+      "inputs": {
+        "C": 0.8,
+        "Pentlandite": 2.5
+      },
+      "interval": 5.0,
+      "material_cost": {
+        "AdvCircuit": 100,
+        "Steel": 1500,
+        "Superalloy": 30
+      },
+      "name": "Nickel Refinery",
+      "ore_throttled": false,
+      "primary_material": "Ni",
+      "primary_per_hour_at_1": 1224.0,
+      "primary_per_hour_ceiling": 24480.0,
+      "research_req": "superalloy_engineering",
+      "yields": {
+        "Ni": 1.7
+      }
+    },
+    {
+      "category": "industry",
+      "credits": 900000.0,
+      "credits_per_unit_hr": 961.538461538462,
+      "energy_cons": 1800.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "chromium_forge",
+      "inputs": {
+        "Al": 0.6,
+        "Chromite": 1.9
+      },
+      "interval": 5.0,
+      "material_cost": {
+        "AdvCircuit": 150,
+        "Steel": 2000,
+        "Superalloy": 50
+      },
+      "name": "Chromium Forge",
+      "ore_throttled": false,
+      "primary_material": "Cr",
+      "primary_per_hour_at_1": 936.0,
+      "primary_per_hour_ceiling": 18720.0,
+      "research_req": "superalloy_engineering",
+      "yields": {
+        "Cr": 1.3
+      }
+    },
+    {
+      "category": "industry",
+      "credits": 1500000.0,
+      "credits_per_unit_hr": 3472.22222222222,
+      "energy_cons": 80.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "germanium_smelter",
+      "inputs": {
+        "Germanit": 3.1
+      },
+      "interval": 5.0,
+      "material_cost": {
+        "Chip": 100,
+        "Steel": 1500,
+        "Ti": 200
+      },
+      "name": "Germanium Smelter",
+      "ore_throttled": false,
+      "primary_material": "Germanium",
+      "primary_per_hour_at_1": 432.0,
+      "primary_per_hour_ceiling": 8640.0,
+      "research_req": "basic_electronics",
+      "yields": {
+        "Germanium": 0.6
+      }
+    },
+    {
+      "category": "industry",
+      "credits": 6250.0,
+      "credits_per_unit_hr": 1.33441282437542,
+      "energy_cons": 100.0,
+      "energy_gen": 0.0,
+      "eng_scaled": true,
+      "id": "hydro_plant",
+      "inputs": {
+        "Water": 2.5
+      },
+      "interval": 5.0,
+      "material_cost": {
+        "Circuit": 10,
+        "Si": 50
+      },
+      "name": "Industrial Electrolysis Plant",
+      "ore_throttled": false,
+      "primary_material": "H",
+      "primary_per_hour_at_1": 4683.70798439033,
+      "primary_per_hour_ceiling": 93674.1596878066,
+      "research_req": "industrial_electrolysis",
+      "yields": {
+        "H": 5,
+        "O": 2.5
+      }
+    },
+    {
+      "category": "industry",
+      "credits": 7500.0,
+      "credits_per_unit_hr": 13.0208333333333,
+      "energy_cons": 1500.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "auto_press",
+      "inputs": {
+        "C": 4.2
+      },
+      "interval": 5.0,
+      "material_cost": {
+        "Fe": 100,
+        "Hydraulics": 5
+      },
+      "name": "Automated Carbon Press",
+      "ore_throttled": false,
+      "primary_material": "Graphite",
+      "primary_per_hour_at_1": 576.0,
+      "primary_per_hour_ceiling": 11520.0,
+      "research_req": "molecular_compression",
+      "yields": {
+        "Graphite": 0.8
+      }
+    },
+    {
+      "category": "industry",
+      "credits": 15000.0,
+      "credits_per_unit_hr": 34.7222222222222,
+      "energy_cons": 3000.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "composite_loom",
+      "inputs": {
+        "Fiber": 6.3,
+        "Resin": 1.3
+      },
+      "interval": 5.0,
+      "material_cost": {
+        "Fiber": 20,
+        "Steel": 75
+      },
+      "name": "Composite Loom",
+      "ore_throttled": false,
+      "primary_material": "CompositeWeave",
+      "primary_per_hour_at_1": 432.0,
+      "primary_per_hour_ceiling": 8640.0,
+      "research_req": "adv_materials",
+      "yields": {
+        "CompositeWeave": 0.6
+      }
+    },
+    {
+      "category": "industry",
+      "credits": 25000.0,
+      "credits_per_unit_hr": 26.7094017094017,
+      "energy_cons": 1500.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "electronics_assembler",
+      "inputs": {
+        "Cu": 2.5,
+        "Resin": 1.3,
+        "Si": 2.5
+      },
+      "interval": 5.0,
+      "material_cost": {
+        "Circuit": 100,
+        "SalvageData": 20,
+        "Ti": 50
+      },
+      "name": "Electronics Assembler",
+      "ore_throttled": false,
+      "primary_material": "Circuit",
+      "primary_per_hour_at_1": 936.0,
+      "primary_per_hour_ceiling": 18720.0,
+      "research_req": "industrial_automation",
+      "yields": {
+        "Circuit": 1.3
+      }
+    },
+    {
+      "category": "industry",
+      "credits": 250000.0,
+      "credits_per_unit_hr": 694.444444444444,
+      "energy_cons": 3500.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "matter_deconstructor",
+      "inputs": {
+        "Cu": 2500
+      },
+      "interval": 5.0,
+      "material_cost": {
+        "AdvCircuit": 50,
+        "Ti": 1000
+      },
+      "name": "Matter De-constructor",
+      "ore_throttled": false,
+      "primary_material": "Circuit",
+      "primary_per_hour_at_1": 360.0,
+      "primary_per_hour_ceiling": 7200.0,
+      "research_req": "molecular_recycling",
+      "yields": {
+        "Circuit": 0.5,
+        "Superalloy": 0.1
+      }
+    },
+    {
+      "category": "industry",
+      "credits": 1000000.0,
+      "credits_per_unit_hr": 1984.12698412698,
+      "energy_cons": 25000.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "zero_point_cell_synthesizer",
+      "inputs": {
+        "ExoticMatter": 0.7,
+        "QuantumCore": 0.7
+      },
+      "interval": 5.0,
+      "material_cost": {
+        "ExoticMatter": 20,
+        "QuantumCore": 10
+      },
+      "name": "Zero-Point Cell Synthesizer",
+      "ore_throttled": false,
+      "primary_material": "CellT3",
+      "primary_per_hour_at_1": 504.0,
+      "primary_per_hour_ceiling": 10080.0,
+      "research_req": "exotic_metallurgy",
+      "yields": {
+        "CellT3": 0.7
+      }
+    },
+    {
+      "category": "industry",
+      "credits": 10000000.0,
+      "credits_per_unit_hr": 27777.7777777778,
+      "energy_cons": 85000.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "void_crystallizer",
+      "inputs": {
+        "VoidEssence": 2.5
+      },
+      "interval": 10.0,
+      "material_cost": {
+        "QuantumCore": 25,
+        "Superalloy": 1000
+      },
+      "name": "Void Crystallizer",
+      "ore_throttled": false,
+      "primary_material": "VoidCrystal",
+      "primary_per_hour_at_1": 360.0,
+      "primary_per_hour_ceiling": 7200.0,
+      "research_req": "void_navigation",
+      "yields": {
+        "VoidCrystal": 1
+      }
+    },
+    {
+      "category": "industry",
+      "credits": 12500.0,
+      "credits_per_unit_hr": 1.73611111111111,
+      "energy_cons": 50.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "basic_kinetic_foundry",
+      "inputs": {
+        "Fe": 5
+      },
+      "interval": 5.0,
+      "material_cost": {
+        "Fe": 100,
+        "Si": 50
+      },
+      "name": "Basic Kinetic Foundry",
+      "ore_throttled": false,
+      "primary_material": "SlugT1",
+      "primary_per_hour_at_1": 7200.0,
+      "primary_per_hour_ceiling": 144000.0,
+      "research_req": "kinetics_101",
+      "yields": {
+        "SlugT1": 10
+      }
+    },
+    {
+      "category": "industry",
+      "credits": 12500.0,
+      "credits_per_unit_hr": 1.73611111111111,
+      "energy_cons": 50.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "basic_cell_factory",
+      "inputs": {
+        "Si": 5
+      },
+      "interval": 5.0,
+      "material_cost": {
+        "Cu": 20,
+        "Si": 100
+      },
+      "name": "Basic Cell Factory",
+      "ore_throttled": false,
+      "primary_material": "CellT1",
+      "primary_per_hour_at_1": 7200.0,
+      "primary_per_hour_ceiling": 144000.0,
+      "research_req": "power_systems",
+      "yields": {
+        "CellT1": 10
+      }
+    },
+    {
+      "category": "industry",
+      "credits": 125000.0,
+      "credits_per_unit_hr": 56.0035842293907,
+      "energy_cons": 2500.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "advanced_ballistics_plant",
+      "inputs": {
+        "Al": 1.3,
+        "Steel": 3.1
+      },
+      "interval": 5.0,
+      "material_cost": {
+        "Al": 50,
+        "Steel": 100
+      },
+      "name": "Advanced Ballistics Plant",
+      "ore_throttled": false,
+      "primary_material": "SlugT2",
+      "primary_per_hour_at_1": 2232.0,
+      "primary_per_hour_ceiling": 44640.0,
+      "research_req": "processing_tungsten",
+      "yields": {
+        "SlugT2": 3.1
+      }
+    },
+    {
+      "category": "industry",
+      "credits": 125000.0,
+      "credits_per_unit_hr": 56.0035842293907,
+      "energy_cons": 2500.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "high_energy_cell_plant",
+      "inputs": {
+        "Resin": 1.3,
+        "Si": 1.9
+      },
+      "interval": 5.0,
+      "material_cost": {
+        "Resin": 50,
+        "Si": 100
+      },
+      "name": "High-Energy Cell Plant",
+      "ore_throttled": false,
+      "primary_material": "CellT2",
+      "primary_per_hour_at_1": 2232.0,
+      "primary_per_hour_ceiling": 44640.0,
+      "research_req": "advanced_batteries",
+      "yields": {
+        "CellT2": 3.1
+      }
+    },
+    {
+      "category": "industry",
+      "credits": 2500000.0,
+      "credits_per_unit_hr": 4340.27777777778,
+      "energy_cons": 15000.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "heavy_ordnance_works",
+      "inputs": {
+        "Superalloy": 2.1,
+        "U": 0.8
+      },
+      "interval": 5.0,
+      "material_cost": {
+        "Superalloy": 50,
+        "U": 20
+      },
+      "name": "Heavy Ordnance Works",
+      "ore_throttled": false,
+      "primary_material": "SlugT3",
+      "primary_per_hour_at_1": 576.0,
+      "primary_per_hour_ceiling": 11520.0,
+      "research_req": "capital_ship_armament",
+      "yields": {
+        "SlugT3": 0.8
+      }
+    },
+    {
+      "category": "industry",
+      "credits": 850000.0,
+      "credits_per_unit_hr": 604.933813716856,
+      "energy_cons": 1200.0,
+      "energy_gen": 0.0,
+      "eng_scaled": true,
+      "id": "titanium_refinery",
+      "inputs": {
+        "Dolomite": 3
+      },
+      "interval": 5.0,
+      "material_cost": {
+        "Circuit": 100,
+        "Steel": 1500
+      },
+      "name": "Titanium Refinery",
+      "ore_throttled": false,
+      "primary_material": "Ti",
+      "primary_per_hour_at_1": 1405.1123953171,
+      "primary_per_hour_ceiling": 28102.247906342,
+      "research_req": "metallurgy_advanced",
+      "yields": {
+        "Ti": 1.5
+      }
+    },
+    {
+      "category": "industry",
+      "credits": 1200000.0,
+      "credits_per_unit_hr": 1281.0363114004,
+      "energy_cons": 1800.0,
+      "energy_gen": 0.0,
+      "eng_scaled": true,
+      "id": "superalloy_forge",
+      "inputs": {
+        "Cr": 1,
+        "Ni": 2,
+        "Steel": 4,
+        "Ti": 1
+      },
+      "interval": 5.0,
+      "material_cost": {
+        "Circuit": 150,
+        "Steel": 2500,
+        "Ti": 200
+      },
+      "name": "Superalloy Forge",
+      "ore_throttled": false,
+      "primary_material": "Superalloy",
+      "primary_per_hour_at_1": 936.741596878067,
+      "primary_per_hour_ceiling": 18734.8319375613,
+      "research_req": "superalloy_engineering",
+      "yields": {
+        "Superalloy": 1.0
+      }
+    },
+    {
+      "category": "industry",
+      "credits": 2000000.0,
+      "credits_per_unit_hr": 1779.21709916722,
+      "energy_cons": 3500.0,
+      "energy_gen": 0.0,
+      "eng_scaled": true,
+      "id": "adv_circuit_foundry",
+      "inputs": {
+        "Circuit": 5,
+        "Germanium": 2,
+        "Si": 4
+      },
+      "interval": 5.0,
+      "material_cost": {
+        "Circuit": 200,
+        "Steel": 3000,
+        "Superalloy": 120
+      },
+      "name": "Advanced Circuit Foundry",
+      "ore_throttled": false,
+      "primary_material": "AdvCircuit",
+      "primary_per_hour_at_1": 1124.08991625368,
+      "primary_per_hour_ceiling": 22481.7983250736,
+      "research_req": "nano_fabrication",
+      "yields": {
+        "AdvCircuit": 1.2
+      }
+    },
+    {
+      "category": "logistics",
+      "credits": 5000.0,
+      "credits_per_unit_hr": -1.0,
+      "energy_cons": 150.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "drone_bay",
+      "inputs": {
+
+      },
+      "interval": 1.0,
+      "material_cost": {
+        "Circuit": 10,
+        "Ti": 20
+      },
+      "name": "Drone Recovery Bay",
+      "ore_throttled": false,
+      "primary_material": "",
+      "primary_per_hour_at_1": 0.0,
+      "primary_per_hour_ceiling": 0.0,
+      "research_req": "automated_logistics",
+      "yields": {
+
+      }
+    },
+    {
+      "category": "industry",
+      "credits": 12500.0,
+      "credits_per_unit_hr": -1.0,
+      "energy_cons": 1500.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "fabricator",
+      "inputs": {
+
+      },
+      "interval": 1.0,
+      "material_cost": {
+        "Circuit": 50,
+        "Fiber": 20,
+        "Ti": 50
+      },
+      "name": "Molecular Fabricator",
+      "ore_throttled": false,
+      "primary_material": "",
+      "primary_per_hour_at_1": 0.0,
+      "primary_per_hour_ceiling": 0.0,
+      "research_req": "molecular_printing",
+      "yields": {
+
+      }
+    },
+    {
+      "category": "logistics",
+      "credits": 12500.0,
+      "credits_per_unit_hr": -1.0,
+      "energy_cons": 35.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "nitrogen_tank",
+      "inputs": {
+
+      },
+      "interval": 1.0,
+      "material_cost": {
+        "Circuit": 25,
+        "Ti": 100
+      },
+      "name": "Cryo-Storage Array",
+      "ore_throttled": false,
+      "primary_material": "",
+      "primary_per_hour_at_1": 0.0,
+      "primary_per_hour_ceiling": 0.0,
+      "research_req": "cryogenic_storage",
+      "yields": {
+
+      }
+    },
+    {
+      "category": "logistics",
+      "credits": 20000.0,
+      "credits_per_unit_hr": 55.5555555555556,
+      "energy_cons": 50.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "terraforming_processor",
+      "inputs": {
+        "Dirt": 25,
+        "Water": 5
+      },
+      "interval": 10.0,
+      "material_cost": {
+        "Circuit": 20,
+        "Steel": 100
+      },
+      "name": "Terraforming Processor",
+      "ore_throttled": false,
+      "primary_material": "FertileSoil",
+      "primary_per_hour_at_1": 360.0,
+      "primary_per_hour_ceiling": 7200.0,
+      "research_req": "industrial_logistics",
+      "yields": {
+        "FertileSoil": 1
+      }
+    },
+    {
+      "category": "logistics",
+      "credits": 30000.0,
+      "credits_per_unit_hr": -1.0,
+      "energy_cons": 50.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "biosphere_dome",
+      "inputs": {
+
+      },
+      "interval": 1.0,
+      "material_cost": {
+        "FertileSoil": 10,
+        "Si": 50,
+        "Steel": 150
+      },
+      "name": "Biosphere Dome",
+      "ore_throttled": false,
+      "primary_material": "",
+      "primary_per_hour_at_1": 0.0,
+      "primary_per_hour_ceiling": 0.0,
+      "research_req": "industrial_logistics",
+      "yields": {
+
+      }
+    },
+    {
+      "category": "logistics",
+      "credits": 500000.0,
+      "credits_per_unit_hr": -1.0,
+      "energy_cons": 1200.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "catalyst_chamber",
+      "inputs": {
+
+      },
+      "interval": 1.0,
+      "material_cost": {
+        "AdvCircuit": 30,
+        "PtCatalyst": 5,
+        "Superalloy": 20
+      },
+      "name": "Platinum Catalyst Chamber",
+      "ore_throttled": false,
+      "primary_material": "",
+      "primary_per_hour_at_1": 0.0,
+      "primary_per_hour_ceiling": 0.0,
+      "research_req": "industrial_catalysis",
+      "yields": {
+
+      }
+    },
+    {
+      "category": "logistics",
+      "credits": 100000.0,
+      "credits_per_unit_hr": -1.0,
+      "energy_cons": 1200.0,
+      "energy_gen": 0.0,
+      "eng_scaled": false,
+      "id": "silver_catalyst_bay",
+      "inputs": {
+
+      },
+      "interval": 1.0,
+      "material_cost": {
+        "AgCatalyst": 5,
+        "Circuit": 20
+      },
+      "name": "Silver Catalyst Bay",
+      "ore_throttled": false,
+      "primary_material": "",
+      "primary_per_hour_at_1": 0.0,
+      "primary_per_hour_ceiling": 0.0,
+      "research_req": "industrial_catalysis",
+      "yields": {
+
+      }
+    }
+  ],
+  "constants": {
+    "DR_CEILING": 20,
+    "DR_KNEE": 10,
+    "DR_TAIL": 10,
+    "ENG_SCALE_CAP": 2.0,
+    "ORE_THROTTLE_MULT": 0.5
+  },
+  "dr_curve": {
+    "1": 1.0,
+    "10": 10.0,
+    "100": 19.0,
+    "15": 13.3333333333333,
+    "20": 15.0,
+    "200": 19.5,
+    "30": 16.6666666666667,
+    "5": 5.0,
+    "50": 18.0
+  }
+}

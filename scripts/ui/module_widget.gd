@@ -170,7 +170,7 @@ func update_state():
 		cost_lbl.show()
 	
 	if data.get("is_custom", false) or data.get("is_unique", false):
-		cost_lbl.text = "[center][color=orange]Drop-only module[/color][/center]"
+		cost_lbl.text = "[center][color=#FFC24D]Drop-only module[/color][/center]"
 		btn.text = "DROP ONLY"
 		btn.disabled = true
 		return
@@ -251,7 +251,7 @@ func _reset_highlight():
 func _get_gem_color(gem_name: String) -> Color:
 	if "Crimson" in gem_name: return Color("#ff4444")
 	if "Cobalt" in gem_name: return Color("#44ccff")
-	if "Topaz" in gem_name: return Color("#ffcc00")
+	if "Topaz" in gem_name: return Color("#FFC24D")
 	if "Amethyst" in gem_name: return Color("#aa44ff")
 	return Color("#b548b5") # Default purple
 
@@ -275,7 +275,7 @@ func _make_custom_tooltip(_for_text: String) -> Control:
 	rtl.fit_content = true
 	rtl.scroll_active = false
 	rtl.custom_minimum_size = Vector2(320, 0)
-	rtl.add_theme_color_override("default_color", Color(0.9, 0.9, 0.9))
+	rtl.add_theme_color_override("default_color", Color(0.894, 0.961, 0.933))
 	rtl.text = _build_comparison_tooltip()
 	return rtl
 
@@ -298,11 +298,11 @@ func _build_comparison_tooltip() -> String:
 		display_name = display_name.replace(suffix, "")
 		
 	var rarity_color = sm.RARITY_COLORS.get(rarity, Color.WHITE)
-	var div = "[color=#41526e]──────────────────────────────[/color]\n"
+	var div = "[color=#1E3B38]──────────────────────────────[/color]\n"
 
 	tt = "" # Reset tt as it was already initialized
 	tt += "[b][color=#%s]%s[/color][/b]\n" % [rarity_color.to_html(), data.get("name", "Unknown Item")]
-	tt += "[font_size=10][color=gray]%s[/color][/font_size]\n" % [slot_type.capitalize()]
+	tt += "[font_size=10][color=#7FA39C]%s[/color][/font_size]\n" % [slot_type.capitalize()]
 	tt += div
 	
 	if slot_type == "gem" or slot_type == "gem_synth":
@@ -317,25 +317,25 @@ func _build_comparison_tooltip() -> String:
 		var dmg = my_stats.get("atk_kinetic", 0) + my_stats.get("atk_energy", 0) + my_stats.get("atk_explosive", 0) + my_stats.get("atk_cryo", 0)
 		var interval = max(0.01, float(my_stats.get("atk_interval", 2.5)))
 		var dps = float(dmg) / interval
-		tt += "[font_size=20][b]%.1f DPS[/b][/font_size]\n" % dps
-		tt += "[font_size=9][color=gray]%s total damage, %.2f hits/s[/color][/font_size]\n" % [UITheme.format_num(dmg), 1.0 / interval]
+		tt += "[font_size=24][b]%.1f DPS[/b][/font_size]\n" % dps
+		tt += "[font_size=9][color=#7FA39C]%s total damage, %.2f hits/s[/color][/font_size]\n" % [UITheme.format_num(dmg), 1.0 / interval]
 		if my_stats.get("atk_kinetic", 0) > 0:
-			tt += "[color=#99ccff][b]KINETIC[/b][/color]  [color=gray]Strong vs Hull, weak vs Shield[/color]\n"
+			tt += "[color=#7088F2][b]KINETIC[/b][/color]  [color=#7FA39C]Strong vs Hull, weak vs Shield[/color]\n"
 		if my_stats.get("atk_energy", 0) > 0:
-			tt += "[color=#ffe64d][b]ENERGY[/b][/color]  [color=gray]Strong vs Shield, bypasses Armor[/color]\n"
+			tt += "[color=#5FE0C8][b]ENERGY[/b][/color]  [color=#7FA39C]Strong vs Shield, bypasses Armor[/color]\n"
 		if my_stats.get("atk_explosive", 0) > 0:
-			tt += "[color=#ff804d][b]EXPLOSIVE[/b][/color]  [color=gray]Ignores most Armor[/color]\n"
+			tt += "[color=#FFC24D][b]EXPLOSIVE[/b][/color]  [color=#7FA39C]Ignores most Armor[/color]\n"
 		if my_stats.get("atk_cryo", 0) > 0:
-			tt += "[color=#b3f0ff][b]CRYOGENIC[/b][/color]  [color=gray]Breaches Warp-Hardened, self-charging[/color]\n"
+			tt += "[color=#39A6E0][b]CRYOGENIC[/b][/color]  [color=#7FA39C]Breaches Warp-Hardened, self-charging[/color]\n"
 		tt += div
 	elif slot_type == "shield":
 		var val = my_stats.get("max_shield", 0)
-		tt += "[font_size=20][b]%s[/b][/font_size] [font_size=10][color=gray]Shield Capacity[/color][/font_size]\n" % UITheme.format_num(val)
+		tt += "[font_size=24][b]%s[/b][/font_size] [font_size=10][color=#7FA39C]Shield Capacity[/color][/font_size]\n" % UITheme.format_num(val)
 		tt += div
 	elif slot_type == "armor":
 		var hp_val = my_stats.get("hp", 0)
-		tt += "[center][font_size=20][b]%s[/b][/font_size] [font_size=10][color=gray]Integrity Reinforcement[/color][/font_size][/center]\n" % UITheme.format_num(hp_val)
-		tt += "[color=#41526e]──────────────────────────────[/color]\n"
+		tt += "[center][font_size=24][b]%s[/b][/font_size] [font_size=10][color=#7FA39C]Integrity Reinforcement[/color][/font_size][/center]\n" % UITheme.format_num(hp_val)
+		tt += "[color=#1E3B38]──────────────────────────────[/color]\n"
 
 	# 3. STAT COMPARISON
 	var equipped_mid = null
@@ -369,9 +369,9 @@ func _build_comparison_tooltip() -> String:
 			var eq_val = equipped_stats.get(k, 0)
 			var diff = val - eq_val
 			if diff > 0:
-				delta_str = " [color=lime][font_size=9](+%s ^)[/font_size][/color]" % FormatUtils.format_stat_value(k, diff)
+				delta_str = " [color=#46E0A0][font_size=9](+%s ^)[/font_size][/color]" % FormatUtils.format_stat_value(k, diff)
 			elif diff < 0:
-				delta_str = " [color=red][font_size=9](%s v)[/font_size][/color]" % FormatUtils.format_stat_value(k, diff)
+				delta_str = " [color=#FF6473][font_size=9](%s v)[/font_size][/color]" % FormatUtils.format_stat_value(k, diff)
 		
 		# v76.0: Display Roll Range for base stats
 		var range_info = ""
@@ -387,7 +387,7 @@ func _build_comparison_tooltip() -> String:
 					var scaled_base = b_val * zone_mult
 					var r_min = scaled_base * (1.0 + s_range[0])
 					var r_max = scaled_base * (1.0 + s_range[1])
-					range_info = " [color=gray][font_size=8][%s-%s][/font_size][/color]" % [
+					range_info = " [color=#7FA39C][font_size=8][%s-%s][/font_size][/color]" % [
 						FormatUtils.format_stat_value(k, r_min),
 						FormatUtils.format_stat_value(k, r_max)
 					]
@@ -412,15 +412,15 @@ func _build_comparison_tooltip() -> String:
 				
 				if scaling == "flat" or scaling == "linear_tier":
 					val_str = str(int(val_raw))
-					range_str = " [color=gray][font_size=9][%d-%d][/font_size][/color]" % [int(s_range[0]), int(s_range[1])]
+					range_str = " [color=#7FA39C][font_size=9][%d-%d][/font_size][/color]" % [int(s_range[0]), int(s_range[1])]
 				else:
 					val_str = "%d%%" % int(val_raw * 100)
-					range_str = " [color=gray][font_size=9][%d-%d]%%[/font_size][/color]" % [int(s_range[0] * 100), int(s_range[1] * 100)]
+					range_str = " [color=#7FA39C][font_size=9][%d-%d]%%[/font_size][/color]" % [int(s_range[0] * 100), int(s_range[1] * 100)]
 				
 				var desc = cfg["desc"] % [int(val_raw) if (scaling == "flat" or scaling == "linear_tier") else int(val_raw * 100)]
 				
 				if rarity == sm.Rarity.LEGENDARY:
-					tt += "[color=orange][b]%s[/b][/color]%s\n" % [desc, range_str]
+					tt += "[color=#FFC24D][b]%s[/b][/color]%s\n" % [desc, range_str]
 				elif rarity == sm.Rarity.UNIQUE:
 					tt += "[color=#ff33cc][b]%s[/b][/color]%s\n" % [desc, range_str]
 				else:
@@ -429,9 +429,9 @@ func _build_comparison_tooltip() -> String:
 	# 5. FOOTER
 	tt += div
 	if equipped_mid and equipped_mid != mid:
-		tt += "[font_size=9][color=yellow]Comparing with: %s[/color][/font_size]" % manager.modules[equipped_mid]["name"]
+		tt += "[font_size=9][color=#D7B842]Comparing with: %s[/color][/font_size]" % manager.modules[equipped_mid]["name"]
 	else:
-		tt += "[font_size=9][color=gray](Currently equipped module)[/color][/font_size]" if equipped_mid == mid else ""
+		tt += "[font_size=9][color=#7FA39C](Currently equipped module)[/color][/font_size]" if equipped_mid == mid else ""
 
 	# v83.9: Set Bonus Tooltip Section
 	var sid = data.get("set_id", "")
@@ -447,8 +447,8 @@ func _build_comparison_tooltip() -> String:
 			var total = set_info["pieces"]
 			var active = count >= total
 			
-			tt += "[b][color=#00ffff]SET: %s[/color][/b]\n" % set_info["name"].to_upper()
-			tt += "[font_size=10][color=gray]%d / %d pieces equipped[/color][/font_size]\n" % [count, total]
+			tt += "[b][color=#7088F2]SET: %s[/color][/b]\n" % set_info["name"].to_upper()
+			tt += "[font_size=10][color=#7FA39C]%d / %d pieces equipped[/color][/font_size]\n" % [count, total]
 			
 			for bonus_key in set_info["bonus"]:
 				var val = set_info["bonus"][bonus_key]

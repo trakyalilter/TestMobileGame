@@ -15,8 +15,8 @@ signal closed
 
 const PANEL_W: float = 440.0
 const DIM_COLOR: Color = Color(0, 0, 0, 0.72)
-const HDR_COL: String = "#d4a957"
-const HINT_COL: String = "#7c8088"
+const HDR_COL: String = "#FFC24D"
+const HINT_COL: String = "#7FA39C"
 
 var _nid: String = ""
 var _data: Dictionary = {}
@@ -97,10 +97,10 @@ func _build_ui() -> void:
 	center.add_child(_card)
 
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.07, 0.08, 0.12, 0.98)
+	sb.bg_color = Color(0.039, 0.086, 0.078, 0.98)
 	sb.set_border_width_all(1)
 	sb.border_width_top = 3
-	sb.border_color = Color(0.78, 0.45, 1.0, 0.90)         # research-branch accent
+	sb.border_color = Color(0.690, 0.420, 0.949, 0.90)     # research-branch violet
 	sb.set_corner_radius_all(6)
 	sb.shadow_color = Color(0, 0, 0, 0.70)
 	sb.shadow_size = 22
@@ -126,7 +126,7 @@ func _build_ui() -> void:
 	var title := Label.new()
 	title.text = str(_data.get("name", _nid))
 	title.add_theme_font_size_override("font_size", 19)
-	title.add_theme_color_override("font_color", Color(0.78, 0.45, 1.0))
+	title.add_theme_color_override("font_color", Color(0.690, 0.420, 0.949))
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hdr.add_child(title)
 
@@ -137,9 +137,9 @@ func _build_ui() -> void:
 	close_btn.flat = true
 	close_btn.custom_minimum_size = Vector2(28, 28)
 	close_btn.add_theme_font_size_override("font_size", 16)
-	close_btn.add_theme_color_override("font_color", Color(0.78, 0.78, 0.82))
-	close_btn.add_theme_color_override("font_hover_color", Color(1.0, 0.55, 0.55))
-	close_btn.add_theme_color_override("font_pressed_color", Color(1.0, 0.30, 0.30))
+	close_btn.add_theme_color_override("font_color", Color(0.498, 0.639, 0.612))
+	close_btn.add_theme_color_override("font_hover_color", Color(1.0, 0.392, 0.451))
+	close_btn.add_theme_color_override("font_pressed_color", Color(0.85, 0.30, 0.36))
 	close_btn.focus_mode = Control.FOCUS_NONE
 	close_btn.pressed.connect(_close)
 	hdr.add_child(close_btn)
@@ -156,12 +156,12 @@ func _build_ui() -> void:
 			parts.append(cat.to_upper())
 		sub.text = "  ·  ".join(parts)
 		sub.add_theme_font_size_override("font_size", 10)
-		sub.add_theme_color_override("font_color", Color(0.55, 0.50, 0.40))
+		sub.add_theme_color_override("font_color", Color(0.498, 0.639, 0.612))
 		vb.add_child(sub)
 
 	# Gold rule under the header
 	var rule := ColorRect.new()
-	rule.color = Color(0.78, 0.45, 1.0, 0.40)
+	rule.color = Color(0.690, 0.420, 0.949, 0.40)
 	rule.custom_minimum_size = Vector2(0, 1)
 	vb.add_child(rule)
 
@@ -176,7 +176,7 @@ func _build_ui() -> void:
 	_body_rt.add_theme_font_size_override("bold_font_size", 12)
 	_body_rt.add_theme_font_size_override("italics_font_size", 12)
 	_body_rt.add_theme_font_size_override("bold_italics_font_size", 12)
-	_body_rt.add_theme_color_override("default_color", Color(0.86, 0.88, 0.92))
+	_body_rt.add_theme_color_override("default_color", Color(0.894, 0.961, 0.933))
 	_body_rt.text = _apply_smart_linking(_build_tooltip_text(_data))
 	_body_rt.meta_hover_started.connect(_on_meta_hover)
 	_body_rt.meta_hover_ended.connect(_on_meta_exit)
@@ -191,7 +191,7 @@ func _build_ui() -> void:
 	_cost_rt.custom_minimum_size = Vector2(PANEL_W - 44, 0)
 	_cost_rt.add_theme_font_size_override("normal_font_size", 12)
 	_cost_rt.add_theme_font_size_override("bold_font_size", 12)
-	_cost_rt.add_theme_color_override("default_color", Color(0.86, 0.88, 0.92))
+	_cost_rt.add_theme_color_override("default_color", Color(0.894, 0.961, 0.933))
 	_cost_rt.text = _build_cost_text()
 	vb.add_child(_cost_rt)
 

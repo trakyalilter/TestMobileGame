@@ -1,22 +1,27 @@
 extends Control
-# v112: "Tactical Telemetry" offline welcome-back screen (design dir. B).
+# v113: "Tactical Telemetry" offline welcome-back screen (design dir. B).
 # Diegetic station console: radial elapsed-time gauge, status-LED activity
 # channels, monospace telemetry stat blocks, scanline + corner-bracket FX, and
 # a SCROLLABLE cargo ledger (built to absorb the future parallel-infra material
 # explosion without overflowing the screen). Driven entirely by the structured
 # GameState.offline_report_data — see any manager's calculate_offline().
+# v113 refinement (currency-first dopamine pass): the stat row LEADS with Liras
+# earned (gold), values count UP on the reveal, the cargo ledger colours amounts
+# by semantic (jade gained / coral lost / amber Liras), the boot log is tightened
+# and the "systems online" thud now lands on the reward beat, and the Continue
+# button is the one solid (jade) fill on screen.
 
 @onready var bg: ColorRect = $ColorRect
 
 # ── palette ───────────────────────────────────────────────────────────────
-const CYAN  := Color(0.20, 0.84, 1.00)
-const GREEN := Color(0.40, 0.90, 0.60)
-const GOLD  := Color(1.00, 0.82, 0.30)
-const RED   := Color(1.00, 0.54, 0.48)
-const TEXT  := Color(0.90, 0.92, 0.97)
-const DIM   := Color(0.60, 0.62, 0.74)
-const FAINT := Color(0.42, 0.45, 0.56)
-const IDLE  := Color(0.22, 0.27, 0.38)
+const CYAN  := Color(0.373, 0.878, 0.784)  # Precursor Bloom aqua accent
+const GREEN := Color(0.275, 0.878, 0.627)  # jade positive
+const GOLD  := Color(1.0, 0.761, 0.302)    # amber currency / hot
+const RED   := Color(1.0, 0.392, 0.451)    # coral negative
+const TEXT  := Color(0.894, 0.961, 0.933)
+const DIM   := Color(0.498, 0.639, 0.612)
+const FAINT := Color(0.36, 0.45, 0.43)
+const IDLE  := Color(0.18, 0.29, 0.27)
 
 const CAP_SECONDS := 86400.0
 
@@ -32,6 +37,7 @@ var _gauge: RingGauge
 var _gauge_target: float = 0.0
 var _continue_btn: Button
 var _mono_font: SystemFont
+var _stat_rolls: Array = []   # {label, target, prefix} — rolled up on reveal by _tick_stats
 
 
 func _ready():
@@ -96,6 +102,7 @@ func _build_ui():
 	for c in get_children():
 		if c != bg:
 			c.queue_free()
+	_stat_rolls.clear()
 
 	_mono_font = SystemFont.new()
 	_mono_font.font_names = PackedStringArray(["Consolas", "Cascadia Mono", "Courier New", "monospace"])
@@ -167,14 +174,30 @@ func _build_ui():
 		channels.add_child(_mk_channel(b))
 	mid.add_child(channels)
 
-	# ── aggregate stat blocks ──
+	# ── aggregate stat blocks (currency-first; values count up on reveal) ──
 	var agg := _aggregate()
 	var stats := HBoxContainer.new()
 	stats.add_theme_constant_override("separation", 10)
-	stats.alignment = BoxContainer.ALIGNMENT_CENTER
-	stats.add_child(_mk_stat("XP ACCRUED", FormatUtils.format_number(agg["xp"])))
-	stats.add_child(_mk_stat("UNITS HAULED", FormatUtils.format_number(agg["units"])))
-	stats.add_child(_mk_stat("ACTIONS", FormatUtils.format_number(agg["actions"])))
+	# Lead slot: the soft currency the player actually spends. If they banked no
+	# Liras (e.g. a pure raw-gathering run), celebrate their single biggest haul
+	# instead so the hero stat is never an empty "+0".
+	var credits_total: float = float(agg.get("credits", 0.0))
+	if credits_total > 0.0:
+		stats.add_child(_mk_stat("LIRAS", credits_total, GOLD, "+"))
+	else:
+		var top_key := ""
+		var top_amt := 0.0
+		for k in agg["ledger"]:
+			var e: Dictionary = agg["ledger"][k]
+			if not bool(e.get("drain", false)) and float(e["amt"]) > top_amt:
+				top_amt = float(e["amt"])
+				top_key = str(e.get("res", k))
+		if top_key != "":
+			stats.add_child(_mk_stat(_disp_name(top_key).to_upper(), top_amt, _key_color(top_key), "+"))
+		else:
+			stats.add_child(_mk_stat("LIRAS", 0.0, GOLD, "+"))
+	stats.add_child(_mk_stat("XP ACCRUED", float(agg["xp"]), Color.WHITE, "+"))
+	stats.add_child(_mk_stat("ACTIONS", float(agg["actions"]), Color.WHITE, ""))
 	_content.add_child(stats)
 
 	# ── cargo ledger (header + SCROLLABLE rows) ──
@@ -215,7 +238,26 @@ func _build_ui():
 	_continue_btn.text = resume["button"]
 	_continue_btn.custom_minimum_size = Vector2(230, 44)
 	_continue_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	UITheme.apply_premium_button_style(_continue_btn, "engineering")  # cyan family
+	UITheme.apply_premium_button_style(_continue_btn, "engineering")
+	# Make the CTA the ONE saturated fill on the screen — a solid jade "go" block
+	# with a dark label, inverted from the light-on-dark console so it unmistakably
+	# reads as THE action that ends the reveal.
+	var btn_dark := Color(0.039, 0.086, 0.078)
+	for st in ["normal", "hover", "pressed", "focus"]:
+		var fb := StyleBoxFlat.new()
+		fb.bg_color = GREEN
+		if st == "hover":
+			fb.bg_color = Color(0.40, 0.95, 0.72)
+		elif st == "pressed":
+			fb.bg_color = Color(0.22, 0.74, 0.52)
+		fb.set_corner_radius_all(4)
+		fb.content_margin_left = 18
+		fb.content_margin_right = 18
+		fb.content_margin_top = 10
+		fb.content_margin_bottom = 10
+		_continue_btn.add_theme_stylebox_override(st, fb)
+	for fc in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
+		_continue_btn.add_theme_color_override(fc, btn_dark)
 	_continue_btn.pressed.connect(_on_continue_pressed)
 	_continue_btn.modulate.a = 0.0   # revealed last
 	_content.add_child(_continue_btn)
@@ -232,19 +274,23 @@ func _play_boot_sequence():
 	_gauge.fill = 0.0
 
 	var tw := create_tween()
+	# Boot log: tightened pacing so the reward lands ~0.6s sooner every return —
+	# the terminal flavor sets the table, it isn't the meal.
 	tw.tween_callback(_blog.bind("> CORE REACTOR ONLINE"))
-	tw.tween_interval(0.45)
-	tw.tween_callback(func(): UITheme.trigger_ui_thud(self, 12.0))
+	tw.tween_interval(0.30)
 	tw.tween_callback(_blog.bind("> AUX POWER  [ OK ]"))
-	tw.tween_interval(0.4)
+	tw.tween_interval(0.28)
 	tw.tween_callback(_blog.bind("> SYNCHRONIZING SECTOR LOGISTICS..."))
-	tw.tween_interval(0.55)
+	tw.tween_interval(0.30)
 	tw.tween_callback(_blog.bind("> DATA INTEGRITY  100%"))
-	tw.tween_interval(0.35)
-	# Reveal: fade the console in while the gauge sweeps up to its fill.
+	tw.tween_interval(0.24)
+	# Reveal beat — the climax: a heavy "systems online" slam lands exactly as the
+	# console fades in, the gauge sweeps, and the reward numbers roll up to total.
+	tw.tween_callback(func(): UITheme.trigger_ui_thud(self, 14.0))
 	tw.tween_property(_content, "modulate:a", 1.0, 0.5)
 	tw.parallel().tween_property(_gauge, "fill", _gauge_target, 1.0).from(0.0)
-	tw.tween_interval(0.35)
+	tw.parallel().tween_method(_tick_stats, 0.0, 1.0, 1.0).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tw.tween_interval(0.30)
 	tw.tween_property(_continue_btn, "modulate:a", 1.0, 0.4)
 
 
@@ -266,6 +312,7 @@ func _aggregate() -> Dictionary:
 	var total_xp := 0
 	var total_actions := 0
 	var units := 0.0
+	var credits := 0.0
 	var ledger := {}   # display-key → {amt, drain, res?}
 	for b in _data:
 		total_xp += int(b.get("xp", 0))
@@ -274,6 +321,8 @@ func _aggregate() -> Dictionary:
 			var amt := float(b["gains"][k])
 			if str(k) != "credits":
 				units += amt
+			else:
+				credits += amt
 			var prev: float = float(ledger.get(k, {}).get("amt", 0.0))
 			ledger[k] = {"amt": prev + amt, "drain": false}
 		for k in b.get("drains", {}):
@@ -281,7 +330,7 @@ func _aggregate() -> Dictionary:
 			var amt2 := float(b["drains"][k])
 			var prev2: float = float(ledger.get(dkey, {}).get("amt", 0.0))
 			ledger[dkey] = {"amt": prev2 + amt2, "drain": true, "res": k}
-	return {"xp": total_xp, "actions": total_actions, "units": units, "ledger": ledger}
+	return {"xp": total_xp, "actions": total_actions, "units": units, "credits": credits, "ledger": ledger}
 
 
 # Returns a sorted Array of {key, amt, drain, ratio}: gains (desc) then drains.
@@ -321,7 +370,7 @@ func _collect_notes() -> Array:
 	# cap survives: forfeited earnings are material, not noise.
 	var out: Array = []
 	if _capped:
-		out.append("Earnings capped at %dh — you were away longer." % int(CAP_SECONDS / 3600.0))
+		out.append("Reached the %dh offline cap — log in sooner to bank it all." % int(CAP_SECONDS / 3600.0))
 	return out
 
 
@@ -382,13 +431,17 @@ func _channel_value(b: Dictionary) -> String:
 	return _fmt_time(float(b.get("time_sec", 0)))
 
 
-func _mk_stat(cap: String, val: String) -> PanelContainer:
+func _mk_stat(cap: String, target: float, val_col: Color = Color.WHITE, prefix: String = "") -> PanelContainer:
+	# Each stat carries its own accent (gold Liras, aqua XP/actions, element tint
+	# for a top-haul fallback). The value starts at 0 and is rolled up to `target`
+	# by _tick_stats() during the reveal — see _play_boot_sequence().
+	var accent: Color = val_col if val_col != Color.WHITE else CYAN
 	var p := PanelContainer.new()
-	p.custom_minimum_size = Vector2(170, 0)
+	p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(CYAN.r, CYAN.g, CYAN.b, 0.05)
+	sb.bg_color = Color(accent.r, accent.g, accent.b, 0.05)
 	sb.set_border_width_all(1)
-	sb.border_color = Color(CYAN.r, CYAN.g, CYAN.b, 0.30)
+	sb.border_color = Color(accent.r, accent.g, accent.b, 0.30)
 	sb.set_corner_radius_all(2)
 	sb.content_margin_left = 13
 	sb.content_margin_right = 13
@@ -398,9 +451,20 @@ func _mk_stat(cap: String, val: String) -> PanelContainer:
 	var vb := VBoxContainer.new()
 	vb.add_theme_constant_override("separation", 2)
 	p.add_child(vb)
-	vb.add_child(_mk_label(cap, 8, CYAN))
-	vb.add_child(_mk_mono(val, 20, Color.WHITE))
+	vb.add_child(_mk_label(cap, 8, accent))
+	var val_lbl := _mk_mono(prefix + "0", 20, val_col)
+	vb.add_child(val_lbl)
+	_stat_rolls.append({"label": val_lbl, "target": target, "prefix": prefix})
 	return p
+
+
+# Odometer roll for the stat values, driven 0→1 during the reveal sweep so the
+# numbers the player came back for animate up instead of hard-appearing.
+func _tick_stats(t: float) -> void:
+	for s in _stat_rolls:
+		var lbl: Label = s["label"]
+		if is_instance_valid(lbl):
+			lbl.text = str(s["prefix"]) + FormatUtils.format_number(float(s["target"]) * t)
 
 
 func _mk_ledger_row(r: Dictionary) -> Control:
@@ -413,8 +477,12 @@ func _mk_ledger_row(r: Dictionary) -> Control:
 	tick.custom_minimum_size = Vector2(3, 14)
 	hb.add_child(tick)
 
+	# Tinted material glyph in a fixed-width slot. The slot is kept even when a
+	# row has no icon (e.g. Liras/credits) so every name column stays aligned.
+	hb.add_child(_mk_ledger_icon(r["key"], r["drain"]))
+
 	var sym := _mk_mono(_disp_name(r["key"]).to_upper(), 11, RED if r["drain"] else TEXT)
-	sym.custom_minimum_size = Vector2(118, 0)
+	sym.custom_minimum_size = Vector2(112, 0)
 	hb.add_child(sym)
 
 	var bar := ProgressBar.new()
@@ -435,11 +503,36 @@ func _mk_ledger_row(r: Dictionary) -> Control:
 	bar.add_theme_stylebox_override("fill", bfg)
 	hb.add_child(bar)
 
-	var amt := _mk_mono(("−" if r["drain"] else "+") + FormatUtils.format_number(r["amt"]), 11, col)
+	# Amount reads by SEMANTIC colour (jade gained / coral lost / amber Liras) so a
+	# fat haul and a trickle differ at a glance; the tick + bar keep the material tint.
+	var amt_col: Color = RED if r["drain"] else (GOLD if r["key"] == "credits" else GREEN)
+	var amt := _mk_mono(("−" if r["drain"] else "+") + FormatUtils.format_number(r["amt"]), 11, amt_col)
 	amt.custom_minimum_size = Vector2(84, 0)
 	amt.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	hb.add_child(amt)
 	return hb
+
+
+# Fixed-width icon slot for a ledger row. Returns a 20px-wide centered TextureRect
+# carrying the material's tinted glyph; if the key has no icon (credits, or any
+# un-iconned material) the slot stays empty so name columns remain aligned.
+func _mk_ledger_icon(key: String, drain: bool) -> Control:
+	var slot := CenterContainer.new()
+	slot.custom_minimum_size = Vector2(20, 16)
+	var tex: Texture2D = null
+	if key != "credits":
+		tex = ElementDB.get_material_icon(key)
+	if tex == null:
+		return slot
+	var ico := TextureRect.new()
+	ico.texture = tex
+	ico.custom_minimum_size = Vector2(16, 16)
+	ico.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	ico.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	# Drains tint red to read as a loss; gains keep the material's signature tint.
+	ico.modulate = RED if drain else ElementDB.get_material_tint(key)
+	slot.add_child(ico)
+	return slot
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -489,7 +582,7 @@ func _describe_active_task() -> Dictionary:
 #  INNER DRAWN WIDGETS
 # ════════════════════════════════════════════════════════════════════════════
 class RingGauge extends Control:
-	var ring_color: Color = Color(0.2, 0.84, 1.0)
+	var ring_color: Color = Color(0.373, 0.878, 0.784)
 	var fill: float = 0.0:
 		set(value):
 			fill = value
@@ -518,8 +611,8 @@ class _Dot extends Control:
 
 
 class TelemetryBG extends Control:
-	var line_color := Color(0.20, 0.84, 1.0, 0.028)
-	var bracket := Color(0.20, 0.84, 1.0, 0.5)
+	var line_color := Color(0.373, 0.878, 0.784, 0.028)
+	var bracket := Color(0.373, 0.878, 0.784, 0.5)
 
 	func _ready():
 		resized.connect(queue_redraw)

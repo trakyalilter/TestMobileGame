@@ -822,7 +822,7 @@ func _section(title: String, category: String) -> VBoxContainer:
 	vb.add_child(t)
 
 	var rule := ColorRect.new()
-	rule.color = UITheme.CATEGORY_COLORS.get(category, Color(0.3, 0.6, 1.0))
+	rule.color = UITheme.CATEGORY_COLORS.get(category, Color(0.216, 0.788, 0.690))
 	rule.color.a = 0.30
 	rule.custom_minimum_size = Vector2(0, 2)
 	vb.add_child(rule)
@@ -933,7 +933,7 @@ func _on_confirmation_dialog_confirmed() -> void:
 func _on_replay_tutorials_pressed() -> void:
 	GameState.game_settings["coach_seen"] = {}
 	GameState.save_game()
-	UITheme.show_notification("Tutorials reset — page tips will reappear as you visit each screen", Color(0.42, 0.84, 1.0))
+	UITheme.show_notification("Tutorials reset — page tips will reappear as you visit each screen", Color(0.373, 0.878, 0.784))
 
 
 # --------------------------------------------------------------------------

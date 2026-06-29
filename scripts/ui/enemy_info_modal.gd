@@ -150,7 +150,7 @@ func setup(data):
 			# v72.1: Research Prerequisite Check
 			var status = sm.can_equip_module(module_id)
 			var lock_prefix = "🔒 " if not status["can_equip"] else ""
-			var col = Color(0.0, 0.8, 1.0) if status["can_equip"] else Color(0.6, 0.6, 0.6)
+			var col = Color(0.275, 0.878, 0.627) if status["can_equip"] else Color(0.6, 0.6, 0.6)
 			
 			# Don't show UNIQUE items in subspace signal, they are already in Rare Drops
 			if m_data.get("rarity") == sm.Rarity.UNIQUE:

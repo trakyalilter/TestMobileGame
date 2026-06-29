@@ -174,9 +174,11 @@ func update_state():
 	for entry in data["loot_table"]:
 		var symbol = entry[0]
 		var display_name = ElementDB.get_display_name(symbol)
+		var icon_bb = ElementDB.material_icon_bbcode(symbol, 16)
 		# v112: deterministic yield — show the single fixed value (top of the
 		# old range), matching what gather actually produces now.
-		var base_loot = "%s: %s" % [
+		var base_loot = "%s%s: %s" % [
+			icon_bb,
 			display_name,
 			FormatUtils.format_number(float(entry[3]) * eff_mult)
 		]

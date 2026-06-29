@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img"><title>Horizon Idle app icon (small)</title><desc>Small-size variant: gold gear framing a bright sunrise core over a dark limb; comet, moon and stars removed and the sun core enlarged for legibility at 16-48px.</desc>
+<defs>
+<clipPath id="tile"><rect x="0" y="0" width="512" height="512" rx="104"/></clipPath>
+<clipPath id="bore"><circle cx="256" cy="256" r="174"/></clipPath>
+<clipPath id="planet"><path d="M80 360 Q256 300 432 360 L432 432 L80 432 Z"/></clipPath>
+
+<linearGradient id="field" x1="256" y1="40" x2="256" y2="472" gradientUnits="userSpaceOnUse">
+<stop offset="0" stop-color="#070f24"/><stop offset="0.45" stop-color="#0a1733"/><stop offset="0.78" stop-color="#0e2150"/><stop offset="1" stop-color="#16356e"/>
+</linearGradient>
+<radialGradient id="discGlow" cx="256" cy="324" r="220" gradientUnits="userSpaceOnUse">
+<stop offset="0" stop-color="#ffe39a" stop-opacity="0.7"/><stop offset="0.3" stop-color="#f0a92a" stop-opacity="0.42"/><stop offset="0.6" stop-color="#c87a16" stop-opacity="0.13"/><stop offset="1" stop-color="#c87a16" stop-opacity="0"/>
+</radialGradient>
+<linearGradient id="innerSky" x1="256" y1="80" x2="256" y2="372" gradientUnits="userSpaceOnUse">
+<stop offset="0" stop-color="#070f24"/><stop offset="0.5" stop-color="#0b1a3c"/><stop offset="0.82" stop-color="#1c3158"/><stop offset="1" stop-color="#3a2a1a"/>
+</linearGradient>
+<radialGradient id="atmo" cx="256" cy="330" r="190" gradientUnits="userSpaceOnUse">
+<stop offset="0" stop-color="#ffd36a" stop-opacity="0.85"/><stop offset="0.3" stop-color="#f0a92a" stop-opacity="0.5"/><stop offset="0.6" stop-color="#e8881f" stop-opacity="0.2"/><stop offset="1" stop-color="#e8881f" stop-opacity="0"/>
+</radialGradient>
+<radialGradient id="sunBloom" cx="256" cy="334" r="160" gradientUnits="userSpaceOnUse">
+<stop offset="0" stop-color="#ffffff" stop-opacity="0.96"/><stop offset="0.32" stop-color="#fff0c2" stop-opacity="0.82"/><stop offset="0.66" stop-color="#ffd36a" stop-opacity="0.34"/><stop offset="1" stop-color="#ffd36a" stop-opacity="0"/>
+</radialGradient>
+<radialGradient id="sun" cx="248" cy="320" r="112" gradientUnits="userSpaceOnUse">
+<stop offset="0" stop-color="#ffffff"/><stop offset="0.34" stop-color="#fff4d2"/><stop offset="0.66" stop-color="#ffd36a"/><stop offset="1" stop-color="#f0a92a"/>
+</radialGradient>
+<linearGradient id="limb" x1="256" y1="300" x2="256" y2="432" gradientUnits="userSpaceOnUse">
+<stop offset="0" stop-color="#14213f"/><stop offset="1" stop-color="#060a18"/>
+</linearGradient>
+<linearGradient id="gearFill" x1="256" y1="46" x2="256" y2="466" gradientUnits="userSpaceOnUse">
+<stop offset="0" stop-color="#fff2cf"/><stop offset="0.34" stop-color="#ffd36a"/><stop offset="0.66" stop-color="#e89a1f"/><stop offset="1" stop-color="#a9670c"/>
+</linearGradient>
+</defs>
+
+<g clip-path="url(#tile)">
+<rect x="0" y="0" width="512" height="512" fill="url(#field)"/>
+<rect x="0" y="110" width="512" height="402" fill="url(#discGlow)"/>
+
+<path d="M 445.64 225.96 L 464.85 234.05 L 464.85 277.95 L 445.64 286.04 L 435.25 324.81 L 447.84 341.41 L 425.89 379.43 L 405.21 376.83 L 376.83 405.21 L 379.43 425.89 L 341.41 447.84 L 324.81 435.25 L 286.04 445.64 L 277.95 464.85 L 234.05 464.85 L 225.96 445.64 L 187.19 435.25 L 170.59 447.84 L 132.57 425.89 L 135.17 405.21 L 106.79 376.83 L 86.11 379.43 L 64.16 341.41 L 76.75 324.81 L 66.36 286.04 L 47.15 277.95 L 47.15 234.05 L 66.36 225.96 L 76.75 187.19 L 64.16 170.59 L 86.11 132.57 L 106.79 135.17 L 135.17 106.79 L 132.57 86.11 L 170.59 64.16 L 187.19 76.75 L 225.96 66.36 L 234.05 47.15 L 277.95 47.15 L 286.04 66.36 L 324.81 76.75 L 341.41 64.16 L 379.43 86.11 L 376.83 106.79 L 405.21 135.17 L 425.89 132.57 L 447.84 170.59 L 435.25 187.19 Z" fill="url(#gearFill)" stroke="#7a4e0c" stroke-width="2" stroke-linejoin="round"/>
+
+<g clip-path="url(#bore)">
+<rect x="80" y="80" width="352" height="352" fill="url(#innerSky)"/>
+<ellipse cx="256" cy="340" rx="200" ry="150" fill="url(#atmo)"/>
+<ellipse cx="256" cy="334" rx="160" ry="102" fill="url(#sunBloom)"/>
+<g clip-path="url(#planet)">
+<path d="M80 360 Q256 300 432 360 L432 432 L80 432 Z" fill="url(#limb)"/>
+<path d="M80 360 Q256 300 432 360" fill="none" stroke="#ffd36a" stroke-width="6" stroke-linecap="round"/>
+</g>
+<circle cx="256" cy="346" r="86" fill="url(#sun)"/>
+<circle cx="250" cy="334" r="47" fill="#ffffff" opacity="0.34"/>
+<circle cx="250" cy="334" r="34" fill="#ffffff"/>
+</g>
+
+<circle cx="256" cy="256" r="177" fill="none" stroke="#5c3c0a" stroke-width="7" opacity="0.45"/>
+<path d="M 112.23 139.58 A 185 185 0 0 1 399.77 139.58" fill="none" stroke="#fff7e0" stroke-width="10" stroke-linecap="round" opacity="0.8"/>
+</g>
+</svg>

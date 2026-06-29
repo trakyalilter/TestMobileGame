@@ -598,7 +598,7 @@ func _on_radar_draw():
 	# Player HP Arc (Reddish) - Radius 120-126
 	_draw_arc_poly(center, 120, 126, 110, 250, Color(1, 0, 0, 0.1), Color(1, 0.3, 0.3, 0.8), p_hp_pct)
 	# Player Shield Arc (Cyan) - Radius 132-138
-	_draw_arc_poly(center, 132, 138, 110, 250, Color(0, 0.8, 1, 0.1), Color(0, 0.8, 1, 0.6), p_sh_pct)
+	_draw_arc_poly(center, 132, 138, 110, 250, Color(0.427, 0.941, 0.847, 0.1), Color(0.427, 0.941, 0.847, 0.6), p_sh_pct)
 
 	# --- ENEMY ARCS (Right) ---
 	if manager.in_combat and manager.current_enemy:
@@ -608,7 +608,7 @@ func _on_radar_draw():
 		# Enemy HP Arc - Radius 120-126 (Symmetrical)
 		_draw_arc_poly(center, 120, 126, -70, 70, Color(1, 0, 0, 0.1), Color(1, 0, 0, 0.8), e_hp_pct)
 		# Enemy Shield Arc - Radius 132-138 (Symmetrical)
-		_draw_arc_poly(center, 132, 138, -70, 70, Color(0, 0.8, 1, 0.1), Color(0, 0.8, 1, 0.6), e_sh_pct)
+		_draw_arc_poly(center, 132, 138, -70, 70, Color(0.427, 0.941, 0.847, 0.1), Color(0.427, 0.941, 0.847, 0.6), e_sh_pct)
 		
 	# --- RETICLE & DECORATION ---
 	radar_display.draw_circle(center, 5, Color(1, 1, 1, 0.1)) # Center dot

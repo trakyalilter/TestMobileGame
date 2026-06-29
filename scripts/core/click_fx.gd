@@ -8,7 +8,7 @@ extends CanvasLayer
 ## its `button_down` hooked. Disabled buttons don't emit it, so locked
 ## controls correctly produce no feedback.
 
-const RING_COLOR := Color(0.42, 0.84, 1.0)  # cyan accent (matches UITheme)
+const RING_COLOR := Color(0.373, 0.878, 0.784)  # Precursor Bloom aqua (matches UITheme)
 
 
 func _ready() -> void:

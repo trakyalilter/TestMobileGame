@@ -85,9 +85,9 @@ func _apply_style(data: Dictionary, mode: String):
 	if diff >= 8:
 		title_lbl.add_theme_color_override("font_color", Color(1.0, 0.4, 0.4)) # Red
 	elif diff >= 5:
-		title_lbl.add_theme_color_override("font_color", Color(1.0, 0.7, 0.2)) # Orange 
+		title_lbl.add_theme_color_override("font_color", Color(1.0, 0.761, 0.302)) # amber (high diff)
 	elif diff >= 3:
-		title_lbl.add_theme_color_override("font_color", Color(0.2, 0.8, 1.0)) # Cyan
+		title_lbl.add_theme_color_override("font_color", Color(0.373, 0.878, 0.784)) # aqua (mid diff)
 	else:
 		title_lbl.add_theme_color_override("font_color", Color(0.7, 0.9, 0.7)) # Light green
 

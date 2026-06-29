@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img"><title>Horizon Idle app icon</title><desc>A cyan-white comet streaking diagonally above a gold sunrise cresting a planet limb on a deep navy starfield.</desc>
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0" stop-color="#070f24"/>
+<stop offset="0.45" stop-color="#0a1733"/>
+<stop offset="0.74" stop-color="#11264f"/>
+<stop offset="0.9" stop-color="#3a2f3a"/>
+<stop offset="1" stop-color="#6b3f1c"/>
+</linearGradient>
+<radialGradient id="sunGlow" cx="0.5" cy="0.5" r="0.5">
+<stop offset="0" stop-color="#fff4d2" stop-opacity="0.95"/>
+<stop offset="0.28" stop-color="#ffd36a" stop-opacity="0.7"/>
+<stop offset="0.6" stop-color="#f0a92a" stop-opacity="0.32"/>
+<stop offset="1" stop-color="#f0a92a" stop-opacity="0"/>
+</radialGradient>
+<radialGradient id="sunCore" cx="0.5" cy="0.5" r="0.5">
+<stop offset="0" stop-color="#ffffff"/>
+<stop offset="0.4" stop-color="#fff1c0"/>
+<stop offset="0.8" stop-color="#ffd36a"/>
+<stop offset="1" stop-color="#f0a92a" stop-opacity="0"/>
+</radialGradient>
+<linearGradient id="limb" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0" stop-color="#2a4d7a"/>
+<stop offset="0.5" stop-color="#14233f"/>
+<stop offset="1" stop-color="#0a1530"/>
+</linearGradient>
+<linearGradient id="limbEdge" x1="0" y1="0" x2="0.5" y2="1">
+<stop offset="0" stop-color="#ffe9b0"/>
+<stop offset="0.5" stop-color="#f5b53c"/>
+<stop offset="1" stop-color="#9a6a22"/>
+</linearGradient>
+<radialGradient id="cometHead" cx="0.42" cy="0.4" r="0.62">
+<stop offset="0" stop-color="#ffffff"/>
+<stop offset="0.32" stop-color="#e6f7ff"/>
+<stop offset="0.68" stop-color="#7fd0f5"/>
+<stop offset="1" stop-color="#2f7fc0" stop-opacity="0"/>
+</radialGradient>
+<radialGradient id="cometHalo" cx="0.5" cy="0.5" r="0.5">
+<stop offset="0" stop-color="#dff4ff" stop-opacity="0.85"/>
+<stop offset="0.5" stop-color="#8fd6ff" stop-opacity="0.3"/>
+<stop offset="1" stop-color="#4aa6e0" stop-opacity="0"/>
+</radialGradient>
+<linearGradient id="trail" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0" stop-color="#dff4ff" stop-opacity="0"/>
+<stop offset="0.55" stop-color="#bfeaff" stop-opacity="0.55"/>
+<stop offset="0.85" stop-color="#eafaff" stop-opacity="0.95"/>
+<stop offset="1" stop-color="#ffffff"/>
+</linearGradient>
+<linearGradient id="planet" x1="0.2" y1="0.1" x2="0.8" y2="0.95">
+<stop offset="0" stop-color="#5b86b8"/>
+<stop offset="0.5" stop-color="#3a6ea5"/>
+<stop offset="1" stop-color="#1f3f66"/>
+</linearGradient>
+<radialGradient id="planetShade" cx="0.32" cy="0.3" r="0.85">
+<stop offset="0" stop-color="#cfe2f5" stop-opacity="0.55"/>
+<stop offset="0.45" stop-color="#3a6ea5" stop-opacity="0"/>
+<stop offset="1" stop-color="#0a1530" stop-opacity="0.6"/>
+</radialGradient>
+<clipPath id="tile"><rect x="0" y="0" width="512" height="512" rx="104"/></clipPath>
+<clipPath id="limbClip"><path d="M-40 392 Q256 300 552 392 L552 552 L-40 552 Z"/></clipPath>
+</defs>
+
+<g clip-path="url(#tile)">
+<rect x="0" y="0" width="512" height="512" fill="url(#bg)"/>
+
+<circle cx="96" cy="86" r="2.6" fill="#ffffff"/>
+<circle cx="150" cy="150" r="1.6" fill="#cfe0ff"/>
+<circle cx="60" cy="200" r="2" fill="#ffffff"/>
+<circle cx="210" cy="70" r="1.5" fill="#dbe7ff"/>
+<circle cx="300" cy="120" r="1.7" fill="#ffffff"/>
+<circle cx="430" cy="180" r="1.5" fill="#cfe0ff"/>
+<circle cx="470" cy="96" r="2.2" fill="#ffffff"/>
+<circle cx="372" cy="64" r="1.4" fill="#dbe7ff"/>
+<circle cx="120" cy="300" r="1.5" fill="#ffffff"/>
+<circle cx="40" cy="118" r="1.5" fill="#cfe0ff"/>
+<circle cx="250" cy="200" r="1.4" fill="#ffffff"/>
+<circle cx="86" cy="360" r="1.4" fill="#cfe0ff"/>
+
+<g transform="translate(404 150)">
+<circle cx="0" cy="0" r="44" fill="url(#planet)"/>
+<circle cx="0" cy="0" r="44" fill="url(#planetShade)"/>
+<ellipse cx="-12" cy="-13" rx="15" ry="9" fill="#bcd4ee" opacity="0.45"/>
+<circle cx="0" cy="0" r="44" fill="none" stroke="#6f9fce" stroke-width="1.4" opacity="0.5"/>
+</g>
+
+<ellipse cx="256" cy="470" rx="230" ry="120" fill="url(#sunGlow)"/>
+<ellipse cx="256" cy="476" rx="150" ry="78" fill="url(#sunGlow)" opacity="0.8"/>
+
+<g clip-path="url(#limbClip)">
+<ellipse cx="256" cy="700" rx="420" ry="330" fill="url(#planet)" opacity="0.9"/>
+<ellipse cx="256" cy="700" rx="420" ry="330" fill="url(#limb)"/>
+<ellipse cx="256" cy="700" rx="420" ry="330" fill="#0c1c3a" opacity="0.55"/>
+</g>
+
+<path d="M-40 392 Q256 300 552 392" fill="none" stroke="url(#limbEdge)" stroke-width="6" stroke-linecap="round"/>
+<path d="M150 360 Q256 318 366 360" fill="none" stroke="#fff3cf" stroke-width="5" stroke-linecap="round" opacity="0.9"/>
+
+<circle cx="256" cy="392" r="120" fill="url(#sunCore)" opacity="0.55"/>
+<circle cx="256" cy="388" r="40" fill="url(#sunCore)"/>
+<circle cx="256" cy="388" r="17" fill="#ffffff"/>
+
+<g transform="translate(176 196) rotate(38)">
+<ellipse cx="-92" cy="0" rx="118" ry="9" fill="url(#trail)"/>
+<ellipse cx="-58" cy="0" rx="78" ry="4.5" fill="#ffffff" opacity="0.85"/>
+</g>
+
+<circle cx="176" cy="196" r="58" fill="url(#cometHalo)"/>
+<circle cx="176" cy="196" r="27" fill="url(#cometHead)"/>
+<circle cx="172" cy="191" r="11" fill="#ffffff"/>
+
+<rect x="0" y="0" width="512" height="512" rx="104" fill="none" stroke="#9fb6e0" stroke-width="2" opacity="0.12"/>
+</g>
+</svg>

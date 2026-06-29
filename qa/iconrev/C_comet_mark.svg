@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <clipPath id="tile">
+      <rect x="0" y="0" width="512" height="512" rx="104"/>
+    </clipPath>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#081026"/>
+      <stop offset="0.55" stop-color="#0c1d44"/>
+      <stop offset="1" stop-color="#102a5e"/>
+    </linearGradient>
+    <radialGradient id="topLight" cx="0.5" cy="0" r="0.9">
+      <stop offset="0" stop-color="#22458f" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#22458f" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="goldHorizon" cx="0.5" cy="1" r="0.8">
+      <stop offset="0" stop-color="#fff0bf" stop-opacity="0.98"/>
+      <stop offset="0.16" stop-color="#ffd36a" stop-opacity="0.78"/>
+      <stop offset="0.45" stop-color="#e89a1f" stop-opacity="0.32"/>
+      <stop offset="1" stop-color="#c8741a" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="cometGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.95"/>
+      <stop offset="0.26" stop-color="#dff4ff" stop-opacity="0.82"/>
+      <stop offset="0.58" stop-color="#8fd0f5" stop-opacity="0.38"/>
+      <stop offset="1" stop-color="#3a8fd0" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="cometCore" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="1"/>
+      <stop offset="0.42" stop-color="#f4fbff" stop-opacity="1"/>
+      <stop offset="0.8" stop-color="#dff4ff" stop-opacity="0.92"/>
+      <stop offset="1" stop-color="#bfe8ff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="trail" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#cfeeff" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#bfe8ff" stop-opacity="0.5"/>
+      <stop offset="0.82" stop-color="#eaf8ff" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="1"/>
+    </linearGradient>
+    <linearGradient id="trailCore" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#eaf8ff" stop-opacity="0"/>
+      <stop offset="0.6" stop-color="#f4fcff" stop-opacity="0.7"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="1"/>
+    </linearGradient>
+  </defs>
+
+  <g clip-path="url(#tile)">
+    <rect x="0" y="0" width="512" height="512" fill="url(#bg)"/>
+    <rect x="0" y="0" width="512" height="512" fill="url(#topLight)"/>
+
+    <rect x="-40" y="356" width="592" height="220" fill="url(#goldHorizon)"/>
+    <ellipse cx="256" cy="524" rx="128" ry="40" fill="#fff6dc" opacity="0.6"/>
+
+    <circle cx="98" cy="118" r="2.8" fill="#ffffff" opacity="0.92"/>
+    <circle cx="152" cy="76" r="1.6" fill="#ffffff" opacity="0.7"/>
+    <circle cx="418" cy="148" r="2.3" fill="#ffffff" opacity="0.85"/>
+    <circle cx="374" cy="94" r="1.5" fill="#dff4ff" opacity="0.72"/>
+    <circle cx="120" cy="304" r="1.7" fill="#ffffff" opacity="0.6"/>
+    <circle cx="446" cy="298" r="1.9" fill="#ffffff" opacity="0.65"/>
+
+    <polygon points="112,100 146,124 374,372 348,396" fill="url(#trail)"/>
+    <polygon points="128,104 144,116 372,372 358,388" fill="url(#trailCore)"/>
+
+    <circle cx="356" cy="372" r="156" fill="url(#cometGlow)"/>
+    <circle cx="356" cy="372" r="80" fill="#bfe8ff" opacity="0.5"/>
+    <circle cx="356" cy="372" r="66" fill="url(#cometCore)"/>
+    <circle cx="356" cy="372" r="32" fill="#ffffff"/>
+  </g>
+</svg>

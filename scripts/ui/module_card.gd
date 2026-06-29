@@ -44,7 +44,9 @@ func _on_mouse_enter():
 		_update_ui()
 	# Don't pop info cards on other tiles while a drag is in progress.
 	if not data.is_empty() and not (is_inside_tree() and get_viewport().gui_is_dragging()):
-		UITheme.show_item_tooltip(self, _build_comparison_tooltip_bbcode())
+		var _wz := int(data.get("zone", data.get("zone_difficulty", 0)))
+		var _wm: Texture2D = ElementDB.get_material_icon("Z%d_Core" % clampi(_wz, 1, 10)) if _wz >= 1 else null
+		UITheme.show_item_tooltip(self, _build_comparison_tooltip_bbcode(), _wm)
 
 func _update_ui():
 	if not is_inside_tree() or data.is_empty():
@@ -132,6 +134,28 @@ func _draw_tile_visual(item_name: String, slot_type: String, rarity: int, rarity
 	bg_panel.add_theme_stylebox_override("panel", sb)
 	tile_container.add_child(bg_panel)
 
+	# --- Zone watermark: the sector emblem this module dropped from, large and
+	# faint behind the function icon. Fills the tile's dead space and shows the
+	# zone art at a READABLE size; the opaque emblem chip keeps the function icon
+	# crisp on top so archetype still reads first. (Zones 11-12 → Z10 emblem.) ---
+	var zsrc := int(m_data.get("zone", m_data.get("zone_difficulty", 0)))
+	if zsrc >= 1:
+		var zid := "Z%d_Core" % clampi(zsrc, 1, 10)
+		var ztex := ElementDB.get_material_icon(zid)
+		if ztex:
+			var zmark := TextureRect.new()
+			zmark.texture = ztex
+			zmark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			zmark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			zmark.anchor_right = 1.0; zmark.anchor_bottom = 1.0
+			zmark.offset_left = 13; zmark.offset_top = 11
+			zmark.offset_right = -13; zmark.offset_bottom = -17
+			var zmark_tint: Color = ElementDB.get_material_tint(zid)
+			zmark_tint.a = 0.12
+			zmark.modulate = zmark_tint
+			zmark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			tile_container.add_child(zmark)
+
 	# (No top colour band -- it read as a durability/progress meter. Category
 	# is already carried by the emblem chip + icon tint.)
 
@@ -144,7 +168,9 @@ func _draw_tile_visual(item_name: String, slot_type: String, rarity: int, rarity
 	emblem.offset_top = -em * 0.5 - 1.0; emblem.offset_bottom = em * 0.5 - 1.0
 	emblem.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var esb = StyleBoxFlat.new()
-	esb.bg_color = slot_col.lerp(Color.BLACK, 0.62)
+	# Chip fill is near-neutral so RARITY (the frame) and SLOT (icon + chip rim)
+	# read on separate channels — no more gold-chip-on-gold-frame confusion.
+	esb.bg_color = slot_col.lerp(Color(0.05, 0.09, 0.10), 0.84)
 	esb.set_corner_radius_all(5)
 	esb.set_border_width_all(1)
 	esb.border_color = slot_col.lerp(Color.WHITE, 0.1)
@@ -233,33 +259,10 @@ func _draw_tile_visual(item_name: String, slot_type: String, rarity: int, rarity
 		count_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		tile_container.add_child(count_lbl)
 
-	# --- Bottom strip: the sort key (power) + tier, on a dark plate ---
-	var strip = ColorRect.new()
-	strip.color = Color(0, 0, 0, 0.55)
-	strip.anchor_top = 1.0; strip.anchor_right = 1.0; strip.anchor_bottom = 1.0
-	strip.offset_left = 6; strip.offset_right = -6
-	strip.offset_top = -18; strip.offset_bottom = -6
-	strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	tile_container.add_child(strip)
-
-	var readout = _get_power_readout(slot_type, m_data.get("stats", {}))
-	if slot_type == "weapon":
-		var wt = _weapon_dmg_tag(m_data.get("stats", {}))
-		readout = ("%s %s" % [wt, readout]) if readout != "" else wt
-	var tier_val = _get_item_tier(item_name, m_data)
-	if tier_val != "":
-		readout = ("%s  T%s" % [readout, tier_val]) if readout != "" else ("T%s" % tier_val)
-	var pow_lbl = Label.new()
-	pow_lbl.text = readout
-	pow_lbl.add_theme_font_size_override("font_size", 10)
-	pow_lbl.add_theme_color_override("font_color", rarity_color.lerp(Color.WHITE, 0.7))
-	pow_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	pow_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	pow_lbl.anchor_top = 1.0; pow_lbl.anchor_right = 1.0; pow_lbl.anchor_bottom = 1.0
-	pow_lbl.offset_left = 6; pow_lbl.offset_right = -6
-	pow_lbl.offset_top = -18; pow_lbl.offset_bottom = -6
-	pow_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	tile_container.add_child(pow_lbl)
+	# Power/tier readout is intentionally NOT drawn on the tile — every module's
+	# full info is available on hover (the rarity-framed tooltip). Keeps the armory
+	# grid clean; the icon + rarity frame + zone watermark carry the glance identity.
+	# (Sort·Power still works — it computes its key from stats, not from this label.)
 
 	# --- Equipped marker: bright slot-colour underline ---
 	if sm and mid in sm.loadout.values():
@@ -315,7 +318,8 @@ func _draw_tile_visual(item_name: String, slot_type: String, rarity: int, rarity
 	else:
 		UITheme.apply_locked_overlay(self, item_name, "", false, "", "ops", true)
 
-## Compact sort-key readout shown on the tile (power = what Sort·Power uses).
+## Compact power readout — the key behind Sort·Power. No longer drawn on the tile
+## (module info lives in the hover tooltip); kept as the sort/compare value source.
 func _get_power_readout(slot_type: String, stats: Dictionary) -> String:
 	match slot_type:
 		"weapon":
@@ -673,7 +677,7 @@ func _build_card_stats(slot_type: String, stats: Dictionary) -> String:
 		if key == "energy_load" or key == "energy_capacity":
 			continue
 		var label = FormatUtils.format_stat_label(key)
-		var ga_prefix = "[color=#ffcc00]★[/color] " if key in ga_list else ""
+		var ga_prefix = "[color=#FFC24D]★[/color] " if key in ga_list else ""
 		lines.append("%s%s: %s" % [ga_prefix, label, FormatUtils.format_stat_value(key, val)])
 		if lines.size() >= 5: # Increased limit slightly
 			break
@@ -798,7 +802,7 @@ func _get_slot_color(slot_type: String) -> Color:
 func _get_gem_color(gem_name: String) -> Color:
 	if "Crimson" in gem_name: return Color("#ff4444")
 	if "Cobalt" in gem_name: return Color("#44ccff")
-	if "Topaz" in gem_name: return Color("#ffcc00")
+	if "Topaz" in gem_name: return Color("#FFC24D")
 	if "Amethyst" in gem_name: return Color("#aa44ff")
 	return Color("#b548b5") # Default purple
 
@@ -877,17 +881,17 @@ func _build_comparison_tooltip_bbcode() -> String:
 	var display_name = _get_clean_name(data.get("name", "Item")).to_upper()
 
 	var tt = ""
-	var div = "[color=#41526e]──────────────────────────────[/color]\n"
+	var div = "[color=#1E3B38]──────────────────────────────[/color]\n"
 
-	tt += "[b][color=#%s]%s[/color][/b]\n" % [rarity_color_hex, display_name]
-	tt += "[font_size=10][color=gray]%s %s[/color][/font_size]\n" % [rarity_label, slot_type.capitalize()]
+	tt += "[font_size=16][b][color=#%s]%s[/color][/b][/font_size]\n" % [rarity_color_hex, display_name]
+	tt += "[font_size=10][color=#7FA39C]%s %s[/color][/font_size]\n" % [rarity_label, slot_type.capitalize()]
 	
 	var durability = int(data.get("durability", 100))
-	var dur_col = "green"
-	if durability <= 25: dur_col = "red"
-	elif durability <= 50: dur_col = "orange"
-	elif durability <= 75: dur_col = "yellow"
-	tt += "[font_size=10][color=gray]Durability:[/color] [color=%s]%d/100[/color][/font_size]\n" % [dur_col, durability]
+	var dur_col = "#46E0A0"
+	if durability <= 25: dur_col = "#FF6473"
+	elif durability <= 50: dur_col = "#FFC24D"
+	elif durability <= 75: dur_col = "#D7B842"
+	tt += "[font_size=10][color=#7FA39C]Durability:[/color] [color=%s]%d/100[/color][/font_size]\n" % [dur_col, durability]
 		
 	tt += div
 
@@ -896,27 +900,27 @@ func _build_comparison_tooltip_bbcode() -> String:
 		var dmg = my_stats.get("atk_kinetic", 0) + my_stats.get("atk_energy", 0) + my_stats.get("atk_explosive", 0) + my_stats.get("atk_cryo", 0)
 		var interval = max(0.01, float(my_stats.get("atk_interval", 2.5)))
 		var dps = float(dmg) / interval
-		tt += "[font_size=20][b]%.1f DPS[/b][/font_size]\n" % dps
-		tt += "[font_size=9][color=gray]%s total damage, %.2f hits/s[/color][/font_size]\n" % [UITheme.format_num(dmg), 1.0 / interval]
+		tt += "[font_size=24][b]%.1f DPS[/b][/font_size]\n" % dps
+		tt += "[font_size=9][color=#7FA39C]%s total damage, %.2f hits/s[/color][/font_size]\n" % [UITheme.format_num(dmg), 1.0 / interval]
 
 		# v87.0: Damage Type Strong/Weak (Rich BBCode)
 		if my_stats.get("atk_kinetic", 0) > 0:
-			tt += "[color=#99ccff][b]KINETIC[/b][/color]\n"
-			tt += "[color=green]  + Strong: Hull (+20%)[/color]\n"
-			tt += "[color=red]  - Weak: Shield (-50%)[/color]\n"
+			tt += "[img=15 color=#7088F2]res://assets/icons/modules/weapon_kinetic.svg[/img] [color=#7088F2][b]KINETIC[/b][/color]\n"
+			tt += "[img=11 color=#46E0A0]res://assets/icons/ui/chevron_up.svg[/img] [color=#46E0A0]Strong: Hull (+20%)[/color]\n"
+			tt += "[img=11 color=#FF6473]res://assets/icons/ui/chevron_down.svg[/img] [color=#FF6473]Weak: Shield (-50%)[/color]\n"
 		if my_stats.get("atk_energy", 0) > 0:
-			tt += "[color=#ffe64d][b]ENERGY[/b][/color]\n"
-			tt += "[color=green]  + Strong: Shield (+50%), Armor Bypass[/color]\n"
-			tt += "[color=red]  - Weak: Hull (-10%)[/color]\n"
+			tt += "[img=15 color=#5FE0C8]res://assets/icons/modules/weapon_energy.svg[/img] [color=#5FE0C8][b]ENERGY[/b][/color]\n"
+			tt += "[img=11 color=#46E0A0]res://assets/icons/ui/chevron_up.svg[/img] [color=#46E0A0]Strong: Shield (+50%), Armor Bypass[/color]\n"
+			tt += "[img=11 color=#FF6473]res://assets/icons/ui/chevron_down.svg[/img] [color=#FF6473]Weak: Hull (-10%)[/color]\n"
 		if my_stats.get("atk_explosive", 0) > 0:
-			tt += "[color=#ff804d][b]EXPLOSIVE[/b][/color]\n"
-			tt += "[color=green]  + Strong: Armor Bypass (80% pen)[/color]\n"
-			tt += "[color=red]  - Weak: Slower fire rate[/color]\n"
+			tt += "[img=15 color=#FFC24D]res://assets/icons/modules/weapon_explosive.svg[/img] [color=#FFC24D][b]EXPLOSIVE[/b][/color]\n"
+			tt += "[img=11 color=#46E0A0]res://assets/icons/ui/chevron_up.svg[/img] [color=#46E0A0]Strong: Armor Bypass (80% pen)[/color]\n"
+			tt += "[img=11 color=#FF6473]res://assets/icons/ui/chevron_down.svg[/img] [color=#FF6473]Weak: Slower fire rate[/color]\n"
 		if my_stats.get("atk_cryo", 0) > 0:
-			tt += "[color=#b3f0ff][b]CRYOGENIC[/b][/color]\n"
-			tt += "[color=green]  + Breaches Warp-Hardened hulls[/color]\n"
-			tt += "[color=green]  + Self-charging — no ammo[/color]\n"
-			tt += "[color=red]  - Weak: Conventional enemies resist[/color]\n"
+			tt += "[img=15 color=#39A6E0]res://assets/icons/modules/weapon_cryo.svg[/img] [color=#39A6E0][b]CRYOGENIC[/b][/color]\n"
+			tt += "[img=11 color=#46E0A0]res://assets/icons/ui/chevron_up.svg[/img] [color=#46E0A0]Breaches Warp-Hardened hulls[/color]\n"
+			tt += "[img=11 color=#46E0A0]res://assets/icons/ui/chevron_up.svg[/img] [color=#46E0A0]Self-charging — no ammo[/color]\n"
+			tt += "[img=11 color=#FF6473]res://assets/icons/ui/chevron_down.svg[/img] [color=#FF6473]Weak: Conventional enemies resist[/color]\n"
 
 		tt += div
 	elif slot_type == "ammo":
@@ -929,11 +933,11 @@ func _build_comparison_tooltip_bbcode() -> String:
 		tt += div
 	elif slot_type == "shield":
 		var val = my_stats.get("max_shield", 0)
-		tt += "[font_size=20][b]%s[/b][/font_size] [font_size=10][color=gray]Shield Capacity[/color][/font_size]\n" % UITheme.format_num(val)
+		tt += "[font_size=24][b]%s[/b][/font_size] [font_size=10][color=#7FA39C]Shield Capacity[/color][/font_size]\n" % UITheme.format_num(val)
 		tt += div
 	elif slot_type == "armor":
 		var val = my_stats.get("hp", 0)
-		tt += "[font_size=20][b]%s[/b][/font_size] [font_size=10][color=gray]Integrity Reinforcement[/color][/font_size]\n" % UITheme.format_num(val)
+		tt += "[font_size=24][b]%s[/b][/font_size] [font_size=10][color=#7FA39C]Integrity Reinforcement[/color][/font_size]\n" % UITheme.format_num(val)
 		tt += div
 	elif slot_type == "gem":
 		var gem_desc = data.get("desc", ElementDB.get_element_description(mid))
@@ -946,12 +950,12 @@ func _build_comparison_tooltip_bbcode() -> String:
 		if slot_type in ["weapon", "shield", "armor", "engine", "sensor"]:
 			var draw = sm.get_module_energy_load(mid)
 			if draw > 0:
-				tt += "[color=#ff9955]POWER DRAW: %d[/color]\n" % draw
+				tt += "[color=#FFC24D]POWER DRAW: %d[/color]\n" % draw
 				tt += div
 		elif slot_type == "battery":
 			var supply = sm.get_module_energy_capacity(mid)
 			if supply > 0:
-				tt += "[color=#66dd66]POWER SUPPLY: +%d[/color]\n" % supply
+				tt += "[color=#46E0A0]POWER SUPPLY: +%d[/color]\n" % supply
 				tt += div
 
 	var equipped_mid = ""
@@ -1003,7 +1007,7 @@ func _build_comparison_tooltip_bbcode() -> String:
 					var scaled_base = base_val * zone_mult
 					var r_min = scaled_base * (1.0 + s_range[0])
 					var r_max = scaled_base * (1.0 + s_range[1])
-					range_info = " [color=gray][font_size=9][%s-%s][/font_size][/color]" % [
+					range_info = " [color=#7FA39C][font_size=9][%s-%s][/font_size][/color]" % [
 						FormatUtils.format_stat_value(key, r_min),
 						FormatUtils.format_stat_value(key, r_max)
 					]
@@ -1012,9 +1016,9 @@ func _build_comparison_tooltip_bbcode() -> String:
 		if equipped_mid != "" and equipped_mid != mid and key != "energy_load":
 			var diff = val - equipped_stats.get(key, 0)
 			if diff > 0:
-				line += " [color=lime](+%s)[/color]" % FormatUtils.format_stat_value(key, diff)
+				line += " [color=#46E0A0](+%s)[/color]" % FormatUtils.format_stat_value(key, diff)
 			elif diff < 0:
-				line += " [color=red](%s)[/color]" % FormatUtils.format_stat_value(key, diff)
+				line += " [color=#FF6473](%s)[/color]" % FormatUtils.format_stat_value(key, diff)
 		tt += "%s\n" % line
 
 	var affixes = data.get("affixes", {})
@@ -1037,10 +1041,10 @@ func _build_comparison_tooltip_bbcode() -> String:
 				
 				if scaling == "flat" or scaling == "linear_tier":
 					val_str = str(int(val_raw))
-					range_str = " [color=gray][font_size=9][%d-%d][/font_size][/color]" % [int(s_range[0]), int(s_range[1])]
+					range_str = " [color=#7FA39C][font_size=9][%d-%d][/font_size][/color]" % [int(s_range[0]), int(s_range[1])]
 				else:
 					val_str = "%d%%" % int(val_raw * 100)
-					range_str = " [color=gray][font_size=9][%d-%d]%%[/font_size][/color]" % [int(s_range[0] * 100), int(s_range[1] * 100)]
+					range_str = " [color=#7FA39C][font_size=9][%d-%d]%%[/font_size][/color]" % [int(s_range[0] * 100), int(s_range[1] * 100)]
 				
 				var desc_val = 0
 				if scaling == "flat" or scaling == "linear_tier":
@@ -1051,9 +1055,9 @@ func _build_comparison_tooltip_bbcode() -> String:
 				var desc = cfg["desc"] % desc_val
 
 				if is_ga:
-					tt += "[color=#ffcc00][b] GREATER[/b][/color]  [color=#ffdd44][b]%s[/b][/color]%s\n" % [desc, range_str]
+					tt += "[img=13 color=#FFC24D]res://assets/icons/ui/affix_greater.svg[/img] [color=#FFC24D][b]%s[/b][/color]  [color=#FFD98A][font_size=9]GREATER[/font_size][/color]\n" % desc
 				else:
-					tt += "[color=#8fc5ff]◆ %s[/color]%s\n" % [desc, range_str]
+					tt += "[img=11 color=#5FE0C8]res://assets/icons/ui/affix_node.svg[/img] [color=#5FE0C8]%s[/color]\n" % desc
 
 	if data.has("sockets"):
 		tt += div
@@ -1067,11 +1071,21 @@ func _build_comparison_tooltip_bbcode() -> String:
 				else:
 					tt += "[color=#%s]%s[/color]\n" % [g_hex, g_name]
 			else:
-				tt += "[color=#444444]Empty Socket[/color]\n"
+				tt += "[img=11 color=#7FA39C]res://assets/icons/ui/socket_empty.svg[/img] [color=#7FA39C]Empty Socket[/color]\n"
+
+	# Provenance: the sector this module dropped from (zone emblem + sector number).
+	var prov_zone := int(data.get("zone", data.get("zone_difficulty", 0)))
+	if prov_zone >= 1:
+		tt += div
+		var prov_bb := ElementDB.material_icon_bbcode("Z%d_Core" % clampi(prov_zone, 1, 10), 14)
+		var prov_name := "Sector %d" % prov_zone
+		if GameState.combat_manager:
+			prov_name = GameState.combat_manager.get_zone_name(prov_zone)
+		tt += "[font_size=10][color=#9fb3a8]%s%s[/color][/font_size]\n" % [prov_bb, prov_name.to_upper()]
 
 	if sm and mid in sm.modules:
 		tt += div
-		tt += "[font_size=10][color=gray]Sell Value:[/color] [color=#e0b150]%s %s[/color][/font_size]" % [UITheme.format_num(sm.get_sell_price(mid)), UITheme.LIRA_ICON_BB]
+		tt += "[font_size=10][color=#7FA39C]Sell Value:[/color] [color=#D7B842]%s %s[/color][/font_size]" % [UITheme.format_num(sm.get_sell_price(mid)), UITheme.LIRA_ICON_BB]
 
 	# v83.9: Set Bonus Tooltip Section
 	var sid = data.get("set_id", "")
@@ -1087,8 +1101,8 @@ func _build_comparison_tooltip_bbcode() -> String:
 			var total = set_info["pieces"]
 			var active = count >= total
 			
-			tt += "[b][color=#00ffff]SET: %s[/color][/b]\n" % set_info["name"].to_upper()
-			tt += "[font_size=10][color=gray]%d / %d pieces equipped[/color][/font_size]\n" % [count, total]
+			tt += "[b][color=#7088F2]SET: %s[/color][/b]\n" % set_info["name"].to_upper()
+			tt += "[font_size=10][color=#7FA39C]%d / %d pieces equipped[/color][/font_size]\n" % [count, total]
 			
 			for bonus_key in set_info["bonus"]:
 				var val = set_info["bonus"][bonus_key]
@@ -1202,7 +1216,9 @@ func _make_drag_preview() -> Control:
 	emblem.position = Vector2((TS - em) * 0.5, (TS - em) * 0.5)
 	emblem.size = Vector2(em, em)
 	var esb = StyleBoxFlat.new()
-	esb.bg_color = slot_col.lerp(Color.BLACK, 0.62)
+	# Chip fill is near-neutral so RARITY (the frame) and SLOT (icon + chip rim)
+	# read on separate channels — no more gold-chip-on-gold-frame confusion.
+	esb.bg_color = slot_col.lerp(Color(0.05, 0.09, 0.10), 0.84)
 	esb.set_corner_radius_all(5)
 	esb.set_border_width_all(1)
 	esb.border_color = slot_col.lerp(Color.WHITE, 0.1)

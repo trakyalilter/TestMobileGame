@@ -51,7 +51,7 @@ func refresh_state():
 		name_lbl.text = ammo_name.to_upper()
 		name_lbl.add_theme_color_override("font_color", Color(0.9, 0.86, 0.78)) # TEXT_MAIN
 		status_lbl.text = "%d units" % qty
-		status_lbl.add_theme_color_override("font_color", Color(0.3, 0.8, 1.0) if qty > 0 else Color(0.8, 0.3, 0.3))
+		status_lbl.add_theme_color_override("font_color", Color(0.373, 0.878, 0.784) if qty > 0 else Color(0.8, 0.3, 0.3))
 	else:
 		name_lbl.text = "EMPTY"
 		name_lbl.add_theme_color_override("font_color", Color(0.33, 0.33, 0.33))
@@ -132,8 +132,8 @@ func _make_custom_tooltip(_for_text: String) -> Control:
 
 	var ammo_name = ElementDB.get_display_name(active_ammo).to_upper()
 	var tt = "[center][b][font_size=16][color=#aaaaaa]%s[/color][/font_size][/b]\n" % ammo_name
-	tt += "[i][font_size=10][color=gray]Common Ammo[/color][/font_size][/i][/center]\n"
-	tt += "[color=#41526e]──────────────────────────────[/color]\n"
+	tt += "[i][font_size=10][color=#7FA39C]Common Ammo[/color][/font_size][/i][/center]\n"
+	tt += "[color=#1E3B38]──────────────────────────────[/color]\n"
 
 	var bonus = 0.0
 	var type_label = "Damage"
@@ -171,10 +171,10 @@ func _make_custom_tooltip(_for_text: String) -> Control:
 		color_label = "orange"
 
 	if bonus > 0:
-		tt += "[center][font_size=20][b][color=%s]+%.1f[/color][/b][/font_size] [font_size=10][color=gray]%s Bonus[/color][/font_size][/center]\n" % [color_label, bonus, type_label]
-		tt += "[color=#41526e]──────────────────────────────[/color]\n"
+		tt += "[center][font_size=20][b][color=%s]+%.1f[/color][/b][/font_size] [font_size=10][color=#7FA39C]%s Bonus[/color][/font_size][/center]\n" % [color_label, bonus, type_label]
+		tt += "[color=#1E3B38]──────────────────────────────[/color]\n"
 
-	tt += "[center][font_size=10][color=gray][Right-click to unequip][/color][/font_size][/center]"
+	tt += "[center][font_size=10][color=#7FA39C][Right-click to unequip][/color][/font_size][/center]"
 
 	rtl.text = tt
 	return rtl

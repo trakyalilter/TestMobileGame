@@ -59,7 +59,7 @@ func init_missions():
 		# folded into Basic Engineering, so one research opens refining, water, and the
 		# ship/combat screens. m002b/m003 below are re-pointed to basic_engineering so any
 		# in-flight save mid-chain auto-completes.
-		["m002", "Foundational Research", "Open the Research tab and unlock Basic Engineering. One research opens your refinery, water collection, and your Shipyard, Designer and Combat screens — your whole early game.", "research", "basic_engineering", 1, 900, 200, "m004"],
+		["m002", "Foundational Research", "Open the Research tab and unlock Basic Engineering.", "research", "basic_engineering", 1, 900, 200, "m004"],
 		# P0-30: Physics Paradox Fix - Applied Physics moved here
 		["m002b", "Foundational Research", "Unlock Basic Engineering in the Research tab.", "research", "basic_engineering", 1, 300, 100, "m003"],
 		["m003", "Pump Master", "Unlock Basic Engineering in the Research tab.", "research", "basic_engineering", 1, 300, 50, "m004"],
@@ -70,7 +70,7 @@ func init_missions():
 		["m007", "Mobility Check", "Craft a 'Basic Thruster' in the Shipyard.", "craft", "z1_engine", 1, 1000, 100, "m007b"],
 		# P1 Onboarding: close the engine arc — craft → equip. Without this the
 		# Thruster sat in inventory and the player never saw its +Evasion effect.
-		["m007b", "Spacewalk Test", "Open the Ship Designer, then DRAG the Basic Thruster from your Armory (right panel) onto an empty ENGINE slot. Evasion goes up the moment it seats.", "loadout_check", "engine", 1, 500, 100, "m008"],
+		["m007b", "Spacewalk Test", "Open the Ship Designer, then DRAG the Basic Thruster from your Armory (right panel) onto an empty ENGINE slot.", "loadout_check", "engine", 1, 500, 100, "m008"],
 		["m008", "Materials Science", "Research the 'Materials Science' hub.", "research", "materials_science", 1, 300, 100, "m009"],
 		["m009", "Deforestation", "Gather 100 units of Wood.", "gather", "Wood", 100, 500, 100, "m010"],
 		["m010", "Organic Combustion", "Research 'Organic Combustion' to unlock the Kiln.", "research", "combustion", 1, 500, 150, "m011"],
@@ -79,11 +79,11 @@ func init_missions():
 		["m013", "Voltaic Storage", "Refine 50 Lithium in the Engineering tab.", "gather", "Li", 50, 1000, 250, "m013b"],
 		["m013b", "Copper Prospecting", "Gather 100 Malachite Ore.", "gather", "Malachite", 100, 1200, 300, "m013c"],
 		["m013c", "Conductivity", "Refine 50 Copper in the Engineering tab.", "gather", "Cu", 50, 1500, 350, "m020"],
-		["m014", "Ballistics Theory", "Research 'Kinetic Weapons Theory' in the Research tree to unlock kinetic weapon modules.", "research", "kinetics_101", 1, 1200, 100, "m015"],
+		["m014", "Ballistics Theory", "Research 'Kinetic Weapons Theory' in the Research tree.", "research", "kinetics_101", 1, 1200, 100, "m015"],
 		["m015", "Prototype Arsenal", "Craft a 'Mass Driver Mk.I' in the Shipyard.", "craft", "z1_kinetic", 1, 1500, 200, "m015b"],
 		# P1 Onboarding: close the weapon arc — craft → equip. Ammo comes next
 		# and now reads correctly as "feed your equipped weapon".
-		["m015b", "Weapons Hot", "Open the Ship Designer, then DRAG the Mass Driver from your Armory (right panel) onto an empty WEAPON slot. Your ship can finally deal damage.", "loadout_check", "weapon", 1, 500, 100, "m016"],
+		["m015b", "Weapons Hot", "Open the Ship Designer, then DRAG the Mass Driver from your Armory (right panel) onto an empty WEAPON slot.", "loadout_check", "weapon", 1, 500, 100, "m016"],
 		["m016", "Kinetic Munitions", "In the Engineering page, produce 100 Ferrite Rounds (SlugT1) to feed your weapon.", "gather", "SlugT1", 100, 1000, 100, "m023"],
 		# Shield Section Moved Here (m023 -> m024)
 		# P2-12: Combat Readiness Checkpoint - ensure player is equipped before first combat
@@ -102,7 +102,7 @@ func init_missions():
 		["m022", "Power Storage", "Craft a 'Basic Battery' in the Shipyard.", "craft", "z1_battery", 1, 1500, 150, "m022b"],
 		# P1 Onboarding: close the energy arc — craft → equip. Without this the
 		# Battery was a one-and-done craft with no ship-state payoff.
-		["m022b", "Power Online", "Open the Ship Designer, then DRAG the Basic Battery from your Armory (right panel) onto an empty BATTERY slot. Energy capacity goes up — needed to power higher-tier weapons.", "loadout_check", "battery", 1, 500, 100, "m014"],
+		["m022b", "Power Online", "Open the Ship Designer, then DRAG the Basic Battery from your Armory (right panel) onto an empty BATTERY slot.", "loadout_check", "battery", 1, 500, 100, "m014"],
 		["m023", "Hull Integrity", "Research 'Energy Fields' to unlock shielding.", "research", "energy_shields", 1, 1000, 150, "m024"],
 		["m024", "Aegis System", "Craft a 'Basic Shield' for protection.", "craft", "z1_shield", 1, 2500, 200, "m024c"],
 		# P1 Onboarding: close the shield arc — craft → equip. Player sees

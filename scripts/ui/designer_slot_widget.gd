@@ -30,6 +30,11 @@ func setup(idx: int, s_type: String, p_ui, p_manager):
 
 func _ready():
 	_apply_base_style()
+	# Uniform fixed slot size: the square module layout overflows the scene's 124²
+	# base by a content-dependent amount (the icon + 24px socket band + unequip),
+	# so every filled slot grew a little differently. Pin a fixed size and let the
+	# icon's EXPAND_FILL absorb the slack — empty and filled slots are now identical.
+	custom_minimum_size = Vector2(124, 140)
 	option_btn.visible = false
 	# v111.20: slot-level hover → rarity-framed module tooltip (manual popup),
 	# replacing the generic cyan _make_custom_tooltip.
@@ -108,6 +113,31 @@ func _ensure_type_icon() -> TextureRect:
 		v.move_child(ic, 0)
 	return ic
 
+# Draws the sector emblem BIG in the top-right corner — clear of the centred icon
+# and the lower matrix-core sockets — on a faint plate so it reads on any rarity bg.
+class _ZoneBadge extends Control:
+	var tex: Texture2D = null
+	var tint: Color = Color(1, 1, 1, 1)
+	func _draw() -> void:
+		if tex == null:
+			return
+		var s := 30.0
+		var pad := 4.0
+		var r := Rect2(Vector2(size.x - s - pad, pad), Vector2(s, s))
+		draw_texture_rect(tex, r, false, tint)
+
+# Corner zone-provenance badge node (created once, kept on top so it reads as a
+# stamp). The emblem itself is drawn by the _ZoneBadge inner class above.
+func _ensure_zone_badge() -> _ZoneBadge:
+	var b = get_node_or_null("ZoneBadge")
+	if not b:
+		b = _ZoneBadge.new()
+		b.name = "ZoneBadge"
+		b.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(b)
+	move_child(b, get_child_count() - 1)
+	return b
+
 # Square equipped-module layout: Name (top) → Icon (centre) → Matrix-Core
 # Sockets (lower) → Unequip (bottom). Only sizes + positions change — the
 # rarity frame, name tint, type icon and socket visuals are the existing
@@ -140,7 +170,10 @@ func _arrange_module_square() -> void:
 	var ic = v.get_node_or_null("TypeIcon")
 	if ic:
 		ic.visible = true
-		ic.custom_minimum_size = Vector2(0, 40)
+		# Small min so the fixed 140px slot height always binds (occupied content min
+		# stays UNDER it instead of overflowing); EXPAND_FILL then grows the icon back
+		# to fill the centre. This is what locks every equipped slot to one size.
+		ic.custom_minimum_size = Vector2(0, 16)
 		ic.size_flags_vertical = Control.SIZE_EXPAND_FILL  # fills/centres the middle
 	# Reserve the socket band so the centred icon is the SAME size whether the
 	# module has 0, 1 or 3 sockets.
@@ -282,6 +315,20 @@ func refresh_state():
 		ic.texture = UITheme.module_type_icon(slot_type, stats)
 		ic.modulate = accent.lerp(Color.WHITE, 0.85)
 		ic.visible = true
+
+		# Source-sector badge: the zone emblem drawn BIG in the top-right corner —
+		# clear of the centred icon and the lower matrix-core sockets — so the drop's
+		# sector reads at a glance. The tooltip carries the sector NAME.
+		var zb := _ensure_zone_badge()
+		var zz := int(m_data.get("zone", m_data.get("zone_difficulty", 0)))
+		var zbtex: Texture2D = ElementDB.get_material_icon("Z%d_Core" % clampi(zz, 1, 10)) if zz >= 1 else null
+		if zbtex:
+			zb.tex = zbtex
+			zb.tint = ElementDB.get_material_tint("Z%d_Core" % clampi(zz, 1, 10))
+			zb.visible = true
+			zb.queue_redraw()
+		else:
+			zb.visible = false
 
 		stats_lbl.text = _build_card_stats(stats, equipped_id)
 		if slot_type == "weapon":
@@ -448,6 +495,8 @@ func refresh_state():
 		stats_lbl.text = "--"
 		rarity_badge.visible = false
 		_ensure_type_icon().visible = false
+		var ezb = get_node_or_null("ZoneBadge")
+		if ezb: ezb.visible = false
 		_apply_base_style()
 		UITheme.attach_rarity_fx(self, 0, Color.WHITE)   # clear any prior shimmer
 		tooltip_text = "Empty %s Slot\nDrag a matching module here (or click a module, then click here)" % slot_type.capitalize()
@@ -543,7 +592,7 @@ func _get_slot_color(s_type: String) -> Color:
 func _get_gem_color(gem_name: String) -> Color:
 	if "Crimson" in gem_name: return Color("#ff4444")
 	if "Cobalt" in gem_name: return Color("#44ccff")
-	if "Topaz" in gem_name: return Color("#ffcc00")
+	if "Topaz" in gem_name: return Color("#FFC24D")
 	if "Amethyst" in gem_name: return Color("#aa44ff")
 	return Color("#b548b5") # Default purple
 
@@ -1083,7 +1132,9 @@ func _on_slot_hover() -> void:
 	var m_data = manager.modules.get(equipped_id)
 	if not m_data:
 		return
-	UITheme.show_item_tooltip(self, _build_module_tooltip(m_data))
+	var _wz := int(m_data.get("zone", m_data.get("zone_difficulty", 0)))
+	var _wm: Texture2D = ElementDB.get_material_icon("Z%d_Core" % clampi(_wz, 1, 10)) if _wz >= 1 else null
+	UITheme.show_item_tooltip(self, _build_module_tooltip(m_data), _wm)
 
 func _on_slot_unhover() -> void:
 	UITheme.hide_item_tooltip(self)
@@ -1097,20 +1148,20 @@ func _build_module_tooltip(m_data: Dictionary) -> String:
 
 	var rarity_color_hex = manager.RARITY_COLORS.get(rarity, Color.GRAY).to_html(false)
 	var s_type = m_data.get("slot_type", "weapon")
-	var div = "[color=#41526e]──────────────────────────────[/color]\n"
+	var div = "[color=#1E3B38]──────────────────────────────[/color]\n"
 
 	var tt = ""
 
 	var display_name = _get_clean_name(m_data.get("name", "Item")).to_upper()
-	tt += "[b][color=#%s]%s[/color][/b]\n" % [rarity_color_hex, display_name]
-	tt += "[font_size=10][color=gray]%s %s[/color][/font_size]\n" % [rarity_label, s_type.capitalize()]
+	tt += "[font_size=16][b][color=#%s]%s[/color][/b][/font_size]\n" % [rarity_color_hex, display_name]
+	tt += "[font_size=10][color=#7FA39C]%s %s[/color][/font_size]\n" % [rarity_label, s_type.capitalize()]
 	
 	var durability = int(m_data.get("durability", 100))
-	var dur_col = "green"
-	if durability <= 25: dur_col = "red"
-	elif durability <= 50: dur_col = "orange"
-	elif durability <= 75: dur_col = "yellow"
-	tt += "[font_size=10][color=gray]Durability:[/color] [color=%s]%d/100[/color][/font_size]\n" % [dur_col, durability]
+	var dur_col = "#46E0A0"
+	if durability <= 25: dur_col = "#FF6473"
+	elif durability <= 50: dur_col = "#FFC24D"
+	elif durability <= 75: dur_col = "#D7B842"
+	tt += "[font_size=10][color=#7FA39C]Durability:[/color] [color=%s]%d/100[/color][/font_size]\n" % [dur_col, durability]
 	
 	tt += div
 
@@ -1120,35 +1171,35 @@ func _build_module_tooltip(m_data: Dictionary) -> String:
 		var dmg = stats.get("atk_kinetic", 0) + stats.get("atk_energy", 0) + stats.get("atk_explosive", 0) + stats.get("atk_cryo", 0)
 		var interval = max(0.01, float(stats.get("atk_interval", 2.5)))
 		var dps = float(dmg) / interval
-		tt += "[font_size=20][b]%.1f DPS[/b][/font_size]\n" % dps
-		tt += "[font_size=9][color=gray]%s total damage, %.2f hits/s[/color][/font_size]\n" % [UITheme.format_num(dmg), 1.0 / interval]
+		tt += "[font_size=24][b]%.1f DPS[/b][/font_size]\n" % dps
+		tt += "[font_size=9][color=#7FA39C]%s total damage, %.2f hits/s[/color][/font_size]\n" % [UITheme.format_num(dmg), 1.0 / interval]
 
 		# v87.0 parity: show the damage type + matchup on the EQUIPPED slot too
 		if stats.get("atk_kinetic", 0) > 0:
-			tt += "[color=#99ccff][b]KINETIC[/b][/color]\n"
-			tt += "[color=green]  + Strong: Hull (+20%)[/color]\n"
-			tt += "[color=red]  - Weak: Shield (-50%)[/color]\n"
+			tt += "[img=15 color=#7088F2]res://assets/icons/modules/weapon_kinetic.svg[/img] [color=#7088F2][b]KINETIC[/b][/color]\n"
+			tt += "[img=11 color=#46E0A0]res://assets/icons/ui/chevron_up.svg[/img] [color=#46E0A0]Strong: Hull (+20%)[/color]\n"
+			tt += "[img=11 color=#FF6473]res://assets/icons/ui/chevron_down.svg[/img] [color=#FF6473]Weak: Shield (-50%)[/color]\n"
 		if stats.get("atk_energy", 0) > 0:
-			tt += "[color=#ffe64d][b]ENERGY[/b][/color]\n"
-			tt += "[color=green]  + Strong: Shield (+50%), Armor Bypass[/color]\n"
-			tt += "[color=red]  - Weak: Hull (-10%)[/color]\n"
+			tt += "[img=15 color=#5FE0C8]res://assets/icons/modules/weapon_energy.svg[/img] [color=#5FE0C8][b]ENERGY[/b][/color]\n"
+			tt += "[img=11 color=#46E0A0]res://assets/icons/ui/chevron_up.svg[/img] [color=#46E0A0]Strong: Shield (+50%), Armor Bypass[/color]\n"
+			tt += "[img=11 color=#FF6473]res://assets/icons/ui/chevron_down.svg[/img] [color=#FF6473]Weak: Hull (-10%)[/color]\n"
 		if stats.get("atk_explosive", 0) > 0:
-			tt += "[color=#ff804d][b]EXPLOSIVE[/b][/color]\n"
-			tt += "[color=green]  + Strong: Armor Bypass (80% pen)[/color]\n"
-			tt += "[color=red]  - Weak: Slower fire rate[/color]\n"
+			tt += "[img=15 color=#FFC24D]res://assets/icons/modules/weapon_explosive.svg[/img] [color=#FFC24D][b]EXPLOSIVE[/b][/color]\n"
+			tt += "[img=11 color=#46E0A0]res://assets/icons/ui/chevron_up.svg[/img] [color=#46E0A0]Strong: Armor Bypass (80% pen)[/color]\n"
+			tt += "[img=11 color=#FF6473]res://assets/icons/ui/chevron_down.svg[/img] [color=#FF6473]Weak: Slower fire rate[/color]\n"
 		if stats.get("atk_cryo", 0) > 0:
-			tt += "[color=#b3f0ff][b]CRYOGENIC[/b][/color]\n"
-			tt += "[color=green]  + Breaches Warp-Hardened hulls[/color]\n"
-			tt += "[color=green]  + Self-charging — no ammo[/color]\n"
-			tt += "[color=red]  - Weak: Conventional enemies resist[/color]\n"
+			tt += "[img=15 color=#39A6E0]res://assets/icons/modules/weapon_cryo.svg[/img] [color=#39A6E0][b]CRYOGENIC[/b][/color]\n"
+			tt += "[img=11 color=#46E0A0]res://assets/icons/ui/chevron_up.svg[/img] [color=#46E0A0]Breaches Warp-Hardened hulls[/color]\n"
+			tt += "[img=11 color=#46E0A0]res://assets/icons/ui/chevron_up.svg[/img] [color=#46E0A0]Self-charging — no ammo[/color]\n"
+			tt += "[img=11 color=#FF6473]res://assets/icons/ui/chevron_down.svg[/img] [color=#FF6473]Weak: Conventional enemies resist[/color]\n"
 		tt += div
 	elif s_type == "shield":
 		var m_shield = stats.get("max_shield", 0)
-		tt += "[font_size=20][b]%s[/b][/font_size] [font_size=10][color=gray]Shield Capacity[/color][/font_size]\n" % UITheme.format_num(m_shield)
+		tt += "[font_size=24][b]%s[/b][/font_size] [font_size=10][color=#7FA39C]Shield Capacity[/color][/font_size]\n" % UITheme.format_num(m_shield)
 		tt += div
 	elif s_type == "armor":
 		var hp_val = stats.get("hp", 0)
-		tt += "[font_size=20][b]%s[/b][/font_size] [font_size=10][color=gray]Integrity Reinforcement[/color][/font_size]\n" % UITheme.format_num(hp_val)
+		tt += "[font_size=24][b]%s[/b][/font_size] [font_size=10][color=#7FA39C]Integrity Reinforcement[/color][/font_size]\n" % UITheme.format_num(hp_val)
 		tt += div
 
 	# v110: derived power (tier-based) — replaces the stale energy_load stat.
@@ -1156,12 +1207,12 @@ func _build_module_tooltip(m_data: Dictionary) -> String:
 		if s_type in ["weapon", "shield", "armor", "engine", "sensor"]:
 			var draw = manager.get_def_energy_load(m_data)
 			if draw > 0:
-				tt += "[color=#ff9955]POWER DRAW: %d[/color]\n" % draw
+				tt += "[color=#FFC24D]POWER DRAW: %d[/color]\n" % draw
 				tt += div
 		elif s_type == "battery":
 			var supply = manager.get_def_energy_capacity(m_data)
 			if supply > 0:
-				tt += "[color=#66dd66]POWER SUPPLY: +%d[/color]\n" % supply
+				tt += "[color=#46E0A0]POWER SUPPLY: +%d[/color]\n" % supply
 				tt += div
 
 	var keys = stats.keys()
@@ -1203,7 +1254,7 @@ func _build_module_tooltip(m_data: Dictionary) -> String:
 						r_min = scaled_base * (1.0 + s_range[0])
 						r_max = scaled_base * (1.0 + s_range[1])
 						
-					range_info = " [color=gray][font_size=9][%s-%s][/font_size][/color]" % [
+					range_info = " [color=#7FA39C][font_size=9][%s-%s][/font_size][/color]" % [
 						FormatUtils.format_stat_value(key, r_min),
 						FormatUtils.format_stat_value(key, r_max)
 					]
@@ -1227,16 +1278,16 @@ func _build_module_tooltip(m_data: Dictionary) -> String:
 				
 				if scaling == "flat" or scaling == "linear_tier":
 					val_str = str(int(val_raw))
-					range_str = " [color=gray][font_size=9][%d-%d][/font_size][/color]" % [int(s_range[0]), int(s_range[1])]
+					range_str = " [color=#7FA39C][font_size=9][%d-%d][/font_size][/color]" % [int(s_range[0]), int(s_range[1])]
 				else:
 					val_str = "%d%%" % int(val_raw * 100)
-					range_str = " [color=gray][font_size=9][%d-%d]%%[/font_size][/color]" % [int(s_range[0] * 100), int(s_range[1] * 100)]
+					range_str = " [color=#7FA39C][font_size=9][%d-%d]%%[/font_size][/color]" % [int(s_range[0] * 100), int(s_range[1] * 100)]
 				
 				var item_rarity_val = int(m_data.get("rarity", manager.Rarity.COMMON))
 				var icon = ""
 				
 				var desc = cfg["desc"] % [int(val_raw) if (scaling == "flat" or scaling == "linear_tier") else int(val_raw * 100)]
-				tt += "[color=#8fc5ff]%s %s[/color]%s\n" % [icon, desc, range_str]
+				tt += "[img=11 color=#5FE0C8]res://assets/icons/ui/affix_node.svg[/img] [color=#5FE0C8]%s[/color]\n" % desc
 
 	if m_data.has("sockets"):
 		tt += div
@@ -1250,7 +1301,7 @@ func _build_module_tooltip(m_data: Dictionary) -> String:
 				else:
 					tt += "[color=#%s]%s[/color]\n" % [g_hex, g_name]
 			else:
-				tt += "[color=#444444]Empty Socket[/color]\n"
+				tt += "[img=11 color=#7FA39C]res://assets/icons/ui/socket_empty.svg[/img] [color=#7FA39C]Empty Socket[/color]\n"
 
 	# v83.9: Set Bonus Tooltip Section
 	var sid = m_data.get("set_id", "")
@@ -1267,8 +1318,8 @@ func _build_module_tooltip(m_data: Dictionary) -> String:
 			var total = set_info["pieces"]
 			var active = count >= total
 			
-			tt += "[b][color=#00ffff]SET: %s[/color][/b]\n" % set_info["name"].to_upper()
-			tt += "[font_size=10][color=gray]%d / %d pieces equipped[/color][/font_size]\n" % [count, total]
+			tt += "[b][color=#7088F2]SET: %s[/color][/b]\n" % set_info["name"].to_upper()
+			tt += "[font_size=10][color=#7FA39C]%d / %d pieces equipped[/color][/font_size]\n" % [count, total]
 			
 			for bonus_key in set_info["bonus"]:
 				var val = set_info["bonus"][bonus_key]
@@ -1279,5 +1330,5 @@ func _build_module_tooltip(m_data: Dictionary) -> String:
 				tt += "[color=%s]%s: %s[/color]\n" % [col, b_name, val_str]
 
 	tt += div
-	tt += "[center][font_size=10][color=gray][Right-click to unequip][/color][/font_size][/center]"
+	tt += "[center][font_size=10][color=#7FA39C][Right-click to unequip][/color][/font_size][/center]"
 	return tt

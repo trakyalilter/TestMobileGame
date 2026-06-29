@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <clipPath id="tile"><rect x="0" y="0" width="512" height="512" rx="104"/></clipPath>
+    <clipPath id="emblem"><circle cx="256" cy="256" r="178"/></clipPath>
+
+    <linearGradient id="field" x1="256" y1="40" x2="256" y2="472" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#081026"/>
+      <stop offset="0.45" stop-color="#0a1733"/>
+      <stop offset="0.78" stop-color="#0e2150"/>
+      <stop offset="1" stop-color="#15336a"/>
+    </linearGradient>
+
+    <radialGradient id="discGlow" cx="256" cy="318" r="210" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffe39a" stop-opacity="0.85"/>
+      <stop offset="0.3" stop-color="#f0a92a" stop-opacity="0.5"/>
+      <stop offset="0.6" stop-color="#c87a16" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#c87a16" stop-opacity="0"/>
+    </radialGradient>
+
+    <radialGradient id="sun" cx="240" cy="296" r="120" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.32" stop-color="#fff0c4"/>
+      <stop offset="0.62" stop-color="#ffd36a"/>
+      <stop offset="1" stop-color="#f0a92a"/>
+    </radialGradient>
+
+    <radialGradient id="sunBloom" cx="256" cy="318" r="150" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.95"/>
+      <stop offset="0.35" stop-color="#ffe39a" stop-opacity="0.6"/>
+      <stop offset="0.7" stop-color="#f0a92a" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#f0a92a" stop-opacity="0"/>
+    </radialGradient>
+
+    <linearGradient id="horizon" x1="256" y1="300" x2="256" y2="372" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1a2c55"/>
+      <stop offset="1" stop-color="#0a1430"/>
+    </linearGradient>
+
+    <linearGradient id="ringTop" x1="256" y1="78" x2="256" y2="434" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff2cf"/>
+      <stop offset="0.5" stop-color="#f0a92a"/>
+      <stop offset="1" stop-color="#b9740f"/>
+    </linearGradient>
+  </defs>
+
+  <g clip-path="url(#tile)">
+    <rect x="0" y="0" width="512" height="512" fill="url(#field)"/>
+    <rect x="0" y="120" width="512" height="392" fill="url(#discGlow)"/>
+
+    <circle cx="96" cy="104" r="3.4" fill="#ffffff"/>
+    <circle cx="420" cy="120" r="2.8" fill="#dff4ff"/>
+    <circle cx="150" cy="70" r="2.2" fill="#ffffff"/>
+    <circle cx="360" cy="64" r="2.6" fill="#ffffff"/>
+    <circle cx="448" cy="210" r="2.2" fill="#cfe6ff"/>
+    <circle cx="70" cy="210" r="2.4" fill="#ffffff"/>
+    <circle cx="300" cy="92" r="1.8" fill="#dff4ff"/>
+    <circle cx="210" cy="96" r="1.8" fill="#ffffff"/>
+
+    <circle cx="256" cy="256" r="192" fill="none" stroke="url(#ringTop)" stroke-width="26"/>
+    <circle cx="256" cy="256" r="205" fill="none" stroke="#7a4e0c" stroke-width="3" opacity="0.6"/>
+    <circle cx="256" cy="256" r="179" fill="none" stroke="#fff4d4" stroke-width="2.5" opacity="0.7"/>
+
+    <g clip-path="url(#emblem)">
+      <rect x="78" y="78" width="356" height="356" fill="#0a1733"/>
+      <rect x="78" y="160" width="356" height="274" fill="url(#discGlow)"/>
+
+      <circle cx="256" cy="312" r="150" fill="url(#sunBloom)"/>
+
+      <path d="M78 356 Q256 300 434 356 L434 434 L78 434 Z" fill="url(#horizon)"/>
+      <path d="M78 356 Q256 300 434 356" fill="none" stroke="#ffd36a" stroke-width="5" stroke-linecap="round"/>
+      <path d="M78 357 Q256 301 434 357" fill="none" stroke="#fff4d4" stroke-width="2" stroke-linecap="round" opacity="0.85"/>
+
+      <circle cx="256" cy="330" r="86" fill="url(#sun)"/>
+      <circle cx="252" cy="320" r="34" fill="#ffffff"/>
+      <circle cx="252" cy="320" r="58" fill="#ffffff" opacity="0.28"/>
+    </g>
+
+    <circle cx="256" cy="256" r="192" fill="none" stroke="url(#ringTop)" stroke-width="26"/>
+    <circle cx="256" cy="256" r="179" fill="none" stroke="#fff4d4" stroke-width="2.5" opacity="0.7"/>
+    <circle cx="256" cy="256" r="205" fill="none" stroke="#7a4e0c" stroke-width="3" opacity="0.55"/>
+
+    <path d="M148 132 A192 192 0 0 1 372 132" fill="none" stroke="#fff7e0" stroke-width="7" stroke-linecap="round" opacity="0.75"/>
+
+    <circle cx="404" cy="118" r="22" fill="#3a6ea5"/>
+    <circle cx="397" cy="111" r="8" fill="#5b8fc6" opacity="0.9"/>
+    <path d="M404 96 A22 22 0 0 1 404 140" fill="none" stroke="#0a1733" stroke-width="2" opacity="0.4"/>
+
+    <path d="M70 70 L172 150" fill="none" stroke="#dff4ff" stroke-width="2.2" stroke-linecap="round" opacity="0.55"/>
+    <path d="M84 80 L172 150" fill="none" stroke="#9fdcff" stroke-width="5" stroke-linecap="round" opacity="0.4"/>
+    <circle cx="178" cy="156" r="9" fill="#e8f6ff"/>
+    <circle cx="178" cy="156" r="16" fill="#dff4ff" opacity="0.3"/>
+  </g>
+</svg>

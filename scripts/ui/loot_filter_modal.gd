@@ -3,7 +3,7 @@ extends Control
 # Loot Filter — rarity, slot type, and (new) weapon damage-type sub-filter.
 # Restyled to the project's recessed/accent card language.
 
-const ACCENT := Color(0.42, 0.84, 1.0)
+const ACCENT := Color(0.373, 0.878, 0.784)
 const DMG_COLORS := {
 	"kinetic": Color(1.0, 0.60, 0.24),
 	"energy": Color(0.30, 0.82, 1.0),

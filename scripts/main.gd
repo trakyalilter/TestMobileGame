@@ -426,13 +426,31 @@ func _build_reward_pill(info: Dictionary, accent: Color) -> Dictionary:
 		chip_sb.set_border_width_all(1)
 		chip_sb.border_color = accent.lerp(Color.WHITE, 0.1)
 	chip.add_theme_stylebox_override("panel", chip_sb)
-	var chip_lbl := Label.new()
-	chip_lbl.text = "★" if is_xp else _chip_abbrev(str(info.get("symbol", "?")))
-	chip_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	chip_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	chip_lbl.add_theme_font_size_override("font_size", 16 if is_xp else 11)
-	chip_lbl.add_theme_color_override("font_color", accent if is_xp else accent.lerp(Color.WHITE, 0.7))
-	chip.add_child(chip_lbl)
+	# Loot rows use the real material glyph (tinted) when we have one; XP keeps the
+	# ★, and any material without an icon falls back to the 2-letter abbreviation.
+	var mtex: Texture2D = null
+	if not is_xp:
+		mtex = ElementDB.get_material_icon(str(info.get("symbol", "")))
+	if mtex:
+		var mc := CenterContainer.new()
+		mc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var ico := TextureRect.new()
+		ico.texture = mtex
+		ico.custom_minimum_size = Vector2(20, 20)
+		ico.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ico.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		ico.modulate = ElementDB.get_material_tint(str(info.get("symbol", "")))
+		ico.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		mc.add_child(ico)
+		chip.add_child(mc)
+	else:
+		var chip_lbl := Label.new()
+		chip_lbl.text = "★" if is_xp else _chip_abbrev(str(info.get("symbol", "?")))
+		chip_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		chip_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		chip_lbl.add_theme_font_size_override("font_size", 16 if is_xp else 11)
+		chip_lbl.add_theme_color_override("font_color", accent if is_xp else accent.lerp(Color.WHITE, 0.7))
+		chip.add_child(chip_lbl)
 	row.add_child(chip)
 
 	# Name + delta column.
@@ -801,7 +819,7 @@ func _update_sidebar_styling():
 		if child is Label:
 			if child.name == "LogoLabel":
 				child.add_theme_font_size_override("font_size", 14)
-				child.add_theme_color_override("font_color", Color(0.42, 0.84, 1.00))
+				child.add_theme_color_override("font_color", Color(0.373, 0.878, 0.784))
 				child.modulate = Color.WHITE
 			else:
 				child.add_theme_font_size_override("font_size", 9)

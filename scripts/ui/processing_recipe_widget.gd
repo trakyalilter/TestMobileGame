@@ -184,8 +184,9 @@ func update_state():
 				color = "lime"
 			else:
 				missing_any = true
-				
-			in_str += "[color=%s]%s %s[/color]\n" % [color, FormatUtils.format_number(req_qty), ElementDB.get_display_name(item)]
+
+			var in_icon = ElementDB.material_icon_bbcode(item, 16)
+			in_str += "%s[color=%s]%s %s[/color]\n" % [in_icon, color, FormatUtils.format_number(req_qty), ElementDB.get_display_name(item)]
 	
 	in_str += "[/center]"
 	in_lbl.text = in_str
@@ -208,9 +209,10 @@ func update_state():
 			# BBCode url structure to catch hovers (similar to research smart links)
 			var meta_json = JSON.stringify({"id": item, "type": "item"})
 			var link_text = "[url=%s][color=#ffce5c][u]%s[/u][/color][/url]" % [meta_json, display_name]
-			
+			var out_icon = ElementDB.material_icon_bbcode(item, 16)
+
 			# Apply Efficiency Multiplier to displayed output
-			var line = "%s %s" % [FormatUtils.format_number(qty * eff_mult), link_text]
+			var line = "%s%s %s" % [out_icon, FormatUtils.format_number(qty * eff_mult), link_text]
 			
 			if item in rates:
 				out_str += "%s [color=#55ff55](%s/m)[/color]\n" % [line, FormatUtils.format_number(rates[item])]

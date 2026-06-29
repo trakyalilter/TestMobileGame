@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" preserveAspectRatio="xMidYMid meet" role="img">
+<title>Horizon Idle library logo, transparent</title>
+<desc>The Horizon Idle wordmark logo on a transparent background: HORIZON in white above IDLE in gold, with a gold underline and the tagline skill craft warp, intended to overlay the library hero.</desc>
+<defs>
+<style>@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&amp;display=swap');.wm{font-family:'Orbitron','Arial Black',sans-serif;}.tg{font-family:'Orbitron',Arial,sans-serif;}</style>
+<radialGradient id="shead" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#ffffff"/><stop offset="0.4" stop-color="#eafdff"/><stop offset="0.7" stop-color="#7fe3ff" stop-opacity="0.5"/><stop offset="1" stop-color="#7fe3ff" stop-opacity="0"/></radialGradient>
+</defs>
+<circle cx="980" cy="250" r="14" fill="url(#shead)"/>
+<circle cx="980" cy="250" r="3.2" fill="#ffffff"/>
+<polygon points="978,256 982,244 1120,205" fill="#bdf2ff" opacity="0.5"/>
+<text class="wm" x="640" y="350" font-size="150" font-weight="900" fill="#f3f8ff" text-anchor="middle">HORIZON</text>
+<text class="wm" x="640" y="486" font-size="110" font-weight="700" fill="#ffd14c" letter-spacing="42" text-anchor="middle">IDLE</text>
+<rect x="540" y="512" width="200" height="6" fill="#ffd14c" opacity="0.85"/>
+<text class="tg" x="640" y="566" font-size="30" font-weight="500" fill="#9cc2e6" letter-spacing="8" text-anchor="middle">GATHER · CRAFT · FIGHT · ASCEND</text>
+</svg>

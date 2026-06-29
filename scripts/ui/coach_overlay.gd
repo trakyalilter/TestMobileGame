@@ -68,7 +68,7 @@ func _build_ui() -> void:
 	cs.bg_color = Color(0.07, 0.08, 0.12, 0.98)
 	cs.set_border_width_all(1)
 	cs.border_width_top = 3
-	cs.border_color = Color(0.42, 0.84, 1.0, 0.85)
+	cs.border_color = Color(0.373, 0.878, 0.784, 0.85)
 	cs.set_corner_radius_all(6)
 	cs.shadow_color = Color(0, 0, 0, 0.6)
 	cs.shadow_size = 18
@@ -85,7 +85,7 @@ func _build_ui() -> void:
 
 	_title_lbl = Label.new()
 	_title_lbl.add_theme_font_size_override("font_size", 18)
-	_title_lbl.add_theme_color_override("font_color", Color(0.42, 0.84, 1.0))
+	_title_lbl.add_theme_color_override("font_color", Color(0.373, 0.878, 0.784))
 	vb.add_child(_title_lbl)
 
 	_body_lbl = Label.new()

@@ -5,6 +5,7 @@ signal clicked(element_data)
 var element_data
 var amount
 
+@onready var icon_rect = $MarginContainer/VBoxContainer/IconRect
 @onready var symbol_lbl = $MarginContainer/VBoxContainer/SymbolLabel
 @onready var name_lbl = $MarginContainer/VBoxContainer/NameLabel
 @onready var amt_lbl = $MarginContainer/VBoxContainer/AmountLabel
@@ -34,7 +35,19 @@ func setup(p_data, p_amount):
 	
 	var display_name = ElementDB.get_display_name(element_data["symbol"])
 	var symbol = element_data["symbol"]
-	
+
+	# Material icon (Batch-0): show the tinted glyph above the name when one
+	# exists; otherwise hide it so the card degrades to exactly the old text
+	# layout (no reserved gap on un-iconned materials).
+	var tex = ElementDB.get_material_icon(symbol)
+	if tex:
+		icon_rect.texture = tex
+		icon_rect.modulate = ElementDB.get_material_tint(symbol)
+		icon_rect.visible = true
+	else:
+		icon_rect.texture = null
+		icon_rect.visible = false
+
 	# Primary Text is always the Display Name
 	symbol_lbl.text = display_name
 	symbol_lbl.add_theme_font_size_override("font_size", 14) # Standardized size

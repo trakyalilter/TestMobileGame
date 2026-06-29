@@ -38,6 +38,11 @@ user://
 Thumbs.db
 desktop.ini
 
-# Claude Code local agent state (machine-specific; not shared)
-.claude/settings.local.json
-.claude/scheduled_tasks.lock
+# Claude Code local agent state + worktrees + session data (machine-specific, large; not shared)
+.claude/
+
+# Temp icon-revision working dir + headless sim run logs (transient/generated)
+tmp_iconrev/
+_bot_out.txt
+_bot_a.txt
+_bot_*.txt

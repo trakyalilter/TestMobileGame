@@ -19,6 +19,10 @@ func setup(id: String, type: String, host_slot: String = ""):
 	for child in stats_container.get_children():
 		child.queue_free()
 	cost_lbl.text = ""
+	# Hide any prior material icon (only _setup_item re-shows it).
+	var _mi = $MarginContainer/VBoxContainer/Header.get_node_or_null("MatIcon")
+	if _mi:
+		_mi.visible = false
 	
 	match type:
 		"item": _setup_item(id)
@@ -33,7 +37,8 @@ func setup(id: String, type: String, host_slot: String = ""):
 func _setup_item(id: String):
 	title_lbl.text = ElementDB.get_display_name(id)
 	type_lbl.text = "RESOURCE"
-	type_lbl.modulate = Color(0.7, 0.7, 0.7)
+	type_lbl.modulate = Color(0.498, 0.639, 0.612)
+	_set_item_icon(id)
 	
 	# Try to find description or category
 	var cat = ElementDB.get_category(id)
@@ -83,7 +88,7 @@ func _setup_ship(id: String):
 	var data = sm.hulls[id]
 	title_lbl.text = data["name"]
 	type_lbl.text = "SHIP HULL"
-	type_lbl.modulate = Color(0.2, 0.6, 1.0)
+	type_lbl.modulate = Color(0.439, 0.533, 0.949)
 	
 	desc_lbl.text = "Class Tier: %d" % data.get("tier", 0)
 	
@@ -109,7 +114,7 @@ func _setup_module(id: String):
 	
 	var s_type = data.get("slot_type", "module").to_upper()
 	type_lbl.text = "SHIP MODULE (%s)" % s_type
-	type_lbl.modulate = Color(1.0, 0.5, 0.2)
+	type_lbl.modulate = Color(0.373, 0.878, 0.784)
 	
 	var final_desc = data.get("desc", "")
 	
@@ -129,7 +134,7 @@ func _setup_module(id: String):
 		final_desc += "\n  - Weak: Slower fire rate"
 		
 	desc_lbl.text = final_desc
-	desc_lbl.modulate = Color(0.8, 0.8, 0.8, 1) # Force strict grey
+	desc_lbl.modulate = Color(0.78, 0.88, 0.85, 1) # soft light teal-white
 
 	
 	
@@ -143,14 +148,14 @@ func _setup_module(id: String):
 	
 	# v87.0: Condensed type hint (replaces old v83.1 duplicate)
 	if stats.has("atk_kinetic") and stats["atk_kinetic"] > 0:
-		_add_stat("TYPE", "KINETIC", Color(0.6, 0.8, 1.0))
+		_add_stat("TYPE", "KINETIC", Color(0.439, 0.533, 0.949))
 	if stats.has("atk_energy") and stats["atk_energy"] > 0:
-		_add_stat("TYPE", "ENERGY", Color(1.0, 0.9, 0.3))
+		_add_stat("TYPE", "ENERGY", Color(0.373, 0.878, 0.784))
 	if stats.has("atk_explosive") and stats["atk_explosive"] > 0:
-		_add_stat("TYPE", "EXPLOSIVE", Color(1.0, 0.5, 0.3))
+		_add_stat("TYPE", "EXPLOSIVE", Color(1.0, 0.761, 0.302))
 		
 	var durability = int(data.get("durability", 100))
-	_add_stat("Durability", "%d/100" % durability, Color.GOLD if durability <= 20 else Color.WHITE)
+	_add_stat("Durability", "%d/100" % durability, Color(1.0, 0.392, 0.451) if durability <= 20 else Color(0.894, 0.961, 0.933))
 		
 	_set_cost(data["cost"])
 
@@ -164,7 +169,7 @@ func _setup_building(id: String):
 	var data = im.building_db[id]
 	title_lbl.text = data["name"]
 	type_lbl.text = "INFRASTRUCTURE"
-	type_lbl.modulate = Color(0.4, 0.8, 0.4)
+	type_lbl.modulate = Color(0.455, 0.831, 0.373)
 	
 	desc_lbl.text = data["description"]
 	
@@ -181,15 +186,15 @@ func _setup_gem(id: String):
 	type_lbl.text = "MATRIX CORE"
 
 	if "Crimson" in id:
-		type_lbl.modulate = Color(1.0, 0.35, 0.35)
+		type_lbl.modulate = Color(1.0, 0.392, 0.451)
 	elif "Cobalt" in id:
-		type_lbl.modulate = Color(0.35, 0.65, 1.0)
+		type_lbl.modulate = Color(0.224, 0.651, 0.878)
 	elif "Topaz" in id:
-		type_lbl.modulate = Color(1.0, 0.82, 0.2)
+		type_lbl.modulate = Color(0.843, 0.722, 0.259)
 	elif "Amethyst" in id:
-		type_lbl.modulate = Color(0.78, 0.4, 1.0)
+		type_lbl.modulate = Color(0.690, 0.420, 0.949)
 	else:
-		type_lbl.modulate = Color(0.8, 0.8, 0.8)
+		type_lbl.modulate = Color(0.498, 0.639, 0.612)
 
 	desc_lbl.text = ElementDB.get_element_description(id)
 
@@ -208,14 +213,37 @@ func _setup_gem(id: String):
 			var pretty = String(k).replace("_mult", "").replace("_flat", "").replace("_eff", "_efficiency").replace("_", " ").capitalize()
 			var val_str = ("+%d" % int(facet[k])) if String(k).ends_with("_flat") else ("+%d%%" % int(round(float(facet[k]) * 100.0)))
 			var prefix = "▶ " if (active_cat != "" and cat == active_cat) else ""
-			var col = Color(0.45, 1.0, 0.55) if is_active else Color(0.5, 0.55, 0.62)
+			var col = Color(0.275, 0.878, 0.627) if is_active else Color(0.498, 0.639, 0.612)
 			_add_stat("%s[%s] %s" % [prefix, cat_name[cat], pretty], val_str, col)
+
+# Batch-0: a tinted material glyph beside the resource title (when an icon
+# exists). Created lazily; hidden again by setup() for non-item entities.
+func _set_item_icon(id: String):
+	var header = $MarginContainer/VBoxContainer/Header
+	var mi = header.get_node_or_null("MatIcon")
+	var tex = ElementDB.get_material_icon(id)
+	if not tex:
+		if mi:
+			mi.visible = false
+		return
+	if not mi:
+		mi = TextureRect.new()
+		mi.name = "MatIcon"
+		mi.custom_minimum_size = Vector2(26, 26)
+		mi.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		mi.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		mi.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		header.add_child(mi)
+		header.move_child(mi, 0)
+	mi.texture = tex
+	mi.modulate = ElementDB.get_material_tint(id)
+	mi.visible = true
 
 func _add_stat(label: String, value: String, val_color: Color = Color.WHITE):
 	var box = HBoxContainer.new()
 	var l = Label.new()
 	l.text = label + ":"
-	l.modulate = Color(0.7, 0.7, 0.7) # Slightly brighter grey for labels
+	l.modulate = Color(0.498, 0.639, 0.612) # dim teal-grey for labels
 	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var v = Label.new()
 	v.text = value

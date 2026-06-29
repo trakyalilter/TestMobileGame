@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="3840" height="1240" viewBox="0 0 1920 620" preserveAspectRatio="xMidYMid meet" role="img">
+<title>Horizon Idle library hero 1920 by 620</title>
+<desc>Ultra-wide Steam library hero banner: a deep-space vista with a ringed planet, distant moon, shooting star, multi-depth starfield, and a richly lit golden planetary horizon, with the center kept open for the overlaid logo.</desc>
+<defs>
+<clipPath id="frame"><rect x="0" y="0" width="1920" height="620"/></clipPath>
+<linearGradient id="sky1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#04050e"/><stop offset="0.5" stop-color="#08142a"/><stop offset="1" stop-color="#0c2140"/></linearGradient>
+<radialGradient id="neb1" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#2f74b5" stop-opacity="0.45"/><stop offset="1" stop-color="#2f74b5" stop-opacity="0"/></radialGradient>
+<radialGradient id="nebp" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#7a4bb0" stop-opacity="0.3"/><stop offset="1" stop-color="#7a4bb0" stop-opacity="0"/></radialGradient>
+<radialGradient id="neb1b" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#caa24a" stop-opacity="0.3"/><stop offset="1" stop-color="#caa24a" stop-opacity="0"/></radialGradient>
+<radialGradient id="pbody" cx="0.5" cy="0.42" r="0.62"><stop offset="0" stop-color="#102a42"/><stop offset="0.55" stop-color="#0b1a2c"/><stop offset="1" stop-color="#05101c"/></radialGradient>
+<radialGradient id="mottleL" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#1d3c58" stop-opacity="0.55"/><stop offset="1" stop-color="#1d3c58" stop-opacity="0"/></radialGradient>
+<radialGradient id="mottleD" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#04101d" stop-opacity="0.6"/><stop offset="1" stop-color="#04101d" stop-opacity="0"/></radialGradient>
+<radialGradient id="dawn" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#b9863a" stop-opacity="0.4"/><stop offset="1" stop-color="#b9863a" stop-opacity="0"/></radialGradient>
+<radialGradient id="atmoMain" cx="0.5" cy="0.5" r="0.5"><stop offset="0.80" stop-color="#ff9d3c" stop-opacity="0"/><stop offset="0.840" stop-color="#ffe9a8" stop-opacity="0"/><stop offset="0.847" stop-color="#fff6e0" stop-opacity="0.95"/><stop offset="0.853" stop-color="#ffd14c" stop-opacity="0.75"/><stop offset="0.870" stop-color="#ff9d3c" stop-opacity="0.4"/><stop offset="0.905" stop-color="#e0742e" stop-opacity="0.18"/><stop offset="0.95" stop-color="#c85a2a" stop-opacity="0.07"/><stop offset="1" stop-color="#c85a2a" stop-opacity="0"/></radialGradient>
+<radialGradient id="atmoOuter" cx="0.5" cy="0.5" r="0.5"><stop offset="0.66" stop-color="#ffb347" stop-opacity="0"/><stop offset="0.705" stop-color="#ffb347" stop-opacity="0.16"/><stop offset="0.82" stop-color="#ff9d3c" stop-opacity="0.07"/><stop offset="1" stop-color="#ff9d3c" stop-opacity="0"/></radialGradient>
+<radialGradient id="sunbloom" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#fffdf2" stop-opacity="0.95"/><stop offset="0.25" stop-color="#fff0c0" stop-opacity="0.7"/><stop offset="0.55" stop-color="#ffce6a" stop-opacity="0.3"/><stop offset="1" stop-color="#ffce6a" stop-opacity="0"/></radialGradient>
+<radialGradient id="distBody" cx="0.5" cy="0.5" r="0.55" fx="0.36" fy="0.36"><stop offset="0" stop-color="#5688b8"/><stop offset="0.5" stop-color="#2a577f"/><stop offset="1" stop-color="#0e2640"/></radialGradient>
+<radialGradient id="starGlow" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#ffffff" stop-opacity="0.9"/><stop offset="0.4" stop-color="#cfe0ff" stop-opacity="0.4"/><stop offset="1" stop-color="#cfe0ff" stop-opacity="0"/></radialGradient>
+<radialGradient id="shead" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#ffffff"/><stop offset="0.35" stop-color="#eafdff"/><stop offset="0.7" stop-color="#7fe3ff" stop-opacity="0.55"/><stop offset="1" stop-color="#7fe3ff" stop-opacity="0"/></radialGradient>
+<linearGradient id="streak1" gradientUnits="userSpaceOnUse" x1="1080" y1="280" x2="1500" y2="80"><stop offset="0" stop-color="#eafdff" stop-opacity="0.95"/><stop offset="0.45" stop-color="#bdf2ff" stop-opacity="0.4"/><stop offset="1" stop-color="#bdf2ff" stop-opacity="0"/></linearGradient>
+<linearGradient id="streakG" gradientUnits="userSpaceOnUse" x1="1080" y1="280" x2="1470" y2="94"><stop offset="0" stop-color="#7fe3ff" stop-opacity="0.5"/><stop offset="1" stop-color="#7fe3ff" stop-opacity="0"/></linearGradient>
+</defs>
+<g clip-path="url(#frame)">
+<rect width="1920" height="620" fill="url(#sky1)"/>
+<ellipse cx="380" cy="180" rx="620" ry="300" fill="url(#neb1)"/>
+<ellipse cx="1540" cy="150" rx="520" ry="260" fill="url(#nebp)"/>
+<ellipse cx="960" cy="640" rx="1000" ry="240" fill="url(#neb1b)"/>
+<g fill="#ffffff">
+<circle cx="80" cy="60" r="0.8" opacity="0.5"/><circle cx="240" cy="120" r="0.6" opacity="0.35"/><circle cx="420" cy="60" r="0.6" opacity="0.35"/><circle cx="600" cy="140" r="0.6" opacity="0.3"/><circle cx="780" cy="70" r="0.6" opacity="0.35"/><circle cx="980" cy="120" r="0.6" opacity="0.3"/><circle cx="1180" cy="60" r="0.6" opacity="0.35"/><circle cx="1360" cy="130" r="0.6" opacity="0.3"/><circle cx="1740" cy="70" r="0.7" opacity="0.45"/><circle cx="1860" cy="150" r="0.6" opacity="0.35"/><circle cx="120" cy="240" r="0.6" opacity="0.3"/><circle cx="320" cy="320" r="0.6" opacity="0.3"/><circle cx="560" cy="280" r="0.5" opacity="0.28"/><circle cx="820" cy="340" r="0.6" opacity="0.3"/><circle cx="1240" cy="300" r="0.5" opacity="0.28"/><circle cx="1480" cy="340" r="0.6" opacity="0.3"/><circle cx="1700" cy="280" r="0.6" opacity="0.3"/><circle cx="1880" cy="360" r="0.5" opacity="0.28"/><circle cx="200" cy="420" r="0.5" opacity="0.26"/><circle cx="680" cy="440" r="0.5" opacity="0.24"/><circle cx="1340" cy="440" r="0.5" opacity="0.24"/><circle cx="1820" cy="460" r="0.5" opacity="0.24"/></g>
+<g>
+<circle cx="240" cy="120" r="1" fill="#cfe0ff" opacity="0.6"/><circle cx="600" cy="140" r="0.9" fill="#ffffff" opacity="0.55"/><circle cx="980" cy="120" r="0.9" fill="#fff0d8" opacity="0.5"/><circle cx="1360" cy="130" r="0.9" fill="#ffffff" opacity="0.55"/><circle cx="1860" cy="150" r="0.9" fill="#cfe0ff" opacity="0.55"/><circle cx="320" cy="320" r="0.9" fill="#ffffff" opacity="0.5"/><circle cx="820" cy="340" r="0.8" fill="#fff0d8" opacity="0.45"/><circle cx="1480" cy="340" r="0.8" fill="#ffffff" opacity="0.5"/><circle cx="1700" cy="280" r="0.8" fill="#cfe0ff" opacity="0.5"/><circle cx="120" cy="240" r="0.9" fill="#ffffff" opacity="0.55"/></g>
+<g>
+<circle cx="120" cy="70" r="7" fill="url(#starGlow)"/><polygon points="120,63 121,69 127,70 121,71 120,77 119,71 113,70 119,69" fill="#ffffff" opacity="0.85"/><circle cx="120" cy="70" r="1.4" fill="#ffffff"/>
+<circle cx="430" cy="60" r="6.5" fill="url(#starGlow)"/><polygon points="430,54 431,59 436,60 431,61 430,66 429,61 424,60 429,59" fill="#ffffff" opacity="0.85"/><circle cx="430" cy="60" r="1.3" fill="#ffffff"/>
+<circle cx="1520" cy="80" r="6.5" fill="url(#starGlow)"/><polygon points="1520,74 1521,79 1526,80 1521,81 1520,86 1519,81 1514,80 1519,79" fill="#eaf2ff" opacity="0.8"/><circle cx="1520" cy="80" r="1.3" fill="#ffffff"/>
+<circle cx="1800" cy="210" r="6" fill="url(#starGlow)"/><polygon points="1800,204 1801,209 1806,210 1801,211 1800,216 1799,211 1794,210 1799,209" fill="#ffffff" opacity="0.75"/><circle cx="1800" cy="210" r="1.2" fill="#ffffff"/></g>
+<ellipse cx="300" cy="300" rx="160" ry="46" fill="none" stroke="#caa24a" stroke-width="4" opacity="0.45" transform="rotate(-20 300 300)"/>
+<circle cx="300" cy="300" r="90" fill="url(#distBody)"/>
+<path d="M300,210 a90,90 0 0 1 0,180 a93,90 0 0 0 0,-180" fill="#0a1828" opacity="0.4"/>
+<circle cx="300" cy="300" r="90" fill="none" stroke="#6fa0cc" stroke-width="0.9" opacity="0.35"/>
+<circle cx="1650" cy="160" r="40" fill="url(#distBody)"/>
+<path d="M1650,120 a40,40 0 0 1 0,80 a41,40 0 0 0 0,-80" fill="#0a1828" opacity="0.4"/>
+<circle cx="1650" cy="160" r="40" fill="none" stroke="#6fa0cc" stroke-width="0.8" opacity="0.35"/>
+<polygon points="1084.7,289.9 1075.3,270.1 1470,94" fill="url(#streakG)"/>
+<polygon points="1081.7,283.6 1078.3,276.4 1500,80" fill="url(#streak1)"/>
+<g fill="#dffaff"><circle cx="1156" cy="244" r="1.4" opacity="0.85"/><circle cx="1219" cy="214" r="1.1" opacity="0.6"/><circle cx="1290" cy="180" r="0.8" opacity="0.45"/></g>
+<circle cx="1080" cy="280" r="15" fill="url(#shead)"/><circle cx="1080" cy="280" r="3.5" fill="#fff"/>
+<circle cx="960" cy="1400" r="900" fill="url(#pbody)"/>
+<ellipse cx="760" cy="580" rx="400" ry="40" fill="url(#mottleL)"/>
+<ellipse cx="1240" cy="600" rx="320" ry="30" fill="url(#mottleL)" opacity="0.7"/>
+<ellipse cx="520" cy="560" rx="240" ry="30" fill="url(#mottleD)"/>
+<ellipse cx="1400" cy="590" rx="220" ry="24" fill="url(#mottleD)" opacity="0.8"/>
+<ellipse cx="1000" cy="575" rx="520" ry="54" fill="url(#dawn)"/>
+<g fill="#ffd9a0"><circle cx="818" cy="588" r="0.7" opacity="0.6"/><circle cx="828" cy="592" r="0.6" opacity="0.5"/><circle cx="808" cy="594" r="0.5" opacity="0.45"/><circle cx="838" cy="586" r="0.5" opacity="0.5"/></g>
+<circle cx="960" cy="1400" r="1309" fill="url(#atmoOuter)"/>
+<circle cx="960" cy="1400" r="1062" fill="url(#atmoMain)"/>
+<circle cx="960" cy="1400" r="900" fill="none" stroke="#fff3d2" stroke-width="1.5" opacity="0.5"/>
+<circle cx="1180" cy="520" r="150" fill="url(#sunbloom)"/>
+</g>
+</svg>

@@ -361,3 +361,295 @@ func get_element_description(symbol: String) -> String:
 	if symbol in ELEMENT_DATA:
 		return ELEMENT_DATA[symbol].get("description", "")
 	return ""
+
+# ─────────────────────────────────────────────────────────────
+# Material icons (Batch-0 foundation). Monochrome white SVGs live under
+# res://assets/icons/materials/<id>.svg and are runtime-tinted via modulate to
+# a per-material signature colour (falling back to the material's category).
+# Icon coverage is intentionally PARTIAL during rollout: get_material_icon()
+# returns null for any id without a file yet, and every UI site degrades to the
+# existing text. Drop in a new <id>.svg and that material starts showing an icon
+# with zero other changes.
+# ─────────────────────────────────────────────────────────────
+
+# Static so each id's texture imports exactly once across every card instance.
+# Misses are negative-cached (value = null) so absent icons don't re-stat the
+# filesystem on every inventory / recipe rebuild.
+static var _mat_icon_cache: Dictionary = {}
+
+static func get_material_icon(symbol: String) -> Texture2D:
+	if _mat_icon_cache.has(symbol):
+		return _mat_icon_cache[symbol]
+	var tex: Texture2D = null
+	var path: String = "res://assets/icons/materials/%s.svg" % symbol
+	if ResourceLoader.exists(path):
+		tex = load(path) as Texture2D
+	_mat_icon_cache[symbol] = tex
+	return tex
+
+# Default tint per material category (keys match CATEGORIES). Used when a
+# material has no specific entry in MATERIAL_TINT.
+var CATEGORY_TINT := {
+	"ores": Color(0.61, 0.42, 0.25),
+	"basic_metals": Color(0.72, 0.76, 0.80),
+	"advanced_metals": Color(0.56, 0.63, 0.69),
+	"rare_metals": Color(0.91, 0.76, 0.35),
+	"alloys": Color(0.78, 0.81, 0.85),
+	"components": Color(0.35, 0.78, 0.88),
+	"batteries": Color(0.62, 0.83, 0.35),
+	"consumables": Color(0.44, 0.82, 0.54),
+	"ammo": Color(0.91, 0.58, 0.23),
+	"special": Color(0.72, 0.52, 0.88),
+	"endgame": Color(0.85, 0.45, 0.85),
+	"boss_cores": Color(0.91, 0.71, 0.29),
+	"matrix_cores": Color(0.85, 0.55, 0.85),
+	"reclaimed_components": Color(0.75, 0.47, 0.29),
+}
+
+# Per-material signature tints (grows one batch at a time). A material's colour
+# IS part of its identity (copper vs gold vs water), so a specific entry here
+# wins; anything missing falls back to CATEGORY_TINT, then a warm neutral.
+var MATERIAL_TINT := {
+	# Batch 1 — first-session heroes
+	"Dirt": Color(0.54, 0.42, 0.27),
+	"Water": Color(0.31, 0.66, 0.88),
+	"Wood": Color(0.80, 0.62, 0.38),  # honey-oak: lifted out of the warm-brown YIELD/cell bg so the glyph reads
+	"Fe": Color(0.68, 0.71, 0.75),
+	"Si": Color(0.56, 0.65, 0.73),
+	"C": Color(0.37, 0.39, 0.42),
+	"Cu": Color(0.82, 0.54, 0.29),
+	"Steel": Color(0.54, 0.57, 0.61),
+	"Circuit": Color(0.37, 0.76, 0.43),
+	"credits": Color(1.0, 0.82, 0.30),
+	# Batch 2 — early ores + light metals + gases
+	"Bauxite": Color(0.71, 0.41, 0.25),
+	"Malachite": Color(0.31, 0.68, 0.44),
+	"Cassiterite": Color(0.56, 0.47, 0.39),
+	"ZincOre": Color(0.60, 0.57, 0.52),
+	"Dolomite": Color(0.80, 0.74, 0.61),
+	"Spodumene": Color(0.79, 0.65, 0.70),
+	"Quartz": Color(0.75, 0.81, 0.87),
+	"Al": Color(0.86, 0.88, 0.89),
+	"Sn": Color(0.74, 0.70, 0.64),
+	"Zn": Color(0.56, 0.71, 0.82),
+	"Mg": Color(0.76, 0.83, 0.71),
+	"Li": Color(0.80, 0.66, 0.70),
+	"H": Color(0.62, 0.84, 0.90),
+	"O": Color(0.52, 0.66, 0.92),
+	# Batch 3 — early components, data & salvage chain
+	"AdvCircuit": Color(0.36, 0.82, 0.69),
+	"Chip": Color(0.44, 0.69, 0.88),
+	"Semiconductor": Color(0.56, 0.69, 0.78),
+	"Resin": Color(0.80, 0.62, 0.28),
+	"Fiber": Color(0.42, 0.44, 0.48),
+	"AlWire": Color(0.78, 0.80, 0.82),
+	"SparePart": Color(0.66, 0.64, 0.60),
+	"Res1": Color(0.56, 0.78, 0.42),
+	"SalvageData": Color(0.36, 0.70, 0.84),
+	"NavData": Color(0.44, 0.66, 0.90),
+	"MiteChitin": Color(0.72, 0.55, 0.36),
+	"SalvagedAlloy": Color(0.68, 0.56, 0.44),
+	"DamagedCircuitry": Color(0.56, 0.66, 0.44),
+	"ReinforcedPlating": Color(0.62, 0.66, 0.71),
+	# Batch 4 — ammunition (kinetic slugs / energy cells / explosive missiles, escalating per tier)
+	"SlugT1": Color(0.69, 0.66, 0.62),
+	"SlugT1S": Color(0.68, 0.71, 0.75),
+	"SlugT2": Color(0.78, 0.66, 0.35),
+	"SlugT3": Color(0.62, 0.82, 0.42),
+	"SlugT4": Color(0.91, 0.52, 0.23),
+	"CellT1": Color(0.44, 0.82, 0.85),
+	"CellT2": Color(0.35, 0.69, 0.88),
+	"CellT3": Color(0.48, 0.54, 0.88),
+	"CellT4": Color(0.69, 0.44, 0.88),
+	"MissileT1": Color(0.88, 0.66, 0.29),
+	"MissileT2": Color(0.88, 0.54, 0.25),
+	"MissileT3": Color(0.88, 0.38, 0.23),
+	"MissileT4": Color(0.91, 0.29, 0.42),
+	# Batch 5 — consumables (hull heals = green objects, shield heals = blue shield+glyph)
+	"EmergencyPatch": Color(0.56, 0.85, 0.60),
+	"ChitinPatch": Color(0.66, 0.77, 0.42),
+	"Mesh": Color(0.37, 0.77, 0.48),
+	"Seal": Color(0.31, 0.75, 0.63),
+	"AdvMaintenanceKit": Color(0.44, 0.82, 0.42),
+	"CapacitorShard": Color(0.50, 0.82, 0.88),
+	"BasicBooster": Color(0.35, 0.75, 0.88),
+	"IonField": Color(0.35, 0.66, 0.88),
+	"NitroCoolant": Color(0.56, 0.78, 0.91),
+	"ZeroPoint": Color(0.44, 0.54, 0.88),
+	# Batch 6 — mid-game metals (stamped ingots), alloys, gem, components, ores
+	"Ti": Color(0.62, 0.69, 0.76),
+	"Ni": Color(0.75, 0.77, 0.72),
+	"Cr": Color(0.77, 0.80, 0.82),
+	"Co": Color(0.44, 0.54, 0.78),
+	"Mn": Color(0.60, 0.58, 0.66),
+	"Au": Color(0.91, 0.76, 0.29),
+	"Ag": Color(0.82, 0.85, 0.87),
+	"Superalloy": Color(0.66, 0.74, 0.82),
+	"StainlessSteel": Color(0.74, 0.79, 0.83),
+	"GalvanizedSteel": Color(0.70, 0.74, 0.70),
+	"AlMgAlloy": Color(0.80, 0.83, 0.80),
+	"Graphite": Color(0.40, 0.42, 0.45),
+	"Diamond": Color(0.80, 0.90, 0.94),
+	"StructuralComponent": Color(0.58, 0.66, 0.74),
+	"NanoSubstrate": Color(0.55, 0.72, 0.82),
+	"Hydraulics": Color(0.45, 0.72, 0.78),
+	"Pentlandite": Color(0.70, 0.66, 0.55),
+	"Chromite": Color(0.55, 0.56, 0.58),
+	# Batch 7 — power & catalysts (batteries / fuel cell / coolant / catalyst flasks / nuclear)
+	"BatteryT1": Color(0.56, 0.77, 0.29),
+	"BatteryT2": Color(0.77, 0.77, 0.29),
+	"BatteryT3": Color(0.35, 0.78, 0.85),
+	"CoBattery": Color(0.35, 0.47, 0.85),
+	"MgBattery": Color(0.55, 0.80, 0.58),
+	"PdFuelCell": Color(0.48, 0.77, 0.72),
+	"VoidBattery": Color(0.54, 0.35, 0.85),
+	"CoolantCell": Color(0.56, 0.85, 0.91),
+	"AgCatalyst": Color(0.78, 0.80, 0.82),
+	"PtCatalyst": Color(0.74, 0.83, 0.86),
+	"NuclearFuel": Color(0.62, 0.77, 0.25),
+	# Batch 8 — Matrix cores (hue = family, brightness escalates Cracked→Stable→Pristine)
+	"CrackedCrimsonCore": Color(0.66, 0.23, 0.23),
+	"StableCrimsonCore": Color(0.82, 0.29, 0.29),
+	"PristineCrimsonCore": Color(0.91, 0.42, 0.42),
+	"CrackedCobaltCore": Color(0.23, 0.35, 0.66),
+	"StableCobaltCore": Color(0.29, 0.47, 0.85),
+	"PristineCobaltCore": Color(0.42, 0.60, 0.91),
+	"CrackedTopazCore": Color(0.69, 0.51, 0.16),
+	"StableTopazCore": Color(0.88, 0.66, 0.23),
+	"PristineTopazCore": Color(0.94, 0.77, 0.35),
+	"CrackedAmethystCore": Color(0.54, 0.29, 0.72),
+	"StableAmethystCore": Color(0.66, 0.37, 0.85),
+	"PristineAmethystCore": Color(0.75, 0.53, 0.91),
+	# Batch 9 — zone signature raws + alloys
+	"PirateSalvage": Color(0.60, 0.54, 0.48),
+	"MartianRelics": Color(0.78, 0.42, 0.23),
+	"CryoEssence": Color(0.56, 0.85, 0.91),
+	"RimeplateScrap": Color(0.66, 0.75, 0.78),
+	"XenoFragment": Color(0.54, 0.69, 0.29),
+	"ColonySalvage": Color(0.48, 0.58, 0.66),
+	"AeonResiduum": Color(0.44, 0.75, 0.69),
+	"ChondriteAlloy": Color(0.66, 0.58, 0.47),
+	"WreckforgedAlloy": Color(0.60, 0.63, 0.66),
+	"RimeAlloy": Color(0.60, 0.75, 0.80),
+	"XenoforgedAlloy": Color(0.60, 0.72, 0.35),
+	"ColonyAlloy": Color(0.54, 0.63, 0.72),
+	"GammaAlloy": Color(0.72, 0.77, 0.29),
+	"PrismaticAlloy": Color(0.75, 0.53, 0.85),
+	"BioforgedAlloy": Color(0.48, 0.75, 0.54),
+	"AeonAlloy": Color(0.44, 0.69, 0.75),
+	# Batch 10 — rare/exotic metals (stamped ingots) + ores + plating/core/alloy + isotope
+	"Ir": Color(0.78, 0.83, 0.86),
+	"Os": Color(0.56, 0.63, 0.72),
+	"U": Color(0.48, 0.72, 0.29),
+	"Pd": Color(0.80, 0.82, 0.84),
+	"Germanium": Color(0.66, 0.69, 0.69),
+	"Pt": Color(0.84, 0.87, 0.89),
+	"W": Color(0.54, 0.56, 0.58),
+	"PtOre": Color(0.69, 0.71, 0.72),
+	"Germanit": Color(0.54, 0.50, 0.45),
+	"IrPlate": Color(0.74, 0.79, 0.83),
+	"OsCore": Color(0.50, 0.58, 0.68),
+	"IrWAlloy": Color(0.58, 0.60, 0.64),
+	"RadIsotope": Color(0.66, 0.80, 0.30),
+	# Batch 11 — exotics & prestige
+	"ExoticMatter": Color(0.75, 0.38, 0.88),
+	"VoidCrystal": Color(0.54, 0.29, 0.78),
+	"VoidEssence": Color(0.42, 0.28, 0.72),
+	"QuantumCore": Color(0.29, 0.75, 0.88),
+	"Neutronium": Color(0.68, 0.75, 0.85),
+	"ChronoCore": Color(0.35, 0.82, 0.69),
+	"AntimatterParticle": Color(0.91, 0.29, 0.54),
+	"AntimatterFuel": Color(0.85, 0.29, 0.66),
+	"PrimordialShard": Color(0.88, 0.54, 0.23),
+	"ExoticIsotope": Color(0.35, 0.82, 0.56),
+	"CryoCatalyst": Color(0.56, 0.82, 0.91),
+	# Phase B intermediates (family hue of their parent precursor)
+	"StructuralLattice": Color(0.66, 0.70, 0.74),
+	"NeutroniumPlate":   Color(0.72, 0.78, 0.88),
+	"OmegaComposite":    Color(0.80, 0.50, 0.30),
+	"BioReactorCore":    Color(0.40, 0.78, 0.45),
+	"PrimordialMatrix":  Color(0.90, 0.58, 0.28),
+	"VoidLattice":       Color(0.46, 0.30, 0.74),
+	"Food": Color(0.48, 0.77, 0.29),
+	# Batch 12 — zone boss cores (numeral stamp, tint escalates across the zone progression)
+	"Z1_Core": Color(0.69, 0.72, 0.75),
+	"Z2_Core": Color(0.72, 0.60, 0.42),
+	"Z3_Core": Color(0.75, 0.44, 0.31),
+	"Z4_Core": Color(0.48, 0.75, 0.85),
+	"Z5_Core": Color(0.42, 0.75, 0.47),
+	"Z6_Core": Color(0.35, 0.54, 0.85),
+	"Z7_Core": Color(0.72, 0.77, 0.29),
+	"Z8_Core": Color(0.60, 0.35, 0.85),
+	"Z9_Core": Color(0.85, 0.35, 0.75),
+	"Z10_Core": Color(0.91, 0.75, 0.29),
+	# Batch 13 — trophies (trophy cup + rank numeral, zone-colour escalation)
+	"Trophy_Lunar": Color(0.75, 0.77, 0.78),
+	"Trophy_Belt": Color(0.75, 0.56, 0.35),
+	"Trophy_Mars": Color(0.78, 0.47, 0.31),
+	"Trophy_Titan": Color(0.48, 0.63, 0.78),
+	"Trophy_Alpha": Color(0.42, 0.75, 0.47),
+	"Trophy_Beta": Color(0.35, 0.54, 0.85),
+	"Trophy_Gamma": Color(0.72, 0.77, 0.29),
+	"Trophy_Delta": Color(0.60, 0.35, 0.85),
+	"Trophy_Zeta": Color(0.85, 0.35, 0.75),
+	"Trophy_Epsilon": Color(0.91, 0.75, 0.29),
+	# Batch 14 — bio / AI / endgame components + artifacts
+	"BiohazardSample": Color(0.60, 0.77, 0.29),
+	"PathogenCore": Color(0.69, 0.35, 0.75),
+	"AICore": Color(0.29, 0.75, 0.85),
+	"AIProcessor": Color(0.35, 0.54, 0.85),
+	"RegenPlating": Color(0.35, 0.75, 0.50),
+	"BioWeaponCoating": Color(0.54, 0.75, 0.31),
+	"OmegaPlating": Color(0.88, 0.75, 0.38),
+	"PurifiedCompound": Color(0.56, 0.82, 0.85),
+	"TurretCore": Color(0.54, 0.58, 0.63),
+	"TargetingChip": Color(0.88, 0.52, 0.23),
+	"SuperconductingMagnet": Color(0.35, 0.54, 0.78),
+	"AncientComponent": Color(0.75, 0.60, 0.35),
+	"VoidArtifact": Color(0.48, 0.29, 0.75),
+	# Batch 15 (final) — gases, element/alloy completeness, artifacts, endgame passives,
+	# Phase B deep-craft intermediates, and remaining loot/data items (full coverage)
+	"He": Color(0.80, 0.74, 0.66),
+	"N": Color(0.48, 0.60, 0.85),
+	"S": Color(0.85, 0.78, 0.30),
+	"Rh": Color(0.78, 0.80, 0.82),
+	"Bronze": Color(0.78, 0.55, 0.32),
+	"SyntheticCrystal": Color(0.60, 0.85, 0.88),
+	"Res2": Color(0.40, 0.66, 0.90),
+	"Res3": Color(0.75, 0.45, 0.88),
+	"TemporalModule": Color(0.40, 0.80, 0.85),
+	"PrimordialArmor": Color(0.80, 0.50, 0.30),
+	"OmegaAccelerator": Color(0.88, 0.72, 0.35),
+	"FertileSoil": Color(0.55, 0.65, 0.35),
+	"CompositeWeave": Color(0.55, 0.60, 0.65),
+	"AIMatrix": Color(0.40, 0.62, 0.85),
+	"AncientTech": Color(0.75, 0.62, 0.38),
+	"ColonyDataCore": Color(0.45, 0.62, 0.72),
+	"CryoCell": Color(0.60, 0.82, 0.90),
+	"MutatedTissue": Color(0.70, 0.42, 0.55),
+	"PirateManifest": Color(0.72, 0.62, 0.45),
+	"QuarantineClearance": Color(0.55, 0.75, 0.45),
+	"TitanClearance": Color(0.60, 0.66, 0.72),
+	"ReactiveCore": Color(0.85, 0.45, 0.30),
+	"StolenCargo": Color(0.68, 0.55, 0.38),
+	"SwarmFragment": Color(0.62, 0.68, 0.40),
+	"nanite_swarm": Color(0.55, 0.75, 0.78),
+}
+
+func get_material_tint(symbol: String) -> Color:
+	if symbol in MATERIAL_TINT:
+		return MATERIAL_TINT[symbol]
+	var cat: String = get_category(symbol)
+	if cat in CATEGORY_TINT:
+		return CATEGORY_TINT[cat]
+	return Color(0.72, 0.68, 0.60)
+
+# Inline material icon as a BBCode [img] fragment (with a trailing space) for
+# RichTextLabel rows (gather yields, recipe inputs/outputs). Returns "" when no
+# icon exists yet so callers degrade cleanly to plain text.
+func material_icon_bbcode(symbol: String, px: int = 18) -> String:
+	var path: String = "res://assets/icons/materials/%s.svg" % symbol
+	if not ResourceLoader.exists(path):
+		return ""
+	var c: Color = get_material_tint(symbol)
+	return "[img width=%d height=%d color=#%s]%s[/img] " % [px, px, c.to_html(false), path]

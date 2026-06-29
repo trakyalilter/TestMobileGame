@@ -88,29 +88,33 @@ func format_number(value: float) -> String:
 		return "%.1fT" % (value / 1000000000000.0)
 
 # Color Palette
+# Palette: "Precursor Bloom" — abyssal teal-black backgrounds with bioluminescent
+# accents. ONE blue-green undertone unifies the whole UI (even the backgrounds are
+# teal-shifted, never navy); accents are luminous but held in a disciplined chroma
+# band so the set reads as one curated light source, not eight crayon primaries.
 const COLORS = {
-	"background": Color(0.08, 0.08, 0.12),
-	"sidebar": Color(0.12, 0.12, 0.18),
-	"panel_bg": Color(0.15, 0.15, 0.22),
-	"accent": Color(0.2, 0.4, 0.8),
-	"accent_bright": Color(0.3, 0.6, 1.0),
-	"text_main": Color(0.9, 0.9, 0.95),
-	"text_dim": Color(0.6, 0.6, 0.7),
-	"text_accent": Color(0.0, 0.8, 1.0),
-	"positive": Color(0.3, 0.7, 0.3),
-	"negative": Color(0.8, 0.3, 0.3),
-	"warning": Color(1.0, 0.8, 0.2)
+	"background": Color(0.039, 0.086, 0.078),   # #0A1614 abyssal teal-black
+	"sidebar": Color(0.055, 0.122, 0.114),      # #0E1F1D
+	"panel_bg": Color(0.078, 0.169, 0.161),     # #142B29
+	"accent": Color(0.216, 0.788, 0.690),       # #37C9B0 teal
+	"accent_bright": Color(0.427, 0.941, 0.847),# #6DF0D8 aqua glow
+	"text_main": Color(0.894, 0.961, 0.933),    # #E4F5EE
+	"text_dim": Color(0.498, 0.639, 0.612),     # #7FA39C
+	"text_accent": Color(0.373, 0.878, 0.784),  # #5FE0C8
+	"positive": Color(0.275, 0.878, 0.627),     # #46E0A0 jade
+	"negative": Color(1.0, 0.392, 0.451),       # #FF6473 coral (the one heat pop)
+	"warning": Color(1.0, 0.761, 0.302)         # #FFC24D amber
 }
 
 const CATEGORY_COLORS = {
-	"ops": Color(1.0, 0.6, 0.2), # Orange
-	"engineering": Color(0.2, 0.8, 1.0), # Cyan
-	"infrastructure": Color(0.4, 0.9, 0.4), # Green
-	"combat": Color(1.0, 0.3, 0.3), # Red
-	"inventory": Color(1.0, 0.8, 0.2), # Gold
-	"research": Color(0.9, 0.4, 1.0), # Pink/Purple
-	"shipyard": Color(0.3, 0.5, 1.0), # Blue
-	"mission": Color(0.2, 1.0, 0.6) # Teal/Emerald
+	"ops": Color(0.180, 0.910, 0.769),          # #2EE8C4 aqua
+	"engineering": Color(0.224, 0.651, 0.878),  # #39A6E0 sky-cyan
+	"infrastructure": Color(0.455, 0.831, 0.373),# #74D45F leaf-green
+	"combat": Color(1.0, 0.392, 0.451),         # #FF6473 coral
+	"inventory": Color(0.843, 0.722, 0.259),    # #D7B842 amber-gold
+	"research": Color(0.690, 0.420, 0.949),     # #B06BF2 violet
+	"shipyard": Color(0.439, 0.533, 0.949),     # #7088F2 periwinkle-indigo
+	"mission": Color(0.075, 0.627, 0.455)       # #13A074 deep jade
 }
 
 func setup_page_background(page: Control):
@@ -213,7 +217,7 @@ func attach_rarity_fx(host: Control, rarity: int, rarity_color: Color) -> void:
 var _item_tooltip: Control = null
 var _item_tooltip_anchor: Control = null
 
-func show_item_tooltip(anchor: Control, bbcode: String) -> void:
+func show_item_tooltip(anchor: Control, bbcode: String, watermark: Texture2D = null) -> void:
 	_free_item_tooltip()
 	if not is_instance_valid(anchor) or not anchor.is_inside_tree() or bbcode == "":
 		return
@@ -226,24 +230,33 @@ func show_item_tooltip(anchor: Control, bbcode: String) -> void:
 	card.name = "ItemTooltip"
 	card.mouse_filter = Control.MOUSE_FILTER_IGNORE   # never steals the hover
 
-	# ONE consistent premium template for every module info card (NOT per-rarity —
-	# rarity still reads from the title colour in the body text). Deep glassy
-	# panel, refined steel-cyan frame with a slightly heavier top accent, rounded
-	# corners, generous padding and a soft drop shadow.
+	# ONE consistent premium template (Precursor Bloom). Deep teal-black glass, a
+	# teal frame with a heavier lit top edge, rounded corners, soft shadow. Rarity
+	# still reads from the title colour; the SOUL comes from the faint slot-emblem
+	# watermark ghosted behind the text + the corner-bracket chrome layered on top.
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.055, 0.062, 0.088, 0.985)
+	sb.bg_color = Color(0.039, 0.086, 0.078, 0.965)
 	sb.set_corner_radius_all(6)
 	sb.set_border_width_all(1)
 	sb.border_width_top = 3
-	sb.border_color = Color(0.46, 0.60, 0.82, 0.55)
-	sb.content_margin_left = 14
-	sb.content_margin_right = 14
-	sb.content_margin_top = 11
-	sb.content_margin_bottom = 12
+	sb.border_color = Color(0.216, 0.788, 0.690, 0.5)
+	sb.content_margin_left = 15
+	sb.content_margin_right = 15
+	sb.content_margin_top = 13
+	sb.content_margin_bottom = 13
 	sb.shadow_color = Color(0, 0, 0, 0.55)
 	sb.shadow_size = 14
 	sb.shadow_offset = Vector2(0, 4)
 	card.add_theme_stylebox_override("panel", sb)
+
+	# Faint zone emblem ghosted into the BOTTOM-RIGHT corner (index 0 = furthest
+	# back). Drawn small + cornered so it reads as a maker's mark — never a slab
+	# scaled up behind the dense title/stat text.
+	if watermark != null:
+		var wm := _TooltipWatermark.new()
+		wm.tex = watermark
+		wm.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		card.add_child(wm)
 
 	var rtl := RichTextLabel.new()
 	rtl.bbcode_enabled = true
@@ -251,7 +264,7 @@ func show_item_tooltip(anchor: Control, bbcode: String) -> void:
 	rtl.scroll_active = false
 	rtl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	rtl.custom_minimum_size = Vector2(328, 0)
-	rtl.add_theme_color_override("default_color", Color(0.90, 0.91, 0.95))
+	rtl.add_theme_color_override("default_color", Color(0.894, 0.961, 0.933))
 	# Comfortable baseline sizes + line spacing (inline [font_size] tags in the
 	# body still win where set).
 	rtl.add_theme_font_size_override("normal_font_size", 12)
@@ -259,6 +272,12 @@ func show_item_tooltip(anchor: Control, bbcode: String) -> void:
 	rtl.add_theme_constant_override("line_separation", 3)
 	rtl.text = bbcode
 	card.add_child(rtl)
+
+	# Tech corner-bracket chrome on top — drawn in the panel margin, never on text.
+	var chrome := _TooltipChrome.new()
+	chrome.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card.add_child(chrome)
+
 	parent.add_child(card)
 
 	# Position near the mouse, flipped away from the viewport edges.
@@ -275,6 +294,55 @@ func show_item_tooltip(anchor: Control, bbcode: String) -> void:
 
 	_item_tooltip = card
 	_item_tooltip_anchor = anchor
+
+
+# Faint zone-emblem watermark — drawn small in the BOTTOM-RIGHT corner of the card
+# so it reads as a maker's mark, never a slab behind the text. Child index 0 (back).
+class _TooltipWatermark extends Control:
+	var tex: Texture2D = null
+	func _ready() -> void:
+		resized.connect(queue_redraw)
+	func _draw() -> void:
+		if tex == null:
+			return
+		var s := minf(120.0, minf(size.x, size.y) - 8.0)
+		if s < 24.0:
+			return
+		var pad := 6.0
+		var r := Rect2(size.x - s - pad, size.y - s - pad, s, s)
+		draw_texture_rect(tex, r, false, Color(0.373, 0.878, 0.784, 0.07))
+
+
+# Tech corner-bracket overlay for the item tooltip — four L-brackets + small
+# square nodes in accent teal, painted in the panel margin so they never cross the
+# text. Fills the panel (PanelContainer), redraws when the card resizes to its text.
+class _TooltipChrome extends Control:
+	var accent := Color(0.373, 0.878, 0.784, 0.85)
+	var node_col := Color(0.216, 0.788, 0.690, 0.95)
+	func _ready() -> void:
+		resized.connect(queue_redraw)
+	func _draw() -> void:
+		var w := size.x
+		var h := size.y
+		if w < 12.0 or h < 12.0:
+			return
+		# This Control is fit INSIDE the panel's content margins, but the brackets
+		# must sit in the MARGIN — outside the inset text — or they overlap the
+		# title. PanelContainer doesn't clip, so draw past our own rect by
+		# (content_margin − 5px edge inset) to land them ~5px from the true edge.
+		var ox := 10.0   # left/right content_margin (15) − 5
+		var oy := 8.0    # top/bottom content_margin (13) − 5
+		var L := 9.0
+		var t := 1.5
+		var corners := [Vector2(-ox, -oy), Vector2(w + ox, -oy), Vector2(-ox, h + oy), Vector2(w + ox, h + oy)]
+		var dirs := [Vector2(1, 1), Vector2(-1, 1), Vector2(1, -1), Vector2(-1, -1)]
+		for i in 4:
+			var c: Vector2 = corners[i]
+			var d: Vector2 = dirs[i]
+			draw_line(c, c + Vector2(L * d.x, 0.0), accent, t)
+			draw_line(c, c + Vector2(0.0, L * d.y), accent, t)
+			draw_rect(Rect2(c - Vector2(1.5, 1.5), Vector2(3, 3)), node_col, true)
+
 
 func hide_item_tooltip(anchor: Control = null) -> void:
 	# Only the owner (or a forced null) may clear it.
@@ -468,11 +536,11 @@ func get_mastery_tooltip() -> String:
 	# colour alone signals Lv 50 leap (warm) + Lv 100 cap (gold). This BBCode
 	# string is the fallback path; the structured grid in _build_mastery_body
 	# is what the actual MASTERY tooltip renders.
-	return ("[color=#cfd6e0][b]Lv 10[/b]    −5%  duration[/color][br]"
-		+ "[color=#cfd6e0][b]Lv 25[/b]    −10% duration[/color][br]"
-		+ "[color=#f0db94][b]Lv 50[/b]    −20% duration[/color][br]"
-		+ "[color=#cfd6e0][b]Lv 75[/b]    −25% duration[/color][br]"
-		+ "[color=#ffce5c][b]Lv 100[/b]  −30% duration[/color]")
+	return ("[color=#C8E0D8][b]Lv 10[/b]    −5%  duration[/color][br]"
+		+ "[color=#C8E0D8][b]Lv 25[/b]    −10% duration[/color][br]"
+		+ "[color=#FFC24D][b]Lv 50[/b]    −20% duration[/color][br]"
+		+ "[color=#C8E0D8][b]Lv 75[/b]    −25% duration[/color][br]"
+		+ "[color=#FFD98A][b]Lv 100[/b]  −30% duration[/color]")
 
 # v107: Lightweight styled info card. Caller passes an anchor Control; the
 # popup parents itself under ModalLayer (or current_scene as fallback) and
@@ -486,15 +554,15 @@ func show_info_card(anchor: Control, title: String, body: String) -> Control:
 	var card := PanelContainer.new()
 	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.08, 0.08, 0.11, 0.97)
-	sb.set_corner_radius_all(4)
+	sb.bg_color = Color(0.039, 0.086, 0.078, 0.965)    # teal-black Precursor Bloom
+	sb.set_corner_radius_all(6)
 	sb.set_border_width_all(1)
-	sb.border_color = Color(0.65, 0.55, 0.20, 0.55)
-	sb.border_width_left = 3                        # accent left stripe
-	sb.content_margin_left = 12
-	sb.content_margin_right = 11
-	sb.content_margin_top = 9
-	sb.content_margin_bottom = 9
+	sb.border_color = Color(0.216, 0.788, 0.690, 0.5)  # teal frame
+	sb.border_width_top = 3                             # lit top accent
+	sb.content_margin_left = 14
+	sb.content_margin_right = 14
+	sb.content_margin_top = 12
+	sb.content_margin_bottom = 12
 	sb.shadow_color = Color(0, 0, 0, 0.55)
 	sb.shadow_size = 14
 	sb.shadow_offset = Vector2(0, 4)
@@ -510,10 +578,10 @@ func show_info_card(anchor: Control, title: String, body: String) -> Control:
 	title_lbl.text = title
 	title_lbl.uppercase = true
 	title_lbl.add_theme_font_size_override("font_size", 11)
-	title_lbl.add_theme_color_override("font_color", Color(1.0, 0.84, 0.30))
+	title_lbl.add_theme_color_override("font_color", Color(0.373, 0.878, 0.784))
 	vb.add_child(title_lbl)
 	var rule := ColorRect.new()
-	rule.color = Color(0.65, 0.55, 0.20, 0.40)
+	rule.color = Color(0.216, 0.788, 0.690, 0.4)
 	rule.custom_minimum_size = Vector2(0, 1)
 	vb.add_child(rule)
 
@@ -538,9 +606,14 @@ func show_info_card(anchor: Control, title: String, body: String) -> Control:
 		body_rt.add_theme_font_size_override("bold_italics_font_size", 11)
 		body_rt.add_theme_font_size_override("mono_font_size", 11)
 		body_rt.add_theme_constant_override("line_separation", -2)
-		body_rt.add_theme_color_override("default_color", Color(0.86, 0.88, 0.92))
+		body_rt.add_theme_color_override("default_color", Color(0.894, 0.961, 0.933))
 		body_rt.text = body
 		vb.add_child(body_rt)
+
+	# Same tech corner-bracket chrome as the item card, for one consistent look.
+	var chrome := _TooltipChrome.new()
+	chrome.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card.add_child(chrome)
 
 	parent.add_child(card)
 
@@ -777,9 +850,9 @@ func _build_mastery_body(parent: VBoxContainer) -> void:
 	# player discovers persistence by Warping), no per-row "big step / Gold
 	# (cap)" suffix. Only the caption + numbers remain. Colour shift at Lv 50
 	# (warm bright) and Lv 100 (gold) is the silent reward signal.
-	var col_text := Color(0.83, 0.86, 0.90)
-	var col_mid_step := Color(0.94, 0.86, 0.58)     # warm bright — Lv 50 leap
-	var col_gold := Color(1.0, 0.81, 0.36)          # cap reward
+	var col_text := Color(0.894, 0.961, 0.933)
+	var col_mid_step := Color(1.0, 0.761, 0.302)    # amber — Lv 50 leap
+	var col_gold := Color(1.0, 0.761, 0.302)        # cap reward
 
 	# Section caption — only piece of "telling" we keep, because raw "−5%"
 	# is ambiguous (yield? damage? duration?). One word disambiguates 5 rows.
@@ -787,7 +860,7 @@ func _build_mastery_body(parent: VBoxContainer) -> void:
 	caption.text = "DURATION BONUS"
 	caption.uppercase = true
 	caption.add_theme_font_size_override("font_size", 9)
-	caption.add_theme_color_override("font_color", Color(0.78, 0.66, 0.28))
+	caption.add_theme_color_override("font_color", Color(0.498, 0.639, 0.612))
 	parent.add_child(caption)
 
 	# 2-col grid: Lv key (bold) | % cut. Row colour carries the milestone
@@ -1389,7 +1462,7 @@ func apply_locked_overlay(card: Control, item_name: String, message: String, is_
 		name_lbl.text = item_name
 		name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		var title_col = CATEGORY_COLORS.get(category, Color(0.1, 0.8, 1.0))
+		var title_col = CATEGORY_COLORS.get(category, Color(0.216, 0.788, 0.69))
 		name_lbl.add_theme_color_override("font_color", title_col)
 		if dim_only:
 			# Compact single-line, clipped — leaves room for the rarity tile
@@ -1446,7 +1519,7 @@ func apply_locked_overlay(card: Control, item_name: String, message: String, is_
 		var name_lbl = overlay.find_child("ItemNameLabel", true, false)
 		if name_lbl: 
 			name_lbl.text = item_name
-			var title_col = CATEGORY_COLORS.get(category, Color(0.1, 0.8, 1.0))
+			var title_col = CATEGORY_COLORS.get(category, Color(0.216, 0.788, 0.69))
 			name_lbl.add_theme_color_override("font_color", title_col)
 		
 		var req_lbl = overlay.find_child("ReqLabel", true, false)
@@ -1703,9 +1776,9 @@ func _process(delta):
 # repaints only on resize or when the player switches styles.
 # ---------------------------------------------------------------------------
 class CardChrome extends Control:
-	var accent: Color = Color(1.0, 0.6, 0.2)
+	var accent: Color = Color(0.216, 0.788, 0.690)
 	# Page background, used to mask the holographic octagon corner cuts.
-	const _PAGE_BG := Color(0.08, 0.08, 0.12)
+	const _PAGE_BG := Color(0.039, 0.086, 0.078)
 
 	func _ready() -> void:
 		UITheme.chrome_changed.connect(queue_redraw)

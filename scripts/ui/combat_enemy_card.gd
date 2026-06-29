@@ -50,8 +50,8 @@ func setup(p_eid, p_data, p_parent):
 # hairline that doubles as the separator to the next card.
 func _apply_row_style() -> void:
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.08, 0.07, 0.08, 0.55)
-	sb.border_color = Color(0.85, 0.40, 0.35, 0.32)
+	sb.bg_color = Color(0.04, 0.078, 0.07, 0.55)
+	sb.border_color = Color(1.0, 0.392, 0.451, 0.32)
 	sb.border_width_bottom = 1
 	sb.content_margin_left = 10
 	sb.content_margin_right = 10
@@ -69,7 +69,7 @@ func _build_header() -> void:
 	var name_lbl := Label.new()
 	name_lbl.text = str(data["name"])
 	name_lbl.add_theme_font_size_override("font_size", 13)
-	name_lbl.add_theme_color_override("font_color", Color(0.96, 0.93, 0.85))
+	name_lbl.add_theme_color_override("font_color", Color(0.894, 0.961, 0.933))
 	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_lbl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	hb.add_child(name_lbl)
@@ -90,20 +90,20 @@ func _build_combined_stats_row() -> void:
 	var atk := int(data["stats"]["atk"])
 	var def := int(data["stats"]["def"])
 
-	_add_stat_cell(hb, "hp", "♥", UITheme.format_num(hp), Color(0.95, 0.55, 0.55))
+	_add_stat_cell(hb, "hp", "♥", UITheme.format_num(hp), Color(1.0, 0.392, 0.451))
 
 	var dmg_tag := "KIN"
-	var dmg_col := Color(0.92, 0.66, 0.32)
+	var dmg_col := Color(0.439, 0.533, 0.949)
 	match data.get("dmg_type", "kinetic"):
 		"energy":
 			dmg_tag = "NRG"
-			dmg_col = Color(0.32, 0.80, 1.0)
+			dmg_col = Color(0.373, 0.878, 0.784)
 		"explosive":
 			dmg_tag = "EXP"
-			dmg_col = Color(1.0, 0.55, 0.35)
+			dmg_col = Color(1.0, 0.761, 0.302)
 	_add_stat_cell(hb, "atk", "⚔", "%s %s" % [UITheme.format_num(atk), dmg_tag], dmg_col)
 
-	_add_stat_cell(hb, "def", "⛨", str(def), Color(0.65, 0.85, 0.95))
+	_add_stat_cell(hb, "def", "⛨", str(def), Color(0.439, 0.533, 0.949))
 
 	# Right-align affinity chips on the same row, separator dot in between.
 	var spacer := Control.new()
@@ -115,7 +115,7 @@ func _build_combined_stats_row() -> void:
 
 	# v111: Warp-Hardened (Z11+) nullify conventional damage; only Cryo bites.
 	if data.get("warp_hardened", false):
-		hb.add_child(_make_chip("❄CRYO-ONLY", Color(0.45, 0.85, 1.0), 8))
+		hb.add_child(_make_chip("❄CRYO-ONLY", Color(0.373, 0.878, 0.784), 8))
 
 	for entry in [
 		[float(data.get("resist_k", 0.0)), "KIN"],
@@ -126,9 +126,9 @@ func _build_combined_stats_row() -> void:
 		var val: float = entry[0]
 		var tag: String = entry[1]
 		if val > 0.05:
-			hb.add_child(_make_chip("⛨%s" % tag, Color(1.0, 0.45, 0.45), 8))
+			hb.add_child(_make_chip("⛨%s" % tag, Color(1.0, 0.392, 0.451), 8))
 		elif val < -0.05:
-			hb.add_child(_make_chip("▼%s" % tag, Color(0.50, 1.0, 0.55), 8))
+			hb.add_child(_make_chip("▼%s" % tag, Color(0.275, 0.878, 0.627), 8))
 
 
 func _add_stat_cell(parent: Node, icon_key: String, fallback_glyph: String, value: String, accent: Color) -> void:
@@ -164,7 +164,7 @@ func _add_stat_cell(parent: Node, icon_key: String, fallback_glyph: String, valu
 	var v := Label.new()
 	v.text = value
 	v.add_theme_font_size_override("font_size", 11)
-	v.add_theme_color_override("font_color", Color(0.92, 0.92, 0.92))
+	v.add_theme_color_override("font_color", Color(0.894, 0.961, 0.933))
 	cell.add_child(v)
 
 
@@ -185,7 +185,7 @@ func _build_loot_inline() -> void:
 	lbl.scroll_active = false
 	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	lbl.add_theme_font_size_override("normal_font_size", 10)
-	lbl.add_theme_color_override("default_color", Color(0.78, 0.76, 0.72))
+	lbl.add_theme_color_override("default_color", Color(0.78, 0.88, 0.85))
 
 	# v111.10.3: drop the "×" multiplication sign — reads as a math operator
 	# (Iron ×2-4 = "Iron times two minus four"?), not as a quantity. Plain
@@ -247,7 +247,7 @@ func _build_yield_row() -> void:
 	lbl.fit_content = true
 	lbl.scroll_active = false
 	lbl.add_theme_font_size_override("normal_font_size", 10)
-	lbl.add_theme_color_override("default_color", Color(0.55, 0.85, 0.45))
+	lbl.add_theme_color_override("default_color", Color(0.275, 0.878, 0.627))
 	lbl.text = "  ·  ".join(parts)
 	vb.add_child(lbl)
 
@@ -262,7 +262,7 @@ func _build_actions_row() -> void:
 	info_btn.text = "INFO"
 	info_btn.custom_minimum_size = Vector2(50, 24)
 	info_btn.add_theme_font_size_override("font_size", 10)
-	info_btn.add_theme_color_override("font_color", Color(0.72, 0.74, 0.80))
+	info_btn.add_theme_color_override("font_color", Color(0.498, 0.639, 0.612))
 	info_btn.flat = true
 	info_btn.pressed.connect(_on_info_btn_pressed)
 	hb.add_child(info_btn)

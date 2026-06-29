@@ -19,7 +19,7 @@ extends Control
 
 @export var value: float = 0.0: set = set_value
 @export var active: bool = false: set = set_active
-@export var accent: Color = Color(1.0, 0.6, 0.2): set = set_accent
+@export var accent: Color = Color(0.18, 0.91, 0.769): set = set_accent
 
 const _MIN_H: float = 14.0
 const _FLASH_S: float = 0.12              # 120ms completion flash

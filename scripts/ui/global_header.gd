@@ -8,9 +8,7 @@ extends PanelContainer
 signal objective_pressed
 var objective_btn: Button
 
-var stability_lbl: Label
 var credits_led: ColorRect
-var stability_led: ColorRect
 
 func _ready():
 	# 1. Glassmorphism Styling
@@ -23,20 +21,8 @@ func _ready():
 	glass.shadow_size = 8
 	glass.set_content_margin_all(8)
 	add_theme_stylebox_override("panel", glass)
-	
-	# ... (Add Stability Label as before)
-	stability_lbl = Label.new()
-	stability_lbl.name = "StabilityLabel"
-	stability_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	stability_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	stability_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	stability_lbl.clip_text = true
-	stability_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	$MarginContainer/HBoxContainer.add_child(stability_lbl)
-	$MarginContainer/HBoxContainer.move_child(stability_lbl, 2) # Position between Credits and Task
-	UITheme.apply_segmented_font(stability_lbl, Color.WHITE)
-	
-	# 2. Add Status LEDs & Enhanced Labels (NOW AFTER LABELS EXIST)
+
+	# 2. Add Status LEDs & Enhanced Labels
 	_setup_leds()
 	_setup_objective_chip()
 
@@ -67,23 +53,13 @@ func _setup_leds():
 	hbox.add_child(lira_icon)
 	hbox.move_child(lira_icon, credits_lbl.get_index())
 
-	# Stability LED
-	stability_led = ColorRect.new()
-	stability_led.custom_minimum_size = Vector2(4, 12)
-	stability_led.color = Color.GREEN
-	hbox.add_child(stability_led)
-	hbox.move_child(stability_led, stability_lbl.get_index())
-	
 	# Prevent layout expansion from text
-	for lbl in [credits_lbl, task_lbl, stability_lbl]:
+	for lbl in [credits_lbl, task_lbl]:
 		lbl.clip_text = true
 		lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	
-		lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	
+
 	# Initial sync
 	update_credits()
-	update_stability()
 	
 	# Connect signals for real-time updates
 	if GameState.resources:
@@ -140,30 +116,7 @@ func flash_led(led: ColorRect, color: Color):
 func _process(_delta):
 	# Poll for task status
 	update_task_status()
-	update_stability()
 	update_objective()
-
-func update_stability():
-	if not GameState.infrastructure_manager: return
-	
-	var stability = GameState.infrastructure_manager.energy_efficiency * 100.0
-	stability_lbl.text = "STABILITY: %d%%" % int(stability)
-	
-	if stability < 100.0:
-		stability_lbl.add_theme_color_override("font_color", UITheme.COLORS["negative"])
-		stability_led.color = UITheme.COLORS["negative"]
-		# Visual flicker if stability is critical
-		if stability < 50.0 and Engine.get_frames_drawn() % 30 < 10:
-			stability_lbl.modulate.a = 0.3
-			stability_led.modulate.a = 0.3
-		else:
-			stability_lbl.modulate.a = 1.0
-			stability_led.modulate.a = 1.0
-	else:
-		stability_lbl.add_theme_color_override("font_color", Color(0.4, 1.0, 0.4)) # Green
-		stability_led.color = Color(0.4, 1.0, 0.4)
-		stability_lbl.modulate.a = 1.0
-		stability_led.modulate.a = 1.0
 
 func update_hud():
 	update_credits()
@@ -180,17 +133,13 @@ func update_task_status():
 	if GameState.gathering_manager and GameState.gathering_manager.is_active:
 		var gm = GameState.gathering_manager
 		var action_name = gm.current_action.get("name", "Gathering")
-		var speed_mult = gm.get_action_speed_multiplier(gm.current_action_id)
-		var prog = (gm.action_progress / (gm.action_duration / speed_mult)) * 100.0
-		status_text = "Gathering: %s (%d%%)" % [action_name, int(prog)]
-		
+		status_text = "Gathering: %s" % action_name
+
 	elif GameState.processing_manager and GameState.processing_manager.is_active:
 		var pm = GameState.processing_manager
 		var recipe_name = pm.current_recipe.get("name", "Processing")
-		var speed_mult = pm.get_recipe_speed_multiplier(pm.current_recipe_id)
-		var prog = (pm.action_progress / (pm.current_recipe["duration"] / speed_mult)) * 100.0
-		status_text = "Engineering: %s (%d%%)" % [recipe_name, int(prog)]
-		
+		status_text = "Engineering: %s" % recipe_name
+
 	elif GameState.combat_manager and GameState.combat_manager.in_combat:
 		var cm = GameState.combat_manager
 		var enemy_name = "Unknown"
@@ -201,8 +150,7 @@ func update_task_status():
 	elif GameState.research_manager and GameState.research_manager.is_active:
 		var rm = GameState.research_manager
 		var tech_name = rm.tech_tree[rm.active_tech_id]["name"]
-		var prog = (rm.action_progress / rm.calculate_effective_duration(rm.active_tech_id)) * 100.0
-		status_text = "Researching: %s (%d%%)" % [tech_name, int(prog)]
+		status_text = "Researching: %s" % tech_name
 	
 	task_lbl.text = "%s" % status_text
 	if status_text == "Idle":
