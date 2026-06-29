@@ -2747,10 +2747,24 @@ func _rebuild_loot_rows() -> void:
 		return
 	for id in loot:
 		var disp := _loot_display(id)
-		_clbl(_loot_panel, "%s × %s" % [disp[0], GameData.fmt(int(loot[id]))], 12, disp[1])
+		var txt := "%s × %s" % [disp[0], GameData.fmt(int(loot[id]))]
+		var icon: TextureRect = _mat_icon(id, 16)
+		if icon != null:
+			var row := HBoxContainer.new()
+			row.add_theme_constant_override("separation", 5)
+			icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			row.add_child(icon)
+			var lbl := Label.new()
+			lbl.text = txt
+			lbl.add_theme_font_size_override("font_size", _fs(12))
+			lbl.add_theme_color_override("font_color", Color.html(disp[1]))
+			row.add_child(lbl)
+			_loot_panel.add_child(row)
+		else:
+			_clbl(_loot_panel, txt, 12, disp[1])
 	# Grow with content up to ~9 rows, then cap and scroll inside.
 	if is_instance_valid(_loot_scroll):
-		var row_h := _fs(12) + 8
+		var row_h := maxi(_fs(12), 16) + 8
 		_loot_scroll.custom_minimum_size.y = float(mini(loot.size(), 9) * row_h)
 
 # Loot filter modal (desktop parity): toggle which module drops to keep by rarity,
@@ -5659,7 +5673,9 @@ func _loot_lines(loot: Array) -> Array:
 		var txt := "%s%s %d-%d" % ["₡ " if is_credits else "", label, int(row[2]), int(row[3])]
 		if float(row[1]) < 1.0:
 			txt += " (%d%%)" % int(float(row[1]) * 100.0)
-		lines.append(_line(txt, col))
+		# Pass the symbol so _inset draws the material icon (credits/modules have
+		# no material art and fall back to text).
+		lines.append(_line(txt, col, "" if is_credits else sym))
 	return lines
 
 func _empty(v: VBoxContainer, text: String) -> void:
