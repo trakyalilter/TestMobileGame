@@ -3719,6 +3719,14 @@ func _offline_combat(delta: float) -> void:
 	# v101 offline parity: loot scales by the same combat multiplier as online, and
 	# each kill rolls module drops (ref calculate_offline ~L2449-2511).
 	var summary := _offline_loot(e.get("loot", []), get_combat_loot_multiplier(), reps, true)
+	# Boss-core parity: online every boss kill grants its ZN_Core (ref _win_combat
+	# ~L3517). The core isn't in the loot array, so mirror it here — otherwise
+	# farming a zone boss while away yields everything BUT the gating core.
+	var core_id := String(e.get("boss_core", ""))
+	if core_id != "" and bool(e.get("is_boss", false)):
+		add_resource(core_id, reps)
+		_log_session_loot(core_id, reps)
+		summary += "\n%s\t+%d" % [GameData.res_name(core_id), reps]
 	var pool := []
 	for mid in e.get("drop_pool", []):
 		if GameData.MODULES.has(mid) and module_unlocked(mid):

@@ -5009,6 +5009,11 @@ func _atlas_get_index() -> Dictionary:
 		var e: Dictionary = GameData.ENEMIES[eid]
 		for row in e.get("loot", []):
 			_atlas_add(idx, row[0], "sources", "◎ " + e.get("name", eid))
+		# Boss cores drop via the boss_core field, not the loot array — index the
+		# boss as the source so e.g. a Cryofield Core shows "FROM: Cryo Overseer".
+		var bc: String = String(e.get("boss_core", ""))
+		if bc != "":
+			_atlas_add(idx, bc, "sources", "◎ " + e.get("name", eid))
 	for bid in GameData.BUILDINGS:
 		var b: Dictionary = GameData.BUILDINGS[bid]
 		for s in b.get("yield", {}):
