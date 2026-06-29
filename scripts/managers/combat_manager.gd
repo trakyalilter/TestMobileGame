@@ -473,7 +473,7 @@ var enemy_db = {
 		"loot": [["credits", 200, 400], ["Sn", 2, 5], ["Res1", 2, 5], ["PirateSalvage", 2, 4]],
 		"rare_loot": [["Ti", 0.12, 2, 4]],
 		"module_drop_chance": 0.10,
-		"module_drop_pool": ["z2_kinetic", "z2_energy", "z2_missile", "z2_shield", "z2_armor"],
+		"module_drop_pool": ["z2_kinetic", "z2_energy", "z2_missile"],
 		"xp": 28, "eva": 15, "zone": 2, "resist_k": 0.15, "resist_e": -0.15, "resist_x": 0.0, "dmg_type": "explosive"
 	},
 	"z2_ore_hauler": {
@@ -482,7 +482,7 @@ var enemy_db = {
 		"loot": [["Fe", 10, 25], ["Si", 5, 12], ["Res1", 2, 5], ["PirateSalvage", 2, 5], ["SalvageData", 1, 3]],
 		"rare_loot": [["Steel", 0.10, 1, 3], ["SalvagedAlloy", 0.40, 1, 3]],
 		"module_drop_chance": 0.10,
-		"module_drop_pool": ["z2_kinetic", "z2_energy", "z2_shield", "z2_armor", "z2_sensor", "z2_engine"],
+		"module_drop_pool": ["z2_shield", "z2_armor"],
 		"xp": 22, "eva": 3, "zone": 2, "resist_k": 0.45, "resist_e": 0.15, "resist_x": -0.30, "dmg_type": "kinetic"
 	},
 	"z2_boss_monolith": {
@@ -521,7 +521,7 @@ var enemy_db = {
 		"loot": [["Fe", 5, 15], ["Cu", 3, 8], ["Res2", 1, 2], ["MartianRelics", 1, 2], ["SalvageData", 2, 4]],
 		"rare_loot": [["Steel", 0.15, 2, 5], ["Sn", 0.12, 2, 4]],
 		"module_drop_chance": 0.10,
-		"module_drop_pool": ["z3_kinetic", "z3_energy", "z3_shield", "z3_armor", "z3_sensor", "z3_engine"],
+		"module_drop_pool": ["z3_kinetic", "z3_energy", "z3_missile"],
 		"xp": 45, "eva": 20, "zone": 3, "resist_k": -0.15, "resist_e": -0.15, "resist_x": 0.15, "dmg_type": "kinetic"
 	},
 	"z3_derelict_frigate": {
@@ -530,12 +530,12 @@ var enemy_db = {
 		"loot": [["Steel", 5, 12], ["Fe", 10, 25], ["Res2", 1, 3], ["MartianRelics", 2, 4]],
 		"rare_loot": [["Ti", 0.10, 2, 5], ["Cr", 0.08, 1, 3]],
 		"module_drop_chance": 0.10,
-		"module_drop_pool": ["z3_kinetic", "z3_energy", "z3_missile", "z3_shield", "z3_armor"],
+		"module_drop_pool": ["z3_shield", "z3_armor"],
 		"xp": 70, "eva": 5, "zone": 3, "resist_k": 0.15, "resist_e": -0.30, "resist_x": 0.40, "dmg_type": "explosive"
 	},
 	"z3_boss_warmaster": {
 		"name": "Martian Warmaster",
-		"stats": {"hp": 17424, "max_shield": 580, "atk": 319, "def": 87, "atk_interval": 2.5, "accuracy": 65},
+		"stats": {"hp": 17424, "max_shield": 580, "atk": 210, "def": 87, "atk_interval": 2.5, "accuracy": 65},
 		"loot": [["credits", 5000, 10000], ["Steel", 20, 40], ["Ti", 10, 25], ["Res2", 5, 10], ["MartianRelics", 5, 12]],
 		"rare_loot": [["z3_unique_weapon", 0.03, 1, 1], ["z3_unique_armor", 0.03, 1, 1], ["z3_unique_shield", 0.03, 1, 1]],
 		"boss_core": "Z3_Core",
@@ -569,7 +569,7 @@ var enemy_db = {
 		"loot": [["Steel", 8, 18], ["Fe", 15, 35], ["Res2", 1, 3], ["CryoEssence", 1, 2]],
 		"rare_loot": [["Ti", 0.15, 3, 8], ["Au", 0.20, 1, 3]],
 		"module_drop_chance": 0.10,
-		"module_drop_pool": ["z4_kinetic", "z4_energy", "z4_shield", "z4_armor", "z4_sensor", "z4_engine"],
+		"module_drop_pool": ["z4_kinetic", "z4_energy", "z4_missile"],
 		"xp": 130, "eva": 5, "zone": 4, "resist_k": -0.30, "resist_e": 0.25, "resist_x": 0.15, "dmg_type": "kinetic"
 	},
 	"z4_glacial_drone": {
@@ -578,12 +578,12 @@ var enemy_db = {
 		"loot": [["credits", 1200, 2500], ["Cu", 5, 12], ["Res2", 2, 4], ["CryoEssence", 2, 4]],
 		"rare_loot": [["AdvCircuit", 0.10, 1, 2]],
 		"module_drop_chance": 0.10,
-		"module_drop_pool": ["z4_kinetic", "z4_energy", "z4_missile", "z4_shield", "z4_armor"],
+		"module_drop_pool": ["z4_shield", "z4_armor"],
 		"xp": 135, "eva": 18, "zone": 4, "resist_k": -0.15, "resist_e": 0.30, "resist_x": 0.0, "dmg_type": "energy"
 	},
 	"z4_boss_overseer": {
 		"name": "Glacial Overseer",
-		"stats": {"hp": 51110, "max_shield": 1277, "atk": 766, "def": 191, "atk_interval": 2.5, "accuracy": 85},
+		"stats": {"hp": 25555, "max_shield": 1277, "atk": 444, "def": 191, "atk_interval": 2.5, "accuracy": 85},
 		"loot": [["credits", 15000, 30000], ["Ti", 30, 60], ["AdvCircuit", 5, 12], ["Res2", 10, 20], ["CryoEssence", 5, 12]],
 		"rare_loot": [["z4_unique_weapon", 0.03, 1, 1], ["z4_unique_armor", 0.03, 1, 1], ["z4_unique_shield", 0.03, 1, 1]],
 		"boss_core": "Z4_Core",
@@ -617,7 +617,7 @@ var enemy_db = {
 		"loot": [["VoidArtifact", 2, 5], ["credits", 5000, 10000], ["Res2", 3, 6], ["XenoFragment", 2, 4]],
 		"rare_loot": [["QuantumCore", 0.08, 1, 1]],
 		"module_drop_chance": 0.10,
-		"module_drop_pool": ["z5_kinetic", "z5_energy", "z5_missile", "z5_shield", "z5_armor"],
+		"module_drop_pool": ["z5_kinetic", "z5_energy", "z5_missile"],
 		"xp": 380, "eva": 10, "zone": 5, "resist_k": 0.35, "resist_e": 0.15, "resist_x": -0.30, "dmg_type": "kinetic"
 	},
 	"z5_alien_probe": {
@@ -626,12 +626,12 @@ var enemy_db = {
 		"loot": [["credits", 4000, 7000], ["Circuit", 5, 10], ["Res2", 2, 5], ["XenoFragment", 1, 3]],
 		"rare_loot": [["AdvCircuit", 0.10, 2, 4]],
 		"module_drop_chance": 0.10,
-		"module_drop_pool": ["z5_kinetic", "z5_energy", "z5_shield", "z5_armor", "z5_sensor", "z5_engine"],
+		"module_drop_pool": ["z5_shield", "z5_armor"],
 		"xp": 320, "eva": 35, "zone": 5, "resist_k": 0.25, "resist_e": -0.15, "resist_x": -0.25, "dmg_type": "energy"
 	},
 	"z5_boss_harbinger": {
 		"name": "Xenon Harbinger",
-		"stats": {"hp": 140553, "max_shield": 2811, "atk": 1827, "def": 421, "atk_interval": 2.5, "accuracy": 110},
+		"stats": {"hp": 70277, "max_shield": 2811, "atk": 749, "def": 421, "atk_interval": 2.5, "accuracy": 110},
 		"loot": [["credits", 50000, 100000], ["VoidArtifact", 10, 25], ["QuantumCore", 2, 5], ["Res2", 15, 30], ["XenoFragment", 5, 12]],
 		"rare_loot": [["z5_unique_weapon", 0.03, 1, 1], ["z5_unique_armor", 0.03, 1, 1], ["z5_unique_shield", 0.03, 1, 1]],
 		"boss_core": "Z5_Core",
@@ -665,7 +665,7 @@ var enemy_db = {
 		"loot": [["RadIsotope", 1, 3], ["U", 5, 12], ["Res3", 1, 3]],
 		"rare_loot": [["Ir", 0.08, 1, 2]],
 		"module_drop_chance": 0.10,
-		"module_drop_pool": ["z6_kinetic", "z6_energy", "z6_missile", "z6_shield", "z6_armor"],
+		"module_drop_pool": ["z6_kinetic", "z6_energy", "z6_missile"],
 		"xp": 780, "eva": 12, "zone": 6, "resist_k": -0.15, "resist_e": -0.25, "resist_x": 0.25, "dmg_type": "kinetic"
 	},
 	"z6_ore_guardian": {
@@ -674,12 +674,12 @@ var enemy_db = {
 		"loot": [["Fe", 30, 70], ["Steel", 10, 25], ["Res3", 1, 3]],
 		"rare_loot": [["VoidArtifact", 0.10, 1, 3]],
 		"module_drop_chance": 0.10,
-		"module_drop_pool": ["z6_kinetic", "z6_energy", "z6_shield", "z6_armor", "z6_sensor", "z6_engine"],
+		"module_drop_pool": ["z6_shield", "z6_armor"],
 		"xp": 720, "eva": 8, "zone": 6, "resist_k": 0.25, "resist_e": -0.30, "resist_x": 0.45, "dmg_type": "explosive"
 	},
 	"z6_boss_colossus": {
 		"name": "Gamma Colossus",
-		"stats": {"hp": 371061, "max_shield": 6184, "atk": 4329, "def": 927, "atk_interval": 2.5, "accuracy": 140},
+		"stats": {"hp": 185531, "max_shield": 6184, "atk": 1775, "def": 927, "atk_interval": 2.5, "accuracy": 140},
 		"loot": [["credits", 200000, 500000], ["Ir", 5, 12], ["Superalloy", 10, 25], ["Res3", 10, 20], ["ColonyDataCore", 2, 5]],
 		"rare_loot": [["z6_unique_weapon", 0.03, 1, 1], ["z6_unique_armor", 0.03, 1, 1], ["z6_unique_shield", 0.03, 1, 1]],
 		"boss_core": "Z6_Core",
@@ -713,7 +713,7 @@ var enemy_db = {
 		"loot": [["VoidCrystal", 2, 4], ["credits", 50000, 100000], ["Res3", 2, 5]],
 		"rare_loot": [["ExoticMatter", 0.12, 2, 4]],
 		"module_drop_chance": 0.10,
-		"module_drop_pool": ["z7_kinetic", "z7_energy", "z7_missile", "z7_shield", "z7_armor"],
+		"module_drop_pool": ["z7_kinetic", "z7_energy", "z7_missile"],
 		"xp": 1700, "eva": 25, "zone": 7, "resist_k": -0.30, "resist_e": 0.40, "resist_x": 0.15, "dmg_type": "energy"
 	},
 	"z7_gamma_beast": {
@@ -722,13 +722,13 @@ var enemy_db = {
 		"loot": [["RadIsotope", 3, 8], ["ExoticMatter", 1, 3], ["Res3", 2, 5]],
 		"rare_loot": [["Os", 0.10, 1, 2]],
 		"module_drop_chance": 0.10,
-		"module_drop_pool": ["z7_kinetic", "z7_energy", "z7_shield", "z7_armor", "z7_sensor", "z7_engine"],
+		"module_drop_pool": ["z7_shield", "z7_armor"],
 		"xp": 1600, "eva": 8, "zone": 7, "resist_k": -0.15, "resist_e": 0.30, "resist_x": 0.0, "dmg_type": "kinetic"
 	},
 	"z7_boss_sovereign": {
 		"name": "Sovereign Prism",
 		# v106: Late-game escalation pass — HP 952K→1.4M, ATK 10.2K→14K. Target ~8 min for tier-matched legendary clears (was ~6 min).
-		"stats": {"hp": 1400000, "max_shield": 13605, "atk": 14000, "def": 2040, "atk_interval": 2.5, "accuracy": 170},
+		"stats": {"hp": 490000, "max_shield": 13605, "atk": 4620, "def": 2040, "atk_interval": 2.5, "accuracy": 170},
 		"loot": [["credits", 1000000, 2000000], ["ExoticMatter", 15, 30], ["Os", 3, 8], ["Res3", 15, 30]],
 		"rare_loot": [["z7_unique_weapon", 0.03, 1, 1], ["z7_unique_armor", 0.03, 1, 1], ["z7_unique_shield", 0.03, 1, 1]],
 		"boss_core": "Z7_Core",
@@ -762,7 +762,7 @@ var enemy_db = {
 		"loot": [["ExoticMatter", 3, 8], ["VoidCrystal", 2, 5], ["Res3", 3, 8]],
 		"rare_loot": [["Os", 0.10, 1, 3]],
 		"module_drop_chance": 0.10,
-		"module_drop_pool": ["z8_kinetic", "z8_energy", "z8_missile", "z8_shield", "z8_armor"],
+		"module_drop_pool": ["z8_kinetic", "z8_energy", "z8_missile"],
 		"xp": 4200, "eva": 28, "zone": 8, "resist_k": 0.30, "resist_e": -0.15, "resist_x": -0.25, "dmg_type": "energy"
 	},
 	"z8_nebula_phantom": {
@@ -771,13 +771,13 @@ var enemy_db = {
 		"loot": [["credits", 150000, 300000], ["VoidCrystal", 3, 7], ["Res3", 3, 8]],
 		"rare_loot": [["ExoticMatter", 0.12, 2, 5]],
 		"module_drop_chance": 0.10,
-		"module_drop_pool": ["z8_kinetic", "z8_energy", "z8_shield", "z8_armor", "z8_sensor", "z8_engine"],
+		"module_drop_pool": ["z8_shield", "z8_armor"],
 		"xp": 4300, "eva": 15, "zone": 8, "resist_k": 0.40, "resist_e": 0.15, "resist_x": -0.30, "dmg_type": "kinetic"
 	},
 	"z8_boss_warden": {
 		"name": "Prismatic Warden",
 		# v106: Late-game escalation pass — HP 2.39M→4M, ATK 23.9K→38K. Target ~10 min for tier-matched legendary.
-		"stats": {"hp": 4000000, "max_shield": 29932, "atk": 38000, "def": 4489, "atk_interval": 2.5, "accuracy": 200},
+		"stats": {"hp": 1400000, "max_shield": 29932, "atk": 10260, "def": 4489, "atk_interval": 2.5, "accuracy": 200},
 		"loot": [["credits", 3000000, 6000000], ["VoidCrystal", 20, 50], ["Diamond", 2, 5], ["Res3", 20, 40]],
 		"rare_loot": [["z8_unique_weapon", 0.03, 1, 1], ["z8_unique_armor", 0.03, 1, 1], ["z8_unique_shield", 0.03, 1, 1]],
 		"boss_core": "Z8_Core",
@@ -811,7 +811,7 @@ var enemy_db = {
 		"loot": [["Chip", 10, 25], ["AdvCircuit", 5, 12], ["Res3", 5, 10]],
 		"rare_loot": [["ChronoCore", 0.05, 1, 1]],
 		"module_drop_chance": 0.10,
-		"module_drop_pool": ["z9_kinetic", "z9_energy", "z9_missile", "z9_shield", "z9_armor"],
+		"module_drop_pool": ["z9_kinetic", "z9_energy", "z9_missile"],
 		"xp": 11000, "eva": 25, "zone": 9, "resist_k": -0.15, "resist_e": -0.25, "resist_x": 0.25, "dmg_type": "energy"
 	},
 	"z9_quarantine_mech": {
@@ -820,13 +820,13 @@ var enemy_db = {
 		"loot": [["Neutronium", 1, 3], ["credits", 500000, 1000000], ["Res3", 5, 10]],
 		"rare_loot": [["PathogenCore", 0.10, 1, 2]],
 		"module_drop_chance": 0.10,
-		"module_drop_pool": ["z9_kinetic", "z9_energy", "z9_shield", "z9_armor", "z9_sensor", "z9_engine"],
+		"module_drop_pool": ["z9_shield", "z9_armor"],
 		"xp": 11500, "eva": 5, "zone": 9, "resist_k": 0.15, "resist_e": -0.30, "resist_x": 0.45, "dmg_type": "explosive"
 	},
 	"z9_boss_patient_zero": {
 		"name": "Patient Zero",
 		# v106: Late-game escalation pass — HP 5.93M→10M, ATK 56K→90K. Target ~12 min for tier-matched legendary, smoothing the ramp into Z10's 13 min finale.
-		"stats": {"hp": 10000000, "max_shield": 65851, "atk": 90000, "def": 9877, "atk_interval": 1.5, "accuracy": 230},
+		"stats": {"hp": 3500000, "max_shield": 65851, "atk": 18000, "def": 9877, "atk_interval": 2.5, "accuracy": 230},
 		"loot": [["credits", 10000000, 20000000], ["Neutronium", 10, 25], ["PathogenCore", 3, 8], ["Res3", 30, 50], ["QuarantineClearance", 1, 1]],
 		"rare_loot": [["z9_unique_weapon", 0.03, 1, 1], ["z9_unique_armor", 0.03, 1, 1], ["z9_unique_shield", 0.03, 1, 1]],
 		"boss_core": "Z9_Core",
@@ -860,7 +860,7 @@ var enemy_db = {
 		"loot": [["OmegaPlating", 1, 3], ["PrimordialShard", 1, 2], ["CryoCatalyst", 1, 3]],
 		"rare_loot": [["VoidEssence", 0.10, 1, 3]],
 		"module_drop_chance": 0.10,
-		"module_drop_pool": ["z10_kinetic", "z10_energy", "z10_missile", "z10_shield", "z10_armor"],
+		"module_drop_pool": ["z10_kinetic", "z10_energy", "z10_missile"],
 		"xp": 28000, "eva": 10, "zone": 10, "resist_k": -0.25, "resist_e": 0.30, "resist_x": 0.10, "dmg_type": "explosive"
 	},
 	"z10_primordial_titan": {
@@ -869,7 +869,7 @@ var enemy_db = {
 		"loot": [["PrimordialShard", 2, 5], ["credits", 5000000, 10000000], ["CryoCatalyst", 2, 4]],
 		"rare_loot": [["OmegaPlating", 0.08, 1, 2]],
 		"module_drop_chance": 0.10,
-		"module_drop_pool": ["z10_kinetic", "z10_energy", "z10_shield", "z10_armor", "z10_sensor", "z10_engine"],
+		"module_drop_pool": ["z10_shield", "z10_armor"],
 		"xp": 32000, "eva": 5, "zone": 10, "resist_k": -0.15, "resist_e": 0.30, "resist_x": 0.15, "dmg_type": "kinetic"
 	},
 	"z10_boss_leviathan": {
@@ -883,7 +883,7 @@ var enemy_db = {
 		#                            endurance; off-meta still ~16 min penalty)
 		#   res_e  0.45→0.65→0.55   (still punishes NRG-on-NRG-resist; survivable)
 		# Boss stays WEAK KIN at −0.40 — swapping loadout is the real reward.
-		"stats": {"hp": 20000000, "max_shield": 144872, "atk": 200000, "def": 21730, "atk_interval": 3.0, "accuracy": 250},
+		"stats": {"hp": 7000000, "max_shield": 144872, "atk": 54000, "def": 21730, "atk_interval": 3.0, "accuracy": 250},
 		"loot": [["credits", 50000000, 100000000], ["PrimordialShard", 20, 50], ["ChronoCore", 5, 12], ["CryoCatalyst", 10, 25]],
 		"rare_loot": [["z10_unique_weapon", 0.03, 1, 1], ["z10_unique_armor", 0.03, 1, 1], ["z10_unique_shield", 0.03, 1, 1]],
 		"boss_core": "Z10_Core",

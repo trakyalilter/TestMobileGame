@@ -201,12 +201,12 @@ func _build_loot_inline() -> void:
 		var hi: int = int(entry[2])
 		parts.append("%s %d–%d" % [display, lo, hi] if lo != hi else "%s %d" % [display, lo])
 
-	# v111.10.3: module pool surfaced as just "Module" — no count (was
-	# misleading: pool of 4 != 4 drops per kill), no T1/T2/T3 (engineer
-	# jargon), no zone name (the player already knows what zone they're in).
-	# Honest signal: "this enemy can drop a module," nothing more.
+	# v111.10.3: module pool surfaced compactly — no count (pool size != drops/kill),
+	# no T1/T2/T3 jargon, no zone name. v122: with the e3/e4 split the label is now
+	# category-specific (Weapon / Shield · Armor) so the player sees at a glance which
+	# elite to farm for which slot; mixed pools (boss, Z1 tutorial) stay "Module".
 	# v120: front-half (e1/e2) of Z2-Z10 drops materials ONLY — its def still carries a
-	# module_drop_pool, but the loot roll is suppressed, so don't tease "Module" on the
+	# module_drop_pool, but the loot roll is suppressed, so don't tease a drop on the
 	# card. Keyed to the browsed zone (current_zone isn't set yet). Always-on routing.
 	var m_pool: Array = data.get("module_drop_pool", [])
 	var _drops_modules: bool = m_pool.size() > 0
@@ -214,7 +214,7 @@ func _build_loot_inline() -> void:
 		if parent_ui.manager.enemy_is_front_salvage(eid, str(parent_ui.last_refreshed_zone)):
 			_drops_modules = false
 	if _drops_modules:
-		parts.append("Module")
+		parts.append(_module_drop_label(m_pool))
 
 	lbl.text = "[color=#9a7c52]LOOT[/color]  " + "  ·  ".join(parts) if not parts.is_empty() \
 		else "[color=#9a7c52]LOOT[/color]  —"
@@ -278,6 +278,41 @@ func _build_actions_row() -> void:
 
 
 # ─── Helpers ─────────────────────────────────────────────────────────
+# Compact drop-category label for the card. With the e3/e4 split the zone's
+# gunship (e3) drops Weapons and the hulk (e4) drops Shield · Armor; mixed pools
+# (boss, Z1 tutorial, anything with battery/engine/sensor) stay generic "Module".
+# Derived from module_drop_pool so it always tracks the data.
+func _module_drop_label(pool: Array) -> String:
+	var has_wpn := false
+	var has_shield := false
+	var has_armor := false
+	var has_util := false
+	for m in pool:
+		var s := String(m)
+		if s.ends_with("kinetic") or s.ends_with("energy") or s.ends_with("missile") or s.ends_with("lance") or s.ends_with("blaster"):
+			has_wpn = true
+		elif s.ends_with("shield"):
+			has_shield = true
+		elif s.ends_with("armor"):
+			has_armor = true
+		else:
+			has_util = true
+	var defense: bool = has_shield or has_armor
+	if has_util:
+		return "Module"
+	if has_wpn and defense:
+		return "Module"
+	if has_wpn:
+		return "Weapon"
+	if has_shield and has_armor:
+		return "Shield · Armor"
+	if has_shield:
+		return "Shield"
+	if has_armor:
+		return "Armor"
+	return "Module"
+
+
 func _make_chip(text: String, color: Color, font_size: int) -> Control:
 	var lbl := Label.new()
 	lbl.text = text
