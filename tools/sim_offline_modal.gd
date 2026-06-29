@@ -44,10 +44,14 @@ func _run() -> void:
 	var stack := [modal]
 	while not stack.is_empty():
 		var nd = stack.pop_back()
-		if nd is HBoxContainer and nd.get_child_count() == 2 and nd.get_child(0) is Label and nd.get_child(1) is Label:
-			var nm: Label = nd.get_child(0)
-			var qty: Label = nd.get_child(1)
-			if qty.text.begins_with("+"):
+		# Each report row is an HBox of [icon-or-spacer, name Label, amount Label];
+		# detect by a name+amount label pair whose last label begins with "+".
+		if nd is HBoxContainer:
+			var labels := []
+			for c in nd.get_children():
+				if c is Label:
+					labels.append(c)
+			if labels.size() >= 2 and (labels[labels.size() - 1] as Label).text.begins_with("+"):
 				rows += 1
 		for c in nd.get_children():
 			stack.append(c)

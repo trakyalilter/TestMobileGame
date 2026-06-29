@@ -5852,6 +5852,17 @@ func _mat_icon(sym: String, px: int) -> TextureRect:
 	t.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return t
 
+# Reverse map for places that only have a material's display name (e.g. the
+# offline report strings) and need its symbol back to draw an icon. Built once.
+var _res_name_to_sym := {}
+func _sym_for_name(nm: String) -> String:
+	if _res_name_to_sym.is_empty():
+		for s in GameData.RESOURCES:
+			var rn: String = GameData.RESOURCES[s].get("name", s)
+			if not _res_name_to_sym.has(rn):
+				_res_name_to_sym[rn] = s
+	return _res_name_to_sym.get(nm, "")
+
 func _inset(v: VBoxContainer, title: String, lines: Array, accent: String, highlight := false) -> void:
 	var panel := PanelContainer.new()
 	var sb := _bordered(INSET, accent if highlight else LINE, 1, 8)
@@ -6145,7 +6156,7 @@ func _show_offline(text: String) -> void:
 	if claim != "":
 		text = (text + "\n\n" if text.strip_edges() != "" else "") + claim
 	var overlay := ColorRect.new()
-	overlay.color = Color(0, 0, 0, 0.65)
+	overlay.color = Color(0, 0, 0, 0.72)
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(overlay)
 	_track_modal(overlay)
@@ -6153,56 +6164,169 @@ func _show_offline(text: String) -> void:
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	overlay.add_child(center)
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", _bordered("1a2336", CYAN, 2))
-	panel.custom_minimum_size = Vector2(320, 0)
+	panel.add_theme_stylebox_override("panel", _bordered("121b2e", CYAN, 2, 16))
+	panel.custom_minimum_size = Vector2(336, 0)
 	center.add_child(panel)
+	var outer := VBoxContainer.new()
+	outer.add_theme_constant_override("separation", 0)
+	panel.add_child(outer)
+
+	# ---- Header band: icon + branded title, on a darker inset bar ----
+	var head := PanelContainer.new()
+	var hsb := _bordered(_mix(CYAN, "0a1120", 0.84), _mix(CYAN, LINE, 0.45), 0, 14)
+	hsb.corner_radius_bottom_left = 0
+	hsb.corner_radius_bottom_right = 0
+	hsb.content_margin_top = 18
+	hsb.content_margin_bottom = 15
+	head.add_theme_stylebox_override("panel", hsb)
+	var hb := HBoxContainer.new()
+	hb.alignment = BoxContainer.ALIGNMENT_CENTER
+	hb.add_theme_constant_override("separation", 11)
+	head.add_child(hb)
+	var hicon := Label.new()
+	hicon.text = "◷"
+	hicon.add_theme_font_size_override("font_size", _fs(30))
+	hicon.add_theme_color_override("font_color", Color.html(CYAN))
+	hb.add_child(hicon)
+	var htext := VBoxContainer.new()
+	htext.add_theme_constant_override("separation", 0)
+	hb.add_child(htext)
+	var t1 := Label.new()
+	t1.text = "WELCOME BACK"
+	t1.add_theme_font_size_override("font_size", _fs(18))
+	t1.add_theme_color_override("font_color", Color.html(CYAN))
+	htext.add_child(t1)
+	var t2 := Label.new()
+	t2.text = "Commander"
+	t2.add_theme_font_size_override("font_size", _fs(11))
+	t2.add_theme_color_override("font_color", Color.html(C_DIM))
+	htext.add_child(t2)
+	outer.add_child(head)
+
+	# ---- Body ----
 	var mc := MarginContainer.new()
 	for s in ["left", "right", "top", "bottom"]:
-		mc.add_theme_constant_override("margin_" + s, 14)
-	panel.add_child(mc)
+		mc.add_theme_constant_override("margin_" + s, 15)
+	outer.add_child(mc)
 	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 12)
+	v.add_theme_constant_override("separation", 7)
 	mc.add_child(v)
-	_clbl(v, "◷ Welcome Back, Commander", 16, CYAN)
-	# Render the report line-by-line. Loot/XP rows are "Name\t+Qty" → a two-column
-	# row (name left, amount right); header lines (no tab) render as plain text.
+
+	# Parse the report. "Name\t+Qty" rows become icon rows; prefixed lines style
+	# by kind (time-away pill, INFRASTRUCTURE / claim sections, ⚠ warnings).
 	for raw in text.split("\n"):
 		var line := String(raw)
-		if line.strip_edges() == "":
-			var sp := Control.new()
-			sp.custom_minimum_size = Vector2(0, 4)
-			v.add_child(sp)
+		var stripped := line.strip_edges()
+		if stripped == "":
+			continue
+		if stripped.begins_with("Away for "):
+			var pc := CenterContainer.new()
+			var pill := PanelContainer.new()
+			var psb := _bordered(SURFACE_HI, _mix(CYAN, LINE, 0.5), 1, 11)
+			psb.content_margin_left = 12
+			psb.content_margin_right = 12
+			psb.content_margin_top = 4
+			psb.content_margin_bottom = 4
+			pill.add_theme_stylebox_override("panel", psb)
+			var pl := Label.new()
+			pl.text = "◷  " + stripped.substr(9).strip_edges()
+			pl.add_theme_font_size_override("font_size", _fs(12))
+			pl.add_theme_color_override("font_color", Color.html(C_DIM))
+			pill.add_child(pl)
+			pc.add_child(pill)
+			v.add_child(pc)
+		elif stripped.begins_with("Infrastructure:"):
+			# A comma-joined summary → a proper section with one row per yield.
+			_section(v, "⌂  Infrastructure", BUILD)
+			for piece in stripped.substr(15).split(","):
+				var pz := String(piece).strip_edges()
+				if pz == "":
+					continue
+				if pz.begins_with("+₡"):
+					_off_row(v, "Credits", pz, GOLD, "")
+				else:
+					var sp := pz.find(" ")
+					if sp > 0:
+						_off_row(v, pz.substr(sp + 1), pz.substr(0, sp), GOLD, _sym_for_name(pz.substr(sp + 1)))
+					else:
+						_off_row(v, pz, "", GOLD, "")
+		elif stripped.begins_with("★"):
+			_section(v, stripped.substr(1).strip_edges(), GOLD)
+		elif stripped.begins_with("⚠"):
+			var wl := Label.new()
+			wl.text = stripped
+			wl.custom_minimum_size = Vector2(300, 0)
+			wl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			wl.add_theme_font_size_override("font_size", _fs(12))
+			wl.add_theme_color_override("font_color", Color.html(C_WARN))
+			v.add_child(wl)
 		elif "\t" in line:
 			var parts := line.split("\t")
-			var rrow := HBoxContainer.new()
-			rrow.custom_minimum_size = Vector2(300, 0)
-			var nm := Label.new()
-			nm.text = String(parts[0])
-			nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			nm.add_theme_font_size_override("font_size", _fs(13))
-			nm.add_theme_color_override("font_color", Color.html(C_TEXT))
-			rrow.add_child(nm)
-			var qty := Label.new()
-			qty.text = String(parts[1]) if parts.size() > 1 else ""
-			qty.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-			qty.add_theme_font_size_override("font_size", _fs(13))
-			qty.add_theme_color_override("font_color", Color.html(GOLD))
-			rrow.add_child(qty)
-			v.add_child(rrow)
+			var nm: String = String(parts[0]).strip_edges()
+			var amt: String = String(parts[1]).strip_edges() if parts.size() > 1 else ""
+			if amt.ends_with("ready"):
+				# Ready-to-claim (mission / standing order) — no material icon.
+				_off_row(v, nm, "● READY", GOLD, "", CYAN)
+			elif nm == "Credits":
+				_off_row(v, nm, amt, GOLD, "")
+			elif nm.ends_with("XP"):
+				_off_row(v, nm, amt, GREEN, "")
+			elif nm == "Modules":
+				_off_row(v, nm, amt, PURP, "")
+			else:
+				_off_row(v, nm, amt, GOLD, _sym_for_name(nm))
 		else:
+			# Generic header line (e.g. "Destroyed 12 Raider").
 			var hl := Label.new()
-			hl.text = line
+			hl.text = stripped
+			hl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			hl.custom_minimum_size = Vector2(300, 0)
 			hl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			hl.add_theme_font_size_override("font_size", _fs(13))
-			hl.add_theme_color_override("font_color", Color.html(C_TEXT))
+			hl.add_theme_font_size_override("font_size", _fs(12))
+			hl.add_theme_color_override("font_color", Color.html(C_DIM))
 			v.add_child(hl)
-	var ok := Button.new()
-	ok.text = "Collect"
-	ok.custom_minimum_size = Vector2(0, 40)
-	ok.focus_mode = Control.FOCUS_NONE
+
+	var ok := _card_button("Collect", CYAN, true)
+	ok.custom_minimum_size = Vector2(0, 50)
 	ok.pressed.connect(func() -> void: overlay.queue_free())
 	v.add_child(ok)
+
+# One offline-report line: a recessed pill with an optional tinted material icon,
+# the name (left) and the amount (right).
+func _off_row(parent: VBoxContainer, item_name: String, amt: String, amt_col: String, sym: String, name_col := C_TEXT) -> void:
+	var panel := PanelContainer.new()
+	var sb := _bordered(INSET, LINE, 0, 8)
+	sb.content_margin_left = 9
+	sb.content_margin_right = 9
+	sb.content_margin_top = 5
+	sb.content_margin_bottom = 5
+	panel.add_theme_stylebox_override("panel", sb)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	panel.add_child(row)
+	var icon: TextureRect = _mat_icon(sym, 20) if sym != "" else null
+	if icon != null:
+		icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		row.add_child(icon)
+	else:
+		var spacer := Control.new()
+		spacer.custom_minimum_size = Vector2(20, 20)
+		row.add_child(spacer)
+	var nl := Label.new()
+	nl.text = item_name
+	nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	nl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	nl.add_theme_font_size_override("font_size", _fs(13))
+	nl.add_theme_color_override("font_color", Color.html(name_col))
+	row.add_child(nl)
+	var al := Label.new()
+	al.text = amt
+	al.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	al.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	al.add_theme_font_size_override("font_size", _fs(13))
+	al.add_theme_color_override("font_color", Color.html(amt_col))
+	row.add_child(al)
+	parent.add_child(panel)
 
 # ============================================================ TEXT
 func _active_text() -> String:
