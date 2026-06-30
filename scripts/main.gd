@@ -40,6 +40,9 @@ var warp_action_badge: Control = null  # v113 (NG+): "warp to breach Sector 11" 
 var _claim_badge_tick: float = 0.0
 
 func _ready():
+	# v123: apply the saved UI palette BEFORE pages build so every card/button/bar
+	# is styled against the chosen colours from the first frame.
+	UITheme.apply_palette(UITheme.get_ui_palette())
 	_init_pages()
 	_apply_global_styles()
 	_init_notifications() # Feature 66.1
@@ -55,7 +58,15 @@ func _ready():
 		switch_to("mission")
 	else:
 		switch_to("gathering")
-	
+
+	# v123: a Sys Config palette change reloads the scene to re-theme everything;
+	# land the player back on the page they came from (Options) rather than the
+	# default landing page so they can keep A/B-testing palettes.
+	if GameState.ui_return_page != "":
+		var rp: String = GameState.ui_return_page
+		GameState.ui_return_page = ""
+		switch_to(rp)
+
 	# v84.2: Research Navigation QoL
 	UITheme.research_navigation_requested.connect(_on_research_navigation_requested)
 
@@ -260,6 +271,9 @@ func _init_pages():
 	# P-onboard: the header's Current-Objective chip taps through to the Missions page.
 	if header_widget.has_signal("objective_pressed"):
 		header_widget.objective_pressed.connect(func(): switch_to("mission"))
+	# P-cargo: the header slot meter taps through to the Inventory page.
+	if header_widget.has_signal("inventory_pressed"):
+		header_widget.inventory_pressed.connect(func(): switch_to("inventory"))
 
 # Feature 66.1: Global Notification Stack (Melvor-style)
 var notification_container: VBoxContainer
@@ -290,45 +304,48 @@ func _init_notifications():
 # family in the shared feed. A leading status glyph (inferred from the intent
 # colour) replaces the reward icon chip.
 func _spawn_notification(text: String, color: Color):
+	# v122: cleaner toast — dark rounded pill, left accent stripe, soft shadow,
+	# and a small round status "LED" in the accent colour. Replaces the cryptic
+	# !/i/✓ letter glyph (colour already carries the intent).
 	var panel = PanelContainer.new()
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.size_flags_horizontal = Control.SIZE_SHRINK_END
 	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.055, 0.065, 0.10, 0.95)
-	style.set_corner_radius_all(5)
+	style.bg_color = Color(0.07, 0.08, 0.12, 0.96)
+	style.set_corner_radius_all(6)
 	style.border_width_left = 3
 	style.border_color = color
-	style.shadow_color = Color(0, 0, 0, 0.45)
-	style.shadow_size = 6
-	style.shadow_offset = Vector2(0, 2)
+	style.shadow_color = Color(0, 0, 0, 0.5)
+	style.shadow_size = 8
+	style.shadow_offset = Vector2(0, 3)
+	style.content_margin_left = 13
+	style.content_margin_right = 16
+	style.content_margin_top = 8
+	style.content_margin_bottom = 8
 	panel.add_theme_stylebox_override("panel", style)
 
-	var margin = MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 11)
-	margin.add_theme_constant_override("margin_right", 15)
-	margin.add_theme_constant_override("margin_top", 7)
-	margin.add_theme_constant_override("margin_bottom", 7)
-	panel.add_child(margin)
-
 	var row = HBoxContainer.new()
-	row.add_theme_constant_override("separation", 9)
+	row.add_theme_constant_override("separation", 10)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	margin.add_child(row)
+	panel.add_child(row)
 
-	var glyph = Label.new()
-	glyph.text = _status_glyph(color)
-	glyph.custom_minimum_size = Vector2(16, 0)
-	glyph.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	glyph.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	glyph.add_theme_font_size_override("font_size", 15)
-	glyph.add_theme_color_override("font_color", color)
-	glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(glyph)
+	# Round status LED — clean colour-coded dot with a faint matching glow.
+	var dot = Panel.new()
+	dot.custom_minimum_size = Vector2(9, 9)
+	dot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var dot_sb = StyleBoxFlat.new()
+	dot_sb.bg_color = color
+	dot_sb.set_corner_radius_all(5)
+	dot_sb.shadow_color = Color(color.r, color.g, color.b, 0.5)
+	dot_sb.shadow_size = 3
+	dot.add_theme_stylebox_override("panel", dot_sb)
+	row.add_child(dot)
 
 	var msg = Label.new()
 	msg.text = text
 	msg.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	msg.add_theme_color_override("font_color", color.lerp(Color.WHITE, 0.2))
+	msg.add_theme_color_override("font_color", color.lerp(Color.WHITE, 0.35))
 	msg.add_theme_font_size_override("font_size", 13)
 	msg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(msg)
@@ -343,15 +360,6 @@ func _spawn_notification(text: String, color: Color):
 	tween.tween_interval(1.6)
 	tween.tween_property(panel, "modulate:a", 0.0, 0.3)
 	tween.tween_callback(panel.queue_free)
-
-# Status glyph inferred from the intent colour callers already pass:
-# alert (red/orange) ! · info (cyan/blue/purple) i · success (green) ✓ ·
-# state/neutral (gold/amber/grey) ›.
-func _status_glyph(c: Color) -> String:
-	if c.b > 0.7 and c.b >= c.r * 0.8: return "i"
-	if c.g > 0.65 and c.r < 0.75: return "✓"
-	if c.r > 0.7 and c.g < 0.6: return "!"
-	return "›"
 
 # ── Cargo Manifest reward popup ──
 # Icon chip + NAME + big delta (accent) + dim total, on a dark pill with a
@@ -767,6 +775,10 @@ func _update_sidebar_styling():
 	UITheme.apply_sidebar_button_style(bounty_btn, current_page_name == "bounty")
 	UITheme.apply_sidebar_button_style(quest_btn, current_page_name == "quest")
 	UITheme.apply_sidebar_button_style(fleet_btn, current_page_name == "fleet")
+	# Warp Core — the prestige marquee. Same sidebar rhythm as every other nav
+	# button, distinguished by a purple identity accent (replaces the old default-
+	# themed boxed button that clashed with the flat sidebar).
+	UITheme.apply_sidebar_button_style(warp_btn, current_page_name == "warp", Color(0.78, 0.50, 1.00))
 	
 	# THEMATIC: Progressive Disclosure (Early & Mid-Game Gates)
 	var has_basic_eng = GameState.research_manager.is_tech_unlocked("basic_engineering")
@@ -826,11 +838,7 @@ func _update_sidebar_styling():
 				child.add_theme_color_override("font_color", Color(0.28, 0.36, 0.52))
 				child.modulate = Color.WHITE
 
-	# Warp button keeps its purple accent
-	if is_instance_valid(warp_btn) and warp_btn.visible:
-		var wc := Color(0.78, 0.50, 1.00) if current_page_name != "warp" else Color(0.92, 0.72, 1.00)
-		warp_btn.add_theme_color_override("font_color", wc)
-		warp_btn.add_theme_color_override("icon_normal_color", wc)
+	# (Warp Core's purple identity is now applied via apply_sidebar_button_style above.)
 
 	if is_instance_valid(fleet_btn) and fleet_btn.visible:
 		var fc := Color(0.40, 0.78, 1.00) if current_page_name != "fleet" else Color(0.72, 0.92, 1.00)
@@ -1453,18 +1461,22 @@ func _update_navigation_hints():
 				break
 
 	# P1 Onboarding — Repair routing.
-	# When no mission demands a pulse, the hull is damaged, the player is on
-	# another page, and they are not mid-combat, pulse the Shipyard sidebar
-	# button so they know where to go. Once on Shipyard, the existing red-
-	# pulsing Repair button (shipyard_page._update_repair_button) takes over.
-	# Mission pulses always win — this is a pure fallback.
+	# v125: repair moved OFF the Shipyard (its repair button was removed in v124) —
+	# it's now the Combat-HUD HULL consumable button, which works out of combat too
+	# (no cooldown when not fighting). So when no mission demands a pulse and the
+	# hull is damaged, route to the COMBAT tab — but only if a hull repair kit is
+	# actually equipped + stocked (otherwise there's nothing to tap there, so we
+	# don't nudge to a dead end). Once on Combat, the page's own low-hull alarm
+	# pulses the HULL kit. Mission pulses always win — this is a pure fallback.
 	if target_to_pulse == null:
 		var sm_ref = GameState.shipyard_manager
 		var cm_ref = GameState.combat_manager
 		if sm_ref and sm_ref.current_hp < sm_ref.max_hp \
-				and current_page_name != "shipyard" \
+				and sm_ref.consumable_hull_slot != "" \
+				and GameState.resources.get_element_amount(sm_ref.consumable_hull_slot) >= 1 \
+				and current_page_name != "combat" \
 				and not (cm_ref and cm_ref.in_combat):
-			target_to_pulse = shipyard_btn
+			target_to_pulse = combat_btn
 
 	# Apply final decision
 	if target_to_pulse:
