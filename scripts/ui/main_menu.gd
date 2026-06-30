@@ -1,13 +1,25 @@
 extends Control
 
-# --- Colors ---
-const BG_COLOR      := Color(0.030, 0.030, 0.058, 1.0)
-const ACCENT_CYAN   := Color(0.42,  0.84,  1.00)
-const ACCENT_AMBER  := Color(0.92,  0.70,  0.30)
-const TEXT_MAIN     := Color(0.90,  0.87,  0.80)
-const TEXT_DIM      := Color(0.48,  0.46,  0.42)
-const PANEL_BG      := Color(0.055, 0.055, 0.095, 0.97)
-const PANEL_BORDER  := Color(0.32,  0.42,  0.58,  0.75)
+# --- Colors (palette-aware: defaults are the Bloom literals; _apply_theme()
+#     repoints them to the active UITheme palette tokens at _ready()) ---
+var BG_COLOR      := Color(0.030, 0.030, 0.058, 1.0)
+var ACCENT_CYAN   := Color(0.42,  0.84,  1.00)
+var ACCENT_AMBER  := Color(0.92,  0.70,  0.30)
+var TEXT_MAIN     := Color(0.90,  0.87,  0.80)
+var TEXT_DIM      := Color(0.48,  0.46,  0.42)
+var PANEL_BG      := Color(0.055, 0.055, 0.095, 0.97)
+var PANEL_BORDER  := Color(0.32,  0.42,  0.58,  0.75)
+
+# Repoint local colour vars to the active palette tokens. MUST run before any
+# UI is built. Vars (not consts) so they can hold runtime UITheme values.
+func _apply_theme() -> void:
+	BG_COLOR     = UITheme.COLORS["background"]
+	PANEL_BG     = Color(UITheme.COLORS["panel_bg"], 0.97)
+	PANEL_BORDER = Color(UITheme.COLORS["accent"], 0.75)
+	ACCENT_CYAN  = UITheme.COLORS["accent_bright"]
+	ACCENT_AMBER = UITheme.COLORS["warning"]
+	TEXT_MAIN    = UITheme.COLORS["text_main"]
+	TEXT_DIM     = UITheme.COLORS["text_dim"]
 
 # --- UI references ---
 var _center_panel: PanelContainer
@@ -25,6 +37,10 @@ var _drift_dir := Vector2.ZERO              # set in _ready
 var _shoot_t := 6.0                          # seconds until next shooting star
 
 func _ready():
+	# Cold-launch entry scene — apply the saved palette before anything else
+	# builds, then repoint our local colour vars to the active tokens.
+	UITheme.apply_palette(UITheme.get_ui_palette())
+	_apply_theme()
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	has_save = FileAccess.file_exists("user://savegame.json")
 
@@ -65,7 +81,7 @@ func _build_starfield():
 
 func _build_corner_chrome():
 	var vp = get_viewport().get_visible_rect().size
-	var chrome_col = Color(0.28, 0.44, 0.62, 0.55)
+	var chrome_col = Color(UITheme.COLORS["accent"], 0.55)
 
 	# Thin horizontal accent lines
 	for y_pos in [38.0, vp.y - 42.0]:
@@ -185,10 +201,10 @@ func _build_main_menu(parent: VBoxContainer):
 	preview.add_theme_font_size_override("font_size", 10)
 	if has_save:
 		preview.text = _load_save_summary()
-		preview.add_theme_color_override("font_color", Color(0.50, 0.72, 0.50, 0.85))
+		preview.add_theme_color_override("font_color", Color(UITheme.COLORS["positive"], 0.85))
 	else:
 		preview.text = "No save data — start a new game"
-		preview.add_theme_color_override("font_color", Color(0.55, 0.45, 0.40, 0.75))
+		preview.add_theme_color_override("font_color", Color(UITheme.COLORS["text_dim"], 0.75))
 	vbox.add_child(preview)
 
 	_add_spacer(vbox, 4)
@@ -268,13 +284,13 @@ func _build_footer():
 	ver.text = "HORIZON IDLE  ·  v0.1 PROTOTYPE"
 	ver.position = Vector2(24, vp.y - 34)
 	ver.add_theme_font_size_override("font_size", 10)
-	ver.add_theme_color_override("font_color", Color(0.38, 0.38, 0.50, 0.75))
+	ver.add_theme_color_override("font_color", Color(UITheme.COLORS["text_dim"], 0.75))
 	add_child(ver)
 
 	var status = Label.new()
 	status.text = "SYSTEM READY  ◆"
 	status.add_theme_font_size_override("font_size", 10)
-	status.add_theme_color_override("font_color", Color(0.28, 0.68, 0.38, 0.80))
+	status.add_theme_color_override("font_color", Color(UITheme.COLORS["positive"], 0.80))
 	status.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	status.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	status.grow_vertical   = Control.GROW_DIRECTION_BEGIN
@@ -363,16 +379,16 @@ func _apply_btn_style(btn: Button, style_type: String):
 	var bg_base: Color
 	match style_type:
 		"continue":
-			accent  = Color(0.88, 0.72, 0.28)
+			accent  = UITheme.CATEGORY_COLORS["inventory"]
 			bg_base = Color(0.11, 0.09, 0.05, 0.95)
 		"new_game":
-			accent  = Color(0.38, 0.76, 0.44)
+			accent  = UITheme.COLORS["positive"]
 			bg_base = Color(0.05, 0.10, 0.06, 0.95)
 		"exit":
-			accent  = Color(0.80, 0.28, 0.28)
+			accent  = UITheme.COLORS["negative"]
 			bg_base = Color(0.10, 0.05, 0.05, 0.95)
 		_:  # settings / back
-			accent  = Color(0.52, 0.54, 0.72)
+			accent  = UITheme.CATEGORY_COLORS["shipyard"]
 			bg_base = Color(0.07, 0.07, 0.11, 0.95)
 
 	var normal = StyleBoxFlat.new()
@@ -667,7 +683,27 @@ func _on_back_pressed():
 	_menu_root.show()
 
 func _on_offline_combat_toggled(pressed: bool):
+	# v125: gate the first enable behind the durability-risk consent prompt.
+	# Decline reverts the checkbox without re-firing this handler.
+	if pressed and not GameState.game_settings.get("offline_combat_warned", false):
+		UITheme.show_offline_combat_warning(
+			Callable(self, "_on_offline_combat_consent"),
+			Callable(self, "_on_offline_combat_decline"))
+		return
 	GameState.game_settings["offline_combat"] = pressed
+	GameState.save_game()
+
+
+func _on_offline_combat_consent() -> void:
+	GameState.game_settings["offline_combat"] = true
+	GameState.game_settings["offline_combat_warned"] = true
+	chk_offline_combat.set_pressed_no_signal(true)
+	GameState.save_game()
+
+
+func _on_offline_combat_decline() -> void:
+	GameState.game_settings["offline_combat"] = false
+	chk_offline_combat.set_pressed_no_signal(false)
 	GameState.save_game()
 
 func _on_exit_pressed():

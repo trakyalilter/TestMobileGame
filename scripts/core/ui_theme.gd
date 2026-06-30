@@ -6,6 +6,9 @@ signal research_navigation_requested(tech_id: String)
 # Emitted when the player switches card frame style in Sys Config so every
 # live CardChrome overlay repaints without a page rebuild.
 signal chrome_changed
+# Emitted when the UI colour palette changes (Sys Config). The live re-theme is
+# done by rebuilding the scene; this signal is for any future live listeners.
+signal palette_changed
 # Structured gain feed ("Cargo Manifest" popups) — distinct from the plain
 # notification_requested toast. main.gd renders these as icon-chip + name +
 # delta + dim total pills, coalescing repeats of the same key. See show_reward.
@@ -92,7 +95,10 @@ func format_number(value: float) -> String:
 # accents. ONE blue-green undertone unifies the whole UI (even the backgrounds are
 # teal-shifted, never navy); accents are luminous but held in a disciplined chroma
 # band so the set reads as one curated light source, not eight crayon primaries.
-const COLORS = {
+# v123: runtime palette (was const). apply_palette() rewrites these in place when
+# the player picks a UI palette in Sys Config; every UITheme.COLORS[...] read is
+# unaffected. The literal below is the "Default" (Precursor Bloom) palette.
+var COLORS := {
 	"background": Color(0.039, 0.086, 0.078),   # #0A1614 abyssal teal-black
 	"sidebar": Color(0.055, 0.122, 0.114),      # #0E1F1D
 	"panel_bg": Color(0.078, 0.169, 0.161),     # #142B29
@@ -106,7 +112,7 @@ const COLORS = {
 	"warning": Color(1.0, 0.761, 0.302)         # #FFC24D amber
 }
 
-const CATEGORY_COLORS = {
+var CATEGORY_COLORS := {
 	"ops": Color(0.180, 0.910, 0.769),          # #2EE8C4 aqua
 	"engineering": Color(0.224, 0.651, 0.878),  # #39A6E0 sky-cyan
 	"infrastructure": Color(0.455, 0.831, 0.373),# #74D45F leaf-green
@@ -116,6 +122,59 @@ const CATEGORY_COLORS = {
 	"shipyard": Color(0.439, 0.533, 0.949),     # #7088F2 periwinkle-indigo
 	"mission": Color(0.075, 0.627, 0.455)       # #13A074 deep jade
 }
+
+# v123: selectable sci-fi UI palettes (Sys Config). Each fills the same token
+# set as COLORS + CATEGORY_COLORS above. "default" == the current Precursor Bloom.
+# Order here drives the picker order. Hex strings → parsed via Color.html().
+const UI_PALETTES := {
+	"default": { "name": "Default (Bloom)",
+		"colors": {"background":"#0A1614","sidebar":"#0E1F1D","panel_bg":"#142B29","accent":"#37C9B0","accent_bright":"#6DF0D8","text_main":"#E4F5EE","text_dim":"#7FA39C","text_accent":"#5FE0C8","positive":"#46E0A0","negative":"#FF6473","warning":"#FFC24D"},
+		"category": {"ops":"#2EE8C4","engineering":"#39A6E0","infrastructure":"#74D45F","combat":"#FF6473","inventory":"#D7B842","research":"#B06BF2","shipyard":"#7088F2","mission":"#13A074"} },
+	"phosphor": { "name": "Phosphor Terminal",
+		"colors": {"background":"#070b07","sidebar":"#0c130c","panel_bg":"#111a12","accent":"#33ff66","accent_bright":"#5cff8c","text_main":"#d6f5d8","text_dim":"#7fa888","text_accent":"#5cff8c","positive":"#33ff66","negative":"#ff5c47","warning":"#ffb347"},
+		"category": {"ops":"#ffb347","engineering":"#3BF0D6","infrastructure":"#5cff8c","combat":"#ff5c47","inventory":"#ffd24c","research":"#e065ff","shipyard":"#52c2ff","mission":"#33ffb0"} },
+	"derelict": { "name": "Derelict Salvage",
+		"colors": {"background":"#15100C","sidebar":"#1C160F","panel_bg":"#241B13","accent":"#D97A2B","accent_bright":"#FF9D42","text_main":"#F0E3D2","text_dim":"#A08B72","text_accent":"#FFB866","positive":"#8FB54A","negative":"#D9512E","warning":"#E8A627"},
+		"category": {"ops":"#E08A2E","engineering":"#3FA89A","infrastructure":"#7AA83F","combat":"#F0613F","inventory":"#E0B341","research":"#C07FE8","shipyard":"#C97F3A","mission":"#3FB88A"} },
+	"precursor": { "name": "Precursor Crystalline",
+		"colors": {"background":"#0c0a18","sidebar":"#120e22","panel_bg":"#1a1530","accent":"#2fe0d4","accent_bright":"#62f6ec","text_main":"#ece7ff","text_dim":"#9c95c6","text_accent":"#46ecff","positive":"#3fe0a3","negative":"#ff5f6e","warning":"#ffcf5c"},
+		"category": {"ops":"#ffae57","engineering":"#46d7ff","infrastructure":"#5fe0a0","combat":"#ff5a68","inventory":"#ffd166","research":"#c66bff","shipyard":"#6c8cff","mission":"#34f0c4"} },
+	"aurora": { "name": "Aurora Deep-Space",
+		"colors": {"background":"#0A1320","sidebar":"#0E1A2B","panel_bg":"#152233","accent":"#3DD68C","accent_bright":"#7CF0B8","text_main":"#E9F2FF","text_dim":"#8FA6C4","text_accent":"#5FF0C0","positive":"#48E0A0","negative":"#FF6E7A","warning":"#FFC861"},
+		"category": {"ops":"#46E0C2","engineering":"#4FB6E8","infrastructure":"#5FD982","combat":"#FF6E7A","inventory":"#F2C45A","research":"#B27AF0","shipyard":"#6E92F0","mission":"#3FE0A6"} },
+	"bridge": { "name": "Cold Tactical Bridge",
+		"colors": {"background":"#0A0F1A","sidebar":"#101725","panel_bg":"#172234","accent":"#3D7FE0","accent_bright":"#5FC4FF","text_main":"#E8F0FB","text_dim":"#8A9BB8","text_accent":"#8FD8FF","positive":"#46D98A","negative":"#FF5E63","warning":"#FFC24D"},
+		"category": {"ops":"#5FB0E8","engineering":"#3FD0E0","infrastructure":"#52C98E","combat":"#FF5E63","inventory":"#E8B84A","research":"#B589F2","shipyard":"#7AA0FF","mission":"#36D6B0"} },
+	"neon": { "name": "Neon Cyber-Deck",
+		"colors": {"background":"#05050a","sidebar":"#0c0a16","panel_bg":"#14101f","accent":"#ff2fe6","accent_bright":"#ff5cf2","text_main":"#eef0ff","text_dim":"#948cbd","text_accent":"#26f5ff","positive":"#3dffae","negative":"#ff3366","warning":"#ffd23d"},
+		"category": {"ops":"#ff8a3d","engineering":"#36d8ff","infrastructure":"#34f5a0","combat":"#ff476f","inventory":"#ffc94d","research":"#cf57ff","shipyard":"#5f8cff","mission":"#2af0cf"} },
+}
+
+const PALETTE_ORDER := ["default", "phosphor", "derelict", "precursor", "aurora", "bridge", "neon"]
+
+func get_ui_palette() -> String:
+	if GameState and GameState.game_settings != null:
+		return str(GameState.game_settings.get("ui_palette", "default"))
+	return "default"
+
+# Rewrite COLORS + CATEGORY_COLORS in place from the chosen palette. The live
+# re-theme of already-built UI is done by the caller via a scene reload (every
+# stylebox is rebuilt against the new tokens); at boot this runs before pages
+# build, so they pick up the palette directly.
+func apply_palette(id: String) -> void:
+	var p = UI_PALETTES.get(id)
+	if p == null:
+		id = "default"
+		p = UI_PALETTES["default"]
+	var c: Dictionary = p["colors"]
+	for k in c:
+		COLORS[k] = Color.html(c[k])
+	var cat: Dictionary = p["category"]
+	for k in cat:
+		CATEGORY_COLORS[k] = Color.html(cat[k])
+	if GameState and GameState.game_settings != null:
+		GameState.game_settings["ui_palette"] = id
+	palette_changed.emit()
 
 func setup_page_background(page: Control):
 	pass
@@ -397,10 +456,14 @@ func inject_diegetic_header(card: PanelContainer, category: String) -> PanelCont
 	var name_lbl = vbox.get_node_or_null("NameLabel")
 	if not name_lbl: return null
 	
-	# 1. Adjust Main Layout to support header (flush top)
+	# 1. Adjust Main Layout to support header (flush top). Left/right = 10 (was 2):
+	# at 2px the body content sat at x≈3, LEFT of the CardChrome inner frame (x=4),
+	# so left-aligned rows (costs, the efficiency label) visibly overflowed the
+	# inner border. 10 clears the frame + tucks the header tidily inside the corner
+	# brackets (the chrome's own design assumes a ~10–15px content inset).
 	margin_cont.add_theme_constant_override("margin_top", 0)
-	margin_cont.add_theme_constant_override("margin_left", 2)
-	margin_cont.add_theme_constant_override("margin_right", 2)
+	margin_cont.add_theme_constant_override("margin_left", 10)
+	margin_cont.add_theme_constant_override("margin_right", 10)
 	margin_cont.add_theme_constant_override("margin_bottom", 6)
 	vbox.add_theme_constant_override("separation", 8)
 	
@@ -639,6 +702,28 @@ func show_info_card(anchor: Control, title: String, body: String) -> Control:
 	return card
 
 # ─── Themed modal confirm / alert dialog ────────────────────────────────────
+# v125: one-time consent prompt for enabling Offline Combat. Offline combat is
+# unattended, so equipped modules already worn to <=50% durability can be
+# destroyed while away (shipyard_manager.apply_offline_durability_risk).
+# Centralized here so every entry point (Options + main-menu settings) shows the
+# identical warning. on_confirm fires on accept; on_cancel when they back out
+# (the caller reverts the toggle).
+func show_offline_combat_warning(on_confirm: Callable, on_cancel: Callable = Callable()) -> Control:
+	var body := "Offline Combat keeps your ship fighting while you're away — but unattended.\n\n"
+	body += "[color=#ffb454]Any equipped module already at [b]50% durability or lower[/b] can be [b]destroyed[/b] during offline combat.[/color] Modules above 50% are safe.\n\n"
+	body += "Repair worn modules with Spare Parts before logging off to carry [b]zero[/b] risk.\n\nEnable Offline Combat?"
+	return show_confirm({
+		"title": "Enable Offline Combat?",
+		"body": body,
+		"confirm_text": "Enable — I Accept the Risk",
+		"cancel_text": "Cancel",
+		"accent": Color(0.95, 0.65, 0.25),
+		"danger": true,
+		"on_confirm": on_confirm,
+		"on_cancel": on_cancel,
+	})
+
+
 # Drop-in replacement for Godot's primitive Window-based ConfirmationDialog /
 # AcceptDialog. Builds a chrome-framed in-scene modal on the ModalLayer: a
 # dimmed click-blocking backdrop, a diegetic command-bar title, a BBCode body,
@@ -994,12 +1079,23 @@ func apply_panel_style(panel: PanelContainer):
 	style.corner_radius_bottom_left = 4
 	panel.add_theme_stylebox_override("panel", style)
 
-func apply_sidebar_button_style(button: Button, is_active: bool):
+func apply_sidebar_button_style(button: Button, is_active: bool, accent_override = null):
 	if not button: return
 
 	var accent     := Color(0.38, 0.78, 1.00)
 	var bg_active  := Color(0.10, 0.135, 0.215, 0.88)
 	var bg_hover   := Color(0.08, 0.100, 0.165, 0.65)
+	# accent_override gives a nav button its own identity colour (e.g. the purple
+	# Warp Core) using the EXACT sidebar shape/rhythm — left-bar accent + a faintly
+	# accent-tinted active fill — instead of a clashing default boxed button.
+	var has_identity := false
+	if accent_override != null:
+		accent = accent_override
+		has_identity = true
+		bg_active = accent.darkened(0.80)
+		bg_active.a = 0.85
+		bg_hover = accent.darkened(0.86)
+		bg_hover.a = 0.55
 
 	var style_n := StyleBoxFlat.new()
 	style_n.draw_center = is_active
@@ -1034,16 +1130,25 @@ func apply_sidebar_button_style(button: Button, is_active: bool):
 	button.add_theme_stylebox_override("pressed", style_p)
 	button.add_theme_stylebox_override("focus",   StyleBoxEmpty.new())
 
+	# Resting/active label+icon colours. With an identity accent the button carries
+	# its colour in every state (dimmer when inactive, brighter when active).
+	var col_off := Color(0.50, 0.55, 0.68)
+	var col_on := Color(0.90, 0.95, 1.00)
+	var col_hover := Color(0.78, 0.90, 1.00)
+	if has_identity:
+		col_off = accent.darkened(0.05)
+		col_on = accent.lightened(0.28)
+		col_hover = accent.lightened(0.28)
+	var col_main: Color = col_on if is_active else col_off
+
 	button.add_theme_font_size_override("font_size", 13)
-	button.add_theme_color_override("font_color",
-		Color(0.90, 0.95, 1.00) if is_active else Color(0.50, 0.55, 0.68))
-	button.add_theme_color_override("font_hover_color",   Color(0.78, 0.90, 1.00))
+	button.add_theme_color_override("font_color", col_main)
+	button.add_theme_color_override("font_hover_color",   col_hover)
 	button.add_theme_color_override("font_pressed_color", Color(1.00, 1.00, 1.00))
 	# v111.21: tint the white SVG nav icon in lockstep with the label, and keep a
 	# consistent icon size + icon↔label gap.
-	button.add_theme_color_override("icon_normal_color",
-		Color(0.90, 0.95, 1.00) if is_active else Color(0.50, 0.55, 0.68))
-	button.add_theme_color_override("icon_hover_color",   Color(0.78, 0.90, 1.00))
+	button.add_theme_color_override("icon_normal_color", col_main)
+	button.add_theme_color_override("icon_hover_color",   col_hover)
 	button.add_theme_color_override("icon_pressed_color", Color(1.00, 1.00, 1.00))
 	button.add_theme_constant_override("icon_max_width", 18)
 	button.add_theme_constant_override("h_separation", 10)

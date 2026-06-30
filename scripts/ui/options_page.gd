@@ -152,6 +152,49 @@ func _build_interface_section() -> void:
 		func(): return UITheme.get_card_chrome(),
 		func(v): _on_card_frame_pressed(v))
 
+	_build_palette_picker(body)
+
+
+# v123: UI colour-palette picker — wrapping buttons, each tinted with its
+# palette's signature accent (active one stays white). Selecting one applies +
+# saves it and reloads the scene so every stylebox re-themes against the new
+# tokens; the player lands back on this page (GameState.ui_return_page).
+func _build_palette_picker(body: VBoxContainer) -> void:
+	var lbl := Label.new()
+	lbl.text = "Color Palette"
+	lbl.add_theme_font_size_override("font_size", 12)
+	lbl.add_theme_color_override("font_color", Color(0.66, 0.7, 0.8))
+	body.add_child(lbl)
+
+	var flow := HFlowContainer.new()
+	flow.add_theme_constant_override("h_separation", 6)
+	flow.add_theme_constant_override("v_separation", 6)
+	body.add_child(flow)
+
+	var cur := UITheme.get_ui_palette()
+	for id in UITheme.PALETTE_ORDER:
+		var pal: Dictionary = UITheme.UI_PALETTES[id]
+		var b := Button.new()
+		b.text = str(pal["name"])
+		b.custom_minimum_size = Vector2(134, 36)
+		b.add_theme_font_size_override("font_size", 12)
+		UITheme.apply_premium_button_style(b, FRAME_CAT)
+		var acc: String = pal["colors"]["accent"]
+		b.add_theme_color_override("font_color", Color.WHITE if id == cur else Color.html(acc))
+		if id == cur:
+			b.tooltip_text = "Active palette"
+		b.pressed.connect(_on_palette_pressed.bind(id))
+		flow.add_child(b)
+
+
+func _on_palette_pressed(id: String) -> void:
+	if id == UITheme.get_ui_palette():
+		return   # already active — skip the reload
+	UITheme.apply_palette(id)
+	GameState.save_game()
+	GameState.ui_return_page = "options"   # land back here after the rebuild
+	get_tree().reload_current_scene()
+
 
 func _build_testing_section() -> void:
 	var body := _section("Testing", "research")
@@ -884,8 +927,27 @@ func _refresh_all() -> void:
 # Behaviour
 # --------------------------------------------------------------------------
 func _on_offline_combat_toggled(pressed: bool) -> void:
+	# v125: first time it's switched ON, require explicit consent — offline combat
+	# can destroy modules already worn to <=50% durability. Decline keeps it off;
+	# the choice row repaints from the (unchanged) setting either way.
+	if pressed and not GameState.game_settings.get("offline_combat_warned", false):
+		UITheme.show_offline_combat_warning(
+			Callable(self, "_on_offline_combat_consent"),
+			Callable(self, "_on_offline_combat_decline"))
+		return
 	GameState.game_settings["offline_combat"] = pressed
 	print("[Options] Offline Combat: ", pressed)
+
+
+func _on_offline_combat_consent() -> void:
+	GameState.game_settings["offline_combat"] = true
+	GameState.game_settings["offline_combat_warned"] = true
+	_refresh_all()
+
+
+func _on_offline_combat_decline() -> void:
+	GameState.game_settings["offline_combat"] = false
+	_refresh_all()
 
 
 func _on_cursor_size_pressed(px: int) -> void:

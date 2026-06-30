@@ -1850,21 +1850,17 @@ func unequip_slot(slot_idx: int):
 		inventory_updated.emit() # Fix: Signal for UI update
 
 func handle_module_defeat():
-	var slots_to_clear = []
+	# v125: ONLINE defeat is non-destructive. Every equipped module floors to 50%
+	# durability (never lower, never destroyed) — the old 1/6 instant-destroy +
+	# 10-50% roll is gone (premium: no sudden loss of earned gear). At <=50% a
+	# module is "destroyable", but that loss only ever happens during OFFLINE
+	# combat (opt-in + consented — see apply_offline_durability_risk).
+	var changed := false
 	for slot_idx in loadout:
 		var mid = loadout[slot_idx]
 		if not mid or mid == "": continue
-		
-		# 1/6 chance to be destroyed completely
-		if randf() < (1.0 / 6.0):
-			slots_to_clear.append(slot_idx)
-			log_msg("CRITICAL FAILURE: Module in slot %d destroyed!" % slot_idx)
-			continue
-			
-		# Durable loss between 10% and 50% (increments of 10)
-		var loss = (randi() % 5 + 1) * 10
-		
-		# If it's a base module, we must convert it to a custom instance to track durability
+
+		# Base modules must become a custom instance so durability can be tracked.
 		if not mid.begins_with("custom_"):
 			var base_data = modules.get(mid)
 			if base_data:
@@ -1874,39 +1870,59 @@ func handle_module_defeat():
 				custom_module["is_custom"] = true
 				custom_module["base_module"] = mid
 				custom_module["durability"] = 100
-				
+
 				modules[custom_id] = custom_module
 				custom_modules[custom_id] = custom_module
 				loadout[slot_idx] = custom_id
 				mid = custom_id
-		
+
 		# Guard: a loadout slot can reference a module id that's no longer in
-		# `modules` — e.g. the custom-instance id collision noted in the sanity
-		# checklist (custom_<base>_<ticks> can repeat under rapid losses when
-		# Time.get_ticks_msec() doesn't advance between conversions). An
-		# unguarded modules[mid] here hard-crashed the combat-loss path; skip
-		# the stale ref instead.
+		# `modules` (custom-instance id collision under rapid losses). Skip the
+		# stale ref instead of crashing on modules[mid].
 		if not (mid in modules):
 			continue
 		var m = modules[mid]
-		var current_dur = m.get("durability", 100)
-		m["durability"] = max(0, current_dur - loss)
-		
-		if m["durability"] <= 0:
-			slots_to_clear.append(slot_idx)
-			log_msg("SYSTEM FAILURE: Module %s reached 0%% durability and was destroyed." % m.get("name", mid))
+		var current_dur = int(m.get("durability", 100))
+		if current_dur > 50:
+			m["durability"] = 50
+			changed = true
 
+	if changed:
+		log_msg("DEFEAT: equipped modules worn down to 50% durability — repair with Spare Parts.")
+		recalc_stats()
+
+
+func apply_offline_durability_risk(delta: float) -> Array:
+	# v125: OFFLINE combat runs unattended, so it carries the real loss risk the
+	# player consents to when enabling it. Only modules ALREADY worn to <=50%
+	# durability ("destroyable") can be lost — pristine/>50% gear is always safe.
+	# Per-module destruction chance scales with hours away, capped. Repairing worn
+	# modules before logging off carries ZERO risk. Returns destroyed display names
+	# so the offline report can surface exactly what was lost (never silent).
+	var destroyed: Array = []
+	var hours: float = delta / 3600.0
+	var p: float = clampf(0.05 * hours, 0.0, 0.35)   # ~5%/hr, capped 35% per worn module
+	if p <= 0.0:
+		return destroyed
+	var slots_to_clear: Array = []
+	for slot_idx in loadout:
+		var mid = loadout[slot_idx]
+		if not mid or mid == "": continue
+		if not (mid in modules): continue
+		var dur: int = int(modules[mid].get("durability", 100))
+		if dur <= 50 and randf() < p:
+			destroyed.append(str(modules[mid].get("name", mid)))
+			slots_to_clear.append(slot_idx)
 	for slot_idx in slots_to_clear:
-		# When a module is destroyed, it's just removed. 
-		# We don't call unequip_slot because that returns it to inventory.
 		var mid = loadout.get(slot_idx)
 		if mid:
-			if mid.begins_with("custom_"):
+			if str(mid).begins_with("custom_"):
 				custom_modules.erase(mid)
 				modules.erase(mid)
 			loadout[slot_idx] = null
-	
-	recalc_stats()
+	if not slots_to_clear.is_empty():
+		recalc_stats()
+	return destroyed
 	inventory_updated.emit()
 
 func log_msg(msg: String):
@@ -3074,16 +3090,16 @@ func get_relic_reduction_factor(zone_id: String) -> float:
 	var red: float = clampf(float(r.get("relic_reduction", 0.0)), 0.0, 0.99)
 	return 1.0 - red
 
-func repair_module(slot_idx: int, cost_credits: int, cost_parts: int) -> bool:
-	if GameState.resources.get_currency("credits") < cost_credits: return false
+func repair_module(slot_idx: int, cost_parts: int) -> bool:
+	# v125: repair is Spare-Parts only (no Liras). Spare Parts come from demolishing
+	# surplus modules — that's the maintenance sink that keeps worn gear alive.
 	if GameState.resources.get_element_amount("SparePart") < cost_parts: return false
-	
+
 	var mid = loadout.get(slot_idx)
 	if not mid or not mid.begins_with("custom_"): return false
-	
-	GameState.resources.remove_currency("credits", cost_credits)
+
 	GameState.resources.remove_element("SparePart", cost_parts)
-	
+
 	modules[mid]["durability"] = 100
 	if mid in custom_modules:
 		custom_modules[mid]["durability"] = 100

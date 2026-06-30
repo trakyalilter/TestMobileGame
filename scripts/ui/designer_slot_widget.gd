@@ -974,13 +974,12 @@ func _try_repair():
 	var chunks = ceili(missing / 10.0)
 	var rarity = manager.get_module_rarity(equipped_id)
 	
-	# Cost calculation
+	# v125: cost is Spare Parts only (no Liras).
 	var parts_cost = manager.RARITY_SPARE_PARTS.get(rarity, 1) * chunks
-	var credit_cost = max(50, int(manager.get_sell_price(equipped_id) * 0.2)) * chunks
-	
-	_spawn_custom_repair_modal(m_data, cur_dur, credit_cost, parts_cost)
 
-func _spawn_custom_repair_modal(m_data: Dictionary, cur_dur: int, credit_cost: int, parts_cost: int):
+	_spawn_custom_repair_modal(m_data, cur_dur, parts_cost)
+
+func _spawn_custom_repair_modal(m_data: Dictionary, cur_dur: int, parts_cost: int):
 	var layer = CanvasLayer.new()
 	layer.layer = 100
 	
@@ -1037,24 +1036,24 @@ func _spawn_custom_repair_modal(m_data: Dictionary, cur_dur: int, credit_cost: i
 	cost_box.add_theme_constant_override("separation", 4)
 	vbox.add_child(cost_box)
 	
-	var c_lbl = Label.new()
-	c_lbl.text = "Cost: %s Liras" % UITheme.format_num(credit_cost)
-	c_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	c_lbl.add_theme_font_size_override("font_size", 14)
-	c_lbl.add_theme_color_override("font_color", Color(0.9, 0.9, 0.4))
-	cost_box.add_child(c_lbl)
-	
 	var p_lbl = Label.new()
-	p_lbl.text = "Required: %d Spare Parts" % parts_cost
+	p_lbl.text = "Cost: %d Spare Parts" % parts_cost
 	p_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	p_lbl.add_theme_font_size_override("font_size", 14)
-	p_lbl.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+	p_lbl.add_theme_color_override("font_color", Color(0.9, 0.9, 0.4))
 	cost_box.add_child(p_lbl)
-	
-	var has_funds = GameState.resources.get_currency("credits") >= credit_cost and GameState.resources.get_element_amount("SparePart") >= parts_cost
+
+	var p_have = Label.new()
+	p_have.text = "You have: %d" % GameState.resources.get_element_amount("SparePart")
+	p_have.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	p_have.add_theme_font_size_override("font_size", 12)
+	p_have.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+	cost_box.add_child(p_have)
+
+	var has_funds = GameState.resources.get_element_amount("SparePart") >= parts_cost
 	if not has_funds:
 		var w_lbl = Label.new()
-		w_lbl.text = "INSUFFICIENT RESOURCES"
+		w_lbl.text = "NOT ENOUGH SPARE PARTS"
 		w_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		w_lbl.add_theme_font_size_override("font_size", 12)
 		w_lbl.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3))
@@ -1082,11 +1081,11 @@ func _spawn_custom_repair_modal(m_data: Dictionary, cur_dur: int, credit_cost: i
 	
 	cancel.pressed.connect(layer.queue_free)
 	confirm.pressed.connect(func():
-		if manager.repair_module(slot_idx, credit_cost, parts_cost):
+		if manager.repair_module(slot_idx, parts_cost):
 			UITheme.show_notification("Repaired Successfully!", Color.GREEN)
 			parent_ui.trigger_refresh()
 		else:
-			UITheme.show_notification("Insufficient Resources", Color.RED)
+			UITheme.show_notification("Not enough Spare Parts", Color.RED)
 		layer.queue_free()
 	)
 	

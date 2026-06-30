@@ -33,11 +33,18 @@ var offline_report: String = ""   # legacy string (dead offline_modal.gd guards 
 var offline_report_data: Array = []
 var offline_away_sec: float = 0.0
 var offline_capped: bool = false
+# v123: transient page to land on after a scene reload (Sys Config palette swap).
+# Not persisted — survives reload because GameState is an autoload.
+var ui_return_page: String = ""
 var elements_db: Array = []
 
 # v52.1: Game Settings (opt-in features)
 var game_settings: Dictionary = {
 	"offline_combat": false,  # Disabled by default
+	# v125: one-time consent shown the first time Offline Combat is enabled
+	# (it can destroy modules already worn to <=50% durability). Cleared on
+	# hard_reset so a new playthrough re-confirms.
+	"offline_combat_warned": false,
 	# v114 (Zone Tier-Gate): gates the front/back sector-hardening system.
 	# Default true → a brand-new game (no save) is gated. New Game (hard_reset)
 	# re-sets it true. Loading a PRE-feature save (no key) flips it false in
@@ -480,6 +487,8 @@ func hard_reset():
 	if shipyard_manager: shipyard_manager.equipped_relic = ""
 	# Re-arm the one-time "enable Offline Combat" tip for the new playthrough.
 	game_settings.erase("offline_combat_nudge_seen")
+	# v125: re-arm the offline-combat durability-risk consent prompt.
+	game_settings.erase("offline_combat_warned")
 	mission_manager.reset()
 	if quest_manager: quest_manager.reset()
 	# ... others

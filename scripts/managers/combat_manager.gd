@@ -1405,7 +1405,7 @@ func _rebuild_player_weapon_states() -> void:
 					"dmg_k": m_stats.get("atk_kinetic", 0) * GameState.warp_manager.get_tree_damage_bonus(),
 					"dmg_e": m_stats.get("atk_energy", 0) * GameState.warp_manager.get_tree_damage_bonus(),
 					"dmg_x": m_stats.get("atk_explosive", 0) * GameState.warp_manager.get_tree_damage_bonus(),
-					"dmg_cryo": m_stats.get("atk_cryo", 0) * GameState.warp_manager.get_tree_damage_bonus() * GameState.warp_manager.get_tree_cryo_bonus(),  # v109: +C5 Cryo Overcharge
+					"dmg_cryo": m_stats.get("atk_cryo", 0) * GameState.warp_manager.get_tree_damage_bonus(),  # cryo uses the general damage bonus (Cryo Overcharge node removed)
 					"slot_idx": int(s_idx),
 					"energy_load": m_stats.get("energy_load", 0)
 				})
@@ -2879,7 +2879,15 @@ func calculate_offline(delta: float):
 
 	add_xp(total_xp)
 	total_kills += num_kills   # count offline kills (no per-kill signal offline)
-	
+
+	# v125: offline combat is unattended → modules already worn to <=50% durability
+	# can be lost (the risk the player consented to when enabling it). Surface
+	# exactly what was destroyed in the report — never a silent deletion.
+	var notes: Array = []
+	var lost_modules: Array = GameState.shipyard_manager.apply_offline_durability_risk(delta)
+	if not lost_modules.is_empty():
+		notes.append("⚠ Lost to offline wear (durability ≤50%%): %s" % [", ".join(PackedStringArray(lost_modules))])
+
 	# v112: structured offline block (was a formatted string). Liras fold into
 	# `gains` under "credits" so the ledger renders them as one row.
 	var gains = loot_summary.duplicate()
@@ -2894,6 +2902,6 @@ func calculate_offline(delta: float):
 		"xp": total_xp,
 		"gains": gains,
 		"drains": {},
-		"notes": [],
+		"notes": notes,
 		"status": "active",
 	}
