@@ -13,7 +13,7 @@ var max_energy: float = 0.0
 var lifetime_credits: float = 0.0
 var base_slots: int = 28
 var storage_upgrades: int = 0 # Feature P65-X: Manual Storage Upgrade
-var _last_full_warn_ms: int = 0  # throttle for the inventory-full warning
+var _was_full: bool = false  # one-shot guard: warn once on the empty→full transition; re-arms when a slot frees
 
 func _ready():
 	# Initial Starter Kit if elements are empty (New Game)
@@ -68,18 +68,23 @@ func add_element(symbol: String, amount: float):
 		# are kept over-cap rather than silently lost — dropping a Z#_Core would
 		# soft-lock zone-access research. Bulk basics still hit the cap (the sink).
 		if elements.size() >= get_max_slots() and not ElementDB.is_slot_protected(symbol):
-			# Inventory full: this output is being silently lost. Tell the
-			# player (throttled) instead of failing invisibly.
-			var now := Time.get_ticks_msec()
-			if now - _last_full_warn_ms >= 5000:
-				_last_full_warn_ms = now
+			# Inventory full: this output is silently lost. Warn ONCE on the
+			# transition (the header slot meter is the persistent indicator);
+			# re-arms when a slot frees (remove_element).
+			if not _was_full:
+				_was_full = true
 				UITheme.show_notification("Inventory full — new resources are being wasted. Sell or expand storage.", Color(1.0, 0.45, 0.35))
 			return
 		elements[symbol] = 0.0
-	
+
 	# No quantity limit per slot
 	elements[symbol] = elements[symbol] + amount
 	element_added.emit(symbol, amount)
+	# Fire the warning once the LAST free slot just got used (filling up, not
+	# just a refused drop) — same one-shot guard.
+	if not _was_full and elements.size() >= get_max_slots():
+		_was_full = true
+		UITheme.show_notification("Inventory full — new resources are being wasted. Sell or expand storage.", Color(1.0, 0.45, 0.35))
 
 func remove_element(symbol: String, amount: float) -> bool:
 	if not is_finite(amount) or amount <= 0: return false # Safety: Cannot "remove" negative or zero
@@ -89,6 +94,7 @@ func remove_element(symbol: String, amount: float) -> bool:
 		# Cleanup empty keys
 		if elements[symbol] <= 0:
 			elements.erase(symbol)
+			_was_full = false   # a slot just freed → re-arm the full warning
 		
 		element_removed.emit(symbol, amount)
 		return true

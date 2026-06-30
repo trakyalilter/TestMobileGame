@@ -30,6 +30,7 @@ var _page_lbl: Label = null
 var manager: RefCounted
 var active_filter := "all"
 var is_repair_mode := false
+var _repair_tool_tex: Texture2D = null   # tilted-hammer icon (button + custom cursor)
 var tab_buttons: Dictionary = {}
 var slot_widget_scene = preload("res://scenes/ui/designer_slot_widget.tscn")
 var ammo_slot_scene = preload("res://scenes/ui/designer_ammo_slot_widget.tscn")
@@ -60,13 +61,50 @@ var armory_sort_dropdown: OptionButton
 var armory_manage_btn: Button
 var armory_search_text: String = ""
 
-const FRAME_BG := Color(0.09, 0.07, 0.06, 0.96)
-const FRAME_EDGE := Color(0.42, 0.30, 0.21, 0.95)
-const TITLE_GOLD := Color(0.84, 0.70, 0.45)
-const TEXT_MAIN := Color(0.90, 0.86, 0.78)
-const TEXT_DIM := Color(0.62, 0.57, 0.50)
-const TAB_BASE := Color(0.16, 0.11, 0.08)
-const TAB_EDGE := Color(0.44, 0.31, 0.21)
+# Palette-aware theme surface colours. Default literals are the legacy
+# parchment/brass values; _apply_theme() (first call in _ready) repoints each
+# to a UITheme palette token so the page re-themes when the player swaps
+# palettes in Sys Config. Kept as vars (not const) because const cannot
+# reference the runtime UITheme.COLORS dictionary.
+var FRAME_BG := Color(0.09, 0.07, 0.06, 0.96)
+var FRAME_EDGE := Color(0.42, 0.30, 0.21, 0.95)
+var TITLE_GOLD := Color(0.84, 0.70, 0.45)
+var TEXT_MAIN := Color(0.90, 0.86, 0.78)
+var TEXT_DIM := Color(0.62, 0.57, 0.50)
+var TAB_BASE := Color(0.16, 0.11, 0.08)
+var TAB_EDGE := Color(0.44, 0.31, 0.21)
+
+func _apply_theme() -> void:
+	# Repoint the theme-surface vars onto the active palette tokens. Roles:
+	#   FRAME_BG   panel background        -> panel_bg (keep 0.96 alpha)
+	#   FRAME_EDGE panel border            -> accent   (keep 0.95 alpha)
+	#   TITLE_GOLD page-identity gold       -> accent_bright
+	#   TEXT_MAIN  body text                -> text_main
+	#   TEXT_DIM   dim/secondary text       -> text_dim
+	#   TAB_BASE   tab/chip base fill       -> sidebar
+	#   TAB_EDGE   tab/chip border          -> accent (keep its role alpha at read sites)
+	FRAME_BG = Color(UITheme.COLORS["panel_bg"], 0.96)
+	FRAME_EDGE = Color(UITheme.COLORS["accent"], 0.95)
+	TITLE_GOLD = UITheme.COLORS["accent_bright"]
+	TEXT_MAIN = UITheme.COLORS["text_main"]
+	TEXT_DIM = UITheme.COLORS["text_dim"]
+	TAB_BASE = UITheme.COLORS["sidebar"]
+	TAB_EDGE = UITheme.COLORS["accent"]
+
+	# Per-tab filter accents follow the palette's category colours so each
+	# armory tab reads as its semantic identity in any palette.
+	var cat := UITheme.CATEGORY_COLORS
+	var col := UITheme.COLORS
+	FILTER_CONFIG["all"]["accent"] = col["accent"]
+	FILTER_CONFIG["weapon"]["accent"] = cat["combat"]
+	FILTER_CONFIG["shield"]["accent"] = cat["engineering"]
+	FILTER_CONFIG["armor"]["accent"] = col["accent"]
+	FILTER_CONFIG["engine"]["accent"] = col["accent_bright"]
+	FILTER_CONFIG["battery"]["accent"] = cat["infrastructure"]
+	FILTER_CONFIG["utility"]["accent"] = cat["research"]
+	FILTER_CONFIG["ammo"]["accent"] = cat["inventory"]
+	FILTER_CONFIG["consumables"]["accent"] = cat["ops"]
+	FILTER_CONFIG["matrix"]["accent"] = cat["research"]
 
 # v111.15: full-word labels (no more WPN/SHD/ARM abbreviations) and the old
 # combined "ordnance" filter split into separate AMMO + CONSUMABLES tabs.
@@ -100,7 +138,10 @@ const ORDNANCE_AMMO_IDS := [
 	"CellT1", "CellT2", "CellT3", "CellT4",
 	"MissileT1", "MissileT2", "MissileT3", "MissileT4"
 ]
-const FILTER_CONFIG := {
+# NOTE: `var` (not const) — the per-tab accents are repointed to palette
+# CATEGORY_COLORS in _apply_theme() so the filter tabs follow the chosen
+# palette. Literal defaults below stay as the legacy fallback.
+var FILTER_CONFIG := {
 	"all": {"node": "AllTab", "accent": Color(0.80, 0.73, 0.62)},
 	"weapon": {"node": "WeaponTab", "accent": Color(0.92, 0.50, 0.35)},
 	"shield": {"node": "ShieldTab", "accent": Color(0.56, 0.76, 0.96)},
@@ -116,21 +157,13 @@ const FILTER_CONFIG := {
 }
 
 func _ready():
+	_apply_theme()   # repoint palette-aware vars BEFORE any UI is built
 	manager = GameState.shipyard_manager
 	visibility_changed.connect(_on_visibility_changed)
 	GameState.game_loaded.connect(trigger_refresh)
 	
 	if btn_repair_mode:
-		_apply_toolbar_button_style(btn_repair_mode, Color(0.95, 0.78, 0.30))
-		btn_repair_mode.toggled.connect(func(toggled_on):
-			is_repair_mode = toggled_on
-			# Re-apply style so the "pressed" edge actually persists while toggled on
-			_apply_toolbar_button_style(btn_repair_mode, Color(0.95, 0.78, 0.30))
-			if is_repair_mode:
-				Input.set_default_cursor_shape(Input.CURSOR_CROSS)
-			else:
-				Input.set_default_cursor_shape(Input.CURSOR_ARROW)
-		)
+		_setup_repair_tool_button()
 	if GameState.warp_manager:
 		GameState.warp_manager.warped.connect(_on_warp_refresh)
 	manager.inventory_updated.connect(_on_inventory_updated)
@@ -185,8 +218,8 @@ func _build_drag_hint_banner_if_needed() -> void:
 	var banner = PanelContainer.new()
 	banner.name = "DragHintBanner"
 	var sb = StyleBoxFlat.new()
-	sb.bg_color = Color(0.15, 0.13, 0.08, 0.92)
-	sb.border_color = Color(0.95, 0.86, 0.55, 0.70)
+	sb.bg_color = Color(UITheme.COLORS["panel_bg"], 0.92)
+	sb.border_color = Color(UITheme.COLORS["warning"], 0.70)
 	sb.set_border_width_all(1)
 	sb.set_corner_radius_all(4)
 	sb.content_margin_left = 14
@@ -199,7 +232,7 @@ func _build_drag_hint_banner_if_needed() -> void:
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	lbl.add_theme_font_size_override("font_size", 12)
-	lbl.add_theme_color_override("font_color", Color(0.95, 0.86, 0.55))
+	lbl.add_theme_color_override("font_color", UITheme.COLORS["warning"])
 	banner.add_child(lbl)
 	var vbox = $VBoxContainer
 	vbox.add_child(banner)
@@ -289,8 +322,8 @@ func _apply_designer_styles():
 	bay_lbl.visible = false
 
 	_apply_frame_style(info_panel, FRAME_BG, FRAME_EDGE)
-	_apply_frame_style(schematic_area, Color(0.08, 0.06, 0.05, 0.96), Color(0.37, 0.27, 0.19, 0.92))
-	_apply_frame_style(right_panel, Color(0.08, 0.06, 0.05, 0.96), Color(0.47, 0.32, 0.19, 0.92))
+	_apply_frame_style(schematic_area, Color(UITheme.COLORS["panel_bg"], 0.96), Color(UITheme.COLORS["accent"], 0.92))
+	_apply_frame_style(right_panel, Color(UITheme.COLORS["panel_bg"], 0.96), Color(UITheme.COLORS["accent"], 0.92))
 	# Themed CardChrome on the three big container panels (like the main
 	# menu). _apply_frame_style sets no content_margin and these are
 	# PanelContainers with nested-container content, so the chrome spans the
@@ -355,7 +388,7 @@ func _setup_bulk_actions():
 	btn_selection_toggle.text = "SELECT MODULES"
 	btn_selection_toggle.toggle_mode = true
 	btn_selection_toggle.toggled.connect(_on_selection_mode_toggled)
-	_apply_filter_button_style(btn_selection_toggle, false, Color(0.3, 0.8, 0.9))
+	_apply_filter_button_style(btn_selection_toggle, false, UITheme.COLORS["accent"])
 	bulk_actions_container.add_child(btn_selection_toggle)
 
 	btn_demolish_selected = Button.new()
@@ -363,7 +396,7 @@ func _setup_bulk_actions():
 	btn_demolish_selected.disabled = true
 	btn_demolish_selected.visible = false
 	btn_demolish_selected.pressed.connect(_on_demolish_selected_pressed)
-	_apply_filter_button_style(btn_demolish_selected, false, Color(0.9, 0.3, 0.3))
+	_apply_filter_button_style(btn_demolish_selected, false, UITheme.COLORS["negative"])
 	bulk_actions_container.add_child(btn_demolish_selected)
 	
 	btn_clear = Button.new()
@@ -374,7 +407,7 @@ func _setup_bulk_actions():
 		_update_bulk_ui()
 		rebuild_storage()
 	)
-	_apply_filter_button_style(btn_clear, false, Color(0.7, 0.7, 0.7))
+	_apply_filter_button_style(btn_clear, false, UITheme.COLORS["text_dim"])
 	bulk_actions_container.add_child(btn_clear)
 
 	# Scrap-by-rarity quick actions
@@ -382,14 +415,14 @@ func _setup_bulk_actions():
 	btn_scrap_common.text = "SCRAP COMMONS"
 	btn_scrap_common.tooltip_text = "Demolish every non-equipped Common module."
 	btn_scrap_common.pressed.connect(_on_scrap_by_rarity.bind(0))
-	_apply_filter_button_style(btn_scrap_common, false, Color(0.70, 0.70, 0.70))
+	_apply_filter_button_style(btn_scrap_common, false, UITheme.COLORS["text_dim"])
 	bulk_actions_container.add_child(btn_scrap_common)
 
 	var btn_scrap_junk = Button.new()
 	btn_scrap_junk.text = "SCRAP JUNK"
 	btn_scrap_junk.tooltip_text = "Demolish every non-equipped Common + Uncommon module."
 	btn_scrap_junk.pressed.connect(_on_scrap_by_rarity.bind(1))
-	_apply_filter_button_style(btn_scrap_junk, false, Color(0.30, 0.85, 0.40))
+	_apply_filter_button_style(btn_scrap_junk, false, UITheme.COLORS["positive"])
 	bulk_actions_container.add_child(btn_scrap_junk)
 
 	# v111.7: storage_grid now lives inside a GutterMargin (reserves space for
@@ -422,7 +455,7 @@ func _setup_bulk_actions():
 			_update_sort_button_styles()
 			rebuild_storage()
 		)
-		_apply_filter_button_style(btn, i == 0, Color(0.65, 0.60, 0.82))
+		_apply_filter_button_style(btn, i == 0, UITheme.CATEGORY_COLORS["research"])
 		sort_row.add_child(btn)
 		_sort_buttons.append(btn)
 
@@ -450,13 +483,13 @@ func _setup_armory_toolbar(v_box: Node, scroll_node: Node):
 	var title = Label.new()
 	title.text = "ARMORY"
 	title.add_theme_font_size_override("font_size", 13)
-	title.add_theme_color_override("font_color", Color(0.95, 0.80, 0.30))
+	title.add_theme_color_override("font_color", UITheme.COLORS["accent_bright"])
 	title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	toolbar.add_child(title)
 
 	# Search — primary filter, takes most width
 	armory_search = LineEdit.new()
-	armory_search.placeholder_text = "🔍  Search    tier:3   set:architect   slot:weapon"
+	armory_search.placeholder_text = "Search    tier:3   set:architect   slot:weapon"
 	armory_search.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	armory_search.clear_button_enabled = true
 	armory_search.add_theme_font_size_override("font_size", 11)
@@ -486,11 +519,11 @@ func _setup_armory_toolbar(v_box: Node, scroll_node: Node):
 	armory_manage_btn.toggle_mode = true
 	armory_manage_btn.tooltip_text = "Reveal bulk actions (select / demolish / scrap)."
 	armory_manage_btn.add_theme_font_size_override("font_size", 11)
-	_apply_toolbar_button_style(armory_manage_btn, Color(0.55, 0.85, 0.95))
+	_apply_toolbar_button_style(armory_manage_btn, UITheme.COLORS["accent"])
 	armory_manage_btn.toggled.connect(func(on):
 		if bulk_actions_container:
 			bulk_actions_container.visible = on
-		_apply_toolbar_button_style(armory_manage_btn, Color(0.55, 0.85, 0.95)))
+		_apply_toolbar_button_style(armory_manage_btn, UITheme.COLORS["accent"]))
 	toolbar.add_child(armory_manage_btn)
 
 	v_box.add_child(toolbar)
@@ -501,7 +534,7 @@ func _setup_armory_toolbar(v_box: Node, scroll_node: Node):
 func _apply_toolbar_button_style(button: Button, accent: Color):
 	# Toggle-aware: pressed state shows a lit accent edge so on/off is obvious.
 	var normal := StyleBoxFlat.new()
-	normal.bg_color = Color(0.10, 0.07, 0.05, 0.95)
+	normal.bg_color = Color(UITheme.COLORS["background"], 0.95)
 	normal.set_corner_radius_all(4)
 	normal.set_border_width_all(1)
 	var n_edge: Color = accent
@@ -526,8 +559,8 @@ func _apply_toolbar_button_style(button: Button, accent: Color):
 	pressed.shadow_size = 5
 
 	var disabled := normal.duplicate()
-	disabled.bg_color = Color(0.08, 0.06, 0.05, 0.70)
-	disabled.border_color = Color(0.22, 0.18, 0.15, 0.70)
+	disabled.bg_color = Color(UITheme.COLORS["background"], 0.70)
+	disabled.border_color = Color(UITheme.COLORS["text_dim"], 0.70)
 
 	button.add_theme_stylebox_override("normal", normal)
 	button.add_theme_stylebox_override("hover", hover)
@@ -545,16 +578,16 @@ func _apply_toolbar_button_style(button: Button, accent: Color):
 
 func _apply_dropdown_style(opt: OptionButton):
 	# Style the OptionButton itself like a toolbar button…
-	_apply_toolbar_button_style(opt, Color(0.85, 0.70, 0.45))
+	_apply_toolbar_button_style(opt, UITheme.COLORS["accent_bright"])
 	opt.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	# …and style its popup list to match the brass/parchment palette.
 	var popup := opt.get_popup()
 	if popup == null: return
 	var panel := StyleBoxFlat.new()
-	panel.bg_color = Color(0.07, 0.05, 0.04, 0.98)
+	panel.bg_color = Color(UITheme.COLORS["background"], 0.98)
 	panel.set_corner_radius_all(3)
 	panel.set_border_width_all(1)
-	panel.border_color = Color(0.85, 0.70, 0.45, 0.65)
+	panel.border_color = Color(UITheme.COLORS["accent_bright"], 0.65)
 	panel.content_margin_left = 4
 	panel.content_margin_right = 4
 	panel.content_margin_top = 4
@@ -564,9 +597,9 @@ func _apply_dropdown_style(opt: OptionButton):
 	popup.add_theme_stylebox_override("panel", panel)
 
 	var hover := StyleBoxFlat.new()
-	hover.bg_color = Color(0.18, 0.13, 0.08, 1.0)
+	hover.bg_color = Color(UITheme.COLORS["panel_bg"], 1.0)
 	hover.border_width_left = 2
-	hover.border_color = Color(0.85, 0.70, 0.45, 0.95)
+	hover.border_color = Color(UITheme.COLORS["accent_bright"], 0.95)
 	hover.set_corner_radius_all(2)
 	hover.content_margin_left = 8
 	hover.content_margin_right = 8
@@ -575,13 +608,13 @@ func _apply_dropdown_style(opt: OptionButton):
 	popup.add_theme_stylebox_override("hover", hover)
 
 	popup.add_theme_color_override("font_color", TEXT_MAIN)
-	popup.add_theme_color_override("font_hover_color", Color(1.0, 0.92, 0.55))
+	popup.add_theme_color_override("font_hover_color", UITheme.COLORS["accent_bright"])
 	popup.add_theme_color_override("font_separator_color", TAB_EDGE)
 	popup.add_theme_font_size_override("font_size", 11)
 
 func _apply_search_field_style(le: LineEdit):
 	var normal := StyleBoxFlat.new()
-	normal.bg_color = Color(0.06, 0.04, 0.03, 0.98)
+	normal.bg_color = Color(UITheme.COLORS["background"], 0.98)
 	normal.set_corner_radius_all(4)
 	normal.set_border_width_all(1)
 	normal.border_color = TAB_EDGE
@@ -591,16 +624,16 @@ func _apply_search_field_style(le: LineEdit):
 	normal.content_margin_bottom = 5
 
 	var focus := normal.duplicate()
-	focus.border_color = Color(0.95, 0.78, 0.45, 0.95)
+	focus.border_color = Color(UITheme.COLORS["accent_bright"], 0.95)
 	focus.border_width_bottom = 2
-	focus.shadow_color = Color(0.85, 0.70, 0.45, 0.18)
+	focus.shadow_color = Color(UITheme.COLORS["accent_bright"], 0.18)
 	focus.shadow_size = 4
 
 	le.add_theme_stylebox_override("normal", normal)
 	le.add_theme_stylebox_override("focus", focus)
 	le.add_theme_color_override("font_color", TEXT_MAIN)
 	le.add_theme_color_override("font_placeholder_color", TEXT_DIM)
-	le.add_theme_color_override("caret_color", Color(0.85, 0.70, 0.45))
+	le.add_theme_color_override("caret_color", UITheme.COLORS["accent_bright"])
 
 func _setup_loadout_preset_row(parent: Node, insert_idx: int):
 	var preset_row = HBoxContainer.new()
@@ -625,7 +658,7 @@ func _setup_loadout_preset_row(parent: Node, insert_idx: int):
 		load_btn.custom_minimum_size = Vector2(34, 0)
 		load_btn.pressed.connect(_on_preset_load.bind(i))
 		load_btn.add_theme_font_size_override("font_size", 11)
-		_apply_filter_button_style(load_btn, false, Color(0.95, 0.80, 0.30))
+		_apply_filter_button_style(load_btn, false, UITheme.COLORS["accent_bright"])
 		preset_row.add_child(load_btn)
 		_preset_load_buttons.append(load_btn)
 
@@ -634,7 +667,7 @@ func _setup_loadout_preset_row(parent: Node, insert_idx: int):
 	save_menu.tooltip_text = "Save the current ship build to a preset slot."
 	save_menu.add_theme_font_size_override("font_size", 10)
 	save_menu.flat = false
-	_apply_filter_button_style(save_menu, false, Color(0.55, 0.85, 0.95))
+	_apply_filter_button_style(save_menu, false, UITheme.COLORS["accent"])
 	var save_popup = save_menu.get_popup()
 	for i in [1, 2, 3, 4, 5]:
 		save_popup.add_item("Save to Preset %d" % i, i)
@@ -649,7 +682,7 @@ func _setup_loadout_preset_row(parent: Node, insert_idx: int):
 	# reads as two grouped zones instead of one undifferentiated stack.
 	var divider = HSeparator.new()
 	var dsb := StyleBoxLine.new()
-	dsb.color = Color(0.45, 0.38, 0.30, 0.35)
+	dsb.color = Color(UITheme.COLORS["text_dim"], 0.35)
 	dsb.thickness = 1
 	divider.add_theme_stylebox_override("separator", dsb)
 	parent.add_child(divider)
@@ -672,19 +705,19 @@ func _refresh_preset_buttons():
 func _on_preset_save(idx: int):
 	if not manager: return
 	if manager.save_loadout_preset(idx):
-		UITheme.show_notification("Loadout saved to Preset %d" % idx, Color(0.50, 0.95, 1.0))
+		UITheme.show_notification("Loadout saved to Preset %d" % idx, UITheme.COLORS["accent"])
 		_refresh_preset_buttons()
 
 func _on_preset_load(idx: int):
 	if not manager: return
 	var result = manager.load_loadout_preset(idx)
 	if result["loaded"] == 0 and result["skipped"] == 0:
-		UITheme.show_notification("Preset %d is empty." % idx, Color.RED)
+		UITheme.show_notification("Preset %d is empty." % idx, UITheme.COLORS["negative"])
 		return
 	var msg = "Loaded Preset %d  —  %d slot(s) restored" % [idx, result["loaded"]]
 	if result["skipped"] > 0:
 		msg += "  |  %d missing" % result["skipped"]
-	UITheme.show_notification(msg, Color(0.95, 0.80, 0.30))
+	UITheme.show_notification(msg, UITheme.COLORS["accent_bright"])
 	# Force full UI refresh — slots & armory both depend on loadout
 	trigger_refresh()
 
@@ -693,7 +726,7 @@ func _on_scrap_by_rarity(max_rarity: int):
 	var count = manager.count_demolish_candidates_by_rarity(max_rarity)
 	if count <= 0:
 		var name = "Common" if max_rarity == 0 else "Junk"
-		UITheme.show_notification("No %s modules to scrap." % name, Color(0.7, 0.7, 0.7))
+		UITheme.show_notification("No %s modules to scrap." % name, UITheme.COLORS["text_dim"])
 		return
 	# v112: themed modal (was the primitive Window ConfirmationDialog).
 	var plural = "" if count == 1 else "s"
@@ -701,14 +734,14 @@ func _on_scrap_by_rarity(max_rarity: int):
 	body += "[color=#73e88c]You'll receive Liras, Spare Parts, and zone salvage.[/color]"
 	var on_ok := func():
 		var scrapped = manager.bulk_demolish_by_rarity(max_rarity)
-		UITheme.show_notification("Demolished %d module(s)" % scrapped, Color(0.95, 0.55, 0.25))
+		UITheme.show_notification("Demolished %d module(s)" % scrapped, UITheme.COLORS["warning"])
 		trigger_refresh()
 	UITheme.show_confirm({
 		"title": "Bulk Demolish",
 		"body": body,
 		"confirm_text": "Demolish",
 		"cancel_text": "Cancel",
-		"accent": Color(1.0, 0.8, 0.2),   # inventory gold
+		"accent": UITheme.CATEGORY_COLORS["inventory"],   # inventory gold
 		"danger": true,                    # destroys modules → red confirm
 		"on_confirm": on_ok,
 	})
@@ -756,7 +789,7 @@ func _slot_type_to_filter(s_type: String) -> String:
 		_: return s_type
 
 func _update_sort_button_styles():
-	var accent = Color(0.65, 0.60, 0.82)
+	var accent = UITheme.CATEGORY_COLORS["research"]
 	for i in range(_sort_buttons.size()):
 		if i < _sort_buttons.size() and is_instance_valid(_sort_buttons[i]):
 			_apply_filter_button_style(_sort_buttons[i], i == armory_sort_mode, accent)
@@ -778,9 +811,9 @@ func _apply_frame_style(panel: PanelContainer, bg: Color, border: Color):
 
 func _apply_tab_frame_style():
 	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.07, 0.05, 0.04, 0.94)
+	style.bg_color = Color(UITheme.COLORS["background"], 0.94)
 	style.set_border_width_all(1)
-	style.border_color = Color(0.35, 0.24, 0.17, 0.85)
+	style.border_color = Color(UITheme.COLORS["accent"], 0.85)
 	style.set_corner_radius_all(3)
 	style.content_margin_left = 2
 	style.content_margin_top = 2
@@ -790,13 +823,13 @@ func _apply_tab_frame_style():
 
 func _apply_power_bar_style():
 	var track = StyleBoxFlat.new()
-	track.bg_color = Color(0.07, 0.05, 0.04, 0.95)
+	track.bg_color = Color(UITheme.COLORS["background"], 0.95)
 	track.set_border_width_all(1)
-	track.border_color = Color(0.35, 0.24, 0.16, 0.85)
+	track.border_color = Color(UITheme.COLORS["accent"], 0.85)
 	track.set_corner_radius_all(2)
 
 	var fill = StyleBoxFlat.new()
-	fill.bg_color = Color(0.79, 0.62, 0.27, 0.95)
+	fill.bg_color = Color(UITheme.COLORS["accent_bright"], 0.95)
 	fill.set_corner_radius_all(2)
 
 	power_bar.add_theme_stylebox_override("background", track)
@@ -821,7 +854,7 @@ func _apply_filter_button_style(button: Button, is_active: bool, accent: Color):
 	# the other 9 recede instead of forming a same-weight wall.
 	# Inactive = near-transparent ghost, very faint edge, dim text.
 	var normal = StyleBoxFlat.new()
-	normal.bg_color = Color(0.10, 0.08, 0.07, 0.22)   # ghost (was 0.92)
+	normal.bg_color = Color(UITheme.COLORS["panel_bg"], 0.22)   # ghost (was 0.92)
 	normal.set_corner_radius_all(4)
 	normal.set_border_width_all(1)
 	var dim_edge: Color = accent
@@ -850,8 +883,8 @@ func _apply_filter_button_style(button: Button, is_active: bool, accent: Color):
 	selected.shadow_size = 7
 
 	var disabled = normal.duplicate()
-	disabled.bg_color = Color(0.09, 0.07, 0.06, 0.18)
-	disabled.border_color = Color(0.25, 0.20, 0.18, 0.30)
+	disabled.bg_color = Color(UITheme.COLORS["background"], 0.18)
+	disabled.border_color = Color(UITheme.COLORS["text_dim"], 0.30)
 
 	button.add_theme_stylebox_override("normal", selected if is_active else normal)
 	button.add_theme_stylebox_override("hover", selected if is_active else hover)
@@ -865,9 +898,95 @@ func _apply_filter_button_style(button: Button, is_active: bool, accent: Color):
 		accent.lerp(Color.WHITE, 0.88) if is_active else accent.lerp(TEXT_DIM, 0.72))
 	button.add_theme_color_override("font_hover_color", accent.lerp(Color.WHITE, 0.65))
 	button.add_theme_color_override("font_pressed_color", accent.lerp(Color.WHITE, 0.9))
-	button.add_theme_color_override("font_disabled_color", Color(0.40, 0.36, 0.33))
+	button.add_theme_color_override("font_disabled_color", UITheme.COLORS["text_dim"])
 	button.add_theme_font_size_override("font_size", 10)
 	button.button_pressed = is_active
+
+# ── Repair tool (Diablo-style pick-up) ───────────────────────────────────────
+var _colored_repair_tool_tex: ImageTexture = null
+
+func _get_colored_hammer_tex() -> Texture2D:
+	if _colored_repair_tool_tex != null:
+		return _colored_repair_tool_tex
+	if not _repair_tool_tex:
+		return null
+	var img = _repair_tool_tex.get_image()
+	if not img:
+		return _repair_tool_tex
+	if img.is_compressed():
+		img.decompress()
+	img.resize(48, 48, Image.INTERPOLATE_BILINEAR)
+	var c = UITheme.COLORS["warning"]
+	for y in img.get_height():
+		for x in img.get_width():
+			var p = img.get_pixel(x, y)
+			p = p * c
+			img.set_pixel(x, y, p)
+	_colored_repair_tool_tex = ImageTexture.create_from_image(img)
+	return _colored_repair_tool_tex
+
+
+
+# The toggle button holds a tilted-hammer "tool". Pressing it picks the tool up:
+# the button empties and the cursor becomes the hammer. Clicking a damaged module
+# repairs it (handled in designer_slot_widget._gui_input via is_repair_mode).
+# Pressing the button again — or right-click / Esc — drops the tool back.
+func _setup_repair_tool_button() -> void:
+	_apply_toolbar_button_style(btn_repair_mode, UITheme.COLORS["warning"])
+	# Guard with exists() — the SVG has no .import until the editor reimports it;
+	# until then we degrade to the old text label + cross cursor (no error spam).
+	var ham_path := "res://assets/icons/repair_hammer.svg"
+	if ResourceLoader.exists(ham_path):
+		_repair_tool_tex = load(ham_path) as Texture2D
+	if _repair_tool_tex:
+		btn_repair_mode.text = ""
+		btn_repair_mode.icon = _get_colored_hammer_tex()
+		btn_repair_mode.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER   # center, not left-biased
+		btn_repair_mode.expand_icon = false
+		btn_repair_mode.add_theme_constant_override("icon_max_width", 18)
+
+		btn_repair_mode.add_theme_color_override("icon_normal_color", UITheme.COLORS["warning"])
+		btn_repair_mode.add_theme_color_override("icon_hover_color", UITheme.COLORS["warning"].lightened(0.2))
+		btn_repair_mode.add_theme_color_override("icon_pressed_color", UITheme.COLORS["warning"].lightened(0.35))
+		# Fixed square tool slot. The floor (40) must exceed the WITH-icon content
+		# width (style margins 10+10 + icon 18 = 38) so the slot stays the same size
+		# whether the hammer is in the slot or in hand (icon=null) — no resize.
+		btn_repair_mode.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		btn_repair_mode.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		btn_repair_mode.custom_minimum_size = Vector2(40, 40)
+	btn_repair_mode.tooltip_text = "Repair tool — pick it up, then click a damaged module. Right-click / Esc to put it back."
+	btn_repair_mode.toggled.connect(func(toggled_on):
+		is_repair_mode = toggled_on
+		# Re-apply style so the "pressed" edge persists while toggled on.
+		_apply_toolbar_button_style(btn_repair_mode, UITheme.COLORS["warning"])
+		if toggled_on:
+			_arm_repair_tool()
+		else:
+			_disarm_repair_tool()
+	)
+
+func _arm_repair_tool() -> void:
+	# Pick the tool out of its slot: button empties, cursor becomes the hammer.
+	if _repair_tool_tex:
+		var colored_tex = _get_colored_hammer_tex()
+		if not colored_tex:
+			colored_tex = _repair_tool_tex
+		Input.set_custom_mouse_cursor(colored_tex, Input.CURSOR_ARROW, Vector2(24, 24))
+		Input.set_custom_mouse_cursor(colored_tex, Input.CURSOR_POINTING_HAND, Vector2(24, 24))
+		btn_repair_mode.icon = null   # tool taken — the slot now reads as empty
+	else:
+		Input.set_default_cursor_shape(Input.CURSOR_CROSS)
+	btn_repair_mode.tooltip_text = "Tool in hand — click a damaged module to repair · right-click / Esc / click here to put it back."
+
+func _disarm_repair_tool() -> void:
+	# Drop the tool back into its slot.
+	Input.set_custom_mouse_cursor(null, Input.CURSOR_ARROW)
+	Input.set_custom_mouse_cursor(null, Input.CURSOR_POINTING_HAND)
+	Input.set_default_cursor_shape(Input.CURSOR_ARROW)
+	if _repair_tool_tex:
+		btn_repair_mode.icon = _get_colored_hammer_tex()
+	btn_repair_mode.tooltip_text = "Repair tool — pick it up, then click a damaged module. Right-click / Esc to put it back."
+
 
 func _on_visibility_changed():
 	if visible:
@@ -964,9 +1083,9 @@ func update_header():
 
 	# 2. HP / SHIELD as proper bars (the two things that get you killed)
 	stack.add_child(_build_resource_bar("HULL",   manager.current_hp, manager.max_hp,
-		Color(0.85, 0.40, 0.30), Color(0.30, 0.12, 0.10)))
+		UITheme.CATEGORY_COLORS["combat"], Color(0.30, 0.12, 0.10)))
 	stack.add_child(_build_resource_bar("SHIELD", manager.max_shield, manager.max_shield,
-		Color(0.45, 0.80, 1.00), Color(0.10, 0.20, 0.32)))
+		UITheme.CATEGORY_COLORS["engineering"], Color(0.10, 0.20, 0.32)))
 
 	# 3. POWER GRID with margin (the thing that gates equipping — promoted to first-class)
 	stack.add_child(_build_grid_bar(e_used, e_cap, grid_margin))
@@ -983,9 +1102,9 @@ func update_header():
 func _build_hero_dps_panel(dps: float) -> Control:
 	var panel = PanelContainer.new()
 	var bg := StyleBoxFlat.new()
-	bg.bg_color = Color(0.07, 0.05, 0.04, 0.95)
+	bg.bg_color = Color(UITheme.COLORS["background"], 0.95)
 	bg.set_border_width_all(1)
-	bg.border_color = Color(0.84, 0.70, 0.45, 0.60)
+	bg.border_color = Color(UITheme.COLORS["accent_bright"], 0.60)
 	bg.set_corner_radius_all(3)
 	bg.border_width_left = 4
 	bg.content_margin_left = 12
@@ -1011,7 +1130,7 @@ func _build_hero_dps_panel(dps: float) -> Control:
 	var value = Label.new()
 	value.text = UITheme.format_num(dps)
 	value.add_theme_font_size_override("font_size", 22)
-	value.add_theme_color_override("font_color", Color(0.95, 0.82, 0.42))
+	value.add_theme_color_override("font_color", UITheme.COLORS["accent_bright"])
 	value.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	hbox.add_child(value)
 	return panel
@@ -1073,16 +1192,16 @@ func _build_grid_bar(used: float, cap: float, margin: float) -> Control:
 	var margin_color: Color
 	var margin_prefix: String
 	if margin < 0:
-		fill_color = Color(1.0, 0.38, 0.34)
-		margin_color = Color(1.0, 0.45, 0.38)
+		fill_color = UITheme.COLORS["negative"]
+		margin_color = UITheme.COLORS["negative"]
 		margin_prefix = "OVERLOAD"
 	elif used > cap * 0.8:
-		fill_color = Color(1.0, 0.74, 0.31)
-		margin_color = Color(1.0, 0.80, 0.42)
+		fill_color = UITheme.COLORS["warning"]
+		margin_color = UITheme.COLORS["warning"]
 		margin_prefix = "MARGIN +%d" % int(margin)
 	else:
-		fill_color = Color(0.84, 0.70, 0.45)
-		margin_color = Color(0.80, 0.95, 0.55)
+		fill_color = UITheme.COLORS["accent_bright"]
+		margin_color = UITheme.COLORS["positive"]
 		margin_prefix = "MARGIN +%d" % int(margin)
 
 	var bar = ProgressBar.new()
@@ -1092,7 +1211,7 @@ func _build_grid_bar(used: float, cap: float, margin: float) -> Control:
 	bar.max_value = max(1.0, cap)
 	bar.value = clamp(used, 0.0, cap)
 	var bg = StyleBoxFlat.new()
-	bg.bg_color = Color(0.10, 0.08, 0.06, 1.0)
+	bg.bg_color = Color(UITheme.COLORS["background"], 1.0)
 	bg.set_corner_radius_all(2)
 	bg.set_border_width_all(1)
 	bg.border_color = fill_color.lerp(Color.BLACK, 0.6)
@@ -1122,11 +1241,11 @@ func _build_supporting_stats_row(atk: float, def: float, acc: float, crit_pct: f
 	row.add_theme_constant_override("separation", 14)
 
 	var chips = [
-		{"k": "ATK",  "v": UITheme.format_num(atk),       "col": Color(0.95, 0.57, 0.38)},
-		{"k": "DEF",  "v": UITheme.format_num(def),       "col": Color(0.79, 0.74, 0.66)},
-		{"k": "ACC",  "v": str(int(acc)),                  "col": Color(0.85, 0.81, 0.74)},
-		{"k": "CRIT", "v": "%.0f%%" % crit_pct,            "col": Color(0.93, 0.47, 0.38)},
-		{"k": "EVA",  "v": "%.0f" % eva,                   "col": Color(0.86, 0.84, 0.47)}
+		{"k": "ATK",  "v": UITheme.format_num(atk),       "col": UITheme.CATEGORY_COLORS["combat"]},
+		{"k": "DEF",  "v": UITheme.format_num(def),       "col": UITheme.COLORS["text_main"]},
+		{"k": "ACC",  "v": str(int(acc)),                  "col": UITheme.COLORS["text_main"]},
+		{"k": "CRIT", "v": "%.0f%%" % crit_pct,            "col": UITheme.CATEGORY_COLORS["combat"]},
+		{"k": "EVA",  "v": "%.0f" % eva,                   "col": UITheme.COLORS["warning"]}
 	]
 	for c in chips:
 		var chip = HBoxContainer.new()
@@ -1170,10 +1289,10 @@ func _build_sets_active_panel() -> Control:
 	# Compact single-line-per-set panel. Bonus details moved to per-line tooltips.
 	var panel = PanelContainer.new()
 	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.06, 0.06, 0.10, 0.85)
+	style.bg_color = Color(UITheme.COLORS["panel_bg"], 0.85)
 	style.set_corner_radius_all(2)
 	style.border_width_left = 2
-	style.border_color = Color(0.0, 0.80, 0.85, 0.55)
+	style.border_color = Color(UITheme.COLORS["accent"], 0.55)
 	style.content_margin_left = 8
 	style.content_margin_right = 8
 	style.content_margin_top = 3
@@ -1211,7 +1330,7 @@ func _build_sets_active_panel() -> Control:
 		pip_lbl.text = pips
 		pip_lbl.add_theme_font_size_override("font_size", 10)
 		pip_lbl.add_theme_color_override("font_color",
-			Color(1.0, 0.85, 0.30) if active else Color(0.65, 0.65, 0.70))
+			UITheme.COLORS["accent_bright"] if active else UITheme.COLORS["text_dim"])
 		line.add_child(pip_lbl)
 
 		var name_lbl = Label.new()
@@ -1219,16 +1338,16 @@ func _build_sets_active_panel() -> Control:
 		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		name_lbl.add_theme_font_size_override("font_size", 10)
 		name_lbl.add_theme_color_override("font_color",
-			Color(1.0, 0.92, 0.55) if active else Color(0.78, 0.78, 0.86))
+			UITheme.COLORS["accent_bright"] if active else UITheme.COLORS["text_main"])
 		line.add_child(name_lbl)
 
 		var status_lbl = Label.new()
 		if active:
 			status_lbl.text = "ACTIVE"
-			status_lbl.add_theme_color_override("font_color", Color(0.45, 1.00, 0.55))
+			status_lbl.add_theme_color_override("font_color", UITheme.COLORS["positive"])
 		else:
 			status_lbl.text = "%d/%d" % [have, total]
-			status_lbl.add_theme_color_override("font_color", Color(0.65, 0.65, 0.70))
+			status_lbl.add_theme_color_override("font_color", UITheme.COLORS["text_dim"])
 		status_lbl.add_theme_font_size_override("font_size", 9)
 		line.add_child(status_lbl)
 
@@ -1240,7 +1359,7 @@ func _build_sets_active_panel() -> Control:
 			var bv_str: String = "%d%%" % bv if ("_pct" in bk or "crit" in bk) else "%d" % bv
 			blines.append([bn, bv_str])
 		line.tip_title = info["name"]
-		line.accent = Color(1.0, 0.85, 0.30) if active else Color(0.20, 0.84, 0.90)
+		line.accent = UITheme.COLORS["accent_bright"] if active else UITheme.COLORS["accent"]
 		line.have = have
 		line.total = total
 		line.is_active = active
@@ -1331,9 +1450,9 @@ func _loadout_matches_preset(preset: Dictionary) -> bool:
 
 func _make_stat_tile_style(accent: Color) -> StyleBoxFlat:
 	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.10, 0.08, 0.07, 0.94)
+	style.bg_color = Color(UITheme.COLORS["panel_bg"], 0.94)
 	style.set_border_width_all(1)
-	style.border_color = accent.lerp(Color(0.43, 0.33, 0.24), 0.55)
+	style.border_color = accent.lerp(UITheme.COLORS["accent"], 0.55)
 	style.set_corner_radius_all(2)
 	style.content_margin_left = 2
 	style.content_margin_top = 2
@@ -1402,12 +1521,12 @@ func rebuild_slots():
 		else:
 			blades["Utility"].append({"idx": i, "type": slot_type})
 
-	_create_blade("Weapons", blades["Weapons"], slot_container, Color(0.90, 0.44, 0.31))
-	_create_blade("Ammunition", blades["Ammunition"], slot_container, Color(0.90, 0.58, 0.36), true)
-	_create_blade("Defense", blades["Defense"], slot_container, Color(0.58, 0.73, 0.92))
-	_create_blade("Armor", blades["Armor"], slot_container, Color(0.76, 0.70, 0.62))
-	_create_blade("Systems", blades["Systems"], slot_container, Color(0.83, 0.78, 0.45))
-	_create_blade("Utility", blades["Utility"], slot_container, Color(0.72, 0.63, 0.56))
+	_create_blade("Weapons", blades["Weapons"], slot_container, UITheme.CATEGORY_COLORS["combat"])
+	_create_blade("Ammunition", blades["Ammunition"], slot_container, UITheme.CATEGORY_COLORS["inventory"], true)
+	_create_blade("Defense", blades["Defense"], slot_container, UITheme.CATEGORY_COLORS["engineering"])
+	_create_blade("Armor", blades["Armor"], slot_container, UITheme.COLORS["accent"])
+	_create_blade("Systems", blades["Systems"], slot_container, UITheme.COLORS["accent_bright"])
+	_create_blade("Utility", blades["Utility"], slot_container, UITheme.CATEGORY_COLORS["research"])
 	_create_consumable_blade(slot_container)
 
 func _create_blade(title: String, slot_list: Array, parent: Node, color: Color = Color.WHITE, is_ammo: bool = false):
@@ -1454,9 +1573,9 @@ func _create_blade(title: String, slot_list: Array, parent: Node, color: Color =
 
 func _make_blade_style(accent: Color) -> StyleBoxFlat:
 	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.07, 0.05, 0.05, 0.88)
+	style.bg_color = Color(UITheme.COLORS["background"], 0.88)
 	style.set_border_width_all(1)
-	style.border_color = accent.lerp(Color(0.38, 0.28, 0.20), 0.55)
+	style.border_color = accent.lerp(UITheme.COLORS["accent"], 0.55)
 	style.set_corner_radius_all(2)
 	style.shadow_color = Color(0, 0, 0, 0.18)
 	style.shadow_size = 6
@@ -1465,7 +1584,7 @@ func _make_blade_style(accent: Color) -> StyleBoxFlat:
 
 func _create_consumable_blade(parent: Node):
 	var blade_panel = PanelContainer.new()
-	blade_panel.add_theme_stylebox_override("panel", _make_blade_style(Color(0.78, 0.65, 0.82)))
+	blade_panel.add_theme_stylebox_override("panel", _make_blade_style(UITheme.CATEGORY_COLORS["ops"]))
 	parent.add_child(blade_panel)
 	_consumable_blade = blade_panel  # coach/nav-hint anchor for Combat Triage
 
@@ -1483,7 +1602,7 @@ func _create_consumable_blade(parent: Node):
 	var label = Label.new()
 	label.text = "CONSUMABLES"
 	label.add_theme_font_size_override("font_size", 12)
-	label.add_theme_color_override("font_color", Color(0.78, 0.65, 0.82))
+	label.add_theme_color_override("font_color", UITheme.CATEGORY_COLORS["ops"])
 	vbox.add_child(label)
 
 	var flow = HFlowContainer.new()
@@ -1930,7 +2049,7 @@ func _equip_to_focused_slot(mid: String) -> void:
 				# so the player can keep swapping modules into it rapidly.
 				rebuild_storage()
 			else:
-				UITheme.show_notification("Can't equip there.", Color(1, 0.5, 0.4))
+				UITheme.show_notification("Can't equip there.", UITheme.COLORS["negative"])
 			return
 
 # ── v111.14 click-to-equip armed-module state ─────────────────────────
@@ -1996,20 +2115,20 @@ func _setup_page_nav() -> void:
 	_page_prev_btn = Button.new()
 	_page_prev_btn.text = "‹"
 	_page_prev_btn.custom_minimum_size = Vector2(34, 26)
-	_apply_filter_button_style(_page_prev_btn, false, Color(0.65, 0.60, 0.82))
+	_apply_filter_button_style(_page_prev_btn, false, UITheme.CATEGORY_COLORS["research"])
 	_page_prev_btn.pressed.connect(_on_page_prev)
 	_page_nav.add_child(_page_prev_btn)
 
 	_page_lbl = Label.new()
 	_page_lbl.add_theme_font_size_override("font_size", 11)
-	_page_lbl.add_theme_color_override("font_color", Color(0.78, 0.80, 0.88))
+	_page_lbl.add_theme_color_override("font_color", UITheme.COLORS["text_main"])
 	_page_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_page_nav.add_child(_page_lbl)
 
 	_page_next_btn = Button.new()
 	_page_next_btn.text = "›"
 	_page_next_btn.custom_minimum_size = Vector2(34, 26)
-	_apply_filter_button_style(_page_next_btn, false, Color(0.65, 0.60, 0.82))
+	_apply_filter_button_style(_page_next_btn, false, UITheme.CATEGORY_COLORS["research"])
 	_page_next_btn.pressed.connect(_on_page_next)
 	_page_nav.add_child(_page_next_btn)
 
@@ -2049,6 +2168,18 @@ func _clear_slot_highlights() -> void:
 			w.set_equip_highlight(false)
 
 func _unhandled_input(event: InputEvent) -> void:
+	# While the repair tool is in hand, right-click or Esc drops it back (Diablo-style).
+	if is_repair_mode and is_instance_valid(btn_repair_mode):
+		var drop := false
+		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
+			drop = true
+		elif event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+			drop = true
+		if drop:
+			btn_repair_mode.button_pressed = false   # fires toggled → _disarm_repair_tool
+			get_viewport().set_input_as_handled()
+			return
+
 	# Esc cancels whichever equip state is active (mutually exclusive).
 	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
 		if _armed_mid != "":
@@ -2082,7 +2213,7 @@ func _on_demolish_selected_pressed():
 # so the set reads as a collection goal, not a stat dump.
 class _SetTooltip extends HBoxContainer:
 	var tip_title: String = ""
-	var accent: Color = Color(0.20, 0.84, 0.90)
+	var accent: Color = UITheme.COLORS["accent"]
 	var have: int = 0
 	var total: int = 3
 	var is_active: bool = false
@@ -2131,7 +2262,7 @@ class _SetTooltip extends HBoxContainer:
 		var panel := PanelContainer.new()
 		panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var sb := StyleBoxFlat.new()
-		sb.bg_color = Color(0.07, 0.08, 0.12, 0.98)
+		sb.bg_color = Color(UITheme.COLORS["panel_bg"], 0.98)
 		sb.set_border_width_all(1)
 		sb.border_width_top = 3
 		sb.border_color = accent

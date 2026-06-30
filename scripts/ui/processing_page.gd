@@ -63,7 +63,7 @@ func _ready():
 	# v121: output search bar — type a material (e.g. "Steel", "Circuit") to filter
 	# recipes to those that PRODUCE it, across every category tab. Sits above the tabs.
 	_search_bar = LineEdit.new()
-	_search_bar.placeholder_text = "🔍  Search by output  (e.g. Steel, Adv Circuit)…"
+	_search_bar.placeholder_text = "Search by output  (e.g. Steel)…"
 	_search_bar.clear_button_enabled = true
 	_search_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_search_bar.custom_minimum_size = Vector2(0, 32)

@@ -31,6 +31,15 @@ var _mastery_bar: ProgressBar
 # or tree_exiting (handles widget destroy mid-hover so no orphan stays).
 var _mastery_info_card: Control = null
 
+# v122 PERF: update_state() runs every frame (page _process). Only the progress
+# bar + time vary frame-to-frame; the loot BBCode, mastery RichText and locked
+# overlay change rarely. These signatures skip those expensive rebuilds (esp.
+# the RichTextLabel re-parse) unless their inputs actually changed — the
+# per-frame re-parse was the source of the progress-bar stutter.
+var _loot_sig: String = ""
+var _mastery_sig: String = ""
+var _state_sig: String = ""
+
 func setup(p_aid: String, p_data: Dictionary, p_manager, p_parent):
 	aid = p_aid
 	data = p_data
@@ -111,6 +120,11 @@ func _refresh_mastery():
 	# v107: Current cumulative bonus + next-milestone teaser, so the system
 	# explains itself at a glance instead of being a silent progress bar.
 	var bonus_pct: int = int(round((1.0 - manager.get_mastery_duration_mult(aid)) * 100.0))
+	# v122 PERF: skip the RichText/colour rebuild unless the readout changed.
+	var m_sig := "%d|%d|%d|%d" % [level, in_lvl, needed, bonus_pct]
+	if m_sig == _mastery_sig:
+		return
+	_mastery_sig = m_sig
 	var bonus_suffix: String = (" · −%d%%" % bonus_pct) if bonus_pct > 0 else ""
 	var next_m: int = 0
 	for m in manager.MASTERY_MILESTONES:
@@ -157,106 +171,103 @@ func _refresh_mastery():
 		_mastery_bar.value = pct
 
 func update_state():
+	# v122 PERF: every page's _process runs even while hidden, so without this
+	# every skill page rebuilds its cards every frame. Skip off-screen widgets
+	# (hidden page OR hidden tab); they refresh when shown again.
+	if not is_visible_in_tree():
+		return
 	var is_this_active = (manager.is_active and manager.current_action_id == aid)
+	var in_combat: bool = GameState.combat_manager != null and GameState.combat_manager.in_combat
 	_refresh_mastery()
-	
+
 	var lvl = manager.get_level()
 	var req = data.get("level_req", 1)
-	
-	# Rebuild Loot String with Colors & Multipliers dynamically
-	var loot_text = "[center]"
-	var rates = manager.get_current_rate() if is_this_active else {}
-	
+
 	var eff_mult = 1.0
 	if GameState.research_manager:
 		eff_mult = GameState.research_manager.get_efficiency_multiplier()
-		
-	for entry in data["loot_table"]:
-		var symbol = entry[0]
-		var display_name = ElementDB.get_display_name(symbol)
-		var icon_bb = ElementDB.material_icon_bbcode(symbol, 16)
-		# v112: deterministic yield — show the single fixed value (top of the
-		# old range), matching what gather actually produces now.
-		var base_loot = "%s%s: %s" % [
-			icon_bb,
-			display_name,
-			FormatUtils.format_number(float(entry[3]) * eff_mult)
-		]
-		
-		if symbol in rates:
-			loot_text += "%s [color=#55ff55](%s/m)[/color]\n" % [base_loot, FormatUtils.format_number(rates[symbol])]
-		else:
-			loot_text += "%s\n" % base_loot
-			
-	loot_text += "[/center]"
-	loot_lbl.text = loot_text.strip_edges()
-	
+	var rates = manager.get_current_rate() if is_this_active else {}
+
+	# --- LOOT (expensive BBCode re-parse) — rebuild only when it would change.
+	# While active the rates are constant, so this builds once on activation. ---
+	var loot_sig := "%s|%.4f|%s" % [is_this_active, eff_mult, str(rates)]
+	if loot_sig != _loot_sig:
+		_loot_sig = loot_sig
+		var loot_text = "[center]"
+		for entry in data["loot_table"]:
+			var symbol = entry[0]
+			var display_name = ElementDB.get_display_name(symbol)
+			var icon_bb = ElementDB.material_icon_bbcode(symbol, 16)
+			# v112: deterministic yield — show the single fixed value.
+			var base_loot = "%s%s: %s" % [icon_bb, display_name, FormatUtils.format_number(float(entry[3]) * eff_mult)]
+			if symbol in rates:
+				loot_text += "%s [color=#55ff55](%s/m)[/color]\n" % [base_loot, FormatUtils.format_number(rates[symbol])]
+			else:
+				loot_text += "%s\n" % base_loot
+		loot_text += "[/center]"
+		loot_lbl.text = loot_text.strip_edges()
+
+	# --- unlocked + status (cheap) ---
 	var unlocked = true
 	var status_msg = ""
-	
 	if lvl < req:
 		unlocked = false
 		status_msg = "LEVEL %d REQUIRED" % req
-	
-	# Research Check
 	if "research_req" in data and data["research_req"]:
 		if GameState.research_manager and not GameState.research_manager.is_tech_unlocked(data["research_req"]):
 			unlocked = false
 			var tech_name = GameState.research_manager.tech_tree.get(data["research_req"], {}).get("name", "Unknown Tech")
 			status_msg = "RESEARCH: %s" % tech_name.to_upper()
-	
-	if unlocked:
-		UITheme.apply_locked_overlay(self, data["name"], "", false)
-		status_lbl.text = ""
-		btn.disabled = false
-		if is_this_active:
-			btn.text = "Stop"
-			btn.modulate = Color(1.0, 0.4, 0.4) # Red-ish
-			modulate = Color(1.2, 1, 1) # Highlight
-			
-			var speed_mult = manager.get_action_speed_multiplier(aid)
-			var effective_duration = float(data.get("duration", _DEFAULT_DURATION)) / speed_mult
-			# v108: Clamp display values — Godot can deliver a single big delta
-			# (frame stutter / tab refocus) that pushes action_progress past
-			# required_time for one frame before the manager's tick resets it.
-			# UI should never show "3.8s / 2.9s" no matter what the internals do.
-			var safe_progress: float = clamp(manager.action_progress, 0.0, effective_duration)
-			var prog = (safe_progress / effective_duration) * 100.0 if effective_duration > 0.0 else 0.0
-			prog_bar.active = true
-			prog_bar.value = prog
-			time_lbl.text = "%s / %s" % [FormatUtils.format_time(safe_progress), FormatUtils.format_time(effective_duration)]
-		elif GameState.combat_manager and GameState.combat_manager.in_combat:
-			btn.text = "IN COMBAT"
+
+	# --- STATE: locked overlay + button + card tint — only on transition. ---
+	var state_sig := "%s|%s|%s|%s" % [unlocked, status_msg, is_this_active, in_combat]
+	if state_sig != _state_sig:
+		_state_sig = state_sig
+		if unlocked:
+			UITheme.apply_locked_overlay(self, data["name"], "", false)
+			status_lbl.text = ""
+			btn.disabled = false
+			if is_this_active:
+				btn.text = "Stop"
+				btn.modulate = Color(1.0, 0.4, 0.4) # Red-ish
+				modulate = Color(1.2, 1, 1) # Highlight
+			elif in_combat:
+				btn.text = "IN COMBAT"
+				btn.disabled = true
+				btn.modulate = Color(1.0, 0.35, 0.35, 0.8)
+				modulate = Color(0.85, 0.85, 0.85)
+			else:
+				btn.text = "Start"
+				btn.modulate = Color(1, 1, 1)
+				modulate = Color(1, 1, 1)
+		else:
+			var tech_id = data.get("research_req", "") if "RESEARCH:" in status_msg else ""
+			UITheme.apply_locked_overlay(self, data["name"], status_msg, true, tech_id, "ops")
+			if "RESEARCH:" in status_msg:
+				btn.text = "RESEARCH REQUIRED"
+			elif "LEVEL" in status_msg:
+				btn.text = "LEVEL %d REQUIRED" % req
+			else:
+				btn.text = "LOCKED"
 			btn.disabled = true
-			btn.modulate = Color(1.0, 0.35, 0.35, 0.8)
-			modulate = Color(0.85, 0.85, 0.85)
-			prog_bar.active = false
-			prog_bar.value = 0
-			var speed_mult = manager.get_action_speed_multiplier(aid)
-			time_lbl.text = "0.0s / %s" % FormatUtils.format_time(float(data.get("duration", _DEFAULT_DURATION)) / speed_mult)
-		else:
-			btn.text = "Start"
-			btn.modulate = Color(1, 1, 1)
-			modulate = Color(1, 1, 1)
-			prog_bar.active = false
-			prog_bar.value = 0
-			var speed_mult = manager.get_action_speed_multiplier(aid)
-			time_lbl.text = "0.0s / %s" % FormatUtils.format_time(float(data.get("duration", _DEFAULT_DURATION)) / speed_mult)
+			status_lbl.text = status_msg
+			modulate = Color(0.7, 0.7, 0.7)
+
+	# --- PROGRESS — cheap, EVERY frame, so the fill stays smooth. ---
+	if unlocked and is_this_active:
+		var speed_mult = manager.get_action_speed_multiplier(aid)
+		var effective_duration = float(data.get("duration", _DEFAULT_DURATION)) / speed_mult
+		# v108: Clamp — a single big delta (frame stutter / tab refocus) can push
+		# action_progress past required_time for one frame; never show "3.8s/2.9s".
+		var safe_progress: float = clamp(manager.action_progress, 0.0, effective_duration)
+		prog_bar.active = true
+		prog_bar.value = (safe_progress / effective_duration) * 100.0 if effective_duration > 0.0 else 0.0
+		time_lbl.text = "%s / %s" % [FormatUtils.format_time(safe_progress), FormatUtils.format_time(effective_duration)]
 	else:
-		var tech_id = data.get("research_req", "") if "RESEARCH:" in status_msg else ""
-		UITheme.apply_locked_overlay(self, data["name"], status_msg, true, tech_id, "ops")
-		
-		# Context-sensitive Button Text
-		if "RESEARCH:" in status_msg:
-			btn.text = "RESEARCH REQUIRED"
-		elif "LEVEL" in status_msg:
-			btn.text = "LEVEL %d REQUIRED" % req
-		else:
-			btn.text = "LOCKED"
-			
-		btn.disabled = true
-		status_lbl.text = status_msg
-		modulate = Color(0.7, 0.7, 0.7)
 		prog_bar.active = false
 		prog_bar.value = 0
-		time_lbl.text = "- / -"
+		if unlocked:
+			var speed_mult = manager.get_action_speed_multiplier(aid)
+			time_lbl.text = "0.0s / %s" % FormatUtils.format_time(float(data.get("duration", _DEFAULT_DURATION)) / speed_mult)
+		else:
+			time_lbl.text = "- / -"

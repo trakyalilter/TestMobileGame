@@ -60,9 +60,10 @@ func _ready():
 	$VBoxContainer/StatsPanel.mouse_filter = Control.MOUSE_FILTER_PASS
 	$VBoxContainer/StatsPanel/HBoxContainer.mouse_filter = Control.MOUSE_FILTER_PASS
 	
-	# v124: Lira/kit repair button removed — hull is restored by using consumables
-	# (the combat-HUD repair-kit buttons, no cooldown out of combat).
-	_style_stats_panel()
+	# v124: the live ship stat strip (HP/Atk/Shield/Eva/Energy) is removed from the
+	# Shipyard — it duplicates Combat/Designer readouts and only crowds the craft
+	# list. Hidden (not freed) so the @onready label refs stay valid.
+	$VBoxContainer/StatsPanel.visible = false
 	_setup_tabs()
 	call_deferred("refresh_list")
 
@@ -103,6 +104,8 @@ func _on_tech_unlocked(_tech_id = null):
 	_on_resource_changed()  # re-evaluate every craft card's research lock
 
 func _update_stats_display():
+	if not $VBoxContainer/StatsPanel.visible:
+		return   # stat strip removed from the Shipyard — nothing to refresh
 	if hp_lbl:
 		hp_lbl.text = "HP: %d / %d" % [manager.current_hp, manager.max_hp]
 	if atk_lbl:

@@ -980,116 +980,49 @@ func _try_repair():
 	_spawn_custom_repair_modal(m_data, cur_dur, parts_cost)
 
 func _spawn_custom_repair_modal(m_data: Dictionary, cur_dur: int, parts_cost: int):
-	var layer = CanvasLayer.new()
-	layer.layer = 100
-	
-	var overlay = ColorRect.new()
-	overlay.color = Color(0, 0, 0, 0.7)
-	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	layer.add_child(overlay)
-	
-	var center = CenterContainer.new()
-	center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	overlay.add_child(center)
-	
-	var panel = PanelContainer.new()
-	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.1, 0.08, 0.07, 0.98)
-	style.set_border_width_all(2)
-	style.border_width_top = 4
-	style.border_color = Color(0.8, 0.6, 0.2, 0.9)
-	style.set_corner_radius_all(3)
-	style.shadow_color = Color(0, 0, 0, 0.8)
-	style.shadow_size = 20
-	panel.add_theme_stylebox_override("panel", style)
-	
-	panel.custom_minimum_size = Vector2(340, 0)
-	center.add_child(panel)
-	
-	var marg = MarginContainer.new()
-	marg.add_theme_constant_override("margin_left", 20)
-	marg.add_theme_constant_override("margin_top", 20)
-	marg.add_theme_constant_override("margin_right", 20)
-	marg.add_theme_constant_override("margin_bottom", 20)
-	panel.add_child(marg)
-	
-	var vbox = VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 15)
-	marg.add_child(vbox)
-	
-	var title = Label.new()
-	title.text = "REPAIR MODULE"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 18)
-	title.add_theme_color_override("font_color", Color(0.9, 0.7, 0.3))
-	vbox.add_child(title)
-	
-	var desc = Label.new()
-	desc.text = "Restore %s from %d%% back to maximum durability (100%%)?" % [m_data.get("name", "Unknown").to_upper(), cur_dur]
-	desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	desc.add_theme_font_size_override("font_size", 13)
-	desc.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8))
-	vbox.add_child(desc)
-	
-	var cost_box = VBoxContainer.new()
-	cost_box.add_theme_constant_override("separation", 4)
-	vbox.add_child(cost_box)
-	
-	var p_lbl = Label.new()
-	p_lbl.text = "Cost: %d Spare Parts" % parts_cost
-	p_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	p_lbl.add_theme_font_size_override("font_size", 14)
-	p_lbl.add_theme_color_override("font_color", Color(0.9, 0.9, 0.4))
-	cost_box.add_child(p_lbl)
+	# v124: rebuilt on the shared themed modal (UITheme.show_confirm) instead of a
+	# hand-built primitive Window — chrome-framed panel, bbcode body, on-brand
+	# confirm/cancel, backdrop-cancel + Enter-confirms. Confirm is locked (not just
+	# greyed text) when the player can't afford the Spare Parts.
+	var have: int = int(GameState.resources.get_element_amount("SparePart"))
+	var affordable: bool = have >= parts_cost
+	var nm: String = str(m_data.get("name", "Module")).to_upper()
+	var warn_hex: String = UITheme.COLORS["warning"].to_html(false)
+	var pos_hex: String = UITheme.COLORS["positive"].to_html(false)
+	var dim_hex: String = UITheme.COLORS["text_dim"].to_html(false)
+	var neg_hex: String = UITheme.COLORS["negative"].to_html(false)
+	var have_hex: String = pos_hex if affordable else neg_hex
 
-	var p_have = Label.new()
-	p_have.text = "You have: %d" % GameState.resources.get_element_amount("SparePart")
-	p_have.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	p_have.add_theme_font_size_override("font_size", 12)
-	p_have.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
-	cost_box.add_child(p_have)
+	var body := "[center]Restore  [b]%s[/b]\n" % nm
+	body += "from [color=#%s]%d%%[/color]   →   [color=#%s]100%%[/color] durability.\n\n" % [warn_hex, cur_dur, pos_hex]
+	body += "[color=#%s]COST[/color]     [b][color=#%s]%d[/color][/b]  Spare Parts\n" % [dim_hex, warn_hex, parts_cost]
+	body += "[color=#%s]IN STOCK[/color]     [b][color=#%s]%d[/color][/b]" % [dim_hex, have_hex, have]
+	if not affordable:
+		body += "\n\n[color=#%s][b]NOT ENOUGH SPARE PARTS[/b][/color]" % neg_hex
+	body += "[/center]"
 
-	var has_funds = GameState.resources.get_element_amount("SparePart") >= parts_cost
-	if not has_funds:
-		var w_lbl = Label.new()
-		w_lbl.text = "NOT ENOUGH SPARE PARTS"
-		w_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		w_lbl.add_theme_font_size_override("font_size", 12)
-		w_lbl.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3))
-		cost_box.add_child(w_lbl)
-	
-	var btn_box = HBoxContainer.new()
-	btn_box.alignment = BoxContainer.ALIGNMENT_CENTER
-	btn_box.add_theme_constant_override("separation", 20)
-	vbox.add_child(btn_box)
-	
-	var cancel = Button.new()
-	cancel.text = " Cancel "
-	cancel.custom_minimum_size = Vector2(100, 30)
-	_style_repair_button(cancel, Color(0.6, 0.2, 0.2))
-	btn_box.add_child(cancel)
-	
-	var confirm = Button.new()
-	confirm.text = " Confirm "
-	confirm.custom_minimum_size = Vector2(100, 30)
-	confirm.disabled = not has_funds
-	_style_repair_button(confirm, Color(0.2, 0.6, 0.2))
-	if has_funds:
-		confirm.add_theme_color_override("font_color", Color(0.6, 1.0, 0.5))
-	btn_box.add_child(confirm)
-	
-	cancel.pressed.connect(layer.queue_free)
-	confirm.pressed.connect(func():
-		if manager.repair_module(slot_idx, parts_cost):
-			UITheme.show_notification("Repaired Successfully!", Color.GREEN)
-			parent_ui.trigger_refresh()
+	# Capture into locals — the slot widget may be rebuilt by trigger_refresh.
+	var mgr = manager
+	var s_idx := slot_idx
+	var p_cost := parts_cost
+	var pui = parent_ui
+	var on_ok := func():
+		if mgr.repair_module(s_idx, p_cost):
+			UITheme.show_notification("Module repaired", UITheme.COLORS["positive"])
+			if is_instance_valid(pui) and pui.has_method("trigger_refresh"):
+				pui.trigger_refresh()
 		else:
-			UITheme.show_notification("Not enough Spare Parts", Color.RED)
-		layer.queue_free()
-	)
-	
-	parent_ui.add_child(layer)
+			UITheme.show_notification("Not enough Spare Parts", UITheme.COLORS["negative"])
+
+	UITheme.show_confirm({
+		"title": "Repair Module",
+		"body": body,
+		"confirm_text": "Repair",
+		"cancel_text": "Cancel",
+		"accent": UITheme.COLORS["warning"],
+		"confirm_disabled": not affordable,
+		"on_confirm": on_ok,
+	})
 
 func _style_repair_button(btn: Button, hover_color: Color):
 	var normal = StyleBoxFlat.new()

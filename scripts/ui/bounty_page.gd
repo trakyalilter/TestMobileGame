@@ -47,7 +47,7 @@ func _refresh_ui():
 	if manager.available_contracts.is_empty():
 		var empty_lbl = Label.new()
 		empty_lbl.text = "No contracts available.\nWait for refresh..."
-		empty_lbl.add_theme_color_override("font_color", Color(0.4, 0.4, 0.5))
+		empty_lbl.add_theme_color_override("font_color", UITheme.COLORS["text_dim"])
 		empty_lbl.add_theme_font_size_override("font_size", 12)
 		empty_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		available_container.add_child(empty_lbl)
@@ -61,7 +61,7 @@ func _refresh_ui():
 	if manager.active_contracts.is_empty():
 		var empty_lbl = Label.new()
 		empty_lbl.text = "No active contracts.\nAccept contracts from the board."
-		empty_lbl.add_theme_color_override("font_color", Color(0.4, 0.4, 0.5))
+		empty_lbl.add_theme_color_override("font_color", UITheme.COLORS["text_dim"])
 		empty_lbl.add_theme_font_size_override("font_size", 12)
 		empty_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		active_container.add_child(empty_lbl)

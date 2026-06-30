@@ -875,6 +875,9 @@ func show_confirm(opts: Dictionary) -> Control:
 		if cb is Callable and (cb as Callable).is_valid(): (cb as Callable).call()
 	)
 	btn_row.add_child(confirm_btn)
+	# Optional: present the choice but block confirm (e.g. can't afford the cost).
+	if bool(opts.get("confirm_disabled", false)):
+		confirm_btn.disabled = true
 
 	dim.gui_input.connect(func(ev):
 		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
@@ -883,7 +886,8 @@ func show_confirm(opts: Dictionary) -> Control:
 
 	parent.add_child(overlay)
 	_attach_chrome(panel, accent)        # L-bracket corner ornament, on-brand
-	confirm_btn.grab_focus()             # Enter confirms
+	if not confirm_btn.disabled:
+		confirm_btn.grab_focus()         # Enter confirms (skip when blocked)
 	return overlay
 
 # Color-parameterised dialog button (sibling to the category-keyed

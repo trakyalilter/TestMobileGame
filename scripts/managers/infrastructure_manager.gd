@@ -174,7 +174,7 @@ var building_db: Dictionary = {
 	"auto_excavator": {
 		"name": "Auto-Excavator (XL)",
 		"description": "+10 Dirt",
-		"cost": {"credits": 250000, "Si": 5000, "Fe": 2000},
+		"cost": {"credits": 250000, "Si": 2500, "Fe": 1000},
 		"energy_gen": 0.0,
 		"energy_cons": 15.0,
 		"yield": {"Dirt": 10},
@@ -184,7 +184,7 @@ var building_db: Dictionary = {
 	"industrial_pump": {
 		"name": "Industrial Pump",
 		"description": "+10 Water",
-		"cost": {"credits": 250000, "Si": 5000, "Fe": 2000}, 
+		"cost": {"credits": 250000, "Si": 2500, "Fe": 1000}, 
 		"energy_gen": 0.0,
 		"energy_cons": 25.0,
 		"yield": {"Water": 10},

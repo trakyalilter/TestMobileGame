@@ -249,15 +249,12 @@ func _draw_tile_visual(item_name: String, slot_type: String, rarity: int, rarity
 		cmp_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		tile_container.add_child(cmp_lbl)
 
-	# --- Count, top-left next to gem ---
+	# --- Count chip, top-left ---
 	if count > 1:
-		var count_lbl = Label.new()
-		count_lbl.text = "x%d" % count
-		count_lbl.add_theme_font_size_override("font_size", 10)
-		count_lbl.add_theme_color_override("font_color", Color(0.75, 1.0, 1.0))
-		count_lbl.position = Vector2(5, 2)
-		count_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		tile_container.add_child(count_lbl)
+		var count_badge = _make_count_chip(count)
+		count_badge.position = Vector2(6, 5)
+		tile_container.add_child(count_badge)
+		tile_container.move_child(count_badge, tile_container.get_child_count() - 1)  # paint on top
 
 	# Power/tier readout is intentionally NOT drawn on the tile — every module's
 	# full info is available on hover (the rarity-framed tooltip). Keeps the armory
@@ -547,22 +544,10 @@ func _draw_gem_visual(gem_name: String, rarity_color: Color):
 	gem_container.add_child(core)
 
 	if count > 1:
-		var badge_bg = ColorRect.new()
-		badge_bg.color = Color(0, 0, 0, 0.6)
-		# Count badge pinned to the cell's top-left corner.
-		badge_bg.position = Vector2(6, 6)
-		
-		var count_lbl = Label.new()
-		count_lbl.text = str(count)
-		count_lbl.add_theme_font_size_override("font_size", 8)
-		count_lbl.add_theme_color_override("font_color", Color(0.7, 1.0, 1.0))
-		
-		var text_size = count_lbl.get_theme_font("font").get_string_size(count_lbl.text, HORIZONTAL_ALIGNMENT_LEFT, -1, 8)
-		badge_bg.custom_minimum_size = Vector2(text_size.x + 2, 10)
-		count_lbl.position = Vector2(1, -1)
-		
-		badge_bg.add_child(count_lbl)
-		gem_container.add_child(badge_bg)
+		var count_badge = _make_count_chip(count)
+		count_badge.position = Vector2(6, 5)
+		gem_container.add_child(count_badge)
+		gem_container.move_child(count_badge, gem_container.get_child_count() - 1)  # paint on top
 
 	# Unseen indicator (Yellow Orb)
 	var sm2 = GameState.shipyard_manager
@@ -736,6 +721,32 @@ func _build_footer_text(slot_type: String, rarity_label: String) -> String:
 		return ""
 	return " | ".join(parts)
 
+# Stack-count chip — a dark rounded badge with cyan ×N text, shared by the module
+# tile and the matrix-core tile so the corner tally reads as an intentional chip
+# instead of raw text crammed against the corner bracket. format_num keeps big
+# counts compact (e.g. ×12.0K) so the chip never overruns the cell.
+func _make_count_chip(n: int) -> Control:
+	var badge := PanelContainer.new()
+	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.03, 0.05, 0.08, 0.85)
+	sb.set_corner_radius_all(4)
+	sb.set_border_width_all(1)
+	sb.border_color = Color(0.45, 0.85, 1.0, 0.45)
+	sb.content_margin_left = 5
+	sb.content_margin_right = 5
+	sb.content_margin_top = 1
+	sb.content_margin_bottom = 1
+	badge.add_theme_stylebox_override("panel", sb)
+	var lbl := Label.new()
+	lbl.text = "×%s" % UITheme.format_num(n)
+	lbl.add_theme_font_size_override("font_size", 10)
+	lbl.add_theme_color_override("font_color", Color(0.80, 1.0, 1.0))
+	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	badge.add_child(lbl)
+	return badge
+
+
 func _apply_card_style(rarity: int, rarity_color: Color, slot_type: String = "module"):
 	var frame = StyleBoxFlat.new()
 	frame.bg_color = _get_rarity_background(rarity)
@@ -846,25 +857,35 @@ func _show_demolish_menu():
 	var price = sm.get_sell_price(mid)
 	var parts = sm.get_demolish_parts(mid)
 	
-	var popup = PopupMenu.new()
-	popup.add_item("Demolish (%s Liras, %s parts)" % [UITheme.format_num(price), parts], 0)
-	popup.add_separator()
-	popup.add_item("Cancel", 1)
-	add_child(popup)
+	# v124: themed confirm modal (UITheme.show_confirm) instead of the raw Godot
+	# PopupMenu — chrome-framed, shows the salvage refund, red "destructive" accent.
+	# Centered, so it no longer needs the old get_global_mouse_position crash-guard.
+	var mname: String = str(sm.modules.get(mid, {}).get("name", mid)).to_upper()
+	var rarity = sm.get_module_rarity(mid)
+	var rarity_color: Color = sm.RARITY_COLORS.get(rarity, Color.WHITE)
 
-	popup.id_pressed.connect(func(id):
-		if id == 0 and sm.demolish_module(mid):
-			var rarity = sm.get_module_rarity(mid)
-			var rarity_color = sm.RARITY_COLORS.get(rarity, Color.WHITE)
+	var warn_hex: String = UITheme.COLORS["warning"].to_html(false)
+	var pos_hex: String = UITheme.COLORS["positive"].to_html(false)
+	var dim_hex: String = UITheme.COLORS["text_dim"].to_html(false)
+
+	var body := "[center]Scrap [b]%s[/b] for parts?\n\n" % mname
+	body += "[color=#%s]YOU RECEIVE[/color]\n" % dim_hex
+	body += "[b][color=#%s]%s[/color][/b] %s      [b][color=#%s]%s[/color][/b] Spare Parts\n\n" % [warn_hex, UITheme.format_num(price), UITheme.LIRA_ICON_BB, pos_hex, str(parts)]
+	body += "[color=#%s]This permanently destroys the module.[/color][/center]" % dim_hex
+
+	var on_ok := func():
+		if sm.demolish_module(mid):
 			UITheme.show_notification("Demolished for %s Liras & %s parts" % [UITheme.format_num(price), parts], rarity_color)
-		popup.queue_free()
-	)
-	# v111.13 CRASH FIX: get_global_mouse_position() hard-crashes if this card
-	# has been detached from the tree (null viewport). Guard before popping.
-	if is_inside_tree():
-		popup.popup(Rect2i(get_global_mouse_position(), Vector2i(1, 1)))
-	else:
-		popup.queue_free()
+
+	UITheme.show_confirm({
+		"title": "Demolish Module",
+		"body": body,
+		"confirm_text": "Demolish",
+		"cancel_text": "Cancel",
+		"accent": UITheme.COLORS["negative"],
+		"danger": true,
+		"on_confirm": on_ok,
+	})
 
 
 func _build_comparison_tooltip_bbcode() -> String:

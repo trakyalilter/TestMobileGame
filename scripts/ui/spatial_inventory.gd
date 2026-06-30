@@ -172,8 +172,8 @@ func _gui_input(event: InputEvent) -> void:
 
 func _draw() -> void:
 	var cell := _cell_size()
-	var fill := Color(0.05, 0.065, 0.10, 0.55)
-	var border := Color(0.20, 0.30, 0.42, 0.30)
+	var fill := Color(UITheme.COLORS["background"], 0.55)
+	var border := Color(UITheme.COLORS["accent"], 0.30)
 	for gy in range(page_rows):
 		for gx in range(cols):
 			var r := Rect2(gx * (cell + GAP), gy * (cell + GAP), cell, cell)

@@ -526,8 +526,12 @@ func update_ui():
 			if is_visible_in_tree():
 				_spawn_damage_float(str(ev["text"]), ev["color"], ev.get("side") == "player")
 		else:
+			# v122: kills / loot / heals / XP float up from the upper-centre too
+			# — the global toast feed lives on the right edge, which in combat is
+			# fully panelled (target panel, enemy stats, consumables + RETREAT),
+			# so toasting there collided with the RETREAT button.
 			if is_visible_in_tree():
-				UITheme.show_notification(ev["text"], ev["color"])
+				_spawn_event_float(str(ev["text"]), ev["color"])
 
 		# TACTILE: Damage-induced System Glitch
 		if ev.get("side") == "player" and ev.get("type", "") == "damage":
@@ -580,6 +584,35 @@ func _spawn_damage_float(text: String, color: Color, player_side: bool) -> void:
 	tw.tween_property(lbl, "position:y", lbl.position.y - 48.0, 0.9) \
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tw.tween_property(lbl, "modulate:a", 0.0, 0.9).set_delay(0.3)
+	tw.chain().tween_callback(lbl.queue_free)
+
+# v122: non-damage combat feedback (kills, loot, heals, XP) rises from the
+# upper-centre and fades — keeps it off the global right-edge toast feed that
+# overlapped the RETREAT button. Distinct height from damage floats so they
+# don't stack on each other.
+func _spawn_event_float(text: String, color: Color) -> void:
+	if not visualizer:
+		return
+	var lbl := Label.new()
+	lbl.text = text
+	lbl.add_theme_font_size_override("font_size", 18)
+	lbl.add_theme_color_override("font_color", color)
+	lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+	lbl.add_theme_constant_override("outline_size", 4)
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.custom_minimum_size = Vector2(160, 0)
+	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	lbl.z_index = 51
+	visualizer.add_child(lbl)
+
+	var vp: Vector2 = visualizer.size
+	lbl.position = Vector2(vp.x * 0.5 - 80.0, vp.y * 0.28 + randf_range(-10.0, 10.0))
+
+	var tw := lbl.create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(lbl, "position:y", lbl.position.y - 42.0, 1.2) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.tween_property(lbl, "modulate:a", 0.0, 1.2).set_delay(0.5)
 	tw.chain().tween_callback(lbl.queue_free)
 
 func show_enemy_info(data):
@@ -685,13 +718,16 @@ func _update_session_loot():
 					tt += "[color=#aaaaaa]★ %s (Data Lost)[/color] x %s\n" % [base_name, UITheme.format_num(qty)]
 			else:
 				var item_name = str_id
+				var icon_bb = ""
 				if sm.modules.has(str_id):
 					item_name = sm.modules[str_id].get("name", str_id)
 				else:
 					item_name = ElementDB.get_display_name(str_id)
 					if item_name == str_id:
 						item_name = str_id.replace("_", " ").capitalize()
-				tt += "[color=#32cd32]%s[/color] x %s\n" % [item_name, UITheme.format_num(qty)]
+					# v122: inline material icon (empty string if the symbol has none).
+					icon_bb = ElementDB.material_icon_bbcode(str_id, 16)
+				tt += "%s[color=#32cd32]%s[/color] x %s\n" % [icon_bb, item_name, UITheme.format_num(qty)]
 			
 	tt += "[/center]"
 	
@@ -1008,6 +1044,7 @@ func _update_consumable_buttons():
 		btn_hull_cons.tooltip_text = "HULL CRITICAL — tap to repair now!"
 
 func _update_cons_btn(btn: Button, item_id: String, label: String, color: Color):
+	btn.custom_minimum_size.y = 58   # room for the icon-over-count layout / placeholder
 	if item_id == "" or item_id == null:
 		btn.text = ""
 		btn.disabled = true
@@ -1030,6 +1067,8 @@ func _update_cons_btn(btn: Button, item_id: String, label: String, color: Color)
 		
 		holder.text = "[[ %s SLOT ]]\nSTANDBY" % label.to_upper()
 		holder.show()
+		var empty_content = btn.get_node_or_null("ConsContent")
+		if empty_content: empty_content.hide()
 		return
 	
 	# If not empty, hide placeholder
@@ -1038,12 +1077,44 @@ func _update_cons_btn(btn: Button, item_id: String, label: String, color: Color)
 	
 	var qty = GameState.resources.get_element_amount(item_id)
 	var dname = ElementDB.get_display_name(item_id)
-	
-	# v66.0: Multi-line display
-	btn.text = "%s\n%s\nx%s" % [label, dname.to_upper(), UITheme.format_number(qty)]
-	btn.modulate = color if qty > 0 else Color(0.5, 0.5, 0.5, 0.8)
-	btn.clip_text = false # Ensure we see it
-	btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+
+	# v122.1: ICON over COUNT via a manual centred layout. A Button can't stack
+	# icon + text in 4.2 (centred icon_alignment drew the count ON TOP of the
+	# icon), so the content is a child VBox that ignores mouse input — the click
+	# still lands on the Button. Hull = warm patch icon, Shield = cool booster.
+	btn.text = ""
+	btn.icon = null
+	var content = btn.get_node_or_null("ConsContent")
+	if content == null:
+		content = VBoxContainer.new()
+		content.name = "ConsContent"
+		content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		content.alignment = BoxContainer.ALIGNMENT_CENTER
+		content.add_theme_constant_override("separation", 1)
+		content.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var ic := TextureRect.new()
+		ic.name = "Icon"
+		ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		ic.custom_minimum_size = Vector2(0, 30)
+		ic.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		content.add_child(ic)
+		var cl := Label.new()
+		cl.name = "Count"
+		cl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		cl.add_theme_font_size_override("font_size", 12)
+		cl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		content.add_child(cl)
+		btn.add_child(content)
+	content.show()
+	var icon_path := "res://assets/icons/modules/consumable_%s.svg" % ("hull" if label == "HULL" else "shield")
+	(content.get_node("Icon") as TextureRect).texture = (load(icon_path) if ResourceLoader.exists(icon_path) else null)
+	var count_lbl := content.get_node("Count") as Label
+	count_lbl.text = "x%s" % UITheme.format_number(qty)
+	count_lbl.add_theme_color_override("font_color", color)
+	btn.modulate = Color(1, 1, 1) if qty > 0 else Color(0.5, 0.5, 0.5, 0.8)
+	btn.clip_text = false
 	
 	# Disabled if 0 or cooldown active
 	var cooldown = manager.consumable_cooldown

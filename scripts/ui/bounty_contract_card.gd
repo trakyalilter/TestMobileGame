@@ -68,11 +68,11 @@ func _apply_style(data: Dictionary, mode: String):
 		style.border_color = Color.GOLD
 		UITheme.apply_premium_button_style(action_btn, "combat")
 	elif mode == "available":
-		style.border_color = Color(0.2, 0.5, 0.8, 0.6)
+		style.border_color = Color(UITheme.COLORS["accent"], 0.6)
 		UITheme.apply_premium_button_style(action_btn, "combat") # Standardized to Combat
 	else:
-		style.border_color = Color(0.3, 0.3, 0.4, 0.4)
-		action_btn.modulate = Color(0.7, 0.4, 0.4)
+		style.border_color = Color(UITheme.COLORS["text_dim"], 0.4)
+		action_btn.modulate = Color(UITheme.COLORS["negative"], 0.7)
 
 	add_theme_stylebox_override("panel", style)
 	
@@ -83,13 +83,13 @@ func _apply_style(data: Dictionary, mode: String):
 	# Color the title by difficulty
 	var diff = data.get("difficulty", 1)
 	if diff >= 8:
-		title_lbl.add_theme_color_override("font_color", Color(1.0, 0.4, 0.4)) # Red
+		title_lbl.add_theme_color_override("font_color", UITheme.COLORS["negative"]) # Red
 	elif diff >= 5:
-		title_lbl.add_theme_color_override("font_color", Color(1.0, 0.761, 0.302)) # amber (high diff)
+		title_lbl.add_theme_color_override("font_color", UITheme.COLORS["warning"]) # amber (high diff)
 	elif diff >= 3:
-		title_lbl.add_theme_color_override("font_color", Color(0.373, 0.878, 0.784)) # aqua (mid diff)
+		title_lbl.add_theme_color_override("font_color", UITheme.COLORS["text_accent"]) # aqua (mid diff)
 	else:
-		title_lbl.add_theme_color_override("font_color", Color(0.7, 0.9, 0.7)) # Light green
+		title_lbl.add_theme_color_override("font_color", UITheme.COLORS["positive"]) # Light green
 
 func _on_accept():
 	if parent_ui and parent_ui.has_method("_on_contract_accepted"):

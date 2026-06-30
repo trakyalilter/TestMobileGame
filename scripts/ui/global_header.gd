@@ -7,8 +7,18 @@ extends PanelContainer
 # to the Missions page.
 signal objective_pressed
 var objective_btn: Button
+# P-cargo: emitted when the player taps the header slot meter → main switches to
+# the Inventory page.
+signal inventory_pressed
 
 var credits_led: ColorRect
+
+# Header cargo-slot meter (used/max): amber near-full, red + pulse when full,
+# tap → Inventory. The persistent counterpart to the transient full toast.
+var slot_btn: Button
+var _slot_pulse: Tween
+var _slot_sig: String = ""
+var _slot_was_full: bool = false
 
 func _ready():
 	# 1. Glassmorphism Styling
@@ -25,6 +35,7 @@ func _ready():
 	# 2. Add Status LEDs & Enhanced Labels
 	_setup_leds()
 	_setup_objective_chip()
+	_setup_slot_meter()
 
 func _setup_leds():
 	var hbox = $MarginContainer/HBoxContainer
@@ -106,6 +117,81 @@ func update_objective() -> void:
 	objective_btn.add_theme_color_override("font_color", Color(0.45, 1.0, 0.55) if is_ready else UITheme.COLORS["accent"])
 
 
+# ── Cargo-slot meter ────────────────────────────────────────────────────────
+func _setup_slot_meter() -> void:
+	slot_btn = Button.new()
+	slot_btn.name = "SlotMeter"
+	slot_btn.flat = true
+	slot_btn.focus_mode = Control.FOCUS_NONE
+	slot_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	slot_btn.icon = load("res://assets/icons/nav/inventory.svg")
+	slot_btn.add_theme_constant_override("icon_max_width", 15)
+	slot_btn.add_theme_constant_override("h_separation", 5)
+	slot_btn.add_theme_font_size_override("font_size", 13)
+	slot_btn.tooltip_text = "Cargo slots — sell or expand storage when full."
+	slot_btn.pressed.connect(func(): inventory_pressed.emit())
+
+	var hbox = $MarginContainer/HBoxContainer
+	hbox.add_child(slot_btn)
+	hbox.move_child(slot_btn, credits_lbl.get_index() + 1)
+	# Liras hugs its value so the meter sits right beside it; the task label
+	# keeps the expand and centres in the remaining width. Both trim flags MUST be
+	# off here — _setup_leds set clip_text=true AND text_overrun=TRIM_ELLIPSIS
+	# (harmless while the label EXPAND-filled). Godot's Label.get_minimum_size()
+	# pins width to 1px if EITHER flag is set, so under SHRINK_BEGIN the label
+	# collapses and the amount vanishes — clearing clip_text alone is not enough.
+	# The Lira value is always FormatUtils-compact, so no overflow risk.
+	credits_lbl.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	credits_lbl.clip_text = false
+	credits_lbl.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+	update_slots()
+
+func update_slots() -> void:
+	if not is_instance_valid(slot_btn) or not GameState.resources:
+		return
+	var used: int = GameState.resources.get_used_slots()
+	var maxs: int = GameState.resources.get_max_slots()
+	var sig := "%d/%d" % [used, maxs]
+	if sig == _slot_sig:
+		return   # unchanged — skip the per-frame work
+	_slot_sig = sig
+	slot_btn.text = sig
+
+	var full: bool = used >= maxs
+	var near: bool = used >= maxs - 2
+	var col: Color
+	if full:
+		col = Color(1.0, 0.42, 0.35)      # red — drops are being wasted
+	elif near:
+		col = Color(1.0, 0.72, 0.30)      # amber — almost out of room
+	else:
+		col = Color(0.62, 0.66, 0.78)     # neutral
+	slot_btn.add_theme_color_override("font_color", col)
+	slot_btn.add_theme_color_override("font_hover_color", col.lightened(0.25))
+	slot_btn.add_theme_color_override("icon_normal_color", col)
+
+	if full and not _slot_was_full:
+		_start_slot_pulse()
+	elif not full and _slot_was_full:
+		_stop_slot_pulse()
+	_slot_was_full = full
+
+func _start_slot_pulse() -> void:
+	_stop_slot_pulse()
+	if not is_instance_valid(slot_btn):
+		return
+	_slot_pulse = create_tween().set_loops()
+	_slot_pulse.tween_property(slot_btn, "modulate", Color(1.0, 0.55, 0.55), 0.55).set_trans(Tween.TRANS_SINE)
+	_slot_pulse.tween_property(slot_btn, "modulate", Color.WHITE, 0.55).set_trans(Tween.TRANS_SINE)
+
+func _stop_slot_pulse() -> void:
+	if _slot_pulse and _slot_pulse.is_valid():
+		_slot_pulse.kill()
+	_slot_pulse = null
+	if is_instance_valid(slot_btn):
+		slot_btn.modulate = Color.WHITE
+
+
 
 
 func flash_led(led: ColorRect, color: Color):
@@ -117,6 +203,7 @@ func _process(_delta):
 	# Poll for task status
 	update_task_status()
 	update_objective()
+	update_slots()
 
 func update_hud():
 	update_credits()

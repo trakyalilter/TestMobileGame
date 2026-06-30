@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Horizon Idle — Sci-Fi UI Palettes</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0a0a0e;color:#e6e6f2;
+    font-family:"Bahnschrift","Segoe UI Variable Display",Eurostile,Arial,sans-serif;padding:28px 24px 90px}
+  .num{font-variant-numeric:tabular-nums}
+  h1{font-size:21px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#fff}
+  .lead{font-size:12.5px;color:#9a9ab2;line-height:1.65;margin:8px 0 4px;max-width:1000px}
+  .lead b{color:#cfe0ff;font-weight:600}
+  .gnote{margin:14px 0 26px;font-size:12px;color:#cdd2e0;background:rgba(120,150,255,.06);
+    border:1px solid rgba(120,150,255,.20);border-left:3px solid #6f8cff;border-radius:6px;
+    padding:11px 15px;max-width:1000px;line-height:1.6}
+  .gnote b{color:#9fc0ff}
+
+  /* ── one palette block ── */
+  .pal{margin:0 0 30px;border:1px solid rgba(255,255,255,.07);border-radius:10px;overflow:hidden;
+    background:rgba(255,255,255,.012)}
+  .palhead{display:flex;align-items:center;gap:12px;padding:12px 16px 6px}
+  .rank{font-size:12px;font-weight:700;color:#8b90a4;font-variant-numeric:tabular-nums;min-width:24px}
+  .palhead h2{font-size:17px;font-weight:600;letter-spacing:.6px;color:#fff}
+  .badge{font-size:9.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+    padding:3px 8px;border-radius:4px}
+  .badge.rec{background:rgba(80,230,140,.16);color:#74e29b;border:1px solid rgba(80,230,140,.35)}
+  .badge.safe{background:rgba(120,150,255,.14);color:#9fc0ff;border:1px solid rgba(120,150,255,.32)}
+  .badge.wild{background:rgba(255,90,170,.14);color:#ff7ec0;border:1px solid rgba(255,90,170,.32)}
+  .badge.twin{background:rgba(255,200,80,.12);color:#ffcf6b;border:1px solid rgba(255,200,80,.30)}
+  .tagline{font-size:12.5px;font-style:italic;color:#aab0c4;padding:0 16px 10px}
+
+  /* ── applied vignette (uses the palette's CSS vars) ── */
+  .stage{margin:0 16px;border-radius:8px;overflow:hidden;background:var(--bg);
+    border:1px solid var(--border)}
+  .hdr{display:flex;align-items:center;gap:12px;padding:9px 14px;background:var(--side);
+    border-bottom:2px solid var(--acc)}
+  .hdr .lira{color:var(--c-inv);font-size:14px}
+  .hdr .liras{color:var(--c-inv);font-size:14px;font-weight:700}
+  .hdr .slot{color:var(--dim);font-size:12px;border:1px solid var(--border);border-radius:4px;padding:1px 7px}
+  .hdr .grow{flex:1}
+  .hdr .task{color:var(--tacc);font-size:12px;letter-spacing:1px}
+  .main{display:flex;min-height:248px}
+  .side{width:150px;flex:none;background:var(--side);padding:10px 0;display:flex;flex-direction:column;gap:2px;
+    border-right:1px solid var(--border)}
+  .side .sec{font-size:8.5px;letter-spacing:2px;color:var(--dim);opacity:.7;padding:8px 14px 2px}
+  .nav{font-size:12px;color:var(--dim);padding:6px 14px}
+  .nav.active{color:var(--acc2);background:color-mix(in srgb, var(--acc) 16%, transparent);
+    border-left:3px solid var(--acc);padding-left:11px}
+  .content{flex:1;padding:14px;display:flex;flex-direction:column;gap:12px}
+
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:5px;padding:0;position:relative;max-width:300px}
+  .card::before,.card::after{content:"";position:absolute;width:13px;height:13px;pointer-events:none}
+  .card::before{top:-1px;left:-1px;border-top:2px solid var(--c-ops);border-left:2px solid var(--c-ops)}
+  .card::after{bottom:-1px;right:-1px;border-bottom:2px solid var(--c-ops);border-right:2px solid var(--c-ops)}
+  .cardhdr{font-size:10px;letter-spacing:1.5px;font-weight:700;color:var(--c-ops);
+    background:color-mix(in srgb, var(--c-ops) 14%, transparent);
+    border-bottom:1px solid color-mix(in srgb, var(--c-ops) 40%, transparent);padding:6px 11px}
+  .cardbody{padding:9px 11px 11px}
+  .cardtitle{font-size:14px;color:var(--txt);font-weight:600}
+  .carddim{font-size:11px;color:var(--dim);margin:2px 0 9px}
+  .bar{height:9px;border-radius:3px;background:color-mix(in srgb, var(--acc) 12%, #000 60%);overflow:hidden;
+    border:1px solid var(--border)}
+  .bar>span{display:block;height:100%;width:63%;background:var(--acc);border-radius:3px}
+  .btn{margin-top:10px;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+    color:var(--bg);background:var(--acc);border:none;border-radius:4px;padding:7px 16px;cursor:pointer}
+  .btn:hover{background:var(--acc2)}
+
+  .clabel{font-size:8.5px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;margin-bottom:-4px}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{font-size:10px;font-weight:600;padding:4px 9px;border-radius:4px;color:var(--bg);white-space:nowrap}
+  .swatchrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  .sw{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--dim)}
+  .sw i{width:30px;height:14px;border-radius:3px;display:inline-block}
+
+  .meta{padding:12px 16px 16px;display:flex;gap:22px;flex-wrap:wrap}
+  .meta .why{flex:1;min-width:340px;font-size:12px;line-height:1.55;color:#b9bdcc}
+  .meta .stat{font-size:11px;color:#8b90a4;line-height:1.7;min-width:150px}
+  .meta .stat b{color:#cdd2e0}
+  .pass{color:#74e29b}
+</style>
+</head>
+<body>
+
+<h1>Sci-Fi UI Palettes · 6 directions</h1>
+<p class="lead">Each option is a full token set mapped to the game's real structure — background / panels / accent, the
+  8 category colors, the rarity ramp, status colors — so picking one is a drop-in swap of <b>UITheme.COLORS + CATEGORY_COLORS + RARITY_COLORS</b>.
+  Every palette is shown <b>applied to live UI</b> (header, sidebar, a card with chrome + progress bar + button) plus its raw chips, in the order an
+  accessibility + art-direction critic ranked them. All six pass WCAG cleanly (text 15–18:1, dim 5.2–6.7:1).</p>
+<p class="gnote"><b>Critic's call:</b> lead with <b>Phosphor Terminal</b> (most ownable identity) and <b>Derelict Salvage</b> (boldest mood departure);
+  hold <b>Precursor Crystalline</b> as the safe-premium fallback. <b>Precursor &amp; Aurora are near-twins</b> (both cool grounds resolving a green/teal
+  accent into violet) — pick one. <b>Neon Cyber-Deck</b> is the wildcard: gorgeous contrast but a netrunner mood that may fatigue over long AFK idle sessions.
+  Global note: <b>combat-red and research-violet are always the dimmest chips</b> (saturated red/violet are inherently low-luminance) — already nudged where needed.</p>
+
+<div id="root"></div>
+
+<script>
+const PALETTES = [
+  { name:"Phosphor Terminal", rank:1, badge:["rec","Recommended"],
+    tagline:"The Nostromo's console, better maintained — one P1 phosphor glow against the dark of the hull.",
+    why:"The whole UI lives on one axis: a near-black hull tone with a faint green cast (panels never neutral grey) so every screen reads as an illuminated CRT, not a web app. True P1 oscilloscope green drives buttons, fills and focus glows, with amber as the warm counter-pop — the committed two-phosphor identity. The most ownable, most evocative direction; categories retune cleanly onto the green-amber spectrum.",
+    contrast:"16.9:1 / 6.66:1",
+    t:{ bg:"#070b07", side:"#0c130c", panel:"#111a12", border:"#1f3322", acc:"#33ff66", acc2:"#5cff8c",
+        txt:"#d6f5d8", dim:"#7fa888", tacc:"#5cff8c", pos:"#33ff66", neg:"#ff5c47", warn:"#ffb347",
+        ops:"#ffb347", eng:"#3BF0D6", infra:"#5cff8c", combat:"#ff5c47", inv:"#ffd24c", research:"#e065ff", ship:"#52c2ff", mission:"#33ffb0",
+        rc:"#8a9a8c", rr:"#52c2ff", rl:"#ffc233", ru:"#e065ff" } },
+
+  { name:"Derelict Salvage", rank:2, badge:["rec","Bold alt"],
+    tagline:"A scavenger's work-lamp swinging over a cold dead hull.",
+    why:"Warm charcoal/brown-black ground so the dark reads as oxidized steel and old soot, not cold space-navy — warmth fighting the dark (Dead Space / Alien). A copper-to-amber accent behaves like a sodium work-lamp: the only truly hot light in the room. The boldest mood departure from every teal/navy space UI, and the most emotionally distinct — it sells 'survival-horror salvage' instantly.",
+    contrast:"15.0:1 / 5.18:1",
+    t:{ bg:"#15100C", side:"#1C160F", panel:"#241B13", border:"#43321F", acc:"#D97A2B", acc2:"#FF9D42",
+        txt:"#F0E3D2", dim:"#A08B72", tacc:"#FFB866", pos:"#8FB54A", neg:"#D9512E", warn:"#E8A627",
+        ops:"#E08A2E", eng:"#3FA89A", infra:"#7AA83F", combat:"#F0613F", inv:"#E0B341", research:"#C07FE8", ship:"#C97F3A", mission:"#3FB88A",
+        rc:"#A89478", rr:"#5AA6D4", rl:"#F0A838", ru:"#E05FB0" } },
+
+  { name:"Precursor Crystalline", rank:3, badge:["safe","Safe premium"],
+    tagline:"A dead god's reactor, still humming in the dark.",
+    why:"A deep indigo-violet near-black that reads as void with an alien tint; every panel steps through the same violet so the chrome feels carved from one crystalline substance. Luminous cryo-teal accent (the 'live current' of awakened precursor tech) held against warm artifact-gold — the sacred teal-vs-gold tension of a powered relic. Gorgeous and premium, but leans closest to the game's existing mood (least of a departure).",
+    contrast:"16.3:1 / 6.31:1",
+    t:{ bg:"#0c0a18", side:"#120e22", panel:"#1a1530", border:"#2e2750", acc:"#2fe0d4", acc2:"#62f6ec",
+        txt:"#ece7ff", dim:"#9c95c6", tacc:"#46ecff", pos:"#3fe0a3", neg:"#ff5f6e", warn:"#ffcf5c",
+        ops:"#ffae57", eng:"#46d7ff", infra:"#5fe0a0", combat:"#ff5a68", inv:"#ffd166", research:"#c66bff", ship:"#6c8cff", mission:"#34f0c4",
+        rc:"#a6a2c4", rr:"#3aa0ff", rl:"#ffc24a", ru:"#e85cff" } },
+
+  { name:"Aurora Deep-Space", rank:4, badge:["twin","Near-twin of Precursor"],
+    tagline:"Drifting the night side of a frontier world, the sky breathing green into violet.",
+    why:"A deep teal-NAVY base (bluer/more atmospheric than the current teal-black) so the UI reads as cold open space, not a green lab. The accent is the aurora arc itself — luminous green climbing into a soft mint glow — while the exotic end (research/unique) carries the violet the green resolves into. Soft, hopeful, spacious; the gentlest glows of the set, but overlaps Precursor.",
+    contrast:"16.5:1 / 6.43:1",
+    t:{ bg:"#0A1320", side:"#0E1A2B", panel:"#152233", border:"#22364D", acc:"#3DD68C", acc2:"#7CF0B8",
+        txt:"#E9F2FF", dim:"#8FA6C4", tacc:"#5FF0C0", pos:"#48E0A0", neg:"#FF6E7A", warn:"#FFC861",
+        ops:"#46E0C2", eng:"#4FB6E8", infra:"#5FD982", combat:"#FF6E7A", inv:"#F2C45A", research:"#B27AF0", ship:"#6E92F0", mission:"#3FE0A6",
+        rc:"#AEB9CC", rr:"#3FA9FF", rl:"#FFD15C", ru:"#E66BFF" } },
+
+  { name:"Cold Tactical Bridge", rank:5, badge:null,
+    tagline:"The clean CIC of a capital ship at battle stations — every readout cold, precise, under control.",
+    why:"One navy blue-black hull tone with a single disciplined light source — ice-cyan rising into steel-blue — owning every accent and fill, so the screen reads like backlit armored glass. Cool, precise, expensive. Competent and safe, but the all-cool blue band is the most 'seen-before', and ops/shipyard/research/accent all live in the blue family (the highest in-family confusion risk; shipyard + research were brightened to separate them).",
+    contrast:"16.7:1 / 5.67:1",
+    t:{ bg:"#0A0F1A", side:"#101725", panel:"#172234", border:"#2A3B55", acc:"#3D7FE0", acc2:"#5FC4FF",
+        txt:"#E8F0FB", dim:"#8A9BB8", tacc:"#8FD8FF", pos:"#46D98A", neg:"#FF5E63", warn:"#FFC24D",
+        ops:"#5FB0E8", eng:"#3FD0E0", infra:"#52C98E", combat:"#FF5E63", inv:"#E8B84A", research:"#B589F2", ship:"#7AA0FF", mission:"#36D6B0",
+        rc:"#9FB0C8", rr:"#3D9BFF", rl:"#FFC23D", ru:"#F24DD0" } },
+
+  { name:"Neon Cyber-Deck", rank:6, badge:["wild","Wildcard"],
+    tagline:"A netrunner's deck jacked into the void — colour as raw voltage.",
+    why:"Light against true black: a near-pure void background lets every hue read as an emitted glow. Neon magenta + electric cyan — a maximally electric complementary pair — drive the whole HUD. The most technically vivid (highest contrast in the set), but the cyberpunk-netrunner energy fights the contemplative skilling-idle space-RPG mood and would fatigue over long AFK sessions. Park it unless you want high-energy.",
+    contrast:"18.0:1 / 6.00:1",
+    t:{ bg:"#05050a", side:"#0c0a16", panel:"#14101f", border:"#3a2a5c", acc:"#ff2fe6", acc2:"#ff5cf2",
+        txt:"#eef0ff", dim:"#948cbd", tacc:"#26f5ff", pos:"#3dffae", neg:"#ff3366", warn:"#ffd23d",
+        ops:"#ff8a3d", eng:"#36d8ff", infra:"#34f5a0", combat:"#ff476f", inv:"#ffc94d", research:"#cf57ff", ship:"#5f8cff", mission:"#2af0cf",
+        rc:"#a0a0bd", rr:"#2aa8ff", rl:"#ffc233", ru:"#ff3df0" } },
+];
+
+const CATS = [["ops","OPS"],["eng","ENGR"],["infra","INFRA"],["combat","COMBAT"],["inv","INV"],["research","RESEARCH"],["ship","SHIPYARD"],["mission","MISSION"]];
+const RARS = [["rc","COMMON"],["rr","RARE"],["rl","LEGENDARY"],["ru","UNIQUE"]];
+
+const root = document.getElementById("root");
+for (const p of PALETTES){
+  const t = p.t;
+  const sec = document.createElement("section");
+  sec.className = "pal";
+  // map tokens → CSS vars
+  const V = {"--bg":t.bg,"--side":t.side,"--panel":t.panel,"--border":t.border,"--acc":t.acc,"--acc2":t.acc2,
+    "--txt":t.txt,"--dim":t.dim,"--tacc":t.tacc,"--pos":t.pos,"--neg":t.neg,"--warn":t.warn,
+    "--c-ops":t.ops,"--c-eng":t.eng,"--c-infra":t.infra,"--c-combat":t.combat,"--c-inv":t.inv,
+    "--c-research":t.research,"--c-ship":t.ship,"--c-mission":t.mission};
+  for (const k in V) sec.style.setProperty(k, V[k]);
+
+  const badge = p.badge ? `<span class="badge ${p.badge[0]}">${p.badge[1]}</span>` : "";
+  const catChips = CATS.map(([k,l])=>`<span class="chip" style="background:var(--c-${k})">${l}</span>`).join("");
+  const rarChips = RARS.map(([k,l])=>`<span class="chip" style="background:var(--${k})">${l}</span>`).join("");
+
+  sec.innerHTML = `
+    <div class="palhead"><span class="rank">#${p.rank}</span><h2>${p.name}</h2>${badge}</div>
+    <div class="tagline">“${p.tagline}”</div>
+    <div class="stage">
+      <div class="hdr">
+        <span class="lira">◆</span><b class="liras num">175K</b>
+        <span class="slot num">▣ 26/28</span>
+        <span class="grow"></span>
+        <span class="task">COMBAT: LUNAR DRONE</span>
+      </div>
+      <div class="main">
+        <div class="side">
+          <div class="sec">Operations</div>
+          <div class="nav active">▸ Mine</div>
+          <div class="nav">Engineering</div>
+          <div class="nav">Infrastructure</div>
+          <div class="sec">Ship</div>
+          <div class="nav">Shipyard</div>
+          <div class="nav">Combat</div>
+        </div>
+        <div class="content">
+          <div class="card">
+            <div class="cardhdr">⛏ OFF-WORLD OPS</div>
+            <div class="cardbody">
+              <div class="cardtitle">Excavate Soil</div>
+              <div class="carddim">Tier 1 · yields Dirt 10 / cycle</div>
+              <div class="bar"><span></span></div>
+              <button class="btn">Engage</button>
+            </div>
+          </div>
+          <div class="clabel">Category colors</div>
+          <div class="chips">${catChips}</div>
+          <div class="clabel">Rarity ramp</div>
+          <div class="chips">${rarChips}</div>
+          <div class="clabel">Status</div>
+          <div class="swatchrow">
+            <span class="sw"><i style="background:var(--pos)"></i>positive</span>
+            <span class="sw"><i style="background:var(--neg)"></i>negative</span>
+            <span class="sw"><i style="background:var(--warn)"></i>warning</span>
+            <span class="sw"><i style="background:var(--tacc)"></i>text-accent</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="meta">
+      <div class="why">${p.why}</div>
+      <div class="stat">
+        <b>Contrast (WCAG)</b><br>text/bg <span class="pass">${p.contrast.split(" / ")[0]} ✓</span><br>
+        dim/panel <span class="pass">${p.contrast.split(" / ")[1]} ✓</span><br><br>
+        <b>bg</b> ${t.bg}<br><b>accent</b> ${t.acc}<br><b>text</b> ${t.txt}
+      </div>
+    </div>`;
+  root.appendChild(sec);
+}
+</script>
+</body>
+</html>

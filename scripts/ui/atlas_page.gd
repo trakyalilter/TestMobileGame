@@ -29,6 +29,12 @@ var material_db = {}  # {material_id: {name, sources: [], uses: []}}
 var enemy_db = {} # {enemy_id: {name, zone, zone_difficulty, stats, loot}}
 var selected_id = ""
 
+# v124: datasheet detail-panel redesign. Code-built blocks inserted at the top of
+# Details, tracked here so they are freed + rebuilt on every selection / mode
+# switch (never stacking, never bleeding across material↔enemy modes).
+var _hero_block: HBoxContainer = null
+var _identity_row: HBoxContainer = null
+
 # Tier index by ElementDB category — drives badge color & sort order
 const TIER_ORDER = {
 	"ores": 1, "basic_metals": 1,
@@ -68,6 +74,10 @@ func _ready():
 	_setup_mode_switch()
 	_setup_sort_bar()
 	build_databases()
+	# Clean placeholder: the .tscn "Sources"/"Uses" static titles and the centered
+	# NET-zero line shouldn't show until (and unless) an item is selected.
+	_hide_static_titles()
+	if net_label: net_label.visible = false
 
 func get_coach_anchor(key: String) -> Control:
 	match key:
@@ -168,13 +178,18 @@ func _update_mode_buttons():
 	
 	var filter_container = $HBoxContainer/LeftPanel/MarginContainer/VBoxContainer/CategoryFilter
 	filter_container.visible = (current_mode == "materials")
-	
+
+	# Reset to a clean placeholder — no stale hero/identity block, stat grid, or
+	# Sources/Uses titles from the other mode.
+	_clear_inserted_blocks()
+	_hide_static_titles()
 	name_label.text = "Select an Item"
+	desc_label.visible = true
 	desc_label.text = "Pick %s from the list to view full details." % ("a material" if current_mode == "materials" else "an enemy")
-	desc_label.add_theme_color_override("font_color", Color(0.62, 0.66, 0.74))
+	desc_label.add_theme_color_override("font_color", UITheme.COLORS["text_dim"])
 	_clear_list(sources_list)
 	_clear_list(uses_list)
-	if net_label: net_label.text = ""
+	if net_label: net_label.visible = false
 
 func build_databases():
 	build_material_database()
@@ -190,6 +205,7 @@ func build_enemy_database():
 	# (get_available_zones honours unlock_flag + research_req + hazards).
 	var enemy_to_zone = {}
 	var enemy_to_zone_diff = {}
+	var enemy_to_zone_desc = {}
 	for entry in cm.get_available_zones():
 		var zdata = entry["data"]
 		var z_enemies = zdata.get("enemies", [])
@@ -198,6 +214,7 @@ func build_enemy_database():
 		for eid in z_enemies:
 			enemy_to_zone[eid] = zdata["name"]
 			enemy_to_zone_diff[eid] = zdata.get("difficulty", 0)
+			enemy_to_zone_desc[eid] = zdata.get("desc", "")
 
 	for eid in cm.enemy_db:
 		if not eid in enemy_to_zone:
@@ -207,6 +224,7 @@ func build_enemy_database():
 			"name": e_data["name"],
 			"zone": enemy_to_zone[eid],
 			"zone_difficulty": enemy_to_zone_diff[eid],
+			"zone_desc": enemy_to_zone_desc.get(eid, ""),
 			"stats": e_data["stats"],
 			"loot": e_data["loot"],
 			"rare_loot": e_data.get("rare_loot", []),
@@ -674,57 +692,74 @@ func _on_item_selected(id: String):
 
 func _display_material_details(mat_id):
 	var mat = material_db[mat_id]
+	_hide_static_titles()
+	_clear_inserted_blocks()
 
 	name_label.text = mat["name"]
 
-	# Stat block (rendered inline via desc_label BBCode-like single string, plus net_label)
 	var tier = _get_material_tier(mat_id)
-	var tier_color = TIER_COLORS.get(tier, Color.WHITE)
+	var tier_color: Color = TIER_COLORS.get(tier, Color.WHITE)
 	var owned = GameState.resources.get_element_amount(mat_id) if GameState.resources else 0.0
 	var market_value = ElementDB.get_element_value(mat_id)
-	var cat = ElementDB.get_category(mat_id).replace("_", " ").capitalize()
-	var elem_desc = ElementDB.get_element_description(mat_id)
+	var details = desc_label.get_parent()
 
-	var stat_lines = []
-	stat_lines.append("OWNED: %s    |    TIER %d (%s)    |    VALUE: %s Liras" % [
-		UITheme.format_num(owned),
-		tier,
-		cat,
-		UITheme.format_num(market_value) if market_value > 0 else "—"
-	])
-	stat_lines.append("ID: %s" % mat_id)
-	if elem_desc != "":
-		stat_lines.append("")
-		stat_lines.append(elem_desc)
+	# --- HERO BLOCK: 48px tinted icon + identity chips ---
+	_hero_block = HBoxContainer.new()
+	_hero_block.add_theme_constant_override("separation", 12)
+	_hero_block.add_child(_make_hero_icon(mat_id, tier, tier_color))
 
-	desc_label.text = "\n".join(stat_lines)
-	desc_label.add_theme_color_override("font_color", tier_color)
+	var chips = HBoxContainer.new()
+	chips.add_theme_constant_override("separation", 6)
+	chips.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	chips.add_child(_make_chip("T%d" % tier, tier_color, 10))
+	chips.add_child(_make_chip(ElementDB.get_category(mat_id).replace("_", " ").capitalize(), UITheme.element_accent(mat_id), 10))
+	if market_value > 0:
+		chips.add_child(_make_value_chip("VALUE %s %s" % [UITheme.format_num(market_value), UITheme.LIRA_ICON_BB], UITheme.COLORS["warning"]))
+	var own_col: Color = UITheme.COLORS["positive"] if owned > 0 else UITheme.COLORS["text_dim"]
+	chips.add_child(_make_chip("OWNED %s" % UITheme.format_num(owned), own_col, 10))
+	_hero_block.add_child(chips)
 
-	# Net Rate
+	details.add_child(_hero_block)
+	details.move_child(_hero_block, 0)
+
+	# --- Flavor (description only; hidden when empty) ---
+	var elem_desc: String = ElementDB.get_element_description(mat_id)
+	desc_label.text = elem_desc
+	desc_label.visible = (elem_desc != "")
+	desc_label.add_theme_color_override("font_color", UITheme.COLORS["text_dim"])
+	desc_label.add_theme_font_size_override("font_size", 13)
+
+	# --- Net rate (left-aligned badge; hidden at zero) ---
 	var im_mgr = GameState.infrastructure_manager
 	var net_rates = im_mgr.get_total_resource_rates()
 	var rate = net_rates.get(mat_id, 0.0)
+	net_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	net_label.modulate = Color.WHITE
+	if rate > 0:
+		net_label.text = "▲ NET +%.2f /min" % rate
+		net_label.add_theme_color_override("font_color", UITheme.COLORS["positive"])
+		net_label.visible = true
+	elif rate < 0:
+		net_label.text = "▼ NET %.2f /min" % rate
+		net_label.add_theme_color_override("font_color", UITheme.COLORS["negative"])
+		net_label.visible = true
+	else:
+		net_label.visible = false
 
-	if net_label:
-		if rate == 0:
-			net_label.text = "—  NET GROWTH: 0.00 /min"
-			net_label.modulate = Color(0.7, 0.7, 0.7)
-		elif rate > 0:
-			net_label.text = "▲ NET GROWTH: +%.2f /min" % rate
-			net_label.modulate = Color(0.4, 1.0, 0.4)
-		else:
-			net_label.text = "▼ NET DRAIN: %.2f /min" % rate
-			net_label.modulate = Color(1.0, 0.4, 0.4)
-	
+	# --- SOURCED FROM / CONSUMED BY ---
 	_clear_list(sources_list)
 	_clear_list(uses_list)
-	
-	if mat["sources"].is_empty(): _add_label(sources_list, "No sources found", Color(0.5, 0.5, 0.5))
+
+	_make_caption(sources_list, "SOURCED FROM", UITheme.COLORS["positive"])
+	if mat["sources"].is_empty():
+		_add_label(sources_list, "No known sources.", UITheme.COLORS["text_dim"])
 	else:
 		for source in mat["sources"]:
 			_add_source_row(sources_list, source["type"], "%s (%s)" % [source["name"], source["rate"]], _get_type_color(source["type"]))
 
-	if mat["uses"].is_empty(): _add_label(uses_list, "No uses found", Color(0.5, 0.5, 0.5))
+	_make_caption(uses_list, "CONSUMED BY", UITheme.COLORS["warning"])
+	if mat["uses"].is_empty():
+		_add_label(uses_list, "Not used anywhere.", UITheme.COLORS["text_dim"])
 	else:
 		for use in mat["uses"]:
 			_add_source_row(uses_list, use["type"], "%s (%s)" % [use["name"], use["rate"]], _get_type_color(use["type"]))
@@ -732,109 +767,105 @@ func _display_material_details(mat_id):
 func _display_enemy_details(eid):
 	var e = enemy_db.get(eid)
 	if not e: return
+	_hide_static_titles()
+	_clear_inserted_blocks()
+	if net_label: net_label.visible = false
 
 	name_label.text = e["name"]
 
 	var e_raw = GameState.combat_manager.enemy_db.get(eid, {})
+	var details = desc_label.get_parent()
 
-	# Compute effective DPS / EHP
 	var atk = e["stats"].get("atk", 0)
 	var interval = e["stats"].get("atk_interval", 2.0)
-	var enemy_dps = float(atk) / max(0.5, interval)
-	var enemy_ehp = e["stats"].get("hp", 0) + e["stats"].get("max_shield", 0)
+	var hp = e["stats"].get("hp", 0)
+	var shield = e["stats"].get("max_shield", 0)
 
-	# v116: player-relative threat rating removed — the atlas is a reference, not
-	# a "can my current ship win?" calculator.
+	# Damage-type tag + color (mirrors the live combat card).
+	var dmg_tag: String = "KIN"
+	var dmg_col: Color = Color(0.439, 0.533, 0.949)
+	match e.get("dmg_type", "kinetic"):
+		"energy":
+			dmg_tag = "NRG"
+			dmg_col = Color(0.373, 0.878, 0.784)
+		"explosive":
+			dmg_tag = "EXP"
+			dmg_col = Color(1.0, 0.761, 0.302)
 
-	# Build resistance & weakness chip strings
-	var rk = e_raw.get("resist_k", 0.0)
-	var re = e_raw.get("resist_e", 0.0)
-	var rx = e_raw.get("resist_x", 0.0)
-	var resist_chips = []
-	var weak_chips = []
-	if rk >= 0.10: resist_chips.append("KIN +%d%%" % int(rk * 100))
-	elif rk <= -0.10: weak_chips.append("KIN %d%%" % int(rk * 100))
-	if re >= 0.10: resist_chips.append("ENG +%d%%" % int(re * 100))
-	elif re <= -0.10: weak_chips.append("ENG %d%%" % int(re * 100))
-	if rx >= 0.10: resist_chips.append("EXP +%d%%" % int(rx * 100))
-	elif rx <= -0.10: weak_chips.append("EXP %d%%" % int(rx * 100))
+	# --- IDENTITY ROW: zone / xp / dmg-type + resist/weak/cryo/enrage chips ---
+	_identity_row = HBoxContainer.new()
+	_identity_row.add_theme_constant_override("separation", 6)
+	_identity_row.add_child(_make_chip("ZONE ★%d" % e["zone_difficulty"], UITheme.COLORS["text_accent"], 10))
+	_identity_row.add_child(_make_chip("XP %d" % e["xp"], UITheme.COLORS["positive"], 10))
+	_identity_row.add_child(_make_chip(dmg_tag, dmg_col, 10))
 
-	var desc_parts = []
-	desc_parts.append("ZONE: %s  ★%d   |   XP: %d" % [e["zone"], e["zone_difficulty"], e["xp"]])
-	desc_parts.append("Effective HP: %s    |    DPS: %.1f    |    Attacks with: %s" % [
-		UITheme.format_num(enemy_ehp),
-		enemy_dps,
-		e.get("dmg_type", "kinetic").to_upper()
-	])
-	if not resist_chips.is_empty():
-		desc_parts.append("RESISTS: " + "  ".join(resist_chips))
-	if not weak_chips.is_empty():
-		desc_parts.append("WEAK TO: " + "  ".join(weak_chips))
+	if e_raw.get("warp_hardened", false):
+		_identity_row.add_child(_make_chip("❄CRYO-ONLY", Color(0.373, 0.878, 0.784), 9))
+	for entry in [
+		[float(e_raw.get("resist_k", 0.0)), "KIN"],
+		[float(e_raw.get("resist_e", 0.0)), "NRG"],
+		[float(e_raw.get("resist_x", 0.0)), "EXP"],
+		[float(e_raw.get("resist_cryo", 0.0)), "CRY"],
+	]:
+		var val: float = entry[0]
+		var tag: String = entry[1]
+		if val > 0.05:
+			_identity_row.add_child(_make_chip("⛨%s" % tag, Color(1.0, 0.392, 0.451), 9))
+		elif val < -0.05:
+			_identity_row.add_child(_make_chip("▼%s" % tag, Color(0.275, 0.878, 0.627), 9))
+	if e_raw.get("enrage_at", 0.0) > 0.0:
+		_identity_row.add_child(_make_chip("ENRAGE<%d%%" % int(e_raw["enrage_at"] * 100), UITheme.COLORS["warning"], 9))
 
-	desc_label.text = "\n".join(desc_parts)
-	desc_label.add_theme_color_override("font_color", Color(0.82, 0.86, 0.92))
+	details.add_child(_identity_row)
+	details.move_child(_identity_row, 0)
 
-	if net_label: net_label.text = ""
-	
+	# --- Flavor (per-zone desc; enemies have no element description) ---
+	var zdesc: String = e.get("zone_desc", "")
+	desc_label.text = zdesc
+	desc_label.visible = (zdesc != "")
+	desc_label.add_theme_color_override("font_color", UITheme.COLORS["text_dim"])
+	desc_label.add_theme_font_size_override("font_size", 13)
+
+	# --- COMBAT DATA stat grid ---
 	_clear_list(sources_list)
 	_clear_list(uses_list)
-	
-	# Use "Sources List" for Stats
-	var stats_header = Label.new()
-	stats_header.text = "COMBAT STATISTICS"
-	stats_header.add_theme_font_size_override("font_size", 16)
-	stats_header.add_theme_color_override("font_color", UITheme.COLORS["text_accent"])
-	sources_list.add_child(stats_header)
-	
-	_add_stat_row(sources_list, "Health", e["stats"].get("hp", 0))
-	_add_stat_row(sources_list, "Shield", e["stats"].get("max_shield", 0))
-	_add_stat_row(sources_list, "Attack", e["stats"].get("atk", 0))
-	_add_stat_row(sources_list, "Defense", e["stats"].get("def", 0))
-	_add_stat_row(sources_list, "Attack Interval", "%.1fs" % e["stats"].get("atk_interval", 2.0))
-	_add_stat_row(sources_list, "Accuracy", e["stats"].get("accuracy", 0))
-	_add_stat_row(sources_list, "Evasion", e["stats"].get("eva", 0))
-	
-	# Use "Uses List" for Loot Table
-	var loot_header = Label.new()
-	loot_header.text = "DROPS"
-	loot_header.add_theme_font_size_override("font_size", 16)
-	loot_header.add_theme_color_override("font_color", UITheme.COLORS["text_accent"])
-	uses_list.add_child(loot_header)
-	
+	_make_caption(sources_list, "COMBAT DATA", UITheme.COLORS["text_accent"])
+	var main_col: Color = UITheme.COLORS["text_main"]
+	_spec_row(sources_list, "HP", UITheme.format_num(hp), main_col)
+	if shield > 0:
+		_spec_row(sources_list, "Shield", UITheme.format_num(shield), main_col)
+	_spec_row(sources_list, "ATK", "%s %s" % [UITheme.format_num(atk), dmg_tag], dmg_col)
+	_spec_row(sources_list, "DEF", UITheme.format_num(e["stats"].get("def", 0)), main_col)
+	_spec_row(sources_list, "Interval", "%.1f s" % interval, main_col)
+	_spec_row(sources_list, "Accuracy", str(e["stats"].get("accuracy", 0)), main_col)
+	var eva = e_raw.get("eva", e["stats"].get("eva", 0))
+	if eva > 0:
+		_spec_row(sources_list, "Evasion", str(eva), main_col)
+	var dps = float(atk) / max(0.5, interval)
+	_add_label(sources_list, "Eff. HP %s   ·   DPS %s/s" % [UITheme.format_num(hp + shield), UITheme.format_num(dps)], UITheme.COLORS["text_dim"])
+
+	# --- DROPS ---
+	_make_caption(uses_list, "DROPS", UITheme.COLORS["text_accent"])
 	for entry in e.get("loot", []):
-		var mat_name = _get_pretty_name(entry[0])
-		var qty = "%d-%d" % [entry[1], entry[2]]
-		_add_label(uses_list, "• %s (%s)" % [mat_name, qty], Color.WHITE)
-		
+		_add_loot_row(uses_list, entry[0], "%d–%d" % [int(entry[1]), int(entry[2])], UITheme.COLORS["text_main"])
 	var core_id = e.get("boss_core", "")
 	if core_id != "":
-		var core_name = _get_pretty_name(core_id)
-		_add_label(uses_list, "★ %s (100%% Guaranteed)" % core_name, Color.ORANGE)
-		
+		_add_loot_row(uses_list, core_id, "(100%)", UITheme.COLORS["warning"], "★ ")
+
 	var rare_loot = e.get("rare_loot", [])
 	if not rare_loot.is_empty():
-		_add_label(uses_list, "-- RARE DROPS --", UITheme.COLORS["warning"])
+		_make_caption(uses_list, "RARE DROPS", UITheme.COLORS["warning"])
 		for entry in rare_loot:
-			var mat_name = _get_pretty_name(entry[0])
-			var chance = "%.1f%%" % (entry[1] * 100)
-			var qty = "%d-%d" % [entry[2], entry[3]]
-			_add_label(uses_list, "★ %s (%s, %s)" % [mat_name, chance, qty], UITheme.COLORS["warning"])
+			_add_loot_row(uses_list, entry[0], "(%.1f%%, %d–%d)" % [entry[1] * 100.0, int(entry[2]), int(entry[3])], UITheme.COLORS["warning"], "✦ ")
 
-	# Module Drops
-	var drop_chance = e.get("module_drop_chance", 0.0)
-	var drop_pool = e.get("module_drop_pool", [])
+	# Module drops (read from e_raw — the local enemy_db row doesn't carry these).
+	var drop_chance = e_raw.get("module_drop_chance", 0.0)
+	var drop_pool = e_raw.get("module_drop_pool", [])
 	if drop_chance > 0.0 and not drop_pool.is_empty() and GameState.shipyard_manager:
-		_add_label(uses_list, "-- MODULE DROPS --", UITheme.CATEGORY_COLORS["shipyard"])
-		_add_label(uses_list, "Drop Chance: %.1f%%" % (drop_chance * 100), UITheme.COLORS["text_accent"])
+		_make_caption(uses_list, "MODULE DROPS (%d%%)" % int(drop_chance * 100), UITheme.CATEGORY_COLORS["shipyard"])
 		for mod_id in drop_pool:
 			var mod = GameState.shipyard_manager.modules.get(mod_id, {})
-			var mod_name = mod.get("name", mod_id)
-			_add_label(uses_list, "• %s" % mod_name, Color.WHITE)
-
-func _add_stat_row(parent, label, value):
-	var lbl = Label.new()
-	lbl.text = "%s: %s" % [label, str(value)]
-	parent.add_child(lbl)
+			_add_label(uses_list, "▸ %s" % mod.get("name", mod_id), UITheme.COLORS["text_main"])
 
 func _clear_list(node):
 	for child in node.get_children():
@@ -885,6 +916,142 @@ func _get_type_color(type: String) -> Color:
 		"shipyard": return Color(0.3, 0.7, 0.9)
 		"research": return Color(0.8, 0.6, 0.9)
 		_: return Color(0.7, 0.7, 0.7)
+
+
+# ── Datasheet detail-panel helpers ───────────────────────────────────────────
+
+# Hides the .tscn static "Sources"/"Uses" titles (the enemy-mode wart). Defensive
+# get_node_or_null so a future .tscn rename simply no-ops. Mode-correct captions
+# are rendered in-code as the first child of each list instead.
+func _hide_static_titles() -> void:
+	var base := "HBoxContainer/RightPanel/MarginContainer/VBoxContainer/ScrollContainer/Details/"
+	var st := get_node_or_null(base + "SourcesTitle")
+	if st: st.visible = false
+	var ut := get_node_or_null(base + "UsesTitle")
+	if ut: ut.visible = false
+
+# Frees the code-inserted hero/identity block so it never stacks or bleeds across
+# a material↔enemy mode switch. remove_child is immediate (queue_free is deferred),
+# so the Details child order is correct again right after this call.
+func _clear_inserted_blocks() -> void:
+	if _hero_block and is_instance_valid(_hero_block):
+		if _hero_block.get_parent(): _hero_block.get_parent().remove_child(_hero_block)
+		_hero_block.queue_free()
+	_hero_block = null
+	if _identity_row and is_instance_valid(_identity_row):
+		if _identity_row.get_parent(): _identity_row.get_parent().remove_child(_identity_row)
+		_identity_row.queue_free()
+	_identity_row = null
+
+# Pill chip — verbatim recipe from combat_enemy_card.gd so chips read identically.
+func _make_chip(text: String, color: Color, font_size: int) -> Control:
+	var lbl := Label.new()
+	lbl.text = text
+	lbl.add_theme_font_size_override("font_size", font_size)
+	lbl.add_theme_color_override("font_color", color)
+	var chip := PanelContainer.new()
+	chip.add_theme_stylebox_override("panel", _chip_stylebox(color))
+	chip.add_child(lbl)
+	return chip
+
+# Like _make_chip but the inner node is a RichTextLabel so the inline lira icon
+# (LIRA_ICON_BB, BBCode [img]) renders — a plain Label/chip cannot embed it.
+func _make_value_chip(value_bb: String, color: Color) -> Control:
+	var rtl := RichTextLabel.new()
+	rtl.bbcode_enabled = true
+	rtl.fit_content = true
+	rtl.scroll_active = false
+	rtl.autowrap_mode = TextServer.AUTOWRAP_OFF
+	rtl.text = "[color=#%s]%s[/color]" % [color.to_html(false), value_bb]
+	rtl.add_theme_font_size_override("normal_font_size", 10)
+	var chip := PanelContainer.new()
+	chip.add_theme_stylebox_override("panel", _chip_stylebox(color))
+	chip.add_child(rtl)
+	return chip
+
+func _chip_stylebox(color: Color) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = color
+	sb.bg_color.a = 0.15
+	sb.set_corner_radius_all(3)
+	sb.set_border_width_all(1)
+	var border := color
+	border.a = 0.45
+	sb.border_color = border
+	sb.content_margin_left = 6
+	sb.content_margin_right = 6
+	sb.content_margin_top = 1
+	sb.content_margin_bottom = 1
+	return sb
+
+# 48px tinted material icon, or a tinted tier-badge panel when no SVG exists.
+func _make_hero_icon(mat_id: String, tier: int, tier_color: Color) -> Control:
+	var tex: Texture2D = ElementDB.get_material_icon(mat_id)
+	if tex != null:
+		var ir := TextureRect.new()
+		ir.texture = tex
+		ir.modulate = ElementDB.get_material_tint(mat_id)
+		ir.custom_minimum_size = Vector2(48, 48)
+		ir.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ir.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		ir.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		ir.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		return ir
+	var pc := PanelContainer.new()
+	pc.custom_minimum_size = Vector2(48, 48)
+	pc.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = tier_color
+	sb.bg_color.a = 0.16
+	sb.set_corner_radius_all(6)
+	sb.set_border_width_all(1)
+	var bc := tier_color
+	bc.a = 0.5
+	sb.border_color = bc
+	pc.add_theme_stylebox_override("panel", sb)
+	var l := Label.new()
+	l.text = "T%d" % tier
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	l.add_theme_color_override("font_color", tier_color)
+	l.add_theme_font_size_override("font_size", 16)
+	pc.add_child(l)
+	return pc
+
+# Section caption (SOURCED FROM / CONSUMED BY / COMBAT DATA / DROPS / …).
+func _make_caption(parent, text: String, color: Color) -> void:
+	var l := Label.new()
+	l.text = text
+	l.add_theme_font_size_override("font_size", 13)
+	l.add_theme_color_override("font_color", color)
+	parent.add_child(l)
+
+# Key/value spec row: key (dim, expands) ... value (right-aligned). No [right]/[table].
+func _spec_row(parent, key: String, value: String, val_color: Color) -> void:
+	var row := HBoxContainer.new()
+	var kl := Label.new()
+	kl.text = key
+	kl.add_theme_color_override("font_color", UITheme.COLORS["text_dim"])
+	kl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(kl)
+	var vl := Label.new()
+	vl.text = value
+	vl.add_theme_color_override("font_color", val_color)
+	vl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	vl.custom_minimum_size = Vector2(90, 0)
+	row.add_child(vl)
+	parent.add_child(row)
+
+# Loot row: inline material icon (degrades to text if no SVG) + colored name + dim qty.
+func _add_loot_row(parent, item_id: String, qty_str: String, name_color: Color, prefix: String = "") -> void:
+	var rtl := RichTextLabel.new()
+	rtl.bbcode_enabled = true
+	rtl.fit_content = true
+	rtl.scroll_active = false
+	rtl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	var icon: String = ElementDB.material_icon_bbcode(item_id, 16)
+	rtl.text = "%s[color=#%s]%s%s[/color]  [color=#%s]%s[/color]" % [icon, name_color.to_html(false), prefix, ElementDB.get_display_name(item_id), UITheme.COLORS["text_dim"].to_html(false), qty_str]
+	parent.add_child(rtl)
 
 func _on_search_changed(_text):
 	refresh_list()
