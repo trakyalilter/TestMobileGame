@@ -26,7 +26,7 @@ func setup(p_hid: String, p_data: Dictionary, p_manager, p_parent):
 	UITheme.apply_card_style(self, "shipyard")
 	UITheme.apply_premium_button_style(btn, "shipyard")
 	
-	slot_lbl.text = "HP: %d\nSlots: %d" % [data["stats"].get("hp",0), data["slots"].size()]
+	slot_lbl.text = "HP: %d\nSlots: %d" % [_hull_hp_display(), data["slots"].size()]
 
 	# Cost text handled dynamically in update_state
 	cost_lbl.text = ""
@@ -34,10 +34,25 @@ func setup(p_hid: String, p_data: Dictionary, p_manager, p_parent):
 	
 	UITheme.inject_diegetic_header(self, "shipyard")
 	
+# v124: catalog HP reflects the global "+% all hulls" buffs — CMB_1 Hardened Hull
+# (warp tree) and Recursive Hardening (research) — so a purchased hull bonus shows
+# on every card, not only the equipped-ship stats panel. Module/gem HP is
+# loadout-specific and intentionally not shown on the catalog card.
+func _hull_hp_display() -> int:
+	var base: float = float(data["stats"].get("hp", 0))
+	var mult: float = 1.0
+	if GameState.warp_manager:
+		mult *= GameState.warp_manager.get_tree_hull_bonus()
+	if GameState.research_manager:
+		mult *= 1.0 + GameState.research_manager.get_efficiency_bonus("hull_hp_mult")
+	return int(round(base * mult))
+
 func _process(delta):
 	update_state()
 
 func update_state():
+	# Keep catalog HP live with global hull buffs (buying CMB_1 updates every card).
+	slot_lbl.text = "HP: %d\nSlots: %d" % [_hull_hp_display(), data["slots"].size()]
 	if manager.active_hull == hid:
 		btn.text = "Active"
 		btn.disabled = true

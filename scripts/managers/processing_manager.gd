@@ -30,7 +30,7 @@ var recipes: Dictionary = {
 		"input": {"Wood": 5},
 		"output": {"C": 16},
 		"duration": 4.0,
-		"level_req": 3,
+		"level_req": 2,
 		"xp": 5,
 		"category": "basics"
 	},
@@ -93,9 +93,9 @@ var recipes: Dictionary = {
 		"input": {"Cassiterite": 3, "C": 1},
 		"output": {"Sn": 2},
 		"duration": 6.0,
-		"level_req": 20,
+		"level_req": 12,
 		"xp": 25,
-		"research_req": "smelting"
+		"research_req": "basic_engineering"
 	},
 	"refine_pentlandite": {
 		"name": "Nickel Extraction",
@@ -607,8 +607,8 @@ var recipes: Dictionary = {
 		"name": "Basic Circuitry",
 		# v80.3 Fix: DroneCore requires SwarmFragment which no enemy drops — deadlock
 		"description": "Combine conductive copper traces with silicon wafers.",
-		"input": {"Cu": 3, "Si": 4},
-		"output": {"Circuit": 2},
+		"input": {"Cu": 3, "Si": 4,"Sn":2},
+		"output": {"Circuit": 1},
 		"duration": 6.0,
 		"level_req": 6,
 		"xp": 50
@@ -628,7 +628,7 @@ var recipes: Dictionary = {
 	"assemble_circuit_standard": {
 		"name": "Standard Circuit Assembly",
 		"description": "Fabricate circuits from raw conductive materials. No Drone Core required.",
-		"input": {"Cu": 2, "Si": 3, "Resin": 1},
+		"input": {"Cu": 2, "Si": 3,"Sn":2,"Resin": 1},
 		"output": {"Circuit": 3},
 		"duration": 6.0,
 		"level_req": 12,
@@ -723,7 +723,7 @@ var recipes: Dictionary = {
 	"craft_chip": {
 		"name": "Chip Fabrication",
 		"description": "High-precision logic unit. Requires nitrogen cooling for etching.",
-		"input": {"Semiconductor": 2, "Au": 1, "N": 5},
+		"input": {"Semiconductor": 2,"Sn":3, "Au": 1, "N": 5},
 		"output": {"Chip": 1},
 		"duration": 20.0,
 		"level_req": 40,
@@ -1543,9 +1543,9 @@ func complete_process():
 		stop_action()
 		return
 		
-	# 2. Consume
+	# 2. Consume (ENG_3 reduces each input by 1, floored at 1)
 	for item in current_recipe["input"]:
-		var qty = current_recipe["input"][item]
+		var qty = effective_input_qty(current_recipe["input"][item])
 		GameState.resources.remove_element(item, qty)
 		
 	if "credits_cost" in current_recipe:
@@ -1629,9 +1629,18 @@ func complete_process():
 	if not has_ingredients(current_recipe["input"], c_cost):
 		stop_action()
 
+# ENG_3 Efficient Recipe (warp tree): -1 of each input material per craft, floored at 1.
+# Single source of truth — used by the consume, the ingredient check, the offline
+# count, and the recipe-card UI so they never disagree.
+func effective_input_qty(raw_qty: int) -> int:
+	var red := 0
+	if GameState.warp_manager:
+		red = GameState.warp_manager.get_tree_recipe_material_reduction()
+	return max(1, raw_qty - red)
+
 func has_ingredients(inputs: Dictionary, credits: int = 0) -> bool:
 	for item in inputs:
-		var qty = inputs[item]
+		var qty = effective_input_qty(inputs[item])
 		if GameState.resources.get_element_amount(item) < qty:
 			return false
 			
@@ -1658,7 +1667,7 @@ func calculate_offline(delta: float):
 	
 	if not no_inputs:
 		for item in input_reqs:
-			var qty = input_reqs[item]
+			var qty = effective_input_qty(input_reqs[item])
 			var avail = GameState.resources.get_element_amount(item)
 			var possible = int(avail / qty)
 			if possible < min_by_input:

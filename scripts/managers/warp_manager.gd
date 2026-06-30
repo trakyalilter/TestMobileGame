@@ -17,11 +17,11 @@ signal tree_node_purchased(node_id)  # v107: UI repaint hook on tree purchase
 const TREE_NODES := {
 	# ===== ENGINEERING (reveal warp #1) — "my empire rebuilds faster & bigger" =====
 	"ENG_1": {"branch": "engineering", "cost": 1, "name": "Yield Calibration",
-		"desc": "+15% gathering yield.", "implemented": true},
+		"desc": "+1 gathering yield (flat, per gather).", "implemented": true},
 	"ENG_2": {"branch": "engineering", "cost": 2, "name": "Recipe Efficiency",
 		"desc": "-15% processing action duration.", "implemented": true, "prereq": ["ENG_1"]},
-	"ENG_3": {"branch": "engineering", "cost": 3, "name": "Alt-Recipe Codex",
-		"desc": "Unlocks alt-recipe variants per processing tier.", "implemented": false, "prereq": ["ENG_2"]},
+	"ENG_3": {"branch": "engineering", "cost": 3, "name": "Efficient Recipe",
+		"desc": "-1 of each input material per craft (min 1).", "implemented": true, "prereq": ["ENG_2"]},
 	"ENG_4": {"branch": "engineering", "cost": 4, "name": "Industrial Memory",
 		"desc": "-20% infrastructure build cost.", "implemented": true, "prereq": ["ENG_1"]},
 	"ENG_5": {"branch": "engineering", "cost": 5, "name": "Building Overclock",
@@ -31,21 +31,17 @@ const TREE_NODES := {
 	"ENG_S1": {"branch": "engineering", "cost": 2, "step": 1, "repeatable": true, "name": "Resource Surge",
 		"desc": "+6% gathering AND infrastructure yield per level.", "implemented": true, "prereq": ["ENG_1"]},
 	"ENG_S2": {"branch": "engineering", "cost": 3, "step": 2, "repeatable": true, "name": "Skilling Tempo",
-		"desc": "-2% active tick duration per level (floored at 40% of base).", "implemented": true, "prereq": ["ENG_2"]},
+		"desc": "-2% processing duration per level (max -40%).", "implemented": true, "prereq": ["ENG_2"]},
 
 	# ===== COMBAT (reveal warp #2) — "my ship spawns already armed" =====
 	"CMB_1": {"branch": "combat", "cost": 1, "name": "Hardened Hull",
 		"desc": "+15% hull HP on all hulls.", "implemented": true},
 	"CMB_2": {"branch": "combat", "cost": 2, "name": "Weapon Tuning",
 		"desc": "+10% module damage.", "implemented": true, "prereq": ["CMB_1"]},
-	"CMB_5": {"branch": "combat", "cost": 3, "name": "Cryo Overcharge",
-		"desc": "+50% Cryo damage.", "implemented": true, "prereq": ["CMB_2"]},
 	"CMB_3": {"branch": "combat", "cost": 5, "name": "Auxiliary Slot",
 		"desc": "Unlocks a 9th module slot that accepts any module type.", "implemented": false, "prereq": ["CMB_2"]},
 	"CMB_4": {"branch": "combat", "cost": 6, "name": "Matrix Core IV",
 		"desc": "Unlocks the Resonant matrix-core tier (above Pristine).", "implemented": false, "prereq": ["CMB_3"]},
-	"CMB_6": {"branch": "combat", "cost": 8, "name": "Vanguard Doctrine",
-		"desc": "Choose a combat archetype (Glass Cannon / Bulwark / Skirmisher).", "implemented": false, "prereq": ["CMB_4"]},
 	"CMB_S1": {"branch": "combat", "cost": 2, "step": 1, "repeatable": true, "name": "Arsenal Doctrine",
 		"desc": "+6% module damage per level.", "implemented": true, "prereq": ["CMB_1"]},
 
@@ -54,26 +50,10 @@ const TREE_NODES := {
 		"desc": "On warp, auto-rebuild 50% of your buildings for free.", "implemented": true},
 	"REC_2": {"branch": "recursion", "cost": 2, "name": "Deeper Roots",
 		"desc": "Keep 40% XP through a warp (up from 30%).", "implemented": true, "prereq": ["REC_1"]},
-	"REC_3": {"branch": "recursion", "cost": 4, "name": "Lowered Threshold",
-		"desc": "First-shard score gate 500k -> 350k.", "implemented": true, "prereq": ["REC_2"]},
-	"REC_5": {"branch": "recursion", "cost": 4, "name": "Catch-Up Cache",
-		"desc": "Warp starter package ~1.8x larger.", "implemented": true, "prereq": ["REC_3"]},
 	"REC_6": {"branch": "recursion", "cost": 6, "name": "Persistent Schematics",
 		"desc": "Keep 55% XP through a warp (stacks with Deeper Roots).", "implemented": true, "prereq": ["REC_2"]},
-	"REC_7": {"branch": "recursion", "cost": 8, "name": "Accelerated Tiering",
-		"desc": "Warp Tier increments every 4 warps instead of 5.", "implemented": true, "prereq": ["REC_6"]},
 	"REC_4": {"branch": "recursion", "cost": 5, "name": "Resonance Tuning",
 		"desc": "Warp-Core Charge +25% efficiency and a higher bonus-shard cap.", "implemented": true, "prereq": ["REC_1"]},
-	"REC_Q1": {"branch": "recursion", "cost": 2, "name": "Bulk Fabrication",
-		"desc": "Unlock craft x10 / craft-to-target in processing.", "implemented": false},
-	"REC_Q2": {"branch": "recursion", "cost": 3, "name": "Automated Logistics",
-		"desc": "Auto-claim completed missions, quests, and bounties.", "implemented": false, "prereq": ["REC_Q1"]},
-	"REC_Q3": {"branch": "recursion", "cost": 3, "name": "Loadout Presets",
-		"desc": "Save module/ammo presets with one-tap equip.", "implemented": false, "prereq": ["REC_Q1"]},
-	"REC_Q4": {"branch": "recursion", "cost": 3, "name": "Offline Coffer",
-		"desc": "Raise the global offline cap 24h -> 36h.", "implemented": true},
-	"REC_Q5": {"branch": "recursion", "cost": 5, "name": "Extended Coffer",
-		"desc": "Raise the global offline cap 36h -> 48h.", "implemented": true, "prereq": ["REC_Q4"]},
 	"REC_S1": {"branch": "recursion", "cost": 3, "step": 2, "repeatable": true, "name": "Shard Resonance",
 		"desc": "+3% warp shards earned per level.", "implemented": true, "prereq": ["REC_1"]},
 	"REC_S2": {"branch": "recursion", "cost": 2, "step": 1, "repeatable": true, "cap": 10, "name": "Blueprint Bandwidth",
@@ -312,6 +292,14 @@ func purchase_node(node_id: String) -> bool:
 	else:
 		purchased_nodes[node_id] = true
 	tree_node_purchased.emit(node_id)
+	# v124: recompute ship stats so shipyard-side tree buffs apply IMMEDIATELY —
+	# notably CMB_1 Hardened Hull (+15% max_hp via get_tree_hull_bonus()), which
+	# otherwise wouldn't show until the next equip/combat recalc. (Gathering/
+	# processing bonuses are read live; combat damage rebuilds per-fight.)
+	if GameState.shipyard_manager:
+		# recalc_stats() already preserves the HP ratio (full ship stays full at
+		# the new max — see its _hp_ratio logic), so just recompute.
+		GameState.shipyard_manager.recalc_stats()
 	return true
 
 # v122: remap v1 node ids (E1->ENG_1 …) on load so old saves keep their purchases.
@@ -325,9 +313,16 @@ func _migrate_v1_node_ids() -> void:
 # own stat math. Returning 1.0 means "node not bought". Stat nodes only;
 # unlock-mechanic nodes (E3/E4/E5/C3/C4/C5) are checked via is_node_purchased.
 func get_tree_gathering_bonus() -> float:
-	var m: float = 1.15 if is_node_purchased("ENG_1") else 1.0   # ENG_1 +15%
-	m *= 1.0 + 0.06 * float(get_node_level("ENG_S1"))            # ENG_S1 spine
-	return m
+	# ENG_1 is now a FLAT +1 (get_tree_gathering_flat); this multiplier is the ENG_S1 spine only.
+	return 1.0 + 0.06 * float(get_node_level("ENG_S1"))            # ENG_S1 spine
+
+# ENG_1 Yield Calibration: flat +1 units per gather (added AFTER yield multipliers).
+func get_tree_gathering_flat() -> int:
+	return 1 if is_node_purchased("ENG_1") else 0
+
+# ENG_3 Efficient Recipe: -1 of each processing input material per craft (consumer floors at min 1).
+func get_tree_recipe_material_reduction() -> int:
+	return 1 if is_node_purchased("ENG_3") else 0
 
 # ENG_S1 also buffs infrastructure yield (wired in infrastructure_manager).
 func get_tree_infra_bonus() -> float:
@@ -335,7 +330,7 @@ func get_tree_infra_bonus() -> float:
 
 func get_tree_processing_speed_bonus() -> float:
 	var m: float = (1.0 / 0.85) if is_node_purchased("ENG_2") else 1.0   # ENG_2 -15% dur
-	var red: float = min(0.02 * float(get_node_level("ENG_S2")), 0.60)   # ENG_S2 -2%/L, floor 40%
+	var red: float = min(0.02 * float(get_node_level("ENG_S2")), 0.40)   # ENG_S2 -2%/L, max -40%
 	if red > 0.0:
 		m *= 1.0 / (1.0 - red)
 	return m
@@ -348,9 +343,6 @@ func get_tree_damage_bonus() -> float:
 	m *= 1.0 + 0.06 * float(get_node_level("CMB_S1"))            # CMB_S1 spine
 	return m
 
-# v109: Cryo Overcharge — +50% Cryo damage, 1.0 when unpurchased.
-func get_tree_cryo_bonus() -> float:
-	return 1.50 if is_node_purchased("CMB_5") else 1.0
 
 # === v122: new effect queries (Recursion meta + Engineering spines) =======
 # REC_S1: scales progress_score BEFORE the log/floor (see calculate_warp_gains).
@@ -365,15 +357,15 @@ func get_tree_xp_keep() -> float:
 
 # REC_3: first-shard progress_score threshold (also the shard-curve anchor).
 func get_tree_shard_threshold() -> float:
-	return 350000.0 if is_node_purchased("REC_3") else 500000.0
+	return 500000.0   # REC_3 Lowered Threshold removed
 
 # REC_5: warp starter-package multiplier.
 func get_tree_starter_mult() -> float:
-	return 1.8 if is_node_purchased("REC_5") else 1.0
+	return 1.0   # REC_5 Catch-Up Cache removed
 
 # REC_7: warps required per Warp-Tier increment.
 func get_warps_per_tier() -> int:
-	return 4 if is_node_purchased("REC_7") else 5
+	return 5   # REC_7 Accelerated Tiering removed
 
 # REC_1 + REC_S2: fraction of buildings auto-rebuilt free on warp.
 func get_blueprint_rebuild_frac() -> float:
@@ -387,9 +379,7 @@ func get_tree_build_cost_mult() -> float:
 
 # REC_Q4 / REC_Q5 Coffers: global offline-cap multiplier (24h base -> 36h -> 48h).
 func get_tree_offline_cap_mult() -> float:
-	if is_node_purchased("REC_Q5"): return 2.0
-	if is_node_purchased("REC_Q4"): return 1.5
-	return 1.0
+	return 1.0   # REC_Q4/REC_Q5 Coffers removed (offline cap stays at base)
 
 # === v121: Warp-Core Charge sink =========================================
 # Per-tick basket the Core consumes. Spread WIDE across the PRIMITIVE pyramid:

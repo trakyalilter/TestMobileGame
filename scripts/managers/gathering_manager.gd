@@ -433,8 +433,14 @@ func complete_action():
 	var loot_table = current_action["loot_table"]
 	var xp_reward = current_action.get("xp", 0)
 	
+	# ENG_1 Yield Calibration: flat +N units on the PRIMARY drop (loot_table[0]).
+	var flat_bonus := 0
+	if GameState.warp_manager:
+		flat_bonus = GameState.warp_manager.get_tree_gathering_flat()
+
 	var dropped_any = false
-	for entry in loot_table:
+	for i in range(loot_table.size()):
+		var entry = loot_table[i]
 		var element = entry[0]
 		var chance = entry[1]
 		# v112: deterministic gather yield — the fixed value shown on the card
@@ -454,6 +460,9 @@ func complete_action():
 			# Audit v6.0 P1-19: Apply skill yield multiplier
 			amount = int(float(amount) * get_yield_multiplier())
 
+			if i == 0:
+				amount += flat_bonus   # ENG_1 flat bonus on the primary resource
+
 			GameState.resources.add_element(element, amount)
 			GameState.note_production("gather", amount)  # P3.10
 			events.append(["loot", {"symbol": element, "amount": amount}, current_action_id])
@@ -462,7 +471,7 @@ func complete_action():
 	if not dropped_any:
 		var entry = loot_table[0]
 		var element = entry[0]
-		var amount = int(entry[3])
+		var amount = int(entry[3]) + flat_bonus
 		GameState.resources.add_element(element, amount)
 		GameState.note_production("gather", amount)  # P3.10
 		events.append(["loot", {"symbol": element, "amount": amount}, current_action_id])
@@ -516,7 +525,11 @@ func calculate_offline(delta: float):
 	if GameState.research_manager:
 		yield_flat = int(GameState.research_manager.get_efficiency_bonus("gathering_yield"))
 		yield_mult2 = 1.0 + GameState.research_manager.get_efficiency_bonus("gathering_yield_mult")
-	for entry in loot_table:
+	var tree_flat := 0
+	if GameState.warp_manager:
+		tree_flat = GameState.warp_manager.get_tree_gathering_flat()   # ENG_1 flat +N/action on primary
+	for i in range(loot_table.size()):
+		var entry = loot_table[i]
 		var element = entry[0]
 		var chance: float = float(entry[1])
 		# Per-action yield when it drops — same truncation order as online.
@@ -524,6 +537,8 @@ func calculate_offline(delta: float):
 		per_drop = int(float(per_drop) * yield_mult2)
 		per_drop = int(float(per_drop) * yield_mult)
 		var total: int = int(float(per_drop) * chance * float(num_actions))
+		if i == 0:
+			total += tree_flat * num_actions   # ENG_1 flat on the primary resource, per action
 		if total <= 0:
 			continue
 		GameState.resources.add_element(element, total)

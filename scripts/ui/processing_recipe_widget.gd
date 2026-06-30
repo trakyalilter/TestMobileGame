@@ -23,6 +23,15 @@ var _mastery_bar: ProgressBar
 # or tree_exiting (handles widget destroy mid-hover so no orphan stays).
 var _mastery_info_card: Control = null
 
+# v122 PERF: update_state() runs every frame (page _process). Guard the
+# expensive per-frame RichTextLabel rebuilds (inputs / outputs / mastery) and
+# the locked overlay so they only run when their inputs change; the progress
+# bar + time still update every frame. Kills the BBCode-reparse stutter.
+var _in_sig: String = ""
+var _out_sig: String = ""
+var _mastery_sig: String = ""
+var _state_sig: String = ""
+
 func setup(p_rid: String, p_data: Dictionary, p_manager, p_parent):
 	rid = p_rid
 	recipe = p_data
@@ -116,6 +125,11 @@ func _refresh_mastery():
 	# v107: Current cumulative bonus + next-milestone teaser, so the system
 	# explains itself at a glance instead of being a silent progress bar.
 	var bonus_pct: int = int(round((1.0 - manager.get_mastery_duration_mult(rid)) * 100.0))
+	# v122 PERF: skip the RichText/colour rebuild unless the readout changed.
+	var m_sig := "%d|%d|%d|%d" % [level, in_lvl, needed, bonus_pct]
+	if m_sig == _mastery_sig:
+		return
+	_mastery_sig = m_sig
 	var bonus_suffix: String = (" · −%d%%" % bonus_pct) if bonus_pct > 0 else ""
 	var next_m: int = 0
 	for m in manager.MASTERY_MILESTONES:
@@ -162,120 +176,124 @@ func _refresh_mastery():
 		_mastery_bar.value = pct
 
 func update_state():
+	# v122 PERF: every page's _process runs even while hidden, so without this
+	# every skill page rebuilds its cards every frame. Skip off-screen widgets
+	# (hidden page OR hidden tab); they refresh when shown again.
+	if not is_visible_in_tree():
+		return
 	var is_this_active = (manager.is_active and manager.current_recipe_id == rid)
+	var in_combat: bool = GameState.combat_manager != null and GameState.combat_manager.in_combat
 	_refresh_mastery()
-	var has_ingredients = true # Will be re-evaluated per item
-	
-	# Rebuild Ingredient String with Colors
-	# We do this every update to reflect real-time amounts
-	var in_str = "[center]"
-	var inputs = recipe.get("input", {})
-	var missing_any = false
-	
-	if inputs.is_empty():
-		in_str += "None\n"
-	else:
-		for item in inputs:
-			var req_qty = inputs[item]
-			var avail_qty = GameState.resources.get_element_amount(item)
-			var color = "gray" 
-			
-			if avail_qty >= req_qty:
-				color = "lime"
-			else:
-				missing_any = true
 
-			var in_icon = ElementDB.material_icon_bbcode(item, 16)
-			in_str += "%s[color=%s]%s %s[/color]\n" % [in_icon, color, FormatUtils.format_number(req_qty), ElementDB.get_display_name(item)]
-	
-	in_str += "[/center]"
-	in_lbl.text = in_str
-	
-	has_ingredients = not missing_any
-	
-	# Rebuild Output String with Multipliers
-	var out_str = "[center]"
-	var rates = manager.get_current_rate() if is_this_active else {}
-	
+	# --- INPUTS: real-time availability colouring. The satisfied-state is cheap
+	# to compute every frame (dict reads); rebuild the BBCode only when it flips.
+	var inputs = recipe.get("input", {})
+	var pm = GameState.processing_manager   # ENG_3 reduces effective input cost; show what's actually consumed
+	var missing_any = false
+	var in_sig := str(inputs.size())
+	for item in inputs:
+		var need: int = pm.effective_input_qty(inputs[item]) if pm else int(inputs[item])
+		var ok: bool = GameState.resources.get_element_amount(item) >= need
+		if not ok:
+			missing_any = true
+		in_sig += ("1" if ok else "0") + str(need)   # fold effective need in so the card rebuilds when ENG_3 changes it
+	var has_ingredients = not missing_any
+	if in_sig != _in_sig:
+		_in_sig = in_sig
+		var in_str = "[center]"
+		if inputs.is_empty():
+			in_str += "None\n"
+		else:
+			for item in inputs:
+				var req_qty: int = pm.effective_input_qty(inputs[item]) if pm else int(inputs[item])
+				var avail_qty = GameState.resources.get_element_amount(item)
+				var color = "lime" if avail_qty >= req_qty else "gray"
+				var in_icon = ElementDB.material_icon_bbcode(item, 16)
+				in_str += "%s[color=%s]%s %s[/color]\n" % [in_icon, color, FormatUtils.format_number(req_qty), ElementDB.get_display_name(item)]
+		in_str += "[/center]"
+		in_lbl.text = in_str
+
+	# --- OUTPUTS: rebuild only when (active, eff_mult, rates) change. ---
 	var eff_mult = 1.0
 	if GameState.research_manager:
 		eff_mult = GameState.research_manager.get_efficiency_multiplier()
-		
-	if "output" in recipe:
-		for item in recipe["output"]:
-			var display_name = ElementDB.get_display_name(item)
-			var qty = recipe["output"][item]
-			
-			# BBCode url structure to catch hovers (similar to research smart links)
-			var meta_json = JSON.stringify({"id": item, "type": "item"})
-			var link_text = "[url=%s][color=#ffce5c][u]%s[/u][/color][/url]" % [meta_json, display_name]
-			var out_icon = ElementDB.material_icon_bbcode(item, 16)
+	var rates = manager.get_current_rate() if is_this_active else {}
+	var out_sig := "%s|%.4f|%s" % [is_this_active, eff_mult, str(rates)]
+	if out_sig != _out_sig:
+		_out_sig = out_sig
+		var out_str = "[center]"
+		if "output" in recipe:
+			for item in recipe["output"]:
+				var display_name = ElementDB.get_display_name(item)
+				var qty = recipe["output"][item]
+				# BBCode url to catch hovers (info-card links).
+				var meta_json = JSON.stringify({"id": item, "type": "item"})
+				var link_text = "[url=%s][color=#ffce5c][u]%s[/u][/color][/url]" % [meta_json, display_name]
+				var out_icon = ElementDB.material_icon_bbcode(item, 16)
+				var line = "%s%s %s" % [out_icon, FormatUtils.format_number(qty * eff_mult), link_text]
+				if item in rates:
+					out_str += "%s [color=#55ff55](%s/m)[/color]\n" % [line, FormatUtils.format_number(rates[item])]
+				else:
+					out_str += "%s\n" % line
+		out_str += "[/center]"
+		out_lbl.bbcode_enabled = true
+		out_lbl.text = out_str.strip_edges()
 
-			# Apply Efficiency Multiplier to displayed output
-			var line = "%s%s %s" % [out_icon, FormatUtils.format_number(qty * eff_mult), link_text]
-			
-			if item in rates:
-				out_str += "%s [color=#55ff55](%s/m)[/color]\n" % [line, FormatUtils.format_number(rates[item])]
-			else:
-				out_str += "%s\n" % line
-	out_str += "[/center]"
-	out_lbl.bbcode_enabled = true
-	out_lbl.text = out_str.strip_edges()
-	
+	# --- gates (cheap) ---
 	var lvl_req = recipe.get("level_req", 1)
 	var has_level = manager.get_level() >= lvl_req
-	
-	# Research Check
 	var has_research = true
-	if "research_req" in recipe:
-		if GameState.research_manager:
-			has_research = GameState.research_manager.is_tech_unlocked(recipe["research_req"])
-	
+	if "research_req" in recipe and GameState.research_manager:
+		has_research = GameState.research_manager.is_tech_unlocked(recipe["research_req"])
+
+	# --- STATE: locked overlay + button + card tint — only on transition. ---
+	var state_sig := "%s|%s|%s|%s|%s" % [is_this_active, has_research, has_level, has_ingredients, in_combat]
+	if state_sig != _state_sig:
+		_state_sig = state_sig
+		if is_this_active:
+			UITheme.apply_locked_overlay(self, recipe["name"], "", false)
+			btn.text = "Stop"
+			btn.disabled = false
+			modulate = Color(1.2, 1, 1)
+		else:
+			modulate = Color(1, 1, 1)
+			if not has_research:
+				var tech_name = GameState.research_manager.tech_tree.get(recipe["research_req"], {}).get("name", "Unknown Tech")
+				UITheme.apply_locked_overlay(self, recipe["name"], "RESEARCH: %s" % tech_name, true, recipe["research_req"], "engineering")
+				btn.text = "Research Required"
+				btn.disabled = true
+			elif not has_level:
+				UITheme.apply_locked_overlay(self, recipe["name"], "LEVEL %d REQUIRED" % recipe["level_req"], true, "", "engineering")
+				btn.text = "Requires Lv %d" % lvl_req
+				btn.disabled = true
+			elif not has_ingredients:
+				UITheme.apply_locked_overlay(self, recipe["name"], "", false)
+				btn.text = "Missing Materials"
+				btn.disabled = true
+			elif in_combat:
+				UITheme.apply_locked_overlay(self, recipe["name"], "", false)
+				btn.text = "IN COMBAT"
+				btn.disabled = true
+				btn.modulate = Color(1.0, 0.35, 0.35, 0.8)
+				modulate = Color(0.85, 0.85, 0.85)
+			else:
+				UITheme.apply_locked_overlay(self, recipe["name"], "", false)
+				btn.text = "Start"
+				btn.disabled = false
+
+	# --- PROGRESS — cheap, EVERY frame, so the fill stays smooth. ---
 	if is_this_active:
-		UITheme.apply_locked_overlay(self, recipe["name"], "", false)
-		btn.text = "Stop"
-		btn.disabled = false
-		modulate = Color(1.2, 1, 1)
-		
 		var speed_mult = manager.get_recipe_speed_multiplier(rid)
 		var effective_duration = float(recipe["duration"]) / speed_mult
-		# v108: Clamp display values — Godot can deliver a single big delta
-		# (frame stutter / tab refocus) that pushes action_progress past
-		# required_time for one frame before the manager's tick resets it.
+		# v108: Clamp — a single big delta can briefly exceed required_time.
 		var safe_progress: float = clamp(manager.action_progress, 0.0, effective_duration)
-		var prog = (safe_progress / effective_duration) * 100.0 if effective_duration > 0.0 else 0.0
 		prog_bar.active = true
-		prog_bar.value = prog
+		prog_bar.value = (safe_progress / effective_duration) * 100.0 if effective_duration > 0.0 else 0.0
 		time_lbl.text = "%s / %s" % [FormatUtils.format_time(safe_progress), FormatUtils.format_time(effective_duration)]
 	else:
 		prog_bar.active = false
 		prog_bar.value = 0
-		time_lbl.text = "0.0s / %s" % (FormatUtils.format_time(recipe["duration"] / manager.get_recipe_speed_multiplier(rid)))
-		modulate = Color(1, 1, 1)
-		
-		if not has_research:
-			var tech_name = GameState.research_manager.tech_tree.get(recipe["research_req"], {}).get("name", "Unknown Tech")
-			UITheme.apply_locked_overlay(self, recipe["name"], "RESEARCH: %s" % tech_name, true, recipe["research_req"], "engineering")
-			btn.text = "Research Required"
-			btn.disabled = true
-		elif not has_level:
-			UITheme.apply_locked_overlay(self, recipe["name"], "LEVEL %d REQUIRED" % recipe["level_req"], true, "", "engineering")
-			btn.text = "Requires Lv %d" % lvl_req
-			btn.disabled = true
-		elif not has_ingredients:
-			UITheme.apply_locked_overlay(self, recipe["name"], "", false)
-			btn.text = "Missing Materials"
-			btn.disabled = true
-		elif GameState.combat_manager and GameState.combat_manager.in_combat:
-			UITheme.apply_locked_overlay(self, recipe["name"], "", false)
-			btn.text = "IN COMBAT"
-			btn.disabled = true
-			btn.modulate = Color(1.0, 0.35, 0.35, 0.8)
-			modulate = Color(0.85, 0.85, 0.85)
-		else:
-			UITheme.apply_locked_overlay(self, recipe["name"], "", false)
-			btn.text = "Start"
-			btn.disabled = false
+		time_lbl.text = "0.0s / %s" % FormatUtils.format_time(recipe["duration"] / manager.get_recipe_speed_multiplier(rid))
 
 # ────────────────────────────────────────────────────────────
 # META HOVER (Info Card Tooltip)
