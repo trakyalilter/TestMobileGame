@@ -270,16 +270,6 @@
     "description": "Compressed carbon used in heat shields and electronics."
   },
   {
-    "atomic_number": -20,
-    "symbol": "Scrap",
-    "name": "Recycled Scrap",
-    "mass": 10.0,
-    "category": "Raw Material",
-    "tier": 1,
-    "base_value": 2,
-    "description": "Mangled parts from destroyed machines. Can be recycled."
-  },
-  {
     "atomic_number": 29,
     "symbol": "Cu",
     "name": "Copper",
@@ -484,21 +474,6 @@
     "description": "Unstable singularity core. +30 Energy Dmg per shot."
   },
   {
-    "atomic_number": -90,
-    "symbol": "LaserSight",
-    "name": "LaserSight",
-    "mass": 0.1,
-    "category": "Module",
-    "tier": 2,
-    "base_value": 100,
-    "slot_type": "sensor",
-    "stats": {
-      "atk": 5,
-      "accuracy": 10
-    },
-    "description": "Improves targeting accuracy."
-  },
-  {
     "atomic_number": -110,
     "symbol": "kinetic_shell",
     "name": "Kinetic Shells",
@@ -549,16 +524,6 @@
     "description": "Stable quantum singularity. The heart of a Dreadnought."
   },
   {
-    "atomic_number": -130,
-    "symbol": "AncientComponent",
-    "name": "Ancient Component",
-    "mass": 2.5,
-    "category": "Artifact",
-    "tier": 5,
-    "base_value": 1000,
-    "description": "Unidentifiable machinery from a lost civilization. Highly valuable."
-  },
-  {
     "atomic_number": -301,
     "symbol": "BatteryT1",
     "name": "Basic Battery",
@@ -607,16 +572,6 @@
     "tier": 1,
     "base_value": 30,
     "description": "Technical schematics recovered from derelict probes. Essential for engineering research."
-  },
-  {
-    "atomic_number": -403,
-    "symbol": "PirateManifest",
-    "name": "Pirate Manifest",
-    "mass": 0.01,
-    "category": "Combat Data",
-    "tier": 2,
-    "base_value": 50,
-    "description": "Encrypted cargo logs revealing hidden sector coordinates."
   },
   {
     "atomic_number": -404,
@@ -772,21 +727,6 @@
     "description": "Super-cooled nitrogen for industrial cooling systems."
   },
   {
-    "atomic_number": -502,
-    "symbol": "nanite_swarm",
-    "name": "Nanite Repair Swarm",
-    "mass": 0.5,
-    "category": "Consumable",
-    "tier": 3,
-    "base_value": 500,
-    "effect": "heal_hull",
-    "value": 10,
-    "traits": [
-      "hot"
-    ],
-    "description": "Autonomous repair drones. Provides immediate hull repair and a heal-over-time effect."
-  },
-  {
     "atomic_number": -71,
     "symbol": "MiteChitin",
     "name": "Mite Chitin",
@@ -882,16 +822,6 @@
     "tier": 1,
     "base_value": 15,
     "description": "Used in soldering and bronze alloys."
-  },
-  {
-    "atomic_number": 51,
-    "symbol": "Bronze",
-    "name": "Bronze",
-    "mass": 70.0,
-    "category": "Alloy",
-    "tier": 2,
-    "base_value": 60,
-    "description": "Cooper-Tin alloy. Historically reliable."
   },
   {
     "atomic_number": -510,
@@ -1064,16 +994,6 @@
     "description": "Particle of antimatter. Handle with semantic containment fields."
   },
   {
-    "atomic_number": -903,
-    "symbol": "AntimatterFuel",
-    "name": "Antimatter Fuel Cell",
-    "mass": 1.0,
-    "category": "Fuel",
-    "tier": 5,
-    "base_value": 5000,
-    "description": "Stabilized antimatter fuel for FTL drives."
-  },
-  {
     "atomic_number": -904,
     "symbol": "VoidEssence",
     "name": "Void Essence",
@@ -1154,16 +1074,6 @@
     "description": "Concentrated viral agent."
   },
   {
-    "atomic_number": -803,
-    "symbol": "MutatedTissue",
-    "name": "Mutated Tissue",
-    "mass": 2.0,
-    "category": "Raw Material",
-    "tier": 4,
-    "base_value": 150,
-    "description": "Rapidly regenerating biomass."
-  },
-  {
     "atomic_number": -804,
     "symbol": "BioWeaponCoating",
     "name": "Bio-Weapon Coating",
@@ -1192,36 +1102,6 @@
     "tier": 5,
     "base_value": 800,
     "description": "Hull plating that repairs itself over time."
-  },
-  {
-    "atomic_number": -807,
-    "symbol": "StolenCargo",
-    "name": "Stolen Cargo",
-    "mass": 10.0,
-    "category": "Commodity",
-    "tier": 2,
-    "base_value": 100,
-    "description": "Marked crates recovered from pirates."
-  },
-  {
-    "atomic_number": -808,
-    "symbol": "SwarmFragment",
-    "name": "Swarm Fragment",
-    "mass": 1.0,
-    "category": "Raw Material",
-    "tier": 2,
-    "base_value": 20,
-    "description": "Piece of a hive-mind drone."
-  },
-  {
-    "atomic_number": -809,
-    "symbol": "CryoCell",
-    "name": "Cryo Cell",
-    "mass": 2.0,
-    "category": "Component",
-    "tier": 3,
-    "base_value": 60,
-    "description": "Maintains near-zero temperatures."
   },
   {
     "atomic_number": -810,
@@ -1364,16 +1244,6 @@
     "description": "Pure pressurized carbon lattice."
   },
   {
-    "atomic_number": -824,
-    "symbol": "SyntheticCrystal",
-    "name": "Synthetic Crystal",
-    "mass": 1.0,
-    "category": "Raw Material",
-    "tier": 3,
-    "base_value": 80,
-    "description": "Lab-grown crystal structure."
-  },
-  {
     "atomic_number": -320,
     "symbol": "AlWire",
     "name": "Aluminum Wire",
@@ -1382,16 +1252,6 @@
     "tier": 2,
     "base_value": 20,
     "description": "Conductive writing for lightweight electronics."
-  },
-  {
-    "atomic_number": -909,
-    "symbol": "AIMatrix",
-    "name": "AI Matrix",
-    "mass": 100.0,
-    "category": "Component",
-    "tier": 2,
-    "base_value": 100,
-    "description": "Advanced industrial or operational component."
   },
   {
     "atomic_number": -910,
@@ -1453,16 +1313,6 @@
     "description": "Advanced industrial or operational component."
   },
   {
-    "atomic_number": -916,
-    "symbol": "Food",
-    "name": "Hydroponic Food",
-    "mass": 100.0,
-    "category": "Component",
-    "tier": 2,
-    "base_value": 100,
-    "description": "Advanced industrial or operational component."
-  },
-  {
     "atomic_number": -917,
     "symbol": "GalvanizedSteel",
     "name": "Galvanized Steel",
@@ -1476,16 +1326,6 @@
     "atomic_number": -918,
     "symbol": "Germanium",
     "name": "Germanium",
-    "mass": 100.0,
-    "category": "Component",
-    "tier": 2,
-    "base_value": 100,
-    "description": "Advanced industrial or operational component."
-  },
-  {
-    "atomic_number": -919,
-    "symbol": "Gold",
-    "name": "Gold",
     "mass": 100.0,
     "category": "Component",
     "tier": 2,

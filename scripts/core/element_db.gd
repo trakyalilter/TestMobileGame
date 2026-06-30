@@ -46,7 +46,6 @@ var ELEMENT_NAMES = {
 	
 	# Processed Materials
 	"Steel": "Steel",
-	"Bronze": "Bronze",
 	"Graphite": "Graphite",
 	"StainlessSteel": "Stainless Steel",
 	"GalvanizedSteel": "Galvanized Steel",
@@ -73,8 +72,7 @@ var ELEMENT_NAMES = {
 	"Chip": "Microchip",
 	"Hydraulics": "Hydraulic System",
 	"AlWire": "Aluminum Wiring",
-	"LaserSight": "Laser Sight",  # Audit v51.0
-	
+
 	# Batteries
 	"BatteryT1": "Basic Battery",
 	"BatteryT2": "Improved Battery",
@@ -116,7 +114,6 @@ var ELEMENT_NAMES = {
 	"ExoticMatter": "Exotic Matter",
 	"VoidCrystal": "Void Crystal",
 	"Diamond": "Diamond",
-	"SyntheticCrystal": "Synthetic Crystal",
 	"Neutronium": "Neutronium",
 	"AntimatterParticle": "Antimatter Particle",
 	"ExoticIsotope": "Exotic Isotope",
@@ -135,9 +132,6 @@ var ELEMENT_NAMES = {
 	"MiteChitin": "Mite Chitin",
 	"ChitinPatch": "Chitin Hull Patch",
 	"SalvageData": "Salvage Data",
-	"StolenCargo": "Stolen Cargo",
-	"SwarmFragment": "Swarm Fragment",
-	"PirateManifest": "Pirate Manifest",
 	"PirateSalvage": "Pirate Salvage",
 	"MartianRelics": "Martian Relics",
 	"CryoEssence": "Glacial Essence",
@@ -147,16 +141,12 @@ var ELEMENT_NAMES = {
 	"ColonyDataCore": "Colony Data Core",
 	"TitanClearance": "Titan Clearance",
 
-	"CryoCell": "Cryogenic Cell",
 	"NitroCoolant": "Cryo-Shield Matrix",
 	"RadIsotope": "Radioactive Isotope",  # Audit v50.0
-	"nanite_swarm": "Nanite Repair Swarm",  # Audit v50.0
-	
+
 	# v57.0: Sector Zeta & Late Sector Loot
 	"BiohazardSample": "Biohazard Sample",
 	"PathogenCore": "Pathogen Core",
-	"MutatedTissue": "Mutated Tissue",
-	"AIMatrix": "AI Matrix",
 	"QuarantineClearance": "Quarantine Clearance",
 	"BioWeaponCoating": "Biological Weapon Coating",
 	"AIProcessor": "AI Processor Array",
@@ -233,19 +223,18 @@ var CATEGORIES = {
 	"basic_metals": ["Fe", "Cu", "Al", "Mg", "Sn", "Zn"],
 	"advanced_metals": ["Ti", "Co", "Ni", "Cr", "Mn", "W"],
 	"rare_metals": ["Au", "Ag", "Pt", "Pd", "Ir", "Os", "Rh", "U", "Germanium"],
-	"alloys": ["Steel", "Bronze", "Graphite", "StainlessSteel", "GalvanizedSteel", "Superalloy", "AlMgAlloy", "IrWAlloy",
+	"alloys": ["Steel", "Graphite", "StainlessSteel", "GalvanizedSteel", "Superalloy", "AlMgAlloy", "IrWAlloy",
 				"ChondriteAlloy", "WreckforgedAlloy", "RimeAlloy", "XenoforgedAlloy", "ColonyAlloy", "GammaAlloy", "PrismaticAlloy", "BioforgedAlloy", "AeonAlloy"],
 	"components": ["Circuit", "AdvCircuit", "Chip", "Hydraulics", "AlWire", "Resin", "Fiber", "ReinforcedPlating"],
 	"batteries": ["BatteryT1", "BatteryT2", "BatteryT3", "CoBattery", "MgBattery", "PdFuelCell"],
 	"consumables": ["Mesh", "Seal", "EmergencyPatch", "BasicBooster", "ChitinPatch", "NitroCoolant", "AdvMaintenanceKit", "CapacitorShard", "IonField", "ZeroPoint"],  # Audit v2.0: Early/Mid consumables
 	"ammo": ["SlugT1", "SlugT1S", "SlugT2", "SlugT3", "SlugT4", "CellT1", "CellT2", "CellT3", "CellT4", "MissileT1", "MissileT2", "MissileT3", "MissileT4"],
-	"special": ["VoidArtifact", "QuantumCore", "ExoticMatter", "VoidCrystal", "Diamond", "SyntheticCrystal", 
+	"special": ["VoidArtifact", "QuantumCore", "ExoticMatter", "VoidCrystal", "Diamond",
 				"Neutronium", "AntimatterParticle", "ExoticIsotope", "ReactiveCore", "AICore", "AncientTech",
 				"NavData", "IrPlate", "OsCore", "PtCatalyst",
 				"Res1", "Res2", "Res3",
-				"MiteChitin", "SalvageData", "StolenCargo",
-				"SwarmFragment", "PirateManifest", "ColonySalvage", "TurretCore", 
-				"ColonyDataCore", "RadIsotope", "CryoCell",
+				"MiteChitin", "SalvageData", "ColonySalvage", "TurretCore",
+				"ColonyDataCore", "RadIsotope",
 				"PirateSalvage", "MartianRelics", "CryoEssence", "XenoFragment",
 				"RimeplateScrap", "AeonResiduum"],  # v114: minted Zone Tier-Gate raws
 	# Audit v4.0: Endgame category for ultimate items
@@ -559,7 +548,6 @@ var MATERIAL_TINT := {
 	"Neutronium": Color(0.68, 0.75, 0.85),
 	"ChronoCore": Color(0.35, 0.82, 0.69),
 	"AntimatterParticle": Color(0.91, 0.29, 0.54),
-	"AntimatterFuel": Color(0.85, 0.29, 0.66),
 	"PrimordialShard": Color(0.88, 0.54, 0.23),
 	"ExoticIsotope": Color(0.35, 0.82, 0.56),
 	"CryoCatalyst": Color(0.56, 0.82, 0.91),
@@ -570,7 +558,6 @@ var MATERIAL_TINT := {
 	"BioReactorCore":    Color(0.40, 0.78, 0.45),
 	"PrimordialMatrix":  Color(0.90, 0.58, 0.28),
 	"VoidLattice":       Color(0.46, 0.30, 0.74),
-	"Food": Color(0.48, 0.77, 0.29),
 	# Batch 12 — zone boss cores (numeral stamp, tint escalates across the zone progression)
 	"Z1_Core": Color(0.69, 0.72, 0.75),
 	"Z2_Core": Color(0.72, 0.60, 0.42),
@@ -605,7 +592,6 @@ var MATERIAL_TINT := {
 	"TurretCore": Color(0.54, 0.58, 0.63),
 	"TargetingChip": Color(0.88, 0.52, 0.23),
 	"SuperconductingMagnet": Color(0.35, 0.54, 0.78),
-	"AncientComponent": Color(0.75, 0.60, 0.35),
 	"VoidArtifact": Color(0.48, 0.29, 0.75),
 	# Batch 15 (final) — gases, element/alloy completeness, artifacts, endgame passives,
 	# Phase B deep-craft intermediates, and remaining loot/data items (full coverage)
@@ -613,8 +599,6 @@ var MATERIAL_TINT := {
 	"N": Color(0.48, 0.60, 0.85),
 	"S": Color(0.85, 0.78, 0.30),
 	"Rh": Color(0.78, 0.80, 0.82),
-	"Bronze": Color(0.78, 0.55, 0.32),
-	"SyntheticCrystal": Color(0.60, 0.85, 0.88),
 	"Res2": Color(0.40, 0.66, 0.90),
 	"Res3": Color(0.75, 0.45, 0.88),
 	"TemporalModule": Color(0.40, 0.80, 0.85),
@@ -622,18 +606,11 @@ var MATERIAL_TINT := {
 	"OmegaAccelerator": Color(0.88, 0.72, 0.35),
 	"FertileSoil": Color(0.55, 0.65, 0.35),
 	"CompositeWeave": Color(0.55, 0.60, 0.65),
-	"AIMatrix": Color(0.40, 0.62, 0.85),
 	"AncientTech": Color(0.75, 0.62, 0.38),
 	"ColonyDataCore": Color(0.45, 0.62, 0.72),
-	"CryoCell": Color(0.60, 0.82, 0.90),
-	"MutatedTissue": Color(0.70, 0.42, 0.55),
-	"PirateManifest": Color(0.72, 0.62, 0.45),
 	"QuarantineClearance": Color(0.55, 0.75, 0.45),
 	"TitanClearance": Color(0.60, 0.66, 0.72),
 	"ReactiveCore": Color(0.85, 0.45, 0.30),
-	"StolenCargo": Color(0.68, 0.55, 0.38),
-	"SwarmFragment": Color(0.62, 0.68, 0.40),
-	"nanite_swarm": Color(0.55, 0.75, 0.78),
 }
 
 func get_material_tint(symbol: String) -> Color:

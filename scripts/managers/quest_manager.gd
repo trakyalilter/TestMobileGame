@@ -19,7 +19,7 @@ var material_rewards = {
 	6: [["AdvCircuit", 150, 350], ["ColonySalvage", 100, 250], ["Superalloy", 60, 150]],
 	7: [["RadIsotope", 80, 200], ["Pt", 50, 120], ["Superalloy", 100, 250]],
 	8: [["VoidCrystal", 20, 60], ["Diamond", 15, 40], ["ExoticMatter", 10, 30]],
-	9: [["BiohazardSample", 40, 100], ["MutatedTissue", 25, 70], ["PathogenCore", 10, 25]],
+	9: [["BiohazardSample", 40, 100], ["Neutronium", 25, 70], ["PathogenCore", 10, 25]],
 	10: [["VoidEssence", 20, 50], ["ChronoCore", 10, 25], ["PrimordialShard", 5, 15]]
 }
 
