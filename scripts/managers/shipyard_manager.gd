@@ -470,7 +470,11 @@ var hulls: Dictionary = {
 	"frigate_hull": {
 		"name": "Industrial Frigate",
 		"stats": {"hp": 200, "energy_capacity": 75},
-		"cost": {"credits": 30000, "Steel": 50},
+		# v126: Reinforced Plating gets its intended "early ship-frame upgrade" sink.
+		# SalvagedAlloy/DamagedCircuitry drop only in Z1-2; the frigate (tier 2) is built
+		# in that same era, so the reclaimed loop terminates here instead of piling up
+		# dead. Anti-deadlock: lvl-8 fallback recipes mint both from Steel/Circuit.
+		"cost": {"credits": 30000, "Steel": 50, "ReinforcedPlating": 4},
 		"slots": ["weapon", "weapon", "shield", "shield","armor", "armor", "engine", "battery", "battery", "sensor"], # 10
 		"research_req": "shipwright_1",
 		"visual": "res://assets/ships/2.png",
@@ -479,7 +483,8 @@ var hulls: Dictionary = {
 	"destroyer_hull": {
 		"name": "Destroyer",
 		"stats": {"hp": 387, "energy_capacity": 120},
-		"cost": {"credits": 90000, "Steel": 100, "Circuit": 20},
+		# v126: continues the Reinforced Plating sink into the tier-3 hull (still Z1-2 era).
+		"cost": {"credits": 90000, "Steel": 100, "Circuit": 20, "ReinforcedPlating": 10},
 		"slots": ["weapon", "weapon", "weapon", "shield", "shield", "armor", "armor", "engine", "battery", "battery", "battery", "sensor"], # 12
 		"research_req": "shipwright_2",
 		"visual": "res://assets/ships/3.png",

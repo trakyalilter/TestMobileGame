@@ -34,6 +34,23 @@ var recipes: Dictionary = {
 		"xp": 5,
 		"category": "basics"
 	},
+	# v126: permanent sink for Fertile Soil. The Terraforming Processor turns junk
+	# Dirt/Water into FertileSoil, but the only prior consumer was the one-time
+	# Biosphere Dome build (max 5) — so it produced dead surplus forever after.
+	# This cultivates that soil into a renewable Wood supply, feeding the eternal
+	# Wood->Carbon chain. Net loop: Dirt/Water (junk) -> FertileSoil -> Wood -> Carbon.
+	# Exploit-free (no currency minted; basics are already infra-infinite by design).
+	"cultivate_biomass": {
+		"name": "Biomass Cultivation",
+		"description": "Grow fast-cycle biomass in cultivated soil — a renewable Wood supply from Terraforming-Processor surplus.",
+		"input": {"FertileSoil": 2},
+		"output": {"Wood": 5},
+		"duration": 6.0,
+		"level_req": 12,
+		"xp": 15,
+		"research_req": "industrial_logistics",
+		"category": "basics"
+	},
 	"electrolysis": {
 		"name": "Water Electrolysis",
 		"description": "Split Water into Hydrogen and Oxygen.",
@@ -356,8 +373,8 @@ var recipes: Dictionary = {
 		"input": {"Steel": 1, "W": 1},
 		"output": {"SlugT2": 20},
 		"duration": 10.0,
-		"level_req": 32, # Increased from 4
-		"xp": 40, # Increased from 20
+		"level_req": 24, # v126: 32->24 — closes the W idle gap (Tungsten gathers at lvl 20; this is its first real sink)
+		"xp": 40,
 		"research_req": "processing_tungsten"
 	},
 	"craft_slug_t1s": {
