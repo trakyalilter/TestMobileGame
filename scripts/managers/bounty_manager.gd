@@ -105,12 +105,22 @@ func log_msg(msg: String):
 func get_player_max_difficulty() -> int:
 	var cm = GameState.combat_manager
 	var rm = GameState.research_manager
+	if not cm or not rm: return 1
 	var max_diff = 1  # Lunar Orbit is always available
 	for zid in cm.zones:
 		var z = cm.zones[zid]
 		var req = z.get("research_req", "")
-		if req == "" or rm.is_tech_unlocked(req):
-			max_diff = max(max_diff, z["difficulty"])
+		var flag = z.get("unlock_flag", "")
+		# A zone counts as reachable only if BOTH its research gate AND its
+		# unlock-flag gate pass. the_threshold (Z11) / the_rift (Z12) carry an
+		# empty research_req and gate purely via unlock_flag ("z11_unlocked" /
+		# "z12_unlocked"); the old req=="" check counted them as unlocked for
+		# everyone, so a brand-new board rolled T11-T12 hunts (locked zones,
+		# billion-CR rewards, 60K refresh). Mirrors quest_manager._get_max_difficulty().
+		var research_ok: bool = (req == "" or rm.is_tech_unlocked(req))
+		var flag_ok: bool = (flag == "" or GameState.game_settings.get(flag, false))
+		if research_ok and flag_ok:
+			max_diff = max(max_diff, int(z["difficulty"]))
 	return max_diff
 
 func generate_contract_pool():
