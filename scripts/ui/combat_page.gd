@@ -367,6 +367,9 @@ func update_ui():
 	var total_crit = (sm.crit_chance + crit_bonus) * 100.0
 	
 	p_stat_lbl.text = "ATK: %s | DEF: %s | EVA: %.0f | CRIT: %.0f%%" % [UITheme.format_num(sm.attack), UITheme.format_num(sm.defense), total_eva, total_crit]
+	# v127: surface the ship's K/E/X damage RESISTANCE next to the enemy's damage
+	# type (shown on the enemy card) — closes the "which resist do I need here?" loop.
+	p_stat_lbl.text += " | RES K%d N%d X%d" % [int(round(sm.resist_k * 100.0)), int(round(sm.resist_e * 100.0)), int(round(sm.resist_x * 100.0))]
 	# v112 Fleet P2: surface the fleet's live combat contribution so it reads as
 	# power, not a dead roster number.
 	if GameState.fleet_manager and GameState.fleet_manager.has_method("get_combat_bonus_pct"):

@@ -337,6 +337,13 @@ func _build_test_fitter(body: VBoxContainer) -> void:
 	stock_btn.pressed.connect(_on_test_stock_consumable_pressed)
 	body.add_child(stock_btn)
 
+	# v127: debug grant of Hack Stones so the Ship Designer's Hacking bar can be
+	# tested without grinding research-gated combat drops.
+	var stones_btn := _primary_button("+5 HACK CARDS (each)", FRAME_CAT)
+	stones_btn.custom_minimum_size = Vector2(0, 38)
+	stones_btn.pressed.connect(_on_test_grant_hack_stones_pressed)
+	body.add_child(stones_btn)
+
 
 func _set_test_tier(v) -> void:
 	_test_tier = int(v)
@@ -356,6 +363,19 @@ func _set_test_weapon_type(v) -> void:
 func _set_test_consumable(v) -> void:
 	_test_consumable_id = str(v)
 	_refresh_all()
+
+
+# v127: debug — grant 5 of each Hack Stone, so the Ship Designer's Hacking bar +
+# arm/apply flow can be tested without waiting on research-gated combat drops.
+func _on_test_grant_hack_stones_pressed() -> void:
+	if not GameState.resources:
+		UITheme.show_notification("Resources unavailable.", Color.RED)
+		return
+	for sid in ["SpliceChip", "FirmwareInjector", "RootKey", "AnchorBolt", "CorruptionWorm"]:
+		GameState.resources.add_element(sid, 5)
+	if GameState.shipyard_manager:
+		GameState.shipyard_manager.inventory_updated.emit()
+	UITheme.show_notification("+5 of each Hack Card. Open Ship Designer -> Armory to use them.", Color(0.6, 0.85, 1.0))
 
 
 func _set_test_hull_tier(v) -> void:

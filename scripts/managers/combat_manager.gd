@@ -1918,6 +1918,12 @@ func _execute_enemy_attack():
 				e_atk_x = e_atk * ENEMY_EXPLOSIVE_ATK_COMP
 			_:
 				e_atk_k = e_atk
+		# v127: player per-type damage RESISTANCE. Only the enemy's active type
+		# is non-zero, so this scales the incoming hit by the matching resist
+		# (0 by default -> neutral). Summed from modules & capped 0.75 in recalc_stats.
+		e_atk_k = e_atk_k * (1.0 - sm.resist_k)
+		e_atk_e = e_atk_e * (1.0 - sm.resist_e)
+		e_atk_x = e_atk_x * (1.0 - sm.resist_x)
 		# Enemy uses base crit 5%
 		var eres = resolve_damage(e_atk_k, e_atk_e, e_atk_x, player_shield, sm.defense * _tier_def_factor, difficulty, 0.05, false)
 		
@@ -2155,7 +2161,11 @@ func get_effective_module_drop_chance(enemy_data: Dictionary) -> float:
 	# (a deliberate +rare-loot investment).
 	var rm = GameState.research_manager
 	var xeno_bonus = rm.get_efficiency_bonus("xeno_engineering") if rm else 0.0
-	return base * (1.0 + xeno_bonus)
+	# v128: Sensor "Salvage Scanner" affix (module_drop_mult) — the only per-slot
+	# multiplier on module drop chance. Bounded (max GA ~0.30 per affix).
+	var sm = GameState.shipyard_manager
+	var salvage = sm.affix_bonuses.get("module_drop_mult", 0.0) if sm else 0.0
+	return base * (1.0 + xeno_bonus) * (1.0 + salvage)
 
 # Weighted pick over a drop pool using MODULE_DROP_WEIGHTS by slot type.
 # Entries whose slot type has weight <= 0 (e.g. battery) can never drop,
@@ -2220,12 +2230,49 @@ func _pick_weighted_base(pool: Array, sm: Object) -> String:
 			return pair[0]
 	return weighted[-1][0]
 
+# v127 H4: centralized Hack Stone drop roll — research-gated (firmware_hacking) +
+# zone-tiered, so ONE place governs it instead of editing every enemy's rare_loot.
+# Rates per docs/design/HACK_STONES.md. Bosses guarantee an Injector; boss/elite
+# feed Root Key. Only fires once firmware_hacking is researched (~Z3-era gate).
+func _roll_hack_stone_drops(zone: int, is_boss: bool, is_elite: bool) -> void:
+	var rm = GameState.research_manager
+	if not rm or not rm.is_tech_unlocked("firmware_hacking"):
+		return
+	var res = GameState.resources
+	# v128: Sensor "Cryptographic Decoder" affix (stone_drop_mult) scales the RANDOM
+	# roll only — boss-guaranteed drops (Injector) stay guaranteed. Bounded (GA ~0.40).
+	var sm_s = GameState.shipyard_manager
+	var smult = 1.0 + (sm_s.affix_bonuses.get("stone_drop_mult", 0.0) if sm_s else 0.0)
+	var got: Array = []
+	if zone >= 1 and randf() < 0.25 * smult:
+		res.add_element("SpliceChip", 1)
+		got.append("Splice Chip")
+	if zone >= 2 and (is_boss or randf() < 0.12 * smult):
+		res.add_element("FirmwareInjector", 1)
+		got.append("Firmware Injector")
+	if zone >= 3 and ((is_boss and randf() < 0.08 * smult) or (is_elite and randf() < 0.06 * smult)):
+		res.add_element("RootKey", 1)
+		got.append("Root Key")
+	if zone >= 4 and randf() < 0.015 * smult:
+		res.add_element("AnchorBolt", 1)
+		got.append("Anchor Bolt")
+	if zone >= 5 and randf() < 0.05 * smult:
+		res.add_element("CorruptionWorm", 1)
+		got.append("Corruption Worm")
+	if not got.is_empty():
+		combat_events.append({"type": "loot", "text": "HACK CARD: %s" % ", ".join(PackedStringArray(got)), "color": Color(0.60, 0.85, 1.0), "side": "enemy"})
+
 func win_fight():
 	log_msg("Destroyed %s!" % current_enemy["name"])
 	
 	# v101: Combat Loot Scaling — loot now grows with progression
 	var loot_mult = get_combat_loot_multiplier()
-	
+	# v128: Sensor "Prospector Array" affix (enemy_drop_mult) — scales ALL enemy
+	# loot quantity (elements + Liras). Bounded (max GA ~0.20 per affix).
+	var sm_loot = GameState.shipyard_manager
+	if sm_loot:
+		loot_mult *= (1.0 + sm_loot.affix_bonuses.get("enemy_drop_mult", 0.0))
+
 	for entry in current_enemy["loot"]:
 		var base_qty = randi_range(entry[1], entry[2])
 		var qty = int(ceil(float(base_qty) * loot_mult))
@@ -2390,6 +2437,8 @@ func win_fight():
 		player_shield = minf(player_max_shield, player_shield + player_max_shield * _rok)
 	# Per-kill HUD timer resets at the moment of the kill; session timer keeps running.
 	time_since_last_kill = 0.0
+	# v127 H4: research-gated, zone-tiered Hack Stone drop.
+	_roll_hack_stone_drops(int(current_zone.get("difficulty", 1)), current_enemy.get("is_boss", false), current_enemy.get("is_elite", false))
 	enemy_defeated.emit(current_enemy["id"])
 	total_kills += 1
 	_maybe_offline_combat_nudge()

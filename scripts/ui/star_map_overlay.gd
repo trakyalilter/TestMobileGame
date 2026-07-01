@@ -36,15 +36,17 @@ var _readout: PanelContainer
 # readout fields
 var _ro_name: Label
 var _ro_band: Label
-var _ro_threat: ProgressBar
-var _ro_threat_num: Label
-var _ro_dps: Label
 var _ro_status: Label
 var _tgt_box: VBoxContainer       # selected-target detail (filled from sector view)
 var _tgt_name: Label
 var _tgt_type: Label
 var _tgt_hp: Label
+var _tgt_shield: Label
 var _tgt_atk: Label
+var _tgt_def: Label
+var _tgt_xp: Label
+var _tgt_resist: Label
+var _tgt_weak: Label
 var _back_btn: Button
 var _engage_btn: Button
 var _engage_hint: Label
@@ -164,23 +166,8 @@ func _build_readout() -> void:
 	_ro_band = _mk_label("", 9, C_TEAL, false)
 	v.add_child(_ro_band)
 
-	v.add_child(_spacer(6))
-	v.add_child(_mk_label("THREAT LEVEL", 8, C_DIM, false))
-	var threat_row := HBoxContainer.new()
-	threat_row.add_theme_constant_override("separation", 8)
-	v.add_child(threat_row)
-	_ro_threat = ProgressBar.new()
-	_ro_threat.min_value = 0
-	_ro_threat.max_value = 12
-	_ro_threat.show_percentage = false
-	_ro_threat.custom_minimum_size = Vector2(150, 8)
-	_ro_threat.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_style_threat_bar(C_TEAL)
-	threat_row.add_child(_ro_threat)
-	_ro_threat_num = _mk_label("—/12", 10, C_AMBER, true)
-	threat_row.add_child(_ro_threat_num)
-
-	_ro_dps = _kv_row(v, "RECOMMENDED DPS", "—", C_AMBER)
+	# (Threat-level bar + recommended-DPS readout removed — the sector band label
+	# above already conveys danger qualitatively without spoiler-y target numbers.)
 	v.add_child(_sep())
 
 	# TARGET — the hostile picked on the sector view (selection happens on the
@@ -199,7 +186,13 @@ func _build_readout() -> void:
 	_tgt_box.add_child(_tgt_type)
 	_tgt_box.add_child(_spacer(2))
 	_tgt_hp = _kv_row(_tgt_box, "HULL", "—", C_TEXT)
+	_tgt_shield = _kv_row(_tgt_box, "SHIELD", "—", C_AQUA)
 	_tgt_atk = _kv_row(_tgt_box, "ATTACK", "—", C_TEXT)
+	_tgt_def = _kv_row(_tgt_box, "DEFENSE", "—", C_TEXT)
+	_tgt_xp = _kv_row(_tgt_box, "XP REWARD", "—", C_JADE)
+	_tgt_box.add_child(_spacer(3))
+	_tgt_resist = _kv_row(_tgt_box, "RESISTS", "—", C_CORAL)
+	_tgt_weak = _kv_row(_tgt_box, "WEAK TO", "—", C_JADE)
 	_tgt_box.visible = false
 
 	v.add_child(_spacer(0, true))   # expanding spacer pins the buttons to the bottom
@@ -276,6 +269,11 @@ func _compute_models() -> Array:
 		var boss_id := _find_boss(data.get("enemies", []))
 		var cleared: bool = boss_id != "" and int(manager.boss_kills.get(boss_id, 0)) > 0
 		var is_avail: bool = avail.has(zid)
+		# Reveal gate: an undiscovered system stays OFF the chart until its unlock
+		# research makes it available — sectors appear one by one instead of the
+		# whole map (which spoils what's ahead). Cleared systems always show.
+		if not is_avail and not cleared:
+			continue
 		var state := "locked"
 		if zid == manager.current_zone_id and is_avail:
 			state = "current"
@@ -294,6 +292,9 @@ func _compute_models() -> Array:
 	for hid in manager.hazard_zones:
 		var hz = manager.hazard_zones[hid]
 		var unlocked: bool = manager.is_hazard_unlocked(hid)
+		# Reveal gate (same as systems): hidden until its access is unlocked.
+		if not unlocked and not manager.hazard_clears.has(hid):
+			continue
 		# Hazard ids live in hazard_zones, not zones, so the main loop's
 		# current-zone check above never matches them. Derive state here, with
 		# current_zone_id taking precedence (start_hazard sets it to the hazard
@@ -362,14 +363,6 @@ func _update_sector_header(m: Dictionary) -> void:
 		band = "ELECTROMAGNETIC HAZARD"
 	_ro_band.text = "SECTOR %02d · %s" % [diff, band]
 	_ro_band.add_theme_color_override("font_color", heat)
-	_ro_threat.value = diff
-	_style_threat_bar(heat)
-	_ro_threat_num.text = "%02d / 12" % diff
-	_ro_threat_num.add_theme_color_override("font_color", heat)
-	if m.get("is_hazard", false):
-		_ro_dps.text = "Faraday hull req."
-	else:
-		_ro_dps.text = "≈ %s" % UITheme.format_num(_zone_combat_stats(str(m["id"]))["dps"])
 
 # Galaxy view — a sector is highlighted but not drilled into yet.
 func _set_idle_readout(m: Dictionary) -> void:
@@ -425,7 +418,30 @@ func _show_target_detail(eid: String) -> void:
 	_tgt_type.text = ("SECTOR BOSS · %s DAMAGE" % DMG_TAGS.get(dt, "KIN")) if is_boss else ("%s DAMAGE" % DMG_TAGS.get(dt, "KIN"))
 	_tgt_type.add_theme_color_override("font_color", DMG_COLS.get(dt, C_DIM))
 	_tgt_hp.text = UITheme.format_num(s.get("hp", 0))
+	var sh := int(s.get("max_shield", 0))
+	_tgt_shield.get_parent().visible = sh > 0
+	_tgt_shield.text = UITheme.format_num(sh)
 	_tgt_atk.text = UITheme.format_num(s.get("atk", 0))
+	_tgt_def.text = UITheme.format_num(int(s.get("def", 0)))
+	_tgt_xp.text = "+%s" % UITheme.format_num(int(e.get("xp", 0)))
+
+	# Resist / weakness — the actionable intel for picking a loadout before ENGAGE.
+	if e.get("warp_hardened", false):
+		_tgt_resist.text = "all except Cryo"
+		_tgt_weak.text = "CRYO only (warp-hardened)"
+	else:
+		var res_parts: Array = []
+		var weak_parts: Array = []
+		for entry in [[float(e.get("resist_k", 0.0)), "KIN"], [float(e.get("resist_e", 0.0)), "NRG"], [float(e.get("resist_x", 0.0)), "EXP"], [float(e.get("resist_cryo", 0.0)), "CRY"]]:
+			var rv: float = entry[0]
+			var tag: String = entry[1]
+			if rv > 0.05:
+				res_parts.append("%s +%d%%" % [tag, int(round(rv * 100.0))])
+			elif rv < -0.05:
+				weak_parts.append("%s %d%%" % [tag, int(round(rv * 100.0))])
+		_tgt_resist.text = " · ".join(res_parts) if not res_parts.is_empty() else "none"
+		_tgt_weak.text = " · ".join(weak_parts) if not weak_parts.is_empty() else "none"
+
 	_engage_btn.disabled = false
 	_engage_btn.text = "ENGAGE"
 	_engage_hint.text = "Warp in and attack %s." % str(e.get("name", "the target"))
@@ -627,14 +643,4 @@ func _legend_chip(col: Color, txt: String) -> void:
 	box.add_child(_mk_label(txt, 8, C_DIM, false))
 	_legend.add_child(box)
 
-func _style_threat_bar(fill: Color) -> void:
-	var bg := StyleBoxFlat.new()
-	bg.bg_color = Color(0.039, 0.086, 0.078, 1.0)
-	bg.set_corner_radius_all(4)
-	bg.set_border_width_all(1)
-	bg.border_color = Color(C_TEAL.r, C_TEAL.g, C_TEAL.b, 0.25)
-	_ro_threat.add_theme_stylebox_override("background", bg)
-	var fg := StyleBoxFlat.new()
-	fg.bg_color = fill
-	fg.set_corner_radius_all(4)
-	_ro_threat.add_theme_stylebox_override("fill", fg)
+# (removed _style_threat_bar — the star-map threat bar was cut.)
