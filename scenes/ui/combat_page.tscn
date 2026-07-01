@@ -107,19 +107,43 @@ theme_override_constants/separation = 5
 
 [node name="Header" type="Label" parent="Dashboard/HUD/TopHUD/NavPanel/VBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0, 0.737, 0.831, 1)
+theme_override_colors/font_color = Color(0.18, 0.91, 0.77, 1)
 theme_override_font_sizes/font_size = 11
-text = "[ SECTORS ]"
+text = "[ NAVIGATION ]"
 horizontal_alignment = 1
 
 [node name="HSeparator" type="HSeparator" parent="Dashboard/HUD/TopHUD/NavPanel/VBox"]
-modulate = Color(0, 0.737, 0.831, 0.35)
+modulate = Color(0.18, 0.91, 0.77, 0.35)
 layout_mode = 2
 
-[node name="ZoneList" type="ItemList" parent="Dashboard/HUD/TopHUD/NavPanel/VBox"]
+[node name="CurrentSector" type="Label" parent="Dashboard/HUD/TopHUD/NavPanel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.894, 0.961, 0.933, 1)
+theme_override_font_sizes/font_size = 20
+text = "—"
+horizontal_alignment = 1
+
+[node name="ThreatLine" type="Label" parent="Dashboard/HUD/TopHUD/NavPanel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.498, 0.639, 0.612, 1)
+theme_override_font_sizes/font_size = 10
+text = "SECTOR — · STANDBY"
+horizontal_alignment = 1
+
+[node name="StatusLine" type="Label" parent="Dashboard/HUD/TopHUD/NavPanel/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = ""
+horizontal_alignment = 1
+
+[node name="NavSpacer" type="Control" parent="Dashboard/HUD/TopHUD/NavPanel/VBox"]
 layout_mode = 2
 size_flags_vertical = 3
+
+[node name="OpenChartBtn" type="Button" parent="Dashboard/HUD/TopHUD/NavPanel/VBox"]
+layout_mode = 2
 theme_override_font_sizes/font_size = 13
+text = "OPEN STAR CHART"
 
 [node name="CenterInfo" type="VBoxContainer" parent="Dashboard/HUD/TopHUD"]
 layout_mode = 2
@@ -140,38 +164,6 @@ theme_override_colors/font_color = Color(0, 0.8, 1, 0.7)
 theme_override_font_sizes/font_size = 11
 text = "SCANNING FOR ANOMALIES..."
 horizontal_alignment = 1
-
-[node name="TargetPanel" type="PanelContainer" parent="Dashboard/HUD/TopHUD"]
-custom_minimum_size = Vector2(320, 195)
-layout_mode = 2
-size_flags_vertical = 4
-mouse_filter = 2
-
-[node name="VBox" type="VBoxContainer" parent="Dashboard/HUD/TopHUD/TargetPanel"]
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/separation = 5
-
-[node name="Header" type="Label" parent="Dashboard/HUD/TopHUD/TargetPanel/VBox"]
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.32, 0.32, 1)
-theme_override_font_sizes/font_size = 11
-text = "[ TARGETING DATA ]"
-horizontal_alignment = 1
-
-[node name="HSeparator" type="HSeparator" parent="Dashboard/HUD/TopHUD/TargetPanel/VBox"]
-modulate = Color(1, 0.32, 0.32, 0.35)
-layout_mode = 2
-
-[node name="Scroll" type="ScrollContainer" parent="Dashboard/HUD/TopHUD/TargetPanel/VBox"]
-layout_mode = 2
-size_flags_vertical = 3
-horizontal_scroll_mode = 0
-
-[node name="EnemyList" type="VBoxContainer" parent="Dashboard/HUD/TopHUD/TargetPanel/VBox/Scroll"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 6
 
 [node name="TopMidSpacer" type="Control" parent="Dashboard/HUD"]
 layout_mode = 2
@@ -446,5 +438,4 @@ layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.35, 0.35, 1)
 text = "RETREAT"
 
-[connection signal="item_selected" from="Dashboard/HUD/TopHUD/NavPanel/VBox/ZoneList" to="." method="_on_zone_list_item_selected"]
 [connection signal="pressed" from="Dashboard/HUD/BottomHUD/RetreatContainer/RetreatBtn" to="." method="_on_retreat_btn_pressed"]

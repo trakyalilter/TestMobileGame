@@ -1,7 +1,17 @@
 extends Control
 
-@onready var zone_list = $Dashboard/HUD/TopHUD/NavPanel/VBox/ZoneList
-@onready var enemy_container = $Dashboard/HUD/TopHUD/TargetPanel/VBox/Scroll/EnemyList
+# v124: sector AND target selection both live in the full-screen Sector Chart
+# star-map overlay. The NavPanel is a compact current-sector readout + OPEN STAR
+# CHART button; the old TargetPanel enemy-card list is gone (the chart's roster
+# replaced it). selected_zone_id holds the engage zone; the manager auto-respawns
+# the target after each kill, so no in-HUD list is needed to sustain combat.
+@onready var nav_sector_lbl = $Dashboard/HUD/TopHUD/NavPanel/VBox/CurrentSector
+@onready var nav_threat_lbl = $Dashboard/HUD/TopHUD/NavPanel/VBox/ThreatLine
+@onready var nav_status_lbl = $Dashboard/HUD/TopHUD/NavPanel/VBox/StatusLine
+@onready var open_chart_btn = $Dashboard/HUD/TopHUD/NavPanel/VBox/OpenChartBtn
+var selected_zone_id: String = ""
+var star_map = null
+const STAR_MAP_SCRIPT = preload("res://scripts/ui/star_map_overlay.gd")
 
 # Arena Refs
 @onready var visualizer = $Dashboard/Visualizer
@@ -43,8 +53,6 @@ var _cons_cd_lbl: Label = null
 
 var manager: RefCounted
 
-# Enemy List Item Prefab
-var enemy_card_scene = preload("res://scenes/ui/combat_enemy_card.tscn")
 var enemy_info_scene = preload("res://scenes/ui/enemy_info_modal.tscn")
 
 func _ready():
@@ -71,7 +79,9 @@ func _ready():
 	UITheme.apply_progress_bar_style(e_attack_pb, "combat")
 	
 	UITheme.apply_card_style($Dashboard/HUD/TopHUD/NavPanel, "ops")
-	UITheme.apply_card_style($Dashboard/HUD/TopHUD/TargetPanel, "combat")
+	UITheme.apply_premium_button_style(open_chart_btn, "ops")
+	if not open_chart_btn.is_connected("pressed", _open_star_map):
+		open_chart_btn.pressed.connect(_open_star_map)
 	UITheme.apply_card_style($Dashboard/HUD/MidHUD/PlayerStatsOverlay, "shipyard")
 	UITheme.apply_card_style($Dashboard/HUD/MidHUD/EnemyStatsOverlay, "combat")
 	UITheme.apply_card_style(ammo_overlay, "inventory")
@@ -164,191 +174,158 @@ func _on_filter_btn_pressed():
 	self.add_child(dlg)
 
 func refresh_zones():
-	# Preserve sector selection across the clear/rebuild. This function is
-	# connected to research_manager.tech_unlocked — every research the player
-	# completes while a sector is selected used to wipe the highlight AND
-	# leave the previous sector's enemy cards in the Targeting Data panel,
-	# making them un-engageable (request_fight() short-circuits when no zone
-	# is selected). Remember the prior zone id, rebuild, then re-select.
-	var prev_zid: String = ""
-	var prev_items: PackedInt32Array = zone_list.get_selected_items()
-	if prev_items.size() > 0:
-		prev_zid = str(zone_list.get_item_metadata(prev_items[0]))
+	# v124: the sector list is now the Sector Chart overlay. This keeps the
+	# NavPanel readout in sync and validates the stored selection against the
+	# currently-available zones (research / NG+ flags can add or gate sectors
+	# at any time). If the selected sector vanished, fall back to a sensible
+	# default.
+	var avail: Array = manager.get_available_zones()
+	var avail_ids := {}
+	for z in avail:
+		avail_ids[z["id"]] = true
+	if selected_zone_id == "" or not avail_ids.has(selected_zone_id):
+		selected_zone_id = _default_selected_zone(avail)
+	_update_nav_readout()
+	if star_map and is_instance_valid(star_map) and star_map.visible:
+		star_map.rebuild()
 
-	zone_list.clear()
-	var zones = manager.get_available_zones()
-	var restore_idx: int = -1
-	for z in zones:
-		var idx = zone_list.add_item(z["data"]["name"])
-		zone_list.set_item_metadata(idx, z["id"])
-		if z["id"] == prev_zid:
-			restore_idx = idx
-		# v86.0: Color hazard zones differently
-		if z.get("is_hazard", false):
-			zone_list.set_item_custom_fg_color(idx, Color.YELLOW)
-			if manager.hazard_clears.has(z["id"]):
-				zone_list.set_item_custom_fg_color(idx, Color(0.6, 0.8, 0.2))
-		# Recommended power tooltip: find boss stats for this zone
-		var zone_data = z["data"]
-		var enemy_list = zone_data.get("enemies", [])
-		var boss_hp = 0
-		var boss_atk = 0
-		var boss_name = ""
-		var toughest_hp = 0
-		var toughest_atk = 0
-		for eid in enemy_list:
-			var edata = manager.enemy_db.get(eid, {})
-			var estats = edata.get("stats", {})
-			if edata.get("is_boss", false):
-				boss_hp = estats.get("hp", 0)
-				boss_atk = estats.get("atk", 0)
-				boss_name = edata.get("name", "Boss")
-			else:
-				if estats.get("hp", 0) > toughest_hp:
-					toughest_hp = estats.get("hp", 0)
-					toughest_atk = estats.get("atk", 0)
-		var rec_dps = int(boss_hp / 30.0) if boss_hp > 0 else int(toughest_hp / 15.0)
-		var tooltip = "Zone %d\n" % zone_data.get("difficulty", 1)
-		tooltip += "Strongest Enemy: %s HP | %s ATK\n" % [UITheme.format_num(toughest_hp), UITheme.format_num(toughest_atk)]
-		if boss_hp > 0:
-			tooltip += "%s: %s HP | %s ATK\n" % [boss_name, UITheme.format_num(boss_hp), UITheme.format_num(boss_atk)]
-		tooltip += "Recommended DPS: ~%s" % UITheme.format_num(rec_dps)
-		zone_list.set_item_tooltip(idx, tooltip)
+# Prefer the player's current sector, then the deepest reachable one, else home.
+func _default_selected_zone(avail: Array) -> String:
+	var cur: String = manager.current_zone_id
+	for z in avail:
+		if z["id"] == cur:
+			return cur
+	var best := ""
+	var bd := -1
+	for z in avail:
+		var d := int(z["data"].get("difficulty", 0))
+		if d > bd:
+			bd = d
+			best = str(z["id"])
+	return best
 
-	# Restore prior selection so the player keeps their sector highlight
-	# after researches refresh this list. ItemList.select() does NOT fire
-	# item_selected, so the enemy panel stays as-is (correct for the same
-	# zone). If the zone vanished — unlikely, but defensive — wipe the
-	# stale enemy cards so the player isn't shown un-engageable targets.
-	if restore_idx >= 0:
-		zone_list.select(restore_idx)
-	elif prev_zid != "":
-		last_refreshed_zone = ""
-		if enemy_container:
-			for child in enemy_container.get_children():
-				child.queue_free()
+func _update_nav_readout() -> void:
+	if selected_zone_id == "":
+		nav_sector_lbl.text = "—"
+		nav_threat_lbl.text = "SECTOR — · STANDBY"
+		nav_status_lbl.text = ""
+		return
+	var data := _zone_data(selected_zone_id)
+	var diff := int(data.get("difficulty", 1))
+	nav_sector_lbl.text = str(data.get("name", selected_zone_id)).replace("⚠ ", "").to_upper()
+	var band := "CALM" if diff <= 4 else ("CONTESTED" if diff <= 8 else "HOSTILE")
+	nav_threat_lbl.text = "SECTOR %02d · %s" % [diff, band]
+	var st := _zone_state(selected_zone_id)
+	match st:
+		"current":
+			nav_status_lbl.text = "▲ CURRENT POSITION"
+			nav_status_lbl.add_theme_color_override("font_color", Color(0.427, 0.941, 0.847))
+		"cleared":
+			nav_status_lbl.text = "CLEARED"
+			nav_status_lbl.add_theme_color_override("font_color", Color(0.274, 0.878, 0.627))
+		_:
+			nav_status_lbl.text = "AVAILABLE"
+			nav_status_lbl.add_theme_color_override("font_color", Color(0.498, 0.639, 0.612))
+
+func _zone_data(zid: String) -> Dictionary:
+	if manager.zones.has(zid):
+		return manager.zones[zid]
+	if manager.hazard_zones.has(zid):
+		var hz = manager.hazard_zones[zid]
+		return {"name": hz.get("name", ""), "difficulty": hz.get("zone_difficulty", 3)}
+	return {}
+
+func _zone_state(zid: String) -> String:
+	if zid == manager.current_zone_id:
+		return "current"
+	if manager.hazard_zones.has(zid):
+		return "cleared" if manager.hazard_clears.has(zid) else "available"
+	var data = manager.zones.get(zid, {})
+	var boss_id := ""
+	for eid in data.get("enemies", []):
+		if manager.enemy_db.get(eid, {}).get("is_boss", false):
+			boss_id = str(eid)
+			break
+	if boss_id != "" and int(manager.boss_kills.get(boss_id, 0)) > 0:
+		return "cleared"
+	return "available"
+
+func _open_star_map() -> void:
+	if star_map == null or not is_instance_valid(star_map):
+		star_map = STAR_MAP_SCRIPT.new()
+		add_child(star_map)
+		star_map.setup(manager, self)
+	star_map.open()
+
+# Selecting a sector (from the Sector Chart or coach focus) sets the engage
+# target zone and syncs the NavPanel readout + chart highlight. Target picking
+# now happens on the chart's roster, so there is no in-HUD list to populate.
+func select_zone(zone_id: String) -> void:
+	selected_zone_id = zone_id
+	_update_nav_readout()
+	if star_map and is_instance_valid(star_map):
+		star_map.set_external_selection(zone_id)
+
+# v124: engage straight from the Sector Chart — pick the zone + target on the
+# map, then this starts the fight. The manager auto-respawns the target after
+# each kill (spawn_enemy), so no in-HUD target list is needed to sustain combat.
+# enemy_id "" routes hazards (start_hazard ignores the target).
+func engage_from_map(zone_id: String, enemy_id: String) -> void:
+	select_zone(zone_id)
+	request_fight(enemy_id)
 
 func _on_combat_visibility_changed() -> void:
 	# v113 (NG+): re-read available zones each time the Combat page is shown, so a
 	# sector unlocked while elsewhere (e.g. Z11 on a Z10-boss kill, Z12 post-warp)
 	# is present. refresh_zones preserves the current sector selection.
-	if is_visible_in_tree():
-		refresh_zones()
-
-func _on_zone_list_item_selected(index):
-	var zid = zone_list.get_item_metadata(index)
-	refresh_enemies(zid)
-
-var last_refreshed_zone = ""
-
-func refresh_enemies(zone_id):
-	if last_refreshed_zone == zone_id and enemy_container.get_child_count() > 0:
+	if not is_visible_in_tree():
 		return
-	last_refreshed_zone = zone_id
-	
-	if not enemy_container: return
-	for child in enemy_container.get_children():
-		child.queue_free()
-	
-	# v86.0: Handle hazard zones
-	if zone_id in manager.hazard_zones:
-		var hz = manager.hazard_zones[zone_id]
-		var all_enemies = hz["enemy_pool"].duplicate()
-		all_enemies.append(hz["elite_enemy"])
-		all_enemies.append(hz["boss_enemy"])
-		
-		# Add info card about the hazard
-		var info_label = Label.new()
-		info_label.text = "⚠ HAZARD: %s\n%d Wave Gauntlet | Requires: %s\n%s" % [
-			hz["hazard_type"].replace("_", " ").to_upper(),
-			hz["max_waves"],
-			GameState.shipyard_manager.modules.get(hz["counter_module"], {}).get("name", hz["counter_module"]),
-			"✅ CLEARED" if manager.hazard_clears.has(zone_id) else "❌ NOT CLEARED"
-		]
-		info_label.add_theme_color_override("font_color", Color.YELLOW)
-		info_label.add_theme_font_size_override("font_size", 11)
-		info_label.autowrap_mode = TextServer.AUTOWRAP_WORD
-		enemy_container.add_child(info_label)
-		
-		for eid in all_enemies:
-			if eid in manager.enemy_db:
-				var card = enemy_card_scene.instantiate()
-				enemy_container.add_child(card)
-				var edata = manager.enemy_db[eid]
-				card.setup(eid, edata, self)
-		return
-	
-	if not zone_id in manager.zones: return
-	
-	var enemies = manager.zones[zone_id]["enemies"].duplicate()
-	
-	# Sort weakest → strongest; boss always last regardless of stats
-	enemies.sort_custom(func(a, b):
-		var e_a = manager.enemy_db[a]
-		var e_b = manager.enemy_db[b]
-		var boss_a = e_a.get("is_boss", false)
-		var boss_b = e_b.get("is_boss", false)
-		if boss_a != boss_b:
-			return not boss_a  # non-boss sorts before boss
-		var score_a = (e_a["stats"].get("hp", 0) + e_a["stats"].get("max_shield", 0)) \
-			* (1.0 + e_a["stats"].get("def", 0) / 100.0) \
-			* (1.0 + e_a["stats"].get("atk", 0) / 50.0)
-		var score_b = (e_b["stats"].get("hp", 0) + e_b["stats"].get("max_shield", 0)) \
-			* (1.0 + e_b["stats"].get("def", 0) / 100.0) \
-			* (1.0 + e_b["stats"].get("atk", 0) / 50.0)
-		return score_a < score_b
-	)
-	
-	for eid in enemies:
-		var card = enemy_card_scene.instantiate()
-		enemy_container.add_child(card)
-		var edata = manager.enemy_db[eid]
-		card.setup(eid, edata, self)
+	refresh_zones()
+	# v124: the Sector Chart is the entry point. Landing on an idle combat HUD
+	# (no fight running) is a dead screen — open sector selection straight away.
+	# If a fight is already in progress, show it instead (don't cover combat).
+	if not manager.in_combat:
+		call_deferred("_open_star_map")
 
-func get_enemy_card(enemy_id: String) -> Control:
-	for child in enemy_container.get_children():
-		if child.get("eid") == enemy_id:
-			return child
-	return null
+# v124: the in-HUD enemy-card list was removed (the Sector Chart roster replaced
+# it). The coach (main.gd) still calls this to pulse an "engage this enemy" cue;
+# with no cards, point it at the chart button so the tutorial directs the player
+# to open the Sector Chart and pick the target there.
+func get_enemy_card(_enemy_id: String) -> Control:
+	return open_chart_btn
 
 func get_coach_anchor(key: String) -> Control:
 	match key:
-		"zones":
-			return zone_list
-		"enemies":
-			return enemy_container
+		# both sector- and target-teaching steps now point at the chart button.
+		"zones", "enemies":
+			return open_chart_btn
 		"consumables":
 			return consumable_container
 	return null
 
 func focus_zone(zone_id: String):
-	for i in range(zone_list.item_count):
-		if zone_list.get_item_metadata(i) == zone_id:
-			if not zone_list.is_selected(i):
-				zone_list.select(i)
-				_on_zone_list_item_selected(i)
-			return
-
-func start_fight(enemy_id, zone_id):
-	# Zone ID is needed for start_expedition? 
-	# Manager's start_expedition takes zone_id
-	# Manager's set_target_enemy takes enemy_id
-	# We need both.
-	# But refresh_enemies only has zone_id context if we store it
-	manager.set_target_enemy(enemy_id)
-	
-	# If we are viewing a zone, that is the zone we want to fight in.
-	# But wait, start_expedition sets current_zone.
-	# If we just click "Fight" on an enemy card, we imply starting expedition in that zone?
-	# Implementation detail: card needs to know zone? Or we pass it.
-	pass
+	# Coach hook: select the sector (syncs NavPanel + chart) without forcing the
+	# Sector Chart open. Guard against ids not in the available set.
+	select_zone(zone_id)
 
 func request_fight(eid):
-	# Find which zone this is? 
-	# We can just use the currently selected zone from the list
-	var items = zone_list.get_selected_items()
-	if items.size() == 0: return
-	var zid = zone_list.get_item_metadata(items[0])
+	# v124: the engage zone is the Sector Chart selection (was the ItemList).
+	var zid = selected_zone_id
+	if zid == "": return
+
+	# v124: gate BEFORE committing combat. start_expedition() flips in_combat and
+	# spawns immediately but has no whole-ship power gate (only set_target_enemy
+	# does, and it runs AFTER) — so an unpowered/dead ship would enter combat
+	# against a stale target with weapons that can't fire. Mirror the manager's
+	# guards up front so the engage is cleanly blocked instead.
+	var sm = GameState.shipyard_manager
+	if sm:
+		if sm.current_hp <= 0:
+			UITheme.show_notification("⚠ HULL CRITICAL — repair before engaging.", Color(1.0, 0.45, 0.35))
+			return
+		if sm.energy_used > sm.energy_capacity:
+			UITheme.show_notification("⚡ SHIP UNPOWERED — equip Battery modules to cover your power draw (%d / %d)." % [int(sm.energy_used), int(sm.energy_capacity)], Color(1.0, 0.45, 0.35))
+			return
 
 	# v111.16: every explicit ENGAGE press is a fresh run from the player's POV,
 	# so wipe the Expedition Yield panel now. start_expedition() already clears
@@ -362,7 +339,13 @@ func request_fight(eid):
 	if zid in manager.hazard_zones:
 		manager.start_hazard(zid)
 		return
-	
+
+	# v124: pre-set the target so start_expedition's spawn_enemy() spawns the
+	# CHOSEN enemy, not a random/stale one; set_target_enemy then re-affirms it
+	# and restores shields. Without this, a cross-zone engage briefly shows the
+	# previous fight's enemy.
+	if eid != "" and eid in manager.enemy_db:
+		manager.target_enemy_id = eid
 	manager.start_expedition(zid)
 	manager.set_target_enemy(eid)
 

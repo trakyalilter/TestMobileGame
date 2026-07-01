@@ -106,7 +106,7 @@ const STEPS := {
 		{
 			"anchor": "zones",
 			"title": "Combat Sectors",
-			"body": "Pick a sector to patrol. Higher sectors mean tougher enemies but better loot and materials.",
+			"body": "Open the Star Chart to choose where to patrol. Deeper sectors mean tougher enemies but better loot and materials — cleared sectors glow, the frontier waits ahead.",
 		},
 		{
 			"anchor": "enemies",
