@@ -13,8 +13,16 @@ var is_selected: bool = false
 # armory/ammo/consumable card enables it anymore.
 var is_draggable: bool = false
 var compare_equipped_mid: String = ""
+# v127: when a Hack Card is armed in the Armory, module tiles show an insert
+# socket (accent frame + card bay) so the player sees a valid drop target.
+var show_card_socket: bool = false
+var _card_socket_node: Panel = null
+# v127: while a Hack Card is armed, suppress hover info-cards on every module tile
+# (set by the designer page). Static so all tiles share one flag.
+static var suppress_info_card: bool = false
 
 signal clicked(p_mid: String)
+signal stone_dropped(stone_id: String, target_mid: String)   # v127: Hack Stone dragged onto this module
 
 @onready var type_lbl: Label = $Margin/VBox/Header/TypeLabel
 @onready var rarity_badge: Label = $Margin/VBox/Header/RarityBadge
@@ -42,6 +50,10 @@ func _on_mouse_enter():
 	if sm and sm.get("unseen_modules") != null and sm.unseen_modules.get(mid, false):
 		sm.unseen_modules.erase(mid)
 		_update_ui()
+	# While holding a Hack Card, don't pop module info-cards (the player is aiming
+	# at a socket, not inspecting the module).
+	if suppress_info_card:
+		return
 	# Don't pop info cards on other tiles while a drag is in progress.
 	if not data.is_empty() and not (is_inside_tree() and get_viewport().gui_is_dragging()):
 		var _wz := int(data.get("zone", data.get("zone_difficulty", 0)))
@@ -105,34 +117,41 @@ func _draw_tile_visual(item_name: String, slot_type: String, rarity: int, rarity
 	socket.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	socket.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var sock_sb = StyleBoxFlat.new()
-	sock_sb.bg_color = Color(0.03, 0.045, 0.07, 0.92)
-	sock_sb.set_corner_radius_all(5)
-	sock_sb.set_border_width_all(1)
-	sock_sb.border_color = Color(0.24, 0.36, 0.48, 0.85)
-	sock_sb.shadow_color = Color(0, 0, 0, 0.55)
-	sock_sb.shadow_size = 3
+	if slot_type == "hack_stone":
+		# v127: Hack Stones show ONLY the hexagon shard — no square socket/chip wrap.
+		sock_sb.bg_color = Color(0, 0, 0, 0)
+	else:
+		sock_sb.bg_color = Color(0.03, 0.045, 0.07, 0.92)
+		sock_sb.set_corner_radius_all(5)
+		sock_sb.set_border_width_all(1)
+		sock_sb.border_color = Color(0.24, 0.36, 0.48, 0.85)
+		sock_sb.shadow_color = Color(0, 0, 0, 0.55)
+		sock_sb.shadow_size = 3
 	socket.add_theme_stylebox_override("panel", sock_sb)
 	tile_container.add_child(socket)
 
 	# --- Frame: rarity plate seated inside the socket (rim shows around) ---
-	var bg_panel = Panel.new()
-	bg_panel.anchor_right = 1.0
-	bg_panel.anchor_bottom = 1.0
-	bg_panel.offset_left = 5
-	bg_panel.offset_top = 5
-	bg_panel.offset_right = -5
-	bg_panel.offset_bottom = -5
-	bg_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var sb = StyleBoxFlat.new()
-	sb.bg_color = _get_rarity_background(rarity)
-	sb.set_corner_radius_all(4)
-	sb.set_border_width_all(2 if not top_rarity else 3)
-	sb.border_color = rarity_color
-	sb.shadow_color = Color(rarity_color.r, rarity_color.g, rarity_color.b,
-		0.0 if rarity == sm.Rarity.COMMON else (0.32 if hi else 0.16))
-	sb.shadow_size = (9 if top_rarity else (6 if hi else 0))
-	bg_panel.add_theme_stylebox_override("panel", sb)
-	tile_container.add_child(bg_panel)
+	# Hack stones render as a bare shard: skip the rarity plate entirely so no
+	# rounded-square border wraps the hexagon (socket/emblem/root cleared too).
+	if slot_type != "hack_stone":
+		var bg_panel = Panel.new()
+		bg_panel.anchor_right = 1.0
+		bg_panel.anchor_bottom = 1.0
+		bg_panel.offset_left = 5
+		bg_panel.offset_top = 5
+		bg_panel.offset_right = -5
+		bg_panel.offset_bottom = -5
+		bg_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var sb = StyleBoxFlat.new()
+		sb.bg_color = _get_rarity_background(rarity)
+		sb.set_corner_radius_all(4)
+		sb.set_border_width_all(2 if not top_rarity else 3)
+		sb.border_color = rarity_color
+		sb.shadow_color = Color(rarity_color.r, rarity_color.g, rarity_color.b,
+			0.0 if rarity == sm.Rarity.COMMON else (0.32 if hi else 0.16))
+		sb.shadow_size = (9 if top_rarity else (6 if hi else 0))
+		bg_panel.add_theme_stylebox_override("panel", sb)
+		tile_container.add_child(bg_panel)
 
 	# --- Zone watermark: the sector emblem this module dropped from, large and
 	# faint behind the function icon. Fills the tile's dead space and shows the
@@ -160,22 +179,27 @@ func _draw_tile_visual(item_name: String, slot_type: String, rarity: int, rarity
 	# is already carried by the emblem chip + icon tint.)
 
 	# --- Centre emblem: slot-coloured chip + bold type letter ---
+	# v127: Hack Stones skip the chip entirely — the big hexagon shard IS the visual.
 	var em := TS * 0.5
-	var emblem = Panel.new()
-	emblem.anchor_left = 0.5; emblem.anchor_right = 0.5
-	emblem.anchor_top = 0.5; emblem.anchor_bottom = 0.5
-	emblem.offset_left = -em * 0.5; emblem.offset_right = em * 0.5
-	emblem.offset_top = -em * 0.5 - 1.0; emblem.offset_bottom = em * 0.5 - 1.0
-	emblem.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var esb = StyleBoxFlat.new()
-	# Chip fill is near-neutral so RARITY (the frame) and SLOT (icon + chip rim)
-	# read on separate channels — no more gold-chip-on-gold-frame confusion.
-	esb.bg_color = slot_col.lerp(Color(0.05, 0.09, 0.10), 0.84)
-	esb.set_corner_radius_all(5)
-	esb.set_border_width_all(1)
-	esb.border_color = slot_col.lerp(Color.WHITE, 0.1)
-	emblem.add_theme_stylebox_override("panel", esb)
-	tile_container.add_child(emblem)
+	var is_stone: bool = (slot_type == "hack_stone")
+	var icon_parent: Control = tile_container
+	if not is_stone:
+		var emblem = Panel.new()
+		emblem.anchor_left = 0.5; emblem.anchor_right = 0.5
+		emblem.anchor_top = 0.5; emblem.anchor_bottom = 0.5
+		emblem.offset_left = -em * 0.5; emblem.offset_right = em * 0.5
+		emblem.offset_top = -em * 0.5 - 1.0; emblem.offset_bottom = em * 0.5 - 1.0
+		emblem.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var esb = StyleBoxFlat.new()
+		# Chip fill is near-neutral so RARITY (the frame) and SLOT (icon + chip rim)
+		# read on separate channels — no more gold-chip-on-gold-frame confusion.
+		esb.bg_color = slot_col.lerp(Color(0.05, 0.09, 0.10), 0.84)
+		esb.set_corner_radius_all(5)
+		esb.set_border_width_all(1)
+		esb.border_color = slot_col.lerp(Color.WHITE, 0.1)
+		emblem.add_theme_stylebox_override("panel", esb)
+		tile_container.add_child(emblem)
+		icon_parent = emblem
 
 	var icon_tex = _get_module_icon(slot_type, m_data.get("stats", {}), m_data)
 	if icon_tex:
@@ -183,12 +207,19 @@ func _draw_tile_visual(item_name: String, slot_type: String, rarity: int, rarity
 		icon.texture = icon_tex
 		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		icon.anchor_right = 1.0; icon.anchor_bottom = 1.0
-		icon.offset_left = 5; icon.offset_top = 5
-		icon.offset_right = -5; icon.offset_bottom = -5
-		icon.modulate = slot_col.lerp(Color.WHITE, 0.85)
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		emblem.add_child(icon)
+		if is_stone:
+			# Big centred shard filling ~72% of the cell — the hexagon reads as the
+			# item itself; tint by its material colour (distinct coloured crystal).
+			icon.anchor_left = 0.14; icon.anchor_top = 0.14
+			icon.anchor_right = 0.86; icon.anchor_bottom = 0.86
+			icon.modulate = ElementDB.get_material_tint(mid).lerp(Color.WHITE, 0.18)
+		else:
+			icon.anchor_right = 1.0; icon.anchor_bottom = 1.0
+			icon.offset_left = 5; icon.offset_top = 5
+			icon.offset_right = -5; icon.offset_bottom = -5
+			icon.modulate = slot_col.lerp(Color.WHITE, 0.85)
+		icon_parent.add_child(icon)
 	else:
 		var letter_lbl = Label.new()
 		letter_lbl.text = _get_type_char(slot_type)
@@ -198,7 +229,7 @@ func _draw_tile_visual(item_name: String, slot_type: String, rarity: int, rarity
 		letter_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		letter_lbl.anchor_right = 1.0; letter_lbl.anchor_bottom = 1.0
 		letter_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		emblem.add_child(letter_lbl)
+		icon_parent.add_child(letter_lbl)
 
 	# --- Socket pips: show matrix-core slots (filled = gem colour, empty =
 	# hollow), top-centre, mirroring the equipped-slot panel's diamonds ---
@@ -300,12 +331,69 @@ func _draw_tile_visual(item_name: String, slot_type: String, rarity: int, rarity
 		selection_panel.add_theme_stylebox_override("panel", ssb)
 		tile_container.add_child(selection_panel)
 
+	# --- v127: Hack-card insert socket. Shown on module tiles while a Hack Card
+	# is armed in the Armory: an accent frame (valid target) + a centred card bay
+	# the card animates into. Only the designer's module cards set the flag. ---
+	_card_socket_node = null
+	if show_card_socket:
+		var insert_acc := Color(0.40, 0.60, 1.0)
+		# Faint valid-target frame on the whole tile.
+		var insert_frame := Panel.new()
+		insert_frame.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		insert_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var insert_frame_sb := StyleBoxFlat.new()
+		insert_frame_sb.bg_color = Color(insert_acc.r, insert_acc.g, insert_acc.b, 0.08)
+		insert_frame_sb.set_corner_radius_all(4)
+		insert_frame_sb.set_border_width_all(2)
+		insert_frame_sb.border_color = Color(insert_acc.r, insert_acc.g, insert_acc.b, 0.85)
+		insert_frame_sb.shadow_color = Color(insert_acc.r, insert_acc.g, insert_acc.b, 0.35)
+		insert_frame_sb.shadow_size = 5
+		insert_frame.add_theme_stylebox_override("panel", insert_frame_sb)
+		tile_container.add_child(insert_frame)
+		# Socket housing (blue mount) — a thin vertical slot the width of the card's
+		# edge, with a near-black slot the card slides edge-first into.
+		var housing := Panel.new()
+		housing.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		housing.anchor_left = 0.5; housing.anchor_top = 0.5
+		housing.anchor_right = 0.5; housing.anchor_bottom = 0.5
+		housing.offset_left = -12; housing.offset_right = 12
+		housing.offset_top = -32; housing.offset_bottom = 32
+		var housing_sb := StyleBoxFlat.new()
+		housing_sb.bg_color = Color(insert_acc.r, insert_acc.g, insert_acc.b, 0.95)
+		housing_sb.set_corner_radius_all(3)
+		housing.add_theme_stylebox_override("panel", housing_sb)
+		insert_frame.add_child(housing)
+		var slot := Panel.new()
+		slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		slot.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		slot.offset_left = 3; slot.offset_top = 4
+		slot.offset_right = -3; slot.offset_bottom = -4
+		var slot_sb := StyleBoxFlat.new()
+		slot_sb.bg_color = Color(0.02, 0.03, 0.05, 1.0)
+		slot_sb.set_corner_radius_all(2)
+		slot_sb.shadow_color = Color(0, 0, 0, 0.6)
+		slot_sb.shadow_size = 3
+		slot.add_theme_stylebox_override("panel", slot_sb)
+		housing.add_child(slot)
+		_card_socket_node = insert_frame
+
 	# Self panel is just a transparent host; the tile draws its own frame.
 	add_theme_stylebox_override("panel", StyleBoxEmpty.new())
 	_apply_pulse(rarity)
 
 	UITheme.attach_rarity_fx(tile_container, rarity, rarity_color)
 	add_child(tile_container)
+	# Pulse the insert socket (started here — self is in-tree so create_tween is valid).
+	if show_card_socket and is_instance_valid(_card_socket_node):
+		var pt := create_tween()
+		if pt:
+			pt.set_loops()
+			pt.tween_property(_card_socket_node, "modulate:a", 0.45, 0.55).set_trans(Tween.TRANS_SINE)
+			pt.tween_property(_card_socket_node, "modulate:a", 1.0, 0.55).set_trans(Tween.TRANS_SINE)
+	# v127: Hack Stones show ONLY the shard — clear the root PanelContainer frame
+	# too (the transparent socket would otherwise reveal the default panel behind it).
+	if slot_type == "hack_stone":
+		add_theme_stylebox_override("panel", StyleBoxEmpty.new())
 	# Armory tiles are tiny — request the translucent dim variant so the
 	# rarity frame + slot icon underneath still read instead of the card
 	# going fully black.
@@ -350,6 +438,14 @@ func _get_type_char(s_type: String) -> String:
 static var _icon_cache: Dictionary = {}
 
 func _get_module_icon(slot_type: String, stats: Dictionary, m_data: Dictionary = {}) -> Texture2D:
+	# v127: Hack Stones are ITEMS, not modules — each has its own material icon
+	# (a distinct data-shard sigil). Keying off slot_type made every stone load the
+	# one generic modules/module.svg, so they all looked identical. Use the per-item
+	# icon; fall through to the generic module tile only if its SVG isn't imported.
+	if slot_type == "hack_stone":
+		var htex = ElementDB.get_material_icon(mid)
+		if htex:
+			return htex
 	var key = slot_type
 	if slot_type == "weapon":
 		key = "weapon_" + _weapon_type(stats)
@@ -888,7 +984,7 @@ func _show_demolish_menu():
 	})
 
 
-func _build_comparison_tooltip_bbcode() -> String:
+func _build_comparison_tooltip_bbcode(anchor_select: bool = false, hover_affix: String = "") -> String:
 	if data.is_empty():
 		return ""
 
@@ -905,8 +1001,21 @@ func _build_comparison_tooltip_bbcode() -> String:
 	var div = "[color=#1E3B38]──────────────────────────────[/color]\n"
 
 	tt += "[font_size=16][b][color=#%s]%s[/color][/b][/font_size]\n" % [rarity_color_hex, display_name]
+
+	# v127: Hack Stones are crafting currency — show what the stone DOES; the module
+	# boilerplate (rarity / durability / stats) is meaningless for them.
+	if slot_type == "hack_stone":
+		tt += "[font_size=10][color=#7FA39C]HACK CARD · Module Crafting[/color][/font_size]\n"
+		tt += div
+		var eff: String = "Applies a crafting effect to a module."
+		if sm:
+			eff = str(sm.HACK_STONE_DESC.get(mid, eff))
+		tt += "[font_size=12][color=#CBD5D0]%s[/color][/font_size]\n" % eff
+		tt += "\n[font_size=9][color=#7FA39C]Click to arm, then click a module to apply.[/color][/font_size]"
+		return tt
+
 	tt += "[font_size=10][color=#7FA39C]%s %s[/color][/font_size]\n" % [rarity_label, slot_type.capitalize()]
-	
+
 	var durability = int(data.get("durability", 100))
 	var dur_col = "#46E0A0"
 	if durability <= 25: dur_col = "#FF6473"
@@ -1047,6 +1156,8 @@ func _build_comparison_tooltip_bbcode() -> String:
 	
 	if sm and affixes.size() > 0:
 		tt += div
+		if anchor_select:
+			tt += "[font_size=11][color=#5FE0C8][b]ANCHOR BOLT[/b] — click an affix to lock it:[/color][/font_size]\n"
 		var zone_difficulty = int(data.get("zone_difficulty", 1))
 		for aid in affixes:
 			if aid in sm.AFFIX_DB:
@@ -1075,10 +1186,23 @@ func _build_comparison_tooltip_bbcode() -> String:
 
 				var desc = cfg["desc"] % desc_val
 
+				var affix_body := ""
 				if is_ga:
-					tt += "[img=13 color=#FFC24D]res://assets/icons/ui/affix_greater.svg[/img] [color=#FFC24D][b]%s[/b][/color]  [color=#FFD98A][font_size=9]GREATER[/font_size][/color]\n" % desc
+					affix_body = "[img=13 color=#FFC24D]res://assets/icons/ui/affix_greater.svg[/img] [color=#FFC24D][b]%s[/b][/color]  [color=#FFD98A][font_size=9]GREATER[/font_size][/color]" % desc
 				else:
-					tt += "[img=11 color=#5FE0C8]res://assets/icons/ui/affix_node.svg[/img] [color=#5FE0C8]%s[/color]\n" % desc
+					affix_body = "[img=11 color=#5FE0C8]res://assets/icons/ui/affix_node.svg[/img] [color=#5FE0C8]%s[/color]" % desc
+				if anchor_select:
+					# Clickable to lock; a lock icon marks the already-anchored affix;
+					# the hovered affix gets a background highlight (no underline).
+					var lock_bb := ""
+					if str(aid) == str(data.get("anchored_affix", "")):
+						lock_bb = "[img=12 color=#FFD14C]res://assets/icons/ui/lock.svg[/img] "
+					var shown := affix_body
+					if hover_affix != "" and str(aid) == hover_affix:
+						shown = "[bgcolor=#2E6E64]%s[/bgcolor]" % affix_body
+					tt += "%s[url=affix:%s]%s[/url]\n" % [lock_bb, str(aid), shown]
+				else:
+					tt += "%s\n" % affix_body
 
 	if data.has("sockets"):
 		tt += div
@@ -1146,6 +1270,8 @@ func _get_drag_data(_at_position: Vector2) -> Variant:
 		dtype = "ammo"
 	elif slot_type == "consumable":
 		dtype = "consumable"
+	elif slot_type == "hack_stone":
+		dtype = "hack_stone"   # v127: drag a stone onto a module to apply
 
 	var drag_data = {
 		"type": dtype,
@@ -1274,11 +1400,18 @@ func _make_drag_preview() -> Control:
 # spatial canvas) and ship slots accept drops. Returning false here means a
 # dragged card hovering/dropping over another card is a clean no-op — severing
 # the dragged-item-vs-standing-item interaction that caused the crash.
-func _can_drop_data(_at_position: Vector2, _p_data: Variant) -> bool:
+func _can_drop_data(_at_position: Vector2, p_data: Variant) -> bool:
+	# v127: accept a dragged Hack Stone onto a real MODULE (not another stone, ammo,
+	# consumable, or matrix core — those aren't craftable). The backend still
+	# validates (e.g. a raw Common needs a Splice Chip first) and toasts on refusal.
+	if p_data is Dictionary and str(p_data.get("type", "")) == "hack_stone":
+		var st := str(data.get("slot_type", ""))
+		return mid != "" and not (st in ["hack_stone", "ammo", "consumable", "gem", "gem_synth"])
 	return false
 
-func _drop_data(_at_position: Vector2, _p_data: Variant) -> void:
-	pass
+func _drop_data(_at_position: Vector2, p_data: Variant) -> void:
+	if p_data is Dictionary and str(p_data.get("type", "")) == "hack_stone":
+		stone_dropped.emit(str(p_data.get("mid", "")), mid)
 
 # v111.7: hooked from _build_card_visual via resized.connect. When the grid
 # stretches us wider than our current min height, push min height up to match

@@ -11,6 +11,7 @@ var _active_gem_card = null
 var _info_card_scene = preload("res://scenes/ui/info_card.tscn")
 const MatrixCoreIcon = preload("res://scripts/ui/matrix_core_icon.gd")
 var _is_focused: bool = false
+var _card_target: bool = false   # v127: a Hack Card is in hand and this slot is a valid target
 
 @onready var type_lbl = $MarginContainer/VBoxContainer/TypeLabel
 @onready var rarity_badge = $MarginContainer/VBoxContainer/RarityBadge
@@ -74,6 +75,8 @@ func _apply_base_style():
 		frame.shadow_size = 10
 
 	add_theme_stylebox_override("panel", frame)
+	if _card_target:
+		_apply_card_socket_frame()
 
 func _get_type_number() -> int:
 	if not parent_ui or not "all_slot_widgets" in parent_ui: return slot_idx + 1
@@ -198,6 +201,44 @@ func set_focus_highlight(on: bool):
 			_apply_card_style(rarity, rarity_color)
 			return
 	_apply_base_style()
+
+# v127: mark this equipped slot as a valid Hack Card target while a card is in hand.
+# Sets a flag and re-runs the slot's OWN styler, which stamps a blue socket frame on
+# top when the flag is set — so a rarity restyle / legendary pulse can't wipe it.
+func set_card_socket(active: bool) -> void:
+	if manager == null:
+		manager = GameState.shipyard_manager
+	# Check the loadout directly (is_occupied can be stale when this fires on arm).
+	var eqv = null if manager == null else manager.loadout.get(slot_idx, "")
+	var eq: String = "" if eqv == null else str(eqv)
+	var new_target: bool = active and eq != "" and not slot_type.begins_with("consumable_")
+	if new_target == _card_target:
+		return
+	_card_target = new_target
+	# Redraw the frame via the slot's normal stylers (they honour _card_target now).
+	if new_target and manager and str(eq) in manager.modules:
+		var rarity: int = manager.get_module_rarity(eq)
+		var rc: Color = manager.RARITY_COLORS.get(rarity, Color(0.7, 0.7, 0.7))
+		_apply_card_style(rarity, rc)
+	else:
+		_apply_base_style()
+
+# v127: blue "insert socket" frame stamped over the slot's normal frame while a Hack
+# Card is in hand (called from _apply_base_style / _apply_card_style).
+func _apply_card_socket_frame() -> void:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.06, 0.11, 0.20, 0.96)
+	sb.set_corner_radius_all(2)
+	sb.set_border_width_all(2)
+	sb.border_width_top = 5
+	sb.border_color = Color(0.45, 0.70, 1.0, 1.0)
+	sb.shadow_color = Color(0.45, 0.70, 1.0, 0.6)
+	sb.shadow_size = 12
+	sb.content_margin_left = 8
+	sb.content_margin_top = 6
+	sb.content_margin_right = 8
+	sb.content_margin_bottom = 6
+	add_theme_stylebox_override("panel", sb)
 
 func refresh_state():
 	if not is_node_ready(): return
@@ -640,6 +681,8 @@ func _apply_card_style(rarity: int, rarity_color: Color):
 		frame.shadow_size = 16
 
 	add_theme_stylebox_override("panel", frame)
+	if _card_target:
+		_apply_card_socket_frame()
 
 func _apply_pulse(rarity: int):
 	_stop_pulse()
@@ -935,6 +978,12 @@ func _gui_input(event):
 				manager.unequip_slot(slot_idx)
 			parent_ui.trigger_refresh()
 		elif event.button_index == MOUSE_BUTTON_LEFT:
+			# v127: a Hack Card in hand applies to THIS equipped module.
+			if is_occupied and not slot_type.begins_with("consumable_") and parent_ui and parent_ui.has_method("try_apply_armed_card"):
+				var eq_mid = manager.loadout.get(slot_idx, "")
+				if eq_mid == null: eq_mid = ""
+				if str(eq_mid) != "" and parent_ui.try_apply_armed_card(str(eq_mid), self):
+					return
 			# v111.14: armed-module equip takes priority. If the player has
 			# clicked a module in the armory (armed it), a left-click here
 			# equips it into this slot via the shared equip routing.

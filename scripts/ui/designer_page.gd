@@ -35,6 +35,7 @@ var tab_buttons: Dictionary = {}
 var slot_widget_scene = preload("res://scenes/ui/designer_slot_widget.tscn")
 var ammo_slot_scene = preload("res://scenes/ui/designer_ammo_slot_widget.tscn")
 var draggable_icon_scene = preload("res://scenes/ui/module_card.tscn")
+const ModuleCardScript = preload("res://scripts/ui/module_card.gd")   # for the static suppress flag
 var empty_slot_scene = preload("res://scenes/ui/empty_slot.tscn")
 var selected_mids: Array[String] = []
 var btn_demolish_selected: Button
@@ -925,6 +926,147 @@ func _get_colored_hammer_tex() -> Texture2D:
 	_colored_repair_tool_tex = ImageTexture.create_from_image(img)
 	return _colored_repair_tool_tex
 
+# v127: a Hack Card icon baked to its material tint, for the "card in hand" cursor
+# and the insert-animation ghost (same technique as the colored hammer above).
+var _colored_card_tex_cache: Dictionary = {}
+func _get_colored_card_tex(sid: String) -> Texture2D:
+	if _colored_card_tex_cache.has(sid):
+		return _colored_card_tex_cache[sid]
+	var base := ElementDB.get_material_icon(sid)
+	if base == null:
+		return null
+	var img := base.get_image()
+	if img == null:
+		return base
+	if img.is_compressed():
+		img.decompress()
+	# Crop away the SVG's transparent margins (card body is ~x17..47, y9..55 of the
+	# 64px icon) so the held/animated card FILLS the texture instead of floating
+	# small inside a big empty box — otherwise it looks tiny next to the slot.
+	var iw := img.get_width()
+	var ih := img.get_height()
+	var cx := int(round(iw * 0.23))
+	var cy := int(round(ih * 0.11))
+	var cw := int(round(iw * 0.54))
+	var ch := int(round(ih * 0.76))
+	if cw > 0 and ch > 0 and cx + cw <= iw and cy + ch <= ih:
+		var cropped := Image.create(cw, ch, false, img.get_format())
+		cropped.blit_rect(img, Rect2i(cx, cy, cw, ch), Vector2i(0, 0))
+		img = cropped
+	# Downsample the high-res (svg/scale=4 → 256px) crop to a crisp working size.
+	img.resize(84, 117, Image.INTERPOLATE_LANCZOS)
+	var c: Color = ElementDB.get_material_tint(sid)
+	for y in img.get_height():
+		for x in img.get_width():
+			var p := img.get_pixel(x, y)
+			p = Color(p.r * c.r, p.g * c.g, p.b * c.b, p.a)
+			img.set_pixel(x, y, p)
+	var tex := ImageTexture.create_from_image(img)
+	_colored_card_tex_cache[sid] = tex
+	return tex
+
+# A 90°-rotated (landscape) copy of the tinted card — the card is HELD HORIZONTALLY
+# as the cursor. Manual pixel rotate (Image.rotate_90 is 4.3+, the runtime is 4.2.2).
+var _card_cursor_tex_cache: Dictionary = {}
+func _get_card_cursor_tex(sid: String) -> Texture2D:
+	if _card_cursor_tex_cache.has(sid):
+		return _card_cursor_tex_cache[sid]
+	var portrait := _get_colored_card_tex(sid)
+	if portrait == null:
+		return null
+	var src := portrait.get_image()
+	if src == null:
+		return portrait
+	if src.is_compressed():
+		src.decompress()
+	var w := src.get_width()
+	var h := src.get_height()
+	var rot := Image.create(h, w, false, src.get_format())
+	for y in h:
+		for x in w:
+			rot.set_pixel(h - 1 - y, x, src.get_pixel(x, y))
+	rot.resize(84, 60, Image.INTERPOLATE_LANCZOS)   # sensible in-hand cursor size
+	var tex := ImageTexture.create_from_image(rot)
+	_card_cursor_tex_cache[sid] = tex
+	return tex
+
+# Cursor becomes the armed Hack Card, held horizontally (or reverts when nothing armed).
+func _update_card_cursor() -> void:
+	# Suppress module hover info-cards while a card is in hand (fix #3).
+	ModuleCardScript.suppress_info_card = (_armed_stone != "")
+	_set_slot_card_sockets(_armed_stone != "")   # equipped slots become targets too
+	if _armed_stone == "":
+		Input.set_custom_mouse_cursor(null, Input.CURSOR_ARROW)
+		Input.set_custom_mouse_cursor(null, Input.CURSOR_POINTING_HAND)
+		return
+	var tex := _get_card_cursor_tex(_armed_stone)
+	if tex == null:
+		return
+	var hs := Vector2(tex.get_width() * 0.5, tex.get_height() * 0.5)
+	Input.set_custom_mouse_cursor(tex, Input.CURSOR_ARROW, hs)
+	Input.set_custom_mouse_cursor(tex, Input.CURSOR_POINTING_HAND, hs)
+
+# Fly a tinted card ghost from the cursor into the module's socket, then apply.
+func _animate_card_insert(target_card: Control, sid: String, target_mid: String) -> void:
+	if not is_instance_valid(target_card) or not is_inside_tree():
+		_finish_card_apply(sid, target_mid)
+		return
+	var tex := _get_colored_card_tex(sid)
+	if tex == null:
+		_finish_card_apply(sid, target_mid)
+		return
+	var layer := CanvasLayer.new()
+	layer.layer = 90
+	add_child(layer)
+	# The card is HELD HORIZONTALLY and eaten from the RIGHT as it enters the slot.
+	# A clip window whose right edge sits at the slot mouth progressively hides the
+	# card as it slides through — clip-based, so the card keeps its real size (no
+	# narrowing/scaling); its right side is swallowed like a draining progress bar.
+	var card_w := 78.0   # landscape card, sized to match the slot height (card_h ≈ slot)
+	var card_h := 56.0
+	var trect := target_card.get_global_rect()
+	var slot_center := trect.position + trect.size * 0.5
+	var clip := Control.new()
+	clip.clip_contents = true
+	clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	clip.size = Vector2(card_w, card_h)
+	layer.add_child(clip)
+	var holder := Control.new()   # slides right inside the clip during the feed-in
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.size = Vector2(card_w, card_h)
+	clip.add_child(holder)
+	var ghost := TextureRect.new()
+	ghost.texture = tex
+	ghost.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	ghost.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	ghost.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ghost.size = Vector2(card_h, card_w)
+	ghost.position = Vector2((card_w - card_h) * 0.5, (card_h - card_w) * 0.5)
+	ghost.pivot_offset = ghost.size * 0.5
+	# +90° (clockwise) rotates the portrait card to landscape and puts the CONTACT
+	# CHIP (top of the portrait) on the RIGHT — the leading edge — so it feeds into
+	# the slot CHIP-FIRST as the card is eaten from the right.
+	ghost.rotation_degrees = 90
+	holder.add_child(ghost)
+	# clip's right edge lands at the slot mouth (slot centre), vertically centred.
+	var clip_final := Vector2(slot_center.x - card_w, slot_center.y - card_h * 0.5)
+	clip.global_position = get_viewport().get_mouse_position() - Vector2(card_w, card_h) * 0.5
+	var tw := create_tween()
+	if tw == null:
+		layer.queue_free()
+		_finish_card_apply(sid, target_mid, trect)
+		return
+	# 1) fly the whole card to the slot, held horizontally (fully visible)
+	tw.tween_property(clip, "global_position", clip_final, 0.30).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	# 2) feed it in slowly: slide the card right past the clip's right edge (the slot
+	#    mouth) so it's swallowed from the RIGHT, progress-bar style — undistorted.
+	tw.tween_property(holder, "position:x", card_w, 0.55).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tw.tween_callback(func():
+		if is_instance_valid(layer):
+			layer.queue_free()
+		_finish_card_apply(sid, target_mid, trect)
+	)
+
 
 
 # The toggle button holds a tilted-hammer "tool". Pressing it picks the tool up:
@@ -992,8 +1134,13 @@ func _on_visibility_changed():
 	if visible:
 		trigger_refresh()
 	else:
+		# Leaving the page: drop repair tool + any armed Hack Card so the custom
+		# cursor doesn't leak into other tabs, and clear slot focus.
 		if is_repair_mode:
 			btn_repair_mode.button_pressed = false
+		if _armed_stone != "":
+			_armed_stone = ""
+			_update_card_cursor()
 		focused_slot_type = ""
 		focused_slot_idx = -1
 		focused_slot_equipped_mid = ""
@@ -1026,6 +1173,7 @@ func trigger_refresh():
 	_refresh_tab_labels()
 	_refresh_filter_button_styles()
 	_refresh_preset_buttons()
+	_refresh_hack_stone_bar()   # v127 review #4: re-show the stone bar after looting the first stone
 
 func update_header():
 	if not (manager.active_hull and manager.active_hull in manager.hulls):
@@ -1705,8 +1853,10 @@ func rebuild_storage():
 				item.is_draggable = true
 				if "compare_equipped_mid" in item:
 					item.compare_equipped_mid = focused_slot_equipped_mid if type_matches_focus else ""
+				item.show_card_socket = (_armed_stone != "")   # v127: show insert socket while a card is armed
 				item.setup(module_id, module_data, module_count)
-				item.clicked.connect(_on_card_clicked)
+				item.clicked.connect(_on_card_clicked.bind(item))   # bind node for the insert animation
+				item.stone_dropped.connect(_on_stone_dropped)   # v127: apply a dragged Hack Stone
 				# Dim non-matching modules. User-click focus wins (focused_slot_type);
 				# otherwise the coach-driven equip-mission filter applies, so the
 				# just-crafted module stands out vs the rest of the Armory.
@@ -1790,6 +1940,26 @@ func rebuild_storage():
 
 	# v111.17 Phase 1: no more empty-slot filler tiles — the spatial canvas draws
 	# its own empty cell-grid background. Lay everything out now.
+	# v127: Hack Stones live in the Armory cache as 1x1 cards (click-to-arm, like
+	# matrix cores) — no separate strip. Click a stone to arm it, then click a module.
+	if active_filter in ["all", "hack_stones"]:
+		for stone_id in _HACK_STONE_IDS:
+			var stone_qty: int = GameState.resources.get_element_amount(stone_id)
+			if stone_qty > 0:
+				var stone_card = draggable_icon_scene.instantiate()
+				_spatial.add_item(stone_card, 1, 1, manager.get_armory_pos(stone_id))
+				var stone_data = {
+					"name": ElementDB.get_display_name(stone_id),
+					"slot_type": "hack_stone",
+					"stats": {},
+					"desc": "Hack Card — drag onto a module to apply (or click to arm, then click a module)."
+				}
+				stone_card.is_draggable = true   # v127: drag a stone onto a module card to apply
+				stone_card.is_selected = (stone_id == _armed_stone)
+				stone_card.clicked.connect(_on_card_clicked)
+				stone_card.setup(stone_id, stone_data, stone_qty)
+				slot_count += 1
+
 	_spatial.commit()
 
 func _module_matches_search(mid: String, module_data: Dictionary) -> bool:
@@ -2014,7 +2184,16 @@ func _get_module_power_score(id: String, data: Dictionary) -> int:
 	# v80.3: Removed dead sort-score overrides (mining_laser_mk1, mk2, railgun_mk1 no longer exist)
 
 	return score
-func _on_card_clicked(p_mid: String):
+func _on_card_clicked(p_mid: String, src_card: Control = null):
+	# v127: clicking a Hack Stone card in the Armory arms it (toggle / switch).
+	if p_mid in _HACK_STONE_IDS:
+		_on_hack_stone_pressed(p_mid)
+		return
+	# v127 H3: if a Hack Card is armed, clicking a MODULE card slots it in (animation
+	# → apply). Fall back to a direct apply if we don't have the card node.
+	if _armed_stone != "":
+		_commit_card_insert(_armed_stone, p_mid, src_card)
+		return
 	# Demolish multi-select mode keeps its existing toggle behaviour.
 	if is_selection_mode:
 		if p_mid in selected_mids:
@@ -2087,6 +2266,383 @@ func _disarm_module() -> void:
 	_armed_mid = ""
 	_clear_slot_highlights()
 	rebuild_storage()
+
+# ══ v127 H3: Hack Stone application UI ═════════════════════════════════════
+# Arm a stone from the stone bar, then click a module card in the Armory to apply
+# it (destructive stones show a confirm). Reuses the armed-click grammar; the
+# crafting itself is shipyard_manager.apply_hack_stone (backend, already verified).
+const _HACK_STONE_IDS := ["SpliceChip", "FirmwareInjector", "RootKey", "AnchorBolt", "CorruptionWorm"]
+var _armed_stone: String = ""
+var _hack_stone_bar: HBoxContainer = null
+
+func _setup_hack_stone_bar(v_box: Node, scroll_node: Node) -> void:
+	_hack_stone_bar = HBoxContainer.new()
+	_hack_stone_bar.name = "HackStoneBar"
+	_hack_stone_bar.add_theme_constant_override("separation", 6)
+	v_box.add_child(_hack_stone_bar)
+	v_box.move_child(_hack_stone_bar, scroll_node.get_index())
+	_refresh_hack_stone_bar()
+
+func _refresh_hack_stone_bar() -> void:
+	if not is_instance_valid(_hack_stone_bar):
+		return
+	for c in _hack_stone_bar.get_children():
+		c.queue_free()
+	var owned: Array = []
+	for sid in _HACK_STONE_IDS:
+		if GameState.resources.get_element_amount(sid) > 0:
+			owned.append(sid)
+	if owned.is_empty() and _armed_stone == "":
+		_hack_stone_bar.visible = false
+		return
+	_hack_stone_bar.visible = true
+	var lbl := Label.new()
+	lbl.text = "HACK CARDS:" if _armed_stone == "" else ("ARMED: %s — click a module" % ElementDB.get_display_name(_armed_stone))
+	lbl.add_theme_font_size_override("font_size", 11)
+	lbl.add_theme_color_override("font_color", UITheme.COLORS["accent_bright"] if _armed_stone != "" else UITheme.COLORS["text_dim"])
+	lbl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_hack_stone_bar.add_child(lbl)
+	for sid in owned:
+		var b := Button.new()
+		b.text = "%s x%d" % [ElementDB.get_display_name(sid), GameState.resources.get_element_amount(sid)]
+		b.add_theme_font_size_override("font_size", 11)
+		b.toggle_mode = true
+		b.button_pressed = (sid == _armed_stone)
+		b.pressed.connect(_on_hack_stone_pressed.bind(sid))
+		_hack_stone_bar.add_child(b)
+	if _armed_stone != "":
+		var cancel := Button.new()
+		cancel.text = "x Cancel"
+		cancel.add_theme_font_size_override("font_size", 11)
+		cancel.pressed.connect(_disarm_stone)
+		_hack_stone_bar.add_child(cancel)
+
+func _on_hack_stone_pressed(sid: String) -> void:
+	if _armed_stone == sid:
+		_armed_stone = ""
+	else:
+		_armed_stone = sid
+		_disarm_module()   # mutually exclusive with module-arm
+	_update_card_cursor()   # v127: cursor becomes the armed card (or reverts)
+	rebuild_storage()   # v127: re-render the Armory so the armed stone card highlights + sockets show
+
+func _disarm_stone() -> void:
+	_armed_stone = ""
+	_update_card_cursor()
+	rebuild_storage()
+
+# v127: a Hack Stone card dropped onto a module card applies directly (no arm
+# step) — routes through the same confirm/anchor/apply path as click-to-arm.
+func _on_stone_dropped(stone_id: String, target_mid: String) -> void:
+	if stone_id == "" or target_mid == "":
+		return
+	_apply_armed_stone(target_mid, stone_id)
+
+# Left-clicked a module with a card in hand. If the module ACCEPTS the card, the
+# card leaves the hand at once (cursor reverts to the game default) and the insert
+# animation plays; the hack applies when it seats. A rejected target keeps the card
+# in hand and shows why.
+func _commit_card_insert(sid: String, module_id: String, card_node: Control) -> void:
+	var chk: Dictionary = manager.can_apply_hack_stone(sid, module_id)
+	if not bool(chk.get("ok", false)):
+		UITheme.show_notification(str(chk.get("msg", "Can't apply here.")), UITheme.COLORS["negative"])
+		return
+	# Accepted → the card leaves the hand NOW. Cursor back to default; the sockets
+	# stay up during the flight and clear when the apply rebuilds the Armory.
+	_armed_stone = ""
+	Input.set_custom_mouse_cursor(null, Input.CURSOR_ARROW)
+	Input.set_custom_mouse_cursor(null, Input.CURSOR_POINTING_HAND)
+	if card_node != null and is_instance_valid(card_node) and manager.modules.has(module_id):
+		_animate_card_insert(card_node, sid, module_id)
+	else:
+		_finish_card_apply(sid, module_id)
+
+# The card has seated in the slot — apply the hack (no confirm dialog; the deliberate
+# arm + click + insert IS the confirmation). AnchorBolt still asks which affix to lock.
+# v127: apply the in-hand Hack Card to a module — used by EQUIPPED slots (they call
+# this from _gui_input). Returns true if a card was armed and the apply kicked off.
+func try_apply_armed_card(module_id: String, target: Control) -> bool:
+	if _armed_stone == "" or module_id == "":
+		return false
+	_commit_card_insert(_armed_stone, module_id, target)
+	return true
+
+# Toggle the insert-socket glow on every occupied equipped slot (armory tiles get
+# theirs via rebuild_storage / show_card_socket).
+func _set_slot_card_sockets(active: bool) -> void:
+	for w in all_slot_widgets:
+		if is_instance_valid(w) and w.has_method("set_card_socket"):
+			w.set_card_socket(active)
+
+func _finish_card_apply(sid: String, module_id: String, rect: Rect2 = Rect2()) -> void:
+	ModuleCardScript.suppress_info_card = false
+	if sid == "AnchorBolt":
+		_show_anchor_infocard(module_id, rect)   # effect plays after the affix lock
+	else:
+		_do_apply_stone(sid, module_id)
+		if rect.size.x > 1.0:
+			_play_hacked_effect(rect)
+
+# Applied when a stone is dropped on a module (drag-drop path, sid passed explicitly).
+func _apply_armed_stone(module_id: String, sid: String = "") -> void:
+	if sid == "":
+		sid = _armed_stone
+	if sid == "":
+		return
+	if sid == "AnchorBolt":
+		_show_anchor_chooser(module_id)   # v127 review #3: pick which affix to lock
+		return
+	if sid == "RootKey" or sid == "CorruptionWorm" or sid == "SpliceChip" or sid == "FirmwareInjector":
+		var mname: String = str((manager.modules.get(module_id, {}) as Dictionary).get("name", module_id))
+		var body: String = "Apply [b]%s[/b] to [b]%s[/b]?\n\n" % [ElementDB.get_display_name(sid), mname]
+		match sid:
+			"SpliceChip": body += "Awakens a Common into an Uncommon custom (1 affix; base stats lock)."
+			"FirmwareInjector": body += "Awakens a Common straight to a Rare custom (2 affixes)."
+			"RootKey": body += "Raises rarity one tier and rolls a NEW affix (keeps existing ones)."
+			_: body += "Removes one UNLOCKED affix and rolls a new one. Anchor an affix first to protect it."
+		UITheme.show_confirm({
+			"title": "Confirm Hack",
+			"body": body,
+			"confirm_text": "Apply",
+			"cancel_text": "Cancel",
+			"accent": Color(0.90, 0.55, 0.25),
+			"danger": true,
+			"on_confirm": func(): _do_apply_stone(sid, module_id),
+		})
+	else:
+		_do_apply_stone(sid, module_id)
+
+func _do_apply_stone(sid: String, module_id: String, arg: String = "") -> void:
+	var r: Dictionary = manager.apply_hack_stone(sid, module_id, arg)
+	var ok: bool = bool(r.get("ok", false))
+	UITheme.show_notification(str(r.get("msg", "")), UITheme.COLORS["positive"] if ok else UITheme.COLORS["negative"])
+	if ok and GameState.resources.get_element_amount(sid) < 1:
+		_armed_stone = ""   # spent the last one
+	_update_card_cursor()   # revert cursor if the last copy was spent
+	trigger_refresh()
+	rebuild_storage()
+	_refresh_hack_stone_bar()
+
+# v127 review #3: Anchor Bolt affix chooser — pick WHICH affix to lock (was always
+# the first). Passes the chosen affix id into apply_hack_stone via arg.
+func _show_anchor_chooser(module_id: String) -> void:
+	var m: Dictionary = manager.modules.get(module_id, {})
+	var affixes: Dictionary = m.get("affixes", {})
+	if affixes.is_empty():
+		UITheme.show_notification("No affix to anchor (awaken + add affixes first).", UITheme.COLORS["negative"])
+		return
+	var layer := CanvasLayer.new()
+	layer.layer = 100
+	var overlay := ColorRect.new()
+	overlay.color = Color(0, 0, 0, 0.7)
+	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	layer.add_child(overlay)
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	overlay.add_child(center)
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(300, 0)
+	center.add_child(panel)
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 8)
+	panel.add_child(vb)
+	var title := Label.new()
+	title.text = "ANCHOR BOLT — lock which affix?"
+	title.add_theme_font_size_override("font_size", 14)
+	title.add_theme_color_override("font_color", UITheme.COLORS["accent_bright"])
+	vb.add_child(title)
+	for aid in affixes.keys():
+		var b := Button.new()
+		b.text = str((manager.AFFIX_DB.get(aid, {}) as Dictionary).get("name", aid))
+		b.add_theme_font_size_override("font_size", 12)
+		b.pressed.connect(_on_anchor_pick.bind(layer, module_id, str(aid)))
+		vb.add_child(b)
+	var cancel := Button.new()
+	cancel.text = "Cancel"
+	cancel.add_theme_font_size_override("font_size", 12)
+	cancel.pressed.connect(layer.queue_free)
+	vb.add_child(cancel)
+	add_child(layer)
+
+func _on_anchor_pick(layer: CanvasLayer, module_id: String, aid: String) -> void:
+	layer.queue_free()
+	_do_apply_stone("AnchorBolt", module_id, aid)
+
+# v127: the affix currently highlighted on hover in the Anchor Bolt datasheet.
+var _anchor_hover: String = ""
+
+# v127: build a module's datasheet bbcode off a throwaway card (anchor_select makes
+# the affixes clickable [url]s + stamps a lock on the anchored one; hover_affix gets a
+# background highlight instead of the default underline).
+func _module_datasheet_bbcode(module_id: String, anchor_select: bool, hover_affix: String = "") -> String:
+	var temp = draggable_icon_scene.instantiate()
+	add_child(temp)
+	temp.visible = false
+	temp.mid = module_id
+	temp.data = manager.modules.get(module_id, {})
+	var bb: String = str(temp.call("_build_comparison_tooltip_bbcode", anchor_select, hover_affix))
+	temp.queue_free()
+	return bb
+
+# Anchor Bolt UI: show the module's OWN datasheet with clickable affixes. Clicking one
+# locks it (and stamps a lock icon beside it), then the card closes.
+func _show_anchor_infocard(module_id: String, rect: Rect2 = Rect2()) -> void:
+	if not manager.modules.has(module_id):
+		return
+	var layer := CanvasLayer.new()
+	layer.layer = 100
+	var backdrop := ColorRect.new()
+	backdrop.color = Color(0, 0, 0, 0.7)
+	backdrop.set_anchors_preset(Control.PRESET_FULL_RECT)
+	backdrop.gui_input.connect(func(ev):
+		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+			if is_instance_valid(layer): layer.queue_free()
+	)
+	layer.add_child(backdrop)
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	backdrop.add_child(center)
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 8)
+	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	center.add_child(vb)
+	var card := PanelContainer.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.039, 0.086, 0.078, 0.985)
+	sb.set_corner_radius_all(6)
+	sb.set_border_width_all(1)
+	sb.border_width_top = 3
+	sb.border_color = Color(0.216, 0.788, 0.690, 0.6)
+	sb.content_margin_left = 15
+	sb.content_margin_right = 15
+	sb.content_margin_top = 13
+	sb.content_margin_bottom = 13
+	card.add_theme_stylebox_override("panel", sb)
+	var rtl := RichTextLabel.new()
+	rtl.bbcode_enabled = true
+	rtl.fit_content = true
+	rtl.scroll_active = false
+	rtl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	rtl.custom_minimum_size = Vector2(340, 0)
+	rtl.add_theme_color_override("default_color", Color(0.894, 0.961, 0.933))
+	rtl.add_theme_font_size_override("normal_font_size", 12)
+	rtl.add_theme_font_size_override("bold_font_size", 12)
+	rtl.add_theme_constant_override("line_separation", 3)
+	rtl.meta_underlined = false   # highlight the row instead of underlining
+	rtl.text = _module_datasheet_bbcode(module_id, true)
+	rtl.meta_clicked.connect(_on_anchor_affix_clicked.bind(module_id, layer, rtl, rect))
+	_anchor_hover = ""
+	rtl.meta_hover_started.connect(func(m):
+		if not is_instance_valid(rtl): return
+		var mm: String = str(m)
+		if not mm.begins_with("affix:"): return
+		var a: String = mm.substr(6)
+		if a == _anchor_hover: return
+		_anchor_hover = a
+		rtl.text = _module_datasheet_bbcode(module_id, true, a)
+	)
+	rtl.meta_hover_ended.connect(func(_m):
+		if not is_instance_valid(rtl) or _anchor_hover == "": return
+		_anchor_hover = ""
+		rtl.text = _module_datasheet_bbcode(module_id, true, "")
+	)
+	card.add_child(rtl)
+	vb.add_child(card)
+	var close_btn := Button.new()
+	close_btn.text = "Close"
+	close_btn.add_theme_font_size_override("font_size", 12)
+	close_btn.pressed.connect(func():
+		if is_instance_valid(layer): layer.queue_free()
+	)
+	vb.add_child(close_btn)
+	add_child(layer)
+
+func _on_anchor_affix_clicked(meta, module_id: String, layer: CanvasLayer, rtl: RichTextLabel, rect: Rect2 = Rect2()) -> void:
+	var ms: String = str(meta)
+	if not ms.begins_with("affix:"):
+		return
+	var aid: String = ms.substr(6)
+	var r: Dictionary = manager.apply_hack_stone("AnchorBolt", module_id, aid)
+	var ok: bool = bool(r.get("ok", false))
+	UITheme.show_notification(str(r.get("msg", "")), UITheme.COLORS["positive"] if ok else UITheme.COLORS["negative"])
+	if not ok:
+		return
+	# Re-render so the lock icon appears beside the now-locked affix.
+	if is_instance_valid(rtl):
+		rtl.text = _module_datasheet_bbcode(module_id, true)
+	trigger_refresh()
+	_refresh_hack_stone_bar()
+	# Brief beat to show the lock, then close + refresh the Armory + play the payoff.
+	await get_tree().create_timer(0.9).timeout
+	if is_instance_valid(layer):
+		layer.queue_free()
+	rebuild_storage()
+	if rect.size.x > 1.0:
+		_play_hacked_effect(rect)
+
+# v127: the "hacked!" payoff — a module-card-sized glitch/scan VFX over the module
+# after a Hack Card seats, so the change is unmissable ("something happened!").
+func _play_hacked_effect(rect: Rect2) -> void:
+	if rect.size.x < 2.0:
+		return
+	var layer := CanvasLayer.new()
+	layer.layer = 95
+	add_child(layer)
+	var fx := _HackedFX.new()
+	fx.position = rect.position
+	fx.size = rect.size
+	layer.add_child(fx)
+	fx.tree_exited.connect(func():
+		if is_instance_valid(layer):
+			layer.queue_free()
+	)
+
+# Module "hacked" VFX: accent flash + sweeping scan-line + glitch bars + pulsing
+# frame over the card's rect, ~1.8s, self-freeing.
+class _HackedFX extends Control:
+	var elapsed := 0.0
+	var dur := 1.8
+	var accent := Color(0.35, 1.0, 0.72)   # cyber hacker-green
+	func _ready() -> void:
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		set_process(true)
+	func _process(delta: float) -> void:
+		elapsed += delta
+		queue_redraw()
+		if elapsed >= dur:
+			queue_free()
+	func _draw() -> void:
+		var p: float = clampf(elapsed / dur, 0.0, 1.0)
+		var w: float = size.x
+		var h: float = size.y
+		var a: Color = accent
+		# initial bright flash, fast fade
+		if p < 0.20:
+			var fa: float = (1.0 - p / 0.20) * 0.45
+			draw_rect(Rect2(0, 0, w, h), Color(a.r, a.g, a.b, fa))
+		# pulsing accent frame, fading over the whole effect
+		var frame_a: float = maxf((1.0 - p) * (0.55 + 0.45 * sin(elapsed * 22.0)) * 0.9, 0.0)
+		var bw: float = 3.0
+		draw_rect(Rect2(0, 0, w, bw), Color(a.r, a.g, a.b, frame_a))
+		draw_rect(Rect2(0, h - bw, w, bw), Color(a.r, a.g, a.b, frame_a))
+		draw_rect(Rect2(0, 0, bw, h), Color(a.r, a.g, a.b, frame_a))
+		draw_rect(Rect2(w - bw, 0, bw, h), Color(a.r, a.g, a.b, frame_a))
+		# scan line sweeping top->bottom ~2.5 times, with a soft glow band
+		var sy: float = fmod(p * 2.5, 1.0) * h
+		var line_a: float = (1.0 - p) * 0.9
+		draw_rect(Rect2(0, sy - 8.0, w, 16.0), Color(a.r, a.g, a.b, line_a * 0.18))
+		draw_rect(Rect2(0, sy - 1.5, w, 3.0), Color(a.r, a.g, a.b, line_a))
+		# glitch bars in the first ~65%, flickering at pseudo-random rows
+		if p < 0.65:
+			for i in 5:
+				var seed_y: float = fmod(sin(float(i) * 51.3 + floor(elapsed * 14.0)) * 0.5 + 0.5, 1.0)
+				var gy: float = seed_y * (h - 6.0)
+				var flick: float = 0.5 + 0.5 * sin(elapsed * 40.0 + float(i) * 2.1)
+				var gh: float = 2.0 + float(i % 3)
+				var ga: float = (0.65 - p) * 0.7 * flick
+				if ga > 0.02:
+					draw_rect(Rect2(0, gy, w, gh), Color(a.r, a.g, a.b, ga))
 
 # v111.18 Phase 2: clicking an empty grid cell while an item is "picked up"
 # (armed) relocates it there, on the CURRENTLY VIEWED page. Footprint: gear
@@ -2177,6 +2733,18 @@ func _unhandled_input(event: InputEvent) -> void:
 			drop = true
 		if drop:
 			btn_repair_mode.button_pressed = false   # fires toggled → _disarm_repair_tool
+			get_viewport().set_input_as_handled()
+			return
+
+	# v127: while a Hack Card is in hand, right-click or Esc drops it back too.
+	if _armed_stone != "":
+		var drop_card := false
+		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
+			drop_card = true
+		elif event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+			drop_card = true
+		if drop_card:
+			_disarm_stone()
 			get_viewport().set_input_as_handled()
 			return
 

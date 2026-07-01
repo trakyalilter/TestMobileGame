@@ -127,7 +127,13 @@ var ELEMENT_NAMES = {
 	"NavData": "Navigation Data",
 	"IrPlate": "Iridium Plating",
 	"OsCore": "Osmium Core",
-	
+	# v127: Hack Stones — module crafting currency (drag onto a module in the Designer)
+	"SpliceChip": "Splice Chip",
+	"FirmwareInjector": "Firmware Injector",
+	"RootKey": "Root Key",
+	"AnchorBolt": "Anchor Bolt",
+	"CorruptionWorm": "Corruption Worm",
+
 	# Combat Loot & Artifacts
 	"MiteChitin": "Mite Chitin",
 	"ChitinPatch": "Chitin Hull Patch",
@@ -248,7 +254,9 @@ var CATEGORIES = {
 					"CrackedTopazCore", "StableTopazCore", "PristineTopazCore",
 					"CrackedAmethystCore", "StableAmethystCore", "PristineAmethystCore"],
 	# Combat-exclusive progression salvage (Inventory "Other", never Armory)
-	"reclaimed_components": ["SalvagedAlloy", "DamagedCircuitry"]
+	"reclaimed_components": ["SalvagedAlloy", "DamagedCircuitry"],
+	# v127: Hack Stone crafting currency
+	"hack_stones": ["SpliceChip", "FirmwareInjector", "RootKey", "AnchorBolt", "CorruptionWorm"]
 }
 
 # v66.0: Consumable Slot System Data
@@ -609,6 +617,12 @@ var MATERIAL_TINT := {
 	"AncientTech": Color(0.75, 0.62, 0.38),
 	"ColonyDataCore": Color(0.45, 0.62, 0.72),
 	"QuarantineClearance": Color(0.55, 0.75, 0.45),
+	# v127: Hack Stones
+	"SpliceChip": Color(0.55, 0.85, 0.70),
+	"FirmwareInjector": Color(0.45, 0.80, 0.95),
+	"RootKey": Color(0.90, 0.75, 0.35),
+	"AnchorBolt": Color(0.70, 0.72, 0.78),
+	"CorruptionWorm": Color(0.75, 0.40, 0.80),
 	"TitanClearance": Color(0.60, 0.66, 0.72),
 	"ReactiveCore": Color(0.85, 0.45, 0.30),
 }
