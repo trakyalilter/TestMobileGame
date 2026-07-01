@@ -133,10 +133,10 @@ var tech_tree = {
 		#                              item; the tree edge already shows it
 		#   • "Carbon Hull Lattice" — same (hull_hardening tech name)
 		"effects": [],
+		# v129: "HE Missile" dropped — T1 ammo is starter-kit now (research-free).
+		# "Micro-Missile Launcher" dropped — the module itself was never gated.
 		"unlocks": [
 			"Charcoal Kiln",
-			"HE Missile",
-			"Micro-Missile Launcher",
 		],
 		"flavor": "",
 	},
@@ -469,7 +469,7 @@ var tech_tree = {
 		"parent": "kinetics_101",
 		"req_tech": "basic_engineering",
 		"effects": [],
-		"unlocks": ["Basic Cell Factory", "Basic Battery"],
+		"unlocks": ["Basic Cell Factory"], # v129: Basic Battery recipe is starter-kit now (research-free)
 		"flavor": "",
 	},
 	"laser_optics": {

@@ -1066,6 +1066,39 @@ func _update_navigation_hints():
 			page.focus_zone("lunar_orbit")
 			target_to_pulse = page.get_enemy_card("z1_lunar_drone")
 
+	# v128: damage-triangle arcs — same routing as m015 (shipyard craft) / m017 (combat kill).
+	elif "m017a" in mm.active_missions:
+		# Shipyard: Pulse Laser Mk.I (energy leg)
+		if current_page_name != "shipyard": target_to_pulse = shipyard_btn
+		else:
+			var page = pages["shipyard"]
+			page.focus_module_tab("z1_energy")
+			target_to_pulse = page.get_module_widget("z1_energy")
+
+	elif "m017b" in mm.active_missions:
+		# Combat: kill the energy-weak Survey Probe
+		if current_page_name != "combat": target_to_pulse = combat_btn
+		else:
+			var page = pages["combat"]
+			page.focus_zone("lunar_orbit")
+			target_to_pulse = page.get_enemy_card("z1_survey_probe")
+
+	elif "m017c" in mm.active_missions:
+		# Shipyard: Micro-Missile Launcher (explosive leg)
+		if current_page_name != "shipyard": target_to_pulse = shipyard_btn
+		else:
+			var page = pages["shipyard"]
+			page.focus_module_tab("z1_missile")
+			target_to_pulse = page.get_module_widget("z1_missile")
+
+	elif "m017d" in mm.active_missions:
+		# Combat: kill the explosive-weak Scrap Collector
+		if current_page_name != "combat": target_to_pulse = combat_btn
+		else:
+			var page = pages["combat"]
+			page.focus_zone("lunar_orbit")
+			target_to_pulse = page.get_enemy_card("z1_scrap_collector")
+
 	elif "m018" in mm.active_missions:
 		# Research: Industrial Logistics Hub
 		if current_page_name != "research": target_to_pulse = research_btn

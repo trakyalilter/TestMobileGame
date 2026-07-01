@@ -76,19 +76,26 @@ func init_missions():
 		# Thruster sat in inventory and the player never saw its +Evasion effect.
 		["m007b", "Spacewalk Test", "Open the Ship Designer, then DRAG the Basic Thruster from your Armory (right panel) onto an empty ENGINE slot.", "loadout_check", "engine", 1, 500, 100, "m008"],
 		["m008", "Materials Science", "Research the 'Materials Science' hub.", "research", "materials_science", 1, 300, 100, "m009"],
-		["m009", "Deforestation", "Gather 100 units of Wood.", "gather", "Wood", 100, 500, 100, "m010"],
+		# v129: research-trip diet — the tutorial routed to Research ~8 times before the
+		# first boss, which reads as homework. Five stops are cut from the CHAIN (m010,
+		# m020, m014, m023, m018b) and the T1 starter-kit gates they served were unbound
+		# (battery/missile recipes, T1 ammo equip). The missions stay DEFINED as orphans
+		# so in-flight saves sitting on them still complete + chain onward (m003 pattern).
+		# Research beats that remain early: m002 (tutorial), m008 (hub), m018, m025/m026
+		# (batched: smelting -> power_systems -> shipwright_1 in one visit).
+		["m009", "Deforestation", "Gather 100 units of Wood.", "gather", "Wood", 100, 500, 100, "m011"],
 		["m010", "Organic Combustion", "Research 'Organic Combustion' to unlock the Kiln.", "research", "combustion", 1, 500, 150, "m011"],
 		["m011", "Essential Carbon", "Use the Charcoal Kiln to produce 50 Carbon.", "gather", "C", 50, 600, 150, "m012"],
 		["m012", "Lithium Discovery", "In the Mine page, extract 100 Lithium Ore.", "gather", "Spodumene", 100, 800, 200, "m013"],
 		["m013", "Voltaic Storage", "Refine 50 Lithium in the Engineering tab.", "gather", "Li", 50, 1000, 250, "m013b"],
 		["m013b", "Copper Prospecting", "Gather 100 Malachite Ore.", "gather", "Malachite", 100, 1200, 300, "m013c"],
-		["m013c", "Conductivity", "Refine 50 Copper in the Engineering tab.", "gather", "Cu", 50, 1500, 350, "m020"],
+		["m013c", "Conductivity", "Refine 50 Copper in the Engineering tab.", "gather", "Cu", 50, 1500, 350, "m021"],
 		["m014", "Ballistics Theory", "Research 'Kinetic Weapons Theory' in the Research tree.", "research", "kinetics_101", 1, 1200, 100, "m015"],
 		["m015", "Prototype Arsenal", "Craft a 'Mass Driver Mk.I' in the Shipyard.", "craft", "z1_kinetic", 1, 1500, 200, "m015b"],
 		# P1 Onboarding: close the weapon arc — craft → equip. Ammo comes next
 		# and now reads correctly as "feed your equipped weapon".
 		["m015b", "Weapons Hot", "Open the Ship Designer, then DRAG the Mass Driver from your Armory (right panel) onto an empty WEAPON slot.", "loadout_check", "weapon", 1, 500, 100, "m016"],
-		["m016", "Kinetic Munitions", "In the Engineering page, produce 100 Ferrite Rounds (SlugT1) to feed your weapon.", "gather", "SlugT1", 100, 1000, 100, "m023"],
+		["m016", "Kinetic Munitions", "In the Engineering page, produce 100 Ferrite Rounds (SlugT1) to feed your weapon.", "gather", "SlugT1", 100, 1000, 100, "m024"],
 		# Shield Section Moved Here (m023 -> m024)
 		# P2-12: Combat Readiness Checkpoint - ensure player is equipped before first combat
 		["m016b", "Combat Ready", "Equip a WEAPON and SHIELD in your Ship Designer.", "loadout_check", "combat_ready", 1, 300, 100, "m017"],
@@ -104,7 +111,7 @@ func init_missions():
 		# Lunar Orbit enemies. combustion is already researched at m010, so missiles craft here.
 		["m017c", "Explosive Doctrine", "The Scrap Collector is armored against kinetic AND energy — but blows apart under EXPLOSIVE ordnance. In the Shipyard, craft a 'Micro-Missile Launcher', then stock HE Missiles (MissileT1) in the Engineering tab.", "craft", "z1_missile", 1, 1800, 250, "m017d"],
 		["m017d", "Warhead", "Equip your Micro-Missile Launcher (HE Missiles loaded) and destroy a Scrap Collector in Lunar Orbit. Three weapon types, three weaknesses — now you command the damage triangle.", "defeat", "z1_scrap_collector", 1, 3500, 600, "m018"],
-		["m018", "Industrial Logistics", "Research the 'Industrial Logistics' hub.", "research", "industrial_logistics", 1, 500, 100, "m018b"],
+		["m018", "Industrial Logistics", "Research the 'Industrial Logistics' hub.", "research", "industrial_logistics", 1, 500, 100, "m019"],
 		["m018b", "Automated Intelligence", "Research 'Automated Logistics' for circuitry.", "research", "automated_logistics", 1, 1000, 200, "m019"],
 		["m019", "Cybernetic Integration", "Craft 10 Basic Circuitry in the Engineering tab.", "gather", "Circuit", 10, 2000, 300, "m019b"],
 		# P-onboard: close two long-standing teaching holes before the smelting push.
@@ -117,7 +124,7 @@ func init_missions():
 		["m022", "Power Storage", "Craft a 'Basic Battery' in the Shipyard.", "craft", "z1_battery", 1, 1500, 150, "m022b"],
 		# P1 Onboarding: close the energy arc — craft → equip. Without this the
 		# Battery was a one-and-done craft with no ship-state payoff.
-		["m022b", "Power Online", "Open the Ship Designer, then DRAG the Basic Battery from your Armory (right panel) onto an empty BATTERY slot.", "loadout_check", "battery", 1, 500, 100, "m014"],
+		["m022b", "Power Online", "Open the Ship Designer, then DRAG the Basic Battery from your Armory (right panel) onto an empty BATTERY slot.", "loadout_check", "battery", 1, 500, 100, "m015"],
 		["m023", "Hull Integrity", "Research 'Energy Fields' to unlock shielding.", "research", "energy_shields", 1, 1000, 150, "m024"],
 		["m024", "Aegis System", "Craft a 'Basic Shield' for protection.", "craft", "z1_shield", 1, 2500, 200, "m024c"],
 		# P1 Onboarding: close the shield arc — craft → equip. Player sees
@@ -420,9 +427,11 @@ func _check_goal_reveals() -> bool:
 		# cleared Z10 and warped). Hand-holds research -> craft -> breach.
 		if GameState.game_settings.get("z11_unlocked", false):
 			changed = _reveal_goal("goal_cryo_1") or changed
-	# v128: Hack-Card arc reveals once its prerequisite research lands (~Sector 3),
-	# the moment Firmware Hacking becomes researchable and loot starts wanting a refine.
-	if GameState.research_manager and GameState.research_manager.is_tech_unlocked("kinetics_101"):
+	# v128: Hack-Card arc reveals at the Z2 gate (~the era loot starts wanting a refine).
+	# v129: trigger moved kinetics_101 -> zone_2_access — the tutorial no longer routes
+	# through kinetics_101 (research-trip diet), so it can't be the reveal key anymore.
+	# The arc's firmware_hacking research buys its kinetics_101 parent in the same visit.
+	if GameState.research_manager and GameState.research_manager.is_tech_unlocked("zone_2_access"):
 		changed = _reveal_goal("goal_hack_1") or changed
 	return changed
 

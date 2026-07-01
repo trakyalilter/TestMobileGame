@@ -417,7 +417,9 @@ var loadout_presets: Dictionary = {
 
 # v72.3: Research Requirements for non-module equipment (Ammo, Consumables)
 const ELEMENT_RESEARCH_REQS = {
-	"SlugT1": "kinetics_101",
+	# v129: SlugT1/MissileT1 equip gates removed — the T1 starter combat kit
+	# (weapon + battery + shield + all three T1 ammo types) is research-free so the
+	# tutorial stops bouncing the player to Research. T2+ gates unchanged.
 	"SlugT2": "ballistics_optimization",
 	# v105b: was "high_energy_munitions" — a tech that doesn't exist in tech_tree.
 	# Players could craft SlugT3/T4 via ballistics_optimization but never equip
@@ -428,14 +430,13 @@ const ELEMENT_RESEARCH_REQS = {
 	"CellT2": "laser_optics",
 	"CellT3": "cryogenic_systems",
 	"CellT4": "cryogenic_systems",
-	"MissileT1": "combustion",
 	"MissileT2": "advanced_rocketry",
 	"MissileT3": "advanced_rocketry",
 	"MissileT4": "capital_ship_armament",
 	"EmergencyPatch": "basic_engineering", # Early game
 	"Mesh": "adv_materials",
 	"Seal": "adv_materials",
-	"BasicBooster": "energy_shields",
+	"BasicBooster": "basic_engineering", # v129: was energy_shields — starter shield kit matches EmergencyPatch's gate
 	"IonField": "field_theory",
 	"NitroCoolant": "cryogenic_systems",
 	"ZeroPoint": "quantum_dynamics"

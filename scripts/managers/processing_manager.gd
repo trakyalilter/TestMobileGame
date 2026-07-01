@@ -578,7 +578,9 @@ var recipes: Dictionary = {
 		"duration": 12.0,
 		"level_req": 5,
 		"xp": 20,
-		"research_req": "combustion"
+		# v129: research gate removed — T1 ammo is part of the starter combat kit
+		# (the damage-triangle tutorial needs missiles pre-research). combustion
+		# still gates Fiber/Germanium/Mg + the kiln buildings.
 	},
 	"craft_turret_core": {
 		"name": "Turret Core",
@@ -755,7 +757,9 @@ var recipes: Dictionary = {
 		"duration": 10.0,
 		"level_req": 6,
 		"xp": 60, # Increased from 50
-		"research_req": "power_systems"
+		# v129: research gate removed — the T1 starter combat kit is level-gated only
+		# (fewer forced early Research trips). power_systems still gates the Cell
+		# Factory building + the T2 battery line.
 	},
 	"craft_battery_t2": {
 		"name": "Graphene Matrix Battery",
@@ -1167,6 +1171,63 @@ var recipes: Dictionary = {
 		"xp": 150,
 		"research_req": "deep_space_nav",
 		"category": "salvage"
+	},
+	# ── v129: Reclamation lane — the continuous captain→engineer flow. Combat's
+	# SalvagedAlloy / DamagedCircuitry drops (Z1-Z2 authored per-enemy; Z3+ via the
+	# centralized roll in combat_manager) convert into core industrial goods at
+	# per-craft rates the raw chains can't match — so an hour of combat always banks
+	# crafting feedstock. Level-gated only: the combat-exclusive supply IS the gate.
+	"reclaim_alloy": {
+		"name": "Reclaim Salvaged Alloy",
+		"description": "Re-smelt battlefield alloy scrap into structural steel.",
+		"input": {"SalvagedAlloy": 3},
+		"output": {"Steel": 6},
+		"duration": 4.0,
+		"level_req": 8,
+		"xp": 25,
+		"category": "salvage"
+	},
+	"reclaim_circuitry": {
+		"name": "Reclaim Circuitry",
+		"description": "Strip and re-trace damaged boards into working circuits.",
+		"input": {"DamagedCircuitry": 3},
+		"output": {"Circuit": 2},
+		"duration": 6.0,
+		"level_req": 10,
+		"xp": 30,
+		"category": "salvage"
+	},
+	"reclaim_superalloy": {
+		"name": "Reforge Superalloy",
+		"description": "Fold alloy scrap with nickel into superalloy stock.",
+		"input": {"SalvagedAlloy": 6, "Ni": 2},
+		"output": {"Superalloy": 1},
+		"duration": 8.0,
+		"level_req": 22,
+		"xp": 50,
+		"category": "salvage"
+	},
+	"reclaim_advanced": {
+		"name": "Rebuild Advanced Circuitry",
+		"description": "Cannibalize salvaged boards into an advanced circuit — combat's shortcut past the semiconductor chain.",
+		"input": {"DamagedCircuitry": 6, "Circuit": 2},
+		"output": {"AdvCircuit": 1},
+		"duration": 12.0,
+		"level_req": 30,
+		"xp": 70,
+		"category": "salvage"
+	},
+	# v129: CoolantCell consumer (was the last sell-only combat drop) — a Z4-farm
+	# shortcut to the Cryo-Shield Matrix vs the full N-250 industrial recipe.
+	"recharge_coolant_cell": {
+		"name": "Recharge Coolant Cell",
+		"description": "Recharge a salvaged Glacier-Belt coolant cell into a Cryo-Shield Matrix. Restores 35% Shield.",
+		"input": {"CoolantCell": 2, "N": 20},
+		"output": {"NitroCoolant": 1},
+		"duration": 8.0,
+		"level_req": 20,
+		"xp": 40,
+		"category": "consumables_shield"
 	},
 	# T6 Fix: RadIsotope
 	"process_rad_isotope": {

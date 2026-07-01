@@ -2278,6 +2278,29 @@ func _roll_hack_stone_drops(zone: int, is_boss: bool, is_elite: bool) -> void:
 	if not got.is_empty():
 		combat_events.append({"type": "loot", "text": "HACK CARD: %s" % ", ".join(PackedStringArray(got)), "color": Color(0.60, 0.85, 1.0), "side": "enemy"})
 
+# v129: centralized salvage drops for Z3+ zones (Z1-Z2 keep their authored per-enemy
+# rare_loot entries — this starts at 3 so nothing double-drops). Feeds the Reclamation
+# lane (reclaim_* recipes): combat's CONTINUOUS crafting feedstock, scaling with zone.
+# Returns {sym: qty} granted so callers can fold it into their loot report.
+func _roll_salvage_drops(zone: int, is_boss: bool) -> Dictionary:
+	if zone < 3:
+		return {}
+	var out := {}
+	var res = GameState.resources
+	if is_boss:
+		if randf() < 0.90:
+			out["SalvagedAlloy"] = randi_range(zone, zone * 2)
+		if randf() < 0.90:
+			out["DamagedCircuitry"] = randi_range(zone, zone * 2)
+	else:
+		if randf() < 0.30:
+			out["SalvagedAlloy"] = randi_range(1, 1 + zone / 3)
+		if randf() < 0.30:
+			out["DamagedCircuitry"] = randi_range(1, 1 + zone / 3)
+	for sym in out:
+		res.add_element(sym, out[sym])
+	return out
+
 func win_fight():
 	log_msg("Destroyed %s!" % current_enemy["name"])
 	
@@ -2455,6 +2478,10 @@ func win_fight():
 	time_since_last_kill = 0.0
 	# v127 H4: research-gated, zone-tiered Hack Stone drop.
 	_roll_hack_stone_drops(int(current_zone.get("difficulty", 1)), current_enemy.get("is_boss", false), current_enemy.get("is_elite", false))
+	# v129: centralized Z3+ salvage (feeds the Reclamation lane; Z1-Z2 keep authored entries)
+	var _salv := _roll_salvage_drops(int(current_zone.get("difficulty", 1)), current_enemy.get("is_boss", false))
+	for _ss in _salv:
+		session_loot[_ss] = session_loot.get(_ss, 0) + _salv[_ss]
 	enemy_defeated.emit(current_enemy["id"])
 	total_kills += 1
 	_maybe_offline_combat_nudge()
@@ -2939,6 +2966,12 @@ func calculate_offline(delta: float):
 					GameState.resources.add_element(item, amount)
 					loot_summary[item] = loot_summary.get(item, 0) + amount
 		
+		# v129: Z3+ centralized salvage rolls offline too — offline combat loots
+		# exactly like online (per-kill roll, folded into the report ledger).
+		var _osalv := _roll_salvage_drops(int(current_zone.get("difficulty", 1)), enemy_data.get("is_boss", false))
+		for _os in _osalv:
+			loot_summary[_os] = loot_summary.get(_os, 0) + _osalv[_os]
+
 		# XP (removed defunct enemy_data.get("credits") - credits come from loot)
 		var xp = enemy_data.get("xp", 10)
 		total_xp += xp
