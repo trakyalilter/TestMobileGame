@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- hack card: body + contact chip + inject-down trace into a pad -->
+  <rect x="17" y="9" width="30" height="46" rx="3.5" fill="#ffffff"/>
+  <rect x="24" y="13" width="16" height="11" rx="1.5" fill="#303030"/>
+  <path d="M32 13 V24 M24 18.5 H40" stroke="#ffffff" stroke-width="1.1"/>
+  <path d="M32 29 V39 M27 34 L32 39 L37 34" fill="none" stroke="#303030" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="27" y="42" width="10" height="7" rx="1" fill="#303030"/>
+</svg>
