@@ -2271,7 +2271,7 @@ func _disarm_module() -> void:
 # Arm a stone from the stone bar, then click a module card in the Armory to apply
 # it (destructive stones show a confirm). Reuses the armed-click grammar; the
 # crafting itself is shipyard_manager.apply_hack_stone (backend, already verified).
-const _HACK_STONE_IDS := ["SpliceChip", "FirmwareInjector", "RootKey", "AnchorBolt", "CorruptionWorm"]
+const _HACK_STONE_IDS := ["SpliceChip", "FirmwareInjector", "RootKey", "AnchorBolt", "CorruptionWorm", "RefitBay", "SignalCalibrator"]
 var _armed_stone: String = ""
 var _hack_stone_bar: HBoxContainer = null
 
@@ -2378,6 +2378,8 @@ func _finish_card_apply(sid: String, module_id: String, rect: Rect2 = Rect2()) -
 	ModuleCardScript.suppress_info_card = false
 	if sid == "AnchorBolt":
 		_show_anchor_infocard(module_id, rect)   # effect plays after the affix lock
+	elif sid == "RefitBay":
+		_show_refit_chooser(module_id)            # v128: pick which affix to refit
 	else:
 		_do_apply_stone(sid, module_id)
 		if rect.size.x > 1.0:
@@ -2392,14 +2394,18 @@ func _apply_armed_stone(module_id: String, sid: String = "") -> void:
 	if sid == "AnchorBolt":
 		_show_anchor_chooser(module_id)   # v127 review #3: pick which affix to lock
 		return
-	if sid == "RootKey" or sid == "CorruptionWorm" or sid == "SpliceChip" or sid == "FirmwareInjector":
+	if sid == "RefitBay":
+		_show_refit_chooser(module_id)    # v128: pick which affix to refit (deterministic remove)
+		return
+	if sid == "RootKey" or sid == "CorruptionWorm" or sid == "SpliceChip" or sid == "FirmwareInjector" or sid == "SignalCalibrator":
 		var mname: String = str((manager.modules.get(module_id, {}) as Dictionary).get("name", module_id))
 		var body: String = "Apply [b]%s[/b] to [b]%s[/b]?\n\n" % [ElementDB.get_display_name(sid), mname]
 		match sid:
 			"SpliceChip": body += "Awakens a Common into an Uncommon custom (1 affix; base stats lock)."
 			"FirmwareInjector": body += "Awakens a Common straight to a Rare custom (2 affixes)."
 			"RootKey": body += "Raises rarity one tier and rolls a NEW affix (keeps existing ones)."
-			_: body += "Removes one UNLOCKED affix and rolls a new one. Anchor an affix first to protect it."
+			"SignalCalibrator": body += "Re-rolls the VALUES of every UNANCHORED affix (identities & count kept). Anchor your best roll first."
+			_: body += "Removes one RANDOM unlocked affix and rolls a new one (25% Greater-Affix). Anchor an affix first to protect it."
 		UITheme.show_confirm({
 			"title": "Confirm Hack",
 			"body": body,
@@ -2418,9 +2424,12 @@ func _do_apply_stone(sid: String, module_id: String, arg: String = "") -> void:
 	UITheme.show_notification(str(r.get("msg", "")), UITheme.COLORS["positive"] if ok else UITheme.COLORS["negative"])
 	if ok and GameState.resources.get_element_amount(sid) < 1:
 		_armed_stone = ""   # spent the last one
-	_update_card_cursor()   # revert cursor if the last copy was spent
-	trigger_refresh()
+	trigger_refresh()   # rebuilds the equipped slots fresh (clears any socket flag)
 	rebuild_storage()
+	# v127.1: re-apply cursor + socket state AFTER the rebuild, so the fresh equipped
+	# slot widgets pick up the armed-target socket (or clear it) — matching the
+	# armory tiles. Running before trigger_refresh set them on now-freed widgets.
+	_update_card_cursor()
 	_refresh_hack_stone_bar()
 
 # v127 review #3: Anchor Bolt affix chooser — pick WHICH affix to lock (was always
@@ -2467,6 +2476,56 @@ func _show_anchor_chooser(module_id: String) -> void:
 func _on_anchor_pick(layer: CanvasLayer, module_id: String, aid: String) -> void:
 	layer.queue_free()
 	_do_apply_stone("AnchorBolt", module_id, aid)
+
+# v128: Refit Bay chooser — pick WHICH unlocked affix to remove + reroll (deterministic;
+# Corruption Worm does this at random). Anchored affixes are excluded from the list.
+func _show_refit_chooser(module_id: String) -> void:
+	var m: Dictionary = manager.modules.get(module_id, {})
+	var affixes: Dictionary = m.get("affixes", {})
+	var anchored: Array = manager._anchored_array(m)
+	var choices: Array = []
+	for aid in affixes.keys():
+		if not (str(aid) in anchored):
+			choices.append(str(aid))
+	if choices.is_empty():
+		UITheme.show_notification("No unlocked affix to refit (all anchored?).", UITheme.COLORS["negative"])
+		return
+	var layer := CanvasLayer.new()
+	layer.layer = 100
+	var overlay := ColorRect.new()
+	overlay.color = Color(0, 0, 0, 0.7)
+	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	layer.add_child(overlay)
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	overlay.add_child(center)
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(300, 0)
+	center.add_child(panel)
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 8)
+	panel.add_child(vb)
+	var title := Label.new()
+	title.text = "REFIT BAY — remove & reroll which affix?"
+	title.add_theme_font_size_override("font_size", 14)
+	title.add_theme_color_override("font_color", UITheme.COLORS["accent_bright"])
+	vb.add_child(title)
+	for aid in choices:
+		var b := Button.new()
+		b.text = str((manager.AFFIX_DB.get(aid, {}) as Dictionary).get("name", aid))
+		b.add_theme_font_size_override("font_size", 12)
+		b.pressed.connect(_on_refit_pick.bind(layer, module_id, str(aid)))
+		vb.add_child(b)
+	var cancel := Button.new()
+	cancel.text = "Cancel"
+	cancel.add_theme_font_size_override("font_size", 12)
+	cancel.pressed.connect(layer.queue_free)
+	vb.add_child(cancel)
+	add_child(layer)
+
+func _on_refit_pick(layer: CanvasLayer, module_id: String, aid: String) -> void:
+	layer.queue_free()
+	_do_apply_stone("RefitBay", module_id, aid)
 
 # v127: the affix currently highlighted on hover in the Anchor Bolt datasheet.
 var _anchor_hover: String = ""

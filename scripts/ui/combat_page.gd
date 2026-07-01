@@ -292,16 +292,42 @@ func _on_combat_visibility_changed() -> void:
 # with no cards, point it at the chart button so the tutorial directs the player
 # to open the Sector Chart and pick the target there.
 func get_enemy_card(_enemy_id: String) -> Control:
+	# v128: mission/coach pulse target. Point at the chart button only when the chart
+	# is CLOSED (nudge = "open the Sector Chart"). While it's open the player is already
+	# in the selection UI and the button is hidden behind the overlay — pulsing it is
+	# invisible, so return null (no pulse) and let focus_zone + the chart guide them.
+	if star_map and is_instance_valid(star_map) and star_map.visible:
+		return null
 	return open_chart_btn
 
 func get_coach_anchor(key: String) -> Control:
+	# v128: the Sector Chart auto-opens on this page and covers the HUD, so anchor the
+	# sector/target steps INTO the open chart (the old open_chart_btn is now hidden
+	# behind the overlay — highlighting it drew an empty box over the scrim).
+	if star_map and is_instance_valid(star_map) and star_map.visible and star_map.has_method("get_coach_anchor"):
+		var a = star_map.get_coach_anchor(key)
+		if a != null:
+			return a
 	match key:
-		# both sector- and target-teaching steps now point at the chart button.
 		"zones", "enemies":
 			return open_chart_btn
 		"consumables":
 			return consumable_container
 	return null
+
+# v128: prep the UI for each coach step. Sector/target steps anchor into the Sector
+# Chart, so make sure it's open; the repair-kit step teaches HUD buttons, so close
+# the chart to reveal them. Keeps the highlight on something actually on-screen.
+func coach_before_step(page_name: String, _idx: int, anchor_key: String) -> void:
+	if page_name != "combat":
+		return
+	var chart_open: bool = star_map and is_instance_valid(star_map) and star_map.visible
+	if anchor_key == "consumables":
+		if chart_open:
+			star_map.close()
+	elif anchor_key in ["zones", "enemies"]:
+		if not manager.in_combat and not chart_open:
+			_open_star_map()
 
 func focus_zone(zone_id: String):
 	# Coach hook: select the sector (syncs NavPanel + chart) without forcing the

@@ -1195,7 +1195,9 @@ func _build_comparison_tooltip_bbcode(anchor_select: bool = false, hover_affix: 
 					# Clickable to lock; a lock icon marks the already-anchored affix;
 					# the hovered affix gets a background highlight (no underline).
 					var lock_bb := ""
-					if str(aid) == str(data.get("anchored_affix", "")):
+					# v128: 2-lock support — check the array field + the legacy single field.
+					var _anch_list: Array = data.get("anchored_affixes", [])
+					if str(aid) == str(data.get("anchored_affix", "")) or (str(aid) in _anch_list):
 						lock_bb = "[img=12 color=#FFD14C]res://assets/icons/ui/lock.svg[/img] "
 					var shown := affix_body
 					if hover_affix != "" and str(aid) == hover_affix:

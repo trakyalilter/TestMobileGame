@@ -35,10 +35,14 @@ func connect_signals():
 			GameState.shipyard_manager.hull_constructed.connect(_on_hull_constructed)
 		if not GameState.shipyard_manager.inventory_updated.is_connected(_on_shipyard_updated):
 			GameState.shipyard_manager.inventory_updated.connect(_on_shipyard_updated)
+		if not GameState.shipyard_manager.hack_stone_applied.is_connected(_on_hack_stone_applied):
+			GameState.shipyard_manager.hack_stone_applied.connect(_on_hack_stone_applied)
 			
 	if GameState.combat_manager:
 		if not GameState.combat_manager.enemy_defeated.is_connected(_on_enemy_defeated):
 			GameState.combat_manager.enemy_defeated.connect(_on_enemy_defeated)
+		if not GameState.combat_manager.zone_entered.is_connected(_on_zone_entered):
+			GameState.combat_manager.zone_entered.connect(_on_zone_entered)
 			
 	if GameState.infrastructure_manager:
 		if not GameState.infrastructure_manager.building_constructed.is_connected(_on_building_constructed):
@@ -88,7 +92,18 @@ func init_missions():
 		# Shield Section Moved Here (m023 -> m024)
 		# P2-12: Combat Readiness Checkpoint - ensure player is equipped before first combat
 		["m016b", "Combat Ready", "Equip a WEAPON and SHIELD in your Ship Designer.", "loadout_check", "combat_ready", 1, 300, 100, "m017"],
-		["m017", "Target Locked", "Defeat 1 Lunar Drone in Lunar Orbit.", "defeat", "z1_lunar_drone", 1, 2500, 500, "m018"],
+		["m017", "Target Locked", "Defeat 1 Lunar Drone in Lunar Orbit.", "defeat", "z1_lunar_drone", 1, 2500, 500, "m017a"],
+		# v128: damage-triangle onboarding. The Lunar Drone (m017) taught KINETIC; this
+		# pair teaches ENERGY against the energy-weak Survey Probe (resist_e -0.30, resists
+		# kinetic +0.30). The EXPLOSIVE leg lives at the Rogue Architect boss (m026d2-e) —
+		# the only Z1 enemy weak to explosive.
+		["m017a", "Energy Doctrine", "Not every hostile falls to slugs. The Survey Probe RESISTS kinetic fire but is WEAK TO ENERGY. In the Shipyard, craft a 'Pulse Laser Mk.I' — then feed it Focus Crystals (CellT1) from the Engineering tab.", "craft", "z1_energy", 1, 1500, 200, "m017b"],
+		["m017b", "Pulse Fire", "Equip your Pulse Laser (Focus Crystals loaded) and destroy a Survey Probe in Lunar Orbit. Watch energy melt what kinetic shrugged off — always match the weapon to the weakness.", "defeat", "z1_survey_probe", 1, 3000, 500, "m017c"],
+		# v128: EXPLOSIVE leg — the Scrap Collector is now armored vs kinetic + energy and
+		# WEAK to explosive (resist_x -0.30), so all three types are taught against regular
+		# Lunar Orbit enemies. combustion is already researched at m010, so missiles craft here.
+		["m017c", "Explosive Doctrine", "The Scrap Collector is armored against kinetic AND energy — but blows apart under EXPLOSIVE ordnance. In the Shipyard, craft a 'Micro-Missile Launcher', then stock HE Missiles (MissileT1) in the Engineering tab.", "craft", "z1_missile", 1, 1800, 250, "m017d"],
+		["m017d", "Warhead", "Equip your Micro-Missile Launcher (HE Missiles loaded) and destroy a Scrap Collector in Lunar Orbit. Three weapon types, three weaknesses — now you command the damage triangle.", "defeat", "z1_scrap_collector", 1, 3500, 600, "m018"],
 		["m018", "Industrial Logistics", "Research the 'Industrial Logistics' hub.", "research", "industrial_logistics", 1, 500, 100, "m018b"],
 		["m018b", "Automated Intelligence", "Research 'Automated Logistics' for circuitry.", "research", "automated_logistics", 1, 1000, 200, "m019"],
 		["m019", "Cybernetic Integration", "Craft 10 Basic Circuitry in the Engineering tab.", "gather", "Circuit", 10, 2000, 300, "m019b"],
@@ -187,7 +202,14 @@ func init_missions():
 		["goal_003", "PRESTIGE VETERAN", "Perform 5 Warps total to fully unlock Warp Tier scaling.", "warp_perform", "warp", 5, 0, 2000000, ""],
 		["goal_cryo_1", "FORGE CRYOGENIC ARMS", "The Threshold (Sector 11) is warp-hardened - only Cryo weapons breach it. Research Cryogenic Armaments in the new Warp Tech research tab.", "research", "cryo_armaments", 1, 3000000, 0, "goal_cryo_2"],
 		["goal_cryo_2", "FORGE CRYOGENIC ARMS", "Craft a Cryo Lance in the Shipyard. It needs Cryo Catalyst - farm it from Sector 10 enemies.", "craft", "cryo_lance", 1, 6000000, 0, "goal_cryo_3"],
-		["goal_cryo_3", "BREACH THE THRESHOLD", "Destroy a Warp Revenant in The Threshold (Sector 11) with your Cryo armaments.", "defeat", "z11_warp_revenant", 1, 15000000, 0, ""]
+		["goal_cryo_3", "BREACH THE THRESHOLD", "Destroy a Warp Revenant in The Threshold (Sector 11) with your Cryo armaments.", "defeat", "z11_warp_revenant", 1, 15000000, 0, ""],
+		# v128: Hack-Card onboarding arc (research -> loot -> apply). Reveals once
+		# kinetics_101 is researched (~Sector 3), right as the loot-refine need appears.
+		# Step 2 uses the "gather" type: element_added fires for combat loot too, so a
+		# dropped Splice Chip counts. Step 3 uses the new "hack_apply" type.
+		["goal_hack_1", "REWRITE THE FIRMWARE", "Salvaged modules can be re-forged. Research Firmware Hacking (Combat research tab) to unlock Hack Cards — module affix crafting.", "research", "firmware_hacking", 1, 20000, 0, "goal_hack_2"],
+		["goal_hack_2", "SALVAGE A HACK CARD", "Hack Cards now drop in combat. Defeat enemies until a Splice Chip drops.", "gather", "SpliceChip", 1, 15000, 0, "goal_hack_3"],
+		["goal_hack_3", "AWAKEN A MODULE", "Open the Ship Designer and drag a Splice Chip onto a Common component to awaken it into a custom module with a random affix.", "hack_apply", "SpliceChip", 1, 30000, 0, ""]
 	]
 	
 	for i in range(m_list.size()):
@@ -257,11 +279,20 @@ func _on_tech_unlocked(tech_id):
 func _on_module_crafted(module_id):
 	_update_progress("craft", module_id, 1)
 
+# v128: a Hack Card was successfully applied to a module (fires "hack_apply" for the arc).
+func _on_hack_stone_applied(stone_id):
+	_update_progress("hack_apply", stone_id, 1)
+
 func _on_hull_constructed(hull_id):
 	_update_progress("construct", hull_id, 1)
 
 func _on_enemy_defeated(enemy_id):
 	_update_progress("defeat", enemy_id, 1)
+
+# v128: player deployed into a sector — completes "discover" missions (e.g. goal_001
+# "reach Sector Epsilon"). Fires on every entry; check_completion caps at target_qty.
+func _on_zone_entered(zone_id):
+	_update_progress("discover", zone_id, 1)
 
 func _on_building_constructed(building_id):
 	_update_progress("build", building_id, 1)
@@ -341,7 +372,12 @@ func claim_reward(mission_id) -> bool:
 			if GameState.warp_manager:
 				reward = int(reward * GameState.warp_manager.get_production_multiplier())
 			GameState.resources.add_currency("credits", reward)
-		
+
+		# v128: bootstrap the crafting loop — finishing the awaken tutorial hands the
+		# player 2 more Splice Chips so they can keep experimenting past the mission.
+		if mission_id == "goal_hack_3":
+			GameState.resources.add_element("SpliceChip", 2)
+
 		# Auto-unlock next mission
 		if m["next_mission"] != "" and m["next_mission"] in missions:
 			var next_id = m["next_mission"]
@@ -384,6 +420,10 @@ func _check_goal_reveals() -> bool:
 		# cleared Z10 and warped). Hand-holds research -> craft -> breach.
 		if GameState.game_settings.get("z11_unlocked", false):
 			changed = _reveal_goal("goal_cryo_1") or changed
+	# v128: Hack-Card arc reveals once its prerequisite research lands (~Sector 3),
+	# the moment Firmware Hacking becomes researchable and loot starts wanting a refine.
+	if GameState.research_manager and GameState.research_manager.is_tech_unlocked("kinetics_101"):
+		changed = _reveal_goal("goal_hack_1") or changed
 	return changed
 
 func _reveal_goal(gid: String) -> bool:

@@ -133,6 +133,8 @@ var ELEMENT_NAMES = {
 	"RootKey": "Root Key",
 	"AnchorBolt": "Anchor Bolt",
 	"CorruptionWorm": "Corruption Worm",
+	"RefitBay": "Refit Bay",
+	"SignalCalibrator": "Signal Calibrator",
 
 	# Combat Loot & Artifacts
 	"MiteChitin": "Mite Chitin",
@@ -256,7 +258,7 @@ var CATEGORIES = {
 	# Combat-exclusive progression salvage (Inventory "Other", never Armory)
 	"reclaimed_components": ["SalvagedAlloy", "DamagedCircuitry"],
 	# v127: Hack Stone crafting currency
-	"hack_stones": ["SpliceChip", "FirmwareInjector", "RootKey", "AnchorBolt", "CorruptionWorm"]
+	"hack_stones": ["SpliceChip", "FirmwareInjector", "RootKey", "AnchorBolt", "CorruptionWorm", "RefitBay", "SignalCalibrator"]
 }
 
 # v66.0: Consumable Slot System Data
@@ -316,7 +318,7 @@ func get_elements_in_category(category: String) -> Array:
 var _slot_protected: Dictionary = {}
 func is_slot_protected(symbol: String) -> bool:
 	if _slot_protected.is_empty():
-		for cat in ["boss_cores", "matrix_cores", "endgame", "special"]:
+		for cat in ["boss_cores", "matrix_cores", "endgame", "special", "hack_stones"]:
 			for s in CATEGORIES.get(cat, []):
 				_slot_protected[s] = true
 	return _slot_protected.has(symbol)
@@ -623,6 +625,8 @@ var MATERIAL_TINT := {
 	"RootKey": Color(0.90, 0.75, 0.35),
 	"AnchorBolt": Color(0.70, 0.72, 0.78),
 	"CorruptionWorm": Color(0.75, 0.40, 0.80),
+	"RefitBay": Color(0.55, 0.70, 0.90),
+	"SignalCalibrator": Color(0.95, 0.60, 0.85),
 	"TitanClearance": Color(0.60, 0.66, 0.72),
 	"ReactiveCore": Color(0.85, 0.45, 0.30),
 }

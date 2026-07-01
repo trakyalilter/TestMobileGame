@@ -13,6 +13,16 @@ extends RefCounted
 const STEPS := {
 	# v113 (NG+): milestone coach, fired on the first Z10-boss kill (not a page
 	# visit). Anchors to the Warp Core nav button; steers the player to prestige.
+	# v128: fired on the player's FIRST combat loss (a game event, not a page visit) —
+	# warns that losing degrades/destroys equipped modules, which can strand the ship.
+	# Anchor "" → centered card (it's a concept, not a single button).
+	"combat_loss": [
+		{
+			"anchor": "",
+			"title": "Systems Damaged",
+			"body": "Losing a fight is costly: every equipped module takes durability damage, and some can be DESTROYED outright — including your battery, which can leave your ship unable to power its weapons at all. Repair your hull, re-equip anything you lost, and don't out-reach your gear — match your loadout to the sector before you engage.",
+		},
+	],
 	"warp_milestone": [
 		{
 			"anchor": "warp_nav",
@@ -101,22 +111,27 @@ const STEPS := {
 			"title": "Matrix Sockets",
 			"body": "Modules with ◆ slots hold Matrix Cores. Drag a core onto a socketed, equipped module — the bonus applies globally, so placement doesn't matter.",
 		},
+		{
+			"anchor": "schematic",
+			"title": "Set Bonuses",
+			"body": "Some modules belong to a SET (named on the module). Equip 3 pieces of the SAME set at once to unlock its set bonus — a large combat multiplier on top of the modules' own stats. Completing a set is one of the strongest build upgrades in the game; the Sector bosses drop the unique set pieces.",
+		},
 	],
 	"combat": [
 		{
 			"anchor": "zones",
 			"title": "Combat Sectors",
-			"body": "Open the Star Chart to choose where to patrol. Deeper sectors mean tougher enemies but better loot and materials — cleared sectors glow, the frontier waits ahead.",
+			"body": "This is the Sector Chart — pick a system to patrol. Deeper sectors mean tougher enemies but better loot and materials; cleared sectors glow, and the frontier waits ahead.",
 		},
 		{
 			"anchor": "enemies",
 			"title": "Engaging Targets",
-			"body": "Select an enemy to start the fight. Combat runs on its own — defeat foes for module drops and resources.",
+			"body": "Click a sector to drop in, then pick a hostile cluster or its boss on the map. Combat runs on its own — defeat foes for module drops and resources.",
 		},
 		{
 			"anchor": "enemies",
 			"title": "Weapon Damage Types",
-			"body": "Each enemy resists some damage types and is weak to others — check its info panel before engaging. Swap your weapons to match the weakness for far faster kills.",
+			"body": "Once you pick a target, this panel shows what it RESISTS and is WEAK TO. Match your equipped weapons to the weakness for far faster kills.",
 		},
 		{
 			"anchor": "consumables",

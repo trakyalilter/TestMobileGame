@@ -164,6 +164,11 @@ func _render() -> void:
 	_next_btn.text = "Got it" if _idx == _steps.size() - 1 else "Next  >"
 
 	var anchor_key := str(step.get("anchor", ""))
+	# v128: let the provider prep the UI for this step before we measure the anchor
+	# (e.g. combat opens the Sector Chart for the sector/target steps and closes it
+	# for the in-HUD repair-kit step, so the highlight lands on something on-screen).
+	if _provider and _provider.has_method("coach_before_step"):
+		_provider.coach_before_step(_page_name, _idx, anchor_key)
 	var vp := get_viewport_rect().size
 
 	var hole := _measure(anchor_key, vp)

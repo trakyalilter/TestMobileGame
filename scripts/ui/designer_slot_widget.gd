@@ -12,6 +12,8 @@ var _info_card_scene = preload("res://scenes/ui/info_card.tscn")
 const MatrixCoreIcon = preload("res://scripts/ui/matrix_core_icon.gd")
 var _is_focused: bool = false
 var _card_target: bool = false   # v127: a Hack Card is in hand and this slot is a valid target
+var _card_socket_overlay: Control = null   # v127.1: top-most insert-socket overlay child
+var _card_socket_tween: Tween = null
 
 @onready var type_lbl = $MarginContainer/VBoxContainer/TypeLabel
 @onready var rarity_badge = $MarginContainer/VBoxContainer/RarityBadge
@@ -222,6 +224,71 @@ func set_card_socket(active: bool) -> void:
 		_apply_card_style(rarity, rc)
 	else:
 		_apply_base_style()
+	# v127.1: the root-panel frame above is occluded on an OCCUPIED slot (it draws
+	# BEHIND the module content + the full-rect RarityFX child, and clip_contents
+	# eats its outward glow) — so the socket was invisible on equipped modules. Add
+	# a dedicated TOP-MOST overlay child (same visual as the armory tile) so it
+	# actually shows.
+	_apply_card_socket_overlay(new_target)
+
+# v127.1: insert-socket overlay as a top-most child (mirrors the armory tile in
+# module_card.gd). Painted ABOVE the module content + RarityFX, unlike the root
+# panel stylebox. Idempotent: tears down any prior overlay first.
+func _apply_card_socket_overlay(active: bool) -> void:
+	if _card_socket_tween and is_instance_valid(_card_socket_tween):
+		_card_socket_tween.kill()
+	_card_socket_tween = null
+	if is_instance_valid(_card_socket_overlay):
+		_card_socket_overlay.queue_free()
+	_card_socket_overlay = null
+	if not active:
+		return
+	var acc := Color(0.40, 0.60, 1.0)
+	var insert_frame := Panel.new()
+	insert_frame.name = "CardSocketOverlay"
+	insert_frame.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	insert_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var fsb := StyleBoxFlat.new()
+	fsb.bg_color = Color(acc.r, acc.g, acc.b, 0.08)
+	fsb.set_corner_radius_all(4)
+	fsb.set_border_width_all(2)
+	fsb.border_color = Color(acc.r, acc.g, acc.b, 0.85)
+	insert_frame.add_theme_stylebox_override("panel", fsb)
+	# Centred card bay (blue mount + near-black slot the card seats into).
+	var housing := Panel.new()
+	housing.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	housing.anchor_left = 0.5
+	housing.anchor_top = 0.5
+	housing.anchor_right = 0.5
+	housing.anchor_bottom = 0.5
+	housing.offset_left = -12
+	housing.offset_right = 12
+	housing.offset_top = -32
+	housing.offset_bottom = 32
+	var hsb := StyleBoxFlat.new()
+	hsb.bg_color = Color(acc.r, acc.g, acc.b, 0.95)
+	hsb.set_corner_radius_all(3)
+	housing.add_theme_stylebox_override("panel", hsb)
+	insert_frame.add_child(housing)
+	var bay := Panel.new()
+	bay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	bay.offset_left = 3
+	bay.offset_top = 4
+	bay.offset_right = -3
+	bay.offset_bottom = -4
+	var bsb := StyleBoxFlat.new()
+	bsb.bg_color = Color(0.02, 0.03, 0.05, 1.0)
+	bsb.set_corner_radius_all(2)
+	bay.add_theme_stylebox_override("panel", bsb)
+	housing.add_child(bay)
+	add_child(insert_frame)
+	move_child(insert_frame, get_child_count() - 1)   # guarantee above RarityFX
+	_card_socket_overlay = insert_frame
+	if is_inside_tree():
+		_card_socket_tween = create_tween().set_loops()
+		_card_socket_tween.tween_property(insert_frame, "modulate:a", 0.45, 0.55).set_trans(Tween.TRANS_SINE)
+		_card_socket_tween.tween_property(insert_frame, "modulate:a", 1.0, 0.55).set_trans(Tween.TRANS_SINE)
 
 # v127: blue "insert socket" frame stamped over the slot's normal frame while a Hack
 # Card is in hand (called from _apply_base_style / _apply_card_style).

@@ -93,6 +93,18 @@ func open() -> void:
 func close() -> void:
 	visible = false
 
+# v128: coach anchors INTO the open Sector Chart — the sector map for the "pick a
+# sector" step, the readout panel (target detail + weakness + engage) for the
+# "pick a target / check weakness" steps. combat_page forwards here while the
+# chart is up, since the old HUD anchors are covered by this overlay.
+func get_coach_anchor(key: String) -> Control:
+	match key:
+		"zones":
+			return _canvas
+		"enemies":
+			return _readout
+	return null
+
 # ── construction ────────────────────────────────────────────────────────-─
 func _build_ui() -> void:
 	# Near-solid scrim (full-rect anchored so it always covers, regardless of
@@ -122,7 +134,7 @@ func _build_ui() -> void:
 
 	_title = _mk_label("SECTOR CHART", 18, Color(0.427, 0.941, 0.847), true)
 	add_child(_title)
-	_subtitle = _mk_label("NAVIGATION · SELECT WARP DESTINATION", 9, C_DIM, false)
+	_subtitle = _mk_label("NAVIGATION · SELECT A SECTOR", 9, C_DIM, false)
 	add_child(_subtitle)
 
 	_legend = HBoxContainer.new()
@@ -444,7 +456,7 @@ func _show_target_detail(eid: String) -> void:
 
 	_engage_btn.disabled = false
 	_engage_btn.text = "ENGAGE"
-	_engage_hint.text = "Warp in and attack %s." % str(e.get("name", "the target"))
+	_engage_hint.text = "Deploy and attack %s." % str(e.get("name", "the target"))
 
 func _zone_combat_stats(zid: String) -> Dictionary:
 	var data = manager.zones.get(zid, {})

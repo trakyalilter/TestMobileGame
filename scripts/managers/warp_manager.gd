@@ -58,6 +58,8 @@ const TREE_NODES := {
 		"desc": "+3% warp shards earned per level.", "implemented": true, "prereq": ["REC_1"]},
 	"REC_S2": {"branch": "recursion", "cost": 2, "step": 1, "repeatable": true, "cap": 10, "name": "Blueprint Bandwidth",
 		"desc": "+5% free building rebuild per level (caps at +50%).", "implemented": true, "prereq": ["REC_1"]},
+	"REC_S3": {"branch": "recursion", "cost": 3, "step": 2, "repeatable": true, "cap": 10, "name": "Cryptographic Cache",
+		"desc": "+8% Hack Card drop rate per level (caps at +80%).", "implemented": true, "prereq": ["REC_1"]},
 }
 
 # v122: v1 node ids remapped on load (only the 5 that were ever purchasable).
@@ -337,6 +339,10 @@ func get_tree_processing_speed_bonus() -> float:
 
 func get_tree_hull_bonus() -> float:
 	return 1.15 if is_node_purchased("CMB_1") else 1.0   # CMB_1 +15%
+
+# REC_S3 Cryptographic Cache: +8%/level Hack Card drop rate (random rolls only), capped +80%.
+func get_tree_card_drop_bonus() -> float:
+	return min(0.08 * float(get_node_level("REC_S3")), 0.80)
 
 func get_tree_damage_bonus() -> float:
 	var m: float = 1.10 if is_node_purchased("CMB_2") else 1.0   # CMB_2 +10%

@@ -84,6 +84,10 @@ func _ready():
 	# time one is acquired.
 	GameState.resources.element_added.connect(_on_element_added_for_recursion_reveal)
 
+	# v128: one-shot durability warning on the first combat loss.
+	if not GameState.combat_manager.combat_lost.is_connected(_maybe_show_combat_loss_coach):
+		GameState.combat_manager.combat_lost.connect(_maybe_show_combat_loss_coach)
+
 func _on_element_added_for_recursion_reveal(symbol: String, _amount: float) -> void:
 	if symbol != "VoidArtifact":
 		return
@@ -688,6 +692,22 @@ func _maybe_show_warp_coach() -> void:
 		return
 	stop_hint_pulse()
 	coach_overlay.start("warp_milestone", steps, self)
+
+# v128: one-time card on the first combat loss — teaches that losing degrades/destroys
+# equipped modules (fired from combat_manager.lose_fight via the combat_lost signal).
+func _maybe_show_combat_loss_coach() -> void:
+	if coach_overlay == null or _coach_active():
+		return
+	var seen: Dictionary = GameState.game_settings.get("coach_seen", {})
+	if seen.get("combat_loss", false):
+		return
+	if offline_modal and is_instance_valid(offline_modal) and offline_modal.visible:
+		return
+	var steps: Array = CoachMarks.get_steps("combat_loss")
+	if steps.is_empty():
+		return
+	stop_hint_pulse()
+	coach_overlay.start("combat_loss", steps, self)
 
 func _on_coach_finished(page_name: String):
 	var seen: Dictionary = GameState.game_settings.get("coach_seen", {})

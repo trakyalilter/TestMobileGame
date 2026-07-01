@@ -33,6 +33,10 @@ var _grant_amount_edit: LineEdit  # arbitrary-material granter — amount input
 var _grant_symbol_list: ItemList  # filterable suggestion dropdown
 var _grant_symbol_syms: Array = []  # symbols parallel to _grant_symbol_list rows
 var _grant_selected_symbol: String = ""  # symbol chosen from the dropdown
+# v128 debug — skill/research setters + mission control
+var _dbg_skill_idx: int = 0        # 0 = Gathering, 1 = Processing
+var _dbg_skill_level: int = 100
+var _dbg_mission_edit: LineEdit    # type a mission id to reveal/complete
 
 
 func _ready() -> void:
@@ -229,6 +233,14 @@ func _build_testing_section() -> void:
 
 	body.add_child(HSeparator.new())
 
+	_build_skill_research_debug(body)
+
+	body.add_child(HSeparator.new())
+
+	_build_mission_debug(body)
+
+	body.add_child(HSeparator.new())
+
 	var tele_title := Label.new()
 	tele_title.text = "Balance Telemetry (debug)"
 	tele_title.add_theme_font_size_override("font_size", 12)
@@ -371,7 +383,7 @@ func _on_test_grant_hack_stones_pressed() -> void:
 	if not GameState.resources:
 		UITheme.show_notification("Resources unavailable.", Color.RED)
 		return
-	for sid in ["SpliceChip", "FirmwareInjector", "RootKey", "AnchorBolt", "CorruptionWorm"]:
+	for sid in ["SpliceChip", "FirmwareInjector", "RootKey", "AnchorBolt", "CorruptionWorm", "RefitBay", "SignalCalibrator"]:
 		GameState.resources.add_element(sid, 5)
 	if GameState.shipyard_manager:
 		GameState.shipyard_manager.inventory_updated.emit()
@@ -589,6 +601,200 @@ func _on_test_unlock_zone_pressed() -> void:
 		UITheme.show_notification("Z2 — Z%d already unlocked." % _test_zone_tier, Color(0.7, 0.7, 0.7))
 	else:
 		UITheme.show_notification("Unlocked: %s" % ", ".join(newly), Color(0.45, 1.0, 0.55))
+
+
+# --------------------------------------------------------------------------
+# Skill + Research (debug)
+# --------------------------------------------------------------------------
+# Set Gathering/Processing to any level (or max both), and free-unlock every
+# research node — so level-gated actions/recipes and research-gated content can
+# be reached without the grind. Skill level is set by writing the XP threshold
+# and re-deriving level via Skill.check_level_up (climbs up OR down from 1).
+func _build_skill_research_debug(body: VBoxContainer) -> void:
+	var title := Label.new()
+	title.text = "Skill + Research (debug)"
+	title.add_theme_font_size_override("font_size", 12)
+	title.add_theme_color_override("font_color", Color(0.66, 0.7, 0.8))
+	body.add_child(title)
+
+	var hint := Label.new()
+	hint.text = "Set a skill to any level, max both skills, or unlock every research node. For testing level/research-gated actions, recipes, and content."
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hint.add_theme_font_size_override("font_size", 10)
+	hint.add_theme_color_override("font_color", Color(0.55, 0.58, 0.65))
+	body.add_child(hint)
+
+	_add_choice_row(body, "Skill",
+		[["Gathering", 0], ["Processing", 1]],
+		func(): return _dbg_skill_idx,
+		func(v): _dbg_skill_idx = int(v))
+
+	_add_choice_row(body, "Level",
+		[["1", 1], ["10", 10], ["25", 25], ["50", 50], ["75", 75], ["99", 99], ["100", 100]],
+		func(): return _dbg_skill_level,
+		func(v): _dbg_skill_level = int(v))
+
+	var set_btn := _primary_button("SET SKILL LEVEL", FRAME_CAT)
+	set_btn.custom_minimum_size = Vector2(0, 38)
+	set_btn.pressed.connect(_on_dbg_set_skill_pressed)
+	body.add_child(set_btn)
+
+	var max_btn := _primary_button("MAX ALL SKILLS", FRAME_CAT)
+	max_btn.custom_minimum_size = Vector2(0, 38)
+	max_btn.pressed.connect(_on_dbg_max_skills_pressed)
+	body.add_child(max_btn)
+
+	var res_btn := _primary_button("UNLOCK ALL RESEARCH", DANGER_CAT)
+	res_btn.custom_minimum_size = Vector2(0, 38)
+	res_btn.pressed.connect(_on_dbg_unlock_all_research_pressed)
+	body.add_child(res_btn)
+
+
+func _dbg_set_skill_level(sk, target: int) -> void:
+	if sk == null:
+		return
+	sk.xp = float(sk.get_xp_for_level(int(clamp(target, 1, sk.max_level))))
+	sk.level = 1
+	sk.check_level_up()
+
+
+func _on_dbg_set_skill_pressed() -> void:
+	var sk = GameState.gathering_manager if _dbg_skill_idx == 0 else GameState.processing_manager
+	if sk == null:
+		UITheme.show_notification("Skill manager unavailable.", Color.RED)
+		return
+	_dbg_set_skill_level(sk, _dbg_skill_level)
+	var nm := "Gathering" if _dbg_skill_idx == 0 else "Processing"
+	UITheme.show_notification("%s set to level %d." % [nm, sk.get_level()], Color(0.45, 1.0, 0.55))
+
+
+func _on_dbg_max_skills_pressed() -> void:
+	for sk in [GameState.gathering_manager, GameState.processing_manager]:
+		_dbg_set_skill_level(sk, 100)
+	UITheme.show_notification("Gathering + Processing maxed (100).", Color(0.45, 1.0, 0.55))
+
+
+func _on_dbg_unlock_all_research_pressed() -> void:
+	var rm = GameState.research_manager
+	if rm == null:
+		UITheme.show_notification("Research manager unavailable.", Color.RED)
+		return
+	var n := 0
+	for tid in rm.tech_tree.keys():
+		if not rm.is_tech_unlocked(tid):
+			rm.unlocked_techs.append(tid)
+			rm.tech_unlocked.emit(tid)
+			n += 1
+	UITheme.show_notification("Unlocked %d research node(s)." % n, Color(0.45, 1.0, 0.55))
+
+
+# --------------------------------------------------------------------------
+# Mission Control (debug)
+# --------------------------------------------------------------------------
+# Reveal / force-complete any mission by id, sweep all active missions (fast-
+# forward the chain), or reset the whole board. Force-complete sets qty→target,
+# marks completed, then claim_reward() grants the reward + auto-activates the
+# next mission in the chain — so arcs (hack cards, cryo, warp) can be tested
+# without playing through their prerequisites.
+func _build_mission_debug(body: VBoxContainer) -> void:
+	var title := Label.new()
+	title.text = "Mission Control (debug)"
+	title.add_theme_font_size_override("font_size", 12)
+	title.add_theme_color_override("font_color", Color(0.66, 0.7, 0.8))
+	body.add_child(title)
+
+	var hint := Label.new()
+	hint.text = "Reveal / force-complete a mission by id, sweep all active, or reset the chain. Arc starters: goal_hack_1, goal_cryo_1, goal_001."
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hint.add_theme_font_size_override("font_size", 10)
+	hint.add_theme_color_override("font_color", Color(0.55, 0.58, 0.65))
+	body.add_child(hint)
+
+	_dbg_mission_edit = LineEdit.new()
+	_dbg_mission_edit.placeholder_text = "mission id (e.g. goal_hack_1)"
+	_dbg_mission_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	body.add_child(_dbg_mission_edit)
+
+	var reveal_btn := _primary_button("REVEAL", FRAME_CAT)
+	reveal_btn.custom_minimum_size = Vector2(0, 38)
+	reveal_btn.pressed.connect(_on_dbg_mission_reveal_pressed)
+	body.add_child(reveal_btn)
+
+	var done_btn := _primary_button("COMPLETE + CLAIM", FRAME_CAT)
+	done_btn.custom_minimum_size = Vector2(0, 38)
+	done_btn.pressed.connect(_on_dbg_mission_complete_pressed)
+	body.add_child(done_btn)
+
+	var sweep_btn := _primary_button("COMPLETE ALL ACTIVE", FRAME_CAT)
+	sweep_btn.custom_minimum_size = Vector2(0, 38)
+	sweep_btn.pressed.connect(_on_dbg_mission_sweep_pressed)
+	body.add_child(sweep_btn)
+
+	var reset_btn := _primary_button("RESET ALL MISSIONS", DANGER_CAT)
+	reset_btn.custom_minimum_size = Vector2(0, 38)
+	reset_btn.pressed.connect(_on_dbg_mission_reset_pressed)
+	body.add_child(reset_btn)
+
+
+func _dbg_reveal_mission(mm, mid: String) -> void:
+	var m = mm.missions[mid]
+	m["active"] = true
+	if not mid in mm.active_missions:
+		mm.active_missions.append(mid)
+
+
+func _dbg_force_complete(mm, mid: String) -> void:
+	var m = mm.missions[mid]
+	m["current_qty"] = m["target_qty"]
+	m["completed"] = true
+
+
+func _on_dbg_mission_reveal_pressed() -> void:
+	var mm = GameState.mission_manager
+	var mid := _dbg_mission_edit.text.strip_edges()
+	if mm == null or not mid in mm.missions:
+		UITheme.show_notification("No mission '%s'." % mid, Color.RED)
+		return
+	_dbg_reveal_mission(mm, mid)
+	mm.mission_updated.emit()
+	UITheme.show_notification("Revealed %s." % mid, Color(0.45, 1.0, 0.55))
+
+
+func _on_dbg_mission_complete_pressed() -> void:
+	var mm = GameState.mission_manager
+	var mid := _dbg_mission_edit.text.strip_edges()
+	if mm == null or not mid in mm.missions:
+		UITheme.show_notification("No mission '%s'." % mid, Color.RED)
+		return
+	_dbg_reveal_mission(mm, mid)      # claim requires it be active
+	_dbg_force_complete(mm, mid)
+	mm.claim_reward(mid)              # grants reward + activates next in chain
+	mm.mission_updated.emit()
+	UITheme.show_notification("Completed + claimed %s." % mid, Color(0.45, 1.0, 0.55))
+
+
+func _on_dbg_mission_sweep_pressed() -> void:
+	var mm = GameState.mission_manager
+	if mm == null:
+		return
+	var ids: Array = mm.active_missions.duplicate()   # snapshot; claim mutates the list
+	var n := 0
+	for mid in ids:
+		_dbg_force_complete(mm, mid)
+		if mm.claim_reward(mid):
+			n += 1
+	mm.mission_updated.emit()
+	UITheme.show_notification("Completed %d active mission(s)." % n, Color(0.45, 1.0, 0.55))
+
+
+func _on_dbg_mission_reset_pressed() -> void:
+	var mm = GameState.mission_manager
+	if mm == null:
+		return
+	mm.init_missions()
+	mm.connect_signals()
+	mm.mission_updated.emit()
+	UITheme.show_notification("All missions reset to start.", Color(1.0, 0.7, 0.3))
 
 
 # --------------------------------------------------------------------------

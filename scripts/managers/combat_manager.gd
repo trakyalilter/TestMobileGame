@@ -43,6 +43,8 @@ var _last_ammo_warn_ms: int = 0
 signal enemy_defeated(enemy_id)
 signal combat_started() # v72.8: For Elite bounty detection
 signal zones_changed() # v113 (NG+): a flag-gated zone (Z11/Z12) unlocked → refresh the sector list
+signal zone_entered(zone_id) # v128: player deployed into a sector — drives "discover" missions
+signal combat_lost() # v128: player lost a fight (modules took durability damage) — first-loss coach hook
 
 # Buffs
 var active_buffs = {} # {buff_name: duration}
@@ -435,7 +437,7 @@ var enemy_db = {
 		"rare_loot": [["Cu", 0.15, 2, 4], ["SalvagedAlloy", 0.35, 1, 2]],
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_missile", "z1_shield", "z1_armor", "z1_engine"],
-		"xp": 10, "eva": 6, "zone": 1, "resist_k": 0.10, "resist_e": -0.20, "resist_x": 0.30, "dmg_type": "kinetic"
+		"xp": 10, "eva": 6, "zone": 1, "resist_k": 0.25, "resist_e": 0.20, "resist_x": -0.30, "dmg_type": "kinetic"
 	},
 
 	"z1_boss_architect": {
@@ -1117,6 +1119,7 @@ func start_expedition(zone_id: String):
 	GameState.set_active_manager(self)
 	current_zone = zones[zone_id]
 	current_zone_id = zone_id # Track ID explicitly
+	zone_entered.emit(zone_id)  # v128: fires "discover" mission progress (e.g. goal_001)
 	in_combat = true
 	session_loot.clear()
 	combat_session_time = 0.0
@@ -2243,6 +2246,11 @@ func _roll_hack_stone_drops(zone: int, is_boss: bool, is_elite: bool) -> void:
 	# roll only — boss-guaranteed drops (Injector) stay guaranteed. Bounded (GA ~0.40).
 	var sm_s = GameState.shipyard_manager
 	var smult = 1.0 + (sm_s.affix_bonuses.get("stone_drop_mult", 0.0) if sm_s else 0.0)
+	# Q1: Recursion "Cryptographic Cache" warp node scales the RANDOM roll only —
+	# boss-guaranteed drops (Injector, Calibrator@Z6+) stay guaranteed.
+	var wm_s = GameState.warp_manager
+	if wm_s:
+		smult *= (1.0 + wm_s.get_tree_card_drop_bonus())
 	var got: Array = []
 	if zone >= 1 and randf() < 0.25 * smult:
 		res.add_element("SpliceChip", 1)
@@ -2259,6 +2267,14 @@ func _roll_hack_stone_drops(zone: int, is_boss: bool, is_elite: bool) -> void:
 	if zone >= 5 and randf() < 0.05 * smult:
 		res.add_element("CorruptionWorm", 1)
 		got.append("Corruption Worm")
+	if zone >= 4 and randf() < 0.05 * smult:
+		res.add_element("RefitBay", 1)
+		got.append("Refit Bay")
+	# v128: Signal Calibrator — the D30 value-reroll faucet. Boss-guaranteed Z6+ (bypasses
+	# smult) so the refine supply lands exactly when players have an affix set to GA-fish.
+	if zone >= 6 and (is_boss or randf() < 0.03 * smult):
+		res.add_element("SignalCalibrator", 1)
+		got.append("Signal Calibrator")
 	if not got.is_empty():
 		combat_events.append({"type": "loot", "text": "HACK CARD: %s" % ", ".join(PackedStringArray(got)), "color": Color(0.60, 0.85, 1.0), "side": "enemy"})
 
@@ -2493,8 +2509,9 @@ func lose_fight():
 		log_msg("EJECTED from %s at Wave %d/%d!" % [hz_name, hazard_state["wave"] + 1, hazard_state["max_waves"]])
 		combat_events.append({"type": "status", "text": "HAZARD FAILED", "color": Color.RED, "side": "player"})
 		_reset_hazard_state()
-	
+
 	retreat()
+	combat_lost.emit()  # v128: fires the first-loss durability coach
 
 # v66.0: Auto-Consume System
 func _check_auto_consume(delta: float):
