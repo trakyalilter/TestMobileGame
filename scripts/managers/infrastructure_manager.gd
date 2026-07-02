@@ -1716,6 +1716,20 @@ func calculate_offline(delta: float):
 
 	var loot_summary = {}
 
+	# v132: online production applies yield_bonus buildings (global_yield_bonuses)
+	# and the extractor_efficiency module affix — offline silently dropped both, so
+	# synergy builds under-produced exactly while idle. Compute once, apply to
+	# every yield total in BOTH passes below (same math as get_total_resource_rates).
+	var _off_yield_bonuses := {}
+	for _ob in buildings:
+		var _od = building_db.get(_ob)
+		if _od and _od.has("yield_bonus"):
+			for _res in _od["yield_bonus"]:
+				_off_yield_bonuses[_res] = _off_yield_bonuses.get(_res, 0.0) + (_od["yield_bonus"][_res] * buildings[_ob])
+	var _off_affix_mult := 1.0
+	if GameState.shipyard_manager:
+		_off_affix_mult = 1.0 + GameState.shipyard_manager.affix_bonuses.get("extractor_efficiency", 0.0)
+
 	# Offline Industry: Two-Pass 'Jump-Start' Logic
 	# Pass 1: Fuel & Energy Priority (Ensures consumers have inputs ready)
 	var fuel_buildings = ["solar_panel", "coal_burner", "hydro_plant", "palladium_generator", "hydrogen_reactor"]
@@ -1747,7 +1761,7 @@ func calculate_offline(delta: float):
 						GameState.resources.remove_element(res, floor(data["input"][res] * _dr_units(bid, count) * cycles))  # P0.2 DR + v131 integer
 				for res in data["yield"]:
 					var qty = get_effective_yield(bid, res)
-					var total = floor(qty * _dr_units(bid, count) * cycles)  # P0.2 DR + v131 integer (offline floors the batch)
+					var total = floor(qty * _dr_units(bid, count) * cycles * (1.0 + _off_yield_bonuses.get(res, 0.0)) * _off_affix_mult)  # P0.2 DR + v131 integer + v132 online-parity bonuses
 					GameState.resources.add_element(res, total); GameState.note_production("infra", total)  # P3.10
 					loot_summary[res] = loot_summary.get(res, 0.0) + total
 				_award_infra_mastery_xp(bid, float(cycles))
@@ -1785,7 +1799,7 @@ func calculate_offline(delta: float):
 				# Produce outputs
 				for res in data["yield"]:
 					var qty = get_effective_yield(bid, res)
-					var total = floor(qty * _dr_units(bid, count) * cycles)  # P0.2 DR + v131 integer (offline floors the batch)
+					var total = floor(qty * _dr_units(bid, count) * cycles * (1.0 + _off_yield_bonuses.get(res, 0.0)) * _off_affix_mult)  # P0.2 DR + v131 integer + v132 online-parity bonuses
 					GameState.resources.add_element(res, total); GameState.note_production("infra", total)  # P3.10
 					loot_summary[res] = loot_summary.get(res, 0.0) + total
 				_award_infra_mastery_xp(bid, float(cycles))

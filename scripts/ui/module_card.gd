@@ -95,6 +95,11 @@ func _draw_tile_visual(item_name: String, slot_type: String, rarity: int, rarity
 	# kinetic / energy / explosive are distinguishable at a glance.
 	if slot_type == "weapon":
 		slot_col = _weapon_dmg_color(m_data.get("stats", {}))
+	# v131d: ammo shares ONE icon, so a generic orange chip made every round look
+	# identical. Colour it by DAMAGE TYPE (matching the weapon it feeds) + a tier
+	# stamp below, so KIN/NRG/EXP and T1..T4 read at a glance.
+	elif slot_type == "ammo":
+		slot_col = _ammo_dmg_color(_ammo_type(mid))
 
 	# Expand to fill the grid column; height stays fixed via min size.
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -182,7 +187,9 @@ func _draw_tile_visual(item_name: String, slot_type: String, rarity: int, rarity
 
 	# --- Centre emblem: slot-coloured chip + bold type letter ---
 	# v127: Hack Stones skip the chip entirely — the big hexagon shard IS the visual.
-	var em := TS * 0.5
+	# v131c: chip 0.5 -> 0.58 of the tile — paired with the de-watermarked module
+	# glyphs (fill 0.16->0.34, strokes 0.55->0.92) so the icon is the scan cue again.
+	var em := TS * 0.58
 	var is_stone: bool = (slot_type == "hack_stone")
 	var icon_parent: Control = tile_container
 	if not is_stone:
@@ -284,6 +291,26 @@ func _draw_tile_visual(item_name: String, slot_type: String, rarity: int, rarity
 		cmp_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		cmp_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		tile_container.add_child(cmp_lbl)
+
+	# --- v131d: ammo tier stamp, top-right (modules use that corner for the zone
+	# emblem, which ammo has none of). The damage-type colour separates type; this
+	# separates tier within a type. ---
+	if slot_type == "ammo":
+		var tier := _ammo_tier(mid)
+		if tier != "":
+			var tlbl := Label.new()
+			tlbl.text = tier
+			tlbl.add_theme_font_size_override("font_size", 12)
+			tlbl.add_theme_color_override("font_color", slot_col.lerp(Color.WHITE, 0.4))
+			tlbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+			tlbl.add_theme_constant_override("outline_size", 3)
+			tlbl.anchor_left = 1.0; tlbl.anchor_right = 1.0
+			tlbl.offset_left = -26; tlbl.offset_right = -4
+			tlbl.offset_top = 3; tlbl.offset_bottom = 21
+			tlbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			tlbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			tlbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			tile_container.add_child(tlbl)
 
 	# --- Count chip, top-left ---
 	if count > 1:
@@ -496,6 +523,30 @@ func _weapon_dmg_tag(stats: Dictionary) -> String:
 		"energy": return "NRG"
 		"explosive": return "EXP"
 		_: return "KIN"
+
+# v131d: ammo identity from its id. Slug* = kinetic, Cell* = energy, Missile* =
+# explosive; tier is the digit after "T" (SlugT2 -> T2). Colours mirror
+# _weapon_dmg_color so a round matches the weapon family it feeds.
+func _ammo_type(id: String) -> String:
+	if id.begins_with("Slug"): return "kinetic"
+	if id.begins_with("Cell"): return "energy"
+	if id.begins_with("Missile"): return "explosive"
+	return "kinetic"
+
+func _ammo_tier(id: String) -> String:
+	var ti := id.find("T")
+	while ti >= 0:
+		var c := id.substr(ti + 1, 1)
+		if c.is_valid_int():
+			return "T" + c
+		ti = id.find("T", ti + 1)
+	return ""
+
+func _ammo_dmg_color(atype: String) -> Color:
+	match atype:
+		"energy": return Color(0.32, 0.80, 1.0)
+		"explosive": return Color(1.0, 0.45, 0.30)
+		_: return Color(0.92, 0.66, 0.32)
 
 func _compute_compare_summary() -> String:
 	# At-a-glance upgrade indicator vs the focused-slot's equipped module.

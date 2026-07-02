@@ -215,6 +215,15 @@ var ELEMENT_NAMES = {
 	"DamagedCircuitry": "Damaged Circuitry",
 	"ReinforcedPlating": "Reinforced Plating",
 
+	# v132: names for ids that only existed in MATERIAL_TINT — tooltips and cost
+	# labels rendered the raw camel-case symbol for these.
+	"Malachite": "Malachite Ore",
+	"Semiconductor": "Semiconductor",
+	"StructuralComponent": "Structural Component",
+	"AgCatalyst": "Silver Catalyst",
+	"NuclearFuel": "Nuclear Fuel",
+	"AdvMaintenanceKit": "Adv. Maintenance Kit",
+
 	# Boss Cores
 	"Z1_Core": "Lunar Core",
 	"Z2_Core": "Asteroid Core",
@@ -230,7 +239,7 @@ var ELEMENT_NAMES = {
 
 ## Category mappings for inventory filtering
 var CATEGORIES = {
-	"ores": ["Dirt", "Bauxite", "Dolomite", "Cassiterite", "ZincOre", "Spodumene", "PtOre", "Germanit"],
+	"ores": ["Dirt", "Bauxite", "Dolomite", "Cassiterite", "ZincOre", "Spodumene", "PtOre", "Germanit", "Malachite", "Quartz"],  # v132: both gatherable ores were uncategorized — invisible to the inventory ore filter
 	"basic_metals": ["Fe", "Cu", "Al", "Mg", "Sn", "Zn"],
 	"advanced_metals": ["Ti", "Co", "Ni", "Cr", "Mn", "W"],
 	"rare_metals": ["Au", "Ag", "Pt", "Pd", "Ir", "Os", "Rh", "U", "Germanium"],

@@ -57,8 +57,18 @@ func get_trophy_buff(buff_type: String) -> float:
 	return mult
 
 func _on_enemy_defeated(enemy_id: String):
+	# v132: elite hunts must be completed on the ELITE variant. The signal carries
+	# no elite flag, but it fires from win_fight while current_enemy is still the
+	# killed enemy — read its is_elite there. (Without this, killing the normal
+	# variant of the target cashed the elite contract's outsized payout.)
+	var was_elite: bool = false
+	var cm = GameState.combat_manager
+	if cm and cm.current_enemy:
+		was_elite = bool(cm.current_enemy.get("is_elite", false))
 	for contract in active_contracts:
 		if contract["type"] == "hunt" and contract["target"] == enemy_id:
+			if contract.get("is_elite", false) and not was_elite:
+				continue
 			contract["current_qty"] = min(contract["current_qty"] + 1, contract["target_qty"])
 			if contract["current_qty"] >= contract["target_qty"]:
 				contract["completed"] = true
@@ -241,8 +251,11 @@ func _generate_elite_contract(max_diff: int) -> Dictionary:
 	}
 
 func _generate_delivery_contract(min_diff: int, max_diff: int) -> Dictionary:
-	# Pick a difficulty tier within relevance range
-	var tier = randi_range(min_diff, max_diff)
+	# Pick a difficulty tier within relevance range.
+	# v132: clamp to the template table's ceiling (keys stop at 10) — once Z11/Z12
+	# unlock, max_diff hits 11/12 and roughly half the delivery rolls returned {},
+	# quietly thinning the endgame board.
+	var tier = mini(randi_range(min_diff, max_diff), 10)
 	var templates = delivery_materials.get(tier, [])
 	if templates.is_empty():
 		return {}
@@ -357,6 +370,11 @@ func claim_contract(contract_id: String) -> bool:
 	# v109: Recursion — Recursive Acquisition (+5%/level Lira rewards)
 	if GameState.research_manager:
 		bonus_mult *= (1.0 + GameState.research_manager.get_efficiency_bonus("credit_reward_mult"))
+	# v132: apply the warp production multiplier — quests AND missions both scale
+	# with it; bounties didn't, so they fell a full multiplier tier behind the
+	# parallel income systems on every warp ("background always pays" decayed).
+	if GameState.warp_manager:
+		bonus_mult *= GameState.warp_manager.get_production_multiplier()
 	var final_reward = int(contract["reward_credits"] * bonus_mult)
 	
 	GameState.resources.add_currency("credits", final_reward)
@@ -417,6 +435,25 @@ func process_tick(delta: float):
 		refresh_timer -= delta
 		if refresh_timer <= 0:
 			generate_contract_pool()
+	elif available_contracts.is_empty() and active_contracts.is_empty():
+		# v132: a fresh install never generated a pool — refresh_timer starts at 0
+		# and only counts down once armed, and the load-path seeding only runs when
+		# a save exists. Seed lazily on the first live tick (generate arms the 8h
+		# timer, so this fires once, not per frame).
+		generate_contract_pool()
+
+# v132: bounty was the ONLY manager without reset() — hard_reset left the old
+# playthrough's contracts (including completed endgame deliveries worth tens of
+# millions in credits) claimable on a brand-new save. Clears everything and
+# reseeds a pool at the CURRENT (post-reset) progression tier.
+func reset(_decay_factor: float = 1.0) -> void:
+	available_contracts.clear()
+	active_contracts.clear()
+	completed_contracts.clear()
+	refresh_timer = 0.0
+	total_completed = 0
+	_id_counter = 0
+	generate_contract_pool()
 
 # ─── Save/Load ───
 

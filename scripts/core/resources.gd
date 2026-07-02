@@ -59,15 +59,18 @@ func get_storage_upgrade_cost() -> float:
 	# Cost scales with upgrades: 1000 * 1.5^level
 	return floor(1000.0 * pow(1.5, storage_upgrades))
 
-func add_element(symbol: String, amount: float):
+# v132: `force` bypasses the slot cap for EARNED payouts (quest/bounty rewards) —
+# claim paths showed a "+N Material" toast while add_element silently dropped the
+# goods at 28 slots. Farmed output still respects the cap (it IS the sink).
+func add_element(symbol: String, amount: float, force: bool = false):
 	if not is_finite(amount) or amount <= 0: return
-	
+
 	# Slot Check
 	if not elements.has(symbol):
 		# Progression-critical drops (boss cores, matrix cores, endgame, special)
 		# are kept over-cap rather than silently lost — dropping a Z#_Core would
 		# soft-lock zone-access research. Bulk basics still hit the cap (the sink).
-		if elements.size() >= get_max_slots() and not ElementDB.is_slot_protected(symbol):
+		if elements.size() >= get_max_slots() and not force and not ElementDB.is_slot_protected(symbol):
 			# Inventory full: this output is silently lost. Warn ONCE on the
 			# transition (the header slot meter is the persistent indicator);
 			# re-arms when a slot frees (remove_element).

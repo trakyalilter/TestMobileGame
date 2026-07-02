@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
   <!-- Hull repair — warm red so it reads distinctly from the cool shield booster.
        Schematic line style: hex plate outline + centred repair cross. -->
-  <g fill="#ef8b6a" fill-opacity="0.16" stroke="#ef8b6a" stroke-width="4" stroke-linejoin="round">
+  <g fill="#ef8b6a" fill-opacity="0.34" stroke="#ef8b6a" stroke-width="4" stroke-linejoin="round">
     <polygon points="32,8 52,19 52,45 32,56 12,45 12,19"/>
   </g>
   <g fill="#ef8b6a">

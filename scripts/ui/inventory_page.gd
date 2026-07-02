@@ -517,7 +517,10 @@ func update_selection_view(data, amount):
 	flavor_lbl.text = "[i][color=#%s]%s[/color][/i]" % [dim_hex, flavor]
 
 	# Unit price — gold value + inline lira icon.
-	price_val = data.get("base_value", 1)
+	# v132: default 0, not 1 — items with no base_value (hack cards, zone alloys,
+	# Boost Cards) were priced at 1 Lira, letting players destroy progression
+	# items for pocket change. 0 matches get_element_value's semantics everywhere.
+	price_val = data.get("base_value", 0)
 	price_lbl.text = "[color=#%s]Unit Price[/color]   [color=#%s][b]%s[/b][/color] %s" % [dim_hex, warn_hex, UITheme.format_num(price_val), UITheme.LIRA_ICON_BB]
 
 	qty_spin.max_value = amount
@@ -582,7 +585,12 @@ func perform_sale(symbol, qty):
 	if qty <= 0:
 		UITheme.show_notification("Invalid Qty", Color.RED)
 		return
-		
+	# v132: never destroy items for nothing — zero-value goods (progression mats,
+	# crafting cards) are craft-only, not sellable.
+	if price_val <= 0:
+		UITheme.show_notification("This item has no market value — it's used in crafting.", Color(1.0, 0.7, 0.3))
+		return
+
 	var total = qty * price_val
 	if GameState.resources.remove_element(symbol, qty):
 		GameState.resources.add_currency("credits", total)

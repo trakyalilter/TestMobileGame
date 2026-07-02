@@ -231,7 +231,9 @@ func claim_quest(quest_id: String) -> bool:
 	# Award material bonus
 	var mat = q.get("reward_material", {})
 	if mat and mat.size() > 0:
-		GameState.resources.add_element(mat["id"], mat["qty"])
+		# v132: force past the slot cap — this is an EARNED payout; it used to be
+		# silently destroyed at 28 slots while the toast still said it was paid.
+		GameState.resources.add_element(mat["id"], mat["qty"], true)
 		var d_name = ElementDB.get_display_name(mat["id"])
 		UITheme.show_notification("+%d %s" % [mat["qty"], d_name], Color(0.5, 1.0, 0.7))
 
@@ -314,3 +316,6 @@ func reset():
 	board.clear()
 	total_completed = 0
 	_id_counter = 0
+	# v132: refill immediately — the only other fill paths run at boot, so an
+	# in-session hard reset left the Standing Orders board empty until restart.
+	_fill_board()

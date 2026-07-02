@@ -429,6 +429,11 @@ func process_offline_progress(delta: float):
 	var r_report = research_manager.calculate_offline(delta)
 	if r_report: reports.append(r_report)
 
+	# v132: advance the bounty refresh timer offline — it only ticked in the live
+	# _process loop, so the 8h board refresh was frozen while away (and its lazy
+	# first-seed never fired for players who went straight offline).
+	if bounty_manager: bounty_manager.process_tick(delta)
+
 	# v52.1: Optional offline combat
 	if game_settings.get("offline_combat", false):
 		var c_report = combat_manager.calculate_offline(delta)
@@ -491,7 +496,10 @@ func hard_reset():
 	game_settings.erase("offline_combat_warned")
 	mission_manager.reset()
 	if quest_manager: quest_manager.reset()
-	# ... others
+	# v132: bounty was the ONLY manager missing here (it had no reset() at all) —
+	# a New Game inherited the old playthrough's contracts, including completed
+	# endgame deliveries worth tens of millions, claimable on the fresh save.
+	if bounty_manager: bounty_manager.reset()
 
 	# P3.10: telemetry is a fresh-playthrough metric — clear on hard reset.
 	for grp in ["occupancy", "production", "damage_type"]:

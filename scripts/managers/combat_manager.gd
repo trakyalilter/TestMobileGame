@@ -1119,6 +1119,18 @@ func start_expedition(zone_id: String):
 			return
 			
 	if current_zone == zones[zone_id] and in_combat: return
+	# v132: engaging a sector mid-gauntlet must EJECT the gauntlet (like death/
+	# reload do) — win_fight advances hazard waves on ANY kill while
+	# hazard_state.active, so leaving it armed here lets normal-sector fodder
+	# kills clear the gauntlet (and its first-clear reward) for free.
+	if hazard_state["active"]:
+		var hz_name = hazard_zones.get(hazard_state["zone_id"], {}).get("name", "Hazard Zone")
+		log_msg("EJECTED from %s at Wave %d/%d!" % [hz_name, hazard_state["wave"] + 1, hazard_state["max_waves"]])
+		_reset_hazard_state()
+	# v132: a target picked in another sector (or left by a hazard wave/stale
+	# save) must not hijack this zone's spawn — fall back to the zone roster.
+	if target_enemy_id and not (target_enemy_id in data.get("enemies", [])):
+		target_enemy_id = null
 	GameState.set_active_manager(self)
 	current_zone = zones[zone_id]
 	current_zone_id = zone_id # Track ID explicitly
@@ -1214,7 +1226,10 @@ func set_target_enemy(enemy_id):
 
 func spawn_enemy():
 	var sm = GameState.shipyard_manager
-	var eid = target_enemy_id if target_enemy_id else current_zone["enemies"][randi() % current_zone["enemies"].size()]
+	# v132: guard against a stale saved target (enemy renamed/removed in a later
+	# content version) — enemy_db[missing_id] would hard-crash the LOAD path.
+	# Fall back to the zone roster instead of bricking the save.
+	var eid = target_enemy_id if (target_enemy_id and target_enemy_id in enemy_db) else current_zone["enemies"][randi() % current_zone["enemies"].size()]
 	var e_data = enemy_db[eid]
 	current_enemy = {
 		"id": eid,
@@ -2826,6 +2841,7 @@ func get_save_data_manager() -> Dictionary:
 	data["loot_weapon_type_filter"] = loot_weapon_type_filter
 	data["boss_kills"] = boss_kills
 	data["hazard_clears"] = hazard_clears
+	data["total_kills"] = total_kills  # v132: was never saved — the offline-combat nudge re-armed every session
 	return data
 
 func load_save_data_manager(data: Dictionary):
@@ -2857,11 +2873,27 @@ func load_save_data_manager(data: Dictionary):
 	var zid = data.get("current_zone_id")
 	if zid and zid in zones:
 		current_zone = zones[zid]
+		# v132: the id itself was never restored — resolve_damage's zone-scaled
+		# mitigation k reads current_zone_id, so a mid-combat reload silently
+		# fell back to Z1's k and made high-DEF late-zone enemies near-unkillable
+		# until the player re-engaged. (Also fixes the star map's "current" pin.)
+		current_zone_id = zid
 		var eid = data.get("current_enemy_id")
 		if eid:
 			target_enemy_id = eid
 			spawn_enemy() # This will reset weapons/timers but keep flow
-	
+	elif in_combat:
+		# v132: a mid-HAZARD save restores in_combat=true but the zone id lives in
+		# hazard_zones (not zones) and hazard_state isn't persisted — leaving a
+		# GHOST fight with no zone/enemy that never ticks, blocks repairs, and
+		# keeps the Sector Chart from auto-opening. Gauntlets are active-play
+		# sessions: eject cleanly on reload, matching the eject-on-death rule.
+		in_combat = false
+		current_zone = {}
+		current_zone_id = ""
+		current_enemy = null
+		target_enemy_id = ""
+
 	# Ensure max shield is set even if not in combat
 	if GameState.shipyard_manager:
 		player_max_shield = GameState.shipyard_manager.max_shield
@@ -2869,9 +2901,25 @@ func load_save_data_manager(data: Dictionary):
 	# v86.0: Load boss kills and hazard clears
 	boss_kills = data.get("boss_kills", {})
 	hazard_clears = data.get("hazard_clears", {})
+	total_kills = int(data.get("total_kills", 0))  # v132: persist lifetime kills (nudge threshold)
 func reset(decay_factor: float = 1.0) -> void:
 	super.reset(decay_factor)
 	retreat()
+	# v132: retreat() only drops in_combat/current_enemy — everything below
+	# survived BOTH Warp and New Game, then got re-saved by autosave.
+	_reset_hazard_state()   # mid-gauntlet reset must eject like death does
+	current_zone = {}
+	current_zone_id = ""
+	target_enemy_id = null
+	session_loot = {}
+	if decay_factor >= 1.0:
+		# Hard reset only — lifetime trackers. They gate hazard unlocks
+		# (is_hazard_unlocked) and the star map's cleared pins, so a New Game
+		# inherited every sector clear. Warp keeps them by design: zone access
+		# persists via research, so clears persist with it.
+		boss_kills = {}
+		hazard_clears = {}
+		total_kills = 0
 
 # v52.1: Offline Combat (opt-in via game_settings)
 # Can the player actually beat the current enemy? Offline combat is a
@@ -2934,7 +2982,8 @@ func calculate_offline(delta: float):
 	var loot_summary = {}
 	var total_xp = 0
 	var credits_earned = 0
-	
+	var module_drop_names: Array = []   # v132: rare_loot MODULE drops (boss uniques)
+
 	for i in range(num_kills):
 		# Award loot from current enemy
 		var enemy_data = current_enemy
@@ -2960,11 +3009,29 @@ func calculate_offline(delta: float):
 			var max_amt = entry[3]
 			if randf() < chance:
 				var amount = randi_range(min_amt, max_amt)
+				var smr = GameState.shipyard_manager
 				# v61.0 Fix: handle credits in rare_loot too
 				if item == "credits":
 					amount = int(amount * _credit_reward_mult())  # v109 Recursive Acquisition
 					GameState.resources.add_currency("credits", amount)
 					credits_earned += amount
+				elif smr and item in smr.modules:
+					# v132: parity with win_fight — boss rare_loot carries MODULE ids
+					# (z*_unique_*, faraday_hull, cryo_lance…). The old path
+					# add_element()'d them into a bogus 0-value inventory row that
+					# ate a slot, silently destroying the game's rarest drops on an
+					# overnight farm. Mirror online exactly: non-COMMON generates a
+					# rolled instance, COMMON stacks in module inventory.
+					var m_data = smr.modules[item]
+					var m_rarity = m_data.get("rarity", smr.Rarity.COMMON)
+					if m_rarity != smr.Rarity.COMMON:
+						var final_id = smr.generate_module_drop(item, m_rarity, int(current_zone.get("difficulty", 1)))
+						module_drop_names.append(str(smr.modules.get(final_id, m_data).get("name", item)))
+					else:
+						smr.module_inventory[item] = smr.module_inventory.get(item, 0) + amount
+						smr.unseen_modules[item] = true
+						module_drop_names.append(str(m_data.get("name", item)))
+					smr.new_drops_alert = true
 				else:
 					GameState.resources.add_element(item, amount)
 					loot_summary[item] = loot_summary.get(item, 0) + amount
@@ -2986,6 +3053,11 @@ func calculate_offline(delta: float):
 	# can be lost (the risk the player consented to when enabling it). Surface
 	# exactly what was destroyed in the report — never a silent deletion.
 	var notes: Array = []
+	# v132: surface rare module drops in the report (they don't fit the element
+	# ledger) and refresh the armory once, not per-drop.
+	if not module_drop_names.is_empty():
+		GameState.shipyard_manager.inventory_updated.emit()
+		notes.append("★ Rare module drops: %s" % [", ".join(PackedStringArray(module_drop_names))])
 	var lost_modules: Array = GameState.shipyard_manager.apply_offline_durability_risk(delta)
 	if not lost_modules.is_empty():
 		notes.append("⚠ Lost to offline wear (durability ≤50%%): %s" % [", ".join(PackedStringArray(lost_modules))])

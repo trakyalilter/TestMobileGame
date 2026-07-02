@@ -675,8 +675,33 @@ func _setup_loadout_preset_row(parent: Node, insert_idx: int):
 	save_menu.flat = false
 	_apply_filter_button_style(save_menu, false, UITheme.COLORS["accent"])
 	var save_popup = save_menu.get_popup()
+	# v131c: theme the dropdown — a raw PopupMenu rendered in stock Godot gray, the
+	# last default-themed surface in the toolbar. Match the Precursor Bloom panels.
+	var pp_sb := StyleBoxFlat.new()
+	pp_sb.bg_color = Color(0.055, 0.122, 0.114, 0.97)
+	pp_sb.set_border_width_all(1)
+	pp_sb.border_color = Color(0.427, 0.941, 0.847, 0.45)
+	pp_sb.set_corner_radius_all(6)
+	pp_sb.set_content_margin_all(6)
+	save_popup.add_theme_stylebox_override("panel", pp_sb)
+	var pp_hover := StyleBoxFlat.new()
+	pp_hover.bg_color = Color(0.16, 0.42, 0.38, 0.55)
+	pp_hover.set_corner_radius_all(4)
+	save_popup.add_theme_stylebox_override("hover", pp_hover)
+	save_popup.add_theme_color_override("font_color", Color(0.78, 0.88, 0.86))
+	save_popup.add_theme_color_override("font_hover_color", Color(0.90, 1.0, 0.97))
+	save_popup.add_theme_font_size_override("font_size", 11)
 	for i in [1, 2, 3, 4, 5]:
 		save_popup.add_item("Save to Preset %d" % i, i)
+	# v131c: refresh labels on open so saved builds show their custom names
+	# ("Save to Preset 2 — 'Boss Rush'") instead of anonymous slot numbers.
+	save_popup.about_to_popup.connect(func():
+		for i in [1, 2, 3, 4, 5]:
+			var item_idx := save_popup.get_item_index(i)
+			var pname := ""
+			if manager and "loadout_presets" in manager:
+				pname = str(manager.loadout_presets.get(i, {}).get("name", ""))
+			save_popup.set_item_text(item_idx, ("Save to Preset %d — '%s'" % [i, pname]) if pname != "" else "Save to Preset %d" % i))
 	save_popup.id_pressed.connect(_on_preset_save)
 	preset_row.add_child(save_menu)
 
@@ -706,7 +731,10 @@ func _refresh_preset_buttons():
 		if empty:
 			btn.tooltip_text = "Preset %d is empty. Save a build first." % idx
 		else:
-			btn.tooltip_text = "Apply Preset %d to ship." % idx
+			# v131c: surface the custom build name (set via the clickable title) —
+			# it previously lived nowhere findable from this row.
+			var pname := str(manager.loadout_presets.get(idx, {}).get("name", ""))
+			btn.tooltip_text = ("Apply '%s' (Preset %d) to ship." % [pname, idx]) if pname != "" else "Apply Preset %d to ship." % idx
 
 func _on_preset_save(idx: int):
 	if not manager: return
@@ -1531,40 +1559,82 @@ func _on_ship_title_input(event: InputEvent):
 	_open_build_rename_dialog(build_name)
 
 func _open_build_rename_dialog(current_name: String):
-	var dlg = AcceptDialog.new()
-	dlg.title = "Rename Build"
-	dlg.min_size = Vector2(320, 0)
+	# v131c: themed in-scene modal (was a stock AcceptDialog — the last default-
+	# themed window on this page). Same overlay pattern as the anchor/refit
+	# choosers; Enter submits, Cancel/backdrop-free (explicit buttons only).
+	var layer := CanvasLayer.new()
+	layer.layer = 100
+	var overlay := ColorRect.new()
+	overlay.color = Color(0, 0, 0, 0.7)
+	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	layer.add_child(overlay)
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	overlay.add_child(center)
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(320, 0)
+	var psb := StyleBoxFlat.new()
+	psb.bg_color = Color(0.055, 0.122, 0.114, 0.97)
+	psb.set_border_width_all(1)
+	psb.border_color = Color(0.427, 0.941, 0.847, 0.45)
+	psb.set_corner_radius_all(6)
+	psb.set_content_margin_all(14)
+	panel.add_theme_stylebox_override("panel", psb)
+	center.add_child(panel)
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 8)
+	panel.add_child(vb)
 
-	var box = VBoxContainer.new()
-	box.add_theme_constant_override("separation", 8)
+	var title := Label.new()
+	title.text = "RENAME BUILD"
+	title.add_theme_font_size_override("font_size", 14)
+	title.add_theme_color_override("font_color", UITheme.COLORS["accent_bright"])
+	vb.add_child(title)
 
 	var hint = Label.new()
 	hint.text = "Rename the active loadout preset:"
 	hint.add_theme_font_size_override("font_size", 11)
 	hint.add_theme_color_override("font_color", TEXT_DIM)
-	box.add_child(hint)
+	vb.add_child(hint)
 
 	var input = LineEdit.new()
 	input.text = current_name
 	input.placeholder_text = "Build name…"
-	input.custom_minimum_size = Vector2(240, 0)
+	input.custom_minimum_size = Vector2(280, 0)
 	input.select_all_on_focus = true
-	box.add_child(input)
+	vb.add_child(input)
 
-	dlg.add_child(box)
-	dlg.confirmed.connect(func():
+	var commit := func():
 		var new_name = input.text.strip_edges()
-		if new_name == "": return
-		for idx in manager.loadout_presets:
-			var p = manager.loadout_presets[idx]
-			if _loadout_matches_preset(p):
-				p["name"] = new_name
-				break
-		manager.inventory_updated.emit()
-		trigger_refresh())
-	dlg.tree_exited.connect(func(): dlg.queue_free())
-	add_child(dlg)
-	dlg.popup_centered()
+		if new_name != "":
+			for idx in manager.loadout_presets:
+				var p = manager.loadout_presets[idx]
+				if _loadout_matches_preset(p):
+					p["name"] = new_name
+					break
+			manager.inventory_updated.emit()
+			trigger_refresh()
+		layer.queue_free()
+
+	var btn_row := HBoxContainer.new()
+	btn_row.alignment = BoxContainer.ALIGNMENT_END
+	btn_row.add_theme_constant_override("separation", 8)
+	vb.add_child(btn_row)
+	var cancel := Button.new()
+	cancel.text = "Cancel"
+	cancel.add_theme_font_size_override("font_size", 12)
+	cancel.pressed.connect(layer.queue_free)
+	btn_row.add_child(cancel)
+	var ok := Button.new()
+	ok.text = "Rename"
+	ok.add_theme_font_size_override("font_size", 12)
+	if UITheme.has_method("apply_premium_button_style"):
+		UITheme.apply_premium_button_style(ok, "engineering")
+	ok.pressed.connect(commit)
+	btn_row.add_child(ok)
+	input.text_submitted.connect(func(_t): commit.call())
+
+	add_child(layer)
 	input.grab_focus()
 
 func _get_active_build_name() -> String:

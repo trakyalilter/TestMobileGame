@@ -1828,7 +1828,7 @@ func equip_module(slot_idx: int, module_id: String, silent: bool = false) -> boo
 	if existing:
 		module_inventory[existing] = module_inventory.get(existing, 0) + 1
 		
-	module_inventory[module_id] = module_inventory.get(module_id, 1) - 1
+	module_inventory[module_id] = module_inventory.get(module_id, 0) - 1  # v132: default 1 was a latent dupe trap (stock guard above makes 0 correct)
 	if module_inventory[module_id] <= 0:
 		module_inventory.erase(module_id)
 		

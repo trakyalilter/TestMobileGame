@@ -92,15 +92,23 @@ func commit() -> void:
 
 
 # Cell pixel size derived from live width so the grid fills edge-to-edge.
+# v131c: floored to whole pixels — fractional cells put the painted grid and the
+# child cards on subpixels, producing hairline seams at card edges.
 func _cell_size() -> float:
 	var avail := size.x
 	if avail <= 1.0:
 		avail = custom_minimum_size.x
-	return maxf(8.0, (avail - float(cols - 1) * GAP) / float(cols))
+	return maxf(8.0, floorf((avail - float(cols - 1) * GAP) / float(cols)))
 
+
+# v131c: cells covered by a card on the CURRENT page. _draw skips these so the
+# background cell outlines never peek out at the cards' rounded corners/edges
+# (that peek-through read as cards "overlapping" the grid).
+var _occ_draw: Dictionary = {}
 
 func _relayout() -> void:
 	var cell := _cell_size()
+	_occ_draw.clear()
 	for p in _placed:
 		var node: Control = p["node"]
 		if not is_instance_valid(node):
@@ -111,6 +119,9 @@ func _relayout() -> void:
 		node.visible = true
 		var w: int = p["w"]
 		var h: int = p["h"]
+		for dy in range(h):
+			for dx in range(w):
+				_occ_draw[Vector2i(int(p["gx"]) + dx, int(p["gy"]) + dy)] = true
 		var sw := float(w) * cell + float(w - 1) * GAP
 		var sh := float(h) * cell + float(h - 1) * GAP
 		node.position = Vector2(p["gx"] * (cell + GAP), p["gy"] * (cell + GAP))
@@ -180,6 +191,10 @@ func _draw() -> void:
 	var border := Color(UITheme.COLORS["accent"], 0.30)
 	for gy in range(page_rows):
 		for gx in range(cols):
+			# v131c: only paint EMPTY cells — outlines under occupied cells peeked
+			# out at the cards' rounded corners and read as overlap.
+			if _occ_draw.has(Vector2i(gx, gy)):
+				continue
 			var r := Rect2(gx * (cell + GAP), gy * (cell + GAP), cell, cell)
 			draw_rect(r, fill, true)
 			draw_rect(r, border, false, 1.0)

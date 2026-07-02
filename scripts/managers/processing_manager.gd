@@ -1675,9 +1675,14 @@ func calculate_offline(delta: float):
 		
 	var speed_mult = get_recipe_speed_multiplier(current_recipe_id)
 	var effective_duration = current_recipe["duration"] / speed_mult
-	
-	var time_actions = int(delta / effective_duration)
-	if time_actions <= 0: return null
+
+	# v132: fold in the saved partial craft and keep the remainder (mirrors
+	# gathering) — the fraction used to be discarded on every resume.
+	var total_time: float = action_progress + delta
+	var time_actions = int(total_time / effective_duration)
+	if time_actions <= 0:
+		action_progress = total_time
+		return null
 	
 	var input_reqs = current_recipe.get("input", {})
 	var min_by_input = 99999999999.0
@@ -1703,9 +1708,30 @@ func calculate_offline(delta: float):
 			min_by_input = possible_by_credits
 	
 	var actions = min(time_actions, int(min_by_input))
-	
+	# v132: remainder semantics — time-limited runs carry the fractional tick
+	# forward; input/credit-limited runs stalled at a completion boundary, so the
+	# partial resets (matches online, which can't accrue progress without inputs).
+	if actions >= time_actions:
+		action_progress = fmod(total_time, effective_duration)
+	else:
+		action_progress = 0.0
+
 	if actions <= 0:
-		return "Engineering (%s):\nStopped (Missing Resources)." % current_recipe['name']
+		# v132: was a raw String — the offline report pipeline renders Dictionary
+		# blocks (block["category"] etc.), so a recipe that stalled overnight fed a
+		# String into offline_report_data and broke the boot modal.
+		return {
+			"category": "processing",
+			"title": "Engineering",
+			"action": current_recipe.get("name", current_recipe_id),
+			"time_sec": int(delta),
+			"actions": 0,
+			"xp": 0,
+			"gains": {},
+			"drains": {},
+			"notes": ["Stopped — missing input materials."],
+			"status": "standby",
+		}
 		
 	var loot_summary = {}
 	var xp_base = current_recipe.get("xp", 0)
@@ -1717,8 +1743,12 @@ func calculate_offline(delta: float):
 	gain_mastery_xp(current_recipe_id, float(actions) * MASTERY_XP_PER_COMPLETION)
 
 	# Consume
+	# v132: use effective_input_qty (ENG_3 -1/material, floored at 1) — the online
+	# consume AND the affordability count above both use it, but this loop took the
+	# RAW qty: with ENG_3 owned, offline over-consumed and could overdraw the very
+	# stock the count just verified as affordable.
 	for item in input_reqs:
-		var qty = input_reqs[item]
+		var qty = effective_input_qty(input_reqs[item])
 		GameState.resources.remove_element(item, qty * actions)
 	
 	# v61.0 Fix: Deduct credits_cost for offline processing
@@ -1793,6 +1823,7 @@ func get_save_data_manager() -> Dictionary:
 	var data = get_save_data()
 	data["is_active"] = is_active
 	data["current_recipe_id"] = current_recipe_id
+	data["action_progress"] = action_progress  # v132: resume the partial craft
 	data["mastery"] = mastery  # P1
 	return data
 
@@ -1802,16 +1833,18 @@ func load_save_data_manager(data: Dictionary):
 
 	is_active = data.get("is_active", false)
 	current_recipe_id = data.get("current_recipe_id", "")
+	action_progress = float(data.get("action_progress", 0.0))  # v132: pre-v132 saves default 0
 	# P1 Mastery — defaults to empty so v1 saves load unchanged.
 	var saved_mastery = data.get("mastery", {})
 	if saved_mastery is Dictionary:
 		mastery = saved_mastery.duplicate()
-	
+
 	if is_active and not current_recipe_id.is_empty():
 		if current_recipe_id in recipes:
 			current_recipe = recipes[current_recipe_id]
 		else:
 			is_active = false
+			action_progress = 0.0
 
 func get_current_rate() -> Dictionary:
 	"""Returns units produced per minute for active recipe"""

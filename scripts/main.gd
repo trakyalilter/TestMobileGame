@@ -1322,8 +1322,6 @@ func _update_navigation_hints():
 			page.focus_module_tab("z2_armor")
 			target_to_pulse = page.get_module_widget("z2_armor")
 
-			target_to_pulse = page.get_module_widget("z2_armor")
-
 	elif "m030" in mm.active_missions:
 		# Research: Shipwright II (Audit v15.0)
 		if current_page_name != "research": target_to_pulse = research_btn

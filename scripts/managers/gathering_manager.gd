@@ -8,7 +8,12 @@ var is_active: bool = false
 var current_action: Dictionary = {}
 var current_action_id: String = ""
 var action_progress: float = 0.0
-var action_duration: float = 4.0
+# v132: the cached `action_duration` member is GONE. It was set only in
+# start_action, so a save/load resume (which restores current_action directly,
+# never via start_action) left it at its stale 4.0 default — the tick then
+# completed on 4.0s while the UI showed the action's real duration (bar fills →
+# hangs at 100% → resets, every cycle). All paths now read
+# current_action["duration"] live, exactly like processing_manager.
 
 var events: Array = [] # Buffer for UI
 
@@ -397,8 +402,6 @@ func start_action(action_id: String):
 		current_action_id = action_id
 		action_progress = 0.0
 		is_active = true
-		# v61.0 Fix: Use per-action duration instead of fixed 4.0
-		action_duration = action.get("duration", 4.0)
 
 func stop_action():
 	is_active = false
@@ -421,10 +424,10 @@ func process_tick(delta_time: float):
 		return
 
 	action_progress += delta_time
-	
+
 	var speed_mult = get_action_speed_multiplier(current_action_id)
-	var required_time = action_duration / speed_mult
-	
+	var required_time = current_action.get("duration", 4.0) / speed_mult
+
 	if action_progress >= required_time:
 		complete_action()
 		action_progress = 0.0
@@ -486,13 +489,18 @@ func calculate_offline(delta: float):
 	if not is_active or current_action.is_empty():
 		return null
 		
+	# v132: NO extra warp multiplication here — get_action_speed_multiplier already
+	# includes warp.get_gathering_multiplier() (the old v62 line predated that and
+	# DOUBLE-applied it, so offline counted more completions than online pace).
 	var speed_mult = get_action_speed_multiplier(current_action_id)
-	# v62.0 Fix: Apply warp multiplier to match online behavior
-	if GameState.warp_manager:
-		speed_mult *= GameState.warp_manager.get_gathering_multiplier()
-	var effective_duration = action_duration / speed_mult
-	
-	var num_actions = int(delta / effective_duration)
+	var effective_duration = current_action.get("duration", 4.0) / speed_mult
+
+	# v132: fold in the saved partial tick and KEEP the remainder — the fractional
+	# leftover used to be discarded, so the bar restarted from zero on every resume
+	# instead of continuing where the offline stretch actually landed.
+	var total_time: float = action_progress + delta
+	var num_actions = int(total_time / effective_duration)
+	action_progress = fmod(total_time, effective_duration)
 	if num_actions <= 0: return null
 	
 	var loot_summary = {}
@@ -558,6 +566,7 @@ func get_save_data_manager() -> Dictionary:
 	var data = get_save_data() # super
 	data["is_active"] = is_active
 	data["current_action_id"] = current_action_id
+	data["action_progress"] = action_progress  # v132: resume the partial tick
 	data["mastery"] = mastery  # P1
 	return data
 
@@ -567,16 +576,18 @@ func load_save_data_manager(data: Dictionary):
 
 	is_active = data.get("is_active", false)
 	current_action_id = data.get("current_action_id", "")
+	action_progress = float(data.get("action_progress", 0.0))  # v132: pre-v132 saves default 0
 	# P1 Mastery — defaults to empty so v1 saves load unchanged.
 	var saved_mastery = data.get("mastery", {})
 	if saved_mastery is Dictionary:
 		mastery = saved_mastery.duplicate()
-	
+
 	if is_active and not current_action_id.is_empty():
 		if current_action_id in actions:
 			current_action = actions[current_action_id]
 		else:
 			is_active = false
+			action_progress = 0.0
 			
 func get_current_rate() -> Dictionary:
 	"""Returns estimated yield per minute for the active action"""
@@ -584,7 +595,7 @@ func get_current_rate() -> Dictionary:
 		return {}
 		
 	var speed_mult = get_action_speed_multiplier(current_action_id)
-	var effective_duration = action_duration / speed_mult
+	var effective_duration = current_action.get("duration", 4.0) / speed_mult
 	var actions_per_min = 60.0 / effective_duration
 	
 	var rates = {}
