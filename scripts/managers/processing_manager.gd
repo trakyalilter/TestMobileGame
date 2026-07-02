@@ -1217,6 +1217,20 @@ var recipes: Dictionary = {
 		"xp": 70,
 		"category": "salvage"
 	},
+	# v130: Boost Card — infrastructure OVERCLOCK chip (Satisfactory power-shard
+	# analog). Installed on a building type in the Infrastructure page: each card
+	# makes ONE unit of that building run at x2 (yield AND input drains). Mid/late
+	# sink pulling the Reclamation lane (AdvCircuit/Superalloy) + combat exotics.
+	"fabricate_boost_card": {
+		"name": "Fabricate Boost Card",
+		"description": "Quantum-clocked control card. Install on a building in Infrastructure to overclock one unit to 200%.",
+		"input": {"AdvCircuit": 5, "Superalloy": 10, "QuantumCore": 1},
+		"output": {"BoostCard": 1},
+		"duration": 30.0,
+		"level_req": 45,
+		"xp": 250,
+		"category": "components"
+	},
 	# v129: CoolantCell consumer (was the last sell-only combat drop) — a Z4-farm
 	# shortcut to the Cryo-Shield Matrix vs the full N-250 industrial recipe.
 	"recharge_coolant_cell": {

@@ -1135,7 +1135,7 @@ var tech_tree = {
 		"type": "technology",
 		"parent": "efficiency_1",
 		"effects": [
-			{"type": "yield_multiplier", "factor": 4.0, "what": "Output (Gathering & Processing)"},
+			{"type": "yield_multiplier", "factor": 3.0, "what": "Output (Gathering & Processing)"},
 		],
 		"unlocks": [],
 		"flavor": "",
@@ -1149,7 +1149,7 @@ var tech_tree = {
 		"type": "technology",
 		"parent": "efficiency_2",
 		"effects": [
-			{"type": "yield_multiplier", "factor": 8.0, "what": "Output (Gathering & Processing)"},
+			{"type": "yield_multiplier", "factor": 4.0, "what": "Output (Gathering & Processing)"},
 		],
 		"unlocks": [],
 		"flavor": "",
@@ -1163,7 +1163,7 @@ var tech_tree = {
 		"type": "technology",
 		"parent": "efficiency_3",
 		"effects": [
-			{"type": "yield_multiplier", "factor": 16.0, "what": "Output (Gathering & Processing)"},
+			{"type": "yield_multiplier", "factor": 5.0, "what": "Output (Gathering & Processing)"},
 		],
 		"unlocks": [],
 		"flavor": "",
@@ -1177,7 +1177,7 @@ var tech_tree = {
 		"type": "technology",
 		"parent": "efficiency_4",
 		"effects": [
-			{"type": "yield_multiplier", "factor": 32.0, "what": "Output (Gathering & Processing)"},
+			{"type": "yield_multiplier", "factor": 10.0, "what": "Output (Gathering & Processing)"},
 		],
 		"unlocks": [],
 		"flavor": "",
@@ -1880,11 +1880,14 @@ func unlock_repeatable_tech(tech_id: String) -> bool:
 	return false
 
 func get_efficiency_multiplier() -> float:
+	# v130: ladder nerfed x2/x4/x8/x16/x32 -> x2/x3/x4/x5/x10. Late active scaling
+	# now comes from invested systems (Boost-Card infra overclock, warp tree,
+	# mastery), not a runaway research doubling curve.
 	var tier := 1.0
-	if is_tech_unlocked("efficiency_5"): tier = 32.0
-	elif is_tech_unlocked("efficiency_4"): tier = 16.0
-	elif is_tech_unlocked("efficiency_3"): tier = 8.0
-	elif is_tech_unlocked("efficiency_2"): tier = 4.0
+	if is_tech_unlocked("efficiency_5"): tier = 10.0
+	elif is_tech_unlocked("efficiency_4"): tier = 5.0
+	elif is_tech_unlocked("efficiency_3"): tier = 4.0
+	elif is_tech_unlocked("efficiency_2"): tier = 3.0
 	elif is_tech_unlocked("efficiency_1"): tier = 2.0
 	# v112 parity fix: the Recursion infrastructure_focus bonus (building_yield_mult)
 	# now also lifts ACTIVE production here, exactly as it lifts infra in

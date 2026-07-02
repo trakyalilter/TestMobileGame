@@ -47,6 +47,8 @@ func connect_signals():
 	if GameState.infrastructure_manager:
 		if not GameState.infrastructure_manager.building_constructed.is_connected(_on_building_constructed):
 			GameState.infrastructure_manager.building_constructed.connect(_on_building_constructed)
+		if not GameState.infrastructure_manager.boost_card_installed.is_connected(_on_boost_card_installed):
+			GameState.infrastructure_manager.boost_card_installed.connect(_on_boost_card_installed)
 			
 	sync_progress()
 
@@ -216,7 +218,12 @@ func init_missions():
 		# dropped Splice Chip counts. Step 3 uses the new "hack_apply" type.
 		["goal_hack_1", "REWRITE THE FIRMWARE", "Salvaged modules can be re-forged. Research Firmware Hacking (Combat research tab) to unlock Hack Cards — module affix crafting.", "research", "firmware_hacking", 1, 20000, 0, "goal_hack_2"],
 		["goal_hack_2", "SALVAGE A HACK CARD", "Hack Cards now drop in combat. Defeat enemies until a Splice Chip drops.", "gather", "SpliceChip", 1, 15000, 0, "goal_hack_3"],
-		["goal_hack_3", "AWAKEN A MODULE", "Open the Ship Designer and drag a Splice Chip onto a Common component to awaken it into a custom module with a random affix.", "hack_apply", "SpliceChip", 1, 30000, 0, ""]
+		["goal_hack_3", "AWAKEN A MODULE", "Open the Ship Designer and drag a Splice Chip onto a Common component to awaken it into a custom module with a random affix.", "hack_apply", "SpliceChip", 1, 30000, 0, ""],
+		# v130: Boost-Card onboarding arc (craft -> install). Reveals once Engineering
+		# hits the fabricate recipe's level (45). Step 1 uses "gather" (element_added
+		# fires for processing outputs); step 2 uses the new "overclock_install" type.
+		["goal_boost_1", "OVERCLOCK PROTOCOL", "Your grid can run hotter. Fabricate a Boost Card in the Engineering tab — it takes Advanced Circuits, Superalloy, and a Quantum Core (Sector Alpha hostiles drop them).", "gather", "BoostCard", 1, 40000, 0, "goal_boost_2"],
+		["goal_boost_2", "RUNNING HOT", "Open Infrastructure and INSTALL the Boost Card on a building you own — one unit spins up to 200% output (and 200% input draw). Every card is a permanent overclock.", "overclock_install", "BoostCard", 1, 60000, 0, ""]
 	]
 	
 	for i in range(m_list.size()):
@@ -304,6 +311,10 @@ func _on_zone_entered(zone_id):
 func _on_building_constructed(building_id):
 	_update_progress("build", building_id, 1)
 
+# v130: a Boost Card was installed on a building (fires "overclock_install").
+func _on_boost_card_installed(_building_id):
+	_update_progress("overclock_install", "BoostCard", 1)
+
 func _on_shipyard_updated():
 	sync_progress()
 
@@ -385,6 +396,11 @@ func claim_reward(mission_id) -> bool:
 		if mission_id == "goal_hack_3":
 			GameState.resources.add_element("SpliceChip", 2)
 
+		# v130: same pattern for the overclock arc — one bonus Boost Card so the
+		# player immediately picks a SECOND building to overclock (the real choice).
+		if mission_id == "goal_boost_2":
+			GameState.resources.add_element("BoostCard", 1)
+
 		# Auto-unlock next mission
 		if m["next_mission"] != "" and m["next_mission"] in missions:
 			var next_id = m["next_mission"]
@@ -433,6 +449,10 @@ func _check_goal_reveals() -> bool:
 	# The arc's firmware_hacking research buys its kinetics_101 parent in the same visit.
 	if GameState.research_manager and GameState.research_manager.is_tech_unlocked("zone_2_access"):
 		changed = _reveal_goal("goal_hack_1") or changed
+	# v130: Boost-Card arc reveals once Engineering reaches the fabricate recipe's
+	# level gate (45) — the exact moment the overclock verb becomes actionable.
+	if GameState.processing_manager and GameState.processing_manager.get_level() >= 45:
+		changed = _reveal_goal("goal_boost_1") or changed
 	return changed
 
 func _reveal_goal(gid: String) -> bool:

@@ -2,6 +2,7 @@ extends Skill
 
 signal activity_occurred
 signal building_constructed(building_id)
+signal boost_card_installed(building_id)  # v130: drives the Boost-Card onboarding mission
 
 var buildings: Dictionary = {}
 var building_throttles: Dictionary = {} # {building_id: 0.0 to 1.0}
@@ -1025,10 +1026,46 @@ func _eng_scale(building_id: String) -> float:
 func _dr_units(building_id: String, count: int) -> float:
 	var knee := INFRA_PRIMITIVE_DR_KNEE if building_id in PRIMITIVE_EXTRACTORS else INFRA_DR_KNEE
 	var tail := INFRA_PRIMITIVE_DR_TAIL if building_id in PRIMITIVE_EXTRACTORS else INFRA_DR_TAIL
+	var dr: float
 	if count <= knee:
-		return float(count)
-	var extra := float(count - knee)
-	return float(knee) + extra / (1.0 + extra / float(tail))
+		dr = float(count)
+	else:
+		var extra := float(count - knee)
+		dr = float(knee) + extra / (1.0 + extra / float(tail))
+	# v130: OVERCLOCK — each installed Boost Card runs ONE unit of this building
+	# at x2, i.e. +1 effective unit, added POST-DR so a card is never eaten by the
+	# diminishing-returns curve ("a card doubles one machine" stays literally
+	# true). Folded in here so every production path — live tick, consumption,
+	# offline catch-up, mastery pacing — scales yield AND inputs symmetrically.
+	dr += float(mini(int(overclocks.get(building_id, 0)), count))
+	return dr
+
+# ── v130: Infrastructure Overclock (Boost Cards) ────────────────────────────
+# {building_id: cards_installed}. Cards are consumed on install (a permanent
+# sink); the effect is clamped to owned buildings, so demolishing below the
+# card count just idles the excess until you rebuild.
+var overclocks: Dictionary = {}
+
+func get_overclock(building_id: String) -> int:
+	return int(overclocks.get(building_id, 0))
+
+# Install one Boost Card from cargo onto this building type. Returns {ok, msg}.
+func install_boost_card(building_id: String) -> Dictionary:
+	if not building_id in building_db:
+		return {"ok": false, "msg": "Unknown building."}
+	var count: int = int(buildings.get(building_id, 0))
+	if count <= 0:
+		return {"ok": false, "msg": "Build one first — cards install onto owned buildings."}
+	var oc: int = int(overclocks.get(building_id, 0))
+	if oc >= count:
+		return {"ok": false, "msg": "Every unit is already overclocked (%d/%d)." % [oc, count]}
+	if GameState.resources.get_element_amount("BoostCard") < 1:
+		return {"ok": false, "msg": "No Boost Card in cargo — fabricate one in Engineering."}
+	GameState.resources.remove_element("BoostCard", 1)
+	overclocks[building_id] = oc + 1
+	activity_occurred.emit()
+	boost_card_installed.emit(building_id)
+	return {"ok": true, "msg": "Overclocked: %d/%d units at 200%%." % [oc + 1, count]}
 
 # P1.4: yield multiplier for raw ore extractors (gathering owns the ore tier).
 func _ore_throttle(building_id: String) -> float:
@@ -1791,17 +1828,20 @@ func get_save_data_manager() -> Dictionary:
 	var data = get_save_data()
 	data["buildings"] = buildings
 	data["building_throttles"] = building_throttles
+	data["overclocks"] = overclocks.duplicate()  # v130: installed Boost Cards per building (copy — no aliasing)
 	return data
 
 func load_save_data_manager(data: Dictionary):
 	load_save_data(data)
 	if data.is_empty(): return
-	
+
 	buildings = data.get("buildings", {})
 	building_throttles = data.get("building_throttles", {})
+	overclocks = data.get("overclocks", {})  # v130: additive, pre-v130 saves default {}
 
 	# Fix types if json loaded strings
 	for k in buildings: buildings[k] = int(buildings[k])
+	for k in overclocks: overclocks[k] = int(overclocks[k])
 	for k in building_throttles: building_throttles[k] = float(building_throttles[k])
 	
 	recalc_energy()
@@ -1814,6 +1854,7 @@ func reset(decay_factor: float = 1.0) -> void:
 	# each run via retained research + warp mults + the glut). This is NOT a
 	# decay bug; do not "fix" it to persist. (Sanity checklist #10, confirmed.)
 	buildings.clear()
+	overclocks.clear()  # v130: installed cards are run-state, wiped with the buildings
 	generation = 0.0
 	consumption = 0.0
 	net_energy = 0.0

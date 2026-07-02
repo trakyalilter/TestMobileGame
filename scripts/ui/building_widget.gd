@@ -15,6 +15,10 @@ var parent_ui: Node
 var production_timer: float = 0.0
 var production_interval: float = 1.0
 var _mastery_lbl: Label
+# v130: Boost-Card overclock UI (repurposed OverclockContainer scene node)
+var _oc_container: Control
+var _oc_label: Label
+var _oc_btn: Button
 
 func setup(p_bid: String, p_data: Dictionary, p_manager, p_parent):
 	bid = p_bid
@@ -40,9 +44,32 @@ func setup(p_bid: String, p_data: Dictionary, p_manager, p_parent):
 	UITheme.apply_card_style(self, "infrastructure")
 	UITheme.apply_premium_button_style(buy_btn, "infrastructure")
 	
-	# Hide unused overclocking UI
+	# v130: the old slider-overclock container is repurposed for the Boost-Card
+	# overclock — label shows installed cards, a button installs one from cargo.
+	# Hidden until relevant (owned building + a card in cargo or already installed).
 	if has_node("MarginContainer/VBoxContainer/OverclockContainer"):
-		get_node("MarginContainer/VBoxContainer/OverclockContainer").hide()
+		_oc_container = get_node("MarginContainer/VBoxContainer/OverclockContainer")
+		_oc_label = _oc_container.get_node("OCLabel")
+		_oc_container.get_node("OCSlider").hide()
+		_oc_btn = Button.new()
+		_oc_btn.text = "INSTALL BOOST CARD"
+		_oc_btn.custom_minimum_size = Vector2(0, 28)
+		_oc_btn.add_theme_font_size_override("font_size", 10)
+		UITheme.apply_premium_button_style(_oc_btn, "infrastructure")
+		# v130: the Boost Card material icon, tinted its signature amber (same
+		# id-keyed glyph the inventory/recipes show). Degrades to text-only if
+		# the icon file is ever absent (get_material_icon returns null).
+		var _oc_tex: Texture2D = ElementDB.get_material_icon("BoostCard")
+		if _oc_tex:
+			_oc_btn.icon = _oc_tex
+			_oc_btn.add_theme_constant_override("icon_max_width", 18)
+			var _oc_tint: Color = ElementDB.get_material_tint("BoostCard")
+			for _st in ["icon_normal_color", "icon_hover_color", "icon_pressed_color", "icon_focus_color"]:
+				_oc_btn.add_theme_color_override(_st, _oc_tint)
+			_oc_btn.add_theme_color_override("icon_disabled_color", Color(_oc_tint.r, _oc_tint.g, _oc_tint.b, 0.45))
+		_oc_btn.pressed.connect(_on_overclock_pressed)
+		_oc_container.add_child(_oc_btn)
+		_oc_container.hide()
 	
 	production_interval = data.get("interval", 2.0)
 	
@@ -182,6 +209,21 @@ func update_state():
 	# Infra↔Mastery: linked Mastery level + the output bonus it grants (count>0).
 	_update_mastery_readout(count)
 
+	# v130: Boost-Card overclock readout — visible once relevant (owned building
+	# AND a card in cargo or already installed); never shown to pre-mid players.
+	if _oc_container:
+		var oc: int = manager.get_overclock(bid) if manager.has_method("get_overclock") else 0
+		var cards: float = GameState.resources.get_element_amount("BoostCard")
+		var show_oc: bool = count > 0 and (oc > 0 or cards >= 1)
+		_oc_container.visible = show_oc
+		if show_oc:
+			_oc_label.text = "⚡ Overclock: %d/%d units @ 200%%" % [oc, count]
+			_oc_btn.disabled = (cards < 1 or oc >= count)
+			if cards >= 1:
+				_oc_btn.text = "INSTALL BOOST CARD (%d in cargo)" % int(cards)
+			else:
+				_oc_btn.text = "NO BOOST CARDS IN CARGO"
+
 	# Refresh Cost Display (Iter8 Scaling)
 	var current_costs = manager.get_building_cost(bid)
 	var cost_str = ""
@@ -291,3 +333,15 @@ func _update_mastery_readout(count: int) -> void:
 	var disp: String = ElementDB.get_display_name(info.get("symbol", ""))
 	_mastery_lbl.text = "⚙ %s Mastery  Lv %d  (+%d%% output)" % [disp, int(info.get("level", 0)), int(round(info.get("bonus_pct", 0.0)))]
 	_mastery_lbl.visible = true
+
+# v130: install one Boost Card from cargo onto this building type (consumed —
+# a permanent overclock; the manager clamps the effect to owned units).
+func _on_overclock_pressed() -> void:
+	var r: Dictionary = manager.install_boost_card(bid)
+	var ok: bool = bool(r.get("ok", false))
+	UITheme.show_notification(str(r.get("msg", "")), UITheme.COLORS["positive"] if ok else UITheme.COLORS["negative"])
+	if ok:
+		UITheme.trigger_ui_thud(self, 4.0)
+	update_state()
+	if parent_ui and parent_ui.has_method("update_ui"):
+		parent_ui.update_ui()

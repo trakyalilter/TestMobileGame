@@ -37,6 +37,8 @@ var _grant_selected_symbol: String = ""  # symbol chosen from the dropdown
 var _dbg_skill_idx: int = 0        # 0 = Gathering, 1 = Processing
 var _dbg_skill_level: int = 100
 var _dbg_mission_edit: LineEdit    # type a mission id to reveal/complete
+# v130 debug — overclock / efficiency testing
+var _dbg_eff_tier: int = 5         # 0 = none, 1..5 = Efficiency I..V
 
 
 func _ready() -> void:
@@ -238,6 +240,10 @@ func _build_testing_section() -> void:
 	body.add_child(HSeparator.new())
 
 	_build_mission_debug(body)
+
+	body.add_child(HSeparator.new())
+
+	_build_overclock_debug(body)
 
 	body.add_child(HSeparator.new())
 
@@ -795,6 +801,83 @@ func _on_dbg_mission_reset_pressed() -> void:
 	mm.connect_signals()
 	mm.mission_updated.emit()
 	UITheme.show_notification("All missions reset to start.", Color(1.0, 0.7, 0.3))
+
+
+# --------------------------------------------------------------------------
+# Overclock / Efficiency (debug) — v130
+# --------------------------------------------------------------------------
+# Test the Boost-Card overclock + the nerfed Efficiency ladder without the
+# lvl-45 craft grind: grant cards, set the EXACT efficiency tier (x2/3/4/5/10),
+# and bulk-grant building counts to exercise the OC clamp + DR interplay.
+func _build_overclock_debug(body: VBoxContainer) -> void:
+	var title := Label.new()
+	title.text = "Overclock / Efficiency (debug)"
+	title.add_theme_font_size_override("font_size", 12)
+	title.add_theme_color_override("font_color", Color(0.66, 0.7, 0.8))
+	body.add_child(title)
+
+	var hint := Label.new()
+	hint.text = "Grant Boost Cards, set the exact Efficiency research tier (x2/x3/x4/x5/x10), or +10 every owned building for overclock-cap testing."
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hint.add_theme_font_size_override("font_size", 10)
+	hint.add_theme_color_override("font_color", Color(0.55, 0.58, 0.65))
+	body.add_child(hint)
+
+	var cards_btn := _primary_button("+5 BOOST CARDS", FRAME_CAT)
+	cards_btn.custom_minimum_size = Vector2(0, 38)
+	cards_btn.pressed.connect(_on_dbg_grant_boost_cards_pressed)
+	body.add_child(cards_btn)
+
+	_add_choice_row(body, "Efficiency Tier",
+		[["None", 0], ["I", 1], ["II", 2], ["III", 3], ["IV", 4], ["V", 5]],
+		func(): return _dbg_eff_tier,
+		func(v): _dbg_eff_tier = int(v))
+
+	var tier_btn := _primary_button("SET EFFICIENCY TIER", FRAME_CAT)
+	tier_btn.custom_minimum_size = Vector2(0, 38)
+	tier_btn.pressed.connect(_on_dbg_set_eff_tier_pressed)
+	body.add_child(tier_btn)
+
+	var bld_btn := _primary_button("+10 TO ALL OWNED BUILDINGS", FRAME_CAT)
+	bld_btn.custom_minimum_size = Vector2(0, 38)
+	bld_btn.pressed.connect(_on_dbg_bulk_buildings_pressed)
+	body.add_child(bld_btn)
+
+
+func _on_dbg_grant_boost_cards_pressed() -> void:
+	if not GameState.resources:
+		return
+	GameState.resources.add_element("BoostCard", 5)
+	UITheme.show_notification("+5 Boost Cards. Open Infrastructure to install them.", Color(1.0, 0.76, 0.28))
+
+
+func _on_dbg_set_eff_tier_pressed() -> void:
+	var rm = GameState.research_manager
+	if rm == null:
+		return
+	# Set unlocked_techs to EXACTLY this tier: strip all efficiency nodes, then
+	# re-add 1..N (the ladder is highest-tier-wins, so intermediates matter for UI).
+	for t in ["efficiency_1", "efficiency_2", "efficiency_3", "efficiency_4", "efficiency_5"]:
+		rm.unlocked_techs.erase(t)
+	for i in range(1, _dbg_eff_tier + 1):
+		rm.unlocked_techs.append("efficiency_%d" % i)
+	UITheme.show_notification("Efficiency tier %d -> x%.0f output." % [_dbg_eff_tier, rm.get_efficiency_multiplier()], Color(0.45, 1.0, 0.55))
+
+
+func _on_dbg_bulk_buildings_pressed() -> void:
+	var im = GameState.infrastructure_manager
+	if im == null:
+		return
+	var bumped := 0
+	for bid in im.buildings.keys():
+		if int(im.buildings[bid]) > 0:
+			im.buildings[bid] = int(im.buildings[bid]) + 10
+			bumped += 1
+	if bumped == 0:
+		UITheme.show_notification("No owned buildings — build at least one first.", Color(1.0, 0.7, 0.3))
+		return
+	im.activity_occurred.emit()
+	UITheme.show_notification("+10 to %d building type(s). (Direct grant — no mission credit.)" % bumped, Color(0.45, 1.0, 0.55))
 
 
 # --------------------------------------------------------------------------

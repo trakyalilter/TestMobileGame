@@ -135,6 +135,8 @@ var ELEMENT_NAMES = {
 	"CorruptionWorm": "Corruption Worm",
 	"RefitBay": "Refit Bay",
 	"SignalCalibrator": "Signal Calibrator",
+	# v130: infrastructure overclock card (Satisfactory power-shard analog)
+	"BoostCard": "Boost Card",
 
 	# Combat Loot & Artifacts
 	"MiteChitin": "Mite Chitin",
@@ -258,7 +260,9 @@ var CATEGORIES = {
 	# Combat-exclusive progression salvage (Inventory "Other", never Armory)
 	"reclaimed_components": ["SalvagedAlloy", "DamagedCircuitry"],
 	# v127: Hack Stone crafting currency
-	"hack_stones": ["SpliceChip", "FirmwareInjector", "RootKey", "AnchorBolt", "CorruptionWorm", "RefitBay", "SignalCalibrator"]
+	"hack_stones": ["SpliceChip", "FirmwareInjector", "RootKey", "AnchorBolt", "CorruptionWorm", "RefitBay", "SignalCalibrator"],
+	# v130: infrastructure overclock cards — mid/late craftable, installed per building unit
+	"boost_cards": ["BoostCard"]
 }
 
 # v66.0: Consumable Slot System Data
@@ -318,7 +322,7 @@ func get_elements_in_category(category: String) -> Array:
 var _slot_protected: Dictionary = {}
 func is_slot_protected(symbol: String) -> bool:
 	if _slot_protected.is_empty():
-		for cat in ["boss_cores", "matrix_cores", "endgame", "special", "hack_stones"]:
+		for cat in ["boss_cores", "matrix_cores", "endgame", "special", "hack_stones", "boost_cards"]:
 			for s in CATEGORIES.get(cat, []):
 				_slot_protected[s] = true
 	return _slot_protected.has(symbol)
@@ -627,6 +631,7 @@ var MATERIAL_TINT := {
 	"CorruptionWorm": Color(0.75, 0.40, 0.80),
 	"RefitBay": Color(0.55, 0.70, 0.90),
 	"SignalCalibrator": Color(0.95, 0.60, 0.85),
+	"BoostCard": Color(1.0, 0.76, 0.28),
 	"TitanClearance": Color(0.60, 0.66, 0.72),
 	"ReactiveCore": Color(0.85, 0.45, 0.30),
 }

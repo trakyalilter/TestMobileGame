@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- boost card: body + contact strip + overclock bolt + gauge ticks -->
+  <rect x="17" y="9" width="30" height="46" rx="3.5" fill="#ffffff"/>
+  <rect x="22" y="13" width="20" height="7" rx="1.5" fill="#303030"/>
+  <path d="M25 16.5 H39" stroke="#ffffff" stroke-width="1.1"/>
+  <path d="M35 23 L25 38 H31 L28 51 L39 35 H33 L36 23 Z" fill="#303030"/>
+  <path d="M42 26 v5 M42 34 v5 M42 42 v5" stroke="#303030" stroke-width="1.6" stroke-linecap="round"/>
+</svg>
