@@ -37,7 +37,11 @@ func _ready():
 	# base by a content-dependent amount (the icon + 24px socket band + unequip),
 	# so every filled slot grew a little differently. Pin a fixed size and let the
 	# icon's EXPAND_FILL absorb the slack — empty and filled slots are now identical.
-	custom_minimum_size = Vector2(124, 140)
+	# v131b: SQUARE 124x124 so every equipment slot is a uniform square matching
+	# the armory tiles (card language: icon=type, border=rarity, emblem=tier). The
+	# scene's SHRINK_CENTER flag holds this exact size, so slots don't stretch to
+	# fill the blade — they form a clean square grid like the armory.
+	custom_minimum_size = Vector2(124, 124)
 	option_btn.visible = false
 	# v111.20: slot-level hover → rarity-framed module tooltip (manual popup),
 	# replacing the generic cyan _make_custom_tooltip.

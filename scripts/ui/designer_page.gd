@@ -55,6 +55,7 @@ var all_slot_widgets: Array = []
 var armory_sort_mode: int = 0  # 0=Power, 1=Zone, 2=Rarity
 var _sort_buttons: Array = []
 var _preset_load_buttons: Array = []
+var _preset_row: HBoxContainer = null   # v131: kept for the coach anchor
 
 # Consolidated armory toolbar (search + sort dropdown + manage toggle).
 var armory_search: LineEdit
@@ -272,6 +273,9 @@ func get_coach_anchor(key: String) -> Control:
 			return power_bar
 		"consumables":
 			return _consumable_blade if _consumable_blade else schematic_area
+		"presets":
+			# v131: preset-row anchor for the designer_presets coach stage.
+			return _preset_row if is_instance_valid(_preset_row) else schematic_area
 	return null
 
 func on_page_enter():
@@ -638,6 +642,7 @@ func _apply_search_field_style(le: LineEdit):
 
 func _setup_loadout_preset_row(parent: Node, insert_idx: int):
 	var preset_row = HBoxContainer.new()
+	_preset_row = preset_row   # v131: coach-anchor ref
 	preset_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	preset_row.add_theme_constant_override("separation", 7)
 
@@ -1685,26 +1690,28 @@ func _create_blade(title: String, slot_list: Array, parent: Node, color: Color =
 	blade_panel.add_theme_stylebox_override("panel", _make_blade_style(color))
 	parent.add_child(blade_panel)
 
+	# v131: compact blades — tighter margins/gaps so Weapons+Ammo+Defense fit on
+	# one screen without scrolling.
 	var margin = MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 10)
-	margin.add_theme_constant_override("margin_top", 8)
-	margin.add_theme_constant_override("margin_right", 10)
-	margin.add_theme_constant_override("margin_bottom", 10)
+	margin.add_theme_constant_override("margin_left", 8)
+	margin.add_theme_constant_override("margin_top", 5)
+	margin.add_theme_constant_override("margin_right", 8)
+	margin.add_theme_constant_override("margin_bottom", 6)
 	blade_panel.add_child(margin)
 
 	var vbox = VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 8)
+	vbox.add_theme_constant_override("separation", 5)
 	margin.add_child(vbox)
 
 	var label = Label.new()
 	label.text = "%s" % title.to_upper()
-	label.add_theme_font_size_override("font_size", 12)
+	label.add_theme_font_size_override("font_size", 11)
 	label.add_theme_color_override("font_color", color)
 	vbox.add_child(label)
 
 	var flow = HFlowContainer.new()
-	flow.add_theme_constant_override("h_separation", 10)
-	flow.add_theme_constant_override("v_separation", 10)
+	flow.add_theme_constant_override("h_separation", 7)
+	flow.add_theme_constant_override("v_separation", 7)
 	vbox.add_child(flow)
 
 	for slot_data in slot_list:
@@ -1737,25 +1744,25 @@ func _create_consumable_blade(parent: Node):
 	_consumable_blade = blade_panel  # coach/nav-hint anchor for Combat Triage
 
 	var margin = MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 10)
-	margin.add_theme_constant_override("margin_top", 8)
-	margin.add_theme_constant_override("margin_right", 10)
-	margin.add_theme_constant_override("margin_bottom", 10)
+	margin.add_theme_constant_override("margin_left", 8)
+	margin.add_theme_constant_override("margin_top", 5)
+	margin.add_theme_constant_override("margin_right", 8)
+	margin.add_theme_constant_override("margin_bottom", 6)
 	blade_panel.add_child(margin)
 
 	var vbox = VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 8)
+	vbox.add_theme_constant_override("separation", 5)
 	margin.add_child(vbox)
 
 	var label = Label.new()
 	label.text = "CONSUMABLES"
-	label.add_theme_font_size_override("font_size", 12)
+	label.add_theme_font_size_override("font_size", 11)
 	label.add_theme_color_override("font_color", UITheme.CATEGORY_COLORS["ops"])
 	vbox.add_child(label)
 
 	var flow = HFlowContainer.new()
-	flow.add_theme_constant_override("h_separation", 10)
-	flow.add_theme_constant_override("v_separation", 10)
+	flow.add_theme_constant_override("h_separation", 7)
+	flow.add_theme_constant_override("v_separation", 7)
 	vbox.add_child(flow)
 
 	var hull_slot = slot_widget_scene.instantiate()

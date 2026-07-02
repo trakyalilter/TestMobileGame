@@ -113,7 +113,7 @@ var tech_tree = {
 		"effects": [
 			{"type": "bonus_yield", "bonus": 0.10, "what": "Global Production Speed"},
 		],
-		"unlocks": ["Terraforming Processor", "Biosphere Dome"],
+		"unlocks": [],
 		"flavor": "Gates the Advanced Technologies branch.",
 	},
 	# v110: schema refactor pilot — combustion / smelting / shipwright_1 are
@@ -161,8 +161,6 @@ var tech_tree = {
 		"cost": 50000,
 		"cost_items": {"Steel":20,"Res1": 20,"Circuit": 10},
 		"type": "technology",
-		"parent": "power_systems",
-		"req_tech": "smelting",
 		"effects": [],
 		"unlocks": ["Industrial Frigate"],
 		"flavor": "",
@@ -371,7 +369,7 @@ var tech_tree = {
 		"flavor": "Sustained automated output required.",
 	},
 	"zone_6_access": {
-		"name": "Deep Space Navigation",
+		"name": "Beta Colony Charter",
 		"tier": 6,
 		"category": "zone",
 		"cost": 1171875,
@@ -383,7 +381,7 @@ var tech_tree = {
 		"flavor": "Mature industrial base required.",
 	},
 	"zone_7_access": {
-		"name": "Radiation Shielding",
+		"name": "Gamma Sector Clearance",
 		"tier": 7,
 		"category": "zone",
 		"cost": 2929687,
@@ -395,7 +393,7 @@ var tech_tree = {
 		"flavor": "Heavy automation + Tungsten extraction.",
 	},
 	"zone_8_access": {
-		"name": "Exotic Matter Analysis",
+		"name": "Delta Sector Survey",
 		"tier": 8,
 		"category": "zone",
 		"cost": 7324218,
@@ -419,7 +417,7 @@ var tech_tree = {
 		"flavor": "Deep automated supply chains.",
 	},
 	"zone_10_access": {
-		"name": "Void Navigation",
+		"name": "Epsilon Frontier Charter",
 		"tier": 10,
 		"category": "zone",
 		"cost": 45776367,
@@ -932,10 +930,7 @@ var tech_tree = {
 		"type": "technology",
 		"parent": "industrial_logistics",
 		"effects": [],
-		# v111.6 audit: drift fix — building's real display name in
-		# infrastructure_manager is "Drone Recovery Bay", not "Drone Bay".
-		# Now matches → smart-linker can hyperlink it in tooltips.
-		"unlocks": ["Drone Recovery Bay"],
+		"unlocks": [],
 		"flavor": "",
 	},
 	"molecular_printing": {
@@ -1606,62 +1601,10 @@ var tech_tree = {
 	},
 }
 
-var repeatable_tech_db = {
-	"production_focus": {
-		"name": "Recursive Optimization (Industry)",
-		"description": "Infinite scaling: +5% Global Processing Speed per level.",
-		"base_cost": 100000,
-		"base_items": {"VoidArtifact": 5, "AdvCircuit": 50, "Bauxite": 100, "Quartz": 100, "PtOre": 25},
-		"bonus_type": "processing_speed",
-		"bonus_value": 0.05
-	},
-	"combat_focus": {
-		"name": "Recursive Calibration (Combat)",
-		"description": "Infinite scaling: +5% Total Ship Damage per level.",
-		"base_cost": 100000,
-		"base_items": {"VoidArtifact": 5, "QuantumCore": 5, "Malachite": 100},
-		"bonus_type": "combat_damage",
-		"bonus_value": 0.05
-	},
-	"gathering_focus": {
-		"name": "Recursive Logistics (Gathering)",
-		"description": "Infinite scaling: +5% Global Gathering Yield per level.",
-		"base_cost": 100000,
-		# v103e: DroneCore unsourced -> swapped to MiteChitin (obtainable:
-		# zone-1 combat loot + salvage) so this recursion stays levelable.
-		"base_items": {"VoidArtifact": 5, "MiteChitin": 50, "Spodumene": 100},
-		"bonus_type": "gathering_yield_mult",
-		"bonus_value": 0.05
-	},
-	# v109: three new lanes paired to the offense/output trio above —
-	# defense, background production, and income velocity. VoidArtifact stays
-	# the shared combat gate (engineer/captain integration); secondary mats
-	# differ per lane to keep demand-breadth across production chains.
-	"defense_focus": {
-		"name": "Recursive Hardening (Defense)",
-		"description": "Infinite scaling: +5% Max Hull HP per level.",
-		"base_cost": 100000,
-		"base_items": {"VoidArtifact": 5, "Steel": 100, "Superalloy": 20},
-		"bonus_type": "hull_hp_mult",
-		"bonus_value": 0.05
-	},
-	"infrastructure_focus": {
-		"name": "Recursive Networking (Infrastructure)",
-		"description": "Infinite scaling: +5% Global Production Yield per level — lifts both your buildings AND active crafting/gathering equally.",
-		"base_cost": 100000,
-		"base_items": {"VoidArtifact": 5, "AdvCircuit": 30, "Cu": 100},
-		"bonus_type": "building_yield_mult",
-		"bonus_value": 0.05
-	},
-	"wealth_focus": {
-		"name": "Recursive Acquisition (Wealth)",
-		"description": "Infinite scaling: +5% Lira rewards from combat, quests & bounties per level.",
-		"base_cost": 100000,
-		"base_items": {"VoidArtifact": 5, "PirateSalvage": 30, "Au": 5},
-		"bonus_type": "credit_reward_mult",
-		"bonus_value": 0.05
-	}
-}
+# v130: Recursion research tab REMOVED. The six infinite repeatable lanes are
+# gone; this stays an empty dict so the (now-inert) repeatable helpers + the
+# get_efficiency_bonus() summation loop no-op safely and old saves load clean.
+var repeatable_tech_db = {}
 
 
 func _init():
@@ -1988,7 +1931,9 @@ func load_save_data_manager(data: Dictionary):
 	for tid in saved_techs:
 		if tid in tech_tree:
 			unlocked_techs.append(tid)
-	repeatable_techs = data.get("repeatable_techs", {})
+	# v130: Recursion removed — drop any saved repeatable levels so old saves
+	# carry no ghost bonuses (every recursion bonus routed through these levels).
+	repeatable_techs = {}
 
 # v111.5: Scan-action + Data-currency machinery deleted. The original design
 # had Research = Astrophysics-skill-with-idle-scan-action producing a `data`

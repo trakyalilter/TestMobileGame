@@ -117,9 +117,9 @@ theme_override_constants/separation = 0
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_stretch_ratio = 1.2
-theme_override_constants/margin_left = 15
-theme_override_constants/margin_top = 15
-theme_override_constants/margin_bottom = 15
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_bottom = 10
 
 [node name="SlotScroll" type="ScrollContainer" parent="VBoxContainer/MainLayout/SchematicArea/LayoutSplit/SlotListPanel"]
 layout_mode = 2
@@ -129,7 +129,7 @@ horizontal_scroll_mode = 0
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_constants/separation = 15
+theme_override_constants/separation = 8
 
 [node name="RightPanel" type="PanelContainer" parent="VBoxContainer/MainLayout"]
 custom_minimum_size = Vector2(336, 0)

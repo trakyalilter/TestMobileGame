@@ -42,7 +42,7 @@ func refresh_state():
 		return
 
 	var active_ammo = manager.ammo_loadout.get(slot_idx, "")
-	type_lbl.text = "WEAPON #%d AMMUNITION" % (slot_idx + 1)
+	type_lbl.text = "WEAPON %d" % (slot_idx + 1)  # v131b: terse — fits the square; blade title already says AMMUNITION
 	type_lbl.add_theme_color_override("font_color", Color(0.88, 0.60, 0.34)) # Ammo Slot Color
 
 	if active_ammo != "":
@@ -73,7 +73,7 @@ func _get_drag_data(_at_position: Vector2) -> Variant:
 	var preview = load("res://scenes/ui/designer_ammo_slot_widget.tscn").instantiate()
 	preview.setup(slot_idx, parent_ui, manager)
 	preview.modulate = Color(1, 0.5, 0.5, 0.8)
-	preview.custom_minimum_size = Vector2(124, 138)
+	preview.custom_minimum_size = Vector2(124, 124)  # v131b: square, matches equipment slots
 	preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	var queue = [preview]

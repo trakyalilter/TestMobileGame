@@ -79,7 +79,7 @@ var building_db: Dictionary = {
 	"geothermal_well": {
 		"name": "Geothermal Well",
 		"description": "+250.0 kW (Stable)",
-		"cost": {"credits": 400000, "Ti": 100, "Hydraulics": 50},
+		"cost": {"credits": 15000, "Steel": 100, "Hydraulics": 10},
 		"energy_gen": 250.0,
 		"energy_cons": 0.0,
 		"research_req": "basic_engineering",
@@ -88,7 +88,7 @@ var building_db: Dictionary = {
 	"biomass_plant": {
 		"name": "Biomass Plant",
 		"description": "+1000.0 kW (-5 Wood)",
-		"cost": {"credits": 150000, "Steel": 200, "Circuit": 20},
+		"cost": {"credits": 35000, "Steel": 200, "Circuit": 20},
 		"energy_gen": 1000.0,
 		"energy_cons": 0.0,
 		"input": {"Wood": 5},
@@ -146,7 +146,7 @@ var building_db: Dictionary = {
 		"cost": {"credits": 5000000, "W": 200, "Chip": 150},
 		"energy_gen": 1000000.0,
 		"energy_cons": 0.0,
-		"research_req": "energy_metrics",
+		"research_req": "quantum_dynamics",
 		"category": "power"
 	},
 	"fusion_reactor": {
@@ -161,7 +161,7 @@ var building_db: Dictionary = {
 	"antimatter_generator": {
 		"name": "Antimatter Generator",
 		"description": "+16000000.0 kW (-1 Quantum Core)",
-		"cost": {"credits": 25000000, "VoidArtifact": 50, "QuantumCore": 10},
+		"cost": {"credits": 80000000, "VoidArtifact": 100, "QuantumCore": 25},
 		"energy_gen": 16000000.0,
 		"energy_cons": 0.0,
 		# v103d: AntimatterFuel had NO source anywhere -> this generator could
@@ -897,17 +897,6 @@ var building_db: Dictionary = {
 	},
 
 	# ========== CATEGORY: LOGISTICS ==========
-	"drone_bay": {
-		"name": "Drone Recovery Bay",
-		"description": "+Scrap (Zone Scavenging)",
-		"cost": {"credits": 5000, "Circuit": 10, "Ti": 20},
-		"energy_gen": 0.0,
-		"energy_cons": 150.0,
-		"max": 1,
-		"research_req": "automated_logistics",
-		"special": "passive_gather",
-		"category": "logistics"
-	},
 	"fabricator": {
 		"name": "Molecular Fabricator",
 		"description": "-20% Crafting Time",
@@ -927,29 +916,6 @@ var building_db: Dictionary = {
 		"energy_cons": 35.0,
 		"yield_bonus": {"N": 0.10},
 		"research_req": "cryogenic_storage",
-		"category": "logistics"
-	},
-	"terraforming_processor": {
-		"name": "Terraforming Processor",
-		"description": "+1 Fertile Soil (+5% Gather Speed)",
-		"cost": {"credits": 20000, "Steel": 100, "Circuit": 20},
-		"energy_gen": 0.0,
-		"energy_cons": 50.0,
-		"yield": {"FertileSoil": 1},
-		"input": {"Dirt": 25, "Water": 5},
-		"interval": 10.0,
-		"research_req": "industrial_logistics",
-		"category": "logistics"
-	},
-	"biosphere_dome": {
-		"name": "Biosphere Dome",
-		"description": "+5% Gather Speed",
-		"cost": {"credits": 30000, "Steel": 150, "Si": 50, "FertileSoil": 10},
-		"energy_gen": 0.0,
-		"energy_cons": 50.0,
-		"max": 5,
-		"research_req": "industrial_logistics",
-		"special": "gather_speed_buff",
 		"category": "logistics"
 	},
 	"catalyst_chamber": {
@@ -977,6 +943,12 @@ var building_db: Dictionary = {
 }
 
 var production_timers: Dictionary = {}
+# v131: integer economy — per-"bid|res" fractional remainder so infrastructure
+# grants/consumes WHOLE units while preserving exact expected output (sub-1 yields
+# ACCRUE instead of flooring to zero, so nothing is lost). Transient — rebuilt from
+# play, not saved; losing <1 unit of carry across a reload is negligible.
+var _out_carry: Dictionary = {}
+var _in_carry: Dictionary = {}
 
 # v120: building upkeep REMOVED. Grid energy availability (energy_efficiency)
 # and per-recipe input materials are the only infrastructure sinks now.
@@ -1003,7 +975,9 @@ func get_building_count(building_id: String) -> int:
 	return buildings.get(building_id, 0)
 
 func set_building_throttle(building_id: String, value: float):
-	building_throttles[building_id] = clamp(value, 0.0, 1.0)
+	# v131: Overclock — a Boost-Card-unlocked building type can throttle up to 200%.
+	var cap: float = 2.0 if get_overclock(building_id) >= 1 else 1.0
+	building_throttles[building_id] = clamp(value, 0.0, cap)
 	activity_occurred.emit() # Refresh UI rates
 
 func get_building_throttle(building_id: String) -> float:
@@ -1032,40 +1006,46 @@ func _dr_units(building_id: String, count: int) -> float:
 	else:
 		var extra := float(count - knee)
 		dr = float(knee) + extra / (1.0 + extra / float(tail))
-	# v130: OVERCLOCK — each installed Boost Card runs ONE unit of this building
-	# at x2, i.e. +1 effective unit, added POST-DR so a card is never eaten by the
-	# diminishing-returns curve ("a card doubles one machine" stays literally
-	# true). Folded in here so every production path — live tick, consumption,
-	# offline catch-up, mastery pacing — scales yield AND inputs symmetrically.
-	dr += float(mini(int(overclocks.get(building_id, 0)), count))
+	# v131: Overclock moved OFF the unit count and ONTO the throttle slider (a
+	# Boost Card unlocks 0-200% per type). _dr_units is pure diminishing-returns
+	# again; throttle applies the 200% boost, type-wide, over production AND energy.
 	return dr
 
-# ── v130: Infrastructure Overclock (Boost Cards) ────────────────────────────
-# {building_id: cards_installed}. Cards are consumed on install (a permanent
-# sink); the effect is clamped to owned buildings, so demolishing below the
-# card count just idles the excess until you rebuild.
+# ── v131: Infrastructure Overclock (Boost Cards) ────────────────────────────
+# {building_id: 1} once unlocked. A Boost Card is a ONE-TIME unlock per building
+# TYPE (consumed on install — a permanent sink) that raises that type's Efficiency
+# throttle cap from 100% to 200%. The boost IS the throttle slider, so it applies
+# TYPE-WIDE over both production and energy. Any value >= 1 means unlocked.
 var overclocks: Dictionary = {}
 
 func get_overclock(building_id: String) -> int:
 	return int(overclocks.get(building_id, 0))
 
-# Install one Boost Card from cargo onto this building type. Returns {ok, msg}.
+# v131: Overclock input cost. OUTPUT scales linearly with throttle; INPUT scales
+# QUADRATICALLY above 100% (Satisfactory-style) — a type at 200% doubles output but
+# quadruples input. At/below 100% it stays linear (plain throttle).
+func _overclock_input_mult(throttle: float) -> float:
+	if throttle <= 1.0:
+		return throttle
+	return throttle * throttle
+
+# Install one Boost Card from cargo — a ONE-TIME unlock that raises this building
+# type's Efficiency cap to 200% (the slider then drives the boost). Returns {ok, msg}.
 func install_boost_card(building_id: String) -> Dictionary:
 	if not building_id in building_db:
 		return {"ok": false, "msg": "Unknown building."}
 	var count: int = int(buildings.get(building_id, 0))
 	if count <= 0:
-		return {"ok": false, "msg": "Build one first — cards install onto owned buildings."}
-	var oc: int = int(overclocks.get(building_id, 0))
-	if oc >= count:
-		return {"ok": false, "msg": "Every unit is already overclocked (%d/%d)." % [oc, count]}
+		return {"ok": false, "msg": "Build one first — a card unlocks overclock on an owned building type."}
+	if int(overclocks.get(building_id, 0)) >= 1:
+		return {"ok": false, "msg": "Overclock already unlocked for this building type."}
 	if GameState.resources.get_element_amount("BoostCard") < 1:
 		return {"ok": false, "msg": "No Boost Card in cargo — fabricate one in Engineering."}
 	GameState.resources.remove_element("BoostCard", 1)
-	overclocks[building_id] = oc + 1
+	overclocks[building_id] = 1
 	activity_occurred.emit()
 	boost_card_installed.emit(building_id)
-	return {"ok": true, "msg": "Overclocked: %d/%d units at 200%%." % [oc + 1, count]}
+	return {"ok": true, "msg": "Overclock unlocked — Efficiency can now go up to 200%."}
 
 # P1.4: yield multiplier for raw ore extractors (gathering owns the ore tier).
 func _ore_throttle(building_id: String) -> float:
@@ -1233,8 +1213,8 @@ func get_total_resource_rates() -> Dictionary:
 				# If user throttles a generator, they want less consumption.
 				var consumption_eff = 1.0 if data.get("category") == "power" else efficiency
 				
-				# Apply Throttle to consumption too
-				var rate_per_min = (qty / eff_interval) * 60.0 * consumption_eff * throttle
+				# Apply Throttle to consumption — quadratic above 100% (v131 overclock cost).
+				var rate_per_min = (qty / eff_interval) * 60.0 * consumption_eff * _overclock_input_mult(throttle)
 				rates[res] = rates.get(res, 0.0) - rate_per_min
 				
 	return rates
@@ -1576,7 +1556,7 @@ func process_tick(delta: float):
 			var eff_interval = get_effective_interval(bid)
 			for res in data["input"]:
 				# Generators run at 100% efficiency regardless of grid status to jumpstart
-				var needed = data["input"][res] * count * throttle * (delta / eff_interval)
+				var needed = data["input"][res] * count * _overclock_input_mult(throttle) * (delta / eff_interval)
 				if GameState.resources.get_element_amount(res) < needed:
 					can_fuel = false
 					break
@@ -1584,7 +1564,7 @@ func process_tick(delta: float):
 			if can_fuel:
 				# Consume Fuel
 				for res in data["input"]:
-					var qty = data["input"][res] * count * throttle * (delta / eff_interval)
+					var qty = data["input"][res] * count * _overclock_input_mult(throttle) * (delta / eff_interval)
 					GameState.resources.remove_element(res, qty)
 			else:
 				# Generator stalls - decrease energy_efficiency for subsequent logic
@@ -1614,7 +1594,7 @@ func process_tick(delta: float):
 					
 					if can_produce and "input" in data:
 						for res in data["input"]:
-							var qty_needed = data["input"][res] * _dr_units(bid, count) * throttle  # P0.2 DR
+							var qty_needed = data["input"][res] * _dr_units(bid, count) * _overclock_input_mult(throttle)  # P0.2 DR + v131 quadratic overclock cost
 							if GameState.resources.get_element_amount(res) < qty_needed:
 								can_produce = false
 								break
@@ -1623,8 +1603,14 @@ func process_tick(delta: float):
 						# Consume inputs if required
 						if "input" in data:
 							for res in data["input"]:
-								var qty = data["input"][res] * _dr_units(bid, count) * throttle  # P0.2 DR
-								GameState.resources.remove_element(res, qty)
+								var qty = data["input"][res] * _dr_units(bid, count) * _overclock_input_mult(throttle)  # P0.2 DR + v131 quadratic overclock cost
+								# v131: integer economy — accrue fractional input, consume only WHOLE units.
+								var _ikey: String = bid + "|" + res
+								_in_carry[_ikey] = float(_in_carry.get(_ikey, 0.0)) + qty
+								var _take: int = int(_in_carry[_ikey])
+								if _take >= 1:
+									GameState.resources.remove_element(res, _take)
+									_in_carry[_ikey] -= _take
 						
 						# Production complete
 						activity_occurred.emit()
@@ -1650,8 +1636,14 @@ func process_tick(delta: float):
 								yield_mult *= (1.0 + GameState.shipyard_manager.affix_bonuses.get("extractor_efficiency", 0.0))
 							
 							var _prod: float = qty * _dr_units(bid, count) * throttle * yield_mult  # P0.2 DR
-							GameState.resources.add_element(res, _prod)
-							GameState.note_production("infra", _prod)  # P3.10
+							# v131: integer economy — accrue the fractional yield, grant only WHOLE units.
+							var _okey: String = bid + "|" + res
+							_out_carry[_okey] = float(_out_carry.get(_okey, 0.0)) + _prod
+							var _give: int = int(_out_carry[_okey])
+							if _give >= 1:
+								GameState.resources.add_element(res, _give)
+								GameState.note_production("infra", _give)  # P3.10
+								_out_carry[_okey] -= _give
 						
 						# Statistical expectation (Audit v5.0 - O(1) Performance Foundation)
 						if bid == "hydro_plant":
@@ -1752,10 +1744,10 @@ func calculate_offline(delta: float):
 			if cycles > 0:
 				if "input" in data:
 					for res in data["input"]:
-						GameState.resources.remove_element(res, data["input"][res] * _dr_units(bid, count) * cycles)  # P0.2 DR
+						GameState.resources.remove_element(res, floor(data["input"][res] * _dr_units(bid, count) * cycles))  # P0.2 DR + v131 integer
 				for res in data["yield"]:
 					var qty = get_effective_yield(bid, res)
-					var total = qty * _dr_units(bid, count) * cycles  # P0.2 DR
+					var total = floor(qty * _dr_units(bid, count) * cycles)  # P0.2 DR + v131 integer (offline floors the batch)
 					GameState.resources.add_element(res, total); GameState.note_production("infra", total)  # P3.10
 					loot_summary[res] = loot_summary.get(res, 0.0) + total
 				_award_infra_mastery_xp(bid, float(cycles))
@@ -1787,13 +1779,13 @@ func calculate_offline(delta: float):
 				# Consume inputs if required
 				if "input" in data:
 					for res in data["input"]:
-						var qty = data["input"][res] * _dr_units(bid, count) * cycles  # P0.2 DR
+						var qty = floor(data["input"][res] * _dr_units(bid, count) * cycles)  # P0.2 DR + v131 integer
 						GameState.resources.remove_element(res, qty)
 				
 				# Produce outputs
 				for res in data["yield"]:
 					var qty = get_effective_yield(bid, res)
-					var total = qty * _dr_units(bid, count) * cycles  # P0.2 DR
+					var total = floor(qty * _dr_units(bid, count) * cycles)  # P0.2 DR + v131 integer (offline floors the batch)
 					GameState.resources.add_element(res, total); GameState.note_production("infra", total)  # P3.10
 					loot_summary[res] = loot_summary.get(res, 0.0) + total
 				_award_infra_mastery_xp(bid, float(cycles))
@@ -1801,12 +1793,6 @@ func calculate_offline(delta: float):
 	
 	# v112: structured offline block (was a formatted string).
 	var notes: Array = []
-
-	# Audit v9.0 P2-23: Special Buff Reporting
-	if get_building_count("biosphere_dome") > 0:
-		var bonus = get_building_count("biosphere_dome") * 5
-		notes.append("Biosphere Domes: +%d%% gather speed active" % bonus)
-
 
 	if loot_summary.is_empty() and notes.is_empty():
 		return null
@@ -1855,6 +1841,8 @@ func reset(decay_factor: float = 1.0) -> void:
 	# decay bug; do not "fix" it to persist. (Sanity checklist #10, confirmed.)
 	buildings.clear()
 	overclocks.clear()  # v130: installed cards are run-state, wiped with the buildings
+	_out_carry.clear()   # v131: integer-economy remainders are run-state too
+	_in_carry.clear()
 	generation = 0.0
 	consumption = 0.0
 	net_energy = 0.0

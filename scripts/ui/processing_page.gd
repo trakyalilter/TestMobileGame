@@ -29,11 +29,19 @@ var TAB_DEFS := [
 	{"id": "alloys",      "label": "Alloys",      "color": Color(0.72, 0.72, 0.72), "cats": ["alloys"]},
 	{"id": "materials",   "label": "Materials",   "color": Color(0.40, 0.85, 0.65), "cats": ["materials"]},
 	{"id": "electronics", "label": "Electronics", "color": Color(0.25, 0.80, 1.00), "cats": ["electronics"]},
+	# v131 fix: these categories existed in recipe data but had NO tab, so their
+	# recipes (incl. Reinforced Plating, Fabricate Boost Card and the whole
+	# Reclamation lane) were silently unbuildable — _build_recipes only
+	# instantiates a widget when the recipe's category has a rack.
+	{"id": "components",  "label": "Components",  "color": Color(0.55, 0.70, 0.85), "cats": ["components"]},
+	{"id": "salvage",     "label": "Salvage",     "color": Color(0.45, 0.80, 0.55), "cats": ["salvage"]},
 	{"id": "batteries",   "label": "Batteries",   "color": Color(1.00, 0.95, 0.35), "cats": ["batteries"]},
 	{"id": "munitions",   "label": "Munitions",   "color": Color(0.95, 0.55, 0.25), "cats": ["munitions_kinetic", "munitions_energy", "munitions_explosive"]},
 	{"id": "repair",      "label": "Repair Kits", "color": Color(0.30, 0.90, 0.60), "cats": ["consumables_hull", "consumables_shield"]},
 	{"id": "research",    "label": "Research",    "color": Color(0.80, 0.45, 1.00), "cats": ["research"]},
-	{"id": "endgame",     "label": "Endgame",     "color": Color(0.85, 0.45, 0.85), "cats": ["endgame"]},
+	# v131: display renamed "Endgame" -> "Exotics" (diegetic, matches the other
+	# material-domain tab names). Internal id/category stay "endgame".
+	{"id": "endgame",     "label": "Exotics",     "color": Color(0.85, 0.45, 0.85), "cats": ["endgame"]},
 ]
 # Sub-headers for merged tabs: sub_category_id → [label, accent].
 var SUB_DEFS := {

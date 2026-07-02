@@ -448,7 +448,10 @@ var enemy_db = {
 		"boss_core": "Z1_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_missile", "z1_shield", "z1_armor", "z1_engine", "z1_battery", "z1_sensor"],
-		"is_boss": true, "xp": 100, "eva": 10, "zone": 1, "resist_k": 0.25, "resist_e": 0.25, "resist_x": -0.30, "dmg_type": "kinetic"
+		# v131: resists ZEROED by design — the first boss is a pure rarity/tier check
+		# (any RARE+ weapon type kills it). Type-matching is taught earlier on the
+		# regular enemies (m017a-d); the boss shouldn't wall players on weapon type.
+		"is_boss": true, "xp": 100, "eva": 10, "zone": 1, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "dmg_type": "kinetic"
 	},
 
 	# ═══ ZONE 2: Asteroid Belt — Reg HP~480, ATK~33, DEF~7 ═══

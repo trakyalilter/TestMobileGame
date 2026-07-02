@@ -83,13 +83,6 @@ var graphs = {
 			"exotic_matter_analysis", "void_navigation", "xeno_archaeology",
 		],
 		"container": null
-	},
-	"Recursion": {
-		"nodes": [
-			"production_focus", "combat_focus", "gathering_focus",
-			"defense_focus", "infrastructure_focus", "wealth_focus",
-		],
-		"container": null
 	}
 }
 
@@ -105,6 +98,14 @@ func _ready():
 	if GameState.resources:
 		GameState.resources.element_added.connect(_on_resource_changed)
 		GameState.resources.currency_added.connect(_on_resource_changed)
+
+	# v130 fix: refresh node states when ANY tech unlocks. A player click already
+	# refreshes via the detail modal, but EXTERNAL unlocks — e.g. the Testing-panel
+	# "Unlock All Research" button — emit tech_unlocked WITHOUT a resource change,
+	# so the tree rendered stale (unlocked in data, still lock-iconed on screen).
+	# Mirrors combat_page / shipyard_page, which already listen to this signal.
+	if manager and not manager.tech_unlocked.is_connected(_on_tech_unlocked_refresh):
+		manager.tech_unlocked.connect(_on_tech_unlocked_refresh)
 	
 	# All research tabs are built dynamically from `graphs` (the scene's
 	# TabContainer starts empty), in dictionary order. Each tab is a
@@ -129,6 +130,9 @@ func _ready():
 	call_deferred("_update_tab_visibility") # v113: hide all-gated tabs (e.g. Warp Tech pre-warp)
 
 func _on_resource_changed(_a=null, _b=null):
+	refresh_all()
+
+func _on_tech_unlocked_refresh(_id = null) -> void:
 	refresh_all()
 
 func _on_mission_updated():

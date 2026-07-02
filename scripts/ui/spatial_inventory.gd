@@ -15,8 +15,12 @@ signal pages_changed(page_count: int, current_page: int)
 
 const GAP := 4.0          # gap between cells (px)
 
-var cols := 4
-var page_rows := 6        # cells tall per page (page capacity = cols * page_rows)
+# v131: densified 4x6 -> 6x8 (48 cells/page). At 4 cols the width-derived cells
+# hit ~157px, blowing 2x2 gear cards up to ~315px and capping a page at 6 modules
+# (44 items = 7 pages). 6 cols yields ~104px cells / ~210px cards and 12 modules
+# per page. Grow-only change: every saved (page,x,y) pin stays in-bounds.
+var cols := 6
+var page_rows := 8        # cells tall per page (page capacity = cols * page_rows)
 
 var current_page := 0
 var _page_count := 1

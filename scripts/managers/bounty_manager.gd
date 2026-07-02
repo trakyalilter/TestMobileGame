@@ -37,41 +37,23 @@ func connect_signals():
 		if not cm.combat_started.is_connected(_on_combat_started):
 			cm.combat_started.connect(_on_combat_started)
 
+# v131: Zone Trophies REMOVED from the game. This now returns only the v112
+# CAPSTONE held-item buffs (Omega Accelerator / Temporal Module) — callers are
+# unchanged; buff types with no capstone simply return 1.0.
 func get_trophy_buff(buff_type: String) -> float:
 	if not GameState.resources: return 1.0
 	var res = GameState.resources
 	var mult = 1.0
-	
-	# Check for Epsilon Trophy (Global 5% boost)
-	if res.get_element_amount("Trophy_Epsilon") > 0:
-		mult += 0.05
-		
 	match buff_type:
-		"gathering_xp":
-			if res.get_element_amount("Trophy_Lunar") > 0: mult += 0.25
 		"mining_yield":
-			if res.get_element_amount("Trophy_Belt") > 0: mult += 0.20
 			# v112: Omega Accelerator capstone — "massively increases all production".
 			if res.get_element_amount("OmegaAccelerator") > 0: mult += 0.50
-		"processing_xp":
-			if res.get_element_amount("Trophy_Mars") > 0: mult += 0.25
-		"ship_speed":
-			if res.get_element_amount("Trophy_Titan") > 0: mult += 0.10
-			# v112: Temporal Stabilizer capstone — "massive combat speed boost".
-			if res.get_element_amount("TemporalModule") > 0: mult += 0.30
-		"research_speed":
-			if res.get_element_amount("Trophy_Alpha") > 0: mult += 0.15
 		"infrastructure_yield":
-			if res.get_element_amount("Trophy_Beta") > 0: mult += 0.20
 			# v112: Omega Accelerator capstone also boosts always-on infra yield.
 			if res.get_element_amount("OmegaAccelerator") > 0: mult += 0.50
-		"energy_dmg":
-			if res.get_element_amount("Trophy_Gamma") > 0: mult += 0.15
-		"kinetic_dmg":
-			if res.get_element_amount("Trophy_Delta") > 0: mult += 0.15
-		"evasion":
-			if res.get_element_amount("Trophy_Zeta") > 0: mult += 0.10
-			
+		"ship_speed":
+			# v112: Temporal Stabilizer capstone — "massive combat speed boost".
+			if res.get_element_amount("TemporalModule") > 0: mult += 0.30
 	return mult
 
 func _on_enemy_defeated(enemy_id: String):

@@ -20,7 +20,7 @@ const STEPS := {
 		{
 			"anchor": "",
 			"title": "Systems Damaged",
-			"body": "Losing a fight is costly: every equipped module takes durability damage, and some can be DESTROYED outright — including your battery, which can leave your ship unable to power its weapons at all. Repair your hull, re-equip anything you lost, and don't out-reach your gear — match your loadout to the sector before you engage.",
+			"body": "Losing a fight is costly: every equipped module takes durability damage, and worn modules risk destruction in offline combat. Repairs cost SPARE PARTS — you get those ONLY by demolishing unwanted modules in the Designer. Match your loadout to the sector before you engage.",
 		},
 	],
 	"warp_milestone": [
@@ -34,7 +34,7 @@ const STEPS := {
 		{
 			"anchor": "first_action",
 			"title": "Gathering Operations",
-			"body": "Pick an action to start gathering resources. It runs automatically on a timer — and keeps producing even while the game is closed.",
+			"body": "Pick an action to start gathering resources. It runs automatically on a timer — and keeps producing even while the game is closed. Only ONE task runs at a time: starting a different activity pauses this one.",
 		},
 		{
 			"anchor": "xp_bar",
@@ -90,6 +90,11 @@ const STEPS := {
 			"body": "This shows your current ship's combat stats. After building modules, equip them in the Designer.",
 		},
 	],
+	# v131: designer coaching split into STAGES. First visit teaches only the two
+	# survival basics; the advanced systems (Matrix Cores, Set Bonuses) fire as
+	# separate one-shot coaches the first time the player actually OWNS the thing
+	# being taught (checked in main.gd::_maybe_show_designer_stage_coach). One
+	# stage per visit — a new player is never hit with the old 5-card burst.
 	"designer": [
 		{
 			"anchor": "schematic",
@@ -99,22 +104,47 @@ const STEPS := {
 		{
 			"anchor": "power",
 			"title": "Batteries & Power",
-			"body": "Modules draw power; only battery modules supply it. Keep batteries equipped — if draw exceeds supply, your ship can't engage at all.",
+			"body": "Modules draw power; only battery modules supply it. Keep batteries equipped — if draw exceeds supply, your ship can't engage at all. Batteries never drop from combat: craft them in the Shipyard.",
 		},
+	],
+	# v131: fires on the first Shipyard visit AFTER zone_2_access research makes
+	# Matrix Synthesis craftable — the system's ONLY entry point (cores never drop
+	# in combat), so without this card it's discoverable only by list-scrolling.
+	"shipyard_matrix": [
+		{
+			"anchor": "matrix_synth",
+			"title": "Matrix Synthesis Online",
+			"body": "A new craft is available: MATRIX SYNTHESIS rolls a random Cracked Matrix Core — a socketable bonus chip. Craft one, then drag it onto a ◆-slotted module in the Ship Designer. Fusing 3 identical cores upgrades them to a stronger tier.",
+		},
+	],
+	# Fires on the first Designer visit AFTER the player owns a Matrix Core.
+	"designer_matrix": [
 		{
 			"anchor": "schematic",
 			"title": "Matrix Cores",
-			"body": "Matrix Cores are equippable bonus chips. Use Matrix Synthesis to roll one, then fuse 3 of a kind into a stronger tier.",
+			"body": "You own a Matrix Core — an equippable bonus chip. Use Matrix Synthesis to roll more, then fuse 3 of a kind into a stronger tier.",
 		},
 		{
 			"anchor": "schematic",
 			"title": "Matrix Sockets",
 			"body": "Modules with ◆ slots hold Matrix Cores. Drag a core onto a socketed, equipped module — the bonus applies globally, so placement doesn't matter.",
 		},
+	],
+	# Fires on the first Designer visit AFTER the player owns weapons of 2+ damage
+	# types (mid damage-triangle arc) — the moment hand-swapping gets old.
+	"designer_presets": [
+		{
+			"anchor": "presets",
+			"title": "Loadout Presets",
+			"body": "You're carrying more than one weapon type now. Use SAVE ▾ to store your current build, and keep a Kinetic, an Energy and an Explosive build in separate slots — one click re-equips the whole ship to match an enemy's weakness.",
+		},
+	],
+	# Fires on the first Designer visit AFTER the player owns a set-piece module.
+	"designer_sets": [
 		{
 			"anchor": "schematic",
 			"title": "Set Bonuses",
-			"body": "Some modules belong to a SET (named on the module). Equip 3 pieces of the SAME set at once to unlock its set bonus — a large combat multiplier on top of the modules' own stats. Completing a set is one of the strongest build upgrades in the game; the Sector bosses drop the unique set pieces.",
+			"body": "That module belongs to a SET (named on the module). Equip 3 pieces of the SAME set at once to unlock its set bonus — a large combat multiplier on top of the modules' own stats. Completing a set is one of the strongest build upgrades in the game; the Sector bosses drop the unique set pieces.",
 		},
 	],
 	"combat": [
@@ -136,19 +166,19 @@ const STEPS := {
 		{
 			"anchor": "consumables",
 			"title": "Repair Kits in Combat",
-			"body": "These HULL and SHLD buttons spend an equipped repair kit to patch up mid-fight (short shared cooldown). They are manual — tap them when you're getting low; nothing auto-heals.",
+			"body": "These HULL and SHLD buttons spend an equipped repair kit to patch up mid-fight (short shared cooldown). They are manual by default — research Auto-Repair to make them fire automatically at a set HP threshold.",
 		},
 	],
 	"infrastructure": [
 		{
 			"anchor": "first_building",
 			"title": "Infrastructure",
-			"body": "Buildings auto-produce resources in the background — always running, even while you're away or doing other tasks.",
+			"body": "Buildings auto-produce resources in the background — always running, even while you're away or doing other tasks. Stacking many of the same building has diminishing returns past ~10.",
 		},
 		{
 			"anchor": "energy",
 			"title": "Power Balance",
-			"body": "Production consumes power. Keep this net energy balance positive or buildings throttle down.",
+			"body": "Production consumes power. Keep this net energy balance positive or buildings throttle down. (This grid is separate from your ship's batteries — the two never mix.)",
 		},
 	],
 	"inventory": [
@@ -167,7 +197,7 @@ const STEPS := {
 		{
 			"anchor": "available",
 			"title": "Bounty Board",
-			"body": "Optional timed contracts for bonus Liras. Accept one to add it to your active list.",
+			"body": "Optional timed contracts for bonus Liras. Careful: DELIVERY contracts take the materials the moment you ACCEPT (refunded only if you Abandon).",
 		},
 		{
 			"anchor": "active",
@@ -196,12 +226,12 @@ const STEPS := {
 		{
 			"anchor": "warp_btn",
 			"title": "When to Warp",
-			"body": "Warp once you have shards to gain. Every 5 warps raises your Warp Tier, doubling the bonus scale.",
+			"body": "Warp once you have shards to gain — but your score must DOUBLE for each extra shard, so pushing deeper before warping earns far more per run. Every 5 warps raises your Warp Tier, doubling the bonus scale.",
 		},
 		{
 			"anchor": "tree",
 			"title": "Warp Mastery Tree",
-			"body": "Spend Exotic Matter Shards here on permanent upgrades. The Engineering branch opens on your first Warp, Combat on your second — each Warp reveals more. Your first Warp also grants Cryo weapons: the key to breaching Sector 11.",
+			"body": "Spend Exotic Matter Shards here on permanent upgrades — spending NEVER weakens your global Warp multipliers (those scale with shards ever earned). The Engineering branch opens on your first Warp, Combat on your second. Your first Warp also grants Cryo weapons: the key to breaching Sector 11.",
 		},
 	],
 	"fleet": [

@@ -19,6 +19,9 @@ var _mastery_lbl: Label
 var _oc_container: Control
 var _oc_label: Label
 var _oc_btn: Button
+# v131: throttle slider refs — kept so installing a card raises the cap to 200% live.
+var _throttle_slider: HSlider
+var _throttle_val_lbl: Label
 
 func setup(p_bid: String, p_data: Dictionary, p_manager, p_parent):
 	bid = p_bid
@@ -50,10 +53,15 @@ func setup(p_bid: String, p_data: Dictionary, p_manager, p_parent):
 	if has_node("MarginContainer/VBoxContainer/OverclockContainer"):
 		_oc_container = get_node("MarginContainer/VBoxContainer/OverclockContainer")
 		_oc_label = _oc_container.get_node("OCLabel")
+		# v131: no overclock STATUS text — the Efficiency slider's 200% cap is the
+		# indicator. The label node stays permanently hidden; the container is only
+		# ever an unlock prompt (the UNLOCK button).
+		_oc_label.visible = false
 		_oc_container.get_node("OCSlider").hide()
 		_oc_btn = Button.new()
 		_oc_btn.text = "INSTALL BOOST CARD"
 		_oc_btn.custom_minimum_size = Vector2(0, 28)
+		_oc_btn.clip_text = true  # v131: never let a long label widen the card
 		_oc_btn.add_theme_font_size_override("font_size", 10)
 		UITheme.apply_premium_button_style(_oc_btn, "infrastructure")
 		# v130: the Boost Card material icon, tinted its signature amber (same
@@ -102,14 +110,18 @@ func _ensure_header():
 	throttle_val_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	throttle_val_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	throttle_header.add_child(throttle_val_lbl)
-	
+	_throttle_val_lbl = throttle_val_lbl
+
 	var slider = HSlider.new()
 	slider.min_value = 0
-	slider.max_value = 100
+	# v131: Boost-Card overclock raises the cap to 200% (else 100%). update_state()
+	# keeps this in sync so installing a card lifts the ceiling live.
+	slider.max_value = 200 if (manager.has_method("get_overclock") and manager.get_overclock(bid) >= 1) else 100
 	slider.step = 5
 	slider.value = current_throttle * 100
 	throttle_container.add_child(slider)
-	
+	_throttle_slider = slider
+
 	slider.value_changed.connect(func(val):
 		manager.set_building_throttle(bid, val / 100.0)
 		throttle_val_lbl.text = "%d%%" % val
@@ -209,20 +221,23 @@ func update_state():
 	# Infra↔Mastery: linked Mastery level + the output bonus it grants (count>0).
 	_update_mastery_readout(count)
 
-	# v130: Boost-Card overclock readout — visible once relevant (owned building
-	# AND a card in cargo or already installed); never shown to pre-mid players.
+	# v131: Boost-Card overclock. A card is a ONE-TIME unlock that raises this
+	# building type's Efficiency cap 100%→200%. NO status text — the slider's 200%
+	# cap IS the indicator. The container shows ONLY as an unlock prompt: a card is
+	# in cargo AND this type isn't overclocked yet. Once unlocked it disappears.
 	if _oc_container:
 		var oc: int = manager.get_overclock(bid) if manager.has_method("get_overclock") else 0
 		var cards: float = GameState.resources.get_element_amount("BoostCard")
-		var show_oc: bool = count > 0 and (oc > 0 or cards >= 1)
+		var unlocked: bool = oc >= 1
+		var show_oc: bool = count > 0 and not unlocked and cards >= 1
 		_oc_container.visible = show_oc
 		if show_oc:
-			_oc_label.text = "⚡ Overclock: %d/%d units @ 200%%" % [oc, count]
-			_oc_btn.disabled = (cards < 1 or oc >= count)
-			if cards >= 1:
-				_oc_btn.text = "INSTALL BOOST CARD (%d in cargo)" % int(cards)
-			else:
-				_oc_btn.text = "NO BOOST CARDS IN CARGO"
+			_oc_btn.visible = true
+			_oc_btn.disabled = false
+			_oc_btn.text = "UNLOCK 200% (1 Card)"
+		# Keep the slider ceiling synced — install lifts it to 200% live.
+		if _throttle_slider:
+			_throttle_slider.max_value = 200 if unlocked else 100
 
 	# Refresh Cost Display (Iter8 Scaling)
 	var current_costs = manager.get_building_cost(bid)

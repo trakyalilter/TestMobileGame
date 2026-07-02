@@ -34,23 +34,6 @@ var recipes: Dictionary = {
 		"xp": 5,
 		"category": "basics"
 	},
-	# v126: permanent sink for Fertile Soil. The Terraforming Processor turns junk
-	# Dirt/Water into FertileSoil, but the only prior consumer was the one-time
-	# Biosphere Dome build (max 5) — so it produced dead surplus forever after.
-	# This cultivates that soil into a renewable Wood supply, feeding the eternal
-	# Wood->Carbon chain. Net loop: Dirt/Water (junk) -> FertileSoil -> Wood -> Carbon.
-	# Exploit-free (no currency minted; basics are already infra-infinite by design).
-	"cultivate_biomass": {
-		"name": "Biomass Cultivation",
-		"description": "Grow fast-cycle biomass in cultivated soil — a renewable Wood supply from Terraforming-Processor surplus.",
-		"input": {"FertileSoil": 2},
-		"output": {"Wood": 5},
-		"duration": 6.0,
-		"level_req": 12,
-		"xp": 15,
-		"research_req": "industrial_logistics",
-		"category": "basics"
-	},
 	"electrolysis": {
 		"name": "Water Electrolysis",
 		"description": "Split Water into Hydrogen and Oxygen.",
@@ -143,6 +126,18 @@ var recipes: Dictionary = {
 		"duration": 6.0,
 		"level_req": 20,
 		"xp": 20
+	},
+	# v131: Quartz's second purpose — polished into a Focusing Crystal, the optics
+	# core every mid+ energy & cryo beam weapon needs (see shipyard weapon costs).
+	"cut_focusing_crystal": {
+		"name": "Cut Focusing Crystal",
+		"description": "Polish Quartz into a Focusing Crystal — optics for energy & cryo weapons.",
+		"input": {"Quartz": 6},
+		"output": {"FocusingCrystal": 1},
+		"duration": 5.0,
+		"level_req": 18,
+		"xp": 22,
+		"category": "components"
 	},
 	"smelt_steel_oxygen": {
 		"name": "Oxygen-Enriched Smelting",
@@ -427,7 +422,7 @@ var recipes: Dictionary = {
 	# conventional climb before bulk-producing cryo power; it is NOT circular
 	# (Z9-Z10 fall to conventional weapons, unlike warp-hardened Z11). The mid-
 	# game Z4 CryoEssence drop stays intact for the small-quantity consumers
-	# (NitroCoolant, Titan Trophy); this craft is the endgame bulk path only.
+	# (NitroCoolant, RimeAlloy); this craft is the endgame bulk path only.
 	"distill_cryo_essence": {
 		"name": "Cryo-Essence Condenser",
 		"description": "Infuse supercooled helium-nitrogen with a Primordial Shard, condensing concentrated Cryo-Essence — the active medium of cryogenic armaments. The Shard's exotic resonance is what makes the essence bite Warp-Hardened hulls.",
@@ -1283,7 +1278,9 @@ var recipes: Dictionary = {
 		"duration": 10.0,
 		"level_req": 20,
 		"xp": 30,
-		"category": "processing"
+		# v131: was orphan category "processing" (no tab -> invisible). NitroCoolant
+		# is a shield consumable, so it lives with the other shield kits.
+		"category": "consumables_shield"
 	},
 	# T5: defense_turret -> TurretCore
 	"craft_turret_targeting": {
@@ -1300,76 +1297,9 @@ var recipes: Dictionary = {
 	},
 	# T8: energy_wraith -> AntimatterParticle
 
-	# ========== ZONE TROPHIES (Permanent Buffs) ==========
-	# Consumes zone-themed combat loot that was previously dead-end inventory.
-	# Each trophy grants a permanent passive bonus (see bounty_manager.get_trophy_buff).
-	# Multiple copies do NOT stack — one is enough.
-	"craft_trophy_lunar": {
-		"name": "Lunar Conquest Trophy",
-		"description": "Forge a trophy from Mite Chitin shards. Grants +25% Gathering XP permanently.",
-		"input": {"MiteChitin": 50, "Cu": 20, "Circuit": 10},
-		"output": {"Trophy_Lunar": 1},
-		"duration": 30.0,
-		"level_req": 10,
-		"xp": 80,
-		"research_req": "kinetics_101",
-		"category": "trophies"
-	},
-	"craft_trophy_belt": {
-		"name": "Asteroid Belt Trophy",
-		"description": "Reforge Pirate Salvage into a Belt Trophy. Grants +20% Mining Yield permanently.",
-		"input": {"PirateSalvage": 50, "Steel": 30, "Cu": 20},
-		"output": {"Trophy_Belt": 1},
-		"duration": 45.0,
-		"level_req": 20,
-		"xp": 150,
-		"research_req": "zone_2_access",
-		"category": "trophies"
-	},
-	"craft_trophy_mars": {
-		"name": "Martian Relic Trophy",
-		"description": "Restore Martian Relics into a memorial trophy. Grants +25% Processing XP permanently.",
-		"input": {"MartianRelics": 40, "Steel": 40, "AdvCircuit": 5},
-		"output": {"Trophy_Mars": 1},
-		"duration": 60.0,
-		"level_req": 30,
-		"xp": 250,
-		"research_req": "zone_3_access",
-		"category": "trophies"
-	},
-	"craft_trophy_titan": {
-		"name": "Titan Glacier Trophy",
-		"description": "Condense Glacial Essence into a Titan Trophy. Grants +10% Ship Speed permanently.",
-		"input": {"CryoEssence": 30, "Ti": 50, "Superalloy": 5},
-		"output": {"Trophy_Titan": 1},
-		"duration": 75.0,
-		"level_req": 40,
-		"xp": 400,
-		"research_req": "zone_4_access",
-		"category": "trophies"
-	},
-	"craft_trophy_alpha": {
-		"name": "Sector Alpha Trophy",
-		"description": "Bind Xeno Fragments into an Alpha Trophy. Grants +15% Research Speed permanently.",
-		"input": {"XenoFragment": 25, "Superalloy": 5, "AdvCircuit": 10},
-		"output": {"Trophy_Alpha": 1},
-		"duration": 90.0,
-		"level_req": 50,
-		"xp": 600,
-		"research_req": "zone_5_access",
-		"category": "trophies"
-	},
-	"craft_trophy_delta": {
-		"name": "Delta Sector Trophy",
-		"description": "Compress Neutronium into a Delta Trophy. Grants +15% Kinetic Damage permanently.",
-		"input": {"Neutronium": 20, "Superalloy": 10, "ExoticMatter": 5},
-		"output": {"Trophy_Delta": 1},
-		"duration": 120.0,
-		"level_req": 70,
-		"xp": 1200,
-		"research_req": "zone_8_access",
-		"category": "trophies"
-	},
+	# v131: ZONE TROPHIES removed (6 craft_trophy_* recipes cut). Their inputs
+	# (MiteChitin/PirateSalvage/MartianRelics/CryoEssence/XenoFragment) all keep
+	# other consumers: signature alloys, decode recipes, research costs.
 
 	# ── Tier 1 Combat-Materials (Phase 1) ──────────────────────────────
 	# Mandatory consumer: the intended path is farming Z1-2 Heavy/Tech
@@ -1699,9 +1629,6 @@ func complete_process():
 					
 	# 4. XP
 	var xp_reward = current_recipe.get("xp", 0)
-	if GameState.bounty_manager:
-		xp_reward = int(xp_reward * GameState.bounty_manager.get_trophy_buff("processing_xp"))
-		
 	add_xp(xp_reward)
 	events.append(["xp", "+%d XP" % xp_reward, current_recipe_id])
 
@@ -1783,9 +1710,6 @@ func calculate_offline(delta: float):
 	var loot_summary = {}
 	var xp_base = current_recipe.get("xp", 0)
 	var total_xp = actions * xp_base
-	if GameState.bounty_manager:
-		total_xp = int(total_xp * GameState.bounty_manager.get_trophy_buff("processing_xp"))
-		
 	add_xp(total_xp)
 
 	# P1 Mastery: batch-grant offline mastery XP (one per completion).

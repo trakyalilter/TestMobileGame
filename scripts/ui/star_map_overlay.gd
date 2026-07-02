@@ -47,6 +47,7 @@ var _tgt_def: Label
 var _tgt_xp: Label
 var _tgt_resist: Label
 var _tgt_weak: Label
+var _tgt_drops: RichTextLabel     # v131: what the selected hostile drops
 var _back_btn: Button
 var _engage_btn: Button
 var _engage_hint: Label
@@ -172,26 +173,37 @@ func _build_readout() -> void:
 	v.add_theme_constant_override("separation", 7)
 	_readout.add_child(v)
 
-	v.add_child(_mk_label("DESTINATION", 9, C_TEAL, false))
+	# v131: the info area SCROLLS (long boss drop lists overflowed the fixed-height
+	# panel and pushed ENGAGE off-screen); the action buttons stay pinned below.
+	var info_scroll := ScrollContainer.new()
+	info_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	info_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	v.add_child(info_scroll)
+	var info := VBoxContainer.new()
+	info.add_theme_constant_override("separation", 7)
+	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	info_scroll.add_child(info)
+
+	info.add_child(_mk_label("DESTINATION", 9, C_TEAL, false))
 	_ro_name = _mk_label("—", 20, C_TEXT, true)
-	v.add_child(_ro_name)
+	info.add_child(_ro_name)
 	_ro_band = _mk_label("", 9, C_TEAL, false)
-	v.add_child(_ro_band)
+	info.add_child(_ro_band)
 
 	# (Threat-level bar + recommended-DPS readout removed — the sector band label
 	# above already conveys danger qualitatively without spoiler-y target numbers.)
-	v.add_child(_sep())
+	info.add_child(_sep())
 
 	# TARGET — the hostile picked on the sector view (selection happens on the
 	# map, not in a list). A prompt shows until one is chosen.
-	v.add_child(_mk_label("TARGET", 9, C_TEAL, false))
+	info.add_child(_mk_label("TARGET", 9, C_TEAL, false))
 	_ro_status = _mk_label("", 9, C_DIM, false)
 	_ro_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_ro_status.custom_minimum_size = Vector2(224, 0)
-	v.add_child(_ro_status)
+	info.add_child(_ro_status)
 	_tgt_box = VBoxContainer.new()
 	_tgt_box.add_theme_constant_override("separation", 3)
-	v.add_child(_tgt_box)
+	info.add_child(_tgt_box)
 	_tgt_name = _mk_label("", 15, C_TEXT, true)
 	_tgt_box.add_child(_tgt_name)
 	_tgt_type = _mk_label("", 9, C_DIM, false)
@@ -205,9 +217,21 @@ func _build_readout() -> void:
 	_tgt_box.add_child(_spacer(3))
 	_tgt_resist = _kv_row(_tgt_box, "RESISTS", "—", C_CORAL)
 	_tgt_weak = _kv_row(_tgt_box, "WEAK TO", "—", C_JADE)
+	# v131: DROPS — the loot case for picking this target (was invisible intel).
+	_tgt_box.add_child(_spacer(3))
+	_tgt_box.add_child(_mk_label("DROPS", 9, C_TEAL, false))
+	_tgt_drops = RichTextLabel.new()
+	_tgt_drops.bbcode_enabled = true
+	_tgt_drops.fit_content = true
+	_tgt_drops.scroll_active = false
+	_tgt_drops.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_tgt_drops.add_theme_font_size_override("normal_font_size", 10)
+	_tgt_drops.custom_minimum_size = Vector2(224, 0)
+	_tgt_box.add_child(_tgt_drops)
 	_tgt_box.visible = false
 
-	v.add_child(_spacer(0, true))   # expanding spacer pins the buttons to the bottom
+	# (v131: expanding spacer removed — the scroll area above takes the expansion,
+	# which pins the buttons to the bottom the same way.)
 
 	_back_btn = Button.new()
 	_back_btn.text = "BACK TO STAR MAP"
@@ -281,10 +305,17 @@ func _compute_models() -> Array:
 		var boss_id := _find_boss(data.get("enemies", []))
 		var cleared: bool = boss_id != "" and int(manager.boss_kills.get(boss_id, 0)) > 0
 		var is_avail: bool = avail.has(zid)
+		# v131: the "cleared always shows" bypass ALSO requires the zone's ACCESS
+		# research to be unlocked. A desynced save (a boss_kills entry without its
+		# access research — e.g. from debug tools) otherwise leaks a far sector onto
+		# the map, spoiling what's ahead. Normal play can't clear a sector before
+		# researching access, so this is transparent there.
+		var req := str(data.get("research_req", ""))
+		var research_ok: bool = req == "" or (GameState.research_manager and GameState.research_manager.is_tech_unlocked(req))
 		# Reveal gate: an undiscovered system stays OFF the chart until its unlock
 		# research makes it available — sectors appear one by one instead of the
-		# whole map (which spoils what's ahead). Cleared systems always show.
-		if not is_avail and not cleared:
+		# whole map (which spoils what's ahead). Cleared+accessible systems show.
+		if not is_avail and not (cleared and research_ok):
 			continue
 		var state := "locked"
 		if zid == manager.current_zone_id and is_avail:
@@ -454,9 +485,78 @@ func _show_target_detail(eid: String) -> void:
 		_tgt_resist.text = " · ".join(res_parts) if not res_parts.is_empty() else "none"
 		_tgt_weak.text = " · ".join(weak_parts) if not weak_parts.is_empty() else "none"
 
+	_fill_target_drops(e, is_boss)
+
 	_engage_btn.disabled = false
 	_engage_btn.text = "ENGAGE"
 	_engage_hint.text = "Deploy and attack %s." % str(e.get("name", "the target"))
+
+# v131: render the hostile's drop table into the readout. Materials (with qty
+# ranges), rare drops (with odds), boss core / first-clear relic, and the module
+# roll — the other half of "is this the right target to farm?".
+func _fill_target_drops(e: Dictionary, is_boss: bool) -> void:
+	if not is_instance_valid(_tgt_drops):
+		return
+	var dim := "#8fa6a0"
+	var lines: Array = []
+	for entry in e.get("loot", []):
+		var sym := str(entry[0])
+		var qty := "%s–%s" % [UITheme.format_num(int(entry[1])), UITheme.format_num(int(entry[2]))]
+		if sym == "credits":
+			lines.append("%sLiras ×%s" % [UITheme.LIRA_ICON_BB, qty])
+		else:
+			lines.append("%s%s ×%s" % [ElementDB.material_icon_bbcode(sym, 12), ElementDB.get_display_name(sym), qty])
+	for entry in e.get("rare_loot", []):
+		var rsym := str(entry[0])
+		lines.append("%s%s [color=%s](rare)[/color]" % [ElementDB.material_icon_bbcode(rsym, 12), _drop_display_name(rsym), dim])
+	var core := str(e.get("boss_core", ""))
+	if core != "":
+		lines.append("%s%s [color=%s](guaranteed)[/color]" % [ElementDB.material_icon_bbcode(core, 12), ElementDB.get_display_name(core), dim])
+	if str(e.get("relic_drop", "")) != "":
+		lines.append("Threshold Relic [color=%s](first clear)[/color]" % dim)
+	# v131b: no probabilities shown — just WHAT can drop (types), not the odds.
+	var pool_types := _pool_slot_types(e)
+	if is_boss and not pool_types.is_empty():
+		lines.append("Modules [color=%s](Uncommon+ · %s)[/color]" % [dim, " · ".join(PackedStringArray(pool_types))])
+	elif e.get("drops_modules", true) and float(e.get("module_drop_chance", 0.0)) > 0.0 and not pool_types.is_empty():
+		lines.append("Module chance [color=%s](%s)[/color]" % [dim, " · ".join(PackedStringArray(pool_types))])
+	_tgt_drops.text = "[color=#c8d4d0]" + "\n".join(PackedStringArray(lines)) + "[/color]" if not lines.is_empty() else "[color=%s]—[/color]" % dim
+
+# v131: rare_loot mixes ELEMENT ids and MODULE ids (unique set pieces like
+# z1_unique_weapon). Resolve module ids to their real display names; everything
+# else goes through ElementDB as usual.
+func _drop_display_name(id: String) -> String:
+	var sm = GameState.shipyard_manager
+	if sm and sm.modules.has(id):
+		return str(sm.modules[id].get("name", id))
+	return ElementDB.get_display_name(id)
+
+# v131: which SLOT TYPES this hostile's module pool can actually yield — mirrors
+# the real drop rules: research-locked bases are filtered out (same check as
+# win_fight's unlocked_pool) and weight-0 types (battery) never drop.
+func _pool_slot_types(e: Dictionary) -> Array:
+	var sm = GameState.shipyard_manager
+	var rm = GameState.research_manager
+	if sm == null:
+		return []
+	var order := ["weapon", "shield", "armor", "engine", "sensor"]
+	var found := {}
+	for mod_id in e.get("module_drop_pool", []):
+		var mdef: Dictionary = sm.modules.get(str(mod_id), {})
+		if mdef.is_empty():
+			continue
+		var req := str(mdef.get("research_req", ""))
+		if req != "" and rm and not rm.is_tech_unlocked(req):
+			continue
+		var st := str(mdef.get("slot_type", "weapon"))
+		if float(manager.MODULE_DROP_WEIGHTS.get(st, 10)) <= 0.0:
+			continue
+		found[st] = true
+	var out: Array = []
+	for st in order:
+		if found.has(st):
+			out.append(st.capitalize())
+	return out
 
 func _zone_combat_stats(zid: String) -> Dictionary:
 	var data = manager.zones.get(zid, {})

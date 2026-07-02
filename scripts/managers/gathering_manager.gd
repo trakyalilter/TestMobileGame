@@ -476,9 +476,6 @@ func complete_action():
 		GameState.note_production("gather", amount)  # P3.10
 		events.append(["loot", {"symbol": element, "amount": amount}, current_action_id])
 
-	if GameState.bounty_manager:
-		xp_reward = int(xp_reward * GameState.bounty_manager.get_trophy_buff("gathering_xp"))
-		
 	add_xp(xp_reward)
 	events.append(["xp", "+%d XP" % xp_reward, current_action_id])
 
@@ -503,9 +500,6 @@ func calculate_offline(delta: float):
 	var xp_per_action = current_action.get("xp", 0)
 	
 	var total_xp = num_actions * xp_per_action
-	if GameState.bounty_manager:
-		total_xp = int(total_xp * GameState.bounty_manager.get_trophy_buff("gathering_xp"))
-		
 	add_xp(total_xp)
 
 	# P1 Mastery: batch-grant offline mastery XP (one per completion).

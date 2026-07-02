@@ -153,25 +153,27 @@ func _draw_tile_visual(item_name: String, slot_type: String, rarity: int, rarity
 		bg_panel.add_theme_stylebox_override("panel", sb)
 		tile_container.add_child(bg_panel)
 
-	# --- Zone watermark: the sector emblem this module dropped from, large and
-	# faint behind the function icon. Fills the tile's dead space and shows the
-	# zone art at a READABLE size; the opaque emblem chip keeps the function icon
-	# crisp on top so archetype still reads first. (Zones 11-12 → Z10 emblem.) ---
+	# --- Zone/tier EMBLEM: a top-right CORNER STAMP (v131c — was a faint full-tile
+	# watermark), matching the equipped-slot _ZoneBadge: the emblem texture drawn
+	# directly, NO background plate. The compare chevron is relocated to the bottom
+	# to free this corner. ---
 	var zsrc := int(m_data.get("zone", m_data.get("zone_difficulty", 0)))
 	if zsrc >= 1:
 		var zid := "Z%d_Core" % clampi(zsrc, 1, 10)
 		var ztex := ElementDB.get_material_icon(zid)
 		if ztex:
+			var bs := 26.0
+			var pad := 4.0
 			var zmark := TextureRect.new()
 			zmark.texture = ztex
 			zmark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			zmark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-			zmark.anchor_right = 1.0; zmark.anchor_bottom = 1.0
-			zmark.offset_left = 13; zmark.offset_top = 11
-			zmark.offset_right = -13; zmark.offset_bottom = -17
-			var zmark_tint: Color = ElementDB.get_material_tint(zid)
-			zmark_tint.a = 0.12
-			zmark.modulate = zmark_tint
+			zmark.anchor_left = 1.0; zmark.anchor_right = 1.0
+			zmark.offset_left = -(bs + pad); zmark.offset_right = -pad
+			zmark.offset_top = pad; zmark.offset_bottom = pad + bs
+			var zt: Color = ElementDB.get_material_tint(zid)
+			zt.a = 0.95
+			zmark.modulate = zt
 			zmark.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			tile_container.add_child(zmark)
 
@@ -273,9 +275,12 @@ func _draw_tile_visual(item_name: String, slot_type: String, rarity: int, rarity
 		cmp_lbl.add_theme_font_size_override("font_size", 14)
 		cmp_lbl.add_theme_color_override("font_color",
 			Color(0.40, 1.0, 0.55) if cmp == "▲" else (Color(1.0, 0.40, 0.40) if cmp == "▼" else Color(0.80, 0.80, 0.80)))
+		# v131c: moved top-right → bottom-right (the top-right corner now holds the
+		# zone/tier emblem stamp). Sits just above the equipped underline.
 		cmp_lbl.anchor_left = 1.0; cmp_lbl.anchor_right = 1.0
+		cmp_lbl.anchor_top = 1.0; cmp_lbl.anchor_bottom = 1.0
 		cmp_lbl.offset_left = -19; cmp_lbl.offset_right = -2
-		cmp_lbl.offset_top = 2; cmp_lbl.offset_bottom = 19
+		cmp_lbl.offset_top = -26; cmp_lbl.offset_bottom = -8
 		cmp_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		cmp_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		tile_container.add_child(cmp_lbl)

@@ -104,8 +104,8 @@ func init_missions():
 		["m017", "Target Locked", "Defeat 1 Lunar Drone in Lunar Orbit.", "defeat", "z1_lunar_drone", 1, 2500, 500, "m017a"],
 		# v128: damage-triangle onboarding. The Lunar Drone (m017) taught KINETIC; this
 		# pair teaches ENERGY against the energy-weak Survey Probe (resist_e -0.30, resists
-		# kinetic +0.30). The EXPLOSIVE leg lives at the Rogue Architect boss (m026d2-e) —
-		# the only Z1 enemy weak to explosive.
+		# kinetic +0.30). The EXPLOSIVE leg is the Scrap Collector pair (m017c/d).
+		# (v131: the Rogue Architect boss has NO resists — pure rarity check.)
 		["m017a", "Energy Doctrine", "Not every hostile falls to slugs. The Survey Probe RESISTS kinetic fire but is WEAK TO ENERGY. In the Shipyard, craft a 'Pulse Laser Mk.I' — then feed it Focus Crystals (CellT1) from the Engineering tab.", "craft", "z1_energy", 1, 1500, 200, "m017b"],
 		["m017b", "Pulse Fire", "Equip your Pulse Laser (Focus Crystals loaded) and destroy a Survey Probe in Lunar Orbit. Watch energy melt what kinetic shrugged off — always match the weapon to the weakness.", "defeat", "z1_survey_probe", 1, 3000, 500, "m017c"],
 		# v128: EXPLOSIVE leg — the Scrap Collector is now armored vs kinetic + energy and
@@ -151,12 +151,15 @@ func init_missions():
 		["m026", "Master Constructor", "Research 'Shipwright I' for hull reinforcement.", "research", "shipwright_1", 1, 5000, 500, "m026b"],
 		["m026b", "Hull Modernization I", "Construct an 'Industrial Frigate' in the Shipyard.", "construct", "frigate_hull", 1, 10000, 1000, "m026c"],
 		["m026c", "Elite Salvage", "Defeated enemies drop gear of varying rarity. Farm Lunar Orbit until you get a RARE (blue) module drop.", "drop_rarity", "2", 1, 5000, 500, "m026d"],
-		["m026d", "Combat Overhaul", "Equip at least 1 RARE+ Weapon.", "loadout_rare_weapon", "2", 1, 10000, 1000, "m026d2"],
+		# v131: Architect resists zeroed — chain goes straight to the boss fight; any
+		# RARE+ weapon type works. m026d2/d3 (the old explosive-forcing pair) stay
+		# DEFINED below for saves mid-arc, but no fresh game routes into them.
+		["m026d", "Combat Overhaul", "Equip at least 1 RARE+ Weapon.", "loadout_rare_weapon", "2", 1, 10000, 1000, "m026e"],
 		# v119: type-matching teach beat before the Z1 boss. The Architect RESISTS
 		# kinetic + energy (+0.25) but is WEAK to explosive (-0.30), so the right TYPE
 		# beats raw rarity. Combustion is already unlocked (smelting required it at m025).
-		["m026d2", "Munitions Run", "The Rogue Architect shrugs off KINETIC and ENERGY fire - but it's WEAK to EXPLOSIVE. Produce 60 HE Missiles in the Engineering tab to arm a missile launcher.", "gather", "MissileT1", 60, 8000, 800, "m026d3"],
-		["m026d3", "Explosive Payload", "Equip a RARE+ EXPLOSIVE weapon: farm Lunar Orbit until a blue-or-better Micro-Missile Launcher drops, then equip it (fill the other slot with any explosive too). Explosive hits the Architect's weakness and the rare punch finishes it - the right TYPE and tier both matter.", "loadout_rare_weapon_type", "explosive", 1, 12000, 1200, "m026e"],
+		["m026d2", "Munitions Run", "Produce 60 HE Missiles in the Engineering tab to arm a missile launcher — explosive warheads punch through armor better than anything else.", "gather", "MissileT1", 60, 8000, 800, "m026d3"],
+		["m026d3", "Explosive Payload", "Equip a RARE+ EXPLOSIVE weapon — explosive fire ignores most enemy armor, and the rare-tier punch ends fights fast.", "loadout_rare_weapon_type", "explosive", 1, 12000, 1200, "m026e"],
 		["m026e", "Final Confrontation", "Defeat the Rogue Architect boss in Lunar Orbit.", "defeat", "z1_boss_architect", 1, 25000, 2500, "m027"],
 		# P0 Fix: Progression Deadlock Re-alignment
 		["m027", "Scanning Horizon", "Research 'Asteroid Belt Authorization' in the Research tree to unlock the Asteroid Belt combat zone.", "research", "zone_2_access", 1, 5000, 500, "m027b"],
@@ -184,9 +187,9 @@ func init_missions():
 		["m030c", "Hull Modernization II", "Construct a 'Destroyer' hull in the Shipyard.", "construct", "destroyer_hull", 1, 25000, 2000, "m030e"],
 		# Mission bridge from Asteroid Belt to Sector Alpha (zones 3-4 introduction)
 		["m030e", "Mars Beachhead", "Research 'Mars Debris Clearance' in the Research tree to unlock the Mars Debris combat zone.", "research", "zone_3_access", 1, 40000, 5000, "m030f"],
-		["m030f", "Salvage Operations", "Defeat 3 Scavenger Mechs in the Mars Debris combat zone. Their relics can later be forged into a Mars Trophy.", "defeat", "z3_scavenger_mech", 3, 60000, 8000, "m030g"],
+		["m030f", "Salvage Operations", "Defeat 3 Scavenger Mechs in the Mars Debris combat zone. Their relics feed Wreckforged Alloy crafting.", "defeat", "z3_scavenger_mech", 3, 60000, 8000, "m030g"],
 		["m030g", "Glacier Belt Survey", "Research 'Glacier Belt Expedition' in the Research tree to unlock the Glacier Belt combat zone.", "research", "zone_4_access", 1, 80000, 10000, "m030h"],
-		["m030h", "Frozen Frontier", "Defeat 3 Ice Wraiths in the Glacier Belt. Glacial Essence powers Titan Trophy crafting.", "defeat", "z4_ice_wraith", 3, 100000, 12000, "m031"],
+		["m030h", "Frozen Frontier", "Defeat 3 Ice Wraiths in the Glacier Belt. Glacial Essence powers cryo-alloy and coolant crafting.", "defeat", "z4_ice_wraith", 3, 100000, 12000, "m031"],
 
 		# P0 Fix: Sector Alpha Push
 		["m031", "Deep Space Signal", "Research 'Sector Scanning (Alpha)' in the Research tree to detect Sector Alpha space.", "research", "sector_alpha_decryption", 1, 50000, 10000, "m032"],
@@ -223,7 +226,7 @@ func init_missions():
 		# hits the fabricate recipe's level (45). Step 1 uses "gather" (element_added
 		# fires for processing outputs); step 2 uses the new "overclock_install" type.
 		["goal_boost_1", "OVERCLOCK PROTOCOL", "Your grid can run hotter. Fabricate a Boost Card in the Engineering tab — it takes Advanced Circuits, Superalloy, and a Quantum Core (Sector Alpha hostiles drop them).", "gather", "BoostCard", 1, 40000, 0, "goal_boost_2"],
-		["goal_boost_2", "RUNNING HOT", "Open Infrastructure and INSTALL the Boost Card on a building you own — one unit spins up to 200% output (and 200% input draw). Every card is a permanent overclock.", "overclock_install", "BoostCard", 1, 60000, 0, ""]
+		["goal_boost_2", "RUNNING HOT", "Open Infrastructure and INSTALL the Boost Card on a building you own — it permanently unlocks that building type's Efficiency slider up to 200%. Careful: output scales linearly, but input draw scales QUADRATICALLY past 100% (200% output costs 4x input).", "overclock_install", "BoostCard", 1, 60000, 0, ""]
 	]
 	
 	for i in range(m_list.size()):

@@ -610,7 +610,7 @@ var modules: Dictionary = {
 		# beatable. 3× equipped → ~19 min Threshold Warden kill (first clear).
 		# Z11 drops rarity-rolled copies that can exceed this base via affixes.
 		"stats": {"atk_cryo": 4000, "atk_interval": 2.0},
-		"cost": {"credits": 2000000, "ExoticMatter": 15, "CryoCatalyst": 12, "Superalloy": 50},
+		"cost": {"credits": 2000000, "ExoticMatter": 15, "CryoCatalyst": 12, "Superalloy": 50, "FocusingCrystal": 20},
 		"desc": "Exotic-Matter cryo lance. Self-charging, no ammo. The only thing that breaches Warp-Hardened hulls - farm The Threshold for legendary-grade rolls.",
 		"zone": 11,
 		"power_tier": 8,
@@ -630,7 +630,7 @@ var modules: Dictionary = {
 		"slot_type": "weapon",
 		"rarity": Rarity.LEGENDARY,
 		"stats": {"atk_cryo": 12000, "atk_interval": 2.0, "exotic_element": "corrosion"},
-		"cost": {"credits": 8000000, "ExoticMatter": 30, "CryoCatalyst": 20, "Superalloy": 120, "ChronoCore": 8, "VoidCrystal": 15},
+		"cost": {"credits": 8000000, "ExoticMatter": 30, "CryoCatalyst": 20, "Superalloy": 120, "ChronoCore": 8, "VoidCrystal": 15, "FocusingCrystal": 40},
 		"desc": "Acid-plasma projector. Etches through Corrosion-hardened hulls where cryogenic fire just glazes the surface.",
 		"zone": 12,
 		"power_tier": 8,
@@ -796,7 +796,7 @@ var modules: Dictionary = {
 		"name": "Ion Lance",
 		"slot_type": "weapon",
 		"stats": {"atk_energy": 106, "energy_load": 40, "atk_interval": 2.0},
-		"cost": {"credits": 21296, "Ti": 60, "AdvCircuit": 9},
+		"cost": {"credits": 21296, "Ti": 60, "AdvCircuit": 9, "FocusingCrystal": 2},
 		"desc": "Concentrated ion stream.",
 		"zone": 4, "research_req": "zone_4_access"
 	},
@@ -838,7 +838,7 @@ var modules: Dictionary = {
 		"name": "Particle Beam",
 		"slot_type": "weapon",
 		"stats": {"atk_energy": 234, "energy_load": 60, "atk_interval": 2.0},
-		"cost": {"credits": 46851, "Ti": 100, "QuantumCore": 2, "Au": 10},
+		"cost": {"credits": 46851, "Ti": 100, "QuantumCore": 2, "Au": 10, "FocusingCrystal": 3},
 		"desc": "Accelerated particles strip shields instantly.",
 		"zone": 5, "research_req": "zone_5_access"
 	},
@@ -880,7 +880,7 @@ var modules: Dictionary = {
 		"name": "Plasma Lancer",
 		"slot_type": "weapon",
 		"stats": {"atk_energy": 514, "energy_load": 90, "atk_interval": 2.0},
-		"cost": {"credits": 103072, "QuantumCore": 5, "AdvCircuit": 30},
+		"cost": {"credits": 103072, "QuantumCore": 5, "AdvCircuit": 30, "FocusingCrystal": 5},
 		"desc": "Sustained plasma discharge.",
 		"zone": 6, "research_req": "zone_6_access"
 	},
@@ -922,7 +922,7 @@ var modules: Dictionary = {
 		"name": "Void Beam",
 		"slot_type": "weapon",
 		"stats": {"atk_energy": 1131, "energy_load": 140, "atk_interval": 2.0},
-		"cost": {"credits": 226758, "ExoticMatter": 10, "VoidCrystal": 5, "AdvCircuit": 40},
+		"cost": {"credits": 226758, "ExoticMatter": 10, "VoidCrystal": 5, "AdvCircuit": 40, "FocusingCrystal": 8},
 		"desc": "Drains energy from realspace.",
 		"zone": 7, "research_req": "zone_7_access"
 	},
@@ -964,7 +964,7 @@ var modules: Dictionary = {
 		"name": "Prism Annihilator",
 		"slot_type": "weapon",
 		"stats": {"atk_energy": 2489, "energy_load": 200, "atk_interval": 2.0},
-		"cost": {"credits": 498868, "VoidCrystal": 10, "ExoticMatter": 10, "StructuralLattice": 2, "Ti": 3500},
+		"cost": {"credits": 498868, "VoidCrystal": 10, "ExoticMatter": 10, "StructuralLattice": 2, "Ti": 3500, "FocusingCrystal": 12},
 		"desc": "Refracted energy cascade.",
 		"zone": 8, "research_req": "zone_8_access"
 	},
@@ -1006,7 +1006,7 @@ var modules: Dictionary = {
 		"name": "Zero-Point Beam",
 		"slot_type": "weapon",
 		"stats": {"atk_energy": 5476, "energy_load": 300, "atk_interval": 2.0},
-		"cost": {"credits": 1097510, "ChronoCore": 2, "BioReactorCore": 3, "Neutronium": 180, "Ti": 8000},
+		"cost": {"credits": 1097510, "ChronoCore": 2, "BioReactorCore": 3, "Neutronium": 180, "Ti": 8000, "FocusingCrystal": 18},
 		"desc": "Extracts energy from vacuum fluctuations.",
 		"zone": 9, "research_req": "zone_9_access"
 	},
@@ -1048,7 +1048,7 @@ var modules: Dictionary = {
 		"name": "Chrono Disruptor",
 		"slot_type": "weapon",
 		"stats": {"atk_energy": 12047, "energy_load": 450, "atk_interval": 2.0},
-		"cost": {"credits": 2414522, "ChronoCore": 5, "PrimordialMatrix": 3, "OmegaComposite": 2, "Neutronium": 200, "Ti": 11000},
+		"cost": {"credits": 2414522, "ChronoCore": 5, "PrimordialMatrix": 3, "OmegaComposite": 2, "Neutronium": 200, "Ti": 11000, "FocusingCrystal": 25},
 		"desc": "Tears through spacetime itself.",
 		"zone": 10, "research_req": "zone_10_access"
 	},
@@ -2176,11 +2176,6 @@ func recalc_stats():
 	attack_energy = atk_e
 	attack_explosive = atk_x
 	
-	# v72.8: Trophy Buffs (Global & Type Specific)
-	if GameState.bounty_manager:
-		attack_kinetic *= GameState.bounty_manager.get_trophy_buff("kinetic_dmg")
-		attack_energy *= GameState.bounty_manager.get_trophy_buff("energy_dmg")
-	
 	attack = attack_kinetic + attack_energy + attack_explosive
 	defense = defe
 	evasion = eva
@@ -2189,19 +2184,17 @@ func recalc_stats():
 	resist_k = clampf(rk, 0.0, 0.75)
 	resist_e = clampf(re, 0.0, 0.75)
 	resist_x = clampf(rx, 0.0, 0.75)
-	if GameState.bounty_manager:
-		evasion *= GameState.bounty_manager.get_trophy_buff("evasion")
-		
 	accuracy = acc
 	crit_chance = crit
 	energy_used = e_load
 	attack_speed_bonus = atk_speed_bon
+	# v131: trophies removed — get_trophy_buff("ship_speed") is now the Temporal
+	# Module capstone only.
 	if GameState.bounty_manager:
 		attack_speed_bonus += (GameState.bounty_manager.get_trophy_buff("ship_speed") - 1.0)
 
 	# v112: Primordial Armor capstone — "best-in-slot defense" = +30% hull HP.
-	# Self-contained presence check (not via get_trophy_buff, so the global
-	# Trophy_Epsilon bonus doesn't silently leak into HP).
+	# Self-contained presence check.
 	if GameState.resources and GameState.resources.get_element_amount("PrimordialArmor") > 0:
 		max_hp = int(max_hp * 1.30)
 		if max_hp <= 0: max_hp = 10

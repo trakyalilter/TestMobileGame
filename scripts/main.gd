@@ -78,26 +78,9 @@ func _ready():
 	# fires from research_manager.unlock_tech.
 	GameState.research_manager.tech_unlocked.connect(_on_tech_unlocked_for_warp_reveal)
 
-	# v109: Recursion discovery — the Recursion research tab is always visible
-	# but easily missed, and is unusable until the player has Void Artifacts
-	# (the shared gate item for every lane). Fire a one-shot pointer the first
-	# time one is acquired.
-	GameState.resources.element_added.connect(_on_element_added_for_recursion_reveal)
-
 	# v128: one-shot durability warning on the first combat loss.
 	if not GameState.combat_manager.combat_lost.is_connected(_maybe_show_combat_loss_coach):
 		GameState.combat_manager.combat_lost.connect(_maybe_show_combat_loss_coach)
-
-func _on_element_added_for_recursion_reveal(symbol: String, _amount: float) -> void:
-	if symbol != "VoidArtifact":
-		return
-	if GameState.game_settings.get("recursion_revealed", false):
-		return
-	GameState.game_settings["recursion_revealed"] = true
-	UITheme.show_notification(
-		"⟨ RECURSION PROTOCOLS ONLINE ⟩  Spend Void Artifacts on the Research page's RECURSION tab for infinite, permanent global bonuses.",
-		Color(0.55, 0.85, 1.0)
-	)
 
 func _on_tech_unlocked_for_warp_reveal(tech_id: String) -> void:
 	# v110: Reveal the Warp Core when the player completes Zone 6 research.
@@ -709,6 +692,103 @@ func _maybe_show_combat_loss_coach() -> void:
 	stop_hint_pulse()
 	coach_overlay.start("combat_loss", steps, self)
 
+# v131: staged Designer teachings. The old first-visit tour dumped 5 cards on a
+# new player; now Matrix Cores / Set Bonuses fire as their own one-shot coaches
+# on the first Designer visit AFTER the player owns the relevant item — teaching
+# lands the moment it's actionable. Fires at most ONE stage per visit (matrix
+# first), and never stacks on an active tour (that visit's stage waits its turn).
+func _maybe_show_designer_stage_coach() -> void:
+	if coach_overlay == null or _coach_active():
+		return
+	if offline_modal and is_instance_valid(offline_modal) and offline_modal.visible:
+		return
+	var seen: Dictionary = GameState.game_settings.get("coach_seen", {})
+	if not seen.get("designer", false):
+		return  # base tour hasn't run yet — basics come first
+	var page_node = pages.get("designer")
+	if not seen.get("designer_matrix", false) and _player_owns_matrix_core():
+		stop_hint_pulse()
+		coach_overlay.start("designer_matrix", CoachMarks.get_steps("designer_matrix"), page_node)
+		return
+	# v131: presets — taught once the player owns weapons of 2+ damage types
+	# (mid damage-triangle arc), when hand-swapping loadouts becomes a chore.
+	if not seen.get("designer_presets", false) and _player_owns_two_weapon_types():
+		stop_hint_pulse()
+		coach_overlay.start("designer_presets", CoachMarks.get_steps("designer_presets"), page_node)
+		return
+	if not seen.get("designer_sets", false) and _player_owns_set_module():
+		stop_hint_pulse()
+		coach_overlay.start("designer_sets", CoachMarks.get_steps("designer_sets"), page_node)
+
+# v131: one-shot Shipyard card when Matrix Synthesis becomes craftable
+# (zone_2_access). Cores have NO other source (no combat drops), so this is the
+# system's front door. If the player already owns a core (old save / found it
+# themselves), the flag is set silently — never teach what's already learned.
+func _maybe_show_shipyard_matrix_coach() -> void:
+	if coach_overlay == null or _coach_active():
+		return
+	if offline_modal and is_instance_valid(offline_modal) and offline_modal.visible:
+		return
+	var seen: Dictionary = GameState.game_settings.get("coach_seen", {})
+	if seen.get("shipyard_matrix", false):
+		return
+	if not seen.get("shipyard", false):
+		return  # base tour first
+	if not GameState.research_manager.is_tech_unlocked("zone_2_access"):
+		return
+	if _player_owns_matrix_core():
+		seen["shipyard_matrix"] = true  # already discovered it — skip silently
+		GameState.game_settings["coach_seen"] = seen
+		return
+	stop_hint_pulse()
+	coach_overlay.start("shipyard_matrix", CoachMarks.get_steps("shipyard_matrix"), pages.get("shipyard"))
+
+func _player_owns_matrix_core() -> bool:
+	for core_id in ElementDB.get_elements_in_category("matrix_cores"):
+		if GameState.resources.get_element_amount(core_id) >= 1:
+			return true
+	return false
+
+# v131: distinct weapon damage types owned (inventory + equipped) — customs carry
+# their own stats, so checking the def's stats dict covers base AND custom rolls.
+func _player_owns_two_weapon_types() -> bool:
+	var sm = GameState.shipyard_manager
+	if sm == null:
+		return false
+	var types := {}
+	var owned: Array = sm.module_inventory.keys() + sm.loadout.values()
+	for mid in owned:
+		if mid == null or str(mid) == "":
+			continue
+		var def: Dictionary = sm.modules.get(str(mid), {})
+		if str(def.get("slot_type", "")) != "weapon":
+			continue
+		var st: Dictionary = def.get("stats", {})
+		if float(st.get("atk_kinetic", 0)) > 0: types["k"] = true
+		elif float(st.get("atk_energy", 0)) > 0: types["e"] = true
+		elif float(st.get("atk_explosive", 0)) > 0: types["x"] = true
+		elif float(st.get("atk_cryo", 0)) > 0: types["c"] = true
+		if types.size() >= 2:
+			return true
+	return false
+
+func _player_owns_set_module() -> bool:
+	var sm = GameState.shipyard_manager
+	if sm == null:
+		return false
+	var owned: Array = sm.module_inventory.keys() + sm.loadout.values()
+	for mid in owned:
+		if mid == null or str(mid) == "":
+			continue
+		var def: Dictionary = sm.modules.get(str(mid), {})
+		if str(def.get("set_id", "")) != "":
+			return true
+		# Custom rolls carry their base module's identity.
+		var base: Dictionary = sm.modules.get(str(def.get("base_module", "")), {})
+		if str(base.get("set_id", "")) != "":
+			return true
+	return false
+
 func _on_coach_finished(page_name: String):
 	var seen: Dictionary = GameState.game_settings.get("coach_seen", {})
 	seen[page_name] = true
@@ -745,6 +825,14 @@ func switch_to(page_name):
 
 		# First-visit onboarding tour for this page
 		_maybe_show_coach(page_name)
+		# v131: staged designer teachings — advanced systems coach only once the
+		# player actually owns the thing (Matrix Core / set piece). One per visit.
+		if page_name == "designer":
+			_maybe_show_designer_stage_coach()
+		# v131: matrix-core ENTRY teaching — synthesis is the system's only source,
+		# so coach it the moment the craft becomes available.
+		if page_name == "shipyard":
+			_maybe_show_shipyard_matrix_coach()
 
 func _get_btn_for_page(page_name: String) -> Button:
 	match page_name:

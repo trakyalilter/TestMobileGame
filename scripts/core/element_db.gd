@@ -62,6 +62,7 @@ var ELEMENT_NAMES = {
 	"Spodumene": "Lithium Ore",
 	"PtOre": "Platinum Ore",
 	"Quartz": "Quartz Crystal",  # Audit v50.0
+	"FocusingCrystal": "Focusing Crystal",  # v131: polished-Quartz optics for energy/cryo weapons
 	"Pentlandite": "Pentlandite Ore",  # Audit v50.0
 	"Chromite": "Chromite Ore",  # Audit v50.0
 	"Germanit": "Germanite Mineral",
@@ -169,7 +170,6 @@ var ELEMENT_NAMES = {
 	"Res3": "Exotic Artifact",
 	
 	# Iter2 Dead Resource Sink Outputs
-	"FertileSoil": "Fertile Soil",
 	"CompositeWeave": "Composite Weave",
 	"N": "Nitrogen",
 	
@@ -179,6 +179,7 @@ var ELEMENT_NAMES = {
 	"OmegaPlating": "Omega Plating",
 	"PrimordialShard": "Primordial Shard",
 	"CryoCatalyst": "Cryo Catalyst",
+	"CoolantCell": "Coolant Cell",  # v131: Z4 drone drop — was the only unnamed drop id
 
 	# v114 (Zone Tier-Gate): 2 minted signature raws (Z4/Z10) + 9 per-zone alloys
 	# refined from each zone's signature material. See docs/ZONE_TIER_GATE.md.
@@ -235,7 +236,7 @@ var CATEGORIES = {
 	"rare_metals": ["Au", "Ag", "Pt", "Pd", "Ir", "Os", "Rh", "U", "Germanium"],
 	"alloys": ["Steel", "Graphite", "StainlessSteel", "GalvanizedSteel", "Superalloy", "AlMgAlloy", "IrWAlloy",
 				"ChondriteAlloy", "WreckforgedAlloy", "RimeAlloy", "XenoforgedAlloy", "ColonyAlloy", "GammaAlloy", "PrismaticAlloy", "BioforgedAlloy", "AeonAlloy"],
-	"components": ["Circuit", "AdvCircuit", "Chip", "Hydraulics", "AlWire", "Resin", "Fiber", "ReinforcedPlating"],
+	"components": ["Circuit", "AdvCircuit", "Chip", "Hydraulics", "AlWire", "Resin", "Fiber", "ReinforcedPlating", "FocusingCrystal"],
 	"batteries": ["BatteryT1", "BatteryT2", "BatteryT3", "CoBattery", "MgBattery", "PdFuelCell"],
 	"consumables": ["Mesh", "Seal", "EmergencyPatch", "BasicBooster", "ChitinPatch", "NitroCoolant", "AdvMaintenanceKit", "CapacitorShard", "IonField", "ZeroPoint"],  # Audit v2.0: Early/Mid consumables
 	"ammo": ["SlugT1", "SlugT1S", "SlugT2", "SlugT3", "SlugT4", "CellT1", "CellT2", "CellT3", "CellT4", "MissileT1", "MissileT2", "MissileT3", "MissileT4"],
@@ -432,6 +433,7 @@ var MATERIAL_TINT := {
 	"Dolomite": Color(0.80, 0.74, 0.61),
 	"Spodumene": Color(0.79, 0.65, 0.70),
 	"Quartz": Color(0.75, 0.81, 0.87),
+	"FocusingCrystal": Color(0.62, 0.88, 0.96),
 	"Al": Color(0.86, 0.88, 0.89),
 	"Sn": Color(0.74, 0.70, 0.64),
 	"Zn": Color(0.56, 0.71, 0.82),
@@ -583,17 +585,6 @@ var MATERIAL_TINT := {
 	"Z8_Core": Color(0.60, 0.35, 0.85),
 	"Z9_Core": Color(0.85, 0.35, 0.75),
 	"Z10_Core": Color(0.91, 0.75, 0.29),
-	# Batch 13 — trophies (trophy cup + rank numeral, zone-colour escalation)
-	"Trophy_Lunar": Color(0.75, 0.77, 0.78),
-	"Trophy_Belt": Color(0.75, 0.56, 0.35),
-	"Trophy_Mars": Color(0.78, 0.47, 0.31),
-	"Trophy_Titan": Color(0.48, 0.63, 0.78),
-	"Trophy_Alpha": Color(0.42, 0.75, 0.47),
-	"Trophy_Beta": Color(0.35, 0.54, 0.85),
-	"Trophy_Gamma": Color(0.72, 0.77, 0.29),
-	"Trophy_Delta": Color(0.60, 0.35, 0.85),
-	"Trophy_Zeta": Color(0.85, 0.35, 0.75),
-	"Trophy_Epsilon": Color(0.91, 0.75, 0.29),
 	# Batch 14 — bio / AI / endgame components + artifacts
 	"BiohazardSample": Color(0.60, 0.77, 0.29),
 	"PathogenCore": Color(0.69, 0.35, 0.75),
@@ -618,7 +609,6 @@ var MATERIAL_TINT := {
 	"TemporalModule": Color(0.40, 0.80, 0.85),
 	"PrimordialArmor": Color(0.80, 0.50, 0.30),
 	"OmegaAccelerator": Color(0.88, 0.72, 0.35),
-	"FertileSoil": Color(0.55, 0.65, 0.35),
 	"CompositeWeave": Color(0.55, 0.60, 0.65),
 	"AncientTech": Color(0.75, 0.62, 0.38),
 	"ColonyDataCore": Color(0.45, 0.62, 0.72),

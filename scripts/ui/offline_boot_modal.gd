@@ -220,7 +220,7 @@ func _build_ui():
 	scroll.add_child(ledger_vb)
 	_content.add_child(scroll)
 
-	# ── notes (cap / throttle / paused / biosphere) ──
+	# ── notes (cap / throttle / paused) ──
 	for n in _collect_notes():
 		var hot: bool = ("throttle" in n.to_lower()) or ("paused" in n.to_lower()) or ("capped" in n.to_lower())
 		var nl := _mk_label("› " + n, 10, GOLD if hot else DIM)
@@ -364,7 +364,7 @@ func _sorted_ledger(ledger: Dictionary) -> Array:
 
 
 func _collect_notes() -> Array:
-	# Per-activity notes (throttle %, combat-paused nag, biosphere buff) are
+	# Per-activity notes (throttle %, combat-paused nag) are
 	# deliberately omitted — the channel LEDs/status already convey "ran / idle",
 	# and this screen is the dopamine beat, not a caveats list. Only the offline
 	# cap survives: forfeited earnings are material, not noise.

@@ -78,6 +78,13 @@ func get_coach_anchor(key: String) -> Control:
 			return widgets[0] if not widgets.is_empty() else null
 		"stats":
 			return $VBoxContainer/StatsPanel
+		"matrix_synth":
+			# v131: the Matrix Synthesis craft widget (coach anchor). Null when not
+			# on-screen — the coach overlay falls back to a centered card.
+			for w in widgets:
+				if is_instance_valid(w) and str(w.get("mid")) == "matrix_synthesis" and w.is_visible_in_tree():
+					return w
+			return null
 	return null
 
 func _style_stats_panel():

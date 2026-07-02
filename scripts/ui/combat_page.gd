@@ -99,7 +99,12 @@ func _ready():
 	if not btn_retreat.is_connected("pressed", _on_retreat_btn_pressed): btn_retreat.pressed.connect(_on_retreat_btn_pressed)
 	
 	_setup_loot_filter_button()
-	_build_combat_timers()
+	# v131: removed the top-center flavor readout per design — SECTOR THREAT +
+	# TARGET LOCK labels hidden, and the SESSION / LAST KILL timer row is not built
+	# (so _refresh_combat_timers early-returns on its null guard). The LoadoutSwap
+	# chips in the same CenterInfo container are untouched (functional, kept).
+	if threat_lbl: threat_lbl.visible = false
+	if scan_lbl: scan_lbl.visible = false
 	_build_loadout_swap_row()
 
 var p_hp_bar: HBoxContainer
@@ -393,9 +398,8 @@ func update_ui():
 	var total_crit = (sm.crit_chance + crit_bonus) * 100.0
 	
 	p_stat_lbl.text = "ATK: %s | DEF: %s | EVA: %.0f | CRIT: %.0f%%" % [UITheme.format_num(sm.attack), UITheme.format_num(sm.defense), total_eva, total_crit]
-	# v127: surface the ship's K/E/X damage RESISTANCE next to the enemy's damage
-	# type (shown on the enemy card) — closes the "which resist do I need here?" loop.
-	p_stat_lbl.text += " | RES K%d N%d X%d" % [int(round(sm.resist_k * 100.0)), int(round(sm.resist_e * 100.0)), int(round(sm.resist_x * 100.0))]
+	# v131: the inline "RES K/N/X" readout was removed per design (too cryptic on
+	# the stat line). resist_k/e/x still apply in combat — they just aren't shown here.
 	# v112 Fleet P2: surface the fleet's live combat contribution so it reads as
 	# power, not a dead roster number.
 	if GameState.fleet_manager and GameState.fleet_manager.has_method("get_combat_bonus_pct"):
