@@ -613,6 +613,11 @@ func _build_enemy_models(zid: String) -> Array:
 		return _enemy_score(ea) < _enemy_score(eb)
 	)
 	var out: Array = []
+	# v133: enemies tied to an active "defeat" mission get an OBJECTIVE marker so the
+	# player locks the RIGHT target instead of any hostile in the sector.
+	var obj_targets: Array = []
+	if GameState.mission_manager and GameState.mission_manager.has_method("get_active_defeat_targets"):
+		obj_targets = GameState.mission_manager.get_active_defeat_targets()
 	for eid in enemies:
 		if not manager.enemy_db.has(eid):
 			continue
@@ -626,6 +631,7 @@ func _build_enemy_models(zid: String) -> Array:
 			"color": DMG_COLS.get(dt, C_DIM),
 			"hp_txt": UITheme.format_num(s.get("hp", 0)),
 			"tag": DMG_TAGS.get(dt, "KIN"),
+			"objective": obj_targets.has(str(eid)),
 		})
 	return out
 

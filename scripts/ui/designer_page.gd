@@ -1954,7 +1954,7 @@ func rebuild_storage():
 				if not _module_matches_search(ammo_id, fake_data):
 					continue
 				var ammo_card = draggable_icon_scene.instantiate()
-				_spatial.add_item(ammo_card, 1, 1, manager.get_armory_pos(ammo_id))
+				_spatial.add_item(ammo_card, 2, 2, manager.get_armory_pos(ammo_id))   # v127: 2x2 so it renders square like modules
 				ammo_card.setup(ammo_id, fake_data, qty)
 				ammo_card.is_selected = ammo_id in selected_mids
 				ammo_card.is_draggable = true   # drag onto a weapon's ammo slot (was missed when drag-to-equip was restored)
@@ -1979,7 +1979,7 @@ func rebuild_storage():
 				if not _module_matches_search(consumable_id, fake_data):
 					continue
 				var consumable_card = draggable_icon_scene.instantiate()
-				_spatial.add_item(consumable_card, 1, 1, manager.get_armory_pos(consumable_id))
+				_spatial.add_item(consumable_card, 2, 2, manager.get_armory_pos(consumable_id))   # v127: 2x2 so it renders square like modules
 				consumable_card.setup(consumable_id, fake_data, qty)
 				consumable_card.is_selected = consumable_id in selected_mids
 				consumable_card.is_draggable = true   # drag onto a consumable slot

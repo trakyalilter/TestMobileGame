@@ -39,7 +39,7 @@ var actions: Dictionary = {
 	"gather_dirt": {
 		"name": "Excavate Soil",
 		"loot_table": [["Dirt", 1.0, 8, 10]],
-		"xp": 8,
+		"xp": 12,
 		"level_req": 1,
 		"category": "terrestrial",
 		"duration": 3.0
@@ -56,8 +56,8 @@ var actions: Dictionary = {
 	"collect_water": {
 		"name": "Pump Water",
 		"loot_table": [["Water", 1.0, 8, 10]],
-		"xp": 12,
-		"level_req": 3,
+		"xp": 15,
+		"level_req": 2,
 		"research_req": "basic_engineering",
 		"category": "terrestrial"
 	},
@@ -130,7 +130,7 @@ var actions: Dictionary = {
 		"name": "Extract Malachite",
 		"loot_table": [["Malachite", 1.0, 8, 10]],
 		"xp": 14,
-		"level_req": 10,
+		"level_req": 7,
 		"research_req": "basic_engineering",
 		"category": "terrestrial"
 	},

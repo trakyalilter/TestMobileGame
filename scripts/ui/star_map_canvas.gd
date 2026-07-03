@@ -460,6 +460,8 @@ func _draw_cluster(e: Dictionary, reveal: float) -> void:
 		_reticle(p, 30.0)
 	elif hov:
 		draw_arc(p, 28.0, 0.0, TAU, 32, Color(col.r, col.g, col.b, 0.6), 1.3, true)
+	if e.get("objective", false):
+		_draw_objective_marker(p, 33.0)
 	_ctext(Vector2(p.x, p.y + 44.0), str(e.get("name", "Hostile")), C_TEXT if (sel or hov) else C_DIM, 11)
 	_ctext(Vector2(p.x, p.y + 56.0), "%s · %s HP" % [str(e.get("tag", "")), str(e.get("hp_txt", "?"))], col, 8)
 
@@ -480,6 +482,8 @@ func _draw_boss(e: Dictionary, reveal: float) -> void:
 		_reticle(p, 34.0)
 	elif hov:
 		draw_arc(p, 32.0, 0.0, TAU, 36, Color(C_CORAL.r, C_CORAL.g, C_CORAL.b, 0.6), 1.4, true)
+	if e.get("objective", false):
+		_draw_objective_marker(p, 40.0)
 	_ctext(Vector2(p.x, p.y + 52.0), str(e.get("name", "Boss")), Color(1.0, 0.62, 0.67) if (sel or hov) else C_CORAL, 12)
 	_ctext(Vector2(p.x, p.y + 65.0), "SECTOR BOSS · %s HP" % str(e.get("hp_txt", "?")), Color(C_CORAL.r, C_CORAL.g, C_CORAL.b, 0.85), 8)
 
@@ -492,6 +496,17 @@ func _reticle(p: Vector2, r: float) -> void:
 		draw_arc(p, r, a0, a0 + TAU / 18.0, 4, C_TEAL, 1.8, true)
 	for d in [Vector2(0, -r), Vector2(0, r), Vector2(-r, 0), Vector2(r, 0)]:
 		draw_line(p + d.normalized() * (r - 4.0), p + d.normalized() * (r + 4.0), C_TEAL, 1.4, true)
+
+# v133: gold quest marker on an enemy tied to an active "defeat" mission — a pulsing
+# ring + a bobbing chevron + label so the player locks the RIGHT target.
+func _draw_objective_marker(p: Vector2, r: float) -> void:
+	var oc := Color(1.0, 0.82, 0.35)
+	var rr := r + 3.0 * sin(_phase * 3.0)
+	draw_arc(p, rr + 5.0, 0.0, TAU, 44, Color(oc.r, oc.g, oc.b, 0.28), 5.0, true)
+	draw_arc(p, rr, 0.0, TAU, 44, Color(oc.r, oc.g, oc.b, 0.9), 2.4, true)
+	var my := p.y - (r + 14.0) - 3.0 * sin(_phase * 3.0)
+	draw_colored_polygon(PackedVector2Array([Vector2(p.x - 5.5, my - 6.0), Vector2(p.x + 5.5, my - 6.0), Vector2(p.x, my)]), oc)
+	_ctext(Vector2(p.x, my - 15.0), "OBJECTIVE", oc, 9)
 
 func _enemy_by_id(eid: String) -> Dictionary:
 	for e in _enemies:

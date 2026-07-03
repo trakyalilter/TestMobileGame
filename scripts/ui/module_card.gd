@@ -303,25 +303,8 @@ func _draw_tile_visual(item_name: String, slot_type: String, rarity: int, rarity
 		cmp_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		tile_container.add_child(cmp_lbl)
 
-	# --- v131d: ammo tier stamp, top-right (modules use that corner for the zone
-	# emblem, which ammo has none of). The damage-type colour separates type; this
-	# separates tier within a type. ---
-	if slot_type == "ammo":
-		var tier := _ammo_tier(mid)
-		if tier != "":
-			var tlbl := Label.new()
-			tlbl.text = tier
-			tlbl.add_theme_font_size_override("font_size", 12)
-			tlbl.add_theme_color_override("font_color", slot_col.lerp(Color.WHITE, 0.4))
-			tlbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
-			tlbl.add_theme_constant_override("outline_size", 3)
-			tlbl.anchor_left = 1.0; tlbl.anchor_right = 1.0
-			tlbl.offset_left = -26; tlbl.offset_right = -4
-			tlbl.offset_top = 3; tlbl.offset_bottom = 21
-			tlbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-			tlbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-			tlbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			tile_container.add_child(tlbl)
+	# --- v127: ammo tile shows NO corner stamp — the damage-type colour is the only
+	# cue (dropped the old T1..T4 tier stamp and the +ATK bonus stamp per feedback). ---
 
 	# --- Count chip, top-left ---
 	if count > 1:
@@ -1485,11 +1468,18 @@ func _drop_data(_at_position: Vector2, p_data: Variant) -> void:
 	if p_data is Dictionary and str(p_data.get("type", "")) == "hack_stone":
 		stone_dropped.emit(str(p_data.get("mid", "")), mid)
 
-# v111.7: hooked from _build_card_visual via resized.connect. When the grid
-# stretches us wider than our current min height, push min height up to match
-# so the cell renders as a square. Single-edge guard (size.x > min.y) means
-# this can't loop: bumping min.y doesn't change size.x in GridContainer, so
-# the next resized fire on the same width sees min.y == size.x and exits.
+# v111.7: hooked from _build_card_visual via resized.connect. Match min height to
+# the cell WIDTH so every tile renders square — GROW for the 2x2 module cells
+# (width > base min 64) AND SHRINK for the 1x1 ammo/consumable/gem cells (width <
+# base min), which previously stayed taller-than-wide. The abs>0.5 guard means the
+# next resized fire on the same width sees min.y == size.x and exits (no loop;
+# setting min.y doesn't change size.x in the grid).
 func _keep_square() -> void:
-	if size.x > custom_minimum_size.y:
+	if size.x > 0.0 and absf(custom_minimum_size.y - size.x) > 0.5:
 		custom_minimum_size.y = size.x
+		# We're a PanelContainer that sizes to its content, so the fixed-height
+		# content node ("TileVisual", min height = TS) is what actually pins the
+		# height. Square it too, or narrow 1x1 cells stay taller-than-wide.
+		var tv := get_node_or_null("TileVisual")
+		if tv:
+			tv.custom_minimum_size.y = size.x
