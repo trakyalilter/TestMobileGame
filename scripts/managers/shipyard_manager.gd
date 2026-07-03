@@ -2304,6 +2304,7 @@ func get_save_data_manager() -> Dictionary:
 	data["loadout_presets"] = loadout_presets
 	data["armory_layout"] = armory_layout
 	data["equipped_relic"] = equipped_relic  # v113 (NG+ P2)
+	data["drop_seq"] = _drop_seq  # v134e: persist the custom-id counter (see load)
 	return data
 
 func load_save_data_manager(data: Dictionary):
@@ -2316,6 +2317,14 @@ func load_save_data_manager(data: Dictionary):
 	if data.has("consumable_shield_slot"): consumable_shield_slot = data["consumable_shield_slot"]
 	
 	custom_modules = data.get("custom_modules", {})
+	# v134e: custom module ids are "custom_<base>_<ticks_msec>_<drop_seq>". ticks_msec
+	# resets to ~0 each launch, so the whole cross-session uniqueness rested on
+	# _drop_seq — which was NEVER persisted (reset to 0 every boot). Two sessions'
+	# first drops at the same ms-since-boot would collide and silently OVERWRITE a
+	# rolled module in `modules`. Persist the counter (now globally monotonic); old
+	# saves seed it past their existing custom-module count so new ids can't collide
+	# with already-stored ones.
+	_drop_seq = int(data.get("drop_seq", custom_modules.size() + 1))
 	for cm_id in custom_modules:
 		# v118: heat removed — migrate the legacy "heat_sync_focus" affix key
 		# (re-skinned to Servo Overclock) on existing rolled gear.
