@@ -2139,7 +2139,13 @@ func resolve_damage(atk_k, atk_e, atk_x, c_shield, c_armor, difficulty = 1, crit
 	# (base 1.5x). Player attacks only.
 	if is_crit:
 		variance *= (1.5 + (sm.gem_bonuses.get("crit_damage", 0.0) if is_player_attacker else 0.0))
-	return [int(damage_to_shield * variance), int(max(1.0 if (atk_k + atk_e + atk_x) > 0 else 0, total_hull_dmg * variance)), is_crit]
+	# v134c: the anti-stall hull floor (guarantee ≥1 lands so a fight can't tick
+	# forever at 0) predates Cryo (v109) and omitted atk_cryo — so a PURE-cryo
+	# loadout (Cryo Lance / Corrosion Blaster have no K/E/X) fell through to a 0
+	# floor. Against high-armor warp-hardened enemies its post-mitigation cryo can
+	# round below 1 → the fight stalls with no damage. Include every damage type.
+	var _has_atk: bool = (atk_k + atk_e + atk_x + atk_cryo) > 0
+	return [int(damage_to_shield * variance), int(max(1.0 if _has_atk else 0.0, total_hull_dmg * variance)), is_crit]
 
 # v101: Combat Loot Scaling System
 # Ensures combat resource drops keep pace with gathering/processing progression
@@ -2663,12 +2669,23 @@ func _trigger_consumable(item_id: String, sm: Object):
 		log_msg("Used %s: Boosted %d Shield" % [dname, amt])
 
 func _execute_broadside_burst():
-	var total_atk_k = 0.0
+	# v134c: sum EVERY damage channel, not just kinetic. The old version read only
+	# kinetic weapons, so an energy / explosive / (pure-)cryo loadout got a
+	# 0-damage broadside. NOTE: this whole proc is currently unreachable — its
+	# trigger guards on the module id "broadside_array", which is defined nowhere
+	# (no module/research/affix). Flagged for revive-with-a-module-def or removal.
+	var total_atk_k := 0.0
+	var total_atk_e := 0.0
+	var total_atk_x := 0.0
+	var total_atk_cryo := 0.0
 	for w in player_weapon_states:
-		if w["type"] == "kinetic": total_atk_k += w["dmg_k"]
-	
-	# Broadside delivers a massive kinetic salvo (5x base kinetic attack)
-	# subject to standard armor/shield resolution.
+		total_atk_k += w.get("dmg_k", 0.0)
+		total_atk_e += w.get("dmg_e", 0.0)
+		total_atk_x += w.get("dmg_x", 0.0)
+		total_atk_cryo += w.get("dmg_cryo", 0.0)
+
+	# Broadside delivers a massive salvo (5x base attack across all equipped
+	# weapon channels) subject to standard armor/shield resolution.
 	# v105: also picks up combat_focus (Recursive Calibration) bonus.
 	# v105b: void_weaponry_1 +5% Total Ship Damage (endgame sink).
 	# Nerfed 20% → 5% (v105c) to match main hit path.
@@ -2679,7 +2696,8 @@ func _execute_broadside_burst():
 		if GameState.research_manager.is_tech_unlocked("void_weaponry_1"):
 			void_weap_bonus_b = 0.05
 	var skill_dmg_mult = (1.0 + combat_dmg_bonus_b) * (1.0 + void_weap_bonus_b)  # v120: combat-level term removed
-	var res = resolve_damage(total_atk_k * 5.0 * skill_dmg_mult, 0, 0, enemy_shield, current_enemy["def"], current_zone.get("difficulty", 1), 0.1, true) # 10% base crit for volley
+	var _m: float = 5.0 * skill_dmg_mult
+	var res = resolve_damage(total_atk_k * _m, total_atk_e * _m, total_atk_x * _m, enemy_shield, current_enemy["def"], current_zone.get("difficulty", 1), 0.1, true, total_atk_cryo * _m, "cryo") # 10% base crit for volley
 	
 	enemy_shield = max(0, enemy_shield - res[0])
 	enemy_hp -= res[1]
