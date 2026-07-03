@@ -898,7 +898,7 @@ var tech_tree = {
 			"Cryo Cannon (Weapon Craft)",
 			"Cryo-Lance (Weapon Craft)",
 		],
-		"flavor": "Weaponize Exotic Matter — the only force that breaches Warp-Hardened hulls. Requires a Warp Core activation.",
+		"flavor": "Weaponize Exotic Condensate — the only force that breaches Warp-Hardened hulls. Requires a Warp Core activation.",
 	},
 	# v113 (NG+ P3, WT2): Corrosion Armaments — gates crafting the Corrosion
 	# Blaster (the Z12 Rift element weapon). Ships tab; req_tech cryo_armaments
@@ -1108,8 +1108,8 @@ var tech_tree = {
 		"type": "technology",
 		"parent": "radiation_shielding",
 		"effects": [],
-		"unlocks": ["Sector Delta (Crystalline)"],
-		"flavor": "",
+		"unlocks": ["Void Navigation (branch)"],
+		"flavor": "Refines exotic matter and gates the Void Navigation branch. Sector Delta is unlocked separately by Delta Sector Survey (zone_8_access).",
 	},
 	# --- EFFICIENCY BRANCH (MULTIPLIED YIELDS) ---
 	"efficiency_1": {
@@ -1334,7 +1334,6 @@ var tech_tree = {
 		# are downstream research techs (void_weaponry_1 / void_shielding_1),
 		# not items. Tree's req_tech edges already show they unlock next.
 		"unlocks": [
-			"Sector Epsilon — The Void",
 			"Void Rift Anchor",
 			"Chrono-Siphon",
 		],

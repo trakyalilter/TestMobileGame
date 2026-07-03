@@ -286,11 +286,12 @@ func _on_combat_visibility_changed() -> void:
 	if not is_visible_in_tree():
 		return
 	refresh_zones()
-	# v124: the Sector Chart is the entry point. Landing on an idle combat HUD
-	# (no fight running) is a dead screen — open sector selection straight away.
-	# If a fight is already in progress, show it instead (don't cover combat).
-	if not manager.in_combat:
-		call_deferred("_open_star_map")
+	# v134: clicking Combat now lands on the ship HUD, NOT the Sector Chart. The
+	# chart opens on demand — via the "Open Chart" button (open_chart_btn) or by the
+	# combat coach (coach_before_step opens it for the sector/target steps). So
+	# mission + tutorial guidance to the chart still works (m016c's coach opens it;
+	# "defeat in Sector X" missions mark objectives inside it) — it's just no longer
+	# forced open on every idle visit. A fight already in progress shows the live HUD.
 
 # v124: the in-HUD enemy-card list was removed (the Sector Chart roster replaced
 # it). The coach (main.gd) still calls this to pulse an "engage this enemy" cue;
@@ -306,9 +307,10 @@ func get_enemy_card(_enemy_id: String) -> Control:
 	return open_chart_btn
 
 func get_coach_anchor(key: String) -> Control:
-	# v128: the Sector Chart auto-opens on this page and covers the HUD, so anchor the
-	# sector/target steps INTO the open chart (the old open_chart_btn is now hidden
-	# behind the overlay — highlighting it drew an empty box over the scrim).
+	# v128/v134: coach_before_step opens the Sector Chart for the sector/target steps
+	# (it no longer auto-opens on a plain page visit), so those steps anchor INTO the
+	# open chart — while it's open the open_chart_btn is hidden behind the overlay, so
+	# highlighting it would draw an empty box over the scrim.
 	if star_map and is_instance_valid(star_map) and star_map.visible and star_map.has_method("get_coach_anchor"):
 		var a = star_map.get_coach_anchor(key)
 		if a != null:

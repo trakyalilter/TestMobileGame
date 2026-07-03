@@ -45,17 +45,37 @@ func update_state():
 	elif data["completed"]:
 		status_lbl.text = "READY"
 		status_lbl.modulate = Color(1.0, 0.8, 0.2)
-		claim_btn.text = "Claim %d Liras" % data["reward_cr"]
+		claim_btn.text = "Claim %s" % _reward_str()
 		claim_btn.disabled = false
 		progress_bar.visible = true
 		modulate.a = 1.0
 	else:
 		status_lbl.text = "IN PROGRESS"
 		status_lbl.modulate = Color(0.2, 0.7, 1.0)
-		claim_btn.text = "%d Liras" % data["reward_cr"]
+		# v134: a disabled button reading just "8049 Liras" parsed as a COST to
+		# new players. Name it as the reward.
+		claim_btn.text = "Reward: %s" % _reward_str()
 		claim_btn.disabled = true
 		progress_bar.visible = true
 		modulate.a = 1.0
+
+# v134: claim_reward pays reward_cr x the warp production multiplier — show the
+# amount that will ACTUALLY be paid (the raw base understated it after warping).
+# reward_xp is granted too now, so surface it. format_number keeps late-game
+# rewards readable (300K, 1.2M...). Goals like THE GREAT EXPEDITION pay XP only.
+func _reward_str() -> String:
+	var parts: Array = []
+	var cr: float = float(data["reward_cr"])
+	if cr > 0.0:
+		if GameState.warp_manager:
+			cr = cr * GameState.warp_manager.get_production_multiplier()
+		parts.append("%s Liras" % FormatUtils.format_number(cr))
+	var xp: float = float(data.get("reward_xp", 0))
+	if xp > 0.0:
+		parts.append("+%s XP" % FormatUtils.format_number(xp))
+	if parts.is_empty():
+		return "0 Liras"
+	return "  ".join(parts)
 
 func _on_claim_btn_pressed():
 	if manager.claim_reward(mid):

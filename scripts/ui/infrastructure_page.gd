@@ -68,13 +68,20 @@ func get_coach_anchor(key: String) -> Control:
 
 func queue_refresh():
 	if is_dirty: return
+	# v134: resources_* are AUTOLOAD signals that keep firing even while this page is
+	# OUT of the scene tree (e.g. warp charge removes an element every _process frame
+	# while the player is on another page). get_tree() is null when detached — guard
+	# BEFORE setting is_dirty, or a re-attached page stays permanently un-refreshable.
+	if not is_inside_tree(): return
 	is_dirty = true
 	# Throttle: Max 5 updates per second (200ms)
 	get_tree().create_timer(0.2).timeout.connect(_do_refresh)
 
 func _do_refresh():
 	is_dirty = false
-	if visible:
+	# is_visible_in_tree() (not bare `visible`) so a detached/hidden page never runs
+	# update_ui() — which reaches into get_tree()/live nodes.
+	if is_visible_in_tree():
 		update_ui()
 
 var btn_x1: Button

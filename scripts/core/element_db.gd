@@ -112,7 +112,10 @@ var ELEMENT_NAMES = {
 	# Special/Exotic
 	"VoidArtifact": "Void Artifact",
 	"QuantumCore": "Quantum Core",
-	"ExoticMatter": "Exotic Matter",
+	# v134: display renamed (was "Exotic Matter") — collided with the PRESTIGE
+	# currency "Exotic Matter Shards"; two different things shared one name.
+	# Internal key stays ExoticMatter everywhere (saves, costs, drops).
+	"ExoticMatter": "Exotic Condensate",
 	"VoidCrystal": "Void Crystal",
 	"Diamond": "Diamond",
 	"Neutronium": "Neutronium",

@@ -217,12 +217,12 @@ var building_db: Dictionary = {
 	"brine_extractor": {
 		"name": "Lithium Brine Well",
 		"description": "+1.7 Lithium Ore (Efficient)",
-		"cost": {"credits": 1000000, "Ti": 500,"Superalloy":100},
+		"cost": {"credits": 1500000, "Steel": 1800, "AdvCircuit": 120},
 		"energy_gen": 0.0,
-		"energy_cons": 120.0,
+		"energy_cons": 300.0,
 		"yield": {"Spodumene": 1.7},
 		"interval": 5.0,
-		"research_req": "basic_engineering",
+		"research_req": "metallurgy_advanced",
 		"category": "extraction"
 	},
 	"copper_mine": {
@@ -239,12 +239,12 @@ var building_db: Dictionary = {
 	"deep_crust_drill": {
 		"name": "Deep-Crust Drill",
 		"description": "+1.7 Malachite (Heavy)",
-		"cost": {"credits": 1000000, "Ti": 500,"Superalloy":100},
+		"cost": {"credits": 1400000, "Steel": 1600, "AdvCircuit": 100},
 		"energy_gen": 0.0,
-		"energy_cons": 120.0,
+		"energy_cons": 300.0,
 		"yield": {"Malachite": 1.7},
 		"interval": 5.0,
-		"research_req": "basic_engineering",
+		"research_req": "metallurgy_advanced",
 		"category": "extraction"
 	},
 	"tin_mine": {
@@ -272,7 +272,7 @@ var building_db: Dictionary = {
 	"quartz_excavator": {
 		"name": "Quartz Resonator",
 		"description": "+2.5 Quartz (High Speed)",
-		"cost": {"credits": 1000000, "Ti": 500,"Superalloy":100},
+		"cost": {"credits": 2200000, "Ti": 500, "AdvCircuit": 150},
 		"energy_gen": 0.0,
 		"energy_cons": 4500.0,
 		"yield": {"Quartz": 2.5},
@@ -327,7 +327,7 @@ var building_db: Dictionary = {
 	"bauxite_miner": {
 		"name": "Bauxite Strip Miner",
 		"description": "+2.5 Bauxite (Industrial)",
-		"cost": {"credits": 1000000, "Ti": 500,"Superalloy":100},
+		"cost": {"credits": 2200000, "Ti": 450, "AdvCircuit": 130},
 		"energy_gen": 0.0,
 		"energy_cons": 4500.0,
 		"yield": {"Bauxite": 2.5},
@@ -398,7 +398,7 @@ var building_db: Dictionary = {
 		"energy_cons": 120.0,
 		"yield": {"Germanit": 0.4},
 		"interval": 5.0,
-		"research_req": "basic_electronics",
+		"research_req": "adv_materials",
 		"category": "extraction"
 	},
 	"iridium_drill": {
@@ -426,7 +426,7 @@ var building_db: Dictionary = {
 	"orbital_siphon": {
 		"name": "Orbital Gas Siphon",
 		"description": "+4 H, +2 He, +2 N",
-		"cost": {"credits": 1000000, "Ti": 500,"Superalloy":100},
+		"cost": {"credits": 1600000, "Ti": 350, "AdvCircuit": 90},
 		"energy_gen": 0.0,
 		"energy_cons": 750.0,
 		"yield": {"H": 4, "He": 2, "N": 2},
@@ -437,7 +437,7 @@ var building_db: Dictionary = {
 	"precious_dredge": {
 		"name": "Precious Metal Dredge",
 		"description": "+2 Pt, +1 Ir",
-		"cost": {"credits": 1000000, "Ti": 500,"QuantumCore": 10,"Superalloy":100},
+		"cost": {"credits": 3500000, "Ti": 600, "QuantumCore": 10, "AdvCircuit": 180},
 		"energy_gen": 0.0,
 		"energy_cons": 12000.0,
 		"yield": {"PtOre": 2, "Ir": 1},
@@ -653,7 +653,7 @@ var building_db: Dictionary = {
 		"yield": {"Germanium": 0.6},
 		"input": {"Germanit": 3.1},
 		"interval": 5.0,
-		"research_req": "basic_electronics",
+		"research_req": "adv_materials",
 		"category": "industry"
 	},
 	"hydro_plant": {

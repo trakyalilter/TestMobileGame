@@ -4,9 +4,13 @@ extends RefCounted
 # headless balance-sim runs, where it would emit tens of thousands of lines).
 const DEBUG_LOG := false
 
-const CHAPTER_2_IDS = ["m027", "m028", "m029", "m029b", "m030", "m030c",
-	"m030e", "m030f", "m030g", "m030h",
-	"m031", "m032", "m032b", "m032d", "m032c", "m033", "m033b", "m033c"]
+# v134: added the mid-chapter beats (m027b bounty intro, m029a1-a5 AdvCircuit
+# arc, m030i/m032a boss-core farms) — they sat between [CHAPTER 2] missions but
+# rendered as [TUTORIAL], which read as the game mislabeling its own acts.
+const CHAPTER_2_IDS = ["m027", "m027b", "m028", "m029",
+	"m029a1", "m029a2", "m029a3", "m029a4", "m029a5", "m029b", "m030", "m030c",
+	"m030e", "m030f", "m030g", "m030h", "m030i",
+	"m031", "m032", "m032a", "m032b", "m032d", "m032c", "m033", "m033b", "m033c"]
 const ENDGAME_IDS = ["m034"]
 
 var missions = {}
@@ -106,16 +110,27 @@ func init_missions():
 		# pair teaches ENERGY against the energy-weak Survey Probe (resist_e -0.30, resists
 		# kinetic +0.30). The EXPLOSIVE leg is the Scrap Collector pair (m017c/d).
 		# (v131: the Rogue Architect boss has NO resists — pure rarity check.)
-		["m017a", "Energy Doctrine", "Not every hostile falls to slugs. The Survey Probe RESISTS kinetic fire but is WEAK TO ENERGY. In the Shipyard, craft a 'Pulse Laser Mk.I' — then feed it Focus Crystals (CellT1) from the Engineering tab.", "craft", "z1_energy", 1, 1500, 200, "m017b"],
-		["m017b", "Pulse Fire", "Equip your Pulse Laser (Focus Crystals loaded) and destroy a Survey Probe in Lunar Orbit. Watch energy melt what kinetic shrugged off — always match the weapon to the weakness.", "defeat", "z1_survey_probe", 1, 3000, 500, "m017c"],
+		["m017a", "Energy Doctrine", "Not every hostile falls to slugs. The Survey Probe RESISTS kinetic fire but is WEAK TO ENERGY. In the Shipyard, craft a 'Pulse Laser Mk.I'.", "craft", "z1_energy", 1, 1500, 200, "m017a2"],
+		# v134: energy leg now mirrors the kinetic leg (craft -> produce ammo -> equip & fight).
+		# It used to jump from craft straight to "destroy with Focus Crystals loaded" with NO
+		# step that made the player PRODUCE the ammo — so a correctly-built laser fought empty.
+		["m017a2", "Charge the Crystals", "The Pulse Laser runs on Focus Crystals. In the Engineering tab, produce 60 Focus Crystals (CellT1) — its ammunition.", "gather", "CellT1", 60, 1500, 200, "m017b"],
+		["m017b", "Pulse Fire", "In the Ship Designer, drag your Pulse Laser onto a WEAPON slot (that auto-loads the Focus Crystals), then destroy a Survey Probe in Lunar Orbit. Energy melts what kinetic shrugged off — always match the weapon to the weakness.", "defeat", "z1_survey_probe", 1, 3000, 500, "m017c"],
 		# v128: EXPLOSIVE leg — the Scrap Collector is now armored vs kinetic + energy and
 		# WEAK to explosive (resist_x -0.30), so all three types are taught against regular
 		# Lunar Orbit enemies. combustion is already researched at m010, so missiles craft here.
-		["m017c", "Explosive Doctrine", "The Scrap Collector is armored against kinetic AND energy — but blows apart under EXPLOSIVE ordnance. In the Shipyard, craft a 'Micro-Missile Launcher', then stock HE Missiles (MissileT1) in the Engineering tab.", "craft", "z1_missile", 1, 1800, 250, "m017d"],
-		["m017d", "Warhead", "Equip your Micro-Missile Launcher (HE Missiles loaded) and destroy a Scrap Collector in Lunar Orbit. Three weapon types, three weaknesses — now you command the damage triangle.", "defeat", "z1_scrap_collector", 1, 3500, 600, "m018"],
+		["m017c", "Explosive Doctrine", "The Scrap Collector is armored against kinetic AND energy — but blows apart under EXPLOSIVE ordnance. In the Shipyard, craft a 'Micro-Missile Launcher'.", "craft", "z1_missile", 1, 1800, 250, "m017c2"],
+		# v134: explosive leg scaffolds ammo like the others. It used to go craft ->
+		# "destroy with HE Missiles loaded" with NO produce-ammo step (and equip_module
+		# auto-loaded a phantom "missile" ammo id instead of MissileT1 — both now fixed).
+		["m017c2", "Stock the Warheads", "The launcher fires HE Missiles. In the Engineering tab, produce 60 HE Missiles (MissileT1) — its ammunition.", "gather", "MissileT1", 60, 1800, 250, "m017d"],
+		["m017d", "Warhead", "In the Ship Designer, drag your Micro-Missile Launcher onto a WEAPON slot (that auto-loads the HE Missiles), then destroy a Scrap Collector in Lunar Orbit. Three weapon types, three weaknesses — now you command the damage triangle.", "defeat", "z1_scrap_collector", 1, 3500, 600, "m018"],
 		["m018", "Industrial Logistics", "Research the 'Industrial Logistics' hub.", "research", "industrial_logistics", 1, 500, 100, "m019"],
 		["m018b", "Automated Intelligence", "Research 'Automated Logistics' for circuitry.", "research", "automated_logistics", 1, 1000, 200, "m019"],
-		["m019", "Cybernetic Integration", "Craft 10 Basic Circuitry in the Engineering tab.", "gather", "Circuit", 10, 2000, 300, "m019b"],
+		# v134: the Circuit recipe needs TIN (Sn) — a material the chain never introduced
+		# (Cassiterite mining was only taught at m028, nine missions later). Name the
+		# full path so the player isn't stared down by an unexplained missing input.
+		["m019", "Cybernetic Integration", "Craft 10 Basic Circuitry in the Engineering tab. Its recipe needs Tin: mine Cassiterite in the Mine page, then smelt it into Tin (Engineering tab) first.", "gather", "Circuit", 10, 2000, 300, "m019b"],
 		# P-onboard: close two long-standing teaching holes before the smelting push.
 		# Both are visit_page (auto-complete on navigation → can never soft-lock) and
 		# fire the existing per-page coach card the moment the player lands.
@@ -134,7 +149,8 @@ func init_missions():
 		["m024c", "Shields Up", "Open the Ship Designer, then DRAG the Basic Shield from your Armory (right panel) onto an empty SHIELD slot. Incoming damage hits the shield before your hull.", "loadout_check", "shield", 1, 500, 100, "m024b"],
 		# Split for onboarding: teach what consumables are + where to make them,
 		# THEN how to equip them (was one sudden compound objective).
-		["m024b", "Field Supplies", "Repair kits keep you alive in combat. In the Processing page, craft 5 Emergency Hull Patches and 5 Basic Shield Boosters.", "gather_multi", {"EmergencyPatch": 5, "BasicBooster": 5}, 10, 2000, 150, "m024b2"],
+		# v134: "Processing page" — no such page exists; the sidebar label is Engineering.
+		["m024b", "Field Supplies", "Repair kits keep you alive in combat. In the Engineering page, craft 5 Emergency Hull Patches and 5 Basic Shield Boosters.", "gather_multi", {"EmergencyPatch": 5, "BasicBooster": 5}, 10, 2000, 150, "m024b2"],
 		# Re-routed: m016b (catch-all weapon+shield equip) is now redundant —
 		# each module already has its own per-arc equip mission (m007b / m015b /
 		# m022b / m024c). m024b2 now flows into m016c "Combat Briefing", which
@@ -148,8 +164,13 @@ func init_missions():
 		["m016c", "Combat Briefing", "Open the Combat page (left sidebar). Pick a sector → pick a target → ENGAGE. Your Shield absorbs hits first; your Hull takes overflow. Auto-consumables fire when each drops below the threshold you set in Research.", "visit_page", "combat", 1, 200, 50, "m017"],
 		# v132: smelting's tree parent is Organic Combustion — name BOTH so the
 		# player isn't surprised by a locked node (one Research visit, two clicks).
-		["m025", "Refining Mastery", "Research 'Organic Combustion', then 'Efficient Smelting' beneath it, for alloys.", "research", "smelting", 1, 15000, 500, "m025b"],
-		["m025b", "Alloy Production", "Smelt 50 Steel in the Engineering tab (Basic Steel Smelting recipe).", "gather", "Steel", 50, 5000, 500, "m026"],
+		["m025", "Refining Mastery", "Research 'Organic Combustion', then 'Efficient Smelting' beneath it, for alloys.", "research", "smelting", 1, 15000, 500, "m025a"],
+		# v134: modern smelting now consumes Oxygen (Basic-Oxygen furnace), so teach
+		# electrolysis BEFORE the first steel — otherwise the steel recipe silently needs
+		# an input the tutorial never introduced. Electrolysis also feeds the later O/H
+		# recipes (zinc/nickel roasting, missile propellant). 50 steel = 10 crafts = 20 O.
+		["m025a", "Split the Water", "Modern foundries burn Oxygen. In the Engineering tab, run Water Electrolysis to split Water into Hydrogen and Oxygen — stock 30 Oxygen (O).", "gather", "O", 30, 3000, 300, "m025b"],
+		["m025b", "Alloy Production", "Now smelt 50 Steel in the Engineering tab — the Basic-Oxygen furnace blows your Oxygen through the molten iron (Basic Steel Smelting recipe).", "gather", "Steel", 50, 5000, 500, "m026"],
 		["m026", "Master Constructor", "Research 'Shipwright I' for hull reinforcement.", "research", "shipwright_1", 1, 5000, 500, "m026b"],
 		["m026b", "Hull Modernization I", "Construct an 'Industrial Frigate' in the Shipyard.", "construct", "frigate_hull", 1, 10000, 1000, "m026c"],
 		["m026c", "Elite Salvage", "Defeated enemies drop gear of varying rarity. Farm Lunar Orbit until you get a RARE (blue) module drop.", "drop_rarity", "2", 1, 5000, 500, "m026d"],
@@ -217,9 +238,13 @@ func init_missions():
 		["m034", "Break the Blockade", "Defeat the BETA COLOSSUS 3 times — its cores are the key to Gamma Sector Clearance.", "defeat", "z6_boss_colossus", 3, 300000, 50000, "m033b"],
 		["m033b", "Gamma Clearance", "Research 'Gamma Sector Clearance' in the Research tree (it consumes the Colossus cores) to unlock Sector Gamma.", "research", "zone_7_access", 1, 100000, 10000, "m033c"],
 		["m033c", "Titan Construction", "Construct a 'Dreadnought' in the Shipyard. Its blueprints sit behind 'Delta Sector Survey' research — four Sector Gamma boss cores. The final climb is yours to chart.", "construct", "dreadnought_hull", 1, 1000000, 50000, ""],
-		["goal_001", "THE GREAT EXPEDITION", "Reach Sector Epsilon and discover the Primordial Core.", "discover", "sector_epsilon", 1, 0, 1000000, ""],
-		["goal_002", "INTO THE VOID", "Perform your first Warp. Your Liras and materials reset, but you gain Exotic Matter Shards for permanent multipliers that make each run stronger.", "warp_perform", "warp", 1, 0, 250000, ""],
-		["goal_003", "PRESTIGE VETERAN", "Perform 5 Warps total to fully unlock Warp Tier scaling.", "warp_perform", "warp", 5, 0, 2000000, ""],
+		# v134: goal XP re-tuned now that reward_xp is actually GRANTED (it was a dead
+		# field). Legacy values (1M/250K/2M) were written when XP paid nothing — live,
+		# they'd insta-level a skill past the 30%-retention warp design. Sized as
+		# one-time "lamps": a satisfying chunk (~1-3 levels at claim era), not a skip.
+		["goal_001", "THE GREAT EXPEDITION", "Reach Sector Epsilon and discover the Primordial Core.", "discover", "sector_epsilon", 1, 0, 250000, ""],
+		["goal_002", "INTO THE VOID", "Perform your first Warp. Your Liras and materials reset, but you gain Exotic Matter Shards for permanent multipliers that make each run stronger.", "warp_perform", "warp", 1, 0, 50000, ""],
+		["goal_003", "PRESTIGE VETERAN", "Perform 5 Warps total to fully unlock Warp Tier scaling.", "warp_perform", "warp", 5, 0, 500000, ""],
 		["goal_cryo_1", "FORGE CRYOGENIC ARMS", "The Threshold (Sector 11) is warp-hardened - only Cryo weapons breach it. Research Cryogenic Armaments in the new Warp Tech research tab.", "research", "cryo_armaments", 1, 3000000, 0, "goal_cryo_2"],
 		["goal_cryo_2", "FORGE CRYOGENIC ARMS", "Craft a Cryo Lance in the Shipyard. It needs Cryo Catalyst - farm it from Sector 10 enemies.", "craft", "cryo_lance", 1, 6000000, 0, "goal_cryo_3"],
 		["goal_cryo_3", "BREACH THE THRESHOLD", "Destroy a Warp Revenant in The Threshold (Sector 11) with your Cryo armaments.", "defeat", "z11_warp_revenant", 1, 15000000, 0, ""],
@@ -402,6 +427,13 @@ func claim_reward(mission_id) -> bool:
 				reward = int(reward * GameState.warp_manager.get_production_multiplier())
 			GameState.resources.add_currency("credits", reward)
 
+		# v134: reward_xp existed on every mission but was NEVER granted (dead field).
+		# Wire it: the XP lands on the skill the mission actually exercised — combat
+		# for fight/loadout beats, Engineering for craft/research/industry, Mining for
+		# raw-material gathers (see _grant_reward_xp).
+		if m["reward_xp"] > 0:
+			_grant_reward_xp(m)
+
 		# v128: bootstrap the crafting loop — finishing the awaken tutorial hands the
 		# player 2 more Splice Chips so they can keep experimenting past the mission.
 		if mission_id == "goal_hack_3":
@@ -423,6 +455,43 @@ func claim_reward(mission_id) -> bool:
 		mission_updated.emit()
 		return true
 	return false
+
+# v134: route mission XP to the skill whose loop the mission taught. "gather"
+# targets that are PROCESSING OUTPUTS (Steel, Circuit, ammo...) pay Engineering
+# XP — the player crafted them; raw materials (Dirt, ores...) pay Mining XP.
+var _processed_symbols := {}
+
+func _is_processed_target(target) -> bool:
+	if _processed_symbols.is_empty() and GameState.processing_manager:
+		for rid in GameState.processing_manager.recipes:
+			var r = GameState.processing_manager.recipes[rid]
+			for sym in r.get("output", {}):
+				_processed_symbols[sym] = true
+			for row in r.get("output_table", []):
+				_processed_symbols[row[0]] = true
+	if target is Dictionary:
+		for sym in target:
+			if sym in _processed_symbols:
+				return true
+		return false
+	return str(target) in _processed_symbols
+
+func _grant_reward_xp(m: Dictionary) -> void:
+	var xp: float = float(m["reward_xp"])
+	if xp <= 0.0:
+		return
+	var skill = null
+	match str(m["type"]):
+		"defeat", "discover", "drop_rarity", "loadout_check", "loadout_rare_weapon", \
+		"loadout_rare_weapon_type", "equip_consumables", "warp_perform", "hack_apply":
+			skill = GameState.combat_manager
+		"gather", "gather_multi":
+			skill = GameState.processing_manager if _is_processed_target(m["target"]) else GameState.gathering_manager
+		_:
+			# research / craft / construct / build / overclock_install / visit_page
+			skill = GameState.processing_manager
+	if skill:
+		skill.add_xp(xp)
 
 func get_save_data_manager() -> Dictionary:
 	var m_data = {}
@@ -732,3 +801,18 @@ func get_active_objective() -> Dictionary:
 			best_rank = rank
 			best = m
 	return best
+
+# v133: enemy ids the player is currently tasked to defeat (active, incomplete
+# "defeat" missions). The Sector Chart marks these as OBJECTIVE so the player locks
+# the RIGHT target instead of any hostile in the sector.
+func get_active_defeat_targets() -> Array:
+	var out: Array = []
+	for mid in active_missions:
+		var m = missions.get(mid)
+		if m == null or m.get("completed", false) or m.get("claimed", false):
+			continue
+		if str(m.get("type", "")) == "defeat":
+			var t := str(m.get("target", ""))
+			if t != "" and not out.has(t):
+				out.append(t)
+	return out

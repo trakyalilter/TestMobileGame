@@ -58,8 +58,8 @@ var recipes: Dictionary = {
 	},
 	"smelt_steel_basic": {
 		"name": "Basic Steel Smelting",
-		"description": "Foundry smelting of Iron and Carbon into Steel.",
-		"input": {"Fe": 5, "C": 2},
+		"description": "Basic-oxygen furnace — blow Oxygen through the molten Iron and Carbon to burn off impurities into Steel.",
+		"input": {"Fe": 5, "C": 2, "O": 2},
 		"output": {"Steel": 5},
 		"duration": 5.0,
 		"level_req": 12,
@@ -78,8 +78,8 @@ var recipes: Dictionary = {
 	},
 	"smelt_zinc": {
 		"name": "Zinc Reduction",
-		"description": "Extract Zinc from ore via carbon reduction.",
-		"input": {"ZincOre": 3, "C": 1},
+		"description": "Roast the Zinc sulfide ore in Oxygen, then reduce with Carbon.",
+		"input": {"ZincOre": 3, "C": 1, "O": 1},
 		"output": {"Zn": 2},
 		"output_table": [["Ag", 0.4, 1, 1]], # v80.4 Fix: Ag byproduct added to Zn refining (fixes catalyst deadlock)
 		"duration": 4.0,
@@ -99,8 +99,8 @@ var recipes: Dictionary = {
 	},
 	"refine_pentlandite": {
 		"name": "Nickel Extraction",
-		"description": "Process Pentlandite for Nickel (Ni).",
-		"input": {"Pentlandite": 3, "C": 1},
+		"description": "Roast Pentlandite sulfide in Oxygen, then reduce with Carbon for Nickel (Ni).",
+		"input": {"Pentlandite": 3, "C": 1, "O": 1},
 		"output": {"Ni": 2},
 		"output_table": [["Co", 0.4, 1, 1]], # v80.4 Fix: Co byproduct added to Ni refining (fixes major deadlock)
 		"duration": 6.0,
@@ -588,8 +588,8 @@ var recipes: Dictionary = {
 	},
 	"craft_missile_t2": {
 		"name": "Seeker Missile",
-		"description": "Guided missile with logic circuits.",
-		"input": {"Steel": 2, "Circuit": 1, "TargetingChip": 1, "StructuralComponent": 3, "PirateSalvage": 2},
+		"description": "Guided missile with logic circuits and a Hydrogen-fuelled sustainer motor.",
+		"input": {"Steel": 2, "Circuit": 1, "TargetingChip": 1, "StructuralComponent": 3, "PirateSalvage": 2, "H": 10},
 		"output": {"MissileT2": 20},
 		"duration": 20.0,
 		"level_req": 25,
@@ -1069,7 +1069,10 @@ var recipes: Dictionary = {
 		"input": {"Fe": 10, "Cu": 5, "Si": 5, "C": 3, "Li": 2},
 		"output": {"StructuralComponent": 1},
 		"duration": 8.0,
-		"level_req": 40,
+		# v134: 40 -> 35. The m029a3->m029b mission stretch expected 40 THEN 45
+		# (AdvCircuit) back-to-back — a dead grind zone with no new content between.
+		# 35 staggers the two gates; AdvCircuit stays 45 (the economy-wide gate).
+		"level_req": 35,
 		"xp": 80,
 		"research_req": "metallurgy_advanced"
 	},

@@ -611,7 +611,7 @@ var modules: Dictionary = {
 		# Z11 drops rarity-rolled copies that can exceed this base via affixes.
 		"stats": {"atk_cryo": 4000, "atk_interval": 2.0},
 		"cost": {"credits": 2000000, "ExoticMatter": 15, "CryoCatalyst": 12, "Superalloy": 50, "FocusingCrystal": 20},
-		"desc": "Exotic-Matter cryo lance. Self-charging, no ammo. The only thing that breaches Warp-Hardened hulls - farm The Threshold for legendary-grade rolls.",
+		"desc": "Exotic-Condensate cryo lance. Self-charging, no ammo. The only thing that breaches Warp-Hardened hulls - farm The Threshold for legendary-grade rolls.",
 		"zone": 11,
 		"power_tier": 8,
 		"cryo": true,
@@ -1858,11 +1858,10 @@ func equip_module(slot_idx: int, module_id: String, silent: bool = false) -> boo
 			ammo_loadout[slot_idx] = "CellT1"
 		# v65.0 Fix: Auto-equip for Explosive weapons mismatch
 		elif stats.get("atk_explosive", 0) > 0:
-			# For explosive, we use "missile" (HE Missiles)
-			if GameState.resources.get_element_amount("missile") > 0:
-				ammo_loadout[slot_idx] = "missile"
-			else:
-				print("Equip: No explosive ammo (missile) found in resources for auto-equip.")
+			# v134: MissileT1 is the real recipe output (craft_missile_t1). "missile" was
+			# a phantom key the player could never craft, so the launcher auto-loaded ammo
+			# it had zero of and fired empty. Set it unconditionally like kinetic/energy.
+			ammo_loadout[slot_idx] = "MissileT1"
 	return true
 
 func unequip_slot(slot_idx: int):
@@ -2446,6 +2445,11 @@ func reset(decay_factor: float = 1.0) -> void:
 	# (both wipe inventory above).
 	_grant_and_equip_starter_batteries()
 	recalc_stats()
+	# New game / warp: the ship starts at FULL integrity. recalc_stats() alone
+	# preserves the pre-reset HP fraction (right for in-game equips, wrong here) —
+	# so a stale damaged current_hp (e.g. 13 carried from a loaded save) would ride
+	# into the fresh corvette and read as a near-empty hull. Force full.
+	current_hp = max_hp
 
 # v110: seed the active hull's battery slots with tier-1 batteries.
 func _grant_and_equip_starter_batteries() -> void:

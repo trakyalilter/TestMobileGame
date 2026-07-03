@@ -1163,6 +1163,17 @@ func _update_navigation_hints():
 			page.focus_module_tab("z1_energy")
 			target_to_pulse = page.get_module_widget("z1_energy")
 
+	elif "m017a2" in mm.active_missions:
+		# v134: Processing — produce Focus Crystals (the energy leg's ammo step)
+		if current_page_name != "processing": target_to_pulse = processing_btn
+		else:
+			var pm = GameState.processing_manager
+			var page = pages["processing"]
+			page.focus_tab("craft_cell_t1")
+			var widget = page.get_widget_by_aid("craft_cell_t1")
+			if widget and not (pm.is_active and pm.current_recipe_id == "craft_cell_t1"):
+				target_to_pulse = widget.btn
+
 	elif "m017b" in mm.active_missions:
 		# Combat: kill the energy-weak Survey Probe
 		if current_page_name != "combat": target_to_pulse = combat_btn
@@ -1178,6 +1189,17 @@ func _update_navigation_hints():
 			var page = pages["shipyard"]
 			page.focus_module_tab("z1_missile")
 			target_to_pulse = page.get_module_widget("z1_missile")
+
+	elif "m017c2" in mm.active_missions:
+		# v134: Processing — produce HE Missiles (the explosive leg's ammo step)
+		if current_page_name != "processing": target_to_pulse = processing_btn
+		else:
+			var pm = GameState.processing_manager
+			var page = pages["processing"]
+			page.focus_tab("craft_missile_t1")
+			var widget = page.get_widget_by_aid("craft_missile_t1")
+			if widget and not (pm.is_active and pm.current_recipe_id == "craft_missile_t1"):
+				target_to_pulse = widget.btn
 
 	elif "m017d" in mm.active_missions:
 		# Combat: kill the explosive-weak Scrap Collector
@@ -1291,6 +1313,17 @@ func _update_navigation_hints():
 		else:
 			var widget = pages["research"].get_node_widget("smelting")
 			if widget: target_to_pulse = widget
+
+	elif "m025a" in mm.active_missions:
+		# v134: Processing — Water Electrolysis (stock Oxygen for the BOF steel step)
+		if current_page_name != "processing": target_to_pulse = processing_btn
+		else:
+			var pm = GameState.processing_manager
+			var page = pages["processing"]
+			page.focus_tab("electrolysis")
+			var widget = page.get_widget_by_aid("electrolysis")
+			if widget and not (pm.is_active and pm.current_recipe_id == "electrolysis"):
+				target_to_pulse = widget.btn
 
 	elif "m026" in mm.active_missions:
 		# Research: Shipwright I
@@ -1542,6 +1575,37 @@ func _update_navigation_hints():
 			var page = pages["combat"]
 			page.focus_zone("lunar_orbit")
 			target_to_pulse = page.get_enemy_card("z1_boss_architect")
+
+	# v134: the v107 AdvCircuit discovery beats (m029a1..a5) never had pulses —
+	# every OTHER tutorial research/craft step glows its target. Complete the set.
+	elif "m029a1" in mm.active_missions:
+		if current_page_name != "research": target_to_pulse = research_btn
+		else:
+			var widget = pages["research"].get_node_widget("adv_materials")
+			if widget: target_to_pulse = widget
+
+	elif "m029a2" in mm.active_missions:
+		if current_page_name != "research": target_to_pulse = research_btn
+		else:
+			var widget = pages["research"].get_node_widget("metallurgy_advanced")
+			if widget: target_to_pulse = widget
+
+	elif "m029a3" in mm.active_missions:
+		# Processing: Structural Components
+		if current_page_name != "processing": target_to_pulse = processing_btn
+		else:
+			var pm = GameState.processing_manager
+			var page = pages["processing"]
+			page.focus_tab("craft_structural_component")
+			var widget = page.get_widget_by_aid("craft_structural_component")
+			if widget and not (pm.is_active and pm.current_recipe_id == "craft_structural_component"):
+				target_to_pulse = widget.btn
+
+	elif "m029a5" in mm.active_missions:
+		if current_page_name != "research": target_to_pulse = research_btn
+		else:
+			var widget = pages["research"].get_node_widget("automation")
+			if widget: target_to_pulse = widget
 
 	elif "m029b" in mm.active_missions:
 		# Processing: Advanced Circuitry
