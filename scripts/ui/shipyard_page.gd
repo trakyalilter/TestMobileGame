@@ -326,7 +326,18 @@ func focus_module_tab(module_id: String):
 		_show_tab(tab_id)
 	var sc = $VBoxContainer/ScrollContainer
 	if sc is ScrollContainer:
-		sc.call_deferred("ensure_control_visible", w)
+		_scroll_card_to_top(sc, w)
+
+# v134: same fix as processing_page — ensure_control_visible scrolls minimally,
+# so a module card taller than the viewport ended BOTTOM-aligned with its header
+# clipped offscreen when a mission pulse focused it. Top-align instead, one
+# frame later so the tab-switch relayout has settled.
+func _scroll_card_to_top(sc: ScrollContainer, w: Control) -> void:
+	await get_tree().process_frame
+	if not is_instance_valid(sc) or not is_instance_valid(w) or not w.is_visible_in_tree():
+		return
+	var top: float = w.global_position.y - sc.get_global_rect().position.y + float(sc.scroll_vertical)
+	sc.scroll_vertical = int(maxf(0.0, top - 10.0))
 
 
 # ─── Category tabs ───────────────────────────────────────────────────────────

@@ -74,6 +74,33 @@ func get_widget_by_aid(target_aid: String) -> Control:
 			return w
 	return null
 
+# v134: scroll the mission-relevant action card into view — the pulse branches
+# used to highlight cards that could sit below the fold (Lithium/Malachite/
+# Cassiterite are mid-list), pulsing something invisible. Same top-align +
+# change-guard pattern as processing/shipyard focus_tab.
+var _last_focus_aid: String = ""
+
+func on_page_enter():
+	_last_focus_aid = ""
+
+func focus_action(aid_in: String):
+	if aid_in == "" or aid_in == _last_focus_aid:
+		return
+	var w = get_widget_by_aid(aid_in)
+	if not w:
+		return
+	_last_focus_aid = aid_in
+	var sc = $VBoxContainer/ScrollContainer
+	if sc is ScrollContainer:
+		_scroll_card_to_top(sc, w)
+
+func _scroll_card_to_top(sc: ScrollContainer, w: Control) -> void:
+	await get_tree().process_frame
+	if not is_instance_valid(sc) or not is_instance_valid(w) or not w.is_visible_in_tree():
+		return
+	var top: float = w.global_position.y - sc.get_global_rect().position.y + float(sc.scroll_vertical)
+	sc.scroll_vertical = int(maxf(0.0, top - 10.0))
+
 func get_coach_anchor(key: String) -> Control:
 	match key:
 		"first_action":

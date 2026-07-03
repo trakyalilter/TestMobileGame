@@ -772,6 +772,30 @@ func _player_owns_two_weapon_types() -> bool:
 			return true
 	return false
 
+# v134b: is a weapon of the given damage type currently EQUIPPED? (loadout only —
+# owning it in the armory isn't enough to fight with it). sm.modules carries defs
+# for base AND custom modules, so custom rolls are covered too.
+func _has_weapon_type_equipped(wtype: String) -> bool:
+	var sm = GameState.shipyard_manager
+	if sm == null:
+		return false
+	for mid_v in sm.loadout.values():
+		if mid_v == null or str(mid_v) == "":
+			continue
+		var def: Dictionary = sm.modules.get(str(mid_v), {})
+		if str(def.get("slot_type", "")) != "weapon":
+			continue
+		var st: Dictionary = def.get("stats", {})
+		var hit: bool = false
+		match wtype:
+			"kinetic": hit = float(st.get("atk_kinetic", 0)) > 0
+			"energy": hit = float(st.get("atk_energy", 0)) > 0
+			"explosive": hit = float(st.get("atk_explosive", 0)) > 0
+			"cryo": hit = float(st.get("atk_cryo", 0)) > 0
+		if hit:
+			return true
+	return false
+
 func _player_owns_set_module() -> bool:
 	var sm = GameState.shipyard_manager
 	if sm == null:
@@ -994,6 +1018,7 @@ func _update_navigation_hints():
 		# Gather Dirt
 		if current_page_name != "gathering": target_to_pulse = gathering_btn
 		else:
+			pages["gathering"].focus_action("gather_dirt")
 			var widget = pages["gathering"].get_widget_by_aid("gather_dirt")
 			if widget and not (GameState.gathering_manager.is_active and GameState.gathering_manager.current_action_id == "gather_dirt"):
 				target_to_pulse = widget.btn
@@ -1017,6 +1042,7 @@ func _update_navigation_hints():
 		# Gather Water
 		if current_page_name != "gathering": target_to_pulse = gathering_btn
 		else:
+			pages["gathering"].focus_action("collect_water")
 			var widget = pages["gathering"].get_widget_by_aid("collect_water")
 			if widget and not (GameState.gathering_manager.is_active and GameState.gathering_manager.current_action_id == "collect_water"):
 				target_to_pulse = widget.btn
@@ -1066,6 +1092,7 @@ func _update_navigation_hints():
 		# Gather Wood
 		if current_page_name != "gathering": target_to_pulse = gathering_btn
 		else:
+			pages["gathering"].focus_action("gather_wood")
 			var widget = pages["gathering"].get_widget_by_aid("gather_wood")
 			if widget and not (GameState.gathering_manager.is_active and GameState.gathering_manager.current_action_id == "gather_wood"):
 				target_to_pulse = widget.btn
@@ -1092,6 +1119,7 @@ func _update_navigation_hints():
 		# Gather Spodumene
 		if current_page_name != "gathering": target_to_pulse = gathering_btn
 		else:
+			pages["gathering"].focus_action("extract_salts")
 			var widget = pages["gathering"].get_widget_by_aid("extract_salts")
 			if widget and not (GameState.gathering_manager.is_active and GameState.gathering_manager.current_action_id == "extract_salts"):
 				target_to_pulse = widget.btn
@@ -1175,8 +1203,23 @@ func _update_navigation_hints():
 				target_to_pulse = widget.btn
 
 	elif "m017b" in mm.active_missions:
-		# Combat: kill the energy-weak Survey Probe
-		if current_page_name != "combat": target_to_pulse = combat_btn
+		# v134b: the mission is EQUIP the Pulse Laser, THEN fight. Pulsing Combat
+		# while no energy weapon was equipped herded the player into the probe's
+		# kinetic-resist wall with the wrong gun. Phase 1: Ship Designer until an
+		# energy weapon is on the ship. Phase 2: Combat, Survey Probe.
+		if not _has_weapon_type_equipped("energy"):
+			if current_page_name != "designer": target_to_pulse = designer_btn
+			else:
+				var dp = pages["designer"]
+				if dp.has_method("set_equip_focus_filter"):
+					dp.set_equip_focus_filter("weapon")
+				if dp.has_method("get_slot_widget"):
+					dp.focus_slot("weapon")
+					target_to_pulse = dp.get_slot_widget("weapon")
+				elif dp.has_method("get_coach_anchor"):
+					target_to_pulse = dp.get_coach_anchor("schematic")
+		elif current_page_name != "combat":
+			target_to_pulse = combat_btn
 		else:
 			var page = pages["combat"]
 			page.focus_zone("lunar_orbit")
@@ -1202,8 +1245,21 @@ func _update_navigation_hints():
 				target_to_pulse = widget.btn
 
 	elif "m017d" in mm.active_missions:
-		# Combat: kill the explosive-weak Scrap Collector
-		if current_page_name != "combat": target_to_pulse = combat_btn
+		# v134b: two-phase like m017b — Ship Designer until an explosive weapon
+		# is equipped, then Combat for the explosive-weak Scrap Collector.
+		if not _has_weapon_type_equipped("explosive"):
+			if current_page_name != "designer": target_to_pulse = designer_btn
+			else:
+				var dp = pages["designer"]
+				if dp.has_method("set_equip_focus_filter"):
+					dp.set_equip_focus_filter("weapon")
+				if dp.has_method("get_slot_widget"):
+					dp.focus_slot("weapon")
+					target_to_pulse = dp.get_slot_widget("weapon")
+				elif dp.has_method("get_coach_anchor"):
+					target_to_pulse = dp.get_coach_anchor("schematic")
+		elif current_page_name != "combat":
+			target_to_pulse = combat_btn
 		else:
 			var page = pages["combat"]
 			page.focus_zone("lunar_orbit")
@@ -1343,6 +1399,7 @@ func _update_navigation_hints():
 		# Gathering: Sector Alpha (Cassiterite)
 		if current_page_name != "gathering": target_to_pulse = gathering_btn
 		else:
+			pages["gathering"].focus_action("mine_cassiterite")
 			var widget = pages["gathering"].get_widget_by_aid("mine_cassiterite")
 			if widget and not (GameState.gathering_manager.is_active and GameState.gathering_manager.current_action_id == "mine_cassiterite"):
 				target_to_pulse = widget.btn
@@ -1471,6 +1528,7 @@ func _update_navigation_hints():
 		# Gathering: Malachite Ore
 		if current_page_name != "gathering": target_to_pulse = gathering_btn
 		else:
+			pages["gathering"].focus_action("mine_malachite")
 			var widget = pages["gathering"].get_widget_by_aid("mine_malachite")
 			if widget and not (GameState.gathering_manager.is_active and GameState.gathering_manager.current_action_id == "mine_malachite"):
 				target_to_pulse = widget.btn
@@ -1664,6 +1722,10 @@ func _update_navigation_hints():
 		or "m015b" in mm.active_missions
 		or "m022b" in mm.active_missions
 		or "m024c" in mm.active_missions
+		# v134b: the damage-triangle fight steps have a designer EQUIP phase —
+		# keep the weapon filter alive exactly while that phase sets it.
+		or ("m017b" in mm.active_missions and not _has_weapon_type_equipped("energy"))
+		or ("m017d" in mm.active_missions and not _has_weapon_type_equipped("explosive"))
 	)
 	if not _any_equip_active and pages.has("designer"):
 		var _dp = pages["designer"]

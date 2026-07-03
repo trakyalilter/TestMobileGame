@@ -429,7 +429,19 @@ func focus_tab(rid_in: String):
 		_show_tab(tab_id)
 	var sc = $VBoxContainer/ScrollContainer
 	if sc is ScrollContainer:
-		sc.call_deferred("ensure_control_visible", w)
+		_scroll_card_to_top(sc, w)
+
+# v134: ensure_control_visible scrolls the MINIMAL amount — approaching a card
+# from above it stops once the card's BOTTOM enters the viewport, so a recipe
+# card taller than the view ended bottom-aligned with its header/inputs clipped
+# offscreen (mission pulses landed players on a beheaded card). Top-align the
+# card instead, one frame later so the tab-switch relayout has settled.
+func _scroll_card_to_top(sc: ScrollContainer, w: Control) -> void:
+	await get_tree().process_frame
+	if not is_instance_valid(sc) or not is_instance_valid(w) or not w.is_visible_in_tree():
+		return
+	var top: float = w.global_position.y - sc.get_global_rect().position.y + float(sc.scroll_vertical)
+	sc.scroll_vertical = int(maxf(0.0, top - 10.0))
 
 func _process(_delta):
 	update_ui()
