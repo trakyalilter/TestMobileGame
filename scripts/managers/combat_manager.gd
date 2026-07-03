@@ -684,7 +684,10 @@ var enemy_db = {
 		"xp": 720, "eva": 8, "zone": 6, "resist_k": 0.25, "resist_e": -0.30, "resist_x": 0.45, "dmg_type": "explosive"
 	},
 	"z6_boss_colossus": {
-		"name": "Gamma Colossus",
+		# v132: renamed — this is SECTOR BETA's boss (zone_6); the old "Gamma"
+		# name was a leftover from a pre-shuffle zone layout and had missions
+		# pointing players at the wrong sector.
+		"name": "Beta Colossus",
 		"stats": {"hp": 185531, "max_shield": 6184, "atk": 1775, "def": 927, "atk_interval": 2.5, "accuracy": 140},
 		"loot": [["credits", 200000, 500000], ["Ir", 5, 12], ["Superalloy", 10, 25], ["Res3", 10, 20], ["ColonyDataCore", 2, 5]],
 		"rare_loot": [["z6_unique_weapon", 0.03, 1, 1], ["z6_unique_armor", 0.03, 1, 1], ["z6_unique_shield", 0.03, 1, 1]],

@@ -60,8 +60,19 @@ func _on_mouse_enter():
 		var _wm: Texture2D = ElementDB.get_material_icon("Z%d_Core" % clampi(_wz, 1, 10)) if _wz >= 1 else null
 		UITheme.show_item_tooltip(self, _build_comparison_tooltip_bbcode(), _wm)
 
+# v131e: self-heal. If a card's setup() ran while its host was momentarily
+# detached, the old `not is_inside_tree()` guard below skipped the ENTIRE visual
+# build — leaving the raw scene (visible portrait $Margin/VBox + the silver
+# default panel), which then relayouts as a portrait card instead of a square
+# tile. Rebuild once the node is actually in the tree.
+func _enter_tree() -> void:
+	if not data.is_empty():
+		_update_ui()
+
 func _update_ui():
-	if not is_inside_tree() or data.is_empty():
+	# Guard only on missing data — the visual build is tree-safe (local $ lookups,
+	# no @onready). The cosmetic pulse/glow tweens self-gate on is_inside_tree().
+	if data.is_empty():
 		return
 
 	var sm = GameState.shipyard_manager
@@ -415,8 +426,8 @@ func _draw_tile_visual(item_name: String, slot_type: String, rarity: int, rarity
 
 	UITheme.attach_rarity_fx(tile_container, rarity, rarity_color)
 	add_child(tile_container)
-	# Pulse the insert socket (started here — self is in-tree so create_tween is valid).
-	if show_card_socket and is_instance_valid(_card_socket_node):
+	# Pulse the insert socket (tweens require in-tree; skip cleanly when detached).
+	if show_card_socket and is_instance_valid(_card_socket_node) and is_inside_tree():
 		var pt := create_tween()
 		if pt:
 			pt.set_loops()
@@ -741,10 +752,11 @@ func _draw_gem_visual(gem_name: String, rarity_color: Color):
 	UITheme.attach_rarity_fx(gem_container, int(data.get("rarity", rarity)), rarity_color)
 	add_child(gem_container)
 	
-	# Small glow tween to make the core feel alive
-	var glow_tween = create_tween().set_loops()
-	glow_tween.tween_property(core, "modulate", Color(1.2, 1.2, 1.2), 1.5).set_trans(Tween.TRANS_SINE)
-	glow_tween.tween_property(core, "modulate", Color(0.9, 0.9, 0.9), 1.5).set_trans(Tween.TRANS_SINE)
+	# Small glow tween to make the core feel alive (tweens require in-tree).
+	if is_inside_tree():
+		var glow_tween = create_tween().set_loops()
+		glow_tween.tween_property(core, "modulate", Color(1.2, 1.2, 1.2), 1.5).set_trans(Tween.TRANS_SINE)
+		glow_tween.tween_property(core, "modulate", Color(0.9, 0.9, 0.9), 1.5).set_trans(Tween.TRANS_SINE)
 
 
 func _get_module_rarity_safe(sm) -> int:
@@ -974,6 +986,8 @@ func _apply_pulse(rarity: int):
 	var sm = GameState.shipyard_manager
 	if not sm:
 		return
+	if not is_inside_tree():
+		return   # pulse tweens require in-tree; restart on the next in-tree _update_ui
 	if rarity == sm.Rarity.LEGENDARY:
 		pulse_tween = create_tween().set_loops()
 		pulse_tween.tween_property(self, "modulate", Color(1.08, 1.03, 0.94), 0.9).set_trans(Tween.TRANS_SINE)

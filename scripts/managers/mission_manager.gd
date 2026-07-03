@@ -146,7 +146,9 @@ func init_missions():
 		# opens the Combat page (main.gd hooks page navigation into
 		# _update_progress("visit_page", page_name, 1)).
 		["m016c", "Combat Briefing", "Open the Combat page (left sidebar). Pick a sector → pick a target → ENGAGE. Your Shield absorbs hits first; your Hull takes overflow. Auto-consumables fire when each drops below the threshold you set in Research.", "visit_page", "combat", 1, 200, 50, "m017"],
-		["m025", "Refining Mastery", "Research 'Efficient Smelting' for alloys.", "research", "smelting", 1, 15000, 500, "m025b"],
+		# v132: smelting's tree parent is Organic Combustion — name BOTH so the
+		# player isn't surprised by a locked node (one Research visit, two clicks).
+		["m025", "Refining Mastery", "Research 'Organic Combustion', then 'Efficient Smelting' beneath it, for alloys.", "research", "smelting", 1, 15000, 500, "m025b"],
 		["m025b", "Alloy Production", "Smelt 50 Steel in the Engineering tab (Basic Steel Smelting recipe).", "gather", "Steel", 50, 5000, 500, "m026"],
 		["m026", "Master Constructor", "Research 'Shipwright I' for hull reinforcement.", "research", "shipwright_1", 1, 5000, 500, "m026b"],
 		["m026b", "Hull Modernization I", "Construct an 'Industrial Frigate' in the Shipyard.", "construct", "frigate_hull", 1, 10000, 1000, "m026c"],
@@ -177,7 +179,10 @@ func init_missions():
 		# exists with the same id); only m029.next_mission_id was rerouted.
 		["m029a1", "Material Sciences", "Research 'Advanced Materials' in the Research tree to unlock heavier industrial recipes.", "research", "adv_materials", 1, 5000, 500, "m029a2"],
 		["m029a2", "Structural Doctrine", "Research 'Advanced Metallurgy' to fabricate universal components.", "research", "metallurgy_advanced", 1, 5000, 500, "m029a3"],
-		["m029a3", "First Components", "Craft 10 Structural Components in the Engineering tab. They are the universal building block of heavy industry.", "gather", "StructuralComponent", 10, 8000, 1000, "m029a4"],
+		["m029a3", "First Components", "Craft 10 Structural Components in the Engineering tab. They are the universal building block of heavy industry.", "gather", "StructuralComponent", 10, 8000, 1000, "m029a5"],
+		# v132: ORPHANED (m029a3 → m029a5). Combustion is already owned by this
+		# point — it's Efficient Smelting's tree parent, bought at m025 — so this
+		# beat auto-completed the instant it appeared. Kept for in-flight saves.
 		["m029a4", "Chemical Heat", "Research 'Organic Combustion' to unlock Germanium extraction (needed for semiconductors).", "research", "combustion", 1, 5000, 500, "m029a5"],
 		["m029a5", "Factory Lights", "Research 'Factory Automation' — the last gate before Advanced Circuits.", "research", "automation", 1, 10000, 1000, "m029b"],
 		["m029b", "Complex Electronics", "Craft 5 Advanced Circuits in the Engineering tab. (Combines Semiconductor + Gold + Silver + Tin + Structural Components — your earlier research unlocked each one.)", "gather", "AdvCircuit", 5, 20000, 5000, "m030"],
@@ -189,26 +194,29 @@ func init_missions():
 		["m030e", "Mars Beachhead", "Research 'Mars Debris Clearance' in the Research tree to unlock the Mars Debris combat zone.", "research", "zone_3_access", 1, 40000, 5000, "m030f"],
 		["m030f", "Salvage Operations", "Defeat 3 Scavenger Mechs in the Mars Debris combat zone. Their relics feed Wreckforged Alloy crafting.", "defeat", "z3_scavenger_mech", 3, 60000, 8000, "m030g"],
 		["m030g", "Glacier Belt Survey", "Research 'Glacier Belt Expedition' in the Research tree to unlock the Glacier Belt combat zone.", "research", "zone_4_access", 1, 80000, 10000, "m030h"],
-		["m030h", "Frozen Frontier", "Defeat 3 Ice Wraiths in the Glacier Belt. Glacial Essence powers cryo-alloy and coolant crafting.", "defeat", "z4_ice_wraith", 3, 100000, 12000, "m031"],
+		["m030h", "Frozen Frontier", "Defeat 3 Ice Wraiths in the Glacier Belt. Glacial Essence powers cryo-alloy and coolant crafting.", "defeat", "z4_ice_wraith", 3, 100000, 12000, "m030i"],
 
-		# P0 Fix: Sector Alpha Push
-		["m031", "Deep Space Signal", "Research 'Sector Scanning (Alpha)' in the Research tree to detect Sector Alpha space.", "research", "sector_alpha_decryption", 1, 50000, 10000, "m032"],
-		["m032", "Alpha Sector Dominance", "Defeat 3 Alien Frigates in Sector Alpha.", "defeat", "z5_alien_frigate", 3, 75000, 15000, "m032b"],
-		# P0-27: Unlock Sector Beta
-		["m032b", "Expanding Horizons", "Research 'Deep Space Navigation' to unlock Sector Beta.", "research", "deep_space_nav", 1, 50000, 5000, "m032d"],
+		# v132 funnel repair (m030i..m034): the tail directed the WRONG techs.
+		# The real sector doors are zone_5/6/7_access and each costs BOSS CORES
+		# (Z4_Core x2, Z5_Core x3, Z6_Core x3) the chain never told the player to
+		# farm. sector_alpha_decryption is an optional scan child; deep_space_nav/
+		# radiation_shielding are the Exotics research branch, NOT zone unlocks —
+		# their old mission texts lied. New boss-farm beats (m030i, m032a) feed
+		# the cores, research beats now target the actual doors, and the tail is
+		# reordered m033 → m034 (Beta boss farm) → m033b (Gamma door) → m033c.
+		["m030i", "Overseer's Core", "The Sector Alpha charter is encrypted — decrypting it takes two GLACIAL OVERSEER cores. Defeat the Glacier Belt boss twice and salvage them.", "defeat", "z4_boss_overseer", 2, 120000, 15000, "m031"],
+		["m031", "Alpha Decryption", "Research 'Sector Alpha Decryption' in the Research tree (it consumes the Overseer cores) to breach Sector Alpha.", "research", "zone_5_access", 1, 50000, 10000, "m032"],
+		["m032", "Alpha Sector Dominance", "Defeat 3 Alien Frigates in Sector Alpha.", "defeat", "z5_alien_frigate", 3, 75000, 15000, "m032a"],
+		["m032a", "Harbinger Hunt", "The Beta Colony Charter demands three XENON HARBINGER cores. Defeat the Sector Alpha boss three times.", "defeat", "z5_boss_harbinger", 3, 150000, 20000, "m032b"],
+		["m032b", "Beta Colony Charter", "Research 'Beta Colony Charter' in the Research tree (it consumes the Harbinger cores) to unlock Sector Beta.", "research", "zone_6_access", 1, 50000, 5000, "m032d"],
 		["m032d", "Void Research", "Void Artifacts drop from Sector Alpha ships — defeat them in Combat until you collect 5.", "gather", "VoidArtifact", 5, 100000, 10000, "m032c"],
 		# P0-28: Construct Battlecruiser
 		["m032c", "Capital Doctrine", "Construct a 'Battlecruiser' in the Shipyard.", "construct", "battlecruiser_hull", 1, 250000, 25000, "m033"],
-		
-		# v80.3 Fix: Remapped to v80.1 enemy IDs
-		["m033", "Beta Sector Expansion", "Defeat 5 Ore Guardians in Sector Beta to expand your influence.", "defeat", "z6_ore_guardian", 5, 150000, 25000, "m033b"],
-		# P0-27: Unlock Sector Gamma
-		["m033b", "Deep Space Signals", "Research 'Radiation Shielding Theory' to unlock Sector Gamma.", "research", "radiation_shielding", 1, 100000, 10000, "m033c"],
-		# P0-28: Construct Dreadnought
-		["m033c", "Titan Construction", "Construct a 'Dreadnought' in the Shipyard.", "construct", "dreadnought_hull", 1, 1000000, 50000, "m034"],
-		
-		# v80.3 Fix: Remapped to v80.1 enemy IDs
-		["m034", "Gamma Sector Control", "Defeat 3 Gamma Colossus in Sector Gamma to finalize supremacy.", "defeat", "z6_boss_colossus", 3, 300000, 50000, ""],
+
+		["m033", "Beta Sector Expansion", "Defeat 5 Ore Guardians in Sector Beta to expand your influence.", "defeat", "z6_ore_guardian", 5, 150000, 25000, "m034"],
+		["m034", "Break the Blockade", "Defeat the BETA COLOSSUS 3 times — its cores are the key to Gamma Sector Clearance.", "defeat", "z6_boss_colossus", 3, 300000, 50000, "m033b"],
+		["m033b", "Gamma Clearance", "Research 'Gamma Sector Clearance' in the Research tree (it consumes the Colossus cores) to unlock Sector Gamma.", "research", "zone_7_access", 1, 100000, 10000, "m033c"],
+		["m033c", "Titan Construction", "Construct a 'Dreadnought' in the Shipyard. Its blueprints sit behind 'Delta Sector Survey' research — four Sector Gamma boss cores. The final climb is yours to chart.", "construct", "dreadnought_hull", 1, 1000000, 50000, ""],
 		["goal_001", "THE GREAT EXPEDITION", "Reach Sector Epsilon and discover the Primordial Core.", "discover", "sector_epsilon", 1, 0, 1000000, ""],
 		["goal_002", "INTO THE VOID", "Perform your first Warp. Your Liras and materials reset, but you gain Exotic Matter Shards for permanent multipliers that make each run stronger.", "warp_perform", "warp", 1, 0, 250000, ""],
 		["goal_003", "PRESTIGE VETERAN", "Perform 5 Warps total to fully unlock Warp Tier scaling.", "warp_perform", "warp", 5, 0, 2000000, ""],
@@ -241,9 +249,9 @@ func init_missions():
 		var base_reward = entry[6]
 		var scaled_reward = int(float(base_reward) * (1.0 + 0.05 * float(stage)))
 		
-		# Cutoff Enforcement: m034 ends the linear progression chain
+		# v132: the chain now ends at m033c (its row's next is "") — the old
+		# hard cutoff at m034 would sever the reordered tail (m034 → m033b).
 		var next_id = entry[8]
-		if mid == "m034": next_id = ""
 		
 		var m_name = entry[1]
 		if mid.begins_with("m"):

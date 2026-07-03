@@ -1079,8 +1079,11 @@ var tech_tree = {
 		#   • "Precious Metal Refining" — that's the precious_metal_refining
 		#     tech, not an item. Tree edge (req_tech link) already shows it.
 		#   • "Colony AI Integration" — same (colony_automation tech).
-		"unlocks": ["Sector Beta (Mining Colony)"],
-		"flavor": "",
+		# v132: "Sector Beta (Mining Colony)" claim removed — Sector Beta is
+		# unlocked by zone_6_access (Beta Colony Charter), NOT this tech. This
+		# node is the doorway into the Exotics research branch.
+		"unlocks": ["Radiation Shielding Theory (branch)"],
+		"flavor": "Charts the deep-space lanes toward exotic phenomena.",
 	},
 	"radiation_shielding": {
 		"name": "Radiation Shielding Theory",
@@ -1091,7 +1094,9 @@ var tech_tree = {
 		"type": "technology",
 		"parent": "deep_space_nav",
 		"effects": [],
-		"unlocks": ["Sector Gamma (Radioactive)"],
+		# v132: "Sector Gamma (Radioactive)" claim removed — Gamma is unlocked
+		# by zone_7_access (Gamma Sector Clearance). This gates the Exotics lane.
+		"unlocks": ["Exotic Matter Analysis (branch)"],
 		"flavor": "Gates Exotic Matter Analysis research.",
 	},
 	"exotic_matter_analysis": {

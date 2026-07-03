@@ -1336,10 +1336,10 @@ func _update_navigation_hints():
 			target_to_pulse = pages["shipyard"].get_hull_widget("destroyer_hull")
 
 	elif "m032b" in mm.active_missions:
-		# Research: Deep Space Nav (Sector Beta)
+		# Research: Beta Colony Charter (Sector Beta door) — v132 retarget
 		if current_page_name != "research": target_to_pulse = research_btn
 		else:
-			var widget = pages["research"].get_node_widget("deep_space_nav")
+			var widget = pages["research"].get_node_widget("zone_6_access")
 			if widget: target_to_pulse = widget
 			
 	elif "m032c" in mm.active_missions:
@@ -1349,10 +1349,10 @@ func _update_navigation_hints():
 			target_to_pulse = pages["shipyard"].get_hull_widget("battlecruiser_hull")
 			
 	elif "m033b" in mm.active_missions:
-		# Research: Radiation Shielding (Sector Gamma)
+		# Research: Gamma Sector Clearance (Sector Gamma door) — v132 retarget
 		if current_page_name != "research": target_to_pulse = research_btn
 		else:
-			var widget = pages["research"].get_node_widget("radiation_shielding")
+			var widget = pages["research"].get_node_widget("zone_7_access")
 			if widget: target_to_pulse = widget
 			
 	elif "m033c" in mm.active_missions:
@@ -1361,13 +1361,21 @@ func _update_navigation_hints():
 		else:
 			target_to_pulse = pages["shipyard"].get_hull_widget("dreadnought_hull")
 
+	elif "m030i" in mm.active_missions:
+		# Combat: Overseer's Core (Z4 boss farm for zone_5_access cores) — v132
+		if current_page_name != "combat": target_to_pulse = combat_btn
+		else:
+			var page = pages["combat"]
+			page.focus_zone("cryofield")   # Glacier Belt's zone id
+			target_to_pulse = page.get_enemy_card("z4_boss_overseer")
+
 	elif "m031" in mm.active_missions:
-		# Research: Sector Alpha Decryption
+		# Research: Sector Alpha Decryption (the actual zone door) — v132 retarget
 		if current_page_name != "research": target_to_pulse = research_btn
 		else:
-			var widget = pages["research"].get_node_widget("sector_alpha_decryption")
+			var widget = pages["research"].get_node_widget("zone_5_access")
 			if widget: target_to_pulse = widget
-			
+
 	elif "m032" in mm.active_missions:
 		# Combat: Alpha Sector Dominance (Alien Frigate)
 		if current_page_name != "combat": target_to_pulse = combat_btn
@@ -1375,6 +1383,14 @@ func _update_navigation_hints():
 			var page = pages["combat"]
 			page.focus_zone("sector_alpha")
 			target_to_pulse = page.get_enemy_card("z5_alien_frigate")
+
+	elif "m032a" in mm.active_missions:
+		# Combat: Harbinger Hunt (Z5 boss farm for zone_6_access cores) — v132
+		if current_page_name != "combat": target_to_pulse = combat_btn
+		else:
+			var page = pages["combat"]
+			page.focus_zone("sector_alpha")
+			target_to_pulse = page.get_enemy_card("z5_boss_harbinger")
 
 	elif "m033" in mm.active_missions:
 		# Combat: Beta Sector Expansion (Ore Guardian)
@@ -1385,11 +1401,13 @@ func _update_navigation_hints():
 			target_to_pulse = page.get_enemy_card("z6_ore_guardian")
 
 	elif "m034" in mm.active_missions:
-		# Combat: Gamma Sector Control (Gamma Colossus)
+		# Combat: Break the Blockade (Beta Colossus farm for zone_7_access cores)
+		# v132: the boss lives in Sector BETA — the old entry focused Gamma, a
+		# zone the player can't even have unlocked yet, and found no enemy card.
 		if current_page_name != "combat": target_to_pulse = combat_btn
 		else:
 			var page = pages["combat"]
-			page.focus_zone("sector_gamma")
+			page.focus_zone("sector_beta")
 			target_to_pulse = page.get_enemy_card("z6_boss_colossus")
 
 	# P-onboard: new teaching steps — pulse the nav button until the player visits
