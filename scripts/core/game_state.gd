@@ -287,18 +287,27 @@ func migrate_save(data: Dictionary, from_version: int) -> Dictionary:
 	return data
 
 func load_game():
-	if not FileAccess.file_exists("user://savegame.json"):
+	# v134c DATA-LOSS FIX: a MISSING primary save must still try the .bak backup.
+	# The atomic save (write .tmp → copy .json→.bak → rename .tmp→.json) can leave
+	# the player with .bak-ONLY if the process dies between the backup copy and the
+	# rename, or the rename fails (see save_game's "CRITICAL: Failed to rename").
+	# The old guard early-returned on a missing .json and booted a FRESH game,
+	# silently orphaning a save that was sitting intact in .bak. Only boot fresh
+	# when BOTH files are genuinely absent (true first launch / post hard-reset).
+	if not FileAccess.file_exists("user://savegame.json") and not FileAccess.file_exists("user://savegame.bak"):
 		return
-		
-	var file = FileAccess.open("user://savegame.json", FileAccess.READ)
-	var content = file.get_as_text()
+
 	var json = JSON.new()
-	var error = json.parse(content)
-	
-	# Corrupt primary save → recover from the .bak backup before booting fresh.
-	# A half-written savegame.json must never silently cost a player their save.
+	var error = FAILED   # stays FAILED if primary is missing → falls through to .bak
+	if FileAccess.file_exists("user://savegame.json"):
+		var file = FileAccess.open("user://savegame.json", FileAccess.READ)
+		if file:
+			error = json.parse(file.get_as_text())
+
+	# Corrupt OR missing primary save → recover from the .bak backup before booting
+	# fresh. A half-written (or unrenamed) savegame.json must never cost a save.
 	if error != OK and FileAccess.file_exists("user://savegame.bak"):
-		push_warning("savegame.json parse failed (%s) — recovering from savegame.bak" % json.get_error_message())
+		push_warning("savegame.json missing/corrupt — recovering from savegame.bak")
 		var bak_file = FileAccess.open("user://savegame.bak", FileAccess.READ)
 		if bak_file:
 			error = json.parse(bak_file.get_as_text())
@@ -520,8 +529,14 @@ func hard_reset():
 	was_resetted = true
 	game_resetted.emit()
 	
-	if FileAccess.file_exists("user://savegame.json"):
-		DirAccess.remove_absolute("user://savegame.json")
+	# v134c: clear EVERY save artifact, not just the primary. Now that load_game
+	# recovers from .bak when .json is missing, a lingering .bak would RESURRECT the
+	# pre-reset save on the next boot if the player started a New Game and quit
+	# before the first autosave wrote a fresh .json. Wipe .bak/.tmp/.corrupt too so
+	# New Game is durable.
+	for p in ["user://savegame.json", "user://savegame.bak", "user://savegame.tmp", "user://savegame.corrupt.json"]:
+		if FileAccess.file_exists(p):
+			DirAccess.remove_absolute(p)
 
 func load_elements_db():
 	var file = FileAccess.open("res://assets/elements.json", FileAccess.READ)

@@ -42,7 +42,10 @@ func _ready():
 	UITheme.apply_palette(UITheme.get_ui_palette())
 	_apply_theme()
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	has_save = FileAccess.file_exists("user://savegame.json")
+	# v134c: a crash between the atomic save's backup-copy and rename can leave a
+	# .bak-ONLY save (load_game now recovers it) — so Continue must appear for that
+	# state too, or the player sees "New Game" only and thinks their save is gone.
+	has_save = FileAccess.file_exists("user://savegame.json") or FileAccess.file_exists("user://savegame.bak")
 
 	_build_background()
 	_build_starfield()
@@ -445,7 +448,10 @@ func _add_spacer(parent: Node, height: int):
 	parent.add_child(s)
 
 func _load_save_summary() -> String:
+	# v134c: mirror load_game's fallback so a .bak-only save still previews its
+	# stats instead of the generic placeholder.
 	var f = FileAccess.open("user://savegame.json", FileAccess.READ)
+	if not f: f = FileAccess.open("user://savegame.bak", FileAccess.READ)
 	if not f: return "Save data found"
 	var data = JSON.parse_string(f.get_as_text())
 	f.close()

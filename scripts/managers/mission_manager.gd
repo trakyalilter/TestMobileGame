@@ -460,6 +460,10 @@ func claim_reward(mission_id) -> bool:
 # targets that are PROCESSING OUTPUTS (Steel, Circuit, ammo...) pay Engineering
 # XP — the player crafted them; raw materials (Dirt, ores...) pay Mining XP.
 var _processed_symbols := {}
+# v134c: combat-loot-only targets (VoidArtifact, SpliceChip…) use the "gather"
+# type as a signal-plumbing necessity (element_added fires on loot), but the
+# loop the player actually ran is COMBAT — route their XP there, not to Mining.
+var _gatherable_symbols := {}
 
 func _is_processed_target(target) -> bool:
 	if _processed_symbols.is_empty() and GameState.processing_manager:
@@ -476,6 +480,18 @@ func _is_processed_target(target) -> bool:
 		return false
 	return str(target) in _processed_symbols
 
+func _is_gatherable_target(target) -> bool:
+	if _gatherable_symbols.is_empty() and GameState.gathering_manager:
+		for aid in GameState.gathering_manager.actions:
+			for entry in GameState.gathering_manager.actions[aid].get("loot_table", []):
+				_gatherable_symbols[str(entry[0])] = true
+	if target is Dictionary:
+		for sym in target:
+			if str(sym) in _gatherable_symbols:
+				return true
+		return false
+	return str(target) in _gatherable_symbols
+
 func _grant_reward_xp(m: Dictionary) -> void:
 	var xp: float = float(m["reward_xp"])
 	if xp <= 0.0:
@@ -486,7 +502,14 @@ func _grant_reward_xp(m: Dictionary) -> void:
 		"loadout_rare_weapon_type", "equip_consumables", "warp_perform", "hack_apply":
 			skill = GameState.combat_manager
 		"gather", "gather_multi":
-			skill = GameState.processing_manager if _is_processed_target(m["target"]) else GameState.gathering_manager
+			# crafted → Engineering; minable → Mining; neither (combat loot
+			# like VoidArtifact) → Combat, the loop that actually produced it.
+			if _is_processed_target(m["target"]):
+				skill = GameState.processing_manager
+			elif _is_gatherable_target(m["target"]):
+				skill = GameState.gathering_manager
+			else:
+				skill = GameState.combat_manager
 		_:
 			# research / craft / construct / build / overclock_install / visit_page
 			skill = GameState.processing_manager

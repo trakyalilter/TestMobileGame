@@ -106,7 +106,7 @@
 		"mass": 1.008,
 		"category": "Nonmetal",
 		"tier": 1,
-		"base_value": 6,
+		"base_value": 2,
 		"description": "The most abundant element in the universe. Essential fuel."
 	},
 	{
@@ -116,7 +116,7 @@
 		"mass": 4.0026,
 		"category": "Noble Gas",
 		"tier": 1,
-		"base_value": 60,
+		"base_value": 64,
 		"description": "Inert gas used for cooling and pressurization."
 	},
 	{
