@@ -796,6 +796,31 @@ func _has_weapon_type_equipped(wtype: String) -> bool:
 			return true
 	return false
 
+# v134g: count (not just "any") weapons of a damage type in the active loadout.
+# The dual-weapon onboarding (m015/m017a/m017c craft 2 of each) tells the player to
+# equip BOTH slots; the router must keep directing until 2 are in, not stop at 1.
+func _count_weapon_type_equipped(wtype: String) -> int:
+	var sm = GameState.shipyard_manager
+	if sm == null:
+		return 0
+	var n := 0
+	for mid_v in sm.loadout.values():
+		if mid_v == null or str(mid_v) == "":
+			continue
+		var def: Dictionary = sm.modules.get(str(mid_v), {})
+		if str(def.get("slot_type", "")) != "weapon":
+			continue
+		var st: Dictionary = def.get("stats", {})
+		var hit: bool = false
+		match wtype:
+			"kinetic": hit = float(st.get("atk_kinetic", 0)) > 0
+			"energy": hit = float(st.get("atk_energy", 0)) > 0
+			"explosive": hit = float(st.get("atk_explosive", 0)) > 0
+			"cryo": hit = float(st.get("atk_cryo", 0)) > 0
+		if hit:
+			n += 1
+	return n
+
 func _player_owns_set_module() -> bool:
 	var sm = GameState.shipyard_manager
 	if sm == null:
@@ -1058,6 +1083,26 @@ func _update_navigation_hints():
 			if widget and not (pm.is_active and pm.current_recipe_id == "centrifuge_dirt"):
 				target_to_pulse = widget.btn
 			
+	elif "m005b" in mm.active_missions:
+		# v134g: Shipyard — craft the Basic Battery (power-first onboarding)
+		if current_page_name != "shipyard": target_to_pulse = shipyard_btn
+		else:
+			var page = pages["shipyard"]
+			page.focus_module_tab("z1_battery")
+			target_to_pulse = page.get_module_widget("z1_battery")
+
+	elif "m005c" in mm.active_missions:
+		# v134g: Designer — equip the batteries (pulse the empty battery slot,
+		# dim non-battery armory modules so the batteries pop).
+		if current_page_name != "designer": target_to_pulse = designer_btn
+		else:
+			var dp = pages["designer"]
+			if dp.has_method("set_equip_focus_filter"):
+				dp.set_equip_focus_filter("battery")
+			if dp.has_method("get_slot_widget"):
+				dp.focus_slot("battery")
+				target_to_pulse = dp.get_slot_widget("battery")
+
 	elif "m007" in mm.active_missions:
 		# Shipyard: Ion Thrusters
 		if current_page_name != "shipyard": target_to_pulse = shipyard_btn
@@ -1151,12 +1196,12 @@ func _update_navigation_hints():
 			target_to_pulse = page.get_module_widget("z1_kinetic")
 
 	elif "m015b" in mm.active_missions:
-		# Designer: pulse the empty weapon slot + dim non-weapon Armory cards.
+		# Designer: pulse the empty weapon slot + highlight only KINETIC weapons.
 		if current_page_name != "designer": target_to_pulse = designer_btn
 		else:
 			var dp = pages["designer"]
 			if dp.has_method("set_equip_focus_filter"):
-				dp.set_equip_focus_filter("weapon")
+				dp.set_equip_focus_filter("weapon", "kinetic")   # v134g: only kinetic pulses
 			if dp.has_method("get_slot_widget"):
 				dp.focus_slot("weapon")
 				target_to_pulse = dp.get_slot_widget("weapon")
@@ -1207,13 +1252,23 @@ func _update_navigation_hints():
 		# while no energy weapon was equipped herded the player into the probe's
 		# kinetic-resist wall with the wrong gun. Phase 1: Ship Designer until an
 		# energy weapon is on the ship. Phase 2: Combat, Survey Probe.
-		if not _has_weapon_type_equipped("energy"):
+		# v134g: the mission says equip BOTH Pulse Lasers — keep directing to the
+		# weapon slot until TWO energy weapons are in, not stop at one (half DPS).
+		if _count_weapon_type_equipped("energy") < 2:
 			if current_page_name != "designer": target_to_pulse = designer_btn
 			else:
 				var dp = pages["designer"]
-				if dp.has_method("set_equip_focus_filter"):
-					dp.set_equip_focus_filter("weapon")
-				if dp.has_method("get_slot_widget"):
+				# v134g: keep the ENERGY build in its OWN slot (Loadout 2) so the
+				# Kinetic build in slot 1 survives — switch there first, then equip.
+				# While still on the wrong slot, re-pulse the chip so a player who
+				# equips over Loadout 1 is nudged back before clobbering the build.
+				var _sm = GameState.shipyard_manager
+				var _cur: int = int(_sm.active_preset_idx) if "active_preset_idx" in _sm else 1
+				if _cur != 2 and dp.has_method("get_loadout_chip"):
+					target_to_pulse = dp.get_loadout_chip(2)
+				elif dp.has_method("get_slot_widget"):
+					if dp.has_method("set_equip_focus_filter"):
+						dp.set_equip_focus_filter("weapon", "energy")   # v134g: only energy pulses
 					dp.focus_slot("weapon")
 					target_to_pulse = dp.get_slot_widget("weapon")
 				elif dp.has_method("get_coach_anchor"):
@@ -1247,13 +1302,21 @@ func _update_navigation_hints():
 	elif "m017d" in mm.active_missions:
 		# v134b: two-phase like m017b — Ship Designer until an explosive weapon
 		# is equipped, then Combat for the explosive-weak Scrap Collector.
-		if not _has_weapon_type_equipped("explosive"):
+		# v134g: equip BOTH launchers — direct to the weapon slot until TWO are in.
+		if _count_weapon_type_equipped("explosive") < 2:
 			if current_page_name != "designer": target_to_pulse = designer_btn
 			else:
 				var dp = pages["designer"]
-				if dp.has_method("set_equip_focus_filter"):
-					dp.set_equip_focus_filter("weapon")
-				if dp.has_method("get_slot_widget"):
+				# v134g: EXPLOSIVE build → its own slot (Loadout 3). Switch there
+				# first so Kinetic (1) and Energy (2) survive, then equip. Re-pulse
+				# the chip while on the wrong slot to guard the saved builds.
+				var _sm = GameState.shipyard_manager
+				var _cur: int = int(_sm.active_preset_idx) if "active_preset_idx" in _sm else 1
+				if _cur != 3 and dp.has_method("get_loadout_chip"):
+					target_to_pulse = dp.get_loadout_chip(3)
+				elif dp.has_method("get_slot_widget"):
+					if dp.has_method("set_equip_focus_filter"):
+						dp.set_equip_focus_filter("weapon", "explosive")   # v134g: only explosive pulses
 					dp.focus_slot("weapon")
 					target_to_pulse = dp.get_slot_widget("weapon")
 				elif dp.has_method("get_coach_anchor"):
@@ -1264,6 +1327,28 @@ func _update_navigation_hints():
 			var page = pages["combat"]
 			page.focus_zone("lunar_orbit")
 			target_to_pulse = page.get_enemy_card("z1_scrap_collector")
+
+	elif "m017e" in mm.active_missions:
+		# v134g: DEMONSTRATE the one-click swap. The player has three built loadouts
+		# but has only ever switched to EMPTY slots to build them. Pulse the Loadout 1
+		# chip so they LOAD a ready-built (Kinetic) ship in one click, then send them at
+		# the kinetic-weak Lunar Drone. This is the payoff the whole triangle arc teaches.
+		var _sm = GameState.shipyard_manager
+		var _cur: int = int(_sm.active_preset_idx) if "active_preset_idx" in _sm else 1
+		if _cur != 1:
+			if current_page_name != "designer": target_to_pulse = designer_btn
+			else:
+				var dp = pages["designer"]
+				if dp.has_method("get_loadout_chip"):
+					target_to_pulse = dp.get_loadout_chip(1)
+				elif dp.has_method("get_coach_anchor"):
+					target_to_pulse = dp.get_coach_anchor("presets")
+		elif current_page_name != "combat":
+			target_to_pulse = combat_btn
+		else:
+			var page = pages["combat"]
+			page.focus_zone("lunar_orbit")
+			target_to_pulse = page.get_enemy_card("z1_lunar_drone")
 
 	elif "m018" in mm.active_missions:
 		# Research: Industrial Logistics Hub
@@ -1280,15 +1365,39 @@ func _update_navigation_hints():
 			if widget: target_to_pulse = widget
 			
 	elif "m019" in mm.active_missions:
-		# Processing: Circuits
-		if current_page_name != "processing": target_to_pulse = processing_btn
+		# v134g: the Circuit recipe needs Tin (Sn) — a two-hop the earlier chain never
+		# delivered. Route the intermediate need-aware (mirrors m024b): mine Cassiterite →
+		# smelt Tin → then craft the Circuit, whichever the player currently lacks.
+		var _sn: float = GameState.resources.get_element_amount("Sn")
+		var _cass: float = GameState.resources.get_element_amount("Cassiterite")
+		if _sn < 2 and _cass < 2:
+			# No tin, no ore — pulse the Cassiterite mining action first.
+			if current_page_name != "gathering": target_to_pulse = gathering_btn
+			else:
+				pages["gathering"].focus_action("mine_cassiterite")
+				var w = pages["gathering"].get_widget_by_aid("mine_cassiterite")
+				if w and not (GameState.gathering_manager.is_active and GameState.gathering_manager.current_action_id == "mine_cassiterite"):
+					target_to_pulse = w.btn
+		elif _sn < 2:
+			# Have ore, no tin — pulse the Tin Smelting recipe.
+			if current_page_name != "processing": target_to_pulse = processing_btn
+			else:
+				var pm = GameState.processing_manager
+				var page = pages["processing"]
+				page.focus_tab("refine_cassiterite")
+				var w = page.get_widget_by_aid("refine_cassiterite")
+				if w and not (pm.is_active and pm.current_recipe_id == "refine_cassiterite"):
+					target_to_pulse = w.btn
 		else:
-			var pm = GameState.processing_manager
-			var page = pages["processing"]
-			page.focus_tab("craft_circuit")
-			var widget = page.get_widget_by_aid("craft_circuit")
-			if widget and not (pm.is_active and pm.current_recipe_id == "craft_circuit"):
-				target_to_pulse = widget.btn
+			# Have tin — pulse the Circuit craft.
+			if current_page_name != "processing": target_to_pulse = processing_btn
+			else:
+				var pm = GameState.processing_manager
+				var page = pages["processing"]
+				page.focus_tab("craft_circuit")
+				var widget = page.get_widget_by_aid("craft_circuit")
+				if widget and not (pm.is_active and pm.current_recipe_id == "craft_circuit"):
+					target_to_pulse = widget.btn
 
 	elif "m020" in mm.active_missions:
 		# Research: Power Systems
@@ -1396,7 +1505,7 @@ func _update_navigation_hints():
 			if widget: target_to_pulse = widget
 
 	elif "m028" in mm.active_missions:
-		# Gathering: Sector Alpha (Cassiterite)
+		# Gathering: Asteroid Belt (Cassiterite / tin ore)
 		if current_page_name != "gathering": target_to_pulse = gathering_btn
 		else:
 			pages["gathering"].focus_action("mine_cassiterite")
@@ -1509,14 +1618,11 @@ func _update_navigation_hints():
 	elif "m027b" in mm.active_missions:
 		if current_page_name != "bounty": target_to_pulse = bounty_btn
 
-	# P-onboard: the warp decision must NOT go dark. Once the Z10 boss is down, pulse
-	# the Warp Core until the player warps (goal_002 = warp_perform). The existing
-	# warp_milestone coach card explains it; this is the breadcrumb that drives them.
-	elif "goal_002" in mm.active_missions and GameState.game_settings.get("z10_cleared", false):
-		if current_page_name != "warp" and is_instance_valid(warp_btn) and warp_btn.visible:
-			target_to_pulse = warp_btn
-
 	# ── Previously-undirected tutorial steps ──
+	# NOTE: the goal_002 Warp breadcrumb used to live here as an elif, but goal_002
+	# reveals in PARALLEL with the linear chain — so any active endgame chain mission
+	# won the elif ladder and the Warp pulse went dark. It now lives in a post-chain
+	# fallback (below), guarded by target_to_pulse == null. v134g.
 	elif "m002b" in mm.active_missions:
 		# Orphan (in-flight saves): re-pointed to Basic Engineering.
 		if current_page_name != "research": target_to_pulse = research_btn
@@ -1565,13 +1671,25 @@ func _update_navigation_hints():
 				target_to_pulse = dp.get_coach_anchor("schematic")
 
 	elif "m024b" in mm.active_missions:
-		# Processing: craft repair kits (hull patches first, then shield boosters)
+		# Processing: craft repair kits. Hull patches first; then Shield Boosters —
+		# but the Booster recipe eats a Battery Cell (BatteryT1) each, and the
+		# power-first reorder no longer teaches that on the main path. Route to the
+		# cell craft until enough are stocked for the remaining boosters, THEN boosters.
 		if current_page_name != "processing": target_to_pulse = processing_btn
 		else:
 			var pm = GameState.processing_manager
 			var page = pages["processing"]
-			var need_hull = GameState.resources.get_element_amount("EmergencyPatch") < 5
-			var rid = "craft_emergency_patch" if need_hull else "craft_basic_booster"
+			var _res = GameState.resources
+			var need_hull: bool = _res.get_element_amount("EmergencyPatch") < 5
+			var need_booster: int = 5 - int(_res.get_element_amount("BasicBooster"))
+			var have_cells: float = _res.get_element_amount("BatteryT1")
+			var rid := ""
+			if need_hull:
+				rid = "craft_emergency_patch"
+			elif need_booster > 0 and have_cells < need_booster:
+				rid = "craft_battery_t1"   # make Battery Cells for the boosters first
+			else:
+				rid = "craft_basic_booster"
 			page.focus_tab(rid)
 			var widget = page.get_widget_by_aid(rid)
 			if widget and not (pm.is_active and pm.current_recipe_id == rid):
@@ -1692,7 +1810,7 @@ func _update_navigation_hints():
 			target_to_pulse = page.get_enemy_card("z3_scavenger_mech")
 
 	elif "m030g" in mm.active_missions:
-		# Research: Cryofield Expedition (zone_4_access)
+		# Research: Glacier Belt Expedition (zone_4_access)
 		if current_page_name != "research": target_to_pulse = research_btn
 		else:
 			var widget = pages["research"].get_node_widget("zone_4_access")
@@ -1718,14 +1836,15 @@ func _update_navigation_hints():
 	# no equip mission is active. set_equip_focus_filter and
 	# clear_equip_focus_filter are both idempotent so calling per-tick is cheap.
 	var _any_equip_active: bool = (
-		"m007b" in mm.active_missions
+		"m005c" in mm.active_missions   # v134g: battery-equip step
+		or "m007b" in mm.active_missions
 		or "m015b" in mm.active_missions
 		or "m022b" in mm.active_missions
 		or "m024c" in mm.active_missions
 		# v134b: the damage-triangle fight steps have a designer EQUIP phase —
 		# keep the weapon filter alive exactly while that phase sets it.
-		or ("m017b" in mm.active_missions and not _has_weapon_type_equipped("energy"))
-		or ("m017d" in mm.active_missions and not _has_weapon_type_equipped("explosive"))
+		or ("m017b" in mm.active_missions and _count_weapon_type_equipped("energy") < 2)
+		or ("m017d" in mm.active_missions and _count_weapon_type_equipped("explosive") < 2)
 	)
 	if not _any_equip_active and pages.has("designer"):
 		var _dp = pages["designer"]
@@ -1743,6 +1862,15 @@ func _update_navigation_hints():
 				target_to_pulse = null
 				break
 
+	# P-onboard: the warp decision must NOT go dark. Re-assert the Warp Core pulse
+	# HERE (not in the elif ladder) so a suppressed endgame chain mission — which the
+	# hands-off block just NULLed above — can't shadow it. Fires only when nothing else
+	# claimed the pulse, and takes priority over the repair nudge below (endgame > dent).
+	if target_to_pulse == null and "goal_002" in mm.active_missions \
+			and GameState.game_settings.get("z10_cleared", false):
+		if current_page_name != "warp" and is_instance_valid(warp_btn) and warp_btn.visible:
+			target_to_pulse = warp_btn
+
 	# P1 Onboarding — Repair routing.
 	# v125: repair moved OFF the Shipyard (its repair button was removed in v124) —
 	# it's now the Combat-HUD HULL consumable button, which works out of combat too
@@ -1754,7 +1882,15 @@ func _update_navigation_hints():
 	if target_to_pulse == null:
 		var sm_ref = GameState.shipyard_manager
 		var cm_ref = GameState.combat_manager
-		if sm_ref and sm_ref.current_hp < sm_ref.max_hp \
+		# v134g: don't fire the repair nudge while the player is actively gathering
+		# or crafting. An active skilling mission (e.g. m019 "craft 10 Circuits")
+		# returns a NULL pulse mid-craft — pulsing the button they're already using
+		# is pointless — but that null let this fallback hijack it and pulse COMBAT,
+		# reading as "the mission wants combat" during a crafting step. The player is
+		# busy on the right task; repair can wait until they're idle.
+		var _busy_skilling: bool = (GameState.gathering_manager and GameState.gathering_manager.is_active) \
+			or (GameState.processing_manager and GameState.processing_manager.is_active)
+		if sm_ref and not _busy_skilling and sm_ref.current_hp < sm_ref.max_hp \
 				and sm_ref.consumable_hull_slot != "" \
 				and GameState.resources.get_element_amount(sm_ref.consumable_hull_slot) >= 1 \
 				and current_page_name != "combat" \

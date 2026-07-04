@@ -13,6 +13,12 @@ var is_selected: bool = false
 # armory/ammo/consumable card enables it anymore.
 var is_draggable: bool = false
 var compare_equipped_mid: String = ""
+# v134g: coach "equip THIS" glow. Set by the designer on the armory card(s) that
+# satisfy an active equip mission (e.g. the just-crafted Thruster during m007b) —
+# the mission already pulses the target SLOT; this pulses the matching MODULE in
+# the Armory so the player knows what to drag, not just where. Overrides the
+# subtle rarity shimmer while active.
+var coach_pulse: bool = false
 # v127: when a Hack Card is armed in the Armory, module tiles show an insert
 # socket (accent frame + card bay) so the player sees a valid drop target.
 var show_card_socket: bool = false
@@ -46,8 +52,16 @@ func _ready():
 	_update_ui()
 
 func _on_mouse_enter():
+	# v134g CRASH FIX: never rebuild this card while a drag is in flight. Clearing
+	# the "unseen" badge calls _update_ui() → _draw_tile_visual(), which FREES and
+	# rebuilds the tile (see its `child.free()`). Doing that to the card the cursor
+	# is hovering DURING a drag frees nodes the viewport's drag machinery is still
+	# touching → crash (repro: drag a module over a freshly-looted, still-"unseen"
+	# tile). The badge clear is cosmetic — defer it past the drag. The tooltip below
+	# was already drag-guarded for the same reason; share the one check.
+	var _dragging: bool = is_inside_tree() and get_viewport().gui_is_dragging()
 	var sm = GameState.shipyard_manager
-	if sm and sm.get("unseen_modules") != null and sm.unseen_modules.get(mid, false):
+	if not _dragging and sm and sm.get("unseen_modules") != null and sm.unseen_modules.get(mid, false):
 		sm.unseen_modules.erase(mid)
 		_update_ui()
 	# While holding a Hack Card, don't pop module info-cards (the player is aiming
@@ -55,7 +69,7 @@ func _on_mouse_enter():
 	if suppress_info_card:
 		return
 	# Don't pop info cards on other tiles while a drag is in progress.
-	if not data.is_empty() and not (is_inside_tree() and get_viewport().gui_is_dragging()):
+	if not data.is_empty() and not _dragging:
 		var _wz := int(data.get("zone", data.get("zone_difficulty", 0)))
 		var _wm: Texture2D = ElementDB.get_material_icon("Z%d_Core" % clampi(_wz, 1, 10)) if _wz >= 1 else null
 		UITheme.show_item_tooltip(self, _build_comparison_tooltip_bbcode(), _wm)
@@ -966,11 +980,19 @@ func _get_gem_color(gem_name: String) -> Color:
 
 func _apply_pulse(rarity: int):
 	_stop_pulse()
+	if not is_inside_tree():
+		return   # pulse tweens require in-tree; restart on the next in-tree _update_ui
+	# v134g: coach equip-target glow takes priority over the rarity shimmer — a
+	# faster, brighter cyan pulse that reads as "grab THIS one" (mirrors the slot
+	# pulse the mission drives on the designer side).
+	if coach_pulse:
+		pulse_tween = create_tween().set_loops()
+		pulse_tween.tween_property(self, "modulate", Color(1.35, 1.55, 1.75), 0.5).set_trans(Tween.TRANS_SINE)
+		pulse_tween.tween_property(self, "modulate", Color.WHITE, 0.5).set_trans(Tween.TRANS_SINE)
+		return
 	var sm = GameState.shipyard_manager
 	if not sm:
 		return
-	if not is_inside_tree():
-		return   # pulse tweens require in-tree; restart on the next in-tree _update_ui
 	if rarity == sm.Rarity.LEGENDARY:
 		pulse_tween = create_tween().set_loops()
 		pulse_tween.tween_property(self, "modulate", Color(1.08, 1.03, 0.94), 0.9).set_trans(Tween.TRANS_SINE)

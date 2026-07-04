@@ -75,7 +75,9 @@ var ELEMENT_NAMES = {
 	"AlWire": "Aluminum Wiring",
 
 	# Batteries
-	"BatteryT1": "Basic Battery",
+	# v134g: the ITEM is "Battery Cell" — the ship MODULE z1_battery keeps the name
+	# "Basic Battery" (shipyard_manager). Two distinct objects must not share a label.
+	"BatteryT1": "Battery Cell",
 	"BatteryT2": "Improved Battery",
 	"BatteryT3": "Zero-Point Battery",
 	"CoBattery": "Cobalt-Lithium Battery",

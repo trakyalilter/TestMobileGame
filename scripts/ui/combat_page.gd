@@ -69,7 +69,15 @@ func _ready():
 		manager.zones_changed.connect(refresh_zones)
 	if not visibility_changed.is_connected(_on_combat_visibility_changed):
 		visibility_changed.connect(_on_combat_visibility_changed)
-	
+	# v134g: the Sector Chart draws OBJECTIVE markers from the active "defeat"
+	# missions (get_active_defeat_targets). When a mission advances (e.g. Combat
+	# Briefing → Defeat Lunar Drone) while the chart is ALREADY open, nothing told
+	# it to redraw — so the marker only appeared after a combat-page re-visit
+	# (visibility_changed → refresh_zones). Rebuild the open chart on mission change.
+	if GameState.mission_manager and GameState.mission_manager.has_signal("mission_updated") \
+			and not GameState.mission_manager.mission_updated.is_connected(_on_mission_updated):
+		GameState.mission_manager.mission_updated.connect(_on_mission_updated)
+
 	# HUD Stress & Console Interaction
 	
 	# Initial Suppression
@@ -279,6 +287,13 @@ func engage_from_map(zone_id: String, enemy_id: String) -> void:
 	select_zone(zone_id)
 	request_fight(enemy_id)
 
+func _on_mission_updated() -> void:
+	# v134g: redraw the open Sector Chart when the active mission set changes, so a
+	# newly-active "defeat" objective (e.g. m017 Lunar Drone right after the Combat
+	# Briefing) shows its marker immediately instead of only after a page re-visit.
+	if star_map and is_instance_valid(star_map) and star_map.visible:
+		star_map.rebuild()
+
 func _on_combat_visibility_changed() -> void:
 	# v113 (NG+): re-read available zones each time the Combat page is shown, so a
 	# sector unlocked while elsewhere (e.g. Z11 on a Z10-boss kill, Z12 post-warp)
@@ -297,7 +312,14 @@ func _on_combat_visibility_changed() -> void:
 # it). The coach (main.gd) still calls this to pulse an "engage this enemy" cue;
 # with no cards, point it at the chart button so the tutorial directs the player
 # to open the Sector Chart and pick the target there.
-func get_enemy_card(_enemy_id: String) -> Control:
+func get_enemy_card(enemy_id: String) -> Control:
+	# v134g: if the player is ALREADY fighting this mission's target, the guidance
+	# is satisfied — stop pulsing. Previously the "open the Sector Chart" nudge kept
+	# beeping through the whole Lunar-Drone fight (chart closed during combat), even
+	# though the player had already followed the steps and engaged the right enemy.
+	if manager.in_combat and manager.current_enemy \
+			and str(manager.current_enemy.get("id", "")) == enemy_id:
+		return null
 	# v128: mission/coach pulse target. Point at the chart button only when the chart
 	# is CLOSED (nudge = "open the Sector Chart"). While it's open the player is already
 	# in the selection UI and the button is hidden behind the overlay — pulsing it is

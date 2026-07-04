@@ -1,17 +1,18 @@
 extends Control
 
-@onready var title_lbl: Label = $VBoxContainer/Label
+# v134g: "SHIP DESIGNER" title Label removed (layout reclaim — the page header is
+# implicit; the freed space goes to the info panel + a taller armory).
 
-@onready var info_panel: PanelContainer = $VBoxContainer/InfoPanel
-@onready var schematic_area: PanelContainer = $VBoxContainer/MainLayout/SchematicArea
+@onready var info_panel: PanelContainer = $VBoxContainer/MainLayout/LeftColumn/InfoPanel
+@onready var schematic_area: PanelContainer = $VBoxContainer/MainLayout/LeftColumn/SchematicArea
 @onready var right_panel: PanelContainer = $VBoxContainer/MainLayout/RightPanel
 @onready var bay_lbl: Label = $VBoxContainer/MainLayout/RightPanel/Margin/VBox/Label
 
-@onready var ship_name_lbl: Label = $VBoxContainer/InfoPanel/MarginContainer/InfoHBox/ShipSpecs/ShipNameLabel
-@onready var power_bar: ProgressBar = $VBoxContainer/InfoPanel/MarginContainer/InfoHBox/ShipSpecs/SystemLoad/PowerBar
-@onready var power_lbl: Label = $VBoxContainer/InfoPanel/MarginContainer/InfoHBox/ShipSpecs/SystemLoad/PowerLabel
-@onready var stats_grid: GridContainer = $VBoxContainer/InfoPanel/MarginContainer/InfoHBox/StatsGrid
-@onready var btn_repair_mode: Button = $VBoxContainer/InfoPanel/MarginContainer/InfoHBox/BtnRepairMode
+@onready var ship_name_lbl: Label = $VBoxContainer/MainLayout/LeftColumn/InfoPanel/MarginContainer/InfoHBox/ShipSpecs/ShipNameLabel
+@onready var power_bar: ProgressBar = $VBoxContainer/MainLayout/LeftColumn/InfoPanel/MarginContainer/InfoHBox/ShipSpecs/SystemLoad/PowerBar
+@onready var power_lbl: Label = $VBoxContainer/MainLayout/LeftColumn/InfoPanel/MarginContainer/InfoHBox/ShipSpecs/SystemLoad/PowerLabel
+@onready var stats_grid: GridContainer = $VBoxContainer/MainLayout/LeftColumn/InfoPanel/MarginContainer/InfoHBox/StatsGrid
+@onready var btn_repair_mode: Button = $VBoxContainer/MainLayout/LeftColumn/InfoPanel/MarginContainer/InfoHBox/BtnRepairMode
 
 @onready var storage_grid: GridContainer = $VBoxContainer/MainLayout/RightPanel/Margin/VBox/Scroll/GutterMargin/UnifiedStorageGrid
 const SpatialInventory = preload("res://scripts/ui/spatial_inventory.gd")
@@ -51,7 +52,11 @@ var focused_slot_equipped_mid: String = ""
 # while an equip mission is active. Separate from focused_slot_type so the
 # user's manual slot click always wins over the coach hint.
 var _equip_focus_filter_type: String = ""
+# v134g: optional damage-type narrowing for the "weapon" filter — the damage-
+# triangle legs want ONLY kinetic / energy / explosive to pulse, not every weapon.
+var _equip_focus_weapon_type: String = ""
 var all_slot_widgets: Array = []
+var all_ammo_widgets: Array = []   # v134g: ammo slots, tracked so they can size-match the armory too
 var armory_sort_mode: int = 0  # 0=Power, 1=Zone, 2=Rarity
 var _sort_buttons: Array = []
 var _preset_load_buttons: Array = []
@@ -199,17 +204,40 @@ func _ready():
 # module visually pops vs the rest of the inventory. Guarded — calling with
 # the same value is a no-op so per-frame calls from the coach refresh stay
 # cheap.
-func set_equip_focus_filter(slot_type: String) -> void:
-	if _equip_focus_filter_type == slot_type:
+func set_equip_focus_filter(slot_type: String, weapon_type: String = "") -> void:
+	if _equip_focus_filter_type == slot_type and _equip_focus_weapon_type == weapon_type:
 		return
 	_equip_focus_filter_type = slot_type
+	_equip_focus_weapon_type = weapon_type
 	rebuild_storage()
 
 func clear_equip_focus_filter() -> void:
-	if _equip_focus_filter_type == "":
+	if _equip_focus_filter_type == "" and _equip_focus_weapon_type == "":
 		return
 	_equip_focus_filter_type = ""
+	_equip_focus_weapon_type = ""
 	rebuild_storage()
+
+# v134g: does this module satisfy the active equip-mission focus? Slot type must
+# match; for a weapon leg with a damage-type set, the weapon's family must match too
+# (so only Kinetic pulses on the kinetic step, not Energy/Explosive as well).
+func _module_matches_equip_focus(module_data: Dictionary) -> bool:
+	if _equip_focus_filter_type == "":
+		return false
+	var st := str(module_data.get("slot_type", ""))
+	if st != _equip_focus_filter_type:
+		return false
+	if _equip_focus_weapon_type != "" and st == "weapon":
+		return _weapon_damage_family(module_data) == _equip_focus_weapon_type
+	return true
+
+func _weapon_damage_family(module_data: Dictionary) -> String:
+	var s: Dictionary = module_data.get("stats", {})
+	if float(s.get("atk_cryo", 0)) > 0.0: return "cryo"
+	if float(s.get("atk_energy", 0)) > 0.0: return "energy"
+	if float(s.get("atk_explosive", 0)) > 0.0: return "explosive"
+	if float(s.get("atk_kinetic", 0)) > 0.0: return "kinetic"
+	return ""
 
 # --- P1 Onboarding: drag-drop hint banner ---
 var _drag_hint_banner: Control = null
@@ -238,8 +266,9 @@ func _build_drag_hint_banner_if_needed() -> void:
 	banner.add_child(lbl)
 	var vbox = $VBoxContainer
 	vbox.add_child(banner)
-	# Slot just below the title (index 0). Banner ends up above InfoPanel.
-	vbox.move_child(banner, 1)
+	# v134g: title removed — the banner now sits at the very top of the page,
+	# above MainLayout (a full-width drag hint over the whole designer).
+	vbox.move_child(banner, 0)
 	_drag_hint_banner = banner
 
 func _check_drag_hint_dismissal() -> void:
@@ -310,14 +339,12 @@ func focus_slot(slot_type: String) -> void:
 	if not w:
 		return
 	_last_focus_slot = slot_type
-	var sc = get_node_or_null("VBoxContainer/MainLayout/SchematicArea/LayoutSplit/SlotListPanel/SlotScroll")
+	var sc = get_node_or_null("VBoxContainer/MainLayout/LeftColumn/SchematicArea/LayoutSplit/SlotListPanel/SlotScroll")
 	if sc is ScrollContainer:
 		sc.call_deferred("ensure_control_visible", w)
 
 func _apply_designer_styles():
-	title_lbl.add_theme_color_override("font_color", TITLE_GOLD)
-	title_lbl.add_theme_font_size_override("font_size", 24)
-
+	# v134g: title Label removed — nothing to style here anymore.
 	ship_name_lbl.add_theme_color_override("font_color", TITLE_GOLD)
 	ship_name_lbl.add_theme_font_size_override("font_size", 22)
 	power_lbl.add_theme_color_override("font_color", TEXT_MAIN)
@@ -351,6 +378,10 @@ func _apply_designer_styles():
 	_spatial.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_spatial.cell_clicked.connect(_on_grid_cell_clicked)
 	_spatial.pages_changed.connect(_on_pages_changed)
+	# v134g: equipped slots mirror the armory 2x2 module footprint (see
+	# _sync_slot_dimensions). Re-sync whenever the grid resizes — a window /
+	# resolution change re-derives the cell size, so the slots follow.
+	_spatial.resized.connect(_sync_slot_dimensions)
 	storage_grid.add_child(_spatial)
 	_setup_page_nav()
 
@@ -653,57 +684,20 @@ func _setup_loadout_preset_row(parent: Node, insert_idx: int):
 	label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	preset_row.add_child(label)
 
-	# v111.16: click-to-LOAD chips (1–5) + a single SAVE ▾ dropdown,
-	# replacing the old 6-button SAVE/LOAD grid. Click a numbered chip to load
-	# that preset; use SAVE ▾ to write the current build to a slot.
+	# v134g: build-slot chips (1–5). Loadouts are no longer saved manually — a chip
+	# SWITCHES the whole ship to that build slot (an empty slot = an empty ship,
+	# ready to build fresh), and every edit auto-saves back into the active slot.
+	# The old "SAVE ▾" dropdown is gone. The active slot is highlighted.
 	_preset_load_buttons = []
 	for i in [1, 2, 3, 4, 5]:
 		var load_btn = Button.new()
 		load_btn.text = "%d" % i
-		load_btn.tooltip_text = "Load Preset %d" % i
 		load_btn.custom_minimum_size = Vector2(34, 0)
 		load_btn.pressed.connect(_on_preset_load.bind(i))
 		load_btn.add_theme_font_size_override("font_size", 11)
 		_apply_filter_button_style(load_btn, false, UITheme.COLORS["accent_bright"])
 		preset_row.add_child(load_btn)
 		_preset_load_buttons.append(load_btn)
-
-	var save_menu = MenuButton.new()
-	save_menu.text = "SAVE ▾"
-	save_menu.tooltip_text = "Save the current ship build to a preset slot."
-	save_menu.add_theme_font_size_override("font_size", 10)
-	save_menu.flat = false
-	_apply_filter_button_style(save_menu, false, UITheme.COLORS["accent"])
-	var save_popup = save_menu.get_popup()
-	# v131c: theme the dropdown — a raw PopupMenu rendered in stock Godot gray, the
-	# last default-themed surface in the toolbar. Match the Precursor Bloom panels.
-	var pp_sb := StyleBoxFlat.new()
-	pp_sb.bg_color = Color(0.055, 0.122, 0.114, 0.97)
-	pp_sb.set_border_width_all(1)
-	pp_sb.border_color = Color(0.427, 0.941, 0.847, 0.45)
-	pp_sb.set_corner_radius_all(6)
-	pp_sb.set_content_margin_all(6)
-	save_popup.add_theme_stylebox_override("panel", pp_sb)
-	var pp_hover := StyleBoxFlat.new()
-	pp_hover.bg_color = Color(0.16, 0.42, 0.38, 0.55)
-	pp_hover.set_corner_radius_all(4)
-	save_popup.add_theme_stylebox_override("hover", pp_hover)
-	save_popup.add_theme_color_override("font_color", Color(0.78, 0.88, 0.86))
-	save_popup.add_theme_color_override("font_hover_color", Color(0.90, 1.0, 0.97))
-	save_popup.add_theme_font_size_override("font_size", 11)
-	for i in [1, 2, 3, 4, 5]:
-		save_popup.add_item("Save to Preset %d" % i, i)
-	# v131c: refresh labels on open so saved builds show their custom names
-	# ("Save to Preset 2 — 'Boss Rush'") instead of anonymous slot numbers.
-	save_popup.about_to_popup.connect(func():
-		for i in [1, 2, 3, 4, 5]:
-			var item_idx := save_popup.get_item_index(i)
-			var pname := ""
-			if manager and "loadout_presets" in manager:
-				pname = str(manager.loadout_presets.get(i, {}).get("name", ""))
-			save_popup.set_item_text(item_idx, ("Save to Preset %d — '%s'" % [i, pname]) if pname != "" else "Save to Preset %d" % i))
-	save_popup.id_pressed.connect(_on_preset_save)
-	preset_row.add_child(save_menu)
 
 	parent.add_child(preset_row)
 	parent.move_child(preset_row, insert_idx)
@@ -721,34 +715,48 @@ func _setup_loadout_preset_row(parent: Node, insert_idx: int):
 
 	_refresh_preset_buttons()
 
+# v134g: the loadout chip (1-5) for coach guidance — e.g. the damage-triangle arc
+# steers each weapon type into its own slot (Kinetic→1, Energy→2, Explosive→3).
+func get_loadout_chip(slot_idx: int) -> Control:
+	var i := slot_idx - 1
+	if i >= 0 and i < _preset_load_buttons.size():
+		return _preset_load_buttons[i]
+	return null
+
 func _refresh_preset_buttons():
 	if not manager: return
+	var active: int = int(manager.get("active_preset_idx")) if "active_preset_idx" in manager else 1
 	for i in range(5):
 		var idx = i + 1
 		var btn = _preset_load_buttons[i]
+		# v134g: every slot is clickable (switch to it). Highlight the active one;
+		# empty slots read as "click to start a fresh build here".
+		btn.disabled = false
 		var empty = manager.is_loadout_preset_empty(idx)
-		btn.disabled = empty
-		if empty:
-			btn.tooltip_text = "Preset %d is empty. Save a build first." % idx
+		var pname := str(manager.loadout_presets.get(idx, {}).get("name", ""))
+		if idx == active:
+			btn.tooltip_text = "Build slot %d — active (edits save here automatically)." % idx
+		elif empty:
+			btn.tooltip_text = "Build slot %d — empty. Switch here and build a fresh loadout." % idx
 		else:
-			# v131c: surface the custom build name (set via the clickable title) —
-			# it previously lived nowhere findable from this row.
-			var pname := str(manager.loadout_presets.get(idx, {}).get("name", ""))
-			btn.tooltip_text = ("Apply '%s' (Preset %d) to ship." % [pname, idx]) if pname != "" else "Apply Preset %d to ship." % idx
-
-func _on_preset_save(idx: int):
-	if not manager: return
-	if manager.save_loadout_preset(idx):
-		UITheme.show_notification("Loadout saved to Preset %d" % idx, UITheme.COLORS["accent"])
-		_refresh_preset_buttons()
+			btn.tooltip_text = ("Switch to '%s' (slot %d)." % [pname, idx]) if pname != "" else "Switch to build slot %d." % idx
+		_apply_filter_button_style(btn, idx == active, UITheme.COLORS["accent_bright"])
 
 func _on_preset_load(idx: int):
+	# v134g: SWITCH to build slot idx. Auto-save has already kept the CURRENT slot
+	# up to date, so no manual save is needed; an empty slot switches to an empty
+	# ship (build it and it saves back here).
 	if not manager: return
+	var was_active: int = int(manager.get("active_preset_idx")) if "active_preset_idx" in manager else 1
+	if idx == was_active:
+		return   # already on this slot
 	var result = manager.load_loadout_preset(idx)
-	if result["loaded"] == 0 and result["skipped"] == 0:
-		UITheme.show_notification("Preset %d is empty." % idx, UITheme.COLORS["negative"])
+	var empty_now: bool = manager.is_loadout_preset_empty(idx)
+	if empty_now:
+		UITheme.show_notification("Switched to empty build slot %d — equip modules to set it up." % idx, UITheme.COLORS["accent"])
+		trigger_refresh()
 		return
-	var msg = "Loaded Preset %d  —  %d slot(s) restored" % [idx, result["loaded"]]
+	var msg = "Switched to build slot %d  —  %d module(s) equipped" % [idx, result["loaded"]]
 	if result["skipped"] > 0:
 		msg += "  |  %d missing" % result["skipped"]
 	UITheme.show_notification(msg, UITheme.COLORS["accent_bright"])
@@ -1207,6 +1215,35 @@ func trigger_refresh():
 	_refresh_filter_button_styles()
 	_refresh_preset_buttons()
 	_refresh_hack_stone_bar()   # v127 review #4: re-show the stone bar after looting the first stone
+	# v134g: match equipped slots to the armory 2x2 card size. Deferred so the
+	# spatial grid has laid out (its cell size derives from the grid's live width).
+	call_deferred("_sync_slot_dimensions")
+
+# v134g: size every equipped module slot to the armory's 2x2 module footprint so a
+# slot reads as the same square as a card in the cache. The armory card is
+# 2*cell + GAP where cell is width-derived, so this tracks the panel (and any
+# resolution change, via the grid's `resized` signal) instead of hardcoding a px.
+func _sync_slot_dimensions() -> void:
+	if _spatial == null or not is_instance_valid(_spatial):
+		return
+	if not _spatial.has_method("_cell_size"):
+		return
+	var cell: float = _spatial._cell_size()
+	if cell <= 8.0:
+		return   # grid not laid out yet — the resized signal will re-fire when it is
+	var s: float = 2.0 * cell + _spatial.GAP   # one 2x2 module footprint
+	var sz := Vector2(s, s)
+	# module slots + ammo slots + both consumable slots — every equipped bay reads
+	# as the same square as an armory card.
+	for w in all_slot_widgets:
+		if is_instance_valid(w):
+			w.custom_minimum_size = sz
+	for w in all_ammo_widgets:
+		if is_instance_valid(w):
+			w.custom_minimum_size = sz
+	for w in [_consumable_hull_slot, _consumable_shield_slot]:
+		if w != null and is_instance_valid(w):
+			w.custom_minimum_size = sz
 
 func update_header():
 	if not (manager.active_hull and manager.active_hull in manager.hulls):
@@ -1607,11 +1644,10 @@ func _open_build_rename_dialog(current_name: String):
 	var commit := func():
 		var new_name = input.text.strip_edges()
 		if new_name != "":
-			for idx in manager.loadout_presets:
-				var p = manager.loadout_presets[idx]
-				if _loadout_matches_preset(p):
-					p["name"] = new_name
-					break
+			# v134g: rename the ACTIVE build slot (the live build always belongs to it).
+			var active: int = int(manager.get("active_preset_idx")) if "active_preset_idx" in manager else 1
+			if active in manager.loadout_presets:
+				manager.loadout_presets[active]["name"] = new_name
 			manager.inventory_updated.emit()
 			trigger_refresh()
 		layer.queue_free()
@@ -1638,13 +1674,10 @@ func _open_build_rename_dialog(current_name: String):
 	input.grab_focus()
 
 func _get_active_build_name() -> String:
-	# Returns the preset name if the current loadout exactly matches one of the saved presets.
+	# v134g: the live build IS the active slot, so just read that slot's name.
 	if not manager or not "loadout_presets" in manager: return ""
-	for idx in manager.loadout_presets:
-		var preset = manager.loadout_presets[idx]
-		if _loadout_matches_preset(preset):
-			return preset.get("name", "")
-	return ""
+	var active: int = int(manager.get("active_preset_idx")) if "active_preset_idx" in manager else 1
+	return str(manager.loadout_presets.get(active, {}).get("name", ""))
 
 func _loadout_matches_preset(preset: Dictionary) -> bool:
 	var preset_load = preset.get("loadout", {})
@@ -1710,7 +1743,8 @@ func _calculate_total_dps() -> float:
 
 func rebuild_slots():
 	all_slot_widgets.clear()
-	var slot_container = $VBoxContainer/MainLayout/SchematicArea/LayoutSplit/SlotListPanel/SlotScroll/SchematicContainer
+	all_ammo_widgets.clear()   # v134g: rebuilt fresh below (with the module slots)
+	var slot_container = $VBoxContainer/MainLayout/LeftColumn/SchematicArea/LayoutSplit/SlotListPanel/SlotScroll/SchematicContainer
 	if slot_container:
 		for child in slot_container.get_children():
 			child.queue_free()
@@ -1790,6 +1824,7 @@ func _create_blade(title: String, slot_list: Array, parent: Node, color: Color =
 			widget = ammo_slot_scene.instantiate()
 			flow.add_child(widget)
 			widget.setup(slot_data["idx"], self, manager)
+			all_ammo_widgets.append(widget)   # v134g: size-match to the armory card
 		else:
 			widget = slot_widget_scene.instantiate()
 			flow.add_child(widget)
@@ -1931,6 +1966,13 @@ func rebuild_storage():
 				if "compare_equipped_mid" in item:
 					item.compare_equipped_mid = focused_slot_equipped_mid if type_matches_focus else ""
 				item.show_card_socket = (_armed_stone != "")   # v127: show insert socket while a card is armed
+				# v134g: pulse the card(s) that satisfy an active equip mission so the
+				# player sees WHICH module to drag — the mission already pulses the SLOT.
+				# Damage-type-aware: on a weapon leg (kinetic/energy/explosive) ONLY that
+				# family pulses, not every weapon. Same condition as the dim below, inverted.
+				var _matches_focus: bool = focused_slot_type == "" and _module_matches_equip_focus(module_data)
+				if "coach_pulse" in item:
+					item.coach_pulse = _matches_focus
 				item.setup(module_id, module_data, module_count)
 				item.clicked.connect(_on_card_clicked.bind(item))   # bind node for the insert animation
 				item.stone_dropped.connect(_on_stone_dropped)   # v127: apply a dragged Hack Stone
@@ -1939,8 +1981,7 @@ func rebuild_storage():
 				# just-crafted module stands out vs the rest of the Armory.
 				if focused_slot_type != "" and not type_matches_focus:
 					item.modulate = Color(1, 1, 1, 0.35)
-				elif focused_slot_type == "" and _equip_focus_filter_type != "" \
-						and module_slot_type != _equip_focus_filter_type:
+				elif focused_slot_type == "" and _equip_focus_filter_type != "" and not _matches_focus:
 					item.modulate = Color(1, 1, 1, 0.35)
 				slot_count += 1
 

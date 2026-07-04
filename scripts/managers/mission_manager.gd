@@ -10,8 +10,10 @@ const DEBUG_LOG := false
 const CHAPTER_2_IDS = ["m027", "m027b", "m028", "m029",
 	"m029a1", "m029a2", "m029a3", "m029a4", "m029a5", "m029b", "m030", "m030c",
 	"m030e", "m030f", "m030g", "m030h", "m030i",
-	"m031", "m032", "m032a", "m032b", "m032d", "m032c", "m033", "m033b", "m033c"]
-const ENDGAME_IDS = ["m034"]
+	"m031", "m032", "m032a", "m032b", "m032d", "m032c", "m033"]
+# v134g: the reordered tail runs m034 → m033b → m033c, so the [ENDGAME] tag must
+# cover all three — otherwise the badge reads [ENDGAME] then two [CHAPTER 2] after it.
+const ENDGAME_IDS = ["m034", "m033b", "m033c"]
 
 var missions = {}
 var active_missions = []
@@ -74,10 +76,19 @@ func init_missions():
 		["m002b", "Foundational Research", "Unlock Basic Engineering in the Research tab.", "research", "basic_engineering", 1, 300, 100, "m003"],
 		["m003", "Pump Master", "Unlock Basic Engineering in the Research tab.", "research", "basic_engineering", 1, 300, 50, "m004"],
 		["m004", "Hydration", "Gather 350 units of Water.", "gather", "Water", 350, 500, 100, "m005"],
-		["m005", "Mineral Washing", "Open the Engineering page and process Dirt to extract 100 Silicon and 80 Iron.", "gather_multi", {"Si": 100, "Fe": 80}, 180, 1000, 200, "m007"],
-		
+		["m005", "Mineral Washing", "Open the Engineering page and process Dirt to extract 100 Silicon and 80 Iron.", "gather_multi", {"Si": 100, "Fe": 80}, 180, 1000, 200, "m005b"],
+
+		# v134g: POWER-FIRST onboarding. The battery-only model means every module
+		# draws power, so the FIRST loadout lesson is batteries — craft + equip 2
+		# BEFORE the engine, so the engine visibly draws from them (was: engine
+		# first, powered by invisible starter batteries; the old battery-equip step
+		# m022b auto-completed because those starter batteries pre-filled the slots).
+		# New games start UNPOWERED (see shipyard reset); warps keep starter batteries.
+		["m005b", "Power Cells", "Your corvette is UNPOWERED — every module you equip draws power, and batteries supply it. In the Shipyard, craft 2 'Basic Battery' modules.", "craft", "z1_battery", 2, 1500, 200, "m005c"],
+		["m005c", "Power Online", "Open the Ship Designer and equip BOTH Basic Batteries into the ship's BATTERY slots. Watch the GRID fill — now the ship can run modules.", "loadout_check", "battery", 2, 800, 150, "m007"],
+
 		# m006 Removed (Moved to m002b)
-		["m007", "Mobility Check", "Craft a 'Basic Thruster' in the Shipyard.", "craft", "z1_engine", 1, 1000, 100, "m007b"],
+		["m007", "Mobility Check", "Craft a 'Basic Thruster' in the Shipyard. (Your batteries now power it.)", "craft", "z1_engine", 1, 1000, 100, "m007b"],
 		# P1 Onboarding: close the engine arc — craft → equip. Without this the
 		# Thruster sat in inventory and the player never saw its +Evasion effect.
 		["m007b", "Spacewalk Test", "Open the Ship Designer, then DRAG the Basic Thruster from your Armory (right panel) onto an empty ENGINE slot.", "loadout_check", "engine", 1, 500, 100, "m008"],
@@ -95,13 +106,20 @@ func init_missions():
 		["m012", "Lithium Discovery", "In the Mine page, extract 100 Lithium Ore.", "gather", "Spodumene", 100, 800, 200, "m013"],
 		["m013", "Voltaic Storage", "Refine 50 Lithium in the Engineering tab.", "gather", "Li", 50, 1000, 250, "m013b"],
 		["m013b", "Copper Prospecting", "Gather 100 Malachite Ore.", "gather", "Malachite", 100, 1200, 300, "m013c"],
-		["m013c", "Conductivity", "Refine 50 Copper in the Engineering tab.", "gather", "Cu", 50, 1500, 350, "m021"],
+		# v134g: batteries are now taught up front (m005b/m005c), so the old battery
+		# block (m020/m021/m022/m022b) is redundant — skip straight to the weapon
+		# arc. Those missions stay DEFINED below as orphans so in-flight saves sitting
+		# on them still complete + chain onward (the m003 pattern).
+		["m013c", "Conductivity", "Refine 50 Copper in the Engineering tab.", "gather", "Cu", 50, 1500, 350, "m015"],
 		["m014", "Ballistics Theory", "Research 'Kinetic Weapons Theory' in the Research tree.", "research", "kinetics_101", 1, 1200, 100, "m015"],
-		["m015", "Prototype Arsenal", "Craft a 'Mass Driver Mk.I' in the Shipyard.", "craft", "z1_kinetic", 1, 1500, 200, "m015b"],
+		# v134g: craft 2 of each weapon type — the corvette has 2 WEAPON slots, so
+		# filling both (double DPS) is the difference between comfortable and painful
+		# early fights. The equip step below requires both slots filled.
+		["m015", "Prototype Arsenal", "Your corvette has 2 WEAPON slots — fill both for double the firepower. Craft 2 'Mass Driver Mk.I' in the Shipyard.", "craft", "z1_kinetic", 2, 1500, 200, "m015b"],
 		# P1 Onboarding: close the weapon arc — craft → equip. Ammo comes next
 		# and now reads correctly as "feed your equipped weapon".
-		["m015b", "Weapons Hot", "Open the Ship Designer, then DRAG the Mass Driver from your Armory (right panel) onto an empty WEAPON slot.", "loadout_check", "weapon", 1, 500, 100, "m016"],
-		["m016", "Kinetic Munitions", "In the Engineering page, produce 100 Ferrite Rounds (SlugT1) to feed your weapon.", "gather", "SlugT1", 100, 1000, 100, "m024"],
+		["m015b", "Weapons Hot", "Open the Ship Designer and equip BOTH Mass Drivers into your two WEAPON slots — twice the guns, twice the DPS. This is LOADOUT 1, your Kinetic build.", "loadout_check", "weapon", 2, 500, 100, "m016"],
+		["m016", "Kinetic Munitions", "In the Engineering page, produce 100 Ferrite Rounds (SlugT1) to feed both your weapons.", "gather", "SlugT1", 100, 1000, 100, "m024"],
 		# Shield Section Moved Here (m023 -> m024)
 		# P2-12: Combat Readiness Checkpoint - ensure player is equipped before first combat
 		["m016b", "Combat Ready", "Equip a WEAPON and SHIELD in your Ship Designer.", "loadout_check", "combat_ready", 1, 300, 100, "m017"],
@@ -110,34 +128,40 @@ func init_missions():
 		# pair teaches ENERGY against the energy-weak Survey Probe (resist_e -0.30, resists
 		# kinetic +0.30). The EXPLOSIVE leg is the Scrap Collector pair (m017c/d).
 		# (v131: the Rogue Architect boss has NO resists — pure rarity check.)
-		["m017a", "Energy Doctrine", "Not every hostile falls to slugs. The Survey Probe RESISTS kinetic fire but is WEAK TO ENERGY. In the Shipyard, craft a 'Pulse Laser Mk.I'.", "craft", "z1_energy", 1, 1500, 200, "m017a2"],
+		["m017a", "Energy Doctrine", "Not every hostile falls to slugs. The Survey Probe RESISTS kinetic fire but is WEAK TO ENERGY. In the Shipyard, craft 2 'Pulse Laser Mk.I' (one per weapon slot).", "craft", "z1_energy", 2, 1500, 200, "m017a2"],
 		# v134: energy leg now mirrors the kinetic leg (craft -> produce ammo -> equip & fight).
 		# It used to jump from craft straight to "destroy with Focus Crystals loaded" with NO
 		# step that made the player PRODUCE the ammo — so a correctly-built laser fought empty.
 		["m017a2", "Charge the Crystals", "The Pulse Laser runs on Focus Crystals. In the Engineering tab, produce 60 Focus Crystals (CellT1) — its ammunition.", "gather", "CellT1", 60, 1500, 200, "m017b"],
-		["m017b", "Pulse Fire", "In the Ship Designer, drag your Pulse Laser onto a WEAPON slot (that auto-loads the Focus Crystals), then destroy a Survey Probe in Lunar Orbit. Energy melts what kinetic shrugged off — always match the weapon to the weakness.", "defeat", "z1_survey_probe", 1, 3000, 500, "m017c"],
+		["m017b", "Pulse Fire", "Keep builds in separate slots: click LOADOUT 2 (a fresh slot — your Kinetic build stays saved in slot 1), equip BOTH Pulse Lasers there (auto-loads Focus Crystals), then destroy a Survey Probe in Lunar Orbit. Energy melts what kinetic shrugged off.", "defeat", "z1_survey_probe", 1, 3000, 500, "m017c"],
 		# v128: EXPLOSIVE leg — the Scrap Collector is now armored vs kinetic + energy and
 		# WEAK to explosive (resist_x -0.30), so all three types are taught against regular
-		# Lunar Orbit enemies. combustion is already researched at m010, so missiles craft here.
-		["m017c", "Explosive Doctrine", "The Scrap Collector is armored against kinetic AND energy — but blows apart under EXPLOSIVE ordnance. In the Shipyard, craft a 'Micro-Missile Launcher'.", "craft", "z1_missile", 1, 1800, 250, "m017c2"],
+		# Lunar Orbit enemies. v129: T1 missiles + the launcher no longer require combustion
+		# (research gate removed), so they craft here freely; combustion is first taught at m025.
+		["m017c", "Explosive Doctrine", "The Scrap Collector is armored against kinetic AND energy — but blows apart under EXPLOSIVE ordnance. In the Shipyard, craft 2 'Micro-Missile Launcher' (one per weapon slot).", "craft", "z1_missile", 2, 1800, 250, "m017c2"],
 		# v134: explosive leg scaffolds ammo like the others. It used to go craft ->
 		# "destroy with HE Missiles loaded" with NO produce-ammo step (and equip_module
 		# auto-loaded a phantom "missile" ammo id instead of MissileT1 — both now fixed).
 		["m017c2", "Stock the Warheads", "The launcher fires HE Missiles. In the Engineering tab, produce 60 HE Missiles (MissileT1) — its ammunition.", "gather", "MissileT1", 60, 1800, 250, "m017d"],
-		["m017d", "Warhead", "In the Ship Designer, drag your Micro-Missile Launcher onto a WEAPON slot (that auto-loads the HE Missiles), then destroy a Scrap Collector in Lunar Orbit. Three weapon types, three weaknesses — now you command the damage triangle.", "defeat", "z1_scrap_collector", 1, 3500, 600, "m018"],
+		["m017d", "Warhead", "Click LOADOUT 3, equip BOTH Micro-Missile Launchers there (auto-loads HE Missiles), then destroy a Scrap Collector in Lunar Orbit. Kinetic / Energy / Explosive now live in Loadouts 1 / 2 / 3. Before a fight, one click swaps your WHOLE ship to the enemy's weakness — no rebuilding. You'll try that next.", "defeat", "z1_scrap_collector", 1, 3500, 600, "m017e"],
+		# v134g: DEMONSTRATE the triangle payoff. The three legs above all BUILD a slot;
+		# the player never once clicks a chip and watches a ready-built ship appear — the
+		# whole point of keeping three loadouts. This beat makes them LOAD a pre-built slot
+		# (Kinetic, L1) and win with it, so the one-click swap is experienced, not just read.
+		["m017e", "Snap to Weakness", "Feel the payoff. The Lunar Drone is WEAK to KINETIC — click LOADOUT 1 to snap your whole ship back to the Kinetic build in a single click (no re-equipping), then destroy one. That's the loop: read the enemy, one click, fight.", "defeat", "z1_lunar_drone", 1, 3500, 600, "m018"],
 		["m018", "Industrial Logistics", "Research the 'Industrial Logistics' hub.", "research", "industrial_logistics", 1, 500, 100, "m019"],
 		["m018b", "Automated Intelligence", "Research 'Automated Logistics' for circuitry.", "research", "automated_logistics", 1, 1000, 200, "m019"],
 		# v134: the Circuit recipe needs TIN (Sn) — a material the chain never introduced
 		# (Cassiterite mining was only taught at m028, nine missions later). Name the
 		# full path so the player isn't stared down by an unexplained missing input.
-		["m019", "Cybernetic Integration", "Craft 10 Basic Circuitry in the Engineering tab. Its recipe needs Tin: mine Cassiterite in the Mine page, then smelt it into Tin (Engineering tab) first.", "gather", "Circuit", 10, 2000, 300, "m019b"],
+		["m019", "Cybernetic Integration", "Craft 10 Circuit Boards in the Engineering tab. Its recipe needs Tin: mine Cassiterite in the Mine page, then smelt it into Tin (Engineering tab) first.", "gather", "Circuit", 10, 2000, 300, "m019b"],
 		# P-onboard: close two long-standing teaching holes before the smelting push.
 		# Both are visit_page (auto-complete on navigation → can never soft-lock) and
 		# fire the existing per-page coach card the moment the player lands.
 		["m019b", "Cargo Hold", "Open your Inventory (left sidebar). Cargo is slot-limited — when it fills, NEW gathered materials are LOST, not paused. Expand storage here as you take on more material types.", "visit_page", "inventory", 1, 2000, 200, "m019c"],
 		["m019c", "Background Industry", "Open Infrastructure (left sidebar). Buildings auto-produce in the background — always running while you gather, fight, or are offline. Build them whenever you can; the background should always pay.", "visit_page", "infrastructure", 1, 2000, 200, "m025"],
 		["m020", "Advanced Energy", "Research 'Power Systems' for batteries.", "research", "power_systems", 1, 500, 100, "m021"],
-		["m021", "Industrial Energy", "Craft 5 Basic Batteries in the Engineering tab.", "gather", "BatteryT1", 5, 1000, 100, "m022"],
+		["m021", "Industrial Energy", "Craft 5 Battery Cells in the Engineering tab.", "gather", "BatteryT1", 5, 1000, 100, "m022"],
 		["m022", "Power Storage", "Craft a 'Basic Battery' in the Shipyard.", "craft", "z1_battery", 1, 1500, 150, "m022b"],
 		# P1 Onboarding: close the energy arc — craft → equip. Without this the
 		# Battery was a one-and-done craft with no ship-state payoff.
@@ -150,7 +174,11 @@ func init_missions():
 		# Split for onboarding: teach what consumables are + where to make them,
 		# THEN how to equip them (was one sudden compound objective).
 		# v134: "Processing page" — no such page exists; the sidebar label is Engineering.
-		["m024b", "Field Supplies", "Repair kits keep you alive in combat. In the Engineering page, craft 5 Emergency Hull Patches and 5 Basic Shield Boosters.", "gather_multi", {"EmergencyPatch": 5, "BasicBooster": 5}, 10, 2000, 150, "m024b2"],
+		# v134g: Basic Shield Booster's recipe consumes a Battery Cell (BatteryT1) each —
+		# a sub-component the power-first reorder no longer teaches on the main path (m021
+		# is orphaned). Name the sub-step like m019 does for Tin so the player isn't walled
+		# by an unexplained input; the router (main.gd) also routes to the cell craft first.
+		["m024b", "Field Supplies", "Repair kits keep you alive in combat. In the Engineering page, craft 5 Emergency Hull Patches and 5 Basic Shield Boosters. Boosters need a Battery Cell each — craft 'Assemble Battery Cell' in the same tab first.", "gather_multi", {"EmergencyPatch": 5, "BasicBooster": 5}, 10, 2000, 150, "m024b2"],
 		# Re-routed: m016b (catch-all weapon+shield equip) is now redundant —
 		# each module already has its own per-arc equip mission (m007b / m015b /
 		# m022b / m024c). m024b2 now flows into m016c "Combat Briefing", which
@@ -188,7 +216,7 @@ func init_missions():
 		["m027", "Scanning Horizon", "Research 'Asteroid Belt Authorization' in the Research tree to unlock the Asteroid Belt combat zone.", "research", "zone_2_access", 1, 5000, 500, "m027b"],
 		# P-onboard: introduce the Bounty Board the moment it unlocks (Asteroid Belt).
 		# visit_page → auto-completes on navigation, can never soft-lock.
-		["m027b", "Open Contracts", "Open the Bounty Board (left sidebar — it just unlocked). Accept a contract: it pays out in the background while you do anything else. Optional, always-on income.", "visit_page", "bounty", 1, 6000, 500, "m028"],
+		["m027b", "Open Contracts", "Open Bounties (left sidebar — it just unlocked). Accept a contract: it pays out in the background while you do anything else. Optional, always-on income.", "visit_page", "bounty", 1, 6000, 500, "m028"],
 		["m028", "Belt Mining", "In the Mine page, mine 100 Cassiterite (tin ore).", "gather", "Cassiterite", 100, 10000, 2000, "m029"],
 		["m029", "Hardened Shell", "Craft 'Carbon Fiber Plate' in the Shipyard.", "craft", "z2_armor", 1, 15000, 5000, "m029a1"],
 		# v107 Mission flow — split the silent AdvCircuit wall into discoverable
@@ -660,14 +688,14 @@ func sync_progress():
 		elif m["type"] == "loadout_check":
 			var slot_target: String = str(m["target"])
 			var sm2 = GameState.shipyard_manager
-			var slot_filled = false
+			# v134g: COUNT filled slots of the type so a mission can require N (e.g.
+			# m005c "equip 2 batteries"). target_qty 1 still completes at 1 filled.
+			var filled := 0
 			for mid_v in sm2.loadout.values():
 				if mid_v and mid_v in sm2.modules:
 					if sm2.modules[mid_v].get("slot_type", "") == slot_target:
-						slot_filled = true
-						break
-			if slot_filled:
-				m["current_qty"] = 1
+						filled += 1
+			m["current_qty"] = max(m["current_qty"], min(filled, m["target_qty"]))
 
 		elif m["type"] == "drop_rarity":
 			var target_rarity = int(m["target"])

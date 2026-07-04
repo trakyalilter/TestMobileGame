@@ -135,8 +135,8 @@ const STEPS := {
 	"designer_presets": [
 		{
 			"anchor": "presets",
-			"title": "Loadout Presets",
-			"body": "You're carrying more than one weapon type now. Use SAVE ▾ to store your current build, and keep a Kinetic, an Energy and an Explosive build in separate slots — one click re-equips the whole ship to match an enemy's weakness.",
+			"title": "Build Slots",
+			"body": "You're carrying more than one weapon type now. The LOADOUTS row has 5 build slots. Click an EMPTY slot to switch to a fresh, empty ship, then equip it — it saves to that slot automatically as you go (no manual save). Keep a Kinetic, an Energy and an Explosive build in separate slots; then before a fight, one click swaps your whole ship to match the enemy's weakness — no re-equipping.",
 		},
 	],
 	# Fires on the first Designer visit AFTER the player owns a set-piece module.

@@ -414,6 +414,19 @@ var loadout_presets: Dictionary = {
 	4: {"name": "", "loadout": {}, "ammo_loadout": {}, "consumable_hull": "", "consumable_shield": ""},
 	5: {"name": "", "loadout": {}, "ammo_loadout": {}, "consumable_hull": "", "consumable_shield": ""}
 }
+# v134g: loadouts are no longer saved manually. The live ship build belongs to ONE
+# active slot; every equip/unequip/ammo/consumable edit auto-saves into it, and
+# clicking a slot switches the whole ship to that build (an empty slot = empty
+# ship, ready to build fresh). active_preset_idx is the slot being edited;
+# _suppress_preset_autosave gates the auto-save while a slot is being applied.
+var active_preset_idx: int = 1
+var _suppress_preset_autosave: bool = false
+
+func _autosave_active_preset() -> void:
+	if _suppress_preset_autosave:
+		return
+	if active_preset_idx >= 1 and active_preset_idx in loadout_presets:
+		save_loadout_preset(active_preset_idx)
 
 # v72.3: Research Requirements for non-module equipment (Ammo, Consumables)
 const ELEMENT_RESEARCH_REQS = {
@@ -1862,6 +1875,7 @@ func equip_module(slot_idx: int, module_id: String, silent: bool = false) -> boo
 			# a phantom key the player could never craft, so the launcher auto-loaded ammo
 			# it had zero of and fired empty. Set it unconditionally like kinetic/energy.
 			ammo_loadout[slot_idx] = "MissileT1"
+	_autosave_active_preset()   # v134g: persist the edit to the active build slot
 	return true
 
 func unequip_slot(slot_idx: int):
@@ -1873,6 +1887,7 @@ func unequip_slot(slot_idx: int):
 		ammo_loadout.erase(slot_idx)
 		recalc_stats()
 		inventory_updated.emit() # Fix: Signal for UI update
+		_autosave_active_preset()   # v134g: persist the edit to the active build slot
 
 func handle_module_defeat():
 	# v125: ONLINE defeat is non-destructive. Every equipped module floors to 50%
@@ -1972,6 +1987,7 @@ func set_slot_ammo(slot_idx: int, ammo_id: String) -> bool:
 				return false
 				
 	ammo_loadout[slot_idx] = ammo_id
+	_autosave_active_preset()   # v134g: persist the edit to the active build slot
 	return true
 
 # Step 6: Gem Socket Support
@@ -2305,6 +2321,7 @@ func get_save_data_manager() -> Dictionary:
 	data["armory_layout"] = armory_layout
 	data["equipped_relic"] = equipped_relic  # v113 (NG+ P2)
 	data["drop_seq"] = _drop_seq  # v134e: persist the custom-id counter (see load)
+	data["active_preset_idx"] = active_preset_idx  # v134g: the live build slot
 	return data
 
 func load_save_data_manager(data: Dictionary):
@@ -2386,6 +2403,18 @@ func load_save_data_manager(data: Dictionary):
 		for k in p.get("ammo_loadout", {}):
 			preset["ammo_loadout"][int(k)] = p["ammo_loadout"][k]
 
+	# v134g: restore the active build slot. A pre-v134g save has no such field —
+	# its live loadout wasn't tied to any slot, so migrate it INTO slot 1 (the
+	# default active) so switching slots preserves the player's current build.
+	active_preset_idx = int(data.get("active_preset_idx", 1))
+	if active_preset_idx < 1 or not active_preset_idx in loadout_presets:
+		active_preset_idx = 1
+	if not data.has("active_preset_idx"):
+		var _was := _suppress_preset_autosave
+		_suppress_preset_autosave = true
+		save_loadout_preset(active_preset_idx)   # sync live build → active slot
+		_suppress_preset_autosave = _was
+
 # Manual Repair System
 func get_full_repair_cost(hull_id: String) -> int:
 	var costs = {
@@ -2444,15 +2473,28 @@ func reset(decay_factor: float = 1.0) -> void:
 	loadout = {}
 	ammo_loadout = {}
 	custom_modules = {}
+	# v134g: new game / warp wipes the ship, so wipe the build slots too and start
+	# on slot 1 — otherwise a slot would still point at pre-reset (now non-existent)
+	# modules. The fresh starter build is synced into slot 1 at the end.
+	consumable_hull_slot = ""
+	consumable_shield_slot = ""
+	for _pi in loadout_presets:
+		loadout_presets[_pi] = {"name": "", "loadout": {}, "ammo_loadout": {}, "consumable_hull": "", "consumable_shield": ""}
+	active_preset_idx = 1
 	if active_hull in hulls:
 		for i in range(hulls[active_hull]["slots"].size()):
 			loadout[i] = null
-	# v110: battery-only energy — a fresh corvette needs powered batteries or
-	# it can't fit anything (hull provides 0 energy). Grant + auto-equip 2
-	# tier-1 batteries into the corvette's battery slots (covers its 6
-	# consumers exactly: 2×30 cap = 6×10 load). Runs on new game AND warp
-	# (both wipe inventory above).
-	_grant_and_equip_starter_batteries()
+	# v134g: power-first onboarding. A NEW GAME (decay_factor >= 1.0) now starts
+	# UNPOWERED — the tutorial (m005b/m005c) teaches the player to craft + equip
+	# batteries BEFORE the engine, so the battery-only power model is legible from
+	# the first loadout action. A WARP (decay_factor < 1.0) still auto-equips the
+	# starter batteries — an experienced prestige player must not be forced to
+	# re-craft power every single run.
+	if decay_factor < 1.0:
+		_grant_and_equip_starter_batteries()
+	# v134g: capture the fresh build as slot 1 so switching slots preserves it (any
+	# batteries were placed directly, not via equip_module, so no auto-save fired).
+	save_loadout_preset(active_preset_idx)
 	recalc_stats()
 	# New game / warp: the ship starts at FULL integrity. recalc_stats() alone
 	# preserves the pre-reset HP fraction (right for in-game equips, wrong here) —
@@ -2530,6 +2572,7 @@ func equip_consumable(slot_type: String, item_id: String):
 	# Without this, mission sync (equip_consumables) and the UI never
 	# re-evaluate on equip — the Combat Triage step would sit at 0%.
 	inventory_updated.emit()
+	_autosave_active_preset()   # v134g: persist the edit to the active build slot
 
 func unequip_consumable(slot_type: String):
 	if slot_type == "hull":
@@ -2537,6 +2580,7 @@ func unequip_consumable(slot_type: String):
 	elif slot_type == "shield":
 		consumable_shield_slot = ""
 	inventory_updated.emit()
+	_autosave_active_preset()   # v134g: persist the edit to the active build slot
 
 func get_consumable(slot_type: String) -> String:
 	if slot_type == "hull": return consumable_hull_slot
@@ -3451,14 +3495,19 @@ func save_loadout_preset(idx: int) -> bool:
 	return true
 
 func load_loadout_preset(idx: int) -> Dictionary:
+	# v134g: this is now "SWITCH to build slot idx". Applying a slot must NOT
+	# auto-save (its own equips would clobber the slot mid-apply), and it sets the
+	# slot as the active edit target. An EMPTY slot is a valid switch — the ship is
+	# stripped to an empty hull, ready to build fresh (the auto-save then persists
+	# each equip back into this slot).
 	# Returns: {"loaded": int, "skipped": int}
 	if not idx in loadout_presets: return {"loaded": 0, "skipped": 0}
 	var preset = loadout_presets[idx]
-	if _preset_has_no_modules(preset):
-		return {"loaded": 0, "skipped": 0}
+	var was_suppressed := _suppress_preset_autosave
+	_suppress_preset_autosave = true
 
-	# Step 1: Return every currently-equipped module to inventory.
-	# This is critical — otherwise equipped modules vanish from accounting.
+	# Step 1: Return every currently-equipped module to inventory. For an empty
+	# slot this IS the whole switch — the player lands on a clean, empty ship.
 	var slot_keys = loadout.keys().duplicate()
 	for slot in slot_keys:
 		if loadout.get(slot):
@@ -3510,9 +3559,35 @@ func load_loadout_preset(idx: int) -> Dictionary:
 	else:
 		consumable_shield_slot = ""
 
+	# v134g: an empty (or under-powered) slot must NOT strand the player on a dead,
+	# unbuildable hull. Re-seat OWNED batteries into empty battery slots so the ship
+	# can power the modules they're about to equip (e.g. the engine at the m007b
+	# tutorial step). Only uses batteries the player already owns — never grants, so
+	# there's no farm. Runs under the autosave-suppress guard, so an "empty" slot
+	# stays empty in its saved preset until the first real edit.
+	_ensure_powered_from_inventory()
+	# v134g: this slot is now the live build; future edits auto-save here.
+	active_preset_idx = idx
+	_suppress_preset_autosave = was_suppressed
 	recalc_stats()
 	inventory_updated.emit()
 	return {"loaded": loaded, "skipped": skipped}
+
+# v134g: fill empty BATTERY slots from owned batteries (best-capacity first) so a
+# switched-to slot is at least powerable. Never grants new batteries.
+func _ensure_powered_from_inventory() -> void:
+	if not active_hull in hulls:
+		return
+	var slots: Array = hulls[active_hull].get("slots", [])
+	for i in range(slots.size()):
+		if str(slots[i]) != "battery":
+			continue
+		if loadout.get(i):
+			continue   # slot already has a battery
+		var b := _best_owned_battery()
+		if b == "":
+			break   # own no more batteries to place
+		equip_module(i, b, true)
 
 func _preset_has_no_modules(preset: Dictionary) -> bool:
 	# A preset is "empty" if every saved slot is null/empty — not just if the dict has no keys.

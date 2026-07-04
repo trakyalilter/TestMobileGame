@@ -25,34 +25,39 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/separation = 6
 
-[node name="Label" type="Label" parent="VBoxContainer"]
+[node name="MainLayout" type="HBoxContainer" parent="VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.84, 0.7, 0.45, 1)
-theme_override_font_sizes/font_size = 18
-text = "SHIP DESIGNER"
+size_flags_vertical = 3
+theme_override_constants/separation = 15
 
-[node name="InfoPanel" type="PanelContainer" parent="VBoxContainer"]
+[node name="LeftColumn" type="VBoxContainer" parent="VBoxContainer/MainLayout"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 3.0
+theme_override_constants/separation = 6
+
+[node name="InfoPanel" type="PanelContainer" parent="VBoxContainer/MainLayout/LeftColumn"]
 layout_mode = 2
 
-[node name="MarginContainer" type="MarginContainer" parent="VBoxContainer/InfoPanel"]
+[node name="MarginContainer" type="MarginContainer" parent="VBoxContainer/MainLayout/LeftColumn/InfoPanel"]
 layout_mode = 2
 theme_override_constants/margin_left = 14
 theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 14
 theme_override_constants/margin_bottom = 8
 
-[node name="InfoHBox" type="HBoxContainer" parent="VBoxContainer/InfoPanel/MarginContainer"]
+[node name="InfoHBox" type="HBoxContainer" parent="VBoxContainer/MainLayout/LeftColumn/InfoPanel/MarginContainer"]
 layout_mode = 2
 theme_override_constants/separation = 26
 
-[node name="ShipSpecs" type="VBoxContainer" parent="VBoxContainer/InfoPanel/MarginContainer/InfoHBox"]
+[node name="ShipSpecs" type="VBoxContainer" parent="VBoxContainer/MainLayout/LeftColumn/InfoPanel/MarginContainer/InfoHBox"]
 layout_mode = 2
 size_flags_horizontal = 0
 size_flags_vertical = 4
 theme_override_constants/separation = 6
 custom_minimum_size = Vector2(170, 0)
 
-[node name="ShipNameLabel" type="Label" parent="VBoxContainer/InfoPanel/MarginContainer/InfoHBox/ShipSpecs"]
+[node name="ShipNameLabel" type="Label" parent="VBoxContainer/MainLayout/LeftColumn/InfoPanel/MarginContainer/InfoHBox/ShipSpecs"]
 layout_mode = 2
 size_flags_vertical = 4
 theme_override_colors/font_color = Color(0.84, 0.7, 0.45, 1)
@@ -60,36 +65,36 @@ theme_override_font_sizes/font_size = 16
 text = "CORVETTE"
 autowrap_mode = 2
 
-[node name="SystemLoad" type="HBoxContainer" parent="VBoxContainer/InfoPanel/MarginContainer/InfoHBox/ShipSpecs"]
+[node name="SystemLoad" type="HBoxContainer" parent="VBoxContainer/MainLayout/LeftColumn/InfoPanel/MarginContainer/InfoHBox/ShipSpecs"]
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="Label" type="Label" parent="VBoxContainer/InfoPanel/MarginContainer/InfoHBox/ShipSpecs/SystemLoad"]
+[node name="Label" type="Label" parent="VBoxContainer/MainLayout/LeftColumn/InfoPanel/MarginContainer/InfoHBox/ShipSpecs/SystemLoad"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.62, 0.57, 0.5, 1)
 theme_override_font_sizes/font_size = 12
 text = "POWER"
 
-[node name="PowerBar" type="ProgressBar" parent="VBoxContainer/InfoPanel/MarginContainer/InfoHBox/ShipSpecs/SystemLoad"]
+[node name="PowerBar" type="ProgressBar" parent="VBoxContainer/MainLayout/LeftColumn/InfoPanel/MarginContainer/InfoHBox/ShipSpecs/SystemLoad"]
 custom_minimum_size = Vector2(120, 12)
 layout_mode = 2
 size_flags_vertical = 4
 show_percentage = false
 
-[node name="PowerLabel" type="Label" parent="VBoxContainer/InfoPanel/MarginContainer/InfoHBox/ShipSpecs/SystemLoad"]
+[node name="PowerLabel" type="Label" parent="VBoxContainer/MainLayout/LeftColumn/InfoPanel/MarginContainer/InfoHBox/ShipSpecs/SystemLoad"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.84, 0.78, 0.68, 1)
 theme_override_font_sizes/font_size = 11
 text = "0 / 100"
 
-[node name="StatsGrid" type="GridContainer" parent="VBoxContainer/InfoPanel/MarginContainer/InfoHBox"]
+[node name="StatsGrid" type="GridContainer" parent="VBoxContainer/MainLayout/LeftColumn/InfoPanel/MarginContainer/InfoHBox"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/h_separation = 10
 theme_override_constants/v_separation = 10
 columns = 4
 
-[node name="BtnRepairMode" type="Button" parent="VBoxContainer/InfoPanel/MarginContainer/InfoHBox"]
+[node name="BtnRepairMode" type="Button" parent="VBoxContainer/MainLayout/LeftColumn/InfoPanel/MarginContainer/InfoHBox"]
 custom_minimum_size = Vector2(80, 28)
 layout_mode = 2
 size_flags_vertical = 4
@@ -99,21 +104,16 @@ theme_override_font_sizes/font_size = 11
 toggle_mode = true
 text = " 🛠 REPAIR "
 
-[node name="MainLayout" type="HBoxContainer" parent="VBoxContainer"]
-layout_mode = 2
-size_flags_vertical = 3
-theme_override_constants/separation = 15
-
-[node name="SchematicArea" type="PanelContainer" parent="VBoxContainer/MainLayout"]
+[node name="SchematicArea" type="PanelContainer" parent="VBoxContainer/MainLayout/LeftColumn"]
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_stretch_ratio = 3.0
+size_flags_vertical = 3
 
-[node name="LayoutSplit" type="HBoxContainer" parent="VBoxContainer/MainLayout/SchematicArea"]
+[node name="LayoutSplit" type="HBoxContainer" parent="VBoxContainer/MainLayout/LeftColumn/SchematicArea"]
 layout_mode = 2
 theme_override_constants/separation = 0
 
-[node name="SlotListPanel" type="MarginContainer" parent="VBoxContainer/MainLayout/SchematicArea/LayoutSplit"]
+[node name="SlotListPanel" type="MarginContainer" parent="VBoxContainer/MainLayout/LeftColumn/SchematicArea/LayoutSplit"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_stretch_ratio = 1.2
@@ -121,11 +121,11 @@ theme_override_constants/margin_left = 10
 theme_override_constants/margin_top = 10
 theme_override_constants/margin_bottom = 10
 
-[node name="SlotScroll" type="ScrollContainer" parent="VBoxContainer/MainLayout/SchematicArea/LayoutSplit/SlotListPanel"]
+[node name="SlotScroll" type="ScrollContainer" parent="VBoxContainer/MainLayout/LeftColumn/SchematicArea/LayoutSplit/SlotListPanel"]
 layout_mode = 2
 horizontal_scroll_mode = 0
 
-[node name="SchematicContainer" type="VBoxContainer" parent="VBoxContainer/MainLayout/SchematicArea/LayoutSplit/SlotListPanel/SlotScroll"]
+[node name="SchematicContainer" type="VBoxContainer" parent="VBoxContainer/MainLayout/LeftColumn/SchematicArea/LayoutSplit/SlotListPanel/SlotScroll"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3

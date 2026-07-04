@@ -618,7 +618,7 @@ var recipes: Dictionary = {
 	},
 	# Components
 	"craft_circuit": {
-		"name": "Basic Circuitry",
+		"name": "Circuit Board",
 		# v80.3 Fix: DroneCore requires SwarmFragment which no enemy drops — deadlock
 		"description": "Combine conductive copper traces with silicon wafers.",
 		"input": {"Cu": 3, "Si": 4,"Sn":2},
@@ -745,7 +745,7 @@ var recipes: Dictionary = {
 		"research_req": "adv_materials"
 	},
 	"craft_battery_t1": {
-		"name": "Assemble Basic Battery",
+		"name": "Assemble Battery Cell",
 		"description": "Basic energy storage for ships.",
 		"input": {"Li": 5, "Fe": 2},
 		"output": {"BatteryT1": 1},
