@@ -5,10 +5,8 @@ extends Control
 # CHART button; the old TargetPanel enemy-card list is gone (the chart's roster
 # replaced it). selected_zone_id holds the engage zone; the manager auto-respawns
 # the target after each kill, so no in-HUD list is needed to sustain combat.
-@onready var nav_sector_lbl = $Dashboard/HUD/TopHUD/NavPanel/VBox/CurrentSector
-@onready var nav_threat_lbl = $Dashboard/HUD/TopHUD/NavPanel/VBox/ThreatLine
-@onready var nav_status_lbl = $Dashboard/HUD/TopHUD/NavPanel/VBox/StatusLine
-@onready var open_chart_btn = $Dashboard/HUD/TopHUD/NavPanel/VBox/OpenChartBtn
+# v134h: the NAVIGATION readout card was removed — only the Star Chart button remains.
+@onready var open_chart_btn = $Dashboard/HUD/TopHUD/OpenChartBtn
 var selected_zone_id: String = ""
 var star_map = null
 const STAR_MAP_SCRIPT = preload("res://scripts/ui/star_map_overlay.gd")
@@ -17,8 +15,7 @@ const STAR_MAP_SCRIPT = preload("res://scripts/ui/star_map_overlay.gd")
 @onready var visualizer = $Dashboard/Visualizer
 @onready var radar_lines = $Dashboard/Visualizer/Background/RadarLines
 @onready var radar_display = $Dashboard/Visualizer/RadarDisplay
-@onready var threat_lbl = $Dashboard/HUD/TopHUD/CenterInfo/SectorThreat
-@onready var scan_lbl = $Dashboard/HUD/TopHUD/CenterInfo/ScanningStatus
+# v134h: SectorThreat / ScanningStatus flavor labels removed from the scene.
 
 @onready var p_name_lbl = $Dashboard/HUD/MidHUD/PlayerStatsOverlay/Margin/VBox/NameLabel
 @onready var p_stat_lbl = $Dashboard/HUD/MidHUD/PlayerStatsOverlay/Margin/VBox/StatsLabel
@@ -28,6 +25,7 @@ const STAR_MAP_SCRIPT = preload("res://scripts/ui/star_map_overlay.gd")
 @onready var p_buff_container = $Dashboard/HUD/MidHUD/PlayerStatsOverlay/Margin/VBox/BuffContainer
 
 var player_weapon_bars = []
+var _weapon_bar_sig: String = ""   # v134h: rebuild bars when weapon types change (loadout swap)
 
 @onready var e_name_lbl = $Dashboard/HUD/MidHUD/EnemyStatsOverlay/Margin/VBox/NameLabel
 @onready var e_stat_lbl = $Dashboard/HUD/MidHUD/EnemyStatsOverlay/Margin/VBox/StatsLabel
@@ -37,6 +35,7 @@ var player_weapon_bars = []
 
 @onready var scanner_overlay = $Dashboard/HUD/BottomHUD/ScannerOverlay
 @onready var loot_lbl = $Dashboard/HUD/BottomHUD/ScannerOverlay/Margin/VBox/Scroll/LootVBox/LootText
+var _last_loot_sig: String = ""   # v134h: skip loot-grid rebuild when unchanged
 
 @onready var ammo_overlay = $Dashboard/HUD/BottomHUD/AmmoOverlay
 @onready var ammo_vbox = $Dashboard/HUD/BottomHUD/AmmoOverlay/Margin/VBox/AmmoGroupVBox
@@ -86,16 +85,28 @@ func _ready():
 	
 	UITheme.apply_progress_bar_style(e_attack_pb, "combat")
 	
-	UITheme.apply_card_style($Dashboard/HUD/TopHUD/NavPanel, "ops")
+	# v134h: Star Chart is a compact SQUARE emblem button (drawn star-chart glyph) top-
+	# left of the combat HUD — the old NAVIGATION card was removed.
+	open_chart_btn.text = ""
+	open_chart_btn.custom_minimum_size = Vector2(44, 44)
+	open_chart_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	open_chart_btn.tooltip_text = "Open Star Chart"
 	UITheme.apply_premium_button_style(open_chart_btn, "ops")
+	if open_chart_btn.get_node_or_null("StarEmblem") == null:
+		var _emb: Control = preload("res://scripts/ui/star_emblem.gd").new()
+		_emb.name = "StarEmblem"
+		_emb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_emb.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		open_chart_btn.add_child(_emb)
 	if not open_chart_btn.is_connected("pressed", _open_star_map):
 		open_chart_btn.pressed.connect(_open_star_map)
 	UITheme.apply_card_style($Dashboard/HUD/MidHUD/PlayerStatsOverlay, "shipyard")
 	UITheme.apply_card_style($Dashboard/HUD/MidHUD/EnemyStatsOverlay, "combat")
 	UITheme.apply_card_style(ammo_overlay, "inventory")
 	UITheme.apply_card_style(scanner_overlay, "research")
-	
-	radar_display.draw.connect(_on_radar_draw)
+
+	# v134h: radar HP/shield arcs removed (that info lives in the ship cards). The
+	# RadarDisplay node stays as a positioning anchor but no longer draws.
 	
 
 	# v120: combat XP bar removed with combat leveling — it was dead UI (its value
@@ -107,12 +118,10 @@ func _ready():
 	if not btn_retreat.is_connected("pressed", _on_retreat_btn_pressed): btn_retreat.pressed.connect(_on_retreat_btn_pressed)
 	
 	_setup_loot_filter_button()
-	# v131: removed the top-center flavor readout per design — SECTOR THREAT +
-	# TARGET LOCK labels hidden, and the SESSION / LAST KILL timer row is not built
-	# (so _refresh_combat_timers early-returns on its null guard). The LoadoutSwap
-	# chips in the same CenterInfo container are untouched (functional, kept).
-	if threat_lbl: threat_lbl.visible = false
-	if scan_lbl: scan_lbl.visible = false
+	# v131/v134h: the top-center flavor readout (SECTOR THREAT / TARGET LOCK / SCANNING)
+	# is removed from the scene entirely, and the SESSION / LAST KILL timer row is not
+	# built (so _refresh_combat_timers early-returns on its null guard). The LoadoutSwap
+	# card in the same CenterInfo container is untouched (functional, kept).
 	_build_loadout_swap_row()
 
 var p_hp_bar: HBoxContainer
@@ -218,27 +227,10 @@ func _default_selected_zone(avail: Array) -> String:
 	return best
 
 func _update_nav_readout() -> void:
-	if selected_zone_id == "":
-		nav_sector_lbl.text = "—"
-		nav_threat_lbl.text = "SECTOR — · STANDBY"
-		nav_status_lbl.text = ""
-		return
-	var data := _zone_data(selected_zone_id)
-	var diff := int(data.get("difficulty", 1))
-	nav_sector_lbl.text = str(data.get("name", selected_zone_id)).replace("⚠ ", "").to_upper()
-	var band := "CALM" if diff <= 4 else ("CONTESTED" if diff <= 8 else "HOSTILE")
-	nav_threat_lbl.text = "SECTOR %02d · %s" % [diff, band]
-	var st := _zone_state(selected_zone_id)
-	match st:
-		"current":
-			nav_status_lbl.text = "▲ CURRENT POSITION"
-			nav_status_lbl.add_theme_color_override("font_color", Color(0.427, 0.941, 0.847))
-		"cleared":
-			nav_status_lbl.text = "CLEARED"
-			nav_status_lbl.add_theme_color_override("font_color", Color(0.274, 0.878, 0.627))
-		_:
-			nav_status_lbl.text = "AVAILABLE"
-			nav_status_lbl.add_theme_color_override("font_color", Color(0.498, 0.639, 0.612))
+	# v134h: the on-HUD NAVIGATION readout card was removed — sector name / threat /
+	# position now live only in the Star Chart overlay. No-op kept because callers
+	# (select_zone / refresh_zones) invoke it alongside their chart sync.
+	pass
 
 func _zone_data(zid: String) -> Dictionary:
 	if manager.zones.has(zid):
@@ -409,8 +401,7 @@ func _process(delta):
 	_update_atmosphere(delta)
 
 func update_ui():
-	# Update Haptics & Visualizer
-	radar_display.queue_redraw()
+	# v134h: radar draw removed — no queue_redraw here anymore.
 	_refresh_combat_timers()
 	_refresh_loadout_swap_row()
 
@@ -483,9 +474,15 @@ func update_ui():
 	
 	# Attack Timers
 	if manager.in_combat:
-		# Sync Weapon Battery
+		# Sync Weapon Battery. v134h: rebuild when the weapon TYPE composition changes,
+		# not just the count — a loadout swap (e.g. 2 kinetic -> 2 energy) keeps the same
+		# count but changes the per-type bar COLORS, which otherwise stayed stale.
 		var w_states = manager.player_weapon_states
-		if player_weapon_bars.size() != w_states.size():
+		var wsig := str(w_states.size())
+		for _w in w_states:
+			wsig += "|" + str(_w.get("type", ""))
+		if wsig != _weapon_bar_sig:
+			_weapon_bar_sig = wsig
 			_rebuild_weapon_battery(w_states)
 		
 		for i in range(w_states.size()):
@@ -538,11 +535,8 @@ func update_ui():
 		for pb in player_weapon_bars: pb.visible = false
 		e_attack_pb.visible = false
 		# v111.11 cockpit Stage 1: KEEP scanner_overlay (Expedition Yield) and
-		# ammo_overlay (Ordnance Feed) visible when out of combat. Panels now
-		# read as fixed regions that sit empty/dim until combat fills them,
-		# instead of materialising the moment combat starts and forcing the
-		# player to re-parse a new layout.
-		scan_lbl.text = "SCANNING FOR ANOMALIES..."
+		# ammo_overlay (Ordnance Feed) visible when out of combat — they read as
+		# fixed regions that sit empty/dim until combat fills them.
 
 	# Log - DISABLED (User Request)
 	# Log Removed
@@ -730,49 +724,120 @@ func _draw_arc_section(center: Vector2, r_inner: float, r_outer: float, angle_st
 		
 	radar_display.draw_polygon(points, PackedColorArray([color]))
 
+# v134h: Expedition Yield is now a GRID of dropped-item icon TILES instead of a
+# BBCode text list. loot_lbl (the old RichTextLabel) is reused only for the empty
+# "[ NO YIELD ]" state; a GridContainer sibling holds the tiles.
 func _update_session_loot():
-	var tt = "[center]"
-	
+	var loot_vbox: Control = loot_lbl.get_parent()
+	var grid: GridContainer = loot_vbox.get_node_or_null("LootGrid")
+	if grid == null:
+		grid = GridContainer.new()
+		grid.name = "LootGrid"
+		grid.columns = 4
+		grid.add_theme_constant_override("h_separation", 5)
+		grid.add_theme_constant_override("v_separation", 5)
+		loot_vbox.add_child(grid)
+		loot_vbox.move_child(grid, 0)   # above the empty-state label / padding
+	# v134h: this runs every combat frame — only rebuild the tiles when the loot set
+	# actually changes, else we'd churn/flicker nodes 60x/sec.
+	var sig := str(manager.session_loot.size())
+	for k in manager.session_loot:
+		sig += "|" + str(k) + ":" + str(manager.session_loot[k])
+	if sig == _last_loot_sig:
+		return
+	_last_loot_sig = sig
+	for c in grid.get_children():
+		c.queue_free()
+
 	if manager.session_loot.is_empty():
-		tt += "[color=#666666][ NO YIELD ][/color]"
+		grid.visible = false
+		loot_lbl.visible = true
+		var tt := "[center][color=#666666][ NO YIELD ][/color][/center]"
+		if loot_lbl.text != tt:
+			loot_lbl.text = tt
+		return
+
+	loot_lbl.visible = false
+	grid.visible = true
+	for item_id in manager.session_loot:
+		grid.add_child(_build_loot_tile(str(item_id), manager.session_loot[item_id]))
+
+func _build_loot_tile(str_id: String, qty) -> Control:
+	var sm = GameState.shipyard_manager
+	var name_txt := str_id
+	var icon: Texture2D = null
+	var tint := Color(0.40, 0.85, 0.45)
+	var glyph := ""
+	if str_id.begins_with("custom_") or sm.modules.has(str_id):
+		# Dropped module — rarity-tinted ★ tile.
+		var mid := str_id
+		if str_id.begins_with("custom_") and not sm.modules.has(str_id):
+			var parts := str_id.split("_")
+			var base_id := str_id.trim_prefix("custom_")
+			if parts.size() > 2 and parts[parts.size() - 1].is_valid_int():
+				base_id = base_id.trim_suffix("_" + parts[parts.size() - 1])
+			mid = base_id
+		var m_data: Dictionary = sm.modules.get(mid, {"name": mid})
+		name_txt = str(m_data.get("name", mid))
+		var rarity := int(m_data.get("rarity", 0))
+		# RARITY_COLORS is a const on shipyard_manager — access directly. (An `in sm`
+		# guard would ALWAYS be false: GDScript's `in` checks properties, not consts.)
+		tint = sm.RARITY_COLORS.get(rarity, Color(0.80, 0.70, 1.0))
+		glyph = "★"
+	elif str_id == "credits":
+		# v134h: the Lira currency uses its dedicated gold icon, not a "cred" glyph.
+		icon = load("res://assets/icons/lira.svg")
+		tint = Color(1.0, 0.82, 0.30)   # lira gold
+		name_txt = "Liras"
 	else:
-		for item_id in manager.session_loot:
-			var qty = manager.session_loot[item_id]
-			var sm = GameState.shipyard_manager
-			# v71.1: Custom modules use shipyard name + rarity color
-			var str_id = str(item_id)
-			if str_id.begins_with("custom_"):
-				if sm.modules.has(str_id):
-					var m_data = sm.modules[str_id]
-					var rarity = int(m_data.get("rarity", sm.Rarity.COMMON))
-					var rarity_hex = sm.RARITY_COLORS.get(rarity, Color.WHITE).to_html(false)
-					tt += "[color=#%s]★ %s[/color] x %s\n" % [rarity_hex, m_data["name"], UITheme.format_num(qty)]
-				else:
-					# Fallback: Parse the base module name out of 'custom_basemodule_1234'
-					var parts = str_id.split("_")
-					var base_id = str_id.trim_prefix("custom_")
-					# Remove the trailing timestamp number
-					if parts.size() > 2 and parts[-1].is_valid_int():
-						base_id = base_id.trim_suffix("_" + parts[-1])
-					var base_name = sm.modules.get(base_id, {"name": base_id}).get("name", base_id)
-					tt += "[color=#aaaaaa]★ %s (Data Lost)[/color] x %s\n" % [base_name, UITheme.format_num(qty)]
-			else:
-				var item_name = str_id
-				var icon_bb = ""
-				if sm.modules.has(str_id):
-					item_name = sm.modules[str_id].get("name", str_id)
-				else:
-					item_name = ElementDB.get_display_name(str_id)
-					if item_name == str_id:
-						item_name = str_id.replace("_", " ").capitalize()
-					# v122: inline material icon (empty string if the symbol has none).
-					icon_bb = ElementDB.material_icon_bbcode(str_id, 16)
-				tt += "%s[color=#32cd32]%s[/color] x %s\n" % [icon_bb, item_name, UITheme.format_num(qty)]
-			
-	tt += "[/center]"
-	
-	if loot_lbl.text != tt:
-		loot_lbl.text = tt
+		icon = ElementDB.get_material_icon(str_id)
+		tint = ElementDB.get_material_tint(str_id)
+		name_txt = ElementDB.get_display_name(str_id)
+		if name_txt == str_id:
+			name_txt = str_id.replace("_", " ").capitalize()
+		if icon == null:
+			glyph = str_id if str_id.length() <= 4 else str_id.substr(0, 4)
+
+	var tile := PanelContainer.new()
+	tile.custom_minimum_size = Vector2(46, 46)
+	tile.tooltip_text = "%s  ×%s" % [name_txt, UITheme.format_num(qty)]
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.07, 0.10, 0.14, 0.92)
+	sb.set_corner_radius_all(3)
+	sb.set_border_width_all(1)
+	sb.border_color = Color(tint.r, tint.g, tint.b, 0.45)
+	tile.add_theme_stylebox_override("panel", sb)
+
+	var vb := VBoxContainer.new()
+	vb.alignment = BoxContainer.ALIGNMENT_CENTER
+	vb.add_theme_constant_override("separation", 1)
+	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tile.add_child(vb)
+
+	if icon != null:
+		var tr := TextureRect.new()
+		tr.texture = icon
+		tr.modulate = tint
+		tr.custom_minimum_size = Vector2(0, 20)
+		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		vb.add_child(tr)
+	else:
+		var g := Label.new()
+		g.text = glyph
+		g.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		g.add_theme_font_size_override("font_size", 13)
+		g.add_theme_color_override("font_color", tint)
+		vb.add_child(g)
+
+	var cnt := Label.new()
+	cnt.text = "×%s" % UITheme.format_num(qty)
+	cnt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	cnt.add_theme_font_size_override("font_size", 10)
+	cnt.add_theme_color_override("font_color", Color(0.75, 0.80, 0.86))
+	vb.add_child(cnt)
+	return tile
 
 func _update_ammo_display():
 	var sm = GameState.shipyard_manager
@@ -904,6 +969,9 @@ func _rebuild_weapon_battery(w_states):
 			"explosive":
 				fill_color = Color(1.0, 0.5, 0.3) # Explosive: Orange-Red
 				type_tag = "EXP"
+			"cryo":
+				fill_color = Color(0.45, 0.95, 0.95) # Cryo: Icy Cyan
+				type_tag = "CRY"
 		
 		var sb_fill = StyleBoxFlat.new()
 		sb_fill.bg_color = fill_color
@@ -921,13 +989,11 @@ func _rebuild_weapon_battery(w_states):
 		player_weapon_bars.append(pb)
 
 
-func _update_atmosphere(delta):
-	# Pulse scanning label
+func _update_atmosphere(_delta):
+	# v134h: sector-threat / scanning / target-lock flavor labels removed. Only the
+	# ammo-pip danger pulse remains (low / offline ammo blinks red/yellow).
 	var time_ms = Time.get_ticks_msec()
 	var pulse = (sin(time_ms * 0.005) + 1.0) * 0.5
-	scan_lbl.modulate.a = 0.2 + (pulse * 0.4)
-	
-	# AMMO PULSE (OFFLINE/LOW)
 	var fast_pulse = (sin(time_ms * 0.012) + 1.0) * 0.5 # Faster for danger
 	for group in ammo_vbox.get_children():
 		var flow = group.get_child(1) if group.get_child_count() > 1 else null
@@ -942,25 +1008,6 @@ func _update_atmosphere(delta):
 							pip.modulate.a = 0.6 + (pulse * 0.4)
 						else:
 							pip.modulate.a = 1.0
-						
-	if manager.in_combat:
-		scan_lbl.text = "TARGET LOCK CONFIRMED"
-		threat_lbl.text = "SECTOR THREAT: ENGAGED"
-		threat_lbl.modulate = Color(1, 0.3, 0.3, 0.8) # Red alert
-		
-		
-		# Gearing Tip: Warn if Accuracy is making Evasion useless
-		var sm = GameState.shipyard_manager
-		if manager.current_enemy:
-			var e_acc = manager.current_enemy.get("accuracy", 0)
-			if e_acc > 10: # Only warn outside Tier 1
-				var dodge_chance = float(sm.evasion) / (float(sm.evasion) + 150.0 * (1.0 + float(e_acc) / 100.0))
-				if dodge_chance < 0.2 and sm.max_shield < 100:
-					scan_lbl.text = "CAUTION: EVASION COMPROMISED - SHIELDS REQUIRED"
-					scan_lbl.modulate = Color(1.0, 0.5, 0.0) # Warning Orange
-	else:
-		threat_lbl.text = "SECTOR THREAT: NOMINAL"
-		threat_lbl.modulate = Color(1, 0.8, 0, 0.5) # Yellow cautious
 
 func _on_retreat_btn_pressed():
 	manager.retreat()
@@ -978,6 +1025,24 @@ func _create_centered_label(parent: Control) -> Label:
 	lbl.add_theme_constant_override("shadow_outline_size", 2)
 	parent.add_child(lbl)
 	return lbl
+
+# v134h: quiet square tile look for a consumable button (dark bg + accent border),
+# matching the loot-grid tiles. Base style only — active/pulse state is a modulate.
+func _style_consumable_tile(btn: Button, accent: Color) -> void:
+	for st in ["normal", "hover", "pressed", "disabled"]:
+		var s := StyleBoxFlat.new()
+		var bg := Color(0.07, 0.10, 0.14, 0.92)
+		if st == "hover": bg = Color(0.10, 0.15, 0.20, 0.96)
+		elif st == "pressed": bg = Color(0.13, 0.19, 0.25, 0.98)
+		elif st == "disabled": bg = Color(0.06, 0.08, 0.11, 0.85)
+		s.bg_color = bg
+		s.set_corner_radius_all(3)
+		s.set_border_width_all(1)
+		var bd := accent
+		bd.a = 0.45
+		s.border_color = bd
+		btn.add_theme_stylebox_override(st, s)
+	btn.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 
 func _setup_consumable_buttons():
 	if not consumable_container: return
@@ -1004,7 +1069,15 @@ func _setup_consumable_buttons():
 	var wrapper = PanelContainer.new()
 	wrapper.name = "ConsumablesPanel"
 	wrapper.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	wrapper.add_child(inner_vbox)
+	# v134h: inset margin so the [ CONSUMABLES ] header + tiles clear the corner-bracket
+	# chrome (the header was rendering under the top brackets).
+	var cons_mc := MarginContainer.new()
+	cons_mc.add_theme_constant_override("margin_left", 14)
+	cons_mc.add_theme_constant_override("margin_right", 14)
+	cons_mc.add_theme_constant_override("margin_top", 8)
+	cons_mc.add_theme_constant_override("margin_bottom", 8)
+	cons_mc.add_child(inner_vbox)
+	wrapper.add_child(cons_mc)
 
 	# Insert wrapper at the same position, then move consumable_container inside
 	bottom_hud.add_child(wrapper)
@@ -1019,13 +1092,16 @@ func _setup_consumable_buttons():
 	if not btn_shd_cons.is_connected("pressed", _on_consumable_pressed):
 		btn_shd_cons.pressed.connect(_on_consumable_pressed.bind("shield"))
 
-	# Apply Premium styling
-	UITheme.apply_instrument_style(btn_hull_cons, "shipyard")
-	UITheme.apply_instrument_style(btn_shd_cons, "combat")
-
+	# v134h: consumables are uniform TILES matching the Expedition Yield loot grid
+	# (compact square, dark bg + accent border) instead of wide instrument buttons.
+	# The row centers and can hold more tiles as future consumable types are added.
+	consumable_container.alignment = BoxContainer.ALIGNMENT_CENTER
+	consumable_container.add_theme_constant_override("separation", 6)
+	_style_consumable_tile(btn_hull_cons, Color(0.40, 1.0, 0.55))   # hull = green
+	_style_consumable_tile(btn_shd_cons, Color(0.40, 0.80, 1.0))    # shield = blue
 	for btn in [btn_hull_cons, btn_shd_cons]:
-		btn.custom_minimum_size = Vector2(100, 45)
-		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		btn.custom_minimum_size = Vector2(54, 54)
+		btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		btn.add_theme_font_size_override("font_size", 10)
 
 	# Shared cooldown indicator (both consumables gate on the same timer).
@@ -1084,7 +1160,7 @@ func _update_consumable_buttons():
 		btn_hull_cons.tooltip_text = "HULL CRITICAL — tap to repair now!"
 
 func _update_cons_btn(btn: Button, item_id: String, label: String, color: Color):
-	btn.custom_minimum_size.y = 58   # room for the icon-over-count layout / placeholder
+	btn.custom_minimum_size = Vector2(54, 54)   # v134h: uniform square tile
 	if item_id == "" or item_id == null:
 		btn.text = ""
 		btn.disabled = true
@@ -1105,7 +1181,7 @@ func _update_cons_btn(btn: Button, item_id: String, label: String, color: Color)
 			UITheme.apply_segmented_font(holder, color)
 			btn.add_child(holder)
 		
-		holder.text = "[[ %s SLOT ]]\nSTANDBY" % label.to_upper()
+		holder.text = "%s\n+" % label.to_upper()   # v134h: compact empty-tile label
 		holder.show()
 		var empty_content = btn.get_node_or_null("ConsContent")
 		if empty_content: empty_content.hide()
@@ -1224,10 +1300,14 @@ func _refresh_combat_timers() -> void:
 	kill_timer_lbl.text = "LAST KILL  %s" % _fmt_kill(manager.time_since_last_kill)
 
 
-# v113 (NG+ P2): in-combat loadout-swap selector — the Melvor-style equipment-set
-# swap. Configure up to 5 presets in the Ship Designer; during a MULTI-PHASE boss
-# fight (can_swap_loadout_in_combat — the sanctioned auto-battler exception) tap a
-# numbered chip to swap to that preset and breach the current phase's element.
+# v113 / v134h: loadout-swap selector — the Melvor-style equipment-set swap, so the
+# player never has to trek to the Ship Designer to re-fit. Housed in its own bracketed
+# [ LOADOUT ] card (matches the Nav/Enemy panels). BETWEEN fights it's freely available
+# (pre-battle prep — the auto-battler's sanctioned expression point): tap a chip to swap
+# your WHOLE ship. During a MULTI-PHASE boss the mid-fight swap stays live (the locked
+# in-fight exception); a normal single-phase fight hides it (no mid-fight inputs).
+# Chips show the player-assigned build NAME (from the Ship Designer), never an auto tag.
+var loadout_swap_card: PanelContainer = null
 var loadout_swap_row: HBoxContainer = null
 var _swap_buttons: Array = []
 
@@ -1235,51 +1315,142 @@ func _build_loadout_swap_row() -> void:
 	var center = $Dashboard/HUD/TopHUD/CenterInfo
 	if center == null:
 		return
+	var card := PanelContainer.new()
+	card.name = "LoadoutCard"
+	card.size_flags_horizontal = Control.SIZE_SHRINK_END   # v134h: top-RIGHT, aligns with the enemy/consumables column
+	UITheme.apply_card_style(card, "shipyard")   # bracketed chrome, matches the other panels
+	center.add_child(card)
+	loadout_swap_card = card
+
+	# v134h: inset margin so the header + chips clear the corner-bracket chrome
+	# (which paints over the card edges — text was running under the right bracket).
+	var mc := MarginContainer.new()
+	mc.add_theme_constant_override("margin_left", 16)
+	mc.add_theme_constant_override("margin_right", 16)
+	mc.add_theme_constant_override("margin_top", 8)
+	mc.add_theme_constant_override("margin_bottom", 10)
+	card.add_child(mc)
+
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 4)
+	mc.add_child(vb)
+
+	var header := Label.new()
+	header.text = "[ LOADOUT ]"
+	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	header.add_theme_color_override("font_color", UITheme.CATEGORY_COLORS.get("shipyard", Color(0.45, 0.70, 1.0)))
+	header.add_theme_font_size_override("font_size", 11)
+	vb.add_child(header)
+
+	var sep := HSeparator.new()
+	vb.add_child(sep)
+
 	loadout_swap_row = HBoxContainer.new()
 	loadout_swap_row.name = "LoadoutSwap"
 	loadout_swap_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	loadout_swap_row.add_theme_constant_override("separation", 6)
-	center.add_child(loadout_swap_row)
-
-	var lbl := Label.new()
-	lbl.text = "SWAP LOADOUT ▸"
-	lbl.add_theme_color_override("font_color", Color(0.70, 0.95, 1.0))
-	lbl.add_theme_font_size_override("font_size", 11)
-	lbl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	loadout_swap_row.add_child(lbl)
+	vb.add_child(loadout_swap_row)
 
 	_swap_buttons = []
 	for i in [1, 2, 3, 4, 5]:
 		var b := Button.new()
-		b.text = "%d" % i
+		b.text = "L%d" % i
 		b.tooltip_text = "Swap to Loadout %d" % i
-		b.custom_minimum_size = Vector2(30, 0)
+		b.custom_minimum_size = Vector2(40, 0)
 		b.add_theme_font_size_override("font_size", 11)
+		_style_loadout_chip(b)
 		b.pressed.connect(_on_combat_swap_pressed.bind(i))
 		loadout_swap_row.add_child(b)
 		_swap_buttons.append(b)
 
-	loadout_swap_row.visible = false
+	card.visible = false
+
+# Quiet themed chip (shipyard accent) so the row reads as part of the console, not
+# five default grey buttons. Base style only — active/empty state is a per-refresh modulate.
+func _style_loadout_chip(btn: Button) -> void:
+	var accent: Color = UITheme.CATEGORY_COLORS.get("shipyard", Color(0.45, 0.70, 1.0))
+	for st in ["normal", "hover", "pressed", "disabled"]:
+		var s := StyleBoxFlat.new()
+		var bg := accent
+		bg.a = 0.12
+		if st == "hover": bg.a = 0.24
+		elif st == "pressed": bg.a = 0.34
+		elif st == "disabled": bg.a = 0.06
+		s.bg_color = bg
+		s.set_corner_radius_all(2)
+		s.set_border_width_all(1)
+		var bd := accent
+		bd.a = 0.40
+		s.border_color = bd
+		s.content_margin_left = 8
+		s.content_margin_right = 8
+		s.content_margin_top = 3
+		s.content_margin_bottom = 3
+		btn.add_theme_stylebox_override(st, s)
+	btn.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	btn.add_theme_color_override("font_color", accent.lightened(0.35))
+	btn.add_theme_color_override("font_disabled_color", Color(0.50, 0.52, 0.58))
 
 func _refresh_loadout_swap_row() -> void:
-	if loadout_swap_row == null:
-		return
-	var show_row: bool = manager.can_swap_loadout_in_combat()
-	if loadout_swap_row.visible != show_row:
-		loadout_swap_row.visible = show_row
-	if not show_row:
+	if loadout_swap_card == null:
 		return
 	var sm = GameState.shipyard_manager
+	# v134h: show whenever there are 2+ builds to switch between — BETWEEN fights AND
+	# mid-combat (swapping in any fight is now allowed; see can_swap_loadout_in_combat).
+	var non_empty := 0
+	for k in [1, 2, 3, 4, 5]:
+		if not sm.is_loadout_preset_empty(k):
+			non_empty += 1
+	var show_row: bool = non_empty >= 2
+	if loadout_swap_card.visible != show_row:
+		loadout_swap_card.visible = show_row
+	if not show_row:
+		return
+	var active: int = int(sm.active_preset_idx) if "active_preset_idx" in sm else 1
 	for i in range(_swap_buttons.size()):
 		var idx: int = i + 1
 		var b: Button = _swap_buttons[i]
 		var empty: bool = sm.is_loadout_preset_empty(idx)
+		var pname := str(sm.loadout_presets.get(idx, {}).get("name", ""))
+		var shown := pname if pname != "" else ("Loadout %d" % idx)
+		var is_active: bool = (idx == active)
 		b.disabled = empty
-		b.tooltip_text = ("Loadout %d — empty (save one in the Ship Designer)" % idx) if empty else ("Swap to Loadout %d" % idx)
+		if empty:
+			b.text = "L%d" % idx   # v134h: compact so 5 chips fit without clipping
+			b.tooltip_text = "Loadout %d — empty (build & name one in the Ship Designer)." % idx
+			b.modulate = Color(1, 1, 1, 0.40)
+		else:
+			b.text = _truncate(shown, 10)
+			b.tooltip_text = ("%s — active build." % shown) if is_active else ("Swap to %s." % shown)
+			b.modulate = Color(1.40, 1.40, 1.20) if is_active else Color(1, 1, 1, 1)
+
+func _truncate(s: String, n: int) -> String:
+	return s if s.length() <= n else (s.substr(0, n - 1) + "…")
 
 func _on_combat_swap_pressed(idx: int) -> void:
-	if manager and manager.swap_loadout_in_combat(idx):
-		UITheme.show_notification("Swapped to Loadout %d" % idx, Color(0.70, 0.95, 1.0))
+	var sm = GameState.shipyard_manager
+	if sm.is_loadout_preset_empty(idx):
+		return
+	var pname := str(sm.loadout_presets.get(idx, {}).get("name", ""))
+	var shown := pname if pname != "" else ("Loadout %d" % idx)
+	var swapped := false
+	if manager.in_combat:
+		# v134h: mid-fight swap allowed in any active fight; resets weapon cooldowns.
+		if manager.swap_loadout_in_combat(idx):
+			swapped = true
+			UITheme.show_notification("Swapped to %s" % shown, Color(0.70, 0.95, 1.0))
+	else:
+		# Between fights: free whole-ship swap via the designer's preset loader.
+		var res = sm.load_loadout_preset(idx)
+		if int(res.get("loaded", 0)) > 0:
+			swapped = true
+			UITheme.show_notification("%s equipped" % shown, Color(0.70, 0.95, 1.0))
+	if swapped:
+		# v134h: the new loadout has different weapons -> different ammo + consumables,
+		# so refresh those panels immediately (update_ui only rebuilds ammo mid-combat).
+		_update_ammo_display()
+		_update_consumable_buttons()
+		_refresh_loadout_swap_row()   # re-highlight the now-active chip
 
 
 # Clock-style mm:ss (or h:mm:ss past an hour). Always shows a whole-second

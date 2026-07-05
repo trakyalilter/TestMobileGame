@@ -135,8 +135,13 @@ var tech_tree = {
 		"effects": [],
 		# v129: "HE Missile" dropped — T1 ammo is starter-kit now (research-free).
 		# "Micro-Missile Launcher" dropped — the module itself was never gated.
+		# v134h: "Charcoal Kiln" dropped — that recipe is level-gated only (research-free
+		# starter Carbon), so listing it here made Combustion look like it gated the kiln
+		# when it doesn't. List what Combustion ACTUALLY unlocks (research_req: combustion).
 		"unlocks": [
-			"Charcoal Kiln",
+			"Industrial Kiln",
+			"Carbon Fiber",
+			"Carbon Generator",
 		],
 		"flavor": "",
 	},
@@ -181,12 +186,17 @@ var tech_tree = {
 		"unlocks": ["Destroyer"],
 		"flavor": "",
 	},
+	# v134h: cost was {Res2:5} — Res2 (Uncommon Artifact) has NO source until Zone 3
+	# (Mars Debris), which the mission chain does not open until m030e, NINE missions
+	# AFTER this node's mission (m029a1). That hard-stalled the guided day-0 player at
+	# the first AdvCircuit beat. Re-tiered to Res1 (Common Artifact), which Zone 1-2
+	# combat already drops in quantity, so the node is payable on the live path.
 	"adv_materials": {
 		"name": "Advanced Materials",
 		"tier": 2,
 		"category": "processing",
 		"cost": 5000,
-		"cost_items": {"Res2": 5},
+		"cost_items": {"Res1": 5},
 		"type": "technology",
 		"parent": "smelting",
 		"effects": [],
@@ -233,7 +243,9 @@ var tech_tree = {
 		"tier": 2,
 		"category": "processing",
 		"cost": 12500,
-		"cost_items": {"Res2": 25, "Circuit": 20},
+		# v134h: Res2 -> Res1 (same reason as adv_materials: Res2 is Zone-3-only and this
+		# node's mission m029a5 runs before Zone 3 opens). Payable on the live path now.
+		"cost_items": {"Res1": 25, "Circuit": 20},
 		"type": "technology",
 		"parent": "adv_materials",
 		"effects": [],

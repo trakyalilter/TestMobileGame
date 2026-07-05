@@ -23,9 +23,12 @@ const INFRA_ENG_SCALE_CAP  := 2.0   # hard ceiling on the engineering multiplier
 # not an infinite scaling path.
 const INFRA_DR_KNEE := 10
 const INFRA_DR_TAIL := 10
-# v121: PRIMITIVE extractors (the base-material pyramid the Warp-Core Charge sink
-# feeds — 3 bulk + 21 raw-ore extractors) get a far higher DR ceiling so stacking
-# ~10-30 of each pays. Knee 30 + Tail 30 => ~45 useful asymptote (vs 20).
+# v121 / v134h: PRIMITIVE extractors (the base-material pyramid — 3 bulk + 21
+# raw-ore extractors, whose surplus the player now MANUALLY feeds into the Warp
+# Core) get a far higher DR ceiling so stacking ~10-30 of each pays. Knee 30 +
+# Tail 30 => ~45 useful asymptote (vs 20). (Output grows freely — the Core is a
+# manual "Feed the Core" sink now, not an auto-drain — so this just lets the
+# stockpiles the player feeds build up.)
 # Industry/converters/power EXCLUDED — they keep 10/10 so infra can't obsolete
 # active processing (and converter outputs Cu/Steel/Ti stay scarce).
 const INFRA_PRIMITIVE_DR_KNEE := 30

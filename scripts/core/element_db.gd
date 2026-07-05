@@ -89,7 +89,7 @@ var ELEMENT_NAMES = {
 	"Mesh": "Nanoweave Mesh",
 	"Seal": "Hull Sealant",
 	"EmergencyPatch": "Emergency Patch",   # Audit v3.0
-	"BasicBooster": "Shield Booster",       # Audit v3.0
+	"BasicBooster": "Basic Shield Booster",  # v134h: match the recipe + mission name
 	"Resin": "Polymer Resin",
 	"Fiber": "Carbon Fiber",
 	"CapacitorShard": "Capacitor Shard",
@@ -291,7 +291,7 @@ var CONSUMABLE_DATA = {
 	# Shield Consumables (restore Shield % of Max Shield)
 	# Shield Consumables (restore Shield % of Max Shield)
 	"CapacitorShard": {"type": "shield", "heal_pct": 0.10, "name": "Capacitor Shard"},
-	"BasicBooster":   {"type": "shield", "heal_pct": 0.15, "name": "Shield Booster"},
+	"BasicBooster":   {"type": "shield", "heal_pct": 0.15, "name": "Basic Shield Booster"},
 	"IonField":       {"type": "shield", "heal_pct": 0.25, "name": "Ion Field Projector"},
 	"NitroCoolant":   {"type": "shield", "heal_pct": 0.25, "name": "Cryo-Shield Matrix"},  # v106: 0.35→0.20→0.25 (recalibrated)
 	"ZeroPoint":      {"type": "shield", "heal_pct": 0.35, "name": "Zero-Point Injector"},  # v106: 0.50→0.25→0.35 (recalibrated)

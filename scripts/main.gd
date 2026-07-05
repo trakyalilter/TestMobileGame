@@ -1328,28 +1328,6 @@ func _update_navigation_hints():
 			page.focus_zone("lunar_orbit")
 			target_to_pulse = page.get_enemy_card("z1_scrap_collector")
 
-	elif "m017e" in mm.active_missions:
-		# v134g: DEMONSTRATE the one-click swap. The player has three built loadouts
-		# but has only ever switched to EMPTY slots to build them. Pulse the Loadout 1
-		# chip so they LOAD a ready-built (Kinetic) ship in one click, then send them at
-		# the kinetic-weak Lunar Drone. This is the payoff the whole triangle arc teaches.
-		var _sm = GameState.shipyard_manager
-		var _cur: int = int(_sm.active_preset_idx) if "active_preset_idx" in _sm else 1
-		if _cur != 1:
-			if current_page_name != "designer": target_to_pulse = designer_btn
-			else:
-				var dp = pages["designer"]
-				if dp.has_method("get_loadout_chip"):
-					target_to_pulse = dp.get_loadout_chip(1)
-				elif dp.has_method("get_coach_anchor"):
-					target_to_pulse = dp.get_coach_anchor("presets")
-		elif current_page_name != "combat":
-			target_to_pulse = combat_btn
-		else:
-			var page = pages["combat"]
-			page.focus_zone("lunar_orbit")
-			target_to_pulse = page.get_enemy_card("z1_lunar_drone")
-
 	elif "m018" in mm.active_missions:
 		# Research: Industrial Logistics Hub
 		if current_page_name != "research": target_to_pulse = research_btn
@@ -1473,10 +1451,15 @@ func _update_navigation_hints():
 			target_to_pulse = combat_btn
 
 	elif "m025" in mm.active_missions:
-		# Research: Smelting
+		# Research: Efficient Smelting — but its PARENT Organic Combustion is un-owned on
+		# the live path (m010 is orphaned), so smelting is greyed and clicking it is inert.
+		# v134h: need-aware — pulse combustion first, then smelting once it's owned (mirrors
+		# the m019 two-hop router). The mission text already names both, in this order.
 		if current_page_name != "research": target_to_pulse = research_btn
 		else:
-			var widget = pages["research"].get_node_widget("smelting")
+			var _rm = GameState.research_manager
+			var _node := "smelting" if (_rm and _rm.is_tech_unlocked("combustion")) else "combustion"
+			var widget = pages["research"].get_node_widget(_node)
 			if widget: target_to_pulse = widget
 
 	elif "m025a" in mm.active_missions:
@@ -1559,6 +1542,22 @@ func _update_navigation_hints():
 		if current_page_name != "shipyard": target_to_pulse = shipyard_btn
 		else:
 			target_to_pulse = pages["shipyard"].get_hull_widget("dreadnought_hull")
+
+	elif "m030d" in mm.active_missions:
+		# v134h: Combat — Z2 boss farm for the zone_3_access core (Silicate Monolith).
+		if current_page_name != "combat": target_to_pulse = combat_btn
+		else:
+			var page = pages["combat"]
+			page.focus_zone("asteroid_belt")
+			target_to_pulse = page.get_enemy_card("z2_boss_monolith")
+
+	elif "m030f2" in mm.active_missions:
+		# v134h: Combat — Z3 boss farm for the zone_4_access cores (Martian Warmaster).
+		if current_page_name != "combat": target_to_pulse = combat_btn
+		else:
+			var page = pages["combat"]
+			page.focus_zone("mars_debris")
+			target_to_pulse = page.get_enemy_card("z3_boss_warmaster")
 
 	elif "m030i" in mm.active_missions:
 		# Combat: Overseer's Core (Z4 boss farm for zone_5_access cores) — v132

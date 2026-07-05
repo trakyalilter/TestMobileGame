@@ -27,7 +27,7 @@ const TREE_NODES := {
 	"ENG_5": {"branch": "engineering", "cost": 5, "name": "Building Overclock",
 		"desc": "Throttle buildings to 200% output at +50% input/unit.", "implemented": false, "prereq": ["ENG_4"]},
 	"ENG_6": {"branch": "engineering", "cost": 6, "name": "Resonant Foundry",
-		"desc": "A building that converts surplus primitives into Warp-Core Charge.", "implemented": false, "prereq": ["ENG_3", "ENG_5"]},
+		"desc": "Auto-feeds a fraction of your surplus primitives into the Core each cycle.", "implemented": false, "prereq": ["ENG_3", "ENG_5"]},
 	"ENG_S1": {"branch": "engineering", "cost": 2, "step": 1, "repeatable": true, "name": "Resource Surge",
 		"desc": "+6% gathering AND infrastructure yield per level.", "implemented": true, "prereq": ["ENG_1"]},
 	"ENG_S2": {"branch": "engineering", "cost": 3, "step": 2, "repeatable": true, "name": "Skilling Tempo",
@@ -77,12 +77,12 @@ var purchased_nodes: Dictionary = {}  # {finite_node_id: true} — persists acro
 var node_levels: Dictionary = {}      # v122: {repeatable_node_id: level} — persists across warps
 var warp_shards_spent: float = 0.0    # cumulative spend; available = shards - spent
 
-# v121: Warp-Core Charge ("Resonance") — per-RUN accumulator. The Warp Core
-# continuously consumes a basket of BASE materials (fed by always-on infra)
-# ABOVE a reserve floor and accrues charge; charge converts to BONUS shards at
-# execute_warp, then resets to 0. This is the continuous, tier-scaling
-# base-material sink that makes building MANY primitive extractors finally pay.
-# It NEVER gates active skilling — only surplus above CHARGE_RESERVE is eaten.
+# v121 / v134h: Warp-Core Charge ("Resonance") — per-RUN accumulator. The player
+# MANUALLY FEEDS surplus base materials into the Core on the Warp page (feed_core);
+# each deposit accrues charge weighted by material. Charge converts to BONUS shards
+# at execute_warp, then resets to 0. This is a DELIBERATE, visible base-material
+# prestige sink — it never touches inventory passively, so stockpiles grow freely.
+# (v134h: replaced the always-on auto-drain, which silently capped bulk basics.)
 var warp_charge: float = 0.0
 
 func get_warp_tier() -> int:
@@ -387,69 +387,55 @@ func get_tree_build_cost_mult() -> float:
 func get_tree_offline_cap_mult() -> float:
 	return 1.0   # REC_Q4/REC_Q5 Coffers removed (offline cap stays at base)
 
-# === v121: Warp-Core Charge sink =========================================
-# Per-tick basket the Core consumes. Spread WIDE across the PRIMITIVE pyramid:
-# bulk raws (Dirt/Water/Wood) carry the dominant weight; the raw ORES
-# (Malachite/Cassiterite/Bauxite/Quartz/Dolomite/ZincOre — the DR-uncapped ore
-# extractors) fan demand to those 21 buildings; Fe/Si/C (low weight) are the
-# converter-fed channel that keeps active processing relevant. Cu/Steel/Ti are
-# intentionally OMITTED (pure converter outputs, 10/10-capped, can't be stacked).
-# Values = units demanded/sec at tier 0, mult 1.0.
-const CHARGE_BASKET := {
+# === v121 / v134h: Warp-Core Charge — MANUAL feed weights =================
+# Charge-per-unit-fed by material. This one authored table is the SINGLE source of
+# truth for BOTH which materials are feedable AND how much each is worth. Spread
+# across the PRIMITIVE pyramid: bulk raws (Dirt/Water/Wood) carry the dominant
+# weight so feeding the glut is the primary path; raw ORES mid; Fe/Si/C (refined
+# bases) low. Cu/Steel/Ti are OMITTED (pure converter outputs, can't be stacked).
+const CHARGE_WEIGHT := {
 	"Dirt": 70.0, "Water": 70.0, "Wood": 55.0,
 	"Malachite": 4.0, "Cassiterite": 4.0, "Bauxite": 6.0,
 	"Quartz": 3.0, "Dolomite": 4.0, "ZincOre": 4.0,
 	"Fe": 6.0, "Si": 6.0, "C": 4.0,
 }
-# Per-symbol floor: the Core only eats inventory ABOVE this, so an active
-# gatherer/processor of the same material is never starved — only true surplus.
-const CHARGE_RESERVE := {
-	"Dirt": 5000.0, "Water": 5000.0, "Wood": 5000.0,
-	"Malachite": 1000.0, "Cassiterite": 1000.0, "Bauxite": 1000.0,
-	"Quartz": 1000.0, "Dolomite": 1000.0, "ZincOre": 1000.0,
-	"Fe": 2000.0, "Si": 2000.0, "C": 2000.0,
-}
-const CHARGE_RESERVE_DEFAULT := 1000.0
 const CHARGE_PER_UNIT := 1.0
-# Each warp_tier multiplies the demand RATE (and thus charge gained) — LINEAR
-# (1 + 0.6*tier), tracking linear extractor stacking NOT the 2^tier production
-# mult. tier0=1x, tier2=2.2x, tier5=4x.
+# Warp-tier multiplier on charge gained PER UNIT FED — LINEAR (1 + 0.6*tier), so a
+# late-tier player's deposits are worth more. tier0=1x, tier2=2.2x, tier5=4x.
 const CHARGE_TIER_COEF := 0.6
 
-func get_charge_rate_mult() -> float:
+func get_charge_feed_mult() -> float:
 	return 1.0 + CHARGE_TIER_COEF * float(get_warp_tier())
 
-# Called every background tick (online) and once with elapsed delta (offline).
-# Consumes a tier-scaled basket of base materials ABOVE the per-symbol reserve
-# floor, accruing warp_charge. Each symbol independent: consume
-# min(want, max(0, have - reserve)) — a shortfall just zeroes THAT symbol's
-# contribution (partial accrual), never blocks others, never drops the active
-# gatherer below the floor. Returns charge gained.
-func process_charge(delta: float) -> float:
-	if delta <= 0.0: return 0.0
-	var tmult := get_charge_rate_mult()
-	var gained := 0.0
-	for sym in CHARGE_BASKET:
-		var want: float = float(CHARGE_BASKET[sym]) * tmult * delta
-		if want <= 0.0: continue
-		var reserve: float = float(CHARGE_RESERVE.get(sym, CHARGE_RESERVE_DEFAULT))
-		var have: float = GameState.resources.get_element_amount(sym)
-		var avail: float = have - reserve
-		if avail <= 0.0: continue
-		var take: float = min(want, avail)
-		if take <= 0.0: continue
-		# remove_element is all-or-nothing; take <= have, so it always succeeds.
-		if GameState.resources.remove_element(sym, take):
-			gained += take * CHARGE_PER_UNIT
-	if gained > 0.0:
-		warp_charge += gained
+# Charge a deposit of `amount` units of `sym` is worth — pure, no side effects.
+# Used both to preview the feed and to compute the accrual. 0 if not feedable.
+func charge_value(sym: String, amount: float) -> float:
+	if amount <= 0.0 or not CHARGE_WEIGHT.has(sym): return 0.0
+	return amount * float(CHARGE_WEIGHT[sym]) * CHARGE_PER_UNIT * get_charge_feed_mult()
+
+# v134h: MANUAL feed. The player deposits `amount` of `sym` from inventory into the
+# Core; the material is consumed and warp_charge accrues by charge_value(). Clamps
+# to what the player owns. Returns the charge gained (0 if nothing was fed).
+func feed_core(sym: String, amount: float) -> float:
+	if amount <= 0.0 or not CHARGE_WEIGHT.has(sym): return 0.0
+	var have: float = GameState.resources.get_element_amount(sym)
+	if have < amount: amount = have          # clamp to owned
+	if amount <= 0.0: return 0.0
+	# remove_element is all-or-nothing; amount <= have, so it always succeeds.
+	if not GameState.resources.remove_element(sym, amount): return 0.0
+	var gained: float = charge_value(sym, amount)
+	warp_charge += gained
 	return gained
 
 # Bonus shards the current warp_charge is worth. Log-scaled so early charge
 # gives a real boost but saturates hard. Capped to +50% of the run's BASE shards
 # (with a +1 floor once past the knee) AND an absolute +5, so it can never
 # out-earn the progress_score climb that anchors the shard economy.
-const CHARGE_PER_BONUS_SHARD := 250000.0
+# v134h: re-anchored 250k -> 1M. Manual feeds are burstier than the old passive
+# drip (a single Dirt dump can be millions of charge), so the knee moved up to keep
+# a normal surplus dump in the +1..+3 band and only a big hoard reaching +5.
+# TUNING ESTIMATE — instrument real per-session feed volumes in playtest and adjust.
+const CHARGE_PER_BONUS_SHARD := 1000000.0
 const CHARGE_BONUS_FRAC_CAP := 0.5
 const CHARGE_BONUS_ABS_CAP := 5
 

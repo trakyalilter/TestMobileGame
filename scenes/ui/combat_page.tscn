@@ -94,76 +94,17 @@ size_flags_vertical = 0
 mouse_filter = 2
 theme_override_constants/separation = 14
 
-[node name="NavPanel" type="PanelContainer" parent="Dashboard/HUD/TopHUD"]
-custom_minimum_size = Vector2(320, 195)
+[node name="OpenChartBtn" type="Button" parent="Dashboard/HUD/TopHUD"]
+custom_minimum_size = Vector2(44, 44)
 layout_mode = 2
 size_flags_vertical = 4
-mouse_filter = 2
-
-[node name="VBox" type="VBoxContainer" parent="Dashboard/HUD/TopHUD/NavPanel"]
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/separation = 5
-
-[node name="Header" type="Label" parent="Dashboard/HUD/TopHUD/NavPanel/VBox"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.18, 0.91, 0.77, 1)
-theme_override_font_sizes/font_size = 11
-text = "[ NAVIGATION ]"
-horizontal_alignment = 1
-
-[node name="HSeparator" type="HSeparator" parent="Dashboard/HUD/TopHUD/NavPanel/VBox"]
-modulate = Color(0.18, 0.91, 0.77, 0.35)
-layout_mode = 2
-
-[node name="CurrentSector" type="Label" parent="Dashboard/HUD/TopHUD/NavPanel/VBox"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.894, 0.961, 0.933, 1)
-theme_override_font_sizes/font_size = 20
-text = "—"
-horizontal_alignment = 1
-
-[node name="ThreatLine" type="Label" parent="Dashboard/HUD/TopHUD/NavPanel/VBox"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.498, 0.639, 0.612, 1)
-theme_override_font_sizes/font_size = 10
-text = "SECTOR — · STANDBY"
-horizontal_alignment = 1
-
-[node name="StatusLine" type="Label" parent="Dashboard/HUD/TopHUD/NavPanel/VBox"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 11
-text = ""
-horizontal_alignment = 1
-
-[node name="NavSpacer" type="Control" parent="Dashboard/HUD/TopHUD/NavPanel/VBox"]
-layout_mode = 2
-size_flags_vertical = 3
-
-[node name="OpenChartBtn" type="Button" parent="Dashboard/HUD/TopHUD/NavPanel/VBox"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 13
-text = "OPEN STAR CHART"
+tooltip_text = "Open Star Chart"
 
 [node name="CenterInfo" type="VBoxContainer" parent="Dashboard/HUD/TopHUD"]
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
 alignment = 1
-
-[node name="SectorThreat" type="Label" parent="Dashboard/HUD/TopHUD/CenterInfo"]
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.843, 0, 0.9)
-theme_override_font_sizes/font_size = 13
-text = "SECTOR THREAT: NOMINAL"
-horizontal_alignment = 1
-
-[node name="ScanningStatus" type="Label" parent="Dashboard/HUD/TopHUD/CenterInfo"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0, 0.8, 1, 0.7)
-theme_override_font_sizes/font_size = 11
-text = "SCANNING FOR ANOMALIES..."
-horizontal_alignment = 1
 
 [node name="TopMidSpacer" type="Control" parent="Dashboard/HUD"]
 layout_mode = 2
@@ -177,7 +118,7 @@ mouse_filter = 2
 theme_override_constants/separation = 14
 
 [node name="PlayerStatsOverlay" type="PanelContainer" parent="Dashboard/HUD/MidHUD"]
-custom_minimum_size = Vector2(320, 195)
+custom_minimum_size = Vector2(320, 150)
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2
@@ -248,7 +189,7 @@ size_flags_horizontal = 3
 mouse_filter = 2
 
 [node name="EnemyStatsOverlay" type="PanelContainer" parent="Dashboard/HUD/MidHUD"]
-custom_minimum_size = Vector2(320, 195)
+custom_minimum_size = Vector2(320, 150)
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2

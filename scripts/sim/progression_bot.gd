@@ -148,7 +148,7 @@ func _run_session(d: Dictionary, p, N: int):
 	for _i in range(steps):
 		GameState.infrastructure_manager.process_tick(DT)
 		GameState.bounty_manager.process_tick(DT)
-		GameState.warp_manager.process_charge(DT)
+		# v134h: Warp-Core Charge is manual-feed now — sim does not model feeding.
 		if GameState.active_manager:
 			GameState.active_manager.process_tick(DT)
 		sim_s += DT
@@ -175,7 +175,7 @@ func _run_trash(zid: String, trash_id: String, length: float, p, N: int) -> Stri
 	for _i in range(steps):
 		GameState.infrastructure_manager.process_tick(DT)
 		GameState.bounty_manager.process_tick(DT)
-		GameState.warp_manager.process_charge(DT)
+		# v134h: Warp-Core Charge is manual-feed now — sim does not model feeding.
 		if not cm.in_combat:
 			deaths += 1
 			if deaths > MAX_DEATHS_PER_FIGHT:
@@ -215,7 +215,7 @@ func _run_boss_fight(zid: String, boss_id: String, length: float, p, N: int, far
 	for _i in range(steps):
 		GameState.infrastructure_manager.process_tick(DT)
 		GameState.bounty_manager.process_tick(DT)
-		GameState.warp_manager.process_charge(DT)
+		# v134h: Warp-Core Charge is manual-feed now — sim does not model feeding.
 		if not cm.in_combat:
 			deaths += 1
 			if deaths > MAX_DEATHS_PER_FIGHT or not p._combat_ready(N):

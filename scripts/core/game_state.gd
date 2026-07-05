@@ -131,7 +131,9 @@ func _process(delta):
 	# 1. Background Automation (Infrastructure)
 	if infrastructure_manager: infrastructure_manager.process_tick(delta)
 	if bounty_manager: bounty_manager.process_tick(delta)
-	if warp_manager: warp_manager.process_charge(delta)  # v121: Warp-Core Charge sink (always-on)
+	# v134h: Warp-Core Charge is now a MANUAL feed (warp_manager.feed_core, called from
+	# the Warp page) — no always-on drain here. This removes the silent day-0 cap on
+	# bulk basics (Dirt/Water/Wood were pinned at ~5000 by the old auto-sink).
 
 	# 2. Active Foreground Task
 	# In Python it was one active manager. 
@@ -418,22 +420,8 @@ func process_offline_progress(delta: float):
 	var i_report = infrastructure_manager.calculate_offline(delta)
 	if i_report: reports.append(i_report)
 
-	# v121: Warp-Core Charge consumes offline-produced surplus base materials in
-	# ONE closed-form pass (rate*delta per symbol, clamped by inventory above the
-	# reserve floor — bounded O(basket), no per-second sim). delta is already
-	# capped upstream; offline accrual is additionally STOCK-bounded by the slot
-	# cap, so real offline charge is min(rate*delta, surplus stock).
-	if warp_manager:
-		var charge_gained = warp_manager.process_charge(delta)
-		if charge_gained > 0.0:
-			var pending = warp_manager.get_charge_bonus_shards()
-			reports.append({
-				"category": "prestige", "title": "Warp-Core Charge", "action": "Resonance",
-				"time_sec": int(delta), "actions": 0, "xp": 0,
-				"gains": {}, "drains": {},
-				"notes": ["+%s Resonance accrued (redeemable as +%d bonus shards at your next ready Warp)." % [
-					FormatUtils.format_number(charge_gained), pending]],
-			})
+	# v134h: Warp-Core Charge is now a MANUAL feed on the Warp page — it cannot accrue
+	# offline, so there is no offline charge pass or prestige report block here anymore.
 
 	var r_report = research_manager.calculate_offline(delta)
 	if r_report: reports.append(r_report)

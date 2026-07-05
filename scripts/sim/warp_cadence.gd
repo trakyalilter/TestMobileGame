@@ -125,7 +125,7 @@ func _drive_to_warp(pb) -> Dictionary:
 		for _i in range(steps):
 			GameState.infrastructure_manager.process_tick(DT)
 			GameState.bounty_manager.process_tick(DT)
-			GameState.warp_manager.process_charge(DT)
+			# v134h: Warp-Core Charge is manual-feed now — sim does not model feeding.
 			if GameState.active_manager: GameState.active_manager.process_tick(DT)
 			sim_s += DT; step += 1
 		pb.sell_surplus({})

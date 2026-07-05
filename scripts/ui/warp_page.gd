@@ -41,6 +41,14 @@ var _gain_big_lbl: Label
 var _tier_val: Label
 var _reso_val: Label
 
+# v134h: Feed-the-Core manual charge panel.
+var _feed_panel: PanelContainer
+var _feed_picker: OptionButton
+var _feed_spin: SpinBox
+var _feed_preview: Label
+var _feed_btn: Button
+var _feed_syms: Array = []   # picker index -> material symbol
+
 # Buttons
 var _warp_btn: Button
 var _back_btn: Button
@@ -81,6 +89,8 @@ func get_coach_anchor(key: String) -> Control:
 			return _warp_btn
 		"tree":
 			return _tree_panel
+		"feed":
+			return _feed_panel
 	return null
 
 
@@ -102,6 +112,7 @@ func _build_ui():
 
 	_build_command_band()   # cycle + shards + vital chips + progress + actions, all in one compact band
 	_build_first_warp_block()
+	_build_feed_core_section()  # v134h: manual "Feed the Core" charge sink
 	_build_tree_section()    # the dominant zone — fills the rest of the viewport
 
 
@@ -590,6 +601,8 @@ func _update_all():
 	_refresh_first_warp_visibility()
 	_refresh_readiness()
 	_refresh_tree()
+	if _feed_picker != null:
+		_populate_feed_picker()   # v134h: refresh feedable-material owned counts
 
 
 func _refresh_header():
@@ -617,14 +630,11 @@ func _refresh_readiness():
 		_gain_big_lbl.text = "— not ready"
 		_gain_big_lbl.add_theme_color_override("font_color", Color(0.78, 0.62, 0.62))
 
-	# RESONANCE chip (current Warp-Core charge + projected bonus + gross draw rate).
+	# RESONANCE chip: charge you've fed into the Core + the bonus shards it's worth.
+	# v134h: no more passive "~/s draw rate" — charge only accrues from manual feeding.
 	if _wm != null and _reso_val != null:
-		var rate := 0.0
-		for sym in _wm.CHARGE_BASKET:
-			rate += float(_wm.CHARGE_BASKET[sym])
-		rate *= _wm.get_charge_rate_mult()
 		var bonus := int(_wm.get_charge_bonus_shards(gains))
-		_reso_val.text = "%s  +%d◈ · ~%s/s" % [FormatUtils.format_number(_wm.warp_charge), bonus, FormatUtils.format_number(rate)]
+		_reso_val.text = "%s  +%d◈" % [FormatUtils.format_number(_wm.warp_charge), bonus]
 
 
 # Per-frame live values: progress bar + button enable state.
@@ -661,6 +671,174 @@ func _compute_progress_score() -> float:
 	for bid in GameState.infrastructure_manager.buildings:
 		building_count += GameState.infrastructure_manager.buildings[bid]
 	return float(total_credits) + float(building_count) * 1000.0
+
+
+# ─── v134h: Feed the Core (manual charge deposit) ──────────────────────────
+# Replaces the removed always-on auto-drain. The player deliberately deposits
+# surplus feedable materials here for warp_charge → bonus shards at the next warp.
+func _build_feed_core_section():
+	var panel := PanelContainer.new()
+	_feed_panel = panel
+	_apply_flat_panel(panel, COLOR_SHARD)
+	_col.add_child(panel)
+
+	var mc := MarginContainer.new()
+	mc.add_theme_constant_override("margin_left", 18)
+	mc.add_theme_constant_override("margin_right", 18)
+	mc.add_theme_constant_override("margin_top", 12)
+	mc.add_theme_constant_override("margin_bottom", 14)
+	panel.add_child(mc)
+
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 5)
+	mc.add_child(vb)
+
+	var title := Label.new()
+	title.text = "FEED THE CORE"
+	title.add_theme_font_size_override("font_size", 12)
+	title.add_theme_color_override("font_color", COLOR_SHARD)
+	vb.add_child(title)
+
+	var sub := Label.new()
+	sub.text = "Pour surplus materials into the Core — accrues Resonance, redeemed as bonus shards at your next Warp. Your stockpiles are never touched unless you feed them."
+	sub.add_theme_font_size_override("font_size", 10)
+	sub.add_theme_color_override("font_color", COLOR_DIM)
+	sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	vb.add_child(sub)
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+	vb.add_child(row)
+
+	_feed_picker = OptionButton.new()
+	_feed_picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_feed_picker.item_selected.connect(_on_feed_picker_changed)
+	row.add_child(_feed_picker)
+
+	var minus := Button.new()
+	minus.text = "−"
+	minus.custom_minimum_size = Vector2(30, 30)
+	_style_pill_button(minus, COLOR_SHARD)
+	minus.pressed.connect(func(): if _feed_spin: _feed_spin.value = max(0.0, _feed_spin.value - _feed_step()))
+	row.add_child(minus)
+
+	_feed_spin = SpinBox.new()
+	_feed_spin.min_value = 0
+	_feed_spin.max_value = 1e15
+	_feed_spin.step = 1
+	_feed_spin.custom_minimum_size = Vector2(96, 30)
+	if UITheme.has_method("apply_input_style"):
+		UITheme.apply_input_style(_feed_spin.get_line_edit(), "research")
+	_feed_spin.value_changed.connect(_on_feed_amount_changed)
+	row.add_child(_feed_spin)
+
+	var plus := Button.new()
+	plus.text = "+"
+	plus.custom_minimum_size = Vector2(30, 30)
+	_style_pill_button(plus, COLOR_SHARD)
+	plus.pressed.connect(func(): if _feed_spin: _feed_spin.value = min(_feed_owned(), _feed_spin.value + _feed_step()))
+	row.add_child(plus)
+
+	var maxb := Button.new()
+	maxb.text = "MAX"
+	maxb.custom_minimum_size = Vector2(46, 30)
+	_style_pill_button(maxb, COLOR_SHARD)
+	maxb.pressed.connect(func(): if _feed_spin: _feed_spin.value = _feed_owned())
+	row.add_child(maxb)
+
+	_feed_preview = Label.new()
+	_feed_preview.add_theme_font_size_override("font_size", 11)
+	_feed_preview.add_theme_color_override("font_color", COLOR_SHARD)
+	_feed_preview.custom_minimum_size = Vector2(96, 0)
+	_feed_preview.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.add_child(_feed_preview)
+
+	_feed_btn = Button.new()
+	_feed_btn.text = "FEED"
+	_feed_btn.custom_minimum_size = Vector2(62, 30)
+	_style_pill_button(_feed_btn, COLOR_SHARD)
+	_feed_btn.pressed.connect(_on_feed_pressed)
+	row.add_child(_feed_btn)
+
+	_populate_feed_picker()
+
+
+# Rebuild the material dropdown from CHARGE_WEIGHT, showing only owned mats.
+func _populate_feed_picker():
+	if _feed_picker == null: return
+	var prev_sym := _feed_sym()
+	_feed_syms.clear()
+	_feed_picker.clear()
+	for sym in _wm.CHARGE_WEIGHT:
+		var owned: float = GameState.resources.get_element_amount(sym)
+		if owned <= 0.0: continue
+		var w: float = float(_wm.CHARGE_WEIGHT[sym])
+		_feed_picker.add_item("%s  ×%s  (%s◈/u)" % [
+			ElementDB.get_display_name(sym),
+			FormatUtils.format_number(owned),
+			FormatUtils.format_number(w)])
+		_feed_syms.append(sym)
+	if _feed_syms.is_empty():
+		_feed_picker.add_item("— no surplus to feed —")
+		_feed_picker.disabled = true
+		if _feed_btn: _feed_btn.disabled = true
+	else:
+		_feed_picker.disabled = false
+		if _feed_btn: _feed_btn.disabled = false
+		var idx := _feed_syms.find(prev_sym)
+		if idx >= 0: _feed_picker.selected = idx
+	_refresh_feed_preview()
+
+
+func _feed_sym() -> String:
+	if _feed_picker == null or _feed_syms.is_empty(): return ""
+	var i := _feed_picker.selected
+	if i < 0 or i >= _feed_syms.size(): return ""
+	return str(_feed_syms[i])
+
+
+func _feed_owned() -> float:
+	var s := _feed_sym()
+	if s == "": return 0.0
+	return GameState.resources.get_element_amount(s)
+
+
+func _feed_step() -> float:
+	return max(1.0, floor(_feed_owned() * 0.1))
+
+
+func _on_feed_picker_changed(_idx: int):
+	if _feed_spin: _feed_spin.value = 0
+	_refresh_feed_preview()
+
+
+func _on_feed_amount_changed(v: float):
+	var owned := _feed_owned()
+	if v > owned and _feed_spin:
+		_feed_spin.value = owned   # clamp (re-enters with clamped value)
+		return
+	_refresh_feed_preview()
+
+
+func _refresh_feed_preview():
+	if _feed_preview == null: return
+	var s := _feed_sym()
+	var amt: float = (_feed_spin.value if _feed_spin else 0.0)
+	if s == "" or amt <= 0.0:
+		_feed_preview.text = ""
+		return
+	_feed_preview.text = "= +%s◈" % FormatUtils.format_number(_wm.charge_value(s, amt))
+
+
+func _on_feed_pressed():
+	var s := _feed_sym()
+	if s == "": return
+	var amt: float = (_feed_spin.value if _feed_spin else 0.0)
+	if amt <= 0.0: return
+	var gained: float = _wm.feed_core(s, amt)
+	if gained > 0.0:
+		if _feed_spin: _feed_spin.value = 0
+		_update_all()   # refreshes picker counts + RESONANCE chip
 
 
 # ─── Tree refresh (4-state cascade preserved) ─────────────────────────────

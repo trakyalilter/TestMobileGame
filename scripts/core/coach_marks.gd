@@ -233,6 +233,11 @@ const STEPS := {
 			"title": "Warp Mastery Tree",
 			"body": "Spend Exotic Matter Shards here on permanent upgrades — spending NEVER weakens your global Warp multipliers (those scale with shards ever earned). The Engineering branch opens on your first Warp, Combat on your second. Your first Warp also grants Cryo weapons: the key to breaching Sector 11.",
 		},
+		{
+			"anchor": "feed",
+			"title": "Feed the Core",
+			"body": "Drowning in surplus Dirt, Water, ore? Pour it into the Core here. Each deposit accrues Resonance — cashed out as BONUS Exotic Shards when you Warp. Bulk basics are worth the most; nothing is consumed unless you choose to feed it, so your stockpiles keep growing.",
+		},
 	],
 	"fleet": [
 		{

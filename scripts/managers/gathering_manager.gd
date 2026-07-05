@@ -38,7 +38,7 @@ var mastery: Dictionary = {}  # {action_id: xp_total_float}
 var actions: Dictionary = {
 	"gather_dirt": {
 		"name": "Excavate Soil",
-		"loot_table": [["Dirt", 1.0, 8, 10]],
+		"loot_table": [["Dirt", 1.0, 8, 20]],
 		"xp": 12,
 		"level_req": 1,
 		"category": "terrestrial",
@@ -55,7 +55,7 @@ var actions: Dictionary = {
 	},
 	"collect_water": {
 		"name": "Pump Water",
-		"loot_table": [["Water", 1.0, 8, 10]],
+		"loot_table": [["Water", 1.0, 8, 20]],
 		"xp": 15,
 		"level_req": 2,
 		"research_req": "basic_engineering",
@@ -111,7 +111,7 @@ var actions: Dictionary = {
 		"category": "terrestrial"
 	},
 	"extract_salts": {
-		"name": "Extract Lithium Salt",
+		"name": "Mine Lithium Ore",
 		"loot_table": [["Spodumene", 1.0, 1, 3]],
 		"xp": 10,
 		"level_req": 6,

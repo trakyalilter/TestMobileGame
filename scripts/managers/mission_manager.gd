@@ -9,7 +9,7 @@ const DEBUG_LOG := false
 # rendered as [TUTORIAL], which read as the game mislabeling its own acts.
 const CHAPTER_2_IDS = ["m027", "m027b", "m028", "m029",
 	"m029a1", "m029a2", "m029a3", "m029a4", "m029a5", "m029b", "m030", "m030c",
-	"m030e", "m030f", "m030g", "m030h", "m030i",
+	"m030d", "m030e", "m030f", "m030f2", "m030g", "m030h", "m030i",
 	"m031", "m032", "m032a", "m032b", "m032d", "m032c", "m033"]
 # v134g: the reordered tail runs m034 → m033b → m033c, so the [ENDGAME] tag must
 # cover all three — otherwise the badge reads [ENDGAME] then two [CHAPTER 2] after it.
@@ -101,8 +101,8 @@ func init_missions():
 		# Research beats that remain early: m002 (tutorial), m008 (hub), m018, m025/m026
 		# (batched: smelting -> power_systems -> shipwright_1 in one visit).
 		["m009", "Deforestation", "Gather 100 units of Wood.", "gather", "Wood", 100, 500, 100, "m011"],
-		["m010", "Organic Combustion", "Research 'Organic Combustion' to unlock the Kiln.", "research", "combustion", 1, 500, 150, "m011"],
-		["m011", "Essential Carbon", "Use the Charcoal Kiln to produce 50 Carbon.", "gather", "C", 50, 600, 150, "m012"],
+		["m010", "Organic Combustion", "Research 'Organic Combustion' to unlock the Industrial Kiln, Carbon Fiber, and combustion-powered generators. (The manual Charcoal Kiln needs no research.)", "research", "combustion", 1, 500, 150, "m011"],
+		["m011", "Essential Carbon", "In the Engineering page, use the Charcoal Kiln to produce 50 Carbon.", "gather", "C", 50, 600, 150, "m012"],
 		["m012", "Lithium Discovery", "In the Mine page, extract 100 Lithium Ore.", "gather", "Spodumene", 100, 800, 200, "m013"],
 		["m013", "Voltaic Storage", "Refine 50 Lithium in the Engineering tab.", "gather", "Li", 50, 1000, 250, "m013b"],
 		["m013b", "Copper Prospecting", "Gather 100 Malachite Ore.", "gather", "Malachite", 100, 1200, 300, "m013c"],
@@ -143,12 +143,7 @@ func init_missions():
 		# "destroy with HE Missiles loaded" with NO produce-ammo step (and equip_module
 		# auto-loaded a phantom "missile" ammo id instead of MissileT1 — both now fixed).
 		["m017c2", "Stock the Warheads", "The launcher fires HE Missiles. In the Engineering tab, produce 60 HE Missiles (MissileT1) — its ammunition.", "gather", "MissileT1", 60, 1800, 250, "m017d"],
-		["m017d", "Warhead", "Click LOADOUT 3, equip BOTH Micro-Missile Launchers there (auto-loads HE Missiles), then destroy a Scrap Collector in Lunar Orbit. Kinetic / Energy / Explosive now live in Loadouts 1 / 2 / 3. Before a fight, one click swaps your WHOLE ship to the enemy's weakness — no rebuilding. You'll try that next.", "defeat", "z1_scrap_collector", 1, 3500, 600, "m017e"],
-		# v134g: DEMONSTRATE the triangle payoff. The three legs above all BUILD a slot;
-		# the player never once clicks a chip and watches a ready-built ship appear — the
-		# whole point of keeping three loadouts. This beat makes them LOAD a pre-built slot
-		# (Kinetic, L1) and win with it, so the one-click swap is experienced, not just read.
-		["m017e", "Snap to Weakness", "Feel the payoff. The Lunar Drone is WEAK to KINETIC — click LOADOUT 1 to snap your whole ship back to the Kinetic build in a single click (no re-equipping), then destroy one. That's the loop: read the enemy, one click, fight.", "defeat", "z1_lunar_drone", 1, 3500, 600, "m018"],
+		["m017d", "Warhead", "Click LOADOUT 3, equip BOTH Micro-Missile Launchers there (auto-loads HE Missiles), then destroy a Scrap Collector in Lunar Orbit. Kinetic / Energy / Explosive now live in Loadouts 1 / 2 / 3 — before a fight, one click swaps your WHOLE ship to the enemy's weakness, no rebuilding.", "defeat", "z1_scrap_collector", 1, 3500, 600, "m018"],
 		["m018", "Industrial Logistics", "Research the 'Industrial Logistics' hub.", "research", "industrial_logistics", 1, 500, 100, "m019"],
 		["m018b", "Automated Intelligence", "Research 'Automated Logistics' for circuitry.", "research", "automated_logistics", 1, 1000, 200, "m019"],
 		# v134: the Circuit recipe needs TIN (Sn) — a material the chain never introduced
@@ -200,7 +195,9 @@ func init_missions():
 		["m025a", "Split the Water", "Modern foundries burn Oxygen. In the Engineering tab, run Water Electrolysis to split Water into Hydrogen and Oxygen — stock 30 Oxygen (O).", "gather", "O", 30, 3000, 300, "m025b"],
 		["m025b", "Alloy Production", "Now smelt 50 Steel in the Engineering tab — the Basic-Oxygen furnace blows your Oxygen through the molten iron (Basic Steel Smelting recipe).", "gather", "Steel", 50, 5000, 500, "m026"],
 		["m026", "Master Constructor", "Research 'Shipwright I' for hull reinforcement.", "research", "shipwright_1", 1, 5000, 500, "m026b"],
-		["m026b", "Hull Modernization I", "Construct an 'Industrial Frigate' in the Shipyard.", "construct", "frigate_hull", 1, 10000, 1000, "m026c"],
+		# v134h: the frigate silently needs 4 Reinforced Plating — a crafted component the
+		# old one-line text never named (m019/m024b-class hidden input). Name it + its inputs.
+		["m026b", "Hull Modernization I", "Construct an 'Industrial Frigate' in the Shipyard. Its frame needs 4 Reinforced Plating — craft them in the Engineering tab (Components); Salvaged Alloy and Damaged Circuitry drop from Lunar Orbit enemies, or use the Steel/Circuit reclaim recipes.", "construct", "frigate_hull", 1, 10000, 1000, "m026c"],
 		["m026c", "Elite Salvage", "Defeated enemies drop gear of varying rarity. Farm Lunar Orbit until you get a RARE (blue) module drop.", "drop_rarity", "2", 1, 5000, 500, "m026d"],
 		# v131: Architect resists zeroed — chain goes straight to the boss fight; any
 		# RARE+ weapon type works. m026d2/d3 (the old explosive-forcing pair) stay
@@ -226,23 +223,36 @@ func init_missions():
 		# below surfaces ONE node and delivers materials the final mission needs.
 		# Save-compat: in-flight players sitting on m029b stay valid (it still
 		# exists with the same id); only m029.next_mission_id was rerouted.
-		["m029a1", "Material Sciences", "Research 'Advanced Materials' in the Research tree to unlock heavier industrial recipes.", "research", "adv_materials", 1, 5000, 500, "m029a2"],
-		["m029a2", "Structural Doctrine", "Research 'Advanced Metallurgy' to fabricate universal components.", "research", "metallurgy_advanced", 1, 5000, 500, "m029a3"],
+		["m029a1", "Material Sciences", "Research 'Advanced Materials' in the Research tree to unlock heavier industrial recipes. (It spends Common Artifacts — Res1 — from your combat salvage.)", "research", "adv_materials", 1, 5000, 500, "m029a2"],
+		# v134h: name the hidden Nickel cost. metallurgy_advanced costs 100 Ni, and
+		# Advanced Materials (just researched) unlocks the Pentlandite mining that feeds it.
+		["m029a2", "Structural Doctrine", "Research 'Advanced Metallurgy'. It costs 100 Nickel: mine Pentlandite (Mine page — Advanced Materials just unlocked it), then refine it with Carbon + Oxygen in the Engineering tab first.", "research", "metallurgy_advanced", 1, 5000, 500, "m029a3"],
 		["m029a3", "First Components", "Craft 10 Structural Components in the Engineering tab. They are the universal building block of heavy industry.", "gather", "StructuralComponent", 10, 8000, 1000, "m029a5"],
 		# v132: ORPHANED (m029a3 → m029a5). Combustion is already owned by this
 		# point — it's Efficient Smelting's tree parent, bought at m025 — so this
 		# beat auto-completed the instant it appeared. Kept for in-flight saves.
 		["m029a4", "Chemical Heat", "Research 'Organic Combustion' to unlock Germanium extraction (needed for semiconductors).", "research", "combustion", 1, 5000, 500, "m029a5"],
 		["m029a5", "Factory Lights", "Research 'Factory Automation' — the last gate before Advanced Circuits.", "research", "automation", 1, 10000, 1000, "m029b"],
-		["m029b", "Complex Electronics", "Craft 5 Advanced Circuits in the Engineering tab. (Combines Semiconductor + Gold + Silver + Tin + Structural Components — your earlier research unlocked each one.)", "gather", "AdvCircuit", 5, 20000, 5000, "m030"],
+		# v134h: the recipe's three opaque sub-inputs are now breadcrumbed. Semiconductor,
+		# Gold, and Silver each have a hidden sub-chain the old "your earlier research
+		# unlocked each one" text glossed over (Silver especially — only a Zinc byproduct).
+		["m029b", "Complex Electronics", "Craft 5 Advanced Circuits in the Engineering tab. Three inputs need prep first: Semiconductor (dope Silicon with Germanium), Gold (pan Dirt + Water via Gold Panning), and Silver (a byproduct of Zinc Reduction — mine Zinc Ore and smelt it). Tin and Structural Components you already have.", "gather", "AdvCircuit", 5, 20000, 5000, "m030"],
 		# v103f: Removed forced Fabricator mission (m030b) — it gated nothing
 		# (Fabricator is optional QoL, still buildable). m030 -> m030c directly.
 		["m030", "Naval Expansion", "Research 'Shipwright II' to unlock Destroyer-class hulls.", "research", "shipwright_2", 1, 4000, 1000, "m030c"],
-		["m030c", "Hull Modernization II", "Construct a 'Destroyer' hull in the Shipyard.", "construct", "destroyer_hull", 1, 25000, 2000, "m030e"],
+		# v134h: destroyer needs 10 Reinforced Plating (same component as the frigate) —
+		# name it so the 10x quantity isn't a silent grind wall. Reroute -> m030d (Z2 boss).
+		["m030c", "Hull Modernization II", "Construct a 'Destroyer' hull in the Shipyard. It needs 10 Reinforced Plating (same recipe as the Frigate) — stock Salvaged Alloy + Damaged Circuitry first.", "construct", "destroyer_hull", 1, 25000, 2000, "m030d"],
+		# v134h: zone_3_access (Mars Debris Clearance) COSTS a Z2 boss core the chain never
+		# told the player to farm. Insert an explicit boss-farm beat (mirrors m030i/m032a).
+		["m030d", "Belt Overseer", "The Mars Debris charter needs a Sector Core. Return to the Asteroid Belt and defeat the Silicate Monolith (its boss) to salvage a Z2 Sector Core.", "defeat", "z2_boss_monolith", 1, 50000, 6000, "m030e"],
 		# Mission bridge from Asteroid Belt to Sector Alpha (zones 3-4 introduction)
-		["m030e", "Mars Beachhead", "Research 'Mars Debris Clearance' in the Research tree to unlock the Mars Debris combat zone.", "research", "zone_3_access", 1, 40000, 5000, "m030f"],
-		["m030f", "Salvage Operations", "Defeat 3 Scavenger Mechs in the Mars Debris combat zone. Their relics feed Wreckforged Alloy crafting.", "defeat", "z3_scavenger_mech", 3, 60000, 8000, "m030g"],
-		["m030g", "Glacier Belt Survey", "Research 'Glacier Belt Expedition' in the Research tree to unlock the Glacier Belt combat zone.", "research", "zone_4_access", 1, 80000, 10000, "m030h"],
+		["m030e", "Mars Beachhead", "Research 'Mars Debris Clearance' in the Research tree (it spends the Silicate Monolith core you just salvaged) to unlock the Mars Debris combat zone.", "research", "zone_3_access", 1, 40000, 5000, "m030f"],
+		["m030f", "Salvage Operations", "Defeat 3 Scavenger Mechs in the Mars Debris combat zone. Their relics feed Wreckforged Alloy crafting.", "defeat", "z3_scavenger_mech", 3, 60000, 8000, "m030f2"],
+		# v134h: zone_4_access COSTS 2 Z3 boss cores the chain never directed. Explicit
+		# boss-farm beat before the research (m030f only killed regular Scavenger Mechs).
+		["m030f2", "Warmaster's Cores", "The Glacier Belt charter demands TWO Warmaster cores. Defeat the Martian Warmaster (Mars Debris boss) twice and salvage them.", "defeat", "z3_boss_warmaster", 2, 90000, 12000, "m030g"],
+		["m030g", "Glacier Belt Survey", "Research 'Glacier Belt Expedition' in the Research tree (it spends the two Warmaster cores) to unlock the Glacier Belt combat zone.", "research", "zone_4_access", 1, 80000, 10000, "m030h"],
 		["m030h", "Frozen Frontier", "Defeat 3 Ice Wraiths in the Glacier Belt. Glacial Essence powers cryo-alloy and coolant crafting.", "defeat", "z4_ice_wraith", 3, 100000, 12000, "m030i"],
 
 		# v132 funnel repair (m030i..m034): the tail directed the WRONG techs.
@@ -254,17 +264,17 @@ func init_missions():
 		# the cores, research beats now target the actual doors, and the tail is
 		# reordered m033 → m034 (Beta boss farm) → m033b (Gamma door) → m033c.
 		["m030i", "Overseer's Core", "The Sector Alpha charter is encrypted — decrypting it takes two GLACIAL OVERSEER cores. Defeat the Glacier Belt boss twice and salvage them.", "defeat", "z4_boss_overseer", 2, 120000, 15000, "m031"],
-		["m031", "Alpha Decryption", "Research 'Sector Alpha Decryption' in the Research tree (it consumes the Overseer cores) to breach Sector Alpha.", "research", "zone_5_access", 1, 50000, 10000, "m032"],
+		["m031", "Alpha Decryption", "Research 'Sector Alpha Decryption' in the Research tree (it consumes the Overseer cores, plus a stock of Superalloy — craft it in the Engineering tab) to breach Sector Alpha.", "research", "zone_5_access", 1, 50000, 10000, "m032"],
 		["m032", "Alpha Sector Dominance", "Defeat 3 Alien Frigates in Sector Alpha.", "defeat", "z5_alien_frigate", 3, 75000, 15000, "m032a"],
 		["m032a", "Harbinger Hunt", "The Beta Colony Charter demands three XENON HARBINGER cores. Defeat the Sector Alpha boss three times.", "defeat", "z5_boss_harbinger", 3, 150000, 20000, "m032b"],
-		["m032b", "Beta Colony Charter", "Research 'Beta Colony Charter' in the Research tree (it consumes the Harbinger cores) to unlock Sector Beta.", "research", "zone_6_access", 1, 50000, 5000, "m032d"],
+		["m032b", "Beta Colony Charter", "Research 'Beta Colony Charter' in the Research tree (it consumes the Harbinger cores, plus a large stock of Superalloy + Titanium) to unlock Sector Beta.", "research", "zone_6_access", 1, 50000, 5000, "m032d"],
 		["m032d", "Void Research", "Void Artifacts drop from Sector Alpha ships — defeat them in Combat until you collect 5.", "gather", "VoidArtifact", 5, 100000, 10000, "m032c"],
 		# P0-28: Construct Battlecruiser
 		["m032c", "Capital Doctrine", "Construct a 'Battlecruiser' in the Shipyard.", "construct", "battlecruiser_hull", 1, 250000, 25000, "m033"],
 
 		["m033", "Beta Sector Expansion", "Defeat 5 Ore Guardians in Sector Beta to expand your influence.", "defeat", "z6_ore_guardian", 5, 150000, 25000, "m034"],
 		["m034", "Break the Blockade", "Defeat the BETA COLOSSUS 3 times — its cores are the key to Gamma Sector Clearance.", "defeat", "z6_boss_colossus", 3, 300000, 50000, "m033b"],
-		["m033b", "Gamma Clearance", "Research 'Gamma Sector Clearance' in the Research tree (it consumes the Colossus cores) to unlock Sector Gamma.", "research", "zone_7_access", 1, 100000, 10000, "m033c"],
+		["m033b", "Gamma Clearance", "Research 'Gamma Sector Clearance' in the Research tree (it consumes the Colossus cores, plus a heavy Superalloy + Tungsten stock) to unlock Sector Gamma.", "research", "zone_7_access", 1, 100000, 10000, "m033c"],
 		["m033c", "Titan Construction", "Construct a 'Dreadnought' in the Shipyard. Its blueprints sit behind 'Delta Sector Survey' research — four Sector Gamma boss cores. The final climb is yours to chart.", "construct", "dreadnought_hull", 1, 1000000, 50000, ""],
 		# v134: goal XP re-tuned now that reward_xp is actually GRANTED (it was a dead
 		# field). Legacy values (1M/250K/2M) were written when XP paid nothing — live,
@@ -273,14 +283,14 @@ func init_missions():
 		["goal_001", "THE GREAT EXPEDITION", "Reach Sector Epsilon and discover the Primordial Core.", "discover", "sector_epsilon", 1, 0, 250000, ""],
 		["goal_002", "INTO THE VOID", "Perform your first Warp. Your Liras and materials reset, but you gain Exotic Matter Shards for permanent multipliers that make each run stronger.", "warp_perform", "warp", 1, 0, 50000, ""],
 		["goal_003", "PRESTIGE VETERAN", "Perform 5 Warps total to fully unlock Warp Tier scaling.", "warp_perform", "warp", 5, 0, 500000, ""],
-		["goal_cryo_1", "FORGE CRYOGENIC ARMS", "The Threshold (Sector 11) is warp-hardened - only Cryo weapons breach it. Research Cryogenic Armaments in the new Warp Tech research tab.", "research", "cryo_armaments", 1, 3000000, 0, "goal_cryo_2"],
+		["goal_cryo_1", "FORGE CRYOGENIC ARMS", "The Threshold (Sector 11) is warp-hardened - only Cryo weapons breach it. Research Cryogenic Armaments in the new Warp Tech research tab (buy its prerequisites Energy Metrics then Cryogenic Systems first).", "research", "cryo_armaments", 1, 3000000, 0, "goal_cryo_2"],
 		["goal_cryo_2", "FORGE CRYOGENIC ARMS", "Craft a Cryo Lance in the Shipyard. It needs Cryo Catalyst - farm it from Sector 10 enemies.", "craft", "cryo_lance", 1, 6000000, 0, "goal_cryo_3"],
 		["goal_cryo_3", "BREACH THE THRESHOLD", "Destroy a Warp Revenant in The Threshold (Sector 11) with your Cryo armaments.", "defeat", "z11_warp_revenant", 1, 15000000, 0, ""],
 		# v128: Hack-Card onboarding arc (research -> loot -> apply). Reveals once
 		# kinetics_101 is researched (~Sector 3), right as the loot-refine need appears.
 		# Step 2 uses the "gather" type: element_added fires for combat loot too, so a
 		# dropped Splice Chip counts. Step 3 uses the new "hack_apply" type.
-		["goal_hack_1", "REWRITE THE FIRMWARE", "Salvaged modules can be re-forged. Research Firmware Hacking (Combat research tab) to unlock Hack Cards — module affix crafting.", "research", "firmware_hacking", 1, 20000, 0, "goal_hack_2"],
+		["goal_hack_1", "REWRITE THE FIRMWARE", "Salvaged modules can be re-forged. Research Kinetic Weapons Theory, then Firmware Hacking beneath it (Combat research tab), to unlock Hack Cards — module affix crafting.", "research", "firmware_hacking", 1, 20000, 0, "goal_hack_2"],
 		["goal_hack_2", "SALVAGE A HACK CARD", "Hack Cards now drop in combat. Defeat enemies until a Splice Chip drops.", "gather", "SpliceChip", 1, 15000, 0, "goal_hack_3"],
 		["goal_hack_3", "AWAKEN A MODULE", "Open the Ship Designer and drag a Splice Chip onto a Common component to awaken it into a custom module with a random affix.", "hack_apply", "SpliceChip", 1, 30000, 0, ""],
 		# v130: Boost-Card onboarding arc (craft -> install). Reveals once Engineering

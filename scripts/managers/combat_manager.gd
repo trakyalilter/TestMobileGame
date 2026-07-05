@@ -419,31 +419,31 @@ var enemy_db = {
 		"rare_loot": [["NavData", 0.10, 1, 1]],
 		"module_drop_chance": 0.20,
 		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_missile", "z1_shield", "z1_armor", "z1_battery"],
-		"xp": 8, "eva": 8, "zone": 1, "resist_k": -0.30, "resist_e": 0.30, "resist_x": 0.0, "dmg_type": "kinetic"
+		"xp": 8, "eva": 8, "zone": 1, "resist_k": -0.40, "resist_e": 0.40, "resist_x": 0.0, "dmg_type": "kinetic"
 	},
 	"z1_survey_probe": {
 		"name": "Survey Probe",
-		"stats": {"hp": 150, "max_shield": 40, "atk": 13, "def": 3, "atk_interval": 1.0, "accuracy": 22},
+		"stats": {"hp": 120, "max_shield": 40, "atk": 13, "def": 3, "atk_interval": 1.0, "accuracy": 22},
 		"loot": [["credits", 80, 150], ["Si", 2, 4], ["Res1", 1, 3], ["MiteChitin", 1, 2]],
-		"rare_loot": [["NavData", 0.15, 1, 2], ["DamagedCircuitry", 0.35, 1, 2]],
+		"rare_loot": [["NavData", 0.2, 1, 2], ["DamagedCircuitry", 0.5, 1, 2]],
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_shield", "z1_armor", "z1_sensor"],
-		"xp": 12, "eva": 15, "zone": 1, "resist_k": 0.30, "resist_e": -0.30, "resist_x": 0.0, "dmg_type": "energy"
+		"xp": 12, "eva": 15, "zone": 1, "resist_k": 0.50, "resist_e": -0.50, "resist_x": 0.0, "dmg_type": "energy"
 	},
 	"z1_scrap_collector": {
 		"name": "Scrap Collector",
-		"stats": {"hp": 200, "atk": 15, "def": 3, "atk_interval": 2.2, "accuracy": 20},
+		"stats": {"hp": 150, "atk": 15, "def": 3, "atk_interval": 2.2, "accuracy": 20},
 		"loot": [["Fe", 3, 6], ["Si", 1, 3], ["Res1", 1, 3], ["MiteChitin", 2, 4]],
 		"rare_loot": [["Cu", 0.15, 2, 4], ["SalvagedAlloy", 0.35, 1, 2]],
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_missile", "z1_shield", "z1_armor", "z1_engine"],
-		"xp": 10, "eva": 6, "zone": 1, "resist_k": 0.25, "resist_e": 0.20, "resist_x": -0.30, "dmg_type": "kinetic"
+		"xp": 10, "eva": 6, "zone": 1, "resist_k": 0.45, "resist_e": 0.30, "resist_x": -0.35, "dmg_type": "kinetic"
 	},
 
 	"z1_boss_architect": {
 		"name": "Rogue Architect",
-		"stats": {"hp": 1200, "max_shield": 120, "atk": 54, "def": 18, "atk_interval": 2.5, "accuracy": 35},
-		"loot": [["credits", 500, 1000], ["Cu", 10, 25], ["Fe", 15, 30], ["Res1", 5, 10], ["MiteChitin", 5, 12]],
+		"stats": {"hp": 1000, "max_shield": 100, "atk": 50, "def": 15, "atk_interval": 2.5, "accuracy": 35},
+		"loot": [["credits", 5000, 10000], ["Cu", 10, 25], ["Fe", 15, 30], ["Res1", 5, 10], ["MiteChitin", 5, 12]],
 		"rare_loot": [["z1_unique_weapon", 0.03, 1, 1], ["z1_unique_armor", 0.03, 1, 1], ["z1_unique_shield", 0.03, 1, 1], ["SalvagedAlloy", 0.90, 2, 4], ["DamagedCircuitry", 0.90, 2, 4]],
 		"boss_core": "Z1_Core",
 		"module_drop_chance": 0.25,
@@ -1464,13 +1464,11 @@ func swap_loadout_in_combat(preset_idx: int) -> bool:
 	log_msg("Reconfigured loadout mid-engagement — weapon battery recalibrating.")
 	return true
 
-# v113 (NG+ P2): the swap is only legal against a multi-phase boss (the locked
-# exception to "no in-fight inputs"). Single-phase / warp_hardened / normal
-# enemies never expose it — the auto-battler contract stays intact everywhere else.
+# v134h: mid-combat loadout swapping is allowed in ANY active fight (player request),
+# not just multi-phase bosses. swap_loadout_in_combat resets weapon cooldowns on swap
+# — that tempo hit is the anti-spam cost. (Was v113-restricted to phases.size() > 1.)
 func can_swap_loadout_in_combat() -> bool:
-	if not in_combat or current_enemy == null:
-		return false
-	return (current_enemy.get("phases", []) as Array).size() > 1
+	return in_combat and current_enemy != null
 
 func retreat():
 	in_combat = false

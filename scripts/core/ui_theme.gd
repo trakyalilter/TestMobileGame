@@ -26,6 +26,60 @@ const CHROME_PRECURSOR := 2
 func get_card_chrome() -> int:
 	return int(GameState.game_settings.get("card_chrome", CHROME_INDUSTRIAL))
 
+# v134: custom Precursor Bloom scrollbar. sci_fi_theme.tres ships NO ScrollBar
+# entries, so every ScrollContainer fell back to Godot's grey default. Install a
+# slim teal capsule grabber (on a recessed groove) that brightens to aqua on
+# hover/drag — once, on the shared global theme, so it reaches every V/HScrollBar
+# without any per-instance styling. Runs at autoload _ready, before the UI builds.
+func _ready() -> void:
+	_install_scrollbar_theme()
+
+func _install_scrollbar_theme() -> void:
+	var t := load("res://sci_fi_theme.tres") as Theme
+	if t == null:
+		return
+
+	# Track: a faint recessed groove. Its content margins inset the grabber into a
+	# channel AND (with the grabber's) set the ~12px bar thickness.
+	var track := StyleBoxFlat.new()
+	track.bg_color = Color(0.078, 0.169, 0.161, 0.40)
+	track.set_corner_radius_all(6)
+	track.set_content_margin_all(3.0)
+
+	var grabber := StyleBoxFlat.new()
+	grabber.bg_color = Color(0.216, 0.788, 0.690, 0.72)   # teal
+	grabber.set_corner_radius_all(5)
+	grabber.set_content_margin_all(3.0)
+
+	var grabber_hover := StyleBoxFlat.new()
+	grabber_hover.bg_color = Color(0.427, 0.878, 0.784, 0.92)   # aqua
+	grabber_hover.set_corner_radius_all(5)
+	grabber_hover.set_content_margin_all(3.0)
+	grabber_hover.shadow_color = Color(0.216, 0.788, 0.690, 0.35)
+	grabber_hover.shadow_size = 4
+
+	var grabber_pressed := StyleBoxFlat.new()
+	grabber_pressed.bg_color = Color(0.427, 0.941, 0.847, 1.0)   # bright aqua
+	grabber_pressed.set_corner_radius_all(5)
+	grabber_pressed.set_content_margin_all(3.0)
+	grabber_pressed.shadow_color = Color(0.427, 0.941, 0.847, 0.40)
+	grabber_pressed.shadow_size = 5
+
+	# 1x1 transparent icon → hides the increment/decrement arrow buttons.
+	var img := Image.create(1, 1, false, Image.FORMAT_RGBA8)
+	img.set_pixel(0, 0, Color(0, 0, 0, 0))
+	var empty := ImageTexture.create_from_image(img)
+
+	for cls in ["VScrollBar", "HScrollBar"]:
+		t.set_stylebox("scroll", cls, track)
+		t.set_stylebox("scroll_focus", cls, track)
+		t.set_stylebox("grabber", cls, grabber)
+		t.set_stylebox("grabber_highlight", cls, grabber_hover)
+		t.set_stylebox("grabber_pressed", cls, grabber_pressed)
+		for ic in ["increment", "increment_highlight", "increment_pressed",
+				"decrement", "decrement_highlight", "decrement_pressed"]:
+			t.set_icon(ic, cls, empty)
+
 # Inline Lira currency icon for BBCode/RichText contexts ONLY (plain Labels
 # and Buttons can't embed images — those use the word "Liras"). Single source
 # of truth: tweak size/path/tint here. 14px ≈ inline body text height.

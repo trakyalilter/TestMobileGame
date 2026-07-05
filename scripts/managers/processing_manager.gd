@@ -81,7 +81,10 @@ var recipes: Dictionary = {
 		"description": "Roast the Zinc sulfide ore in Oxygen, then reduce with Carbon.",
 		"input": {"ZincOre": 3, "C": 1, "O": 1},
 		"output": {"Zn": 2},
-		"output_table": [["Ag", 0.4, 1, 1]], # v80.4 Fix: Ag byproduct added to Zn refining (fixes catalyst deadlock)
+		# v134h: Ag byproduct made DETERMINISTIC (was 0.4). Silver is a MANDATORY input to
+		# the m029b Advanced Circuit mission (2 Ag x5 = 10 Ag) yet had NO other source — a
+		# 40% RNG byproduct as the sole path to a required beat was too fragile. 1 Ag/smelt.
+		"output_table": [["Ag", 1.0, 1, 1]],
 		"duration": 4.0,
 		"level_req": 18,
 		"xp": 12
@@ -262,7 +265,7 @@ var recipes: Dictionary = {
 	"craft_emergency_patch": {
 		"name": "Emergency Hull Patch",
 		"description": "Quick patch from basic metals. Restores 10% Hull Integrity.",
-		"input": {"Fe": 20,},
+		"input": {"Fe": 8,},
 		"output": {"EmergencyPatch": 1},
 		"duration": 10.0,
 		"level_req": 1,
