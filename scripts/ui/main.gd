@@ -2930,6 +2930,13 @@ func _building_card(bid: String, d: Dictionary) -> Control:
 		eff_lines.append(_line("-%d kW" % int(d["energy_cons"]), C_WARN))
 	if not eff_lines.is_empty():
 		_inset(v, "PER UNIT / %.0fs" % float(d.get("interval", 1.0)), eff_lines, BUILD)
+	# Building Mastery: output scales with the linked recipe/action's Mastery,
+	# and running the building feeds that Mastery back.
+	var minfo := GameState.building_mastery_info(bid)
+	if minfo.get("linked", false):
+		var mid := String(minfo.get("id", ""))
+		var mnm: String = String(GameData.CRAFT[mid].get("name", mid)) if GameData.CRAFT.has(mid) else String(GameData.GATHER.get(mid, {}).get("name", mid))
+		_clbl(v, "◆ Mastery: %s  Lv %d  (+%d%% output)" % [mnm, int(minfo["level"]), int(minfo["bonus_pct"])], 10, PURP)
 	var brt := GameState.building_rate_text(bid)
 	if brt != "":
 		_clbl(v, brt, 10, GREEN if count > 0 else C_DIM)

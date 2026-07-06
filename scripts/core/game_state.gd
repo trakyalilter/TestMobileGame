@@ -2301,6 +2301,7 @@ func _tick_infra(delta: float) -> void:
 			guard += 1
 			_build_timers[bid] = float(_build_timers[bid]) - eff_interval
 			_produce_batch(bid, count, d, gyb)
+		_award_infra_mastery_xp(bid, float(guard))   # Building Mastery feedback (this tick's cycles)
 	# v104: continuous upkeep sink — only charged while the grid is live, so an
 	# idle/unpowered base never bleeds mats. Accumulate then charge whole intervals.
 	if eff > 0.0:
@@ -2384,6 +2385,7 @@ func _offline_infra(delta: float) -> String:
 			_produce_batch(bid, count, d, gyb)            # self-limits when feedstock runs out
 		if cycles > 0:
 			add_xp("infrastructure", mini(cycles, 500000))
+			_award_infra_mastery_xp(bid, float(mini(cycles, 500000)))   # Building Mastery feedback (batched)
 	# v104: offline upkeep — closed-form, whole intervals only.
 	_apply_upkeep(int(delta / UPKEEP_INTERVAL))
 	# The offline-window upkeep fraction must NOT leak into live production: live
@@ -2402,6 +2404,83 @@ func _offline_infra(delta: float) -> String:
 		return ""
 	return "Infrastructure: " + ", ".join(parts)
 
+# ---------------- Building Mastery (ported: infrastructure_manager ~L1060-1150) ----------------
+# Each production building is linked to the Mastery of the recipe/gather-action
+# that makes its highest-yield output. That Mastery raises the building's output
+# (bounded), and running the building feeds Mastery XP back to the link.
+const INFRA_MASTERY_XP_FACTOR := 0.15       # one infra cycle = 15% of an active completion
+const INFRA_MASTERY_EFF_PER_LEVEL := 0.002  # +0.2% output per linked Mastery level
+const INFRA_MASTERY_EFF_MAX := 0.20         # +20% ceiling at Mastery 100
+var _mastery_link_cache: Dictionary = {}    # bid -> linked mastery id ("" = no link); GameData-derived, never stale
+
+func building_mastery_link(bid: String) -> String:
+	if _mastery_link_cache.has(bid):
+		return _mastery_link_cache[bid]
+	var link := _resolve_building_mastery_link(bid)
+	_mastery_link_cache[bid] = link
+	return link
+
+# Highest-yield output symbol -> the craft recipe or gather action that produces
+# it. Extraction buildings prefer a gather action; others a craft recipe.
+func _resolve_building_mastery_link(bid: String) -> String:
+	var d: Dictionary = GameData.BUILDINGS.get(bid, {})
+	var yields: Dictionary = d.get("yield", {})
+	if yields.is_empty():
+		return ""
+	var primary := ""
+	var best := -1.0
+	for sym in yields:
+		if sym == "credits":
+			continue
+		var a := float(yields[sym])
+		if a > best:
+			best = a
+			primary = sym
+	if primary == "":
+		return ""
+	var craft := _craft_recipe_for_output(primary)
+	var gather := _gather_action_for_output(primary)
+	if d.get("category", "") == "extraction":
+		return gather if gather != "" else craft
+	return craft if craft != "" else gather
+
+func _craft_recipe_for_output(sym: String) -> String:
+	for rid in GameData.CRAFT:
+		if GameData.CRAFT[rid].get("outputs", {}).has(sym):
+			return rid
+	return ""
+
+func _gather_action_for_output(sym: String) -> String:
+	for aid in GameData.GATHER:
+		for row in GameData.GATHER[aid].get("loot", []):
+			if row.size() > 0 and String(row[0]) == sym:
+				return aid
+	return ""
+
+# Bounded output multiplier from the linked Mastery (1.0 = no link / level 0).
+func building_mastery_mult(bid: String) -> float:
+	var link := building_mastery_link(bid)
+	if link == "":
+		return 1.0
+	return 1.0 + minf(float(mastery_level(link)) * INFRA_MASTERY_EFF_PER_LEVEL, INFRA_MASTERY_EFF_MAX)
+
+# Feed Mastery XP to the linked recipe/action; `cycles` batches offline catch-up.
+func _award_infra_mastery_xp(bid: String, cycles: float) -> void:
+	if cycles <= 0.0:
+		return
+	var link := building_mastery_link(bid)
+	if link != "":
+		gain_mastery_xp(link, INFRA_MASTERY_XP_FACTOR * cycles)
+
+# UI helper for the building card.
+func building_mastery_info(bid: String) -> Dictionary:
+	var link := building_mastery_link(bid)
+	if link == "":
+		return {"linked": false}
+	var lvl := mastery_level(link)
+	var bonus: float = minf(float(lvl) * INFRA_MASTERY_EFF_PER_LEVEL, INFRA_MASTERY_EFF_MAX)
+	return {"linked": true, "id": link, "level": lvl, "bonus_pct": bonus * 100.0}
+
 func _produce_batch(bid: String, count: int, d: Dictionary, gyb: Dictionary) -> void:
 	# v109 P0.2: diminishing returns — effective units replace raw count on BOTH
 	# input draw and yield, so over-stacked buildings idle instead of burning feed.
@@ -2417,8 +2496,9 @@ func _produce_batch(bid: String, count: int, d: Dictionary, gyb: Dictionary) -> 
 	var net_mult := 1.0 + research_bonus("building_yield_mult")
 	var eng := _eng_scale(bid)              # P0.3 capped engineering scaling
 	var ore := _ore_throttle(bid)           # P1.4 ore tier handed to gathering
+	var mastery_m := building_mastery_mult(bid)   # Building Mastery output bonus (constant this cycle)
 	for res in d.get("yield", {}):
-		var qty := float(d["yield"][res]) * units * eng * ore * (1.0 + float(gyb.get(res, 0.0))) * warp_production_mult() * net_mult * tree_infra_bonus()
+		var qty := float(d["yield"][res]) * units * eng * ore * (1.0 + float(gyb.get(res, 0.0))) * warp_production_mult() * net_mult * tree_infra_bonus() * mastery_m
 		_build_frac[res] = float(_build_frac.get(res, 0.0)) + qty
 		var whole := int(_build_frac[res])
 		if whole > 0:
