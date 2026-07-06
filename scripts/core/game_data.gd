@@ -196,6 +196,7 @@ const RESOURCES := {
 	"StructuralComponent": {"name": "Structural Component", "color": "5ad1e0", "value": 120},
 	"NanoSubstrate": {"name": "Nano-Substrate", "color": "5ad1e0", "value": 450},
 	"emp_generator_blueprint": {"name": "EMP Generator Blueprint", "color": "8a7ad6", "value": 5000},
+	"BoostCard": {"name": "Boost Card", "color": "5ad1e0", "value": 2500},
 	"CryoEssence": {"name": "Cryo Essence", "color": "9aa3af", "value": 1},
 	"PirateSalvage": {"name": "Pirate Salvage", "color": "9aa3af", "value": 1},
 	"DamagedCircuitry": {"name": "Damaged Circuitry", "color": "9aa3af", "value": 1},
@@ -391,6 +392,7 @@ const CRAFT := {
 	"synthesize_bioweapon": {"name": "Bio-Agent Synthesis", "inputs": {"BiohazardSample": 15, "PathogenCore": 2}, "outputs": {"BioWeaponCoating": 3}, "bonus": [], "xp": 1200, "level_req": 70, "duration": 30.0, "category": "endgame", "research_req": "zone_9_access"},
 	"upgrade_exotic_artifact": {"name": "Compile Exotic Artifact", "inputs": {"AdvCircuit": 2, "NavData": 5, "Res2": 5, "XenoFragment": 3}, "outputs": {"Res3": 1}, "bonus": [], "xp": 300, "level_req": 60, "duration": 60.0, "category": "research", "research_req": "sector_alpha_decryption"},
 	"upgrade_rare_artifact": {"name": "Synthesize Rare Artifact", "inputs": {"Circuit": 10, "MartianRelics": 5, "Res1": 100}, "outputs": {"Res2": 1}, "bonus": [], "xp": 100, "level_req": 35, "duration": 8.0, "category": "research", "research_req": "smelting"},
+	"craft_boost_card": {"name": "Boost Card", "inputs": {"AdvCircuit": 5, "Superalloy": 10, "QuantumCore": 1}, "outputs": {"BoostCard": 1}, "bonus": [], "xp": 300, "level_req": 40, "duration": 12.0, "category": "electronics"},
 }
 
 const RESEARCH := {

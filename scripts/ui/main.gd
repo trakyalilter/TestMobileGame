@@ -2943,6 +2943,8 @@ func _building_card(bid: String, d: Dictionary) -> Control:
 	# Throttle (any owned building — scales production and energy)
 	if count > 0:
 		var th := GameState.get_throttle(bid)
+		var ocd := GameState.building_overclocked(bid)
+		var ocmax := GameState.overclock_max_throttle(bid)
 		var trow := HBoxContainer.new()
 		trow.add_theme_constant_override("separation", 6)
 		var minus := _card_button("−", BUILD, th > 0.0)
@@ -2952,19 +2954,33 @@ func _building_card(bid: String, d: Dictionary) -> Control:
 			_refresh_current())
 		trow.add_child(minus)
 		var tl := Label.new()
-		tl.text = "Throttle %d%%" % int(th * 100.0)
+		tl.text = ("⚡ Overclock %d%%" % int(th * 100.0)) if th > 1.0 else ("Throttle %d%%" % int(th * 100.0))
 		tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		tl.add_theme_font_size_override("font_size", _fs(11))
-		tl.add_theme_color_override("font_color", Color.html(C_DIM))
+		tl.add_theme_color_override("font_color", Color.html(PURP if th > 1.0 else C_DIM))
 		trow.add_child(tl)
-		var plus := _card_button("+", BUILD, th < 1.0)
+		var plus := _card_button("+", BUILD, th < ocmax)
 		plus.custom_minimum_size = Vector2(40, 30)
 		plus.pressed.connect(func() -> void:
 			GameState.set_throttle(bid, th + 0.25)
 			_refresh_current())
 		trow.add_child(plus)
 		v.add_child(trow)
+		# Overclock: install a Boost Card to raise the cap to 200%, or a warning
+		# once overclocked past 100% (input scales quadratically).
+		if not ocd:
+			var have_card := GameState.amount("BoostCard") > 0
+			var ib := _card_button("⚡ Install Boost Card" if have_card else "⚡ Needs a Boost Card", BUILD, have_card)
+			ib.custom_minimum_size = Vector2(0, 32)
+			if have_card:
+				ib.pressed.connect(func() -> void:
+					var r: Dictionary = GameState.install_boost_card(bid)
+					_celebrate("⚡ OVERCLOCK" if r.get("ok", false) else "✕", String(r.get("msg", "")), PURP if r.get("ok", false) else RED)
+					_refresh_current())
+			v.add_child(ib)
+		elif th > 1.0:
+			_clbl(v, "⚠ Input scales ² past 100% — 200% output costs 4× input.", 9, C_WARN)
 	var bfill := Control.new()
 	bfill.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	v.add_child(bfill)

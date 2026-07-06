@@ -1906,5 +1906,15 @@
     "tier": 3,
     "base_value": 5000,
     "description": "Captured electromagnetic pulse schematics from the EMP Nexus. First-clear reward. Can be used to craft an EMP Generator module."
+  },
+  {
+    "atomic_number": -400,
+    "symbol": "BoostCard",
+    "name": "Boost Card",
+    "mass": 0.2,
+    "category": "Component",
+    "tier": 4,
+    "base_value": 2500,
+    "description": "Overclock protocol chip. Install on a building type to unlock its Efficiency slider up to 200% (input scales quadratically past 100%)."
   }
 ]

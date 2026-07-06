@@ -767,7 +767,7 @@
   },
   "craft_reinforced_plating": {
     "category": "components",
-    "description": "Forge salvaged combat alloy and scavenged circuitry into a Tier-1 reinforced hull plate — the cornerstone of early ship-frame upgrades.",
+    "description": "Forge salvaged combat alloy and scavenged circuitry into a Tier-1 reinforced hull plate \u2014 the cornerstone of early ship-frame upgrades.",
     "duration": 12.0,
     "input": {
       "DamagedCircuitry": 2,
@@ -1185,9 +1185,7 @@
     },
     "level_req": 15,
     "name": "Decode Encrypted Data",
-    "output": {
-
-    },
+    "output": {},
     "xp": 30
   },
   "decrypt_nav_data": {
@@ -1207,7 +1205,7 @@
   },
   "distill_cryo_essence": {
     "category": "components",
-    "description": "Infuse supercooled helium-nitrogen with a Primordial Shard, condensing concentrated Cryo-Essence — the active medium of cryogenic armaments. The Shard's exotic resonance is what makes the essence bite Warp-Hardened hulls.",
+    "description": "Infuse supercooled helium-nitrogen with a Primordial Shard, condensing concentrated Cryo-Essence \u2014 the active medium of cryogenic armaments. The Shard's exotic resonance is what makes the essence bite Warp-Hardened hulls.",
     "duration": 15.0,
     "input": {
       "He": 8,
@@ -1421,7 +1419,7 @@
   },
   "reclaim_damaged_circuitry": {
     "category": "components",
-    "description": "Cannibalise finished Circuits into a Damaged Circuitry substitute. Lossy (6:1) — Tech enemies drop it far faster — but this is the deadlock safety net.",
+    "description": "Cannibalise finished Circuits into a Damaged Circuitry substitute. Lossy (6:1) \u2014 Tech enemies drop it far faster \u2014 but this is the deadlock safety net.",
     "duration": 15.0,
     "input": {
       "Circuit": 6
@@ -1435,7 +1433,7 @@
   },
   "reclaim_salvaged_alloy": {
     "category": "components",
-    "description": "Crudely re-smelt bulk Steel into a Salvaged Alloy substitute. Wildly inefficient (8:1) — farming Heavy enemies is far better — but it guarantees you can never hard-lock.",
+    "description": "Crudely re-smelt bulk Steel into a Salvaged Alloy substitute. Wildly inefficient (8:1) \u2014 farming Heavy enemies is far better \u2014 but it guarantees you can never hard-lock.",
     "duration": 15.0,
     "input": {
       "Steel": 8
@@ -1749,5 +1747,22 @@
     },
     "research_req": "smelting",
     "xp": 100
+  },
+  "craft_boost_card": {
+    "name": "Boost Card",
+    "description": "Fabricate an overclock protocol chip for a building.",
+    "input": {
+      "AdvCircuit": 5,
+      "Superalloy": 10,
+      "QuantumCore": 1
+    },
+    "output": {
+      "BoostCard": 1
+    },
+    "level_req": 40,
+    "duration": 12.0,
+    "xp": 300,
+    "category": "electronics",
+    "research_req": ""
   }
 }

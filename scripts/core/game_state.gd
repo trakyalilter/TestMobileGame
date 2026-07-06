@@ -264,7 +264,8 @@ const AFFIX_DB := {
 
 # Infrastructure (passive production buildings — runs in the background always)
 var buildings: Dictionary = {}          # id -> count
-var building_throttle: Dictionary = {}  # id -> 0..1
+var building_throttle: Dictionary = {}  # id -> 0..1 (0..2 once overclocked)
+var overclocks: Dictionary = {}         # bid -> 1 (Boost Card installed; run-state, cleared on warp)
 var infra_energy: float = 0.0           # grid battery (capacity = ship energy_cap)
 var _fuel_frac: Dictionary = {}         # fractional fuel-generator consumption accumulator
 var _build_timers: Dictionary = {}      # id -> accumulated time
@@ -697,6 +698,7 @@ func execute_warp() -> int:
 		skills[sk] = int(skills[sk] * xp_keep)
 	buildings = {}
 	building_throttle = {}
+	overclocks = {}   # overclock unlocks are run-state — wiped with the buildings
 	infra_energy = 0.0
 	_build_timers = {}
 	_build_frac = {}
@@ -2182,8 +2184,38 @@ func get_throttle(bid: String) -> float:
 	return float(building_throttle.get(bid, 1.0))
 
 func set_throttle(bid: String, v: float) -> void:
-	building_throttle[bid] = clampf(v, 0.0, 1.0)
+	building_throttle[bid] = clampf(v, 0.0, overclock_max_throttle(bid))
 	resources_changed.emit()
+
+# ---------------- Overclock (Boost Cards) — ported: infrastructure_manager ~L1024-1055 ----------------
+func building_overclocked(bid: String) -> bool:
+	return int(overclocks.get(bid, 0)) >= 1
+
+func overclock_max_throttle(bid: String) -> float:
+	return 2.0 if building_overclocked(bid) else 1.0
+
+# Install one Boost Card from cargo — unlocks this building type's Efficiency
+# slider up to 200%. Returns {ok, msg}.
+func install_boost_card(bid: String) -> Dictionary:
+	if building_count(bid) <= 0:
+		return {"ok": false, "msg": "Build one first — a card unlocks overclock on an owned building type."}
+	if building_overclocked(bid):
+		return {"ok": false, "msg": "Overclock already unlocked for this building type."}
+	if amount("BoostCard") < 1:
+		return {"ok": false, "msg": "No Boost Card in cargo — fabricate one in Engineering."}
+	resources["BoostCard"] = amount("BoostCard") - 1
+	overclocks[bid] = 1
+	resources_changed.emit()
+	return {"ok": true, "msg": "Overclock unlocked — Efficiency can now go up to 200%."}
+
+# Per-cycle INPUT multiplier: output scales linearly with throttle (via the cycle
+# rate), but input scales QUADRATICALLY above 100% — a batch at throttle t draws
+# t× input (× the t× rate = t² total). At/below 100% it stays linear.
+func _overclock_input_mult(bid: String) -> float:
+	if not building_overclocked(bid):
+		return 1.0
+	var t := get_throttle(bid)
+	return t if t > 1.0 else 1.0
 
 func _is_fuel_gen(d: Dictionary) -> bool:
 	return float(d.get("energy_gen", 0.0)) > 0.0 and not d.get("input", {}).is_empty()
@@ -2486,11 +2518,12 @@ func _produce_batch(bid: String, count: int, d: Dictionary, gyb: Dictionary) -> 
 	# input draw and yield, so over-stacked buildings idle instead of burning feed.
 	var units := _dr_units(count)
 	var inp: Dictionary = d.get("input", {})
+	var oc_in := _overclock_input_mult(bid)   # quadratic input above 100% (overclock)
 	for res in inp:
-		if amount(res) < float(inp[res]) * units:
+		if amount(res) < float(inp[res]) * units * oc_in:
 			return  # not enough fuel/feedstock this cycle
 	for res in inp:
-		resources[res] = amount(res) - float(inp[res]) * units
+		resources[res] = amount(res) - float(inp[res]) * units * oc_in
 		_infra_dirty = true
 	# v109: Recursive Networking (infrastructure_focus) — infinite +5%/level building yield.
 	var net_mult := 1.0 + research_bonus("building_yield_mult")
@@ -4433,6 +4466,7 @@ func save_game() -> void:
 		"loadout_presets": loadout_presets,
 		"buildings": buildings,
 		"building_throttle": building_throttle,
+		"overclocks": overclocks,
 		"infra_energy": infra_energy,
 		"bounty_available": bounty_available,
 		"bounty_active": bounty_active,
@@ -4548,6 +4582,7 @@ func load_game() -> void:
 	for k in buildings:
 		buildings[k] = int(buildings[k])
 	building_throttle = data.get("building_throttle", {})
+	overclocks = data.get("overclocks", {})   # v130: additive, pre-port saves default {}
 	infra_energy = float(data.get("infra_energy", 0.0))
 	bounty_available = data.get("bounty_available", [])
 	bounty_active = data.get("bounty_active", [])
@@ -4629,6 +4664,7 @@ func hard_reset() -> void:
 	unlocked_research = {}
 	buildings = {}
 	building_throttle = {}
+	overclocks = {}   # overclock unlocks are run-state — wiped with the buildings
 	infra_energy = 0.0
 	storage_upgrades = 0
 	repeatable_research = {}
