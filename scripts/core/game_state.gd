@@ -738,6 +738,7 @@ func execute_warp() -> int:
 	_standing_fill()
 	# Warp goal missions (goal_002/goal_003) track total_warps.
 	_mission_event("warp_perform", "warp", 1)
+	_surface_core_goals()   # first Warp sets cryo_unlocked → reveal the Cryo goal chain
 	_mission_sync()
 	resources_changed.emit()
 	skills_changed.emit()
@@ -2205,6 +2206,7 @@ func install_boost_card(bid: String) -> Dictionary:
 		return {"ok": false, "msg": "No Boost Card in cargo — fabricate one in Engineering."}
 	resources["BoostCard"] = amount("BoostCard") - 1
 	overclocks[bid] = 1
+	_mission_event("overclock_install", "BoostCard", 1)   # goal_boost_2
 	resources_changed.emit()
 	return {"ok": true, "msg": "Overclock unlocked — Efficiency can now go up to 200%."}
 
@@ -2787,10 +2789,27 @@ func _surface_core_goals() -> void:
 	for gid in GameData.MISSION_GOALS:
 		if missions_claimed.has(gid):
 			continue
-		if ready:
+		if ready and _goal_revealed(gid):
 			missions_active[gid] = true
 		else:
-			missions_active.erase(gid)   # stay hidden until the tutorial ends
+			missions_active.erase(gid)   # stay hidden until the tutorial ends (and until relevant)
+
+# Endgame goal chains (cryo / overclock) stay hidden until relevant, so a fresh
+# player isn't shown "defeat the Z11 boss" at 0%. Reveal is STICKY (a game_flag)
+# so a post-warp skill/level dip can't un-reveal a goal that already surfaced.
+func _goal_revealed(gid: String) -> bool:
+	if not gid.begins_with("goal_cryo") and not gid.begins_with("goal_boost"):
+		return true   # goal_001..003 are always revealed once the tutorial ends
+	if game_flags.get(gid + "_revealed", false):
+		return true
+	var cond := false
+	if gid == "goal_cryo_1":
+		cond = cryo_unlocked                                       # cryo research opens on first Warp
+	elif gid == "goal_boost_1":
+		cond = not buildings.is_empty() and level_of("fabrication") >= 20
+	if cond:
+		game_flags[gid + "_revealed"] = true
+	return cond
 
 ## Recover a stalled tutorial chain: if there's no active mission but unclaimed
 ## ones remain (e.g. an old save whose chain hit a since-fixed dead link),

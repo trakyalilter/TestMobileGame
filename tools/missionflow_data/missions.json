@@ -6,9 +6,7 @@
     "current_qty": 0.0,
     "description": "Reach Sector Epsilon and discover the Primordial Core.",
     "id": "goal_001",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[CORE GOAL] THE GREAT EXPEDITION",
     "next_mission": "",
     "reward_cr": 0,
@@ -24,9 +22,7 @@
     "current_qty": 0.0,
     "description": "Perform your first Warp. Your Liras and materials reset, but you gain Exotic Matter Shards for permanent multipliers that make each run stronger.",
     "id": "goal_002",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[CORE GOAL] INTO THE VOID",
     "next_mission": "",
     "reward_cr": 0,
@@ -42,9 +38,7 @@
     "current_qty": 0.0,
     "description": "Perform 5 Warps total to fully unlock Warp Tier scaling.",
     "id": "goal_003",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[CORE GOAL] PRESTIGE VETERAN",
     "next_mission": "",
     "reward_cr": 0,
@@ -60,9 +54,7 @@
     "current_qty": 50.0,
     "description": "Gather 350 Dirt to begin basic repairs.",
     "id": "m001",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[TUTORIAL] Stranded in Orbit",
     "next_mission": "m002",
     "reward_cr": 630,
@@ -78,9 +70,7 @@
     "current_qty": 0.0,
     "description": "Research 'Basic Engineering' to unlock refining.",
     "id": "m002",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[TUTORIAL] Analytical Breakthrough",
     "next_mission": "m002b",
     "reward_cr": 330,
@@ -96,9 +86,7 @@
     "current_qty": 0.0,
     "description": "Research the 'Applied Physics' hub.",
     "id": "m002b",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[TUTORIAL] Applied Physics",
     "next_mission": "m003",
     "reward_cr": 345,
@@ -114,9 +102,7 @@
     "current_qty": 0.0,
     "description": "Research 'Fluid Dynamics' to unlock water collection.",
     "id": "m003",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[TUTORIAL] Pump Master",
     "next_mission": "m004",
     "reward_cr": 360,
@@ -132,9 +118,7 @@
     "current_qty": 0.0,
     "description": "Gather 350 units of Water.",
     "id": "m004",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[TUTORIAL] Hydration",
     "next_mission": "m005",
     "reward_cr": 625,
@@ -150,9 +134,7 @@
     "current_qty": 0.0,
     "description": "Open the Engineering page and process Dirt to extract 100 Silicon and 80 Iron.",
     "id": "m005",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[TUTORIAL] Mineral Washing",
     "next_mission": "m007",
     "reward_cr": 1300,
@@ -171,9 +153,7 @@
     "current_qty": 0.0,
     "description": "Craft a 'Basic Thruster' in the Shipyard.",
     "id": "m007",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[TUTORIAL] Mobility Check",
     "next_mission": "m007b",
     "reward_cr": 1350,
@@ -189,9 +169,7 @@
     "current_qty": 0.0,
     "description": "Open the Ship Designer, then DRAG the Basic Thruster from your Armory (right panel) onto an empty ENGINE slot. Evasion goes up the moment it seats.",
     "id": "m007b",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[TUTORIAL] Spacewalk Test",
     "next_mission": "m008",
     "reward_cr": 700,
@@ -207,9 +185,7 @@
     "current_qty": 0.0,
     "description": "Research the 'Materials Science' hub.",
     "id": "m008",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[TUTORIAL] Materials Science",
     "next_mission": "m009",
     "reward_cr": 435,
@@ -225,9 +201,7 @@
     "current_qty": 0.0,
     "description": "Gather 100 units of Wood.",
     "id": "m009",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[TUTORIAL] Deforestation",
     "next_mission": "m010",
     "reward_cr": 750,
@@ -243,9 +217,7 @@
     "current_qty": 0.0,
     "description": "Research 'Organic Combustion' to unlock the Kiln.",
     "id": "m010",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[TUTORIAL] Organic Combustion",
     "next_mission": "m011",
     "reward_cr": 775,
@@ -261,9 +233,7 @@
     "current_qty": 0.0,
     "description": "Use the Charcoal Kiln to produce 50 Carbon.",
     "id": "m011",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[TUTORIAL] Essential Carbon",
     "next_mission": "m012",
     "reward_cr": 960,
@@ -279,9 +249,7 @@
     "current_qty": 0.0,
     "description": "In the Mine page, extract 100 Spodumene (the lithium-bearing ore).",
     "id": "m012",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[TUTORIAL] Lithium Discovery",
     "next_mission": "m013",
     "reward_cr": 1320,
@@ -297,9 +265,7 @@
     "current_qty": 0.0,
     "description": "Refine 50 Lithium in the Engineering tab.",
     "id": "m013",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[TUTORIAL] Voltaic Storage",
     "next_mission": "m013b",
     "reward_cr": 1700,
@@ -315,9 +281,7 @@
     "current_qty": 0.0,
     "description": "Gather 100 Malachite Ore.",
     "id": "m013b",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[TUTORIAL] Copper Prospecting",
     "next_mission": "m013c",
     "reward_cr": 2100,
@@ -333,9 +297,7 @@
     "current_qty": 0.0,
     "description": "Refine 50 Copper in the Engineering tab.",
     "id": "m013c",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[TUTORIAL] Conductivity",
     "next_mission": "m020",
     "reward_cr": 2700,
@@ -351,9 +313,7 @@
     "current_qty": 0.0,
     "description": "Research 'Kinetic Weapons Theory' in the Research tree to unlock kinetic weapon modules.",
     "id": "m014",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[TUTORIAL] Ballistics Theory",
     "next_mission": "m015",
     "reward_cr": 2220,
@@ -369,9 +329,7 @@
     "current_qty": 0.0,
     "description": "Craft a 'Mass Driver Mk.I' in the Shipyard.",
     "id": "m015",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[TUTORIAL] Prototype Arsenal",
     "next_mission": "m015b",
     "reward_cr": 2850,
@@ -387,9 +345,7 @@
     "current_qty": 0.0,
     "description": "Open the Ship Designer, then DRAG the Mass Driver from your Armory (right panel) onto an empty WEAPON slot. Your ship can finally deal damage.",
     "id": "m015b",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[TUTORIAL] Weapons Hot",
     "next_mission": "m016",
     "reward_cr": 975,
@@ -405,9 +361,7 @@
     "current_qty": 0.0,
     "description": "In the Engineering page, produce 100 Ferrite Rounds (SlugT1) to feed your weapon.",
     "id": "m016",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[TUTORIAL] Kinetic Munitions",
     "next_mission": "m023",
     "reward_cr": 2000,
@@ -423,9 +377,7 @@
     "current_qty": 0.0,
     "description": "Equip a WEAPON and SHIELD in your Ship Designer.",
     "id": "m016b",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[TUTORIAL] Combat Ready",
     "next_mission": "m017",
     "reward_cr": 615,
@@ -439,11 +391,9 @@
     "claimed": false,
     "completed": false,
     "current_qty": 0.0,
-    "description": "Open the Combat page (left sidebar). Pick a sector → pick a target → ENGAGE. Your Shield absorbs hits first; your Hull takes overflow. Auto-consumables fire when each drops below the threshold you set in Research.",
+    "description": "Open the Combat page (left sidebar). Pick a sector \u2192 pick a target \u2192 ENGAGE. Your Shield absorbs hits first; your Hull takes overflow. Auto-consumables fire when each drops below the threshold you set in Research.",
     "id": "m016c",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[TUTORIAL] Combat Briefing",
     "next_mission": "m017",
     "reward_cr": 550,
@@ -459,9 +409,7 @@
     "current_qty": 0.0,
     "description": "Defeat 1 Lunar Drone in Lunar Orbit.",
     "id": "m017",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[TUTORIAL] Target Locked",
     "next_mission": "m018",
     "reward_cr": 5250,
@@ -477,9 +425,7 @@
     "current_qty": 0.0,
     "description": "Research the 'Industrial Logistics' hub.",
     "id": "m018",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[TUTORIAL] Industrial Logistics",
     "next_mission": "m018b",
     "reward_cr": 1075,
@@ -495,9 +441,7 @@
     "current_qty": 0.0,
     "description": "Research 'Automated Logistics' for circuitry.",
     "id": "m018b",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[TUTORIAL] Automated Intelligence",
     "next_mission": "m019",
     "reward_cr": 2200,
@@ -513,9 +457,7 @@
     "current_qty": 0.0,
     "description": "Craft 10 Basic Circuitry in the Engineering tab.",
     "id": "m019",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[TUTORIAL] Cybernetic Integration",
     "next_mission": "m025",
     "reward_cr": 4500,
@@ -531,9 +473,7 @@
     "current_qty": 0.0,
     "description": "Research 'Power Systems' for batteries.",
     "id": "m020",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[TUTORIAL] Advanced Energy",
     "next_mission": "m021",
     "reward_cr": 1150,
@@ -549,9 +489,7 @@
     "current_qty": 0.0,
     "description": "Craft 5 Basic Batteries in the Engineering tab.",
     "id": "m021",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[TUTORIAL] Industrial Energy",
     "next_mission": "m022",
     "reward_cr": 2350,
@@ -567,9 +505,7 @@
     "current_qty": 0.0,
     "description": "Craft a 'Basic Battery' in the Shipyard.",
     "id": "m022",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[TUTORIAL] Power Storage",
     "next_mission": "m022b",
     "reward_cr": 3600,
@@ -583,11 +519,9 @@
     "claimed": false,
     "completed": false,
     "current_qty": 0.0,
-    "description": "Open the Ship Designer, then DRAG the Basic Battery from your Armory (right panel) onto an empty BATTERY slot. Energy capacity goes up — needed to power higher-tier weapons.",
+    "description": "Open the Ship Designer, then DRAG the Basic Battery from your Armory (right panel) onto an empty BATTERY slot. Energy capacity goes up \u2014 needed to power higher-tier weapons.",
     "id": "m022b",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[TUTORIAL] Power Online",
     "next_mission": "m014",
     "reward_cr": 1225,
@@ -603,9 +537,7 @@
     "current_qty": 0.0,
     "description": "Research 'Energy Fields' to unlock shielding.",
     "id": "m023",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[TUTORIAL] Hull Integrity",
     "next_mission": "m024",
     "reward_cr": 2500,
@@ -621,9 +553,7 @@
     "current_qty": 0.0,
     "description": "Craft a 'Basic Shield' for protection.",
     "id": "m024",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[TUTORIAL] Aegis System",
     "next_mission": "m024c",
     "reward_cr": 6375,
@@ -639,9 +569,7 @@
     "current_qty": 0.0,
     "description": "Repair kits keep you alive in combat. In the Processing page, craft 5 Emergency Hull Patches and 5 Basic Shield Boosters.",
     "id": "m024b",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[TUTORIAL] Field Supplies",
     "next_mission": "m024b2",
     "reward_cr": 5300,
@@ -660,9 +588,7 @@
     "current_qty": 0.0,
     "description": "Now equip a Hull and a Shield repair kit in your Ship Designer's consumable slots. In combat, tap the HULL / SHLD buttons to spend one and patch up.",
     "id": "m024b2",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[TUTORIAL] Combat Triage",
     "next_mission": "m016c",
     "reward_cr": 5400,
@@ -678,9 +604,7 @@
     "current_qty": 0.0,
     "description": "Open the Ship Designer, then DRAG the Basic Shield from your Armory (right panel) onto an empty SHIELD slot. Incoming damage hits the shield before your hull.",
     "id": "m024c",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[TUTORIAL] Shields Up",
     "next_mission": "m024b",
     "reward_cr": 1300,
@@ -696,9 +620,7 @@
     "current_qty": 0.0,
     "description": "Research 'Efficient Smelting' for alloys.",
     "id": "m025",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[TUTORIAL] Refining Mastery",
     "next_mission": "m025b",
     "reward_cr": 42000,
@@ -714,9 +636,7 @@
     "current_qty": 0.0,
     "description": "Smelt 50 Steel in the Engineering tab (Basic Steel Smelting recipe).",
     "id": "m025b",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[TUTORIAL] Alloy Production",
     "next_mission": "m026",
     "reward_cr": 14250,
@@ -732,9 +652,7 @@
     "current_qty": 0.0,
     "description": "Research 'Shipwright I' for hull reinforcement.",
     "id": "m026",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[TUTORIAL] Master Constructor",
     "next_mission": "m026b",
     "reward_cr": 14500,
@@ -750,9 +668,7 @@
     "current_qty": 0.0,
     "description": "Construct an 'Industrial Frigate' in the Shipyard.",
     "id": "m026b",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[TUTORIAL] Hull Modernization I",
     "next_mission": "m026c",
     "reward_cr": 29500,
@@ -768,9 +684,7 @@
     "current_qty": 0.0,
     "description": "Defeated enemies drop gear of varying rarity. Farm Lunar Orbit until you get a RARE (blue) module drop.",
     "id": "m026c",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[TUTORIAL] Elite Salvage",
     "next_mission": "m026d",
     "reward_cr": 15000,
@@ -786,9 +700,7 @@
     "current_qty": 0.0,
     "description": "Equip at least 1 RARE+ Weapon.",
     "id": "m026d",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[TUTORIAL] Combat Overhaul",
     "next_mission": "m026e",
     "reward_cr": 30500,
@@ -804,9 +716,7 @@
     "current_qty": 0.0,
     "description": "Defeat the Rogue Architect boss in Lunar Orbit.",
     "id": "m026e",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[TUTORIAL] Final Confrontation",
     "next_mission": "m027",
     "reward_cr": 77500,
@@ -822,9 +732,7 @@
     "current_qty": 0.0,
     "description": "Research 'Asteroid Belt Authorization' in the Research tree to unlock the Asteroid Belt combat zone.",
     "id": "m027",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[CHAPTER 2] Scanning Horizon",
     "next_mission": "m028",
     "reward_cr": 15750,
@@ -840,9 +748,7 @@
     "current_qty": 0.0,
     "description": "In the Mine page, mine 100 Cassiterite (tin ore).",
     "id": "m028",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[CHAPTER 2] Belt Mining",
     "next_mission": "m029",
     "reward_cr": 32000,
@@ -858,9 +764,7 @@
     "current_qty": 0.0,
     "description": "Craft 'Carbon Fiber Plate' in the Shipyard.",
     "id": "m029",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[CHAPTER 2] Hardened Shell",
     "next_mission": "m029a1",
     "reward_cr": 48750,
@@ -876,9 +780,7 @@
     "current_qty": 0.0,
     "description": "Research 'Advanced Materials' in the Research tree to unlock heavier industrial recipes.",
     "id": "m029a1",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[TUTORIAL] Material Sciences",
     "next_mission": "m029a2",
     "reward_cr": 16500,
@@ -894,9 +796,7 @@
     "current_qty": 0.0,
     "description": "Research 'Advanced Metallurgy' to fabricate universal components.",
     "id": "m029a2",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[TUTORIAL] Structural Doctrine",
     "next_mission": "m029a3",
     "reward_cr": 16750,
@@ -912,9 +812,7 @@
     "current_qty": 0.0,
     "description": "Craft 10 Structural Components in the Engineering tab. They are the universal building block of heavy industry.",
     "id": "m029a3",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[TUTORIAL] First Components",
     "next_mission": "m029a4",
     "reward_cr": 27200,
@@ -930,9 +828,7 @@
     "current_qty": 0.0,
     "description": "Research 'Organic Combustion' to unlock Germanium extraction (needed for semiconductors).",
     "id": "m029a4",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[TUTORIAL] Chemical Heat",
     "next_mission": "m029a5",
     "reward_cr": 17250,
@@ -946,11 +842,9 @@
     "claimed": false,
     "completed": false,
     "current_qty": 0.0,
-    "description": "Research 'Factory Automation' — the last gate before Advanced Circuits.",
+    "description": "Research 'Factory Automation' \u2014 the last gate before Advanced Circuits.",
     "id": "m029a5",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[TUTORIAL] Factory Lights",
     "next_mission": "m029b",
     "reward_cr": 35000,
@@ -964,11 +858,9 @@
     "claimed": false,
     "completed": false,
     "current_qty": 0.0,
-    "description": "Craft 5 Advanced Circuits in the Engineering tab. (Combines Semiconductor + Gold + Silver + Tin + Structural Components — your earlier research unlocked each one.)",
+    "description": "Craft 5 Advanced Circuits in the Engineering tab. (Combines Semiconductor + Gold + Silver + Tin + Structural Components \u2014 your earlier research unlocked each one.)",
     "id": "m029b",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[CHAPTER 2] Complex Electronics",
     "next_mission": "m030",
     "reward_cr": 71000,
@@ -984,9 +876,7 @@
     "current_qty": 0.0,
     "description": "Research 'Shipwright II' to unlock Destroyer-class hulls.",
     "id": "m030",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[CHAPTER 2] Naval Expansion",
     "next_mission": "m030c",
     "reward_cr": 14400,
@@ -1002,9 +892,7 @@
     "current_qty": 0.0,
     "description": "Construct a 'Destroyer' hull in the Shipyard.",
     "id": "m030c",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[CHAPTER 2] Hull Modernization II",
     "next_mission": "m030e",
     "reward_cr": 91250,
@@ -1020,9 +908,7 @@
     "current_qty": 0.0,
     "description": "Research 'Mars Debris Clearance' in the Research tree to unlock the Mars Debris combat zone.",
     "id": "m030e",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[CHAPTER 2] Mars Beachhead",
     "next_mission": "m030f",
     "reward_cr": 148000,
@@ -1038,9 +924,7 @@
     "current_qty": 0.0,
     "description": "Defeat 3 Scavenger Mechs in the Mars Debris combat zone. Their relics can later be forged into a Mars Trophy.",
     "id": "m030f",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[CHAPTER 2] Salvage Operations",
     "next_mission": "m030g",
     "reward_cr": 225000,
@@ -1056,9 +940,7 @@
     "current_qty": 0.0,
     "description": "Research 'Cryofield Expedition' in the Research tree to unlock the Cryofield combat zone.",
     "id": "m030g",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[CHAPTER 2] Cryofield Survey",
     "next_mission": "m030h",
     "reward_cr": 304000,
@@ -1074,9 +956,7 @@
     "current_qty": 0.0,
     "description": "Defeat 3 Ice Wraiths in the Cryofield. Cryo Essence powers Titan Trophy crafting.",
     "id": "m030h",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[CHAPTER 2] Frozen Frontier",
     "next_mission": "m031",
     "reward_cr": 385000,
@@ -1092,9 +972,7 @@
     "current_qty": 0.0,
     "description": "Research 'Sector Scanning (Alpha)' in the Research tree to detect Sector Alpha space.",
     "id": "m031",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[CHAPTER 2] Deep Space Signal",
     "next_mission": "m032",
     "reward_cr": 195000,
@@ -1110,9 +988,7 @@
     "current_qty": 0.0,
     "description": "Defeat 3 Alien Frigates in Sector Alpha.",
     "id": "m032",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[CHAPTER 2] Alpha Sector Dominance",
     "next_mission": "m032b",
     "reward_cr": 296250,
@@ -1128,9 +1004,7 @@
     "current_qty": 0.0,
     "description": "Research 'Deep Space Navigation' to unlock Sector Beta.",
     "id": "m032b",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[CHAPTER 2] Expanding Horizons",
     "next_mission": "m032d",
     "reward_cr": 200000,
@@ -1146,9 +1020,7 @@
     "current_qty": 0.0,
     "description": "Construct a 'Battlecruiser' in the Shipyard.",
     "id": "m032c",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[CHAPTER 2] Capital Doctrine",
     "next_mission": "m033",
     "reward_cr": 1024999,
@@ -1162,11 +1034,9 @@
     "claimed": false,
     "completed": false,
     "current_qty": 0.0,
-    "description": "Void Artifacts drop from Sector Alpha ships — defeat them in Combat until you collect 5.",
+    "description": "Void Artifacts drop from Sector Alpha ships \u2014 defeat them in Combat until you collect 5.",
     "id": "m032d",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[CHAPTER 2] Void Research",
     "next_mission": "m032c",
     "reward_cr": 405000,
@@ -1182,9 +1052,7 @@
     "current_qty": 0.0,
     "description": "Defeat 5 Ore Guardians in Sector Beta to expand your influence.",
     "id": "m033",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[CHAPTER 2] Beta Sector Expansion",
     "next_mission": "m033b",
     "reward_cr": 622500,
@@ -1200,9 +1068,7 @@
     "current_qty": 0.0,
     "description": "Research 'Radiation Shielding Theory' to unlock Sector Gamma.",
     "id": "m033b",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[CHAPTER 2] Deep Space Signals",
     "next_mission": "m033c",
     "reward_cr": 420000,
@@ -1218,9 +1084,7 @@
     "current_qty": 0.0,
     "description": "Construct a 'Dreadnought' in the Shipyard.",
     "id": "m033c",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[CHAPTER 2] Titan Construction",
     "next_mission": "m034",
     "reward_cr": 4250000,
@@ -1236,9 +1100,7 @@
     "current_qty": 0.0,
     "description": "Defeat 3 Gamma Colossus in Sector Gamma to finalize supremacy.",
     "id": "m034",
-    "multi_progress": {
-
-    },
+    "multi_progress": {},
     "name": "[ENDGAME] Gamma Sector Control",
     "next_mission": "",
     "reward_cr": 1290000,
@@ -1246,5 +1108,85 @@
     "target": "z6_boss_colossus",
     "target_qty": 3,
     "type": "defeat"
+  },
+  "goal_cryo_1": {
+    "active": true,
+    "claimed": false,
+    "completed": false,
+    "current_qty": 0.0,
+    "description": "The Threshold (Sector 11) is warp-hardened \u2014 only Cryo weapons breach it. Research Cryogenic Armaments (buy its prerequisites first).",
+    "id": "goal_cryo_1",
+    "multi_progress": {},
+    "name": "[CORE GOAL] FORGE CRYOGENIC ARMS",
+    "next_mission": "goal_cryo_2",
+    "reward_cr": 0,
+    "reward_xp": 3000000,
+    "target": "cryo_armaments",
+    "target_qty": 1,
+    "type": "research"
+  },
+  "goal_cryo_2": {
+    "active": false,
+    "claimed": false,
+    "completed": false,
+    "current_qty": 0.0,
+    "description": "Craft a Cryo Lance in the Shipyard. It needs Cryo Catalyst \u2014 farm it from Sector 10 enemies.",
+    "id": "goal_cryo_2",
+    "multi_progress": {},
+    "name": "[CORE GOAL] FORGE CRYOGENIC ARMS",
+    "next_mission": "goal_cryo_3",
+    "reward_cr": 0,
+    "reward_xp": 6000000,
+    "target": "cryo_lance",
+    "target_qty": 1,
+    "type": "craft"
+  },
+  "goal_cryo_3": {
+    "active": false,
+    "claimed": false,
+    "completed": false,
+    "current_qty": 0.0,
+    "description": "Destroy a Warp Revenant in The Threshold (Sector 11) with your Cryo armaments.",
+    "id": "goal_cryo_3",
+    "multi_progress": {},
+    "name": "[CORE GOAL] BREACH THE THRESHOLD",
+    "next_mission": "",
+    "reward_cr": 0,
+    "reward_xp": 15000000,
+    "target": "z11_warp_revenant",
+    "target_qty": 1,
+    "type": "defeat"
+  },
+  "goal_boost_1": {
+    "active": true,
+    "claimed": false,
+    "completed": false,
+    "current_qty": 0.0,
+    "description": "Your grid can run hotter. Fabricate a Boost Card in the Engineering tab (Advanced Circuits + Superalloy + a Quantum Core).",
+    "id": "goal_boost_1",
+    "multi_progress": {},
+    "name": "[CORE GOAL] OVERCLOCK PROTOCOL",
+    "next_mission": "goal_boost_2",
+    "reward_cr": 0,
+    "reward_xp": 500000,
+    "target": "BoostCard",
+    "target_qty": 1,
+    "type": "gather"
+  },
+  "goal_boost_2": {
+    "active": false,
+    "claimed": false,
+    "completed": false,
+    "current_qty": 0.0,
+    "description": "Open Infrastructure and INSTALL the Boost Card on a building you own \u2014 it unlocks that building type's Efficiency up to 200% (input scales quadratically past 100%).",
+    "id": "goal_boost_2",
+    "multi_progress": {},
+    "name": "[CORE GOAL] RUNNING HOT",
+    "next_mission": "",
+    "reward_cr": 0,
+    "reward_xp": 800000,
+    "target": "BoostCard",
+    "target_qty": 1,
+    "type": "overclock_install"
   }
 }

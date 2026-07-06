@@ -934,9 +934,14 @@ const MISSIONS := {
 	"goal_001": {"name": "[CORE GOAL] THE GREAT EXPEDITION", "desc": "Reach Sector Epsilon and discover the Primordial Core.", "type": "discover", "target": "sector_epsilon", "qty": 1, "cr": 0, "xp": 1000000, "next": ""},
 	"goal_002": {"name": "[CORE GOAL] INTO THE VOID", "desc": "Perform your first Warp. Your Liras and materials reset, but you gain Exotic Matter Shards for permanent multipliers that make each run stronger.", "type": "warp_perform", "target": "warp", "qty": 1, "cr": 0, "xp": 250000, "next": ""},
 	"goal_003": {"name": "[CORE GOAL] PRESTIGE VETERAN", "desc": "Perform 5 Warps total to fully unlock Warp Tier scaling.", "type": "warp_perform", "target": "warp", "qty": 5, "cr": 0, "xp": 2000000, "next": ""},
+	"goal_cryo_1": {"name": "[CORE GOAL] FORGE CRYOGENIC ARMS", "desc": "The Threshold (Sector 11) is warp-hardened — only Cryo weapons breach it. Research Cryogenic Armaments (buy its prerequisites first).", "type": "research", "target": "cryo_armaments", "qty": 1, "cr": 0, "xp": 3000000, "next": "goal_cryo_2"},
+	"goal_cryo_2": {"name": "[CORE GOAL] FORGE CRYOGENIC ARMS", "desc": "Craft a Cryo Lance in the Ship Designer. It needs Cryo Catalyst — farm it from Sector 10 enemies.", "type": "craft", "target": "cryo_lance", "qty": 1, "cr": 0, "xp": 6000000, "next": "goal_cryo_3"},
+	"goal_cryo_3": {"name": "[CORE GOAL] BREACH THE THRESHOLD", "desc": "Destroy a Warp Revenant in The Threshold (Sector 11) with your Cryo armaments.", "type": "defeat", "target": "z11_warp_revenant", "qty": 1, "cr": 0, "xp": 15000000, "next": ""},
+	"goal_boost_1": {"name": "[CORE GOAL] OVERCLOCK PROTOCOL", "desc": "Your grid can run hotter. Fabricate a Boost Card in the Craft tab (Advanced Circuits + Superalloy + a Quantum Core).", "type": "gather", "target": "BoostCard", "qty": 1, "cr": 0, "xp": 500000, "next": "goal_boost_2"},
+	"goal_boost_2": {"name": "[CORE GOAL] RUNNING HOT", "desc": "Open Infrastructure and INSTALL the Boost Card on a building you own — it unlocks that building type's Efficiency up to 200% (input scales quadratically past 100%).", "type": "overclock_install", "target": "BoostCard", "qty": 1, "cr": 0, "xp": 800000, "next": ""},
 }
 const MISSION_ORDER := ["m001", "m002", "m004", "m005", "m014", "m020", "m021", "m022", "m022b", "m007", "m007b", "m015", "m015b", "m016", "m008", "m009", "m010", "m011", "m012", "m023", "m024", "m024c", "m024b", "m024b2", "m016c", "m017", "m018", "m019", "m025", "m025b", "m026", "m026b", "m026c", "m026d", "m026e", "m027", "m028", "m029", "m029a1", "m029a3", "m029a4", "m029b", "m030", "m030c", "m030e", "m030f", "m030g", "m030h", "m031", "m032", "m032b", "m032d", "m032c", "m033", "m033b", "m033c", "m034"]
-const MISSION_GOALS := ["goal_001", "goal_002", "goal_003"]
+const MISSION_GOALS := ["goal_001", "goal_002", "goal_003", "goal_cryo_1", "goal_boost_1"]
 
 const REPEATABLE := {
 	"combat_focus": {"name": "Recursive Calibration (Combat)", "desc": "Infinite scaling: +5% Total Ship Damage per level.", "base_cost": 100000, "items": {"Malachite": 750, "QuantumCore": 38, "VoidArtifact": 5}, "bonus_type": "combat_damage", "bonus_value": 0.05},
