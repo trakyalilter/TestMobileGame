@@ -33,38 +33,77 @@ var credits_at_warp_start: int = 0
 # purchases. Available = shards - spent. Purchased nodes persist ACROSS warps
 # (true meta-progression — only hard_reset clears them).
 const TREE_NODES := {
-	# Engineering branch (revealed at warp #1) ---------------------------
-	"E1": {"branch": "engineering", "cost": 1, "name": "Yield Calibration",
-		"desc": "+10% Gathering yield.", "implemented": true},
-	"E2": {"branch": "engineering", "cost": 2, "name": "Recipe Efficiency",
-		"desc": "-10% Processing duration.", "implemented": true},
-	"E3": {"branch": "engineering", "cost": 3, "name": "Alt-Recipe Slot",
-		"desc": "Unlocks alt-recipe variants on chosen recipes.", "implemented": false},
-	"E4": {"branch": "engineering", "cost": 5, "name": "Building Overclock",
-		"desc": "Buildings can be throttled up to 200% at +50% input cost per unit produced.", "implemented": false},
-	"E5": {"branch": "engineering", "cost": 8, "name": "Reclamation Foundry",
-		"desc": "Unlocks a building that auto-converts surplus raw materials into Liras at a slow rate.", "implemented": false},
-	# Combat branch (revealed at warp #2) --------------------------------
-	"C1": {"branch": "combat", "cost": 1, "name": "Hull Reinforcement",
-		"desc": "+10% Hull HP on all hulls.", "implemented": true},
-	"C2": {"branch": "combat", "cost": 2, "name": "Weapon Tuning",
-		"desc": "+10% module damage.", "implemented": true},
-	"C3": {"branch": "combat", "cost": 3, "name": "Auxiliary Slot",
-		"desc": "Unlocks a 9th module slot (Auxiliary type — accepts any module).", "implemented": false},
-	"C4": {"branch": "combat", "cost": 5, "name": "Matrix Core Resonance",
-		"desc": "Unlocks the 4th Matrix Core tier (Resonant) with stronger affixes.", "implemented": false},
-	"C5": {"branch": "combat", "cost": 8, "name": "Cryo Overcharge",
-		"desc": "+50% Cryo damage. (Cryo weapons unlock on your first Warp — this overcharges them.)", "implemented": true},
+	# ===== ENGINEERING (revealed at warp #1) — rebuild faster & bigger =====
+	"ENG_1": {"branch": "engineering", "cost": 1, "name": "Yield Calibration",
+		"desc": "+1 gathering yield (flat, per gather).", "implemented": true},
+	"ENG_2": {"branch": "engineering", "cost": 2, "name": "Recipe Efficiency",
+		"desc": "-15% processing action duration.", "implemented": true, "prereq": ["ENG_1"]},
+	"ENG_3": {"branch": "engineering", "cost": 3, "name": "Efficient Recipe",
+		"desc": "-1 of each input material per craft (min 1).", "implemented": true, "prereq": ["ENG_2"]},
+	"ENG_4": {"branch": "engineering", "cost": 4, "name": "Industrial Memory",
+		"desc": "-20% infrastructure build cost.", "implemented": true, "prereq": ["ENG_1"]},
+	"ENG_5": {"branch": "engineering", "cost": 5, "name": "Building Overclock",
+		"desc": "Throttle buildings to 200% output at +50% input/unit.", "implemented": false, "prereq": ["ENG_4"]},
+	"ENG_6": {"branch": "engineering", "cost": 6, "name": "Resonant Foundry",
+		"desc": "Auto-feeds a fraction of surplus primitives into the Core each cycle.", "implemented": false, "prereq": ["ENG_3", "ENG_5"]},
+	"ENG_S1": {"branch": "engineering", "cost": 2, "step": 1, "repeatable": true, "name": "Resource Surge",
+		"desc": "+6% gathering AND infrastructure yield per level.", "implemented": true, "prereq": ["ENG_1"]},
+	"ENG_S2": {"branch": "engineering", "cost": 3, "step": 2, "repeatable": true, "name": "Skilling Tempo",
+		"desc": "-2% processing duration per level (max -40%).", "implemented": true, "prereq": ["ENG_2"]},
+	# ===== COMBAT (revealed at warp #2) — ship spawns already armed =====
+	"CMB_1": {"branch": "combat", "cost": 1, "name": "Hardened Hull",
+		"desc": "+15% hull HP on all hulls.", "implemented": true},
+	"CMB_2": {"branch": "combat", "cost": 2, "name": "Weapon Tuning",
+		"desc": "+10% module damage.", "implemented": true, "prereq": ["CMB_1"]},
+	"CMB_3": {"branch": "combat", "cost": 5, "name": "Auxiliary Slot",
+		"desc": "Unlocks a 9th module slot that accepts any module type.", "implemented": false, "prereq": ["CMB_2"]},
+	"CMB_4": {"branch": "combat", "cost": 6, "name": "Matrix Core IV",
+		"desc": "Unlocks the Resonant matrix-core tier (above Pristine).", "implemented": false, "prereq": ["CMB_3"]},
+	"CMB_S1": {"branch": "combat", "cost": 2, "step": 1, "repeatable": true, "name": "Arsenal Doctrine",
+		"desc": "+6% module damage per level.", "implemented": true, "prereq": ["CMB_1"]},
+	# ===== RECURSION (revealed at warp #2) — each warp is faster, cheaper, pays more =====
+	"REC_1": {"branch": "recursion", "cost": 1, "name": "Blueprint Cache",
+		"desc": "On warp, auto-rebuild 50% of your buildings for free.", "implemented": true},
+	"REC_2": {"branch": "recursion", "cost": 2, "name": "Deeper Roots",
+		"desc": "Keep 40% XP through a warp (up from 30%).", "implemented": true, "prereq": ["REC_1"]},
+	"REC_6": {"branch": "recursion", "cost": 6, "name": "Persistent Schematics",
+		"desc": "Keep 55% XP through a warp (stacks with Deeper Roots).", "implemented": true, "prereq": ["REC_2"]},
+	"REC_4": {"branch": "recursion", "cost": 5, "name": "Resonance Tuning",
+		"desc": "Warp-Core Charge +25% efficiency and a higher bonus-shard cap.", "implemented": true, "prereq": ["REC_1"]},
+	"REC_S1": {"branch": "recursion", "cost": 3, "step": 2, "repeatable": true, "name": "Shard Resonance",
+		"desc": "+3% warp shards earned per level.", "implemented": true, "prereq": ["REC_1"]},
+	"REC_S2": {"branch": "recursion", "cost": 2, "step": 1, "repeatable": true, "cap": 10, "name": "Blueprint Bandwidth",
+		"desc": "+5% free building rebuild per level (caps at +50%).", "implemented": true, "prereq": ["REC_1"]},
+	"REC_S3": {"branch": "recursion", "cost": 3, "step": 2, "repeatable": true, "cap": 10, "name": "Cryptographic Cache",
+		"desc": "+8% Hack Card drop rate per level (caps at +80%).", "implemented": true, "prereq": ["REC_1"]},
 }
+# v122: v1 node ids remapped on load so old saves keep their purchases.
+const V1_NODE_REMAP := {"E1": "ENG_1", "E2": "ENG_2", "C1": "CMB_1", "C2": "CMB_2"}
 # Branch reveal derived from total_warps (no separate state).
-const BRANCH_REVEAL_WARP := {"engineering": 1, "combat": 2}
-# Ordered node chains per branch (prereq = the prior node in the branch).
+const BRANCH_REVEAL_WARP := {"engineering": 1, "combat": 2, "recursion": 2}
+# Display order per branch (prereqs listed before their dependents).
 const TREE_BRANCH_ORDER := {
-	"engineering": ["E1", "E2", "E3", "E4", "E5"],
-	"combat": ["C1", "C2", "C3", "C4", "C5"],
+	"engineering": ["ENG_1", "ENG_S1", "ENG_2", "ENG_S2", "ENG_3", "ENG_4", "ENG_5", "ENG_6"],
+	"combat": ["CMB_1", "CMB_S1", "CMB_2", "CMB_3", "CMB_4"],
+	"recursion": ["REC_1", "REC_S1", "REC_S2", "REC_S3", "REC_2", "REC_6", "REC_4"],
 }
-var purchased_nodes: Dictionary = {}  # {node_id: true} — persists across warps
+# v121/v134h: Warp-Core Charge — the player manually feeds surplus base materials
+# into the Core on the Warp page; charge converts to BONUS shards at execute_warp.
+# This table is the single source of truth for what is feedable and its weight.
+const CHARGE_WEIGHT := {
+	"Dirt": 70.0, "Water": 70.0, "Wood": 55.0,
+	"Malachite": 4.0, "Cassiterite": 4.0, "Bauxite": 6.0,
+	"Quartz": 3.0, "Dolomite": 4.0, "ZincOre": 4.0,
+	"Fe": 6.0, "Si": 6.0, "C": 4.0,
+}
+const CHARGE_TIER_COEF := 0.6                       # per-unit charge scales 1 + 0.6*tier
+const CHARGE_PER_BONUS_SHARD := 1000000.0
+const CHARGE_BONUS_FRAC_CAP := 0.5                  # bonus ≤ 50% of base shards
+const CHARGE_BONUS_ABS_CAP := 5
+var purchased_nodes: Dictionary = {}  # {finite_node_id: true} — persists across warps
+var node_levels: Dictionary = {}      # v122: {repeatable_node_id: level} — persists across warps
 var warp_shards_spent: float = 0.0    # cumulative spend; available = shards - spent
+var warp_charge: float = 0.0          # v121: per-run Warp-Core Charge (spent at warp)
 # v111: Warping permanently unlocks Cryogenic armaments — the key to the Z11
 # "Warp-Hardened" gate. Persists across prestiges (set once on the first Warp).
 var cryo_unlocked: bool = false
@@ -430,7 +469,7 @@ func gain_credits(n: int) -> void:
 
 # ---------------- Warp / prestige multipliers ----------------
 func warp_tier() -> int:
-	return total_warps / 5
+	return total_warps / warps_per_tier()
 
 func warp_gathering_mult() -> float:
 	return (1.0 + warp_shards * 0.015) * pow(2.0, warp_tier())
@@ -444,7 +483,7 @@ func warp_production_mult() -> float:
 func warp_combat_mult() -> float:
 	return (1.0 + warp_shards * 0.03) * pow(2.0, warp_tier())
 
-# ---------------- Warp Mastery Tree (ref_warp_manager ~L138-196) ----------------
+# ---------------- Warp Mastery Tree v2 (3 branches; finite + repeatable spines) ----------------
 func available_warp_shards() -> float:
 	return maxf(0.0, warp_shards - warp_shards_spent)
 
@@ -453,7 +492,17 @@ func is_branch_revealed(branch: String) -> bool:
 		return false
 	return total_warps >= int(BRANCH_REVEAL_WARP[branch])
 
+func _is_repeatable(node_id: String) -> bool:
+	return node_id in TREE_NODES and bool(TREE_NODES[node_id].get("repeatable", false))
+
+func get_node_level(node_id: String) -> int:
+	if _is_repeatable(node_id):
+		return int(node_levels.get(node_id, 0))
+	return 1 if bool(purchased_nodes.get(node_id, false)) else 0
+
 func is_node_purchased(node_id: String) -> bool:
+	if _is_repeatable(node_id):
+		return int(node_levels.get(node_id, 0)) >= 1
 	return bool(purchased_nodes.get(node_id, false))
 
 func is_node_implemented(node_id: String) -> bool:
@@ -461,47 +510,153 @@ func is_node_implemented(node_id: String) -> bool:
 		return false
 	return bool(TREE_NODES[node_id].get("implemented", true))
 
-func can_purchase_node(node_id: String) -> bool:
-	# Faithful to ref_warp_manager.can_purchase_node (~L156-166): nodes are
-	# INDEPENDENT — no in-branch prereq chain. A node is buyable once its branch
-	# is revealed, it is implemented, and you can afford it. (A prereq chain would
-	# strand the implemented C5 Cryo Overcharge behind the unimplemented C3/C4.)
+# Next-level cost (triangular for repeatable spines: base + step*current_level).
+func get_node_cost(node_id: String) -> int:
 	if not node_id in TREE_NODES:
-		return false
-	if is_node_purchased(node_id):
+		return 0
+	var node: Dictionary = TREE_NODES[node_id]
+	if _is_repeatable(node_id):
+		return int(node["cost"]) + int(node.get("step", 1)) * int(node_levels.get(node_id, 0))
+	return int(node["cost"])
+
+func _prereqs_met(node_id: String) -> bool:
+	for p in TREE_NODES[node_id].get("prereq", []):
+		if not is_node_purchased(p):
+			return false
+	return true
+
+func can_purchase_node(node_id: String) -> bool:
+	if not node_id in TREE_NODES:
 		return false
 	if not is_node_implemented(node_id):
 		return false  # unfinished mechanic nodes refuse purchase (desktop parity)
 	var node: Dictionary = TREE_NODES[node_id]
 	if not is_branch_revealed(node["branch"]):
 		return false
-	return available_warp_shards() >= float(node["cost"])
+	if not _prereqs_met(node_id):
+		return false
+	if _is_repeatable(node_id):
+		var cap: int = int(node.get("cap", 0))   # 0 = no hard cap
+		if cap > 0 and int(node_levels.get(node_id, 0)) >= cap:
+			return false
+	elif is_node_purchased(node_id):
+		return false
+	return available_warp_shards() >= float(get_node_cost(node_id))
 
 func purchase_tree_node(node_id: String) -> bool:
 	if not can_purchase_node(node_id):
 		return false
-	warp_shards_spent += float(TREE_NODES[node_id]["cost"])
-	purchased_nodes[node_id] = true
+	warp_shards_spent += float(get_node_cost(node_id))
+	if _is_repeatable(node_id):
+		node_levels[node_id] = int(node_levels.get(node_id, 0)) + 1
+	else:
+		purchased_nodes[node_id] = true
 	if active_type == "combat":
-		combat_hp = minf(maxf(combat_hp, 1.0), combat_max_hp())   # keep current HP within the (now larger) C1 ceiling
+		combat_hp = minf(maxf(combat_hp, 1.0), combat_max_hp())   # keep HP within the new CMB_1 ceiling
 	resources_changed.emit()
 	return true
 
-# Effect queries — folded into the matching stat getters. 1.0 means "not bought".
+# v122: remap v1 node ids (E1->ENG_1 …) on load so old saves keep their purchases.
+func _migrate_v1_node_ids() -> void:
+	for old_id in V1_NODE_REMAP:
+		if purchased_nodes.has(old_id):
+			purchased_nodes[V1_NODE_REMAP[old_id]] = true
+			purchased_nodes.erase(old_id)
+
+# ---- Effect queries — folded into the matching stat getters (1.0 = not bought) ----
 func tree_gathering_bonus() -> float:
-	return 1.10 if is_node_purchased("E1") else 1.0          # E1: +10% gather yield
-
+	return 1.0 + 0.06 * float(get_node_level("ENG_S1"))       # ENG_S1 spine
+func tree_gathering_flat() -> int:
+	return 1 if is_node_purchased("ENG_1") else 0             # ENG_1 flat +1/gather
+func tree_infra_bonus() -> float:
+	return 1.0 + 0.06 * float(get_node_level("ENG_S1"))       # ENG_S1 also buffs infra
+func tree_recipe_material_reduction() -> int:
+	return 1 if is_node_purchased("ENG_3") else 0             # ENG_3 -1 input/craft (min 1)
+func tree_build_cost_mult() -> float:
+	return 0.80 if is_node_purchased("ENG_4") else 1.0        # ENG_4 -20% build cost
+# ENG_3 Efficient Recipe: -1 of each input material per craft (floors at 1).
+func effective_craft_inputs(inputs: Dictionary) -> Dictionary:
+	var red := tree_recipe_material_reduction()
+	if red <= 0:
+		return inputs
+	var out := {}
+	for sym in inputs:
+		out[sym] = maxi(1, int(inputs[sym]) - red)
+	return out
 func tree_processing_speed_bonus() -> float:
-	return (1.0 / 0.9) if is_node_purchased("E2") else 1.0   # E2: -10% duration
-
+	var m: float = (1.0 / 0.85) if is_node_purchased("ENG_2") else 1.0   # ENG_2 -15% duration
+	var red: float = minf(0.02 * float(get_node_level("ENG_S2")), 0.40)  # ENG_S2 -2%/L, max -40%
+	if red > 0.0:
+		m *= 1.0 / (1.0 - red)
+	return m
 func tree_hull_bonus() -> float:
-	return 1.10 if is_node_purchased("C1") else 1.0          # C1: +10% hull HP
-
+	return 1.15 if is_node_purchased("CMB_1") else 1.0        # CMB_1 +15% hull HP
 func tree_damage_bonus() -> float:
-	return 1.10 if is_node_purchased("C2") else 1.0          # C2: +10% module damage
-
+	var m: float = 1.10 if is_node_purchased("CMB_2") else 1.0   # CMB_2 +10% module damage
+	m *= 1.0 + 0.06 * float(get_node_level("CMB_S1"))            # CMB_S1 spine
+	return m
 func tree_cryo_bonus() -> float:
-	return 1.50 if is_node_purchased("C5") else 1.0          # C5: +50% Cryo damage
+	return 1.0   # C5 Cryo Overcharge removed in tree v2 — no-op keeps combat math intact
+func tree_card_drop_bonus() -> float:
+	return minf(0.08 * float(get_node_level("REC_S3")), 0.80)  # REC_S3 (future Hack Cards)
+func tree_shard_score_mult() -> float:
+	return 1.0 + 0.03 * float(get_node_level("REC_S1"))        # REC_S1 pre-floor score mult
+func tree_xp_keep() -> float:
+	if is_node_purchased("REC_6"): return 0.55
+	if is_node_purchased("REC_2"): return 0.40
+	return 0.30
+func tree_shard_threshold() -> float:
+	return 500000.0
+func tree_blueprint_rebuild_frac() -> float:
+	if not is_node_purchased("REC_1"):
+		return 0.0
+	return minf(0.50 + 0.05 * float(get_node_level("REC_S2")), 1.0)
+func warps_per_tier() -> int:
+	return 5
+
+# ---- Warp-Core Charge (manual base-material feed → bonus shards at warp) ----
+func get_charge_feed_mult() -> float:
+	return 1.0 + CHARGE_TIER_COEF * float(warp_tier())
+
+# Charge a deposit of `amt` units of `sym` is worth — pure, no side effects.
+func charge_value(sym: String, amt: float) -> float:
+	if amt <= 0.0 or not CHARGE_WEIGHT.has(sym):
+		return 0.0
+	return amt * float(CHARGE_WEIGHT[sym]) * get_charge_feed_mult()
+
+# Deposit `amt` of `sym` from inventory into the Core (consumed; charge accrues).
+# Clamps to owned. Returns the charge gained (0 if nothing fed).
+func feed_core(sym: String, amt: float) -> float:
+	if amt <= 0.0 or not CHARGE_WEIGHT.has(sym):
+		return 0.0
+	var have: float = float(amount(sym))
+	if have < amt:
+		amt = have
+	if amt <= 0.0:
+		return 0.0
+	resources[sym] = amount(sym) - int(amt)
+	var gained := charge_value(sym, amt)
+	warp_charge += gained
+	resources_changed.emit()
+	return gained
+
+# Bonus shards the current warp_charge is worth (log-scaled, capped vs base shards).
+func get_charge_bonus_shards(base_shards: int = -1) -> int:
+	var per: float = CHARGE_PER_BONUS_SHARD
+	var abs_cap: int = CHARGE_BONUS_ABS_CAP
+	if is_node_purchased("REC_4"):   # REC_4 Resonance Tuning: +25% efficiency, +1 cap
+		per /= 1.25
+		abs_cap += 1
+	if warp_charge < per:
+		return 0
+	var raw: float = floor(log(warp_charge / per) / log(2.0)) + 1.0
+	var bonus := int(maxf(0.0, raw))
+	if base_shards < 0:
+		base_shards = warp_gain_preview()
+	var cap_by_base: int = (maxi(int(floor(float(base_shards) * CHARGE_BONUS_FRAC_CAP)), 1) if base_shards > 0 else 0)
+	bonus = mini(bonus, cap_by_base)
+	bonus = mini(bonus, abs_cap)
+	return bonus
 
 ## Shards that would be gained by warping now (0 = below threshold).
 func warp_gain_preview() -> int:
@@ -509,24 +664,37 @@ func warp_gain_preview() -> int:
 	var bcount := 0
 	for bid in buildings:
 		bcount += int(buildings[bid])
-	var score := float(earned) + bcount * 1000.0
-	if score < 500000.0:
+	var score := (float(earned) + bcount * 1000.0) * tree_shard_score_mult()   # REC_S1 pre-floor
+	var threshold := tree_shard_threshold()
+	if score < threshold:
 		return 0
-	return int(floor(log(maxf(1.0, score / 500000.0)) / log(2.0)) + 1.0)
+	return int(floor(log(maxf(1.0, score / threshold)) / log(2.0)) + 1.0)
 
 func execute_warp() -> int:
-	var gains := warp_gain_preview()
-	if gains <= 0:
+	var base_gains := warp_gain_preview()
+	if base_gains <= 0:
 		return 0
+	var gains := base_gains + get_charge_bonus_shards(base_gains)   # v121 Warp-Core Charge bonus
 	warp_shards += gains
 	total_warps += 1
 	credits_at_warp_start = lifetime_credits
+	warp_charge = 0.0   # Resonance is per-run — spent at warp
 	var bonus := int(warp_shards)
-	# Reset the world. Research unlocks PERSIST (soft reset); skills keep 30% XP.
+	# REC_1 Blueprint Cache: snapshot a fraction of buildings BEFORE the wipe so we
+	# can free-rebuild them after reset.
+	var blueprint_frac := tree_blueprint_rebuild_frac()
+	var blueprint_snapshot := {}
+	if blueprint_frac > 0.0:
+		for bid in buildings:
+			var keep_n := int(floor(float(buildings[bid]) * blueprint_frac))
+			if keep_n > 0:
+				blueprint_snapshot[bid] = keep_n
+	# Reset the world. Research unlocks PERSIST (soft reset); skills keep XP per REC_2/REC_6.
+	var xp_keep := tree_xp_keep()
 	resources = {}
 	credits = 0
 	for sk in skills:
-		skills[sk] = int(skills[sk] * 0.3)
+		skills[sk] = int(skills[sk] * xp_keep)
 	buildings = {}
 	building_throttle = {}
 	infra_energy = 0.0
@@ -549,6 +717,9 @@ func execute_warp() -> int:
 	credits = bonus * 5000
 	for r in {"Fe": 50, "Si": 30, "Wood": 20, "Water": 50}:
 		resources[r] = {"Fe": 50, "Si": 30, "Wood": 20, "Water": 50}[r] * bonus
+	# REC_1 Blueprint Cache: free-rebuild the snapshotted buildings after the wipe.
+	for bid in blueprint_snapshot:
+		buildings[bid] = int(buildings.get(bid, 0)) + int(blueprint_snapshot[bid])
 	# v111: Cryo unlock — Warping permanently grants Cryogenic armaments, the only
 	# weapons that bite Z11 Warp-Hardened hulls. The FIRST Warp grants a starter
 	# Cryo Shard Pistol (~Z1 power); guard on the flag so re-warps don't duplicate
@@ -639,7 +810,7 @@ func yield_mult(skill_id: String) -> float:
 	m *= research_efficiency_mult()                        # Efficiency I-V: 2x..32x
 	m *= 1.0 + affix_total("extractor_efficiency")
 	m *= 1.0 + research_bonus("gathering_yield_mult")      # Recursion: gathering_focus
-	m *= tree_gathering_bonus()                            # E1 Yield Calibration: +10%
+	m *= tree_gathering_bonus()                            # ENG_S1 Resource Surge spine (+6%/L)
 	# NB: warp prestige boosts gathering via SPEED (see gather_speed_mult), not yield.
 	return m
 
@@ -812,7 +983,7 @@ func ship_weapons() -> Array:
 	# v80.1 Trinity: atk-speed boost (capped), and damage multipliers.
 	spd_bonus = minf(spd_bonus + trinity_bonus("atk_speed_pct") / 100.0, MAX_ATK_SPEED_MULT - 1.0)
 	var speed := (1.0 + spd_bonus) * spd_mult
-	var dmg_mult := (1.0 + level_of("combat") * 0.005) * warp_combat_mult() * (1.0 + research_bonus("combat_damage")) * tree_damage_bonus()  # C2 Weapon Tuning: +10%
+	var dmg_mult := (1.0 + level_of("combat") * 0.005) * warp_combat_mult() * (1.0 + research_bonus("combat_damage")) * tree_damage_bonus()  # CMB_2 +10% & CMB_S1 spine
 	# Trinity all/atk damage % applies to every type; energy/missile % stack on top.
 	var trin_all := 1.0 + (trinity_bonus("atk_pct") + trinity_bonus("all_dmg_pct")) / 100.0
 	var trin_e := 1.0 + trinity_bonus("energy_dmg_pct") / 100.0
@@ -880,7 +1051,7 @@ func combat_max_hp() -> float:
 	# — no combat-level HP term in the original.
 	# v109: Recursive Hardening (defense_focus) applies hull_hp_mult multiplicatively.
 	return float(s["hp"]) * (1.0 + research_bonus("max_hp_mult") + research_bonus("materials_science")) \
-		* (1.0 + research_bonus("hull_hp_mult")) * tree_hull_bonus()   # C1 Hull Reinforcement: +10%
+		* (1.0 + research_bonus("hull_hp_mult")) * tree_hull_bonus()   # CMB_1 Hardened Hull: +15%
 
 func player_max_shield() -> float:
 	var s := ship_stats()
@@ -2247,7 +2418,7 @@ func _produce_batch(bid: String, count: int, d: Dictionary, gyb: Dictionary) -> 
 	var eng := _eng_scale(bid)              # P0.3 capped engineering scaling
 	var ore := _ore_throttle(bid)           # P1.4 ore tier handed to gathering
 	for res in d.get("yield", {}):
-		var qty := float(d["yield"][res]) * units * eng * ore * (1.0 + float(gyb.get(res, 0.0))) * warp_production_mult() * net_mult
+		var qty := float(d["yield"][res]) * units * eng * ore * (1.0 + float(gyb.get(res, 0.0))) * warp_production_mult() * net_mult * tree_infra_bonus()
 		_build_frac[res] = float(_build_frac.get(res, 0.0)) + qty
 		var whole := int(_build_frac[res])
 		if whole > 0:
@@ -2289,10 +2460,11 @@ func building_cost(bid: String) -> Dictionary:
 	var d: Dictionary = GameData.BUILDINGS.get(bid, {})
 	var c := building_count(bid)
 	var out := {}
+	var tree_mult := tree_build_cost_mult()   # ENG_4 Industrial Memory: -20%
 	for res in d.get("cost", {}):
 		var base := float(d["cost"][res])
 		var m: float = _credit_mult(c) if res == "credits" else _item_mult(c)
-		out[res] = int(ceil(base * m))
+		out[res] = int(ceil(base * m * tree_mult))
 	return out
 
 func building_unlocked(bid: String) -> bool:
@@ -3802,7 +3974,7 @@ func recipe_speed_mult(id: String) -> float:
 	if int(buildings.get("silver_catalyst_bay", 0)) > 0: m += 0.15
 	if level_of("fabrication") >= 10: m *= 1.10             # milestone 10
 	if level_of("fabrication") >= 25: m *= 1.11             # milestone 25
-	m *= tree_processing_speed_bonus()                      # E2 Recipe Efficiency: -10% duration
+	m *= tree_processing_speed_bonus()                      # ENG_2 -15% & ENG_S2 spine
 	m *= 1.0 / mastery_dur_mult(id)                         # per-recipe Mastery: faster as it levels
 	return m
 
@@ -3812,7 +3984,7 @@ func _tick_active(delta: float) -> void:
 	if active_type == "combat":
 		_tick_combat(delta)
 		return
-	if active_type == "craft" and not can_afford(GameData.CRAFT[active_id].get("inputs", {})):
+	if active_type == "craft" and not can_afford(effective_craft_inputs(GameData.CRAFT[active_id].get("inputs", {}))):
 		stop_task()
 		return
 	progress += delta
@@ -4010,15 +4182,16 @@ func building_rate_text(bid: String) -> String:
 func _complete_active() -> void:
 	if active_type == "gather":
 		var a: Dictionary = GameData.GATHER[active_id]
-		_roll_loot(a.get("loot", []), yield_mult("harvesting"), int(research_bonus("gathering_yield")), false, true)
+		_roll_loot(a.get("loot", []), yield_mult("harvesting"), int(research_bonus("gathering_yield")) + tree_gathering_flat(), false, true)
 		add_xp("harvesting", int(a.get("xp", 0)))
 		gain_mastery_xp(active_id)                          # per-action Mastery: +1 per loop
 	elif active_type == "craft":
 		var r: Dictionary = GameData.CRAFT[active_id]
-		if not can_afford(r.get("inputs", {})):
+		var eff_in := effective_craft_inputs(r.get("inputs", {}))   # ENG_3 reduction
+		if not can_afford(eff_in):
 			stop_task()
 			return
-		spend(r.get("inputs", {}))
+		spend(eff_in)
 		_grant_craft_outputs(active_id, r, 1)
 		add_xp("fabrication", int(r.get("xp", 0)))
 		gain_mastery_xp(active_id)                          # per-recipe Mastery: +1 per loop
@@ -4075,13 +4248,14 @@ func _apply_offline(delta: float) -> void:
 		pending_offline = "Away for %s\n\n%s\nHarvesting XP\t+%d" % [_fmt_time(delta), summary, int(a.get("xp", 0)) * reps]
 	elif active_type == "craft":
 		var r: Dictionary = GameData.CRAFT[active_id]
+		var eff_in := effective_craft_inputs(r.get("inputs", {}))   # ENG_3 reduction
 		var by_inputs := 0x7FFFFFFF
-		for sym in r.get("inputs", {}):
-			by_inputs = mini(by_inputs, int(amount(sym) / int(r["inputs"][sym])))
+		for sym in eff_in:
+			by_inputs = mini(by_inputs, int(amount(sym) / int(eff_in[sym])))
 		var count := mini(reps, by_inputs)
 		if count <= 0:
 			return
-		spend(r.get("inputs", {}), count)
+		spend(eff_in, count)
 		var before := {}
 		for sym in r.get("outputs", {}):
 			before[sym] = amount(sym)
@@ -4153,7 +4327,9 @@ func save_game() -> void:
 		"total_warps": total_warps,
 		"fleet_ships": fleet_ships,
 		"purchased_nodes": purchased_nodes,
+		"node_levels": node_levels,
 		"warp_shards_spent": warp_shards_spent,
+		"warp_charge": warp_charge,
 		"cryo_unlocked": cryo_unlocked,
 		"credits_at_warp_start": credits_at_warp_start,
 		"skills": skills,
@@ -4235,7 +4411,10 @@ func load_game() -> void:
 	total_warps = int(data.get("total_warps", 0))
 	fleet_ships = data.get("fleet_ships", [])
 	purchased_nodes = data.get("purchased_nodes", {})
+	node_levels = data.get("node_levels", {})           # v122: repeatable spines (defaults {} on old saves)
+	_migrate_v1_node_ids()                              # v122: E1->ENG_1 … remap for old saves
 	warp_shards_spent = float(data.get("warp_shards_spent", 0.0))
+	warp_charge = float(data.get("warp_charge", 0.0))   # v121: defaults 0 on old saves
 	# Back-compat: pre-v111 saves with warps predate the flag — infer it.
 	cryo_unlocked = bool(data.get("cryo_unlocked", total_warps > 0))
 	credits_at_warp_start = int(data.get("credits_at_warp_start", 0))
@@ -4360,7 +4539,9 @@ func hard_reset() -> void:
 	total_warps = 0
 	fleet_ships = []
 	purchased_nodes = {}
+	node_levels = {}
 	warp_shards_spent = 0.0
+	warp_charge = 0.0
 	cryo_unlocked = false
 	credits_at_warp_start = 0
 	skills = {"harvesting": 0, "fabrication": 0, "combat": 0, "infrastructure": 0}

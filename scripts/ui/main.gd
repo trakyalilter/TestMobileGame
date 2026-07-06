@@ -2179,7 +2179,8 @@ func _ammo_type_of(r: Dictionary) -> String:
 func _craft_card(id: String, r: Dictionary) -> Control:
 	var unlocked := GameState.meets_requirements(r, "fabrication")
 	var active := (GameState.active_type == "craft" and GameState.active_id == id)
-	var affordable := GameState.can_afford(r.get("inputs", {}))
+	var eff_inputs := GameState.effective_craft_inputs(r.get("inputs", {}))   # ENG_3 warp-tree reduction
+	var affordable := GameState.can_afford(eff_inputs)
 	var v := _card(CYAN, unlocked or active)
 	v.get_parent().size_flags_vertical = Control.SIZE_EXPAND_FILL
 	v.get_parent().set_meta("coach_id", id)
@@ -2194,10 +2195,10 @@ func _craft_card(id: String, r: Dictionary) -> Control:
 		v.add_child(trow)
 	if unlocked:
 		var in_lines := []
-		for sym in r.get("inputs", {}):
+		for sym in eff_inputs:
 			# QoL (desktop parity): show the required input, green when you have enough
 			# of that material, amber when short — so missing inputs read at a glance.
-			var need: int = int(r["inputs"][sym])
+			var need: int = int(eff_inputs[sym])
 			in_lines.append(_line("%d %s" % [need, GameData.res_name(sym)], GREEN if GameState.amount(sym) >= need else C_WARN, sym))
 		_inset(v, "INPUTS", in_lines, CYAN)
 		var d := Label.new()
@@ -3366,12 +3367,51 @@ func _warp_core(v: VBoxContainer) -> void:
 	else:
 		_lbl_wrap(v, "Warping now grants %d Warp Shard%s." % [gain, "s" if gain != 1 else ""], 12, GREEN)
 
-	var wb := _card_button(("⚠ Tap again to WARP (+%d)" % gain) if _warp_armed else ("WARP for %d Shards" % gain), PURP, gain > 0)
+	# Warp-Core Charge: feed surplus bulk base materials for bonus shards this warp.
+	var charge_bonus := GameState.get_charge_bonus_shards(gain)
+	_section(v, "WARP-CORE CHARGE", PURP)
+	_lbl_wrap(v, "Feed your surplus of bulk base materials into the Core for bonus shards on your next Warp. Charge is consumed when you Warp.", 10, C_DIM)
+	_clbl(v, "Charge stored: %s   →   +%d bonus shard%s" % [GameData.fmt(int(GameState.warp_charge)), charge_bonus, "s" if charge_bonus != 1 else ""], 12, GREEN if charge_bonus > 0 else C_DIM)
+	var any_feed := false
+	for sym in GameState.CHARGE_WEIGHT:
+		var have := GameState.amount(sym)
+		if have <= 0:
+			continue
+		any_feed = true
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
+		var icon := _mat_icon(sym, 20)
+		if icon != null:
+			icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			row.add_child(icon)
+		var nl := Label.new()
+		nl.text = "%s  ·  %s" % [GameData.res_name(sym), GameData.fmt(have)]
+		nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		nl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		nl.add_theme_font_size_override("font_size", _fs(11))
+		nl.add_theme_color_override("font_color", Color.html(C_TEXT))
+		row.add_child(nl)
+		var cval := int(GameState.charge_value(sym, float(have)))
+		var fb := _card_button("Feed +%s" % GameData.fmt(cval), PURP, true)
+		fb.custom_minimum_size = Vector2(120, 40)
+		var s: String = sym
+		fb.pressed.connect(func() -> void:
+			GameState.feed_core(s, float(GameState.amount(s)))
+			_refresh_current())
+		row.add_child(fb)
+		v.add_child(row)
+	if not any_feed:
+		_lbl_wrap(v, "No feedable base materials in storage yet (Dirt, Water, Wood, ores, Fe/Si/C…).", 10, C_MUTED)
+
+	var total_gain := gain + charge_bonus
+	_section(v, "EXECUTE WARP", PURP)
+	var wb := _card_button(("⚠ Tap again to WARP (+%d)" % total_gain) if _warp_armed else ("WARP for %d Shard%s" % [total_gain, "s" if total_gain != 1 else ""]), PURP, gain > 0)
 	wb.custom_minimum_size = Vector2(0, 46)
 	if gain > 0:
 		wb.pressed.connect(func() -> void:
 			if _warp_armed:
 				GameState.execute_warp()
+				_warp_armed = false
 				_show("warp")
 			else:
 				_warp_armed = true
@@ -3387,9 +3427,10 @@ func _warp_mastery(v: VBoxContainer) -> void:
 	sh.add_theme_font_size_override("font_size", _fs(13))
 	sh.add_theme_color_override("font_color", Color.html(PURP))
 	v.add_child(sh)
-	_lbl_wrap(v, "Spend Warp Shards on permanent mastery nodes. Purchases survive every Warp. Branches unlock as you Warp.", 10, C_DIM)
+	_lbl_wrap(v, "Spend Warp Shards on permanent mastery nodes. Purchases survive every Warp. Branches unlock as you Warp. Spine (◆) nodes are repeatable — each level costs a little more.", 10, C_DIM)
 	_warp_branch(v, "engineering", "ENGINEERING", GREEN)
 	_warp_branch(v, "combat", "COMBAT", RED)
+	_warp_branch(v, "recursion", "RECURSION", PURP)
 
 func _warp_branch(v: VBoxContainer, branch: String, title: String, accent: String) -> void:
 	var revealed := GameState.is_branch_revealed(branch)
@@ -3403,34 +3444,58 @@ func _warp_branch(v: VBoxContainer, branch: String, title: String, accent: Strin
 
 func _warp_node_card(nid: String) -> Control:
 	var node: Dictionary = GameState.TREE_NODES[nid]
-	var bought := GameState.is_node_purchased(nid)
+	var repeatable: bool = node.get("repeatable", false)
+	var level := GameState.get_node_level(nid)
+	var owned := GameState.is_node_purchased(nid)   # finite: bought; spine: level >= 1
 	var can := GameState.can_purchase_node(nid)
 	var impl: bool = node.get("implemented", true)
-	# Lit when purchased; accent-bordered when affordable; dim otherwise.
-	var border := GOLD if bought else (CYAN if can else "2a3a55")
+	var cost := GameState.get_node_cost(nid)
+	var prereq_ok := true
+	for p in node.get("prereq", []):
+		if not GameState.is_node_purchased(p):
+			prereq_ok = false
+	var cap: int = int(node.get("cap", 0))
+	var maxed := repeatable and cap > 0 and level >= cap
+	# Lit gold when a finite node is owned or a spine has levels; accent-bordered when
+	# affordable; dim otherwise.
+	var lit := owned
+	var border := GOLD if (owned and not repeatable) else (PURP if (repeatable and level > 0) else (CYAN if can else "2a3a55"))
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", _bordered("16243a", border, 2 if (bought or can) else 1))
+	panel.add_theme_stylebox_override("panel", _bordered("16243a", border, 2 if (lit or can) else 1))
 	var vb := VBoxContainer.new()
 	vb.add_theme_constant_override("separation", 3)
 	panel.add_child(vb)
 	var head := Label.new()
-	head.text = ("✔ " if bought else "") + node.get("name", nid)
+	var tag := "◆ " if repeatable else ""   # spine marker
+	var check := "✔ " if (owned and not repeatable) else ""
+	var lvtxt := ("  ·  Lv %d%s" % [level, ("/%d" % cap) if cap > 0 else ""]) if (repeatable and level > 0) else ""
+	head.text = "%s%s%s%s" % [check, tag, node.get("name", nid), lvtxt]
 	head.add_theme_font_size_override("font_size", _fs(13))
-	head.add_theme_color_override("font_color", Color.html(GOLD if bought else C_TEXT))
+	head.add_theme_color_override("font_color", Color.html(GOLD if (owned and not repeatable) else (PURP if level > 0 else C_TEXT)))
 	vb.add_child(head)
 	_lbl_wrap(vb, node.get("desc", ""), 10, C_DIM)
-	var cost := Label.new()
-	cost.text = "Cost: %d Shard%s" % [int(node["cost"]), "s" if int(node["cost"]) != 1 else ""]
-	cost.add_theme_font_size_override("font_size", _fs(10))
-	cost.add_theme_color_override("font_color", Color.html(PURP))
-	vb.add_child(cost)
-	if bought:
+	var cl := Label.new()
+	cl.text = ("Next level: %d Shard%s" % [cost, "s" if cost != 1 else ""]) if repeatable else ("Cost: %d Shard%s" % [cost, "s" if cost != 1 else ""])
+	cl.add_theme_font_size_override("font_size", _fs(10))
+	cl.add_theme_color_override("font_color", Color.html(PURP))
+	vb.add_child(cl)
+	if owned and not repeatable:
 		_clbl(vb, "PURCHASED", 11, GOLD)
+	elif maxed:
+		_clbl(vb, "MAXED  (Lv %d)" % level, 11, PURP)
 	elif not impl:
 		_clbl(vb, "Coming soon", 10, C_MUTED)
+	elif not prereq_ok:
+		var names := []
+		for p in node.get("prereq", []):
+			names.append(GameState.TREE_NODES.get(p, {}).get("name", p))
+		_clbl(vb, "⊘ Requires: " + ", ".join(names), 10, C_WARN)
 	else:
-		var afford := GameState.available_warp_shards() >= float(node["cost"])
-		var b := _card_button("Purchase" if afford else "Need %d Shards" % int(node["cost"]), PURP, can)
+		var afford := GameState.available_warp_shards() >= float(cost)
+		var label := ("Level up  (%d)" % cost) if repeatable else "Purchase"
+		if not afford:
+			label = "Need %d Shards" % cost
+		var b := _card_button(label, PURP, can)
 		if can:
 			b.pressed.connect(func() -> void:
 				GameState.purchase_tree_node(nid)
