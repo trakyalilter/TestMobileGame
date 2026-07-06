@@ -197,6 +197,7 @@ const RESOURCES := {
 	"NanoSubstrate": {"name": "Nano-Substrate", "color": "5ad1e0", "value": 450},
 	"emp_generator_blueprint": {"name": "EMP Generator Blueprint", "color": "8a7ad6", "value": 5000},
 	"BoostCard": {"name": "Boost Card", "color": "5ad1e0", "value": 2500},
+	"SpliceChip": {"name": "Splice Chip", "color": "5ad1e0", "value": 800},
 	"CryoEssence": {"name": "Cryo Essence", "color": "9aa3af", "value": 1},
 	"PirateSalvage": {"name": "Pirate Salvage", "color": "9aa3af", "value": 1},
 	"DamagedCircuitry": {"name": "Damaged Circuitry", "color": "9aa3af", "value": 1},

@@ -1551,6 +1551,26 @@ func module_zone_mult(zone_diff: int) -> float:
 	return pow(MODULE_ZONE_SCALE_EARLY, early_steps) * pow(MODULE_ZONE_SCALE_LATE, late_steps)
 
 ## Creates a rolled module instance (or the base for Common); returns its id.
+# Hack Stones (minimal): a Splice Chip awakens one owned Common (base, rarity-0)
+# module into an Uncommon with a random affix, reusing generate_module. The heavier
+# desktop stones (reroll/anchor/worm) are deferred until runtime verification.
+func apply_splice_chip(base_id: String) -> Dictionary:
+	if not GameData.MODULES.has(base_id):
+		return {"ok": false, "msg": "Unknown module."}
+	if int(module_inventory.get(base_id, 0)) < 1:
+		return {"ok": false, "msg": "Own a Common module of this type first."}
+	if amount("SpliceChip") < 1:
+		return {"ok": false, "msg": "No Splice Chip — defeat enemies to find one."}
+	resources["SpliceChip"] = amount("SpliceChip") - 1
+	module_inventory[base_id] = int(module_inventory.get(base_id, 0)) - 1
+	if int(module_inventory.get(base_id, 0)) <= 0:
+		module_inventory.erase(base_id)
+	var cid := generate_module(base_id, 1, maxi(1, _combat_difficulty()))   # Uncommon + 1 affix
+	resources_changed.emit()
+	if cid == "":
+		return {"ok": false, "msg": "Awaken failed."}
+	return {"ok": true, "msg": "Awakened to Uncommon!", "cid": cid}
+
 func generate_module(base_id: String, rarity: int, zone_diff: int) -> String:
 	if not GameData.MODULES.has(base_id):
 		return ""
@@ -3791,6 +3811,17 @@ func _win_combat() -> void:
 				dc = minf(1.0, dc * 3.0)
 			if dc > 0.0 and randf() < dc:
 				_roll_one_module_drop(pool)
+	# Hack: a Splice Chip occasionally drops — awakens a Common module into an
+	# Uncommon (Ship Designer → module → ⚡ Awaken). Better odds from elites/bosses.
+	var chip_chance := 0.015
+	if enemy_inst.get("elite", false):
+		chip_chance = 0.05
+	if bool(enemy_inst.get("is_boss", false)):
+		chip_chance = 0.20
+	if randf() < chip_chance:
+		add_resource("SpliceChip", 1)
+		_log_session_loot("SpliceChip", 1)
+		_event("SPLICE CHIP", "5ad1e0", "enemy")
 	# Set-piece drop: bosses drop their themed set pieces (8% chance).
 	for sn in GameData.SETS:
 		var sd: Dictionary = GameData.SETS[sn]

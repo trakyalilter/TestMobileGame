@@ -4022,6 +4022,18 @@ func _module_detail_body(v: VBoxContainer, close: Callable, mid: String) -> void
 	_inset(v, "STATS", _module_stat_lines(md.get("stats", {})), CYAN)
 	for aid in md.get("affixes", {}):
 		_clbl(v, _affix_text(aid, md["affixes"][aid]), 10, GameState.RARITY_COLOR.get(3, GOLD))
+	# Hack: awaken a Common (base, rarity-0) module into an Uncommon with a random
+	# affix by consuming a Splice Chip (dropped in combat).
+	if not GameState.custom_modules.has(mid) and int(md.get("rarity", 0)) == 0 and int(GameState.module_inventory.get(mid, 0)) > 0:
+		var chips := GameState.amount("SpliceChip")
+		var hb := _card_button(("⚡ Awaken with Splice Chip (%d)" % chips) if chips > 0 else "⚡ Needs a Splice Chip", PURP, chips > 0)
+		if chips > 0:
+			hb.pressed.connect(func() -> void:
+				var r: Dictionary = GameState.apply_splice_chip(mid)
+				_celebrate("⚡ AWAKENED" if r.get("ok", false) else "✕", String(r.get("msg", "")), PURP if r.get("ok", false) else RED)
+				close.call()
+				_refresh_current())
+		v.add_child(hb)
 	# Set pieces: surface the set + its trinity bonus + equipped progress, so the
 	# real payoff (the bonus at full set) is visible (desktop "(Set) [x/3]" intent).
 	var set_id: String = md.get("set", "")

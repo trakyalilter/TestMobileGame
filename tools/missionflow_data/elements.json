@@ -1916,5 +1916,15 @@
     "tier": 4,
     "base_value": 2500,
     "description": "Overclock protocol chip. Install on a building type to unlock its Efficiency slider up to 200% (input scales quadratically past 100%)."
+  },
+  {
+    "atomic_number": -401,
+    "symbol": "SpliceChip",
+    "name": "Splice Chip",
+    "mass": 0.1,
+    "category": "Component",
+    "tier": 3,
+    "base_value": 800,
+    "description": "Hack currency dropped in combat. Awaken a Common module into an Uncommon with a random affix (Ship Designer \u2192 module \u2192 Awaken)."
   }
 ]
