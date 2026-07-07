@@ -5938,7 +5938,30 @@ func _mat_icon_tex(sym: String) -> Texture2D:
 	var tex: Texture2D = null
 	var path := "res://assets/icons/materials/%s.svg" % sym
 	if ResourceLoader.exists(path):
-		tex = load(path)
+		var src := load(path) as Texture2D
+		if src != null:
+			# Rebuild the icon so it renders correctly even where the imported
+			# texture's transparency is dropped on device (the sparse-icon
+			# "black square" bug). Alpha is DERIVED from source brightness — white
+			# glyph → opaque, black/transparent background → clear — and the material
+			# colour is baked in, so it never relies on the source alpha channel or a
+			# modulate. Cached per symbol.
+			var img := src.get_image()
+			if img != null:
+				if img.is_compressed():
+					img.decompress()
+				img.convert(Image.FORMAT_RGBA8)
+				var col := GameData.color_for(sym)
+				var w := img.get_width()
+				var h := img.get_height()
+				for y in h:
+					for x in w:
+						var p := img.get_pixel(x, y)
+						var lum: float = maxf(p.r, maxf(p.g, p.b))
+						img.set_pixel(x, y, Color(col.r, col.g, col.b, lum))
+				tex = ImageTexture.create_from_image(img)
+			else:
+				tex = src
 	_mat_icon_cache[sym] = tex
 	return tex
 
@@ -5953,7 +5976,8 @@ func _mat_icon(sym: String, px: int) -> TextureRect:
 	t.custom_minimum_size = Vector2(px, px)
 	t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	t.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	t.modulate = GameData.color_for(sym)
+	# Tint is baked into the texture by _mat_icon_tex (device alpha-drop workaround),
+	# so no modulate here.
 	t.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return t
 
