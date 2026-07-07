@@ -1143,11 +1143,11 @@ func fleet_scrap(index: int) -> bool:
 
 # ---------------- In-fight loadout swap (v0.2.1 NG+ P2) ----------------
 # The locked exception to "no in-fight inputs": against a MULTI-PHASE boss you may
-# swap to a saved preset mid-fight to bring the matching exotic armament for the
-# next phase. Rebuilds the weapon snapshot (cooldowns reset — a fair tempo hit);
-# HP/shield are untouched (no free heal). Single-phase/normal enemies never expose it.
+# v134h (desktop parity): swap to a saved preset mid-fight in ANY active combat —
+# not just multi-phase bosses. Rebuilds the weapon snapshot (cooldowns reset — the
+# tempo hit is the anti-spam cost); HP/shield are untouched (no free heal).
 func can_swap_loadout_in_combat() -> bool:
-	return active_type == "combat" and not enemy_inst.is_empty() and (enemy_inst.get("phases", []) as Array).size() > 1
+	return active_type == "combat" and not enemy_inst.is_empty()
 
 func swap_loadout_in_combat(idx: int) -> bool:
 	if not can_swap_loadout_in_combat():

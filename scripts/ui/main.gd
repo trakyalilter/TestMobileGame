@@ -2618,12 +2618,12 @@ func _build_battle(v: VBoxContainer) -> void:
 			_weapon_rows.append({"bar": bar, "ammo": ammo, "slot": slot, "needs_ammo": needs_ammo, "w": w})
 		v.add_child(wc.get_parent())
 
-	# v0.2.1 NG+ P2: in-fight loadout swap — only against a multi-phase boss. Bring
-	# the matching exotic armament for the next phase by loading a saved preset.
+	# v134h (desktop parity): in-fight loadout swap in ANY active combat. Load a
+	# saved preset to re-arm mid-engagement (e.g. bring the matching exotic weapon).
 	if GameState.can_swap_loadout_in_combat():
 		var sc := _card("8fdcff", true)
-		_card_head(sc, "⟳", "PHASE GATE — SWAP LOADOUT", "", "8fdcff", true)
-		_clbl(sc, "Load a preset to re-arm for the next phase (resets weapon cooldowns).", 9, C_DIM)
+		_card_head(sc, "⟳", "SWAP LOADOUT", "", "8fdcff", true)
+		_clbl(sc, "Load a preset to re-arm mid-fight (resets weapon cooldowns).", 9, C_DIM)
 		var any_preset := false
 		for pi in [1, 2, 3]:
 			if GameState._preset_has_no_modules(GameState.loadout_presets.get(pi, {})):
@@ -2640,7 +2640,7 @@ func _build_battle(v: VBoxContainer) -> void:
 				_refresh_current())
 			sc.add_child(pb)
 		if not any_preset:
-			_clbl(sc, "⚠ Save a Corrosion loadout as a preset (Ship Designer) to swap here.", 9, C_WARN)
+			_clbl(sc, "⚠ Save a loadout as a preset (Ship Designer) to swap here.", 9, C_WARN)
 		v.add_child(sc.get_parent())
 
 	# Session loot — a running "SALVAGE THIS RUN" tally of everything dropped this
