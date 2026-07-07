@@ -3085,6 +3085,33 @@ func _mission_event(type: String, target: String, amount: int) -> void:
 func mission_visit_page(page_id: String) -> void:
 	_mission_event("visit_page", page_id, 1)
 
+# Which skill a mission's reward XP feeds (desktop mission_manager
+# _grant_reward_xp): combat-flavoured types → combat; gather targets → the skill
+# that actually produced them (crafted → fabrication, mined → harvesting, combat
+# loot → combat); everything else (research/craft/construct/build/…) → fabrication.
+func _reward_xp_skill(m: Dictionary) -> String:
+	var t: String = m.get("type", "")
+	if t in ["defeat", "discover", "drop_rarity", "loadout_check", "loadout_rare_weapon", "equip_consumables", "warp_perform"]:
+		return "combat"
+	if t in ["gather", "gather_multi"]:
+		var syms := []
+		var target = m.get("target", "")
+		if target is Dictionary:
+			syms = target.keys()
+		else:
+			syms = [target]
+		for sym in syms:
+			for rid in GameData.CRAFT:
+				if GameData.CRAFT[rid].get("outputs", {}).has(sym):
+					return "fabrication"
+		for sym in syms:
+			for gid in GameData.GATHER:
+				for row in GameData.GATHER[gid].get("loot", []):
+					if row[0] == sym:
+						return "harvesting"
+		return "combat"
+	return "fabrication"
+
 func claim_mission(mid: String) -> bool:
 	if not missions_active.has(mid) or not mission_completed(mid) or missions_claimed.has(mid):
 		return false
@@ -3095,6 +3122,12 @@ func claim_mission(mid: String) -> bool:
 	if m.get("type", "") == "research_multi":
 		cr_due = maxi(0, cr_due - int(_rm_paid.get(mid, 0)))
 	gain_credits(int(cr_due * warp_production_mult() * credit_reward_mult()))   # prestige- + Recursive-Acquisition-scaled reward
+	# Desktop parity (_grant_reward_xp): mission XP rewards were authored into the
+	# data but never granted on mobile. Route by mission type; add_xp applies the
+	# warp/crew multipliers itself.
+	var reward_xp := int(m.get("xp", 0))
+	if reward_xp > 0:
+		add_xp(_reward_xp_skill(m), reward_xp)
 	missions_claimed[mid] = true
 	missions_active.erase(mid)
 	var nxt: String = m.get("next", "")
