@@ -4079,19 +4079,20 @@ func _module_detail_body(v: VBoxContainer, close: Callable, mid: String) -> void
 					rb.add_theme_font_size_override("font_size", _fs(11))
 					rb.pressed.connect(_unsocket_and_reopen.bind(mid, i, close))
 					v.add_child(rb)
-		var sell := _card_button("Sell ₡%s" % GameData.fmt(GameState.RARITY_SELL.get(int(md.get("rarity", 0)), 100)), GOLD, true)
-		sell.pressed.connect(_sell_and_close.bind(mid, close))
-		v.add_child(sell)
 	var note := Label.new()                      # inline error slot (grid overload, etc.)
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	note.add_theme_font_size_override("font_size", _fs(11))
 	note.add_theme_color_override("font_color", Color.html(RED))
 	note.visible = false
+	# Equip ABOVE Sell — the top button is where the habitual tap lands, and
+	# equipping is reversible while selling is not (mis-sell guard below).
 	var eq := _card_button("Equip", GREEN, true)
 	eq.custom_minimum_size = Vector2(0, 46)
 	eq.pressed.connect(_do_equip.bind(mid, close, note))
 	v.add_child(eq)
 	v.add_child(note)
+	if GameState.custom_modules.has(mid):
+		v.add_child(_guarded_sell_button(GameState.RARITY_SELL.get(int(md.get("rarity", 0)), 100), _sell_and_close.bind(mid, close)))
 
 func _do_equip(mid: String, close: Callable, note: Label) -> void:
 	# Slot-first flow (opened from a specific slot): equip straight into it.
@@ -4182,6 +4183,25 @@ func _sell_and_close(mid: String, close: Callable) -> void:
 	GameState.sell_module(mid)
 	close.call()
 	_refresh_current()
+
+# Mis-sell guard: selling a module is irreversible, so the Sell button is a
+# two-tap confirm — the first tap ARMS it ("⚠ Tap again"), a second tap within
+# 2.5s sells, and it quietly disarms back to the plain label otherwise.
+func _guarded_sell_button(price: int, on_sell: Callable) -> Button:
+	var label := "Sell ₡%s" % GameData.fmt(price)
+	var b := _card_button(label, GOLD, true)
+	var armed := {"on": false}
+	b.pressed.connect(func() -> void:
+		if armed["on"]:
+			on_sell.call()
+			return
+		armed["on"] = true
+		b.text = "⚠ Tap again to sell"
+		get_tree().create_timer(2.5).timeout.connect(func() -> void:
+			if is_instance_valid(b) and armed["on"]:
+				armed["on"] = false
+				b.text = label))
+	return b
 
 func rcol_for(mid: String) -> String:
 	return GameState.RARITY_COLOR.get(int(GameState.module_def(mid).get("rarity", 0)), CYAN)
@@ -4551,9 +4571,10 @@ func _custom_module_card(cid: String) -> Control:
 	eq.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	eq.pressed.connect(func() -> void: _equip_from_shop(cid))
 	row.add_child(eq)
-	var sell := _card_button("Sell ₡%s" % GameData.fmt(GameState.RARITY_SELL.get(int(md.get("rarity", 0)), 100)), GOLD, true)
+	var sell := _guarded_sell_button(GameState.RARITY_SELL.get(int(md.get("rarity", 0)), 100), func() -> void:
+		GameState.sell_module(cid)
+		_refresh_current())
 	sell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	sell.pressed.connect(func() -> void: GameState.sell_module(cid))
 	row.add_child(sell)
 	c.add_child(row)
 	return c.get_parent()
