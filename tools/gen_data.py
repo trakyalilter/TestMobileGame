@@ -732,6 +732,12 @@ MOBILE_MISSION_DESC = {
     "m032c": "In the Shipyard, construct a Battlecruiser.",
     "m032d": "Void Artifacts drop from Sector Alpha ships — defeat them on the Combat tab until you collect 5.",
     "m033c": "In the Shipyard, construct a Dreadnought.",
+    # Sector-unlock retargets (see MOBILE_MISSION_TARGET): name the ZONES-tab tech
+    # explicitly — an Operations tech shares the same display name.
+    "m032b": "Research 'Deep Space Navigation' on the Zones research tab to unlock Sector Beta.",
+    "m033b": "Research 'Radiation Shielding' on the Zones research tab to unlock Sector Gamma. It costs 3 Beta Cores — the Sector Beta boss (Gamma Colossus) drops them.",
+    # The Gamma Colossus is the SECTOR BETA boss (the desktop desc said Sector Gamma).
+    "m034": "Defeat 3 Gamma Colossus — the Sector Beta boss — to finalize your supremacy.",
 }
 
 def _mobile_desc(m):
@@ -750,8 +756,20 @@ def _mobile_desc(m):
           .replace("left sidebar", "More menu"))
     return d
 
+# Mission RETARGETS (mobile fix for a desktop data bug): the chain steers the two
+# late sector unlocks at same-NAMED Operations utility techs that do NOT gate the
+# sectors — 'deep_space_nav' ("Deep Space Navigation", needs warp_drive) vs
+# zone_6_access (also "Deep Space Navigation", the real Sector Beta gate), and
+# 'radiation_shielding' ("Radiation Shielding Theory") vs zone_7_access
+# ("Radiation Shielding", the real Sector Gamma gate). Following the missions as
+# authored leaves the sector locked and strands the next defeat step.
+MOBILE_MISSION_TARGET = {
+    "m032b": "zone_6_access",
+    "m033b": "zone_7_access",
+}
+
 def mission_dict(m):
-    tgt = m.get("target", "")
+    tgt = MOBILE_MISSION_TARGET.get(m.get("id", ""), m.get("target", ""))
     # gather_multi targets are dicts {sym: qty}
     return {
         "name": m.get("name", m.get("id", "")),

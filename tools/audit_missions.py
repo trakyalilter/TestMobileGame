@@ -299,6 +299,14 @@ def closure(rid, acc):
     for req in node.get("req_tech", []):
         closure(req, acc)
 
+# zone lookup helpers for steering checks
+zone_by_id = {z.get("id", ""): z for z in ZONES}
+def zone_of_enemy(eid):
+    for z in ZONES:
+        if eid in z.get("enemies", []):
+            return z
+    return None
+
 introduced = set()
 for i, mid in enumerate(ORDER):
     m = MISSIONS.get(mid, {})
@@ -312,6 +320,14 @@ for i, mid in enumerate(ORDER):
         md = MODULES.get(m.get("target"), {}) or SET_MODULES.get(m.get("target"), {})
         if md.get("research_req"):
             gates.append(md["research_req"])
+    elif t == "defeat":
+        # The coach can only ring the enemy card if its zone is unlocked — the
+        # zone's research gate must have been steered to by an earlier mission.
+        z = zone_of_enemy(m.get("target", ""))
+        if z is not None:
+            g = z.get("research_req", "")
+            if g and g not in introduced:
+                err("order: step %d %s defeats '%s' in zone '%s' but its gate '%s' was never steered to by an earlier mission" % (i, mid, m["target"], z.get("id"), g))
     elif t == "gather":
         hows = sources.get(m.get("target"), set())
         cands = []
@@ -327,11 +343,63 @@ for i, mid in enumerate(ORDER):
     for g in gates:
         if g and g not in introduced:
             warn("order: step %d %s needs research '%s' not steered to by any earlier mission" % (i, mid, g))
+    # Desc-vs-gate consistency: a research mission claiming to "unlock Sector X"
+    # must target the tech that actually gates that zone (catches display-name
+    # collisions like deep_space_nav vs zone_6_access, both "Deep Space Navigation").
+    if t == "research":
+        dm = re.search(r'unlock (Sector [A-Za-z]+|[A-Z][a-z]+ (?:Belt|Debris|Orbit|Field|Expedition))', m.get("desc", ""))
+        if dm:
+            zone_name = dm.group(1)
+            gz = [z for z in ZONES if zone_name.lower() in z.get("name", "").lower()]
+            if gz and gz[0].get("research_req", "") and gz[0]["research_req"] != m.get("target"):
+                err("desc: %s says it unlocks '%s' (gate '%s') but targets '%s'" % (mid, zone_name, gz[0]["research_req"], m.get("target")))
     if t == "research":
         closure(m.get("target", ""), introduced)
     elif t == "research_multi":
         for rid in m.get("target", []):
             closure(rid, introduced)
+
+# ---------- 5. coach direction: every step must resolve to a real pointer ----------
+# Mirrors main.gd _coach_resolve: page + (optionally) a pulsable card. A card-page
+# pair is healthy when the card exists in the dataset that page builds cards from
+# (all card builders set coach_id metas; sub-tabs are pre-selected by _show()).
+COACH_PAGE = dict(re.findall(r'"([a-z_]+)": "([a-z]*)"', re.search(r'const COACH_PAGE := \{[^\n]*\}', MAIN).group(0)))
+def coach_resolve(m):
+    t, tgt = m.get("type", ""), m.get("target", "")
+    if t == "gather":
+        gs = [g for g in GATHER.values() for row in g.get("loot", []) if row[0] == tgt]
+        if gs:
+            return ("gather", "ok")
+        if any(tgt in r.get("outputs", {}) for r in CRAFT.values()):
+            return ("craft", "ok")
+        if any(row[0] == tgt for e in ENEMIES.values() for row in e.get("loot", [])):
+            return ("combat", "ok")
+        return ("gather", "")
+    if t == "gather_multi":
+        return ("craft", "ok" if isinstance(tgt, dict) else "")
+    if t == "research_multi":
+        return ("research", "ok")
+    if t == "visit_page":
+        return (str(tgt), "")
+    if t == "discover":
+        z = zone_by_id.get(str(tgt))
+        return ("research", z.get("research_req", "") if z else "MISSING-ZONE")
+    return (COACH_PAGE.get(t, ""), "")
+
+for mid in list(ORDER) + sorted(goal_members):
+    m = MISSIONS.get(mid, {})
+    page, card = coach_resolve(m)
+    if m.get("type") not in ("", None) and page == "" and m.get("type") not in ("warp_perform", "overclock_install"):
+        # page-less steps show only the desc — fine for goal-only types, worth
+        # flagging for tutorial steps.
+        if mid in ORDER:
+            err("coach: tutorial step %s (type %s) resolves to NO page" % (mid, m.get("type")))
+    if page and page not in PAGE_IDS:
+        err("coach: %s resolves to unknown page '%s'" % (mid, page))
+    if card == "MISSING-ZONE":
+        err("coach: %s discover target '%s' is not a zone" % (mid, m.get("target")))
+    if m.get("type") == "discover" and card == "":
+        warn("coach: %s discover zone '%s' has no research gate to ring (flag-gated?)" % (mid, m.get("target")))
 
 # ---------- report ----------
 print("missions=%d order=%d goals=%d handled_types=%s" % (len(MISSIONS), len(ORDER), len(GOALS), sorted(HANDLED)))

@@ -244,7 +244,7 @@ func _ready() -> void:
 # Base page per mission type. NOTE: "gather" is resolved dynamically (gather vs
 # craft) by _coach_resolve, since several "gather" missions target crafted materials
 # (the desc says "On the Craft tab"). visit_page routes to its own target page.
-const COACH_PAGE := {"gather": "gather", "gather_multi": "craft", "research": "research", "research_multi": "research", "craft": "shipyard", "construct": "shipyard", "build": "build", "defeat": "combat", "loadout_check": "ship", "loadout_rare_weapon": "ship", "equip_consumables": "ship", "drop_rarity": "combat", "warp_perform": "warp", "discover": "warp"}
+const COACH_PAGE := {"gather": "gather", "gather_multi": "craft", "research": "research", "research_multi": "research", "craft": "shipyard", "construct": "shipyard", "build": "build", "defeat": "combat", "loadout_check": "ship", "loadout_rare_weapon": "ship", "equip_consumables": "ship", "drop_rarity": "combat", "warp_perform": "warp", "discover": "research"}
 
 func _page_label(id: String) -> String:
 	for t in NAV_ALL:
@@ -384,10 +384,16 @@ func _coach_resolve(m: Dictionary) -> Dictionary:
 		return {"page": "research", "card": locked}
 	if type == "visit_page":
 		return {"page": String(tgt), "card": ""}     # target IS the page id
+	if type == "discover":
+		# A zone is "discovered" by unlocking its gating research — ring that node.
+		for z in GameData.ZONES:
+			if String(z.get("id", "")) == String(tgt):
+				return {"page": "research", "card": String(z.get("research_req", ""))}
+		return {"page": "research", "card": ""}
 	var page: String = COACH_PAGE.get(type, "")
 	var card: String = tgt if tgt is String else ""
 	# Navigate-only steps point at a page, not a card.
-	if type in ["loadout_check", "loadout_rare_weapon", "equip_consumables", "warp_perform", "discover", "drop_rarity"]:
+	if type in ["loadout_check", "loadout_rare_weapon", "equip_consumables", "warp_perform", "drop_rarity"]:
 		card = ""
 	return {"page": page, "card": card}
 
