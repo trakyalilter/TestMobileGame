@@ -477,7 +477,11 @@ var enemy_db = {
 		"name": "Claim Jumper",
 		"stats": {"hp": 520, "atk": 38, "def": 8, "atk_interval": 2.2, "accuracy": 28},
 		"loot": [["credits", 200, 400], ["Sn", 2, 5], ["Res1", 2, 5], ["PirateSalvage", 2, 4]],
-		"rare_loot": [["Ti", 0.12, 2, 4]],
+		# v135: Res2 enters at Z2 (elite + boss). The player-bot sim proved m030
+		# (Shipwright II, Res2 x25) sits BEFORE the mission that unlocks Z3 — the
+		# only zone that dropped Res2 — forcing an off-chain Z3 unlock on Z1-era
+		# gear (repeated deaths). Rare artifacts now trickle from the Z2 frontier.
+		"rare_loot": [["Ti", 0.12, 2, 4], ["Res2", 0.35, 1, 2]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z2_kinetic", "z2_energy", "z2_missile"],
 		"xp": 28, "eva": 15, "zone": 2, "resist_k": 0.15, "resist_e": -0.15, "resist_x": 0.0, "dmg_type": "explosive"
@@ -494,7 +498,7 @@ var enemy_db = {
 	"z2_boss_monolith": {
 		"name": "Silicate Monolith",
 		"stats": {"hp": 5280, "max_shield": 264, "atk": 132, "def": 39, "atk_interval": 3.5, "accuracy": 45},
-		"loot": [["credits", 2000, 5000], ["Ti", 5, 12], ["Fe", 20, 40], ["Res1", 10, 20], ["PirateSalvage", 5, 12]],
+		"loot": [["credits", 2000, 5000], ["Ti", 5, 12], ["Fe", 20, 40], ["Res1", 10, 20], ["Res2", 3, 6], ["PirateSalvage", 5, 12]],
 		"rare_loot": [["z2_unique_weapon", 0.03, 1, 1], ["z2_unique_armor", 0.03, 1, 1], ["z2_unique_shield", 0.03, 1, 1], ["faraday_hull", 0.03, 1, 1], ["SalvagedAlloy", 0.90, 3, 6], ["DamagedCircuitry", 0.90, 3, 6]],
 		"boss_core": "Z2_Core",
 		"module_drop_chance": 0.25,

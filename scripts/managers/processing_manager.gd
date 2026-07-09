@@ -733,7 +733,12 @@ var recipes: Dictionary = {
 		"input": {"Semiconductor": 1, "Au": 1, "StructuralComponent": 2, "Ag": 2, "Sn": 1},
 		"output": {"AdvCircuit": 1},
 		"duration": 15.0,
-		"level_req": 45, # Increased from 8
+		# v135: 45 -> 40. The player-bot matrix showed EVERY archetype parked on
+		# m029b (5x AdvCircuit) for its p50 ~40h / p90 ~166h — the whole
+		# mid-funnel's single bottleneck was this level gate, not materials.
+		# 40 aligns with Chip's gate (one "electronics band"); the research gate
+		# (automation) still applies.
+		"level_req": 40,
 		"xp": 80, # Increased from 50
 		"research_req": "automation"
 	},

@@ -1614,6 +1614,12 @@ func _update_navigation_hints():
 		if current_page_name != "inventory": target_to_pulse = inventory_btn
 	elif "m019c" in mm.active_missions:
 		if current_page_name != "infrastructure": target_to_pulse = infrastructure_btn
+	elif "m019d" in mm.active_missions:
+		# v135: first directed building — pulse the page, then the first build card.
+		if current_page_name != "infrastructure": target_to_pulse = infrastructure_btn
+		else:
+			var w_b = pages["infrastructure"].get_building_widget("solar_panel")
+			if w_b: target_to_pulse = w_b
 	elif "m027b" in mm.active_missions:
 		if current_page_name != "bounty": target_to_pulse = bounty_btn
 

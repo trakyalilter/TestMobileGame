@@ -154,7 +154,12 @@ func init_missions():
 		# Both are visit_page (auto-complete on navigation → can never soft-lock) and
 		# fire the existing per-page coach card the moment the player lands.
 		["m019b", "Cargo Hold", "Open your Inventory (left sidebar). Cargo is slot-limited — when it fills, NEW gathered materials are LOST, not paused. Expand storage here as you take on more material types.", "visit_page", "inventory", 1, 2000, 200, "m019c"],
-		["m019c", "Background Industry", "Open Infrastructure (left sidebar). Buildings auto-produce in the background — always running while you gather, fight, or are offline. Build them whenever you can; the background should always pay.", "visit_page", "infrastructure", 1, 2000, 200, "m025"],
+		["m019c", "Background Industry", "Open Infrastructure (left sidebar). Buildings auto-produce in the background — always running while you gather, fight, or are offline. Build them whenever you can; the background should always pay.", "visit_page", "infrastructure", 1, 2000, 200, "m019d"],
+		# v135: the player-bot sim proved a mission-literal player owns ZERO
+		# buildings after 14 days (6M Liras unspent) — m019c only VISITS the page.
+		# One cheap directed build closes the teaching hole; "build" completes on
+		# building_constructed + sync (retroactive-safe, can never soft-lock).
+		["m019d", "First Foundation", "Construct a Solar Array in Infrastructure. It generates power and produces for you forever — every Lira spent here works while you sleep.", "build", "solar_panel", 1, 2500, 200, "m025"],
 		["m020", "Advanced Energy", "Research 'Power Systems' for batteries.", "research", "power_systems", 1, 500, 100, "m021"],
 		["m021", "Industrial Energy", "Craft 5 Battery Cells in the Engineering tab.", "gather", "BatteryT1", 5, 1000, 100, "m022"],
 		["m022", "Power Storage", "Craft a 'Basic Battery' in the Shipyard.", "craft", "z1_battery", 1, 1500, 150, "m022b"],
