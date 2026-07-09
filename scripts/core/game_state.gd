@@ -1008,7 +1008,7 @@ func ship_weapons() -> Array:
 		elif kx > 0: type = "explosive"
 		var gk := 1.0 + gem_bonus("atk_kinetic_mult")
 		var ge := 1.0 + gem_bonus("atk_energy_mult")
-		out.append({"name": m.get("name", "Weapon"), "type": type, "slot": str(k),
+		out.append({"name": m.get("name", "Weapon"), "type": type, "slot": str(k), "mid": String(loadout[k]),
 			"dmg_k": kk * eng_mult * dmg_mult * gk * trin_all,
 			"dmg_e": ke * eng_mult * dmg_mult * ge * trin_all * trin_e,
 			"dmg_x": kx * eng_mult * dmg_mult * trin_all * trin_x,
@@ -1019,7 +1019,7 @@ func ship_weapons() -> Array:
 			"interval": maxf(0.3, float(st.get("atk_interval", 2.5)) / maxf(0.2, speed)), "timer": randf_range(0.0, 0.4)})
 	if out.is_empty():
 		var h: Dictionary = GameData.HULLS.get(active_hull, {})
-		out.append({"name": "Standard Cannon", "type": "kinetic", "slot": "",
+		out.append({"name": "Standard Cannon", "type": "kinetic", "slot": "", "mid": "",
 			"dmg_k": float(h.get("atk", 5)) * dmg_mult, "dmg_e": 0.0, "dmg_x": 0.0, "dmg_cryo": 0.0,
 			"interval": maxf(0.3, 3.0 / maxf(0.2, speed)), "timer": 0.0})
 	return out
@@ -1174,7 +1174,7 @@ func combat_preview(eid: String) -> Dictionary:
 			break
 	var k := maxf(20.0, float(diff) * 50.0)
 	var raw_dps := avg_player_dps()
-	var pdps := maxf(0.001, raw_dps * (1.0 - float(e.get("def", 0)) / (float(e.get("def", 0)) + k)))
+	var pdps := maxf(0.001, raw_dps * (1.0 - float(e.get("def", 0)) / (float(e.get("def", 0)) + k)) * tier_pen_avg(eid))   # tier gate
 	var ehp := float(e.get("hp", 10)) + float(e.get("max_shield", 0))
 	var ttk := ehp / pdps
 	var pdef := float(ship_stats().get("def", 0.0))
@@ -2882,6 +2882,85 @@ func _loadout_check_met(m: Dictionary) -> bool:
 func module_rarity(mid: String) -> int:
 	return int(module_def(mid).get("rarity", 0))
 
+# ---------------- Zone Tier-Gate (desktop v114/v115; offense-only per v120) ----------------
+# Back-half enemies (roster e3/e4) + bosses of Z2-Z10 are "tier-hardened": a
+# weapon's damage vs them scales by a graduated penetration curve on its tier
+# deficit — 1 tier under = 15%, 2 under = ~2% (the wall). Tier-matched gear (the
+# zone's own common set) pierces fully; a UNIQUE exactly one zone below counts as
+# tier-matched (the jackpot skip-key — Legendary does NOT). Z1 stays a bootstrap
+# and Z11+ gates on damage type instead (warp/corrosion — never double-gate).
+# New-game-only: game_flags.tier_gate_enabled, set by new_character; old saves
+# stay ungated (desktop parity).
+const TIER_PEN_PER_TIER := 0.15
+const TIER_PEN_FLOOR := 0.02
+
+func tier_gate_on() -> bool:
+	return bool(game_flags.get("tier_gate_enabled", false))
+
+# Gear tier of a module instance: buyable/set modules carry "zone"; rolled
+# customs resolve via their "base"; set instances parse their base id. "" = the
+# bare hull cannon → the hull's tier. Unknown resolves to 99 (pierces): a module
+# without tier data must never brick the player.
+func module_gear_tier(mid: String) -> int:
+	if mid == "":
+		return int(GameData.HULLS.get(active_hull, {}).get("tier", 99))
+	var d := module_def(mid)
+	if d.has("zone"):
+		return int(d["zone"])
+	var b := String(d.get("base", ""))
+	if b == "" and mid.begins_with("set_"):
+		var parts := mid.split("_")
+		if parts.size() >= 3:
+			b = "_".join(parts.slice(1, parts.size() - 1))
+	if b != "":
+		return int(GameData.MODULES.get(b, GameData.SET_MODULES.get(b, {})).get("zone", 99))
+	return 99
+
+# Penetration of one weapon vs a hardened tier (1.0 = full damage).
+func module_tier_penetration(mid: String, hardened: int) -> float:
+	if hardened <= 0:
+		return 1.0
+	var mt := module_gear_tier(mid)
+	if module_rarity(mid) >= 4:
+		mt += 1   # Unique = superior penetration — the one-zone jackpot skip-key
+	var deficit := hardened - mt
+	if deficit <= 0:
+		return 1.0
+	return maxf(TIER_PEN_FLOOR, pow(TIER_PEN_PER_TIER, float(deficit)))
+
+# Derived hardening for an enemy by its position in its zone roster: e3/e4 +
+# boss of Z2-Z10. Front-half (e1/e2 salvage), Z1, Z11+ and hazard/unknown = 0.
+func enemy_tier_hardened(eid: String) -> int:
+	if not tier_gate_on():
+		return 0
+	for z in GameData.ZONES:
+		var roster: Array = z.get("enemies", [])
+		var idx := roster.find(eid)
+		if idx < 0:
+			continue
+		var zd := int(z.get("difficulty", 1))
+		if zd < 2 or zd > 10:
+			return 0
+		if idx >= 2 or bool(GameData.ENEMIES.get(eid, {}).get("is_boss", false)):
+			return zd
+		return 0
+	return 0
+
+# DPS-weighted average penetration of the CURRENT loadout vs an enemy — for the
+# idle preview and offline catch-up, which work from aggregate DPS.
+func tier_pen_avg(eid: String) -> float:
+	var hardened := enemy_tier_hardened(eid)
+	if hardened <= 0:
+		return 1.0
+	var tot := 0.0
+	var kept := 0.0
+	for w in ship_weapons():
+		var d: float = float(w.get("dmg_k", 0)) + float(w.get("dmg_e", 0)) + float(w.get("dmg_x", 0)) + float(w.get("dmg_cryo", 0))
+		var per := d / maxf(0.3, float(w.get("interval", 2.5)))
+		tot += per
+		kept += per * module_tier_penetration(String(w.get("mid", "")), hardened)
+	return kept / tot if tot > 0.0 else 1.0
+
 # ── Bulk sell (QoL: "Scrap Junk" — desktop bulk_demolish_by_rarity) ──
 # Sells every NON-EQUIPPED owned module at or below max_rarity. Returns the count
 # sold. Batched: totals are accumulated and the inventory mutated in one pass with
@@ -3302,7 +3381,13 @@ func _spawn_enemy_inst(eid: String) -> void:
 		# v80.1 boss-core drop: granted on kill so zone_N_access research unlocks.
 		"is_boss": bool(e.get("is_boss", false)),
 		"boss_core": String(e.get("boss_core", "")),
+		"tier_hardened": enemy_tier_hardened(eid),   # v114 Zone Tier-Gate (0 = ungated)
 	}
+	# Tier-gate telegraph: entering a hardened fight with under-tier weapons.
+	if int(enemy_inst["tier_hardened"]) > 0 and not _suppress_fx:
+		var pen := tier_pen_avg(eid)
+		if pen < 0.999:
+			_event("⛛ HARDENED T%d — weapons at %d%%" % [int(enemy_inst["tier_hardened"]), int(round(pen * 100.0))], "ef6a52", "player")
 	# v109 reset per-fight enrage; v85.2 vulnerable wears off between fights.
 	_enemy_enraged = false
 	enemy_vulnerable_timer = 0.0
@@ -3553,6 +3638,9 @@ func _player_fire(w: Dictionary, ss: Dictionary) -> void:
 	# v0.2.1 Fleet (soft role): escort ships add a fraction of the main ship's
 	# damage, folded into every weapon's output.
 	var fmult := fleet_combat_mult()
+	# v114 Zone Tier-Gate: this weapon's graduated penetration vs a hardened
+	# enemy (1.0 when ungated / tier-matched / Unique one below).
+	fmult *= module_tier_penetration(String(w.get("mid", "")), int(enemy_inst.get("tier_hardened", 0)))
 	# v0.2.1 NG+ P1: the firing weapon's exotic type gates the phase exotic channel
 	# (cryo weapons breach cryo phases, corrosion weapons breach corrosion, etc.).
 	var wexotic := String(w.get("exotic_type", "cryo"))
@@ -4061,7 +4149,7 @@ func _offline_combat(delta: float) -> void:
 	var diff := _combat_difficulty()
 	# Match online armor mitigation (DEF_K), not the old max(20, diff*50).
 	var k := GameData.DEF_K_CONSTANT + GameData.DEF_K_ZONE_SCALE * pow(float(diff), GameData.DEF_K_ZONE_EXP)
-	var pdps := avg_player_dps() * (1.0 - float(e.get("def", 0)) / (float(e.get("def", 0)) + k))
+	var pdps := avg_player_dps() * (1.0 - float(e.get("def", 0)) / (float(e.get("def", 0)) + k)) * tier_pen_avg(active_id)   # tier gate applies offline too
 	pdps = maxf(1.0, pdps)
 	var ehp := float(e.get("hp", 10)) + float(e.get("max_shield", 0))
 	var kill_time := ehp / pdps
@@ -4772,6 +4860,15 @@ func hard_reset() -> void:
 	standing_board = []
 	standing_total = 0
 	_standing_id = 0
+	# Pre-existing gap: these persistent-unlock dicts survived a hard reset, so a
+	# settings "Reset Game" leaked z11_unlocked / reveal flags / boss kills into
+	# the fresh run (the bug class the desktop notes flag for prestige state).
+	# Cleared BEFORE _mission_init so goal reveals start from scratch. A hard
+	# reset IS a new game — the v114 tier gate is on for it (old saves keep their
+	# absent flag and stay ungated).
+	game_flags = {"tier_gate_enabled": true}
+	boss_kills = {}
+	hazard_clears = {}
 	missions_active = {}
 	missions_progress = {}
 	missions_claimed = {}
@@ -4887,7 +4984,7 @@ func select_slot(n: int) -> void:
 ## Create a fresh character in slot n. Resets in-memory state (without deleting any
 ## sibling slot file), stamps the name, runs post-load init, and writes the slot file.
 func new_character(n: int, name: String) -> void:
-	hard_reset()
+	hard_reset()   # sets tier_gate_enabled — the v114 gate is on for every new game
 	current_slot = n
 	character_name = name if name.strip_edges() != "" else "Commander"
 	_created_at = Time.get_unix_time_from_system()

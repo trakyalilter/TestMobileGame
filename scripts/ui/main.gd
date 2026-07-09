@@ -2395,6 +2395,17 @@ func _enemy_card(id: String, e: Dictionary) -> Control:
 	_inset(v, "TARGET", stats, RED)
 	# Headline mechanic: weakness / resist chips so the player picks the right gun.
 	v.add_child(_affinity_row(e))
+	# v114 Zone Tier-Gate: hardened back-half/boss — telegraph the wall and how
+	# much of your current damage gets through, so "✗ Too strong" is explainable.
+	var hardened := GameState.enemy_tier_hardened(id)
+	if hardened > 0:
+		var hrow := HFlowContainer.new()
+		hrow.add_theme_constant_override("h_separation", 5)
+		hrow.add_child(_tag_chip("⛛ HARDENED T%d" % hardened, PURP))
+		var pen := GameState.tier_pen_avg(id)
+		if pen < 0.999:
+			hrow.add_child(_tag_chip("YOUR GUNS %d%% — fit Tier-%d gear" % [int(round(pen * 100.0)), hardened], RED))
+		v.add_child(hrow)
 	_inset(v, "SALVAGE", _loot_lines(e.get("loot", [])), RED)
 	# Idle combat preview: can you win/farm this, and how fast?
 	var pv := GameState.combat_preview(id)
