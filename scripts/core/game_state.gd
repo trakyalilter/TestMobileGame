@@ -703,8 +703,6 @@ func execute_warp() -> int:
 	infra_energy = 0.0
 	_build_timers = {}
 	_build_frac = {}
-	_upkeep_timer = 0.0
-	upkeep_efficiency = 1.0
 	active_hull = "corvette_hull"
 	owned_hulls = {"corvette_hull": true}
 	module_inventory = {}
@@ -2118,23 +2116,6 @@ const INFRA_ORE_EXTRACTORS := ["lithium_extractor", "brine_extractor", "copper_m
 	"bauxite_mine", "bauxite_miner", "dolomite_quarry", "manganese_dredge", "nickel_mine",
 	"chromite_excavator", "tungsten_drill", "germanite_excavator", "platinum_drill",
 	"precious_dredge", "iridium_drill", "osmium_condenser"]
-# v104: continuous building-upkeep sink. Every building drains a little of the
-# cheapest glut mats per interval; per-building cost grows with total count.
-# Drain-if-available only — never goes negative, never punishes AFK.
-# Building running costs are ENERGY (energy_cons via the grid) plus each
-# building's own recipe INPUT (consumed in _produce_batch). There is no flat
-# per-building material upkeep: an extractor like the Auto-Excavator needs only
-# enough energy, and a converter only consumes its actual recipe inputs (e.g.
-# Dirt+Water -> Fe+Si). UPKEEP_BASE empty disables the old generic drain
-# (_apply_upkeep / _upkeep_efficiency_for then no-op to full efficiency).
-const UPKEEP_INTERVAL := 60.0
-const UPKEEP_BASE := {}                             # disabled — energy + recipe inputs only
-const UPKEEP_COUNT_GROWTH := 0.05                   # (retained; unused while UPKEEP_BASE is empty)
-const UPKEEP_GROWTH_CAP := 8.0
-var _upkeep_timer: float = 0.0
-# P2.6: proportional upkeep throttle — when upkeep mats run short buildings
-# produce at the affordable fraction. Transient (recomputed; not saved).
-var upkeep_efficiency: float = 1.0
 
 # P0.3: capped engineering yield multiplier (single source of truth — used by
 # _produce_batch AND building_rate_text so the UI can't disagree with reality).
@@ -2156,48 +2137,6 @@ func _dr_units(count: int) -> float:
 # P1.4: yield multiplier for raw ore extractors (gathering owns the ore tier).
 func _ore_throttle(bid: String) -> float:
 	return INFRA_ORE_EXTRACTION_MULT if bid in INFRA_ORE_EXTRACTORS else 1.0
-
-# v104: charge `intervals` full upkeep periods (1 online, many for offline
-# catch-up). Drain-if-available only. Returns {res: consumed} for reporting.
-func _apply_upkeep(intervals: int) -> Dictionary:
-	var consumed := {}
-	if intervals <= 0:
-		return consumed
-	var total := 0
-	for bid in buildings:
-		total += maxi(0, int(buildings[bid]))
-	if total <= 0:
-		return consumed
-	var growth: float = minf(UPKEEP_GROWTH_CAP, 1.0 + float(total) * UPKEEP_COUNT_GROWTH)
-	for res in UPKEEP_BASE:
-		var demand: float = float(UPKEEP_BASE[res]) * float(total) * growth * float(intervals)
-		if demand <= 0.0:
-			continue
-		var take: float = minf(demand, amount(res))   # never negative, never a hard gate
-		if take > 0.0:
-			resources[res] = amount(res) - take
-			consumed[res] = take
-			_infra_dirty = true
-	return consumed
-
-# P2.6: affordable fraction of upkeep for `intervals` periods WITHOUT consuming
-# — the bottleneck (min) ratio across upkeep resources.
-func _upkeep_efficiency_for(intervals: int) -> float:
-	if intervals <= 0:
-		return 1.0
-	var total := 0
-	for bid in buildings:
-		total += maxi(0, int(buildings[bid]))
-	if total <= 0:
-		return 1.0
-	var growth: float = minf(UPKEEP_GROWTH_CAP, 1.0 + float(total) * UPKEEP_COUNT_GROWTH)
-	var eff := 1.0
-	for res in UPKEEP_BASE:
-		var demand: float = float(UPKEEP_BASE[res]) * float(total) * growth * float(intervals)
-		if demand <= 0.0:
-			continue
-		eff = minf(eff, clampf(amount(res) / demand, 0.0, 1.0))
-	return eff
 
 func building_count(bid: String) -> int:
 	return int(buildings.get(bid, 0))
@@ -2334,8 +2273,9 @@ func _tick_infra(delta: float) -> void:
 	var eff := _infra_energy_step(delta)
 	var skill_speed := _infra_skill_speed()
 	var gyb := _global_yield_bonus()
-	# v109 P2.6: production advances at energy_eff * upkeep_eff (last cycle's throttle).
-	var prod_eff := eff * upkeep_efficiency
+	# v120 (desktop parity): building upkeep removed — production throttles on
+	# grid energy availability alone.
+	var prod_eff := eff
 	for bid in buildings:
 		var count: int = buildings[bid]
 		if count <= 0:
@@ -2344,7 +2284,7 @@ func _tick_infra(delta: float) -> void:
 		if d.get("special", "") == "passive_gather":
 			_passive_gather_step(bid, count, delta * prod_eff)
 			continue
-		# Process producers AND upkeep consumers (e.g. Crew Quarters' Food); skip
+		# Process producers AND recipe-input consumers (e.g. Crew Quarters' Food); skip
 		# pure/fuel generators (handled in the energy step).
 		if not _is_production_building(d):
 			continue
@@ -2357,15 +2297,6 @@ func _tick_infra(delta: float) -> void:
 			_build_timers[bid] = float(_build_timers[bid]) - eff_interval
 			_produce_batch(bid, count, d, gyb)
 		_award_infra_mastery_xp(bid, float(guard))   # Building Mastery feedback (this tick's cycles)
-	# v104: continuous upkeep sink — only charged while the grid is live, so an
-	# idle/unpowered base never bleeds mats. Accumulate then charge whole intervals.
-	if eff > 0.0:
-		_upkeep_timer += delta
-		if _upkeep_timer >= UPKEEP_INTERVAL:
-			var n: int = int(_upkeep_timer / UPKEEP_INTERVAL)
-			_upkeep_timer -= float(n) * UPKEEP_INTERVAL
-			upkeep_efficiency = _upkeep_efficiency_for(n)   # P2.6 throttle for next cycle
-			_apply_upkeep(n)
 
 func _is_production_building(d: Dictionary) -> bool:
 	if not d.get("yield", {}).is_empty():
@@ -2412,10 +2343,7 @@ func _offline_infra(delta: float) -> String:
 		return ""
 	var skill_speed := _infra_skill_speed()
 	var gyb := _global_yield_bonus()
-	# v109 P2.6: throttle offline production by the upkeep fraction the player can
-	# afford over the away window (the actual drain happens once at the end).
-	upkeep_efficiency = _upkeep_efficiency_for(int(delta / UPKEEP_INTERVAL))
-	var prod_eff := eff * upkeep_efficiency
+	var prod_eff := eff   # v120: no material upkeep — energy efficiency only
 	var before := {}
 	for sym in resources:
 		before[sym] = amount(sym)
@@ -2441,13 +2369,6 @@ func _offline_infra(delta: float) -> String:
 		if cycles > 0:
 			add_xp("infrastructure", mini(cycles, 500000))
 			_award_infra_mastery_xp(bid, float(mini(cycles, 500000)))   # Building Mastery feedback (batched)
-	# v104: offline upkeep — closed-form, whole intervals only.
-	_apply_upkeep(int(delta / UPKEEP_INTERVAL))
-	# The offline-window upkeep fraction must NOT leak into live production: live
-	# recomputes it each upkeep interval from real stock. Leaving it stale (often ~0
-	# after a long away window that drained Water/Dirt) silently froze buildings
-	# until the next 60s tick — the "auto-excavator stopped, reopen fixed it" bug.
-	upkeep_efficiency = 1.0
 	var parts := []
 	for sym in resources:
 		var made := amount(sym) - int(before.get(sym, 0))
@@ -4861,8 +4782,6 @@ func hard_reset() -> void:
 	repeatable_research = {}
 	_build_timers = {}
 	_build_frac = {}
-	_upkeep_timer = 0.0
-	upkeep_efficiency = 1.0
 	active_hull = "corvette_hull"
 	owned_hulls = {"corvette_hull": true}
 	module_inventory = {}
