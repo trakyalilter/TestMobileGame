@@ -37,12 +37,14 @@ const C_TEXT := "eef2fb"
 const C_DIM := "b3c0db"      # secondary text — lifted for contrast
 const C_MUTED := "8c9bbd"    # tertiary / locked text — lifted for contrast
 const C_WARN := "ecb44a"
-const GOLD := "ecb44a"
-const CYAN := "55d3e6"
-const GREEN := "5fd585"
-const RED := "ef6a52"
-const PURP := "b78ae8"
-const BUILD := "ef9a54"
+# Accents saturated for the art-direction pass — the muted originals read as a
+# utility app; these push the "lit hardware" look while keeping the same hues.
+const GOLD := "f5b942"
+const CYAN := "4fdcf2"
+const GREEN := "57e389"
+const RED := "ff6f52"
+const PURP := "c08bff"
+const BUILD := "ff9d4d"
 const C_BG := "0b1220"        # legacy refs
 const C_PANEL := "111c2e"
 const DOMAIN := {"gather": GOLD, "craft": CYAN, "combat": RED, "research": PURP, "more": CYAN}
@@ -5972,6 +5974,14 @@ func _card(accent: String, lit: bool, min_h: int = 0) -> VBoxContainer:
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 6)
 	panel.add_child(v)
+	# Edge-light: a thin accent strip along the card's top — the "lit hardware"
+	# bevel every card carries (bright in its domain color when lit, a faint
+	# white catch-light when locked).
+	var edge := ColorRect.new()
+	edge.custom_minimum_size = Vector2(0, 2)
+	edge.color = Color(Color.html(accent), 0.35) if lit else Color(1, 1, 1, 0.06)
+	edge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(edge)
 	return v
 
 func _card_head(v: VBoxContainer, icon: String, name: String, badge: String, accent: String, lit: bool) -> void:
@@ -6162,7 +6172,7 @@ func _card_button(text: String, accent: String, enabled: bool) -> Button:
 
 func _progress(v: VBoxContainer, active: bool, accent: String) -> void:
 	var wrap := Control.new()
-	wrap.custom_minimum_size = Vector2(0, 16)
+	wrap.custom_minimum_size = Vector2(0, 22)   # chunky conduit, not a hairline
 	var bar := ProgressBar.new()
 	bar.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	bar.show_percentage = false
@@ -6226,7 +6236,7 @@ func _skill_banner(v: VBoxContainer, title: String, skill_id: String, accent: St
 	hb.add_child(lv)
 	box.add_child(hb)
 	var bar := ProgressBar.new()
-	bar.custom_minimum_size = Vector2(0, 8)
+	bar.custom_minimum_size = Vector2(0, 14)   # XP conduit — thick enough to read as a fixture
 	bar.show_percentage = false
 	bar.max_value = 100
 	bar.value = pct
@@ -6321,7 +6331,7 @@ func _build_active_banner() -> PanelContainer:
 	_embolden(_banner_name)
 	vb.add_child(_banner_name)
 	_banner_bar = ProgressBar.new()
-	_banner_bar.custom_minimum_size = Vector2(0, 5)
+	_banner_bar.custom_minimum_size = Vector2(0, 10)
 	_banner_bar.show_percentage = false
 	_banner_bar.max_value = 100
 	vb.add_child(_banner_bar)
@@ -6716,11 +6726,14 @@ func _style_bar(b: ProgressBar, accent: String) -> void:
 	var fg := StyleBoxFlat.new()
 	fg.bg_color = Color.html(accent)
 	fg.set_corner_radius_all(6)
-	# Energy-glow on the fill — bars read as charged conduits.
+	# Energy-glow on the fill — bars read as charged conduits. A lighter top
+	# edge on the fill fakes a lit gradient (StyleBoxFlat has no gradients).
+	fg.border_width_top = 2
+	fg.border_color = Color.html(_mix(accent, "ffffff", 0.55))
 	var glow := Color.html(accent)
-	glow.a = 0.45
+	glow.a = 0.6
 	fg.shadow_color = glow
-	fg.shadow_size = 3
+	fg.shadow_size = 5
 	b.add_theme_stylebox_override("background", bg)
 	b.add_theme_stylebox_override("fill", fg)
 
@@ -6732,11 +6745,13 @@ func _card_style(bg: String, border: String, width := 1, elevated := false) -> S
 	s.content_margin_top = 12
 	s.content_margin_bottom = 12
 	if elevated:
-		# Neon glow in the card's own accent — active/unlocked content radiates.
+		# Lit surface: the card FILL carries a whisper of its accent (not just the
+		# border), and the neon halo is stronger — unlocked content radiates.
+		s.bg_color = Color.html(_mix(border, bg, 0.93))
 		var glow := Color.html(border)
-		glow.a = 0.22
+		glow.a = 0.30
 		s.shadow_color = glow
-		s.shadow_size = 9
+		s.shadow_size = 12
 		s.shadow_offset = Vector2(0, 0)
 	else:
 		s.shadow_color = Color(0, 0, 0, 0.30)
