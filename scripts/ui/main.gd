@@ -2129,6 +2129,51 @@ func _build_gather() -> void:
 	if not any:
 		_empty(v, "No operations here yet.")
 
+# Craft I/O as one wrapping "inputs → outputs" chip line. Input pills read
+# affordability (green = have enough, amber = short); output pills carry the
+# accent border; bonus rolls show as "+x%" pills.
+func _io_chips(v: VBoxContainer, inputs: Dictionary, outputs: Dictionary, bonus: Array, accent: String) -> void:
+	var flow := HFlowContainer.new()
+	flow.add_theme_constant_override("h_separation", 5)
+	flow.add_theme_constant_override("v_separation", 5)
+	var mk := func(sym: String, txt: String, col: Color, border: String) -> void:
+		var pill := PanelContainer.new()
+		var sb := _bordered(INSET, border, 1, 8)
+		sb.content_margin_left = 7
+		sb.content_margin_right = 8
+		sb.content_margin_top = 3
+		sb.content_margin_bottom = 3
+		pill.add_theme_stylebox_override("panel", sb)
+		var hb := HBoxContainer.new()
+		hb.add_theme_constant_override("separation", 4)
+		pill.add_child(hb)
+		var icon := _mat_icon(sym, 18)
+		if icon != null:
+			icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			hb.add_child(icon)
+		var l := Label.new()
+		l.text = txt
+		l.add_theme_font_size_override("font_size", _fs(11))
+		l.add_theme_color_override("font_color", col)
+		_embolden(l)
+		hb.add_child(l)
+		flow.add_child(pill)
+	for sym in inputs:
+		var need: int = int(inputs[sym])
+		var have: bool = GameState.amount(sym) >= need
+		mk.call(String(sym), "×%d" % need, Color.html(GREEN if have else C_WARN), LINE)
+	var arrow := Label.new()
+	arrow.text = "→"
+	arrow.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	arrow.add_theme_font_size_override("font_size", _fs(13))
+	arrow.add_theme_color_override("font_color", Color.html(accent))
+	flow.add_child(arrow)
+	for sym in outputs:
+		mk.call(String(sym), "×%d" % int(outputs[sym]), Color.html(C_TEXT), _mix(accent, LINE, 0.4))
+	for row in bonus:
+		mk.call(String(row[0]), "+%d%%" % int(float(row[1]) * 100.0), _hex_color_safe(String(row[0])), _mix(accent, LINE, 0.4))
+	v.add_child(flow)
+
 # Identity head with the material's own tinted icon instead of a generic glyph —
 # the card shows WHAT YOU GET as art. Falls back to _card_head when no icon.
 func _card_head_mat(v: VBoxContainer, sym: String, glyph: String, name: String, badge: String, accent: String, lit: bool) -> void:
@@ -2389,7 +2434,13 @@ func _craft_card(id: String, r: Dictionary) -> Control:
 	v.get_parent().set_meta("coach_id", id)
 	if active:
 		_breathe_active(v.get_parent())
-	_card_head(v, "⚙", r["name"], "Lv %d" % int(r.get("level_req", 1)), CYAN, unlocked)
+	# Identity: the primary OUTPUT is the card art; the rate is the hero number;
+	# the two inset tables collapse into one "inputs → outputs" chip line.
+	var out_syms := []
+	for osym in r.get("outputs", {}):
+		out_syms.append([osym, 1.0, 0, 0])
+	var psym := _primary_sym(out_syms)
+	_card_head_mat(v, psym if unlocked else "", "⚙", r["name"], "Lv %d" % int(r.get("level_req", 1)), CYAN, unlocked)
 	# Ammo: show a color-coded damage-type chip so the player can tell kinetic /
 	# energy / explosive apart at a glance (matches the weapon affinity colors).
 	var ammo_type := _ammo_type_of(r)
@@ -2399,28 +2450,16 @@ func _craft_card(id: String, r: Dictionary) -> Control:
 		trow.add_child(_tag_chip("⦿ %s" % String(tag[0]), String(tag[1])))
 		v.add_child(trow)
 	if unlocked:
-		var in_lines := []
-		for sym in eff_inputs:
-			# QoL (desktop parity): show the required input, green when you have enough
-			# of that material, amber when short — so missing inputs read at a glance.
-			var need: int = int(eff_inputs[sym])
-			in_lines.append(_line("%d %s" % [need, GameData.res_name(sym)], GREEN if GameState.amount(sym) >= need else C_WARN, sym))
-		_inset(v, "INPUTS", in_lines, CYAN)
-		var d := Label.new()
-		d.text = "▼"
-		d.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		d.add_theme_font_size_override("font_size", _fs(9))
-		d.add_theme_color_override("font_color", Color.html(CYAN))
-		v.add_child(d)
-		var out_lines := []
-		for sym in r.get("outputs", {}):
-			out_lines.append(_line("%d %s" % [int(r["outputs"][sym]), GameData.res_name(sym)], C_TEXT, sym))
-		for row in r.get("bonus", []):
-			out_lines.append(_line("+%d%% %s" % [int(float(row[1]) * 100.0), GameData.res_name(row[0])], _hex(GameData.color_for(row[0])), row[0]))
-		_inset(v, "OUTPUT", out_lines, CYAN, true)
 		var rt := GameState.rate_text("craft", id)
 		if rt != "":
-			_clbl(v, rt, 10, GREEN)
+			var rl := Label.new()
+			rl.text = rt
+			rl.add_theme_font_size_override("font_size", _fs(17))
+			rl.add_theme_color_override("font_color", Color.html(GREEN))
+			_embolden(rl)
+			v.add_child(rl)
+		_io_chips(v, eff_inputs, r.get("outputs", {}), r.get("bonus", []), CYAN)
+		_held_chip(v, psym, active)
 		_mastery_row(v, id, CYAN, active)
 		var fill := Control.new()
 		fill.size_flags_vertical = Control.SIZE_EXPAND_FILL
