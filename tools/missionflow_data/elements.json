@@ -2036,5 +2036,65 @@
     "tier": 8,
     "base_value": 9000,
     "description": "Primordial-grade alloy fused from aeon residuum. Sector 10 commons."
+  },
+  {
+    "atomic_number": -430,
+    "symbol": "FirmwareInjector",
+    "name": "Firmware Injector",
+    "mass": 0.1,
+    "category": "Component",
+    "tier": 4,
+    "base_value": 1400,
+    "description": "Hack Card. Forge a Common module straight to Rare with 2 fresh affixes."
+  },
+  {
+    "atomic_number": -431,
+    "symbol": "RootKey",
+    "name": "Root Key",
+    "mass": 0.1,
+    "category": "Component",
+    "tier": 4,
+    "base_value": 5000,
+    "description": "Hack Card. Rarity +1 tier \u2014 keeps every existing affix, rolls 1 new one."
+  },
+  {
+    "atomic_number": -432,
+    "symbol": "AnchorBolt",
+    "name": "Anchor Bolt",
+    "mass": 0.1,
+    "category": "Component",
+    "tier": 4,
+    "base_value": 12000,
+    "description": "Hack Card. Lock an affix from rerolls (up to 2 on Legendary; re-apply to release)."
+  },
+  {
+    "atomic_number": -433,
+    "symbol": "CorruptionWorm",
+    "name": "Corruption Worm",
+    "mass": 0.1,
+    "category": "Component",
+    "tier": 4,
+    "base_value": 3500,
+    "description": "Hack Card. Remove 1 RANDOM unlocked affix, roll a new one (25% Greater-Affix \u2014 the gamble)."
+  },
+  {
+    "atomic_number": -434,
+    "symbol": "RefitBay",
+    "name": "Refit Bay Pass",
+    "mass": 0.1,
+    "category": "Component",
+    "tier": 4,
+    "base_value": 6000,
+    "description": "Hack Card. Remove 1 CHOSEN unlocked affix, roll a new one in its place (deterministic)."
+  },
+  {
+    "atomic_number": -435,
+    "symbol": "SignalCalibrator",
+    "name": "Signal Calibrator",
+    "mass": 0.1,
+    "category": "Component",
+    "tier": 4,
+    "base_value": 8000,
+    "description": "Hack Card. Re-roll the VALUES of every unanchored affix \u2014 identities & count kept."
   }
 ]

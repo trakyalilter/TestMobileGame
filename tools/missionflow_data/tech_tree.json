@@ -2013,5 +2013,22 @@
     "unlocks": [
       "Corrosion Blaster"
     ]
+  },
+  "firmware_hacking": {
+    "name": "Firmware Hacking",
+    "tier": 3,
+    "category": "combat",
+    "cost": 1500,
+    "type": "technology",
+    "parent": "kinetics_101",
+    "cost_items": {
+      "SalvageData": 10,
+      "AdvCircuit": 20
+    },
+    "effects": [],
+    "unlocks": [
+      "Hack Cards (module affix crafting)"
+    ],
+    "flavor": "Reverse-engineer salvaged module firmware to rewrite affixes \u2014 unlocks Hack Card drops in combat and crafting in the Ship Designer."
   }
 }

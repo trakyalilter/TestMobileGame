@@ -416,7 +416,7 @@ TAB_NODES = {
     ],
     "Ships": [
         # Early Gates (from Applied Physics)
-        "kinetics_101", "power_systems", "laser_optics",
+        "kinetics_101", "firmware_hacking", "power_systems", "laser_optics",
         # Shipwright Chain
         "shipwright_1", "shipwright_2", "molecular_printing",
         "capital_ship_engineering", "capital_ship_armament", "quantum_dynamics",
