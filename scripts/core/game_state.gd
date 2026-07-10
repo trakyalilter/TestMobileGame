@@ -1501,6 +1501,7 @@ func _grant_set_piece(base_id: String) -> String:
 	custom_modules[cid] = {
 		"name": t.get("name", base_id), "slot": t.get("slot", ""), "stats": stats,
 		"desc": t.get("desc", ""), "rarity": 4, "affixes": {}, "set": t.get("set", ""),
+		"durability": 100, "zone": int(t.get("zone", 1)),
 		"base": base_id, "sockets": [null, null, null],
 	}
 	module_inventory[cid] = int(module_inventory.get(cid, 0)) + 1
@@ -1626,6 +1627,7 @@ func generate_module(base_id: String, rarity: int, zone_diff: int) -> String:
 		"slot": slot, "stats": stats, "desc": base.get("desc", ""),
 		"rarity": rarity, "affixes": affixes, "base": base_id, "sockets": sockets,
 		"greater_affixes": greater_affixes,
+		"durability": 100, "zone": zone_diff,   # v125 durability + hack-stone zone seed
 	}
 	module_inventory[cid] = int(module_inventory.get(cid, 0)) + 1
 	return cid
@@ -3999,12 +4001,95 @@ func loot_drop_kept(base_id: String, rarity: int) -> bool:
 			return false
 	return true
 
+# ---------------- Module durability (desktop v100/v124/v125) ----------------
+# ONLINE defeat is non-destructive: equipped modules floor to 50% durability
+# (never lower, never destroyed). At <=50% a module is "destroyable", but that
+# loss only happens during OFFLINE combat (opt-in). Repairing costs Spare Parts.
+func get_module_durability(mid: String) -> int:
+	if custom_modules.has(mid):
+		return int(custom_modules[mid].get("durability", 100))
+	return 100
+
+func module_repair_cost(mid: String) -> int:
+	return int(RARITY_SPARE_PARTS.get(module_rarity(mid), 1))
+
+func repair_module(mid: String) -> bool:
+	if not custom_modules.has(mid):
+		return false
+	if get_module_durability(mid) >= 100:
+		return false
+	var cost := module_repair_cost(mid)
+	if amount("SparePart") < cost:
+		return false
+	resources["SparePart"] = amount("SparePart") - cost
+	custom_modules[mid]["durability"] = 100
+	resources_changed.emit()
+	return true
+
+# Every equipped module wears to 50 on defeat. Base modules are lazily minted
+# into rarity-0 custom instances first so durability can be tracked.
+func handle_module_defeat() -> void:
+	var changed := false
+	for k in loadout.keys():
+		var mid: String = loadout[k]
+		if mid == "":
+			continue
+		if not custom_modules.has(mid):
+			var base: Dictionary = GameData.MODULES.get(mid, {})
+			if base.is_empty():
+				continue
+			var cid := "cm_%s_%d_%d" % [mid, Time.get_ticks_msec(), randi() % 100000]
+			custom_modules[cid] = {
+				"name": String(base.get("name", mid)), "slot": String(base.get("slot", "")),
+				"stats": (base.get("stats", {}) as Dictionary).duplicate(),
+				"desc": String(base.get("desc", "")), "rarity": 0, "affixes": {},
+				"base": mid, "sockets": [], "greater_affixes": [],
+				"durability": 100, "zone": int(base.get("zone", 1)),
+			}
+			# Move one owned unit of the base onto the minted instance.
+			if int(module_inventory.get(mid, 0)) > 0:
+				module_inventory[mid] = int(module_inventory[mid]) - 1
+				if int(module_inventory[mid]) <= 0:
+					module_inventory.erase(mid)
+			module_inventory[cid] = 1
+			loadout[k] = cid
+			mid = cid
+		if int(custom_modules[mid].get("durability", 100)) > 50:
+			custom_modules[mid]["durability"] = 50
+			changed = true
+	if changed and not _suppress_fx:
+		_event("MODULES WORN TO 50% — repair with Spare Parts", "ecb44a", "player")
+
+# OFFLINE loss risk (the consent is the offline-combat toggle): only modules
+# ALREADY <=50% can be destroyed; ~5%/hr, capped 35% per worn module. Returns
+# destroyed display names so the Welcome Back report is never silent about it.
+func _apply_offline_durability_risk(delta: float) -> Array:
+	var destroyed: Array = []
+	var p: float = clampf(0.05 * (delta / 3600.0), 0.0, 0.35)
+	if p <= 0.0:
+		return destroyed
+	var to_clear := []
+	for k in loadout.keys():
+		var mid: String = loadout[k]
+		if mid == "" or not custom_modules.has(mid):
+			continue
+		if int(custom_modules[mid].get("durability", 100)) <= 50 and randf() < p:
+			destroyed.append(String(custom_modules[mid].get("name", mid)))
+			to_clear.append(k)
+	for k in to_clear:
+		var mid: String = loadout[k]
+		custom_modules.erase(mid)
+		module_inventory.erase(mid)
+		loadout[k] = ""
+	return destroyed
+
 func _lose_combat() -> void:
-	var cost := mini(repair_cost(), credits)   # repair fee on defeat (capped at available credits)
-	credits -= cost
+	# v124 (desktop parity): the credit "repair fee" death tax is gone —
+	# defeat now costs durability instead (handle_module_defeat).
 	combat_hp = combat_max_hp()
 	player_shield = 0.0
-	_event("HULL BREACH  −₡%s" % GameData.fmt(cost), "ef6a52", "player")
+	handle_module_defeat()
+	_event("HULL BREACH — modules worn", "ef6a52", "player")
 	# v86.0 Hazard: ejected on death — abandon the gauntlet run.
 	if hazard_state.get("active", false):
 		_event("HAZARD FAILED", "ef6a52", "player")
@@ -4503,6 +4588,10 @@ func _apply_offline(delta: float) -> void:
 	if active_type == "combat":
 		if offline_combat:
 			_offline_combat(delta)
+			var lost := _apply_offline_durability_risk(delta)
+			if not lost.is_empty():
+				var note := "☠ Destroyed while away (worn modules): " + ", ".join(lost)
+				pending_offline = (pending_offline + "\n\n" + note) if pending_offline != "" else note
 		return
 	var dur := current_duration()
 	if dur <= 0.0:
