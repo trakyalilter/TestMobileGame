@@ -1,7 +1,8 @@
 {
   "CrackedAmethystCore": {
     "def_mult": 0.02,
-    "hp_mult": 0.02
+    "hp_mult": 0.02,
+    "resist_pierce": 0.03
   },
   "CrackedCobaltCore": {
     "eva_mult": 0.02,
@@ -18,7 +19,8 @@
   },
   "PristineAmethystCore": {
     "def_mult": 0.1,
-    "hp_mult": 0.1
+    "hp_mult": 0.1,
+    "resist_pierce": 0.12
   },
   "PristineCobaltCore": {
     "eva_mult": 0.1,
@@ -35,7 +37,8 @@
   },
   "StableAmethystCore": {
     "def_mult": 0.05,
-    "hp_mult": 0.05
+    "hp_mult": 0.05,
+    "resist_pierce": 0.06
   },
   "StableCobaltCore": {
     "eva_mult": 0.05,

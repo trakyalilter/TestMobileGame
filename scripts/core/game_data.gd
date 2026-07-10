@@ -847,15 +847,15 @@ const TRINITY_SET_BONUSES := {
 	"warmasters_arsenal": {"name": "Warmaster's Arsenal", "pieces": 3, "atk_pct": 18, "crit_chance": 20},
 }
 const GEMS := {
-	"CrackedAmethystCore": {"name": "Cracked Amethyst Core", "effects": {"def_mult": 0.02, "hp_mult": 0.02}},
+	"CrackedAmethystCore": {"name": "Cracked Amethyst Core", "effects": {"def_mult": 0.02, "hp_mult": 0.02, "resist_pierce": 0.03}},
 	"CrackedCobaltCore": {"name": "Cracked Cobalt Core", "effects": {"eva_mult": 0.02, "max_shield_mult": 0.02, "shield_regen_mult": 0.02}},
 	"CrackedCrimsonCore": {"name": "Cracked Crimson Core", "effects": {"atk_energy_mult": 0.02, "atk_kinetic_mult": 0.02, "crit_chance": 0.02}},
 	"CrackedTopazCore": {"name": "Cracked Topaz Core", "effects": {"energy_capacity_mult": 0.02}},
-	"PristineAmethystCore": {"name": "Pristine Amethyst Core", "effects": {"def_mult": 0.1, "hp_mult": 0.1}},
+	"PristineAmethystCore": {"name": "Pristine Amethyst Core", "effects": {"def_mult": 0.1, "hp_mult": 0.1, "resist_pierce": 0.12}},
 	"PristineCobaltCore": {"name": "Pristine Cobalt Core", "effects": {"eva_mult": 0.1, "max_shield_mult": 0.1, "shield_regen_mult": 0.1}},
 	"PristineCrimsonCore": {"name": "Pristine Crimson Core", "effects": {"atk_energy_mult": 0.1, "atk_kinetic_mult": 0.1, "crit_chance": 0.1}},
 	"PristineTopazCore": {"name": "Pristine Topaz Core", "effects": {"energy_capacity_mult": 0.1}},
-	"StableAmethystCore": {"name": "Stable Amethyst Core", "effects": {"def_mult": 0.05, "hp_mult": 0.05}},
+	"StableAmethystCore": {"name": "Stable Amethyst Core", "effects": {"def_mult": 0.05, "hp_mult": 0.05, "resist_pierce": 0.06}},
 	"StableCobaltCore": {"name": "Stable Cobalt Core", "effects": {"eva_mult": 0.05, "max_shield_mult": 0.05, "shield_regen_mult": 0.05}},
 	"StableCrimsonCore": {"name": "Stable Crimson Core", "effects": {"atk_energy_mult": 0.05, "atk_kinetic_mult": 0.05, "crit_chance": 0.05}},
 	"StableTopazCore": {"name": "Stable Topaz Core", "effects": {"energy_capacity_mult": 0.05}},

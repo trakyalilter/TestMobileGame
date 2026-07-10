@@ -3737,6 +3737,15 @@ func _check_phase_transition() -> void:
 	var elem: String = str(phases[idx]).to_upper()
 	_event("⚠ PHASE %d — %s ONLY" % [idx + 1, elem], "8fdcff", "enemy")
 
+# v116: amplified enemy resistances (desktop RESIST_AMP). Positive resists scale
+# x1.78 (capped 0.80); weaknesses (negative) keep their authored value.
+const RESIST_AMP := 1.78
+const RESIST_MAX := 0.80
+func _amp_resist(r: float) -> float:
+	if r > 0.0:
+		return clampf(r * RESIST_AMP, 0.0, RESIST_MAX)
+	return clampf(r, -0.40, 0.0)
+
 func resolve_damage(atk_k: float, atk_e: float, atk_x: float, c_shield: float, c_armor: float, difficulty: int, crit_chance: float, is_player_attacker: bool = false, atk_cryo: float = 0.0, weapon_exotic: String = "cryo") -> Array:
 	# Phase/hardened breach gate (player attacks only); all-1.0 otherwise.
 	var bf := _breach_factors(weapon_exotic) if is_player_attacker else {"k": 1.0, "e": 1.0, "x": 1.0, "cryo": 1.0}
@@ -3774,11 +3783,23 @@ func resolve_damage(atk_k: float, atk_e: float, atk_x: float, c_shield: float, c
 	var hx := atk_x * 1.0 * maxf(min_factor, 1.0 - arm_x / (arm_x + k))
 	var hc := atk_cryo * 1.0 * maxf(min_factor, 1.0 - arm_cryo / (arm_cryo + k))
 	# Enemy per-type resistances (player attacks only). Negative = weakness.
+	# v116 (desktop parity): authored resists are AMPLIFIED so type-matching
+	# matters — the data maxes at 0.45, which reads as ~x1.8 damage swing; amped
+	# to 0.80 the wrong gun does ~5x worse than the right one. Weaknesses keep
+	# their authored value.
 	if is_player_attacker and not enemy_inst.is_empty():
-		var rk := clampf(float(enemy_inst.get("resist_k", 0.0)), -0.40, 0.50)
-		var re := clampf(float(enemy_inst.get("resist_e", 0.0)), -0.40, 0.50)
-		var rx := clampf(float(enemy_inst.get("resist_x", 0.0)), -0.40, 0.50)
-		var rc := clampf(float(enemy_inst.get("resist_cryo", 0.0)), -0.40, 0.50)
+		var rk := _amp_resist(float(enemy_inst.get("resist_k", 0.0)))
+		var re := _amp_resist(float(enemy_inst.get("resist_e", 0.0)))
+		var rx := _amp_resist(float(enemy_inst.get("resist_x", 0.0)))
+		var rc := _amp_resist(float(enemy_inst.get("resist_cryo", 0.0)))
+		# v118 Amethyst resist_pierce: shave POSITIVE resists only (cap 0.30) —
+		# softens the gate without turning weaknesses into super-weaknesses.
+		var rp := clampf(gem_bonus("resist_pierce"), 0.0, 0.30)
+		if rp > 0.0:
+			if rk > 0.0: rk = maxf(rk - rp, 0.0)
+			if re > 0.0: re = maxf(re - rp, 0.0)
+			if rx > 0.0: rx = maxf(rx - rp, 0.0)
+			if rc > 0.0: rc = maxf(rc - rp, 0.0)
 		hk *= 1.0 - rk
 		he *= 1.0 - re
 		hx *= 1.0 - rx
