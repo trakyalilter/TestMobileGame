@@ -970,9 +970,12 @@ const MISSIONS := {
 	"goal_cryo_3": {"name": "[CORE GOAL] BREACH THE THRESHOLD", "desc": "Destroy a Warp Revenant in The Threshold (Sector 11) with your Cryo armaments.", "type": "defeat", "target": "z11_warp_revenant", "qty": 1, "cr": 0, "xp": 15000000, "next": ""},
 	"goal_boost_1": {"name": "[CORE GOAL] OVERCLOCK PROTOCOL", "desc": "Your grid can run hotter. Fabricate a Boost Card in the Craft tab (Advanced Circuits + Superalloy + a Quantum Core).", "type": "gather", "target": "BoostCard", "qty": 1, "cr": 0, "xp": 500000, "next": "goal_boost_2"},
 	"goal_boost_2": {"name": "[CORE GOAL] RUNNING HOT", "desc": "Open Infrastructure and INSTALL the Boost Card on a building you own — it unlocks that building type's Efficiency up to 200% (input scales quadratically past 100%).", "type": "overclock_install", "target": "BoostCard", "qty": 1, "cr": 0, "xp": 800000, "next": ""},
+	"goal_hack_1": {"name": "[CORE GOAL] REWRITE THE FIRMWARE", "desc": "Salvaged modules can be re-forged. Research Firmware Hacking (Ships research tab, under Kinetic Weapons Theory) to unlock Hack Cards — module affix crafting.", "type": "research", "target": "firmware_hacking", "qty": 1, "cr": 0, "xp": 20000, "next": "goal_hack_2"},
+	"goal_hack_2": {"name": "[CORE GOAL] SALVAGE A HACK CARD", "desc": "Hack Cards now drop in combat. Defeat enemies until a Splice Chip drops.", "type": "gather", "target": "SpliceChip", "qty": 1, "cr": 0, "xp": 15000, "next": "goal_hack_3"},
+	"goal_hack_3": {"name": "[CORE GOAL] AWAKEN A MODULE", "desc": "Open a Common module in the Ship Designer and use the Splice Chip to awaken it into a custom module with a random affix.", "type": "hack_apply", "target": "SpliceChip", "qty": 1, "cr": 0, "xp": 30000, "next": ""},
 }
 const MISSION_ORDER := ["m001", "m002", "m004", "m005", "m014", "m020", "m021", "m022", "m022b", "m007", "m007b", "m015", "m015b", "m016", "m008", "m009", "m010", "m011", "m012", "m023", "m024", "m024c", "m024b", "m024b2", "m016c", "m017", "m018", "m019", "m019d", "m025", "m025b", "m026", "m026b", "m026c", "m026d", "m026e", "m027", "m028", "m029", "m029a1", "m029a3", "m029a4", "m029b", "m030", "m030c", "m030e", "m030f", "m030g", "m030h", "m031", "m032", "m032b", "m032d", "m032c", "m033", "m033b", "m033c", "m034"]
-const MISSION_GOALS := ["goal_001", "goal_002", "goal_003", "goal_cryo_1", "goal_boost_1"]
+const MISSION_GOALS := ["goal_001", "goal_002", "goal_003", "goal_cryo_1", "goal_boost_1", "goal_hack_1"]
 
 const REPEATABLE := {
 	"combat_focus": {"name": "Recursive Calibration (Combat)", "desc": "Infinite scaling: +5% Total Ship Damage per level.", "base_cost": 100000, "items": {"Malachite": 750, "QuantumCore": 38, "VoidArtifact": 5}, "bonus_type": "combat_damage", "bonus_value": 0.05},

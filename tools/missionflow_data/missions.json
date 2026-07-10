@@ -1204,5 +1204,53 @@
     "target": "solar_panel",
     "target_qty": 1,
     "type": "build"
+  },
+  "goal_hack_1": {
+    "active": true,
+    "claimed": false,
+    "completed": false,
+    "current_qty": 0.0,
+    "description": "Salvaged modules can be re-forged. Research Firmware Hacking (Ships research tab, under Kinetic Weapons Theory) to unlock Hack Cards \u2014 module affix crafting.",
+    "id": "goal_hack_1",
+    "multi_progress": {},
+    "name": "[CORE GOAL] REWRITE THE FIRMWARE",
+    "next_mission": "goal_hack_2",
+    "reward_cr": 0,
+    "reward_xp": 20000,
+    "target": "firmware_hacking",
+    "target_qty": 1,
+    "type": "research"
+  },
+  "goal_hack_2": {
+    "active": false,
+    "claimed": false,
+    "completed": false,
+    "current_qty": 0.0,
+    "description": "Hack Cards now drop in combat. Defeat enemies until a Splice Chip drops.",
+    "id": "goal_hack_2",
+    "multi_progress": {},
+    "name": "[CORE GOAL] SALVAGE A HACK CARD",
+    "next_mission": "goal_hack_3",
+    "reward_cr": 0,
+    "reward_xp": 15000,
+    "target": "SpliceChip",
+    "target_qty": 1,
+    "type": "gather"
+  },
+  "goal_hack_3": {
+    "active": false,
+    "claimed": false,
+    "completed": false,
+    "current_qty": 0.0,
+    "description": "Open a Common module in the Ship Designer and use the Splice Chip to awaken it into a custom module with a random affix.",
+    "id": "goal_hack_3",
+    "multi_progress": {},
+    "name": "[CORE GOAL] AWAKEN A MODULE",
+    "next_mission": "",
+    "reward_cr": 0,
+    "reward_xp": 30000,
+    "target": "SpliceChip",
+    "target_qty": 1,
+    "type": "hack_apply"
   }
 }

@@ -255,7 +255,7 @@ func _ready() -> void:
 # Base page per mission type. NOTE: "gather" is resolved dynamically (gather vs
 # craft) by _coach_resolve, since several "gather" missions target crafted materials
 # (the desc says "On the Craft tab"). visit_page routes to its own target page.
-const COACH_PAGE := {"gather": "gather", "gather_multi": "craft", "research": "research", "research_multi": "research", "craft": "shipyard", "construct": "shipyard", "build": "build", "defeat": "combat", "loadout_check": "ship", "loadout_rare_weapon": "ship", "equip_consumables": "ship", "drop_rarity": "combat", "warp_perform": "warp", "discover": "research"}
+const COACH_PAGE := {"gather": "gather", "gather_multi": "craft", "research": "research", "research_multi": "research", "craft": "shipyard", "construct": "shipyard", "build": "build", "defeat": "combat", "loadout_check": "ship", "loadout_rare_weapon": "ship", "equip_consumables": "ship", "drop_rarity": "combat", "warp_perform": "warp", "discover": "research", "hack_apply": "ship", "overclock_install": "build"}
 
 func _page_label(id: String) -> String:
 	for t in NAV_ALL:

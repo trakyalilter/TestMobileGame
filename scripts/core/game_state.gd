@@ -3002,7 +3002,7 @@ func _surface_core_goals() -> void:
 # player isn't shown "defeat the Z11 boss" at 0%. Reveal is STICKY (a game_flag)
 # so a post-warp skill/level dip can't un-reveal a goal that already surfaced.
 func _goal_revealed(gid: String) -> bool:
-	if not gid.begins_with("goal_cryo") and not gid.begins_with("goal_boost"):
+	if not gid.begins_with("goal_cryo") and not gid.begins_with("goal_boost") and not gid.begins_with("goal_hack"):
 		return true   # goal_001..003 are always revealed once the tutorial ends
 	if game_flags.get(gid + "_revealed", false):
 		return true
@@ -3011,6 +3011,9 @@ func _goal_revealed(gid: String) -> bool:
 		cond = cryo_unlocked                                       # cryo research opens on first Warp
 	elif gid == "goal_boost_1":
 		cond = not buildings.is_empty() and level_of("fabrication") >= 20
+	elif gid == "goal_hack_1":
+		# Reveal the moment Firmware Hacking becomes purchasable (parent researched).
+		cond = is_research_unlocked("kinetics_101")
 	if cond:
 		game_flags[gid + "_revealed"] = true
 	return cond
@@ -3457,6 +3460,8 @@ func claim_mission(mid: String) -> bool:
 		add_xp(_reward_xp_skill(m), reward_xp)
 	missions_claimed[mid] = true
 	missions_active.erase(mid)
+	if mid == "goal_hack_3":
+		add_resource("SpliceChip", 2)   # desktop: starter stones for the new crafter
 	var nxt: String = m.get("next", "")
 	if nxt != "" and GameData.MISSIONS.has(nxt) and not missions_claimed.has(nxt):
 		missions_active[nxt] = true
