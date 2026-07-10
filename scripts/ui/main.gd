@@ -90,6 +90,8 @@ var _hdr_credits: Label
 var _drift: Control
 var _drift_y := 0.0
 var _hit_flash: ColorRect
+var _fx_layer: Control = null   # persistent overlay for spawned juice (never rebuilt)
+var _gain_fx_live := 0          # concurrent floating-gain cap (fast loops can't flood)
 var _coach_banner: PanelContainer
 var _coach_obj: Label
 var _coach_hint: Label
@@ -226,6 +228,7 @@ func _ready() -> void:
 	GameState.standing_orders_changed.connect(_on_orders_changed)
 	GameState.missions_changed.connect(_on_missions_changed)
 	GameState.offline_ready.connect(_on_offline_ready)
+	GameState.cycle_completed.connect(_on_cycle_completed)   # idle juice: floating +N gains
 	GameState.level_up.connect(_on_level_up)
 	GameState.feature_revealed.connect(func(title: String, msg: String) -> void:
 		_celebrate(title, msg, PURP))
@@ -1507,6 +1510,15 @@ func _build() -> void:
 	_hit_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_hit_flash.z_index = 90
 	add_child(_hit_flash)
+	# FX overlay: every spawned effect (floating gains, fly-to-header bursts)
+	# parents HERE — built once, never rebuilt, input-transparent — so juice can
+	# never trigger a page rebuild or fight the idle-loop no-rebuild guard.
+	_fx_layer = Control.new()
+	_fx_layer.name = "FxLayer"
+	_fx_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_fx_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_fx_layer.z_index = 95
+	add_child(_fx_layer)
 
 func _build_drawer() -> void:
 	drawer = Control.new()
@@ -2916,6 +2928,76 @@ func _spawn_popup(ev: Dictionary) -> void:
 	if ev.get("side", "") == "player" and String(ev.get("color", "")) == "ef6a52":
 		_shake()
 		_flash_hit()
+
+# ---- Floating gain popups (idle juice) ----------------------------------
+# Generalized _spawn_popup: "+N ⟨icon⟩" that pops off `anchor`, drifts up and
+# fades on the persistent _fx_layer. Capped concurrency; node-bound tweens.
+func _float_gain(anchor: Control, tex: Texture2D, text: String, color: String) -> void:
+	if _fx_layer == null or anchor == null or not is_instance_valid(anchor) or not anchor.is_visible_in_tree():
+		return
+	if _gain_fx_live >= 10:
+		return
+	_gain_fx_live += 1
+	var hb := HBoxContainer.new()
+	hb.add_theme_constant_override("separation", 3)
+	hb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if tex != null:
+		var ic := TextureRect.new()
+		ic.texture = tex
+		ic.custom_minimum_size = Vector2(20, 20)
+		ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		hb.add_child(ic)
+	var l := Label.new()
+	l.text = text
+	l.add_theme_font_size_override("font_size", _fs(13))
+	l.add_theme_color_override("font_color", Color.html(color))
+	l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	l.add_theme_constant_override("outline_size", 6)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_embolden(l)
+	hb.add_child(l)
+	# _fx_layer is full-rect at the window origin, so globals map directly.
+	var gr := anchor.get_global_rect()
+	hb.position = Vector2(gr.position.x + gr.size.x * randf_range(0.25, 0.6), gr.position.y - 6.0)
+	_fx_layer.add_child(hb)
+	hb.pivot_offset = Vector2(20, 10)
+	hb.scale = Vector2(1.3, 1.3)
+	hb.modulate.a = 0.0
+	var tw := hb.create_tween()
+	tw.tween_property(hb, "scale", Vector2(1.0, 1.0), 0.14).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_property(hb, "modulate:a", 1.0, 0.12)
+	tw.parallel().tween_property(hb, "position:y", hb.position.y - 40.0, 0.9)
+	tw.tween_property(hb, "modulate:a", 0.0, 0.35)
+	tw.tween_callback(func() -> void:
+		_gain_fx_live = maxi(0, _gain_fx_live - 1)
+		hb.queue_free())
+
+# One gather/craft loop finished — pop its top gains off the active card (or the
+# banner when browsing another page). NOTE: never call _refresh_* from here; this
+# handler must not fight the idle-loop no-rebuild guard.
+func _on_cycle_completed(_type: String, _id: String, gains: Dictionary) -> void:
+	var anchor: Control = null
+	if is_instance_valid(_active_bar) and _active_bar.is_visible_in_tree():
+		anchor = _active_bar
+	elif is_instance_valid(active_banner):
+		anchor = active_banner
+	if anchor == null:
+		return
+	# Top 3 gains by amount — enough to feel rich without spam.
+	var syms := gains.keys()
+	syms.sort_custom(func(a, b) -> bool: return int(gains[a]) > int(gains[b]))
+	var shown := 0
+	for sym in syms:
+		if shown >= 3:
+			break
+		var amt := int(gains[sym])
+		if sym == "credits":
+			_float_gain(anchor, null, "+₡%s" % GameData.fmt(amt), GOLD)
+		else:
+			_float_gain(anchor, _mat_icon_tex(String(sym)), "+%s" % GameData.fmt(amt), _hex(GameData.color_for(String(sym))))
+		shown += 1
 
 func _shake() -> void:
 	if safe_margin == null:
