@@ -190,6 +190,8 @@ var _skill_bar: ProgressBar = null      # skill XP bar in the page banner — up
 var _skill_xp_label: Label = null
 var _skill_lv_label: Label = null
 var _skill_medal: Control = null        # level medallion — scale-pops on level-up
+var _held_label: Label = null           # active card's held-quantity chip (live per cycle)
+var _held_sym := ""
 var _skill_banner_id := ""
 # Active gather/craft card's Mastery row — refreshed live in _process (the page is
 # not rebuilt on loop completion, so the active action's bar must self-update).
@@ -1849,6 +1851,8 @@ func _refresh_current(preserve_scroll: bool = false) -> void:
 		saved_scroll = pages[current].scroll_vertical
 	_active_bar = null
 	_active_timer = null
+	_held_label = null
+	_held_sym = ""
 	_skill_bar = null
 	_skill_xp_label = null
 	_skill_lv_label = null
@@ -2125,6 +2129,114 @@ func _build_gather() -> void:
 	if not any:
 		_empty(v, "No operations here yet.")
 
+# Identity head with the material's own tinted icon instead of a generic glyph —
+# the card shows WHAT YOU GET as art. Falls back to _card_head when no icon.
+func _card_head_mat(v: VBoxContainer, sym: String, glyph: String, name: String, badge: String, accent: String, lit: bool) -> void:
+	var icon := _mat_icon(sym, 30) if sym != "" else null
+	if icon == null:
+		_card_head(v, glyph, name, badge, accent, lit)
+		return
+	var hb := HBoxContainer.new()
+	hb.add_theme_constant_override("separation", 8)
+	var chip := PanelContainer.new()
+	chip.custom_minimum_size = Vector2(44, 44)
+	chip.add_theme_stylebox_override("panel", _bordered(_mix(accent, INSET, 0.62) if lit else INSET, _mix(accent, LINE, 0.5) if lit else LINE, 1, 10))
+	var cc := CenterContainer.new()
+	chip.add_child(cc)
+	if not lit:
+		icon.modulate.a = 0.45
+	cc.add_child(icon)
+	hb.add_child(chip)
+	var nm := Label.new()
+	nm.text = name
+	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	nm.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	nm.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	nm.add_theme_font_size_override("font_size", _fs(13))
+	nm.add_theme_color_override("font_color", Color.html(C_TEXT if lit else C_MUTED))
+	_embolden(nm)
+	hb.add_child(nm)
+	if badge != "":
+		var bd := PanelContainer.new()
+		bd.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		var bsb := _bordered(_mix(accent, INSET, 0.8) if lit else INSET, accent if lit else LINE, 1, 8)
+		bsb.content_margin_left = 7
+		bsb.content_margin_right = 7
+		bsb.content_margin_top = 2
+		bsb.content_margin_bottom = 2
+		bd.add_theme_stylebox_override("panel", bsb)
+		var bl := Label.new()
+		bl.text = badge
+		bl.add_theme_font_size_override("font_size", _fs(9))
+		bl.add_theme_color_override("font_color", Color.html(accent if lit else C_MUTED))
+		bd.add_child(bl)
+		hb.add_child(bd)
+	v.add_child(hb)
+
+# Compact yield/IO chips: one wrapping row of "icon xN" pills instead of a tall
+# titled inset table — kills ~40% of the form-bloat per card.
+func _yield_chips(v: VBoxContainer, loot: Array, accent: String) -> void:
+	var flow := HFlowContainer.new()
+	flow.add_theme_constant_override("h_separation", 5)
+	flow.add_theme_constant_override("v_separation", 5)
+	for row in loot:
+		var sym: String = row[0]
+		var pill := PanelContainer.new()
+		var sb := _bordered(INSET, _mix(accent, LINE, 0.6), 1, 8)
+		sb.content_margin_left = 7
+		sb.content_margin_right = 8
+		sb.content_margin_top = 3
+		sb.content_margin_bottom = 3
+		pill.add_theme_stylebox_override("panel", sb)
+		var hb := HBoxContainer.new()
+		hb.add_theme_constant_override("separation", 4)
+		pill.add_child(hb)
+		var icon := _mat_icon(sym, 18)
+		if icon != null:
+			icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			hb.add_child(icon)
+		var lo := int(row[2])
+		var hi := int(row[3])
+		var txt := ("×%d" % hi) if lo == hi else ("×%d-%d" % [lo, hi])
+		if sym == "credits":
+			txt = "₡%d-%d" % [lo, hi]
+		if float(row[1]) < 1.0:
+			txt += " (%d%%)" % int(round(float(row[1]) * 100.0))
+		var l := Label.new()
+		l.text = txt
+		l.add_theme_font_size_override("font_size", _fs(11))
+		l.add_theme_color_override("font_color", _hex_color_safe(sym))
+		_embolden(l)
+		hb.add_child(l)
+		flow.add_child(pill)
+	v.add_child(flow)
+
+func _hex_color_safe(sym: String) -> Color:
+	if sym == "credits":
+		return Color.html(GOLD)
+	return Color.html(_hex(GameData.color_for(sym)))
+
+# Held-quantity chip ("how much do I have of what this makes"). The ACTIVE
+# card's chip is captured and refreshed per cycle from _on_cycle_completed.
+func _held_chip(v: VBoxContainer, sym: String, active: bool) -> void:
+	if sym == "" or sym == "credits":
+		return
+	var l := Label.new()
+	l.text = "◈ %s held" % GameData.fmt(GameState.amount(sym))
+	l.add_theme_font_size_override("font_size", _fs(10))
+	l.add_theme_color_override("font_color", Color.html(C_DIM))
+	v.add_child(l)
+	if active:
+		_held_label = l
+		_held_sym = sym
+
+# Primary (first non-credits) loot symbol of a gather action / craft output.
+func _primary_sym(rows: Array) -> String:
+	for row in rows:
+		if String(row[0]) != "credits":
+			return String(row[0])
+	return ""
+
 func _gather_card(id: String, a: Dictionary) -> Control:
 	var unlocked := GameState.meets_requirements(a, "harvesting")
 	var active := (GameState.active_type == "gather" and GameState.active_id == id)
@@ -2135,12 +2247,21 @@ func _gather_card(id: String, a: Dictionary) -> Control:
 	v.get_parent().set_meta("coach_id", id)
 	if active:
 		_breathe_active(v.get_parent())
-	_card_head(v, "↑", a["name"], "Lv %d" % int(a.get("level_req", 1)), GOLD, unlocked)
+	# Identity: the primary material IS the card art; yields are compact chips;
+	# the rate is the hero number — de-formed from the label/table/button stack.
+	var psym := _primary_sym(a.get("loot", []))
+	_card_head_mat(v, psym if unlocked else "", "↑", a["name"], "Lv %d" % int(a.get("level_req", 1)), GOLD, unlocked)
 	if unlocked:
-		_inset(v, "YIELD", _loot_lines(a.get("loot", [])), GOLD)
 		var rt := GameState.rate_text("gather", id)
 		if rt != "":
-			_clbl(v, rt, 10, GREEN)
+			var rl := Label.new()
+			rl.text = rt
+			rl.add_theme_font_size_override("font_size", _fs(17))
+			rl.add_theme_color_override("font_color", Color.html(GREEN))
+			_embolden(rl)
+			v.add_child(rl)
+		_yield_chips(v, a.get("loot", []), GOLD)
+		_held_chip(v, psym, active)
 		_mastery_row(v, id, GOLD, active)
 		var fill := Control.new()
 		fill.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -3035,6 +3156,9 @@ func _on_cycle_completed(_type: String, _id: String, gains: Dictionary) -> void:
 	if anchor == null:
 		return
 	# Top 3 gains by amount — enough to feel rich without spam.
+	# Live-refresh the active card's held-quantity chip (captured handle — no rebuild).
+	if is_instance_valid(_held_label) and _held_sym != "":
+		_held_label.text = "◈ %s held" % GameData.fmt(GameState.amount(_held_sym))
 	var syms := gains.keys()
 	syms.sort_custom(func(a, b) -> bool: return int(gains[a]) > int(gains[b]))
 	var shown := 0
