@@ -1060,19 +1060,67 @@ func _on_offline_ready() -> void:
 
 ## Branded display font (Rajdhani) with Noto symbol fallbacks so glyph icons
 ## render on devices whose system font lacks them.
+var _font_bold: FontFile = null   # Rajdhani SemiBold — display weight for headings/numbers
+
 func _apply_theme() -> void:
+	var fb: Array = []
+	var s2 = load("res://assets/fonts/NotoSansSymbols2-Regular.ttf")
+	var s1 = load("res://assets/fonts/NotoSansSymbols-VF.ttf")
+	if s2: fb.append(s2)
+	if s1: fb.append(s1)
 	var f = load("res://assets/fonts/Rajdhani-Medium.ttf")
 	if f is FontFile:
-		var fb: Array = []
-		var s2 = load("res://assets/fonts/NotoSansSymbols2-Regular.ttf")
-		var s1 = load("res://assets/fonts/NotoSansSymbols-VF.ttf")
-		if s2: fb.append(s2)
-		if s1: fb.append(s1)
 		f.fallbacks = fb
 		var th := Theme.new()
 		th.default_font = f
 		th.default_font_size = _fs(14)
 		theme = th
+	# Display weight: SemiBold for headings + headline numbers (game-chrome type
+	# hierarchy). Same glyph fallbacks so icons never regress.
+	var b = load("res://assets/fonts/Rajdhani-SemiBold.ttf")
+	if b is FontFile:
+		b.fallbacks = fb
+		_font_bold = b
+
+# Swap a label to the display (SemiBold) weight. Safe no-op if the font failed
+# to load — the label just stays Medium.
+func _embolden(l: Label) -> Label:
+	if _font_bold != null:
+		l.add_theme_font_override("font", _font_bold)
+	return l
+
+# Heading label: bold, colored, left-aligned (the game-chrome sibling of _clbl).
+func _hlabel(parent: Node, text: String, size: int, color: String) -> Label:
+	var l := Label.new()
+	l.text = text
+	l.add_theme_font_size_override("font_size", _fs(size))
+	l.add_theme_color_override("font_color", Color.html(color))
+	_embolden(l)
+	parent.add_child(l)
+	return l
+
+# Headline number: a BIG bold value with a small muted unit beside it — the
+# "label small, number big" idle-game pattern. Returns the value Label so
+# callers can capture it for live updates.
+func _big_stat(parent: Node, value: String, unit: String, color: String, size := 24) -> Label:
+	var hb := HBoxContainer.new()
+	hb.add_theme_constant_override("separation", 4)
+	hb.alignment = BoxContainer.ALIGNMENT_CENTER
+	var v := Label.new()
+	v.text = value
+	v.add_theme_font_size_override("font_size", _fs(size))
+	v.add_theme_color_override("font_color", Color.html(color))
+	_embolden(v)
+	hb.add_child(v)
+	if unit != "":
+		var u := Label.new()
+		u.text = unit
+		u.size_flags_vertical = Control.SIZE_SHRINK_END
+		u.add_theme_font_size_override("font_size", _fs(9))
+		u.add_theme_color_override("font_color", Color.html(C_MUTED))
+		hb.add_child(u)
+	parent.add_child(hb)
+	return v
 
 ## Pads the UI clear of the status bar / notch / gesture bar.
 var _safe_top := -1
@@ -1412,6 +1460,7 @@ func _build() -> void:
 	_hdr_credits = Label.new()
 	_hdr_credits.add_theme_font_size_override("font_size", _fs(15))
 	_hdr_credits.add_theme_color_override("font_color", Color.html(GOLD))
+	_embolden(_hdr_credits)   # the primary currency reads as a display number
 	ch.add_child(_hdr_credits)
 	hdr.add_child(cpill)
 	topv.add_child(hdr)
@@ -3717,6 +3766,7 @@ func _stat_strip(v: VBoxContainer, pairs: Array) -> void:
 		val.text = str(p[1])
 		val.add_theme_font_size_override("font_size", _fs(12))
 		val.add_theme_color_override("font_color", Color.html(p[2]))
+		_embolden(val)   # label small, number big+bold
 		hb.add_child(val)
 		fc.add_child(pill)
 	v.add_child(fc)
@@ -5946,6 +5996,7 @@ func _card_head(v: VBoxContainer, icon: String, name: String, badge: String, acc
 	nm.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	nm.add_theme_font_size_override("font_size", _fs(13))
 	nm.add_theme_color_override("font_color", Color.html(C_TEXT if lit else C_MUTED))
+	_embolden(nm)   # display weight — card titles read as game chrome
 	hb.add_child(nm)
 	if badge != "":
 		var bd := PanelContainer.new()
@@ -6083,6 +6134,8 @@ func _card_button(text: String, accent: String, enabled: bool) -> Button:
 	b.custom_minimum_size = Vector2(0, 54)
 	b.focus_mode = Control.FOCUS_NONE
 	b.disabled = not enabled
+	if _font_bold != null:
+		b.add_theme_font_override("font", _font_bold)   # chunky CTA type
 	# Chunky game CTA: darker bottom edge fakes a 3D bevel; pressing flattens the
 	# edge and nudges the label down — classic mobile-game button feel.
 	var normal := _bordered(accent if enabled else "232f48", _mix(accent, "000000", 0.45) if enabled else LINE, 1, 10)
@@ -6163,9 +6216,11 @@ func _skill_banner(v: VBoxContainer, title: String, skill_id: String, accent: St
 	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	t.add_theme_font_size_override("font_size", _fs(14))
 	t.add_theme_color_override("font_color", Color.html(accent))
+	_embolden(t)
 	hb.add_child(t)
 	var lv := Label.new()
 	lv.text = "Lv %d" % lvl
+	_embolden(lv)
 	lv.add_theme_font_size_override("font_size", _fs(14))
 	lv.add_theme_color_override("font_color", Color.html(C_TEXT))
 	hb.add_child(lv)
@@ -6210,6 +6265,7 @@ func _section(v: VBoxContainer, text: String, accent: String) -> Label:
 	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	l.add_theme_font_size_override("font_size", _fs(11))
 	l.add_theme_color_override("font_color", Color.html(C_DIM))
+	_embolden(l)
 	hb.add_child(l)
 	# Console-style framing: a faint accent rule under the title.
 	var col := VBoxContainer.new()
@@ -6262,6 +6318,7 @@ func _build_active_banner() -> PanelContainer:
 	_banner_name = Label.new()
 	_banner_name.add_theme_font_size_override("font_size", _fs(14))
 	_banner_name.add_theme_color_override("font_color", Color.html(C_TEXT))
+	_embolden(_banner_name)
 	vb.add_child(_banner_name)
 	_banner_bar = ProgressBar.new()
 	_banner_bar.custom_minimum_size = Vector2(0, 5)
