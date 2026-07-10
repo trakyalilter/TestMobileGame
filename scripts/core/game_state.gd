@@ -422,10 +422,12 @@ func _append_offline_storage_note(delta: float) -> void:
 func amount(sym: String) -> int:
 	return int(resources.get(sym, 0))
 
-func add_resource(sym: String, amt: int) -> void:
+func add_resource(sym: String, amt: int, force := false) -> void:
 	# Storage cap: a new material is dropped when all slots are full (desktop
-	# resources.gd). Existing stacks are unbounded.
-	if amt > 0 and amount(sym) <= 0 and used_slots() >= max_slots():
+	# resources.gd). Existing stacks are unbounded. `force` bypasses the cap for
+	# EARNED payouts (v132: a standing-order reward must never be silently
+	# destroyed by a full board).
+	if not force and amt > 0 and amount(sym) <= 0 and used_slots() >= max_slots():
 		if _suppress_fx:
 			_offline_lost[sym] = true   # tally distinct types lost while away (for the return report)
 		else:
@@ -1986,7 +1988,7 @@ const DELIVERY_MATERIALS := {
 	6: [["ColonySalvage", 250, 500, 2000000], ["AdvCircuit", 150, 300, 1750000], ["Steel", 2000, 5000, 2500000]],
 	7: [["RadIsotope", 200, 500, 3000000], ["Pt", 100, 250, 3750000], ["Superalloy", 150, 300, 2750000]],
 	8: [["VoidCrystal", 50, 150, 5000000], ["Diamond", 30, 80, 4000000], ["ExoticMatter", 20, 50, 6000000]],
-	9: [["BiohazardSample", 100, 250, 7500000], ["MutatedTissue", 50, 150, 9000000], ["PathogenCore", 20, 50, 10000000]],
+	9: [["BiohazardSample", 100, 250, 7500000], ["Neutronium", 50, 150, 9000000], ["PathogenCore", 20, 50, 10000000]],
 	10: [["VoidEssence", 50, 100, 25000000], ["ChronoCore", 20, 50, 37500000], ["PrimordialShard", 10, 30, 50000000]],
 }
 
@@ -2181,7 +2183,7 @@ const STANDING_MATERIAL_REWARDS := {
 	6: [["AdvCircuit", 150, 350], ["ColonySalvage", 100, 250], ["Superalloy", 60, 150]],
 	7: [["RadIsotope", 80, 200], ["Pt", 50, 120], ["Superalloy", 100, 250]],
 	8: [["VoidCrystal", 20, 60], ["Diamond", 15, 40], ["ExoticMatter", 10, 30]],
-	9: [["BiohazardSample", 40, 100], ["MutatedTissue", 25, 70], ["PathogenCore", 10, 25]],
+	9: [["BiohazardSample", 40, 100], ["Neutronium", 25, 70], ["PathogenCore", 10, 25]],
 	10: [["VoidEssence", 20, 50], ["ChronoCore", 10, 25], ["PrimordialShard", 5, 15]],
 }
 
@@ -2374,7 +2376,7 @@ func claim_standing_order(i: int) -> bool:
 		standing_board.append(fresh)
 	gain_credits(cred)
 	if not mat.is_empty():
-		add_resource(mat["id"], int(mat["qty"]))
+		add_resource(mat["id"], int(mat["qty"]), true)   # v132: earned payout bypasses the slot cap
 	resources_changed.emit()
 	standing_orders_changed.emit()
 	return true
