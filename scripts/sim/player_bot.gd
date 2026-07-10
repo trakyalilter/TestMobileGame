@@ -49,6 +49,7 @@ var _dead_streak := 0.0
 var _session_dead := 0.0
 var _stop_reason := ""
 var _pump_accum := 0.0
+var _trace_obj := ""
 
 func _ready() -> void:
 	call_deferred("_boot")
@@ -67,6 +68,7 @@ func _boot() -> void:
 		return
 	_backup_save()
 	_open_tele()
+	_trace_obj = String(args.get("traceobj", ""))
 	var arch := String(args.get("archetype", "follower"))
 	var run_seed := int(args.get("seed", "11"))
 	var days := int(args.get("days", "14"))
@@ -183,6 +185,15 @@ func _run_session(day_no: int, s_idx: int, length: float, until: String) -> void
 		_drain_policy_events()
 		var slice: float = min(float(d.get("length", 30.0)), remaining)
 		var kind := String(d.get("kind", "idle"))
+		# --traceobj=<mid>: one record per decision slice WHILE that mission is
+		# active — diagnoses where active time goes in a suspect funnel band.
+		if _trace_obj != "" and String(d.get("obj", "")) == _trace_obj:
+			tele.write({"t": "trace", "obj": _trace_obj, "kind": kind,
+				"why": String(d.get("why", "")), "attr": String(d.get("attr", "")),
+				"slice": round(slice), "status": String(policy.status),
+				"credits": int(GameState.resources.get_currency("credits")),
+				"res2": int(GameState.resources.get_element_amount("Res2")),
+				"day": day_no, "sim_s": round(sim_s)})
 		match kind:
 			"gather", "process":
 				_run_task_slice(d, slice)

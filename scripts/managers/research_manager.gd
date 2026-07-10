@@ -175,7 +175,13 @@ var tech_tree = {
 		"name": "Shipwright II",
 		"tier": 3,
 		"category": "ships",
-		"cost": 1000000,
+		# v135: 1,000,000 -> 950,000. The round 1M landed EXACTLY on
+		# ENDGAME_RESEARCH_COST_GATE, so _scale_mid_late_research_item_costs
+		# applied the tier-3 (endgame) x20 to this MID-game Destroyer unlock:
+		# 25 x 20 x 2 = 1000 Res2 — a multi-week farm (the player-bot sim's
+		# m030 wall). 950K drops it to the intended LATE stage (x7.5): 25 x 7.5
+		# x 2 = ~375 Res2. Credits were never the gate (bot had 5M by day 4).
+		"cost": 950000,
 		"cost_items": {"Res2": 25},
 		"type": "technology",
 		"parent": "shipwright_1",

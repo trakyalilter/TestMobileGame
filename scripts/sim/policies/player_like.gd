@@ -247,6 +247,7 @@ func _do_acquire(mid: String, sym: String) -> Dictionary:
 
 func _do_research(mid: String, tid: String) -> Dictionary:
 	var b: Dictionary = actions.research_blocker(tid)
+	status = "research:%s blk=%s" % [tid, String(b.get("kind", "?"))]
 	match String(b.get("kind", "")):
 		"done":
 			return {}

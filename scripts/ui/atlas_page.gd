@@ -282,10 +282,17 @@ func build_material_database():
 	# --- COMBAT SOURCES ---
 	var cm = GameState.combat_manager
 	if cm:
+		# v135: zone display name per difficulty tier — enemy defs carry
+		# "zone": int, so combat sources can be GROUPED by sector in the UI.
+		var zone_names := {}
+		for zid in cm.zones:
+			zone_names[int(cm.zones[zid].get("difficulty", 0))] = String(cm.zones[zid].get("name", zid))
 		for enemy_id in cm.enemy_db:
 			var enemy = cm.enemy_db[enemy_id]
 			var enemy_name = enemy.get("name", enemy_id)
-			
+			var z_ord := int(enemy.get("zone", 0))
+			var z_name := String(zone_names.get(z_ord, "Zone %d" % z_ord))
+
 			for entry in enemy.get("loot", []):
 				var mat_id = entry[0]
 				ensure_material(mat_id)
@@ -293,9 +300,10 @@ func build_material_database():
 					material_db[mat_id]["sources"].append({
 						"type": "combat",
 						"name": enemy_name,
-						"rate": "%d-%d per kill" % [entry[1], entry[2]]
+						"rate": "%d-%d per kill" % [entry[1], entry[2]],
+						"zone_name": z_name, "zone_ord": z_ord
 					})
-			
+
 			for entry in enemy.get("rare_loot", []):
 				var mat_id = entry[0]
 				ensure_material(mat_id)
@@ -303,9 +311,10 @@ func build_material_database():
 					material_db[mat_id]["sources"].append({
 						"type": "combat",
 						"name": enemy_name + " (Rare)",
-						"rate": "%.0f%% chance" % (entry[1] * 100)
+						"rate": "%.0f%% chance" % (entry[1] * 100),
+						"zone_name": z_name, "zone_ord": z_ord
 					})
-			
+
 			if "boss_core" in enemy and enemy["boss_core"] != "":
 				var core_id = enemy["boss_core"]
 				ensure_material(core_id)
@@ -313,7 +322,8 @@ func build_material_database():
 					material_db[core_id]["sources"].append({
 						"type": "combat",
 						"name": enemy_name + " (Boss)",
-						"rate": "100% (Guaranteed)"
+						"rate": "100% (Guaranteed)",
+						"zone_name": z_name, "zone_ord": z_ord
 					})
 	
 	# --- INFRASTRUCTURE SOURCES & USES ---
@@ -754,8 +764,24 @@ func _display_material_details(mat_id):
 	if mat["sources"].is_empty():
 		_add_label(sources_list, "No known sources.", UITheme.COLORS["text_dim"])
 	else:
+		# v135: combat sources grouped under their SECTOR (Lunar Orbit > mites,
+		# drones...). Non-combat sources (gather/recipes/buildings) stay flat
+		# on top; zones render in ascending tier with indented enemy rows.
+		var zone_groups := {}
 		for source in mat["sources"]:
-			_add_source_row(sources_list, source["type"], "%s (%s)" % [source["name"], source["rate"]], _get_type_color(source["type"]))
+			if String(source.get("type", "")) == "combat" and source.has("zone_name"):
+				var z_o := int(source.get("zone_ord", 0))
+				if not zone_groups.has(z_o):
+					zone_groups[z_o] = {"name": String(source["zone_name"]), "rows": []}
+				zone_groups[z_o]["rows"].append(source)
+			else:
+				_add_source_row(sources_list, source["type"], "%s (%s)" % [source["name"], source["rate"]], _get_type_color(source["type"]))
+		var z_ords: Array = zone_groups.keys()
+		z_ords.sort()
+		for z_o2 in z_ords:
+			_add_label(sources_list, String(zone_groups[z_o2]["name"]), Color(UITheme.COLORS["accent"], 0.95))
+			for src in zone_groups[z_o2]["rows"]:
+				_add_source_row(sources_list, src["type"], "%s (%s)" % [src["name"], src["rate"]], _get_type_color(src["type"]), 14)
 
 	_make_caption(uses_list, "CONSUMED BY", UITheme.COLORS["warning"])
 	if mat["uses"].is_empty():
@@ -885,9 +911,14 @@ func _type_icon_tex(type: String) -> Texture2D:
 
 # Source/use row: tinted nav icon + "Name (rate)" label (replaces the old
 # emoji-prefixed plain label).
-func _add_source_row(parent, type: String, text: String, color: Color):
+func _add_source_row(parent, type: String, text: String, color: Color, indent: int = 0):
 	var row = HBoxContainer.new()
 	row.add_theme_constant_override("separation", 6)
+	if indent > 0:
+		var sp = Control.new()
+		sp.custom_minimum_size = Vector2(indent, 0)
+		sp.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(sp)
 	var tex = _type_icon_tex(type)
 	if tex:
 		var ir = TextureRect.new()
