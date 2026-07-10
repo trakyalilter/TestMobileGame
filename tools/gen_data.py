@@ -711,6 +711,7 @@ MOBILE_MISSION_DESC = {
     "m016b": "In the Ship Designer, equip a WEAPON and a SHIELD.",
     "m016c": "Open the Combat tab, pick a sector, choose a target, and ENGAGE. Your shield soaks hits first; your hull takes the overflow. Once you research Auto-Repair, kits fire automatically at the threshold.",
     "m019": "On the Craft tab, craft 10 Basic Circuitry.",
+    "m019d": "On the Build page, construct a Solar Panel — passive energy for your grid.",
     "m021": "On the Craft tab, craft 5 Basic Batteries (BatteryT1).",
     "m022": "In the Shipyard, build a Basic Battery module.",
     "m022b": "In the Ship Designer, tap your Basic Battery to equip it into a BATTERY slot. Energy capacity rises — needed to power your weapons and shields.",
@@ -864,6 +865,7 @@ CURATED_CHAIN = [
            "Logistics — the backbone for circuitry and drones.",
            ["m018", "m018b"]),
     _m("m019"),                                  # craft Circuit
+    _m("m019d"),                                 # v135: first Foundation (build a Solar Panel)
     # --- Steel, first reinforced hull, elite salvage, the boss.
     _m("m025"),                                  # research smelting
     _m("m025b"),                                 # smelt Steel

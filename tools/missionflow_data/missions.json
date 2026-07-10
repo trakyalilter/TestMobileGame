@@ -1188,5 +1188,21 @@
     "target": "BoostCard",
     "target_qty": 1,
     "type": "overclock_install"
+  },
+  "m019d": {
+    "active": false,
+    "claimed": false,
+    "completed": false,
+    "current_qty": 0.0,
+    "description": "Construct a Solar Panel on the Build page \u2014 passive energy for your grid.",
+    "id": "m019d",
+    "multi_progress": {},
+    "name": "[TUTORIAL] First Foundation",
+    "next_mission": "",
+    "reward_cr": 2500,
+    "reward_xp": 200,
+    "target": "solar_panel",
+    "target_qty": 1,
+    "type": "build"
   }
 }
