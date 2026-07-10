@@ -1302,6 +1302,7 @@ func equip_module(mid: String) -> bool:
 				return false
 			module_inventory[mid] = int(module_inventory[mid]) - 1
 			equip_notice = ""
+			_autosave_active_preset()
 			_mission_sync()   # loadout_check / loadout_rare_weapon missions re-check on equip
 			resources_changed.emit()
 			return true
@@ -1312,6 +1313,7 @@ func unequip_slot(idx: String) -> void:
 		module_inventory[loadout[idx]] = int(module_inventory.get(loadout[idx], 0)) + 1
 		loadout.erase(idx)
 		ammo_loadout.erase(idx)
+		_autosave_active_preset()
 		_mission_sync()
 		resources_changed.emit()
 
@@ -1348,6 +1350,7 @@ func equip_module_to_slot(idx: int, mid: String) -> bool:
 	module_inventory[mid] = int(module_inventory[mid]) - 1
 	ammo_loadout.erase(key)   # a swapped weapon clears the old slot's ammo binding
 	equip_notice = ""
+	_autosave_active_preset()
 	_mission_sync()
 	resources_changed.emit()
 	return true
@@ -1363,6 +1366,50 @@ func _preset_has_no_modules(preset: Dictionary) -> bool:
 		if v != null and v != "":
 			return false
 	return true
+
+# v134g preset autosave: the ACTIVE preset slot mirrors live loadout edits, so
+# a fight-ready build survives app restarts without a manual save.
+var active_preset_idx := 1
+var _suppress_preset_autosave := false
+
+func _autosave_active_preset() -> void:
+	if _suppress_preset_autosave:
+		return
+	if loadout_presets.has(active_preset_idx):
+		var preset: Dictionary = loadout_presets[active_preset_idx]
+		preset["loadout"] = loadout.duplicate(true)
+		preset["ammo_loadout"] = ammo_loadout.duplicate(true)
+		preset["consumable_hull"] = consumable_hull_slot
+		preset["consumable_shield"] = consumable_shield_slot
+		if preset["name"] == "":
+			preset["name"] = "Build %d" % active_preset_idx
+
+# Auto-repower (desktop v134): when the grid is overloaded, equip the best owned
+# battery from inventory into a free battery slot. Returns true if power now fits.
+func _ensure_powered_from_inventory() -> bool:
+	var ss := ship_stats()
+	if float(ss.get("energy_load", 0.0)) <= float(ss.get("energy_cap", 0.0)):
+		return true
+	# best owned battery = highest energy_capacity in inventory
+	var best := ""
+	var best_cap := 0.0
+	for mid in module_inventory:
+		var m := module_def(String(mid))
+		if String(m.get("slot", "")) != "battery":
+			continue
+		var cap := float(m.get("stats", {}).get("energy_capacity", 0.0))
+		if cap > best_cap:
+			best_cap = cap
+			best = String(mid)
+	if best == "":
+		return false
+	_suppress_preset_autosave = true
+	var ok := equip_module(best)
+	_suppress_preset_autosave = false
+	if not ok:
+		return false
+	var ss2 := ship_stats()
+	return float(ss2.get("energy_load", 0.0)) <= float(ss2.get("energy_cap", 0.0))
 
 func save_loadout_preset(idx: int) -> bool:
 	if not loadout_presets.has(idx):
@@ -1408,6 +1455,8 @@ func load_loadout_preset(idx: int) -> Dictionary:
 	consumable_hull_slot = hull_c if hull_c != "" and amount(hull_c) > 0 else ""
 	var shield_c: String = preset.get("consumable_shield", "")
 	consumable_shield_slot = shield_c if shield_c != "" and amount(shield_c) > 0 else ""
+	active_preset_idx = idx           # v134g: this slot now mirrors live edits
+	_ensure_powered_from_inventory()  # v134: auto-equip the best owned battery if overloaded
 	_mission_sync()
 	resources_changed.emit()
 	return {"loaded": loaded, "skipped": skipped}
@@ -3543,6 +3592,15 @@ func start_task(type: String, id: String) -> void:
 	if active_type == type and active_id == id:
 		stop_task()
 		return
+	if type == "combat":
+		# v134 combat entry gate: an overloaded grid means dead weapons — refuse
+		# the engage (after trying to self-rescue with an owned battery).
+		var ss := ship_stats()
+		if float(ss.get("energy_load", 0.0)) > float(ss.get("energy_cap", 0.0)):
+			if not _ensure_powered_from_inventory():
+				equip_notice = "⚡ SHIP UNPOWERED — equip a Battery before engaging."
+				resources_changed.emit()
+				return
 	active_type = type
 	active_id = id
 	progress = 0.0
@@ -3825,6 +3883,7 @@ func set_ammo(slot: String, ammo_id: String) -> void:
 		ammo_loadout.erase(slot)
 	else:
 		ammo_loadout[slot] = ammo_id
+	_autosave_active_preset()
 	resources_changed.emit()
 
 func set_consumable(kind: String, item_id: String) -> void:
@@ -3832,6 +3891,7 @@ func set_consumable(kind: String, item_id: String) -> void:
 		consumable_hull_slot = item_id
 	else:
 		consumable_shield_slot = item_id
+	_autosave_active_preset()
 	_mission_sync()   # equip_consumables missions evaluate live consumable slots
 	resources_changed.emit()
 
@@ -5025,6 +5085,7 @@ func save_game() -> void:
 		"repeatable_research": repeatable_research,
 		"offline_combat": offline_combat,
 		"total_kills": total_kills,
+		"active_preset_idx": active_preset_idx,
 		"warp_shards": warp_shards,
 		"total_warps": total_warps,
 		"fleet_ships": fleet_ships,
@@ -5109,6 +5170,7 @@ func load_game() -> void:
 	repeatable_research = data.get("repeatable_research", {})
 	offline_combat = bool(data.get("offline_combat", false))
 	total_kills = int(data.get("total_kills", 0))
+	active_preset_idx = int(data.get("active_preset_idx", 1))
 	for k in repeatable_research:
 		repeatable_research[k] = int(repeatable_research[k])
 	warp_shards = float(data.get("warp_shards", 0.0))
