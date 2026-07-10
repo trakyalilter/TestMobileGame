@@ -4493,6 +4493,73 @@ func _durability_row(v: VBoxContainer, mid: String, close_after_repair: Callable
 				_refresh_current())
 		v.add_child(rb)
 
+# Per-stone action rows for the module dialog. Owned + applicable stones show a
+# button with the Lira cost; Refit Bay / Anchor Bolt open an affix picker.
+func _hack_stone_rows(v: VBoxContainer, mid: String, close: Callable) -> void:
+	if not is_research_unlocked_safe("firmware_hacking"):
+		return
+	var any := false
+	for stone in GameState.HACK_STONE_IDS:
+		if GameState.amount(stone) < 1:
+			continue
+		var chk: Dictionary = GameState.can_apply_hack_stone(stone, mid)
+		if not bool(chk.get("ok", false)):
+			continue
+		if not any:
+			_section(v, "⚡ HACK CARDS", PURP)
+			any = true
+		var needs_pick := stone in ["RefitBay", "AnchorBolt"]
+		var label := "%s  (x%d)" % [GameData.res_name(stone), GameState.amount(stone)]
+		var b := _card_button(label, PURP, true)
+		b.add_theme_font_size_override("font_size", _fs(11))
+		b.tooltip_text = String(GameState.HACK_STONE_DESC.get(stone, ""))
+		var st := stone
+		b.pressed.connect(func() -> void:
+			if needs_pick:
+				_open_affix_picker(st, mid, close)
+			else:
+				var r: Dictionary = GameState.apply_hack_stone(st, mid)
+				_celebrate("⚡ " + GameData.res_name(st).to_upper() if r.get("ok", false) else "✕", String(r.get("msg", "")), PURP if r.get("ok", false) else RED)
+				close.call()
+				var cid := String(r.get("cid", ""))
+				if cid != "" and GameState.custom_modules.has(cid):
+					_open_module_detail(cid)
+				else:
+					_refresh_current())
+		v.add_child(b)
+		_lbl_wrap(v, String(GameState.HACK_STONE_DESC.get(stone, "")), 9, C_MUTED)
+
+# Godot 4 name-collision-safe research check for the UI layer.
+func is_research_unlocked_safe(rid: String) -> bool:
+	return GameState.is_research_unlocked(rid)
+
+# Pick an affix for Refit Bay (reroll target) / Anchor Bolt (lock-release target).
+func _open_affix_picker(stone: String, mid: String, parent_close: Callable) -> void:
+	var body := func(v: VBoxContainer, close: Callable) -> void:
+		var md: Dictionary = GameState.module_def(mid)
+		var anch: Array = GameState._anchored_array(md)
+		for aid in md.get("affixes", {}):
+			var a := String(aid)
+			var locked: bool = anch.has(a)
+			if stone == "RefitBay" and locked:
+				continue   # can't refit a locked affix
+			var lbl := ("🔓 Release: " if (stone == "AnchorBolt" and locked) else ("🔒 Lock: " if stone == "AnchorBolt" else "↻ Reroll: ")) + _affix_text(a, md["affixes"][a])
+			var b := _card_button(lbl, PURP, true)
+			b.add_theme_font_size_override("font_size", _fs(11))
+			b.pressed.connect(func() -> void:
+				var r: Dictionary = GameState.apply_hack_stone(stone, mid, a)
+				_celebrate("⚡ " + GameData.res_name(stone).to_upper() if r.get("ok", false) else "✕", String(r.get("msg", "")), PURP if r.get("ok", false) else RED)
+				close.call()
+				if parent_close.is_valid():
+					parent_close.call()
+				var cid := String(r.get("cid", ""))
+				if cid != "" and GameState.custom_modules.has(cid):
+					_open_module_detail(cid)
+				else:
+					_refresh_current())
+			v.add_child(b)
+	_modal(GameData.res_name(stone).to_upper(), PURP, body, "⚡")
+
 func _module_detail_body(v: VBoxContainer, close: Callable, mid: String) -> void:
 	var md: Dictionary = GameState.module_def(mid)
 	var rcol: String = GameState.RARITY_COLOR.get(int(md.get("rarity", 0)), C_TEXT)
@@ -4503,20 +4570,19 @@ func _module_detail_body(v: VBoxContainer, close: Callable, mid: String) -> void
 	_clbl(v, sub, 10, rcol)
 	_durability_row(v, mid, close)
 	_inset(v, "STATS", _module_stat_lines(md.get("stats", {})), CYAN)
+	var _anch: Array = GameState._anchored_array(md) if GameState.custom_modules.has(mid) else []
+	var _ga: Array = md.get("greater_affixes", [])
 	for aid in md.get("affixes", {}):
-		_clbl(v, _affix_text(aid, md["affixes"][aid]), 10, GameState.RARITY_COLOR.get(3, GOLD))
-	# Hack: awaken a Common (base, rarity-0) module into an Uncommon with a random
-	# affix by consuming a Splice Chip (dropped in combat).
-	if not GameState.custom_modules.has(mid) and int(md.get("rarity", 0)) == 0 and int(GameState.module_inventory.get(mid, 0)) > 0:
-		var chips := GameState.amount("SpliceChip")
-		var hb := _card_button(("⚡ Awaken with Splice Chip (%d)" % chips) if chips > 0 else "⚡ Needs a Splice Chip", PURP, chips > 0)
-		if chips > 0:
-			hb.pressed.connect(func() -> void:
-				var r: Dictionary = GameState.apply_splice_chip(mid)
-				_celebrate("⚡ AWAKENED" if r.get("ok", false) else "✕", String(r.get("msg", "")), PURP if r.get("ok", false) else RED)
-				close.call()
-				_refresh_current())
-		v.add_child(hb)
+		var marks := ""
+		if _anch.has(String(aid)):
+			marks += "🔒 "
+		if _ga.has(String(aid)):
+			marks += "★ "
+		_clbl(v, marks + _affix_text(aid, md["affixes"][aid]), 10, GameState.RARITY_COLOR.get(3, GOLD))
+	# Hack-stone workbench: one action row per applicable stone (validated by
+	# can_apply_hack_stone — buttons only appear when you own the stone and the
+	# module qualifies). Affix-picker stones (Refit/Anchor) chain a second dialog.
+	_hack_stone_rows(v, mid, close)
 	# Set pieces: surface the set + its trinity bonus + equipped progress, so the
 	# real payoff (the bonus at full set) is visible (desktop "(Set) [x/3]" intent).
 	var set_id: String = md.get("set", "")
@@ -4569,7 +4635,9 @@ func _module_detail_body(v: VBoxContainer, close: Callable, mid: String) -> void
 	v.add_child(eq)
 	v.add_child(note)
 	if GameState.custom_modules.has(mid):
-		v.add_child(_guarded_sell_button(GameState.RARITY_SELL.get(int(md.get("rarity", 0)), 100), _sell_and_close.bind(mid, close)))
+		if not GameState._anchored_array(md).is_empty():
+			_clbl(v, "⚠ This module has anchored affixes — selling loses the locks.", 9, C_WARN)
+		v.add_child(_guarded_sell_button(GameState._module_sell_price(mid, int(md.get("rarity", 0))), _sell_and_close.bind(mid, close)))
 
 func _do_equip(mid: String, close: Callable, note: Label) -> void:
 	# Slot-first flow (opened from a specific slot): equip straight into it.
