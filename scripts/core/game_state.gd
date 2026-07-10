@@ -278,6 +278,7 @@ var pending_offline: String = ""
 var _offline_lost := {}         # distinct material types dropped (storage full) during the away window
 var _bg_time := 0.0             # wall-clock when the app was backgrounded (0 = foreground)
 var offline_combat := false             # option: process combat while away (off by default, like desktop)
+var total_kills := 0                    # lifetime manual kills (offline-combat nudge trigger)
 
 # Legacy single-save path (pre-slots). Kept only for the one-time migration below.
 const SAVE_PATH := "user://stellarforge_save.json"
@@ -3456,6 +3457,21 @@ func use_manual_consumable(kind: String) -> void:
 		_trigger_consume(item)
 		resources_changed.emit()
 
+# v3 kit death-tension (desktop _kit_tier_factor): repair kits scale with each
+# hull's HP pool differently, so on big hulls a % kit trivializes fights. Per-tier
+# sim-tuned potency cut; tiers 1-3 (early game) untouched.
+func _kit_tier_factor() -> float:
+	var t := int(GameData.HULLS.get(active_hull, {}).get("tier", 1))
+	match t:
+		1, 2, 3: return 1.0
+		4: return 0.35
+		5: return 0.20
+		6: return 0.45
+		7: return 0.35
+		8: return 0.30
+		9: return 0.20
+		_: return 0.30
+
 func _trigger_consume(item_id: String) -> void:
 	var d: Dictionary = GameData.CONSUMABLES.get(item_id, {})
 	if d.is_empty() or amount(item_id) < 1:
@@ -3463,6 +3479,8 @@ func _trigger_consume(item_id: String) -> void:
 	resources[item_id] = amount(item_id) - 1
 	_consume_cd = CONSUME_CD
 	var pct := float(d.get("heal_pct", 0.0))
+	if active_type == "combat":
+		pct *= _kit_tier_factor()   # in-combat only — out-of-combat top-ups stay full strength
 	if d.get("type", "hull") == "hull":
 		var amt := combat_max_hp() * pct
 		combat_hp = minf(combat_max_hp(), combat_hp + amt)
@@ -3831,6 +3849,13 @@ func resolve_damage(atk_k: float, atk_e: float, atk_x: float, c_shield: float, c
 	return [dmg_shield * variance, maxf(minhull, hull * variance), is_crit]
 
 func _win_combat() -> void:
+	# Offline-combat nudge (desktop v?): after enough manual kills, point the
+	# player at the away-combat option once. total_kills is saved.
+	total_kills += 1
+	if total_kills >= 15 and not offline_combat and not game_flags.get("offline_combat_nudge_seen", false) and not _suppress_fx:
+		game_flags["offline_combat_nudge_seen"] = true
+		feature_revealed.emit("⟨ AWAY-COMBAT AVAILABLE ⟩",
+			"Your ship can keep fighting while you're away — enable Offline Combat in Settings.")
 	_roll_loot(enemy_inst["loot"], get_combat_loot_multiplier(), 0, true)
 	add_xp("combat", int(enemy_inst["xp"] * (1.0 + research_bonus("combat_xp"))))
 	bounty_on_kill(active_id)
@@ -4569,6 +4594,7 @@ func save_game() -> void:
 		"storage_upgrades": storage_upgrades,
 		"repeatable_research": repeatable_research,
 		"offline_combat": offline_combat,
+		"total_kills": total_kills,
 		"warp_shards": warp_shards,
 		"total_warps": total_warps,
 		"fleet_ships": fleet_ships,
@@ -4652,6 +4678,7 @@ func load_game() -> void:
 	storage_upgrades = int(data.get("storage_upgrades", 0))
 	repeatable_research = data.get("repeatable_research", {})
 	offline_combat = bool(data.get("offline_combat", false))
+	total_kills = int(data.get("total_kills", 0))
 	for k in repeatable_research:
 		repeatable_research[k] = int(repeatable_research[k])
 	warp_shards = float(data.get("warp_shards", 0.0))
@@ -4828,6 +4855,7 @@ func hard_reset() -> void:
 	# absent flag and stay ungated).
 	game_flags = {"tier_gate_enabled": true}
 	boss_kills = {}
+	total_kills = 0
 	hazard_clears = {}
 	missions_active = {}
 	missions_progress = {}
