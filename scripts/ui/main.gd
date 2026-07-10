@@ -5964,7 +5964,9 @@ func _style_nav(id: String, active: bool) -> void:
 
 func _card(accent: String, lit: bool, min_h: int = 0) -> VBoxContainer:
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", _card_style(SURFACE, accent if lit else LINE, 1, lit))
+	# Gradient-lit 9-slice surface (art-direction pass). To revert to the flat
+	# look, swap this one line back to _card_style(SURFACE, ..., 1, lit).
+	panel.add_theme_stylebox_override("panel", _surface_style(_mix(accent, SURFACE, 0.93) if lit else SURFACE, accent if lit else LINE, lit))
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	if min_h > 0:
@@ -6736,6 +6738,70 @@ func _style_bar(b: ProgressBar, accent: String) -> void:
 	fg.shadow_size = 5
 	b.add_theme_stylebox_override("background", bg)
 	b.add_theme_stylebox_override("fill", fg)
+
+# ---- Gradient card surface (art-direction pass) ----
+# StyleBoxFlat can't do gradients, so cards use a generate-once 9-slice texture:
+# vertical light-to-dark gradient fill, 1px border, and (when elevated) an accent
+# halo baked into a transparent padding ring that draws OUTSIDE the control via
+# expand margins. Cached per (bg, border, elevated) — ~a dozen combos.
+var _surface_tex_cache := {}
+
+func _surface_tex(bg: String, border: String, elevated: bool) -> ImageTexture:
+	var key := "%s|%s|%d" % [bg, border, 1 if elevated else 0]
+	if _surface_tex_cache.has(key):
+		return _surface_tex_cache[key]
+	var sz := 64
+	var pad := 10
+	var radius := 14.0
+	var full := sz + pad * 2
+	var img := Image.create(full, full, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0, 0, 0, 0))
+	# _mix lerps TOWARD the second color: subtle 6% top light, 8% bottom shade.
+	var top := Color.html(_mix(bg, "ffffff", 0.06))
+	var bot := Color.html(_mix(bg, "000000", 0.08))
+	var bc := Color.html(border)
+	var halo := Color.html(border)
+	var half := sz / 2.0
+	var cx := full / 2.0
+	for y in full:
+		var t := clampf((y - pad) / float(sz), 0.0, 1.0)
+		var fill := top.lerp(bot, t)
+		for x in full:
+			# Rounded-rect signed distance from the inner 64x64 box.
+			var qx := absf(x + 0.5 - cx) - (half - radius)
+			var qy := absf(y + 0.5 - cx) - (half - radius)
+			var dist := Vector2(maxf(qx, 0.0), maxf(qy, 0.0)).length() + minf(maxf(qx, qy), 0.0) - radius
+			if dist <= -1.5:
+				img.set_pixel(x, y, fill)
+			elif dist <= 0.0:
+				img.set_pixel(x, y, bc)
+			elif elevated and dist < pad:
+				var a := 0.30 * pow(1.0 - dist / pad, 2.0)
+				img.set_pixel(x, y, Color(halo.r, halo.g, halo.b, a))
+	var tex := ImageTexture.create_from_image(img)
+	_surface_tex_cache[key] = tex
+	return tex
+
+func _surface_style(bg: String, border: String, elevated: bool) -> StyleBoxTexture:
+	var s := StyleBoxTexture.new()
+	s.texture = _surface_tex(bg, border, elevated)
+	# 9-slice: corner regions cover pad+radius so they never stretch; the middle
+	# band's linear gradient stretches cleanly. Expand margins push the baked halo
+	# ring outside the control rect (transparent ring = no-op for non-elevated).
+	var m := 10 + 14
+	s.texture_margin_left = m
+	s.texture_margin_right = m
+	s.texture_margin_top = m
+	s.texture_margin_bottom = m
+	s.expand_margin_left = 10
+	s.expand_margin_right = 10
+	s.expand_margin_top = 10
+	s.expand_margin_bottom = 10
+	s.content_margin_left = 14
+	s.content_margin_right = 14
+	s.content_margin_top = 12
+	s.content_margin_bottom = 12
+	return s
 
 # ---- Design helpers ----
 func _card_style(bg: String, border: String, width := 1, elevated := false) -> StyleBoxFlat:
