@@ -2690,27 +2690,10 @@ func _show_enemy_intel(eid: String) -> void:
 	var e: Dictionary = GameData.ENEMIES.get(eid, {})
 	if e.is_empty():
 		return
-	var overlay := ColorRect.new()
-	overlay.color = Color(0, 0, 0, 0.7)
-	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(overlay)
-	_track_modal(overlay)
-	var center := CenterContainer.new()
-	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	overlay.add_child(center)
-	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", _bordered("1a2336", RED, 2))
-	panel.custom_minimum_size = Vector2(340, 0)
-	center.add_child(panel)
-	var sc := ScrollContainer.new()
-	sc.custom_minimum_size = Vector2(0, 560)
-	sc.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	panel.add_child(sc)
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 8)
-	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	sc.add_child(v)
-	_clbl(v, "◎ Intel: " + e.get("name", eid), 16, RED)
+	# Shared modal chrome (fold of the old hand-rolled duplicate).
+	_modal(String(e.get("name", eid)).to_upper(), RED, _enemy_intel_body.bind(e), "◎", "Close")
+
+func _enemy_intel_body(v: VBoxContainer, _close: Callable, e: Dictionary) -> void:
 	var stat_lines := [
 		_line("HP %s" % GameData.fmt(e.get("hp", 0)), C_TEXT),
 		_line("ATK %d / %.1fs" % [int(e.get("atk", 0)), float(e.get("interval", 2.0))], C_WARN),
@@ -2752,10 +2735,6 @@ func _show_enemy_intel(eid: String) -> void:
 			mlines.append(_line(("» " if unlocked else "⊘ ") + nm, CYAN if unlocked else C_MUTED))
 		var head := "SUBSPACE SIGNAL — %d%% / kill" % int(round(chance * 100.0))
 		_inset(v, head, mlines, CYAN)
-	var ok := _card_button("Close", CYAN, true)
-	ok.custom_minimum_size = Vector2(0, 42)
-	ok.pressed.connect(func() -> void: overlay.queue_free())
-	v.add_child(ok)
 
 # ---- Live battle view ----
 func _build_battle(v: VBoxContainer) -> void:
@@ -5436,31 +5415,13 @@ func _research_unlocks(rid: String) -> Array:
 	return out
 
 func _show_research_detail(id: String) -> void:
+	# Shared modal chrome (fold of the old hand-rolled duplicate).
+	_modal(String(GameData.RESEARCH[id].get("name", id)).to_upper(), PURP, _research_detail_body.bind(id), "✦", "Close")
+
+func _research_detail_body(v: VBoxContainer, close: Callable, id: String) -> void:
 	var t: Dictionary = GameData.RESEARCH[id]
 	var researched := GameState.is_research_unlocked(id)
 	var available := GameState.research_available(id)
-	var overlay := ColorRect.new()
-	overlay.color = Color(0, 0, 0, 0.7)
-	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(overlay)
-	_track_modal(overlay)
-	var center := CenterContainer.new()
-	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	overlay.add_child(center)
-	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", _bordered("1a2336", PURP, 2))
-	panel.custom_minimum_size = Vector2(360, 0)
-	center.add_child(panel)
-	# Scroll the body — with the UNLOCKS list a tech can exceed the screen height.
-	var dsc := ScrollContainer.new()
-	dsc.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	dsc.custom_minimum_size = Vector2(0, mini(560, int(get_viewport_rect().size.y * 0.7)))
-	panel.add_child(dsc)
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 8)
-	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	dsc.add_child(v)
-	_clbl(v, "✦  " + t.get("name", id), 16, PURP)
 	if t.get("desc", "") != "":
 		var d := Label.new()
 		d.text = t["desc"]
@@ -5491,19 +5452,21 @@ func _show_research_detail(id: String) -> void:
 	if par != "" and not GameState.is_research_unlocked(par):
 		_clbl(v, "⊘ First research: " + GameData.RESEARCH.get(par, {}).get("name", par), 11, C_WARN)
 	if researched:
-		_clbl(v, "✓ Researched", 13, GREEN)
+		var done := Label.new()
+		done.text = "✓ Researched"
+		done.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		done.add_theme_font_size_override("font_size", _fs(13))
+		done.add_theme_color_override("font_color", Color.html(GREEN))
+		_embolden(done)
+		v.add_child(done)
 	else:
 		var rb := _card_button("Research", PURP, available)
 		rb.custom_minimum_size = Vector2(0, 42)
 		if available:
 			rb.pressed.connect(func() -> void:
 				GameState.unlock_research(id)
-				overlay.queue_free())
+				close.call())
 		v.add_child(rb)
-	var cx := _card_button("Close", C_MUTED, true)
-	cx.custom_minimum_size = Vector2(0, 40)
-	cx.pressed.connect(func() -> void: overlay.queue_free())
-	v.add_child(cx)
 
 # Recursion tab: infinite repeatable research (+5%/level sinks).
 func _build_recursion(v: VBoxContainer) -> void:
