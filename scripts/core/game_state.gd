@@ -3168,6 +3168,32 @@ func _roll_salvage_drops(zone: int, is_boss: bool) -> Dictionary:
 		add_resource(sym, out[sym])
 	return out
 
+# v128 Hack Card faucet: per-kill stone drops, gated on firmware_hacking. Rates
+# are the desktop's; smult scales random rolls only (boss guarantees bypass it).
+func _roll_hack_stone_drops(zone: int, is_boss: bool, is_elite: bool) -> void:
+	if not is_research_unlocked("firmware_hacking"):
+		return
+	var smult := (1.0 + affix_total("stone_drop_mult")) * (1.0 + tree_card_drop_bonus())
+	var got := {}
+	if zone >= 1 and randf() < 0.25 * smult:
+		got["SpliceChip"] = 1
+	if zone >= 2 and (is_boss or randf() < 0.12 * smult):
+		got["FirmwareInjector"] = 1
+	if zone >= 3 and ((is_boss and randf() < 0.08) or (is_elite and randf() < 0.06)):
+		got["RootKey"] = 1
+	if zone >= 4 and randf() < 0.015 * smult:
+		got["AnchorBolt"] = 1
+	if zone >= 5 and randf() < 0.05 * smult:
+		got["CorruptionWorm"] = 1
+	if zone >= 4 and randf() < 0.05 * smult:
+		got["RefitBay"] = 1
+	if zone >= 6 and (is_boss or randf() < 0.03 * smult):
+		got["SignalCalibrator"] = 1
+	for sym in got:
+		add_resource(sym, got[sym])
+		_log_session_loot(sym, got[sym])
+		_event("HACK CARD: " + GameData.res_name(sym), "5ad1e0", "enemy")
+
 # DPS-weighted average penetration of the CURRENT loadout vs an enemy — for the
 # idle preview and offline catch-up, which work from aggregate DPS.
 func tier_pen_avg(eid: String) -> float:
@@ -4205,17 +4231,10 @@ func _win_combat() -> void:
 				dc = minf(1.0, dc * 3.0)
 			if dc > 0.0 and randf() < dc:
 				_roll_one_module_drop(pool)
-	# Hack: a Splice Chip occasionally drops — awakens a Common module into an
-	# Uncommon (Ship Designer → module → ⚡ Awaken). Better odds from elites/bosses.
-	var chip_chance := 0.015
-	if enemy_inst.get("elite", false):
-		chip_chance = 0.05
-	if bool(enemy_inst.get("is_boss", false)):
-		chip_chance = 0.20
-	if randf() < chip_chance:
-		add_resource("SpliceChip", 1)
-		_log_session_loot("SpliceChip", 1)
-		_event("SPLICE CHIP", "5ad1e0", "enemy")
+	# Hack Card drops (desktop v128 faucet — replaces the old ad-hoc chip roll):
+	# gated on Firmware Hacking research; sensor + warp-tree bonuses scale the
+	# random rolls, boss guarantees bypass them.
+	_roll_hack_stone_drops(_combat_difficulty(), bool(enemy_inst.get("is_boss", false)), bool(enemy_inst.get("elite", false)))
 	# Set-piece drop: bosses drop their themed set pieces (8% chance).
 	for sn in GameData.SETS:
 		var sd: Dictionary = GameData.SETS[sn]
