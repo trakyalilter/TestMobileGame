@@ -12,6 +12,7 @@ signal offline_ready          # emitted after a background-resume catch-up, for 
 signal level_up(skill_id: String, level: int)        # skill leveled up — celebratory popup
 signal feature_revealed(title: String, msg: String)  # late-game system reveal fanfare (desktop parity)
 signal storage_full          # a new material was dropped because all storage slots are full
+signal cycle_completed(type: String, id: String, gains: Dictionary)  # one gather/craft loop finished; gains = {sym/credits: +n} for UI juice
 var _suppress_fx := false                            # mute transient juice during offline catch-up
 
 # Missions (tutorial chain)
@@ -4464,6 +4465,11 @@ func building_rate_text(bid: String) -> String:
 	return "▲ %s %s/min" % [GameData.fmt(int(bestrate)), GameData.res_name(best)]
 
 func _complete_active() -> void:
+	# Snapshot for the cycle_completed gains diff (UI juice) — dict of ints, so a
+	# shallow duplicate is a real copy. Diffing here means zero plumbing through
+	# _roll_loot/_grant_craft_outputs.
+	var cr0 := credits
+	var res0 := resources.duplicate()
 	if active_type == "gather":
 		var a: Dictionary = GameData.GATHER[active_id]
 		_roll_loot(a.get("loot", []), yield_mult("harvesting"), int(research_bonus("gathering_yield")) + tree_gathering_flat(), false, true)
@@ -4479,6 +4485,20 @@ func _complete_active() -> void:
 		_grant_craft_outputs(active_id, r, 1)
 		add_xp("fabrication", int(r.get("xp", 0)))
 		gain_mastery_xp(active_id)                          # per-recipe Mastery: +1 per loop
+	else:
+		return
+	if _suppress_fx:
+		return   # offline catch-up: the Welcome Back report covers it
+	# Positive deltas only — a craft cycle shows its OUTPUTS, not consumed inputs.
+	var gains := {}
+	if credits > cr0:
+		gains["credits"] = credits - cr0
+	for sym in resources:
+		var d: int = int(resources[sym]) - int(res0.get(sym, 0))
+		if d > 0:
+			gains[sym] = d
+	if not gains.is_empty():
+		cycle_completed.emit(active_type, active_id, gains)
 
 ## Grants a recipe's outputs for `count` completions, applying the same yield
 ## rules as the desktop processing_manager: efficiency multiplier (2–32×),
