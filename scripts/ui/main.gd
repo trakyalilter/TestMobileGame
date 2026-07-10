@@ -2694,8 +2694,8 @@ func _show_enemy_intel(eid: String) -> void:
 	_modal(String(e.get("name", eid)).to_upper(), RED, _enemy_intel_body.bind(e), "◎", "Close")
 
 func _enemy_intel_body(v: VBoxContainer, _close: Callable, e: Dictionary) -> void:
+	_big_stat(v, GameData.fmt(e.get("hp", 0)), "HP", RED, 24)
 	var stat_lines := [
-		_line("HP %s" % GameData.fmt(e.get("hp", 0)), C_TEXT),
 		_line("ATK %d / %.1fs" % [int(e.get("atk", 0)), float(e.get("interval", 2.0))], C_WARN),
 		_line("DEF %d" % int(e.get("def", 0)), C_DIM),
 		_line("Accuracy %d   ·   Evasion %d" % [int(e.get("accuracy", 0)), int(e.get("eva", 0))], C_DIM),
@@ -4456,16 +4456,17 @@ func _modal(title: String, accent: String, body: Callable, icon := "", cancel_la
 
 ## Owned-module detail modal: stats + Equip (into the targeted slot) + Cancel.
 func _open_module_detail(mid: String) -> void:
-	_modal("MODULE", rcol_for(mid), _module_detail_body.bind(mid))
+	# The module name IS the header band, in its rarity colour.
+	_modal(String(GameState.module_def(mid).get("name", mid)), rcol_for(mid), _module_detail_body.bind(mid), "▣")
 
 func _module_detail_body(v: VBoxContainer, close: Callable, mid: String) -> void:
 	var md: Dictionary = GameState.module_def(mid)
 	var rcol: String = GameState.RARITY_COLOR.get(int(md.get("rarity", 0)), C_TEXT)
 	var rlabel: String = GameState.RARITY_LABEL.get(int(md.get("rarity", 0)), "")
-	_clbl(v, md.get("name", mid), 16, rcol)
+	var sub := "%s  ·  owned x%d" % [GameData.SLOT_LABELS.get(md.get("slot", ""), ""), int(GameState.module_inventory.get(mid, 0))]
 	if rlabel != "":
-		_clbl(v, rlabel, 10, rcol)
-	_clbl(v, "%s  ·  owned x%d" % [GameData.SLOT_LABELS.get(md.get("slot", ""), ""), int(GameState.module_inventory.get(mid, 0))], 10, C_DIM)
+		sub = rlabel + "  ·  " + sub
+	_clbl(v, sub, 10, rcol)
 	_inset(v, "STATS", _module_stat_lines(md.get("stats", {})), CYAN)
 	for aid in md.get("affixes", {}):
 		_clbl(v, _affix_text(aid, md["affixes"][aid]), 10, GameState.RARITY_COLOR.get(3, GOLD))
@@ -5691,11 +5692,16 @@ func _atlas_material_card(sym: String, info: Dictionary) -> Control:
 # Material detail modal: value, optional description, and the FROM / USED IN
 # source-and-use blocks (the data that used to render on every card).
 func _show_material_info(sym: String, info: Dictionary) -> void:
-	_modal("MATERIAL", CYAN, _material_info_body.bind(sym, info))
+	# The material's own (saturated) colour drives the whole chrome.
+	_modal(GameData.item_name(sym), _hex(GameData.color_for(sym)), _material_info_body.bind(sym, info), "◈")
 
 func _material_info_body(v: VBoxContainer, _close: Callable, sym: String, info: Dictionary) -> void:
-	_clbl(v, GameData.item_name(sym), 16, _hex(GameData.color_for(sym)))
-	_clbl(v, "Value  ₡%d" % GameData.value_of(sym), 11, GOLD)
+	var big := _mat_icon(sym, 44)
+	if big != null:
+		var icc := CenterContainer.new()
+		icc.add_child(big)
+		v.add_child(icc)
+	_big_stat(v, "₡%d" % GameData.value_of(sym), "each", GOLD, 22)
 	var desc := String(GameData.RESOURCES.get(sym, {}).get("desc", ""))
 	if desc != "":
 		_lbl_wrap(v, desc, 11, C_TEXT)
@@ -5710,12 +5716,8 @@ func _material_info_body(v: VBoxContainer, _close: Callable, sym: String, info: 
 
 # A labelled, wrapping list block (eyebrow + body). Rendered only inside the
 # material detail modal now, so it lists generously before truncating.
-func _atlas_kv(parent: Node, label_text: String, items: Array, color: String) -> void:
-	var eb := Label.new()
-	eb.text = label_text
-	eb.add_theme_font_size_override("font_size", _fs(8))
-	eb.add_theme_color_override("font_color", Color.html(C_MUTED))
-	parent.add_child(eb)
+func _atlas_kv(parent: VBoxContainer, label_text: String, items: Array, color: String) -> void:
+	_section(parent, label_text, color)
 	var shown := items
 	var more := 0
 	if items.size() > 24:
