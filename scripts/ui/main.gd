@@ -2977,6 +2977,44 @@ func _float_gain(anchor: Control, tex: Texture2D, text: String, color: String) -
 		_gain_fx_live = maxi(0, _gain_fx_live - 1)
 		hb.queue_free())
 
+# Claim burst: a handful of material icons (or ₡ glyphs) fan out from the tapped
+# control and fly to the header credits pill — the "loot goes to my wallet" beat.
+# Pure tween fan-out on _fx_layer; ~6 nodes for under a second.
+func _fly_to_credits(from: Control, sym: String, n := 5) -> void:
+	if _fx_layer == null or from == null or not is_instance_valid(from) or not is_instance_valid(_hdr_credits):
+		return
+	var start := from.get_global_rect().get_center()
+	var target := _hdr_credits.get_global_rect().get_center()
+	var tex := _mat_icon_tex(sym) if sym != "" and sym != "credits" else null
+	var count := clampi(n, 4, 6)
+	for i in count:
+		var node: Control
+		if tex != null:
+			var t := TextureRect.new()
+			t.texture = tex
+			t.custom_minimum_size = Vector2(22, 22)
+			t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			t.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			node = t
+		else:
+			var l := Label.new()
+			l.text = "₡"
+			l.add_theme_font_size_override("font_size", _fs(16))
+			l.add_theme_color_override("font_color", Color.html(GOLD))
+			_embolden(l)
+			node = l
+		node.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		node.position = start - Vector2(11, 11)
+		_fx_layer.add_child(node)
+		var mid := start + Vector2(randf_range(-60, 60), randf_range(-55, -15))
+		var tw := node.create_tween()
+		tw.tween_interval(0.05 * i)   # stagger
+		tw.tween_property(node, "position", mid - Vector2(11, 11), 0.15).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tw.tween_property(node, "position", target - Vector2(11, 11), 0.45).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		tw.parallel().tween_property(node, "scale", Vector2(0.4, 0.4), 0.45)
+		tw.parallel().tween_property(node, "modulate:a", 0.6, 0.45)
+		tw.tween_callback(node.queue_free)
+
 # One gather/craft loop finished — pop its top gains off the active card (or the
 # banner when browsing another page). NOTE: never call _refresh_* from here; this
 # handler must not fight the idle-loop no-rebuild guard.
@@ -3388,6 +3426,7 @@ func _standing_card(idx: int, q: Dictionary) -> Control:
 		var claim := _card_button("Claim", GREEN, true)
 		claim.pressed.connect(func() -> void:
 			GameState.claim_standing_order(idx)
+			_fly_to_credits(claim, "credits")
 			_refresh_current())
 		vb.add_child(claim)
 	return panel
@@ -3456,6 +3495,7 @@ func _mission_card(mid: String) -> Control:
 			var cr := int(int(m.get("cr", 0)) * GameState.warp_production_mult())
 			if GameState.claim_mission(mid):
 				_celebrate("✦  MISSION COMPLETE", "+₡%s" % GameData.fmt(cr), GREEN)
+				_fly_to_credits(b, "credits")
 			_refresh_current())
 		vb.add_child(b)
 	return panel
@@ -5893,6 +5933,7 @@ func _open_sell_picker(sym: String) -> void:
 		sell.custom_minimum_size = Vector2(0, 44)
 		sell.pressed.connect(func() -> void:
 			GameState.sell_resource(sym, int(state["qty"]))
+			_fly_to_credits(sell, sym)
 			close.call()
 			_refresh_current())
 		v.add_child(sell)
@@ -6667,7 +6708,9 @@ func _show_offline(text: String) -> void:
 
 	var ok := _card_button("Collect", CYAN, true)
 	ok.custom_minimum_size = Vector2(0, 50)
-	ok.pressed.connect(func() -> void: overlay.queue_free())
+	ok.pressed.connect(func() -> void:
+		_fly_to_credits(ok, "credits")
+		overlay.queue_free())
 	v.add_child(ok)
 
 # One offline-report line: a recessed pill with an optional tinted material icon,
@@ -6704,8 +6747,26 @@ func _off_row(parent: VBoxContainer, item_name: String, amt: String, amt_col: St
 	al.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	al.add_theme_font_size_override("font_size", _fs(13))
 	al.add_theme_color_override("font_color", Color.html(amt_col))
+	_embolden(al)
 	row.add_child(al)
 	parent.add_child(panel)
+	# Count plain "+N" amounts up from 0, staggered by row — the report reads as
+	# loot pouring in. K/M-suffixed and non-numeric amounts stay static, and only
+	# the first ~12 rows animate so long reports don't turn into a light show.
+	var ridx := parent.get_child_count()
+	if ridx <= 12:
+		var re := RegEx.new()
+		re.compile("^\\+(₡?)(\\d+)$")
+		var mm := re.search(amt)
+		if mm != null:
+			var mark := mm.get_string(1)
+			var target := int(mm.get_string(2))
+			var setter := func(v: float) -> void:
+				if is_instance_valid(al):
+					al.text = "+%s%d" % [mark, int(v)]
+			var tw := al.create_tween()
+			tw.tween_interval(0.06 * ridx)
+			tw.tween_method(setter, 0.0, float(target), 0.6)
 
 # ============================================================ TEXT
 func _active_text() -> String:
