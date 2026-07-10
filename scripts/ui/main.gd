@@ -845,7 +845,7 @@ func _slot_card(n: int) -> Control:
 
 ## Name-entry modal → create a fresh character in slot n and enter the game.
 func _prompt_new_character(n: int) -> void:
-	_modal("NEW COMMANDER", GREEN, func(v: VBoxContainer, close: Callable) -> void:
+	var body := func(v: VBoxContainer, close: Callable) -> void:
 		_clbl(v, "Name your commander", 12, C_DIM)
 		var edit := LineEdit.new()
 		edit.text = "Commander"
@@ -853,6 +853,7 @@ func _prompt_new_character(n: int) -> void:
 		edit.select_all_on_focus = true
 		edit.custom_minimum_size = Vector2(0, 48)
 		edit.add_theme_font_size_override("font_size", _fs(15))
+		edit.add_theme_stylebox_override("normal", _bordered(INSET, LINE, 1, 8))
 		v.add_child(edit)
 		var go := _card_button("Begin", GREEN, true)
 		go.pressed.connect(func() -> void:
@@ -862,7 +863,8 @@ func _prompt_new_character(n: int) -> void:
 			close.call()
 			GameState.new_character(n, nm)
 			_enter_game())
-		v.add_child(go))
+		v.add_child(go)
+	_modal("NEW COMMANDER", GREEN, body, "★")
 
 func _play_slot(n: int) -> void:
 	GameState.select_slot(n)
@@ -871,7 +873,7 @@ func _play_slot(n: int) -> void:
 ## Rename an existing commander from the select screen (Play/Delete already there).
 func _prompt_rename_character(n: int) -> void:
 	var summary: Dictionary = GameState.slot_summary(n)
-	_modal("RENAME COMMANDER", GOLD, func(v: VBoxContainer, close: Callable) -> void:
+	var body := func(v: VBoxContainer, close: Callable) -> void:
 		_clbl(v, "New name for your commander", 12, C_DIM)
 		var edit := LineEdit.new()
 		edit.text = String(summary.get("name", "Commander"))
@@ -879,17 +881,19 @@ func _prompt_rename_character(n: int) -> void:
 		edit.select_all_on_focus = true
 		edit.custom_minimum_size = Vector2(0, 48)
 		edit.add_theme_font_size_override("font_size", _fs(15))
+		edit.add_theme_stylebox_override("normal", _bordered(INSET, LINE, 1, 8))
 		v.add_child(edit)
 		var go := _card_button("Save", GOLD, true)
 		go.pressed.connect(func() -> void:
 			GameState.rename_slot(n, edit.text)
 			close.call()
 			_rebuild_char_select())
-		v.add_child(go))
+		v.add_child(go)
+	_modal("RENAME COMMANDER", GOLD, body, "✎")
 
 func _confirm_delete_slot(n: int) -> void:
 	var summary: Dictionary = GameState.slot_summary(n)
-	_modal("DELETE COMMANDER", RED, func(v: VBoxContainer, close: Callable) -> void:
+	var body := func(v: VBoxContainer, close: Callable) -> void:
 		_clbl(v, "Permanently delete %s (Slot %d)?" % [String(summary.get("name", "Commander")), n], 13, C_TEXT)
 		_clbl(v, "This cannot be undone.", 11, C_MUTED)
 		var del := _card_button("Delete", RED, true)
@@ -897,7 +901,8 @@ func _confirm_delete_slot(n: int) -> void:
 			GameState.delete_slot(n)
 			close.call()
 			_rebuild_char_select())
-		v.add_child(del))
+		v.add_child(del)
+	_modal("DELETE COMMANDER", RED, body, "⚠")
 
 ## Tear down and rebuild the character-select overlay (after create/delete).
 func _rebuild_char_select() -> void:
@@ -3007,7 +3012,7 @@ func _rebuild_loot_rows() -> void:
 func _open_loot_filter() -> void:
 	_modal("LOOT FILTER", CYAN, func(v: VBoxContainer, _close: Callable) -> void:
 		_clbl(v, "Only loot you keep is rolled — filtered drops are skipped entirely.", 9, C_MUTED)
-		_clbl(v, "RARITY", 11, CYAN)
+		_section(v, "RARITY", CYAN)
 		var rr := HFlowContainer.new()
 		rr.add_theme_constant_override("h_separation", 6)
 		rr.add_theme_constant_override("v_separation", 6)
@@ -3017,14 +3022,14 @@ func _open_loot_filter() -> void:
 				rlabel = "Common"
 			_filter_toggle(rr, GameState.loot_filter, r, rlabel, GameState.RARITY_COLOR.get(r, C_TEXT))
 		v.add_child(rr)
-		_clbl(v, "SLOT", 11, CYAN)
+		_section(v, "SLOT", CYAN)
 		var sr := HFlowContainer.new()
 		sr.add_theme_constant_override("h_separation", 6)
 		sr.add_theme_constant_override("v_separation", 6)
 		for slot in ["weapon", "armor", "shield", "engine", "battery", "sensor"]:
 			_filter_toggle(sr, GameState.loot_type_filter, slot, String(GameData.SLOT_LABELS.get(slot, slot)), CYAN)
 		v.add_child(sr)
-		_clbl(v, "WEAPON DAMAGE TYPE", 11, CYAN)
+		_section(v, "WEAPON DAMAGE TYPE", CYAN)
 		var wr := HFlowContainer.new()
 		wr.add_theme_constant_override("h_separation", 6)
 		wr.add_theme_constant_override("v_separation", 6)
@@ -4238,7 +4243,7 @@ func _ammo_label(sym: String) -> String:
 # Picker modal that closes + refreshes on selection (shared by the loadout fitting
 # cards). One option per row.
 func _fit_pick(v: VBoxContainer, label: String, active: bool, cb: Callable, close: Callable) -> void:
-	var b := _card_button(label, CYAN if active else C_MUTED, true)
+	var b := _card_button(("● " if active else "") + label, CYAN if active else C_MUTED, true)
 	b.add_theme_font_size_override("font_size", _fs(12))
 	b.custom_minimum_size = Vector2(0, 40)
 	b.pressed.connect(func() -> void:
@@ -4248,7 +4253,7 @@ func _fit_pick(v: VBoxContainer, label: String, active: bool, cb: Callable, clos
 	v.add_child(b)
 
 func _open_consumable_picker(kind: String, title: String) -> void:
-	_modal(title, CYAN, func(v: VBoxContainer, close: Callable) -> void:
+	var body := func(v: VBoxContainer, close: Callable) -> void:
 		var cur: String = GameState.consumable_hull_slot if kind == "hull" else GameState.consumable_shield_slot
 		_fit_pick(v, "None", cur == "", func() -> void: GameState.set_consumable(kind, ""), close)
 		for cid in GameData.CONSUMABLES:
@@ -4259,14 +4264,15 @@ func _open_consumable_picker(kind: String, title: String) -> void:
 			if owned <= 0 and cid != cur:
 				continue
 			var label := "%s  x%d  (+%d%%)" % [d.get("name", cid), owned, int(float(d.get("heal_pct", 0)) * 100.0)]
-			_fit_pick(v, label, cid == cur, func() -> void: GameState.set_consumable(kind, cid), close))
+			_fit_pick(v, label, cid == cur, func() -> void: GameState.set_consumable(kind, cid), close)
+	_modal(title, CYAN, body, "◇")
 
 func _open_ammo_picker(slot: String, m: Dictionary) -> void:
 	var st: Dictionary = m.get("stats", {})
 	var letter := "k"
 	if float(st.get("atk_energy", 0)) > 0: letter = "e"
 	elif float(st.get("atk_explosive", 0)) > 0: letter = "x"
-	_modal("Ammo · " + String(m.get("name", "Weapon")), CYAN, func(v: VBoxContainer, close: Callable) -> void:
+	var body := func(v: VBoxContainer, close: Callable) -> void:
 		var cur: String = GameState.ammo_loadout.get(slot, "")
 		_fit_pick(v, "No Ammo (base damage)", cur == "", func() -> void: GameState.set_ammo(slot, ""), close)
 		for sym in GameData.RESOURCES:
@@ -4276,7 +4282,8 @@ func _open_ammo_picker(slot: String, m: Dictionary) -> void:
 			var owned := GameState.amount(sym)
 			if owned <= 0 and sym != cur:
 				continue
-			_fit_pick(v, "%s  x%s  (+%d dmg)" % [GameData.res_name(sym), GameData.fmt(owned), int(ab[1])], sym == cur, func() -> void: GameState.set_ammo(slot, sym), close))
+			_fit_pick(v, "%s  x%s  (+%d dmg)" % [GameData.res_name(sym), GameData.fmt(owned), int(ab[1])], sym == cur, func() -> void: GameState.set_ammo(slot, sym), close)
+	_modal("Ammo · " + String(m.get("name", "Weapon")), CYAN, body, "▣")
 
 # Auto-assign equip (Shipyard shop / quick-equip buttons): equip into the first
 # free matching slot, then direct the player to ammo for that slot like the
@@ -4351,7 +4358,7 @@ func _open_slot_menu(idx: int, stype: String, equipped: String) -> void:
 			close.call()
 			_open_slot_armory(idx, stype))
 		v.add_child(arm)
-	_modal("MANAGE SLOT", CYAN, body)
+	_modal("MANAGE SLOT", CYAN, body, "⬡")
 
 ## Generic centered modal. `body.call(content_vbox, close_callable)` fills it;
 ## a Cancel button + tap-outside both dismiss. Used by the slot-first equip flow.
@@ -4586,7 +4593,8 @@ func _hull_slot_indices(stype: String) -> Array:
 # current occupant; selecting swaps it in).
 func _open_equip_slot_picker(mid: String, idxs: Array) -> void:
 	var stype: String = GameState.module_def(mid).get("slot", "")
-	_modal("Equip to which %s slot?" % GameData.SLOT_LABELS.get(stype, stype), CYAN, func(v: VBoxContainer, close: Callable) -> void:
+	var body := func(v: VBoxContainer, close: Callable) -> void:
+		_clbl(v, "Equip to which %s slot?" % GameData.SLOT_LABELS.get(stype, stype), 11, C_DIM)
 		var note := Label.new()
 		note.add_theme_font_size_override("font_size", _fs(11))
 		note.add_theme_color_override("font_color", Color.html(RED))
@@ -4609,7 +4617,8 @@ func _open_equip_slot_picker(mid: String, idxs: Array) -> void:
 					note.visible = true)
 			v.add_child(b)
 			n += 1
-		v.add_child(note))
+		v.add_child(note)
+	_modal("EQUIP TO SLOT", CYAN, body, "⬡")
 
 func _socket_and_reopen(mid: String, gem: String, close: Callable) -> void:
 	GameState.socket_gem(mid, gem)
@@ -4782,7 +4791,7 @@ func _confirm_scrap(max_rarity: int, label: String) -> void:
 	var cnt := GameState.count_bulk_sell(max_rarity)
 	if cnt <= 0:
 		return
-	_modal("Scrap junk?", GOLD, func(mv: VBoxContainer, close: Callable) -> void:
+	var body := func(mv: VBoxContainer, close: Callable) -> void:
 		_clbl(mv, "Sell %d unequipped %s module%s for credits + spare parts?" % [cnt, label, "" if cnt == 1 else "s"], 12, C_TEXT)
 		_clbl(mv, "Equipped gear is never sold.", 10, C_DIM)
 		var go := _card_button("Sell %d" % cnt, GOLD, true)
@@ -4792,7 +4801,8 @@ func _confirm_scrap(max_rarity: int, label: String) -> void:
 			close.call()
 			_refresh_current()
 			GameState.equip_notice = "Scrapped %d module%s." % [sold, "" if sold == 1 else "s"])
-		mv.add_child(go))
+		mv.add_child(go)
+	_modal("SCRAP JUNK", GOLD, body, "⚠")
 
 func _ship_armory(v: VBoxContainer) -> void:
 	if GameState.equip_notice != "":
@@ -6117,8 +6127,9 @@ func _open_sell_picker(sym: String) -> void:
 		_clbl(v, "Owned %s  ·  ₡%d each" % [GameData.fmt(owned), val], 11, C_DIM)
 		var readout := Label.new()
 		readout.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		readout.add_theme_font_size_override("font_size", _fs(15))
+		readout.add_theme_font_size_override("font_size", _fs(20))
 		readout.add_theme_color_override("font_color", Color.html(GOLD))
+		_embolden(readout)
 		v.add_child(readout)
 		var sl := HSlider.new()
 		sl.min_value = 1
@@ -6126,6 +6137,7 @@ func _open_sell_picker(sym: String) -> void:
 		sl.step = 1
 		sl.value = owned
 		sl.custom_minimum_size = Vector2(0, 30)
+		_style_slider(sl, GOLD)
 		v.add_child(sl)
 		var sync := func() -> void:
 			readout.text = "Sell %s  →  ₡%s" % [GameData.fmt(int(state["qty"])), GameData.fmt(int(state["qty"]) * val)]
@@ -7166,7 +7178,7 @@ func _fill_mastery_row(id: String, left: Label, right: Label, bar: ProgressBar) 
 ## Milestone schedule popup (desktop's tappable MASTERY tooltip): lists every
 ## mastery milestone and its speed bonus, marking the ones already reached.
 func _open_mastery_schedule(id: String) -> void:
-	_modal("MASTERY", GOLD, _mastery_schedule_body.bind(id))
+	_modal("MASTERY", GOLD, _mastery_schedule_body.bind(id), "★")
 
 func _mastery_schedule_body(v: VBoxContainer, _close: Callable, id: String) -> void:
 	var nm := ""
@@ -7177,7 +7189,8 @@ func _mastery_schedule_body(v: VBoxContainer, _close: Callable, id: String) -> v
 	var level := GameState.mastery_level(id)
 	var cur_bonus := int(round((1.0 - GameState.mastery_dur_mult(id)) * 100.0))
 	_clbl(v, nm, 13, C_TEXT)
-	_clbl(v, "Mastery LV %d   ·   −%d%% action time now" % [level, cur_bonus], 11, GOLD if cur_bonus > 0 else C_DIM)
+	_big_stat(v, str(level), "MASTERY LV", GOLD, 24)
+	_clbl(v, "−%d%% action time now" % cur_bonus, 11, GOLD if cur_bonus > 0 else C_DIM)
 	_clbl(v, "Each completion earns +1 Mastery XP (online & offline). Faster actions at every milestone:", 10, C_DIM)
 	var lines := []
 	var ms: Array = GameState.MASTERY_MILESTONES
@@ -7190,6 +7203,26 @@ func _mastery_schedule_body(v: VBoxContainer, _close: Callable, id: String) -> v
 		var col: String = (GOLD if m >= 50 else GREEN) if done else C_MUTED
 		lines.append(_line("%sLv %-3d  −%d%% action time" % [mark, m, red], col))
 	_inset(v, "MILESTONES", lines, GOLD)
+
+# Slider in the conduit language: recessed track, glowing accent fill area.
+func _style_slider(sl: Slider, accent: String) -> void:
+	var track := StyleBoxFlat.new()
+	track.bg_color = Color.html(INSET)
+	track.set_corner_radius_all(4)
+	track.set_border_width_all(1)
+	track.border_color = Color.html(LINE)
+	track.content_margin_top = 5
+	track.content_margin_bottom = 5
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = Color.html(accent)
+	fill.set_corner_radius_all(4)
+	var glow := Color.html(accent)
+	glow.a = 0.5
+	fill.shadow_color = glow
+	fill.shadow_size = 4
+	sl.add_theme_stylebox_override("slider", track)
+	sl.add_theme_stylebox_override("grabber_area", fill)
+	sl.add_theme_stylebox_override("grabber_area_highlight", fill)
 
 func _style_bar(b: ProgressBar, accent: String) -> void:
 	var bg := StyleBoxFlat.new()
