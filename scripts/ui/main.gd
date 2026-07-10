@@ -3736,11 +3736,45 @@ func _build_warp() -> void:
 func _warp_core(v: VBoxContainer) -> void:
 	_lbl_wrap(v, "Collapse your empire into a Warp Core for permanent Warp Shards. Skills keep 30%% XP, buildings/ship reset — but researched tech stays unlocked.", 10, C_DIM)
 
-	var sh := Label.new()
-	sh.text = "Warp Shards: %s   ·   Warps: %d   ·   Tier %d" % [GameData.fmt(int(GameState.warp_shards)), GameState.total_warps, GameState.warp_tier()]
-	sh.add_theme_font_size_override("font_size", _fs(13))
-	sh.add_theme_color_override("font_color", Color.html(PURP))
-	v.add_child(sh)
+	# PRESTIGE HERO — the shard hoard as a dramatic full-bleed centerpiece.
+	var hero := PanelContainer.new()
+	hero.add_theme_stylebox_override("panel", _surface_style(_mix(PURP, SURFACE, 0.90), PURP, true))
+	var hv := VBoxContainer.new()
+	hv.alignment = BoxContainer.ALIGNMENT_CENTER
+	hv.add_theme_constant_override("separation", 3)
+	hero.add_child(hv)
+	var hcap := Label.new()
+	hcap.text = "✦ WARP SHARDS"
+	hcap.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hcap.add_theme_font_size_override("font_size", _fs(10))
+	hcap.add_theme_color_override("font_color", Color.html(PURP))
+	_embolden(hcap)
+	hv.add_child(hcap)
+	var hval := Label.new()
+	hval.text = GameData.fmt(int(GameState.warp_shards))
+	hval.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hval.add_theme_font_size_override("font_size", _fs(34))
+	hval.add_theme_color_override("font_color", Color.html(C_TEXT))
+	_embolden(hval)
+	hv.add_child(hval)
+	_clbl(hv, "Warps %d   ·   Tier %d" % [GameState.total_warps, GameState.warp_tier()], 10, C_DIM)
+	# Progress toward the NEXT shard (log-scaled thresholds double per shard).
+	var hero_earned: int = GameState.lifetime_credits - GameState.credits_at_warp_start
+	var hero_b := 0
+	for hbid in GameState.buildings:
+		hero_b += int(GameState.buildings[hbid])
+	var hero_score := float(hero_earned + hero_b * 1000) * GameState.tree_shard_score_mult()
+	var hero_gain := GameState.warp_gain_preview()
+	var next_thr := 500000.0 * pow(2.0, float(maxi(hero_gain, 0)))
+	var hbar := ProgressBar.new()
+	hbar.custom_minimum_size = Vector2(0, 16)
+	hbar.show_percentage = false
+	hbar.max_value = 100
+	hbar.value = clampf(hero_score / next_thr * 100.0, 0.0, 100.0)
+	_style_bar(hbar, PURP)
+	hv.add_child(hbar)
+	_clbl(hv, "next shard at ₡%s" % GameData.fmt(int(next_thr)), 9, C_MUTED)
+	v.add_child(hero)
 
 	_section(v, "PERMANENT BONUSES", PURP)
 	var panel := PanelContainer.new()
@@ -3811,8 +3845,10 @@ func _warp_core(v: VBoxContainer) -> void:
 	if gain > 0:
 		wb.pressed.connect(func() -> void:
 			if _warp_armed:
-				GameState.execute_warp()
+				var gained := GameState.execute_warp()
 				_warp_armed = false
+				_celebrate("✦  WARP COMPLETE", "+%d Warp Shard%s" % [gained, "s" if gained != 1 else ""], PURP)
+				_fly_to_credits(wb, "credits")
 				_show("warp")
 			else:
 				_warp_armed = true
