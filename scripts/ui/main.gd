@@ -183,6 +183,7 @@ var _banner_kind: Label
 var _banner_name: Label
 var _banner_time: Label
 var _banner_bar: ProgressBar
+var _banner_rate: Label = null   # hero rate readout (right column of the active banner)
 var _active_bar: ProgressBar = null
 var _active_timer: Label = null
 var _skill_bar: ProgressBar = null      # skill XP bar in the page banner — updated live
@@ -6489,18 +6490,20 @@ func _refresh_top() -> void:
 		tw2.tween_property(_hdr_credits, "modulate", Color.WHITE, 0.3)
 
 func _build_active_banner() -> PanelContainer:
+	# HERO panel — the running action is the game's centerpiece, visible on every
+	# page: big lit icon, bold name, and the production rate as a headline number.
 	var panel := PanelContainer.new()
 	panel.add_theme_stylebox_override("panel", _bordered(INSET, LINE, 1, 12))
 	var hb := HBoxContainer.new()
-	hb.add_theme_constant_override("separation", 10)
+	hb.add_theme_constant_override("separation", 12)
 	panel.add_child(hb)
 	_banner_chip = PanelContainer.new()
-	_banner_chip.custom_minimum_size = Vector2(40, 40)
-	_banner_chip.add_theme_stylebox_override("panel", _bordered(SURFACE_HI, LINE, 1, 10))
+	_banner_chip.custom_minimum_size = Vector2(64, 64)
+	_banner_chip.add_theme_stylebox_override("panel", _bordered(SURFACE_HI, LINE, 1, 12))
 	var cc := CenterContainer.new()
 	_banner_chip.add_child(cc)
 	_banner_icon = Label.new()
-	_banner_icon.add_theme_font_size_override("font_size", _fs(19))
+	_banner_icon.add_theme_font_size_override("font_size", _fs(26))
 	cc.add_child(_banner_icon)
 	hb.add_child(_banner_chip)
 	var vb := VBoxContainer.new()
@@ -6512,7 +6515,7 @@ func _build_active_banner() -> PanelContainer:
 	_banner_kind.add_theme_font_size_override("font_size", _fs(9))
 	vb.add_child(_banner_kind)
 	_banner_name = Label.new()
-	_banner_name.add_theme_font_size_override("font_size", _fs(14))
+	_banner_name.add_theme_font_size_override("font_size", _fs(17))
 	_banner_name.add_theme_color_override("font_color", Color.html(C_TEXT))
 	_embolden(_banner_name)
 	vb.add_child(_banner_name)
@@ -6521,12 +6524,23 @@ func _build_active_banner() -> PanelContainer:
 	_banner_bar.show_percentage = false
 	_banner_bar.max_value = 100
 	vb.add_child(_banner_bar)
+	# Right column: the RATE as a headline number over the cycle countdown.
+	var rcol := VBoxContainer.new()
+	rcol.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	rcol.add_theme_constant_override("separation", 0)
+	_banner_rate = Label.new()
+	_banner_rate.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_banner_rate.add_theme_font_size_override("font_size", _fs(19))
+	_banner_rate.add_theme_color_override("font_color", Color.html(GREEN))
+	_embolden(_banner_rate)
+	rcol.add_child(_banner_rate)
 	_banner_time = Label.new()
 	_banner_time.custom_minimum_size = Vector2(46, 0)
 	_banner_time.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_banner_time.add_theme_font_size_override("font_size", _fs(14))
+	_banner_time.add_theme_font_size_override("font_size", _fs(12))
 	_banner_time.add_theme_color_override("font_color", Color.html(C_DIM))
-	hb.add_child(_banner_time)
+	rcol.add_child(_banner_time)
+	hb.add_child(rcol)
 	return panel
 
 func _refresh_banner() -> void:
@@ -6552,12 +6566,15 @@ func _refresh_banner() -> void:
 			nm = GameData.ENEMIES.get(GameState.active_id, {}).get("name", "Combat")
 	_banner_icon.text = icon
 	_banner_icon.add_theme_color_override("font_color", Color.html(accent))
-	_banner_chip.add_theme_stylebox_override("panel", _bordered(_mix(accent, INSET, 0.8), accent, 1, 10))
-	# Ambient idle readout: the production rate, not a popup per cycle.
-	if t != "":
-		var rate := GameState.action_rate_text()
-		if rate != "":
-			kind += "      " + rate
+	# The hero lights up when the factory is running: lit accent chip + tinted
+	# panel; dim inset when idle.
+	_banner_chip.add_theme_stylebox_override("panel", _bordered(_mix(accent, INSET, 0.62) if t != "" else SURFACE_HI, accent if t != "" else LINE, 1, 12))
+	if is_instance_valid(active_banner):
+		active_banner.add_theme_stylebox_override("panel", _bordered(_mix(accent, INSET, 0.90) if t != "" else INSET, _mix(accent, LINE, 0.45) if t != "" else LINE, 1, 12))
+	# The rate is the hero number (right column), not a suffix on the kind line.
+	if is_instance_valid(_banner_rate):
+		_banner_rate.text = GameState.action_rate_text() if t != "" else "—"
+		_banner_rate.add_theme_color_override("font_color", Color.html(GREEN if t != "" else C_MUTED))
 	_banner_kind.text = kind
 	_banner_kind.add_theme_color_override("font_color", Color.html(accent))
 	_banner_name.text = nm
