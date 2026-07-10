@@ -268,7 +268,12 @@ func _coach_active_mission() -> String:
 	# [CORE GOAL] (e.g. "perform your first Warp") can point at a page that isn't
 	# in the menu yet, which dead-ends the "tap ☰ → …" guidance. Core goals still
 	# show in the Missions list; they just don't hijack the pointer.
-	var first := ""
+	# v133 ranking: claimable > tutorial (non-goal) > goals — via the shared helper.
+	var picked := GameState.get_active_objective()
+	if picked != "" and not String(GameData.MISSIONS.get(picked, {}).get("name", "")).begins_with("[CORE GOAL]"):
+		return picked
+	# Goals never hijack the pointer while any tutorial step is active.
+	var first := picked
 	var actionable := ""
 	for mid in GameState.missions_active:
 		if first == "":
@@ -2654,6 +2659,11 @@ func _enemy_card(id: String, e: Dictionary) -> Control:
 		var srow := HFlowContainer.new()
 		srow.add_child(_tag_chip("⛏ SALVAGE — materials only", GOLD))
 		v.add_child(srow)
+	# v133: mark mission-tasked enemies so the player locks the RIGHT target.
+	if id in GameState.get_active_defeat_targets():
+		var orow := HFlowContainer.new()
+		orow.add_child(_tag_chip("◎ OBJECTIVE", GREEN))
+		v.add_child(orow)
 	_inset(v, "SALVAGE", _loot_lines(e.get("loot", [])), RED)
 	# Idle combat preview: can you win/farm this, and how fast?
 	var pv := GameState.combat_preview(id)

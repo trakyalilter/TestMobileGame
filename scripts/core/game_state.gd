@@ -3386,6 +3386,38 @@ func has_mission_progress() -> bool:
 			return true
 	return false
 
+# v133: the single mission the "Current Objective" surfaces should rank —
+# completed-unclaimed (reads CLAIM) > active tutorial step (m*) > any goal.
+func get_active_objective() -> String:
+	var best := ""
+	var best_rank := 99
+	for mid in missions_active:
+		if missions_claimed.has(mid):
+			continue
+		var rank := 2
+		if mission_completed(mid):
+			rank = 0
+		elif String(mid).begins_with("m"):
+			rank = 1
+		if rank < best_rank:
+			best_rank = rank
+			best = String(mid)
+	return best
+
+# v133: enemy ids the player is currently tasked to defeat — the Combat page
+# marks these OBJECTIVE so the RIGHT target gets locked, not any hostile.
+func get_active_defeat_targets() -> Array:
+	var out := []
+	for mid in missions_active:
+		if missions_claimed.has(mid) or mission_completed(mid):
+			continue
+		var m: Dictionary = GameData.MISSIONS.get(mid, {})
+		if String(m.get("type", "")) == "defeat":
+			var t := String(m.get("target", ""))
+			if t != "" and not out.has(t):
+				out.append(t)
+	return out
+
 ## True when at least one active mission is finished and waiting to be claimed.
 func has_claimable_mission() -> bool:
 	for mid in missions_active:
