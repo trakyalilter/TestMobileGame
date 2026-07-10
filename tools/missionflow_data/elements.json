@@ -1926,5 +1926,115 @@
     "tier": 3,
     "base_value": 800,
     "description": "Hack currency dropped in combat. Awaken a Common module into an Uncommon with a random affix (Ship Designer \u2192 module \u2192 Awaken)."
+  },
+  {
+    "atomic_number": -410,
+    "symbol": "RimeplateScrap",
+    "name": "Rimeplate Scrap",
+    "mass": 2.0,
+    "category": "Raw Material",
+    "tier": 3,
+    "base_value": 40,
+    "description": "Frost-fused hull plating stripped from Cryofield wrecks. Refines into Rime Alloy."
+  },
+  {
+    "atomic_number": -411,
+    "symbol": "AeonResiduum",
+    "name": "Aeon Residuum",
+    "mass": 1.0,
+    "category": "Exotic",
+    "tier": 8,
+    "base_value": 900,
+    "description": "Primordial matter shed by Sector Epsilon horrors. Refines into Aeon Alloy."
+  },
+  {
+    "atomic_number": -420,
+    "symbol": "ChondriteAlloy",
+    "name": "Chondrite Alloy",
+    "mass": 4.0,
+    "category": "Alloy",
+    "tier": 2,
+    "base_value": 120,
+    "description": "Asteroid-grade hull alloy. Required by Sector 2 common modules."
+  },
+  {
+    "atomic_number": -421,
+    "symbol": "WreckforgedAlloy",
+    "name": "Wreckforged Alloy",
+    "mass": 4.0,
+    "category": "Alloy",
+    "tier": 3,
+    "base_value": 220,
+    "description": "Structural plate reforged from Martian war-debris. Required by Sector 3 commons."
+  },
+  {
+    "atomic_number": -422,
+    "symbol": "RimeAlloy",
+    "name": "Rime Alloy",
+    "mass": 4.0,
+    "category": "Alloy",
+    "tier": 3,
+    "base_value": 380,
+    "description": "Cold-rated alloy tempered with glacial essence. Required by Sector 4 commons."
+  },
+  {
+    "atomic_number": -423,
+    "symbol": "XenoforgedAlloy",
+    "name": "Xenoforged Alloy",
+    "mass": 4.0,
+    "category": "Alloy",
+    "tier": 4,
+    "base_value": 650,
+    "description": "Exotic structural alloy reverse-engineered from xenon fragments. Sector 5 commons."
+  },
+  {
+    "atomic_number": -424,
+    "symbol": "ColonyAlloy",
+    "name": "Colony-Forged Alloy",
+    "mass": 4.0,
+    "category": "Alloy",
+    "tier": 5,
+    "base_value": 1100,
+    "description": "Heavy mining-grade alloy recast from colony reactor salvage. Sector 6 commons."
+  },
+  {
+    "atomic_number": -425,
+    "symbol": "GammaAlloy",
+    "name": "Gamma Alloy",
+    "mass": 4.0,
+    "category": "Alloy",
+    "tier": 6,
+    "base_value": 1900,
+    "description": "Radiation-tempered alloy of stabilized exotic isotopes. Sector 7 commons."
+  },
+  {
+    "atomic_number": -426,
+    "symbol": "PrismaticAlloy",
+    "name": "Prismatic Alloy",
+    "mass": 4.0,
+    "category": "Alloy",
+    "tier": 7,
+    "base_value": 3200,
+    "description": "Crystalline antimatter lattice alloy. Sector 8 commons."
+  },
+  {
+    "atomic_number": -427,
+    "symbol": "BioforgedAlloy",
+    "name": "Bioforged Alloy",
+    "mass": 4.0,
+    "category": "Alloy",
+    "tier": 8,
+    "base_value": 5400,
+    "description": "Self-knitting bio-alloy bound with regenerative plating. Sector 9 commons."
+  },
+  {
+    "atomic_number": -428,
+    "symbol": "AeonAlloy",
+    "name": "Aeon Alloy",
+    "mass": 4.0,
+    "category": "Alloy",
+    "tier": 8,
+    "base_value": 9000,
+    "description": "Primordial-grade alloy fused from aeon residuum. Sector 10 commons."
   }
 ]

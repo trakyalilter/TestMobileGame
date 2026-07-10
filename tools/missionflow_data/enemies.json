@@ -450,6 +450,11 @@
         "VoidEssence",
         2,
         4
+      ],
+      [
+        "AeonResiduum",
+        3,
+        6
       ]
     ],
     "module_drop_chance": 0.1,
@@ -496,6 +501,11 @@
         "VoidEssence",
         1,
         2
+      ],
+      [
+        "AeonResiduum",
+        3,
+        6
       ]
     ],
     "module_drop_chance": 0.1,
@@ -1839,6 +1849,11 @@
         "CryoEssence",
         1,
         3
+      ],
+      [
+        "RimeplateScrap",
+        3,
+        6
       ]
     ],
     "module_drop_chance": 0.1,
@@ -2007,6 +2022,11 @@
         "CryoEssence",
         1,
         3
+      ],
+      [
+        "RimeplateScrap",
+        3,
+        6
       ]
     ],
     "module_drop_chance": 0.1,
