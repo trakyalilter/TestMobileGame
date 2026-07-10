@@ -4344,6 +4344,7 @@ func _open_slot_menu(idx: int, stype: String, equipped: String) -> void:
 		_clbl(v, "%s slot" % GameData.SLOT_LABELS.get(stype, stype), 11, C_DIM)
 		_clbl(v, md.get("name", equipped), 16, rcol)
 		_inset(v, "STATS", _module_stat_lines(md.get("stats", {})), CYAN)
+		_durability_row(v, equipped, close)
 		for aid in md.get("affixes", {}):
 			_clbl(v, _affix_text(aid, md["affixes"][aid]), 10, GameState.RARITY_COLOR.get(3, GOLD))
 		var une := _card_button("Unequip", RED, true)
@@ -4466,6 +4467,27 @@ func _open_module_detail(mid: String) -> void:
 	# The module name IS the header band, in its rarity colour.
 	_modal(String(GameState.module_def(mid).get("name", mid)), rcol_for(mid), _module_detail_body.bind(mid), "▣")
 
+# Durability readout (+ repair CTA when worn): amber at the 50% "destroyable"
+# floor so the offline-loss risk is visible before it bites.
+func _durability_row(v: VBoxContainer, mid: String, close_after_repair: Callable = Callable()) -> void:
+	if not GameState.custom_modules.has(mid):
+		return
+	var dur := GameState.get_module_durability(mid)
+	var col := GREEN if dur > 50 else C_WARN
+	_clbl(v, "⛨ Durability %d%%%s" % [dur, "  — worn: at risk in offline combat" if dur <= 50 else ""], 10, col)
+	if dur < 100:
+		var cost := GameState.module_repair_cost(mid)
+		var have := GameState.amount("SparePart") >= cost
+		var rb := _card_button("Repair  (%d ⚙ Spare Parts)" % cost, GREEN if have else C_MUTED, have)
+		rb.custom_minimum_size = Vector2(0, 40)
+		if have:
+			rb.pressed.connect(func() -> void:
+				GameState.repair_module(mid)
+				if close_after_repair.is_valid():
+					close_after_repair.call()
+				_refresh_current())
+		v.add_child(rb)
+
 func _module_detail_body(v: VBoxContainer, close: Callable, mid: String) -> void:
 	var md: Dictionary = GameState.module_def(mid)
 	var rcol: String = GameState.RARITY_COLOR.get(int(md.get("rarity", 0)), C_TEXT)
@@ -4474,6 +4496,7 @@ func _module_detail_body(v: VBoxContainer, close: Callable, mid: String) -> void
 	if rlabel != "":
 		sub = rlabel + "  ·  " + sub
 	_clbl(v, sub, 10, rcol)
+	_durability_row(v, mid, close)
 	_inset(v, "STATS", _module_stat_lines(md.get("stats", {})), CYAN)
 	for aid in md.get("affixes", {}):
 		_clbl(v, _affix_text(aid, md["affixes"][aid]), 10, GameState.RARITY_COLOR.get(3, GOLD))
@@ -6053,6 +6076,7 @@ func _build_settings() -> void:
 		GameState.offline_combat = not GameState.offline_combat
 		_refresh_current())
 	v.add_child(oc_btn)
+	_lbl_wrap(v, "⛨ Away combat carries the durability risk: modules already worn to 50% can be destroyed while you're gone (~5%/hr each, capped 35%). Repair before logging off for zero risk.", 9, C_MUTED)
 	_clbl(v, "Progress saves automatically.", 10, C_DIM)
 	var reset_btn := _card_button("⚠ Tap again to wipe save" if _reset_armed else "Reset Game", RED, true)
 	reset_btn.custom_minimum_size = Vector2(0, 44)

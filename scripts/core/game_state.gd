@@ -4059,6 +4059,10 @@ func handle_module_defeat() -> void:
 			changed = true
 	if changed and not _suppress_fx:
 		_event("MODULES WORN TO 50% — repair with Spare Parts", "ecb44a", "player")
+		if not game_flags.get("durability_coach_seen", false):
+			game_flags["durability_coach_seen"] = true
+			feature_revealed.emit("⟨ MODULE WEAR ⟩",
+				"Defeat wears equipped modules to 50% durability. Worn modules risk destruction in OFFLINE combat — repair them with Spare Parts (Ship Designer).")
 
 # OFFLINE loss risk (the consent is the offline-combat toggle): only modules
 # ALREADY <=50% can be destroyed; ~5%/hr, capped 35% per worn module. Returns
