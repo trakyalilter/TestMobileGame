@@ -1240,13 +1240,36 @@ func module_unlocked(mid: String) -> bool:
 	var rr: String = GameData.MODULES.get(mid, {}).get("research_req", "")
 	return rr == "" or is_research_unlocked(rr)
 
+# v114 salvage→forge spine: each mainline zone's COMMON weapon/armor/shield
+# modules additionally cost that zone's signature alloy — the crafting chain the
+# tier gate makes mandatory. Only when the tier gate is on (new games); ungated
+# saves keep base costs and never need an alloy they can't craft.
+const TIER_ALLOY_BY_ZONE := {2: "ChondriteAlloy", 3: "WreckforgedAlloy", 4: "RimeAlloy",
+	5: "XenoforgedAlloy", 6: "ColonyAlloy", 7: "GammaAlloy", 8: "PrismaticAlloy",
+	9: "BioforgedAlloy", 10: "AeonAlloy"}
+const TIER_ALLOY_QTY := {"weapon": 5, "shield": 6, "armor": 8}
+
+func effective_module_cost(mid: String) -> Dictionary:
+	var m: Dictionary = GameData.MODULES.get(mid, {})
+	var cost: Dictionary = (m.get("cost", {}) as Dictionary).duplicate()
+	if not tier_gate_on():
+		return cost
+	if int(m.get("rarity", 0)) != 0:
+		return cost   # commons only — uniques/rarities keep base costs
+	var z := int(m.get("zone", 0))
+	var slot := String(m.get("slot", ""))
+	if TIER_ALLOY_BY_ZONE.has(z) and TIER_ALLOY_QTY.has(slot):
+		var alloy: String = TIER_ALLOY_BY_ZONE[z]
+		cost[alloy] = int(cost.get(alloy, 0)) + int(TIER_ALLOY_QTY[slot])
+	return cost
+
 func module_can_buy(mid: String) -> bool:
-	return module_unlocked(mid) and _afford_cost(GameData.MODULES.get(mid, {}).get("cost", {}))
+	return module_unlocked(mid) and _afford_cost(effective_module_cost(mid))
 
 func buy_module(mid: String) -> bool:
 	if not module_can_buy(mid):
 		return false
-	_pay_cost(GameData.MODULES[mid].get("cost", {}))
+	_pay_cost(effective_module_cost(mid))
 	module_inventory[mid] = int(module_inventory.get(mid, 0)) + 1
 	_mission_event("craft", mid, 1)
 	resources_changed.emit()
@@ -2871,6 +2894,44 @@ func enemy_tier_hardened(eid: String) -> int:
 		return 0
 	return 0
 
+# v114 front-half salvage yard: e1/e2 of Z2-Z10 (non-boss) drop MATERIALS only —
+# no module rarity rolls; the intact back-half predators carry the module ladder.
+# Rides the tier-gate flag (mobile divergence: desktop routes unconditionally) so
+# pre-gate saves keep their loot behavior.
+func enemy_front_salvage(eid: String) -> bool:
+	if not tier_gate_on():
+		return false
+	if bool(GameData.ENEMIES.get(eid, {}).get("is_boss", false)):
+		return false
+	for z in GameData.ZONES:
+		var roster: Array = z.get("enemies", [])
+		var idx := roster.find(eid)
+		if idx < 0:
+			continue
+		var zd := int(z.get("difficulty", 1))
+		return idx < 2 and zd >= 2 and zd <= 10
+	return false
+
+# v129 salvage feedstock: Z3+ kills shed reclaimable wreckage for the reclaim_*
+# recipes (bosses shower it). Returns {sym: qty} for session-loot logging.
+func _roll_salvage_drops(zone: int, is_boss: bool) -> Dictionary:
+	if zone < 3:
+		return {}
+	var out := {}
+	if is_boss:
+		if randf() < 0.90:
+			out["SalvagedAlloy"] = randi_range(zone, zone * 2)
+		if randf() < 0.90:
+			out["DamagedCircuitry"] = randi_range(zone, zone * 2)
+	else:
+		if randf() < 0.30:
+			out["SalvagedAlloy"] = randi_range(1, 1 + zone / 3)
+		if randf() < 0.30:
+			out["DamagedCircuitry"] = randi_range(1, 1 + zone / 3)
+	for sym in out:
+		add_resource(sym, out[sym])
+	return out
+
 # DPS-weighted average penetration of the CURRENT loadout vs an enemy — for the
 # idle preview and offline catch-up, which work from aggregate DPS.
 func tier_pen_avg(eid: String) -> float:
@@ -3884,13 +3945,19 @@ func _win_combat() -> void:
 		add_resource(p, pq)
 		_log_session_loot(p, pq)
 		_event("SCAVENGED " + GameData.res_name(p), "55d3e6", "enemy")
+	# v129 salvage feedstock (Z3+): reclaimable wreckage for the reclaim_* recipes.
+	var salv := _roll_salvage_drops(_combat_difficulty(), bool(enemy_inst.get("is_boss", false)))
+	for ssym in salv:
+		_log_session_loot(ssym, salv[ssym])
 	# Rolled module drop (rarity + affixes). v109: bosses burst — roll 4-10 modules
 	# bypassing the drop-chance gate (ref ~L2075-2081); regulars keep the single
-	# drop_chance-gated roll.
+	# drop_chance-gated roll. v114: front-half salvage-yard enemies (e1/e2 of
+	# Z2-Z10) drop materials ONLY — their module ladder lives in the back half.
 	var pool := []
-	for mid in enemy_inst.get("drop_pool", []):
-		if GameData.MODULES.has(mid) and module_unlocked(mid):
-			pool.append(mid)
+	if not enemy_front_salvage(active_id):
+		for mid in enemy_inst.get("drop_pool", []):
+			if GameData.MODULES.has(mid) and module_unlocked(mid):
+				pool.append(mid)
 	if not pool.is_empty():
 		var is_boss: bool = bool(enemy_inst.get("is_boss", false))
 		if is_boss:
@@ -4241,9 +4308,19 @@ func _offline_combat(delta: float) -> void:
 		_log_session_loot(core_id, reps)
 		summary += "\n%s\t+%d" % [GameData.res_name(core_id), reps]
 	var pool := []
-	for mid in e.get("drop_pool", []):
-		if GameData.MODULES.has(mid) and module_unlocked(mid):
-			pool.append(mid)
+	if not enemy_front_salvage(active_id):   # v114: salvage-yard enemies roll no modules
+		for mid in e.get("drop_pool", []):
+			if GameData.MODULES.has(mid) and module_unlocked(mid):
+				pool.append(mid)
+	# v129 offline salvage feedstock — one roll per rep under the existing caps.
+	var salv_tot := {}
+	for _s in range(mini(reps, 500000)):
+		var got := _roll_salvage_drops(diff, bool(e.get("is_boss", false)))
+		for ssym in got:
+			salv_tot[ssym] = int(salv_tot.get(ssym, 0)) + int(got[ssym])
+	for ssym in salv_tot:
+		_log_session_loot(ssym, salv_tot[ssym])
+		summary += "\n%s\t+%s" % [GameData.res_name(ssym), GameData.fmt(salv_tot[ssym])]
 	if not pool.is_empty():
 		var dc: float = float(e.get("drop_chance", 0.0)) * (1.0 + research_bonus("xeno_engineering"))
 		var mods := 0
