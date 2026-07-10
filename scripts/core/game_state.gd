@@ -1579,102 +1579,269 @@ func module_zone_mult(zone_diff: int) -> float:
 	return pow(MODULE_ZONE_SCALE_EARLY, early_steps) * pow(MODULE_ZONE_SCALE_LATE, late_steps)
 
 ## Creates a rolled module instance (or the base for Common); returns its id.
-# Hack Stones (minimal): a Splice Chip awakens one owned Common (base, rarity-0)
-# module into an Uncommon with a random affix, reusing generate_module. The heavier
-# desktop stones (reroll/anchor/worm) are deferred until runtime verification.
-func apply_splice_chip(base_id: String) -> Dictionary:
-	if not GameData.MODULES.has(base_id):
-		return {"ok": false, "msg": "Unknown module."}
-	if int(module_inventory.get(base_id, 0)) < 1:
-		return {"ok": false, "msg": "Own a Common module of this type first."}
-	if amount("SpliceChip") < 1:
-		return {"ok": false, "msg": "No Splice Chip — defeat enemies to find one."}
-	resources["SpliceChip"] = amount("SpliceChip") - 1
+# ---------------- Hack-Stone crafting (desktop v127/v128, full port) ----------------
+# PoE2-style currency-as-crafting: 7 stones re-forge module affixes. Stone + Liras
+# are consumed ONLY on success. `mid` is a base COMMON id (Splice/Injector) or a
+# custom instance id (all others). `arg` = chosen affix (Anchor Bolt / Refit Bay).
+const HACK_STONE_IDS := ["SpliceChip", "FirmwareInjector", "RootKey", "AnchorBolt", "CorruptionWorm", "RefitBay", "SignalCalibrator"]
+const HACK_STONE_DESC := {
+	"SpliceChip": "Awaken a Common module → Uncommon, rolling 1 random affix.",
+	"FirmwareInjector": "Forge a Common module straight to Rare with 2 fresh affixes.",
+	"RootKey": "Rarity +1 tier — keeps every existing affix, rolls 1 new one.",
+	"AnchorBolt": "Lock an affix from rerolls (up to 2 on Legendary; re-apply to release).",
+	"CorruptionWorm": "Remove 1 RANDOM unlocked affix, roll a new one (25% Greater-Affix — the gamble).",
+	"RefitBay": "Remove 1 CHOSEN unlocked affix, roll a new one in its place (deterministic).",
+	"SignalCalibrator": "Re-roll the VALUES of every unanchored affix — identities & count kept.",
+}
+const HACK_STONE_LIRA_COST := {1: 500, 2: 3000, 3: 20000, 4: 100000}
+
+# v128 P0: craft cost re-couples to the module's ZONE — a Z12 base rolls Z12-
+# magnitude affixes, so it must cost Z12 Liras (closes cheap-deep-base arbitrage).
+func _hack_lira_cost(rarity: int, zone_difficulty: int = 3) -> int:
+	var base: int = int(HACK_STONE_LIRA_COST.get(rarity, 500))
+	var z: int = mini(maxi(zone_difficulty, 1), AFFIX_ZONE_CAP)
+	return int(base * pow(1.8, maxi(0, z - 3)))
+
+# The zone a module's affixes roll at (customs stamp it; older saves fall back
+# to the base module's zone).
+func _module_zone(mid: String) -> int:
+	var m := module_def(mid)
+	if m.has("zone"):
+		return int(m["zone"])
+	var b := String(m.get("base", ""))
+	return int(GameData.MODULES.get(b, {}).get("zone", 1))
+
+func _anchored_array(m: Dictionary) -> Array:
+	var out := []
+	var legacy := String(m.get("anchored_affix", ""))
+	if legacy != "":
+		out.append(legacy)
+	for a in m.get("anchored_affixes", []):
+		var a2 := String(a)
+		if a2 != "" and not out.has(a2):
+			out.append(a2)
+	return out
+
+# Legendary+ holds 2 locks (protect a 2-affix core before Calibrator-fishing).
+func _max_anchors(m: Dictionary) -> int:
+	return 2 if int(m.get("rarity", 0)) >= 3 else 1
+
+# Dry-run validation (drives the UI buttons) — mirrors apply without consuming.
+func can_apply_hack_stone(stone_id: String, mid: String) -> Dictionary:
+	if amount(stone_id) < 1:
+		return {"ok": false, "msg": "No %s in stock." % GameData.res_name(stone_id)}
+	var is_custom := custom_modules.has(mid)
+	if mid == "" or (not is_custom and not GameData.MODULES.has(mid)):
+		return {"ok": false, "msg": "Invalid module."}
+	var m := module_def(mid)
+	match stone_id:
+		"SpliceChip", "FirmwareInjector":
+			if is_custom:
+				return {"ok": false, "msg": "Already awakened — use another stone."}
+			if int(module_inventory.get(mid, 0)) < 1:
+				return {"ok": false, "msg": "Keep that component in inventory to Splice it."}
+			var tr := 1 if stone_id == "SpliceChip" else 2
+			var c := _hack_lira_cost(tr, _module_zone(mid))
+			if credits < c:
+				return {"ok": false, "msg": "Need ₡%s." % GameData.fmt(c)}
+			return {"ok": true, "msg": ""}
+		"RootKey":
+			if not is_custom:
+				return {"ok": false, "msg": "Awaken it first with a Splice Chip."}
+			var rar := int(m.get("rarity", 0))
+			if rar >= 3:
+				return {"ok": false, "msg": "Root Key caps at Legendary."}
+			if credits < _hack_lira_cost(rar + 1, _module_zone(mid)):
+				return {"ok": false, "msg": "Need ₡%s." % GameData.fmt(_hack_lira_cost(rar + 1, _module_zone(mid)))}
+			if _legal_affix_pool(String(m.get("slot", "")), (m.get("affixes", {}) as Dictionary).keys()).is_empty():
+				return {"ok": false, "msg": "No new affix type fits this slot."}
+			return {"ok": true, "msg": ""}
+		"CorruptionWorm", "RefitBay", "SignalCalibrator":
+			if not is_custom:
+				return {"ok": false, "msg": "Awaken it first with a Splice Chip."}
+			if int(m.get("rarity", 0)) < 2:
+				return {"ok": false, "msg": "Needs Rare or higher."}
+			var anch := _anchored_array(m)
+			var free := false
+			for a in (m.get("affixes", {}) as Dictionary).keys():
+				if not anch.has(String(a)):
+					free = true
+					break
+			if not free:
+				return {"ok": false, "msg": "No unlocked affix to work on."}
+			var cc := _hack_lira_cost(int(m.get("rarity", 2)), _module_zone(mid))
+			if stone_id == "RefitBay":
+				cc = int(cc * 1.67)
+			if credits < cc:
+				return {"ok": false, "msg": "Need ₡%s." % GameData.fmt(cc)}
+			return {"ok": true, "msg": ""}
+		"AnchorBolt":
+			if not is_custom:
+				return {"ok": false, "msg": "Awaken it first with a Splice Chip."}
+			if (m.get("affixes", {}) as Dictionary).is_empty():
+				return {"ok": false, "msg": "No affix to anchor."}
+			return {"ok": true, "msg": ""}
+	return {"ok": false, "msg": "Unknown stone: %s" % stone_id}
+
+func apply_hack_stone(stone_id: String, mid: String, arg: String = "") -> Dictionary:
+	var chk := can_apply_hack_stone(stone_id, mid)
+	if not bool(chk.get("ok", false)):
+		return {"ok": false, "msg": chk.get("msg", ""), "cid": ""}
+	var r := {"ok": false, "msg": "Unknown stone: %s" % stone_id, "cid": ""}
+	match stone_id:
+		"SpliceChip": r = _stone_materialize(mid, 1, stone_id)
+		"FirmwareInjector": r = _stone_materialize(mid, 2, stone_id)
+		"RootKey": r = _stone_rootkey(mid, stone_id)
+		"CorruptionWorm": r = _stone_worm(mid, stone_id, "")
+		"RefitBay": r = _stone_worm(mid, stone_id, arg)
+		"SignalCalibrator": r = _stone_calibrate(mid, stone_id)
+		"AnchorBolt": r = _stone_anchor(mid, arg, stone_id)
+	if bool(r.get("ok", false)):
+		_mission_event("hack_apply", stone_id, 1)   # drives goal_hack_3
+		resources_changed.emit()
+	return r
+
+# Splice (→Uncommon) / Injector (→Rare): awaken a fixed-stat COMMON into a rolled
+# custom instance at the BASE'S zone (v128: cost + magnitude both zone-coupled).
+func _stone_materialize(base_id: String, target_rarity: int, stone_id: String) -> Dictionary:
+	var zone := _module_zone(base_id)
+	var cost := _hack_lira_cost(target_rarity, zone)
+	var cid := generate_module(base_id, target_rarity, zone)
+	if cid == "" or cid == base_id:
+		return {"ok": false, "msg": "Splice failed.", "cid": ""}
+	custom_modules[cid]["stone_crafted"] = true   # anti-pump: sells at Common price
 	module_inventory[base_id] = int(module_inventory.get(base_id, 0)) - 1
 	if int(module_inventory.get(base_id, 0)) <= 0:
 		module_inventory.erase(base_id)
-	var cid := generate_module(base_id, 1, maxi(1, _combat_difficulty()))   # Uncommon + 1 affix
-	resources_changed.emit()
-	if cid == "":
-		return {"ok": false, "msg": "Awaken failed."}
-	return {"ok": true, "msg": "Awakened to Uncommon!", "cid": cid}
+	credits -= cost
+	resources[stone_id] = amount(stone_id) - 1
+	return {"ok": true, "msg": "Awakened → %s" % String(custom_modules[cid].get("name", cid)), "cid": cid}
 
-# ---- Shared affix engine (extracted for the hack-stone crafting; used by
-# generate_module + every stone). Behavior-identical to the old inline code,
-# with ONE parity fix: the flat 1.8^ zone exponent is capped at AFFIX_ZONE_CAP
-# (desktop shipyard AFFIX_ZONE_CAP=15) — previously uncapped on mobile.
-const AFFIX_ZONE_CAP := 15
+# Dropped Legendary rolls 1-3 sockets, Unique 3 — top a Root-Keyed module up to
+# match (never removes existing sockets).
+func _topup_sockets(m: Dictionary, rarity: int) -> void:
+	if not m.has("sockets"):
+		m["sockets"] = []
+	var target := 0
+	if rarity == 4: target = 3
+	elif rarity == 3: target = 1
+	while (m["sockets"] as Array).size() < target:
+		m["sockets"].append(null)
 
-func _legal_affix_pool(slot: String, exclude: Array = []) -> Array:
-	var pool := []
-	for aid in AFFIX_DB:
-		if exclude.has(aid):
-			continue
-		if (AFFIX_DB[aid]["limit_to"] as Array).has(slot):
-			pool.append(aid)
-	if pool.is_empty():
-		for aid in AFFIX_DB:
-			if exclude.has(aid):
-				continue
-			if AFFIX_DB[aid]["type"] in ["industrial", "economy"]:
-				pool.append(aid)
-	return pool
+func _stone_rootkey(mid: String, stone_id: String) -> Dictionary:
+	var m: Dictionary = custom_modules[mid]
+	var rar := int(m.get("rarity", 0))
+	var cost := _hack_lira_cost(rar + 1, _module_zone(mid))
+	if not m.has("affixes"):
+		m["affixes"] = {}
+	var pool := _legal_affix_pool(String(m.get("slot", "")), (m["affixes"] as Dictionary).keys())
+	pool.shuffle()
+	var new_affix := String(pool[0])
+	var roll := _roll_affix_value(new_affix, _module_zone(mid))
+	m["affixes"][new_affix] = roll["value"]
+	if not m.has("greater_affixes"):
+		m["greater_affixes"] = []
+	if bool(roll["is_greater"]):
+		m["greater_affixes"].append(new_affix)
+	m["rarity"] = rar + 1
+	m["stone_crafted"] = true
+	_topup_sockets(m, rar + 1)
+	_rebuild_custom_name(mid)
+	credits -= cost
+	resources[stone_id] = amount(stone_id) - 1
+	return {"ok": true, "msg": "Root Key → %s + new affix." % String(RARITY_LABEL.get(rar + 1, "")), "cid": mid}
 
-# One affix roll: 15% Greater Affix pins the value to range-max x2 (pre-scaling).
-func _roll_affix_value(aid: String, zone_diff: int, ga_chance := 0.15) -> Dictionary:
-	var cfg: Dictionary = AFFIX_DB[aid]
-	var is_greater := randf() < ga_chance
-	var raw_val: float = float(cfg["range"][1]) * 2.0 if is_greater else float(randi_range(int(cfg["range"][0]), int(cfg["range"][1])))
-	var final_val := 0.0
-	match cfg.get("scaling", "percent"):
-		"flat": final_val = floor(raw_val * pow(1.8, maxi(0, mini(zone_diff, AFFIX_ZONE_CAP) - 1)))
-		"linear_tier": final_val = raw_val * zone_diff
-		_: final_val = raw_val / 100.0
-	return {"value": final_val, "is_greater": is_greater}
+# Worm (chosen==""): remove 1 RANDOM unanchored affix, roll new at 25% GA — the
+# gamble. Refit Bay: remove the CHOSEN one, 15% GA, x1.67 cost — the control.
+func _stone_worm(mid: String, stone_id: String, chosen: String = "") -> Dictionary:
+	var m: Dictionary = custom_modules[mid]
+	var affixes: Dictionary = m.get("affixes", {})
+	var anchored := _anchored_array(m)
+	var removable := []
+	for a in affixes.keys():
+		if not anchored.has(String(a)):
+			removable.append(String(a))
+	var is_refit := stone_id == "RefitBay"
+	var drop_affix := ""
+	if is_refit:
+		if chosen == "" or not removable.has(chosen):
+			return {"ok": false, "msg": "Pick an unlocked affix to refit.", "cid": ""}
+		drop_affix = chosen
+	else:
+		removable.shuffle()
+		drop_affix = String(removable[0])
+	var cost := _hack_lira_cost(int(m.get("rarity", 2)), _module_zone(mid))
+	if is_refit:
+		cost = int(cost * 1.67)
+	if not m.has("greater_affixes"):
+		m["greater_affixes"] = []
+	affixes.erase(drop_affix)
+	(m["greater_affixes"] as Array).erase(drop_affix)
+	var pool := _legal_affix_pool(String(m.get("slot", "")), affixes.keys())
+	if not pool.is_empty():
+		pool.shuffle()
+		var new_affix := String(pool[0])
+		var roll := _roll_affix_value(new_affix, _module_zone(mid), 0.15 if is_refit else 0.25)
+		affixes[new_affix] = roll["value"]
+		if bool(roll["is_greater"]):
+			m["greater_affixes"].append(new_affix)
+	m["stone_crafted"] = true
+	_rebuild_custom_name(mid)
+	credits -= cost
+	resources[stone_id] = amount(stone_id) - 1
+	return {"ok": true, "msg": "Refit Bay: chosen affix rerolled." if is_refit else "Corruption Worm: 1 affix rerolled.", "cid": mid}
 
-# Affix-derived display names (desktop AFFIX_NAMING, filtered to mobile affixes):
-# first affix names the prefix, last names the suffix (when 2+).
-const AFFIX_NAMING := {
-	"static_burst": {"prefix": "Overloaded", "suffix": "of Discharge"},
-	"void_strike": {"prefix": "Phased", "suffix": "of the Void"},
-	"flat_atk": {"prefix": "Charged", "suffix": "of Lethality"},
-	"flat_accuracy": {"prefix": "Calibrated", "suffix": "of Precision"},
-	"flat_hp": {"prefix": "Reinforced", "suffix": "of Bulwark"},
-	"flat_def": {"prefix": "Hardened", "suffix": "of Bastion"},
-	"flat_shield": {"prefix": "Flux", "suffix": "of the Aegis"},
-	"capacitor_pulse": {"prefix": "Kinetic", "suffix": "of the Dynamo"},
-	"nanite_resurgence": {"prefix": "Repairing", "suffix": "of Nanites"},
-	"combat_sight": {"prefix": "Surgical", "suffix": "of the Assassin"},
-	"reflexive_plating": {"prefix": "Stealth", "suffix": "of Ghosting"},
-	"lucky_hit_chance": {"prefix": "Opportunistic", "suffix": "of Synergy"},
-	"dmg_healthy": {"prefix": "Executioner's", "suffix": "of the Hunt"},
-	"dmg_injured": {"prefix": "Sadistic", "suffix": "of Ending"},
-	"berserk_on_kill": {"prefix": "Neural", "suffix": "of the Reckless"},
-}
+# Calibrator: re-roll the VALUES of every unanchored affix (ids & count kept —
+# no brick), fresh independent 15% GA each.
+func _stone_calibrate(mid: String, stone_id: String) -> Dictionary:
+	var m: Dictionary = custom_modules[mid]
+	var affixes: Dictionary = m.get("affixes", {})
+	var anchored := _anchored_array(m)
+	var targets := []
+	for a in affixes.keys():
+		if not anchored.has(String(a)):
+			targets.append(String(a))
+	var cost := _hack_lira_cost(int(m.get("rarity", 2)), _module_zone(mid))
+	if not m.has("greater_affixes"):
+		m["greater_affixes"] = []
+	var z := _module_zone(mid)
+	for aid in targets:
+		var roll := _roll_affix_value(String(aid), z)
+		affixes[aid] = roll["value"]
+		(m["greater_affixes"] as Array).erase(aid)
+		if bool(roll["is_greater"]):
+			m["greater_affixes"].append(aid)
+	m["stone_crafted"] = true
+	_rebuild_custom_name(mid)
+	credits -= cost
+	resources[stone_id] = amount(stone_id) - 1
+	return {"ok": true, "msg": "Signal Calibrator: %d affix value(s) re-rolled." % targets.size(), "cid": mid}
 
-func _compose_module_name(base_name: String, affix_ids: Array) -> String:
-	if affix_ids.is_empty():
-		return base_name
-	var prefix: String = AFFIX_NAMING.get(affix_ids[0], {}).get("prefix", "")
-	var suffix: String = AFFIX_NAMING.get(affix_ids[affix_ids.size() - 1], {}).get("suffix", "")
-	var nm := base_name
-	if prefix != "":
-		nm = prefix + " " + nm
-	if suffix != "" and affix_ids.size() > 1:
-		nm = nm + " " + suffix
-	return nm
+# Anchor Bolt: lock a chosen affix from Worm/Refit/Calibrator (Legendary+ holds
+# 2). Re-applying to an anchored affix RELEASES it free; locking consumes 1 card.
+func _stone_anchor(mid: String, arg: String, stone_id: String) -> Dictionary:
+	var m: Dictionary = custom_modules[mid]
+	var affixes: Dictionary = m.get("affixes", {})
+	var target := arg if affixes.has(arg) else String(affixes.keys()[0])
+	var arr := _anchored_array(m)
+	var tname := String(AFFIX_DB.get(target, {}).get("name", target))
+	if arr.has(target):
+		arr.erase(target)
+		m["anchored_affixes"] = arr
+		m.erase("anchored_affix")
+		return {"ok": true, "msg": "Released: %s unlocked." % tname, "cid": mid}
+	if arr.size() >= _max_anchors(m):
+		return {"ok": false, "msg": "Max %d anchor(s) — release one, or Root Key to Legendary." % _max_anchors(m), "cid": ""}
+	arr.append(target)
+	m["anchored_affixes"] = arr
+	m.erase("anchored_affix")
+	resources[stone_id] = amount(stone_id) - 1
+	return {"ok": true, "msg": "Anchored: %s locked." % tname, "cid": mid}
 
-# Recompute a custom instance's display name from its base + affixes + rarity —
-# stones that add/remove affixes call this so names track the item.
-func _rebuild_custom_name(cid: String) -> void:
-	if not custom_modules.has(cid):
-		return
-	var m: Dictionary = custom_modules[cid]
-	var base_id := String(m.get("base", ""))
-	var base_name := String(GameData.MODULES.get(base_id, {}).get("name", m.get("name", "Module")))
-	var nm := _compose_module_name(base_name, (m.get("affixes", {}) as Dictionary).keys())
-	var rl := String(RARITY_LABEL.get(int(m.get("rarity", 0)), ""))
-	m["name"] = ("%s (%s)" % [nm, rl]) if rl != "" else nm
+# Back-compat wrapper (UI + older callers). v128: now charges the zone-coupled
+# Lira cost and rolls at the BASE module's zone (was free / combat-difficulty).
+func apply_splice_chip(base_id: String) -> Dictionary:
+	return apply_hack_stone("SpliceChip", base_id)
 
 func generate_module(base_id: String, rarity: int, zone_diff: int) -> String:
 	if not GameData.MODULES.has(base_id):
@@ -1748,6 +1915,10 @@ func sell_module(mid: String) -> bool:
 # 25% of its credit cost).
 func _module_sell_price(mid: String, rarity: int) -> int:
 	if custom_modules.has(mid):
+		# v127 anti-pump: stone-crafted modules sell at the COMMON price — cheap
+		# reshuffles can't be flipped for profit.
+		if bool(custom_modules[mid].get("stone_crafted", false)):
+			return int(RARITY_SELL.get(0, 100))
 		return int(RARITY_SELL.get(rarity, 100))
 	return maxi(50, int(float(GameData.MODULES.get(mid, {}).get("cost", {}).get("credits", 200)) * 0.25))
 
