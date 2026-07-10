@@ -2110,6 +2110,8 @@ func _gather_card(id: String, a: Dictionary) -> Control:
 	# the controls pinned to the bottom — locked and unlocked always align.
 	v.get_parent().size_flags_vertical = Control.SIZE_EXPAND_FILL
 	v.get_parent().set_meta("coach_id", id)
+	if active:
+		_breathe_active(v.get_parent())
 	_card_head(v, "↑", a["name"], "Lv %d" % int(a.get("level_req", 1)), GOLD, unlocked)
 	if unlocked:
 		_inset(v, "YIELD", _loot_lines(a.get("loot", [])), GOLD)
@@ -2241,6 +2243,8 @@ func _craft_card(id: String, r: Dictionary) -> Control:
 	var v := _card(CYAN, unlocked or active)
 	v.get_parent().size_flags_vertical = Control.SIZE_EXPAND_FILL
 	v.get_parent().set_meta("coach_id", id)
+	if active:
+		_breathe_active(v.get_parent())
 	_card_head(v, "⚙", r["name"], "Lv %d" % int(r.get("level_req", 1)), CYAN, unlocked)
 	# Ammo: show a color-coded damage-type chip so the player can tell kinetic /
 	# energy / explosive apart at a glance (matches the weapon affinity colors).
@@ -3750,11 +3754,11 @@ func _stat_strip(v: VBoxContainer, pairs: Array) -> void:
 	fc.add_theme_constant_override("v_separation", 6)
 	for p in pairs:
 		var pill := PanelContainer.new()
-		var sb := _bordered(_mix(p[2], INSET, 0.86), _mix(p[2], LINE, 0.55), 1, 8)
-		sb.content_margin_left = 9
-		sb.content_margin_right = 9
-		sb.content_margin_top = 3
-		sb.content_margin_bottom = 3
+		var sb := _bordered(_mix(p[2], INSET, 0.78), _mix(p[2], LINE, 0.55), 1, 8)
+		sb.content_margin_left = 11
+		sb.content_margin_right = 11
+		sb.content_margin_top = 5
+		sb.content_margin_bottom = 5
 		pill.add_theme_stylebox_override("panel", sb)
 		var hb := HBoxContainer.new()
 		hb.add_theme_constant_override("separation", 5)
@@ -5990,14 +5994,16 @@ func _card_head(v: VBoxContainer, icon: String, name: String, badge: String, acc
 	var hb := HBoxContainer.new()
 	hb.add_theme_constant_override("separation", 7)
 	if icon != "":
+		# Bigger, brighter identity chip — the icon reads as game iconography,
+		# not a list-row glyph.
 		var chip := PanelContainer.new()
-		chip.custom_minimum_size = Vector2(26, 26)
-		chip.add_theme_stylebox_override("panel", _bordered(_mix(accent, INSET, 0.82) if lit else INSET, _mix(accent, LINE, 0.5) if lit else LINE, 1, 7))
+		chip.custom_minimum_size = Vector2(38, 38)
+		chip.add_theme_stylebox_override("panel", _bordered(_mix(accent, INSET, 0.62) if lit else INSET, _mix(accent, LINE, 0.5) if lit else LINE, 1, 10))
 		var cc := CenterContainer.new()
 		chip.add_child(cc)
 		var ic := Label.new()
 		ic.text = icon
-		ic.add_theme_font_size_override("font_size", _fs(13))
+		ic.add_theme_font_size_override("font_size", _fs(17))
 		ic.add_theme_color_override("font_color", Color.html(accent if lit else C_MUTED))
 		cc.add_child(ic)
 		hb.add_child(chip)
@@ -6188,9 +6194,15 @@ func _progress(v: VBoxContainer, active: bool, accent: String) -> void:
 		lbl.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		lbl.add_theme_font_size_override("font_size", _fs(7))
-		lbl.add_theme_color_override("font_color", Color.html(C_MUTED))
+		lbl.add_theme_font_size_override("font_size", _fs(9))
+		lbl.add_theme_color_override("font_color", Color.html(accent))
+		_embolden(lbl)
 		wrap.add_child(lbl)
+		# Shimmer: READY breathes. Node-bound tween — dies with the label on
+		# rebuild, so it can't leak or fight the idle-loop no-rebuild guard.
+		var tw := lbl.create_tween().set_loops()
+		tw.tween_property(lbl, "modulate:a", 0.45, 0.9).set_trans(Tween.TRANS_SINE)
+		tw.tween_property(lbl, "modulate:a", 1.0, 0.9).set_trans(Tween.TRANS_SINE)
 	v.add_child(wrap)
 	if active:
 		_active_bar = bar
@@ -6802,6 +6814,16 @@ func _surface_style(bg: String, border: String, elevated: bool) -> StyleBoxTextu
 	s.content_margin_top = 12
 	s.content_margin_bottom = 12
 	return s
+
+# The ACTIVE card breathes — a slow warm modulate pulse says "this is running"
+# at a glance. Modulate only (NEVER tween a stylebox: they're shared cached
+# resources and would light every card). Node-bound: rebuilds auto-kill it.
+func _breathe_active(panel: Control) -> void:
+	if panel == null or not is_instance_valid(panel):
+		return
+	var tw := panel.create_tween().set_loops()
+	tw.tween_property(panel, "modulate", Color(1.10, 1.08, 1.0, 1.0), 0.8).set_trans(Tween.TRANS_SINE)
+	tw.tween_property(panel, "modulate", Color(1.0, 1.0, 1.0, 1.0), 0.8).set_trans(Tween.TRANS_SINE)
 
 # ---- Design helpers ----
 func _card_style(bg: String, border: String, width := 1, elevated := false) -> StyleBoxFlat:
