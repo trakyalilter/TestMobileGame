@@ -92,6 +92,8 @@ var _drift_y := 0.0
 var _hit_flash: ColorRect
 var _fx_layer: Control = null   # persistent overlay for spawned juice (never rebuilt)
 var _gain_fx_live := 0          # concurrent floating-gain cap (fast loops can't flood)
+var _hdr_cpill: PanelContainer = null   # header credits pill (gain-pop tween)
+var _hdr_credits_val := -1              # last shown credits (count-up diff + de-dupe)
 var _coach_banner: PanelContainer
 var _coach_obj: Label
 var _coach_hint: Label
@@ -1454,6 +1456,7 @@ func _build() -> void:
 	var cpill := PanelContainer.new()
 	cpill.add_theme_stylebox_override("panel", _bordered(_mix(GOLD, INSET, 0.82), _mix(GOLD, LINE, 0.5), 1, 10))
 	cpill.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_hdr_cpill = cpill   # captured for the gain-pop tween
 	var ch := HBoxContainer.new()
 	ch.add_theme_constant_override("separation", 4)
 	cpill.add_child(ch)
@@ -2998,6 +3001,16 @@ func _on_cycle_completed(_type: String, _id: String, gains: Dictionary) -> void:
 		else:
 			_float_gain(anchor, _mat_icon_tex(String(sym)), "+%s" % GameData.fmt(amt), _hex(GameData.color_for(String(sym))))
 		shown += 1
+	# XP conduit pulse — the skill banner's bar flashes brighter on each loop.
+	# Modulate only; _process keeps owning `value`. Stack-guarded by the meta flag.
+	if is_instance_valid(_skill_bar) and _skill_bar.is_visible_in_tree() and not _skill_bar.has_meta("pulsing"):
+		_skill_bar.set_meta("pulsing", true)
+		var tw := _skill_bar.create_tween()
+		tw.tween_property(_skill_bar, "modulate", Color(1.4, 1.35, 1.1), 0.12)
+		tw.tween_property(_skill_bar, "modulate", Color.WHITE, 0.25)
+		tw.tween_callback(func() -> void:
+			if is_instance_valid(_skill_bar):
+				_skill_bar.remove_meta("pulsing"))
 
 func _shake() -> void:
 	if safe_margin == null:
@@ -6393,10 +6406,46 @@ func _connector(v: VBoxContainer) -> void:
 	c.add_child(line)
 	v.add_child(c)
 
+# Count a label's number from -> to over `dur` (event-driven; one tween per
+# discrete gain, not per frame). Kills any prior count on the same label.
+func _tween_number(l: Label, from: float, to: float, fmt: Callable, dur := 0.5) -> void:
+	if l.has_meta("cnt_tw"):
+		var old = l.get_meta("cnt_tw")
+		if old is Tween and (old as Tween).is_valid():
+			(old as Tween).kill()
+	var tw := l.create_tween()
+	l.set_meta("cnt_tw", tw)
+	var setter := func(v: float) -> void:
+		if is_instance_valid(l):
+			l.text = str(fmt.call(v))
+	tw.tween_method(setter, from, to, dur)
+
 func _refresh_top() -> void:
 	# Header shows credits only — material holdings live on the Storage page.
-	if is_instance_valid(_hdr_credits):
-		_hdr_credits.text = GameData.fmt(GameState.credits)
+	if not is_instance_valid(_hdr_credits):
+		return
+	var now := GameState.credits
+	if now == _hdr_credits_val:
+		return   # de-dupe the high-frequency resources_changed churn
+	var prev := _hdr_credits_val
+	_hdr_credits_val = now
+	if prev < 0:
+		_hdr_credits.text = GameData.fmt(now)   # first paint: snap
+		return
+	if now > prev:
+		# Earned: count up + pill pop. Gaining should feel earned.
+		_tween_number(_hdr_credits, float(prev), float(now), func(v: float): return GameData.fmt(int(v)))
+		if is_instance_valid(_hdr_cpill):
+			_hdr_cpill.pivot_offset = _hdr_cpill.size / 2.0
+			var tw := _hdr_cpill.create_tween()
+			tw.tween_property(_hdr_cpill, "scale", Vector2(1.12, 1.12), 0.09).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+			tw.tween_property(_hdr_cpill, "scale", Vector2(1.0, 1.0), 0.16)
+	else:
+		# Spent: snap immediately (spending must feel instant) + brief red tint.
+		_hdr_credits.text = GameData.fmt(now)
+		var tw2 := _hdr_credits.create_tween()
+		_hdr_credits.modulate = Color(1.0, 0.5, 0.4)
+		tw2.tween_property(_hdr_credits, "modulate", Color.WHITE, 0.3)
 
 func _build_active_banner() -> PanelContainer:
 	var panel := PanelContainer.new()
