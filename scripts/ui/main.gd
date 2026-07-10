@@ -189,6 +189,7 @@ var _active_timer: Label = null
 var _skill_bar: ProgressBar = null      # skill XP bar in the page banner — updated live
 var _skill_xp_label: Label = null
 var _skill_lv_label: Label = null
+var _skill_medal: Control = null        # level medallion — scale-pops on level-up
 var _skill_banner_id := ""
 # Active gather/craft card's Mastery row — refreshed live in _process (the page is
 # not rebuilt on loop completion, so the active action's bar must self-update).
@@ -934,6 +935,12 @@ func _skill_label(id: String) -> String:
 func _on_level_up(skill_id: String, level: int) -> void:
 	var accent: String = DOMAIN.get({"harvesting": "gather", "fabrication": "craft", "combat": "combat", "infrastructure": "build"}.get(skill_id, ""), GOLD)
 	_celebrate("⬆  LEVEL UP", "%s  Lv %d" % [SKILL_TITLE.get(skill_id, skill_id.to_upper()), level], accent)
+	# The visible medallion scale-pops when ITS skill levels.
+	if is_instance_valid(_skill_medal) and _skill_banner_id == skill_id and _skill_medal.is_visible_in_tree():
+		_skill_medal.pivot_offset = _skill_medal.size / 2.0
+		var tw := _skill_medal.create_tween()
+		tw.tween_property(_skill_medal, "scale", Vector2(1.35, 1.35), 0.16).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		tw.tween_property(_skill_medal, "scale", Vector2(1.0, 1.0), 0.22)
 	_refresh_banner()   # yield/rate changed
 	# A level-up can unlock new cards on the list pages; the idle-loop guard
 	# suppresses passive rebuilds, so refresh here so unlocks appear at once.
@@ -1198,7 +1205,7 @@ func _process(_delta: float) -> void:
 		if is_instance_valid(_skill_xp_label):
 			_skill_xp_label.text = "%s / %s XP" % [GameData.fmt(cur - base), GameData.fmt(nxt - base)]
 		if is_instance_valid(_skill_lv_label):
-			_skill_lv_label.text = "Lv %d" % lvl
+			_skill_lv_label.text = str(lvl)   # medallion shows the bare number
 	# Active card's Mastery row advances live (the page is not rebuilt per loop).
 	if _mastery_id != "" and is_instance_valid(_mastery_bar) \
 			and is_instance_valid(_mastery_left) and is_instance_valid(_mastery_right):
@@ -6379,12 +6386,38 @@ func _skill_banner(v: VBoxContainer, title: String, skill_id: String, accent: St
 	t.add_theme_color_override("font_color", Color.html(accent))
 	_embolden(t)
 	hb.add_child(t)
+	# Level MEDALLION — a circled display number instead of "Lv N" text.
+	var medal := PanelContainer.new()
+	medal.custom_minimum_size = Vector2(58, 58)
+	medal.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var msb := StyleBoxFlat.new()
+	msb.bg_color = Color.html(_mix(accent, INSET, 0.72))
+	msb.set_corner_radius_all(29)
+	msb.set_border_width_all(2)
+	msb.border_color = Color.html(accent)
+	var mglow := Color.html(accent)
+	mglow.a = 0.35
+	msb.shadow_color = mglow
+	msb.shadow_size = 8
+	medal.add_theme_stylebox_override("panel", msb)
+	var mv := VBoxContainer.new()
+	mv.alignment = BoxContainer.ALIGNMENT_CENTER
+	mv.add_theme_constant_override("separation", 0)
+	medal.add_child(mv)
 	var lv := Label.new()
-	lv.text = "Lv %d" % lvl
+	lv.text = str(lvl)
+	lv.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_embolden(lv)
-	lv.add_theme_font_size_override("font_size", _fs(14))
+	lv.add_theme_font_size_override("font_size", _fs(19))
 	lv.add_theme_color_override("font_color", Color.html(C_TEXT))
-	hb.add_child(lv)
+	mv.add_child(lv)
+	var lvc := Label.new()
+	lvc.text = "LV"
+	lvc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lvc.add_theme_font_size_override("font_size", _fs(7))
+	lvc.add_theme_color_override("font_color", Color.html(accent))
+	mv.add_child(lvc)
+	hb.add_child(medal)
 	box.add_child(hb)
 	var bar := ProgressBar.new()
 	bar.custom_minimum_size = Vector2(0, 14)   # XP conduit — thick enough to read as a fixture
@@ -6405,6 +6438,7 @@ func _skill_banner(v: VBoxContainer, title: String, skill_id: String, accent: St
 	_skill_bar = bar
 	_skill_xp_label = xpl
 	_skill_lv_label = lv
+	_skill_medal = medal
 	_skill_banner_id = skill_id
 
 func _section(v: VBoxContainer, text: String, accent: String) -> Label:
