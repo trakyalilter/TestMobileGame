@@ -250,6 +250,10 @@ const AFFIX_DB := {
 	"nano_scavenger":   {"name": "Nano-Scavenger", "type": "industrial", "scaling": "percent", "range": [3, 10], "limit_to": ["sensor"], "desc": "%d%% chance to scavenge parts on kill"},
 	"contract_negotiation": {"name": "Contract Negotiation", "type": "economy", "scaling": "percent", "range": [3, 10], "limit_to": ["sensor"], "desc": "+%d%% bounty credits"},
 	"logistician_edge": {"name": "Logistician's Edge", "type": "economy", "scaling": "percent", "range": [3, 10], "limit_to": ["sensor"], "desc": "-%d%% delivery material cost"},
+	# v128 sensor drop affixes (desktop): loot quantity / module chance / hack cards.
+	"enemy_drop_mult": {"name": "Prospector Array", "type": "utility", "scaling": "percent", "range": [5, 10], "limit_to": ["sensor"], "desc": "+%d%% loot quantity from destroyed enemies"},
+	"module_drop_mult": {"name": "Salvage Scanner", "type": "utility", "scaling": "percent", "range": [8, 15], "limit_to": ["sensor"], "desc": "+%d%% module drop chance"},
+	"stone_drop_mult": {"name": "Cryptographic Decoder", "type": "utility", "scaling": "percent", "range": [10, 20], "limit_to": ["sensor"], "desc": "+%d%% Hack Card drop chance"},
 	# --- v85.1 Combat affixes ---
 	"combat_sight":     {"name": "Combat Sight", "type": "tactical", "scaling": "percent", "range": [2, 5], "limit_to": ["weapon", "sensor"], "desc": "+%d%% critical strike chance"},
 	"reflexive_plating":{"name": "Reflexive Plating", "type": "defensive", "scaling": "flat", "range": [2, 5], "limit_to": ["armor", "engine"], "desc": "+%d flat evasion"},
@@ -1595,6 +1599,83 @@ func apply_splice_chip(base_id: String) -> Dictionary:
 		return {"ok": false, "msg": "Awaken failed."}
 	return {"ok": true, "msg": "Awakened to Uncommon!", "cid": cid}
 
+# ---- Shared affix engine (extracted for the hack-stone crafting; used by
+# generate_module + every stone). Behavior-identical to the old inline code,
+# with ONE parity fix: the flat 1.8^ zone exponent is capped at AFFIX_ZONE_CAP
+# (desktop shipyard AFFIX_ZONE_CAP=15) — previously uncapped on mobile.
+const AFFIX_ZONE_CAP := 15
+
+func _legal_affix_pool(slot: String, exclude: Array = []) -> Array:
+	var pool := []
+	for aid in AFFIX_DB:
+		if exclude.has(aid):
+			continue
+		if (AFFIX_DB[aid]["limit_to"] as Array).has(slot):
+			pool.append(aid)
+	if pool.is_empty():
+		for aid in AFFIX_DB:
+			if exclude.has(aid):
+				continue
+			if AFFIX_DB[aid]["type"] in ["industrial", "economy"]:
+				pool.append(aid)
+	return pool
+
+# One affix roll: 15% Greater Affix pins the value to range-max x2 (pre-scaling).
+func _roll_affix_value(aid: String, zone_diff: int, ga_chance := 0.15) -> Dictionary:
+	var cfg: Dictionary = AFFIX_DB[aid]
+	var is_greater := randf() < ga_chance
+	var raw_val: float = float(cfg["range"][1]) * 2.0 if is_greater else float(randi_range(int(cfg["range"][0]), int(cfg["range"][1])))
+	var final_val := 0.0
+	match cfg.get("scaling", "percent"):
+		"flat": final_val = floor(raw_val * pow(1.8, maxi(0, mini(zone_diff, AFFIX_ZONE_CAP) - 1)))
+		"linear_tier": final_val = raw_val * zone_diff
+		_: final_val = raw_val / 100.0
+	return {"value": final_val, "is_greater": is_greater}
+
+# Affix-derived display names (desktop AFFIX_NAMING, filtered to mobile affixes):
+# first affix names the prefix, last names the suffix (when 2+).
+const AFFIX_NAMING := {
+	"static_burst": {"prefix": "Overloaded", "suffix": "of Discharge"},
+	"void_strike": {"prefix": "Phased", "suffix": "of the Void"},
+	"flat_atk": {"prefix": "Charged", "suffix": "of Lethality"},
+	"flat_accuracy": {"prefix": "Calibrated", "suffix": "of Precision"},
+	"flat_hp": {"prefix": "Reinforced", "suffix": "of Bulwark"},
+	"flat_def": {"prefix": "Hardened", "suffix": "of Bastion"},
+	"flat_shield": {"prefix": "Flux", "suffix": "of the Aegis"},
+	"capacitor_pulse": {"prefix": "Kinetic", "suffix": "of the Dynamo"},
+	"nanite_resurgence": {"prefix": "Repairing", "suffix": "of Nanites"},
+	"combat_sight": {"prefix": "Surgical", "suffix": "of the Assassin"},
+	"reflexive_plating": {"prefix": "Stealth", "suffix": "of Ghosting"},
+	"lucky_hit_chance": {"prefix": "Opportunistic", "suffix": "of Synergy"},
+	"dmg_healthy": {"prefix": "Executioner's", "suffix": "of the Hunt"},
+	"dmg_injured": {"prefix": "Sadistic", "suffix": "of Ending"},
+	"berserk_on_kill": {"prefix": "Neural", "suffix": "of the Reckless"},
+}
+
+func _compose_module_name(base_name: String, affix_ids: Array) -> String:
+	if affix_ids.is_empty():
+		return base_name
+	var prefix: String = AFFIX_NAMING.get(affix_ids[0], {}).get("prefix", "")
+	var suffix: String = AFFIX_NAMING.get(affix_ids[affix_ids.size() - 1], {}).get("suffix", "")
+	var nm := base_name
+	if prefix != "":
+		nm = prefix + " " + nm
+	if suffix != "" and affix_ids.size() > 1:
+		nm = nm + " " + suffix
+	return nm
+
+# Recompute a custom instance's display name from its base + affixes + rarity —
+# stones that add/remove affixes call this so names track the item.
+func _rebuild_custom_name(cid: String) -> void:
+	if not custom_modules.has(cid):
+		return
+	var m: Dictionary = custom_modules[cid]
+	var base_id := String(m.get("base", ""))
+	var base_name := String(GameData.MODULES.get(base_id, {}).get("name", m.get("name", "Module")))
+	var nm := _compose_module_name(base_name, (m.get("affixes", {}) as Dictionary).keys())
+	var rl := String(RARITY_LABEL.get(int(m.get("rarity", 0)), ""))
+	m["name"] = ("%s (%s)" % [nm, rl]) if rl != "" else nm
+
 func generate_module(base_id: String, rarity: int, zone_diff: int) -> String:
 	if not GameData.MODULES.has(base_id):
 		return ""
@@ -1605,16 +1686,9 @@ func generate_module(base_id: String, rarity: int, zone_diff: int) -> String:
 	# atk_interval/0.15 coefficient, -40% cap and 0.25s floor live in the shared
 	# scaler (desktop ref ~L2354-2359) so set pieces roll identically.
 	var stats := _scale_module_stats(base.get("stats", {}), rarity, zone_diff)
-	# Affixes: pick N from the slot-eligible pool.
+	# Affixes: pick N from the slot-eligible pool (shared affix engine).
 	var slot: String = base.get("slot", "")
-	var pool := []
-	for aid in AFFIX_DB:
-		if (AFFIX_DB[aid]["limit_to"] as Array).has(slot):
-			pool.append(aid)
-	if pool.is_empty():
-		for aid in AFFIX_DB:
-			if AFFIX_DB[aid]["type"] in ["industrial", "economy"]:
-				pool.append(aid)
+	var pool := _legal_affix_pool(slot)
 	# v101 affix count per rarity: Uncommon 1, Rare 2, Legendary 3, Unique 4.
 	var n: int = mini({1: 1, 2: 2, 3: 3, 4: 4}.get(rarity, 0), pool.size())
 	pool.shuffle()
@@ -1622,19 +1696,10 @@ func generate_module(base_id: String, rarity: int, zone_diff: int) -> String:
 	var greater_affixes := []
 	for i in n:
 		var aid: String = pool[i]
-		var cfg: Dictionary = AFFIX_DB[aid]
-		# v101 Greater Affix: 15% chance to pin value to range[1] * 2.0.
-		var is_greater := randf() < 0.15
-		var raw_val: float = float(cfg["range"][1]) * 2.0 if is_greater else float(randi_range(int(cfg["range"][0]), int(cfg["range"][1])))
-		if is_greater:
+		var roll := _roll_affix_value(aid, zone_diff)
+		if roll["is_greater"]:
 			greater_affixes.append(aid)
-		# Scaling modes (desktop generate_module_drop ~L2422-2430).
-		var final_val := 0.0
-		match cfg.get("scaling", "percent"):
-			"flat": final_val = floor(raw_val * pow(1.8, maxi(0, zone_diff - 1)))
-			"linear_tier": final_val = raw_val * zone_diff
-			_: final_val = raw_val / 100.0
-		affixes[aid] = final_val
+		affixes[aid] = roll["value"]
 	# Sockets: Unique = 3, Legendary = 1-3, Rare = 30% chance of 1.
 	var sockets := []
 	if rarity == 4:
@@ -1646,7 +1711,7 @@ func generate_module(base_id: String, rarity: int, zone_diff: int) -> String:
 		sockets = [null]
 	var cid := "cm_%s_%d_%d" % [base_id, Time.get_ticks_msec(), randi() % 100000]
 	custom_modules[cid] = {
-		"name": "%s (%s)" % [base.get("name", base_id), RARITY_LABEL[rarity]],
+		"name": "%s (%s)" % [_compose_module_name(base.get("name", base_id), affixes.keys()), RARITY_LABEL[rarity]],
 		"slot": slot, "stats": stats, "desc": base.get("desc", ""),
 		"rarity": rarity, "affixes": affixes, "base": base_id, "sockets": sockets,
 		"greater_affixes": greater_affixes,
@@ -3919,7 +3984,7 @@ func _win_combat() -> void:
 		game_flags["offline_combat_nudge_seen"] = true
 		feature_revealed.emit("⟨ AWAY-COMBAT AVAILABLE ⟩",
 			"Your ship can keep fighting while you're away — enable Offline Combat in Settings.")
-	_roll_loot(enemy_inst["loot"], get_combat_loot_multiplier(), 0, true)
+	_roll_loot(enemy_inst["loot"], get_combat_loot_multiplier() * (1.0 + affix_total("enemy_drop_mult")), 0, true)
 	add_xp("combat", int(enemy_inst["xp"] * (1.0 + research_bonus("combat_xp"))))
 	bounty_on_kill(active_id)
 	standing_on_kill(active_id)
@@ -3964,7 +4029,7 @@ func _win_combat() -> void:
 			for _i in randi_range(4, 10):
 				_roll_one_module_drop(pool)
 		else:
-			var dc: float = float(enemy_inst.get("drop_chance", 0.0)) * (1.0 + research_bonus("xeno_engineering"))
+			var dc: float = float(enemy_inst.get("drop_chance", 0.0)) * (1.0 + research_bonus("xeno_engineering")) * (1.0 + affix_total("module_drop_mult"))
 			if enemy_inst.get("elite", false):
 				dc = minf(1.0, dc * 3.0)
 			if dc > 0.0 and randf() < dc:
