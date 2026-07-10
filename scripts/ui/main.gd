@@ -2649,6 +2649,11 @@ func _enemy_card(id: String, e: Dictionary) -> Control:
 		if pen < 0.999:
 			hrow.add_child(_tag_chip("YOUR GUNS %d%% — fit Tier-%d gear" % [int(round(pen * 100.0)), hardened], RED))
 		v.add_child(hrow)
+	elif GameState.enemy_front_salvage(id):
+		# Front-half salvage yard: materials only, no module rolls — strip it for parts.
+		var srow := HFlowContainer.new()
+		srow.add_child(_tag_chip("⛏ SALVAGE — materials only", GOLD))
+		v.add_child(srow)
 	_inset(v, "SALVAGE", _loot_lines(e.get("loot", [])), RED)
 	# Idle combat preview: can you win/farm this, and how fast?
 	var pv := GameState.combat_preview(id)
@@ -5076,10 +5081,11 @@ func _module_card(mid: String, m: Dictionary) -> Control:
 	mfill.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	c.add_child(mfill)
 	var cost_lines := []
-	for sym in m.get("cost", {}):
-		var have: bool = GameState.credits >= int(m["cost"][sym]) if sym == "credits" else GameState.amount(sym) >= int(m["cost"][sym])
-		var label := "₡%s" % GameData.fmt(m["cost"][sym]) if sym == "credits" else "%s %s" % [GameData.fmt(m["cost"][sym]), GameData.res_name(sym)]
-		cost_lines.append(_line(label, GREEN if have else C_WARN))
+	var eff_cost := GameState.effective_module_cost(mid)   # v114: zone alloy injected when gated
+	for sym in eff_cost:
+		var have: bool = GameState.credits >= int(eff_cost[sym]) if sym == "credits" else GameState.amount(sym) >= int(eff_cost[sym])
+		var label := "₡%s" % GameData.fmt(eff_cost[sym]) if sym == "credits" else "%s %s" % [GameData.fmt(eff_cost[sym]), GameData.res_name(sym)]
+		cost_lines.append(_line(label, GREEN if have else C_WARN, "" if sym == "credits" else String(sym)))
 	_inset(c, "COST", cost_lines, CYAN)
 	if owned > 0:
 		var eq := _card_button("Equip", CYAN, true)
