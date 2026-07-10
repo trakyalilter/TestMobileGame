@@ -4376,7 +4376,35 @@ func _open_slot_menu(idx: int, stype: String, equipped: String) -> void:
 
 ## Generic centered modal. `body.call(content_vbox, close_callable)` fills it;
 ## a Cancel button + tap-outside both dismiss. Used by the slot-first equip flow.
-func _modal(title: String, accent: String, body: Callable) -> void:
+# Branded modal header band (the _show_offline treatment, parameterized): accent-
+# tinted bar pinned above the scroll area, big icon glyph + bold title.
+func _modal_header(outer: VBoxContainer, title: String, accent: String, icon: String) -> void:
+	var head := PanelContainer.new()
+	var hsb := _bordered(_mix(accent, "0a1120", 0.84), _mix(accent, LINE, 0.45), 0, 12)
+	hsb.corner_radius_bottom_left = 0
+	hsb.corner_radius_bottom_right = 0
+	hsb.content_margin_top = 15
+	hsb.content_margin_bottom = 13
+	head.add_theme_stylebox_override("panel", hsb)
+	var hb := HBoxContainer.new()
+	hb.alignment = BoxContainer.ALIGNMENT_CENTER
+	hb.add_theme_constant_override("separation", 10)
+	head.add_child(hb)
+	if icon != "":
+		var hicon := Label.new()
+		hicon.text = icon
+		hicon.add_theme_font_size_override("font_size", _fs(24))
+		hicon.add_theme_color_override("font_color", Color.html(accent))
+		hb.add_child(hicon)
+	var t := Label.new()
+	t.text = title
+	t.add_theme_font_size_override("font_size", _fs(17))
+	t.add_theme_color_override("font_color", Color.html(accent))
+	_embolden(t)
+	hb.add_child(t)
+	outer.add_child(head)
+
+func _modal(title: String, accent: String, body: Callable, icon := "", cancel_label := "Cancel") -> void:
 	var overlay := ColorRect.new()
 	overlay.color = Color(0, 0, 0, 0.7)
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -4399,13 +4427,26 @@ func _modal(title: String, accent: String, body: Callable) -> void:
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	overlay.add_child(center)
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", _bordered("1a2336", accent, 2))
+	# Lit gradient surface (art-pass parity). Content margins zeroed so the header
+	# band sits flush against the panel's top edge. Fallback if the corner seam
+	# reads badly on device: _bordered("121b2e", accent, 2, 16).
+	var psb := _surface_style("121b2e", accent, true)
+	psb.content_margin_left = 0
+	psb.content_margin_right = 0
+	psb.content_margin_top = 0
+	psb.content_margin_bottom = 0
+	panel.add_theme_stylebox_override("panel", psb)
 	panel.custom_minimum_size = Vector2(340, 0)
 	center.add_child(panel)
+	var outer := VBoxContainer.new()
+	outer.add_theme_constant_override("separation", 0)
+	panel.add_child(outer)
+	# Header band OUTSIDE the scroll — pinned; the old inline title scrolled away.
+	_modal_header(outer, title, accent, icon)
 	var sc := ScrollContainer.new()
 	sc.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	sc.custom_minimum_size = Vector2(0, mini(520, int(get_viewport_rect().size.y * 0.7)))
-	panel.add_child(sc)
+	sc.custom_minimum_size = Vector2(0, mini(500, int(get_viewport_rect().size.y * 0.62)))
+	outer.add_child(sc)
 	var mc := MarginContainer.new()
 	mc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	for s in ["left", "right", "top", "bottom"]:
@@ -4415,12 +4456,24 @@ func _modal(title: String, accent: String, body: Callable) -> void:
 	v.add_theme_constant_override("separation", 8)
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	mc.add_child(v)
-	_clbl(v, title, 15, accent)
 	body.call(v, close)
-	var cancel := _card_button("Cancel", C_MUTED, true)
+	var cancel := _card_button(cancel_label, C_MUTED, true)
 	cancel.custom_minimum_size = Vector2(0, 42)
 	cancel.pressed.connect(func() -> void: close.call())
 	v.add_child(cancel)
+	# Body pills (PanelContainers) default MOUSE_FILTER_STOP and would eat drag-
+	# scroll; passthrough exempts Buttons/Sliders/LineEdits so controls still work.
+	_scroll_passthrough(v)
+	# Entry: quick scale/fade pop (node-bound — dies with the panel). Nodes are
+	# live and tappable from frame 1; only modulate/scale animate.
+	panel.resized.connect(func() -> void:
+		if is_instance_valid(panel):
+			panel.pivot_offset = panel.size / 2.0)
+	panel.scale = Vector2(0.95, 0.95)
+	panel.modulate.a = 0.0
+	var tw := panel.create_tween().set_parallel(true)
+	tw.tween_property(panel, "modulate:a", 1.0, 0.15)
+	tw.tween_property(panel, "scale", Vector2.ONE, 0.15).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 ## Owned-module detail modal: stats + Equip (into the targeted slot) + Cancel.
 func _open_module_detail(mid: String) -> void:
