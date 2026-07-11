@@ -48,7 +48,6 @@ const BUILD := "ff9d4d"
 const C_BG := "0b1220"        # legacy refs
 const C_PANEL := "111c2e"
 const DOMAIN := {"gather": GOLD, "craft": CYAN, "combat": RED, "research": PURP, "more": CYAN}
-const NAV_ICON := {"gather": "↑", "craft": "⚙", "combat": "◎", "research": "✦", "more": "≡"}
 # Hamburger drawer — every page reachable from one slide-out menu.
 const NAV_ALL := [
 	{"id": "gather",   "label": "Gather",         "icon": "↑"},
@@ -1191,7 +1190,11 @@ func _process(_delta: float) -> void:
 		_drift.position.y = _drift_y
 		_drift.modulate.a = 0.62 + 0.30 * sin(Time.get_ticks_msec() / 1000.0 * 0.7)
 	# Keep the coach pointer glued to its target as the page scrolls / relayouts.
-	if is_instance_valid(_pulse_target) and is_instance_valid(_coach_ptr) and _coach_ptr.visible:
+	# No `_coach_ptr.visible` guard: _position_coach_ptr both hides AND re-shows
+	# the pointer (it's the only un-hide path). Gating on visible latched the
+	# pointer hidden forever once the welcome splash suppressed it — a brand-new
+	# player never saw the ☰ ring directing them to Gather for the first mission.
+	if is_instance_valid(_pulse_target) and is_instance_valid(_coach_ptr):
 		_position_coach_ptr()
 	if GameState.active_type != "":
 		var dur := GameState.current_duration()
@@ -1708,43 +1711,6 @@ func _close_drawer() -> void:
 	tw.tween_property(drawer_scrim, "color", Color(0, 0, 0, 0.0), 0.16)
 	tw.chain().tween_callback(func() -> void: drawer.visible = false)
 	_update_coach()
-
-func _make_nav_item(id: String, label: String) -> Button:
-	var btn := Button.new()
-	btn.flat = true
-	btn.focus_mode = Control.FOCUS_NONE
-	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	btn.custom_minimum_size = Vector2(0, 78)
-	var empty := StyleBoxEmpty.new()
-	for st in ["normal", "hover", "pressed", "focus"]:
-		btn.add_theme_stylebox_override(st, empty)
-	var vb := VBoxContainer.new()
-	vb.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	vb.alignment = BoxContainer.ALIGNMENT_CENTER
-	vb.add_theme_constant_override("separation", 4)
-	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	btn.add_child(vb)
-	var icon := Label.new()
-	icon.text = NAV_ICON.get(id, "•")
-	icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	icon.add_theme_font_size_override("font_size", _fs(21))
-	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	vb.add_child(icon)
-	var lab := Label.new()
-	lab.text = label
-	lab.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lab.add_theme_font_size_override("font_size", _fs(11))
-	lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	vb.add_child(lab)
-	var dc := CenterContainer.new()
-	dc.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var dot := Panel.new()
-	dot.custom_minimum_size = Vector2(16, 3)
-	dc.add_child(dot)
-	vb.add_child(dc)
-	btn.pressed.connect(_show.bind(id))
-	nav_items[id] = {"icon": icon, "label": lab, "dot": dot}
-	return btn
 
 func _make_page() -> ScrollContainer:
 	var sc := ScrollContainer.new()
