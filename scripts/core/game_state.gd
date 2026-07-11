@@ -267,6 +267,33 @@ const AFFIX_DB := {
 	"berserk_on_kill":  {"name": "Overdrive Catalyst", "type": "tactical", "scaling": "percent", "range": [8, 15], "limit_to": ["weapon", "engine"], "desc": "%d%% chance on kill to enter Overdrive (+25%% atk speed) for 5s"},
 }
 
+# v128: cap the exponential flat-affix term so stored floats stay exact.
+const AFFIX_ZONE_CAP := 15
+
+# Diablo-style dynamic naming: first affix names the prefix, last the suffix
+# (desktop ref_shipyard_manager.gd). Missing ids just yield no prefix/suffix.
+const AFFIX_NAMING := {
+	"static_burst": {"prefix": "Overloaded", "suffix": "of Discharge"},
+	"void_strike": {"prefix": "Phased", "suffix": "of the Void"},
+	"flat_atk": {"prefix": "Charged", "suffix": "of Lethality"},
+	"flat_accuracy": {"prefix": "Calibrated", "suffix": "of Precision"},
+	"servo_overclock": {"prefix": "Overclocked", "suffix": "of Haste"},
+	"flat_hp": {"prefix": "Reinforced", "suffix": "of Bulwark"},
+	"flat_def": {"prefix": "Hardened", "suffix": "of Bastion"},
+	"flat_shield": {"prefix": "Flux", "suffix": "of the Aegis"},
+	"capacitor_pulse": {"prefix": "Kinetic", "suffix": "of the Dynamo"},
+	"nanite_resurgence": {"prefix": "Repairing", "suffix": "of Nanites"},
+	"combat_sight": {"prefix": "Surgical", "suffix": "of the Assassin"},
+	"reflexive_plating": {"prefix": "Stealth", "suffix": "of Ghosting"},
+	"hull_heal_on_hit": {"prefix": "Siphoning", "suffix": "of the Parasite"},
+	"shield_heal_on_hit": {"prefix": "Conductive", "suffix": "of the Siphon"},
+	"lucky_hit_chance": {"prefix": "Opportunistic", "suffix": "of Synergy"},
+	"dmg_healthy": {"prefix": "Executioner's", "suffix": "of the Hunt"},
+	"dmg_injured": {"prefix": "Sadistic", "suffix": "of Ending"},
+	"vuln_on_hit": {"prefix": "Shattering", "suffix": "of Weakness"},
+	"berserk_on_kill": {"prefix": "Neural", "suffix": "of the Reckless"},
+}
+
 # Infrastructure (passive production buildings — runs in the background always)
 var buildings: Dictionary = {}          # id -> count
 var building_throttle: Dictionary = {}  # id -> 0..1 (0..2 once overclocked)
@@ -1628,6 +1655,76 @@ func module_zone_mult(zone_diff: int) -> float:
 	var early_steps := mini(diff - 1, MODULE_ZONE_LATE_START - 1)
 	var late_steps := maxi(0, diff - MODULE_ZONE_LATE_START)
 	return pow(MODULE_ZONE_SCALE_EARLY, early_steps) * pow(MODULE_ZONE_SCALE_LATE, late_steps)
+
+# v127 H1: shared affix helpers — the single source of truth that both
+# generate_module AND the Hack Stone crafting system call, so affix pooling,
+# rolling, Greater-Affix chance and naming can never drift between drops and
+# crafts (desktop ref_shipyard_manager.gd ~L2635-2690, ~L2937).
+
+# Legal affix pool for a slot_type, minus any ids to exclude (e.g. already present).
+func _legal_affix_pool(slot_type: String, exclude: Array = []) -> Array:
+	var pool := []
+	for a_id in AFFIX_DB:
+		if a_id in exclude:
+			continue
+		var cfg: Dictionary = AFFIX_DB[a_id]
+		if not cfg.has("limit_to") or slot_type in cfg["limit_to"]:
+			pool.append(a_id)
+	# Fallback: generic industrial/economy fill for slots no affix restricts to.
+	if pool.is_empty():
+		for a_id in AFFIX_DB:
+			if a_id in exclude:
+				continue
+			if String(AFFIX_DB[a_id]["type"]) in ["industrial", "economy"]:
+				pool.append(a_id)
+	return pool
+
+# Roll ONE affix's final value at a zone difficulty. 15% Greater-Affix chance
+# (2x max roll). Percent -> fraction; flat -> floor(base * 1.8^(zone-1)); linear_tier
+# -> base * zone. Returns {"value": float, "is_greater": bool}.
+func _roll_affix_value(affix_id: String, zone_difficulty: int, ga_chance: float = 0.15) -> Dictionary:
+	var cfg: Dictionary = AFFIX_DB[affix_id]
+	var is_greater := randf() < ga_chance
+	var raw_val := 0.0
+	if is_greater:
+		raw_val = float(cfg["range"][1]) * 2.0
+	else:
+		raw_val = float(randi_range(int(cfg["range"][0]), int(cfg["range"][1])))
+	var final_val := 0.0
+	if String(cfg.get("scaling", "")) == "flat":
+		# v128: cap the exponential flat term at AFFIX_ZONE_CAP so stored floats stay exact.
+		final_val = floor(raw_val * pow(1.8, mini(zone_difficulty, AFFIX_ZONE_CAP) - 1))
+	elif String(cfg.get("scaling", "")) == "linear_tier":
+		final_val = raw_val * zone_difficulty
+	else:
+		final_val = raw_val / 100.0
+	return {"value": final_val, "is_greater": is_greater}
+
+# Recompose a module's dynamic display name from its base name + ordered affix ids.
+func _compose_module_name(base_name: String, affix_ids: Array) -> String:
+	if affix_ids.is_empty():
+		return base_name
+	var prefix := String((AFFIX_NAMING.get(affix_ids[0], {}) as Dictionary).get("prefix", ""))
+	var suffix := String((AFFIX_NAMING.get(affix_ids[-1], {}) as Dictionary).get("suffix", ""))
+	var nm := base_name
+	if prefix != "":
+		nm = prefix + " " + nm
+	if suffix != "" and affix_ids.size() > 1:
+		nm = nm + " " + suffix
+	return nm
+
+# Rebuild a custom module's display name from base + affixes + rarity label after
+# a stone re-forges it (mirrors generate_module's naming so crafted names read
+# like dropped ones).
+func _rebuild_custom_name(cid: String) -> void:
+	if not custom_modules.has(cid):
+		return
+	var m: Dictionary = custom_modules[cid]
+	var base_id := String(m.get("base", ""))
+	var base_name := String((GameData.MODULES.get(base_id, {}) as Dictionary).get("name", m.get("name", "Module")))
+	var nm := _compose_module_name(base_name, (m.get("affixes", {}) as Dictionary).keys())
+	var rl := String(RARITY_LABEL.get(int(m.get("rarity", 0)), ""))
+	m["name"] = ("%s (%s)" % [nm, rl]) if rl != "" else nm
 
 ## Creates a rolled module instance (or the base for Common); returns its id.
 # ---------------- Hack-Stone crafting (desktop v127/v128, full port) ----------------

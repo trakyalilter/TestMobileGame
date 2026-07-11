@@ -4518,15 +4518,16 @@ func _hack_stone_rows(v: VBoxContainer, mid: String, close: Callable) -> void:
 		if not any:
 			_section(v, "⚡ HACK CARDS", PURP)
 			any = true
-		var needs_pick := stone in ["RefitBay", "AnchorBolt"]
-		var label := "%s  (x%d)" % [GameData.res_name(stone), GameState.amount(stone)]
+		# Typed capture FIRST: `stone` iterates an untyped const Array (Variant),
+		# and any `:=` whose RHS involves a Variant (a bare capture, or an
+		# operator expression like `stone in [...]`) is a hard Godot 4 compile
+		# error — two of these shipped builds that wouldn't boot.
+		var st: String = stone
+		var needs_pick: bool = st in ["RefitBay", "AnchorBolt"]
+		var label := "%s  (x%d)" % [GameData.res_name(st), GameState.amount(st)]
 		var b := _card_button(label, PURP, true)
 		b.add_theme_font_size_override("font_size", _fs(11))
-		b.tooltip_text = String(GameState.HACK_STONE_DESC.get(stone, ""))
-		# Typed capture: `stone` iterates an untyped const Array (Variant), and
-		# `:=` inference from Variant is a hard Godot 4 compile error — this one
-		# line shipped a build that wouldn't boot.
-		var st: String = stone
+		b.tooltip_text = String(GameState.HACK_STONE_DESC.get(st, ""))
 		b.pressed.connect(func() -> void:
 			if needs_pick:
 				_open_affix_picker(st, mid, close)

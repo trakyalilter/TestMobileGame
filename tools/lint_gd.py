@@ -99,6 +99,12 @@ for path in SCRIPTS:
             else:
                 seen[name] = i
 
+def strip_noise(line):
+    """Remove string literals and comments so identifier scans don't hit text."""
+    line = re.sub(r'"(?:[^"\\]|\\.)*"', '""', line)
+    line = re.sub(r"'(?:[^'\\]|\\.)*'", "''", line)
+    return line.split("#")[0]
+
 # ---------- 3. := inference-from-Variant heuristics ----------
 SAFE_RHS = re.compile(
     r"""^(?:  \d | " | ' | \[ | \{ | \( | true\b | false\b | null\b
@@ -127,13 +133,26 @@ for path in SCRIPTS[:2]:  # game_data is generated consts only
             errors.append("%s:%d `var %s := %s` — RHS is Variant (index/.get); use a typed declaration"
                           % (os.path.basename(path), i, m.group(1), rhs))
             continue
-        # bare identifier that is a for-loop variable over a non-int iterable:
-        # scan back to the enclosing func for a `for <ident> in ...:` at a
-        # shallower indent (a fixed window missed the real bug at 17 lines).
-        bm = re.match(r"^([a-z_]\w*)$", rhs)
-        if bm:
-            ident = bm.group(1)
-            indent = len(l) - len(l.lstrip("\t "))
+        # RHS involving a for-loop variable over a non-int iterable (Variant):
+        # a bare capture (`:= stone`) or an operator expression (`:= stone in
+        # [...]`) both fail to infer. Scan back to the enclosing func for a
+        # `for <ident> in ...:` at a shallower indent (a fixed window missed
+        # the first shipped bug at 17 lines). A single call expression is safe
+        # (typed by the callee's return), so only non-call RHS are checked.
+        if re.match(r"^[\w.]+\(.*\)$", rhs):
+            continue
+        indent = len(l) - len(l.lstrip("\t "))
+        # collapse call arguments first: a loop var inside a call (`float(w.get(x))`)
+        # is typed by the callee's return and never breaks inference.
+        top = strip_noise(rhs)
+        while True:
+            top2 = re.sub(r"[\w.]+\([^()]*\)", "0", top)
+            if top2 == top:
+                break
+            top = top2
+        for ident in set(re.findall(r"(?<![\w.\"'])([a-z_]\w*)\b", top)):
+            if ident in ("in", "and", "or", "not", "if", "else", "true", "false", "null", "self"):
+                continue
             for j in range(i - 2, -1, -1):
                 if re.match(r"(?:static )?func ", src[j]):
                     break
@@ -142,9 +161,59 @@ for path in SCRIPTS[:2]:  # game_data is generated consts only
                     it = fm.group(2).strip()
                     if not (re.match(r"^range\(", it) or it.endswith(".size()")
                             or re.match(r"^\d+$", it)):
-                        errors.append("%s:%d `var %s := %s` — loop var over '%s' is Variant; use a typed declaration"
-                                      % (os.path.basename(path), i, m.group(1), ident, it))
+                        errors.append("%s:%d `var %s := %s` — uses loop var '%s' over '%s' (Variant); use a typed declaration"
+                                      % (os.path.basename(path), i, m.group(1), rhs, ident, it))
                     break
+
+# ---------- 4. undefined local symbols (missing funcs / consts) ----------
+# Would have caught the shipped "ported the call sites but not the engine"
+# breakage: game_state.gd called _legal_affix_pool()/AFFIX_ZONE_CAP that were
+# never added. Private `_name(` calls and bare ALL_CAPS identifiers are
+# file-local in GDScript, so both must resolve within the same script.
+GLOBAL_CAPS = re.compile(r"^(?:PI|TAU|INF|NAN|OK|FAILED|JSON|OS)$"
+                         r"|^(?:ERR_|KEY_|MOUSE_|JOY_|SIDE_|CORNER_|MARGIN_|PRESET_"
+                         r"|HORIZONTAL_|VERTICAL_|TEXTURE_|PROPERTY_|METHOD_"
+                         r"|NOTIFICATION_|AUTOWRAP_|TYPE_|CONNECT_|PROCESS_|CURSOR_|FOCUS_)")
+defs_by_file = {}
+for path in SCRIPTS:
+    src = open(path).read().splitlines()
+    defs = set()
+    for l in src:
+        dm = re.match(r"\s*(?:static\s+)?(?:func|const|var|signal|enum|class)\s+(\w+)", l)
+        if dm:
+            defs.add(dm.group(1))
+        em = re.match(r"\s*enum\s+\w*\s*\{(.*)\}", l)  # single-line enum members
+        if em:
+            defs.update(re.findall(r"(\w+)\s*[,=}]?", em.group(1)))
+    defs_by_file[os.path.basename(path)] = defs
+    for i, l in enumerate(src, 1):
+        code = strip_noise(l)
+        for name in re.findall(r"(?<![\w.])(_\w+)\s*\(", code):
+            if name not in defs:
+                errors.append("%s:%d call to undefined local function '%s()'"
+                              % (os.path.basename(path), i, name))
+        for name in re.findall(r"(?<![\w.])([A-Z][A-Z0-9_]+)\b(?!\s*\()", code):
+            if name.lower() != name and name.upper() == name and name not in defs \
+                    and not GLOBAL_CAPS.match(name):
+                errors.append("%s:%d use of undefined constant '%s'"
+                              % (os.path.basename(path), i, name))
+
+# ---------- 5. cross-file autoload member resolution ----------
+# main.gd's GameState.x / GameData.x must exist in the autoload script (the
+# port once added UI for engine code that wasn't there).
+OBJECT_MEMBERS = {"get", "set", "call", "call_deferred", "set_deferred", "connect",
+                  "disconnect", "has_method", "has_signal", "emit_signal", "new",
+                  "get_script", "notify_property_list_changed"}
+for src_name, target in (("main.gd", "game_state.gd"), ("main.gd", "game_data.gd"),
+                         ("game_state.gd", "game_data.gd")):
+    auto = "GameState" if target == "game_state.gd" else "GameData"
+    src_path = next(p for p in SCRIPTS if p.endswith(src_name))
+    defs = defs_by_file[target]
+    for i, l in enumerate(open(src_path).read().splitlines(), 1):
+        for name in re.findall(r"\b%s\.(\w+)" % auto, strip_noise(l)):
+            if name not in defs and name not in OBJECT_MEMBERS:
+                errors.append("%s:%d %s.%s — not defined in %s"
+                              % (src_name, i, auto, name, target))
 
 # ---------- report ----------
 for e in errors:
