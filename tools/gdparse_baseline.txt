@@ -1,0 +1,3 @@
+# gdparse false positives Godot accepts (signature: file|token|line-content).
+# Regenerate ONLY after verifying new entries boot in Godot: lint_gd.py --write-baseline
+main.gd|RPAR|)

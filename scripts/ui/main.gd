@@ -4523,7 +4523,10 @@ func _hack_stone_rows(v: VBoxContainer, mid: String, close: Callable) -> void:
 		var b := _card_button(label, PURP, true)
 		b.add_theme_font_size_override("font_size", _fs(11))
 		b.tooltip_text = String(GameState.HACK_STONE_DESC.get(stone, ""))
-		var st := stone
+		# Typed capture: `stone` iterates an untyped const Array (Variant), and
+		# `:=` inference from Variant is a hard Godot 4 compile error — this one
+		# line shipped a build that wouldn't boot.
+		var st: String = stone
 		b.pressed.connect(func() -> void:
 			if needs_pick:
 				_open_affix_picker(st, mid, close)

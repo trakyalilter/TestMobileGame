@@ -104,6 +104,18 @@ jobs:
           godot --headless --path . --import 2>&1 | tail -n 20 || true
           godot --headless --path . --import 2>&1 | tail -n 20 || true
 
+      # The import/export steps above never fail on GDScript compile errors
+      # (`|| true`, and APK export packs broken scripts), so a script that
+      # cannot compile can ship a build that won't boot. This step fails the
+      # job if the import log shows any script error.
+      - name: Verify scripts compile
+        run: |
+          godot --headless --path . --import 2>&1 | tee import.log || true
+          if grep -E "SCRIPT ERROR|Parse Error|Compile Error" import.log; then
+            echo "::error::GDScript compile/parse errors detected — the APK would not boot"
+            exit 1
+          fi
+
       - name: Export debug APK
         run: |
           mkdir -p build
