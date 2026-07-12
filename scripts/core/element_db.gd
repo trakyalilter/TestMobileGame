@@ -271,7 +271,8 @@ var CATEGORIES = {
 	"matrix_cores": ["CrackedCrimsonCore", "StableCrimsonCore", "PristineCrimsonCore",
 					"CrackedCobaltCore", "StableCobaltCore", "PristineCobaltCore",
 					"CrackedTopazCore", "StableTopazCore", "PristineTopazCore",
-					"CrackedAmethystCore", "StableAmethystCore", "PristineAmethystCore"],
+					"CrackedAmethystCore", "StableAmethystCore", "PristineAmethystCore",
+					"ResonantCrimsonCore", "ResonantCobaltCore", "ResonantTopazCore", "ResonantAmethystCore"],
 	# Combat-exclusive progression salvage (Inventory "Other", never Armory)
 	"reclaimed_components": ["SalvagedAlloy", "DamagedCircuitry"],
 	# v127: Hack Stone crafting currency
@@ -539,6 +540,11 @@ var MATERIAL_TINT := {
 	"CrackedAmethystCore": Color(0.54, 0.29, 0.72),
 	"StableAmethystCore": Color(0.66, 0.37, 0.85),
 	"PristineAmethystCore": Color(0.75, 0.53, 0.91),
+	# v135a — Resonant tier (CMB_4): brightest of each family
+	"ResonantCrimsonCore": Color(1.0, 0.55, 0.55),
+	"ResonantCobaltCore": Color(0.55, 0.72, 1.0),
+	"ResonantTopazCore": Color(1.0, 0.86, 0.50),
+	"ResonantAmethystCore": Color(0.86, 0.66, 1.0),
 	# Batch 9 — zone signature raws + alloys
 	"PirateSalvage": Color(0.60, 0.54, 0.48),
 	"MartianRelics": Color(0.78, 0.42, 0.23),

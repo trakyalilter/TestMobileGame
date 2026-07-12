@@ -168,7 +168,19 @@ func update_state():
 		UITheme.apply_locked_overlay(self, data["name"], "", false)
 		research_lbl.hide()
 		cost_lbl.show()
-	
+
+	# v135a: warp-node gate (e.g. CMB_4 unlocks the Resonant fuse recipes). Render a
+	# locked overlay + disable so it reads as locked, not a dead click, before purchase.
+	var warp_id = data.get("warp_req")
+	if warp_id and not (GameState.warp_manager and GameState.warp_manager.is_node_purchased(warp_id)):
+		var node_name = GameState.warp_manager.TREE_NODES.get(warp_id, {}).get("name", warp_id) if GameState.warp_manager else warp_id
+		UITheme.apply_locked_overlay(self, data["name"], "WARP: %s" % node_name, true, "", "shipyard")
+		research_lbl.text = "Req: %s (Warp Tree)" % node_name
+		research_lbl.show()
+		btn.disabled = true
+		cost_lbl.hide()
+		return
+
 	if data.get("is_custom", false) or data.get("is_unique", false):
 		cost_lbl.text = "[center][color=#FFC24D]Drop-only module[/color][/center]"
 		btn.text = "DROP ONLY"

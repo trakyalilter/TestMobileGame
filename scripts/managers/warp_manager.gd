@@ -41,7 +41,7 @@ const TREE_NODES := {
 	"CMB_3": {"branch": "combat", "cost": 5, "name": "Auxiliary Slot",
 		"desc": "Adds one extra module slot on every hull that accepts any module type.", "implemented": true, "prereq": ["CMB_2"]},
 	"CMB_4": {"branch": "combat", "cost": 6, "name": "Matrix Core IV",
-		"desc": "Unlocks the Resonant matrix-core tier (above Pristine).", "implemented": false, "prereq": ["CMB_3"]},
+		"desc": "Unlocks the Resonant matrix-core tier (fuse 3 Pristine cores into 1 Resonant).", "implemented": true, "prereq": ["CMB_3"]},
 	"CMB_S1": {"branch": "combat", "cost": 2, "step": 1, "repeatable": true, "name": "Arsenal Doctrine",
 		"desc": "+6% module damage per level.", "implemented": true, "prereq": ["CMB_1"]},
 

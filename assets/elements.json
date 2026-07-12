@@ -1608,6 +1608,46 @@
 		"description": "Socket into epic modules. +10% Hull & Jamming."
 	},
 	{
+		"atomic_number": -1013,
+		"symbol": "ResonantCrimsonCore",
+		"name": "Resonant Crimson Core",
+		"mass": 0.5,
+		"category": "Artifact",
+		"tier": 6,
+		"base_value": 150000,
+		"description": "Socket into epic modules. +60% Crit Dmg & +15% Crit."
+	},
+	{
+		"atomic_number": -1014,
+		"symbol": "ResonantCobaltCore",
+		"name": "Resonant Cobalt Core",
+		"mass": 0.5,
+		"category": "Artifact",
+		"tier": 6,
+		"base_value": 150000,
+		"description": "Socket into epic modules. +18% Atk Speed / Shield Regen."
+	},
+	{
+		"atomic_number": -1015,
+		"symbol": "ResonantTopazCore",
+		"name": "Resonant Topaz Core",
+		"mass": 0.5,
+		"category": "Artifact",
+		"tier": 6,
+		"base_value": 150000,
+		"description": "Socket into epic modules. +18% Armor Pen / Evasion."
+	},
+	{
+		"atomic_number": -1016,
+		"symbol": "ResonantAmethystCore",
+		"name": "Resonant Amethyst Core",
+		"mass": 0.5,
+		"category": "Artifact",
+		"tier": 6,
+		"base_value": 150000,
+		"description": "Socket into epic modules. +18% Hull & Resist Pierce."
+	},
+	{
 		"atomic_number": -2001,
 		"symbol": "Z1_Core",
 		"name": "Lunar Core",

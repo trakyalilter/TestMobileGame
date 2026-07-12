@@ -2049,7 +2049,7 @@ func rebuild_storage():
 				var fake_data = {
 					"name": display_name,
 					"slot_type": "gem", # Treating as gem for socketing
-					"rarity": 3 if "Stable" in display_name else (4 if "Pristine" in display_name else 2),
+					"rarity": 4 if ("Pristine" in display_name or "Resonant" in display_name) else (3 if "Stable" in display_name else 2),  # v135a: Resonant = UNIQUE frame
 					"stats": {},
 					"desc": ElementDB.get_element_description(core_id)
 				}

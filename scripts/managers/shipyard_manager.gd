@@ -331,6 +331,14 @@ const GEM_FACETS = {
 	"CrackedAmethystCore":  {"weapon": {"resist_pierce": 0.03}, "defense": {"max_hull_mult": 0.02}, "utility": {"restore_on_kill": 0.02}},
 	"StableAmethystCore":   {"weapon": {"resist_pierce": 0.06}, "defense": {"max_hull_mult": 0.05}, "utility": {"restore_on_kill": 0.04}},
 	"PristineAmethystCore": {"weapon": {"resist_pierce": 0.12}, "defense": {"max_hull_mult": 0.10}, "utility": {"restore_on_kill": 0.08}},
+	# v135a: RESONANT tier (CMB_4 warp node) — ~2x Pristine, continuing the doubling.
+	# A single Resonant of a color already brushes GEM_FACET_CAPS on its tight facet
+	# (ammo_eff/energy_eff/armor_pen/resist_pierce), which is the intended diversity
+	# push — one Resonant of a color largely satisfies it, freeing sockets for others.
+	"ResonantCrimsonCore":  {"weapon": {"crit_chance": 0.15, "crit_damage": 0.60}, "defense": {"damage_reduction": 0.12}, "utility": {"ammo_eff": 0.35}},
+	"ResonantCobaltCore":   {"weapon": {"attack_speed": 0.18}, "defense": {"shield_regen_mult": 0.55}, "utility": {"energy_eff": 0.18}},
+	"ResonantTopazCore":    {"weapon": {"armor_pen": 0.18}, "defense": {"evasion_flat": 18.0}, "utility": {"accuracy_flat": 45.0}},
+	"ResonantAmethystCore": {"weapon": {"resist_pierce": 0.18}, "defense": {"max_hull_mult": 0.18}, "utility": {"restore_on_kill": 0.15}},
 }
 
 # v118: aggregate caps per facet — the most any number of sockets can grant. Sized so
@@ -1262,6 +1270,28 @@ var modules: Dictionary = {
 		"cost": {"credits": 250000, "StableAmethystCore": 3},
 		"desc": "Fuses 3 Stable Amethyst cores into 1 Pristine version.", "zone": 5
 	},
+	# v135a: RESONANT fuse recipes (3 Pristine -> 1 Resonant). Gated on the CMB_4
+	# warp node via warp_req (id names the INPUT tier per the offset-by-one convention).
+	"pristine_crimson_core": {
+		"name": "Fuse Resonant Crimson", "slot_type": "gem_synth", "stats": {},
+		"cost": {"credits": 1250000, "PristineCrimsonCore": 3},
+		"desc": "Fuses 3 Pristine Crimson cores into 1 Resonant version.", "zone": 6, "warp_req": "CMB_4"
+	},
+	"pristine_cobalt_core": {
+		"name": "Fuse Resonant Cobalt", "slot_type": "gem_synth", "stats": {},
+		"cost": {"credits": 1250000, "PristineCobaltCore": 3},
+		"desc": "Fuses 3 Pristine Cobalt cores into 1 Resonant version.", "zone": 6, "warp_req": "CMB_4"
+	},
+	"pristine_topaz_core": {
+		"name": "Fuse Resonant Topaz", "slot_type": "gem_synth", "stats": {},
+		"cost": {"credits": 1250000, "PristineTopazCore": 3},
+		"desc": "Fuses 3 Pristine Topaz cores into 1 Resonant version.", "zone": 6, "warp_req": "CMB_4"
+	},
+	"pristine_amethyst_core": {
+		"name": "Fuse Resonant Amethyst", "slot_type": "gem_synth", "stats": {},
+		"cost": {"credits": 1250000, "PristineAmethystCore": 3},
+		"desc": "Fuses 3 Pristine Amethyst cores into 1 Resonant version.", "zone": 6, "warp_req": "CMB_4"
+	},
 
 	# ═══════════════════════════════════════════════════════════════
 	# v80.1: Unique Trinity Set Modules — 2.8x base stats per zone
@@ -1705,7 +1735,12 @@ func craft_module(module_id: String) -> bool:
 	if mod_data.get("research_req"):
 		if not GameState.research_manager.is_tech_unlocked(mod_data["research_req"]):
 			return false
-	
+	# v135a: warp-node gate (e.g. CMB_4 unlocks the Resonant fuse recipes). MUST run
+	# before cost consumption below, else a blocked craft silently eats the inputs.
+	if mod_data.get("warp_req"):
+		if not (GameState.warp_manager and GameState.warp_manager.is_node_purchased(mod_data["warp_req"])):
+			return false
+
 	# v114: effective cost includes the zone tier-gate alloy when the gate is on.
 	var craft_cost = get_effective_module_cost(mod_data)
 	# Check Cost
@@ -1753,7 +1788,12 @@ func craft_module(module_id: String) -> bool:
 			"stable_topaz_core": out_gem = "PristineTopazCore"
 			"cracked_amethyst_core": out_gem = "StableAmethystCore"
 			"stable_amethyst_core": out_gem = "PristineAmethystCore"
-			
+			# v135a: Resonant tier (CMB_4) — Pristine input -> Resonant output.
+			"pristine_crimson_core": out_gem = "ResonantCrimsonCore"
+			"pristine_cobalt_core": out_gem = "ResonantCobaltCore"
+			"pristine_topaz_core": out_gem = "ResonantTopazCore"
+			"pristine_amethyst_core": out_gem = "ResonantAmethystCore"
+
 		if out_gem != "":
 			GameState.resources.add_element(out_gem, 1)
 			UITheme.show_notification("Fused: " + ElementDB.get_display_name(out_gem), Color(0.8, 0.3, 0.8))

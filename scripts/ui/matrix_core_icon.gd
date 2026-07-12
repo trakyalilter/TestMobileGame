@@ -21,6 +21,7 @@ extends Control
 const TIER_CRACKED := 0
 const TIER_STABLE := 1
 const TIER_PRISTINE := 2
+const TIER_RESONANT := 3   # v135a: CMB_4 tier — renders at Pristine quality + an extra halo/glint
 
 var core_color: Color = Color(0.45, 0.80, 1.0)
 var hollow: bool = false   # empty socket → faint recessed outline only
@@ -41,8 +42,10 @@ func set_core(color: Color, is_hollow: bool = false, p_tier: int = TIER_STABLE) 
 	queue_redraw()
 
 
-# Cracked* / Stable* / Pristine* gem-name → tier. Default Stable.
+# Cracked* / Stable* / Pristine* / Resonant* gem-name → tier. Default Stable.
 static func tier_from_name(n: String) -> int:
+	if "Resonant" in n:
+		return TIER_RESONANT
 	if "Pristine" in n:
 		return TIER_PRISTINE
 	if "Cracked" in n:
@@ -98,9 +101,12 @@ func _draw() -> void:
 
 	var mute: float = 0.5 if tier == TIER_CRACKED else 1.0
 
-	# Pristine grade-shimmer behind the stone (subtle, NOT a plasma disc).
-	if tier == TIER_PRISTINE:
+	# Pristine/Resonant grade-shimmer behind the stone (subtle, NOT a plasma disc).
+	if tier >= TIER_PRISTINE:
 		var halo := Color(core_color.r, core_color.g, core_color.b, 0.16)
+		# v135a: Resonant adds a wider, brighter outer ring so it out-shines Pristine.
+		if tier >= TIER_RESONANT:
+			draw_colored_polygon(_scaled(v, c, 1.22), Color(core_color.r, core_color.g, core_color.b, 0.13))
 		draw_colored_polygon(_scaled(v, c, 1.14), halo)
 		halo.a = 0.22
 		draw_colored_polygon(_scaled(v, c, 1.07), halo)
@@ -123,8 +129,8 @@ func _draw() -> void:
 	for i in range(6):
 		draw_line(v[i], t[i], hair, maxf(0.8, 1.0 * u), true)
 
-	# Pristine: 12-facet brilliant ridges (facet-centre → table-centre).
-	if tier == TIER_PRISTINE:
+	# Pristine+: 12-facet brilliant ridges (facet-centre → table-centre).
+	if tier >= TIER_PRISTINE:
 		var ridge := Color(1, 1, 1, 0.40)
 		for i in range(6):
 			var j := (i + 1) % 6
@@ -134,16 +140,19 @@ func _draw() -> void:
 		_draw_cracked(c, r, u, v)
 		return
 
-	# Rim (Stable + Pristine).
-	var rim_a: float = 0.8 if tier == TIER_PRISTINE else 0.5
+	# Rim (Stable + Pristine + Resonant).
+	var rim_a: float = (1.0 if tier >= TIER_RESONANT else 0.8) if tier >= TIER_PRISTINE else 0.5
 	draw_polyline(_closed(v), Color(1, 1, 1, rim_a), maxf(1.0, 1.7 * u), true)
-	if tier == TIER_PRISTINE:
+	if tier >= TIER_PRISTINE:
 		draw_polyline(_closed(_scaled(v, c, 0.9)), Color(1, 1, 1, 0.28), maxf(0.7, 0.8 * u), true)
 
 	# Specular glint(s).
 	draw_line(_mp(22, 20, c, r), _mp(27.5, 14.5, c, r), Color(1, 1, 1, 0.9), maxf(1.2, 2.4 * u), true)
-	if tier == TIER_PRISTINE:
+	if tier >= TIER_PRISTINE:
 		draw_line(_mp(40, 40, c, r), _mp(44, 36, c, r), Color(1, 1, 1, 0.8), maxf(1.0, 1.8 * u), true)
+	# v135a: Resonant gets a third micro-glint for a richer sparkle.
+	if tier >= TIER_RESONANT:
+		draw_line(_mp(30, 46, c, r), _mp(33, 43, c, r), Color(1, 1, 1, 0.7), maxf(0.9, 1.5 * u), true)
 
 
 # Cracked-tier overlays: dull wash, inclusions, fracture, chipped point, broken rim.
