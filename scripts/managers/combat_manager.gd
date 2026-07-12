@@ -2206,6 +2206,36 @@ func get_effective_module_drop_chance(enemy_data: Dictionary) -> float:
 	var salvage = sm.affix_bonuses.get("module_drop_mult", 0.0) if sm else 0.0
 	return base * (1.0 + xeno_bonus) * (1.0 + salvage)
 
+# v135a: a (base or custom) weapon module's damage type — for loot-filter pool
+# concentration (bias drops toward the kept weapon type).
+func _weapon_dmg_type(mid: String) -> String:
+	var st: Dictionary = GameState.shipyard_manager.modules.get(mid, {}).get("stats", {})
+	if float(st.get("atk_cryo", 0)) > 0.0: return "cryo"
+	if float(st.get("atk_energy", 0)) > 0.0: return "energy"
+	if float(st.get("atk_explosive", 0)) > 0.0: return "explosive"
+	return "kinetic"
+
+# v135a: the unlocked, loot-filter-CONCENTRATED module drop pool for an enemy.
+# Shared by online kills and offline combat so gear farming is identical either
+# way. Loot filters bias the pool (targeted farming); rarity stays a post-roll
+# gate. Empty result falls back to the full unlocked pool so an over-narrow filter
+# can never zero out drops.
+func _focused_drop_pool(enemy_data: Dictionary, sm) -> Array:
+	var unlocked := []
+	for mod_id in enemy_data.get("module_drop_pool", []):
+		var req = sm.modules.get(mod_id, {}).get("research_req", "")
+		if req == "" or GameState.research_manager.is_tech_unlocked(req):
+			unlocked.append(mod_id)
+	var focused := []
+	for mod_id in unlocked:
+		var mst := String(sm.modules.get(mod_id, {}).get("slot_type", ""))
+		if not bool(loot_type_filter.get(mst, true)):
+			continue
+		if mst == "weapon" and not bool(loot_weapon_type_filter.get(_weapon_dmg_type(mod_id), true)):
+			continue
+		focused.append(mod_id)
+	return focused if focused.size() > 0 else unlocked
+
 # Weighted pick over a drop pool using MODULE_DROP_WEIGHTS by slot type.
 # Entries whose slot type has weight <= 0 (e.g. battery) can never drop,
 # even if present in an enemy's pool. Returns "" if nothing is eligible.
@@ -2482,15 +2512,9 @@ func win_fight():
 	if not current_enemy.get("drops_modules", true):
 		drop_chance = 0.0
 
-	var drop_pool = current_enemy.get("module_drop_pool", [])
-	
-	# Only drop unlocked modules
-	var unlocked_pool = []
-	for mod_id in drop_pool:
-		var req = sm.modules.get(mod_id, {}).get("research_req", "")
-		if req == "" or GameState.research_manager.is_tech_unlocked(req):
-			unlocked_pool.append(mod_id)
-			
+	# v135a: unlocked + loot-filter-concentrated pool (shared with offline combat).
+	var unlocked_pool = _focused_drop_pool(current_enemy, sm)
+
 	# v109: MODULE drops only. Bosses burst — roll 4-10 modules (each
 	# independently rarity-rolled), drop_chance gate bypassed so a boss kill
 	# reliably showers gear. Regulars keep the single drop_chance-gated roll.
@@ -2526,6 +2550,12 @@ func win_fight():
 	if current_enemy.get("is_boss", false):
 		var eid = current_enemy["id"]
 		boss_kills[eid] = boss_kills.get(eid, 0) + 1
+		# v135a (funnel, dev-only): zone-boss cleared — timeline entry for stall analysis.
+		GameState.log_event({
+			"type": "zone_cleared", "enemy_id": eid, "zone_id": current_zone_id,
+			"difficulty": int(zones.get(current_zone_id, {}).get("difficulty", 1)),
+			"t": int(Time.get_unix_time_from_system()),
+		})
 	
 	# v86.0: Hazard Zone Gauntlet Progression
 	if hazard_state["active"]:
@@ -2558,8 +2588,63 @@ func _maybe_offline_combat_nudge() -> void:
 	GameState.game_settings["offline_combat_nudge_seen"] = true
 	UITheme.show_notification("TIP: Enable Offline Combat in Options to keep fighting and earning while you're away.", Color(0.55, 0.85, 1.0))
 
+# v135a (funnel, dev-only): classify a boss LOSS into ONE reason tag — invisible to
+# the player, aggregated into telemetry.boss_losses for OUR stall analysis. Reads
+# live state, so it must run at the top of lose_fight before any reset.
+func _derive_boss_loss_tag() -> String:
+	var sm = GameState.shipyard_manager
+	var types := {}
+	for w in player_weapon_states:
+		var wt := String(w.get("type", ""))
+		if wt != "":
+			types[wt] = true
+	# 1. wrong_type_resisted: EVERY equipped type is hard-resisted (>0.40) by the enemy.
+	if not types.is_empty():
+		var all_resisted := true
+		for wt in types:
+			var r := 0.0
+			match wt:
+				"kinetic": r = float(current_enemy.get("resist_k", 0.0))
+				"energy": r = float(current_enemy.get("resist_e", 0.0))
+				"explosive": r = float(current_enemy.get("resist_x", 0.0))
+				"cryo": r = float(current_enemy.get("resist_cryo", 0.0))
+			if r <= 0.40:
+				all_resisted = false
+				break
+		if all_resisted:
+			return "wrong_type_resisted"
+	# 2. under_tier_walled: avg weapon tier >= 2 below zone difficulty (penetration floor).
+	var z := int(zones.get(current_zone_id, {}).get("difficulty", 1))
+	if not player_weapon_states.is_empty():
+		var tsum := 0.0
+		for w in player_weapon_states:
+			tsum += float(w.get("tier", 1))
+		if z - int(tsum / float(player_weapon_states.size())) >= 2:
+			return "under_tier_walled"
+	# 3. out_tanked: died at near-zero hull (a burst/DPS race, not a type/tier wall).
+	if sm and sm.max_hp > 0 and float(sm.current_hp) / float(sm.max_hp) < 0.05:
+		return "out_tanked"
+	# 4. default: right type/tier — just couldn't close in time.
+	return "low_dps"
+
 func lose_fight():
 	var sm = GameState.shipyard_manager
+	# v135a (funnel, dev-only): record WHY a boss attempt failed, BEFORE any reset.
+	# Never shown to the player — aggregated for our tuning + the event timeline.
+	if current_enemy and current_enemy.get("is_boss", false):
+		var _tag := _derive_boss_loss_tag()
+		var _zk := current_zone_id
+		var _bl: Dictionary = GameState.telemetry.get("boss_losses", {})
+		var _zt: Dictionary = _bl.get(_zk, {})
+		_zt[_tag] = int(_zt.get(_tag, 0)) + 1
+		_bl[_zk] = _zt
+		GameState.telemetry["boss_losses"] = _bl
+		GameState.log_event({
+			"type": "boss_attempt_loss", "enemy_id": current_enemy.get("id", ""),
+			"zone_id": _zk, "difficulty": int(zones.get(_zk, {}).get("difficulty", 1)),
+			"reason": ("hazard_ejected" if hazard_state.get("active", false) else "combat"),
+			"tag": _tag, "t": int(Time.get_unix_time_from_system()),
+		})
 	# v124: no Lira death penalty — losing costs the consumed kits (to re-heal)
 	# + module durability damage below, not credits.
 
@@ -3013,6 +3098,9 @@ func calculate_offline(delta: float):
 	var total_xp = 0
 	var credits_earned = 0
 	var module_drop_names: Array = []   # v132: rare_loot MODULE drops (boss uniques)
+	var _mods_pre := 0   # v135a: module count before the sweep (for the salvaged-N note)
+	for _mk in GameState.shipyard_manager.module_inventory:
+		_mods_pre += int(GameState.shipyard_manager.module_inventory[_mk])
 
 	for i in range(num_kills):
 		# Award loot from current enemy
@@ -3072,6 +3160,19 @@ func calculate_offline(delta: float):
 		for _os in _osalv:
 			loot_summary[_os] = loot_summary.get(_os, 0) + _osalv[_os]
 
+		# v135a: roll the MODULE drop pool offline too (parity with online) so the
+		# intended gear-grind AMORTIZES while away — offline combat used to award only
+		# materials + boss uniques, never the weapons/armor/shield the gear-check needs.
+		# Drops persist in module_inventory (report surfaces the count below).
+		if enemy_data.get("drops_modules", true):
+			var _opool := _focused_drop_pool(enemy_data, GameState.shipyard_manager)
+			if _opool.size() > 0:
+				if enemy_data.get("is_boss", false):
+					for _mi in range(randi_range(4, 10)):
+						_roll_one_module_drop(_opool, GameState.shipyard_manager)
+				elif randf() < get_effective_module_drop_chance(enemy_data):
+					_roll_one_module_drop(_opool, GameState.shipyard_manager)
+
 		# XP (removed defunct enemy_data.get("credits") - credits come from loot)
 		var xp = enemy_data.get("xp", 10)
 		total_xp += xp
@@ -3088,6 +3189,13 @@ func calculate_offline(delta: float):
 	if not module_drop_names.is_empty():
 		GameState.shipyard_manager.inventory_updated.emit()
 		notes.append("★ Rare module drops: %s" % [", ".join(PackedStringArray(module_drop_names))])
+	# v135a: total modules salvaged offline (regular pool drops persist in the armory).
+	var _mods_now := 0
+	for _mk in GameState.shipyard_manager.module_inventory:
+		_mods_now += int(GameState.shipyard_manager.module_inventory[_mk])
+	if _mods_now - _mods_pre > 0:
+		GameState.shipyard_manager.inventory_updated.emit()
+		notes.append("Salvaged %d modules while away (check the Armory)." % (_mods_now - _mods_pre))
 	var lost_modules: Array = GameState.shipyard_manager.apply_offline_durability_risk(delta)
 	if not lost_modules.is_empty():
 		notes.append("⚠ Lost to offline wear (durability ≤50%%): %s" % [", ".join(PackedStringArray(lost_modules))])

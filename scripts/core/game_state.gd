@@ -40,7 +40,7 @@ var elements_db: Array = []
 
 # v52.1: Game Settings (opt-in features)
 var game_settings: Dictionary = {
-	"offline_combat": false,  # Disabled by default
+	"offline_combat": true,  # v135a: ON by default for NEW games — it's winnability-gated AND now drops the module pool (weapons/armor/shield), so the gear-check grind amortizes while away. Existing saves keep their own value (load-merge) to avoid a surprise durability-loss consent.
 	# v125: one-time consent shown the first time Offline Combat is enabled
 	# (it can destroy modules already worn to <=50% durability). Cleared on
 	# hard_reset so a new playthrough re-confirms.
@@ -85,7 +85,19 @@ var telemetry: Dictionary = {
 		"kinetic_raw": 0.0, "energy_raw": 0.0, "explosive_raw": 0.0,
 		"kinetic_done": 0.0, "energy_done": 0.0, "explosive_done": 0.0,
 	},
+	# v135a (funnel): per-zone boss-loss reason rollup {zone_id: {tag: count}} —
+	# tag in wrong_type_resisted / under_tier_walled / out_tanked / low_dps.
+	# Dev-only instrumentation; NEVER surfaced to the player. Lifetime/meta.
+	"boss_losses": {},
 }
+
+# v135a (funnel): append-only DEV event TIMELINE — zone clears, boss attempts (+
+# a why-failed tag), warp screen open vs performed, and logout snapshots. Purpose:
+# see WHERE real players stall so WE can tune the world. Invisible to the player
+# (no UI reads it), persisted in the save as a capped FIFO, lifetime/meta (cleared
+# only on hard reset). This watches; it never warns — the player self-discovers.
+var event_log: Array = []
+const EVENT_LOG_CAP := 500
 
 # Total active play time: real wall-clock seconds the game has been open.
 # Measured off the system clock so Engine.time_scale (game-speed) can't
@@ -117,8 +129,21 @@ func _ready():
 	mission_manager.connect_signals()
 	bounty_manager.connect_signals()
 	quest_manager.connect_signals()
-	
+	warp_manager.warped.connect(_on_warped)  # v135a: funnel warp_performed event
+
 	load_game()
+
+# v135a (funnel): a warp actually happened — log it (the counterpart to the
+# warp_opened event lets us measure open->commit conversion). charge_bonus can't
+# be split from the signal (warp_charge is already zeroed), so log total gains.
+func _on_warped(gains) -> void:
+	log_event({
+		"type": "warp_performed",
+		"shards_gained": int(gains),
+		"total_shards_after": warp_manager.warp_shards,
+		"total_warps": warp_manager.total_warps,
+		"t": int(Time.get_unix_time_from_system()),
+	})
 
 func _process(delta):
 	# 0. Total play time (real clock — immune to game-speed scaling)
@@ -155,7 +180,7 @@ func _process(delta):
 
 func _notification(what):
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_WM_GO_BACK_REQUEST:
-		save_game()
+		save_game(true)  # v135a: shutdown -> write a funnel logout snapshot
 
 # P3.10: which mode the single active slot is occupying this frame.
 func _occupancy_key() -> String:
@@ -217,9 +242,36 @@ func set_active_manager(manager):
 		UITheme.show_notification("%s paused — now %s" % [_task_label(active_manager), _task_label(manager)], Color(1.0, 0.82, 0.35))
 	active_manager = manager
 
-func save_game():
+# v135a (funnel): append a dev event to the capped FIFO timeline. Invisible to the
+# player (no UI reads event_log); read only by dev tooling. Cheap.
+func log_event(e: Dictionary) -> void:
+	event_log.append(e)
+	if event_log.size() > EVENT_LOG_CAP:
+		event_log = event_log.slice(event_log.size() - EVENT_LOG_CAP)
+
+# Highest unlocked zone difficulty (there is no max_zone field — scan the roster).
+func _max_unlocked_difficulty() -> int:
+	var best := 0
+	if combat_manager:
+		for z in combat_manager.get_available_zones():
+			best = max(best, int(combat_manager.zones.get(String(z.get("id", "")), {}).get("difficulty", 0)))
+	return best
+
+func save_game(is_shutdown: bool = false):
+	# v135a (funnel): logout snapshot ONLY at shutdown — gating it here keeps the 60s
+	# autosave (and warp-triggered saves) from flooding the 500-cap event_log.
+	if is_shutdown:
+		log_event({
+			"type": "logout",
+			"score": warp_manager.get_progress_score(),
+			"shards_banked": warp_manager.warp_shards,
+			"total_warps": warp_manager.total_warps,
+			"max_diff": _max_unlocked_difficulty(),
+			"playtime": int(total_playtime),
+			"t": int(Time.get_unix_time_from_system()),
+		})
 	var save_data = {
-		"version": 3, # v3: warp_charge (Warp-Core Charge / Resonance) added to prestige
+		"version": 4, # v4: funnel event_log + telemetry.boss_losses (additive)
 		"resources": resources.get_save_data(),
 		"gathering": gathering_manager.get_save_data_manager(),
 		"processing": processing_manager.get_save_data_manager(),
@@ -235,6 +287,7 @@ func save_game():
 		"game_settings": game_settings,  # v52.1
 		"total_playtime": total_playtime,
 		"telemetry": telemetry,  # P3.10 (additive; old saves default safely)
+		"event_log": event_log,  # v135a funnel timeline (additive, capped FIFO)
 		"last_save_time": Time.get_unix_time_from_system()
 	}
 	
@@ -285,7 +338,15 @@ func migrate_save(data: Dictionary, from_version: int) -> Dictionary:
 		if data.has("prestige") and data["prestige"] is Dictionary:
 			if not data["prestige"].has("warp_charge"):
 				data["prestige"]["warp_charge"] = 0.0
-	data["version"] = 3
+	# v3 -> v4 (funnel instrumentation). Additive: dev event_log timeline + per-zone
+	# boss-loss rollup. load_game guarded-merges both, so this just backfills keys.
+	if from_version < 4:
+		if not data.has("event_log"):
+			data["event_log"] = []
+		if data.has("telemetry") and data["telemetry"] is Dictionary:
+			if not data["telemetry"].has("boss_losses"):
+				data["telemetry"]["boss_losses"] = {}
+	data["version"] = 4
 	return data
 
 func load_game():
@@ -365,6 +426,15 @@ func load_game():
 						telemetry[grp][k] = float(saved_tele[grp].get(k, 0.0))
 			if saved_tele.has("mat_source") and saved_tele["mat_source"] is Dictionary:
 				telemetry["mat_source"] = saved_tele["mat_source"].duplicate(true)
+			# v135a: restore the per-zone boss-loss rollup (dict).
+			if saved_tele.has("boss_losses") and saved_tele["boss_losses"] is Dictionary:
+				telemetry["boss_losses"] = saved_tele["boss_losses"].duplicate(true)
+			# v135a: restore the funnel event timeline (top-level key; cap on load).
+			var saved_log = data.get("event_log", [])
+			if saved_log is Array:
+				event_log = saved_log.duplicate()
+				if event_log.size() > EVENT_LOG_CAP:
+					event_log = event_log.slice(event_log.size() - EVENT_LOG_CAP)
 		
 		# Restore Active Manager
 		var offline_combat_enabled = game_settings.get("offline_combat", false)
@@ -503,6 +573,8 @@ func hard_reset():
 		for k in telemetry[grp]:
 			telemetry[grp][k] = 0.0
 	telemetry["mat_source"] = {}  # free-form per-material map — just empty it
+	telemetry["boss_losses"] = {}  # v135a: per-zone boss-loss rollup
+	event_log = []                 # v135a: funnel timeline (lifetime; clears on hard reset only, NOT warp)
 
 	# Re-show first-visit page tours on a fresh playthrough
 	game_settings["coach_seen"] = {}

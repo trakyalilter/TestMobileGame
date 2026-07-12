@@ -92,16 +92,20 @@ func get_warp_tier() -> int:
 func _init():
 	super._init("Warp")
 
-func calculate_warp_gains() -> int:
-	# Formula based on LIFETIME credits earned + total buildings
-	# Log2 scaling: More generous early, natural soft cap late
+# v135a: the prestige progress score — lifetime credits since last warp +
+# buildings*1000, times the Recursion-tree mult. Factored so calculate_warp_gains,
+# the save logout snapshot, and the header Warp-Charge gauge never disagree.
+func get_progress_score() -> float:
 	var total_credits = GameState.resources.lifetime_credits - credits_at_warp_start
 	var building_count = 0
 	for bid in GameState.infrastructure_manager.buildings:
 		building_count += GameState.infrastructure_manager.buildings[bid]
-	
-	var progress_score = total_credits + (building_count * 1000.0)
-	progress_score *= get_tree_shard_score_mult()  # v122 REC_S1: +3%/level, applied PRE-floor
+	return (total_credits + building_count * 1000.0) * get_tree_shard_score_mult()
+
+func calculate_warp_gains() -> int:
+	# Formula based on LIFETIME credits earned + total buildings
+	# Log2 scaling: More generous early, natural soft cap late
+	var progress_score = get_progress_score()   # v135a: factored (REC mult applied inside)
 	var threshold = get_tree_shard_threshold()       # v122 REC_3: 500k, or 350k if Lowered Threshold
 	if progress_score < threshold: return 0
 

@@ -857,6 +857,17 @@ func switch_to(page_name):
 			return
 
 		current_page_name = page_name
+		# v135a (funnel, dev-only): player OPENED the warp screen. Paired with the
+		# warp_performed event this measures open->commit conversion (the "sat on 25
+		# shards, never clicked" failure). Invisible to the player.
+		if page_name == "warp" and GameState.warp_manager:
+			GameState.log_event({
+				"type": "warp_opened",
+				"score": GameState.warp_manager.get_progress_score(),
+				"shards_available": GameState.warp_manager.calculate_warp_gains(),
+				"shards_banked": GameState.warp_manager.warp_shards,
+				"t": int(Time.get_unix_time_from_system()),
+			})
 		# P1 Onboarding hook: bump any active visit_page missions (e.g. m016c
 		# "Combat Briefing") so the orientation step auto-completes the moment
 		# the player navigates to the page it points at.

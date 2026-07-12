@@ -398,12 +398,20 @@ func _do_combat(mid: String, zid: String, eid: String) -> Dictionary:
 	var zrr = cm.zones.get(zid, {}).get("research_req")
 	if zrr and not GameState.research_manager.is_tech_unlocked(String(zrr)):
 		return _do_research(mid, String(zrr))
-	# Losses discipline: after 2 consecutive losses, do something else THIS
-	# session and retry next. Walled players grind GEAR, not dirt — farm the
-	# best unlocked zone for module drops (rarity re-rolls feed
-	# _optimize_loadout) instead of income-idling; the v135 matrix showed an
-	# unlucky-drops run parked 52h at the Architect on pure income backoff.
-	if int(_losses.get(eid, 0)) >= 2 and _detoured_this_session.get(eid, false):
+	# v135a: bosses are gear-checks — the penetration wall walls common/uncommon, so
+	# rare+ weak-type Zone-N gear is the intended answer. REACTIVE + targeted: attempt
+	# with current gear FIRST (many bosses fall to the current hull + mixed loot); on
+	# 2+ losses, farm the boss's OWN zone for rare weak-type gear until ready, THEN
+	# retry — gear up and try again, don't detour away. Non-bosses keep the old
+	# best-zone detour / income backoff (the v135 matrix showed pure income-idling
+	# parked a run 52h at the Architect).
+	if bool(cm.enemy_db.get(eid, {}).get("is_boss", false)):
+		if int(_losses.get(eid, 0)) >= 2 and not _boss_gear_ready(eid):
+			var reg := _regular_enemy_in_zone(zid)
+			if reg != "" and reg != eid:
+				status = "farming rare %s gear for %s" % [_enemy_weak_type(eid), eid]
+				return _do_combat_farm(mid, zid, reg, "detour")
+	elif int(_losses.get(eid, 0)) >= 2 and _detoured_this_session.get(eid, false):
 		var z: Dictionary = actions._best_unlocked_zone()
 		if not z.is_empty() and String(z["enemy"]) != eid:
 			status = "gear-farm after losses to %s" % eid
@@ -490,6 +498,81 @@ func _do_combat_farm(mid: String, zid: String, eid: String, attr: String = "dire
 		return prep
 	return {"kind": "combat_farm", "zone": zid, "enemy": eid, "length": 120.0,
 		"attr": attr, "obj": mid, "why": "farm %s @%s" % [eid, zid]}
+
+# --- Gear-check readiness (v135a) ---------------------------------------------
+# A Zone-N boss is a gear-check: rare+ weak-type weapons + rare+ armor/shield beat
+# it, while common/uncommon are walled by the v115 penetration wall. The bot farms
+# the boss's OWN zone (drops Zone-N modules, Uncommon+ always, ~30% Rare+) until it
+# owns that set, then attempts — modelling the intended "loot the tier" play instead
+# of throwing common-gear attempts. Bounded by the sim day-cap, so an impossibly
+# long grind surfaces honestly as a wall rather than an infinite loop.
+func _count_owned(slot_type: String, wtype: String, min_rarity: int) -> int:
+	var sm = GameState.shipyard_manager
+	var n := 0
+	for inv_mid in sm.module_inventory:
+		var c := int(sm.module_inventory.get(inv_mid, 0))
+		if c <= 0:
+			continue
+		var s := String(inv_mid)
+		if String(sm.modules.get(s, {}).get("slot_type", "")) != slot_type:
+			continue
+		if wtype != "" and _weapon_atype(s) != wtype:
+			continue
+		if int(sm.get_module_rarity(s)) >= min_rarity:
+			n += c
+	for i in _slot_indices(slot_type):
+		var l = sm.loadout.get(i, null)
+		if l:
+			var ls := String(l)
+			if (wtype == "" or _weapon_atype(ls) == wtype) and int(sm.get_module_rarity(ls)) >= min_rarity:
+				n += 1
+	return n
+
+func _boss_gear_ready(eid: String) -> bool:
+	var weak := _enemy_weak_type(eid)
+	if weak == "":
+		return true
+	# Every weapon slot wants a rare+ weak-type weapon (the DPS/penetration gate);
+	# defense wants at least one rare+ armor + shield (optimize + kits carry the rest).
+	if _count_owned("weapon", weak, 2) < _slot_indices("weapon").size():
+		return false
+	if _slot_indices("armor").size() > 0 and _count_owned("armor", "", 2) < 1:
+		return false
+	if _slot_indices("shield").size() > 0 and _count_owned("shield", "", 2) < 1:
+		return false
+	return true
+
+func _regular_enemy_in_zone(zid: String) -> String:
+	# Only BACK-half enemies (e3+) drop MODULES — front (e1/e2) are materials-only
+	# (enemy_is_front_salvage), so farming them yields ZERO modules. Prefer a
+	# module-dropper whose pool includes WEAPONS (the gear-check bottleneck), then
+	# armor/shield; fall back to any non-boss if none qualifies.
+	var cm = GameState.combat_manager
+	var fallback := ""
+	var best := ""
+	var best_score := -1
+	for e in cm.zones.get(zid, {}).get("enemies", []):
+		var es := String(e)
+		var ed: Dictionary = cm.enemy_db.get(es, {})
+		if bool(ed.get("is_boss", false)):
+			continue
+		if fallback == "":
+			fallback = es
+		if cm.enemy_is_front_salvage(es, zid):
+			continue
+		var has_w := false
+		var has_a := false
+		var has_s := false
+		for m in ed.get("module_drop_pool", []):
+			var st := String(GameState.shipyard_manager.modules.get(String(m), {}).get("slot_type", ""))
+			if st == "weapon": has_w = true
+			elif st == "armor": has_a = true
+			elif st == "shield": has_s = true
+		var score := int(has_w) * 4 + int(has_a) + int(has_s)
+		if score > best_score:
+			best_score = score
+			best = es
+	return best if best != "" else fallback
 
 func _do_equip_rare_weapon(mid: String, rarity: int, wtype: String) -> Dictionary:
 	var sm = GameState.shipyard_manager
@@ -924,12 +1007,28 @@ func note_fight_result(eid: String, won: bool) -> void:
 # Offline: leave the mission-relevant task running or offline yields nothing.
 # ---------------------------------------------------------------------------
 func pre_offline() -> void:
-	# Always leave a GATHER running for the night. Processing offline is
+	var d := decide_step()
+	# v135a: if we're actively (gear-)farming combat, leave COMBAT running for the
+	# night — offline combat now drops the module pool, so the gear-check grind
+	# amortizes while away (models a player parking on a winnable farm zone). The
+	# winnability gate in calculate_offline protects an unwinnable pin.
+	var dk := String(d.get("kind", ""))
+	if dk == "combat" or dk == "combat_farm":
+		var zid := String(d.get("zone", ""))
+		var eid := String(d.get("enemy", ""))
+		if zid != "" and eid != "" and _prep_for_fight(String(d.get("obj", "")), eid).is_empty():
+			var cm = GameState.combat_manager
+			if GameState.active_manager and GameState.active_manager != cm:
+				GameState.active_manager.stop_action()
+			cm.start_expedition(zid)
+			cm.set_target_enemy(eid)
+			if cm.current_enemy != null and String(cm.current_enemy.get("id", "")) == eid:
+				return   # combat pinned — offline farming loots the gear
+	# Otherwise leave a GATHER running for the night. Processing offline is
 	# ingredient-bounded (calculate_offline stops when inputs run out), so a
 	# "smart" crafting away-task starves mid-gap — the matrix showed EFFICIENT
 	# losing to FOLLOWER on the offline-carried cliffs because of exactly this.
 	# Mission-relevant gather wins; else the archetype's income gather.
-	var d := decide_step()
 	var task: Dictionary = d
 	if String(d.get("kind", "")) != "gather":
 		task = _income("pre_offline", String(d.get("obj", "")), "detour")

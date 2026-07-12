@@ -20,6 +20,13 @@ var _slot_pulse: Tween
 var _slot_sig: String = ""
 var _slot_was_full: bool = false
 
+# v135a: neutral Warp-Charge gauge — progress_score toward the next log2 breakpoint,
+# shown as passive STATE (like an XP bar). No directives, no "warp now" nag, no
+# color-coded alerts, non-interactive: it shows where you are, never tells you to act.
+var warp_gauge_bar: ProgressBar
+var warp_gauge_lbl: Label
+var _warp_gauge_accum: float = 0.0
+
 func _ready():
 	# 1. Glassmorphism Styling
 	var glass = StyleBoxFlat.new()
@@ -36,6 +43,7 @@ func _ready():
 	_setup_leds()
 	_setup_objective_chip()
 	_setup_slot_meter()
+	_setup_warp_gauge()
 
 func _setup_leds():
 	var hbox = $MarginContainer/HBoxContainer
@@ -199,11 +207,75 @@ func flash_led(led: ColorRect, color: Color):
 	tween.tween_property(led, "color", color.lightened(0.5), 0.1)
 	tween.tween_property(led, "color", Color(0.1, 0.1, 0.1), 0.5).set_delay(0.1)
 
+# ── Warp-Charge gauge (neutral state — v135a) ───────────────────────────────
+func _setup_warp_gauge() -> void:
+	var box := HBoxContainer.new()
+	box.name = "WarpGauge"
+	box.add_theme_constant_override("separation", 4)
+	box.size_flags_horizontal = Control.SIZE_SHRINK_END
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE  # non-interactive: it never acts for you
+
+	warp_gauge_lbl = Label.new()
+	warp_gauge_lbl.text = "WARP"
+	warp_gauge_lbl.add_theme_font_size_override("font_size", 10)
+	UITheme.apply_segmented_font(warp_gauge_lbl, UITheme.COLORS["text_dim"])
+	warp_gauge_lbl.add_theme_color_override("font_color", UITheme.COLORS["text_dim"])
+	box.add_child(warp_gauge_lbl)
+
+	warp_gauge_bar = ProgressBar.new()
+	warp_gauge_bar.min_value = 0.0
+	warp_gauge_bar.max_value = 1.0
+	warp_gauge_bar.show_percentage = false
+	warp_gauge_bar.custom_minimum_size = Vector2(64, 8)
+	warp_gauge_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = UITheme.COLORS["accent"]
+	fill.set_corner_radius_all(2)
+	warp_gauge_bar.add_theme_stylebox_override("fill", fill)
+	var bg := StyleBoxFlat.new()
+	bg.bg_color = Color(1, 1, 1, 0.10)
+	bg.set_corner_radius_all(2)
+	warp_gauge_bar.add_theme_stylebox_override("background", bg)
+	box.add_child(warp_gauge_bar)
+
+	$MarginContainer/HBoxContainer.add_child(box)  # rightmost, after the expanding task label
+	update_warp_gauge()
+
+func update_warp_gauge() -> void:
+	if not is_instance_valid(warp_gauge_bar) or not GameState.warp_manager:
+		return
+	var wm = GameState.warp_manager
+	var threshold: float = wm.get_tree_shard_threshold()
+	var score: float = wm.get_progress_score()
+	var frac := 0.0
+	if threshold > 0.0:
+		if score < threshold:
+			frac = score / threshold                       # toward the first shard
+		else:
+			var cur := int(floor(log(max(1.0, score / threshold)) / log(2.0))) + 1
+			var prev_bp: float = threshold * pow(2.0, cur - 1)
+			var next_bp: float = threshold * pow(2.0, cur)
+			frac = (score - prev_bp) / max(1.0, next_bp - prev_bp)
+	warp_gauge_bar.value = clampf(frac, 0.0, 1.0)
+	# Neutral banked-shard count — passive state, never a "warp now" prompt.
+	var avail: int = wm.get_available_shards() if wm.has_method("get_available_shards") else 0
+	warp_gauge_lbl.text = ("WARP  %d◇" % avail) if avail > 0 else "WARP"
+	# Live palette (apply_palette can rewrite COLORS) — accent fill only, no alert states.
+	var fs = warp_gauge_bar.get_theme_stylebox("fill")
+	if fs is StyleBoxFlat:
+		fs.bg_color = UITheme.COLORS["accent"]
+	warp_gauge_lbl.add_theme_color_override("font_color", UITheme.COLORS["text_dim"])
+
 func _process(_delta):
 	# Poll for task status
 	update_task_status()
 	update_objective()
 	update_slots()
+	# Warp gauge: log2 + score math is wasteful per-frame — throttle to ~1/sec.
+	_warp_gauge_accum += _delta
+	if _warp_gauge_accum >= 1.0:
+		_warp_gauge_accum = 0.0
+		update_warp_gauge()
 
 func update_hud():
 	update_credits()
