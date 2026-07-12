@@ -175,14 +175,16 @@ var tech_tree = {
 		"name": "Shipwright II",
 		"tier": 3,
 		"category": "ships",
-		# v135: 1,000,000 -> 950,000. The round 1M landed EXACTLY on
-		# ENDGAME_RESEARCH_COST_GATE, so _scale_mid_late_research_item_costs
-		# applied the tier-3 (endgame) x20 to this MID-game Destroyer unlock:
-		# 25 x 20 x 2 = 1000 Res2 — a multi-week farm (the player-bot sim's
-		# m030 wall). 950K drops it to the intended LATE stage (x7.5): 25 x 7.5
-		# x 2 = ~375 Res2. Credits were never the gate (bot had 5M by day 4).
-		"cost": 950000,
-		"cost_items": {"Res2": 25},
+		# v135b: OFF Res2 entirely. Res2 (Uncommon Artifact) only drops in Zone 3,
+		# which the chain does not open until m030e — AFTER this node (m030). So the
+		# Destroyer unlock demanded a material the player cannot yet farm: the universal
+		# player-bot m030 wall (every archetype stalled here, nobody warped). Re-cost to
+		# Zone-2-reachable Steel/Circuit, AND drop the credit cost below LATE_RESEARCH_
+		# COST_GATE (150K) so it scales at the MID tier (x5), not LATE (x15): effective
+		# 25*2.5*2 = 125 Steel + 15*2.5*2 = 75 Circuit. Credits were never the gate
+		# (the bot had 18M by day 4) — this is a material-availability fix.
+		"cost": 120000,
+		"cost_items": {"Steel": 25, "Circuit": 15},
 		"type": "technology",
 		"parent": "shipwright_1",
 		"effects": [],

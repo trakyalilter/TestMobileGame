@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/sim/boss_gearcheck.gd" id="1_bgc"]
+
+[node name="BossGearCheck" type="Node"]
+script = ExtResource("1_bgc")

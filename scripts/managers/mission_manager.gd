@@ -9,7 +9,7 @@ const DEBUG_LOG := false
 # rendered as [TUTORIAL], which read as the game mislabeling its own acts.
 const CHAPTER_2_IDS = ["m027", "m027b", "m028", "m029",
 	"m029a1", "m029a2", "m029a3", "m029a4", "m029a5", "m029b", "m030", "m030c",
-	"m030d", "m030e", "m030f", "m030f2", "m030g", "m030h", "m030i",
+	"m030c2", "m030c3", "m030d", "m030e", "m030f", "m030fa", "m030fb", "m030f1", "m030f2", "m030g", "m030h", "m030i",
 	"m031", "m032", "m032a", "m032b", "m032d", "m032c", "m033"]
 # v134g: the reordered tail runs m034 → m033b → m033c, so the [ENDGAME] tag must
 # cover all three — otherwise the badge reads [ENDGAME] then two [CHAPTER 2] after it.
@@ -246,14 +246,29 @@ func init_missions():
 		# (Fabricator is optional QoL, still buildable). m030 -> m030c directly.
 		["m030", "Naval Expansion", "Research 'Shipwright II' to unlock Destroyer-class hulls.", "research", "shipwright_2", 1, 4000, 1000, "m030c"],
 		# v134h: destroyer needs 10 Reinforced Plating (same component as the frigate) —
-		# name it so the 10x quantity isn't a silent grind wall. Reroute -> m030d (Z2 boss).
-		["m030c", "Hull Modernization II", "Construct a 'Destroyer' hull in the Shipyard. It needs 10 Reinforced Plating (same recipe as the Frigate) — stock Salvaged Alloy + Damaged Circuitry first.", "construct", "destroyer_hull", 1, 25000, 2000, "m030d"],
+		# name it so the 10x quantity isn't a silent grind wall. Reroute -> m030c2 (Z2 weapons).
+		["m030c", "Hull Modernization II", "Construct a 'Destroyer' hull in the Shipyard. It needs 10 Reinforced Plating (same recipe as the Frigate) — stock Salvaged Alloy + Damaged Circuitry first.", "construct", "destroyer_hull", 1, 25000, 2000, "m030c2"],
+		# v135a: the chain never USES Zone-2 fabrication (unlocked at m027) — the player reaches
+		# the 5280-HP Z2 boss on a Z2 Destroyer still fielding Z1 batteries + Z1 guns (the m030d
+		# funnel wall). Refit for Zone 2 in two beats, mirroring the m029 Z2-armor beat:
+		#   1) POWER — Z1 batteries (50 cap) can't run heavier Z2 ordnance; Improved Battery = 110.
+		#   2) ORDNANCE — the Monolith resists kinetic/energy but is WEAK to explosive.
+		["m030c2", "Power Refit", "A Destroyer draws far more power than your Zone-1 batteries supply. In the Shipyard, fabricate 3 'Improved Battery' (Z2 — 110 capacity each) and equip one per battery slot. You'll need the headroom for heavier Zone-2 weapons.", "craft", "z2_battery", 3, 30000, 3000, "m030c3"],
+		["m030c3", "Heavier Ordnance", "Your Zone-1 guns barely dent Zone-2 armor. In the Shipyard, fabricate 3 'Concussion Missile' (Z2 EXPLOSIVE) and equip one per weapon slot. The Silicate Monolith ahead is hardened against kinetic and energy but WEAK TO EXPLOSIVE — you can also swap loadouts mid-fight.", "craft", "z2_missile", 3, 30000, 3000, "m030d"],
 		# v134h: zone_3_access (Mars Debris Clearance) COSTS a Z2 boss core the chain never
 		# told the player to farm. Insert an explicit boss-farm beat (mirrors m030i/m032a).
 		["m030d", "Belt Overseer", "The Mars Debris charter needs a Sector Core. Return to the Asteroid Belt and defeat the Silicate Monolith (its boss) to salvage a Z2 Sector Core.", "defeat", "z2_boss_monolith", 1, 50000, 6000, "m030e"],
 		# Mission bridge from Asteroid Belt to Sector Alpha (zones 3-4 introduction)
 		["m030e", "Mars Beachhead", "Research 'Mars Debris Clearance' in the Research tree (it spends the Silicate Monolith core you just salvaged) to unlock the Mars Debris combat zone.", "research", "zone_3_access", 1, 40000, 5000, "m030f"],
-		["m030f", "Salvage Operations", "Defeat 3 Scavenger Mechs in the Mars Debris combat zone. Their relics feed Wreckforged Alloy crafting.", "defeat", "z3_scavenger_mech", 3, 60000, 8000, "m030f2"],
+		["m030f", "Salvage Operations", "Defeat 3 Scavenger Mechs in the Mars Debris combat zone. Their relics feed Wreckforged Alloy crafting.", "defeat", "z3_scavenger_mech", 3, 60000, 8000, "m030fa"],
+		# v135a: full Zone-3 refit before the Warmaster (17k-hull boss, atk 210) — the SAME gap the
+		# Z2 boss had, but the boss out-DPSes a Z2-geared hull in ~15s, so the refit must cover
+		# SURVIVAL (Z3 armor + shield) as well as ordnance. Regular Z3 enemies fall to Z2 gear; the
+		# BOSS needs the tier. Three beats: plating -> shielding -> ordnance, then the fight.
+		["m030fa", "Zone-3 Plating", "The Warmaster's guns will shred Zone-2 armor. In the Shipyard, fabricate 2 'Composite Plate' (Z3 armor — def 24, +97 hull each) and equip one per armor slot.", "craft", "z3_armor", 2, 40000, 5000, "m030fb"],
+		["m030fb", "Zone-3 Shielding", "Reinforce your deflectors too. Fabricate 2 'Hardened Shield' (Z3 — 194 shield each) and equip one per shield slot before the Warmaster.", "craft", "z3_shield", 2, 40000, 5000, "m030f1"],
+		# The Warmaster resists kinetic/explosive and is WEAK TO ENERGY (mirrors the m030c3 beat).
+		["m030f1", "Zone-3 Ordnance", "The Martian Warmaster is a Zone-3 boss — heavily armored against kinetic and explosive but WEAK TO ENERGY. Your Zone-2 guns barely scratch it. In the Shipyard, fabricate 3 'Cryo Beam' (Z3 ENERGY) and equip one per weapon slot.", "craft", "z3_energy", 3, 50000, 6000, "m030f2"],
 		# v134h: zone_4_access COSTS 2 Z3 boss cores the chain never directed. Explicit
 		# boss-farm beat before the research (m030f only killed regular Scavenger Mechs).
 		["m030f2", "Warmaster's Cores", "The Glacier Belt charter demands TWO Warmaster cores. Defeat the Martian Warmaster (Mars Debris boss) twice and salvage them.", "defeat", "z3_boss_warmaster", 2, 90000, 12000, "m030g"],

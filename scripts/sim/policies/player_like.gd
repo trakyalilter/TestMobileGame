@@ -429,10 +429,12 @@ func _prep_for_fight(mid: String, eid: String) -> Dictionary:
 	# Without this the bot fought bosses with one directed weapon and bare
 	# slots — a fidelity gap, not a game gate (smoke run: Architect losses).
 	_optimize_loadout()
-	# Type matching once taught (or EFFICIENT after 1 loss wants the switch).
+	# Type matching once taught (or EFFICIENT after 1 loss wants the switch). Commit
+	# the FULL weapon loadout to the enemy's weak type, not just one slot — the helper
+	# is idempotent (skips slots already carrying the counter).
 	if type_match_taught or _want_switch.get(eid, false):
 		var weak := _enemy_weak_type(eid)
-		if weak != "" and not _has_weapon_of_type_equipped(weak):
+		if weak != "":
 			var got := _equip_weapon_of_type(mid, weak)
 			if not got.is_empty():
 				return got
@@ -684,39 +686,66 @@ func _has_weapon_of_type_equipped(wtype: String) -> bool:
 			return true
 	return false
 
-# Equip an owned weapon of `wtype` (craft the best-tier one if not owned).
-# {} = done/equipped; task = what to do first.
-func _equip_weapon_of_type(mid: String, wtype: String) -> Dictionary:
+# Highest EFFECTIVE-DPS owned (unequipped, count>0) weapon of `wtype`, else "".
+# Ranks by DAMAGE, not rarity: a full tier step is ~2.2x (shipyard v115 note), so a
+# common Z3 gun out-damages a rare Z2 one. The old rarity-first pick fought the
+# 17k-hull Z3 Warmaster with a shiny-but-weak Z2 weapon and couldn't out-DPS it.
+func _best_counter_in_inventory(wtype: String) -> String:
 	var sm = GameState.shipyard_manager
-	var cand := ""
-	var cand_r := -1
+	var pick := ""
+	var pick_dps := -1.0
 	for inv_mid in sm.module_inventory:
 		if int(sm.module_inventory.get(inv_mid, 0)) <= 0:
 			continue
 		var s := String(inv_mid)
-		var def: Dictionary = sm.modules.get(s, {})
-		if String(def.get("slot_type", "")) != "weapon":
+		if String(sm.modules.get(s, {}).get("slot_type", "")) != "weapon":
 			continue
 		if _weapon_atype(s) != wtype:
 			continue
-		var r := int(sm.get_module_rarity(s))
-		if r > cand_r:
-			cand_r = r
-			cand = s
-	if cand == "":
+		var st: Dictionary = sm.modules.get(s, {}).get("stats", {})
+		var interval := float(st.get("atk_interval", 1.0))
+		if interval <= 0.0:
+			interval = 1.0
+		var dps := float(st.get("atk_%s" % wtype, 0.0)) / interval
+		if dps > pick_dps:
+			pick_dps = dps
+			pick = s
+	return pick
+
+# Commit EVERY weapon slot to the counter type (a boss weak to `wtype` wants a
+# FULL counter loadout, not one slot — the old one-slot swap left the boss's
+# resisted majority in the other slots and lost razor-thin fights). Unequip-first
+# frees each slot's power so a heavier counter (Concussion Missile = load 18 vs
+# 15) fits under equip_module's power guard once Z2 batteries provide headroom.
+# Owned copies are consumed from module_inventory as we go; slots beyond the
+# owned count keep their optimized weapon. Craft the best fabricable tier (Z2 if
+# its research is unlocked) when none is owned. {} = done/equipped; task = craft first.
+func _equip_weapon_of_type(mid: String, wtype: String) -> Dictionary:
+	var sm = GameState.shipyard_manager
+	# None owned (inventory) and none equipped -> craft the best tier we can make.
+	if _best_counter_in_inventory(wtype) == "" and not _has_weapon_of_type_equipped(wtype):
 		var suffix: String = {"kinetic": "kinetic", "energy": "energy", "explosive": "missile"}.get(wtype, "")
 		if suffix == "":
 			return {}
+		var z2id := "z2_%s" % suffix
+		var z2req := String(sm.modules.get(z2id, {}).get("research_req", ""))
+		if sm.modules.has(z2id) and (z2req == "" or GameState.research_manager.is_tech_unlocked(z2req)):
+			return _do_craft(mid, z2id)
 		return _do_craft(mid, "z1_%s" % suffix)
-	var idxs := _slot_indices("weapon")
-	for i in idxs:
-		if not sm.loadout.get(i, null):
-			if sm.equip_module(i, cand, true):
-				sm.recalc_stats()
-				return {}
-	if idxs.size() > 0 and sm.equip_module(int(idxs[0]), cand, true):
-		sm.recalc_stats()
-		return {}
+	for i in _slot_indices("weapon"):
+		var cur = sm.loadout.get(i, null)
+		if cur and _weapon_atype(String(cur)) == wtype:
+			continue                                   # slot already the counter
+		var pick := _best_counter_in_inventory(wtype)
+		if pick == "":
+			break                                      # out of owned counters
+		if cur:
+			sm.unequip_slot(int(i))                    # free power; return cur to inv
+		if not sm.equip_module(int(i), pick, true):
+			if cur:
+				sm.equip_module(int(i), String(cur), true)  # power-blocked -> restore
+			break
+	sm.recalc_stats()
 	return {}
 
 # Real-economy ammo: craft to the archetype's buffer via the REAL recipe,
@@ -841,9 +870,16 @@ func _optimize_loadout() -> void:
 			var cand2 := _best_inventory_module(String(stype))
 			if cand2 == "":
 				continue
-			if int(sm.get_module_rarity(cand2)) > int(sm.get_module_rarity(String(cur))):
+			if _module_rank(cand2) > _module_rank(String(cur)):
 				if sm.equip_module(i, cand2, true):
 					sm.recalc_stats()
+
+# Tier-first module rank: a full zone step (~2.2x stats) out-scales every rarity
+# (shipyard v115), so zone dominates and rarity only tiebreaks within a tier. The
+# old rarity-first key preferred a rare low-tier module over a common high-tier one.
+func _module_rank(mid: String) -> int:
+	var sm = GameState.shipyard_manager
+	return int(sm.modules.get(mid, {}).get("zone", 1)) * 100 + int(sm.get_module_rarity(mid))
 
 func _best_inventory_module(slot_type: String) -> String:
 	var sm = GameState.shipyard_manager
@@ -856,7 +892,7 @@ func _best_inventory_module(slot_type: String) -> String:
 		var def: Dictionary = sm.modules.get(s, {})
 		if String(def.get("slot_type", "")) != slot_type:
 			continue
-		var key := int(sm.get_module_rarity(s)) * 100 + int(def.get("zone", 1))
+		var key := _module_rank(s)
 		if key > best_key:
 			best_key = key
 			best = s

@@ -165,6 +165,7 @@ const MAX_REFLECT_PERCENT = 0.10          # Reflect capped
 const DEF_K_CONSTANT = 40.0               # v103: lowered so enemy/player DEF actually mitigates
 const DEF_K_ZONE_SCALE = 30.0             # was 100/100 → DEF was ~14% at Z3 boss (worthless); now ~35%
 const DEF_K_ZONE_EXP = 1.3                # k(zone) = BASE + SCALE * zone^EXP. MAX_DAMAGE_REDUCTION clamp below prevents unkillable late enemies
+const ARMOR_K_FLOOR = 0.7                 # v135a: floor k at 0.7× the DEFENDER's armor. Boss DEF scales 2.2×/zone but poly-k only ~zone^1.3, so at Z6+ DEF outran k and player mitigation collapsed to the 20% floor (rare gear couldn't beat the intended gear-check). This floor keeps mitigation healthy vs heavy armor; it only binds on late-boss DEF (low zones + the player's own small armor keep the polynomial), so it aids PENETRATION of boss armor, never shields the player. See docs/audit/BOSS_GEARCHECK.md.
 
 # v80.1: Trinity Set Bonus Definitions — 3/3 pieces needed
 # Bonuses are substantial rewards for hunting all 3 pieces from zone bosses (3% drop each)
@@ -497,7 +498,7 @@ var enemy_db = {
 	},
 	"z2_boss_monolith": {
 		"name": "Silicate Monolith",
-		"stats": {"hp": 5280, "max_shield": 264, "atk": 132, "def": 39, "atk_interval": 3.5, "accuracy": 45},
+		"stats": {"hp": 11000, "max_shield": 550, "atk": 170, "def": 39, "atk_interval": 3.5, "accuracy": 45},  # v135a: was hp 5280/shield 264/atk 132 — Uncommon beat it 5/5 (gear-check audit). Buffed ~2x so only Rare+ Zone-2 wins.
 		"loot": [["credits", 2000, 5000], ["Ti", 5, 12], ["Fe", 20, 40], ["Res1", 10, 20], ["Res2", 3, 6], ["PirateSalvage", 5, 12]],
 		"rare_loot": [["z2_unique_weapon", 0.03, 1, 1], ["z2_unique_armor", 0.03, 1, 1], ["z2_unique_shield", 0.03, 1, 1], ["faraday_hull", 0.03, 1, 1], ["SalvagedAlloy", 0.90, 3, 6], ["DamagedCircuitry", 0.90, 3, 6]],
 		"boss_core": "Z2_Core",
@@ -641,7 +642,7 @@ var enemy_db = {
 	},
 	"z5_boss_harbinger": {
 		"name": "Xenon Harbinger",
-		"stats": {"hp": 70277, "max_shield": 2811, "atk": 749, "def": 421, "atk_interval": 2.5, "accuracy": 110},
+		"stats": {"hp": 80000, "max_shield": 2811, "atk": 749, "def": 421, "atk_interval": 2.5, "accuracy": 110},  # v135a: 70277->80000, Uncommon was sneaking 2/5 wins (gear-check).
 		"loot": [["credits", 50000, 100000], ["VoidArtifact", 10, 25], ["QuantumCore", 2, 5], ["Res2", 15, 30], ["XenoFragment", 5, 12]],
 		"rare_loot": [["z5_unique_weapon", 0.03, 1, 1], ["z5_unique_armor", 0.03, 1, 1], ["z5_unique_shield", 0.03, 1, 1]],
 		"boss_core": "Z5_Core",
@@ -790,7 +791,7 @@ var enemy_db = {
 	"z8_boss_warden": {
 		"name": "Prismatic Warden",
 		# v106: Late-game escalation pass — HP 2.39M→4M, ATK 23.9K→38K. Target ~10 min for tier-matched legendary.
-		"stats": {"hp": 1400000, "max_shield": 29932, "atk": 12200, "def": 4489, "atk_interval": 2.5, "accuracy": 200},
+		"stats": {"hp": 1600000, "max_shield": 29932, "atk": 12200, "def": 4489, "atk_interval": 2.5, "accuracy": 200},  # v135a: 1.4M->1.6M, Uncommon was sneaking 2/5 wins (gear-check).
 		"loot": [["credits", 3000000, 6000000], ["VoidCrystal", 20, 50], ["Diamond", 2, 5], ["Res3", 20, 40]],
 		"rare_loot": [["z8_unique_weapon", 0.03, 1, 1], ["z8_unique_armor", 0.03, 1, 1], ["z8_unique_shield", 0.03, 1, 1]],
 		"boss_core": "Z8_Core",
@@ -839,7 +840,7 @@ var enemy_db = {
 	"z9_boss_patient_zero": {
 		"name": "Patient Zero",
 		# v106: Late-game escalation pass — HP 5.93M→10M, ATK 56K→90K. Target ~12 min for tier-matched legendary, smoothing the ramp into Z10's 13 min finale.
-		"stats": {"hp": 3500000, "max_shield": 65851, "atk": 23400, "def": 9877, "atk_interval": 2.5, "accuracy": 230},
+		"stats": {"hp": 3200000, "max_shield": 65851, "atk": 23400, "def": 9877, "atk_interval": 2.5, "accuracy": 230},  # v135a: 3.5M->3.2M so Rare+ Zone-9 clears (was Rare 1/5, gear-check).
 		"loot": [["credits", 10000000, 20000000], ["Neutronium", 10, 25], ["PathogenCore", 3, 8], ["Res3", 30, 50], ["QuarantineClearance", 1, 1]],
 		"rare_loot": [["z9_unique_weapon", 0.03, 1, 1], ["z9_unique_armor", 0.03, 1, 1], ["z9_unique_shield", 0.03, 1, 1]],
 		"boss_core": "Z9_Core",
@@ -896,7 +897,7 @@ var enemy_db = {
 		#                            endurance; off-meta still ~16 min penalty)
 		#   res_e  0.45→0.65→0.55   (still punishes NRG-on-NRG-resist; survivable)
 		# Boss stays WEAK KIN at −0.40 — swapping loadout is the real reward.
-		"stats": {"hp": 7000000, "max_shield": 144872, "atk": 70200, "def": 21730, "atk_interval": 3.0, "accuracy": 250},
+		"stats": {"hp": 6200000, "max_shield": 144872, "atk": 70200, "def": 21730, "atk_interval": 3.0, "accuracy": 250},  # v135a: 7M->6.2M so Rare+ Zone-10 clears (was Rare 0/5 at L0%, gear-check).
 		"loot": [["credits", 50000000, 100000000], ["PrimordialShard", 20, 50], ["ChronoCore", 5, 12], ["CryoCatalyst", 10, 25]],
 		"rare_loot": [["z10_unique_weapon", 0.03, 1, 1], ["z10_unique_armor", 0.03, 1, 1], ["z10_unique_shield", 0.03, 1, 1]],
 		"boss_core": "Z10_Core",
@@ -2059,7 +2060,13 @@ func resolve_damage(atk_k, atk_e, atk_x, c_shield, c_armor, difficulty = 1, crit
 	if current_zone_id != "" and current_zone_id in zones:
 		zone_diff = zones[current_zone_id].get("difficulty", 1)
 	var k = DEF_K_CONSTANT + DEF_K_ZONE_SCALE * pow(float(zone_diff), DEF_K_ZONE_EXP)
-	
+	# v135a: floor k at a fraction of the DEFENDER's armor. Boss DEF (2.2×/zone) had
+	# outrun the polynomial k (~zone^1.3) from Z6 up, collapsing player damage to the
+	# 20% floor and making late bosses unbeatable with the intended rare Zone-N gear.
+	# Only binds on heavy armor (late bosses); the player's own small armor never trips
+	# it, so it helps PENETRATE boss armor without shielding the player.
+	k = maxf(k, ARMOR_K_FLOOR * float(c_armor))
+
 	# Armor Penetration Logic
 	var arm_k = c_armor
 	var arm_e = c_armor * 0.7
