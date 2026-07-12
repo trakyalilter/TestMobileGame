@@ -25,7 +25,7 @@ const TREE_NODES := {
 	"ENG_4": {"branch": "engineering", "cost": 4, "name": "Industrial Memory",
 		"desc": "-20% infrastructure build cost.", "implemented": true, "prereq": ["ENG_1"]},
 	"ENG_5": {"branch": "engineering", "cost": 5, "name": "Building Overclock",
-		"desc": "Throttle buildings to 200% output at +50% input/unit.", "implemented": false, "prereq": ["ENG_4"]},
+		"desc": "Throttle buildings to 200% output at +50% input/unit.", "implemented": true, "prereq": ["ENG_4"]},
 	"ENG_6": {"branch": "engineering", "cost": 6, "name": "Resonant Foundry",
 		"desc": "Auto-feeds a fraction of your surplus primitives into the Core each cycle.", "implemented": false, "prereq": ["ENG_3", "ENG_5"]},
 	"ENG_S1": {"branch": "engineering", "cost": 2, "step": 1, "repeatable": true, "name": "Resource Surge",

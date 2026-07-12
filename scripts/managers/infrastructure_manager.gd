@@ -1022,6 +1022,12 @@ func _dr_units(building_id: String, count: int) -> float:
 var overclocks: Dictionary = {}
 
 func get_overclock(building_id: String) -> int:
+	# v135a: ENG_5 (Building Overclock warp node) globally unlocks overclock on ALL
+	# building types — the meta-prestige counterpart to the per-type Boost Card. The
+	# 200% cap + quadratic input penalty + UI slider all route through here, so this
+	# one gate propagates the whole feature.
+	if GameState.warp_manager and GameState.warp_manager.is_node_purchased("ENG_5"):
+		return 1
 	return int(overclocks.get(building_id, 0))
 
 # v131: Overclock input cost. OUTPUT scales linearly with throttle; INPUT scales
