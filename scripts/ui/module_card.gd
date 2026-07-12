@@ -1218,7 +1218,9 @@ func _build_comparison_tooltip_bbcode(anchor_select: bool = false, hover_affix: 
 					]
 
 		var line = "%s: %s%s" % [label, val_str, range_info]
-		if equipped_mid != "" and equipped_mid != mid and key != "energy_load":
+		# v135a: only diff stats present on BOTH items — an affix-only stat (on the
+		# hovered item but not equipped) would otherwise show a false +full-value.
+		if equipped_mid != "" and equipped_mid != mid and key != "energy_load" and equipped_stats.has(key):
 			var diff = val - equipped_stats.get(key, 0)
 			if diff > 0:
 				line += " [color=#46E0A0](+%s)[/color]" % FormatUtils.format_stat_value(key, diff)

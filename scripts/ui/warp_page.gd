@@ -26,6 +26,12 @@ const FIRST_SHARD_THRESHOLD := 500000.0
 
 # ─── State ────────────────────────────────────────────────────────────────
 var _wm  # GameState.warp_manager
+# v135a: gains-forward preview — leads the page with what you GET (shards, standing
+# multipliers, starter package) instead of the loss ledger. Neutral state, never a nag.
+var _gains_panel: PanelContainer
+var _gains_shards_lbl: Label
+var _gains_mult_lbl: Label
+var _gains_starter_lbl: Label
 var _col: VBoxContainer
 
 # Header
@@ -111,6 +117,7 @@ func _build_ui():
 	pad.add_child(_col)
 
 	_build_command_band()   # cycle + shards + vital chips + progress + actions, all in one compact band
+	_build_gains_preview()  # v135a: lead with the reward (shards + bonuses + starter), not the loss
 	_build_first_warp_block()
 	_build_feed_core_section()  # v134h: manual "Feed the Core" charge sink
 	_build_tree_section()    # the dominant zone — fills the rest of the viewport
@@ -600,6 +607,7 @@ func _update_all():
 	_refresh_header()
 	_refresh_first_warp_visibility()
 	_refresh_readiness()
+	_refresh_gains_preview()
 	_refresh_tree()
 	if _feed_picker != null:
 		_populate_feed_picker()   # v134h: refresh feedable-material owned counts
@@ -637,6 +645,66 @@ func _refresh_readiness():
 		_reso_val.text = "%s  +%d◈" % [FormatUtils.format_number(_wm.warp_charge), bonus]
 
 
+# v135a: gains-forward preview — the reward, shown before the loss ledger. Pure
+# neutral state (shards, standing multipliers, starter package). No "warp now" nag.
+func _build_gains_preview():
+	_gains_panel = PanelContainer.new()
+	_gains_panel.name = "GainsPreview"
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.08, 0.13, 0.12, 0.55)
+	sb.border_color = COLOR_SHARD
+	sb.border_color.a = 0.35
+	sb.set_border_width_all(1)
+	sb.set_corner_radius_all(6)
+	sb.set_content_margin_all(8)
+	_gains_panel.add_theme_stylebox_override("panel", sb)
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 3)
+	_gains_panel.add_child(vb)
+	var hdr := Label.new()
+	hdr.text = "◈ WARP REWARDS"
+	hdr.add_theme_font_size_override("font_size", 11)
+	hdr.add_theme_color_override("font_color", COLOR_SHARD)
+	vb.add_child(hdr)
+	_gains_shards_lbl = Label.new()
+	_gains_shards_lbl.add_theme_font_size_override("font_size", 15)
+	_gains_shards_lbl.add_theme_color_override("font_color", COLOR_KEEPS)
+	vb.add_child(_gains_shards_lbl)
+	_gains_mult_lbl = Label.new()
+	_gains_mult_lbl.add_theme_font_size_override("font_size", 11)
+	_gains_mult_lbl.add_theme_color_override("font_color", UITheme.COLORS.get("text_main", Color(0.85, 0.9, 0.95)))
+	vb.add_child(_gains_mult_lbl)
+	_gains_starter_lbl = Label.new()
+	_gains_starter_lbl.add_theme_font_size_override("font_size", 10)
+	_gains_starter_lbl.add_theme_color_override("font_color", COLOR_DIM)
+	vb.add_child(_gains_starter_lbl)
+	_col.add_child(_gains_panel)
+	_refresh_gains_preview()
+
+func _refresh_gains_preview():
+	if _gains_shards_lbl == null or _wm == null:
+		return
+	var base := int(_wm.calculate_warp_gains())
+	var bonus := int(_wm.get_charge_bonus_shards(base))
+	var total := base + bonus
+	if total > 0:
+		var extra := ("   (%d + %d Resonance)" % [base, bonus]) if bonus > 0 else ""
+		_gains_shards_lbl.text = "+%d %s%s" % [total, _shard_label(total), extra]
+		_gains_shards_lbl.add_theme_color_override("font_color", COLOR_KEEPS)
+	else:
+		_gains_shards_lbl.text = "— not ready yet"
+		_gains_shards_lbl.add_theme_color_override("font_color", Color(0.78, 0.62, 0.62))
+	var prod := (_wm.get_production_multiplier() - 1.0) * 100.0
+	var comb := (_wm.get_combat_multiplier() - 1.0) * 100.0
+	var gath := (_wm.get_gathering_multiplier() - 1.0) * 100.0
+	var xpm := (_wm.get_xp_multiplier() - 1.0) * 100.0
+	_gains_mult_lbl.text = "Standing bonuses  +%.0f%% Prod · +%.0f%% Combat · +%.0f%% Gather · +%.0f%% XP" % [prod, comb, gath, xpm]
+	var starter_mult := 1.0
+	if _wm.has_method("get_tree_starter_mult"):
+		starter_mult = _wm.get_tree_starter_mult()
+	var proj_shards: float = _wm.warp_shards + float(total)
+	_gains_starter_lbl.text = "Starter package on reset: %s credits + Fe / Si / Wood / Water" % FormatUtils.format_number(int(proj_shards * 5000.0 * starter_mult))
+
 # Per-frame live values: progress bar + button enable state.
 func _update_dynamic():
 	if _warp_btn == null: return
@@ -662,6 +730,7 @@ func _update_dynamic():
 	]
 	# Refresh readiness label too (gains can change live).
 	_refresh_readiness()
+	_refresh_gains_preview()
 
 
 # Mirrors warp_manager.calculate_warp_gains() score computation exactly.

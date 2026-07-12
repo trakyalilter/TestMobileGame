@@ -2867,6 +2867,40 @@ func generate_custom_weapon(base_weapon_id: String) -> String:
 	return generate_module_drop(base_weapon_id, Rarity.RARE)
 
 # v71.0: Get rarity of any module (with name-based fallback for legacy items)
+# v135a: distinct unique-set pieces OWNED (equipped + inventory) per set_id, capped
+# at 3 (weapon/armor/shield). Feeds the neutral Collection panel — pure state, no
+# weakness/zone hints. Counts DISTINCT slot-types so duplicates never read >3/3.
+func get_owned_set_counts() -> Dictionary:
+	var by_set := {}   # set_id -> {slot_type: true}
+	for slot in loadout:
+		var m = loadout[slot]
+		if m != null and String(m) != "":
+			_tally_set_piece(by_set, String(m))
+	for mid in module_inventory:
+		if int(module_inventory.get(mid, 0)) > 0:
+			_tally_set_piece(by_set, String(mid))
+	var out := {}
+	for sid in by_set:
+		out[sid] = int((by_set[sid] as Dictionary).size())
+	return out
+
+func _tally_set_piece(by_set: Dictionary, mid: String) -> void:
+	if mid == "" or mid == equipped_relic:
+		return
+	var mdata: Dictionary = modules.get(mid, {})
+	var sid := String(mdata.get("set_id", ""))
+	# Fallback: affixed/custom drops may carry set_id only on the base module.
+	if sid == "" and mdata.get("is_custom", false) and mdata.has("base_module"):
+		sid = String(modules.get(mdata["base_module"], {}).get("set_id", ""))
+	if sid == "":
+		return
+	var st := String(mdata.get("slot_type", ""))
+	if st == "":
+		return
+	var d: Dictionary = by_set.get(sid, {})
+	d[st] = true
+	by_set[sid] = d
+
 func get_module_rarity(module_id: String) -> int:
 	var m = modules.get(module_id, {})
 	if m.has("rarity"):
