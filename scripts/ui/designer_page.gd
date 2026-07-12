@@ -1752,8 +1752,9 @@ func rebuild_slots():
 	if not manager.active_hull in manager.hulls:
 		return
 
-	var hull_data = manager.hulls[manager.active_hull]
-	var slots = hull_data["slots"]
+	# v135a: effective slots include the CMB_3 auxiliary slot (type "aux") when the
+	# warp node is owned — it renders as its own blade below.
+	var slots = manager.get_effective_slots()
 
 	var blades = {
 		"Weapons": [],
@@ -1761,7 +1762,8 @@ func rebuild_slots():
 		"Defense": [],
 		"Armor": [],
 		"Systems": [],
-		"Utility": []
+		"Utility": [],
+		"Auxiliary": []
 	}
 
 	for i in range(slots.size()):
@@ -1775,6 +1777,13 @@ func rebuild_slots():
 			blades["Armor"].append({"idx": i, "type": slot_type})
 		elif slot_type in ["engine", "reactor", "battery"]:
 			blades["Systems"].append({"idx": i, "type": slot_type})
+		elif slot_type == "aux":
+			# v135a: CMB_3 aux slot — accepts any module type. If a WEAPON currently
+			# occupies it, also surface an ammo slot so its ammo can be tuned.
+			blades["Auxiliary"].append({"idx": i, "type": slot_type})
+			var _am = manager.loadout.get(i)
+			if _am != null and _am in manager.modules and manager.modules[_am].get("slot_type", "") == "weapon":
+				blades["Ammunition"].append({"idx": i, "type": "ammo"})
 		else:
 			blades["Utility"].append({"idx": i, "type": slot_type})
 
@@ -1784,6 +1793,7 @@ func rebuild_slots():
 	_create_blade("Armor", blades["Armor"], slot_container, UITheme.COLORS["accent"])
 	_create_blade("Systems", blades["Systems"], slot_container, UITheme.COLORS["accent_bright"])
 	_create_blade("Utility", blades["Utility"], slot_container, UITheme.CATEGORY_COLORS["research"])
+	_create_blade("Auxiliary", blades["Auxiliary"], slot_container, Color(0.78, 0.55, 1.0))
 	_create_consumable_blade(slot_container)
 
 func _create_blade(title: String, slot_list: Array, parent: Node, color: Color = Color.WHITE, is_ammo: bool = false):

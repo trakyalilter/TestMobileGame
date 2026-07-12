@@ -354,7 +354,12 @@ func refresh_state():
 		_refresh_consumable_state()
 		return
 
-	type_lbl.text = "%s %d" % [slot_type.to_upper(), _get_type_number()]
+	# v135a: the CMB_3 aux slot is a singleton that accepts any type — label it as
+	# such rather than "AUX 1", so its any-type nature reads at a glance.
+	if slot_type == "aux":
+		type_lbl.text = "AUX · ANY"
+	else:
+		type_lbl.text = "%s %d" % [slot_type.to_upper(), _get_type_number()]
 	type_lbl.add_theme_color_override("font_color", _get_slot_color(slot_type))
 	
 	option_btn.clear()
@@ -620,7 +625,8 @@ func refresh_state():
 		var count = inv[mid]
 		if count > 0 and mid in manager.modules:
 			var m_data = manager.modules[mid]
-			if m_data["slot_type"] == slot_type:
+			# v135a: the aux slot lists every standard module type (not gems/consumables).
+			if m_data["slot_type"] == slot_type or (slot_type == "aux" and not m_data["slot_type"] in ["gem", "consumable"]):
 				var item_idx = option_btn.item_count
 				var m_rarity = manager.get_module_rarity(mid)
 				var r_label = manager.RARITY_LABELS.get(m_rarity, "COMMON").to_upper()
@@ -699,6 +705,7 @@ func _get_slot_color(s_type: String) -> Color:
 		"engine", "reactor", "battery": return Color(0.84, 0.79, 0.43)
 		"ammo": return Color(0.88, 0.60, 0.34)
 		"consumable": return Color(0.74, 0.74, 0.86)
+		"aux": return Color(0.78, 0.55, 1.0)  # v135a: warp-purple — CMB_3 any-type slot
 		_: return Color(0.65, 0.58, 0.47)
 
 func _get_gem_color(gem_name: String) -> Color:
@@ -893,6 +900,10 @@ func _can_drop_data(at_position: Vector2, data: Variant) -> bool:
 						if g == null:
 							return true
 			return false
+		# v135a: the CMB_3 aux slot accepts any dragged module except socket gems /
+		# consumables (gems are routed to sockets by the branch above).
+		if slot_type == "aux":
+			return not data.get("slot_type") in ["gem", "consumable"]
 		return data.get("slot_type") == slot_type
 	return false
 

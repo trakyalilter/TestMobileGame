@@ -1641,7 +1641,9 @@ func construct_hull(hull_id: String) -> bool:
 
 	active_hull = hull_id
 	loadout = {}
-	for i in range(hull_data["slots"].size()):
+	# v135a: iterate EFFECTIVE slots so the CMB_3 aux slot is pre-allocated on the
+	# new hull — a base-size loop would strip the aux entry on every hull switch.
+	for i in range(get_effective_slots().size()):
 		loadout[i] = null
 
 	# Auto-transfer: re-equip each previous module into the first matching
@@ -1666,10 +1668,18 @@ func construct_hull(hull_id: String) -> bool:
 		if not _mid in modules:
 			continue
 		var _mtype = modules[_mid].get("slot_type", "")
+		var _placed := false
 		for _s in range(hull_data["slots"].size()):
 			if loadout.get(_s) == null and hull_data["slots"][_s] == _mtype:
 				if module_inventory.get(_mid, 0) > 0 and equip_module(_s, _mid, true):
+					_placed = true
 					break
+		# v135a: last-resort landing in the CMB_3 aux slot (accepts any type) so a
+		# carried module isn't stranded in inventory when its base slots are full.
+		if not _placed:
+			var _aux := get_aux_slot_index()
+			if _aux >= 0 and loadout.get(_aux) == null and module_inventory.get(_mid, 0) > 0:
+				equip_module(_aux, _mid, true)
 
 	# Recalculate to get new max_hp
 	recalc_stats()
@@ -1765,10 +1775,12 @@ func equip_module(slot_idx: int, module_id: String, silent: bool = false) -> boo
 		return false
 	var hull_data = hulls[active_hull]
 	
-	if slot_idx >= hull_data["slots"].size():
+	# v135a: effective slots include the CMB_3 aux slot (index == base slot count).
+	var eff_slots := get_effective_slots()
+	if slot_idx >= eff_slots.size():
 		print("Equip Fail: Slot index out of bounds.")
 		return false
-	var req_type = hull_data["slots"][slot_idx]
+	var req_type = eff_slots[slot_idx]
 	
 	if not module_id in modules:
 		print("Equip Fail: Module ID not found.")
@@ -1783,7 +1795,13 @@ func equip_module(slot_idx: int, module_id: String, silent: bool = false) -> boo
 		return false
 		
 	var mod_data = modules[module_id]
-	if mod_data["slot_type"] != req_type:
+	# v135a: the CMB_3 aux slot (req_type "aux") accepts any standard module type,
+	# but NOT socket gems or consumables — those have their own equip paths.
+	if req_type == "aux":
+		if mod_data["slot_type"] in ["gem", "consumable"]:
+			print("Equip Fail: Aux slot rejects ", mod_data["slot_type"])
+			return false
+	elif mod_data["slot_type"] != req_type:
 		print("Equip Fail: Slot Type Mismatch. Req: ", req_type, " Got: ", mod_data["slot_type"])
 		return false
 		
@@ -2058,6 +2076,31 @@ func get_gem_facet_text(gem_id: String, slot_type: String) -> String:
 	for k in facet:
 		parts.append(format_gem_stat(String(k), facet[k]))
 	return ", ".join(parts)
+
+# v135a: CMB_3 "Auxiliary Slot" warp node grants ONE extra module slot that
+# accepts ANY module type. Rather than hard-code an index (base slot counts differ
+# per hull, corvette 8 → dreadnought 26), expose an EFFECTIVE-slots accessor: the
+# hull's fixed slots plus one "aux" sentinel when CMB_3 is owned. Every slot-length
+# / slot-type read routes through this so the aux slot stays consistent across
+# equip, hull-switch, save/load, reset, and the designer UI.
+func get_effective_slots() -> Array:
+	if not active_hull in hulls:
+		return []
+	var s: Array = hulls[active_hull]["slots"].duplicate()
+	# warp_manager may be null during autoload-init ordering — treat as not-owned.
+	if GameState.warp_manager and GameState.warp_manager.is_node_purchased("CMB_3"):
+		s.append("aux")
+	return s
+
+# Loadout index of the aux slot on the CURRENT hull (== base slot count), or -1
+# when CMB_3 is not owned / no valid hull. Derived, never persisted — it moves with
+# the hull's base slot count, which is correct because hull-switch re-seats slots.
+func get_aux_slot_index() -> int:
+	if not active_hull in hulls:
+		return -1
+	if GameState.warp_manager and GameState.warp_manager.is_node_purchased("CMB_3"):
+		return hulls[active_hull]["slots"].size()
+	return -1
 
 func recalc_stats():
 	# Capture the pre-recalc damage fraction. Loadout / research / hull /
@@ -2354,13 +2397,27 @@ func load_save_data_manager(data: Dictionary):
 	# Convert JSON string keys back to int if needed or handle direct
 	loadout = {}
 	if active_hull in hulls:
-		var slot_count = hulls[active_hull]["slots"].size()
+		# v135a: EFFECTIVE slot count so a saved CMB_3 aux-slot module (index == base
+		# slot count) is restored, not silently truncated on every relog.
+		var slot_count = get_effective_slots().size()
 		for i in range(slot_count):
 			var val = saved_load.get(str(i)) # JSON keys are strings
 			if not val: val = saved_load.get(i) # Try int key
 			loadout[i] = val
-			
+
 	module_inventory = data.get("inventory", {})
+	# v135a: return any saved loadout entry BEYOND the effective slot count to
+	# inventory — e.g. an aux-slot module saved while CMB_3 was owned, then loaded
+	# after a hard reset cleared the node (or before warp_manager finished init).
+	# Runs AFTER module_inventory is loaded above so the += isn't overwritten.
+	if active_hull in hulls:
+		var _eff_count: int = get_effective_slots().size()
+		for _k in saved_load.keys():
+			var _idx := int(_k)
+			if _idx >= _eff_count:
+				var _amid = saved_load[_k]
+				if _amid != null and _amid != "" and _amid in modules:
+					module_inventory[_amid] = module_inventory.get(_amid, 0) + 1
 	unseen_modules = data.get("unseen_modules", {})
 	# Migration: old saves have no armory_layout → {} (everything auto-packs).
 	armory_layout = data.get("armory_layout", {})
@@ -2482,7 +2539,9 @@ func reset(decay_factor: float = 1.0) -> void:
 		loadout_presets[_pi] = {"name": "", "loadout": {}, "ammo_loadout": {}, "consumable_hull": "", "consumable_shield": ""}
 	active_preset_idx = 1
 	if active_hull in hulls:
-		for i in range(hulls[active_hull]["slots"].size()):
+		# v135a: effective slots so the CMB_3 aux slot stays allocated post-warp
+		# (loadout persists across warp; CMB_3 persists in warp_manager).
+		for i in range(get_effective_slots().size()):
 			loadout[i] = null
 	# v134g: power-first onboarding. A NEW GAME (decay_factor >= 1.0) now starts
 	# UNPOWERED — the tutorial (m005b/m005c) teaches the player to craft + equip
