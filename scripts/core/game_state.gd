@@ -308,7 +308,7 @@ var _infra_emit_accum := 0.0
 var pending_offline: String = ""
 var _offline_lost := {}         # distinct material types dropped (storage full) during the away window
 var _bg_time := 0.0             # wall-clock when the app was backgrounded (0 = foreground)
-var offline_combat := false             # option: process combat while away (off by default, like desktop)
+var offline_combat := true              # v135a: ON by default for NEW games — it's winnability-gated AND rolls the full module pool (gear farms while away, amortizing the gear-check grind). Existing saves keep their stored value on load (no surprise durability-loss consent); saves predating the key stay off.
 var total_kills := 0                    # lifetime manual kills (offline-combat nudge trigger)
 
 # Legacy single-save path (pre-slots). Kept only for the one-time migration below.
@@ -5499,6 +5499,8 @@ func hard_reset() -> void:
 	resources = {}
 	credits = 0
 	lifetime_credits = 0
+	offline_combat = true               # v135a: new game defaults offline-combat ON
+	loot_filter = {0: true, 1: true, 2: true, 3: true, 4: true}
 	warp_shards = 0.0
 	total_warps = 0
 	fleet_ships = []
