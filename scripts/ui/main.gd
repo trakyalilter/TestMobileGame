@@ -3767,6 +3767,18 @@ func _warp_core(v: VBoxContainer) -> void:
 	else:
 		_lbl_wrap(v, "Warping now grants %d Warp Shard%s." % [gain, "s" if gain != 1 else ""], 12, GREEN)
 
+	# v135a legibility: lead the warp screen with the persistent REWARD — the
+	# standing multipliers Warp Shards grant, which carry across every warp. Neutral
+	# state on a chosen screen (no "warp now" prompt).
+	_section(v, "WARP REWARDS", PURP)
+	_lbl_wrap(v, "Warp Shards permanently raise these standing bonuses (they persist through every warp):", 10, C_DIM)
+	_clbl(v, "⚙ Production   ×%.2f" % GameState.warp_production_mult(), 11, GOLD)
+	_clbl(v, "⚔ Combat       ×%.2f" % GameState.warp_combat_mult(), 11, GOLD)
+	_clbl(v, "⛏ Gathering    ×%.2f" % GameState.warp_gathering_mult(), 11, GOLD)
+	_clbl(v, "✦ XP           ×%.2f" % GameState.warp_xp_mult(), 11, GOLD)
+	if gain > 0:
+		_lbl_wrap(v, "You currently hold %s shards; warping banks +%d more." % [GameData.fmt(int(GameState.warp_shards)), gain], 10, C_DIM)
+
 	# Warp-Core Charge: feed surplus bulk base materials for bonus shards this warp.
 	var charge_bonus := GameState.get_charge_bonus_shards(gain)
 	_section(v, "WARP-CORE CHARGE", PURP)
@@ -4891,6 +4903,31 @@ func _confirm_scrap(max_rarity: int, label: String) -> void:
 		mv.add_child(go)
 	_modal("SCRAP JUNK", GOLD, body, "⚠")
 
+# v135a legibility: a neutral "trophy cabinet" of Unique-Set completion (X/3
+# pieces owned). Gold at 3/3, normal while collecting, muted at 0/3. No zone or
+# weak-type hint — the player self-discovers sets via drops.
+func _unique_sets_panel(v: VBoxContainer) -> void:
+	var counts: Dictionary = GameState.owned_set_counts()
+	var ids: Array = GameData.SETS.keys()
+	ids.sort()
+	_section(v, "✦ UNIQUE SETS  ·  collection", PURP)
+	var flow := HFlowContainer.new()
+	flow.add_theme_constant_override("h_separation", 6)
+	flow.add_theme_constant_override("v_separation", 6)
+	for sid in ids:
+		var total: int = (GameData.SETS[sid].get("pieces", []) as Array).size()
+		var have := int(counts.get(sid, 0))
+		var col: String = GOLD if (total > 0 and have >= total) else (C_TEXT if have > 0 else C_MUTED)
+		var chip := PanelContainer.new()
+		chip.add_theme_stylebox_override("panel", _card_style(_mix(col, SURFACE, 0.85), _mix(col, LINE, 0.4), 1, false))
+		var lbl := Label.new()
+		lbl.text = "  %s  %d/%d  " % [GameData.SETS[sid].get("name", sid), have, total]
+		lbl.add_theme_font_size_override("font_size", _fs(10))
+		lbl.add_theme_color_override("font_color", Color.html(col))
+		chip.add_child(lbl)
+		flow.add_child(chip)
+	v.add_child(flow)
+
 func _ship_armory(v: VBoxContainer) -> void:
 	if GameState.equip_notice != "":
 		var warn := Label.new()
@@ -4911,6 +4948,7 @@ func _ship_armory(v: VBoxContainer) -> void:
 		v.add_child(back)
 	else:
 		# Browse mode (opened via the Armory tab): pick a slot type to view.
+		_unique_sets_panel(v)
 		_ship_slot_tabs(v)
 	# Collect every owned module for this slot: rolled customs + base modules.
 	# The aux slot (CMB_3) fits any standard module type, so it lists everything

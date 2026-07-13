@@ -1566,6 +1566,34 @@ func equipped_set_counts() -> Dictionary:
 			counts[sn] = int(counts.get(sn, 0)) + 1
 	return counts
 
+# v135a legibility: distinct set PIECES owned (equipped + inventory + custom rolls),
+# per set, capped at the set size (3). Drives the Armory "Unique Sets" tracker — a
+# neutral trophy cabinet, no zone/weak-type hint.
+func _owns_set_piece(base_id: String) -> bool:
+	if int(module_inventory.get(base_id, 0)) > 0:
+		return true
+	for k in loadout:
+		var mid = loadout[k]
+		if mid == base_id:
+			return true
+		if custom_modules.has(mid) and String(custom_modules[mid].get("base", "")) == base_id:
+			return true
+	for cid in custom_modules:
+		if String(custom_modules[cid].get("base", "")) == base_id and int(module_inventory.get(cid, 0)) > 0:
+			return true
+	return false
+
+func owned_set_counts() -> Dictionary:
+	var out := {}
+	for sid in GameData.SETS:
+		var pieces: Array = GameData.SETS[sid].get("pieces", [])
+		var have := 0
+		for base_id in pieces:
+			if _owns_set_piece(String(base_id)):
+				have += 1
+		out[sid] = have
+	return out
+
 func has_set_bonus(bonus_key: String) -> bool:
 	var counts := equipped_set_counts()
 	for sn in counts:
