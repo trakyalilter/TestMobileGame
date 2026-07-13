@@ -15,7 +15,7 @@ extends Node
 # ============================================================================
 
 const DT := 0.1
-const MAXT := 300.0
+const MAXT := 1500.0   # v135c: was 300 — Z9/Z10 wins hit that cap and Z11 (~19min cryo kill) needs the room
 const TRIALS := 5   # per (boss,rarity) — smooths rarity-roll + affix + combat RNG
 const RN := {0: "Common", 1: "Uncmn", 2: "Rare", 3: "Legnd", 4: "Uniq"}
 const SUFFIX := {"kinetic": "kinetic", "energy": "energy", "explosive": "missile"}
@@ -117,9 +117,17 @@ func _fight(sm, cm, rm, b, gear_n, weak, rarity) -> Dictionary:
 	GameState.hard_reset()
 	cm.boss_kills.clear()
 	cm.total_kills = 0
+	# v135c: cryo-gated bosses (Z11/Z12 warp_hardened — non-cryo cut ~98%). The intended
+	# answer is the Cryo-Lance (post-first-warp). Unlock cryo + fight with cryo weapons so
+	# these get a real verdict instead of a false "everything loses".
+	var cryo: bool = bool(b["e"].get("warp_hardened", false))
+	if cryo:
+		GameState.game_settings["cryo_unlocked"] = true
+		if not ("cryo_armaments" in rm.unlocked_techs):
+			rm.unlocked_techs.append("cryo_armaments")
 	_unlock_research(rm, int(b["n"]))
 	_set_hull(sm, int(b["n"]))
-	_equip_gear(sm, int(gear_n), String(weak), int(rarity))
+	_equip_gear(sm, int(gear_n), String(weak), int(rarity), cryo)
 	_ammo_kits(sm, String(weak), int(b["n"]))
 	sm.recalc_stats()
 	sm.current_hp = sm.max_hp
@@ -168,13 +176,21 @@ func _slots(sm, stype) -> Array:
 			out.append(i)
 	return out
 
-func _equip_gear(sm, gear_n, weak, rarity) -> void:
+func _equip_gear(sm, gear_n, weak, rarity, cryo := false) -> void:
 	# Power FIRST: equip_module's power guard blocks a weapon whose load exceeds
 	# current capacity, so batteries must be in the loadout before the weapons.
 	# Power is NOT the gear-check variable — over-provision (legendary batteries)
 	# so the only thing under test is weapon/armor/shield rarity.
 	_fill(sm, "battery", "z%d_battery" % clampi(gear_n, 1, 10), 3, gear_n)
-	if rarity == 4:
+	if cryo:
+		# Cryo-gated boss: Cryo-Lance weapons (the only thing that breaches warp-hardened).
+		# Z11+ has no armor/shield modules of its own (only Cryo-Lance drops), so defense
+		# falls back to the highest normal tier (z10).
+		var dn: int = min(int(gear_n), 10)
+		_fill(sm, "weapon", "cryo_lance", rarity, dn)
+		_fill(sm, "armor", "z%d_armor" % dn, rarity, dn)
+		_fill(sm, "shield", "z%d_shield" % dn, rarity, dn)
+	elif rarity == 4:
 		_fill(sm, "weapon", "z%d_unique_weapon" % gear_n, 4, gear_n)
 		_fill(sm, "armor", "z%d_unique_armor" % gear_n, 4, gear_n)
 		_fill(sm, "shield", "z%d_unique_shield" % gear_n, 4, gear_n)
