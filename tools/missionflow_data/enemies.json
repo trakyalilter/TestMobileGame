@@ -336,10 +336,10 @@
     "resist_x": 0.0,
     "stats": {
       "accuracy": 250,
-      "atk": 200000,
+      "atk": 70200,
       "atk_interval": 3.0,
       "def": 21730,
-      "hp": 20000000,
+      "hp": 6200000,
       "max_shield": 144872
     },
     "xp": 500000,
@@ -852,11 +852,11 @@
     "resist_x": -0.3,
     "stats": {
       "accuracy": 35,
-      "atk": 54,
+      "atk": 50,
       "atk_interval": 2.5,
-      "def": 18,
-      "hp": 1200,
-      "max_shield": 120
+      "def": 15,
+      "hp": 1000,
+      "max_shield": 100
     },
     "xp": 100,
     "zone": 1
@@ -1021,7 +1021,7 @@
       "atk": 15,
       "atk_interval": 2.2,
       "def": 3,
-      "hp": 200
+      "hp": 150
     },
     "xp": 10,
     "zone": 1
@@ -1082,7 +1082,7 @@
       "atk": 13,
       "atk_interval": 1.0,
       "def": 3,
-      "hp": 150,
+      "hp": 120,
       "max_shield": 40
     },
     "xp": 12,
@@ -1496,7 +1496,7 @@
     "resist_x": 0.45,
     "stats": {
       "accuracy": 65,
-      "atk": 319,
+      "atk": 210,
       "atk_interval": 2.5,
       "def": 87,
       "hp": 17424,
@@ -1817,10 +1817,10 @@
     "resist_x": 0.0,
     "stats": {
       "accuracy": 85,
-      "atk": 766,
+      "atk": 444,
       "atk_interval": 2.5,
       "def": 191,
-      "hp": 51110,
+      "hp": 25555,
       "max_shield": 1277
     },
     "xp": 2000,
@@ -2239,10 +2239,10 @@
     "resist_x": -0.4,
     "stats": {
       "accuracy": 110,
-      "atk": 1827,
+      "atk": 749,
       "atk_interval": 2.5,
       "def": 421,
-      "hp": 140553,
+      "hp": 80000,
       "max_shield": 2811
     },
     "xp": 5000,
@@ -2426,10 +2426,10 @@
     "resist_x": 0.45,
     "stats": {
       "accuracy": 140,
-      "atk": 4329,
+      "atk": 1775,
       "atk_interval": 2.5,
       "def": 927,
-      "hp": 371061,
+      "hp": 185531,
       "max_shield": 6184
     },
     "xp": 15000,
@@ -2699,10 +2699,10 @@
     "resist_x": 0.0,
     "stats": {
       "accuracy": 170,
-      "atk": 14000,
+      "atk": 6006,
       "atk_interval": 2.5,
       "def": 2040,
-      "hp": 1400000,
+      "hp": 490000,
       "max_shield": 13605
     },
     "xp": 35000,
@@ -2977,10 +2977,10 @@
     "resist_x": -0.4,
     "stats": {
       "accuracy": 200,
-      "atk": 38000,
+      "atk": 12200,
       "atk_interval": 2.5,
       "def": 4489,
-      "hp": 4000000,
+      "hp": 1600000,
       "max_shield": 29932
     },
     "xp": 80000,
@@ -3317,10 +3317,10 @@
     "resist_x": 0.45,
     "stats": {
       "accuracy": 230,
-      "atk": 90000,
-      "atk_interval": 1.5,
+      "atk": 23400,
+      "atk_interval": 2.5,
       "def": 9877,
-      "hp": 10000000,
+      "hp": 3200000,
       "max_shield": 65851
     },
     "xp": 200000,
