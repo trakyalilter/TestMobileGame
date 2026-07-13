@@ -431,11 +431,30 @@ func _do_combat(mid: String, zid: String, eid: String) -> Dictionary:
 	# best-zone detour / income backoff (the v135 matrix showed pure income-idling
 	# parked a run 52h at the Architect).
 	if bool(cm.enemy_db.get(eid, {}).get("is_boss", false)):
-		if int(_losses.get(eid, 0)) >= 2 and not _boss_gear_ready(eid):
+		var _bl := int(_losses.get(eid, 0))
+		# Escalate the gear bar on SUSTAINED losses: Uncommon by default, Rare after 5
+		# real losses. Self-correcting — a boss winnable at Uncommon wins before the
+		# streak escalates (no over-farm); one that needs Rare escalates on true losses.
+		var _bar: int = 2 if _bl >= 5 else 1
+		if _bl >= 2 and not _boss_gear_ready(eid, _bar):
 			var reg := _regular_enemy_in_zone(zid)
 			if reg != "" and reg != eid:
-				status = "farming uncommon+ %s gear for %s" % [_enemy_weak_type(eid), eid]
+				status = "farming %s+ %s gear for %s" % [
+					("rare" if _bar >= 2 else "uncommon"), _enemy_weak_type(eid), eid]
 				return _do_combat_farm(mid, zid, reg, "detour")
+		# Gear-ready but STILL losing → maybe the HULL is the bottleneck. A real player
+		# figures out to build a bigger ship; the bot works it out ITSELF (NO hand-holding
+		# mission). But ONLY when genuinely UNDER-HULLED — hull tier < the boss's zone —
+		# else the loss is a gear/RNG problem and rebuilding just burns resources (an early
+		# version rebuilt hulls at every hard boss and regressed the funnel). At/above the
+		# zone tier the answer is better gear, not a bigger ship.
+		var _htier := int(GameState.shipyard_manager.hulls.get(GameState.shipyard_manager.active_hull, {}).get("tier", 0))
+		var _bzone := int(cm.enemy_db.get(eid, {}).get("zone", 0))
+		if _bl >= 5 and _htier < _bzone:
+			var _up := _best_better_hull()
+			if _up != "":
+				status = "hull too small for %s -> building %s" % [eid, _up]
+				return _do_construct(mid, _up)
 	elif int(_losses.get(eid, 0)) >= 2 and _detoured_this_session.get(eid, false):
 		var z: Dictionary = actions._best_unlocked_zone()
 		if not z.is_empty() and String(z["enemy"]) != eid:
@@ -559,31 +578,46 @@ func _count_owned(slot_type: String, wtype: String, min_rarity: int) -> int:
 				n += 1
 	return n
 
-func _boss_gear_ready(eid: String) -> bool:
+func _boss_gear_ready(eid: String, min_rarity: int = 1) -> bool:
 	var weak := _enemy_weak_type(eid)
 	if weak == "":
 		return true
-	# Threshold measured by boss_threshold.gd: with the mission-provided (ahead-tier)
-	# hull + kits, a full UNCOMMON weak-type loadout beats the mandatory bosses
-	# (Architect 5/5, Monolith 4/5). Common LOSES; RARE is NOT required. Requiring
-	# rare here was the false 48-72h "farm rare gear" wall — a real player fights the
-	# moment they're uncommon-equipped, which happens incidentally while clearing the
-	# zone. Uncommon drops ~4.5x more often than rare, so this is an hours farm, not days.
-	#
-	# FLAT uncommon bar — deliberately NO loss-based escalation. A bar that bumped to
-	# RARE after an unlucky loss streak dropped the bot straight back into the multi-day
-	# rare farm (an early matrix regressed follower_11 exactly this way). _do_combat only
-	# farms when NOT gear_ready, so once uncommon-equipped the bot RE-ATTEMPTS (80%/win)
-	# instead of over-farming. A deeper boss where uncommon is genuinely insufficient
-	# will surface as an HONEST mission:overdue wall — the signal to measure that boss
-	# with boss_threshold.gd and set a per-zone bar, not to silently grind rare.
-	if _count_owned("weapon", weak, 1) < _slot_indices("weapon").size():
+	# Gear bar = min_rarity: Uncommon (1) by default, escalated to Rare (2) by _do_combat
+	# after 5 SUSTAINED losses. Measured with boss_threshold.gd: Uncommon suffices for
+	# ahead-tier-hull bosses (Z1/Z2 architect/monolith); matched/behind-hull bosses (Z3+)
+	# need Rare (full loadout — weapons AND armor AND shield, "not only weapons"). The
+	# escalation is SELF-CORRECTING: a boss winnable at Uncommon wins before the streak
+	# reaches 5, so no over-farm; a Rare-gated one escalates only on real losses. If Rare
+	# on the best affordable HULL still loses, _do_combat builds a bigger ship (the hull,
+	# not the gear, is then the bottleneck).
+	if _count_owned("weapon", weak, min_rarity) < _slot_indices("weapon").size():
 		return false
-	if _slot_indices("armor").size() > 0 and _count_owned("armor", "", 1) < 1:
+	if _slot_indices("armor").size() > 0 and _count_owned("armor", "", min_rarity) < 1:
 		return false
-	if _slot_indices("shield").size() > 0 and _count_owned("shield", "", 1) < 1:
+	if _slot_indices("shield").size() > 0 and _count_owned("shield", "", min_rarity) < 1:
 		return false
 	return true
+
+# The next hull tier the bot has UNLOCKED (research-gated by zone access) above its
+# current one — the ship a real player builds to push forward. Smallest tier > current
+# (incremental, not a leap to an unaffordable capital). _do_construct then handles
+# affordability (acquire mats/credits); construct_hull auto-transfers the loadout.
+func _best_better_hull() -> String:
+	var sm = GameState.shipyard_manager
+	var cur_tier := int(sm.hulls.get(sm.active_hull, {}).get("tier", 0))
+	var pick := ""
+	var pick_tier := 999
+	for hid in sm.hulls:
+		var h: Dictionary = sm.hulls[hid]
+		var t := int(h.get("tier", 0))
+		if t <= cur_tier or t >= pick_tier:
+			continue
+		var rr = h.get("research_req")
+		if rr and not GameState.research_manager.is_tech_unlocked(String(rr)):
+			continue
+		pick = String(hid)
+		pick_tier = t
+	return pick
 
 func _regular_enemy_in_zone(zid: String) -> String:
 	# Only BACK-half enemies (e3+) drop MODULES — front (e1/e2) are materials-only

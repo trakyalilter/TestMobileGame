@@ -18,13 +18,35 @@ const TRIALS := 5
 const SUFFIX := {"kinetic": "kinetic", "energy": "energy", "explosive": "missile"}
 const AMMO := {"kinetic": "Slug", "energy": "Cell", "explosive": "Missile"}
 
-# Mandatory story bosses + the hull the mission actually arms the player with by
-# the time they reach the fight (frigate @ Architect m026e, destroyer @ Monolith
-# m030d) — NOT boss_gearcheck's tier==zone corvette (a hull-fidelity artifact).
+# Mandatory story bosses + the hull the mission chain ACTUALLY arms the player with
+# by the time they reach each fight (traced from mission_manager construct/defeat
+# order) — NOT boss_gearcheck's tier==zone hull. The gap (hull tier vs zone) is the
+# whole point: +1 ahead at Z1/Z2, level at Z3, then the destroyer STALLS through
+# Z4/Z5 (cruiser tier-4 is skipped by the funnel) → the player is 1-2 hull tiers
+# BEHIND what the audit assumed. weak-type is computed from resists at runtime.
 const CASES := [
-	{"eid": "z1_boss_architect", "zone": "lunar_orbit", "hull": "frigate_hull", "gear_n": 1, "weak": "kinetic"},
-	{"eid": "z2_boss_monolith", "zone": "asteroid_belt", "hull": "destroyer_hull", "gear_n": 2, "weak": "explosive"},
+	{"eid": "z1_boss_architect", "zone": "lunar_orbit", "hull": "frigate_hull", "gear_n": 1, "htier": 2},
+	{"eid": "z2_boss_monolith", "zone": "asteroid_belt", "hull": "destroyer_hull", "gear_n": 2, "htier": 3},
+	{"eid": "z3_boss_warmaster", "zone": "mars_debris", "hull": "destroyer_hull", "gear_n": 3, "htier": 3},
+	# v135c: the player (and the bot, via player_like._best_better_hull) builds the Heavy
+	# Cruiser (t4) themselves when the Destroyer stops cutting it — NO hand-holding mission.
+	# Probe confirms Rare wins BOTH on the cruiser (Z4 4/5, Z5 4/5 at -1) — vs Rare LOSING
+	# on the old destroyer (Z4 2/5, Z5 1/5). Z6 stays on the battlecruiser (t5, -1, Rare
+	# 3/5) — a marginal pass; a tier-6 hull is a follow-up. These CASES model the intended
+	# hull-at-zone the bot/player reaches on its own.
+	{"eid": "z4_boss_overseer", "zone": "cryofield", "hull": "cruiser_hull", "gear_n": 4, "htier": 4},
+	{"eid": "z5_boss_harbinger", "zone": "sector_alpha", "hull": "cruiser_hull", "gear_n": 5, "htier": 4},
+	{"eid": "z6_boss_colossus", "zone": "sector_beta", "hull": "battlecruiser_hull", "gear_n": 6, "htier": 5},
 ]
+
+func _weak(e: Dictionary) -> String:
+	var rk := float(e.get("resist_k", 0.0))
+	var re := float(e.get("resist_e", 0.0))
+	var rx := float(e.get("resist_x", 0.0))
+	var m: float = min(rk, min(re, rx))
+	if m == rx: return "explosive"
+	if m == re: return "energy"
+	return "kinetic"
 
 func _ready() -> void:
 	var sm = GameState.shipyard_manager
@@ -41,16 +63,26 @@ func _ready() -> void:
 
 func _run_case(sm, cm, rm, c) -> void:
 	var eid := String(c["eid"])
-	var weak := String(c["weak"])
+	var weak := _weak(cm.enemy_db.get(eid, {}))
 	var wslots := _weapon_slot_count(sm, String(c["hull"]))
+	var zone := int(c["gear_n"])
+	var htier := int(c["htier"])
+	var gap := htier - zone
+	var gap_s := ("+%d" % gap) if gap >= 0 else str(gap)
 	print("[BTH] ------------------------------------------------------------")
-	print("[BTH] %s  hull=%s  weapon_slots=%d  weak=%s" % [eid, String(c["hull"]), wslots, weak])
-	# Reference: all-uncommon (boss_gearcheck says this is the near-miss band).
-	print("[BTH]   all-UNCOMMON        : %s" % _fmt(_trials(sm, cm, rm, c, 1, -1)))
+	print("[BTH] %s  Z%d  hull=%s(t%d, %s vs zone)  wpn_slots=%d  weak=%s" % [
+		eid, zone, String(c["hull"]), htier, gap_s, wslots, weak])
+	# Full-loadout ladder (weapons AND armor/shield at the tier) — the clean signal
+	# vs boss_gearcheck (defense matters as much as weapon rarity on the harder bosses).
+	print("[BTH]   all-UNCOMMON        : %s" % _fmt(_trials(sm, cm, rm, c, weak, 1, -1)))
+	print("[BTH]   all-RARE            : %s" % _fmt(_trials(sm, cm, rm, c, weak, 2, -1)))
 	# Realistic climb: common base + K rare weak-type weapons.
 	for k in range(0, wslots + 1):
 		var tag := "all-common" if k == 0 else "common + %d RARE wpn" % k
-		print("[BTH]   %-20s: %s" % [tag, _fmt(_trials(sm, cm, rm, c, 0, k))])
+		print("[BTH]   %-20s: %s" % [tag, _fmt(_trials(sm, cm, rm, c, weak, 0, k))])
+	# Full-Legendary reference — if even this loses, the boss is UNBEATABLE at this
+	# hull tier (a hull wall, not a gear wall).
+	print("[BTH]   all-LEGENDARY       : %s" % _fmt(_trials(sm, cm, rm, c, weak, 3, -1)))
 
 func _weapon_slot_count(sm, hull) -> int:
 	var n := 0
@@ -59,12 +91,12 @@ func _weapon_slot_count(sm, hull) -> int:
 			n += 1
 	return n
 
-func _trials(sm, cm, rm, c, base_rarity: int, k_rare: int) -> Dictionary:
+func _trials(sm, cm, rm, c, weak: String, base_rarity: int, k_rare: int) -> Dictionary:
 	var wins := 0
 	var ttks := []
 	var worst := 100.0
 	for _i in range(TRIALS):
-		var r := _fight(sm, cm, rm, c, base_rarity, k_rare)
+		var r := _fight(sm, cm, rm, c, weak, base_rarity, k_rare)
 		if String(r.get("r", "")) == "WIN":
 			wins += 1
 			ttks.append(float(r.get("ttk", 0)))
@@ -80,14 +112,14 @@ func _fmt(r: Dictionary) -> String:
 		return "%d/%d WIN   (ttk %.0fs)" % [w, int(r.get("k", TRIALS)), float(r.get("ttk", 0))]
 	return "%d/%d loss  (boss %.0f%% hp left)" % [w, int(r.get("k", TRIALS)), float(r.get("left", 100))]
 
-func _fight(sm, cm, rm, c, base_rarity: int, k_rare: int) -> Dictionary:
+func _fight(sm, cm, rm, c, weak: String, base_rarity: int, k_rare: int) -> Dictionary:
 	GameState.hard_reset()
 	cm.boss_kills.clear()
 	cm.total_kills = 0
 	_unlock_research(rm, int(c["gear_n"]))
 	_set_hull(sm, String(c["hull"]))
-	_equip_mix(sm, int(c["gear_n"]), String(c["weak"]), base_rarity, k_rare)
-	_ammo_kits(sm, String(c["weak"]), int(c["gear_n"]))
+	_equip_mix(sm, int(c["gear_n"]), weak, base_rarity, k_rare)
+	_ammo_kits(sm, weak, int(c["gear_n"]))
 	sm.recalc_stats()
 	sm.current_hp = sm.max_hp
 	if sm.energy_used > sm.energy_capacity:
