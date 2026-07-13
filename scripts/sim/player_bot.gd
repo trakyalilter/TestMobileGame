@@ -448,6 +448,22 @@ func _pump() -> void:
 				"idx": int(_chain_idx.get(mid, -1))}
 		if bool(m["completed"]) and int(timeline[mid]["comp"]) < 0:
 			timeline[mid]["comp"] = round(sim_s)
+	# Pacing map: stamp the wall-clock (sim_s) the FIRST time each zone becomes
+	# accessible (its zone_N_access research unlocks) — the time-to-Zone-N curve.
+	# Emits a `zone` record with the levels/hull at that moment so we can see where
+	# the progression slope goes vertical (the mid-game wall).
+	var _rm = GameState.research_manager
+	for _z in range(2, 13):
+		var _zk := "zone_%d" % _z
+		if not milestones.has(_zk) and _rm.is_tech_unlocked("zone_%d_access" % _z):
+			milestones[_zk] = round(sim_s)
+			tele.write({"t": "zone", "zone": _z, "sim_s": round(sim_s), "day": day,
+				"g": GameState.gathering_manager.get_level(),
+				"p": GameState.processing_manager.get_level(),
+				"c": GameState.combat_manager.get_level(),
+				"hull": GameState.shipyard_manager.active_hull,
+				"credits": int(GameState.resources.get_currency("credits")),
+				"kills": int(GameState.combat_manager.total_kills)})
 	var claimed: Array = policy.pump_claims(sim_s)
 	for mid in claimed:
 		if timeline.has(mid):

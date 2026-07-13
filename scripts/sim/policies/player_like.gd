@@ -556,7 +556,24 @@ func _do_combat_farm(mid: String, zid: String, eid: String, attr: String = "dire
 # owns that set, then attempts — modelling the intended "loot the tier" play instead
 # of throwing common-gear attempts. Bounded by the sim day-cap, so an impossibly
 # long grind surfaces honestly as a wall rather than an infinite loop.
-func _count_owned(slot_type: String, wtype: String, min_rarity: int) -> int:
+# Zone tier of a module: z1_* -> 1, z2_missile -> 2, a dropped/custom module -> its
+# base_module's zone. v120 removed the under-tier damage wall, so zone is now a proxy
+# for RAW POWER — per-zone enemy tuning means out-damaging a Zone-N boss needs ~Zone-N
+# gear. Returns 0 for a non-z-prefixed id (unknown -> treated as under-tier).
+func _module_zone(mid: String) -> int:
+	var base := String(GameState.shipyard_manager.modules.get(mid, {}).get("base_module", mid))
+	if base.length() >= 2 and base[0] == "z":
+		var d := ""
+		var i := 1
+		while i < base.length() and base[i] >= "0" and base[i] <= "9":
+			d += base[i]
+			i += 1
+		if d != "":
+			return int(d)
+	return 0
+
+# min_zone (default 0 = any): also require the module to be at least that zone tier.
+func _count_owned(slot_type: String, wtype: String, min_rarity: int, min_zone: int = 0) -> int:
 	var sm = GameState.shipyard_manager
 	var n := 0
 	for inv_mid in sm.module_inventory:
@@ -568,29 +585,38 @@ func _count_owned(slot_type: String, wtype: String, min_rarity: int) -> int:
 			continue
 		if wtype != "" and _weapon_atype(s) != wtype:
 			continue
+		if min_zone > 0 and _module_zone(s) < min_zone:
+			continue
 		if int(sm.get_module_rarity(s)) >= min_rarity:
 			n += c
 	for i in _slot_indices(slot_type):
 		var l = sm.loadout.get(i, null)
 		if l:
 			var ls := String(l)
-			if (wtype == "" or _weapon_atype(ls) == wtype) and int(sm.get_module_rarity(ls)) >= min_rarity:
+			if (wtype == "" or _weapon_atype(ls) == wtype) \
+					and (min_zone <= 0 or _module_zone(ls) >= min_zone) \
+					and int(sm.get_module_rarity(ls)) >= min_rarity:
 				n += 1
 	return n
 
 func _boss_gear_ready(eid: String, min_rarity: int = 1) -> bool:
+	# v120 removed the under-tier damage wall — a boss is now a pure DPS-vs-EHP race,
+	# so "ready" must mean gear strong enough to actually out-damage/out-last it, not
+	# merely the right rarity+type. Require the loadout to be at least the boss's ZONE
+	# tier (per-zone enemy tuning makes zone a faithful proxy for raw power: a Z1 rare
+	# gun can't out-DPS a Z2 boss's HP/DEF). This is the designed "rare+ Zone-N gear"
+	# check (weapons AND armor AND shield) — it stops the bot livelocking against the
+	# Z2 Monolith with Z1 weapons it miscounted as "ready" (54 lost attempts, 0 farming).
+	# min_rarity is the Uncommon(1)/Rare(2) bar _do_combat escalates after sustained losses.
 	var weak := _enemy_weak_type(eid)
-	if weak == "":
-		return true
-	# Gear bar = min_rarity: Uncommon (1) by default, escalated to Rare (2) by _do_combat
-	# after 5 SUSTAINED losses. Measured with boss_threshold.gd: Uncommon suffices for
-	# ahead-tier-hull bosses (Z1/Z2 architect/monolith); matched/behind-hull bosses (Z3+)
-	# need Rare (full loadout — weapons AND armor AND shield, "not only weapons"). The
-	# escalation is SELF-CORRECTING: a boss winnable at Uncommon wins before the streak
-	# reaches 5, so no over-farm; a Rare-gated one escalates only on real losses. If Rare
-	# on the best affordable HULL still loses, _do_combat builds a bigger ship (the hull,
-	# not the gear, is then the bottleneck).
-	if _count_owned("weapon", weak, min_rarity) < _slot_indices("weapon").size():
+	var bz: int = int(GameState.combat_manager.enemy_db.get(eid, {}).get("zone", 0))
+	# weak=="" (zeroed-resist rarity boss, e.g. Z1 Architect) => any type; else strong type.
+	# Only the WEAPON is zone-gated — it's the DPS driver, and the Z1-gun-vs-Z2-boss
+	# under-DPS livelock is a weapon problem. Armor/shield stay rarity-only: defensive
+	# slots a tier behind still work if the weapon out-damages fast enough, so zone-
+	# gating them too was over-strict (it demanded a full boss-zone set no follower
+	# farms in 14 days, when 2/3 beat the Monolith with a mixed loadout).
+	if _count_owned("weapon", weak, min_rarity, bz) < _slot_indices("weapon").size():
 		return false
 	if _slot_indices("armor").size() > 0 and _count_owned("armor", "", min_rarity) < 1:
 		return false
@@ -961,6 +987,12 @@ func _enemy_weak_type(eid: String) -> String:
 	var rk := float(e.get("resist_k", 0.0))
 	var re := float(e.get("resist_e", 0.0))
 	var rx := float(e.get("resist_x", 0.0))
+	# No meaningful weakness (e.g. the Z1 Architect ZEROES all resists as a pure
+	# rarity/tier check — any RARE+ type kills it). Don't fabricate a phantom weak
+	# type: the old min() tie on (0,0,0) always resolved to "explosive", sending the
+	# bot to farm a type constraint that doesn't exist. "" => any type works.
+	if rk == re and re == rx:
+		return ""
 	var m: float = min(rk, min(re, rx))
 	if m == rx: return "explosive"
 	if m == re: return "energy"
