@@ -138,6 +138,11 @@ lines.append("const DEF_K_CONSTANT := %s" % g(float(combat_consts.get("DEF_K_CON
 lines.append("const DEF_K_ZONE_SCALE := %s" % g(float(combat_consts.get("DEF_K_ZONE_SCALE", 30.0))))
 lines.append("const DEF_K_ZONE_EXP := %s" % g(float(combat_consts.get("DEF_K_ZONE_EXP", 1.3))))
 lines.append("const MAX_DAMAGE_REDUCTION := %s" % g(float(combat_consts.get("MAX_DAMAGE_REDUCTION", 0.8))))
+# v135a: floor the def-mitigation k at 0.7x the DEFENDER's armor so heavy boss
+# DEF (2.2x/zone) can't outrun the polynomial k (~zone^1.3) and collapse player
+# damage to the 20% floor. Binds only on heavy armor (late bosses); the player's
+# own small armor never trips it, so it aids penetration without shielding.
+lines.append("const ARMOR_K_FLOOR := %s" % g(float(combat_consts.get("ARMOR_K_FLOOR", 0.7))))
 lines.append("")
 
 # RESOURCES

@@ -1177,11 +1177,11 @@
     "resist_x": -0.4,
     "stats": {
       "accuracy": 45,
-      "atk": 132,
+      "atk": 170,
       "atk_interval": 3.5,
       "def": 39,
-      "hp": 5280,
-      "max_shield": 264
+      "hp": 11000,
+      "max_shield": 550
     },
     "xp": 300,
     "zone": 2

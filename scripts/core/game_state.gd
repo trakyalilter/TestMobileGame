@@ -44,7 +44,7 @@ const TREE_NODES := {
 	"ENG_4": {"branch": "engineering", "cost": 4, "name": "Industrial Memory",
 		"desc": "-20% infrastructure build cost.", "implemented": true, "prereq": ["ENG_1"]},
 	"ENG_5": {"branch": "engineering", "cost": 5, "name": "Building Overclock",
-		"desc": "Throttle buildings to 200% output at +50% input/unit.", "implemented": false, "prereq": ["ENG_4"]},
+		"desc": "Globally unlocks Efficiency overclock (up to 200%) on ALL building types — no Boost Card needed.", "implemented": true, "prereq": ["ENG_4"]},
 	"ENG_6": {"branch": "engineering", "cost": 6, "name": "Resonant Foundry",
 		"desc": "Auto-feeds a fraction of surplus primitives into the Core each cycle.", "implemented": false, "prereq": ["ENG_3", "ENG_5"]},
 	"ENG_S1": {"branch": "engineering", "cost": 2, "step": 1, "repeatable": true, "name": "Resource Surge",
@@ -2560,7 +2560,11 @@ func set_throttle(bid: String, v: float) -> void:
 
 # ---------------- Overclock (Boost Cards) — ported: infrastructure_manager ~L1024-1055 ----------------
 func building_overclocked(bid: String) -> bool:
-	return int(overclocks.get(bid, 0)) >= 1
+	# ENG_5 warp node globally unlocks overclock on every building type (the
+	# meta-prestige counterpart to the per-type Boost Card). Persists across warps
+	# via purchased_nodes, so the whole 200% throttle feature propagates from one
+	# gate — same as desktop's get_overclock (warp_manager Phase 3b).
+	return is_node_purchased("ENG_5") or int(overclocks.get(bid, 0)) >= 1
 
 func overclock_max_throttle(bid: String) -> float:
 	return 2.0 if building_overclocked(bid) else 1.0
@@ -4308,6 +4312,12 @@ func resolve_damage(atk_k: float, atk_e: float, atk_x: float, c_shield: float, c
 	var dmg_shield := minf(c_shield, shield_pot)
 	var bleed := (shield_pot - dmg_shield) / shield_pot if shield_pot > 0.0 else 1.0
 	var k := GameData.DEF_K_CONSTANT + GameData.DEF_K_ZONE_SCALE * pow(float(difficulty), GameData.DEF_K_ZONE_EXP)
+	# v135a: floor k at 0.7x the DEFENDER's armor. Boss DEF (2.2x/zone) had outrun
+	# the polynomial k from Z6 up, collapsing player damage to the 20% floor and
+	# making late bosses unbeatable with the intended rare Zone-N gear. Only binds on
+	# heavy armor (late bosses); the player's own small armor never trips it, so it
+	# aids PENETRATION of boss armor without shielding the player.
+	k = maxf(k, GameData.ARMOR_K_FLOOR * c_armor)
 	# Reactive Armor: low HP effectively raises k (better mitigation) on the player.
 	if not is_player_attacker and loadout_has_module("reactive_armor"):
 		var hp_ratio := combat_hp / maxf(1.0, combat_max_hp())
@@ -4724,7 +4734,12 @@ func _offline_combat(delta: float) -> void:
 	var diff := _combat_difficulty()
 	# Match online armor mitigation (DEF_K), not the old max(20, diff*50).
 	var k := GameData.DEF_K_CONSTANT + GameData.DEF_K_ZONE_SCALE * pow(float(diff), GameData.DEF_K_ZONE_EXP)
-	var pdps := avg_player_dps() * (1.0 - float(e.get("def", 0)) / (float(e.get("def", 0)) + k)) * tier_pen_avg(active_id)   # tier gate applies offline too
+	# v135a: floor the penetration k at 0.7x enemy armor (online parity) so the offline
+	# winnability gate agrees with online — else a boss beatable online would be skipped
+	# offline. Only the player->enemy pen gets the floor; edps keeps base k (never shield
+	# the player against enemy damage).
+	var pk := maxf(k, GameData.ARMOR_K_FLOOR * float(e.get("def", 0)))
+	var pdps := avg_player_dps() * (1.0 - float(e.get("def", 0)) / (float(e.get("def", 0)) + pk)) * tier_pen_avg(active_id)   # tier gate applies offline too
 	pdps = maxf(1.0, pdps)
 	var ehp := float(e.get("hp", 10)) + float(e.get("max_shield", 0))
 	var kill_time := ehp / pdps
