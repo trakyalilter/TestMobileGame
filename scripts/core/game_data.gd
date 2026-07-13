@@ -216,6 +216,10 @@ const RESOURCES := {
 	"CorruptionWorm": {"name": "Corruption Worm", "color": "5ad1e0", "value": 3500},
 	"RefitBay": {"name": "Refit Bay Pass", "color": "5ad1e0", "value": 6000},
 	"SignalCalibrator": {"name": "Signal Calibrator", "color": "5ad1e0", "value": 8000},
+	"ResonantCrimsonCore": {"name": "Resonant Crimson Core", "color": "b07ad6", "value": 150000},
+	"ResonantCobaltCore": {"name": "Resonant Cobalt Core", "color": "b07ad6", "value": 150000},
+	"ResonantTopazCore": {"name": "Resonant Topaz Core", "color": "b07ad6", "value": 150000},
+	"ResonantAmethystCore": {"name": "Resonant Amethyst Core", "color": "b07ad6", "value": 150000},
 	"CryoEssence": {"name": "Cryo Essence", "color": "9aa3af", "value": 1},
 	"PirateSalvage": {"name": "Pirate Salvage", "color": "9aa3af", "value": 1},
 	"DamagedCircuitry": {"name": "Damaged Circuitry", "color": "9aa3af", "value": 1},
@@ -889,6 +893,10 @@ const GEMS := {
 	"StableCobaltCore": {"name": "Stable Cobalt Core", "effects": {"eva_mult": 0.05, "max_shield_mult": 0.05, "shield_regen_mult": 0.05}},
 	"StableCrimsonCore": {"name": "Stable Crimson Core", "effects": {"atk_energy_mult": 0.05, "atk_kinetic_mult": 0.05, "crit_chance": 0.05}},
 	"StableTopazCore": {"name": "Stable Topaz Core", "effects": {"energy_capacity_mult": 0.05}},
+	"ResonantAmethystCore": {"name": "Resonant Amethyst Core", "effects": {"def_mult": 0.2, "hp_mult": 0.2, "resist_pierce": 0.24}},
+	"ResonantCobaltCore": {"name": "Resonant Cobalt Core", "effects": {"eva_mult": 0.2, "max_shield_mult": 0.2, "shield_regen_mult": 0.2}},
+	"ResonantCrimsonCore": {"name": "Resonant Crimson Core", "effects": {"atk_energy_mult": 0.2, "atk_kinetic_mult": 0.2, "crit_chance": 0.2}},
+	"ResonantTopazCore": {"name": "Resonant Topaz Core", "effects": {"energy_capacity_mult": 0.2}},
 }
 
 const CONSUMABLES := {

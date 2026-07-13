@@ -52,5 +52,23 @@
   },
   "StableTopazCore": {
     "energy_capacity_mult": 0.05
+  },
+  "ResonantAmethystCore": {
+    "def_mult": 0.2,
+    "hp_mult": 0.2,
+    "resist_pierce": 0.24
+  },
+  "ResonantCobaltCore": {
+    "eva_mult": 0.2,
+    "max_shield_mult": 0.2,
+    "shield_regen_mult": 0.2
+  },
+  "ResonantCrimsonCore": {
+    "atk_energy_mult": 0.2,
+    "atk_kinetic_mult": 0.2,
+    "crit_chance": 0.2
+  },
+  "ResonantTopazCore": {
+    "energy_capacity_mult": 0.2
   }
 }

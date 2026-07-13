@@ -2096,5 +2096,45 @@
     "tier": 4,
     "base_value": 8000,
     "description": "Hack Card. Re-roll the VALUES of every unanchored affix \u2014 identities & count kept."
+  },
+  {
+    "atomic_number": -1013,
+    "symbol": "ResonantCrimsonCore",
+    "name": "Resonant Crimson Core",
+    "mass": 0.5,
+    "category": "Artifact",
+    "tier": 6,
+    "base_value": 150000,
+    "description": "Socket into epic modules. +20% Kinetic & Energy Offense & Crit."
+  },
+  {
+    "atomic_number": -1014,
+    "symbol": "ResonantCobaltCore",
+    "name": "Resonant Cobalt Core",
+    "mass": 0.5,
+    "category": "Artifact",
+    "tier": 6,
+    "base_value": 150000,
+    "description": "Socket into epic modules. +20% Evasion, Shield & Regen."
+  },
+  {
+    "atomic_number": -1015,
+    "symbol": "ResonantTopazCore",
+    "name": "Resonant Topaz Core",
+    "mass": 0.5,
+    "category": "Artifact",
+    "tier": 6,
+    "base_value": 150000,
+    "description": "Socket into epic modules. +20% Energy Capacity."
+  },
+  {
+    "atomic_number": -1016,
+    "symbol": "ResonantAmethystCore",
+    "name": "Resonant Amethyst Core",
+    "mass": 0.5,
+    "category": "Artifact",
+    "tier": 6,
+    "base_value": 150000,
+    "description": "Socket into epic modules. +20% Def/Hull & +24% Resist Pierce."
   }
 ]

@@ -673,8 +673,8 @@ lines.append("}")
 GEM_NAMES = {"Crimson": "Crimson Core", "Cobalt": "Cobalt Core", "Topaz": "Topaz Core", "Amethyst": "Amethyst Core"}
 lines.append("const GEMS := {")
 for gid, eff in gems.items():
-    tier = "Cracked" if gid.startswith("Cracked") else ("Stable" if gid.startswith("Stable") else "Pristine")
-    color = gid.replace("Cracked", "").replace("Stable", "").replace("Pristine", "").replace("Core", "")
+    tier = next((t for t in ("Cracked", "Stable", "Pristine", "Resonant") if gid.startswith(t)), "Pristine")
+    color = gid.replace(tier, "").replace("Core", "")
     lines.append(f'\t{g(gid)}: {{"name": {g(tier + " " + GEM_NAMES.get(color, color))}, "effects": {g(eff)}}},')
 lines.append("}")
 lines.append("")

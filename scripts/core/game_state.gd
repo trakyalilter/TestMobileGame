@@ -59,7 +59,7 @@ const TREE_NODES := {
 	"CMB_3": {"branch": "combat", "cost": 5, "name": "Auxiliary Slot",
 		"desc": "Adds one extra module slot that accepts ANY module type (weapon, shield, armor, battery…).", "implemented": true, "prereq": ["CMB_2"]},
 	"CMB_4": {"branch": "combat", "cost": 6, "name": "Matrix Core IV",
-		"desc": "Unlocks the Resonant matrix-core tier (above Pristine).", "implemented": false, "prereq": ["CMB_3"]},
+		"desc": "Unlocks the Resonant matrix-core tier (2x Pristine) — drops in the endgame zones.", "implemented": true, "prereq": ["CMB_3"]},
 	"CMB_S1": {"branch": "combat", "cost": 2, "step": 1, "repeatable": true, "name": "Arsenal Doctrine",
 		"desc": "+6% module damage per level.", "implemented": true, "prereq": ["CMB_1"]},
 	# ===== RECURSION (revealed at warp #2) — each warp is faster, cheaper, pays more =====
@@ -4488,6 +4488,12 @@ func _win_combat() -> void:
 	if randf() < 0.03:
 		var diff := _combat_difficulty()
 		var tier := "Cracked" if diff < 4 else ("Stable" if diff < 8 else "Pristine")
+		# CMB_4 warp node unlocks the Resonant tier (above Pristine). Mobile has no
+		# fuse UI (desktop fused 3 Pristine → 1 Resonant), so it becomes a rare deep-
+		# zone drop gated on the node: a Pristine roll upgrades to Resonant only when
+		# CMB_4 is owned and you're farming the endgame zones.
+		if tier == "Pristine" and diff >= 10 and is_node_purchased("CMB_4") and randf() < 0.2:
+			tier = "Resonant"
 		var colors := ["Crimson", "Cobalt", "Topaz", "Amethyst"]
 		var gid := "%s%sCore" % [tier, colors[randi() % colors.size()]]
 		if GameData.GEMS.has(gid):
