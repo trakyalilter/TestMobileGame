@@ -12,7 +12,6 @@ var hull_widget_scene = preload("res://scenes/ui/hull_widget.tscn")
 var module_widget_scene = preload("res://scenes/ui/module_widget.tscn")
 var widgets = []
 var racks = {} # {category_id: GridContainer/HBoxContainer}
-var _collection_rows := {}  # v135a: {set_id: Label} for the neutral Unique-Set collection panel
 
 # v116: category tabs (matches processing/infra + armory filter bar). The 4
 # weapon racks merge into one "Weapons" tab (their headers act as sub-headers);
@@ -66,7 +65,9 @@ func _ready():
 	# list. Hidden (not freed) so the @onready label refs stay valid.
 	$VBoxContainer/StatsPanel.visible = false
 	_setup_tabs()
-	_build_collection_panel()
+	# v133: the global UNIQUE SETS collection panel was removed — set membership /
+	# progress / bonus now lives on each unique item's OWN info card (module_card
+	# tooltip), showing just that item's related set.
 	call_deferred("refresh_list")
 
 func get_coach_anchor(key: String) -> Control:
@@ -107,60 +108,8 @@ func _on_resource_changed(_a=null, _b=null):
 			w.update_state()
 
 # ── Unique-Set collection panel (neutral state — v135a) ─────────────────────
-# A passive "trophy cabinet": how many pieces of each boss's 3-piece Unique set you
-# OWN (X/3). Pure collection state — no zone/weakness hints, no "go farm" nudge.
-func _build_collection_panel() -> void:
-	if not GameState.combat_manager:
-		return
-	var panel := PanelContainer.new()
-	panel.name = "CollectionPanel"
-	UITheme.apply_card_style(panel, "shipyard")
-	var vb := VBoxContainer.new()
-	vb.add_theme_constant_override("separation", 3)
-	panel.add_child(vb)
-	var hdr := Label.new()
-	hdr.text = "◈ UNIQUE SETS"
-	hdr.add_theme_font_size_override("font_size", 12)
-	UITheme.apply_segmented_font(hdr, UITheme.COLORS["accent"])
-	hdr.add_theme_color_override("font_color", UITheme.COLORS["accent"])
-	vb.add_child(hdr)
-	var grid := GridContainer.new()
-	grid.columns = 2
-	grid.add_theme_constant_override("h_separation", 20)
-	grid.add_theme_constant_override("v_separation", 2)
-	vb.add_child(grid)
-	_collection_rows = {}
-	for sid in GameState.combat_manager.TRINITY_SET_BONUSES:
-		var lbl := Label.new()
-		lbl.add_theme_font_size_override("font_size", 11)
-		grid.add_child(lbl)
-		_collection_rows[sid] = lbl
-	var vbox := $VBoxContainer
-	vbox.add_child(panel)
-	vbox.move_child(panel, $VBoxContainer/ScrollContainer.get_index())  # above the rack scroll
-	_refresh_collection()
-
-func _refresh_collection() -> void:
-	if _collection_rows.is_empty() or not GameState.shipyard_manager or not GameState.combat_manager:
-		return
-	var counts: Dictionary = GameState.shipyard_manager.get_owned_set_counts()
-	var defs = GameState.combat_manager.TRINITY_SET_BONUSES
-	for sid in _collection_rows:
-		var n := int(counts.get(sid, 0))
-		var lbl: Label = _collection_rows[sid]
-		if not is_instance_valid(lbl):
-			continue
-		lbl.text = "%s  %d/3" % [String(defs.get(sid, {}).get("name", sid)), n]
-		if n >= 3:
-			lbl.add_theme_color_override("font_color", Color(1.0, 0.82, 0.35))       # complete — gold
-		elif n > 0:
-			lbl.add_theme_color_override("font_color", UITheme.COLORS["text_main"])
-		else:
-			lbl.add_theme_color_override("font_color", UITheme.COLORS["text_dim"])   # not started — dim
-
 func _on_inventory_updated():
 	_on_resource_changed()
-	_refresh_collection()
 
 func _on_tech_unlocked(_tech_id = null):
 	_on_resource_changed()  # re-evaluate every craft card's research lock

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- name/designation tag (edit-the-build-name affordance, not a pencil) -->
+  <path d="M28 12 H50 a6 6 0 0 1 6 6 V46 a6 6 0 0 1 -6 6 H28 L8 32 Z" fill="#ffffff"/>
+  <circle cx="22" cy="32" r="4.5" fill="#12161c"/>
+</svg>

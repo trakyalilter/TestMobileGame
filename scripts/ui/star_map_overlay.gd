@@ -485,7 +485,7 @@ func _show_target_detail(eid: String) -> void:
 		_tgt_resist.text = " · ".join(res_parts) if not res_parts.is_empty() else "none"
 		_tgt_weak.text = " · ".join(weak_parts) if not weak_parts.is_empty() else "none"
 
-	_fill_target_drops(e, is_boss)
+	_fill_target_drops(e, is_boss, eid)
 
 	_engage_btn.disabled = false
 	_engage_btn.text = "ENGAGE"
@@ -494,7 +494,7 @@ func _show_target_detail(eid: String) -> void:
 # v131: render the hostile's drop table into the readout. Materials (with qty
 # ranges), rare drops (with odds), boss core / first-clear relic, and the module
 # roll — the other half of "is this the right target to farm?".
-func _fill_target_drops(e: Dictionary, is_boss: bool) -> void:
+func _fill_target_drops(e: Dictionary, is_boss: bool, eid: String) -> void:
 	if not is_instance_valid(_tgt_drops):
 		return
 	var dim := "#8fa6a0"
@@ -518,8 +518,14 @@ func _fill_target_drops(e: Dictionary, is_boss: bool) -> void:
 	var pool_types := _pool_slot_types(e)
 	if is_boss and not pool_types.is_empty():
 		lines.append("Modules [color=%s](Uncommon+ · %s)[/color]" % [dim, " · ".join(PackedStringArray(pool_types))])
-	elif e.get("drops_modules", true) and float(e.get("module_drop_chance", 0.0)) > 0.0 and not pool_types.is_empty():
-		lines.append("Module chance [color=%s](%s)[/color]" % [dim, " · ".join(PackedStringArray(pool_types))])
+	elif not is_boss and not pool_types.is_empty() and float(e.get("module_drop_chance", 0.0)) > 0.0:
+		# v133: match the real spawn rule — front-salvage enemies (e1/e2 of a sector)
+		# drop MATERIALS ONLY. Default drops_modules exactly as spawn_enemy does, using
+		# the browsed sector's zone, so the readout doesn't advertise a module roll the
+		# enemy never actually makes.
+		var drops_mods: bool = bool(e.get("drops_modules", not manager.enemy_is_front_salvage(eid, selected_id)))
+		if drops_mods:
+			lines.append("Module chance [color=%s](%s)[/color]" % [dim, " · ".join(PackedStringArray(pool_types))])
 	_tgt_drops.text = "[color=#c8d4d0]" + "\n".join(PackedStringArray(lines)) + "[/color]" if not lines.is_empty() else "[color=%s]—[/color]" % dim
 
 # v131: rare_loot mixes ELEMENT ids and MODULE ids (unique set pieces like

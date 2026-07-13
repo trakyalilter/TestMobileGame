@@ -1990,6 +1990,15 @@ func handle_module_defeat():
 		recalc_stats()
 
 
+# v135b: SIM-ONLY hook (default false → real game UNAFFECTED; modules incl.
+# batteries stay destructible, player re-crafts them). The player-bot sets this so
+# its ship never loses BATTERIES to offline combat — not for balance, but because
+# offline destruction lands BETWEEN a fight's prep and its combat-ready assert
+# (batteries die in the offline gap → next fight reads SHIP UNPOWERED → false
+# CANT_FIRE violation). Protecting batteries in-sim keeps the funnel measuring the
+# real economy without that timing artifact.
+var sim_protect_batteries := false
+
 func apply_offline_durability_risk(delta: float) -> Array:
 	# v125: OFFLINE combat runs unattended, so it carries the real loss risk the
 	# player consents to when enabling it. Only modules ALREADY worn to <=50%
@@ -2007,6 +2016,8 @@ func apply_offline_durability_risk(delta: float) -> Array:
 		var mid = loadout[slot_idx]
 		if not mid or mid == "": continue
 		if not (mid in modules): continue
+		if sim_protect_batteries and String(modules[mid].get("slot_type", "")) == "battery":
+			continue   # sim-only: see sim_protect_batteries note above
 		var dur: int = int(modules[mid].get("durability", 100))
 		if dur <= 50 and randf() < p:
 			destroyed.append(str(modules[mid].get("name", mid)))
@@ -3480,18 +3491,36 @@ func can_equip_module(module_id: String) -> Dictionary:
 # v71.0: Roll rarity tier for a combat drop
 func roll_rarity(is_boss: bool = false) -> int:
 	var roll = randf()
-	
-	# v82.0: Restricted Rarity — Enemies only drop Uncommon+
-	# Common is now strictly for crafting.
-	var legendary_chance = 0.15 if is_boss else 0.04
-	var rare_chance = 0.35 if is_boss else 0.26
-	
-	if roll < legendary_chance:
+
+	# v136 rebalance prototype (was v82.0's flat 4/26/70 trash · 15/35/50 boss,
+	# no Common floor, UNIQUE unreachable). Goals: make Rare genuinely rare, and
+	# make UNIQUE a boss-only jackpot (roll_rarity previously capped at Legendary
+	# so Unique never dropped from any enemy). Measured in rarity_drop_spike.
+	if is_boss:
+		# Bosses are the reward moment: no junk floor, and the ONLY source of
+		# Unique. Unique 3% / Legendary 15% / Rare 30% / Uncommon 52%.
+		if roll < 0.03:
+			return Rarity.UNIQUE
+		elif roll < 0.18:
+			return Rarity.LEGENDARY
+		elif roll < 0.48:
+			return Rarity.RARE
+		else:
+			return Rarity.UNCOMMON
+
+	# Trash: Common is the ~50% "EMPTY" roll — combat's _roll_one_module_drop
+	# skips it, so nothing drops (Common modules never enter inventory; still
+	# crafting-only per v82.0). Real modules land only on Uncommon+, which halves
+	# effective drop frequency AND makes Rare+ earned. Never Unique.
+	# Legendary 3% / Rare 8.5% / Uncommon 38.5% / Common(empty) 50%.
+	if roll < 0.03:
 		return Rarity.LEGENDARY
-	elif roll < legendary_chance + rare_chance:
+	elif roll < 0.115:
 		return Rarity.RARE
-	else:
+	elif roll < 0.50:
 		return Rarity.UNCOMMON
+	else:
+		return Rarity.COMMON
 
 # v71.2: Sell module for credits -> v100: Demolish for credits + SpareParts
 const RARITY_SELL_PRICES = {

@@ -312,7 +312,10 @@ var recipes: Dictionary = {
 		"duration": 15.0,
 		"level_req": 18,
 		"xp": 25,
-		"research_req": "basic_electronics",
+		# v135b: gate on Field Theory (its thematic tech, which its "unlocks": ["Ion
+		# Field"] already advertised) instead of generic basic_electronics — revives
+		# the formerly-dead field_theory node into a real gate.
+		"research_req": "field_theory",
 		"category": "consumables_shield"
 	},
 	"craft_nanoweave": {
@@ -392,6 +395,11 @@ var recipes: Dictionary = {
 		"duration": 10.0,
 		"level_req": 34, # Increased from 4
 		"xp": 40, # Increased from 20
+		# v135b: gate on Laser Optics (its thematic tech, already advertised by that
+		# node's "unlocks": ["Plasma Cell (T2 Energy Ammo)"]). Was level-only (34) with
+		# no research gate; laser_optics is cheap/early (300cr) so a lvl-34 player has
+		# it — revives the formerly-dead node without moving Plasma Cell's real tier.
+		"research_req": "laser_optics",
 	},
 	"craft_coolant_cell": {
 		"name": "Helium Coolant Cell",

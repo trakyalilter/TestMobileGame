@@ -8,7 +8,7 @@ extends Control
 @onready var right_panel: PanelContainer = $VBoxContainer/MainLayout/RightPanel
 @onready var bay_lbl: Label = $VBoxContainer/MainLayout/RightPanel/Margin/VBox/Label
 
-@onready var ship_name_lbl: Label = $VBoxContainer/MainLayout/LeftColumn/InfoPanel/MarginContainer/InfoHBox/ShipSpecs/ShipNameLabel
+@onready var ship_name_lbl: RichTextLabel = $VBoxContainer/MainLayout/LeftColumn/InfoPanel/MarginContainer/InfoHBox/ShipSpecs/ShipNameLabel
 @onready var power_bar: ProgressBar = $VBoxContainer/MainLayout/LeftColumn/InfoPanel/MarginContainer/InfoHBox/ShipSpecs/SystemLoad/PowerBar
 @onready var power_lbl: Label = $VBoxContainer/MainLayout/LeftColumn/InfoPanel/MarginContainer/InfoHBox/ShipSpecs/SystemLoad/PowerLabel
 @onready var stats_grid: GridContainer = $VBoxContainer/MainLayout/LeftColumn/InfoPanel/MarginContainer/InfoHBox/StatsGrid
@@ -345,8 +345,8 @@ func focus_slot(slot_type: String) -> void:
 
 func _apply_designer_styles():
 	# v134g: title Label removed — nothing to style here anymore.
-	ship_name_lbl.add_theme_color_override("font_color", TITLE_GOLD)
-	ship_name_lbl.add_theme_font_size_override("font_size", 22)
+	ship_name_lbl.add_theme_color_override("default_color", TITLE_GOLD)
+	ship_name_lbl.add_theme_font_size_override("normal_font_size", 22)
 	power_lbl.add_theme_color_override("font_color", TEXT_MAIN)
 
 	# Standalone ARMORY title folded into the toolbar row (chrome diet) so
@@ -1258,7 +1258,9 @@ func update_header():
 	# Build name in title: shows active loadout preset name when one matches the current loadout.
 	var build_name = _get_active_build_name()
 	if build_name != "":
-		ship_name_lbl.text = "%s  ·  %s  ✎" % [hull_data["name"].to_upper(), build_name.to_upper()]
+		# v133: inline name-tag icon (replaces the ✎ pencil glyph) as the rename cue.
+		var _bn := build_name.to_upper().replace("[", "[lb]")   # escape user brackets in bbcode
+		ship_name_lbl.text = "%s  ·  %s  [img=18 color=#%s]res://assets/icons/ui/rename.svg[/img]" % [hull_data["name"].to_upper(), _bn, TITLE_GOLD.to_html(false)]
 		ship_name_lbl.tooltip_text = "Click to rename this build."
 	else:
 		ship_name_lbl.text = hull_data["name"].to_upper()

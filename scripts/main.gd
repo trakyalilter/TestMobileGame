@@ -1021,6 +1021,13 @@ func _process(delta):
 	# 2. Tutorial Navigation Guidance
 	_update_navigation_hints()
 
+	# Keep the mission-hint arrow glued to its target every frame — it may scroll
+	# inside a panel (e.g. equip-slot / armory lists), and the button glow follows
+	# the widget but a free-floating arrow wouldn't without this.
+	if pulsing_button and is_instance_valid(pulsing_button) and hint_arrow:
+		_hint_arrow_phase += delta
+		_position_hint_arrow()
+
 	# 3. Claim badges (refresh ~4 Hz)
 	_claim_badge_tick += delta
 	if _claim_badge_tick >= 0.25:
@@ -1922,34 +1929,158 @@ func _update_navigation_hints():
 
 var hint_tween: Tween
 var pulsing_button: Control = null
+var hint_arrow: TextureRect = null   # gold arrow that bobs at the nudged target
+var _hint_arrow_phase: float = 0.0   # drives the bob; advanced per-frame in _process
+var _pulse_base_scale: Vector2 = Vector2.ONE  # target's own scale (research nodes = 0.75); pulse relative to it
 
 func start_hint_pulse(control: Control):
+	# Same target as last frame: the per-frame tracker in _process keeps the arrow
+	# glued to it (incl. scrolling), so there's nothing to re-do here.
 	if pulsing_button == control: return
-	
+
 	stop_hint_pulse()
 	pulsing_button = control
-	
+
 	# Set pivot to center for scale pulse
 	control.pivot_offset = control.size / 2
-	
+	# Pulse RELATIVE to the target's own scale — research node widgets sit at 0.75, so a
+	# hardcoded 1.0/1.03 pulse would inflate them ~33% and leave them stuck big.
+	_pulse_base_scale = control.scale
+
 	hint_tween = create_tween().set_loops()
-	# Vivid Golden Glow + Scale Pulse
-	var pulse_color = Color(1.2, 0.9, 0.2) # Over-bright for HDR/Glow feel
-	hint_tween.parallel().tween_property(control, "modulate", pulse_color, 0.4).set_trans(Tween.TRANS_SINE)
-	hint_tween.parallel().tween_property(control, "scale", Vector2(1.05, 1.05), 0.4).set_trans(Tween.TRANS_SINE)
-	
-	hint_tween.parallel().tween_property(control, "modulate", Color.WHITE, 0.4).set_trans(Tween.TRANS_SINE).set_delay(0.4)
-	hint_tween.parallel().tween_property(control, "scale", Vector2(1.0, 1.0), 0.4).set_trans(Tween.TRANS_SINE).set_delay(0.4)
+	# Gentle glow now — the bobbing arrow (below) is the primary "go here" cue, so the
+	# button just breathes softly instead of the old over-bright gold flash.
+	var pulse_color = Color(1.22, 1.12, 0.72)
+	hint_tween.parallel().tween_property(control, "modulate", pulse_color, 0.5).set_trans(Tween.TRANS_SINE)
+	hint_tween.parallel().tween_property(control, "scale", _pulse_base_scale * 1.03, 0.5).set_trans(Tween.TRANS_SINE)
+
+	hint_tween.parallel().tween_property(control, "modulate", Color.WHITE, 0.5).set_trans(Tween.TRANS_SINE).set_delay(0.5)
+	hint_tween.parallel().tween_property(control, "scale", _pulse_base_scale, 0.5).set_trans(Tween.TRANS_SINE).set_delay(0.5)
+
+	_show_hint_arrow(control)
 
 func stop_hint_pulse():
 	if hint_tween:
 		hint_tween.kill()
 		hint_tween = null
-	
+
 	if pulsing_button:
 		pulsing_button.modulate = Color.WHITE
-		pulsing_button.scale = Vector2(1.0, 1.0)
+		pulsing_button.scale = _pulse_base_scale   # restore the target's own scale (e.g. 0.75 research nodes)
 		pulsing_button = null
+
+	if hint_arrow and is_instance_valid(hint_arrow):
+		hint_arrow.visible = false
+
+func _ensure_hint_arrow() -> void:
+	if hint_arrow and is_instance_valid(hint_arrow):
+		return
+	hint_arrow = TextureRect.new()
+	hint_arrow.name = "MissionHintArrow"
+	hint_arrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hint_arrow.custom_minimum_size = Vector2(40, 40)
+	hint_arrow.size = Vector2(40, 40)
+	hint_arrow.pivot_offset = Vector2(20, 20)
+	hint_arrow.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	hint_arrow.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	hint_arrow.modulate = Color(1.0, 0.86, 0.32)   # gold
+	hint_arrow.visible = false
+	var atex := load("res://assets/icons/ui/coach_arrow.svg") as Texture2D
+	if atex:
+		hint_arrow.texture = atex
+	# ModalLayer (CanvasLayer) → screen-space coords, draws above the sidebar.
+	if modal_layer:
+		modal_layer.add_child(hint_arrow)
+	else:
+		add_child(hint_arrow)
+
+func _show_hint_arrow(_control: Control) -> void:
+	_ensure_hint_arrow()
+	_hint_arrow_phase = 0.0
+	_position_hint_arrow()
+
+# Re-run every frame (from _process) so the arrow follows a target that scrolls
+# inside a panel, and hides when the target scrolls out of its ScrollContainer.
+func _position_hint_arrow() -> void:
+	if hint_arrow == null:
+		return
+	var control := pulsing_button
+	if not (control and is_instance_valid(control) and control.is_visible_in_tree() and control.size.x > 1.0):
+		hint_arrow.visible = false
+		return
+	var r := _visual_global_rect(control)
+	# If the target lives inside a ScrollContainer and is scrolled out of view, hide
+	# the arrow instead of pointing at empty space (or at a clipped ghost slot).
+	var clip := _hint_clip_rect(control)
+	if clip.size.x > 0.0:
+		var vis := r.intersection(clip)
+		if vis.size.x < 3.0 or vis.size.y < 3.0:
+			hint_arrow.visible = false
+			return
+		r = vis   # aim at the still-visible slice of a partially-scrolled target
+	var vp := get_viewport_rect().size
+	var target_c := r.position + r.size * 0.5
+	var aw := hint_arrow.size.x
+	# The pulse targets both sidebar buttons and in-page widgets (enemy cards, equip
+	# slots, research nodes). Pick a side that stays on-screen and clear of the target:
+	# sidebar → right, pointing left; otherwise → above (or below) it.
+	var acenter: Vector2
+	if _is_in_sidebar(control):
+		acenter = Vector2(r.end.x + 6.0 + aw * 0.5, target_c.y)          # right of sidebar btn, points left
+	elif r.position.y - (aw + 10.0) >= 8.0:
+		acenter = Vector2(target_c.x, r.position.y - 6.0 - aw * 0.5)     # above target, points down
+	else:
+		acenter = Vector2(target_c.x, r.end.y + 6.0 + aw * 0.5)          # below target, points up
+	# Keep the whole arrow inside the viewport.
+	acenter.x = clampf(acenter.x, aw * 0.5 + 2.0, vp.x - aw * 0.5 - 2.0)
+	acenter.y = clampf(acenter.y, aw * 0.5 + 2.0, vp.y - aw * 0.5 - 2.0)
+	var toward := target_c - acenter
+	if toward.length() < 1.0:
+		toward = Vector2(-1, 0)
+	toward = toward.normalized()
+	# Sine-driven bob toward the target (0..9px); phase advanced per-frame in _process.
+	var bob: float = (sin(_hint_arrow_phase * 6.0) * 0.5 + 0.5) * 9.0
+	hint_arrow.rotation = toward.angle()   # SVG points right at 0° → rotate to aim at the target
+	hint_arrow.position = (acenter - hint_arrow.size * 0.5) + toward * bob
+	hint_arrow.visible = true
+
+# Visual on-screen rect of the target, accounting for its own scale + pivot. Research
+# node widgets render at 0.75; get_global_rect() ignores scale and would sit off-target.
+func _visual_global_rect(control: Control) -> Rect2:
+	var xf := control.get_global_transform()
+	var sz := control.size
+	var p0 := xf * Vector2.ZERO
+	var p1 := xf * Vector2(sz.x, 0.0)
+	var p2 := xf * Vector2(0.0, sz.y)
+	var p3 := xf * sz
+	var mn := Vector2(minf(minf(p0.x, p1.x), minf(p2.x, p3.x)), minf(minf(p0.y, p1.y), minf(p2.y, p3.y)))
+	var mx := Vector2(maxf(maxf(p0.x, p1.x), maxf(p2.x, p3.x)), maxf(maxf(p0.y, p1.y), maxf(p2.y, p3.y)))
+	return Rect2(mn, mx - mn)
+
+# True only for the left-rail nav buttons, so only they get right-of/point-left
+# placement; every in-page target (cards, slots, research nodes) points from above/below.
+func _is_in_sidebar(control: Control) -> bool:
+	var sb := get_node_or_null("HBoxContainer/Sidebar")
+	return sb != null and (sb as Node).is_ancestor_of(control)
+
+# Intersection of all ScrollContainer ancestors' global rects = the region where
+# `control` is actually on-screen. Empty Rect2 if it isn't inside any scroll view.
+func _hint_clip_rect(control: Control) -> Rect2:
+	var rect := Rect2()
+	var has := false
+	var n: Node = control.get_parent()
+	while n != null:
+		if n is ScrollContainer:
+			var gr: Rect2 = (n as ScrollContainer).get_global_rect()
+			if has:
+				rect = rect.intersection(gr)
+			else:
+				rect = gr
+				has = true
+		n = n.get_parent()
+	if has:
+		return rect
+	return Rect2()
 
 func _on_gathering_btn_pressed(): switch_to("gathering")
 func _on_processing_btn_pressed(): switch_to("processing")

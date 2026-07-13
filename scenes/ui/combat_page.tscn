@@ -263,7 +263,7 @@ mouse_filter = 2
 theme_override_constants/separation = 14
 
 [node name="ScannerOverlay" type="PanelContainer" parent="Dashboard/HUD/BottomHUD"]
-custom_minimum_size = Vector2(250, 140)
+custom_minimum_size = Vector2(250, 260)
 layout_mode = 2
 size_flags_vertical = 8
 

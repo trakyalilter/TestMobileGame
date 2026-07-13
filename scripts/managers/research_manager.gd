@@ -1644,6 +1644,14 @@ func _scale_mid_late_research_item_costs() -> void:
 		var node = tech_tree[tech_id]
 		if not node.has("cost_items"):
 			continue
+		# v135b: zone-ACCESS techs are progression GATES, not power sinks. Stacking
+		# the mid/late/endgame material multiplier on them made a Zone-3 unlock cost
+		# 1000 Steel (base 200 x2.5 tier x2.0 material) — a hard funnel wall the
+		# player-bot surfaced at m030e. Zone gates keep only the flat MATERIAL_MULTIPLIER
+		# (applied at can_unlock), so zone progression flows; power-upgrade techs keep
+		# the tier sink.
+		if String(node.get("category", "")) == "zone":
+			continue
 		var stage = _get_research_cost_stage(node)
 		if stage <= 0:
 			continue
@@ -1750,6 +1758,19 @@ func _scale_research_item_requirement(base_qty: int, multiplier: float) -> int:
 		return base_qty + 1
 	return scaled
 
+# v135b: the FINAL required quantity of a research cost item. Scalable materials
+# (Steel/Circuit/…) take MATERIAL_MULTIPLIER; zone boss cores + drop-gated tokens
+# do NOT (same exemption as the tier-scaler). Previously MATERIAL_MULTIPLIER was
+# applied blindly to every item, so a zone unlock costing "Z2_Core: 1" silently
+# demanded TWO cores — an untelegraphed "kill the gate boss twice" tax that
+# contradicted both the mission text ("the core you just salvaged") and the v104
+# core exemption. ONE helper so the can_unlock CHECK and the unlock_tech PAYMENT
+# can never disagree (a mismatch there would remove the wrong amount).
+func _effective_item_requirement(item: String, base_qty: int) -> int:
+	if _is_scalable_cost_item(item):
+		return int(base_qty * MATERIAL_MULTIPLIER)
+	return base_qty
+
 func can_unlock(tech_id: String) -> bool:
 	if not tech_id in tech_tree: return false
 	if tech_id in unlocked_techs: return false
@@ -1763,7 +1784,7 @@ func can_unlock(tech_id: String) -> bool:
 	
 	if "cost_items" in node:
 		for item in node["cost_items"]:
-			var qty = int(node["cost_items"][item] * MATERIAL_MULTIPLIER)  # v56.1
+			var qty = _effective_item_requirement(item, int(node["cost_items"][item]))
 			if GameState.resources.get_element_amount(item) < qty: return false
 	
 	if parent and not parent in unlocked_techs: return false
@@ -1795,7 +1816,7 @@ func unlock_tech(tech_id: String) -> bool:
 		
 		if "cost_items" in node:
 			for item in node["cost_items"]:
-				var scaled_qty = int(node["cost_items"][item] * MATERIAL_MULTIPLIER)  # v56.1
+				var scaled_qty = _effective_item_requirement(item, int(node["cost_items"][item]))
 				GameState.resources.remove_element(item, scaled_qty)
 				
 		unlocked_techs.append(tech_id)

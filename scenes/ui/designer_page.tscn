@@ -57,13 +57,16 @@ size_flags_vertical = 4
 theme_override_constants/separation = 6
 custom_minimum_size = Vector2(170, 0)
 
-[node name="ShipNameLabel" type="Label" parent="VBoxContainer/MainLayout/LeftColumn/InfoPanel/MarginContainer/InfoHBox/ShipSpecs"]
+[node name="ShipNameLabel" type="RichTextLabel" parent="VBoxContainer/MainLayout/LeftColumn/InfoPanel/MarginContainer/InfoHBox/ShipSpecs"]
 layout_mode = 2
 size_flags_vertical = 4
-theme_override_colors/font_color = Color(0.84, 0.7, 0.45, 1)
-theme_override_font_sizes/font_size = 16
-text = "CORVETTE"
+theme_override_colors/default_color = Color(0.84, 0.7, 0.45, 1)
+theme_override_font_sizes/normal_font_size = 16
+bbcode_enabled = true
+fit_content = true
+scroll_active = false
 autowrap_mode = 2
+text = "CORVETTE"
 
 [node name="SystemLoad" type="HBoxContainer" parent="VBoxContainer/MainLayout/LeftColumn/InfoPanel/MarginContainer/InfoHBox/ShipSpecs"]
 layout_mode = 2

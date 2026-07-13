@@ -32,6 +32,8 @@ var _step_lbl: Label
 var _next_btn: Button
 var _skip_btn: Button
 var _hl_tween: Tween
+var _arrow: TextureRect     # bobbing pointer that aims at the spotlighted target
+var _arrow_tween: Tween
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -55,10 +57,12 @@ func _build_ui() -> void:
 	_highlight = Panel.new()
 	_highlight.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var hs := StyleBoxFlat.new()
-	hs.bg_color = Color(0, 0, 0, 0)
-	hs.set_border_width_all(2)
-	hs.border_color = Color(1.0, 0.82, 0.25)
-	hs.set_corner_radius_all(4)
+	hs.bg_color = Color(1.0, 0.82, 0.25, 0.10)     # faint gold wash inside the spotlight
+	hs.set_border_width_all(3)                      # thicker ring (was 2)
+	hs.border_color = Color(1.0, 0.86, 0.32)
+	hs.set_corner_radius_all(5)
+	hs.shadow_color = Color(1.0, 0.82, 0.25, 0.55)  # gold glow radiating around the target
+	hs.shadow_size = 14
 	_highlight.add_theme_stylebox_override("panel", hs)
 	add_child(_highlight)
 
@@ -119,6 +123,22 @@ func _build_ui() -> void:
 	_next_btn.add_theme_font_size_override("font_size", 12)
 	_next_btn.pressed.connect(_on_next)
 	footer.add_child(_next_btn)
+
+	# Added last so it renders above the dim + card: a gold arrow that bobs toward
+	# the spotlighted target — a clearer "look here" cue than the pulsing ring.
+	_arrow = TextureRect.new()
+	_arrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_arrow.custom_minimum_size = Vector2(48, 48)
+	_arrow.size = Vector2(48, 48)
+	_arrow.pivot_offset = Vector2(24, 24)
+	_arrow.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_arrow.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_arrow.modulate = Color(1.0, 0.86, 0.32)   # gold, matches the highlight ring
+	_arrow.visible = false
+	var atex := load("res://assets/icons/ui/coach_arrow.svg") as Texture2D
+	if atex:
+		_arrow.texture = atex
+	add_child(_arrow)
 
 func start(page_name: String, steps: Array, anchor_provider: Node) -> void:
 	if steps.is_empty():
@@ -196,6 +216,8 @@ func _render() -> void:
 		_apply_cutout(Rect2(0, 0, 0, 0), vp)  # full dim, no hole
 		_highlight.visible = false
 		if _hl_tween: _hl_tween.kill()
+		if _arrow: _arrow.visible = false
+		if _arrow_tween: _arrow_tween.kill()
 
 	# Position the card once its size is known.
 	if not is_inside_tree(): return
@@ -250,13 +272,53 @@ func _place_card(vp: Vector2) -> void:
 		pos = (vp - cs) / 2.0  # no anchor: dead center
 
 	_card.position = pos
+	_place_arrow(vp, pos, cs)
+
+func _place_arrow(vp: Vector2, card_pos: Vector2, cs: Vector2) -> void:
+	if not _highlight.visible:
+		_arrow.visible = false
+		if _arrow_tween: _arrow_tween.kill()
+		return
+	var hr := Rect2(_highlight.position, _highlight.size)
+	var tc := hr.position + hr.size / 2.0          # target centre
+	# Sit the arrow on a target edge that's clear of the explanation card: when the
+	# card is above/below, aim from the left (or right, if the target hugs the left
+	# edge); when the card is beside, aim from above (or below).
+	var card_is_vertical: bool = (card_pos.y >= hr.end.y - 1.0) or (card_pos.y + cs.y <= hr.position.y + 1.0)
+	var acenter: Vector2
+	if card_is_vertical:
+		if hr.position.x - 46.0 >= 16.0:
+			acenter = Vector2(hr.position.x - 30.0, tc.y)   # left of target, points right
+		else:
+			acenter = Vector2(hr.end.x + 30.0, tc.y)        # right of target, points left
+	else:
+		if hr.position.y - 46.0 >= 16.0:
+			acenter = Vector2(tc.x, hr.position.y - 30.0)   # above target, points down
+		else:
+			acenter = Vector2(tc.x, hr.end.y + 30.0)        # below target, points up
+	var to_target := tc - acenter
+	if to_target.length() < 1.0:
+		to_target = Vector2(0, 1)
+	_arrow.rotation = to_target.angle()   # SVG points right at 0°; rotate to aim at target
+	_arrow.visible = true
+	_bob_arrow(acenter, to_target.normalized())
+
+func _bob_arrow(center: Vector2, toward: Vector2) -> void:
+	if _arrow_tween: _arrow_tween.kill()
+	var base := center - _arrow.size / 2.0
+	_arrow.position = base
+	_arrow_tween = create_tween().set_loops()
+	_arrow_tween.tween_property(_arrow, "position", base + toward * 11.0, 0.5).set_trans(Tween.TRANS_SINE)
+	_arrow_tween.tween_property(_arrow, "position", base, 0.5).set_trans(Tween.TRANS_SINE)
 
 func _pulse_highlight() -> void:
+	# Steady glow now — the bobbing arrow carries the motion, so the ring no longer
+	# "beeps". A very gentle breath keeps it feeling live without the flashing.
 	if _hl_tween: _hl_tween.kill()
 	_highlight.modulate = Color.WHITE
 	_hl_tween = create_tween().set_loops()
-	_hl_tween.tween_property(_highlight, "modulate", Color(1.4, 1.2, 0.5), 0.6).set_trans(Tween.TRANS_SINE)
-	_hl_tween.tween_property(_highlight, "modulate", Color.WHITE, 0.6).set_trans(Tween.TRANS_SINE)
+	_hl_tween.tween_property(_highlight, "modulate", Color(1.25, 1.15, 0.95), 1.1).set_trans(Tween.TRANS_SINE)
+	_hl_tween.tween_property(_highlight, "modulate", Color(1.0, 0.98, 0.92), 1.1).set_trans(Tween.TRANS_SINE)
 
 func _on_next() -> void:
 	if _idx >= _steps.size() - 1:
@@ -275,4 +337,9 @@ func _finish() -> void:
 	if _hl_tween:
 		_hl_tween.kill()
 		_hl_tween = null
+	if _arrow_tween:
+		_arrow_tween.kill()
+		_arrow_tween = null
+	if _arrow:
+		_arrow.visible = false
 	finished.emit(_page_name)

@@ -694,10 +694,13 @@ func _refresh_gains_preview():
 	else:
 		_gains_shards_lbl.text = "— not ready yet"
 		_gains_shards_lbl.add_theme_color_override("font_color", Color(0.78, 0.62, 0.62))
-	var prod := (_wm.get_production_multiplier() - 1.0) * 100.0
-	var comb := (_wm.get_combat_multiplier() - 1.0) * 100.0
-	var gath := (_wm.get_gathering_multiplier() - 1.0) * 100.0
-	var xpm := (_wm.get_xp_multiplier() - 1.0) * 100.0
+	# v135b: the warp-manager multiplier getters are untyped (return Variant), so
+	# ":=" infers Variant and the project's warnings-as-errors rejects it — the
+	# whole warp_page failed to load. Explicit float typing (the documented gotcha).
+	var prod: float = (_wm.get_production_multiplier() - 1.0) * 100.0
+	var comb: float = (_wm.get_combat_multiplier() - 1.0) * 100.0
+	var gath: float = (_wm.get_gathering_multiplier() - 1.0) * 100.0
+	var xpm: float = (_wm.get_xp_multiplier() - 1.0) * 100.0
 	_gains_mult_lbl.text = "Standing bonuses  +%.0f%% Prod · +%.0f%% Combat · +%.0f%% Gather · +%.0f%% XP" % [prod, comb, gath, xpm]
 	var starter_mult := 1.0
 	if _wm.has_method("get_tree_starter_mult"):

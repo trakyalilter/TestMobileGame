@@ -27,20 +27,38 @@ const ARCHETYPES := {
 	"follower": {"day0_len": 7200.0, "sessions": 3, "session_len": 1200.0,
 		"claim_latency": 30.0, "claims_at_start_only": false, "smart_income": false,
 		"precraft": false, "boredom_s": 600.0, "kit_pct": 0.45, "ammo_buffer": 100,
-		"switch_losses": 3, "id": 1},
+		"switch_losses": 3, "econ_infra": false, "id": 1},
 	"efficient": {"day0_len": 7200.0, "sessions": 5, "session_len": 900.0,
 		"claim_latency": 0.0, "claims_at_start_only": false, "smart_income": true,
 		"precraft": true, "boredom_s": 1800.0, "kit_pct": 0.55, "ammo_buffer": 500,
-		"switch_losses": 1, "id": 2},
+		"switch_losses": 1, "econ_infra": true, "id": 2},
 	"drifter": {"day0_len": 3600.0, "sessions": 4, "session_len": 480.0,
 		"claim_latency": 0.0, "claims_at_start_only": true, "smart_income": false,
 		"precraft": false, "boredom_s": 240.0, "kit_pct": 0.35, "ammo_buffer": 60,
-		"switch_losses": 3, "id": 3},
+		"switch_losses": 3, "econ_infra": false, "id": 3},
 	"overnighter": {"day0_len": 1800.0, "sessions": 1, "session_len": 900.0,
 		"claim_latency": 0.0, "claims_at_start_only": false, "smart_income": false,
 		"precraft": false, "boredom_s": 900.0, "kit_pct": 0.45, "ammo_buffer": 100,
-		"switch_losses": 3, "id": 4},
+		"switch_losses": 3, "econ_infra": false, "id": 4},
 }
+
+# Discretionary economy-infra investment (EFFICIENT only). A real optimizer sinks
+# surplus crafted mats + Liras into always-on buildings to support their economy;
+# the mission-follower baseline only holds what missions mandate. Bounded so it
+# never sabotages the funnel: capped per session, spends ONLY true surplus above
+# every protected reserve + a Liras float, and provisions power BEFORE consumers
+# (process_tick zeroes a starved grid's efficiency → an unpowered extractor yields 0).
+const ECON_BUILDS_PER_SESSION := 3
+const ECON_LIRA_RESERVE := 25000.0     # keep at least this many Liras after a build
+const ECON_INPUT_FEED_CYCLES := 20     # hold >= input_qty x this to treat an input as self-produced
+# An infra investor does NOT vendor their industrial mats to zero — they hoard a
+# building stock. For econ_infra archetypes these amounts are ADDED to the sell
+# reserve so the mats accumulate; builds then spend them down to WORKING_FLOOR.
+const INFRA_KEEP := {"Si": 3000.0, "Fe": 1500.0, "Steel": 700.0, "Circuit": 80.0,
+	"Ti": 250.0, "AdvCircuit": 80.0, "Hydraulics": 20.0}
+# Working stock a build must leave behind (so a build never starves same-slice crafts).
+const WORKING_FLOOR := {"Si": 150.0, "Fe": 200.0, "Steel": 50.0, "Circuit": 10.0,
+	"Ti": 20.0, "AdvCircuit": 10.0, "Hydraulics": 5.0, "C": 50.0}
 
 var params: Dictionary = {}
 var archetype := ""
@@ -66,6 +84,7 @@ var _completed_seen := {}          # mid -> sim_s first seen completed (claim la
 var _losses := {}                  # enemy id -> consecutive losses
 var _detoured_this_session := {}   # enemy id -> true (retried later, not this session)
 var _want_switch := {}             # enemy id -> true (EFFICIENT after 1 loss)
+var _econ_builds_this_session := 0  # discretionary infra buys this session (EFFICIENT, capped)
 
 func setup(p_archetype: String, run_seed: int) -> void:
 	archetype = p_archetype
@@ -79,6 +98,7 @@ func setup(p_archetype: String, run_seed: int) -> void:
 func on_session_start() -> void:
 	at_session_start = true
 	_detoured_this_session.clear()
+	_econ_builds_this_session = 0
 
 # ---------------------------------------------------------------------------
 # Claim pump — runner calls every sim-second (after mm.sync_progress()).
@@ -127,6 +147,11 @@ func decide_step() -> Dictionary:
 	# targets/ammo/kit feedstock, then expand storage — the player-like response
 	# to a full 28-slot cargo (the second historical fake-DNF source).
 	var res = GameState.resources
+	# EFFICIENT sinks TRUE surplus into always-on economy infra (bounded, power-first).
+	# BEFORE the slot-pressure vendor — a real optimizer builds with surplus mats
+	# rather than selling them off first. (Post-sell, every mat sits at its reserve,
+	# so nothing would ever read as surplus at build time.)
+	_maybe_build_economy_infra()
 	if res.get_used_slots() >= res.get_max_slots():
 		var earned := sell_surplus(_protected())
 		maybe_upgrade_storage()
@@ -409,7 +434,7 @@ func _do_combat(mid: String, zid: String, eid: String) -> Dictionary:
 		if int(_losses.get(eid, 0)) >= 2 and not _boss_gear_ready(eid):
 			var reg := _regular_enemy_in_zone(zid)
 			if reg != "" and reg != eid:
-				status = "farming rare %s gear for %s" % [_enemy_weak_type(eid), eid]
+				status = "farming uncommon+ %s gear for %s" % [_enemy_weak_type(eid), eid]
 				return _do_combat_farm(mid, zid, reg, "detour")
 	elif int(_losses.get(eid, 0)) >= 2 and _detoured_this_session.get(eid, false):
 		var z: Dictionary = actions._best_unlocked_zone()
@@ -446,6 +471,14 @@ func _prep_for_fight(mid: String, eid: String) -> Dictionary:
 			var got := _equip_weapon_of_type(mid, weak)
 			if not got.is_empty():
 				return got
+	# Power BEFORE ammo: re-power (craft/equip batteries) with the weapon loadout now
+	# settled, so ammo is assigned LAST against the final loadout. Doing power after
+	# ammo let a re-power change the loadout post-ammo → prep passed but combat_ready
+	# was false (CANT_FIRE). A real player re-powers after offline combat destroys a
+	# battery (intended risk) — the funnel then counts the re-craft time.
+	var pw := _ensure_powered(mid)
+	if not pw.is_empty():
+		return pw
 	# Ammo for every equipped weapon: stocked + assigned. Bosses get a full
 	# fight's worth up front (players stock up before a boss).
 	var eb: bool = bool(GameState.combat_manager.enemy_db.get(eid, {}).get("is_boss", false))
@@ -480,8 +513,6 @@ func _prep_for_fight(mid: String, eid: String) -> Dictionary:
 		var kd := _do_equip_kits(mid, 2)
 		if not kd.is_empty():
 			return kd
-	if sm.energy_used > sm.energy_capacity:
-		return _blocked(mid, "power_wall used=%d cap=%d" % [sm.energy_used, sm.energy_capacity])
 	return {}
 
 func _do_farm_rarity(mid: String, _rarity: int) -> Dictionary:
@@ -532,13 +563,25 @@ func _boss_gear_ready(eid: String) -> bool:
 	var weak := _enemy_weak_type(eid)
 	if weak == "":
 		return true
-	# Every weapon slot wants a rare+ weak-type weapon (the DPS/penetration gate);
-	# defense wants at least one rare+ armor + shield (optimize + kits carry the rest).
-	if _count_owned("weapon", weak, 2) < _slot_indices("weapon").size():
+	# Threshold measured by boss_threshold.gd: with the mission-provided (ahead-tier)
+	# hull + kits, a full UNCOMMON weak-type loadout beats the mandatory bosses
+	# (Architect 5/5, Monolith 4/5). Common LOSES; RARE is NOT required. Requiring
+	# rare here was the false 48-72h "farm rare gear" wall — a real player fights the
+	# moment they're uncommon-equipped, which happens incidentally while clearing the
+	# zone. Uncommon drops ~4.5x more often than rare, so this is an hours farm, not days.
+	#
+	# FLAT uncommon bar — deliberately NO loss-based escalation. A bar that bumped to
+	# RARE after an unlucky loss streak dropped the bot straight back into the multi-day
+	# rare farm (an early matrix regressed follower_11 exactly this way). _do_combat only
+	# farms when NOT gear_ready, so once uncommon-equipped the bot RE-ATTEMPTS (80%/win)
+	# instead of over-farming. A deeper boss where uncommon is genuinely insufficient
+	# will surface as an HONEST mission:overdue wall — the signal to measure that boss
+	# with boss_threshold.gd and set a per-zone bar, not to silently grind rare.
+	if _count_owned("weapon", weak, 1) < _slot_indices("weapon").size():
 		return false
-	if _slot_indices("armor").size() > 0 and _count_owned("armor", "", 2) < 1:
+	if _slot_indices("armor").size() > 0 and _count_owned("armor", "", 1) < 1:
 		return false
-	if _slot_indices("shield").size() > 0 and _count_owned("shield", "", 2) < 1:
+	if _slot_indices("shield").size() > 0 and _count_owned("shield", "", 1) < 1:
 		return false
 	return true
 
@@ -663,6 +706,129 @@ func _do_overclock(mid: String) -> Dictionary:
 	return _earn_credits(mid, "no building owned for overclock")
 
 # ---------------------------------------------------------------------------
+# Discretionary economy infrastructure (EFFICIENT archetype only).
+# Instant (no timed slice) — mirrors research/craft buys. Called once per
+# decide_step BEFORE the mission loop; builds at most one building, so it
+# interleaves naturally with play. Every safety lives in the pick/afford gates:
+# true-surplus spend (never dips a protected reserve), a Liras float, input
+# self-sufficiency, and power-before-consumers. FOLLOWER/DRIFTER/OVERNIGHTER keep
+# econ_infra=false → they stay the clean mission-minimum baseline to compare against.
+# ---------------------------------------------------------------------------
+func _maybe_build_economy_infra() -> void:
+	if not bool(params.get("econ_infra", false)):
+		return
+	if _econ_builds_this_session >= ECON_BUILDS_PER_SESSION:
+		return
+	# The best sustainable, affordable YIELD building we'd like to own (power aside).
+	# Power generators are NEVER built speculatively — only to unblock a concrete
+	# extractor/refinery, so the bot never stacks pointless solar arrays.
+	var y := _pick_yield_building()
+	if y == "":
+		return
+	var im = GameState.infrastructure_manager
+	var cons := float(im.building_db[y].get("energy_cons", 0.0))
+	if cons <= max(0.0, im.net_energy):
+		_build_econ(y)                       # grid can power it → build the yield building
+	else:
+		var p := _pick_power_building()      # need power first → best affordable generator
+		if p != "":
+			_build_econ(p)                   # next slice the yield building is powerable
+
+# Best affordable, input-sustainable production building, ranked by Liras/sec output.
+func _pick_yield_building() -> String:
+	var im = GameState.infrastructure_manager
+	var pick := ""
+	var pick_score := -1.0
+	for bid in im.building_db:
+		var b: Dictionary = im.building_db[bid]
+		if (b.get("yield", {}) as Dictionary).is_empty():
+			continue
+		var rr = b.get("research_req")
+		if rr and not GameState.research_manager.is_tech_unlocked(String(rr)):
+			continue
+		if not _input_sustainable(b):
+			continue
+		if not _econ_affordable(String(bid)):
+			continue
+		var score := _yield_value_per_sec(b)
+		if score > pick_score:
+			pick_score = score
+			pick = String(bid)
+	return pick
+
+# Best affordable, fuel-sustainable generator, ranked by raw energy_gen.
+func _pick_power_building() -> String:
+	var im = GameState.infrastructure_manager
+	var pick := ""
+	var pick_gen := -1.0
+	for bid in im.building_db:
+		var b: Dictionary = im.building_db[bid]
+		var gen := float(b.get("energy_gen", 0.0))
+		if gen <= 0.0:
+			continue
+		var rr = b.get("research_req")
+		if rr and not GameState.research_manager.is_tech_unlocked(String(rr)):
+			continue
+		if not _input_sustainable(b):
+			continue
+		if not _econ_affordable(String(bid)):
+			continue
+		if gen > pick_gen:
+			pick_gen = gen
+			pick = String(bid)
+	return pick
+
+# A building's ongoing input counts as "self-produced" when we already hold many
+# cycles of feed — a real player builds a smelter only once they're mining its ore.
+func _input_sustainable(b: Dictionary) -> bool:
+	var res = GameState.resources
+	var inp: Dictionary = b.get("input", {})
+	for sym in inp:
+		if res.get_element_amount(String(sym)) < float(inp[sym]) * float(ECON_INPUT_FEED_CYCLES):
+			return false
+	return true
+
+# Spend only accumulated surplus: every cost material must remain above its WORKING
+# floor after paying (and NEVER touch an actively-chased mission mat), Liras above
+# the float. The high sell-reserve (INFRA_KEEP, applied in _protected) is what let
+# the stock accumulate; the low build-floor here is what lets a build spend it.
+func _econ_affordable(bid: String) -> bool:
+	var res = GameState.resources
+	var cost: Dictionary = GameState.infrastructure_manager.get_building_cost(bid)
+	for sym in cost:
+		var s := String(sym)
+		var qty := float(cost[sym])
+		if s == "credits":
+			if res.get_currency("credits") - qty < ECON_LIRA_RESERVE:
+				return false
+		elif res.get_element_amount(s) - qty < _build_floor(s):
+			return false
+	return true
+
+# Minimum of a cost mat a build must leave behind. Actively-chased mats (this slice
+# or last) are untouchable — a build must never eat what a mission is farming for.
+func _build_floor(sym: String) -> float:
+	if _protect_syms.has(sym) or _protect_prev.has(sym):
+		return 9.0e9
+	return float(WORKING_FLOOR.get(sym, 0.0))
+
+func _yield_value_per_sec(b: Dictionary) -> float:
+	var interval := float(b.get("interval", 1.0))
+	if interval <= 0.0:
+		interval = 1.0
+	var v := 0.0
+	var yld: Dictionary = b.get("yield", {})
+	for sym in yld:
+		v += float(ElementDB.get_element_value(String(sym))) * float(yld[sym])
+	return v / interval
+
+func _build_econ(bid: String) -> void:
+	if GameState.infrastructure_manager.build(bid):
+		_econ_builds_this_session += 1
+		pending_events.append({"t": "build_econ", "building": bid,
+			"n": GameState.infrastructure_manager.get_building_count(bid)})
+
+# ---------------------------------------------------------------------------
 # Income / blocked fallbacks.
 # ---------------------------------------------------------------------------
 func _income(why: String, obj: String, attr: String) -> Dictionary:
@@ -709,6 +875,11 @@ func _protect_cost_items(cost: Dictionary) -> void:
 func _protected() -> Dictionary:
 	var p := {"Fe": 300.0, "Si": 200.0, "Li": 60.0, "BatteryT1": 10.0,
 		KIT_HULL: 10.0, KIT_SHIELD: 10.0, "O": 60.0, "C": 100.0}
+	# Infra investors (EFFICIENT) hoard a building stock rather than vendoring
+	# industrial mats to zero — so a discretionary build has something to spend.
+	if bool(params.get("econ_infra", false)):
+		for sym in INFRA_KEEP:
+			p[String(sym)] = max(float(p.get(String(sym), 0.0)), float(INFRA_KEEP[sym]))
 	for a in AMMO_FOR.values():
 		p[String(a)] = 9.0e9
 	for n in range(1, 11):
@@ -866,6 +1037,61 @@ func _ensure_ammo_real(mid: String, for_boss: bool = false) -> Dictionary:
 		if res.get_element_amount(ammo) > 0 and String(sm.ammo_loadout.get(i, "")) == "":
 			sm.set_slot_ammo(i, ammo)
 	return {}
+
+# Re-power the ship by equipping owned batteries into empty slots, then CRAFTING
+# more when the stock is dry — the real recovery after offline combat destroys a
+# battery (intended risk) or a hull upgrade raises draw. Equipping is instant, so
+# loop it; crafting returns a timed task the runner ticks (the funnel then counts
+# the re-craft time). Blocks only when a battery is genuinely unsourceable.
+func _ensure_powered(mid: String) -> Dictionary:
+	var sm = GameState.shipyard_manager
+	for _guard in range(8):
+		if sm.energy_used <= sm.energy_capacity:
+			return {}
+		var empty := -1
+		for i in _slot_indices("battery"):
+			if not sm.loadout.get(i, null):
+				empty = int(i)
+				break
+		if empty < 0:
+			return _blocked(mid, "power_wall used=%d cap=%d (battery slots full)" % [sm.energy_used, sm.energy_capacity])
+		var bat := _best_owned_or_craftable_battery()
+		if bat == "":
+			return _blocked(mid, "power_wall used=%d cap=%d (no craftable battery)" % [sm.energy_used, sm.energy_capacity])
+		if int(sm.module_inventory.get(bat, 0)) > 0:
+			if not sm.equip_module(empty, bat, true):
+				return _blocked(mid, "battery equip rejected (%s)" % bat)
+			sm.recalc_stats()
+			pending_events.append({"t": "equip", "mid": mid, "slot": "battery", "module": _norm_mid(bat)})
+			continue
+		return _do_craft(mid, bat)   # none owned → craft a replacement (timed task)
+	return _blocked(mid, "power_wall recovery guard")
+
+# Highest-capacity battery the bot can slot: research-unlocked, and either already
+# owned or craftable (has a cost). Base modules only — customs are drops, not crafted.
+func _best_owned_or_craftable_battery() -> String:
+	var sm = GameState.shipyard_manager
+	var best := ""
+	var best_cap := -1
+	for bid in sm.modules:
+		var s := String(bid)
+		if s.begins_with("custom_"):
+			continue
+		var d: Dictionary = sm.modules[bid]
+		if String(d.get("slot_type", "")) != "battery":
+			continue
+		var rr = d.get("research_req")
+		if rr and not GameState.research_manager.is_tech_unlocked(String(rr)):
+			continue
+		var owned: bool = int(sm.module_inventory.get(s, 0)) > 0
+		var craftable: bool = not (d.get("cost", {}) as Dictionary).is_empty()
+		if not (owned or craftable):
+			continue
+		var cap := int(sm.get_module_energy_capacity(s))
+		if cap > best_cap:
+			best_cap = cap
+			best = s
+	return best
 
 # CANT_FIRE contract: armed + powered + every non-cryo weapon has stocked AND
 # assigned ammo. Runner asserts this before every fight verdict.

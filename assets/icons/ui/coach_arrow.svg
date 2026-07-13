@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- bold arrow pointing RIGHT (rotated in code to aim at the coach target) -->
+  <path d="M6 24 H36 V13 L60 32 L36 51 V40 H6 Z" fill="#ffffff"/>
+</svg>

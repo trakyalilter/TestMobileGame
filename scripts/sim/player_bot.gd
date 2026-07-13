@@ -116,6 +116,7 @@ func _run_one(arch: String, run_seed: int, days: int, until: String) -> void:
 	GameState.combat_manager.boss_kills.clear()   # hard_reset does NOT clear these
 	GameState.combat_manager.total_kills = 0
 	GameState.game_settings["offline_combat"] = true   # v135a: model the new default so the funnel measures offline gear-farming amortizing the grind
+	GameState.shipyard_manager.sim_protect_batteries = true   # v135b: sim-only — batteries stay destructible in the real game (see shipyard note)
 	_assert_clean(arch)
 	seed(run_seed)
 	sim_s = 0.0

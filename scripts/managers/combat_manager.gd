@@ -2247,6 +2247,11 @@ func _focused_drop_pool(enemy_data: Dictionary, sm) -> Array:
 func _roll_one_module_drop(unlocked_pool: Array, sm) -> void:
 	var is_boss = current_enemy.get("is_boss", false)
 	var rarity = sm.roll_rarity(is_boss)
+	# v136: Common = the "empty" roll (trash only — bosses never roll Common).
+	# Nothing drops; Common modules stay crafting-only. Makes real trash drops
+	# rarer without ever putting junk in the inventory.
+	if rarity == sm.Rarity.COMMON:
+		return
 	var base_id = _pick_weighted_base(unlocked_pool, sm)
 	if base_id == "":
 		return

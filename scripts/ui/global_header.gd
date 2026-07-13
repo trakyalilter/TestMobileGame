@@ -25,6 +25,7 @@ var _slot_was_full: bool = false
 # color-coded alerts, non-interactive: it shows where you are, never tells you to act.
 var warp_gauge_bar: ProgressBar
 var warp_gauge_lbl: Label
+var warp_gauge_box: HBoxContainer   # whole WARP element — hidden until warp_first_revealed
 var _warp_gauge_accum: float = 0.0
 
 func _ready():
@@ -239,10 +240,21 @@ func _setup_warp_gauge() -> void:
 	box.add_child(warp_gauge_bar)
 
 	$MarginContainer/HBoxContainer.add_child(box)  # rightmost, after the expanding task label
+	warp_gauge_box = box
+	# Hidden until the Warp Core is revealed — the SAME gate as the Warp nav button
+	# (main.gd: warp_btn.visible = game_settings["warp_first_revealed"]). Showing the
+	# charge bar before the tab exists spoils the prestige reveal.
+	box.visible = GameState.game_settings.get("warp_first_revealed", false)
 	update_warp_gauge()
 
 func update_warp_gauge() -> void:
 	if not is_instance_valid(warp_gauge_bar) or not GameState.warp_manager:
+		return
+	# Match the Warp nav button's reveal exactly — appear together, not before.
+	var revealed: bool = GameState.game_settings.get("warp_first_revealed", false)
+	if is_instance_valid(warp_gauge_box):
+		warp_gauge_box.visible = revealed
+	if not revealed:
 		return
 	var wm = GameState.warp_manager
 	var threshold: float = wm.get_tree_shard_threshold()

@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/sim/boss_threshold.gd" id="1_bth"]
+
+[node name="BossThreshold" type="Node"]
+script = ExtResource("1_bth")

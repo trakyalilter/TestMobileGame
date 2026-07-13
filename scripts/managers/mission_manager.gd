@@ -257,7 +257,7 @@ func init_missions():
 		["m030c3", "Heavier Ordnance", "Your Zone-1 guns barely dent Zone-2 armor. In the Shipyard, fabricate 3 'Concussion Missile' (Z2 EXPLOSIVE) and equip one per weapon slot. The Silicate Monolith ahead is hardened against kinetic and energy but WEAK TO EXPLOSIVE — you can also swap loadouts mid-fight.", "craft", "z2_missile", 3, 30000, 3000, "m030d"],
 		# v134h: zone_3_access (Mars Debris Clearance) COSTS a Z2 boss core the chain never
 		# told the player to farm. Insert an explicit boss-farm beat (mirrors m030i/m032a).
-		["m030d", "Belt Overseer", "The Mars Debris charter needs a Sector Core. Return to the Asteroid Belt and defeat the Silicate Monolith (its boss) to salvage a Z2 Sector Core.", "defeat", "z2_boss_monolith", 1, 50000, 6000, "m030e"],
+		["m030d", "Belt Overseer", "The Mars Debris charter needs a Sector Core. Return to the Asteroid Belt and defeat the Silicate Monolith (its boss) to salvage a Z2 Sector Core. It shrugs off freshly-crafted COMMON gear — if it out-lasts you, farm the Belt's raiders until your weapons and plating are UNCOMMON or better (combat drops upgrade your loadout), then challenge it again. EXPLOSIVE hits it hardest.", "defeat", "z2_boss_monolith", 1, 50000, 6000, "m030e"],
 		# Mission bridge from Asteroid Belt to Sector Alpha (zones 3-4 introduction)
 		["m030e", "Mars Beachhead", "Research 'Mars Debris Clearance' in the Research tree (it spends the Silicate Monolith core you just salvaged) to unlock the Mars Debris combat zone.", "research", "zone_3_access", 1, 40000, 5000, "m030f"],
 		["m030f", "Salvage Operations", "Defeat 3 Scavenger Mechs in the Mars Debris combat zone. Their relics feed Wreckforged Alloy crafting.", "defeat", "z3_scavenger_mech", 3, 60000, 8000, "m030fa"],
