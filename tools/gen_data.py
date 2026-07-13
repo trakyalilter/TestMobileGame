@@ -553,7 +553,7 @@ for hid, h in hulls.items():
     if h.get("research_req"): d["research_req"] = h["research_req"]
     lines.append(f"\t{g(hid)}: {g(d)},")
 lines.append("}")
-lines.append('const SLOT_LABELS := {"weapon": "Weapon", "shield": "Shield", "engine": "Engine", "battery": "Battery", "sensor": "Sensor", "cooling": "Cooling", "armor": "Armor", "gem": "Core", "gem_synth": "Core"}')
+lines.append('const SLOT_LABELS := {"weapon": "Weapon", "shield": "Shield", "engine": "Engine", "battery": "Battery", "sensor": "Sensor", "cooling": "Cooling", "armor": "Armor", "gem": "Core", "gem_synth": "Core", "aux": "Aux · Any"}')
 
 # v110 battery-only energy model (desktop ref_shipyard_manager.gd ~L56-79):
 # every consumer module DRAWS CONSUMER_LOAD_BY_TIER[tier]; every battery SUPPLIES

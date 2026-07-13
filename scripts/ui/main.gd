@@ -4005,12 +4005,18 @@ func _ship_fittings(v: VBoxContainer, h: Dictionary) -> void:
 	_consumable_picker(v, "hull", "Hull Repair Kit", GameState.consumable_hull_slot)
 	_consumable_picker(v, "shield", "Shield Booster", GameState.consumable_shield_slot)
 	_section(v, "Weapon Ammo  (consumed per shot, +damage)", CYAN)
-	var slots: Array = h.get("slots", [])
+	# Iterate EFFECTIVE slots (base + aux) and key off the equipped module's own
+	# slot type, so an aux-slot weapon gets its ammo card too — and module_def
+	# resolves custom rolls that GameData.MODULES wouldn't.
 	var any := false
-	for i in slots.size():
-		if slots[i] == "weapon" and GameState.loadout.has(str(i)):
+	for i in GameState.effective_slots().size():
+		var akey := str(i)
+		if not GameState.loadout.has(akey):
+			continue
+		var wmd: Dictionary = GameState.module_def(GameState.loadout[akey])
+		if wmd.get("slot", "") == "weapon":
 			any = true
-			_ammo_picker(v, str(i), GameData.MODULES.get(GameState.loadout[str(i)], {}))
+			_ammo_picker(v, akey, wmd)
 	if not any:
 		_empty(v, "Equip weapons (Loadout) to load ammo.")
 
@@ -4143,14 +4149,19 @@ func _ship_loadout(v: VBoxContainer, h: Dictionary) -> void:
 	_trinity_view(v)
 	_section(v, "SHIP SLOTS — tap a slot to fit or swap a module", CYAN)
 	var g := _grid(v)
-	for i in slots.size():
-		var stype: String = slots[i]
+	# The aux slot (CMB_3 warp node) renders after the base slots as an ANY-type
+	# blade; effective_slots() appends it, so iterating that count draws it inline.
+	var render_slots: Array = GameState.effective_slots()
+	for i in render_slots.size():
+		var stype: String = render_slots[i]
 		var key := str(i)
 		var equipped: String = GameState.loadout.get(key, "")
 		var filled := equipped != ""
-		var c := _card(CYAN, filled)
+		# The aux slot reads warp-purple so the extra any-type blade is unmistakable.
+		var scol: String = PURP if stype == "aux" else CYAN
+		var c := _card(scol, filled)
 		# Filled slots read bright; empty slots are de-emphasised so equipped gear pops.
-		_card_head(c, "▣" if filled else "▢", GameData.SLOT_LABELS.get(stype, stype), "", CYAN, filled)
+		_card_head(c, "✦" if stype == "aux" else ("▣" if filled else "▢"), GameData.SLOT_LABELS.get(stype, stype), "", scol, filled)
 		if filled:
 			var md: Dictionary = GameState.module_def(equipped)
 			var rcol: String = GameState.RARITY_COLOR.get(int(md.get("rarity", 0)), C_TEXT)
@@ -4902,12 +4913,17 @@ func _ship_armory(v: VBoxContainer) -> void:
 		# Browse mode (opened via the Armory tab): pick a slot type to view.
 		_ship_slot_tabs(v)
 	# Collect every owned module for this slot: rolled customs + base modules.
+	# The aux slot (CMB_3) fits any standard module type, so it lists everything
+	# except cores.
+	var aux_browse := ship_mod_slot == "aux"
+	var slot_ok := func(sl: String) -> bool:
+		return GameState._aux_accepts(sl) if aux_browse else sl == ship_mod_slot
 	var owned := []
 	for cid in GameState.custom_modules:
-		if GameState.custom_modules[cid].get("slot", "") == ship_mod_slot and int(GameState.module_inventory.get(cid, 0)) > 0:
+		if slot_ok.call(String(GameState.custom_modules[cid].get("slot", ""))) and int(GameState.module_inventory.get(cid, 0)) > 0:
 			owned.append(cid)
 	for mid in GameData.MODULES:
-		if GameData.MODULES[mid].get("slot", "") == ship_mod_slot and int(GameState.module_inventory.get(mid, 0)) > 0:
+		if slot_ok.call(String(GameData.MODULES[mid].get("slot", ""))) and int(GameState.module_inventory.get(mid, 0)) > 0:
 			owned.append(mid)
 	# Zones represented in the owned gear. You only own gear from zones you've
 	# played, so these are inherently unlocked — no locked-zone spoilers, and no

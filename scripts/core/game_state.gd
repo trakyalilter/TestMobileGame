@@ -57,7 +57,7 @@ const TREE_NODES := {
 	"CMB_2": {"branch": "combat", "cost": 2, "name": "Weapon Tuning",
 		"desc": "+10% module damage.", "implemented": true, "prereq": ["CMB_1"]},
 	"CMB_3": {"branch": "combat", "cost": 5, "name": "Auxiliary Slot",
-		"desc": "Unlocks a 9th module slot that accepts any module type.", "implemented": false, "prereq": ["CMB_2"]},
+		"desc": "Adds one extra module slot that accepts ANY module type (weapon, shield, armor, battery…).", "implemented": true, "prereq": ["CMB_2"]},
 	"CMB_4": {"branch": "combat", "cost": 6, "name": "Matrix Core IV",
 		"desc": "Unlocks the Resonant matrix-core tier (above Pristine).", "implemented": false, "prereq": ["CMB_3"]},
 	"CMB_S1": {"branch": "combat", "cost": 2, "step": 1, "repeatable": true, "name": "Arsenal Doctrine",
@@ -1310,13 +1310,41 @@ func buy_module(mid: String) -> bool:
 
 var equip_notice := ""                  # last equip rejection reason (shown in UI)
 
+# ---------------- Auxiliary slot (CMB_3 warp node) ----------------
+# The CMB_3 node grants ONE extra "aux" slot that accepts any standard module
+# type. It's appended after the hull's base slots, so its index is the base slot
+# count (varies per hull: corvette 8 → dreadnought 26). Cores (gem/gem_synth)
+# still route through sockets, never a slot.
+func effective_slots() -> Array:
+	var s: Array = (GameData.HULLS.get(active_hull, {}).get("slots", []) as Array).duplicate()
+	if is_node_purchased("CMB_3"):
+		s.append("aux")
+	return s
+
+func aux_slot_index() -> int:
+	if is_node_purchased("CMB_3"):
+		return (GameData.HULLS.get(active_hull, {}).get("slots", []) as Array).size()
+	return -1
+
+# True if `slot_type` (a module's slot) may occupy the aux slot.
+func _aux_accepts(slot_type: String) -> bool:
+	return slot_type != "" and slot_type != "gem" and slot_type != "gem_synth"
+
 func equip_module(mid: String) -> bool:
 	if int(module_inventory.get(mid, 0)) <= 0:
 		return false
 	var st: String = module_def(mid).get("slot", "")
 	var slots: Array = GameData.HULLS.get(active_hull, {}).get("slots", [])
+	# Auto-place: first free base slot of the matching type, else the aux slot.
+	var candidates: Array = []
 	for i in slots.size():
-		if slots[i] == st and not loadout.has(str(i)):
+		if slots[i] == st:
+			candidates.append(i)
+	var aux := aux_slot_index()
+	if aux >= 0 and _aux_accepts(st):
+		candidates.append(aux)
+	for i in candidates:
+		if not loadout.has(str(i)):
 			# Grid-overload guard (desktop Phase 18): reject if equipping pushes
 			# energy load past capacity, unless the module itself adds capacity
 			# (a battery — anti-softlock exception).
@@ -1353,10 +1381,15 @@ func unequip_slot(idx: String) -> void:
 func equip_module_to_slot(idx: int, mid: String) -> bool:
 	if int(module_inventory.get(mid, 0)) <= 0:
 		return false
-	var slots: Array = GameData.HULLS.get(active_hull, {}).get("slots", [])
+	var slots: Array = effective_slots()
 	if idx < 0 or idx >= slots.size():
 		return false
-	if module_def(mid).get("slot", "") != slots[idx]:
+	var mslot: String = module_def(mid).get("slot", "")
+	# The aux slot (CMB_3) takes any standard module type; base slots are strict.
+	if slots[idx] == "aux":
+		if not _aux_accepts(mslot):
+			return false
+	elif mslot != slots[idx]:
 		return false
 	var key := str(idx)
 	var prev: String = loadout.get(key, "")   # current occupant (swapped out on success)
@@ -5376,6 +5409,18 @@ func load_game() -> void:
 				restored[i] = {"name": "", "loadout": {}, "ammo_loadout": {}, "consumable_hull": "", "consumable_shield": ""}
 		loadout_presets = restored
 	loadout = data.get("loadout", {})
+	# Recover an aux-slot module (CMB_3) saved while the node was owned but loaded
+	# after a hard reset cleared it: any loadout key past the effective slot count
+	# would be orphaned (invisible + unequippable), so return it to inventory rather
+	# than silently deleting it.
+	var _eff := effective_slots().size()
+	for _k in loadout.keys():
+		if int(_k) >= _eff:
+			var _am = loadout[_k]
+			if _am != null and _am != "":
+				module_inventory[_am] = int(module_inventory.get(_am, 0)) + 1
+			loadout.erase(_k)
+			ammo_loadout.erase(_k)
 	buildings = data.get("buildings", {})
 	for k in buildings:
 		buildings[k] = int(buildings[k])
