@@ -5848,12 +5848,61 @@ func _material_info_body(v: VBoxContainer, _close: Callable, sym: String, info: 
 		_lbl_wrap(v, desc, 11, C_TEXT)
 	var sources: Array = info.get("sources", [])
 	var uses: Array = info.get("uses", [])
-	if not sources.is_empty():
-		_atlas_kv(v, "FROM", sources, GREEN)
+	# v135a: split combat drops out and group them under their SECTOR (Lunar Orbit ›
+	# mites, drones…), sorted by tier; non-combat sources stay flat on top.
+	var non_combat := []
+	for s in sources:
+		if not String(s).begins_with("◎"):
+			non_combat.append(s)
+	if not non_combat.is_empty():
+		_atlas_kv(v, "FROM", non_combat, GREEN)
+	var zone_groups := _combat_sources_by_zone(sym)
+	if not zone_groups.is_empty():
+		_section(v, "DROPPED IN COMBAT", GREEN)
+		for grp in zone_groups:
+			_clbl(v, "◎ " + String(grp["zone"]), 11, CYAN)
+			var body := Label.new()
+			body.text = "      " + ", ".join(grp["enemies"])
+			body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			body.add_theme_font_size_override("font_size", _fs(10))
+			body.add_theme_color_override("font_color", Color.html(C_TEXT))
+			v.add_child(body)
 	if not uses.is_empty():
 		_atlas_kv(v, "USED IN", uses, C_DIM)
 	if sources.is_empty() and uses.is_empty():
 		_clbl(v, "No recorded sources or uses.", 10, C_DIM)
+
+# Combat drops of `sym` grouped under their sector, ascending by tier. Returns
+# [{zone, enemies:[names]}] — an enemy contributes via its loot array OR boss_core.
+func _combat_sources_by_zone(sym: String) -> Array:
+	var zone_names := {}
+	var zone_ord := {}
+	for z in GameData.ZONES:
+		var d := int(z.get("difficulty", 0))
+		zone_names[d] = String(z.get("name", "Zone %d" % d))
+	var by_zone := {}
+	for eid in GameData.ENEMIES:
+		var e: Dictionary = GameData.ENEMIES[eid]
+		var drops := String(e.get("boss_core", "")) == sym
+		if not drops:
+			for row in e.get("loot", []):
+				if String(row[0]) == sym:
+					drops = true
+					break
+		if not drops:
+			continue
+		var zo := int(e.get("zone", 0))
+		if not by_zone.has(zo):
+			by_zone[zo] = []
+		var enm := String(e.get("name", eid))
+		if not by_zone[zo].has(enm):
+			by_zone[zo].append(enm)
+	var ords: Array = by_zone.keys()
+	ords.sort()
+	var out := []
+	for zo in ords:
+		out.append({"zone": String(zone_names.get(zo, "Zone %d" % zo)), "enemies": by_zone[zo]})
+	return out
 
 # A labelled, wrapping list block (eyebrow + body). Rendered only inside the
 # material detail modal now, so it lists generously before truncating.
