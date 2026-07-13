@@ -897,7 +897,11 @@ CURATED_CHAIN = [
     _m("m029b"),                                 # craft AdvCircuit
     # --- CHAPTER 2 tail: hulls, sectors, bosses (left in desktop order — already
     #     a clean research→build/defeat cadence with no adjacent same-type runs).
-    _m("m030"), _m("m030c"), _m("m030e"), _m("m030f"), _m("m030g"), _m("m030h"),
+    # v135a gear-check refit beats (desktop 48761e5): teach the player to re-power
+    # and re-arm after the Destroyer, and to fit Zone-3 plating/shielding/energy
+    # ordnance before pushing deeper — so the honest gear-check is winnable, not a wall.
+    _m("m030"), _m("m030c"), _m("m030c2"), _m("m030c3"), _m("m030e"),
+    _m("m030f"), _m("m030fa"), _m("m030fb"), _m("m030f1"), _m("m030g"), _m("m030h"),
     _m("m031"), _m("m032"), _m("m032b"), _m("m032d"), _m("m032c"),
     _m("m033"), _m("m033b"), _m("m033c"), _m("m034"),
 ]
