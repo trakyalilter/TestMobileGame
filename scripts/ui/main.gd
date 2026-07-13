@@ -2992,7 +2992,7 @@ func _rebuild_loot_rows() -> void:
 # slot, and weapon damage type. Filtered drops are skipped at roll time.
 func _open_loot_filter() -> void:
 	_modal("LOOT FILTER", CYAN, func(v: VBoxContainer, _close: Callable) -> void:
-		_clbl(v, "Only loot you keep is rolled — filtered drops are skipped entirely.", 9, C_MUTED)
+		_clbl(v, "Drops concentrate to the types you keep (targeted farming) — narrow it to farm one slot or weapon type. Rarity still filters after the roll.", 9, C_MUTED)
 		_section(v, "RARITY", CYAN)
 		var rr := HFlowContainer.new()
 		rr.add_theme_constant_override("h_separation", 6)

@@ -4487,6 +4487,7 @@ func _win_combat() -> void:
 		for mid in enemy_inst.get("drop_pool", []):
 			if GameData.MODULES.has(mid) and module_unlocked(mid):
 				pool.append(mid)
+	pool = _focused_drop_pool(pool)   # v135a targeted farming: concentrate to kept types
 	if not pool.is_empty():
 		var is_boss: bool = bool(enemy_inst.get("is_boss", false))
 		if is_boss:
@@ -4574,27 +4575,37 @@ func _roll_one_module_drop(pool: Array) -> void:
 		_event("%s DROP" % (RARITY_LABEL[rarity] if rarity > 0 else "MODULE").to_upper(), RARITY_COLOR.get(rarity, "b78ae8"), "enemy")
 		_mission_sync()   # drop_rarity missions re-check on a new module drop
 
-# Loot-filter gate: true if a drop of this base module at this rarity should be
-# kept (not filtered out). Honours rarity, slot, and weapon damage-type toggles.
-func loot_drop_kept(base_id: String, rarity: int) -> bool:
-	if not bool(loot_filter.get(rarity, true)):
-		return false
-	var m: Dictionary = GameData.MODULES.get(base_id, {})
-	var slot: String = m.get("slot", "")
-	if slot != "" and not bool(loot_type_filter.get(slot, true)):
-		return false
-	if slot == "weapon":
-		var st: Dictionary = m.get("stats", {})
-		var wtype := "kinetic"
-		if float(st.get("atk_cryo", 0)) > 0.0:
-			wtype = "cryo"
-		elif float(st.get("atk_energy", 0)) > 0.0:
-			wtype = "energy"
-		elif float(st.get("atk_explosive", 0)) > 0.0:
-			wtype = "explosive"
-		if not bool(loot_weapon_type_filter.get(wtype, true)):
-			return false
-	return true
+# A weapon module's damage type (for loot-filter pool concentration).
+func _module_weapon_type(base_id: String) -> String:
+	var st: Dictionary = GameData.MODULES.get(base_id, {}).get("stats", {})
+	if float(st.get("atk_cryo", 0)) > 0.0:
+		return "cryo"
+	if float(st.get("atk_energy", 0)) > 0.0:
+		return "energy"
+	if float(st.get("atk_explosive", 0)) > 0.0:
+		return "explosive"
+	return "kinetic"
+
+# v135a targeted farming: CONCENTRATE the drop pool by the slot + weapon-type
+# loot filters BEFORE rolling (desktop _focused_drop_pool), so every drop is a
+# kept type — real ~3x farming, not the old post-roll gate that discarded rolls.
+# Rarity stays a post-roll gate (it isn't a pool axis). An over-narrow filter that
+# empties the pool falls back to the full pool, so drops can never zero out.
+func _focused_drop_pool(pool: Array) -> Array:
+	var focused := []
+	for base_id in pool:
+		var slot: String = GameData.MODULES.get(base_id, {}).get("slot", "")
+		if slot != "" and not bool(loot_type_filter.get(slot, true)):
+			continue
+		if slot == "weapon" and not bool(loot_weapon_type_filter.get(_module_weapon_type(base_id), true)):
+			continue
+		focused.append(base_id)
+	return focused if not focused.is_empty() else pool
+
+# Loot-filter gate: RARITY only — the slot/weapon-type axes are applied by pool
+# concentration (_focused_drop_pool) before the roll, matching desktop.
+func loot_drop_kept(_base_id: String, rarity: int) -> bool:
+	return bool(loot_filter.get(rarity, true))
 
 # ---------------- Module durability (desktop v100/v124/v125) ----------------
 # ONLINE defeat is non-destructive: equipped modules floor to 50% durability
@@ -4845,6 +4856,7 @@ func _offline_combat(delta: float) -> void:
 		for mid in e.get("drop_pool", []):
 			if GameData.MODULES.has(mid) and module_unlocked(mid):
 				pool.append(mid)
+	pool = _focused_drop_pool(pool)   # v135a: offline farming honours the same loot concentration
 	# v129 offline salvage feedstock — one roll per rep under the existing caps.
 	var salv_tot := {}
 	for _s in range(mini(reps, 500000)):
