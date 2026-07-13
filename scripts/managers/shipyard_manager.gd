@@ -741,7 +741,7 @@ var modules: Dictionary = {
 		"name": "Concussion Missile",
 		"slot_type": "weapon",
 		"stats": {"atk_explosive": 40, "energy_load": 18, "atk_interval": 4.0},
-		"cost": {"credits": 5500, "Fe": 40, "C": 30},
+		"cost": {"credits": 5500, "Fe": 40, "C": 30, "Hydraulics": 2},
 		"desc": "Blast warhead. Devastating hull damage.",
 		"zone": 2, "research_req": "zone_2_access"
 	},
@@ -757,7 +757,7 @@ var modules: Dictionary = {
 		"name": "Carbon Fiber Plate",
 		"slot_type": "armor",
 		"stats": {"def": 11, "hp": 44},
-		"cost": {"credits": 3300, "C": 30, "Fe": 20},
+		"cost": {"credits": 3300, "C": 30, "Fe": 20, "ReinforcedPlating": 3},
 		"desc": "Lightweight composite armor.",
 		"zone": 2, "research_req": "zone_2_access"
 	},
@@ -783,7 +783,7 @@ var modules: Dictionary = {
 		"name": "Heavy Torpedo",
 		"slot_type": "weapon",
 		"stats": {"atk_explosive": 87, "energy_load": 30, "atk_interval": 4.0},
-		"cost": {"credits": 12100, "Steel": 60, "C": 40},
+		"cost": {"credits": 12100, "Steel": 60, "C": 40, "Hydraulics": 3},
 		"desc": "Armor-busting ordnance.",
 		"zone": 3, "research_req": "zone_3_access"
 	},
@@ -799,7 +799,7 @@ var modules: Dictionary = {
 		"name": "Composite Plate",
 		"slot_type": "armor",
 		"stats": {"def": 24, "hp": 97},
-		"cost": {"credits": 7260, "Steel": 30, "Ti": 10},
+		"cost": {"credits": 7260, "Steel": 30, "Ti": 10, "ReinforcedPlating": 5},
 		"desc": "Layered ceramic-metal composite.",
 		"zone": 3, "research_req": "zone_3_access"
 	},
@@ -825,7 +825,7 @@ var modules: Dictionary = {
 		"name": "Cluster Warhead",
 		"slot_type": "weapon",
 		"stats": {"atk_explosive": 192, "energy_load": 45, "atk_interval": 4.0},
-		"cost": {"credits": 26620, "Steel": 100, "Chip": 18},
+		"cost": {"credits": 26620, "Steel": 100, "Chip": 18, "Hydraulics": 5},
 		"desc": "Splits into sub-munitions on impact.",
 		"zone": 4, "research_req": "zone_4_access"
 	},
@@ -841,7 +841,7 @@ var modules: Dictionary = {
 		"name": "Stainless Armor",
 		"slot_type": "armor",
 		"stats": {"def": 53, "hp": 213},
-		"cost": {"credits": 15972, "Steel": 60, "Ti": 20, "GalvanizedSteel": 10},
+		"cost": {"credits": 15972, "Steel": 60, "Ti": 20, "GalvanizedSteel": 10, "ReinforcedPlating": 8},
 		"desc": "Corrosion-resistant alloy plating.",
 		"zone": 4, "research_req": "zone_4_access"
 	},
@@ -1109,19 +1109,19 @@ var modules: Dictionary = {
 	},
 	"z3_engine": {
 		"name": "Ion Engine", "slot_type": "engine", "stats": {"eva": 6},
-		"cost": {"credits": 6500, "Steel": 25, "Ti": 10}, "zone": 3, "research_req": "zone_3_access"
+		"cost": {"credits": 6500, "Steel": 25, "Ti": 10, "Hydraulics": 2}, "zone": 3, "research_req": "zone_3_access"
 	},
 	"z4_engine": {
 		"name": "Cryo-Pulse Drive", "slot_type": "engine", "stats": {"eva": 7},
-		"cost": {"credits": 15000, "Ti": 50, "AdvCircuit": 5}, "zone": 4, "research_req": "zone_4_access"
+		"cost": {"credits": 15000, "Ti": 50, "AdvCircuit": 5, "Hydraulics": 3}, "zone": 4, "research_req": "zone_4_access"
 	},
 	"z5_engine": {
 		"name": "Superalloy Engine", "slot_type": "engine", "stats": {"eva": 9},
-		"cost": {"credits": 35000, "Superalloy": 15, "Chip": 10}, "zone": 5, "research_req": "zone_5_access"
+		"cost": {"credits": 35000, "Superalloy": 15, "Chip": 10, "Hydraulics": 5}, "zone": 5, "research_req": "zone_5_access"
 	},
 	"z6_engine": {
 		"name": "Antimatter Engine", "slot_type": "engine", "stats": {"eva": 10},
-		"cost": {"credits": 80000, "Superalloy": 40, "QuantumCore": 2}, "zone": 6, "research_req": "zone_6_access"
+		"cost": {"credits": 80000, "Superalloy": 40, "QuantumCore": 2, "Hydraulics": 8}, "zone": 6, "research_req": "zone_6_access"
 	},
 	"z7_engine": {
 		"name": "Void Engine", "slot_type": "engine", "stats": {"eva": 11},
@@ -1189,23 +1189,23 @@ var modules: Dictionary = {
 	},
 	"z2_sensor": {
 		"name": "Optical Scanner", "slot_type": "sensor", "stats": {"accuracy": 40},
-		"cost": {"credits": 3500, "Si": 40, "Cu": 20}, "zone": 2, "research_req": "zone_2_access"
+		"cost": {"credits": 3500, "Si": 40, "Cu": 20, "AlWire": 2}, "zone": 2, "research_req": "zone_2_access"
 	},
 	"z3_sensor": {
 		"name": "Deep Space Radar", "slot_type": "sensor", "stats": {"accuracy": 50},
-		"cost": {"credits": 8000, "Circuit": 15, "Ti": 10}, "zone": 3, "research_req": "zone_3_access"
+		"cost": {"credits": 8000, "Circuit": 15, "Ti": 10, "AlWire": 3}, "zone": 3, "research_req": "zone_3_access"
 	},
 	"z4_sensor": {
 		"name": "Phased Array", "slot_type": "sensor", "stats": {"accuracy": 60},
-		"cost": {"credits": 18000, "AdvCircuit": 10, "Ti": 30, "Au": 5}, "zone": 4, "research_req": "zone_4_access"
+		"cost": {"credits": 18000, "AdvCircuit": 10, "Ti": 30, "Au": 5, "FocusingCrystal": 2}, "zone": 4, "research_req": "zone_4_access"
 	},
 	"z5_sensor": {
 		"name": "AI Targeting", "slot_type": "sensor", "stats": {"accuracy": 70},
-		"cost": {"credits": 42000, "AICore": 1, "Chip": 15}, "zone": 5, "research_req": "zone_5_access"
+		"cost": {"credits": 42000, "AICore": 1, "Chip": 15, "FocusingCrystal": 3}, "zone": 5, "research_req": "zone_5_access"
 	},
 	"z6_sensor": {
 		"name": "Quantum Scanner", "slot_type": "sensor", "stats": {"accuracy": 80},
-		"cost": {"credits": 95000, "QuantumCore": 3, "AdvCircuit": 25}, "zone": 6, "research_req": "zone_6_access"
+		"cost": {"credits": 95000, "QuantumCore": 3, "AdvCircuit": 25, "FocusingCrystal": 5}, "zone": 6, "research_req": "zone_6_access"
 	},
 	"z7_sensor": {
 		"name": "Exotic Lens", "slot_type": "sensor", "stats": {"accuracy": 90},

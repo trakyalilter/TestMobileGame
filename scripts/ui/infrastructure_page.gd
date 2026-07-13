@@ -161,10 +161,18 @@ func refresh_list():
 			child.queue_free()
 	widgets.clear()
 	
-	for bid in manager.building_db:
+	# v136: order cards early→late WITHIN each category by RESEARCH-UNLOCK tier
+	# (the real progression gate), with build-credits cost as the within-tier
+	# tiebreaker. Raw credits alone lied — e.g. the Uranium Centrifuge is cheap
+	# (50K) but gated behind a tier-2 tech, so a cost-only sort floated a
+	# late-game plant to the top. Tier-first keeps each card near when it unlocks.
+	var bids: Array = manager.building_db.keys()
+	bids.sort_custom(_by_progression)
+
+	for bid in bids:
 		var data = manager.building_db[bid]
 		var w = building_widget_scene.instantiate()
-		
+
 		var cat = data.get("category", "industry")
 		var target_grid = production_grid
 		
@@ -180,6 +188,29 @@ func refresh_list():
 			widgets.append(w)
 
 	_build_tabs()
+
+# Early→late ordering: primary key = research-unlock tier (when the building
+# actually becomes available), secondary = build-credits cost (affordability
+# within the same tier). Buildings share a grid per category, so this orders
+# each tab's cards by real progression, not raw price.
+func _by_progression(a: String, b: String) -> bool:
+	var ta: int = _unlock_tier(a)
+	var tb: int = _unlock_tier(b)
+	if ta != tb:
+		return ta < tb
+	return _build_credits(a) < _build_credits(b)
+
+func _build_credits(bid: String) -> float:
+	return float(manager.building_db[bid].get("cost", {}).get("credits", 0.0))
+
+# Research tier that gates this building. No-research buildings are tier 0
+# (buildable from the start). Falls back to 0 if the tech id is unknown.
+func _unlock_tier(bid: String) -> int:
+	var rm = GameState.research_manager
+	var key: String = str(manager.building_db[bid].get("research_req", ""))
+	if key == "" or key == "-" or rm == null or not rm.tech_tree.has(key):
+		return 0
+	return int(rm.tech_tree[key].get("tier", 0))
 
 # Removed _process derived updates - using signals + throttled refreshes now
 

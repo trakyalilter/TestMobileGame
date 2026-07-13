@@ -647,6 +647,25 @@ var building_db: Dictionary = {
 		"research_req": "superalloy_engineering",
 		"category": "industry"
 	},
+	# v136: Co had NO scalable source — only refine_pentlandite's 0.4-chance
+	# byproduct (an ACTIVE processing recipe). The parallel infra factory could
+	# auto-produce Ni/Cr/Ti/Steel but never Co, so Superalloy (Co 2/craft,
+	# demanded in the thousands for zone_6-10 gates) was hard-bottlenecked. This
+	# gives the factory a real Co source. Co-produced with Ni from Pentlandite
+	# (realistic). Build cost is deliberately Co-free (Steel + AdvCircuit) so
+	# there's no Superalloy->Co->Superalloy circular deadlock on the first build.
+	"cobalt_refinery": {
+		"name": "Cobalt Refinery",
+		"description": "Extracts cobalt from pentlandite sulfide — the co-metal to nickel, essential for superalloys.",
+		"cost": {"credits": 850000, "Steel": 2000, "AdvCircuit": 150},
+		"energy_gen": 0.0,
+		"energy_cons": 1500.0,
+		"yield": {"Co": 1.5},
+		"input": {"Pentlandite": 2.5, "C": 0.8},
+		"interval": 5.0,
+		"research_req": "superalloy_engineering",
+		"category": "industry"
+	},
 	"germanium_smelter": {
 		"name": "Germanium Smelter",
 		"description": "Automated germanium refining.",

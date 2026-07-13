@@ -645,7 +645,10 @@ var recipes: Dictionary = {
 		"input": {"Al": 2, "Resin": 1},
 		"output": {"AlWire": 2},
 		"duration": 5.0,
-		"level_req": 30,
+		# v136 fix: was L30, but its consumers craft_mg_ion_battery (L14) and
+		# craft_ion_field (L18) were then silently un-craftable until L30. Lowered
+		# to L12 (below all AlWire consumers; Al + Resin are available by then).
+		"level_req": 12,
 		"xp": 35,
 		"research_req": "basic_electronics"
 	},

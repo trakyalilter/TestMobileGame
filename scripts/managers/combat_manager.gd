@@ -159,6 +159,12 @@ const MAX_CRIT_CHANCE = 0.50              # No guaranteed crit loops
 const MAX_CRIT_DAMAGE = 3.0               # Caps burst spikes
 const MAX_DAMAGE_REDUCTION = 0.80         # Explicit DEF ceiling
 const MAX_SHIELD_REGEN_PERCENT = 5        # % of max shield per second
+# v136: boss module-drop burst size (inclusive range, uniform). Every roll is
+# guaranteed ≥Uncommon (boss rarity table has no Common floor), so this is the
+# raw item count a boss showers. Nerfed 4-10→2-4 so boss loot reads as a reward,
+# not a firehose. Single source for BOTH the live win_fight and offline paths.
+const BOSS_MODULE_ROLL_MIN := 2
+const BOSS_MODULE_ROLL_MAX := 4
 const MAX_HP_REGEN_PERCENT = 2            # % of max HP per second
 const MAX_ENEMY_SLOW = 0.50               # Jamming can't freeze enemies
 const MAX_REFLECT_PERCENT = 0.10          # Reflect capped
@@ -2520,14 +2526,14 @@ func win_fight():
 	# v135a: unlocked + loot-filter-concentrated pool (shared with offline combat).
 	var unlocked_pool = _focused_drop_pool(current_enemy, sm)
 
-	# v109: MODULE drops only. Bosses burst — roll 4-10 modules (each
-	# independently rarity-rolled), drop_chance gate bypassed so a boss kill
-	# reliably showers gear. Regulars keep the single drop_chance-gated roll.
-	# Scoped to MODULES — Liras, materials, and boss cores (Lunar Cores etc.)
+	# v109: MODULE drops only. Bosses burst — roll BOSS_MODULE_ROLL_MIN..MAX
+	# modules (each independently rarity-rolled), drop_chance gate bypassed so a
+	# boss kill reliably showers gear. Regulars keep the single drop_chance-gated
+	# roll. Scoped to MODULES — Liras, materials, and boss cores (Lunar Cores etc.)
 	# are handled in their own blocks above and remain single-drop.
 	if unlocked_pool.size() > 0:
 		if current_enemy.get("is_boss", false):
-			var roll_count = randi_range(4, 10)
+			var roll_count = randi_range(BOSS_MODULE_ROLL_MIN, BOSS_MODULE_ROLL_MAX)
 			for _i in range(roll_count):
 				_roll_one_module_drop(unlocked_pool, sm)
 		elif drop_chance > 0 and randf() < drop_chance:
@@ -3173,7 +3179,7 @@ func calculate_offline(delta: float):
 			var _opool := _focused_drop_pool(enemy_data, GameState.shipyard_manager)
 			if _opool.size() > 0:
 				if enemy_data.get("is_boss", false):
-					for _mi in range(randi_range(4, 10)):
+					for _mi in range(randi_range(BOSS_MODULE_ROLL_MIN, BOSS_MODULE_ROLL_MAX)):
 						_roll_one_module_drop(_opool, GameState.shipyard_manager)
 				elif randf() < get_effective_module_drop_chance(enemy_data):
 					_roll_one_module_drop(_opool, GameState.shipyard_manager)
