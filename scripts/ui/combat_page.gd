@@ -54,9 +54,16 @@ var manager: RefCounted
 
 var enemy_info_scene = preload("res://scenes/ui/enemy_info_modal.tscn")
 
+# NG+ step 3: map-mod picker (built programmatically to avoid blind .tscn edits;
+# placement/styling is a first pass to refine in-app). Gated on the NG+ frontier.
+var _mm_picker: Control = null
+var _mm_toggles: Dictionary = {}
+var _mm_loot_lbl: Label = null
+
 func _ready():
 	manager = GameState.combat_manager
 	call_deferred("refresh_zones")
+	call_deferred("_build_map_mod_picker")
 	GameState.game_loaded.connect(refresh_zones)
 	if GameState.research_manager:
 		GameState.research_manager.tech_unlocked.connect(func(_id): refresh_zones())
@@ -396,9 +403,61 @@ func request_fight(eid):
 	manager.start_expedition(zid)
 	manager.set_target_enemy(eid)
 
+# NG+ step 3: build the map-mod picker programmatically (a PanelContainer of CheckButtons
+# anchored top-right). Toggling calls set_active_map_mods; the cap-at-3 + validate live in
+# the manager, so we re-sync the toggles to whatever was actually accepted.
+func _build_map_mod_picker() -> void:
+	if _mm_picker != null or manager == null: return
+	var panel := PanelContainer.new()
+	panel.name = "MapModPicker"
+	panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	panel.offset_left = -252.0; panel.offset_top = 56.0; panel.offset_right = -8.0
+	panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 4)
+	panel.add_child(vb)
+	var title := Label.new()
+	title.text = "MAP MODS — juice the sector"
+	vb.add_child(title)
+	for mid in manager.MAP_MODS:
+		var d: Dictionary = manager.MAP_MODS[mid]
+		var cb := CheckButton.new()
+		cb.text = "%s  ×%.1f" % [String(d.get("name", "")), float(d.get("loot_mult", 1.0))]
+		cb.tooltip_text = String(d.get("desc", ""))
+		cb.set_pressed_no_signal(String(mid) in manager.active_map_mods)
+		cb.toggled.connect(func(_p): _on_map_mod_toggled())
+		vb.add_child(cb)
+		_mm_toggles[String(mid)] = cb
+	_mm_loot_lbl = Label.new()
+	_mm_loot_lbl.text = "Loot ×1.00 (stack up to %d)" % manager.MAX_MAP_MODS
+	vb.add_child(_mm_loot_lbl)
+	add_child(panel)
+	_mm_picker = panel
+	if UITheme:
+		UITheme.apply_card_style(panel, "combat")
+	_refresh_map_mod_picker()
+
+func _on_map_mod_toggled() -> void:
+	var sel: Array = []
+	for mid in _mm_toggles:
+		if _mm_toggles[mid].button_pressed: sel.append(mid)
+	manager.set_active_map_mods(sel)   # validates + dedupes + caps at MAX_MAP_MODS
+	_refresh_map_mod_picker()          # re-sync toggles to what was actually accepted
+
+func _refresh_map_mod_picker() -> void:
+	if _mm_picker == null: return
+	# Pre-expedition only (mods bind at spawn); hidden during combat + before the NG+ frontier.
+	_mm_picker.visible = GameState.game_settings.get("z11_unlocked", false) and not manager.in_combat
+	if not _mm_picker.visible: return
+	for mid in _mm_toggles:
+		_mm_toggles[mid].set_pressed_no_signal(mid in manager.active_map_mods)
+	if _mm_loot_lbl:
+		_mm_loot_lbl.text = "Loot ×%.2f (stack up to %d)" % [manager.get_map_mod_loot_mult(), manager.MAX_MAP_MODS]
+
 func _process(delta):
 	update_ui()
 	_update_atmosphere(delta)
+	_refresh_map_mod_picker()
 
 func update_ui():
 	# v134h: radar draw removed — no queue_redraw here anymore.
