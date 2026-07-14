@@ -16,7 +16,7 @@
 		"mass": 0.5,
 		"category": "Component",
 		"tier": 2,
-		"base_value": 10,
+		"base_value": 1,
 		"description": "Utilized to repair degraded modules and restore durability."
 	},
 	{
@@ -36,7 +36,7 @@
 		"mass": 50.0,
 		"category": "Raw Material",
 		"tier": 0,
-		"base_value": 2,
+		"base_value": 1,
 		"description": "Organic matter, rich in Carbon."
 	},
 	{
@@ -46,7 +46,7 @@
 		"mass": 10.0,
 		"category": "Raw Material",
 		"tier": 0,
-		"base_value": 5,
+		"base_value": 1,
 		"description": "Lithium-rich pyroxene mineral found in pegmatites."
 	},
 	{
@@ -56,7 +56,7 @@
 		"mass": 30.0,
 		"category": "Raw Material",
 		"tier": 1,
-		"base_value": 5,
+		"base_value": 1,
 		"description": "Aluminum ore."
 	},
 	{
@@ -66,7 +66,7 @@
 		"mass": 30.0,
 		"category": "Raw Material",
 		"tier": 1,
-		"base_value": 5,
+		"base_value": 1,
 		"description": "Sphalerite mineral."
 	},
 	{
@@ -76,7 +76,7 @@
 		"mass": 30.0,
 		"category": "Raw Material",
 		"tier": 1,
-		"base_value": 5,
+		"base_value": 1,
 		"description": "Tin ore."
 	},
 	{
@@ -86,7 +86,7 @@
 		"mass": 25.0,
 		"category": "Raw Material",
 		"tier": 1,
-		"base_value": 5,
+		"base_value": 1,
 		"description": "Crystalline Silicon dioxide. Source of Silicon."
 	},
 	{
@@ -96,7 +96,7 @@
 		"mass": 30.0,
 		"category": "Raw Material",
 		"tier": 1,
-		"base_value": 5,
+		"base_value": 1,
 		"description": "Copper carbonate hydroxide mineral. Source of Copper."
 	},
 	{
@@ -106,7 +106,7 @@
 		"mass": 1.008,
 		"category": "Nonmetal",
 		"tier": 1,
-		"base_value": 2,
+		"base_value": 1,
 		"description": "The most abundant element in the universe. Essential fuel."
 	},
 	{
@@ -116,7 +116,7 @@
 		"mass": 4.0026,
 		"category": "Noble Gas",
 		"tier": 1,
-		"base_value": 64,
+		"base_value": 1,
 		"description": "Inert gas used for cooling and pressurization."
 	},
 	{
@@ -126,7 +126,7 @@
 		"mass": 6.94,
 		"category": "Alkali Metal",
 		"tier": 2,
-		"base_value": 20,
+		"base_value": 1,
 		"description": "Lightweight metal used in advanced batteries."
 	},
 	{
@@ -136,7 +136,7 @@
 		"mass": 9.0122,
 		"category": "Alkaline Earth Metal",
 		"tier": 2,
-		"base_value": 8,
+		"base_value": 1,
 		"description": "Strong, lightweight metal used in aerospace."
 	},
 	{
@@ -146,7 +146,7 @@
 		"mass": 10.81,
 		"category": "Metalloid",
 		"tier": 2,
-		"base_value": 8,
+		"base_value": 1,
 		"description": "Used in dopants for semiconductors."
 	},
 	{
@@ -156,7 +156,7 @@
 		"mass": 12.011,
 		"category": "Nonmetal",
 		"tier": 2,
-		"base_value": 5,
+		"base_value": 1,
 		"description": "The basis of life and organic chemistry."
 	},
 	{
@@ -166,7 +166,7 @@
 		"mass": 14.007,
 		"category": "Nonmetal",
 		"tier": 2,
-		"base_value": 2,
+		"base_value": 1,
 		"description": "Abundant gas, essential for life support systems."
 	},
 	{
@@ -176,7 +176,7 @@
 		"mass": 15.999,
 		"category": "Nonmetal",
 		"tier": 2,
-		"base_value": 2,
+		"base_value": 1,
 		"description": "Crucial for breathing and combustion."
 	},
 	{
@@ -186,7 +186,7 @@
 		"mass": 28.085,
 		"category": "Metalloid",
 		"tier": 1,
-		"base_value": 23,
+		"base_value": 1,
 		"description": "Used in electronics and glass making."
 	},
 	{
@@ -196,7 +196,7 @@
 		"mass": 72.63,
 		"category": "Metalloid",
 		"tier": 2,
-		"base_value": 30,
+		"base_value": 1,
 		"description": " Semiconductor material used in advanced electronics."
 	},
 	{
@@ -206,7 +206,7 @@
 		"mass": 55.845,
 		"category": "Transition Metal",
 		"tier": 1,
-		"base_value": 5,
+		"base_value": 1,
 		"description": "Strong metal widely used in construction."
 	},
 	{
@@ -216,7 +216,7 @@
 		"mass": 0.5,
 		"category": "Component",
 		"tier": 2,
-		"base_value": 115,
+		"base_value": 1,
 		"description": "Germanium-doped Silicon wafer for high-speed logic."
 	},
 	{
@@ -226,7 +226,7 @@
 		"mass": 0.2,
 		"category": "Component",
 		"tier": 3,
-		"base_value": 150,
+		"base_value": 1,
 		"description": "High-performance integrated circuits."
 	},
 	{
@@ -236,7 +236,7 @@
 		"mass": 0.05,
 		"category": "Component",
 		"tier": 2,
-		"base_value": 50,
+		"base_value": 1,
 		"description": "Miniaturized semiconductor logic unit."
 	},
 	{
@@ -246,7 +246,7 @@
 		"mass": 55.0,
 		"category": "Alloy",
 		"tier": 2,
-		"base_value": 55,
+		"base_value": 1,
 		"description": "Hardened alloy of Iron and Carbon."
 	},
 	{
@@ -256,7 +256,7 @@
 		"mass": 45.0,
 		"category": "Alloy",
 		"tier": 3,
-		"base_value": 60,
+		"base_value": 1,
 		"description": "Advanced Co-Ni-Cr alloy. Extreme heat resistance."
 	},
 	{
@@ -266,7 +266,7 @@
 		"mass": 12.0,
 		"category": "Refined Material",
 		"tier": 3,
-		"base_value": 40,
+		"base_value": 1,
 		"description": "Compressed carbon used in heat shields and electronics."
 	},
 	{
@@ -276,7 +276,7 @@
 		"mass": 63.546,
 		"category": "Transition Metal",
 		"tier": 2,
-		"base_value": 22,
+		"base_value": 1,
 		"description": "Excellent conductor for electronics and energy weapons."
 	},
 	{
@@ -286,7 +286,7 @@
 		"mass": 196.97,
 		"category": "Transition Metal",
 		"tier": 3,
-		"base_value": 50,
+		"base_value": 1,
 		"description": "Highly conductive precious metal used in advanced circuitry."
 	},
 	{
@@ -296,7 +296,7 @@
 		"mass": 47.867,
 		"category": "Transition Metal",
 		"tier": 3,
-		"base_value": 45,
+		"base_value": 1,
 		"description": "High-strength, low-density metal for advanced hulls."
 	},
 	{
@@ -306,7 +306,7 @@
 		"mass": 183.84,
 		"category": "Transition Metal",
 		"tier": 3,
-		"base_value": 30,
+		"base_value": 1,
 		"description": "Extremely hard and dense metal. Ideal for armor penetration."
 	},
 	{
@@ -316,7 +316,7 @@
 		"mass": 0.0,
 		"category": "Data",
 		"tier": 5,
-		"base_value": 50,
+		"base_value": 0,
 		"description": "Encrypted coordinates to unknown sectors."
 	},
 	{
@@ -326,7 +326,7 @@
 		"mass": 5.0,
 		"category": "Component",
 		"tier": 3,
-		"base_value": 190,
+		"base_value": 1,
 		"description": "High-power mechanical actuators."
 	},
 	{
@@ -336,7 +336,7 @@
 		"mass": 0.1,
 		"category": "Component",
 		"tier": 2,
-		"base_value": 80,
+		"base_value": 1,
 		"description": "Integrated circuits required for automation and logic."
 	},
 	{
@@ -346,7 +346,7 @@
 		"mass": 0.5,
 		"category": "Consumable",
 		"tier": 2,
-		"base_value": 40,
+		"base_value": 1,
 		"effect": "heal_shield",
 		"value": 50,
 		"description": "Carbon nanotube mesh. Repairs 50 Shield Integrity."
@@ -358,7 +358,7 @@
 		"mass": 0.5,
 		"category": "Consumable",
 		"tier": 2,
-		"base_value": 40,
+		"base_value": 1,
 		"effect": "heal_hull",
 		"value": 50,
 		"description": "Rapid-hardening polymer. Repairs 50 Hull Integrity."
@@ -370,7 +370,7 @@
 		"mass": 0.1,
 		"category": "Component",
 		"tier": 2,
-		"base_value": 25,
+		"base_value": 1,
 		"description": "Reinforced carbon strands used in advanced fabrication."
 	},
 	{
@@ -380,7 +380,7 @@
 		"mass": 0.2,
 		"category": "Component",
 		"tier": 2,
-		"base_value": 20,
+		"base_value": 1,
 		"description": "Synthetic resin base for sealants and plastics."
 	},
 	{
@@ -390,7 +390,7 @@
 		"mass": 0.5,
 		"category": "Component",
 		"tier": 3,
-		"base_value": 50,
+		"base_value": 1,
 		"description": "Pressurized helium cooling unit for high-power weapons."
 	},
 	{
@@ -400,7 +400,7 @@
 		"mass": 0.1,
 		"category": "Ammo",
 		"tier": 1,
-		"base_value": 2,
+		"base_value": 1,
 		"description": "Standard iron slugs. +5 Kinetic Dmg per shot."
 	},
 	{
@@ -410,7 +410,7 @@
 		"mass": 0.2,
 		"category": "Ammo",
 		"tier": 2,
-		"base_value": 17,
+		"base_value": 1,
 		"description": "Armor-piercing heavy slugs. +15 Kinetic Dmg per shot."
 	},
 	{
@@ -420,7 +420,7 @@
 		"mass": 0.2,
 		"category": "Ammo",
 		"tier": 2,
-		"base_value": 17,
+		"base_value": 1,
 		"description": "Armor-piercing heavy slugs. +15 Kinetic Dmg per shot."
 	},
 	{
@@ -430,7 +430,7 @@
 		"mass": 0.1,
 		"category": "Ammo",
 		"tier": 1,
-		"base_value": 2,
+		"base_value": 1,
 		"description": "Lenses for beam cohesion. +5 Energy Dmg per shot."
 	},
 	{
@@ -440,7 +440,7 @@
 		"mass": 0.2,
 		"category": "Ammo",
 		"tier": 2,
-		"base_value": 17,
+		"base_value": 1,
 		"description": "Superheated gas canister. +15 Energy Dmg per shot."
 	},
 	{
@@ -450,7 +450,7 @@
 		"mass": 238.03,
 		"category": "Actinide",
 		"tier": 4,
-		"base_value": 50,
+		"base_value": 1,
 		"description": "Heavy radioactive metal. Very dense. Handle with care."
 	},
 	{
@@ -460,7 +460,7 @@
 		"mass": 0.5,
 		"category": "Ammo",
 		"tier": 3,
-		"base_value": 60,
+		"base_value": 1,
 		"description": "Self-sharpening penetrator. +30 Kinetic Dmg per shot."
 	},
 	{
@@ -470,7 +470,7 @@
 		"mass": 0.5,
 		"category": "Ammo",
 		"tier": 3,
-		"base_value": 60,
+		"base_value": 1,
 		"description": "Unstable singularity core. +30 Energy Dmg per shot."
 	},
 	{
@@ -480,7 +480,7 @@
 		"mass": 0.5,
 		"category": "Ammo",
 		"tier": 2,
-		"base_value": 15,
+		"base_value": 1,
 		"description": "Mass-produced kinetic ammunition. +25 Kinetic Dmg."
 	},
 	{
@@ -490,7 +490,7 @@
 		"mass": 0.5,
 		"category": "Ammo",
 		"tier": 2,
-		"base_value": 15,
+		"base_value": 1,
 		"description": "Standardized energy batteries. +25 Energy Dmg."
 	},
 	{
@@ -500,7 +500,7 @@
 		"mass": 1.0,
 		"category": "Ammo",
 		"tier": 3,
-		"base_value": 40,
+		"base_value": 1,
 		"description": "High-Explosive ordinance. +50 Kinetic / +20 Energy Dmg."
 	},
 	{
@@ -510,7 +510,7 @@
 		"mass": 5.0,
 		"category": "Artifact",
 		"tier": 4,
-		"base_value": 500,
+		"base_value": 0,
 		"description": "Anomalous object reacting to zero-point energy. Required for Capital Ships."
 	},
 	{
@@ -520,7 +520,7 @@
 		"mass": 10.0,
 		"category": "Artifact",
 		"tier": 5,
-		"base_value": 2000,
+		"base_value": 1,
 		"description": "Stable quantum singularity. The heart of a Dreadnought."
 	},
 	{
@@ -530,7 +530,7 @@
 		"mass": 5.0,
 		"category": "Component",
 		"tier": 1,
-		"base_value": 60,
+		"base_value": 1,
 		"description": "Standard energy storage unit for early ships."
 	},
 	{
@@ -540,7 +540,7 @@
 		"mass": 4.0,
 		"category": "Component",
 		"tier": 2,
-		"base_value": 150,
+		"base_value": 1,
 		"description": "High-density advanced energy storage."
 	},
 	{
@@ -550,7 +550,7 @@
 		"mass": 3.0,
 		"category": "Component",
 		"tier": 3,
-		"base_value": 500,
+		"base_value": 1,
 		"description": "Infinite energy extraction from the void (Sort of)."
 	},
 	{
@@ -560,7 +560,7 @@
 		"mass": 0.01,
 		"category": "Data",
 		"tier": 1,
-		"base_value": 25,
+		"base_value": 1,
 		"description": "Salvaged data core containing basic engineering schematics."
 	},
 	{
@@ -570,7 +570,7 @@
 		"mass": 0.01,
 		"category": "Combat Data",
 		"tier": 1,
-		"base_value": 30,
+		"base_value": 0,
 		"description": "Technical schematics recovered from derelict probes. Essential for engineering research."
 	},
 	{
@@ -580,7 +580,7 @@
 		"mass": 0.01,
 		"category": "Data",
 		"tier": 2,
-		"base_value": 75,
+		"base_value": 1,
 		"description": "Advanced technical schematics from Martian ruins. Required for mid-game research."
 	},
 	{
@@ -590,7 +590,7 @@
 		"mass": 0.01,
 		"category": "Data",
 		"tier": 3,
-		"base_value": 200,
+		"base_value": 1,
 		"description": "Xenon technology data cores. Essential for capital ship engineering."
 	},
 	{
@@ -600,7 +600,7 @@
 		"mass": 1.0,
 		"category": "Trophy",
 		"tier": 1,
-		"base_value": 5000,
+		"base_value": 1,
 		"description": "Evidence of Lunar dominance. Level up Gathering faster while held."
 	},
 	{
@@ -610,7 +610,7 @@
 		"mass": 1.0,
 		"category": "Trophy",
 		"tier": 2,
-		"base_value": 15000,
+		"base_value": 1,
 		"description": "Evidence of Belt dominance. Increases all Mining yields while held."
 	},
 	{
@@ -620,7 +620,7 @@
 		"mass": 1.0,
 		"category": "Trophy",
 		"tier": 3,
-		"base_value": 35000,
+		"base_value": 1,
 		"description": "Evidence of Martian dominance. Reduces Processing heat buildup while held."
 	},
 	{
@@ -630,7 +630,7 @@
 		"mass": 1.0,
 		"category": "Trophy",
 		"tier": 4,
-		"base_value": 75000,
+		"base_value": 1,
 		"description": "Evidence of Titan dominance. Boosts Ship Speed in all sectors while held."
 	},
 	{
@@ -640,7 +640,7 @@
 		"mass": 1.0,
 		"category": "Trophy",
 		"tier": 5,
-		"base_value": 150000,
+		"base_value": 1,
 		"description": "Evidence of Alpha dominance. Increases Research speed while held."
 	},
 	{
@@ -650,7 +650,7 @@
 		"mass": 1.0,
 		"category": "Trophy",
 		"tier": 6,
-		"base_value": 300000,
+		"base_value": 1,
 		"description": "Evidence of Beta dominance. Increases Infrastructure output while held."
 	},
 	{
@@ -660,7 +660,7 @@
 		"mass": 1.0,
 		"category": "Trophy",
 		"tier": 7,
-		"base_value": 600000,
+		"base_value": 1,
 		"description": "Evidence of Gamma dominance. Boosts Energy Weapon damage while held."
 	},
 	{
@@ -670,7 +670,7 @@
 		"mass": 1.0,
 		"category": "Trophy",
 		"tier": 8,
-		"base_value": 1200000,
+		"base_value": 1,
 		"description": "Evidence of Delta dominance. Boosts Kinetic Weapon damage while held."
 	},
 	{
@@ -680,7 +680,7 @@
 		"mass": 1.0,
 		"category": "Trophy",
 		"tier": 9,
-		"base_value": 2500000,
+		"base_value": 1,
 		"description": "Evidence of Zeta dominance. Boosts Ship Evasion while held."
 	},
 	{
@@ -690,7 +690,7 @@
 		"mass": 1.0,
 		"category": "Trophy",
 		"tier": 10,
-		"base_value": 10000000,
+		"base_value": 1,
 		"description": "Evidence of Void dominance. Boosts ALL Ship Stats while held."
 	},
 	{
@@ -700,7 +700,7 @@
 		"mass": 2.0,
 		"category": "Raw Material",
 		"tier": 3,
-		"base_value": 150,
+		"base_value": 1,
 		"description": "Dense clusters of tech from failed colonies. High in rare metals."
 	},
 	{
@@ -710,7 +710,7 @@
 		"mass": 0.5,
 		"category": "Raw Material",
 		"tier": 4,
-		"base_value": 300,
+		"base_value": 1,
 		"description": "Highly unstable isotope harvested from nebulae. Essential for gamma tech."
 	},
 	{
@@ -720,7 +720,7 @@
 		"mass": 0.4,
 		"category": "Component",
 		"tier": 2,
-		"base_value": 35,
+		"base_value": 1,
 		"traits": [
 			"coolant"
 		],
@@ -733,7 +733,7 @@
 		"mass": 0.1,
 		"category": "Raw Material",
 		"tier": 1,
-		"base_value": 5,
+		"base_value": 1,
 		"description": "Exoskeleton fragments from space mites. Used in basic repairs."
 	},
 	{
@@ -743,7 +743,7 @@
 		"mass": 0.2,
 		"category": "Consumable",
 		"tier": 1,
-		"base_value": 10,
+		"base_value": 1,
 		"effect": "heal_hull",
 		"value": 40,
 		"description": "Organic sealant. cheaper than iron patches.",
@@ -756,7 +756,7 @@
 		"mass": 0.5,
 		"category": "Consumable",
 		"tier": 2,
-		"base_value": 40,
+		"base_value": 1,
 		"effect": "heal_hull",
 		"value": 50,
 		"description": "Rapid-deployment patch. Repairs 50 Hull Integrity instantly."
@@ -768,7 +768,7 @@
 		"mass": 0.5,
 		"category": "Consumable",
 		"tier": 2,
-		"base_value": 40,
+		"base_value": 1,
 		"effect": "heal_shield",
 		"value": 30,
 		"description": "Capacitor discharge. Restores 30 Shield Integrity instantly."
@@ -780,7 +780,7 @@
 		"mass": 26.98,
 		"category": "Metal",
 		"tier": 1,
-		"base_value": 15,
+		"base_value": 1,
 		"description": "Lightweight metal used in aerospace construction."
 	},
 	{
@@ -790,7 +790,7 @@
 		"mass": 54.93,
 		"category": "Transition Metal",
 		"tier": 2,
-		"base_value": 25,
+		"base_value": 1,
 		"description": "Used in steel production and alloys."
 	},
 	{
@@ -800,7 +800,7 @@
 		"mass": 51.99,
 		"category": "Transition Metal",
 		"tier": 2,
-		"base_value": 42,
+		"base_value": 1,
 		"description": "Hard metal used in stainless steel and plating."
 	},
 	{
@@ -810,7 +810,7 @@
 		"mass": 58.69,
 		"category": "Transition Metal",
 		"tier": 2,
-		"base_value": 40,
+		"base_value": 1,
 		"description": "Versatile metal used in batteries and superalloys."
 	},
 	{
@@ -820,7 +820,7 @@
 		"mass": 118.71,
 		"category": "Post-Transition Metal",
 		"tier": 1,
-		"base_value": 15,
+		"base_value": 1,
 		"description": "Used in soldering and bronze alloys."
 	},
 	{
@@ -830,7 +830,7 @@
 		"mass": 20.0,
 		"category": "Raw Material",
 		"tier": 2,
-		"base_value": 15,
+		"base_value": 1,
 		"description": "Iron-nickel sulfide mineral. Primary source of Nickel."
 	},
 	{
@@ -840,7 +840,7 @@
 		"mass": 25.0,
 		"category": "Raw Material",
 		"tier": 2,
-		"base_value": 15,
+		"base_value": 1,
 		"description": "Iron chromium oxide. Primary source of Chromium."
 	},
 	{
@@ -850,7 +850,7 @@
 		"mass": 20.0,
 		"category": "Raw Material",
 		"tier": 2,
-		"base_value": 5,
+		"base_value": 1,
 		"description": "Magnesium-calcium carbonate. Source of Magnesium."
 	},
 	{
@@ -860,7 +860,7 @@
 		"mass": 25.0,
 		"category": "Raw Material",
 		"tier": 2,
-		"base_value": 15,
+		"base_value": 1,
 		"description": "Rare sulfide mineral. Source of Germanium."
 	},
 	{
@@ -870,7 +870,7 @@
 		"mass": 40.0,
 		"category": "Raw Material",
 		"tier": 3,
-		"base_value": 25,
+		"base_value": 1,
 		"description": "Rare heavy metal ore."
 	},
 	{
@@ -880,7 +880,7 @@
 		"mass": 24.305,
 		"category": "Alkaline Earth Metal",
 		"tier": 2,
-		"base_value": 40,
+		"base_value": 1,
 		"description": "Lightweight structural metal."
 	},
 	{
@@ -890,7 +890,7 @@
 		"mass": 58.93,
 		"category": "Transition Metal",
 		"tier": 2,
-		"base_value": 45,
+		"base_value": 1,
 		"description": "Hard ferromagnetic metal used in superalloys."
 	},
 	{
@@ -900,7 +900,7 @@
 		"mass": 107.86,
 		"category": "Transition Metal",
 		"tier": 2,
-		"base_value": 60,
+		"base_value": 1,
 		"description": "Highly conductive precious metal."
 	},
 	{
@@ -910,7 +910,7 @@
 		"mass": 195.08,
 		"category": "Transition Metal",
 		"tier": 3,
-		"base_value": 150,
+		"base_value": 1,
 		"description": "Dense, malleable, corrosion-resistant metal."
 	},
 	{
@@ -920,7 +920,7 @@
 		"mass": 106.42,
 		"category": "Transition Metal",
 		"tier": 3,
-		"base_value": 120,
+		"base_value": 1,
 		"description": "Rare metal used in fuel cells and catalysis."
 	},
 	{
@@ -930,7 +930,7 @@
 		"mass": 192.21,
 		"category": "Transition Metal",
 		"tier": 4,
-		"base_value": 300,
+		"base_value": 1,
 		"description": "Very hard, brittle, silvery-white transition metal. Extremely rare."
 	},
 	{
@@ -940,7 +940,7 @@
 		"mass": 190.23,
 		"category": "Transition Metal",
 		"tier": 4,
-		"base_value": 780,
+		"base_value": 1,
 		"description": "Densest naturally occurring element."
 	},
 	{
@@ -950,7 +950,7 @@
 		"mass": 26.0,
 		"category": "Alloy",
 		"tier": 2,
-		"base_value": 65,
+		"base_value": 1,
 		"description": "Lightweight, high-strength aerospace alloy."
 	},
 	{
@@ -960,7 +960,7 @@
 		"mass": 190.0,
 		"category": "Alloy",
 		"tier": 4,
-		"base_value": 250,
+		"base_value": 1,
 		"description": "Ultra-dense armor-piercing alloy."
 	},
 	{
@@ -970,7 +970,7 @@
 		"mass": 1000.0,
 		"category": "Exotic",
 		"tier": 5,
-		"base_value": 2500,
+		"base_value": 1,
 		"description": "Matter composed entirely of neutrons. Extremely dense."
 	},
 	{
@@ -980,7 +980,7 @@
 		"mass": 0.5,
 		"category": "Exotic",
 		"tier": 4,
-		"base_value": 800,
+		"base_value": 0,
 		"description": "Unstable isotope with anomalous properties."
 	},
 	{
@@ -990,7 +990,7 @@
 		"mass": 0.0,
 		"category": "Exotic",
 		"tier": 5,
-		"base_value": 1500,
+		"base_value": 1,
 		"description": "Particle of antimatter. Handle with semantic containment fields."
 	},
 	{
@@ -1000,7 +1000,7 @@
 		"mass": 0.0,
 		"category": "Exotic",
 		"tier": 5,
-		"base_value": 2000,
+		"base_value": 1,
 		"description": "Concentrated energy from the void."
 	},
 	{
@@ -1010,7 +1010,7 @@
 		"mass": 10.0,
 		"category": "Exotic",
 		"tier": 6,
-		"base_value": 10000,
+		"base_value": 1,
 		"description": "Fragment of a dead titan. Radiates immense power."
 	},
 	{
@@ -1020,7 +1020,7 @@
 		"mass": 50.0,
 		"category": "Component",
 		"tier": 5,
-		"base_value": 1500,
+		"base_value": 1,
 		"description": "The ultimate defensive material."
 	},
 	{
@@ -1030,7 +1030,7 @@
 		"mass": 10.0,
 		"category": "Exotic",
 		"tier": 5,
-		"base_value": 4800,
+		"base_value": 1,
 		"description": "Core capable of manipulating local time."
 	},
 	{
@@ -1040,7 +1040,7 @@
 		"mass": 5.0,
 		"category": "Artifact",
 		"tier": 5,
-		"base_value": 1200,
+		"base_value": 0,
 		"description": "Functioning device from a precursor civilization."
 	},
 	{
@@ -1050,7 +1050,7 @@
 		"mass": 0.1,
 		"category": "Component",
 		"tier": 3,
-		"base_value": 150,
+		"base_value": 1,
 		"description": "Specialized processor for weapon tracking."
 	},
 	{
@@ -1060,7 +1060,7 @@
 		"mass": 0.5,
 		"category": "Raw Material",
 		"tier": 4,
-		"base_value": 100,
+		"base_value": 0,
 		"description": "Organic sludge containing unknown pathogens."
 	},
 	{
@@ -1070,7 +1070,7 @@
 		"mass": 1.0,
 		"category": "Exotic",
 		"tier": 4,
-		"base_value": 500,
+		"base_value": 1,
 		"description": "Concentrated viral agent."
 	},
 	{
@@ -1080,7 +1080,7 @@
 		"mass": 1.0,
 		"category": "Component",
 		"tier": 4,
-		"base_value": 400,
+		"base_value": 1,
 		"description": "Weapon augment for biological warfare."
 	},
 	{
@@ -1090,7 +1090,7 @@
 		"mass": 5.0,
 		"category": "Component",
 		"tier": 5,
-		"base_value": 1000,
+		"base_value": 1,
 		"description": "Sentient-grade artificial intelligence unit."
 	},
 	{
@@ -1100,7 +1100,7 @@
 		"mass": 20.0,
 		"category": "Component",
 		"tier": 5,
-		"base_value": 800,
+		"base_value": 1,
 		"description": "Hull plating that repairs itself over time."
 	},
 	{
@@ -1110,7 +1110,7 @@
 		"mass": 10.0,
 		"category": "Component",
 		"tier": 3,
-		"base_value": 200,
+		"base_value": 0,
 		"description": "Central processing unit of a defense turret."
 	},
 	{
@@ -1120,7 +1120,7 @@
 		"mass": 4.0,
 		"category": "Component",
 		"tier": 3,
-		"base_value": 250,
+		"base_value": 1,
 		"description": "Advanced Lithium-Cobalt energy storage."
 	},
 	{
@@ -1130,7 +1130,7 @@
 		"mass": 3.0,
 		"category": "Component",
 		"tier": 2,
-		"base_value": 180,
+		"base_value": 1,
 		"description": "Lightweight Magnesium-Ion battery."
 	},
 	{
@@ -1140,7 +1140,7 @@
 		"mass": 5.0,
 		"category": "Component",
 		"tier": 4,
-		"base_value": 1200,
+		"base_value": 1,
 		"description": "High-efficiency Palladium-Hydrogen fuel cell."
 	},
 	{
@@ -1150,7 +1150,7 @@
 		"mass": 2.0,
 		"category": "Component",
 		"tier": 3,
-		"base_value": 400,
+		"base_value": 1,
 		"description": "Industrial catalyst for chemical processing."
 	},
 	{
@@ -1160,7 +1160,7 @@
 		"mass": 2.0,
 		"category": "Component",
 		"tier": 4,
-		"base_value": 2000,
+		"base_value": 1,
 		"description": "Advanced catalyst for rare metal refining."
 	},
 	{
@@ -1170,7 +1170,7 @@
 		"mass": 10.0,
 		"category": "Component",
 		"tier": 4,
-		"base_value": 800,
+		"base_value": 1,
 		"description": "Powerful magnet for containment fields."
 	},
 	{
@@ -1180,7 +1180,7 @@
 		"mass": 5.0,
 		"category": "Component",
 		"tier": 4,
-		"base_value": 1500,
+		"base_value": 1,
 		"description": "Advanced artificial intelligence substrate."
 	},
 	{
@@ -1190,7 +1190,7 @@
 		"mass": 5.0,
 		"category": "Component",
 		"tier": 4,
-		"base_value": 600,
+		"base_value": 1,
 		"description": "Unstable power core."
 	},
 	{
@@ -1200,7 +1200,7 @@
 		"mass": 20.0,
 		"category": "Component",
 		"tier": 4,
-		"base_value": 400,
+		"base_value": 1,
 		"description": "Extremely durable armor plating."
 	},
 	{
@@ -1210,7 +1210,7 @@
 		"mass": 100.0,
 		"category": "Component",
 		"tier": 5,
-		"base_value": 2500,
+		"base_value": 1,
 		"description": "Dense reactor core for capital ships."
 	},
 	{
@@ -1220,7 +1220,7 @@
 		"mass": 5.0,
 		"category": "Data",
 		"tier": 3,
-		"base_value": 500,
+		"base_value": 0,
 		"description": "Recovered colonial database."
 	},
 	{
@@ -1230,7 +1230,7 @@
 		"mass": 1.0,
 		"category": "Raw Material",
 		"tier": 4,
-		"base_value": 200,
+		"base_value": 1,
 		"description": "Crystal resonating with void energy."
 	},
 	{
@@ -1240,7 +1240,7 @@
 		"mass": 1.0,
 		"category": "Raw Material",
 		"tier": 3,
-		"base_value": 100,
+		"base_value": 1,
 		"description": "Pure pressurized carbon lattice."
 	},
 	{
@@ -1250,7 +1250,7 @@
 		"mass": 0.1,
 		"category": "Component",
 		"tier": 2,
-		"base_value": 20,
+		"base_value": 1,
 		"description": "Conductive writing for lightweight electronics."
 	},
 	{
@@ -1260,7 +1260,7 @@
 		"mass": 100.0,
 		"category": "Component",
 		"tier": 2,
-		"base_value": 100,
+		"base_value": 1,
 		"description": "Advanced industrial or operational component."
 	},
 	{
@@ -1270,7 +1270,7 @@
 		"mass": 100.0,
 		"category": "Component",
 		"tier": 2,
-		"base_value": 100,
+		"base_value": 1,
 		"description": "Advanced industrial or operational component."
 	},
 	{
@@ -1279,7 +1279,7 @@
 		"mass": 0.5,
 		"category": "Ammo",
 		"tier": 4,
-		"base_value": 150,
+		"base_value": 1,
 		"description": "Unstable fusion plasma containment. +60 Energy Dmg."
 	},
 	{
@@ -1289,7 +1289,7 @@
 		"mass": 100.0,
 		"category": "Component",
 		"tier": 2,
-		"base_value": 100,
+		"base_value": 1,
 		"description": "Advanced industrial or operational component."
 	},
 	{
@@ -1299,7 +1299,7 @@
 		"mass": 100.0,
 		"category": "Component",
 		"tier": 2,
-		"base_value": 100,
+		"base_value": 0,
 		"description": "Advanced industrial or operational component."
 	},
 	{
@@ -1309,7 +1309,7 @@
 		"mass": 100.0,
 		"category": "Component",
 		"tier": 2,
-		"base_value": 100,
+		"base_value": 1,
 		"description": "Advanced industrial or operational component."
 	},
 	{
@@ -1319,7 +1319,7 @@
 		"mass": 100.0,
 		"category": "Component",
 		"tier": 2,
-		"base_value": 100,
+		"base_value": 1,
 		"description": "Advanced industrial or operational component."
 	},
 	{
@@ -1329,7 +1329,7 @@
 		"mass": 100.0,
 		"category": "Component",
 		"tier": 2,
-		"base_value": 100,
+		"base_value": 1,
 		"description": "Advanced industrial or operational component."
 	},
 	{
@@ -1338,7 +1338,7 @@
 		"mass": 0.5,
 		"category": "Ammo",
 		"tier": 1,
-		"base_value": 5,
+		"base_value": 1,
 		"description": "Standard high-explosive ordnance. +10 Explosive Dmg."
 	},
 	{
@@ -1348,7 +1348,7 @@
 		"mass": 100.0,
 		"category": "Component",
 		"tier": 2,
-		"base_value": 100,
+		"base_value": 1,
 		"description": "Advanced industrial or operational component."
 	},
 	{
@@ -1358,7 +1358,7 @@
 		"mass": 100.0,
 		"category": "Component",
 		"tier": 2,
-		"base_value": 100,
+		"base_value": 1,
 		"description": "Advanced industrial or operational component."
 	},
 	{
@@ -1368,7 +1368,7 @@
 		"mass": 100.0,
 		"category": "Component",
 		"tier": 2,
-		"base_value": 100,
+		"base_value": 1,
 		"description": "Omega-class production core. While held: +50% gathering yield and +50% infrastructure yield. Permanent passive — one is enough."
 	},
 	{
@@ -1377,7 +1377,7 @@
 		"mass": 2.0,
 		"category": "Ammo",
 		"tier": 4,
-		"base_value": 250,
+		"base_value": 1,
 		"description": "Capital-class antimatter buster. +150 Explosive Dmg."
 	},
 	{
@@ -1387,7 +1387,7 @@
 		"mass": 100.0,
 		"category": "Component",
 		"tier": 2,
-		"base_value": 100,
+		"base_value": 1,
 		"description": "Titan-forged plating. While held: +30% hull HP on every ship. Permanent passive — one is enough."
 	},
 	{
@@ -1397,7 +1397,7 @@
 		"mass": 100.0,
 		"category": "Component",
 		"tier": 2,
-		"base_value": 100,
+		"base_value": 1,
 		"description": "Advanced industrial or operational component."
 	},
 	{
@@ -1407,7 +1407,7 @@
 		"mass": 100.0,
 		"category": "Component",
 		"tier": 2,
-		"base_value": 100,
+		"base_value": 1,
 		"description": "Advanced industrial or operational component."
 	},
 	{
@@ -1416,7 +1416,7 @@
 		"mass": 0.8,
 		"category": "Ammo",
 		"tier": 2,
-		"base_value": 30,
+		"base_value": 1,
 		"description": "Guided missile with tracking chips. +25 Explosive Dmg."
 	},
 	{
@@ -1425,7 +1425,7 @@
 		"mass": 1.2,
 		"category": "Ammo",
 		"tier": 3,
-		"base_value": 80,
+		"base_value": 1,
 		"description": "High-yield thermobaric missile. +60 Explosive Dmg."
 	},
 	{
@@ -1434,7 +1434,7 @@
 		"mass": 0.5,
 		"category": "Ammo",
 		"tier": 4,
-		"base_value": 150,
+		"base_value": 1,
 		"description": "Tungsten-Superalloy sabot for railguns. +60 Kinetic Dmg."
 	},
 	{
@@ -1444,7 +1444,7 @@
 		"mass": 100.0,
 		"category": "Component",
 		"tier": 2,
-		"base_value": 100,
+		"base_value": 1,
 		"description": "Advanced industrial or operational component."
 	},
 	{
@@ -1454,7 +1454,7 @@
 		"mass": 100.0,
 		"category": "Component",
 		"tier": 2,
-		"base_value": 100,
+		"base_value": 1,
 		"description": "Localized time-dilation field. While held: +30% ship attack speed in combat. Permanent passive — one is enough."
 	},
 	{
@@ -1464,7 +1464,7 @@
 		"mass": 100.0,
 		"category": "Component",
 		"tier": 2,
-		"base_value": 100,
+		"base_value": 1,
 		"description": "Void-compressed power cell. While held: +40% ship energy capacity. Permanent passive — one is enough."
 	},
 	{
@@ -1474,7 +1474,7 @@
 		"mass": 100.0,
 		"category": "Component",
 		"tier": 2,
-		"base_value": 100,
+		"base_value": 1,
 		"description": "Advanced industrial or operational component."
 	},
 	{
@@ -1484,7 +1484,7 @@
 		"mass": 100.0,
 		"category": "Component",
 		"tier": 2,
-		"base_value": 100,
+		"base_value": 1,
 		"description": "Advanced industrial or operational component."
 	},
 	{
@@ -1494,7 +1494,7 @@
 		"mass": 0.5,
 		"category": "Artifact",
 		"tier": 3,
-		"base_value": 5000,
+		"base_value": 1,
 		"description": "Socket into epic modules. +2% Kinetic & Energy Offense."
 	},
 	{
@@ -1504,7 +1504,7 @@
 		"mass": 0.5,
 		"category": "Artifact",
 		"tier": 4,
-		"base_value": 15000,
+		"base_value": 1,
 		"description": "Socket into epic modules. +5% Kinetic & Energy Offense."
 	},
 	{
@@ -1514,7 +1514,7 @@
 		"mass": 0.5,
 		"category": "Artifact",
 		"tier": 5,
-		"base_value": 50000,
+		"base_value": 1,
 		"description": "Socket into epic modules. +10% Kinetic & Energy Offense."
 	},
 	{
@@ -1524,7 +1524,7 @@
 		"mass": 0.5,
 		"category": "Artifact",
 		"tier": 3,
-		"base_value": 5000,
+		"base_value": 1,
 		"description": "Socket into epic modules. +2% Defense & Evasion."
 	},
 	{
@@ -1534,7 +1534,7 @@
 		"mass": 0.5,
 		"category": "Artifact",
 		"tier": 4,
-		"base_value": 15000,
+		"base_value": 1,
 		"description": "Socket into epic modules. +5% Defense & Evasion."
 	},
 	{
@@ -1544,7 +1544,7 @@
 		"mass": 0.5,
 		"category": "Artifact",
 		"tier": 5,
-		"base_value": 50000,
+		"base_value": 1,
 		"description": "Socket into epic modules. +10% Defense & Evasion."
 	},
 	{
@@ -1554,7 +1554,7 @@
 		"mass": 0.5,
 		"category": "Artifact",
 		"tier": 3,
-		"base_value": 5000,
+		"base_value": 1,
 		"description": "Socket into epic modules. +2% Utilities."
 	},
 	{
@@ -1564,7 +1564,7 @@
 		"mass": 0.5,
 		"category": "Artifact",
 		"tier": 4,
-		"base_value": 15000,
+		"base_value": 1,
 		"description": "Socket into epic modules. +5% Utilities."
 	},
 	{
@@ -1574,7 +1574,7 @@
 		"mass": 0.5,
 		"category": "Artifact",
 		"tier": 5,
-		"base_value": 50000,
+		"base_value": 1,
 		"description": "Socket into epic modules. +10% Utilities."
 	},
 	{
@@ -1584,7 +1584,7 @@
 		"mass": 0.5,
 		"category": "Artifact",
 		"tier": 3,
-		"base_value": 5000,
+		"base_value": 1,
 		"description": "Socket into epic modules. +2% Hull & Jamming."
 	},
 	{
@@ -1594,7 +1594,7 @@
 		"mass": 0.5,
 		"category": "Artifact",
 		"tier": 4,
-		"base_value": 15000,
+		"base_value": 1,
 		"description": "Socket into epic modules. +5% Hull & Jamming."
 	},
 	{
@@ -1604,7 +1604,7 @@
 		"mass": 0.5,
 		"category": "Artifact",
 		"tier": 5,
-		"base_value": 50000,
+		"base_value": 1,
 		"description": "Socket into epic modules. +10% Hull & Jamming."
 	},
 	{
@@ -1614,7 +1614,7 @@
 		"mass": 0.5,
 		"category": "Artifact",
 		"tier": 6,
-		"base_value": 150000,
+		"base_value": 1,
 		"description": "Socket into epic modules. +60% Crit Dmg & +15% Crit."
 	},
 	{
@@ -1624,7 +1624,7 @@
 		"mass": 0.5,
 		"category": "Artifact",
 		"tier": 6,
-		"base_value": 150000,
+		"base_value": 1,
 		"description": "Socket into epic modules. +18% Atk Speed / Shield Regen."
 	},
 	{
@@ -1634,7 +1634,7 @@
 		"mass": 0.5,
 		"category": "Artifact",
 		"tier": 6,
-		"base_value": 150000,
+		"base_value": 1,
 		"description": "Socket into epic modules. +18% Armor Pen / Evasion."
 	},
 	{
@@ -1644,7 +1644,7 @@
 		"mass": 0.5,
 		"category": "Artifact",
 		"tier": 6,
-		"base_value": 150000,
+		"base_value": 1,
 		"description": "Socket into epic modules. +18% Hull & Resist Pierce."
 	},
 	{
@@ -1654,7 +1654,7 @@
 		"mass": 5.0,
 		"category": "Boss Core",
 		"tier": 1,
-		"base_value": 500,
+		"base_value": 0,
 		"description": "A crystallized energy matrix extracted from a Zone 1 boss. Used for zone-access research."
 	},
 	{
@@ -1664,7 +1664,7 @@
 		"mass": 8.0,
 		"category": "Boss Core",
 		"tier": 2,
-		"base_value": 1500,
+		"base_value": 0,
 		"description": "A dense mineral core from an Asteroid Belt boss. Used for zone-access research."
 	},
 	{
@@ -1674,7 +1674,7 @@
 		"mass": 12.0,
 		"category": "Boss Core",
 		"tier": 3,
-		"base_value": 4000,
+		"base_value": 0,
 		"description": "A superheated core from a Mars Debris boss. Used for zone-access research."
 	},
 	{
@@ -1684,7 +1684,7 @@
 		"mass": 15.0,
 		"category": "Boss Core",
 		"tier": 3,
-		"base_value": 10000,
+		"base_value": 0,
 		"description": "A frozen energy lattice from a Cryofield boss. Used for zone-access research."
 	},
 	{
@@ -1694,7 +1694,7 @@
 		"mass": 20.0,
 		"category": "Boss Core",
 		"tier": 4,
-		"base_value": 25000,
+		"base_value": 0,
 		"description": "A xenon-infused power matrix from a Sector Alpha boss. Used for zone-access research."
 	},
 	{
@@ -1704,7 +1704,7 @@
 		"mass": 25.0,
 		"category": "Boss Core",
 		"tier": 4,
-		"base_value": 60000,
+		"base_value": 0,
 		"description": "A radiation-hardened core from a Sector Beta boss. Used for zone-access research."
 	},
 	{
@@ -1714,7 +1714,7 @@
 		"mass": 30.0,
 		"category": "Boss Core",
 		"tier": 5,
-		"base_value": 150000,
+		"base_value": 0,
 		"description": "An exotic matter core from a Sector Gamma boss. Used for zone-access research."
 	},
 	{
@@ -1724,7 +1724,7 @@
 		"mass": 40.0,
 		"category": "Boss Core",
 		"tier": 5,
-		"base_value": 400000,
+		"base_value": 0,
 		"description": "A void-charged energy core from a Sector Delta boss. Used for zone-access research."
 	},
 	{
@@ -1734,7 +1734,7 @@
 		"mass": 50.0,
 		"category": "Boss Core",
 		"tier": 5,
-		"base_value": 1000000,
+		"base_value": 0,
 		"description": "A neutronium-laced core from a Sector Epsilon boss. Used for zone-access research."
 	},
 	{
@@ -1744,7 +1744,7 @@
 		"mass": 100.0,
 		"category": "Boss Core",
 		"tier": 5,
-		"base_value": 5000000,
+		"base_value": 0,
 		"description": "The ultimate boss core, pulsing with primordial energy. The rarest crafting material."
 	},
 	{
@@ -1764,7 +1764,7 @@
 		"mass": 5.0,
 		"category": "Component",
 		"tier": 3,
-		"base_value": 120,
+		"base_value": 1,
 		"description": "Precision-machined structural assembly. Requires Iron, Copper, Silicon, Carbon, and Lithium. Universal building block for advanced modules."
 	},
 	{
@@ -1774,7 +1774,7 @@
 		"mass": 2.0,
 		"category": "Component",
 		"tier": 4,
-		"base_value": 450,
+		"base_value": 1,
 		"description": "Molecular-scale lattice of Structural Components infused with lightweight metals. Required for capital-grade fabrication."
 	},
 	{
@@ -1784,7 +1784,7 @@
 		"mass": 0.1,
 		"category": "Blueprint",
 		"tier": 3,
-		"base_value": 5000,
+		"base_value": 1,
 		"description": "Captured electromagnetic pulse schematics from the EMP Nexus. First-clear reward. Can be used to craft an EMP Generator module."
 	}
 ]

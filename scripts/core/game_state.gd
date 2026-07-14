@@ -463,6 +463,13 @@ func load_game():
 			var eff_cap: float = OFFLINE_DELTA_CAP_SECONDS * cap_mult
 			var capped_delta = min(delta, eff_cap)
 			process_offline_progress(capped_delta)
+			# v137 FIX (#34): consume the offline window NOW by writing a fresh last_save_time.
+			# Load applied offline but only re-saved at the 60s autosave / window-close handler
+			# — a force-kill inside that window re-applied the SAME delta on the next load
+			# (offline double-dip, stacks with any offline over-grant). Saving here makes the
+			# next boot's delta ~0. All managers are loaded + offline-applied by this point, so
+			# this persists complete, consistent state (atomic .tmp->rename->.bak).
+			save_game()
 			# v112: the telemetry welcome modal builds its own headline from these.
 			offline_away_sec = capped_delta
 			offline_capped = delta > eff_cap

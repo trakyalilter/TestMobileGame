@@ -122,8 +122,11 @@ func execute_warp():
 	
 	warp_shards += gains
 	total_warps += 1
-	credits_at_warp_start = GameState.resources.lifetime_credits
 	warp_charge = 0.0   # v121: Resonance is per-run — spent at warp
+	# v137 FIX: credits_at_warp_start is snapshotted AFTER the starter package now
+	# (see the note at the grant below). Snapshotting it HERE — before the starter —
+	# let the starter's lifetime_credits bump read as post-warp "progress" and
+	# self-funded an infinite warp loop once cumulative shards crossed ~56.
 
 	# Cache shard count for post-reset bonuses
 	var current_bonus_shards = warp_shards
@@ -164,6 +167,13 @@ func execute_warp():
 	var base_resources = {"Fe": 50, "Si": 30, "Wood": 20, "Water": 50}
 	for res in base_resources:
 		GameState.resources.add_element(res, base_resources[res] * current_bonus_shards * starter_mult)
+
+	# v137 FIX: snapshot the prestige baseline AFTER the starter inflates lifetime_credits,
+	# so post-warp progress_score = 0. The starter (shards*5000*mult) must NOT count as
+	# earned progress — otherwise once cumulative shards >= ~56 it alone cleared the 500k
+	# threshold, re-enabled Warp instantly, and ran total_warps -> 2^warp_tier away into
+	# float overflow. This var exists precisely to prevent that infinite shard loop.
+	credits_at_warp_start = GameState.resources.lifetime_credits
 
 	# v111: Cryo unlock — Warping permanently grants Cryogenic armaments,
 	# the key to the Z11 "Warp-Hardened" gate. v113: NO free weapon is granted --

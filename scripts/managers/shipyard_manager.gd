@@ -630,7 +630,12 @@ var modules: Dictionary = {
 		# ~Z10 power level. Endgame Cryo craft — the weapon that makes Z11
 		# beatable. 3× equipped → ~19 min Threshold Warden kill (first clear).
 		# Z11 drops rarity-rolled copies that can exceed this base via affixes.
-		"stats": {"atk_cryo": 4000, "atk_interval": 2.0},
+		# v137 (NG+ P5 tune): atk_cryo 4000→10000. The Z11 Threshold Warden AND
+		# the Z12 Rift Warden were both tuned against "Cryo-Lance 10K atk_cryo"
+		# (see z11_boss_threshold_warden comment) — the module shipped at 4000,
+		# 2.5× under spec, making Z11 secretly harder than its ~19-min design and
+		# Z12 phase-1 an unwinnable slog. Restoring 10K repairs both.
+		"stats": {"atk_cryo": 10000, "atk_interval": 2.0},
 		"cost": {"credits": 2000000, "ExoticMatter": 15, "CryoCatalyst": 12, "Superalloy": 50, "FocusingCrystal": 20},
 		"desc": "Exotic-Condensate cryo lance. Self-charging, no ammo. The only thing that breaches Warp-Hardened hulls - farm The Threshold for legendary-grade rolls.",
 		"zone": 11,
@@ -3548,9 +3553,14 @@ func get_sell_price(module_id: String) -> int:
 	var cost_credits = m.get("cost", {}).get("credits", 0)
 	if cost_credits > 0:
 		return max(50, int(cost_credits * 0.25))
-	# Dropped modules: sell based on rarity
+	# Dropped modules: rarity price SCALED BY ZONE (v137 #32). Flat rarity pricing let a
+	# strong player farm a one-shot low boss for frontier-equivalent Liras + prestige
+	# (bosses re-target instantly; ~28k/burst identical at Z1 and Z10). A Z-N module now
+	# sells for N/10 of the top-tier value — low-tier modules ARE worth less, and the
+	# frontier (Z10, ×1.0) stays full. Kills the farm-down credit/prestige leak.
 	var rarity = m.get("rarity", Rarity.COMMON)
-	return RARITY_SELL_PRICES.get(rarity, 100)
+	var zone_f: float = maxf(0.1, float(m.get("zone", 1)) / 10.0)
+	return int(RARITY_SELL_PRICES.get(rarity, 100) * zone_f)
 
 func get_demolish_parts(module_id: String) -> int:
 	var m = modules.get(module_id, {})

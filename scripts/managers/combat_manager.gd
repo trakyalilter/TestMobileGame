@@ -158,6 +158,7 @@ const MAX_EVASION = 75                    # Enemies always ≥25% hit chance
 const MAX_CRIT_CHANCE = 0.50              # No guaranteed crit loops
 const MAX_CRIT_DAMAGE = 3.0               # Caps burst spikes
 const MAX_DAMAGE_REDUCTION = 0.80         # Explicit DEF ceiling
+const MIN_INCOMING_FRAC = 0.10            # v137 #33: incoming hull dmg can't drop below this fraction of the raw hull-bound attack — no defensive stack (armor-cap × resist 0.75 × Crimson 0.50 ≈ ×0.025) may become unkillable vs hp-regen
 const MAX_SHIELD_REGEN_PERCENT = 5        # % of max shield per second
 # v136: boss module-drop burst size (inclusive range, uniform). Every roll is
 # guaranteed ≥Uncommon (boss rarity table has no Common floor), so this is the
@@ -1019,10 +1020,17 @@ var enemy_db = {
 		# Phased bosses skip zone-steepening (base = effective). First clear is
 		# ACTIVE: swap Cryo→Corrosion preset at the PHASE 2 telegraph. Guaranteed
 		# Corrosion Blaster drop so the first clear arms you for the idle farm.
-		"stats": {"hp": 50000000, "max_shield": 800000, "atk": 600000, "def": 70000, "atk_interval": 2.5, "accuracy": 300},
+		# v137 (NG+ P5 tune): HP 50M→28M, atk 600K→375K, enrage ×1.5→×1.3. The probe
+		# (z12_tune.gd) showed Z12 was survivability-bound, not HP-bound: the intended
+		# Legendary cryo→corrosion loadout won ~1/5 at ANY HP (25M-80M) because 600K
+		# (→900K enraged) overwhelmed the leviathan+kits that clear Z11 5/5 at 350K.
+		# New ladder keeps HP/atk climbing off Z11 (22M/350K) — Z12's extra difficulty
+		# is the 2-phase swap + earlier enrage, not an unsurvivable stat wall. Tuned to
+		# ~80% Legendary win @ ~10 min (prep+swap is the check, not RNG attrition).
+		"stats": {"hp": 28000000, "max_shield": 800000, "atk": 375000, "def": 70000, "atk_interval": 2.5, "accuracy": 300},
 		"phases": ["cryo", "corrosion"], "phase_cut": 0.15,
 		"relic_drop": "rift_relic",  # v113 (NG+ P2): guaranteed master key on first clear
-		"enrage_at": 0.4, "enrage_atk_mult": 1.5,
+		"enrage_at": 0.4, "enrage_atk_mult": 1.3,
 		"loot": [["credits", 200000000, 400000000], ["ExoticMatter", 50, 100], ["ChronoCore", 20, 40], ["PrimordialShard", 40, 80]],
 		"rare_loot": [["corrosion_blaster", 1.0, 1, 1]],
 		"module_drop_chance": 0.30,
@@ -2160,7 +2168,15 @@ func resolve_damage(atk_k, atk_e, atk_x, c_shield, c_armor, difficulty = 1, crit
 	# floor. Against high-armor warp-hardened enemies its post-mitigation cryo can
 	# round below 1 → the fight stalls with no damage. Include every damage type.
 	var _has_atk: bool = (atk_k + atk_e + atk_x + atk_cryo) > 0
-	return [int(damage_to_shield * variance), int(max(1.0 if _has_atk else 0.0, total_hull_dmg * variance)), is_crit]
+	# v137 #33: total-mitigation floor. INCOMING hull damage (enemy attacks only) can't be
+	# reduced below MIN_INCOMING_FRAC of the raw hull-bound attack, so no defensive stack
+	# (armor-cap ×0.20 × resist 0.75 × Crimson 0.50 ≈ ×0.025) can make the ship unkillable
+	# vs the 2%/s hp-regen. Only bites >90%-mitigation stacks — normal/moderate builds
+	# already take far more. Player attacks keep the flat ≥1 anti-stall floor (unchanged).
+	var _hull_floor: float = 1.0 if _has_atk else 0.0
+	if not is_player_attacker and _has_atk:
+		_hull_floor = max(_hull_floor, (atk_k + atk_e + atk_x + atk_cryo) * bleed_ratio * MIN_INCOMING_FRAC)
+	return [int(damage_to_shield * variance), int(max(_hull_floor, total_hull_dmg * variance)), is_crit]
 
 # v101: Combat Loot Scaling System
 # Ensures combat resource drops keep pace with gathering/processing progression
@@ -2314,10 +2330,14 @@ func _pick_weighted_base(pool: Array, sm: Object) -> String:
 # zone-tiered, so ONE place governs it instead of editing every enemy's rare_loot.
 # Rates per docs/design/HACK_STONES.md. Bosses guarantee an Injector; boss/elite
 # feed Root Key. Only fires once firmware_hacking is researched (~Z3-era gate).
-func _roll_hack_stone_drops(zone: int, is_boss: bool, is_elite: bool) -> void:
+# v137: RETURNS {symbol: count} granted (resources added here) so the online path
+# (logs to combat_events) and offline combat (folds into the report ledger) share
+# ONE drop path — no online/offline difference. Callers own presentation.
+func _roll_hack_stone_drops(zone: int, is_boss: bool, is_elite: bool) -> Dictionary:
+	var out := {}
 	var rm = GameState.research_manager
 	if not rm or not rm.is_tech_unlocked("firmware_hacking"):
-		return
+		return out
 	var res = GameState.resources
 	# v128: Sensor "Cryptographic Decoder" affix (stone_drop_mult) scales the RANDOM
 	# roll only — boss-guaranteed drops (Injector) stay guaranteed. Bounded (GA ~0.40).
@@ -2328,32 +2348,47 @@ func _roll_hack_stone_drops(zone: int, is_boss: bool, is_elite: bool) -> void:
 	var wm_s = GameState.warp_manager
 	if wm_s:
 		smult *= (1.0 + wm_s.get_tree_card_drop_bonus())
-	var got: Array = []
+	# v137 anti-farm-down: taper the RANDOM rolls by how far this zone sits below the
+	# player's progression frontier (highest accessible zone). Frontier + up to 2 below
+	# = full "clearing Zone N" rate (HACK_STONES.md tuning); deeper over-farming (a strong
+	# player nuking trivial low zones for cards) floors at x0.10. Boss-GUARANTEED drops
+	# bypass smult, so only the exploitable trash rolls taper. Applies online AND offline.
+	var gap: int = _player_frontier_zone() - zone
+	smult *= clampf(1.0 - 0.30 * float(gap - 2), 0.10, 1.0)
 	if zone >= 1 and randf() < 0.25 * smult:
 		res.add_element("SpliceChip", 1)
-		got.append("Splice Chip")
+		out["SpliceChip"] = 1
 	if zone >= 2 and (is_boss or randf() < 0.12 * smult):
 		res.add_element("FirmwareInjector", 1)
-		got.append("Firmware Injector")
+		out["FirmwareInjector"] = 1
 	if zone >= 3 and ((is_boss and randf() < 0.08 * smult) or (is_elite and randf() < 0.06 * smult)):
 		res.add_element("RootKey", 1)
-		got.append("Root Key")
+		out["RootKey"] = 1
 	if zone >= 4 and randf() < 0.015 * smult:
 		res.add_element("AnchorBolt", 1)
-		got.append("Anchor Bolt")
+		out["AnchorBolt"] = 1
 	if zone >= 5 and randf() < 0.05 * smult:
 		res.add_element("CorruptionWorm", 1)
-		got.append("Corruption Worm")
+		out["CorruptionWorm"] = 1
 	if zone >= 4 and randf() < 0.05 * smult:
 		res.add_element("RefitBay", 1)
-		got.append("Refit Bay")
+		out["RefitBay"] = 1
 	# v128: Signal Calibrator — the D30 value-reroll faucet. Boss-guaranteed Z6+ (bypasses
 	# smult) so the refine supply lands exactly when players have an affix set to GA-fish.
 	if zone >= 6 and (is_boss or randf() < 0.03 * smult):
 		res.add_element("SignalCalibrator", 1)
-		got.append("Signal Calibrator")
-	if not got.is_empty():
-		combat_events.append({"type": "loot", "text": "HACK CARD: %s" % ", ".join(PackedStringArray(got)), "color": Color(0.60, 0.85, 1.0), "side": "enemy"})
+		out["SignalCalibrator"] = 1
+	return out
+
+# v137: the player's progression frontier = highest-difficulty zone they can enter
+# (max over get_available_zones). Drives the Hack Stone anti-farm-down taper. Access
+# implies capability — each zone_N_access research costs the prior zone's boss core,
+# so the frontier sits at most ~1 above the highest boss actually cleared.
+func _player_frontier_zone() -> int:
+	var hi: int = 1
+	for z in get_available_zones():
+		hi = maxi(hi, int(z.get("data", {}).get("difficulty", 1)))
+	return hi
 
 # v129: centralized salvage drops for Z3+ zones (Z1-Z2 keep their authored per-enemy
 # rare_loot entries — this starts at 3 so nothing double-drops). Feeds the Reclamation
@@ -2547,8 +2582,14 @@ func win_fight():
 		player_shield = minf(player_max_shield, player_shield + player_max_shield * _rok)
 	# Per-kill HUD timer resets at the moment of the kill; session timer keeps running.
 	time_since_last_kill = 0.0
-	# v127 H4: research-gated, zone-tiered Hack Stone drop.
-	_roll_hack_stone_drops(int(current_zone.get("difficulty", 1)), current_enemy.get("is_boss", false), current_enemy.get("is_elite", false))
+	# v127 H4: research-gated, zone-tiered Hack Stone drop. v137: returns the grants so
+	# we log them here (offline folds the same call into its report — one shared path).
+	var _hack := _roll_hack_stone_drops(int(current_zone.get("difficulty", 1)), current_enemy.get("is_boss", false), current_enemy.get("is_elite", false))
+	if not _hack.is_empty():
+		var _hnames: Array = []
+		for _hsym in _hack:
+			_hnames.append(ElementDB.get_display_name(_hsym))
+		combat_events.append({"type": "loot", "text": "HACK CARD: %s" % ", ".join(PackedStringArray(_hnames)), "color": Color(0.60, 0.85, 1.0), "side": "enemy"})
 	# v129: centralized Z3+ salvage (feeds the Reclamation lane; Z1-Z2 keep authored entries)
 	var _salv := _roll_salvage_drops(int(current_zone.get("difficulty", 1)), current_enemy.get("is_boss", false))
 	for _ss in _salv:
@@ -3052,7 +3093,12 @@ func reset(decay_factor: float = 1.0) -> void:
 # continuation of a winnable fight, not free progress on a wall. Generous by
 # design (ignores armor/resist mitigation) so it only ever blocks a fight that
 # is unwinnable by a wide margin.
+# v137: set by _offline_winnable() to the enemy's modeled time-to-kill (raw-dps,
+# mitigation-ignored like the winnable check) so calculate_offline credits kills at
+# the real cadence instead of a flat 10s.
+var _offline_ttk: float = 0.0
 func _offline_winnable() -> bool:
+	_offline_ttk = 0.0
 	if not current_enemy: return false
 	var conv_dps := 0.0
 	var cryo_dps := 0.0
@@ -3079,7 +3125,8 @@ func _offline_winnable() -> bool:
 		if _worst <= 0.0:
 			return false
 		var _ehp: float = float(max(enemy_max_hp, enemy_hp)) + float(enemy_max_shield)
-		return _ehp <= 0.0 or (_ehp / _worst) <= 1800.0
+		_offline_ttk = (_ehp / _worst) if _worst > 0.0 else 1e9   # v137: real cadence for calculate_offline
+		return _ehp <= 0.0 or _offline_ttk <= 1800.0
 	var hardened: bool = current_enemy.get("warp_hardened", false)
 	# Warp-hardened (Z11+) enemies need Cryo; conventional weapons do x0.02 and
 	# can NEVER kill them — no Cryo output is unwinnable regardless of duration.
@@ -3090,7 +3137,8 @@ func _offline_winnable() -> bool:
 		return false
 	# Under-power guard: can't kill within ~30 min of continuous fire → not a farm.
 	var enemy_ehp: float = float(max(enemy_max_hp, enemy_hp)) + float(enemy_max_shield)
-	return enemy_ehp <= 0.0 or (enemy_ehp / dps) <= 1800.0
+	_offline_ttk = (enemy_ehp / dps) if dps > 0.0 else 1e9   # v137: real cadence for calculate_offline
+	return enemy_ehp <= 0.0 or _offline_ttk <= 1800.0
 
 func calculate_offline(delta: float):
 	if not in_combat or not current_zone or not current_enemy:
@@ -3100,8 +3148,12 @@ func calculate_offline(delta: float):
 	if not _offline_winnable():
 		return ""
 
-	# Estimate kills based on average combat duration
-	var avg_kill_time = 10.0 # Approximate seconds per kill
+	# v137 FIX: credit kills at the enemy's MODELED time-to-kill (set by the
+	# _offline_winnable() call above), floored at 10s — NOT a flat 10s. Flat 10s
+	# over-granted slow-but-winnable content up to ~180× (park on a ~780s-TTK boss →
+	# 78× loot/module over-grant). Raw-dps TTK ignores mitigation like the winnable
+	# check, so it stays slightly generous — appropriate for offline.
+	var avg_kill_time: float = max(10.0, _offline_ttk)
 	var num_kills = int(delta / avg_kill_time)
 	if num_kills <= 0: return ""
 	
@@ -3170,6 +3222,14 @@ func calculate_offline(delta: float):
 		var _osalv := _roll_salvage_drops(int(current_zone.get("difficulty", 1)), enemy_data.get("is_boss", false))
 		for _os in _osalv:
 			loot_summary[_os] = loot_summary.get(_os, 0) + _osalv[_os]
+
+		# v137: Hack Stones roll offline too — parity with online (same _roll_hack_stone_
+		# drops path + anti-farm taper). is_boss=false: offline abstracts a fixed enemy at a
+		# flat 10s/kill, so honoring boss-GUARANTEED drops would mint an Injector every 10s —
+		# treat offline as sustained trash-farming for cards.
+		var _ohack := _roll_hack_stone_drops(int(current_zone.get("difficulty", 1)), false, false)
+		for _oh in _ohack:
+			loot_summary[_oh] = loot_summary.get(_oh, 0) + _ohack[_oh]
 
 		# v135a: roll the MODULE drop pool offline too (parity with online) so the
 		# intended gear-grind AMORTIZES while away — offline combat used to award only

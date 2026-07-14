@@ -332,6 +332,25 @@ func focus_module_tab(module_id: String):
 	if sc is ScrollContainer:
 		_scroll_card_to_top(sc, w)
 
+# Hull-construct missions (m026b frigate / m030c destroyer / m032c battlecruiser /
+# m033c dreadnought) route here. Mirror of focus_module_tab for HULL widgets: hull
+# cards live under the "hulls" rack, so without switching to the Hulls tab the
+# nav-hint pulse landed on a card hidden behind whatever tab was last open. Switch
+# to the Hulls tab and scroll the target hull into view.
+func focus_hull_tab(hull_id: String):
+	if hull_id == "" or hull_id == _last_focus_mid:
+		return
+	var w = get_hull_widget(hull_id)
+	if not w:
+		return
+	_last_focus_mid = hull_id
+	var tab_id = _tab_for_cat(_cat_of_widget(w))
+	if tab_id != "" and _active_tab != tab_id:
+		_show_tab(tab_id)
+	var sc = $VBoxContainer/ScrollContainer
+	if sc is ScrollContainer:
+		_scroll_card_to_top(sc, w)
+
 # v134: same fix as processing_page — ensure_control_visible scrolls minimally,
 # so a module card taller than the viewport ended BOTTOM-aligned with its header
 # clipped offscreen when a mission pulse focused it. Top-align instead, one

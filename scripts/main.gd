@@ -1533,6 +1533,7 @@ func _update_navigation_hints():
 		# Shipyard: Escort Destroyer
 		if current_page_name != "shipyard": target_to_pulse = shipyard_btn
 		else:
+			pages["shipyard"].focus_hull_tab("destroyer_hull")
 			target_to_pulse = pages["shipyard"].get_hull_widget("destroyer_hull")
 
 	elif "m032b" in mm.active_missions:
@@ -1546,6 +1547,7 @@ func _update_navigation_hints():
 		# Shipyard: Battlecruiser
 		if current_page_name != "shipyard": target_to_pulse = shipyard_btn
 		else:
+			pages["shipyard"].focus_hull_tab("battlecruiser_hull")
 			target_to_pulse = pages["shipyard"].get_hull_widget("battlecruiser_hull")
 			
 	elif "m033b" in mm.active_missions:
@@ -1559,6 +1561,7 @@ func _update_navigation_hints():
 		# Shipyard: Dreadnought
 		if current_page_name != "shipyard": target_to_pulse = shipyard_btn
 		else:
+			pages["shipyard"].focus_hull_tab("dreadnought_hull")
 			target_to_pulse = pages["shipyard"].get_hull_widget("dreadnought_hull")
 
 	elif "m030d" in mm.active_missions:
@@ -1746,6 +1749,7 @@ func _update_navigation_hints():
 		# Shipyard: Construct Industrial Frigate
 		if current_page_name != "shipyard": target_to_pulse = shipyard_btn
 		else:
+			pages["shipyard"].focus_hull_tab("frigate_hull")
 			target_to_pulse = pages["shipyard"].get_hull_widget("frigate_hull")
 
 	elif "m026c" in mm.active_missions:

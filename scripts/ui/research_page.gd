@@ -60,7 +60,13 @@ var graphs = {
 	},
 	"Combat": {
 		"nodes": [
-			"kinetics_101", "power_systems", "laser_optics",
+			# v137 FIX: firmware_hacking was defined in the tech_tree (parent kinetics_101,
+			# category combat) + targeted by the [CORE GOAL] "Rewrite the Firmware" mission +
+			# fully wired (Hack Card combat drops, Ship Designer crafting), but was MISSING
+			# from every tab list here — so it never rendered and the mission softlocked at 0%
+			# (the whole Hack Card system was unreachable). Placed after its parent kinetics_101;
+			# calculate_layout() auto-positions it as a sibling of power_systems.
+			"kinetics_101", "firmware_hacking", "power_systems", "laser_optics",
 			"processing_tungsten", "ballistics_optimization", "advanced_rocketry",
 			"energy_shields", "field_theory", "shield_harmonics", "hull_hardening", "core_overclocking",
 			"auto_repair_20", "auto_repair_40", "auto_repair_60", "auto_repair_80",
@@ -81,6 +87,11 @@ var graphs = {
 			"zone_7_access", "zone_8_access", "zone_9_access", "zone_10_access",
 			"sector_alpha_decryption", "deep_space_nav", "radiation_shielding",
 			"exotic_matter_analysis", "void_navigation", "xeno_archaeology",
+			# v137 FIX: these two were in tech_tree but MISSING from every tab (same bug as
+			# firmware_hacking) → never rendered → unresearchable → their 4 processing recipes
+			# + 4 buildings each were permanently dead endgame content. Placed on the Sectors
+			# branch beside void_navigation.
+			"neutronium_synthesis", "primordial_engineering",
 		],
 		"container": null
 	}

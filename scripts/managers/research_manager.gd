@@ -179,12 +179,16 @@ var tech_tree = {
 		# which the chain does not open until m030e — AFTER this node (m030). So the
 		# Destroyer unlock demanded a material the player cannot yet farm: the universal
 		# player-bot m030 wall (every archetype stalled here, nobody warped). Re-cost to
-		# Zone-2-reachable Steel/Circuit, AND drop the credit cost below LATE_RESEARCH_
-		# COST_GATE (150K) so it scales at the MID tier (x5), not LATE (x15): effective
-		# 25*2.5*2 = 125 Steel + 15*2.5*2 = 75 Circuit. Credits were never the gate
-		# (the bot had 18M by day 4) — this is a material-availability fix.
+		# Zone-2-reachable Steel + electronics, AND drop the credit cost below
+		# LATE_RESEARCH_COST_GATE (150K) so it scales at the MID tier (x5), not LATE (x15).
+		# v137: Circuit → AdvCircuit — proper tier-3 escalation (Shipwright I already uses
+		# basic Circuit Board, so II reusing it was a flat, un-thematic progression). SAFE
+		# vs the m030 wall because m029b "Complex Electronics" (craft 5 AdvCircuit) is the
+		# mission IMMEDIATELY BEFORE m030: the player crosses the L40 AdvCircuit gate one
+		# beat earlier, so this REUSES new tech, not a re-wall. Raw 1 → 6 effective
+		# (ceil(1*2.5)=3 MID stage, *2 MATERIAL_MULTIPLIER) ≈ m029b's 5-AdvCircuit ask.
 		"cost": 120000,
-		"cost_items": {"Steel": 25, "Circuit": 15},
+		"cost_items": {"Steel": 25, "AdvCircuit": 1},
 		"type": "technology",
 		"parent": "shipwright_1",
 		"effects": [],
@@ -473,7 +477,12 @@ var tech_tree = {
 		"type": "technology",
 		"parent": "kinetics_101",
 		"req_tech": "kinetics_101",
-		"cost_items": {"SalvageData": 10, "AdvCircuit": 20},
+		# v137: AdvCircuit 20 → 4. AdvCircuit is a MID_RESEARCH_ITEM, so raw 20 blew up to
+		# 100 effective (x2.5 MID stage x2 MATERIAL_MULTIPLIER) — a 20x-m029b (5) / 17x-
+		# shipwright_2 (6) wall on a goal that REVEALS at the Zone-2 gate, before AdvCircuit
+		# even flows. That gated the whole Hack Card system out of most runs. Raw 4 → 20
+		# effective: a meaningful "unlock module crafting" ask, above the Destroyer, not a wall.
+		"cost_items": {"SalvageData": 10, "AdvCircuit": 4},
 		"effects": [],
 		"unlocks": ["Hack Cards (module affix crafting)"],
 		"flavor": "Reverse-engineer salvaged module firmware to rewrite affixes — unlocks Hack Card drops in combat and crafting in the Ship Designer.",

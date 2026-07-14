@@ -1171,7 +1171,10 @@ var recipes: Dictionary = {
 		"description": "Cross-reference navigation data to reveal hidden coordinates and bounty.",
 		"input": {"NavData": 3},
 		"output": {},
-		"credits_output": 12500,
+		# v137: was 12500 — a flat, ungated 833 cr/s Lira faucet (83x NavData input value).
+		# The only recipe that mints credits directly; slashed to a trivial decode reward.
+		# Liras come from combat/bounties/quests/missions, not from processing recipes.
+		"credits_output": 250,
 		"duration": 15.0,
 		"level_req": 15,
 		"xp": 30,
