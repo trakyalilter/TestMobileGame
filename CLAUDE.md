@@ -78,6 +78,8 @@ Sectors/zones for combat, ship **hulls** (corvette → frigate → destroyer →
 
 ## Current Work State — pick up from here
 
+> 📌 **Latest session snapshot → [`docs/HANDOFF.md`](docs/HANDOFF.md) (2026-07-14).** Read that first for what changed most recently (NG+ Loop 1 Z12–Z15 complete, map-mods, game-breaker audit) and the exact next step. The notes below remain the standing deep context.
+
 **Branch:** `MissionFlow` on `origin` (`https://github.com/trakyalilter/horizonidle-godot`). **Working dir:** `C:\Users\gokbe\Documents\horizonidle`. When resuming on a different machine, `git pull origin MissionFlow` to sync. (Branch was `TestFitTool` earlier in the build; switched to `MissionFlow`.)
 
 ### Locked design decisions (do NOT relitigate)
@@ -170,6 +172,6 @@ Sectors/zones for combat, ship **hulls** (corvette → frigate → destroyer →
 
 ### Resume protocol for the other machine
 
-1. Re-read this CLAUDE.md.
-2. Continue at **Step 4 — P1 Mastery layer + gold-card cosmetic** (table above).
-3. The Warp Mastery Tree foundation is complete + shippable. The 6 deferred mechanic nodes (E3/E4/E5/C3/C4/C5) can be backfilled at any time — start with **E5 Reclamation Foundry** (~30 min, new building entry only) for a quick win.
+1. Re-read this CLAUDE.md, then **`docs/HANDOFF.md`** for the latest snapshot.
+2. **NG+ Loop 1 (Corrosion, Z12–Z15) is complete + warp-aware tuned; map-mod system + game-breaker audit shipped.** Next: resolve **DECISION #30** (NG+ loop boundary — Fleet Siege Gate vs clear+Warp), then build **Loop 2 — Plasma frontier Z16–Z19** (#28). See HANDOFF.md "Next up".
+3. The 6 deferred Warp-tree mechanic nodes (E3/E4/E5/C3/C4/C5) can still be backfilled any time — **E5 Reclamation Foundry** (~30 min, new building entry) is the quick win.
