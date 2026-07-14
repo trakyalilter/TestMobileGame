@@ -272,7 +272,10 @@ func _do_acquire(mid: String, sym: String) -> Dictionary:
 
 func _do_research(mid: String, tid: String) -> Dictionary:
 	var b: Dictionary = actions.research_blocker(tid)
-	status = "research:%s blk=%s" % [tid, String(b.get("kind", "?"))]
+	# diag: surface the exact blocking symbol (b.sym) so walls name what's short,
+	# instead of a generic "blk=item" that leaves us guessing the bottleneck.
+	status = "research:%s blk=%s%s" % [tid, String(b.get("kind", "?")),
+		((" need=" + String(b.get("sym", "")) + " x" + str(b.get("amount", "?"))) if b.has("sym") else "")]
 	match String(b.get("kind", "")):
 		"done":
 			return {}

@@ -140,6 +140,12 @@ func sell_surplus(protected: Dictionary) -> float:
 	var res = GameState.resources
 	var earned := 0.0
 	for sym in res.elements.keys():
+		# Never vendor BOSS CORES (Z<N>_Core). A real player doesn't sell the Z2_Core
+		# the very next zone-access research spends — the bot was, then re-farming the
+		# Monolith for a replacement (the true m030e "wall"). Scoped to boss cores only:
+		# the bot legitimately sells matrix cores etc. for credit income, so the broad
+		# is_slot_protected guard starved it (0/3 reached Zone 3).
+		if sym.begins_with("Z") and sym.ends_with("_Core"): continue
 		var val := float(ElementDB.get_element_value(sym))
 		if val <= 0.0: continue                      # unsellable junk — don't churn
 		var keep := float(protected.get(sym, 0.0))
