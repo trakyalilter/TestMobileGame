@@ -1063,7 +1063,11 @@ var enemy_db = {
 		# New ladder keeps HP/atk climbing off Z11 (22M/350K) — Z12's extra difficulty
 		# is the 2-phase swap + earlier enrage, not an unsurvivable stat wall. Tuned to
 		# ~80% Legendary win @ ~10 min (prep+swap is the check, not RNG attrition).
-		"stats": {"hp": 28000000, "max_shield": 800000, "atk": 375000, "def": 70000, "atk_interval": 2.5, "accuracy": 300},
+		# v137 #36 (warp-aware): 28M/375K → 45M/320K. z12_tune modeled ZERO warp bonus; the
+		# warp-aware ng_tune.gd showed the real (warp-boosted) player beat 28M/375K in only
+		# ~4.6 min at 3-4/9 — too fast + survivability-marginal (eff atk 375K×1.25 catch-up
+		# ≈ 469K, edge of survivable). 45M/320K → ~8-9 min, matching the Z13-Z15 loop.
+		"stats": {"hp": 45000000, "max_shield": 800000, "atk": 320000, "def": 70000, "atk_interval": 2.5, "accuracy": 300},
 		"phases": ["cryo", "corrosion"], "phase_cut": 0.15,
 		"relic_drop": "rift_relic",  # v113 (NG+ P2): guaranteed master key on first clear
 		"enrage_at": 0.4, "enrage_atk_mult": 1.3,
