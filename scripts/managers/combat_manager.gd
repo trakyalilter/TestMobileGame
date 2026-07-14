@@ -2653,6 +2653,46 @@ func _maybe_open_rift_on_boss(eid: String) -> void:
 			"⟨ GRAVITATIONAL ANOMALY ⟩  The %s's collapse tears a singularity open — visible on the Sector Chart." % str(enemy_db.get(eid, {}).get("name", "boss")),
 			Color(0.78, 0.55, 1.0))
 
+# v138b: boss-kill PROGRESSION side-effects — extracted from win_fight so ONLINE
+# and OFFLINE boss kills apply identical world-state (owner decision: bosses are
+# killable offline; _offline_winnable already prices the fight via the worst-
+# phase-band no-swap DPS model + TTK cap). Reads enemy_db (not current_enemy) so
+# any caller with an enemy id gets the same result. Every effect is idempotent
+# via game_settings flags, so per-kill vs per-sweep call cadence is safe.
+func _apply_boss_progression(eid: String) -> void:
+	var e: Dictionary = enemy_db.get(eid, {})
+	# v109: Z10 boss arms the Threshold reveal on the NEXT Warp.
+	if str(e.get("boss_core", "")) == "Z10_Core" and not GameState.game_settings.get("z10_cleared", false) and not GameState.game_settings.get("z11_unlocked", false):
+		GameState.game_settings["z10_cleared"] = true  # v113: Z11 unlocks on the NEXT Warp (directs the player to prestige)
+		UITheme.show_notification("⟨ SECTOR 11 DETECTED — THE THRESHOLD ⟩  Hostiles are Warp-Hardened, immune to conventional armaments. Execute a Warp Core reset to unlock Cryogenic tech, then research Cryogenic Armaments and craft Cryo weapons in the Shipyard.", Color(0.55, 0.85, 1.0))
+	# v113 (NG+ P3) / v137: clear->Warp->reveal flag table. Each boss kill sets its
+	# `cleared` flag; the NEXT Warp reads it to reveal the following sector.
+	var _ng_clear := {
+		"z11_boss_threshold_warden": ["z11_cleared", "⟨ FRONTIER BREACHED — THE RIFT BECKONS ⟩  The Threshold Warden falls. Execute a Warp Core reset to push into Sector 12 — The Rift, where the Warden hardens against Cryo, then Corrosion. Bring both, and swap loadout presets mid-fight."],
+		"z12_boss_rift_warden": ["z12_cleared", "⟨ THE RIFT YIELDS ⟩  The Rift Warden falls. Warp to breach Sector 13 — The Verdigris Reach: Corrosion first, then Cryo — swap the other way this time."],
+		"z13_boss_verdigris_warden": ["z13_cleared", "⟨ VERDIGRIS CLEARED ⟩  Warp to breach Sector 14 — The Dissolution: a THREE-phase gate (Cryo → Corrosion → Cryo), two swaps to breach."],
+		"z14_boss_dissolution_tyrant": ["z14_cleared", "⟨ DISSOLUTION ENDED ⟩  Warp to breach Sector 15 — The Caustic Core, the corrosion-loop capstone (Corrosion → Cryo → Corrosion)."],
+	}
+	if _ng_clear.has(eid):
+		var _cflag: String = _ng_clear[eid][0]
+		if not GameState.game_settings.get(_cflag, false):
+			GameState.game_settings[_cflag] = true
+			UITheme.show_notification(String(_ng_clear[eid][1]), Color(0.6, 0.9, 0.7))
+	# v113 (NG+ P2): first-clear master-key relic — granted exactly once, flagged
+	# earned (persists across Warp + re-grants), auto-equipped if the slot is empty.
+	var _rdrop: String = str(e.get("relic_drop", ""))
+	if _rdrop != "":
+		var _smr = GameState.shipyard_manager
+		if _smr and not GameState.game_settings.get(_rdrop + "_earned", false) and _smr.module_inventory.get(_rdrop, 0) <= 0:
+			_smr.module_inventory[_rdrop] = 1
+			GameState.game_settings[_rdrop + "_earned"] = true
+			if _smr.equipped_relic == "":
+				_smr.equipped_relic = _rdrop
+			var _rname = _smr.modules.get(_rdrop, {}).get("name", "Threshold Relic")
+			UITheme.show_notification("⟨ MASTER KEY — %s ⟩  Auto-equipped to your Relic slot. The Warden's onslaught is now survivable — farm it at will." % _rname, Color(0.9, 0.82, 0.4))
+	# v138: Z3+ boss kills tear the Singularity open.
+	_maybe_open_rift_on_boss(eid)
+
 func win_fight():
 	log_msg("Destroyed %s!" % current_enemy["name"])
 	
@@ -2687,43 +2727,10 @@ func win_fight():
 		combat_events.append({"type": "loot", "text": "BOSS CORE: %s" % core_name, "color": Color.ORANGE, "side": "enemy"})
 		log_msg("Looted Boss Core: %s" % core_name)
 		session_loot[core_id] = session_loot.get(core_id, 0) + 1
-		# v109: Z10 boss kill auto-unlocks Zone 11 "The Threshold" (the Warp
-		# Gate). Signposts that Warping is now the path — and what it grants.
-		if core_id == "Z10_Core" and not GameState.game_settings.get("z10_cleared", false) and not GameState.game_settings.get("z11_unlocked", false):
-			GameState.game_settings["z10_cleared"] = true  # v113: Z11 now unlocks on the NEXT Warp (directs the player to prestige), not here
-			UITheme.show_notification("⟨ SECTOR 11 DETECTED — THE THRESHOLD ⟩  Hostiles are Warp-Hardened, immune to conventional armaments. Execute a Warp Core reset to unlock Cryogenic tech, then research Cryogenic Armaments and craft Cryo weapons in the Shipyard.", Color(0.55, 0.85, 1.0))
-	# v113 (NG+ P3): clearing the Z11 Threshold Warden flags the Rift frontier.
-	# Z12 "The Rift" (Corrosion tier) then reveals on the NEXT Warp — the locked
-	# clear-gated pacing (clear boss → Warp → next zone). The Warden has no
-	# boss_core, so detect by id. Flag persists across Warp; cleared on hard reset.
-	# v137 (NG+ step 2): generalized to the whole Corrosion loop. Each boss kill sets its
-	# `cleared` flag, which the NEXT Warp reads to reveal the following sector.
-	var _ng_clear := {
-		"z11_boss_threshold_warden": ["z11_cleared", "⟨ FRONTIER BREACHED — THE RIFT BECKONS ⟩  The Threshold Warden falls. Execute a Warp Core reset to push into Sector 12 — The Rift, where the Warden hardens against Cryo, then Corrosion. Bring both, and swap loadout presets mid-fight."],
-		"z12_boss_rift_warden": ["z12_cleared", "⟨ THE RIFT YIELDS ⟩  The Rift Warden falls. Warp to breach Sector 13 — The Verdigris Reach: Corrosion first, then Cryo — swap the other way this time."],
-		"z13_boss_verdigris_warden": ["z13_cleared", "⟨ VERDIGRIS CLEARED ⟩  Warp to breach Sector 14 — The Dissolution: a THREE-phase gate (Cryo → Corrosion → Cryo), two swaps to breach."],
-		"z14_boss_dissolution_tyrant": ["z14_cleared", "⟨ DISSOLUTION ENDED ⟩  Warp to breach Sector 15 — The Caustic Core, the corrosion-loop capstone (Corrosion → Cryo → Corrosion)."],
-	}
-	var _bkid: String = current_enemy.get("id", "")
-	if _ng_clear.has(_bkid):
-		var _cflag: String = _ng_clear[_bkid][0]
-		if not GameState.game_settings.get(_cflag, false):
-			GameState.game_settings[_cflag] = true
-			UITheme.show_notification(String(_ng_clear[_bkid][1]), Color(0.6, 0.9, 0.7))
-	# v113 (NG+ P2): boss master-key drop. A boss with a relic_drop grants its
-	# Threshold Relic exactly once (guaranteed, no affixes), flags it earned (so it
-	# persists across Warp + re-grants), and auto-equips it if the Relic slot is
-	# empty — so the active first-clear immediately flips the boss to farmable.
-	var _rdrop: String = current_enemy.get("relic_drop", "")
-	if _rdrop != "":
-		var _smr = GameState.shipyard_manager
-		if _smr and not GameState.game_settings.get(_rdrop + "_earned", false) and _smr.module_inventory.get(_rdrop, 0) <= 0:
-			_smr.module_inventory[_rdrop] = 1
-			GameState.game_settings[_rdrop + "_earned"] = true
-			if _smr.equipped_relic == "":
-				_smr.equipped_relic = _rdrop
-			var _rname = _smr.modules.get(_rdrop, {}).get("name", "Threshold Relic")
-			UITheme.show_notification("⟨ MASTER KEY — %s ⟩  Auto-equipped to your Relic slot. The Warden's onslaught is now survivable — farm it at will." % _rname, Color(0.9, 0.82, 0.4))
+	# v138b: boss progression side-effects (z10 flag, NG+ clear table, first-clear
+	# relic, the Singularity) live in _apply_boss_progression — SHARED with offline
+	# combat so a boss felled while away applies identical world-state. Called from
+	# the boss_kills block below (where eid is credited).
 	# v85.2: Berserking Proc on Kill
 	var berserk_chance = GameState.shipyard_manager.affix_bonuses.get("berserk_on_kill", 0.0)
 	if berserk_chance > 0 and randf() < berserk_chance:
@@ -2859,7 +2866,7 @@ func win_fight():
 			"difficulty": int(zones.get(current_zone_id, {}).get("difficulty", 1)),
 			"t": int(Time.get_unix_time_from_system()),
 		})
-		_maybe_open_rift_on_boss(eid)   # v138: Z3+ boss death tears the Singularity open
+		_apply_boss_progression(eid)   # v138b: clear flags + relic + Singularity (shared with offline)
 	
 	# v86.0: Hazard Zone Gauntlet Progression
 	if hazard_state["active"]:
@@ -3502,7 +3509,28 @@ func calculate_offline(delta: float):
 		total_xp += xp
 
 	add_xp(total_xp)
-	total_kills += num_kills   # count offline kills (no per-kill signal offline)
+	total_kills += num_kills   # count offline kills
+
+	# v138b (owner decision): bosses ARE killable offline. _offline_winnable already
+	# prices the fight honestly (worst-phase-band no-swap DPS model + TTK <= 30 min —
+	# phase-gated wardens only pass when raw output smashes the x0.15 cut, same as an
+	# online no-swap win), and modeled-TTK kills were already dropping boss-tier
+	# MODULES — withholding the kill credit / core / clear flags was an artifact, not
+	# a rule. Mirror win_fight's boss ledger exactly.
+	var _oeid: String = str(current_enemy.get("id", ""))
+	if current_enemy.get("is_boss", false) and _oeid != "":
+		boss_kills[_oeid] = boss_kills.get(_oeid, 0) + num_kills
+		var _ocore: String = str(current_enemy.get("boss_core", ""))
+		if _ocore != "":
+			GameState.resources.add_element(_ocore, num_kills)
+			loot_summary[_ocore] = loot_summary.get(_ocore, 0) + num_kills
+		_apply_boss_progression(_oeid)   # clear flags + relic + the Singularity
+	# Mission parity: "defeat" objectives count kills via the enemy_defeated signal —
+	# offline kills are kills. Capped emission (defeat counts are single digits) so an
+	# overnight sweep doesn't push thousands of signals through the mission sync.
+	if _oeid != "":
+		for _di in range(mini(num_kills, 25)):
+			enemy_defeated.emit(_oeid)
 
 	# v125: offline combat is unattended → modules already worn to <=50% durability
 	# can be lost (the risk the player consented to when enabling it). Surface
