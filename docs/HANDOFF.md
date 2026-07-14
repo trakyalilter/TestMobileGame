@@ -1,10 +1,31 @@
-# Session Handoff — 2026-07-14
+# Session Handoff — 2026-07-15
 
 **Branch:** `MissionFlow` · **Remote:** `origin` (`github.com/trakyalilter/horizonidle-godot`)
 **To resume on another machine:** `git pull origin MissionFlow`
 
 This is the "where we are right now" snapshot. For the deep, standing context read `CLAUDE.md`;
 this file is the fast catch-up on what changed in the last work block and what's next.
+
+---
+
+## LATEST BLOCK (2026-07-15) — cadence redesign shipped (v138/a/b)
+
+**Owner decisions locked (do NOT relitigate):** first warp at the ZONE-3 boss via a
+diegetic BLACK HOLE (not a button) · fleet = soft-role only, siege gates CUT
+(**decision #30 RESOLVED: NG+ loop boundaries stay plain clear→Warp**) · bosses
+killable offline · demo + mobile PARKED.
+
+| Commit | What |
+|---|---|
+| `5d879f6` | **v138 THE SINGULARITY** — killing any Z3+ boss tears a black hole open on the Sector Chart; entering IT executes the warp (one confirm modal with the full ledger). Recurs every run, persists until used, collapses on warp. Warp page = spend/monitor only (execute button removed, passive rift status line). `warp_first_revealed` now flips at the first rift (game logic, was zone_6 research) — headless bots earn it naturally. Pre-v138 save migration both ways. Probe 15/15. |
+| `f625795` | **v138a fleet soft-role SHIPPED** — glut sink + passive accelerator (+25%/ship, cap +100%), everything already existed (manager/page/combat hook); real work was cost re-sizing for the Z3 cadence (frigate ÷5: Water 8K/Dirt 4K/Steel 800/Circuit 150; destroyer ÷2; cruiser ÷1.5 — playtest-tunable). FLEET_SIEGE_GATES.md → v0.2, siege historical. Probe 20/20. |
+| `bbe72bb` | **v138b offline boss kills** — calculate_offline credits boss_kills + cores + clear flags + missions (enemy_defeated capped 25/sweep); `_apply_boss_progression(eid)` extracted from win_fight and shared by both paths (no drift). Phase wardens governed by the existing worst-band no-swap model (refuses under-geared, credits smash-through). Park on the Z3 boss overnight → return to a dead boss AND a Singularity. Probe 13/13. |
+| `365b573`+`b732871` | Player-bot fidelity: 4 gear/economy-decision bugs fixed + zone-pacing telemetry. **Mid-game pacing numbers before these are bot-noise; re-measure under the new cadence.** |
+| `b5b10a1`/`a312613`/`bcf102d` | Warp Tree Phase 3b COMPLETE — ENG_5 overclock, CMB_3 aux slot, CMB_4 Resonant matrix tier. Zero stubs left except ENG_6 (parked on an owner design call: auto-feed vs manual Core). |
+
+**Design consequence:** the prestige ladder now starts in week one (~3 shards at the
+Z3 kill). Loop-2 tuning assumptions (modeled warp states in ng_tune) should be
+re-checked against the new cadence before trusting them.
 
 ---
 
@@ -81,17 +102,19 @@ this file is the fast catch-up on what changed in the last work block and what's
 
 ## Next up
 
-1. **#30 DECISION (gates Loop 2):** NG+ loop boundary — **Fleet Siege Gate** (recommended;
-   `docs/FLEET_SIEGE_GATES.md`) vs plain clear+Warp. Decide before building Z16.
+1. ~~#30 DECISION~~ **RESOLVED 2026-07-15: plain clear+Warp boundaries; siege gates CUT**
+   (fleet ships as soft-role only — see LATEST BLOCK above).
 2. **#28 Loop 2 — Plasma frontier Z16–Z19:** new plasma exotic (weapon `plasma_lance` guaranteed on
    Z16 first clear + material + `plasma_armaments` research); phase escalation to 3-phase all-three-exotic
-   juggle at Z18/Z19; first Fleet Siege Gate as the boundary. Warp-aware scaling, low base atk, floats.
+   juggle at Z18/Z19; boundary = plain clear+Warp. Warp-aware scaling, low base atk, floats.
+   **Re-check ng_tune's modeled warp states against the new Z3-first-warp cadence first.**
    - **New UI task this loop (from the loadout-slots analysis):** *swap legibility*, not slots.
      Name the current phase's element in the combat readout ("PHASE: CORROSION") + let players name
      presets by element (the preset `name` field already exists, unused). This is the real Loop-2 UI work.
-3. **#37 map-mod UI polish** (in-app visual pass).
-4. **#29 BigNumber adoption** — before Loop 3, not urgent (Loops 1–2 ship on floats). Plan:
-   `docs/BIGNUMBER_PLAN.md`.
+3. **Pacing re-measure under the new cadence** — the follower bot (now bot-bug-fixed) with
+   `--until=first_warp`: does the first Singularity land in week one for a median follower?
+4. **#37 map-mod UI polish** (in-app visual pass) · **#29 BigNumber adoption** before Loop 3
+   (`docs/BIGNUMBER_PLAN.md`) · ENG_6 Resonant Foundry awaits an owner call (auto-feed vs manual Core).
 
 ---
 
