@@ -284,7 +284,7 @@ func _build_footer():
 	var vp = get_viewport().get_visible_rect().size
 
 	var ver = Label.new()
-	ver.text = "HORIZON IDLE  ·  v0.1 PROTOTYPE"
+	ver.text = "HORIZON IDLE  ·  DEMO"
 	ver.position = Vector2(24, vp.y - 34)
 	ver.add_theme_font_size_override("font_size", 10)
 	ver.add_theme_color_override("font_color", Color(UITheme.COLORS["text_dim"], 0.75))

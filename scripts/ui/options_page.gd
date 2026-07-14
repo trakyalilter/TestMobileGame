@@ -81,7 +81,7 @@ func _build_ui() -> void:
 	_build_testing_section()
 
 	var foot := Label.new()
-	foot.text = "Horizon Idle · prototype build · changes save automatically"
+	foot.text = "Horizon Idle · demo build · changes save automatically"
 	foot.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	foot.add_theme_font_size_override("font_size", 11)
 	foot.add_theme_color_override("font_color", Color(0.45, 0.47, 0.55))
