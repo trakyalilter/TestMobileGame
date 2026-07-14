@@ -376,6 +376,29 @@ var zones = {
 		"difficulty": 12,
 		"enemies": ["z12_acid_revenant", "z12_rust_horror", "z12_corrosion_sentinel", "z12_caustic_leviathan", "z12_boss_rift_warden"],
 		"unlock_flag": "z12_unlocked"
+	},
+	# v137 (NG+ step 2): Corrosion-loop sectors Z13-Z15. Clear-gated on the prior boss + a
+	# Warp (warp_manager). Trash conventional; each boss's `phases` list is the element gate.
+	"the_verdigris": {
+		"name": "Sector 13 — The Verdigris Reach",
+		"desc": "Oxidized ruin where the corrosion took hold. The Verdigris Warden hardens Corrosion then Cryo — swap the other way this time.",
+		"difficulty": 13,
+		"enemies": ["z13_blight_drone", "z13_corroded_golem", "z13_acid_serpent", "z13_patina_phantom", "z13_boss_verdigris_warden"],
+		"unlock_flag": "z13_unlocked"
+	},
+	"the_dissolution": {
+		"name": "Sector 14 — The Dissolution",
+		"desc": "Matter unravels here. The Dissolution Tyrant gates THREE phases — Cryo → Corrosion → Cryo — two swaps to breach.",
+		"difficulty": 14,
+		"enemies": ["z14_dissolution_wraith", "z14_caustic_golem", "z14_rot_leviathan", "z14_toxin_sentinel", "z14_boss_dissolution_tyrant"],
+		"unlock_flag": "z14_unlocked"
+	},
+	"the_caustic_core": {
+		"name": "Sector 15 — The Caustic Core",
+		"desc": "The heart of the corrosion. The Caustic Sovereign opens and closes on Corrosion, Cryo between — the loop's capstone gate.",
+		"difficulty": 15,
+		"enemies": ["z15_caustic_revenant", "z15_meltdown_colossus", "z15_corrosion_behemoth", "z15_blight_titan", "z15_boss_caustic_sovereign"],
+		"unlock_flag": "z15_unlocked"
 	}
 }
 
@@ -1036,6 +1059,154 @@ var enemy_db = {
 		"module_drop_chance": 0.30,
 		"module_drop_pool": ["corrosion_blaster"],
 		"is_boss": true, "xp": 2500000, "eva": 22, "zone": 12, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "resist_cryo": 0.0, "dmg_type": "energy"
+	},
+
+	# ═══════════════════ NG+ LOOP 1 — CORROSION FRONTIER (Z13-Z15) ═══════════════════
+	# v137 (NG+ step 2): the loop continues the Rift's exotic gate. Trash are conventional
+	# (any weapon); the phase-gated bosses reuse Cryo + Corrosion (no new weapon — the loop's
+	# one new craft was corrosion_blaster @Z12), escalating PHASE COUNT (Z13 2-phase, Z14/Z15
+	# 3-phase). Each sector clear-gates the next on a Warp (see warp_manager). HP ramps ~×1.7/
+	# sector to track the ×2^warp_tier player-damage growth by Z15; atk ramps only ~×1.15 (Z12
+	# lesson: survivability-bound, not HP-bound). resist_cryo 0.0 — the exotic channel is shared;
+	# the PHASE list is the element puzzle. Numbers first-pass; warp-aware sim-tune to follow.
+
+	# ── Z13: The Verdigris Reach ──
+	"z13_blight_drone": {
+		"name": "Blight Drone",
+		"stats": {"hp": 3000000, "max_shield": 400000, "atk": 130000, "def": 20000, "atk_interval": 2.0, "accuracy": 300},
+		"loot": [["ExoticMatter", 4, 9], ["PrimordialShard", 3, 7]],
+		"rare_loot": [["ChronoCore", 0.10, 1, 3]],
+		"module_drop_chance": 0.12, "module_drop_pool": ["corrosion_blaster"],
+		"xp": 180000, "eva": 32, "zone": 13, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "resist_cryo": 0.0, "dmg_type": "energy"
+	},
+	"z13_corroded_golem": {
+		"name": "Corroded Golem",
+		"stats": {"hp": 4000000, "max_shield": 450000, "atk": 145000, "def": 25000, "atk_interval": 1.5, "accuracy": 305},
+		"loot": [["ChronoCore", 4, 8], ["VoidEssence", 5, 10]],
+		"rare_loot": [["OmegaPlating", 0.10, 1, 3]],
+		"module_drop_chance": 0.12, "module_drop_pool": ["corrosion_blaster"],
+		"xp": 200000, "eva": 40, "zone": 13, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "resist_cryo": 0.0, "dmg_type": "explosive"
+	},
+	"z13_acid_serpent": {
+		"name": "Acid Serpent",
+		"stats": {"hp": 5000000, "max_shield": 420000, "atk": 140000, "def": 22000, "atk_interval": 2.5, "accuracy": 300},
+		"loot": [["OmegaPlating", 4, 8], ["PrimordialShard", 4, 8]],
+		"rare_loot": [["VoidEssence", 0.12, 2, 5]],
+		"module_drop_chance": 0.12, "module_drop_pool": ["corrosion_blaster"],
+		"xp": 215000, "eva": 14, "zone": 13, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "resist_cryo": 0.0, "dmg_type": "kinetic"
+	},
+	"z13_patina_phantom": {
+		"name": "Patina Phantom",
+		"stats": {"hp": 6000000, "atk": 160000, "def": 18000, "atk_interval": 4.0, "accuracy": 285},
+		"loot": [["PrimordialShard", 5, 10], ["credits", 60000000, 120000000]],
+		"rare_loot": [["OmegaPlating", 0.12, 2, 4]],
+		"module_drop_chance": 0.12, "module_drop_pool": ["corrosion_blaster"],
+		"xp": 230000, "eva": 6, "zone": 13, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "resist_cryo": 0.0, "dmg_type": "energy"
+	},
+	"z13_boss_verdigris_warden": {
+		"name": "Verdigris Warden",
+		# 2-phase, Corrosion FIRST (mirror of the Rift Warden) — opens on the weapon you just
+		# earned, so the swap muscle-memory is Corrosion→Cryo this time.
+		"stats": {"hp": 65000000, "max_shield": 1000000, "atk": 300000, "def": 90000, "atk_interval": 2.5, "accuracy": 305},
+		"phases": ["corrosion", "cryo"], "phase_cut": 0.15,
+		"enrage_at": 0.4, "enrage_atk_mult": 1.3,
+		"loot": [["credits", 350000000, 700000000], ["ExoticMatter", 70, 140], ["ChronoCore", 30, 60], ["PrimordialShard", 60, 120]],
+		"rare_loot": [["OmegaPlating", 0.5, 3, 6]],
+		"module_drop_chance": 0.30, "module_drop_pool": ["corrosion_blaster"],
+		"is_boss": true, "xp": 3500000, "eva": 24, "zone": 13, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "resist_cryo": 0.0, "dmg_type": "corrosion"
+	},
+
+	# ── Z14: The Dissolution ──
+	"z14_dissolution_wraith": {
+		"name": "Dissolution Wraith",
+		"stats": {"hp": 5000000, "max_shield": 550000, "atk": 155000, "def": 28000, "atk_interval": 2.0, "accuracy": 310},
+		"loot": [["ExoticMatter", 6, 12], ["ChronoCore", 5, 10]],
+		"rare_loot": [["VoidEssence", 0.10, 2, 4]],
+		"module_drop_chance": 0.12, "module_drop_pool": ["corrosion_blaster"],
+		"xp": 280000, "eva": 34, "zone": 14, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "resist_cryo": 0.0, "dmg_type": "explosive"
+	},
+	"z14_caustic_golem": {
+		"name": "Caustic Golem",
+		"stats": {"hp": 7000000, "max_shield": 600000, "atk": 170000, "def": 35000, "atk_interval": 1.5, "accuracy": 315},
+		"loot": [["ChronoCore", 6, 12], ["OmegaPlating", 5, 10]],
+		"rare_loot": [["PrimordialShard", 0.12, 4, 8]],
+		"module_drop_chance": 0.12, "module_drop_pool": ["corrosion_blaster"],
+		"xp": 305000, "eva": 12, "zone": 14, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "resist_cryo": 0.0, "dmg_type": "kinetic"
+	},
+	"z14_rot_leviathan": {
+		"name": "Rot Leviathan",
+		"stats": {"hp": 9000000, "max_shield": 580000, "atk": 165000, "def": 30000, "atk_interval": 2.5, "accuracy": 305},
+		"loot": [["OmegaPlating", 6, 12], ["VoidEssence", 6, 12]],
+		"rare_loot": [["ChronoCore", 0.12, 3, 6]],
+		"module_drop_chance": 0.12, "module_drop_pool": ["corrosion_blaster"],
+		"xp": 330000, "eva": 8, "zone": 14, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "resist_cryo": 0.0, "dmg_type": "energy"
+	},
+	"z14_toxin_sentinel": {
+		"name": "Toxin Sentinel",
+		"stats": {"hp": 10000000, "atk": 185000, "def": 40000, "atk_interval": 4.0, "accuracy": 300},
+		"loot": [["PrimordialShard", 7, 14], ["credits", 100000000, 200000000]],
+		"rare_loot": [["OmegaPlating", 0.12, 3, 5]],
+		"module_drop_chance": 0.12, "module_drop_pool": ["corrosion_blaster"],
+		"xp": 355000, "eva": 6, "zone": 14, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "resist_cryo": 0.0, "dmg_type": "explosive"
+	},
+	"z14_boss_dissolution_tyrant": {
+		"name": "Dissolution Tyrant",
+		# 3-phase: cryo → corrosion → cryo. TWO swaps — the loop's mid-point step-up in
+		# execution. Off-element ×0.15 each band; phased bosses skip zone-steepening.
+		"stats": {"hp": 68000000, "max_shield": 1200000, "atk": 230000, "def": 120000, "atk_interval": 2.5, "accuracy": 310},
+		"phases": ["cryo", "corrosion", "cryo"], "phase_cut": 0.15,
+		"enrage_at": 0.35, "enrage_atk_mult": 1.2,
+		"loot": [["credits", 600000000, 1200000000], ["ExoticMatter", 120, 240], ["ChronoCore", 50, 100], ["PrimordialShard", 100, 200]],
+		"rare_loot": [["OmegaPlating", 0.5, 4, 8]],
+		"module_drop_chance": 0.30, "module_drop_pool": ["corrosion_blaster"],
+		"is_boss": true, "xp": 5000000, "eva": 26, "zone": 14, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "resist_cryo": 0.0, "dmg_type": "energy"
+	},
+
+	# ── Z15: The Caustic Core (Corrosion-loop capstone) ──
+	"z15_caustic_revenant": {
+		"name": "Caustic Revenant",
+		"stats": {"hp": 9000000, "max_shield": 700000, "atk": 180000, "def": 42000, "atk_interval": 2.0, "accuracy": 320},
+		"loot": [["ExoticMatter", 8, 16], ["ChronoCore", 7, 14]],
+		"rare_loot": [["VoidEssence", 0.10, 3, 6]],
+		"module_drop_chance": 0.12, "module_drop_pool": ["corrosion_blaster"],
+		"xp": 400000, "eva": 36, "zone": 15, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "resist_cryo": 0.0, "dmg_type": "kinetic"
+	},
+	"z15_meltdown_colossus": {
+		"name": "Meltdown Colossus",
+		"stats": {"hp": 12000000, "max_shield": 750000, "atk": 200000, "def": 50000, "atk_interval": 1.5, "accuracy": 325},
+		"loot": [["ChronoCore", 8, 16], ["OmegaPlating", 7, 14]],
+		"rare_loot": [["PrimordialShard", 0.12, 5, 10]],
+		"module_drop_chance": 0.12, "module_drop_pool": ["corrosion_blaster"],
+		"xp": 430000, "eva": 10, "zone": 15, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "resist_cryo": 0.0, "dmg_type": "energy"
+	},
+	"z15_corrosion_behemoth": {
+		"name": "Corrosion Behemoth",
+		"stats": {"hp": 14000000, "max_shield": 720000, "atk": 195000, "def": 45000, "atk_interval": 2.5, "accuracy": 320},
+		"loot": [["OmegaPlating", 8, 16], ["VoidEssence", 8, 16]],
+		"rare_loot": [["ChronoCore", 0.12, 4, 8]],
+		"module_drop_chance": 0.12, "module_drop_pool": ["corrosion_blaster"],
+		"xp": 460000, "eva": 8, "zone": 15, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "resist_cryo": 0.0, "dmg_type": "explosive"
+	},
+	"z15_blight_titan": {
+		"name": "Blight Titan",
+		"stats": {"hp": 17000000, "atk": 220000, "def": 55000, "atk_interval": 4.0, "accuracy": 310},
+		"loot": [["PrimordialShard", 10, 20], ["credits", 150000000, 300000000]],
+		"rare_loot": [["OmegaPlating", 0.12, 4, 7]],
+		"module_drop_chance": 0.12, "module_drop_pool": ["corrosion_blaster"],
+		"xp": 490000, "eva": 6, "zone": 15, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "resist_cryo": 0.0, "dmg_type": "kinetic"
+	},
+	"z15_boss_caustic_sovereign": {
+		"name": "Caustic Sovereign",
+		# Corrosion-loop CAPSTONE. 3-phase corrosion → cryo → corrosion (opens+closes on the
+		# loop's own weapon). Clearing it arms the Loop-2 boundary (Plasma frontier / Fleet
+		# Siege Gate — NG+ step 4). Beefiest HP in the loop; atk stays survivability-safe.
+		"stats": {"hp": 95000000, "max_shield": 1500000, "atk": 190000, "def": 155000, "atk_interval": 2.5, "accuracy": 315},
+		"phases": ["corrosion", "cryo", "corrosion"], "phase_cut": 0.15,
+		"enrage_at": 0.35, "enrage_atk_mult": 1.2,
+		"loot": [["credits", 1000000000, 2000000000], ["ExoticMatter", 200, 400], ["ChronoCore", 90, 180], ["PrimordialShard", 180, 360]],
+		"rare_loot": [["OmegaPlating", 0.5, 6, 12]],
+		"module_drop_chance": 0.30, "module_drop_pool": ["corrosion_blaster"],
+		"is_boss": true, "xp": 8000000, "eva": 28, "zone": 15, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "resist_cryo": 0.0, "dmg_type": "corrosion"
 	},
 
 	# ═══ HAZARD ZONE: EMP Nexus — Boosted Z2 enemies ═══
@@ -2456,9 +2627,20 @@ func win_fight():
 	# Z12 "The Rift" (Corrosion tier) then reveals on the NEXT Warp — the locked
 	# clear-gated pacing (clear boss → Warp → next zone). The Warden has no
 	# boss_core, so detect by id. Flag persists across Warp; cleared on hard reset.
-	if current_enemy.get("id", "") == "z11_boss_threshold_warden" and not GameState.game_settings.get("z11_cleared", false):
-		GameState.game_settings["z11_cleared"] = true
-		UITheme.show_notification("⟨ FRONTIER BREACHED — THE RIFT BECKONS ⟩  The Threshold Warden falls. Execute a Warp Core reset to push into Sector 12 — The Rift, where the Warden hardens against Cryo, then Corrosion. Bring both, and swap loadout presets mid-fight.", Color(0.6, 0.9, 0.7))
+	# v137 (NG+ step 2): generalized to the whole Corrosion loop. Each boss kill sets its
+	# `cleared` flag, which the NEXT Warp reads to reveal the following sector.
+	var _ng_clear := {
+		"z11_boss_threshold_warden": ["z11_cleared", "⟨ FRONTIER BREACHED — THE RIFT BECKONS ⟩  The Threshold Warden falls. Execute a Warp Core reset to push into Sector 12 — The Rift, where the Warden hardens against Cryo, then Corrosion. Bring both, and swap loadout presets mid-fight."],
+		"z12_boss_rift_warden": ["z12_cleared", "⟨ THE RIFT YIELDS ⟩  The Rift Warden falls. Warp to breach Sector 13 — The Verdigris Reach: Corrosion first, then Cryo — swap the other way this time."],
+		"z13_boss_verdigris_warden": ["z13_cleared", "⟨ VERDIGRIS CLEARED ⟩  Warp to breach Sector 14 — The Dissolution: a THREE-phase gate (Cryo → Corrosion → Cryo), two swaps to breach."],
+		"z14_boss_dissolution_tyrant": ["z14_cleared", "⟨ DISSOLUTION ENDED ⟩  Warp to breach Sector 15 — The Caustic Core, the corrosion-loop capstone (Corrosion → Cryo → Corrosion)."],
+	}
+	var _bkid: String = current_enemy.get("id", "")
+	if _ng_clear.has(_bkid):
+		var _cflag: String = _ng_clear[_bkid][0]
+		if not GameState.game_settings.get(_cflag, false):
+			GameState.game_settings[_cflag] = true
+			UITheme.show_notification(String(_ng_clear[_bkid][1]), Color(0.6, 0.9, 0.7))
 	# v113 (NG+ P2): boss master-key drop. A boss with a relic_drop grants its
 	# Threshold Relic exactly once (guaranteed, no affixes), flags it earned (so it
 	# persists across Warp + re-grants), and auto-equips it if the Relic slot is

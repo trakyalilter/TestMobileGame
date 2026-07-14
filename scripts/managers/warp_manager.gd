@@ -204,6 +204,22 @@ func execute_warp():
 		if UITheme:
 			UITheme.show_notification("⟨ SECTOR 12 UNLOCKED — THE RIFT ⟩  The Warp tears a corrosive frontier open. The Rift Warden gates it with Cryo then Corrosion phases — craft Corrosion Armaments and swap presets mid-fight.", Color(0.6, 0.9, 0.7))
 
+	# v137 (NG+ step 2): Corrosion-loop sectors Z13-Z15 reveal the same way — clear the prior
+	# boss (sets its z*_cleared flag in combat_manager), then any Warp opens the next. One
+	# table drives all three; persists across Warp, cleared only on hard reset.
+	var _ng_reveal := [
+		["z12_cleared", "z13_unlocked", "⟨ SECTOR 13 UNLOCKED — THE VERDIGRIS REACH ⟩  The Warp opens the oxidized ruin. The Verdigris Warden hardens Corrosion then Cryo — swap the other way this time."],
+		["z13_cleared", "z14_unlocked", "⟨ SECTOR 14 UNLOCKED — THE DISSOLUTION ⟩  A three-phase gate: Cryo → Corrosion → Cryo. Two swaps to breach the Dissolution Tyrant."],
+		["z14_cleared", "z15_unlocked", "⟨ SECTOR 15 UNLOCKED — THE CAUSTIC CORE ⟩  The corrosion-loop capstone. The Caustic Sovereign opens and closes on Corrosion, Cryo between."],
+	]
+	for _r in _ng_reveal:
+		if GameState.game_settings.get(_r[0], false) and not GameState.game_settings.get(_r[1], false):
+			GameState.game_settings[_r[1]] = true
+			if GameState.combat_manager:
+				GameState.combat_manager.zones_changed.emit()
+			if UITheme:
+				UITheme.show_notification(String(_r[2]), Color(0.6, 0.9, 0.7))
+
 	# v113 (NG+ P2): Threshold Relics (master keys) persist across Warp. The reset
 	# above wiped the module inventory, so re-grant + re-equip any relic the player
 	# has earned (the "<id>_earned" game_settings flag, set on the boss's first
