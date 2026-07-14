@@ -1,10 +1,13 @@
 extends RefCounted
-# Fleet Manager — P1 (sink + roster). See docs/FLEET_SIEGE_GATES.md.
+# Fleet Manager — SOFT ROLE, shipped scope (owner decision 2026-07-14).
+# See docs/FLEET_SIEGE_GATES.md.
 #
 # Build battle-ships from the material glut; capacity is gated by warp count, so
-# the fleet is a prestige-tied meta layer that grows every warp. No combat yet
-# (that's P2) — P1 exists to give infinite infra/gather output a real sink and
-# to stand up the roster + persistence.
+# the fleet is a prestige-tied meta layer that grows every warp. The soft combat
+# role is LIVE (get_combat_dps_mult → combat_manager's damage path): each ship
+# adds +25% of the main ship's damage, capped at +100%. The siege/hard role is
+# CUT — NG+ loop boundaries stay plain clear→Warp; capacity past the +100% cap
+# is roster head-room, not a promise of a future siege system.
 #
 # Persistence: the roster is prestige meta-progression — it PERSISTS across warp
 # (execute_warp resets skills/combat with decay but never touches the fleet) and
@@ -17,25 +20,30 @@ const FLEET_CAP_BASE := 1
 const UNLOCK_MIN_WARPS := 1
 
 # Buildable hull classes. Costs are deliberately glut basics (Water/Dirt/Steel/
-# Circuit) — this IS the sink. `power` is nominal for now; P2 wires real combat
-# contribution off an equipped loadout. `min_warps` gates tiers by prestige
-# depth so the roster scales with warps, not just credits.
+# Circuit) — this IS the sink. `min_warps` gates tiers by prestige depth so the
+# roster scales with warps, not just credits.
+# v138a cost retune: warp 1 moved from ~Zone-6 research to the ZONE-3 boss (the
+# Singularity), so the warp-1 player is far earlier — the old frigate bill
+# (Water 40K / Steel 5K / Circuit 2K) would leave the freshly-revealed Fleet tab
+# dead for days. Re-sized per the design doc's own rule ("soak ~30-60 min of
+# infra output at that depth"): frigate ÷5, destroyer ÷2, cruiser ÷~1.5.
+# PLAYTEST-TUNABLE — these are sizing-rule estimates, not measured numbers.
 const FLEET_HULLS := {
 	"fleet_frigate": {
 		"name": "Fleet Frigate",
-		"cost": {"Water": 40000, "Dirt": 20000, "Steel": 5000, "Circuit": 2000},
+		"cost": {"Water": 8000, "Dirt": 4000, "Steel": 800, "Circuit": 150},
 		"power": 100,
 		"min_warps": 1,
 	},
 	"fleet_destroyer": {
 		"name": "Fleet Destroyer",
-		"cost": {"Water": 120000, "Dirt": 60000, "Steel": 18000, "Circuit": 8000, "AdvCircuit": 500},
+		"cost": {"Water": 60000, "Dirt": 30000, "Steel": 9000, "Circuit": 4000, "AdvCircuit": 250},
 		"power": 320,
 		"min_warps": 3,
 	},
 	"fleet_cruiser": {
 		"name": "Fleet Cruiser",
-		"cost": {"Water": 300000, "Dirt": 150000, "Steel": 50000, "AdvCircuit": 2500, "Superalloy": 800},
+		"cost": {"Water": 200000, "Dirt": 100000, "Steel": 35000, "AdvCircuit": 1500, "Superalloy": 500},
 		"power": 850,
 		"min_warps": 6,
 	},

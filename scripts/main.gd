@@ -979,8 +979,9 @@ func _update_sidebar_styling():
 			GameState.game_settings["warp_first_revealed"] = true
 	warp_btn.visible = revealed
 
-	# Fleet Command reveals post-first-warp (alongside the Z11 endgame), where the
-	# material glut exists to sink. See docs/FLEET_SIEGE_GATES.md.
+	# Fleet Command reveals post-first-warp — v138: that's now the ZONE-3 Singularity,
+	# so the fleet is a mid-game layer (costs re-sized accordingly in fleet_manager).
+	# Soft role only: glut sink + passive combat accelerator. docs/FLEET_SIEGE_GATES.md.
 	if is_instance_valid(fleet_btn):
 		fleet_btn.visible = GameState.fleet_manager.is_unlocked() if GameState.fleet_manager else false
 	

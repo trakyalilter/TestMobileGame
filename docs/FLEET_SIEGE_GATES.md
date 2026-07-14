@@ -1,6 +1,17 @@
-# Fleet & Siege Gates — design doc v0.1
+# Fleet & Siege Gates — design doc v0.2
 
-**Status:** Spec locked, P1 in scaffolding.
+**Status (2026-07-14, owner decision): SOFT ROLE ONLY — SHIPPED. SIEGE/HARD ROLE CUT.**
+NG+ loop boundaries stay plain clear→Warp (decision #30); no siege gates, ever —
+a fourth frontier gate type risks gate fatigue (failure mode #6 below). What ships:
+the glut-sink roster + the passive combat accelerator (+25%/ship, cap +100%), both
+live in `fleet_manager` / `fleet_page` / combat's damage path. Everything in this
+doc about sieges, planetary gates and per-loop enemy buffs is HISTORICAL context.
+
+**Cadence note (v138):** warp 1 now lands at the ZONE-3 boss (the Singularity),
+not ~Zone-6 research — the fleet reveals mid-game, and hull costs were re-sized
+÷5/÷2/÷1.5 per the "soak ~30-60 min of infra output at that depth" rule.
+
+---
 **Player fantasy:** *Your factories outgrow a single hull — so each warp you forge the surplus into a growing battle-fleet that fights beside you, and eventually sieges the planetary gates barring the deep sectors.*
 
 **Loop served:** **Prestige** (warp gains a new reward axis) + **Meta** (fleet roster).
