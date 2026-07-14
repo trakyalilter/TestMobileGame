@@ -464,6 +464,13 @@ func _pump() -> void:
 				"hull": GameState.shipyard_manager.active_hull,
 				"credits": int(GameState.resources.get_currency("credits")),
 				"kills": int(GameState.combat_manager.total_kills)})
+	# v138: stamp the first SINGULARITY of the run — the new first-warp gate (opens
+	# on the first Z3+ boss kill, online or offline). The pacing question is "when
+	# COULD the player first warp", independent of whether the policy chooses to.
+	if not milestones.has("first_rift") and GameState.warp_manager and GameState.warp_manager.rift_open:
+		milestones["first_rift"] = round(sim_s)
+		tele.write({"t": "rift", "sim_s": round(sim_s), "day": day,
+			"gains": int(GameState.warp_manager.calculate_warp_gains())})
 	var claimed: Array = policy.pump_claims(sim_s)
 	for mid in claimed:
 		if timeline.has(mid):

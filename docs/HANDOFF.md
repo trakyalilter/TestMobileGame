@@ -111,8 +111,13 @@ re-checked against the new cadence before trusting them.
    - **New UI task this loop (from the loadout-slots analysis):** *swap legibility*, not slots.
      Name the current phase's element in the combat readout ("PHASE: CORROSION") + let players name
      presets by element (the preset `name` field already exists, unused). This is the real Loop-2 UI work.
-3. **Pacing re-measure under the new cadence** — the follower bot (now bot-bug-fixed) with
-   `--until=first_warp`: does the first Singularity land in week one for a median follower?
+3. ~~Pacing re-measure~~ **DONE + v138c compression pass applied** (measured, 3-seed follower):
+   Zone 3 entry 11.9d → **9.5d**, destroyer 7.9d → **7.2d**, first Singularity now at the EDGE
+   of the 14-day bot horizon (~12.5d when an offline Warmaster kill lands; just past otherwise) —
+   plausibly week-one for a real (non-pessimistic-bot) player. Levers used: Z2+Z3 regular module
+   drop chance 0.10→0.20 (gear-check unchanged), destroyer plating 10→5. NOTE: m029b AdvCircuit
+   5→3 was tried and REVERTED — shipwright_2 effectively spends ~5 (deliberate pairing, see
+   mission comment). Remaining binding gate if playtest wants more: the m030fa-f2 Z3-gear band.
 4. **#37 map-mod UI polish** (in-app visual pass) · **#29 BigNumber adoption** before Loop 3
    (`docs/BIGNUMBER_PLAN.md`) · ENG_6 Resonant Foundry awaits an owner call (auto-feed vs manual Core).
 

@@ -526,7 +526,10 @@ var hulls: Dictionary = {
 		"name": "Destroyer",
 		"stats": {"hp": 387, "energy_capacity": 120},
 		# v126: continues the Reinforced Plating sink into the tier-3 hull (still Z1-2 era).
-		"cost": {"credits": 90000, "Steel": 100, "Circuit": 20, "ReinforcedPlating": 10},
+		# v138c: ReinforcedPlating 10 -> 5 — at 4 SalvagedAlloy + 2 DamagedCircuitry +
+		# 10 Steel per plate (thin Z1-2-only drops), the 10-plate bill was a ~2.5-day
+		# offline-accrual gate blocking the new Z3 first-warp cadence.
+		"cost": {"credits": 90000, "Steel": 100, "Circuit": 20, "ReinforcedPlating": 5},
 		"slots": ["weapon", "weapon", "weapon", "shield", "shield", "armor", "armor", "engine", "battery", "battery", "battery", "sensor"], # 12
 		"research_req": "shipwright_2",
 		"visual": "res://assets/ships/3.png",

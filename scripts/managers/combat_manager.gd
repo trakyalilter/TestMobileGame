@@ -504,7 +504,7 @@ var enemy_db = {
 		"stats": {"hp": 380, "atk": 25, "def": 5, "atk_interval": 1.8, "accuracy": 25},
 		"loot": [["credits", 150, 300], ["Fe", 3, 8], ["Res1", 2, 4], ["PirateSalvage", 1, 3]],
 		"rare_loot": [["Cu", 0.15, 3, 6]],
-		"module_drop_chance": 0.10,
+		"module_drop_chance": 0.20,   # v138c: was 0.10 — Z2 was stingier than Z1 (0.15-0.25), stretching the Monolith gear-farm days past the new Z3 first-warp cadence
 		"module_drop_pool": ["z2_kinetic", "z2_energy", "z2_missile", "z2_shield", "z2_armor"],
 		"xp": 20, "eva": 12, "zone": 2, "resist_k": -0.20, "resist_e": 0.30, "resist_x": -0.20, "dmg_type": "kinetic"
 	},
@@ -513,7 +513,7 @@ var enemy_db = {
 		"stats": {"hp": 480, "atk": 33, "def": 7, "atk_interval": 3.0, "accuracy": 22},
 		"loot": [["Si", 5, 15], ["Fe", 3, 8], ["Res1", 2, 4], ["PirateSalvage", 1, 3]],
 		"rare_loot": [["Ti", 0.10, 1, 3], ["DamagedCircuitry", 0.40, 1, 3]],
-		"module_drop_chance": 0.10,
+		"module_drop_chance": 0.20,   # v138c: was 0.10 (see z2_pirate_skiff note)
 		"module_drop_pool": ["z2_kinetic", "z2_energy", "z2_missile", "z2_shield", "z2_armor"],
 		"xp": 25, "eva": 5, "zone": 2, "resist_k": 0.40, "resist_e": 0.0, "resist_x": -0.35, "dmg_type": "kinetic"
 	},
@@ -526,7 +526,7 @@ var enemy_db = {
 		# only zone that dropped Res2 — forcing an off-chain Z3 unlock on Z1-era
 		# gear (repeated deaths). Rare artifacts now trickle from the Z2 frontier.
 		"rare_loot": [["Ti", 0.12, 2, 4], ["Res2", 0.35, 1, 2]],
-		"module_drop_chance": 0.10,
+		"module_drop_chance": 0.20,   # v138c: was 0.10 (see z2_pirate_skiff note)
 		"module_drop_pool": ["z2_kinetic", "z2_energy", "z2_missile"],
 		"xp": 28, "eva": 15, "zone": 2, "resist_k": 0.15, "resist_e": -0.15, "resist_x": 0.0, "dmg_type": "explosive"
 	},
@@ -535,7 +535,7 @@ var enemy_db = {
 		"stats": {"hp": 950, "atk": 28, "def": 10, "atk_interval": 5.0, "accuracy": 20},
 		"loot": [["Fe", 10, 25], ["Si", 5, 12], ["Res1", 2, 5], ["PirateSalvage", 2, 5], ["SalvageData", 1, 3]],
 		"rare_loot": [["Steel", 0.10, 1, 3], ["SalvagedAlloy", 0.40, 1, 3]],
-		"module_drop_chance": 0.10,
+		"module_drop_chance": 0.20,   # v138c: was 0.10 (see z2_pirate_skiff note)
 		"module_drop_pool": ["z2_shield", "z2_armor"],
 		"xp": 22, "eva": 3, "zone": 2, "resist_k": 0.45, "resist_e": 0.15, "resist_x": -0.30, "dmg_type": "kinetic"
 	},
@@ -556,7 +556,7 @@ var enemy_db = {
 		"stats": {"hp": 900, "atk": 57, "def": 12, "atk_interval": 2.5, "accuracy": 35},
 		"loot": [["Steel", 3, 8], ["Fe", 8, 20], ["Res2", 1, 2], ["MartianRelics", 1, 3]],
 		"rare_loot": [["Circuit", 0.10, 1, 2], ["Ni", 0.10, 1, 3]],
-		"module_drop_chance": 0.10,
+		"module_drop_chance": 0.20,   # v138c: was 0.10 — same Z2 rationale: gear-farm speed for the Z3 first-warp cadence (check stays uncommon+)
 		"module_drop_pool": ["z3_kinetic", "z3_energy", "z3_missile", "z3_shield", "z3_armor"],
 		"xp": 50, "eva": 10, "zone": 3, "resist_k": 0.0, "resist_e": -0.25, "resist_x": 0.25, "dmg_type": "explosive"
 	},
@@ -565,7 +565,7 @@ var enemy_db = {
 		"stats": {"hp": 1152, "max_shield": 300, "atk": 73, "def": 15, "atk_interval": 2.0, "accuracy": 40},
 		"loot": [["C", 3, 8], ["credits", 400, 800], ["Res2", 1, 2], ["MartianRelics", 1, 3]],
 		"rare_loot": [["Chip", 0.08, 1, 2]],
-		"module_drop_chance": 0.10,
+		"module_drop_chance": 0.20,   # v138c: was 0.10 (see z3_scavenger_mech note)
 		"module_drop_pool": ["z3_kinetic", "z3_energy", "z3_missile", "z3_shield", "z3_armor"],
 		"xp": 60, "eva": 12, "zone": 3, "resist_k": 0.0, "resist_e": -0.30, "resist_x": 0.30, "dmg_type": "explosive"
 	},
@@ -574,7 +574,7 @@ var enemy_db = {
 		"stats": {"hp": 800, "atk": 38, "def": 10, "atk_interval": 0.6, "accuracy": 38},
 		"loot": [["Fe", 5, 15], ["Cu", 3, 8], ["Res2", 1, 2], ["MartianRelics", 1, 2], ["SalvageData", 2, 4]],
 		"rare_loot": [["Steel", 0.15, 2, 5], ["Sn", 0.12, 2, 4]],
-		"module_drop_chance": 0.10,
+		"module_drop_chance": 0.20,   # v138c: was 0.10 (see z3_scavenger_mech note)
 		"module_drop_pool": ["z3_kinetic", "z3_energy", "z3_missile"],
 		"xp": 45, "eva": 20, "zone": 3, "resist_k": -0.15, "resist_e": -0.15, "resist_x": 0.15, "dmg_type": "kinetic"
 	},
@@ -583,7 +583,7 @@ var enemy_db = {
 		"stats": {"hp": 2000, "max_shield": 400, "atk": 82, "def": 18, "atk_interval": 4.0, "accuracy": 42},
 		"loot": [["Steel", 5, 12], ["Fe", 10, 25], ["Res2", 1, 3], ["MartianRelics", 2, 4]],
 		"rare_loot": [["Ti", 0.10, 2, 5], ["Cr", 0.08, 1, 3]],
-		"module_drop_chance": 0.10,
+		"module_drop_chance": 0.20,   # v138c: was 0.10 (see z3_scavenger_mech note)
 		"module_drop_pool": ["z3_shield", "z3_armor"],
 		"xp": 70, "eva": 5, "zone": 3, "resist_k": 0.15, "resist_e": -0.30, "resist_x": 0.40, "dmg_type": "explosive"
 	},

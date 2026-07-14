@@ -241,13 +241,19 @@ func init_missions():
 		# v134h: the recipe's three opaque sub-inputs are now breadcrumbed. Semiconductor,
 		# Gold, and Silver each have a hidden sub-chain the old "your earlier research
 		# unlocked each one" text glossed over (Silver especially — only a Zinc byproduct).
+		# v138c ATTEMPTED 5 -> 3, REVERTED same session: shipwright_2 (the very next
+		# mission) effectively spends ~5 AdvCircuit (base 1 x stage x MATERIAL_MULTIPLIER
+		# — see research_manager:189, a DELIBERATE pairing with this mission's count).
+		# Cutting to 3 left the player short at m030, which stalled UNDIRECTED farming
+		# AdvCircuit (measured: 2/3 seeds walled at m030, destroyer slipped 7.9d -> 13.5d).
 		["m029b", "Complex Electronics", "Craft 5 Advanced Circuits in the Engineering tab. Three inputs need prep: Semiconductor (Silicon + Germanium), Gold (Gold Panning — Dirt + Water), and Silver (a Zinc Reduction byproduct).", "gather", "AdvCircuit", 5, 20000, 5000, "m030"],
 		# v103f: Removed forced Fabricator mission (m030b) — it gated nothing
 		# (Fabricator is optional QoL, still buildable). m030 -> m030c directly.
 		["m030", "Naval Expansion", "Research 'Shipwright II' to unlock Destroyer-class hulls.", "research", "shipwright_2", 1, 4000, 1000, "m030c"],
-		# v134h: destroyer needs 10 Reinforced Plating (same component as the frigate) —
-		# name it so the 10x quantity isn't a silent grind wall. Reroute -> m030c2 (Z2 weapons).
-		["m030c", "Hull Modernization II", "Construct a 'Destroyer' hull in the Shipyard. Needs 10 Reinforced Plating (same recipe as the Frigate) — stock Salvaged Alloy + Damaged Circuitry.", "construct", "destroyer_hull", 1, 25000, 2000, "m030c2"],
+		# v134h: destroyer needs Reinforced Plating (same component as the frigate) —
+		# name it so the quantity isn't a silent grind wall. v138c: 10 -> 5 (see
+		# shipyard destroyer_hull cost note). Reroute -> m030c2 (Z2 weapons).
+		["m030c", "Hull Modernization II", "Construct a 'Destroyer' hull in the Shipyard. Needs 5 Reinforced Plating (same recipe as the Frigate) — stock Salvaged Alloy + Damaged Circuitry.", "construct", "destroyer_hull", 1, 25000, 2000, "m030c2"],
 		# v135a: the chain never USES Zone-2 fabrication (unlocked at m027) — the player reaches
 		# the 5280-HP Z2 boss on a Z2 Destroyer still fielding Z1 batteries + Z1 guns (the m030d
 		# funnel wall). Refit for Zone 2 in two beats, mirroring the m029 Z2-armor beat:
