@@ -145,6 +145,19 @@ const ENEMY_COMP_BOSS_SHIELD = 0.36
 const ENEMY_COMP_BOSS_ATK = 0.28
 const ENEMY_COMP_DEF = 0.12
 
+# ═══ NG+ step 3: MAP MODS ═══ opt-in per-expedition modifiers. Each makes the sector
+# HARDER (spawn_enemy / weapon_states hooks) and MULTIPLIES all loot (materials, modules,
+# credits, hack cards). Stack up to MAX_MAP_MODS; loot mults COMPOUND. Never-expiring,
+# player-chosen — premium, no FOMO. The build-expression + numbers-go-up endgame knob.
+const MAX_MAP_MODS := 3
+const MAP_MODS := {
+	"hardened_hulls":   {"name": "Hardened Hulls",  "desc": "Enemy shields +60%.",              "loot_mult": 1.4},
+	"early_enrage":     {"name": "Early Enrage",     "desc": "Bosses enrage 20% sooner (HP).",   "loot_mult": 1.5},
+	"exotic_dampening": {"name": "Exotic Dampening", "desc": "Your Cryo/Corrosion damage -25%.", "loot_mult": 1.6},
+	"swarm":            {"name": "Swarm",            "desc": "Enemy HP +45%.",                   "loot_mult": 1.3},
+}
+var active_map_mods: Array = []   # ids applied to the running expedition (UI sets pre-launch)
+
 # v87.0: Enemy Typed Damage Balance Compensation
 # Energy enemies deal 1.5x to shields (up from 0.5x kinetic), so reduce raw ATK
 # Explosive enemies bypass 80% armor, so reduce raw ATK
@@ -1510,6 +1523,16 @@ func spawn_enemy():
 		current_enemy["def"] = int(current_enemy["def"] * (1.0 + _g * ENEMY_COMP_DEF))
 		current_enemy["max_shield"] = int(current_enemy["max_shield"] * (1.0 + _g * _shf))
 
+	# NG+ step 3: map-mod difficulty effects (opt-in; the payoff is in get_map_mod_loot_mult).
+	# Applied AFTER the warp catch-up so they stack on the effective stats.
+	if not active_map_mods.is_empty():
+		if has_map_mod("hardened_hulls"):
+			current_enemy["max_shield"] = int(current_enemy["max_shield"] * 1.6)
+		if has_map_mod("swarm"):
+			current_enemy["max_hp"] = int(current_enemy["max_hp"] * 1.45)
+		if has_map_mod("early_enrage") and float(current_enemy.get("enrage_at", 0.0)) > 0.0:
+			current_enemy["enrage_at"] = minf(0.9, float(current_enemy["enrage_at"]) + 0.20)
+
 	# Apply Elite logic if requested by bounty_manager or random chance (5%)
 	var elite_chance = 0.05
 	# The bounty_manager will signal is_elite through target_enemy_id if it's a specific elite hunt
@@ -1619,7 +1642,7 @@ func _rebuild_player_weapon_states() -> void:
 					"dmg_k": m_stats.get("atk_kinetic", 0) * GameState.warp_manager.get_tree_damage_bonus(),
 					"dmg_e": m_stats.get("atk_energy", 0) * GameState.warp_manager.get_tree_damage_bonus(),
 					"dmg_x": m_stats.get("atk_explosive", 0) * GameState.warp_manager.get_tree_damage_bonus(),
-					"dmg_cryo": m_stats.get("atk_cryo", 0) * GameState.warp_manager.get_tree_damage_bonus(),  # cryo uses the general damage bonus (Cryo Overcharge node removed)
+					"dmg_cryo": m_stats.get("atk_cryo", 0) * GameState.warp_manager.get_tree_damage_bonus() * (0.75 if has_map_mod("exotic_dampening") else 1.0),  # NG+ step 3: Exotic Dampening map-mod cuts the exotic channel
 					"slot_idx": int(s_idx),
 					"energy_load": m_stats.get("energy_load", 0)
 				})
@@ -2351,6 +2374,26 @@ func resolve_damage(atk_k, atk_e, atk_x, c_shield, c_armor, difficulty = 1, crit
 
 # v101: Combat Loot Scaling System
 # Ensures combat resource drops keep pace with gathering/processing progression
+# NG+ step 3: map-mod API. UI calls set_active_map_mods() before start_expedition.
+func set_active_map_mods(mods: Array) -> void:
+	var out: Array = []
+	for m in mods:
+		var mid := String(m)
+		if MAP_MODS.has(mid) and not (mid in out) and out.size() < MAX_MAP_MODS:
+			out.append(mid)
+	active_map_mods = out
+
+func has_map_mod(mod_id: String) -> bool:
+	return mod_id in active_map_mods
+
+# Compounded loot multiplier from all active map mods — folded into EVERY loot surface
+# (materials, modules, credits, hack cards) so juicing pays across the board.
+func get_map_mod_loot_mult() -> float:
+	var m := 1.0
+	for mid in active_map_mods:
+		m *= float(MAP_MODS.get(mid, {}).get("loot_mult", 1.0))
+	return m
+
 func get_combat_loot_multiplier() -> float:
 	var mult = 1.0
 	
@@ -2372,15 +2415,17 @@ func get_combat_loot_multiplier() -> float:
 	if GameState.warp_manager:
 		mult *= max(1.0, GameState.warp_manager.get_combat_multiplier())
 
+	mult *= get_map_mod_loot_mult()   # NG+ step 3: compounded map-mod loot bonus
 	return mult
 
 # v109: Recursion — Recursive Acquisition (+5%/level Lira rewards). Applied
 # to combat credit drops (online + offline); quest_manager / bounty_manager
 # apply the same bonus to their own reward paths.
 func _credit_reward_mult() -> float:
+	var base := 1.0
 	if GameState.research_manager:
-		return 1.0 + GameState.research_manager.get_efficiency_bonus("credit_reward_mult")
-	return 1.0
+		base = 1.0 + GameState.research_manager.get_efficiency_bonus("credit_reward_mult")
+	return base * get_map_mod_loot_mult()   # NG+ step 3: map-mod credit bonus
 
 func get_effective_module_drop_chance(enemy_data: Dictionary) -> float:
 	var base = enemy_data.get("module_drop_chance", 0.0)
@@ -2397,7 +2442,7 @@ func get_effective_module_drop_chance(enemy_data: Dictionary) -> float:
 	# multiplier on module drop chance. Bounded (max GA ~0.30 per affix).
 	var sm = GameState.shipyard_manager
 	var salvage = sm.affix_bonuses.get("module_drop_mult", 0.0) if sm else 0.0
-	return base * (1.0 + xeno_bonus) * (1.0 + salvage)
+	return base * (1.0 + xeno_bonus) * (1.0 + salvage) * get_map_mod_loot_mult()   # NG+ step 3
 
 # v135a: a (base or custom) weapon module's damage type — for loot-filter pool
 # concentration (bias drops toward the kept weapon type).
@@ -2526,6 +2571,7 @@ func _roll_hack_stone_drops(zone: int, is_boss: bool, is_elite: bool) -> Diction
 	# bypass smult, so only the exploitable trash rolls taper. Applies online AND offline.
 	var gap: int = _player_frontier_zone() - zone
 	smult *= clampf(1.0 - 0.30 * float(gap - 2), 0.10, 1.0)
+	smult *= get_map_mod_loot_mult()   # NG+ step 3: map-mod bonus (random rolls only, like the other smult factors)
 	if zone >= 1 and randf() < 0.25 * smult:
 		res.add_element("SpliceChip", 1)
 		out["SpliceChip"] = 1
@@ -3261,6 +3307,7 @@ func reset(decay_factor: float = 1.0) -> void:
 	current_zone_id = ""
 	target_enemy_id = null
 	session_loot = {}
+	active_map_mods = []   # NG+ step 3: map-mods are per-expedition; don't carry across reset/warp
 	if decay_factor >= 1.0:
 		# Hard reset only — lifetime trackers. They gate hazard unlocks
 		# (is_hazard_unlocked) and the star map's cleared pins, so a New Game
