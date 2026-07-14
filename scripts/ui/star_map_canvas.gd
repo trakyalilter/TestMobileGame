@@ -38,6 +38,9 @@ const LAYOUT := {
 	"the_threshold":  Vector2(0.905, 0.670),
 	"the_rift":       Vector2(0.845, 0.880),
 	"emp_nexus":      Vector2(0.380, 0.985),
+	# v138: the Singularity — apart from the lane network, in the top-left void.
+	# It is not a destination on the route; it's a hole OUT of the run.
+	"warp_rift":      Vector2(0.140, 0.220),
 }
 # Which system a hazard spur branches from.
 const SPUR_PARENT := {"emp_nexus": "mars_debris"}
@@ -94,7 +97,8 @@ func set_models(m: Array) -> void:
 	models = m
 	_by_diff = []
 	for mod in models:
-		if not mod.get("is_hazard", false):
+		# v138: the Singularity sits OFF the warp-lane network (no lane connects it).
+		if not mod.get("is_hazard", false) and not mod.get("is_rift", false):
 			_by_diff.append(mod)
 	_by_diff.sort_custom(func(a, b): return int(a["difficulty"]) < int(b["difficulty"]))
 	queue_redraw()
@@ -306,6 +310,10 @@ func _dashed(pts: PackedVector2Array, color: Color, width: float, dash: float, g
 
 func _draw_node(m: Dictionary) -> void:
 	var p := _node_px(m)
+	# v138: the Singularity gets its own draw path (black hole, not a system node).
+	if m.get("is_rift", false):
+		_draw_rift_node(m, p)
+		return
 	var diff := int(m.get("difficulty", 1))
 	var heat := _heat(diff)
 	var st := str(m["state"])
@@ -370,6 +378,39 @@ func _draw_node(m: Dictionary) -> void:
 		_ctext(Vector2(p.x, p.y + label_y + 11.0), "READY TO WARP", C_TEAL, 8)
 	elif st == "locked" and m["id"] == selected_id:
 		_ctext(Vector2(p.x, p.y + label_y + 11.0), "LOCKED", C_CORAL, 8)
+
+# v138: the SINGULARITY — a black hole, not a system: void core + white-hot photon
+# ring + counter-rotating accretion arcs + a breathing gravitational-lensing halo.
+# Pure draw primitives (GL-compat, no shader), animated off _phase like the rest.
+func _draw_rift_node(m: Dictionary, p: Vector2) -> void:
+	var cw := Color(0.78, 0.55, 1.0)   # prestige purple
+	var breathe := 1.0 + 0.06 * sin(_phase * 2.6)
+	# lensing halo — wider + brighter than any system glow so it reads as MASS
+	_soft_blob(p, 44.0 * breathe, cw, 0.85)
+	# accretion disc: three bright arcs swirling clockwise…
+	for k in range(3):
+		var a0 := _phase * 1.8 + float(k) * TAU / 3.0
+		draw_arc(p, 15.0, a0, a0 + TAU * 0.24, 16, Color(cw.r, cw.g, cw.b, 0.9), 2.4, true)
+	# …and two fainter counter-rotating outer wisps (the shear reads as spin)
+	for k in range(2):
+		var a1 := -_phase * 1.1 + float(k) * TAU / 2.0
+		draw_arc(p, 19.5, a1, a1 + TAU * 0.16, 12, Color(0.95, 0.88, 1.0, 0.5), 1.3, true)
+	# photon ring (white-hot rim) around the event horizon (true void)
+	draw_circle(p, 11.0 * breathe, Color(0.94, 0.90, 1.0, 0.95))
+	draw_circle(p, 9.0 * breathe, Color(0.02, 0.01, 0.05))
+	# selection reticle / hover ring (same language as systems, in purple)
+	if m["id"] == selected_id:
+		for k in range(8):
+			var a2 := _phase * 1.3 + float(k) * TAU / 8.0
+			draw_arc(p, 25.0, a2, a2 + TAU / 18.0, 4, cw, 1.8, true)
+		for d in [Vector2(0, -25), Vector2(0, 25), Vector2(-25, 0), Vector2(25, 0)]:
+			draw_line(p + d * 1.0, p + d * 1.2, cw, 1.4, true)
+	elif m["id"] == hovered_id:
+		draw_arc(p, 22.0, 0.0, TAU, 32, Color(cw.r, cw.g, cw.b, 0.6), 1.3, true)
+	# label + state caption
+	_ctext(Vector2(p.x, p.y + 32.0), "SINGULARITY", Color(0.90, 0.78, 1.0), 11)
+	if m["id"] == selected_id:
+		_ctext(Vector2(p.x, p.y + 43.0), "ENTER TO WARP", cw, 8)
 
 func _chevron(p: Vector2) -> void:
 	var pts := PackedVector2Array([

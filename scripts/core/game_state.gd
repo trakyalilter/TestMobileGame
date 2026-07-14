@@ -401,6 +401,17 @@ func load_game():
 		bounty_manager.load_save_data_manager(data.get("bounty", {}))
 		quest_manager.load_save_data_manager(data.get("quest", {}))
 		
+		# v138 migration: pre-Singularity saves have no rift flag. A NEVER-warped save
+		# that already killed a Zone-3+ boss earned its rift — derive it once (combat
+		# is loaded by now; warp loads before combat's boss_kills would be visible to
+		# it). Post-warp saves start closed and re-earn it, per the per-run rule.
+		if warp_manager._rift_key_missing and warp_manager.total_warps == 0 and not warp_manager.rift_open:
+			for _beid in combat_manager.boss_kills:
+				if int(combat_manager.boss_kills[_beid]) > 0 \
+						and int(combat_manager.enemy_db.get(_beid, {}).get("zone", 0)) >= 3:
+					warp_manager.rift_open = true
+					break
+
 		# v52.1: Load game settings
 		var saved_settings = data.get("game_settings", {})
 		for key in saved_settings:

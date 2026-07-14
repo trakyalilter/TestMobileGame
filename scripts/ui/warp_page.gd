@@ -1,11 +1,11 @@
 extends Control
 
-# Warp Core page — rebuilt as a scrollable, sectioned prestige screen.
-# Hierarchy is reversed from the old layout: the dominant readout is now
-# EXOTIC SHARDS + progress-to-next-shard (the actual climb), the warp
-# readiness panel commits to keeps-green / resets-red, EXECUTE WARP is a
-# heavy primary CTA (with confirmation) and RETURN is a small secondary,
-# the Mastery Tree sits at the bottom in a single coherent panel.
+# Warp Core page — a scrollable, sectioned prestige screen for SPENDING and
+# MONITORING only. The dominant readout is EXOTIC SHARDS + progress-to-next-shard
+# (the actual climb); the Mastery Tree sits at the bottom in a single coherent
+# panel. v138: the warp itself is DIEGETIC — the player enters the SINGULARITY on
+# the Sector Chart (torn open by a Zone-3+ boss kill). No execute button here;
+# a passive status line reports whether a rift is open this run.
 #
 # First-warp teaching block auto-hides after total_warps >= 1 so it doesn't
 # eat the hero zone on every visit forever.
@@ -56,7 +56,7 @@ var _feed_btn: Button
 var _feed_syms: Array = []   # picker index -> material symbol
 
 # Buttons
-var _warp_btn: Button
+var _rift_status_lbl: Label   # v138: passive Singularity state (replaces the execute button)
 var _back_btn: Button
 
 # Tree (procedural, tabbed — one branch shown at a time in a grid so the whole
@@ -92,7 +92,7 @@ func get_coach_anchor(key: String) -> Control:
 		"gain":
 			return _gain_big_lbl
 		"warp_btn":
-			return _warp_btn
+			return _rift_status_lbl   # v138: the old execute-button step points at the rift status
 		"tree":
 			return _tree_panel
 		"feed":
@@ -245,9 +245,9 @@ func _set_chip(w: Dictionary, text: String, color: Color) -> void:
 # ─── COMMAND BAND: cycle + shards + vital chips + progress + actions ─────────
 # One compact console band — was three stacked panels (header + readiness +
 # buttons). The big KEEPS/RESETS panels are GONE: that ledger is shown in full,
-# colour-coded, in the EXECUTE-WARP confirm modal, so here it's just a one-line
-# reminder. Collapsing the summary frees the lower ~480px of the viewport for the
-# Mastery Tree (the actual interaction) instead of the old ~150px sliver.
+# colour-coded, in the Singularity's entry-confirm modal on the Sector Chart
+# (v138), so here it's just a one-line reminder. Collapsing the summary frees the
+# lower ~480px of the viewport for the Mastery Tree (the actual interaction).
 func _build_command_band():
 	var panel = PanelContainer.new()
 	panel.size_flags_horizontal = Control.SIZE_FILL
@@ -325,7 +325,8 @@ func _build_command_band():
 	kr.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	v.add_child(kr)
 
-	# Row D: actions — Return (quiet) + EXECUTE WARP (heavy primary).
+	# Row D: Return (quiet) + the Singularity status line (v138 — the warp itself
+	# happens on the Sector Chart; this row only REPORTS whether a rift is open).
 	var row_d = HBoxContainer.new()
 	row_d.alignment = BoxContainer.ALIGNMENT_CENTER
 	row_d.add_theme_constant_override("separation", 14)
@@ -337,13 +338,14 @@ func _build_command_band():
 	_back_btn.add_theme_font_size_override("font_size", 12)
 	_back_btn.pressed.connect(_on_back_btn_pressed)
 	row_d.add_child(_back_btn)
-	_warp_btn = Button.new()
-	_warp_btn.text = "◈   EXECUTE WARP"
-	_warp_btn.custom_minimum_size = Vector2(340, 44)
-	UITheme.apply_premium_button_style(_warp_btn, "research")
-	_warp_btn.add_theme_font_size_override("font_size", 15)
-	_warp_btn.pressed.connect(_on_execute_btn_pressed)
-	row_d.add_child(_warp_btn)
+	_rift_status_lbl = Label.new()
+	_rift_status_lbl.text = "NO SINGULARITY DETECTED THIS RUN"
+	_rift_status_lbl.custom_minimum_size = Vector2(340, 44)
+	_rift_status_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_rift_status_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_rift_status_lbl.add_theme_font_size_override("font_size", 13)
+	_rift_status_lbl.add_theme_color_override("font_color", Color(0.55, 0.58, 0.68))
+	row_d.add_child(_rift_status_lbl)
 
 	UITheme.apply_card_style(panel, "research")
 
@@ -708,11 +710,18 @@ func _refresh_gains_preview():
 	var proj_shards: float = _wm.warp_shards + float(total)
 	_gains_starter_lbl.text = "Starter package on reset: %s credits + Fe / Si / Wood / Water" % FormatUtils.format_number(int(proj_shards * 5000.0 * starter_mult))
 
-# Per-frame live values: progress bar + button enable state.
+# Per-frame live values: progress bar + Singularity status line.
 func _update_dynamic():
-	if _warp_btn == null: return
+	if _rift_status_lbl == null: return
 	var gains = int(_wm.calculate_warp_gains())
-	_warp_btn.disabled = (gains <= 0)
+	# v138: passive rift state — the warp happens on the Sector Chart, this reports it.
+	if _wm.rift_open and gains > 0:
+		var s = "" if gains == 1 else "s"
+		_rift_status_lbl.text = "◈  SINGULARITY OPEN — enter it on the Sector Chart  (+%d shard%s)" % [gains, s]
+		_rift_status_lbl.add_theme_color_override("font_color", Color(0.78, 0.55, 1.0))
+	else:
+		_rift_status_lbl.text = "NO SINGULARITY DETECTED THIS RUN"
+		_rift_status_lbl.add_theme_color_override("font_color", Color(0.55, 0.58, 0.68))
 
 	var score = _compute_progress_score()
 	var prev_thr = 0.0
@@ -1009,31 +1018,8 @@ func _shard_label(n: int) -> String:
 
 
 # ─── Actions ──────────────────────────────────────────────────────────────
-func _on_execute_btn_pressed():
-	var gains = int(_wm.calculate_warp_gains())
-	if gains <= 0: return
-	var s = "" if gains == 1 else "s"
-	# v112: themed in-scene modal (was the primitive Window ConfirmationDialog).
-	# Colour-codes the grant (purple), reset (red) and keep (green) lines, with
-	# the irreversibility warning in amber — all on the warp/prestige palette.
-	var body := "[b]Warp Core spin-up authorised.[/b]\n\n"
-	body += "[color=#c78cff]✦  Grant %d Exotic Shard%s[/color]\n\n" % [gains, s]
-	body += "[color=#f06b6b]RESET[/color]    Liras · Buildings · Standard Resources · Skill levels  [color=#8b8f9c](keep 30% XP)[/color]\n"
-	body += "[color=#73e88c]KEEP[/color]     Research · Ships · Exotic Matter · Warp Mastery purchases\n\n"
-	body += "[color=#ffb454][b]⚠  This cannot be undone.[/b][/color]"
-	UITheme.show_confirm({
-		"title": "Confirm Warp",
-		"body": body,
-		"confirm_text": "Execute Warp",
-		"cancel_text": "Cancel",
-		"accent": COLOR_SHARD,
-		"on_confirm": Callable(self, "_on_confirm_warp"),
-	})
-
-
-func _on_confirm_warp():
-	_wm.execute_warp()
-
+# (v138: the execute-warp button + confirm moved to the Sector Chart — entering
+# the Singularity is the warp. This page only spends shards and monitors.)
 
 func _on_back_btn_pressed():
 	if get_tree().current_scene.has_method("switch_to"):

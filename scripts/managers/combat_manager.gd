@@ -2634,6 +2634,25 @@ func _roll_salvage_drops(zone: int, is_boss: bool) -> Dictionary:
 		res.add_element(sym, out[sym])
 	return out
 
+# v138: the SINGULARITY — killing any Zone-3+ boss tears the warp rift open on the
+# Sector Chart. Entering IT executes the warp (the Warp page only spends/monitors);
+# it re-opens every run and execute_warp closes it. The player discovers it and
+# chooses when to enter — no directive. First-ever open also reveals the prestige
+# system (warp_manager.open_rift flips warp_first_revealed + emits for main's fanfare);
+# subsequent runs get a small diegetic state notification here instead.
+func _maybe_open_rift_on_boss(eid: String) -> void:
+	var wm = GameState.warp_manager
+	if wm == null or wm.rift_open:
+		return
+	if int(enemy_db.get(eid, {}).get("zone", 0)) < 3:
+		return
+	var first: bool = not GameState.game_settings.get("warp_first_revealed", false)
+	wm.open_rift()
+	if not first and UITheme:
+		UITheme.show_notification(
+			"⟨ GRAVITATIONAL ANOMALY ⟩  The %s's collapse tears a singularity open — visible on the Sector Chart." % str(enemy_db.get(eid, {}).get("name", "boss")),
+			Color(0.78, 0.55, 1.0))
+
 func win_fight():
 	log_msg("Destroyed %s!" % current_enemy["name"])
 	
@@ -2840,6 +2859,7 @@ func win_fight():
 			"difficulty": int(zones.get(current_zone_id, {}).get("difficulty", 1)),
 			"t": int(Time.get_unix_time_from_system()),
 		})
+		_maybe_open_rift_on_boss(eid)   # v138: Z3+ boss death tears the Singularity open
 	
 	# v86.0: Hazard Zone Gauntlet Progression
 	if hazard_state["active"]:

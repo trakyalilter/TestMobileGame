@@ -75,29 +75,26 @@ func _ready():
 	# every currency_added because credits feed the progress_score formula.
 	# v110: Warp Core reveals when Zone 6 research completes (a content
 	# milestone) rather than at an arbitrary credit threshold. tech_unlocked
-	# fires from research_manager.unlock_tech.
-	GameState.research_manager.tech_unlocked.connect(_on_tech_unlocked_for_warp_reveal)
+	# v138: the prestige reveal is DIEGETIC now — the first Singularity (torn open by
+	# a Zone-3+ boss kill) reveals the Warp system, not a research milestone.
+	GameState.warp_manager.rift_opened.connect(_on_rift_opened_for_warp_reveal)
 
 	# v128: one-shot durability warning on the first combat loss.
 	if not GameState.combat_manager.combat_lost.is_connected(_maybe_show_combat_loss_coach):
 		GameState.combat_manager.combat_lost.connect(_maybe_show_combat_loss_coach)
 
-func _on_tech_unlocked_for_warp_reveal(tech_id: String) -> void:
-	# v110: Reveal the Warp Core when the player completes Zone 6 research.
-	if tech_id != "zone_6_access":
-		return
-	if GameState.game_settings.get("warp_first_revealed", false):
-		return
-	GameState.game_settings["warp_first_revealed"] = true
+func _on_rift_opened_for_warp_reveal(first_reveal: bool) -> void:
+	# v138: open_rift already set warp_first_revealed; here we surface the UI.
 	_update_sidebar_styling()  # makes the Warp tab appear immediately
-	_fire_warp_reveal_fanfare()
+	if first_reveal:
+		_fire_warp_reveal_fanfare()
 
 func _fire_warp_reveal_fanfare() -> void:
-	# Tell the player something happened AND what to do — the pulsing tab
+	# Tell the player something happened AND where it is — the pulsing tab
 	# alone doesn't read as an instruction. One self-contained notification
 	# beats two-stage messaging.
 	UITheme.show_notification(
-		"⟨ WARP CORE RESONANCE DETECTED ⟩  A new prestige system is online — open the WARP tab to spend Exotic Matter Shards.",
+		"⟨ SINGULARITY DETECTED ⟩  The boss's collapse tore a hole in spacetime — it is visible on the Sector Chart. The WARP tab is now online: Exotic Matter, mastery, monitoring.",
 		Color(0.85, 0.5, 1.0)
 	)
 	if is_instance_valid(warp_btn):
@@ -968,17 +965,15 @@ func _update_sidebar_styling():
 	# Quests appear once the player has core gameplay loops available
 	quest_btn.visible = has_basic_eng
 	
-	# 3. Warp Core reveals when Zone 6 research (zone_6_access) completes — a
-	# content milestone, so the "Warp Core Resonance Detected" fanfare lands
-	# at a deliberate point in progression. The transition fanfare fires from
-	# _on_tech_unlocked_for_warp_reveal; this gate also reveals silently for
-	# saves that already passed Zone 6 (or already prestiged) before v110.
+	# 3. v138: Warp Core reveals with the FIRST SINGULARITY — a Zone-3+ boss kill
+	# tears the rift open (combat_manager -> warp_manager.open_rift), which sets
+	# warp_first_revealed and fires the fanfare via rift_opened. This gate also
+	# reveals silently for saves that already prestiged / already earned a rift
+	# (incl. pre-v138 saves migrated in game_state).
 	var revealed: bool = GameState.game_settings.get("warp_first_revealed", false)
 	if not revealed:
 		var wm_ref = GameState.warp_manager
-		if GameState.research_manager.is_tech_unlocked("zone_6_access"):
-			revealed = true
-		elif wm_ref.total_warps > 0 or wm_ref.warp_shards > 0:
+		if wm_ref.rift_open or wm_ref.total_warps > 0 or wm_ref.warp_shards > 0:
 			revealed = true
 		if revealed:
 			GameState.game_settings["warp_first_revealed"] = true

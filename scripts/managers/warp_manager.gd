@@ -5,6 +5,7 @@ extends "res://scripts/core/skill.gd"
 
 signal warped(shards_gained)
 signal tree_node_purchased(node_id)  # v107: UI repaint hook on tree purchase
+signal rift_opened(first_reveal)     # v138: the Singularity tore open (first_reveal = first time EVER)
 
 # v107: Warp Mastery Tree v1 — 2 branches × 5 nodes, spendable via shards.
 # Earned warp_shards STILL drive existing global multipliers (untouched);
@@ -85,6 +86,24 @@ var warp_shards_spent: float = 0.0    # cumulative spend; available = shards - s
 # (v134h: replaced the always-on auto-drain, which silently capped bulk basics.)
 var warp_charge: float = 0.0
 
+# v138: the SINGULARITY — warping is now diegetic. Killing any Zone-3+ boss tears
+# a rift open on the Sector Chart; the player warps by ENTERING IT (the Warp page
+# only spends shards / monitors). Per-RUN state: re-earned every run, closed by
+# execute_warp, cleared on hard reset. The player chooses when (or whether) to
+# enter — no nag, no directive ("her yiğidin yoğurt yiyişi farklıdır").
+var rift_open: bool = false
+var _rift_key_missing: bool = false   # save predates v138 → game_state derives once
+
+# Open the rift (idempotent). Also flips warp_first_revealed — the prestige system
+# reveals WITH the first singularity, not at a research milestone (was zone_6).
+func open_rift() -> void:
+	if rift_open:
+		return
+	rift_open = true
+	var first: bool = not GameState.game_settings.get("warp_first_revealed", false)
+	GameState.game_settings["warp_first_revealed"] = true
+	rift_opened.emit(first)
+
 func get_warp_tier() -> int:
 	# Tier increases every N warps (REC_7 Accelerated Tiering: 4 instead of 5)
 	return int(total_warps / get_warps_per_tier())
@@ -123,6 +142,7 @@ func execute_warp():
 	warp_shards += gains
 	total_warps += 1
 	warp_charge = 0.0   # v121: Resonance is per-run — spent at warp
+	rift_open = false   # v138: the Singularity collapses behind you — re-earned next run (Z3+ boss)
 	# v137 FIX: credits_at_warp_start is snapshotted AFTER the starter package now
 	# (see the note at the grant below). Snapshotting it HERE — before the starter —
 	# let the starter's lifetime_credits bump read as post-warp "progress" and
@@ -496,6 +516,7 @@ func get_save_data_manager() -> Dictionary:
 	data["node_levels"] = node_levels          # v122: repeatable-spine levels
 	data["warp_shards_spent"] = warp_shards_spent
 	data["warp_charge"] = warp_charge          # v121: Warp-Core Charge
+	data["rift_open"] = rift_open              # v138: per-run Singularity state
 	return data
 
 func load_save_data_manager(data: Dictionary):
@@ -508,6 +529,10 @@ func load_save_data_manager(data: Dictionary):
 	_migrate_v1_node_ids()                              # v122: E1->ENG_1 … remap
 	warp_shards_spent = float(data.get("warp_shards_spent", 0.0))
 	warp_charge = float(data.get("warp_charge", 0.0))   # v121: defaults 0 on old saves
+	rift_open = bool(data.get("rift_open", false))      # v138
+	# v138 migration marker: pre-Singularity saves lack the key — game_state derives
+	# the rift once from boss_kills after ALL managers load (combat isn't loaded yet here).
+	_rift_key_missing = not data.has("rift_open")
 
 # v107: Full reset for HARD RESET path only. WARP resets (execute_warp) must
 # never call this — they intentionally preserve shards, total_warps, and the
@@ -524,3 +549,4 @@ func reset(decay_factor: float = 1.0) -> void:
 	node_levels = {}    # v122: repeatable-spine levels cleared on hard reset
 	credits_at_warp_start = 0.0
 	warp_charge = 0.0   # v121: Warp-Core Charge cleared on hard reset
+	rift_open = false   # v138: Singularity cleared on hard reset

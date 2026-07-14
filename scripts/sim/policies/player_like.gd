@@ -297,13 +297,11 @@ func _do_research(mid: String, tid: String) -> Dictionary:
 		_:
 			return _blocked(mid, "research flag-gate: %s (%s)" % [String(b.get("tid", tid)), String(b.get("why", "?"))])
 
-func _after_research_unlock(tid: String) -> void:
-	# AUTO_UI contract: main.gd's fanfare hook sets warp_first_revealed on
-	# zone_6_access in the real game; headless must mirror it or goal_002 never
-	# reveals (verifier finding). Zero-time, logged, auditable.
-	if tid == "zone_6_access" and not GameState.game_settings.get("warp_first_revealed", false):
-		GameState.game_settings["warp_first_revealed"] = true
-		pending_events.append({"t": "auto_ui", "mid": "-", "page": "warp_reveal"})
+func _after_research_unlock(_tid: String) -> void:
+	# v138: the old zone_6 AUTO_UI mirror is gone — warp_first_revealed now flips in
+	# GAME LOGIC (combat_manager win_fight -> warp_manager.open_rift on a Zone-3+
+	# boss kill), so headless earns it naturally; no UI contract to mirror.
+	pass
 
 func _do_craft(mid: String, module_id: String) -> Dictionary:
 	var b: Dictionary = actions.craft_blocker(module_id)

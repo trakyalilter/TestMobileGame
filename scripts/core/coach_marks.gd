@@ -226,7 +226,7 @@ const STEPS := {
 		{
 			"anchor": "warp_btn",
 			"title": "When to Warp",
-			"body": "Warp once you have shards to gain — but your score must DOUBLE for each extra shard, so pushing deeper before warping earns far more per run. Every 5 warps raises your Warp Tier, doubling the bonus scale.",
+			"body": "Warping happens on the SECTOR CHART — enter the Singularity that a sector boss's death tears open. It never expires, and your score must DOUBLE for each extra shard, so pushing deeper before entering earns far more per run. Every 5 warps raises your Warp Tier, doubling the bonus scale.",
 		},
 		{
 			"anchor": "tree",

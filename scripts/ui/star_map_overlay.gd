@@ -20,6 +20,7 @@ const C_AMBER := Color(1.000, 0.761, 0.302)
 const C_CORAL := Color(1.000, 0.392, 0.451)
 const C_DIM   := Color(0.498, 0.639, 0.612)
 const C_TEXT  := Color(0.894, 0.961, 0.933)
+const C_WARP  := Color(0.78, 0.55, 1.0)   # v138: Singularity / prestige purple
 
 var manager
 var page
@@ -358,6 +359,14 @@ func _compute_models() -> Array:
 			"is_boss": true,
 			"is_hazard": true,
 		})
+	# v138: the SINGULARITY — the diegetic warp trigger. Appears once a Zone-3+ boss
+	# has died this run (warp_manager.rift_open) and the run is worth >= 1 shard;
+	# ENGAGE on its readout executes the Warp. Persists until entered — no expiry,
+	# no nag: warping (or pushing deeper first) is the player's call.
+	var wm = GameState.warp_manager
+	if wm and wm.rift_open and int(wm.calculate_warp_gains()) >= 1:
+		out.append({"id": "warp_rift", "name": "Singularity", "difficulty": 0,
+			"state": "available", "is_boss": false, "is_hazard": false, "is_rift": true})
 	return out
 
 func _find_boss(enemies: Array) -> String:
@@ -407,9 +416,32 @@ func _update_sector_header(m: Dictionary) -> void:
 	_ro_band.text = "SECTOR %02d · %s" % [diff, band]
 	_ro_band.add_theme_color_override("font_color", heat)
 
+# v138: Singularity readout — what it is, what entering does (full colour-coded
+# ledger lives in the confirm modal), and that it WAITS. State, not directive.
+func _set_rift_readout(_m: Dictionary) -> void:
+	var wm = GameState.warp_manager
+	var gains: int = int(wm.calculate_warp_gains())
+	var bonus: int = int(wm.get_charge_bonus_shards(gains))
+	_ro_name.text = "SINGULARITY"
+	_ro_name.add_theme_color_override("font_color", C_WARP)
+	_ro_band.text = "GRAVITATIONAL ANOMALY"
+	_ro_band.add_theme_color_override("font_color", C_WARP)
+	_tgt_box.visible = false
+	_back_btn.visible = false
+	var s := "" if gains == 1 else "s"
+	var bonus_txt := (" +%d resonance" % bonus) if bonus > 0 else ""
+	_ro_status.text = "A hole torn in spacetime by the sector boss's collapse. Entering executes a Warp: +%d Exotic Shard%s%s. The run resets; research, ships and Exotic Matter persist." % [gains, s, bonus_txt]
+	_ro_status.add_theme_color_override("font_color", C_TEXT)
+	_engage_btn.disabled = false
+	_engage_btn.text = "ENTER THE SINGULARITY"
+	_engage_hint.text = "The anomaly is stable — it will wait."
+
 # Galaxy view — a sector is highlighted but not drilled into yet.
 func _set_idle_readout(m: Dictionary) -> void:
 	if m.is_empty():
+		return
+	if m.get("is_rift", false):
+		_set_rift_readout(m)
 		return
 	_update_sector_header(m)
 	_tgt_box.visible = false
@@ -658,6 +690,14 @@ func _on_zone_clicked(zid: String) -> void:
 	var m := _model_by_id(zid)
 	if m.is_empty():
 		return
+	# v138: the Singularity — no sector drill-in, and it isn't a combat zone
+	# (skip page.select_zone). Select it + show the warp readout.
+	if m.get("is_rift", false):
+		selected_id = zid
+		selected_enemy_id = ""
+		_canvas.set_selected(zid)
+		_set_rift_readout(m)
+		return
 	selected_id = zid
 	selected_enemy_id = ""
 	_canvas.set_selected(zid)
@@ -693,6 +733,9 @@ func _on_engage() -> void:
 	var m := _model_by_id(selected_id)
 	if m.is_empty() or str(m["state"]) == "locked":
 		return
+	if m.get("is_rift", false):   # v138: entering the Singularity = the Warp
+		_confirm_rift_entry()
+		return
 	if m.get("is_hazard", false):
 		page.engage_from_map(selected_id, "")   # hazard ignores the target id
 		close()
@@ -700,6 +743,34 @@ func _on_engage() -> void:
 	if selected_enemy_id == "":
 		return
 	page.engage_from_map(selected_id, selected_enemy_id)
+	close()
+
+# v138: the ONE confirmation in the flow — warping resets the run, so the full
+# colour-coded grant/reset/keep ledger (moved here from the old Warp-page button)
+# gets an explicit yes before execute_warp.
+func _confirm_rift_entry() -> void:
+	var wm = GameState.warp_manager
+	var gains: int = int(wm.calculate_warp_gains())
+	if gains <= 0:
+		return
+	var s := "" if gains == 1 else "s"
+	var keep_pct: int = int(round(wm.get_tree_xp_keep() * 100.0))
+	var body := "[b]Cross the event horizon.[/b]\n\n"
+	body += "[color=#c78cff]✦  Grant %d Exotic Shard%s[/color]\n\n" % [gains, s]
+	body += "[color=#f06b6b]RESET[/color]    Liras · Buildings · Standard Resources · Skill levels  [color=#8b8f9c](keep %d%% XP)[/color]\n" % keep_pct
+	body += "[color=#73e88c]KEEP[/color]     Research · Ships · Exotic Matter · Warp Mastery purchases\n\n"
+	body += "[color=#ffb454][b]⚠  This cannot be undone.[/b][/color]"
+	UITheme.show_confirm({
+		"title": "Enter the Singularity",
+		"body": body,
+		"confirm_text": "Enter",
+		"cancel_text": "Not yet",
+		"accent": C_WARP,
+		"on_confirm": Callable(self, "_on_confirm_rift"),
+	})
+
+func _on_confirm_rift() -> void:
+	GameState.warp_manager.execute_warp()
 	close()
 
 func _input(event: InputEvent) -> void:
