@@ -330,17 +330,9 @@ func attach_rarity_fx(host: Control, rarity: int, rarity_color: Color) -> void:
 var _item_tooltip: Control = null
 var _item_tooltip_anchor: Control = null
 
-func show_item_tooltip(anchor: Control, bbcode: String, watermark: Texture2D = null) -> void:
-	_free_item_tooltip()
-	if not is_instance_valid(anchor) or not anchor.is_inside_tree() or bbcode == "":
-		return
-	var modal := anchor.get_tree().root.find_child("ModalLayer", true, false)
-	var parent: Node = modal if modal else anchor.get_tree().current_scene
-	if parent == null:
-		return
-
+# v136: card factory shared by the single tooltip and the side-by-side compare view.
+func _build_tooltip_card(bbcode: String, watermark: Texture2D = null) -> PanelContainer:
 	var card := PanelContainer.new()
-	card.name = "ItemTooltip"
 	card.mouse_filter = Control.MOUSE_FILTER_IGNORE   # never steals the hover
 
 	# ONE consistent premium template (Precursor Bloom). Deep teal-black glass, a
@@ -390,6 +382,19 @@ func show_item_tooltip(anchor: Control, bbcode: String, watermark: Texture2D = n
 	var chrome := _TooltipChrome.new()
 	chrome.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	card.add_child(chrome)
+	return card
+
+func show_item_tooltip(anchor: Control, bbcode: String, watermark: Texture2D = null) -> void:
+	_free_item_tooltip()
+	if not is_instance_valid(anchor) or not anchor.is_inside_tree() or bbcode == "":
+		return
+	var modal := anchor.get_tree().root.find_child("ModalLayer", true, false)
+	var parent: Node = modal if modal else anchor.get_tree().current_scene
+	if parent == null:
+		return
+
+	var card := _build_tooltip_card(bbcode, watermark)
+	card.name = "ItemTooltip"
 
 	parent.add_child(card)
 
@@ -406,6 +411,46 @@ func show_item_tooltip(anchor: Control, bbcode: String, watermark: Texture2D = n
 	card.position = Vector2(maxf(8.0, px), maxf(8.0, py))
 
 	_item_tooltip = card
+	_item_tooltip_anchor = anchor
+
+# v136: two full tooltip cards side by side — the pinned compare baseline (left) and
+# the hovered module (right). Both live under one HBox held in the single _item_tooltip
+# slot, so hide_item_tooltip() tears them down together.
+func show_compare_tooltip(anchor: Control, bb_left: String, bb_right: String, wm_left: Texture2D = null, wm_right: Texture2D = null) -> void:
+	_free_item_tooltip()
+	if not is_instance_valid(anchor) or not anchor.is_inside_tree():
+		return
+	if bb_left == "" and bb_right == "":
+		return
+	var modal := anchor.get_tree().root.find_child("ModalLayer", true, false)
+	var parent: Node = modal if modal else anchor.get_tree().current_scene
+	if parent == null:
+		return
+
+	var wrap := HBoxContainer.new()
+	wrap.name = "ItemTooltip"
+	wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	wrap.add_theme_constant_override("separation", 12)
+	if bb_left != "":
+		wrap.add_child(_build_tooltip_card(bb_left, wm_left))
+	if bb_right != "":
+		wrap.add_child(_build_tooltip_card(bb_right, wm_right))
+	parent.add_child(wrap)
+
+	# Position near the mouse, flipped away from the viewport edges. Estimate the width
+	# of two 328-wide cards until the container has actually laid out.
+	var mpos := anchor.get_global_mouse_position()
+	var vp := anchor.get_viewport().get_visible_rect().size
+	var est := wrap.size if wrap.size.x > 1.0 else Vector2(700.0, 260.0)
+	var px := mpos.x + 18.0
+	var py := mpos.y + 18.0
+	if px + est.x > vp.x - 8.0:
+		px = mpos.x - est.x - 18.0
+	if py + est.y > vp.y - 8.0:
+		py = mpos.y - est.y - 18.0
+	wrap.position = Vector2(maxf(8.0, px), maxf(8.0, py))
+
+	_item_tooltip = wrap
 	_item_tooltip_anchor = anchor
 
 

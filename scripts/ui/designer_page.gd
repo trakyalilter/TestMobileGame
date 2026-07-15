@@ -37,6 +37,8 @@ var slot_widget_scene = preload("res://scenes/ui/designer_slot_widget.tscn")
 var ammo_slot_scene = preload("res://scenes/ui/designer_ammo_slot_widget.tscn")
 var draggable_icon_scene = preload("res://scenes/ui/module_card.tscn")
 const ModuleCardScript = preload("res://scripts/ui/module_card.gd")   # for the static suppress flag
+# v136: aqua tint marking the module currently PINNED as the compare baseline.
+const COMPARE_PIN_TINT := Color(0.45, 1.0, 0.85)
 var empty_slot_scene = preload("res://scenes/ui/empty_slot.tscn")
 var selected_mids: Array[String] = []
 var btn_demolish_selected: Button
@@ -1976,7 +1978,13 @@ func rebuild_storage():
 				item.is_selected = (module_id in selected_mids) or (module_id == _armed_mid)
 				item.is_draggable = true
 				if "compare_equipped_mid" in item:
-					item.compare_equipped_mid = focused_slot_equipped_mid if type_matches_focus else ""
+					# v136: a live compare-pin makes the whole armory compare vs the pinned
+					# module (▲/▼ per card); the pinned card itself gets no self-compare.
+					# Otherwise fall back to the focused slot's equipped module.
+					if ModuleCardScript.compare_pin_mid != "" and module_id != ModuleCardScript.compare_pin_mid:
+						item.compare_equipped_mid = ModuleCardScript.compare_pin_mid
+					else:
+						item.compare_equipped_mid = focused_slot_equipped_mid if type_matches_focus else ""
 				item.show_card_socket = (_armed_stone != "")   # v127: show insert socket while a card is armed
 				# v134g: pulse the card(s) that satisfy an active equip mission so the
 				# player sees WHICH module to drag — the mission already pulses the SLOT.
@@ -1987,6 +1995,7 @@ func rebuild_storage():
 					item.coach_pulse = _matches_focus
 				item.setup(module_id, module_data, module_count)
 				item.clicked.connect(_on_card_clicked.bind(item))   # bind node for the insert animation
+				item.pin_toggled.connect(_on_module_pin_toggled)   # v136: shift-click compare pin
 				item.stone_dropped.connect(_on_stone_dropped)   # v127: apply a dragged Hack Stone
 				# Dim non-matching modules. User-click focus wins (focused_slot_type);
 				# otherwise the coach-driven equip-mission filter applies, so the
@@ -1995,6 +2004,9 @@ func rebuild_storage():
 					item.modulate = Color(1, 1, 1, 0.35)
 				elif focused_slot_type == "" and _equip_focus_filter_type != "" and not _matches_focus:
 					item.modulate = Color(1, 1, 1, 0.35)
+				# v136: the pinned compare baseline gets an aqua tint (wins over any dim).
+				if module_id == ModuleCardScript.compare_pin_mid:
+					item.modulate = COMPARE_PIN_TINT
 				slot_count += 1
 
 	# v111.15: ammo now its own filter (split from the combined ordnance tab).
@@ -2395,6 +2407,23 @@ func _disarm_module() -> void:
 		return
 	_armed_mid = ""
 	_clear_slot_highlights()
+	rebuild_storage()
+
+# ── v136 compare-pin: shift-click an Armory module to pin it as the compare baseline ──
+func _on_module_pin_toggled(mid: String) -> void:
+	if ModuleCardScript.compare_pin_mid == mid:
+		_clear_compare_pin()
+		UITheme.show_notification("Compare baseline cleared.", UITheme.COLORS.get("text_dim", Color(0.5, 0.64, 0.61)))
+		return
+	ModuleCardScript.compare_pin_mid = mid
+	var nm: String = str(manager.modules.get(mid, {}).get("name", mid))
+	UITheme.show_notification("Comparing vs %s — hover a module to see them side by side (Esc clears)." % nm, Color(0.373, 0.878, 0.784))
+	rebuild_storage()
+
+func _clear_compare_pin() -> void:
+	if ModuleCardScript.compare_pin_mid == "":
+		return
+	ModuleCardScript.compare_pin_mid = ""
 	rebuild_storage()
 
 # ══ v127 H3: Hack Stone application UI ═════════════════════════════════════
@@ -2937,9 +2966,12 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 			return
 
-	# Esc cancels whichever equip state is active (mutually exclusive).
+	# Esc cancels whichever equip/compare state is active (mutually exclusive).
 	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
-		if _armed_mid != "":
+		if ModuleCardScript.compare_pin_mid != "":
+			_clear_compare_pin()
+			get_viewport().set_input_as_handled()
+		elif _armed_mid != "":
 			_disarm_module()
 			get_viewport().set_input_as_handled()
 		elif focused_slot_idx >= 0:

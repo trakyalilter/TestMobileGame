@@ -10,6 +10,7 @@ var pulse_tween: Tween
 var _active_gem_card = null
 var _info_card_scene = preload("res://scenes/ui/info_card.tscn")
 const MatrixCoreIcon = preload("res://scripts/ui/matrix_core_icon.gd")
+const ModuleCard = preload("res://scripts/ui/module_card.gd")   # v136: shared compare-pin state + bbcode factory
 var _is_focused: bool = false
 var _card_target: bool = false   # v127: a Hack Card is in hand and this slot is a valid target
 var _card_socket_overlay: Control = null   # v127.1: top-most insert-socket overlay child
@@ -1060,6 +1061,13 @@ func _gui_input(event):
 				manager.unequip_slot(slot_idx)
 			parent_ui.trigger_refresh()
 		elif event.button_index == MOUSE_BUTTON_LEFT:
+			# v136: Shift-click an equipped module to pin it as the compare baseline (same
+			# gesture as the Armory). Handled before equip/hack routing so it never fires an equip.
+			if event.shift_pressed and is_occupied and not slot_type.begins_with("consumable_"):
+				var pin_mid = manager.loadout.get(slot_idx, "")
+				if pin_mid != null and str(pin_mid) != "" and parent_ui and parent_ui.has_method("_on_module_pin_toggled"):
+					parent_ui._on_module_pin_toggled(str(pin_mid))
+				return
 			# v127: a Hack Card in hand applies to THIS equipped module.
 			if is_occupied and not slot_type.begins_with("consumable_") and parent_ui and parent_ui.has_method("try_apply_armed_card"):
 				var eq_mid = manager.loadout.get(slot_idx, "")
@@ -1197,7 +1205,23 @@ func _on_slot_hover() -> void:
 		return
 	var _wz := int(m_data.get("zone", m_data.get("zone_difficulty", 0)))
 	var _wm: Texture2D = ElementDB.get_material_icon("Z%d_Core" % clampi(_wz, 1, 10)) if _wz >= 1 else null
-	UITheme.show_item_tooltip(self, _build_module_tooltip(m_data), _wm)
+	# v136: with a compare pin live, hovering an equipped module shows the pinned baseline
+	# and this module side by side — both built by module_card's factory, so an equipped
+	# compare looks identical to an Armory compare. Otherwise show the normal tooltip plus
+	# the POE-style shortcut footer.
+	var eqid := str(equipped_id)
+	var pin_mid: String = ModuleCard.compare_pin_mid
+	if pin_mid != "" and pin_mid != eqid and pin_mid in manager.modules and eqid in manager.modules:
+		var bb_a: String = ModuleCard.build_module_bbcode(pin_mid, "", true)
+		var bb_b: String = ModuleCard.build_module_bbcode(eqid, pin_mid, false)
+		var a_wz := int(manager.modules[pin_mid].get("zone", manager.modules[pin_mid].get("zone_difficulty", 0)))
+		var a_wm: Texture2D = ElementDB.get_material_icon("Z%d_Core" % clampi(a_wz, 1, 10)) if a_wz >= 1 else null
+		UITheme.show_compare_tooltip(self, bb_a, bb_b, a_wm, _wm)
+	else:
+		var _tt := _build_module_tooltip(m_data)
+		var _hint := "Shift-click: unpin  ·  Esc: clear compare" if pin_mid == eqid else "Shift-click to pin & compare two modules"
+		_tt += "\n[color=#1E3B38]──────────────────────────────[/color]\n[font_size=9][color=#5E7C77]%s[/color][/font_size]" % _hint
+		UITheme.show_item_tooltip(self, _tt, _wm)
 
 func _on_slot_unhover() -> void:
 	UITheme.hide_item_tooltip(self)

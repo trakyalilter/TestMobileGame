@@ -1719,12 +1719,97 @@ func construct_hull(hull_id: String) -> bool:
 			if _aux >= 0 and loadout.get(_aux) == null and module_inventory.get(_mid, 0) > 0:
 				equip_module(_aux, _mid, true)
 
+	# v136: the live re-equip above migrated the ACTIVE build slot (equip_module keeps it
+	# in sync via _autosave_active_preset). Carry the OTHER saved build slots over too —
+	# remap each onto the new hull's slot layout so they don't load stripped. See
+	# _migrate_presets_to_current_hull.
+	_migrate_presets_to_current_hull()
+
 	# Recalculate to get new max_hp
 	recalc_stats()
 	current_hp = max_hp # Explicitly force full health for the new hull
 	
 	hull_constructed.emit(hull_id) # Audit v11.0: Signal for missions
 	return true
+
+# v136: after a hull switch, re-map every SAVED build slot (loadout preset) onto the NEW
+# hull's slot layout. construct_hull already migrates the ACTIVE build via the live
+# re-equip, but the other presets are stored as raw {slot_index: module} maps — and slot
+# TYPES reorder across hulls (corvette slot 3 = armor, frigate slot 3 = shield). Loading a
+# stale preset on the new hull would land its armor/engine/battery/sensor on wrong-typed
+# slots, silently skip them, and bring the ship up stripped — the "presets emptied
+# themselves" bug. The active slot is skipped (kept in sync by equip_module's autosave);
+# empty slots have nothing to carry.
+func _migrate_presets_to_current_hull() -> void:
+	for _pidx in loadout_presets.keys():
+		if _pidx == active_preset_idx:
+			continue
+		if _preset_has_no_modules(loadout_presets[_pidx]):
+			continue
+		loadout_presets[_pidx] = _remap_preset_to_current_hull(loadout_presets[_pidx])
+
+# Rebuild one preset's loadout/ammo onto the CURRENT hull, matching each module to the
+# first free slot of its TYPE (batteries first, then aux last-resort — mirrors
+# construct_hull's live transfer). Remapping by type (not by old index) also self-heals a
+# preset already stale from an earlier upgrade. Pure data op: never touches inventory or
+# live equips. A module whose type no longer has a free slot is dropped from the preset —
+# it stays owned in inventory, exactly as the live transfer leaves modules that don't fit.
+func _remap_preset_to_current_hull(preset: Dictionary) -> Dictionary:
+	var hull_slots: Array = get_effective_slots()
+	var aux_idx: int = get_aux_slot_index()
+	var old_load: Dictionary = preset.get("loadout", {})
+
+	# Source modules, batteries first then ascending old slot — capacity before consumers,
+	# same order construct_hull uses so a preset maps to the slots the active build would.
+	var batteries: Array = []
+	var others: Array = []
+	for s in old_load.keys():
+		var mid = old_load[s]
+		if mid == null or mid == "" or not (mid in modules):
+			continue
+		if modules[mid].get("slot_type", "") == "battery":
+			batteries.append(s)
+		else:
+			others.append(s)
+	batteries.sort()
+	others.sort()
+	var src_slots: Array = batteries.duplicate()
+	src_slots.append_array(others)
+
+	# Fresh loadout with a null in every slot of the new hull.
+	var new_load: Dictionary = {}
+	for i in range(hull_slots.size()):
+		new_load[i] = null
+
+	var slot_remap: Dictionary = {}   # old slot -> new slot, so ammo can follow its weapon
+	for old_slot in src_slots:
+		var mid = old_load[old_slot]
+		var mtype: String = modules[mid].get("slot_type", "")
+		var placed := false
+		for ns in range(hull_slots.size()):
+			if new_load[ns] == null and str(hull_slots[ns]) == mtype:
+				new_load[ns] = mid
+				slot_remap[old_slot] = ns
+				placed = true
+				break
+		if not placed and aux_idx >= 0 and new_load.get(aux_idx) == null:
+			new_load[aux_idx] = mid
+			slot_remap[old_slot] = aux_idx
+
+	# Ammo follows each weapon to its new slot index.
+	var old_ammo: Dictionary = preset.get("ammo_loadout", {})
+	var new_ammo: Dictionary = {}
+	for old_slot in old_ammo.keys():
+		if old_slot in slot_remap:
+			new_ammo[slot_remap[old_slot]] = old_ammo[old_slot]
+
+	return {
+		"name": preset.get("name", ""),
+		"loadout": new_load,
+		"ammo_loadout": new_ammo,
+		"consumable_hull": preset.get("consumable_hull", ""),
+		"consumable_shield": preset.get("consumable_shield", ""),
+	}
 
 func unequip_all():
 	for idx in loadout:
@@ -2530,6 +2615,12 @@ func load_save_data_manager(data: Dictionary):
 		_suppress_preset_autosave = true
 		save_loadout_preset(active_preset_idx)   # sync live build → active slot
 		_suppress_preset_autosave = _was
+
+	# v136: heal build slots saved before the hull-remap fix. A player who upgraded hulls
+	# pre-v136 has non-active presets still keyed to an OLD hull's slot layout; realign
+	# them to the current hull so they load fully instead of stripped. Idempotent
+	# (type-driven) — presets already valid for this hull are reproduced unchanged.
+	_migrate_presets_to_current_hull()
 
 # Manual Repair System
 func get_full_repair_cost(hull_id: String) -> int:

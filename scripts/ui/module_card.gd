@@ -26,9 +26,33 @@ var _card_socket_node: Panel = null
 # v127: while a Hack Card is armed, suppress hover info-cards on every module tile
 # (set by the designer page). Static so all tiles share one flag.
 static var suppress_info_card: bool = false
+# v136: "pin two items to compare". Shift-click a module (Armory OR an equipped slot) to
+# PIN it as the comparison baseline. While a pin is live, hovering any OTHER module shows
+# BOTH full cards side by side (pinned baseline + hovered) and every armory card shows a
+# ▲/▼ chevron vs the pin. compare_pin_mid is shared by all tiles; _bbcode_factory is a
+# lazily-built offscreen card that renders the tooltip bbcode for ANY mid, so the baseline
+# works even when the pinned/hovered item is equipped and has no armory tile.
+static var compare_pin_mid: String = ""
+static var _bbcode_factory = null
+
+# Render the comparison-tooltip bbcode for an arbitrary module id, independent of any
+# on-screen tile. Reuses one offscreen module_card (never in the tree; its @onready nodes
+# stay null but the bbcode builder never touches them).
+static func build_module_bbcode(p_mid: String, compare_vs: String = "", no_compare: bool = false) -> String:
+	var sm = GameState.shipyard_manager
+	if not sm or not p_mid in sm.modules:
+		return ""
+	if _bbcode_factory == null or not is_instance_valid(_bbcode_factory):
+		_bbcode_factory = load("res://scripts/ui/module_card.gd").new()
+	_bbcode_factory.mid = p_mid
+	_bbcode_factory.data = sm.modules[p_mid]
+	_bbcode_factory.count = int(sm.module_inventory.get(p_mid, 0))
+	_bbcode_factory.compare_equipped_mid = compare_vs
+	return _bbcode_factory._build_comparison_tooltip_bbcode(false, "", no_compare)
 
 signal clicked(p_mid: String)
 signal stone_dropped(stone_id: String, target_mid: String)   # v127: Hack Stone dragged onto this module
+signal pin_toggled(p_mid: String)   # v136: shift-click → toggle compare baseline
 
 @onready var type_lbl: Label = $Margin/VBox/Header/TypeLabel
 @onready var rarity_badge: Label = $Margin/VBox/Header/RarityBadge
@@ -51,6 +75,10 @@ func _ready():
 	tree_exiting.connect(func(): UITheme.hide_item_tooltip(self))
 	_update_ui()
 
+func _zone_watermark(d: Dictionary) -> Texture2D:
+	var _wz := int(d.get("zone", d.get("zone_difficulty", 0)))
+	return ElementDB.get_material_icon("Z%d_Core" % clampi(_wz, 1, 10)) if _wz >= 1 else null
+
 func _on_mouse_enter():
 	# v134g CRASH FIX: never rebuild this card while a drag is in flight. Clearing
 	# the "unseen" badge calls _update_ui() → _draw_tile_visual(), which FREES and
@@ -70,9 +98,17 @@ func _on_mouse_enter():
 		return
 	# Don't pop info cards on other tiles while a drag is in progress.
 	if not data.is_empty() and not _dragging:
-		var _wz := int(data.get("zone", data.get("zone_difficulty", 0)))
-		var _wm: Texture2D = ElementDB.get_material_icon("Z%d_Core" % clampi(_wz, 1, 10)) if _wz >= 1 else null
-		UITheme.show_item_tooltip(self, _build_comparison_tooltip_bbcode(), _wm)
+		var _wm: Texture2D = _zone_watermark(data)
+		# v136: with a compare pin live, hovering any OTHER module shows the pinned
+		# baseline and this module as two full cards side by side — this one carries the
+		# ▲/▼ deltas vs the pin; the baseline is shown on its own (no delta column). Both
+		# sides must be real modules (never ammo/consumable/core vs a module).
+		if compare_pin_mid != "" and compare_pin_mid != mid and sm and compare_pin_mid in sm.modules and mid in sm.modules:
+			var bb_a: String = build_module_bbcode(compare_pin_mid, "", true)
+			var bb_b: String = build_module_bbcode(mid, compare_pin_mid, false)
+			UITheme.show_compare_tooltip(self, bb_a, bb_b, _zone_watermark(sm.modules[compare_pin_mid]), _wm)
+		else:
+			UITheme.show_item_tooltip(self, _build_comparison_tooltip_bbcode(), _wm)
 
 # v131e: self-heal. If a card's setup() ran while its host was momentarily
 # detached, the old `not is_inside_tree()` guard below skipped the ENTIRE visual
@@ -1013,7 +1049,13 @@ func _gui_input(event):
 		if event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 			_show_demolish_menu()
 		elif event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
-			clicked.emit(mid)
+			# v136: Shift-click pins/unpins this module as the compare baseline. A plain
+			# click still arms the module for click-to-equip (kept intact for touch /
+			# no-drag play), so the two gestures never collide.
+			if event.shift_pressed:
+				pin_toggled.emit(mid)
+			else:
+				clicked.emit(mid)
 
 func _show_demolish_menu():
 	var sm = GameState.shipyard_manager
@@ -1059,7 +1101,7 @@ func _show_demolish_menu():
 	})
 
 
-func _build_comparison_tooltip_bbcode(anchor_select: bool = false, hover_affix: String = "") -> String:
+func _build_comparison_tooltip_bbcode(anchor_select: bool = false, hover_affix: String = "", no_compare: bool = false) -> String:
 	if data.is_empty():
 		return ""
 
@@ -1147,6 +1189,14 @@ func _build_comparison_tooltip_bbcode(anchor_select: bool = false, hover_affix: 
 	elif slot_type == "gem":
 		var gem_desc = data.get("desc", ElementDB.get_element_description(mid))
 		tt += "[font_size=14][b]%s[/b][/font_size]\n" % gem_desc
+		# Per-slot-type breakdown (mirrors the equipped-socket inspect card) so the
+		# armory hover shows what the core gives in each host type, not just flavour.
+		if sm:
+			var _cat_slot = {"Weapon": "weapon", "Armor/Shield": "armor", "Engine/Sensor": "engine"}
+			for _cl in ["Weapon", "Armor/Shield", "Engine/Sensor"]:
+				var _ft: String = sm.get_gem_facet_text(mid, _cat_slot[_cl])
+				if _ft != "":
+					tt += "[color=#7FA39C][lb]%s][/color]  [color=#46E0A0]%s[/color]\n" % [_cl, _ft]
 		tt += div
 
 	# v110: power is tier-DERIVED now (not the stale energy_load stat). Show the
@@ -1165,18 +1215,21 @@ func _build_comparison_tooltip_bbcode(anchor_select: bool = false, hover_affix: 
 
 	var equipped_mid = ""
 	var equipped_stats = {}
-	if compare_equipped_mid != "" and sm and compare_equipped_mid in sm.modules:
-		equipped_mid = compare_equipped_mid
-		equipped_stats = sm.modules[compare_equipped_mid].get("stats", {})
-	elif sm and slot_type in ["weapon", "shield", "armor", "engine", "battery", "reactor", "sensor", "cooling"]:
-		for idx in sm.loadout:
-			var equipped = sm.loadout[idx]
-			if equipped and equipped in sm.modules:
-				var equipped_data = sm.modules[equipped]
-				if equipped_data.get("slot_type", "") == slot_type:
-					equipped_mid = equipped
-					equipped_stats = equipped_data.get("stats", {})
-					break
+	# v136: no_compare (the pinned baseline card in a side-by-side compare) shows its
+	# OWN stats with no delta column — skip the equipped-vs lookup entirely.
+	if not no_compare:
+		if compare_equipped_mid != "" and sm and compare_equipped_mid in sm.modules:
+			equipped_mid = compare_equipped_mid
+			equipped_stats = sm.modules[compare_equipped_mid].get("stats", {})
+		elif sm and slot_type in ["weapon", "shield", "armor", "engine", "battery", "reactor", "sensor", "cooling"]:
+			for idx in sm.loadout:
+				var equipped = sm.loadout[idx]
+				if equipped and equipped in sm.modules:
+					var equipped_data = sm.modules[equipped]
+					if equipped_data.get("slot_type", "") == slot_type:
+						equipped_mid = equipped
+						equipped_stats = equipped_data.get("stats", {})
+						break
 
 	var keys = my_stats.keys()
 	keys.sort()
@@ -1288,7 +1341,11 @@ func _build_comparison_tooltip_bbcode(anchor_select: bool = false, hover_affix: 
 		for gem in data["sockets"]:
 			if gem:
 				var g_name = ElementDB.get_display_name(gem)
-				var g_desc = ElementDB.get_element_description(gem)
+				# Show the bonus this core actually grants IN THIS module's slot type
+				# (its slot-matched facet) — not the generic "socket into…" flavour.
+				var g_desc = sm.get_gem_facet_text(gem, slot_type) if sm else ""
+				if g_desc == "":
+					g_desc = ElementDB.get_element_description(gem)
 				var g_hex = _get_gem_color(g_name).to_html(false)
 				if g_desc != "":
 					tt += "[color=#%s]%s: %s[/color]\n" % [g_hex, g_name, g_desc]
@@ -1335,6 +1392,18 @@ func _build_comparison_tooltip_bbcode(anchor_select: bool = false, hover_affix: 
 				
 				var col = "#ffffff" if active else "#666666"
 				tt += "[color=%s]%s: %s[/color]\n" % [col, b_name, val_str]
+
+	# v136: POE-style action-hint footer teaching the compare shortcut. Only on real,
+	# comparable modules (skipped on the pinned baseline card in a side-by-side view,
+	# and on ammo/consumables/cores which aren't in sm.modules).
+	if not no_compare and sm and mid in sm.modules:
+		tt += div
+		if compare_pin_mid == mid:
+			tt += "[font_size=9][color=#5E7C77]Shift-click: unpin  ·  Esc: clear compare[/color][/font_size]"
+		elif compare_pin_mid != "":
+			tt += "[font_size=9][color=#5E7C77]Shift-click: pin this instead  ·  Esc: clear compare[/color][/font_size]"
+		else:
+			tt += "[font_size=9][color=#5E7C77]Shift-click to pin & compare two modules[/color][/font_size]"
 
 	return tt
 

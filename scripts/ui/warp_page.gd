@@ -76,7 +76,10 @@ func _ready():
 	_build_ui()
 	_wm.warped.connect(_on_warped)
 	_wm.tree_node_purchased.connect(_on_node_purchased)
-	$ConfirmationDialog.confirmed.connect(_on_confirm_warp)
+	# v138: warp is triggered from the Sector Chart's singularity (star_map_overlay),
+	# not this page. The old ConfirmationDialog confirm-warp hook (_on_confirm_warp) was
+	# removed with that refactor — this dangling connect was left behind and broke the
+	# whole Warp scene with a parse error. Do not re-add it.
 	_update_all()
 
 

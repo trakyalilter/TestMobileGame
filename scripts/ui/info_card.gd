@@ -198,23 +198,25 @@ func _setup_gem(id: String):
 
 	desc_lbl.text = ElementDB.get_element_description(id)
 
-	# v118: show all three matrix-core facets (weapon / defense / utility) so the
-	# player sees what the core gives in each slot and decides where to socket it.
+	# Matrix-core facets. A core gives a DIFFERENT bonus per host-slot category
+	# (weapon / defense / utility). v136: when the core is socketed in a KNOWN slot,
+	# show ONLY that slot's bonus — the other-slot facets are noise once it's placed,
+	# and showing all three read as "general info". The armory inspect (no host slot)
+	# still lists all three so the player can compare placements before socketing.
 	var facets = sm.GEM_FACETS.get(id, {})
 	var cat_name = {"weapon": "Weapon", "defense": "Armor/Shield", "utility": "Engine/Sensor"}
-	# v118 Phase 3: when inspecting a socket in a known slot, the facet for THAT slot
-	# category is ACTIVE here — mark it bright; dim the other two (what you'd get if
-	# you socketed it elsewhere). No host slot (armory inspect) -> all shown plainly.
 	var active_cat = sm._gem_slot_category(_host_slot_ctx) if _host_slot_ctx != "" else ""
+	if active_cat != "":
+		type_lbl.text = "MATRIX CORE · %s SLOT" % _host_slot_ctx.to_upper()
 	for cat in ["weapon", "defense", "utility"]:
+		if active_cat != "" and cat != active_cat:
+			continue   # socketed in a slot: show ONLY that slot's bonus, not the others
 		var facet = facets.get(cat, {})
-		var is_active = (active_cat == "" or cat == active_cat)
 		for k in facet:
 			var pretty = String(k).replace("_mult", "").replace("_flat", "").replace("_eff", "_efficiency").replace("_", " ").capitalize()
 			var val_str = ("+%d" % int(facet[k])) if String(k).ends_with("_flat") else ("+%d%%" % int(round(float(facet[k]) * 100.0)))
-			var prefix = "▶ " if (active_cat != "" and cat == active_cat) else ""
-			var col = Color(0.275, 0.878, 0.627) if is_active else Color(0.498, 0.639, 0.612)
-			_add_stat("%s[%s] %s" % [prefix, cat_name[cat], pretty], val_str, col)
+			var label = pretty if active_cat != "" else "[%s] %s" % [cat_name[cat], pretty]
+			_add_stat(label, val_str, Color(0.275, 0.878, 0.627))
 
 # Batch-0: a tinted material glyph beside the resource title (when an icon
 # exists). Created lazily; hidden again by setup() for non-item entities.

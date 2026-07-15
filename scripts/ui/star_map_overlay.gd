@@ -30,7 +30,6 @@ var _backdrop: ColorRect
 var _frame: Panel
 var _title: Label
 var _subtitle: Label
-var _legend: HBoxContainer
 var _close_btn: Button
 var _readout: PanelContainer
 
@@ -138,16 +137,6 @@ func _build_ui() -> void:
 	add_child(_title)
 	_subtitle = _mk_label("NAVIGATION · SELECT A SECTOR", 9, C_DIM, false)
 	add_child(_subtitle)
-
-	_legend = HBoxContainer.new()
-	_legend.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_legend.add_theme_constant_override("separation", 16)
-	add_child(_legend)
-	_legend_chip(C_JADE, "CLEARED")
-	_legend_chip(C_AQUA, "CURRENT")
-	_legend_chip(C_AMBER, "AVAILABLE")
-	_legend_chip(C_DIM, "LOCKED")
-	_legend_chip(C_CORAL, "BOSS")
 
 	_close_btn = Button.new()
 	_close_btn.text = "CLOSE"
@@ -266,7 +255,6 @@ func _layout() -> void:
 	# backdrop + frame are full-rect anchored; no manual sizing needed.
 	if _title: _title.position = Vector2(46, 24)
 	if _subtitle: _subtitle.position = Vector2(46, 50)
-	if _legend: _legend.position = Vector2(46, h - 32)
 	if _close_btn:
 		_close_btn.position = Vector2(w - 116, 22)
 		_close_btn.custom_minimum_size = Vector2(94, 30)
@@ -824,18 +812,5 @@ func _spacer(h: float, expand: bool = false) -> Control:
 	else:
 		c.custom_minimum_size = Vector2(0, h)
 	return c
-
-func _legend_chip(col: Color, txt: String) -> void:
-	var box := HBoxContainer.new()
-	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.add_theme_constant_override("separation", 5)
-	var dot := ColorRect.new()
-	dot.color = col
-	dot.custom_minimum_size = Vector2(8, 8)
-	dot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.add_child(dot)
-	box.add_child(_mk_label(txt, 8, C_DIM, false))
-	_legend.add_child(box)
 
 # (removed _style_threat_bar — the star-map threat bar was cut.)
