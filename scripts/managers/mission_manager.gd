@@ -479,7 +479,12 @@ func claim_reward(mission_id) -> bool:
 	var m = missions[mission_id]
 	if m["completed"] and not m["claimed"]:
 		m["claimed"] = true
-		
+		# v138d: also clear the ACTIVE flag — claim only erased the runtime list,
+		# leaving active:true in the save forever (observed live: a claimed mission's
+		# stale flag can resurrect its navigation hint, directing the player at a
+		# tech they already researched). The flag must tell the truth at the source.
+		m["active"] = false
+
 		# Remove from active list
 		active_missions.erase(mission_id)
 		
@@ -852,6 +857,18 @@ func _rescue_orphan_chains():
 
 func reset():
 	init_missions()
+
+# v138d: self-heal — drop any CLAIMED mission that lingers in active_missions
+# (stale save flags, historical claim paths, anything). A claimed mission must
+# never drive navigation hints / objective chips again. Cheap (tiny array);
+# called from main's hint ladder every frame and safe to call from anywhere.
+func purge_claimed_actives() -> void:
+	for i in range(active_missions.size() - 1, -1, -1):
+		var m = missions.get(active_missions[i])
+		if m == null or m["claimed"]:
+			if m != null:
+				m["active"] = false
+			active_missions.remove_at(i)
 
 func has_progress() -> bool:
 	for mid in missions:

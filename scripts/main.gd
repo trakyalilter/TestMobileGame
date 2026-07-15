@@ -1038,9 +1038,13 @@ func _update_navigation_hints():
 		return
 	var mm = GameState.mission_manager
 	if not mm: return
-	
+	# v138d: never direct at a claimed mission — self-heal the active list first
+	# (a stale claimed-but-active entry kept pointing the gold arrow at an
+	# already-researched node; observed live on m025 -> Efficient Smelting).
+	mm.purge_claimed_actives()
+
 	var target_to_pulse: Control = null
-	
+
 	# 1. Claim Reminder (Top Priority)
 	var can_claim_tutorial = false
 	for mid in mm.missions:
