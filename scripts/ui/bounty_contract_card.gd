@@ -21,27 +21,14 @@ func setup(data: Dictionary, p_parent, mode: String = "available"):
 	progress_bar.value = data["current_qty"]
 	progress_bar.visible = (mode == "active")
 	
-	# Reward preview
-	var sm = GameState.shipyard_manager
-	var negotiation = sm.affix_bonuses.get("contract_negotiation", 0.0)
-	var final_reward = int(data["reward_credits"] * (1.0 + negotiation))
-	
-	var reward_txt = "Reward: %s CR" % UITheme.format_num(final_reward)
-	if negotiation > 0:
-		reward_txt += " (+%d%%)" % int(negotiation * 100)
-		
+	# Reward preview (v139: dead affix reads removed — contract_negotiation /
+	# logistician_edge were never defined in any module affix table, so they
+	# always read 0.0; deliveries no longer generate either)
+	var reward_txt = "Reward: %s CR" % UITheme.format_num(data["reward_credits"])
 	if data.get("reward_module_pool", []).size() > 0:
 		reward_txt += " + Module Drop"
 	reward_lbl.text = reward_txt
-	
-	# v74.0: Logistician's Edge UI
-	if data["type"] == "delivery" and mode == "available":
-		var logi_edge = sm.affix_bonuses.get("logistician_edge", 0.0)
-		if logi_edge > 0:
-			var eff_qty = int(data["target_qty"] * (1.0 - logi_edge))
-			var d_name = ElementDB.get_display_name(data["target"])
-			desc_lbl.text = "Deliver %d %s (Discounted: -%d%%)" % [eff_qty, d_name, int(logi_edge * 100)]
-	
+
 	# Action button
 	match mode:
 		"available":
@@ -49,7 +36,7 @@ func setup(data: Dictionary, p_parent, mode: String = "available"):
 			action_btn.pressed.connect(_on_accept)
 		"active":
 			if data["completed"]:
-				action_btn.text = "CLAIM ✓"
+				action_btn.text = "CLAIM"
 				action_btn.pressed.connect(_on_claim)
 			else:
 				action_btn.text = "ABANDON"
@@ -76,9 +63,9 @@ func _apply_style(data: Dictionary, mode: String):
 
 	add_theme_stylebox_override("panel", style)
 	
-	# Type icon
-	var type_icon = "⚔" if data["type"] == "hunt" else "📦"
-	title_lbl.text = "%s %s" % [type_icon, data["title"]]
+	# No icon prefixes (no-emoji rule) — titles are self-describing
+	# ("Hunt:" / "BOSS BOUNTY:" / "ELITE HUNT:" / legacy "Supply:").
+	title_lbl.text = data["title"]
 	
 	# Color the title by difficulty
 	var diff = data.get("difficulty", 1)

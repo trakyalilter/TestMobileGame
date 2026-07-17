@@ -197,19 +197,19 @@ const STEPS := {
 		{
 			"anchor": "available",
 			"title": "Bounty Board",
-			"body": "Optional timed contracts for bonus Liras. Careful: DELIVERY contracts take the materials the moment you ACCEPT (refunded only if you Abandon).",
+			"body": "Combat contracts, one board per sector — pick a sector tab, accept a contract, and kills there count automatically. Contracts never expire; boards re-roll every 8 hours (or pay to refresh one sector).",
 		},
 		{
 			"anchor": "active",
 			"title": "Active Contracts",
-			"body": "Accepted contracts track here. Complete the objective before the timer runs out to claim the reward.",
+			"body": "Accepted contracts track here (3 slots, shared across sectors). Finish the objective, then CLAIM for Liras + a guaranteed ship module.",
 		},
 	],
 	"quest": [
 		{
 			"anchor": "grid",
 			"title": "Quests",
-			"body": "Repeatable side goals that progress automatically as you play. A steady extra income stream.",
+			"body": "Repeatable side goals that progress automatically as you play. SUPPLY ORDERS consume the goods when you claim them — Stockpiles just need you to own the amount.",
 		},
 		{
 			"anchor": "claim_all",

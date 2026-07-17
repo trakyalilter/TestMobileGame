@@ -1,33 +1,36 @@
 # v72.0: Bounty Board System
+# v139: PER-ZONE boards — Bounties are now the COMBAT contract system.
+#  - Every unlocked zone carries its own 4-card board: 2 hunts + 1 boss bounty + 1 elite duel.
+#  - DELIVERY contracts moved to the Quest system as Supply Orders (quests own skilling,
+#    bounties own combat — one system per verb). Legacy delivery contracts already in the
+#    ACTIVE list keep working (claim/abandon), they just never generate again.
+#  - Natural refresh (8h, ticked offline via game_state.process_offline_progress)
+#    regenerates ALL zone boards and clears paid-reroll heat; the paid REFRESH targets
+#    ONE zone and doubles in price per use within the window (anti reroll-scumming).
 extends RefCounted
 
 signal bounty_updated()
 
 const MAX_ACTIVE = 3
-const MAX_AVAILABLE = 6
+const CARDS_PER_ZONE = 4
 const REFRESH_INTERVAL = 28800.0 # 8 hours in seconds
+const REFRESH_BASE_COST = 5000   # × zone difficulty × 2^rerolls-this-window
+const MAX_REROLL_HEAT = 12       # price cap ×4096 — a deterrent, not a hard wall
 
-var available_contracts: Array = []  # Pool of contracts to pick from
-var active_contracts: Array = []     # Accepted contracts (max 3)
-var completed_contracts: Array = []  # Ready to claim
-var refresh_timer: float = 0.0      # Time until next pool refresh
-var total_completed: int = 0        # Lifetime stat
+# v139: hunt payouts absorb the removed quest-hunt ("Sweep") income role — the ×10
+# constant matches the old quest sweep at Z1 while the 1.6 exponent keeps the old
+# bounty top-end. Elite keeps its v73 jackpot curve. Boss bounties use the hunt
+# formula on boss-sized xp (≈2.4× a same-tier trash hunt — the boss premium).
+const HUNT_CREDIT_CONST = 10.0
+const HUNT_DIFF_EXP = 1.6
+const ELITE_CREDIT_CONST = 300.0
+const ELITE_DIFF_EXP = 1.5
 
-# Contract templates scaled by zone difficulty
-# Format: {type, zone_id, target, target_qty, reward_credits, reward_module_pool}
-var delivery_materials = {
-	# zone_difficulty: [[material_id, min_qty, max_qty, credit_reward]]
-	1: [["Cu", 500, 1000, 25000], ["Fe", 300, 600, 40000], ["Si", 200, 400, 30000]],
-	2: [["Fe", 800, 1500, 100000], ["Cu", 300, 600, 75000], ["Steel", 100, 250, 150000]],
-	3: [["Steel", 250, 500, 250000], ["Ti", 100, 250, 400000], ["Circuit", 100, 200, 300000]],
-	4: [["Ti", 300, 600, 600000], ["W", 150, 300, 500000], ["Graphite", 200, 400, 400000]],
-	5: [["AdvCircuit", 100, 200, 1250000], ["Superalloy", 50, 150, 1500000], ["NavData", 100, 250, 1000000]],
-	6: [["ColonySalvage", 250, 500, 2000000], ["AdvCircuit", 150, 300, 1750000], ["Steel", 2000, 5000, 2500000]],
-	7: [["RadIsotope", 200, 500, 3000000], ["Pt", 100, 250, 3750000], ["Superalloy", 150, 300, 2750000]],
-	8: [["VoidCrystal", 50, 150, 5000000], ["Diamond", 30, 80, 4000000], ["ExoticMatter", 20, 50, 6000000]],
-	9: [["BiohazardSample", 100, 250, 7500000], ["Neutronium", 50, 150, 9000000], ["PathogenCore", 20, 50, 10000000]],
-	10: [["VoidEssence", 50, 100, 25000000], ["ChronoCore", 20, 50, 37500000], ["PrimordialShard", 10, 30, 50000000]]
-}
+var available_by_zone: Dictionary = {}  # zone_id -> Array[contract]
+var zone_rerolls: Dictionary = {}       # zone_id -> paid refreshes since last natural refresh
+var active_contracts: Array = []        # Accepted contracts (max 3, global across zones)
+var refresh_timer: float = 0.0          # Time until the next natural all-board refresh
+var total_completed: int = 0            # Lifetime stat
 
 func connect_signals():
 	var cm = GameState.combat_manager
@@ -80,7 +83,7 @@ func _on_combat_started():
 	# If we have an active elite hunt for this zone/enemy, flag the combat_manager
 	var cm = GameState.combat_manager
 	if not cm: return
-	
+
 	for contract in active_contracts:
 		if contract.get("is_elite", false) and not contract["completed"]:
 			if contract["zone_id"] == cm.current_zone_id and contract["target"] == cm.current_enemy["id"]:
@@ -92,206 +95,142 @@ func log_msg(msg: String):
 	if GameState.combat_manager:
 		GameState.combat_manager.log_msg(msg)
 
-# ─── Contract Generation ───
+# ─── Zone Boards ───
 
-func get_player_max_difficulty() -> int:
+# Zones that count as reachable: BOTH the research gate AND the unlock-flag gate
+# must pass (the_threshold/Z11+ gate purely via unlock_flag — see the v132 fix).
+# Returned sorted by difficulty so the UI tab strip reads Z1 → frontier.
+func get_unlocked_zones() -> Array:
 	var cm = GameState.combat_manager
 	var rm = GameState.research_manager
-	if not cm or not rm: return 1
-	var max_diff = 1  # Lunar Orbit is always available
+	if not cm or not rm: return []
+	var out: Array = []
 	for zid in cm.zones:
 		var z = cm.zones[zid]
 		var req = z.get("research_req", "")
 		var flag = z.get("unlock_flag", "")
-		# A zone counts as reachable only if BOTH its research gate AND its
-		# unlock-flag gate pass. the_threshold (Z11) / the_rift (Z12) carry an
-		# empty research_req and gate purely via unlock_flag ("z11_unlocked" /
-		# "z12_unlocked"); the old req=="" check counted them as unlocked for
-		# everyone, so a brand-new board rolled T11-T12 hunts (locked zones,
-		# billion-CR rewards, 60K refresh). Mirrors quest_manager._get_max_difficulty().
 		var research_ok: bool = (req == "" or rm.is_tech_unlocked(req))
 		var flag_ok: bool = (flag == "" or GameState.game_settings.get(flag, false))
 		if research_ok and flag_ok:
-			max_diff = max(max_diff, int(z["difficulty"]))
-	return max_diff
+			out.append({"id": zid, "name": String(z.get("name", zid)), "difficulty": int(z["difficulty"])})
+	out.sort_custom(func(a, b): return a["difficulty"] < b["difficulty"])
+	return out
 
-func generate_contract_pool():
-	available_contracts.clear()
-	var max_diff = get_player_max_difficulty()
-	var min_diff = max(1, max_diff - 1) # Smart Loot: Keep only top 2 tiers
-	
-	# Generate a mix of hunt and delivery contracts
-	var attempts = 0
-	while available_contracts.size() < MAX_AVAILABLE and attempts < 100:
-		attempts += 1
-		var contract = {}
-		var roll = randf()
-		if roll < 0.4:
-			contract = _generate_hunt_contract(min_diff, max_diff)
-		elif roll < 0.7:
-			contract = _generate_delivery_contract(min_diff, max_diff)
-		else:
-			contract = _generate_elite_contract(max_diff) # Elites always at max
-		
-		if contract.size() > 0:
-			# Check for duplicates
-			var is_dup = false
-			for existing in available_contracts:
-				if existing["target"] == contract["target"] and existing["type"] == contract["type"]:
-					is_dup = true
-					break
-			if not is_dup:
-				available_contracts.append(contract)
-	
+# UI accessor. Lazy-seeds a board for a zone that unlocked mid-window (research or
+# flag flipped since the last natural refresh) without touching the global timer.
+func get_zone_contracts(zone_id: String) -> Array:
+	if not available_by_zone.has(zone_id):
+		available_by_zone[zone_id] = _generate_zone_pool(zone_id)
+	return available_by_zone[zone_id]
+
+# Natural refresh: every unlocked zone gets a fresh board, paid-reroll heat clears,
+# and the 8h window re-arms.
+func generate_all_pools():
+	available_by_zone.clear()
+	zone_rerolls.clear()
+	for z in get_unlocked_zones():
+		available_by_zone[z["id"]] = _generate_zone_pool(z["id"])
 	refresh_timer = REFRESH_INTERVAL
 	bounty_updated.emit()
 
-func get_refresh_cost() -> int:
-	var max_diff = get_player_max_difficulty()
-	return max_diff * 5000 # Scales from 5k to 50k
+func _generate_zone_pool(zone_id: String) -> Array:
+	var cm = GameState.combat_manager
+	if not cm: return []
+	var zone = cm.zones.get(zone_id, {})
+	if zone.is_empty(): return []
+	var trash: Array = []
+	var boss_id := ""
+	for eid in zone.get("enemies", []):
+		if cm.enemy_db.get(eid, {}).get("is_boss", false):
+			boss_id = eid
+		else:
+			trash.append(eid)
+	# v139b: bounties target only the MODULE-HUNTER enemies — the back-half trash
+	# (e3 = weapons pool, e4 = shield/armor pool) + the boss. The front-half (e1/e2)
+	# is the material-farm lane and never gets a contract. Every zone ships 4 trash
+	# + boss, so "last two" = e3/e4 universally (defensive slice for odd rosters).
+	var hunters: Array = trash.slice(maxi(0, trash.size() - 2)) if trash.size() > 0 else []
+	var pool: Array = []
+	# One hunt per module-hunter, deterministic — the board always offers both the
+	# weapon-farm target AND the defense-farm target.
+	for eid in hunters:
+		var c = _make_hunt(zone_id, zone, eid, false, false)
+		if c.size() > 0: pool.append(c)
+	if boss_id != "":
+		var cb = _make_hunt(zone_id, zone, boss_id, true, false)
+		if cb.size() > 0: pool.append(cb)
+	if hunters.size() > 0:
+		# Elite duels roll module-hunter variants only — boss content is the boss
+		# bounty's job, and an elite-multiplied PHASED warden (Z11+) is untuned.
+		var ce = _make_hunt(zone_id, zone, hunters[randi() % hunters.size()], false, true)
+		if ce.size() > 0: pool.append(ce)
+	return pool
 
-func force_refresh() -> bool:
-	var cost = get_refresh_cost()
+func _make_hunt(zone_id: String, zone: Dictionary, enemy_id: String, boss_hunt: bool, elite: bool) -> Dictionary:
+	var cm = GameState.combat_manager
+	var enemy_data = cm.enemy_db.get(enemy_id, {})
+	if enemy_data.is_empty(): return {}
+	var diff = int(zone["difficulty"])
+	var base_xp = enemy_data.get("xp", 10)
+	var qty: int
+	var credit_reward: int
+	var title: String
+	var desc: String
+	if elite:
+		qty = 1 # Elites are 1v1 duels
+		credit_reward = int(base_xp * ELITE_CREDIT_CONST * pow(diff, ELITE_DIFF_EXP))
+		title = "ELITE HUNT: %s" % enemy_data["name"]
+		desc = "Destroy the ELITE %s in %s. Warning: Extremely Dangerous." % [enemy_data["name"], zone["name"]]
+	elif boss_hunt:
+		# Offline-completable by design (v138b: offline boss kills emit enemy_defeated).
+		qty = randi_range(1, 2)
+		credit_reward = int(base_xp * qty * HUNT_CREDIT_CONST * pow(diff, HUNT_DIFF_EXP))
+		title = "BOSS BOUNTY: %s" % enemy_data["name"]
+		desc = "Destroy %d× %s in %s." % [qty, enemy_data["name"], zone["name"]]
+	else:
+		qty = randi_range(5, 20)
+		credit_reward = int(base_xp * qty * HUNT_CREDIT_CONST * pow(diff, HUNT_DIFF_EXP))
+		title = "Hunt: %s" % enemy_data["name"]
+		desc = "Destroy %d %s in %s." % [qty, enemy_data["name"], zone["name"]]
+	return {
+		"id": _gen_id(),
+		"type": "hunt",
+		"title": title,
+		"desc": desc,
+		"target": enemy_id,
+		"target_qty": qty,
+		"current_qty": 0,
+		"reward_credits": credit_reward,
+		"reward_module_pool": _get_zone_module_pool(zone_id),
+		"zone_id": zone_id,
+		"difficulty": diff,
+		"completed": false,
+		"claimed": false,
+		"is_elite": elite,
+		"is_boss_hunt": boss_hunt
+	}
+
+# ─── Paid Refresh (per zone, escalating) ───
+
+func get_refresh_cost(zone_id: String) -> int:
+	var cm = GameState.combat_manager
+	var diff: int = 1
+	if cm:
+		diff = int(cm.zones.get(zone_id, {}).get("difficulty", 1))
+	var heat = mini(int(zone_rerolls.get(zone_id, 0)), MAX_REROLL_HEAT)
+	return int(REFRESH_BASE_COST * diff * pow(2.0, heat))
+
+func force_refresh(zone_id: String) -> bool:
+	var cost = get_refresh_cost(zone_id)
 	if GameState.resources.get_currency("credits") < cost:
 		UITheme.show_notification("Not enough Liras to refresh!", Color.RED)
 		return false
-	
 	GameState.resources.remove_currency("credits", cost)
-	generate_contract_pool()
-	UITheme.show_notification("Bounty Board Refreshed", Color.CYAN)
+	zone_rerolls[zone_id] = int(zone_rerolls.get(zone_id, 0)) + 1
+	available_by_zone[zone_id] = _generate_zone_pool(zone_id)
+	UITheme.show_notification("Zone Board Refreshed", Color.CYAN)
+	bounty_updated.emit()
 	return true
-
-func _generate_hunt_contract(min_diff: int, max_diff: int) -> Dictionary:
-	var cm = GameState.combat_manager
-	# Pick a random zone within relevance range
-	var valid_zones = []
-	for zid in cm.zones:
-		var z = cm.zones[zid]
-		if z["difficulty"] >= min_diff and z["difficulty"] <= max_diff:
-			valid_zones.append({"id": zid, "data": z})
-	
-	if valid_zones.is_empty():
-		return {}
-	
-	var zone = valid_zones[randi() % valid_zones.size()]
-	var enemies = zone["data"]["enemies"]
-	var enemy_id = enemies[randi() % enemies.size()]
-	var enemy_data = cm.enemy_db.get(enemy_id, {})
-	
-	if enemy_data.is_empty():
-		return {}
-	
-	var is_boss = enemy_data.get("is_boss", false)
-	var qty = randi_range(1, 3) if is_boss else randi_range(5, 20)
-	var base_xp = enemy_data.get("xp", 10)
-	
-	# v73.0: Exponential Credit Scaling
-	var diff_mult = pow(zone["data"]["difficulty"], 1.8)
-	var credit_reward = int(base_xp * qty * 5.0 * diff_mult)
-	
-	# Module reward: pick from the zone's enemies' module pools
-	var module_pool = _get_zone_module_pool(zone["id"])
-	
-	return {
-		"id": _gen_id(),
-		"type": "hunt",
-		"title": "Hunt: %s" % enemy_data["name"],
-		"desc": "Destroy %d %s in %s." % [qty, enemy_data["name"], zone["data"]["name"]],
-		"target": enemy_id,
-		"target_qty": qty,
-		"current_qty": 0,
-		"reward_credits": credit_reward,
-		"reward_module_pool": module_pool,
-		"zone_id": zone["id"],
-		"difficulty": zone["data"]["difficulty"],
-		"completed": false,
-		"claimed": false,
-		"is_elite": false
-	}
-
-func _generate_elite_contract(max_diff: int) -> Dictionary:
-	var cm = GameState.combat_manager
-	var valid_zones = []
-	for zid in cm.zones:
-		var z = cm.zones[zid]
-		if z["difficulty"] <= max_diff:
-			valid_zones.append({"id": zid, "data": z})
-	
-	if valid_zones.is_empty(): return {}
-	
-	var zone = valid_zones[randi() % valid_zones.size()]
-	var enemies = zone["data"]["enemies"]
-	var enemy_id = enemies[randi() % enemies.size()]
-	var enemy_data = cm.enemy_db.get(enemy_id, {})
-	
-	if enemy_data.is_empty(): return {}
-	
-	var qty = 1 # Elites are 1v1 duels
-	var base_xp = enemy_data.get("xp", 10)
-	
-	# v73.0: Elite Jackpot Scaling
-	var diff_mult = pow(zone["data"]["difficulty"], 1.5)
-	var credit_reward = int(base_xp * 300 * diff_mult)
-	
-	return {
-		"id": _gen_id(),
-		"type": "hunt",
-		"title": "★ ELITE HUNT ★: %s" % enemy_data["name"],
-		"desc": "Destroy the ELITE %s in %s. Warning: Extremely Dangerous." % [enemy_data["name"], zone["data"]["name"]],
-		"target": enemy_id,
-		"target_qty": qty,
-		"current_qty": 0,
-		"reward_credits": credit_reward,
-		"reward_module_pool": _get_zone_module_pool(zone["id"]),
-		"zone_id": zone["id"],
-		"difficulty": zone["data"]["difficulty"],
-		"completed": false,
-		"claimed": false,
-		"is_elite": true
-	}
-
-func _generate_delivery_contract(min_diff: int, max_diff: int) -> Dictionary:
-	# Pick a difficulty tier within relevance range.
-	# v132: clamp to the template table's ceiling (keys stop at 10) — once Z11/Z12
-	# unlock, max_diff hits 11/12 and roughly half the delivery rolls returned {},
-	# quietly thinning the endgame board.
-	var tier = mini(randi_range(min_diff, max_diff), 10)
-	var templates = delivery_materials.get(tier, [])
-	if templates.is_empty():
-		return {}
-	
-	var t = templates[randi() % templates.size()]
-	var mat_id = t[0]
-	var qty = randi_range(t[1], t[2])
-	var credits = t[3]
-	
-	# Get display name
-	var d_name = ElementDB.get_display_name(mat_id)
-	
-	# Module reward from nearby zone
-	var cm = GameState.combat_manager
-	var zone_id = ""
-	for zid in cm.zones:
-		if cm.zones[zid]["difficulty"] == tier:
-			zone_id = zid
-			break
-	var module_pool = _get_zone_module_pool(zone_id) if zone_id != "" else []
-	
-	return {
-		"id": _gen_id(),
-		"type": "delivery",
-		"title": "Supply: %s" % d_name,
-		"desc": "Deliver %d %s to the station." % [qty, d_name],
-		"target": mat_id,
-		"target_qty": qty,
-		"current_qty": 0,  # For delivery, this tracks if accepted (0 = not accepted yet)
-		"reward_credits": credits,
-		"reward_module_pool": module_pool,
-		"zone_id": zone_id,
-		"difficulty": tier,
-		"completed": false,
-		"claimed": false
-	}
 
 func _get_zone_module_pool(zone_id: String) -> Array:
 	var cm = GameState.combat_manager
@@ -318,39 +257,17 @@ func accept_contract(contract_id: String) -> bool:
 	if active_contracts.size() >= MAX_ACTIVE:
 		UITheme.show_notification("Contract slots full! (Max %d)" % MAX_ACTIVE, Color.RED)
 		return false
-	
-	var contract = null
-	var idx = -1
-	for i in range(available_contracts.size()):
-		if available_contracts[i]["id"] == contract_id:
-			contract = available_contracts[i]
-			idx = i
-			break
-	
-	if contract == null:
-		return false
-	
-	# Delivery contracts: Check and consume materials on acceptance
-	if contract["type"] == "delivery":
-		var sm = GameState.shipyard_manager
-		var logi_edge = sm.affix_bonuses.get("logistician_edge", 0.0)
-		var effective_qty = int(contract["target_qty"] * (1.0 - logi_edge))
-		
-		var has_mats = GameState.resources.has_element(contract["target"], effective_qty)
-		if not has_mats:
-			var d_name = ElementDB.get_display_name(contract["target"])
-			UITheme.show_notification("Not enough %s! (Need %d)" % [d_name, effective_qty], Color.RED)
-			return false
-		GameState.resources.remove_element(contract["target"], effective_qty)
-		contract["current_qty"] = effective_qty # Track what was actually spent
-		contract["completed"] = true
-	
-	available_contracts.remove_at(idx)
-	active_contracts.append(contract)
-	
-	UITheme.show_notification("Contract Accepted: %s" % contract["title"], Color.GOLD)
-	bounty_updated.emit()
-	return true
+	for zid in available_by_zone:
+		var pool: Array = available_by_zone[zid]
+		for i in range(pool.size()):
+			if pool[i]["id"] == contract_id:
+				var contract = pool[i]
+				pool.remove_at(i)
+				active_contracts.append(contract)
+				UITheme.show_notification("Contract Accepted: %s" % contract["title"], Color.GOLD)
+				bounty_updated.emit()
+				return true
+	return false
 
 func claim_contract(contract_id: String) -> bool:
 	var contract = null
@@ -360,13 +277,12 @@ func claim_contract(contract_id: String) -> bool:
 			contract = active_contracts[i]
 			idx = i
 			break
-	
+
 	if contract == null or not contract["completed"]:
 		return false
-	
+
 	# Award credits
-	var sm = GameState.shipyard_manager
-	var bonus_mult = 1.0 + sm.affix_bonuses.get("contract_negotiation", 0.0)
+	var bonus_mult = 1.0
 	# v109: Recursion — Recursive Acquisition (+5%/level Lira rewards)
 	if GameState.research_manager:
 		bonus_mult *= (1.0 + GameState.research_manager.get_efficiency_bonus("credit_reward_mult"))
@@ -376,33 +292,34 @@ func claim_contract(contract_id: String) -> bool:
 	if GameState.warp_manager:
 		bonus_mult *= GameState.warp_manager.get_production_multiplier()
 	var final_reward = int(contract["reward_credits"] * bonus_mult)
-	
+
 	GameState.resources.add_currency("credits", final_reward)
 	UITheme.show_notification("+%s Liras" % UITheme.format_num(final_reward), Color.GOLD)
-	
+
 	# Award module (if pool exists)
+	var sm = GameState.shipyard_manager
 	var pool = contract["reward_module_pool"]
 	if pool.size() > 0:
 		var base_id = pool[randi() % pool.size()]
-		
+
 		# v74.0: Bounty High-Tier Rarity Floor (Rare+)
 		var is_boss = contract["difficulty"] >= 8
 		var leg_chance = 0.25 if is_boss else 0.10
 		var rarity = sm.Rarity.LEGENDARY if randf() < leg_chance else sm.Rarity.RARE
-		
+
 		var custom_id = sm.generate_module_drop(base_id, rarity, int(contract.get("difficulty", 1)))
 		if custom_id != "":
 			var m_name = sm.modules[custom_id]["name"]
 			var r_color = sm.RARITY_COLORS.get(rarity, Color.WHITE)
 			UITheme.show_notification("Module Received: %s" % m_name, r_color)
-		
+
 		sm.inventory_updated.emit()
-	
+
 	contract["claimed"] = true
-	
+
 	active_contracts.remove_at(idx)
 	total_completed += 1
-	
+
 	bounty_updated.emit()
 	return true
 
@@ -414,15 +331,16 @@ func abandon_contract(contract_id: String) -> bool:
 			contract = active_contracts[i]
 			idx = i
 			break
-	
+
 	if contract == null:
 		return false
-	
-	# Refund materials for delivery contracts
+
+	# Refund materials for LEGACY delivery contracts (pre-v139 saves — deliveries
+	# no longer generate, but accepted ones must still refund on abandon).
 	if contract["type"] == "delivery" and contract["current_qty"] > 0:
 		GameState.resources.add_element(contract["target"], contract["current_qty"])
 		UITheme.show_notification("Materials refunded.", Color.YELLOW)
-	
+
 	active_contracts.remove_at(idx)
 	UITheme.show_notification("Contract Abandoned.", Color(0.6, 0.6, 0.6))
 	bounty_updated.emit()
@@ -431,35 +349,39 @@ func abandon_contract(contract_id: String) -> bool:
 # ─── Tick (Refresh Timer) ───
 
 func process_tick(delta: float):
-	if refresh_timer > 0:
-		refresh_timer -= delta
-		if refresh_timer <= 0:
-			generate_contract_pool()
-	elif available_contracts.is_empty() and active_contracts.is_empty():
-		# v132: a fresh install never generated a pool — refresh_timer starts at 0
-		# and only counts down once armed, and the load-path seeding only runs when
-		# a save exists. Seed lazily on the first live tick (generate arms the 8h
-		# timer, so this fires once, not per frame).
-		generate_contract_pool()
+	if refresh_timer <= 0.0:
+		# Window unarmed — fresh install, in-session state clear, or the UI
+		# lazy-seeded a board before the first tick. Seed every zone board and
+		# arm the 8h window (generate_all_pools re-arms, so this fires once).
+		generate_all_pools()
+		return
+	refresh_timer -= delta
+	if refresh_timer <= 0:
+		# One regeneration regardless of how large the (offline) delta was —
+		# boards would only overwrite themselves on multi-window absences.
+		generate_all_pools()
 
 # v132: bounty was the ONLY manager without reset() — hard_reset left the old
-# playthrough's contracts (including completed endgame deliveries worth tens of
-# millions in credits) claimable on a brand-new save. Clears everything and
-# reseeds a pool at the CURRENT (post-reset) progression tier.
+# playthrough's contracts claimable on a brand-new save. Clears everything and
+# reseeds boards at the CURRENT (post-reset) progression tier.
 func reset(_decay_factor: float = 1.0) -> void:
-	available_contracts.clear()
+	available_by_zone.clear()
+	zone_rerolls.clear()
 	active_contracts.clear()
-	completed_contracts.clear()
 	refresh_timer = 0.0
 	total_completed = 0
 	_id_counter = 0
-	generate_contract_pool()
+	generate_all_pools()
 
 # ─── Save/Load ───
 
 func get_save_data_manager() -> Dictionary:
+	var by_zone := {}
+	for zid in available_by_zone:
+		by_zone[zid] = _serialize_contracts(available_by_zone[zid])
 	return {
-		"available": _serialize_contracts(available_contracts),
+		"available_by_zone": by_zone,
+		"zone_rerolls": zone_rerolls.duplicate(),
 		"active": _serialize_contracts(active_contracts),
 		"refresh_timer": refresh_timer,
 		"total_completed": total_completed,
@@ -467,15 +389,24 @@ func get_save_data_manager() -> Dictionary:
 	}
 
 func load_save_data_manager(data: Dictionary):
-	available_contracts = _deserialize_contracts(data.get("available", []))
+	available_by_zone.clear()
+	var bz = data.get("available_by_zone", {})
+	for zid in bz:
+		if bz[zid] is Array:
+			available_by_zone[zid] = _deserialize_contracts(bz[zid])
+	zone_rerolls.clear()
+	var zr = data.get("zone_rerolls", {})
+	for zid in zr:
+		zone_rerolls[zid] = int(zr[zid])
 	active_contracts = _deserialize_contracts(data.get("active", []))
 	refresh_timer = data.get("refresh_timer", 0.0)
 	total_completed = data.get("total_completed", 0)
 	_id_counter = data.get("id_counter", 0)
-	
-	# If no available contracts, generate fresh pool
-	if available_contracts.is_empty() and active_contracts.is_empty():
-		call_deferred("generate_contract_pool")
+	# v139 migration: pre-zone-board saves carried one flat "available" pool —
+	# discard it (available cards are ephemeral RNG; ACTIVE contracts, including
+	# legacy deliveries, were preserved above) and seed the per-zone boards fresh.
+	if available_by_zone.is_empty():
+		call_deferred("generate_all_pools")
 
 func _serialize_contracts(contracts: Array) -> Array:
 	var arr = []
