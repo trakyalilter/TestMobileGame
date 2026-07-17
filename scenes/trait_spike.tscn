@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/sim/trait_spike.gd" id="1_tsp"]
+
+[node name="TraitSpike" type="Node"]
+script = ExtResource("1_tsp")

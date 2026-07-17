@@ -77,6 +77,17 @@ var has_reactive = false
 var has_exotic_matrix = false
 var next_spawn_elite = false # v72.8: Flag for elite hunt contracts
 
+# ── P3 Boss-trait per-fight state (v139d) — reset in spawn_enemy ──
+var _ra_steps := 0            # reactive_armor: DEF-mult steps applied
+var _ra_hits := 0             # reactive_armor: landed player hits since last step
+var _ag_added := {}           # adaptive_grid: raw resist added per channel
+var _cn_count := 0            # charge_nuke: enemy swings since last nuke
+var _cn_is_nuke := false      # charge_nuke: this swing is the nuke
+var _sus_timer := 0.0         # sustain-pulse accumulator
+var _nanite_left := 0.0       # sustain-nanite: seconds of regen remaining
+var _nanite_used := false     # sustain-nanite: once per fight
+var _volatile_fired := false  # volatile: death burst resolved
+
 # Step 5: Boss Set Bonus Flags
 var has_cryo_set = false
 var has_sovereign_set = false
@@ -1476,6 +1487,12 @@ func spawn_enemy():
 	}
 	_enemy_enraged = false  # v109: reset per-fight enrage state on spawn
 	_current_phase_idx = -1  # v113 (NG+ P1): reset phase band so the opening phase telegraphs
+	_reset_trait_state()  # v139d: P3 boss-trait per-fight state
+	# v139d: copy P3 trait fields into the live enemy (the resist_cryo lesson —
+	# anything the fight logic reads MUST be on current_enemy, not just the def).
+	for _tk in ["sustain", "reactive_armor", "adaptive_grid", "charge_nuke", "volatile", "corrosive_field"]:
+		if e_data.has(_tk):
+			current_enemy[_tk] = e_data[_tk]
 	
 	# v103b: Static zone-gap steepening (zone 3+). A complete sub-zone gear/set
 	# out-DPSes later content otherwise; both regular enemies AND bosses scale.
@@ -1832,6 +1849,8 @@ func process_tick(delta: float):
 	if enemy_attack_timer >= e_interval:
 		_execute_enemy_attack()
 		enemy_attack_timer -= e_interval
+
+	_trait_tick(delta)  # v139d P3: sustain pulse/nanite + corrosive field
 		
 	if consumable_cooldown > 0:
 		consumable_cooldown -= delta
@@ -2028,9 +2047,11 @@ func _execute_player_attack(weapon_idx: int):
 	# penalty. (Warp-Hardened Z11 Cryo wall is separate, in resolve_damage.)
 
 	var total_crit = sm.crit_chance + get_milestone_crit_bonus()
-	var res = resolve_damage(p_atk_k, p_atk_e, p_atk_x, enemy_shield, current_enemy["def"], current_zone.get("difficulty", 1), total_crit, true, p_atk_cryo, w.get("exotic_type", "cryo"))
+	# v139d P3 trait: Reactive Armor scales the boss's effective DEF at resolve time.
+	var res = resolve_damage(p_atk_k, p_atk_e, p_atk_x, enemy_shield, current_enemy["def"] * _trait_def_mult(), current_zone.get("difficulty", 1), total_crit, true, p_atk_cryo, w.get("exotic_type", "cryo"))
 	enemy_shield = max(0, enemy_shield - res[0])
 	enemy_hp -= res[1]
+	_trait_note_player_hit(String(w.get("type", "kinetic")))  # v139d: Reactive/Adaptive growth
 	_check_phase_transition()  # v113 (NG+ P1): telegraph if this hit crossed an HP band
 
 	# v86.0: Typed damage labels
@@ -2132,9 +2153,124 @@ func _check_enrage() -> void:
 		combat_events.append({"type": "status", "text": "ENRAGED — ATK ×%.1f" % mult, "color": Color(1.0, 0.35, 0.20), "side": "enemy"})
 		log_msg("%s has ENRAGED — incoming damage surging." % current_enemy.get("name", "Target"))
 
+# ─────────────────────────────────────────────────────────────────────────────
+# P3 Boss-trait engine (v139d) — data-driven encounter mechanics
+# (docs/design/P3_BOSS_MECHANICS.md). Fields live on the enemy def and are
+# copied at spawn; every trait resolves in math (pre-fight solvable, no new
+# in-fight inputs). NO enemy carries trait data until the Rare-gate retune
+# assigns it, so the engine ships balance-neutral.
+# ─────────────────────────────────────────────────────────────────────────────
+func _reset_trait_state() -> void:
+	_ra_steps = 0
+	_ra_hits = 0
+	_ag_added = {"kinetic": 0.0, "energy": 0.0, "explosive": 0.0, "cryo": 0.0}
+	_cn_count = 0
+	_cn_is_nuke = false
+	_sus_timer = 0.0
+	_nanite_left = 0.0
+	_nanite_used = false
+	_volatile_fired = false
+
+# Reactive Armor: the boss's DEF multiplier, grown a step per N landed player
+# hits, capped. Applied at the player-attack resolve call.
+func _trait_def_mult() -> float:
+	if current_enemy == null:
+		return 1.0
+	var ra: Dictionary = current_enemy.get("reactive_armor", {})
+	if ra.is_empty() or _ra_steps <= 0:
+		return 1.0
+	return min(pow(float(ra.get("def_mult", 1.4)), float(_ra_steps)), float(ra.get("cap", 2.8)))
+
+# Called once per LANDED player hit (post-resolve). Advances Reactive Armor
+# steps and Adaptive Grid per-type resist growth.
+func _trait_note_player_hit(w_type: String) -> void:
+	if current_enemy == null:
+		return
+	var ra: Dictionary = current_enemy.get("reactive_armor", {})
+	if not ra.is_empty():
+		_ra_hits += 1
+		if _ra_hits >= int(ra.get("per_hits", 25)):
+			_ra_hits = 0
+			var _before := _trait_def_mult()
+			_ra_steps += 1
+			if _trait_def_mult() > _before:
+				combat_events.append({"type": "status", "text": "REACTIVE PLATING HARDENS", "color": Color(0.85, 0.75, 0.40), "side": "enemy"})
+				log_msg("%s's plating hardens against your fire." % current_enemy.get("name", "Target"))
+	var ag: Dictionary = current_enemy.get("adaptive_grid", {})
+	if not ag.is_empty():
+		var ch := w_type
+		if ch == "missile":
+			ch = "explosive"
+		if not _ag_added.has(ch):
+			ch = "kinetic"
+		var cap := float(ag.get("cap", 0.5))
+		var step := float(ag.get("per_hit_resist", 0.02))
+		if float(_ag_added[ch]) < cap:
+			_ag_added[ch] = min(cap, float(_ag_added[ch]) + step)
+			# Mutate the live enemy's resist — resolve_damage reads it every hit,
+			# so the growth lands with zero extra plumbing.
+			var rk := "resist_cryo"
+			match ch:
+				"kinetic": rk = "resist_k"
+				"energy": rk = "resist_e"
+				"explosive": rk = "resist_x"
+			current_enemy[rk] = float(current_enemy.get(rk, 0.0)) + step
+			if randf() < 0.08:
+				combat_events.append({"type": "status", "text": "GRID ADAPTS — %s RESISTANCE RISING" % ch.to_upper(), "color": Color(0.60, 0.85, 1.0), "side": "enemy"})
+
+# Per-tick trait effects while a fight is live: sustain pulse/nanite + the
+# corrosive field's shield-bypassing hull DoT.
+func _trait_tick(delta: float) -> void:
+	if current_enemy == null or not in_combat:
+		return
+	var sus: Dictionary = current_enemy.get("sustain", {})
+	if not sus.is_empty():
+		match String(sus.get("kind", "")):
+			"pulse":
+				_sus_timer += delta
+				var every: float = max(1.0, float(sus.get("every_s", 8.0)))
+				if _sus_timer >= every:
+					_sus_timer -= every
+					var heal: float = enemy_max_shield * float(sus.get("pct", 0.06))
+					if heal > 0.0 and enemy_shield < enemy_max_shield:
+						enemy_shield = min(enemy_max_shield, enemy_shield + heal)
+						combat_events.append({"type": "status", "text": "SHIELD PULSE +%d" % int(heal), "color": Color(0.40, 0.90, 1.0), "side": "enemy"})
+			"nanite":
+				if not _nanite_used and enemy_max_hp > 0 and float(enemy_hp) / float(enemy_max_hp) <= float(sus.get("below", 0.30)):
+					_nanite_used = true
+					_nanite_left = float(sus.get("dur", 5.0))
+					combat_events.append({"type": "status", "text": "NANITE SWARM — HULL REKNITTING", "color": Color(0.40, 1.0, 0.55), "side": "enemy"})
+					log_msg("%s deploys a nanite swarm — its hull is regenerating." % current_enemy.get("name", "Target"))
+				if _nanite_left > 0.0:
+					_nanite_left -= delta
+					enemy_hp = min(enemy_max_hp, enemy_hp + enemy_max_hp * float(sus.get("hull_pct_per_s", 0.04)) * delta)
+	var cf: Dictionary = current_enemy.get("corrosive_field", {})
+	if not cf.is_empty():
+		var sm_cf = GameState.shipyard_manager
+		if sm_cf and sm_cf.current_hp > 0:
+			sm_cf.current_hp -= sm_cf.max_hp * float(cf.get("hull_dps_pct", 0.004)) * delta
+			if randf() < delta * 0.10:  # sparse feedback, ~1 line per 10s
+				combat_events.append({"type": "status", "text": "CORROSION EATS THE HULL", "color": Color(0.70, 1.0, 0.40), "side": "player"})
+			if sm_cf.current_hp <= 0:
+				lose_fight()
+
 func _execute_enemy_attack():
 	var sm = GameState.shipyard_manager
 	_check_enrage()  # v109: re-evaluate enrage before this swing (telegraph + buff)
+	# v139d P3 trait: Charge Nuke — count every swing; the Nth is the nuke, and
+	# the swing before it telegraphs (active players may pop a shield consumable
+	# on the telegraph — an EXISTING button, so the auto-battler contract holds).
+	_cn_is_nuke = false
+	var _cn: Dictionary = current_enemy.get("charge_nuke", {}) if current_enemy else {}
+	if not _cn.is_empty():
+		_cn_count += 1
+		var _cn_n: int = max(2, int(_cn.get("every_n", 5)))
+		if _cn_count >= _cn_n:
+			_cn_count = 0
+			_cn_is_nuke = true
+		elif _cn_count == _cn_n - 1:
+			combat_events.append({"type": "status", "text": "CHARGING MAIN CANNON", "color": Color(1.0, 0.75, 0.30), "side": "enemy"})
+			log_msg("%s is charging its main cannon — brace." % current_enemy.get("name", "Target"))
 	var e_acc = current_enemy.get("accuracy", 0)
 	var total_eva = sm.evasion + get_milestone_evasion_bonus()
 	var dodge_chance = min(float(total_eva) / (float(total_eva) + 150.0 * (1.0 + float(e_acc) / 100.0)), 0.75)
@@ -2146,6 +2282,9 @@ func _execute_enemy_attack():
 		var e_atk = current_enemy["atk"]
 		if _enemy_enraged:
 			e_atk = int(e_atk * float(current_enemy.get("enrage_atk_mult", 1.5)))  # v109
+		if _cn_is_nuke:  # v139d P3: the telegraphed main-cannon swing
+			e_atk = int(e_atk * float(_cn.get("mult", 4.0)))
+			combat_events.append({"type": "status", "text": "MAIN CANNON IMPACT", "color": Color(1.0, 0.55, 0.20), "side": "player"})
 		var e_type = current_enemy.get("dmg_type", "kinetic")
 		var e_atk_k = 0
 		var e_atk_e = 0
@@ -2198,6 +2337,16 @@ func _execute_enemy_attack():
 
 		player_shield = max(0, player_shield - eres[0])
 		sm.current_hp -= eres[1]
+		# v139d P3 trait: Sustain-siphon — a landed enemy hit drains extra player
+		# shield and feeds the boss's own (min-DPS check: out-damage the theft).
+		var _sus_s: Dictionary = current_enemy.get("sustain", {})
+		if String(_sus_s.get("kind", "")) == "siphon":
+			var _steal: float = min(player_shield, player_max_shield * float(_sus_s.get("pct", 0.04)))
+			if _steal > 0.0:
+				player_shield -= _steal
+				enemy_shield = min(enemy_max_shield, enemy_shield + _steal)
+				if randf() < 0.25:
+					combat_events.append({"type": "status", "text": "SHIELD SIPHONED -%d" % int(_steal), "color": Color(0.80, 0.50, 1.0), "side": "player"})
 		# v87.0: Typed damage labels for enemy attacks
 		var e_type_tag = "KIN"
 		match current_enemy.get("dmg_type", "kinetic"):
@@ -2694,6 +2843,25 @@ func _apply_boss_progression(eid: String) -> void:
 	_maybe_open_rift_on_boss(eid)
 
 func win_fight():
+	# v139d P3 trait: Volatile Core — the kill detonates BEFORE victory resolves.
+	# One unmitigated burst (no DEF/resist math): shields absorb, the remainder
+	# hits hull. If it kills the ship, the fight is a LOSS — glass cannons must
+	# keep an EHP floor even when overgeared.
+	var _vol: Dictionary = current_enemy.get("volatile", {}) if current_enemy else {}
+	if not _vol.is_empty() and not _volatile_fired:
+		_volatile_fired = true
+		var _sm_v = GameState.shipyard_manager
+		var _burst: float = float(current_enemy.get("atk", 0)) * float(_vol.get("mult", 3.0))
+		var _absorb: float = min(player_shield, _burst)
+		player_shield -= _absorb
+		var _hull_hit: float = _burst - _absorb
+		combat_events.append({"type": "status", "text": "WARP CORE BREACH — %d DAMAGE" % int(_burst), "color": Color(1.0, 0.45, 0.20), "side": "player"})
+		log_msg("%s's core detonates on death — %d unmitigated damage." % [current_enemy.get("name", "Target"), int(_burst)])
+		if _sm_v and _hull_hit > 0.0:
+			_sm_v.current_hp -= _hull_hit
+			if _sm_v.current_hp <= 0:
+				lose_fight()
+				return
 	log_msg("Destroyed %s!" % current_enemy["name"])
 	
 	# v101: Combat Loot Scaling — loot now grows with progression
