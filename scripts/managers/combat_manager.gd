@@ -3621,12 +3621,48 @@ func _offline_winnable() -> bool:
 	if hardened and cryo_dps <= 0.0:
 		return false
 	var dps: float = cryo_dps + (conv_dps * (0.02 if hardened else 1.0))
+
+	# v139d P3 traits — CONSERVATIVE offline pricing (spec rule: offline may
+	# refuse fights online could win, never the reverse; an unattended park must
+	# not cheese mechanics an attended fight would face). Phased Z12+ bosses
+	# return via the branch above and carry no traits today.
+	var _ttk_cap := 1800.0
+	var _extra_ehp := 0.0
+	var _sus_o: Dictionary = current_enemy.get("sustain", {})
+	match String(_sus_o.get("kind", "")):
+		"pulse":
+			# Min-DPS check, double-priced for margin: the model ignores overkill
+			# timing, so demand clearing the regen twice over.
+			var _regen: float = float(enemy_max_shield) * float(_sus_o.get("pct", 0.06)) / max(1.0, float(_sus_o.get("every_s", 8.0)))
+			dps -= _regen * 2.0
+		"siphon":
+			var _theft: float = GameState.shipyard_manager.max_shield * float(_sus_o.get("pct", 0.04)) / max(0.5, float(current_enemy.get("atk_interval", 3.0)))
+			dps -= _theft * 2.0
+		"nanite":
+			_extra_ehp += float(enemy_max_hp) * float(_sus_o.get("hull_pct_per_s", 0.04)) * float(_sus_o.get("dur", 5.0)) * 2.0
+	if not current_enemy.get("reactive_armor", {}).is_empty():
+		dps *= 0.80   # capped DEF growth the raw-dps model otherwise ignores
+	if not current_enemy.get("adaptive_grid", {}).is_empty():
+		dps *= (1.0 - float(current_enemy.get("adaptive_grid", {}).get("cap", 0.15)))
+	var _cn_o: Dictionary = current_enemy.get("charge_nuke", {})
+	if not _cn_o.is_empty():
+		var _spike: float = float(current_enemy.get("atk", 0)) * float(_cn_o.get("mult", 4.0))
+		if (GameState.shipyard_manager.max_shield + GameState.shipyard_manager.max_hp) < _spike * 1.5:
+			return false   # an unattended ship can't be trusted to eat the spike
+	var _vol_o: Dictionary = current_enemy.get("volatile", {})
+	if not _vol_o.is_empty():
+		var _burst_o: float = float(current_enemy.get("atk", 0)) * float(_vol_o.get("mult", 3.0))
+		if (GameState.shipyard_manager.max_shield + GameState.shipyard_manager.max_hp * 0.5) < _burst_o * 1.2:
+			return false   # would die to the death-burst it cannot kite offline
+	if not current_enemy.get("corrosive_field", {}).is_empty():
+		_ttk_cap = 900.0   # hull DoT halves the tolerable unattended fight length
+
 	if dps <= 0.0:
 		return false
-	# Under-power guard: can't kill within ~30 min of continuous fire → not a farm.
-	var enemy_ehp: float = float(max(enemy_max_hp, enemy_hp)) + float(enemy_max_shield)
+	# Under-power guard: can't kill within the cap of continuous fire → not a farm.
+	var enemy_ehp: float = float(max(enemy_max_hp, enemy_hp)) + float(enemy_max_shield) + _extra_ehp
 	_offline_ttk = (enemy_ehp / dps) if dps > 0.0 else 1e9   # v137: real cadence for calculate_offline
-	return enemy_ehp <= 0.0 or _offline_ttk <= 1800.0
+	return enemy_ehp <= 0.0 or _offline_ttk <= _ttk_cap
 
 func calculate_offline(delta: float):
 	if not in_combat or not current_zone or not current_enemy:
