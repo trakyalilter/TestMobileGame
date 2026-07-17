@@ -177,13 +177,13 @@ const ENEMY_EXPLOSIVE_ATK_COMP = 0.85
 
 # v80.1: Combat Safety Caps — Anti-Exploit Hard Ceilings
 const MIN_ATTACK_INTERVAL = 0.3           # Prevents infinite DPS
-# v139d Rare gate (owner rule): bosses shrug off sub-Rare armaments — a HARD
-# damage floor, not a stat race. Five soft-tuning iterations proved the stat
-# knife-edge unwinnable: affix RNG lets a god-rolled Uncommon set overlap a
-# floor Rare set, so U-leaks wobbled 0-6/9 per run. Binary rule = binary gate
-# (the warp_hardened pattern applied to rarity). Trash stays ungated — farming
-# works at any rarity; Legendary/Unique stay pure accelerators.
-const BOSS_SUBRARE_DMG_FACTOR := 0.25
+# v139d Rare gate (owner rule, 2026-07-17): sub-Rare gear must NOT beat
+# bosses — including well-rolled Uncommon — but the combat math stays PURE
+# (a hard x0.25 sub-Rare damage floor was tried and REJECTED: "do not break
+# the math"). The separation lives in the ITEM numbers instead: rarity stat
+# ranges are disjoint (Uncommon caps x1.20, Rare floors x1.25) and Uncommon
+# carries NO affixes (shipyard generate_module_drop) — so the best possible
+# Uncommon set sits below the worst Rare set by construction.
 const MAX_ATK_SPEED_MULT = 3.0            # Max 3x base fire rate
 const MAX_EVASION = 75                    # Enemies always ≥25% hit chance
 const MAX_CRIT_CHANCE = 0.50              # No guaranteed crit loops
@@ -617,7 +617,9 @@ var enemy_db = {
 	},
 	"z3_boss_warmaster": {
 		"name": "Martian Warmaster",
-		"stats": {"hp": 17424, "max_shield": 580, "atk": 210, "def": 87, "atk_interval": 2.5, "accuracy": 65},
+		# v139d: hp 17424->16000 — the Rare cell averaged ~40% across 7 matrix runs
+		# (signal, not noise) and this is the FIRST-WARP boss; Rare must be reliable.
+		"stats": {"hp": 16000, "max_shield": 580, "atk": 210, "def": 87, "atk_interval": 2.5, "accuracy": 65},
 		# v139d P3: the first REAL mechanic check (this is also the Singularity /
 		# first-warp boss — gentlest enrage in the ladder; funnel-verify rift
 		# timing after any change here).
@@ -669,7 +671,7 @@ var enemy_db = {
 	},
 	"z4_boss_overseer": {
 		"name": "Glacial Overseer",
-		"stats": {"hp": 25555, "max_shield": 1277, "atk": 500, "def": 191, "atk_interval": 2.5, "accuracy": 85},
+		"stats": {"hp": 25555, "max_shield": 1277, "atk": 480, "def": 191, "atk_interval": 2.5, "accuracy": 85},
 		# v139d P3: pulse ESCALATION (introduced softly on the Z2 Monolith) —
 		# glacial shields re-freeze. The min-DPS check that makes sustain matter.
 		"sustain": {"kind": "pulse", "every_s": 8.0, "pct": 0.06},
@@ -723,7 +725,7 @@ var enemy_db = {
 		# v139d Rare-gate: 80000->92000 — Uncommon was STILL sneaking 2/5 (baseline
 		# matrix); the stretch pushes Uncommon DPS past its kit sustain while Rare
 		# stays in the 3-6min envelope (~190s projected).
-		"stats": {"hp": 92000, "max_shield": 2811, "atk": 800, "def": 421, "atk_interval": 2.5, "accuracy": 110},
+		"stats": {"hp": 92000, "max_shield": 2811, "atk": 760, "def": 421, "atk_interval": 2.5, "accuracy": 110},
 		# v139d P3: enrage escalation (taught gently on the Z3 Warmaster).
 		"enrage_at": 0.5, "enrage_atk_mult": 1.4,
 		"loot": [["credits", 50000, 100000], ["VoidArtifact", 10, 25], ["QuantumCore", 2, 5], ["Res2", 15, 30], ["XenoFragment", 5, 12]],
@@ -777,7 +779,7 @@ var enemy_db = {
 		# pointing players at the wrong sector.
 		"name": "Beta Colossus",
 		# v139d Rare-gate: 185531->200000 (Uncommon sneaking 2/5 in the baseline).
-		"stats": {"hp": 200000, "max_shield": 6184, "atk": 2300, "def": 927, "atk_interval": 2.5, "accuracy": 140},
+		"stats": {"hp": 200000, "max_shield": 6184, "atk": 2100, "def": 927, "atk_interval": 2.5, "accuracy": 140},
 		# v139d P3: Reactive Armor — the mining golem stacks plating. Punishes
 		# fast small hits; heavy slow per-hit builds break through.
 		"reactive_armor": {"per_hits": 25, "def_mult": 1.4, "cap": 2.2},
@@ -832,7 +834,7 @@ var enemy_db = {
 		"stats": {"hp": 490000, "max_shield": 13605, "atk": 6006, "def": 2040, "atk_interval": 2.5, "accuracy": 170},
 		# v139d P3: Sustain-siphon — every landed prism strike drinks the player's
 		# shield into its own. The min-DPS check: out-damage the theft.
-		"sustain": {"kind": "siphon", "pct": 0.08},
+		"sustain": {"kind": "siphon", "pct": 0.10},
 		"loot": [["credits", 1000000, 2000000], ["ExoticMatter", 15, 30], ["Os", 3, 8], ["Res3", 15, 30]],
 		"rare_loot": [["z7_unique_weapon", 0.03, 1, 1], ["z7_unique_armor", 0.03, 1, 1], ["z7_unique_shield", 0.03, 1, 1]],
 		"boss_core": "Z7_Core",
@@ -887,7 +889,7 @@ var enemy_db = {
 		# Uncommon-grade shield buffers between kit procs; Rare EHP absorbs it.
 		"stats": {"hp": 1850000, "max_shield": 29932, "atk": 12200, "def": 4489, "atk_interval": 2.5, "accuracy": 200},
 		# v139d P3: the Z1 Architect's telegraph, now LETHAL — every 4th swing x4.
-		"charge_nuke": {"every_n": 5, "mult": 4.75},
+		"charge_nuke": {"every_n": 5, "mult": 4.5},
 		"loot": [["credits", 3000000, 6000000], ["VoidCrystal", 20, 50], ["Diamond", 2, 5], ["Res3", 20, 40]],
 		"rare_loot": [["z8_unique_weapon", 0.03, 1, 1], ["z8_unique_armor", 0.03, 1, 1], ["z8_unique_shield", 0.03, 1, 1]],
 		"boss_core": "Z8_Core",
@@ -2104,16 +2106,6 @@ func _execute_player_attack(weapon_idx: int):
 	# curve + per-zone enemy tuning) drives progression now; no per-tier damage
 	# penalty. (Warp-Hardened Z11 Cryo wall is separate, in resolve_damage.)
 
-	# v139d Rare gate: sub-Rare weapons barely scratch bosses (hard floor).
-	var _rg := _weapon_rare_gate_factor(w)
-	if _rg < 1.0:
-		p_atk_k *= _rg
-		p_atk_e *= _rg
-		p_atk_x *= _rg
-		p_atk_cryo *= _rg
-		if randf() < 0.05:
-			combat_events.append({"type": "miss", "text": "UNDER-RARE ARMAMENTS", "color": Color.GRAY, "side": "enemy"})
-
 	var total_crit = sm.crit_chance + get_milestone_crit_bonus()
 	# v139d P3 trait: Reactive Armor scales the boss's effective DEF at resolve time.
 	var res = resolve_damage(p_atk_k, p_atk_e, p_atk_x, enemy_shield, current_enemy["def"] * _trait_def_mult(), current_zone.get("difficulty", 1), total_crit, true, p_atk_cryo, w.get("exotic_type", "cryo"))
@@ -2248,24 +2240,6 @@ func _trait_def_mult() -> float:
 	if ra.is_empty() or _ra_steps <= 0:
 		return 1.0
 	return min(pow(float(ra.get("def_mult", 1.4)), float(_ra_steps)), float(ra.get("cap", 2.8)))
-
-# v139d Rare gate: damage factor for one weapon state vs the CURRENT enemy.
-# 1.0 for trash, for empty/virtual slots, and for Rare+ weapons; the hard
-# sub-Rare floor only binds on bosses. Shared by the live attack path and the
-# offline no-swap DPS model (offline must never be the cheese route).
-func _weapon_rare_gate_factor(w: Dictionary) -> float:
-	if current_enemy == null or not current_enemy.get("is_boss", false):
-		return 1.0
-	var slot_idx: int = int(w.get("slot_idx", -1))
-	if slot_idx < 0:
-		return 1.0
-	var sm = GameState.shipyard_manager
-	var mid = sm.loadout.get(slot_idx)
-	if mid == null or String(mid) == "":
-		return 1.0
-	if int(sm.get_module_rarity(String(mid))) < 2:
-		return BOSS_SUBRARE_DMG_FACTOR
-	return 1.0
 
 # Called once per LANDED player hit (post-resolve). Advances Reactive Armor
 # steps and Adaptive Grid per-type resist growth.
@@ -3618,11 +3592,8 @@ func _offline_winnable() -> bool:
 	var cryo_dps := 0.0
 	for w in player_weapon_states:
 		var iv: float = max(MIN_ATTACK_INTERVAL, float(w.get("interval", 2.5)))
-		# v139d Rare gate: offline prices the sub-Rare boss floor too — an
-		# under-Rare loadout must not farm offline what it cannot beat online.
-		var _org := _weapon_rare_gate_factor(w)
-		conv_dps += _org * (float(w.get("dmg_k", 0.0)) + float(w.get("dmg_e", 0.0)) + float(w.get("dmg_x", 0.0))) / iv
-		cryo_dps += _org * float(w.get("dmg_cryo", 0.0)) / iv
+		conv_dps += (float(w.get("dmg_k", 0.0)) + float(w.get("dmg_e", 0.0)) + float(w.get("dmg_x", 0.0))) / iv
+		cryo_dps += float(w.get("dmg_cryo", 0.0)) / iv
 	# v113 (NG+ P1): multi-phase boss — must breach EVERY phase band; the worst
 	# band governs whether an offline farm is viable. Elements with no weapon
 	# channel yet (corrosion/thermal/…) make the band unbeatable → not a farm.

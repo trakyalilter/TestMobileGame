@@ -2971,8 +2971,15 @@ func generate_module_drop(base_module_id: String, rarity: int = Rarity.UNCOMMON,
 				affix_pool.append(a_id)
 	
 	var num_affixes = 0
-	if rarity == Rarity.UNCOMMON: num_affixes = 1  # v101: Was 0
-	elif rarity == Rarity.RARE: num_affixes = 2    # v101: Was 1
+	# v139d Rare gate (owner rule): Uncommon affixes 1 -> 0 (reverts v101).
+	# The rarity STAT ranges are already disjoint (Uncommon caps x1.20, Rare
+	# floors x1.25) — the single v101 affix was the ONLY bridge letting a
+	# god-rolled Uncommon reach boss-viable power. Removing it separates the
+	# tiers in the ITEM NUMBERS themselves (no combat multiplier hacks): boss
+	# gearcheck U-wins are affix-driven leaks, and this closes them at the
+	# source. Tier identity: Common = crafted baseline, Uncommon = stat bump,
+	# RARE = where affixes (builds) begin, Legendary/Unique = more + greater.
+	if rarity == Rarity.RARE: num_affixes = 2      # v101: Was 1
 	elif rarity == Rarity.LEGENDARY: num_affixes = 3 # v101: Was 2
 	elif rarity == Rarity.UNIQUE: num_affixes = 4  # v101: Was 3
 	

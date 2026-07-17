@@ -76,13 +76,17 @@ func _test(sm, cm, rm, b) -> bool:
 	var uni := {}
 	if n >= 2 and ("z%d_unique_weapon" % (n - 1)) in sm.modules:
 		uni = _trials(sm, cm, rm, b, n - 1, weak, 4)
-	# Rule (OR): Common+Uncommon must mostly LOSE (<=1/5); AND a Rare/Legendary
-	# Zone-N set OR the Zone-(N-1) Unique set must mostly WIN (>=3/5).
-	var c_ok: bool = int(cells[0]["w"]) <= 1
-	var u_ok: bool = int(cells[1]["w"]) <= 1
-	var rare_win: bool = int(cells[2]["w"]) >= 3
-	var leg_win: bool = int(cells[3]["w"]) >= 3
-	var uni_win: bool = not uni.is_empty() and int(uni["w"]) >= 3
+	# Rule (v139d, owner rule): Common AND Uncommon must lose — including
+	# well-rolled Uncommon (no god-roll allowance). Enforced in the ITEM
+	# numbers (disjoint rarity stat ranges + Uncommon carries no affixes), not
+	# by combat multipliers — the math stays pure. A Rare/Legendary Zone-N set
+	# OR the Zone-(N-1) Unique set must reliably WIN (>=60%). Fractional
+	# thresholds so TRIALS changes don't silently re-tune the rule.
+	var c_ok: bool = float(cells[0]["w"]) <= 0.10 * float(TRIALS)
+	var u_ok: bool = float(cells[1]["w"]) <= 0.10 * float(TRIALS)
+	var rare_win: bool = float(cells[2]["w"]) >= 0.60 * float(TRIALS)
+	var leg_win: bool = float(cells[3]["w"]) >= 0.60 * float(TRIALS)
+	var uni_win: bool = not uni.is_empty() and float(uni["w"]) >= 0.60 * float(TRIALS)
 	var ok: bool = c_ok and u_ok and (rare_win or leg_win or uni_win)
 	var flag := "OK  " if ok else "FAIL"
 	print("[BGC] %s Z%-2d %-22s w:%-9s hp:%-8.0f | C %-8s U %-8s R %-8s L %-8s | N-1uniq %-8s" % [
