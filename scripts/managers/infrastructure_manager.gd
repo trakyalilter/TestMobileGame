@@ -534,7 +534,7 @@ var building_db: Dictionary = {
 		"yield": {"Fe": 5, "Si": 1.7},
 		"input": {"Dirt": 8.3, "Water": 8.3},
 		"interval": 5.0,
-		"research_req": "automated_logistics",
+		"research_req": "industrial_logistics",
 		"category": "industry"
 	},
 
@@ -878,7 +878,7 @@ var building_db: Dictionary = {
 		"yield": {"Semiconductor": 1.5},
 		"input": {"Si": 3, "Germanium": 1.5},
 		"interval": 5.0,
-		"research_req": "nano_fabrication",
+		"research_req": "automation",
 		"category": "industry"
 	},
 	"structural_press": {
@@ -902,7 +902,7 @@ var building_db: Dictionary = {
 		"yield": {"Chip": 0.8},
 		"input": {"Semiconductor": 1.6, "Au": 0.8, "N": 4},
 		"interval": 5.0,
-		"research_req": "nano_fabrication",
+		"research_req": "automation",
 		"category": "industry"
 	},
 	"adv_circuit_foundry": {
@@ -914,7 +914,7 @@ var building_db: Dictionary = {
 		"yield": {"AdvCircuit": 1.2},
 		"input": {"Semiconductor": 2.4, "Au": 1.2, "StructuralComponent": 2.4},
 		"interval": 5.0,
-		"research_req": "nano_fabrication",
+		"research_req": "automation",
 		"category": "industry"
 	},
 
