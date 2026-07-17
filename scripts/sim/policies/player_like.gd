@@ -438,10 +438,12 @@ func _do_combat(mid: String, zid: String, eid: String) -> Dictionary:
 	# parked a run 52h at the Architect).
 	if bool(cm.enemy_db.get(eid, {}).get("is_boss", false)):
 		var _bl := int(_losses.get(eid, 0))
-		# Escalate the gear bar on SUSTAINED losses: Uncommon by default, Rare after 5
-		# real losses. Self-correcting — a boss winnable at Uncommon wins before the
-		# streak escalates (no over-farm); one that needs Rare escalates on true losses.
-		var _bar: int = 2 if _bl >= 5 else 1
+		# v139d Rare gate (owner rule, matches boss_gearcheck's invariant): every
+		# boss requires a full RARE set — Uncommon is a mathematical DNF, so
+		# farming to Uncommon first was 5 wasted attempts. Bar is Rare from the
+		# start; the zone bounty board (guaranteed Rare per claim) is the
+		# deterministic path the bot already works while farming.
+		var _bar: int = 2
 		if _bl >= 2 and not _boss_gear_ready(eid, _bar):
 			var reg := _regular_enemy_in_zone(zid)
 			if reg != "" and reg != eid:

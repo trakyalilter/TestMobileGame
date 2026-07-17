@@ -117,6 +117,14 @@ func _build_combined_stats_row() -> void:
 	if data.get("warp_hardened", false):
 		hb.add_child(_make_chip("CRYO-ONLY", Color(0.373, 0.878, 0.784), 8))
 
+	# v139d P3: boss-trait telegraph chips — the hangar-puzzle read BEFORE the
+	# fight (auto-battler contract: every mechanic is answerable pre-fight).
+	for tc in _trait_chips(data):
+		hb.add_child(_make_chip(tc[0], tc[1], 8))
+	# v139d Rare gate: bosses demand a full RARE set (Leg/Unique = accelerators).
+	if data.get("is_boss", false):
+		hb.add_child(_make_chip("NEEDS RARE GEAR", Color(1.0, 0.76, 0.30), 8))
+
 	for entry in [
 		[float(data.get("resist_k", 0.0)), "KIN"],
 		[float(data.get("resist_e", 0.0)), "NRG"],
@@ -130,6 +138,32 @@ func _build_combined_stats_row() -> void:
 		elif val < -0.05:
 			hb.add_child(_make_chip("▼%s" % tag, Color(0.275, 0.878, 0.627), 8))
 
+
+# v139d P3: trait def -> pre-fight chip [text, color]. Shared vocabulary with
+# the atlas entry (see atlas_page._trait_chips) — keep the two lists in sync.
+static func _trait_chips(e: Dictionary) -> Array:
+	var out: Array = []
+	if float(e.get("enrage_at", 0.0)) > 0.0:
+		out.append(["ENRAGES %d%%" % int(float(e["enrage_at"]) * 100.0), Color(1.0, 0.45, 0.30)])
+	var sus: Dictionary = e.get("sustain", {})
+	match String(sus.get("kind", "")):
+		"pulse":
+			out.append(["SHIELD PULSE", Color(0.40, 0.90, 1.0)])
+		"siphon":
+			out.append(["SHIELD SIPHON", Color(0.80, 0.50, 1.0)])
+		"nanite":
+			out.append(["NANITE REPAIR", Color(0.40, 1.0, 0.55)])
+	if not e.get("reactive_armor", {}).is_empty():
+		out.append(["REACTIVE PLATING", Color(0.85, 0.75, 0.40)])
+	if not e.get("adaptive_grid", {}).is_empty():
+		out.append(["ADAPTIVE GRID", Color(0.60, 0.85, 1.0)])
+	if not e.get("charge_nuke", {}).is_empty():
+		out.append(["CANNON CYCLE", Color(1.0, 0.75, 0.30)])
+	if not e.get("volatile", {}).is_empty():
+		out.append(["VOLATILE CORE", Color(1.0, 0.55, 0.20)])
+	if not e.get("corrosive_field", {}).is_empty():
+		out.append(["CORROSIVE FIELD", Color(0.70, 1.0, 0.40)])
+	return out
 
 func _add_stat_cell(parent: Node, icon_key: String, fallback_glyph: String, value: String, accent: Color) -> void:
 	var cell := HBoxContainer.new()

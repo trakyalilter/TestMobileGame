@@ -16,7 +16,7 @@ extends Node
 
 const DT := 0.1
 const MAXT := 1500.0   # v135c: was 300 — Z9/Z10 wins hit that cap and Z11 (~19min cryo kill) needs the room
-const TRIALS := 5   # per (boss,rarity) — smooths rarity-roll + affix + combat RNG
+const TRIALS := 9   # v139d: 5-trial cells swing ±2 (Z3 read 5/5 then 1/5 unchanged); 9 is the z12_tune-proven minimum for win-rate reads
 const RN := {0: "Common", 1: "Uncmn", 2: "Rare", 3: "Legnd", 4: "Uniq"}
 const SUFFIX := {"kinetic": "kinetic", "energy": "energy", "explosive": "missile"}
 const AMMO := {"kinetic": "Slug", "energy": "Cell", "explosive": "Missile"}

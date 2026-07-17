@@ -837,6 +837,11 @@ func _display_enemy_details(eid):
 
 	if e_raw.get("warp_hardened", false):
 		_identity_row.add_child(_make_chip("CRYO-ONLY", Color(0.373, 0.878, 0.784), 9))
+	# v139d P3: boss-trait chips (shared vocabulary with the pre-fight card).
+	for tc in load("res://scripts/ui/combat_enemy_card.gd")._trait_chips(e_raw):
+		_identity_row.add_child(_make_chip(tc[0], tc[1], 9))
+	if e_raw.get("is_boss", false):
+		_identity_row.add_child(_make_chip("NEEDS RARE GEAR", Color(1.0, 0.76, 0.30), 9))
 	for entry in [
 		[float(e_raw.get("resist_k", 0.0)), "KIN"],
 		[float(e_raw.get("resist_e", 0.0)), "NRG"],

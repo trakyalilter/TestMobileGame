@@ -269,7 +269,7 @@ func init_missions():
 		["m030c3", "Heavier Ordnance", "Your Zone-1 guns barely dent Zone-2 armor. Fabricate 3 'Concussion Missile' (Z2 EXPLOSIVE) and equip one per weapon slot. The Silicate Monolith ahead resists kinetic and energy but is WEAK TO EXPLOSIVE.", "craft", "z2_missile", 3, 30000, 3000, "m030d"],
 		# v134h: zone_3_access (Mars Debris Clearance) COSTS a Z2 boss core the chain never
 		# told the player to farm. Insert an explicit boss-farm beat (mirrors m030i/m032a).
-		["m030d", "Belt Overseer", "Defeat the Silicate Monolith (Asteroid Belt boss) to salvage a Z2 Sector Core for the Mars Debris charter. It shrugs off COMMON gear — if it out-lasts you, work the Asteroid Belt BOUNTY BOARD: hunt contracts pay a GUARANTEED Rare module on claim, far faster than praying for drops. EXPLOSIVE hits it hardest.", "defeat", "z2_boss_monolith", 1, 50000, 6000, "m030e"],
+		["m030d", "Belt Overseer", "Defeat the Silicate Monolith (Asteroid Belt boss) to salvage a Z2 Sector Core for the Mars Debris charter. Bosses demand a full RARE loadout — Common and Uncommon gear will not cut through. Work the Asteroid Belt BOUNTY BOARD: hunt contracts pay a GUARANTEED Rare module on claim. EXPLOSIVE hits it hardest.", "defeat", "z2_boss_monolith", 1, 50000, 6000, "m030e"],
 		# Mission bridge from Asteroid Belt to Sector Alpha (zones 3-4 introduction)
 		["m030e", "Mars Beachhead", "Research 'Mars Debris Clearance' (spends the Monolith core you just salvaged) to unlock the Mars Debris zone.", "research", "zone_3_access", 1, 40000, 5000, "m030f"],
 		["m030f", "Salvage Operations", "Defeat 3 Scavenger Mechs in the Mars Debris zone.", "defeat", "z3_scavenger_mech", 3, 60000, 8000, "m030fa"],
