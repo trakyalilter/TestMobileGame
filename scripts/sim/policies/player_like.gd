@@ -110,6 +110,7 @@ func pump_claims(sim_s: float) -> Array:
 	if bool(params["claims_at_start_only"]) and not at_session_start:
 		# DRIFTER only checks the board at login; completed missions sit.
 		return claimed
+	_pump_bounties()
 	for mid in mm.active_missions.duplicate():
 		var m: Dictionary = mm.missions[mid]
 		if not m["completed"] or m["claimed"]:
@@ -235,7 +236,11 @@ func _do_acquire(mid: String, sym: String) -> Dictionary:
 	# Whatever we're acquiring — INCLUDING recursion intermediates like the
 	# Res1 feeding an artifact-upgrade recipe — must never be sold out from
 	# under the chase by a slot-pressure sell (the 45-day-park leak).
-	_protect_syms[sym] = true
+	# v139c: protect the WHOLE recipe chain, not just the top symbol — the m030
+	# AdvCircuit stall was slot-pressure sells vendoring Au/Ag/Semiconductor/
+	# StructuralComponent as fast as the rotation produced them (advc froze at 5
+	# for 90 sim-hours while credits rose ~1.9M at ~1/unit vendor prices).
+	_protect_chain(sym)
 	var src: Dictionary = actions.source_for(sym)
 	match String(src.get("kind", "none")):
 		"gather":
@@ -547,8 +552,53 @@ func _do_combat_farm(mid: String, zid: String, eid: String, attr: String = "dire
 	var prep := _prep_for_fight(mid, eid)
 	if not prep.is_empty():
 		return prep
+	_work_zone_board(zid, eid)
 	return {"kind": "combat_farm", "zone": zid, "enemy": eid, "length": 120.0,
 		"attr": attr, "obj": mid, "why": "farm %s @%s" % [eid, zid]}
+
+# v139c: recursive sell-protection for an acquire chase — the target symbol
+# AND every input down its recipe chain (depth-capped). A real player does not
+# vendor the semiconductor stock they are crafting circuits from.
+func _protect_chain(sym: String, depth: int = 0) -> void:
+	if depth > 4 or _protect_syms.has(sym):
+		return
+	_protect_syms[sym] = true
+	var rid: String = actions.recipe_producing(sym)
+	if rid == "":
+		return
+	for inp in GameState.processing_manager.recipes.get(rid, {}).get("input", {}):
+		_protect_chain(String(inp), depth + 1)
+
+# --- Bounty board play (v139c) ---------------------------------------------
+# Real players work the zone contract board while farming: kills count toward
+# an accepted hunt passively, and a claimed contract pays a GUARANTEED
+# Rare-floor module — the designed deterministic bridge over drop-RNG gear
+# walls (m030d teaches this in-game as of v139c). No grants: accept + claim
+# are ordinary player actions through the manager API.
+func _pump_bounties() -> void:
+	var bm = GameState.bounty_manager
+	if bm == null:
+		return
+	for c in bm.active_contracts.duplicate():
+		if bool(c.get("completed", false)) and not bool(c.get("claimed", false)):
+			bm.claim_contract(String(c.get("id", "")))
+
+func _work_zone_board(zid: String, eid: String) -> void:
+	var bm = GameState.bounty_manager
+	if bm == null or bm.active_contracts.size() >= bm.MAX_ACTIVE:
+		return
+	var have := {}
+	for c in bm.active_contracts:
+		have[String(c.get("target", ""))] = true
+	for c in bm.get_zone_contracts(zid):
+		# The farming bot takes the plain hunt on the enemy it is ALREADY
+		# killing — elites spike danger and boss bounties are deliberate runs.
+		if bool(c.get("is_elite", false)) or bool(c.get("is_boss_hunt", false)):
+			continue
+		var tgt := String(c.get("target", ""))
+		if tgt == eid and not have.has(tgt):
+			bm.accept_contract(String(c.get("id", "")))
+			return
 
 # --- Gear-check readiness (v135a) ---------------------------------------------
 # A Zone-N boss is a gear-check: rare+ weak-type weapons + rare+ armor/shield beat

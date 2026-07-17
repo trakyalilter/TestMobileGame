@@ -30,7 +30,7 @@ function Run-Bot([string]$arch, [int]$seedv, [string]$untilv, [int]$daysv, [stri
     Write-Host "[matrix] $arch seed=$seedv until=$untilv days=$daysv"
     & $Godot --headless --path $root res://scenes/player_bot.tscn -- `
         "--archetype=$arch" "--seed=$seedv" "--days=$daysv" "--until=$untilv" "--out=$out" 2>$null |
-        Select-String -Pattern "\[PBOT\]\[(SUMMARY|WALL|WARN)\]" | ForEach-Object { Write-Host $_.Line }
+        Select-String -Pattern "\[PBOT\]\[(SUMMARY|WALL|WARN)\]|\[FUN\]\[" | ForEach-Object { Write-Host $_.Line }
 }
 
 # 2) Dry-walk -- chain must be fully mappable before any timed run.

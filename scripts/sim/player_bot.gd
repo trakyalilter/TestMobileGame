@@ -51,6 +51,25 @@ var _stop_reason := ""
 var _pump_accum := 0.0
 var _trace_obj := ""
 
+# ── FUN instrumentation (v139c) — boredom proxies for the design fun-audit ──
+# v2: the policy re-decides every ~30s, so raw signature flips are micro-churn
+# (smoke run read 66-99 "switches"/h — noise). Human-meaningful measures instead:
+#   context switches = kind-CLASS changes debounced by a 5-min hold
+#   sits             = per-target time, RESUMABLE across interruptions < 30 active-min
+var _fun_active_s := 0.0            # cumulative ACTIVE seconds (offline-immune clock)
+var _fun_cur_sig := ""              # current productive signature (kind|target)
+var _fun_cur_cls := ""              # current kind-class (gather/process/combat)
+var _fun_cls := ""                  # debounce: last counted class
+var _fun_cls_accum := 0.0           # active s on current class since last counted switch
+var _fun_sits := {}                 # sig -> {accum, start_h, last_at} resumable sits
+var _fun_streaks: Array = []        # closed sits: {sig, start_h, active_s}
+var _fun_day_sw := {}               # day -> debounced context switches
+var _fun_day_active := {}           # day -> active seconds
+var _fun_day_cls := {}              # day -> {class: active_s} activity mix
+var _fun_novelty: Array = []        # {tag, active_s, sim_s, day}
+var _fun_seen := {}                 # dedupe/counter state for polled novelty
+var _warp_curve: Array = []         # {n, sim_h, shards} — v138 cadence re-measure
+
 func _ready() -> void:
 	call_deferred("_boot")
 
@@ -129,6 +148,8 @@ func _run_one(arch: String, run_seed: int, days: int, until: String) -> void:
 	_last_sig = ""
 	_last_prog_step = 0
 	_stop_reason = ""
+	_fun_reset()
+	_fun_connect_signals()
 	_index_chain()
 
 	policy = POLICY.new()
@@ -186,14 +207,17 @@ func _run_session(day_no: int, s_idx: int, length: float, until: String) -> void
 		_drain_policy_events()
 		var slice: float = min(float(d.get("length", 30.0)), remaining)
 		var kind := String(d.get("kind", "idle"))
+		_fun_note_decision(kind, d)
 		# --traceobj=<mid>: one record per decision slice WHILE that mission is
 		# active — diagnoses where active time goes in a suspect funnel band.
 		if _trace_obj != "" and String(d.get("obj", "")) == _trace_obj:
 			tele.write({"t": "trace", "obj": _trace_obj, "kind": kind,
+				"id": String(d.get("id", "")),
 				"why": String(d.get("why", "")), "attr": String(d.get("attr", "")),
 				"slice": round(slice), "status": String(policy.status),
 				"credits": int(GameState.resources.get_currency("credits")),
 				"res2": int(GameState.resources.get_element_amount("Res2")),
+				"advc": int(GameState.resources.get_element_amount("AdvCircuit")),
 				"day": day_no, "sim_s": round(sim_s)})
 		match kind:
 			"gather", "process":
@@ -211,6 +235,8 @@ func _run_session(day_no: int, s_idx: int, length: float, until: String) -> void
 				# still tick (infra/bounty run regardless — faithful).
 				_run_dead_slice(d, slice)
 		_attribute(d, slice)
+		if kind in ["gather", "process", "combat", "combat_farm"]:
+			_fun_account(slice)
 		remaining -= slice
 		if _dead_streak >= float(policy.params["boredom_s"]):
 			end_cause = "boredom"
@@ -398,6 +424,9 @@ func _do_warp() -> void:
 	tele.write({"t": "warp", "gains": gains, "total_warps": wm.total_warps,
 		"shards": wm.warp_shards, "sim_s": round(sim_s)})
 	print("[PBOT][WARP] +%d shards at sim=%.1fh" % [gains, sim_s / 3600.0])
+	_fun_close_streak()   # warp is a hard context reset — the sit ends here
+	_warp_curve.append({"n": int(wm.total_warps), "sim_h": sim_s / 3600.0, "shards": int(wm.warp_shards)})
+	_fun_novelty_event("warp_%d" % int(wm.total_warps))
 
 # ---------------------------------------------------------------------------
 # Offline gap: ONE closed-form call, resource deltas reported.
@@ -457,6 +486,7 @@ func _pump() -> void:
 		var _zk := "zone_%d" % _z
 		if not milestones.has(_zk) and _rm.is_tech_unlocked("zone_%d_access" % _z):
 			milestones[_zk] = round(sim_s)
+			_fun_novelty_event("zone_%d" % _z)
 			tele.write({"t": "zone", "zone": _z, "sim_s": round(sim_s), "day": day,
 				"g": GameState.gathering_manager.get_level(),
 				"p": GameState.processing_manager.get_level(),
@@ -469,6 +499,7 @@ func _pump() -> void:
 	# COULD the player first warp", independent of whether the policy chooses to.
 	if not milestones.has("first_rift") and GameState.warp_manager and GameState.warp_manager.rift_open:
 		milestones["first_rift"] = round(sim_s)
+		_fun_novelty_event("rift")
 		tele.write({"t": "rift", "sim_s": round(sim_s), "day": day,
 			"gains": int(GameState.warp_manager.calculate_warp_gains())})
 	var claimed: Array = policy.pump_claims(sim_s)
@@ -478,6 +509,7 @@ func _pump() -> void:
 			_emit_mission(String(mid))
 		if MILESTONE_IDS.has(mid) and not milestones.has(MILESTONE_IDS[mid]):
 			milestones[MILESTONE_IDS[mid]] = round(sim_s)
+	_fun_poll_novelty()
 	_drain_policy_events()
 	if step % HEARTBEAT < 4 and step > 0:
 		var obj: Dictionary = GameState.mission_manager.get_active_objective()
@@ -618,6 +650,8 @@ func _emit_snap(tag: String) -> void:
 		"kills": int(GameState.combat_manager.total_kills)})
 
 func _emit_summary(arch: String, run_seed: int, until: String) -> void:
+	_fun_close_streak()
+	_fun_emit_report()
 	var mm = GameState.mission_manager
 	var claimed_n := 0
 	var deepest := ""
@@ -642,6 +676,183 @@ func _emit_summary(arch: String, run_seed: int, until: String) -> void:
 		sim_s / 3600.0, day, walls.size(), violations])
 
 # ---------------------------------------------------------------------------
+# FUN instrumentation (v139c) — boredom proxies for the design fun-audit.
+# All durations are measured in ACTIVE seconds (offline gaps and dead/blocked
+# time excluded from the clock), so an overnight gap never reads as tedium.
+# Three signals:
+#   DENSITY — activity switches per active hour (low = railroaded grind)
+#   STREAK  — longest same-activity sits (the literal boredom candidates)
+#   DESERT  — active-time spans with zero novelty (no new tech/zone/boss/
+#             building/hull/reveal/warp = nothing new happened to the player)
+# Plus WARPCURVE — the v138 warp-cadence re-measure Loop 2 tuning needs.
+# ---------------------------------------------------------------------------
+func _fun_reset() -> void:
+	_fun_active_s = 0.0
+	_fun_cur_sig = ""
+	_fun_cur_cls = ""
+	_fun_cls = ""
+	_fun_cls_accum = 0.0
+	_fun_sits.clear()
+	_fun_streaks.clear()
+	_fun_day_sw.clear()
+	_fun_day_active.clear()
+	_fun_day_cls.clear()
+	_fun_novelty.clear()
+	_fun_seen.clear()
+	_warp_curve.clear()
+
+func _fun_connect_signals() -> void:
+	var im = GameState.infrastructure_manager
+	if im and not im.building_constructed.is_connected(_on_fun_building):
+		im.building_constructed.connect(_on_fun_building)
+	var sm = GameState.shipyard_manager
+	if sm and not sm.hull_constructed.is_connected(_on_fun_hull):
+		sm.hull_constructed.connect(_on_fun_hull)
+
+func _on_fun_building(building_id) -> void:
+	var tag := "building:%s" % str(building_id)
+	if not _fun_seen.has(tag):
+		_fun_seen[tag] = true
+		_fun_novelty_event(tag)
+
+func _on_fun_hull(hull_id) -> void:
+	var tag := "hull:%s" % str(hull_id)
+	if not _fun_seen.has(tag):
+		_fun_seen[tag] = true
+		_fun_novelty_event(tag)
+
+func _fun_note_decision(kind: String, d: Dictionary) -> void:
+	# idle/blocked slices neither switch nor extend a productive sit; warp is
+	# handled in _do_warp (a hard context reset closes all sits).
+	if not (kind in ["gather", "process", "combat", "combat_farm"]):
+		return
+	var target := String(d.get("id", ""))
+	if target == "":
+		target = "%s/%s" % [String(d.get("zone", "?")), String(d.get("enemy", "?"))]
+	var cls := "combat" if kind.begins_with("combat") else kind
+	_fun_cur_sig = "%s|%s" % [cls, target]
+	_fun_cur_cls = cls
+	# Debounced context switch: only count a class change once the PREVIOUS class
+	# was held >= 5 active minutes (policy micro-churn never registers).
+	if cls != _fun_cls:
+		if _fun_cls != "" and _fun_cls_accum >= 300.0:
+			_fun_day_sw[day] = int(_fun_day_sw.get(day, 0)) + 1
+		_fun_cls = cls
+		_fun_cls_accum = 0.0
+
+# Active-time accounting for the current productive slice (called only for
+# gather/process/combat kinds, right after the slice runs).
+func _fun_account(slice: float) -> void:
+	_fun_active_s += slice
+	_fun_day_active[day] = float(_fun_day_active.get(day, 0.0)) + slice
+	_fun_cls_accum += slice
+	if _fun_cur_cls != "":
+		if not _fun_day_cls.has(day):
+			_fun_day_cls[day] = {}
+		_fun_day_cls[day][_fun_cur_cls] = float(_fun_day_cls[day].get(_fun_cur_cls, 0.0)) + slice
+	if _fun_cur_sig == "":
+		return
+	# Resumable sit: interruptions < 30 active-minutes don't end the sit — a
+	# farm broken by repairs/restocks is still the same farm to the player.
+	var sit: Dictionary = _fun_sits.get(_fun_cur_sig, {})
+	if sit.is_empty() or (_fun_active_s - float(sit.get("last_at", 0.0))) > 1800.0:
+		_fun_seal_sit(_fun_cur_sig)
+		sit = {"accum": 0.0, "start_h": sim_s / 3600.0, "last_at": _fun_active_s}
+	sit["accum"] = float(sit["accum"]) + slice
+	sit["last_at"] = _fun_active_s
+	_fun_sits[_fun_cur_sig] = sit
+
+func _fun_seal_sit(sig: String) -> void:
+	var sit: Dictionary = _fun_sits.get(sig, {})
+	# Sub-10-minute blips aren't sits — don't log them.
+	if not sit.is_empty() and float(sit.get("accum", 0.0)) >= 600.0:
+		_fun_streaks.append({"sig": sig, "start_h": float(sit["start_h"]), "active_s": float(sit["accum"])})
+	_fun_sits.erase(sig)
+
+func _fun_close_streak() -> void:
+	# Close ALL open sits (warp context reset / end of run).
+	for sig in _fun_sits.keys().duplicate():
+		_fun_seal_sit(sig)
+
+func _fun_novelty_event(tag: String) -> void:
+	_fun_novelty.append({"tag": tag, "active_s": round(_fun_active_s), "sim_s": round(sim_s), "day": day})
+	tele.write({"t": "fun_nov", "tag": tag, "active_s": round(_fun_active_s),
+		"sim_s": round(sim_s), "day": day})
+
+func _fun_poll_novelty() -> void:
+	var rm = GameState.research_manager
+	var n_res: int = rm.unlocked_techs.size()
+	if n_res != int(_fun_seen.get("research_n", 0)):
+		_fun_seen["research_n"] = n_res
+		var last := "?"
+		if n_res > 0:
+			last = String(rm.unlocked_techs.back())
+		_fun_novelty_event("research:%s" % last)
+	var n_boss: int = GameState.combat_manager.boss_kills.size()
+	if n_boss != int(_fun_seen.get("boss_n", 0)):
+		_fun_seen["boss_n"] = n_boss
+		_fun_novelty_event("boss_kill_type_%d" % n_boss)
+	for flag in ["warp_first_revealed", "cryo_unlocked", "z11_unlocked", "recursion_revealed", "mastery_intro_seen"]:
+		var fk := "flag:%s" % flag
+		if not _fun_seen.has(fk) and bool(GameState.game_settings.get(flag, false)):
+			_fun_seen[fk] = true
+			_fun_novelty_event("reveal:%s" % flag)
+
+func _fun_emit_report() -> void:
+	# Context-switch density per day (debounced class changes per ACTIVE hour)
+	var dens_parts: Array = []
+	var mix_parts: Array = []
+	var d_i := 0
+	while d_i <= day:
+		var sw := int(_fun_day_sw.get(d_i, 0))
+		var act_h: float = float(_fun_day_active.get(d_i, 0.0)) / 3600.0
+		var dens := 0.0
+		if act_h > 0.05:
+			dens = float(sw) / act_h
+		dens_parts.append("d%d sw=%d act=%.1fh dens=%.1f" % [d_i, sw, act_h, dens])
+		# Activity mix: what share of the day's active time went to each class
+		var cls_d: Dictionary = _fun_day_cls.get(d_i, {})
+		var act_s: float = float(_fun_day_active.get(d_i, 0.0))
+		if act_s > 60.0:
+			mix_parts.append("d%d g%d%%/p%d%%/c%d%%" % [d_i,
+				int(round(100.0 * float(cls_d.get("gather", 0.0)) / act_s)),
+				int(round(100.0 * float(cls_d.get("process", 0.0)) / act_s)),
+				int(round(100.0 * float(cls_d.get("combat", 0.0)) / act_s))])
+		d_i += 1
+	print("[FUN][DENSITY] %s" % " | ".join(PackedStringArray(dens_parts)))
+	print("[FUN][MIX] %s" % " | ".join(PackedStringArray(mix_parts)))
+	# Top-5 longest sits
+	_fun_streaks.sort_custom(func(a, b): return float(a["active_s"]) > float(b["active_s"]))
+	for i in range(mini(5, _fun_streaks.size())):
+		var st: Dictionary = _fun_streaks[i]
+		print("[FUN][STREAK] %.1fh active on %s (started sim=%.1fh)" % [
+			float(st["active_s"]) / 3600.0, String(st["sig"]), float(st["start_h"])])
+	# Novelty deserts: active-time gaps > 2h with nothing new
+	var prev_s := 0.0
+	var prev_tag := "run_start"
+	for ev in _fun_novelty:
+		var gap: float = float(ev["active_s"]) - prev_s
+		if gap > 7200.0:
+			print("[FUN][DESERT] %.1fh active with nothing new: after %s (act=%.1fh) until %s (act=%.1fh, d%d)" % [
+				gap / 3600.0, prev_tag, prev_s / 3600.0, String(ev["tag"]),
+				float(ev["active_s"]) / 3600.0, int(ev["day"])])
+		prev_s = float(ev["active_s"])
+		prev_tag = String(ev["tag"])
+	var tail: float = _fun_active_s - prev_s
+	if tail > 7200.0:
+		print("[FUN][DESERT] %.1fh active with nothing new at RUN END (after %s)" % [tail / 3600.0, prev_tag])
+	# Warp cadence curve (v138 re-measure for Loop 2 tuning states)
+	if _warp_curve.size() > 0:
+		var wc_parts: Array = []
+		for w in _warp_curve:
+			wc_parts.append("w%d@%.1fh(%dsh)" % [int(w["n"]), float(w["sim_h"]), int(w["shards"])])
+		print("[FUN][WARPCURVE] %s" % "  ".join(PackedStringArray(wc_parts)))
+	tele.write({"t": "fun_summary", "novelty_n": _fun_novelty.size(),
+		"streaks": _fun_streaks.slice(0, mini(10, _fun_streaks.size())),
+		"day_switches": _fun_day_sw.duplicate(), "day_active": _fun_day_active.duplicate(),
+		"active_s": round(_fun_active_s), "warp_curve": _warp_curve.duplicate()})
+
+# ---------------------------------------------------------------------------
 func _assert_clean(tag: String) -> void:
 	var ok := true
 	if GameState.resources.lifetime_credits > 0.0: ok = false
@@ -654,9 +865,11 @@ func _open_tele() -> void:
 	tele = load("res://scripts/sim/sim_telemetry.gd").new()
 	var out := String(args.get("out", ""))
 	if out == "":
-		DirAccess.make_dir_recursive_absolute("user://sim_out")
 		out = "user://sim_out/player_%s_%s.jsonl" % [
 			String(args.get("archetype", "follower")), String(args.get("seed", "11"))]
+	# Ensure the parent dir exists for CUSTOM --out paths too — a nested
+	# user://sim_out/players/<stamp>/ dir silently swallowed two matrices' jsonls.
+	DirAccess.make_dir_recursive_absolute(out.get_base_dir())
 	tele.open_path(out)
 	print("[PBOT] telemetry -> %s (user dir: %s)" % [out, OS.get_user_data_dir()])
 
