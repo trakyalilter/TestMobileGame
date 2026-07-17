@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/sim/font_turkish_check.gd" id="1_fc"]
+
+[node name="FontTurkishCheck" type="Node"]
+script = ExtResource("1_fc")

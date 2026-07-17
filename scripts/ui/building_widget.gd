@@ -31,11 +31,11 @@ func setup(p_bid: String, p_data: Dictionary, p_manager, p_parent):
 	
 	custom_minimum_size = Vector2(0, 240)
 	
-	name_lbl.text = data["name"]
+	name_lbl.text = tr(data["name"])
 	name_lbl.add_theme_color_override("font_color", UITheme.CATEGORY_COLORS["infrastructure"])
 	name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	
-	desc_lbl.text = data["description"]
+	desc_lbl.text = tr(data["description"])
 	desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	
 	stats_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -59,7 +59,7 @@ func setup(p_bid: String, p_data: Dictionary, p_manager, p_parent):
 		_oc_label.visible = false
 		_oc_container.get_node("OCSlider").hide()
 		_oc_btn = Button.new()
-		_oc_btn.text = "INSTALL BOOST CARD"
+		_oc_btn.text = tr("INSTALL BOOST CARD")
 		_oc_btn.custom_minimum_size = Vector2(0, 28)
 		_oc_btn.clip_text = true  # v131: never let a long label widen the card
 		_oc_btn.add_theme_font_size_override("font_size", 10)
@@ -99,13 +99,13 @@ func _ensure_header():
 	throttle_container.add_child(throttle_header)
 	
 	var throttle_title = Label.new()
-	throttle_title.text = "Efficiency"
+	throttle_title.text = tr("Efficiency")
 	throttle_title.add_theme_font_size_override("font_size", 10)
 	throttle_header.add_child(throttle_title)
 	
 	var throttle_val_lbl = Label.new()
 	var current_throttle = manager.get_building_throttle(bid)
-	throttle_val_lbl.text = "%d%%" % (current_throttle * 100)
+	throttle_val_lbl.text = tr("%d%%") % (current_throttle * 100)
 	throttle_val_lbl.add_theme_font_size_override("font_size", 10)
 	throttle_val_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	throttle_val_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -124,7 +124,7 @@ func _ensure_header():
 
 	slider.value_changed.connect(func(val):
 		manager.set_building_throttle(bid, val / 100.0)
-		throttle_val_lbl.text = "%d%%" % val
+		throttle_val_lbl.text = tr("%d%%") % val
 	)
 	
 	var gen = data.get("energy_gen", 0.0)
@@ -214,9 +214,9 @@ func update_state():
 	var max_count = data.get("max", 999)
 	
 	if data.has("max"):
-		count_lbl.text = "Owned: %d / %d" % [count, max_count]
+		count_lbl.text = tr("Owned: %d / %d") % [count, max_count]
 	else:
-		count_lbl.text = "Owned: %d" % count
+		count_lbl.text = tr("Owned: %d") % count
 	
 	# Infra↔Mastery: linked Mastery level + the output bonus it grants (count>0).
 	_update_mastery_readout(count)
@@ -234,7 +234,7 @@ func update_state():
 		if show_oc:
 			_oc_btn.visible = true
 			_oc_btn.disabled = false
-			_oc_btn.text = "UNLOCK 200% (1 Card)"
+			_oc_btn.text = tr("UNLOCK 200% (1 Card)")
 		# Keep the slider ceiling synced — install lifts it to 200% live.
 		if _throttle_slider:
 			_throttle_slider.max_value = 200 if unlocked else 100
@@ -283,35 +283,35 @@ func update_state():
 		var tech_data = GameState.research_manager.tech_tree.get(req_id, {})
 		var tech_name = tech_data.get("name", "Unknown Tech")
 		# Force strict formatting
-		var lock_msg = "RESEARCH: %s" % tech_name
+		var lock_msg = tr("RESEARCH: %s") % tr(tech_name)
 		UITheme.apply_locked_overlay(self, data["name"], lock_msg, true, req_id, "infrastructure")
-		buy_btn.text = "RESEARCH REQUIRED" # All Caps for emphasis
+		buy_btn.text = tr("RESEARCH REQUIRED") # All Caps for emphasis
 		buy_btn.disabled = true
 		return
 	elif not has_level:
-		UITheme.apply_locked_overlay(self, data["name"], "LEVEL %d REQUIRED" % lvl_req, true, "", "infrastructure")
-		buy_btn.text = "Requires Lv %d" % lvl_req
+		UITheme.apply_locked_overlay(self, data["name"], tr("LEVEL %d REQUIRED") % lvl_req, true, "", "infrastructure")
+		buy_btn.text = tr("Requires Lv %d") % lvl_req
 		buy_btn.disabled = true
 		return
 	else:
 		UITheme.apply_locked_overlay(self, data["name"], "", false)
 
 	if data.has("max") and count >= max_count:
-		buy_btn.text = "Maxed"
+		buy_btn.text = tr("Maxed")
 		buy_btn.disabled = true
 		_stop_pulse()
 	elif can_afford_all:
 		var mult = manager.buy_multiplier
-		buy_btn.text = "Build x%d" % mult if mult > 1 else "Build"
+		buy_btn.text = tr("Build x%d") % mult if mult > 1 else "Build"
 		buy_btn.disabled = false
 		buy_btn.tooltip_text = ""
 		_start_pulse()
 	else:
 		# Name the blocking resource so a clipped/long cost list can't hide
 		# WHY Build is disabled (the Drone Core / Salvage Data class).
-		buy_btn.text = "Need %s" % missing
+		buy_btn.text = tr("Need %s") % missing
 		buy_btn.disabled = true
-		buy_btn.tooltip_text = "Missing: %s" % missing
+		buy_btn.tooltip_text = tr("Missing: %s") % missing
 		_stop_pulse()
 
 var pulse_tween: Tween
@@ -329,12 +329,39 @@ func _on_buy_button_pressed():
 	if GameState.infrastructure_manager.build(bid):
 		# TACTILE: UI Thud on purchase
 		UITheme.trigger_ui_thud(self, 6.0)
-		
+
 		# Visual feedback pop
 		var tween = create_tween()
 		tween.tween_property(self, "scale", Vector2(1.05, 1.05), 0.1)
 		tween.tween_property(self, "scale", Vector2(1.0, 1.0), 0.1)
 		parent_ui.update_ui()
+	else:
+		# v137: build() was SILENT on failure. The cost display is throttled (~200ms), so
+		# a card can still read "affordable" green for a moment after a resource drops
+		# below cost — the player clicks, can_afford fails, and nothing visibly happens.
+		# Tell them exactly what's short, then re-sync THIS card so the stale green corrects.
+		UITheme.show_notification(_build_block_reason(), UITheme.COLORS["negative"])
+		update_state()
+
+# Why can't this be built right now? Names the first shortfall for the failure toast.
+func _build_block_reason() -> String:
+	var costs = manager.get_building_cost(bid)
+	for res in costs:
+		var need := float(costs[res])
+		var have := 0.0
+		if res == "credits":
+			have = float(GameState.resources.get_currency("credits"))
+		else:
+			have = GameState.resources.get_element_amount(res)
+		if have < need:
+			var nm: String = "Liras" if res == "credits" else ElementDB.get_display_name(res)
+			return "Need %s more %s" % [FormatUtils.format_number(need - have), nm]
+	var d: Dictionary = manager.building_db.get(bid, {})
+	if d.get("research_req") and GameState.research_manager and not GameState.research_manager.is_tech_unlocked(d["research_req"]):
+		return "Research required to build this"
+	if d.has("max"):
+		return "Maximum reached"
+	return "Cannot build right now"
 
 func _update_mastery_readout(count: int) -> void:
 	if not _mastery_lbl: return
@@ -346,7 +373,7 @@ func _update_mastery_readout(count: int) -> void:
 		_mastery_lbl.visible = false
 		return
 	var disp: String = ElementDB.get_display_name(info.get("symbol", ""))
-	_mastery_lbl.text = "%s Mastery  Lv %d  (+%d%% output)" % [disp, int(info.get("level", 0)), int(round(info.get("bonus_pct", 0.0)))]
+	_mastery_lbl.text = tr("%s Mastery  Lv %d  (+%d%% output)") % [disp, int(info.get("level", 0)), int(round(info.get("bonus_pct", 0.0)))]
 	_mastery_lbl.visible = true
 
 # v130: install one Boost Card from cargo onto this building type (consumed —

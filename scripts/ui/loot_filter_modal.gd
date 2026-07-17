@@ -53,14 +53,14 @@ func _ready():
 	panel.add_child(vbox)
 
 	var title = Label.new()
-	title.text = "LOOT FILTER"
+	title.text = tr("LOOT FILTER")
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 18)
 	title.add_theme_color_override("font_color", ACCENT)
 	vbox.add_child(title)
 
 	var sub = Label.new()
-	sub.text = "Only loot you keep is rolled — filtered drops are skipped entirely."
+	sub.text = tr("Only loot you keep is rolled — filtered drops are skipped entirely.")
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sub.add_theme_font_size_override("font_size", 10)
 	sub.add_theme_color_override("font_color", Color(0.55, 0.58, 0.66))
@@ -82,7 +82,7 @@ func _ready():
 	vbox.add_child(_rule())
 
 	btn_close = Button.new()
-	btn_close.text = "CLOSE"
+	btn_close.text = tr("CLOSE")
 	btn_close.custom_minimum_size = Vector2(0, 42)
 	vbox.add_child(btn_close)
 	UITheme.apply_premium_button_style(btn_close, "combat")
@@ -153,7 +153,7 @@ func _build_filter_sections():
 		weapon_type_column.add_child(cb)
 
 	var note = Label.new()
-	note.text = "Applies only to\nweapon drops."
+	note.text = tr("Applies only to\nweapon drops.")
 	note.add_theme_font_size_override("font_size", 9)
 	note.add_theme_color_override("font_color", Color(0.5, 0.53, 0.6))
 	weapon_type_column.add_child(note)

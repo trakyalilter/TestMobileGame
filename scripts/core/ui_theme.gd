@@ -28,6 +28,15 @@ const CHROME_PRECURSOR := 2
 func get_card_chrome() -> int:
 	return int(GameState.game_settings.get("card_chrome", CHROME_INDUSTRIAL))
 
+# Turkish-aware uppercase. Godot's String.to_upper() is NOT locale-tailored, so it
+# maps 'i' -> 'I' (English) when Turkish needs 'i' -> 'İ'. Pre-substitute the dotted
+# form under the tr locale, then let to_upper() handle the rest (ı->I, ş->Ş, ...).
+# Use this instead of .to_upper() on any player-facing / translated string.
+func tr_upper(s: String) -> String:
+	if TranslationServer.get_locale().begins_with("tr"):
+		return s.replace("i", "İ").to_upper()
+	return s.to_upper()
+
 # v134: custom Precursor Bloom scrollbar. sci_fi_theme.tres ships NO ScrollBar
 # entries, so every ScrollContainer fell back to Godot's grey default. Install a
 # slim teal capsule grabber (on a recessed groove) that brightens to aqua on
@@ -1175,7 +1184,7 @@ func _build_mastery_body(parent: VBoxContainer) -> void:
 	# Section caption — only piece of "telling" we keep, because raw "−5%"
 	# is ambiguous (yield? damage? duration?). One word disambiguates 5 rows.
 	var caption := Label.new()
-	caption.text = "DURATION BONUS"
+	caption.text = tr("DURATION BONUS")
 	caption.uppercase = true
 	caption.add_theme_font_size_override("font_size", 9)
 	caption.add_theme_color_override("font_color", Color(0.498, 0.639, 0.612))
@@ -1205,7 +1214,7 @@ func _build_mastery_body(parent: VBoxContainer) -> void:
 		key_lbl.add_theme_font_size_override("normal_font_size", 11)
 		key_lbl.add_theme_font_size_override("bold_font_size", 11)
 		key_lbl.add_theme_color_override("default_color", r[2])
-		key_lbl.text = "[b]%s[/b]" % r[0]
+		key_lbl.text = tr("[b]%s[/b]") % r[0]
 		key_lbl.custom_minimum_size = Vector2(48, 0)   # fits "Lv 100" bold
 		grid.add_child(key_lbl)
 
@@ -1827,7 +1836,7 @@ func apply_locked_overlay(card: Control, item_name: String, message: String, is_
 			lock_lbl.add_theme_constant_override("outline_size", 3)
 			lock_lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
 		else:
-			lock_lbl.text = "LOCKED"
+			lock_lbl.text = tr("LOCKED")
 			lock_lbl.add_theme_font_size_override("font_size", 14)
 			lock_lbl.add_theme_color_override("font_color", Color.WHITE)
 		vbox.add_child(lock_lbl)
@@ -1868,9 +1877,9 @@ func _update_locked_message(lbl: RichTextLabel, message: String, tech_id: String
 	if message.to_upper().begins_with("RESEARCH:") and tech_id != "":
 		# Handle both "RESEARCH: Name" and "RESEARCH: NAME"
 		var tech_name = message.substr(9).strip_edges() # Skip "RESEARCH:"
-		lbl.text = "[center]RESEARCH:\n[url=research:%s][color=#ffdd22][u]%s[/u][/color][/url][/center]" % [tech_id, tech_name]
+		lbl.text = tr("[center]RESEARCH:\n[url=research:%s][color=#ffdd22][u]%s[/u][/color][/url][/center]") % [tech_id, tech_name]
 	else:
-		lbl.text = "[center]%s[/center]" % message
+		lbl.text = tr("[center]%s[/center]") % message
 
 # --- ACTIVITY CARD OVERHAUL (additive; used only by the gathering /
 # processing widgets -- does NOT touch the shared inject_diegetic_header /
@@ -1994,7 +2003,7 @@ func wrap_in_io_panel(label: Control, category: String, kind: String) -> PanelCo
 	m.add_child(col)
 
 	var cap = Label.new()
-	cap.text = ({"yield": "YIELD", "output": "OUTPUT", "input": "INPUTS"}).get(kind, kind.to_upper())
+	cap.text = tr(({"yield": "YIELD", "output": "OUTPUT", "input": "INPUTS"}).get(kind, kind.to_upper()))
 	cap.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	cap.add_theme_font_size_override("font_size", 8)
 	cap.add_theme_constant_override("outline_size", 0)

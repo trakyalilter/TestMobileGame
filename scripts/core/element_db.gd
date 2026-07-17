@@ -306,11 +306,11 @@ func get_display_name(symbol: String) -> String:
 	if symbol == "credits":
 		return "Liras"
 	if symbol in ELEMENT_NAMES:
-		return ELEMENT_NAMES[symbol]
+		return tr(ELEMENT_NAMES[symbol])
 	
 	# Fallback to JSON data if hardcoded name is missing
-	if symbol in ELEMENT_DATA:
-		return ELEMENT_DATA[symbol].get("name", symbol)
+	if ELEMENT_DATA.has(symbol):
+		return tr(ELEMENT_DATA[symbol].get("name", symbol))
 		
 	return symbol
 

@@ -18,7 +18,7 @@ func setup(data):
 	enemy_data = data
 
 	# Title
-	title_lbl.text = "Intel: " + data["name"]
+	title_lbl.text = tr("Intel: ") + data["name"]
 
 	# Stats
 	var hp = data["stats"]["hp"]
@@ -26,7 +26,7 @@ func setup(data):
 	var df = data["stats"]["def"]
 	var shield = data["stats"].get("max_shield", 0)
 
-	stats_lbl.text = "HP: %d | Shield: %d\nATK: %d | DEF: %d" % [hp, shield, atk, df]
+	stats_lbl.text = tr("HP: %d | Shield: %d\nATK: %d | DEF: %d") % [hp, shield, atk, df]
 
 	# Clear Loot (must happen before adding new children)
 	for c in loot_container.get_children():

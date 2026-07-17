@@ -71,7 +71,7 @@ func _ready():
 	# v121: output search bar — type a material (e.g. "Steel", "Circuit") to filter
 	# recipes to those that PRODUCE it, across every category tab. Sits above the tabs.
 	_search_bar = LineEdit.new()
-	_search_bar.placeholder_text = "Search by output  (e.g. Steel)…"
+	_search_bar.placeholder_text = tr("Search by output  (e.g. Steel)…")
 	_search_bar.clear_button_enabled = true
 	_search_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_search_bar.custom_minimum_size = Vector2(0, 32)
@@ -120,7 +120,7 @@ func refresh_recipes():
 	_tab_pages.clear()
 
 	# One hidden page per tab; inside, a 4-col grid per sub-category. Merged
-	# tabs (>1 cat) get a small sub-header before each grid.
+	# tabs (>1 cat) get a small sub-header before each grid. 
 	for t in TAB_DEFS:
 		var tab_id: String = String(t["id"])
 		var cats: Array = t["cats"]
@@ -137,7 +137,7 @@ func refresh_recipes():
 			var sub_id: String = String(sub)
 			if multi and SUB_DEFS.has(sub_id):
 				var sh = Label.new()
-				sh.text = "[ %s ]" % String(SUB_DEFS[sub_id][0]).to_upper()
+				sh.text = "[ %s ]" % tr(String(SUB_DEFS[sub_id][0])).to_upper()
 				sh.add_theme_font_size_override("font_size", 11)
 				sh.add_theme_color_override("font_color", SUB_DEFS[sub_id][1])
 				page.add_child(sh)
@@ -316,7 +316,7 @@ func _build_tabs():
 		if first_tab == "":
 			first_tab = tab_id
 		var btn = Button.new()
-		btn.text = String(t["label"])
+		btn.text = tr(String(t["label"]))
 		btn.focus_mode = Control.FOCUS_NONE
 		btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 		btn.pressed.connect(_show_tab.bind(tab_id))
@@ -449,8 +449,8 @@ func _process(_delta):
 func update_ui():
 	if not manager: return
 	
-	level_label.text = "Level: %d" % manager.get_level()
-	xp_label.text = "XP: %d" % int(manager.xp)
+	level_label.text = tr("Level: %d") % manager.get_level()
+	xp_label.text = tr("XP: %d") % int(manager.xp)
 	xp_bar.value = manager.get_progress_to_next_level()
 	
 	for w in widgets:

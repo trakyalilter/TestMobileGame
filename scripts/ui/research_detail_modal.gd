@@ -216,7 +216,7 @@ func _build_tooltip_text(d: Dictionary) -> String:
 	# EFFECTS
 	var fx: Array = d.get("effects", [])
 	if not fx.is_empty():
-		var lines: Array = ["[color=%s]EFFECTS[/color]" % HDR_COL]
+		var lines: Array = ["[color=%s]%s[/color]" % [HDR_COL, tr("EFFECTS")]]
 		for e in fx:
 			lines.append("• " + _format_effect(e))
 		sections.append("\n".join(lines))
@@ -224,9 +224,9 @@ func _build_tooltip_text(d: Dictionary) -> String:
 	# UNLOCKS
 	var unl: Array = d.get("unlocks", [])
 	if not unl.is_empty():
-		var lines2: Array = ["[color=%s]UNLOCKS[/color]" % HDR_COL]
+		var lines2: Array = ["[color=%s]%s[/color]" % [HDR_COL, tr("UNLOCKS")]]
 		for u in unl:
-			lines2.append("• " + str(u))
+			lines2.append("• " + tr(str(u)))
 		sections.append("\n".join(lines2))
 
 	# REQUIRES — derived from parent + req_tech
@@ -237,9 +237,9 @@ func _build_tooltip_text(d: Dictionary) -> String:
 	var rt_id: String = str(d.get("req_tech", ""))
 	if rt_id != "" and _manager and _manager.tech_tree.has(rt_id):
 		req_lines.append("• " + str(_manager.tech_tree[rt_id].get("name", rt_id))
-			+ "  [color=%s](cross-branch)[/color]" % HINT_COL)
+			+ "  [color=%s]%s[/color]" % [HINT_COL, tr("(cross-branch)")])
 	if not req_lines.is_empty():
-		sections.append("[color=%s]REQUIRES[/color]\n" % HDR_COL + "\n".join(req_lines))
+		sections.append("[color=%s]%s[/color]\n" % [HDR_COL, tr("REQUIRES")] + "\n".join(req_lines))
 
 	# FLAVOR
 	var flav: String = str(d.get("flavor", ""))
@@ -307,7 +307,7 @@ func _build_cost_text() -> String:
 
 	var raw_credits: float = float(_data.get("cost", 0))
 	var credits: int = int(raw_credits * float(_manager.COST_MULTIPLIER))
-	var lines: Array = ["[color=%s]COST[/color]" % HDR_COL]
+	var lines: Array = ["[color=%s]%s[/color]" % [HDR_COL, tr("COST")]]
 
 	if credits > 0:
 		var have_c: int = int(GameState.resources.get_currency("credits"))
@@ -340,7 +340,7 @@ func _build_cost_text() -> String:
 
 func _build_repeatable_cost_text() -> String:
 	var costs: Dictionary = _manager.get_repeatable_cost(_nid)
-	var lines: Array = ["[color=%s]NEXT LEVEL COST[/color]" % HDR_COL]
+	var lines: Array = ["[color=%s]%s[/color]" % [HDR_COL, tr("NEXT LEVEL COST")]]
 	for res in costs:
 		var req_qty: float = float(costs[res])
 		var have_q: float
@@ -369,21 +369,21 @@ func _refresh_state() -> void:
 	if _is_repeatable:
 		var lvl: int = _manager.get_repeatable_level(_nid)
 		var can_r: bool = _manager.can_unlock_repeatable(_nid)
-		_action_btn.text = "RESEARCH  ·  Lvl %d → %d" % [lvl, lvl + 1]
+		_action_btn.text = tr("RESEARCH  ·  Lvl %d → %d") % [lvl, lvl + 1]
 		_action_btn.disabled = not can_r
 		_apply_btn_style(can_r)
 		return
 
 	var is_unlocked: bool = _manager.is_tech_unlocked(_nid)
 	if is_unlocked:
-		_action_btn.text = "RESEARCHED"
+		_action_btn.text = tr("RESEARCHED")
 		_action_btn.disabled = true
 		_apply_btn_style(false, true)
 		return
 
 	var can_u: bool = _manager.can_unlock(_nid)
 	if can_u:
-		_action_btn.text = "RESEARCH"
+		_action_btn.text = tr("RESEARCH")
 		_action_btn.disabled = false
 		_apply_btn_style(true)
 	else:
@@ -395,11 +395,11 @@ func _refresh_state() -> void:
 		# v111: warp-gated techs read as a prestige reward, not a resource wall.
 		var locked_by_warp: bool = _data.get("requires_warp", false) and not GameState.game_settings.get("cryo_unlocked", false)
 		if locked_by_warp:
-			_action_btn.text = "REQUIRES WARP CORE ACTIVATION"
+			_action_btn.text = tr("REQUIRES WARP CORE ACTIVATION")
 		elif locked_by_parent or locked_by_rt:
-			_action_btn.text = "LOCKED  ·  unlock prerequisites first"
+			_action_btn.text = tr("LOCKED  ·  unlock prerequisites first")
 		else:
-			_action_btn.text = "INSUFFICIENT RESOURCES"
+			_action_btn.text = tr("INSUFFICIENT RESOURCES")
 		_action_btn.disabled = true
 		_apply_btn_style(false)
 

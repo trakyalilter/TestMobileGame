@@ -97,7 +97,7 @@ func _ready():
 	open_chart_btn.text = ""
 	open_chart_btn.custom_minimum_size = Vector2(44, 44)
 	open_chart_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	open_chart_btn.tooltip_text = "Open Star Chart"
+	open_chart_btn.tooltip_text = tr("Open Star Chart")
 	UITheme.apply_premium_button_style(open_chart_btn, "ops")
 	if open_chart_btn.get_node_or_null("StarEmblem") == null:
 		var _emb: Control = preload("res://scripts/ui/star_emblem.gd").new()
@@ -182,7 +182,7 @@ func _update_block_bar(bar: HBoxContainer, percent: float):
 
 func _setup_loot_filter_button():
 	var btn = Button.new()
-	btn.text = "▼ FILTER"
+	btn.text = tr("▼ FILTER")
 	btn.name = "LootFilterBtn"
 	btn.custom_minimum_size = Vector2(0, 22)
 	btn.add_theme_font_size_override("font_size", 10)
@@ -417,19 +417,19 @@ func _build_map_mod_picker() -> void:
 	vb.add_theme_constant_override("separation", 4)
 	panel.add_child(vb)
 	var title := Label.new()
-	title.text = "MAP MODS — juice the sector"
+	title.text = tr("MAP MODS — juice the sector")
 	vb.add_child(title)
 	for mid in manager.MAP_MODS:
 		var d: Dictionary = manager.MAP_MODS[mid]
 		var cb := CheckButton.new()
-		cb.text = "%s  ×%.1f" % [String(d.get("name", "")), float(d.get("loot_mult", 1.0))]
+		cb.text = tr("%s  ×%.1f") % [String(d.get("name", "")), float(d.get("loot_mult", 1.0))]
 		cb.tooltip_text = String(d.get("desc", ""))
 		cb.set_pressed_no_signal(String(mid) in manager.active_map_mods)
 		cb.toggled.connect(func(_p): _on_map_mod_toggled())
 		vb.add_child(cb)
 		_mm_toggles[String(mid)] = cb
 	_mm_loot_lbl = Label.new()
-	_mm_loot_lbl.text = "Loot ×1.00 (stack up to %d)" % manager.MAX_MAP_MODS
+	_mm_loot_lbl.text = tr("Loot ×1.00 (stack up to %d)") % manager.MAX_MAP_MODS
 	vb.add_child(_mm_loot_lbl)
 	add_child(panel)
 	_mm_picker = panel
@@ -452,7 +452,7 @@ func _refresh_map_mod_picker() -> void:
 	for mid in _mm_toggles:
 		_mm_toggles[mid].set_pressed_no_signal(mid in manager.active_map_mods)
 	if _mm_loot_lbl:
-		_mm_loot_lbl.text = "Loot ×%.2f (stack up to %d)" % [manager.get_map_mod_loot_mult(), manager.MAX_MAP_MODS]
+		_mm_loot_lbl.text = tr("Loot ×%.2f (stack up to %d)") % [manager.get_map_mod_loot_mult(), manager.MAX_MAP_MODS]
 
 func _process(delta):
 	update_ui()
@@ -471,7 +471,7 @@ func update_ui():
 	var total_eva = sm.evasion + eva_bonus
 	var total_crit = (sm.crit_chance + crit_bonus) * 100.0
 	
-	p_stat_lbl.text = "ATK: %s | DEF: %s | EVA: %.0f | CRIT: %.0f%%" % [UITheme.format_num(sm.attack), UITheme.format_num(sm.defense), total_eva, total_crit]
+	p_stat_lbl.text = tr("ATK: %s | DEF: %s | EVA: %.0f | CRIT: %.0f%%") % [UITheme.format_num(sm.attack), UITheme.format_num(sm.defense), total_eva, total_crit]
 	# v131: the inline "RES K/N/X" readout was removed per design (too cryptic on
 	# the stat line). resist_k/e/x still apply in combat — they just aren't shown here.
 	# v112 Fleet P2: surface the fleet's live combat contribution so it reads as
@@ -484,22 +484,22 @@ func update_ui():
 	# Title shows just the hull name — combat level + bonus-damage readout
 	# removed from the card header per design (kept off to declutter the title).
 	var hull_name = sm.get_ship_name() if sm and sm.has_method("get_ship_name") else "USS HORIZON"
-	p_name_lbl.text = hull_name.to_upper()
+	p_name_lbl.text = tr(hull_name).to_upper()
 	
 	# Sync Block Bars
 	_update_block_bar(p_hp_bar, float(sm.current_hp) / max(1.0, sm.max_hp))
 	_update_block_bar(p_sh_bar, float(manager.player_shield) / max(1.0, manager.player_max_shield))
 	p_sh_bar.visible = manager.player_max_shield > 0
 	
-	p_hp_lbl.text = "HULL: %s/%s" % [UITheme.format_num(sm.current_hp), UITheme.format_num(sm.max_hp)]
-	p_sh_lbl.text = "SHD: %s/%s" % [UITheme.format_num(manager.player_shield), UITheme.format_num(manager.player_max_shield)]
+	p_hp_lbl.text = tr("HULL: %s/%s") % [UITheme.format_num(sm.current_hp), UITheme.format_num(sm.max_hp)]
+	p_sh_lbl.text = tr("SHD: %s/%s") % [UITheme.format_num(manager.player_shield), UITheme.format_num(manager.player_max_shield)]
 	
 	# ... (rest of logic)
 	
 	# Enemy Stats
 	if manager.in_combat and manager.current_enemy:
 		var enemy = manager.current_enemy
-		e_name_lbl.text = enemy["name"]
+		e_name_lbl.text = tr(enemy["name"])
 		
 		# v87.0: Show enemy damage type tag
 		var e_type_tag = "KIN"
@@ -511,24 +511,24 @@ func update_ui():
 			"explosive":
 				e_type_tag = "EXP"
 				e_type_color = Color(1.0, 0.5, 0.3)
-		e_stat_lbl.text = "DMG: %s [%s] | DEF: %s" % [UITheme.format_num(enemy.get("atk", 0)), e_type_tag, UITheme.format_num(enemy.get("def", 0))]
+		e_stat_lbl.text = tr("DMG: %s [%s] | DEF: %s") % [UITheme.format_num(enemy.get("atk", 0)), e_type_tag, UITheme.format_num(enemy.get("def", 0))]
 		
 		# v86.0: Show wave counter during hazard gauntlet
 		if manager.hazard_state["active"]:
 			var wave_text = "WAVE %d/%d" % [manager.hazard_state["wave"] + 1, manager.hazard_state["max_waves"]]
-			e_name_lbl.text = "[%s] %s" % [wave_text, enemy["name"]]
+			e_name_lbl.text = "[%s] %s" % [wave_text, tr(enemy["name"])]
 		
 		_update_block_bar(e_hp_bar, float(manager.enemy_hp) / max(1.0, manager.enemy_max_hp))
 		_update_block_bar(e_sh_bar, float(manager.enemy_shield) / max(1.0, manager.enemy_max_shield))
 		
-		e_hp_lbl.text = "HULL: %s/%s" % [UITheme.format_num(manager.enemy_hp), UITheme.format_num(manager.enemy_max_hp)]
-		e_sh_lbl.text = "SHD: %s/%s" % [UITheme.format_num(manager.enemy_shield), UITheme.format_num(manager.enemy_max_shield)]
+		e_hp_lbl.text = tr("HULL: %s/%s") % [UITheme.format_num(manager.enemy_hp), UITheme.format_num(manager.enemy_max_hp)]
+		e_sh_lbl.text = tr("SHD: %s/%s") % [UITheme.format_num(manager.enemy_shield), UITheme.format_num(manager.enemy_max_shield)]
 		btn_retreat.disabled = false
 	else:
-		e_name_lbl.text = "NO TARGET"
+		e_name_lbl.text = tr("NO TARGET")
 		_update_block_bar(e_hp_bar, 0)
 		_update_block_bar(e_sh_bar, 0)
-		e_stat_lbl.text = "DMG: 0 | DEF: 0"
+		e_stat_lbl.text = tr("DMG: 0 | DEF: 0")
 		btn_retreat.disabled = true
 	
 	# Attack Timers
@@ -864,7 +864,7 @@ func _build_loot_tile(str_id: String, qty) -> Control:
 
 	var tile := PanelContainer.new()
 	tile.custom_minimum_size = Vector2(46, 46)
-	tile.tooltip_text = "%s  ×%s" % [name_txt, UITheme.format_num(qty)]
+	tile.tooltip_text = tr("%s  ×%s") % [name_txt, UITheme.format_num(qty)]
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Color(0.07, 0.10, 0.14, 0.92)
 	sb.set_corner_radius_all(3)
@@ -896,7 +896,7 @@ func _build_loot_tile(str_id: String, qty) -> Control:
 		vb.add_child(g)
 
 	var cnt := Label.new()
-	cnt.text = "×%s" % UITheme.format_num(qty)
+	cnt.text = tr("×%s") % UITheme.format_num(qty)
 	cnt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	cnt.add_theme_font_size_override("font_size", 10)
 	cnt.add_theme_color_override("font_color", Color(0.75, 0.80, 0.86))
@@ -1002,13 +1002,13 @@ func _update_ammo_display():
 			if qty > capacity:
 				var more = Label.new()
 				more.add_theme_font_size_override("font_size", 7)
-				more.text = "+%d" % (qty - capacity)
+				more.text = tr("+%d") % (qty - capacity)
 				more.modulate.a = 0.5
 				flow.add_child(more)
 	
 	if not has_any:
 		var lbl = Label.new()
-		lbl.text = "MAGAZINES EMPTY"
+		lbl.text = tr("MAGAZINES EMPTY")
 		lbl.add_theme_font_size_override("font_size", 10)
 		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		lbl.modulate = Color(1.0, 0.3, 0.3)
@@ -1047,7 +1047,7 @@ func _rebuild_weapon_battery(w_states):
 		sb_bg.set_corner_radius_all(2)
 		pb.add_theme_stylebox_override("background", sb_bg)
 		
-		pb.tooltip_text = "%s [%s]" % [w["name"], type_tag]
+		pb.tooltip_text = tr("%s [%s]") % [w["name"], type_tag]
 		
 		weapon_battery.add_child(pb)
 		player_weapon_bars.append(pb)
@@ -1181,7 +1181,7 @@ func _setup_consumable_buttons():
 	cd_pad.add_child(cd_box)
 
 	_cons_cd_lbl = Label.new()
-	_cons_cd_lbl.text = "READY"
+	_cons_cd_lbl.text = tr("READY")
 	_cons_cd_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_cons_cd_lbl.add_theme_font_size_override("font_size", 9)
 	_cons_cd_lbl.modulate = Color(0.55, 1.0, 0.75)
@@ -1210,10 +1210,10 @@ func _update_consumable_buttons():
 		_cons_cd_bar.max_value = mx
 		_cons_cd_bar.value = mx - cd
 		if cd <= 0.0:
-			_cons_cd_lbl.text = "READY"
+			_cons_cd_lbl.text = tr("READY")
 			_cons_cd_lbl.modulate = Color(0.55, 1.0, 0.75)
 		else:
-			_cons_cd_lbl.text = "Cooldown  %.1fs" % cd
+			_cons_cd_lbl.text = tr("Cooldown  %.1fs") % cd
 			_cons_cd_lbl.modulate = Color(0.78, 0.82, 0.90)
 
 	# Low-hull alarm: pulse the HULL kit so a new player can't miss that
@@ -1221,7 +1221,7 @@ func _update_consumable_buttons():
 	if sm.max_hp > 0 and float(sm.current_hp) / float(sm.max_hp) < 0.30 and not btn_hull_cons.disabled:
 		var p := 0.5 + 0.5 * sin(Time.get_ticks_msec() / 140.0)
 		btn_hull_cons.modulate = Color(1.0, 0.40, 0.30).lerp(Color(1.0, 0.95, 0.40), p)
-		btn_hull_cons.tooltip_text = "HULL CRITICAL — tap to repair now!"
+		btn_hull_cons.tooltip_text = tr("HULL CRITICAL — tap to repair now!")
 
 func _update_cons_btn(btn: Button, item_id: String, label: String, color: Color):
 	btn.custom_minimum_size = Vector2(54, 54)   # v134h: uniform square tile
@@ -1229,7 +1229,7 @@ func _update_cons_btn(btn: Button, item_id: String, label: String, color: Color)
 		btn.text = ""
 		btn.disabled = true
 		btn.modulate = Color(1, 1, 1, 0.2)
-		btn.tooltip_text = "Equip a %s consumable in Ship Designer." % label
+		btn.tooltip_text = tr("Equip a %s consumable in Ship Designer.") % label
 		
 		# Holographic Placeholder
 		var overlay_name = "Placeholder"
@@ -1245,7 +1245,7 @@ func _update_cons_btn(btn: Button, item_id: String, label: String, color: Color)
 			UITheme.apply_segmented_font(holder, color)
 			btn.add_child(holder)
 		
-		holder.text = "%s\n+" % label.to_upper()   # v134h: compact empty-tile label
+		holder.text = tr("%s\n+") % label.to_upper()   # v134h: compact empty-tile label
 		holder.show()
 		var empty_content = btn.get_node_or_null("ConsContent")
 		if empty_content: empty_content.hide()
@@ -1291,7 +1291,7 @@ func _update_cons_btn(btn: Button, item_id: String, label: String, color: Color)
 	var icon_path := "res://assets/icons/modules/consumable_%s.svg" % ("hull" if label == "HULL" else "shield")
 	(content.get_node("Icon") as TextureRect).texture = (load(icon_path) if ResourceLoader.exists(icon_path) else null)
 	var count_lbl := content.get_node("Count") as Label
-	count_lbl.text = "x%s" % UITheme.format_number(qty)
+	count_lbl.text = tr("x%s") % UITheme.format_number(qty)
 	count_lbl.add_theme_color_override("font_color", color)
 	btn.modulate = Color(1, 1, 1) if qty > 0 else Color(0.5, 0.5, 0.5, 0.8)
 	btn.clip_text = false
@@ -1301,9 +1301,9 @@ func _update_cons_btn(btn: Button, item_id: String, label: String, color: Color)
 	btn.disabled = qty <= 0 or cooldown > 0
 	
 	if cooldown > 0:
-		btn.tooltip_text = "Cooldown: %.1fs" % cooldown
+		btn.tooltip_text = tr("Cooldown: %.1fs") % cooldown
 	else:
-		btn.tooltip_text = "Use %s to restore %s." % [dname, label]
+		btn.tooltip_text = tr("Use %s to restore %s.") % [dname, label]
 
 func _on_consumable_pressed(type: String):
 	manager.use_manual_consumable(type)
@@ -1360,8 +1360,8 @@ func _refresh_combat_timers() -> void:
 		return
 	if not combat_timer_row.visible:
 		combat_timer_row.visible = true
-	session_timer_lbl.text = "SESSION  %s" % _fmt_session(manager.combat_session_time)
-	kill_timer_lbl.text = "LAST KILL  %s" % _fmt_kill(manager.time_since_last_kill)
+	session_timer_lbl.text = tr("SESSION  %s") % _fmt_session(manager.combat_session_time)
+	kill_timer_lbl.text = tr("LAST KILL  %s") % _fmt_kill(manager.time_since_last_kill)
 
 
 # v113 / v134h: loadout-swap selector — the Melvor-style equipment-set swap, so the
@@ -1418,8 +1418,8 @@ func _build_loadout_swap_row() -> void:
 	_swap_buttons = []
 	for i in [1, 2, 3, 4, 5]:
 		var b := Button.new()
-		b.text = "L%d" % i
-		b.tooltip_text = "Swap to Loadout %d" % i
+		b.text = tr("L%d") % i
+		b.tooltip_text = tr("Swap to Loadout %d") % i
 		b.custom_minimum_size = Vector2(40, 0)
 		b.add_theme_font_size_override("font_size", 11)
 		_style_loadout_chip(b)
@@ -1480,8 +1480,8 @@ func _refresh_loadout_swap_row() -> void:
 		var is_active: bool = (idx == active)
 		b.disabled = empty
 		if empty:
-			b.text = "L%d" % idx   # v134h: compact so 5 chips fit without clipping
-			b.tooltip_text = "Loadout %d — empty (build & name one in the Ship Designer)." % idx
+			b.text = tr("L%d") % idx   # v134h: compact so 5 chips fit without clipping
+			b.tooltip_text = tr("Loadout %d — empty (build & name one in the Ship Designer).") % idx
 			b.modulate = Color(1, 1, 1, 0.40)
 		else:
 			b.text = _truncate(shown, 10)

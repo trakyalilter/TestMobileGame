@@ -104,7 +104,7 @@ func _setup_objective_chip() -> void:
 	objective_btn.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	objective_btn.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	objective_btn.add_theme_font_size_override("font_size", 12)
-	objective_btn.tooltip_text = "Open Missions"
+	objective_btn.tooltip_text = tr("Open Missions")
 	objective_btn.pressed.connect(func(): objective_pressed.emit())
 	$MarginContainer/HBoxContainer.add_child(objective_btn)
 	update_objective()
@@ -137,7 +137,7 @@ func _setup_slot_meter() -> void:
 	slot_btn.add_theme_constant_override("icon_max_width", 15)
 	slot_btn.add_theme_constant_override("h_separation", 5)
 	slot_btn.add_theme_font_size_override("font_size", 13)
-	slot_btn.tooltip_text = "Cargo slots — sell or expand storage when full."
+	slot_btn.tooltip_text = tr("Cargo slots — sell or expand storage when full.")
 	slot_btn.pressed.connect(func(): inventory_pressed.emit())
 
 	var hbox = $MarginContainer/HBoxContainer
@@ -217,7 +217,7 @@ func _setup_warp_gauge() -> void:
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE  # non-interactive: it never acts for you
 
 	warp_gauge_lbl = Label.new()
-	warp_gauge_lbl.text = "WARP"
+	warp_gauge_lbl.text = tr("WARP")
 	warp_gauge_lbl.add_theme_font_size_override("font_size", 10)
 	UITheme.apply_segmented_font(warp_gauge_lbl, UITheme.COLORS["text_dim"])
 	warp_gauge_lbl.add_theme_color_override("font_color", UITheme.COLORS["text_dim"])
@@ -294,7 +294,7 @@ func update_hud():
 
 func update_credits():
 	var cr = GameState.resources.get_currency("credits")
-	credits_lbl.text = " %s" % UITheme.format_num(cr)
+	credits_lbl.text = tr(" %s") % UITheme.format_num(cr)
 
 # Removed _on_energy_changed as it's no longer displayed in the header
 
@@ -323,7 +323,7 @@ func update_task_status():
 		var tech_name = rm.tech_tree[rm.active_tech_id]["name"]
 		status_text = "Researching: %s" % tech_name
 	
-	task_lbl.text = "%s" % status_text
+	task_lbl.text = tr("%s") % status_text
 	if status_text == "Idle":
 		task_lbl.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
 	else:

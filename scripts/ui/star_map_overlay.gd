@@ -139,7 +139,7 @@ func _build_ui() -> void:
 	add_child(_subtitle)
 
 	_close_btn = Button.new()
-	_close_btn.text = "CLOSE"
+	_close_btn.text = tr("CLOSE")
 	_close_btn.add_theme_font_size_override("font_size", 12)
 	if UITheme.has_method("apply_premium_button_style"):
 		UITheme.apply_premium_button_style(_close_btn, "combat")
@@ -224,7 +224,7 @@ func _build_readout() -> void:
 	# which pins the buttons to the bottom the same way.)
 
 	_back_btn = Button.new()
-	_back_btn.text = "BACK TO STAR MAP"
+	_back_btn.text = tr("BACK TO STAR MAP")
 	_back_btn.custom_minimum_size = Vector2(0, 30)
 	_back_btn.add_theme_font_size_override("font_size", 11)
 	if UITheme.has_method("apply_premium_button_style"):
@@ -234,7 +234,7 @@ func _build_readout() -> void:
 	v.add_child(_back_btn)
 
 	_engage_btn = Button.new()
-	_engage_btn.text = "SELECT A SECTOR"
+	_engage_btn.text = tr("SELECT A SECTOR")
 	_engage_btn.custom_minimum_size = Vector2(0, 44)
 	_engage_btn.add_theme_font_size_override("font_size", 14)
 	if UITheme.has_method("apply_premium_button_style"):
@@ -401,7 +401,7 @@ func _update_sector_header(m: Dictionary) -> void:
 	var band := "CALM SPACE" if diff <= 4 else ("CONTESTED SPACE" if diff <= 8 else "HOSTILE SPACE")
 	if m.get("is_hazard", false):
 		band = "ELECTROMAGNETIC HAZARD"
-	_ro_band.text = "SECTOR %02d · %s" % [diff, band]
+	_ro_band.text = tr("SECTOR %02d · %s") % [diff, band]
 	_ro_band.add_theme_color_override("font_color", heat)
 
 # v138: Singularity readout — what it is, what entering does (full colour-coded
@@ -410,19 +410,19 @@ func _set_rift_readout(_m: Dictionary) -> void:
 	var wm = GameState.warp_manager
 	var gains: int = int(wm.calculate_warp_gains())
 	var bonus: int = int(wm.get_charge_bonus_shards(gains))
-	_ro_name.text = "SINGULARITY"
+	_ro_name.text = tr("SINGULARITY")
 	_ro_name.add_theme_color_override("font_color", C_WARP)
-	_ro_band.text = "GRAVITATIONAL ANOMALY"
+	_ro_band.text = tr("GRAVITATIONAL ANOMALY")
 	_ro_band.add_theme_color_override("font_color", C_WARP)
 	_tgt_box.visible = false
 	_back_btn.visible = false
 	var s := "" if gains == 1 else "s"
 	var bonus_txt := (" +%d resonance" % bonus) if bonus > 0 else ""
-	_ro_status.text = "A hole torn in spacetime by the sector boss's collapse. Entering executes a Warp: +%d Exotic Shard%s%s. The run resets; research, ships and Exotic Matter persist." % [gains, s, bonus_txt]
+	_ro_status.text = tr("A hole torn in spacetime by the sector boss's collapse. Entering executes a Warp: +%d Exotic Shard%s%s. The run resets; research, ships and Exotic Matter persist.") % [gains, s, bonus_txt]
 	_ro_status.add_theme_color_override("font_color", C_TEXT)
 	_engage_btn.disabled = false
-	_engage_btn.text = "ENTER THE SINGULARITY"
-	_engage_hint.text = "The anomaly is stable — it will wait."
+	_engage_btn.text = tr("ENTER THE SINGULARITY")
+	_engage_hint.text = tr("The anomaly is stable — it will wait.")
 
 # Galaxy view — a sector is highlighted but not drilled into yet.
 func _set_idle_readout(m: Dictionary) -> void:
@@ -439,31 +439,31 @@ func _set_idle_readout(m: Dictionary) -> void:
 		_ro_status.text = _gate_text(str(m["id"]))
 		_ro_status.add_theme_color_override("font_color", C_CORAL)
 		_engage_btn.disabled = true
-		_engage_btn.text = "SECTOR LOCKED"
-		_engage_hint.text = "Unlock this sector to deploy here."
+		_engage_btn.text = tr("SECTOR LOCKED")
+		_engage_hint.text = tr("Unlock this sector to deploy here.")
 	elif m.get("is_hazard", false):
 		_ro_status.text = _hazard_summary(str(m["id"]))
 		_ro_status.add_theme_color_override("font_color", C_AMBER)
 		_engage_btn.disabled = false
-		_engage_btn.text = "ENTER GAUNTLET"
-		_engage_hint.text = "A multi-wave gauntlet — no single target to pick."
+		_engage_btn.text = tr("ENTER GAUNTLET")
+		_engage_hint.text = tr("A multi-wave gauntlet — no single target to pick.")
 	else:
-		_ro_status.text = "Click this sector to drop in and scan its hostiles."
+		_ro_status.text = tr("Click this sector to drop in and scan its hostiles.")
 		_ro_status.add_theme_color_override("font_color", C_DIM)
 		_engage_btn.disabled = true
-		_engage_btn.text = "SELECT A SECTOR"
-		_engage_hint.text = "Click a sector on the chart to drill in."
+		_engage_btn.text = tr("SELECT A SECTOR")
+		_engage_hint.text = tr("Click a sector on the chart to drill in.")
 
 # Sector view — drilled in, awaiting a target pick on the map.
 func _set_sector_prompt(m: Dictionary) -> void:
 	_update_sector_header(m)
 	_tgt_box.visible = false
 	_back_btn.visible = true
-	_ro_status.text = "Select a hostile cluster or the boss on the map."
+	_ro_status.text = tr("Select a hostile cluster or the boss on the map.")
 	_ro_status.add_theme_color_override("font_color", C_DIM)
 	_engage_btn.disabled = true
-	_engage_btn.text = "SELECT A TARGET"
-	_engage_hint.text = "Click a cluster on the chart, then engage."
+	_engage_btn.text = tr("SELECT A TARGET")
+	_engage_hint.text = tr("Click a cluster on the chart, then engage.")
 
 # A target was picked on the sector view — show its detail, enable ENGAGE.
 func _show_target_detail(eid: String) -> void:
@@ -486,12 +486,12 @@ func _show_target_detail(eid: String) -> void:
 	_tgt_shield.text = UITheme.format_num(sh)
 	_tgt_atk.text = UITheme.format_num(s.get("atk", 0))
 	_tgt_def.text = UITheme.format_num(int(s.get("def", 0)))
-	_tgt_xp.text = "+%s" % UITheme.format_num(int(e.get("xp", 0)))
+	_tgt_xp.text = tr("+%s") % UITheme.format_num(int(e.get("xp", 0)))
 
 	# Resist / weakness — the actionable intel for picking a loadout before ENGAGE.
 	if e.get("warp_hardened", false):
-		_tgt_resist.text = "all except Cryo"
-		_tgt_weak.text = "CRYO only (warp-hardened)"
+		_tgt_resist.text = tr("all except Cryo")
+		_tgt_weak.text = tr("CRYO only (warp-hardened)")
 	else:
 		var res_parts: Array = []
 		var weak_parts: Array = []
@@ -508,7 +508,7 @@ func _show_target_detail(eid: String) -> void:
 	_fill_target_drops(e, is_boss, eid)
 
 	_engage_btn.disabled = false
-	_engage_btn.text = "ENGAGE"
+	_engage_btn.text = tr("ENGAGE")
 	_engage_hint.text = "Deploy and attack %s." % str(e.get("name", "the target"))
 
 # v131: render the hostile's drop table into the readout. Materials (with qty

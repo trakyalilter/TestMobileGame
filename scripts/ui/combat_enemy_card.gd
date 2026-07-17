@@ -250,7 +250,7 @@ func _build_loot_inline() -> void:
 	if _drops_modules:
 		parts.append(_module_drop_label(m_pool))
 
-	lbl.text = "[color=#9a7c52]LOOT[/color]  " + "  ·  ".join(parts) if not parts.is_empty() \
+	lbl.text = tr("[color=#9a7c52]LOOT[/color]  ") + "  ·  ".join(parts) if not parts.is_empty() \
 		else "[color=#9a7c52]LOOT[/color]  —"
 	vb.add_child(lbl)
 
@@ -293,7 +293,7 @@ func _build_actions_row() -> void:
 	vb.add_child(hb)
 
 	var info_btn := Button.new()
-	info_btn.text = "INFO"
+	info_btn.text = tr("INFO")
 	info_btn.custom_minimum_size = Vector2(50, 24)
 	info_btn.add_theme_font_size_override("font_size", 10)
 	info_btn.add_theme_color_override("font_color", Color(0.498, 0.639, 0.612))
@@ -302,7 +302,7 @@ func _build_actions_row() -> void:
 	hb.add_child(info_btn)
 
 	var fight_btn := Button.new()
-	fight_btn.text = "ENGAGE"
+	fight_btn.text = tr("ENGAGE")
 	fight_btn.custom_minimum_size = Vector2(0, 24)
 	fight_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	fight_btn.add_theme_font_size_override("font_size", 11)

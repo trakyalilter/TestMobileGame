@@ -40,7 +40,7 @@ func setup(p_rid: String, p_data: Dictionary, p_manager, p_parent):
 	
 	name_lbl.text = recipe["name"]
 	name_lbl.add_theme_color_override("font_color", UITheme.CATEGORY_COLORS["engineering"])
-	lvl_lbl.text = "Lvl %d" % recipe.get("level_req", 1)
+	lvl_lbl.text = tr("Lvl %d") % recipe.get("level_req", 1)
 	
 	UITheme.apply_card_style(self, "engineering")
 	UITheme.apply_premium_button_style(btn, "engineering")
@@ -64,7 +64,7 @@ func setup(p_rid: String, p_data: Dictionary, p_manager, p_parent):
 
 	var arrow = $MarginContainer/VBoxContainer.get_node_or_null("ArrowLabel")
 	if arrow:
-		arrow.text = "▼ REFINE ▼"
+		arrow.text = tr("▼ REFINE ▼")
 		arrow.add_theme_font_size_override("font_size", 9)
 		arrow.add_theme_color_override("font_color",
 			UITheme.CATEGORY_COLORS["engineering"].lightened(0.2))
@@ -146,8 +146,8 @@ func _refresh_mastery():
 	# signals "hoverable" — same affordance as a hyperlink in the research
 	# tree's tooltip pattern.
 	if level >= 100:
-		_mastery_left_lbl.text = "GOLD [u]MASTERY[/u]%s" % bonus_suffix
-		_mastery_right_lbl.text = "LV 100  MAX"
+		_mastery_left_lbl.text = tr("GOLD [u]MASTERY[/u]%s") % bonus_suffix
+		_mastery_right_lbl.text = tr("LV 100  MAX")
 		_mastery_left_lbl.add_theme_color_override("default_color", col_gold)
 		_mastery_right_lbl.add_theme_color_override("font_color", col_gold)
 		_mastery_bar.value = 100.0
@@ -157,20 +157,20 @@ func _refresh_mastery():
 		# (+10% duration in one shot). Brighter colour still distinguishes
 		# 50-99 from 1-49 so the leap feels like a state change, not just a
 		# bigger number.
-		_mastery_left_lbl.text = "[u]MASTERY[/u]  LV %d%s" % [level, bonus_suffix]
-		_mastery_right_lbl.text = "%d / %d  ▸  LV %d" % [in_lvl, needed, next_m]
+		_mastery_left_lbl.text = tr("[u]MASTERY[/u]  LV %d%s") % [level, bonus_suffix]
+		_mastery_right_lbl.text = tr("%d / %d  ▸  LV %d") % [in_lvl, needed, next_m]
 		_mastery_left_lbl.add_theme_color_override("default_color", col_bright)
 		_mastery_right_lbl.add_theme_color_override("font_color", col_bright)
 		_mastery_bar.value = pct
 	elif level > 0:
-		_mastery_left_lbl.text = "[u]MASTERY[/u]  LV %d%s" % [level, bonus_suffix]
-		_mastery_right_lbl.text = "%d / %d  ▸  LV %d" % [in_lvl, needed, next_m]
+		_mastery_left_lbl.text = tr("[u]MASTERY[/u]  LV %d%s") % [level, bonus_suffix]
+		_mastery_right_lbl.text = tr("%d / %d  ▸  LV %d") % [in_lvl, needed, next_m]
 		_mastery_left_lbl.add_theme_color_override("default_color", col_mid)
 		_mastery_right_lbl.add_theme_color_override("font_color", col_mid)
 		_mastery_bar.value = pct
 	else:
-		_mastery_left_lbl.text = "[u]MASTERY[/u]  LV 0"
-		_mastery_right_lbl.text = "%d / %d  ▸  LV %d" % [in_lvl, needed, next_m]
+		_mastery_left_lbl.text = tr("[u]MASTERY[/u]  LV 0")
+		_mastery_right_lbl.text = tr("%d / %d  ▸  LV %d") % [in_lvl, needed, next_m]
 		_mastery_left_lbl.add_theme_color_override("default_color", col_dim)
 		_mastery_right_lbl.add_theme_color_override("font_color", col_dim)
 		_mastery_bar.value = pct
@@ -253,33 +253,38 @@ func update_state():
 		_state_sig = state_sig
 		if is_this_active:
 			UITheme.apply_locked_overlay(self, recipe["name"], "", false)
-			btn.text = "Stop"
+			btn.text = tr("Stop")
 			btn.disabled = false
+			btn.modulate = Color(1, 1, 1)   # v137: clear any stale IN-COMBAT red tint
 			modulate = Color(1.2, 1, 1)
 		else:
 			modulate = Color(1, 1, 1)
+			# v137: reset here so every non-combat state is default — the in_combat branch
+			# below reddens the button but nothing used to clear it, so it stayed red-ish
+			# after combat ("Start" on a red button).
+			btn.modulate = Color(1, 1, 1)
 			if not has_research:
 				var tech_name = GameState.research_manager.tech_tree.get(recipe["research_req"], {}).get("name", "Unknown Tech")
-				UITheme.apply_locked_overlay(self, recipe["name"], "RESEARCH: %s" % tech_name, true, recipe["research_req"], "engineering")
-				btn.text = "Research Required"
+				UITheme.apply_locked_overlay(self, recipe["name"], tr("RESEARCH: %s") % tr(tech_name), true, recipe["research_req"], "engineering")
+				btn.text = tr("Research Required")
 				btn.disabled = true
 			elif not has_level:
 				UITheme.apply_locked_overlay(self, recipe["name"], "LEVEL %d REQUIRED" % recipe["level_req"], true, "", "engineering")
-				btn.text = "Requires Lv %d" % lvl_req
+				btn.text = tr("Requires Lv %d") % lvl_req
 				btn.disabled = true
 			elif not has_ingredients:
 				UITheme.apply_locked_overlay(self, recipe["name"], "", false)
-				btn.text = "Missing Materials"
+				btn.text = tr("Missing Materials")
 				btn.disabled = true
 			elif in_combat:
 				UITheme.apply_locked_overlay(self, recipe["name"], "", false)
-				btn.text = "IN COMBAT"
+				btn.text = tr("IN COMBAT")
 				btn.disabled = true
 				btn.modulate = Color(1.0, 0.35, 0.35, 0.8)
 				modulate = Color(0.85, 0.85, 0.85)
 			else:
 				UITheme.apply_locked_overlay(self, recipe["name"], "", false)
-				btn.text = "Start"
+				btn.text = tr("Start")
 				btn.disabled = false
 
 	# --- PROGRESS — cheap, EVERY frame, so the fill stays smooth. ---
@@ -290,11 +295,11 @@ func update_state():
 		var safe_progress: float = clamp(manager.action_progress, 0.0, effective_duration)
 		prog_bar.active = true
 		prog_bar.value = (safe_progress / effective_duration) * 100.0 if effective_duration > 0.0 else 0.0
-		time_lbl.text = "%s / %s" % [FormatUtils.format_time(safe_progress), FormatUtils.format_time(effective_duration)]
+		time_lbl.text = tr("%s / %s") % [FormatUtils.format_time(safe_progress), FormatUtils.format_time(effective_duration)]
 	else:
 		prog_bar.active = false
 		prog_bar.value = 0
-		time_lbl.text = "0.0s / %s" % FormatUtils.format_time(recipe["duration"] / manager.get_recipe_speed_multiplier(rid))
+		time_lbl.text = tr("0.0s / %s") % FormatUtils.format_time(recipe["duration"] / manager.get_recipe_speed_multiplier(rid))
 
 # ────────────────────────────────────────────────────────────
 # META HOVER (Info Card Tooltip)

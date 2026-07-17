@@ -163,6 +163,7 @@ func _build_title(parent: VBoxContainer):
 	title_box.add_child(row)
 
 	var h_lbl = Label.new()
+	h_lbl.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 	h_lbl.text = "HORIZON"
 	h_lbl.add_theme_font_size_override("font_size", 54)
 	h_lbl.add_theme_color_override("font_color", ACCENT_CYAN)
@@ -173,6 +174,7 @@ func _build_title(parent: VBoxContainer):
 	row.add_child(h_lbl)
 
 	var i_lbl = Label.new()
+	i_lbl.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 	i_lbl.text = "IDLE"
 	i_lbl.add_theme_font_size_override("font_size", 34)
 	i_lbl.add_theme_color_override("font_color", ACCENT_AMBER)
@@ -180,7 +182,7 @@ func _build_title(parent: VBoxContainer):
 	row.add_child(i_lbl)
 
 	var sub = Label.new()
-	sub.text = "DEEP SPACE OPERATIONS SYSTEM"
+	sub.text = tr("DEEP SPACE OPERATIONS SYSTEM")
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sub.add_theme_font_size_override("font_size", 10)
 	sub.add_theme_color_override("font_color", TEXT_DIM)
@@ -193,7 +195,7 @@ func _build_main_menu(parent: VBoxContainer):
 	_menu_root = vbox
 
 	# Continue
-	btn_continue = _make_btn("CONTINUE", 20, "continue")
+	btn_continue = _make_btn(tr("CONTINUE"), 20, "continue")
 	btn_continue.custom_minimum_size = Vector2(0, 58)
 	btn_continue.disabled = not has_save
 	vbox.add_child(btn_continue)
@@ -206,14 +208,14 @@ func _build_main_menu(parent: VBoxContainer):
 		preview.text = _load_save_summary()
 		preview.add_theme_color_override("font_color", Color(UITheme.COLORS["positive"], 0.85))
 	else:
-		preview.text = "No save data — start a new game"
+		preview.text = tr("No save data — start a new game")
 		preview.add_theme_color_override("font_color", Color(UITheme.COLORS["text_dim"], 0.75))
 	vbox.add_child(preview)
 
 	_add_spacer(vbox, 4)
 
 	# New Game
-	btn_new_game = _make_btn("+  NEW GAME", 18, "new_game")
+	btn_new_game = _make_btn("+  " + tr("NEW GAME"), 18, "new_game")
 	btn_new_game.custom_minimum_size = Vector2(0, 50)
 	vbox.add_child(btn_new_game)
 
@@ -224,7 +226,16 @@ func _build_main_menu(parent: VBoxContainer):
 	bottom.add_theme_constant_override("separation", 10)
 	vbox.add_child(bottom)
 
-	btn_exit = _make_btn("EXIT", 14, "exit")
+	# Settings — opens the SYSTEM CONFIGURATION screen (offline-combat toggle +
+	# language). This button was previously missing, so _on_options_pressed() was
+	# orphaned and the whole options screen was unreachable from the menu.
+	var btn_settings = _make_btn(tr("SETTINGS"), 14, "settings_open")
+	btn_settings.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn_settings.custom_minimum_size = Vector2(0, 44)
+	btn_settings.pressed.connect(_on_options_pressed)
+	bottom.add_child(btn_settings)
+
+	btn_exit = _make_btn(tr("EXIT"), 14, "exit")
 	btn_exit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	btn_exit.custom_minimum_size = Vector2(0, 44)
 	bottom.add_child(btn_exit)
@@ -246,7 +257,7 @@ func _build_options_menu(parent: VBoxContainer):
 	_options_root = vbox
 
 	var title = Label.new()
-	title.text = "SYSTEM CONFIGURATION"
+	title.text = tr("SYSTEM CONFIGURATION")
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 20)
 	title.add_theme_color_override("font_color", ACCENT_CYAN)
@@ -260,7 +271,7 @@ func _build_options_menu(parent: VBoxContainer):
 	vbox.add_child(row)
 
 	var lbl = Label.new()
-	lbl.text = "Enable Offline Combat"
+	lbl.text = tr("Enable Offline Combat")
 	lbl.add_theme_font_size_override("font_size", 16)
 	lbl.add_theme_color_override("font_color", TEXT_MAIN)
 	row.add_child(lbl)
@@ -272,10 +283,34 @@ func _build_options_menu(parent: VBoxContainer):
 
 	_add_sep(vbox, 8, 4)
 
-	var btn_back = _make_btn("RETURN TO MENU", 14, "settings")
+	# Language selector (Phase-0 loc). Names shown in their own language; selecting
+	# one persists the locale and reloads the scene so every tr() re-reads under it.
+	var lang_row = HBoxContainer.new()
+	lang_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	lang_row.add_theme_constant_override("separation", 10)
+	vbox.add_child(lang_row)
+	var lang_lbl = Label.new()
+	lang_lbl.text = tr("Language") + ":"
+	lang_lbl.add_theme_font_size_override("font_size", 16)
+	lang_lbl.add_theme_color_override("font_color", TEXT_MAIN)
+	lang_row.add_child(lang_lbl)
+	for opt in [["English", "en"], ["Türkçe", "tr"]]:
+		var lang_btn = _make_btn(str(opt[0]), 14, "lang_" + str(opt[1]))
+		lang_btn.custom_minimum_size = Vector2(120, 40)
+		lang_btn.pressed.connect(_on_language_selected.bind(str(opt[1])))
+		lang_row.add_child(lang_btn)
+
+	_add_sep(vbox, 8, 4)
+
+	var btn_back = _make_btn(tr("RETURN TO MENU"), 14, "settings")
 	btn_back.custom_minimum_size = Vector2(0, 46)
 	btn_back.pressed.connect(_on_back_pressed)
 	vbox.add_child(btn_back)
+
+func _on_language_selected(code: String) -> void:
+	Localization.set_locale(code)
+	# Rebuild the whole menu under the new locale — simplest reliable refresh.
+	get_tree().reload_current_scene()
 
 # ─────────────────────────────────────────────
 #  FOOTER
@@ -284,14 +319,14 @@ func _build_footer():
 	var vp = get_viewport().get_visible_rect().size
 
 	var ver = Label.new()
-	ver.text = "HORIZON IDLE  ·  DEMO"
+	ver.text = tr("HORIZON IDLE  ·  DEMO")
 	ver.position = Vector2(24, vp.y - 34)
 	ver.add_theme_font_size_override("font_size", 10)
 	ver.add_theme_color_override("font_color", Color(UITheme.COLORS["text_dim"], 0.75))
 	add_child(ver)
 
 	var status = Label.new()
-	status.text = "SYSTEM READY  ◆"
+	status.text = tr("SYSTEM READY  ◆")
 	status.add_theme_font_size_override("font_size", 10)
 	status.add_theme_color_override("font_color", Color(UITheme.COLORS["positive"], 0.80))
 	status.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
@@ -486,7 +521,7 @@ func _load_save_summary() -> String:
 	else:
 		cr_str = "%d Liras" % int(credits)
 
-	var summary := "Zone %d  ·  %s" % [max_zone, cr_str]
+	var summary := tr("Zone %d  ·  %s") % [max_zone, cr_str]
 
 	var pt := float(data.get("total_playtime", 0.0))
 	if pt >= 60.0:
@@ -604,11 +639,13 @@ func _show_loading_overlay() -> void:
 	brand.add_theme_constant_override("separation", 8)
 	vb.add_child(brand)
 	var h := Label.new()
+	h.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 	h.text = "HORIZON"
 	h.add_theme_font_size_override("font_size", 30)
 	h.add_theme_color_override("font_color", ACCENT_CYAN)
 	brand.add_child(h)
 	var i := Label.new()
+	i.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 	i.text = "IDLE"
 	i.add_theme_font_size_override("font_size", 20)
 	i.add_theme_color_override("font_color", ACCENT_AMBER)
@@ -616,7 +653,7 @@ func _show_loading_overlay() -> void:
 	brand.add_child(i)
 
 	_load_lbl = Label.new()
-	_load_lbl.text = "INITIALIZING SYSTEMS"
+	_load_lbl.text = tr("INITIALIZING SYSTEMS")
 	_load_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_load_lbl.add_theme_font_size_override("font_size", 12)
 	_load_lbl.add_theme_color_override("font_color", TEXT_DIM)
@@ -668,11 +705,11 @@ func _set_load_progress(p: float) -> void:
 	# bar never sits full-but-frozen.
 	var shown: float = clamp(p, 0.0, 1.0) * 90.0
 	if _load_bar: _load_bar.value = shown
-	if _load_pct: _load_pct.text = "%d%%" % int(shown)
+	if _load_pct: _load_pct.text = tr("%d%%") % int(shown)
 
 func _enter_finalizing() -> void:
-	if _load_lbl: _load_lbl.text = "ENTERING SECTOR"
-	if _load_pct: _load_pct.text = "FINALIZING"
+	if _load_lbl: _load_lbl.text = tr("ENTERING SECTOR")
+	if _load_pct: _load_pct.text = tr("FINALIZING")
 	if _load_bar: _load_bar.value = 100
 	if _load_shimmer:
 		_load_shimmer.visible = true
@@ -682,7 +719,10 @@ func _enter_finalizing() -> void:
 func _on_options_pressed():
 	_menu_root.hide()
 	_options_root.show()
-	chk_offline_combat.button_pressed = GameState.game_settings.get("offline_combat", false)
+	# set_pressed_no_signal: syncing the checkbox to the saved value must NOT emit
+	# toggled(), or opening Settings spuriously fires the consent-dialog handler
+	# (matches _on_offline_combat_consent/_decline below, which already do this).
+	chk_offline_combat.set_pressed_no_signal(GameState.game_settings.get("offline_combat", false))
 
 func _on_back_pressed():
 	_options_root.hide()

@@ -118,17 +118,17 @@ func _update_stats_display():
 	if not $VBoxContainer/StatsPanel.visible:
 		return   # stat strip removed from the Shipyard — nothing to refresh
 	if hp_lbl:
-		hp_lbl.text = "HP: %d / %d" % [manager.current_hp, manager.max_hp]
+		hp_lbl.text = tr("HP: %d / %d") % [manager.current_hp, manager.max_hp]
 	if atk_lbl:
-		atk_lbl.text = "Atk: %s" % UITheme.format_num(manager.attack)
+		atk_lbl.text = tr("Atk: %s") % UITheme.format_num(manager.attack)
 	if def_lbl:
-		def_lbl.text = "Shield: %s" % UITheme.format_num(manager.max_shield)
+		def_lbl.text = tr("Shield: %s") % UITheme.format_num(manager.max_shield)
 	if eva_lbl:
-		eva_lbl.text = "Eva: %.1f%%" % manager.evasion
+		eva_lbl.text = tr("Eva: %.1f%%") % manager.evasion
 	if energy_lbl:
 		var e_max = manager.energy_capacity  # v110: ship's own field
 		var e_used = manager.energy_used
-		energy_lbl.text = "Energy: %d/%d" % [e_used, e_max]
+		energy_lbl.text = tr("Energy: %d/%d") % [e_used, e_max]
 		energy_lbl.modulate = Color(1, 0.3, 0.3) if e_used > e_max else Color.WHITE
 
 # v124: _on_repair_pressed / repair button removed — repair is now done by using

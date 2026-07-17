@@ -22,7 +22,7 @@ func setup(p_quest: Dictionary, p_parent: Node):
 
 	title_lbl.text = quest["title"]
 	desc_lbl.text = quest["desc"]
-	tier_lbl.text = "T%d" % int(quest.get("difficulty", 1))
+	tier_lbl.text = tr("T%d") % int(quest.get("difficulty", 1))
 
 	# Reward summary
 	var reward_text = "+%s Liras" % UITheme.format_num(quest["reward_credits"])
@@ -42,18 +42,18 @@ func refresh_state():
 	var tot = quest["target_qty"]
 	progress_bar.max_value = tot
 	progress_bar.value = cur
-	progress_lbl.text = "%s / %s" % [UITheme.format_num(cur), UITheme.format_num(tot)]
+	progress_lbl.text = tr("%s / %s") % [UITheme.format_num(cur), UITheme.format_num(tot)]
 
 	if quest["claimed"]:
-		claim_btn.text = "CLAIMED"
+		claim_btn.text = tr("CLAIMED")
 		claim_btn.disabled = true
 		modulate = Color(0.5, 0.5, 0.5)
 	elif quest["completed"]:
-		claim_btn.text = "CLAIM REWARD"
+		claim_btn.text = tr("CLAIM REWARD")
 		claim_btn.disabled = false
 		modulate = Color(1.0, 1.05, 0.9)
 	else:
-		claim_btn.text = "IN PROGRESS"
+		claim_btn.text = tr("IN PROGRESS")
 		claim_btn.disabled = true
 		modulate = Color.WHITE
 

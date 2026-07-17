@@ -81,7 +81,7 @@ func _build_ui() -> void:
 	_build_testing_section()
 
 	var foot := Label.new()
-	foot.text = "Horizon Idle · demo build · changes save automatically"
+	foot.text = tr("Horizon Idle · demo build · changes save automatically")
 	foot.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	foot.add_theme_font_size_override("font_size", 11)
 	foot.add_theme_color_override("font_color", Color(0.45, 0.47, 0.55))
@@ -96,7 +96,7 @@ func _build_ui() -> void:
 func _build_header() -> void:
 	var body := _section("System Config", HEADER_CAT)
 	var sub := Label.new()
-	sub.text = "Save, gameplay and interface options."
+	sub.text = tr("Save, gameplay and interface options.")
 	sub.add_theme_font_size_override("font_size", 12)
 	sub.add_theme_color_override("font_color", Color(0.62, 0.66, 0.76))
 	body.add_child(sub)
@@ -116,7 +116,7 @@ func _build_save_section() -> void:
 	body.add_child(save_btn)
 
 	var warn := Label.new()
-	warn.text = "Hard reset wipes your save permanently — this cannot be undone."
+	warn.text = tr("Hard reset wipes your save permanently — this cannot be undone.")
 	warn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	warn.add_theme_font_size_override("font_size", 11)
 	warn.add_theme_color_override("font_color", UITheme.CATEGORY_COLORS[DANGER_CAT].lightened(0.15))
@@ -167,7 +167,7 @@ func _build_interface_section() -> void:
 # tokens; the player lands back on this page (GameState.ui_return_page).
 func _build_palette_picker(body: VBoxContainer) -> void:
 	var lbl := Label.new()
-	lbl.text = "Color Palette"
+	lbl.text = tr("Color Palette")
 	lbl.add_theme_font_size_override("font_size", 12)
 	lbl.add_theme_color_override("font_color", Color(0.66, 0.7, 0.8))
 	body.add_child(lbl)
@@ -188,7 +188,7 @@ func _build_palette_picker(body: VBoxContainer) -> void:
 		var acc: String = pal["colors"]["accent"]
 		b.add_theme_color_override("font_color", Color.WHITE if id == cur else Color.html(acc))
 		if id == cur:
-			b.tooltip_text = "Active palette"
+			b.tooltip_text = tr("Active palette")
 		b.pressed.connect(_on_palette_pressed.bind(id))
 		flow.add_child(b)
 
@@ -248,7 +248,7 @@ func _build_testing_section() -> void:
 	body.add_child(HSeparator.new())
 
 	var tele_title := Label.new()
-	tele_title.text = "Balance Telemetry (debug)"
+	tele_title.text = tr("Balance Telemetry (debug)")
 	tele_title.add_theme_font_size_override("font_size", 12)
 	tele_title.add_theme_color_override("font_color", Color(0.66, 0.7, 0.8))
 	body.add_child(tele_title)
@@ -271,13 +271,13 @@ func _build_testing_section() -> void:
 # variety, which is what Phase A's triangle expects you to leverage.
 func _build_test_fitter(body: VBoxContainer) -> void:
 	var title := Label.new()
-	title.text = "Ship Fitter (debug)"
+	title.text = tr("Ship Fitter (debug)")
 	title.add_theme_font_size_override("font_size", 12)
 	title.add_theme_color_override("font_color", Color(0.66, 0.7, 0.8))
 	body.add_child(title)
 
 	var hint := Label.new()
-	hint.text = "Auto-fit the active hull at the chosen Tier + Rarity. Bypasses research gates. Overwrites current loadout."
+	hint.text = tr("Auto-fit the active hull at the chosen Tier + Rarity. Bypasses research gates. Overwrites current loadout.")
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hint.add_theme_font_size_override("font_size", 10)
 	hint.add_theme_color_override("font_color", Color(0.55, 0.58, 0.65))
@@ -557,13 +557,13 @@ func _on_test_fit_pressed() -> void:
 # tiers would leave dead gates).
 func _build_zone_unlocker(body: VBoxContainer) -> void:
 	var title := Label.new()
-	title.text = "Zone Unlock (debug)"
+	title.text = tr("Zone Unlock (debug)")
 	title.add_theme_font_size_override("font_size", 12)
 	title.add_theme_color_override("font_color", Color(0.66, 0.7, 0.8))
 	body.add_child(title)
 
 	var hint := Label.new()
-	hint.text = "Free-unlock zone_N_access research. Cascades Z2 → chosen tier so prerequisite chains stay intact."
+	hint.text = tr("Free-unlock zone_N_access research. Cascades Z2 → chosen tier so prerequisite chains stay intact.")
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hint.add_theme_font_size_override("font_size", 10)
 	hint.add_theme_color_override("font_color", Color(0.55, 0.58, 0.65))
@@ -618,13 +618,13 @@ func _on_test_unlock_zone_pressed() -> void:
 # and re-deriving level via Skill.check_level_up (climbs up OR down from 1).
 func _build_skill_research_debug(body: VBoxContainer) -> void:
 	var title := Label.new()
-	title.text = "Skill + Research (debug)"
+	title.text = tr("Skill + Research (debug)")
 	title.add_theme_font_size_override("font_size", 12)
 	title.add_theme_color_override("font_color", Color(0.66, 0.7, 0.8))
 	body.add_child(title)
 
 	var hint := Label.new()
-	hint.text = "Set a skill to any level, max both skills, or unlock every research node. For testing level/research-gated actions, recipes, and content."
+	hint.text = tr("Set a skill to any level, max both skills, or unlock every research node. For testing level/research-gated actions, recipes, and content.")
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hint.add_theme_font_size_override("font_size", 10)
 	hint.add_theme_color_override("font_color", Color(0.55, 0.58, 0.65))
@@ -704,20 +704,20 @@ func _on_dbg_unlock_all_research_pressed() -> void:
 # without playing through their prerequisites.
 func _build_mission_debug(body: VBoxContainer) -> void:
 	var title := Label.new()
-	title.text = "Mission Control (debug)"
+	title.text = tr("Mission Control (debug)")
 	title.add_theme_font_size_override("font_size", 12)
 	title.add_theme_color_override("font_color", Color(0.66, 0.7, 0.8))
 	body.add_child(title)
 
 	var hint := Label.new()
-	hint.text = "Reveal / force-complete a mission by id, sweep all active, or reset the chain. Arc starters: goal_hack_1, goal_cryo_1, goal_001."
+	hint.text = tr("Reveal / force-complete a mission by id, sweep all active, or reset the chain. Arc starters: goal_hack_1, goal_cryo_1, goal_001.")
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hint.add_theme_font_size_override("font_size", 10)
 	hint.add_theme_color_override("font_color", Color(0.55, 0.58, 0.65))
 	body.add_child(hint)
 
 	_dbg_mission_edit = LineEdit.new()
-	_dbg_mission_edit.placeholder_text = "mission id (e.g. goal_hack_1)"
+	_dbg_mission_edit.placeholder_text = tr("mission id (e.g. goal_hack_1)")
 	_dbg_mission_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	body.add_child(_dbg_mission_edit)
 
@@ -811,13 +811,13 @@ func _on_dbg_mission_reset_pressed() -> void:
 # and bulk-grant building counts to exercise the OC clamp + DR interplay.
 func _build_overclock_debug(body: VBoxContainer) -> void:
 	var title := Label.new()
-	title.text = "Overclock / Efficiency (debug)"
+	title.text = tr("Overclock / Efficiency (debug)")
 	title.add_theme_font_size_override("font_size", 12)
 	title.add_theme_color_override("font_color", Color(0.66, 0.7, 0.8))
 	body.add_child(title)
 
 	var hint := Label.new()
-	hint.text = "Grant Boost Cards, set the exact Efficiency research tier (x2/x3/x4/x5/x10), or +10 every owned building for overclock-cap testing."
+	hint.text = tr("Grant Boost Cards, set the exact Efficiency research tier (x2/x3/x4/x5/x10), or +10 every owned building for overclock-cap testing.")
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hint.add_theme_font_size_override("font_size", 10)
 	hint.add_theme_color_override("font_color", Color(0.55, 0.58, 0.65))
@@ -890,13 +890,13 @@ func _on_dbg_bulk_buildings_pressed() -> void:
 # know what you want, which is the entire premise of a debug tool.
 func _build_material_granter(body: VBoxContainer) -> void:
 	var title := Label.new()
-	title.text = "Material Grant (debug)"
+	title.text = tr("Material Grant (debug)")
 	title.add_theme_font_size_override("font_size", 12)
 	title.add_theme_color_override("font_color", Color(0.66, 0.7, 0.8))
 	body.add_child(title)
 
 	var hint := Label.new()
-	hint.text = "Type to filter by name or symbol, pick from the list (shows friendly names), set an amount. Adds straight to inventory."
+	hint.text = tr("Type to filter by name or symbol, pick from the list (shows friendly names), set an amount. Adds straight to inventory.")
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hint.add_theme_font_size_override("font_size", 10)
 	hint.add_theme_color_override("font_color", Color(0.55, 0.58, 0.65))
@@ -907,13 +907,13 @@ func _build_material_granter(body: VBoxContainer) -> void:
 	body.add_child(row)
 
 	var s_lbl := Label.new()
-	s_lbl.text = "Material"
+	s_lbl.text = tr("Material")
 	s_lbl.add_theme_font_size_override("font_size", 11)
 	s_lbl.add_theme_color_override("font_color", Color(0.62, 0.66, 0.76))
 	row.add_child(s_lbl)
 
 	_grant_symbol_edit = LineEdit.new()
-	_grant_symbol_edit.placeholder_text = "type to filter (e.g. Navigation Data)"
+	_grant_symbol_edit.placeholder_text = tr("type to filter (e.g. Navigation Data)")
 	_grant_symbol_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_grant_symbol_edit.custom_minimum_size = Vector2(120, 0)
 	_grant_symbol_edit.text_changed.connect(_on_grant_filter_changed)
@@ -921,7 +921,7 @@ func _build_material_granter(body: VBoxContainer) -> void:
 	row.add_child(_grant_symbol_edit)
 
 	var a_lbl := Label.new()
-	a_lbl.text = "Amount"
+	a_lbl.text = tr("Amount")
 	a_lbl.add_theme_font_size_override("font_size", 11)
 	a_lbl.add_theme_color_override("font_color", Color(0.62, 0.66, 0.76))
 	row.add_child(a_lbl)
@@ -1024,13 +1024,13 @@ func _on_test_grant_material_pressed() -> void:
 # materials for rapid reveal testing.
 func _build_warp_debug(body: VBoxContainer) -> void:
 	var title := Label.new()
-	title.text = "Warp Mastery Tree (debug)"
+	title.text = tr("Warp Mastery Tree (debug)")
 	title.add_theme_font_size_override("font_size", 12)
 	title.add_theme_color_override("font_color", Color(0.66, 0.7, 0.8))
 	body.add_child(title)
 
 	var hint := Label.new()
-	hint.text = "'+1M Liras' lets you execute a natural warp (gain calc returns ~1 shard). 'Force Warp' bumps total_warps and grants 1 shard directly — NO world reset, so you keep gear/progress for rapid branch-reveal testing."
+	hint.text = tr("'+1M Liras' lets you execute a natural warp (gain calc returns ~1 shard). 'Force Warp' bumps total_warps and grants 1 shard directly — NO world reset, so you keep gear/progress for rapid branch-reveal testing.")
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hint.add_theme_font_size_override("font_size", 10)
 	hint.add_theme_color_override("font_color", Color(0.55, 0.58, 0.65))
@@ -1066,13 +1066,13 @@ func _build_warp_debug(body: VBoxContainer) -> void:
 
 func _build_offline_debug(body: VBoxContainer) -> void:
 	var title := Label.new()
-	title.text = "Offline Welcome (debug)"
+	title.text = tr("Offline Welcome (debug)")
 	title.add_theme_font_size_override("font_size", 12)
 	title.add_theme_color_override("font_color", Color(0.66, 0.7, 0.8))
 	body.add_child(title)
 
 	var hint := Label.new()
-	hint.text = "Replays the offline welcome-back telemetry with a sample 15h report (multiple activities + a long material list, so the scrollable cargo ledger is exercised)."
+	hint.text = tr("Replays the offline welcome-back telemetry with a sample 15h report (multiple activities + a long material list, so the scrollable cargo ledger is exercised).")
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hint.add_theme_font_size_override("font_size", 10)
 	hint.add_theme_color_override("font_color", Color(0.55, 0.58, 0.65))
@@ -1312,7 +1312,7 @@ func _on_replay_tutorials_pressed() -> void:
 # --------------------------------------------------------------------------
 func _refresh_playtime() -> void:
 	if _pt_label:
-		_pt_label.text = "Total Play Time:  %s" % FormatUtils.format_playtime(GameState.total_playtime)
+		_pt_label.text = tr("Total Play Time:  %s") % FormatUtils.format_playtime(GameState.total_playtime)
 
 
 func _pct_line(d: Dictionary) -> String:
@@ -1363,7 +1363,7 @@ func _refresh_telemetry() -> void:
 	if not _tele_label:
 		return
 	var t = GameState.telemetry
-	_tele_label.text = "Active slot — %s\nProduction — %s\nMaterials — %s\nDamage — %s" % [
+	_tele_label.text = tr("Active slot — %s\nProduction — %s\nMaterials — %s\nDamage — %s") % [
 		_pct_line(t["occupancy"]), _pct_line(t["production"]), _mat_line(t.get("mat_source", {})), _dmg_line(t.get("damage_type", {}))]
 
 

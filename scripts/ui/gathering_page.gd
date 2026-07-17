@@ -48,7 +48,7 @@ func _create_rack(id: String, title: String, color: Color, parent: Node):
 	parent.add_child(rack_vbox)
 	
 	var header = Label.new()
-	header.text = "[ %s ]" % title.to_upper()
+	header.text = "[ %s ]" % tr(title).to_upper()
 	header.add_theme_font_size_override("font_size", 12)
 	header.add_theme_color_override("font_color", color)
 	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -118,8 +118,8 @@ func update_ui():
 	var lvl = manager.get_level()
 	var xp = manager.xp
 	
-	level_label.text = "Level: %d" % lvl
-	xp_label.text = "XP: %d" % int(xp)
+	level_label.text = tr("Level: %d") % lvl
+	xp_label.text = tr("XP: %d") % int(xp)
 	
 	xp_bar.value = manager.get_progress_to_next_level()
 	

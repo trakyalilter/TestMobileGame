@@ -936,7 +936,7 @@ func _make_count_chip(n: int) -> Control:
 	sb.content_margin_bottom = 1
 	badge.add_theme_stylebox_override("panel", sb)
 	var lbl := Label.new()
-	lbl.text = "×%s" % UITheme.format_num(n)
+	lbl.text = tr("×%s") % UITheme.format_num(n)
 	lbl.add_theme_font_size_override("font_size", 10)
 	lbl.add_theme_color_override("font_color", Color(0.80, 1.0, 1.0))
 	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE

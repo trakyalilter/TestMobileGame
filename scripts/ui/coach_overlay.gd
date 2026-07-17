@@ -114,7 +114,7 @@ func _build_ui() -> void:
 	footer.add_child(spacer)
 
 	_skip_btn = Button.new()
-	_skip_btn.text = "Skip"
+	_skip_btn.text = tr("Skip")
 	_skip_btn.add_theme_font_size_override("font_size", 12)
 	_skip_btn.pressed.connect(_on_skip)
 	footer.add_child(_skip_btn)
@@ -180,8 +180,8 @@ func _render() -> void:
 	var step: Dictionary = _steps[_idx]
 	_title_lbl.text = str(step.get("title", ""))
 	_body_lbl.text = str(step.get("body", ""))
-	_step_lbl.text = "%d / %d" % [_idx + 1, _steps.size()]
-	_next_btn.text = "Got it" if _idx == _steps.size() - 1 else "Next  >"
+	_step_lbl.text = tr("%d / %d") % [_idx + 1, _steps.size()]
+	_next_btn.text = tr("Got it") if _idx == _steps.size() - 1 else "Next  >"
 
 	var anchor_key := str(step.get("anchor", ""))
 	# v128: let the provider prep the UI for this step before we measure the anchor

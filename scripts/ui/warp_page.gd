@@ -320,7 +320,7 @@ func _build_command_band():
 
 	# One-line keeps/resets reminder (full colour-coded ledger lives in the modal).
 	var kr = Label.new()
-	kr.text = "KEEPS  Research · Ships · Exotic Matter · Mastery          RESETS  Liras · Buildings · Resources · Skill levels (30% XP)"
+	kr.text = tr("KEEPS  Research · Ships · Exotic Matter · Mastery          RESETS  Liras · Buildings · Resources · Skill levels (30% XP)")
 	kr.add_theme_font_size_override("font_size", 9)
 	kr.add_theme_color_override("font_color", Color(0.52, 0.55, 0.62))
 	kr.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -335,14 +335,14 @@ func _build_command_band():
 	row_d.add_theme_constant_override("separation", 14)
 	v.add_child(row_d)
 	_back_btn = Button.new()
-	_back_btn.text = "← Return"
+	_back_btn.text = tr("← Return")
 	_back_btn.custom_minimum_size = Vector2(120, 40)
 	UITheme.apply_premium_button_style(_back_btn, "engineering")
 	_back_btn.add_theme_font_size_override("font_size", 12)
 	_back_btn.pressed.connect(_on_back_btn_pressed)
 	row_d.add_child(_back_btn)
 	_rift_status_lbl = Label.new()
-	_rift_status_lbl.text = "NO SINGULARITY DETECTED THIS RUN"
+	_rift_status_lbl.text = tr("NO SINGULARITY DETECTED THIS RUN")
 	_rift_status_lbl.custom_minimum_size = Vector2(340, 44)
 	_rift_status_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_rift_status_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -371,13 +371,13 @@ func _build_first_warp_block():
 	mc.add_child(v)
 
 	var title = Label.new()
-	title.text = "FIRST WARP — WHAT YOU'LL UNLOCK"
+	title.text = tr("FIRST WARP — WHAT YOU'LL UNLOCK")
 	title.add_theme_font_size_override("font_size", 12)
 	title.add_theme_color_override("font_color", UITheme.CATEGORY_COLORS["mission"])
 	v.add_child(title)
 
 	var bullets = Label.new()
-	bullets.text = "• Prestige multipliers (Production / Combat / Gathering / XP)\n• Warp Tier scaling (doubles every 5 warps)\n• Starting resource package on each future warp"
+	bullets.text = tr("• Prestige multipliers (Production / Combat / Gathering / XP)\n• Warp Tier scaling (doubles every 5 warps)\n• Starting resource package on each future warp")
 	bullets.add_theme_font_size_override("font_size", 11)
 	bullets.add_theme_color_override("font_color", Color(0.78, 0.86, 0.82))
 	v.add_child(bullets)
@@ -518,7 +518,7 @@ func _show_branch(branch_id: String) -> void:
 	if _lock_msg != null:
 		_lock_msg.visible = not revealed
 		if not revealed:
-			_lock_msg.text = "[ LOCKED ]   This branch unlocks at Warp #%d" % int(_wm.BRANCH_REVEAL_WARP.get(branch_id, 1))
+			_lock_msg.text = tr("[ LOCKED ]   This branch unlocks at Warp #%d") % int(_wm.BRANCH_REVEAL_WARP.get(branch_id, 1))
 	for b in _branch_tabs:
 		_branch_tabs[b].button_pressed = (b == branch_id)
 
@@ -620,13 +620,13 @@ func _update_all():
 
 func _refresh_header():
 	var n = int(_wm.total_warps)
-	_cycle_lbl.text = "WARP CYCLE   #%d   ▸   #%d" % [n, n + 1]
-	_shards_big_lbl.text = "◈   %.1f   EXOTIC SHARDS" % _wm.warp_shards
+	_cycle_lbl.text = tr("WARP CYCLE   #%d   ▸   #%d") % [n, n + 1]
+	_shards_big_lbl.text = tr("◈   %.1f   EXOTIC SHARDS") % _wm.warp_shards
 	var tier = 0
 	if _wm.has_method("get_warp_tier"):
 		tier = int(_wm.get_warp_tier())
 	var prod_pct = (_wm.get_production_multiplier() - 1.0) * 100.0
-	_tier_val.text = "×%d  ·  +%.0f%% prod" % [int(pow(2, tier)), prod_pct]
+	_tier_val.text = tr("×%d  ·  +%.0f%% prod") % [int(pow(2, tier)), prod_pct]
 
 
 func _refresh_first_warp_visibility():
@@ -637,17 +637,17 @@ func _refresh_readiness():
 	var gains = int(_wm.calculate_warp_gains())
 	# POTENTIAL chip.
 	if gains > 0:
-		_gain_big_lbl.text = "+%d %s · READY" % [gains, _shard_label(gains)]
+		_gain_big_lbl.text = tr("+%d %s · READY") % [gains, _shard_label(gains)]
 		_gain_big_lbl.add_theme_color_override("font_color", COLOR_SHARD.lightened(0.1))
 	else:
-		_gain_big_lbl.text = "— not ready"
+		_gain_big_lbl.text = tr("— not ready")
 		_gain_big_lbl.add_theme_color_override("font_color", Color(0.78, 0.62, 0.62))
 
 	# RESONANCE chip: charge you've fed into the Core + the bonus shards it's worth.
 	# v134h: no more passive "~/s draw rate" — charge only accrues from manual feeding.
 	if _wm != null and _reso_val != null:
 		var bonus := int(_wm.get_charge_bonus_shards(gains))
-		_reso_val.text = "%s  +%d◈" % [FormatUtils.format_number(_wm.warp_charge), bonus]
+		_reso_val.text = tr("%s  +%d◈") % [FormatUtils.format_number(_wm.warp_charge), bonus]
 
 
 # v135a: gains-forward preview — the reward, shown before the loss ledger. Pure
@@ -667,7 +667,7 @@ func _build_gains_preview():
 	vb.add_theme_constant_override("separation", 3)
 	_gains_panel.add_child(vb)
 	var hdr := Label.new()
-	hdr.text = "◈ WARP REWARDS"
+	hdr.text = tr("◈ WARP REWARDS")
 	hdr.add_theme_font_size_override("font_size", 11)
 	hdr.add_theme_color_override("font_color", COLOR_SHARD)
 	vb.add_child(hdr)
@@ -694,10 +694,10 @@ func _refresh_gains_preview():
 	var total := base + bonus
 	if total > 0:
 		var extra := ("   (%d + %d Resonance)" % [base, bonus]) if bonus > 0 else ""
-		_gains_shards_lbl.text = "+%d %s%s" % [total, _shard_label(total), extra]
+		_gains_shards_lbl.text = tr("+%d %s%s") % [total, _shard_label(total), extra]
 		_gains_shards_lbl.add_theme_color_override("font_color", COLOR_KEEPS)
 	else:
-		_gains_shards_lbl.text = "— not ready yet"
+		_gains_shards_lbl.text = tr("— not ready yet")
 		_gains_shards_lbl.add_theme_color_override("font_color", Color(0.78, 0.62, 0.62))
 	# v135b: the warp-manager multiplier getters are untyped (return Variant), so
 	# ":=" infers Variant and the project's warnings-as-errors rejects it — the
@@ -706,12 +706,12 @@ func _refresh_gains_preview():
 	var comb: float = (_wm.get_combat_multiplier() - 1.0) * 100.0
 	var gath: float = (_wm.get_gathering_multiplier() - 1.0) * 100.0
 	var xpm: float = (_wm.get_xp_multiplier() - 1.0) * 100.0
-	_gains_mult_lbl.text = "Standing bonuses  +%.0f%% Prod · +%.0f%% Combat · +%.0f%% Gather · +%.0f%% XP" % [prod, comb, gath, xpm]
+	_gains_mult_lbl.text = tr("Standing bonuses  +%.0f%% Prod · +%.0f%% Combat · +%.0f%% Gather · +%.0f%% XP") % [prod, comb, gath, xpm]
 	var starter_mult := 1.0
 	if _wm.has_method("get_tree_starter_mult"):
 		starter_mult = _wm.get_tree_starter_mult()
 	var proj_shards: float = _wm.warp_shards + float(total)
-	_gains_starter_lbl.text = "Starter package on reset: %s credits + Fe / Si / Wood / Water" % FormatUtils.format_number(int(proj_shards * 5000.0 * starter_mult))
+	_gains_starter_lbl.text = tr("Starter package on reset: %s credits + Fe / Si / Wood / Water") % FormatUtils.format_number(int(proj_shards * 5000.0 * starter_mult))
 
 # Per-frame live values: progress bar + Singularity status line.
 func _update_dynamic():
@@ -720,10 +720,10 @@ func _update_dynamic():
 	# v138: passive rift state — the warp happens on the Sector Chart, this reports it.
 	if _wm.rift_open and gains > 0:
 		var s = "" if gains == 1 else "s"
-		_rift_status_lbl.text = "◈  SINGULARITY OPEN — enter it on the Sector Chart  (+%d shard%s)" % [gains, s]
+		_rift_status_lbl.text = tr("◈  SINGULARITY OPEN — enter it on the Sector Chart  (+%d shard%s)") % [gains, s]
 		_rift_status_lbl.add_theme_color_override("font_color", Color(0.78, 0.55, 1.0))
 	else:
-		_rift_status_lbl.text = "NO SINGULARITY DETECTED THIS RUN"
+		_rift_status_lbl.text = tr("NO SINGULARITY DETECTED THIS RUN")
 		_rift_status_lbl.add_theme_color_override("font_color", Color(0.55, 0.58, 0.68))
 
 	var score = _compute_progress_score()
@@ -737,7 +737,7 @@ func _update_dynamic():
 	if into < 0.0: into = 0.0
 	if into > span: into = span
 	_progress_bar.value = (into / span) * 100.0
-	_progress_lbl.text = "%s / %s   (toward +%d %s)" % [
+	_progress_lbl.text = tr("%s / %s   (toward +%d %s)") % [
 		FormatUtils.format_number(score),
 		FormatUtils.format_number(next_thr),
 		gains + 1,
@@ -778,13 +778,13 @@ func _build_feed_core_section():
 	mc.add_child(vb)
 
 	var title := Label.new()
-	title.text = "FEED THE CORE"
+	title.text = tr("FEED THE CORE")
 	title.add_theme_font_size_override("font_size", 12)
 	title.add_theme_color_override("font_color", COLOR_SHARD)
 	vb.add_child(title)
 
 	var sub := Label.new()
-	sub.text = "Pour surplus materials into the Core — accrues Resonance, redeemed as bonus shards at your next Warp. Your stockpiles are never touched unless you feed them."
+	sub.text = tr("Pour surplus materials into the Core — accrues Resonance, redeemed as bonus shards at your next Warp. Your stockpiles are never touched unless you feed them.")
 	sub.add_theme_font_size_override("font_size", 10)
 	sub.add_theme_color_override("font_color", COLOR_DIM)
 	sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -824,7 +824,7 @@ func _build_feed_core_section():
 	row.add_child(plus)
 
 	var maxb := Button.new()
-	maxb.text = "MAX"
+	maxb.text = tr("MAX")
 	maxb.custom_minimum_size = Vector2(46, 30)
 	_style_pill_button(maxb, COLOR_SHARD)
 	maxb.pressed.connect(func(): if _feed_spin: _feed_spin.value = _feed_owned())
@@ -838,7 +838,7 @@ func _build_feed_core_section():
 	row.add_child(_feed_preview)
 
 	_feed_btn = Button.new()
-	_feed_btn.text = "FEED"
+	_feed_btn.text = tr("FEED")
 	_feed_btn.custom_minimum_size = Vector2(62, 30)
 	_style_pill_button(_feed_btn, COLOR_SHARD)
 	_feed_btn.pressed.connect(_on_feed_pressed)
@@ -911,7 +911,7 @@ func _refresh_feed_preview():
 	if s == "" or amt <= 0.0:
 		_feed_preview.text = ""
 		return
-	_feed_preview.text = "= +%s◈" % FormatUtils.format_number(_wm.charge_value(s, amt))
+	_feed_preview.text = tr("= +%s◈") % FormatUtils.format_number(_wm.charge_value(s, amt))
 
 
 func _on_feed_pressed():
@@ -929,7 +929,7 @@ func _on_feed_pressed():
 func _refresh_tree():
 	if _tree_panel == null: return
 	var avail_n = int(_wm.get_available_shards())
-	_avail_label.text = "AVAILABLE %d %s  ·  SPENT %d  ·  EARNED %d" % [
+	_avail_label.text = tr("AVAILABLE %d %s  ·  SPENT %d  ·  EARNED %d") % [
 		avail_n, _shard_label(avail_n),
 		int(_wm.warp_shards_spent),
 		int(_wm.warp_shards),
@@ -947,9 +947,9 @@ func _refresh_tree():
 		var tab = _branch_tabs[branch_id]
 		var base: String = branch_id.to_upper()
 		if _wm.is_branch_revealed(branch_id):
-			tab.text = "%s  %d/%d" % [base, int(owned_by_branch.get(branch_id, 0)), int(total_by_branch.get(branch_id, 0))]
+			tab.text = tr("%s  %d/%d") % [base, int(owned_by_branch.get(branch_id, 0)), int(total_by_branch.get(branch_id, 0))]
 		else:
-			tab.text = "%s  ·  LOCKED" % base
+			tab.text = tr("%s  ·  LOCKED") % base
 
 	# Re-apply the active branch's reveal/visibility (a warp may have just
 	# revealed it), then repaint every node.
@@ -1034,7 +1034,7 @@ func _on_warped(gains):
 	UITheme.trigger_circuit_surge(_shards_big_lbl)
 	# Brief celebratory text on the readiness panel so the dopamine moment lands.
 	var s = "" if gains == 1 else "s"
-	_gain_big_lbl.text = "WARP COMPLETE · +%d SHARD%s" % [gains, s]
+	_gain_big_lbl.text = tr("WARP COMPLETE · +%d SHARD%s") % [gains, s]
 	_gain_big_lbl.add_theme_color_override("font_color", COLOR_PURCHASED)
 
 

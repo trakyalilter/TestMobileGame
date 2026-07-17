@@ -42,7 +42,7 @@ func refresh_state():
 		return
 
 	var active_ammo = manager.ammo_loadout.get(slot_idx, "")
-	type_lbl.text = "WEAPON %d" % (slot_idx + 1)  # v131b: terse — fits the square; blade title already says AMMUNITION
+	type_lbl.text = tr("WEAPON %d") % (slot_idx + 1)  # v131b: terse — fits the square; blade title already says AMMUNITION
 	type_lbl.add_theme_color_override("font_color", Color(0.88, 0.60, 0.34)) # Ammo Slot Color
 
 	if active_ammo != "":
@@ -50,12 +50,12 @@ func refresh_state():
 		var qty = GameState.resources.get_element_amount(active_ammo)
 		name_lbl.text = ammo_name.to_upper()
 		name_lbl.add_theme_color_override("font_color", Color(0.9, 0.86, 0.78)) # TEXT_MAIN
-		status_lbl.text = "%d units" % qty
+		status_lbl.text = tr("%d units") % qty
 		status_lbl.add_theme_color_override("font_color", Color(0.373, 0.878, 0.784) if qty > 0 else Color(0.8, 0.3, 0.3))
 	else:
-		name_lbl.text = "EMPTY"
+		name_lbl.text = tr("EMPTY")
 		name_lbl.add_theme_color_override("font_color", Color(0.33, 0.33, 0.33))
-		status_lbl.text = "None"
+		status_lbl.text = tr("None")
 		status_lbl.add_theme_color_override("font_color", Color(0.33, 0.33, 0.33))
 
 

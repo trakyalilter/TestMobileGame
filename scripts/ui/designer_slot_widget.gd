@@ -358,9 +358,9 @@ func refresh_state():
 	# v135a: the CMB_3 aux slot is a singleton that accepts any type — label it as
 	# such rather than "AUX 1", so its any-type nature reads at a glance.
 	if slot_type == "aux":
-		type_lbl.text = "AUX · ANY"
+		type_lbl.text = tr("AUX · ANY")
 	else:
-		type_lbl.text = "%s %d" % [slot_type.to_upper(), _get_type_number()]
+		type_lbl.text = tr("%s %d") % [slot_type.to_upper(), _get_type_number()]
 	type_lbl.add_theme_color_override("font_color", _get_slot_color(slot_type))
 	
 	option_btn.clear()
@@ -373,7 +373,7 @@ func refresh_state():
 	if equipped_id:
 		var m_data = manager.modules.get(equipped_id)
 		if not m_data:
-			name_lbl.text = "INVALID ID"
+			name_lbl.text = tr("INVALID ID")
 			stats_lbl.text = "?"
 			rarity_badge.visible = false
 			tooltip_text = "Module data not found for ID: %s" % equipped_id
@@ -450,14 +450,14 @@ func refresh_state():
 
 		stats_lbl.text = _build_card_stats(stats, equipped_id)
 		if slot_type == "weapon":
-			stats_lbl.text = "%s · %s" % [UITheme.weapon_family_tag(stats), stats_lbl.text]
+			stats_lbl.text = tr("%s · %s") % [UITheme.weapon_family_tag(stats), stats_lbl.text]
 
 		var durability = int(m_data.get("durability", 100))
 		stats_lbl.text += "\nDUR %d%%" % durability
 
 		var uneq_btn = Button.new()
 		uneq_btn.name = "QuickUnequipBtn"
-		uneq_btn.text = "× Unequip"
+		uneq_btn.text = tr("× Unequip")
 		uneq_btn.flat = true
 		uneq_btn.add_theme_font_size_override("font_size", 9)
 		uneq_btn.add_theme_color_override("font_color", Color(0.9, 0.4, 0.4))
@@ -473,14 +473,14 @@ func refresh_state():
 		if equipped_id.begins_with("custom_") and durability < 100:
 			var repair_btn = Button.new()
 			repair_btn.name = "QuickRepairBtn"
-			repair_btn.text = "Repair  %d%%" % durability
+			repair_btn.text = tr("Repair  %d%%") % durability
 			repair_btn.flat = true
 			repair_btn.add_theme_font_size_override("font_size", 9)
 			var dur_col := Color(0.95, 0.85, 0.30)
 			if durability <= 25: dur_col = Color(0.95, 0.40, 0.30)
 			elif durability <= 50: dur_col = Color(0.95, 0.65, 0.25)
 			repair_btn.add_theme_color_override("font_color", dur_col)
-			repair_btn.tooltip_text = "Repair this module without entering global Repair Mode."
+			repair_btn.tooltip_text = tr("Repair this module without entering global Repair Mode.")
 			repair_btn.pressed.connect(_try_repair)
 			$MarginContainer/VBoxContainer.add_child(repair_btn)
 			$MarginContainer/VBoxContainer.move_child(repair_btn, uneq_btn.get_index() + 1)
@@ -549,7 +549,7 @@ func refresh_state():
 				var sock_i := i
 				if gem:
 					var _facet_txt: String = manager.get_gem_facet_text(gem, slot_type)
-					sock_wrap.tooltip_text = "Matrix Core: %s\n%s  (active in this %s slot)\n[Click to remove]" % [ElementDB.get_display_name(gem), _facet_txt, slot_type.capitalize()]
+					sock_wrap.tooltip_text = tr("Matrix Core: %s\n%s  (active in this %s slot)\n[Click to remove]") % [ElementDB.get_display_name(gem), _facet_txt, slot_type.capitalize()]
 					var captured_gem = gem
 					sock_wrap.mouse_entered.connect(func():
 						# v111.13 CRASH FIX: a queued mouse_entered can fire after
@@ -591,7 +591,7 @@ func refresh_state():
 								parent_ui.trigger_refresh()
 					)
 				else:
-					sock_wrap.tooltip_text = "Empty Matrix Socket — a core here gives its %s-slot bonus\n[Click a Matrix Core, then click here to socket it]" % slot_type.capitalize()
+					sock_wrap.tooltip_text = tr("Empty Matrix Socket — a core here gives its %s-slot bonus\n[Click a Matrix Core, then click here to socket it]") % slot_type.capitalize()
 					sock_wrap.gui_input.connect(func(event):
 						if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 							_socket_armed_core(equipped_id, sock_i)
@@ -647,7 +647,7 @@ func _refresh_consumable_state():
 	_apply_base_style()
 	var c_type = "hull" if slot_type == "consumable_hull" else "shield"
 
-	type_lbl.text = "HULL REPAIR" if c_type == "hull" else "SHIELD REPAIR"
+	type_lbl.text = tr("HULL REPAIR") if c_type == "hull" else "SHIELD REPAIR"
 	type_lbl.add_theme_color_override("font_color", Color(0.74, 0.74, 0.86))
 	rarity_badge.visible = false
 	_ensure_type_icon().visible = false
@@ -667,10 +667,10 @@ func _refresh_consumable_state():
 		var qty = GameState.resources.get_element_amount(equipped_id)
 		var heal_pct = int(round(data.get("heal_pct", data.get("stats", {}).get("heal_pct", 0.0)) * 100.0))
 		
-		name_lbl.text = "%s (x%d)" % [dname, qty]
+		name_lbl.text = tr("%s (x%d)") % [dname, qty]
 		name_lbl.add_theme_color_override("font_color", Color(0.74, 0.74, 0.86))
 		
-		stats_lbl.text = "Restores %d%% %s" % [heal_pct, c_type.capitalize()]
+		stats_lbl.text = tr("Restores %d%% %s") % [heal_pct, c_type.capitalize()]
 		
 		tooltip_text = "%s\nRestores %d%% %s" % [dname, heal_pct, c_type.capitalize()]
 		
@@ -1134,10 +1134,10 @@ func _spawn_custom_repair_modal(m_data: Dictionary, cur_dur: int, parts_cost: in
 
 	var body := "[center]Restore  [b]%s[/b]\n" % nm
 	body += "from [color=#%s]%d%%[/color]   →   [color=#%s]100%%[/color] durability.\n\n" % [warn_hex, cur_dur, pos_hex]
-	body += "[color=#%s]COST[/color]     [b][color=#%s]%d[/color][/b]  Spare Parts\n" % [dim_hex, warn_hex, parts_cost]
-	body += "[color=#%s]IN STOCK[/color]     [b][color=#%s]%d[/color][/b]" % [dim_hex, have_hex, have]
+	body += "[color=#%s]%s[/color]     [b][color=#%s]%d[/color][/b]  %s\n" % [dim_hex, tr("COST"), warn_hex, parts_cost, tr("Spare Parts")]
+	body += "[color=#%s]%s[/color]     [b][color=#%s]%d[/color][/b]" % [dim_hex, tr("IN STOCK"), have_hex, have]
 	if not affordable:
-		body += "\n\n[color=#%s][b]NOT ENOUGH SPARE PARTS[/b][/color]" % neg_hex
+		body += "\n\n[color=#%s][b]%s[/b][/color]" % [neg_hex, tr("NOT ENOUGH SPARE PARTS")]
 	body += "[/center]"
 
 	# Capture into locals — the slot widget may be rebuilt by trigger_refresh.

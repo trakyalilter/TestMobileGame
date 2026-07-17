@@ -59,13 +59,13 @@ func _build_ui() -> void:
 	scroll.add_child(col)
 
 	var title := Label.new()
-	title.text = "FLEET COMMAND"
+	title.text = tr("FLEET COMMAND")
 	title.add_theme_font_size_override("font_size", 22)
 	title.add_theme_color_override("font_color", Color(0.55, 0.85, 1.0))
 	col.add_child(title)
 
 	var subtitle := Label.new()
-	subtitle.text = "Forge your material surplus into a battle-fleet. Capacity grows with every Warp. Each ship adds +25% of your ship's damage in combat (up to +100%)."
+	subtitle.text = tr("Forge your material surplus into a battle-fleet. Capacity grows with every Warp. Each ship adds +25% of your ship's damage in combat (up to +100%).")
 	subtitle.add_theme_font_size_override("font_size", 12)
 	subtitle.add_theme_color_override("font_color", Color(0.6, 0.7, 0.85))
 	subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -83,7 +83,7 @@ func _build_ui() -> void:
 	status.add_child(_power_lbl)
 
 	var build_hdr := Label.new()
-	build_hdr.text = "BUILD  (consumes your surplus)"
+	build_hdr.text = tr("BUILD  (consumes your surplus)")
 	build_hdr.add_theme_font_size_override("font_size", 13)
 	build_hdr.add_theme_color_override("font_color", Color(0.5, 0.7, 0.95))
 	col.add_child(build_hdr)
@@ -92,7 +92,7 @@ func _build_ui() -> void:
 	col.add_child(_build_list)
 
 	var roster_hdr := Label.new()
-	roster_hdr.text = "ROSTER"
+	roster_hdr.text = tr("ROSTER")
 	roster_hdr.add_theme_font_size_override("font_size", 13)
 	roster_hdr.add_theme_color_override("font_color", Color(0.5, 0.7, 0.95))
 	col.add_child(roster_hdr)
@@ -121,7 +121,7 @@ func _make_build_row(hid: String) -> Control:
 	row.add_child(info)
 
 	var name_lbl := Label.new()
-	name_lbl.text = "%s   ·   Power %s" % [_mgr.get_hull_name(hid), FormatUtils.format_number(_mgr.get_hull_power(hid))]
+	name_lbl.text = tr("%s   ·   Power %s") % [_mgr.get_hull_name(hid), FormatUtils.format_number(_mgr.get_hull_power(hid))]
 	name_lbl.add_theme_font_size_override("font_size", 14)
 	info.add_child(name_lbl)
 
@@ -145,7 +145,7 @@ func _rebuild_roster() -> void:
 	for c in _roster_list.get_children(): c.queue_free()
 	if _mgr.get_fleet_count() == 0:
 		var empty := Label.new()
-		empty.text = "No ships yet — build your first hull above."
+		empty.text = tr("No ships yet — build your first hull above.")
 		empty.add_theme_font_size_override("font_size", 11)
 		empty.add_theme_color_override("font_color", Color(0.5, 0.55, 0.65))
 		_roster_list.add_child(empty)
@@ -160,11 +160,11 @@ func _make_roster_row(index: int, hid: String) -> Control:
 	row.add_theme_constant_override("separation", 10)
 	var lbl := Label.new()
 	lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	lbl.text = "   ⟢  %s   (Power %s)" % [_mgr.get_hull_name(hid), FormatUtils.format_number(_mgr.get_hull_power(hid))]
+	lbl.text = tr("   ⟢  %s   (Power %s)") % [_mgr.get_hull_name(hid), FormatUtils.format_number(_mgr.get_hull_power(hid))]
 	lbl.add_theme_font_size_override("font_size", 12)
 	row.add_child(lbl)
 	var scrap := Button.new()
-	scrap.text = "Scrap"
+	scrap.text = tr("Scrap")
 	scrap.add_theme_font_size_override("font_size", 10)
 	scrap.pressed.connect(func():
 		if _mgr.scrap_ship(index):
@@ -178,19 +178,19 @@ func _update_states() -> void:
 	if not _mgr or not is_instance_valid(_cap_lbl): return
 	var count: int = _mgr.get_fleet_count()
 	var cap: int = _mgr.get_fleet_capacity()
-	_cap_lbl.text = "Fleet:  %d / %d" % [count, cap]
+	_cap_lbl.text = tr("Fleet:  %d / %d") % [count, cap]
 	_cap_lbl.add_theme_color_override("font_color", Color(0.85, 0.95, 1.0) if count < cap else Color(1.0, 0.6, 0.4))
 	# v112 P2: fleet now contributes to combat — show the live +X% damage bonus.
 	var bonus_pct: int = _mgr.get_combat_bonus_pct() if _mgr.has_method("get_combat_bonus_pct") else 0
 	if bonus_pct > 0:
-		_power_lbl.text = "Fleet Strength:  %s  ·  +%d%% ship damage in combat" % [FormatUtils.format_number(_mgr.get_fleet_power()), bonus_pct]
+		_power_lbl.text = tr("Fleet Strength:  %s  ·  +%d%% ship damage in combat") % [FormatUtils.format_number(_mgr.get_fleet_power()), bonus_pct]
 	else:
-		_power_lbl.text = "Fleet Strength:  %s  ·  build ships to add combat damage" % FormatUtils.format_number(_mgr.get_fleet_power())
+		_power_lbl.text = tr("Fleet Strength:  %s  ·  build ships to add combat damage") % FormatUtils.format_number(_mgr.get_fleet_power())
 	var full: bool = count >= cap
 	for r in _build_rows:
 		var btn: Button = r["btn"]
 		if not is_instance_valid(btn): continue
-		btn.text = "Cap Full" if full else "Build"
+		btn.text = tr("Cap Full") if full else "Build"
 		btn.disabled = not _mgr.can_build(r["hid"])
 		r["cost_lbl"].text = _format_cost(r["hid"])
 

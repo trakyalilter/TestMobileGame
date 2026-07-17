@@ -225,7 +225,7 @@ func _init_pages():
 	p_atlas.visible = false
 	pages["atlas"] = p_atlas
 	
-	atlas_btn.text = "  Atlas"
+	atlas_btn.text = tr("  Atlas")
 
 	
 	var p_bounty = preload("res://scenes/ui/bounty_page.tscn").instantiate()
@@ -370,7 +370,7 @@ func _spawn_reward(info: Dictionary):
 		var e = _reward_pills[key]
 		if is_instance_valid(e["panel"]):
 			e["accum"] = int(e["accum"]) + amount
-			e["delta_lbl"].text = "+%s" % UITheme.format_number(e["accum"])
+			e["delta_lbl"].text = tr("+%s") % UITheme.format_number(e["accum"])
 			e["total_lbl"].text = str(info.get("total_text", ""))
 			_reward_restart_life(key)
 			_reward_flash(e["delta_lbl"], bool(info.get("hot", false)))
@@ -473,7 +473,7 @@ func _build_reward_pill(info: Dictionary, accent: Color) -> Dictionary:
 	col.add_child(name_lbl)
 
 	var delta_lbl := Label.new()
-	delta_lbl.text = "+%s" % UITheme.format_number(int(info.get("amount", 0)))
+	delta_lbl.text = tr("+%s") % UITheme.format_number(int(info.get("amount", 0)))
 	delta_lbl.add_theme_font_size_override("font_size", 17)
 	delta_lbl.add_theme_color_override("font_color", accent.lerp(Color.WHITE, 0.25))
 	col.add_child(delta_lbl)

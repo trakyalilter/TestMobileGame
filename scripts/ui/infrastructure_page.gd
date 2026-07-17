@@ -50,6 +50,14 @@ func _connect_signals():
 	GameState.resources.energy_changed.connect(_on_resources_changed)
 	if manager.has_signal("building_constructed"):
 		manager.building_constructed.connect(_on_resources_changed)
+	# v137: refresh when the page is re-shown. While hidden, resource changes on other
+	# pages schedule a refresh that _do_refresh drops (page not visible), so returning to
+	# Infrastructure could show a stale "affordable" green on a now-unbuildable card.
+	visibility_changed.connect(_on_visibility_shown)
+
+func _on_visibility_shown() -> void:
+	if is_visible_in_tree():
+		queue_refresh()
 
 func _on_resources_changed(_a=null, _b=null):
 	queue_refresh()
@@ -97,16 +105,16 @@ func _setup_multi_buy_toggles():
 	header.add_child(toggle_box)
 	
 	btn_x1 = Button.new()
-	btn_x1.text = "BUILD x1"
+	btn_x1.text = tr("BUILD x1")
 	btn_x1.toggle_mode = true
 	btn_x1.button_pressed = true
 	
 	btn_x10 = Button.new()
-	btn_x10.text = "BUILD x10"
+	btn_x10.text = tr("BUILD x10")
 	btn_x10.toggle_mode = true
 	
 	btn_x100 = Button.new()
-	btn_x100.text = "BUILD x100"
+	btn_x100.text = tr("BUILD x100")
 	btn_x100.toggle_mode = true
 	
 	toggle_box.add_child(btn_x1)
@@ -226,28 +234,28 @@ func update_ui():
 	if net_lbl:
 		var eff = manager.energy_efficiency
 		if net >= 0:
-			net_lbl.text = "NET: +%.1f kW" % net
+			net_lbl.text = tr("NET: +%.1f kW") % net
 			net_lbl.add_theme_color_override("font_color", Color.CYAN)
 		elif eff <= 0.5:
-			net_lbl.text = "NET: %.1f kW  GRID COLLAPSING" % net
+			net_lbl.text = tr("NET: %.1f kW  GRID COLLAPSING") % net
 			net_lbl.add_theme_color_override("font_color", Color.RED)
 		else:
-			net_lbl.text = "NET: %.1f kW  POWER DEFICIT" % net
+			net_lbl.text = tr("NET: %.1f kW  POWER DEFICIT") % net
 			net_lbl.add_theme_color_override("font_color", Color.ORANGE_RED)
 
 	if gen_lbl:
-		gen_lbl.text = "GEN: %.1f kW" % gen
+		gen_lbl.text = tr("GEN: %.1f kW") % gen
 
 	if cons_lbl:
 		var eff = manager.energy_efficiency
 		if eff < 0.5:
-			cons_lbl.text = "CONS: %.1f kW  [THROTTLED TO %d%% — BUILD MORE POWER]" % [cons, int(eff * 100)]
+			cons_lbl.text = tr("CONS: %.1f kW  [THROTTLED TO %d%% — BUILD MORE POWER]") % [cons, int(eff * 100)]
 			cons_lbl.add_theme_color_override("font_color", Color.RED)
 		elif eff < 1.0:
-			cons_lbl.text = "CONS: %.1f kW  (Grid Stalled: %d%%)" % [cons, int(eff * 100)]
+			cons_lbl.text = tr("CONS: %.1f kW  (Grid Stalled: %d%%)") % [cons, int(eff * 100)]
 			cons_lbl.add_theme_color_override("font_color", Color.ORANGE)
 		else:
-			cons_lbl.text = "CONS: %.1f kW" % cons
+			cons_lbl.text = tr("CONS: %.1f kW") % cons
 			cons_lbl.add_theme_color_override("font_color", Color.WHITE)
 
 	for w in widgets:
@@ -300,7 +308,7 @@ func _build_tabs():
 		if first_tab == "":
 			first_tab = tab_id
 		var btn = Button.new()
-		btn.text = String(t["label"])
+		btn.text = tr(String(t["label"]))
 		btn.focus_mode = Control.FOCUS_NONE
 		btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 		btn.pressed.connect(_show_tab.bind(tab_id))

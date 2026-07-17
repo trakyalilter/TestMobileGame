@@ -126,6 +126,7 @@ func _ready():
 		var tab_root := Control.new()
 		tab_root.name = tab_name
 		tabs.add_child(tab_root)
+		tabs.set_tab_title(tab_root.get_index(), tr(tab_name))
 		var tab_scroll := ScrollContainer.new()
 		tab_scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		tab_root.add_child(tab_scroll)

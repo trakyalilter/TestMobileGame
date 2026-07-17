@@ -24,7 +24,7 @@ func setup(p_hid: String, p_data: Dictionary, p_manager, p_parent):
 		cost_lbl.mouse_filter = Control.MOUSE_FILTER_STOP
 		cost_lbl.meta_clicked.connect(func(meta): UITheme.request_atlas_from_meta(meta))
 
-	name_lbl.text = data["name"]
+	name_lbl.text = tr(data["name"])
 	if data.get("tier"):
 		name_lbl.text += " (TIER %d)" % data["tier"]
 	
@@ -33,7 +33,7 @@ func setup(p_hid: String, p_data: Dictionary, p_manager, p_parent):
 	UITheme.apply_card_style(self, "shipyard")
 	UITheme.apply_premium_button_style(btn, "shipyard")
 	
-	slot_lbl.text = "HP: %d\nSlots: %d" % [_hull_hp_display(), data["slots"].size()]
+	slot_lbl.text = tr("HP: %d\nSlots: %d") % [_hull_hp_display(), data["slots"].size()]
 
 	# Cost text handled dynamically in update_state
 	cost_lbl.text = ""
@@ -59,14 +59,14 @@ func _process(delta):
 
 func update_state():
 	# Keep catalog HP live with global hull buffs (buying CMB_1 updates every card).
-	slot_lbl.text = "HP: %d\nSlots: %d" % [_hull_hp_display(), data["slots"].size()]
+	slot_lbl.text = tr("HP: %d\nSlots: %d") % [_hull_hp_display(), data["slots"].size()]
 	if manager.active_hull == hid:
-		btn.text = "Active"
+		btn.text = tr("Active")
 		btn.disabled = true
 		modulate = Color(1.2, 1.2, 1)
 		research_lbl.hide()
 	else:
-		btn.text = "Construct"
+		btn.text = tr("Construct")
 		
 		# Check Research Requirements
 		var req_id = data.get("research_req")
@@ -74,8 +74,8 @@ func update_state():
 		
 		if not tech_unlocked:
 			var tech_name = GameState.research_manager.tech_tree.get(req_id, {}).get("name", req_id)
-			UITheme.apply_locked_overlay(self, data["name"], "RESEARCH: %s" % tech_name, true, req_id, "shipyard")
-			research_lbl.text = "Req: %s" % tech_name
+			UITheme.apply_locked_overlay(self, data["name"], tr("RESEARCH: %s") % tr(tech_name), true, req_id, "shipyard")
+			research_lbl.text = tr("Req: %s") % tech_name
 			research_lbl.show()
 			btn.disabled = true
 			cost_lbl.hide()

@@ -260,7 +260,7 @@ func _build_drag_hint_banner_if_needed() -> void:
 	sb.content_margin_bottom = 8
 	banner.add_theme_stylebox_override("panel", sb)
 	var lbl = Label.new()
-	lbl.text = "TIP: Drag a module from your Armory (right panel) onto a matching ship slot — or click it, then click the slot. This hint disappears after your first equip."
+	lbl.text = tr("TIP: Drag a module from your Armory (right panel) onto a matching ship slot — or click it, then click the slot. This hint disappears after your first equip.")
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	lbl.add_theme_font_size_override("font_size", 12)
@@ -423,14 +423,14 @@ func _setup_bulk_actions():
 	bulk_actions_container.add_theme_constant_override("v_separation", 6)
 	
 	btn_selection_toggle = Button.new()
-	btn_selection_toggle.text = "SELECT MODULES"
+	btn_selection_toggle.text = tr("SELECT MODULES")
 	btn_selection_toggle.toggle_mode = true
 	btn_selection_toggle.toggled.connect(_on_selection_mode_toggled)
 	_apply_filter_button_style(btn_selection_toggle, false, UITheme.COLORS["accent"])
 	bulk_actions_container.add_child(btn_selection_toggle)
 
 	btn_demolish_selected = Button.new()
-	btn_demolish_selected.text = "DEMOLISH SELECTED (0)"
+	btn_demolish_selected.text = tr("DEMOLISH SELECTED (0)")
 	btn_demolish_selected.disabled = true
 	btn_demolish_selected.visible = false
 	btn_demolish_selected.pressed.connect(_on_demolish_selected_pressed)
@@ -438,7 +438,7 @@ func _setup_bulk_actions():
 	bulk_actions_container.add_child(btn_demolish_selected)
 	
 	btn_clear = Button.new()
-	btn_clear.text = "CLEAR"
+	btn_clear.text = tr("CLEAR")
 	btn_clear.visible = false
 	btn_clear.pressed.connect(func():
 		selected_mids.clear()
@@ -450,15 +450,15 @@ func _setup_bulk_actions():
 
 	# Scrap-by-rarity quick actions
 	var btn_scrap_common = Button.new()
-	btn_scrap_common.text = "SCRAP COMMONS"
-	btn_scrap_common.tooltip_text = "Demolish every non-equipped Common module."
+	btn_scrap_common.text = tr("SCRAP COMMONS")
+	btn_scrap_common.tooltip_text = tr("Demolish every non-equipped Common module.")
 	btn_scrap_common.pressed.connect(_on_scrap_by_rarity.bind(0))
 	_apply_filter_button_style(btn_scrap_common, false, UITheme.COLORS["text_dim"])
 	bulk_actions_container.add_child(btn_scrap_common)
 
 	var btn_scrap_junk = Button.new()
-	btn_scrap_junk.text = "SCRAP JUNK"
-	btn_scrap_junk.tooltip_text = "Demolish every non-equipped Common + Uncommon module."
+	btn_scrap_junk.text = tr("SCRAP JUNK")
+	btn_scrap_junk.tooltip_text = tr("Demolish every non-equipped Common + Uncommon module.")
 	btn_scrap_junk.pressed.connect(_on_scrap_by_rarity.bind(1))
 	_apply_filter_button_style(btn_scrap_junk, false, UITheme.COLORS["positive"])
 	bulk_actions_container.add_child(btn_scrap_junk)
@@ -519,7 +519,7 @@ func _setup_armory_toolbar(v_box: Node, scroll_node: Node):
 
 	# Inline title (replaces the standalone ARMORY strip).
 	var title = Label.new()
-	title.text = "ARMORY"
+	title.text = tr("ARMORY")
 	title.add_theme_font_size_override("font_size", 13)
 	title.add_theme_color_override("font_color", UITheme.COLORS["accent_bright"])
 	title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -527,7 +527,7 @@ func _setup_armory_toolbar(v_box: Node, scroll_node: Node):
 
 	# Search — primary filter, takes most width
 	armory_search = LineEdit.new()
-	armory_search.placeholder_text = "Search    tier:3   set:architect   slot:weapon"
+	armory_search.placeholder_text = tr("Search    tier:3   set:architect   slot:weapon")
 	armory_search.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	armory_search.clear_button_enabled = true
 	armory_search.add_theme_font_size_override("font_size", 11)
@@ -553,9 +553,9 @@ func _setup_armory_toolbar(v_box: Node, scroll_node: Node):
 
 	# Manage toggle — reveals/hides bulk action controls on demand
 	armory_manage_btn = Button.new()
-	armory_manage_btn.text = "Manage"
+	armory_manage_btn.text = tr("Manage")
 	armory_manage_btn.toggle_mode = true
-	armory_manage_btn.tooltip_text = "Reveal bulk actions (select / demolish / scrap)."
+	armory_manage_btn.tooltip_text = tr("Reveal bulk actions (select / demolish / scrap).")
 	armory_manage_btn.add_theme_font_size_override("font_size", 11)
 	_apply_toolbar_button_style(armory_manage_btn, UITheme.COLORS["accent"])
 	armory_manage_btn.toggled.connect(func(on):
@@ -680,7 +680,7 @@ func _setup_loadout_preset_row(parent: Node, insert_idx: int):
 	preset_row.add_theme_constant_override("separation", 7)
 
 	var label = Label.new()
-	label.text = "LOADOUTS"
+	label.text = tr("LOADOUTS")
 	label.add_theme_font_size_override("font_size", 10)
 	label.add_theme_color_override("font_color", TEXT_DIM)
 	label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -693,7 +693,7 @@ func _setup_loadout_preset_row(parent: Node, insert_idx: int):
 	_preset_load_buttons = []
 	for i in [1, 2, 3, 4, 5]:
 		var load_btn = Button.new()
-		load_btn.text = "%d" % i
+		load_btn.text = tr("%d") % i
 		load_btn.custom_minimum_size = Vector2(34, 0)
 		load_btn.pressed.connect(_on_preset_load.bind(i))
 		load_btn.add_theme_font_size_override("font_size", 11)
@@ -737,9 +737,9 @@ func _refresh_preset_buttons():
 		var empty = manager.is_loadout_preset_empty(idx)
 		var pname := str(manager.loadout_presets.get(idx, {}).get("name", ""))
 		if idx == active:
-			btn.tooltip_text = "Build slot %d — active (edits save here automatically)." % idx
+			btn.tooltip_text = tr("Build slot %d — active (edits save here automatically).") % idx
 		elif empty:
-			btn.tooltip_text = "Build slot %d — empty. Switch here and build a fresh loadout." % idx
+			btn.tooltip_text = tr("Build slot %d — empty. Switch here and build a fresh loadout.") % idx
 		else:
 			btn.tooltip_text = ("Switch to '%s' (slot %d)." % [pname, idx]) if pname != "" else "Switch to build slot %d." % idx
 		_apply_filter_button_style(btn, idx == active, UITheme.COLORS["accent_bright"])
@@ -795,7 +795,7 @@ func _on_selection_mode_toggled(toggled_on: bool):
 	if not toggled_on:
 		selected_mids.clear()
 	
-	btn_selection_toggle.text = "EXIT SELECTION" if toggled_on else "SELECT MODULES"
+	btn_selection_toggle.text = tr("EXIT SELECTION") if toggled_on else "SELECT MODULES"
 	btn_demolish_selected.visible = toggled_on
 	btn_clear.visible = toggled_on
 	
@@ -1139,7 +1139,7 @@ func _setup_repair_tool_button() -> void:
 		btn_repair_mode.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		btn_repair_mode.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		btn_repair_mode.custom_minimum_size = Vector2(40, 40)
-	btn_repair_mode.tooltip_text = "Repair tool — pick it up, then click a damaged module. Right-click / Esc to put it back."
+	btn_repair_mode.tooltip_text = tr("Repair tool — pick it up, then click a damaged module. Right-click / Esc to put it back.")
 	btn_repair_mode.toggled.connect(func(toggled_on):
 		is_repair_mode = toggled_on
 		# Re-apply style so the "pressed" edge persists while toggled on.
@@ -1161,7 +1161,7 @@ func _arm_repair_tool() -> void:
 		btn_repair_mode.icon = null   # tool taken — the slot now reads as empty
 	else:
 		Input.set_default_cursor_shape(Input.CURSOR_CROSS)
-	btn_repair_mode.tooltip_text = "Tool in hand — click a damaged module to repair · right-click / Esc / click here to put it back."
+	btn_repair_mode.tooltip_text = tr("Tool in hand — click a damaged module to repair · right-click / Esc / click here to put it back.")
 
 func _disarm_repair_tool() -> void:
 	# Drop the tool back into its slot.
@@ -1170,7 +1170,7 @@ func _disarm_repair_tool() -> void:
 	Input.set_default_cursor_shape(Input.CURSOR_ARROW)
 	if _repair_tool_tex:
 		btn_repair_mode.icon = _get_colored_hammer_tex()
-	btn_repair_mode.tooltip_text = "Repair tool — pick it up, then click a damaged module. Right-click / Esc to put it back."
+	btn_repair_mode.tooltip_text = tr("Repair tool — pick it up, then click a damaged module. Right-click / Esc to put it back.")
 
 
 func _on_visibility_changed():
@@ -1249,7 +1249,7 @@ func _sync_slot_dimensions() -> void:
 
 func update_header():
 	if not (manager.active_hull and manager.active_hull in manager.hulls):
-		ship_name_lbl.text = "NO HULL SELECTED"
+		ship_name_lbl.text = tr("NO HULL SELECTED")
 		power_lbl.text = "0 / 0"
 		for child in stats_grid.get_children():
 			child.queue_free()
@@ -1262,10 +1262,10 @@ func update_header():
 	if build_name != "":
 		# v133: inline name-tag icon (replaces the ✎ pencil glyph) as the rename cue.
 		var _bn := build_name.to_upper().replace("[", "[lb]")   # escape user brackets in bbcode
-		ship_name_lbl.text = "%s  ·  %s  [img=18 color=#%s]res://assets/icons/ui/rename.svg[/img]" % [hull_data["name"].to_upper(), _bn, TITLE_GOLD.to_html(false)]
-		ship_name_lbl.tooltip_text = "Click to rename this build."
+		ship_name_lbl.text = "%s  ·  %s  [img=18 color=#%s]res://assets/icons/ui/rename.svg[/img]" % [tr(hull_data["name"]).to_upper(), _bn, TITLE_GOLD.to_html(false)]
+		ship_name_lbl.tooltip_text = tr("Click to rename this build.")
 	else:
-		ship_name_lbl.text = hull_data["name"].to_upper()
+		ship_name_lbl.text = tr(hull_data["name"]).to_upper()
 		ship_name_lbl.tooltip_text = ""
 
 	# Power-grid math (used by both old ShipSpecs bar and new GRID line)
@@ -1279,7 +1279,7 @@ func update_header():
 	power_lbl.visible = false
 	power_bar.max_value = e_cap
 	power_bar.value = e_used
-	power_lbl.text = "%d / %d" % [int(round(e_used)), int(round(e_cap))]
+	power_lbl.text = tr("%d / %d") % [int(round(e_used)), int(round(e_cap))]
 	var ship_specs_power_label = power_bar.get_parent().get_node_or_null("Label")
 	if ship_specs_power_label: ship_specs_power_label.visible = false
 
@@ -1339,7 +1339,7 @@ func _build_hero_dps_panel(dps: float) -> Control:
 	panel.add_child(hbox)
 
 	var key = Label.new()
-	key.text = "DPS"
+	key.text = tr("DPS")
 	key.add_theme_font_size_override("font_size", 11)
 	key.add_theme_color_override("font_color", TEXT_DIM)
 	key.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -1389,7 +1389,7 @@ func _build_resource_bar(label: String, value: float, max_value: float, fill: Co
 	outer.add_child(bar)
 
 	var v_lbl = Label.new()
-	v_lbl.text = "%s / %s" % [UITheme.format_num(value), UITheme.format_num(max_value)]
+	v_lbl.text = tr("%s / %s") % [UITheme.format_num(value), UITheme.format_num(max_value)]
 	v_lbl.custom_minimum_size = Vector2(110, 0)
 	v_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	v_lbl.add_theme_font_size_override("font_size", 11)
@@ -1402,7 +1402,7 @@ func _build_grid_bar(used: float, cap: float, margin: float) -> Control:
 	outer.add_theme_constant_override("separation", 8)
 
 	var lbl = Label.new()
-	lbl.text = "GRID"
+	lbl.text = tr("GRID")
 	lbl.custom_minimum_size = Vector2(54, 0)
 	lbl.add_theme_font_size_override("font_size", 10)
 	lbl.add_theme_color_override("font_color", TEXT_DIM)
@@ -1447,9 +1447,9 @@ func _build_grid_bar(used: float, cap: float, margin: float) -> Control:
 	var margin_lbl = Label.new()
 	# Merge the used/cap readout into the margin line so the GRID bar fits in a single row.
 	if margin >= 0:
-		margin_lbl.text = "%d / %d  ·  %s" % [int(used), int(cap), margin_prefix]
+		margin_lbl.text = tr("%d / %d  ·  %s") % [int(used), int(cap), margin_prefix]
 	else:
-		margin_lbl.text = "%d / %d  ·  %s" % [int(used), int(cap), margin_prefix]
+		margin_lbl.text = tr("%d / %d  ·  %s") % [int(used), int(cap), margin_prefix]
 	margin_lbl.custom_minimum_size = Vector2(160, 0)
 	margin_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	margin_lbl.add_theme_font_size_override("font_size", 10)
@@ -1556,7 +1556,7 @@ func _build_sets_active_panel() -> Control:
 		line.add_child(pip_lbl)
 
 		var name_lbl = Label.new()
-		name_lbl.text = info["name"]
+		name_lbl.text = tr(info["name"])
 		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		name_lbl.add_theme_font_size_override("font_size", 10)
 		name_lbl.add_theme_color_override("font_color",
@@ -1565,10 +1565,10 @@ func _build_sets_active_panel() -> Control:
 
 		var status_lbl = Label.new()
 		if active:
-			status_lbl.text = "ACTIVE"
+			status_lbl.text = tr("ACTIVE")
 			status_lbl.add_theme_color_override("font_color", UITheme.COLORS["positive"])
 		else:
-			status_lbl.text = "%d/%d" % [have, total]
+			status_lbl.text = tr("%d/%d") % [have, total]
 			status_lbl.add_theme_color_override("font_color", UITheme.COLORS["text_dim"])
 		status_lbl.add_theme_font_size_override("font_size", 9)
 		line.add_child(status_lbl)
@@ -1627,20 +1627,20 @@ func _open_build_rename_dialog(current_name: String):
 	panel.add_child(vb)
 
 	var title := Label.new()
-	title.text = "RENAME BUILD"
+	title.text = tr("RENAME BUILD")
 	title.add_theme_font_size_override("font_size", 14)
 	title.add_theme_color_override("font_color", UITheme.COLORS["accent_bright"])
 	vb.add_child(title)
 
 	var hint = Label.new()
-	hint.text = "Rename the active loadout preset:"
+	hint.text = tr("Rename the active loadout preset:")
 	hint.add_theme_font_size_override("font_size", 11)
 	hint.add_theme_color_override("font_color", TEXT_DIM)
 	vb.add_child(hint)
 
 	var input = LineEdit.new()
 	input.text = current_name
-	input.placeholder_text = "Build name…"
+	input.placeholder_text = tr("Build name…")
 	input.custom_minimum_size = Vector2(280, 0)
 	input.select_all_on_focus = true
 	vb.add_child(input)
@@ -1661,12 +1661,12 @@ func _open_build_rename_dialog(current_name: String):
 	btn_row.add_theme_constant_override("separation", 8)
 	vb.add_child(btn_row)
 	var cancel := Button.new()
-	cancel.text = "Cancel"
+	cancel.text = tr("Cancel")
 	cancel.add_theme_font_size_override("font_size", 12)
 	cancel.pressed.connect(layer.queue_free)
 	btn_row.add_child(cancel)
 	var ok := Button.new()
-	ok.text = "Rename"
+	ok.text = tr("Rename")
 	ok.add_theme_font_size_override("font_size", 12)
 	if UITheme.has_method("apply_premium_button_style"):
 		UITheme.apply_premium_button_style(ok, "engineering")
@@ -1822,7 +1822,7 @@ func _create_blade(title: String, slot_list: Array, parent: Node, color: Color =
 	margin.add_child(vbox)
 
 	var label = Label.new()
-	label.text = "%s" % title.to_upper()
+	label.text = tr("%s") % title.to_upper()
 	label.add_theme_font_size_override("font_size", 11)
 	label.add_theme_color_override("font_color", color)
 	vbox.add_child(label)
@@ -1874,7 +1874,7 @@ func _create_consumable_blade(parent: Node):
 	margin.add_child(vbox)
 
 	var label = Label.new()
-	label.text = "CONSUMABLES"
+	label.text = tr("CONSUMABLES")
 	label.add_theme_font_size_override("font_size", 11)
 	label.add_theme_color_override("font_color", UITheme.CATEGORY_COLORS["ops"])
 	vbox.add_child(label)
@@ -2199,7 +2199,7 @@ func _refresh_tab_labels():
 		var button: Button = tab_buttons[filter_id]
 		var label = FILTER_LABELS.get(filter_id, filter_id.to_upper())
 		var value = int(counts.get(filter_id, 0))
-		button.text = "%s %d" % [label, value]
+		button.text = tr("%s %d") % [label, value]
 
 func _build_filter_counts() -> Dictionary:
 	var counts := {}
@@ -2456,14 +2456,14 @@ func _refresh_hack_stone_bar() -> void:
 		return
 	_hack_stone_bar.visible = true
 	var lbl := Label.new()
-	lbl.text = "HACK CARDS:" if _armed_stone == "" else ("ARMED: %s — click a module" % ElementDB.get_display_name(_armed_stone))
+	lbl.text = tr("HACK CARDS:") if _armed_stone == "" else ("ARMED: %s — click a module" % ElementDB.get_display_name(_armed_stone))
 	lbl.add_theme_font_size_override("font_size", 11)
 	lbl.add_theme_color_override("font_color", UITheme.COLORS["accent_bright"] if _armed_stone != "" else UITheme.COLORS["text_dim"])
 	lbl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_hack_stone_bar.add_child(lbl)
 	for sid in owned:
 		var b := Button.new()
-		b.text = "%s x%d" % [ElementDB.get_display_name(sid), GameState.resources.get_element_amount(sid)]
+		b.text = tr("%s x%d") % [ElementDB.get_display_name(sid), GameState.resources.get_element_amount(sid)]
 		b.add_theme_font_size_override("font_size", 11)
 		b.toggle_mode = true
 		b.button_pressed = (sid == _armed_stone)
@@ -2471,7 +2471,7 @@ func _refresh_hack_stone_bar() -> void:
 		_hack_stone_bar.add_child(b)
 	if _armed_stone != "":
 		var cancel := Button.new()
-		cancel.text = "x Cancel"
+		cancel.text = tr("x Cancel")
 		cancel.add_theme_font_size_override("font_size", 11)
 		cancel.pressed.connect(_disarm_stone)
 		_hack_stone_bar.add_child(cancel)
@@ -2615,7 +2615,7 @@ func _show_anchor_chooser(module_id: String) -> void:
 	vb.add_theme_constant_override("separation", 8)
 	panel.add_child(vb)
 	var title := Label.new()
-	title.text = "ANCHOR BOLT — lock which affix?"
+	title.text = tr("ANCHOR BOLT — lock which affix?")
 	title.add_theme_font_size_override("font_size", 14)
 	title.add_theme_color_override("font_color", UITheme.COLORS["accent_bright"])
 	vb.add_child(title)
@@ -2626,7 +2626,7 @@ func _show_anchor_chooser(module_id: String) -> void:
 		b.pressed.connect(_on_anchor_pick.bind(layer, module_id, str(aid)))
 		vb.add_child(b)
 	var cancel := Button.new()
-	cancel.text = "Cancel"
+	cancel.text = tr("Cancel")
 	cancel.add_theme_font_size_override("font_size", 12)
 	cancel.pressed.connect(layer.queue_free)
 	vb.add_child(cancel)
@@ -2665,7 +2665,7 @@ func _show_refit_chooser(module_id: String) -> void:
 	vb.add_theme_constant_override("separation", 8)
 	panel.add_child(vb)
 	var title := Label.new()
-	title.text = "REFIT BAY — remove & reroll which affix?"
+	title.text = tr("REFIT BAY — remove & reroll which affix?")
 	title.add_theme_font_size_override("font_size", 14)
 	title.add_theme_color_override("font_color", UITheme.COLORS["accent_bright"])
 	vb.add_child(title)
@@ -2676,7 +2676,7 @@ func _show_refit_chooser(module_id: String) -> void:
 		b.pressed.connect(_on_refit_pick.bind(layer, module_id, str(aid)))
 		vb.add_child(b)
 	var cancel := Button.new()
-	cancel.text = "Cancel"
+	cancel.text = tr("Cancel")
 	cancel.add_theme_font_size_override("font_size", 12)
 	cancel.pressed.connect(layer.queue_free)
 	vb.add_child(cancel)
@@ -2768,7 +2768,7 @@ func _show_anchor_infocard(module_id: String, rect: Rect2 = Rect2()) -> void:
 	card.add_child(rtl)
 	vb.add_child(card)
 	var close_btn := Button.new()
-	close_btn.text = "Close"
+	close_btn.text = tr("Close")
 	close_btn.add_theme_font_size_override("font_size", 12)
 	close_btn.pressed.connect(func():
 		if is_instance_valid(layer): layer.queue_free()
@@ -2920,7 +2920,7 @@ func _on_page_next() -> void:
 func _on_pages_changed(count: int, current: int) -> void:
 	if not is_instance_valid(_page_lbl):
 		return
-	_page_lbl.text = "Page %d / %d" % [current + 1, count]
+	_page_lbl.text = tr("Page %d / %d") % [current + 1, count]
 	_page_prev_btn.disabled = current <= 0
 	_page_next_btn.disabled = current >= count - 1
 	_page_nav.visible = count > 1
@@ -2981,7 +2981,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _update_bulk_ui():
 	if btn_demolish_selected:
-		btn_demolish_selected.text = "DEMOLISH SELECTED (%d)" % selected_mids.size()
+		btn_demolish_selected.text = tr("DEMOLISH SELECTED (%d)") % selected_mids.size()
 		btn_demolish_selected.disabled = selected_mids.is_empty()
 
 func _on_demolish_selected_pressed():

@@ -82,7 +82,7 @@ var search_bar: LineEdit
 
 func _setup_search_bar():
 	search_bar = LineEdit.new()
-	search_bar.placeholder_text = "Search..."
+	search_bar.placeholder_text = tr("Search...")
 	
 	# Use new UITheme method
 	UITheme.apply_input_style(search_bar, "inventory")
@@ -111,7 +111,7 @@ func update_credits():
 	var slots_max = GameState.resources.get_max_slots()
 	
 	if credits_lbl:
-		credits_lbl.text = "Slots: %d / %d" % [slots_used, slots_max]
+		credits_lbl.text = tr("Slots: %d / %d") % [slots_used, slots_max]
 		if slots_used >= slots_max:
 			credits_lbl.modulate = UITheme.COLORS["negative"] # Red if full
 		else:
@@ -120,7 +120,7 @@ func update_credits():
 	# Update Storage Button
 	if storage_btn:
 		var cost = GameState.resources.get_storage_upgrade_cost()
-		storage_btn.text = "Expand Storage (+1 Slot) - %s Liras" % UITheme.format_num(cost)
+		storage_btn.text = tr("Expand Storage (+1 Slot) - %s Liras") % UITheme.format_num(cost)
 		var current_cr = GameState.resources.get_currency("credits")
 		if current_cr >= cost:
 			storage_btn.disabled = false
@@ -421,7 +421,7 @@ func _build_detail_panel() -> void:
 		plus_btn.text = "+"
 		plus_btn.custom_minimum_size = Vector2(34, 32)
 		max_btn = Button.new()
-		max_btn.text = "MAX"
+		max_btn.text = tr("MAX")
 		max_btn.custom_minimum_size = Vector2(48, 32)
 		for b in [minus_btn, plus_btn, max_btn]:
 			b.focus_mode = Control.FOCUS_NONE
@@ -513,26 +513,26 @@ func update_selection_view(data, amount):
 
 	# Meta line: prettified category • N held.
 	var cat: String = ElementDB.get_category(symbol).replace("_", " ").to_upper()
-	meta_lbl.text = "[color=#%s]%s[/color]   [color=#%s]•[/color]   [color=#%s][b]%s[/b] held[/color]   [color=#%s]•[/color]   [url=atlasmat:%s][color=#5FE0C8][u]View in Atlas[/u][/color][/url]" % [dim_hex, cat, dim_hex, main_hex, UITheme.format_num(amount), dim_hex, symbol]
+	meta_lbl.text = tr("[color=#%s]%s[/color]   [color=#%s]•[/color]   [color=#%s][b]%s[/b] held[/color]   [color=#%s]•[/color]   [url=atlasmat:%s][color=#5FE0C8][u]View in Atlas[/u][/color][/url]") % [dim_hex, cat, dim_hex, main_hex, UITheme.format_num(amount), dim_hex, symbol]
 
 	# Flavor — one-line dim italic blurb ([ escaped so a stray bracket isn't a tag).
 	# Sources/uses reference data intentionally lives in the Atlas, not here.
 	var flavor: String = str(data.get("description", "")).replace("[", "[lb]")
-	flavor_lbl.text = "[i][color=#%s]%s[/color][/i]" % [dim_hex, flavor]
+	flavor_lbl.text = tr("[i][color=#%s]%s[/color][/i]") % [dim_hex, flavor]
 
 	# Unit price — gold value + inline lira icon.
 	# v132: default 0, not 1 — items with no base_value (hack cards, zone alloys,
 	# Boost Cards) were priced at 1 Lira, letting players destroy progression
 	# items for pocket change. 0 matches get_element_value's semantics everywhere.
 	price_val = data.get("base_value", 0)
-	price_lbl.text = "[color=#%s]Unit Price[/color]   [color=#%s][b]%s[/b][/color] %s" % [dim_hex, warn_hex, UITheme.format_num(price_val), UITheme.LIRA_ICON_BB]
+	price_lbl.text = tr("[color=#%s]Unit Price[/color]   [color=#%s][b]%s[/b][/color] %s") % [dim_hex, warn_hex, UITheme.format_num(price_val), UITheme.LIRA_ICON_BB]
 
 	qty_spin.max_value = amount
 	qty_spin.value = 1
 	qty_spin.editable = true
 	sell_btn.disabled = false
 	sell_all_btn.disabled = false
-	sell_all_btn.text = "Sell entire stack"
+	sell_all_btn.text = tr("Sell entire stack")
 	if minus_btn: minus_btn.disabled = false
 	if plus_btn: plus_btn.disabled = false
 	if max_btn: max_btn.disabled = false
@@ -541,27 +541,27 @@ func update_selection_view(data, amount):
 
 func clear_selection():
 	var dim_hex: String = UITheme.COLORS["text_dim"].to_html(false)
-	sel_name.text = "Select an Item"
+	sel_name.text = tr("Select an Item")
 	if hero_icon: hero_icon.visible = false
 	if meta_lbl: meta_lbl.text = ""
 	if flavor_lbl: flavor_lbl.text = ""
-	if price_lbl: price_lbl.text = "[color=#%s]Unit Price   —[/color]" % dim_hex
+	if price_lbl: price_lbl.text = tr("[color=#%s]Unit Price   —[/color]") % dim_hex
 	qty_spin.editable = false
 	sell_btn.disabled = true
 	sell_all_btn.disabled = true
 	if minus_btn: minus_btn.disabled = true
 	if plus_btn: plus_btn.disabled = true
 	if max_btn: max_btn.disabled = true
-	if total_lbl: total_lbl.text = "[color=#%s]Total   0[/color] %s" % [dim_hex, UITheme.LIRA_ICON_BB]
+	if total_lbl: total_lbl.text = tr("[color=#%s]Total   0[/color] %s") % [dim_hex, UITheme.LIRA_ICON_BB]
 
 func update_total_price(val):
 	var dim_hex: String = UITheme.COLORS["text_dim"].to_html(false)
 	var pos_hex: String = UITheme.COLORS["positive"].to_html(false)
 	if total_lbl:
-		total_lbl.text = "[color=#%s]Total[/color]   [color=#%s][b]%s[/b][/color] %s" % [dim_hex, pos_hex, UITheme.format_num(val * price_val), UITheme.LIRA_ICON_BB]
+		total_lbl.text = tr("[color=#%s]Total[/color]   [color=#%s][b]%s[/b][/color] %s") % [dim_hex, pos_hex, UITheme.format_num(val * price_val), UITheme.LIRA_ICON_BB]
 	# Live SELL-button caption mirrors the chosen quantity.
 	if sell_btn:
-		sell_btn.text = "SELL  ·  %s" % UITheme.format_num(int(val))
+		sell_btn.text = tr("SELL  ·  %s") % UITheme.format_num(int(val))
 
 func _on_qty_spin_box_value_changed(value):
 	update_total_price(value)

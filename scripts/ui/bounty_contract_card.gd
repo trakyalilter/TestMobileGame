@@ -32,14 +32,14 @@ func setup(data: Dictionary, p_parent, mode: String = "available"):
 	# Action button
 	match mode:
 		"available":
-			action_btn.text = "ACCEPT"
+			action_btn.text = tr("ACCEPT")
 			action_btn.pressed.connect(_on_accept)
 		"active":
 			if data["completed"]:
-				action_btn.text = "CLAIM"
+				action_btn.text = tr("CLAIM")
 				action_btn.pressed.connect(_on_claim)
 			else:
-				action_btn.text = "ABANDON"
+				action_btn.text = tr("ABANDON")
 				action_btn.pressed.connect(_on_abandon)
 	
 	# Styling

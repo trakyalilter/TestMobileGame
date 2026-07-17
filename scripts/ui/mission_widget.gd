@@ -17,7 +17,7 @@ func setup(p_mid: String, p_data: Dictionary, p_manager, p_parent):
 	manager = p_manager
 	parent_page = p_parent
 	
-	name_lbl.text = data["name"]
+	name_lbl.text = tr(data["name"])
 	name_lbl.add_theme_color_override("font_color", UITheme.CATEGORY_COLORS["mission"])
 	desc_lbl.text = data["description"]
 	progress_bar.max_value = data["target_qty"]
@@ -36,21 +36,21 @@ func update_state():
 	progress_bar.value = data["current_qty"]
 	
 	if data["claimed"]:
-		status_lbl.text = "COMPLETED"
+		status_lbl.text = tr("COMPLETED")
 		status_lbl.modulate = Color(0.3, 0.8, 0.3)
-		claim_btn.text = "Claimed"
+		claim_btn.text = tr("Claimed")
 		claim_btn.disabled = true
 		progress_bar.visible = false
 		modulate.a = 0.6
 	elif data["completed"]:
-		status_lbl.text = "READY"
+		status_lbl.text = tr("READY")
 		status_lbl.modulate = Color(1.0, 0.8, 0.2)
 		claim_btn.text = "Claim %s" % _reward_str()
 		claim_btn.disabled = false
 		progress_bar.visible = true
 		modulate.a = 1.0
 	else:
-		status_lbl.text = "IN PROGRESS"
+		status_lbl.text = tr("IN PROGRESS")
 		status_lbl.modulate = Color(0.2, 0.7, 1.0)
 		# v134: a disabled button reading just "8049 Liras" parsed as a COST to
 		# new players. Name it as the reward.

@@ -50,7 +50,7 @@ func _on_quest_updated():
 	else:
 		# Just refresh stats/reroll cost
 		if stats_lbl:
-			stats_lbl.text = "Completed: %d" % manager.total_completed
+			stats_lbl.text = tr("Completed: %d") % manager.total_completed
 
 func _rebuild():
 	if not manager: return
@@ -69,9 +69,9 @@ func _rebuild():
 		_last_board_ids.append(q["id"])
 
 	if stats_lbl:
-		stats_lbl.text = "Completed: %d" % manager.total_completed
+		stats_lbl.text = tr("Completed: %d") % manager.total_completed
 	if reroll_btn:
-		reroll_btn.text = "REROLL BOARD (%s CR)" % UITheme.format_num(manager.get_reroll_cost())
+		reroll_btn.text = tr("REROLL BOARD (%s CR)") % UITheme.format_num(manager.get_reroll_cost())
 
 func _process(_delta):
 	# Light per-frame refresh for progress bar values (signal only refires on full rebuild)
@@ -83,7 +83,7 @@ func _process(_delta):
 	# Keep CLAIM ALL count current as quests tick into completion
 	if claim_all_btn:
 		var n = manager.count_claimable()
-		claim_all_btn.text = "CLAIM ALL (%d)" % n
+		claim_all_btn.text = tr("CLAIM ALL (%d)") % n
 		claim_all_btn.disabled = (n == 0)
 
 func on_claim(quest_id: String):

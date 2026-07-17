@@ -26,7 +26,7 @@ func setup(p_mid: String, p_data: Dictionary, p_manager, p_parent):
 		cost_lbl.mouse_filter = Control.MOUSE_FILTER_STOP
 		cost_lbl.meta_clicked.connect(func(meta): UITheme.request_atlas_from_meta(meta))
 
-	name_lbl.text = data["name"]
+	name_lbl.text = tr(data["name"])
 	name_lbl.add_theme_color_override("font_color", UITheme.CATEGORY_COLORS["shipyard"])
 	
 	# v83.9: Set Name Display
@@ -119,22 +119,22 @@ func _update_stats_text():
 			continue
 		var label = FormatUtils.format_stat_label(k)
 		var val = stats[k]
-		s_txt += "%s: %s\n" % [label, FormatUtils.format_stat_value(k, val)]
+		s_txt += "%s: %s\n" % [tr(label), FormatUtils.format_stat_value(k, val)]
 
 	# v110: derived power line
 	var stype = data.get("slot_type", "")
 	if manager and manager.has_method("get_module_energy_load"):
 		if stype in ["weapon", "shield", "armor", "engine", "sensor"]:
 			var draw = manager.get_module_energy_load(mid)
-			if draw > 0: s_txt += "POWER DRAW: %d\n" % draw
+			if draw > 0: s_txt += tr("POWER DRAW: %d\n") % draw
 		elif stype == "battery":
 			var supply = manager.get_module_energy_capacity(mid)
-			if supply > 0: s_txt += "POWER: +%d\n" % supply
+			if supply > 0: s_txt += tr("POWER: +%d\n") % supply
 
 	# (Removed old text-prepend)
 		
 	var durability = int(data.get("durability", 100))
-	s_txt += "Durability: %d/100\n" % durability
+	s_txt += tr("Durability: %d/100\n") % durability
 		
 	stats_lbl.text = s_txt.strip_edges()
 	
@@ -158,15 +158,15 @@ func update_state():
 	if data.get("slot_type") == "gem_synth":
 		owned_lbl.text = "" # Synthesis doesn't go to storage directly
 	else:
-		owned_lbl.text = "In Storage: %d" % owned
+		owned_lbl.text = tr("In Storage: %d") % owned
 	
 	var req_id = data.get("research_req")
 	var tech_unlocked = GameState.research_manager.is_tech_unlocked(req_id)
 	
 	if not tech_unlocked:
 		var tech_name = GameState.research_manager.tech_tree.get(req_id, {}).get("name", req_id)
-		UITheme.apply_locked_overlay(self, data["name"], "RESEARCH: %s" % tech_name, true, req_id, "shipyard")
-		research_lbl.text = "Req: %s" % tech_name
+		UITheme.apply_locked_overlay(self, data["name"], tr("RESEARCH: %s") % tr(tech_name), true, req_id, "shipyard")
+		research_lbl.text = tr("Req: %s") % tech_name
 		research_lbl.show()
 		btn.disabled = true
 		cost_lbl.hide()
@@ -182,15 +182,15 @@ func update_state():
 	if warp_id and not (GameState.warp_manager and GameState.warp_manager.is_node_purchased(warp_id)):
 		var node_name = GameState.warp_manager.TREE_NODES.get(warp_id, {}).get("name", warp_id) if GameState.warp_manager else warp_id
 		UITheme.apply_locked_overlay(self, data["name"], "WARP: %s" % node_name, true, "", "shipyard")
-		research_lbl.text = "Req: %s (Warp Tree)" % node_name
+		research_lbl.text = tr("Req: %s (Warp Tree)") % node_name
 		research_lbl.show()
 		btn.disabled = true
 		cost_lbl.hide()
 		return
 
 	if data.get("is_custom", false) or data.get("is_unique", false):
-		cost_lbl.text = "[center][color=#FFC24D]Drop-only module[/color][/center]"
-		btn.text = "DROP ONLY"
+		cost_lbl.text = tr("[center][color=#FFC24D]Drop-only module[/color][/center]")
+		btn.text = tr("DROP ONLY")
 		btn.disabled = true
 		return
 
@@ -250,7 +250,7 @@ func highlight_for_slot(slot_idx: int, req_type: String):
 	if my_type == req_type and manager.module_inventory.get(mid, 0) > 0:
 		target_slot_idx = slot_idx
 		modulate = Color(0.5, 1.0, 0.5, 1.0)  # Green highlight
-		btn.text = "EQUIP"
+		btn.text = tr("EQUIP")
 		btn.disabled = false
 	else:
 		_reset_highlight()
@@ -259,14 +259,14 @@ func _reset_highlight():
 	target_slot_idx = -1
 	modulate = Color.WHITE
 	if data.get("is_custom", false):
-		btn.text = "DROP ONLY"
+		btn.text = tr("DROP ONLY")
 		btn.disabled = true
 	elif data.get("slot_type") == "gem":
-		btn.text = "Synthesize"
+		btn.text = tr("Synthesize")
 	elif data.get("slot_type") == "gem_synth":
-		btn.text = "Fuse Cores"
+		btn.text = tr("Fuse Cores")
 	else:
-		btn.text = "Craft"
+		btn.text = tr("Craft")
 
 func _get_gem_color(gem_name: String) -> Color:
 	if "Crimson" in gem_name: return Color("#ff4444")
@@ -322,7 +322,7 @@ func _build_comparison_tooltip() -> String:
 
 	tt = "" # Reset tt as it was already initialized
 	tt += "[b][color=#%s]%s[/color][/b]\n" % [rarity_color.to_html(), data.get("name", "Unknown Item")]
-	tt += "[font_size=10][color=#7FA39C]%s[/color][/font_size]\n" % [slot_type.capitalize()]
+	tt += "[font_size=10][color=#7FA39C]%s[/color][/font_size]\n" % [tr(slot_type.capitalize())]
 	tt += div
 	
 	if slot_type == "gem" or slot_type == "gem_synth":
@@ -412,7 +412,7 @@ func _build_comparison_tooltip() -> String:
 						FormatUtils.format_stat_value(k, r_max)
 					]
 
-		tt += "[color=silver]* %s: [color=white]%s[/color][/color]%s%s\n" % [label, FormatUtils.format_stat_value(k, val), range_info, delta_str]
+		tt += "[color=silver]* %s: [color=white]%s[/color][/color]%s%s\n" % [tr(label), FormatUtils.format_stat_value(k, val), range_info, delta_str]
 	
 	# 4. RANDOM AFFIXES
 	var affixes = data.get("affixes", {})

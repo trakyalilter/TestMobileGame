@@ -31,18 +31,18 @@ func setup(id: String, type: String, host_slot: String = ""):
 		"building": _setup_building(id)
 		"gem": _setup_gem(id)
 		_:
-			title_lbl.text = "Unknown Entity"
-			desc_lbl.text = "No data found for %s" % id
+			title_lbl.text = tr("Unknown Entity")
+			desc_lbl.text = tr("No data found for %s") % id
 
 func _setup_item(id: String):
 	title_lbl.text = ElementDB.get_display_name(id)
-	type_lbl.text = "RESOURCE"
+	type_lbl.text = tr("RESOURCE")
 	type_lbl.modulate = Color(0.498, 0.639, 0.612)
 	_set_item_icon(id)
 	
 	# Try to find description or category
 	var cat = ElementDB.get_category(id)
-	desc_lbl.text = "Category: %s" % cat.capitalize()
+	desc_lbl.text = tr("Category: %s") % cat.capitalize()
 	
 	# Special Stats for Ammo
 	if cat == "ammo":
@@ -86,11 +86,11 @@ func _setup_ship(id: String):
 	if not id in sm.hulls: return
 	
 	var data = sm.hulls[id]
-	title_lbl.text = data["name"]
-	type_lbl.text = "SHIP HULL"
+	title_lbl.text = tr(data["name"])
+	type_lbl.text = tr("SHIP HULL")
 	type_lbl.modulate = Color(0.439, 0.533, 0.949)
 	
-	desc_lbl.text = "Class Tier: %d" % data.get("tier", 0)
+	desc_lbl.text = tr("Class Tier: %d") % data.get("tier", 0)
 	
 	var stats = data["stats"]
 	_add_stat("Hull Points", str(stats["hp"]))
@@ -106,14 +106,14 @@ func _setup_module(id: String):
 	z_index = 100 # Ensure on top of Research Node
 	
 	var data = sm.modules[id]
-	title_lbl.text = data["name"]
+	title_lbl.text = tr(data["name"])
 	title_lbl.modulate = Color.WHITE # Force strict white
 
 	var stats = data.get("stats", {})
 
 	
 	var s_type = data.get("slot_type", "module").to_upper()
-	type_lbl.text = "SHIP MODULE (%s)" % s_type
+	type_lbl.text = tr("SHIP MODULE (%s)") % s_type
 	type_lbl.modulate = Color(0.373, 0.878, 0.784)
 	
 	var final_desc = data.get("desc", "")
@@ -167,8 +167,8 @@ func _setup_building(id: String):
 	if not im or not id in im.building_db: return
 	
 	var data = im.building_db[id]
-	title_lbl.text = data["name"]
-	type_lbl.text = "INFRASTRUCTURE"
+	title_lbl.text = tr(data["name"])
+	type_lbl.text = tr("INFRASTRUCTURE")
 	type_lbl.modulate = Color(0.455, 0.831, 0.373)
 	
 	desc_lbl.text = data["description"]
@@ -183,7 +183,7 @@ func _setup_building(id: String):
 func _setup_gem(id: String):
 	var sm = GameState.shipyard_manager
 	title_lbl.text = ElementDB.get_display_name(id)
-	type_lbl.text = "MATRIX CORE"
+	type_lbl.text = tr("MATRIX CORE")
 
 	if "Crimson" in id:
 		type_lbl.modulate = Color(1.0, 0.392, 0.451)
@@ -207,7 +207,7 @@ func _setup_gem(id: String):
 	var cat_name = {"weapon": "Weapon", "defense": "Armor/Shield", "utility": "Engine/Sensor"}
 	var active_cat = sm._gem_slot_category(_host_slot_ctx) if _host_slot_ctx != "" else ""
 	if active_cat != "":
-		type_lbl.text = "MATRIX CORE · %s SLOT" % _host_slot_ctx.to_upper()
+		type_lbl.text = tr("MATRIX CORE · %s SLOT") % _host_slot_ctx.to_upper()
 	for cat in ["weapon", "defense", "utility"]:
 		if active_cat != "" and cat != active_cat:
 			continue   # socketed in a slot: show ONLY that slot's bonus, not the others
@@ -262,4 +262,4 @@ func _set_cost(cost_data: Dictionary):
 		var qty = cost_data[res]
 		var n = "Liras" if res == "credits" else res
 		parts.append("%s %s" % [FormatUtils.format_number(qty), n])
-	cost_lbl.text = "Cost: " + ", ".join(parts)
+	cost_lbl.text = tr("Cost: ") + ", ".join(parts)

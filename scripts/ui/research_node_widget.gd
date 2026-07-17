@@ -46,7 +46,7 @@ func setup(p_nid: String, p_data: Dictionary, p_manager, p_parent):
 	parent_graph = p_parent
 
 	name_lbl.text = data["name"]
-	cost_lbl.text = "%d %s" % [data.get("cost", 0), UITheme.LIRA_ICON_BB]
+	cost_lbl.text = tr("%d %s") % [data.get("cost", 0), UITheme.LIRA_ICON_BB]
 
 	# v111: hover-tooltip retired. Hide the legacy TooltipPanel so the scene
 	# graph stays untouched but the player never sees it.
@@ -124,7 +124,7 @@ func update_state():
 		style.border_color = BORDER_UNLOCKED
 		style.shadow_color = Color(BORDER_UNLOCKED, 0.4)
 		style.shadow_size = 8
-		cost_lbl.text = "[center][b][color=SPRING_GREEN]RESEARCHED[/color][/b][/center]"
+		cost_lbl.text = tr("[center][b][color=SPRING_GREEN]RESEARCHED[/color][/b][/center]")
 	else:
 		# Build cost string with met/unmet color coding
 		var cost_parts = []

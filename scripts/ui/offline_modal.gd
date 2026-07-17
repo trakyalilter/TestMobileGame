@@ -25,7 +25,7 @@ func start_resync_sequence(text: String):
 	sync_bar.value = 0
 	report_label.hide()
 	ack_btn.hide()
-	title_label.text = "SYNCING WITH SECTOR NETWORK..."
+	title_label.text = tr("SYNCING WITH SECTOR NETWORK...")
 	
 	UITheme.trigger_ui_thud(self, 8.0) # Establishing link thud
 	
@@ -33,18 +33,18 @@ func start_resync_sequence(text: String):
 	
 	# Phase 1: Re-establishing Link
 	tween.tween_property(sync_bar, "value", 40.0, 0.6).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
-	tween.parallel().tween_callback(func(): sync_log.text = "HANDSHAKE: [OK] | DECRYPTING PACKETS...")
+	tween.parallel().tween_callback(func(): sync_log.text = tr("HANDSHAKE: [OK] | DECRYPTING PACKETS..."))
 	
 	# Phase 2: Packet Processing
 	tween.tween_property(sync_bar, "value", 90.0, 1.2).set_trans(Tween.TRANS_LINEAR).set_delay(0.2)
-	tween.parallel().tween_callback(func(): sync_log.text = "RESOLVING TEMPORAL DRIFT...")
+	tween.parallel().tween_callback(func(): sync_log.text = tr("RESOLVING TEMPORAL DRIFT..."))
 	
 	# Phase 3: Manifest Reveal
 	tween.tween_property(sync_bar, "value", 100.0, 0.2)
 	tween.tween_callback(func(): 
 		sync_bar.hide()
 		sync_log.hide()
-		title_label.text = "SYSTEM REPORT // OFFLINE LOG"
+		title_label.text = tr("SYSTEM REPORT // OFFLINE LOG")
 		_reveal_report(text)
 	)
 

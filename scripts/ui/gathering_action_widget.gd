@@ -49,7 +49,7 @@ func setup(p_aid: String, p_data: Dictionary, p_manager, p_parent):
 	name_lbl.text = data["name"]
 	name_lbl.add_theme_color_override("font_color", UITheme.CATEGORY_COLORS["ops"])
 	var req = data.get("level_req", 1)
-	lvl_lbl.text = "Lvl %d" % req
+	lvl_lbl.text = tr("Lvl %d") % req
 
 	UITheme.apply_card_style(self, "ops")
 	UITheme.apply_premium_button_style(btn, "ops")
@@ -145,8 +145,8 @@ func _refresh_mastery():
 	# affordance. RichTextLabel uses default_color (not font_color) for the
 	# baseline tint; the [u] tag inherits that colour for the underline.
 	if level >= 100:
-		_mastery_left_lbl.text = "GOLD [u]MASTERY[/u]%s" % bonus_suffix
-		_mastery_right_lbl.text = "LV 100  MAX"
+		_mastery_left_lbl.text = tr("GOLD [u]MASTERY[/u]%s") % bonus_suffix
+		_mastery_right_lbl.text = tr("LV 100  MAX")
 		_mastery_left_lbl.add_theme_color_override("default_color", col_gold)
 		_mastery_right_lbl.add_theme_color_override("font_color", col_gold)
 		_mastery_bar.value = 100.0
@@ -156,20 +156,20 @@ func _refresh_mastery():
 		# (+10% duration in one shot). Brighter colour still distinguishes
 		# 50-99 from 1-49 so the leap feels like a state change, not just a
 		# bigger number.
-		_mastery_left_lbl.text = "[u]MASTERY[/u]  LV %d%s" % [level, bonus_suffix]
-		_mastery_right_lbl.text = "%d / %d  ▸  LV %d" % [in_lvl, needed, next_m]
+		_mastery_left_lbl.text = tr("[u]MASTERY[/u]  LV %d%s") % [level, bonus_suffix]
+		_mastery_right_lbl.text = tr("%d / %d  ▸  LV %d") % [in_lvl, needed, next_m]
 		_mastery_left_lbl.add_theme_color_override("default_color", col_bright)
 		_mastery_right_lbl.add_theme_color_override("font_color", col_bright)
 		_mastery_bar.value = pct
 	elif level > 0:
-		_mastery_left_lbl.text = "[u]MASTERY[/u]  LV %d%s" % [level, bonus_suffix]
-		_mastery_right_lbl.text = "%d / %d  ▸  LV %d" % [in_lvl, needed, next_m]
+		_mastery_left_lbl.text = tr("[u]MASTERY[/u]  LV %d%s") % [level, bonus_suffix]
+		_mastery_right_lbl.text = tr("%d / %d  ▸  LV %d") % [in_lvl, needed, next_m]
 		_mastery_left_lbl.add_theme_color_override("default_color", col_mid)
 		_mastery_right_lbl.add_theme_color_override("font_color", col_mid)
 		_mastery_bar.value = pct
 	else:
-		_mastery_left_lbl.text = "[u]MASTERY[/u]  LV 0"
-		_mastery_right_lbl.text = "%d / %d  ▸  LV %d" % [in_lvl, needed, next_m]
+		_mastery_left_lbl.text = tr("[u]MASTERY[/u]  LV 0")
+		_mastery_right_lbl.text = tr("%d / %d  ▸  LV %d") % [in_lvl, needed, next_m]
 		_mastery_left_lbl.add_theme_color_override("default_color", col_dim)
 		_mastery_right_lbl.add_theme_color_override("font_color", col_dim)
 		_mastery_bar.value = pct
@@ -217,12 +217,12 @@ func update_state():
 	var status_msg = ""
 	if lvl < req:
 		unlocked = false
-		status_msg = "LEVEL %d REQUIRED" % req
+		status_msg = tr("LEVEL %d REQUIRED") % req
 	if "research_req" in data and data["research_req"]:
 		if GameState.research_manager and not GameState.research_manager.is_tech_unlocked(data["research_req"]):
 			unlocked = false
 			var tech_name = GameState.research_manager.tech_tree.get(data["research_req"], {}).get("name", "Unknown Tech")
-			status_msg = "RESEARCH: %s" % tech_name.to_upper()
+			status_msg = tr("RESEARCH: %s") % tr(tech_name).to_upper()
 
 	# --- STATE: locked overlay + button + card tint — only on transition. ---
 	var state_sig := "%s|%s|%s|%s" % [unlocked, status_msg, is_this_active, in_combat]
@@ -233,27 +233,27 @@ func update_state():
 			status_lbl.text = ""
 			btn.disabled = false
 			if is_this_active:
-				btn.text = "Stop"
+				btn.text = tr("Stop")
 				btn.modulate = Color(1.0, 0.4, 0.4) # Red-ish
 				modulate = Color(1.2, 1, 1) # Highlight
 			elif in_combat:
-				btn.text = "IN COMBAT"
+				btn.text = tr("IN COMBAT")
 				btn.disabled = true
 				btn.modulate = Color(1.0, 0.35, 0.35, 0.8)
 				modulate = Color(0.85, 0.85, 0.85)
 			else:
-				btn.text = "Start"
+				btn.text = tr("Start")
 				btn.modulate = Color(1, 1, 1)
 				modulate = Color(1, 1, 1)
 		else:
-			var tech_id = data.get("research_req", "") if "RESEARCH:" in status_msg else ""
+			var tech_id = data.get("research_req", "") if "RESEARCH" in status_msg else ""
 			UITheme.apply_locked_overlay(self, data["name"], status_msg, true, tech_id, "ops")
-			if "RESEARCH:" in status_msg:
-				btn.text = "RESEARCH REQUIRED"
+			if "RESEARCH" in status_msg:
+				btn.text = tr("RESEARCH REQUIRED")
 			elif "LEVEL" in status_msg:
-				btn.text = "LEVEL %d REQUIRED" % req
+				btn.text = tr("LEVEL %d REQUIRED") % req
 			else:
-				btn.text = "LOCKED"
+				btn.text = tr("LOCKED")
 			btn.disabled = true
 			status_lbl.text = status_msg
 			modulate = Color(0.7, 0.7, 0.7)
@@ -267,12 +267,12 @@ func update_state():
 		var safe_progress: float = clamp(manager.action_progress, 0.0, effective_duration)
 		prog_bar.active = true
 		prog_bar.value = (safe_progress / effective_duration) * 100.0 if effective_duration > 0.0 else 0.0
-		time_lbl.text = "%s / %s" % [FormatUtils.format_time(safe_progress), FormatUtils.format_time(effective_duration)]
+		time_lbl.text = tr("%s / %s") % [FormatUtils.format_time(safe_progress), FormatUtils.format_time(effective_duration)]
 	else:
 		prog_bar.active = false
 		prog_bar.value = 0
 		if unlocked:
 			var speed_mult = manager.get_action_speed_multiplier(aid)
-			time_lbl.text = "0.0s / %s" % FormatUtils.format_time(float(data.get("duration", _DEFAULT_DURATION)) / speed_mult)
+			time_lbl.text = tr("0.0s / %s") % FormatUtils.format_time(float(data.get("duration", _DEFAULT_DURATION)) / speed_mult)
 		else:
 			time_lbl.text = "- / -"

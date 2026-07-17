@@ -64,7 +64,7 @@ func _rebuild_zone_tabs():
 	for z in zones:
 		var btn = Button.new()
 		btn.text = z["name"]
-		btn.tooltip_text = "Sector difficulty %d" % z["difficulty"]
+		btn.tooltip_text = tr("Sector difficulty %d") % z["difficulty"]
 		btn.add_theme_font_size_override("font_size", 11)
 		btn.pressed.connect(_on_zone_tab_pressed.bind(z["id"]))
 		_zone_tabs.add_child(btn)
@@ -106,7 +106,7 @@ func _refresh_ui():
 
 	if pool.is_empty():
 		var empty_lbl = Label.new()
-		empty_lbl.text = "No contracts in this sector.\nWait for refresh..."
+		empty_lbl.text = tr("No contracts in this sector.\nWait for refresh...")
 		empty_lbl.add_theme_color_override("font_color", UITheme.COLORS["text_dim"])
 		empty_lbl.add_theme_font_size_override("font_size", 12)
 		empty_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -120,7 +120,7 @@ func _refresh_ui():
 
 	if manager.active_contracts.is_empty():
 		var empty_lbl = Label.new()
-		empty_lbl.text = "No active contracts.\nAccept contracts from the board."
+		empty_lbl.text = tr("No active contracts.\nAccept contracts from the board.")
 		empty_lbl.add_theme_color_override("font_color", UITheme.COLORS["text_dim"])
 		empty_lbl.add_theme_font_size_override("font_size", 12)
 		empty_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -128,14 +128,14 @@ func _refresh_ui():
 
 	# Stats
 	if stats_lbl:
-		stats_lbl.text = "Completed: %d | Slots: %d/%d" % [
+		stats_lbl.text = tr("Completed: %d | Slots: %d/%d") % [
 			manager.total_completed,
 			manager.active_contracts.size(),
 			manager.MAX_ACTIVE
 		]
 
 	if refresh_btn and _active_zone != "":
-		refresh_btn.text = "REFRESH ZONE (%s CR)" % UITheme.format_num(manager.get_refresh_cost(_active_zone))
+		refresh_btn.text = tr("REFRESH ZONE (%s CR)") % UITheme.format_num(manager.get_refresh_cost(_active_zone))
 
 func _process(_delta):
 	if not manager: return
@@ -143,9 +143,9 @@ func _process(_delta):
 	if timer_lbl and manager.refresh_timer > 0:
 		var hours = int(manager.refresh_timer / 3600)
 		var mins = int(fmod(manager.refresh_timer, 3600) / 60)
-		timer_lbl.text = "All boards refresh in: %dh %dm" % [hours, mins]
+		timer_lbl.text = tr("All boards refresh in: %dh %dm") % [hours, mins]
 	elif timer_lbl:
-		timer_lbl.text = "Refreshing..."
+		timer_lbl.text = tr("Refreshing...")
 
 # ─── Card Callbacks ───
 

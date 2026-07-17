@@ -94,14 +94,14 @@ func _setup_mode_switch():
 	mode_switch_container.name = "ModeSwitch"
 	
 	btn_materials = Button.new()
-	btn_materials.text = "MATERIALS"
+	btn_materials.text = tr("MATERIALS")
 	btn_materials.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	btn_materials.toggle_mode = true
 	btn_materials.button_pressed = true
 	btn_materials.connect("pressed", _on_mode_materials)
 	
 	btn_enemies = Button.new()
-	btn_enemies.text = "ENEMIES"
+	btn_enemies.text = tr("ENEMIES")
 	btn_enemies.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	btn_enemies.toggle_mode = true
 	btn_enemies.connect("pressed", _on_mode_enemies)
@@ -121,7 +121,7 @@ func _setup_sort_bar():
 	sort_bar.add_theme_constant_override("separation", 6)
 
 	var label = Label.new()
-	label.text = "Sort:"
+	label.text = tr("Sort:")
 	label.add_theme_font_size_override("font_size", 11)
 	label.add_theme_color_override("font_color", Color(0.55, 0.6, 0.72))
 	sort_bar.add_child(label)
@@ -183,9 +183,9 @@ func _update_mode_buttons():
 	# Sources/Uses titles from the other mode.
 	_clear_inserted_blocks()
 	_hide_static_titles()
-	name_label.text = "Select an Item"
+	name_label.text = tr("Select an Item")
 	desc_label.visible = true
-	desc_label.text = "Pick %s from the list to view full details." % ("a material" if current_mode == "materials" else "an enemy")
+	desc_label.text = tr("Pick %s from the list to view full details.") % ("a material" if current_mode == "materials" else "an enemy")
 	desc_label.add_theme_color_override("font_color", UITheme.COLORS["text_dim"])
 	_clear_list(sources_list)
 	_clear_list(uses_list)
@@ -249,7 +249,7 @@ func build_material_database():
 					material_db[mat_id]["sources"].append({
 						"type": "gathering",
 						"name": action_name,
-						"rate": "%.0f%% chance" % (entry[1] * 100)
+						"rate": tr("%.0f%% chance") % (entry[1] * 100)
 					})
 	
 	# --- PROCESSING SOURCES & USES ---
@@ -266,7 +266,7 @@ func build_material_database():
 						material_db[mat_id]["sources"].append({
 							"type": "processing",
 							"name": recipe_name,
-							"rate": "%d per cycle" % recipe["output"][mat_id]
+							"rate": tr("%d per cycle") % recipe["output"][mat_id]
 						})
 			
 			if "input" in recipe:
@@ -276,7 +276,7 @@ func build_material_database():
 						material_db[mat_id]["uses"].append({
 							"type": "processing",
 							"name": recipe_name,
-							"rate": "%d per cycle" % recipe["input"][mat_id]
+							"rate": tr("%d per cycle") % recipe["input"][mat_id]
 						})
 	
 	# --- COMBAT SOURCES ---
@@ -300,7 +300,7 @@ func build_material_database():
 					material_db[mat_id]["sources"].append({
 						"type": "combat",
 						"name": enemy_name,
-						"rate": "%d-%d per kill" % [entry[1], entry[2]],
+						"rate": tr("%d-%d per kill") % [entry[1], entry[2]],
 						"zone_name": z_name, "zone_ord": z_ord
 					})
 
@@ -310,8 +310,8 @@ func build_material_database():
 				if mat_id in material_db:
 					material_db[mat_id]["sources"].append({
 						"type": "combat",
-						"name": enemy_name + " (Rare)",
-						"rate": "%.0f%% chance" % (entry[1] * 100),
+						"name": enemy_name + tr(" (Rare)"),
+						"rate": tr("%.0f%% chance") % (entry[1] * 100),
 						"zone_name": z_name, "zone_ord": z_ord
 					})
 
@@ -340,7 +340,7 @@ func build_material_database():
 						material_db[mat_id]["sources"].append({
 							"type": "building",
 							"name": bname,
-							"rate": "%d per cycle" % bdata["yield"][mat_id]
+							"rate": tr("%d per cycle") % bdata["yield"][mat_id]
 						})
 			
 			if "input" in bdata:
@@ -350,7 +350,7 @@ func build_material_database():
 						material_db[mat_id]["uses"].append({
 							"type": "building",
 							"name": bname,
-							"rate": "%d per cycle" % bdata["input"][mat_id]
+							"rate": tr("%d per cycle") % bdata["input"][mat_id]
 						})
 			
 			if "cost" in bdata:
@@ -541,7 +541,7 @@ func _build_material_card(mat_id: String, mat: Dictionary) -> Control:
 
 	# Tier badge
 	var tier_lbl = Label.new()
-	tier_lbl.text = "T%d" % tier
+	tier_lbl.text = tr("T%d") % tier
 	tier_lbl.add_theme_font_size_override("font_size", 11)
 	tier_lbl.add_theme_color_override("font_color", tier_color)
 	tier_lbl.custom_minimum_size = Vector2(26, 0)
@@ -550,7 +550,7 @@ func _build_material_card(mat_id: String, mat: Dictionary) -> Control:
 
 	# Name
 	var name_lbl = Label.new()
-	name_lbl.text = mat["name"]
+	name_lbl.text = tr(mat["name"])
 	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_lbl.add_theme_font_size_override("font_size", 13)
 	name_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -558,7 +558,7 @@ func _build_material_card(mat_id: String, mat: Dictionary) -> Control:
 
 	# Inventory count
 	var inv_lbl = Label.new()
-	inv_lbl.text = "x%s" % UITheme.format_num(owned)
+	inv_lbl.text = tr("x%s") % UITheme.format_num(owned)
 	inv_lbl.add_theme_font_size_override("font_size", 11)
 	inv_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	if owned <= 0:
@@ -596,7 +596,7 @@ func _populate_enemies_list(search_term):
 	for zone in sorted_zones:
 		var header = Label.new()
 		var diff = zone_difficulty.get(zone, 0)
-		header.text = "—  %s  T%d  —" % [zone, diff]
+		header.text = tr("—  %s  T%d  —") % [zone, diff]
 		header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		header.add_theme_color_override("font_color", UITheme.COLORS["text_accent"])
 		header.add_theme_font_size_override("font_size", 12)
@@ -676,14 +676,14 @@ func _build_enemy_card(eid: String, e: Dictionary) -> Control:
 
 	if is_boss:
 		var boss_lbl = Label.new()
-		boss_lbl.text = "BOSS"
+		boss_lbl.text = tr("BOSS")
 		boss_lbl.add_theme_font_size_override("font_size", 14)
 		boss_lbl.add_theme_color_override("font_color", Color(1.0, 0.85, 0.20))
 		boss_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		hbox.add_child(boss_lbl)
 
 	var name_lbl = Label.new()
-	name_lbl.text = e["name"]
+	name_lbl.text = tr(e["name"])
 	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_lbl.add_theme_font_size_override("font_size", 13)
 	name_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -715,7 +715,7 @@ func _display_material_details(mat_id):
 	_hide_static_titles()
 	_clear_inserted_blocks()
 
-	name_label.text = mat["name"]
+	name_label.text = tr(mat["name"])
 
 	var tier = _get_material_tier(mat_id)
 	var tier_color: Color = TIER_COLORS.get(tier, Color.WHITE)
@@ -734,9 +734,9 @@ func _display_material_details(mat_id):
 	chips.add_child(_make_chip("T%d" % tier, tier_color, 10))
 	chips.add_child(_make_chip(ElementDB.get_category(mat_id).replace("_", " ").capitalize(), UITheme.element_accent(mat_id), 10))
 	if market_value > 0:
-		chips.add_child(_make_value_chip("VALUE %s %s" % [UITheme.format_num(market_value), UITheme.LIRA_ICON_BB], UITheme.COLORS["warning"]))
+		chips.add_child(_make_value_chip(tr("VALUE %s %s") % [UITheme.format_num(market_value), UITheme.LIRA_ICON_BB], UITheme.COLORS["warning"]))
 	var own_col: Color = UITheme.COLORS["positive"] if owned > 0 else UITheme.COLORS["text_dim"]
-	chips.add_child(_make_chip("OWNED %s" % UITheme.format_num(owned), own_col, 10))
+	chips.add_child(_make_chip(tr("OWNED %s") % UITheme.format_num(owned), own_col, 10))
 	_hero_block.add_child(chips)
 
 	details.add_child(_hero_block)
@@ -756,11 +756,11 @@ func _display_material_details(mat_id):
 	net_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	net_label.modulate = Color.WHITE
 	if rate > 0:
-		net_label.text = "▲ NET +%.2f /min" % rate
+		net_label.text = tr("▲ NET +%.2f /min") % rate
 		net_label.add_theme_color_override("font_color", UITheme.COLORS["positive"])
 		net_label.visible = true
 	elif rate < 0:
-		net_label.text = "▼ NET %.2f /min" % rate
+		net_label.text = tr("▼ NET %.2f /min") % rate
 		net_label.add_theme_color_override("font_color", UITheme.COLORS["negative"])
 		net_label.visible = true
 	else:
@@ -770,7 +770,7 @@ func _display_material_details(mat_id):
 	_clear_list(sources_list)
 	_clear_list(uses_list)
 
-	_make_caption(sources_list, "SOURCED FROM", UITheme.COLORS["positive"])
+	_make_caption(sources_list, tr("SOURCED FROM"), UITheme.COLORS["positive"])
 	if mat["sources"].is_empty():
 		_add_label(sources_list, "No known sources.", UITheme.COLORS["text_dim"])
 	else:
@@ -785,20 +785,20 @@ func _display_material_details(mat_id):
 					zone_groups[z_o] = {"name": String(source["zone_name"]), "rows": []}
 				zone_groups[z_o]["rows"].append(source)
 			else:
-				_add_source_row(sources_list, source["type"], "%s (%s)" % [source["name"], source["rate"]], _get_type_color(source["type"]))
+				_add_source_row(sources_list, source["type"], "%s (%s)" % [tr(source["name"]), tr(source["rate"])], _get_type_color(source["type"]))
 		var z_ords: Array = zone_groups.keys()
 		z_ords.sort()
 		for z_o2 in z_ords:
 			_add_label(sources_list, String(zone_groups[z_o2]["name"]), Color(UITheme.COLORS["accent"], 0.95))
 			for src in zone_groups[z_o2]["rows"]:
-				_add_source_row(sources_list, src["type"], "%s (%s)" % [src["name"], src["rate"]], _get_type_color(src["type"]), 14)
+				_add_source_row(sources_list, src["type"], "%s (%s)" % [tr(src["name"]), tr(src["rate"])], _get_type_color(src["type"]), 14)
 
-	_make_caption(uses_list, "CONSUMED BY", UITheme.COLORS["warning"])
+	_make_caption(uses_list, tr("CONSUMED BY"), UITheme.COLORS["warning"])
 	if mat["uses"].is_empty():
 		_add_label(uses_list, "Not used anywhere.", UITheme.COLORS["text_dim"])
 	else:
 		for use in mat["uses"]:
-			_add_source_row(uses_list, use["type"], "%s (%s)" % [use["name"], use["rate"]], _get_type_color(use["type"]))
+			_add_source_row(uses_list, use["type"], "%s (%s)" % [tr(use["name"]), tr(use["rate"])], _get_type_color(use["type"]))
 
 func _display_enemy_details(eid):
 	var e = enemy_db.get(eid)
@@ -807,7 +807,7 @@ func _display_enemy_details(eid):
 	_clear_inserted_blocks()
 	if net_label: net_label.visible = false
 
-	name_label.text = e["name"]
+	name_label.text = tr(e["name"])
 
 	var e_raw = GameState.combat_manager.enemy_db.get(eid, {})
 	var details = desc_label.get_parent()
@@ -841,7 +841,7 @@ func _display_enemy_details(eid):
 	for tc in load("res://scripts/ui/combat_enemy_card.gd")._trait_chips(e_raw):
 		_identity_row.add_child(_make_chip(tc[0], tc[1], 9))
 	if e_raw.get("is_boss", false):
-		_identity_row.add_child(_make_chip("NEEDS RARE GEAR", Color(1.0, 0.76, 0.30), 9))
+		_identity_row.add_child(_make_chip(tr("NEEDS RARE GEAR"), Color(1.0, 0.76, 0.30), 9))
 	for entry in [
 		[float(e_raw.get("resist_k", 0.0)), "KIN"],
 		[float(e_raw.get("resist_e", 0.0)), "NRG"],
@@ -895,7 +895,7 @@ func _display_enemy_details(eid):
 
 	var rare_loot = e.get("rare_loot", [])
 	if not rare_loot.is_empty():
-		_make_caption(uses_list, "RARE DROPS", UITheme.COLORS["warning"])
+		_make_caption(uses_list, tr("RARE DROPS"), UITheme.COLORS["warning"])
 		for entry in rare_loot:
 			_add_loot_row(uses_list, entry[0], "(%.1f%%, %d–%d)" % [entry[1] * 100.0, int(entry[2]), int(entry[3])], UITheme.COLORS["warning"], "")
 
@@ -903,7 +903,7 @@ func _display_enemy_details(eid):
 	var drop_chance = e_raw.get("module_drop_chance", 0.0)
 	var drop_pool = e_raw.get("module_drop_pool", [])
 	if drop_chance > 0.0 and not drop_pool.is_empty() and GameState.shipyard_manager:
-		_make_caption(uses_list, "MODULE DROPS (%d%%)" % int(drop_chance * 100), UITheme.CATEGORY_COLORS["shipyard"])
+		_make_caption(uses_list, tr("MODULE DROPS (%d%%)") % int(drop_chance * 100), UITheme.CATEGORY_COLORS["shipyard"])
 		for mod_id in drop_pool:
 			var mod = GameState.shipyard_manager.modules.get(mod_id, {})
 			_add_label(uses_list, "▸ %s" % mod.get("name", mod_id), UITheme.COLORS["text_main"])
@@ -1008,7 +1008,7 @@ func _make_value_chip(value_bb: String, color: Color) -> Control:
 	rtl.fit_content = true
 	rtl.scroll_active = false
 	rtl.autowrap_mode = TextServer.AUTOWRAP_OFF
-	rtl.text = "[color=#%s]%s[/color]" % [color.to_html(false), value_bb]
+	rtl.text = tr("[color=#%s]%s[/color]") % [color.to_html(false), value_bb]
 	rtl.add_theme_font_size_override("normal_font_size", 10)
 	var chip := PanelContainer.new()
 	chip.add_theme_stylebox_override("panel", _chip_stylebox(color))
@@ -1056,7 +1056,7 @@ func _make_hero_icon(mat_id: String, tier: int, tier_color: Color) -> Control:
 	sb.border_color = bc
 	pc.add_theme_stylebox_override("panel", sb)
 	var l := Label.new()
-	l.text = "T%d" % tier
+	l.text = tr("T%d") % tier
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	l.add_theme_color_override("font_color", tier_color)
@@ -1096,7 +1096,7 @@ func _add_loot_row(parent, item_id: String, qty_str: String, name_color: Color, 
 	rtl.scroll_active = false
 	rtl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	var icon: String = ElementDB.material_icon_bbcode(item_id, 16)
-	rtl.text = "%s[color=#%s]%s%s[/color]  [color=#%s]%s[/color]" % [icon, name_color.to_html(false), prefix, ElementDB.get_display_name(item_id), UITheme.COLORS["text_dim"].to_html(false), qty_str]
+	rtl.text = tr("%s[color=#%s]%s%s[/color]  [color=#%s]%s[/color]") % [icon, name_color.to_html(false), prefix, ElementDB.get_display_name(item_id), UITheme.COLORS["text_dim"].to_html(false), qty_str]
 	parent.add_child(rtl)
 
 func _on_search_changed(_text):
