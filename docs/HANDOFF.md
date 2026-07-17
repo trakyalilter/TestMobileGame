@@ -18,9 +18,18 @@ Z9/Z10, soft tutorial flavors at Z1/Z2) + **the Rare gate, owner-corrected twice
 - Pre-fight card + atlas show trait chips + NEEDS RARE GEAR; bot boss bar = Rare;
   m030d speaks the rule. Lethality lesson on record: kits make survival near-infinite,
   so boss-side pressure = spikes/enrage/volatile, never HP stretch.
-- REMAINING: Z11+ warp-aware pass (ng_tune) vs the 5–10min envelope; funnel [FUN]
-  re-measure (rift timing under Rare gate + board farming, projected day 4–6 @1h/day);
-  watch Z3/Z9 Rare cells (wobble 45–60%, L columns 9/9 so progression never blocks).
+- **VERIFIED WITH BOTS 3 WAYS (all green):** gearcheck matrix (U 0/9 everywhere, R 6–9/9,
+  TTK in envelope) + boss_threshold at MISSION-REAL hulls (all-Uncommon 0/5 everywhere,
+  all-Rare wins Z1–Z5, partial mixes fail → the FULL-set demand is real; Z6 2/5 on the
+  −1-tier hull, Legendary covers) + 3-seed follower funnel: **first warp day 8–11 at
+  1h/day** (was d12–14/never), all seeds reach m030i (deepest ever), chain flows Z3→Z4
+  under the full Rare gate. Offline model now prices ALL traits conservatively (8daed67).
+  Bot fidelity shipped: gear farms follow board contracts (gear-scoped — the unscoped
+  version hijacked material farms, reverted).
+- REMAINING: Z11+ warp-aware pass (ng_tune) vs the 5–10min envelope; watch Z3/Z9 Rare
+  cells (wobble 45–60%, L columns 9/9 so progression never blocks); overdue-wall detector
+  should move to ACTIVE-time basis (false-positives across parked nights at 1h/day);
+  next-band pacing items surfaced by the funnel (m031 Co, m030g Circuit — ~on-curve).
 
 ---
 
