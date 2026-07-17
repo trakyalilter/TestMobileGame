@@ -103,6 +103,30 @@ They are diegetic signposts, not checks; the checks start at Z3.
   pre-trait baseline; Z2 at full Rare unchanged). If a soft number starts killing, cut
   the number, never the telegraph.
 
+## Measured results (2026-07-17, commit e4a78bb — 9-trial acceptance matrix)
+
+**Z1–Z11 all honor the rule** (`sim_out/bgc_hardgate.txt`): Common 0/9 everywhere
+(L99–100%), Uncommon 0/9 at nine bosses, Rare wins everywhere, Legendary ~15–30% faster
+as promised. Z12–Z15 rows are the known phased-probe blindness (ng_tune is the authority).
+
+**The load-bearing discovery:** five soft-tuning iterations proved a stat-only Rare gate
+unwinnable — affix RNG lets a god-rolled Uncommon set overlap a floor Rare set (Uncommon
+leaks wobbled 0–6/9 between identical runs). A binary rule needs a binary mechanism:
+**bosses take ×0.25 damage from sub-Rare weapons** (`BOSS_SUBRARE_DMG_FACTOR`, the
+warp_hardened pattern applied to rarity; live path + offline model; trash ungated).
+Second discovery en route: kits make survival near-infinite, so soft Uncommon-gating only
+ever worked through LETHALITY (spikes/enrage/volatile), never HP/TTK stretch.
+
+Tracked follow-ups:
+- Z3/Z5 Rare comfort reads 4/9 (variance-dominated cells; true rate ~45–60%). Small hp
+  trims are the lever if funnel data shows first-warp friction. Z2 (the mandatory m030d
+  boss) reads 8/9 @5.1min.
+- Z11 Rare-cryo 1/9 in the NO-WARP probe context — the warp-aware ng_tune pass owns
+  Z11+ TTK/winrate calibration (player has warp mults there by definition).
+- Two 1/9 Uncommon "wins" remain as ~20-min god-affix crawls (W1180/W1268, MAXT-bounded).
+  Lower the factor to 0.20 if literal-zero is wanted at any cost.
+- Funnel [FUN] re-measure pending (rift timing under the Rare gate + board-driven farming).
+
 ## Build order
 
 1. Trait engine in combat_manager (7 blocks + spawn copy + log lines) — zero bosses use
