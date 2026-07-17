@@ -3,6 +3,8 @@ extends Node
 signal packet_landed(color)
 signal notification_requested(text: String, color: Color) # Feature v66.1
 signal research_navigation_requested(tech_id: String)
+# v137: deep-link a material into the Atlas (click a material name in a recipe/inventory).
+signal atlas_navigation_requested(material_id: String)
 # Emitted when the player switches card frame style in Sys Config so every
 # live CardChrome overlay repaints without a page rebuild.
 signal chrome_changed
@@ -329,6 +331,12 @@ func attach_rarity_fx(host: Control, rarity: int, rarity_color: Color) -> void:
 # when A's late mouse_exited fires.
 var _item_tooltip: Control = null
 var _item_tooltip_anchor: Control = null
+# v137: sticky-tooltip lifecycle — a grace timer lets the cursor travel from the source
+# card onto the tooltip (to hover a glossary term) before it hides. _glossary_card is the
+# nested "what is this" popup shown while hovering a jargon term inside the tooltip.
+var _tooltip_timer: Timer = null
+var _glossary_card: Control = null
+const TOOLTIP_GRACE := 0.22
 
 # v136: card factory shared by the single tooltip and the side-by-side compare view.
 func _build_tooltip_card(bbcode: String, watermark: Texture2D = null) -> PanelContainer:
@@ -376,6 +384,13 @@ func _build_tooltip_card(bbcode: String, watermark: Texture2D = null) -> PanelCo
 	rtl.add_theme_font_size_override("bold_font_size", 12)
 	rtl.add_theme_constant_override("line_separation", 3)
 	rtl.text = bbcode
+	# v137: sticky + glossary. The RTL (STOP, even inside the IGNORE panel) receives the
+	# hover so the card survives cursor travel from the source card, and any
+	# [url=gloss:*] jargon term pops a nested definition card.
+	rtl.meta_hover_started.connect(_on_tooltip_meta_hover)
+	rtl.meta_hover_ended.connect(_on_tooltip_meta_exit)
+	rtl.mouse_entered.connect(_on_tooltip_rtl_enter)
+	rtl.mouse_exited.connect(_on_tooltip_rtl_exit)
 	card.add_child(rtl)
 
 	# Tech corner-bracket chrome on top — drawn in the panel margin, never on text.
@@ -502,13 +517,110 @@ class _TooltipChrome extends Control:
 			draw_rect(Rect2(c - Vector2(1.5, 1.5), Vector2(3, 3)), node_col, true)
 
 
+# v137: Paradox-style glossary — game-specific jargon that appears in affix text.
+# Definitions mirror the actual combat mechanics (combat_manager.gd).
+const GLOSSARY := {
+	"tactical_breach": {
+		"title": "Tactical Breach",
+		"body": "A lucky-hit proc — a base 10% chance on hit. When it lands, your on-hit tactical effects (like applying Exposed) get their chance to fire. Raising Tactical Breach Chance makes those procs trigger more often."
+	},
+	"exposed": {
+		"title": "Exposed",
+		"body": "A debuff on the enemy. While Exposed, the target takes +20% damage for 3 seconds."
+	},
+	"overdrive": {
+		"title": "Overdrive",
+		"body": "A buff on your ship. After a kill, you gain +25% Attack Speed for 5 seconds."
+	},
+	"severely_damaged": {
+		"title": "Severely Damaged",
+		"body": "An enemy below 35% Hull. Some weapons deal bonus damage to finish off wounded targets."
+	},
+	"high_integrity": {
+		"title": "High Integrity",
+		"body": "An enemy above 80% Hull — near full health. Some weapons deal bonus damage while the target is still fresh."
+	},
+}
+
+# Longest phrases first so a shorter term can't partial-match inside a longer one.
+const _GLOSSARY_TERMS := [
+	["Tactical Breach Chance", "tactical_breach"],
+	["Tactical Breach", "tactical_breach"],
+	["Severely Damaged", "severely_damaged"],
+	["High Integrity", "high_integrity"],
+	["Overdrive", "overdrive"],
+	["Exposed", "exposed"],
+]
+
+# Wrap known jargon phrases in a glossary [url] so a sticky tooltip can pop a definition.
+# Skips a term whose key is already linked (prevents double-wrapping a phrase that's a
+# substring of a longer, already-linked one, e.g. "Tactical Breach" in "...Chance").
+func linkify_glossary(text: String) -> String:
+	var out := text
+	for pair in _GLOSSARY_TERMS:
+		var phrase: String = pair[0]
+		var key: String = pair[1]
+		if phrase in out and not (("[url=gloss:%s]" % key) in out):
+			out = out.replace(phrase, "[url=gloss:%s]%s[/url]" % [key, phrase])
+	return out
+
 func hide_item_tooltip(anchor: Control = null) -> void:
 	# Only the owner (or a forced null) may clear it.
 	if anchor != null and anchor != _item_tooltip_anchor:
 		return
-	_free_item_tooltip()
+	# v137 sticky: don't free immediately — start a short grace so the cursor can travel
+	# onto the tooltip to hover a glossary term. The tooltip RTL's enter/exit cancels or
+	# reschedules this; a new show_item_tooltip() (hovering another card) frees instantly.
+	if is_instance_valid(_item_tooltip):
+		_ensure_tooltip_timer()
+		_tooltip_timer.start(TOOLTIP_GRACE)
+	else:
+		_free_item_tooltip()
+
+func _ensure_tooltip_timer() -> void:
+	if _tooltip_timer and is_instance_valid(_tooltip_timer):
+		return
+	_tooltip_timer = Timer.new()
+	_tooltip_timer.one_shot = true
+	_tooltip_timer.timeout.connect(_free_item_tooltip)
+	add_child(_tooltip_timer)
+
+# Cursor entered the live tooltip → keep it alive (cancel the pending hide).
+func _on_tooltip_rtl_enter() -> void:
+	if _tooltip_timer and is_instance_valid(_tooltip_timer):
+		_tooltip_timer.stop()
+
+# Cursor left the tooltip text → schedule the hide (grace covers travel to a glossary card).
+func _on_tooltip_rtl_exit() -> void:
+	_ensure_tooltip_timer()
+	_tooltip_timer.start(TOOLTIP_GRACE)
+
+# Hovering a [url=gloss:<key>] jargon term inside a tooltip → pop its definition card.
+func _on_tooltip_meta_hover(meta) -> void:
+	var s := str(meta)
+	if not s.begins_with("gloss:"):
+		return
+	var key := s.substr(6)
+	if not GLOSSARY.has(key):
+		return
+	_free_glossary_card()
+	if not is_instance_valid(_item_tooltip):
+		return
+	var g: Dictionary = GLOSSARY[key]
+	_glossary_card = show_info_card(_item_tooltip, str(g["title"]), str(g["body"]))
+
+func _on_tooltip_meta_exit(_meta) -> void:
+	_free_glossary_card()
+
+func _free_glossary_card() -> void:
+	if is_instance_valid(_glossary_card):
+		_glossary_card.queue_free()
+	_glossary_card = null
 
 func _free_item_tooltip() -> void:
+	if _tooltip_timer and is_instance_valid(_tooltip_timer):
+		_tooltip_timer.stop()
+	_free_glossary_card()
 	if is_instance_valid(_item_tooltip):
 		_item_tooltip.queue_free()
 	_item_tooltip = null
@@ -703,6 +815,24 @@ func get_mastery_tooltip() -> String:
 		+ "[color=#FFC24D][b]Lv 50[/b]    −20% duration[/color][br]"
 		+ "[color=#C8E0D8][b]Lv 75[/b]    −25% duration[/color][br]"
 		+ "[color=#FFD98A][b]Lv 100[/b]  −30% duration[/color]")
+
+# v137: parse a material-link meta and fire the Atlas deep-link. Accepts either the
+# "atlasmat:<id>" prefix used by the new recipe/inventory links, or the legacy
+# {"id":..,"type":"item"} JSON already emitted by processing-output hover links.
+# Returns true if a material nav was emitted.
+func request_atlas_from_meta(meta) -> bool:
+	var s := str(meta)
+	var id := ""
+	if s.begins_with("atlasmat:"):
+		id = s.substr(9)
+	else:
+		var j = JSON.parse_string(s)
+		if j is Dictionary and str(j.get("type", "")) == "item":
+			id = str(j.get("id", ""))
+	if id == "":
+		return false
+	atlas_navigation_requested.emit(id)
+	return true
 
 # v107: Lightweight styled info card. Caller passes an anchor Control; the
 # popup parents itself under ModalLayer (or current_scene as fallback) and

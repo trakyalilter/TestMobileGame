@@ -5,6 +5,7 @@ var data: Dictionary
 var manager: RefCounted
 var parent_ui: Node
 var target_slot_idx: int = -1
+var _cost_link_wired := false   # v137: connect the material→Atlas link once
 
 @onready var name_lbl = $MarginContainer/VBoxContainer/NameLabel
 @onready var stats_lbl = $MarginContainer/VBoxContainer/StatsLabel
@@ -18,7 +19,13 @@ func setup(p_mid: String, p_data: Dictionary, p_manager, p_parent):
 	data = p_data
 	manager = p_manager
 	parent_ui = p_parent
-	
+
+	# v137: click a cost material name → deep-link to its Atlas page (skip Liras).
+	if not _cost_link_wired:
+		_cost_link_wired = true
+		cost_lbl.mouse_filter = Control.MOUSE_FILTER_STOP
+		cost_lbl.meta_clicked.connect(func(meta): UITheme.request_atlas_from_meta(meta))
+
 	name_lbl.text = data["name"]
 	name_lbl.add_theme_color_override("font_color", UITheme.CATEGORY_COLORS["shipyard"])
 	
@@ -209,7 +216,8 @@ func update_state():
 		if not can_afford:
 			affordable = false
 			
-		cost_str += "[color=%s]%s %s[/color]\n" % [color, FormatUtils.format_number(qty), (UITheme.LIRA_ICON_BB if res == "credits" else ElementDB.get_display_name(res))]
+		var res_disp: String = UITheme.LIRA_ICON_BB if res == "credits" else "[url=atlasmat:%s]%s[/url]" % [res, ElementDB.get_display_name(res)]
+		cost_str += "[color=%s]%s %s[/color]\n" % [color, FormatUtils.format_number(qty), res_disp]
 	
 	cost_str += "[/center]"
 	cost_lbl.text = cost_str

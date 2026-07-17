@@ -859,7 +859,7 @@ func _build_card_stats(slot_type: String, stats: Dictionary) -> String:
 		if key == "energy_load" or key == "energy_capacity":
 			continue
 		var label = FormatUtils.format_stat_label(key)
-		var ga_prefix = "[color=#FFC24D]★[/color] " if key in ga_list else ""
+		var ga_prefix = "[color=#FFC24D]+[/color] " if key in ga_list else ""
 		lines.append("%s%s: %s" % [ga_prefix, label, FormatUtils.format_stat_value(key, val)])
 		if lines.size() >= 5: # Increased limit slightly
 			break
@@ -1064,7 +1064,7 @@ func _show_demolish_menu():
 
 	var in_storage = sm.module_inventory.get(mid, 0)
 	if in_storage <= 0:
-		UITheme.show_notification("Cannot demolish equipped module", Color.RED)
+		UITheme.show_notification("Cannot recycle an equipped module", Color.RED)
 		return
 
 	var price = sm.get_sell_price(mid)
@@ -1081,25 +1081,36 @@ func _show_demolish_menu():
 	var pos_hex: String = UITheme.COLORS["positive"].to_html(false)
 	var dim_hex: String = UITheme.COLORS["text_dim"].to_html(false)
 
-	var body := "[center]Scrap [b]%s[/b] for parts?\n\n" % mname
+	var body := "[center]Recycle [b]%s[/b] for parts?\n\n" % mname
 	body += "[color=#%s]YOU RECEIVE[/color]\n" % dim_hex
 	body += "[b][color=#%s]%s[/color][/b] %s      [b][color=#%s]%s[/color][/b] Spare Parts\n\n" % [warn_hex, UITheme.format_num(price), UITheme.LIRA_ICON_BB, pos_hex, str(parts)]
 	body += "[color=#%s]This permanently destroys the module.[/color][/center]" % dim_hex
 
 	var on_ok := func():
 		if sm.demolish_module(mid):
-			UITheme.show_notification("Demolished for %s Liras & %s parts" % [UITheme.format_num(price), parts], rarity_color)
+			UITheme.show_notification("Recycled for %s Liras & %s parts" % [UITheme.format_num(price), parts], rarity_color)
 
 	UITheme.show_confirm({
-		"title": "Demolish Module",
+		"title": "Recycle Module",
 		"body": body,
-		"confirm_text": "Demolish",
+		"confirm_text": "Recycle",
 		"cancel_text": "Cancel",
 		"accent": UITheme.COLORS["negative"],
 		"danger": true,
 		"on_confirm": on_ok,
 	})
 
+
+# v137: true when this exact module instance is fitted to a ship slot (loadout is
+# {slot_idx: module_id}). Used to badge the card in a side-by-side compare, where the
+# equipped item and an armory item otherwise look identical.
+func _is_equipped(sm, module_id: String) -> bool:
+	if not sm or module_id == "":
+		return false
+	var lo = sm.get("loadout")
+	if lo == null:
+		return false
+	return module_id in lo.values()
 
 func _build_comparison_tooltip_bbcode(anchor_select: bool = false, hover_affix: String = "", no_compare: bool = false) -> String:
 	if data.is_empty():
@@ -1131,7 +1142,12 @@ func _build_comparison_tooltip_bbcode(anchor_select: bool = false, hover_affix: 
 		tt += "\n[font_size=9][color=#7FA39C]Click to arm, then click a module to apply.[/color][/font_size]"
 		return tt
 
-	tt += "[font_size=10][color=#7FA39C]%s %s[/color][/font_size]\n" % [rarity_label, slot_type.capitalize()]
+	# v137: flag the module currently fitted to the ship — essential in a side-by-side
+	# compare, where the equipped card and an armory card are otherwise indistinguishable.
+	var eq_tag := ""
+	if _is_equipped(sm, mid):
+		eq_tag = "  [color=#4DD8C0][b](EQUIPPED)[/b][/color]"
+	tt += "[font_size=10][color=#7FA39C]%s %s[/color]%s[/font_size]\n" % [rarity_label, slot_type.capitalize(), eq_tag]
 
 	var durability = int(data.get("durability", 100))
 	var dur_col = "#46E0A0"
@@ -1315,6 +1331,10 @@ func _build_comparison_tooltip_bbcode(anchor_select: bool = false, hover_affix: 
 					desc_val = int(val_raw * 100)
 
 				var desc = cfg["desc"] % desc_val
+				# v137: wrap jargon in glossary [url]s for the sticky hover — but NOT in
+				# anchor-select mode, where the whole row is already a [url=affix:*] (no nesting).
+				if not anchor_select:
+					desc = UITheme.linkify_glossary(desc)
 
 				var affix_body := ""
 				if is_ga:
@@ -1393,17 +1413,27 @@ func _build_comparison_tooltip_bbcode(anchor_select: bool = false, hover_affix: 
 				var col = "#ffffff" if active else "#666666"
 				tt += "[color=%s]%s: %s[/color]\n" % [col, b_name, val_str]
 
-	# v136: POE-style action-hint footer teaching the compare shortcut. Only on real,
-	# comparable modules (skipped on the pinned baseline card in a side-by-side view,
-	# and on ammo/consumables/cores which aren't in sm.modules).
+	# v136/v137: POE-style action-hint footer. Shift-click compares; right-click recycles.
+	# The compare line is skipped on the pinned baseline card in side-by-side view and on
+	# ammo/consumables/cores (not in sm.modules). The recycle line only shows when a copy is
+	# in storage — the recycle action rejects equipped-only modules.
+	var hint_lines: Array = []
 	if not no_compare and sm and mid in sm.modules:
-		tt += div
 		if compare_pin_mid == mid:
-			tt += "[font_size=9][color=#5E7C77]Shift-click: unpin  ·  Esc: clear compare[/color][/font_size]"
+			hint_lines.append("Shift-click: unpin  ·  Esc: clear compare")
 		elif compare_pin_mid != "":
-			tt += "[font_size=9][color=#5E7C77]Shift-click: pin this instead  ·  Esc: clear compare[/color][/font_size]"
+			hint_lines.append("Shift-click: pin this instead  ·  Esc: clear compare")
 		else:
-			tt += "[font_size=9][color=#5E7C77]Shift-click to pin & compare two modules[/color][/font_size]"
+			hint_lines.append("Shift-click to pin & compare two modules")
+	if sm and mid in sm.modules and sm.module_inventory.get(mid, 0) > 0:
+		hint_lines.append("Right-click to recycle for parts")
+	if not hint_lines.is_empty():
+		tt += div
+		var hint_txt := ""
+		for i in range(hint_lines.size()):
+			if i > 0: hint_txt += "\n"
+			hint_txt += str(hint_lines[i])
+		tt += "[font_size=9][color=#5E7C77]%s[/color][/font_size]" % hint_txt
 
 	return tt
 

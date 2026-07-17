@@ -41,10 +41,10 @@ var graphs = {
 	},
 	"Automation": {
 		"nodes": [
-			"industrial_logistics", "automated_logistics",
+			"industrial_logistics",  # v136: automated_logistics removed (collapsed)
 			"industrial_automation", "molecular_recycling", "colony_automation", "perfect_automation",
 			"fast_centrifuges", "maglev_bearings", "quantum_separators", "advanced_mineralogy",
-			"automation", "nano_fabrication", "xeno_engineering",
+			"automation", "xeno_engineering",  # v136: nano_fabrication removed (collapsed)
 			"basic_electronics", "advanced_batteries",
 			"efficiency_1", "efficiency_2", "efficiency_3", "efficiency_4", "efficiency_5",
 		],

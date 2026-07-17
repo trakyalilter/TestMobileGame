@@ -363,6 +363,10 @@ func _build_detail_panel() -> void:
 	meta_lbl.scroll_active = false
 	meta_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	meta_lbl.add_theme_font_size_override("normal_font_size", 11)
+	# v137: the "View in Atlas" link (appended in update_selection_view) deep-links the
+	# selected item to its full Atlas entry — sources/uses live there, not in this panel.
+	meta_lbl.mouse_filter = Control.MOUSE_FILTER_STOP
+	meta_lbl.meta_clicked.connect(func(meta): UITheme.request_atlas_from_meta(meta))
 	hero_text.add_child(meta_lbl)
 
 	flavor_lbl = RichTextLabel.new()
@@ -509,7 +513,7 @@ func update_selection_view(data, amount):
 
 	# Meta line: prettified category • N held.
 	var cat: String = ElementDB.get_category(symbol).replace("_", " ").to_upper()
-	meta_lbl.text = "[color=#%s]%s[/color]   [color=#%s]•[/color]   [color=#%s][b]%s[/b] held[/color]" % [dim_hex, cat, dim_hex, main_hex, UITheme.format_num(amount)]
+	meta_lbl.text = "[color=#%s]%s[/color]   [color=#%s]•[/color]   [color=#%s][b]%s[/b] held[/color]   [color=#%s]•[/color]   [url=atlasmat:%s][color=#5FE0C8][u]View in Atlas[/u][/color][/url]" % [dim_hex, cat, dim_hex, main_hex, UITheme.format_num(amount), dim_hex, symbol]
 
 	# Flavor — one-line dim italic blurb ([ escaped so a stray bracket isn't a tag).
 	# Sources/uses reference data intentionally lives in the Atlas, not here.
