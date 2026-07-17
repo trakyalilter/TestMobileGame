@@ -1,4 +1,48 @@
-# Session Handoff — 2026-07-15
+# Session Handoff — 2026-07-17
+
+---
+
+## LATEST BLOCK (2026-07-17) — Fun-audit instrumentation + measured verdict (v139c)
+
+**Owner directive: "before Loop 2, check the game generally — is it fun, will players be
+bored, do we need new systems."** Built boredom-proxy instrumentation into player_bot
+(all ACTIVE-time domain, offline-immune): [FUN][DENSITY] debounced context switches/h,
+[FUN][MIX] daily gather/process/combat share, [FUN][STREAK] resumable same-target sits,
+[FUN][DESERT] active spans with zero novelty events, [FUN][WARPCURVE] v138 cadence
+re-measure. Run: 5×14-day runs (follower s11/22/33, efficient, overnighter) →
+`sim_out/players/fun_20260717_082835/`.
+
+**MEASURED FINDINGS (the load-bearing ones):**
+1. **v138's "first warp in week one" FAILS for casual budgets.** Follower (1h/day): best
+   seed opens the rift on DAY 14 (active-hour 16), NO warp executes in 14 days, 2 of 3
+   seeds never open it. Overnighter (0.3h/day + heavy offline): walled at m026/m029, never
+   near Z3. Only ≥2h/day players see a week-one warp. Loop-2's modeled warp states are
+   moot until this is addressed.
+2. **The m029–m030 band (Z2→Z3) is simultaneously the WALL, the DESERT, and the density
+   collapse.** Deserts 2.2–8.7 ACTIVE hours anchored after `hull:destroyer` through the
+   AdvCircuit chain; walls: m030d "farming rare/uncommon explosive gear for Monolith"
+   (55h active!), m030g/m026 `blk=item need=Circuit` (research item costs), overnighter
+   m026 at 72h. Context-switch density flatlines to 0/h from ~d7 in every run.
+3. **The captain fantasy starves mid-funnel:** d3–d7 MIX runs ~30/60/0–10 g/p/c —
+   processing-dominated days with near-zero combat while the circuit chain grinds.
+4. **Follower runs log ZERO `building:` novelty events** — the mission chain never forces
+   infrastructure in that band, so a mission-follower can silently skip an entire pillar
+   (efficient archetype builds auto_excavator d8 on its own initiative).
+
+**P3 per-boss mechanics (owner-approved, "wisely"):** design table shipped at
+`docs/design/P3_BOSS_MECHANICS.md` — 3 new data-driven traits (Shield Pulse / Reactive
+Armor / Volley) + existing Enrage, taught Z3→Z10 one-per-zone then combined, all
+pre-fight-solvable, invariants: Uncommon still clears mandatory bosses, TTK ≤ +20%,
+offline prices traits conservatively. IMPLEMENT AFTER the m029–m030 band surgery (the
+Z3 enrage number interacts with the same band).
+
+**Next up (proposed):** m029–m030 band surgery (AdvCircuit chain length, m030d gear-RNG
+gate, Circuit research item costs, early-income sanity vs the v139 repricing, offline
+chain-advance for heavy-offline profiles) → re-run this matrix → P3 build → then Loop 2.
+
+---
+
+# (previous) Session Handoff — 2026-07-16
 
 **Branch:** `MissionFlow` · **Remote:** `origin` (`github.com/trakyalilter/horizonidle-godot`)
 **To resume on another machine:** `git pull origin MissionFlow`
@@ -8,7 +52,52 @@ this file is the fast catch-up on what changed in the last work block and what's
 
 ---
 
-## LATEST BLOCK (2026-07-15) — cadence redesign shipped (v138/a/b)
+## LATEST BLOCK (2026-07-16) — Bounty/Quest split (v139)
+
+**Owner decisions locked:** bounty board split **zone-by-zone as tabs** (unlocked zones only;
+paid refresh targets the ACTIVE tab) · **NO fleet dispatch** — fleet stays a passive post-first-warp
+combat helper (already shipped in v138, verified) · **quest/bounty role split: bounties own COMBAT,
+quests own SKILLING** · NG+ T11–15 tiers included.
+
+- **Bounty (`bounty_manager` + `bounty_page`):** per-zone 4-card boards — 2 hunts + 1 boss
+  bounty (qty 1–2, offline-completable by v138b design) + 1 elite duel. **v139b owner rule:
+  contracts target ONLY the module-hunters — e3/e4 (last two trash; weapons-pool + defense-pool
+  carriers) + boss; e1/e2 (material-farm lane) never get contracts.** The 2 hunts are
+  deterministic (one per hunter → every board offers a weapon-farm AND a defense-farm target);
+  elites roll hunters only, never bosses. Programmatic zone-tab strip (defaults to frontier).
+  Natural 8h refresh regenerates ALL boards + clears reroll heat (ticks offline); paid refresh
+  is per-zone at `diff×5000×2^uses`. DELIVERY contracts removed from generation (legacy actives
+  still claim/refund). Hunt payout `xp×qty×10.0×diff^1.6`.
+  Drop-rule NOTE (verified, no change needed): module drops are already gated by
+  `enemy_is_front_salvage` → `drops_modules` (v114/v120) — Z2–Z10 e1/e2 = materials only,
+  Z1 AND Z11+ exempt (everyone drops). The e1/e2 `module_drop_chance` data values are INERT
+  (flag zeroes them at roll time) — don't be misled by them like this session was.
+- **Quest (`quest_manager`):** hunt ("Sweep") quests REMOVED (legacy ones on old saves still
+  track/claim via the kept hook). NEW **Supply Orders** — hand in CRAFTED goods (Steel/Circuit/
+  AdvCircuit/Superalloy, T2–T15), tracked like stockpiles but **consumed at claim** (stock
+  re-verified at claim; un-completes if spent). Gather table moved quest-side + REPRICED (old
+  static column paid printer sums — T6 "own 3K Steel"=1M; now a small trickle, T1 2K → T15 42M).
+  Reroll gains the same escalating heat (×2/use, cools 1 step per claim).
+- **Save migration:** old flat bounty `available` pool discarded (ephemeral RNG), ACTIVE
+  contracts incl. pre-v139 deliveries preserved + claimable. No save version bump needed
+  (defensive loaders both sides). Quest boards carry legacy hunts until claimed.
+- **Texts:** m027b mission + bounty/quest coach marks rewritten (old text claimed bounties were
+  "background income" — false without dispatch — and referenced delivery/timers that no longer exist).
+- **Verified:** `scripts/sim/bounty_check.gd` (scene `bounty_check.tscn`) — composition/zone-lock/
+  elite-no-boss, escalation+natural-reset, lazy-seed, migration, supply consume+stock-guard,
+  reroll heat: **ALL PASS**. Full headless boot clean. Reward ladder printed per tier (T1 1–2K …
+  T11 200–650M pre-mults — in family with direct combat drops at era).
+- **UI polish pending (in-app):** tab strip styling/placement is a first programmatic pass
+  (like the map-mod picker) — eyeball both in a real render.
+- **NEW STANDING RULE — no emojis in player-facing text** (owner, 2026-07-16). Game-wide sweep
+  removed ~60 pictographs (sidebar prefixes, contract/log/mastery/modal icons → plain labels).
+  Kept: functional typography only (→ arrows, ▲▼▸ indicators, ✕ close, ◆◇ pips, ◈ shard symbol).
+  Codified in CLAUDE.md gotchas. Gotcha: star_map strips the hazard prefix for map labels —
+  now `.replace("HAZARD: ", "")` (3 sites), keep in sync if the prefix wording changes.
+
+---
+
+## PREVIOUS BLOCK (2026-07-15) — cadence redesign shipped (v138/a/b)
 
 **Owner decisions locked (do NOT relitigate):** first warp at the ZONE-3 boss via a
 diegetic BLACK HOLE (not a button) · fleet = soft-role only, siege gates CUT
