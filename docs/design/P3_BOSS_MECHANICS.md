@@ -109,13 +109,18 @@ They are diegetic signposts, not checks; the checks start at Z3.
 (L99–100%), Uncommon 0/9 at nine bosses, Rare wins everywhere, Legendary ~15–30% faster
 as promised. Z12–Z15 rows are the known phased-probe blindness (ng_tune is the authority).
 
-**The load-bearing discovery:** five soft-tuning iterations proved a stat-only Rare gate
-unwinnable — affix RNG lets a god-rolled Uncommon set overlap a floor Rare set (Uncommon
-leaks wobbled 0–6/9 between identical runs). A binary rule needs a binary mechanism:
-**bosses take ×0.25 damage from sub-Rare weapons** (`BOSS_SUBRARE_DMG_FACTOR`, the
-warp_hardened pattern applied to rarity; live path + offline model; trash ungated).
-Second discovery en route: kits make survival near-infinite, so soft Uncommon-gating only
-ever worked through LETHALITY (spikes/enrage/volatile), never HP/TTK stretch.
+**The load-bearing discovery (and its correction):** five boss-stat tuning iterations
+could not close the Uncommon leaks — they wobbled 0–6/9 between identical runs. Root
+cause: the v101 change gave Uncommon **one affix roll**, and that single affix was the
+only bridge letting a well-rolled Uncommon set cross into Rare-floor power (the rarity
+STAT ranges were already disjoint: Uncommon caps ×1.20, Rare floors ×1.25). A hard
+×0.25 sub-Rare combat multiplier was tried and **REJECTED by the owner** ("do not break
+the math") — the correct fix is in the ITEM numbers: **Uncommon carries no affixes**
+(v101 revert). Tier identity: Common = crafted baseline · Uncommon = stat bump ·
+**Rare = where affixes (builds) begin** · Legendary/Unique = more + greater. Best
+possible Uncommon now sits below worst possible Rare by construction; combat math pure.
+Second discovery en route: kits make survival near-infinite, so boss-side Uncommon
+pressure only ever worked through LETHALITY (spikes/enrage/volatile), never HP stretch.
 
 Tracked follow-ups:
 - Z3/Z5 Rare comfort reads 4/9 (variance-dominated cells; true rate ~45–60%). Small hp

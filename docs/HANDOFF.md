@@ -2,7 +2,29 @@
 
 ---
 
-## LATEST BLOCK (2026-07-17) — Fun-audit instrumentation + measured verdict (v139c)
+## LATEST BLOCK (2026-07-17 late) — Boss Overhaul SHIPPED (v139d)
+
+**Trait engine + rollout Z1–Z11** (7 data-driven traits, taught one per zone, combos at
+Z9/Z10, soft tutorial flavors at Z1/Z2) + **the Rare gate, owner-corrected twice**:
+- Hard ×0.25 sub-Rare multiplier: tried, REJECTED ("do not break the math").
+- God-roll allowance: REJECTED ("i ain't said god rolled uncommon should overcome").
+- **Final mechanism: Uncommon affixes 1→0** (v101 revert in generate_module_drop) —
+  rarity stat ranges were already disjoint (U caps ×1.20, R floors ×1.25); the single
+  affix was the only bridge. Tiers separate in the ITEM numbers; combat math pure.
+  Save-compat: old affixed Uncommons keep baked stats, new drops roll affixless.
+- **Commit matrix (bgc_commit.txt, TRIALS=9):** Uncommon 0/9 at EVERY boss (deep losses
+  L75–99%), Rare 6–9/9 at Z2–Z10 with TTK 3.0–6.7min in envelope. gearcheck rule now
+  fractional: C AND U ≤10%, Rare-or-better ≥60%.
+- Pre-fight card + atlas show trait chips + NEEDS RARE GEAR; bot boss bar = Rare;
+  m030d speaks the rule. Lethality lesson on record: kits make survival near-infinite,
+  so boss-side pressure = spikes/enrage/volatile, never HP stretch.
+- REMAINING: Z11+ warp-aware pass (ng_tune) vs the 5–10min envelope; funnel [FUN]
+  re-measure (rift timing under Rare gate + board farming, projected day 4–6 @1h/day);
+  watch Z3/Z9 Rare cells (wobble 45–60%, L columns 9/9 so progression never blocks).
+
+---
+
+## (earlier same day) — Fun-audit instrumentation + measured verdict (v139c)
 
 **Owner directive: "before Loop 2, check the game generally — is it fun, will players be
 bored, do we need new systems."** Built boredom-proxy instrumentation into player_bot
