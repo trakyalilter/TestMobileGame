@@ -145,7 +145,9 @@ func init_missions():
 		["m017c2", "Stock the Warheads", "The launcher fires Missiles. In the Engineering tab, produce 60 HE Missiles.", "gather", "MissileT1", 60, 1800, 250, "m017d"],
 		["m017d", "Warhead", "Click LOADOUT 3, equip BOTH Micro-Missile Launchers there, then destroy a Scrap Collector in Lunar Orbit. Kinetic / Energy / Explosive now live in Loadouts 1 / 2 / 3 — before a fight, one click swaps your WHOLE ship modules.", "defeat", "z1_scrap_collector", 1, 3500, 600, "m018"],
 		["m018", "Industrial Logistics", "Research the 'Industrial Logistics' hub.", "research", "industrial_logistics", 1, 500, 100, "m019"],
-		["m018b", "Automated Intelligence", "Research 'Automated Logistics' for circuitry.", "research", "automated_logistics", 1, 1000, 200, "m019"],
+		# v136: automated_logistics tech removed (collapsed). This already-orphaned beat
+		# retargets to industrial_logistics so any in-flight save on it auto-completes.
+		["m018b", "Automated Intelligence", "Research the 'Industrial Logistics' hub.", "research", "industrial_logistics", 1, 1000, 200, "m019"],
 		# v134: the Circuit recipe needs TIN (Sn) — a material the chain never introduced
 		# (Cassiterite mining was only taught at m028, nine missions later). Name the
 		# full path so the player isn't stared down by an unexplained missing input.
@@ -218,7 +220,7 @@ func init_missions():
 		["m027", "Scanning Horizon", "Research 'Asteroid Belt Authorization' in the Research tree to unlock the Asteroid Belt combat zone.", "research", "zone_2_access", 1, 5000, 500, "m027b"],
 		# P-onboard: introduce the Bounty Board the moment it unlocks (Asteroid Belt).
 		# visit_page → auto-completes on navigation, can never soft-lock.
-		["m027b", "Open Contracts", "Open Bounties (left sidebar — it just unlocked). Accept a contract: it pays out in the background while you do anything else. Optional, always-on income.", "visit_page", "bounty", 1, 6000, 500, "m028"],
+		["m027b", "Open Contracts", "Open Bounties (left sidebar — it just unlocked). Each sector runs its own combat contract board: accept one, and kills in that sector count toward it automatically. Pays Liras + a ship module.", "visit_page", "bounty", 1, 6000, 500, "m028"],
 		["m028", "Belt Mining", "In the Mine page, mine 100 Cassiterite (tin ore).", "gather", "Cassiterite", 100, 10000, 2000, "m029"],
 		["m029", "Hardened Shell", "Craft 'Carbon Fiber Plate' in the Shipyard.", "craft", "z2_armor", 1, 15000, 5000, "m029a1"],
 		# v107 Mission flow — split the silent AdvCircuit wall into discoverable
@@ -246,6 +248,10 @@ func init_missions():
 		# — see research_manager:189, a DELIBERATE pairing with this mission's count).
 		# Cutting to 3 left the player short at m030, which stalled UNDIRECTED farming
 		# AdvCircuit (measured: 2/3 seeds walled at m030, destroyer slipped 7.9d -> 13.5d).
+		# v139c: DO NOT trim the 5 below — it is load-bearing. Shipwright II's
+		# AdvCircuit bill (~6 effective) is priced against the stock + warmed-up
+		# production chain these 5 mission-directed crafts leave behind; a 2-craft
+		# variant re-opened the historical m030 wall (measured: 55h livelock).
 		["m029b", "Complex Electronics", "Craft 5 Advanced Circuits in the Engineering tab. Three inputs need prep: Semiconductor (Silicon + Germanium), Gold (Gold Panning — Dirt + Water), and Silver (a Zinc Reduction byproduct).", "gather", "AdvCircuit", 5, 20000, 5000, "m030"],
 		# v103f: Removed forced Fabricator mission (m030b) — it gated nothing
 		# (Fabricator is optional QoL, still buildable). m030 -> m030c directly.
@@ -263,7 +269,7 @@ func init_missions():
 		["m030c3", "Heavier Ordnance", "Your Zone-1 guns barely dent Zone-2 armor. Fabricate 3 'Concussion Missile' (Z2 EXPLOSIVE) and equip one per weapon slot. The Silicate Monolith ahead resists kinetic and energy but is WEAK TO EXPLOSIVE.", "craft", "z2_missile", 3, 30000, 3000, "m030d"],
 		# v134h: zone_3_access (Mars Debris Clearance) COSTS a Z2 boss core the chain never
 		# told the player to farm. Insert an explicit boss-farm beat (mirrors m030i/m032a).
-		["m030d", "Belt Overseer", "Defeat the Silicate Monolith (Asteroid Belt boss) to salvage a Z2 Sector Core for the Mars Debris charter. It shrugs off COMMON gear — if it out-lasts you, farm the Belt until your weapons and plating are UNCOMMON+. EXPLOSIVE hits it hardest.", "defeat", "z2_boss_monolith", 1, 50000, 6000, "m030e"],
+		["m030d", "Belt Overseer", "Defeat the Silicate Monolith (Asteroid Belt boss) to salvage a Z2 Sector Core for the Mars Debris charter. It shrugs off COMMON gear — if it out-lasts you, work the Asteroid Belt BOUNTY BOARD: hunt contracts pay a GUARANTEED Rare module on claim, far faster than praying for drops. EXPLOSIVE hits it hardest.", "defeat", "z2_boss_monolith", 1, 50000, 6000, "m030e"],
 		# Mission bridge from Asteroid Belt to Sector Alpha (zones 3-4 introduction)
 		["m030e", "Mars Beachhead", "Research 'Mars Debris Clearance' (spends the Monolith core you just salvaged) to unlock the Mars Debris zone.", "research", "zone_3_access", 1, 40000, 5000, "m030f"],
 		["m030f", "Salvage Operations", "Defeat 3 Scavenger Mechs in the Mars Debris zone.", "defeat", "z3_scavenger_mech", 3, 60000, 8000, "m030fa"],
@@ -277,8 +283,8 @@ func init_missions():
 		["m030f1", "Zone-3 Ordnance", "The Martian Warmaster resists kinetic and explosive but is WEAK TO ENERGY. Fabricate 3 'Cryo Beam' (Z3 ENERGY) and equip one per weapon slot.", "craft", "z3_energy", 3, 50000, 6000, "m030f2"],
 		# v134h: zone_4_access COSTS 2 Z3 boss cores the chain never directed. Explicit
 		# boss-farm beat before the research (m030f only killed regular Scavenger Mechs).
-		["m030f2", "Warmaster's Cores", "The Glacier Belt charter needs TWO Warmaster cores — defeat the Martian Warmaster (Mars Debris boss) twice.", "defeat", "z3_boss_warmaster", 2, 90000, 12000, "m030g"],
-		["m030g", "Glacier Belt Survey", "Research 'Glacier Belt Expedition' (spends the two Warmaster cores) to unlock the Glacier Belt zone.", "research", "zone_4_access", 1, 80000, 10000, "m030h"],
+		["m030f2", "Warmaster's Core", "Defeat the Martian Warmaster (Mars Debris boss) — its core decrypts the Glacier Belt charter.", "defeat", "z3_boss_warmaster", 1, 90000, 12000, "m030g"],
+		["m030g", "Glacier Belt Survey", "Research 'Glacier Belt Expedition' (spends the Warmaster core) to unlock the Glacier Belt zone.", "research", "zone_4_access", 1, 80000, 10000, "m030h"],
 		["m030h", "Frozen Frontier", "Defeat 3 Ice Wraiths in the Glacier Belt.", "defeat", "z4_ice_wraith", 3, 100000, 12000, "m030i"],
 
 		# v132 funnel repair (m030i..m034): the tail directed the WRONG techs.

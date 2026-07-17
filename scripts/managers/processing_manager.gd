@@ -690,8 +690,12 @@ var recipes: Dictionary = {
 	"extract_germanium": {
 		"name": "Germanium Extraction",
 		# v80.4 Fix: Germanit has no source. Reworked to use Si+Cu
+		# v139c band surgery: Si 10->6, Cu 5->3. The AdvCircuit chain needs SIX
+		# parallel raw streams in a single-active-task game (can't amortize
+		# offline — multi-input chains stall), and Si was the fattest stream.
+		# Lighter quantities, same chain shape (the multi-stream teach stays).
 		"description": "Extract trace Germanium from refined Silicon.",
-		"input": {"Si": 10, "Cu": 5},
+		"input": {"Si": 6, "Cu": 3},
 		"output": {"Germanium": 1},
 		"duration": 8.0,
 		"level_req": 36,
@@ -741,7 +745,11 @@ var recipes: Dictionary = {
 	"craft_adv_circuit": {
 		"name": "Advanced Circuitry",
 		"description": "High-performance integrated circuit. Silver traces and tin solder for low-loss interconnects.",
-		"input": {"Semiconductor": 1, "Au": 1, "StructuralComponent": 2, "Ag": 2, "Sn": 1},
+		# v139c band surgery: StructuralComponent 2->1, Ag 2->1 — same five input
+		# streams (the electronics-chain teach), ~40% lighter raw-gather load per
+		# unit. The m029b/m030 band is ACTIVE-time bound at 1h/day (see
+		# docs/design/ZONE_PACING_CURVE.md).
+		"input": {"Semiconductor": 1, "Au": 1, "StructuralComponent": 1, "Ag": 1, "Sn": 1},
 		"output": {"AdvCircuit": 1},
 		"duration": 15.0,
 		# v135: 45 -> 40. The player-bot matrix showed EVERY archetype parked on
@@ -1380,7 +1388,7 @@ func gain_mastery_xp(recipe_id: String, amount: float = MASTERY_XP_PER_COMPLETIO
 	if not GameState.game_settings.get("mastery_intro_seen", false):
 		GameState.game_settings["mastery_intro_seen"] = true
 		UITheme.show_notification(
-			"✦ MASTERY UNLOCKED — Keep using actions for permanent speed bonuses. Hover the mastery bar for the milestone schedule.",
+			"MASTERY UNLOCKED — Keep using actions for permanent speed bonuses. Hover the mastery bar for the milestone schedule.",
 			Color(1.0, 0.84, 0.45)
 		)
 	var prev_level: int = get_mastery_level(recipe_id)

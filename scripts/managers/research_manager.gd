@@ -113,7 +113,7 @@ var tech_tree = {
 		"effects": [
 			{"type": "bonus_yield", "bonus": 0.10, "what": "Global Production Speed"},
 		],
-		"unlocks": [],
+		"unlocks": ["Hydraulic Servo", "Industrial Centrifuge"],  # v136: Centrifuge inherited from collapsed automated_logistics
 		"flavor": "Gates the Advanced Technologies branch.",
 	},
 	# v110: schema refactor pilot — combustion / smelting / shipwright_1 are
@@ -164,7 +164,9 @@ var tech_tree = {
 		"tier": 2,
 		"category": "ships",
 		"cost": 50000,
-		"cost_items": {"Steel":20,"Res1": 20,"Circuit": 10},
+		# v139c band surgery: m026 measured ~1h active at 1h/day pre-first-boss —
+		# too heavy for the frigate beat on the pacing curve.
+		"cost_items": {"Steel":15,"Res1": 12,"Circuit": 6},
 		"type": "technology",
 		"effects": [],
 		"unlocks": ["Industrial Frigate"],
@@ -261,7 +263,7 @@ var tech_tree = {
 		"type": "technology",
 		"parent": "adv_materials",
 		"effects": [],
-		"unlocks": ["Advanced Circuit"],
+		"unlocks": ["Advanced Circuit", "Semiconductor Furnace", "Chip Fabrication Line", "Advanced Circuit Foundry"],  # v136: 3 circuit buildings inherited from collapsed nano_fabrication
 		"flavor": "Gates Advanced Rocketry research.",
 	},
 	"advanced_rocketry": {
@@ -358,7 +360,11 @@ var tech_tree = {
 		"tier": 3,
 		"category": "zone",
 		"cost": 75000,
-		"cost_items": {"Z2_Core": 1, "Steel": 200, "Circuit": 60},
+		# v139c band surgery (measured: fun_20260717 matrix): the Z2→Z3 band ran
+		# 10+ ACTIVE hours vs the ~1h pacing-curve target — this bill (x2 material
+		# mult => 400 Steel / 120 Circuit effective) was days of processing at
+		# Z2-era rates. Trimmed ~45%; the boss core stays the narrative key.
+		"cost_items": {"Z2_Core": 1, "Steel": 80, "Circuit": 15},
 		"type": "technology",
 		"parent": "zone_2_access",
 		"effects": [],
@@ -370,7 +376,11 @@ var tech_tree = {
 		"tier": 4,
 		"category": "zone",
 		"cost": 187500,
-		"cost_items": {"Z3_Core": 2, "Steel": 600, "Ti": 350, "Circuit": 200},
+		# v139c band surgery: pacing-curve target for Z3→Z4 is ~1 calendar day at
+		# 1h/day; measured 48h ACTIVE (efficient bot walled here on Circuit x400
+		# effective). Trimmed ~55% — still a real bill; first-warp production
+		# multipliers + Z3 infrastructure are expected to carry it.
+		"cost_items": {"Z3_Core": 1, "Steel": 300, "Ti": 150, "Circuit": 80},
 		"type": "technology",
 		"parent": "zone_3_access",
 		"effects": [],
@@ -588,7 +598,7 @@ var tech_tree = {
 			{"type": "action_speed", "id": "gather_wood", "bonus": 0.50, "stacks": true,
 				"stack_chain": ["Mono-Filament Wire", "Molecular Disassembler"]},
 		],
-		"unlocks": [],
+		"unlocks": ["Bio-Harvester"],  # v136: surfaced (was blank despite gating this building)
 		"flavor": "",
 	},
 	"magnetic_funnels": {
@@ -722,7 +732,7 @@ var tech_tree = {
 			{"type": "action_speed", "id": "electrolysis", "bonus": 0.25, "stacks": true,
 				"stack_chain": ["Ion-Exchange Membranes", "Resonance Splitters"]},
 		],
-		"unlocks": [],
+		"unlocks": ["Nickel-Catalyzed Electrolysis"],  # v136: surfaced (was blank despite gating this recipe)
 		"flavor": "",
 	},
 	"pyrolysis_control": {
@@ -950,18 +960,10 @@ var tech_tree = {
 		"flavor": "Acid-plasma armaments — etch through Corrosion-hardened hulls in the Rift. Requires mastery of Cryogenic Armaments.",
 	},
 	# --- LOGISTICS UPGRADES ---
-	"automated_logistics": {
-		"name": "Automated Logistics",
-		"tier": 2,
-		"category": "infrastructure",
-		"cost": 3000,
-		"cost_items": {"Cu": 25, "Fe":50, "Res1": 25},
-		"type": "technology",
-		"parent": "industrial_logistics",
-		"effects": [],
-		"unlocks": [],
-		"flavor": "",
-	},
+	# v136: automated_logistics REMOVED (collapsed) — it was a pure passive gate
+	# with no effect. Its Industrial Centrifuge now requires industrial_logistics
+	# (its parent); child xeno_engineering re-parented there too; orphan mission
+	# m018b retargets to industrial_logistics.
 	"molecular_printing": {
 		"name": "Molecular Printing",
 		"tier": 3,
@@ -1047,7 +1049,7 @@ var tech_tree = {
 		"cost": 10000,
 		"cost_items": {"SalvageData": 10, "Circuit": 50},
 		"type": "technology",
-		"parent": "automated_logistics",
+		"parent": "industrial_logistics",  # v136: was automated_logistics (removed)
 		# v111.6 audit: the two prose "unlocks" were phantom recipe names.
 		# CORRECTED v111.7: this tech is NOT vestigial — it grants +25% rare-loot
 		# via get_efficiency_bonus("xeno_engineering") (combat_manager loot rolls).
@@ -1525,20 +1527,10 @@ var tech_tree = {
 		"unlocks": [],
 		"flavor": "",
 	},
-	"nano_fabrication": {
-		"name": "Nano-Fabrication",
-		"tier": 2,
-		"category": "processing",
-		"cost": 5000,
-		"cost_items": {"Res2": 10},
-		"type": "technology",
-		"parent": "automation",
-		"effects": [
-			{"type": "bonus_yield", "bonus": -0.15, "what": "Processing duration"},
-		],
-		"unlocks": [],
-		"flavor": "",
-	},
+	# v136: nano_fabrication REMOVED (collapsed) — its 3 circuit buildings
+	# (Semiconductor Furnace / Chip Fabrication Line / Advanced Circuit Foundry)
+	# now require `automation` (its parent). Its +15% processing-speed bonus was
+	# dropped per design decision (see get_efficiency_bonus below).
 	"industrial_automation": {
 		"name": "Industrial Automation",
 		"tier": 2,
@@ -1916,7 +1908,8 @@ func get_efficiency_bonus(bonus_type: String) -> float:
 			if "deep_core_optics" in unlocked_techs: bonus += 1.0
 			if "colony_automation" in unlocked_techs: bonus += 5.0
 		"processing_speed":
-			if "nano_fabrication" in unlocked_techs: bonus += 0.15
+			# v136: nano_fabrication removed (collapsed into `automation`); its +15%
+			# processing-speed bonus was dropped per design decision.
 			if "perfect_automation" in unlocked_techs: bonus += 0.30
 			# v105/v105b: industrial_catalysis was previously an unreachable
 			# hub-style bonus_type with no consumer. Now wired into processing.

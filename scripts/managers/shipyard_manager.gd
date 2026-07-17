@@ -266,22 +266,22 @@ const AFFIX_DB = {
 	"dmg_healthy": {
 		"name": "Precision Calibration", "type": "tactical", "scaling": "percent",
 		"range": [10, 20], "limit_to": ["weapon"],
-		"desc": "+%d%% damage against High Integrity enemies (>80%% Hull)."
+		"desc": "+%d%% damage against High Integrity enemies."
 	},
 	"dmg_injured": {
 		"name": "Structural Exploitation", "type": "tactical", "scaling": "percent",
 		"range": [15, 30], "limit_to": ["weapon"],
-		"desc": "+%d%% damage against Severely Damaged enemies (<35%% Hull)."
+		"desc": "+%d%% damage against Severely Damaged enemies."
 	},
 	"vuln_on_hit": {
 		"name": "Exposing Pulse", "type": "tactical", "scaling": "percent",
 		"range": [5, 12], "limit_to": ["weapon"],
-		"desc": "%d%% chance to make enemies Exposed (20%% more dmg) for 3s."
+		"desc": "%d%% chance to make enemies Exposed."
 	},
 	"berserk_on_kill": {
 		"name": "Overdrive Catalyst", "type": "tactical", "scaling": "percent",
 		"range": [8, 15], "limit_to": ["weapon", "engine"],
-		"desc": "%d%% chance on kill to enter Overdrive (+25%% Atk Speed) for 5s."
+		"desc": "%d%% chance on kill to enter Overdrive."
 	}
 }
 
@@ -516,7 +516,9 @@ var hulls: Dictionary = {
 		# SalvagedAlloy/DamagedCircuitry drop only in Z1-2; the frigate (tier 2) is built
 		# in that same era, so the reclaimed loop terminates here instead of piling up
 		# dead. Anti-deadlock: lvl-8 fallback recipes mint both from Steel/Circuit.
-		"cost": {"credits": 30000, "Steel": 50, "ReinforcedPlating": 4},
+		# v139c band surgery: 4 -> 3 plating (m026b measured 0.7h active on the
+		# 1h/day pacing curve — the frigate beat targets ~0.5h).
+		"cost": {"credits": 30000, "Steel": 50, "ReinforcedPlating": 3},
 		"slots": ["weapon", "weapon", "shield", "shield","armor", "armor", "engine", "battery", "battery", "sensor"], # 10
 		"research_req": "shipwright_1",
 		"visual": "res://assets/ships/2.png",
@@ -529,7 +531,9 @@ var hulls: Dictionary = {
 		# v138c: ReinforcedPlating 10 -> 5 — at 4 SalvagedAlloy + 2 DamagedCircuitry +
 		# 10 Steel per plate (thin Z1-2-only drops), the 10-plate bill was a ~2.5-day
 		# offline-accrual gate blocking the new Z3 first-warp cadence.
-		"cost": {"credits": 90000, "Steel": 100, "Circuit": 20, "ReinforcedPlating": 5},
+		# v139c band surgery: 5 -> 3 (m030c was the single fattest pre-warp mission
+		# at 1.55h active; the plating chain is salvage-bound, not skill-bound).
+		"cost": {"credits": 90000, "Steel": 100, "Circuit": 20, "ReinforcedPlating": 3},
 		"slots": ["weapon", "weapon", "weapon", "shield", "shield", "armor", "armor", "engine", "battery", "battery", "battery", "sensor"], # 12
 		"research_req": "shipwright_2",
 		"visual": "res://assets/ships/3.png",
@@ -765,7 +769,9 @@ var modules: Dictionary = {
 		"name": "Carbon Fiber Plate",
 		"slot_type": "armor",
 		"stats": {"def": 11, "hp": 44},
-		"cost": {"credits": 3300, "C": 30, "Fe": 20, "ReinforcedPlating": 3},
+		# v139c band surgery: m029 (craft ONE of these) measured 1.36h active —
+		# the plating+kiln chain overshot the Z2-armor teach. 3 -> 2 plating, C 30 -> 20.
+		"cost": {"credits": 3300, "C": 20, "Fe": 20, "ReinforcedPlating": 2},
 		"desc": "Lightweight composite armor.",
 		"zone": 2, "research_req": "zone_2_access"
 	},
@@ -3060,7 +3066,7 @@ func generate_module_drop(base_module_id: String, rarity: int = Rarity.UNCOMMON,
 	
 	# Legendary: add extra flavor
 	if rarity == Rarity.LEGENDARY:
-		custom_module["desc"] = "★ " + custom_module["desc"] + " (Legendary variant)"
+		custom_module["desc"] = custom_module["desc"] + " (Legendary variant)"
 	
 	modules[custom_id] = custom_module
 	custom_modules[custom_id] = custom_module
