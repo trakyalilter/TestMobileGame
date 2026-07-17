@@ -370,7 +370,7 @@ func _draw_node(m: Dictionary) -> void:
 		draw_arc(p, 16.0, 0.0, TAU, 28, Color(C_TEAL.r, C_TEAL.g, C_TEAL.b, 0.6), 1.3, true)
 
 	# label + state caption
-	var nm := str(m["name"]).replace("⚠ ", "")
+	var nm := str(m["name"]).replace("HAZARD: ", "")
 	_ctext(Vector2(p.x, p.y + label_y), nm, label_col, 11)
 	if st == "current":
 		_ctext(Vector2(p.x, p.y + label_y + 11.0), "YOU ARE HERE", Color(C_AQUA.r, C_AQUA.g, C_AQUA.b, 0.85), 8)
@@ -474,7 +474,7 @@ func _draw_sector() -> void:
 		draw_circle(sp, s["r"], Color(0.81, 0.937, 0.902, a))
 
 	# header + back affordance
-	_ctext(Vector2(size.x * 0.5, 38.0), str(_focus_zone.get("name", "")).replace("⚠ ", "").to_upper(), C_TEXT, 16, size.x)
+	_ctext(Vector2(size.x * 0.5, 38.0), str(_focus_zone.get("name", "")).replace("HAZARD: ", "").to_upper(), C_TEXT, 16, size.x)
 	_ctext(Vector2(size.x * 0.5, 56.0), "SELECT A TARGET", heat, 9, size.x)
 	var bx := Vector2(30.0, 28.0)
 	draw_colored_polygon(PackedVector2Array([bx + Vector2(0, -4), bx + Vector2(0, 4), bx + Vector2(-6, 0)]), C_DIM)

@@ -473,7 +473,7 @@ func refresh_state():
 		if equipped_id.begins_with("custom_") and durability < 100:
 			var repair_btn = Button.new()
 			repair_btn.name = "QuickRepairBtn"
-			repair_btn.text = "🔧 Repair  %d%%" % durability
+			repair_btn.text = "Repair  %d%%" % durability
 			repair_btn.flat = true
 			repair_btn.add_theme_font_size_override("font_size", 9)
 			var dur_col := Color(0.95, 0.85, 0.30)
@@ -1352,6 +1352,7 @@ func _build_module_tooltip(m_data: Dictionary) -> String:
 	if affixes.size() > 0:
 		tt += div
 		var zone_diff = int(m_data.get("zone_difficulty", 1))
+		var ga_list = m_data.get("greater_affixes", [])
 		for aid in affixes:
 			if aid in manager.AFFIX_DB:
 				var cfg = manager.AFFIX_DB[aid]
@@ -1374,7 +1375,14 @@ func _build_module_tooltip(m_data: Dictionary) -> String:
 				var icon = ""
 				
 				var desc = cfg["desc"] % [int(val_raw) if (scaling == "flat" or scaling == "linear_tier") else int(val_raw * 100)]
-				tt += "[img=11 color=#5FE0C8]res://assets/icons/ui/affix_node.svg[/img] [color=#5FE0C8]%s[/color]\n" % desc
+				desc = UITheme.linkify_glossary(desc)   # v137: hoverable jargon terms
+				# v137: match the Armory card — GREATER affixes render gold with the tier
+				# label; lesser affixes stay teal. Previously the equipped slot showed EVERY
+				# affix in the teal "lesser" style, hiding a module's greater affixes once fitted.
+				if aid in ga_list:
+					tt += "[img=13 color=#FFC24D]res://assets/icons/ui/affix_greater.svg[/img] [color=#FFC24D][b]%s[/b][/color]  [color=#FFD98A][font_size=9]GREATER[/font_size][/color]\n" % desc
+				else:
+					tt += "[img=11 color=#5FE0C8]res://assets/icons/ui/affix_node.svg[/img] [color=#5FE0C8]%s[/color]\n" % desc
 
 	if m_data.has("sockets"):
 		tt += div

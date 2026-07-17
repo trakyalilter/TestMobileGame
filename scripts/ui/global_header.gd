@@ -122,7 +122,7 @@ func update_objective() -> void:
 	if br != -1:
 		nm = nm.substr(br + 2)
 	var is_ready: bool = obj.get("completed", false) and not obj.get("claimed", false)
-	objective_btn.text = ("✓ CLAIM: " if is_ready else "▸ ") + nm
+	objective_btn.text = ("CLAIM: " if is_ready else "▸ ") + nm
 	objective_btn.add_theme_color_override("font_color", Color(0.45, 1.0, 0.55) if is_ready else UITheme.COLORS["accent"])
 
 

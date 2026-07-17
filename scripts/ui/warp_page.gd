@@ -1005,7 +1005,7 @@ func _refresh_node(node_id: String):
 		sb.border_color = COLOR_PURCHASED
 		sb.bg_color = Color(0.08, 0.16, 0.10, 0.95)
 		dot.color = accent
-		_set_chip(w, ("✓ MAX · Lv %d" % lvl) if is_rep else "✓ ACQUIRED", COLOR_PURCHASED)
+		_set_chip(w, ("MAX · Lv %d" % lvl) if is_rep else "ACQUIRED", COLOR_PURCHASED)
 	else:
 		sb.border_color = COLOR_LOCKED
 		sb.bg_color = Color(0.10, 0.11, 0.16, 0.95)

@@ -596,7 +596,7 @@ func _populate_enemies_list(search_term):
 	for zone in sorted_zones:
 		var header = Label.new()
 		var diff = zone_difficulty.get(zone, 0)
-		header.text = "—  %s  ★%d  —" % [zone, diff]
+		header.text = "—  %s  T%d  —" % [zone, diff]
 		header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		header.add_theme_color_override("font_color", UITheme.COLORS["text_accent"])
 		header.add_theme_font_size_override("font_size", 12)
@@ -676,7 +676,7 @@ func _build_enemy_card(eid: String, e: Dictionary) -> Control:
 
 	if is_boss:
 		var boss_lbl = Label.new()
-		boss_lbl.text = "★"
+		boss_lbl.text = "BOSS"
 		boss_lbl.add_theme_font_size_override("font_size", 14)
 		boss_lbl.add_theme_color_override("font_color", Color(1.0, 0.85, 0.20))
 		boss_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -691,6 +691,16 @@ func _build_enemy_card(eid: String, e: Dictionary) -> Control:
 
 	panel.add_child(btn)
 	return panel
+
+# v137: public deep-link entry (mirrors research_page.focus_on_tech). Opens the
+# Materials tab focused on mat_id. Guards against ids that aren't materials (modules,
+# source-less ids) which would crash _display_material_details' unchecked lookup.
+func focus_material(mat_id: String) -> void:
+	if not material_db.has(mat_id):
+		return
+	if current_mode != "materials":
+		_on_mode_materials()
+	_on_item_selected(mat_id)
 
 func _on_item_selected(id: String):
 	selected_id = id
@@ -821,12 +831,12 @@ func _display_enemy_details(eid):
 	# --- IDENTITY ROW: zone / xp / dmg-type + resist/weak/cryo/enrage chips ---
 	_identity_row = HBoxContainer.new()
 	_identity_row.add_theme_constant_override("separation", 6)
-	_identity_row.add_child(_make_chip("ZONE ★%d" % e["zone_difficulty"], UITheme.COLORS["text_accent"], 10))
+	_identity_row.add_child(_make_chip("ZONE T%d" % e["zone_difficulty"], UITheme.COLORS["text_accent"], 10))
 	_identity_row.add_child(_make_chip("XP %d" % e["xp"], UITheme.COLORS["positive"], 10))
 	_identity_row.add_child(_make_chip(dmg_tag, dmg_col, 10))
 
 	if e_raw.get("warp_hardened", false):
-		_identity_row.add_child(_make_chip("❄CRYO-ONLY", Color(0.373, 0.878, 0.784), 9))
+		_identity_row.add_child(_make_chip("CRYO-ONLY", Color(0.373, 0.878, 0.784), 9))
 	for entry in [
 		[float(e_raw.get("resist_k", 0.0)), "KIN"],
 		[float(e_raw.get("resist_e", 0.0)), "NRG"],
@@ -836,7 +846,7 @@ func _display_enemy_details(eid):
 		var val: float = entry[0]
 		var tag: String = entry[1]
 		if val > 0.05:
-			_identity_row.add_child(_make_chip("⛨%s" % tag, Color(1.0, 0.392, 0.451), 9))
+			_identity_row.add_child(_make_chip("▲%s" % tag, Color(1.0, 0.392, 0.451), 9))
 		elif val < -0.05:
 			_identity_row.add_child(_make_chip("▼%s" % tag, Color(0.275, 0.878, 0.627), 9))
 	if e_raw.get("enrage_at", 0.0) > 0.0:
@@ -876,13 +886,13 @@ func _display_enemy_details(eid):
 		_add_loot_row(uses_list, entry[0], "%d–%d" % [int(entry[1]), int(entry[2])], UITheme.COLORS["text_main"])
 	var core_id = e.get("boss_core", "")
 	if core_id != "":
-		_add_loot_row(uses_list, core_id, "(100%)", UITheme.COLORS["warning"], "★ ")
+		_add_loot_row(uses_list, core_id, "(100%)", UITheme.COLORS["warning"], "")
 
 	var rare_loot = e.get("rare_loot", [])
 	if not rare_loot.is_empty():
 		_make_caption(uses_list, "RARE DROPS", UITheme.COLORS["warning"])
 		for entry in rare_loot:
-			_add_loot_row(uses_list, entry[0], "(%.1f%%, %d–%d)" % [entry[1] * 100.0, int(entry[2]), int(entry[3])], UITheme.COLORS["warning"], "✦ ")
+			_add_loot_row(uses_list, entry[0], "(%.1f%%, %d–%d)" % [entry[1] * 100.0, int(entry[2]), int(entry[3])], UITheme.COLORS["warning"], "")
 
 	# Module drops (read from e_raw — the local enemy_db row doesn't carry these).
 	var drop_chance = e_raw.get("module_drop_chance", 0.0)

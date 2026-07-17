@@ -90,7 +90,7 @@ func _build_combined_stats_row() -> void:
 	var atk := int(data["stats"]["atk"])
 	var def := int(data["stats"]["def"])
 
-	_add_stat_cell(hb, "hp", "♥", UITheme.format_num(hp), Color(1.0, 0.392, 0.451))
+	_add_stat_cell(hb, "hp", "HP", UITheme.format_num(hp), Color(1.0, 0.392, 0.451))
 
 	var dmg_tag := "KIN"
 	var dmg_col := Color(0.439, 0.533, 0.949)
@@ -101,9 +101,9 @@ func _build_combined_stats_row() -> void:
 		"explosive":
 			dmg_tag = "EXP"
 			dmg_col = Color(1.0, 0.761, 0.302)
-	_add_stat_cell(hb, "atk", "⚔", "%s %s" % [UITheme.format_num(atk), dmg_tag], dmg_col)
+	_add_stat_cell(hb, "atk", "ATK", "%s %s" % [UITheme.format_num(atk), dmg_tag], dmg_col)
 
-	_add_stat_cell(hb, "def", "⛨", str(def), Color(0.439, 0.533, 0.949))
+	_add_stat_cell(hb, "def", "DEF", str(def), Color(0.439, 0.533, 0.949))
 
 	# Right-align affinity chips on the same row, separator dot in between.
 	var spacer := Control.new()
@@ -115,7 +115,7 @@ func _build_combined_stats_row() -> void:
 
 	# v111: Warp-Hardened (Z11+) nullify conventional damage; only Cryo bites.
 	if data.get("warp_hardened", false):
-		hb.add_child(_make_chip("❄CRYO-ONLY", Color(0.373, 0.878, 0.784), 8))
+		hb.add_child(_make_chip("CRYO-ONLY", Color(0.373, 0.878, 0.784), 8))
 
 	for entry in [
 		[float(data.get("resist_k", 0.0)), "KIN"],
@@ -126,7 +126,7 @@ func _build_combined_stats_row() -> void:
 		var val: float = entry[0]
 		var tag: String = entry[1]
 		if val > 0.05:
-			hb.add_child(_make_chip("⛨%s" % tag, Color(1.0, 0.392, 0.451), 8))
+			hb.add_child(_make_chip("▲%s" % tag, Color(1.0, 0.392, 0.451), 8))
 		elif val < -0.05:
 			hb.add_child(_make_chip("▼%s" % tag, Color(0.275, 0.878, 0.627), 8))
 

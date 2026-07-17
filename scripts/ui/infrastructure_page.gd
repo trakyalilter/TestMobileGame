@@ -229,10 +229,10 @@ func update_ui():
 			net_lbl.text = "NET: +%.1f kW" % net
 			net_lbl.add_theme_color_override("font_color", Color.CYAN)
 		elif eff <= 0.5:
-			net_lbl.text = "NET: %.1f kW  ⚠ GRID COLLAPSING" % net
+			net_lbl.text = "NET: %.1f kW  GRID COLLAPSING" % net
 			net_lbl.add_theme_color_override("font_color", Color.RED)
 		else:
-			net_lbl.text = "NET: %.1f kW  ⚠ POWER DEFICIT" % net
+			net_lbl.text = "NET: %.1f kW  POWER DEFICIT" % net
 			net_lbl.add_theme_color_override("font_color", Color.ORANGE_RED)
 
 	if gen_lbl:

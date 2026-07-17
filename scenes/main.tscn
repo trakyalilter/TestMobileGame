@@ -55,17 +55,17 @@ layout_mode = 2
 
 [node name="MissionBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
-text = "  ⌘  Missions"
+text = "  Missions"
 alignment = 0
 
 [node name="BountyBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
-text = "  🎯  Bounties"
+text = "  Bounties"
 alignment = 0
 
 [node name="QuestBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
-text = "  ✦  Quests"
+text = "  Quests"
 alignment = 0
 
 [node name="SectionOpsTop" type="Control" parent="HBoxContainer/Sidebar/VBoxContainer"]
@@ -78,22 +78,22 @@ text = "  OPERATIONS"
 
 [node name="GatheringBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
-text = "  ◓  Mine"
+text = "  Mine"
 alignment = 0
 
 [node name="ProcessingBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
-text = "  ⚙  Engineering"
+text = "  Engineering"
 alignment = 0
 
 [node name="InfrastructureBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
-text = "  ⌬  Infrastructure"
+text = "  Infrastructure"
 alignment = 0
 
 [node name="ResearchBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
-text = "  🔬  Research Lab"
+text = "  Research Lab"
 alignment = 0
 
 [node name="SectionShipTop" type="Control" parent="HBoxContainer/Sidebar/VBoxContainer"]
@@ -106,27 +106,27 @@ text = "  SHIP"
 
 [node name="ShipyardBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
-text = "  ⚓  Shipyard"
+text = "  Shipyard"
 alignment = 0
 
 [node name="DesignerBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
-text = "  ✦  Ship Designer"
+text = "  Ship Designer"
 alignment = 0
 
 [node name="CombatBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
-text = "  ⚔  Combat"
+text = "  Combat"
 alignment = 0
 
 [node name="WarpBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
-text = "  ✨  Warp Core"
+text = "  Warp Core"
 alignment = 0
 
 [node name="FleetBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
-text = "  🚀  Fleet"
+text = "  Fleet"
 alignment = 0
 
 [node name="SectionRefTop" type="Control" parent="HBoxContainer/Sidebar/VBoxContainer"]
@@ -139,12 +139,12 @@ text = "  REFERENCE"
 
 [node name="InventoryBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
-text = "  📦  Inventory"
+text = "  Inventory"
 alignment = 0
 
 [node name="AtlasBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
-text = "  📖  Atlas"
+text = "  Atlas"
 alignment = 0
 
 [node name="Spacer" type="Control" parent="HBoxContainer/Sidebar/VBoxContainer"]
@@ -156,12 +156,12 @@ layout_mode = 2
 
 [node name="OptionsBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
-text = "  ⚒  Sys Config"
+text = "  Sys Config"
 alignment = 0
 
 [node name="MenuBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
-text = "  ⏴  Main Menu"
+text = "  Main Menu"
 alignment = 0
 
 [node name="Content" type="VBoxContainer" parent="HBoxContainer"]

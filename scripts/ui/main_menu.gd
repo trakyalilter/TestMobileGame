@@ -193,7 +193,7 @@ func _build_main_menu(parent: VBoxContainer):
 	_menu_root = vbox
 
 	# Continue
-	btn_continue = _make_btn("▶  CONTINUE", 20, "continue")
+	btn_continue = _make_btn("CONTINUE", 20, "continue")
 	btn_continue.custom_minimum_size = Vector2(0, 58)
 	btn_continue.disabled = not has_save
 	vbox.add_child(btn_continue)
@@ -224,7 +224,7 @@ func _build_main_menu(parent: VBoxContainer):
 	bottom.add_theme_constant_override("separation", 10)
 	vbox.add_child(bottom)
 
-	btn_exit = _make_btn("✕  EXIT", 14, "exit")
+	btn_exit = _make_btn("EXIT", 14, "exit")
 	btn_exit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	btn_exit.custom_minimum_size = Vector2(0, 44)
 	bottom.add_child(btn_exit)
@@ -272,7 +272,7 @@ func _build_options_menu(parent: VBoxContainer):
 
 	_add_sep(vbox, 8, 4)
 
-	var btn_back = _make_btn("◀  RETURN TO MENU", 14, "settings")
+	var btn_back = _make_btn("RETURN TO MENU", 14, "settings")
 	btn_back.custom_minimum_size = Vector2(0, 46)
 	btn_back.pressed.connect(_on_back_pressed)
 	vbox.add_child(btn_back)

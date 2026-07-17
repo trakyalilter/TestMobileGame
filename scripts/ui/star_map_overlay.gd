@@ -396,7 +396,7 @@ func _update_sector_header(m: Dictionary) -> void:
 		return
 	var diff := int(m["difficulty"])
 	var heat := _heat(diff)
-	_ro_name.text = str(m["name"]).replace("⚠ ", "").to_upper()
+	_ro_name.text = str(m["name"]).replace("HAZARD: ", "").to_upper()
 	_ro_name.add_theme_color_override("font_color", C_AQUA if str(m["state"]) == "current" else C_TEXT)
 	var band := "CALM SPACE" if diff <= 4 else ("CONTESTED SPACE" if diff <= 8 else "HOSTILE SPACE")
 	if m.get("is_hazard", false):
@@ -744,10 +744,10 @@ func _confirm_rift_entry() -> void:
 	var s := "" if gains == 1 else "s"
 	var keep_pct: int = int(round(wm.get_tree_xp_keep() * 100.0))
 	var body := "[b]Cross the event horizon.[/b]\n\n"
-	body += "[color=#c78cff]✦  Grant %d Exotic Shard%s[/color]\n\n" % [gains, s]
+	body += "[color=#c78cff]Grant %d Exotic Shard%s[/color]\n\n" % [gains, s]
 	body += "[color=#f06b6b]RESET[/color]    Liras · Buildings · Standard Resources · Skill levels  [color=#8b8f9c](keep %d%% XP)[/color]\n" % keep_pct
 	body += "[color=#73e88c]KEEP[/color]     Research · Ships · Exotic Matter · Warp Mastery purchases\n\n"
-	body += "[color=#ffb454][b]⚠  This cannot be undone.[/b][/color]"
+	body += "[color=#ffb454][b]This cannot be undone.[/b][/color]"
 	UITheme.show_confirm({
 		"title": "Enter the Singularity",
 		"body": body,

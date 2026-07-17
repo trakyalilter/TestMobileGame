@@ -69,6 +69,8 @@ func _ready():
 
 	# v84.2: Research Navigation QoL
 	UITheme.research_navigation_requested.connect(_on_research_navigation_requested)
+	# v137: material deep-link — click a material in a recipe/inventory → open Atlas on it
+	UITheme.atlas_navigation_requested.connect(_on_atlas_navigation_requested)
 
 	# v107: P0 Prestige Discovery Fanfare — detect the moment the player
 	# crosses the warp shard threshold for the first time. We listen on
@@ -107,6 +109,15 @@ func _on_research_navigation_requested(tech_id: String):
 	var res_page = pages.get("research")
 	if res_page and res_page.has_method("focus_on_tech"):
 		res_page.focus_on_tech(tech_id)
+
+# v137: open the Atlas focused on a material (from a recipe/inventory link).
+func _on_atlas_navigation_requested(material_id: String):
+	if material_id == "":
+		return
+	switch_to("atlas")
+	var atlas_pg = pages.get("atlas")
+	if atlas_pg and atlas_pg.has_method("focus_material"):
+		atlas_pg.focus_material(material_id)
 
 func _apply_global_styles():
 	background.color = UITheme.COLORS["background"]
@@ -214,7 +225,7 @@ func _init_pages():
 	p_atlas.visible = false
 	pages["atlas"] = p_atlas
 	
-	atlas_btn.text = "  📖  Atlas"
+	atlas_btn.text = "  Atlas"
 
 	
 	var p_bounty = preload("res://scenes/ui/bounty_page.tscn").instantiate()
@@ -437,7 +448,7 @@ func _build_reward_pill(info: Dictionary, accent: Color) -> Dictionary:
 		chip.add_child(mc)
 	else:
 		var chip_lbl := Label.new()
-		chip_lbl.text = "★" if is_xp else _chip_abbrev(str(info.get("symbol", "?")))
+		chip_lbl.text = "XP" if is_xp else _chip_abbrev(str(info.get("symbol", "?")))
 		chip_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		chip_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		chip_lbl.add_theme_font_size_override("font_size", 16 if is_xp else 11)
@@ -1354,10 +1365,10 @@ func _update_navigation_hints():
 			if widget: target_to_pulse = widget
 
 	elif "m018b" in mm.active_missions:
-		# Research: Automated Logistics Hub
+		# v136: automated_logistics removed; orphan beat retargets to industrial_logistics.
 		if current_page_name != "research": target_to_pulse = research_btn
 		else:
-			var widget = pages["research"].get_node_widget("automated_logistics")
+			var widget = pages["research"].get_node_widget("industrial_logistics")
 			if widget: target_to_pulse = widget
 			
 	elif "m019" in mm.active_missions:

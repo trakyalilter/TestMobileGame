@@ -1284,7 +1284,7 @@ func _on_reset_btn_pressed() -> void:
 	# v112: themed modal (was the primitive Window ConfirmationDialog).
 	var body := "Delete your save and restart from scratch?\n\n"
 	body += "[color=#f06b6b]Everything is wiped — Liras, ships, research, Warp Mastery, prestige.[/color]\n\n"
-	body += "[color=#ffb454][b]⚠  This cannot be undone.[/b][/color]"
+	body += "[color=#ffb454][b]This cannot be undone.[/b][/color]"
 	UITheme.show_confirm({
 		"title": "Confirm Hard Reset",
 		"body": body,

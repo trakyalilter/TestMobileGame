@@ -260,7 +260,7 @@ func _build_drag_hint_banner_if_needed() -> void:
 	sb.content_margin_bottom = 8
 	banner.add_theme_stylebox_override("panel", sb)
 	var lbl = Label.new()
-	lbl.text = "💡  Drag a module from your Armory (right panel) onto a matching ship slot — or click it, then click the slot. This hint disappears after your first equip."
+	lbl.text = "TIP: Drag a module from your Armory (right panel) onto a matching ship slot — or click it, then click the slot. This hint disappears after your first equip."
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	lbl.add_theme_font_size_override("font_size", 12)
@@ -553,7 +553,7 @@ func _setup_armory_toolbar(v_box: Node, scroll_node: Node):
 
 	# Manage toggle — reveals/hides bulk action controls on demand
 	armory_manage_btn = Button.new()
-	armory_manage_btn.text = "⚙ Manage"
+	armory_manage_btn.text = "Manage"
 	armory_manage_btn.toggle_mode = true
 	armory_manage_btn.tooltip_text = "Reveal bulk actions (select / demolish / scrap)."
 	armory_manage_btn.add_theme_font_size_override("font_size", 11)

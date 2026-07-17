@@ -376,7 +376,7 @@ func _refresh_state() -> void:
 
 	var is_unlocked: bool = _manager.is_tech_unlocked(_nid)
 	if is_unlocked:
-		_action_btn.text = "✓  RESEARCHED"
+		_action_btn.text = "RESEARCHED"
 		_action_btn.disabled = true
 		_apply_btn_style(false, true)
 		return
@@ -395,9 +395,9 @@ func _refresh_state() -> void:
 		# v111: warp-gated techs read as a prestige reward, not a resource wall.
 		var locked_by_warp: bool = _data.get("requires_warp", false) and not GameState.game_settings.get("cryo_unlocked", false)
 		if locked_by_warp:
-			_action_btn.text = "🌀  REQUIRES WARP CORE ACTIVATION"
+			_action_btn.text = "REQUIRES WARP CORE ACTIVATION"
 		elif locked_by_parent or locked_by_rt:
-			_action_btn.text = "🔒  LOCKED  ·  unlock prerequisites first"
+			_action_btn.text = "LOCKED  ·  unlock prerequisites first"
 		else:
 			_action_btn.text = "INSUFFICIENT RESOURCES"
 		_action_btn.disabled = true

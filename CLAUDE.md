@@ -146,6 +146,8 @@ Sectors/zones for combat, ship **hulls** (corvette → frigate → destroyer →
 
 ### Technical gotchas (do NOT repeat these mistakes)
 
+- **NO EMOJIS/PICTOGRAPHS in player-facing text (owner rule, 2026-07-16).** No colored emoji (📦🚀🔬…) and no symbol-icons (⚔☠★♥⛨⚠⚡⚙✨❄✦✓…) in any string a player sees — plain text labels instead ("BOSS BOUNTY:", "HP/ATK/DEF", "HAZARD:"). ALLOWED functional typography: `→ ← ↔` (recipe/flow), `▲▼▸▾▶◀` (sort/delta/expand indicators), `✕` (close button), `◆◇` (socket pips), `◈` (shard currency symbol), `₺ × —`. Sim console output (`scripts/sim/*`) is exempt (funnel_report.py parses those markers).
+
 - **`:=` cannot infer from `Variant`.** Iterating a Dictionary (`for x in some_dict:`) gives Variant keys; `var is_x := key == "literal"` fails to parse ("Cannot infer the type of …"). Use explicit `var is_x: bool = (key == "literal")` instead. Same for ternaries between mixed types.
 - **Plain `Label`/`Button` can't embed images in text.** BBCode `[img]` only works in `RichTextLabel` with `bbcode_enabled = true`. Currency icon belongs only in BBCode-capable widgets (research cost label, module sell tooltip). Header HUD uses a separate `TextureRect` node.
 - **Internal `"credits"` currency key MUST NOT be renamed.** Renaming breaks every save + the warp prestige score formula. Only display strings changed.

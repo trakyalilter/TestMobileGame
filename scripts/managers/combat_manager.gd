@@ -1304,7 +1304,7 @@ func get_available_zones() -> Array:
 		if is_hazard_unlocked(hz_id):
 			var hz = hazard_zones[hz_id]
 			var display_data = {
-				"name": "⚠ %s" % hz["name"],
+				"name": "HAZARD: %s" % hz["name"],
 				"desc": hz["desc"],
 				"difficulty": hz.get("zone_difficulty", 3),
 				"is_hazard": true
@@ -1418,7 +1418,7 @@ func set_target_enemy(enemy_id):
 	# fail). Block entry with a clear pointer to the fix.
 	if sm and sm.energy_used > sm.energy_capacity:
 		log_msg("SHIP UNPOWERED: battery capacity %d < power draw %d. Equip more (or higher-tier) Battery modules." % [int(sm.energy_capacity), int(sm.energy_used)])
-		UITheme.show_notification("⚡ SHIP UNPOWERED — equip Battery modules to cover your power draw (%d / %d)." % [int(sm.energy_used), int(sm.energy_capacity)], Color(1.0, 0.45, 0.35))
+		UITheme.show_notification("SHIP UNPOWERED — equip Battery modules to cover your power draw (%d / %d)." % [int(sm.energy_used), int(sm.energy_capacity)], Color(1.0, 0.45, 0.35))
 		return
 
 	if enemy_id and enemy_id in enemy_db:
@@ -2111,7 +2111,7 @@ func _check_phase_transition() -> void:
 		return
 	_current_phase_idx = idx
 	var elem: String = str(phases[idx]).to_upper()
-	combat_events.append({"type": "status", "text": "⚠ PHASE %d — %s-HARDENED" % [idx + 1, elem], "color": Color(0.70, 0.95, 1.0), "side": "enemy"})
+	combat_events.append({"type": "status", "text": "PHASE %d — %s-HARDENED" % [idx + 1, elem], "color": Color(0.70, 0.95, 1.0), "side": "enemy"})
 	log_msg("%s — PHASE %d: only %s armaments breach it now." % [current_enemy.get("name", "Target"), idx + 1, elem.capitalize()])
 
 # v109: P3 boss mechanic — Enrage. When the enemy's HP first crosses below its
@@ -2129,7 +2129,7 @@ func _check_enrage() -> void:
 	if float(enemy_hp) / float(enemy_max_hp) <= thr:
 		_enemy_enraged = true
 		var mult := float(current_enemy.get("enrage_atk_mult", 1.5))
-		combat_events.append({"type": "status", "text": "⚠ ENRAGED — ATK ×%.1f" % mult, "color": Color(1.0, 0.35, 0.20), "side": "enemy"})
+		combat_events.append({"type": "status", "text": "ENRAGED — ATK ×%.1f" % mult, "color": Color(1.0, 0.35, 0.20), "side": "enemy"})
 		log_msg("%s has ENRAGED — incoming damage surging." % current_enemy.get("name", "Target"))
 
 func _execute_enemy_attack():
@@ -3218,7 +3218,7 @@ func _complete_hazard_zone():
 		if reward != "":
 			GameState.resources.add_element(reward, 1)
 			log_msg("FIRST CLEAR REWARD: %s" % reward.replace("_", " ").capitalize())
-			combat_events.append({"type": "loot", "text": "★ FIRST CLEAR REWARD", "color": Color.GOLD, "side": "player"})
+			combat_events.append({"type": "loot", "text": "FIRST CLEAR REWARD", "color": Color.GOLD, "side": "player"})
 	
 	_reset_hazard_state()
 	in_combat = false
@@ -3540,7 +3540,7 @@ func calculate_offline(delta: float):
 	# ledger) and refresh the armory once, not per-drop.
 	if not module_drop_names.is_empty():
 		GameState.shipyard_manager.inventory_updated.emit()
-		notes.append("★ Rare module drops: %s" % [", ".join(PackedStringArray(module_drop_names))])
+		notes.append("Rare module drops: %s" % [", ".join(PackedStringArray(module_drop_names))])
 	# v135a: total modules salvaged offline (regular pool drops persist in the armory).
 	var _mods_now := 0
 	for _mk in GameState.shipyard_manager.module_inventory:
@@ -3550,7 +3550,7 @@ func calculate_offline(delta: float):
 		notes.append("Salvaged %d modules while away (check the Armory)." % (_mods_now - _mods_pre))
 	var lost_modules: Array = GameState.shipyard_manager.apply_offline_durability_risk(delta)
 	if not lost_modules.is_empty():
-		notes.append("⚠ Lost to offline wear (durability ≤50%%): %s" % [", ".join(PackedStringArray(lost_modules))])
+		notes.append("Lost to offline wear (durability ≤50%%): %s" % [", ".join(PackedStringArray(lost_modules))])
 
 	# v112: structured offline block (was a formatted string). Liras fold into
 	# `gains` under "credits" so the ledger renders them as one row.

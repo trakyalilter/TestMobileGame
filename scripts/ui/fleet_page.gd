@@ -209,5 +209,5 @@ func _format_cost(hid: String) -> String:
 		var have: float = GameState.resources.get_element_amount(res)
 		var need := float(cost[res])
 		var tag := "%s %s" % [FormatUtils.format_number(need), ElementDB.get_display_name(res)]
-		parts.append(tag if have >= need else "✗ " + tag)
+		parts.append(tag if have >= need else "! " + tag)
 	return "   ".join(parts)

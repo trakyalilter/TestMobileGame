@@ -82,6 +82,10 @@ func setup(p_aid: String, p_data: Dictionary, p_manager, p_parent):
 	_mastery_left_lbl.mouse_exited.connect(_on_mastery_hover_exit)
 	tree_exiting.connect(_free_mastery_info_card)
 
+	# v137: click a loot material name → deep-link to its Atlas page.
+	loot_lbl.mouse_filter = Control.MOUSE_FILTER_STOP
+	loot_lbl.meta_clicked.connect(func(meta): UITheme.request_atlas_from_meta(meta))
+
 func _on_mastery_hover_enter() -> void:
 	if _mastery_info_card and is_instance_valid(_mastery_info_card):
 		return
@@ -141,8 +145,8 @@ func _refresh_mastery():
 	# affordance. RichTextLabel uses default_color (not font_color) for the
 	# baseline tint; the [u] tag inherits that colour for the underline.
 	if level >= 100:
-		_mastery_left_lbl.text = "★ GOLD [u]MASTERY[/u]%s" % bonus_suffix
-		_mastery_right_lbl.text = "LV 100  ✓"
+		_mastery_left_lbl.text = "GOLD [u]MASTERY[/u]%s" % bonus_suffix
+		_mastery_right_lbl.text = "LV 100  MAX"
 		_mastery_left_lbl.add_theme_color_override("default_color", col_gold)
 		_mastery_right_lbl.add_theme_color_override("font_color", col_gold)
 		_mastery_bar.value = 100.0
@@ -152,7 +156,7 @@ func _refresh_mastery():
 		# (+10% duration in one shot). Brighter colour still distinguishes
 		# 50-99 from 1-49 so the leap feels like a state change, not just a
 		# bigger number.
-		_mastery_left_lbl.text = "✦ [u]MASTERY[/u]  LV %d%s" % [level, bonus_suffix]
+		_mastery_left_lbl.text = "[u]MASTERY[/u]  LV %d%s" % [level, bonus_suffix]
 		_mastery_right_lbl.text = "%d / %d  ▸  LV %d" % [in_lvl, needed, next_m]
 		_mastery_left_lbl.add_theme_color_override("default_color", col_bright)
 		_mastery_right_lbl.add_theme_color_override("font_color", col_bright)
@@ -199,7 +203,8 @@ func update_state():
 			var display_name = ElementDB.get_display_name(symbol)
 			var icon_bb = ElementDB.material_icon_bbcode(symbol, 16)
 			# v112: deterministic yield — show the single fixed value.
-			var base_loot = "%s%s: %s" % [icon_bb, display_name, FormatUtils.format_number(float(entry[3]) * eff_mult)]
+			var name_link = "[url=atlasmat:%s]%s[/url]" % [symbol, display_name]
+			var base_loot = "%s%s: %s" % [icon_bb, name_link, FormatUtils.format_number(float(entry[3]) * eff_mult)]
 			if symbol in rates:
 				loot_text += "%s [color=#55ff55](%s/m)[/color]\n" % [base_loot, FormatUtils.format_number(rates[symbol])]
 			else:

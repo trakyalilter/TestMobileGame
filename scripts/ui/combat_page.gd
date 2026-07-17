@@ -375,10 +375,10 @@ func request_fight(eid):
 	var sm = GameState.shipyard_manager
 	if sm:
 		if sm.current_hp <= 0:
-			UITheme.show_notification("⚠ HULL CRITICAL — repair before engaging.", Color(1.0, 0.45, 0.35))
+			UITheme.show_notification("HULL CRITICAL — repair before engaging.", Color(1.0, 0.45, 0.35))
 			return
 		if sm.energy_used > sm.energy_capacity:
-			UITheme.show_notification("⚡ SHIP UNPOWERED — equip Battery modules to cover your power draw (%d / %d)." % [int(sm.energy_used), int(sm.energy_capacity)], Color(1.0, 0.45, 0.35))
+			UITheme.show_notification("SHIP UNPOWERED — equip Battery modules to cover your power draw (%d / %d)." % [int(sm.energy_used), int(sm.energy_capacity)], Color(1.0, 0.45, 0.35))
 			return
 
 	# v111.16: every explicit ENGAGE press is a fresh run from the player's POV,
@@ -479,7 +479,7 @@ func update_ui():
 	if GameState.fleet_manager and GameState.fleet_manager.has_method("get_combat_bonus_pct"):
 		var fb: int = GameState.fleet_manager.get_combat_bonus_pct()
 		if fb > 0:
-			p_stat_lbl.text += " | ⚔ FLEET +%d%%" % fb
+			p_stat_lbl.text += " | FLEET +%d%%" % fb
 	
 	# Title shows just the hull name — combat level + bonus-damage readout
 	# removed from the card header per design (kept off to declutter the title).
@@ -842,7 +842,12 @@ func _build_loot_tile(str_id: String, qty) -> Control:
 		# RARITY_COLORS is a const on shipyard_manager — access directly. (An `in sm`
 		# guard would ALWAYS be false: GDScript's `in` checks properties, not consts.)
 		tint = sm.RARITY_COLORS.get(rarity, Color(0.80, 0.70, 1.0))
-		glyph = "★"
+		# v139: show the module's real icon (slot-type silhouette; weapons split by
+		# damage family) rarity-tinted via modulate — same resolver the Designer
+		# slots use. Text fallback only if the SVG isn't imported yet.
+		icon = UITheme.module_type_icon(str(m_data.get("slot_type", "module")), m_data.get("stats", {}))
+		if icon == null:
+			glyph = "MOD"
 	elif str_id == "credits":
 		# v134h: the Lira currency uses its dedicated gold icon, not a "cred" glyph.
 		icon = load("res://assets/icons/lira.svg")

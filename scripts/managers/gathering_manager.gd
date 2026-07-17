@@ -234,7 +234,7 @@ func gain_mastery_xp(action_id: String, amount: float = MASTERY_XP_PER_COMPLETIO
 	if not GameState.game_settings.get("mastery_intro_seen", false):
 		GameState.game_settings["mastery_intro_seen"] = true
 		UITheme.show_notification(
-			"✦ MASTERY UNLOCKED — Keep using actions for permanent speed bonuses. Hover the mastery bar for the milestone schedule.",
+			"MASTERY UNLOCKED — Keep using actions for permanent speed bonuses. Hover the mastery bar for the milestone schedule.",
 			Color(1.0, 0.84, 0.45)
 		)
 	var prev_level: int = get_mastery_level(action_id)

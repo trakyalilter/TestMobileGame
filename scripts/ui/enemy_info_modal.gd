@@ -54,7 +54,7 @@ func setup(data):
 	if data.get("warp_hardened", false):
 		# Z11+ Warp-Hardened: conventional damage is x0.02; only Cryo works.
 		add_header("Damage Resistances", Color(0.8, 0.8, 0.9))
-		add_item_label("❄ WARP-HARDENED — only Cryo damage works (conventional ×0.02)", Color(0.45, 0.85, 1.0))
+		add_item_label("WARP-HARDENED — only Cryo damage works (conventional ×0.02)", Color(0.45, 0.85, 1.0))
 		_add_resist_label("CRY", rc, Color(0.5, 0.9, 1.0))
 		add_item_label("▶ BEST DAMAGE TYPE: CRYO", Color(0.45, 1.0, 0.55))
 	elif rk != 0.0 or re != 0.0 or rx != 0.0 or rc != 0.0:
@@ -91,7 +91,7 @@ func setup(data):
 	var core_id = data.get("boss_core", "")
 	if core_id != "":
 		var core_name = ElementDB.get_display_name(core_id)
-		add_item_label("★ BOSS DROP: %s" % core_name, Color.GOLD)
+		add_item_label("BOSS DROP: %s" % core_name, Color.GOLD)
 
 
 	# Rare Loot
@@ -116,7 +116,7 @@ func setup(data):
 			var txt = "- %s: %.1f%% (%d-%d)" % [d_name, chance, item[2], item[3]]
 			
 			if is_unique:
-				txt = "✦ " + txt
+				txt = "UNIQUE " + txt
 				add_item_label(txt, Color(1.0, 0.2, 0.8)) # Vivid Magenta
 			else:
 				add_item_label(txt, Color.LIGHT_BLUE)
@@ -149,7 +149,7 @@ func setup(data):
 			
 			# v72.1: Research Prerequisite Check
 			var status = sm.can_equip_module(module_id)
-			var lock_prefix = "🔒 " if not status["can_equip"] else ""
+			var lock_prefix = "[LOCKED] " if not status["can_equip"] else ""
 			var col = Color(0.275, 0.878, 0.627) if status["can_equip"] else Color(0.6, 0.6, 0.6)
 			
 			# Don't show UNIQUE items in subspace signal, they are already in Rare Drops

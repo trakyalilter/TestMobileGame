@@ -146,8 +146,8 @@ func _refresh_mastery():
 	# signals "hoverable" — same affordance as a hyperlink in the research
 	# tree's tooltip pattern.
 	if level >= 100:
-		_mastery_left_lbl.text = "★ GOLD [u]MASTERY[/u]%s" % bonus_suffix
-		_mastery_right_lbl.text = "LV 100  ✓"
+		_mastery_left_lbl.text = "GOLD [u]MASTERY[/u]%s" % bonus_suffix
+		_mastery_right_lbl.text = "LV 100  MAX"
 		_mastery_left_lbl.add_theme_color_override("default_color", col_gold)
 		_mastery_right_lbl.add_theme_color_override("font_color", col_gold)
 		_mastery_bar.value = 100.0
@@ -157,7 +157,7 @@ func _refresh_mastery():
 		# (+10% duration in one shot). Brighter colour still distinguishes
 		# 50-99 from 1-49 so the leap feels like a state change, not just a
 		# bigger number.
-		_mastery_left_lbl.text = "✦ [u]MASTERY[/u]  LV %d%s" % [level, bonus_suffix]
+		_mastery_left_lbl.text = "[u]MASTERY[/u]  LV %d%s" % [level, bonus_suffix]
 		_mastery_right_lbl.text = "%d / %d  ▸  LV %d" % [in_lvl, needed, next_m]
 		_mastery_left_lbl.add_theme_color_override("default_color", col_bright)
 		_mastery_right_lbl.add_theme_color_override("font_color", col_bright)
@@ -209,7 +209,8 @@ func update_state():
 				var avail_qty = GameState.resources.get_element_amount(item)
 				var color = "lime" if avail_qty >= req_qty else "gray"
 				var in_icon = ElementDB.material_icon_bbcode(item, 16)
-				in_str += "%s[color=%s]%s %s[/color]\n" % [in_icon, color, FormatUtils.format_number(req_qty), ElementDB.get_display_name(item)]
+				var in_link = "[url=atlasmat:%s]%s[/url]" % [item, ElementDB.get_display_name(item)]
+				in_str += "%s[color=%s]%s %s[/color]\n" % [in_icon, color, FormatUtils.format_number(req_qty), in_link]
 		in_str += "[/center]"
 		in_lbl.text = in_str
 
@@ -305,6 +306,14 @@ var info_card_scene = preload("res://scenes/ui/info_card.tscn")
 func _ready():
 	out_lbl.meta_hover_started.connect(_on_meta_hover)
 	out_lbl.meta_hover_ended.connect(_on_meta_exit)
+	# v137: click an input/output material name → deep-link to its Atlas page.
+	in_lbl.mouse_filter = Control.MOUSE_FILTER_STOP
+	out_lbl.mouse_filter = Control.MOUSE_FILTER_STOP
+	in_lbl.meta_clicked.connect(func(meta): UITheme.request_atlas_from_meta(meta))
+	out_lbl.meta_clicked.connect(func(meta):
+		_on_meta_exit(meta)   # dismiss the hover info-card before switching pages
+		UITheme.request_atlas_from_meta(meta)
+	)
 
 func _on_meta_hover(meta):
 	if _active_info_card: _active_info_card.queue_free()

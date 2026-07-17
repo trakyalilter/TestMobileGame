@@ -346,7 +346,7 @@ func _update_mastery_readout(count: int) -> void:
 		_mastery_lbl.visible = false
 		return
 	var disp: String = ElementDB.get_display_name(info.get("symbol", ""))
-	_mastery_lbl.text = "⚙ %s Mastery  Lv %d  (+%d%% output)" % [disp, int(info.get("level", 0)), int(round(info.get("bonus_pct", 0.0)))]
+	_mastery_lbl.text = "%s Mastery  Lv %d  (+%d%% output)" % [disp, int(info.get("level", 0)), int(round(info.get("bonus_pct", 0.0)))]
 	_mastery_lbl.visible = true
 
 # v130: install one Boost Card from cargo onto this building type (consumed —
