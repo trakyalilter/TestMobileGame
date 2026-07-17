@@ -449,7 +449,7 @@ func _do_combat(mid: String, zid: String, eid: String) -> Dictionary:
 			if reg != "" and reg != eid:
 				status = "farming %s+ %s gear for %s" % [
 					("rare" if _bar >= 2 else "uncommon"), _enemy_weak_type(eid), eid]
-				return _do_combat_farm(mid, zid, reg, "detour")
+				return _do_combat_farm(mid, zid, reg, "detour", true)
 		# Gear-ready but STILL losing → maybe the HULL is the bottleneck. A real player
 		# figures out to build a bigger ship; the bot works it out ITSELF (NO hand-holding
 		# mission). But ONLY when genuinely UNDER-HULLED — hull tier < the boss's zone —
@@ -467,7 +467,7 @@ func _do_combat(mid: String, zid: String, eid: String) -> Dictionary:
 		var z: Dictionary = actions._best_unlocked_zone()
 		if not z.is_empty() and String(z["enemy"]) != eid:
 			status = "gear-farm after losses to %s" % eid
-			return _do_combat_farm(mid, String(z["zone"]), String(z["enemy"]), "detour")
+			return _do_combat_farm(mid, String(z["zone"]), String(z["enemy"]), "detour", true)
 		return _income("boss-loss backoff %s" % eid, mid, "detour")
 	var prep := _prep_for_fight(mid, eid)
 	if not prep.is_empty():
@@ -548,15 +548,35 @@ func _do_farm_rarity(mid: String, _rarity: int) -> Dictionary:
 	var z: Dictionary = actions._best_unlocked_zone()
 	if z.is_empty():
 		return _blocked(mid, "no unlocked zone to farm")
-	return _do_combat_farm(mid, String(z["zone"]), String(z["enemy"]))
+	return _do_combat_farm(mid, String(z["zone"]), String(z["enemy"]), "direct", true)
 
-func _do_combat_farm(mid: String, zid: String, eid: String, attr: String = "direct") -> Dictionary:
+func _do_combat_farm(mid: String, zid: String, eid: String, attr: String = "direct", gear: bool = false) -> Dictionary:
 	var prep := _prep_for_fight(mid, eid)
 	if not prep.is_empty():
 		return prep
-	_work_zone_board(zid, eid)
+	# v139d: board play + FOLLOW THE CONTRACT — GEAR farms only. Material
+	# zone_farms (Res1/Circuit salvage etc.) must keep their loot-specific
+	# target: the first redirect version hijacked them onto contract enemies
+	# that don't drop the needed material and walled m026 for 55h.
+	if gear:
+		_work_zone_board(zid, eid)
+		# Contracts only ever point at the e3/e4 module-hunters (v139b), so
+		# following one is the same gear farm PLUS the guaranteed Rare claim.
+		var _ct := _active_hunt_target(zid)
+		if _ct != "" and _ct != eid:
+			eid = _ct
 	return {"kind": "combat_farm", "zone": zid, "enemy": eid, "length": 120.0,
 		"attr": attr, "obj": mid, "why": "farm %s @%s" % [eid, zid]}
+
+func _active_hunt_target(zid: String) -> String:
+	var bm = GameState.bounty_manager
+	if bm == null:
+		return ""
+	for c in bm.active_contracts:
+		if String(c.get("zone_id", "")) == zid and not bool(c.get("completed", false)) \
+				and not bool(c.get("is_elite", false)) and not bool(c.get("is_boss_hunt", false)):
+			return String(c.get("target", ""))
+	return ""
 
 # v139c: recursive sell-protection for an acquire chase — the target symbol
 # AND every input down its recipe chain (depth-capped). A real player does not
@@ -592,15 +612,24 @@ func _work_zone_board(zid: String, eid: String) -> void:
 	var have := {}
 	for c in bm.active_contracts:
 		have[String(c.get("target", ""))] = true
+	# v139d: accept ANY plain zone hunt (prefer the enemy already being farmed)
+	# — the farm then FOLLOWS the contract (see _do_combat_farm), which is what
+	# a real player does. Elites spike danger and boss bounties are deliberate
+	# runs; both stay skipped.
+	var pick: Dictionary = {}
 	for c in bm.get_zone_contracts(zid):
-		# The farming bot takes the plain hunt on the enemy it is ALREADY
-		# killing — elites spike danger and boss bounties are deliberate runs.
 		if bool(c.get("is_elite", false)) or bool(c.get("is_boss_hunt", false)):
 			continue
 		var tgt := String(c.get("target", ""))
-		if tgt == eid and not have.has(tgt):
-			bm.accept_contract(String(c.get("id", "")))
-			return
+		if have.has(tgt):
+			continue
+		if tgt == eid:
+			pick = c
+			break
+		if pick.is_empty():
+			pick = c
+	if not pick.is_empty():
+		bm.accept_contract(String(pick.get("id", "")))
 
 # --- Gear-check readiness (v135a) ---------------------------------------------
 # A Zone-N boss is a gear-check: rare+ weak-type weapons + rare+ armor/shield beat
