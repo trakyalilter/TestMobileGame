@@ -2641,3 +2641,5 @@ Restores %d%% %s","%s
 "Switched to build slot %d  —  %d module(s) equipped","Yapı yuvası %d'e geçildi  —  %d modül kuşanılı"
 "Switch to '%s' (slot %d).","'%s' yapısına geç (yuva %d)."
 "Switch to build slot %d.","Yapı yuvası %d'e geç."
+"Smelt Iron","Demir Erit"
+"the target","hedef"
