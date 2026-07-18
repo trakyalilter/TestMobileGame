@@ -492,42 +492,11 @@ func _load_save_summary() -> String:
 	f.close()
 	if not data is Dictionary: return "Save data found"
 
-	# Credits stored as float under resources.currencies.credits
-	var credits: float = 0.0
-	var res_dict = data.get("resources", {})
-	if res_dict is Dictionary:
-		var cur_dict = res_dict.get("currencies", {})
-		if cur_dict is Dictionary:
-			credits = float(cur_dict.get("credits", 0.0))
-
-	# Highest accessible zone from research unlocks (zone_2_access → zone 2)
-	var max_zone: int = 1
-	var research_dict = data.get("research", {})
-	if research_dict is Dictionary:
-		var unlocked = research_dict.get("unlocked_techs", [])
-		if unlocked is Array:
-			for tech in unlocked:
-				if tech is String and tech.begins_with("zone_") and tech.ends_with("_access"):
-					var parts = tech.split("_")
-					if parts.size() >= 2:
-						var n = int(parts[1])
-						if n > max_zone: max_zone = n
-
-	var cr_str: String
-	if credits >= 1_000_000.0:
-		cr_str = tr("%.1fM Liras") % (credits / 1_000_000.0)
-	elif credits >= 1_000.0:
-		cr_str = tr("%.1fK Liras") % (credits / 1_000.0)
-	else:
-		cr_str = tr("%d Liras") % int(credits)
-
-	var summary := tr("Zone %d  ·  %s") % [max_zone, cr_str]
-
+	# v139 (owner request): the save-slot subtitle shows ONLY total play time — the
+	# Zone + Liras it used to also carry were redundant with the in-game header.
+	# format_playtime covers every range (0s → Nd Nh), so no <60s guard is needed.
 	var pt := float(data.get("total_playtime", 0.0))
-	if pt >= 60.0:
-		summary += "  ·  " + tr("%s played") % FormatUtils.format_playtime(pt)
-
-	return summary
+	return tr("%s played") % FormatUtils.format_playtime(pt)
 
 # ─────────────────────────────────────────────
 #  BUTTON HANDLERS
