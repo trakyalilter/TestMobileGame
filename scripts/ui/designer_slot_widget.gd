@@ -944,9 +944,9 @@ func _equip_payload(data: Variant) -> bool:
 						parent_ui.trigger_refresh()
 						return true
 					else:
-						UITheme.show_notification("Failed to insert core.", Color.RED)
+						UITheme.show_notification(tr("Failed to insert core."), Color.RED)
 				else:
-					UITheme.show_notification("No empty sockets available.", Color.RED)
+					UITheme.show_notification(tr("No empty sockets available."), Color.RED)
 		return false
 
 	if manager.equip_module(slot_idx, mid):
@@ -981,7 +981,7 @@ func _socket_armed_core(module_id: String, socket_idx: int) -> void:
 		return
 	var core_id: String = parent_ui.get_armed_mid()
 	if not _is_matrix_core(core_id):
-		UITheme.show_notification("Click a Matrix Core first, then a socket.", Color(1, 0.82, 0.4))
+		UITheme.show_notification(tr("Click a Matrix Core first, then a socket."), Color(1, 0.82, 0.4))
 		return
 	if manager.insert_gem(module_id, socket_idx, core_id):
 		UITheme.trigger_circuit_surge(self)
@@ -991,7 +991,7 @@ func _socket_armed_core(module_id: String, socket_idx: int) -> void:
 		# recreates this widget; queue_free defers, so the call is safe).
 		parent_ui.trigger_refresh()
 	else:
-		UITheme.show_notification("Couldn't socket that core.", Color(1, 0.5, 0.4))
+		UITheme.show_notification(tr("Couldn't socket that core."), Color(1, 0.5, 0.4))
 
 # True if this slot would accept the given module/consumable id (click-equip).
 func can_accept_module(mid: String) -> bool:
@@ -1082,7 +1082,7 @@ func _gui_input(event):
 					UITheme.trigger_ui_thud(self, 1.0)
 					parent_ui.notify_equipped()
 				else:
-					UITheme.show_notification("Can't equip there.", Color(1, 0.5, 0.4))
+					UITheme.show_notification(tr("Can't equip there."), Color(1, 0.5, 0.4))
 				return
 			if slot_type.begins_with("consumable_"):
 				# v111.15: no auto-filter on slot click (disorienting). Equip a
@@ -1100,13 +1100,13 @@ func _gui_input(event):
 func _try_repair():
 	var equipped_id = manager.loadout.get(slot_idx)
 	if not equipped_id or not equipped_id.begins_with("custom_"):
-		UITheme.show_notification("Cannot repair this module", Color.RED)
+		UITheme.show_notification(tr("Cannot repair this module"), Color.RED)
 		return
 		
 	var m_data = manager.modules.get(equipped_id)
 	var cur_dur = m_data.get("durability", 100)
 	if cur_dur >= 100:
-		UITheme.show_notification("Module is at maximum durability", Color.GREEN)
+		UITheme.show_notification(tr("Module is at maximum durability"), Color.GREEN)
 		return
 		
 	var missing = 100 - cur_dur
@@ -1147,11 +1147,11 @@ func _spawn_custom_repair_modal(m_data: Dictionary, cur_dur: int, parts_cost: in
 	var pui = parent_ui
 	var on_ok := func():
 		if mgr.repair_module(s_idx, p_cost):
-			UITheme.show_notification("Module repaired", UITheme.COLORS["positive"])
+			UITheme.show_notification(tr("Module repaired"), UITheme.COLORS["positive"])
 			if is_instance_valid(pui) and pui.has_method("trigger_refresh"):
 				pui.trigger_refresh()
 		else:
-			UITheme.show_notification("Not enough Spare Parts", UITheme.COLORS["negative"])
+			UITheme.show_notification(tr("Not enough Spare Parts"), UITheme.COLORS["negative"])
 
 	UITheme.show_confirm({
 		"title": "Repair Module",

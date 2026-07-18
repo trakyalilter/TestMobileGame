@@ -832,10 +832,10 @@ func _build_card_stats(slot_type: String, stats: Dictionary) -> String:
 		lines.append("DPS: %.1f" % (float(dmg) / interval))
 
 		# v87.0: Damage Type Strong/Weak (Condensed)
-		if stats.get("atk_kinetic", 0) > 0: lines.append("KIN - Strong vs Hull, Weak vs Shield")
-		if stats.get("atk_energy", 0) > 0: lines.append("NRG - Strong vs Shield, Bypasses Armor")
-		if stats.get("atk_explosive", 0) > 0: lines.append("EXP - Bypasses Armor, Slower Fire")
-		if stats.get("atk_cryo", 0) > 0: lines.append("CRY - Breaches Warp-Hardened, Weak vs Conventional")
+		if stats.get("atk_kinetic", 0) > 0: lines.append(tr("KIN - Strong vs Hull, Weak vs Shield"))
+		if stats.get("atk_energy", 0) > 0: lines.append(tr("NRG - Strong vs Shield, Bypasses Armor"))
+		if stats.get("atk_explosive", 0) > 0: lines.append(tr("EXP - Bypasses Armor, Slower Fire"))
+		if stats.get("atk_cryo", 0) > 0: lines.append(tr("CRY - Breaches Warp-Hardened, Weak vs Conventional"))
 
 	# v110: derived power (tier-based) — replaces the stale energy_load stat.
 	var sm = GameState.shipyard_manager
@@ -866,8 +866,8 @@ func _build_card_stats(slot_type: String, stats: Dictionary) -> String:
 
 	if lines.is_empty():
 		if slot_type == "gem":
-			return data.get("desc", "No combat modifiers")
-		return "No combat modifiers"
+			return data.get("desc", tr("No combat modifiers"))
+		return tr("No combat modifiers")
 	return "\n".join(lines)
 
 func _build_ammo_card_stats() -> String:

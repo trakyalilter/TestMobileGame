@@ -755,7 +755,7 @@ func _on_preset_load(idx: int):
 	var result = manager.load_loadout_preset(idx)
 	var empty_now: bool = manager.is_loadout_preset_empty(idx)
 	if empty_now:
-		UITheme.show_notification("Switched to empty build slot %d — equip modules to set it up." % idx, UITheme.COLORS["accent"])
+		UITheme.show_notification(tr("Switched to empty build slot %d — equip modules to set it up.") % idx, UITheme.COLORS["accent"])
 		trigger_refresh()
 		return
 	var msg = "Switched to build slot %d  —  %d module(s) equipped" % [idx, result["loaded"]]
@@ -770,7 +770,7 @@ func _on_scrap_by_rarity(max_rarity: int):
 	var count = manager.count_demolish_candidates_by_rarity(max_rarity)
 	if count <= 0:
 		var name = "Common" if max_rarity == 0 else "Junk"
-		UITheme.show_notification("No %s modules to scrap." % name, UITheme.COLORS["text_dim"])
+		UITheme.show_notification(tr("No %s modules to scrap.") % name, UITheme.COLORS["text_dim"])
 		return
 	# v112: themed modal (was the primitive Window ConfirmationDialog).
 	var plural = "" if count == 1 else "s"
@@ -778,7 +778,7 @@ func _on_scrap_by_rarity(max_rarity: int):
 	body += "[color=#73e88c]You'll receive Liras, Spare Parts, and zone salvage.[/color]"
 	var on_ok := func():
 		var scrapped = manager.bulk_demolish_by_rarity(max_rarity)
-		UITheme.show_notification("Demolished %d module(s)" % scrapped, UITheme.COLORS["warning"])
+		UITheme.show_notification(tr("Demolished %d module(s)") % scrapped, UITheme.COLORS["warning"])
 		trigger_refresh()
 	UITheme.show_confirm({
 		"title": "Bulk Demolish",
@@ -2370,7 +2370,7 @@ func _equip_to_focused_slot(mid: String) -> void:
 				# so the player can keep swapping modules into it rapidly.
 				rebuild_storage()
 			else:
-				UITheme.show_notification("Can't equip there.", UITheme.COLORS["negative"])
+				UITheme.show_notification(tr("Can't equip there."), UITheme.COLORS["negative"])
 			return
 
 # ── v111.14 click-to-equip armed-module state ─────────────────────────
@@ -2413,11 +2413,11 @@ func _disarm_module() -> void:
 func _on_module_pin_toggled(mid: String) -> void:
 	if ModuleCardScript.compare_pin_mid == mid:
 		_clear_compare_pin()
-		UITheme.show_notification("Compare baseline cleared.", UITheme.COLORS.get("text_dim", Color(0.5, 0.64, 0.61)))
+		UITheme.show_notification(tr("Compare baseline cleared."), UITheme.COLORS.get("text_dim", Color(0.5, 0.64, 0.61)))
 		return
 	ModuleCardScript.compare_pin_mid = mid
 	var nm: String = str(manager.modules.get(mid, {}).get("name", mid))
-	UITheme.show_notification("Comparing vs %s — hover a module to see them side by side (Esc clears)." % nm, Color(0.373, 0.878, 0.784))
+	UITheme.show_notification(tr("Comparing vs %s — hover a module to see them side by side (Esc clears).") % nm, Color(0.373, 0.878, 0.784))
 	rebuild_storage()
 
 func _clear_compare_pin() -> void:
@@ -2597,7 +2597,7 @@ func _show_anchor_chooser(module_id: String) -> void:
 	var m: Dictionary = manager.modules.get(module_id, {})
 	var affixes: Dictionary = m.get("affixes", {})
 	if affixes.is_empty():
-		UITheme.show_notification("No affix to anchor (awaken + add affixes first).", UITheme.COLORS["negative"])
+		UITheme.show_notification(tr("No affix to anchor (awaken + add affixes first)."), UITheme.COLORS["negative"])
 		return
 	var layer := CanvasLayer.new()
 	layer.layer = 100
@@ -2647,7 +2647,7 @@ func _show_refit_chooser(module_id: String) -> void:
 		if not (str(aid) in anchored):
 			choices.append(str(aid))
 	if choices.is_empty():
-		UITheme.show_notification("No unlocked affix to refit (all anchored?).", UITheme.COLORS["negative"])
+		UITheme.show_notification(tr("No unlocked affix to refit (all anchored?)."), UITheme.COLORS["negative"])
 		return
 	var layer := CanvasLayer.new()
 	layer.layer = 100

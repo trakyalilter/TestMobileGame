@@ -772,7 +772,7 @@ func _display_material_details(mat_id):
 
 	_make_caption(sources_list, tr("SOURCED FROM"), UITheme.COLORS["positive"])
 	if mat["sources"].is_empty():
-		_add_label(sources_list, "No known sources.", UITheme.COLORS["text_dim"])
+		_add_label(sources_list, tr("No known sources."), UITheme.COLORS["text_dim"])
 	else:
 		# v135: combat sources grouped under their SECTOR (Lunar Orbit > mites,
 		# drones...). Non-combat sources (gather/recipes/buildings) stay flat
@@ -795,7 +795,7 @@ func _display_material_details(mat_id):
 
 	_make_caption(uses_list, tr("CONSUMED BY"), UITheme.COLORS["warning"])
 	if mat["uses"].is_empty():
-		_add_label(uses_list, "Not used anywhere.", UITheme.COLORS["text_dim"])
+		_add_label(uses_list, tr("Not used anywhere."), UITheme.COLORS["text_dim"])
 	else:
 		for use in mat["uses"]:
 			_add_source_row(uses_list, use["type"], "%s (%s)" % [tr(use["name"]), tr(use["rate"])], _get_type_color(use["type"]))

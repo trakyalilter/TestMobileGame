@@ -321,7 +321,7 @@ func _build_comparison_tooltip() -> String:
 	var div = "[color=#1E3B38]──────────────────────────────[/color]\n"
 
 	tt = "" # Reset tt as it was already initialized
-	tt += "[b][color=#%s]%s[/color][/b]\n" % [rarity_color.to_html(), data.get("name", "Unknown Item")]
+	tt += "[b][color=#%s]%s[/color][/b]\n" % [rarity_color.to_html(), tr(data.get("name", "Unknown Item"))]
 	tt += "[font_size=10][color=#7FA39C]%s[/color][/font_size]\n" % [tr(slot_type.capitalize())]
 	tt += div
 	
@@ -449,9 +449,9 @@ func _build_comparison_tooltip() -> String:
 	# 5. FOOTER
 	tt += div
 	if equipped_mid and equipped_mid != mid:
-		tt += "[font_size=9][color=#D7B842]Comparing with: %s[/color][/font_size]" % manager.modules[equipped_mid]["name"]
+		tt += "[font_size=9][color=#D7B842]%s[/color][/font_size]" % (tr("Comparing with: %s") % tr(manager.modules[equipped_mid]["name"]))
 	else:
-		tt += "[font_size=9][color=#7FA39C](Currently equipped module)[/color][/font_size]" if equipped_mid == mid else ""
+		tt += ("[font_size=9][color=#7FA39C]" + tr("(Currently equipped module)") + "[/color][/font_size]") if equipped_mid == mid else ""
 
 	# v83.9: Set Bonus Tooltip Section
 	var sid = data.get("set_id", "")

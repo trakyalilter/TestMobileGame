@@ -32,7 +32,7 @@ func _on_claim_all_pressed():
 	if not manager: return
 	var n = manager.claim_all_completed()
 	if n > 0:
-		UITheme.show_notification("Claimed %d quest reward(s)" % n, Color(1.0, 0.85, 0.30))
+		UITheme.show_notification(tr("Claimed %d quest reward(s)") % n, Color(1.0, 0.85, 0.30))
 
 func _on_reroll_pressed():
 	if manager:

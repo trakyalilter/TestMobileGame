@@ -281,7 +281,7 @@ func update_state():
 	
 	if not has_research:
 		var tech_data = GameState.research_manager.tech_tree.get(req_id, {})
-		var tech_name = tech_data.get("name", "Unknown Tech")
+		var tech_name = tech_data.get("name", tr("Unknown Tech"))
 		# Force strict formatting
 		var lock_msg = tr("RESEARCH: %s") % tr(tech_name)
 		UITheme.apply_locked_overlay(self, data["name"], lock_msg, true, req_id, "infrastructure")
@@ -355,13 +355,13 @@ func _build_block_reason() -> String:
 			have = GameState.resources.get_element_amount(res)
 		if have < need:
 			var nm: String = "Liras" if res == "credits" else ElementDB.get_display_name(res)
-			return "Need %s more %s" % [FormatUtils.format_number(need - have), nm]
+			return tr("Need %s more %s") % [FormatUtils.format_number(need - have), nm]
 	var d: Dictionary = manager.building_db.get(bid, {})
 	if d.get("research_req") and GameState.research_manager and not GameState.research_manager.is_tech_unlocked(d["research_req"]):
-		return "Research required to build this"
+		return tr("Research required to build this")
 	if d.has("max"):
-		return "Maximum reached"
-	return "Cannot build right now"
+		return tr("Maximum reached")
+	return tr("Cannot build right now")
 
 func _update_mastery_readout(count: int) -> void:
 	if not _mastery_lbl: return
