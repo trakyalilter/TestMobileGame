@@ -2571,3 +2571,8 @@ Restores %d%% %s","%s
 "— no surplus to feed —","— beslenecek fazlalık yok —"
 "Paused — enable Offline Combat in Options to keep fighting while away.","Duraklatıldı — uzaktayken savaşmaya devam etmek için Ayarlar'dan Çevrimdışı Savaşı etkinleştir."
 "Save data found","Kayıt verisi bulundu"
+"--- Matrix Cores ---","--- Matris Çekirdekleri ---"
+"Socket: Remove ","Yuva: Kaldır "
+"Socket: [Empty]","Yuva: [Boş]"
+"Drag a consumable here (or click one, then click here)","Bir sarf malzemesini buraya sürükle (veya birine, sonra buraya tıkla)"
+"(EQUIPPED)","(KUŞANILI)"

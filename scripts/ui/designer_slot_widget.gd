@@ -493,7 +493,7 @@ func refresh_state():
 
 		# Make physical sockets in the SocketAnchor
 		if m_data.has("sockets"):
-			option_btn.add_separator("--- Matrix Cores ---")
+			option_btn.add_separator(tr("--- Matrix Cores ---"))
 			# v112: lay the sockets on a parabolic arc (centre highest, nearest
 			# the icon; outer sockets splay down) instead of a flat row, so a
 			# 3-socket module reads as a curved cradle under the icon. h_box is a
@@ -519,11 +519,11 @@ func refresh_state():
 
 				if gem:
 					var gem_name = ElementDB.get_display_name(gem)
-					option_btn.add_item("Socket: Remove " + gem_name, item_idx)
+					option_btn.add_item(tr("Socket: Remove ") + gem_name, item_idx)
 					option_btn.set_item_metadata(item_idx, {"action": "remove_gem", "socket_idx": i})
 					core.set_core(_get_gem_color(gem_name), false, MatrixCoreIcon.tier_from_name(gem))
 				else:
-					option_btn.add_item("Socket: [Empty]", item_idx)
+					option_btn.add_item(tr("Socket: [Empty]"), item_idx)
 					option_btn.set_item_disabled(item_idx, true)
 					core.set_core(Color(0.42, 0.47, 0.58), true)  # hollow empty socket
 
@@ -679,7 +679,7 @@ func _refresh_consumable_state():
 	else:
 		name_lbl.text = ""
 		stats_lbl.text = "--"
-		tooltip_text = "Drag a consumable here (or click one, then click here)"
+		tooltip_text = tr("Drag a consumable here (or click one, then click here)")
 
 	var items = ElementDB.get_elements_in_category("consumables")
 	var idx = 2

@@ -822,7 +822,7 @@ func _build_card_stats(slot_type: String, stats: Dictionary) -> String:
 	if slot_type == "consumable":
 		var heal_pct = int(round(data.get("heal_pct", data.get("stats", {}).get("heal_pct", 0.0)) * 100.0))
 		var target = data.get("consumable_type", "hull").capitalize()
-		return "Restores %d%% %s" % [heal_pct, target]
+		return tr("Restores %d%% %s") % [heal_pct, tr(target.capitalize())]
 
 	var lines: Array[String] = []
 
@@ -1146,7 +1146,7 @@ func _build_comparison_tooltip_bbcode(anchor_select: bool = false, hover_affix: 
 	# compare, where the equipped card and an armory card are otherwise indistinguishable.
 	var eq_tag := ""
 	if _is_equipped(sm, mid):
-		eq_tag = "  [color=#4DD8C0][b](EQUIPPED)[/b][/color]"
+		eq_tag = "  [color=#4DD8C0][b]" + tr("(EQUIPPED)") + "[/b][/color]"
 	tt += "[font_size=10][color=#7FA39C]%s %s[/color]%s[/font_size]\n" % [tr(rarity_label), tr(slot_type.capitalize()), eq_tag]
 
 	var durability = int(data.get("durability", 100))
