@@ -487,10 +487,10 @@ func _load_save_summary() -> String:
 	# stats instead of the generic placeholder.
 	var f = FileAccess.open("user://savegame.json", FileAccess.READ)
 	if not f: f = FileAccess.open("user://savegame.bak", FileAccess.READ)
-	if not f: return "Save data found"
+	if not f: return tr("Save data found")
 	var data = JSON.parse_string(f.get_as_text())
 	f.close()
-	if not data is Dictionary: return "Save data found"
+	if not data is Dictionary: return tr("Save data found")
 
 	# v139 (owner request): the save-slot subtitle shows ONLY total play time — the
 	# Zone + Liras it used to also carry were redundant with the in-game header.

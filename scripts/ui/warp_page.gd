@@ -863,7 +863,7 @@ func _populate_feed_picker():
 			FormatUtils.format_number(w)])
 		_feed_syms.append(sym)
 	if _feed_syms.is_empty():
-		_feed_picker.add_item("— no surplus to feed —")
+		_feed_picker.add_item(tr("— no surplus to feed —"))
 		_feed_picker.disabled = true
 		if _feed_btn: _feed_btn.disabled = true
 	else:

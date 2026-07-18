@@ -132,7 +132,7 @@ func _make_custom_tooltip(_for_text: String) -> Control:
 
 	var ammo_name = ElementDB.get_display_name(active_ammo).to_upper()
 	var tt = "[center][b][font_size=16][color=#aaaaaa]%s[/color][/font_size][/b]\n" % ammo_name
-	tt += "[i][font_size=10][color=#7FA39C]Common Ammo[/color][/font_size][/i][/center]\n"
+	tt += "[i][font_size=10][color=#7FA39C]" + tr("Common Ammo") + "[/color][/font_size][/i][/center]\n"
 	tt += "[color=#1E3B38]──────────────────────────────[/color]\n"
 
 	var bonus = 0.0
@@ -149,7 +149,7 @@ func _make_custom_tooltip(_for_text: String) -> Control:
 			bonus = 30.0
 		elif "T4" in active_ammo:
 			bonus = 60.0
-		type_label = "Kinetic Damage"
+		type_label = tr("Kinetic Damage")
 		color_label = "red"
 	elif active_ammo.begins_with("Cell"):
 		bonus = 5.0
@@ -159,7 +159,7 @@ func _make_custom_tooltip(_for_text: String) -> Control:
 			bonus = 30.0
 		elif "T4" in active_ammo:
 			bonus = 60.0
-		type_label = "Energy Damage"
+		type_label = tr("Energy Damage")
 		color_label = "cyan"
 	elif "Missile" in active_ammo or "Torpedo" in active_ammo:
 		bonus = 10.0
@@ -167,11 +167,11 @@ func _make_custom_tooltip(_for_text: String) -> Control:
 			bonus = 25.0
 		elif "Torpedo" in active_ammo:
 			bonus = 60.0
-		type_label = "Explosive Damage"
+		type_label = tr("Explosive Damage")
 		color_label = "orange"
 
 	if bonus > 0:
-		tt += "[center][font_size=20][b][color=%s]+%.1f[/color][/b][/font_size] [font_size=10][color=#7FA39C]%s Bonus[/color][/font_size][/center]\n" % [color_label, bonus, type_label]
+		tt += "[center][font_size=20][b][color=%s]+%.1f[/color][/b][/font_size] [font_size=10][color=#7FA39C]" + tr("%s Bonus") % type_label + "[/color][/font_size][/center]\n" % [color_label, bonus, type_label]
 		tt += "[color=#1E3B38]──────────────────────────────[/color]\n"
 
 	tt += "[center][font_size=10][color=#7FA39C][Right-click to unequip][/color][/font_size][/center]"

@@ -251,7 +251,7 @@ func _build_loot_inline() -> void:
 		parts.append(_module_drop_label(m_pool))
 
 	lbl.text = tr("[color=#9a7c52]LOOT[/color]  ") + "  ·  ".join(parts) if not parts.is_empty() \
-		else "[color=#9a7c52]LOOT[/color]  —"
+		else tr("[color=#9a7c52]LOOT[/color]  ") + "—"
 	vb.add_child(lbl)
 
 
@@ -339,7 +339,7 @@ func _module_drop_label(pool: Array) -> String:
 	if has_wpn:
 		return "Weapon"
 	if has_shield and has_armor:
-		return "Shield · Armor"
+		return tr("Shield · Armor")
 	if has_shield:
 		return "Shield"
 	if has_armor:

@@ -904,7 +904,7 @@ func _build_ammo_card_stats() -> String:
 
 	if bonus <= 0.0:
 		return "Ammunition"
-	return "+%.1f %s Damage" % [bonus, type_label]
+	return tr("+%.1f %s Damage") % [bonus, tr(type_label)]
 
 func _build_footer_text(slot_type: String, rarity_label: String) -> String:
 	var parts: Array[String] = []
@@ -1133,13 +1133,13 @@ func _build_comparison_tooltip_bbcode(anchor_select: bool = false, hover_affix: 
 	# v127: Hack Stones are crafting currency — show what the stone DOES; the module
 	# boilerplate (rarity / durability / stats) is meaningless for them.
 	if slot_type == "hack_stone":
-		tt += "[font_size=10][color=#7FA39C]HACK CARD · Module Crafting[/color][/font_size]\n"
+		tt += "[font_size=10][color=#7FA39C]" + tr("HACK CARD · Module Crafting") + "[/color][/font_size]\n"
 		tt += div
-		var eff: String = "Applies a crafting effect to a module."
+		var eff: String = tr("Applies a crafting effect to a module.")
 		if sm:
 			eff = str(sm.HACK_STONE_DESC.get(mid, eff))
 		tt += "[font_size=12][color=#CBD5D0]%s[/color][/font_size]\n" % eff
-		tt += "\n[font_size=9][color=#7FA39C]Click to arm, then click a module to apply.[/color][/font_size]"
+		tt += "\n[font_size=9][color=#7FA39C]" + tr("Click to arm, then click a module to apply.") + "[/color][/font_size]"
 		return tt
 
 	# v137: flag the module currently fitted to the ship — essential in a side-by-side

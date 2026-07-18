@@ -198,7 +198,7 @@ func refresh_inventory():
 			el_meta = {
 				"symbol": symbol,
 				"name": ElementDB.get_display_name(symbol),
-				"description": "Material discovered in the field. Properties unknown.",
+				"description": tr("Material discovered in the field. Properties unknown."),
 				"category": "other"
 			}
 			

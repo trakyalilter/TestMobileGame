@@ -322,7 +322,7 @@ func build_material_database():
 					material_db[core_id]["sources"].append({
 						"type": "combat",
 						"name": enemy_name + " (Boss)",
-						"rate": "100% (Guaranteed)",
+						"rate": tr("100% (Guaranteed)"),
 						"zone_name": z_name, "zone_ord": z_ord
 					})
 	
@@ -883,7 +883,7 @@ func _display_enemy_details(eid):
 	if eva > 0:
 		_spec_row(sources_list, "Evasion", str(eva), main_col)
 	var dps = float(atk) / max(0.5, interval)
-	_add_label(sources_list, "Eff. HP %s   ·   DPS %s/s" % [UITheme.format_num(hp + shield), UITheme.format_num(dps)], UITheme.COLORS["text_dim"])
+	_add_label(sources_list, tr("Eff. HP %s   ·   DPS %s/s") % [UITheme.format_num(hp + shield), UITheme.format_num(dps)], UITheme.COLORS["text_dim"])
 
 	# --- DROPS ---
 	_make_caption(uses_list, "DROPS", UITheme.COLORS["text_accent"])

@@ -71,7 +71,7 @@ func debug_preview():
 			"category": "combat", "title": "Combat Sweep", "action": "",
 			"time_sec": 54660, "actions": 0, "xp": 0,
 			"gains": {}, "drains": {}, "status": "standby",
-			"notes": ["Paused — enable Offline Combat in Options to keep fighting while away."],
+			"notes": [tr("Paused — enable Offline Combat in Options to keep fighting while away.")],
 		},
 	]
 	_away_sec = 54660.0

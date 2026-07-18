@@ -258,15 +258,15 @@ func _format_effect(e: Dictionary) -> String:
 			var chain: Array = e.get("stack_chain", [])
 			var stack_str: String = ""
 			if not chain.is_empty():
-				stack_str = "  [color=%s](stacks with %s)[/color]" % [HINT_COL, ", ".join(chain)]
+				stack_str = tr("  [color=%s](stacks with %s)[/color]") % [HINT_COL, ", ".join(chain)]
 			elif bool(e.get("stacks", false)):
-				stack_str = "  [color=%s](stacks)[/color]" % HINT_COL
-			return "+%d%% %s speed%s" % [pct, name, stack_str]
+				stack_str = tr("  [color=%s](stacks)[/color]") % HINT_COL
+			return tr("+%d%% %s speed%s") % [pct, name, stack_str]
 		"chance_drop":
 			var item: String = str(e.get("id", ""))
 			var ctx: String = str(e.get("context", ""))
 			var item_name: String = ElementDB.get_display_name(item) if item != "" else item
-			return "Chance: %s from %s" % [item_name, ctx]
+			return tr("Chance: %s from %s") % [item_name, ctx]
 		"bonus_yield":
 			var pct: int = int(round(float(e.get("bonus", 0.0)) * 100.0))
 			var what: String = str(e.get("what", "yield"))
@@ -285,7 +285,7 @@ func _format_effect(e: Dictionary) -> String:
 		"threshold":
 			var pct: int = int(round(float(e.get("at_pct", 0.0)) * 100.0))
 			var what: String = str(e.get("what", ""))
-			return "Triggers at ≤%d%% %s" % [pct, what]
+			return tr("Triggers at ≤%d%% %s") % [pct, what]
 		_:
 			return str(e)
 
