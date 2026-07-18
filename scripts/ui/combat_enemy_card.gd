@@ -67,7 +67,7 @@ func _build_header() -> void:
 	vb.add_child(hb)
 
 	var name_lbl := Label.new()
-	name_lbl.text = str(data["name"])
+	name_lbl.text = tr(str(data["name"]))
 	name_lbl.add_theme_font_size_override("font_size", 13)
 	name_lbl.add_theme_color_override("font_color", Color(0.894, 0.961, 0.933))
 	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL

@@ -202,8 +202,8 @@ func _generate_gather_quest(min_diff: int, max_diff: int) -> Dictionary:
 	return {
 		"id": _gen_id(),
 		"type": "gather",
-		"title": "Stockpile: %s" % d_name,
-		"desc": "Acquire %d units of %s." % [qty, d_name],
+		"title": tr("Stockpile: %s") % d_name,
+		"desc": tr("Acquire %d units of %s.") % [qty, d_name],
 		"target": mat_id,
 		"target_qty": qty,
 		"current_qty": 0,
@@ -229,8 +229,8 @@ func _generate_supply_quest(min_diff: int, max_diff: int) -> Dictionary:
 	return {
 		"id": _gen_id(),
 		"type": "supply",
-		"title": "Supply Order: %s" % d_name,
-		"desc": "Deliver %d %s to the station. Goods are consumed when you claim." % [qty, d_name],
+		"title": tr("Supply Order: %s") % d_name,
+		"desc": tr("Deliver %d %s to the station. Goods are consumed when you claim.") % [qty, d_name],
 		"target": mat_id,
 		"target_qty": qty,
 		"current_qty": 0,

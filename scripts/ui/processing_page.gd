@@ -137,7 +137,7 @@ func refresh_recipes():
 			var sub_id: String = String(sub)
 			if multi and SUB_DEFS.has(sub_id):
 				var sh = Label.new()
-				sh.text = "[ %s ]" % tr(String(SUB_DEFS[sub_id][0])).to_upper()
+				sh.text = "[ %s ]" % UITheme.tr_upper(tr(String(SUB_DEFS[sub_id][0])))
 				sh.add_theme_font_size_override("font_size", 11)
 				sh.add_theme_color_override("font_color", SUB_DEFS[sub_id][1])
 				page.add_child(sh)

@@ -396,7 +396,7 @@ func _update_sector_header(m: Dictionary) -> void:
 		return
 	var diff := int(m["difficulty"])
 	var heat := _heat(diff)
-	_ro_name.text = str(m["name"]).replace("HAZARD: ", "").to_upper()
+	_ro_name.text = UITheme.tr_upper(tr(str(m["name"]).replace("HAZARD: ", "")))
 	_ro_name.add_theme_color_override("font_color", C_AQUA if str(m["state"]) == "current" else C_TEXT)
 	var band := tr("CALM SPACE") if diff <= 4 else (tr("CONTESTED SPACE") if diff <= 8 else tr("HOSTILE SPACE"))
 	if m.get("is_hazard", false):
@@ -476,7 +476,7 @@ func _show_target_detail(eid: String) -> void:
 	_back_btn.visible = true
 	_tgt_box.visible = true
 	_ro_status.text = ""
-	_tgt_name.text = str(e.get("name", "Hostile"))
+	_tgt_name.text = tr(str(e.get("name", "Hostile")))
 	_tgt_name.add_theme_color_override("font_color", C_CORAL if is_boss else C_TEXT)
 	_tgt_type.text = (tr("SECTOR BOSS · %s DAMAGE") % DMG_TAGS.get(dt, "KIN")) if is_boss else (tr("%s DAMAGE") % DMG_TAGS.get(dt, "KIN"))
 	_tgt_type.add_theme_color_override("font_color", DMG_COLS.get(dt, C_DIM))
@@ -509,7 +509,7 @@ func _show_target_detail(eid: String) -> void:
 
 	_engage_btn.disabled = false
 	_engage_btn.text = tr("ENGAGE")
-	_engage_hint.text = tr("Deploy and attack %s.") % str(e.get("name", "the target"))
+	_engage_hint.text = tr("Deploy and attack %s.") % tr(str(e.get("name", "the target")))
 
 # v131: render the hostile's drop table into the readout. Materials (with qty
 # ranges), rare drops (with odds), boss core / first-clear relic, and the module

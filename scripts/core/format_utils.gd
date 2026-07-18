@@ -61,7 +61,10 @@ const STAT_LABELS = {
 
 static func format_stat_label(key: String) -> String:
 	var key_lower = key.to_lower()
-	return STAT_LABELS.get(key_lower, key.replace("_", " ").to_upper())
+	# Central choke point for every module/ship stat label — translate here so all
+	# tooltip renderers get Turkish without each wrapping tr() at the call site.
+	# Static context (no tr()): go through the TranslationServer singleton directly.
+	return TranslationServer.translate(STAT_LABELS.get(key_lower, key.replace("_", " ").to_upper()))
 
 static func format_stat_value(key: String, val: Variant) -> String:
 	if typeof(val) == TYPE_STRING:

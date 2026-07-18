@@ -617,7 +617,7 @@ func refresh_state():
 		if ezb: ezb.visible = false
 		_apply_base_style()
 		UITheme.attach_rarity_fx(self, 0, Color.WHITE)   # clear any prior shimmer
-		tooltip_text = "Empty %s Slot\nDrag a matching module here (or click a module, then click here)" % slot_type.capitalize()
+		tooltip_text = tr("Empty %s Slot\nDrag a matching module here (or click a module, then click here)") % tr(slot_type.capitalize())
 
 	# Populate Inventory Options
 	var inv = manager.module_inventory
@@ -670,9 +670,9 @@ func _refresh_consumable_state():
 		name_lbl.text = tr("%s (x%d)") % [dname, qty]
 		name_lbl.add_theme_color_override("font_color", Color(0.74, 0.74, 0.86))
 		
-		stats_lbl.text = tr("Restores %d%% %s") % [heal_pct, c_type.capitalize()]
+		stats_lbl.text = tr("Restores %d%% %s") % [heal_pct, tr(c_type.capitalize())]
 		
-		tooltip_text = "%s\nRestores %d%% %s" % [dname, heal_pct, c_type.capitalize()]
+		tooltip_text = tr("%s\nRestores %d%% %s") % [dname, heal_pct, tr(c_type.capitalize())]
 		
 		option_btn.add_item("Unequip", 1)
 		option_btn.set_item_metadata(1, "unequip")
@@ -1241,14 +1241,14 @@ func _build_module_tooltip(m_data: Dictionary) -> String:
 
 	var display_name = _get_clean_name(m_data.get("name", "Item")).to_upper()
 	tt += "[font_size=16][b][color=#%s]%s[/color][/b][/font_size]\n" % [rarity_color_hex, display_name]
-	tt += "[font_size=10][color=#7FA39C]%s %s[/color][/font_size]\n" % [rarity_label, s_type.capitalize()]
+	tt += "[font_size=10][color=#7FA39C]%s %s[/color][/font_size]\n" % [tr(rarity_label), tr(s_type.capitalize())]
 	
 	var durability = int(m_data.get("durability", 100))
 	var dur_col = "#46E0A0"
 	if durability <= 25: dur_col = "#FF6473"
 	elif durability <= 50: dur_col = "#FFC24D"
 	elif durability <= 75: dur_col = "#D7B842"
-	tt += "[font_size=10][color=#7FA39C]Durability:[/color] [color=%s]%d/100[/color][/font_size]\n" % [dur_col, durability]
+	tt += "[font_size=10][color=#7FA39C]%s[/color] [color=%s]%d/100[/color][/font_size]\n" % [tr("Durability:"), dur_col, durability]
 	
 	tt += div
 
@@ -1259,34 +1259,34 @@ func _build_module_tooltip(m_data: Dictionary) -> String:
 		var interval = max(0.01, float(stats.get("atk_interval", 2.5)))
 		var dps = float(dmg) / interval
 		tt += "[font_size=24][b]%.1f DPS[/b][/font_size]\n" % dps
-		tt += "[font_size=9][color=#7FA39C]%s total damage, %.2f hits/s[/color][/font_size]\n" % [UITheme.format_num(dmg), 1.0 / interval]
+		tt += "[font_size=9][color=#7FA39C]" + (tr("%s total damage, %.2f hits/s") % [UITheme.format_num(dmg), 1.0 / interval]) + "[/color][/font_size]\n"
 
 		# v87.0 parity: show the damage type + matchup on the EQUIPPED slot too
 		if stats.get("atk_kinetic", 0) > 0:
-			tt += "[img=15 color=#7088F2]res://assets/icons/modules/weapon_kinetic.svg[/img] [color=#7088F2][b]KINETIC[/b][/color]\n"
-			tt += "[img=11 color=#46E0A0]res://assets/icons/ui/chevron_up.svg[/img] [color=#46E0A0]Strong: Hull (+20%)[/color]\n"
-			tt += "[img=11 color=#FF6473]res://assets/icons/ui/chevron_down.svg[/img] [color=#FF6473]Weak: Shield (-50%)[/color]\n"
+			tt += "[img=15 color=#7088F2]res://assets/icons/modules/weapon_kinetic.svg[/img] [color=#7088F2][b]" + tr("KINETIC") + "[/b][/color]\n"
+			tt += "[img=11 color=#46E0A0]res://assets/icons/ui/chevron_up.svg[/img] [color=#46E0A0]" + tr("Strong: Hull (+20%)") + "[/color]\n"
+			tt += "[img=11 color=#FF6473]res://assets/icons/ui/chevron_down.svg[/img] [color=#FF6473]" + tr("Weak: Shield (-50%)") + "[/color]\n"
 		if stats.get("atk_energy", 0) > 0:
-			tt += "[img=15 color=#5FE0C8]res://assets/icons/modules/weapon_energy.svg[/img] [color=#5FE0C8][b]ENERGY[/b][/color]\n"
-			tt += "[img=11 color=#46E0A0]res://assets/icons/ui/chevron_up.svg[/img] [color=#46E0A0]Strong: Shield (+50%), Armor Bypass[/color]\n"
-			tt += "[img=11 color=#FF6473]res://assets/icons/ui/chevron_down.svg[/img] [color=#FF6473]Weak: Hull (-10%)[/color]\n"
+			tt += "[img=15 color=#5FE0C8]res://assets/icons/modules/weapon_energy.svg[/img] [color=#5FE0C8][b]" + tr("ENERGY") + "[/b][/color]\n"
+			tt += "[img=11 color=#46E0A0]res://assets/icons/ui/chevron_up.svg[/img] [color=#46E0A0]" + tr("Strong: Shield (+50%), Armor Bypass") + "[/color]\n"
+			tt += "[img=11 color=#FF6473]res://assets/icons/ui/chevron_down.svg[/img] [color=#FF6473]" + tr("Weak: Hull (-10%)") + "[/color]\n"
 		if stats.get("atk_explosive", 0) > 0:
-			tt += "[img=15 color=#FFC24D]res://assets/icons/modules/weapon_explosive.svg[/img] [color=#FFC24D][b]EXPLOSIVE[/b][/color]\n"
-			tt += "[img=11 color=#46E0A0]res://assets/icons/ui/chevron_up.svg[/img] [color=#46E0A0]Strong: Armor Bypass (80% pen)[/color]\n"
-			tt += "[img=11 color=#FF6473]res://assets/icons/ui/chevron_down.svg[/img] [color=#FF6473]Weak: Slower fire rate[/color]\n"
+			tt += "[img=15 color=#FFC24D]res://assets/icons/modules/weapon_explosive.svg[/img] [color=#FFC24D][b]" + tr("EXPLOSIVE") + "[/b][/color]\n"
+			tt += "[img=11 color=#46E0A0]res://assets/icons/ui/chevron_up.svg[/img] [color=#46E0A0]" + tr("Strong: Armor Bypass (80% pen)") + "[/color]\n"
+			tt += "[img=11 color=#FF6473]res://assets/icons/ui/chevron_down.svg[/img] [color=#FF6473]" + tr("Weak: Slower fire rate") + "[/color]\n"
 		if stats.get("atk_cryo", 0) > 0:
-			tt += "[img=15 color=#39A6E0]res://assets/icons/modules/weapon_cryo.svg[/img] [color=#39A6E0][b]CRYOGENIC[/b][/color]\n"
-			tt += "[img=11 color=#46E0A0]res://assets/icons/ui/chevron_up.svg[/img] [color=#46E0A0]Breaches Warp-Hardened hulls[/color]\n"
-			tt += "[img=11 color=#46E0A0]res://assets/icons/ui/chevron_up.svg[/img] [color=#46E0A0]Self-charging — no ammo[/color]\n"
-			tt += "[img=11 color=#FF6473]res://assets/icons/ui/chevron_down.svg[/img] [color=#FF6473]Weak: Conventional enemies resist[/color]\n"
+			tt += "[img=15 color=#39A6E0]res://assets/icons/modules/weapon_cryo.svg[/img] [color=#39A6E0][b]" + tr("CRYOGENIC") + "[/b][/color]\n"
+			tt += "[img=11 color=#46E0A0]res://assets/icons/ui/chevron_up.svg[/img] [color=#46E0A0]" + tr("Breaches Warp-Hardened hulls") + "[/color]\n"
+			tt += "[img=11 color=#46E0A0]res://assets/icons/ui/chevron_up.svg[/img] [color=#46E0A0]" + tr("Self-charging — no ammo") + "[/color]\n"
+			tt += "[img=11 color=#FF6473]res://assets/icons/ui/chevron_down.svg[/img] [color=#FF6473]" + tr("Weak: Conventional enemies resist") + "[/color]\n"
 		tt += div
 	elif s_type == "shield":
 		var m_shield = stats.get("max_shield", 0)
-		tt += "[font_size=24][b]%s[/b][/font_size] [font_size=10][color=#7FA39C]Shield Capacity[/color][/font_size]\n" % UITheme.format_num(m_shield)
+		tt += "[font_size=24][b]%s[/b][/font_size] [font_size=10][color=#7FA39C]%s[/color][/font_size]\n" % [UITheme.format_num(m_shield), tr("Shield Capacity")]
 		tt += div
 	elif s_type == "armor":
 		var hp_val = stats.get("hp", 0)
-		tt += "[font_size=24][b]%s[/b][/font_size] [font_size=10][color=#7FA39C]Integrity Reinforcement[/color][/font_size]\n" % UITheme.format_num(hp_val)
+		tt += "[font_size=24][b]%s[/b][/font_size] [font_size=10][color=#7FA39C]%s[/color][/font_size]\n" % [UITheme.format_num(hp_val), tr("Integrity Reinforcement")]
 		tt += div
 
 	# v110: derived power (tier-based) — replaces the stale energy_load stat.
@@ -1294,12 +1294,12 @@ func _build_module_tooltip(m_data: Dictionary) -> String:
 		if s_type in ["weapon", "shield", "armor", "engine", "sensor"]:
 			var draw = manager.get_def_energy_load(m_data)
 			if draw > 0:
-				tt += "[color=#FFC24D]POWER DRAW: %d[/color]\n" % draw
+				tt += "[color=#FFC24D]%s[/color]\n" % (tr("POWER DRAW: %d") % draw)
 				tt += div
 		elif s_type == "battery":
 			var supply = manager.get_def_energy_capacity(m_data)
 			if supply > 0:
-				tt += "[color=#46E0A0]POWER SUPPLY: +%d[/color]\n" % supply
+				tt += "[color=#46E0A0]%s[/color]\n" % (tr("POWER SUPPLY: +%d") % supply)
 				tt += div
 
 	var keys = stats.keys()
@@ -1374,13 +1374,13 @@ func _build_module_tooltip(m_data: Dictionary) -> String:
 				var item_rarity_val = int(m_data.get("rarity", manager.Rarity.COMMON))
 				var icon = ""
 				
-				var desc = cfg["desc"] % [int(val_raw) if (scaling == "flat" or scaling == "linear_tier") else int(val_raw * 100)]
+				var desc = tr(cfg["desc"]) % [int(val_raw) if (scaling == "flat" or scaling == "linear_tier") else int(val_raw * 100)]
 				desc = UITheme.linkify_glossary(desc)   # v137: hoverable jargon terms
 				# v137: match the Armory card — GREATER affixes render gold with the tier
 				# label; lesser affixes stay teal. Previously the equipped slot showed EVERY
 				# affix in the teal "lesser" style, hiding a module's greater affixes once fitted.
 				if aid in ga_list:
-					tt += "[img=13 color=#FFC24D]res://assets/icons/ui/affix_greater.svg[/img] [color=#FFC24D][b]%s[/b][/color]  [color=#FFD98A][font_size=9]GREATER[/font_size][/color]\n" % desc
+					tt += "[img=13 color=#FFC24D]res://assets/icons/ui/affix_greater.svg[/img] [color=#FFC24D][b]%s[/b][/color]  [color=#FFD98A][font_size=9]%s[/font_size][/color]\n" % [desc, tr("GREATER")]
 				else:
 					tt += "[img=11 color=#5FE0C8]res://assets/icons/ui/affix_node.svg[/img] [color=#5FE0C8]%s[/color]\n" % desc
 
@@ -1396,7 +1396,7 @@ func _build_module_tooltip(m_data: Dictionary) -> String:
 				else:
 					tt += "[color=#%s]%s[/color]\n" % [g_hex, g_name]
 			else:
-				tt += "[img=11 color=#7FA39C]res://assets/icons/ui/socket_empty.svg[/img] [color=#7FA39C]Empty Socket[/color]\n"
+				tt += "[img=11 color=#7FA39C]res://assets/icons/ui/socket_empty.svg[/img] [color=#7FA39C]%s[/color]\n" % tr("Empty Socket")
 
 	# v83.9: Set Bonus Tooltip Section
 	var sid = m_data.get("set_id", "")
@@ -1413,8 +1413,8 @@ func _build_module_tooltip(m_data: Dictionary) -> String:
 			var total = set_info["pieces"]
 			var active = count >= total
 			
-			tt += "[b][color=#7088F2]SET: %s[/color][/b]\n" % set_info["name"].to_upper()
-			tt += "[font_size=10][color=#7FA39C]%d / %d pieces equipped[/color][/font_size]\n" % [count, total]
+			tt += "[b][color=#7088F2]%s[/color][/b]\n" % (tr("SET: %s") % UITheme.tr_upper(tr(set_info["name"])))
+			tt += "[font_size=10][color=#7FA39C]%s[/color][/font_size]\n" % (tr("%d / %d pieces equipped") % [count, total])
 			
 			for bonus_key in set_info["bonus"]:
 				var val = set_info["bonus"][bonus_key]

@@ -24,9 +24,12 @@ func setup(data: Dictionary, p_parent, mode: String = "available"):
 	# Reward preview (v139: dead affix reads removed — contract_negotiation /
 	# logistician_edge were never defined in any module affix table, so they
 	# always read 0.0; deliveries no longer generate either)
-	var reward_txt = "Reward: %s CR" % UITheme.format_num(data["reward_credits"])
+	var cr = UITheme.format_num(data["reward_credits"])
+	var reward_txt: String
 	if data.get("reward_module_pool", []).size() > 0:
-		reward_txt += " + Module Drop"
+		reward_txt = tr("Reward: %s CR + Module Drop") % cr
+	else:
+		reward_txt = tr("Reward: %s CR") % cr
 	reward_lbl.text = reward_txt
 
 	# Action button

@@ -147,7 +147,7 @@ func _update_stats_text():
 			if aid in sm.AFFIX_DB:
 				var cfg = sm.AFFIX_DB[aid]
 				var val = int(affixes[aid] * 100)
-				var a_desc = cfg["desc"] % val
+				var a_desc = tr(cfg["desc"]) % val
 				a_txt += "\n[ %s ]\n" % a_desc
 		stats_lbl.text += a_txt
 
@@ -338,23 +338,23 @@ func _build_comparison_tooltip() -> String:
 		var interval = max(0.01, float(my_stats.get("atk_interval", 2.5)))
 		var dps = float(dmg) / interval
 		tt += "[font_size=24][b]%.1f DPS[/b][/font_size]\n" % dps
-		tt += "[font_size=9][color=#7FA39C]%s total damage, %.2f hits/s[/color][/font_size]\n" % [UITheme.format_num(dmg), 1.0 / interval]
+		tt += "[font_size=9][color=#7FA39C]" + (tr("%s total damage, %.2f hits/s") % [UITheme.format_num(dmg), 1.0 / interval]) + "[/color][/font_size]\n"
 		if my_stats.get("atk_kinetic", 0) > 0:
-			tt += "[color=#7088F2][b]KINETIC[/b][/color]  [color=#7FA39C]Strong vs Hull, weak vs Shield[/color]\n"
+			tt += "[color=#7088F2][b]" + tr("KINETIC") + "[/b][/color]  [color=#7FA39C]" + tr("Strong vs Hull, weak vs Shield") + "[/color]\n"
 		if my_stats.get("atk_energy", 0) > 0:
-			tt += "[color=#5FE0C8][b]ENERGY[/b][/color]  [color=#7FA39C]Strong vs Shield, bypasses Armor[/color]\n"
+			tt += "[color=#5FE0C8][b]" + tr("ENERGY") + "[/b][/color]  [color=#7FA39C]" + tr("Strong vs Shield, bypasses Armor") + "[/color]\n"
 		if my_stats.get("atk_explosive", 0) > 0:
-			tt += "[color=#FFC24D][b]EXPLOSIVE[/b][/color]  [color=#7FA39C]Ignores most Armor[/color]\n"
+			tt += "[color=#FFC24D][b]" + tr("EXPLOSIVE") + "[/b][/color]  [color=#7FA39C]" + tr("Ignores most Armor") + "[/color]\n"
 		if my_stats.get("atk_cryo", 0) > 0:
-			tt += "[color=#39A6E0][b]CRYOGENIC[/b][/color]  [color=#7FA39C]Breaches Warp-Hardened, self-charging[/color]\n"
+			tt += "[color=#39A6E0][b]" + tr("CRYOGENIC") + "[/b][/color]  [color=#7FA39C]" + tr("Breaches Warp-Hardened, self-charging") + "[/color]\n"
 		tt += div
 	elif slot_type == "shield":
 		var val = my_stats.get("max_shield", 0)
-		tt += "[font_size=24][b]%s[/b][/font_size] [font_size=10][color=#7FA39C]Shield Capacity[/color][/font_size]\n" % UITheme.format_num(val)
+		tt += "[font_size=24][b]%s[/b][/font_size] [font_size=10][color=#7FA39C]%s[/color][/font_size]\n" % [UITheme.format_num(val), tr("Shield Capacity")]
 		tt += div
 	elif slot_type == "armor":
 		var hp_val = my_stats.get("hp", 0)
-		tt += "[center][font_size=24][b]%s[/b][/font_size] [font_size=10][color=#7FA39C]Integrity Reinforcement[/color][/font_size][/center]\n" % UITheme.format_num(hp_val)
+		tt += "[center][font_size=24][b]%s[/b][/font_size] [font_size=10][color=#7FA39C]%s[/color][/font_size][/center]\n" % [UITheme.format_num(hp_val), tr("Integrity Reinforcement")]
 		tt += "[color=#1E3B38]──────────────────────────────[/color]\n"
 
 	# 3. STAT COMPARISON
@@ -437,7 +437,7 @@ func _build_comparison_tooltip() -> String:
 					val_str = "%d%%" % int(val_raw * 100)
 					range_str = " [color=#7FA39C][font_size=9][%d-%d]%%[/font_size][/color]" % [int(s_range[0] * 100), int(s_range[1] * 100)]
 				
-				var desc = cfg["desc"] % [int(val_raw) if (scaling == "flat" or scaling == "linear_tier") else int(val_raw * 100)]
+				var desc = tr(cfg["desc"]) % [int(val_raw) if (scaling == "flat" or scaling == "linear_tier") else int(val_raw * 100)]
 				
 				if rarity == sm.Rarity.LEGENDARY:
 					tt += "[color=#FFC24D][b]%s[/b][/color]%s\n" % [desc, range_str]
@@ -467,8 +467,8 @@ func _build_comparison_tooltip() -> String:
 			var total = set_info["pieces"]
 			var active = count >= total
 			
-			tt += "[b][color=#7088F2]SET: %s[/color][/b]\n" % set_info["name"].to_upper()
-			tt += "[font_size=10][color=#7FA39C]%d / %d pieces equipped[/color][/font_size]\n" % [count, total]
+			tt += "[b][color=#7088F2]%s[/color][/b]\n" % (tr("SET: %s") % UITheme.tr_upper(tr(set_info["name"])))
+			tt += "[font_size=10][color=#7FA39C]%s[/color][/font_size]\n" % (tr("%d / %d pieces equipped") % [count, total])
 			
 			for bonus_key in set_info["bonus"]:
 				var val = set_info["bonus"][bonus_key]

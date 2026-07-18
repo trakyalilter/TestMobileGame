@@ -396,7 +396,7 @@ func _setup_filter_tabs():
 		if button and button is Button:
 			tab_buttons[filter_id] = button
 			(button as Button).pressed.connect(_on_filter_pressed.bind(filter_id))
-			(button as Button).tooltip_text = FILTER_TOOLTIPS.get(filter_id, "")
+			(button as Button).tooltip_text = tr(FILTER_TOOLTIPS.get(filter_id, ""))
 		elif tab_strip.get_child_count() > 0:
 			# v111.15: dynamically create any tab missing from the .tscn
 			# (matrix, consumables). Duplicates the first tab button for
@@ -407,7 +407,7 @@ func _setup_filter_tabs():
 			tab_strip.add_child(new_btn)
 			tab_buttons[filter_id] = new_btn
 			new_btn.pressed.connect(_on_filter_pressed.bind(filter_id))
-			new_btn.tooltip_text = FILTER_TOOLTIPS.get(filter_id, "")
+			new_btn.tooltip_text = tr(FILTER_TOOLTIPS.get(filter_id, ""))
 	_refresh_tab_labels()
 
 func _setup_bulk_actions():
@@ -2197,7 +2197,7 @@ func _refresh_tab_labels():
 		if not tab_buttons.has(filter_id):
 			continue
 		var button: Button = tab_buttons[filter_id]
-		var label = FILTER_LABELS.get(filter_id, filter_id.to_upper())
+		var label = tr(FILTER_LABELS.get(filter_id, filter_id.to_upper()))
 		var value = int(counts.get(filter_id, 0))
 		button.text = tr("%s %d") % [label, value]
 
@@ -3081,7 +3081,7 @@ class _SetTooltip extends HBoxContainer:
 		s += "[color=#%s]%s[/color]  [color=#7a8190]%d / %d pieces[/color]\n" % [hex, pips, have, total]
 		s += "[color=#2b3140]————————————————————[/color]\n"
 		if is_active:
-			s += "[b][color=#4FE08C]◆ SET BONUS ACTIVE[/color][/b]\n"
+			s += "[b][color=#4FE08C]◆ " + tr("SET BONUS ACTIVE") + "[/color][/b]\n"
 		else:
 			var rem := total - have
 			s += "[b][color=#FFB13D]◇ LOCKED[/color][/b]  [color=#9aa0ad]equip %d more piece%s[/color]\n" % [rem, ("s" if rem > 1 else "")]

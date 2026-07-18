@@ -1147,14 +1147,14 @@ func _build_comparison_tooltip_bbcode(anchor_select: bool = false, hover_affix: 
 	var eq_tag := ""
 	if _is_equipped(sm, mid):
 		eq_tag = "  [color=#4DD8C0][b](EQUIPPED)[/b][/color]"
-	tt += "[font_size=10][color=#7FA39C]%s %s[/color]%s[/font_size]\n" % [rarity_label, slot_type.capitalize(), eq_tag]
+	tt += "[font_size=10][color=#7FA39C]%s %s[/color]%s[/font_size]\n" % [tr(rarity_label), tr(slot_type.capitalize()), eq_tag]
 
 	var durability = int(data.get("durability", 100))
 	var dur_col = "#46E0A0"
 	if durability <= 25: dur_col = "#FF6473"
 	elif durability <= 50: dur_col = "#FFC24D"
 	elif durability <= 75: dur_col = "#D7B842"
-	tt += "[font_size=10][color=#7FA39C]Durability:[/color] [color=%s]%d/100[/color][/font_size]\n" % [dur_col, durability]
+	tt += "[font_size=10][color=#7FA39C]%s[/color] [color=%s]%d/100[/color][/font_size]\n" % [tr("Durability:"), dur_col, durability]
 		
 	tt += div
 
@@ -1164,26 +1164,26 @@ func _build_comparison_tooltip_bbcode(anchor_select: bool = false, hover_affix: 
 		var interval = max(0.01, float(my_stats.get("atk_interval", 2.5)))
 		var dps = float(dmg) / interval
 		tt += "[font_size=24][b]%.1f DPS[/b][/font_size]\n" % dps
-		tt += "[font_size=9][color=#7FA39C]%s total damage, %.2f hits/s[/color][/font_size]\n" % [UITheme.format_num(dmg), 1.0 / interval]
+		tt += "[font_size=9][color=#7FA39C]" + (tr("%s total damage, %.2f hits/s") % [UITheme.format_num(dmg), 1.0 / interval]) + "[/color][/font_size]\n"
 
 		# v87.0: Damage Type Strong/Weak (Rich BBCode)
 		if my_stats.get("atk_kinetic", 0) > 0:
-			tt += "[img=15 color=#7088F2]res://assets/icons/modules/weapon_kinetic.svg[/img] [color=#7088F2][b]KINETIC[/b][/color]\n"
-			tt += "[img=11 color=#46E0A0]res://assets/icons/ui/chevron_up.svg[/img] [color=#46E0A0]Strong: Hull (+20%)[/color]\n"
-			tt += "[img=11 color=#FF6473]res://assets/icons/ui/chevron_down.svg[/img] [color=#FF6473]Weak: Shield (-50%)[/color]\n"
+			tt += "[img=15 color=#7088F2]res://assets/icons/modules/weapon_kinetic.svg[/img] [color=#7088F2][b]" + tr("KINETIC") + "[/b][/color]\n"
+			tt += "[img=11 color=#46E0A0]res://assets/icons/ui/chevron_up.svg[/img] [color=#46E0A0]" + tr("Strong: Hull (+20%)") + "[/color]\n"
+			tt += "[img=11 color=#FF6473]res://assets/icons/ui/chevron_down.svg[/img] [color=#FF6473]" + tr("Weak: Shield (-50%)") + "[/color]\n"
 		if my_stats.get("atk_energy", 0) > 0:
-			tt += "[img=15 color=#5FE0C8]res://assets/icons/modules/weapon_energy.svg[/img] [color=#5FE0C8][b]ENERGY[/b][/color]\n"
-			tt += "[img=11 color=#46E0A0]res://assets/icons/ui/chevron_up.svg[/img] [color=#46E0A0]Strong: Shield (+50%), Armor Bypass[/color]\n"
-			tt += "[img=11 color=#FF6473]res://assets/icons/ui/chevron_down.svg[/img] [color=#FF6473]Weak: Hull (-10%)[/color]\n"
+			tt += "[img=15 color=#5FE0C8]res://assets/icons/modules/weapon_energy.svg[/img] [color=#5FE0C8][b]" + tr("ENERGY") + "[/b][/color]\n"
+			tt += "[img=11 color=#46E0A0]res://assets/icons/ui/chevron_up.svg[/img] [color=#46E0A0]" + tr("Strong: Shield (+50%), Armor Bypass") + "[/color]\n"
+			tt += "[img=11 color=#FF6473]res://assets/icons/ui/chevron_down.svg[/img] [color=#FF6473]" + tr("Weak: Hull (-10%)") + "[/color]\n"
 		if my_stats.get("atk_explosive", 0) > 0:
-			tt += "[img=15 color=#FFC24D]res://assets/icons/modules/weapon_explosive.svg[/img] [color=#FFC24D][b]EXPLOSIVE[/b][/color]\n"
-			tt += "[img=11 color=#46E0A0]res://assets/icons/ui/chevron_up.svg[/img] [color=#46E0A0]Strong: Armor Bypass (80% pen)[/color]\n"
-			tt += "[img=11 color=#FF6473]res://assets/icons/ui/chevron_down.svg[/img] [color=#FF6473]Weak: Slower fire rate[/color]\n"
+			tt += "[img=15 color=#FFC24D]res://assets/icons/modules/weapon_explosive.svg[/img] [color=#FFC24D][b]" + tr("EXPLOSIVE") + "[/b][/color]\n"
+			tt += "[img=11 color=#46E0A0]res://assets/icons/ui/chevron_up.svg[/img] [color=#46E0A0]" + tr("Strong: Armor Bypass (80% pen)") + "[/color]\n"
+			tt += "[img=11 color=#FF6473]res://assets/icons/ui/chevron_down.svg[/img] [color=#FF6473]" + tr("Weak: Slower fire rate") + "[/color]\n"
 		if my_stats.get("atk_cryo", 0) > 0:
-			tt += "[img=15 color=#39A6E0]res://assets/icons/modules/weapon_cryo.svg[/img] [color=#39A6E0][b]CRYOGENIC[/b][/color]\n"
-			tt += "[img=11 color=#46E0A0]res://assets/icons/ui/chevron_up.svg[/img] [color=#46E0A0]Breaches Warp-Hardened hulls[/color]\n"
-			tt += "[img=11 color=#46E0A0]res://assets/icons/ui/chevron_up.svg[/img] [color=#46E0A0]Self-charging — no ammo[/color]\n"
-			tt += "[img=11 color=#FF6473]res://assets/icons/ui/chevron_down.svg[/img] [color=#FF6473]Weak: Conventional enemies resist[/color]\n"
+			tt += "[img=15 color=#39A6E0]res://assets/icons/modules/weapon_cryo.svg[/img] [color=#39A6E0][b]" + tr("CRYOGENIC") + "[/b][/color]\n"
+			tt += "[img=11 color=#46E0A0]res://assets/icons/ui/chevron_up.svg[/img] [color=#46E0A0]" + tr("Breaches Warp-Hardened hulls") + "[/color]\n"
+			tt += "[img=11 color=#46E0A0]res://assets/icons/ui/chevron_up.svg[/img] [color=#46E0A0]" + tr("Self-charging — no ammo") + "[/color]\n"
+			tt += "[img=11 color=#FF6473]res://assets/icons/ui/chevron_down.svg[/img] [color=#FF6473]" + tr("Weak: Conventional enemies resist") + "[/color]\n"
 
 		tt += div
 	elif slot_type == "ammo":
@@ -1192,15 +1192,15 @@ func _build_comparison_tooltip_bbcode(anchor_select: bool = false, hover_affix: 
 	elif slot_type == "consumable":
 		var heal_pct = int(round(data.get("heal_pct", data.get("stats", {}).get("heal_pct", 0.0)) * 100.0))
 		var target = data.get("consumable_type", "hull")
-		tt += "[font_size=16][b]Restores %d%% %s[/b][/font_size]\n" % [heal_pct, target.capitalize()]
+		tt += "[font_size=16][b]%s[/b][/font_size]\n" % (tr("Restores %d%% %s") % [heal_pct, tr(target.capitalize())])
 		tt += div
 	elif slot_type == "shield":
 		var val = my_stats.get("max_shield", 0)
-		tt += "[font_size=24][b]%s[/b][/font_size] [font_size=10][color=#7FA39C]Shield Capacity[/color][/font_size]\n" % UITheme.format_num(val)
+		tt += "[font_size=24][b]%s[/b][/font_size] [font_size=10][color=#7FA39C]%s[/color][/font_size]\n" % [UITheme.format_num(val), tr("Shield Capacity")]
 		tt += div
 	elif slot_type == "armor":
 		var val = my_stats.get("hp", 0)
-		tt += "[font_size=24][b]%s[/b][/font_size] [font_size=10][color=#7FA39C]Integrity Reinforcement[/color][/font_size]\n" % UITheme.format_num(val)
+		tt += "[font_size=24][b]%s[/b][/font_size] [font_size=10][color=#7FA39C]%s[/color][/font_size]\n" % [UITheme.format_num(val), tr("Integrity Reinforcement")]
 		tt += div
 	elif slot_type == "gem":
 		var gem_desc = data.get("desc", ElementDB.get_element_description(mid))
@@ -1221,12 +1221,12 @@ func _build_comparison_tooltip_bbcode(anchor_select: bool = false, hover_affix: 
 		if slot_type in ["weapon", "shield", "armor", "engine", "sensor"]:
 			var draw = sm.get_module_energy_load(mid)
 			if draw > 0:
-				tt += "[color=#FFC24D]POWER DRAW: %d[/color]\n" % draw
+				tt += "[color=#FFC24D]%s[/color]\n" % (tr("POWER DRAW: %d") % draw)
 				tt += div
 		elif slot_type == "battery":
 			var supply = sm.get_module_energy_capacity(mid)
 			if supply > 0:
-				tt += "[color=#46E0A0]POWER SUPPLY: +%d[/color]\n" % supply
+				tt += "[color=#46E0A0]%s[/color]\n" % (tr("POWER SUPPLY: +%d") % supply)
 				tt += div
 
 	var equipped_mid = ""
@@ -1330,7 +1330,7 @@ func _build_comparison_tooltip_bbcode(anchor_select: bool = false, hover_affix: 
 				else:
 					desc_val = int(val_raw * 100)
 
-				var desc = cfg["desc"] % desc_val
+				var desc = tr(cfg["desc"]) % desc_val
 				# v137: wrap jargon in glossary [url]s for the sticky hover — but NOT in
 				# anchor-select mode, where the whole row is already a [url=affix:*] (no nesting).
 				if not anchor_select:
@@ -1338,7 +1338,7 @@ func _build_comparison_tooltip_bbcode(anchor_select: bool = false, hover_affix: 
 
 				var affix_body := ""
 				if is_ga:
-					affix_body = "[img=13 color=#FFC24D]res://assets/icons/ui/affix_greater.svg[/img] [color=#FFC24D][b]%s[/b][/color]  [color=#FFD98A][font_size=9]GREATER[/font_size][/color]" % desc
+					affix_body = "[img=13 color=#FFC24D]res://assets/icons/ui/affix_greater.svg[/img] [color=#FFC24D][b]%s[/b][/color]  [color=#FFD98A][font_size=9]%s[/font_size][/color]" % [desc, tr("GREATER")]
 				else:
 					affix_body = "[img=11 color=#5FE0C8]res://assets/icons/ui/affix_node.svg[/img] [color=#5FE0C8]%s[/color]" % desc
 				if anchor_select:
@@ -1372,7 +1372,7 @@ func _build_comparison_tooltip_bbcode(anchor_select: bool = false, hover_affix: 
 				else:
 					tt += "[color=#%s]%s[/color]\n" % [g_hex, g_name]
 			else:
-				tt += "[img=11 color=#7FA39C]res://assets/icons/ui/socket_empty.svg[/img] [color=#7FA39C]Empty Socket[/color]\n"
+				tt += "[img=11 color=#7FA39C]res://assets/icons/ui/socket_empty.svg[/img] [color=#7FA39C]%s[/color]\n" % tr("Empty Socket")
 
 	# Provenance: the sector this module dropped from (zone emblem + sector number).
 	var prov_zone := int(data.get("zone", data.get("zone_difficulty", 0)))
@@ -1402,8 +1402,8 @@ func _build_comparison_tooltip_bbcode(anchor_select: bool = false, hover_affix: 
 			var total = set_info["pieces"]
 			var active = count >= total
 			
-			tt += "[b][color=#7088F2]SET: %s[/color][/b]\n" % set_info["name"].to_upper()
-			tt += "[font_size=10][color=#7FA39C]%d / %d pieces equipped[/color][/font_size]\n" % [count, total]
+			tt += "[b][color=#7088F2]%s[/color][/b]\n" % (tr("SET: %s") % UITheme.tr_upper(tr(set_info["name"])))
+			tt += "[font_size=10][color=#7FA39C]%s[/color][/font_size]\n" % (tr("%d / %d pieces equipped") % [count, total])
 			
 			for bonus_key in set_info["bonus"]:
 				var val = set_info["bonus"][bonus_key]

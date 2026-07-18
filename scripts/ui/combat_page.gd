@@ -515,7 +515,7 @@ func update_ui():
 		
 		# v86.0: Show wave counter during hazard gauntlet
 		if manager.hazard_state["active"]:
-			var wave_text = "WAVE %d/%d" % [manager.hazard_state["wave"] + 1, manager.hazard_state["max_waves"]]
+			var wave_text = tr("WAVE %d/%d") % [manager.hazard_state["wave"] + 1, manager.hazard_state["max_waves"]]
 			e_name_lbl.text = "[%s] %s" % [wave_text, tr(enemy["name"])]
 		
 		_update_block_bar(e_hp_bar, float(manager.enemy_hp) / max(1.0, manager.enemy_max_hp))

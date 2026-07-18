@@ -43,7 +43,7 @@ func setup(data):
 		"explosive":
 			dmg_type_label = "EXPLOSIVE"
 			dmg_type_color = Color(1.0, 0.5, 0.3) # Orange-Red
-	add_header("Attacks With: %s" % dmg_type_label, dmg_type_color)
+	add_header(tr("Attacks With: %s") % tr(dmg_type_label), dmg_type_color)
 
 	# v86.0 / v111: Damage Type Resistances (incl. Cryo + Warp-Hardened)
 	var rk = data.get("resist_k", 0.0)
@@ -53,12 +53,12 @@ func setup(data):
 
 	if data.get("warp_hardened", false):
 		# Z11+ Warp-Hardened: conventional damage is x0.02; only Cryo works.
-		add_header("Damage Resistances", Color(0.8, 0.8, 0.9))
-		add_item_label("WARP-HARDENED — only Cryo damage works (conventional ×0.02)", Color(0.45, 0.85, 1.0))
+		add_header(tr("Damage Resistances"), Color(0.8, 0.8, 0.9))
+		add_item_label(tr("WARP-HARDENED — only Cryo damage works (conventional ×0.02)"), Color(0.45, 0.85, 1.0))
 		_add_resist_label("CRY", rc, Color(0.5, 0.9, 1.0))
-		add_item_label("▶ BEST DAMAGE TYPE: CRYO", Color(0.45, 1.0, 0.55))
+		add_item_label(tr("▶ BEST DAMAGE TYPE: %s") % "CRYO", Color(0.45, 1.0, 0.55))
 	elif rk != 0.0 or re != 0.0 or rx != 0.0 or rc != 0.0:
-		add_header("Damage Resistances", Color(0.8, 0.8, 0.9))
+		add_header(tr("Damage Resistances"), Color(0.8, 0.8, 0.9))
 		_add_resist_label("KIN", rk, Color(0.6, 0.8, 1.0))
 		_add_resist_label("NRG", re, Color(1.0, 0.9, 0.3))
 		_add_resist_label("EXP", rx, Color(1.0, 0.5, 0.3))
@@ -77,10 +77,10 @@ func setup(data):
 		if rc != 0.0 and rc < best_val:
 			best_type = "CRYO"
 			best_val = rc
-		add_item_label("▶ BEST DAMAGE TYPE: %s" % best_type, Color(0.45, 1.0, 0.55))
+		add_item_label(tr("▶ BEST DAMAGE TYPE: %s") % best_type, Color(0.45, 1.0, 0.55))
 
 	# Guaranteed Loot Header
-	add_header("Guaranteed Drops", Color.ORANGE)
+	add_header(tr("Guaranteed Drops"), Color.ORANGE)
 	for item in data["loot"]:
 		# format: [name, min, max]
 		var d_name = ElementDB.get_display_name(item[0])
@@ -91,12 +91,12 @@ func setup(data):
 	var core_id = data.get("boss_core", "")
 	if core_id != "":
 		var core_name = ElementDB.get_display_name(core_id)
-		add_item_label("BOSS DROP: %s" % core_name, Color.GOLD)
+		add_item_label(tr("BOSS DROP: %s") % core_name, Color.GOLD)
 
 
 	# Rare Loot
 	if "rare_loot" in data and not data["rare_loot"].is_empty():
-		add_header("Rare Drops", Color.MAGENTA)
+		add_header(tr("Rare Drops"), Color.MAGENTA)
 		for item in data["rare_loot"]:
 			# format: [name, chance, min, max]
 			var sm = GameState.shipyard_manager
@@ -116,7 +116,7 @@ func setup(data):
 			var txt = "- %s: %.1f%% (%d-%d)" % [d_name, chance, item[2], item[3]]
 			
 			if is_unique:
-				txt = "UNIQUE " + txt
+				txt = tr("UNIQUE ") + txt
 				add_item_label(txt, Color(1.0, 0.2, 0.8)) # Vivid Magenta
 			else:
 				add_item_label(txt, Color.LIGHT_BLUE)
@@ -133,14 +133,14 @@ func setup(data):
 		if cm and cm.has_method("get_effective_module_drop_chance"):
 			effective_chance = cm.get_effective_module_drop_chance(data)
 			
-		add_header("Subspace Signal Detected", Color.GOLD)
+		add_header(tr("Subspace Signal Detected"), Color.GOLD)
 		
-		var chance_text = "Chance per kill: %.1f%%" % (effective_chance * 100.0)
+		var chance_text = tr("Chance per kill: %.1f%%") % (effective_chance * 100.0)
 		if abs(effective_chance - base_drop_chance) > 0.001:
-			chance_text = "Chance: %.1f%% (Base: %.1f%%)" % [effective_chance * 100.0, base_drop_chance * 100.0]
+			chance_text = tr("Chance: %.1f%% (Base: %.1f%%)") % [effective_chance * 100.0, base_drop_chance * 100.0]
 			
 		add_item_label(chance_text, Color(1.0, 0.9, 0.4))
-		add_item_label("Contains variants for:", Color(0.7, 0.7, 0.8))
+		add_item_label(tr("Contains variants for:"), Color(0.7, 0.7, 0.8))
 		
 		for module_id in module_pool:
 			var m_data = sm.modules.get(module_id, {}) if sm else {}
@@ -149,14 +149,14 @@ func setup(data):
 			
 			# v72.1: Research Prerequisite Check
 			var status = sm.can_equip_module(module_id)
-			var lock_prefix = "[LOCKED] " if not status["can_equip"] else ""
+			var lock_prefix = tr("[LOCKED] ") if not status["can_equip"] else ""
 			var col = Color(0.275, 0.878, 0.627) if status["can_equip"] else Color(0.6, 0.6, 0.6)
 			
 			# Don't show UNIQUE items in subspace signal, they are already in Rare Drops
 			if m_data.get("rarity") == sm.Rarity.UNIQUE:
 				continue
 				
-			add_item_label("%s» %s [%s]" % [lock_prefix, module_name.to_upper(), slot_type.to_upper()], col)
+			add_item_label("%s» %s [%s]" % [lock_prefix, UITheme.tr_upper(tr(module_name)), UITheme.tr_upper(tr(slot_type.capitalize()))], col)
 
 	visible = true
 
@@ -179,13 +179,13 @@ func _add_resist_label(type_name: String, value: float, type_color: Color):
 	var color = Color.GRAY
 	
 	if value > 0.01:
-		text = "  %s: +%d%% RESIST" % [type_name, int(value * 100)]
+		text = tr("  %s: +%d%% RESIST") % [type_name, int(value * 100)]
 		color = Color(1.0, 0.4, 0.4) # Red = bad for player
 	elif value < -0.01:
-		text = "  %s: %d%% WEAK" % [type_name, int(value * 100)]
+		text = tr("  %s: %d%% WEAK") % [type_name, int(value * 100)]
 		color = Color(0.4, 1.0, 0.4) # Green = good for player
 	else:
-		text = "  %s: NEUTRAL" % type_name
+		text = tr("  %s: NEUTRAL") % type_name
 		color = Color(0.5, 0.5, 0.5)
 	
 	add_item_label(text, color)

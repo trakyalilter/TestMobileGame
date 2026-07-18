@@ -48,7 +48,7 @@ func _create_rack(id: String, title: String, color: Color, parent: Node):
 	parent.add_child(rack_vbox)
 	
 	var header = Label.new()
-	header.text = "[ %s ]" % tr(title).to_upper()
+	header.text = "[ %s ]" % UITheme.tr_upper(tr(title))
 	header.add_theme_font_size_override("font_size", 12)
 	header.add_theme_color_override("font_color", color)
 	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT

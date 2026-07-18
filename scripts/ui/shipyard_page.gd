@@ -266,7 +266,7 @@ func _create_rack(id: String, title: String, color: Color, parent: Node, horizon
 	
 	var header = Label.new()
 	header.name = "Header"   # so the tab system can hide it on single-category tabs
-	header.text = "[ %s ]" % title.to_upper()
+	header.text = "[ %s ]" % UITheme.tr_upper(tr(title))
 	header.add_theme_font_size_override("font_size", 12)
 	header.add_theme_color_override("font_color", color)
 	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT

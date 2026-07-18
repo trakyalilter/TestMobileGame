@@ -371,13 +371,13 @@ func _draw_node(m: Dictionary) -> void:
 
 	# label + state caption
 	var nm := str(m["name"]).replace("HAZARD: ", "")
-	_ctext(Vector2(p.x, p.y + label_y), nm, label_col, 11)
+	_ctext(Vector2(p.x, p.y + label_y), tr(nm), label_col, 11)
 	if st == "current":
-		_ctext(Vector2(p.x, p.y + label_y + 11.0), "YOU ARE HERE", Color(C_AQUA.r, C_AQUA.g, C_AQUA.b, 0.85), 8)
+		_ctext(Vector2(p.x, p.y + label_y + 11.0), tr("YOU ARE HERE"), Color(C_AQUA.r, C_AQUA.g, C_AQUA.b, 0.85), 8)
 	elif m["id"] == selected_id and st == "available":
-		_ctext(Vector2(p.x, p.y + label_y + 11.0), "READY TO WARP", C_TEAL, 8)
+		_ctext(Vector2(p.x, p.y + label_y + 11.0), tr("READY TO WARP"), C_TEAL, 8)
 	elif st == "locked" and m["id"] == selected_id:
-		_ctext(Vector2(p.x, p.y + label_y + 11.0), "LOCKED", C_CORAL, 8)
+		_ctext(Vector2(p.x, p.y + label_y + 11.0), tr("LOCKED"), C_CORAL, 8)
 
 # v138: the SINGULARITY — a black hole, not a system: void core + white-hot photon
 # ring + counter-rotating accretion arcs + a breathing gravitational-lensing halo.
@@ -408,9 +408,9 @@ func _draw_rift_node(m: Dictionary, p: Vector2) -> void:
 	elif m["id"] == hovered_id:
 		draw_arc(p, 22.0, 0.0, TAU, 32, Color(cw.r, cw.g, cw.b, 0.6), 1.3, true)
 	# label + state caption
-	_ctext(Vector2(p.x, p.y + 32.0), "SINGULARITY", Color(0.90, 0.78, 1.0), 11)
+	_ctext(Vector2(p.x, p.y + 32.0), tr("SINGULARITY"), Color(0.90, 0.78, 1.0), 11)
 	if m["id"] == selected_id:
-		_ctext(Vector2(p.x, p.y + 43.0), "ENTER TO WARP", cw, 8)
+		_ctext(Vector2(p.x, p.y + 43.0), tr("ENTER TO WARP"), cw, 8)
 
 func _chevron(p: Vector2) -> void:
 	var pts := PackedVector2Array([
@@ -474,11 +474,11 @@ func _draw_sector() -> void:
 		draw_circle(sp, s["r"], Color(0.81, 0.937, 0.902, a))
 
 	# header + back affordance
-	_ctext(Vector2(size.x * 0.5, 38.0), str(_focus_zone.get("name", "")).replace("HAZARD: ", "").to_upper(), C_TEXT, 16, size.x)
-	_ctext(Vector2(size.x * 0.5, 56.0), "SELECT A TARGET", heat, 9, size.x)
+	_ctext(Vector2(size.x * 0.5, 38.0), UITheme.tr_upper(tr(str(_focus_zone.get("name", "")).replace("HAZARD: ", ""))), C_TEXT, 16, size.x)
+	_ctext(Vector2(size.x * 0.5, 56.0), tr("SELECT A TARGET"), heat, 9, size.x)
 	var bx := Vector2(30.0, 28.0)
 	draw_colored_polygon(PackedVector2Array([bx + Vector2(0, -4), bx + Vector2(0, 4), bx + Vector2(-6, 0)]), C_DIM)
-	_ctext(Vector2(bx.x + 44.0, bx.y + 4.0), "STAR MAP", C_DIM, 10, 90)
+	_ctext(Vector2(bx.x + 44.0, bx.y + 4.0), tr("STAR MAP"), C_DIM, 10, 90)
 
 	for e in _enemies:
 		if e.get("is_boss", false):
@@ -503,8 +503,8 @@ func _draw_cluster(e: Dictionary, reveal: float) -> void:
 		draw_arc(p, 28.0, 0.0, TAU, 32, Color(col.r, col.g, col.b, 0.6), 1.3, true)
 	if e.get("objective", false):
 		_draw_objective_marker(p, 33.0)
-	_ctext(Vector2(p.x, p.y + 44.0), str(e.get("name", "Hostile")), C_TEXT if (sel or hov) else C_DIM, 11)
-	_ctext(Vector2(p.x, p.y + 56.0), "%s · %s HP" % [str(e.get("tag", "")), str(e.get("hp_txt", "?"))], col, 8)
+	_ctext(Vector2(p.x, p.y + 44.0), tr(str(e.get("name", "Hostile"))), C_TEXT if (sel or hov) else C_DIM, 11)
+	_ctext(Vector2(p.x, p.y + 56.0), tr("%s · %s HP") % [str(e.get("tag", "")), str(e.get("hp_txt", "?"))], col, 8)
 
 func _draw_boss(e: Dictionary, reveal: float) -> void:
 	var p := _spx(e["pos"], reveal)
@@ -525,7 +525,7 @@ func _draw_boss(e: Dictionary, reveal: float) -> void:
 		draw_arc(p, 32.0, 0.0, TAU, 36, Color(C_CORAL.r, C_CORAL.g, C_CORAL.b, 0.6), 1.4, true)
 	if e.get("objective", false):
 		_draw_objective_marker(p, 40.0)
-	_ctext(Vector2(p.x, p.y + 52.0), str(e.get("name", "Boss")), Color(1.0, 0.62, 0.67) if (sel or hov) else C_CORAL, 12)
+	_ctext(Vector2(p.x, p.y + 52.0), tr(str(e.get("name", "Boss"))), Color(1.0, 0.62, 0.67) if (sel or hov) else C_CORAL, 12)
 	_ctext(Vector2(p.x, p.y + 65.0), tr("SECTOR BOSS · %s HP") % str(e.get("hp_txt", "?")), Color(C_CORAL.r, C_CORAL.g, C_CORAL.b, 0.85), 8)
 
 func _ship_glyph(p: Vector2, col: Color, s: float) -> void:
@@ -547,7 +547,7 @@ func _draw_objective_marker(p: Vector2, r: float) -> void:
 	draw_arc(p, rr, 0.0, TAU, 44, Color(oc.r, oc.g, oc.b, 0.9), 2.4, true)
 	var my := p.y - (r + 14.0) - 3.0 * sin(_phase * 3.0)
 	draw_colored_polygon(PackedVector2Array([Vector2(p.x - 5.5, my - 6.0), Vector2(p.x + 5.5, my - 6.0), Vector2(p.x, my)]), oc)
-	_ctext(Vector2(p.x, my - 15.0), "OBJECTIVE", oc, 9)
+	_ctext(Vector2(p.x, my - 15.0), tr("OBJECTIVE"), oc, 9)
 
 func _enemy_by_id(eid: String) -> Dictionary:
 	for e in _enemies:
