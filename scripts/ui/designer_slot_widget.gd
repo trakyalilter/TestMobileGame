@@ -364,7 +364,7 @@ func refresh_state():
 	type_lbl.add_theme_color_override("font_color", _get_slot_color(slot_type))
 	
 	option_btn.clear()
-	option_btn.add_item("EQUIP ▼", 0)
+	option_btn.add_item(tr("EQUIP ▼"), 0)
 	option_btn.set_item_metadata(0, null)
 
 	var equipped_id = manager.loadout.get(slot_idx)
@@ -658,7 +658,7 @@ func _refresh_consumable_state():
 	if stale_set_lbl: stale_set_lbl.visible = false
 	
 	option_btn.clear()
-	option_btn.add_item("EQUIP ▼", 0)
+	option_btn.add_item(tr("EQUIP ▼"), 0)
 
 	var equipped_id = manager.get_consumable(c_type)
 	if equipped_id != "":
