@@ -377,7 +377,7 @@ func refresh_state():
 			stats_lbl.text = "?"
 			rarity_badge.visible = false
 			tooltip_text = "Module data not found for ID: %s" % equipped_id
-			option_btn.add_item("Unequip (Invalid)", 1)
+			option_btn.add_item(tr("Unequip (Invalid)"), 1)
 			option_btn.set_item_metadata(1, "unequip")
 			return
 
@@ -602,7 +602,7 @@ func refresh_state():
 			socket_anchor.add_child(h_box)
 			option_btn.add_separator("---------------------")
 		
-		option_btn.add_item("Unequip", option_btn.item_count)
+		option_btn.add_item(tr("Unequip"), option_btn.item_count)
 		option_btn.set_item_metadata(option_btn.item_count - 1, "unequip")
 
 		# Square face: Name → Icon → Sockets → Unequip (size + position only).

@@ -1822,7 +1822,7 @@ func _create_blade(title: String, slot_list: Array, parent: Node, color: Color =
 	margin.add_child(vbox)
 
 	var label = Label.new()
-	label.text = tr("%s") % title.to_upper()
+	label.text = UITheme.tr_upper(tr(title))
 	label.add_theme_font_size_override("font_size", 11)
 	label.add_theme_color_override("font_color", color)
 	vbox.add_child(label)
