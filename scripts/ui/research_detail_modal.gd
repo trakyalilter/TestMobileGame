@@ -153,7 +153,7 @@ func _build_ui() -> void:
 		if tier_val != null:
 			parts.append("T%s" % str(tier_val))
 		if cat != "":
-			parts.append(cat.to_upper())
+			parts.append(UITheme.tr_upper(tr(cat.capitalize())))
 		sub.text = "  ·  ".join(parts)
 		sub.add_theme_font_size_override("font_size", 10)
 		sub.add_theme_color_override("font_color", Color(0.498, 0.639, 0.612))
@@ -233,10 +233,10 @@ func _build_tooltip_text(d: Dictionary) -> String:
 	var req_lines: Array = []
 	var parent_id: String = str(d.get("parent", ""))
 	if parent_id != "" and _manager and _manager.tech_tree.has(parent_id):
-		req_lines.append("• " + str(_manager.tech_tree[parent_id].get("name", parent_id)))
+		req_lines.append("• " + tr(str(_manager.tech_tree[parent_id].get("name", parent_id))))
 	var rt_id: String = str(d.get("req_tech", ""))
 	if rt_id != "" and _manager and _manager.tech_tree.has(rt_id):
-		req_lines.append("• " + str(_manager.tech_tree[rt_id].get("name", rt_id))
+		req_lines.append("• " + tr(str(_manager.tech_tree[rt_id].get("name", rt_id)))
 			+ "  [color=%s]%s[/color]" % [HINT_COL, tr("(cross-branch)")])
 	if not req_lines.is_empty():
 		sections.append("[color=%s]%s[/color]\n" % [HDR_COL, tr("REQUIRES")] + "\n".join(req_lines))
@@ -244,7 +244,7 @@ func _build_tooltip_text(d: Dictionary) -> String:
 	# FLAVOR
 	var flav: String = str(d.get("flavor", ""))
 	if flav != "":
-		sections.append("[color=%s][i]%s[/i][/color]" % [HINT_COL, flav])
+		sections.append("[color=%s][i]%s[/i][/color]" % [HINT_COL, tr(flav)])
 
 	return "\n\n".join(sections)
 
@@ -266,22 +266,22 @@ func _format_effect(e: Dictionary) -> String:
 			var item: String = str(e.get("id", ""))
 			var ctx: String = str(e.get("context", ""))
 			var item_name: String = ElementDB.get_display_name(item) if item != "" else item
-			return tr("Chance: %s from %s") % [item_name, ctx]
+			return tr("Chance: %s from %s") % [item_name, tr(ctx)]
 		"bonus_yield":
 			var pct: int = int(round(float(e.get("bonus", 0.0)) * 100.0))
 			var what: String = str(e.get("what", "yield"))
-			return "+%d%% %s" % [pct, what]
+			return "+%d%% %s" % [pct, tr(what)]
 		"yield_multiplier":
 			var factor: float = float(e.get("factor", 1.0))
 			var what: String = str(e.get("what", "Output"))
 			var factor_str: String = str(int(factor)) if factor == floor(factor) else str(factor)
-			return "×%s %s" % [factor_str, what]
+			return "×%s %s" % [factor_str, tr(what)]
 		"flat_bonus":
 			var amt: float = float(e.get("amount", 0.0))
 			var what: String = str(e.get("what", ""))
 			var sign: String = "+" if amt >= 0 else ""
 			var amt_str: String = str(int(amt)) if amt == floor(amt) else str(amt)
-			return "%s%s %s" % [sign, amt_str, what]
+			return "%s%s %s" % [sign, amt_str, tr(what)]
 		"threshold":
 			var pct: int = int(round(float(e.get("at_pct", 0.0)) * 100.0))
 			var what: String = str(e.get("what", ""))
