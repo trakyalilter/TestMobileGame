@@ -526,7 +526,7 @@ func _draw_boss(e: Dictionary, reveal: float) -> void:
 	if e.get("objective", false):
 		_draw_objective_marker(p, 40.0)
 	_ctext(Vector2(p.x, p.y + 52.0), str(e.get("name", "Boss")), Color(1.0, 0.62, 0.67) if (sel or hov) else C_CORAL, 12)
-	_ctext(Vector2(p.x, p.y + 65.0), "SECTOR BOSS · %s HP" % str(e.get("hp_txt", "?")), Color(C_CORAL.r, C_CORAL.g, C_CORAL.b, 0.85), 8)
+	_ctext(Vector2(p.x, p.y + 65.0), tr("SECTOR BOSS · %s HP") % str(e.get("hp_txt", "?")), Color(C_CORAL.r, C_CORAL.g, C_CORAL.b, 0.85), 8)
 
 func _ship_glyph(p: Vector2, col: Color, s: float) -> void:
 	draw_colored_polygon(PackedVector2Array([p + Vector2(0, -s), p + Vector2(s * 0.8, s * 0.8), p + Vector2(-s * 0.8, s * 0.8)]), col)

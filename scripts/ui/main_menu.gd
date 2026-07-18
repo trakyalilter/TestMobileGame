@@ -515,17 +515,17 @@ func _load_save_summary() -> String:
 
 	var cr_str: String
 	if credits >= 1_000_000.0:
-		cr_str = "%.1fM Liras" % (credits / 1_000_000.0)
+		cr_str = tr("%.1fM Liras") % (credits / 1_000_000.0)
 	elif credits >= 1_000.0:
-		cr_str = "%.1fK Liras" % (credits / 1_000.0)
+		cr_str = tr("%.1fK Liras") % (credits / 1_000.0)
 	else:
-		cr_str = "%d Liras" % int(credits)
+		cr_str = tr("%d Liras") % int(credits)
 
 	var summary := tr("Zone %d  ·  %s") % [max_zone, cr_str]
 
 	var pt := float(data.get("total_playtime", 0.0))
 	if pt >= 60.0:
-		summary += "  ·  %s played" % FormatUtils.format_playtime(pt)
+		summary += "  ·  " + tr("%s played") % FormatUtils.format_playtime(pt)
 
 	return summary
 

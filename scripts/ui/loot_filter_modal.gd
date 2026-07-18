@@ -172,15 +172,15 @@ func _add_section_header(text: String, container: Control):
 
 func _on_rarity_toggled(is_pressed: bool, rarity_val: int):
 	GameState.combat_manager.loot_filter[rarity_val] = is_pressed
-	UITheme.show_notification("Rarity: " + GameState.shipyard_manager.RARITY_LABELS.get(rarity_val, "Common") + (" ON" if is_pressed else " OFF"), Color.AQUA)
+	UITheme.show_notification(tr("Rarity: %s %s") % [tr(GameState.shipyard_manager.RARITY_LABELS.get(rarity_val, "Common")), tr("ON") if is_pressed else tr("OFF")], Color.AQUA)
 
 func _on_type_toggled(is_pressed: bool, type_name: String):
 	GameState.combat_manager.loot_type_filter[type_name] = is_pressed
-	UITheme.show_notification("Type: " + type_name.capitalize() + (" ON" if is_pressed else " OFF"), Color.AQUA)
+	UITheme.show_notification(tr("Type: %s %s") % [tr(type_name.capitalize()), tr("ON") if is_pressed else tr("OFF")], Color.AQUA)
 
 func _on_weapon_type_toggled(is_pressed: bool, wt: String):
 	GameState.combat_manager.loot_weapon_type_filter[wt] = is_pressed
-	UITheme.show_notification("Weapon: " + wt.capitalize() + (" ON" if is_pressed else " OFF"), DMG_COLORS.get(wt, Color.AQUA))
+	UITheme.show_notification(tr("Weapon: %s %s") % [tr(wt.capitalize()), tr("ON") if is_pressed else tr("OFF")], DMG_COLORS.get(wt, Color.AQUA))
 
 func _on_dim_input(event: InputEvent):
 	if event is InputEventMouseButton and event.pressed:

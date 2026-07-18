@@ -20,12 +20,12 @@ func setup(p_quest: Dictionary, p_parent: Node):
 	UITheme.apply_premium_button_style(claim_btn, category)
 	UITheme.apply_progress_bar_style(progress_bar, category)
 
-	title_lbl.text = quest["title"]
-	desc_lbl.text = quest["desc"]
+	title_lbl.text = tr(quest["title"])
+	desc_lbl.text = tr(quest["desc"])
 	tier_lbl.text = tr("T%d") % int(quest.get("difficulty", 1))
 
 	# Reward summary
-	var reward_text = "+%s Liras" % UITheme.format_num(quest["reward_credits"])
+	var reward_text = tr("+%s Liras") % UITheme.format_num(quest["reward_credits"])
 	var mat = quest.get("reward_material", {})
 	if mat and mat.size() > 0:
 		var d_name = ElementDB.get_display_name(mat["id"])

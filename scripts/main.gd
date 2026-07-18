@@ -96,7 +96,7 @@ func _fire_warp_reveal_fanfare() -> void:
 	# alone doesn't read as an instruction. One self-contained notification
 	# beats two-stage messaging.
 	UITheme.show_notification(
-		"⟨ SINGULARITY DETECTED ⟩  The boss's collapse tore a hole in spacetime — it is visible on the Sector Chart. The WARP tab is now online: Exotic Matter, mastery, monitoring.",
+		tr("⟨ SINGULARITY DETECTED ⟩  The boss's collapse tore a hole in spacetime — it is visible on the Sector Chart. The WARP tab is now online: Exotic Matter, mastery, monitoring."),
 		Color(0.85, 0.5, 1.0)
 	)
 	if is_instance_valid(warp_btn):

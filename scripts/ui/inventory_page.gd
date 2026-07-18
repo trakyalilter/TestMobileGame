@@ -587,21 +587,21 @@ func _on_sell_all_btn_pressed():
 
 func perform_sale(symbol, qty):
 	if qty <= 0:
-		UITheme.show_notification("Invalid Qty", Color.RED)
+		UITheme.show_notification(tr("Invalid Qty"), Color.RED)
 		return
 	# v132: never destroy items for nothing — zero-value goods (progression mats,
 	# crafting cards) are craft-only, not sellable.
 	if price_val <= 0:
-		UITheme.show_notification("This item has no market value — it's used in crafting.", Color(1.0, 0.7, 0.3))
+		UITheme.show_notification(tr("This item has no market value — it's used in crafting."), Color(1.0, 0.7, 0.3))
 		return
 
 	var total = qty * price_val
 	if GameState.resources.remove_element(symbol, qty):
 		GameState.resources.add_currency("credits", total)
-		UITheme.show_notification("+%s Liras" % UITheme.format_num(total), Color.GOLD)
+		UITheme.show_notification(tr("+%s Liras") % UITheme.format_num(total), Color.GOLD)
 		# refresh_inventory() # v65.1 Cleanup: Redundant, handled by signals
 	else:
-		UITheme.show_notification("Sale Failed", Color.RED)
+		UITheme.show_notification(tr("Sale Failed"), Color.RED)
 
 
 func _process(delta):

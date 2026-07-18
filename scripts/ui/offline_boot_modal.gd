@@ -138,7 +138,7 @@ func _build_ui():
 	_content.modulate.a = 0.0
 	root_vb.add_child(_content)
 
-	var title := _mk_label("OFFLINE TELEMETRY   //   STATION LOG", 12, CYAN)
+	var title := _mk_label(tr("OFFLINE TELEMETRY   //   STATION LOG"), 12, CYAN)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_content.add_child(title)
 
@@ -162,7 +162,7 @@ func _build_ui():
 	var away_lbl := _mk_mono(_fmt_time(_away_sec), 19, Color.WHITE)
 	away_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	gvb.add_child(away_lbl)
-	var elapsed := _mk_label("ELAPSED", 8, CYAN)
+	var elapsed := _mk_label(tr("ELAPSED"), 8, CYAN)
 	elapsed.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	gvb.add_child(elapsed)
 	mid.add_child(_gauge)
@@ -201,7 +201,7 @@ func _build_ui():
 	_content.add_child(stats)
 
 	# ── cargo ledger (header + SCROLLABLE rows) ──
-	_content.add_child(_mk_label("CARGO LEDGER", 9, CYAN))
+	_content.add_child(_mk_label(tr("CARGO LEDGER"), 9, CYAN))
 
 	var rows := _sorted_ledger(agg["ledger"])
 	var scroll := ScrollContainer.new()
@@ -229,7 +229,7 @@ func _build_ui():
 		_content.add_child(nl)
 
 	# ── footer + contextual continue button ──
-	var footer := _mk_label("ALL SYSTEMS NOMINAL   //   WELCOME BACK, COMMANDER", 9, FAINT)
+	var footer := _mk_label(tr("ALL SYSTEMS NOMINAL   //   WELCOME BACK, COMMANDER"), 9, FAINT)
 	footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_content.add_child(footer)
 
@@ -540,7 +540,7 @@ func _mk_ledger_icon(key: String, drain: bool) -> Control:
 # ════════════════════════════════════════════════════════════════════════════
 func _disp_name(key: String) -> String:
 	if key == "credits":
-		return "Liras"
+		return tr("Liras")
 	# ElementDB is an autoload; call it directly like the rest of the codebase.
 	var n = ElementDB.get_display_name(key)
 	if n != null and str(n) != "":

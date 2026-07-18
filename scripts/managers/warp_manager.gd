@@ -212,7 +212,7 @@ func execute_warp():
 		if GameState.combat_manager:
 			GameState.combat_manager.zones_changed.emit()
 		if UITheme:
-			UITheme.show_notification("SECTOR 11 BREACHED - The Threshold. Conventional fire barely scratches these warp-hardened hulls; Cryo armaments are the key - craft stronger Cryo via Cryogenic Armaments research.", Color(0.55, 0.85, 1.0))
+			UITheme.show_notification(tr("SECTOR 11 BREACHED - The Threshold. Conventional fire barely scratches these warp-hardened hulls; Cryo armaments are the key - craft stronger Cryo via Cryogenic Armaments research."), Color(0.55, 0.85, 1.0))
 
 	# v113 (NG+ P3): clear-gated frontier — if the Threshold Warden (Z11 boss) has
 	# been cleared, THIS Warp reveals Zone 12 "The Rift" (Corrosion tier). Mirrors
@@ -222,7 +222,7 @@ func execute_warp():
 		if GameState.combat_manager:  # v113: refresh the sector list so Z12 shows
 			GameState.combat_manager.zones_changed.emit()
 		if UITheme:
-			UITheme.show_notification("⟨ SECTOR 12 UNLOCKED — THE RIFT ⟩  The Warp tears a corrosive frontier open. The Rift Warden gates it with Cryo then Corrosion phases — craft Corrosion Armaments and swap presets mid-fight.", Color(0.6, 0.9, 0.7))
+			UITheme.show_notification(tr("⟨ SECTOR 12 UNLOCKED — THE RIFT ⟩  The Warp tears a corrosive frontier open. The Rift Warden gates it with Cryo then Corrosion phases — craft Corrosion Armaments and swap presets mid-fight."), Color(0.6, 0.9, 0.7))
 
 	# v137 (NG+ step 2): Corrosion-loop sectors Z13-Z15 reveal the same way — clear the prior
 	# boss (sets its z*_cleared flag in combat_manager), then any Warp opens the next. One
@@ -238,7 +238,7 @@ func execute_warp():
 			if GameState.combat_manager:
 				GameState.combat_manager.zones_changed.emit()
 			if UITheme:
-				UITheme.show_notification(String(_r[2]), Color(0.6, 0.9, 0.7))
+				UITheme.show_notification(tr(String(_r[2])), Color(0.6, 0.9, 0.7))
 
 	# v113 (NG+ P2): Threshold Relics (master keys) persist across Warp. The reset
 	# above wiped the module inventory, so re-grant + re-equip any relic the player

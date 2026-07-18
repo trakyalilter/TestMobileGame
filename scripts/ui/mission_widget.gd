@@ -17,9 +17,12 @@ func setup(p_mid: String, p_data: Dictionary, p_manager, p_parent):
 	manager = p_manager
 	parent_page = p_parent
 	
-	name_lbl.text = tr(data["name"])
+	if data.has("tag") and data["tag"] != "":
+		name_lbl.text = "%s %s" % [tr(data["tag"]), tr(data["name"])]
+	else:
+		name_lbl.text = tr(data["name"])
 	name_lbl.add_theme_color_override("font_color", UITheme.CATEGORY_COLORS["mission"])
-	desc_lbl.text = data["description"]
+	desc_lbl.text = tr(data["description"])
 	progress_bar.max_value = data["target_qty"]
 	
 	UITheme.apply_card_style(self, "mission")
@@ -45,7 +48,7 @@ func update_state():
 	elif data["completed"]:
 		status_lbl.text = tr("READY")
 		status_lbl.modulate = Color(1.0, 0.8, 0.2)
-		claim_btn.text = "Claim %s" % _reward_str()
+		claim_btn.text = tr("Claim %s") % _reward_str()
 		claim_btn.disabled = false
 		progress_bar.visible = true
 		modulate.a = 1.0
@@ -54,7 +57,7 @@ func update_state():
 		status_lbl.modulate = Color(0.2, 0.7, 1.0)
 		# v134: a disabled button reading just "8049 Liras" parsed as a COST to
 		# new players. Name it as the reward.
-		claim_btn.text = "Reward: %s" % _reward_str()
+		claim_btn.text = tr("Reward: %s") % _reward_str()
 		claim_btn.disabled = true
 		progress_bar.visible = true
 		modulate.a = 1.0
@@ -69,12 +72,12 @@ func _reward_str() -> String:
 	if cr > 0.0:
 		if GameState.warp_manager:
 			cr = cr * GameState.warp_manager.get_production_multiplier()
-		parts.append("%s Liras" % FormatUtils.format_number(cr))
+		parts.append(tr("%s Liras") % FormatUtils.format_number(cr))
 	var xp: float = float(data.get("reward_xp", 0))
 	if xp > 0.0:
-		parts.append("+%s XP" % FormatUtils.format_number(xp))
+		parts.append(tr("+%s XP") % FormatUtils.format_number(xp))
 	if parts.is_empty():
-		return "0 Liras"
+		return tr("0 Liras")
 	return "  ".join(parts)
 
 func _on_claim_btn_pressed():

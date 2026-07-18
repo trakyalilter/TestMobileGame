@@ -234,7 +234,7 @@ func gain_mastery_xp(action_id: String, amount: float = MASTERY_XP_PER_COMPLETIO
 	if not GameState.game_settings.get("mastery_intro_seen", false):
 		GameState.game_settings["mastery_intro_seen"] = true
 		UITheme.show_notification(
-			"MASTERY UNLOCKED — Keep using actions for permanent speed bonuses. Hover the mastery bar for the milestone schedule.",
+			tr("MASTERY UNLOCKED — Keep using actions for permanent speed bonuses. Hover the mastery bar for the milestone schedule."),
 			Color(1.0, 0.84, 0.45)
 		)
 	var prev_level: int = get_mastery_level(action_id)
@@ -316,7 +316,7 @@ func _notify_mastery_milestones(action_id: String, prev_level: int, new_level: i
 		if prev_level < m and new_level >= m:
 			var idx: int = MASTERY_MILESTONES.find(m) + 1
 			var pct: int = int(round(MASTERY_DURATION_BONUS_TABLE[idx] * 100.0))
-			var msg: String = "%s — Mastery %d · −%d%% Duration" % [action_name, m, pct]
+			var msg: String = tr("%s — Mastery %d · −%d%% Duration") % [action_name, m, pct]
 			UITheme.show_notification(msg, Color(1.0, 0.84, 0.45))
 
 # Audit v6.0 P1-19: Planetary Operations skill bonus - +1% yield per level

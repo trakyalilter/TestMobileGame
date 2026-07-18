@@ -280,7 +280,7 @@ func claim_quest(quest_id: String) -> bool:
 			q["completed"] = false
 			q["current_qty"] = have
 			quest_updated.emit()
-			UITheme.show_notification("Order needs %d %s — stock ran low." % [q["target_qty"], ElementDB.get_display_name(q["target"])], Color.RED)
+			UITheme.show_notification(tr("Order needs %d %s — stock ran low.") % [q["target_qty"], ElementDB.get_display_name(q["target"])], Color.RED)
 			return false
 		GameState.resources.remove_element(q["target"], q["target_qty"])
 
@@ -292,7 +292,7 @@ func claim_quest(quest_id: String) -> bool:
 	if GameState.research_manager:
 		cred = int(cred * (1.0 + GameState.research_manager.get_efficiency_bonus("credit_reward_mult")))
 	GameState.resources.add_currency("credits", cred)
-	UITheme.show_notification("+%s Liras" % UITheme.format_num(cred), Color(1.0, 0.85, 0.3))
+	UITheme.show_notification(tr("+%s Liras") % UITheme.format_num(cred), Color(1.0, 0.85, 0.3))
 
 	# Award material bonus
 	var mat = q.get("reward_material", {})
@@ -301,7 +301,7 @@ func claim_quest(quest_id: String) -> bool:
 		# silently destroyed at 28 slots while the toast still said it was paid.
 		GameState.resources.add_element(mat["id"], mat["qty"], true)
 		var d_name = ElementDB.get_display_name(mat["id"])
-		UITheme.show_notification("+%d %s" % [mat["qty"], d_name], Color(0.5, 1.0, 0.7))
+		UITheme.show_notification(tr("+%d %s") % [mat["qty"], d_name], Color(0.5, 1.0, 0.7))
 
 	q["claimed"] = true
 	total_completed += 1
@@ -344,7 +344,7 @@ func get_reroll_cost() -> int:
 func reroll_board() -> bool:
 	var cost = get_reroll_cost()
 	if GameState.resources.get_currency("credits") < cost:
-		UITheme.show_notification("Insufficient Liras to reroll!", Color.RED)
+		UITheme.show_notification(tr("Insufficient Liras to reroll!"), Color.RED)
 		return false
 	GameState.resources.remove_currency("credits", cost)
 	_reroll_heat += 1
@@ -355,7 +355,7 @@ func reroll_board() -> bool:
 			kept.append(q)
 	board = kept
 	_fill_board()
-	UITheme.show_notification("Standing Orders Rerolled", Color.CYAN)
+	UITheme.show_notification(tr("Standing Orders Rerolled"), Color.CYAN)
 	return true
 
 # ── Save / Load ──

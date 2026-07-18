@@ -349,18 +349,20 @@ func init_missions():
 		var next_id = entry[8]
 		
 		var m_name = entry[1]
+		var tag = ""
 		if mid.begins_with("m"):
 			if mid in ENDGAME_IDS:
-				m_name = "[ENDGAME] " + m_name
+				tag = "[ENDGAME]"
 			elif mid in CHAPTER_2_IDS:
-				m_name = "[CHAPTER 2] " + m_name
+				tag = "[CHAPTER 2]"
 			else:
-				m_name = "[TUTORIAL] " + m_name
+				tag = "[TUTORIAL]"
 		else:
-			m_name = "[CORE GOAL] " + m_name
+			tag = "[CORE GOAL]"
 		
 		missions[mid] = {
 			"id": mid,
+			"tag": tag,
 			"name": m_name,
 			"description": entry[2],
 			"type": entry[3],

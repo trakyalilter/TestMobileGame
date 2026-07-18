@@ -1489,7 +1489,7 @@ func set_target_enemy(enemy_id):
 	# fail). Block entry with a clear pointer to the fix.
 	if sm and sm.energy_used > sm.energy_capacity:
 		log_msg("SHIP UNPOWERED: battery capacity %d < power draw %d. Equip more (or higher-tier) Battery modules." % [int(sm.energy_capacity), int(sm.energy_used)])
-		UITheme.show_notification("SHIP UNPOWERED — equip Battery modules to cover your power draw (%d / %d)." % [int(sm.energy_used), int(sm.energy_capacity)], Color(1.0, 0.45, 0.35))
+		UITheme.show_notification(tr("SHIP UNPOWERED — equip Battery modules to cover your power draw (%d / %d).") % [int(sm.energy_used), int(sm.energy_capacity)], Color(1.0, 0.45, 0.35))
 		return
 
 	if enemy_id and enemy_id in enemy_db:
@@ -2859,7 +2859,7 @@ func _maybe_open_rift_on_boss(eid: String) -> void:
 	wm.open_rift()
 	if not first and UITheme:
 		UITheme.show_notification(
-			"⟨ GRAVITATIONAL ANOMALY ⟩  The %s's collapse tears a singularity open — visible on the Sector Chart." % str(enemy_db.get(eid, {}).get("name", "boss")),
+			tr("⟨ GRAVITATIONAL ANOMALY ⟩  The %s's collapse tears a singularity open — visible on the Sector Chart.") % str(enemy_db.get(eid, {}).get("name", "boss")),
 			Color(0.78, 0.55, 1.0))
 
 # v138b: boss-kill PROGRESSION side-effects — extracted from win_fight so ONLINE
@@ -2873,7 +2873,7 @@ func _apply_boss_progression(eid: String) -> void:
 	# v109: Z10 boss arms the Threshold reveal on the NEXT Warp.
 	if str(e.get("boss_core", "")) == "Z10_Core" and not GameState.game_settings.get("z10_cleared", false) and not GameState.game_settings.get("z11_unlocked", false):
 		GameState.game_settings["z10_cleared"] = true  # v113: Z11 unlocks on the NEXT Warp (directs the player to prestige)
-		UITheme.show_notification("⟨ SECTOR 11 DETECTED — THE THRESHOLD ⟩  Hostiles are Warp-Hardened, immune to conventional armaments. Execute a Warp Core reset to unlock Cryogenic tech, then research Cryogenic Armaments and craft Cryo weapons in the Shipyard.", Color(0.55, 0.85, 1.0))
+		UITheme.show_notification(tr("⟨ SECTOR 11 DETECTED — THE THRESHOLD ⟩  Hostiles are Warp-Hardened, immune to conventional armaments. Execute a Warp Core reset to unlock Cryogenic tech, then research Cryogenic Armaments and craft Cryo weapons in the Shipyard."), Color(0.55, 0.85, 1.0))
 	# v113 (NG+ P3) / v137: clear->Warp->reveal flag table. Each boss kill sets its
 	# `cleared` flag; the NEXT Warp reads it to reveal the following sector.
 	var _ng_clear := {
@@ -2886,7 +2886,7 @@ func _apply_boss_progression(eid: String) -> void:
 		var _cflag: String = _ng_clear[eid][0]
 		if not GameState.game_settings.get(_cflag, false):
 			GameState.game_settings[_cflag] = true
-			UITheme.show_notification(String(_ng_clear[eid][1]), Color(0.6, 0.9, 0.7))
+			UITheme.show_notification(tr(String(_ng_clear[eid][1])), Color(0.6, 0.9, 0.7))
 	# v113 (NG+ P2): first-clear master-key relic — granted exactly once, flagged
 	# earned (persists across Warp + re-grants), auto-equipped if the slot is empty.
 	var _rdrop: String = str(e.get("relic_drop", ""))
@@ -2898,7 +2898,7 @@ func _apply_boss_progression(eid: String) -> void:
 			if _smr.equipped_relic == "":
 				_smr.equipped_relic = _rdrop
 			var _rname = _smr.modules.get(_rdrop, {}).get("name", "Threshold Relic")
-			UITheme.show_notification("⟨ MASTER KEY — %s ⟩  Auto-equipped to your Relic slot. The Warden's onslaught is now survivable — farm it at will." % _rname, Color(0.9, 0.82, 0.4))
+			UITheme.show_notification(tr("⟨ MASTER KEY — %s ⟩  Auto-equipped to your Relic slot. The Warden's onslaught is now survivable — farm it at will.") % _rname, Color(0.9, 0.82, 0.4))
 	# v138: Z3+ boss kills tear the Singularity open.
 	_maybe_open_rift_on_boss(eid)
 
@@ -3125,7 +3125,7 @@ func _maybe_offline_combat_nudge() -> void:
 	if GameState.game_settings.get("offline_combat_nudge_seen", false):
 		return
 	GameState.game_settings["offline_combat_nudge_seen"] = true
-	UITheme.show_notification("TIP: Enable Offline Combat in Options to keep fighting and earning while you're away.", Color(0.55, 0.85, 1.0))
+	UITheme.show_notification(tr("TIP: Enable Offline Combat in Options to keep fighting and earning while you're away."), Color(0.55, 0.85, 1.0))
 
 # v135a (funnel, dev-only): classify a boss LOSS into ONE reason tag — invisible to
 # the player, aggregated into telemetry.boss_losses for OUR stall analysis. Reads

@@ -1064,7 +1064,7 @@ func _show_demolish_menu():
 
 	var in_storage = sm.module_inventory.get(mid, 0)
 	if in_storage <= 0:
-		UITheme.show_notification("Cannot recycle an equipped module", Color.RED)
+		UITheme.show_notification(tr("Cannot recycle an equipped module"), Color.RED)
 		return
 
 	var price = sm.get_sell_price(mid)
@@ -1081,20 +1081,20 @@ func _show_demolish_menu():
 	var pos_hex: String = UITheme.COLORS["positive"].to_html(false)
 	var dim_hex: String = UITheme.COLORS["text_dim"].to_html(false)
 
-	var body := "[center]Recycle [b]%s[/b] for parts?\n\n" % mname
-	body += "[color=#%s]YOU RECEIVE[/color]\n" % dim_hex
-	body += "[b][color=#%s]%s[/color][/b] %s      [b][color=#%s]%s[/color][/b] Spare Parts\n\n" % [warn_hex, UITheme.format_num(price), UITheme.LIRA_ICON_BB, pos_hex, str(parts)]
-	body += "[color=#%s]This permanently destroys the module.[/color][/center]" % dim_hex
+	var body := tr("[center]Recycle [b]%s[/b] for parts?\n\n") % mname
+	body += tr("[color=#%s]YOU RECEIVE[/color]\n") % dim_hex
+	body += tr("[b][color=#%s]%s[/color][/b] %s      [b][color=#%s]%s[/color][/b] Spare Parts\n\n") % [warn_hex, UITheme.format_num(price), UITheme.LIRA_ICON_BB, pos_hex, str(parts)]
+	body += tr("[color=#%s]This permanently destroys the module.[/color][/center]") % dim_hex
 
 	var on_ok := func():
 		if sm.demolish_module(mid):
-			UITheme.show_notification("Recycled for %s Liras & %s parts" % [UITheme.format_num(price), parts], rarity_color)
+			UITheme.show_notification(tr("Recycled for %s Liras & %s parts") % [UITheme.format_num(price), parts], rarity_color)
 
 	UITheme.show_confirm({
-		"title": "Recycle Module",
+		"title": tr("Recycle Module"),
 		"body": body,
-		"confirm_text": "Recycle",
-		"cancel_text": "Cancel",
+		"confirm_text": tr("Recycle"),
+		"cancel_text": tr("Cancel"),
 		"accent": UITheme.COLORS["negative"],
 		"danger": true,
 		"on_confirm": on_ok,

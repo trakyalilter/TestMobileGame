@@ -76,7 +76,7 @@ func add_element(symbol: String, amount: float, force: bool = false):
 			# re-arms when a slot frees (remove_element).
 			if not _was_full:
 				_was_full = true
-				UITheme.show_notification("Inventory full — new resources are being wasted. Sell or expand storage.", Color(1.0, 0.45, 0.35))
+				UITheme.show_notification(tr("Inventory full — new resources are being wasted. Sell or expand storage."), Color(1.0, 0.45, 0.35))
 			return
 		elements[symbol] = 0.0
 
@@ -87,7 +87,7 @@ func add_element(symbol: String, amount: float, force: bool = false):
 	# just a refused drop) — same one-shot guard.
 	if not _was_full and elements.size() >= get_max_slots():
 		_was_full = true
-		UITheme.show_notification("Inventory full — new resources are being wasted. Sell or expand storage.", Color(1.0, 0.45, 0.35))
+		UITheme.show_notification(tr("Inventory full — new resources are being wasted. Sell or expand storage."), Color(1.0, 0.45, 0.35))
 
 func remove_element(symbol: String, amount: float) -> bool:
 	if not is_finite(amount) or amount <= 0: return false # Safety: Cannot "remove" negative or zero

@@ -147,7 +147,7 @@ func _setup_logistics_rack():
 	
 	var header = Label.new()
 	header.name = "Header"   # so _setup_tabs can hide it (the tab labels the section)
-	header.text = "[ COMMAND & LOGISTICS ]"
+	header.text = tr("[ COMMAND & LOGISTICS ]")
 	header.add_theme_font_size_override("font_size", 12)
 	header.add_theme_color_override("font_color", Color(0.6, 0.4, 1.0, 0.5))
 	logistics_rack.add_child(header)

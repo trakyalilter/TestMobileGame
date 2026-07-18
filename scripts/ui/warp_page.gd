@@ -291,11 +291,11 @@ func _build_command_band():
 	chips.add_theme_constant_override("separation", 8)
 	chips.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	v.add_child(chips)
-	var c_tier = _make_stat_chip("TIER", COLOR_SHARD)
+	var c_tier = _make_stat_chip(tr("TIER"), COLOR_SHARD)
 	_tier_val = c_tier["value"]; chips.add_child(c_tier["panel"])
-	var c_reso = _make_stat_chip("RESONANCE", COLOR_SHARD)
+	var c_reso = _make_stat_chip(tr("RESONANCE"), COLOR_SHARD)
 	_reso_val = c_reso["value"]; chips.add_child(c_reso["panel"])
-	var c_pot = _make_stat_chip("POTENTIAL", COLOR_SHARD)
+	var c_pot = _make_stat_chip(tr("POTENTIAL"), COLOR_SHARD)
 	_gain_big_lbl = c_pot["value"]; chips.add_child(c_pot["panel"])
 
 	# Row C: progress-to-next-shard bar + caption (one row).
@@ -405,7 +405,7 @@ func _build_tree_section():
 	var head_row = HBoxContainer.new()
 	c.add_child(head_row)
 	var title = Label.new()
-	title.text = "[ WARP MASTERY TREE ]"
+	title.text = tr("[ WARP MASTERY TREE ]")
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.add_theme_font_size_override("font_size", 15)
 	title.add_theme_color_override("font_color", COLOR_GOLD)
@@ -421,9 +421,9 @@ func _build_tree_section():
 	tabs.add_theme_constant_override("separation", 8)
 	tabs.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	c.add_child(tabs)
-	tabs.add_child(_make_tab_button("engineering", "ENGINEERING"))
-	tabs.add_child(_make_tab_button("combat", "COMBAT"))
-	tabs.add_child(_make_tab_button("recursion", "RECURSION"))
+	tabs.add_child(_make_tab_button("engineering", tr("ENGINEERING")))
+	tabs.add_child(_make_tab_button("combat", tr("COMBAT")))
+	tabs.add_child(_make_tab_button("recursion", tr("RECURSION")))
 
 	# Contained node area: the PAGE never scrolls. Each branch's nodes lay in a
 	# 2-column grid (so e.g. Recursion's ~13 nodes are ~7 rows, not 13). Only the
@@ -559,7 +559,7 @@ func _build_node_card(node_id: String) -> Control:
 	row.add_child(dot)
 
 	var t = Label.new()
-	t.text = str(node_data.get("name", ""))   # player-facing name only (no internal ENG_1/CMB_2 id)
+	t.text = tr(str(node_data.get("name", "")))   # player-facing name only (no internal ENG_1/CMB_2 id)
 	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	t.add_theme_font_size_override("font_size", 14)
 	t.add_theme_color_override("font_color", Color.WHITE)
@@ -594,7 +594,7 @@ func _build_node_card(node_id: String) -> Control:
 	row.add_child(chip_panel)
 
 	var desc = Label.new()
-	desc.text = str(node_data.get("desc", ""))
+	desc.text = tr(str(node_data.get("desc", "")))
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	desc.add_theme_font_size_override("font_size", 12)
 	desc.add_theme_color_override("font_color", Color(0.72, 0.75, 0.82))
@@ -693,7 +693,7 @@ func _refresh_gains_preview():
 	var bonus := int(_wm.get_charge_bonus_shards(base))
 	var total := base + bonus
 	if total > 0:
-		var extra := ("   (%d + %d Resonance)" % [base, bonus]) if bonus > 0 else ""
+		var extra := (tr("   (%d + %d Resonance)") % [base, bonus]) if bonus > 0 else ""
 		_gains_shards_lbl.text = tr("+%d %s%s") % [total, _shard_label(total), extra]
 		_gains_shards_lbl.add_theme_color_override("font_color", COLOR_KEEPS)
 	else:
@@ -741,7 +741,7 @@ func _update_dynamic():
 		FormatUtils.format_number(score),
 		FormatUtils.format_number(next_thr),
 		gains + 1,
-		"shard" if gains + 1 == 1 else "shards"
+		tr("shard") if gains + 1 == 1 else tr("shards")
 	]
 	# Refresh readiness label too (gains can change live).
 	_refresh_readiness()
@@ -1013,7 +1013,7 @@ func _refresh_node(node_id: String):
 		if avail < cost:
 			_set_chip(w, "Need %d ◈" % (cost - avail), COLOR_LOCKED)
 		else:
-			_set_chip(w, "Locked", COLOR_LOCKED)   # prereq / branch gate
+			_set_chip(w, tr("Locked"), COLOR_LOCKED)   # prereq / branch gate
 
 
 func _shard_label(n: int) -> String:

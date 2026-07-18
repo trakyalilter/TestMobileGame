@@ -1830,7 +1830,7 @@ func apply_locked_overlay(card: Control, item_name: String, message: String, is_
 		lock_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		lock_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		if dim_only:
-			lock_lbl.text = "[ LOCKED ]"
+			lock_lbl.text = tr("[ LOCKED ]")
 			lock_lbl.add_theme_font_size_override("font_size", 11)
 			lock_lbl.add_theme_color_override("font_color", CATEGORY_COLORS["combat"].lightened(0.1))
 			lock_lbl.add_theme_constant_override("outline_size", 3)

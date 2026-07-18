@@ -375,10 +375,10 @@ func request_fight(eid):
 	var sm = GameState.shipyard_manager
 	if sm:
 		if sm.current_hp <= 0:
-			UITheme.show_notification("HULL CRITICAL — repair before engaging.", Color(1.0, 0.45, 0.35))
+			UITheme.show_notification(tr("HULL CRITICAL — repair before engaging."), Color(1.0, 0.45, 0.35))
 			return
 		if sm.energy_used > sm.energy_capacity:
-			UITheme.show_notification("SHIP UNPOWERED — equip Battery modules to cover your power draw (%d / %d)." % [int(sm.energy_used), int(sm.energy_capacity)], Color(1.0, 0.45, 0.35))
+			UITheme.show_notification(tr("SHIP UNPOWERED — equip Battery modules to cover your power draw (%d / %d).") % [int(sm.energy_used), int(sm.energy_capacity)], Color(1.0, 0.45, 0.35))
 			return
 
 	# v111.16: every explicit ENGAGE press is a fresh run from the player's POV,
@@ -811,7 +811,7 @@ func _update_session_loot():
 	if manager.session_loot.is_empty():
 		grid.visible = false
 		loot_lbl.visible = true
-		var tt := "[center][color=#666666][ NO YIELD ][/color][/center]"
+		var tt := "[center][color=#666666]" + tr("[ NO YIELD ]") + "[/color][/center]"
 		if loot_lbl.text != tt:
 			loot_lbl.text = tt
 		return
@@ -847,12 +847,12 @@ func _build_loot_tile(str_id: String, qty) -> Control:
 		# slots use. Text fallback only if the SVG isn't imported yet.
 		icon = UITheme.module_type_icon(str(m_data.get("slot_type", "module")), m_data.get("stats", {}))
 		if icon == null:
-			glyph = "MOD"
+			glyph = tr("MOD")
 	elif str_id == "credits":
 		# v134h: the Lira currency uses its dedicated gold icon, not a "cred" glyph.
 		icon = load("res://assets/icons/lira.svg")
 		tint = Color(1.0, 0.82, 0.30)   # lira gold
-		name_txt = "Liras"
+		name_txt = tr("Liras")
 	else:
 		icon = ElementDB.get_material_icon(str_id)
 		tint = ElementDB.get_material_tint(str_id)
@@ -952,7 +952,7 @@ func _update_ammo_display():
 			
 			var lbl = Label.new()
 			lbl.add_theme_font_size_override("font_size", 8)
-			lbl.text = ammo["name"].to_upper()
+			lbl.text = tr(ammo["name"]).to_upper()
 			lbl.modulate = Color(0.6, 0.6, 0.6)
 			group.add_child(lbl)
 			
@@ -1120,7 +1120,7 @@ func _setup_consumable_buttons():
 	inner_vbox.add_theme_constant_override("separation", 5)
 
 	var hdr = Label.new()
-	hdr.text = "[ CONSUMABLES ]"
+	hdr.text = tr("[ CONSUMABLES ]")
 	hdr.add_theme_color_override("font_color", Color(0.5, 0.9, 0.5, 1.0))
 	hdr.add_theme_font_size_override("font_size", 11)
 	hdr.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -1328,7 +1328,7 @@ func _build_combat_timers() -> void:
 	combat_timer_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	center.add_child(combat_timer_row)
 
-	session_timer_lbl = _make_timer_label("SESSION  0:00", UITheme.CATEGORY_COLORS["combat"])
+	session_timer_lbl = _make_timer_label(tr("SESSION  0:00"), UITheme.CATEGORY_COLORS["combat"])
 	combat_timer_row.add_child(session_timer_lbl)
 
 	var dot := Label.new()
@@ -1337,7 +1337,7 @@ func _build_combat_timers() -> void:
 	dot.add_theme_font_size_override("font_size", 12)
 	combat_timer_row.add_child(dot)
 
-	kill_timer_lbl = _make_timer_label("LAST KILL  0.0s", UITheme.CATEGORY_COLORS["shipyard"])
+	kill_timer_lbl = _make_timer_label(tr("LAST KILL  0.0s"), UITheme.CATEGORY_COLORS["shipyard"])
 	combat_timer_row.add_child(kill_timer_lbl)
 
 	combat_timer_row.visible = false
@@ -1400,7 +1400,7 @@ func _build_loadout_swap_row() -> void:
 	mc.add_child(vb)
 
 	var header := Label.new()
-	header.text = "[ LOADOUT ]"
+	header.text = tr("[ LOADOUT ]")
 	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	header.add_theme_color_override("font_color", UITheme.CATEGORY_COLORS.get("shipyard", Color(0.45, 0.70, 1.0)))
 	header.add_theme_font_size_override("font_size", 11)
@@ -1476,7 +1476,7 @@ func _refresh_loadout_swap_row() -> void:
 		var b: Button = _swap_buttons[i]
 		var empty: bool = sm.is_loadout_preset_empty(idx)
 		var pname := str(sm.loadout_presets.get(idx, {}).get("name", ""))
-		var shown := pname if pname != "" else ("Loadout %d" % idx)
+		var shown := pname if pname != "" else (tr("Loadout %d") % idx)
 		var is_active: bool = (idx == active)
 		b.disabled = empty
 		if empty:
@@ -1485,7 +1485,7 @@ func _refresh_loadout_swap_row() -> void:
 			b.modulate = Color(1, 1, 1, 0.40)
 		else:
 			b.text = _truncate(shown, 10)
-			b.tooltip_text = ("%s — active build." % shown) if is_active else ("Swap to %s." % shown)
+			b.tooltip_text = (tr("%s — active build.") % shown) if is_active else (tr("Swap to %s.") % shown)
 			b.modulate = Color(1.40, 1.40, 1.20) if is_active else Color(1, 1, 1, 1)
 
 func _truncate(s: String, n: int) -> String:
@@ -1496,19 +1496,19 @@ func _on_combat_swap_pressed(idx: int) -> void:
 	if sm.is_loadout_preset_empty(idx):
 		return
 	var pname := str(sm.loadout_presets.get(idx, {}).get("name", ""))
-	var shown := pname if pname != "" else ("Loadout %d" % idx)
+	var shown := pname if pname != "" else (tr("Loadout %d") % idx)
 	var swapped := false
 	if manager.in_combat:
 		# v134h: mid-fight swap allowed in any active fight; resets weapon cooldowns.
 		if manager.swap_loadout_in_combat(idx):
 			swapped = true
-			UITheme.show_notification("Swapped to %s" % shown, Color(0.70, 0.95, 1.0))
+			UITheme.show_notification(tr("Swapped to %s") % shown, Color(0.70, 0.95, 1.0))
 	else:
 		# Between fights: free whole-ship swap via the designer's preset loader.
 		var res = sm.load_loadout_preset(idx)
 		if int(res.get("loaded", 0)) > 0:
 			swapped = true
-			UITheme.show_notification("%s equipped" % shown, Color(0.70, 0.95, 1.0))
+			UITheme.show_notification(tr("%s equipped") % shown, Color(0.70, 0.95, 1.0))
 	if swapped:
 		# v134h: the new loadout has different weapons -> different ammo + consumables,
 		# so refresh those panels immediately (update_ui only rebuilds ammo mid-combat).

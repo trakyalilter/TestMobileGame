@@ -47,25 +47,25 @@ func _setup_item(id: String):
 	# Special Stats for Ammo
 	if cat == "ammo":
 		var bonus = 0.0
-		var type_label = "Damage"
+		var type_label = tr("Damage")
 		if id.begins_with("Slug"):
 			bonus = 5.0
 			if "T1S" in id: bonus = 10.0
 			elif "T2" in id: bonus = 15.0
 			elif "T3" in id: bonus = 30.0
 			elif "T4" in id: bonus = 60.0
-			type_label = "Kinetic Damage"
+			type_label = tr("Kinetic Damage")
 		elif id.begins_with("Cell"):
 			bonus = 5.0
 			if "T2" in id: bonus = 15.0
 			elif "T3" in id: bonus = 30.0
 			elif "T4" in id: bonus = 60.0
-			type_label = "Energy Damage"
+			type_label = tr("Energy Damage")
 		elif "Missile" in id or "Torpedo" in id:
 			bonus = 10.0
 			if "Seeker" in id: bonus = 25.0
 			elif "Torpedo" in id: bonus = 60.0
-			type_label = "Explosive Damage"
+			type_label = tr("Explosive Damage")
 		if bonus > 0:
 			_add_stat(type_label, "+%.1f" % bonus)
 			
@@ -75,11 +75,11 @@ func _setup_item(id: String):
 		if c_data:
 			var heal_pct = c_data.get("heal_pct", 0.0) * 100.0
 			var c_type = c_data.get("type", "hull").capitalize()
-			_add_stat("%s Restoration" % c_type, "+%d%%" % heal_pct)
+			_add_stat(tr("%s Restoration") % c_type, "+%d%%" % heal_pct)
 	
 	# Value
 	var val = ElementDB.get_element_value(id)
-	_add_stat("Base Value", "%d Liras" % val)
+	_add_stat(tr("Base Value"), tr("%d Liras") % val)
 
 func _setup_ship(id: String):
 	var sm = GameState.shipyard_manager
@@ -93,9 +93,9 @@ func _setup_ship(id: String):
 	desc_lbl.text = tr("Class Tier: %d") % data.get("tier", 0)
 	
 	var stats = data["stats"]
-	_add_stat("Hull Points", str(stats["hp"]))
-	_add_stat("Capacity", str(stats["energy_capacity"]))
-	_add_stat("Slots", str(data["slots"].size()))
+	_add_stat(tr("Hull Points"), str(stats["hp"]))
+	_add_stat(tr("Capacity"), str(stats["energy_capacity"]))
+	_add_stat(tr("Slots"), str(data["slots"].size()))
 	
 	_set_cost(data["cost"])
 
@@ -116,22 +116,22 @@ func _setup_module(id: String):
 	type_lbl.text = tr("SHIP MODULE (%s)") % s_type
 	type_lbl.modulate = Color(0.373, 0.878, 0.784)
 	
-	var final_desc = data.get("desc", "")
+	var final_desc = tr(str(data.get("desc", "")))
 	
 	# v87.0: Damage Type Strong/Weak Tooltips
 	if stats.has("atk_kinetic") and stats["atk_kinetic"] > 0:
-		final_desc += "\n[KINETIC]"
-		final_desc += "\n  + Strong: Hull Damage (+20%)"
-		final_desc += "\n  - Weak: Shield Damage (-50%)"
+		final_desc += "\n" + tr("[KINETIC]")
+		final_desc += "\n" + tr("  + Strong: Hull Damage (+20%)")
+		final_desc += "\n" + tr("  - Weak: Shield Damage (-50%)")
 	if stats.has("atk_energy") and stats["atk_energy"] > 0:
-		final_desc += "\n[ENERGY]"
-		final_desc += "\n  + Strong: Shield Damage (+50%)"
-		final_desc += "\n  + Strong: Armor Bypass (70% pen)"
-		final_desc += "\n  - Weak: Hull Damage (-10%)"
+		final_desc += "\n" + tr("[ENERGY]")
+		final_desc += "\n" + tr("  + Strong: Shield Damage (+50%)")
+		final_desc += "\n" + tr("  + Strong: Armor Bypass (70% pen)")
+		final_desc += "\n" + tr("  - Weak: Hull Damage (-10%)")
 	if stats.has("atk_explosive") and stats["atk_explosive"] > 0:
-		final_desc += "\n[EXPLOSIVE]"
-		final_desc += "\n  + Strong: Armor Bypass (80% pen!)"
-		final_desc += "\n  - Weak: Slower fire rate"
+		final_desc += "\n" + tr("[EXPLOSIVE]")
+		final_desc += "\n" + tr("  + Strong: Armor Bypass (80% pen!)")
+		final_desc += "\n" + tr("  - Weak: Slower fire rate")
 		
 	desc_lbl.text = final_desc
 	desc_lbl.modulate = Color(0.78, 0.88, 0.85, 1) # soft light teal-white
@@ -148,14 +148,14 @@ func _setup_module(id: String):
 	
 	# v87.0: Condensed type hint (replaces old v83.1 duplicate)
 	if stats.has("atk_kinetic") and stats["atk_kinetic"] > 0:
-		_add_stat("TYPE", "KINETIC", Color(0.439, 0.533, 0.949))
+		_add_stat(tr("TYPE"), tr("KINETIC"), Color(0.439, 0.533, 0.949))
 	if stats.has("atk_energy") and stats["atk_energy"] > 0:
-		_add_stat("TYPE", "ENERGY", Color(0.373, 0.878, 0.784))
+		_add_stat(tr("TYPE"), tr("ENERGY"), Color(0.373, 0.878, 0.784))
 	if stats.has("atk_explosive") and stats["atk_explosive"] > 0:
-		_add_stat("TYPE", "EXPLOSIVE", Color(1.0, 0.761, 0.302))
+		_add_stat(tr("TYPE"), tr("EXPLOSIVE"), Color(1.0, 0.761, 0.302))
 		
 	var durability = int(data.get("durability", 100))
-	_add_stat("Durability", "%d/100" % durability, Color(1.0, 0.392, 0.451) if durability <= 20 else Color(0.894, 0.961, 0.933))
+	_add_stat(tr("Durability"), tr("%d/100") % durability, Color(1.0, 0.392, 0.451) if durability <= 20 else Color(0.894, 0.961, 0.933))
 		
 	_set_cost(data["cost"])
 
@@ -174,9 +174,9 @@ func _setup_building(id: String):
 	desc_lbl.text = data["description"]
 	
 	if "energy_gen" in data and data["energy_gen"] > 0:
-		_add_stat("Energy Gen", "+%.1f kW" % data["energy_gen"])
+		_add_stat(tr("Energy Gen"), tr("+%.1f kW") % data["energy_gen"])
 	if "energy_cons" in data and data["energy_cons"] > 0:
-		_add_stat("Energy Use", "-%.1f kW" % data["energy_cons"])
+		_add_stat(tr("Energy Use"), tr("-%.1f kW") % data["energy_cons"])
 		
 	_set_cost(data["cost"])
 
@@ -204,7 +204,7 @@ func _setup_gem(id: String):
 	# and showing all three read as "general info". The armory inspect (no host slot)
 	# still lists all three so the player can compare placements before socketing.
 	var facets = sm.GEM_FACETS.get(id, {})
-	var cat_name = {"weapon": "Weapon", "defense": "Armor/Shield", "utility": "Engine/Sensor"}
+	var cat_name = {"weapon": tr("Weapon"), "defense": tr("Armor/Shield"), "utility": tr("Engine/Sensor")}
 	var active_cat = sm._gem_slot_category(_host_slot_ctx) if _host_slot_ctx != "" else ""
 	if active_cat != "":
 		type_lbl.text = tr("MATRIX CORE · %s SLOT") % _host_slot_ctx.to_upper()
@@ -260,6 +260,6 @@ func _set_cost(cost_data: Dictionary):
 	var parts = []
 	for res in cost_data:
 		var qty = cost_data[res]
-		var n = "Liras" if res == "credits" else res
+		var n = tr("Liras") if res == "credits" else res
 		parts.append("%s %s" % [FormatUtils.format_number(qty), n])
 	cost_lbl.text = tr("Cost: ") + ", ".join(parts)

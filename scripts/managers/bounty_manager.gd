@@ -76,7 +76,7 @@ func _on_enemy_defeated(enemy_id: String):
 			if contract["current_qty"] >= contract["target_qty"]:
 				contract["completed"] = true
 				if contract.get("is_elite", false):
-					UITheme.show_notification("ELITE BREACHED: Contract Complete", Color.GOLD)
+					UITheme.show_notification(tr("ELITE BREACHED: Contract Complete"), Color.GOLD)
 			bounty_updated.emit()
 
 func _on_combat_started():
@@ -179,19 +179,19 @@ func _make_hunt(zone_id: String, zone: Dictionary, enemy_id: String, boss_hunt: 
 	if elite:
 		qty = 1 # Elites are 1v1 duels
 		credit_reward = int(base_xp * ELITE_CREDIT_CONST * pow(diff, ELITE_DIFF_EXP))
-		title = "ELITE HUNT: %s" % enemy_data["name"]
-		desc = "Destroy the ELITE %s in %s. Warning: Extremely Dangerous." % [enemy_data["name"], zone["name"]]
+		title = tr("ELITE HUNT: %s") % tr(str(enemy_data["name"]))
+		desc = tr("Destroy the ELITE %s in %s. Warning: Extremely Dangerous.") % [tr(str(enemy_data["name"])), tr(str(zone["name"]))]
 	elif boss_hunt:
 		# Offline-completable by design (v138b: offline boss kills emit enemy_defeated).
 		qty = randi_range(1, 2)
 		credit_reward = int(base_xp * qty * HUNT_CREDIT_CONST * pow(diff, HUNT_DIFF_EXP))
-		title = "BOSS BOUNTY: %s" % enemy_data["name"]
-		desc = "Destroy %d× %s in %s." % [qty, enemy_data["name"], zone["name"]]
+		title = tr("BOSS BOUNTY: %s") % tr(str(enemy_data["name"]))
+		desc = tr("Destroy %d× %s in %s.") % [qty, tr(str(enemy_data["name"])), tr(str(zone["name"]))]
 	else:
 		qty = randi_range(5, 20)
 		credit_reward = int(base_xp * qty * HUNT_CREDIT_CONST * pow(diff, HUNT_DIFF_EXP))
-		title = "Hunt: %s" % enemy_data["name"]
-		desc = "Destroy %d %s in %s." % [qty, enemy_data["name"], zone["name"]]
+		title = tr("Hunt: %s") % tr(str(enemy_data["name"]))
+		desc = tr("Destroy %d %s in %s.") % [qty, tr(str(enemy_data["name"])), tr(str(zone["name"]))]
 	return {
 		"id": _gen_id(),
 		"type": "hunt",
@@ -223,12 +223,12 @@ func get_refresh_cost(zone_id: String) -> int:
 func force_refresh(zone_id: String) -> bool:
 	var cost = get_refresh_cost(zone_id)
 	if GameState.resources.get_currency("credits") < cost:
-		UITheme.show_notification("Not enough Liras to refresh!", Color.RED)
+		UITheme.show_notification(tr("Not enough Liras to refresh!"), Color.RED)
 		return false
 	GameState.resources.remove_currency("credits", cost)
 	zone_rerolls[zone_id] = int(zone_rerolls.get(zone_id, 0)) + 1
 	available_by_zone[zone_id] = _generate_zone_pool(zone_id)
-	UITheme.show_notification("Zone Board Refreshed", Color.CYAN)
+	UITheme.show_notification(tr("Zone Board Refreshed"), Color.CYAN)
 	bounty_updated.emit()
 	return true
 
@@ -255,7 +255,7 @@ func _gen_id() -> String:
 
 func accept_contract(contract_id: String) -> bool:
 	if active_contracts.size() >= MAX_ACTIVE:
-		UITheme.show_notification("Contract slots full! (Max %d)" % MAX_ACTIVE, Color.RED)
+		UITheme.show_notification(tr("Contract slots full! (Max %d)") % MAX_ACTIVE, Color.RED)
 		return false
 	for zid in available_by_zone:
 		var pool: Array = available_by_zone[zid]
@@ -264,7 +264,7 @@ func accept_contract(contract_id: String) -> bool:
 				var contract = pool[i]
 				pool.remove_at(i)
 				active_contracts.append(contract)
-				UITheme.show_notification("Contract Accepted: %s" % contract["title"], Color.GOLD)
+				UITheme.show_notification(tr("Contract Accepted: %s") % contract["title"], Color.GOLD)
 				bounty_updated.emit()
 				return true
 	return false
@@ -294,7 +294,7 @@ func claim_contract(contract_id: String) -> bool:
 	var final_reward = int(contract["reward_credits"] * bonus_mult)
 
 	GameState.resources.add_currency("credits", final_reward)
-	UITheme.show_notification("+%s Liras" % UITheme.format_num(final_reward), Color.GOLD)
+	UITheme.show_notification(tr("+%s Liras") % UITheme.format_num(final_reward), Color.GOLD)
 
 	# Award module (if pool exists)
 	var sm = GameState.shipyard_manager
@@ -311,7 +311,7 @@ func claim_contract(contract_id: String) -> bool:
 		if custom_id != "":
 			var m_name = sm.modules[custom_id]["name"]
 			var r_color = sm.RARITY_COLORS.get(rarity, Color.WHITE)
-			UITheme.show_notification("Module Received: %s" % m_name, r_color)
+			UITheme.show_notification(tr("Module Received: %s") % m_name, r_color)
 
 		sm.inventory_updated.emit()
 
@@ -339,10 +339,10 @@ func abandon_contract(contract_id: String) -> bool:
 	# no longer generate, but accepted ones must still refund on abandon).
 	if contract["type"] == "delivery" and contract["current_qty"] > 0:
 		GameState.resources.add_element(contract["target"], contract["current_qty"])
-		UITheme.show_notification("Materials refunded.", Color.YELLOW)
+		UITheme.show_notification(tr("Materials refunded."), Color.YELLOW)
 
 	active_contracts.remove_at(idx)
-	UITheme.show_notification("Contract Abandoned.", Color(0.6, 0.6, 0.6))
+	UITheme.show_notification(tr("Contract Abandoned."), Color(0.6, 0.6, 0.6))
 	bounty_updated.emit()
 	return true
 

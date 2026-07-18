@@ -239,7 +239,7 @@ func set_active_manager(manager):
 		active_manager.stop_action()
 		# Only one foreground task runs at a time — make the swap visible so
 		# the player isn't left wondering why their last task "stopped".
-		UITheme.show_notification("%s paused — now %s" % [_task_label(active_manager), _task_label(manager)], Color(1.0, 0.82, 0.35))
+		UITheme.show_notification(tr("%s paused — now %s") % [_task_label(active_manager), _task_label(manager)], Color(1.0, 0.82, 0.35))
 	active_manager = manager
 
 # v135a (funnel): append a dev event to the capped FIFO timeline. Invisible to the

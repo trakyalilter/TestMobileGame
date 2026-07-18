@@ -133,9 +133,9 @@ func _build_ui() -> void:
 	_canvas.zone_hovered.connect(_on_zone_hovered)
 	_canvas.enemy_clicked.connect(_on_enemy_clicked)
 
-	_title = _mk_label("SECTOR CHART", 18, Color(0.427, 0.941, 0.847), true)
+	_title = _mk_label(tr("SECTOR CHART"), 18, Color(0.427, 0.941, 0.847), true)
 	add_child(_title)
-	_subtitle = _mk_label("NAVIGATION · SELECT A SECTOR", 9, C_DIM, false)
+	_subtitle = _mk_label(tr("NAVIGATION · SELECT A SECTOR"), 9, C_DIM, false)
 	add_child(_subtitle)
 
 	_close_btn = Button.new()
@@ -174,7 +174,7 @@ func _build_readout() -> void:
 	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	info_scroll.add_child(info)
 
-	info.add_child(_mk_label("DESTINATION", 9, C_TEAL, false))
+	info.add_child(_mk_label(tr("DESTINATION"), 9, C_TEAL, false))
 	_ro_name = _mk_label("—", 20, C_TEXT, true)
 	info.add_child(_ro_name)
 	_ro_band = _mk_label("", 9, C_TEAL, false)
@@ -186,7 +186,7 @@ func _build_readout() -> void:
 
 	# TARGET — the hostile picked on the sector view (selection happens on the
 	# map, not in a list). A prompt shows until one is chosen.
-	info.add_child(_mk_label("TARGET", 9, C_TEAL, false))
+	info.add_child(_mk_label(tr("TARGET"), 9, C_TEAL, false))
 	_ro_status = _mk_label("", 9, C_DIM, false)
 	_ro_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_ro_status.custom_minimum_size = Vector2(224, 0)
@@ -209,7 +209,7 @@ func _build_readout() -> void:
 	_tgt_weak = _kv_row(_tgt_box, "WEAK TO", "—", C_JADE)
 	# v131: DROPS — the loot case for picking this target (was invisible intel).
 	_tgt_box.add_child(_spacer(3))
-	_tgt_box.add_child(_mk_label("DROPS", 9, C_TEAL, false))
+	_tgt_box.add_child(_mk_label(tr("DROPS"), 9, C_TEAL, false))
 	_tgt_drops = RichTextLabel.new()
 	_tgt_drops.bbcode_enabled = true
 	_tgt_drops.fit_content = true
@@ -242,7 +242,7 @@ func _build_readout() -> void:
 	_engage_btn.pressed.connect(_on_engage)
 	_engage_btn.disabled = true
 	v.add_child(_engage_btn)
-	_engage_hint = _mk_label("Click a sector on the chart to scan it.", 8, C_DIM, false)
+	_engage_hint = _mk_label(tr("Click a sector on the chart to scan it."), 8, C_DIM, false)
 	_engage_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_engage_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_engage_hint.custom_minimum_size = Vector2(224, 0)
@@ -398,9 +398,9 @@ func _update_sector_header(m: Dictionary) -> void:
 	var heat := _heat(diff)
 	_ro_name.text = str(m["name"]).replace("HAZARD: ", "").to_upper()
 	_ro_name.add_theme_color_override("font_color", C_AQUA if str(m["state"]) == "current" else C_TEXT)
-	var band := "CALM SPACE" if diff <= 4 else ("CONTESTED SPACE" if diff <= 8 else "HOSTILE SPACE")
+	var band := tr("CALM SPACE") if diff <= 4 else (tr("CONTESTED SPACE") if diff <= 8 else tr("HOSTILE SPACE"))
 	if m.get("is_hazard", false):
-		band = "ELECTROMAGNETIC HAZARD"
+		band = tr("ELECTROMAGNETIC HAZARD")
 	_ro_band.text = tr("SECTOR %02d · %s") % [diff, band]
 	_ro_band.add_theme_color_override("font_color", heat)
 
@@ -478,7 +478,7 @@ func _show_target_detail(eid: String) -> void:
 	_ro_status.text = ""
 	_tgt_name.text = str(e.get("name", "Hostile"))
 	_tgt_name.add_theme_color_override("font_color", C_CORAL if is_boss else C_TEXT)
-	_tgt_type.text = ("SECTOR BOSS · %s DAMAGE" % DMG_TAGS.get(dt, "KIN")) if is_boss else ("%s DAMAGE" % DMG_TAGS.get(dt, "KIN"))
+	_tgt_type.text = (tr("SECTOR BOSS · %s DAMAGE") % DMG_TAGS.get(dt, "KIN")) if is_boss else (tr("%s DAMAGE") % DMG_TAGS.get(dt, "KIN"))
 	_tgt_type.add_theme_color_override("font_color", DMG_COLS.get(dt, C_DIM))
 	_tgt_hp.text = UITheme.format_num(s.get("hp", 0))
 	var sh := int(s.get("max_shield", 0))
@@ -502,14 +502,14 @@ func _show_target_detail(eid: String) -> void:
 				res_parts.append("%s +%d%%" % [tag, int(round(rv * 100.0))])
 			elif rv < -0.05:
 				weak_parts.append("%s %d%%" % [tag, int(round(rv * 100.0))])
-		_tgt_resist.text = " · ".join(res_parts) if not res_parts.is_empty() else "none"
-		_tgt_weak.text = " · ".join(weak_parts) if not weak_parts.is_empty() else "none"
+		_tgt_resist.text = " · ".join(res_parts) if not res_parts.is_empty() else tr("none")
+		_tgt_weak.text = " · ".join(weak_parts) if not weak_parts.is_empty() else tr("none")
 
 	_fill_target_drops(e, is_boss, eid)
 
 	_engage_btn.disabled = false
 	_engage_btn.text = tr("ENGAGE")
-	_engage_hint.text = "Deploy and attack %s." % str(e.get("name", "the target"))
+	_engage_hint.text = tr("Deploy and attack %s.") % str(e.get("name", "the target"))
 
 # v131: render the hostile's drop table into the readout. Materials (with qty
 # ranges), rare drops (with odds), boss core / first-clear relic, and the module
@@ -523,7 +523,7 @@ func _fill_target_drops(e: Dictionary, is_boss: bool, eid: String) -> void:
 		var sym := str(entry[0])
 		var qty := "%s–%s" % [UITheme.format_num(int(entry[1])), UITheme.format_num(int(entry[2]))]
 		if sym == "credits":
-			lines.append("%sLiras ×%s" % [UITheme.LIRA_ICON_BB, qty])
+			lines.append("%s%s ×%s" % [UITheme.LIRA_ICON_BB, tr("Liras"), qty])
 		else:
 			lines.append("%s%s ×%s" % [ElementDB.material_icon_bbcode(sym, 12), ElementDB.get_display_name(sym), qty])
 	for entry in e.get("rare_loot", []):
@@ -533,11 +533,11 @@ func _fill_target_drops(e: Dictionary, is_boss: bool, eid: String) -> void:
 	if core != "":
 		lines.append("%s%s [color=%s](guaranteed)[/color]" % [ElementDB.material_icon_bbcode(core, 12), ElementDB.get_display_name(core), dim])
 	if str(e.get("relic_drop", "")) != "":
-		lines.append("Threshold Relic [color=%s](first clear)[/color]" % dim)
+		lines.append(tr("Threshold Relic [color=%s](first clear)[/color]") % dim)
 	# v131b: no probabilities shown — just WHAT can drop (types), not the odds.
 	var pool_types := _pool_slot_types(e)
 	if is_boss and not pool_types.is_empty():
-		lines.append("Modules [color=%s](Uncommon+ · %s)[/color]" % [dim, " · ".join(PackedStringArray(pool_types))])
+		lines.append(tr("Modules [color=%s](Uncommon+ · %s)[/color]") % [dim, " · ".join(PackedStringArray(pool_types))])
 	elif not is_boss and not pool_types.is_empty() and float(e.get("module_drop_chance", 0.0)) > 0.0:
 		# v133: match the real spawn rule — front-salvage enemies (e1/e2 of a sector)
 		# drop MATERIALS ONLY. Default drops_modules exactly as spawn_enemy does, using
@@ -545,7 +545,7 @@ func _fill_target_drops(e: Dictionary, is_boss: bool, eid: String) -> void:
 		# enemy never actually makes.
 		var drops_mods: bool = bool(e.get("drops_modules", not manager.enemy_is_front_salvage(eid, selected_id)))
 		if drops_mods:
-			lines.append("Module chance [color=%s](%s)[/color]" % [dim, " · ".join(PackedStringArray(pool_types))])
+			lines.append(tr("Module chance [color=%s](%s)[/color]") % [dim, " · ".join(PackedStringArray(pool_types))])
 	_tgt_drops.text = "[color=#c8d4d0]" + "\n".join(PackedStringArray(lines)) + "[/color]" if not lines.is_empty() else "[color=%s]—[/color]" % dim
 
 # v131: rare_loot mixes ELEMENT ids and MODULE ids (unique set pieces like
@@ -605,17 +605,17 @@ func _zone_combat_stats(zid: String) -> Dictionary:
 
 func _gate_text(zid: String) -> String:
 	if manager.hazard_zones.has(zid):
-		return "Locked — defeat the Asteroid Belt boss to expose this anomaly."
+		return tr("Locked — defeat the Asteroid Belt boss to expose this anomaly.")
 	var data = manager.zones.get(zid, {})
 	var req = data.get("research_req", "")
 	if req != "":
-		return "Locked — complete research: %s." % str(req).capitalize()
+		return tr("Locked — complete research: %s.") % str(req).capitalize()
 	var flag = data.get("unlock_flag", "")
 	if flag == "z11_unlocked":
-		return "Locked — defeat the Sector 10 boss, then execute a Warp."
+		return tr("Locked — defeat the Sector 10 boss, then execute a Warp.")
 	if flag == "z12_unlocked":
-		return "Locked — clear The Threshold, then Warp."
-	return "Locked."
+		return tr("Locked — clear The Threshold, then Warp.")
+	return tr("Locked.")
 
 func _heat(diff: int) -> Color:
 	if diff <= 4:
@@ -671,7 +671,7 @@ func _hazard_summary(hid: String) -> String:
 	var hz = manager.hazard_zones.get(hid, {})
 	var counter = GameState.shipyard_manager.modules.get(hz.get("counter_module", ""), {}).get("name", hz.get("counter_module", ""))
 	var cleared: bool = manager.hazard_clears.has(hid)
-	return "%d-wave gauntlet. Requires %s. %s" % [int(hz.get("max_waves", 0)), counter, "Cleared." if cleared else "Not yet cleared."]
+	return tr("%d-wave gauntlet. Requires %s. %s") % [int(hz.get("max_waves", 0)), counter, tr("Cleared.") if cleared else tr("Not yet cleared.")]
 
 # ── interaction ───────────────────────────────────────────────────────────
 func _on_zone_clicked(zid: String) -> void:
@@ -743,16 +743,16 @@ func _confirm_rift_entry() -> void:
 		return
 	var s := "" if gains == 1 else "s"
 	var keep_pct: int = int(round(wm.get_tree_xp_keep() * 100.0))
-	var body := "[b]Cross the event horizon.[/b]\n\n"
-	body += "[color=#c78cff]Grant %d Exotic Shard%s[/color]\n\n" % [gains, s]
-	body += "[color=#f06b6b]RESET[/color]    Liras · Buildings · Standard Resources · Skill levels  [color=#8b8f9c](keep %d%% XP)[/color]\n" % keep_pct
-	body += "[color=#73e88c]KEEP[/color]     Research · Ships · Exotic Matter · Warp Mastery purchases\n\n"
-	body += "[color=#ffb454][b]This cannot be undone.[/b][/color]"
+	var body := tr("[b]Cross the event horizon.[/b]\n\n")
+	body += tr("[color=#c78cff]Grant %d Exotic Shard%s[/color]\n\n") % [gains, s]
+	body += tr("[color=#f06b6b]RESET[/color]    Liras · Buildings · Standard Resources · Skill levels  [color=#8b8f9c](keep %d%% XP)[/color]\n") % keep_pct
+	body += tr("[color=#73e88c]KEEP[/color]     Research · Ships · Exotic Matter · Warp Mastery purchases\n\n")
+	body += tr("[color=#ffb454][b]This cannot be undone.[/b][/color]")
 	UITheme.show_confirm({
-		"title": "Enter the Singularity",
+		"title": tr("Enter the Singularity"),
 		"body": body,
-		"confirm_text": "Enter",
-		"cancel_text": "Not yet",
+		"confirm_text": tr("Enter"),
+		"cancel_text": tr("Not yet"),
 		"accent": C_WARP,
 		"on_confirm": Callable(self, "_on_confirm_rift"),
 	})

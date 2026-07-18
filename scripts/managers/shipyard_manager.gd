@@ -1871,7 +1871,7 @@ func craft_module(module_id: String) -> bool:
 			_: gem_id = "CrackedCrimsonCore"
 			
 		GameState.resources.add_element(gem_id, 1)
-		UITheme.show_notification("Synthesized: " + ElementDB.get_display_name(gem_id), Color(0.8, 0.3, 0.8))
+		UITheme.show_notification(tr("Synthesized: %s") % ElementDB.get_display_name(gem_id), Color(0.8, 0.3, 0.8))
 		inventory_updated.emit()
 		return true
 		
@@ -1895,7 +1895,7 @@ func craft_module(module_id: String) -> bool:
 
 		if out_gem != "":
 			GameState.resources.add_element(out_gem, 1)
-			UITheme.show_notification("Fused: " + ElementDB.get_display_name(out_gem), Color(0.8, 0.3, 0.8))
+			UITheme.show_notification(tr("Fused: %s") % ElementDB.get_display_name(out_gem), Color(0.8, 0.3, 0.8))
 			inventory_updated.emit()
 			return true
 			
@@ -1930,7 +1930,7 @@ func equip_module(slot_idx: int, module_id: String, silent: bool = false) -> boo
 	if not status["can_equip"]:
 		print("Equip Fail: ", status["reason"])
 		if not silent:
-			UITheme.show_notification(status["reason"], Color.RED)
+			UITheme.show_notification(tr(str(status["reason"])), Color.RED)
 		return false
 		
 	var mod_data = modules[module_id]
@@ -1990,7 +1990,7 @@ func equip_module(slot_idx: int, module_id: String, silent: bool = false) -> boo
 		# Allow only if this equip improves the margin (anti-softlock).
 		if new_margin <= old_margin + 0.1:
 			if not silent:
-				UITheme.show_notification("Power %d / %d — equip more (or higher-tier) Battery modules first." % [int(round(new_load)), int(round(new_cap))], Color(1.0, 0.45, 0.35))
+				UITheme.show_notification(tr("Power %d / %d — equip more (or higher-tier) Battery modules first.") % [int(round(new_load)), int(round(new_cap))], Color(1.0, 0.45, 0.35))
 			return false
 
 	# Unequip existing
@@ -2151,7 +2151,7 @@ func set_slot_ammo(slot_idx: int, ammo_id: String) -> bool:
 			
 			if not is_ammo_compatible(w_type, ammo_id):
 				print("Ammo Fail: Type Mismatch. Weapon: %s, Ammo: %s" % [w_type, ammo_id])
-				UITheme.show_notification("Incompatible Ammo Type", Color.RED)
+				UITheme.show_notification(tr("Incompatible Ammo Type"), Color.RED)
 				return false
 				
 	ammo_loadout[slot_idx] = ammo_id
