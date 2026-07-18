@@ -2087,6 +2087,14 @@ func handle_module_defeat():
 	if changed:
 		log_msg("DEFEAT: equipped modules worn down to 50% durability — repair with Spare Parts.")
 		recalc_stats()
+		# The base→custom conversion above rewrote loadout slot ids (base id →
+		# custom-instance id) so durability can be tracked. Re-sync the ACTIVE build
+		# slot to the new ids: otherwise the preset keeps the stale BASE ids, and the
+		# next time it's applied (build-slot switch or relog) equip_module fails on
+		# them ("No inventory" — the base copy is now a custom instance the player owns
+		# instead), so the slot loads EMPTY even though the gear is still owned. That
+		# is the "loadout N emptied itself after a loss" data-loss bug.
+		_autosave_active_preset()
 
 
 # v135b: SIM-ONLY hook (default false → real game UNAFFECTED; modules incl.
@@ -2130,8 +2138,9 @@ func apply_offline_durability_risk(delta: float) -> Array:
 			loadout[slot_idx] = null
 	if not slots_to_clear.is_empty():
 		recalc_stats()
+		inventory_updated.emit()   # was dead code AFTER the return below — the armory
+		                           # never refreshed after offline module destruction
 	return destroyed
-	inventory_updated.emit()
 
 func log_msg(msg: String):
 	if GameState.combat_manager:
