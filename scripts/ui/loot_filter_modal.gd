@@ -118,7 +118,7 @@ func _build_filter_sections():
 	var cm = GameState.combat_manager
 	if not sm or not cm: return
 
-	_add_section_header("RARITY", rarity_column)
+	_add_section_header(tr("RARITY"), rarity_column)
 	for rarity_val in sm.Rarity.values():
 		var rarity_name = sm.RARITY_LABELS.get(rarity_val, "Common")
 		if rarity_name == "": rarity_name = "Common"
@@ -129,7 +129,7 @@ func _build_filter_sections():
 		cb.toggled.connect(_on_rarity_toggled.bind(rarity_val))
 		rarity_column.add_child(cb)
 
-	_add_section_header("SLOT TYPE", type_column)
+	_add_section_header(tr("SLOT TYPE"), type_column)
 	for t in ["weapon", "armor", "shield", "engine", "battery", "sensor"]:
 		var cb = CheckBox.new()
 		cb.text = t.capitalize()
@@ -138,7 +138,7 @@ func _build_filter_sections():
 		cb.toggled.connect(_on_type_toggled.bind(t))
 		type_column.add_child(cb)
 
-	_add_section_header("WEAPON TYPE", weapon_type_column)
+	_add_section_header(tr("WEAPON TYPE"), weapon_type_column)
 	# v109: Cryo is the surprise first-Warp unlock — don't list it (spoiler)
 	# until the player has actually unlocked it.
 	var wtypes := ["kinetic", "energy", "explosive"]
