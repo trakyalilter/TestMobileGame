@@ -185,7 +185,7 @@ func _update_mode_buttons():
 	_hide_static_titles()
 	name_label.text = tr("Select an Item")
 	desc_label.visible = true
-	desc_label.text = tr("Pick %s from the list to view full details.") % ("a material" if current_mode == "materials" else "an enemy")
+	desc_label.text = tr("Pick %s from the list to view full details.") % (tr("a material") if current_mode == "materials" else tr("an enemy"))
 	desc_label.add_theme_color_override("font_color", UITheme.COLORS["text_dim"])
 	_clear_list(sources_list)
 	_clear_list(uses_list)
@@ -361,7 +361,7 @@ func build_material_database():
 						material_db[mat_id]["uses"].append({
 							"type": "building",
 							"name": bname + " (Build)",
-							"rate": "%d required" % bdata["cost"][mat_id]
+							"rate": tr("%d required") % bdata["cost"][mat_id]
 						})
 	
 	# --- SHIPYARD USES ---

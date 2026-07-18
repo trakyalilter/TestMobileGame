@@ -417,7 +417,7 @@ func _set_rift_readout(_m: Dictionary) -> void:
 	_tgt_box.visible = false
 	_back_btn.visible = false
 	var s := "" if gains == 1 else "s"
-	var bonus_txt := (" +%d resonance" % bonus) if bonus > 0 else ""
+	var bonus_txt := (tr(" +%d resonance") % bonus) if bonus > 0 else ""
 	_ro_status.text = tr("A hole torn in spacetime by the sector boss's collapse. Entering executes a Warp: +%d Exotic Shard%s%s. The run resets; research, ships and Exotic Matter persist.") % [gains, s, bonus_txt]
 	_ro_status.add_theme_color_override("font_color", C_TEXT)
 	_engage_btn.disabled = false
@@ -528,10 +528,10 @@ func _fill_target_drops(e: Dictionary, is_boss: bool, eid: String) -> void:
 			lines.append("%s%s ×%s" % [ElementDB.material_icon_bbcode(sym, 12), ElementDB.get_display_name(sym), qty])
 	for entry in e.get("rare_loot", []):
 		var rsym := str(entry[0])
-		lines.append("%s%s [color=%s](rare)[/color]" % [ElementDB.material_icon_bbcode(rsym, 12), _drop_display_name(rsym), dim])
+		lines.append("%s%s [color=%s]%s[/color]" % [ElementDB.material_icon_bbcode(rsym, 12), _drop_display_name(rsym), dim, tr("(rare)")])
 	var core := str(e.get("boss_core", ""))
 	if core != "":
-		lines.append("%s%s [color=%s](guaranteed)[/color]" % [ElementDB.material_icon_bbcode(core, 12), ElementDB.get_display_name(core), dim])
+		lines.append("%s%s [color=%s]%s[/color]" % [ElementDB.material_icon_bbcode(core, 12), ElementDB.get_display_name(core), dim, tr("(guaranteed)")])
 	if str(e.get("relic_drop", "")) != "":
 		lines.append(tr("Threshold Relic [color=%s](first clear)[/color]") % dim)
 	# v131b: no probabilities shown — just WHAT can drop (types), not the odds.

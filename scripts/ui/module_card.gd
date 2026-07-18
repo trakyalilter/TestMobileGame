@@ -1303,7 +1303,7 @@ func _build_comparison_tooltip_bbcode(anchor_select: bool = false, hover_affix: 
 	if sm and affixes.size() > 0:
 		tt += div
 		if anchor_select:
-			tt += "[font_size=11][color=#5FE0C8][b]ANCHOR BOLT[/b] — click an affix to lock it:[/color][/font_size]\n"
+			tt += "[font_size=11][color=#5FE0C8][b]" + tr("ANCHOR BOLT") + "[/b] " + tr("— click an affix to lock it:") + "[/color][/font_size]\n"
 		var zone_difficulty = int(data.get("zone_difficulty", 1))
 		for aid in affixes:
 			if aid in sm.AFFIX_DB:
@@ -1386,7 +1386,7 @@ func _build_comparison_tooltip_bbcode(anchor_select: bool = false, hover_affix: 
 
 	if sm and mid in sm.modules:
 		tt += div
-		tt += "[font_size=10][color=#7FA39C]Sell Value:[/color] [color=#D7B842]%s %s[/color][/font_size]" % [UITheme.format_num(sm.get_sell_price(mid)), UITheme.LIRA_ICON_BB]
+		tt += "[font_size=10][color=#7FA39C]" + tr("Sell Value:") + "[/color] [color=#D7B842]%s %s[/color][/font_size]" % [UITheme.format_num(sm.get_sell_price(mid)), UITheme.LIRA_ICON_BB]
 
 	# v83.9: Set Bonus Tooltip Section
 	var sid = data.get("set_id", "")
@@ -1420,13 +1420,13 @@ func _build_comparison_tooltip_bbcode(anchor_select: bool = false, hover_affix: 
 	var hint_lines: Array = []
 	if not no_compare and sm and mid in sm.modules:
 		if compare_pin_mid == mid:
-			hint_lines.append("Shift-click: unpin  ·  Esc: clear compare")
+			hint_lines.append(tr("Shift-click: unpin  ·  Esc: clear compare"))
 		elif compare_pin_mid != "":
-			hint_lines.append("Shift-click: pin this instead  ·  Esc: clear compare")
+			hint_lines.append(tr("Shift-click: pin this instead  ·  Esc: clear compare"))
 		else:
-			hint_lines.append("Shift-click to pin & compare two modules")
+			hint_lines.append(tr("Shift-click to pin & compare two modules"))
 	if sm and mid in sm.modules and sm.module_inventory.get(mid, 0) > 0:
-		hint_lines.append("Right-click to recycle for parts")
+		hint_lines.append(tr("Right-click to recycle for parts"))
 	if not hint_lines.is_empty():
 		tt += div
 		var hint_txt := ""

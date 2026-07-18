@@ -1132,8 +1132,8 @@ func _spawn_custom_repair_modal(m_data: Dictionary, cur_dur: int, parts_cost: in
 	var neg_hex: String = UITheme.COLORS["negative"].to_html(false)
 	var have_hex: String = pos_hex if affordable else neg_hex
 
-	var body := "[center]Restore  [b]%s[/b]\n" % nm
-	body += "from [color=#%s]%d%%[/color]   →   [color=#%s]100%%[/color] durability.\n\n" % [warn_hex, cur_dur, pos_hex]
+	var body := tr("[center]Restore  [b]%s[/b]\n") % nm
+	body += tr("from [color=#%s]%d%%[/color]   →   [color=#%s]100%%[/color] durability.\n\n") % [warn_hex, cur_dur, pos_hex]
 	body += "[color=#%s]%s[/color]     [b][color=#%s]%d[/color][/b]  %s\n" % [dim_hex, tr("COST"), warn_hex, parts_cost, tr("Spare Parts")]
 	body += "[color=#%s]%s[/color]     [b][color=#%s]%d[/color][/b]" % [dim_hex, tr("IN STOCK"), have_hex, have]
 	if not affordable:
@@ -1154,7 +1154,7 @@ func _spawn_custom_repair_modal(m_data: Dictionary, cur_dur: int, parts_cost: in
 			UITheme.show_notification(tr("Not enough Spare Parts"), UITheme.COLORS["negative"])
 
 	UITheme.show_confirm({
-		"title": "Repair Module",
+		"title": tr("Repair Module"),
 		"body": body,
 		"confirm_text": "Repair",
 		"cancel_text": "Cancel",
@@ -1219,7 +1219,7 @@ func _on_slot_hover() -> void:
 		UITheme.show_compare_tooltip(self, bb_a, bb_b, a_wm, _wm)
 	else:
 		var _tt := _build_module_tooltip(m_data)
-		var _hint := "Shift-click: unpin  ·  Esc: clear compare" if pin_mid == eqid else "Shift-click to pin & compare two modules"
+		var _hint := tr("Shift-click: unpin  ·  Esc: clear compare") if pin_mid == eqid else tr("Shift-click to pin & compare two modules")
 		_tt += "\n[color=#1E3B38]──────────────────────────────[/color]\n[font_size=9][color=#5E7C77]%s[/color][/font_size]" % _hint
 		UITheme.show_item_tooltip(self, _tt, _wm)
 

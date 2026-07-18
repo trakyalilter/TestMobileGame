@@ -213,7 +213,7 @@ func _build_ui():
 	ledger_vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	ledger_vb.add_theme_constant_override("separation", 4)
 	if rows.is_empty():
-		ledger_vb.add_child(_mk_mono("  no cargo recovered", 11, FAINT))
+		ledger_vb.add_child(_mk_mono(tr("  no cargo recovered"), 11, FAINT))
 	else:
 		for r in rows:
 			ledger_vb.add_child(_mk_ledger_row(r))
@@ -370,7 +370,7 @@ func _collect_notes() -> Array:
 	# cap survives: forfeited earnings are material, not noise.
 	var out: Array = []
 	if _capped:
-		out.append("Reached the %dh offline cap — log in sooner to bank it all." % int(CAP_SECONDS / 3600.0))
+		out.append(tr("Reached the %dh offline cap — log in sooner to bank it all.") % int(CAP_SECONDS / 3600.0))
 	return out
 
 

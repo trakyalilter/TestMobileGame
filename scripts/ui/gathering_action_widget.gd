@@ -206,7 +206,7 @@ func update_state():
 			var name_link = "[url=atlasmat:%s]%s[/url]" % [symbol, display_name]
 			var base_loot = "%s%s: %s" % [icon_bb, name_link, FormatUtils.format_number(float(entry[3]) * eff_mult)]
 			if symbol in rates:
-				loot_text += "%s [color=#55ff55](%s/m)[/color]\n" % [base_loot, FormatUtils.format_number(rates[symbol])]
+				loot_text += "%s [color=#55ff55](%s%s)[/color]\n" % [base_loot, FormatUtils.format_number(rates[symbol]), tr("/m")]
 			else:
 				loot_text += "%s\n" % base_loot
 		loot_text += "[/center]"

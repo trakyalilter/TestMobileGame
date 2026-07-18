@@ -233,7 +233,7 @@ func update_state():
 				var out_icon = ElementDB.material_icon_bbcode(item, 16)
 				var line = "%s%s %s" % [out_icon, FormatUtils.format_number(qty * eff_mult), link_text]
 				if item in rates:
-					out_str += "%s [color=#55ff55](%s/m)[/color]\n" % [line, FormatUtils.format_number(rates[item])]
+					out_str += "%s [color=#55ff55](%s%s)[/color]\n" % [line, FormatUtils.format_number(rates[item]), tr("/m")]
 				else:
 					out_str += "%s\n" % line
 		out_str += "[/center]"

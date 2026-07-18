@@ -539,9 +539,9 @@ func _setup_armory_toolbar(v_box: Node, scroll_node: Node):
 
 	# Sort dropdown — consolidates the 3 sort buttons
 	armory_sort_dropdown = OptionButton.new()
-	armory_sort_dropdown.add_item("Sort · Power",  0)
-	armory_sort_dropdown.add_item("Sort · Zone",   1)
-	armory_sort_dropdown.add_item("Sort · Rarity", 2)
+	armory_sort_dropdown.add_item(tr("Sort · Power"),  0)
+	armory_sort_dropdown.add_item(tr("Sort · Zone"),   1)
+	armory_sort_dropdown.add_item(tr("Sort · Rarity"), 2)
 	armory_sort_dropdown.selected = armory_sort_mode
 	armory_sort_dropdown.add_theme_font_size_override("font_size", 11)
 	_apply_dropdown_style(armory_sort_dropdown)
@@ -741,7 +741,7 @@ func _refresh_preset_buttons():
 		elif empty:
 			btn.tooltip_text = tr("Build slot %d — empty. Switch here and build a fresh loadout.") % idx
 		else:
-			btn.tooltip_text = ("Switch to '%s' (slot %d)." % [pname, idx]) if pname != "" else "Switch to build slot %d." % idx
+			btn.tooltip_text = (tr("Switch to '%s' (slot %d).") % [pname, idx]) if pname != "" else tr("Switch to build slot %d.") % idx
 		_apply_filter_button_style(btn, idx == active, UITheme.COLORS["accent_bright"])
 
 func _on_preset_load(idx: int):
@@ -758,9 +758,9 @@ func _on_preset_load(idx: int):
 		UITheme.show_notification(tr("Switched to empty build slot %d — equip modules to set it up.") % idx, UITheme.COLORS["accent"])
 		trigger_refresh()
 		return
-	var msg = "Switched to build slot %d  —  %d module(s) equipped" % [idx, result["loaded"]]
+	var msg = tr("Switched to build slot %d  —  %d module(s) equipped") % [idx, result["loaded"]]
 	if result["skipped"] > 0:
-		msg += "  |  %d missing" % result["skipped"]
+		msg += tr("  |  %d missing") % result["skipped"]
 	UITheme.show_notification(msg, UITheme.COLORS["accent_bright"])
 	# Force full UI refresh — slots & armory both depend on loadout
 	trigger_refresh()
@@ -774,14 +774,14 @@ func _on_scrap_by_rarity(max_rarity: int):
 		return
 	# v112: themed modal (was the primitive Window ConfirmationDialog).
 	var plural = "" if count == 1 else "s"
-	var body = "Demolish [b]%d[/b] non-equipped module%s?\n\n" % [count, plural]
-	body += "[color=#73e88c]You'll receive Liras, Spare Parts, and zone salvage.[/color]"
+	var body = tr("Demolish [b]%d[/b] non-equipped module%s?\n\n") % [count, plural]
+	body += "[color=#73e88c]" + tr("You'll receive Liras, Spare Parts, and zone salvage.") + "[/color]"
 	var on_ok := func():
 		var scrapped = manager.bulk_demolish_by_rarity(max_rarity)
 		UITheme.show_notification(tr("Demolished %d module(s)") % scrapped, UITheme.COLORS["warning"])
 		trigger_refresh()
 	UITheme.show_confirm({
-		"title": "Bulk Demolish",
+		"title": tr("Bulk Demolish"),
 		"body": body,
 		"confirm_text": "Demolish",
 		"cancel_text": "Cancel",
@@ -2094,7 +2094,7 @@ func rebuild_storage():
 					"name": ElementDB.get_display_name(stone_id),
 					"slot_type": "hack_stone",
 					"stats": {},
-					"desc": "Hack Card — drag onto a module to apply (or click to arm, then click a module)."
+					"desc": tr("Hack Card — drag onto a module to apply (or click to arm, then click a module).")
 				}
 				stone_card.is_draggable = true   # v127: drag a stone onto a module card to apply
 				stone_card.is_selected = (stone_id == _armed_stone)
@@ -2456,7 +2456,7 @@ func _refresh_hack_stone_bar() -> void:
 		return
 	_hack_stone_bar.visible = true
 	var lbl := Label.new()
-	lbl.text = tr("HACK CARDS:") if _armed_stone == "" else ("ARMED: %s — click a module" % ElementDB.get_display_name(_armed_stone))
+	lbl.text = tr("HACK CARDS:") if _armed_stone == "" else (tr("ARMED: %s — click a module") % ElementDB.get_display_name(_armed_stone))
 	lbl.add_theme_font_size_override("font_size", 11)
 	lbl.add_theme_color_override("font_color", UITheme.COLORS["accent_bright"] if _armed_stone != "" else UITheme.COLORS["text_dim"])
 	lbl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -2504,7 +2504,7 @@ func _on_stone_dropped(stone_id: String, target_mid: String) -> void:
 func _commit_card_insert(sid: String, module_id: String, card_node: Control) -> void:
 	var chk: Dictionary = manager.can_apply_hack_stone(sid, module_id)
 	if not bool(chk.get("ok", false)):
-		UITheme.show_notification(str(chk.get("msg", "Can't apply here.")), UITheme.COLORS["negative"])
+		UITheme.show_notification(str(chk.get("msg", tr("Can't apply here."))), UITheme.COLORS["negative"])
 		return
 	# Accepted → the card leaves the hand NOW. Cursor back to default; the sockets
 	# stay up during the flight and clear when the apply rebuilds the Armory.
@@ -2558,15 +2558,15 @@ func _apply_armed_stone(module_id: String, sid: String = "") -> void:
 		return
 	if sid == "RootKey" or sid == "CorruptionWorm" or sid == "SpliceChip" or sid == "FirmwareInjector" or sid == "SignalCalibrator":
 		var mname: String = str((manager.modules.get(module_id, {}) as Dictionary).get("name", module_id))
-		var body: String = "Apply [b]%s[/b] to [b]%s[/b]?\n\n" % [ElementDB.get_display_name(sid), mname]
+		var body: String = tr("Apply [b]%s[/b] to [b]%s[/b]?\n\n") % [ElementDB.get_display_name(sid), mname]
 		match sid:
-			"SpliceChip": body += "Awakens a Common into an Uncommon custom (1 affix; base stats lock)."
-			"FirmwareInjector": body += "Awakens a Common straight to a Rare custom (2 affixes)."
-			"RootKey": body += "Raises rarity one tier and rolls a NEW affix (keeps existing ones)."
-			"SignalCalibrator": body += "Re-rolls the VALUES of every UNANCHORED affix (identities & count kept). Anchor your best roll first."
-			_: body += "Removes one RANDOM unlocked affix and rolls a new one (25% Greater-Affix). Anchor an affix first to protect it."
+			"SpliceChip": body += tr("Awakens a Common into an Uncommon custom (1 affix; base stats lock).")
+			"FirmwareInjector": body += tr("Awakens a Common straight to a Rare custom (2 affixes).")
+			"RootKey": body += tr("Raises rarity one tier and rolls a NEW affix (keeps existing ones).")
+			"SignalCalibrator": body += tr("Re-rolls the VALUES of every UNANCHORED affix (identities & count kept). Anchor your best roll first.")
+			_: body += tr("Removes one RANDOM unlocked affix and rolls a new one (25% Greater-Affix). Anchor an affix first to protect it.")
 		UITheme.show_confirm({
-			"title": "Confirm Hack",
+			"title": tr("Confirm Hack"),
 			"body": body,
 			"confirm_text": "Apply",
 			"cancel_text": "Cancel",
@@ -3078,13 +3078,13 @@ class _SetTooltip extends HBoxContainer:
 			pips += "◆" if i < have else "◇"
 
 		var s := "[b][color=#%s]%s[/color][/b]\n" % [hex, tip_title]
-		s += "[color=#%s]%s[/color]  [color=#7a8190]%d / %d pieces[/color]\n" % [hex, pips, have, total]
+		s += tr("[color=#%s]%s[/color]  [color=#7a8190]%d / %d pieces[/color]\n") % [hex, pips, have, total]
 		s += "[color=#2b3140]————————————————————[/color]\n"
 		if is_active:
 			s += "[b][color=#4FE08C]◆ " + tr("SET BONUS ACTIVE") + "[/color][/b]\n"
 		else:
 			var rem := total - have
-			s += "[b][color=#FFB13D]◇ LOCKED[/color][/b]  [color=#9aa0ad]equip %d more piece%s[/color]\n" % [rem, ("s" if rem > 1 else "")]
+			s += tr("[b][color=#FFB13D]◇ LOCKED[/color][/b]  [color=#9aa0ad]equip %d more piece%s[/color]\n") % [rem, ("s" if rem > 1 else "")]
 		var line_col := "#cfe8d8" if is_active else "#6c7280"
 		for bl in bonus_lines:
 			s += "[color=%s]   +%s  %s[/color]\n" % [line_col, str(bl[1]), str(bl[0])]

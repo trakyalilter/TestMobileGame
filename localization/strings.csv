@@ -2576,3 +2576,68 @@ Restores %d%% %s","%s
 "Socket: [Empty]","Yuva: [Boş]"
 "Drag a consumable here (or click one, then click here)","Bir sarf malzemesini buraya sürükle (veya birine, sonra buraya tıkla)"
 "(EQUIPPED)","(KUŞANILI)"
+"Sort · Power","Sırala · Güç"
+"Sort · Zone","Sırala · Bölge"
+"Sort · Rarity","Sırala · Nadirlik"
+"  |  %d missing","  |  %d eksik"
+"You'll receive Liras, Spare Parts, and zone salvage.","Lira, Yedek Parça ve bölge hurdası alacaksın."
+"Bulk Demolish","Toplu Söküm"
+"Hack Card — drag onto a module to apply (or click to arm, then click a module).","Hack Kartı — uygulamak için bir modüle sürükle (veya silahlandırmak için tıkla, sonra bir modüle tıkla)."
+"ARMED: %s — click a module","SİLAHLI: %s — bir modüle tıkla"
+"Can't apply here.","Buraya uygulanamaz."
+"Awakens a Common into an Uncommon custom (1 affix; base stats lock).","Bir Sıradanı Sıra Dışı özele uyandırır (1 ek özellik; temel istatistikler kilitlenir)."
+"Awakens a Common straight to a Rare custom (2 affixes).","Bir Sıradanı doğrudan Nadir özele uyandırır (2 ek özellik)."
+"Raises rarity one tier and rolls a NEW affix (keeps existing ones).","Nadirliği bir kademe yükseltir ve YENİ bir ek özellik atar (mevcutları korur)."
+"Re-rolls the VALUES of every UNANCHORED affix (identities & count kept). Anchor your best roll first.","Her SABİTLENMEMİŞ ek özelliğin DEĞERLERİNİ yeniden atar (kimlikler ve sayı korunur). Önce en iyi atışını sabitle."
+"Removes one RANDOM unlocked affix and rolls a new one (25% Greater-Affix). Anchor an affix first to protect it.","RASTGELE bir kilidi açık ek özelliği kaldırır ve yenisini atar (%25 Üstün Ek Özellik). Korumak için önce bir ek özelliği sabitle."
+"Confirm Hack","Hack'i Onayla"
+"Repair Module","Modülü Onar"
+"Shift-click: unpin  ·  Esc: clear compare","Shift-tık: sabitlemeyi kaldır  ·  Esc: karşılaştırmayı temizle"
+"Shift-click to pin & compare two modules","İki modülü sabitleyip karşılaştırmak için Shift-tıkla"
+"Shift-click: pin this instead  ·  Esc: clear compare","Shift-tık: bunun yerine bunu sabitle  ·  Esc: karşılaştırmayı temizle"
+"Right-click to recycle for parts","Parçalar için geri dönüştürmek üzere sağ tıkla"
+"ANCHOR BOLT","SABİTLEME CIVATASI"
+"— click an affix to lock it:","— kilitlemek için bir ek özelliğe tıkla:"
+"Sell Value:","Satış Değeri:"
+"  no cargo recovered","  hiç kargo kurtarılmadı"
+"Reached the %dh offline cap — log in sooner to bank it all.","%d saatlik çevrimdışı sınırına ulaşıldı — hepsini almak için daha erken giriş yap."
+" +%d resonance"," +%d rezonans"
+"(rare)","(nadir)"
+"(guaranteed)","(garantili)"
+"%d required","%d gerekli"
+"a material","bir madde"
+"an enemy","bir düşman"
+"/m","/dk"
+"Hull Armor","Gövde Zırhı"
+"Engine Systems","Motor Sistemleri"
+"Cooling Systems","Soğutma Sistemleri"
+"Sensor & EW Suites","Sensör & EH Takımları"
+"Ordnance","Mühimmat"
+"Matrix Cores (Sockets)","Matris Çekirdekleri (Yuvalar)"
+"Demolish [b]%d[/b] non-equipped module%s?
+
+","Kuşanılmamış [b]%d[/b] modül%s sökülsün mü?
+
+"
+"Apply [b]%s[/b] to [b]%s[/b]?
+
+","[b]%s[/b], [b]%s[/b] öğesine uygulansın mı?
+
+"
+"[color=#%s]%s[/color]  [color=#7a8190]%d / %d pieces[/color]
+","[color=#%s]%s[/color]  [color=#7a8190]%d / %d parça[/color]
+"
+"[b][color=#FFB13D]◇ LOCKED[/color][/b]  [color=#9aa0ad]equip %d more piece%s[/color]
+","[b][color=#FFB13D]◇ KİLİTLİ[/color][/b]  [color=#9aa0ad]%d parça daha kuşan%s[/color]
+"
+"[center]Restore  [b]%s[/b]
+","[center][b]%s[/b] onarılsın
+"
+"from [color=#%s]%d%%[/color]   →   [color=#%s]100%%[/color] durability.
+
+","[color=#%s]%d%%[/color]   →   [color=#%s]100%%[/color] dayanıklılığa.
+
+"
+"Switched to build slot %d  —  %d module(s) equipped","Yapı yuvası %d'e geçildi  —  %d modül kuşanılı"
+"Switch to '%s' (slot %d).","'%s' yapısına geç (yuva %d)."
+"Switch to build slot %d.","Yapı yuvası %d'e geç."
