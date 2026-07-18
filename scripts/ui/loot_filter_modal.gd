@@ -118,25 +118,23 @@ func _build_filter_sections():
 	var cm = GameState.combat_manager
 	if not sm or not cm: return
 
+	# v137: filters are now teal toggle chips (was default CheckBox), each tinted by
+	# its own meaning — rarity chips in their rarity colour, weapon chips in their
+	# damage colour, slot chips in the panel accent. ON = accent fill + colour; OFF =
+	# recessed + dim. See UITheme.make_toggle_chip.
 	_add_section_header(tr("RARITY"), rarity_column)
 	for rarity_val in sm.Rarity.values():
 		var rarity_name = sm.RARITY_LABELS.get(rarity_val, "Common")
 		if rarity_name == "": rarity_name = "Common"
-		var cb = CheckBox.new()
-		cb.text = rarity_name
-		cb.button_pressed = cm.loot_filter.get(rarity_val, true)
-		cb.add_theme_color_override("font_color", sm.RARITY_COLORS.get(rarity_val, Color.WHITE))
-		cb.toggled.connect(_on_rarity_toggled.bind(rarity_val))
-		rarity_column.add_child(cb)
+		var chip = UITheme.make_toggle_chip(rarity_name, sm.RARITY_COLORS.get(rarity_val, Color.WHITE), cm.loot_filter.get(rarity_val, true))
+		chip.toggled.connect(_on_rarity_toggled.bind(rarity_val))
+		rarity_column.add_child(chip)
 
 	_add_section_header(tr("SLOT TYPE"), type_column)
 	for t in ["weapon", "armor", "shield", "engine", "battery", "sensor"]:
-		var cb = CheckBox.new()
-		cb.text = t.capitalize()
-		cb.button_pressed = cm.loot_type_filter.get(t, true)
-		cb.add_theme_color_override("font_color", Color(0.86, 0.88, 0.92))
-		cb.toggled.connect(_on_type_toggled.bind(t))
-		type_column.add_child(cb)
+		var chip = UITheme.make_toggle_chip(t.capitalize(), ACCENT, cm.loot_type_filter.get(t, true))
+		chip.toggled.connect(_on_type_toggled.bind(t))
+		type_column.add_child(chip)
 
 	_add_section_header(tr("WEAPON TYPE"), weapon_type_column)
 	# v109: Cryo is the surprise first-Warp unlock — don't list it (spoiler)
@@ -145,12 +143,9 @@ func _build_filter_sections():
 	if GameState.game_settings.get("cryo_unlocked", false):
 		wtypes.append("cryo")
 	for wt in wtypes:
-		var cb = CheckBox.new()
-		cb.text = wt.capitalize()
-		cb.button_pressed = cm.loot_weapon_type_filter.get(wt, true)
-		cb.add_theme_color_override("font_color", DMG_COLORS.get(wt, Color.WHITE))
-		cb.toggled.connect(_on_weapon_type_toggled.bind(wt))
-		weapon_type_column.add_child(cb)
+		var chip = UITheme.make_toggle_chip(wt.capitalize(), DMG_COLORS.get(wt, Color.WHITE), cm.loot_weapon_type_filter.get(wt, true))
+		chip.toggled.connect(_on_weapon_type_toggled.bind(wt))
+		weapon_type_column.add_child(chip)
 
 	var note = Label.new()
 	note.text = tr("Applies only to\nweapon drops.")

@@ -1196,35 +1196,81 @@ func _primary_button(text: String, category: String) -> Button:
 # `on_pick` is called with the chosen value. Highlight is driven by _refresh_all.
 func _add_choice_row(parent: VBoxContainer, label_text: String,
 		opts: Array, get_cur: Callable, on_pick: Callable) -> void:
+	# v137: segmented pill — label left, options as segments inside a recessed track;
+	# the active segment fills teal. One control for On/Off and multi-choice settings.
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	parent.add_child(row)
+
 	var lbl := Label.new()
 	lbl.text = label_text
-	lbl.add_theme_font_size_override("font_size", 12)
-	lbl.add_theme_color_override("font_color", Color(0.66, 0.7, 0.8))
-	parent.add_child(lbl)
+	lbl.add_theme_font_size_override("font_size", 13)
+	lbl.add_theme_color_override("font_color", Color(0.72, 0.83, 0.80))
+	lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.add_child(lbl)
 
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 6)
-	parent.add_child(row)
+	var track := StyleBoxFlat.new()
+	track.bg_color = Color(0.039, 0.086, 0.078)
+	track.set_border_width_all(1)
+	track.border_color = Color(0.141, 0.251, 0.231)
+	track.set_corner_radius_all(8)
+	track.content_margin_left = 3
+	track.content_margin_right = 3
+	track.content_margin_top = 3
+	track.content_margin_bottom = 3
+	var pill := PanelContainer.new()
+	pill.add_theme_stylebox_override("panel", track)
+	row.add_child(pill)
+	var seg := HBoxContainer.new()
+	seg.add_theme_constant_override("separation", 3)
+	pill.add_child(seg)
 
 	var btns: Array = []
 	for o in opts:
 		var b := Button.new()
 		b.text = str(o[0])
-		b.custom_minimum_size = Vector2(0, 38)
-		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		UITheme.apply_premium_button_style(b, FRAME_CAT)
-		b.add_theme_font_size_override("font_size", 14)
+		b.focus_mode = Control.FOCUS_NONE
+		b.custom_minimum_size = Vector2(50, 30)
+		b.add_theme_font_size_override("font_size", 13)
 		var val = o[1]
 		b.pressed.connect(func():
 			on_pick.call(val)
 			_refresh_all())
-		row.add_child(b)
+		seg.add_child(b)
 		btns.append([b, val])
+		_style_segment(b, val == get_cur.call())
 
 	_refreshers.append(func():
 		var cur = get_cur.call()
 		for pair in btns:
-			pair[0].modulate = SEL if pair[1] == cur else UNSEL)
+			_style_segment(pair[0], pair[1] == cur))
+
+func _style_segment(b: Button, active: bool) -> void:
+	var box := StyleBoxFlat.new()
+	box.set_corner_radius_all(5)
+	box.content_margin_left = 14
+	box.content_margin_right = 14
+	box.content_margin_top = 5
+	box.content_margin_bottom = 5
+	if active:
+		box.bg_color = Color(0.216, 0.788, 0.690)   # teal fill
+		b.add_theme_stylebox_override("normal", box)
+		b.add_theme_stylebox_override("hover", box)
+		b.add_theme_stylebox_override("pressed", box)
+		b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+		b.add_theme_color_override("font_color", Color(0.024, 0.137, 0.114))
+		b.add_theme_color_override("font_hover_color", Color(0.024, 0.137, 0.114))
+	else:
+		box.bg_color = Color(0, 0, 0, 0)             # transparent
+		var hov := box.duplicate()
+		hov.bg_color = Color(0.216, 0.788, 0.690, 0.10)
+		b.add_theme_stylebox_override("normal", box)
+		b.add_theme_stylebox_override("hover", hov)
+		b.add_theme_stylebox_override("pressed", hov)
+		b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+		b.add_theme_color_override("font_color", Color(0.43, 0.55, 0.53))
+		b.add_theme_color_override("font_hover_color", Color(0.6, 0.72, 0.68))
 
 
 func _refresh_all() -> void:

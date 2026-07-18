@@ -74,7 +74,8 @@ func _ready():
 	_search_bar.placeholder_text = tr("Search by output  (e.g. Steel)…")
 	_search_bar.clear_button_enabled = true
 	_search_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_search_bar.custom_minimum_size = Vector2(0, 32)
+	_search_bar.custom_minimum_size = Vector2(0, 36)
+	UITheme.style_search_field(_search_bar)   # v137: recessed teal-focus field
 	vb.add_child(_search_bar)
 	vb.move_child(_search_bar, _tab_strip.get_index())
 	_search_bar.text_changed.connect(_apply_search)

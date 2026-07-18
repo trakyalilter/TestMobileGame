@@ -635,6 +635,66 @@ func _free_item_tooltip() -> void:
 	_item_tooltip = null
 	_item_tooltip_anchor = null
 
+# v137: recessed teal-focus search field — one shared look for every search box.
+static func style_search_field(le: LineEdit) -> void:
+	var normal := StyleBoxFlat.new()
+	normal.bg_color = Color(0.055, 0.122, 0.114)      # #0E1F1D recessed well
+	normal.set_border_width_all(1)
+	normal.border_color = Color(0.118, 0.231, 0.220)  # #1E3B38
+	normal.set_corner_radius_all(8)
+	normal.content_margin_left = 12
+	normal.content_margin_right = 12
+	normal.content_margin_top = 7
+	normal.content_margin_bottom = 7
+	var focus := normal.duplicate()
+	focus.border_color = Color(0.216, 0.788, 0.690)   # #37C9B0 teal
+	focus.shadow_color = Color(0.216, 0.788, 0.690, 0.18)
+	focus.shadow_size = 3
+	le.add_theme_stylebox_override("normal", normal)
+	le.add_theme_stylebox_override("focus", focus)
+	le.add_theme_color_override("font_color", Color(0.894, 0.961, 0.933))
+	le.add_theme_color_override("font_placeholder_color", Color(0.43, 0.55, 0.53))
+	le.add_theme_color_override("caret_color", Color(0.216, 0.788, 0.690))
+	le.add_theme_color_override("font_selected_color", Color(0.024, 0.137, 0.114))
+	le.add_theme_color_override("selection_color", Color(0.216, 0.788, 0.690, 0.35))
+
+# v137: filter "chip" — a full-width toggle button tinted by `col` when ON (accent
+# fill + colored border + colored text) and recessed/dim when OFF. Wire .toggled to
+# the filter callback; ON draws via the pressed stylebox (toggle_mode).
+static func make_toggle_chip(label: String, col: Color, is_on: bool) -> Button:
+	var b := Button.new()
+	b.toggle_mode = true
+	b.button_pressed = is_on
+	b.text = label
+	b.focus_mode = Control.FOCUS_NONE
+	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	b.custom_minimum_size = Vector2(0, 32)
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var off := StyleBoxFlat.new()
+	off.bg_color = Color(0.055, 0.122, 0.114)          # #0E1F1D
+	off.set_border_width_all(1)
+	off.border_color = Color(0.141, 0.251, 0.231)      # #24403B
+	off.set_corner_radius_all(6)
+	off.content_margin_left = 11
+	off.content_margin_right = 11
+	off.content_margin_top = 6
+	off.content_margin_bottom = 6
+	var hover := off.duplicate()
+	hover.border_color = Color(col.r, col.g, col.b, 0.55)
+	var on := off.duplicate()
+	on.bg_color = Color(col.r, col.g, col.b, 0.13)
+	on.border_color = col
+	b.add_theme_stylebox_override("normal", off)
+	b.add_theme_stylebox_override("hover", hover)
+	b.add_theme_stylebox_override("pressed", on)
+	b.add_theme_stylebox_override("hover_pressed", on)
+	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	b.add_theme_color_override("font_color", Color(0.43, 0.55, 0.53))
+	b.add_theme_color_override("font_hover_color", Color(0.6, 0.72, 0.68))
+	b.add_theme_color_override("font_pressed_color", col)
+	b.add_theme_color_override("font_hover_pressed_color", col)
+	return b
+
 # Adds (or refreshes) the CardChrome overlay on a styled card. Idempotent:
 # re-applying a style on the same panel just updates the accent.
 func _attach_chrome(panel: Control, accent: Color) -> void:
