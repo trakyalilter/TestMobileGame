@@ -2139,7 +2139,7 @@ func apply_offline_durability_risk(delta: float) -> Array:
 	if not slots_to_clear.is_empty():
 		recalc_stats()
 		inventory_updated.emit()   # was dead code AFTER the return below — the armory
-		                           # never refreshed after offline module destruction
+								   # never refreshed after offline module destruction
 	return destroyed
 
 func log_msg(msg: String):
