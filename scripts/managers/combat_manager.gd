@@ -2903,10 +2903,15 @@ func _apply_boss_progression(eid: String) -> void:
 	_maybe_open_rift_on_boss(eid)
 
 func win_fight():
-	# v139d P3 trait: Volatile Core — the kill detonates BEFORE victory resolves.
-	# One unmitigated burst (no DEF/resist math): shields absorb, the remainder
-	# hits hull. If it kills the ship, the fight is a LOSS — glass cannons must
-	# keep an EHP floor even when overgeared.
+	# v139d P3 trait: Volatile Core — the kill detonates as you land it: one
+	# unmitigated burst (no DEF/resist math), shields absorb, remainder hits hull.
+	# v(soften): NON-LETHAL online. The kill + full loot ALWAYS stand — a corpse-burst
+	# can no longer flip an earned kill into a total loss (the "I killed it and STILL
+	# lost everything + took durability damage" feels-bad). It still bites: the burst
+	# floors a too-fragile ship to 1 HP, so a glass cannon lands the drop but limps out
+	# on a sliver — it can't safely chain-farm without an EHP floor, and the OFFLINE
+	# model (see _offline_winnable) still refuses AFK farming below EHP >= burst. The
+	# anti-glass-cannon pressure stays; the reward is no longer denied.
 	var _vol: Dictionary = current_enemy.get("volatile", {}) if current_enemy else {}
 	if not _vol.is_empty() and not _volatile_fired:
 		_volatile_fired = true
@@ -2918,10 +2923,11 @@ func win_fight():
 		combat_events.append({"type": "status", "text": "WARP CORE BREACH — %d DAMAGE" % int(_burst), "color": Color(1.0, 0.45, 0.20), "side": "player"})
 		log_msg("%s's core detonates on death — %d unmitigated damage." % [current_enemy.get("name", "Target"), int(_burst)])
 		if _sm_v and _hull_hit > 0.0:
-			_sm_v.current_hp -= _hull_hit
-			if _sm_v.current_hp <= 0:
-				lose_fight()
-				return
+			if _sm_v.current_hp - _hull_hit <= 0.0:
+				_sm_v.current_hp = 1.0   # non-lethal: survive on a sliver, keep the kill + loot
+				combat_events.append({"type": "status", "text": "HULL CRITICAL — barely survived the breach", "color": Color(1.0, 0.55, 0.20), "side": "player"})
+			else:
+				_sm_v.current_hp -= _hull_hit
 	log_msg("Destroyed %s!" % current_enemy["name"])
 	
 	# v101: Combat Loot Scaling — loot now grows with progression
