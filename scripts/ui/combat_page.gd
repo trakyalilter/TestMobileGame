@@ -455,6 +455,7 @@ func _refresh_map_mod_picker() -> void:
 		_mm_loot_lbl.text = tr("Loot ×%.2f (stack up to %d)") % [manager.get_map_mod_loot_mult(), manager.MAX_MAP_MODS]
 
 func _process(delta):
+	_float_clock += delta
 	update_ui()
 	_update_atmosphere(delta)
 	_refresh_map_mod_picker()
@@ -650,10 +651,32 @@ func _apply_hud_stress():
 	UITheme.trigger_system_glitch(hud, 12.0)
 	UITheme.trigger_ui_thud(self, 8.0)
 
-# v111.11 Stage 2.1: Centered floating damage text. Spawns off the radar
-# centre — left of centre for player-side hits, right for enemy-side — and
-# rises + fades over ~0.9s. Replaces the toast spam that piled in the
-# bottom-right corner over the RETREAT button.
+# v139e: lane-ladder float text. The old spawners dropped every popup at one
+# fixed midfield point with ±18px jitter — smaller than the text itself, so a
+# multi-weapon volley (or ENRAGED + damage) printed on top of itself and was
+# unreadable. Now each lane (player hits / enemy hits / centre events) is a
+# column, and rapid spawns step DOWN one row per popup instead of overlapping.
+# The row cursor rewinds when the lane has been quiet for FLOAT_LANE_RESET_SEC.
+var _float_clock: float = 0.0
+var _float_lane_row := {"player": 0, "enemy": 0, "event": 0}
+var _float_lane_last := {"player": -10.0, "enemy": -10.0, "event": -10.0}
+const FLOAT_LANE_ROWS := 7        # ladder depth before wrapping — deep enough
+                                  # that a full volley burst can't wrap onto a
+                                  # row whose text is still alive (~0.85s life)
+const FLOAT_ROW_STEP := 22.0      # px between rows (> text height, no touch)
+const FLOAT_LANE_RESET_SEC := 1.0 # quiet time that rewinds a lane to row 0
+
+func _float_lane_slot(lane: String) -> int:
+	if _float_clock - float(_float_lane_last[lane]) > FLOAT_LANE_RESET_SEC:
+		_float_lane_row[lane] = 0
+	_float_lane_last[lane] = _float_clock
+	var slot: int = _float_lane_row[lane]
+	_float_lane_row[lane] = (slot + 1) % FLOAT_LANE_ROWS
+	return slot
+
+# Centered floating damage text. Player hits ladder down the left column,
+# enemy hits the right — matching the radar's left=player / right=enemy
+# convention — then rise + fade. Outlined so numbers stay legible over panels.
 func _spawn_damage_float(text: String, color: Color, player_side: bool) -> void:
 	if not visualizer:
 		return
@@ -661,28 +684,32 @@ func _spawn_damage_float(text: String, color: Color, player_side: bool) -> void:
 	lbl.text = text
 	lbl.add_theme_font_size_override("font_size", 16)
 	lbl.add_theme_color_override("font_color", color)
+	lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	lbl.add_theme_constant_override("outline_size", 4)
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.custom_minimum_size = Vector2(120, 0)
 	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	lbl.z_index = 50
 	visualizer.add_child(lbl)
 
+	var slot := _float_lane_slot("player" if player_side else "enemy")
 	var vp: Vector2 = visualizer.size
-	# Player hits float on the left third, enemy hits on the right third —
-	# matching the radar's left=player / right=enemy arc convention.
-	var base_x: float = vp.x * (0.40 if player_side else 0.60)
-	var base_y: float = vp.y * 0.44
-	lbl.position = Vector2(base_x + randf_range(-18.0, 18.0), base_y + randf_range(-8.0, 8.0))
+	var base_x: float = vp.x * (0.40 if player_side else 0.60) - 60.0
+	# Ladder grows DOWNWARD from 42% so rising text never crosses the event
+	# lane up top; ±6px jitter keeps it organic without risking overlap.
+	var base_y: float = vp.y * 0.42 + slot * FLOAT_ROW_STEP
+	lbl.position = Vector2(base_x + randf_range(-6.0, 6.0), base_y + randf_range(-3.0, 3.0))
 
 	var tw := lbl.create_tween()
 	tw.set_parallel(true)
-	tw.tween_property(lbl, "position:y", lbl.position.y - 48.0, 0.9) \
+	tw.tween_property(lbl, "position:y", lbl.position.y - 30.0, 0.85) \
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tw.tween_property(lbl, "modulate:a", 0.0, 0.9).set_delay(0.3)
+	tw.tween_property(lbl, "modulate:a", 0.0, 0.6).set_delay(0.25)
 	tw.chain().tween_callback(lbl.queue_free)
 
-# v122: non-damage combat feedback (kills, loot, heals, XP) rises from the
-# upper-centre and fades — keeps it off the global right-edge toast feed that
-# overlapped the RETREAT button. Distinct height from damage floats so they
-# don't stack on each other.
+# Non-damage combat feedback (kills, loot, heals, XP, ENRAGED) — its own
+# centre column ABOVE the damage lanes (base 20% vs 42%), laddering down on
+# rapid spawns so banners never print over each other or the damage numbers.
 func _spawn_event_float(text: String, color: Color) -> void:
 	if not visualizer:
 		return
@@ -698,12 +725,13 @@ func _spawn_event_float(text: String, color: Color) -> void:
 	lbl.z_index = 51
 	visualizer.add_child(lbl)
 
+	var slot := _float_lane_slot("event")
 	var vp: Vector2 = visualizer.size
-	lbl.position = Vector2(vp.x * 0.5 - 80.0, vp.y * 0.28 + randf_range(-10.0, 10.0))
+	lbl.position = Vector2(vp.x * 0.5 - 80.0, vp.y * 0.20 + slot * (FLOAT_ROW_STEP + 4.0))
 
 	var tw := lbl.create_tween()
 	tw.set_parallel(true)
-	tw.tween_property(lbl, "position:y", lbl.position.y - 42.0, 1.2) \
+	tw.tween_property(lbl, "position:y", lbl.position.y - 30.0, 1.2) \
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tw.tween_property(lbl, "modulate:a", 0.0, 1.2).set_delay(0.5)
 	tw.chain().tween_callback(lbl.queue_free)
