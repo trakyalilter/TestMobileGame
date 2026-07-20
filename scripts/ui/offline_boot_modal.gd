@@ -43,6 +43,18 @@ var _stat_rolls: Array = []   # {label, target, prefix} — rolled up on reveal 
 func _ready():
 	visible = false
 	if bg: bg.color = Color(0, 0, 0, 1)
+	# v139c: suppress live gain-feed popups + notifications while this summary is
+	# up (one hook covers every show/dismiss path: fade-out, CONTINUE, skip).
+	visibility_changed.connect(_sync_gain_suppress)
+
+func _sync_gain_suppress() -> void:
+	if is_instance_valid(UITheme):
+		UITheme.gain_feed_suppressed = visible
+
+func _exit_tree() -> void:
+	# Never leave the game muted if the modal is freed while shown.
+	if is_instance_valid(UITheme):
+		UITheme.gain_feed_suppressed = false
 
 
 func debug_preview():

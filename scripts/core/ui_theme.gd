@@ -96,7 +96,16 @@ func _install_scrollbar_theme() -> void:
 # of truth: tweak size/path/tint here. 14px ≈ inline body text height.
 const LIRA_ICON_BB := "[img=14 color=#ffd14c]res://assets/icons/lira.svg[/img]"
 
+# v139c: raised while the offline "welcome back" modal is up. The game keeps
+# ticking behind it (idle — time doesn't stop), but its live gain-feed popups +
+# notifications were spilling onto the summary screen (owner: "on offline pro
+# window i can see the contents unrelated"). Suppress transient feedback until
+# the modal dismisses; the offline SUMMARY it shows is the point.
+var gain_feed_suppressed: bool = false
+
 func show_notification(text: Variant, color: Color = Color.WHITE):
+	if gain_feed_suppressed:
+		return
 	notification_requested.emit(text, color)
 
 # Fire a "Cargo Manifest" gain popup. `info` keys:
@@ -110,6 +119,8 @@ func show_notification(text: Variant, color: Color = Color.WHITE):
 #   hot         optional bool — crit/jackpot punch (brighter flash)
 #   tag         optional String — "CRIT" / "JACKPOT" suffix on the name line
 func show_reward(info: Dictionary) -> void:
+	if gain_feed_suppressed:
+		return
 	reward_requested.emit(info)
 
 # XP gain events arrive pre-formatted as "+N XP"; recover the integer for the
@@ -670,6 +681,24 @@ static func make_toggle_chip(label: String, col: Color, is_on: bool) -> Button:
 	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	b.custom_minimum_size = Vector2(0, 32)
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	# v137b: a leading checkbox so it reads unmistakably as a TOGGLE — even when every
+	# filter is ON (a wall of colour chips otherwise looks like a static legend). ON =
+	# checked box in the chip's colour, OFF = empty dim box. Applied via the Button ICON
+	# (not the text) so runtime translation still keys on the plain label. The texture
+	# swaps on toggle; the per-state icon colours handle bright(on)/dim(off).
+	var tex_on := load("res://assets/icons/ui/check_on.svg") as Texture2D
+	var tex_off := load("res://assets/icons/ui/check_off.svg") as Texture2D
+	if tex_on and tex_off:
+		b.icon = tex_on if is_on else tex_off
+		b.add_theme_constant_override("icon_max_width", 17)
+		b.add_theme_constant_override("h_separation", 9)
+		b.add_theme_color_override("icon_normal_color", Color(0.36, 0.42, 0.40))
+		b.add_theme_color_override("icon_hover_color", Color(0.52, 0.60, 0.57))
+		b.add_theme_color_override("icon_pressed_color", col)
+		b.add_theme_color_override("icon_hover_pressed_color", col)
+		b.toggled.connect(func(p): b.icon = tex_on if p else tex_off)
+
 	var off := StyleBoxFlat.new()
 	off.bg_color = Color(0.055, 0.122, 0.114)          # #0E1F1D
 	off.set_border_width_all(1)
@@ -689,8 +718,8 @@ static func make_toggle_chip(label: String, col: Color, is_on: bool) -> Button:
 	b.add_theme_stylebox_override("pressed", on)
 	b.add_theme_stylebox_override("hover_pressed", on)
 	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
-	b.add_theme_color_override("font_color", Color(0.43, 0.55, 0.53))
-	b.add_theme_color_override("font_hover_color", Color(0.6, 0.72, 0.68))
+	b.add_theme_color_override("font_color", Color(0.56, 0.63, 0.61))       # v137b: brighter OFF text — reads as clickable, not disabled
+	b.add_theme_color_override("font_hover_color", Color(0.72, 0.82, 0.79))
 	b.add_theme_color_override("font_pressed_color", col)
 	b.add_theme_color_override("font_hover_pressed_color", col)
 	return b
