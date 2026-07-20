@@ -360,7 +360,7 @@ func refresh_state():
 	if slot_type == "aux":
 		type_lbl.text = tr("AUX · ANY")
 	else:
-		type_lbl.text = tr("%s %d") % [slot_type.to_upper(), _get_type_number()]
+		type_lbl.text = tr("%s %d") % [tr(slot_type.to_upper()), _get_type_number()]
 	type_lbl.add_theme_color_override("font_color", _get_slot_color(slot_type))
 	
 	option_btn.clear()

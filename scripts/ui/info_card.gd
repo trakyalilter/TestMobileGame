@@ -207,7 +207,7 @@ func _setup_gem(id: String):
 	var cat_name = {"weapon": tr("Weapon"), "defense": tr("Armor/Shield"), "utility": tr("Engine/Sensor")}
 	var active_cat = sm._gem_slot_category(_host_slot_ctx) if _host_slot_ctx != "" else ""
 	if active_cat != "":
-		type_lbl.text = tr("MATRIX CORE · %s SLOT") % _host_slot_ctx.to_upper()
+		type_lbl.text = tr("MATRIX CORE · %s SLOT") % tr(_host_slot_ctx.to_upper())
 	for cat in ["weapon", "defense", "utility"]:
 		if active_cat != "" and cat != active_cat:
 			continue   # socketed in a slot: show ONLY that slot's bonus, not the others
