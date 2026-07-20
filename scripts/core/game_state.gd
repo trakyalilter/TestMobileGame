@@ -228,11 +228,14 @@ func note_damage(k_raw: float, e_raw: float, x_raw: float, k_done: float, e_done
 	d["explosive_done"] = float(d.get("explosive_done", 0.0)) + x_done
 
 func _task_label(m) -> String:
-	if m == gathering_manager: return "Mining"
-	if m == processing_manager: return "Engineering"
-	if m == research_manager: return "Research"
-	if m == combat_manager: return "Combat"
-	return "Task"
+	# v139c i18n: return TRANSLATED labels — the "%s paused — now %s" toast
+	# translated its template but showed these raw ("Combat duraklatıldı — şimdi
+	# Engineering"). CSV has Combat/Engineering/Research; Mining/Task appended.
+	if m == gathering_manager: return tr("Mining")
+	if m == processing_manager: return tr("Engineering")
+	if m == research_manager: return tr("Research")
+	if m == combat_manager: return tr("Combat")
+	return tr("Task")
 
 func set_active_manager(manager):
 	if active_manager and active_manager != manager:

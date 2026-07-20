@@ -304,24 +304,27 @@ func update_task_status():
 	if GameState.gathering_manager and GameState.gathering_manager.is_active:
 		var gm = GameState.gathering_manager
 		var action_name = gm.current_action.get("name", "Gathering")
-		status_text = tr("Gathering: %s") % action_name
+		# v139c i18n: the interpolated NAME must be translated too, else the
+		# template shows Turkish while the value stays English ("SAVAŞ: SPACE
+		# DUST MITE"). tr() falls back to the English key when no translation.
+		status_text = tr("Gathering: %s") % tr(action_name)
 
 	elif GameState.processing_manager and GameState.processing_manager.is_active:
 		var pm = GameState.processing_manager
 		var recipe_name = pm.current_recipe.get("name", "Processing")
-		status_text = tr("Engineering: %s") % recipe_name
+		status_text = tr("Engineering: %s") % tr(recipe_name)
 
 	elif GameState.combat_manager and GameState.combat_manager.in_combat:
 		var cm = GameState.combat_manager
 		var enemy_name = "Unknown"
 		if cm.current_enemy:
 			enemy_name = cm.current_enemy.get("name", "Unknown")
-		status_text = tr("Combat: %s") % enemy_name
-		
+		status_text = tr("Combat: %s") % tr(enemy_name)
+
 	elif GameState.research_manager and GameState.research_manager.is_active:
 		var rm = GameState.research_manager
 		var tech_name = rm.tech_tree[rm.active_tech_id]["name"]
-		status_text = tr("Researching: %s") % tech_name
+		status_text = tr("Researching: %s") % tr(tech_name)
 	
 	task_lbl.text = tr("%s") % status_text
 	if status_text == "Idle":
