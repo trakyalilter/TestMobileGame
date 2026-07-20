@@ -1022,9 +1022,23 @@ func _apply_pulse(rarity: int):
 	# faster, brighter cyan pulse that reads as "grab THIS one" (mirrors the slot
 	# pulse the mission drives on the designer side).
 	if coach_pulse:
+		# v139c: a subtle modulate shimmer wasn't enough (owner: equip missions
+		# highlight the SLOT well but the target MODULE reads too weakly). Stamp a
+		# bright GOLD objective frame on the card root (normally frameless) with a
+		# glow halo, and pulse it fast + high-contrast — so the module to grab is
+		# unmistakable, in the same gold language the mission objective uses.
+		var cb := StyleBoxFlat.new()
+		cb.bg_color = Color(0, 0, 0, 0)
+		cb.set_corner_radius_all(7)
+		cb.set_border_width_all(3)
+		cb.border_color = Color(1.0, 0.82, 0.30)
+		cb.shadow_color = Color(1.0, 0.82, 0.30, 0.55)
+		cb.shadow_size = 8
+		cb.set_content_margin_all(0.0)   # frameless root had 0 inset — don't shift content
+		add_theme_stylebox_override("panel", cb)
 		pulse_tween = create_tween().set_loops()
-		pulse_tween.tween_property(self, "modulate", Color(1.35, 1.55, 1.75), 0.5).set_trans(Tween.TRANS_SINE)
-		pulse_tween.tween_property(self, "modulate", Color.WHITE, 0.5).set_trans(Tween.TRANS_SINE)
+		pulse_tween.tween_property(self, "modulate", Color(1.55, 1.35, 0.80), 0.4).set_trans(Tween.TRANS_SINE)
+		pulse_tween.tween_property(self, "modulate", Color.WHITE, 0.4).set_trans(Tween.TRANS_SINE)
 		return
 	var sm = GameState.shipyard_manager
 	if not sm:
@@ -1043,6 +1057,10 @@ func _stop_pulse():
 		pulse_tween.kill()
 	pulse_tween = null
 	modulate = Color.WHITE
+	# v139c: drop the coach objective frame — the card root is normally frameless
+	# (the tile draws its own rarity border). Non-coach re-styles keep it empty.
+	if not coach_pulse:
+		add_theme_stylebox_override("panel", StyleBoxEmpty.new())
 
 func _gui_input(event):
 	if event is InputEventMouseButton:
