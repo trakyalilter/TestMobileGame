@@ -39,28 +39,30 @@ var material_rewards = {
 	15: [["PrimordialShard", 60, 120], ["ChronoCore", 60, 120]]
 }
 
-# v139: Stockpile targets, quest-owned (was bounty's delivery_materials — moved here
-# when deliveries left the bounty board). Rows: [material_id, min_qty, max_qty, credits].
-# Credits are the FINAL payout (pre warp/recursion mults) — REPRICED from the v73
-# table: stockpiles are non-consuming and auto-complete from inventory, so they pay
-# a small passive trickle, never printer sums (old T10 rows paid 10-20M effective;
-# a Z8 boss KILL drops 3-6M — that ratio was upside down).
+# v139: Stockpile targets, quest-owned. Rows: [material_id, min_qty, max_qty, credits].
+# Credits are the FINAL payout (pre warp/recursion mults).
+# v139c: Stockpile orders now CONSUME the delivered goods (like Supply), so this is
+# the raw-material -> Lira SINK, not a passive reward-for-holding. Rewards bumped
+# x1.75 over the original repriced table to make surplus-dumping clearly worth the
+# consumed goods + the lost double-dip, while staying UNDER combat income per minute
+# (v107 active-out-earns-idle) and bounded by material throughput (no printer:
+# each claim costs the full delivered stack). Supply (crafted) still leads per tier.
 var gather_materials = {
-	1: [["Cu", 300, 600, 2000], ["Fe", 200, 450, 2500], ["Si", 150, 300, 2000]],
-	2: [["Fe", 500, 1000, 6000], ["Cu", 400, 800, 5000], ["Steel", 60, 150, 8000]],
-	3: [["Steel", 150, 300, 18000], ["Ti", 80, 180, 22000], ["Circuit", 60, 120, 20000]],
-	4: [["Ti", 200, 400, 45000], ["W", 100, 200, 40000], ["Graphite", 150, 300, 35000]],
-	5: [["AdvCircuit", 60, 120, 90000], ["Superalloy", 30, 80, 100000], ["NavData", 60, 150, 70000]],
-	6: [["ColonySalvage", 150, 300, 160000], ["AdvCircuit", 100, 200, 150000], ["Steel", 1200, 2500, 130000]],
-	7: [["RadIsotope", 120, 300, 260000], ["Pt", 60, 150, 300000], ["Superalloy", 100, 200, 240000]],
-	8: [["VoidCrystal", 30, 90, 500000], ["Diamond", 20, 50, 450000], ["ExoticMatter", 12, 30, 550000]],
-	9: [["BiohazardSample", 60, 150, 900000], ["Neutronium", 30, 90, 1000000], ["PathogenCore", 12, 30, 1100000]],
-	10: [["VoidEssence", 30, 60, 2000000], ["ChronoCore", 12, 30, 2500000], ["PrimordialShard", 8, 20, 3000000]],
-	11: [["ExoticMatter", 40, 80, 4500000], ["VoidEssence", 50, 100, 5000000]],
-	12: [["PrimordialShard", 30, 60, 8000000], ["OmegaPlating", 20, 50, 9000000]],
-	13: [["ChronoCore", 40, 90, 14000000], ["VoidEssence", 80, 160, 15000000]],
-	14: [["ExoticMatter", 120, 240, 24000000], ["ChronoCore", 60, 120, 25000000]],
-	15: [["PrimordialShard", 120, 240, 40000000], ["OmegaPlating", 60, 120, 42000000]]
+	1: [["Cu", 300, 600, 3500], ["Fe", 200, 450, 4400], ["Si", 150, 300, 3500]],
+	2: [["Fe", 500, 1000, 10000], ["Cu", 400, 800, 8800], ["Steel", 60, 150, 14000]],
+	3: [["Steel", 150, 300, 32000], ["Ti", 80, 180, 38000], ["Circuit", 60, 120, 35000]],
+	4: [["Ti", 200, 400, 79000], ["W", 100, 200, 70000], ["Graphite", 150, 300, 61000]],
+	5: [["AdvCircuit", 60, 120, 160000], ["Superalloy", 30, 80, 180000], ["NavData", 60, 150, 120000]],
+	6: [["ColonySalvage", 150, 300, 280000], ["AdvCircuit", 100, 200, 260000], ["Steel", 1200, 2500, 230000]],
+	7: [["RadIsotope", 120, 300, 460000], ["Pt", 60, 150, 520000], ["Superalloy", 100, 200, 420000]],
+	8: [["VoidCrystal", 30, 90, 880000], ["Diamond", 20, 50, 790000], ["ExoticMatter", 12, 30, 960000]],
+	9: [["BiohazardSample", 60, 150, 1600000], ["Neutronium", 30, 90, 1800000], ["PathogenCore", 12, 30, 1900000]],
+	10: [["VoidEssence", 30, 60, 3500000], ["ChronoCore", 12, 30, 4400000], ["PrimordialShard", 8, 20, 5200000]],
+	11: [["ExoticMatter", 40, 80, 7900000], ["VoidEssence", 50, 100, 8800000]],
+	12: [["PrimordialShard", 30, 60, 14000000], ["OmegaPlating", 20, 50, 16000000]],
+	13: [["ChronoCore", 40, 90, 24000000], ["VoidEssence", 80, 160, 26000000]],
+	14: [["ExoticMatter", 120, 240, 42000000], ["ChronoCore", 60, 120, 44000000]],
+	15: [["PrimordialShard", 120, 240, 70000000], ["OmegaPlating", 60, 120, 74000000]]
 }
 
 # v139: Supply Orders — CRAFTED goods only (deep recipe chains: Steel/Circuit/
