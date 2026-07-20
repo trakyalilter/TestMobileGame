@@ -647,10 +647,16 @@ func _refresh_consumable_state():
 	_apply_base_style()
 	var c_type = "hull" if slot_type == "consumable_hull" else "shield"
 
-	type_lbl.text = tr("HULL REPAIR") if c_type == "hull" else "SHIELD REPAIR"
-	type_lbl.add_theme_color_override("font_color", Color(0.74, 0.74, 0.86))
+	# v139c: ICON-FORWARD (owner: "i only wanted icons"). Hull/shield is read from
+	# the icon (bandage vs shield) + tooltip; hide the type + name + effect text and
+	# lead with the icon, keeping only the terse count. (tr() on SHIELD REPAIR fixed
+	# for the tooltip below, which still carries the full detail.)
+	type_lbl.text = tr("HULL REPAIR") if c_type == "hull" else tr("SHIELD REPAIR")
+	type_lbl.visible = false
 	rarity_badge.visible = false
-	_ensure_type_icon().visible = false
+	var c_icon = _ensure_type_icon()
+	c_icon.custom_minimum_size = Vector2(0, 46)
+	c_icon.visible = false   # v137: shown below with the consumable's own material icon
 
 	# Belt-and-suspenders: hide any SetLabel that an early refresh may have left here.
 	# Consumables are not part of Trinity sets, so this label should never appear.
@@ -666,19 +672,28 @@ func _refresh_consumable_state():
 		var dname = data.get("name", equipped_id)
 		var qty = GameState.resources.get_element_amount(equipped_id)
 		var heal_pct = int(round(data.get("heal_pct", data.get("stats", {}).get("heal_pct", 0.0)) * 100.0))
-		
-		name_lbl.text = tr("%s (x%d)") % [dname, qty]
-		name_lbl.add_theme_color_override("font_color", Color(0.74, 0.74, 0.86))
-		
-		stats_lbl.text = tr("Restores %d%% %s") % [heal_pct, tr(c_type.capitalize())]
-		
-		tooltip_text = tr("%s\nRestores %d%% %s") % [dname, heal_pct, tr(c_type.capitalize())]
-		
+
+		# v137: show the consumable's own material icon (was hidden — this face had no icon).
+		var ctex = ElementDB.get_material_icon(equipped_id)
+		if ctex:
+			c_icon.texture = ctex
+			c_icon.modulate = ElementDB.get_material_tint(equipped_id)
+			c_icon.visible = true
+
+		# v139c icon-forward: name + effect → tooltip; tile keeps only the count.
+		name_lbl.visible = false
+		stats_lbl.text = "×%d" % qty
+		stats_lbl.add_theme_color_override("font_color", Color(0.373, 0.878, 0.784) if qty > 0 else Color(0.8, 0.3, 0.3))
+
+		tooltip_text = tr("%s\nRestores %d%% %s\nStock: %d") % [dname, heal_pct, tr(c_type.capitalize()), qty]
+
 		option_btn.add_item("Unequip", 1)
 		option_btn.set_item_metadata(1, "unequip")
 	else:
-		name_lbl.text = ""
-		stats_lbl.text = "--"
+		name_lbl.visible = true
+		name_lbl.text = tr("EMPTY")
+		name_lbl.add_theme_color_override("font_color", Color(0.33, 0.33, 0.33))
+		stats_lbl.text = ""
 		tooltip_text = tr("Drag a consumable here (or click one, then click here)")
 
 	var items = ElementDB.get_elements_in_category("consumables")

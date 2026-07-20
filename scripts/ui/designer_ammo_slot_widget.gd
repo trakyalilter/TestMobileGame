@@ -33,7 +33,24 @@ func _apply_base_style():
 	frame.content_margin_bottom = 5
 	add_theme_stylebox_override("panel", frame)
 
-func refresh_state():	
+# v137: the ammo card had no icon. Lazily add a TextureRect at the top (matching the
+# equipped-module / consumable slots) and fill it with the ammo's own material icon.
+func _ensure_icon() -> TextureRect:
+	var v = $MarginContainer/VBoxContainer
+	var ic = v.get_node_or_null("AmmoIcon")
+	if not ic:
+		ic = TextureRect.new()
+		ic.name = "AmmoIcon"
+		ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		ic.custom_minimum_size = Vector2(0, 46)   # v139c: icon-forward — bigger icon, no text stack
+		ic.size_flags_horizontal = Control.SIZE_FILL
+		ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		v.add_child(ic)
+		v.move_child(ic, 0)
+	return ic
+
+func refresh_state():
 	if not is_node_ready():
 		return
 	if not manager:
@@ -42,21 +59,32 @@ func refresh_state():
 		return
 
 	var active_ammo = manager.ammo_loadout.get(slot_idx, "")
-	type_lbl.text = tr("WEAPON %d") % (slot_idx + 1)  # v131b: terse — fits the square; blade title already says AMMUNITION
-	type_lbl.add_theme_color_override("font_color", Color(0.88, 0.60, 0.34)) # Ammo Slot Color
+	# v139c: ICON-FORWARD (owner: "i only wanted icons"). The slot number + ammo
+	# NAME are redundant with the icon (and both live in the hover tooltip) — hide
+	# them and lead with the icon; keep only the terse count, the one functional
+	# number. Empty slots still read as EMPTY.
+	type_lbl.visible = false
 
+	var ic = _ensure_icon()
 	if active_ammo != "":
-		var ammo_name = ElementDB.get_display_name(active_ammo)
 		var qty = GameState.resources.get_element_amount(active_ammo)
-		name_lbl.text = ammo_name.to_upper()
-		name_lbl.add_theme_color_override("font_color", Color(0.9, 0.86, 0.78)) # TEXT_MAIN
-		status_lbl.text = tr("%d units") % qty
+		name_lbl.visible = false
+		status_lbl.text = "×%d" % qty
 		status_lbl.add_theme_color_override("font_color", Color(0.373, 0.878, 0.784) if qty > 0 else Color(0.8, 0.3, 0.3))
+		status_lbl.visible = true
+		var atex = ElementDB.get_material_icon(active_ammo)
+		if atex:
+			ic.texture = atex
+			ic.modulate = ElementDB.get_material_tint(active_ammo)
+			ic.visible = true
+		else:
+			ic.visible = false
 	else:
+		name_lbl.visible = true
 		name_lbl.text = tr("EMPTY")
 		name_lbl.add_theme_color_override("font_color", Color(0.33, 0.33, 0.33))
-		status_lbl.text = tr("None")
-		status_lbl.add_theme_color_override("font_color", Color(0.33, 0.33, 0.33))
+		status_lbl.visible = false
+		ic.visible = false
 
 
 func _get_drag_data(_at_position: Vector2) -> Variant:
@@ -133,6 +161,8 @@ func _make_custom_tooltip(_for_text: String) -> Control:
 	var ammo_name = ElementDB.get_display_name(active_ammo).to_upper()
 	var tt = "[center][b][font_size=16][color=#aaaaaa]%s[/color][/font_size][/b]\n" % ammo_name
 	tt += "[i][font_size=10][color=#7FA39C]" + tr("Common Ammo") + "[/color][/font_size][/i][/center]\n"
+	# v139c: count now lives here (the tile is icon-only) so hover still shows stock.
+	tt += "[center][font_size=11][color=#5FE0C8]" + (tr("Stock: %d") % int(GameState.resources.get_element_amount(active_ammo))) + "[/color][/font_size][/center]\n"
 	tt += "[color=#1E3B38]──────────────────────────────[/color]\n"
 
 	var bonus = 0.0
