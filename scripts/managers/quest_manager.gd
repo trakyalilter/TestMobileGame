@@ -97,6 +97,10 @@ func connect_signals():
 	if GameState.resources:
 		if not GameState.resources.element_added.is_connected(_on_element_added):
 			GameState.resources.element_added.connect(_on_element_added)
+		# v139c: also watch REMOVALS — a Stockpile/Supply bar must drop live when
+		# the player spends the material (it reflects what you OWN right now).
+		if not GameState.resources.element_removed.is_connected(_on_element_removed):
+			GameState.resources.element_removed.connect(_on_element_removed)
 	if GameState.combat_manager:
 		if not GameState.combat_manager.enemy_defeated.is_connected(_on_enemy_defeated):
 			GameState.combat_manager.enemy_defeated.connect(_on_enemy_defeated)
@@ -105,18 +109,17 @@ func connect_signals():
 		_fill_board()
 	else:
 		# Sync gather progress from inventory in case we missed elements
-		_sync_gather_progress()
+		_resync_stock_quests()
 
-func _on_element_added(symbol, amount):
-	for q in board:
-		if q["completed"] or q["claimed"]: continue
-		# v139: supply orders track exactly like gathers (own N of X) — the
-		# difference is at CLAIM, where supply consumes the goods.
-		if (q["type"] == "gather" or q["type"] == "supply") and q["target"] == symbol:
-			q["current_qty"] = min(q["current_qty"] + amount, q["target_qty"])
-			if q["current_qty"] >= q["target_qty"]:
-				q["completed"] = true
-			quest_updated.emit()
+func _on_element_added(_symbol, _amount):
+	# v139c: gather/supply progress is a LIVE inventory read (see
+	# _resync_stock_quests), not an accumulator — any add re-derives from what
+	# the player now owns.
+	_resync_stock_quests()
+
+func _on_element_removed(_symbol, _amount):
+	# v139c: spending a material lowers its Stockpile/Supply bars live.
+	_resync_stock_quests()
 
 func _on_enemy_defeated(enemy_id):
 	for q in board:
@@ -127,19 +130,25 @@ func _on_enemy_defeated(enemy_id):
 				q["completed"] = true
 			quest_updated.emit()
 
-func _sync_gather_progress():
-	# When loading, pull current inventory levels into "gather"/"supply" quests so
-	# existing stockpiles count. We cap to target_qty so progress doesn't overshoot.
+# v139c: a Stockpile/Supply quest means "own N units of X" — its progress is a
+# LIVE read of current inventory, min(owned, target), re-derived on every
+# inventory change (up AND down). The old model INCREMENTED from when each quest
+# spawned, so two quests for the same material drifted apart and a freshly-rolled
+# one showed 0/N even while the player already owned hundreds (owner-reported
+# 6× "Stok: Bakır" cards reading 272/272/138/138/0). Both-way so the bar mirrors
+# holdings and never latches on stale accumulated counts.
+func _resync_stock_quests():
 	if not GameState.resources: return
 	var changed = false
 	for q in board:
 		if q["claimed"]: continue
 		if q["type"] == "gather" or q["type"] == "supply":
 			var have = GameState.resources.get_element_amount(q["target"])
-			if have > q["current_qty"]:
-				q["current_qty"] = min(have, q["target_qty"])
-				if q["current_qty"] >= q["target_qty"]:
-					q["completed"] = true
+			var new_cur = min(have, q["target_qty"])
+			var new_done: bool = have >= q["target_qty"]
+			if new_cur != q["current_qty"] or new_done != q["completed"]:
+				q["current_qty"] = new_cur
+				q["completed"] = new_done
 				changed = true
 	if changed: quest_updated.emit()
 
@@ -199,6 +208,8 @@ func _generate_gather_quest(min_diff: int, max_diff: int) -> Dictionary:
 	var qty = randi_range(t[1], t[2])
 	var credits = t[3]
 	var d_name = ElementDB.get_display_name(mat_id)
+	# v139c: born reflecting current inventory ("own N"), never 0/N when held.
+	var have = GameState.resources.get_element_amount(mat_id) if GameState.resources else 0
 	return {
 		"id": _gen_id(),
 		"type": "gather",
@@ -206,11 +217,11 @@ func _generate_gather_quest(min_diff: int, max_diff: int) -> Dictionary:
 		"desc": tr("Acquire %d units of %s.") % [qty, d_name],
 		"target": mat_id,
 		"target_qty": qty,
-		"current_qty": 0,
+		"current_qty": min(have, qty),
 		"reward_credits": credits,
 		"reward_material": _roll_material_bonus(tier),
 		"difficulty": tier,
-		"completed": false,
+		"completed": have >= qty,
 		"claimed": false
 	}
 
@@ -226,6 +237,8 @@ func _generate_supply_quest(min_diff: int, max_diff: int) -> Dictionary:
 	var qty = randi_range(t[1], t[2])
 	var credits = t[3]
 	var d_name = ElementDB.get_display_name(mat_id)
+	# v139c: born reflecting current inventory (live "own N" read).
+	var have = GameState.resources.get_element_amount(mat_id) if GameState.resources else 0
 	return {
 		"id": _gen_id(),
 		"type": "supply",
@@ -233,11 +246,11 @@ func _generate_supply_quest(min_diff: int, max_diff: int) -> Dictionary:
 		"desc": tr("Deliver %d %s to the station. Goods are consumed when you claim.") % [qty, d_name],
 		"target": mat_id,
 		"target_qty": qty,
-		"current_qty": 0,
+		"current_qty": min(have, qty),
 		"reward_credits": credits,
 		"reward_material": _roll_material_bonus(tier),
 		"difficulty": tier,
-		"completed": false,
+		"completed": have >= qty,
 		"claimed": false
 	}
 
@@ -383,7 +396,7 @@ func load_save_data_manager(data: Dictionary):
 	if board.is_empty():
 		_fill_board()
 	else:
-		_sync_gather_progress()
+		_resync_stock_quests()
 
 func reset():
 	board.clear()

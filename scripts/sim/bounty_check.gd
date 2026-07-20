@@ -146,7 +146,7 @@ func _ready() -> void:
 	if sq_ok:
 		qm.board.append(sq)
 		res.add_element(sq["target"], int(sq["target_qty"]) + 5, true)
-		qm._sync_gather_progress()
+		qm._resync_stock_quests()
 		var completed_ok: bool = sq["completed"]
 		var have_before: float = res.get_element_amount(sq["target"])
 		var cq_before: float = res.get_currency("credits")
@@ -157,7 +157,7 @@ func _ready() -> void:
 		var sq2: Dictionary = qm._generate_supply_quest(3, 3)
 		qm.board.append(sq2)
 		res.add_element(sq2["target"], int(sq2["target_qty"]), true)
-		qm._sync_gather_progress()
+		qm._resync_stock_quests()
 		res.remove_element(sq2["target"], int(sq2["target_qty"]))
 		var claim2: bool = qm.claim_quest(sq2["id"])
 		guard_ok = (not claim2) and (not sq2["completed"])
@@ -176,7 +176,7 @@ func _ready() -> void:
 	for q in qm.board:
 		if q["type"] == "gather":
 			res.add_element(q["target"], int(q["target_qty"]), true)
-			qm._sync_gather_progress()
+			qm._resync_stock_quests()
 			if q["completed"]:
 				qm.claim_quest(q["id"])
 				cooled = qm.get_reroll_cost() == r0
