@@ -68,5 +68,28 @@ func _ready() -> void:
 	_ok("spending drops bars live", dropped, "q540=%d q200=%d" % [int(q540["current_qty"]), int(q200["current_qty"])])
 	_ok("un-completes when below target", not bool(q200["completed"]) and not bool(q388["completed"]))
 
+	# 5) EXPLOIT CLOSED: gather orders CONSUME on claim, so held stock can't
+	#    print infinite rewards (owner-reported claim→reroll→claim farm).
+	qm.board.clear()
+	res.remove_element("Cu", res.get_element_amount("Cu"))   # zero Cu
+	res.add_element("Cu", 500, true)
+	var g1 = _mk_gather(qm, "Cu", 200); qm._resync_stock_quests()
+	var cr0 = res.get_currency("credits")
+	var claim1 = qm.claim_quest(g1["id"])
+	_ok("gather claim CONSUMES stock", claim1 and int(res.get_element_amount("Cu")) == 300,
+		"cu=%d" % int(res.get_element_amount("Cu")))
+	_ok("gather claim pays Liras", res.get_currency("credits") > cr0)
+	var g2 = _mk_gather(qm, "Cu", 200); qm._resync_stock_quests()   # 300 Cu → completes
+	qm.claim_quest(g2["id"])                                        # drains to 100
+	var g3 = _mk_gather(qm, "Cu", 200); qm._resync_stock_quests()   # 100 Cu
+	var claim3 = qm.claim_quest(g3["id"])
+	_ok("farm broken once stock runs out", (not claim3) and int(res.get_element_amount("Cu")) == 100,
+		"claim3=%s cu=%d" % [str(claim3), int(res.get_element_amount("Cu"))])
+
+	# 6) clean divisible-by-10 targets (no 199/282/387)
+	_ok("_round_qty divisible-by-10",
+		qm._round_qty(199) == 200 and qm._round_qty(387) == 390 and qm._round_qty(282) == 280 and qm._round_qty(1523) == 1500,
+		"199→%d 387→%d 282→%d 1523→%d" % [qm._round_qty(199), qm._round_qty(387), qm._round_qty(282), qm._round_qty(1523)])
+
 	print("[QSTOCK] %s" % ("ALL PASS" if fails == 0 else "*** %d FAILURE(S)" % fails))
 	get_tree().quit(1 if fails > 0 else 0)

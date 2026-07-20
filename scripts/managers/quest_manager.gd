@@ -205,7 +205,7 @@ func _generate_gather_quest(min_diff: int, max_diff: int) -> Dictionary:
 	if templates.is_empty(): return {}
 	var t = templates[randi() % templates.size()]
 	var mat_id = t[0]
-	var qty = randi_range(t[1], t[2])
+	var qty = _round_qty(randi_range(t[1], t[2]))
 	var credits = t[3]
 	var d_name = ElementDB.get_display_name(mat_id)
 	# v139c: born reflecting current inventory ("own N"), never 0/N when held.
@@ -234,7 +234,7 @@ func _generate_supply_quest(min_diff: int, max_diff: int) -> Dictionary:
 	if templates.is_empty(): return {}
 	var t = templates[randi() % templates.size()]
 	var mat_id = t[0]
-	var qty = randi_range(t[1], t[2])
+	var qty = _round_qty(randi_range(t[1], t[2]))
 	var credits = t[3]
 	var d_name = ElementDB.get_display_name(mat_id)
 	# v139c: born reflecting current inventory (live "own N" read).
@@ -272,6 +272,15 @@ func _gen_id() -> String:
 	_id_counter += 1
 	return "quest_%d_%d" % [Time.get_ticks_msec(), _id_counter]
 
+# v139c: quest targets snap to clean, divisible-by-10 numbers (owner: no
+# confusing 282/387 asks). Step scales with magnitude so big supply orders stay
+# tidy too — every result is a multiple of 10.
+func _round_qty(n: int) -> int:
+	if n < 100: return maxi(10, int(round(n / 10.0)) * 10)
+	if n < 1000: return int(round(n / 10.0)) * 10
+	if n < 10000: return int(round(n / 100.0)) * 100
+	return int(round(n / 1000.0)) * 1000
+
 # ── Player Actions ──
 
 func claim_quest(quest_id: String) -> bool:
@@ -284,10 +293,14 @@ func claim_quest(quest_id: String) -> bool:
 	var q = board[idx]
 	if not q["completed"] or q["claimed"]: return false
 
-	# v139: Supply Orders consume the goods at CLAIM time — re-verify the stock
-	# (it may have been spent since the quest auto-completed) and un-complete
-	# instead of paying for materials the player no longer holds.
-	if q["type"] == "supply":
+	# v139c: BOTH order types CONSUME the goods at CLAIM time. Supply always did;
+	# gather ("Stockpile") now does too — without it, the live-inventory bar made
+	# every held-material order auto-complete, and claim→reroll→claim printed
+	# infinite Liras for materials you never spent (owner-reported). Consuming
+	# turns raw stock into a Lira sink and re-verifies the stock (it may have been
+	# spent since the bar auto-completed) — un-complete instead of paying for
+	# materials no longer held.
+	if q["type"] == "supply" or q["type"] == "gather":
 		var have = GameState.resources.get_element_amount(q["target"])
 		if have < q["target_qty"]:
 			q["completed"] = false

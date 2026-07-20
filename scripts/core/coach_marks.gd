@@ -209,7 +209,7 @@ const STEPS := {
 		{
 			"anchor": "grid",
 			"title": "Quests",
-			"body": "Repeatable side goals that progress automatically as you play. SUPPLY ORDERS consume the goods when you claim them — Stockpiles just need you to own the amount.",
+			"body": "Repeatable delivery orders — turn materials in for Liras. The bar shows how much you currently OWN of each item; claiming CONSUMES the goods, so it's a steady way to convert surplus stock into cash.",
 		},
 		{
 			"anchor": "claim_all",
