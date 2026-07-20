@@ -3769,6 +3769,40 @@ func count_demolish_candidates_by_rarity(max_rarity: int) -> int:
 	return n
 
 # ── Loadout Presets (QoL: Save/Load build) ──
+# v139c: base module TYPE of any id — a base id maps to itself; a custom instance
+# to its base_module (with a string-parse fallback for a stale custom id no longer
+# in `modules`). Used to match a churned preset id to an owned equivalent.
+func _module_base_id(mid: String) -> String:
+	if mid in modules:
+		return String(modules[mid].get("base_module", mid))
+	if mid.begins_with("custom_"):
+		var parts: PackedStringArray = mid.trim_prefix("custom_").split("_")
+		while parts.size() > 1 and parts[parts.size() - 1].is_valid_int():
+			parts.remove_at(parts.size() - 1)
+		return "_".join(parts)
+	return mid
+
+# v139c: an OWNED module id equivalent to `mid` (same base type), for preset
+# application after the base→custom id churn. Prefers an exact-rarity match, else
+# the best-rarity owned instance of that type; "" if none owned.
+func _resolve_owned_equivalent(mid: String) -> String:
+	var want_base: String = _module_base_id(mid)
+	var want_rar: int = int(modules.get(mid, {}).get("rarity", 0))
+	var best := ""
+	var best_rar := -1
+	for owned_id in module_inventory:
+		if int(module_inventory[owned_id]) <= 0:
+			continue
+		if _module_base_id(String(owned_id)) != want_base:
+			continue
+		var orar: int = int(modules.get(owned_id, {}).get("rarity", 0))
+		if orar == want_rar:
+			return String(owned_id)
+		if orar > best_rar:
+			best = String(owned_id)
+			best_rar = orar
+	return best
+
 func save_loadout_preset(idx: int) -> bool:
 	if not idx in loadout_presets: return false
 	var preset = loadout_presets[idx]
@@ -3823,7 +3857,17 @@ func load_loadout_preset(idx: int) -> Dictionary:
 		var mid = preset["loadout"][raw_slot]
 		if mid == null or mid == "":
 			continue
-		if equip_module(slot_idx, mid, true):
+		# v139c: preset ids can churn — an equipped BASE module becomes a custom
+		# instance on combat defeat (durability tracking), so a preset that still
+		# stores the base id finds it gone (0 owned) and loads that slot EMPTY.
+		# d620882 re-synced only the ACTIVE preset; the OTHER build still stored
+		# base ids and wiped when the shared modules converted ("build 1 & 2
+		# emptied after a defeat"). If the exact id isn't owned, equip an
+		# equivalent OWNED module of the same base type so the build survives.
+		var use_mid: String = String(mid)
+		if int(module_inventory.get(use_mid, 0)) <= 0:
+			use_mid = _resolve_owned_equivalent(use_mid)
+		if use_mid != "" and equip_module(slot_idx, use_mid, true):
 			loaded += 1
 		else:
 			skipped += 1
