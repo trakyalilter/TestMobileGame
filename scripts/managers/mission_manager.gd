@@ -144,14 +144,20 @@ func init_missions():
 		# auto-loaded a phantom "missile" ammo id instead of MissileT1 — both now fixed).
 		["m017c2", "Stock the Warheads", "The launcher fires Missiles. In the Engineering tab, produce 60 HE Missiles.", "gather", "MissileT1", 60, 1800, 250, "m017d"],
 		["m017d", "Warhead", "Click LOADOUT 3, equip BOTH Micro-Missile Launchers there, then destroy a Scrap Collector in Lunar Orbit. Kinetic / Energy / Explosive now live in Loadouts 1 / 2 / 3 — before a fight, one click swaps your WHOLE ship modules.", "defeat", "z1_scrap_collector", 1, 3500, 600, "m018"],
-		["m018", "Industrial Logistics", "Research the 'Industrial Logistics' hub.", "research", "industrial_logistics", 1, 500, 100, "m019"],
+		["m018", "Industrial Logistics", "Research the 'Industrial Logistics' hub.", "research", "industrial_logistics", 1, 500, 100, "m018t1"],
 		# v136: automated_logistics tech removed (collapsed). This already-orphaned beat
 		# retargets to industrial_logistics so any in-flight save on it auto-completes.
-		["m018b", "Automated Intelligence", "Research the 'Industrial Logistics' hub.", "research", "industrial_logistics", 1, 1000, 200, "m019"],
-		# v134: the Circuit recipe needs TIN (Sn) — a material the chain never introduced
-		# (Cassiterite mining was only taught at m028, nine missions later). Name the
-		# full path so the player isn't stared down by an unexplained missing input.
-		["m019", "Cybernetic Integration", "Craft 10 Circuit Boards in the Engineering tab. Needs Tin — mine Cassiterite, then smelt it into Tin first.", "gather", "Circuit", 10, 2000, 300, "m019b"],
+		["m018b", "Automated Intelligence", "Research the 'Industrial Logistics' hub.", "research", "industrial_logistics", 1, 1000, 200, "m018t1"],
+		# v139c: the Circuit recipe needs TIN (Sn), but Cassiterite mining was only
+		# TAUGHT at m028 — nine missions AFTER m019 demanded it. The v134 text-only fix
+		# (naming Tin inside m019) left the player bounced between "need Circuit" and
+		# "need Tin" with no guided path ("rotates around tin and circuit board").
+		# Fixed like the m029 AdvCircuit wall: explicit ordered sub-steps that mine the
+		# ore and smelt the Tin BEFORE the Circuit craft. So the flow reads
+		# ore → tin → circuit instead of dropping a hidden input on the player.
+		["m018t1", "Tin Prospecting", "In the Mine page, extract 40 Cassiterite (tin ore). It smelts into the Tin your circuits will need.", "gather", "Cassiterite", 40, 1500, 200, "m018t2"],
+		["m018t2", "Tin Smelting", "In the Engineering tab, smelt Cassiterite into 24 Tin (Sn) — the 'Tin Smelting' recipe (it also uses a little Carbon).", "gather", "Sn", 24, 1500, 200, "m019"],
+		["m019", "Cybernetic Integration", "Craft 10 Circuit Boards in the Engineering tab — they use the Tin you just smelted, plus Copper and Silicon.", "gather", "Circuit", 10, 2000, 300, "m019b"],
 		# P-onboard: close two long-standing teaching holes before the smelting push.
 		# Both are visit_page (auto-complete on navigation → can never soft-lock) and
 		# fire the existing per-page coach card the moment the player lands.
