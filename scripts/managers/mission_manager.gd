@@ -8,7 +8,7 @@ const DEBUG_LOG := false
 # arc, m030i/m032a boss-core farms) — they sat between [CHAPTER 2] missions but
 # rendered as [TUTORIAL], which read as the game mislabeling its own acts.
 const CHAPTER_2_IDS = ["m027", "m027b", "m028", "m029",
-	"m029a1", "m029a2", "m029a3", "m029a4", "m029a5", "m029b", "m030", "m030c",
+	"m029a1", "m029a2", "m029a3", "m029a4", "m029a5", "m029a6", "m029a7", "m029a8", "m029a9", "m029b", "m030", "m030c",
 	"m030c2", "m030c3", "m030d", "m030e", "m030f", "m030fa", "m030fb", "m030f1", "m030f2", "m030g", "m030h", "m030i",
 	"m031", "m032", "m032a", "m032b", "m032d", "m032c", "m033"]
 # v134g: the reordered tail runs m034 → m033b → m033c, so the [ENDGAME] tag must
@@ -245,7 +245,23 @@ func init_missions():
 		# point — it's Efficient Smelting's tree parent, bought at m025 — so this
 		# beat auto-completed the instant it appeared. Kept for in-flight saves.
 		["m029a4", "Chemical Heat", "Research 'Organic Combustion' to unlock Germanium extraction (needed for semiconductors).", "research", "combustion", 1, 5000, 500, "m029a5"],
-		["m029a5", "Factory Lights", "Research 'Factory Automation' — the last gate before Advanced Circuits.", "research", "automation", 1, 10000, 1000, "m029b"],
+		["m029a5", "Factory Lights", "Research 'Factory Automation' — the last gate before Advanced Circuits.", "research", "automation", 1, 10000, 1000, "m029a6"],
+		# ── v139g BEAT 2 (owner: shift gather+craft -> infrastructure): the
+		# industrialization arc. Inserted at the measured m029-m030 desert — the
+		# band where players hand-crank Circuits that a factory should make.
+		# Four beats force TWO building families (power + industry) and teach
+		# feed chains (Wood -> Biomass; Si/Cu/Resin -> Assembler) + throttling.
+		# Rewards (65K total) roughly bankroll the ~75K industrial investment.
+		# Save-compat: players already past m029a5 skip the arc (standard
+		# insertion pattern, see v134 note above).
+		["m029a6", "Industrial Baseload", "Construct a Biomass Plant in Infrastructure — 1,000 kW of grid power. It burns Wood; keep a stock, or add a Bio-Harvester to feed it automatically.", "build", "biomass_plant", 1, 12000, 1500, "m029a7"],
+		["m029a7", "Industrial Automation", "Research 'Industrial Automation'. The Infrastructure branch runs Blast Furnace → Automated Smelting → Industrial Automation. Hand-soldering ends here.", "research", "industrial_automation", 1, 8000, 1000, "m029a8"],
+		["m029a8", "The Assembly Line", "Commission an Electronics Assembler. It draws 1,500 kW — an underpowered line throttles and runs slow. It consumes Silicon, Copper and Resin from storage.", "build", "electronics_assembler", 1, 20000, 2500, "m029a9"],
+		# v139g funnel tune 2: 250 -> 100 Circuits. The hidden bill of 250 was the
+		# upstream Resin chain (~1 Resin per Circuit) — walled 2/3 follower seeds
+		# 55h active on m029a9. 100 keeps the watch-the-line-fill teaching beat;
+		# m030g's own research bill provides the rest of the era's Circuit demand.
+		["m029a9", "Passive Supply", "Accumulate 100 Circuits. The Assembler produces them while you mine, fight — or sleep. Hand-crafting still works; the line just never gets tired.", "gather", "Circuit", 100, 25000, 4000, "m029b"],
 		# v134h: the recipe's three opaque sub-inputs are now breadcrumbed. Semiconductor,
 		# Gold, and Silver each have a hidden sub-chain the old "your earlier research
 		# unlocked each one" text glossed over (Silver especially — only a Zinc byproduct).

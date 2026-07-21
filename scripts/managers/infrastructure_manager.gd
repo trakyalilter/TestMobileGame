@@ -717,7 +717,11 @@ var building_db: Dictionary = {
 	"electronics_assembler": {
 		"name": "Electronics Assembler",
 		"description": "+1.3 Circuit (-2.5 Si, -2.5 Cu, -1.3 Resin)",
-		"cost": {"credits": 25000, "Ti": 50, "Circuit": 100, "SalvageData": 20},
+		# v139g Beat-2 funnel tune: Circuit 100 -> 40, SalvageData 20 -> 12. A
+		# 100-Circuit toll on the machine that MAKES Circuits was chicken-and-egg
+		# grind (part of the measured m029a7-band 55h wall); 40 keeps the
+		# bootstrap idea without out-grinding the hand-craft era it replaces.
+		"cost": {"credits": 25000, "Ti": 50, "Circuit": 40, "SalvageData": 12},
 		"energy_gen": 0.0,
 		"energy_cons": 1500.0, # industrial_automation
 		"yield": {"Circuit": 1.3},

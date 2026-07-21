@@ -1535,8 +1535,12 @@ var tech_tree = {
 		"name": "Industrial Automation",
 		"tier": 2,
 		"category": "infrastructure",
-		"cost": 15000,
-		"cost_items": {"Circuit": 50, "Steel": 200},
+		"cost": 9000,
+		# v139g Beat-2 funnel tune: {Circuit 50, Steel 200} walled all 3 follower
+		# seeds ~55 active-hours on m029a7 and pushed the first Singularity past
+		# the 14-day horizon (baseline d8-11). The mission arc is the teacher —
+		# the bill must not out-grind the desert it replaces.
+		"cost_items": {"Circuit": 25, "Steel": 80},
 		"type": "technology",
 		"parent": "automated_smelting",
 		"effects": [],
