@@ -268,7 +268,33 @@ func build_material_database():
 							"name": recipe_name,
 							"rate": tr("%d per cycle") % recipe["output"][mat_id]
 						})
-			
+
+			# v139k: byproducts declared via output_table were NEVER scanned — so a
+			# material with NO plain `output` recipe (Ag from Zinc Reduction, Co from Ni
+			# refining, Pd, PathogenCore…) read as "No known source" in the Atlas even
+			# though it's fully obtainable (owner: Silver shows unsourced but feeds Adv
+			# Circuits). Entry format: [item, chance, min_q, max_q].
+			if "output_table" in recipe:
+				for entry in recipe["output_table"]:
+					if not (entry is Array and entry.size() >= 4):
+						continue
+					var ot_id: String = str(entry[0])
+					var chance: float = float(entry[1])
+					var min_q: int = int(entry[2])
+					var max_q: int = int(entry[3])
+					ensure_material(ot_id)
+					if ot_id in material_db:
+						var rate_str: String
+						if chance >= 1.0:
+							rate_str = (tr("%d per cycle") % min_q) if min_q == max_q else (tr("%d-%d per cycle") % [min_q, max_q])
+						else:
+							rate_str = tr("%.0f%% chance") % (chance * 100.0)
+						material_db[ot_id]["sources"].append({
+							"type": "processing",
+							"name": recipe_name,
+							"rate": rate_str
+						})
+
 			if "input" in recipe:
 				for mat_id in recipe["input"]:
 					ensure_material(mat_id)
@@ -310,7 +336,7 @@ func build_material_database():
 				if mat_id in material_db:
 					material_db[mat_id]["sources"].append({
 						"type": "combat",
-						"name": enemy_name + tr(" (Rare)"),
+						"name": tr(enemy_name) + tr(" (Rare)"),   # v137: tr() the name before concat, else the whole "Name (Rare)" string misses the key
 						"rate": tr("%.0f%% chance") % (entry[1] * 100),
 						"zone_name": z_name, "zone_ord": z_ord
 					})
@@ -321,7 +347,7 @@ func build_material_database():
 				if core_id in material_db:
 					material_db[core_id]["sources"].append({
 						"type": "combat",
-						"name": enemy_name + " (Boss)",
+						"name": tr(enemy_name) + tr(" (Boss)"),
 						"rate": tr("100% (Guaranteed)"),
 						"zone_name": z_name, "zone_ord": z_ord
 					})
@@ -934,24 +960,39 @@ func _add_source_row(parent, type: String, text: String, color: Color, indent: i
 		sp.custom_minimum_size = Vector2(indent, 0)
 		sp.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(sp)
-	var tex = _type_icon_tex(type)
-	if tex:
-		var ir = TextureRect.new()
-		ir.texture = tex
-		ir.modulate = color
-		ir.expand_mode = TextureRect.EXPAND_IGNORE_SIZE   # honour the 15px size, not the 24px source
-		ir.custom_minimum_size = Vector2(15, 15)
-		ir.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		ir.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		ir.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		row.add_child(ir)
-	var lbl = Label.new()
-	lbl.text = text
-	lbl.add_theme_color_override("font_color", color)
-	lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	row.add_child(lbl)
+	# v137: name the SOURCE PAGE in text ("Engineering", "Mine", "Combat", …) instead of a
+	# type icon — the icon alone didn't tell the player WHERE to craft/gather this (QoL).
+	var rtl = RichTextLabel.new()
+	rtl.bbcode_enabled = true
+	rtl.fit_content = true
+	rtl.scroll_active = false
+	rtl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	rtl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rtl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	rtl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rtl.add_theme_font_size_override("normal_font_size", 13)
+	rtl.add_theme_font_size_override("bold_font_size", 13)
+	var chex := color.to_html(false)
+	var safe_text := text.replace("[", "[lb]")
+	var page := _source_page_name(type)
+	if page != "":
+		rtl.text = "[b][color=#%s]%s[/color][/b]  [color=#c3ccca]%s[/color]" % [chex, tr(page), safe_text]
+	else:
+		rtl.text = "[color=#%s]%s[/color]" % [chex, safe_text]
+	row.add_child(rtl)
 	parent.add_child(row)
+
+# v137: the in-game page a source/use lives on — shown as a text tag so the player
+# knows exactly where to go (matches the sidebar page names, translated via tr()).
+func _source_page_name(type: String) -> String:
+	match type:
+		"gathering": return "Mine"
+		"processing": return "Engineering"
+		"combat": return "Combat"
+		"building": return "Infrastructure"
+		"shipyard": return "Shipyard"
+		"research": return "Research"
+	return ""
 
 func _get_type_color(type: String) -> Color:
 	match type:

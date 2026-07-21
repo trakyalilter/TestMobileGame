@@ -661,7 +661,7 @@ var _float_clock: float = 0.0
 var _float_lane_row := {"player": 0, "enemy": 0, "event": 0}
 var _float_lane_last := {"player": -10.0, "enemy": -10.0, "event": -10.0}
 const FLOAT_LANE_ROWS := 7        # ladder depth before wrapping — deep enough
-                                  # that a full volley burst can't wrap onto a
+								  # that a full volley burst can't wrap onto a
                                   # row whose text is still alive (~0.85s life)
 const FLOAT_ROW_STEP := 22.0      # px between rows (> text height, no touch)
 const FLOAT_LANE_RESET_SEC := 1.0 # quiet time that rewinds a lane to row 0

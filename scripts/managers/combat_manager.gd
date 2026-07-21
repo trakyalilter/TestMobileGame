@@ -1742,7 +1742,10 @@ func swap_loadout_in_combat(preset_idx: int) -> bool:
 	var sm = GameState.shipyard_manager
 	if sm.is_loadout_preset_empty(preset_idx):
 		return false
-	var res = sm.load_loadout_preset(preset_idx)
+	# v139e: from_combat_swap=true — this is the sanctioned mid-fight swap. It bypasses
+	# the in-combat guard in load_loadout_preset BECAUSE it rebuilds the weapon snapshot
+	# below (a designer-side switch does not, hence the guard).
+	var res = sm.load_loadout_preset(preset_idx, true)
 	if int(res.get("loaded", 0)) <= 0:
 		return false
 	# Resync the combat-relevant ship state from the new loadout (set bonuses,
@@ -1754,7 +1757,7 @@ func swap_loadout_in_combat(preset_idx: int) -> bool:
 	has_reactive = _loadout_has_module(sm, "reactive_armor")
 	has_exotic_matrix = _loadout_has_module(sm, "exotic_shield_matrix")
 	_rebuild_player_weapon_states()
-	combat_events.append({"type": "status", "text": "⟳ LOADOUT SWAPPED", "color": Color(0.70, 0.95, 1.0), "side": "player"})
+	combat_events.append({"type": "status", "text": "LOADOUT SWAPPED", "color": Color(0.70, 0.95, 1.0), "side": "player"})
 	log_msg("Reconfigured loadout mid-engagement — weapon battery recalibrating.")
 	return true
 

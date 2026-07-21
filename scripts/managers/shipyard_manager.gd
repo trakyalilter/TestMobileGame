@@ -3816,7 +3816,7 @@ func save_loadout_preset(idx: int) -> bool:
 	inventory_updated.emit()
 	return true
 
-func load_loadout_preset(idx: int) -> Dictionary:
+func load_loadout_preset(idx: int, from_combat_swap: bool = false) -> Dictionary:
 	# v134g: this is now "SWITCH to build slot idx". Applying a slot must NOT
 	# auto-save (its own equips would clobber the slot mid-apply), and it sets the
 	# slot as the active edit target. An EMPTY slot is a valid switch — the ship is
@@ -3824,6 +3824,15 @@ func load_loadout_preset(idx: int) -> Dictionary:
 	# each equip back into this slot).
 	# Returns: {"loaded": int, "skipped": int}
 	if not idx in loadout_presets: return {"loaded": 0, "skipped": 0}
+	# v139e: the live ship IS the combat ship. Switching build slots strips + re-equips
+	# it, which desyncs an ACTIVE fight's weapon snapshot — weapons then fire against the
+	# new build's ammo map and read empty ("NO AMMO" on a ship that owns ammo). The ONLY
+	# sanctioned mid-fight swap is the Combat screen's loadout bar, which routes through
+	# swap_loadout_in_combat (from_combat_swap=true) and rebuilds the snapshot. A
+	# designer-side switch during combat must NOT reach into the fighting ship.
+	# Owner: "separate these."
+	if not from_combat_swap and GameState.combat_manager and GameState.combat_manager.in_combat:
+		return {"loaded": 0, "skipped": 0, "blocked": true}
 	var preset = loadout_presets[idx]
 	var was_suppressed := _suppress_preset_autosave
 	_suppress_preset_autosave = true

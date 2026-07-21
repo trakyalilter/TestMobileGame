@@ -79,6 +79,10 @@ func _ready():
 	vb.add_child(_search_bar)
 	vb.move_child(_search_bar, _tab_strip.get_index())
 	_search_bar.text_changed.connect(_apply_search)
+	# v139i: clear the output search when the player leaves Engineering, so returning
+	# starts on the full recipe list — not a stale filtered view. switch_to() toggles
+	# page.visible, so visibility_changed fires on hide.
+	visibility_changed.connect(_on_visibility_changed_reset_search)
 
 	# Mission & Resource Integration
 	GameState.mission_manager.mission_updated.connect(_on_mission_updated)
@@ -183,6 +187,16 @@ func refresh_recipes():
 	# v121: re-apply an active output search to the freshly-rebuilt widgets.
 	if _search_bar and not _search_bar.text.strip_edges().is_empty():
 		_apply_search(_search_bar.text)
+
+# v139i: the player left the Engineering page — clear any active output search so a
+# return lands on the full recipe list. Only fires on HIDE (visible == false); a
+# programmatic text set does NOT emit text_changed, so restore the view explicitly.
+func _on_visibility_changed_reset_search() -> void:
+	if visible:
+		return
+	if _search_bar and not _search_bar.text.is_empty():
+		_search_bar.text = ""
+		_apply_search("")
 
 # v121: output-material search — filter recipes to those PRODUCING the typed
 # material, across all category tabs. Empty query restores the normal tab view.

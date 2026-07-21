@@ -335,7 +335,14 @@ func init_missions():
 		# hits the fabricate recipe's level (45). Step 1 uses "gather" (element_added
 		# fires for processing outputs); step 2 uses the new "overclock_install" type.
 		["goal_boost_1", "OVERCLOCK PROTOCOL", "Your grid can run hotter. Fabricate a Boost Card in the Engineering tab — it takes Advanced Circuits, Superalloy, and a Quantum Core (Sector Alpha hostiles drop them).", "gather", "BoostCard", 1, 40000, 0, "goal_boost_2"],
-		["goal_boost_2", "RUNNING HOT", "Open Infrastructure and INSTALL the Boost Card on a building you own — it unlocks that building's Efficiency slider up to 200%. Careful: output scales linearly, but input draw scales QUADRATICALLY (200% output = 4x input).", "overclock_install", "BoostCard", 1, 60000, 0, ""]
+		["goal_boost_2", "RUNNING HOT", "Open Infrastructure and INSTALL the Boost Card on a building you own — it unlocks that building's Efficiency slider up to 200%. Careful: output scales linearly, but input draw scales QUADRATICALLY (200% output = 4x input).", "overclock_install", "BoostCard", 1, 60000, 0, ""],
+		# v139f: Matrix-Core onboarding arc (synthesize -> socket). Currently the ONLY
+		# guidance for the socket system — matrix_synthesis unlocks at zone_2_access but
+		# nothing taught it. Reveals once synthesis is craftable AND the player has an
+		# equipped module with an OPEN socket, so BOTH steps are always completable when
+		# the arc surfaces (mirrors the Hack/Boost card arcs; no soft-wall on either verb).
+		["goal_matrix_1", "ATTUNE A MATRIX CORE", "Rare, Legendary and Unique modules carry SOCKETS. In the Shipyard, craft 'Matrix Synthesis' to synthesize a Matrix Core — a gem that empowers whatever module you socket it into.", "craft_matrix", "matrix", 1, 40000, 0, "goal_matrix_2"],
+		["goal_matrix_2", "SLOT THE CORE", "Open the Ship Designer and drag your Matrix Core from the Armory onto an empty socket on one of your EQUIPPED modules. Its facet bonus applies while that module stays equipped.", "socket_check", "matrix", 1, 60000, 0, ""]
 	]
 	
 	for i in range(m_list.size()):
@@ -639,6 +646,12 @@ func _check_goal_reveals() -> bool:
 	# level gate (45) — the exact moment the overclock verb becomes actionable.
 	if GameState.processing_manager and GameState.processing_manager.get_level() >= 45:
 		changed = _reveal_goal("goal_boost_1") or changed
+	# v139f: Matrix-Core arc reveals once Matrix Synthesis is craftable (zone_2_access)
+	# AND the player has an equipped module with an OPEN socket — so the craft AND the
+	# socket step are both completable the moment the arc appears (never soft-walls).
+	if GameState.research_manager and GameState.research_manager.is_tech_unlocked("zone_2_access") \
+			and _has_open_socket():
+		changed = _reveal_goal("goal_matrix_1") or changed
 	return changed
 
 func _reveal_goal(gid: String) -> bool:
@@ -649,6 +662,43 @@ func _reveal_goal(gid: String) -> bool:
 	if not gid in active_missions:
 		active_missions.append(gid)
 	return true
+
+# v139f: true if the player has an EQUIPPED module with at least one empty socket.
+# Socketing is done on equipped gear (drag a core onto its socket pip), so this is the
+# precondition that makes the goal_matrix_2 socket step completable — it gates the arc
+# reveal so the mechanic is only taught once it's actionable.
+func _has_open_socket() -> bool:
+	var sm = GameState.shipyard_manager
+	if not sm: return false
+	for mid in sm.loadout.values():
+		if mid and mid in sm.modules:
+			for s in sm.modules[mid].get("sockets", []):
+				if s == null:
+					return true
+	return false
+
+# v139f: count Matrix Cores currently socketed into modules the player owns (equipped
+# OR stored). Drives the socket_check mission type. Any non-null socket entry that names
+# a matrix-core symbol counts (matrix cores are the only socketable gem).
+func _count_socketed_matrix_cores() -> int:
+	var sm = GameState.shipyard_manager
+	if not sm: return 0
+	var cores: Array = ElementDB.CATEGORIES.get("matrix_cores", [])
+	var ids: Array = []
+	ids.append_array(sm.loadout.values())
+	ids.append_array(sm.module_inventory.keys())
+	var seen := {}
+	var n := 0
+	for mid in ids:
+		if mid == null or mid == "" or mid in seen:
+			continue
+		seen[mid] = true
+		if not mid in sm.modules:
+			continue
+		for s in sm.modules[mid].get("sockets", []):
+			if s != null and s in cores:
+				n += 1
+	return n
 
 func sync_progress():
 	if not GameState.resources: return
@@ -751,6 +801,20 @@ func sync_progress():
 					if sm2.modules[mid_v].get("slot_type", "") == slot_target:
 						filled += 1
 			m["current_qty"] = max(m["current_qty"], min(filled, m["target_qty"]))
+
+		# v139f: owns any Matrix Core. matrix_synthesis outputs a RANDOM color/tier, so
+		# match the whole category rather than a single symbol. Driven by inventory_updated
+		# (matrix_synthesis emits it on craft) -> _on_shipyard_updated -> sync_progress.
+		elif m["type"] == "craft_matrix":
+			var have := 0
+			for sym in ElementDB.CATEGORIES.get("matrix_cores", []):
+				have += int(GameState.resources.get_element_amount(sym))
+			m["current_qty"] = max(m["current_qty"], min(have, m["target_qty"]))
+
+		# v139f: a Matrix Core has been socketed into a module the player owns.
+		elif m["type"] == "socket_check":
+			var socketed := _count_socketed_matrix_cores()
+			m["current_qty"] = max(m["current_qty"], min(socketed, m["target_qty"]))
 
 		elif m["type"] == "drop_rarity":
 			var target_rarity = int(m["target"])

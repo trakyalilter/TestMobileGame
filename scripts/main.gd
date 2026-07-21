@@ -1047,6 +1047,13 @@ func _update_navigation_hints():
 	if _coach_active():
 		stop_hint_pulse()
 		return
+	# v139j: the offline "welcome back" modal is a full-screen overlay; the game keeps
+	# ticking behind it, but the gold directive arrow must not bleed onto that summary
+	# (owner spotted it on the offline screen). Same guard the coach popups already use,
+	# and mirrors the gain-feed toast suppression on that modal.
+	if offline_modal and is_instance_valid(offline_modal) and offline_modal.visible:
+		stop_hint_pulse()
+		return
 	var mm = GameState.mission_manager
 	if not mm: return
 	# v138d: never direct at a claimed mission — self-heal the active list first

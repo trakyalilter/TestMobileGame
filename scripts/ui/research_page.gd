@@ -185,22 +185,33 @@ func _on_scroll_gui_input(event: InputEvent, scroll: ScrollContainer):
 		scroll.scroll_vertical = int(_pan_start_scroll.y + delta.y)
 
 func on_page_enter():
-	# SMART NAVIGATION: When a tutorial/active mission points at a research,
-	# switch to its tab AND center the required node so the player isn't left
-	# hunting the tree after clicking the beeping Research Lab button.
+	# SMART NAVIGATION: when an active research mission points at a tab, switch to it and
+	# center the node so the player isn't left hunting the tree.
+	#
+	# v139h: focus the mission the objective ARROW is guiding — the earliest beat in the
+	# mission chain (tutorial/chapter before side goals), NOT whichever mission activated
+	# first. active_missions is APPEND order, so the old code focused whatever revealed
+	# first (e.g. a Combat-tab firmware GOAL), sending a player following the Industry-tab
+	# metallurgy CHAPTER beat to the wrong tab. Iterating missions in DEFINITION order
+	# matches the arrow (which also skips branch-less goals): the primary chain beat wins
+	# its tab; co-active side goals keep their per-tab alert dots (_update_tab_alerts).
+	# (Supersedes the v139g "skip when ambiguous" guard, which stopped switching at all.)
 	var mm = GameState.mission_manager
 	if not mm: return
 
-	for mid in mm.active_missions:
-		var m = mm.missions[mid]
-		if m["type"] == "research":
-			var tech_id = m["target"]
+	_update_tab_alerts()
 
-			# Only act if the target actually exists in a tab's node list
-			for tab_name in graphs:
-				if tech_id in graphs[tab_name]["nodes"]:
-					focus_on_tech(tech_id)
-					return # Found our target, stop searching
+	for mid in mm.missions:                        # definition order: m0xx before goal_*
+		if not mid in mm.active_missions:
+			continue
+		var m = mm.missions[mid]
+		if m.get("completed", false) or m["type"] != "research":
+			continue
+		var tech_id = str(m["target"])
+		for tab_name in graphs:
+			if tech_id in graphs[tab_name]["nodes"]:
+				focus_on_tech(tech_id)
+				return
 
 var active_alert_indices: Array = []
 

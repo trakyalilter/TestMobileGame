@@ -1361,7 +1361,7 @@ var recipes: Dictionary = {
 	"reclaim_damaged_circuitry": {
 		"name": "Stripped Circuitry (Fallback)",
 		"description": "Cannibalise finished Circuits into a Damaged Circuitry substitute. Lossy (6:1) — Tech enemies drop it far faster — but this is the deadlock safety net.",
-		"input": {"Circuit": 6},
+		"input": {"Circuit": 1},
 		"output": {"DamagedCircuitry": 1},
 		"duration": 15.0,
 		"level_req": 8,

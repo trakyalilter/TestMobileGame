@@ -749,6 +749,14 @@ func _on_preset_load(idx: int):
 	# up to date, so no manual save is needed; an empty slot switches to an empty
 	# ship (build it and it saves back here).
 	if not manager: return
+	# v139e: the designer is the between-fights workshop — it must NOT strip the ship
+	# out from under an active battle. Mid-fight, the Combat screen's loadout bar is the
+	# sanctioned swap (it rebuilds the weapon snapshot); switching here would desync the
+	# fight into a false "NO AMMO". Owner: "separate these."
+	var cm = GameState.combat_manager
+	if cm and cm.in_combat:
+		UITheme.show_notification(tr("In combat — swap builds from the Combat screen's loadout bar, or retreat first."), UITheme.COLORS["warning"])
+		return
 	var was_active: int = int(manager.get("active_preset_idx")) if "active_preset_idx" in manager else 1
 	if idx == was_active:
 		return   # already on this slot

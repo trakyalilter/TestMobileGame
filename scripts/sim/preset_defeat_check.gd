@@ -79,5 +79,41 @@ func _ready() -> void:
 	_ok("resolver base→owned custom", sm._resolve_owned_equivalent("z1_kinetic") == "custom_z1_kinetic_1")
 	_ok("resolver base-id parse", sm._module_base_id("custom_z1_kinetic_1") == "z1_kinetic")
 
+	# ── v139e: COMBAT-LOCK. A designer-side build switch must NOT strip the fighting
+	# ship out from under an active battle (owner-reported "swap from designer in combat
+	# -> false NO AMMO"; "separate these"). Rebuild two shared-module builds, land on
+	# Build 1 as the live ship, then assert the guard.
+	sm.module_inventory.clear()
+	sm.loadout.clear()
+	sm.module_inventory["z1_battery"] = 2
+	sm.module_inventory["z1_kinetic"] = 2
+	sm.active_preset_idx = 1
+	_equip_build(sm)
+	sm.save_loadout_preset(1)
+	sm.load_loadout_preset(2)
+	_equip_build(sm)
+	sm.save_loadout_preset(2)
+	sm.load_loadout_preset(1)   # fighting ship = Build 1
+	_ok("armed on Build 1 pre-combat", _weapons_equipped(sm) == 2 and int(sm.active_preset_idx) == 1)
+
+	# Enter combat: a plain (designer-side) switch to Build 2 must be REFUSED and leave
+	# the live ship on Build 1 — not stripped, not half-applied.
+	GameState.combat_manager.in_combat = true
+	var blocked: Dictionary = sm.load_loadout_preset(2)
+	_ok("designer switch BLOCKED in combat", bool(blocked.get("blocked", false)) and int(blocked.get("loaded", -1)) == 0)
+	_ok("live ship untouched by block", _weapons_equipped(sm) == 2 and int(sm.active_preset_idx) == 1,
+		"weapons=%d active=%d" % [_weapons_equipped(sm), int(sm.active_preset_idx)])
+
+	# The sanctioned combat-chip path (from_combat_swap=true) STILL applies mid-fight.
+	var ok_swap: Dictionary = sm.load_loadout_preset(2, true)
+	_ok("combat-chip swap ALLOWED in combat", _weapons_equipped(sm) == 2 and int(ok_swap.get("skipped", 99)) == 0 and int(sm.active_preset_idx) == 2,
+		"weapons=%d skipped=%d active=%d" % [_weapons_equipped(sm), int(ok_swap.get("skipped", -1)), int(sm.active_preset_idx)])
+
+	# Out of combat, the designer switch works normally again.
+	GameState.combat_manager.in_combat = false
+	var ok_free: Dictionary = sm.load_loadout_preset(1)
+	_ok("designer switch OK out of combat", _weapons_equipped(sm) == 2 and int(ok_free.get("skipped", 99)) == 0 and int(sm.active_preset_idx) == 1,
+		"weapons=%d skipped=%d active=%d" % [_weapons_equipped(sm), int(ok_free.get("skipped", -1)), int(sm.active_preset_idx)])
+
 	print("[PRESET] %s" % ("ALL PASS" if fails == 0 else "*** %d FAILURE(S)" % fails))
 	get_tree().quit(1 if fails > 0 else 0)

@@ -201,7 +201,10 @@ func _make_custom_tooltip(_for_text: String) -> Control:
 		color_label = "orange"
 
 	if bonus > 0:
-		tt += "[center][font_size=20][b][color=%s]+%.1f[/color][/b][/font_size] [font_size=10][color=#7FA39C]" + tr("%s Bonus") % type_label + "[/color][/font_size][/center]\n" % [color_label, bonus, type_label]
+		# v137: was a broken concat — `%` binds tighter than `+`, so the args formatted the
+		# trailing fragment (no specifiers) and left "+%.1f" literal. Build the label, format once.
+		var bonus_label: String = tr("%s Bonus") % type_label
+		tt += "[center][font_size=20][b][color=%s]+%.1f[/color][/b][/font_size] [font_size=10][color=#7FA39C]%s[/color][/font_size][/center]\n" % [color_label, bonus, bonus_label]
 		tt += "[color=#1E3B38]──────────────────────────────[/color]\n"
 
 	tt += "[center][font_size=10][color=#7FA39C][Right-click to unequip][/color][/font_size][/center]"

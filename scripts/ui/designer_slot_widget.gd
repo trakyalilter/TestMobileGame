@@ -548,8 +548,10 @@ func refresh_state():
 				sock_wrap.mouse_filter = Control.MOUSE_FILTER_STOP
 				var sock_i := i
 				if gem:
-					var _facet_txt: String = manager.get_gem_facet_text(gem, slot_type)
-					sock_wrap.tooltip_text = tr("Matrix Core: %s\n%s  (active in this %s slot)\n[Click to remove]") % [ElementDB.get_display_name(gem), _facet_txt, slot_type.capitalize()]
+					# v137: the styled info-card (spawned on hover below) already shows the
+					# name, active facet and remove hint — the native tooltip_text here was a
+					# redundant SECOND card popping alongside it. Leave it empty.
+					sock_wrap.tooltip_text = ""
 					var captured_gem = gem
 					sock_wrap.mouse_entered.connect(func():
 						# v111.13 CRASH FIX: a queued mouse_entered can fire after
@@ -1404,7 +1406,11 @@ func _build_module_tooltip(m_data: Dictionary) -> String:
 		for gem in m_data["sockets"]:
 			if gem:
 				var g_name = ElementDB.get_display_name(gem)
-				var g_desc = ElementDB.get_element_description(gem)
+				# v137: show the bonus this core grants IN THIS slot ("+3% Armor Penetration")
+				# like the Armory card — not the generic "Socket into epic modules…" flavour.
+				var g_desc = manager.get_gem_facet_text(gem, slot_type)
+				if g_desc == "":
+					g_desc = ElementDB.get_element_description(gem)
 				var g_hex = _get_gem_color(g_name).to_html(false)
 				if g_desc != "":
 					tt += "[color=#%s]%s: %s[/color]\n" % [g_hex, g_name, g_desc]

@@ -196,7 +196,9 @@ func _setup_gem(id: String):
 	else:
 		type_lbl.modulate = Color(0.498, 0.639, 0.612)
 
-	desc_lbl.text = ElementDB.get_element_description(id)
+	# v137: socketed → the active facet below IS the info; swap the generic "socket into…"
+	# flavour for the remove hint (the native socket tooltip that used to say this was removed).
+	desc_lbl.text = tr("[Click to remove]") if _host_slot_ctx != "" else ElementDB.get_element_description(id)
 
 	# Matrix-core facets. A core gives a DIFFERENT bonus per host-slot category
 	# (weapon / defense / utility). v136: when the core is socketed in a KNOWN slot,
