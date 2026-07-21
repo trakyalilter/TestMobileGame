@@ -1,8 +1,54 @@
-# Session Handoff — 2026-07-17
+# Session Handoff — 2026-07-21
 
 ---
 
-## LATEST BLOCK (2026-07-17 late) — Boss Overhaul SHIPPED (v139d)
+## LATEST BLOCK (2026-07-21) — Boss Systems UI + per-boss traits + BEAT 2 industrialization (v139f/g)
+
+**Commits:** `ebe6b95` (boss skills UI+identity) · `e65db04` (Beat 2 arc) · fidelity commit on top.
+
+- **v139f Boss Systems UI:** persistent trait-chip strip under the enemy panel (live state:
+  cannon pips, enrage armed/hot, plating mult, grid resists, pulse countdown, volatile
+  critical), phase-tinted enemy HP bar + enrage notch, hover explainers on every chip
+  (strip + pre-fight card; ONE vocabulary via `UITheme.trait_info_for`), intel-modal
+  "Boss Systems" section, defeat flight-recorder (SHORT factual cause only), activation
+  drama (PHASE/ENRAGE center banners, colored bar flashes, chip pops). **OWNER RULE
+  (memory-saved): no unsolicited explainer text on auto surfaces — advice lives in
+  opt-in hover/modal ONLY.** First-encounter toast was built then REMOVED for this.
+  Map-mod picker PARKED (combat_page call commented; backend intact) — appeared
+  post-warp with zero introduction.
+- **v139g trait redistribution (owner: "each boss is new flavor"):** Z4 pulse→SIPHON
+  debut (pct 0.04 — 0.08 collapsed mission-real Rare 8/9→1/9, A/B-proven), Z5
+  enrage→NANITE debut (12% regen, band-neutral vs old enrage), Z7 takes pulse-for-real.
+  All 9 traits in play; `trait_ui_check` (40 asserts) guards Z3-Z8 distinctness.
+  `boss_threshold` TRIALS 5→9 (5-trial cells swung ±2 on identical code — old
+  "all-Rare wins Z1-Z5" was noise). Gearcheck Z1 "FAIL" = tier-1-hull artifact
+  (mission path fights it on frigate: 8-9/9 Rare) — do NOT re-alarm on it.
+- **⚠ OPEN OWNER DECISION:** 9-trial mission-real band Z3–Z6 reads ~30-50% all-Rare
+  (bar 60%; Legendary covers 6-8/9) — Legendary is quietly the real mission-path gate,
+  contradicting the locked "Rare suffices" rule. Options: boss-side hp trims (~10-15%,
+  aligns with owner's ≤d6 first-warp target) vs accept+reword. Un-decided this session.
+- **BEAT 2 (owner blessed the infra plan; Factorio-style exclusives locked for Beat 3):**
+  missions m029a6-a9 at the measured desert — build Biomass Plant → research Industrial
+  Automation → commission Electronics Assembler (1500 kW) → accumulate 100 Circuits.
+  Funnel-tuned ×4 iterations: industrial_automation 9K/{Cir 25, Steel 80}; assembler
+  {Cir 40, SalvageData 12}; accumulate 250→100 (hidden Resin chain). **Bot fidelity:**
+  `player_like` now PROTECTS owned production-building feed syms from surplus sells +
+  steers income to scarcest feed under a 900s buffer (protection alone sufficed).
+  **Result: `building:` events in ALL follower seeds (was zero), deserts 8.7h→2-3.5h,
+  rift d10/12/12 (baseline d8-11), 2 seeds at deepest-ever m030i.** Remaining band
+  walls: m030g Circuit bill, m031 (pre-existing; passive Circuit supply now chips at
+  m030g for real players). Next infra steps (family→demand engine): supply-order
+  re-sizing (refining multiples) → ammo-plant pass (ordnance) → Beat 3 factory-only
+  intermediates (fabrication; NO hand recipe — owner locked) → Foundation Kit on warp
+  (parked). Goal: multiples of EVERY family via rate-based demand.
+- **Turkish loc:** Warp/Atlama drift fixed (7 rows); ~60 new en/tr rows this session;
+  CSV 0 dups. `trait_ui_check` + funnel probe green; full boots clean throughout.
+
+---
+
+# (previous) Session Handoff — 2026-07-17
+
+## PREVIOUS BLOCK (2026-07-17 late) — Boss Overhaul SHIPPED (v139d)
 
 **Trait engine + rollout Z1–Z11** (7 data-driven traits, taught one per zone, combos at
 Z9/Z10, soft tutorial flavors at Z1/Z2) + **the Rare gate, owner-corrected twice**:

@@ -144,6 +144,7 @@ func decide_step() -> Dictionary:
 	_maintain_kits()
 	_protect_prev = _protect_syms
 	_protect_syms = {}
+	_maintain_infra_feed()
 	# Slot pressure lived, not designed out: sell surplus PROTECTING mission
 	# targets/ammo/kit feedstock, then expand storage — the player-like response
 	# to a full 28-slot cargo (the second historical fake-DNF source).
@@ -973,8 +974,60 @@ func _build_econ(bid: String) -> void:
 # ---------------------------------------------------------------------------
 # Income / blocked fallbacks.
 # ---------------------------------------------------------------------------
+# ── v139g bot fidelity: keep OWNED production lines minimally fed ──────────
+# Without this the funnel measures Beat-2's cost but structurally ZERO of its
+# payoff: the follower builds the Assembler, slot-pressure sells vendor its
+# Si/Cu/Resin, and the passive line produces nothing all run. A real player
+# who commissioned a factory keeps a casual feed stock. Bounded two ways:
+# feed syms are only PROTECTED from surplus sells, and income slices are
+# steered toward the scarcest feed input ONLY while the buffer sits under
+# FEED_BUFFER_S seconds of consumption (self-limiting: full buffer = no steer).
+const FEED_BUFFER_S := 900.0
+var _feed_want := ""
+
+func _maintain_infra_feed() -> void:
+	_feed_want = ""
+	var im = GameState.infrastructure_manager
+	var res = GameState.resources
+	var worst_frac := 1.0
+	for bid in im.buildings:
+		var cnt: int = int(im.buildings.get(bid, 0))
+		if cnt <= 0:
+			continue
+		var bdef: Dictionary = im.building_db.get(String(bid), {})
+		var inputs: Dictionary = bdef.get("input", {})
+		if inputs.is_empty():
+			continue
+		var interval: float = maxf(1.0, float(bdef.get("interval", 5.0)))
+		for sym in inputs:
+			var per_s: float = float(inputs[sym]) / interval * float(cnt)
+			var target: float = per_s * FEED_BUFFER_S
+			if target <= 0.0:
+				continue
+			_protect_syms[String(sym)] = true
+			var frac: float = clampf(float(res.get_element_amount(String(sym))) / target, 0.0, 1.0)
+			if frac < worst_frac:
+				worst_frac = frac
+				_feed_want = String(sym)
+	if worst_frac >= 1.0:
+		_feed_want = ""
+
 func _income(why: String, obj: String, attr: String) -> Dictionary:
 	status = why
+	# v139g bot fidelity: low feed buffer redirects this income slice to the
+	# scarcest production-line input (gather/process only; anything deeper
+	# falls through to normal income — feeding must never become a quest).
+	if _feed_want != "":
+		var fsrc: Dictionary = actions.source_for(_feed_want)
+		match String(fsrc.get("kind", "none")):
+			"gather":
+				return {"kind": "gather", "mgr": GameState.gathering_manager,
+					"id": String(fsrc["id"]), "length": 45.0, "attr": attr,
+					"obj": obj, "why": "feed:%s" % _feed_want}
+			"process":
+				return {"kind": "process", "mgr": GameState.processing_manager,
+					"id": String(fsrc["id"]), "length": 45.0, "attr": attr,
+					"obj": obj, "why": "feed:%s" % _feed_want}
 	if bool(params["smart_income"]):
 		var rid := best_recipe_id()
 		if rid != "" and recipe_runnable(rid):
