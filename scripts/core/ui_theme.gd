@@ -914,6 +914,66 @@ func get_mastery_tooltip() -> String:
 		+ "[color=#C8E0D8][b]Lv 75[/b]    −25% duration[/color][br]"
 		+ "[color=#FFD98A][b]Lv 100[/b]  −30% duration[/color]")
 
+# v139f: Boss System explainers — ONE vocabulary for every surface that names a
+# trait (pre-fight card chips, live Boss Systems strip, intel modal, the
+# first-encounter intro toast). Key -> {title, body, color}; body strings reuse
+# the intel-modal tr rows so en/tr stay in lockstep. Only traits the given
+# enemy def actually carries are returned.
+func trait_info_for(e: Dictionary) -> Dictionary:
+	var out := {}
+	var thr := float(e.get("enrage_at", 0.0))
+	if thr > 0.0:
+		out["enrage"] = {"title": tr("ENRAGE"), "color": Color(1.0, 0.45, 0.30),
+			"body": tr("ENRAGES at %d%% HP (ATK ×%.1f) — race it or armor through it.") % [int(round(thr * 100.0)), float(e.get("enrage_atk_mult", 1.5))]}
+	var sus: Dictionary = e.get("sustain", {})
+	match String(sus.get("kind", "")):
+		"pulse":
+			out["pulse"] = {"title": tr("SHIELD PULSE"), "color": Color(0.40, 0.90, 1.0),
+				"body": tr("SHIELD PULSE — re-shields every %ds; out-damage the healing.") % int(float(sus.get("every_s", 8.0)))}
+		"siphon":
+			out["siphon"] = {"title": tr("SHIELD SIPHON"), "color": Color(0.80, 0.50, 1.0),
+				"body": tr("SHIELD SIPHON — its hits steal your shield; out-sustain the theft.")}
+		"nanite":
+			out["nanite"] = {"title": tr("NANITE REPAIR"), "color": Color(0.40, 1.0, 0.55),
+				"body": tr("NANITE REPAIR — regenerates hull when badly hurt; bring burst damage.")}
+	if not (e.get("reactive_armor", {}) as Dictionary).is_empty():
+		out["plating"] = {"title": tr("REACTIVE PLATING"), "color": Color(0.85, 0.75, 0.40),
+			"body": tr("REACTIVE PLATING — DEF grows as your hits land; hit heavy, not fast.")}
+	if not (e.get("adaptive_grid", {}) as Dictionary).is_empty():
+		out["grid"] = {"title": tr("ADAPTIVE GRID"), "color": Color(0.60, 0.85, 1.0),
+			"body": tr("ADAPTIVE GRID — resists each damage type it absorbs; split your weapon types.")}
+	var cn: Dictionary = e.get("charge_nuke", {})
+	if not cn.is_empty():
+		out["cannon"] = {"title": tr("CANNON CYCLE"), "color": Color(1.0, 0.75, 0.30),
+			"body": tr("CANNON CYCLE — every %dth shot hits ×%.1f; size your shield for the spike.") % [int(cn.get("every_n", 5)), float(cn.get("mult", 4.0))]}
+	if not (e.get("volatile", {}) as Dictionary).is_empty():
+		out["volatile"] = {"title": tr("VOLATILE CORE"), "color": Color(1.0, 0.55, 0.20),
+			"body": tr("VOLATILE CORE — detonates on death; keep a hull buffer or limp out at 1 HP.")}
+	if not (e.get("corrosive_field", {}) as Dictionary).is_empty():
+		out["corrosion"] = {"title": tr("CORROSIVE FIELD"), "color": Color(0.70, 1.0, 0.40),
+			"body": tr("CORROSIVE FIELD — constant hull decay that bypasses shields; bring repair kits.")}
+	var phs: Array = e.get("phases", [])
+	if phs.size() > 1:
+		var chain := ""
+		for p in phs:
+			if chain != "":
+				chain += " → "
+			chain += tr(String(p).to_upper())
+		out["phase"] = {"title": tr("PHASE GATE"), "color": Color(0.70, 0.95, 1.0),
+			"body": tr("PHASED (%d) — %s. Only the phase element breaches; carry a preset per element.") % [phs.size(), chain]}
+	if e.get("warp_hardened", false):
+		out["hardened"] = {"title": tr("WARP-HARDENED"), "color": Color(0.373, 0.878, 0.784),
+			"body": tr("WARP-HARDENED — only Cryo damage works (conventional ×0.02)")}
+	return out
+
+# v139f: color-parameterized cousin of trigger_damage_flash — tint a control in
+# an arbitrary accent (heal cyan, nanite green, siphon purple) and ease back.
+func trigger_color_flash(node: Control, color: Color) -> void:
+	if not node: return
+	var tween = node.create_tween()
+	node.modulate = Color(color.r * 2.2, color.g * 2.2, color.b * 2.2, 1)
+	tween.tween_property(node, "modulate", Color(1, 1, 1, 1), 0.35).set_trans(Tween.TRANS_QUINT)
+
 # v137: parse a material-link meta and fire the Atlas deep-link. Accepts either the
 # "atlasmat:<id>" prefix used by the new recipe/inventory links, or the legacy
 # {"id":..,"type":"item"} JSON already emitted by processing-output hover links.

@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/sim/trait_ui_check.gd" id="1_tuc"]
+
+[node name="TraitUiCheck" type="Node"]
+script = ExtResource("1_tuc")

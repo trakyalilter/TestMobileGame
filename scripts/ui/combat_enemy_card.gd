@@ -115,12 +115,13 @@ func _build_combined_stats_row() -> void:
 
 	# v111: Warp-Hardened (Z11+) nullify conventional damage; only Cryo bites.
 	if data.get("warp_hardened", false):
-		hb.add_child(_make_chip("CRYO-ONLY", Color(0.373, 0.878, 0.784), 8))
+		hb.add_child(_make_chip("CRYO-ONLY", Color(0.373, 0.878, 0.784), 8, "hardened"))
 
 	# v139d P3: boss-trait telegraph chips — the hangar-puzzle read BEFORE the
 	# fight (auto-battler contract: every mechanic is answerable pre-fight).
+	# v139f: chips are hoverable — UITheme.trait_info_for explains each one.
 	for tc in _trait_chips(data):
-		hb.add_child(_make_chip(tc[0], tc[1], 8))
+		hb.add_child(_make_chip(tc[0], tc[1], 8, tc[2]))
 	# v139d Rare gate: bosses demand a full RARE set (Leg/Unique = accelerators).
 	if data.get("is_boss", false):
 		hb.add_child(_make_chip("NEEDS RARE GEAR", Color(1.0, 0.76, 0.30), 8))
@@ -139,30 +140,36 @@ func _build_combined_stats_row() -> void:
 			hb.add_child(_make_chip("▼%s" % tag, Color(0.275, 0.878, 0.627), 8))
 
 
-# v139d P3: trait def -> pre-fight chip [text, color]. Shared vocabulary with
-# the atlas entry (see atlas_page._trait_chips) — keep the two lists in sync.
+# v139d P3: trait def -> pre-fight chip [text, color, info_id]. Shared
+# vocabulary with the atlas entry (see atlas_page._trait_chips) — keep the two
+# lists in sync. info_id keys into UITheme.trait_info_for (hover explainer).
 static func _trait_chips(e: Dictionary) -> Array:
 	var out: Array = []
 	if float(e.get("enrage_at", 0.0)) > 0.0:
-		out.append(["ENRAGES %d%%" % int(float(e["enrage_at"]) * 100.0), Color(1.0, 0.45, 0.30)])
+		out.append(["ENRAGES %d%%" % int(float(e["enrage_at"]) * 100.0), Color(1.0, 0.45, 0.30), "enrage"])
 	var sus: Dictionary = e.get("sustain", {})
 	match String(sus.get("kind", "")):
 		"pulse":
-			out.append(["SHIELD PULSE", Color(0.40, 0.90, 1.0)])
+			out.append(["SHIELD PULSE", Color(0.40, 0.90, 1.0), "pulse"])
 		"siphon":
-			out.append(["SHIELD SIPHON", Color(0.80, 0.50, 1.0)])
+			out.append(["SHIELD SIPHON", Color(0.80, 0.50, 1.0), "siphon"])
 		"nanite":
-			out.append(["NANITE REPAIR", Color(0.40, 1.0, 0.55)])
+			out.append(["NANITE REPAIR", Color(0.40, 1.0, 0.55), "nanite"])
 	if not e.get("reactive_armor", {}).is_empty():
-		out.append(["REACTIVE PLATING", Color(0.85, 0.75, 0.40)])
+		out.append(["REACTIVE PLATING", Color(0.85, 0.75, 0.40), "plating"])
 	if not e.get("adaptive_grid", {}).is_empty():
-		out.append(["ADAPTIVE GRID", Color(0.60, 0.85, 1.0)])
+		out.append(["ADAPTIVE GRID", Color(0.60, 0.85, 1.0), "grid"])
 	if not e.get("charge_nuke", {}).is_empty():
-		out.append(["CANNON CYCLE", Color(1.0, 0.75, 0.30)])
+		out.append(["CANNON CYCLE", Color(1.0, 0.75, 0.30), "cannon"])
 	if not e.get("volatile", {}).is_empty():
-		out.append(["VOLATILE CORE", Color(1.0, 0.55, 0.20)])
+		out.append(["VOLATILE CORE", Color(1.0, 0.55, 0.20), "volatile"])
 	if not e.get("corrosive_field", {}).is_empty():
-		out.append(["CORROSIVE FIELD", Color(0.70, 1.0, 0.40)])
+		out.append(["CORROSIVE FIELD", Color(0.70, 1.0, 0.40), "corrosion"])
+	# v139f: multi-phase bosses telegraph the element juggle pre-fight too —
+	# this chip was the missing third of the phase telegraph trio.
+	var phs: Array = e.get("phases", [])
+	if phs.size() > 1:
+		out.append(["PHASED ×%d" % phs.size(), Color(0.70, 0.95, 1.0), "phase"])
 	return out
 
 func _add_stat_cell(parent: Node, icon_key: String, fallback_glyph: String, value: String, accent: Color) -> void:
@@ -347,7 +354,23 @@ func _module_drop_label(pool: Array) -> String:
 	return "Module"
 
 
-func _make_chip(text: String, color: Color, font_size: int) -> Control:
+# v139f: hover explainer lifecycle (one card at a time, freed on exit/teardown).
+var _info_card: Control = null
+
+func _on_trait_chip_hover(info_id: String, chip: Control) -> void:
+	_free_info_card()
+	var infos: Dictionary = UITheme.trait_info_for(data)
+	var inf: Dictionary = infos.get(info_id, {})
+	if inf.is_empty():
+		return
+	_info_card = UITheme.show_info_card(chip, String(inf["title"]), String(inf["body"]))
+
+func _free_info_card() -> void:
+	if _info_card and is_instance_valid(_info_card):
+		_info_card.queue_free()
+	_info_card = null
+
+func _make_chip(text: String, color: Color, font_size: int, info_id: String = "") -> Control:
 	var lbl := Label.new()
 	lbl.text = text
 	lbl.add_theme_font_size_override("font_size", font_size)
@@ -369,6 +392,12 @@ func _make_chip(text: String, color: Color, font_size: int) -> Control:
 	var chip := PanelContainer.new()
 	chip.add_theme_stylebox_override("panel", sb)
 	chip.add_child(lbl)
+	# v139f: trait chips explain themselves on hover (UITheme.trait_info_for).
+	if info_id != "":
+		chip.mouse_filter = Control.MOUSE_FILTER_STOP
+		chip.mouse_entered.connect(_on_trait_chip_hover.bind(info_id, chip))
+		chip.mouse_exited.connect(_free_info_card)
+		tree_exiting.connect(_free_info_card)
 	return chip
 
 

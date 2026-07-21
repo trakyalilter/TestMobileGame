@@ -63,7 +63,11 @@ var _mm_loot_lbl: Label = null
 func _ready():
 	manager = GameState.combat_manager
 	call_deferred("refresh_zones")
-	call_deferred("_build_map_mod_picker")
+	# v139g: map-mod picker PARKED (owner, 2026-07-21) — panel appeared post-warp
+	# with zero introduction. Backend (MAP_MODS, set_active_map_mods, loot mults)
+	# stays intact; mods can't activate without the UI (not persisted, cleared on
+	# warp). Re-enable by restoring this call once the panel explains itself.
+	# call_deferred("_build_map_mod_picker")
 	GameState.game_loaded.connect(refresh_zones)
 	if GameState.research_manager:
 		GameState.research_manager.tech_unlocked.connect(func(_id): refresh_zones())
@@ -136,6 +140,26 @@ var p_sh_bar: HBoxContainer
 var e_hp_bar: HBoxContainer
 var e_sh_bar: HBoxContainer
 
+# v139f: Boss Systems strip — persistent live trait chips under the enemy
+# panel. Floats vanish in ~1s; an idle game's boss mechanics need state that
+# survives a glance away. Chips update in place; nodes rebuild only when the
+# chip SET changes (new enemy / a trait appearing).
+var _trait_strip: HFlowContainer
+var _strip_chips := {}   # chip key -> {"panel", "label", "info", "bright"}
+var _strip_sig := ""
+var _chip_card: Control = null   # hover explainer (one at a time; freed on exit/rebuild)
+
+# Element accents for multi-phase boss HP bands + phase chip. Cryo pale-ice and
+# corrosion green match the established combat_events colors; plasma reserved.
+const _PHASE_COLORS := {
+	"cryo": Color(0.70, 0.95, 1.0),
+	"corrosion": Color(0.70, 1.0, 0.40),
+	"plasma": Color(0.95, 0.50, 0.85),
+	"kinetic": Color(0.6, 0.8, 1.0),
+	"energy": Color(1.0, 0.9, 0.3),
+	"explosive": Color(1.0, 0.5, 0.3),
+}
+
 # Combat-session HUD timers (built in _ready, refreshed from update_ui).
 # Left: total combat duration since engage. Right: time since the last kill.
 var combat_timer_row: HBoxContainer
@@ -148,6 +172,14 @@ func _setup_hp_bars():
 	
 	e_hp_bar = _create_block_bar($Dashboard/HUD/MidHUD/EnemyStatsOverlay/Margin/VBox, e_hp_lbl.get_index() + 1, "combat")
 	e_sh_bar = _create_block_bar($Dashboard/HUD/MidHUD/EnemyStatsOverlay/Margin/VBox, e_sh_lbl.get_index() + 1, "shipyard")
+
+	# v139f: Boss Systems strip lives at the bottom of the enemy panel.
+	_trait_strip = HFlowContainer.new()
+	_trait_strip.add_theme_constant_override("h_separation", 4)
+	_trait_strip.add_theme_constant_override("v_separation", 3)
+	_trait_strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_trait_strip.visible = false
+	$Dashboard/HUD/MidHUD/EnemyStatsOverlay/Margin/VBox.add_child(_trait_strip)
 
 func _create_block_bar(parent: Control, index: int, category: String) -> HBoxContainer:
 	var bar = HBoxContainer.new()
@@ -169,15 +201,24 @@ func _create_block_bar(parent: Control, index: int, category: String) -> HBoxCon
 
 func _update_block_bar(bar: HBoxContainer, percent: float):
 	var accent = bar.get_meta("accent", Color.WHITE)
+	# v139f: optional per-block accents (multi-phase HP bands render the boss's
+	# script directly in the bar) + the enrage-threshold notch block. Bars
+	# without these metas (player bars, trash fights) behave exactly as before.
+	var accents: Array = bar.get_meta("block_accents", [])
+	var notch: int = bar.get_meta("enrage_notch", -1)
+	var notch_hot: bool = bar.get_meta("enrage_hot", false)
 	var blocks = bar.get_children()
 	var filled_count = int(blocks.size() * percent)
-	
+
 	for i in range(blocks.size()):
+		var base: Color = accents[i] if i < accents.size() else accent
+		if i == notch:
+			base = Color(1.0, 0.30, 0.20) if notch_hot else base.lerp(Color(1.0, 0.30, 0.20), 0.55)
 		if i < filled_count:
-			blocks[i].color = accent
+			blocks[i].color = base
 			blocks[i].modulate.a = 1.0
 		else:
-			blocks[i].color = accent.lerp(Color.BLACK, 0.9)
+			blocks[i].color = base.lerp(Color.BLACK, 0.9)
 			blocks[i].modulate.a = 0.3
 
 func _setup_loot_filter_button():
@@ -531,6 +572,9 @@ func update_ui():
 		_update_block_bar(e_sh_bar, 0)
 		e_stat_lbl.text = tr("DMG: 0 | DEF: 0")
 		btn_retreat.disabled = true
+
+	# v139f: Boss Systems strip + boss-bar overlays (phase bands, enrage notch).
+	_refresh_trait_strip()
 	
 	# Attack Timers
 	if manager.in_combat:
@@ -612,6 +656,15 @@ func update_ui():
 	while manager.combat_events.size() > 0:
 		var ev = manager.combat_events.pop_front()
 		var ev_type: String = ev.get("type", "")
+		# v139f: boss-system activation drama. Machine-tagged trait events get
+		# bespoke juice (chip pops, coloured bar flashes, panel glitch); the two
+		# heavyweight beats (PHASE, ENRAGE) trade the small lane float for a
+		# centre banner, so they are not double-printed.
+		var trait_key: String = str(ev.get("trait", ""))
+		if trait_key != "" and is_visible_in_tree():
+			_trait_drama(trait_key, ev)
+		if trait_key == "phase" or trait_key == "enrage":
+			continue
 		# v111.11 Stage 2.1: per-hit damage no longer spams the global toast
 		# stack (which piled bottom-right, colliding with RETREAT). Damage
 		# now floats off the ship/target in the radar centre, where the hit
@@ -740,6 +793,305 @@ func show_enemy_info(data):
 	var dlg = enemy_info_scene.instantiate()
 	self.add_child(dlg)
 	dlg.setup(data)
+
+# ─── v139f: Boss Systems strip ───────────────────────────────────────────────
+# Desired chips are recomputed every update (cheap text/color writes); chip
+# nodes rebuild only when the chip SET changes. Soft-tier bosses (Z1-Z2) render
+# the whole strip calm (reduced alpha) — visible lesson, not a threat display.
+
+func _phase_color(elem: String) -> Color:
+	return _PHASE_COLORS.get(elem.to_lower(), Color(0.70, 0.95, 1.0))
+
+func _grid_tag(ch: String) -> String:
+	match ch:
+		"kinetic": return "KIN"
+		"energy": return "NRG"
+		"explosive": return "EXP"
+		"cryo": return "CRY"
+	return ch.to_upper()
+
+func _refresh_trait_strip() -> void:
+	if _trait_strip == null:
+		return
+	if not is_visible_in_tree():
+		_free_chip_card()   # page switched away mid-hover — don't strand the card
+	var st: Dictionary = manager.get_trait_ui_state() if manager and manager.has_method("get_trait_ui_state") else {}
+	if st.is_empty():
+		if _trait_strip.visible:
+			_trait_strip.visible = false
+			_strip_sig = ""
+			_free_chip_card()
+		e_name_lbl.remove_theme_color_override("font_color")
+		e_hp_bar.set_meta("block_accents", [])
+		e_hp_bar.set_meta("enrage_notch", -1)
+		e_hp_bar.set_meta("enrage_hot", false)
+		return
+
+	# Build the desired chip list: [key, text, color, bright, info_id].
+	# info_id keys into UITheme.trait_info_for for the hover explainer.
+	var chips: Array = []
+	if st.has("phase"):
+		var ph: Dictionary = st["phase"]
+		var elem_l: String = String(ph["element"])
+		chips.append(["phase", tr("PHASE %d/%d ▸ %s") % [int(ph["idx"]) + 1, int(ph["count"]), tr(elem_l.to_upper())], _phase_color(elem_l), true, "phase"])
+	if st.has("warp_hardened"):
+		chips.append(["hardened", tr("CRYO-ONLY"), Color(0.373, 0.878, 0.784), true, "hardened"])
+	if st.has("cannon"):
+		var cn: Dictionary = st["cannon"]
+		var n: int = int(cn["n"])
+		var cnt: int = int(cn["count"])
+		if cnt >= n - 1:
+			chips.append(["cannon", tr("BRACE — CANNON READY"), Color(1.0, 0.75, 0.30), true, "cannon"])
+		else:
+			var pips := ""
+			for i in range(n):
+				pips += "◆" if i < cnt else "◇"
+			chips.append(["cannon", tr("CANNON %s") % pips, Color(1.0, 0.75, 0.30), false, "cannon"])
+	if st.has("enrage"):
+		var en: Dictionary = st["enrage"]
+		if bool(en["active"]):
+			chips.append(["enrage", tr("ENRAGED ×%.1f") % float(en["mult"]), Color(1.0, 0.35, 0.20), true, "enrage"])
+		else:
+			chips.append(["enrage", tr("ENRAGE AT %d%%") % int(round(float(en["at"]) * 100.0)), Color(0.85, 0.45, 0.35), false, "enrage"])
+	if st.has("plating"):
+		var pl: Dictionary = st["plating"]
+		var pm: float = float(pl["mult"])
+		if pm > 1.001:
+			chips.append(["plating", tr("PLATING ×%.2f") % pm, Color(0.85, 0.75, 0.40), true, "plating"])
+		else:
+			chips.append(["plating", tr("PLATING REACTIVE"), Color(0.85, 0.75, 0.40), false, "plating"])
+	if st.has("grid"):
+		var gr: Dictionary = st["grid"]
+		var added: Dictionary = gr["added"]
+		var best_ch := ""
+		var best_v: float = 0.0
+		for ch in added:
+			var v: float = float(added[ch])
+			if v > best_v:
+				best_v = v
+				best_ch = String(ch)
+		if best_v > 0.005:
+			chips.append(["grid", tr("GRID %s +%d%%") % [_grid_tag(best_ch), int(round(best_v * 100.0))], Color(0.60, 0.85, 1.0), true, "grid"])
+		else:
+			chips.append(["grid", tr("ADAPTIVE GRID"), Color(0.60, 0.85, 1.0), false, "grid"])
+	if st.has("sustain"):
+		var su: Dictionary = st["sustain"]
+		var s_kind: String = String(su["kind"])
+		match s_kind:
+			"pulse":
+				chips.append(["sustain", tr("PULSE %ds") % int(ceil(float(su["next_s"]))), Color(0.40, 0.90, 1.0), false, "pulse"])
+			"nanite":
+				if bool(su.get("regen", false)):
+					chips.append(["sustain", tr("NANITE REGEN"), Color(0.40, 1.0, 0.55), true, "nanite"])
+				elif not bool(su.get("spent", false)):
+					chips.append(["sustain", tr("NANITE STANDBY"), Color(0.40, 1.0, 0.55), false, "nanite"])
+			"siphon":
+				chips.append(["sustain", tr("SHIELD SIPHON"), Color(0.80, 0.50, 1.0), false, "siphon"])
+	if st.has("volatile"):
+		if bool(st["volatile"]["critical"]):
+			chips.append(["volatile", tr("CORE CRITICAL — BREACH ON KILL"), Color(1.0, 0.45, 0.20), true, "volatile"])
+		else:
+			chips.append(["volatile", tr("VOLATILE CORE"), Color(1.0, 0.55, 0.20), false, "volatile"])
+	if st.has("corrosion"):
+		chips.append(["corrosion", tr("CORROSIVE FIELD"), Color(0.70, 1.0, 0.40), true, "corrosion"])
+
+	# Rebuild chip nodes only when the SET of chips changes.
+	var sig := ""
+	for c in chips:
+		sig += String(c[0]) + ";"
+	if sig != _strip_sig:
+		_strip_sig = sig
+		_free_chip_card()
+		for child in _trait_strip.get_children():
+			child.queue_free()
+		_strip_chips.clear()
+		for c in chips:
+			var made := _make_strip_chip(String(c[4]))
+			_trait_strip.add_child(made["panel"])
+			_strip_chips[c[0]] = made
+		# (v139f first-encounter toast REMOVED per owner direction — no
+		# unsolicited explainer text on auto surfaces. Teaching is opt-in:
+		# hover a chip or open the intel modal.)
+
+	# In-place text/color refresh + activation pop on a chip's rising edge.
+	for c in chips:
+		var slot: Dictionary = _strip_chips.get(c[0], {})
+		if slot.is_empty():
+			continue
+		var lbl: Label = slot["label"]
+		var txt: String = String(c[1])
+		if lbl.text != txt:
+			lbl.text = txt
+		var col: Color = c[2]
+		var bright: bool = bool(c[3])
+		lbl.add_theme_color_override("font_color", col if bright else col.darkened(0.15))
+		var pnl: PanelContainer = slot["panel"]
+		pnl.modulate.a = 1.0 if bright else 0.72
+		if bright and not bool(slot.get("bright", false)):
+			_pop_chip(String(c[0]))
+		slot["bright"] = bright
+
+	# Enraged: the enemy's name itself burns until the fight ends.
+	if st.has("enrage") and bool(st["enrage"]["active"]):
+		e_name_lbl.add_theme_color_override("font_color", Color(1.0, 0.45, 0.35))
+	else:
+		e_name_lbl.remove_theme_color_override("font_color")
+
+	_trait_strip.visible = not chips.is_empty()
+	# Soft-tier (Z1-Z2): tutorial-grade traits read calm, never alarming.
+	var diff: int = int(manager.current_zone.get("difficulty", 1)) if manager.current_zone else 1
+	_trait_strip.modulate.a = 0.65 if diff <= 2 else 1.0
+
+	# Boss-bar overlays: phase-band tinting + the enrage notch. Block i covers
+	# the HP fraction band [i/20,(i+1)/20]; _phase_index maps 1-frac into bands.
+	var accents: Array = []
+	if st.has("phase"):
+		var ph2: Dictionary = st["phase"]
+		var plist: Array = ph2["list"]
+		var n2: int = plist.size()
+		if n2 > 1:
+			for i in range(20):
+				var mid: float = (float(i) + 0.5) / 20.0
+				var pidx: int = clampi(int((1.0 - mid) * float(n2)), 0, n2 - 1)
+				accents.append(_phase_color(String(plist[pidx])))
+	e_hp_bar.set_meta("block_accents", accents)
+	var notch := -1
+	var hot := false
+	if st.has("enrage"):
+		notch = clampi(int(float(st["enrage"]["at"]) * 20.0), 0, 19)
+		hot = bool(st["enrage"]["active"])
+	e_hp_bar.set_meta("enrage_notch", notch)
+	e_hp_bar.set_meta("enrage_hot", hot)
+
+func _make_strip_chip(info_id: String) -> Dictionary:
+	var lbl := Label.new()
+	lbl.add_theme_font_size_override("font_size", 9)
+	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.05, 0.09, 0.10, 0.85)
+	sb.border_width_left = 1
+	sb.border_width_right = 1
+	sb.border_width_top = 1
+	sb.border_width_bottom = 1
+	sb.border_color = Color(1, 1, 1, 0.10)
+	sb.corner_radius_top_left = 3
+	sb.corner_radius_top_right = 3
+	sb.corner_radius_bottom_left = 3
+	sb.corner_radius_bottom_right = 3
+	sb.content_margin_left = 6
+	sb.content_margin_right = 6
+	sb.content_margin_top = 2
+	sb.content_margin_bottom = 2
+	var chip := PanelContainer.new()
+	chip.add_theme_stylebox_override("panel", sb)
+	chip.add_child(lbl)
+	# v139f: chips ARE the vocabulary — hover any of them for the full explainer
+	# (what the system does + the hangar answer). Same UITheme.trait_info_for
+	# text as the intel modal, so the player meets one consistent voice.
+	chip.mouse_filter = Control.MOUSE_FILTER_STOP
+	chip.mouse_entered.connect(_on_chip_hover.bind(info_id, chip))
+	chip.mouse_exited.connect(_free_chip_card)
+	return {"panel": chip, "label": lbl, "info": info_id, "bright": false}
+
+func _on_chip_hover(info_id: String, chip: Control) -> void:
+	_free_chip_card()
+	if manager == null or manager.current_enemy == null:
+		return
+	var infos: Dictionary = UITheme.trait_info_for(manager.current_enemy)
+	var inf: Dictionary = infos.get(info_id, {})
+	if inf.is_empty():
+		return
+	_chip_card = UITheme.show_info_card(chip, String(inf["title"]), String(inf["body"]))
+
+func _free_chip_card() -> void:
+	if _chip_card and is_instance_valid(_chip_card):
+		_chip_card.queue_free()
+	_chip_card = null
+
+# v139f: activation pop — a chip physically reacts when its system fires.
+# Scale-only (the refresh loop owns modulate alpha, so we never fight it).
+func _pop_chip(key: String) -> void:
+	var slot: Dictionary = _strip_chips.get(key, {})
+	if slot.is_empty():
+		return
+	var pnl: Control = slot["panel"]
+	if not is_instance_valid(pnl):
+		return
+	pnl.pivot_offset = pnl.size / 2.0
+	pnl.scale = Vector2(1.25, 1.25)
+	var tw := pnl.create_tween()
+	tw.tween_property(pnl, "scale", Vector2.ONE, 0.28).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+# v139f: centre-stage banner for the two heavyweight beats (phase shift,
+# enrage). Bigger, slower, outlined — survives a glance away, unlike the
+# lane floats.
+func _spawn_banner(text: String, color: Color) -> void:
+	if not is_visible_in_tree():
+		return
+	var lbl := Label.new()
+	lbl.text = text
+	lbl.add_theme_font_size_override("font_size", 20)
+	lbl.add_theme_color_override("font_color", color)
+	lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	lbl.add_theme_constant_override("outline_size", 7)
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	lbl.z_index = 52
+	visualizer.add_child(lbl)
+	var vp: Vector2 = visualizer.size
+	lbl.size = Vector2(vp.x, 30)
+	lbl.position = Vector2(0, vp.y * 0.28)
+	lbl.pivot_offset = Vector2(vp.x / 2.0, 15.0)
+	lbl.scale = Vector2(0.80, 0.80)
+	var tw := lbl.create_tween()
+	tw.tween_property(lbl, "scale", Vector2.ONE, 0.22).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_interval(1.5)
+	tw.tween_property(lbl, "modulate:a", 0.0, 0.6)
+	tw.tween_callback(lbl.queue_free)
+
+# v139f: per-trait activation juice, dispatched off the machine-tagged combat
+# events. Bars flash in the system's colour; the panel glitches for the big
+# hits; chips pop. All presentation — zero combat math here.
+func _trait_drama(key: String, _ev: Dictionary) -> void:
+	var e_overlay: Control = $Dashboard/HUD/MidHUD/EnemyStatsOverlay
+	match key:
+		"phase":
+			var ph: Dictionary = manager.get_trait_ui_state().get("phase", {})
+			if not ph.is_empty():
+				var elem: String = String(ph.get("element", ""))
+				_spawn_banner(tr("PHASE %d/%d — %s") % [int(ph.get("idx", 0)) + 1, int(ph.get("count", 1)), tr(elem.to_upper())], _phase_color(elem))
+			UITheme.trigger_system_glitch(e_overlay, 10.0)
+			UITheme.trigger_ui_thud(self, 6.0)
+			UITheme.trigger_damage_flash(e_hp_bar)
+		"enrage":
+			var en: Dictionary = manager.get_trait_ui_state().get("enrage", {})
+			_spawn_banner(tr("ENRAGED — ATK ×%.1f") % float(en.get("mult", 1.5)), Color(1.0, 0.35, 0.20))
+			UITheme.trigger_system_glitch(e_overlay, 12.0)
+			UITheme.trigger_ui_thud(self, 8.0)
+			UITheme.trigger_color_flash(e_hp_bar, Color(1.0, 0.30, 0.20))
+		"nuke_charge":
+			_pop_chip("cannon")
+			UITheme.trigger_color_flash(e_overlay, Color(1.0, 0.75, 0.30))
+		"nuke_impact":
+			_apply_hud_stress()
+			UITheme.trigger_ui_thud(self, 8.0)
+		"pulse":
+			UITheme.trigger_color_flash(e_sh_bar, Color(0.40, 0.90, 1.0))
+			_pop_chip("sustain")
+		"nanite":
+			UITheme.trigger_color_flash(e_hp_bar, Color(0.40, 1.0, 0.55))
+			_pop_chip("sustain")
+		"plating":
+			_pop_chip("plating")
+		"grid":
+			_pop_chip("grid")
+		"siphon":
+			UITheme.trigger_color_flash(p_sh_bar, Color(0.80, 0.50, 1.0))
+		"corrosion":
+			UITheme.trigger_color_flash(p_hp_bar, Color(0.70, 1.0, 0.40))
+		"volatile":
+			_apply_hud_stress()
+			UITheme.trigger_ui_thud(self, 8.0)
 
 func _on_radar_draw():
 	var center = Vector2.ZERO # Local space of RadarDisplay (it's centered)

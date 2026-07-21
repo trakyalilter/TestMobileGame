@@ -59,13 +59,21 @@ They are diegetic signposts, not checks; the checks start at Z3.
 | 1 | The Architect | **SOFT Charge Nuke** every 4th/×1.75 ("CHARGING MAIN CANNON" telegraph) | "Watch the fight — bosses telegraph" (first boss ever; spike dents, never kills) |
 | 2 | Silicate Monolith | **SOFT Sustain-pulse** 10s/+4% ("lattice re-crystallizes") | "Out-damage the healing" — at Uncommon the stalling shield bar EXPLAINS the Rare wall instead of a mute number check |
 | 3 | Martian Warmaster | Enrage 0.35/×1.4 | "Finish fast or armor up" (first-warp boss, first REAL check) |
-| 4 | Glacial Overseer | Sustain-pulse 8s/+6% | Pulse ESCALATION (intro'd softly at Z2) |
-| 5 | Xenon Harbinger | Enrage 0.5/×1.5 | Escalation — earlier, harder |
+| 4 | Glacial Overseer | **Sustain-siphon 0.08** (v139g) | SIPHON DEBUT — "the cold leeches your shields; out-damage the theft" |
+| 5 | Xenon Harbinger | **Sustain-nanite 0.30/5s/4%%/s** (v139g) | NANITE DEBUT — "burst through the regen window" |
 | 6 | Beta Colossus | Reactive Armor 25/×1.4/cap×2.8 | "Attack speed isn't free — hit heavy" |
-| 7 | Sovereign Prism | Sustain-siphon | "It eats your shields — out-sustain it" |
+| 7 | Sovereign Prism | **Sustain-pulse 7s/+7%** (v139g) | The Z2 soft lesson tested FOR REAL (lattice continuity: monolith → prism) |
 | 8 | Prismatic Warden | Charge Nuke 4th/×4 | The Z1 telegraph, now lethal — "survive the SPIKE" |
 | 9 | Patient Zero | Corrosive Field + Enrage 0.4/×1.3 | First combo — DoT race under pressure |
 | 10 | Void Leviathan | Adaptive Grid + Volatile | Capstone: hybrid build + EHP floor; primes Z11's "damage type is everything" break |
+
+**v139g revision (owner, 2026-07-21): "each boss needs a different trait — each boss is new flavor."**
+Straight repeats killed: Z4 pulse-repeat → siphon debut, Z5 enrage-repeat → nanite debut
+(the engine's one unassigned trait), Z7 takes pulse-for-real. Rule going forward: Z1/Z2
+soft intros may return ONCE as their lethal test (Z1→Z8 nuke, Z2→Z7 pulse); everything
+else debuts on exactly one boss; Z9/Z10 combos compose already-taught systems only.
+Enrage-on-every-NG+-warden (Z12–Z15) is flagged for the Loop-2 pass — their identity
+mechanic is the phase juggle; generic enrage pressure there dilutes Z3's signature.
 | 11+ | (existing warp-hardened/phases) | Layer traits in a later pass | TTKs re-checked vs the 5–10 min envelope (current 8.8–10.7 min → trim tails >10) |
 
 ## Rebalance methodology (the real project)

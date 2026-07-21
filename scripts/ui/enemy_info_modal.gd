@@ -79,6 +79,45 @@ func setup(data):
 			best_val = rc
 		add_item_label(tr("▶ BEST DAMAGE TYPE: %s") % best_type, Color(0.45, 1.0, 0.55))
 
+	# v139f: Boss Systems — the trait kit spelled out with the hangar answer
+	# (docs/design/P3_BOSS_MECHANICS.md "hangar ANSWER" column). Same vocabulary
+	# as the pre-fight chips and the live Boss Systems strip.
+	var sys_lines: Array = []
+	var _thr := float(data.get("enrage_at", 0.0))
+	if _thr > 0.0:
+		sys_lines.append([tr("ENRAGES at %d%% HP (ATK ×%.1f) — race it or armor through it.") % [int(round(_thr * 100.0)), float(data.get("enrage_atk_mult", 1.5))], Color(1.0, 0.45, 0.30)])
+	var _sus: Dictionary = data.get("sustain", {})
+	match String(_sus.get("kind", "")):
+		"pulse":
+			sys_lines.append([tr("SHIELD PULSE — re-shields every %ds; out-damage the healing.") % int(float(_sus.get("every_s", 8.0))), Color(0.40, 0.90, 1.0)])
+		"siphon":
+			sys_lines.append([tr("SHIELD SIPHON — its hits steal your shield; out-sustain the theft."), Color(0.80, 0.50, 1.0)])
+		"nanite":
+			sys_lines.append([tr("NANITE REPAIR — regenerates hull when badly hurt; bring burst damage."), Color(0.40, 1.0, 0.55)])
+	if not (data.get("reactive_armor", {}) as Dictionary).is_empty():
+		sys_lines.append([tr("REACTIVE PLATING — DEF grows as your hits land; hit heavy, not fast."), Color(0.85, 0.75, 0.40)])
+	if not (data.get("adaptive_grid", {}) as Dictionary).is_empty():
+		sys_lines.append([tr("ADAPTIVE GRID — resists each damage type it absorbs; split your weapon types."), Color(0.60, 0.85, 1.0)])
+	var _cn: Dictionary = data.get("charge_nuke", {})
+	if not _cn.is_empty():
+		sys_lines.append([tr("CANNON CYCLE — every %dth shot hits ×%.1f; size your shield for the spike.") % [int(_cn.get("every_n", 5)), float(_cn.get("mult", 4.0))], Color(1.0, 0.75, 0.30)])
+	if not (data.get("volatile", {}) as Dictionary).is_empty():
+		sys_lines.append([tr("VOLATILE CORE — detonates on death; keep a hull buffer or limp out at 1 HP."), Color(1.0, 0.55, 0.20)])
+	if not (data.get("corrosive_field", {}) as Dictionary).is_empty():
+		sys_lines.append([tr("CORROSIVE FIELD — constant hull decay that bypasses shields; bring repair kits."), Color(0.70, 1.0, 0.40)])
+	var _phs: Array = data.get("phases", [])
+	if _phs.size() > 1:
+		var _pchain := ""
+		for p in _phs:
+			if _pchain != "":
+				_pchain += " → "
+			_pchain += tr(String(p).to_upper())
+		sys_lines.append([tr("PHASED (%d) — %s. Only the phase element breaches; carry a preset per element.") % [_phs.size(), _pchain], Color(0.70, 0.95, 1.0)])
+	if not sys_lines.is_empty():
+		add_header(tr("Boss Systems"), Color(1.0, 0.76, 0.30))
+		for sl in sys_lines:
+			add_item_label("- " + String(sl[0]), sl[1])
+
 	# Guaranteed Loot Header
 	add_header(tr("Guaranteed Drops"), Color.ORANGE)
 	for item in data["loot"]:
