@@ -187,24 +187,27 @@ func update_state():
 	var lvl = manager.get_level()
 	var req = data.get("level_req", 1)
 
-	var eff_mult = 1.0
-	if GameState.research_manager:
-		eff_mult = GameState.research_manager.get_efficiency_multiplier()
+	# v140: sign the loot cache with the FULL yield multiplier, not just research
+	# efficiency. Buying a Warp-tree yield node (ENG_S1 Resource Surge) raised the
+	# real payout but left this signature byte-identical, so the cached BBCode was
+	# never rebuilt and the card's number stayed frozen.
+	var yield_mult: float = manager.get_yield_multiplier()
 	var rates = manager.get_current_rate() if is_this_active else {}
 
 	# --- LOOT (expensive BBCode re-parse) — rebuild only when it would change.
 	# While active the rates are constant, so this builds once on activation. ---
-	var loot_sig := "%s|%.4f|%s" % [is_this_active, eff_mult, str(rates)]
+	var loot_sig := "%s|%.4f|%s" % [is_this_active, yield_mult, str(rates)]
 	if loot_sig != _loot_sig:
 		_loot_sig = loot_sig
 		var loot_text = "[center]"
-		for entry in data["loot_table"]:
+		for i in range(data["loot_table"].size()):
+			var entry = data["loot_table"][i]
 			var symbol = entry[0]
 			var display_name = ElementDB.get_display_name(symbol)
 			var icon_bb = ElementDB.material_icon_bbcode(symbol, 16)
 			# v112: deterministic yield — show the single fixed value.
 			var name_link = "[url=atlasmat:%s]%s[/url]" % [symbol, display_name]
-			var base_loot = "%s%s: %s" % [icon_bb, name_link, FormatUtils.format_number(float(entry[3]) * eff_mult)]
+			var base_loot = "%s%s: %s" % [icon_bb, name_link, FormatUtils.format_number(manager.get_display_yield(entry, i))]
 			if symbol in rates:
 				loot_text += "%s [color=#55ff55](%s%s)[/color]\n" % [base_loot, FormatUtils.format_number(rates[symbol]), tr("/m")]
 			else:

@@ -122,7 +122,7 @@ func update_objective() -> void:
 	if br != -1:
 		nm = nm.substr(br + 2)
 	var is_ready: bool = obj.get("completed", false) and not obj.get("claimed", false)
-	objective_btn.text = ("CLAIM: " if is_ready else "▸ ") + nm
+	objective_btn.text = (tr("CLAIM: ") if is_ready else "▸ ") + nm
 	objective_btn.add_theme_color_override("font_color", Color(0.45, 1.0, 0.55) if is_ready else UITheme.COLORS["accent"])
 
 
@@ -271,7 +271,7 @@ func update_warp_gauge() -> void:
 	warp_gauge_bar.value = clampf(frac, 0.0, 1.0)
 	# Neutral banked-shard count — passive state, never a "warp now" prompt.
 	var avail: int = wm.get_available_shards() if wm.has_method("get_available_shards") else 0
-	warp_gauge_lbl.text = ("WARP  %d◇" % avail) if avail > 0 else "WARP"
+	warp_gauge_lbl.text = (tr("WARP  %d◇") % avail) if avail > 0 else tr("WARP")
 	# Live palette (apply_palette can rewrite COLORS) — accent fill only, no alert states.
 	var fs = warp_gauge_bar.get_theme_stylebox("fill")
 	if fs is StyleBoxFlat:
@@ -294,7 +294,9 @@ func update_hud():
 
 func update_credits():
 	var cr = GameState.resources.get_currency("credits")
-	credits_lbl.text = tr(" %s") % UITheme.format_num(cr)
+	# v140: " %s" is layout padding, not translatable content — tr() on a bare format
+	# passthrough just creates a junk key that can never have a meaningful translation.
+	credits_lbl.text = " %s" % UITheme.format_num(cr)
 
 # Removed _on_energy_changed as it's no longer displayed in the header
 

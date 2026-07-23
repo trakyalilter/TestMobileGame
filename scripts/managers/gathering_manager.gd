@@ -338,6 +338,23 @@ func get_yield_multiplier() -> float:
 
 	return mult
 
+# v140: SINGLE SOURCE OF TRUTH for "what one gather awards for loot_table[index]".
+# The action card used to recompute this itself with ONLY the research efficiency
+# multiplier, so skill level, milestone 10, trophy buffs and the Warp-tree ENG_S1
+# spine (Resource Surge) were all being awarded but never shown — buying Resource
+# Surge moved the live rate and left the card's number frozen. Card and award path
+# now both call this, so they cannot drift again.
+func get_display_yield(entry: Array, index: int) -> int:
+	var amount := int(entry[3])
+	if GameState.research_manager:
+		amount += int(GameState.research_manager.get_efficiency_bonus("gathering_yield"))
+		amount = int(float(amount) * (1.0 + GameState.research_manager.get_efficiency_bonus("gathering_yield_mult")))
+	amount = int(float(amount) * get_yield_multiplier())
+	if index == 0 and GameState.warp_manager:
+		amount += GameState.warp_manager.get_tree_gathering_flat()   # ENG_1 flat, primary drop only
+	return amount
+
+
 func get_action_speed_multiplier(action_id: String) -> float:
 	var multiplier = 1.0
 	
@@ -451,20 +468,9 @@ func complete_action():
 		# action added noise without a decision; deterministic reads cleaner and
 		# makes offline closed-form. The drop CHANCE still gates bonus drops.
 		if randf() < chance:
-			var amount = int(entry[3])
-
-			# Apply Yield Bonus from research
-			if GameState.research_manager:
-				amount += int(GameState.research_manager.get_efficiency_bonus("gathering_yield"))
-				# v105: gathering_focus (Recursive Logistics) +5%/level multiplicative.
-				# Previously bonus_type "gathering_yield_mult" had no consumer.
-				amount = int(float(amount) * (1.0 + GameState.research_manager.get_efficiency_bonus("gathering_yield_mult")))
-
-			# Audit v6.0 P1-19: Apply skill yield multiplier
-			amount = int(float(amount) * get_yield_multiplier())
-
-			if i == 0:
-				amount += flat_bonus   # ENG_1 flat bonus on the primary resource
+			# v140: research flat/mult + skill yield mult + ENG_1 flat, all inside
+			# get_display_yield so the action card renders the identical number.
+			var amount = get_display_yield(entry, i)
 
 			GameState.resources.add_element(element, amount)
 			GameState.note_production("gather", amount)  # P3.10

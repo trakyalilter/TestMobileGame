@@ -1352,7 +1352,7 @@
 "+%s","+%s"
 "0.0s / %s","0.0s / %s"
 "= +%s◈","= +%s◈"
-"A hole torn in spacetime by the sector boss's collapse. Entering executes a Warp: +%d Exotic Shard%s%s. The run resets; research, ships and Exotic Matter persist.","Sektör patronunun çöküşüyle uzay-zamanda açılan bir delik. Girmek bir Warp gerçekleştirir: +%d Egzotik Parça%s%s. Tur sıfırlanır; araştırma, gemiler ve Egzotik Madde kalır."
+"A hole torn in spacetime by the sector boss's collapse. Entering executes a Warp: +%d Exotic Shard%s%s. The run resets — research and ships included; Exotic Matter and your Warp Mastery persist.","Sektör patronunun çöküşüyle uzay-zamanda açılan bir delik. Girmek bir Warp gerçekleştirir: +%d Egzotik Parça%s%s. Tur sıfırlanır — araştırma ve gemiler dahil; Egzotik Madde ve Warp Ustalığın kalır."
 "A multi-wave gauntlet — no single target to pick.","Çok dalgalı bir eldiven — seçilecek tek bir hedef yok."
 "ABANDON","TERK ET"
 "ACTIVE","AKTİF"
@@ -1477,7 +1477,7 @@ Yuvalar: %d"
 "INVALID ID","GEÇERSİZ KİMLİK"
 "In Storage: %d","Depoda: %d"
 "Intel:","İstihbarat:"
-"KEEPS  Research · Ships · Exotic Matter · Mastery          RESETS  Liras · Buildings · Resources · Skill levels (30% XP)","KORUNANLAR  Araştırma · Gemiler · Egzotik Madde · Ustalık          SIFIRLANANLAR  Lira · Binalar · Kaynaklar · Yetenek seviyeleri (%30 TP)"
+"KEEPS  Exotic Matter · Warp Tree · Mastery · Storage          RESETS  Research · Ships · Liras · Buildings · Resources · Skill levels (30% XP)","KORUNANLAR  Egzotik Madde · Warp Ağacı · Ustalık · Depo          SIFIRLANANLAR  Araştırma · Gemiler · Lira · Binalar · Kaynaklar · Yetenek seviyeleri (%30 TP)"
 "L%d","S%d"
 "LAST KILL  %s","SON LEŞ  %s"
 "LEVEL %d REQUIRED","SEVİYE %d GEREKLİ"
@@ -1919,9 +1919,9 @@ Yenilenmesini bekle..."
 "[color=#%s]YOU RECEIVE[/color]
 ","[color=#%s]ALACAKLARIN[/color]
 "
-"[color=#73e88c]KEEP[/color]     Research · Ships · Exotic Matter · Warp Mastery purchases
+"[color=#73e88c]KEEP[/color]     Exotic Matter · Warp Mastery purchases · Action Mastery · Storage upgrades
 
-","[color=#73e88c]SAKLANAN[/color]     Araştırma · Gemiler · Egzotik Madde · Warp Ustalığı satın alımları
+","[color=#73e88c]SAKLANAN[/color]     Egzotik Madde · Warp Ustalığı satın alımları · Eylem Ustalığı · Depo yükseltmeleri
 
 "
 "[color=#c78cff]Grant %d Exotic Shard%s[/color]
@@ -1934,8 +1934,8 @@ Yenilenmesini bekle..."
 ","[color=#f06b6b]Her şey silinir — Liralar, gemiler, araştırma, Warp Ustalığı, prestij.[/color]
 
 "
-"[color=#f06b6b]RESET[/color]    Liras · Buildings · Standard Resources · Skill levels  [color=#8b8f9c](keep %d%% XP)[/color]
-","[color=#f06b6b]SIFIRLANAN[/color]    Liralar · Binalar · Standart Kaynaklar · Yetenek seviyeleri  [color=#8b8f9c](%d%% XP korunur)[/color]
+"[color=#f06b6b]RESET[/color]    Research · Ships & modules · Liras · Buildings · Resources · Skill levels  [color=#8b8f9c](keep %d%% XP)[/color]
+","[color=#f06b6b]SIFIRLANAN[/color]    Araştırma · Gemiler ve modüller · Liralar · Binalar · Kaynaklar · Yetenek seviyeleri  [color=#8b8f9c](%d%% XP korunur)[/color]
 "
 "[color=#ffb454][b]This cannot be undone.[/b][/color]","[color=#ffb454][b]Bu geri alınamaz.[/b][/color]"
 "none","hiçbiri"
@@ -2518,8 +2518,8 @@ Restores %d%% %s","%s
 "-20% infrastructure build cost.","-%20 altyapı inşa maliyeti."
 "Throttle buildings to 200% output at +50% input/unit.","Binaları +%50 girdi/birim karşılığında %200 çıktıya kadar zorla."
 "Auto-feeds a fraction of your surplus primitives into the Core each cycle.","Her döngüde fazla temel maddelerinin bir kısmını otomatik olarak Çekirdeğe besler."
-"+6% gathering AND infrastructure yield per level.","Seviye başına +%6 toplama VE altyapı verimi."
-"-2% processing duration per level (max -40%).","Seviye başına -%2 işleme süresi (en fazla -%40)."
+"+10% gathering AND infrastructure yield per level.","Seviye başına +%10 toplama VE altyapı verimi."
+"-3% processing duration per level (max -50%).","Seviye başına -%3 işleme süresi (en fazla -%50)."
 "+15% hull HP on all hulls.","Tüm gövdelerde +%15 gövde CAN."
 "+10% module damage.","+%10 modül hasarı."
 "Adds one extra module slot on every hull that accepts any module type.","Herhangi bir modül türünü kabul eden her gövdeye bir ekstra modül yuvası ekler."
@@ -2529,7 +2529,7 @@ Restores %d%% %s","%s
 "Keep 40% XP through a warp (up from 30%).","Bir warp boyunca %40 XP koru (%30'dan yükseldi)."
 "Keep 55% XP through a warp (stacks with Deeper Roots).","Bir warp boyunca %55 XP koru (Daha Derin Kökler ile birikir)."
 "Warp-Core Charge +25% efficiency and a higher bonus-shard cap.","Warp-Çekirdeği Şarjı +%25 verim ve daha yüksek bonus-parça sınırı."
-"+3% warp shards earned per level.","Seviye başına kazanılan +%3 warp parçası."
+"+4% warp shards earned per level.","Seviye başına kazanılan +%4 warp parçası."
 "+5% free building rebuild per level (caps at +50%).","Seviye başına +%5 ücretsiz bina yeniden inşası (+%50'de sınırlanır)."
 "+8% Hack Card drop rate per level (caps at +80%).","Seviye başına +%8 Hack Kartı düşürme oranı (+%80'de sınırlanır)."
 "Gathering: %s","Toplama: %s"
@@ -2772,3 +2772,26 @@ Restores %d%% %s","%s
 "Commission an Electronics Assembler. It draws 1,500 kW — an underpowered line throttles and runs slow. It consumes Silicon, Copper and Resin from storage.","Bir Elektronik Birleştirici kur. 1.500 kW çeker — gücü yetmeyen hat kısılır ve yavaş çalışır. Depodan Silikon, Bakır ve Reçine tüketir."
 "Passive Supply","Pasif Tedarik"
 "Accumulate 100 Circuits. The Assembler produces them while you mine, fight — or sleep. Hand-crafting still works; the line just never gets tired.","100 Devre biriktir. Birleştirici sen madencilik yaparken, savaşırken — ya da uyurken üretir. Elle üretim hâlâ mümkün; ama hat asla yorulmaz."
+"%s  ·  Lv %d","%s  ·  Svy %d"
+"ACQUIRED","ALINDI"
+"BUY · %d ◈","AL · %d ◈"
+"UP · %d ◈","YÜKSELT · %d ◈"
+"SOON · %d ◈","YAKINDA · %d ◈"
+"MAX · Lv %d","MAKS · Svy %d"
+"Need %d ◈","%d ◈ gerekli"
+"Shard","Parça"
+"Shards","Parça"
+"  Atlas","  Atlas"
+"%d-%d per cycle","döngü başına %d-%d"
+"SHIELD REPAIR","KALKAN ONARIMI"
+"Stock: %d","Stok: %d"
+"Cost: ","Maliyet: "
+"%s
+Restores %d%% %s
+Stock: %d","%s
+%%%d %s yeniler
+Stok: %d"
+"In combat — swap builds from the Combat screen's loadout bar, or retreat first.","Savaştasın — yapıları Savaş ekranındaki teçhizat çubuğundan değiştir ya da önce geri çekil."
+"   ▸  %s   (Power %s)","   ▸  %s   (Güç %s)"
+"CLAIM: ","TALEP ET: "
+"WARP  %d◇","WARP  %d◇"

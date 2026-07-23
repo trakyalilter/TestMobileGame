@@ -689,7 +689,7 @@ func _refresh_consumable_state():
 
 		tooltip_text = tr("%s\nRestores %d%% %s\nStock: %d") % [dname, heal_pct, tr(c_type.capitalize()), qty]
 
-		option_btn.add_item("Unequip", 1)
+		option_btn.add_item(tr("Unequip"), 1)
 		option_btn.set_item_metadata(1, "unequip")
 	else:
 		name_lbl.visible = true

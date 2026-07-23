@@ -4,18 +4,22 @@ extends Node
 # ----------------------------------------------------------------------------
 # The core prestige promise is "each run is faster." This scenario tests it
 # DIRECTLY (the A/B/C bot warps from a fresh game → near-zero shards, so it
-# can't). Phase 1: fresh game → drive the greedy policy to clear Zone TARGET,
+# can't). Phase 1: fresh game → drive the greedy policy to the FIRST-WARP gate,
 # recording sim-time + skill levels. Then WARP (banking the real progress →
-# shards + 30% XP retention + persistent research + tree nodes). Phase 2:
-# re-drive to clear Zone TARGET again. Assert phase 2 is meaningfully faster.
+# shards + 30% XP retention + tree nodes). Phase 2: re-earn the same progress
+# post-warp. Assert phase 2 is meaningfully faster.
 #
 # Also verifies the mechanical prestige invariants that a static read can't:
 #   • warp yields ≥1 shard and warp_shards is monotonic
 #   • XP retention: post-warp level ≥ the retained-XP floor (not nuked to 1)
-#   • research persists across the warp (soft reset)
+#   • research RESETS across the warp (v140 owner call; was soft-reset before)
 #   • no stall in either phase
 #
-# Run: godot --headless --path <repo> res://scenes/warp_accel.tscn -- --target=2
+# Milestone is the WARP-READY gate (progress_score >= 500k), NOT a zone clear.
+# (There used to be a --target=N arg here implying "clear Zone N"; it was parsed
+# and then never read, so it silently did nothing. Removed rather than left as a
+# trap. For time-to-Zone-N-boss see z10_run_cadence.gd.)
+# Run: godot --headless --path <repo> res://scenes/warp_accel.tscn
 # ============================================================================
 
 const DT := 0.25
@@ -26,7 +30,6 @@ const SESSION_LEN := 60.0             # sim-seconds of gathering per decision
 
 var sim_s := 0.0
 var step := 0
-var target := 2
 var findings: Array = []
 
 func _ready() -> void:
@@ -34,9 +37,6 @@ func _ready() -> void:
 
 func _boot() -> void:
 	GameState.set_process(false)
-	for a in OS.get_cmdline_user_args():
-		if a.begins_with("--target="):
-			target = int(a.substr(9))
 	seed(20260703)
 	print("[WARP-ACCEL] two-phase: drive to FIRST-WARP-READY → warp → measure re-progress")
 
@@ -64,8 +64,11 @@ func _boot() -> void:
 	var g_after: int = GameState.gathering_manager.get_level()
 	if shards_after < 1:
 		findings.append("✖ warp yielded <1 shard at the warp-ready gate (%.0f)" % shards_after)
-	if res_after < res1:
-		findings.append("✖ research did NOT persist across warp (%d → %d) — soft-reset broken" % [res1, res_after])
+	# v140 INVERTED: research now RESETS on warp (owner call — the persistent x10
+	# efficiency ladder flattened every post-warp run). This used to assert the
+	# opposite and fired as a false "soft-reset broken" finding after the change.
+	if res_after != 0:
+		findings.append("✖ research did NOT reset across warp (%d → %d) — v140 expects a full wipe" % [res1, res_after])
 	if g1 >= 20 and g_after <= 1:
 		findings.append("✖ XP retention broken: gathering %d → %d across warp (should keep ~30%%)" % [g1, g_after])
 	print("[WARP-ACCEL] warp: +%d shards → %.0f | g_lvl %d→%d | research %d→%d | prod×%.2f cmb×%.2f" % [

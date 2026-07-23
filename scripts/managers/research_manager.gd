@@ -334,13 +334,19 @@ var tech_tree = {
 	# ═══════════════════════════════════════════════════════════════
 	# v80.1: Zone Access Research Gates — Instant, material-gated
 	# Cost formula: credits = floor(30000 × 2.5^(N-2)), boss cores = floor(1 + (N-1)/2)
+	# v141 EXCEPTION at N=2: the Z1 boss now drops 2 cores per kill (boss_core_qty)
+	# and this gate costs 2, so ONE kill still buys the zone — unchanged pacing —
+	# while a SECOND kill funds a starter infrastructure building (which now costs
+	# Z1_Core ×2). Zones 3+ keep 1 core/kill and their original costs, so nothing
+	# downstream was sped up. Extending 2-per-kill to later bosses requires doubling
+	# their gate costs too, or zone progression silently halves in kills.
 	# ═══════════════════════════════════════════════════════════════
 	"zone_2_access": {
 		"name": "Asteroid Belt Authorization",
 		"tier": 2,
 		"category": "zone",
 		"cost": 30000,
-		"cost_items": {"Z1_Core": 1, "Fe": 40, "Cu": 20},
+		"cost_items": {"Z1_Core": 2, "Fe": 40, "Cu": 20},
 		"type": "technology",
 		"parent": null,
 		"req_tech": "shipwright_1",

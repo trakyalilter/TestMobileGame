@@ -178,7 +178,7 @@ var building_db: Dictionary = {
 	"auto_excavator": {
 		"name": "Auto-Excavator (XL)",
 		"description": "+10 Dirt",
-		"cost": {"credits": 250000, "Si": 2500, "Fe": 1000},
+		"cost": {"credits": 12000, "Fe": 2000, "Si": 1200, "Z1_Core": 2},
 		"energy_gen": 0.0,
 		"energy_cons": 15.0,
 		"yield": {"Dirt": 10},
@@ -188,7 +188,7 @@ var building_db: Dictionary = {
 	"industrial_pump": {
 		"name": "Industrial Pump",
 		"description": "+10 Water",
-		"cost": {"credits": 250000, "Si": 2500, "Fe": 1000}, 
+		"cost": {"credits": 12000, "Fe": 2000, "Si": 1200, "Z1_Core": 2}, 
 		"energy_gen": 0.0,
 		"energy_cons": 25.0,
 		"yield": {"Water": 10},
@@ -198,7 +198,7 @@ var building_db: Dictionary = {
 	"bio_harvester": {
 		"name": "Bio-Harvester",
 		"description": "Automated wood collection.",
-		"cost": {"credits": 250000, "Steel": 500, "Circuit": 50},
+		"cost": {"credits": 45000, "Steel": 900, "Circuit": 60, "Z2_Core": 2},
 		"energy_gen": 0.0,
 		"energy_cons": 40.0,
 		"yield": {"Wood": 10},
@@ -1278,7 +1278,11 @@ func get_building_adjusted_rate(building_id: String) -> Dictionary:
 			# P0.3: same capped scaling as production (was inconsistent here —
 			# only 3 buildings vs 7 in get_effective_yield). Per-single-building
 			# rate, so no DR (DR is an aggregate cap, see get_total_resource_rates).
-			var base_qty = float(data["yield"][res]) * _eng_scale(building_id) * _ore_throttle(building_id) * get_mastery_efficiency_mult(building_id)
+			# v140: was recomputing eng_scale/ore_throttle/mastery by hand and so
+			# silently MISSED the two multipliers get_effective_yield had gained —
+			# research building_yield_mult and the Warp-tree ENG_S1 Resource Surge.
+			# The card under-reported real output. Use the production truth directly.
+			var base_qty = get_effective_yield(building_id, res)
 
 			var total_yield_mult = 1.0 + global_yield_bonuses.get(res, 0.0)
 			

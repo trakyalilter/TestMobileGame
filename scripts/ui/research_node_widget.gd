@@ -141,7 +141,9 @@ func update_state():
 		if "cost_items" in data:
 			for item in data["cost_items"]:
 				var raw_qty = data["cost_items"][item]
-				var req_qty = int(raw_qty * manager.MATERIAL_MULTIPLIER)
+				# v141: manager owns this formula — boss cores are exempt from
+				# MATERIAL_MULTIPLIER, so multiplying here showed 2x the real cost.
+				var req_qty = int(manager._effective_item_requirement(String(item), int(raw_qty)))
 				var inv_qty = GameState.resources.get_element_amount(item)
 				var color = "#00ff00" if inv_qty >= req_qty else "#888888"
 				var display_name = ElementDB.get_display_name(item)

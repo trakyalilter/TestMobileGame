@@ -323,7 +323,11 @@ func _build_cost_text() -> String:
 	var items: Dictionary = _data.get("cost_items", {})
 	for item in items:
 		var raw_qty: float = float(items[item])
-		var req_qty: int = int(raw_qty * float(_manager.MATERIAL_MULTIPLIER))
+		# v141: ask the manager, do NOT re-apply MATERIAL_MULTIPLIER here. Boss cores
+		# and drop-gated tokens are EXEMPT from that multiplier (v104/v135b), so this
+		# local copy of the formula displayed double the real requirement for any
+		# zone gate — "Z1_Core: 2" rendered as 4 while can_unlock() wanted 2.
+		var req_qty: int = int(_manager._effective_item_requirement(String(item), int(raw_qty)))
 		var have_q: int = int(GameState.resources.get_element_amount(item))
 		var col2: String = "#7fff7f" if have_q >= req_qty else "#ff8080"
 		var display: String = ElementDB.get_display_name(item)

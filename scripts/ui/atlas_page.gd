@@ -434,7 +434,10 @@ func build_material_database():
 						material_db[mat_id]["uses"].append({
 							"type": "research",
 							"name": tech_name,
-							"rate": "%d required" % tech["cost_items"][mat_id]
+							# v141: raw authored qty understated every scalable material
+							# by MATERIAL_MULTIPLIER (Steel/Circuit/… are doubled).
+							# Same helper as can_unlock so the Atlas cannot drift.
+							"rate": "%d required" % rm._effective_item_requirement(String(mat_id), int(tech["cost_items"][mat_id]))
 						})
 	
 func ensure_material(mat_id: String):

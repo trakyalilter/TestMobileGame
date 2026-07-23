@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/sim/yield_display_parity.gd" id="1_ydp"]
+
+[node name="YieldDisplayParity" type="Node"]
+script = ExtResource("1_ydp")

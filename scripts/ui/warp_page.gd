@@ -24,6 +24,12 @@ const COLOR_BRANCH_LOCK_BG := Color(0.05, 0.06, 0.10, 0.92)
 # Mirror of warp_manager.calculate_warp_gains() — kept in sync.
 const FIRST_SHARD_THRESHOLD := 500000.0
 
+# v140: left-rail width FLOOR. Content pushes it to ~385-390 in practice (the
+# widest driver is the stat-chip row); the tree takes whatever is left, ~851px =
+# two ~404px node cards, wide enough for the longest localised desc line.
+# Verified per locale + warp state by scenes/warp_layout_check.tscn.
+const RAIL_W := 360.0
+
 # ─── State ────────────────────────────────────────────────────────────────
 var _wm  # GameState.warp_manager
 # v135a: gains-forward preview — leads the page with what you GET (shards, standing
@@ -32,7 +38,8 @@ var _gains_panel: PanelContainer
 var _gains_shards_lbl: Label
 var _gains_mult_lbl: Label
 var _gains_starter_lbl: Label
-var _col: VBoxContainer
+var _col: VBoxContainer    # v140: the LEFT RAIL (status + sinks), no longer the whole page
+var _shell: HBoxContainer  # rail | tree
 
 # Header
 var _cycle_lbl: Label
@@ -40,6 +47,7 @@ var _shards_big_lbl: Label
 var _progress_bar: ProgressBar
 var _progress_lbl: Label
 var _first_warp_panel: PanelContainer
+var _keeps_lbl: Label   # v140: one-line keeps/resets reminder, hidden pre-first-warp
 
 # v124c: command-band stat chips. _gain_big_lbl is the POTENTIAL chip's value and
 # stays a coach anchor.
@@ -105,25 +113,37 @@ func get_coach_anchor(key: String) -> Control:
 
 # ─── Layout scaffold ──────────────────────────────────────────────────────
 func _build_ui():
-	# v124b: fit-to-viewport — NO page scroll. _col fills the screen; the mastery
-	# tree section (the tall part) is tabbed + laid in a grid and EXPANDs into the
-	# remaining height, so the whole page fits 1280×720 without scrolling.
+	# v140: TWO-COLUMN. The old v124b single stack gave the tree whatever height was
+	# left after four stacked panels — ~280px of 720, and only ~187px of that was the
+	# node viewport, so every branch scrolled and rows clipped mid-card. The tree is
+	# the only thing you DO on this page (v138 moved the warp act itself to the Sector
+	# Chart), so it now owns a full-height column and the status/sink panels go in a
+	# fixed-width left rail. Node viewport goes ~187px → ~590px: no branch scrolls
+	# (densest is Engineering, 8 nodes = 4 rows ≈ 280px).
 	var pad = MarginContainer.new()
 	pad.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	for s in ["left", "right", "top", "bottom"]:
 		pad.add_theme_constant_override("margin_" + s, 16)
 	add_child(pad)
 
+	_shell = HBoxContainer.new()
+	_shell.name = "WarpShell"
+	_shell.add_theme_constant_override("separation", 12)
+	pad.add_child(_shell)
+
 	_col = VBoxContainer.new()
-	_col.name = "WarpColumn"
+	_col.name = "WarpRail"
+	_col.custom_minimum_size = Vector2(RAIL_W, 0)
+	_col.size_flags_horizontal = Control.SIZE_FILL      # fixed rail; the tree takes the slack
+	_col.size_flags_vertical = Control.SIZE_FILL
 	_col.add_theme_constant_override("separation", 10)
-	pad.add_child(_col)
+	_shell.add_child(_col)
 
 	_build_command_band()   # cycle + shards + vital chips + progress + actions, all in one compact band
 	_build_gains_preview()  # v135a: lead with the reward (shards + bonuses + starter), not the loss
 	_build_first_warp_block()
 	_build_feed_core_section()  # v134h: manual "Feed the Core" charge sink
-	_build_tree_section()    # the dominant zone — fills the rest of the viewport
+	_build_tree_section()    # the dominant zone — full-height right column
 
 
 # Quiet supporting-panel style: subtle filled card with a thin left accent
@@ -268,23 +288,17 @@ func _build_command_band():
 	v.add_theme_constant_override("separation", 7)
 	mc.add_child(v)
 
-	# Row A: cycle (left) ····· big shard readout (right).
-	var row_a = HBoxContainer.new()
-	row_a.add_theme_constant_override("separation", 12)
-	v.add_child(row_a)
+	# Row A: caption over value. Was side-by-side (cycle left, shards right), which
+	# needed ~475px — the 360px rail can't hold that, and TR strings run longer still.
 	_cycle_lbl = Label.new()
-	_cycle_lbl.add_theme_font_size_override("font_size", 12)
+	_cycle_lbl.add_theme_font_size_override("font_size", 11)
 	_cycle_lbl.add_theme_color_override("font_color", COLOR_DIM)
-	_cycle_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	row_a.add_child(_cycle_lbl)
-	var sp_a = Control.new()
-	sp_a.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row_a.add_child(sp_a)
+	v.add_child(_cycle_lbl)
 	_shards_big_lbl = Label.new()
-	_shards_big_lbl.add_theme_font_size_override("font_size", 24)
+	_shards_big_lbl.add_theme_font_size_override("font_size", 19)
 	_shards_big_lbl.add_theme_color_override("font_color", COLOR_SHARD)
-	_shards_big_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	row_a.add_child(_shards_big_lbl)
+	_shards_big_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	v.add_child(_shards_big_lbl)
 
 	# Row B: the three prestige vitals as inline chips.
 	var chips = HBoxContainer.new()
@@ -319,36 +333,38 @@ func _build_command_band():
 	row_c.add_child(_progress_lbl)
 
 	# One-line keeps/resets reminder (full colour-coded ledger lives in the modal).
-	var kr = Label.new()
-	kr.text = tr("KEEPS  Research · Ships · Exotic Matter · Mastery          RESETS  Liras · Buildings · Resources · Skill levels (30% XP)")
-	kr.add_theme_font_size_override("font_size", 9)
-	kr.add_theme_color_override("font_color", Color(0.52, 0.55, 0.62))
-	kr.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	kr.clip_text = true
-	kr.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	v.add_child(kr)
+	_keeps_lbl = Label.new()
+	_keeps_lbl.text = tr("KEEPS  Exotic Matter · Warp Tree · Mastery · Storage          RESETS  Research · Ships · Liras · Buildings · Resources · Skill levels (30% XP)")
+	_keeps_lbl.add_theme_font_size_override("font_size", 9)
+	_keeps_lbl.add_theme_color_override("font_color", Color(0.52, 0.55, 0.62))
+	# Wraps to ~2 lines in the rail. Was clip+ellipsis, which at 360px would have
+	# trimmed it to nothing readable — wrapping keeps the reminder legible instead.
+	_keeps_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	v.add_child(_keeps_lbl)
 
 	# Row D: Return (quiet) + the Singularity status line (v138 — the warp itself
 	# happens on the Sector Chart; this row only REPORTS whether a rift is open).
-	var row_d = HBoxContainer.new()
-	row_d.alignment = BoxContainer.ALIGNMENT_CENTER
-	row_d.add_theme_constant_override("separation", 14)
-	v.add_child(row_d)
+	# Row D: rift status over Return, both full-rail-width. Was side-by-side, which
+	# reserved 120px button + 340px status = 460px+ and blew past the rail.
+	_rift_status_lbl = Label.new()
+	_rift_status_lbl.text = tr("NO SINGULARITY DETECTED THIS RUN")
+	_rift_status_lbl.custom_minimum_size = Vector2(0, 34)
+	_rift_status_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_rift_status_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_rift_status_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_rift_status_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_rift_status_lbl.add_theme_font_size_override("font_size", 12)
+	_rift_status_lbl.add_theme_color_override("font_color", Color(0.55, 0.58, 0.68))
+	v.add_child(_rift_status_lbl)
+
 	_back_btn = Button.new()
 	_back_btn.text = tr("← Return")
-	_back_btn.custom_minimum_size = Vector2(120, 40)
+	_back_btn.custom_minimum_size = Vector2(0, 36)
+	_back_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	UITheme.apply_premium_button_style(_back_btn, "engineering")
 	_back_btn.add_theme_font_size_override("font_size", 12)
 	_back_btn.pressed.connect(_on_back_btn_pressed)
-	row_d.add_child(_back_btn)
-	_rift_status_lbl = Label.new()
-	_rift_status_lbl.text = tr("NO SINGULARITY DETECTED THIS RUN")
-	_rift_status_lbl.custom_minimum_size = Vector2(340, 44)
-	_rift_status_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_rift_status_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_rift_status_lbl.add_theme_font_size_override("font_size", 13)
-	_rift_status_lbl.add_theme_color_override("font_color", Color(0.55, 0.58, 0.68))
-	row_d.add_child(_rift_status_lbl)
+	v.add_child(_back_btn)
 
 	UITheme.apply_card_style(panel, "research")
 
@@ -388,9 +404,9 @@ func _build_first_warp_block():
 # ─── TREE: tabbed branches + grid — fits the viewport, no page scroll ────────
 func _build_tree_section():
 	_tree_panel = PanelContainer.new()
-	_tree_panel.size_flags_horizontal = Control.SIZE_FILL
-	_tree_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL   # fills the remaining height
-	_col.add_child(_tree_panel)
+	_tree_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL  # takes all width the rail doesn't
+	_tree_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL    # full viewport height
+	_shell.add_child(_tree_panel)
 
 	var outer = MarginContainer.new()
 	for k in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
@@ -497,8 +513,8 @@ func _make_tab_button(branch_id: String, label: String) -> Button:
 func _build_branch_grid(branch_id: String) -> Control:
 	var grid = GridContainer.new()
 	grid.columns = 2
-	grid.add_theme_constant_override("h_separation", 8)
-	grid.add_theme_constant_override("v_separation", 8)
+	grid.add_theme_constant_override("h_separation", 12)
+	grid.add_theme_constant_override("v_separation", 12)
 	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	for node_id in _wm.TREE_NODES:
 		if str(_wm.TREE_NODES[node_id].get("branch", "")) != branch_id:
@@ -535,10 +551,10 @@ func _build_node_card(node_id: String) -> Control:
 	sb.set_border_width_all(1)
 	sb.border_color = COLOR_LOCKED
 	sb.border_width_left = 4            # branch-accent stripe set per-state in refresh
-	sb.content_margin_left = 11
-	sb.content_margin_right = 11
-	sb.content_margin_top = 10
-	sb.content_margin_bottom = 10
+	sb.content_margin_left = 13
+	sb.content_margin_right = 13
+	sb.content_margin_top = 13
+	sb.content_margin_bottom = 13
 	card.add_theme_stylebox_override("panel", sb)
 
 	var v = VBoxContainer.new()
@@ -596,7 +612,7 @@ func _build_node_card(node_id: String) -> Control:
 	var desc = Label.new()
 	desc.text = tr(str(node_data.get("desc", "")))
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	desc.add_theme_font_size_override("font_size", 12)
+	desc.add_theme_font_size_override("font_size", 13)
 	desc.add_theme_color_override("font_color", Color(0.72, 0.75, 0.82))
 	v.add_child(desc)
 
@@ -630,7 +646,16 @@ func _refresh_header():
 
 
 func _refresh_first_warp_visibility():
-	_first_warp_panel.visible = (int(_wm.total_warps) == 0)
+	var pre_first_warp: bool = (int(_wm.total_warps) == 0)
+	_first_warp_panel.visible = pre_first_warp
+	# v140: the rail has no scrollbar, and pre-first-warp is its tallest state (the
+	# FIRST WARP teaching panel is in there too). The longer post-research-reset
+	# ledger tipped Turkish to 695px against a 688px budget and clipped. The
+	# reminder is redundant while the teaching panel is up — and the full
+	# colour-coded ledger is in the Singularity confirm modal either way — so it
+	# only appears once that panel goes away. Guarded by warp_layout_check.tscn.
+	if _keeps_lbl != null:
+		_keeps_lbl.visible = not pre_first_warp
 
 
 func _refresh_readiness():
@@ -799,50 +824,61 @@ func _build_feed_core_section():
 	_feed_picker.item_selected.connect(_on_feed_picker_changed)
 	row.add_child(_feed_picker)
 
+	# v140: these 7 widgets used to share ONE row needing ~492px min; the rail gives
+	# ~324. Split into picker / amount / commit rows so nothing gets squeezed out.
+	var row_amt := HBoxContainer.new()
+	row_amt.add_theme_constant_override("separation", 6)
+	vb.add_child(row_amt)
+
 	var minus := Button.new()
 	minus.text = "−"
 	minus.custom_minimum_size = Vector2(30, 30)
 	_style_pill_button(minus, COLOR_SHARD)
 	minus.pressed.connect(func(): if _feed_spin: _feed_spin.value = max(0.0, _feed_spin.value - _feed_step()))
-	row.add_child(minus)
+	row_amt.add_child(minus)
 
 	_feed_spin = SpinBox.new()
 	_feed_spin.min_value = 0
 	_feed_spin.max_value = 1e15
 	_feed_spin.step = 1
 	_feed_spin.custom_minimum_size = Vector2(96, 30)
+	_feed_spin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if UITheme.has_method("apply_input_style"):
 		UITheme.apply_input_style(_feed_spin.get_line_edit(), "research")
 	_feed_spin.value_changed.connect(_on_feed_amount_changed)
-	row.add_child(_feed_spin)
+	row_amt.add_child(_feed_spin)
 
 	var plus := Button.new()
 	plus.text = "+"
 	plus.custom_minimum_size = Vector2(30, 30)
 	_style_pill_button(plus, COLOR_SHARD)
 	plus.pressed.connect(func(): if _feed_spin: _feed_spin.value = min(_feed_owned(), _feed_spin.value + _feed_step()))
-	row.add_child(plus)
+	row_amt.add_child(plus)
 
 	var maxb := Button.new()
 	maxb.text = tr("MAX")
 	maxb.custom_minimum_size = Vector2(46, 30)
 	_style_pill_button(maxb, COLOR_SHARD)
 	maxb.pressed.connect(func(): if _feed_spin: _feed_spin.value = _feed_owned())
-	row.add_child(maxb)
+	row_amt.add_child(maxb)
+
+	var row_act := HBoxContainer.new()
+	row_act.add_theme_constant_override("separation", 6)
+	vb.add_child(row_act)
 
 	_feed_preview = Label.new()
 	_feed_preview.add_theme_font_size_override("font_size", 11)
 	_feed_preview.add_theme_color_override("font_color", COLOR_SHARD)
-	_feed_preview.custom_minimum_size = Vector2(96, 0)
+	_feed_preview.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_feed_preview.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	row.add_child(_feed_preview)
+	row_act.add_child(_feed_preview)
 
 	_feed_btn = Button.new()
 	_feed_btn.text = tr("FEED")
-	_feed_btn.custom_minimum_size = Vector2(62, 30)
+	_feed_btn.custom_minimum_size = Vector2(72, 30)
 	_style_pill_button(_feed_btn, COLOR_SHARD)
 	_feed_btn.pressed.connect(_on_feed_pressed)
-	row.add_child(_feed_btn)
+	row_act.add_child(_feed_btn)
 
 	_populate_feed_picker()
 
@@ -971,7 +1007,7 @@ func _refresh_node(node_id: String):
 
 	# Title shows the current level on repeatable spines.
 	var nm: String = str(node_data.get("name", ""))
-	w["title"].text = ("%s  ·  Lv %d" % [nm, lvl]) if (is_rep and lvl > 0) else nm
+	w["title"].text = (tr("%s  ·  Lv %d") % [nm, lvl]) if (is_rep and lvl > 0) else nm
 
 	# Border = STATE colour; dot = BRANCH colour (lit only when the node is live).
 	dot.color = COLOR_LOCKED
@@ -981,7 +1017,7 @@ func _refresh_node(node_id: String):
 		sb.border_color = COLOR_LOCKED
 		sb.bg_color = Color(0.09, 0.10, 0.13, 0.90)
 		btn.visible = false
-		_set_chip(w, "SOON · %d ◈" % cost, COLOR_LOCKED)
+		_set_chip(w, tr("SOON · %d ◈") % cost, COLOR_LOCKED)
 		return
 
 	# Affordable (next level for repeatables, or first buy for finite).
@@ -991,7 +1027,7 @@ func _refresh_node(node_id: String):
 		dot.color = accent
 		btn.visible = true
 		btn.disabled = false
-		btn.text = ("UP · %d ◈" % cost) if is_rep else ("BUY · %d ◈" % cost)
+		btn.text = (tr("UP · %d ◈") % cost) if is_rep else (tr("BUY · %d ◈") % cost)
 		w["chip_panel"].visible = false
 		return
 
@@ -1005,19 +1041,19 @@ func _refresh_node(node_id: String):
 		sb.border_color = COLOR_PURCHASED
 		sb.bg_color = Color(0.08, 0.16, 0.10, 0.95)
 		dot.color = accent
-		_set_chip(w, ("MAX · Lv %d" % lvl) if is_rep else "ACQUIRED", COLOR_PURCHASED)
+		_set_chip(w, (tr("MAX · Lv %d") % lvl) if is_rep else tr("ACQUIRED"), COLOR_PURCHASED)
 	else:
 		sb.border_color = COLOR_LOCKED
 		sb.bg_color = Color(0.10, 0.11, 0.16, 0.95)
 		var avail: int = int(_wm.get_available_shards())
 		if avail < cost:
-			_set_chip(w, "Need %d ◈" % (cost - avail), COLOR_LOCKED)
+			_set_chip(w, tr("Need %d ◈") % (cost - avail), COLOR_LOCKED)
 		else:
 			_set_chip(w, tr("Locked"), COLOR_LOCKED)   # prereq / branch gate
 
 
 func _shard_label(n: int) -> String:
-	return "Shard" if abs(n) == 1 else "Shards"
+	return tr("Shard") if abs(n) == 1 else tr("Shards")
 
 
 # ─── Actions ──────────────────────────────────────────────────────────────

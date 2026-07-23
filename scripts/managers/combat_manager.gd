@@ -513,7 +513,7 @@ var enemy_db = {
 		"charge_nuke": {"every_n": 5, "mult": 1.5},
 		"loot": [["credits", 5000, 10000], ["Cu", 10, 25], ["Fe", 15, 30], ["Res1", 5, 10], ["MiteChitin", 5, 12]],
 		"rare_loot": [["z1_unique_weapon", 0.03, 1, 1], ["z1_unique_armor", 0.03, 1, 1], ["z1_unique_shield", 0.03, 1, 1], ["SalvagedAlloy", 0.90, 2, 4], ["DamagedCircuitry", 0.90, 2, 4]],
-		"boss_core": "Z1_Core",
+		"boss_core": "Z1_Core", "boss_core_qty": 2,
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_missile", "z1_shield", "z1_armor", "z1_engine", "z1_battery", "z1_sensor"],
 		# v131: resists ZEROED by design — the first boss is a pure rarity/tier check
@@ -3012,7 +3012,11 @@ func win_fight():
 	# v80.1: Boss Core drops
 	if current_enemy.get("is_boss", false) and current_enemy.has("boss_core") and current_enemy["boss_core"] != "":
 		var core_id = current_enemy["boss_core"]
-		GameState.resources.add_element(core_id, 1); GameState.note_production("combat", 1)  # P3.10
+		# v141: core count is data-driven (was hardcoded 1). Z1 grants 2 so a single
+		# kill funds the zone-access research and a SECOND kill funds a starter
+		# building — boss cores are now the gate on early infrastructure.
+		var core_qty: int = int(current_enemy.get("boss_core_qty", 1))
+		GameState.resources.add_element(core_id, core_qty); GameState.note_production("combat", core_qty)  # P3.10
 		
 		# v80.4: Display friendly name from DB
 		var core_name = "Boss Core"
@@ -3021,7 +3025,7 @@ func win_fight():
 			
 		combat_events.append({"type": "loot", "text": "BOSS CORE: %s" % core_name, "color": Color.ORANGE, "side": "enemy"})
 		log_msg("Looted Boss Core: %s" % core_name)
-		session_loot[core_id] = session_loot.get(core_id, 0) + 1
+		session_loot[core_id] = session_loot.get(core_id, 0) + core_qty
 	# v138b: boss progression side-effects (z10 flag, NG+ clear table, first-clear
 	# relic, the Singularity) live in _apply_boss_progression — SHARED with offline
 	# combat so a boss felled while away applies identical world-state. Called from
@@ -3865,8 +3869,13 @@ func calculate_offline(delta: float):
 		boss_kills[_oeid] = boss_kills.get(_oeid, 0) + num_kills
 		var _ocore: String = str(current_enemy.get("boss_core", ""))
 		if _ocore != "":
-			GameState.resources.add_element(_ocore, num_kills)
-			loot_summary[_ocore] = loot_summary.get(_ocore, 0) + num_kills
+			# v141: honour boss_core_qty here too. This paid a flat 1-per-kill while
+			# win_fight pays boss_core_qty, so an offline Z1 boss handed out half the
+			# cores an online one did — exactly the online/offline drift the v138b
+			# fix existed to remove.
+			var _oqty: int = int(current_enemy.get("boss_core_qty", 1)) * num_kills
+			GameState.resources.add_element(_ocore, _oqty)
+			loot_summary[_ocore] = loot_summary.get(_ocore, 0) + _oqty
 		_apply_boss_progression(_oeid)   # clear flags + relic + the Singularity
 	# Mission parity: "defeat" objectives count kills via the enemy_defeated signal —
 	# offline kills are kills. Capped emission (defeat counts are single digits) so an

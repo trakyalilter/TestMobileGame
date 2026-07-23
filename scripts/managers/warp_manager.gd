@@ -29,10 +29,15 @@ const TREE_NODES := {
 		"desc": "Throttle buildings to 200% output at +50% input/unit.", "implemented": true, "prereq": ["ENG_4"]},
 	"ENG_6": {"branch": "engineering", "cost": 6, "name": "Resonant Foundry",
 		"desc": "Auto-feeds a fraction of your surplus primitives into the Core each cycle.", "implemented": false, "prereq": ["ENG_3", "ENG_5"]},
+	# v140: economy spines buffed to compensate for research no longer persisting.
+	# The lost carry-over was get_efficiency_multiplier() (gathering + processing +
+	# production), so the compensation lands on the same axes. Combat spines are
+	# deliberately UNTOUCHED — zone bosses are tuned gear-checks and inflating
+	# permanent damage would break that curve.
 	"ENG_S1": {"branch": "engineering", "cost": 2, "step": 1, "repeatable": true, "name": "Resource Surge",
-		"desc": "+6% gathering AND infrastructure yield per level.", "implemented": true, "prereq": ["ENG_1"]},
+		"desc": "+10% gathering AND infrastructure yield per level.", "implemented": true, "prereq": ["ENG_1"]},
 	"ENG_S2": {"branch": "engineering", "cost": 3, "step": 2, "repeatable": true, "name": "Skilling Tempo",
-		"desc": "-2% processing duration per level (max -40%).", "implemented": true, "prereq": ["ENG_2"]},
+		"desc": "-3% processing duration per level (max -50%).", "implemented": true, "prereq": ["ENG_2"]},
 
 	# ===== COMBAT (reveal warp #2) — "my ship spawns already armed" =====
 	"CMB_1": {"branch": "combat", "cost": 1, "name": "Hardened Hull",
@@ -56,7 +61,7 @@ const TREE_NODES := {
 	"REC_4": {"branch": "recursion", "cost": 5, "name": "Resonance Tuning",
 		"desc": "Warp-Core Charge +25% efficiency and a higher bonus-shard cap.", "implemented": true, "prereq": ["REC_1"]},
 	"REC_S1": {"branch": "recursion", "cost": 3, "step": 2, "repeatable": true, "name": "Shard Resonance",
-		"desc": "+3% warp shards earned per level.", "implemented": true, "prereq": ["REC_1"]},
+		"desc": "+4% warp shards earned per level.", "implemented": true, "prereq": ["REC_1"]},
 	"REC_S2": {"branch": "recursion", "cost": 2, "step": 1, "repeatable": true, "cap": 10, "name": "Blueprint Bandwidth",
 		"desc": "+5% free building rebuild per level (caps at +50%).", "implemented": true, "prereq": ["REC_1"]},
 	"REC_S3": {"branch": "recursion", "cost": 3, "step": 2, "repeatable": true, "cap": 10, "name": "Cryptographic Cache",
@@ -174,8 +179,25 @@ func execute_warp():
 	if not blueprint_snapshot.is_empty() and GameState.infrastructure_manager:
 		for bid in blueprint_snapshot:
 			GameState.infrastructure_manager.buildings[bid] = blueprint_snapshot[bid]
-	# Audit v2.0 P1-6: Research PERSISTS - only soft reset (clear in-progress, keep unlocks)
-	GameState.research_manager.soft_reset()
+	# v140 (owner call): research RESETS on warp. Was soft_reset (keep all unlocks) per
+	# Audit v2.0 P1-6. The persistent efficiency ladder (x2/x3/x4/x5/x10) was the single
+	# largest carry-over multiplier in the game and flattened every post-warp run — the
+	# tree's own bonuses read as pocket change next to it. Re-earning the tech tree gives
+	# each run its own power curve and makes the Warp Mastery Tree the ONLY permanent
+	# scaling (its spines are buffed to compensate — see TREE_NODES).
+	#
+	# What survives, precisely (verified by warp_research_reset.tscn):
+	#   - REC_1 Blueprint-Cached buildings keep PRODUCING. research_req is a can_build
+	#     gate; the production path never consults research, so a cached grid still
+	#     pays out even though you cannot build MORE until you re-research.
+	#   - The fleet does NOT survive, and never did: shipyard_manager.reset() wipes
+	#     module_inventory + loadout and returns you to the corvette (pre-existing
+	#     v134g behaviour). Starter batteries are re-granted so you are never
+	#     unpowered. NOTE equip_module() also enforces research via
+	#     can_equip_module(), so post-warp you must re-research before re-equipping.
+	#   - cryo_armaments is re-researchable, so the Z11 Warp-Hardened gate cannot
+	#     deadlock behind the very prestige that opens it.
+	GameState.research_manager.reset(decay)
 	GameState.combat_manager.reset(decay)
 	GameState.shipyard_manager.reset(decay)
 	
@@ -366,7 +388,7 @@ func _migrate_v1_node_ids() -> void:
 # unlock-mechanic nodes (E3/E4/E5/C3/C4/C5) are checked via is_node_purchased.
 func get_tree_gathering_bonus() -> float:
 	# ENG_1 is now a FLAT +1 (get_tree_gathering_flat); this multiplier is the ENG_S1 spine only.
-	return 1.0 + 0.06 * float(get_node_level("ENG_S1"))            # ENG_S1 spine
+	return 1.0 + 0.10 * float(get_node_level("ENG_S1"))            # ENG_S1 spine (v140: 0.06 -> 0.10)
 
 # ENG_1 Yield Calibration: flat +1 units per gather (added AFTER yield multipliers).
 func get_tree_gathering_flat() -> int:
@@ -378,11 +400,11 @@ func get_tree_recipe_material_reduction() -> int:
 
 # ENG_S1 also buffs infrastructure yield (wired in infrastructure_manager).
 func get_tree_infra_bonus() -> float:
-	return 1.0 + 0.06 * float(get_node_level("ENG_S1"))
+	return 1.0 + 0.10 * float(get_node_level("ENG_S1"))   # v140: 0.06 -> 0.10, mirrors gathering
 
 func get_tree_processing_speed_bonus() -> float:
 	var m: float = (1.0 / 0.85) if is_node_purchased("ENG_2") else 1.0   # ENG_2 -15% dur
-	var red: float = min(0.02 * float(get_node_level("ENG_S2")), 0.40)   # ENG_S2 -2%/L, max -40%
+	var red: float = min(0.03 * float(get_node_level("ENG_S2")), 0.50)   # ENG_S2 -3%/L, max -50% (v140: was -2%/-40%)
 	if red > 0.0:
 		m *= 1.0 / (1.0 - red)
 	return m
@@ -403,7 +425,7 @@ func get_tree_damage_bonus() -> float:
 # === v122: new effect queries (Recursion meta + Engineering spines) =======
 # REC_S1: scales progress_score BEFORE the log/floor (see calculate_warp_gains).
 func get_tree_shard_score_mult() -> float:
-	return 1.0 + 0.03 * float(get_node_level("REC_S1"))
+	return 1.0 + 0.04 * float(get_node_level("REC_S1"))   # v140: 0.03 -> 0.04
 
 # REC_2 / REC_6: fraction of XP kept through a warp.
 func get_tree_xp_keep() -> float:

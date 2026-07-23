@@ -160,7 +160,9 @@ func _make_roster_row(index: int, hid: String) -> Control:
 	row.add_theme_constant_override("separation", 10)
 	var lbl := Label.new()
 	lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	lbl.text = tr("   ⟢  %s   (Power %s)") % [_mgr.get_hull_name(hid), FormatUtils.format_number(_mgr.get_hull_power(hid))]
+	# v140: was "⟢", a pictograph the owner's no-symbol rule forbids in player-facing
+	# text. "▸" is on the allowed functional-typography list (sub-item indicator).
+	lbl.text = tr("   ▸  %s   (Power %s)") % [_mgr.get_hull_name(hid), FormatUtils.format_number(_mgr.get_hull_power(hid))]
 	lbl.add_theme_font_size_override("font_size", 12)
 	row.add_child(lbl)
 	var scrap := Button.new()

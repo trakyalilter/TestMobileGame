@@ -418,7 +418,7 @@ func _set_rift_readout(_m: Dictionary) -> void:
 	_back_btn.visible = false
 	var s := "" if gains == 1 else "s"
 	var bonus_txt := (tr(" +%d resonance") % bonus) if bonus > 0 else ""
-	_ro_status.text = tr("A hole torn in spacetime by the sector boss's collapse. Entering executes a Warp: +%d Exotic Shard%s%s. The run resets; research, ships and Exotic Matter persist.") % [gains, s, bonus_txt]
+	_ro_status.text = tr("A hole torn in spacetime by the sector boss's collapse. Entering executes a Warp: +%d Exotic Shard%s%s. The run resets — research and ships included; Exotic Matter and your Warp Mastery persist.") % [gains, s, bonus_txt]
 	_ro_status.add_theme_color_override("font_color", C_TEXT)
 	_engage_btn.disabled = false
 	_engage_btn.text = tr("ENTER THE SINGULARITY")
@@ -745,8 +745,12 @@ func _confirm_rift_entry() -> void:
 	var keep_pct: int = int(round(wm.get_tree_xp_keep() * 100.0))
 	var body := tr("[b]Cross the event horizon.[/b]\n\n")
 	body += tr("[color=#c78cff]Grant %d Exotic Shard%s[/color]\n\n") % [gains, s]
-	body += tr("[color=#f06b6b]RESET[/color]    Liras · Buildings · Standard Resources · Skill levels  [color=#8b8f9c](keep %d%% XP)[/color]\n") % keep_pct
-	body += tr("[color=#73e88c]KEEP[/color]     Research · Ships · Exotic Matter · Warp Mastery purchases\n\n")
+	# v140: this ledger was WRONG before — it promised "KEEP Ships", but
+	# shipyard_manager.reset() has always wiped module_inventory + loadout and put you
+	# back on the corvette. Research joins the reset column this version, so the whole
+	# list is now stated accurately at the point of no return.
+	body += tr("[color=#f06b6b]RESET[/color]    Research · Ships & modules · Liras · Buildings · Resources · Skill levels  [color=#8b8f9c](keep %d%% XP)[/color]\n") % keep_pct
+	body += tr("[color=#73e88c]KEEP[/color]     Exotic Matter · Warp Mastery purchases · Action Mastery · Storage upgrades\n\n")
 	body += tr("[color=#ffb454][b]This cannot be undone.[/b][/color]")
 	UITheme.show_confirm({
 		"title": tr("Enter the Singularity"),
