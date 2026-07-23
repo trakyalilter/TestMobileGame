@@ -471,7 +471,7 @@ var enemy_db = {
 		"stats": {"hp": 80, "atk": 8, "def": 0, "atk_interval": 3.0, "accuracy": 10},
 		"loot": [["Fe", 2, 4], ["credits", 50, 100], ["Res1", 1, 2], ["MiteChitin", 1, 3]],
 		"rare_loot": [],
-		"module_drop_chance": 0.15,
+		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_shield", "z1_armor"],
 		"xp": 5, "eva": 5, "zone": 1, "resist_k": -0.20, "resist_e": 0.0, "resist_x": 0.10, "dmg_type": "kinetic"
 	},
@@ -479,42 +479,42 @@ var enemy_db = {
 		"name": "Lunar Drone",
 		"stats": {"hp": 120, "atk": 13, "def": 3, "atk_interval": 2.5, "accuracy": 18},
 		"loot": [["Fe", 2, 5], ["Cu", 1, 3], ["Res1", 1, 2], ["MiteChitin", 1, 3]],
-		"rare_loot": [["NavData", 0.10, 1, 1]],
-		"module_drop_chance": 0.20,
+		"rare_loot": [["NavData", 0.25, 1, 1]],
+		"module_drop_chance": 0.30,
 		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_missile", "z1_shield", "z1_armor", "z1_battery"],
 		"xp": 8, "eva": 8, "zone": 1, "resist_k": -0.40, "resist_e": 0.40, "resist_x": 0.0, "dmg_type": "kinetic"
 	},
 	"z1_survey_probe": {
 		"name": "Survey Probe",
-		"stats": {"hp": 120, "max_shield": 40, "atk": 13, "def": 3, "atk_interval": 1.0, "accuracy": 22},
+		"stats": {"hp": 120, "max_shield": 40, "atk": 10, "def": 3, "atk_interval": 1.5, "accuracy": 22},
 		"loot": [["credits", 80, 150], ["Si", 2, 4], ["Res1", 1, 3], ["MiteChitin", 1, 2]],
 		"rare_loot": [["NavData", 0.2, 1, 2], ["DamagedCircuitry", 0.5, 1, 2]],
-		"module_drop_chance": 0.25,
+		"module_drop_chance": 0.35,
 		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_shield", "z1_armor", "z1_sensor"],
 		"xp": 12, "eva": 15, "zone": 1, "resist_k": 0.50, "resist_e": -0.50, "resist_x": 0.0, "dmg_type": "energy"
 	},
 	"z1_scrap_collector": {
 		"name": "Scrap Collector",
-		"stats": {"hp": 150, "atk": 15, "def": 3, "atk_interval": 2.2, "accuracy": 20},
+		"stats": {"hp": 150, "atk": 15, "def": 3, "atk_interval": 2.0, "accuracy": 20},
 		"loot": [["Fe", 3, 6], ["Si", 1, 3], ["Res1", 1, 3], ["MiteChitin", 2, 4]],
 		"rare_loot": [["Cu", 0.15, 2, 4], ["SalvagedAlloy", 0.35, 1, 2]],
-		"module_drop_chance": 0.25,
+		"module_drop_chance": 0.40,
 		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_missile", "z1_shield", "z1_armor", "z1_engine"],
 		"xp": 10, "eva": 6, "zone": 1, "resist_k": 0.45, "resist_e": 0.30, "resist_x": -0.35, "dmg_type": "kinetic"
 	},
 
 	"z1_boss_architect": {
 		"name": "Rogue Architect",
-		"stats": {"hp": 1000, "max_shield": 100, "atk": 50, "def": 15, "atk_interval": 2.5, "accuracy": 35},
+		"stats": {"hp": 1000, "max_shield": 100, "atk": 40, "def": 10, "atk_interval": 3.0, "accuracy": 25},
 		# v139d P3 SOFT trait (tutorial-grade, owner rule): the FIRST boss already
 		# telegraphs — every 4th swing charges a x1.75 spike. Dents, never kills at
 		# mission-directed gear. Teaches "watch the fight"; the same telegraph
 		# returns LETHAL at Z8. Do not raise the mult without a funnel re-run.
-		"charge_nuke": {"every_n": 5, "mult": 1.5},
+		"charge_nuke": {"every_n": 5, "mult": 3.0},
 		"loot": [["credits", 5000, 10000], ["Cu", 10, 25], ["Fe", 15, 30], ["Res1", 5, 10], ["MiteChitin", 5, 12]],
 		"rare_loot": [["z1_unique_weapon", 0.03, 1, 1], ["z1_unique_armor", 0.03, 1, 1], ["z1_unique_shield", 0.03, 1, 1], ["SalvagedAlloy", 0.90, 2, 4], ["DamagedCircuitry", 0.90, 2, 4]],
 		"boss_core": "Z1_Core", "boss_core_qty": 2,
-		"module_drop_chance": 0.25,
+		"module_drop_chance": 0.20,
 		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_missile", "z1_shield", "z1_armor", "z1_engine", "z1_battery", "z1_sensor"],
 		# v131: resists ZEROED by design — the first boss is a pure rarity/tier check
 		# (any RARE+ weapon type kills it). Type-matching is taught earlier on the
@@ -750,7 +750,10 @@ var enemy_db = {
 		"name": "Defense Turret",
 		"stats": {"hp": 12700, "atk": 613, "def": 125, "atk_interval": 2.5, "accuracy": 90},
 		"loot": [["ColonySalvage", 5, 12], ["Circuit", 5, 12], ["Res3", 1, 2]],
-		"rare_loot": [["AdvCircuit", 0.10, 2, 5]],
+		# v141c: ReactiveCore drop — mirrors how z5_battery's QuantumCore is sourced
+		# (recipe + zone rare_loot at 5-8%). The turret is the thematic donor: its
+		# ColonySalvage is the same material the craft recipe consumes.
+		"rare_loot": [["AdvCircuit", 0.10, 2, 5], ["ReactiveCore", 0.08, 1, 1]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z6_kinetic", "z6_energy", "z6_missile", "z6_shield", "z6_armor"],
 		"xp": 700, "eva": 5, "zone": 6, "resist_k": 0.0, "resist_e": -0.30, "resist_x": 0.30, "dmg_type": "kinetic"

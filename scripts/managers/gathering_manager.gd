@@ -47,7 +47,7 @@ var actions: Dictionary = {
 	# v62.0 Fix: Added Manganese source (Gathering)
 	"extract_manganese": {
 		"name": "Extract Manganese",
-		"loot_table": [["Mn", 1.0, 1, 2], ["Fe", 0.5, 1, 2]],
+		"loot_table": [["Mn", 1.0, 1, 2]],
 		"xp": 18,
 		"level_req": 15,
 		"research_req": "adv_materials",
@@ -78,7 +78,7 @@ var actions: Dictionary = {
 	},
 	"mine_dolomite": {
 		"name": "Quarry Dolomite",
-		"loot_table": [["Dolomite", 1.0, 1, 3], ["Dirt", 0.5, 1, 2]],
+		"loot_table": [["Dolomite", 1.0, 1, 3]],
 		"xp": 18,
 		"level_req": 15,
 		"research_req": "adv_materials",
@@ -95,7 +95,7 @@ var actions: Dictionary = {
 	# v62.0 Fix: Added Pentlandite source (Gathering)
 	"extract_pentlandite": {
 		"name": "Extract Pentlandite",
-		"loot_table": [["Pentlandite", 1.0, 1, 2], ["Fe", 0.5, 1, 2]],
+		"loot_table": [["Pentlandite", 1.0, 1, 2]],
 		"xp": 25,
 		"level_req": 25,
 		"research_req": "adv_materials",
@@ -104,7 +104,7 @@ var actions: Dictionary = {
 	# v62.0 Fix: Added Chromite source (Gathering)
 	"extract_chromite": {
 		"name": "Extract Chromite",
-		"loot_table": [["Chromite", 1.0, 1, 2], ["Fe", 0.5, 1, 2]],
+		"loot_table": [["Chromite", 1.0, 1, 2]],
 		"xp": 30,
 		"level_req": 30,
 		"research_req": "adv_materials",
@@ -120,7 +120,7 @@ var actions: Dictionary = {
 	},
 	"mine_zinc_ore": {
 		"name": "Extract Zinc Ore",
-		"loot_table": [["ZincOre", 1.0, 1, 3], ["Si", 0.4, 1, 1]],
+		"loot_table": [["ZincOre", 1.0, 1, 3]],
 		"xp": 25,
 		"level_req": 25,
 		"research_req": "smelting",
@@ -163,7 +163,7 @@ var actions: Dictionary = {
 	# v80.4 Fix: Tungsten had no early source (only late-game infrastructure drill)
 	"mine_tungsten": {
 		"name": "Tungsten Vein Mining",
-		"loot_table": [["W", 1.0, 1, 2], ["Fe", 0.3, 1, 2]],
+		"loot_table": [["W", 1.0, 1, 2]],
 		"xp": 30,
 		"level_req": 20,
 		"research_req": "smelting",
@@ -319,36 +319,46 @@ func _notify_mastery_milestones(action_id: String, prev_level: int, new_level: i
 			var msg: String = tr("%s — Mastery %d · −%d%% Duration") % [action_name, m, pct]
 			UITheme.show_notification(msg, Color(1.0, 0.84, 0.45))
 
-# v141: yield milestone ladder — total-at-milestone MULTIPLIER (take highest
-# reached, mirrors the mastery card's structure). Replaces the old flat "×1.10 at
-# Lv10 only", giving leveling visible reward jumps at 25/50/75/100 (gathering had
-# none past 10, unlike processing). Tunable in one place; the card tooltip and the
-# award path both read these so they can never drift.
-const YIELD_MILESTONES := {10: 1.10, 25: 1.25, 50: 1.50, 75: 1.75, 100: 2.00}
+# v141c: SKILL LEVEL PAYS A FLAT +1 PER 10 LEVELS — nothing else (owner call).
+# The v141 milestone MULTIPLIER ladder (x1.10/1.25/1.50/1.75/2.00 at 10/25/50/75/
+# 100) is REMOVED: one mechanism instead of two, one line in the tooltip, and the
+# reward cadence is uniform (every 10 levels, forever) instead of clustering at
+# five points. Lv10 -> +1, Lv50 -> +5, Lv100 -> +10.
+#
+# KNOWN TRADE-OFF, accepted deliberately: a flat is base-agnostic, so its relative
+# value scales inversely with a drop's base size. At Lv100 (+10) Water (base 20)
+# gains x1.5 while Tin Ore (base 2) gains x6 — leveling is worth relatively more on
+# scarce high-tier nodes than on filler ones. Tune drop bases, not this constant,
+# if that inversion ever bites.
+# Applies to the PRIMARY drop only, exactly like the ENG_1 warp flat, so secondary
+# drops no longer scale with skill level at all.
+const YIELD_FLAT_PER_LEVELS := 10
 
-# Milestone MULTIPLIER only (highest reached). This is the ×-bonus folded into
-# get_yield_multiplier; the FLAT per-level bonus is separate (get_skill_yield_flat).
-# Keyed on CURRENT level, NOT is_milestone_unlocked(): milestone flags persist
-# through a warp (skill.reset never clears unlocked_milestones), so a maxed player
-# would keep ×2.0 yield forever even after XP decay dropped them to Lv50. The yield
-# bonus must re-earn with level like the rest of the run — warp resets progress.
-func get_skill_yield_mult() -> float:
-	var lvl := get_level()
-	for m in [100, 75, 50, 25, 10]:
-		if lvl >= m:
-			return float(YIELD_MILESTONES[m])
-	return 1.0
-
-# FLAT +1 unit per 10 LEVELS (owner call — the old +1%/level multiplier read +5%
-# at Lv5, too steep). Added AFTER multipliers, primary drop only, exactly like the
-# ENG_1 warp flat. Lv10 → +1, Lv50 → +5, Lv100 → +10.
 func get_skill_yield_flat() -> int:
-	return int(get_level() / 10)
+	return int(get_level() / YIELD_FLAT_PER_LEVELS)
+
+
+# The bonus units a gather of `base_qty` actually receives. Scaled to the drop's
+# own size and capped at +100% — see processing_manager.get_skill_yield_bonus for
+# the full rationale. Here it also fixes the tier inversion: a raw flat gave a
+# base-2 rare ore x6 at Lv100 while base-20 Dirt got x1.5, so levelling helped the
+# scarce nodes most. Proportional keeps every action's gain in step with its size.
+func get_skill_yield_bonus(base_qty: float) -> int:
+	if base_qty <= 0.0:
+		return 0
+	# FLAT +1 per 10 levels, UNCAPPED — see processing_manager.get_skill_yield_bonus.
+	# At Gathering 100 every action reads "+10", including the base-2 rare ores
+	# (Cassiterite/Bauxite/Manganese), which go 2 -> 12. Gathering is a SOURCE, not a
+	# converter, so there is no tree to compound through here — the cost is flatter
+	# than on the crafting side: measured 4.7x on Dirt across the full climb.
+	return get_skill_yield_flat()
 
 # Audit v6.0 P1-19: Planetary Operations skill bonus
+# v141c: skill level contributes NO multiplier any more (see get_skill_yield_flat);
+# this is now purely trophies x research x warp tree.
 func get_yield_multiplier() -> float:
-	var mult = get_skill_yield_mult()
-	
+	var mult := 1.0
+
 	# v72.8: Trophy Buffs
 	if GameState.bounty_manager:
 		mult *= GameState.bounty_manager.get_trophy_buff("mining_yield")
@@ -376,7 +386,11 @@ func get_display_yield(entry: Array, index: int) -> int:
 		amount = int(float(amount) * (1.0 + GameState.research_manager.get_efficiency_bonus("gathering_yield_mult")))
 	amount = int(float(amount) * get_yield_multiplier())
 	if index == 0:
-		amount += get_skill_yield_flat()   # v141: +1 per 10 levels, flat, primary drop
+		# v141: +1 per 10 levels, flat, primary drop.
+		# v141c: scaled to the drop's own size and capped at +100% (see
+		# get_skill_yield_bonus). The ENG_1 warp flat is deliberately OUTSIDE this:
+		# it is a prestige purchase, not a level reward, on its own curve.
+		amount += get_skill_yield_bonus(float(amount))
 		if GameState.warp_manager:
 			amount += GameState.warp_manager.get_tree_gathering_flat()   # ENG_1 flat, primary drop only
 	return amount
@@ -547,38 +561,24 @@ func calculate_offline(delta: float):
 	# Single call avoids spawning N notifications during a long catch-up.
 	gain_mastery_xp(current_action_id, float(num_actions) * MASTERY_XP_PER_COMPLETION)
 
-	# v62.0 Fix: Get yield multiplier once for offline (same as online)
-	var yield_mult = get_yield_multiplier()
-	
 	# v112: CLOSED-FORM offline gather. With deterministic yields each entry just
 	# contributes fixed_qty x drop_chance x num_actions (chance<1 => expected
 	# value, matching the old sampled average). No per-action loop -> no ~28k-iter
 	# randf hitch on resume (the checklist's ANR/mobile risk). Mult order mirrors
 	# the online complete_action path so online and offline stay consistent.
-	var yield_flat := 0
-	var yield_mult2 := 1.0
-	if GameState.research_manager:
-		yield_flat = int(GameState.research_manager.get_efficiency_bonus("gathering_yield"))
-		yield_mult2 = 1.0 + GameState.research_manager.get_efficiency_bonus("gathering_yield_mult")
-	var tree_flat := 0
-	if GameState.warp_manager:
-		tree_flat = GameState.warp_manager.get_tree_gathering_flat()   # ENG_1 flat +N/action on primary
-	# v141: the +1-per-10-levels skill flat, offline too. add_xp() above already
-	# applied the whole offline XP haul, so get_skill_yield_flat() here reflects the
-	# POST-levelup level — a player who dinged mid-offline gets the higher flat on the
-	# window, matching how yield_mult is snapshot after the XP grant (closed-form).
-	var skill_flat := get_skill_yield_flat()
+	# v141c: offline pays EXACTLY what one online completion pays. This block used to
+	# re-derive the per-action yield by hand (research flat, research mult, yield
+	# mult, then a raw skill flat) — and when the skill bonus became PROPORTIONAL
+	# (base x steps/10) the hand-rolled copy kept adding the raw step count, so an
+	# offline window silently paid a different amount than the same time online.
+	# add_xp() above already applied the whole offline XP haul, so get_display_yield
+	# here reflects the POST-levelup level — a player who dinged mid-window gets the
+	# higher yield across it, matching how yield_mult is snapshot (closed-form).
 	for i in range(loot_table.size()):
 		var entry = loot_table[i]
 		var element = entry[0]
 		var chance: float = float(entry[1])
-		# Per-action yield when it drops — same truncation order as online.
-		var per_drop: int = int(entry[3]) + yield_flat
-		per_drop = int(float(per_drop) * yield_mult2)
-		per_drop = int(float(per_drop) * yield_mult)
-		var total: int = int(float(per_drop) * chance * float(num_actions))
-		if i == 0:
-			total += (skill_flat + tree_flat) * num_actions   # v141 skill flat + ENG_1, primary, per action
+		var total: int = int(float(get_display_yield(entry, i)) * chance * float(num_actions))
 		if total <= 0:
 			continue
 		GameState.resources.add_element(element, total)
@@ -638,20 +638,19 @@ func get_current_rate() -> Dictionary:
 	
 	var rates = {}
 	var loot_table = current_action["loot_table"]
-	
-	for entry in loot_table:
+
+	# v141c: project the number the player ACTUALLY receives. This used to
+	# re-derive the per-action yield from entry[3] + research efficiency only, so
+	# it silently omitted the skill flat, trophy buffs and the Warp-tree bonus —
+	# a Lv26 player gathering Dirt saw "400/dk" while banking 22/action at 20
+	# actions/min = 440. Third surface with this defect (card cache, offline path,
+	# this one); get_display_yield is the single source of truth for all of them.
+	for i in range(loot_table.size()):
+		var entry = loot_table[i]
 		var symbol = entry[0]
-		var chance = entry[1]
+		var chance: float = float(entry[1])
 		# v112: yields are deterministic now (fixed at the top of the old range),
 		# so project the fixed value, not a min/max average.
-		var avg_amt = float(entry[3])
+		rates[symbol] = float(get_display_yield(entry, i)) * chance * actions_per_min
 
-		# Resource Yield Bonus
-		if GameState.research_manager:
-			avg_amt += GameState.research_manager.get_efficiency_bonus("gathering_yield")
-			# v105: gathering_focus multiplicative bonus (see runtime drop path)
-			avg_amt *= (1.0 + GameState.research_manager.get_efficiency_bonus("gathering_yield_mult"))
-
-		rates[symbol] = avg_amt * chance * actions_per_min
-		
 	return rates

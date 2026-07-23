@@ -10,6 +10,8 @@ extends Control
 var selected_zone_id: String = ""
 var star_map = null
 const STAR_MAP_SCRIPT = preload("res://scripts/ui/star_map_overlay.gd")
+# v141c: static bbcode builder for the expedition-yield module hover card.
+const _ModuleCard = preload("res://scripts/ui/module_card.gd")
 
 # Arena Refs
 @onready var visualizer = $Dashboard/Visualizer
@@ -1166,6 +1168,8 @@ func _draw_arc_section(center: Vector2, r_inner: float, r_outer: float, angle_st
 # v134h: Expedition Yield is now a GRID of dropped-item icon TILES instead of a
 # BBCode text list. loot_lbl (the old RichTextLabel) is reused only for the empty
 # "[ NO YIELD ]" state; a GridContainer sibling holds the tiles.
+var _loot_tiles: Dictionary = {}   # v140: id -> tile, for incremental reuse
+
 func _update_session_loot():
 	var loot_vbox: Control = loot_lbl.get_parent()
 	var grid: GridContainer = loot_vbox.get_node_or_null("LootGrid")
@@ -1185,10 +1189,10 @@ func _update_session_loot():
 	if sig == _last_loot_sig:
 		return
 	_last_loot_sig = sig
-	for c in grid.get_children():
-		c.queue_free()
-
 	if manager.session_loot.is_empty():
+		for c in grid.get_children():
+			c.queue_free()
+		_loot_tiles.clear()
 		grid.visible = false
 		loot_lbl.visible = true
 		var tt := "[center][color=#666666]" + tr("[ NO YIELD ]") + "[/color][/center]"
@@ -1198,8 +1202,25 @@ func _update_session_loot():
 
 	loot_lbl.visible = false
 	grid.visible = true
-	for item_id in manager.session_loot:
-		grid.add_child(_build_loot_tile(str(item_id), manager.session_loot[item_id]))
+	# v140: INCREMENTAL update — reuse unchanged tiles instead of clear+rebuild, so a
+	# tile the cursor rests on survives an enemy kill and its native tooltip does not
+	# blink out. Only new drops add a node; vanished ids get freed.
+	var cur := {}
+	for id_v in manager.session_loot:
+		cur[str(id_v)] = manager.session_loot[id_v]
+	for old_id in _loot_tiles.keys():
+		if not cur.has(old_id):
+			if is_instance_valid(_loot_tiles[old_id]):
+				_loot_tiles[old_id].queue_free()
+			_loot_tiles.erase(old_id)
+	for id in cur:
+		var qty = cur[id]
+		if _loot_tiles.has(id) and is_instance_valid(_loot_tiles[id]):
+			_update_loot_tile(_loot_tiles[id], qty)
+		else:
+			var t := _build_loot_tile(id, qty)
+			_loot_tiles[id] = t
+			grid.add_child(t)
 
 func _build_loot_tile(str_id: String, qty) -> Control:
 	var sm = GameState.shipyard_manager
@@ -1207,6 +1228,9 @@ func _build_loot_tile(str_id: String, qty) -> Control:
 	var icon: Texture2D = null
 	var tint := Color(0.40, 0.85, 0.45)
 	var glyph := ""
+	# v141c: module id this tile represents, "" for materials/credits. Drives the
+	# full module card on hover instead of the one-line "Name ×1" tooltip.
+	var card_mid := ""
 	if str_id.begins_with("custom_") or sm.modules.has(str_id):
 		# Dropped module — rarity-tinted ★ tile.
 		var mid := str_id
@@ -1218,6 +1242,10 @@ func _build_loot_tile(str_id: String, qty) -> Control:
 			mid = base_id
 		var m_data: Dictionary = sm.modules.get(mid, {"name": mid})
 		name_txt = str(m_data.get("name", mid))
+		# Prefer the ROLLED id (custom_*) when it's registered — that's the instance
+		# carrying this drop's affixes and rarity. Fall back to the base id, which is
+		# all that exists for a custom drop whose entry didn't survive.
+		card_mid = str_id if sm.modules.has(str_id) else mid
 		var rarity := int(m_data.get("rarity", 0))
 		# RARITY_COLORS is a const on shipyard_manager — access directly. (An `in sm`
 		# guard would ALWAYS be false: GDScript's `in` checks properties, not consts.)
@@ -1244,7 +1272,18 @@ func _build_loot_tile(str_id: String, qty) -> Control:
 
 	var tile := PanelContainer.new()
 	tile.custom_minimum_size = Vector2(46, 46)
-	tile.tooltip_text = tr("%s  ×%s") % [name_txt, UITheme.format_num(qty)]
+	# v141c: modules get the FULL designer card on hover (stats, power draw, armor
+	# roll range, sell value) instead of "Name ×1" — a drop is a loadout decision,
+	# and the player shouldn't have to walk to the Designer to judge it. Materials
+	# and Liras keep the cheap native tooltip; there is no card to show for them.
+	if card_mid != "":
+		tile.set_meta("card_mid", card_mid)
+		tile.mouse_filter = Control.MOUSE_FILTER_STOP
+		tile.mouse_entered.connect(_on_loot_module_hover.bind(tile))
+		tile.mouse_exited.connect(_on_loot_module_unhover.bind(tile))
+		tile.tree_exiting.connect(_on_loot_module_unhover.bind(tile))
+	else:
+		tile.tooltip_text = tr("%s  ×%s") % [name_txt, UITheme.format_num(qty)]
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Color(0.07, 0.10, 0.14, 0.92)
 	sb.set_corner_radius_all(3)
@@ -1281,7 +1320,39 @@ func _build_loot_tile(str_id: String, qty) -> Control:
 	cnt.add_theme_font_size_override("font_size", 10)
 	cnt.add_theme_color_override("font_color", Color(0.75, 0.80, 0.86))
 	vb.add_child(cnt)
+	tile.set_meta("nm", name_txt)
+	tile.set_meta("cnt", cnt)
 	return tile
+
+func _update_loot_tile(tile: Control, qty) -> void:
+	# v141c: module tiles show the full card on hover, so they deliberately carry
+	# no native tooltip — writing one here would pop BOTH.
+	if String(tile.get_meta("card_mid", "")) == "":
+		tile.tooltip_text = tr("%s  ×%s") % [str(tile.get_meta("nm", "")), UITheme.format_num(qty)]
+	var c = tile.get_meta("cnt", null)
+	if c and is_instance_valid(c):
+		c.text = tr("×%s") % UITheme.format_num(qty)
+
+# v141c: expedition-yield module hover -> the same card the Ship Designer shows.
+# module_card.build_module_bbcode is static and renders from a module id alone
+# (it keeps one offscreen card as a factory), so no armory tile has to exist for
+# a freshly-dropped module. Freed on exit AND tree_exiting — the loot grid rebuilds
+# tiles as drops land, and a tile freed mid-hover would otherwise strand the card.
+func _on_loot_module_hover(tile: Control) -> void:
+	var mid := String(tile.get_meta("card_mid", ""))
+	if mid == "":
+		return
+	# no_hints: shift-click-to-pin and right-click-to-recycle are Designer-only
+	# interactions; the loot tile doesn't wire them, so don't advertise them.
+	var bb: String = _ModuleCard.build_module_bbcode(mid, "", false, true)
+	if bb == "":
+		return
+	UITheme.show_item_tooltip(tile, bb)
+
+
+func _on_loot_module_unhover(tile: Control) -> void:
+	UITheme.hide_item_tooltip(tile)
+
 
 func _update_ammo_display():
 	var sm = GameState.shipyard_manager

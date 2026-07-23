@@ -178,7 +178,11 @@ func init_missions():
 		["m024", "Aegis System", "Craft a 'Basic Shield' for protection.", "craft", "z1_shield", 1, 2500, 200, "m024c"],
 		# P1 Onboarding: close the shield arc — craft → equip. Player sees
 		# max_shield jump from 0 → positive the moment it seats.
-		["m024c", "Shields Up", "Open the Ship Designer, then DRAG the Basic Shield from your Armory (right panel) onto an empty SHIELD slot. Incoming damage hits the shield before your hull.", "loadout_check", "shield", 1, 500, 100, "m024b"],
+		["m024c", "Shields Up", "Open the Ship Designer, then DRAG the Basic Shield from your Armory (right panel) onto an empty SHIELD slot. Incoming damage hits the shield before your hull.", "loadout_check", "shield", 1, 500, 100, "m024a1"],
+		# v140: armor arc mirrors the shield arc (craft → equip). The corvette's ARMOR
+		# slot sat empty through the whole tutorial; Iron Plate needs no research gate.
+		["m024a1", "Plate the Hull", "Craft an 'Iron Plate' in the Shipyard for hull armor.", "craft", "z1_armor", 1, 2500, 200, "m024a2"],
+		["m024a2", "Bolt It On", "Open the Ship Designer, then DRAG the Iron Plate from your Armory onto the empty ARMOR slot. It cuts incoming hull damage.", "loadout_check", "armor", 1, 500, 100, "m024b"],
 		# Split for onboarding: teach what consumables are + where to make them,
 		# THEN how to equip them (was one sudden compound objective).
 		# v134: "Processing page" — no such page exists; the sidebar label is Engineering.
@@ -344,7 +348,10 @@ func init_missions():
 		# kinetics_101 is researched (~Sector 3), right as the loot-refine need appears.
 		# Step 2 uses the "gather" type: element_added fires for combat loot too, so a
 		# dropped Splice Chip counts. Step 3 uses the new "hack_apply" type.
-		["goal_hack_1", "REWRITE THE FIRMWARE", "Salvaged modules can be re-forged. Research Kinetic Weapons Theory, then Firmware Hacking beneath it (Combat tab), to unlock Hack Cards — module affix crafting.", "research", "firmware_hacking", 1, 20000, 0, "goal_hack_2"],
+		# v141c: "(Combat tab)" read as the Combat PAGE — the sidebar has a Combat
+		# button, and the directive arrow points at sidebar buttons. Both techs live
+		# in the Research Lab's Combat CATEGORY; say so explicitly.
+		["goal_hack_1", "REWRITE THE FIRMWARE", "Salvaged modules can be re-forged. In the Research Lab, open the Combat category: research Kinetic Weapons Theory, then Firmware Hacking beneath it, to unlock Hack Cards — module affix crafting.", "research", "firmware_hacking", 1, 20000, 0, "goal_hack_2"],
 		["goal_hack_2", "SALVAGE A HACK CARD", "Hack Cards now drop in combat. Defeat enemies until a Splice Chip drops.", "gather", "SpliceChip", 1, 15000, 0, "goal_hack_3"],
 		["goal_hack_3", "AWAKEN A MODULE", "Open the Ship Designer and drag a Splice Chip onto a Common component to awaken it into a custom module with a random affix.", "hack_apply", "SpliceChip", 1, 30000, 0, ""],
 		# v130: Boost-Card onboarding arc (craft -> install). Reveals once Engineering

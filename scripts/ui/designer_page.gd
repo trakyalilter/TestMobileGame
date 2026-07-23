@@ -114,10 +114,15 @@ func _apply_theme() -> void:
 	FILTER_CONFIG["ammo"]["accent"] = cat["inventory"]
 	FILTER_CONFIG["consumables"]["accent"] = cat["ops"]
 	FILTER_CONFIG["matrix"]["accent"] = cat["research"]
+	FILTER_CONFIG["hack_stones"]["accent"] = cat["combat"]
 
 # v111.15: full-word labels (no more WPN/SHD/ARM abbreviations) and the old
 # combined "ordnance" filter split into separate AMMO + CONSUMABLES tabs.
-const FILTER_ORDER := ["all", "weapon", "shield", "armor", "engine", "battery", "utility", "ammo", "consumables", "matrix"]
+# v141c: "hack_stones" added. rebuild_storage has always rendered Hack Cards
+# under `active_filter in ["all", "hack_stones"]`, but the id was never in
+# FILTER_ORDER — so no tab could select it and the cards were only ever visible
+# buried in ALL, with no count and no way to isolate them.
+const FILTER_ORDER := ["all", "weapon", "shield", "armor", "engine", "battery", "utility", "ammo", "consumables", "matrix", "hack_stones"]
 const FILTER_LABELS := {
 	"all": "ALL",
 	"weapon": "WEAPONS",
@@ -129,6 +134,7 @@ const FILTER_LABELS := {
 	"ammo": "AMMO",
 	"consumables": "CONSUMABLES",
 	"matrix": "MATRIX",
+	"hack_stones": "HACK CARDS",
 }
 const FILTER_TOOLTIPS := {
 	"all": "Show all modules, ammo, and consumables.",
@@ -141,6 +147,7 @@ const FILTER_TOOLTIPS := {
 	"ammo": "Ammunition for weapons.",
 	"consumables": "Hull and shield consumables.",
 	"matrix": "Matrix Cores for sockets.",
+	"hack_stones": "Hack Cards — drag one onto a module to add an affix.",
 }
 const ORDNANCE_AMMO_IDS := [
 	"SlugT1", "SlugT1S", "SlugT2", "SlugT3", "SlugT4",
@@ -163,6 +170,8 @@ var FILTER_CONFIG := {
 	"ammo": {"node": "OrdnanceTab", "accent": Color(0.93, 0.64, 0.42)},
 	"consumables": {"node": "ConsumablesTab", "accent": Color(0.55, 0.85, 0.55)},
 	"matrix": {"node": "MatrixTab", "accent": Color(0.85, 0.45, 0.85)},
+	# Created dynamically by _setup_filter_tabs like ConsumablesTab (not in .tscn).
+	"hack_stones": {"node": "HackCardsTab", "accent": Color(0.45, 0.85, 0.75)},
 }
 
 func _ready():
@@ -2180,7 +2189,10 @@ func _is_module_visible_for_filter(module_data: Dictionary) -> bool:
 			return module_type in ["shield", "engine", "battery", "sensor", "cooling", "reactor"]
 		"explosive":
 			return module_type == "weapon" and module_data.get("stats", {}).get("atk_explosive", 0) > 0
-		"ammo", "consumables", "ordnance", "ord":
+		# v141c: hack_stones joins these — Hack Cards are rendered by their own
+		# block in rebuild_storage, so no MODULE belongs in this tab. Without it
+		# the `_:` fallback below returns true and the tab shows the whole armory.
+		"ammo", "consumables", "ordnance", "ord", "hack_stones":
 			return false
 		"matrix":
 			return module_type in ["gem", "gem_synth"]
@@ -2269,8 +2281,16 @@ func _build_filter_counts() -> Dictionary:
 			core_count += 1
 	counts["matrix"] = core_count
 
+	# v141c: Hack Cards get their own count. _HACK_STONE_IDS is the same list
+	# rebuild_storage iterates, so the tab number can't disagree with the grid.
+	var stone_count = 0
+	for stone_id in _HACK_STONE_IDS:
+		if GameState.resources.get_element_amount(stone_id) > 0:
+			stone_count += 1
+	counts["hack_stones"] = stone_count
+
 	# Boss cores excluded from the Armory (they're Inventory materials).
-	counts["all"] += ammo_count + consumable_count + core_count
+	counts["all"] += ammo_count + consumable_count + core_count + stone_count
 	return counts
 
 func _normalize_filter_id(filter_id: String) -> String:

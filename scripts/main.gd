@@ -1378,6 +1378,26 @@ func _update_navigation_hints():
 			var widget = pages["research"].get_node_widget("industrial_logistics")
 			if widget: target_to_pulse = widget
 			
+	elif "m018t1" in mm.active_missions:
+		# Gather Cassiterite (tin ore) — pulse the mining action.
+		if current_page_name != "gathering": target_to_pulse = gathering_btn
+		else:
+			pages["gathering"].focus_action("mine_cassiterite")
+			var w = pages["gathering"].get_widget_by_aid("mine_cassiterite")
+			if w and not (GameState.gathering_manager.is_active and GameState.gathering_manager.current_action_id == "mine_cassiterite"):
+				target_to_pulse = w.btn
+
+	elif "m018t2" in mm.active_missions:
+		# Smelt Cassiterite -> Tin — pulse the Tin Smelting recipe.
+		if current_page_name != "processing": target_to_pulse = processing_btn
+		else:
+			var pm = GameState.processing_manager
+			var page = pages["processing"]
+			page.focus_tab("refine_cassiterite")
+			var w = page.get_widget_by_aid("refine_cassiterite")
+			if w and not (pm.is_active and pm.current_recipe_id == "refine_cassiterite"):
+				target_to_pulse = w.btn
+
 	elif "m019" in mm.active_missions:
 		# v134g: the Circuit recipe needs Tin (Sn) — a two-hop the earlier chain never
 		# delivered. Route the intermediate need-aware (mirrors m024b): mine Cassiterite →
@@ -1477,6 +1497,27 @@ func _update_navigation_hints():
 			if dp.has_method("get_slot_widget"):
 				dp.focus_slot("shield")
 				target_to_pulse = dp.get_slot_widget("shield")
+			elif dp.has_method("get_coach_anchor"):
+				target_to_pulse = dp.get_coach_anchor("schematic")
+
+	elif "m024a1" in mm.active_missions:
+		# Shipyard: Iron Plate (armor).
+		if current_page_name != "shipyard": target_to_pulse = shipyard_btn
+		else:
+			var page = pages["shipyard"]
+			page.focus_module_tab("z1_armor")
+			target_to_pulse = page.get_module_widget("z1_armor")
+
+	elif "m024a2" in mm.active_missions:
+		# Designer: pulse the empty armor slot + dim non-armor Armory cards.
+		if current_page_name != "designer": target_to_pulse = designer_btn
+		else:
+			var dp = pages["designer"]
+			if dp.has_method("set_equip_focus_filter"):
+				dp.set_equip_focus_filter("armor")
+			if dp.has_method("get_slot_widget"):
+				dp.focus_slot("armor")
+				target_to_pulse = dp.get_slot_widget("armor")
 			elif dp.has_method("get_coach_anchor"):
 				target_to_pulse = dp.get_coach_anchor("schematic")
 
@@ -1886,6 +1927,7 @@ func _update_navigation_hints():
 		or "m015b" in mm.active_missions
 		or "m022b" in mm.active_missions
 		or "m024c" in mm.active_missions
+		or "m024a2" in mm.active_missions   # v140: armor-equip step (else its focus filter clears each frame → rebuild_storage thrash → armory unhoverable/undraggable)
 		# v134b: the damage-triangle fight steps have a designer EQUIP phase —
 		# keep the weapon filter alive exactly while that phase sets it.
 		or ("m017b" in mm.active_missions and _count_weapon_type_equipped("energy") < 2)
@@ -1915,6 +1957,17 @@ func _update_navigation_hints():
 			and GameState.game_settings.get("z10_cleared", false):
 		if current_page_name != "warp" and is_instance_valid(warp_btn) and warp_btn.visible:
 			target_to_pulse = warp_btn
+
+	# v141c: GENERIC fallback — route any active mission the hand-written chain
+	# above doesn't name. That chain is keyed on explicit ids (m001..m019, ...), so
+	# every mission added since — the whole goal_* arc, the m029a* chapter beats —
+	# produced a NULL pulse and the player got no direction at all. Worse, the
+	# repair nudge below then filled the silence and pulsed COMBAT, which reads as
+	# "the mission wants Combat" (owner hit this on goal_hack_1 + m029a7).
+	# Derives the target from the mission TYPE, so new missions route themselves
+	# and only genuinely bespoke steps need a hand-written branch.
+	if target_to_pulse == null:
+		target_to_pulse = _generic_mission_pulse(mm)
 
 	# P1 Onboarding — Repair routing.
 	# v125: repair moved OFF the Shipyard (its repair button was removed in v124) —
@@ -1947,6 +2000,81 @@ func _update_navigation_hints():
 		start_hint_pulse(target_to_pulse)
 	else:
 		stop_hint_pulse()
+
+
+# v141c: type-driven directive target for missions the explicit chain doesn't
+# name. Returns null when the player is already where the mission wants them (or
+# already doing the work), so it degrades to "no arrow" rather than nagging.
+func _generic_mission_pulse(mm) -> Control:
+	for mid in mm.active_missions:
+		var m: Dictionary = mm.missions.get(mid, {})
+		if m.is_empty() or m.get("completed", false):
+			continue
+		var page := ""
+		match String(m.get("type", "")):
+			"research":
+				page = "research"
+			# drop_rarity = farm until a rarity drops; both are combat asks.
+			"defeat", "drop_rarity":
+				page = "combat"
+			"build", "construct":
+				page = "infrastructure"
+			# craft_matrix is the Shipyard's matrix-synthesis recipe, not a module.
+			"craft", "craft_matrix":
+				page = "shipyard"
+			# Anything about seating gear in slots -> Ship Designer. hack_apply
+			# (drag a Splice Chip onto a component) and socket_check (slot a gem)
+			# are both Designer drag targets.
+			"loadout_check", "equip_consumables", "loadout_rare_weapon", \
+			"loadout_rare_weapon_type", "hack_apply", "socket_check":
+				page = "designer"
+			"warp_perform":
+				page = "warp"
+			"overclock_install":
+				page = "infrastructure"
+			"visit_page":
+				page = String(m.get("target", ""))
+			"gather", "gather_multi":
+				page = _skill_page_for_targets(m)
+			# "discover" completes on a world event (first VoidArtifact etc.), not
+			# on visiting a page — deliberately unrouted, there is nowhere to send
+			# the player. Falls through to the repair fallback, which is correct.
+			_:
+				continue
+		if page == "" or page == current_page_name:
+			continue
+		var btn := _get_btn_for_page(page)
+		# A hidden button is not a directive — early-game sidebars hide pages that
+		# aren't unlocked yet, and pulsing an invisible node strands the arrow.
+		if btn and btn.visible:
+			return btn
+	return null
+
+
+# "gather" missions cover BOTH mining and Engineering output (m011 "produce 50
+# Carbon" is type gather). Decide by where the material actually comes from:
+# a gathering loot table means Mine, a recipe output means Engineering.
+func _skill_page_for_targets(m: Dictionary) -> String:
+	var syms := []
+	if String(m.get("type", "")) == "gather_multi":
+		for s in (m.get("target", {}) as Dictionary):
+			syms.append(String(s))
+	else:
+		syms.append(String(m.get("target", "")))
+
+	var gm = GameState.gathering_manager
+	var pm = GameState.processing_manager
+	for sym in syms:
+		if gm:
+			for aid in gm.actions:
+				for e in gm.actions[aid].get("loot_table", []):
+					if String(e[0]) == sym:
+						return "gathering"
+		if pm:
+			for rid in pm.recipes:
+				if (pm.recipes[rid].get("output", {}) as Dictionary).has(sym):
+					return "processing"
+	return ""
 
 
 var hint_tween: Tween

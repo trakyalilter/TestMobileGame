@@ -80,11 +80,15 @@ var recipes: Dictionary = {
 		"name": "Zinc Reduction",
 		"description": "Roast the Zinc sulfide ore in Oxygen, then reduce with Carbon.",
 		"input": {"ZincOre": 3, "C": 1, "O": 1},
-		"output": {"Zn": 2},
 		# v134h: Ag byproduct made DETERMINISTIC (was 0.4). Silver is a MANDATORY input to
 		# the m029b Advanced Circuit mission (2 Ag x5 = 10 Ag) yet had NO other source — a
 		# 40% RNG byproduct as the sole path to a required beat was too fragile. 1 Ag/smelt.
-		"output_table": [["Ag", 1.0, 1, 1]],
+		# v141c: promoted from output_table to a STATED output. It was already a
+		# guaranteed 1.0-chance roll, so nothing about the drop rate changes — but
+		# output_table entries don't render on the recipe card, so the recipe read as
+		# "3 Zinc Ore -> 2 Zinc" while silently also paying the Silver the m029b chain
+		# depends on. A mandatory material must be visible on the card that makes it.
+		"output": {"Zn": 2, "Ag": 1},
 		"duration": 4.0,
 		"level_req": 18,
 		"xp": 12
@@ -120,15 +124,6 @@ var recipes: Dictionary = {
 		"level_req": 25,
 		"xp": 35,
 		"research_req": "metallurgy_advanced"
-	},
-	"smelt_quartz": {
-		"name": "Silicon Smelting",
-		"description": "Refine Quartz into industrial Silicon.",
-		"input": {"Quartz": 2, "C": 1},
-		"output": {"Si": 1},
-		"duration": 6.0,
-		"level_req": 20,
-		"xp": 20
 	},
 	# v131: Quartz's second purpose — polished into a Focusing Crystal, the optics
 	# core every mid+ energy & cryo beam weapon needs (see shipyard weapon costs).
@@ -588,15 +583,33 @@ var recipes: Dictionary = {
 		# (the damage-triangle tutorial needs missiles pre-research). combustion
 		# still gates Fiber/Germanium/Mg + the kiln buildings.
 	},
-	"craft_turret_core": {
-		"name": "Turret Core",
-		"description": "Fabricate an automated turret control core from circuits and structural alloy.",
-		"input": {"Circuit": 20, "Steel": 30, "AdvCircuit": 5, "StainlessSteel": 10},
-		"output": {"TurretCore": 1},
-		"duration": 25.0,
-		"level_req": 35,
-		"xp": 90
+	# v141c: ReactiveCore had NO source anywhere in the game (item-economy audit),
+	# which made z6_battery — cost {credits 75000, ReactiveCore 2, AdvCircuit 20} —
+	# permanently uncraftable. Under battery-only energy (v110) that is not cosmetic:
+	# BATTERY_CAP_BY_TIER jumps 180 (t5) -> 350 (t6), so a Sector Beta player was
+	# stuck on half the designed grid until Z7. Sourced the same way z5_battery's
+	# QuantumCore is (recipe + a zone rare_loot drop), using Sector Beta's own
+	# signature materials so it reads as native Z6 tech.
+	"craft_reactive_core": {
+		"name": "Reactive Core Assembly",
+		"description": "Layer colony salvage plating over a superalloy shell until the lattice answers back. Sector Beta's power core.",
+		"input": {"ColonySalvage": 6, "Superalloy": 4, "AdvCircuit": 3},
+		"output": {"ReactiveCore": 2},
+		"duration": 45.0,
+		"level_req": 55,
+		"xp": 300,
+		"research_req": "zone_6_access",
+		"category": "components"
 	},
+	# v141c: craft_turret_core REMOVED. TurretCore was a true dead end — the recipe
+	# cost 1281 raw units (~8 gather-min + 23 craft-min per unit) and NOTHING in the
+	# game consumed it: no tech cost_items, no module, no building, no mission. It
+	# was registered in research_manager.NON_SCALING_ITEMS as though it were a
+	# research token, but no tech ever listed it. (History: v80.4 fixed it as a
+	# DEADLOCK by giving it a source; the consumer was never wired, which turned it
+	# into the mirror-image bug.) Cut rather than invented a sink — a 25s recipe
+	# feeding a phantom is worse than no recipe. The element entry, icon and colour
+	# stay in element_db/elements.json so existing saves holding stacks still render.
 	"craft_missile_t2": {
 		"name": "Seeker Missile",
 		"description": "Guided missile with logic circuits and a Hydrogen-fuelled sustainer motor.",
@@ -1171,23 +1184,6 @@ var recipes: Dictionary = {
 		"research_req": "zone_9_access",
 		"category": "endgame"
 	},
-	# ========== AUDIT v20.0: DEAD RESOURCE ACTIVATION ==========
-	# T2 Fix: PirateManifest
-	"decode_manifest": {
-		"name": "Decode Encrypted Data",
-		# v80.4 Fix: PirateManifest has no source. Reworked to use NavData
-		"description": "Cross-reference navigation data to reveal hidden coordinates and bounty.",
-		"input": {"NavData": 3},
-		"output": {},
-		# v137: was 12500 — a flat, ungated 833 cr/s Lira faucet (83x NavData input value).
-		# The only recipe that mints credits directly; slashed to a trivial decode reward.
-		# Liras come from combat/bounties/quests/missions, not from processing recipes.
-		"credits_output": 250,
-		"duration": 15.0,
-		"level_req": 15,
-		"xp": 30,
-		"category": "salvage"
-	},
 	# T5 Fix: ColonySalvage
 	"process_colony_salvage": {
 		"name": "Process Colony Salvage",
@@ -1380,7 +1376,7 @@ func _mastery_xp_needed_for_level(target: int) -> float:
 		return 0.0
 	return float(25 + target * 5)
 
-func gain_mastery_xp(recipe_id: String, amount: float = MASTERY_XP_PER_COMPLETION) -> void:
+func gain_mastery_xp(recipe_id: String, amount: float = MASTERY_XP_PER_COMPLETION + int(get_level()/10)) -> void:
 	if recipe_id == "" or amount <= 0.0:
 		return
 	# v107: First-encounter intro — see gathering_manager.gain_mastery_xp for
@@ -1468,6 +1464,94 @@ func _notify_mastery_milestones(recipe_id: String, prev_level: int, new_level: i
 			var pct: int = int(round(MASTERY_DURATION_BONUS_TABLE[idx] * 100.0))
 			var msg: String = tr("%s — Mastery %d · −%d%% Duration") % [recipe_name, m, pct]
 			UITheme.show_notification(msg, Color(1.0, 0.84, 0.45))
+
+# v141c: ENGINEERING SKILL LEVEL PAYS A FLAT +1 PER 10 LEVELS on a recipe's
+# PRIMARY output — the mirror of gathering_manager.get_skill_yield_flat (owner
+# call). Before this, Engineering levels paid nothing at all except recipe
+# unlocks and a 5%-double at milestone 50.
+#
+# Applies to EVERY fixed output, not just the headline one (owner call): a recipe
+# like Mineral Washing produces Iron AND Silicon in one cycle, and rewarding only
+# the first key made the second product visibly inert as the skill climbed.
+# Chance-rolled byproducts (output_table) still get nothing — those are lottery
+# rolls with min/max ranges, not the recipe's stated product.
+#
+# KNOWN TRADE-OFF, accepted deliberately: processing is a CONVERTER, not a
+# source, so a flat moves the input:output ratio rather than just inflating a
+# faucet. It lands hardest on singleton recipes — Copper Smelting (2 Malachite +
+# 1 C -> 1 Cu) becomes 2 Malachite -> 11 Cu at Lv100, and Res3 likewise. If that
+# ratio inversion ever bites, the lever is YIELD_FLAT_PER_LEVELS or per-recipe
+# opt-out, not the raw drop tables. scripts/sim/item_economy_audit.gd measures it.
+const YIELD_FLAT_PER_LEVELS := 10
+
+# Skill milestone 50: chance for a cycle to yield double. Online rolls it per
+# craft; offline applies it as an expected value over the window (see
+# calculate_offline). One constant so the two paths can never disagree again.
+const MILESTONE_50_DOUBLE_CHANCE := 0.05
+
+
+func get_skill_yield_flat() -> int:
+	return int(get_level() / YIELD_FLAT_PER_LEVELS)
+
+
+# The bonus units a cycle of `base_qty` actually receives. Scaled to the output's
+# own size and capped at +100%, so levelling roughly DOUBLES a recipe over the
+# full climb instead of compounding away the tier structure.
+#
+# For a standard 10-unit output this is exactly "+1 per 10 levels" — the design
+# intent — and it stays proportional for bulk (20-unit) and singleton (1-unit)
+# recipes rather than dwarfing the small ones.
+func get_skill_yield_bonus(base_qty: float) -> int:
+	if base_qty <= 0.0:
+		return 0
+	# FLAT +1 per 10 levels, UNCAPPED (owner call). At Engineering 100 every recipe
+	# reads "+10" — including the 1-unit ones. The promise the skill makes has to be
+	# visible on the number, or the last 50 levels read as wasted time.
+	#
+	# Known cost, accepted deliberately: the bonus applies per CYCLE, so it
+	# multiplies at every tier of a crafting tree. Measured L1->L100 with no cap
+	# (item_economy_audit section 7): AdvCircuit 89x cheaper, AICore 472x,
+	# AIProcessor 2066x. The counterweight is depth-scaled INPUT requirements, not
+	# a cap on the reward — see docs/HANDOFF.md. Do not re-add a cap here without
+	# re-reading that measurement first.
+	return get_skill_yield_flat()
+
+
+func get_primary_output(recipe: Dictionary) -> String:
+	for k in recipe.get("output", {}):
+		return String(k)
+	return ""
+
+
+# SINGLE SOURCE OF TRUTH for "what one craft cycle awards for `item`". The card,
+# the online award, the offline award and the per-minute rate all call this, so
+# they cannot drift (the v140 gathering lesson: three surfaces recomputing the
+# same number independently is how a bonus goes live but invisible).
+# Returns float — the research efficiency multiplier has always produced
+# fractional awards here and truncating now would silently change payouts.
+func get_display_output(recipe_id: String, item: String) -> float:
+	var recipe: Dictionary = recipes.get(recipe_id, {})
+	if recipe.is_empty():
+		return 0.0
+	var qty := float((recipe.get("output", {}) as Dictionary).get(item, 0))
+	# Steel Scalability (Oxygen-Blast Furnace)
+	if item == "Steel" and GameState.research_manager and GameState.research_manager.is_tech_unlocked("oxygen_blast_furnace"):
+		qty *= 5.0
+	if GameState.research_manager:
+		qty *= GameState.research_manager.get_efficiency_multiplier()
+	# v141c skill bonus — after the multipliers, on every fixed output, scaled to
+	# the output's own size and capped at +100% (see get_skill_yield_bonus).
+	#
+	# Why not a raw flat: it is applied per CYCLE, so it compounds multiplicatively
+	# down a crafting tree. Uncapped, a 1-output recipe became 11 at Lv100 = 11x
+	# fewer cycles, and three stacked tiers (AdvCircuit -> AICore -> AIProcessor)
+	# measured 2065x cheaper end-to-end (item_economy_audit section 7) — the deeper
+	# the item, the cheaper it got, inverting the tier structure. Bounded at +100%
+	# the worst case is 2^depth, and the reward still grows every 10 levels instead
+	# of maxing out at Lv10 the way a hard min(flat, base) cap did.
+	qty += float(get_skill_yield_bonus(qty))
+	return qty
+
 
 func get_recipe_speed_multiplier(recipe_id: String) -> float:
 	var multiplier = 1.0
@@ -1609,18 +1693,13 @@ func complete_process():
 	# 3. Output
 	if "output" in current_recipe:
 		for item in current_recipe["output"]:
-			var qty = current_recipe["output"][item]
-			
-			# Apply Steel Scalability (Oxygen-Blast Furnace)
-			if item == "Steel" and GameState.research_manager.is_tech_unlocked("oxygen_blast_furnace"):
-				qty *= 5
-				
-			# Efficiency Research Multiplier
-			if GameState.research_manager:
-				qty *= GameState.research_manager.get_efficiency_multiplier()
-				
+			# v141c: Steel scalar + research efficiency + the skill flat all live in
+			# get_display_output, so the recipe card renders the identical number.
+			var qty = get_display_output(current_recipe_id, item)
+
 			# Audit v12.0: Milestone Level 50 (5% chance for double output)
-			if is_milestone_unlocked(50) and randf() < 0.05:
+			# v141c: mirrored offline as an EXPECTED VALUE — see calculate_offline.
+			if is_milestone_unlocked(50) and randf() < MILESTONE_50_DOUBLE_CHANCE:
 				qty *= 2
 				events.append(["loot", {"symbol": item, "amount": qty, "is_critical": true}, current_recipe_id])
 			else:
@@ -1773,7 +1852,7 @@ func calculate_offline(delta: float):
 
 	# P1 Mastery: batch-grant offline mastery XP (one per completion).
 	# Single call avoids spamming N notifications during a long catch-up.
-	gain_mastery_xp(current_recipe_id, float(actions) * MASTERY_XP_PER_COMPLETION)
+	gain_mastery_xp(current_recipe_id,  MASTERY_XP_PER_COMPLETION + int(get_level()/10))
 
 	# Consume
 	# v132: use effective_input_qty (ENG_3 -1/material, floored at 1) — the online
@@ -1791,17 +1870,18 @@ func calculate_offline(delta: float):
 	# Produce
 	if "output" in current_recipe:
 		for item in current_recipe["output"]:
-			var qty = current_recipe["output"][item]
-			
-			# Apply Steel Scalability (Oxygen-Blast Furnace).
-			# v112: was *= 2 offline vs *= 5 online — offline silently paid 60%
-			# less on the same buff. Matched to the online complete_process path.
-			if item == "Steel" and GameState.research_manager.is_tech_unlocked("oxygen_blast_furnace"):
-				qty *= 5
+			# v141c: same single source as online (v112 fixed a 5x-vs-2x Steel
+			# mismatch here by hand; routing both through get_display_output means
+			# that class of online/offline drift can't recur).
+			var qty = get_display_output(current_recipe_id, item)
 
-			# Efficiency Research Multiplier
-			if GameState.research_manager:
-				qty *= GameState.research_manager.get_efficiency_multiplier()
+			# v141c: the milestone-50 double-output roll was ONLINE ONLY — an
+			# offline window silently paid ~5% less than the same time played
+			# (bonus_audit caught it: online 33.0 vs offline 30.0 at Lv100).
+			# Closed-form offline can't roll per craft, so apply the expected
+			# value, the same way chance-based drops are handled here.
+			if is_milestone_unlocked(50):
+				qty *= (1.0 + MILESTONE_50_DOUBLE_CHANCE)
 
 			var total = qty * actions
 			GameState.resources.add_element(item, total); GameState.note_production("process", total); GameState.note_craft_material(item, total)  # P3.10 / Phase 0 (offline fallback)
@@ -1894,19 +1974,11 @@ func get_current_rate() -> Dictionary:
 	# Fixed Outputs
 	if "output" in recipe:
 		for item in recipe["output"]:
-			var rate = recipe["output"][item] * actions_per_min
-
-			# v112: match the actual production paths (complete_process /
-			# calculate_offline) — the Oxygen-Blast Furnace x5 Steel scalar was
-			# missing here, so the displayed active rate understated Steel 5x.
-			if item == "Steel" and GameState.research_manager and GameState.research_manager.is_tech_unlocked("oxygen_blast_furnace"):
-				rate *= 5
-
-			# Efficiency Research Multiplier
-			if GameState.research_manager:
-				rate *= GameState.research_manager.get_efficiency_multiplier()
-
-			rates[item] = rate
+			# v141c: project the number actually awarded. This used to re-derive the
+			# per-cycle qty from the raw dict and patch multipliers in by hand (v112
+			# added the missing Steel x5 that way); it would have missed the skill
+			# flat identically. Same fix as gathering_manager.get_current_rate.
+			rates[item] = get_display_output(current_recipe_id, item) * actions_per_min
 			
 	# Probability Outputs
 	if "output_table" in recipe:

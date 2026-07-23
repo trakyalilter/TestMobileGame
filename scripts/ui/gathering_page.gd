@@ -11,10 +11,39 @@ var widgets = []
 
 var racks = {} # {category_name: GridContainer}
 
+# v141b: the skill-level readout is the hover affordance for the yield-bonus
+# ladder (moved off the per-card YIELD caption — it belongs to the SKILL, not to
+# one action, and popping on every card was noise). Underlined via [u] like the
+# MASTERY keyword, so LevelLabel is a RichTextLabel in the scene.
+var _level_info_card: Control = null
+var _level_sig: String = ""
+
 func _ready():
 	manager = GameState.gathering_manager
 	$VBoxContainer/ScrollContainer.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_ALWAYS
+	# Godot 4: RichTextLabel defaults to mouse_filter STOP; PASS keeps hover while
+	# letting clicks fall through to the page underneath.
+	level_label.mouse_filter = Control.MOUSE_FILTER_PASS
+	level_label.mouse_entered.connect(_on_level_hover_enter)
+	level_label.mouse_exited.connect(_on_level_hover_exit)
+	tree_exiting.connect(_free_level_info_card)
 	call_deferred("refresh_actions")
+
+func _on_level_hover_enter() -> void:
+	if _level_info_card and is_instance_valid(_level_info_card):
+		return
+	if not manager:
+		return
+	var body: String = UITheme.get_yield_tooltip(manager.get_level())
+	_level_info_card = UITheme.show_info_card(level_label, tr("YIELD BONUS"), body)
+
+func _on_level_hover_exit() -> void:
+	_free_level_info_card()
+
+func _free_level_info_card() -> void:
+	if _level_info_card and is_instance_valid(_level_info_card):
+		_level_info_card.queue_free()
+	_level_info_card = null
 
 func refresh_actions():
 	# Clear previous racks
@@ -118,7 +147,12 @@ func update_ui():
 	var lvl = manager.get_level()
 	var xp = manager.xp
 	
-	level_label.text = tr("Level: %d") % lvl
+	# v141b: RichTextLabel now (underlined hover affordance) — update_ui runs every
+	# frame, so guard the BBCode re-parse behind a change check.
+	var lvl_sig := "%d|%s" % [lvl, TranslationServer.get_locale()]
+	if lvl_sig != _level_sig:
+		_level_sig = lvl_sig
+		level_label.text = "[u]%s[/u]" % (tr("Level: %d") % lvl)
 	xp_label.text = tr("XP: %d") % int(xp)
 	
 	xp_bar.value = manager.get_progress_to_next_level()

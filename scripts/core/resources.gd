@@ -56,8 +56,8 @@ func upgrade_storage() -> bool:
 	return false
 
 func get_storage_upgrade_cost() -> float:
-	# Cost scales with upgrades: 1000 * 1.5^level
-	return floor(1000.0 * pow(1.5, storage_upgrades))
+	# Cost scales with upgrades: 1000 * 1.25^level
+	return floor(1000.0 * pow(1.25, storage_upgrades))
 
 # v132: `force` bypasses the slot cap for EARNED payouts (quest/bounty rewards) —
 # claim paths showed a "+N Material" toast while add_element silently dropped the

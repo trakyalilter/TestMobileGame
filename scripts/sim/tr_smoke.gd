@@ -64,6 +64,18 @@ func _ready() -> void:
 	_ok("Unequip translated", _tr_differs("Unequip"), tr("Unequip"))
 	_ok("SHIELD REPAIR translated", _tr_differs("SHIELD REPAIR"), tr("SHIELD REPAIR"))
 
+	# v141b/c yield-bonus tooltip (lives on the skill-level readout). "yield" has no
+	# clean Turkish noun here — owner-mandated wording is "ekstra kaynak". v141c cut
+	# the milestone ladder, so the card is now the flat + next step + cap.
+	_ok("YIELD BONUS translated", tr("YIELD BONUS") == "EKSTRA KAYNAK", tr("YIELD BONUS"))
+	_ok("yield flat row translated", _tr_differs("+%d flat yield  (+1 per 10 levels)"), tr("+%d flat yield  (+1 per 10 levels)"))
+	_ok("yield next-step translated", _tr_differs("Next: Lv %d  →  +%d"), tr("Next: Lv %d  →  +%d"))
+	_ok("yield cap row translated", _tr_differs("Lv 100  →  +10"), tr("Lv 100  →  +10"))
+	_ok("yield primary-only note translated", _tr_differs("Primary drop only."), tr("Primary drop only."))
+	# Two %d in order — a translator swapping them silently mislabels the ladder.
+	_ok("next-step keeps both %d", tr("Next: Lv %d  →  +%d").count("%d") == 2)
+	_ok("no 'getiri' in yield tooltip", not tr("+%d flat yield  (+1 per 10 levels)").to_lower().contains("getiri"))
+
 	# English must still fall through to itself.
 	TranslationServer.set_locale("en")
 	_ok("en identity fallback", tr("ACQUIRED") == "ACQUIRED")

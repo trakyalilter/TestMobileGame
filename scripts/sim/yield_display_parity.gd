@@ -87,37 +87,133 @@ func _ready() -> void:
 		_ok("infra card ratio == surge bonus", absf(got - want) < 0.001,
 			"got %.4f want %.4f" % [got, want])
 
-	# ── v141: skill-level yield ladder (milestone mult) + flat (+1 per 10 levels) ──
-	# The card tooltip and the award path both read get_skill_yield_mult /
-	# get_skill_yield_flat, so a level change must move both identically.
-	print("[YIELDP] --- skill yield ladder + flat ---")
+	# ── v141c: skill level pays a FLAT +1 per 10 levels and NOTHING else ──
+	# The milestone multiplier ladder (x1.10/1.25/1.50/1.75/2.00) was removed by
+	# owner call. These asserts pin the replacement: level must contribute zero
+	# multiplier, and the flat must step on every 10th level (not just at the five
+	# old milestone points).
+	print("[YIELDP] --- skill yield: flat only, no milestone mult ---")
 	# Reset warp/tree so only the skill level varies.
 	GameState.hard_reset()
 	var e2: Array = gm.actions[gm.actions.keys()[0]]["loot_table"][0]
-	# Below Lv10: no milestone, no flat.
 	gm.xp = 0.0; gm.level = 1; gm.check_level_up()
-	_ok("Lv1: milestone mult = 1.0", absf(gm.get_skill_yield_mult() - 1.0) < 0.001)
 	_ok("Lv1: flat = 0", gm.get_skill_yield_flat() == 0)
-	# Drive to each milestone and assert the ladder value + flat step.
-	var expect := {10: [1.10, 1], 25: [1.25, 2], 50: [1.50, 5], 75: [1.75, 7], 100: [2.00, 10]}
-	for lv in [10, 25, 50, 75, 100]:
+	var mult_base: float = gm.get_yield_multiplier()
+	# Flat steps every 10 levels — including 20/30/40, which the old ladder skipped.
+	for lv in [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]:
 		gm.xp = float(gm.get_xp_for_level(lv)); gm.level = 1; gm.check_level_up()
-		var exp: Array = expect[lv]
-		_ok("Lv%d milestone mult = x%.2f" % [lv, float(exp[0])],
-			absf(gm.get_skill_yield_mult() - float(exp[0])) < 0.001, "x%.3f" % gm.get_skill_yield_mult())
-		_ok("Lv%d flat = +%d" % [lv, int(exp[1])],
-			gm.get_skill_yield_flat() == int(exp[1]), "+%d" % gm.get_skill_yield_flat())
-	# Card == award: get_display_yield must include BOTH mult and flat on primary.
+		_ok("Lv%d flat = +%d" % [lv, int(lv / 10)],
+			gm.get_skill_yield_flat() == int(lv / 10), "+%d" % gm.get_skill_yield_flat())
+	# THE REGRESSION GUARD: level must no longer move the multiplier at all. If a
+	# milestone table ever creeps back in, this fires at Lv100.
+	_ok("Lv100 multiplier unchanged by level",
+		absf(gm.get_yield_multiplier() - mult_base) < 0.0001,
+		"%.4f vs %.4f" % [gm.get_yield_multiplier(), mult_base])
+	# Card == award: get_display_yield is base + flat on the primary drop.
 	gm.xp = float(gm.get_xp_for_level(50)); gm.level = 1; gm.check_level_up()
 	var base: int = int(e2[3])
 	var shown: int = gm.get_display_yield(e2, 0)
-	var want_min: int = int(base * 1.50) + 5   # milestone x1.50 + flat 5 (research/warp = 1x on fresh reset)
-	_ok("Lv50 card folds mult+flat", shown >= want_min, "base %d -> shown %d (>= %d)" % [base, shown, want_min])
-	# Secondary drops get the mult but NOT the flat (flat is primary-only, like ENG_1).
+	_ok("Lv50 card = base + flat", shown == base + 5, "base %d -> shown %d" % [base, shown])
+	# Secondary drops get NO skill scaling at all now (flat is primary-only).
 	if gm.actions[gm.actions.keys()[0]]["loot_table"].size() > 1:
 		var sec: Array = gm.actions[gm.actions.keys()[0]]["loot_table"][1]
 		var sec_shown: int = gm.get_display_yield(sec, 1)
-		_ok("secondary drop excludes flat", sec_shown == int(int(sec[3]) * 1.50), "%d" % sec_shown)
+		_ok("secondary drop = base (no skill scaling)", sec_shown == int(sec[3]), "%d" % sec_shown)
+
+	# ── v141b: the WIDGET CACHE must not be signed by the multiplier alone ──
+	# Skill level moves the award without touching the multiplier (v141c: it moves
+	# NOTHING else). Lv19 -> Lv21 is the proof case: identical multiplier, different
+	# award. gathering_action_widget's _loot_sig used to sign the multiplier, so the
+	# card froze at the Lv19 number while the loot popup paid the Lv21 one. The sig
+	# now signs the resulting AMOUNTS — this asserts the two inputs really do
+	# diverge, so that signature choice stays the load-bearing one.
+	print("[YIELDP] --- widget cache signature (mult constant, flat steps) ---")
+	gm.xp = float(gm.get_xp_for_level(19)); gm.level = 1; gm.check_level_up()
+	var mult_19: float = gm.get_yield_multiplier()
+	var shown_19: int = gm.get_display_yield(e2, 0)
+	gm.xp = float(gm.get_xp_for_level(21)); gm.level = 1; gm.check_level_up()
+	var mult_21: float = gm.get_yield_multiplier()
+	var shown_21: int = gm.get_display_yield(e2, 0)
+	print("[YIELDP]   Lv19 shown %d (mult %.4f)  ->  Lv21 shown %d (mult %.4f)" % [shown_19, mult_19, shown_21, mult_21])
+	_ok("Lv19/Lv21 multiplier IDENTICAL", absf(mult_21 - mult_19) < 0.0001, "%.4f" % mult_21)
+	_ok("Lv19/Lv21 award DIFFERS (flat)", shown_21 == shown_19 + 1, "%d -> %d" % [shown_19, shown_21])
+
+	# ── v141c: ENGINEERING gets the same flat +1 per 10 levels on EVERY output ──
+	# Processing is a converter, so the flat moves the input:output ratio. These
+	# asserts pin the contract: every fixed output takes the flat (a 2-product
+	# recipe pays it twice per cycle), and the card path (get_display_output) is
+	# the same call the award path makes.
+	print("[YIELDP] --- engineering output flat ---")
+	var pm = GameState.processing_manager
+	GameState.hard_reset()
+	# A multi-output recipe proves the primary-only rule; electrolysis is H + O.
+	var rid := "electrolysis"
+	_ok("multi-output recipe present", pm.recipes.has(rid), rid)
+	if pm.recipes.has(rid):
+		var out: Dictionary = pm.recipes[rid]["output"]
+		var primary: String = pm.get_primary_output(pm.recipes[rid])
+		var secondary := ""
+		for k in out:
+			if String(k) != primary:
+				secondary = String(k)
+				break
+		pm.xp = 0.0; pm.level = 1; pm.check_level_up()
+		_ok("Lv1: craft flat = 0", pm.get_skill_yield_flat() == 0)
+		var base_p := float(out[primary])
+		var base_s := float(out[secondary]) if secondary != "" else 0.0
+		_ok("Lv1 primary = base", absf(pm.get_display_output(rid, primary) - base_p) < 0.001,
+			"%s %.1f" % [primary, pm.get_display_output(rid, primary)])
+		# v141c: FLAT +1 per 10 levels, UNCAPPED — the badge must equal level/10 on
+		# every recipe regardless of its base size.
+		for lv in [10, 30, 50, 100]:
+			pm.xp = float(pm.get_xp_for_level(lv)); pm.level = 1; pm.check_level_up()
+			var want: float = base_p + float(int(lv / 10))
+			_ok("Lv%d primary %s = %.0f" % [lv, primary, want],
+				absf(pm.get_display_output(rid, primary) - want) < 0.001,
+				"%.1f" % pm.get_display_output(rid, primary))
+		# Secondary output scales too — a 2-product recipe pays on both.
+		if secondary != "":
+			_ok("Lv100 secondary %s doubles" % secondary,
+				absf(pm.get_display_output(rid, secondary) - (base_s * 2.0)) < 0.001,
+				"%.1f vs base %.1f" % [pm.get_display_output(rid, secondary), base_s])
+		# THE CAP: a singleton-output recipe must never exceed double. Uncapped this
+		# was 11 at Lv100 and compounded to 2065x down the AIProcessor tree.
+		# The smallest output in the game must still show the FULL flat — this is the
+		# "why did I waste 50 levels" case that drove removing the cap.
+		if pm.recipes.has("smelt_copper"):
+			pm.xp = float(pm.get_xp_for_level(10)); pm.level = 1; pm.check_level_up()
+			var cu10: float = pm.get_display_output("smelt_copper", "Cu")
+			_ok("Lv10 Copper Smelting = 2 (base 1 + flat 1)", absf(cu10 - 2.0) < 0.001, "%.1f" % cu10)
+			pm.xp = float(pm.get_xp_for_level(100)); pm.level = 1; pm.check_level_up()
+			var cu: float = pm.get_display_output("smelt_copper", "Cu")
+			_ok("Lv100 Copper Smelting = 11 (base 1 + flat 10)", absf(cu - 11.0) < 0.001, "%.1f" % cu)
+		# EVERY fixed output must gain exactly the step count — no recipe shape may
+		# silently get less than the badge promises.
+		pm.xp = float(pm.get_xp_for_level(100)); pm.level = 1; pm.check_level_up()
+		var short := []
+		for r2 in pm.recipes:
+			for it in (pm.recipes[r2].get("output", {}) as Dictionary):
+				var b := float(pm.recipes[r2]["output"][it])
+				if b <= 0.0:
+					continue
+				if absf(pm.get_display_output(String(r2), String(it)) - (b + 10.0)) > 0.001:
+					short.append("%s:%s" % [String(r2), String(it)])
+		_ok("every output gains the full +10 at Lv100", short.is_empty(), str(short).substr(0, 120))
+
+	# v141c: Zinc Reduction's Silver was promoted from output_table to a stated
+	# output. It must appear EXACTLY once — leaving the old output_table entry in
+	# place would pay it twice per craft (and Ag gates the m029b AdvCircuit chain).
+	if pm.recipes.has("smelt_zinc"):
+		var zr: Dictionary = pm.recipes["smelt_zinc"]
+		_ok("Zinc Reduction lists Ag as an output", (zr.get("output", {}) as Dictionary).has("Ag"))
+		var dupe := false
+		for ot_entry in zr.get("output_table", []):
+			if String(ot_entry[0]) == "Ag":
+				dupe = true
+		_ok("Ag NOT also in output_table (no double-pay)", not dupe)
+		pm.xp = 0.0; pm.level = 1; pm.check_level_up()
+		_ok("Lv1 Ag = 1", absf(pm.get_display_output("smelt_zinc", "Ag") - 1.0) < 0.001,
+			"%.1f" % pm.get_display_output("smelt_zinc", "Ag"))
 
 	print("[YIELDP] ============ %s ============" % ("ALL PASS" if fails == 0 else "%d FAIL(S)" % fails))
 	get_tree().quit(1 if fails > 0 else 0)

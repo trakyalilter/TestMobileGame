@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://citemecon1"]
+
+[ext_resource type="Script" path="res://scripts/sim/item_economy_audit.gd" id="1"]
+
+[node name="ItemEconomyAudit" type="Node"]
+script = ExtResource("1")

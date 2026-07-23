@@ -38,7 +38,7 @@ static var _bbcode_factory = null
 # Render the comparison-tooltip bbcode for an arbitrary module id, independent of any
 # on-screen tile. Reuses one offscreen module_card (never in the tree; its @onready nodes
 # stay null but the bbcode builder never touches them).
-static func build_module_bbcode(p_mid: String, compare_vs: String = "", no_compare: bool = false) -> String:
+static func build_module_bbcode(p_mid: String, compare_vs: String = "", no_compare: bool = false, no_hints: bool = false) -> String:
 	var sm = GameState.shipyard_manager
 	if not sm or not p_mid in sm.modules:
 		return ""
@@ -48,7 +48,7 @@ static func build_module_bbcode(p_mid: String, compare_vs: String = "", no_compa
 	_bbcode_factory.data = sm.modules[p_mid]
 	_bbcode_factory.count = int(sm.module_inventory.get(p_mid, 0))
 	_bbcode_factory.compare_equipped_mid = compare_vs
-	return _bbcode_factory._build_comparison_tooltip_bbcode(false, "", no_compare)
+	return _bbcode_factory._build_comparison_tooltip_bbcode(false, "", no_compare, no_hints)
 
 signal clicked(p_mid: String)
 signal stone_dropped(stone_id: String, target_mid: String)   # v127: Hack Stone dragged onto this module
@@ -182,17 +182,18 @@ func _draw_tile_visual(item_name: String, slot_type: String, rarity: int, rarity
 	var socket = Panel.new()
 	socket.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	socket.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# v141c: Hack Stones get the socket backplate too. v127 made them a bare shard
+	# on a fully transparent panel — with no container edge, adjacent cards had
+	# nothing to separate them and read as one merged blob (batteries, which keep
+	# their backplate, sit visibly apart). The shard itself is unchanged; it just
+	# sits in a slot now, like every other armory item.
 	var sock_sb = StyleBoxFlat.new()
-	if slot_type == "hack_stone":
-		# v127: Hack Stones show ONLY the hexagon shard — no square socket/chip wrap.
-		sock_sb.bg_color = Color(0, 0, 0, 0)
-	else:
-		sock_sb.bg_color = Color(0.03, 0.045, 0.07, 0.92)
-		sock_sb.set_corner_radius_all(5)
-		sock_sb.set_border_width_all(1)
-		sock_sb.border_color = Color(0.24, 0.36, 0.48, 0.85)
-		sock_sb.shadow_color = Color(0, 0, 0, 0.55)
-		sock_sb.shadow_size = 3
+	sock_sb.bg_color = Color(0.03, 0.045, 0.07, 0.92)
+	sock_sb.set_corner_radius_all(5)
+	sock_sb.set_border_width_all(1)
+	sock_sb.border_color = Color(0.24, 0.36, 0.48, 0.85)
+	sock_sb.shadow_color = Color(0, 0, 0, 0.55)
+	sock_sb.shadow_size = 3
 	socket.add_theme_stylebox_override("panel", sock_sb)
 	tile_container.add_child(socket)
 
@@ -535,6 +536,15 @@ func _get_module_icon(slot_type: String, stats: Dictionary, m_data: Dictionary =
 	# patch from a +10% Shield booster at a glance. Now the icon silhouette
 	# itself carries the type — hex plate = hull, capacitor = shield.
 	if slot_type == "consumable":
+		# v141c: per-ITEM icon first — the hull/shield split above still left every
+		# hull consumable sharing one silhouette (Hull Sealant, Emergency Patch and
+		# Chitin Patch were indistinguishable in the Armory) and every shield one
+		# sharing another. Consumable cards carry the element id as `mid`, and all
+		# ten have their own materials/*.svg, so use it exactly like hack_stone does.
+		# The type icon stays as the fallback for anything without an imported SVG.
+		var ctex = ElementDB.get_material_icon(mid)
+		if ctex:
+			return ctex
 		var ctype: String = str(m_data.get("consumable_type", ""))
 		if ctype == "hull":
 			key = "consumable_hull"
@@ -1130,7 +1140,7 @@ func _is_equipped(sm, module_id: String) -> bool:
 		return false
 	return module_id in lo.values()
 
-func _build_comparison_tooltip_bbcode(anchor_select: bool = false, hover_affix: String = "", no_compare: bool = false) -> String:
+func _build_comparison_tooltip_bbcode(anchor_select: bool = false, hover_affix: String = "", no_compare: bool = false, no_hints: bool = false) -> String:
 	if data.is_empty():
 		return ""
 
@@ -1435,15 +1445,20 @@ func _build_comparison_tooltip_bbcode(anchor_select: bool = false, hover_affix: 
 	# The compare line is skipped on the pinned baseline card in side-by-side view and on
 	# ammo/consumables/cores (not in sm.modules). The recycle line only shows when a copy is
 	# in storage — the recycle action rejects equipped-only modules.
+	# v141c: no_hints — the card is shown somewhere the shift-click / right-click
+	# actions aren't wired (expedition-yield loot tiles on the Combat page).
+	# Advertising an interaction that does nothing is worse than showing no hint.
 	var hint_lines: Array = []
-	if not no_compare and sm and mid in sm.modules:
+	if no_hints:
+		hint_lines = []
+	elif not no_compare and sm and mid in sm.modules:
 		if compare_pin_mid == mid:
 			hint_lines.append(tr("Shift-click: unpin  ·  Esc: clear compare"))
 		elif compare_pin_mid != "":
 			hint_lines.append(tr("Shift-click: pin this instead  ·  Esc: clear compare"))
 		else:
 			hint_lines.append(tr("Shift-click to pin & compare two modules"))
-	if sm and mid in sm.modules and sm.module_inventory.get(mid, 0) > 0:
+	if not no_hints and sm and mid in sm.modules and sm.module_inventory.get(mid, 0) > 0:
 		hint_lines.append(tr("Right-click to recycle for parts"))
 	if not hint_lines.is_empty():
 		tt += div

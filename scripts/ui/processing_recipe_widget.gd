@@ -29,6 +29,7 @@ var _mastery_info_card: Control = null
 # bar + time still update every frame. Kills the BBCode-reparse stutter.
 var _in_sig: String = ""
 var _out_sig: String = ""
+var _out_cap: Label = null   # v141c: OUTPUT caption, carries the skill-flat badge
 var _mastery_sig: String = ""
 var _state_sig: String = ""
 
@@ -58,6 +59,10 @@ func setup(p_rid: String, p_data: Dictionary, p_manager, p_parent):
 	UITheme.inject_activity_header(self, "engineering", glyph)
 	UITheme.wrap_in_io_panel(in_lbl, "engineering", "input")
 	var out_panel = UITheme.wrap_in_io_panel(out_lbl, "engineering", "output")
+	# v141c: caption carries the live skill-flat badge ("OUTPUT +2"), matching the
+	# gathering card. The ladder popup itself lives on the page's Level readout.
+	if out_panel:
+		_out_cap = out_panel.find_child("IOCaption", true, false) as Label
 	# Gap sits above REFINE: INPUTS anchors under the header, while
 	# REFINE / OUTPUT / footer stay bottom-aligned across cards.
 	UITheme.pin_card_footer(self, "ArrowLabel")
@@ -214,24 +219,39 @@ func update_state():
 		in_str += "[/center]"
 		in_lbl.text = in_str
 
-	# --- OUTPUTS: rebuild only when (active, eff_mult, rates) change. ---
-	var eff_mult = 1.0
-	if GameState.research_manager:
-		eff_mult = GameState.research_manager.get_efficiency_multiplier()
+	# v141c: glanceable skill-flat badge on the OUTPUT caption.
+	if _out_cap:
+		# v141c: proportional bonus — compute it for THIS recipe's primary output.
+		var sk_flat: int = 0
+		var prim := String(manager.get_primary_output(recipe))
+		if prim != "":
+			sk_flat = manager.get_skill_yield_bonus(float((recipe.get("output", {}) as Dictionary).get(prim, 0)))
+		var want_cap: String = tr("OUTPUT") if sk_flat <= 0 else "%s  +%d" % [tr("OUTPUT"), sk_flat]
+		if _out_cap.text != want_cap:
+			_out_cap.text = want_cap
+
+	# --- OUTPUTS: rebuild only when the RESULTING AMOUNTS change. ---
+	# v141c: was signed on the research efficiency multiplier, which misses the
+	# per-10-levels skill flat entirely (the multiplier is constant while the flat
+	# steps, so the card would freeze one step behind the award — exactly the bug
+	# the gathering card had). Sign the output, not the inputs.
 	var rates = manager.get_current_rate() if is_this_active else {}
-	var out_sig := "%s|%.4f|%s" % [is_this_active, eff_mult, str(rates)]
+	var amounts := {}
+	if "output" in recipe:
+		for item in recipe["output"]:
+			amounts[item] = manager.get_display_output(rid, item)
+	var out_sig := "%s|%s|%s" % [is_this_active, str(amounts), str(rates)]
 	if out_sig != _out_sig:
 		_out_sig = out_sig
 		var out_str = "[center]"
 		if "output" in recipe:
 			for item in recipe["output"]:
 				var display_name = ElementDB.get_display_name(item)
-				var qty = recipe["output"][item]
 				# BBCode url to catch hovers (info-card links).
 				var meta_json = JSON.stringify({"id": item, "type": "item"})
 				var link_text = "[url=%s][color=#ffce5c][u]%s[/u][/color][/url]" % [meta_json, display_name]
 				var out_icon = ElementDB.material_icon_bbcode(item, 16)
-				var line = "%s%s %s" % [out_icon, FormatUtils.format_number(qty * eff_mult), link_text]
+				var line = "%s%s %s" % [out_icon, FormatUtils.format_number(amounts[item]), link_text]
 				if item in rates:
 					out_str += "%s [color=#55ff55](%s%s)[/color]\n" % [line, FormatUtils.format_number(rates[item]), tr("/m")]
 				else:

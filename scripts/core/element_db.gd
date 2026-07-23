@@ -245,7 +245,7 @@ var ELEMENT_NAMES = {
 ## Category mappings for inventory filtering
 var CATEGORIES = {
 	"ores": ["Dirt", "Bauxite", "Dolomite", "Cassiterite", "ZincOre", "Spodumene", "PtOre", "Germanit", "Malachite", "Quartz"],  # v132: both gatherable ores were uncategorized — invisible to the inventory ore filter
-	"basic_metals": ["Fe", "Cu", "Al", "Mg", "Sn", "Zn"],
+	"basic_metals": ["Fe", "Si", "Cu", "Al", "Mg", "Sn", "Zn"],
 	"advanced_metals": ["Ti", "Co", "Ni", "Cr", "Mn", "W"],
 	"rare_metals": ["Au", "Ag", "Pt", "Pd", "Ir", "Os", "Rh", "U", "Germanium"],
 	"alloys": ["Steel", "Graphite", "StainlessSteel", "GalvanizedSteel", "Superalloy", "AlMgAlloy", "IrWAlloy",
@@ -258,7 +258,10 @@ var CATEGORIES = {
 				"Neutronium", "AntimatterParticle", "ExoticIsotope", "ReactiveCore", "AICore", "AncientTech",
 				"NavData", "IrPlate", "OsCore", "PtCatalyst",
 				"Res1", "Res2", "Res3",
-				"MiteChitin", "SalvageData", "ColonySalvage", "TurretCore",
+				# v141c: TurretCore dropped from the Atlas listing — its recipe is cut
+				# and nothing consumes it, so it is no longer obtainable. Name/colour
+				# entries stay below so legacy stacks still render in inventory.
+				"MiteChitin", "SalvageData", "ColonySalvage",
 				"ColonyDataCore", "RadIsotope",
 				"PirateSalvage", "MartianRelics", "CryoEssence", "XenoFragment",
 				"RimeplateScrap", "AeonResiduum"],  # v114: minted Zone Tier-Gate raws

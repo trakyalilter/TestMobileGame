@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://cmroutechk1"]
+
+[ext_resource type="Script" path="res://scripts/sim/mission_routing_check.gd" id="1"]
+
+[node name="MissionRoutingCheck" type="Node"]
+script = ExtResource("1")

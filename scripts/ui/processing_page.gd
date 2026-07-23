@@ -8,6 +8,12 @@ extends Control
 var manager: RefCounted
 var recipe_widget_scene = preload("res://scenes/ui/processing_recipe_widget.tscn")
 var widgets = []
+
+# v141c: output-bonus ladder hover on the skill-level readout (mirrors
+# gathering_page). Freed on exit and on tree_exiting so a widget destroyed
+# mid-hover can't leave an orphan card behind.
+var _level_info_card: Control = null
+var _level_sig: String = ""
 var racks = {} # {category_id: GridContainer}
 
 # v116: category tabs replace the rack-by-rack stacked sections. One PAGE per
@@ -54,10 +60,41 @@ var SUB_DEFS := {
 
 func _ready():
 	manager = GameState.processing_manager
-	
+
 	# Premium Styling
 	UITheme.apply_progress_bar_style(xp_bar, "engineering")
 	$VBoxContainer/ScrollContainer.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_ALWAYS
+	# v141c: skill-level readout is the hover affordance for the output-bonus
+	# ladder, same as the gathering page. LevelLabel is a RichTextLabel in the
+	# scene so the [u] underline reads as "this is hoverable"; Godot 4 defaults
+	# RichTextLabel to mouse_filter STOP, PASS keeps clicks falling through.
+	level_label.mouse_filter = Control.MOUSE_FILTER_PASS
+	level_label.mouse_entered.connect(_on_level_hover_enter)
+	level_label.mouse_exited.connect(_on_level_hover_exit)
+	tree_exiting.connect(_free_level_info_card)
+	_init_page()
+
+
+func _on_level_hover_enter() -> void:
+	if _level_info_card and is_instance_valid(_level_info_card):
+		return
+	if not manager:
+		return
+	_level_info_card = UITheme.show_info_card(
+		level_label, tr("OUTPUT BONUS"), UITheme.get_yield_tooltip(manager.get_level(), "craft"))
+
+
+func _on_level_hover_exit() -> void:
+	_free_level_info_card()
+
+
+func _free_level_info_card() -> void:
+	if _level_info_card and is_instance_valid(_level_info_card):
+		_level_info_card.queue_free()
+	_level_info_card = null
+
+
+func _init_page():
 
 	# Category tab strip (wraps like the armory filter bar), inserted just above
 	# the recipe scroll area.
@@ -464,7 +501,12 @@ func _process(_delta):
 func update_ui():
 	if not manager: return
 	
-	level_label.text = tr("Level: %d") % manager.get_level()
+	# v141c: RichTextLabel now — guard the BBCode re-parse behind a change check
+	# (this runs every frame).
+	var lvl_sig := "%d|%s" % [manager.get_level(), TranslationServer.get_locale()]
+	if lvl_sig != _level_sig:
+		_level_sig = lvl_sig
+		level_label.text = "[u]%s[/u]" % (tr("Level: %d") % manager.get_level())
 	xp_label.text = tr("XP: %d") % int(manager.xp)
 	xp_bar.value = manager.get_progress_to_next_level()
 	

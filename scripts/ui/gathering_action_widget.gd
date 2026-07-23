@@ -31,10 +31,10 @@ var _mastery_bar: ProgressBar
 # or tree_exiting (handles widget destroy mid-hover so no orphan stays).
 var _mastery_info_card: Control = null
 
-# v141: the YIELD panel's caption is hoverable too — shows the skill-level yield
-# bonus ladder (milestones 10/25/50/75/100), the same affordance as MASTERY.
+# v141: the YIELD caption carries the live skill-yield badge ("YIELD +25%").
+# v141b: its hover popup moved to the page's skill-level readout — the ladder is a
+# SKILL property, not a per-action one, and firing it from every card was noise.
 var _yield_cap: Label = null
-var _yield_info_card: Control = null
 
 # v122 PERF: update_state() runs every frame (page _process). Only the progress
 # bar + time vary frame-to-frame; the loot BBCode, mastery RichText and locked
@@ -65,17 +65,10 @@ func setup(p_aid: String, p_data: Dictionary, p_manager, p_parent):
 	var glyph = load("res://assets/icons/glyphs/gathering.svg") as Texture2D
 	UITheme.inject_activity_header(self, "ops", glyph)
 	var loot_panel = UITheme.wrap_in_io_panel(loot_lbl, "ops", "yield")
-	# v141: make the YIELD caption hover the skill-level yield-bonus ladder, the
-	# same affordance as the MASTERY keyword below. Godot 4: Label defaults to
-	# mouse_filter IGNORE, so PASS is required for hover to fire while clicks still
-	# reach the card. Freed on exit + tree_exiting (no orphan on destroy-mid-hover).
+	# v141b: caption ref kept only for the live "+N%" badge (see update_state).
+	# No hover here — the yield-ladder popup lives on the page's Level readout.
 	if loot_panel:
 		_yield_cap = loot_panel.find_child("IOCaption", true, false) as Label
-		if _yield_cap:
-			_yield_cap.mouse_filter = Control.MOUSE_FILTER_PASS
-			_yield_cap.mouse_entered.connect(_on_yield_hover_enter)
-			_yield_cap.mouse_exited.connect(_on_yield_hover_exit)
-			tree_exiting.connect(_free_yield_info_card)
 	UITheme.pin_card_footer(self)
 
 	# Mastery panel sits directly under the YIELD panel (wrap_in_io_panel
@@ -114,21 +107,6 @@ func _free_mastery_info_card() -> void:
 	if _mastery_info_card and is_instance_valid(_mastery_info_card):
 		_mastery_info_card.queue_free()
 	_mastery_info_card = null
-
-func _on_yield_hover_enter() -> void:
-	if _yield_info_card and is_instance_valid(_yield_info_card):
-		return
-	var lvl: int = manager.get_level() if manager else 0
-	var body: String = UITheme.get_yield_tooltip(lvl, manager.YIELD_MILESTONES)
-	_yield_info_card = UITheme.show_info_card(_yield_cap, tr("YIELD BONUS"), body)
-
-func _on_yield_hover_exit() -> void:
-	_free_yield_info_card()
-
-func _free_yield_info_card() -> void:
-	if _yield_info_card and is_instance_valid(_yield_info_card):
-		_yield_info_card.queue_free()
-	_yield_info_card = null
 
 func _on_button_pressed():
 	if GameState.combat_manager and GameState.combat_manager.in_combat:
@@ -218,25 +196,38 @@ func update_state():
 	var lvl = manager.get_level()
 	var req = data.get("level_req", 1)
 
-	# v141: glanceable skill-yield badge on the YIELD caption (hover shows the full
-	# ladder + flat). Shows the milestone multiplier — the visible reward jump; the
-	# +1/10-levels flat lives in the tooltip. Rebuilt only when it changes.
+	# v141c: glanceable skill-yield badge on the YIELD caption. The milestone
+	# multiplier it used to show is gone — skill level now pays a flat +1 per 10
+	# levels, so the badge shows that. Secondary drops don't get the flat, so the
+	# badge only appears on cards whose primary drop actually receives it.
 	if _yield_cap:
-		var sk_pct: int = int(round((manager.get_skill_yield_mult() - 1.0) * 100.0))
-		var want_cap: String = tr("YIELD") if sk_pct <= 0 else "%s  +%d%%" % [tr("YIELD"), sk_pct]
+		# v141c: the bonus is proportional to THIS action's drop size, so the badge
+		# must be computed per card — a shared step count would misreport every
+		# action whose base isn't 10.
+		var lt0: Array = data["loot_table"][0] if not (data["loot_table"] as Array).is_empty() else []
+		var sk_flat: int = 0
+		if not lt0.is_empty():
+			sk_flat = manager.get_display_yield(lt0, 0) - int(lt0[3])
+		var want_cap: String = tr("YIELD") if sk_flat <= 0 else "%s  +%d" % [tr("YIELD"), sk_flat]
 		if _yield_cap.text != want_cap:
 			_yield_cap.text = want_cap
 
-	# v140: sign the loot cache with the FULL yield multiplier, not just research
-	# efficiency. Buying a Warp-tree yield node (ENG_S1 Resource Surge) raised the
-	# real payout but left this signature byte-identical, so the cached BBCode was
-	# never rebuilt and the card's number stayed frozen.
-	var yield_mult: float = manager.get_yield_multiplier()
 	var rates = manager.get_current_rate() if is_this_active else {}
+
+	# v141b: sign the loot cache with the RESULTING AMOUNTS, not with the inputs.
+	# History: v140 signed only research efficiency (missed the Warp-tree mult),
+	# was widened to the full multiplier — which then missed the v141 per-level
+	# FLAT (+1 per 10 levels). Between two milestones the multiplier is constant,
+	# so dinging Lv 20 bumped the real award 23 -> 24 while the signature stayed
+	# byte-identical and the card kept rendering the stale 23. Signing the output
+	# closes the whole class: any input that moves the number rebuilds the text.
+	var amounts: Array[int] = []
+	for i in range(data["loot_table"].size()):
+		amounts.append(manager.get_display_yield(data["loot_table"][i], i))
 
 	# --- LOOT (expensive BBCode re-parse) — rebuild only when it would change.
 	# While active the rates are constant, so this builds once on activation. ---
-	var loot_sig := "%s|%.4f|%s" % [is_this_active, yield_mult, str(rates)]
+	var loot_sig := "%s|%s|%s" % [is_this_active, str(amounts), str(rates)]
 	if loot_sig != _loot_sig:
 		_loot_sig = loot_sig
 		var loot_text = "[center]"
@@ -247,7 +238,7 @@ func update_state():
 			var icon_bb = ElementDB.material_icon_bbcode(symbol, 16)
 			# v112: deterministic yield — show the single fixed value.
 			var name_link = "[url=atlasmat:%s]%s[/url]" % [symbol, display_name]
-			var base_loot = "%s%s: %s" % [icon_bb, name_link, FormatUtils.format_number(manager.get_display_yield(entry, i))]
+			var base_loot = "%s%s: %s" % [icon_bb, name_link, FormatUtils.format_number(amounts[i])]
 			if symbol in rates:
 				loot_text += "%s [color=#55ff55](%s%s)[/color]\n" % [base_loot, FormatUtils.format_number(rates[symbol]), tr("/m")]
 			else:

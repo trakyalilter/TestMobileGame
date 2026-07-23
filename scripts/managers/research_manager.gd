@@ -57,7 +57,9 @@ const ENDGAME_RESEARCH_ITEMS = [
 # (Z1_Core..Z10_Core) and are excluded by pattern.
 const NON_SCALING_ITEMS = [
 	"NavData", "SalvageData", "VoidArtifact", "ColonyDataCore",
-	"QuarantineClearance", "BiohazardSample", "TurretCore",
+	# v141c: TurretCore removed — it sat in this list as though it were a research
+	# token, but no tech ever listed it in cost_items and its recipe is now cut.
+	"QuarantineClearance", "BiohazardSample",
 	"AncientTech", "ExoticMatter"
 ]
 

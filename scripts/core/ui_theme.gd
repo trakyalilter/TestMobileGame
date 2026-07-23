@@ -356,6 +356,7 @@ var _item_tooltip_anchor: Control = null
 # nested "what is this" popup shown while hovering a jargon term inside the tooltip.
 var _tooltip_timer: Timer = null
 var _glossary_card: Control = null
+var _tooltip_sticky: bool = false   # v140: only glossary tooltips get the grace timer
 const TOOLTIP_GRACE := 0.22
 
 # v136: card factory shared by the single tooltip and the side-by-side compare view.
@@ -404,13 +405,18 @@ func _build_tooltip_card(bbcode: String, watermark: Texture2D = null) -> PanelCo
 	rtl.add_theme_font_size_override("bold_font_size", 12)
 	rtl.add_theme_constant_override("line_separation", 3)
 	rtl.text = bbcode
-	# v137: sticky + glossary. The RTL (STOP, even inside the IGNORE panel) receives the
-	# hover so the card survives cursor travel from the source card, and any
-	# [url=gloss:*] jargon term pops a nested definition card.
-	rtl.meta_hover_started.connect(_on_tooltip_meta_hover)
-	rtl.meta_hover_ended.connect(_on_tooltip_meta_exit)
-	rtl.mouse_entered.connect(_on_tooltip_rtl_enter)
-	rtl.mouse_exited.connect(_on_tooltip_rtl_exit)
+	# v140: ONLY glossary tooltips are sticky + interactive. A STOP RTL that lingers under
+	# the grace timer sat over the armory grid and ate drag starts + flickered hover — the
+	# regression the user hit. Non-glossary cards stay MOUSE_FILTER_IGNORE (pass-through, no
+	# grace) exactly like before; glossary cards wire the meta + keep-alive so a jargon term
+	# can be reached.
+	if "[url=gloss:" in bbcode:
+		rtl.meta_hover_started.connect(_on_tooltip_meta_hover)
+		rtl.meta_hover_ended.connect(_on_tooltip_meta_exit)
+		rtl.mouse_entered.connect(_on_tooltip_rtl_enter)
+		rtl.mouse_exited.connect(_on_tooltip_rtl_exit)
+	else:
+		rtl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	card.add_child(rtl)
 
 	# Tech corner-bracket chrome on top — drawn in the panel margin, never on text.
@@ -447,6 +453,7 @@ func show_item_tooltip(anchor: Control, bbcode: String, watermark: Texture2D = n
 
 	_item_tooltip = card
 	_item_tooltip_anchor = anchor
+	_tooltip_sticky = ("[url=gloss:" in bbcode)
 
 # v136: two full tooltip cards side by side — the pinned compare baseline (left) and
 # the hovered module (right). Both live under one HBox held in the single _item_tooltip
@@ -487,6 +494,7 @@ func show_compare_tooltip(anchor: Control, bb_left: String, bb_right: String, wm
 
 	_item_tooltip = wrap
 	_item_tooltip_anchor = anchor
+	_tooltip_sticky = ("[url=gloss:" in bb_left) or ("[url=gloss:" in bb_right)
 
 
 # Faint zone-emblem watermark — drawn small in the BOTTOM-RIGHT corner of the card
@@ -572,12 +580,23 @@ const _GLOSSARY_TERMS := [
 	["Exposed", "exposed"],
 ]
 
+# v140: Turkish phrases exactly as they appear in the TRANSLATED affix descs (linkify
+# runs AFTER tr(), so it must match the translated wording). Longest first.
+const _GLOSSARY_TERMS_TR := [
+	["Taktik İhlal Şansı", "tactical_breach"],
+	["Ağır Hasarlı", "severely_damaged"],
+	["Yüksek Bütünlüklü", "high_integrity"],
+	["Aşırı Yükleme", "overdrive"],
+	["Açık", "exposed"],
+]
+
 # Wrap known jargon phrases in a glossary [url] so a sticky tooltip can pop a definition.
 # Skips a term whose key is already linked (prevents double-wrapping a phrase that's a
 # substring of a longer, already-linked one, e.g. "Tactical Breach" in "...Chance").
 func linkify_glossary(text: String) -> String:
 	var out := text
-	for pair in _GLOSSARY_TERMS:
+	var terms: Array = _GLOSSARY_TERMS_TR if TranslationServer.get_locale().begins_with("tr") else _GLOSSARY_TERMS
+	for pair in terms:
 		var phrase: String = pair[0]
 		var key: String = pair[1]
 		if phrase in out and not (("[url=gloss:%s]" % key) in out):
@@ -591,7 +610,9 @@ func hide_item_tooltip(anchor: Control = null) -> void:
 	# v137 sticky: don't free immediately — start a short grace so the cursor can travel
 	# onto the tooltip to hover a glossary term. The tooltip RTL's enter/exit cancels or
 	# reschedules this; a new show_item_tooltip() (hovering another card) frees instantly.
-	if is_instance_valid(_item_tooltip):
+	# v140: only glossary tooltips defer (need the travel-onto-card grace). Everything else
+	# frees instantly like pre-sticky — a lingering non-glossary card blocked drag/hover.
+	if is_instance_valid(_item_tooltip) and _tooltip_sticky:
 		_ensure_tooltip_timer()
 		_tooltip_timer.start(TOOLTIP_GRACE)
 	else:
@@ -627,7 +648,7 @@ func _on_tooltip_meta_hover(meta) -> void:
 	if not is_instance_valid(_item_tooltip):
 		return
 	var g: Dictionary = GLOSSARY[key]
-	_glossary_card = show_info_card(_item_tooltip, str(g["title"]), str(g["body"]))
+	_glossary_card = show_info_card(_item_tooltip, tr(str(g["title"])), tr(str(g["body"])))
 
 func _on_tooltip_meta_exit(_meta) -> void:
 	_free_glossary_card()
@@ -914,25 +935,30 @@ func get_mastery_tooltip() -> String:
 		+ "[color=#C8E0D8][b]Lv 75[/b]    −25% duration[/color][br]"
 		+ "[color=#FFD98A][b]Lv 100[/b]  −30% duration[/color]")
 
-# v141: yield-bonus explainer for the gathering YIELD panel — the skill-level
-# mirror of get_mastery_tooltip. `ladder` is gathering_manager.YIELD_MILESTONES
-# (level -> total multiplier); `level` highlights reached rows. Shows the +bonus
-# each milestone GRANTS (mult-1), so leveling reads as a reward schedule.
-func get_yield_tooltip(level: int, ladder: Dictionary) -> String:
+# v141c: yield-bonus explainer for the gathering skill-level readout. The v141
+# milestone-multiplier ladder is gone (owner call) — skill level now pays ONE
+# thing, a flat +1 per 10 levels, so this is a 3-line card instead of a 5-row
+# schedule: what you have, what the next step costs, and the cap. The "primary
+# drop only" line is deliberate: without it a player watching a secondary drop
+# sit still reads the bonus as broken.
+# `subject` picks the vocabulary: "gather" for Planetary Operations, "craft" for
+# Engineering. Same ladder, same numbers — only the nouns differ, so both skills
+# stay one explainer instead of two that can drift apart.
+func get_yield_tooltip(level: int, subject: String = "gather") -> String:
 	var flat := int(level / 10)   # +1 unit per 10 levels
-	var head := ("[color=#8FBFB0]" + tr("Skill level lifts every gather:") + "[/color][br]"
-		+ "[color=#C8E0D8]" + (tr("+%d flat yield  (+1 per 10 levels)") % flat) + "[/color][br][br]"
-		+ "[color=#8FBFB0]" + tr("Milestones") + "[/color][br]")
-	var rows := ""
-	for m in [10, 25, 50, 75, 100]:
-		var pct := int(round((float(ladder.get(m, 1.0)) - 1.0) * 100.0))
-		var reached: bool = level >= m
-		var col: String = "#FFD98A" if m == 100 else ("#FFC24D" if m == 50 else "#C8E0D8")
-		if not reached:
-			col = "#5E6B66"   # dim unreached
-		var mark := "◆ " if reached else "◇ "   # allowed pips (no forbidden ✓ glyph)
-		rows += "[color=%s][b]Lv %d[/b]  %s+%d%% yield[/color][br]" % [col, m, mark, pct]
-	return head + rows
+	var is_craft: bool = (subject == "craft")
+	var intro: String = tr("Skill level lifts every craft:") if is_craft else tr("Skill level lifts every gather:")
+	var row: String = (tr("+%d flat output  (+1 per 10 levels)") % flat) if is_craft else (tr("+%d flat yield  (+1 per 10 levels)") % flat)
+	var s := ("[color=#8FBFB0]" + intro + "[/color][br]"
+		+ "[color=#C8E0D8]" + row + "[/color][br][br]")
+	if level >= 100:
+		s += "[color=#FFD98A]" + (tr("MAX  ·  Lv 100  →  +%d") % flat) + "[/color][br]"
+	else:
+		# Level cap is 100, so at Lv 90-99 the "next" step IS the cap.
+		s += "[color=#C8E0D8]" + (tr("Next: Lv %d  →  +%d") % [(flat + 1) * 10, flat + 1]) + "[/color][br]"
+		s += "[color=#5E6B66]" + tr("Lv 100  →  +10") + "[/color][br]"
+	s += "[br][color=#5E6B66]" + (tr("Applies to every output.") if is_craft else tr("Primary drop only.")) + "[/color]"
+	return s
 
 # v139f: Boss System explainers — ONE vocabulary for every surface that names a
 # trait (pre-fight card chips, live Boss Systems strip, intel modal, the

@@ -3837,6 +3837,17 @@ func load_loadout_preset(idx: int, from_combat_swap: bool = false) -> Dictionary
 	var was_suppressed := _suppress_preset_autosave
 	_suppress_preset_autosave = true
 
+	# v140: switching to an EMPTY build slot INHERITS the current ship instead of
+	# stripping to a bare hull — a variant build keeps the shared defense / armor /
+	# engine / battery / consumable kit, and the player only swaps the weapons. Was: a
+	# mission-follower (LOADOUT 2 = energy, LOADOUT 3 = explosive) left every non-weapon
+	# slot empty in builds 2 & 3. Seed the target from the live loadout before the strip.
+	if is_loadout_preset_empty(idx):
+		preset["loadout"] = loadout.duplicate(true)
+		preset["ammo_loadout"] = ammo_loadout.duplicate(true)
+		preset["consumable_hull"] = consumable_hull_slot
+		preset["consumable_shield"] = consumable_shield_slot
+
 	# Step 1: Return every currently-equipped module to inventory. For an empty
 	# slot this IS the whole switch — the player lands on a clean, empty ship.
 	var slot_keys = loadout.keys().duplicate()
