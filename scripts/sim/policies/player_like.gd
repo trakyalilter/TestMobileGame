@@ -214,6 +214,15 @@ func _execute_verb(mid: String, verb: Dictionary) -> Dictionary:
 		"equip_rare_weapon_type":
 			return _do_equip_rare_weapon(mid, 2, String(verb.get("wtype", "")))
 		"warp":
+			# v138 gate: warping is diegetic — the Singularity must be OPEN, which
+			# only happens after a Zone-3+ boss kill THIS run. calculate_warp_gains()
+			# is only the score half of the gate; without the rift check the bot warps
+			# on score alone and bypasses the boss requirement the real UI enforces.
+			if not GameState.warp_manager.rift_open:
+				status = "warp:no_rift"
+				# Push the funnel forward (fight the mission's boss) rather than grind
+				# score for a warp that cannot fire yet.
+				return _income("warp — rift not open yet (need a Z3+ boss kill)", mid, "detour")
 			if GameState.warp_manager.calculate_warp_gains() >= 1:
 				return {"kind": "warp", "attr": "direct", "obj": mid, "why": "warp", "length": 0.0}
 			status = "warp:gains<1"

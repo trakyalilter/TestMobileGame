@@ -10,6 +10,12 @@ extends Node
 # Launch (via tools/run_sim.ps1, which swaps run/main_scene):
 #   ... -- --archetype=optimizer --seed=12345 --days=30 --out=<path>
 #
+# Archetypes:
+#   optimizer|casual|combat            — native sim_runner policies (coarse planner)
+#   follower|efficient|drifter|overnighter — player_like (EARN-everything mission
+#     follower); delegated to player_bot.gd, which reaches ~Z4 and is the harness
+#     for a faithful start-to-finish run. Its extra flag: --until.
+#
 # Time model: active SESSIONS (real process_tick loop) + offline GAPS (one
 # closed-form process_offline_progress call) — mirrors the game's own two code
 # paths and a realistic play schedule. Sessions+gaps sum to 24h per day.
@@ -17,6 +23,14 @@ extends Node
 
 const DT := 0.25                       # sim-seconds per manual step in a session
 const MILESTONES := [10, 25, 50, 75, 100]
+
+# v141: the mission-follower policy (player_like) is EARN-everything and reaches
+# ~Z4, but it drives per-30s-slice off the live mission oracle — sim_runner's
+# coarse "one task per session" planner cannot run it. Its real harness is
+# player_bot.gd. Rather than fork that whole loop into a sim_runner-shaped policy,
+# selecting one of these archetypes here DELEGATES to player_bot (it re-parses the
+# same cmdline), so `sim_runner --archetype=efficient` runs the true end-to-end bot.
+const PLAYER_LIKE_ARCHETYPES := ["follower", "efficient", "drifter", "overnighter"]
 
 var tele                                # SimTelemetry
 var policy                             # PolicyBase subclass
@@ -38,6 +52,15 @@ func _boot() -> void:
 	var archetype: String = str(args.get("archetype", "optimizer"))
 	var seed_v: int = int(args.get("seed", "1"))
 	var days: int = int(args.get("days", "7"))
+
+	# v141: hand the player_like archetypes to their real driver. player_bot._boot
+	# fires on add_child (call_deferred), re-reads the cmdline (--archetype/--seed/
+	# --days/--until), runs the full mission-oracle loop, writes its own telemetry
+	# and quits. sim_runner does no further work for these.
+	if archetype in PLAYER_LIKE_ARCHETYPES:
+		print("[SIM] archetype '%s' is player_like → delegating to player_bot.gd" % archetype)
+		add_child(load("res://scripts/sim/player_bot.gd").new())
+		return
 
 	_new_game(seed_v)
 

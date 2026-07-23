@@ -417,6 +417,14 @@ func _run_fight_slice(d: Dictionary, slice: float) -> void:
 
 func _do_warp() -> void:
 	var wm = GameState.warp_manager
+	# v138 faithfulness guard: the real game can only warp through an OPEN rift
+	# (Singularity on the Sector Chart, torn open by a Z3+ boss kill). execute_warp()
+	# itself does not enforce this — the UI does — so a headless harness must, or it
+	# reports warps the player could never have taken. The policy already gates on
+	# rift_open; this is the defensive backstop so no code path bypasses it.
+	if not wm.rift_open:
+		print("[PBOT][WARP] blocked — no open rift (no Z3+ boss killed this run)")
+		return
 	var gains := int(wm.calculate_warp_gains())
 	wm.execute_warp()
 	if not milestones.has("first_warp"):
