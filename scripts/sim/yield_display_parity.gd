@@ -87,5 +87,37 @@ func _ready() -> void:
 		_ok("infra card ratio == surge bonus", absf(got - want) < 0.001,
 			"got %.4f want %.4f" % [got, want])
 
+	# ── v141: skill-level yield ladder (milestone mult) + flat (+1 per 10 levels) ──
+	# The card tooltip and the award path both read get_skill_yield_mult /
+	# get_skill_yield_flat, so a level change must move both identically.
+	print("[YIELDP] --- skill yield ladder + flat ---")
+	# Reset warp/tree so only the skill level varies.
+	GameState.hard_reset()
+	var e2: Array = gm.actions[gm.actions.keys()[0]]["loot_table"][0]
+	# Below Lv10: no milestone, no flat.
+	gm.xp = 0.0; gm.level = 1; gm.check_level_up()
+	_ok("Lv1: milestone mult = 1.0", absf(gm.get_skill_yield_mult() - 1.0) < 0.001)
+	_ok("Lv1: flat = 0", gm.get_skill_yield_flat() == 0)
+	# Drive to each milestone and assert the ladder value + flat step.
+	var expect := {10: [1.10, 1], 25: [1.25, 2], 50: [1.50, 5], 75: [1.75, 7], 100: [2.00, 10]}
+	for lv in [10, 25, 50, 75, 100]:
+		gm.xp = float(gm.get_xp_for_level(lv)); gm.level = 1; gm.check_level_up()
+		var exp: Array = expect[lv]
+		_ok("Lv%d milestone mult = x%.2f" % [lv, float(exp[0])],
+			absf(gm.get_skill_yield_mult() - float(exp[0])) < 0.001, "x%.3f" % gm.get_skill_yield_mult())
+		_ok("Lv%d flat = +%d" % [lv, int(exp[1])],
+			gm.get_skill_yield_flat() == int(exp[1]), "+%d" % gm.get_skill_yield_flat())
+	# Card == award: get_display_yield must include BOTH mult and flat on primary.
+	gm.xp = float(gm.get_xp_for_level(50)); gm.level = 1; gm.check_level_up()
+	var base: int = int(e2[3])
+	var shown: int = gm.get_display_yield(e2, 0)
+	var want_min: int = int(base * 1.50) + 5   # milestone x1.50 + flat 5 (research/warp = 1x on fresh reset)
+	_ok("Lv50 card folds mult+flat", shown >= want_min, "base %d -> shown %d (>= %d)" % [base, shown, want_min])
+	# Secondary drops get the mult but NOT the flat (flat is primary-only, like ENG_1).
+	if gm.actions[gm.actions.keys()[0]]["loot_table"].size() > 1:
+		var sec: Array = gm.actions[gm.actions.keys()[0]]["loot_table"][1]
+		var sec_shown: int = gm.get_display_yield(sec, 1)
+		_ok("secondary drop excludes flat", sec_shown == int(int(sec[3]) * 1.50), "%d" % sec_shown)
+
 	print("[YIELDP] ============ %s ============" % ("ALL PASS" if fails == 0 else "%d FAIL(S)" % fails))
 	get_tree().quit(1 if fails > 0 else 0)

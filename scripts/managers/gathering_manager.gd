@@ -319,10 +319,35 @@ func _notify_mastery_milestones(action_id: String, prev_level: int, new_level: i
 			var msg: String = tr("%s — Mastery %d · −%d%% Duration") % [action_name, m, pct]
 			UITheme.show_notification(msg, Color(1.0, 0.84, 0.45))
 
-# Audit v6.0 P1-19: Planetary Operations skill bonus - +1% yield per level
+# v141: yield milestone ladder — total-at-milestone MULTIPLIER (take highest
+# reached, mirrors the mastery card's structure). Replaces the old flat "×1.10 at
+# Lv10 only", giving leveling visible reward jumps at 25/50/75/100 (gathering had
+# none past 10, unlike processing). Tunable in one place; the card tooltip and the
+# award path both read these so they can never drift.
+const YIELD_MILESTONES := {10: 1.10, 25: 1.25, 50: 1.50, 75: 1.75, 100: 2.00}
+
+# Milestone MULTIPLIER only (highest reached). This is the ×-bonus folded into
+# get_yield_multiplier; the FLAT per-level bonus is separate (get_skill_yield_flat).
+# Keyed on CURRENT level, NOT is_milestone_unlocked(): milestone flags persist
+# through a warp (skill.reset never clears unlocked_milestones), so a maxed player
+# would keep ×2.0 yield forever even after XP decay dropped them to Lv50. The yield
+# bonus must re-earn with level like the rest of the run — warp resets progress.
+func get_skill_yield_mult() -> float:
+	var lvl := get_level()
+	for m in [100, 75, 50, 25, 10]:
+		if lvl >= m:
+			return float(YIELD_MILESTONES[m])
+	return 1.0
+
+# FLAT +1 unit per 10 LEVELS (owner call — the old +1%/level multiplier read +5%
+# at Lv5, too steep). Added AFTER multipliers, primary drop only, exactly like the
+# ENG_1 warp flat. Lv10 → +1, Lv50 → +5, Lv100 → +10.
+func get_skill_yield_flat() -> int:
+	return int(get_level() / 10)
+
+# Audit v6.0 P1-19: Planetary Operations skill bonus
 func get_yield_multiplier() -> float:
-	var mult = 1.0 + (get_level() * 0.01)
-	if is_milestone_unlocked(10): mult *= 1.10 # +10% Yield
+	var mult = get_skill_yield_mult()
 	
 	# v72.8: Trophy Buffs
 	if GameState.bounty_manager:
@@ -350,8 +375,10 @@ func get_display_yield(entry: Array, index: int) -> int:
 		amount += int(GameState.research_manager.get_efficiency_bonus("gathering_yield"))
 		amount = int(float(amount) * (1.0 + GameState.research_manager.get_efficiency_bonus("gathering_yield_mult")))
 	amount = int(float(amount) * get_yield_multiplier())
-	if index == 0 and GameState.warp_manager:
-		amount += GameState.warp_manager.get_tree_gathering_flat()   # ENG_1 flat, primary drop only
+	if index == 0:
+		amount += get_skill_yield_flat()   # v141: +1 per 10 levels, flat, primary drop
+		if GameState.warp_manager:
+			amount += GameState.warp_manager.get_tree_gathering_flat()   # ENG_1 flat, primary drop only
 	return amount
 
 
@@ -536,6 +563,11 @@ func calculate_offline(delta: float):
 	var tree_flat := 0
 	if GameState.warp_manager:
 		tree_flat = GameState.warp_manager.get_tree_gathering_flat()   # ENG_1 flat +N/action on primary
+	# v141: the +1-per-10-levels skill flat, offline too. add_xp() above already
+	# applied the whole offline XP haul, so get_skill_yield_flat() here reflects the
+	# POST-levelup level — a player who dinged mid-offline gets the higher flat on the
+	# window, matching how yield_mult is snapshot after the XP grant (closed-form).
+	var skill_flat := get_skill_yield_flat()
 	for i in range(loot_table.size()):
 		var entry = loot_table[i]
 		var element = entry[0]
@@ -546,7 +578,7 @@ func calculate_offline(delta: float):
 		per_drop = int(float(per_drop) * yield_mult)
 		var total: int = int(float(per_drop) * chance * float(num_actions))
 		if i == 0:
-			total += tree_flat * num_actions   # ENG_1 flat on the primary resource, per action
+			total += (skill_flat + tree_flat) * num_actions   # v141 skill flat + ENG_1, primary, per action
 		if total <= 0:
 			continue
 		GameState.resources.add_element(element, total)

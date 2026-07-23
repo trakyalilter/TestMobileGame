@@ -31,6 +31,11 @@ var _mastery_bar: ProgressBar
 # or tree_exiting (handles widget destroy mid-hover so no orphan stays).
 var _mastery_info_card: Control = null
 
+# v141: the YIELD panel's caption is hoverable too — shows the skill-level yield
+# bonus ladder (milestones 10/25/50/75/100), the same affordance as MASTERY.
+var _yield_cap: Label = null
+var _yield_info_card: Control = null
+
 # v122 PERF: update_state() runs every frame (page _process). Only the progress
 # bar + time vary frame-to-frame; the loot BBCode, mastery RichText and locked
 # overlay change rarely. These signatures skip those expensive rebuilds (esp.
@@ -60,6 +65,17 @@ func setup(p_aid: String, p_data: Dictionary, p_manager, p_parent):
 	var glyph = load("res://assets/icons/glyphs/gathering.svg") as Texture2D
 	UITheme.inject_activity_header(self, "ops", glyph)
 	var loot_panel = UITheme.wrap_in_io_panel(loot_lbl, "ops", "yield")
+	# v141: make the YIELD caption hover the skill-level yield-bonus ladder, the
+	# same affordance as the MASTERY keyword below. Godot 4: Label defaults to
+	# mouse_filter IGNORE, so PASS is required for hover to fire while clicks still
+	# reach the card. Freed on exit + tree_exiting (no orphan on destroy-mid-hover).
+	if loot_panel:
+		_yield_cap = loot_panel.find_child("IOCaption", true, false) as Label
+		if _yield_cap:
+			_yield_cap.mouse_filter = Control.MOUSE_FILTER_PASS
+			_yield_cap.mouse_entered.connect(_on_yield_hover_enter)
+			_yield_cap.mouse_exited.connect(_on_yield_hover_exit)
+			tree_exiting.connect(_free_yield_info_card)
 	UITheme.pin_card_footer(self)
 
 	# Mastery panel sits directly under the YIELD panel (wrap_in_io_panel
@@ -98,6 +114,21 @@ func _free_mastery_info_card() -> void:
 	if _mastery_info_card and is_instance_valid(_mastery_info_card):
 		_mastery_info_card.queue_free()
 	_mastery_info_card = null
+
+func _on_yield_hover_enter() -> void:
+	if _yield_info_card and is_instance_valid(_yield_info_card):
+		return
+	var lvl: int = manager.get_level() if manager else 0
+	var body: String = UITheme.get_yield_tooltip(lvl, manager.YIELD_MILESTONES)
+	_yield_info_card = UITheme.show_info_card(_yield_cap, tr("YIELD BONUS"), body)
+
+func _on_yield_hover_exit() -> void:
+	_free_yield_info_card()
+
+func _free_yield_info_card() -> void:
+	if _yield_info_card and is_instance_valid(_yield_info_card):
+		_yield_info_card.queue_free()
+	_yield_info_card = null
 
 func _on_button_pressed():
 	if GameState.combat_manager and GameState.combat_manager.in_combat:
@@ -186,6 +217,15 @@ func update_state():
 
 	var lvl = manager.get_level()
 	var req = data.get("level_req", 1)
+
+	# v141: glanceable skill-yield badge on the YIELD caption (hover shows the full
+	# ladder + flat). Shows the milestone multiplier — the visible reward jump; the
+	# +1/10-levels flat lives in the tooltip. Rebuilt only when it changes.
+	if _yield_cap:
+		var sk_pct: int = int(round((manager.get_skill_yield_mult() - 1.0) * 100.0))
+		var want_cap: String = tr("YIELD") if sk_pct <= 0 else "%s  +%d%%" % [tr("YIELD"), sk_pct]
+		if _yield_cap.text != want_cap:
+			_yield_cap.text = want_cap
 
 	# v140: sign the loot cache with the FULL yield multiplier, not just research
 	# efficiency. Buying a Warp-tree yield node (ENG_S1 Resource Surge) raised the

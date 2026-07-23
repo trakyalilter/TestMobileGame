@@ -914,6 +914,26 @@ func get_mastery_tooltip() -> String:
 		+ "[color=#C8E0D8][b]Lv 75[/b]    −25% duration[/color][br]"
 		+ "[color=#FFD98A][b]Lv 100[/b]  −30% duration[/color]")
 
+# v141: yield-bonus explainer for the gathering YIELD panel — the skill-level
+# mirror of get_mastery_tooltip. `ladder` is gathering_manager.YIELD_MILESTONES
+# (level -> total multiplier); `level` highlights reached rows. Shows the +bonus
+# each milestone GRANTS (mult-1), so leveling reads as a reward schedule.
+func get_yield_tooltip(level: int, ladder: Dictionary) -> String:
+	var flat := int(level / 10)   # +1 unit per 10 levels
+	var head := ("[color=#8FBFB0]" + tr("Skill level lifts every gather:") + "[/color][br]"
+		+ "[color=#C8E0D8]" + (tr("+%d flat yield  (+1 per 10 levels)") % flat) + "[/color][br][br]"
+		+ "[color=#8FBFB0]" + tr("Milestones") + "[/color][br]")
+	var rows := ""
+	for m in [10, 25, 50, 75, 100]:
+		var pct := int(round((float(ladder.get(m, 1.0)) - 1.0) * 100.0))
+		var reached: bool = level >= m
+		var col: String = "#FFD98A" if m == 100 else ("#FFC24D" if m == 50 else "#C8E0D8")
+		if not reached:
+			col = "#5E6B66"   # dim unreached
+		var mark := "◆ " if reached else "◇ "   # allowed pips (no forbidden ✓ glyph)
+		rows += "[color=%s][b]Lv %d[/b]  %s+%d%% yield[/color][br]" % [col, m, mark, pct]
+	return head + rows
+
 # v139f: Boss System explainers — ONE vocabulary for every surface that names a
 # trait (pre-fight card chips, live Boss Systems strip, intel modal, the
 # first-encounter intro toast). Key -> {title, body, color}; body strings reuse
@@ -2152,6 +2172,7 @@ func wrap_in_io_panel(label: Control, category: String, kind: String) -> PanelCo
 	m.add_child(col)
 
 	var cap = Label.new()
+	cap.name = "IOCaption"   # v141: so a widget can find + make it hoverable (yield bonus card)
 	cap.text = tr(({"yield": "YIELD", "output": "OUTPUT", "input": "INPUTS"}).get(kind, kind.to_upper()))
 	cap.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	cap.add_theme_font_size_override("font_size", 8)
