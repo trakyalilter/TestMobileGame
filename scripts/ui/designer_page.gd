@@ -240,6 +240,11 @@ func _module_matches_equip_focus(module_data: Dictionary) -> bool:
 		return false
 	if _equip_focus_weapon_type != "" and st == "weapon":
 		return _weapon_damage_family(module_data) == _equip_focus_weapon_type
+	# v141: consumables sub-filter by hull/shield. The consumable equip mission
+	# fills the hull slot first, then the shield slot — so only the matching kind
+	# should pulse (like the weapon damage-type legs), not every consumable.
+	if _equip_focus_weapon_type != "" and st == "consumable":
+		return str(module_data.get("consumable_type", "")) == _equip_focus_weapon_type
 	return true
 
 func _weapon_damage_family(module_data: Dictionary) -> String:
@@ -792,7 +797,7 @@ func _on_scrap_by_rarity(max_rarity: int):
 	# v112: themed modal (was the primitive Window ConfirmationDialog).
 	var plural = "" if count == 1 else "s"
 	var body = tr("Demolish [b]%d[/b] non-equipped module%s?\n\n") % [count, plural]
-	body += "[color=#73e88c]" + tr("You'll receive Liras, Spare Parts, and zone salvage.") + "[/color]"
+	body += "[color=#73e88c]" + tr("You'll receive Spare Parts and zone salvage.") + "[/color]"
 	var on_ok := func():
 		var scrapped = manager.bulk_demolish_by_rarity(max_rarity)
 		UITheme.show_notification(tr("Demolished %d module(s)") % scrapped, UITheme.COLORS["warning"])
@@ -1225,7 +1230,14 @@ func _on_inventory_updated():
 func _on_warp_refresh(_gains):
 	trigger_refresh()
 
+const _SLOT_SCROLL_PATH := "VBoxContainer/MainLayout/LeftColumn/SchematicArea/LayoutSplit/SlotListPanel/SlotScroll"
+
 func trigger_refresh():
+	# v140: keep the equipped-slot list scrolled where it was — rebuild_slots repopulates
+	# the container and would otherwise snap it back to the top (splicing gear mid-list
+	# yanked the view up). Capture, then restore after layout settles.
+	var _ss := get_node_or_null(_SLOT_SCROLL_PATH)
+	var _sv: int = int(_ss.scroll_vertical) if _ss is ScrollContainer else 0
 	update_header()
 	rebuild_slots()
 	rebuild_ammo_slots()
@@ -1237,6 +1249,12 @@ func trigger_refresh():
 	# v134g: match equipped slots to the armory 2x2 card size. Deferred so the
 	# spatial grid has laid out (its cell size derives from the grid's live width).
 	call_deferred("_sync_slot_dimensions")
+	call_deferred("_restore_slot_scroll", _sv)
+
+func _restore_slot_scroll(v: int) -> void:
+	var ss := get_node_or_null(_SLOT_SCROLL_PATH)
+	if ss is ScrollContainer:
+		ss.scroll_vertical = v
 
 # v134g: size every equipped module slot to the armory's 2x2 module footprint so a
 # slot reads as the same square as a card in the cache. The armory card is
@@ -2062,7 +2080,15 @@ func rebuild_storage():
 					continue
 				var consumable_card = draggable_icon_scene.instantiate()
 				_spatial.add_item(consumable_card, 2, 2, manager.get_armory_pos(consumable_id))   # v127: 2x2 so it renders square like modules
+				# v141: pulse + arrow the consumable that satisfies an active equip
+				# mission (hull vs shield aware), and dim the rest — same treatment
+				# modules already get, so the coach points the GEAR, not only the slot.
+				var _c_matches: bool = focused_slot_type == "" and _module_matches_equip_focus(fake_data)
+				if "coach_pulse" in consumable_card:
+					consumable_card.coach_pulse = _c_matches   # set BEFORE setup, like modules
 				consumable_card.setup(consumable_id, fake_data, qty)
+				if focused_slot_type == "" and _equip_focus_filter_type != "" and not _c_matches:
+					consumable_card.modulate = Color(1, 1, 1, 0.35)
 				consumable_card.is_selected = consumable_id in selected_mids
 				consumable_card.is_draggable = true   # drag onto a consumable slot
 				consumable_card.clicked.connect(_on_card_clicked)
@@ -2106,7 +2132,7 @@ func rebuild_storage():
 			var stone_qty: int = GameState.resources.get_element_amount(stone_id)
 			if stone_qty > 0:
 				var stone_card = draggable_icon_scene.instantiate()
-				_spatial.add_item(stone_card, 1, 1, manager.get_armory_pos(stone_id))
+				_spatial.add_item(stone_card, 2, 2, manager.get_armory_pos(stone_id))   # v140: 2x2 so it renders square like modules (1x1 was shorter than its content -> tall rectangle)
 				var stone_data = {
 					"name": ElementDB.get_display_name(stone_id),
 					"slot_type": "hack_stone",
@@ -2548,10 +2574,31 @@ func _commit_card_insert(sid: String, module_id: String, card_node: Control) -> 
 # arm + click + insert IS the confirmation). AnchorBolt still asks which affix to lock.
 # v127: apply the in-hand Hack Card to a module — used by EQUIPPED slots (they call
 # this from _gui_input). Returns true if a card was armed and the apply kicked off.
-func try_apply_armed_card(module_id: String, target: Control) -> bool:
+func try_apply_armed_card(module_id: String, target: Control, slot_idx: int = -1) -> bool:
 	if _armed_stone == "" or module_id == "":
 		return false
-	_commit_card_insert(_armed_stone, module_id, target)
+	var sid := _armed_stone
+	# v140: Splice/Firmware AWAKEN a base module into a NEW custom instance and need it in
+	# inventory (not the loadout). Applying to an EQUIPPED slot: unequip → awaken → re-equip
+	# the new id into the same slot, so the player can splice gear that's on the ship.
+	if slot_idx >= 0 and sid in ["SpliceChip", "FirmwareInjector"] \
+			and not module_id.begins_with("custom_") \
+			and int(manager.module_inventory.get(module_id, 0)) < 1:
+		manager.unequip_slot(slot_idx)   # base returns to inventory
+		var r: Dictionary = manager.apply_hack_stone(sid, module_id)
+		if bool(r.get("ok", false)):
+			var new_id := str(r.get("result_id", ""))
+			if new_id != "":
+				manager.equip_module(slot_idx, new_id, true)   # seat the awakened module
+			_armed_stone = ""
+			_update_card_cursor()
+			UITheme.show_notification(str(r.get("msg", "")), UITheme.COLORS["positive"])
+			trigger_refresh()
+		else:
+			manager.equip_module(slot_idx, module_id, true)   # rollback: put the base back
+			UITheme.show_notification(str(r.get("msg", tr("Can't apply here."))), UITheme.COLORS["negative"])
+		return true
+	_commit_card_insert(sid, module_id, target)
 	return true
 
 # Toggle the insert-socket glow on every occupied equipped slot (armory tiles get

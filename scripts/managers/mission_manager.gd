@@ -167,7 +167,15 @@ func init_missions():
 		# buildings after 14 days (6M Liras unspent) — m019c only VISITS the page.
 		# One cheap directed build closes the teaching hole; "build" completes on
 		# building_constructed + sync (retroactive-safe, can never soft-lock).
-		["m019d", "First Foundation", "Construct a Solar Array in Infrastructure — it generates power and keeps running even while you're away.", "build", "solar_panel", 1, 2500, 200, "m025"],
+		["m019d", "First Foundation", "Construct a Solar Array in Infrastructure — it generates power and keeps running even while you're away.", "build", "solar_panel", 1, 2500, 200, "m019e"],
+		# Atlas-lookup teaching beat — inserted BEFORE the first material the player
+		# can't hand-gather: Efficient Smelting (m025) and Shipwright I (m026) both cost
+		# COMMON ARTIFACT (Res1), a COMBAT drop with no obvious source. Teaches the
+		# universal skill "trace any unknown material to its source in the Atlas".
+		# Completes when the player opens Res1's Atlas entry (atlas_lookup) — event-
+		# driven like visit_page, so it can never soft-lock. atlas_page fires the
+		# progress + glows the SOURCED FROM panel + pops a coach card on that open.
+		["m019e", "Field Manual", "The next research, Efficient Smelting, needs COMMON ARTIFACT — a material you don't craft or mine. When a mission names something you don't recognise, the ATLAS shows where it comes from. Open the Atlas (left sidebar), switch to the MATERIALS tab, type \"Common Artifact\" in the search box, and open its entry to see which enemies drop it.", "atlas_lookup", "Res1", 1, 2000, 150, "m025"],
 		["m020", "Advanced Energy", "Research 'Power Systems' for batteries.", "research", "power_systems", 1, 500, 100, "m021"],
 		["m021", "Industrial Energy", "Craft 5 Battery Cells in the Engineering tab.", "gather", "BatteryT1", 5, 1000, 100, "m022"],
 		["m022", "Power Storage", "Craft a 'Basic Battery' in the Shipyard.", "craft", "z1_battery", 1, 1500, 150, "m022b"],
@@ -909,6 +917,14 @@ func sync_progress():
 		elif m["type"] == "warp_perform":
 			if GameState.warp_manager:
 				m["current_qty"] = max(m["current_qty"], min(GameState.warp_manager.total_warps, m["target_qty"]))
+
+		elif m["type"] == "atlas_lookup":
+			# Retroactive-safe: owning the named material means the player already found
+			# it. It also self-heals a mid-chain insert (m019e) that orphan-rescue
+			# spuriously re-activated on an OLD save long past that beat — auto-complete
+			# so a stale lesson can't hijack the objective arrow.
+			if GameState.resources and GameState.resources.get_element_amount(m["target"]) > 0:
+				m["current_qty"] = m["target_qty"]
 
 		if m["current_qty"] != old_qty:
 			changed = true

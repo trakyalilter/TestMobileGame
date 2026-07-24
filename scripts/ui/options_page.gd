@@ -111,10 +111,9 @@ func _build_header() -> void:
 func _build_save_section() -> void:
 	var body := _section("Save Data", FRAME_CAT)
 
-	var save_btn := _primary_button("SAVE GAME", FRAME_CAT)
-	save_btn.pressed.connect(_on_save_btn_pressed)
-	body.add_child(save_btn)
-
+	# No manual SAVE GAME button — the game autosaves every 60s and on exit, so a
+	# manual save is redundant (and misreads as "progress is lost unless you press
+	# this"). Only the Hard Reset control lives here.
 	var warn := Label.new()
 	warn.text = tr("Hard reset wipes your save permanently — this cannot be undone.")
 	warn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -1319,11 +1318,6 @@ func _on_card_frame_pressed(mode: int) -> void:
 
 func _set_game_speed(speed: float) -> void:
 	Engine.time_scale = speed
-
-
-func _on_save_btn_pressed() -> void:
-	GameState.save_game()
-	UITheme.show_notification("Game saved", Color(0.45, 0.9, 0.55))
 
 
 func _on_reset_btn_pressed() -> void:

@@ -108,8 +108,7 @@ var recipes: Dictionary = {
 		"name": "Nickel Extraction",
 		"description": "Roast Pentlandite sulfide in Oxygen, then reduce with Carbon for Nickel (Ni).",
 		"input": {"Pentlandite": 3, "C": 1, "O": 1},
-		"output": {"Ni": 2},
-		"output_table": [["Co", 0.4, 1, 1]], # v80.4 Fix: Co byproduct added to Ni refining (fixes major deadlock)
+		"output": {"Ni": 2,"Co": 1},
 		"duration": 6.0,
 		"level_req": 22,
 		"xp": 30,

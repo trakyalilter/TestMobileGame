@@ -92,11 +92,18 @@ func _ready() -> void:
 	var unsourced := []
 	var ambiguous := []
 
+	var tutorial_count := 0
 	for mid in mm.missions:
 		var m: Dictionary = mm.missions[mid]
 		var mtype := String(m.get("type", ""))
-		if not (mtype in ROUTABLE_TYPES) and not (mtype in UNROUTABLE_BY_DESIGN):
-			bad_type.append("%s:%s" % [String(mid), mtype])
+		# v141c: only [TUTORIAL] missions get a directive arrow now, so only they
+		# MUST be routable. Goal / chapter / endgame arcs are self-directed — an
+		# unroutable type there is fine, it simply produces no arrow.
+		var is_tutorial: bool = (String(m.get("tag", "")) == "[TUTORIAL]")
+		if is_tutorial:
+			tutorial_count += 1
+			if not (mtype in ROUTABLE_TYPES) and not (mtype in UNROUTABLE_BY_DESIGN):
+				bad_type.append("%s:%s" % [String(mid), mtype])
 
 		if mtype == "gather":
 			var sym := String(m.get("target", ""))
@@ -114,17 +121,22 @@ func _ready() -> void:
 				if desc.contains("%s tab" % w):
 					ambiguous.append("%s:'%s tab'" % [String(mid), w])
 
-	_ok("every mission type is routable", bad_type.is_empty(), str(bad_type).substr(0, 200))
+	print("[MROUTE] tutorial missions: %d" % tutorial_count)
+	_ok("every TUTORIAL mission type is routable", bad_type.is_empty(), str(bad_type).substr(0, 200))
 	_ok("every gather target has a producer", unsourced.is_empty(), str(unsourced).substr(0, 200))
 	_ok("no '<sidebar page> tab' phrasing in mission text", ambiguous.is_empty(), str(ambiguous).substr(0, 200))
 
-	# The arcs that actually regressed — assert they exist and carry a routable
-	# type, so a future refactor that drops them fails here instead of in-game.
-	for mid in ["goal_hack_1", "m029a7"]:
-		var m: Dictionary = mm.missions.get(mid, {})
-		_ok("%s defined + routable" % mid,
-			not m.is_empty() and String(m.get("type", "")) in ROUTABLE_TYPES,
-			String(m.get("type", "MISSING")))
+	# The directive is tutorial-gated: a [TUTORIAL] mission must be able to point
+	# somewhere, and a non-tutorial one must NOT be treated as a directive source.
+	var t_ok: bool = String(mm.missions.get("m019", {}).get("tag", "")) == "[TUTORIAL]" \
+		and String(mm.missions.get("m019", {}).get("type", "")) in ROUTABLE_TYPES
+	_ok("sample tutorial (m019) is tagged + routable", t_ok, mm.missions.get("m019", {}).get("tag", "MISSING"))
+	_ok("m029a7 is NOT tutorial (no directive)",
+		String(mm.missions.get("m029a7", {}).get("tag", "")) != "[TUTORIAL]",
+		mm.missions.get("m029a7", {}).get("tag", "MISSING"))
+	_ok("goal_hack_1 is NOT tutorial (no directive)",
+		String(mm.missions.get("goal_hack_1", {}).get("tag", "")) != "[TUTORIAL]",
+		mm.missions.get("goal_hack_1", {}).get("tag", "MISSING"))
 
 	print("[MROUTE] ============ %s ============" % ("ALL PASS" if fails == 0 else "%d FAIL(S)" % fails))
 	get_tree().quit(1 if fails > 0 else 0)

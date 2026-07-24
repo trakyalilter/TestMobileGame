@@ -234,6 +234,10 @@ const AFFIX_DB = {
 	"stone_drop_mult": {
 		"name": "Cryptographic Decoder", "type": "utility", "scaling": "percent",
 		"range": [10, 20], "limit_to": ["sensor"],
+		# v141: dead stat before Firmware Hacking — _roll_hack_stone_drops returns
+		# EMPTY without that tech, so this affix multiplies zero. Gate it out of the
+		# roll pool until the system it scales actually exists for the player.
+		"research_req": "firmware_hacking",
 		"desc": "+%d%% Hack Card drop chance."
 	},
 	# v85.1: New Combat Affixes
@@ -2862,6 +2866,8 @@ func _legal_affix_pool(slot_type: String, exclude: Array = []) -> Array:
 		if a_id in exclude:
 			continue
 		var cfg = AFFIX_DB[a_id]
+		if not _affix_research_ok(cfg):
+			continue
 		if not cfg.has("limit_to") or slot_type in cfg["limit_to"]:
 			pool.append(a_id)
 	# Fallback: generic industrial/economy fill for slots no affix restricts to.
@@ -2869,9 +2875,23 @@ func _legal_affix_pool(slot_type: String, exclude: Array = []) -> Array:
 		for a_id in AFFIX_DB:
 			if a_id in exclude:
 				continue
+			if not _affix_research_ok(AFFIX_DB[a_id]):
+				continue
 			if AFFIX_DB[a_id]["type"] in ["industrial", "economy"]:
 				pool.append(a_id)
 	return pool
+
+# v141: an affix may declare "research_req" — it must not ROLL until the system it
+# scales exists for the player (a "+18% Hack Card drop chance" sensor is a dead stat
+# before Firmware Hacking, since hack-stone drops return empty without that tech).
+# Gates rolling only: gear that already carries the affix keeps it, and it starts
+# working the moment the tech lands.
+func _affix_research_ok(cfg: Dictionary) -> bool:
+	var req := str(cfg.get("research_req", ""))
+	if req == "":
+		return true
+	var rm = GameState.research_manager
+	return rm != null and rm.is_tech_unlocked(req)
 
 # Roll ONE affix's final value at a zone difficulty. 15% Greater-Affix chance
 # (2x max roll). Percent -> fraction; flat -> floor(base * 1.8^(zone-1)); linear_tier
@@ -2966,19 +2986,14 @@ func generate_module_drop(base_module_id: String, rarity: int = Rarity.UNCOMMON,
 	var custom_affixes = {}
 	var slot_type = base.get("slot_type", "utility")
 	
-	# v76.5: Filter affix pool by slot_type
-	var affix_pool = []
-	for a_id in AFFIX_DB:
-		var cfg = AFFIX_DB[a_id]
-		if not cfg.has("limit_to") or slot_type in cfg["limit_to"]:
-			affix_pool.append(a_id)
-					
-	# Fallback: If no restricted affixes match, allow sensor/industrial as generic fill for empty slots
-	if affix_pool.is_empty():
-		for a_id in AFFIX_DB:
-			if AFFIX_DB[a_id]["type"] in ["industrial", "economy"]:
-				affix_pool.append(a_id)
-	
+	# v76.5: Filter affix pool by slot_type.
+	# v141: was a byte-identical inline copy of _legal_affix_pool (same limit_to
+	# filter + same industrial/economy fallback), so a pool rule added there silently
+	# missed drops. Routed through the shared helper — which also applies the
+	# research gate, keeping dead affixes (Hack Card drop chance pre-Firmware
+	# Hacking) out of the roll.
+	var affix_pool = _legal_affix_pool(slot_type)
+
 	var num_affixes = 0
 	# v139d Rare gate (owner rule): Uncommon affixes 1 -> 0 (reverts v101).
 	# The rarity STAT ranges are already disjoint (Uncommon caps x1.20, Rare
@@ -3690,13 +3705,14 @@ func demolish_module(module_id: String) -> bool:
 	# A cheap Common crafted to high rarity would otherwise demolish for MORE than the
 	# craft cost AND inflate lifetime_credits -> prestige. Token salvage (1 part) only.
 	if modules.get(module_id, {}).get("stone_crafted", false):
+		var sp_stone := get_demolish_parts(module_id)   # v140: rarity-scaled (was flat 1); compute BEFORE erase
 		module_inventory[module_id] -= 1
 		if module_inventory[module_id] <= 0:
 			module_inventory.erase(module_id)
 			if module_id in custom_modules:
 				custom_modules.erase(module_id)
 				modules.erase(module_id)
-		GameState.resources.add_element("SparePart", 1)
+		GameState.resources.add_element("SparePart", sp_stone)
 		inventory_updated.emit()
 		return true
 
@@ -3715,7 +3731,7 @@ func demolish_module(module_id: String) -> bool:
 			custom_modules.erase(module_id)
 			modules.erase(module_id)
 	
-	GameState.resources.add_currency("credits", price)
+	# v140: modules no longer sell for Liras — recycle yields Spare Parts only (rarity-scaled).
 	GameState.resources.add_element("SparePart", parts)
 	
 	# v101: Zone-specific salvage return based on rarity and zone tier

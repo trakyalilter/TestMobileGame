@@ -24,13 +24,8 @@ func setup(p_quest: Dictionary, p_parent: Node):
 	desc_lbl.text = tr(quest["desc"])
 	tier_lbl.text = tr("T%d") % int(quest.get("difficulty", 1))
 
-	# Reward summary
-	var reward_text = tr("+%s Liras") % UITheme.format_num(quest["reward_credits"])
-	var mat = quest.get("reward_material", {})
-	if mat and mat.size() > 0:
-		var d_name = ElementDB.get_display_name(mat["id"])
-		reward_text += "   +%d %s" % [mat["qty"], d_name]
-	reward_lbl.text = reward_text
+	# Reward summary — Liras only (material bonus removed).
+	reward_lbl.text = tr("+%s Liras") % UITheme.format_num(quest["reward_credits"])
 
 	claim_btn.pressed.connect(_on_claim_pressed)
 

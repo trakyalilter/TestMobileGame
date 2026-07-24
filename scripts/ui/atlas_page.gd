@@ -35,6 +35,11 @@ var selected_id = ""
 var _hero_block: HBoxContainer = null
 var _identity_row: HBoxContainer = null
 
+# Coach card + gold highlight box for the m019e "Field Manual" atlas-lookup
+# lesson (both freed on any re-selection / mode switch via _clear_inserted_blocks).
+var _coach_card: Control = null
+var _coach_hl: Control = null
+
 # Tier index by ElementDB category — drives badge color & sort order
 const TIER_ORDER = {
 	"ores": 1, "basic_metals": 1,
@@ -161,6 +166,16 @@ func _on_visibility_changed():
 	if visible:
 		build_databases()
 		refresh_list()
+	else:
+		# The Field Manual coach card + highlight box are parented to ModalLayer (they
+		# float above the page), so they must be freed when the Atlas hides or they
+		# strand over other pages.
+		if _coach_card and is_instance_valid(_coach_card):
+			_coach_card.queue_free()
+		_coach_card = null
+		if _coach_hl and is_instance_valid(_coach_hl):
+			_coach_hl.queue_free()
+		_coach_hl = null
 
 func _on_mode_materials():
 	current_mode = "materials"
@@ -829,6 +844,8 @@ func _display_material_details(mat_id):
 		for use in mat["uses"]:
 			_add_source_row(uses_list, use["type"], "%s (%s)" % [tr(use["name"]), tr(use["rate"])], _get_type_color(use["type"]))
 
+	_maybe_atlas_lesson(mat_id)
+
 func _display_enemy_details(eid):
 	var e = enemy_db.get(eid)
 	if not e: return
@@ -1008,6 +1025,143 @@ func _get_type_color(type: String) -> Color:
 		_: return Color(0.7, 0.7, 0.7)
 
 
+# ── Field Manual teaching beat (mission m019e) ───────────────────────────────
+# Fires when the player opens, in the Atlas, the material an active atlas_lookup
+# mission names. Completes the mission (event-driven, can't soft-lock), glows the
+# SOURCED FROM panel, and pops a coach card generalising the lookup skill. Self-
+# guards: completion removes the mission from active_missions, so reopening the
+# same entry finds no active mission and stays quiet.
+func _maybe_atlas_lesson(mat_id: String) -> void:
+	var mm = GameState.mission_manager
+	if mm == null:
+		return
+	var matched := false
+	for amid in mm.active_missions:
+		var m: Dictionary = mm.missions.get(amid, {})
+		if String(m.get("type", "")) == "atlas_lookup" \
+				and String(m.get("target", "")) == mat_id \
+				and not m.get("completed", false):
+			matched = true
+			break
+	if not matched:
+		return
+	mm._update_progress("atlas_lookup", mat_id, 1)
+	_highlight_sources()
+	_show_source_coach(tr(material_db.get(mat_id, {}).get("name", mat_id)))
+
+# Persistent gold-bordered box around the SOURCED FROM section — floats over it and
+# gently breathes, staying up for the life of the coach card (freed with it). A box
+# rather than a text tint so the color-coded source rows keep their meaning.
+func _highlight_sources() -> void:
+	if _coach_hl and is_instance_valid(_coach_hl):
+		_coach_hl.queue_free()
+	_coach_hl = null
+	if sources_list == null or not is_instance_valid(sources_list):
+		return
+	var modal := get_tree().root.find_child("ModalLayer", true, false)
+	var parent: Node = modal if modal else get_tree().current_scene
+	if parent == null:
+		return
+	var box := Panel.new()
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.z_index = 99
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(1.0, 0.86, 0.32, 0.07)
+	sb.set_corner_radius_all(6)
+	sb.set_border_width_all(2)
+	sb.border_color = Color(1.0, 0.86, 0.32, 0.95)
+	box.add_theme_stylebox_override("panel", sb)
+	parent.add_child(box)
+	_coach_hl = box
+	# Rect is only correct after the list has laid out its rows — wait one frame.
+	await get_tree().process_frame
+	if not (is_instance_valid(box) and is_instance_valid(sources_list)):
+		return
+	var r: Rect2 = sources_list.get_global_rect()
+	var pad := 7.0
+	box.global_position = r.position - Vector2(pad, pad)
+	box.size = r.size + Vector2(pad * 2.0, pad * 2.0)
+	var tw := create_tween().set_loops()
+	tw.tween_property(box, "modulate:a", 0.45, 0.7).set_trans(Tween.TRANS_SINE)
+	tw.tween_property(box, "modulate:a", 1.0, 0.7).set_trans(Tween.TRANS_SINE)
+
+# Compact dismissable coach card floated over the detail panel. Teaches the
+# generalisable skill, not just this one material.
+func _show_source_coach(mat_name: String) -> void:
+	if _coach_card and is_instance_valid(_coach_card):
+		_coach_card.queue_free()
+	_coach_card = null
+	var modal := get_tree().root.find_child("ModalLayer", true, false)
+	var parent: Node = modal if modal else get_tree().current_scene
+	if parent == null:
+		return
+
+	var card := PanelContainer.new()
+	card.z_index = 100
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.039, 0.086, 0.078, 0.98)
+	sb.set_corner_radius_all(6)
+	sb.set_border_width_all(1)
+	sb.border_color = Color(0.216, 0.788, 0.690, 0.6)
+	sb.border_width_top = 3
+	sb.content_margin_left = 16
+	sb.content_margin_right = 16
+	sb.content_margin_top = 13
+	sb.content_margin_bottom = 13
+	sb.shadow_color = Color(0, 0, 0, 0.55)
+	sb.shadow_size = 16
+	sb.shadow_offset = Vector2(0, 4)
+	card.add_theme_stylebox_override("panel", sb)
+	card.custom_minimum_size = Vector2(330, 0)
+
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 8)
+	card.add_child(vb)
+
+	var title := Label.new()
+	title.text = tr("HOW TO FIND ANYTHING")
+	title.add_theme_font_size_override("font_size", 12)
+	title.add_theme_color_override("font_color", Color(0.373, 0.878, 0.784))
+	vb.add_child(title)
+
+	var body := RichTextLabel.new()
+	body.bbcode_enabled = true
+	body.fit_content = true
+	body.scroll_active = false
+	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	body.custom_minimum_size = Vector2(298, 0)
+	body.add_theme_font_size_override("normal_font_size", 12)
+	body.add_theme_font_size_override("bold_font_size", 12)
+	body.add_theme_color_override("default_color", Color(0.894, 0.961, 0.933))
+	body.text = tr("The highlighted [b]SOURCED FROM[/b] panel lists every place [color=#5fe0c8]%s[/color] comes from — here, it drops from Lunar Orbit hostiles in Combat. Any time a mission names a material you don't recognise, look it up here: switch to MATERIALS, search its name, and read its sources.") % mat_name
+	vb.add_child(body)
+
+	var btn := Button.new()
+	btn.text = tr("Got it")
+	btn.size_flags_horizontal = Control.SIZE_SHRINK_END
+	btn.pressed.connect(func():
+		if _coach_card and is_instance_valid(_coach_card):
+			_coach_card.queue_free()
+		_coach_card = null
+		if _coach_hl and is_instance_valid(_coach_hl):
+			_coach_hl.queue_free()
+		_coach_hl = null)
+	vb.add_child(btn)
+
+	parent.add_child(card)
+	_coach_card = card
+
+	# Float over the right (detail) panel — fixed offset from the panel's rect, no
+	# dependency on the card's not-yet-measured size (see show_info_card's note).
+	var rp := get_node_or_null("HBoxContainer/RightPanel")
+	if rp and rp is Control:
+		var rr: Rect2 = (rp as Control).get_global_rect()
+		var est_w := 330.0
+		var px: float = rr.position.x + max(8.0, (rr.size.x - est_w) * 0.5)
+		var py: float = rr.position.y + 54.0
+		card.global_position = Vector2(px, py)
+
+
 # ── Datasheet detail-panel helpers ───────────────────────────────────────────
 
 # Hides the .tscn static "Sources"/"Uses" titles (the enemy-mode wart). Defensive
@@ -1024,6 +1178,12 @@ func _hide_static_titles() -> void:
 # a material↔enemy mode switch. remove_child is immediate (queue_free is deferred),
 # so the Details child order is correct again right after this call.
 func _clear_inserted_blocks() -> void:
+	if _coach_card and is_instance_valid(_coach_card):
+		_coach_card.queue_free()
+	_coach_card = null
+	if _coach_hl and is_instance_valid(_coach_hl):
+		_coach_hl.queue_free()
+	_coach_hl = null
 	if _hero_block and is_instance_valid(_hero_block):
 		if _hero_block.get_parent(): _hero_block.get_parent().remove_child(_hero_block)
 		_hero_block.queue_free()

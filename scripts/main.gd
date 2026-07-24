@@ -1787,6 +1787,12 @@ func _update_navigation_hints():
 			var sm = GameState.shipyard_manager
 			var dp = pages["designer"]
 			var want := "consumable_hull" if sm.consumable_hull_slot == "" else ("consumable_shield" if sm.consumable_shield_slot == "" else "")
+			# v141: also arrow the consumable to grab in the Armory (hull first, then
+			# shield). "consumable" filter + hull/shield sub-type dims the rest and
+			# stamps the coach arrow on the right kit. m024b2 is in _any_equip_active
+			# below so this filter survives the per-frame clear.
+			if want != "" and dp.has_method("set_equip_focus_filter"):
+				dp.set_equip_focus_filter("consumable", "hull" if want == "consumable_hull" else "shield")
 			if want != "" and dp.has_method("get_slot_widget"):
 				dp.focus_slot(want)
 				target_to_pulse = dp.get_slot_widget(want)
@@ -1928,6 +1934,7 @@ func _update_navigation_hints():
 		or "m022b" in mm.active_missions
 		or "m024c" in mm.active_missions
 		or "m024a2" in mm.active_missions   # v140: armor-equip step (else its focus filter clears each frame → rebuild_storage thrash → armory unhoverable/undraggable)
+		or "m024b2" in mm.active_missions   # v141: consumable-equip step — same thrash guard
 		# v134b: the damage-triangle fight steps have a designer EQUIP phase —
 		# keep the weapon filter alive exactly while that phase sets it.
 		or ("m017b" in mm.active_missions and _count_weapon_type_equipped("energy") < 2)
@@ -1958,14 +1965,21 @@ func _update_navigation_hints():
 		if current_page_name != "warp" and is_instance_valid(warp_btn) and warp_btn.visible:
 			target_to_pulse = warp_btn
 
-	# v141c: GENERIC fallback — route any active mission the hand-written chain
-	# above doesn't name. That chain is keyed on explicit ids (m001..m019, ...), so
-	# every mission added since — the whole goal_* arc, the m029a* chapter beats —
-	# produced a NULL pulse and the player got no direction at all. Worse, the
-	# repair nudge below then filled the silence and pulsed COMBAT, which reads as
-	# "the mission wants Combat" (owner hit this on goal_hack_1 + m029a7).
-	# Derives the target from the mission TYPE, so new missions route themselves
-	# and only genuinely bespoke steps need a hand-written branch.
+	# v141c: a mission DIRECTIVE is TUTORIAL-only. The explicit ladder above also
+	# has branches for chapter/endgame ids (m027..m034 share the m0 id space but run
+	# AFTER the tutorial, concurrently with [CORE GOAL] arcs), so it can point the
+	# arrow at one of several simultaneously-active missions — arbitrarily. Once the
+	# player is past onboarding those arcs are self-directed. If the ladder produced
+	# a pulse but no tutorial mission is active, that pulse came from a non-tutorial
+	# branch: drop it. The claim reminder (mission_btn) is exempt — it's a "collect
+	# your reward" nudge, not a task directive, and has no page ambiguity.
+	if not can_claim_tutorial and target_to_pulse != null and not _has_active_tutorial(mm):
+		target_to_pulse = null
+
+	# GENERIC fallback — route a TUTORIAL mission the hand-written ladder doesn't
+	# name (belt-and-braces for onboarding steps added without a bespoke branch).
+	# _generic_mission_pulse is itself tutorial-gated, so it never revives a
+	# chapter/goal pulse the guard above just cleared.
 	if target_to_pulse == null:
 		target_to_pulse = _generic_mission_pulse(mm)
 
@@ -1988,7 +2002,13 @@ func _update_navigation_hints():
 		# busy on the right task; repair can wait until they're idle.
 		var _busy_skilling: bool = (GameState.gathering_manager and GameState.gathering_manager.is_active) \
 			or (GameState.processing_manager and GameState.processing_manager.is_active)
-		if sm_ref and not _busy_skilling and sm_ref.current_hp < sm_ref.max_hp \
+		# v141d: never fire the repair nudge while a TUTORIAL mission is active. The
+		# generic pulse returns null when the player is already ON the active mission's
+		# page (task in progress) — that null must NOT unleash a Combat repair nudge,
+		# or a single atlas_lookup step ping-pongs atlas <-> combat. Repair only nudges
+		# once onboarding is idle.
+		if sm_ref and not _busy_skilling and not _has_active_tutorial(mm) \
+				and sm_ref.current_hp < sm_ref.max_hp \
 				and sm_ref.consumable_hull_slot != "" \
 				and GameState.resources.get_element_amount(sm_ref.consumable_hull_slot) >= 1 \
 				and current_page_name != "combat" \
@@ -2005,50 +2025,71 @@ func _update_navigation_hints():
 # v141c: type-driven directive target for missions the explicit chain doesn't
 # name. Returns null when the player is already where the mission wants them (or
 # already doing the work), so it degrades to "no arrow" rather than nagging.
-func _generic_mission_pulse(mm) -> Control:
+# v141c: is any [TUTORIAL]-tagged mission currently active? The tutorial is the
+# single linear onboarding chain; goals/chapters/endgame run concurrently and
+# are self-directed, so only this returning true licenses a mission arrow.
+func _has_active_tutorial(mm) -> bool:
 	for mid in mm.active_missions:
 		var m: Dictionary = mm.missions.get(mid, {})
-		if m.is_empty() or m.get("completed", false):
+		if not m.is_empty() and not m.get("completed", false) and String(m.get("tag", "")) == "[TUTORIAL]":
+			return true
+	return false
+
+
+func _generic_mission_pulse(mm) -> Control:
+	# v141d: pick the SINGLE earliest-in-chain active TUTORIAL mission (definition
+	# order — mm.missions preserves it) and route to its page. That one mission OWNS
+	# the arrow. Two rules kill the ping-pong the old loop caused:
+	#   • Already ON the mission's page? return null — the page's own coaching (search
+	#     box, atlas glow/coach card, slot pulse) takes over. DON'T advance to a
+	#     different tutorial mission (that made the arrow flip atlas <-> combat).
+	#   • Unrouted type (discover) or a hidden target page? return null too.
+	# The tutorial is meant to be a single linear chain; if two are somehow active,
+	# the earliest deterministically wins instead of the arrow jumping every frame.
+	# Frontier = the LAST (furthest-along) active tutorial mission in definition order.
+	# A stale early beat — e.g. an atlas_lookup a mid-chain insert re-activated on an
+	# old save (auto-completed by sync now, but belt-and-braces) — must never outrank
+	# the player's real current step.
+	var chosen := ""
+	for mid in mm.missions:
+		if not mid in mm.active_missions:
 			continue
-		var page := ""
-		match String(m.get("type", "")):
-			"research":
-				page = "research"
-			# drop_rarity = farm until a rarity drops; both are combat asks.
-			"defeat", "drop_rarity":
-				page = "combat"
-			"build", "construct":
-				page = "infrastructure"
-			# craft_matrix is the Shipyard's matrix-synthesis recipe, not a module.
-			"craft", "craft_matrix":
-				page = "shipyard"
-			# Anything about seating gear in slots -> Ship Designer. hack_apply
-			# (drag a Splice Chip onto a component) and socket_check (slot a gem)
-			# are both Designer drag targets.
-			"loadout_check", "equip_consumables", "loadout_rare_weapon", \
-			"loadout_rare_weapon_type", "hack_apply", "socket_check":
-				page = "designer"
-			"warp_perform":
-				page = "warp"
-			"overclock_install":
-				page = "infrastructure"
-			"visit_page":
-				page = String(m.get("target", ""))
-			"gather", "gather_multi":
-				page = _skill_page_for_targets(m)
-			# "discover" completes on a world event (first VoidArtifact etc.), not
-			# on visiting a page — deliberately unrouted, there is nowhere to send
-			# the player. Falls through to the repair fallback, which is correct.
-			_:
-				continue
-		if page == "" or page == current_page_name:
+		var cm: Dictionary = mm.missions[mid]
+		if cm.is_empty() or cm.get("completed", false) or String(cm.get("tag", "")) != "[TUTORIAL]":
 			continue
-		var btn := _get_btn_for_page(page)
-		# A hidden button is not a directive — early-game sidebars hide pages that
-		# aren't unlocked yet, and pulsing an invisible node strands the arrow.
-		if btn and btn.visible:
-			return btn
-	return null
+		chosen = mid
+	if chosen == "":
+		return null
+	var m: Dictionary = mm.missions[chosen]
+	var page := ""
+	match String(m.get("type", "")):
+		"research":
+			page = "research"
+		"defeat", "drop_rarity":
+			page = "combat"
+		"build", "construct":
+			page = "infrastructure"
+		"craft", "craft_matrix":
+			page = "shipyard"
+		"loadout_check", "equip_consumables", "loadout_rare_weapon", \
+		"loadout_rare_weapon_type", "hack_apply", "socket_check":
+			page = "designer"
+		"warp_perform":
+			page = "warp"
+		"overclock_install":
+			page = "infrastructure"
+		"atlas_lookup":
+			page = "atlas"
+		"visit_page":
+			page = String(m.get("target", ""))
+		"gather", "gather_multi":
+			page = _skill_page_for_targets(m)
+	# On the right page (task in progress there) or nowhere to send them → no arrow.
+	if page == "" or page == current_page_name:
+		return null
+	var btn := _get_btn_for_page(page)
+	# A hidden button is not a directive — pulsing an invisible node strands the arrow.
+	return btn if (btn and btn.visible) else null
 
 
 # "gather" missions cover BOTH mining and Engineering output (m011 "produce 50

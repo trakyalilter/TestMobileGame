@@ -19,6 +19,11 @@ var compare_equipped_mid: String = ""
 # the Armory so the player knows what to drag, not just where. Overrides the
 # subtle rarity shimmer while active.
 var coach_pulse: bool = false
+# v141: a bobbing gold arrow ON the matching Armory tile (owner: point the gear to
+# grab, not only the empty slot). Same coach_arrow.svg the overlay aims at the slot,
+# so both ends of "drag THIS here" carry the identical cue. Driven by coach_pulse.
+var _coach_arrow: TextureRect = null
+var _coach_arrow_tween: Tween = null
 # v127: when a Hack Card is armed in the Armory, module tiles show an insert
 # socket (accent frame + card bay) so the player sees a valid drop target.
 var show_card_socket: bool = false
@@ -1049,6 +1054,7 @@ func _apply_pulse(rarity: int):
 		pulse_tween = create_tween().set_loops()
 		pulse_tween.tween_property(self, "modulate", Color(1.55, 1.35, 0.80), 0.4).set_trans(Tween.TRANS_SINE)
 		pulse_tween.tween_property(self, "modulate", Color.WHITE, 0.4).set_trans(Tween.TRANS_SINE)
+		_show_coach_arrow()
 		return
 	var sm = GameState.shipyard_manager
 	if not sm:
@@ -1071,6 +1077,65 @@ func _stop_pulse():
 	# (the tile draws its own rarity border). Non-coach re-styles keep it empty.
 	if not coach_pulse:
 		add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+		_hide_coach_arrow()
+
+# v141: bobbing gold arrow that points DOWN at this Armory tile while it is the
+# active equip target. coach_arrow.svg points RIGHT at 0° (same asset the coach
+# overlay uses on the slot), so +90° aims it down. Sits half above the top edge so
+# a packed grid can't clip it away; bobs vertically to draw the eye.
+func _show_coach_arrow() -> void:
+	if _coach_arrow and is_instance_valid(_coach_arrow):
+		return
+	var atex := load("res://assets/icons/ui/coach_arrow.svg") as Texture2D
+	if atex == null:
+		return
+	_coach_arrow = TextureRect.new()
+	_coach_arrow.texture = atex
+	_coach_arrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_coach_arrow.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_coach_arrow.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_coach_arrow.custom_minimum_size = Vector2(26, 26)
+	_coach_arrow.size = Vector2(26, 26)
+	_coach_arrow.pivot_offset = Vector2(13, 13)
+	_coach_arrow.modulate = Color(1.0, 0.86, 0.32)   # gold, matches the slot arrow
+	# top_level: module_card is a PanelContainer (a Container). A normal child would
+	# be force-laid-out — position/size overridden AND rotation reset to 0 on every
+	# _sort_children. top_level takes the arrow out of that layout so its rotation +
+	# global position hold. Positioned in canvas space via _reposition_coach_arrow.
+	_coach_arrow.top_level = true
+	_coach_arrow.rotation = PI / 2.0                 # 0° points right → +90° points DOWN
+	_coach_arrow.z_index = 50                        # above the tile art / rarity border
+	add_child(_coach_arrow)
+	if not resized.is_connected(_reposition_coach_arrow):
+		resized.connect(_reposition_coach_arrow)
+	if not item_rect_changed.is_connected(_reposition_coach_arrow):
+		item_rect_changed.connect(_reposition_coach_arrow)   # follows scroll/relayout
+	_reposition_coach_arrow()
+
+func _coach_arrow_base_y() -> float:
+	# just above the tile's top edge (arrow half-overlaps it), in canvas space.
+	return get_global_rect().position.y - 10.0
+
+func _reposition_coach_arrow() -> void:
+	if not (_coach_arrow and is_instance_valid(_coach_arrow)):
+		return
+	var r := get_global_rect()
+	_coach_arrow.global_position = Vector2(r.position.x + r.size.x * 0.5 - 13.0, _coach_arrow_base_y())
+	# (re)start the vertical bob around the current base — ~6px, reads as "grab this".
+	if _coach_arrow_tween and is_instance_valid(_coach_arrow_tween):
+		_coach_arrow_tween.kill()
+	var by := _coach_arrow_base_y()
+	_coach_arrow_tween = create_tween().set_loops()
+	_coach_arrow_tween.tween_property(_coach_arrow, "global_position:y", by - 6.0, 0.45).set_trans(Tween.TRANS_SINE)
+	_coach_arrow_tween.tween_property(_coach_arrow, "global_position:y", by, 0.45).set_trans(Tween.TRANS_SINE)
+
+func _hide_coach_arrow() -> void:
+	if _coach_arrow_tween and is_instance_valid(_coach_arrow_tween):
+		_coach_arrow_tween.kill()
+	_coach_arrow_tween = null
+	if _coach_arrow and is_instance_valid(_coach_arrow):
+		_coach_arrow.queue_free()
+	_coach_arrow = null
 
 func _gui_input(event):
 	if event is InputEventMouseButton:
@@ -1111,12 +1176,12 @@ func _show_demolish_menu():
 
 	var body := tr("[center]Recycle [b]%s[/b] for parts?\n\n") % mname
 	body += tr("[color=#%s]YOU RECEIVE[/color]\n") % dim_hex
-	body += tr("[b][color=#%s]%s[/color][/b] %s      [b][color=#%s]%s[/color][/b] Spare Parts\n\n") % [warn_hex, UITheme.format_num(price), UITheme.LIRA_ICON_BB, pos_hex, str(parts)]
+	body += tr("[b][color=#%s]%s[/color][/b] Spare Parts\n\n") % [pos_hex, str(parts)]
 	body += tr("[color=#%s]This permanently destroys the module.[/color][/center]") % dim_hex
 
 	var on_ok := func():
 		if sm.demolish_module(mid):
-			UITheme.show_notification(tr("Recycled for %s Liras & %s parts") % [UITheme.format_num(price), parts], rarity_color)
+			UITheme.show_notification(tr("Recycled for %s parts") % parts, rarity_color)
 
 	UITheme.show_confirm({
 		"title": tr("Recycle Module"),
@@ -1412,9 +1477,7 @@ func _build_comparison_tooltip_bbcode(anchor_select: bool = false, hover_affix: 
 			prov_name = GameState.combat_manager.get_zone_name(prov_zone)
 		tt += "[font_size=10][color=#9fb3a8]%s%s[/color][/font_size]\n" % [prov_bb, prov_name.to_upper()]
 
-	if sm and mid in sm.modules:
-		tt += div
-		tt += "[font_size=10][color=#7FA39C]" + tr("Sell Value:") + "[/color] [color=#D7B842]%s %s[/color][/font_size]" % [UITheme.format_num(sm.get_sell_price(mid)), UITheme.LIRA_ICON_BB]
+	# v140: modules have no sell value (recycle yields Spare Parts only) — no Sell Value line.
 
 	# v83.9: Set Bonus Tooltip Section
 	var sid = data.get("set_id", "")

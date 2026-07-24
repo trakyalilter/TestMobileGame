@@ -263,9 +263,5 @@ func _check_quests(valid: Dictionary):
 	var qm = GameState.quest_manager
 	if qm == null:
 		return
-	for k in qm.material_rewards:
-		for mat in qm.material_rewards[k]:
-			# entries are [element_id, min, max]
-			var mid = mat[0] if mat is Array else mat
-			if not valid.has(str(mid)):
-				_err("quest material_rewards[%s] unknown element '%s'" % [k, mid])
+	# v141d: quest material_rewards pool removed (quests pay Liras only) — nothing to
+	# element-validate here anymore.

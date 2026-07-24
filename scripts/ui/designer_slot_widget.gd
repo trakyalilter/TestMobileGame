@@ -1078,6 +1078,15 @@ func _gui_input(event):
 				manager.unequip_slot(slot_idx)
 			parent_ui.trigger_refresh()
 		elif event.button_index == MOUSE_BUTTON_LEFT:
+			# v140: a Hack Card is in hand + this is a valid card-target slot → apply it to
+			# the equipped module (parity with clicking an Armory tile). Highest priority.
+			if _card_target:
+				var eqv = manager.loadout.get(slot_idx, "") if manager else ""
+				var eq: String = "" if eqv == null else str(eqv)
+				if eq != "" and parent_ui and parent_ui.has_method("try_apply_armed_card"):
+					parent_ui.try_apply_armed_card(eq, null, slot_idx)
+					accept_event()
+					return
 			# v136: Shift-click an equipped module to pin it as the compare baseline (same
 			# gesture as the Armory). Handled before equip/hack routing so it never fires an equip.
 			if event.shift_pressed and is_occupied and not slot_type.begins_with("consumable_"):

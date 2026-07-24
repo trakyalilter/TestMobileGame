@@ -63,6 +63,7 @@ func _rebuild():
 
 	for q in manager.board:
 		var card = card_scene.instantiate()
+		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL   # v140: fill the single-column width
 		grid.add_child(card)
 		card.setup(q, self)
 		cards.append(card)

@@ -18,26 +18,7 @@ const BOARD_SIZE = 6
 const REROLL_BASE_COST = 2500
 const MAX_REROLL_HEAT = 12   # price cap ×4096 — deterrent, not a hard wall
 
-# Per-tier material reward pool: [material_id, min_qty, max_qty]
-# Pulled from rare/intermediate materials so the bonus feels meaningful.
-var material_rewards = {
-	1: [["Cu", 100, 250], ["Fe", 80, 180], ["Si", 50, 150]],
-	2: [["Steel", 40, 100], ["Cu", 200, 500], ["Circuit", 25, 60]],
-	3: [["Ti", 60, 150], ["Steel", 150, 350], ["AdvCircuit", 30, 80]],
-	4: [["W", 80, 200], ["Ti", 200, 450], ["Graphite", 100, 250]],
-	5: [["Superalloy", 30, 80], ["AdvCircuit", 80, 200], ["NavData", 50, 120]],
-	6: [["AdvCircuit", 150, 350], ["ColonySalvage", 100, 250], ["Superalloy", 60, 150]],
-	7: [["RadIsotope", 80, 200], ["Pt", 50, 120], ["Superalloy", 100, 250]],
-	8: [["VoidCrystal", 20, 60], ["Diamond", 15, 40], ["ExoticMatter", 10, 30]],
-	9: [["BiohazardSample", 40, 100], ["Neutronium", 25, 70], ["PathogenCore", 10, 25]],
-	10: [["VoidEssence", 20, 50], ["ChronoCore", 10, 25], ["PrimordialShard", 5, 15]],
-	# v139: NG+ corrosion-era tiers (Loop 1 reuses the endgame material roster).
-	11: [["ExoticMatter", 30, 60], ["VoidEssence", 30, 70], ["OmegaPlating", 10, 25]],
-	12: [["PrimordialShard", 15, 35], ["ChronoCore", 20, 45]],
-	13: [["ChronoCore", 30, 60], ["VoidEssence", 50, 100]],
-	14: [["ExoticMatter", 80, 160], ["OmegaPlating", 30, 60]],
-	15: [["PrimordialShard", 60, 120], ["ChronoCore", 60, 120]]
-}
+# v141d: material reward pool removed — quests pay Liras only (owner).
 
 # v139: Stockpile targets, quest-owned. Rows: [material_id, min_qty, max_qty, credits].
 # Credits are the FINAL payout (pre warp/recursion mults).
@@ -221,7 +202,6 @@ func _generate_gather_quest(min_diff: int, max_diff: int) -> Dictionary:
 		"target_qty": qty,
 		"current_qty": min(have, qty),
 		"reward_credits": credits,
-		"reward_material": _roll_material_bonus(tier),
 		"difficulty": tier,
 		"completed": have >= qty,
 		"claimed": false
@@ -250,7 +230,6 @@ func _generate_supply_quest(min_diff: int, max_diff: int) -> Dictionary:
 		"target_qty": qty,
 		"current_qty": min(have, qty),
 		"reward_credits": credits,
-		"reward_material": _roll_material_bonus(tier),
 		"difficulty": tier,
 		"completed": have >= qty,
 		"claimed": false
@@ -261,14 +240,6 @@ func _generate_supply_quest(min_diff: int, max_diff: int) -> Dictionary:
 # v107 active-out-earns-idle principle). The _on_enemy_defeated hook above stays so
 # legacy hunt quests already on a pre-v139 board still track and claim; they get
 # replaced by gather/supply rolls as they're claimed.
-
-func _roll_material_bonus(tier: int) -> Dictionary:
-	# 60% chance to roll a material reward in addition to credits
-	if randf() > 0.6: return {}
-	var pool = material_rewards.get(tier, [])
-	if pool.is_empty(): return {}
-	var pick = pool[randi() % pool.size()]
-	return {"id": pick[0], "qty": randi_range(pick[1], pick[2])}
 
 func _gen_id() -> String:
 	_id_counter += 1
@@ -321,15 +292,6 @@ func claim_quest(quest_id: String) -> bool:
 		cred = int(cred * (1.0 + GameState.research_manager.get_efficiency_bonus("credit_reward_mult")))
 	GameState.resources.add_currency("credits", cred)
 	UITheme.show_notification(tr("+%s Liras") % UITheme.format_num(cred), Color(1.0, 0.85, 0.3))
-
-	# Award material bonus
-	var mat = q.get("reward_material", {})
-	if mat and mat.size() > 0:
-		# v132: force past the slot cap — this is an EARNED payout; it used to be
-		# silently destroyed at 28 slots while the toast still said it was paid.
-		GameState.resources.add_element(mat["id"], mat["qty"], true)
-		var d_name = ElementDB.get_display_name(mat["id"])
-		UITheme.show_notification(tr("+%d %s") % [mat["qty"], d_name], Color(0.5, 1.0, 0.7))
 
 	q["claimed"] = true
 	total_completed += 1
