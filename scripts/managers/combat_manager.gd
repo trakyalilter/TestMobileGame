@@ -1680,6 +1680,13 @@ func spawn_enemy():
 		"module_drop_pool": e_data.get("module_drop_pool", []),
 		"is_boss": e_data.get("is_boss", false),
 		"boss_core": e_data.get("boss_core", ""),
+		# v143: boss_core_qty was declared on z1_boss_architect (qty 2) but never
+		# copied here, so BOTH readers (online :3171 and offline :4037) fell to the
+		# ", 1)" default and the Zone-1 boss paid ONE core instead of two — doubling
+		# the required Z1 boss kills in the player's first hour. This is exactly the
+		# resist_cryo lesson the trait-copy comment below warns about, repeating:
+		# anything the fight logic reads MUST be on current_enemy, not just the def.
+		"boss_core_qty": e_data.get("boss_core_qty", 1),
 		"xp": e_data["xp"],
 		"jammer": e_data["stats"].get("jammer", false),
 		"eva": e_data["stats"].get("eva", 0),
