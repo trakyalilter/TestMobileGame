@@ -18,12 +18,16 @@ func _ready() -> void:
 	# Res1 NOT owned -> lesson stays live (genuine first-timer keeps the beat).
 	res.elements["Res1"] = 0.0
 	mm.sync_progress()
-	var c1 := not mm.missions["m019e"]["completed"]
+	# v145: was `:=`. Dictionary subscripting yields Variant, so the inference fails
+	# with "Cannot infer the type of c1" — the script never loaded, the scene fell
+	# through to the real game, and the probe appeared to "run long" forever instead
+	# of reporting. Explicit bool, per the documented GDScript gotcha.
+	var c1: bool = not mm.missions["m019e"]["completed"]
 
 	# Res1 owned (the 27h save) -> m019e auto-completes, can't drive the arrow.
 	res.add_element("Res1", 5)
 	mm.sync_progress()
-	var c2 := mm.missions["m019e"]["completed"]
+	var c2: bool = mm.missions["m019e"]["completed"]
 
 	# Frontier pick data: among active tutorial missions, the LATER-defined one wins.
 	var chosen := ""
