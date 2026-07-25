@@ -154,10 +154,12 @@ func _equip_maxed(sm, zone_n: int, weak: String, e: Dictionary) -> void:
 	var res_aff: String = String(RESIST_FOR.get(String(e.get("dmg_type", "kinetic")), "resist_k"))
 	_fill(sm, "armor", "z%d_armor" % zone_n, zone_n, 3, [res_aff, "flat_hp", "hull_heal_on_hit"], DEF_GEMS)
 	_fill(sm, "shield", "z%d_shield" % zone_n, zone_n, 3, BEST_SHIELD, DEF_GEMS)
-	# v142 FIX: engine + sensor were never filled — every hull has 1-2 of each, and
-	# they carry ACCURACY (sensor) and EVASION (engine). Leaving them empty meant
-	# every kit was tested crippled: inflated miss rates, missing evasion, and a
+	# v142 FIX: engine + sensor were never filled — every hull has 1-2 of each.
+	# Leaving them empty meant every kit was tested crippled: missing evasion and a
 	# "maxed" kit that was short 2+ slots of GREATER affixes and Resonant cores.
+	# v145: sensors no longer carry accuracy (that axis is deleted); they carry the
+	# loot-rate mults, which do not affect time-to-kill. They stay filled here so
+	# the slot/affix/socket count of a "maxed kit" remains honest.
 	_fill(sm, "engine", "z%d_engine" % zone_n, zone_n, 0, [], [])
 	_fill(sm, "sensor", "z%d_sensor" % zone_n, zone_n, 0, [], [])
 

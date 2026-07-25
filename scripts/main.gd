@@ -85,6 +85,9 @@ func _ready():
 	if not GameState.combat_manager.combat_lost.is_connected(_maybe_show_combat_loss_coach):
 		GameState.combat_manager.combat_lost.connect(_maybe_show_combat_loss_coach)
 
+	# v145: make the level-up land (see _init_skill_level_feedback).
+	_init_skill_level_feedback()
+
 func _on_rift_opened_for_warp_reveal(first_reveal: bool) -> void:
 	# v138: open_rift already set warp_first_revealed; here we surface the UI.
 	_update_sidebar_styling()  # makes the Warp tab appear immediately
@@ -103,6 +106,96 @@ func _fire_warp_reveal_fanfare() -> void:
 		var tween := create_tween().set_loops(4)
 		tween.tween_property(warp_btn, "modulate", Color(1.5, 1.0, 1.7), 0.5)
 		tween.tween_property(warp_btn, "modulate", Color.WHITE, 0.5)
+
+# ── v145: SKILL LEVEL-UP FEEDBACK ────────────────────────────────────────────
+# Skill.level_up / Skill.milestone_unlocked were declared and emitted since the
+# first build and had ZERO listeners repo-wide — in a skilling idle the level-up
+# IS the core-loop payoff beat, and it was landing in total silence. They ride the
+# existing UITheme.show_notification toast path (same chassis as every other
+# system message); no second notification system is introduced.
+#
+# OWNER RULE — auto-appearing surfaces carry a SHORT FACT, never advice. These
+# strings are "MINING LEVEL 42", never "you can now mine X, go to Y".
+#
+# Only Mining and Engineering are wired. combat_manager also extends Skill and
+# still accrues XP, but v120 neutralised every combat-level bonus to 0 and no UI
+# shows a combat level — toasting it would advertise a stat that does nothing,
+# which is precisely what this session removed from the sensor slot.
+# research_manager / infrastructure_manager extend Skill too but no code path
+# ever calls add_xp on them, so they are permanently level 1. Both are logged as
+# follow-ups rather than papered over here.
+const _LEVEL_TOAST_COLOR := Color(0.42, 0.85, 1.00)      # cool scan-blue: routine progress
+const _MILESTONE_TOAST_COLOR := Color(1.00, 0.79, 0.32)  # amber: this one is bigger
+const _CAPSTONE_TOAST_COLOR := Color(1.00, 0.86, 0.45)   # gold: the level-100 cap
+
+func _init_skill_level_feedback() -> void:
+	# Label, skill, sidebar button to pulse on a milestone.
+	var wired: Array = [
+		["MINING", GameState.gathering_manager, gathering_btn],
+		["ENGINEERING", GameState.processing_manager, processing_btn],
+	]
+	for entry in wired:
+		var label: String = String(entry[0])
+		var sk = entry[1]
+		if sk == null:
+			continue
+		var lvl_cb := Callable(self, "_on_skill_level_up").bind(label)
+		if not sk.level_up.is_connected(lvl_cb):
+			sk.level_up.connect(lvl_cb)
+		var ms_cb := Callable(self, "_on_skill_milestone").bind(label, entry[2])
+		if not sk.milestone_unlocked.is_connected(ms_cb):
+			sk.milestone_unlocked.connect(ms_cb)
+
+# Pending highest level per skill, flushed once at end-of-frame. check_level_up()
+# emits ONE level_up per level crossed inside a single call, so a fat offline
+# return or a mission XP dump can cross a dozen levels at once — uncoalesced that
+# machine-guns a dozen near-identical toasts. Collapsing to the highest level
+# reached is also the more honest fact: "MINING LEVEL 25", not a countdown.
+var _pending_skill_level: Dictionary = {}
+var _skill_level_flush_queued: bool = false
+
+func _on_skill_level_up(new_level: int, skill_label: String) -> void:
+	# Milestone levels get their own, louder toast from _on_skill_milestone —
+	# suppress the ordinary one so the beat isn't doubled on the same frame.
+	if new_level in [10, 25, 50, 75, 100]:
+		return
+	_pending_skill_level[skill_label] = max(int(_pending_skill_level.get(skill_label, 0)), new_level)
+	if not _skill_level_flush_queued:
+		_skill_level_flush_queued = true
+		_flush_skill_levels.call_deferred()
+
+func _flush_skill_levels() -> void:
+	_skill_level_flush_queued = false
+	for skill_label in _pending_skill_level:
+		UITheme.show_notification(
+			tr("%s LEVEL %d") % [tr(String(skill_label)), int(_pending_skill_level[skill_label])],
+			_LEVEL_TOAST_COLOR
+		)
+	_pending_skill_level.clear()
+
+func _on_skill_milestone(milestone_level: int, skill_label: String, nav_btn: Control) -> void:
+	# Milestones (10/25/50/75/100) must read as bigger than an ordinary level.
+	# Three levers, all on the existing toast chassis: a warmer colour, a heavier
+	# line, and a pulse on the skill's own sidebar tab so the eye is pulled to
+	# where the reward lives. Still a short fact — no explainer.
+	# A milestone toast IS this skill's level beat for the frame — drop any ordinary
+	# level toast queued alongside it, or crossing 24->25 in one grant reads as
+	# "MINING MILESTONE - LEVEL 25" immediately followed by "MINING LEVEL 24".
+	_pending_skill_level.erase(skill_label)
+
+	var is_capstone: bool = (milestone_level >= 100)
+	var text: String = ""
+	if is_capstone:
+		text = tr("%s MASTERED — LEVEL %d") % [tr(skill_label), milestone_level]
+	else:
+		text = tr("%s MILESTONE — LEVEL %d") % [tr(skill_label), milestone_level]
+	UITheme.show_notification(text, _CAPSTONE_TOAST_COLOR if is_capstone else _MILESTONE_TOAST_COLOR)
+
+	if is_instance_valid(nav_btn):
+		var punch: Color = Color(1.6, 1.4, 1.0) if is_capstone else Color(1.4, 1.25, 0.95)
+		var tween := create_tween().set_loops(6 if is_capstone else 3)
+		tween.tween_property(nav_btn, "modulate", punch, 0.28)
+		tween.tween_property(nav_btn, "modulate", Color.WHITE, 0.28)
 
 func _on_research_navigation_requested(tech_id: String):
 	switch_to("research")

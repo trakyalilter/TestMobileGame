@@ -660,7 +660,8 @@ func _dbg_set_skill_level(sk, target: int) -> void:
 		return
 	sk.xp = float(sk.get_xp_for_level(int(clamp(target, 1, sk.max_level))))
 	sk.level = 1
-	sk.check_level_up()
+	# v145: silent — otherwise "set level 100" fires ~100 level-up toasts.
+	sk.rebuild_level_silently()
 
 
 func _on_dbg_set_skill_pressed() -> void:

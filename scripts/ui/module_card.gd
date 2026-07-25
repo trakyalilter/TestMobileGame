@@ -634,7 +634,7 @@ func _compute_compare_summary() -> String:
 		return "▲" if my_dps > eq_dps else "▼"
 	# Sum every stat the module carries (not a hardcoded list) so each slot
 	# type compares on its own profile: engine -> eva, battery ->
-	# energy_capacity, sensor -> accuracy, weapon -> atk_*, etc. Comparisons
+	# energy_capacity, sensor -> drop mults (v145), weapon -> atk_*, etc. Comparisons
 	# are always same-slot-type (designer_page only sets compare_equipped_mid
 	# for matching types), so a raw sum is valid here. Lower-is-better stats
 	# are subtracted.

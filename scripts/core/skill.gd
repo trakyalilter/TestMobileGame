@@ -17,6 +17,21 @@ signal milestone_unlocked(milestone_level)
 
 var unlocked_milestones: Array[int] = []
 
+# v145: level_up / milestone_unlocked went from zero listeners repo-wide to
+# driving player-facing toasts (main.gd::_on_skill_level_up). Three code paths
+# REBUILD the level ladder from stored XP rather than earning it — load_save_data,
+# reset() after a warp, and the Options debug level-setter — and each would
+# machine-gun one toast per level. Silence the ladder while it is being restored;
+# `unlocked_milestones` still fills so is_milestone_unlocked() stays correct.
+var _silent_level_replay: bool = false
+
+# Recompute `level` from `xp` WITHOUT firing the player-facing beats. Any caller
+# that is restoring state rather than granting a level must use this.
+func rebuild_level_silently() -> void:
+	_silent_level_replay = true
+	check_level_up()
+	_silent_level_replay = false
+
 func _init(p_name: String = "Skill"):
 	skill_name = p_name
 	xp_table = _generate_xp_table()
@@ -66,7 +81,8 @@ func check_level_up():
 		if xp < xp_table[next_level]:
 			break
 		level += 1
-		level_up.emit(level)
+		if not _silent_level_replay:
+			level_up.emit(level)
 		_check_milestones(level)
 
 func _check_milestones(new_lvl: int):
@@ -76,7 +92,8 @@ func _check_milestones(new_lvl: int):
 	for m in [10, 25, 50, 75, 100]:
 		if new_lvl >= m and not m in unlocked_milestones:
 			unlocked_milestones.append(m)
-			milestone_unlocked.emit(m)
+			if not _silent_level_replay:
+				milestone_unlocked.emit(m)
 
 func is_milestone_unlocked(m_lvl: int) -> bool:
 	return m_lvl in unlocked_milestones
@@ -103,10 +120,12 @@ func get_save_data() -> Dictionary:
 func load_save_data(data: Dictionary):
 	if data.is_empty(): return
 	xp = float(data.get("xp", 0.0))
-	check_level_up()
+	rebuild_level_silently()  # v145: restoring a save is not 60 level-ups
 
 func reset(decay_factor: float = 1.0) -> void:
 	xp *= (1.0 - decay_factor)
 	# Level will be recalculated by check_level_up
 	level = 1
-	check_level_up()
+	# v145: a warp re-derives the retained level from decayed XP — the player did
+	# not just re-earn every level, so the beats stay silent here too.
+	rebuild_level_silently()

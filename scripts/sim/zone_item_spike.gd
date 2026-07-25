@@ -15,7 +15,7 @@ extends Node
 #
 # STEEP (combat power: weapon/armor/shield/battery) scale ~2.2x/zone, so a
 # crafted common one tier up beats a max-rolled legendary — that's the gate.
-# FLAT utility (engine eva / sensor accuracy) scale ~1.16x/zone ON PURPOSE, so
+# FLAT utility (engine eva / sensor drop-rate mults) scale gently ON PURPOSE, so
 # tier-dominance is NOT expected there (a good legendary engine persists) — those
 # are checked for monotonic progression only, never tier-dominance.
 #
@@ -219,7 +219,8 @@ func _primary(stats: Dictionary, slot: String) -> float:
 		"battery":
 			return float(stats.get("energy_capacity", 0))
 		"sensor":
-			return float(stats.get("accuracy", 0))
+			# v145: sensors carry loot-rate mults now, not the deleted `accuracy`.
+			return float(stats.get("module_drop_mult", 0.0))
 	return 0.0
 
 func _bprim(sm, n: int, t: String) -> float:

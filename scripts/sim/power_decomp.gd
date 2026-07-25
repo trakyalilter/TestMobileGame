@@ -301,7 +301,6 @@ func _snapshot(sm, cm, cfg: Array) -> Dictionary:
 	o["defense"] = float(sm.defense)
 	o["max_hp"] = float(sm.max_hp)
 	o["max_shield"] = float(sm.max_shield)
-	o["accuracy"] = float(sm.accuracy)
 	o["evasion"] = float(sm.evasion)
 	o["crit"] = float(sm.crit_chance)
 	o["e_used"] = float(sm.energy_used)
@@ -362,13 +361,12 @@ func _analytic(sm, cm) -> Dictionary:
 	var cooling_mult: float = 1.0 + float(sm.attack_speed_bonus)
 	o["p_speed_mult"] = p_speed_mult
 	o["cooling_mult"] = cooling_mult
-	var e_eva: float = float(cm.current_enemy.get("eva", 0))
-	o["hit_chance"] = clampf(float(sm.accuracy) / (float(sm.accuracy) + e_eva), 0.2, 1.0)
+	# v145: accuracy/evasion hit roll deleted from combat — every shot lands.
+	o["hit_chance"] = 1.0
 	o["e_hp"] = float(cm.enemy_max_hp)
 	o["e_shield"] = float(cm.enemy_max_shield)
 	o["e_def"] = float(cm.current_enemy.get("def", 0))
 	o["e_atk"] = float(cm.current_enemy.get("atk", 0))
-	o["e_eva"] = e_eva
 
 	# average one landed shot per weapon through the REAL resolve_damage
 	var total_hull := 0.0
@@ -424,7 +422,6 @@ func _print_pair(a: Dictionary, b: Dictionary, tz: int) -> void:
 	_rown("sm.defense", a, b, "defense")
 	_rown("sm.max_hp", a, b, "max_hp")
 	_rown("sm.max_shield", a, b, "max_shield")
-	_rown("sm.accuracy", a, b, "accuracy")
 	_rown("crit_chance", a, b, "crit")
 	print("[PWD]   %-38s | %-18s | %-18s |" % ["energy used/cap",
 		"%.0f/%.0f" % [a["e_used"], a["e_cap"]], "%.0f/%.0f" % [b["e_used"], b["e_cap"]]])
@@ -465,12 +462,11 @@ func _print_pair(a: Dictionary, b: Dictionary, tz: int) -> void:
 	_rown("p_speed_mult (research+servo)", a, b, "p_speed_mult")
 	_rown("cooling_mult (1+atk_speed_bonus)", a, b, "cooling_mult")
 	_rown("volley shots/sec (all weapons)", a, b, "shots_per_sec")
-	_rown("hit_chance vs eva", a, b, "hit_chance")
 	_rown("avg HULL dmg / landed volley", a, b, "shot_hull")
 	_rown("avg SHIELD dmg / landed volley", a, b, "shot_shield")
 	_rown("analytic hull DPS", a, b, "hull_dps")
-	print("[PWD]   -- enemy --  hp=%.0f shield=%.0f def=%.0f atk=%.0f eva=%.0f" % [
-		a["e_hp"], a["e_shield"], a["e_def"], a["e_atk"], a["e_eva"]])
+	print("[PWD]   -- enemy --  hp=%.0f shield=%.0f def=%.0f atk=%.0f" % [
+		a["e_hp"], a["e_shield"], a["e_def"], a["e_atk"]])
 
 	print("[PWD]   -- measured fight (%ds, median of %d) --" % [int(WINDOW), TRIALS])
 	_rown("kills", a, b, "kills")

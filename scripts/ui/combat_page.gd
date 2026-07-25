@@ -124,6 +124,9 @@ func _ready():
 
 	# v120: combat XP bar removed with combat leveling — it was dead UI (its value
 	# was never updated and nothing listened to Skill.level_up).
+	# v145: Skill.level_up now HAS a listener (main.gd::_on_skill_level_up), but
+	# combat is deliberately not wired to it — every combat-level bonus is still
+	# neutralised to 0, so a "COMBAT LEVEL N" toast would advertise nothing.
 	_setup_hp_bars()
 	_setup_consumable_buttons()
 	

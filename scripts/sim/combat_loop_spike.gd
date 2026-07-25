@@ -57,7 +57,7 @@ func _setup(cm) -> void:
 
 func _kin_enemy(atk: int, acc: int) -> Dictionary:
 	return {"name": "Dummy", "id": "dummy", "atk": atk, "accuracy": acc, "dmg_type": "kinetic",
-		"def": 0, "max_shield": 0, "eva": 0, "hp": 99999999, "max_hp": 99999999,
+		"def": 0, "max_shield": 0, "hp": 99999999, "max_hp": 99999999,
 		"loot": [], "xp": 0, "module_drop_pool": [], "module_drop_chance": 0.0,
 		"rare_loot": [], "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0}
 

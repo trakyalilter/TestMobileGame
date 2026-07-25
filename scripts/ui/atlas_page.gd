@@ -924,10 +924,12 @@ func _display_enemy_details(eid):
 	_spec_row(sources_list, "ATK", "%s %s" % [UITheme.format_num(atk), dmg_tag], dmg_col)
 	_spec_row(sources_list, "DEF", UITheme.format_num(e["stats"].get("def", 0)), main_col)
 	_spec_row(sources_list, "Interval", "%.1f s" % interval, main_col)
+	# Enemy Accuracy is LIVE — it sets how hard this enemy is to dodge (player
+	# evasion vs this number, in combat_manager.do_enemy_attack).
 	_spec_row(sources_list, "Accuracy", str(e["stats"].get("accuracy", 0)), main_col)
-	var eva = e_raw.get("eva", e["stats"].get("eva", 0))
-	if eva > 0:
-		_spec_row(sources_list, "Evasion", str(eva), main_col)
+	# v145: the enemy Evasion row is gone. It reported a top-level `eva` key that
+	# fed the player accuracy roll, and that whole axis has been deleted — the row
+	# was advertising a defence the enemy never had.
 	var dps = float(atk) / max(0.5, interval)
 	_add_label(sources_list, tr("Eff. HP %s   ·   DPS %s/s") % [UITheme.format_num(hp + shield), UITheme.format_num(dps)], UITheme.COLORS["text_dim"])
 

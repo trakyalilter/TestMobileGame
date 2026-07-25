@@ -47,9 +47,14 @@ const MODULE_ZONE_SCALE_LATE = 1.28
 const MODULE_ZONE_LATE_START = 7
 
 # Stats that get rarity bonuses (damage, defense, HP, etc.)
+# v145: "accuracy" removed — the player-accuracy axis is deleted (see the note in
+# combat_manager.do_player_attack). The sensor drop-rate stats that replaced it
+# (enemy_drop_mult / module_drop_mult) are deliberately NOT here: they are
+# fractions, and rarity-boosting or zone-scaling a farm-rate multiplier compounds
+# into a loot firehose exactly like the pre-v109 accuracy drop bonus did.
 const BOOSTABLE_STATS = [
 	"atk_kinetic", "atk_energy", "atk_explosive", "atk_cryo",  # v109: Cryo 4th type
-	"hp", "def", "eva", "accuracy", "crit_chance",
+	"hp", "def", "eva", "crit_chance",
 	"max_shield", "shield_regen", "energy_capacity",
 	"atk_speed_bonus", "shield_regen_mult", "atk_speed_mult",
 	"jamming_strength", "atk_interval"
@@ -58,7 +63,7 @@ const BOOSTABLE_STATS = [
 # Zone scaling is applied only to flat/core stats.
 const ZONE_SCALABLE_STATS = [
 	"atk_kinetic", "atk_energy", "atk_explosive", "atk_cryo",  # v109: Cryo 4th type
-	"hp", "def", "eva", "accuracy",
+	"hp", "def", "eva",
 	"max_shield", "shield_regen", "energy_capacity",
 	"atk_interval"
 ]
@@ -182,11 +187,9 @@ const AFFIX_DB = {
 		"range": [2, 5], "limit_to": ["weapon"],
 		"desc": "+%d Flat Attack damage."
 	},
-	"flat_accuracy": {
-		"name": "Targeting Computer", "type": "tactical", "scaling": "flat",
-		"range": [5, 15], "limit_to": ["weapon"],
-		"desc": "+%d Flat Accuracy."
-	},
+	# v145: "flat_accuracy" (Targeting Computer, +N Flat Accuracy) DELETED — it sold
+	# the player a stat that resolved to nothing. Weapons keep flat_atk / static_burst
+	# / void_strike / servo_overclock / combat_sight, so the weapon pool is still 8 deep.
 	"servo_overclock": {
 		"name": "Servo Overclock", "type": "tactical", "scaling": "percent",
 		"range": [5, 12], "limit_to": ["weapon"],
@@ -316,7 +319,6 @@ const AFFIX_NAMING = {
 	"static_burst": {"prefix": "Overloaded", "suffix": "of Discharge"},
 	"void_strike": {"prefix": "Phased", "suffix": "of the Void"},
 	"flat_atk": {"prefix": "Charged", "suffix": "of Lethality"},
-	"flat_accuracy": {"prefix": "Calibrated", "suffix": "of Precision"},
 	"servo_overclock": {"prefix": "Overclocked", "suffix": "of Haste"},
 	"flat_hp": {"prefix": "Reinforced", "suffix": "of Bulwark"},
 	"flat_def": {"prefix": "Hardened", "suffix": "of Bastion"},
@@ -349,10 +351,13 @@ const GEM_FACETS = {
 	"CrackedCobaltCore":   {"weapon": {"attack_speed": 0.02}, "defense": {"shield_regen_mult": 0.06}, "utility": {"energy_eff": 0.02}},
 	"StableCobaltCore":    {"weapon": {"attack_speed": 0.05}, "defense": {"shield_regen_mult": 0.15}, "utility": {"energy_eff": 0.05}},
 	"PristineCobaltCore":  {"weapon": {"attack_speed": 0.10}, "defense": {"shield_regen_mult": 0.30}, "utility": {"energy_eff": 0.10}},
-	# TOPAZ (Focus) — armor penetration (tier-wall softener) / evasion / accuracy
-	"CrackedTopazCore":    {"weapon": {"armor_pen": 0.03}, "defense": {"evasion_flat": 2.0},  "utility": {"accuracy_flat": 5.0}},
-	"StableTopazCore":     {"weapon": {"armor_pen": 0.07}, "defense": {"evasion_flat": 5.0},  "utility": {"accuracy_flat": 12.0}},
-	"PristineTopazCore":   {"weapon": {"armor_pen": 0.12}, "defense": {"evasion_flat": 10.0}, "utility": {"accuracy_flat": 25.0}},
+	# TOPAZ (Focus) — armor penetration (tier-wall softener) / evasion / salvage find.
+	# v145: the utility facet was accuracy_flat, which resolved to nothing. It is now
+	# module_drop_mult, matching the sensor slot's loot identity (utility hosts are
+	# engine/sensor/battery). Read in combat_manager.get_effective_module_drop_chance.
+	"CrackedTopazCore":    {"weapon": {"armor_pen": 0.03}, "defense": {"evasion_flat": 2.0},  "utility": {"module_drop_mult": 0.03}},
+	"StableTopazCore":     {"weapon": {"armor_pen": 0.07}, "defense": {"evasion_flat": 5.0},  "utility": {"module_drop_mult": 0.06}},
+	"PristineTopazCore":   {"weapon": {"armor_pen": 0.12}, "defense": {"evasion_flat": 10.0}, "utility": {"module_drop_mult": 0.12}},
 	# AMETHYST (Harmonics) — resist pierce (resist-gate softener) / max hull / restore-on-kill
 	"CrackedAmethystCore":  {"weapon": {"resist_pierce": 0.03}, "defense": {"max_hull_mult": 0.02}, "utility": {"restore_on_kill": 0.02}},
 	"StableAmethystCore":   {"weapon": {"resist_pierce": 0.06}, "defense": {"max_hull_mult": 0.05}, "utility": {"restore_on_kill": 0.04}},
@@ -363,7 +368,7 @@ const GEM_FACETS = {
 	# push — one Resonant of a color largely satisfies it, freeing sockets for others.
 	"ResonantCrimsonCore":  {"weapon": {"crit_chance": 0.15, "crit_damage": 0.60}, "defense": {"damage_reduction": 0.12}, "utility": {"ammo_eff": 0.35}},
 	"ResonantCobaltCore":   {"weapon": {"attack_speed": 0.18}, "defense": {"shield_regen_mult": 0.55}, "utility": {"energy_eff": 0.18}},
-	"ResonantTopazCore":    {"weapon": {"armor_pen": 0.18}, "defense": {"evasion_flat": 18.0}, "utility": {"accuracy_flat": 45.0}},
+	"ResonantTopazCore":    {"weapon": {"armor_pen": 0.18}, "defense": {"evasion_flat": 18.0}, "utility": {"module_drop_mult": 0.20}},
 	"ResonantAmethystCore": {"weapon": {"resist_pierce": 0.18}, "defense": {"max_hull_mult": 0.18}, "utility": {"restore_on_kill": 0.15}},
 }
 
@@ -381,7 +386,9 @@ const GEM_FACET_CAPS := {
 	# would have needed a 3-4x gut. Defensive facets + affixes left intact.
 	"crit_chance": 0.20, "crit_damage": 0.75, "attack_speed": 0.20,
 	"shield_regen_mult": 1.20, "max_hull_mult": 0.40,
-	"evasion_flat": 50.0, "accuracy_flat": 120.0,
+	# v145: accuracy_flat cap dropped with the stat. module_drop_mult inherits the
+	# Topaz utility slot; 0.60 keeps the "~5 Pristine reach the cap" shape above.
+	"evasion_flat": 50.0, "module_drop_mult": 0.60,
 	"ammo_eff": 0.40, "energy_eff": 0.30, "restore_on_kill": 0.25,
 	"damage_reduction": 0.30, "armor_pen": 0.20, "resist_pierce": 0.30,
 }
@@ -395,11 +402,10 @@ var affix_bonuses = {
 	"enemy_drop_mult": 0.0,
 	"module_drop_mult": 0.0,
 	"stone_drop_mult": 0.0,
-	# v80.1: Flat Scaling Affixes
+	# v80.1: Flat Scaling Affixes  (v145: flat_accuracy removed with the stat)
 	"flat_hp": 0.0,
 	"flat_def": 0.0,
 	"flat_atk": 0.0,
-	"flat_accuracy": 0.0,
 	"flat_shield": 0.0,
 	# v85.1: New Affixes
 	"combat_sight": 0.0,
@@ -518,7 +524,11 @@ var resist_x = 0.0
 var attack = 0 # Combined
 var defense = 0
 var evasion = 0
-var accuracy = 0
+# v145: `var accuracy` is GONE. It aggregated base 100 + sensor stats + the
+# flat_accuracy affix + the Topaz accuracy_flat facet + the Overseer set bonus,
+# and its single consumer was a hit roll that could never miss. `evasion` above
+# is the OTHER axis (player dodge vs enemy accuracy) and is live — do not
+# confuse the two if this ever gets revisited.
 var crit_chance = 0.05 # 5% base
 var energy_used = 0
 var energy_capacity = 0  # v110: ship's own energy field, decoupled from resources.max_energy (infra grid)
@@ -1242,44 +1252,89 @@ var modules: Dictionary = {
 	},
 
 	# ── SENSOR SUITES (10 Zones) ──
+	# v145 SENSOR IDENTITY. These 10 modules used to carry {"accuracy": 30..120} and
+	# NOTHING else. With the accuracy axis deleted the slot would have become dead
+	# weight that still draws CONSUMER_LOAD_BY_TIER off the battery budget, so the
+	# stat is replaced rather than removed.
+	#
+	# WHAT THEY DO NOW: sensors are the FARM-RATE slot. Both stats already exist and
+	# are already read by live combat code — AFFIX_DB assigned this slot its loot
+	# identity back in v128, so this is the base-stat half of an identity the game
+	# had already declared, not a new system.
+	#   enemy_drop_mult  -> combat_manager.win_fight, scales ALL enemy loot quantity
+	#                       (elements AND Liras).
+	#   module_drop_mult -> combat_manager.get_effective_module_drop_chance.
+	#
+	# WHY NOT DAMAGE: the combat curve was just recalibrated (ZONE_BASELINE_v142.md).
+	# Any atk/crit/interval stat here is flat power creep on top of it and would force
+	# a re-sweep. Loot rate is orthogonal to time-to-kill — the z3_funnel numbers are
+	# untouched by design, which is the whole point of picking this axis.
+	#
+	# THE DECISION IT CREATES: sensor slots are typed, so this is not sensor-vs-weapon.
+	# It is a POWER-BUDGET decision. Batteries carry only ~25% headroom over a full
+	# tier-matched consumer set, so at any battery tier the player chooses between
+	# running tier-matched sensors and having the headroom to slot the next-tier
+	# weapon/shield they just looted. Downshifting to a cheaper sensor tier is a real
+	# middle option (a z5 sensor draws 60 energy vs a z10's 500). That is the Melvor
+	# "gathering gear or combat gear" call, in this game's power-grid vocabulary.
+	#
+	# CURVE: linear, not the 1.34x/zone the damage stats use — these are percentages
+	# and compound with affixes, gems and the Overseer's Command set. Per module:
+	#   enemy_drop_mult  = 0.08 + 0.03*(tier-1)   ->  +8% .. +35%
+	#   module_drop_mult = 0.20 + 0.05*(tier-1)   -> +20% .. +65%
+	# Sensor slot counts are 1 (hull T1-T4), 2 (T5-T8), 3 (T9-T10), so a maxed
+	# tier-matched endgame ship reaches +105% loot qty / +195% module find from the
+	# base stats — roughly "double your farm rate for three slots and 1500 energy".
+	# Deliberately NOT in BOOSTABLE_STATS/ZONE_SCALABLE_STATS, so a Unique-rarity
+	# drop of the same sensor carries the same base rate plus its affixes only.
 	"z1_sensor": {
-		"name": "Lidar Array", "slot_type": "sensor", "stats": {"accuracy": 30},
+		"name": "Lidar Array", "slot_type": "sensor",
+		"stats": {"enemy_drop_mult": 0.08, "module_drop_mult": 0.20},
 		"cost": {"credits": 1500, "Si": 20}, "zone": 1
 	},
 	"z2_sensor": {
-		"name": "Optical Scanner", "slot_type": "sensor", "stats": {"accuracy": 40},
+		"name": "Optical Scanner", "slot_type": "sensor",
+		"stats": {"enemy_drop_mult": 0.11, "module_drop_mult": 0.25},
 		"cost": {"credits": 3500, "Si": 40, "Cu": 20, "AlWire": 2}, "zone": 2, "research_req": "zone_2_access"
 	},
 	"z3_sensor": {
-		"name": "Deep Space Radar", "slot_type": "sensor", "stats": {"accuracy": 50},
+		"name": "Deep Space Radar", "slot_type": "sensor",
+		"stats": {"enemy_drop_mult": 0.14, "module_drop_mult": 0.30},
 		"cost": {"credits": 8000, "Circuit": 15, "Ti": 10, "AlWire": 3}, "zone": 3, "research_req": "zone_3_access"
 	},
 	"z4_sensor": {
-		"name": "Phased Array", "slot_type": "sensor", "stats": {"accuracy": 60},
+		"name": "Phased Array", "slot_type": "sensor",
+		"stats": {"enemy_drop_mult": 0.17, "module_drop_mult": 0.35},
 		"cost": {"credits": 18000, "AdvCircuit": 10, "Ti": 30, "Au": 5, "FocusingCrystal": 2}, "zone": 4, "research_req": "zone_4_access"
 	},
 	"z5_sensor": {
-		"name": "AI Targeting", "slot_type": "sensor", "stats": {"accuracy": 70},
+		"name": "AI Targeting", "slot_type": "sensor",
+		"stats": {"enemy_drop_mult": 0.20, "module_drop_mult": 0.40},
 		"cost": {"credits": 42000, "AICore": 1, "Chip": 15, "FocusingCrystal": 3}, "zone": 5, "research_req": "zone_5_access"
 	},
 	"z6_sensor": {
-		"name": "Quantum Scanner", "slot_type": "sensor", "stats": {"accuracy": 80},
+		"name": "Quantum Scanner", "slot_type": "sensor",
+		"stats": {"enemy_drop_mult": 0.23, "module_drop_mult": 0.45},
 		"cost": {"credits": 95000, "QuantumCore": 3, "AdvCircuit": 25, "FocusingCrystal": 5}, "zone": 6, "research_req": "zone_6_access"
 	},
 	"z7_sensor": {
-		"name": "Exotic Lens", "slot_type": "sensor", "stats": {"accuracy": 90},
+		"name": "Exotic Lens", "slot_type": "sensor",
+		"stats": {"enemy_drop_mult": 0.26, "module_drop_mult": 0.50},
 		"cost": {"credits": 210000, "ExoticMatter": 5, "VoidCrystal": 5}, "zone": 7, "research_req": "zone_7_access"
 	},
 	"z8_sensor": {
-		"name": "Omni-Scanner", "slot_type": "sensor", "stats": {"accuracy": 100},
+		"name": "Omni-Scanner", "slot_type": "sensor",
+		"stats": {"enemy_drop_mult": 0.29, "module_drop_mult": 0.55},
 		"cost": {"credits": 480000, "VoidArtifact": 10, "Os": 5}, "zone": 8, "research_req": "zone_8_access"
 	},
 	"z9_sensor": {
-		"name": "Temporal Tracker", "slot_type": "sensor", "stats": {"accuracy": 110},
+		"name": "Temporal Tracker", "slot_type": "sensor",
+		"stats": {"enemy_drop_mult": 0.32, "module_drop_mult": 0.60},
 		"cost": {"credits": 1100000, "ChronoCore": 3, "Neutronium": 5}, "zone": 9, "research_req": "zone_9_access"
 	},
 	"z10_sensor": {
-		"name": "Oracle Array", "slot_type": "sensor", "stats": {"accuracy": 120},
+		"name": "Oracle Array", "slot_type": "sensor",
+		"stats": {"enemy_drop_mult": 0.35, "module_drop_mult": 0.65},
 		"cost": {"credits": 2500000, "PrimordialShard": 5, "OmegaPlating": 5}, "zone": 10, "research_req": "zone_10_access"
 	},
 
@@ -2442,7 +2497,7 @@ const GEM_STAT_LABELS := {
 	"damage_reduction": "Damage Reduction", "shield_regen_mult": "Shield Regen",
 	"evasion_flat": "Evasion", "max_hull_mult": "Max Hull",
 	"ammo_eff": "Ammo Efficiency", "energy_eff": "Energy Efficiency",
-	"accuracy_flat": "Accuracy", "restore_on_kill": "Restore on Kill",
+	"module_drop_mult": "Module Find", "restore_on_kill": "Restore on Kill",
 }
 
 func format_gem_stat(key: String, val) -> String:
@@ -2503,8 +2558,12 @@ func recalc_stats():
 	var atk_x = 0
 	var defe = 0
 	var eva = 0.0
-	var acc = 100.0
 	var crit = 0.05
+	# v145: base-module sensor loot stats. Accumulated here and folded into
+	# affix_bonuses below (that dict is the single thing combat reads), so a
+	# CRAFTED sensor and a sensor AFFIX contribute through one code path.
+	var drop_enemy = 0.0
+	var drop_module = 0.0
 	var e_cap = 0.0
 	var h_reg = 0.0
 	var e_load = 0.0
@@ -2547,8 +2606,9 @@ func recalc_stats():
 			atk_x += m.get("atk_explosive", 0)
 			defe += m.get("def", 0)
 			eva += m.get("eva", 0) # v65.3 Fix: Flat stat
-			acc += m.get("accuracy", 0)
 			crit += m.get("crit_chance", 0.0)
+			drop_enemy += m.get("enemy_drop_mult", 0.0)    # v145: sensor identity
+			drop_module += m.get("module_drop_mult", 0.0)
 			# v110: derive energy supply (batteries) + draw (consumers) by tier.
 			e_cap += get_module_energy_capacity(mid)
 			e_load += get_module_energy_load(mid)
@@ -2584,11 +2644,16 @@ func recalc_stats():
 				if affix_id in affix_bonuses:
 					affix_bonuses[affix_id] += affixes[affix_id]
 
+	# v145: fold the CRAFTED sensor line's base loot stats into the same two keys
+	# the sensor AFFIXES use, so combat_manager has exactly one thing to read.
+	# Must come AFTER the reset+affix loop above or it would be wiped.
+	affix_bonuses["enemy_drop_mult"] += drop_enemy
+	affix_bonuses["module_drop_mult"] += drop_module
+
 	# v80.1: Apply Flat Affix Bonuses to base values BEFORE multipliers
 	hp += affix_bonuses.get("flat_hp", 0.0)
 	shield += affix_bonuses.get("flat_shield", 0.0)
 	defe += affix_bonuses.get("flat_def", 0.0)
-	acc += affix_bonuses.get("flat_accuracy", 0.0)
 	atk_k += affix_bonuses.get("flat_atk", 0.0)
 	
 	# v85.1: Add New Affix types to global stats
@@ -2626,7 +2691,6 @@ func recalc_stats():
 	resist_k = clampf(rk, 0.0, 0.75)
 	resist_e = clampf(re, 0.0, 0.75)
 	resist_x = clampf(rx, 0.0, 0.75)
-	accuracy = acc
 	crit_chance = crit
 	energy_used = e_load
 	attack_speed_bonus = atk_speed_bon
@@ -2663,10 +2727,9 @@ func recalc_stats():
 			gem_bonuses[_gk] = minf(float(gem_bonuses[_gk]), float(GEM_FACET_CAPS[_gk]))
 	# v118 Phase 2: apply the STAT-aggregate facets here; the rest (crit_chance,
 	# crit_damage, armor_pen, resist_pierce, damage_reduction, ammo_eff,
-	# restore_on_kill) are consumed live in combat_manager.
+	# restore_on_kill, module_drop_mult) are consumed live in combat_manager.
 	crit_chance += gem_bonuses.get("crit_chance", 0.0)
 	evasion += int(round(gem_bonuses.get("evasion_flat", 0.0)))
-	accuracy += int(round(gem_bonuses.get("accuracy_flat", 0.0)))
 	shield_regen = int(round(float(shield_regen) * (1.0 + gem_bonuses.get("shield_regen_mult", 0.0))))
 	max_hp = int(round(float(max_hp) * (1.0 + gem_bonuses.get("max_hull_mult", 0.0))))
 	energy_used = int(round(float(energy_used) * (1.0 - gem_bonuses.get("energy_eff", 0.0))))
@@ -2776,6 +2839,24 @@ func load_save_data_manager(data: Dictionary):
 		if _afx is Dictionary and _afx.has("heat_sync_focus"):
 			_afx["servo_overclock"] = _afx["heat_sync_focus"]
 			_afx.erase("heat_sync_focus")
+		# v145 MIGRATION: the accuracy axis was deleted and the crafted sensor line
+		# re-statted to enemy_drop_mult / module_drop_mult. A ROLLED sensor stores its
+		# own stat dict in the save, so without this a legacy dropped sensor would load
+		# carrying only a dead "accuracy" key — a genuinely blank module in a slot that
+		# still draws power. Re-seed it from its base def (drop rates are not
+		# rarity-boosted, so the base value IS the correct value) and strip the dead key.
+		# Legacy weapons also carried a "flat_accuracy" affix; strip it so no tooltip
+		# or roll-range renderer has to look up an id AFFIX_DB no longer defines.
+		var _cst = custom_modules[cm_id].get("stats", null)
+		if _cst is Dictionary and _cst.has("accuracy"):
+			_cst.erase("accuracy")
+			var _base_id: String = str(custom_modules[cm_id].get("base_module", ""))
+			var _bst: Dictionary = modules.get(_base_id, {}).get("stats", {})
+			for _k in ["enemy_drop_mult", "module_drop_mult"]:
+				if _bst.has(_k):
+					_cst[_k] = _bst[_k]
+		if _afx is Dictionary and _afx.has("flat_accuracy"):
+			_afx.erase("flat_accuracy")
 		modules[cm_id] = custom_modules[cm_id]
 	
 	# Convert JSON string keys back to int if needed or handle direct

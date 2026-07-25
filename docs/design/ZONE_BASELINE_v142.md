@@ -348,11 +348,19 @@ median. Judgement call to chase further.
 
 ## Two REAL game bugs surfaced by the investigation (not yet fixed)
 
-1. **Accuracy is a dead stat game-wide.** `combat_manager.gd:1669` reads
-   `e_data["stats"].get("eva", 0)`, but all 83 enemies declare `eva` as a TOP-LEVEL
-   key (0 occurrences inside `stats`) -- every sibling on the adjacent lines reads
-   top-level correctly. So `current_enemy["eva"]` is always 0 and `hit_chance` is
-   always 1.000. Sensors, accuracy gems and Overseer's Command accuracy do nothing.
+1. ~~**Accuracy is a dead stat game-wide.**~~ **RESOLVED in v145 by DELETION.**
+   `combat_manager.gd` read `e_data["stats"].get("eva", 0)` while all enemies declared
+   `eva` TOP-LEVEL, so `current_enemy["eva"]` was always 0 and `hit_chance` always
+   1.000. Repairing it would have cost a 5-28% global DPS nerf and invalidated every
+   table in this document, to un-break a stat worth ~1.7% DPS per sensor. The whole
+   player-accuracy / enemy-evasion axis was removed instead: the hit roll, `sm.accuracy`,
+   the `flat_accuracy` affix, the Topaz `accuracy_flat` facet, Overseer's Command's
+   accuracy half, the designer ACC chip, the Atlas enemy Evasion row, and the 82 dead
+   enemy `eva` keys. The 10 crafted sensors were re-statted to `enemy_drop_mult` /
+   `module_drop_mult` in the same pass so the slot is not left drawing power for
+   nothing. **The tables below are unaffected** — hit_chance was already 1.000, so
+   removing it changes no damage number. The player's own EVASION vs enemy accuracy
+   is a separate, working axis and is untouched.
 2. **`migrate_save` has been unreachable since v4.** `game_state.gd:388` tests
    `if ver < 3` against a version-4 save. Latent, and it will bite the first time a
    real migration is needed.

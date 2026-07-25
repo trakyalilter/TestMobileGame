@@ -51,6 +51,10 @@ const STAT_LABELS = {
 	"def": "ARMOR",
 	"hp": "HULL",
 	"eva": "EVASION",
+	# v145 sensor identity (replaced the deleted `accuracy` stat). format_stat_value
+	# already renders any *_mult key as "+N%", so these need labels only.
+	"enemy_drop_mult": "SALVAGE YIELD",
+	"module_drop_mult": "MODULE FIND",
 	"energy_capacity": "CAPACITY",
 	"atk_speed_mult": "SPEED",
 	"shield_regen_mult": "REGEN+",

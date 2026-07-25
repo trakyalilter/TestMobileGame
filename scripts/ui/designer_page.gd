@@ -1348,7 +1348,13 @@ func update_header():
 	stack.add_child(_build_grid_bar(e_used, e_cap, grid_margin))
 
 	# 4. Supporting stats — single dense row, lower visual weight than HP/Shield/DPS
-	stack.add_child(_build_supporting_stats_row(manager.attack, manager.defense, manager.accuracy, total_crit, total_eva))
+	# v145: sensor loot stats live in affix_bonuses (crafted base + rolled affixes)
+	# and gem_bonuses (Topaz utility facet); the Overseer's Command set adds its
+	# 25% at the loot site only, so it is not summed here.
+	var salvage_pct: float = manager.affix_bonuses.get("enemy_drop_mult", 0.0) * 100.0
+	var find_pct: float = (manager.affix_bonuses.get("module_drop_mult", 0.0)
+		+ manager.gem_bonuses.get("module_drop_mult", 0.0)) * 100.0
+	stack.add_child(_build_supporting_stats_row(manager.attack, manager.defense, total_crit, total_eva, salvage_pct, find_pct))
 
 	# 5. Sets Active panel — surfaces partial set progress
 	var sets_panel = _build_sets_active_panel()
@@ -1492,24 +1498,29 @@ func _build_grid_bar(used: float, cap: float, margin: float) -> Control:
 	outer.add_child(margin_lbl)
 	return outer
 
-func _build_supporting_stats_row(atk: float, def: float, acc: float, crit_pct: float, eva: float) -> Control:
+# v145: the ACC chip is gone with the accuracy stat. In its place the row now
+# reports what the SENSOR slot actually buys — SALVAGE (enemy loot quantity) and
+# FIND (module drop chance) — so the slot's contribution is visible on the ship
+# panel instead of only inside per-module tooltips. Both are percentages.
+func _build_supporting_stats_row(atk: float, def: float, crit_pct: float, eva: float, salvage_pct: float, find_pct: float) -> Control:
 	var row = HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_BEGIN
-	row.add_theme_constant_override("separation", 14)
+	row.add_theme_constant_override("separation", 10)
 
 	var chips = [
 		{"k": "ATK",  "v": UITheme.format_num(atk),       "col": UITheme.CATEGORY_COLORS["combat"]},
 		{"k": "DEF",  "v": UITheme.format_num(def),       "col": UITheme.COLORS["text_main"]},
-		{"k": "ACC",  "v": str(int(acc)),                  "col": UITheme.COLORS["text_main"]},
 		{"k": "CRIT", "v": "%.0f%%" % crit_pct,            "col": UITheme.CATEGORY_COLORS["combat"]},
-		{"k": "EVA",  "v": "%.0f" % eva,                   "col": UITheme.COLORS["warning"]}
+		{"k": "EVA",  "v": "%.0f" % eva,                   "col": UITheme.COLORS["warning"]},
+		{"k": "SALVAGE", "v": "+%.0f%%" % salvage_pct,     "col": UITheme.CATEGORY_COLORS["inventory"]},
+		{"k": "FIND", "v": "+%.0f%%" % find_pct,           "col": UITheme.CATEGORY_COLORS["inventory"]}
 	]
 	for c in chips:
 		var chip = HBoxContainer.new()
 		chip.add_theme_constant_override("separation", 4)
 
 		var k = Label.new()
-		k.text = c["k"]
+		k.text = tr(c["k"])
 		k.add_theme_font_size_override("font_size", 9)
 		k.add_theme_color_override("font_color", TEXT_DIM)
 		k.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
