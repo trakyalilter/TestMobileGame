@@ -112,8 +112,30 @@ func get_module_energy_capacity(mid: String) -> int:
 	return get_def_energy_capacity(modules[mid])
 
 # Mid/Late progression tuning for craftable module item requirements.
-const MID_MODULE_ITEM_REQ_MULT = 1.35
-const LATE_MODULE_ITEM_REQ_MULT = 1.75
+const MID_MODULE_ITEM_REQ_MULT = 1.35   # v142c: superseded by MODULE_COST_ZONE_BASE
+const LATE_MODULE_ITEM_REQ_MULT = 1.75  # v142c: superseded by MODULE_COST_ZONE_BASE
+
+# v142c MODULE MATERIAL COST CURVE (owner, 2026-07-25): "first zones shouldn't
+# cost much to craft gear, but after that the game must increase required
+# materials, so the player focuses on gather+craft + farming and supports their
+# economy with infrastructure — so these features don't go to waste."
+#
+# The old two-stage 1.35 / 1.75 was far too shallow to do that. Module STATS step
+# 3.75x per zone (TIER_STEP_NEW), so a Z10 module is ~100,000x stronger than a Z1
+# one while costing under 2x the materials. Crafting stopped being an economic
+# decision around Z3, which is exactly why gather/craft/infra felt optional later.
+#
+# Now keyed off the module's own zone, not which materials its recipe happens to
+# mention (the old _get_module_cost_stage route leaked — a low-zone module using
+# one late material was billed as late, and vice versa).
+#
+#   cost_mult = MODULE_COST_ZONE_BASE ^ (zone - MODULE_COST_FREE_ZONES)
+#   Z1-Z2 exempt (onboarding stays frictionless) -> Z3 1.55x, Z6 5.8x, Z10 33x.
+#
+# Liras cost is deliberately NOT scaled here — that is a separate sink, and
+# leaving it out keeps this one variable isolated for sim tuning.
+const MODULE_COST_ZONE_BASE := 1.55
+const MODULE_COST_FREE_ZONES := 2
 
 const EARLY_MODULE_REQ_TECHS = [
 	"kinetics_101", "laser_optics", "power_systems",
@@ -1732,11 +1754,13 @@ func _scale_mid_late_module_item_costs() -> void:
 		if not m_data.has("cost"):
 			continue
 		
-		var stage = _get_module_cost_stage(m_data)
-		if stage <= 0:
+		# v142c: zone-keyed curve (see MODULE_COST_ZONE_BASE). Replaces the
+		# material-list-keyed _get_module_cost_stage, which is now unused.
+		var z: int = int(m_data.get("zone", m_data.get("power_tier", 0)))
+		if z <= MODULE_COST_FREE_ZONES:
 			continue
-		
-		var mult = MID_MODULE_ITEM_REQ_MULT if stage == 1 else LATE_MODULE_ITEM_REQ_MULT
+
+		var mult: float = pow(MODULE_COST_ZONE_BASE, float(z - MODULE_COST_FREE_ZONES))
 		var cost_dict: Dictionary = m_data["cost"]
 		for res in cost_dict:
 			if res == "credits":
