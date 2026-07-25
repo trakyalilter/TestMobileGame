@@ -21,8 +21,26 @@ func _ready():
 	if manager:
 		manager.bounty_updated.connect(_refresh_ui)
 		refresh_btn.pressed.connect(_on_refresh_pressed)
+	# v146 BUGFIX: the zone tab strip only rebuilt on bounty_updated, so unlocking a
+	# new sector never added its tab — the player had to poke something else on the
+	# board first to force a refresh. Zones arrive by TWO different routes and the
+	# board needs both: research-gated sectors (Z2-Z10) fire tech_unlocked, while
+	# flag-gated ones (Z11+, unlocked by a boss kill rather than research) fire
+	# zones_changed. Mirrors what combat_page.gd already does for its sector list.
+	if GameState.research_manager and not GameState.research_manager.tech_unlocked.is_connected(_on_zone_source_changed):
+		GameState.research_manager.tech_unlocked.connect(_on_zone_source_changed)
+	if GameState.combat_manager and not GameState.combat_manager.zones_changed.is_connected(_on_zones_changed):
+		GameState.combat_manager.zones_changed.connect(_on_zones_changed)
 	_build_zone_tabs()
 	_refresh_ui()
+
+# tech_unlocked passes a tech_id; zones_changed passes nothing. Separate thin
+# wrappers rather than one lambda so both stay disconnectable by reference above.
+func _on_zone_source_changed(_tech_id) -> void:
+	_rebuild_zone_tabs()
+
+func _on_zones_changed() -> void:
+	_rebuild_zone_tabs()
 
 func get_coach_anchor(key: String) -> Control:
 	match key:
