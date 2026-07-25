@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/sim/z3_funnel.gd" id="1_z3f"]
+
+[node name="Z3Funnel" type="Node"]
+script = ExtResource("1_z3f")

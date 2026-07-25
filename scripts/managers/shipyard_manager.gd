@@ -349,8 +349,15 @@ const GEM_FACETS = {
 # ~4-5 cores reach the cap (past that, more of the same facet is wasted -> pushes a
 # diverse matrix), and so a maxed T10 hull (up to 18 weapon / 27 defense / 33 utility
 # sockets) can't stack to absurd or BROKEN values (energy_eff/ammo_eff stay < 1.0).
+# v142 tier-gate: a Greater Affix DOUBLED the max roll (dmg_injured landed at
+# +60%), which was the last offensive term keeping old maxed gear at parity
+# with the next tier. 1.5x keeps GA a real jackpot without clearing the step.
+const GA_MULT := 1.5
 const GEM_FACET_CAPS := {
-	"crit_chance": 0.35, "crit_damage": 1.50, "attack_speed": 0.40,
+	# v142 tier-gate: OFFENSIVE facets trimmed ~2x. With the 3.75x tier step doing
+	# most of the work, this is the smaller half of the fix — the 2.2x-step version
+	# would have needed a 3-4x gut. Defensive facets + affixes left intact.
+	"crit_chance": 0.20, "crit_damage": 0.75, "attack_speed": 0.20,
 	"shield_regen_mult": 1.20, "max_hull_mult": 0.40,
 	"evasion_flat": 50.0, "accuracy_flat": 120.0,
 	"ammo_eff": 0.40, "energy_eff": 0.30, "restore_on_kill": 0.25,
@@ -1527,7 +1534,65 @@ var modules: Dictionary = {
 }
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# v142 TIER-STEP REBASE (owner rule, 2026-07-25): the zone tier-gate.
+#
+#   "a maxed Zone-N set must NOT farm Zone N+1 e3/e4; a clean Common Zone N+1
+#    set MUST" — an ORDERING on player power, so it lives or dies on:
+#
+#        tier step  >  rarity x affixes x matrix cores
+#
+# Measured (gear_power_audit, corrected): the gear ceiling stacks to 1.30-1.97x
+# ABOVE a clean next-tier Common, i.e. old maxed gear out-damaged the tier meant
+# to replace it — the gate ran BACKWARDS. Authored module stats stepped 2.2x per
+# zone, which the Legendary roll (1.55x) plus affixes plus Resonant cores clears
+# comfortably. Rather than gut itemization to fit under 2.2x (owner call), the
+# STEP is raised so the ceiling fits under it with real margin.
+#
+# Applied as ONE scale factor over the authored literals (kept as-is so the
+# hand-tuned per-zone shape survives). Enemy stats take the SAME factor in
+# combat_manager, so in-zone difficulty is unchanged — only the CROSS-zone gear
+# gap widens, which is the whole point.
+#
+# MIGRATION: custom module instances already stored in a save carry stats baked
+# at the old scale and will read weak. Balance-iteration prototype — New Game
+# for a clean read.
+const TIER_STEP_OLD := 2.2
+const TIER_STEP_NEW := 3.75
+const REBASE_STATS := ["atk_kinetic", "atk_energy", "atk_explosive", "atk_cryo",
+	"def", "max_shield", "hp_bonus", "hp", "shield_regen"]
+
+static func tier_rebase(z: int) -> float:
+	return pow(TIER_STEP_NEW / TIER_STEP_OLD, maxf(0.0, float(z) - 1.0))
+
+func _apply_tier_rebase() -> void:
+	# Modules: scale combat stats by their own zone/power_tier. energy_load is
+	# EXCLUDED — the battery budget lives in its own CONSUMER/BATTERY tables and
+	# must stay in lockstep with them (v110 battery-only energy).
+	for mid in modules:
+		var m: Dictionary = modules[mid]
+		var z: int = int(m.get("zone", m.get("power_tier", 0)))
+		if z <= 1:
+			continue
+		var f: float = tier_rebase(z)
+		var st: Dictionary = m.get("stats", {})
+		for k in REBASE_STATS:
+			if st.has(k) and typeof(st[k]) in [TYPE_INT, TYPE_FLOAT]:
+				st[k] = int(round(float(st[k]) * f)) if typeof(st[k]) == TYPE_INT else float(st[k]) * f
+	# Hulls: the chassis HP pool steps with the gear it carries, or the hull
+	# becomes the dominant (unscaled) EHP term and flattens the gate.
+	for hid in hulls:
+		var h: Dictionary = hulls[hid]
+		var t: int = int(h.get("tier", 0))
+		if t <= 1:
+			continue
+		var hf: float = tier_rebase(t)
+		var hs: Dictionary = h.get("stats", {})
+		if hs.has("hp"):
+			hs["hp"] = int(round(float(hs["hp"]) * hf))
+
 func _init():
+	_apply_tier_rebase()
 	_scale_mid_late_module_item_costs()
 	recalc_stats()
 	_migrate_module_entries_from_resources()
@@ -2901,7 +2966,7 @@ func _roll_affix_value(affix_id: String, zone_difficulty: int, ga_chance: float 
 	var is_greater := randf() < ga_chance
 	var raw_val = 0.0
 	if is_greater:
-		raw_val = cfg["range"][1] * 2.0
+		raw_val = cfg["range"][1] * GA_MULT
 	else:
 		raw_val = randi_range(cfg["range"][0], cfg["range"][1])
 	var final_val := 0.0
@@ -3025,7 +3090,7 @@ func generate_module_drop(base_module_id: String, rarity: int = Rarity.UNCOMMON,
 			
 			if is_greater:
 				# v101: GA pinned to 2.0x max roll (was 1.5x)
-				raw_val = cfg["range"][1] * 2.0
+				raw_val = cfg["range"][1] * GA_MULT
 				greater_affixes.append(affix_id)
 			else:
 				raw_val = randi_range(cfg["range"][0], cfg["range"][1])

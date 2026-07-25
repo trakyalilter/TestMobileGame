@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/sim/gear_power_audit.gd" id="1_gpa"]
+
+[node name="GearPowerAudit" type="Node"]
+script = ExtResource("1_gpa")
