@@ -185,8 +185,22 @@ func decide_step() -> Dictionary:
 	at_session_start = false
 	return _income("instant-loop guard", "", "detour")
 
+# v143: cycle guard for the _do_acquire <-> _do_research chase. These two call
+# each other with no visited set, so any A-needs-B-needs-A pair in the data
+# recurses until Godot aborts at 1024 frames. The abort makes source_for return
+# null, so the chase surfaces as a bogus "unsourceable:<sym>" — a crash wearing a
+# sourcing verdict's clothes. Named cycle:<key> statuses are the honest answer.
+var _chase: Dictionary = {}
+
+func _chase_seen(key: String) -> bool:
+	if _chase.has(key):
+		return true
+	_chase[key] = true
+	return false
+
 # {} = performed an instant, loop again. Non-empty = timed task for the runner.
 func _execute_verb(mid: String, verb: Dictionary) -> Dictionary:
+	_chase.clear()
 	var v := String(verb.get("verb", "unmapped"))
 	match v:
 		"acquire":
@@ -251,6 +265,8 @@ func _execute_verb(mid: String, verb: Dictionary) -> Dictionary:
 # Verb executors.
 # ---------------------------------------------------------------------------
 func _do_acquire(mid: String, sym: String) -> Dictionary:
+	if _chase_seen("sym:" + sym):
+		return _blocked(mid, "cycle:sym:%s" % sym)
 	# Whatever we're acquiring — INCLUDING recursion intermediates like the
 	# Res1 feeding an artifact-upgrade recipe — must never be sold out from
 	# under the chase by a slot-pressure sell (the 45-day-park leak).
@@ -294,6 +310,8 @@ func _do_acquire(mid: String, sym: String) -> Dictionary:
 			return _blocked(mid, "unsourceable:%s" % sym)
 
 func _do_research(mid: String, tid: String) -> Dictionary:
+	if _chase_seen("tech:" + tid):
+		return _blocked(mid, "cycle:tech:%s" % tid)
 	var b: Dictionary = actions.research_blocker(tid)
 	# diag: surface the exact blocking symbol (b.sym) so walls name what's short,
 	# instead of a generic "blk=item" that leaves us guessing the bottleneck.

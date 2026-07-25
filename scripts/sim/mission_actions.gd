@@ -118,6 +118,15 @@ func source_for(sym: String, depth: int = 0) -> Dictionary:
 	# 1) gathering action listing the symbol (the source mission text points at)
 	var locked_aid := ""
 	var locked_lvl := 0
+	# v143: a gather action whose research_req is LOCKED used to be discarded
+	# silently (the `research_ok and ...` guards below never recorded it), so
+	# source_for("Bauxite") returned {"kind":"none"} -> Al none -> Superalloy fell
+	# through to the locked-zone last resort and named its OWN gate (zone_5_access),
+	# which the policy then chased in an infinite _do_research/_do_acquire ping-pong
+	# until Godot aborted at 1024 frames. Mirror the recipe branch: remember the
+	# research-gated action and offer its tech as the next step.
+	var gated_aid := ""
+	var gated_rr := ""
 	for aid in gm.actions:
 		var a: Dictionary = gm.actions[aid]
 		var yields := false
@@ -135,6 +144,9 @@ func source_for(sym: String, depth: int = 0) -> Dictionary:
 		if research_ok and locked_aid == "":
 			locked_aid = String(aid)
 			locked_lvl = int(a.get("level_req", 1))
+		if not research_ok and gated_rr == "":
+			gated_aid = String(aid)
+			gated_rr = String(rr)
 	if locked_aid != "":
 		return {"kind": "gather_locked", "id": locked_aid, "lvl": locked_lvl}
 
@@ -193,9 +205,24 @@ func source_for(sym: String, depth: int = 0) -> Dictionary:
 	# so the policy deliberately researches the door first (paid, directed).
 	var drop_locked := _zone_dropping_locked(sym)
 	if not drop_locked.is_empty():
-		return {"kind": "zone_farm", "zone": String(drop_locked["zone"]),
-			"enemy": String(drop_locked["enemy"]),
-			"research": String(drop_locked.get("gate", ""))}
+		var gate := String(drop_locked.get("gate", ""))
+		# v143 safety net: never hand back a gate that itself BILLS `sym` — that is
+		# a self-referential step ("farm Superalloy by researching the tech that
+		# costs Superalloy") and the policy has no cycle guard, so it recurses to a
+		# stack overflow whose only visible symptom is "unsourceable:<sym>".
+		var self_ref: bool = (gate != "" and sym in rm.tech_tree.get(gate, {}).get("cost_items", {}))
+		if not self_ref:
+			return {"kind": "zone_farm", "zone": String(drop_locked["zone"]),
+				"enemy": String(drop_locked["enemy"]), "research": gate}
+
+	# 6) research-gated GATHER action, recorded in step 1. Deliberately dead last:
+	# it only fills the hole where this function used to answer {"kind":"none"}.
+	# Returning it from step 1 pre-empts the recipe branch and regresses symbols
+	# that craft fine (measured: Ti walled m029a7 on day 2). Bauxite is the case
+	# this exists for — no recipe, no open loot, only `mine_bauxite` behind the
+	# 200-Lira tier-1 tech `lightweight_alloys`.
+	if gated_rr != "":
+		return {"kind": "research", "tid": gated_rr, "for": gated_aid}
 	return {"kind": "none"}
 
 func _first_missing_input_step(rid: String, depth: int) -> Dictionary:
@@ -341,7 +368,10 @@ func research_blocker(target: String) -> Dictionary:
 		var cr_need := float(node2.get("cost", 0)) * float(rm.COST_MULTIPLIER)
 		var items: Dictionary = node2.get("cost_items", {})
 		for sym in items:
-			var need := float(items[sym]) * float(rm.MATERIAL_MULTIPLIER)
+			# v143: was `* rm.MATERIAL_MULTIPLIER` by hand, which ignores the game's
+			# boss-core exemption in _effective_item_requirement -> the harness made
+			# the bot farm Z4_Core 4x when zone_5_access only bills 2.
+			var need := float(rm._effective_item_requirement(String(sym), int(items[sym])))
 			if GameState.resources.get_element_amount(String(sym)) < need:
 				return {"kind": "item", "tid": tid, "sym": String(sym),
 					"need": need - GameState.resources.get_element_amount(String(sym))}
