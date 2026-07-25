@@ -460,6 +460,17 @@ var recipes: Dictionary = {
 		#                                   forever and is what infra parallelises
 		#   3. ~1 of the zone's COMBAT drop -> combat matters, but stays small
 		#
+		# THE PREVIOUS-RUNG COEFFICIENT MUST BE 1, NEVER 2. Chaining each rung to the
+		# last makes zone N transitively depend on Z1 for free (that is the whole
+		# point), but the coefficient compounds down the chain. At x2 the combat cost
+		# is c(n) = 2*c(n-1) + 1 = 2^(n-1) - 1: rung Z3 costs 3 combat drops, Z5 15,
+		# Z8 127, and a single Z10 AeonAlloy 511 — times 5-8 alloys per module, about
+		# 4,000 serial kills for one gun. At x1 it is c(n) = n - 1, so Z10 costs 9.
+		# VOLUME SCALING IS NOT THIS RECIPE'S JOB — it belongs to
+		# shipyard_manager.MODULE_COST_ZONE_BASE (1.55^(zone-2)) and to the per-module
+		# alloy quantity, both of which scale the AUTOMATABLE side. Never buy
+		# late-game cost by nesting the chain more steeply.
+		#
 		# Part 3 is capped low ON PURPOSE. Gathering and processing can be turned
 		# into a parallel machine with infrastructure; COMBAT CANNOT — you fight one
 		# enemy at a time. So a later zone must never demand bulk combat-only drops
@@ -476,7 +487,9 @@ var recipes: Dictionary = {
 		"name": "Wreckforged Alloy",
 		"description": "Reforge Martian war-debris into structural plate.",
 		# v142d ALLOY LADDER, rung Z3 — see the three-part rule on refine_chondrite_alloy.
-		#   depth: ChondriteAlloy 2 | cumulative: Steel 4 | combat: MartianRelics 1
+		#   depth: ChondriteAlloy 1 | cumulative: Steel 6 | combat: MartianRelics 1
+		# Coefficient is 1, not 2 — see the compounding note on the Z2 rung. Steel
+		# carries the volume instead, because Steel is the automatable side.
 		# Steel is deliberately RESTORED here. An earlier pass removed it to force
 		# depth, but that was the wrong read: dropping the automatable early good
 		# left MartianRelics 3 + ChondriteAlloy 2, which transitively cost NINE
@@ -485,7 +498,7 @@ var recipes: Dictionary = {
 		# Fe/C/O chain and its buildings load-bearing all the way up.
 		#   dirt/water -> Fe -> Steel ─┐
 		#                 Cu/Si/Sn -> Circuit -> ChondriteAlloy ─┴-> WreckforgedAlloy
-		"input": {"ChondriteAlloy": 2, "Steel": 4, "MartianRelics": 1}, "output": {"WreckforgedAlloy": 1},
+		"input": {"ChondriteAlloy": 1, "Steel": 6, "MartianRelics": 1}, "output": {"WreckforgedAlloy": 1},
 		"duration": 13.0, "level_req": 25, "xp": 35, "research_req": "zone_3_access", "category": "alloys"
 	},
 	"refine_rime_alloy": {
