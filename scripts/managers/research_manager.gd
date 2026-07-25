@@ -388,7 +388,14 @@ var tech_tree = {
 		# 1h/day; measured 48h ACTIVE (efficient bot walled here on Circuit x400
 		# effective). Trimmed ~55% — still a real bill; first-warp production
 		# multipliers + Z3 infrastructure are expected to carry it.
-		"cost_items": {"Z3_Core": 1, "Steel": 300, "Ti": 150, "Circuit": 80},
+		# v142d: reshaped from bulk-shallow to modest-deep. Circuit REMOVED — it was
+		# triple-booked in this band (this gate 160 effective + fleet_frigate 150 +
+		# 3 per ChondriteAlloy craft), which is what stalled the sim bot here for
+		# ~890 sim-hours. The gate now wants the Z3 alloy, which is exactly what the
+		# Circuit drain feeds, so the same crafting serves both.
+		# Keyed on WreckforgedAlloy, NEVER RimeAlloy: RimeAlloy's research_req IS
+		# zone_4_access, so requiring it would make the gate unbuildable.
+		"cost_items": {"Z3_Core": 1, "WreckforgedAlloy": 10, "Steel": 120, "Ti": 50},
 		"type": "technology",
 		"parent": "zone_3_access",
 		"effects": [],

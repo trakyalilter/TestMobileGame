@@ -739,7 +739,10 @@ var enemy_db = {
 		# pool lost the theft race (all-Rare 8/9 -> 1/9, 9-trial A/B); Z7's 0.10
 		# was only survivable on late-game pools. Debut = visible lesson, not a wall.
 		"sustain": {"kind": "siphon", "pct": 0.04},
-		"loot": [["credits", 15000, 30000], ["Ti", 30, 60], ["AdvCircuit", 5, 12], ["Res2", 10, 20], ["CryoEssence", 5, 12]],
+		# v142d: RimeplateScrap added. It is now the sole Z4 alloy feedstock, but only
+		# e1/e2 dropped it — so boss farming yielded ZERO alloy progress, inverting
+		# the usual "the boss is the efficient farm" expectation into a dominated choice.
+		"loot": [["credits", 15000, 30000], ["Ti", 30, 60], ["AdvCircuit", 5, 12], ["Res2", 10, 20], ["CryoEssence", 5, 12], ["RimeplateScrap", 10, 20]],
 		"rare_loot": [["z4_unique_weapon", 0.03, 1, 1], ["z4_unique_armor", 0.03, 1, 1], ["z4_unique_shield", 0.03, 1, 1], ["z4_unique_kinetic", 0.03, 1, 1], ["z4_unique_energy", 0.03, 1, 1], ["z4_unique_missile", 0.03, 1, 1]],
 		"boss_core": "Z4_Core",
 		"module_drop_chance": 0.25,

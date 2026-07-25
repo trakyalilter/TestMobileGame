@@ -474,7 +474,13 @@ var recipes: Dictionary = {
 		# point), but the coefficient compounds down the chain. At x2 the combat cost
 		# is c(n) = 2*c(n-1) + 1 = 2^(n-1) - 1: rung Z3 costs 3 combat drops, Z5 15,
 		# Z8 127, and a single Z10 AeonAlloy 511 — times 5-8 alloys per module, about
-		# 4,000 serial kills for one gun. At x1 it is c(n) = n - 1, so Z10 costs 9.
+		# 4,000 serial kills for one gun. At x1 the leak is LINEAR in the number of
+		# rungs: with an own-zone coefficient of k the backward cost is
+		# c(n) = k*(n-2) + 1, so the shipped k=3 gives 25 units of backward combat
+		# drop at Z10, spread ~3 per prior zone. (An earlier version of this comment
+		# claimed 9, which only holds if k=1 — do NOT size the remaining rungs
+		# against that figure.) 25 spread over eight zones is the "modest amount"
+		# the rule asks for; what matters is that it is linear, not geometric.
 		# VOLUME SCALING IS NOT THIS RECIPE'S JOB — it belongs to
 		# shipyard_manager.MODULE_COST_ZONE_BASE (1.55^(zone-2)) and to the per-module
 		# alloy quantity, both of which scale the AUTOMATABLE side. Never buy
@@ -514,8 +520,15 @@ var recipes: Dictionary = {
 	},
 	"refine_rime_alloy": {
 		"name": "Rime Alloy",
-		"description": "Temper frost-fused hull scrap with glacial essence into cold-rated alloy.",
-		"input": {"RimeplateScrap": 3, "CryoEssence": 2}, "output": {"RimeAlloy": 1},
+		"description": "Quench frost-fused hull scrap in liquid nitrogen against a wreckforged core — the Glacier Belt's cold-rated stock.",
+		# v142d ALLOY LADDER, rung Z4 — see the three-part rule on refine_chondrite_alloy.
+		#   depth: WreckforgedAlloy 1 | automatable: N 10 | own-zone combat: RimeplateScrap 6
+		# The old co-input was CryoEssence, which distill_cryo_essence makes from
+		# PrimordialShard — a ZONE 10 material, at processing level 60, for a level-35
+		# Zone-4 recipe. That was a backward-reach inversion so severe it ran the wrong
+		# way down the ladder. N (nitrogen, from the gas line) is automatable and keeps
+		# the H/O chain load-bearing; RimeplateScrap is Z4's OWN drop so 6 is fine.
+		"input": {"WreckforgedAlloy": 1, "N": 10, "RimeplateScrap": 6}, "output": {"RimeAlloy": 1},
 		"duration": 14.0, "level_req": 35, "xp": 50, "research_req": "zone_4_access", "category": "alloys"
 	},
 	"refine_xenoforged_alloy": {

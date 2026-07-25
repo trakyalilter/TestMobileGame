@@ -575,7 +575,14 @@ var hulls: Dictionary = {
 	"cruiser_hull": {
 		"name": "Heavy Cruiser",
 		"stats": {"hp": 852, "energy_capacity": 260},
-		"cost": {"credits": 270000, "Ti": 200, "AdvCircuit": 50},
+		# v142d: AdvCircuit 50 made this hull effectively UNBUILDABLE when it unlocks —
+		# craft_adv_circuit is level_req 40 but zone_4_access lands the player near
+		# L35, so the primary recipe is still locked. It was the sim bot's hard wall
+		# in every run. Reshaped onto the Z3 alloy + automatable stock.
+		# NOTE: hull costs bypass every scaling layer (construct_hull reads this dict
+		# raw — no MODULE_COST_ZONE_BASE, no TIER_ALLOY_BY_ZONE, no research mult),
+		# so these are FINAL values, not authored-then-multiplied ones.
+		"cost": {"credits": 270000, "WreckforgedAlloy": 15, "Steel": 250, "Ti": 120},
 		"slots": ["weapon", "weapon", "weapon", "shield", "shield", "shield", "armor", "armor", "engine", "battery", "battery", "battery", "sensor", "sensor"], # 14
 		"research_req": "zone_4_access",
 		"visual": "res://assets/ships/4.png",
