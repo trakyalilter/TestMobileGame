@@ -448,21 +448,44 @@ var recipes: Dictionary = {
 	"refine_chondrite_alloy": {
 		"name": "Chondrite Alloy",
 		"description": "Smelt asteroid-pirate salvage into workable hull alloy — the Asteroid Belt's gear-grade stock.",
-		"input": {"PirateSalvage": 3, "Circuit": 2}, "output": {"ChondriteAlloy": 1},
+		# ── v142d ALLOY LADDER RULE (owner, 2026-07-25) ───────────────────────
+		# Recipes must be CUMULATIVE: nothing gathered in an earlier zone gets left
+		# behind there. Like Satisfactory still needing iron and copper at the end,
+		# Z1 resources must feed mid-game and mid-game must feed late-game, so the
+		# player keeps every extraction chain (and its infrastructure) alive.
+		#
+		# Each rung therefore has THREE parts:
+		#   1. the PREVIOUS rung        -> depth (no reaching to the floor in bulk)
+		#   2. an early automatable good -> cumulative; keeps Fe/Cu/Si/C/O relevant
+		#                                   forever and is what infra parallelises
+		#   3. ~1 of the zone's COMBAT drop -> combat matters, but stays small
+		#
+		# Part 3 is capped low ON PURPOSE. Gathering and processing can be turned
+		# into a parallel machine with infrastructure; COMBAT CANNOT — you fight one
+		# enemy at a time. So a later zone must never demand bulk combat-only drops
+		# from Z1/Z2/Z3. (A fleet system could parallelise combat later; deliberately
+		# NOT built yet — improve what exists first.)
+		#
+		# Rung Z2. Was PirateSalvage 3 + Circuit 2 — 3 combat drops per alloy, and
+		# the combat-only material was the BULK ingredient. Inverted: Circuit (the
+		# automatable Cu/Si/Sn chain) carries the volume, salvage is the garnish.
+		"input": {"Circuit": 3, "PirateSalvage": 1}, "output": {"ChondriteAlloy": 1},
 		"duration": 12.0, "level_req": 15, "xp": 25, "research_req": "zone_2_access", "category": "alloys"
 	},
 	"refine_wreckforged_alloy": {
 		"name": "Wreckforged Alloy",
 		"description": "Reforge Martian war-debris into structural plate.",
-		# v142d ALLOY LADDER, rung Z3. Owner rule: a zone-N recipe may reach back
-		# ONE tier, never to the bottom — "you can't craft something with dirt and
-		# water only at Zone 10". The co-input was Steel (a Z1-era material), so Z3
-		# reached straight to the floor. It now consumes the Z2 rung instead, which
-		# makes this the first real link in the chain:
-		#   Circuit (Z1) -> ChondriteAlloy (Z2) -> WreckforgedAlloy (Z3) -> ...
-		# ChondriteAlloy already carries the Circuit dependency, so Circuit stays a
-		# genuine ancestor of every later tier without ever being demanded in bulk.
-		"input": {"MartianRelics": 3, "ChondriteAlloy": 2}, "output": {"WreckforgedAlloy": 1},
+		# v142d ALLOY LADDER, rung Z3 — see the three-part rule on refine_chondrite_alloy.
+		#   depth: ChondriteAlloy 2 | cumulative: Steel 4 | combat: MartianRelics 1
+		# Steel is deliberately RESTORED here. An earlier pass removed it to force
+		# depth, but that was the wrong read: dropping the automatable early good
+		# left MartianRelics 3 + ChondriteAlloy 2, which transitively cost NINE
+		# combat drops per alloy — unautomatable serial grind. Reaching back to Fe
+		# is not the problem; reaching back in BULK with no depth is. Steel keeps the
+		# Fe/C/O chain and its buildings load-bearing all the way up.
+		#   dirt/water -> Fe -> Steel ─┐
+		#                 Cu/Si/Sn -> Circuit -> ChondriteAlloy ─┴-> WreckforgedAlloy
+		"input": {"ChondriteAlloy": 2, "Steel": 4, "MartianRelics": 1}, "output": {"WreckforgedAlloy": 1},
 		"duration": 13.0, "level_req": 25, "xp": 35, "research_req": "zone_3_access", "category": "alloys"
 	},
 	"refine_rime_alloy": {
