@@ -211,7 +211,12 @@ const ARMOR_K_FLOOR = 0.7                 # v135a: floor k at 0.7× the DEFENDER
 var active_trinity_sets: Array = []  # Populated on stat recalc
 
 const TRINITY_SET_BONUSES = {
-	"architects_regalia":  {"name": "Architect's Regalia",  "pieces": 3, "bonus": {"atk_speed_pct": 25, "hp_regen_flat": 20}},
+	# v146: the Z1 "Architect's Regalia" set was DELETED. Zone 1 is the tutorial zone,
+	# and a free +25% attack speed there let a player walk straight past Zone 2 (measured
+	# 117/74/11/36 kills across the Z2 cells vs 13/10/5/5 for the Commons Z2 is built
+	# around). 99be329 pulled the pieces off the Z1 boss loot table; this removes the
+	# set itself. Re-tiering would only move the problem to whichever zone got it.
+	# Save migration: shipyard_manager._migrate_remove_architects_regalia().
 	"monoliths_bedrock":   {"name": "Monolith's Bedrock",   "pieces": 3, "bonus": {"def_pct": 20, "reflect_pct": 10}},
 	"warmasters_arsenal":  {"name": "Warmaster's Arsenal",  "pieces": 3, "bonus": {"crit_chance": 20, "atk_pct": 18}},
 	# v145: was shield_regen_pct 22 + accuracy_flat 120 — the accuracy half was
@@ -1859,9 +1864,6 @@ func spawn_enemy():
 	# Legacy check for backward compatibility (if any)
 	if _loadout_has_module(sm, "chrono_stabilizer"):
 		enemy_speed_mult *= 0.8
-	if "architects_regalia" in active_trinity_sets:
-		# Add any specific logic if needed, but mostly handled in stat tallies
-		pass
 
 	enemy_hp = current_enemy["max_hp"]
 	enemy_max_hp = enemy_hp

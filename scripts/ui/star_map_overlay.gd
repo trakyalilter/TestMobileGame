@@ -549,7 +549,7 @@ func _fill_target_drops(e: Dictionary, is_boss: bool, eid: String) -> void:
 	_tgt_drops.text = "[color=#c8d4d0]" + "\n".join(PackedStringArray(lines)) + "[/color]" if not lines.is_empty() else "[color=%s]—[/color]" % dim
 
 # v131: rare_loot mixes ELEMENT ids and MODULE ids (unique set pieces like
-# z1_unique_weapon). Resolve module ids to their real display names; everything
+# z2_unique_weapon). Resolve module ids to their real display names; everything
 # else goes through ElementDB as usual.
 func _drop_display_name(id: String) -> String:
 	var sm = GameState.shipyard_manager

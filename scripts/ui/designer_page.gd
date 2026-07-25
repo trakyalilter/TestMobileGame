@@ -541,7 +541,8 @@ func _setup_armory_toolbar(v_box: Node, scroll_node: Node):
 
 	# Search — primary filter, takes most width
 	armory_search = LineEdit.new()
-	armory_search.placeholder_text = tr("Search    tier:3   set:architect   slot:weapon")
+	# v146: was "set:architect" — that set was deleted, so the example matched nothing.
+	armory_search.placeholder_text = tr("Search    tier:3   set:monolith   slot:weapon")
 	armory_search.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	armory_search.clear_button_enabled = true
 	armory_search.add_theme_font_size_override("font_size", 11)

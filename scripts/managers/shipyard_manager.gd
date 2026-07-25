@@ -1413,37 +1413,10 @@ var modules: Dictionary = {
 	# All have: rarity=UNIQUE, 4 affixes, 3 matrix sockets
 	# ═══════════════════════════════════════════════════════════════
 
-	# ── Z1: Architect's Regalia (+15% ATK Speed, +5 HP Regen/tick) ──
-	"z1_unique_weapon": {
-		"name": "Architect's Beam", "slot_type": "weapon", "rarity": 4,
-		"stats": {"atk_energy": 16, "energy_load": 12, "atk_interval": 2.0},
-		"cost": {}, "desc": "Precision-engineered energy weapon.", "zone": 1,
-		"set_id": "architects_regalia", "is_unique": true
-	},
-	"z1_unique_kinetic": {
-		"name": "Architect's Driver", "slot_type": "weapon", "rarity": 4,
-		"stats": {"atk_kinetic": 16, "energy_load": 12, "atk_interval": 2.0},
-		"cost": {}, "desc": "Unique kinetic-channel armament.", "zone": 1,
-		"set_id": "architects_regalia", "is_unique": true
-	},
-	"z1_unique_missile": {
-		"name": "Architect's Salvo", "slot_type": "weapon", "rarity": 4,
-		"stats": {"atk_explosive": 32, "energy_load": 12, "atk_interval": 4.0},
-		"cost": {}, "desc": "Unique missile-channel armament.", "zone": 1,
-		"set_id": "architects_regalia", "is_unique": true
-	},
-	"z1_unique_armor": {
-		"name": "Architect's Plating", "slot_type": "armor", "rarity": 4,
-		"stats": {"def": 8, "hp": 32},
-		"cost": {}, "desc": "Blueprint-perfect hull reinforcement.", "zone": 1,
-		"set_id": "architects_regalia", "is_unique": true
-	},
-	"z1_unique_shield": {
-		"name": "Architect's Ward", "slot_type": "shield", "rarity": 4,
-		"stats": {"max_shield": 64, "shield_regen": 3},
-		"cost": {}, "desc": "Geometrically perfect barrier field.", "zone": 1,
-		"set_id": "architects_regalia", "is_unique": true
-	},
+	# v146: the Z1 "Architect's Regalia" pieces (z1_unique_weapon/_kinetic/_missile/
+	# _armor/_shield) were DELETED — see the note on combat_manager.TRINITY_SET_BONUSES.
+	# Zone 1 is the tutorial; the set's free +25% attack speed skipped Zone 2 entirely.
+	# Existing owners are migrated in _migrate_remove_architects_regalia().
 
 	# ── Z2: Monolith's Bedrock (+10% DEF, Reflect 5% dmg) ──
 	"z2_unique_weapon": {
@@ -2887,6 +2860,10 @@ func load_save_data_manager(data: Dictionary):
 	# Migration: old saves have no armory_layout → {} (everything auto-packs).
 	armory_layout = data.get("armory_layout", {})
 	equipped_relic = data.get("equipped_relic", "")  # v113 (NG+ P2)
+	# v146 MIGRATION: must run BEFORE the v113 scrub below, which would silently drop a
+	# base-id Architect piece with no compensation. Takes `data` because the loadout
+	# presets are restored further down and still need scrubbing.
+	_migrate_remove_architects_regalia(data)
 	# v113: scrub any equipped/owned module whose def no longer exists (e.g. the
 	# removed free Cryo Shard Pistol) so a stale id can't dangle into recalc/UI.
 	for _s in loadout.keys():
@@ -2942,6 +2919,166 @@ func load_save_data_manager(data: Dictionary):
 	# them to the current hull so they load fully instead of stripped. Idempotent
 	# (type-driven) — presets already valid for this hull are reproduced unchanged.
 	_migrate_presets_to_current_hull()
+
+# ═══════════════════════════════════════════════════════════════
+# v146 MIGRATION — "Architect's Regalia" (Z1 unique set) deleted
+# ═══════════════════════════════════════════════════════════════
+# The five Z1 pieces were removed outright: the tutorial zone must not hand out a
+# 3-piece +25% attack-speed set (99be329 pulled them off the boss table; the defs and
+# the set bonus are now gone too). They were rarity-4 DROPS, so a live save can hold
+# one as a base id, as a rolled "custom_z1_unique_*" instance, EQUIPPED in a loadout
+# slot, stored in a build preset, and SOCKETED with matrix cores. Deleting the defs
+# without this would leave a dangling id in every one of those places.
+#
+# Handling reuses the paths this repo already has, rather than inventing one:
+#   - socketed gems go back to the element pool exactly as remove_gem() returns them;
+#   - each owned copy pays what demolish_module() pays for a destroyed module of that
+#     rarity and zone (rarity-scaled Spare Parts + the Zone-1 salvage item), which is
+#     this game's compensation for gear that ceases to exist. Modules have had no Lira
+#     sell value since v140, so Spare Parts + salvage IS the fair payout.
+const REMOVED_ARCHITECT_MODULES := [
+	"z1_unique_weapon", "z1_unique_kinetic", "z1_unique_missile",
+	"z1_unique_armor", "z1_unique_shield",
+]
+
+# True for a deleted base id AND for any rolled instance whose base_module is one.
+func _is_removed_architect_module(mid: String) -> bool:
+	if mid in REMOVED_ARCHITECT_MODULES:
+		return true
+	var d = custom_modules.get(mid, modules.get(mid, {}))
+	if d is Dictionary:
+		return String(d.get("base_module", "")) in REMOVED_ARCHITECT_MODULES
+	return false
+
+# Takes the raw shipyard save dict: the loadout presets and the ammo map are restored
+# further down in load_save_data_manager, so they are scrubbed at the source.
+func _migrate_remove_architects_regalia(data: Dictionary) -> void:
+	var dead: Dictionary = {}   # id -> true
+
+	for mid in custom_modules.keys():
+		if _is_removed_architect_module(String(mid)):
+			dead[String(mid)] = true
+	for mid in module_inventory.keys():
+		if _is_removed_architect_module(String(mid)):
+			dead[String(mid)] = true
+	for s in loadout.keys():
+		var lm = loadout[s]
+		if lm != null and String(lm) != "" and _is_removed_architect_module(String(lm)):
+			dead[String(lm)] = true
+
+	var saved_load = data.get("loadout", {})
+	var saved_ammo = data.get("ammo_loadout", {})
+	var saved_presets = data.get("loadout_presets", {})
+
+	# Slots BEYOND the current hull's effective slot count (e.g. a CMB_3 aux slot saved
+	# then loaded without the node) never reach `loadout` — catch them at the source.
+	if saved_load is Dictionary:
+		for k in saved_load.keys():
+			if loadout.has(int(k)):
+				continue
+			var sm_id = saved_load[k]
+			if sm_id != null and String(sm_id) != "" and _is_removed_architect_module(String(sm_id)):
+				dead[String(sm_id)] = true
+
+	if saved_presets is Dictionary:
+		for p_key in saved_presets.keys():
+			var p = saved_presets[p_key]
+			if not (p is Dictionary):
+				continue
+			var p_load = p.get("loadout", {})
+			if not (p_load is Dictionary):
+				continue
+			for s_key in p_load.keys():
+				var pm = p_load[s_key]
+				if pm != null and String(pm) != "" and _is_removed_architect_module(String(pm)):
+					dead[String(pm)] = true
+
+	if dead.is_empty():
+		return
+
+	var parts_total: int = 0
+	var salvage_total: int = 0
+	var gems_total: int = 0
+	var copies_total: int = 0
+
+	for mid in dead.keys():
+		var m_id: String = String(mid)
+		var def_d: Dictionary = {}
+		if custom_modules.has(m_id) and custom_modules[m_id] is Dictionary:
+			def_d = custom_modules[m_id]
+		elif modules.has(m_id) and modules[m_id] is Dictionary:
+			def_d = modules[m_id]
+		# A base id whose def is already gone still has its known rarity/zone.
+		var rarity: int = int(def_d.get("rarity", Rarity.UNIQUE))
+		var zone: int = int(def_d.get("zone", 1))
+
+		# Owned copies = stacked in inventory + every slot it currently occupies
+		# (equipping moves the copy OUT of module_inventory — see unequip_slot).
+		var copies: int = int(module_inventory.get(m_id, 0))
+		for s in loadout.keys():
+			if loadout[s] != null and String(loadout[s]) == m_id:
+				loadout[s] = null
+				if saved_ammo is Dictionary:
+					saved_ammo.erase(str(s))
+					saved_ammo.erase(int(s))
+				copies += 1
+		if saved_load is Dictionary:
+			for k in saved_load.keys():
+				if loadout.has(int(k)):
+					continue
+				if saved_load[k] != null and String(saved_load[k]) == m_id:
+					saved_load[k] = null
+					copies += 1
+
+		# Matrix cores go back to the element pool (same as remove_gem).
+		var socks = def_d.get("sockets", [])
+		if socks is Array:
+			for gi in range(socks.size()):
+				var g = socks[gi]
+				if g != null and String(g) != "":
+					if GameState.resources:
+						GameState.resources.add_element(String(g), 1)
+					gems_total += 1
+				socks[gi] = null
+
+		# Compensation, per demolish_module's payout for this rarity/zone.
+		if copies > 0:
+			copies_total += copies
+			var parts: int = int(RARITY_SPARE_PARTS.get(rarity, 1)) * copies
+			if GameState.resources and parts > 0:
+				GameState.resources.add_element("SparePart", parts)
+			parts_total += parts
+			if rarity > Rarity.COMMON:
+				var salvage_item: String = "MiteChitin" if zone == 1 else ""
+				var salv: int = (rarity - Rarity.COMMON) * copies
+				if salvage_item != "" and GameState.resources:
+					GameState.resources.add_element(salvage_item, salv)
+					salvage_total += salv
+
+		module_inventory.erase(m_id)
+		custom_modules.erase(m_id)
+		modules.erase(m_id)
+		unseen_modules.erase(m_id)
+		armory_layout.erase(m_id)
+
+	# Build presets keep their slot, minus the deleted module.
+	if saved_presets is Dictionary:
+		for p_key in saved_presets.keys():
+			var p = saved_presets[p_key]
+			if not (p is Dictionary):
+				continue
+			var p_load = p.get("loadout", {})
+			if not (p_load is Dictionary):
+				continue
+			var p_ammo = p.get("ammo_loadout", {})
+			for s_key in p_load.keys():
+				var pm = p_load[s_key]
+				if pm != null and String(pm) != "" and dead.has(String(pm)):
+					p_load[s_key] = null
+					if p_ammo is Dictionary:
+						p_ammo.erase(s_key)
+
+	print("v146 migration: removed %d Architect's Regalia module(s), %d copies -> %d Spare Parts, %d salvage, %d matrix core(s) returned." % [dead.size(), copies_total, parts_total, salvage_total, gems_total])
 
 # Manual Repair System
 func get_full_repair_cost(hull_id: String) -> int:
