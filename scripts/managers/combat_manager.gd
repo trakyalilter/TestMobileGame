@@ -2209,26 +2209,18 @@ func _execute_player_attack(weapon_idx: int):
 			if randf() >= sm.gem_bonuses.get("ammo_eff", 0.0):
 				GameState.resources.remove_element(ammo_id, 1)
 			
-			# Audit Phase 19: Use flat bonuses from elements.json where possible, or standardized flat tiers
-			# Descriptions say: +5, +15, +30
-			if ammo_id.begins_with("Slug"):
-				var bonus = 5.0
-				if "T1S" in ammo_id: bonus = 10.0 # Heavy Steel Slugs
-				elif "T2" in ammo_id: bonus = 15.0
-				elif "T3" in ammo_id: bonus = 30.0
-				elif "T4" in ammo_id: bonus = 60.0
-				p_atk_k += bonus
-			elif ammo_id.begins_with("Cell"):
-				var bonus = 5.0
-				if "T2" in ammo_id: bonus = 15.0
-				elif "T3" in ammo_id: bonus = 30.0
-				elif "T4" in ammo_id: bonus = 60.0
-				p_atk_e += bonus
-			elif "Missile" in ammo_id or "Torpedo" in ammo_id:
-				var bonus = 10.0
-				if "Seeker" in ammo_id: bonus = 25.0
-				elif "Torpedo" in ammo_id: bonus = 60.0
-				p_atk_x += bonus
+			# v144: ammo is a PERCENTAGE multiplier on the weapon's own damage
+			# channel, keyed strictly on the id tier suffix (T1/T1S/T2/T3/T4).
+			# Single source of truth: ElementDB.AMMO_TIER_MULT.
+			# Was a flat +5..+60, which is +750% at Z1 and +0.005% at Z10 — and the
+			# explosive branch keyed on DISPLAY names ("Seeker"/"Torpedo") that no
+			# ammo id carries, so MissileT1..T4 were all identical (+10).
+			var ammo_mult: float = ElementDB.get_ammo_damage_mult(String(ammo_id))
+			if ammo_mult != 1.0:
+				match ElementDB.get_ammo_channel(String(ammo_id)):
+					"kinetic": p_atk_k *= ammo_mult
+					"energy": p_atk_e *= ammo_mult
+					"explosive": p_atk_x *= ammo_mult
 		elif requires_ammo:
 			_warn_no_ammo()
 			return # Ammo equipped but empty

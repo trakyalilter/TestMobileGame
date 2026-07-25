@@ -46,28 +46,18 @@ func _setup_item(id: String):
 	
 	# Special Stats for Ammo
 	if cat == "ammo":
-		var bonus = 0.0
+		# v144: percentage ladder, shared with combat (ElementDB.AMMO_TIER_MULT).
+		var channel := ElementDB.get_ammo_channel(id)
 		var type_label = tr("Damage")
-		if id.begins_with("Slug"):
-			bonus = 5.0
-			if "T1S" in id: bonus = 10.0
-			elif "T2" in id: bonus = 15.0
-			elif "T3" in id: bonus = 30.0
-			elif "T4" in id: bonus = 60.0
-			type_label = tr("Kinetic Damage")
-		elif id.begins_with("Cell"):
-			bonus = 5.0
-			if "T2" in id: bonus = 15.0
-			elif "T3" in id: bonus = 30.0
-			elif "T4" in id: bonus = 60.0
-			type_label = tr("Energy Damage")
-		elif "Missile" in id or "Torpedo" in id:
-			bonus = 10.0
-			if "Seeker" in id: bonus = 25.0
-			elif "Torpedo" in id: bonus = 60.0
-			type_label = tr("Explosive Damage")
-		if bonus > 0:
-			_add_stat(type_label, "+%.1f" % bonus)
+		match channel:
+			"kinetic": type_label = tr("Kinetic Damage")
+			"energy": type_label = tr("Energy Damage")
+			"explosive": type_label = tr("Explosive Damage")
+		# v143: suppress at 0. T1 is the baseline (x1.00) so its pct is 0, and T1 is the
+		# free, automated, most-equipped ammo — a bold "+0%" reads as a broken stat.
+		var _apct: int = ElementDB.get_ammo_damage_pct(id)
+		if channel != "" and _apct > 0:
+			_add_stat(type_label, "+%d%%" % _apct)
 			
 	# Special Stats for Consumables
 	if cat == "consumables":

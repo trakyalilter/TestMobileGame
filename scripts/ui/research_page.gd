@@ -66,7 +66,10 @@ var graphs = {
 			# from every tab list here — so it never rendered and the mission softlocked at 0%
 			# (the whole Hack Card system was unreachable). Placed after its parent kinetics_101;
 			# calculate_layout() auto-positions it as a sibling of power_systems.
-			"kinetics_101", "firmware_hacking", "power_systems", "laser_optics",
+			# v144: ordnance_101 added — it gates the Munitions Factory (T1 explosive
+			# auto-foundry). Placed after its parent kinetics_101, alongside the other
+			# two tier-1 ammo techs; calculate_layout() positions it as their sibling.
+			"kinetics_101", "firmware_hacking", "power_systems", "ordnance_101", "laser_optics",
 			"processing_tungsten", "ballistics_optimization", "advanced_rocketry",
 			"energy_shields", "field_theory", "shield_harmonics", "hull_hardening", "core_overclocking",
 			"auto_repair_20", "auto_repair_40", "auto_repair_60", "auto_repair_80",

@@ -401,7 +401,7 @@
 		"category": "Ammo",
 		"tier": 1,
 		"base_value": 1,
-		"description": "Standard iron slugs. +5 Kinetic Dmg per shot."
+		"description": "Standard iron slugs. Baseline round: no damage bonus."
 	},
 	{
 		"atomic_number": -81,
@@ -411,7 +411,7 @@
 		"category": "Ammo",
 		"tier": 2,
 		"base_value": 1,
-		"description": "Armor-piercing heavy slugs. +15 Kinetic Dmg per shot."
+		"description": "Armor-piercing heavy slugs. +10% damage on its channel."
 	},
 	{
 		"atomic_number": -505,
@@ -421,7 +421,7 @@
 		"category": "Ammo",
 		"tier": 2,
 		"base_value": 1,
-		"description": "Armor-piercing heavy slugs. +15 Kinetic Dmg per shot."
+		"description": "Armor-piercing heavy slugs. +5% damage on its channel."
 	},
 	{
 		"atomic_number": -82,
@@ -431,7 +431,7 @@
 		"category": "Ammo",
 		"tier": 1,
 		"base_value": 1,
-		"description": "Lenses for beam cohesion. +5 Energy Dmg per shot."
+		"description": "Lenses for beam cohesion. Baseline round: no damage bonus."
 	},
 	{
 		"atomic_number": -83,
@@ -441,7 +441,7 @@
 		"category": "Ammo",
 		"tier": 2,
 		"base_value": 1,
-		"description": "Superheated gas canister. +15 Energy Dmg per shot."
+		"description": "Superheated gas canister. +10% damage on its channel."
 	},
 	{
 		"atomic_number": 92,
@@ -461,7 +461,7 @@
 		"category": "Ammo",
 		"tier": 3,
 		"base_value": 1,
-		"description": "Self-sharpening penetrator. +30 Kinetic Dmg per shot."
+		"description": "Self-sharpening penetrator. +20% damage on its channel."
 	},
 	{
 		"atomic_number": -85,
@@ -471,7 +471,7 @@
 		"category": "Ammo",
 		"tier": 3,
 		"base_value": 1,
-		"description": "Unstable singularity core. +30 Energy Dmg per shot."
+		"description": "Unstable singularity core. +20% damage on its channel."
 	},
 	{
 		"atomic_number": -110,
@@ -1280,7 +1280,7 @@
 		"category": "Ammo",
 		"tier": 4,
 		"base_value": 1,
-		"description": "Unstable fusion plasma containment. +60 Energy Dmg."
+		"description": "Unstable fusion plasma containment. +35% damage on its channel."
 	},
 	{
 		"atomic_number": -913,
@@ -1339,7 +1339,7 @@
 		"category": "Ammo",
 		"tier": 1,
 		"base_value": 1,
-		"description": "Standard high-explosive ordnance. +10 Explosive Dmg."
+		"description": "Standard high-explosive ordnance. Baseline round: no damage bonus."
 	},
 	{
 		"atomic_number": -921,
@@ -1378,7 +1378,7 @@
 		"category": "Ammo",
 		"tier": 4,
 		"base_value": 1,
-		"description": "Capital-class antimatter buster. +150 Explosive Dmg."
+		"description": "Capital-class antimatter buster. +35% damage on its channel."
 	},
 	{
 		"atomic_number": -925,
@@ -1417,7 +1417,7 @@
 		"category": "Ammo",
 		"tier": 2,
 		"base_value": 1,
-		"description": "Guided missile with tracking chips. +25 Explosive Dmg."
+		"description": "Guided missile with tracking chips. +10% damage on its channel."
 	},
 	{
 		"symbol": "MissileT3",
@@ -1426,7 +1426,7 @@
 		"category": "Ammo",
 		"tier": 3,
 		"base_value": 1,
-		"description": "High-yield thermobaric missile. +60 Explosive Dmg."
+		"description": "High-yield thermobaric missile. +20% damage on its channel."
 	},
 	{
 		"symbol": "SlugT4",
@@ -1435,7 +1435,7 @@
 		"category": "Ammo",
 		"tier": 4,
 		"base_value": 1,
-		"description": "Tungsten-Superalloy sabot for railguns. +60 Kinetic Dmg."
+		"description": "Tungsten-Superalloy sabot for railguns. +35% damage on its channel."
 	},
 	{
 		"atomic_number": -930,

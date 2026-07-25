@@ -301,6 +301,59 @@ var CONSUMABLE_DATA = {
 	"ZeroPoint":      {"type": "shield", "heal_pct": 0.35, "name": "Zero-Point Injector"},  # v106: 0.50→0.25→0.35 (recalibrated)
 }
 
+# ── v144 AMMO TIER LADDER — SINGLE SOURCE OF TRUTH ──────────────────────────
+# Ammo used to grant a FLAT +5/+10/+15/+30/+60 to the weapon's damage channel.
+# Weapon bases are rebased per zone by (3.75/2.2)^(z-1) — effective kinetic base
+# is 8 at Z1 and ~1.18M at Z10 — so SlugT4's +60 was worth +750% at Z1 and
+# +0.005% at Z10. The whole T2-T4 tree was a dominated choice past Z4, and the
+# EXPLOSIVE ladder never fired at all: it keyed on the DISPLAY names "Seeker" /
+# "Torpedo" while the real element ids are MissileT1..MissileT4, so all four
+# missile tiers dealt exactly +10.
+#
+# It is now a PERCENTAGE multiplier keyed strictly on the id tier suffix, so it
+# scales with the weapon at every zone. T1 is the free, fully-automated baseline
+# (multiplier 1.0 = no bonus); every rung above it is a real, paid upgrade.
+const AMMO_TIER_MULT := {
+	"T1":  1.00,
+	"T1S": 1.05,
+	"T2":  1.10,
+	"T3":  1.20,
+	"T4":  1.35,
+}
+
+## Tier suffix of an ammo id ("SlugT1S" -> "T1S", "MissileT4" -> "T4").
+## Returns "" for legacy/placeholder ids (kinetic_shell, energy_cell, missile).
+func get_ammo_tier(ammo_id: String) -> String:
+	if ammo_id == "":
+		return ""
+	# Longest suffix first so "T1S" is not swallowed by a "T1" test.
+	for suffix in ["T1S", "T4", "T3", "T2", "T1"]:
+		if ammo_id.ends_with(suffix):
+			return suffix
+	return ""
+
+## Damage multiplier an ammo id applies to its weapon's matching damage channel.
+## 1.0 for unknown/legacy ids, so a missing entry can never zero a weapon out.
+func get_ammo_damage_mult(ammo_id: String) -> float:
+	var tier := get_ammo_tier(ammo_id)
+	if tier == "":
+		return 1.0
+	return float(AMMO_TIER_MULT.get(tier, 1.0))
+
+## Same ladder as a display percentage ("+10" for T2). 0 for the T1 baseline.
+func get_ammo_damage_pct(ammo_id: String) -> int:
+	return int(round((get_ammo_damage_mult(ammo_id) - 1.0) * 100.0))
+
+## Damage-channel label for an ammo id: "kinetic" / "energy" / "explosive" / "".
+func get_ammo_channel(ammo_id: String) -> String:
+	if ammo_id.begins_with("Slug") or ammo_id == "kinetic_shell":
+		return "kinetic"
+	if ammo_id.begins_with("Cell") or ammo_id == "energy_cell":
+		return "energy"
+	if "Missile" in ammo_id or "Torpedo" in ammo_id or ammo_id == "missile":
+		return "explosive"
+	return ""
+
 ## Get display name for an element
 func get_display_name(symbol: String) -> String:
 	# Currency is not an element; surface its proper name everywhere

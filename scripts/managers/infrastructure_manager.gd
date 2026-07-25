@@ -42,8 +42,16 @@ const PRIMITIVE_EXTRACTORS := ["auto_excavator", "industrial_pump", "bio_harvest
 # Single source of truth for engineering-scaled buildings (previously
 # duplicated & inconsistent: 7 here-equivalent vs only 3 in
 # get_building_adjusted_rate, so the UI rate disagreed with production).
+# v144: "munitions_factory" REMOVED from this list. It was a dangling id (no
+# building_db entry) until the explosive ammo ladder was authored; now that the
+# building exists, leaving it here would make it the ONLY ammo building with
+# engineering scaling. The cap is reached at Engineering ~10 (1 + log10(11) =
+# 2.04 -> clamped to 2.0), so effectively every player would get 10 MissileT1/5s
+# — kinetic's own rate, for a weapon that fires at HALF the cadence. That is a
+# 2x oversupply, not the demand parity the ladder is tuned for. All six ammo
+# buildings now scale identically (eng multiplier 1.0).
 const INFRA_ENG_SCALED_BUILDINGS := ["auto_smelter", "hydro_plant", "industrial_centrifuge",
-	"munitions_factory", "titanium_refinery", "superalloy_forge", "adv_circuit_foundry",
+	"titanium_refinery", "superalloy_forge", "adv_circuit_foundry",
 	"au_refinery", "semiconductor_furnace", "structural_press", "chip_fab"]
 # P1.4: gathering owns the ore tier. Raw ORE/metal extractors that duplicate a
 # gather action are throttled so active gathering is the primary source and
@@ -822,6 +830,57 @@ var building_db: Dictionary = {
 		"energy_cons": 15000.0, # capital_ship_armament (arbitrary high tier proxy)
 		"yield": {"SlugT3": 0.8},
 		"input": {"U": 0.8, "Superalloy": 2.1},
+		"interval": 5.0,
+		"research_req": "capital_ship_armament",
+		"category": "industry"
+	},
+
+	# ===== EXPLOSIVE AMMO LADDER (v144) =====
+	# Explosive had NO ammo building at ANY tier — a dropped feature, not a design
+	# choice ("munitions_factory" was already referenced in
+	# INFRA_ENG_SCALED_BUILDINGS with no entry behind it). That mattered because
+	# explosive is the MANDATORY damage type at Z2/Z5/Z8 (_amp_resist pushes the
+	# Z8 boss to explosive/kinetic = 7.0x), so a player routed onto the weak type
+	# hand-crafted missiles forever while kinetic/energy players never paid that
+	# tax — and an empty missile stack means the weapon does not fire at all.
+	#
+	# Rates are EXACTLY HALF the kinetic rung at every tier because explosive
+	# fires at half the cadence (atk_interval 4.0s vs 2.0s). That is demand
+	# PARITY, not a buff. Cost / energy / research shape mirror the kinetic
+	# ladder rung-for-rung: T1 at a tier-1 combat tech, T2 at the tech that gates
+	# the T2 recipe, T3 at capital_ship_armament.
+	"munitions_factory": {
+		"name": "Munitions Factory",
+		"description": "+5 Missile T1 (-2.5 Fe, -1 C)",
+		"cost": {"credits": 12500, "Fe": 100, "C": 50},
+		"energy_gen": 0.0,
+		"energy_cons": 50.0, # ordnance_101
+		"yield": {"MissileT1": 5},
+		"input": {"Fe": 2.5, "C": 1.0},
+		"interval": 5.0,
+		"research_req": "ordnance_101",
+		"category": "industry"
+	},
+	"guided_munitions_plant": {
+		"name": "Guided Munitions Plant",
+		"description": "+1.55 Missile T2 (-1.55 Steel, -0.65 Al)",
+		"cost": {"credits": 125000, "Steel": 100, "Al": 50},
+		"energy_gen": 0.0,
+		"energy_cons": 2500.0, # advanced_rocketry
+		"yield": {"MissileT2": 1.55},
+		"input": {"Steel": 1.55, "Al": 0.65},
+		"interval": 5.0,
+		"research_req": "advanced_rocketry",
+		"category": "industry"
+	},
+	"thermobaric_warhead_works": {
+		"name": "Thermobaric Warhead Works",
+		"description": "+0.4 Missile T3 (-0.4 U, -1.05 Superalloy)",
+		"cost": {"credits": 2500000, "Superalloy": 50, "U": 20},
+		"energy_gen": 0.0,
+		"energy_cons": 15000.0, # capital_ship_armament
+		"yield": {"MissileT3": 0.4},
+		"input": {"U": 0.4, "Superalloy": 1.05},
 		"interval": 5.0,
 		"research_req": "capital_ship_armament",
 		"category": "industry"

@@ -165,46 +165,29 @@ func _make_custom_tooltip(_for_text: String) -> Control:
 	tt += "[center][font_size=11][color=#5FE0C8]" + (tr("Stock: %d") % int(GameState.resources.get_element_amount(active_ammo))) + "[/color][/font_size][/center]\n"
 	tt += "[color=#1E3B38]──────────────────────────────[/color]\n"
 
-	var bonus = 0.0
+	# v144: percentage ladder, shared with combat (ElementDB.AMMO_TIER_MULT).
+	var channel := ElementDB.get_ammo_channel(String(active_ammo))
 	var type_label = "Damage"
 	var color_label = "white"
 
-	if active_ammo.begins_with("Slug"):
-		bonus = 5.0
-		if "T1S" in active_ammo:
-			bonus = 10.0
-		elif "T2" in active_ammo:
-			bonus = 15.0
-		elif "T3" in active_ammo:
-			bonus = 30.0
-		elif "T4" in active_ammo:
-			bonus = 60.0
-		type_label = tr("Kinetic Damage")
-		color_label = "red"
-	elif active_ammo.begins_with("Cell"):
-		bonus = 5.0
-		if "T2" in active_ammo:
-			bonus = 15.0
-		elif "T3" in active_ammo:
-			bonus = 30.0
-		elif "T4" in active_ammo:
-			bonus = 60.0
-		type_label = tr("Energy Damage")
-		color_label = "cyan"
-	elif "Missile" in active_ammo or "Torpedo" in active_ammo:
-		bonus = 10.0
-		if "Seeker" in active_ammo:
-			bonus = 25.0
-		elif "Torpedo" in active_ammo:
-			bonus = 60.0
-		type_label = tr("Explosive Damage")
-		color_label = "orange"
+	match channel:
+		"kinetic":
+			type_label = tr("Kinetic Damage")
+			color_label = "red"
+		"energy":
+			type_label = tr("Energy Damage")
+			color_label = "cyan"
+		"explosive":
+			type_label = tr("Explosive Damage")
+			color_label = "orange"
 
-	if bonus > 0:
+	# v143: suppress at 0 — T1 is the x1.00 baseline (see info_card note).
+	if channel != "" and ElementDB.get_ammo_damage_pct(String(active_ammo)) > 0:
 		# v137: was a broken concat — `%` binds tighter than `+`, so the args formatted the
 		# trailing fragment (no specifiers) and left "+%.1f" literal. Build the label, format once.
 		var bonus_label: String = tr("%s Bonus") % type_label
-		tt += "[center][font_size=20][b][color=%s]+%.1f[/color][/b][/font_size] [font_size=10][color=#7FA39C]%s[/color][/font_size][/center]\n" % [color_label, bonus, bonus_label]
+		var pct: int = ElementDB.get_ammo_damage_pct(String(active_ammo))
+		tt += "[center][font_size=20][b][color=%s]+%d%%[/color][/b][/font_size] [font_size=10][color=#7FA39C]%s[/color][/font_size][/center]\n" % [color_label, pct, bonus_label]
 		tt += "[color=#1E3B38]──────────────────────────────[/color]\n"
 
 	tt += "[center][font_size=10][color=#7FA39C][Right-click to unequip][/color][/font_size][/center]"

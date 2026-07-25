@@ -886,40 +886,20 @@ func _build_card_stats(slot_type: String, stats: Dictionary) -> String:
 	return "\n".join(lines)
 
 func _build_ammo_card_stats() -> String:
-	var bonus = 0.0
+	# v144: percentage ladder, shared with combat (ElementDB.AMMO_TIER_MULT).
+	var channel := ElementDB.get_ammo_channel(mid)
 	var type_label = "Damage"
+	match channel:
+		"kinetic": type_label = "Kinetic"
+		"energy": type_label = "Energy"
+		"explosive": type_label = "Explosive"
 
-	if mid.begins_with("Slug"):
-		bonus = 5.0
-		if "T1S" in mid:
-			bonus = 10.0
-		elif "T2" in mid:
-			bonus = 15.0
-		elif "T3" in mid:
-			bonus = 30.0
-		elif "T4" in mid:
-			bonus = 60.0
-		type_label = "Kinetic"
-	elif mid.begins_with("Cell"):
-		bonus = 5.0
-		if "T2" in mid:
-			bonus = 15.0
-		elif "T3" in mid:
-			bonus = 30.0
-		elif "T4" in mid:
-			bonus = 60.0
-		type_label = "Energy"
-	elif "Missile" in mid or "Torpedo" in mid:
-		bonus = 10.0
-		if "Seeker" in mid:
-			bonus = 25.0
-		elif "Torpedo" in mid:
-			bonus = 60.0
-		type_label = "Explosive"
-
-	if bonus <= 0.0:
+	# v143: T1 is the x1.00 baseline, so pct is 0 — fall back to the plain label
+	# rather than printing "+0% Kinetic Damage" on the most-used ammo in the game.
+	var _mpct: int = ElementDB.get_ammo_damage_pct(mid)
+	if channel == "" or _mpct <= 0:
 		return "Ammunition"
-	return tr("+%.1f %s Damage") % [bonus, tr(type_label)]
+	return tr("+%d%% %s Damage") % [ElementDB.get_ammo_damage_pct(mid), tr(type_label)]
 
 func _build_footer_text(slot_type: String, rarity_label: String) -> String:
 	var parts: Array[String] = []

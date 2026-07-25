@@ -277,7 +277,7 @@ var tech_tree = {
 		"type": "technology",
 		"parent": "automation",
 		"effects": [],
-		"unlocks": ["Seeker Missile"],
+		"unlocks": ["Seeker Missile", "Guided Munitions Plant"],  # v144: T2 explosive auto-foundry
 		"flavor": "",
 	},
 	"sector_alpha_decryption": {
@@ -528,6 +528,24 @@ var tech_tree = {
 		"req_tech": "basic_engineering",
 		"effects": [],
 		"unlocks": ["Basic Cell Factory"], # v129: Basic Battery recipe is starter-kit now (research-free)
+		"flavor": "",
+	},
+	# v144: the third leg of the tier-1 ammo-automation tripod. Kinetic had
+	# kinetics_101 -> Basic Kinetic Foundry and energy had power_systems -> Basic
+	# Cell Factory, but explosive had no auto-foundry at any tier — so a player
+	# routed onto explosive (mandatory at Z2/Z5/Z8) hand-crafted every missile.
+	# Deliberately tier 1: gating missile automation any later would leave the
+	# Z2 explosive check unautomated, which is the whole bug.
+	"ordnance_101": {
+		"name": "Explosive Ordnance Theory",
+		"tier": 1,
+		"category": "combat",
+		"cost": 300,
+		"type": "technology",
+		"parent": "kinetics_101",
+		"req_tech": "basic_engineering",
+		"effects": [],
+		"unlocks": ["Munitions Factory"],
 		"flavor": "",
 	},
 	"laser_optics": {
@@ -1096,8 +1114,12 @@ var tech_tree = {
 		# v111.6 audit: "Munitions Factory tier" → phantom (neither a building
 		# id nor a recognizable concept). Building dict has no `munitions_factory`
 		# entry — it's listed in INFRA_ENG_SCALED_BUILDINGS but never defined.
+		# v144: the explosive ammo ladder was authored — munitions_factory (T1,
+		# gated on ordnance_101), guided_munitions_plant (T2, advanced_rocketry)
+		# and thermobaric_warhead_works (T3) now exist. This tech owns the T3 rung,
+		# mirroring heavy_ordnance_works on the kinetic side.
 		"effects": [],
-		"unlocks": ["Photon Torpedo (T4 Ammo)"],
+		"unlocks": ["Photon Torpedo (T4 Ammo)", "Thermobaric Warhead Works"],
 		"flavor": "",
 	},
 	"quantum_dynamics": {
