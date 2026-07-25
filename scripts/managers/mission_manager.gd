@@ -8,7 +8,7 @@ const DEBUG_LOG := false
 # arc, m030i/m032a boss-core farms) — they sat between [CHAPTER 2] missions but
 # rendered as [TUTORIAL], which read as the game mislabeling its own acts.
 const CHAPTER_2_IDS = ["m027", "m027b", "m028", "m029",
-	"m029a1", "m029a2", "m029a3", "m029a4", "m029a5", "m029a6", "m029a7", "m029a8", "m029a9", "m029b", "m030", "m030c",
+	"m029a1", "m029a2", "m029a3", "m029a4", "m029a5", "m029a6", "m029a6t", "m029a7", "m029a8", "m029a9", "m029b", "m030", "m030c",
 	"m030c2", "m030c3", "m030d", "m030e", "m030f", "m030fa", "m030fb", "m030f1", "m030f2", "m030g", "m030h", "m030i",
 	"m031", "m032", "m032a", "m032b", "m032d", "m032c", "m033"]
 # v134g: the reordered tail runs m034 → m033b → m033c, so the [ENDGAME] tag must
@@ -91,7 +91,15 @@ func init_missions():
 		["m007", "Mobility Check", "Craft a 'Basic Thruster' in the Shipyard.", "craft", "z1_engine", 1, 1000, 100, "m007b"],
 		# P1 Onboarding: close the engine arc — craft → equip. Without this the
 		# Thruster sat in inventory and the player never saw its +Evasion effect.
-		["m007b", "Spacewalk Test", "Open the Ship Designer, then DRAG the Basic Thruster from your Armory (right panel) onto an empty ENGINE slot.", "loadout_check", "engine", 1, 500, 100, "m008"],
+		["m007b", "Spacewalk Test", "Open the Ship Designer, then DRAG the Basic Thruster from your Armory (right panel) onto an empty ENGINE slot.", "loadout_check", "engine", 1, 500, 100, "m009"],
+		# v145 (D): ORPHANED (m007b → m009). Materials Science costs 625 Liras, has NO
+		# cost_items, unlocks NOTHING, and its only effect is a hidden +10% ship max HP —
+		# so this beat sat between "equip your thruster" and "chop wood" and changed
+		# nothing the player could see. Its real job is being the tree parent of
+		# combustion → smelting, first needed ~17 missions later at m025, so that is where
+		# it is now named (see m025's text). The TECH stays in the tree untouched; only
+		# the mission stop is removed. Kept DEFINED for in-flight saves (the m003 pattern):
+		# a player sitting on m008 still completes it and still chains onward to m009.
 		["m008", "Materials Science", "Research the 'Materials Science' hub.", "research", "materials_science", 1, 300, 100, "m009"],
 		# v129: research-trip diet — the tutorial routed to Research ~8 times before the
 		# first boss, which reads as homework. Five stops are cut from the CHAIN (m010,
@@ -102,15 +110,31 @@ func init_missions():
 		# (batched: smelting -> power_systems -> shipwright_1 in one visit).
 		["m009", "Deforestation", "Gather 100 units of Wood.", "gather", "Wood", 100, 500, 100, "m011"],
 		["m010", "Organic Combustion", "Research 'Organic Combustion' to unlock the Industrial Kiln, Carbon Fiber, and combustion-powered generators. (The manual Charcoal Kiln needs no research.)", "research", "combustion", 1, 500, 150, "m011"],
-		["m011", "Essential Carbon", "In the Engineering page, use the Charcoal Kiln to produce 50 Carbon.", "gather", "C", 50, 600, 150, "m012"],
-		["m012", "Lithium Discovery", "In the Mine page, extract 100 Lithium Ore.", "gather", "Spodumene", 100, 800, 200, "m013"],
-		["m013", "Voltaic Storage", "Refine 50 Lithium in the Engineering tab.", "gather", "Li", 50, 1000, 250, "m013b"],
-		["m013b", "Copper Prospecting", "Gather 100 Malachite Ore.", "gather", "Malachite", 100, 1200, 300, "m013c"],
+		# v145 (E): m011-m013c was a five-step shopping run with no stated purpose. The
+		# NUMBERS were already a perfect chain — the game just never said so:
+		#   m011  50 Carbon    -> smelt_copper burns 1 C per Cu, so 50 C = the 50 Cu below
+		#   m012 100 Spodumene -> refine_lithium is 2:1, so 100 ore = the 50 Li below
+		#   m013  50 Lithium   -> craft_battery_t1 is 5 Li each; m024b's 5 Shield Boosters
+		#                         need 5 Battery Cells = 25 Li, rest keeps for m029a3
+		#   m013b 100 Malachite-> smelt_copper is 2:1, so 100 ore = the 50 Cu below
+		#   m013c 50 Copper    -> 2 Micro-Missile Launchers (m017c) = 20 Cu
+		#                         + 10 Circuit Boards (m019) x 3 Cu = 30 Cu. Exactly 50.
+		# So this is a pure reword — every quantity stays, each one now names its consumer.
+		["m011", "Essential Carbon", "In the Engineering page, use the Charcoal Kiln to produce 50 Carbon. Copper smelting burns one Carbon per unit, and the copper run coming up needs all 50.", "gather", "C", 50, 600, 150, "m012"],
+		["m012", "Lithium Discovery", "In the Mine page, extract 100 Lithium Ore. It refines two-to-one, so this is the 50 Lithium your battery cells will need.", "gather", "Spodumene", 100, 800, 200, "m013"],
+		# v145 (E): retitled. "Voltaic Storage" pointed at a payoff that no longer exists —
+		# the ship's Basic Battery costs Liras + Iron and NO lithium, and both batteries
+		# were already built and equipped at m005b/m005c. The v134g power-first reorder
+		# orphaned the old Li -> Battery Cell beat (m021) and left this mission's name
+		# aimed at nothing. Its real consumer is the Battery Cell inside the Shield
+		# Boosters at m024b, so say that instead.
+		["m013", "Battery Electrolyte", "Refine 50 Lithium in the Engineering tab. Lithium is the electrolyte in Battery Cells — the shield repair kits you craft before your first fight each need one.", "gather", "Li", 50, 1000, 250, "m013b"],
+		["m013b", "Copper Prospecting", "Gather 100 Malachite Ore. It smelts two-to-one, one Carbon per unit — exactly the 50 Copper and the 50 Carbon you stocked.", "gather", "Malachite", 100, 1200, 300, "m013c"],
 		# v134g: batteries are now taught up front (m005b/m005c), so the old battery
 		# block (m020/m021/m022/m022b) is redundant — skip straight to the weapon
 		# arc. Those missions stay DEFINED below as orphans so in-flight saves sitting
 		# on them still complete + chain onward (the m003 pattern).
-		["m013c", "Conductivity", "Refine 50 Copper in the Engineering tab.", "gather", "Cu", 50, 1500, 350, "m015"],
+		["m013c", "Conductivity", "Refine 50 Copper in the Engineering tab. 20 goes into the pair of Micro-Missile Launchers you will build, the other 30 into your first Circuit Boards.", "gather", "Cu", 50, 1500, 350, "m015"],
 		["m014", "Ballistics Theory", "Research 'Kinetic Weapons Theory' in the Research tree.", "research", "kinetics_101", 1, 1200, 100, "m015"],
 		# v134g: craft 2 of each weapon type — the corvette has 2 WEAPON slots, so
 		# filling both (double DPS) is the difference between comfortable and painful
@@ -217,17 +241,40 @@ func init_missions():
 		["m016c", "Combat Briefing", "Open the Combat page (left sidebar). Pick a sector → a target → ENGAGE. Your Shield absorbs hits first, your Hull takes the overflow. Repair kits can auto-fire — set the threshold in Research.", "visit_page", "combat", 1, 200, 50, "m017"],
 		# v132: smelting's tree parent is Organic Combustion — name BOTH so the
 		# player isn't surprised by a locked node (one Research visit, two clicks).
-		["m025", "Refining Mastery", "Research 'Organic Combustion', then 'Efficient Smelting' beneath it, for alloys.", "research", "smelting", 1, 15000, 500, "m025a"],
+		# v145 (D): Materials Science is Organic Combustion's parent and is no longer
+		# bought at m008, so name the full walk here — three clicks, one Research visit,
+		# at the first moment any of it does something visible. Its own bill (20 Common
+		# Artifacts + 10 Circuit Boards, both cost layers applied) is named too.
+		["m025", "Refining Mastery", "Open Research and walk the branch: 'Materials Science' → 'Organic Combustion' → 'Efficient Smelting'. The last one bills 20 Common Artifacts and 10 Circuit Boards and opens alloys.", "research", "smelting", 1, 15000, 500, "m025a"],
 		# v134: modern smelting now consumes Oxygen (Basic-Oxygen furnace), so teach
 		# electrolysis BEFORE the first steel — otherwise the steel recipe silently needs
 		# an input the tutorial never introduced. Electrolysis also feeds the later O/H
 		# recipes (zinc/nickel roasting, missile propellant). 50 steel = 10 crafts = 20 O.
-		["m025a", "Split the Water", "Modern foundries burn Oxygen. In the Engineering tab, run Water Electrolysis to split Water — stock 30 Oxygen.", "gather", "O", 30, 3000, 300, "m025b"],
-		["m025b", "Alloy Production", "Now smelt 50 Steel in the Engineering tab — the Basic-Oxygen furnace burns your Oxygen through molten iron.", "gather", "Steel", 50, 5000, 500, "m026"],
-		["m026", "Master Constructor", "Research 'Shipwright I' for hull reinforcement.", "research", "shipwright_1", 1, 5000, 500, "m026b"],
-		# v134h: the frigate silently needs 4 Reinforced Plating — a crafted component the
+		# v145 (F): the Oxygen ask is DERIVED from the Steel ask below — 5 Steel per
+		# Basic-Oxygen craft, 2 Oxygen per craft. 160 Steel = 32 crafts = 64 Oxygen, so
+		# the stock must be 64+, not 30. One Water Electrolysis run yields 10 O in 2s,
+		# so 70 is ~14s of processing — the number was short, not the pacing.
+		["m025a", "Split the Water", "Modern foundries burn Oxygen. In the Engineering tab, run Water Electrolysis to split Water — stock 70 Oxygen. The steel run ahead burns 2 per batch.", "gather", "O", 70, 3000, 300, "m025b"],
+		# v145 (F) HARD BUG: this said 50 Steel and the very next two missions spend 156.
+		#   Shipwright I (m026): raw Steel 15 -> ceil(15 x 2.5 MID stage) = 38
+		#                        -> x2.0 MATERIAL_MULTIPLIER at check = 76
+		#   Industrial Frigate (m026b): hull 50 Steel + 3 Reinforced Plating x 10 Steel = 80
+		#   TOTAL 156. Ask 160 (margin 4). The player was doing exactly what they were
+		#   told and still coming up 106 short — a trust breaker, not a pacing nit.
+		# Time cost is small: smelt_steel_basic is 5 Steel / 5s, so 160 Steel is ~2.7 min
+		# of processing. The work was ALWAYS required; it just wasn't directed.
+		["m025b", "Alloy Production", "Now smelt 160 Steel in the Engineering tab — the Basic-Oxygen furnace blows your Oxygen through molten Iron and Carbon. Shipwright I burns most of this stock; the Frigate frame after it takes the rest.", "gather", "Steel", 160, 5000, 500, "m026"],
+		# v145 (F): name the FULL bill. Shipwright I costs 76 Steel, 30 Circuit Boards and
+		# 60 Common Artifacts once both cost layers apply — the Circuit and Artifact halves
+		# have no directed producer beat, so the text is the only place the player can learn
+		# them before they open the node and find it red.
+		["m026", "Master Constructor", "Research 'Shipwright I' for hull reinforcement. It bills 76 Steel (the stock you just smelted), 30 Circuit Boards, and 60 Common Artifacts from combat salvage — top up the circuits in Engineering before you open the node.", "research", "shipwright_1", 1, 5000, 500, "m026b"],
+		# v134h: the frigate silently needs Reinforced Plating — a crafted component the
 		# old one-line text never named (m019/m024b-class hidden input). Name it + its inputs.
-		["m026b", "Hull Modernization I", "Construct an 'Industrial Frigate' in the Shipyard. Its frame needs 4 Reinforced Plating — craft them in Engineering from Salvaged Alloy + Damaged Circuitry (Lunar Orbit drops, or the Steel/Circuit reclaim recipes).", "construct", "frigate_hull", 1, 10000, 1000, "m026c"],
+		# v145: the text said "4 Reinforced Plating"; the hull cost is 3 (v139c band surgery
+		# trimmed 4 -> 3 and never updated the mission). Same stale-number class as F/G.
+		# The 50 Steel of the hull frame itself was never named either — it is now.
+		["m026b", "Hull Modernization I", "Construct an 'Industrial Frigate' in the Shipyard. Its frame needs 50 Steel and 3 Reinforced Plating — craft the plating in Engineering from Salvaged Alloy + Damaged Circuitry (Lunar Orbit drops, or the Steel/Circuit reclaim recipes).", "construct", "frigate_hull", 1, 10000, 1000, "m026c"],
 		["m026c", "Elite Salvage", "Defeated enemies drop gear of varying rarity. Farm Lunar Orbit until you get a RARE (blue) module drop.", "drop_rarity", "2", 1, 5000, 500, "m026d"],
 		# v131: Architect resists zeroed — chain goes straight to the boss fight; any
 		# RARE+ weapon type works. m026d2/d3 (the old explosive-forcing pair) stay
@@ -244,7 +291,15 @@ func init_missions():
 		# P-onboard: introduce the Bounty Board the moment it unlocks (Asteroid Belt).
 		# visit_page → auto-completes on navigation, can never soft-lock.
 		["m027b", "Open Contracts", "Open Bounties (left sidebar — it just unlocked). Each sector runs its own combat contract board: accept one, and kills in that sector count toward it automatically. Pays Liras + a ship module.", "visit_page", "bounty", 1, 6000, 500, "m028"],
-		["m028", "Belt Mining", "In the Mine page, mine 100 Cassiterite (tin ore).", "gather", "Cassiterite", 100, 10000, 2000, "m029"],
+		# v145 (C): was "mine 100 Cassiterite" — raw ore, and the mission never told the
+		# player to smelt it. The next mission (m029, Carbon Fiber Plate) costs C / Fe /
+		# ReinforcedPlating and zero tin, so 100 units of ore sat in a 28-slot hold for
+		# ~8 missions doing nothing. Retargeted to the SMELTED output: the electronics arc
+		# that starts two beats later runs on Circuit Boards (2 Sn each) and Advanced
+		# Circuits (1 Sn each), so tin is the thing with a consumer, not the ore.
+		# 70 Sn = 105 Cassiterite at the 3-ore -> 2-Sn ratio, so the mining load is
+		# unchanged; only the finished form and the stated purpose are different.
+		["m028", "Belt Metallurgy", "In the Mine page extract Cassiterite, then smelt it into 70 Tin in Engineering. Tin is the solder in every Circuit Board and Advanced Circuit — the electronics push ahead runs on it.", "gather", "Sn", 70, 10000, 2000, "m029"],
 		["m029", "Hardened Shell", "Craft 'Carbon Fiber Plate' in the Shipyard.", "craft", "z2_armor", 1, 15000, 5000, "m029a1"],
 		# v107 Mission flow — split the silent AdvCircuit wall into discoverable
 		# beats (Koster pattern-injection). m029b previously dropped the player
@@ -254,10 +309,20 @@ func init_missions():
 		# Save-compat: in-flight players sitting on m029b stay valid (it still
 		# exists with the same id); only m029.next_mission_id was rerouted.
 		["m029a1", "Material Sciences", "Research 'Advanced Materials' to unlock heavier industrial recipes. It spends Common Artifacts from combat salvage.", "research", "adv_materials", 1, 5000, 500, "m029a2"],
-		# v134h: name the hidden Nickel cost. metallurgy_advanced costs 100 Ni, and
+		# v134h: name the hidden Nickel cost. metallurgy_advanced costs Ni, and
 		# Advanced Materials (just researched) unlocks the Pentlandite mining that feeds it.
-		["m029a2", "Structural Doctrine", "Research 'Advanced Metallurgy'. Costs 100 Nickel — mine Pentlandite (just unlocked), then refine it with Carbon + Oxygen first.", "research", "metallurgy_advanced", 1, 5000, 500, "m029a3"],
-		["m029a3", "First Components", "Craft 10 Structural Components in the Engineering tab — the universal building block of heavy industry.", "gather", "StructuralComponent", 10, 8000, 1000, "m029a5"],
+		# v145: the text said 100 Nickel; the AUTHORED 100 is doubled by
+		# MATERIAL_MULTIPLIER at can_unlock/unlock_tech time, so the player is billed 200.
+		# Same F-class stale-number error as m025b — the taught number must be the
+		# effective one, since that is the only number the player can act on.
+		["m029a2", "Structural Doctrine", "Research 'Advanced Metallurgy'. It bills 200 Nickel — mine Pentlandite (just unlocked), then refine it with Carbon + Oxygen first.", "research", "metallurgy_advanced", 1, 5000, 500, "m029a3"],
+		# v145 (A): was 10. craft_adv_circuit consumes ONE Structural Component each
+		# (processing_manager:840, v139c trimmed 2 -> 1), and m029b now asks for 6 Advanced
+		# Circuits — so 6 is the exact bill and the other 4 had no consumer this side of
+		# Zone 3. In a 28-slot inventory, four permanently-parked components is a sink the
+		# player pays for and never spends. Named the consumer so the thread is visible:
+		# 6 components -> 6 Advanced Circuits -> Shipwright II's 6.
+		["m029a3", "First Components", "Craft 6 Structural Components in the Engineering tab — the universal building block of heavy industry, and one goes into every Advanced Circuit you are about to build.", "gather", "StructuralComponent", 6, 8000, 1000, "m029a5"],
 		# v132: ORPHANED (m029a3 → m029a5). Combustion is already owned by this
 		# point — it's Efficient Smelting's tree parent, bought at m025 — so this
 		# beat auto-completed the instant it appeared. Kept for in-flight saves.
@@ -271,9 +336,33 @@ func init_missions():
 		# Rewards (65K total) roughly bankroll the ~75K industrial investment.
 		# Save-compat: players already past m029a5 skip the arc (standard
 		# insertion pattern, see v134 note above).
-		["m029a6", "Industrial Baseload", "Construct a Biomass Plant in Infrastructure — 1,000 kW of grid power. It burns Wood; keep a stock, or add a Bio-Harvester to feed it automatically.", "build", "biomass_plant", 1, 12000, 1500, "m029a7"],
-		["m029a7", "Industrial Automation", "Research 'Industrial Automation'. The Infrastructure branch runs Blast Furnace → Automated Smelting → Industrial Automation. Hand-soldering ends here.", "research", "industrial_automation", 1, 8000, 1000, "m029a8"],
-		["m029a8", "The Assembly Line", "Commission an Electronics Assembler. It draws 1,500 kW — an underpowered line throttles and runs slow. It consumes Silicon, Copper and Resin from storage.", "build", "electronics_assembler", 1, 20000, 2500, "m029a9"],
+		# v145 (G) HARD BUG: this is the mission whose whole job is powering the line, and
+		# it under-supplied it. ONE Biomass Plant is 1,000 kW (infrastructure_manager:103)
+		# against the Electronics Assembler's 1,500 kW draw (:734) — a 485 kW deficit even
+		# counting the 15 kW Solar Array from m019d. recalc_energy sets net_energy < 0, the
+		# grid buffer drains, and energy_efficiency falls to 0: the assembler the previous
+		# three beats paid for simply stops. TWO plants = 2,000 kW vs 1,500 kW draw
+		# (+515 kW with the Solar Array), which is the first configuration that holds.
+		# Chose quantity over swapping the building: Biomass is already the taught power
+		# unit here and doubling it keeps the arc to two building families as designed.
+		# Fuel note: Wood only fills the surplus buffer — energy_efficiency keys off the
+		# static net_energy, so a wood-dry plant no longer throttles the line.
+		["m029a6", "Industrial Baseload", "Construct 2 Biomass Plants in Infrastructure — 1,000 kW each. The assembly line ahead draws 1,500 kW, so a single plant leaves it starved. They burn Wood, so keep a stock coming.", "build", "biomass_plant", 2, 12000, 1500, "m029a6t"],
+		# v145 (H): the missing titanium beat. Nothing in the chain has ever named Ti, yet
+		# the next two missions both bill it:
+		#   Automated Smelting (m029a7's tree parent): raw Ti 20 x2.0 MATERIAL_MULTIPLIER = 40
+		#   Electronics Assembler (m029a8):            Ti 50 flat
+		#   TOTAL 90. Ask 100 (margin 10).
+		# Both mine_dolomite and refine_titanium unlocked back at m029a1 (Advanced
+		# Materials) and were never taught — the same hidden-input class as the Tin wall
+		# m018t1/m018t2 already fixed. Kept to ONE beat (mine + refine in a single gather
+		# target) and paid for by dropping m008 from the chain, so net chain length is flat.
+		["m029a6t", "Titanium Reduction", "The industrial tier runs on titanium. In the Mine page quarry Dolomite, then run Titanium Reduction in Engineering until you hold 100 Ti — Automated Smelting takes 40 and the assembler after it takes 50.", "gather", "Ti", 100, 10000, 1200, "m029a7"],
+		["m029a7", "Industrial Automation", "Research 'Industrial Automation'. The Infrastructure branch runs Blast Furnace → Automated Smelting → Industrial Automation, and Automated Smelting spends 40 of your titanium. Hand-soldering ends here.", "research", "industrial_automation", 1, 8000, 1000, "m029a8"],
+		# v145 (H): name the two silent inputs — 50 Titanium (from the beat above) and 12
+		# Salvage Data, a combat drop with no craft recipe. Power line now reads honestly:
+		# the two plants from m029a6 cover this draw with room to spare.
+		["m029a8", "The Assembly Line", "Commission an Electronics Assembler. It costs 50 Titanium and 12 Salvage Data — Salvage Data drops from wrecked hostiles, so run a sector if you are short. It draws 1,500 kW, which your two Biomass Plants cover. It consumes Silicon, Copper and Resin from storage.", "build", "electronics_assembler", 1, 20000, 2500, "m029a9"],
 		# v139g funnel tune 2: 250 -> 100 Circuits. The hidden bill of 250 was the
 		# upstream Resin chain (~1 Resin per Circuit) — walled 2/3 follower seeds
 		# 55h active on m029a9. 100 keeps the watch-the-line-fill teaching beat;
@@ -291,14 +380,24 @@ func init_missions():
 		# AdvCircuit bill (~6 effective) is priced against the stock + warmed-up
 		# production chain these 5 mission-directed crafts leave behind; a 2-craft
 		# variant re-opened the historical m030 wall (measured: 55h livelock).
-		["m029b", "Complex Electronics", "Craft 5 Advanced Circuits in the Engineering tab. Three inputs need prep: Semiconductor (Silicon + Germanium), Gold (Gold Panning — Dirt + Water), and Silver (a Zinc Reduction byproduct).", "gather", "AdvCircuit", 5, 20000, 5000, "m030"],
+		# v145 (B + F-class): 5 -> 6, and the description now names ALL five inputs.
+		#   Shipwright II (m030): raw AdvCircuit 1 -> ceil(1 x 2.5 MID stage) = 3
+		#                         -> x2.0 MATERIAL_MULTIPLIER = 6 effective.
+		# The old 5 left the player exactly one short of the very next mission and the
+		# v139c note above openly relied on them noticing and crafting a 6th. Raising to 6
+		# honours that note's floor (never below 5) while removing the ambush.
+		# The old text listed 3 of the 5 recipe inputs and OMITTED StructuralComponent —
+		# the component m029a3 had just made — so the thread was cut at both ends.
+		["m029b", "Complex Electronics", "Craft 6 Advanced Circuits in the Engineering tab — Shipwright II next door spends all 6. Each one takes a Structural Component (the ones you machined), Tin, plus three that need prep: Semiconductor (Silicon + Germanium), Gold (Gold Panning — Dirt + Water), and Silver (a Zinc Reduction byproduct).", "gather", "AdvCircuit", 6, 20000, 5000, "m030"],
 		# v103f: Removed forced Fabricator mission (m030b) — it gated nothing
 		# (Fabricator is optional QoL, still buildable). m030 -> m030c directly.
 		["m030", "Naval Expansion", "Research 'Shipwright II' to unlock Destroyer-class hulls.", "research", "shipwright_2", 1, 4000, 1000, "m030c"],
 		# v134h: destroyer needs Reinforced Plating (same component as the frigate) —
 		# name it so the quantity isn't a silent grind wall. v138c: 10 -> 5 (see
 		# shipyard destroyer_hull cost note). Reroute -> m030c2 (Z2 weapons).
-		["m030c", "Hull Modernization II", "Construct a 'Destroyer' hull in the Shipyard. Needs 5 Reinforced Plating (same recipe as the Frigate) — stock Salvaged Alloy + Damaged Circuitry.", "construct", "destroyer_hull", 1, 25000, 2000, "m030c2"],
+		# v145: text said "5 Reinforced Plating"; destroyer_hull costs 3 (v139c trimmed
+		# 5 -> 3 and the mission text was not updated). Same stale-number class as F/G.
+		["m030c", "Hull Modernization II", "Construct a 'Destroyer' hull in the Shipyard. Needs 100 Steel and 3 Reinforced Plating (same recipe as the Frigate) — stock Salvaged Alloy + Damaged Circuitry.", "construct", "destroyer_hull", 1, 25000, 2000, "m030c2"],
 		# v135a: the chain never USES Zone-2 fabrication (unlocked at m027) — the player reaches
 		# the 5280-HP Z2 boss on a Z2 Destroyer still fielding Z1 batteries + Z1 guns (the m030d
 		# funnel wall). Refit for Zone 2 in two beats, mirroring the m029 Z2-armor beat:

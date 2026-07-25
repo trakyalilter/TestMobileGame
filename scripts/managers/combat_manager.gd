@@ -581,9 +581,19 @@ var enemy_db = {
 	"z2_ore_hauler": {
 		"name": "Ore Hauler",
 		"stats": {"hp": 950, "atk": 28, "def": 10, "atk_interval": 5.0, "accuracy": 20},
-		# v142 tier-gate: hauler vents its ore-cutter in a charged burst — EHP check,
-		# telegraphed. Softer than the Z3 frigate (2.0x/4th vs 2.2x/4th).
-		"charge_nuke": {"every_n": 4, "mult": 2.0},
+		# v146: mult 2.0 -> 3.2, and atk_interval 5.0 is why it needed to be this big.
+		# The owner cleared this cell carrying ZONE 1 gear on a TIER 2 hull -- the real
+		# player shape, because the mission chain hands over a frigate at m026b BEFORE
+		# tier-2 modules exist. My probe had only ever tested old gear on the OLD hull,
+		# so it never saw this. At 2.0 the spike could not reach through a T2 hull's HP
+		# pool and e4 stopped gating: carried gear simply farmed it slowly.
+		#
+		# THE LESSON: in an IDLE game "slow" is not a gate. The player is AFK anyway,
+		# so 2 kills per 3 minutes is perfectly good farming. A min-DPS stall only
+		# gates if the rate reaches ZERO; an EHP gate only gates if the spike lands.
+		# Old gear dying here is the intended rule -- only the tier-matched Common set
+		# must survive it, and that is what the funnel row "9 Common N" verifies.
+		"charge_nuke": {"every_n": 4, "mult": 3.2},
 		"loot": [["Fe", 10, 25], ["Si", 5, 12], ["Res1", 2, 5], ["PirateSalvage", 2, 5], ["SalvageData", 1, 3]],
 		"rare_loot": [["Steel", 0.10, 1, 3], ["SalvagedAlloy", 0.40, 1, 3]],
 		"module_drop_chance": 0.20,   # v138c: was 0.10 (see z2_pirate_skiff note)

@@ -68,6 +68,15 @@ var CONFIGS := [
 	["7 Legend N-1    T3 cores", 2, 3, T3, T3D, false],
 	["8 Unique N-1    no cores", 2, 4, [], [], false],
 	["9 Common N      no cores", 3, 0, [], [], false],
+	# v146: THE REAL PLAYER'S SITUATION, which every row above missed. Rows 1-8 put
+	# old gear on the OLD hull, but the mission chain hands the player a tier-N hull
+	# (frigate at m026b) BEFORE they craft tier-N modules — so they arrive in zone N
+	# carrying zone N-1 gear on a zone N chassis. The hull adds HP and slots, so this
+	# is strictly stronger than row 1 and it is what actually farms the zone.
+	# Owner-reported: Legendary+Common Z1 weapons, Legendary+plain Z1 armor, 2 Rare Z1
+	# shields cleared z2_ore_hauler (e4). Reproduce it before tuning anything.
+	["A Rare  N-1  on hull N", 2, 2, [], [], false, 3],
+	["B Legend N-1 on hull N", 2, 3, [], [], false, 3],
 ]
 
 func _ready() -> void:
@@ -85,6 +94,8 @@ func _ready() -> void:
 	# old-tier configs come from TZ-1; the "common" answer is TZ itself
 	for c in CONFIGS:
 		c[1] = (TZ if String(c[0]).begins_with("9") else TZ - 1)
+		if c.size() > 6:
+			c[6] = TZ   # A/B rows: gear from N-1, chassis from N
 	print("[Z3F] ========== ZONE-%d GEAR FUNNEL (%s) ==========" % [TZ, ZID])
 	_consumable_check(sm)
 	print("[Z3F] farm = >=%d kills in %ds, no death. cell = kills (D=died)." % [FARM_KILLS, int(WINDOW)])
@@ -148,7 +159,9 @@ func _run(sm, cm, rm, eid: String, cfg: Array) -> Dictionary:
 	for tid in rm.tech_tree:
 		if int(rm.tech_tree[tid].get("tier", 99)) <= TZ and not tid in rm.unlocked_techs:
 			rm.unlocked_techs.append(tid)
-	_set_hull(sm, gz)
+	# v146: hull zone may differ from gear zone (cfg[6]); 0/absent = same as gear.
+	var hz: int = int(cfg[6]) if cfg.size() > 6 and int(cfg[6]) > 0 else gz
+	_set_hull(sm, hz)
 	var e: Dictionary = cm.enemy_db.get(eid, {})
 	var weak := _weak(e)
 	# Unique has no engine/sensor/battery variant in game — those fall back to the

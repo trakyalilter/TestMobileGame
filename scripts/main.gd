@@ -1658,13 +1658,26 @@ func _update_navigation_hints():
 			if widget: target_to_pulse = widget
 
 	elif "m028" in mm.active_missions:
-		# Gathering: Asteroid Belt (Cassiterite / tin ore)
-		if current_page_name != "gathering": target_to_pulse = gathering_btn
+		# v145: m028 now asks for smelted TIN, not raw Cassiterite (the ore had no
+		# consumer for ~8 missions). Route need-aware, exactly like m019: no ore -> mine,
+		# ore in hand -> pulse the Tin Smelting recipe.
+		var _m028_cass: float = GameState.resources.get_element_amount("Cassiterite")
+		if _m028_cass < 3:
+			if current_page_name != "gathering": target_to_pulse = gathering_btn
+			else:
+				pages["gathering"].focus_action("mine_cassiterite")
+				var widget = pages["gathering"].get_widget_by_aid("mine_cassiterite")
+				if widget and not (GameState.gathering_manager.is_active and GameState.gathering_manager.current_action_id == "mine_cassiterite"):
+					target_to_pulse = widget.btn
 		else:
-			pages["gathering"].focus_action("mine_cassiterite")
-			var widget = pages["gathering"].get_widget_by_aid("mine_cassiterite")
-			if widget and not (GameState.gathering_manager.is_active and GameState.gathering_manager.current_action_id == "mine_cassiterite"):
-				target_to_pulse = widget.btn
+			if current_page_name != "processing": target_to_pulse = processing_btn
+			else:
+				var pm = GameState.processing_manager
+				var page = pages["processing"]
+				page.focus_tab("refine_cassiterite")
+				var w = page.get_widget_by_aid("refine_cassiterite")
+				if w and not (pm.is_active and pm.current_recipe_id == "refine_cassiterite"):
+					target_to_pulse = w.btn
 
 	elif "m029" in mm.active_missions:
 		# Shipyard: Zone 2 Armor (Carbon Fiber Plate)
@@ -1967,6 +1980,28 @@ func _update_navigation_hints():
 		else:
 			var widget = pages["research"].get_node_widget("automation")
 			if widget: target_to_pulse = widget
+
+	# v145 (H): the titanium beat. Both mine_dolomite and refine_titanium unlocked at
+	# m029a1 and were never taught, so route the two hops need-aware (mirrors m019/m028):
+	# no ore -> quarry Dolomite, ore in hand -> pulse Titanium Reduction.
+	elif "m029a6t" in mm.active_missions:
+		var _dol: float = GameState.resources.get_element_amount("Dolomite")
+		if _dol < 2:
+			if current_page_name != "gathering": target_to_pulse = gathering_btn
+			else:
+				pages["gathering"].focus_action("mine_dolomite")
+				var w = pages["gathering"].get_widget_by_aid("mine_dolomite")
+				if w and not (GameState.gathering_manager.is_active and GameState.gathering_manager.current_action_id == "mine_dolomite"):
+					target_to_pulse = w.btn
+		else:
+			if current_page_name != "processing": target_to_pulse = processing_btn
+			else:
+				var pm = GameState.processing_manager
+				var page = pages["processing"]
+				page.focus_tab("refine_titanium")
+				var w = page.get_widget_by_aid("refine_titanium")
+				if w and not (pm.is_active and pm.current_recipe_id == "refine_titanium"):
+					target_to_pulse = w.btn
 
 	elif "m029b" in mm.active_missions:
 		# Processing: Advanced Circuitry
