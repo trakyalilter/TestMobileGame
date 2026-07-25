@@ -512,7 +512,7 @@ var enemy_db = {
 		# returns LETHAL at Z8. Do not raise the mult without a funnel re-run.
 		"charge_nuke": {"every_n": 5, "mult": 3.0},
 		"loot": [["credits", 5000, 10000], ["Cu", 10, 25], ["Fe", 15, 30], ["Res1", 5, 10], ["MiteChitin", 5, 12]],
-		"rare_loot": [["z1_unique_weapon", 0.03, 1, 1], ["z1_unique_armor", 0.03, 1, 1], ["z1_unique_shield", 0.03, 1, 1], ["SalvagedAlloy", 0.90, 2, 4], ["DamagedCircuitry", 0.90, 2, 4]],
+		"rare_loot": [["z1_unique_weapon", 0.03, 1, 1], ["z1_unique_armor", 0.03, 1, 1], ["z1_unique_shield", 0.03, 1, 1], ["SalvagedAlloy", 0.90, 2, 4], ["DamagedCircuitry", 0.90, 2, 4], ["z1_unique_kinetic", 0.03, 1, 1], ["z1_unique_energy", 0.03, 1, 1], ["z1_unique_missile", 0.03, 1, 1]],
 		"boss_core": "Z1_Core", "boss_core_qty": 2,
 		"module_drop_chance": 0.20,
 		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_missile", "z1_shield", "z1_armor", "z1_engine", "z1_battery", "z1_sensor"],
@@ -572,7 +572,7 @@ var enemy_db = {
 		# harder pulse. Soft-tier acceptance: must not change win rates at Rare.
 		"sustain": {"kind": "pulse", "every_s": 8.0, "pct": 0.05},
 		"loot": [["credits", 2000, 5000], ["Ti", 5, 12], ["Fe", 20, 40], ["Res1", 10, 20], ["Res2", 3, 6], ["PirateSalvage", 5, 12]],
-		"rare_loot": [["z2_unique_weapon", 0.03, 1, 1], ["z2_unique_armor", 0.03, 1, 1], ["z2_unique_shield", 0.03, 1, 1], ["faraday_hull", 0.03, 1, 1], ["SalvagedAlloy", 0.90, 3, 6], ["DamagedCircuitry", 0.90, 3, 6]],
+		"rare_loot": [["z2_unique_weapon", 0.03, 1, 1], ["z2_unique_armor", 0.03, 1, 1], ["z2_unique_shield", 0.03, 1, 1], ["faraday_hull", 0.03, 1, 1], ["SalvagedAlloy", 0.90, 3, 6], ["DamagedCircuitry", 0.90, 3, 6], ["z2_unique_kinetic", 0.03, 1, 1], ["z2_unique_energy", 0.03, 1, 1], ["z2_unique_missile", 0.03, 1, 1]],
 		"boss_core": "Z2_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z2_kinetic", "z2_energy", "z2_missile", "z2_shield", "z2_armor", "z2_battery", "z2_sensor"],
@@ -600,7 +600,10 @@ var enemy_db = {
 	},
 	"z3_salvage_swarm": {
 		"name": "Salvage Swarm",
-		"stats": {"hp": 800, "atk": 38, "def": 10, "atk_interval": 0.6, "accuracy": 38},
+		"stats": {"hp": 800, "max_shield": 150, "atk": 34, "def": 10, "atk_interval": 0.6, "accuracy": 38},
+		# v142 tier-gate flavour (owner: use a skill mechanic, not a wall): the swarm
+		# re-knits. MIN-DPS check — sub-tier damage cannot out-pace the re-form.
+		"sustain": {"kind": "pulse", "every_s": 6.0, "pct": 0.13},
 		"loot": [["Fe", 5, 15], ["Cu", 3, 8], ["Res2", 1, 2], ["MartianRelics", 1, 2], ["SalvageData", 2, 4]],
 		"rare_loot": [["Steel", 0.15, 2, 5], ["Sn", 0.12, 2, 4]],
 		"module_drop_chance": 0.20,   # v138c: was 0.10 (see z3_scavenger_mech note)
@@ -610,6 +613,9 @@ var enemy_db = {
 	"z3_derelict_frigate": {
 		"name": "Derelict Frigate",
 		"stats": {"hp": 2000, "max_shield": 400, "atk": 82, "def": 18, "atk_interval": 4.0, "accuracy": 42},
+		# v142 tier-gate flavour: derelict spinal gun charges, then fires. EHP check —
+		# telegraphed ("CHARGING MAIN CANNON"), pre-fight solvable, auto-battler clean.
+		"charge_nuke": {"every_n": 4, "mult": 2.2},
 		"loot": [["Steel", 5, 12], ["Fe", 10, 25], ["Res2", 1, 3], ["MartianRelics", 2, 4]],
 		"rare_loot": [["Ti", 0.10, 2, 5], ["Cr", 0.08, 1, 3]],
 		"module_drop_chance": 0.20,   # v138c: was 0.10 (see z3_scavenger_mech note)
@@ -626,7 +632,7 @@ var enemy_db = {
 		# timing after any change here).
 		"enrage_at": 0.35, "enrage_atk_mult": 1.2,
 		"loot": [["credits", 5000, 10000], ["Steel", 20, 40], ["Ti", 10, 25], ["Res2", 5, 10], ["MartianRelics", 5, 12]],
-		"rare_loot": [["z3_unique_weapon", 0.03, 1, 1], ["z3_unique_armor", 0.03, 1, 1], ["z3_unique_shield", 0.03, 1, 1]],
+		"rare_loot": [["z3_unique_weapon", 0.03, 1, 1], ["z3_unique_armor", 0.03, 1, 1], ["z3_unique_shield", 0.03, 1, 1], ["z3_unique_kinetic", 0.03, 1, 1], ["z3_unique_energy", 0.03, 1, 1], ["z3_unique_missile", 0.03, 1, 1]],
 		"boss_core": "Z3_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z3_kinetic", "z3_energy", "z3_missile", "z3_shield", "z3_armor", "z3_battery", "z3_sensor"],
@@ -681,7 +687,7 @@ var enemy_db = {
 		# was only survivable on late-game pools. Debut = visible lesson, not a wall.
 		"sustain": {"kind": "siphon", "pct": 0.04},
 		"loot": [["credits", 15000, 30000], ["Ti", 30, 60], ["AdvCircuit", 5, 12], ["Res2", 10, 20], ["CryoEssence", 5, 12]],
-		"rare_loot": [["z4_unique_weapon", 0.03, 1, 1], ["z4_unique_armor", 0.03, 1, 1], ["z4_unique_shield", 0.03, 1, 1]],
+		"rare_loot": [["z4_unique_weapon", 0.03, 1, 1], ["z4_unique_armor", 0.03, 1, 1], ["z4_unique_shield", 0.03, 1, 1], ["z4_unique_kinetic", 0.03, 1, 1], ["z4_unique_energy", 0.03, 1, 1], ["z4_unique_missile", 0.03, 1, 1]],
 		"boss_core": "Z4_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z4_kinetic", "z4_energy", "z4_missile", "z4_shield", "z4_armor", "z4_battery", "z4_sensor"],
@@ -738,7 +744,7 @@ var enemy_db = {
 		# (3/9 vs 4/9 mission-real — the band's softness predates the trait).
 		"sustain": {"kind": "nanite", "below": 0.30, "dur": 4.0, "hull_pct_per_s": 0.03},
 		"loot": [["credits", 50000, 100000], ["VoidArtifact", 10, 25], ["QuantumCore", 2, 5], ["Res2", 15, 30], ["XenoFragment", 5, 12]],
-		"rare_loot": [["z5_unique_weapon", 0.03, 1, 1], ["z5_unique_armor", 0.03, 1, 1], ["z5_unique_shield", 0.03, 1, 1]],
+		"rare_loot": [["z5_unique_weapon", 0.03, 1, 1], ["z5_unique_armor", 0.03, 1, 1], ["z5_unique_shield", 0.03, 1, 1], ["z5_unique_kinetic", 0.03, 1, 1], ["z5_unique_energy", 0.03, 1, 1], ["z5_unique_missile", 0.03, 1, 1]],
 		"boss_core": "Z5_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z5_kinetic", "z5_energy", "z5_missile", "z5_shield", "z5_armor", "z5_battery", "z5_sensor"],
@@ -796,7 +802,7 @@ var enemy_db = {
 		# fast small hits; heavy slow per-hit builds break through.
 		"reactive_armor": {"per_hits": 25, "def_mult": 1.4, "cap": 2.2},
 		"loot": [["credits", 200000, 500000], ["Ir", 5, 12], ["Superalloy", 10, 25], ["Res3", 10, 20], ["ColonyDataCore", 2, 5]],
-		"rare_loot": [["z6_unique_weapon", 0.03, 1, 1], ["z6_unique_armor", 0.03, 1, 1], ["z6_unique_shield", 0.03, 1, 1]],
+		"rare_loot": [["z6_unique_weapon", 0.03, 1, 1], ["z6_unique_armor", 0.03, 1, 1], ["z6_unique_shield", 0.03, 1, 1], ["z6_unique_kinetic", 0.03, 1, 1], ["z6_unique_energy", 0.03, 1, 1], ["z6_unique_missile", 0.03, 1, 1]],
 		"boss_core": "Z6_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z6_kinetic", "z6_energy", "z6_missile", "z6_shield", "z6_armor", "z6_battery", "z6_sensor"],
@@ -849,7 +855,7 @@ var enemy_db = {
 		# for real (lattice continuity: monolith → prism).
 		"sustain": {"kind": "pulse", "every_s": 7.0, "pct": 0.07},
 		"loot": [["credits", 1000000, 2000000], ["ExoticMatter", 15, 30], ["Os", 3, 8], ["Res3", 15, 30]],
-		"rare_loot": [["z7_unique_weapon", 0.03, 1, 1], ["z7_unique_armor", 0.03, 1, 1], ["z7_unique_shield", 0.03, 1, 1]],
+		"rare_loot": [["z7_unique_weapon", 0.03, 1, 1], ["z7_unique_armor", 0.03, 1, 1], ["z7_unique_shield", 0.03, 1, 1], ["z7_unique_kinetic", 0.03, 1, 1], ["z7_unique_energy", 0.03, 1, 1], ["z7_unique_missile", 0.03, 1, 1]],
 		"boss_core": "Z7_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z7_kinetic", "z7_energy", "z7_missile", "z7_shield", "z7_armor", "z7_battery", "z7_sensor"],
@@ -904,7 +910,7 @@ var enemy_db = {
 		# v139d P3: the Z1 Architect's telegraph, now LETHAL — every 4th swing x4.
 		"charge_nuke": {"every_n": 5, "mult": 4.5},
 		"loot": [["credits", 3000000, 6000000], ["VoidCrystal", 20, 50], ["Diamond", 2, 5], ["Res3", 20, 40]],
-		"rare_loot": [["z8_unique_weapon", 0.03, 1, 1], ["z8_unique_armor", 0.03, 1, 1], ["z8_unique_shield", 0.03, 1, 1]],
+		"rare_loot": [["z8_unique_weapon", 0.03, 1, 1], ["z8_unique_armor", 0.03, 1, 1], ["z8_unique_shield", 0.03, 1, 1], ["z8_unique_kinetic", 0.03, 1, 1], ["z8_unique_energy", 0.03, 1, 1], ["z8_unique_missile", 0.03, 1, 1]],
 		"boss_core": "Z8_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z8_kinetic", "z8_energy", "z8_missile", "z8_shield", "z8_armor", "z8_battery", "z8_sensor"],
@@ -957,7 +963,7 @@ var enemy_db = {
 		"corrosive_field": {"hull_dps_pct": 0.004},
 		"enrage_at": 0.4, "enrage_atk_mult": 1.3,
 		"loot": [["credits", 10000000, 20000000], ["Neutronium", 10, 25], ["PathogenCore", 3, 8], ["Res3", 30, 50], ["QuarantineClearance", 1, 1]],
-		"rare_loot": [["z9_unique_weapon", 0.03, 1, 1], ["z9_unique_armor", 0.03, 1, 1], ["z9_unique_shield", 0.03, 1, 1]],
+		"rare_loot": [["z9_unique_weapon", 0.03, 1, 1], ["z9_unique_armor", 0.03, 1, 1], ["z9_unique_shield", 0.03, 1, 1], ["z9_unique_kinetic", 0.03, 1, 1], ["z9_unique_energy", 0.03, 1, 1], ["z9_unique_missile", 0.03, 1, 1]],
 		"boss_core": "Z9_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z9_kinetic", "z9_energy", "z9_missile", "z9_shield", "z9_armor", "z9_battery", "z9_sensor"],
@@ -1023,7 +1029,7 @@ var enemy_db = {
 		"adaptive_grid": {"per_hit_resist": 0.01, "cap": 0.15},
 		"volatile": {"mult": 3.75},
 		"loot": [["credits", 50000000, 100000000], ["PrimordialShard", 20, 50], ["ChronoCore", 5, 12], ["CryoCatalyst", 10, 25]],
-		"rare_loot": [["z10_unique_weapon", 0.03, 1, 1], ["z10_unique_armor", 0.03, 1, 1], ["z10_unique_shield", 0.03, 1, 1]],
+		"rare_loot": [["z10_unique_weapon", 0.03, 1, 1], ["z10_unique_armor", 0.03, 1, 1], ["z10_unique_shield", 0.03, 1, 1], ["z10_unique_kinetic", 0.03, 1, 1], ["z10_unique_energy", 0.03, 1, 1], ["z10_unique_missile", 0.03, 1, 1]],
 		"boss_core": "Z10_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z10_kinetic", "z10_energy", "z10_missile", "z10_shield", "z10_armor", "z10_battery", "z10_sensor"],

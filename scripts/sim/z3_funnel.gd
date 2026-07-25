@@ -45,9 +45,6 @@ const S_AFF := ["flat_shield", "shield_heal_on_hit", "capacitor_pulse"]
 # label, gear_zone, rarity, weapon-gems, defense-gems, forced_sockets
 var CONFIGS := [
 	["1 Rare Z2       no cores", 2, 2, [], [], false],
-	["2 Rare Z2       T1 cores", 2, 2, T1, T1D, true],
-	["3 Rare Z2       T2 cores", 2, 2, T2, T2D, true],
-	["4 Rare Z2       T3 cores", 2, 2, T3, T3D, true],
 	["5 Legendary Z2  T1 cores", 2, 3, T1, T1D, false],
 	["6 Legendary Z2  T2 cores", 2, 3, T2, T2D, false],
 	["7 Legendary Z2  T3 cores", 2, 3, T3, T3D, false],
@@ -158,7 +155,14 @@ func _fill(sm, stype: String, base_id: String, zone: int, rarity: int, affixes: 
 	# Unique variants live under a different id.
 	var bid := base_id
 	if rarity == 4:
-		var uid := "z%d_unique_%s" % [zone, ("weapon" if stype == "weapon" else stype)]
+		# v142: uniques are now split by damage channel, so a Unique set can cover
+		# the kin/nrg/exp cycle. Pick the variant matching the weak-type weapon the
+		# caller already resolved (base_id is "z<N>_<kinetic|energy|missile>").
+		var uid := ""
+		if stype == "weapon":
+			uid = "z%d_unique_%s" % [zone, base_id.split("_")[-1]]
+		else:
+			uid = "z%d_unique_%s" % [zone, stype]
 		bid = uid if uid in sm.modules else base_id
 	if not bid in sm.modules:
 		return
