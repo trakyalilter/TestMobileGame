@@ -241,7 +241,17 @@ telegraphed). Consistent mechanic, ramped numbers — the player learns one rule
 
 (Was: only e1 at Z4; deaths at Z5/Z7; nothing farming at Z10.)
 
-## STILL OPEN — the even-zone leak, and why it is not a trait problem
+## !! RETRACTED by v142b — the section below was measured with a BROKEN PROBE
+
+Everything under "STILL OPEN" is WRONG. `z3_funnel` passed `ga_chance = 1.0` to
+`_roll_affix_value`, giving config 1 three guaranteed best-in-slot MAXIMUM Greater
+Affixes per module (~11x a real roll) -- while config 9's identical forced affixes
+were SILENTLY DISCARDED, because a Common drop returns the base module id with no
+`custom_modules` entry and `recalc_stats` only aggregates from `custom_modules`.
+It was measuring a juiced Rare against a naked Common. Kept below only as a record
+of the wrong turn. See the v142b section at the end of this file.
+
+## STILL OPEN (RETRACTED - see above) — the even-zone leak
 
 Carried Rare-(N-1) still farms some e3/e4 at **Z4, Z6, Z8, Z10** — precisely the
 no-slot-gain hull transitions. At those steps the measured gap between fresh
@@ -269,3 +279,88 @@ it per zone, and it is one coefficient rather than a re-audit of every module.
 spurious deaths. Z2 e4 and Z3 e3 read 5*/9* in three separate runs this session
 and 4/8D in the final one on **byte-identical** Z2/Z3 code. Do not chase a
 single-run regression on an untouched zone — re-run before believing it.
+
+---
+
+# v142b — probe fixed, gate retuned (2026-07-25)
+
+## The instrument was broken
+
+`z3_funnel._fill` overrode every module's affixes with a hand-picked list rolled at
+`ga_chance = 1.0`. That third argument forces `randf() < ga_chance` true, so every
+affix returned `range_max * GA_MULT`. Config 1 (Rare N-1) therefore fought with 3
+guaranteed best-in-slot maximum Greater Affixes per module. The real game gives a
+Rare exactly 2 affixes drawn at random from a 13-entry pool at 15% GA -- an ~11x
+inflation on `dmg_injured` and `servo_overclock`, both of which stack ADDITIVELY
+per weapon slot.
+
+Meanwhile config 9's identical forced affixes did nothing: a Common drop returns
+the base module id with no `custom_modules` entry, and `recalc_stats` only
+aggregates affixes from `custom_modules`. Config 9's `affix_bonuses` measured
+EMPTY at every zone.
+
+Confirmed by three independent adversarial verifiers (0/3 could refute), one of
+which built a controlled A/B: with affixes equalised, Common-N/Rare-(N-1) DPS
+returns to ~2.9x median -- exactly the designed `TIER_STEP_NEW 3.75 / RARE roll
+1.35 = 2.78x`. **The tier economy was never broken.** There was no parity, so
+there was nothing for extra hull slots to fix.
+
+FIX: deleted the override entirely. `generate_module_drop` already rolls affixes
+correctly, so the probe now just uses what it returns. TRIALS 3 -> 9 (honest rolls
+carry real variance). Do not reintroduce a forced-affix path.
+
+## What the honest numbers changed
+
+- The "even-zone leak" was an artifact. With real rolls, carried Rare-(N-1) is
+  gated on e3/e4 at **every** zone. The gate did not need strengthening.
+- The opposite problem was real and unseen: carried Rare-(N-1) **died on e1/e2 at
+  8 of 9 zones**, hard-blocking the on-ramp for a player who has just reached a new
+  zone. Owner rule: "1 2 3 4 5 6 7 8 9 must be able to farm e1 and e2".
+- FIX: `FRONT_CELL_ATK_CALIB = 0.50`, applied in `spawn_enemy` via the existing
+  `enemy_is_front_salvage` helper. atk ONLY -- kills were already fine, this was
+  purely lethality. Design-consistent: e1/e2 drop no modules, so they are the
+  low-risk/low-reward on-ramp; risk belongs on e3/e4 where the loot is.
+- Plus `z2_claim_jumper` atk 34->28 and `z3_derelict_frigate` nuke 2.2->2.0, the
+  last two tier-matched-Common deaths.
+
+## Final: Common-N farms all four, all nine zones, no deaths (9 trials)
+
+| Zone | e1 | e2 | e3 | e4 |
+|---|---|---|---|---|
+| 2 | 15* | 11* | 7* | 5* |
+| 3 | 15* | 10* | 8* | 5* |
+| 4 | 13* | 8* | 6* | 11* |
+| 5 | 11* | 10* | 8* | 12* |
+| 6 | 12* | 10* | 7* | 10* |
+| 7 | 16* | 10* | 10* | 6* |
+| 8 | 12* | 11* | 9* | 6* |
+| 9 | 12* | 10* | 10* | 8* |
+| 10 | 13* | 11* | 7* | 7* |
+
+Carried Rare-(N-1) is gated on e3/e4 at every zone; Legendary+T2/T3 cores earn a
+pass at several, which is the intended "you ground for it" exemption.
+
+## Residual
+
+Rare-(N-1) still shows an occasional e1 death at Z2/Z4/Z5/Z7/Z9. With 9 trials a
+single unlucky 2-affix roll flags the cell, so this is a worst-roll tail, not the
+median. Judgement call to chase further.
+
+## Two REAL game bugs surfaced by the investigation (not yet fixed)
+
+1. **Accuracy is a dead stat game-wide.** `combat_manager.gd:1669` reads
+   `e_data["stats"].get("eva", 0)`, but all 83 enemies declare `eva` as a TOP-LEVEL
+   key (0 occurrences inside `stats`) -- every sibling on the adjacent lines reads
+   top-level correctly. So `current_enemy["eva"]` is always 0 and `hit_chance` is
+   always 1.000. Sensors, accuracy gems and Overseer's Command accuracy do nothing.
+2. **`migrate_save` has been unreachable since v4.** `game_state.gd:388` tests
+   `if ver < 3` against a version-4 save. Latent, and it will bite the first time a
+   real migration is needed.
+
+## Standing lesson
+
+Two tuning passes were burned on this instrument before it was caught, and the
+smell was visible early: a gate that changed nothing (Z4 e3 read identically pre-
+and post-pulse), and configs that measured impossibly close. **When a measurement
+contradicts the arithmetic of the design, suspect the instrument before the
+design.**

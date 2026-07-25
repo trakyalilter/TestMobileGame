@@ -35,9 +35,10 @@ const SECANT_PASSES := 3
 
 const SUFFIX := {"kinetic": "kinetic", "energy": "energy", "explosive": "missile"}
 const AMMO := {"kinetic": "Slug", "energy": "Cell", "explosive": "Missile"}
-const W_AFF := ["dmg_injured", "servo_overclock", "shield_heal_on_hit"]
-const A_AFF := ["resist_k", "flat_hp", "hull_heal_on_hit"]
-const S_AFF := ["flat_shield", "shield_heal_on_hit", "capacitor_pulse"]
+# v142b: forced-affix lists removed — see the long note in z3_funnel.gd. They passed
+# ga_chance 1.0 (guaranteed max Greater Affix) and were silently dropped for Common,
+# so the probe compared a juiced kit to a naked one. generate_module_drop rolls
+# affixes correctly on its own; never override it here.
 
 var _base: Dictionary = {}   # eid -> {"hp":, "max_shield":, "atk":}
 
@@ -165,12 +166,12 @@ func _run(sm, cm, rm, tz: int, zid: String, eid: String, m: float, am: float) ->
 	_set_hull(sm, tz)
 	var e: Dictionary = cm.enemy_db.get(eid, {})
 	var weak := _weak(e)
-	_fill(sm, "battery", "z%d_battery" % tz, tz, 0, [], [])
-	_fill(sm, "weapon", "z%d_%s" % [tz, SUFFIX[weak]], tz, 0, W_AFF, [])
-	_fill(sm, "armor", "z%d_armor" % tz, tz, 0, A_AFF, [])
-	_fill(sm, "shield", "z%d_shield" % tz, tz, 0, S_AFF, [])
-	_fill(sm, "engine", "z%d_engine" % tz, tz, 0, [], [])
-	_fill(sm, "sensor", "z%d_sensor" % tz, tz, 0, [], [])
+	_fill(sm, "battery", "z%d_battery" % tz, tz, 0, [])
+	_fill(sm, "weapon", "z%d_%s" % [tz, SUFFIX[weak]], tz, 0, [])
+	_fill(sm, "armor", "z%d_armor" % tz, tz, 0, [])
+	_fill(sm, "shield", "z%d_shield" % tz, tz, 0, [])
+	_fill(sm, "engine", "z%d_engine" % tz, tz, 0, [])
+	_fill(sm, "sensor", "z%d_sensor" % tz, tz, 0, [])
 	_ammo_kits(sm, weak)
 	sm.recalc_stats()
 	sm.current_hp = sm.max_hp
@@ -190,7 +191,7 @@ func _run(sm, cm, rm, tz: int, zid: String, eid: String, m: float, am: float) ->
 			return {"kills": int(cm.total_kills) - k0, "died": true}
 	return {"kills": int(cm.total_kills) - k0, "died": false}
 
-func _fill(sm, stype: String, base_id: String, zone: int, rarity: int, affixes: Array, gems: Array) -> void:
+func _fill(sm, stype: String, base_id: String, zone: int, rarity: int, gems: Array) -> void:
 	if not base_id in sm.modules:
 		return
 	for i in _slots(sm, stype):
@@ -198,16 +199,7 @@ func _fill(sm, stype: String, base_id: String, zone: int, rarity: int, affixes: 
 		if cid == "":
 			continue
 		var mod: Dictionary = sm.modules[cid]
-		if not affixes.is_empty():
-			var out := {}
-			for p in affixes:
-				var aid := String(p)
-				if not sm.AFFIX_DB.has(aid):
-					continue
-				var lim: Array = sm.AFFIX_DB[aid].get("limit_to", [])
-				if lim.is_empty() or (stype in lim):
-					out[aid] = float(sm._roll_affix_value(aid, zone, 1.0)["value"])
-			mod["affixes"] = out
+		# NO affix override — generate_module_drop already rolled them naturally.
 		if not gems.is_empty():
 			if (mod.get("sockets", []) as Array).size() < 3:
 				mod["sockets"] = [null, null, null]

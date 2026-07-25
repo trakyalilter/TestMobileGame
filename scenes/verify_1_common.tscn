@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/sim/verify_1_common.gd" id="1_v1cm"]
+
+[node name="Verify1Common" type="Node"]
+script = ExtResource("1_v1cm")

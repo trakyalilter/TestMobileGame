@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/sim/power_decomp.gd" id="1_pwdc"]
+
+[node name="PowerDecomp" type="Node"]
+script = ExtResource("1_pwdc")

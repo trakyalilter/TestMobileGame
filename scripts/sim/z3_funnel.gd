@@ -27,7 +27,10 @@ extends Node
 const DT := 0.1
 const WINDOW := 180.0
 const FARM_KILLS := 5
-const TRIALS := 3
+# v142b: raised 3 -> 9. Affixes now roll NATURALLY (random pool, 15% GA), so a
+# single trial carries real roll variance. 3 trials was already noisy enough to
+# flip untouched zones between runs; with honest rolls it would be worse.
+const TRIALS := 9
 var TZ := 3          # target zone (override: -- --zone=N)
 var ZID := "mars_debris"
 
@@ -39,9 +42,23 @@ const T3 := ["PristineCrimsonCore", "PristineCobaltCore", "PristineTopazCore"]
 const T1D := ["CrackedAmethystCore", "CrackedCrimsonCore", "CrackedCobaltCore"]
 const T2D := ["StableAmethystCore", "StableCrimsonCore", "StableCobaltCore"]
 const T3D := ["PristineAmethystCore", "PristineCrimsonCore", "PristineCobaltCore"]
-const W_AFF := ["dmg_injured", "servo_overclock", "shield_heal_on_hit"]
-const A_AFF := ["resist_k", "flat_hp", "hull_heal_on_hit"]
-const S_AFF := ["flat_shield", "shield_heal_on_hit", "capacitor_pulse"]
+
+# v142b AFFIX CORRECTION — the hand-picked W_AFF/A_AFF/S_AFF lists were REMOVED.
+#
+# They fed sm._roll_affix_value(aid, zone, 1.0) — that third arg is ga_chance, so
+# 1.0 forced EVERY affix to range-max x GA_MULT. Config 1 (Rare N-1) therefore ran
+# 3 guaranteed best-in-slot maximum Greater Affixes per module (~11x a real roll),
+# while config 9's identical forced affixes were SILENTLY DISCARDED — a Common drop
+# returns the base module id with no custom_modules entry, and recalc_stats only
+# aggregates affixes from custom_modules. The probe was measuring a juiced Rare
+# against a naked Common, which is what made them look equal at zones 4/6/8/10.
+#
+# generate_module_drop already rolls affixes correctly (2/3/4 for Rare/Legendary/
+# Unique, random draw from the legal pool, 15% GA), so the fix is simply to STOP
+# OVERRIDING IT. Do not reintroduce a forced-affix path here.
+#
+# Sockets are still forced to 3 on the gem configs: "Legendary + T3 cores" means a
+# fully socketed kit by definition, so that is the config's intent, not a cheat.
 
 # label, gear_zone, rarity, weapon-gems, defense-gems, forced_sockets
 var CONFIGS := [
@@ -137,12 +154,12 @@ func _run(sm, cm, rm, eid: String, cfg: Array) -> Dictionary:
 	# Unique has no engine/sensor/battery variant in game — those fall back to the
 	# best obtainable (Rare now that battery/sensor drop), engine stays Common.
 	var side_rar: int = 2 if rar == 4 else rar
-	_fill(sm, "battery", "z%d_battery" % gz, gz, min(side_rar, 3), [], [], force)
-	_fill(sm, "weapon", "z%d_%s" % [gz, SUFFIX[weak]], gz, rar, W_AFF, wg, force)
-	_fill(sm, "armor", "z%d_armor" % gz, gz, rar, A_AFF, dg, force)
-	_fill(sm, "shield", "z%d_shield" % gz, gz, rar, S_AFF, dg, force)
-	_fill(sm, "engine", "z%d_engine" % gz, gz, 0, [], [], false)
-	_fill(sm, "sensor", "z%d_sensor" % gz, gz, min(side_rar, 3), [], [], force)
+	_fill(sm, "battery", "z%d_battery" % gz, gz, min(side_rar, 3), [], force)
+	_fill(sm, "weapon", "z%d_%s" % [gz, SUFFIX[weak]], gz, rar, wg, force)
+	_fill(sm, "armor", "z%d_armor" % gz, gz, rar, dg, force)
+	_fill(sm, "shield", "z%d_shield" % gz, gz, rar, dg, force)
+	_fill(sm, "engine", "z%d_engine" % gz, gz, 0, [], false)
+	_fill(sm, "sensor", "z%d_sensor" % gz, gz, min(side_rar, 3), [], force)
 	_ammo_kits(sm, weak)
 	sm.recalc_stats()
 	sm.current_hp = sm.max_hp
@@ -162,7 +179,7 @@ func _run(sm, cm, rm, eid: String, cfg: Array) -> Dictionary:
 			return {"kills": int(cm.total_kills) - k0, "died": true}
 	return {"kills": int(cm.total_kills) - k0, "died": false}
 
-func _fill(sm, stype: String, base_id: String, zone: int, rarity: int, affixes: Array, gems: Array, force: bool) -> void:
+func _fill(sm, stype: String, base_id: String, zone: int, rarity: int, gems: Array, force: bool) -> void:
 	# Unique variants live under a different id.
 	var bid := base_id
 	if rarity == 4:
@@ -182,16 +199,7 @@ func _fill(sm, stype: String, base_id: String, zone: int, rarity: int, affixes: 
 		if cid == "":
 			continue
 		var m: Dictionary = sm.modules[cid]
-		if not affixes.is_empty():
-			var out := {}
-			for p in affixes:
-				var aid := String(p)
-				if not sm.AFFIX_DB.has(aid):
-					continue
-				var lim: Array = sm.AFFIX_DB[aid].get("limit_to", [])
-				if lim.is_empty() or (stype in lim):
-					out[aid] = float(sm._roll_affix_value(aid, zone, 1.0)["value"])
-			m["affixes"] = out
+		# NO affix override — generate_module_drop already rolled them naturally.
 		if not gems.is_empty():
 			if force or (m.get("sockets", []) as Array).size() < 3:
 				m["sockets"] = [null, null, null]

@@ -543,7 +543,10 @@ var enemy_db = {
 	},
 	"z2_claim_jumper": {
 		"name": "Claim Jumper",
-		"stats": {"hp": 640, "max_shield": 110, "atk": 34, "def": 8, "atk_interval": 2.2, "accuracy": 28},
+		# v142b: atk 34->28. Under honest affix rolls the tier-matched Common set
+		# DIED here (7 kills then a death) — Z2 e3 was the only Common-N idle-rule
+		# violation left once the probe stopped force-feeding max Greater Affixes.
+		"stats": {"hp": 640, "max_shield": 110, "atk": 28, "def": 8, "atk_interval": 2.2, "accuracy": 28},
 		# v142 tier-gate: Z2 is the FIRST gated zone. Claim Jumper patches its own
 		# plating — MIN-DPS check. Softer than the Z3 swarm (10%/7s vs 13%/6s).
 		"sustain": {"kind": "pulse", "every_s": 6.5, "pct": 0.09},
@@ -621,7 +624,11 @@ var enemy_db = {
 		"stats": {"hp": 2000, "max_shield": 400, "atk": 82, "def": 18, "atk_interval": 4.0, "accuracy": 42},
 		# v142 tier-gate flavour: derelict spinal gun charges, then fires. EHP check —
 		# telegraphed ("CHARGING MAIN CANNON"), pre-fight solvable, auto-battler clean.
-		"charge_nuke": {"every_n": 4, "mult": 2.2},
+		# v142b: mult 2.2->2.0. Under honest affix rolls at 9 trials the tier-matched
+		# Common set died here on its worst roll (5 kills, then a nuke through a
+		# low shield buffer). Z3 is the first-warp gate zone — it must not be the
+		# one that breaks idle.
+		"charge_nuke": {"every_n": 4, "mult": 2.0},
 		"loot": [["Steel", 5, 12], ["Fe", 10, 25], ["Res2", 1, 3], ["MartianRelics", 2, 4]],
 		"rare_loot": [["Ti", 0.10, 2, 5], ["Cr", 0.08, 1, 3]],
 		"module_drop_chance": 0.20,   # v138c: was 0.10 (see z3_scavenger_mech note)
@@ -1469,6 +1476,12 @@ const REBASE_ENEMY_STATS := ["hp", "atk", "def", "max_shield"]
 const ZONE_TRASH_EHP_CALIB := {4: 0.41, 5: 0.69, 6: 0.48, 7: 0.38, 8: 0.58, 9: 0.48, 10: 0.31}
 const CALIB_EHP_STATS := ["hp", "max_shield"]
 
+# v142b: applied in spawn_enemy to e1/e2 only — see the note there. 0.70 only
+# rescued 3 of 9 zones, so this went to 0.50. That is design-consistent rather
+# than a retreat: e1/e2 drop NO modules, so they are the low-risk/low-reward
+# on-ramp. Risk belongs on e3/e4, where the loot is.
+const FRONT_CELL_ATK_CALIB := 0.50
+
 func _apply_enemy_tier_rebase() -> void:
 	var sm_script = load("res://scripts/managers/shipyard_manager.gd")
 	for eid in enemy_db:
@@ -1726,6 +1739,17 @@ func spawn_enemy():
 		current_enemy["max_hp"] = int(current_enemy["max_hp"] * _zhp)
 		current_enemy["def"] = int(current_enemy["def"] * _zdef)
 		current_enemy["atk"] = int(current_enemy["atk"] * _zatk)
+
+	# v142b FRONT-CELL LETHALITY. Owner rule: "1 2 3 4 5 6 7 8 9 must be able to
+	# farm e1 and e2". The front cells are the MATERIAL cells (drops_modules is
+	# false there) — they are how a player who has just reached a new zone
+	# bootstraps the commons that let them take on e3/e4. Once the sim probe's
+	# forced max-roll affixes were removed and HONEST rolls were measured, carried
+	# Rare-(N-1) DIED on e1/e2 at 8 of 9 zones, hard-blocking that entry path.
+	# Its kill counts were fine (1-6) — this was purely lethality, so the calib
+	# scales atk ONLY and leaves EHP (i.e. the farm rate) untouched.
+	if enemy_is_front_salvage(String(eid)):
+		current_enemy["atk"] = int(current_enemy["atk"] * FRONT_CELL_ATK_CALIB)
 
 	# v103: Measured progression compensation. Enemies scale ONLY against the
 	# player's *external grind* multiplier (combat level + warp), NOT gear —
