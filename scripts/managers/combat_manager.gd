@@ -517,9 +517,17 @@ var enemy_db = {
 		# returns LETHAL at Z8. Do not raise the mult without a funnel re-run.
 		"charge_nuke": {"every_n": 5, "mult": 3.0},
 		"loot": [["credits", 5000, 10000], ["Cu", 10, 25], ["Fe", 15, 30], ["Res1", 5, 10], ["MiteChitin", 5, 12]],
-		"rare_loot": [["z1_unique_weapon", 0.03, 1, 1], ["z1_unique_armor", 0.03, 1, 1], ["z1_unique_shield", 0.03, 1, 1], ["SalvagedAlloy", 0.90, 2, 4], ["DamagedCircuitry", 0.90, 2, 4], ["z1_unique_kinetic", 0.03, 1, 1], ["z1_unique_energy", 0.03, 1, 1], ["z1_unique_missile", 0.03, 1, 1]],
+		# v143: UNIQUES REMOVED FROM THE TUTORIAL BOSS (owner call). Zone 1 is the
+		# tutorial and the easiest fight in the game, so a Unique set from it let the
+		# player walk straight past Zone 2 and made every Zone 2 module pointless.
+		# Measured: a Unique Z1 set scored 117/74/11/36 kills across Zone 2's four
+		# cells, against 13/10/5/5 for the Zone 2 Commons that zone is built around.
+		# Uniques now begin at Zone 2 — the reward tier starts when the real game does.
+		# The boss keeps its identity through Z1_Core x2 (which gates Zone 2 research)
+		# and a raised regular module chance below.
+		"rare_loot": [["SalvagedAlloy", 0.90, 2, 4], ["DamagedCircuitry", 0.90, 2, 4]],
 		"boss_core": "Z1_Core", "boss_core_qty": 2,
-		"module_drop_chance": 0.20,
+		"module_drop_chance": 0.40,  # v143: 0.20 -> 0.40, replacing the removed unique chase with a real regular-module chase
 		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_missile", "z1_shield", "z1_armor", "z1_engine", "z1_battery", "z1_sensor"],
 		# v131: resists ZEROED by design — the first boss is a pure rarity/tier check
 		# (any RARE+ weapon type kills it). Type-matching is taught earlier on the
