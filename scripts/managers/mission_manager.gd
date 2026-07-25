@@ -123,7 +123,12 @@ func init_missions():
 		# Shield Section Moved Here (m023 -> m024)
 		# P2-12: Combat Readiness Checkpoint - ensure player is equipped before first combat
 		["m016b", "Combat Ready", "Equip a WEAPON and SHIELD in your Ship Designer.", "loadout_check", "combat_ready", 1, 300, 100, "m017"],
-		["m017", "Target Locked", "Defeat 1 Lunar Drone in Lunar Orbit.", "defeat", "z1_lunar_drone", 1, 2500, 500, "m017a"],
+		# v143: two-step. Combat keeps running after the kill, so a new player would
+		# wander off to gather or craft with the ship still trading fire and come back
+		# to a wreck. The kill alone no longer completes it — they must also pull out,
+		# which teaches Retreat at the first moment it matters instead of letting a
+		# death teach it. Progress still reads as the kill; the retreat is the gate.
+		["m017", "Target Locked", "Defeat 1 Lunar Drone in Lunar Orbit, then click RETREAT to pull your ship out.", "defeat_retreat", "z1_lunar_drone", 1, 2500, 500, "m017a"],
 		# v128: damage-triangle onboarding. The Lunar Drone (m017) taught KINETIC; this
 		# pair teaches ENERGY against the energy-weak Survey Probe (resist_e -0.30, resists
 		# kinetic +0.30). The EXPLOSIVE leg is the Scrap Collector pair (m017c/d).
@@ -454,6 +459,14 @@ func _on_hull_constructed(hull_id):
 
 func _on_enemy_defeated(enemy_id):
 	_update_progress("defeat", enemy_id, 1)
+	# v143: "defeat_retreat" banks the kill in _kills rather than current_qty, so the
+	# mission cannot complete on the kill alone — sync_progress releases current_qty
+	# only once the ship is also out of combat. Counted here (not in the state check)
+	# because a state poll would miss kills that happen between polls.
+	for _mid in active_missions:
+		var _m: Dictionary = missions[_mid]
+		if str(_m.get("type", "")) == "defeat_retreat" and str(_m.get("target", "")) == str(enemy_id):
+			_m["_kills"] = int(_m.get("_kills", 0)) + 1
 
 # v128: player deployed into a sector — completes "discover" missions (e.g. goal_001
 # "reach Sector Epsilon"). Fires on every entry; check_completion caps at target_qty.
@@ -620,7 +633,8 @@ func _grant_reward_xp(m: Dictionary) -> void:
 	var skill = null
 	match str(m["type"]):
 		"defeat", "discover", "drop_rarity", "loadout_check", "loadout_rare_weapon", \
-		"loadout_rare_weapon_type", "equip_consumables", "warp_perform", "hack_apply":
+		"loadout_rare_weapon_type", "equip_consumables", "warp_perform", "hack_apply", \
+		"defeat_retreat":
 			skill = GameState.combat_manager
 		"gather", "gather_multi":
 			# crafted → Engineering; minable → Mining; neither (combat loot
@@ -794,6 +808,24 @@ func sync_progress():
 			if GameState.infrastructure_manager:
 				var count = GameState.infrastructure_manager.get_building_count(m["target"])
 				m["current_qty"] = max(m["current_qty"], min(count, m["target_qty"]))
+
+		# v143: kill-then-disengage. The kill is counted in _on_enemy_defeated (which
+		# parks it in _kills, NOT current_qty, so the mission cannot self-complete on
+		# the kill alone). Here we hold current_qty one short of target until the ship
+		# is actually out of combat — that is the second half of the objective.
+		# Deliberately a STATE check rather than a signal on retreat(): leaving by
+		# zone-switch is an equally correct answer to "stop fighting before you walk
+		# away", and this way combat_manager needs no new signal.
+		elif m["type"] == "defeat_retreat":
+			# Save compat: m017 shipped as plain "defeat". A save already holding the
+			# kill has current_qty >= 1 but no _kills key, so seed it from current_qty
+			# instead of resetting them to 0 and demanding a second drone.
+			if not m.has("_kills"):
+				m["_kills"] = int(m.get("current_qty", 0))
+			var _k: int = int(m.get("_kills", 0))
+			var _tq: int = int(m["target_qty"])
+			var _out: bool = GameState.combat_manager != null and not GameState.combat_manager.in_combat
+			m["current_qty"] = _tq if (_k >= _tq and _out) else min(_k, max(0, _tq - 1))
 
 		# P2-12: Combat readiness checkpoint - checks loadout for weapon AND shield
 		elif m["type"] == "loadout_check" and m["target"] == "combat_ready":
