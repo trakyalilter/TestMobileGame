@@ -591,7 +591,12 @@ var hulls: Dictionary = {
 	"battlecruiser_hull": {
 		"name": "Battlecruiser",
 		"stats": {"hp": 1874, "energy_capacity": 570},
-		"cost": {"credits": 810000, "Superalloy": 500, "QuantumCore": 25},
+		# v142d: QuantumCore 25 removed — craft_quantum_core is level_req 70 and needs
+		# VoidCrystal, a ZONE 7 material, for a TIER 5 hull. Same unbuildable-on-unlock
+		# shape as cruiser_hull's AdvCircuit, one zone further and worse. Tier-N hull
+		# now keys on the zone-(N-1) alloy, matching cruiser_hull. Hull costs bypass
+		# all scaling layers, so these are final values.
+		"cost": {"credits": 810000, "RimeAlloy": 15, "Superalloy": 300, "Ti": 200},
 		"slots": ["weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "armor", "armor", "engine", "battery", "battery", "battery", "battery", "sensor", "sensor"], # 16
 		"research_req": "zone_5_access",
 		"visual": "res://assets/ships/5.png",

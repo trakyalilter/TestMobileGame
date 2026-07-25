@@ -155,8 +155,16 @@ func decide_step() -> Dictionary:
 	# so nothing would ever read as surplus at build time.)
 	_maybe_build_economy_infra()
 	if res.get_used_slots() >= res.get_max_slots():
-		var earned := sell_surplus(_protected())
+		# v142d ORDER MATTERS — upgrade BEFORE selling. The reverse order livelocked
+		# the bot for ~890 sim-hours: sell_surplus frees ~3 slots (36 -> 33), so by
+		# the time maybe_upgrade_storage read the counter its guard (33 >= 35) was
+		# false and storage NEVER expanded. Inventory sat pinned at 33/36 for 1,860
+		# of 1,881 slot_pressure events, and resources.add_element silently DISCARDS
+		# any new symbol while the inventory is full — so the bot produced ~1,800 N
+		# against a 200 requirement and never once read the recipe as satisfied.
+		# It looked like a Z5 gate that was too expensive; it was a harness bug.
 		maybe_upgrade_storage()
+		var earned := sell_surplus(_protected())
 		pending_events.append({"t": "slot_pressure", "sold_cr": round(earned),
 			"used": res.get_used_slots(), "max": res.get_max_slots()})
 	for _guard in range(8):
@@ -290,7 +298,9 @@ func _do_research(mid: String, tid: String) -> Dictionary:
 	# diag: surface the exact blocking symbol (b.sym) so walls name what's short,
 	# instead of a generic "blk=item" that leaves us guessing the bottleneck.
 	status = "research:%s blk=%s%s" % [tid, String(b.get("kind", "?")),
-		((" need=" + String(b.get("sym", "")) + " x" + str(b.get("amount", "?"))) if b.has("sym") else "")]
+		# v142d: was b["amount"], but research_blocker returns the shortfall under
+		# "need" — so every item wall printed "x?" and hid its own magnitude.
+		((" need=" + String(b.get("sym", "")) + " x" + str(b.get("need", b.get("amount", "?")))) if b.has("sym") else "")]
 	match String(b.get("kind", "")):
 		"done":
 			return {}

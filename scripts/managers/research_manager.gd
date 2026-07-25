@@ -410,7 +410,13 @@ var tech_tree = {
 		"tier": 5,
 		"category": "zone",
 		"cost": 468750,
-		"cost_items": {"Z4_Core": 2, "Steel": 1500, "AdvCircuit": 250, "Superalloy": 80},
+		# v142d: reshaped bulk-shallow -> modest-deep. AdvCircuit 250 REMOVED — that
+		# was the wall both bot seeds hit after the Z4 pass, and craft_adv_circuit is
+		# level_req 40 which this band cannot reliably reach. Keyed on RimeAlloy (the
+		# Z4 rung), NEVER XenoforgedAlloy: that one's research_req IS zone_5_access.
+		# Steel stays so the Fe/C/O chain keeps earning; Superalloy (level 18) carries
+		# the rest and keeps Al/Co/Ni/Cr relevant.
+		"cost_items": {"Z4_Core": 2, "RimeAlloy": 10, "Steel": 400, "Superalloy": 60},
 		"type": "technology",
 		"parent": "zone_4_access",
 		"effects": [],

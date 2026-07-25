@@ -534,7 +534,15 @@ var recipes: Dictionary = {
 	"refine_xenoforged_alloy": {
 		"name": "Xenoforged Alloy",
 		"description": "Reverse-engineer xenon fragments into an exotic structural alloy.",
-		"input": {"XenoFragment": 3, "AdvCircuit": 2}, "output": {"XenoforgedAlloy": 1},
+		# v142d ALLOY LADDER, rung Z5 — see the three-part rule on refine_chondrite_alloy.
+		#   depth: RimeAlloy 1 | automatable: Superalloy 4 | own-zone combat: XenoFragment 6
+		# Superalloy, not AdvCircuit, deliberately. Both are automatable, but
+		# smelt_superalloy is level_req 18 against craft_adv_circuit's 40, and
+		# AdvCircuit is already the band's bottleneck (it walled the bot at
+		# zone_5_access). Superalloy also pulls a DIFFERENT raw chain into permanent
+		# relevance — Fe/Al/Co/Ni/Cr/Ti — which is exactly what the cumulative rule
+		# wants: more early resources staying alive, not the same one squeezed harder.
+		"input": {"RimeAlloy": 1, "Superalloy": 4, "XenoFragment": 6}, "output": {"XenoforgedAlloy": 1},
 		"duration": 15.0, "level_req": 45, "xp": 70, "research_req": "zone_5_access", "category": "alloys"
 	},
 	"refine_colony_alloy": {
