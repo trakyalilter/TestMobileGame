@@ -454,7 +454,15 @@ var recipes: Dictionary = {
 	"refine_wreckforged_alloy": {
 		"name": "Wreckforged Alloy",
 		"description": "Reforge Martian war-debris into structural plate.",
-		"input": {"MartianRelics": 3, "Steel": 2}, "output": {"WreckforgedAlloy": 1},
+		# v142d ALLOY LADDER, rung Z3. Owner rule: a zone-N recipe may reach back
+		# ONE tier, never to the bottom — "you can't craft something with dirt and
+		# water only at Zone 10". The co-input was Steel (a Z1-era material), so Z3
+		# reached straight to the floor. It now consumes the Z2 rung instead, which
+		# makes this the first real link in the chain:
+		#   Circuit (Z1) -> ChondriteAlloy (Z2) -> WreckforgedAlloy (Z3) -> ...
+		# ChondriteAlloy already carries the Circuit dependency, so Circuit stays a
+		# genuine ancestor of every later tier without ever being demanded in bulk.
+		"input": {"MartianRelics": 3, "ChondriteAlloy": 2}, "output": {"WreckforgedAlloy": 1},
 		"duration": 13.0, "level_req": 25, "xp": 35, "research_req": "zone_3_access", "category": "alloys"
 	},
 	"refine_rime_alloy": {
