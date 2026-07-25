@@ -20,7 +20,7 @@ const STEPS := {
 		{
 			"anchor": "",
 			"title": "Systems Damaged",
-			"body": "Losing a fight is costly: every equipped module takes durability damage, and worn modules risk destruction in offline combat. Repairs cost SPARE PARTS — you get those ONLY by demolishing unwanted modules in the Designer. Match your loadout to the sector before you engage.",
+			"body": "Losing a fight wears every equipped module down to 50% durability. Nothing is destroyed this time — but lose again while a module is still at 50% and it can be destroyed outright. Repairs cost SPARE PARTS, which you get ONLY by demolishing unwanted modules in the Designer. Repair before you re-engage, or bring a loadout that matches the sector.",
 		},
 	],
 	"warp_milestone": [

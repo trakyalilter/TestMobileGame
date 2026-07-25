@@ -2299,13 +2299,128 @@ func unequip_slot(slot_idx: int):
 		inventory_updated.emit() # Fix: Signal for UI update
 		_autosave_active_preset()   # v134g: persist the edit to the active build slot
 
+# v147: the TWO-STRIKE durability rule, stated by the owner:
+#   strike 1 — a defeat wears every equipped module down to 50% durability.
+#              Nothing is ever destroyed on this strike. Pristine gear is SAFE.
+#   strike 2 — a defeat taken while a module is ALREADY at <=50% durability can
+#              destroy it.
+# v125 implemented only strike 1 and wrote the second half off as "offline-only",
+# which was a misreading: losing online then cost time + Spare Parts but never
+# gear, so bringing the wrong loadout had almost no consequence.
+#
+# Sizing the chance against the pre-v125 precedent (1/6 instant-destroy per
+# defeat): we keep the SAME 1/6 number, but re-shaped so it can only ever cost
+# ONE module per defeat.
+#   - The old 1/6 rolled independently on EVERY equipped module, on the FIRST
+#     defeat, with no warning and no way to opt out — a bad fight could wipe
+#     several slots at once.
+#   - The new 1/6 is a SINGLE roll per defeat; on a hit, exactly one of the worn
+#     modules is destroyed, chosen at random. It only fires on strike 2+, after
+#     the player has seen "DUR 50%" and an orange Repair button on the slot.
+# So the headline number is unchanged (the punishment keeps its teeth) while the
+# variance that made the old system feel arbitrary is gone. Expected cost of
+# ignoring the warning: ~1 module per 6 losses, never a full-ship wipe from one
+# bad engage — which matters in an idle game where a stray fight can chain.
+# v146 owner spec: FLAT 50%, no rarity weighting, rolled INDEPENDENTLY for every
+# equipped module already at <=50 durability when a fight is lost. No cap — a full
+# worn loadout can go in one defeat. With 8 worn slots that averages ~4 lost and
+# leaves only a ~0.4% chance of losing nothing, so the 50% durability mark has to
+# read as a real warning: see the DUR/Repair surfacing note in handle_module_defeat.
+const MODULE_DESTROY_CHANCE: float = 0.5
+
+# Slots holding a module that is ALREADY worn to <=50% durability, i.e. the
+# strike-2 pool. Evaluated BEFORE this defeat's wear is applied, so a module that
+# only just dropped to 50 this fight is never in it.
+func _worn_equipped_slots() -> Array:
+	var out: Array = []
+	for slot_idx in loadout:
+		var mid = loadout[slot_idx]
+		if not mid or String(mid) == "": continue
+		if not (mid in modules): continue
+		# Only custom instances carry per-item durability; base defs are shared
+		# templates and must never be erased from `modules`.
+		if not String(mid).begins_with("custom_"): continue
+		if sim_protect_batteries and String(modules[mid].get("slot_type", "")) == "battery":
+			continue   # sim-only: see sim_protect_batteries note
+		if int(modules[mid].get("durability", 100)) <= 50:
+			out.append(slot_idx)
+	return out
+
+# Full teardown of ONE destroyed equipped module instance. Reuses the v146
+# _migrate_remove_architects_regalia approach (sockets refunded exactly like
+# remove_gem, then the id purged from every container that can reference it)
+# rather than growing a second, divergent deletion path.
+# Returns the display name for the notification, or "" if nothing was removed.
+func _destroy_equipped_module(slot_idx: int) -> String:
+	var mid = loadout.get(slot_idx)
+	if mid == null or String(mid) == "":
+		return ""
+	var m_id: String = String(mid)
+	var def_d: Dictionary = {}
+	if custom_modules.has(m_id) and custom_modules[m_id] is Dictionary:
+		def_d = custom_modules[m_id]
+	elif modules.has(m_id) and modules[m_id] is Dictionary:
+		def_d = modules[m_id]
+	var disp: String = String(def_d.get("name", m_id))
+
+	# Matrix cores go back to the element pool — same as remove_gem. Silently
+	# eating a socketed Resonant core would be worse than losing the module.
+	var socks = def_d.get("sockets", [])
+	if socks is Array:
+		for gi in range(socks.size()):
+			var g = socks[gi]
+			if g != null and String(g) != "":
+				if GameState.resources:
+					GameState.resources.add_element(String(g), 1)
+			socks[gi] = null
+
+	# The live ship: slot + its ammo binding.
+	loadout[slot_idx] = null
+	ammo_loadout.erase(slot_idx)
+	ammo_loadout.erase(str(slot_idx))
+	if equipped_relic == m_id:
+		equipped_relic = ""
+
+	# Every container that can still name it. A custom instance is unique (one
+	# copy, currently equipped), so these are all defensive except the layout /
+	# unseen bookkeeping.
+	module_inventory.erase(m_id)
+	custom_modules.erase(m_id)
+	modules.erase(m_id)
+	unseen_modules.erase(m_id)
+	armory_layout.erase(m_id)
+
+	# Build presets keep their slot, minus the destroyed module (v146 pattern).
+	for p_key in loadout_presets.keys():
+		var p = loadout_presets[p_key]
+		if not (p is Dictionary):
+			continue
+		var p_load = p.get("loadout", {})
+		if not (p_load is Dictionary):
+			continue
+		var p_ammo = p.get("ammo_loadout", {})
+		for s_key in p_load.keys():
+			var pm = p_load[s_key]
+			if pm != null and String(pm) == m_id:
+				p_load[s_key] = null
+				if p_ammo is Dictionary:
+					p_ammo.erase(s_key)
+	return disp
+
+# One short factual line naming what was lost — never a silent deletion.
+# Routed through the SAME notification path combat losses already use
+# (UITheme.show_notification) plus the combat log; no second system.
+func _announce_module_destroyed(disp: String) -> void:
+	if disp == "":
+		return
+	UITheme.show_notification(tr("MODULE DESTROYED: %s") % disp.to_upper(), UITheme.COLORS["negative"])
+	log_msg("DESTROYED: %s was at 50%% durability and did not survive the defeat." % disp)
+
 func handle_module_defeat():
-	# v125: ONLINE defeat is non-destructive. Every equipped module floors to 50%
-	# durability (never lower, never destroyed) — the old 1/6 instant-destroy +
-	# 10-50% roll is gone (premium: no sudden loss of earned gear). At <=50% a
-	# module is "destroyable", but that loss only ever happens during OFFLINE
-	# combat (opt-in + consented — see apply_offline_durability_risk).
+	# See MODULE_DESTROY_CHANCE above for the two-strike rule.
 	var changed := false
+	# Strike-2 pool, sampled BEFORE this defeat's wear is applied.
+	var worn_slots: Array = _worn_equipped_slots()
 	for slot_idx in loadout:
 		var mid = loadout[slot_idx]
 		if not mid or mid == "": continue
@@ -2337,9 +2452,30 @@ func handle_module_defeat():
 			m["durability"] = 50
 			changed = true
 
+	# STRIKE 2 (owner spec, verbatim): "you can lose all your loadout or none, we
+	# roll the dice for EACH gear that has <=50% durability in the fight lost
+	# loadout" — so this is an INDEPENDENT roll per worn module, not one roll that
+	# picks a single victim, and there is deliberately NO cap. A full worn loadout
+	# can be wiped by one defeat. Modules floored to 50 by THIS defeat are still
+	# exempt: strike 1 is always safe, which is what makes the 50% mark a warning
+	# the player is given a chance to act on rather than an ambush.
+	var destroyed_names: Array = []
+	for slot_idx in worn_slots:
+		if randf() < MODULE_DESTROY_CHANCE:
+			var nm: String = _destroy_equipped_module(slot_idx)
+			if nm != "":
+				destroyed_names.append(nm)
+				changed = true
+	var destroyed_name: String = ", ".join(destroyed_names)
+
 	if changed:
-		log_msg("DEFEAT: equipped modules worn down to 50% durability — repair with Spare Parts.")
+		if worn_slots.is_empty():
+			log_msg("DEFEAT: equipped modules worn down to 50% durability — repair with Spare Parts.")
+		else:
+			log_msg("DEFEAT: worn modules (50% durability) are at risk of destruction — repair with Spare Parts.")
+		_announce_module_destroyed(destroyed_name)
 		recalc_stats()
+		inventory_updated.emit()
 		# The base→custom conversion above rewrote loadout slot ids (base id →
 		# custom-instance id) so durability can be tracked. Re-sync the ACTIVE build
 		# slot to the new ids: otherwise the preset keeps the stale BASE ids, and the
@@ -2360,39 +2496,41 @@ func handle_module_defeat():
 var sim_protect_batteries := false
 
 func apply_offline_durability_risk(delta: float) -> Array:
-	# v125: OFFLINE combat runs unattended, so it carries the real loss risk the
-	# player consents to when enabling it. Only modules ALREADY worn to <=50%
-	# durability ("destroyable") can be lost — pristine/>50% gear is always safe.
-	# Per-module destruction chance scales with hours away, capped. Repairing worn
-	# modules before logging off carries ZERO risk. Returns destroyed display names
-	# so the offline report can surface exactly what was lost (never silent).
+	# OFFLINE combat is opt-in + consented, and it runs unattended, so it keeps a
+	# destruction risk on modules ALREADY worn to <=50% durability. Pristine/>50%
+	# gear is always safe; repairing before logging off carries ZERO risk. Returns
+	# destroyed display names so the offline report names the loss (never silent).
+	#
+	# v147 parity with the online two-strike rule: offline combat is winnability-
+	# gated (_offline_winnable), so it never produces a DEFEAT — it can't legitimately
+	# punish harder than losing a real fight does. It was doing exactly that: a
+	# 5%/hr, 35%-capped roll on EVERY worn module meant an 8-hour night could delete
+	# ~3 modules with no fight lost at all, which now that strike 2 exists online
+	# would be a straight double-punish. Reshaped to match the online rule exactly:
+	# ONE roll per return, at most ONE module destroyed, at the same
+	# MODULE_DESTROY_CHANCE — ramped in over the first hour away so a short absence
+	# is proportionally safer and a quick alt-tab is ~free. It also now runs the
+	# SAME full teardown (sockets refunded, presets scrubbed); the old inline path
+	# silently ate socketed matrix cores and left dead ids in the presets/armory.
 	var destroyed: Array = []
 	var hours: float = delta / 3600.0
-	var p: float = clampf(0.05 * hours, 0.0, 0.35)   # ~5%/hr, capped 35% per worn module
+	var p: float = MODULE_DESTROY_CHANCE * clampf(hours, 0.0, 1.0)
 	if p <= 0.0:
 		return destroyed
-	var slots_to_clear: Array = []
-	for slot_idx in loadout:
-		var mid = loadout[slot_idx]
-		if not mid or mid == "": continue
-		if not (mid in modules): continue
-		if sim_protect_batteries and String(modules[mid].get("slot_type", "")) == "battery":
-			continue   # sim-only: see sim_protect_batteries note above
-		var dur: int = int(modules[mid].get("durability", 100))
-		if dur <= 50 and randf() < p:
-			destroyed.append(str(modules[mid].get("name", mid)))
-			slots_to_clear.append(slot_idx)
-	for slot_idx in slots_to_clear:
-		var mid = loadout.get(slot_idx)
-		if mid:
-			if str(mid).begins_with("custom_"):
-				custom_modules.erase(mid)
-				modules.erase(mid)
-			loadout[slot_idx] = null
-	if not slots_to_clear.is_empty():
-		recalc_stats()
-		inventory_updated.emit()   # was dead code AFTER the return below — the armory
-								   # never refreshed after offline module destruction
+	var worn_slots: Array = _worn_equipped_slots()
+	if worn_slots.is_empty():
+		return destroyed
+	if randf() >= p:
+		return destroyed
+	var victim = worn_slots[randi() % worn_slots.size()]
+	var disp: String = _destroy_equipped_module(victim)
+	if disp == "":
+		return destroyed
+	destroyed.append(disp)
+	recalc_stats()
+	inventory_updated.emit()   # was dead code AFTER the return below — the armory
+							   # never refreshed after offline module destruction
+	_autosave_active_preset()
 	return destroyed
 
 func log_msg(msg: String):
