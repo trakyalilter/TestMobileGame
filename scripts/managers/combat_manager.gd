@@ -564,6 +564,32 @@ var enemy_db = {
 		# v142b: atk 34->28. Under honest affix rolls the tier-matched Common set
 		# DIED here (7 kills then a death) — Z2 e3 was the only Common-N idle-rule
 		# violation left once the probe stopped force-feeding max Greater Affixes.
+		# v147 MEASURED, NOT TUNED — atk stays 28. Z2 e3 CANNOT be gated by
+		# lethality. Searched with leth_probe (54-108 trials/cell), deaths per
+		# 180s window, row 9 = Common Z2, row B = carried Legendary Z1 on a T2 hull:
+		#   atk 28 -> Common  0/27   B  0/27      atk 42 -> Common  6/27   B  1/27
+		#   atk 34 -> Common  2/27   B  5/27      atk 46 -> Common  5/27   B  6/27
+		#   atk 38 -> Common  4/27   B  3/27      atk 50 -> Common 27/27   B  7/27
+		# Common is 100% dead at 50 while B is still farming at 26%. B never
+		# separates. The other two allowed levers are worse, not better:
+		#   sustain pct 0.09->0.35 : B 2 kills -> 1, Common holds 5   (no deaths)
+		#   sustain pct 0.09->0.90 : B -> 0 kills, but Common 5 -> 3  (bar broken)
+		#   added charge_nuke 6x6.0: Common 54/54 dead, B only 27/54  (inverted!)
+		#   atk 32 + pulse 0.35    : Common 8/54, B 3/54              (inverted!)
+		#
+		# ROOT CAUSE, and it is structural rather than a tuning miss: this enemy
+		# deals ONE damage type (explosive), and per-type RESISTANCE is an AFFIX.
+		# A Legendary drop rolls 3 affixes and can land resist_x anywhere up to
+		# 0.75; a freshly crafted Common has NO affixes and is stuck at the 0.18
+		# hull/research baseline. Mitigation is multiplicative, so one lucky roll
+		# on carried gear beats the entire tier step — Common's real advantages
+		# (2.0x shield, 2.7x def, 2.3x regen) are additive and lose the race.
+		# Proof: re-run with resistances forced equal across configs (--flatresist)
+		# and the gate immediately works as intended —
+		#   atk 42 flat-resist -> Common 10/54   B 31/54   (vs 6/27 and 1/27 live)
+		# So the fix belongs on the AFFIX axis (cap per-type resist, or let clean
+		# Common gear carry a baseline resist), NOT on this enemy's atk. Raising
+		# atk here only kills the tier-matched set the idle rule protects.
 		"stats": {"hp": 640, "max_shield": 110, "atk": 28, "def": 8, "atk_interval": 2.2, "accuracy": 28},
 		# v142 tier-gate: Z2 is the FIRST gated zone. Claim Jumper patches its own
 		# plating — MIN-DPS check. Softer than the Z3 swarm (10%/7s vs 13%/6s).
@@ -580,7 +606,33 @@ var enemy_db = {
 	},
 	"z2_ore_hauler": {
 		"name": "Ore Hauler",
-		"stats": {"hp": 950, "atk": 28, "def": 10, "atk_interval": 5.0, "accuracy": 20},
+		# v147 e4 TIER GATE — atk 28 -> 65. The nuke multiplier was the wrong lever
+		# (rejected at x4.4: carried gear still never died while Common-Z2 started
+		# dying on e3) because the BASE was too low to threaten a tier-2 chassis at
+		# all. Look at the zone's DPS profile and the miss is obvious:
+		#
+		#   e1 skiff        25 / 1.8s = 13.9 dps   (x0.50 front-cell calib -> 6.9)
+		#   e2 golem        33 / 3.0s = 11.0 dps   (x0.50 front-cell calib -> 5.5)
+		#   e3 claim jumper 28 / 2.2s = 12.7 dps
+		#   e4 ore hauler   28 / 5.0s =  5.6 dps   <- the DEEPEST cell was the
+		#                                             GENTLEST in the whole zone,
+		#                                             softer even than a front cell
+		#                                             before its calib halved it.
+		#
+		# 65 / 5.0s = 13.0 dps puts e4 level with e3 while KEEPING its identity: one
+		# slow, heavy swing plus the x3.2 charge nuke, rather than a fast chipper.
+		# Measured (leth_probe, 108 trials/cell, deaths per 180s window):
+		#   atk 28 -> Common 0/108   A  0/108   B  0/108   (no gate at all)
+		#   atk 62 -> Common 0/108   A 33/108   B  7/108
+		#   atk 65 -> Common 0/108   A 29/108   B 10/108   <- CHOSEN
+		#   atk 68 -> Common 1/108   A 49/108   B 11/108   (Common starts to bleed)
+		#   atk 72 -> Common 2/108   A 49/108   B 20/108
+		# 65 is the LAST value where tier-matched Common is perfectly clean
+		# (0/108, and 0/54 twice more), so the idle rule holds with zero margin
+		# spent, while carried gear takes a ~9-27% death chance PER 180s window —
+		# i.e. near-certain death across an idle hour. Do not push past 65 without
+		# re-measuring Common: the cliff is at 68.
+		"stats": {"hp": 950, "atk": 65, "def": 10, "atk_interval": 5.0, "accuracy": 20},
 		# v146: mult 2.0 -> 3.2, and atk_interval 5.0 is why it needed to be this big.
 		# The owner cleared this cell carrying ZONE 1 gear on a TIER 2 hull -- the real
 		# player shape, because the mission chain hands over a frigate at m026b BEFORE
@@ -710,6 +762,19 @@ var enemy_db = {
 		# is a silent no-op — Z4 e3 read identically pre- and post-gate until this
 		# was caught. Frost Hulk gains a rime-plate shield so its gate actually
 		# fires; hp trimmed to keep total EHP where the calibration put it.
+		# v147 MEASURED, NOT TUNED — atk stays 138. Z4 e3 is already correctly
+		# placed on the axis the owner rule actually reads: carried gear lands at
+		# 2 kills / 180s against tier-matched Common's 7, i.e. clearly under the
+		# 5-kill farm bar. It is also INERT to lethality, because a 4.0s swing is
+		# slower than both the 10s consumable cooldown and shield regen, so the
+		# damage is absorbed between hits no matter how big it is:
+		#   atk 138 -> Common 0/54 minhp 99   A 0/54 minhp 99   B 0/54 minhp 99
+		#   atk 180 -> Common 0/54 minhp 99   A 0/54 minhp 99   B 0/54 minhp 99
+		#   atk 230 -> Common 0/54 minhp 99   A 0/54 minhp 99   B 0/54 minhp 99
+		#   atk 280 -> Common 0/54 minhp 99   A 0/54 minhp 99   B 0/54 minhp 99
+		# Doubling atk does not move ANY row off full hull. Lethality is the wrong
+		# knob for a slow attacker; the pulse (min-DPS) is what gates this cell,
+		# and it is already doing its job.
 		"stats": {"hp": 3400, "max_shield": 1200, "atk": 138, "def": 40, "atk_interval": 4.0, "accuracy": 48},
 		# ── v142 TWO-AXIS e3/e4 GATE, Z4-Z10 ──────────────────────────────────
 		# Owner: "why don't you bring a skill mechanic to e3/e4's instead of a
@@ -744,6 +809,32 @@ var enemy_db = {
 		# (with z5_alien_probe @1.2 and z7_shard_swarm @0.8). Sub-2s intervals
 		# out-tick the 10s consumable cooldown, so tier-matched Common bled out
 		# mid-farm. atk 175->140.
+		# v147 MEASURED, NOT TUNED — atk stays 140. The funnel row that prompted a
+		# look here ("B Legend Z3 farms e4 at 6 kills") is a SAMPLING artifact, not
+		# a flat leak: B's true death rate at atk 140 is 10/108 per 180s window, so
+		# a 9-trial funnel prints "6D" ~58% of the time and "6*" ~42%. The 6* that
+		# was reported is the 42% face of the same coin.
+		#
+		# Every lever makes the DISCRIMINATION WORSE, not better. Deaths per 180s
+		# window over 108 trials/cell, and the ratio that actually matters (B's
+		# death rate divided by tier-matched Common's):
+		#   atk 140 (current) -> Common  1/108   B 10/108   ratio 10.0  <- BEST
+		#   atk 145           -> Common  1/108   B  6/108   ratio  6.0
+		#   atk 150           -> Common  2/108   B 10/108   ratio  5.0
+		#   atk 155           -> Common  3/108   B 14/108   ratio  4.7
+		#   atk 165           -> Common 14/108   B 22/108   ratio  1.6
+		#   nuke mult 2.3->3.5-> Common  6/108   B 20/108   ratio  3.3
+		#   nuke mult 2.3->4.5-> Common 28/108   B 26/108   ratio  0.9  (inverted)
+		#   nuke every_n 7->4 -> Common  5/108   B 18/108   ratio  3.6
+		#   nuke every_n 7->5 -> Common  4/108   B  6/108   ratio  1.5
+		# The ratio is MAXIMAL at the shipped value and decays monotonically on
+		# every axis, so any raise spends more of Common's inviolable margin than
+		# it takes from carried gear.
+		#
+		# Same root cause as z2_claim_jumper (see the note there): this drone is
+		# single-type (energy), and carried Legendary rolls resist_e 0.57-0.75 as
+		# an AFFIX while a clean Common is pinned at the 0.28 baseline. Fix the
+		# affix axis, not this stat line.
 		"stats": {"hp": 2400, "max_shield": 500, "atk": 140, "def": 28, "atk_interval": 1.8, "accuracy": 58},
 		# every_n counts SWINGS, so a flat 4 makes fast attackers nuke constantly
 		# (this drone at 1.8s would spike every 7.2s; z5_alien_probe at 1.2s every
