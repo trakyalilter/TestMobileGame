@@ -671,7 +671,32 @@ var enemy_db = {
 	},
 	"z4_frost_hulk": {
 		"name": "Frost Hulk",
-		"stats": {"hp": 5000, "atk": 138, "def": 40, "atk_interval": 4.0, "accuracy": 48},
+		# v142: the pulse heals enemy_max_shield * pct, so on a SHIELDLESS enemy it
+		# is a silent no-op — Z4 e3 read identically pre- and post-gate until this
+		# was caught. Frost Hulk gains a rime-plate shield so its gate actually
+		# fires; hp trimmed to keep total EHP where the calibration put it.
+		"stats": {"hp": 3400, "max_shield": 1200, "atk": 138, "def": 40, "atk_interval": 4.0, "accuracy": 48},
+		# ── v142 TWO-AXIS e3/e4 GATE, Z4-Z10 ──────────────────────────────────
+		# Owner: "why don't you bring a skill mechanic to e3/e4's instead of a
+		# wall — we can fix it with flavouring." e1/e2 stay open to every config
+		# (front salvage, materials only); the MODULE-hunter cells gate instead:
+		#
+		#   e3 = sustain pulse  -> MIN-DPS gate. Under-geared kits stall out but
+		#        never die, so an idle player loses time, not a ship.
+		#   e4 = charge_nuke    -> EHP gate. Telegraphed spike; under-geared kits
+		#        die to it, tier-matched EHP absorbs it.
+		#
+		# Consistent MECHANIC, ramped NUMBERS (0.14->0.20 pulse, 2.3->2.9 nuke
+		# across Z4->Z10). Consistency is the point: the player learns one rule
+		# — "e3 regenerates, bring DPS; e4 spikes, bring EHP" — and it transfers.
+		# The blanket Z4-Z10 trait pass that was REVERTED failed because the base
+		# calibration underneath was broken; ZONE_TRASH_EHP_CALIB fixed that first.
+		# Z4 is the trash-pulse DEBUT, so it stays gentle like Z2's 0.09. The pulse
+		# subtracts a near-CONSTANT number of kills from every config rather than
+		# scaling with their DPS, so it lowers the floor more than it discriminates
+		# — at 0.14 it gated carried Rare (5->2) but also pushed tier-matched Common
+		# under the farm bar (7->4). EHP was cut alongside to restore the margin.
+		"sustain": {"kind": "pulse", "every_s": 6.0, "pct": 0.07},
 		"loot": [["Steel", 8, 18], ["Fe", 15, 35], ["Res2", 1, 3], ["CryoEssence", 1, 2]],
 		"rare_loot": [["Ti", 0.15, 3, 8], ["Au", 0.20, 1, 3]],
 		"module_drop_chance": 0.10,
@@ -680,7 +705,17 @@ var enemy_db = {
 	},
 	"z4_glacial_drone": {
 		"name": "Glacial Drone",
-		"stats": {"hp": 2400, "max_shield": 500, "atk": 175, "def": 28, "atk_interval": 1.8, "accuracy": 58},
+		# v142 idle-rule fix: third of the three fast-attacker lethality spikes
+		# (with z5_alien_probe @1.2 and z7_shard_swarm @0.8). Sub-2s intervals
+		# out-tick the 10s consumable cooldown, so tier-matched Common bled out
+		# mid-farm. atk 175->140.
+		"stats": {"hp": 2400, "max_shield": 500, "atk": 140, "def": 28, "atk_interval": 1.8, "accuracy": 58},
+		# every_n counts SWINGS, so a flat 4 makes fast attackers nuke constantly
+		# (this drone at 1.8s would spike every 7.2s; z5_alien_probe at 1.2s every
+		# 4.8s — it killed tier-matched Common outright). every_n is therefore
+		# tuned per atk_interval to land the spike on a ~12-14s TIME cadence: a
+		# telegraph the player can read, not a function of the enemy's fire rate.
+		"charge_nuke": {"every_n": 7, "mult": 2.3},
 		"loot": [["credits", 1200, 2500], ["Cu", 5, 12], ["Res2", 2, 4], ["CryoEssence", 2, 4]],
 		"rare_loot": [["AdvCircuit", 0.10, 1, 2]],
 		"module_drop_chance": 0.10,
@@ -726,7 +761,10 @@ var enemy_db = {
 	},
 	"z5_alien_frigate": {
 		"name": "Alien Frigate",
-		"stats": {"hp": 12000, "max_shield": 2500, "atk": 388, "def": 80, "atk_interval": 3.0, "accuracy": 72},
+		# v142 shape fix: e3 sat at 6 kills for Common-Z5, no margin for the gate
+		# pulse that step 2 adds here. hp 12000->8500, shield 2500->1800.
+		"stats": {"hp": 8500, "max_shield": 1800, "atk": 388, "def": 80, "atk_interval": 3.0, "accuracy": 72},
+		"sustain": {"kind": "pulse", "every_s": 6.0, "pct": 0.15},
 		"loot": [["VoidArtifact", 2, 5], ["credits", 5000, 10000], ["Res2", 3, 6], ["XenoFragment", 2, 4]],
 		"rare_loot": [["QuantumCore", 0.08, 1, 1]],
 		"module_drop_chance": 0.10,
@@ -735,7 +773,10 @@ var enemy_db = {
 	},
 	"z5_alien_probe": {
 		"name": "Alien Probe",
-		"stats": {"hp": 5000, "max_shield": 3000, "atk": 313, "def": 60, "atk_interval": 1.2, "accuracy": 78},
+		# v142 idle-rule fix: atk_interval 1.2 made this the zone's lethality spike
+		# — tier-matched Common DIED here (11 kills then a death). atk 313->235.
+		"stats": {"hp": 5000, "max_shield": 3000, "atk": 195, "def": 60, "atk_interval": 1.2, "accuracy": 78},
+		"charge_nuke": {"every_n": 10, "mult": 2.4},
 		"loot": [["credits", 4000, 7000], ["Circuit", 5, 10], ["Res2", 2, 5], ["XenoFragment", 1, 3]],
 		"rare_loot": [["AdvCircuit", 0.10, 2, 4]],
 		"module_drop_chance": 0.10,
@@ -786,7 +827,10 @@ var enemy_db = {
 	},
 	"z6_rad_beast": {
 		"name": "Radiation Beast",
-		"stats": {"hp": 30000, "max_shield": 4000, "atk": 850, "def": 140, "atk_interval": 2.0, "accuracy": 92},
+		# v142 shape fix: authored as the zone's tank but sits in the e3 slot, so
+		# Common-Z6 scraped the 5-kill bar exactly. hp 30000->21000, shield 4000->2800.
+		"stats": {"hp": 21000, "max_shield": 2800, "atk": 850, "def": 140, "atk_interval": 2.0, "accuracy": 92},
+		"sustain": {"kind": "pulse", "every_s": 6.0, "pct": 0.16},
 		"loot": [["RadIsotope", 1, 3], ["U", 5, 12], ["Res3", 1, 3]],
 		"rare_loot": [["Ir", 0.08, 1, 2]],
 		"module_drop_chance": 0.10,
@@ -796,6 +840,7 @@ var enemy_db = {
 	"z6_ore_guardian": {
 		"name": "Ore Guardian",
 		"stats": {"hp": 14000, "max_shield": 5000, "atk": 688, "def": 170, "atk_interval": 3.0, "accuracy": 88},
+		"charge_nuke": {"every_n": 4, "mult": 2.5},
 		"loot": [["Fe", 30, 70], ["Steel", 10, 25], ["Res3", 1, 3]],
 		"rare_loot": [["VoidArtifact", 0.10, 1, 3]],
 		"module_drop_chance": 0.10,
@@ -823,7 +868,10 @@ var enemy_db = {
 	# ═══ ZONE 7: Sector Gamma — Reg HP~38222, ATK~1700, DEF~341 ═══
 	"z7_shard_swarm": {
 		"name": "Shard Swarm",
-		"stats": {"hp": 30000, "atk": 1350, "def": 270, "atk_interval": 0.8, "accuracy": 100},
+		# v142 idle-rule fix: atk_interval 0.8 is the fastest gun in the game and
+		# every config below Unique DIED on it, tier-matched Common included.
+		# atk 1350->1100 keeps the machine-gun identity without breaking idle.
+		"stats": {"hp": 30000, "atk": 980, "def": 270, "atk_interval": 0.8, "accuracy": 100},
 		"loot": [["ExoticMatter", 1, 3], ["VoidCrystal", 1, 2], ["Res3", 2, 4], ["ExoticIsotope", 1, 2]],
 		"rare_loot": [["Os", 0.08, 1, 2]],
 		"module_drop_chance": 0.10,
@@ -842,6 +890,7 @@ var enemy_db = {
 	"z7_void_hunter": {
 		"name": "Void Hunter",
 		"stats": {"hp": 32000, "max_shield": 12000, "atk": 1875, "def": 300, "atk_interval": 1.5, "accuracy": 110},
+		"sustain": {"kind": "pulse", "every_s": 5.5, "pct": 0.17},
 		"loot": [["VoidCrystal", 2, 4], ["credits", 50000, 100000], ["Res3", 2, 5]],
 		"rare_loot": [["ExoticMatter", 0.12, 2, 4]],
 		"module_drop_chance": 0.10,
@@ -851,6 +900,7 @@ var enemy_db = {
 	"z7_gamma_beast": {
 		"name": "Gamma Beast",
 		"stats": {"hp": 75000, "atk": 1500, "def": 380, "atk_interval": 3.5, "accuracy": 95},
+		"charge_nuke": {"every_n": 4, "mult": 2.6},
 		"loot": [["RadIsotope", 3, 8], ["ExoticMatter", 1, 3], ["Res3", 2, 5]],
 		"rare_loot": [["Os", 0.10, 1, 2]],
 		"module_drop_chance": 0.10,
@@ -895,6 +945,7 @@ var enemy_db = {
 	"z8_void_stalker": {
 		"name": "Void Stalker",
 		"stats": {"hp": 80000, "max_shield": 35000, "atk": 4125, "def": 680, "atk_interval": 2.0, "accuracy": 125},
+		"sustain": {"kind": "pulse", "every_s": 5.5, "pct": 0.18},
 		"loot": [["ExoticMatter", 3, 8], ["VoidCrystal", 2, 5], ["Res3", 3, 8]],
 		"rare_loot": [["Os", 0.10, 1, 3]],
 		"module_drop_chance": 0.10,
@@ -904,6 +955,7 @@ var enemy_db = {
 	"z8_nebula_phantom": {
 		"name": "Nebula Phantom",
 		"stats": {"hp": 182000, "max_shield": 40000, "atk": 3375, "def": 800, "atk_interval": 2.5, "accuracy": 118},
+		"charge_nuke": {"every_n": 5, "mult": 2.7},
 		"loot": [["credits", 150000, 300000], ["VoidCrystal", 3, 7], ["Res3", 3, 8]],
 		"rare_loot": [["ExoticMatter", 0.12, 2, 5]],
 		"module_drop_chance": 0.10,
@@ -950,6 +1002,7 @@ var enemy_db = {
 	"z9_rogue_ai": {
 		"name": "Rogue AI Core",
 		"stats": {"hp": 190000, "max_shield": 90000, "atk": 9000, "def": 1400, "atk_interval": 1.5, "accuracy": 155},
+		"sustain": {"kind": "pulse", "every_s": 5.5, "pct": 0.19},
 		"loot": [["Chip", 10, 25], ["AdvCircuit", 5, 12], ["Res3", 5, 10]],
 		"rare_loot": [["ChronoCore", 0.05, 1, 1]],
 		"module_drop_chance": 0.10,
@@ -958,7 +1011,9 @@ var enemy_db = {
 	},
 	"z9_quarantine_mech": {
 		"name": "Quarantine Mech",
-		"stats": {"hp": 437500, "atk": 7500, "def": 1800, "atk_interval": 3.5, "accuracy": 138},
+		# v142 shape fix: only Z4-Z10 cell still under the 5-kill bar (4). 437500->320000.
+		"stats": {"hp": 320000, "atk": 7500, "def": 1800, "atk_interval": 3.5, "accuracy": 138},
+		"charge_nuke": {"every_n": 4, "mult": 2.8},
 		"loot": [["Neutronium", 1, 3], ["credits", 500000, 1000000], ["Res3", 5, 10]],
 		"rare_loot": [["PathogenCore", 0.10, 1, 2]],
 		"module_drop_chance": 0.10,
@@ -1003,6 +1058,7 @@ var enemy_db = {
 	"z10_omega_sentinel": {
 		"name": "Omega Sentinel",
 		"stats": {"hp": 600000, "max_shield": 180000, "atk": 16250, "def": 4000, "atk_interval": 2.5, "accuracy": 165},
+		"sustain": {"kind": "pulse", "every_s": 5.0, "pct": 0.20},
 		"loot": [["OmegaPlating", 1, 3], ["PrimordialShard", 1, 2], ["CryoCatalyst", 1, 3]],
 		"rare_loot": [["VoidEssence", 0.10, 1, 3]],
 		"module_drop_chance": 0.10,
@@ -1011,7 +1067,9 @@ var enemy_db = {
 	},
 	"z10_primordial_titan": {
 		"name": "Primordial Titan",
-		"stats": {"hp": 1050000, "atk": 20000, "def": 3400, "atk_interval": 4.0, "accuracy": 158},
+		# v142 shape fix: Common-Z10 sat exactly on the 5-kill bar. 1050000->880000.
+		"stats": {"hp": 880000, "atk": 20000, "def": 3400, "atk_interval": 4.0, "accuracy": 158},
+		"charge_nuke": {"every_n": 3, "mult": 2.9},
 		"loot": [["PrimordialShard", 2, 5], ["credits", 5000000, 10000000], ["CryoCatalyst", 2, 4]],
 		"rare_loot": [["OmegaPlating", 0.08, 1, 2]],
 		"module_drop_chance": 0.10,
@@ -1388,6 +1446,29 @@ var enemy_db = {
 # atk_interval / eva are ratios, not power — never scaled.
 const REBASE_ENEMY_STATS := ["hp", "atk", "def", "max_shield"]
 
+# v142 ZONE TRASH CALIBRATION — the fix for the clean break at Zone 4 that
+# ZONE_BASELINE_v142.md measured (Common-N lands 5-17 kills/180s on the
+# hand-tuned Z2/Z3, but only 2-8 from Z4 up).
+#
+# ROOT CAUSE: the trash ladder was authored on a SMOOTH per-zone power curve,
+# but the player's curve is LUMPY — hull weapon slots only grow every other
+# tier (2,2,3,3,4,4,5,5,6,6, see shipyard_manager.hulls), so tier-matched
+# Common gear gains no weapon DPS across half the steps. Z2->Z3 buys a 3rd
+# weapon slot; Z3->Z4 buys nothing, and the deficit never closes again. The
+# 3.75x rebase preserved that mismatch and magnified it in absolute terms.
+#
+# Solved empirically per zone with scenes/zone_calib.tscn (secant search on
+# enemy EHP until Common-N lands back on the accepted Z2/Z3 kill curve).
+#
+# EHP ONLY (hp + max_shield) — atk is deliberately untouched: the solver found
+# Common-N already SURVIVES every zone at full enemy atk, so this is a pure DPS
+# deficit. Cutting atk too would defuse the e3/e4 gate traits before they ship.
+#
+# BOSSES ARE EXCLUDED — boss_gearcheck / boss_threshold already pass, so the
+# boss ladder is calibrated against real gear and must not move.
+const ZONE_TRASH_EHP_CALIB := {4: 0.41, 5: 0.69, 6: 0.48, 7: 0.38, 8: 0.58, 9: 0.48, 10: 0.31}
+const CALIB_EHP_STATS := ["hp", "max_shield"]
+
 func _apply_enemy_tier_rebase() -> void:
 	var sm_script = load("res://scripts/managers/shipyard_manager.gd")
 	for eid in enemy_db:
@@ -1400,6 +1481,12 @@ func _apply_enemy_tier_rebase() -> void:
 		for k in REBASE_ENEMY_STATS:
 			if st.has(k) and typeof(st[k]) in [TYPE_INT, TYPE_FLOAT]:
 				st[k] = int(round(float(st[k]) * f))
+		if bool(e.get("is_boss", false)) or not ZONE_TRASH_EHP_CALIB.has(z):
+			continue
+		var calib: float = float(ZONE_TRASH_EHP_CALIB[z])
+		for k in CALIB_EHP_STATS:
+			if st.has(k) and typeof(st[k]) in [TYPE_INT, TYPE_FLOAT]:
+				st[k] = int(round(float(st[k]) * calib))
 
 func _init():
 	super._init("Combat")
