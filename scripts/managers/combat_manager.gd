@@ -543,7 +543,10 @@ var enemy_db = {
 	},
 	"z2_claim_jumper": {
 		"name": "Claim Jumper",
-		"stats": {"hp": 520, "atk": 38, "def": 8, "atk_interval": 2.2, "accuracy": 28},
+		"stats": {"hp": 640, "max_shield": 110, "atk": 34, "def": 8, "atk_interval": 2.2, "accuracy": 28},
+		# v142 tier-gate: Z2 is the FIRST gated zone. Claim Jumper patches its own
+		# plating — MIN-DPS check. Softer than the Z3 swarm (10%/7s vs 13%/6s).
+		"sustain": {"kind": "pulse", "every_s": 6.5, "pct": 0.09},
 		"loot": [["credits", 200, 400], ["Sn", 2, 5], ["Res1", 2, 5], ["PirateSalvage", 2, 4]],
 		# v135: Res2 enters at Z2 (elite + boss). The player-bot sim proved m030
 		# (Shipwright II, Res2 x25) sits BEFORE the mission that unlocks Z3 — the
@@ -557,6 +560,9 @@ var enemy_db = {
 	"z2_ore_hauler": {
 		"name": "Ore Hauler",
 		"stats": {"hp": 950, "atk": 28, "def": 10, "atk_interval": 5.0, "accuracy": 20},
+		# v142 tier-gate: hauler vents its ore-cutter in a charged burst — EHP check,
+		# telegraphed. Softer than the Z3 frigate (2.0x/4th vs 2.2x/4th).
+		"charge_nuke": {"every_n": 4, "mult": 2.0},
 		"loot": [["Fe", 10, 25], ["Si", 5, 12], ["Res1", 2, 5], ["PirateSalvage", 2, 5], ["SalvageData", 1, 3]],
 		"rare_loot": [["Steel", 0.10, 1, 3], ["SalvagedAlloy", 0.40, 1, 3]],
 		"module_drop_chance": 0.20,   # v138c: was 0.10 (see z2_pirate_skiff note)

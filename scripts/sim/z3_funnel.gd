@@ -28,7 +28,8 @@ const DT := 0.1
 const WINDOW := 180.0
 const FARM_KILLS := 5
 const TRIALS := 3
-const ZID := "mars_debris"
+var TZ := 3          # target zone (override: -- --zone=N)
+var ZID := "mars_debris"
 
 const SUFFIX := {"kinetic": "kinetic", "energy": "energy", "explosive": "missile"}
 const AMMO := {"kinetic": "Slug", "energy": "Cell", "explosive": "Missile"}
@@ -44,12 +45,12 @@ const S_AFF := ["flat_shield", "shield_heal_on_hit", "capacitor_pulse"]
 
 # label, gear_zone, rarity, weapon-gems, defense-gems, forced_sockets
 var CONFIGS := [
-	["1 Rare Z2       no cores", 2, 2, [], [], false],
-	["5 Legendary Z2  T1 cores", 2, 3, T1, T1D, false],
-	["6 Legendary Z2  T2 cores", 2, 3, T2, T2D, false],
-	["7 Legendary Z2  T3 cores", 2, 3, T3, T3D, false],
-	["8 Unique Z2     no cores", 2, 4, [], [], false],
-	["9 Common Z3     no cores", 3, 0, [], [], false],
+	["1 Rare  N-1     no cores", 2, 2, [], [], false],
+	["5 Legend N-1    T1 cores", 2, 3, T1, T1D, false],
+	["6 Legend N-1    T2 cores", 2, 3, T2, T2D, false],
+	["7 Legend N-1    T3 cores", 2, 3, T3, T3D, false],
+	["8 Unique N-1    no cores", 2, 4, [], [], false],
+	["9 Common N      no cores", 3, 0, [], [], false],
 ]
 
 func _ready() -> void:
@@ -57,7 +58,17 @@ func _ready() -> void:
 	var cm = GameState.combat_manager
 	var rm = GameState.research_manager
 	GameState.set_process(false)
-	print("[Z3F] ================ ZONE-3 GEAR FUNNEL ================")
+	for a in OS.get_cmdline_user_args():
+		if String(a).begins_with("--zone="):
+			TZ = int(String(a).split("=")[1])
+	for zid in cm.zones:
+		if int(cm.zones[zid].get("difficulty", 0)) == TZ:
+			ZID = String(zid)
+			break
+	# old-tier configs come from TZ-1; the "common" answer is TZ itself
+	for c in CONFIGS:
+		c[1] = (TZ if String(c[0]).begins_with("9") else TZ - 1)
+	print("[Z3F] ========== ZONE-%d GEAR FUNNEL (%s) ==========" % [TZ, ZID])
 	_consumable_check(sm)
 	print("[Z3F] farm = >=%d kills in %ds, no death. cell = kills (D=died)." % [FARM_KILLS, int(WINDOW)])
 	var roster: Array = cm.zones[ZID].get("enemies", [])
@@ -118,7 +129,7 @@ func _run(sm, cm, rm, eid: String, cfg: Array) -> Dictionary:
 	var dg: Array = cfg[4]
 	var force: bool = bool(cfg[5])
 	for tid in rm.tech_tree:
-		if int(rm.tech_tree[tid].get("tier", 99)) <= 3 and not tid in rm.unlocked_techs:
+		if int(rm.tech_tree[tid].get("tier", 99)) <= TZ and not tid in rm.unlocked_techs:
 			rm.unlocked_techs.append(tid)
 	_set_hull(sm, gz)
 	var e: Dictionary = cm.enemy_db.get(eid, {})
