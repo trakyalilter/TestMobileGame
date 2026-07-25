@@ -15,6 +15,10 @@ extends "res://scripts/sim/policy_base.gd"
 const MissionActions := preload("res://scripts/sim/mission_actions.gd")
 
 const AMMO_FOR := {"kinetic": "SlugT1", "energy": "CellT1", "explosive": "MissileT1"}
+# Weak-type -> module id suffix. Same mapping z3_funnel.gd::SUFFIX uses; the
+# weak-type pick itself is _enemy_weak_type (min of resist_k/resist_e/resist_x),
+# which is the same min() z3_funnel's _weak() does, plus an all-equal "" case.
+const SUFFIX_FOR := {"kinetic": "kinetic", "energy": "energy", "explosive": "missile"}
 const KIT_HULL := "EmergencyPatch"     # 8 Fe, lvl 1, research-free (anti-softlock kit)
 const KIT_SHIELD := "BasicBooster"     # Si 20 + BatteryT1, lvl 2
 
@@ -467,6 +471,22 @@ func _do_combat(mid: String, zid: String, eid: String) -> Dictionary:
 	var zrr = cm.zones.get(zid, {}).get("research_req")
 	if zrr and not GameState.research_manager.is_tech_unlocked(String(zrr)):
 		return _do_research(mid, String(zrr))
+	# v143: the under-hulled check runs for EVERY enemy, not just bosses, and BEFORE
+	# the boss/trash branches below (the trash branch returns an income backoff
+	# unconditionally, so anything placed after it is unreachable for a mob the bot
+	# keeps losing to). z5_alien_frigate is TRASH, so across 39 walls the bot never
+	# noticed it was flying a tier-3 destroyer in Zone 5. Gate stays conservative —
+	# repeated losses AND genuinely under-hulled — so a gear/RNG loss never triggers
+	# a resource-burning rebuild.
+	if int(_losses.get(eid, 0)) >= 5:
+		var h_tier := int(GameState.shipyard_manager.hulls.get(
+			GameState.shipyard_manager.active_hull, {}).get("tier", 0))
+		var e_zone := int(cm.enemy_db.get(eid, {}).get("zone", 0))
+		if h_tier < e_zone:
+			var up2 := _best_better_hull()
+			if up2 != "":
+				status = "hull too small for %s -> building %s" % [eid, up2]
+				return _do_construct(mid, up2)
 	# v135a: bosses are gear-checks — the penetration wall walls common/uncommon, so
 	# rare+ weak-type Zone-N gear is the intended answer. REACTIVE + targeted: attempt
 	# with current gear FIRST (many bosses fall to the current hull + mixed loot); on
@@ -1216,29 +1236,61 @@ func _equip_weapon_of_type(mid: String, wtype: String) -> Dictionary:
 	var sm = GameState.shipyard_manager
 	# None owned (inventory) and none equipped -> craft the best tier we can make.
 	if _best_counter_in_inventory(wtype) == "" and not _has_weapon_of_type_equipped(wtype):
-		var suffix: String = {"kinetic": "kinetic", "energy": "energy", "explosive": "missile"}.get(wtype, "")
+		var suffix: String = String(SUFFIX_FOR.get(wtype, ""))
 		if suffix == "":
 			return {}
-		var z2id := "z2_%s" % suffix
-		var z2req := String(sm.modules.get(z2id, {}).get("research_req", ""))
-		if sm.modules.has(z2id) and (z2req == "" or GameState.research_manager.is_tech_unlocked(z2req)):
-			return _do_craft(mid, z2id)
-		return _do_craft(mid, "z1_%s" % suffix)
+		return _do_craft(mid, _best_craftable_weapon(suffix))
+	# v143: a power-blocked swap used to `break` and then `return {}` — prep read
+	# that as "type-matched, ready" and the bot fought on with the resisted weapon.
+	# Now: grow the grid and retry the slot, and if NOTHING of the counter type
+	# could be fitted, say so (a real _blocked) instead of a silent false-ready.
+	var equipped := 0
+	var refused := 0
 	for i in _slot_indices("weapon"):
 		var cur = sm.loadout.get(i, null)
 		if cur and _weapon_atype(String(cur)) == wtype:
+			equipped += 1
 			continue                                   # slot already the counter
 		var pick := _best_counter_in_inventory(wtype)
 		if pick == "":
 			break                                      # out of owned counters
 		if cur:
 			sm.unequip_slot(int(i))                    # free power; return cur to inv
-		if not sm.equip_module(int(i), pick, true):
-			if cur:
-				sm.equip_module(int(i), String(cur), true)  # power-blocked -> restore
-			break
+		if sm.equip_module(int(i), pick, true):
+			equipped += 1
+			continue
+		# Power-blocked. Grow the grid ONCE (bounded — _upgrade_batteries returns
+		# false as soon as there is nothing better owned) and retry this slot.
+		if _upgrade_batteries() and sm.equip_module(int(i), pick, true):
+			equipped += 1
+			continue
+		if cur:
+			sm.equip_module(int(i), String(cur), true)  # restore what was there
+		refused += 1
 	sm.recalc_stats()
+	if equipped == 0 and refused > 0:
+		return _blocked(mid, "power_wall: cannot fit %s counter (used=%d cap=%d)" % [
+			wtype, int(sm.energy_used), int(sm.energy_capacity)])
 	return {}
+
+# Best FABRICABLE weapon of `suffix`: deepest tier whose craft_blocker is already
+# "ready", so the bot never detours for materials just to answer a resist. Falls
+# back to the old z2/z1 pick (whose blocker _do_craft then chases) when nothing is
+# ready. The hardcoded z2-else-z1 was dead wrong past Zone 2 — at Zone 5 it would
+# have crafted a 25 eff-dps z2_missile to replace a 520 eff-dps z5_kinetic.
+func _best_craftable_weapon(suffix: String) -> String:
+	var sm = GameState.shipyard_manager
+	for z in range(10, 0, -1):
+		var wid := "z%d_%s" % [z, suffix]
+		if not sm.modules.has(wid):
+			continue
+		if String(actions.craft_blocker(wid).get("kind", "")) == "ready":
+			return wid
+	var z2id := "z2_%s" % suffix
+	var z2req := String(sm.modules.get(z2id, {}).get("research_req", ""))
+	if sm.modules.has(z2id) and (z2req == "" or GameState.research_manager.is_tech_unlocked(z2req)):
+		return z2id
+	return "z1_%s" % suffix
 
 # Real-economy ammo: craft to the archetype's buffer via the REAL recipe,
 # then ASSIGN it (0-ammo weapons fire 0 damage silently — the fake-DNF hole).
@@ -1292,6 +1344,12 @@ func _ensure_powered(mid: String) -> Dictionary:
 				empty = int(i)
 				break
 		if empty < 0:
+			# v143: battery slots full is NOT the end of the road — a player swaps
+			# their low-tier cells for the higher-tier ones already in the bag.
+			# Bounded by the enclosing _guard loop and by _upgrade_batteries()
+			# returning false the moment nothing better is owned.
+			if _upgrade_batteries():
+				continue
 			return _blocked(mid, "power_wall used=%d cap=%d (battery slots full)" % [sm.energy_used, sm.energy_capacity])
 		var bat := _best_owned_or_craftable_battery()
 		if bat == "":
@@ -1397,10 +1455,23 @@ func _grind_processing_step(obj: String) -> Dictionary:
 		"attr": "detour", "obj": obj, "why": "grind processing"}
 
 # Fill empty slots (batteries first — power supply before consumers), then
-# upgrade-swap equipped modules that are strictly lower rarity than the best
-# owned. All via equip_module (power guard honored, return checked).
+# upgrade-swap equipped modules that rank below the best owned. All via
+# equip_module (power guard honored, return checked).
+#
+# v143 — THE m032 FIX. The upgrade-swap list used to be ["weapon","shield","armor"],
+# so batteries were only ever filled into EMPTY slots and never upgraded. At Zone 5
+# the bot was still flying two z1_battery (cap 40) + one z2_battery (cap 80) — grid
+# 176 — with two z4_battery (cap 200) sitting unequipped in the bag. Under the v110
+# battery-only model CONSUMER_LOAD_BY_TIER puts a Z4 module at 40 draw, so with a
+# margin of 6 EVERY Z4/Z5 equip was rejected by equip_module's power guard. The
+# policy always passes silent=true, so those rejections printed nothing: the bot
+# fought z5_alien_frigate with two Z3 KINETIC guns into resist_k 0.35 (its weakness
+# is EXPLOSIVE, and 147 missiles were in the bag) and walled 39 times, which read
+# as a game gate. Batteries now upgrade FIRST — a capacity-increasing swap can
+# never trip the power guard — and engine/sensor joined the swap list.
 func _optimize_loadout() -> void:
 	var sm = GameState.shipyard_manager
+	_upgrade_batteries()
 	for stype in ["battery", "shield", "armor", "engine", "sensor", "weapon"]:
 		for i in _slot_indices(String(stype)):
 			if sm.loadout.get(i, null):
@@ -1409,17 +1480,48 @@ func _optimize_loadout() -> void:
 			if cand != "":
 				if sm.equip_module(i, cand, true):
 					sm.recalc_stats()
-	for stype in ["weapon", "shield", "armor"]:
+	# ONE inventory scan per slot type up front; re-scan only after a swap actually
+	# consumed the candidate. That is cheaper than the old per-slot rescan even with
+	# two extra slot types added, so the wider coverage costs no runtime.
+	for stype in ["shield", "armor", "engine", "sensor", "weapon"]:
+		var cand2 := _best_inventory_module(String(stype))
 		for i in _slot_indices(String(stype)):
+			if cand2 == "":
+				break
 			var cur = sm.loadout.get(i, null)
 			if cur == null:
 				continue
-			var cand2 := _best_inventory_module(String(stype))
-			if cand2 == "":
+			if _module_rank(cand2) <= _module_rank(String(cur)):
 				continue
-			if _module_rank(cand2) > _module_rank(String(cur)):
-				if sm.equip_module(i, cand2, true):
-					sm.recalc_stats()
+			if sm.equip_module(i, cand2, true):
+				sm.recalc_stats()
+				cand2 = _best_inventory_module(String(stype))
+
+# Grow the power grid: swap any equipped battery for a strictly HIGHER-CAPACITY
+# owned one. This is what a human does when the Designer's power bar is red and
+# better cells are in storage. Capacity-increasing swaps always improve the net
+# margin, so equip_module's guard cannot reject them. Strict capacity compare (not
+# _module_rank) so a same-zone rarity bump doesn't churn the loadout for 0 power.
+# Returns true if the grid actually grew.
+func _upgrade_batteries() -> bool:
+	var sm = GameState.shipyard_manager
+	var changed := false
+	var cand := _best_inventory_module("battery")
+	for i in _slot_indices("battery"):
+		if cand == "":
+			break
+		var cur = sm.loadout.get(i, null)
+		if cur == null:
+			continue
+		if int(sm.get_module_energy_capacity(cand)) <= int(sm.get_module_energy_capacity(String(cur))):
+			continue
+		if sm.equip_module(int(i), cand, true):
+			changed = true
+			sm.recalc_stats()
+			pending_events.append({"t": "equip", "slot": "battery", "module": _norm_mid(cand),
+				"why": "grid %d/%d" % [int(sm.energy_used), int(sm.energy_capacity)]})
+			cand = _best_inventory_module("battery")
+	return changed
 
 # Tier-first module rank: a full zone step (~2.2x stats) out-scales every rarity
 # (shipyard v115), so zone dominates and rarity only tiebreaks within a tier. The
