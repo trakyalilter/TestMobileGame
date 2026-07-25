@@ -626,7 +626,12 @@ var enemy_db = {
 		"name": "Martian Warmaster",
 		# v139d: hp 17424->16000 — the Rare cell averaged ~40% across 7 matrix runs
 		# (signal, not noise) and this is the FIRST-WARP boss; Rare must be reliable.
-		"stats": {"hp": 16000, "max_shield": 580, "atk": 210, "def": 87, "atk_interval": 2.5, "accuracy": 65},
+		"stats": {"hp": 13600, "max_shield": 580, "atk": 189, "def": 87, "atk_interval": 2.5, "accuracy": 65},
+		# v142 step-4 verification trim: hp 16000->13600 (-15%), atk 210->189 (-10%).
+		# Post-rebase this read 4/9 Rare on BOTH boss_gearcheck and the mission-hull
+		# boss_threshold (bar is >=60%), and 2 of 3 funnel seeds walled on it with
+		# boss_losses. It is the FIRST-WARP gate — the one boss that must not be a
+		# coin flip at tier-matched Rare.
 		# v139d P3: the first REAL mechanic check (this is also the Singularity /
 		# first-warp boss — gentlest enrage in the ladder; funnel-verify rift
 		# timing after any change here).
