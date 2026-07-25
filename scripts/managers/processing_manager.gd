@@ -458,7 +458,16 @@ var recipes: Dictionary = {
 		#   1. the PREVIOUS rung        -> depth (no reaching to the floor in bulk)
 		#   2. an early automatable good -> cumulative; keeps Fe/Cu/Si/C/O relevant
 		#                                   forever and is what infra parallelises
-		#   3. ~1 of the zone's COMBAT drop -> combat matters, but stays small
+		#   3. the zone's OWN combat drop -> generous is fine
+		#
+		# THE COMBAT CONSTRAINT IS BACKWARD-LOOKING, NOT ABSOLUTE (owner refinement).
+		# A zone-N gear/hull/research MAY demand plenty of zone N's OWN enemy drops —
+		# the player is farming that zone right now, so it costs them nothing extra.
+		# What must stay small is the reach BACK into EARLIER zones' combat drops,
+		# because returning to Z2 to grind while you live in Z8 is serial and cannot
+		# be automated. Automatable goods (gathered/processed) are unconstrained in
+		# either direction — infrastructure parallelises them, and demanding them
+		# forever is exactly how Fe/Cu/Si stay relevant.
 		#
 		# THE PREVIOUS-RUNG COEFFICIENT MUST BE 1, NEVER 2. Chaining each rung to the
 		# last makes zone N transitively depend on Z1 for free (that is the whole
@@ -487,9 +496,11 @@ var recipes: Dictionary = {
 		"name": "Wreckforged Alloy",
 		"description": "Reforge Martian war-debris into structural plate.",
 		# v142d ALLOY LADDER, rung Z3 — see the three-part rule on refine_chondrite_alloy.
-		#   depth: ChondriteAlloy 1 | cumulative: Steel 6 | combat: MartianRelics 1
+		#   depth: ChondriteAlloy 1 | cumulative: Steel 6 | own-zone combat: MartianRelics 3
 		# Coefficient is 1, not 2 — see the compounding note on the Z2 rung. Steel
-		# carries the volume instead, because Steel is the automatable side.
+		# carries the automatable volume. MartianRelics is Z3's OWN drop so it is
+		# free to be generous (3); the only thing held to 1 is the BACKWARD leak,
+		# i.e. the single PirateSalvage that arrives through ChondriteAlloy.
 		# Steel is deliberately RESTORED here. An earlier pass removed it to force
 		# depth, but that was the wrong read: dropping the automatable early good
 		# left MartianRelics 3 + ChondriteAlloy 2, which transitively cost NINE
@@ -498,7 +509,7 @@ var recipes: Dictionary = {
 		# Fe/C/O chain and its buildings load-bearing all the way up.
 		#   dirt/water -> Fe -> Steel ─┐
 		#                 Cu/Si/Sn -> Circuit -> ChondriteAlloy ─┴-> WreckforgedAlloy
-		"input": {"ChondriteAlloy": 1, "Steel": 6, "MartianRelics": 1}, "output": {"WreckforgedAlloy": 1},
+		"input": {"ChondriteAlloy": 1, "Steel": 6, "MartianRelics": 3}, "output": {"WreckforgedAlloy": 1},
 		"duration": 13.0, "level_req": 25, "xp": 35, "research_req": "zone_3_access", "category": "alloys"
 	},
 	"refine_rime_alloy": {
