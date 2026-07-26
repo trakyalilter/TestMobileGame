@@ -215,7 +215,8 @@ func _unlock_everything() -> void:
 	GameState.resources.add_currency("credits", 1000000000.0)
 	# CRITICAL: the inventory is slot-limited (28 base). Over a full z2-z10 run it
 	# fills with accumulated loot, so add_element() silently DROPS new types — and
-	# the tier-4 ammo (SlugT4/CellT4/MissileT4, first needed at z9) never gets a slot,
+	# the top-band ammo never gets a slot (v150: the bands are Z1-3 T1 / Z4-6 T2 /
+	# Z7-10 T3 / Z11+ T4 — see ElementDB.get_ammo_band_for_zone),
 	# leaving z9+ weapons with ZERO ammo → they can't fire → false "DNF" (it looked
 	# like a balance wall but was a harness artifact). Model a real late-game player
 	# with ample storage so ammo is never silently lost.

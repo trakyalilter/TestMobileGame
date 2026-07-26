@@ -844,7 +844,12 @@ var enemy_db = {
 		# — at 0.14 it gated carried Rare (5->2) but also pushed tier-matched Common
 		# under the farm bar (7->4). EHP was cut alongside to restore the margin.
 		"sustain": {"kind": "pulse", "every_s": 6.0, "pct": 0.07},
-		"loot": [["Steel", 8, 18], ["Fe", 15, 35], ["Res2", 1, 3], ["CryoEssence", 1, 2]],
+		# v150 band supply: RimeplateScrap is now the T2 AMMO catalyst as well as
+		# the Z4 alloy feedstock, so it has to be a zone-wide drop, not a 2-of-5
+		# drop. Untargeted expected income goes ~1.8/kill -> ~4.5/kill, which
+		# clears the Z4 demand of 4.5 crafts/min (hull tier 4 = 3 weapon slots =
+		# 90 rounds/min at 1 catalyst per 20) with 2-4x headroom on every spawn.
+		"loot": [["Steel", 8, 18], ["Fe", 15, 35], ["Res2", 1, 3], ["CryoEssence", 1, 2], ["RimeplateScrap", 2, 5]],
 		"rare_loot": [["Ti", 0.15, 3, 8], ["Au", 0.20, 1, 3]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z4_kinetic", "z4_energy", "z4_missile", "z4_battery", "z4_sensor"],
@@ -901,7 +906,9 @@ var enemy_db = {
 		# for those that swing more, while the ABSOLUTE spike stays ~flat. Do not
 		# 'tidy' these mults back to round numbers without redoing the funnel.
 		"charge_nuke": {"every_n": 6, "mult": 2.114286},
-		"loot": [["credits", 1200, 2500], ["Cu", 5, 12], ["Res2", 2, 4], ["CryoEssence", 2, 4]],
+		# v150 band supply: see z4_frost_hulk — all four Z4 trash now carry the T2
+		# ammo catalyst so the band opens on the first kill, whatever spawns.
+		"loot": [["credits", 1200, 2500], ["Cu", 5, 12], ["Res2", 2, 4], ["CryoEssence", 2, 4], ["RimeplateScrap", 2, 5]],
 		"rare_loot": [["AdvCircuit", 0.10, 1, 2]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z4_shield", "z4_armor", "z4_battery", "z4_sensor"],
@@ -1101,7 +1108,12 @@ var enemy_db = {
 		"name": "Gamma Beast",
 		"stats": {"hp": 75000, "atk": 857.142857, "def": 380, "atk_interval": 2.0, "accuracy": 95},
 		"charge_nuke": {"every_n": 7, "mult": 3.8},
-		"loot": [["RadIsotope", 3, 8], ["ExoticMatter", 1, 3], ["Res3", 2, 5]],
+		# v150 band supply: VoidCrystal added — it is now the T3 AMMO catalyst, and
+		# at 3-of-5 spawn slots untargeted income (~1.2/kill x ~4 kills/min = ~5/min)
+		# sat UNDER the Z7 demand of 7.5 crafts/min (hull tier 7 = 5 weapon slots =
+		# 150 rounds/min). Passing the boundary required targeting one enemy, which
+		# is a chore, not a choice. At 4-of-5 untargeted income clears demand.
+		"loot": [["RadIsotope", 3, 8], ["ExoticMatter", 1, 3], ["Res3", 2, 5], ["VoidCrystal", 1, 3]],
 		"rare_loot": [["Os", 0.10, 1, 2]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z7_shield", "z7_armor", "z7_battery", "z7_sensor"],
@@ -1115,7 +1127,11 @@ var enemy_db = {
 		# the Prism RE-CRYSTALLIZES — the Z2 Monolith's soft pulse lesson tested
 		# for real (lattice continuity: monolith → prism).
 		"sustain": {"kind": "pulse", "every_s": 7.0, "pct": 0.07},
-		"loot": [["credits", 1000000, 2000000], ["ExoticMatter", 15, 30], ["Os", 3, 8], ["Res3", 15, 30]],
+		# v150 band supply: the Z7 boss dropped NO VoidCrystal while the Z8 boss
+		# dropped 20-50 — so the band-opening boss paid nothing toward the band it
+		# opens. A first-boss-kill catalyst payout is the standard "you may now
+		# upgrade" beat and it removes all remaining T2->T3 boundary tightness.
+		"loot": [["credits", 1000000, 2000000], ["ExoticMatter", 15, 30], ["Os", 3, 8], ["Res3", 15, 30], ["VoidCrystal", 20, 40]],
 		"rare_loot": [["z7_unique_weapon", 0.03, 1, 1], ["z7_unique_armor", 0.03, 1, 1], ["z7_unique_shield", 0.03, 1, 1], ["z7_unique_kinetic", 0.03, 1, 1], ["z7_unique_energy", 0.03, 1, 1], ["z7_unique_missile", 0.03, 1, 1]],
 		"boss_core": "Z7_Core",
 		"module_drop_chance": 0.25,

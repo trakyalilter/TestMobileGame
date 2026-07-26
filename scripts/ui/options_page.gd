@@ -444,28 +444,19 @@ func _on_test_stock_consumable_pressed() -> void:
 
 
 # Map the fitter's weapon base-suffix + module tier to the matching ammo id.
-# Tier bands: T1-2 → ammo T1, T3-5 → T2, T6-8 → T3, T9-10 → T4. Matches the
-# game's ammo progression so a fitted ship uses tier-appropriate rounds, not
-# T1 rounds on T10 guns. is_ammo_compatible() matches by name prefix so
-# "SlugT4" / "CellT4" / "MissileT4" all pass for their respective weapons.
+# v150: this function used to carry its OWN band map — a FOUR-band one (T1-2 -> T1,
+# T3-5 -> T2, T6-8 -> T3, T9-10 -> T4) — which disagreed with the owner's THREE-band
+# rule (Z1-3 / Z4-6 / Z7-10) that the recipes and ammo plants are built on. Two band
+# functions disagreeing in one codebase is how the fitter ends up recommending a
+# loadout the economy cannot supply. There is now exactly ONE band map:
+# ElementDB.get_ammo_band_for_zone(). Do not re-derive it here.
+# is_ammo_compatible() matches by name prefix, so every tier passes for its channel.
 func _ammo_for_weapon(base_suffix: String, module_tier: int) -> String:
-	var at: int = 1
-	if module_tier <= 2:
-		at = 1
-	elif module_tier <= 5:
-		at = 2
-	elif module_tier <= 8:
-		at = 3
-	else:
-		at = 4
-	match base_suffix:
-		"kinetic":
-			return "SlugT%d" % at
-		"energy":
-			return "CellT%d" % at
-		"missile":
-			return "MissileT%d" % at
-	return ""
+	var band: String = ElementDB.get_ammo_band_for_zone(module_tier)
+	var channel: String = base_suffix
+	if base_suffix == "missile":
+		channel = "explosive"
+	return ElementDB.get_band_ammo_id(channel, band)
 
 
 func _on_test_fit_pressed() -> void:
@@ -525,10 +516,11 @@ func _on_test_fit_pressed() -> void:
 		equipped += 1
 
 		# Weapons need ammo or they fire blanks. equip_module() normally
-		# auto-assigns SlugT1/CellT1/missile defaults, but our direct
-		# loadout write bypasses that path — without this, T10 weapons on
-		# a fitted ship deal 0 damage. Tier-band the ammo to the module
-		# tier so the test loadout feels real rather than handicapped.
+		# auto-assigns the band default, but our direct loadout write bypasses
+		# that path — without this, T10 weapons on a fitted ship deal 0 damage.
+		# Band the ammo to the module's zone so the test loadout feels real
+		# rather than handicapped, and GRANT it (the fitter is a debug tool; a
+		# real player's auto-equip only ever picks ammo already in stock).
 		if w_suffix != "":
 			var ammo_id: String = _ammo_for_weapon(w_suffix, _test_tier)
 			if ammo_id != "":
