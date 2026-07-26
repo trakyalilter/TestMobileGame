@@ -590,7 +590,12 @@ var enemy_db = {
 		# So the fix belongs on the AFFIX axis (cap per-type resist, or let clean
 		# Common gear carry a baseline resist), NOT on this enemy's atk. Raising
 		# atk here only kills the tier-matched set the idle rule protects.
-		"stats": {"hp": 640, "max_shield": 110, "atk": 28, "def": 8, "atk_interval": 2.2, "accuracy": 28},
+				# v148 HEADROOM: Common-N sat at EXACTLY 5 kills here -- a pass with zero
+		# margin, so one unlucky affix roll made it a fail, and it could not absorb
+		# the pending affix nerf (two verifiers caught it dying). EHP cut ~38%% to
+		# lift Common-N to ~8-9 kills. Deliberately HP/shield only: kill RATE moves,
+		# lethality does not, so carried gear that already DIES here keeps dying.
+		"stats": {"hp": 400, "max_shield": 68, "atk": 28, "def": 8, "atk_interval": 2.2, "accuracy": 28},
 		# v142 tier-gate: Z2 is the FIRST gated zone. Claim Jumper patches its own
 		# plating — MIN-DPS check. Softer than the Z3 swarm (10%/7s vs 13%/6s).
 		"sustain": {"kind": "pulse", "every_s": 6.5, "pct": 0.09},
@@ -632,7 +637,12 @@ var enemy_db = {
 		# spent, while carried gear takes a ~9-27% death chance PER 180s window —
 		# i.e. near-certain death across an idle hour. Do not push past 65 without
 		# re-measuring Common: the cliff is at 68.
-		"stats": {"hp": 950, "atk": 65, "def": 10, "atk_interval": 5.0, "accuracy": 20},
+				# v148 HEADROOM: Common-N sat at EXACTLY 5 kills here -- a pass with zero
+		# margin, so one unlucky affix roll made it a fail, and it could not absorb
+		# the pending affix nerf (two verifiers caught it dying). EHP cut ~38%% to
+		# lift Common-N to ~8-9 kills. Deliberately HP/shield only: kill RATE moves,
+		# lethality does not, so carried gear that already DIES here keeps dying.
+		"stats": {"hp": 590, "atk": 65, "def": 10, "atk_interval": 5.0, "accuracy": 20},
 		# v146: mult 2.0 -> 3.2, and atk_interval 5.0 is why it needed to be this big.
 		# The owner cleared this cell carrying ZONE 1 gear on a TIER 2 hull -- the real
 		# player shape, because the mission chain hands over a frigate at m026b BEFORE
@@ -689,7 +699,12 @@ var enemy_db = {
 	},
 	"z3_salvage_swarm": {
 		"name": "Salvage Swarm",
-		"stats": {"hp": 800, "max_shield": 150, "atk": 34, "def": 10, "atk_interval": 0.6, "accuracy": 38},
+		# v148: atk 34 -> 26. At atk_interval 0.6 this is the FASTEST attacker in the
+		# game -- 56.7 dps at Z3 -- and sub-2s attackers out-tick the 10s consumable
+		# cooldown, the same lethality-spike pattern that killed tier-matched gear at
+		# z4_glacial_drone (1.8s), z5_alien_probe (1.2s) and z7_shard_swarm (0.8s).
+		# Common-Z3 was killing 9 here and still dying. Its pulse stays the gate.
+		"stats": {"hp": 800, "max_shield": 150, "atk": 26, "def": 10, "atk_interval": 0.6, "accuracy": 38},
 		# v142 tier-gate flavour (owner: use a skill mechanic, not a wall): the swarm
 		# re-knits. MIN-DPS check — sub-tier damage cannot out-pace the re-form.
 		"sustain": {"kind": "pulse", "every_s": 6.0, "pct": 0.13},
@@ -701,7 +716,12 @@ var enemy_db = {
 	},
 	"z3_derelict_frigate": {
 		"name": "Derelict Frigate",
-		"stats": {"hp": 2000, "max_shield": 400, "atk": 82, "def": 18, "atk_interval": 4.0, "accuracy": 42},
+				# v148 HEADROOM: Common-N sat at EXACTLY 5 kills here -- a pass with zero
+		# margin, so one unlucky affix roll made it a fail, and it could not absorb
+		# the pending affix nerf (two verifiers caught it dying). EHP cut ~38%% to
+		# lift Common-N to ~8-9 kills. Deliberately HP/shield only: kill RATE moves,
+		# lethality does not, so carried gear that already DIES here keeps dying.
+		"stats": {"hp": 1240, "max_shield": 248, "atk": 82, "def": 18, "atk_interval": 4.0, "accuracy": 42},
 		# v142 tier-gate flavour: derelict spinal gun charges, then fires. EHP check —
 		# telegraphed ("CHARGING MAIN CANNON"), pre-fight solvable, auto-battler clean.
 		# v142b: mult 2.2->2.0. Under honest affix rolls at 9 trials the tier-matched
