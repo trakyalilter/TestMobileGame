@@ -839,8 +839,9 @@ var building_db: Dictionary = {
 	# Explosive had NO ammo building at ANY tier — a dropped feature, not a design
 	# choice ("munitions_factory" was already referenced in
 	# INFRA_ENG_SCALED_BUILDINGS with no entry behind it). That mattered because
-	# explosive is the MANDATORY damage type at Z2/Z5/Z8 (_amp_resist pushes the
-	# Z8 boss to explosive/kinetic = 7.0x), so a player routed onto the weak type
+	# explosive is the MANDATORY damage type at Z2/Z5/Z8 (v150 resist triangle:
+	# the Z8 boss is explosive-weak -0.40 / energy-resisted 0.37, i.e. explosive
+	# over resisted = x1.40 / x0.3414 = 4.1x), so a player routed onto the weak type
 	# hand-crafted missiles forever while kinetic/energy players never paid that
 	# tax — and an empty missile stack means the weapon does not fire at all.
 	#
