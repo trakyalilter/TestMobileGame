@@ -651,7 +651,7 @@ var recipes: Dictionary = {
 		"description": "Standard high-explosive ordnance.",
 		"input": {"Fe": 5, "C": 2},
 		"output": {"MissileT1": 20},
-		"duration": 12.0,
+		"duration": 5.0,
 		"level_req": 5,
 		"xp": 20,
 		# v129: research gate removed — T1 ammo is part of the starter combat kit
@@ -690,7 +690,7 @@ var recipes: Dictionary = {
 		"description": "Guided missile with logic circuits and a Hydrogen-fuelled sustainer motor.",
 		"input": {"Steel": 2, "Circuit": 1, "TargetingChip": 1, "StructuralComponent": 3, "PirateSalvage": 2, "H": 10},
 		"output": {"MissileT2": 20},
-		"duration": 20.0,
+		"duration": 10.0,
 		"level_req": 25,
 		"xp": 50,
 		"research_req": "advanced_rocketry"
@@ -700,7 +700,7 @@ var recipes: Dictionary = {
 		"description": "High-yield thermobaric ordnance in a corrosion-resistant casing.",
 		"input": {"Steel": 5, "AlMgAlloy": 2, "H": 20, "StructuralComponent": 5, "GalvanizedSteel": 3, "StainlessSteel": 4},
 		"output": {"MissileT3": 20},
-		"duration": 30.0,
+		"duration": 15.0,
 		"level_req": 48,
 		"xp": 100,
 		"research_req": "advanced_rocketry"
@@ -710,7 +710,7 @@ var recipes: Dictionary = {
 		"description": "Antimatter-infused capital buster.",
 		"input": {"Superalloy": 2, "ExoticMatter": 1, "NanoSubstrate": 3, "OsCore": 2},
 		"output": {"MissileT4": 20},
-		"duration": 45.0,
+		"duration": 20.0,
 		"level_req": 65,
 		"xp": 250,
 		"research_req": "capital_ship_armament"

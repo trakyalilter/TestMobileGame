@@ -77,6 +77,13 @@ var CONFIGS := [
 	# shields cleared z2_ore_hauler (e4). Reproduce it before tuning anything.
 	["A Rare  N-1  on hull N", 2, 2, [], [], false, 3],
 	["B Legend N-1 on hull N", 2, 3, [], [], false, 3],
+	# v149: the owner's four-config spec, ALL on the current-tier hull, because that
+	# is the real player shape (the mission chain hands over a tier-N hull before
+	# tier-N modules exist). Rows A/B already covered Rare and Legendary bare; these
+	# two close the set. Row D (Unique N-1) is the one config that SHOULD farm --
+	# it is the earned reward for clearing the previous zone's boss.
+	["C Legend N-1 T1 hull N", 2, 3, T1, T1D, false, 3],
+	["D Unique N-1     hull N", 2, 4, [], [], false, 3],
 ]
 
 func _ready() -> void:

@@ -905,7 +905,11 @@ var enemy_db = {
 		"rare_loot": [["AdvCircuit", 0.10, 1, 2]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z4_shield", "z4_armor", "z4_battery", "z4_sensor"],
-		"xp": 135, "zone": 4, "resist_k": -0.15, "resist_e": 0.30, "resist_x": 0.0, "dmg_type": "energy"
+		# v149 e4 gate: resist_k -0.15 -> 0.05. This cell is KINETIC-weak, so its leak
+		# was never the missile-cadence side effect — it needed its own lever. Common-N
+		# farms here at 12 kills, so it has the headroom to absorb a resist buff that
+		# pushes carried Legendary (5-6 kills) under the bar.
+		"xp": 135, "zone": 4, "resist_k": -0.05, "resist_e": 0.30, "resist_x": 0.10, "dmg_type": "energy"
 	},
 	"z4_boss_overseer": {
 		"name": "Glacial Overseer",
@@ -971,7 +975,12 @@ var enemy_db = {
 		"rare_loot": [["AdvCircuit", 0.10, 2, 4]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z5_shield", "z5_armor", "z5_battery", "z5_sensor"],
-		"xp": 320, "zone": 5, "resist_k": 0.25, "resist_e": -0.15, "resist_x": -0.25, "dmg_type": "energy"
+		"xp": 320, "zone": 5, # v149 e4 gate: resist_x -0.25 -> -0.05 (owner: "buff the explosive resistance").
+		# This cell IS explosive-weak, so it is where the missile-cadence side effect
+		# from the 2.0s normalization actually landed — missiles fire twice as often
+		# now, doubling their per-hit heals. Common-N farms here at 13, so it absorbs
+		# this; carried Legendary+T1 (7-8 kills) drops under the bar.
+		"resist_k": 0.25, "resist_e": -0.15, "resist_x": 0.10, "dmg_type": "energy"
 	},
 	"z5_boss_harbinger": {
 		"name": "Xenon Harbinger",
