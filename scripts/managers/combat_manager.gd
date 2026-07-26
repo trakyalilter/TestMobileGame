@@ -498,6 +498,132 @@ var hazard_zones = {
 # Regular: HP=floor(200*2.2^(N-1)), ATK=floor(12*2.2^(N-1)), DEF=floor(3*2.2^(N-1))
 # Boss: HP×6, ATK×2.5, DEF×3, Shield×3
 # Enemy variants within zone: ±20% stat variation for diversity
+#
+# ─── v150 RESIST TRIANGLE (owner rule, 2026-07-26) ────────────────────────────
+# "One resisted, one natural, one weak. Resisted cannot farm; natural can farm
+#  but slow; weak can farm but fast. Keep the resistance ratio high, 60-70%."
+#
+# EVERY enemy below now carries exactly one of each across resist_k/resist_e/
+# resist_x. NO enemy has two positive resists (the old table had 21 that did,
+# which is what made "pick the second-best type" a dominated non-choice), and
+# none has two negatives (10 did).
+#
+# THE AUTHORED NUMBER IS NOT WHAT THE PLAYER FEELS. _amp_resist multiplies the
+# positive side by RESIST_AMP (1.78) and clamps at RESIST_MAX (0.80); negatives
+# pass through, clamped at -0.40. So the owner's 60-70% EXPERIENCED band maps to
+# an AUTHORED 0.337-0.393. The constants used here:
+#
+#   RESISTED  authored  0.37 -> amp 0.6586 -> hull damage x0.3414 (65.9% cut)
+#   NATURAL   authored  0.00 -> amp 0.0    -> hull damage x1.000
+#   WEAK      authored -0.30 -> amp -0.30  -> hull damage x1.300   (regular)
+#   WEAK      authored -0.40 -> amp -0.40  -> hull damage x1.400   (BOSSES)
+#
+# Weak is 3.81x the resisted channel; natural is 2.93x. WHY 0.37 AND NOT THE OLD
+# 0.45-0.55: those all amped PAST the 0.80 clamp, so half the table was silently
+# pinned at an 80% wall — above the band the owner asked for, with no spread left
+# to distinguish one cell from another.
+#
+# BOSSES KEEP WEAK AT -0.40, which is what every boss already had. The boss
+# credibility curve was hand-tuned on the weak-type channel and boss_gearcheck /
+# boss_threshold both measure exactly that channel, so holding -0.40 keeps the
+# tuned axis untouched while resisted/natural get the triangle.
+#
+# WHICH CHANNEL IS RESISTED IS NOT FREE — IT IS FORCED BY THE PIPELINE.
+# The three channels are NOT equal at equal resist. From source: base module atk
+# 916 / 1131 / 1021 (kin/nrg/exp at Z7), hull multiplier 1.2 / 0.9 / 1.0, ARMOR
+# DIVISOR arm_k = armor, arm_e = 0.7*armor, arm_x = 0.2*armor, and SHIELD weight
+# 0.5 / 1.5 / 1.1. Net measured spread at identical resists is ~2-2.5x, with
+# EXPLOSIVE strongest and KINETIC weakest. That is the same order of magnitude as
+# the 3.81x the triangle itself creates, so a careless "resisted = whatever was
+# positive before" scrambles the speed ordering.
+# The rule applied here: WEAK = the zone-cycle type; RESISTED = the STRONGER of
+# the two remaining channels, so the triangle fights the asymmetry instead of
+# compounding it. That yields exactly three shapes:
+#   explosive-weak zones (Z2/Z5/Z8, Z14) -> weak EXP, natural KIN, resisted NRG
+#   energy-weak    zones (Z3/Z6/Z9, Z12/Z15, hazard) -> weak NRG, nat KIN, res EXP
+#   kinetic-weak   zones (Z4/Z7/Z10, Z13) -> weak KIN, natural NRG, resisted EXP
+# Per-cell variation of resisted-vs-natural (which the owner permits) was tried
+# and REVERTED: it inverts weak/natural in the cells where it lands on the strong
+# channel. Variety here costs the rule.
+#
+# KNOWN LIMIT — KINETIC-WEAK ZONES (Z4/Z7/Z10/Z13). Even with resisted on the
+# strong channel, kinetic is structurally weak enough that -0.30 (x1.30) does not
+# always clear a natural channel at x1.00. The negative clamp (-0.40, i.e. x1.40
+# max) is the binding constraint; the fix is to normalize the per-channel
+# pipeline (armor divisor + shield weight), NOT to author deeper resists. See the
+# measurements in scenes/tri_speed.tscn.
+#
+# ZONE WEAK-CYCLE PRESERVED — Z2/Z5/Z8 explosive, Z3/Z6/Z9 energy, Z4/Z7/Z10
+# kinetic, continuing into NG+ as Z12 energy / Z13 kinetic / Z14 explosive /
+# Z15 energy. z5_alien_probe was the one cell that broke the cycle (energy-weak
+# inside an explosive-weak zone); it is explosive-weak now like the rest of Z5.
+#
+# TWO GROUPS ARE DELIBERATELY EXEMPT — do not "finish the job" on them:
+#  * ZONE 11 (warp_hardened): _get_breach_factors cuts K/E/X to x0.02 flat. A
+#    K/E/X triangle there is arithmetically inert AND actively misleading — the
+#    enemy card would advertise a "weak" type that deals 2% damage, teaching the
+#    wrong lesson at the one gate where Cryo is the only answer. resist_cryo
+#    -0.25 is their triangle.
+#  * THE FOUR PHASED NG+ BOSSES (z12/z13/z14/z15 boss): their phase gate cuts
+#    every off-element channel to phase_cut (0.15) and the phase list is
+#    cryo/corrosion only, so K/E/X are ALWAYS x0.15. Same reasoning as Z11.
+# Their NG+ TRASH is conventional and IS triangled — it was 0/0/0 before, i.e. a
+# pure dominated choice with no reason to ever change weapon.
+#
+# ─── v151 THE e3/e4 TIER GATE, REBUILT ON THE MIN-DPS AXIS ────────────────────
+# The triangle above BROKE the gate, and the repair is not where you would guess.
+#
+# WHAT BROKE. The triangle did not only raise resists — it moved and deepened the
+# WEAK channel (z4_glacial_drone resist_k -0.05 -> -0.30; z5_alien_probe went from
+# energy-weak -0.15 to explosive-weak -0.30, i.e. onto the STRONGEST channel).
+# Every gear row equips the enemy's weakest type, so this was a uniform DPS
+# windfall — it did not change WHO beats the cell, it just multiplied everyone's
+# kill count until carried Zone N-1 gear floated over the 5-kill farm bar.
+#
+# WHY THE OBVIOUS LEVERS ARE DEAD. charge_nuke and base atk are LETHALITY levers,
+# and lethality is INVERTED here. Per-type resistance is an AFFIX: a carried
+# Legendary rolls resist_k/e/x and averages 0.60-0.75 (the cap) against the
+# enemy's single damage type, while a freshly crafted CLEAN Common tier-N has no
+# affixes and is pinned at its 0.21-0.47 module baseline. Carried gear therefore
+# takes ~2.5x LESS damage than the very row the idle rule exists to protect.
+# Measured on z4_glacial_drone, deaths per 180s window over 15 trials:
+#   nuke mult 2.11 (authored) -> Common  0/15   Legendary+T1  0/15
+#   nuke mult 4.50            -> Common  5/15   Legendary+T1  0/15
+#   nuke mult 6.00            -> Common 15/15   Legendary+T1  4/15   (inverted)
+#   nuke mult 8.00            -> Common 15/15   Legendary+T1  4/15, still 6 kills
+# and on z9_quarantine_mech at mult 9.00 (vs 4.15 authored) NOTHING died at all.
+# Tier-matched Common dies FIRST at every setting. This is the same root cause
+# the v147 z2_claim_jumper note found and it generalises to the whole table.
+#
+# WHAT ACTUALLY WORKS: the shield-repair pulse, because of `bleed_ratio` in
+# resolve_damage. While an enemy's shield fully absorbs a swing's shield damage,
+# bleed_ratio is 0 and the swing deals ZERO hull damage — the shield is a hard
+# wall, not a second HP bar. And shield damage is computed from RAW atk with no
+# armour divisor and no resist term, so stripping it is a pure weapon-tier check:
+# a Common tier-N out-strips a carried Legendary tier-(N-1) by the full 3.75x
+# tier step, uncushioned by the affixes that neuter every other lever. That is a
+# genuine min-DPS gate — the rate goes to ZERO, which is the only kind of gate an
+# idle game respects (a slow cell is still a farmable cell to an AFK player).
+#
+# HENCE THE SHAPE OF THE FIX. Every e3/e4 cell in Zones 4-10 now carries a
+# deflector sized in proportion to its hull plus a repair pulse on a uniform 6.0s
+# cadence; hull hp is scaled to land row 9 back at 6-8 kills. max_shield is NOT
+# padding — the pulse heals `enemy_max_shield * pct`, so the POOL is the pulse's
+# ceiling, which is why several cells needed the shield raised while pct went
+# DOWN, and why the four shieldless cells (z7_gamma_beast, z9_quarantine_mech,
+# z10_primordial_titan, and Z8's) had to be given one before the lever existed.
+# Note zone 9-10 enemy DEF is high enough that hull EHP is heavily mitigated
+# while shield EHP is not, so those cells are deliberately shield-heavy.
+# charge_nuke is KEPT everywhere as the telegraph/identity but it no longer
+# gates anything — do not reach for it as a lever again without re-reading above.
+# Zones 2 and 3 are untouched: both already satisfied the gate.
+#
+# STANDING LIMIT — THE REAL FIX IS THE AFFIX AXIS. Per-type resist rolls 5-20%
+# (GA 40%) on armour AND shield and aggregates to a 0.75 cap, so 3 Legendary
+# affixes beat an entire gear tier at mitigation. Until that is capped, or clean
+# Common gear carries a comparable baseline, NO lethality lever can gate anything
+# and this table has to buy its gate entirely on the min-DPS axis.
+# ──────────────────────────────────────────────────────────────────────────────
 var enemy_db = {
 	# ═══ ZONE 1: Lunar Orbit — Reg HP~200, ATK~15, DEF~3 ═══
 	"z1_dust_mite": {
@@ -507,7 +633,7 @@ var enemy_db = {
 		"rare_loot": [],
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_shield", "z1_armor"],
-		"xp": 5, "zone": 1, "resist_k": -0.20, "resist_e": 0.0, "resist_x": 0.10, "dmg_type": "kinetic"
+		"xp": 5, "zone": 1, "resist_k": -0.30, "resist_e": 0.0, "resist_x": 0.37, "dmg_type": "kinetic"
 	},
 	"z1_lunar_drone": {
 		"name": "Lunar Drone",
@@ -516,7 +642,7 @@ var enemy_db = {
 		"rare_loot": [["NavData", 0.25, 1, 1]],
 		"module_drop_chance": 0.30,
 		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_missile", "z1_shield", "z1_armor", "z1_battery"],
-		"xp": 8, "zone": 1, "resist_k": -0.40, "resist_e": 0.40, "resist_x": 0.0, "dmg_type": "kinetic"
+		"xp": 8, "zone": 1, "resist_k": -0.30, "resist_e": 0.0, "resist_x": 0.37, "dmg_type": "kinetic"
 	},
 	"z1_survey_probe": {
 		"name": "Survey Probe",
@@ -525,7 +651,7 @@ var enemy_db = {
 		"rare_loot": [["NavData", 0.2, 1, 2], ["DamagedCircuitry", 0.5, 1, 2]],
 		"module_drop_chance": 0.35,
 		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_shield", "z1_armor", "z1_sensor"],
-		"xp": 12, "zone": 1, "resist_k": 0.50, "resist_e": -0.50, "resist_x": 0.0, "dmg_type": "energy"
+		"xp": 12, "zone": 1, "resist_k": 0.0, "resist_e": -0.30, "resist_x": 0.37, "dmg_type": "energy"
 	},
 	"z1_scrap_collector": {
 		"name": "Scrap Collector",
@@ -534,7 +660,7 @@ var enemy_db = {
 		"rare_loot": [["Cu", 0.15, 2, 4], ["SalvagedAlloy", 0.35, 1, 2]],
 		"module_drop_chance": 0.40,
 		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_missile", "z1_shield", "z1_armor", "z1_engine"],
-		"xp": 10, "zone": 1, "resist_k": 0.45, "resist_e": 0.30, "resist_x": -0.35, "dmg_type": "kinetic"
+		"xp": 10, "zone": 1, "resist_k": 0.0, "resist_e": 0.37, "resist_x": -0.30, "dmg_type": "kinetic"
 	},
 
 	"z1_boss_architect": {
@@ -561,7 +687,7 @@ var enemy_db = {
 		# v131: resists ZEROED by design — the first boss is a pure rarity/tier check
 		# (any RARE+ weapon type kills it). Type-matching is taught earlier on the
 		# regular enemies (m017a-d); the boss shouldn't wall players on weapon type.
-		"is_boss": true, "xp": 100, "zone": 1, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "dmg_type": "kinetic"
+		"is_boss": true, "xp": 100, "zone": 1, "resist_k": 0.0, "resist_e": 0.37, "resist_x": -0.40, "dmg_type": "kinetic"
 	},
 
 	# ═══ ZONE 2: Asteroid Belt — Reg HP~480, ATK~33, DEF~7 ═══
@@ -572,7 +698,7 @@ var enemy_db = {
 		"rare_loot": [["Cu", 0.15, 3, 6]],
 		"module_drop_chance": 0.20,   # v138c: was 0.10 — Z2 was stingier than Z1 (0.15-0.25), stretching the Monolith gear-farm days past the new Z3 first-warp cadence
 		"module_drop_pool": ["z2_kinetic", "z2_energy", "z2_missile", "z2_shield", "z2_armor", "z2_battery", "z2_sensor"],
-		"xp": 20, "zone": 2, "resist_k": -0.20, "resist_e": 0.30, "resist_x": -0.20, "dmg_type": "kinetic"
+		"xp": 20, "zone": 2, "resist_k": 0.0, "resist_e": 0.37, "resist_x": -0.30, "dmg_type": "kinetic"
 	},
 	"z2_silicate_golem": {
 		"name": "Silicate Golem",
@@ -581,7 +707,7 @@ var enemy_db = {
 		"rare_loot": [["Ti", 0.10, 1, 3], ["DamagedCircuitry", 0.40, 1, 3]],
 		"module_drop_chance": 0.20,   # v138c: was 0.10 (see z2_pirate_skiff note)
 		"module_drop_pool": ["z2_kinetic", "z2_energy", "z2_missile", "z2_shield", "z2_armor", "z2_battery", "z2_sensor"],
-		"xp": 25, "zone": 2, "resist_k": 0.40, "resist_e": 0.0, "resist_x": -0.35, "dmg_type": "kinetic"
+		"xp": 25, "zone": 2, "resist_k": 0.0, "resist_e": 0.37, "resist_x": -0.30, "dmg_type": "kinetic"
 	},
 	"z2_claim_jumper": {
 		"name": "Claim Jumper",
@@ -631,7 +757,7 @@ var enemy_db = {
 		"rare_loot": [["Ti", 0.12, 2, 4], ["Res2", 0.35, 1, 2]],
 		"module_drop_chance": 0.20,   # v138c: was 0.10 (see z2_pirate_skiff note)
 		"module_drop_pool": ["z2_kinetic", "z2_energy", "z2_missile", "z2_battery", "z2_sensor"],
-		"xp": 28, "zone": 2, "resist_k": 0.15, "resist_e": -0.15, "resist_x": 0.0, "dmg_type": "explosive"
+		"xp": 28, "zone": 2, "resist_k": 0.0, "resist_e": 0.37, "resist_x": -0.30, "dmg_type": "explosive"
 	},
 	"z2_ore_hauler": {
 		"name": "Ore Hauler",
@@ -687,7 +813,7 @@ var enemy_db = {
 		"rare_loot": [["Steel", 0.10, 1, 3], ["SalvagedAlloy", 0.40, 1, 3]],
 		"module_drop_chance": 0.20,   # v138c: was 0.10 (see z2_pirate_skiff note)
 		"module_drop_pool": ["z2_shield", "z2_armor", "z2_battery", "z2_sensor"],
-		"xp": 22, "zone": 2, "resist_k": 0.45, "resist_e": 0.15, "resist_x": -0.30, "dmg_type": "kinetic"
+		"xp": 22, "zone": 2, "resist_k": 0.0, "resist_e": 0.37, "resist_x": -0.30, "dmg_type": "kinetic"
 	},
 	"z2_boss_monolith": {
 		"name": "Silicate Monolith",
@@ -702,7 +828,7 @@ var enemy_db = {
 		"boss_core": "Z2_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z2_kinetic", "z2_energy", "z2_missile", "z2_shield", "z2_armor", "z2_battery", "z2_sensor"],
-		"is_boss": true, "xp": 300, "zone": 2, "resist_k": 0.45, "resist_e": 0.15, "resist_x": -0.40, "dmg_type": "kinetic"
+		"is_boss": true, "xp": 300, "zone": 2, "resist_k": 0.0, "resist_e": 0.37, "resist_x": -0.40, "dmg_type": "kinetic"
 	},
 
 	# ═══ ZONE 3: Mars Debris — Reg HP~1152, ATK~73, DEF~15 ═══
@@ -713,7 +839,7 @@ var enemy_db = {
 		"rare_loot": [["Circuit", 0.10, 1, 2], ["Ni", 0.10, 1, 3]],
 		"module_drop_chance": 0.20,   # v138c: was 0.10 — same Z2 rationale: gear-farm speed for the Z3 first-warp cadence (check stays uncommon+)
 		"module_drop_pool": ["z3_kinetic", "z3_energy", "z3_missile", "z3_shield", "z3_armor", "z3_battery", "z3_sensor"],
-		"xp": 50, "zone": 3, "resist_k": 0.0, "resist_e": -0.25, "resist_x": 0.25, "dmg_type": "explosive"
+		"xp": 50, "zone": 3, "resist_k": 0.0, "resist_e": -0.30, "resist_x": 0.37, "dmg_type": "explosive"
 	},
 	"z3_martian_sentry": {
 		"name": "Martian Sentry",
@@ -722,7 +848,7 @@ var enemy_db = {
 		"rare_loot": [["Chip", 0.08, 1, 2]],
 		"module_drop_chance": 0.20,   # v138c: was 0.10 (see z3_scavenger_mech note)
 		"module_drop_pool": ["z3_kinetic", "z3_energy", "z3_missile", "z3_shield", "z3_armor", "z3_battery", "z3_sensor"],
-		"xp": 60, "zone": 3, "resist_k": 0.0, "resist_e": -0.30, "resist_x": 0.30, "dmg_type": "explosive"
+		"xp": 60, "zone": 3, "resist_k": 0.0, "resist_e": -0.30, "resist_x": 0.37, "dmg_type": "explosive"
 	},
 	"z3_salvage_swarm": {
 		"name": "Salvage Swarm",
@@ -731,15 +857,25 @@ var enemy_db = {
 		# game. v149 normalised it to the uniform 2.0s cadence at IDENTICAL dps
 		# (atk 26 -> 86.67); the v148 cut is carried through by the rescale, not
 		# double-counted. The swarm identity now lives in its pulse, which is the gate.
-		"stats": {"hp": 800, "max_shield": 150, "atk": 86.666667, "def": 10, "atk_interval": 2.0, "accuracy": 38},
+		# v151: hp 800->860, shield 150->860, pulse pct 0.13->0.15. Zone 3 e3 read as
+		# a PASS on two seeds and a clear LEAK on a third, because what was actually
+		# holding carried Legendary+T1 back was a coin-flip DEATH, not the gate:
+		# measured over 21 trials it farmed 7 kills with 0/21 deaths. A gate that
+		# depends on the enemy getting lucky is not a gate. The re-knit pulse was
+		# toothless because its heal is max_shield x pct and max_shield was 436
+		# effective — 16% of the swarm's EHP. Giving it a real pool is what turns
+		# the flavour text into the mechanic it always claimed to be.
+		# Measured (21 trials): row 9 13 -> 7 kills 0 deaths; carried
+		# Rare/Legendary/Legendary+T1 5/6/7 -> 1/2/3; Unique 20 -> 12 (still farms).
+		"stats": {"hp": 860, "max_shield": 860, "atk": 86.666667, "def": 10, "atk_interval": 2.0, "accuracy": 38},
 		# v142 tier-gate flavour (owner: use a skill mechanic, not a wall): the swarm
 		# re-knits. MIN-DPS check — sub-tier damage cannot out-pace the re-form.
-		"sustain": {"kind": "pulse", "every_s": 6.0, "pct": 0.13},
+		"sustain": {"kind": "pulse", "every_s": 6.0, "pct": 0.15},
 		"loot": [["Fe", 5, 15], ["Cu", 3, 8], ["Res2", 1, 2], ["MartianRelics", 1, 2], ["SalvageData", 2, 4]],
 		"rare_loot": [["Steel", 0.15, 2, 5], ["Sn", 0.12, 2, 4]],
 		"module_drop_chance": 0.20,   # v138c: was 0.10 (see z3_scavenger_mech note)
 		"module_drop_pool": ["z3_kinetic", "z3_energy", "z3_missile", "z3_battery", "z3_sensor"],
-		"xp": 45, "zone": 3, "resist_k": -0.15, "resist_e": -0.15, "resist_x": 0.15, "dmg_type": "kinetic"
+		"xp": 45, "zone": 3, "resist_k": 0.0, "resist_e": -0.30, "resist_x": 0.37, "dmg_type": "kinetic"
 	},
 	"z3_derelict_frigate": {
 		"name": "Derelict Frigate",
@@ -760,7 +896,7 @@ var enemy_db = {
 		"rare_loot": [["Ti", 0.10, 2, 5], ["Cr", 0.08, 1, 3]],
 		"module_drop_chance": 0.20,   # v138c: was 0.10 (see z3_scavenger_mech note)
 		"module_drop_pool": ["z3_shield", "z3_armor", "z3_battery", "z3_sensor"],
-		"xp": 70, "zone": 3, "resist_k": 0.15, "resist_e": -0.30, "resist_x": 0.40, "dmg_type": "explosive"
+		"xp": 70, "zone": 3, "resist_k": 0.0, "resist_e": -0.30, "resist_x": 0.37, "dmg_type": "explosive"
 	},
 	"z3_boss_warmaster": {
 		"name": "Martian Warmaster",
@@ -781,7 +917,7 @@ var enemy_db = {
 		"boss_core": "Z3_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z3_kinetic", "z3_energy", "z3_missile", "z3_shield", "z3_armor", "z3_battery", "z3_sensor"],
-		"is_boss": true, "xp": 800, "zone": 3, "resist_k": 0.15, "resist_e": -0.40, "resist_x": 0.45, "dmg_type": "explosive"
+		"is_boss": true, "xp": 800, "zone": 3, "resist_k": 0.0, "resist_e": -0.40, "resist_x": 0.37, "dmg_type": "explosive"
 	},
 
 	# ═══ ZONE 4: Cryofield — Reg HP~2765, ATK~160, DEF~32 ═══
@@ -792,7 +928,7 @@ var enemy_db = {
 		"rare_loot": [["AdvCircuit", 0.08, 1, 2]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z4_kinetic", "z4_energy", "z4_missile", "z4_shield", "z4_armor", "z4_battery", "z4_sensor"],
-		"xp": 120, "zone": 4, "resist_k": -0.25, "resist_e": 0.30, "resist_x": 0.0, "dmg_type": "energy"
+		"xp": 120, "zone": 4, "resist_k": -0.30, "resist_e": 0.0, "resist_x": 0.37, "dmg_type": "energy"
 	},
 	"z4_cryo_sentinel": {
 		"name": "Frost Sentinel",
@@ -801,7 +937,7 @@ var enemy_db = {
 		"rare_loot": [["Chip", 0.10, 1, 3]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z4_kinetic", "z4_energy", "z4_missile", "z4_shield", "z4_armor", "z4_battery", "z4_sensor"],
-		"xp": 140, "zone": 4, "resist_k": -0.25, "resist_e": 0.40, "resist_x": 0.0, "dmg_type": "energy"
+		"xp": 140, "zone": 4, "resist_k": -0.30, "resist_e": 0.0, "resist_x": 0.37, "dmg_type": "energy"
 	},
 	"z4_frost_hulk": {
 		"name": "Frost Hulk",
@@ -848,7 +984,7 @@ var enemy_db = {
 		"rare_loot": [["Ti", 0.15, 3, 8], ["Au", 0.20, 1, 3]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z4_kinetic", "z4_energy", "z4_missile", "z4_battery", "z4_sensor"],
-		"xp": 130, "zone": 4, "resist_k": -0.30, "resist_e": 0.25, "resist_x": 0.15, "dmg_type": "kinetic"
+		"xp": 130, "zone": 4, "resist_k": -0.30, "resist_e": 0.0, "resist_x": 0.37, "dmg_type": "kinetic"
 	},
 	"z4_glacial_drone": {
 		"name": "Glacial Drone",
@@ -882,7 +1018,15 @@ var enemy_db = {
 		# single-type (energy), and carried Legendary rolls resist_e 0.57-0.75 as
 		# an AFFIX while a clean Common is pinned at the 0.28 baseline. Fix the
 		# affix axis, not this stat line.
-		"stats": {"hp": 2400, "max_shield": 500, "atk": 155.555556, "def": 28, "atk_interval": 2.0, "accuracy": 58},
+		# v151: hp 2400->4200, shield 500->875 (EHP x1.75). Two things at once: the
+		# resist triangle deepened this cell's weak channel (resist_k -0.05 -> -0.30),
+		# handing EVERY gear row the same DPS windfall and floating carried Legendary
+		# over the 5-kill bar; and Z4 e4 was SOFTER than Z4 e3 (5,888 vs 9,341
+		# effective EHP), the same "deepest cell is the gentlest" inversion v147 fixed
+		# on z2_ore_hauler. x1.75 restores the pre-triangle TTK and the e3<e4 ordering.
+		# Measured (gate_probe, 21 trials): row 9 Common-N 14 -> 8 kills, 0 deaths;
+		# carried Rare/Legendary/Legendary+T1 7/6/7 -> 4/3/2. No pulse needed here.
+		"stats": {"hp": 4200, "max_shield": 875, "atk": 155.555556, "def": 28, "atk_interval": 2.0, "accuracy": 58},
 		# every_n counts SWINGS. Before v149 it had to be hand-tuned per enemy fire
 		# rate to land a readable ~12-14s TIME cadence. With every enemy on
 		# DEFAULT_ATTACK_INTERVAL the field is uniform in time: period = every_n x 2.0s.
@@ -909,7 +1053,7 @@ var enemy_db = {
 		# was never the missile-cadence side effect — it needed its own lever. Common-N
 		# farms here at 12 kills, so it has the headroom to absorb a resist buff that
 		# pushes carried Legendary (5-6 kills) under the bar.
-		"xp": 135, "zone": 4, "resist_k": -0.05, "resist_e": 0.30, "resist_x": 0.10, "dmg_type": "energy"
+		"xp": 135, "zone": 4, "resist_k": -0.30, "resist_e": 0.0, "resist_x": 0.37, "dmg_type": "energy"
 	},
 	"z4_boss_overseer": {
 		"name": "Glacial Overseer",
@@ -929,7 +1073,7 @@ var enemy_db = {
 		"boss_core": "Z4_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z4_kinetic", "z4_energy", "z4_missile", "z4_shield", "z4_armor", "z4_battery", "z4_sensor"],
-		"is_boss": true, "xp": 2000, "zone": 4, "resist_k": -0.40, "resist_e": 0.45, "resist_x": 0.0, "dmg_type": "energy"
+		"is_boss": true, "xp": 2000, "zone": 4, "resist_k": -0.40, "resist_e": 0.0, "resist_x": 0.37, "dmg_type": "energy"
 	},
 
 	# ═══ ZONE 5: Sector Alpha — Reg HP~6636, ATK~352, DEF~70 ═══
@@ -940,7 +1084,7 @@ var enemy_db = {
 		"rare_loot": [["QuantumCore", 0.05, 1, 1]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z5_kinetic", "z5_energy", "z5_missile", "z5_shield", "z5_armor", "z5_battery", "z5_sensor"],
-		"xp": 300, "zone": 5, "resist_k": 0.30, "resist_e": 0.0, "resist_x": -0.25, "dmg_type": "energy"
+		"xp": 300, "zone": 5, "resist_k": 0.0, "resist_e": 0.37, "resist_x": -0.30, "dmg_type": "energy"
 	},
 	"z5_xenon_corvette": {
 		"name": "Xenon Corvette",
@@ -949,19 +1093,24 @@ var enemy_db = {
 		"rare_loot": [["Superalloy", 0.08, 1, 3], ["Au", 0.25, 2, 5]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z5_kinetic", "z5_energy", "z5_missile", "z5_shield", "z5_armor", "z5_battery", "z5_sensor"],
-		"xp": 350, "zone": 5, "resist_k": 0.30, "resist_e": 0.0, "resist_x": -0.30, "dmg_type": "energy"
+		"xp": 350, "zone": 5, "resist_k": 0.0, "resist_e": 0.37, "resist_x": -0.30, "dmg_type": "energy"
 	},
 	"z5_alien_frigate": {
 		"name": "Alien Frigate",
 		# v142 shape fix: e3 sat at 6 kills for Common-Z5, no margin for the gate
 		# pulse that step 2 adds here. hp 12000->8500, shield 2500->1800.
-		"stats": {"hp": 8500, "max_shield": 1800, "atk": 258.666667, "def": 80, "atk_interval": 2.0, "accuracy": 72},
-		"sustain": {"kind": "pulse", "every_s": 6.0, "pct": 0.15},
+		# v151: hp 8500->7000, shield 1800->6000, pulse pct 0.15->0.20. The shield is
+		# not padding — the pulse heals max_shield x pct, so max_shield IS the pulse's
+		# ceiling, and at 1800 it could only drain ~5% of a tier-matched Common's
+		# throughput. Measured (21 trials): row 9 10 -> 7 kills 0 deaths; carried
+		# Rare/Legendary/Legendary+T1 4/4/5 -> 1/2/3; Unique 21 -> 18 (still farms).
+		"stats": {"hp": 7000, "max_shield": 6000, "atk": 258.666667, "def": 80, "atk_interval": 2.0, "accuracy": 72},
+		"sustain": {"kind": "pulse", "every_s": 6.0, "pct": 0.20},
 		"loot": [["VoidArtifact", 2, 5], ["credits", 5000, 10000], ["Res2", 3, 6], ["XenoFragment", 2, 4]],
 		"rare_loot": [["QuantumCore", 0.08, 1, 1]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z5_kinetic", "z5_energy", "z5_missile", "z5_battery", "z5_sensor"],
-		"xp": 380, "zone": 5, "resist_k": 0.35, "resist_e": 0.15, "resist_x": -0.30, "dmg_type": "kinetic"
+		"xp": 380, "zone": 5, "resist_k": 0.0, "resist_e": 0.37, "resist_x": -0.30, "dmg_type": "kinetic"
 	},
 	"z5_alien_probe": {
 		"name": "Alien Probe",
@@ -969,8 +1118,15 @@ var enemy_db = {
 		# tier-matched Common DIED here (11 kills then a death). v149 normalised the
 		# cadence to the uniform 2.0s at IDENTICAL dps (atk 195 -> 325); the v142 cut
 		# is carried through by the rescale, not double-counted.
-		"stats": {"hp": 5000, "max_shield": 3000, "atk": 325, "def": 60, "atk_interval": 2.0, "accuracy": 78},
+		# v151: shield 3000->8000 + a repair pulse. hp and the nuke are UNCHANGED.
+		# The nuke stays as the telegraph identity but it can no longer gate anything
+		# (see the v151 block above enemy_db: raising a nuke kills tier-matched Common
+		# FIRST, because per-type resist is an affix). The deflector is the real gate.
+		# Measured (21 trials): row 9 13 -> 7 kills 0 deaths; carried
+		# Rare/Legendary/Legendary+T1 5/7/8 -> 1/3/4; Unique 30 -> 19 (still farms).
+		"stats": {"hp": 5000, "max_shield": 8000, "atk": 325, "def": 60, "atk_interval": 2.0, "accuracy": 78},
 		"charge_nuke": {"every_n": 6, "mult": 1.84},
+		"sustain": {"kind": "pulse", "every_s": 6.0, "pct": 0.15},
 		"loot": [["credits", 4000, 7000], ["Circuit", 5, 10], ["Res2", 2, 5], ["XenoFragment", 1, 3]],
 		"rare_loot": [["AdvCircuit", 0.10, 2, 4]],
 		"module_drop_chance": 0.10,
@@ -980,7 +1136,7 @@ var enemy_db = {
 		# from the 2.0s normalization actually landed — missiles fire twice as often
 		# now, doubling their per-hit heals. Common-N farms here at 13, so it absorbs
 		# this; carried Legendary+T1 (7-8 kills) drops under the bar.
-		"resist_k": 0.25, "resist_e": -0.15, "resist_x": 0.10, "dmg_type": "energy"
+		"resist_k": 0.0, "resist_e": 0.37, "resist_x": -0.30, "dmg_type": "energy"
 	},
 	"z5_boss_harbinger": {
 		"name": "Xenon Harbinger",
@@ -999,7 +1155,7 @@ var enemy_db = {
 		"boss_core": "Z5_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z5_kinetic", "z5_energy", "z5_missile", "z5_shield", "z5_armor", "z5_battery", "z5_sensor"],
-		"is_boss": true, "xp": 5000, "zone": 5, "resist_k": 0.35, "resist_e": 0.15, "resist_x": -0.40, "dmg_type": "energy"
+		"is_boss": true, "xp": 5000, "zone": 5, "resist_k": 0.0, "resist_e": 0.37, "resist_x": -0.40, "dmg_type": "energy"
 	},
 
 	# ═══ ZONE 6: Sector Beta — Reg HP~15926, ATK~773, DEF~155 ═══
@@ -1013,7 +1169,7 @@ var enemy_db = {
 		"rare_loot": [["AdvCircuit", 0.10, 2, 5], ["ReactiveCore", 0.08, 1, 1]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z6_kinetic", "z6_energy", "z6_missile", "z6_shield", "z6_armor", "z6_battery", "z6_sensor"],
-		"xp": 700, "zone": 6, "resist_k": 0.0, "resist_e": -0.30, "resist_x": 0.30, "dmg_type": "kinetic"
+		"xp": 700, "zone": 6, "resist_k": 0.0, "resist_e": -0.30, "resist_x": 0.37, "dmg_type": "kinetic"
 	},
 	"z6_mining_golem": {
 		"name": "Mining Golem",
@@ -1022,24 +1178,32 @@ var enemy_db = {
 		"rare_loot": [["Superalloy", 0.10, 2, 5]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z6_kinetic", "z6_energy", "z6_missile", "z6_shield", "z6_armor", "z6_battery", "z6_sensor"],
-		"xp": 750, "zone": 6, "resist_k": 0.15, "resist_e": -0.40, "resist_x": 0.40, "dmg_type": "explosive"
+		"xp": 750, "zone": 6, "resist_k": 0.0, "resist_e": -0.30, "resist_x": 0.37, "dmg_type": "explosive"
 	},
 	"z6_rad_beast": {
 		"name": "Radiation Beast",
 		# v142 shape fix: authored as the zone's tank but sits in the e3 slot, so
 		# Common-Z6 scraped the 5-kill bar exactly. hp 30000->21000, shield 4000->2800.
-		"stats": {"hp": 21000, "max_shield": 2800, "atk": 850, "def": 140, "atk_interval": 2.0, "accuracy": 92},
-		"sustain": {"kind": "pulse", "every_s": 6.0, "pct": 0.16},
+		# v151: hp 21000->20270, shield 2800->20270, pct 0.16->0.15. Same story as Z5
+		# e3 — the pulse had no shield pool to work with. Measured (21 trials): row 9
+		# 8 -> 6 kills 0 deaths; carried Rare/Legendary/Legendary+T1 3/4/4 -> 2/2/3.
+		"stats": {"hp": 20270, "max_shield": 20270, "atk": 850, "def": 140, "atk_interval": 2.0, "accuracy": 92},
+		"sustain": {"kind": "pulse", "every_s": 6.0, "pct": 0.15},
 		"loot": [["RadIsotope", 1, 3], ["U", 5, 12], ["Res3", 1, 3]],
 		"rare_loot": [["Ir", 0.08, 1, 2]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z6_kinetic", "z6_energy", "z6_missile", "z6_battery", "z6_sensor"],
-		"xp": 780, "zone": 6, "resist_k": -0.15, "resist_e": -0.25, "resist_x": 0.25, "dmg_type": "kinetic"
+		"xp": 780, "zone": 6, "resist_k": 0.0, "resist_e": -0.30, "resist_x": 0.37, "dmg_type": "kinetic"
 	},
 	"z6_ore_guardian": {
 		"name": "Ore Guardian",
-		"stats": {"hp": 14000, "max_shield": 5000, "atk": 458.666667, "def": 170, "atk_interval": 2.0, "accuracy": 88},
+		# v151: hp 14000->18822, shield 5000->18822, + repair pulse. Nuke unchanged
+		# (telegraph identity only — it cannot gate; see the v151 block above enemy_db).
+		# Measured (15 trials): row 9 12 -> 7 kills 0 deaths; carried
+		# Rare/Legendary/Legendary+T1 5/6/6 -> 2/3/3; Unique 23 -> 13 (still farms).
+		"stats": {"hp": 18822, "max_shield": 18822, "atk": 458.666667, "def": 170, "atk_interval": 2.0, "accuracy": 88},
 		"charge_nuke": {"every_n": 6, "mult": 3.25},
+		"sustain": {"kind": "pulse", "every_s": 6.0, "pct": 0.15},
 		# v142d signature-raw breadth: ColonySalvage dropped from ONE of Zone 6's four
 		# regulars (~2.1/kill across the rotation) while refine_colony_alloy now wants
 		# 6 per alloy — ~3 kills each was fine, but a single donor makes the supply
@@ -1049,7 +1213,7 @@ var enemy_db = {
 		"rare_loot": [["VoidArtifact", 0.10, 1, 3]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z6_shield", "z6_armor", "z6_battery", "z6_sensor"],
-		"xp": 720, "zone": 6, "resist_k": 0.25, "resist_e": -0.30, "resist_x": 0.45, "dmg_type": "explosive"
+		"xp": 720, "zone": 6, "resist_k": 0.0, "resist_e": -0.30, "resist_x": 0.37, "dmg_type": "explosive"
 	},
 	"z6_boss_colossus": {
 		# v132: renamed — this is SECTOR BETA's boss (zone_6); the old "Gamma"
@@ -1071,7 +1235,7 @@ var enemy_db = {
 		"boss_core": "Z6_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z6_kinetic", "z6_energy", "z6_missile", "z6_shield", "z6_armor", "z6_battery", "z6_sensor"],
-		"is_boss": true, "xp": 15000, "zone": 6, "resist_k": 0.15, "resist_e": -0.40, "resist_x": 0.45, "dmg_type": "explosive"
+		"is_boss": true, "xp": 15000, "zone": 6, "resist_k": 0.0, "resist_e": -0.40, "resist_x": 0.37, "dmg_type": "explosive"
 	},
 
 	# ═══ ZONE 7: Sector Gamma — Reg HP~38222, ATK~1700, DEF~341 ═══
@@ -1092,7 +1256,7 @@ var enemy_db = {
 		"rare_loot": [["Os", 0.08, 1, 2]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z7_kinetic", "z7_energy", "z7_missile", "z7_shield", "z7_armor", "z7_battery", "z7_sensor"],
-		"xp": 1500, "zone": 7, "resist_k": -0.25, "resist_e": 0.30, "resist_x": 0.0, "dmg_type": "energy"
+		"xp": 1500, "zone": 7, "resist_k": -0.30, "resist_e": 0.0, "resist_x": 0.37, "dmg_type": "energy"
 	},
 	"z7_energy_wraith": {
 		"name": "Energy Wraith",
@@ -1101,21 +1265,33 @@ var enemy_db = {
 		"rare_loot": [["Ir", 0.10, 1, 3]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z7_kinetic", "z7_energy", "z7_missile", "z7_shield", "z7_armor", "z7_battery", "z7_sensor"],
-		"xp": 1800, "zone": 7, "resist_k": -0.30, "resist_e": 0.45, "resist_x": 0.0, "dmg_type": "energy"
+		"xp": 1800, "zone": 7, "resist_k": -0.30, "resist_e": 0.0, "resist_x": 0.37, "dmg_type": "energy"
 	},
 	"z7_void_hunter": {
 		"name": "Void Hunter",
-		"stats": {"hp": 32000, "max_shield": 12000, "atk": 2500, "def": 300, "atk_interval": 2.0, "accuracy": 110},
-		"sustain": {"kind": "pulse", "every_s": 5.5, "pct": 0.17},
+		# v151: hp 32000->36479, shield 12000->36479, pulse 5.5s/0.17 -> 6.0s/0.15.
+		# pct went DOWN and the gate got STRONGER — the pulse heals max_shield x pct,
+		# so the shield pool, not the percentage, is what gives it teeth.
+		# Measured (21 trials): row 9 11 -> 6 kills 0 deaths; carried
+		# Rare/Legendary/Legendary+T1 4/6/7 -> 1/2/3; Unique 20 -> 11 (still farms).
+		"stats": {"hp": 36479, "max_shield": 36479, "atk": 2500, "def": 300, "atk_interval": 2.0, "accuracy": 110},
+		"sustain": {"kind": "pulse", "every_s": 6.0, "pct": 0.15},
 		"loot": [["VoidCrystal", 2, 4], ["credits", 50000, 100000], ["Res3", 2, 5]],
 		"rare_loot": [["ExoticMatter", 0.12, 2, 4]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z7_kinetic", "z7_energy", "z7_missile", "z7_battery", "z7_sensor"],
-		"xp": 1700, "zone": 7, "resist_k": -0.30, "resist_e": 0.40, "resist_x": 0.15, "dmg_type": "energy"
+		"xp": 1700, "zone": 7, "resist_k": -0.30, "resist_e": 0.0, "resist_x": 0.37, "dmg_type": "energy"
 	},
 	"z7_gamma_beast": {
 		"name": "Gamma Beast",
-		"stats": {"hp": 75000, "atk": 857.142857, "def": 380, "atk_interval": 2.0, "accuracy": 95},
+		# v151: hp 75000->38625 and a NEW 38625 deflector + repair pulse. This cell was
+		# SHIELDLESS, so a repair pulse here would have been a silent no-op (it heals
+		# max_shield x pct); the deflector is what makes the min-DPS gate exist at all.
+		# Hull came down to pay for it, so total EHP only moves 698,934 -> 720,180.
+		# Measured (21 trials): row 9 7 -> 6 kills 0 deaths; carried
+		# Rare/Legendary/Legendary+T1 3/4/5 -> 1/2/3; Unique 11 -> 10 (still farms).
+		"stats": {"hp": 38625, "max_shield": 38625, "atk": 857.142857, "def": 380, "atk_interval": 2.0, "accuracy": 95},
+		"sustain": {"kind": "pulse", "every_s": 6.0, "pct": 0.15},
 		"charge_nuke": {"every_n": 7, "mult": 3.8},
 		# The Gamma Beast already drops RadIsotope — it is the zone's thematic isotope
 		# donor, so it carries ExoticIsotope too (see the supply note on z7_shard_swarm).
@@ -1123,7 +1299,7 @@ var enemy_db = {
 		"rare_loot": [["Os", 0.10, 1, 2]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z7_shield", "z7_armor", "z7_battery", "z7_sensor"],
-		"xp": 1600, "zone": 7, "resist_k": -0.15, "resist_e": 0.30, "resist_x": 0.0, "dmg_type": "kinetic"
+		"xp": 1600, "zone": 7, "resist_k": -0.30, "resist_e": 0.0, "resist_x": 0.37, "dmg_type": "kinetic"
 	},
 	"z7_boss_sovereign": {
 		"name": "Sovereign Prism",
@@ -1141,7 +1317,7 @@ var enemy_db = {
 		"boss_core": "Z7_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z7_kinetic", "z7_energy", "z7_missile", "z7_shield", "z7_armor", "z7_battery", "z7_sensor"],
-		"is_boss": true, "xp": 35000, "zone": 7, "resist_k": -0.40, "resist_e": 0.45, "resist_x": 0.0, "dmg_type": "energy"
+		"is_boss": true, "xp": 35000, "zone": 7, "resist_k": -0.40, "resist_e": 0.0, "resist_x": 0.37, "dmg_type": "energy"
 	},
 
 	# ═══ ZONE 8: Sector Delta — Reg HP~91733, ATK~3742, DEF~749 ═══
@@ -1152,7 +1328,7 @@ var enemy_db = {
 		"rare_loot": [["Diamond", 0.05, 1, 1]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z8_kinetic", "z8_energy", "z8_missile", "z8_shield", "z8_armor", "z8_battery", "z8_sensor"],
-		"xp": 4000, "zone": 8, "resist_k": 0.40, "resist_e": 0.0, "resist_x": -0.30, "dmg_type": "energy"
+		"xp": 4000, "zone": 8, "resist_k": 0.0, "resist_e": 0.37, "resist_x": -0.30, "dmg_type": "energy"
 	},
 	"z8_crystal_golem": {
 		"name": "Crystal Golem",
@@ -1165,27 +1341,37 @@ var enemy_db = {
 		"rare_loot": [["Diamond", 0.08, 1, 1]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z8_kinetic", "z8_energy", "z8_missile", "z8_shield", "z8_armor", "z8_battery", "z8_sensor"],
-		"xp": 4500, "zone": 8, "resist_k": 0.45, "resist_e": 0.15, "resist_x": -0.40, "dmg_type": "kinetic"
+		"xp": 4500, "zone": 8, "resist_k": 0.0, "resist_e": 0.37, "resist_x": -0.30, "dmg_type": "kinetic"
 	},
 	"z8_void_stalker": {
 		"name": "Void Stalker",
-		"stats": {"hp": 80000, "max_shield": 35000, "atk": 4125, "def": 680, "atk_interval": 2.0, "accuracy": 125},
-		"sustain": {"kind": "pulse", "every_s": 5.5, "pct": 0.18},
+		# v151: hp 80000->98974, shield 35000->123718, pulse 5.5s -> 6.0s (pct 0.18 kept).
+		# Measured (21 trials): row 9 12 -> 6 kills 0 deaths; carried
+		# Rare/Legendary/Legendary+T1 4/6/7 -> 1/2/3; Unique 31 -> 18 (still farms).
+		"stats": {"hp": 98974, "max_shield": 123718, "atk": 4125, "def": 680, "atk_interval": 2.0, "accuracy": 125},
+		"sustain": {"kind": "pulse", "every_s": 6.0, "pct": 0.18},
 		"loot": [["ExoticMatter", 3, 8], ["VoidCrystal", 2, 5], ["Res3", 3, 8], ["AntimatterParticle", 2, 4]],
 		"rare_loot": [["Os", 0.10, 1, 3]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z8_kinetic", "z8_energy", "z8_missile", "z8_battery", "z8_sensor"],
-		"xp": 4200, "zone": 8, "resist_k": 0.30, "resist_e": -0.15, "resist_x": -0.25, "dmg_type": "energy"
+		"xp": 4200, "zone": 8, "resist_k": 0.0, "resist_e": 0.37, "resist_x": -0.30, "dmg_type": "energy"
 	},
 	"z8_nebula_phantom": {
 		"name": "Nebula Phantom",
-		"stats": {"hp": 182000, "max_shield": 40000, "atk": 2700, "def": 800, "atk_interval": 2.0, "accuracy": 118},
+		# v151: hp 182000->107222, shield 40000->107222, + repair pulse. Nuke unchanged.
+		# This cell was NOT leaking, but row 9 sat at 5-6 kills — the "exactly on the
+		# bar is a fail" case. Trading hull for a pulsed deflector buys rule 1 nothing
+		# but costs rule 2 a lot: carried gear pays the shield tax at ~2.5x row 9's rate.
+		# Measured (15 trials): row 9 6 kills 0 deaths (unchanged); carried
+		# Rare/Legendary/Legendary+T1 3/3/4 -> 2/3/3; Unique 14 -> 18.
+		"stats": {"hp": 107222, "max_shield": 107222, "atk": 2700, "def": 800, "atk_interval": 2.0, "accuracy": 118},
+		"sustain": {"kind": "pulse", "every_s": 6.0, "pct": 0.15},
 		"charge_nuke": {"every_n": 6, "mult": 3.04},
 		"loot": [["credits", 150000, 300000], ["VoidCrystal", 3, 7], ["Res3", 3, 8], ["AntimatterParticle", 2, 4]],
 		"rare_loot": [["ExoticMatter", 0.12, 2, 5]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z8_shield", "z8_armor", "z8_battery", "z8_sensor"],
-		"xp": 4300, "zone": 8, "resist_k": 0.40, "resist_e": 0.15, "resist_x": -0.30, "dmg_type": "kinetic"
+		"xp": 4300, "zone": 8, "resist_k": 0.0, "resist_e": 0.37, "resist_x": -0.30, "dmg_type": "kinetic"
 	},
 	"z8_boss_warden": {
 		"name": "Prismatic Warden",
@@ -1205,7 +1391,7 @@ var enemy_db = {
 		"boss_core": "Z8_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z8_kinetic", "z8_energy", "z8_missile", "z8_shield", "z8_armor", "z8_battery", "z8_sensor"],
-		"is_boss": true, "xp": 80000, "zone": 8, "resist_k": 0.45, "resist_e": 0.15, "resist_x": -0.40, "dmg_type": "kinetic"
+		"is_boss": true, "xp": 80000, "zone": 8, "resist_k": 0.0, "resist_e": 0.37, "resist_x": -0.40, "dmg_type": "kinetic"
 	},
 
 	# ═══ ZONE 9: Sector Zeta — Reg HP~220160, ATK~8230, DEF~1648 ═══
@@ -1216,7 +1402,7 @@ var enemy_db = {
 		"rare_loot": [["PathogenCore", 0.05, 1, 1]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z9_kinetic", "z9_energy", "z9_missile", "z9_shield", "z9_armor", "z9_battery", "z9_sensor"],
-		"xp": 10000, "zone": 9, "resist_k": 0.0, "resist_e": -0.25, "resist_x": 0.30, "dmg_type": "explosive"
+		"xp": 10000, "zone": 9, "resist_k": 0.0, "resist_e": -0.30, "resist_x": 0.37, "dmg_type": "explosive"
 	},
 	"z9_bio_horror": {
 		"name": "Bio-Horror",
@@ -1225,28 +1411,51 @@ var enemy_db = {
 		"rare_loot": [["PathogenCore", 0.08, 1, 1]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z9_kinetic", "z9_energy", "z9_missile", "z9_shield", "z9_armor", "z9_battery", "z9_sensor"],
-		"xp": 12000, "zone": 9, "resist_k": 0.0, "resist_e": -0.30, "resist_x": 0.40, "dmg_type": "explosive"
+		"xp": 12000, "zone": 9, "resist_k": 0.0, "resist_e": -0.30, "resist_x": 0.37, "dmg_type": "explosive"
 	},
 	"z9_rogue_ai": {
 		"name": "Rogue AI Core",
-		"stats": {"hp": 190000, "max_shield": 90000, "atk": 12000, "def": 1400, "atk_interval": 2.0, "accuracy": 155},
-		"sustain": {"kind": "pulse", "every_s": 5.5, "pct": 0.19},
+		# v151: hp 190000->233873, shield 90000->292341, pulse 5.5s/0.19 -> 6.0s/0.40.
+		# The HARDEST cell in the table: it opened at a row-9-to-carried-Legendary+T1
+		# kill ratio of only 1.5, so EHP alone could never separate them (see the
+		# v151 block above enemy_db). Only the pulse widens the ratio, and at zone 9
+		# the enemy DEF is high enough that hull damage is heavily mitigated while
+		# SHIELD damage is not mitigated at all — hence the deliberately large pool
+		# and the 0.40 pct. Measured (21 trials): row 9 12 -> 6 kills 0 deaths;
+		# carried Rare/Legendary/Legendary+T1 5/6/8 -> 1/2/3; Unique 21 -> 12.
+		# v151b: atk 12000 -> 10500. The funnel caught row 9 (clean Common tier-9)
+		# DYING here 1 time in 9 — a rule-1 break. This is the ONE place lethality
+		# is the right lever, precisely BECAUSE it is inverted: row 9 is the only
+		# row this enemy can still kill (carried gear sits at the 0.75 resist cap),
+		# so cutting atk buys back rule 1 without handing rule 2 anything — the
+		# carried rows are held by the min-DPS pulse, not by fear of dying.
+		# Measured (gate_probe, 27 trials): row 9 deaths 1/27 -> 0/27, kills 6 either
+		# way; carried Rare/Legendary/Legendary+T1 unchanged at 1/2/3 kills.
+		"stats": {"hp": 233873, "max_shield": 292341, "atk": 10500, "def": 1400, "atk_interval": 2.0, "accuracy": 155},
+		"sustain": {"kind": "pulse", "every_s": 6.0, "pct": 0.40},
 		"loot": [["Chip", 10, 25], ["AdvCircuit", 5, 12], ["Res3", 5, 10]],
 		"rare_loot": [["ChronoCore", 0.05, 1, 1]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z9_kinetic", "z9_energy", "z9_missile", "z9_battery", "z9_sensor"],
-		"xp": 11000, "zone": 9, "resist_k": -0.15, "resist_e": -0.25, "resist_x": 0.25, "dmg_type": "energy"
+		"xp": 11000, "zone": 9, "resist_k": 0.0, "resist_e": -0.30, "resist_x": 0.37, "dmg_type": "energy"
 	},
 	"z9_quarantine_mech": {
 		"name": "Quarantine Mech",
 		# v142 shape fix: only Z4-Z10 cell still under the 5-kill bar (4). 437500->320000.
-		"stats": {"hp": 320000, "atk": 4285.714286, "def": 1800, "atk_interval": 2.0, "accuracy": 138},
+		# v151: hp 320000->321575 (flat) plus a NEW 233873 deflector + 0.35 repair pulse.
+		# Shieldless before, so the min-DPS lever did not exist here. Verified directly
+		# that the nuke could not do the job instead: at mult 9.0 (vs the authored 4.15)
+		# NOTHING died — row 9 and carried Legendary+T1 both farmed at 7 and 6 kills,
+		# 0/15 deaths each. Measured (21 trials): row 9 8 -> 6 kills 0 deaths; carried
+		# Rare/Legendary/Legendary+T1 3/4/6 -> 2/2/3; Unique 14 -> 10 (still farms).
+		"stats": {"hp": 321575, "max_shield": 233873, "atk": 4285.714286, "def": 1800, "atk_interval": 2.0, "accuracy": 138},
+		"sustain": {"kind": "pulse", "every_s": 6.0, "pct": 0.35},
 		"charge_nuke": {"every_n": 7, "mult": 4.15},
 		"loot": [["Neutronium", 1, 3], ["credits", 500000, 1000000], ["Res3", 5, 10]],
 		"rare_loot": [["PathogenCore", 0.10, 1, 2]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z9_shield", "z9_armor", "z9_battery", "z9_sensor"],
-		"xp": 11500, "zone": 9, "resist_k": 0.15, "resist_e": -0.30, "resist_x": 0.45, "dmg_type": "explosive"
+		"xp": 11500, "zone": 9, "resist_k": 0.0, "resist_e": -0.30, "resist_x": 0.37, "dmg_type": "explosive"
 	},
 	"z9_boss_patient_zero": {
 		"name": "Patient Zero",
@@ -1263,7 +1472,7 @@ var enemy_db = {
 		"boss_core": "Z9_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z9_kinetic", "z9_energy", "z9_missile", "z9_shield", "z9_armor", "z9_battery", "z9_sensor"],
-		"is_boss": true, "xp": 200000, "zone": 9, "resist_k": 0.15, "resist_e": -0.40, "resist_x": 0.45, "dmg_type": "explosive"
+		"is_boss": true, "xp": 200000, "zone": 9, "resist_k": 0.0, "resist_e": -0.40, "resist_x": 0.37, "dmg_type": "explosive"
 	},
 
 	# ═══ ZONE 10: Sector Epsilon — Reg HP~528384, ATK~18105, DEF~3627 ═══
@@ -1274,7 +1483,7 @@ var enemy_db = {
 		"rare_loot": [["ChronoCore", 0.05, 1, 1]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z10_kinetic", "z10_energy", "z10_missile", "z10_shield", "z10_armor", "z10_battery", "z10_sensor"],
-		"xp": 25000, "zone": 10, "resist_k": -0.30, "resist_e": 0.40, "resist_x": 0.0, "dmg_type": "kinetic"
+		"xp": 25000, "zone": 10, "resist_k": -0.30, "resist_e": 0.0, "resist_x": 0.37, "dmg_type": "kinetic"
 	},
 	"z10_temporal_phantom": {
 		"name": "Temporal Phantom",
@@ -1283,28 +1492,36 @@ var enemy_db = {
 		"rare_loot": [["PrimordialShard", 0.08, 1, 2]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z10_kinetic", "z10_energy", "z10_missile", "z10_shield", "z10_armor", "z10_battery", "z10_sensor"],
-		"xp": 30000, "zone": 10, "resist_k": -0.30, "resist_e": 0.45, "resist_x": 0.0, "dmg_type": "energy"
+		"xp": 30000, "zone": 10, "resist_k": -0.30, "resist_e": 0.0, "resist_x": 0.37, "dmg_type": "energy"
 	},
 	"z10_omega_sentinel": {
 		"name": "Omega Sentinel",
-		"stats": {"hp": 600000, "max_shield": 180000, "atk": 13000, "def": 4000, "atk_interval": 2.0, "accuracy": 165},
-		"sustain": {"kind": "pulse", "every_s": 5.0, "pct": 0.20},
+		# v151: hp 600000->531118, shield 180000->424894, pulse 5.0s/0.20 -> 6.0s/0.30.
+		# Measured (15 trials): row 9 9 -> 6 kills 0 deaths; carried
+		# Rare/Legendary/Legendary+T1 4/5/6 -> 1/2/3; Unique 18 -> 14 (still farms).
+		"stats": {"hp": 531118, "max_shield": 424894, "atk": 13000, "def": 4000, "atk_interval": 2.0, "accuracy": 165},
+		"sustain": {"kind": "pulse", "every_s": 6.0, "pct": 0.30},
 		"loot": [["OmegaPlating", 1, 3], ["PrimordialShard", 1, 2], ["CryoCatalyst", 1, 3]],
 		"rare_loot": [["VoidEssence", 0.10, 1, 3]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z10_kinetic", "z10_energy", "z10_missile", "z10_battery", "z10_sensor"],
-		"xp": 28000, "zone": 10, "resist_k": -0.25, "resist_e": 0.30, "resist_x": 0.10, "dmg_type": "explosive"
+		"xp": 28000, "zone": 10, "resist_k": -0.30, "resist_e": 0.0, "resist_x": 0.37, "dmg_type": "explosive"
 	},
 	"z10_primordial_titan": {
 		"name": "Primordial Titan",
 		# v142 shape fix: Common-Z10 sat exactly on the 5-kill bar. 1050000->880000.
-		"stats": {"hp": 880000, "atk": 10000, "def": 3400, "atk_interval": 2.0, "accuracy": 158},
+		# v151: hp 880000->637342 plus a NEW 424894 deflector + 0.30 repair pulse.
+		# Shieldless before. Nuke (6 x 4.80) unchanged — telegraph identity only.
+		# Measured (21 trials): row 9 9 -> 6 kills 0 deaths; carried
+		# Rare/Legendary/Legendary+T1 4/5/6 -> 0/2/3; Unique 16 -> 12 (still farms).
+		"stats": {"hp": 637342, "max_shield": 424894, "atk": 10000, "def": 3400, "atk_interval": 2.0, "accuracy": 158},
+		"sustain": {"kind": "pulse", "every_s": 6.0, "pct": 0.30},
 		"charge_nuke": {"every_n": 6, "mult": 4.8},
 		"loot": [["PrimordialShard", 2, 5], ["credits", 5000000, 10000000], ["CryoCatalyst", 2, 4]],
 		"rare_loot": [["OmegaPlating", 0.08, 1, 2]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z10_shield", "z10_armor", "z10_battery", "z10_sensor"],
-		"xp": 32000, "zone": 10, "resist_k": -0.15, "resist_e": 0.30, "resist_x": 0.15, "dmg_type": "kinetic"
+		"xp": 32000, "zone": 10, "resist_k": -0.30, "resist_e": 0.0, "resist_x": 0.37, "dmg_type": "kinetic"
 	},
 	"z10_boss_leviathan": {
 		"name": "Void Leviathan",
@@ -1339,7 +1556,7 @@ var enemy_db = {
 		"boss_core": "Z10_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z10_kinetic", "z10_energy", "z10_missile", "z10_shield", "z10_armor", "z10_battery", "z10_sensor"],
-		"is_boss": true, "xp": 500000, "zone": 10, "resist_k": -0.40, "resist_e": 0.55, "resist_x": 0.0, "dmg_type": "energy"
+		"is_boss": true, "xp": 500000, "zone": 10, "resist_k": -0.40, "resist_e": 0.0, "resist_x": 0.37, "dmg_type": "energy"
 	},
 
 	# ═══ ZONE 11: The Threshold — WARP-HARDENED (Cryo-only). The Warp Gate. ═══
@@ -1416,7 +1633,7 @@ var enemy_db = {
 		"rare_loot": [["ChronoCore", 0.10, 1, 3]],
 		"module_drop_chance": 0.12,
 		"module_drop_pool": ["corrosion_blaster"],
-		"xp": 120000, "zone": 12, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "resist_cryo": 0.0, "dmg_type": "energy"
+		"xp": 120000, "zone": 12, "resist_k": 0.0, "resist_e": -0.30, "resist_x": 0.37, "resist_cryo": 0.0, "dmg_type": "energy"
 	},
 	"z12_rust_horror": {
 		"name": "Rust Horror",
@@ -1425,7 +1642,7 @@ var enemy_db = {
 		"rare_loot": [["OmegaPlating", 0.10, 1, 3]],
 		"module_drop_chance": 0.12,
 		"module_drop_pool": ["corrosion_blaster"],
-		"xp": 135000, "zone": 12, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "resist_cryo": 0.0, "dmg_type": "explosive"
+		"xp": 135000, "zone": 12, "resist_k": 0.0, "resist_e": -0.30, "resist_x": 0.37, "resist_cryo": 0.0, "dmg_type": "explosive"
 	},
 	"z12_corrosion_sentinel": {
 		"name": "Corrosion Sentinel",
@@ -1434,7 +1651,7 @@ var enemy_db = {
 		"rare_loot": [["VoidEssence", 0.12, 2, 5]],
 		"module_drop_chance": 0.12,
 		"module_drop_pool": ["corrosion_blaster"],
-		"xp": 145000, "zone": 12, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "resist_cryo": 0.0, "dmg_type": "kinetic"
+		"xp": 145000, "zone": 12, "resist_k": 0.0, "resist_e": -0.30, "resist_x": 0.37, "resist_cryo": 0.0, "dmg_type": "kinetic"
 	},
 	"z12_caustic_leviathan": {
 		"name": "Caustic Leviathan",
@@ -1443,7 +1660,7 @@ var enemy_db = {
 		"rare_loot": [["OmegaPlating", 0.12, 2, 4]],
 		"module_drop_chance": 0.12,
 		"module_drop_pool": ["corrosion_blaster"],
-		"xp": 155000, "zone": 12, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "resist_cryo": 0.0, "dmg_type": "kinetic"
+		"xp": 155000, "zone": 12, "resist_k": 0.0, "resist_e": -0.30, "resist_x": 0.37, "resist_cryo": 0.0, "dmg_type": "kinetic"
 	},
 	"z12_boss_rift_warden": {
 		"name": "Rift Warden",
@@ -1490,7 +1707,7 @@ var enemy_db = {
 		"loot": [["ExoticMatter", 4, 9], ["PrimordialShard", 3, 7]],
 		"rare_loot": [["ChronoCore", 0.10, 1, 3]],
 		"module_drop_chance": 0.12, "module_drop_pool": ["corrosion_blaster"],
-		"xp": 180000, "zone": 13, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "resist_cryo": 0.0, "dmg_type": "energy"
+		"xp": 180000, "zone": 13, "resist_k": -0.30, "resist_e": 0.0, "resist_x": 0.37, "resist_cryo": 0.0, "dmg_type": "energy"
 	},
 	"z13_corroded_golem": {
 		"name": "Corroded Golem",
@@ -1498,7 +1715,7 @@ var enemy_db = {
 		"loot": [["ChronoCore", 4, 8], ["VoidEssence", 5, 10]],
 		"rare_loot": [["OmegaPlating", 0.10, 1, 3]],
 		"module_drop_chance": 0.12, "module_drop_pool": ["corrosion_blaster"],
-		"xp": 200000, "zone": 13, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "resist_cryo": 0.0, "dmg_type": "explosive"
+		"xp": 200000, "zone": 13, "resist_k": -0.30, "resist_e": 0.0, "resist_x": 0.37, "resist_cryo": 0.0, "dmg_type": "explosive"
 	},
 	"z13_acid_serpent": {
 		"name": "Acid Serpent",
@@ -1506,7 +1723,7 @@ var enemy_db = {
 		"loot": [["OmegaPlating", 4, 8], ["PrimordialShard", 4, 8]],
 		"rare_loot": [["VoidEssence", 0.12, 2, 5]],
 		"module_drop_chance": 0.12, "module_drop_pool": ["corrosion_blaster"],
-		"xp": 215000, "zone": 13, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "resist_cryo": 0.0, "dmg_type": "kinetic"
+		"xp": 215000, "zone": 13, "resist_k": -0.30, "resist_e": 0.0, "resist_x": 0.37, "resist_cryo": 0.0, "dmg_type": "kinetic"
 	},
 	"z13_patina_phantom": {
 		"name": "Patina Phantom",
@@ -1514,7 +1731,7 @@ var enemy_db = {
 		"loot": [["PrimordialShard", 5, 10], ["credits", 60000000, 120000000]],
 		"rare_loot": [["OmegaPlating", 0.12, 2, 4]],
 		"module_drop_chance": 0.12, "module_drop_pool": ["corrosion_blaster"],
-		"xp": 230000, "zone": 13, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "resist_cryo": 0.0, "dmg_type": "energy"
+		"xp": 230000, "zone": 13, "resist_k": -0.30, "resist_e": 0.0, "resist_x": 0.37, "resist_cryo": 0.0, "dmg_type": "energy"
 	},
 	"z13_boss_verdigris_warden": {
 		"name": "Verdigris Warden",
@@ -1536,7 +1753,7 @@ var enemy_db = {
 		"loot": [["ExoticMatter", 6, 12], ["ChronoCore", 5, 10]],
 		"rare_loot": [["VoidEssence", 0.10, 2, 4]],
 		"module_drop_chance": 0.12, "module_drop_pool": ["corrosion_blaster"],
-		"xp": 280000, "zone": 14, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "resist_cryo": 0.0, "dmg_type": "explosive"
+		"xp": 280000, "zone": 14, "resist_k": 0.0, "resist_e": 0.37, "resist_x": -0.30, "resist_cryo": 0.0, "dmg_type": "explosive"
 	},
 	"z14_caustic_golem": {
 		"name": "Caustic Golem",
@@ -1544,7 +1761,7 @@ var enemy_db = {
 		"loot": [["ChronoCore", 6, 12], ["OmegaPlating", 5, 10]],
 		"rare_loot": [["PrimordialShard", 0.12, 4, 8]],
 		"module_drop_chance": 0.12, "module_drop_pool": ["corrosion_blaster"],
-		"xp": 305000, "zone": 14, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "resist_cryo": 0.0, "dmg_type": "kinetic"
+		"xp": 305000, "zone": 14, "resist_k": 0.0, "resist_e": 0.37, "resist_x": -0.30, "resist_cryo": 0.0, "dmg_type": "kinetic"
 	},
 	"z14_rot_leviathan": {
 		"name": "Rot Leviathan",
@@ -1552,7 +1769,7 @@ var enemy_db = {
 		"loot": [["OmegaPlating", 6, 12], ["VoidEssence", 6, 12]],
 		"rare_loot": [["ChronoCore", 0.12, 3, 6]],
 		"module_drop_chance": 0.12, "module_drop_pool": ["corrosion_blaster"],
-		"xp": 330000, "zone": 14, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "resist_cryo": 0.0, "dmg_type": "energy"
+		"xp": 330000, "zone": 14, "resist_k": 0.0, "resist_e": 0.37, "resist_x": -0.30, "resist_cryo": 0.0, "dmg_type": "energy"
 	},
 	"z14_toxin_sentinel": {
 		"name": "Toxin Sentinel",
@@ -1560,7 +1777,7 @@ var enemy_db = {
 		"loot": [["PrimordialShard", 7, 14], ["credits", 100000000, 200000000]],
 		"rare_loot": [["OmegaPlating", 0.12, 3, 5]],
 		"module_drop_chance": 0.12, "module_drop_pool": ["corrosion_blaster"],
-		"xp": 355000, "zone": 14, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "resist_cryo": 0.0, "dmg_type": "explosive"
+		"xp": 355000, "zone": 14, "resist_k": 0.0, "resist_e": 0.37, "resist_x": -0.30, "resist_cryo": 0.0, "dmg_type": "explosive"
 	},
 	"z14_boss_dissolution_tyrant": {
 		"name": "Dissolution Tyrant",
@@ -1582,7 +1799,7 @@ var enemy_db = {
 		"loot": [["ExoticMatter", 8, 16], ["ChronoCore", 7, 14]],
 		"rare_loot": [["VoidEssence", 0.10, 3, 6]],
 		"module_drop_chance": 0.12, "module_drop_pool": ["corrosion_blaster"],
-		"xp": 400000, "zone": 15, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "resist_cryo": 0.0, "dmg_type": "kinetic"
+		"xp": 400000, "zone": 15, "resist_k": 0.0, "resist_e": -0.30, "resist_x": 0.37, "resist_cryo": 0.0, "dmg_type": "kinetic"
 	},
 	"z15_meltdown_colossus": {
 		"name": "Meltdown Colossus",
@@ -1590,7 +1807,7 @@ var enemy_db = {
 		"loot": [["ChronoCore", 8, 16], ["OmegaPlating", 7, 14]],
 		"rare_loot": [["PrimordialShard", 0.12, 5, 10]],
 		"module_drop_chance": 0.12, "module_drop_pool": ["corrosion_blaster"],
-		"xp": 430000, "zone": 15, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "resist_cryo": 0.0, "dmg_type": "energy"
+		"xp": 430000, "zone": 15, "resist_k": 0.0, "resist_e": -0.30, "resist_x": 0.37, "resist_cryo": 0.0, "dmg_type": "energy"
 	},
 	"z15_corrosion_behemoth": {
 		"name": "Corrosion Behemoth",
@@ -1598,7 +1815,7 @@ var enemy_db = {
 		"loot": [["OmegaPlating", 8, 16], ["VoidEssence", 8, 16]],
 		"rare_loot": [["ChronoCore", 0.12, 4, 8]],
 		"module_drop_chance": 0.12, "module_drop_pool": ["corrosion_blaster"],
-		"xp": 460000, "zone": 15, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "resist_cryo": 0.0, "dmg_type": "explosive"
+		"xp": 460000, "zone": 15, "resist_k": 0.0, "resist_e": -0.30, "resist_x": 0.37, "resist_cryo": 0.0, "dmg_type": "explosive"
 	},
 	"z15_blight_titan": {
 		"name": "Blight Titan",
@@ -1606,7 +1823,7 @@ var enemy_db = {
 		"loot": [["PrimordialShard", 10, 20], ["credits", 150000000, 300000000]],
 		"rare_loot": [["OmegaPlating", 0.12, 4, 7]],
 		"module_drop_chance": 0.12, "module_drop_pool": ["corrosion_blaster"],
-		"xp": 490000, "zone": 15, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "resist_cryo": 0.0, "dmg_type": "kinetic"
+		"xp": 490000, "zone": 15, "resist_k": 0.0, "resist_e": -0.30, "resist_x": 0.37, "resist_cryo": 0.0, "dmg_type": "kinetic"
 	},
 	"z15_boss_caustic_sovereign": {
 		"name": "Caustic Sovereign",
@@ -1628,35 +1845,35 @@ var enemy_db = {
 		"stats": {"hp": 600, "max_shield": 150, "atk": 40, "def": 15, "atk_interval": 2.0, "accuracy": 35},
 		"loot": [["credits", 500, 1000], ["Fe", 5, 10], ["Cu", 3, 6]],
 		"rare_loot": [], "xp": 40, "zone": 2,
-		"resist_k": 0.20, "resist_e": -0.20, "resist_x": 0.0, "dmg_type": "energy"
+		"resist_k": 0.0, "resist_e": -0.30, "resist_x": 0.37, "dmg_type": "energy"
 	},
 	"hz_emp_drone_2": {
 		"name": "Charged Golem",
 		"stats": {"hp": 800, "atk": 33.333333, "def": 20, "atk_interval": 2.0, "accuracy": 30},
 		"loot": [["credits", 600, 1200], ["Si", 5, 10], ["Cu", 2, 5]],
 		"rare_loot": [], "xp": 45, "zone": 2,
-		"resist_k": 0.30, "resist_e": -0.15, "resist_x": -0.10, "dmg_type": "energy"
+		"resist_k": 0.0, "resist_e": -0.30, "resist_x": 0.37, "dmg_type": "energy"
 	},
 	"hz_emp_drone_3": {
 		"name": "Pulse Skimmer",
 		"stats": {"hp": 500, "max_shield": 300, "atk": 46.666667, "def": 10, "atk_interval": 2.0, "accuracy": 40},
 		"loot": [["credits", 400, 800], ["Fe", 3, 8], ["Res1", 2, 4]],
 		"rare_loot": [], "xp": 35, "zone": 2,
-		"resist_k": 0.10, "resist_e": -0.25, "resist_x": 0.10, "dmg_type": "energy"
+		"resist_k": 0.0, "resist_e": -0.30, "resist_x": 0.37, "dmg_type": "energy"
 	},
 	"hz_emp_drone_4": {
 		"name": "Static Hauler",
 		"stats": {"hp": 1000, "atk": 31.428571, "def": 25, "atk_interval": 2.0, "accuracy": 28},
 		"loot": [["credits", 700, 1400], ["Fe", 8, 15], ["Ti", 1, 3]],
 		"rare_loot": [], "xp": 50, "zone": 2,
-		"resist_k": 0.25, "resist_e": 0.0, "resist_x": -0.20, "dmg_type": "energy"
+		"resist_k": 0.0, "resist_e": -0.30, "resist_x": 0.37, "dmg_type": "energy"
 	},
 	"hz_emp_drone_5": {
 		"name": "Ion Disruptor",
 		"stats": {"hp": 700, "max_shield": 200, "atk": 45, "def": 12, "atk_interval": 2.0, "accuracy": 38},
 		"loot": [["credits", 500, 1000], ["Cu", 5, 10], ["Si", 3, 6]],
 		"rare_loot": [], "xp": 42, "zone": 2,
-		"resist_k": 0.15, "resist_e": -0.20, "resist_x": 0.0, "dmg_type": "energy"
+		"resist_k": 0.0, "resist_e": -0.30, "resist_x": 0.37, "dmg_type": "energy"
 	},
 	"hz_emp_elite": {
 		"name": "EMP Commander",
@@ -1664,7 +1881,7 @@ var enemy_db = {
 		"loot": [["credits", 3000, 6000], ["Cu", 10, 20], ["Ti", 3, 8], ["Res1", 5, 10]],
 		"rare_loot": [["Circuit", 0.30, 3, 6]],
 		"xp": 150, "zone": 2,
-		"resist_k": 0.30, "resist_e": -0.25, "resist_x": -0.15, "dmg_type": "energy"
+		"resist_k": 0.0, "resist_e": -0.30, "resist_x": 0.37, "dmg_type": "energy"
 	},
 	"hz_emp_overlord": {
 		"name": "EMP Overlord",
@@ -1672,7 +1889,7 @@ var enemy_db = {
 		"loot": [["credits", 10000, 20000], ["Cu", 20, 40], ["Ti", 8, 15], ["Res1", 10, 20]],
 		"rare_loot": [["AdvCircuit", 0.25, 2, 4], ["NavData", 0.40, 1, 3]],
 		"is_boss": true, "xp": 500, "zone": 2,
-		"resist_k": 0.35, "resist_e": -0.30, "resist_x": -0.20, "dmg_type": "energy"
+		"resist_k": 0.0, "resist_e": -0.40, "resist_x": 0.37, "dmg_type": "energy"
 	}
 }
 
@@ -2882,7 +3099,17 @@ func _execute_enemy_attack():
 # nothing -- this scales the positive side up (0.45 -> 0.80) and preserves the
 # triangle's spread. Soft axis (x0.20 is still grindable in idle); the HARD gate
 # stays the tier-penetration wall (don't double-hard-gate tier AND type).
-const RESIST_AMP := 1.78    # 0.45 (authored max) * 1.78 ~= 0.80
+# v150: the authored maximum is now 0.37 (the resist triangle — see the block
+# above enemy_db). 0.37 * 1.78 = 0.6586, i.e. a 65.9% EXPERIENCED cut, centred in
+# the owner's 60-70% band. Nothing in the table reaches the 0.80 clamp on its own
+# any more; only adaptive_grid, which adds RAW resist mid-fight (+0.15 cap), can
+# still get there — 0.37 + 0.15 = 0.52 -> amp 0.926 -> clamped 0.80, the same
+# ceiling the Void Leviathan already had, so nothing became unbeatable.
+# THE NEGATIVE CLAMP (-0.40) IS NOW A BALANCE CONSTRAINT, not just a safety rail:
+# it caps "weak" at x1.40, which is not always enough to beat a natural channel
+# at x1.00 when the weak type is KINETIC (worst armor divisor + worst shield
+# weight). If you retune either bound, retune the authored 0.37 with it.
+const RESIST_AMP := 1.78    # 0.37 (authored resisted) * 1.78 ~= 0.66
 const RESIST_MAX := 0.80
 func _amp_resist(r: float) -> float:
 	if r > 0.0:
