@@ -39,6 +39,9 @@ var kit_potency_dbg: float = 1.0  # sim-only knob: scales consumable heal_pct fo
 
 # Throttle for the "no ammo" combat warning so it doesn't spam every tick.
 var _last_ammo_warn_ms: int = 0
+# v150b: slot_idx -> ammo id currently being substituted for a dry binding, so the
+# downgrade notice prints once per transition rather than once per shot.
+var _ammo_sub_notice: Dictionary = {}
 
 signal enemy_defeated(enemy_id)
 signal combat_started() # v72.8: For Elite bounty detection
@@ -980,7 +983,12 @@ var enemy_db = {
 		# — at 0.14 it gated carried Rare (5->2) but also pushed tier-matched Common
 		# under the farm bar (7->4). EHP was cut alongside to restore the margin.
 		"sustain": {"kind": "pulse", "every_s": 6.0, "pct": 0.07},
-		"loot": [["Steel", 8, 18], ["Fe", 15, 35], ["Res2", 1, 3], ["CryoEssence", 1, 2]],
+		# v150 band supply: RimeplateScrap is now the T2 AMMO catalyst as well as
+		# the Z4 alloy feedstock, so it has to be a zone-wide drop, not a 2-of-5
+		# drop. Untargeted expected income goes ~1.8/kill -> ~4.5/kill, which
+		# clears the Z4 demand of 4.5 crafts/min (hull tier 4 = 3 weapon slots =
+		# 90 rounds/min at 1 catalyst per 20) with 2-4x headroom on every spawn.
+		"loot": [["Steel", 8, 18], ["Fe", 15, 35], ["Res2", 1, 3], ["CryoEssence", 1, 2], ["RimeplateScrap", 2, 5]],
 		"rare_loot": [["Ti", 0.15, 3, 8], ["Au", 0.20, 1, 3]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z4_kinetic", "z4_energy", "z4_missile", "z4_battery", "z4_sensor"],
@@ -1045,7 +1053,9 @@ var enemy_db = {
 		# for those that swing more, while the ABSOLUTE spike stays ~flat. Do not
 		# 'tidy' these mults back to round numbers without redoing the funnel.
 		"charge_nuke": {"every_n": 6, "mult": 2.114286},
-		"loot": [["credits", 1200, 2500], ["Cu", 5, 12], ["Res2", 2, 4], ["CryoEssence", 2, 4]],
+		# v150 band supply: see z4_frost_hulk — all four Z4 trash now carry the T2
+		# ammo catalyst so the band opens on the first kill, whatever spawns.
+		"loot": [["credits", 1200, 2500], ["Cu", 5, 12], ["Res2", 2, 4], ["CryoEssence", 2, 4], ["RimeplateScrap", 2, 5]],
 		"rare_loot": [["AdvCircuit", 0.10, 1, 2]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z4_shield", "z4_armor", "z4_battery", "z4_sensor"],
@@ -1293,9 +1303,14 @@ var enemy_db = {
 		"stats": {"hp": 38625, "max_shield": 38625, "atk": 857.142857, "def": 380, "atk_interval": 2.0, "accuracy": 95},
 		"sustain": {"kind": "pulse", "every_s": 6.0, "pct": 0.15},
 		"charge_nuke": {"every_n": 7, "mult": 3.8},
-		# The Gamma Beast already drops RadIsotope — it is the zone's thematic isotope
-		# donor, so it carries ExoticIsotope too (see the supply note on z7_shard_swarm).
-		"loot": [["RadIsotope", 3, 8], ["ExoticMatter", 1, 3], ["Res3", 2, 5], ["ExoticIsotope", 2, 5]],
+		# Two independent needs land on this one enemy, and BOTH are kept.
+		# v142d alloy ladder: the Gamma Beast is Zone 7's thematic isotope donor, so
+		# it carries ExoticIsotope — refine_gamma_alloy's feedstock.
+		# v150 ammo band: VoidCrystal is the T3 AMMO catalyst, and at 3-of-5 spawn
+		# slots untargeted income (~5/min) sat UNDER the Z7 demand of ~7.5 crafts/min,
+		# so passing the boundary required targeting one enemy — a chore, not a
+		# choice. At 4-of-5 untargeted income clears demand.
+		"loot": [["RadIsotope", 3, 8], ["ExoticMatter", 1, 3], ["Res3", 2, 5], ["ExoticIsotope", 2, 5], ["VoidCrystal", 1, 3]],
 		"rare_loot": [["Os", 0.10, 1, 2]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z7_shield", "z7_armor", "z7_battery", "z7_sensor"],
@@ -1309,10 +1324,14 @@ var enemy_db = {
 		# the Prism RE-CRYSTALLIZES — the Z2 Monolith's soft pulse lesson tested
 		# for real (lattice continuity: monolith → prism).
 		"sustain": {"kind": "pulse", "every_s": 7.0, "pct": 0.07},
-		# v142d: the Sovereign Prism did not drop ExoticIsotope, Zone 7's signature raw
-		# and now refine_gamma_alloy's sole feedstock — boss farming paid zero alloy
-		# progress. Same fix as the Z4 and Z6 bosses.
-		"loot": [["credits", 1000000, 2000000], ["ExoticMatter", 15, 30], ["Os", 3, 8], ["Res3", 15, 30], ["ExoticIsotope", 20, 45]],
+		# Both boss-supply fixes kept — they solve different dead ends.
+		# v142d: the Prism dropped no ExoticIsotope, Zone 7's signature raw and
+		# refine_gamma_alloy's sole feedstock, so boss farming paid ZERO alloy
+		# progress. Same inversion as the Z4 and Z6 bosses.
+		# v150: it also dropped no VoidCrystal while the Z8 boss dropped 20-50 — the
+		# band-OPENING boss paid nothing toward the band it opens. A first-kill
+		# catalyst payout is the standard "you may now upgrade" beat.
+		"loot": [["credits", 1000000, 2000000], ["ExoticMatter", 15, 30], ["Os", 3, 8], ["Res3", 15, 30], ["ExoticIsotope", 20, 45], ["VoidCrystal", 20, 40]],
 		"rare_loot": [["z7_unique_weapon", 0.03, 1, 1], ["z7_unique_armor", 0.03, 1, 1], ["z7_unique_shield", 0.03, 1, 1], ["z7_unique_kinetic", 0.03, 1, 1], ["z7_unique_energy", 0.03, 1, 1], ["z7_unique_missile", 0.03, 1, 1]],
 		"boss_core": "Z7_Core",
 		"module_drop_chance": 0.25,
@@ -2658,15 +2677,22 @@ func _execute_player_attack(weapon_idx: int):
 	if w["type"] == "energy" and _loadout_has_module(sm, "plasma_overcharger"):
 		p_atk_e *= 2.0
 
-	var ammo_id = sm.ammo_loadout.get(w["slot_idx"])
 	# v109: Cryo weapons are Exotic-Matter self-charging — no ammo required.
 	var requires_ammo = w["slot_idx"] != -1 and w["type"] != "cryo"
-	
-	# v80.2 Fix: Enforce Ammo Type Compatibility
-	if ammo_id and ammo_id != "" and not sm.is_ammo_compatible(w["type"], ammo_id):
-		ammo_id = "" # Ignore incompatible ammo
-		
-	if ammo_id and ammo_id != "":
+
+	# v150b: ask the shipyard what this slot will ACTUALLY fire instead of reading
+	# the raw binding. resolve_ammo_for_slot returns the bound ammo while it has
+	# stock, otherwise the best lower tier the player still holds, down to T1 —
+	# so an emptied stack degrades DPS instead of zeroing the weapon out and
+	# stalling the fight forever. It also enforces type compatibility (the old
+	# v80.2 check below moved inside it), so an incompatible binding still yields
+	# "" and is handled by the requires_ammo branches exactly as before.
+	var ammo_id: String = ""
+	if requires_ammo:
+		ammo_id = sm.resolve_ammo_for_slot(int(w["slot_idx"]), String(w["type"]))
+		_note_ammo_substitution(int(w["slot_idx"]), String(sm.ammo_loadout.get(w["slot_idx"], "")), ammo_id)
+
+	if ammo_id != "":
 		if GameState.resources.get_element_amount(ammo_id) > 0:
 			# v118: Crimson ammo_eff (utility facet) — chance to not consume ammo.
 			if randf() >= sm.gem_bonuses.get("ammo_eff", 0.0):
@@ -3941,6 +3967,26 @@ func _check_auto_consume(delta: float):
 		if sh_pct <= threshold and player_max_shield > 0:
 			_trigger_consumable(sm.consumable_shield_slot, sm)
 			return
+
+# v150b: the runtime fallback silently swaps a dry stack for a lower tier, which
+# costs real DPS (AMMO_TIER_MULT tops out at 1.35x). Say so once per transition —
+# a fight-fact in the combat log, the same surface _warn_no_ammo already uses.
+# Memoised per slot so a sustained downgrade prints one line, not one per shot.
+func _note_ammo_substitution(slot_idx: int, bound_id: String, firing_id: String) -> void:
+	if firing_id == bound_id:
+		_ammo_sub_notice.erase(slot_idx)   # back on the preferred rung
+		return
+	if firing_id == "":
+		return   # genuinely dry — _warn_no_ammo owns that message
+	if String(_ammo_sub_notice.get(slot_idx, "")) == firing_id:
+		return
+	_ammo_sub_notice[slot_idx] = firing_id
+	combat_events.append({
+		"type": "status",
+		"text": "AMMO SUBSTITUTED — " + ElementDB.get_display_name(firing_id),
+		"color": Color(1.0, 0.78, 0.35),
+		"side": "player"
+	})
 
 func _warn_no_ammo():
 	# A weapon tried to fire with no ammo (it deals ZERO damage). Surface it

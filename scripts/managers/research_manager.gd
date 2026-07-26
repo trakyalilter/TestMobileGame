@@ -277,7 +277,10 @@ var tech_tree = {
 		"type": "technology",
 		"parent": "automation",
 		"effects": [],
-		"unlocks": ["Seeker Missile", "Guided Munitions Plant"],  # v144: T2 explosive auto-foundry
+		# v150: the PLANT moved to zone_4_access with the rest of the T2 ammo
+		# automation (band alignment — see infrastructure_manager). This tech still
+		# gates the Seeker Missile RECIPE, so the claim stays honest.
+		"unlocks": ["Seeker Missile"],
 		"flavor": "",
 	},
 	"sector_alpha_decryption": {
@@ -402,7 +405,11 @@ var tech_tree = {
 		# v111.6 audit: hull entries renamed to drop " hull" suffix so they
 		# match shipyard_manager's actual hull display names. Smart-linker
 		# can now hyperlink each one to the hull info-card popup.
-		"unlocks": ["Glacier Belt zone", "Zone 4 modules", "Heavy Cruiser"],
+		# v150: this tech now also owns the whole T2 AMMO AUTOMATION rung. Zone 4
+		# is where Rimeplate Scrap — the T2 band catalyst — first drops, so the
+		# plants appear exactly when the player can feed them.
+		"unlocks": ["Glacier Belt zone", "Zone 4 modules", "Heavy Cruiser",
+			"Advanced Ballistics Plant", "High-Energy Cell Plant", "Guided Munitions Plant"],
 		"flavor": "Hand-supply is impractical here — build extraction.",
 	},
 	"zone_5_access": {
@@ -458,7 +465,10 @@ var tech_tree = {
 		"type": "technology",
 		"parent": "zone_6_access",
 		"effects": [],
-		"unlocks": ["Sector Gamma", "Zone 7 modules", "Carrier"],
+		# v150: this tech now also owns the whole T3 AMMO AUTOMATION rung. Zone 7
+		# is where Void Crystal — the T3 band catalyst — first drops.
+		"unlocks": ["Sector Gamma", "Zone 7 modules", "Carrier",
+			"Heavy Ordnance Works", "Zero-Point Cell Synthesizer", "Thermobaric Warhead Works"],
 		"flavor": "Heavy automation + Tungsten extraction.",
 	},
 	"zone_8_access": {
@@ -1171,7 +1181,10 @@ var tech_tree = {
 		# and thermobaric_warhead_works (T3) now exist. This tech owns the T3 rung,
 		# mirroring heavy_ordnance_works on the kinetic side.
 		"effects": [],
-		"unlocks": ["Photon Torpedo (T4 Ammo)", "Thermobaric Warhead Works"],
+		# v150: Thermobaric Warhead Works moved to zone_7_access. It made T3 ammo
+		# automation reachable at Z5 (this tech's cost_items include VoidArtifact,
+		# a Zone 5 drop) — two full bands early.
+		"unlocks": ["Photon Torpedo (T4 Ammo)"],
 		"flavor": "",
 	},
 	"quantum_dynamics": {

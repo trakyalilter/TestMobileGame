@@ -340,9 +340,34 @@ var recipes: Dictionary = {
 		"research_req": "basic_engineering",
 		"category": "consumables_hull"
 	},
+	# ═══════════════════════════════════════════════════════════════════════════
+	# v150 AMMO BANDS — every ammo recipe is now the SAME SHAPE:
+	#     [automatable bulk] + [channel payload] + [band catalyst x1]  ->  20 rounds
+	# Band catalysts (see ElementDB.AMMO_BAND_MIN_ZONE for the full rationale):
+	#     T1 none (tutorial rung stays free + fully automated)
+	#     T2  RimeplateScrap  (Z4-only drop)
+	#     T3  VoidCrystal     (earliest Z7)
+	#     T4  PrimordialShard (earliest Z10)
+	# ONE catalyst per 20 rounds is the invariant the ammo BUILDINGS mirror
+	# (input = yield / 20). Do not raise it to 2 without redoing the Z4 supply
+	# math: hull tier 4 = 3 weapon slots = 90 rounds/min = 4.5 crafts/min against
+	# ~4.5 RimeplateScrap/kill x 2-7 kills/min. At 1 the catalyst is a KEY; at 2
+	# it inverts against a bad spawn streak and becomes a grind tax.
+	# ═══════════════════════════════════════════════════════════════════════════
 	"craft_slug_t1": {
 		"name": "Ferrite Rounds",
 		"description": "Mass produce iron slugs.",
+		# v150 MEASURED DEVIATION from the band spec. The spec asked for a 2nd
+		# "channel payload" ingredient here ({Fe 2, C 1} / {Si 2, Cu 1}), but the
+		# measured level chain forbids it: C comes from charcoal_burning (lvl 2,
+		# and Wood gathers at lvl 4) and Cu from smelt_copper (lvl 5, Malachite
+		# gathers at lvl 7). SlugT1 is lvl 1 and CellT1 is lvl 2 — the very first
+		# ammo a player crafts. Adding those payloads would make the starter
+		# kinetic/energy rounds UNCRAFTABLE on a fresh save, which is the exact
+		# inverted-gate bug this pass exists to kill (see craft_missile_t2's old
+		# lvl-25 recipe demanding a lvl-45 TargetingChip). T1 kinetic/energy stay
+		# one bulk ingredient; symmetry is enforced from T2 up, where every
+		# ingredient's own level_req is below its ammo recipe's.
 		"input": {"Fe": 1},
 		"output": {"SlugT1": 20},
 		"duration": 5.0,
@@ -360,8 +385,8 @@ var recipes: Dictionary = {
 	},
 	"craft_slug_t2": {
 		"name": "Tungsten Sabot",
-		"description": "Heavy kinetic penetrators.",
-		"input": {"Steel": 1, "W": 1},
+		"description": "Heavy kinetic penetrators, seated in salvaged Cryofield rimeplate.",
+		"input": {"Steel": 2, "W": 1, "RimeplateScrap": 1},
 		"output": {"SlugT2": 20},
 		"duration": 10.0,
 		"level_req": 24, # v126: 32->24 — closes the W idle gap (Tungsten gathers at lvl 20; this is its first real sink)
@@ -379,11 +404,14 @@ var recipes: Dictionary = {
 	},
 	"craft_cell_t2": {
 		"name": "Plasma Cell",
-		"description": "Contain superheated gas.",
-		"input": {"H": 5, "Resin": 1},
+		"description": "Bottle superheated gas in a rimeplate-lined containment shell.",
+		# v150: level 34 -> 26. It was a 10-level outlier against its siblings
+		# (slug 24 / missile 25), which is why energy players felt out of step
+		# exactly at the Z4 band boundary.
+		"input": {"Steel": 2, "Resin": 1, "RimeplateScrap": 1},
 		"output": {"CellT2": 20},
 		"duration": 10.0,
-		"level_req": 34, # Increased from 4
+		"level_req": 26,
 		"xp": 40, # Increased from 20
 		# v135b: gate on Laser Optics (its thematic tech, already advertised by that
 		# node's "unlocks": ["Plasma Cell (T2 Energy Ammo)"]). Was level-only (34) with
@@ -669,8 +697,13 @@ var recipes: Dictionary = {
 	},
 	"craft_slug_t3": {
 		"name": "Depleted Uranium Round",
-		"description": "Armor-shredding heavy rounds.",
-		"input": {"SlugT2": 20, "U": 1, "StructuralComponent": 5},
+		"description": "Armor-shredding heavy rounds, machined around a Gamma-Sector void crystal.",
+		# v150: the SlugT2 20 / CellT2 20 NESTING is gone. Nesting is correct for
+		# the ALLOY ladder (chondrite -> wreckforged -> rime -> xenoforged is a
+		# deliberate depth chain); it is wrong for ammo, where an ammo PLANT has
+		# to mirror the recipe one-for-one and a nested tier made T3 kinetic/energy
+		# cost 21 crafts while T3 explosive cost 1.
+		"input": {"Superalloy": 2, "U": 1, "VoidCrystal": 1},
 		"output": {"SlugT3": 20},
 		"duration": 15.0,
 		"level_req": 55, # Increased from 8
@@ -679,9 +712,12 @@ var recipes: Dictionary = {
 	},
 	"craft_slug_t4": {
 		"name": "Hyper-Velocity Slug",
-		"description": "Tungsten-Superalloy sabot for railguns. Extreme kinetic impact.",
-		"input": {"W": 10, "U": 3, "Superalloy": 1, "NanoSubstrate": 2, "IrWAlloy": 4},
-		"output": {"SlugT4": 50},
+		"description": "Nano-lattice sabot for railguns, keyed to a primordial shard. Extreme kinetic impact.",
+		# v150: out 50 -> 20. SlugT4 was the ONE ammo in the game that did not
+		# output 20, which broke the 1-catalyst-per-20-rounds invariant every
+		# ammo plant's input rate is derived from.
+		"input": {"NanoSubstrate": 2, "IrWAlloy": 2, "PrimordialShard": 1},
+		"output": {"SlugT4": 20},
 		"duration": 20.0,
 		"level_req": 65,
 		"xp": 180,
@@ -689,18 +725,18 @@ var recipes: Dictionary = {
 	},
 	"craft_cell_t3": {
 		"name": "Vaporizer Cell",
-		"description": "Matter-disintegrating energy.",
-		"input": {"CellT2": 20, "U": 1, "StructuralComponent": 5},
+		"description": "Matter-disintegrating energy, lensed through a Gamma-Sector void crystal.",
+		"input": {"Superalloy": 2, "AdvCircuit": 1, "VoidCrystal": 1},
 		"output": {"CellT3": 20},
 		"duration": 15.0,
-		"level_req": 58, # Increased from 8
+		"level_req": 56, # v150: 58 -> 56, in line with slug 55 / missile 55
 		"xp": 120, # Increased from 50
 		"research_req": "energy_metrics"
 	},
 	"craft_cell_t4": {
 		"name": "Heavy Plasma Cell",
-		"description": "Unstable fusion plasma containment. Extreme damage.",
-		"input": {"He": 10, "U": 3, "Superalloy": 1, "NanoSubstrate": 2, "SuperconductingMagnet": 2},
+		"description": "Unstable fusion plasma bottled by a primordial shard. Extreme damage.",
+		"input": {"NanoSubstrate": 2, "SuperconductingMagnet": 2, "PrimordialShard": 1},
 		"output": {"CellT4": 20},
 		"duration": 20.0,
 		"level_req": 65,
@@ -710,7 +746,14 @@ var recipes: Dictionary = {
 	"craft_missile_t1": {
 		"name": "HE Missile",
 		"description": "Standard high-explosive ordnance.",
-		"input": {"Fe": 5, "C": 2},
+		# v150: {Fe 5, C 2} -> {Fe 1, C 1}. Explosive paid 7 raw units per 20
+		# rounds where kinetic/energy paid 1 — the same "explosive players pay a
+		# tax" asymmetry v144 fixed on the building side, still live on the
+		# recipe side. C (charcoal_burning, lvl 2) is comfortably below this
+		# recipe's lvl 5, so the channel payload is legal here even though it is
+		# not at lvl 1. Spec asked for Resin; measured craft_polymer is lvl 10,
+		# ABOVE this recipe — that would be an inverted gate, so C it is.
+		"input": {"Fe": 1, "C": 1},
 		"output": {"MissileT1": 20},
 		"duration": 5.0,
 		"level_req": 5,
@@ -748,8 +791,12 @@ var recipes: Dictionary = {
 	# stay in element_db/elements.json so existing saves holding stacks still render.
 	"craft_missile_t2": {
 		"name": "Seeker Missile",
-		"description": "Guided missile with logic circuits and a Hydrogen-fuelled sustainer motor.",
-		"input": {"Steel": 2, "Circuit": 1, "TargetingChip": 1, "StructuralComponent": 3, "PirateSalvage": 2, "H": 10},
+		"description": "Guided missile with logic circuits, wrapped in salvaged Cryofield rimeplate.",
+		# v150: SIX ingredients (19 raw units) -> three. The worst offender in the
+		# game: this recipe was level_req 25 but demanded TargetingChip, whose own
+		# recipe (craft_turret_targeting) is level_req 45 — a T2 missile needed a
+		# lvl-45 component. Kinetic paid 2 units for the same rung.
+		"input": {"Steel": 2, "Circuit": 1, "RimeplateScrap": 1},
 		"output": {"MissileT2": 20},
 		"duration": 10.0,
 		"level_req": 25,
@@ -758,18 +805,22 @@ var recipes: Dictionary = {
 	},
 	"craft_missile_t3": {
 		"name": "Heavy Missile",
-		"description": "High-yield thermobaric ordnance in a corrosion-resistant casing.",
-		"input": {"Steel": 5, "AlMgAlloy": 2, "H": 20, "StructuralComponent": 5, "GalvanizedSteel": 3, "StainlessSteel": 4},
+		"description": "High-yield thermobaric ordnance around a Gamma-Sector void crystal.",
+		# v150: SIX ingredients (39 raw units) -> three, same shape as its siblings.
+		"input": {"Superalloy": 2, "StructuralComponent": 1, "VoidCrystal": 1},
 		"output": {"MissileT3": 20},
 		"duration": 15.0,
-		"level_req": 48,
+		"level_req": 55, # v150: 48 -> 55, in line with slug 55 / cell 56
 		"xp": 100,
 		"research_req": "advanced_rocketry"
 	},
 	"craft_missile_t4": {
 		"name": "Photon Torpedo",
-		"description": "Antimatter-infused capital buster.",
-		"input": {"Superalloy": 2, "ExoticMatter": 1, "NanoSubstrate": 3, "OsCore": 2},
+		"description": "Primordial-shard capital buster.",
+		# v150: ExoticMatter removed. It is the prestige currency's twin identity
+		# and its earliest_zone is 7 — using it at T4 collapsed T3/T4 onto the
+		# same band material.
+		"input": {"NanoSubstrate": 2, "OsCore": 2, "PrimordialShard": 1},
 		"output": {"MissileT4": 20},
 		"duration": 20.0,
 		"level_req": 65,

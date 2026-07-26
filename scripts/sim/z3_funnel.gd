@@ -257,7 +257,15 @@ func _slots(sm, stype: String) -> Array:
 	return out
 
 func _ammo_kits(sm, weak: String) -> void:
-	var ammo := "%sT2" % AMMO[weak]
+	# v150: was hardcoded "<Base>T2" at EVERY zone (the T1 fallback never fired —
+	# SlugT2/CellT2/MissileT2 all exist in ELEMENT_NAMES). That made the funnel a
+	# dishonest instrument once ammo bands landed: it over-fed Z1-Z3 (T2 at 1.10x
+	# where the band is T1 at 1.00x) and under-fed Z7-Z10 (T2 at 1.10x where the
+	# band is T3 at 1.20x). It now loads the band the zone is designed around, via
+	# the single band map in ElementDB.
+	#   Z1-Z3 -> T1 (1.00x) | Z4-Z6 -> T2 (1.10x) | Z7-Z10 -> T3 (1.20x) | Z11+ -> T4
+	var band: String = ElementDB.get_ammo_band_for_zone(TZ)
+	var ammo: String = "%s%s" % [AMMO[weak], band]
 	if not ElementDB.ELEMENT_NAMES.has(ammo):
 		ammo = "%sT1" % AMMO[weak]
 	GameState.resources.add_element(ammo, 1000000)

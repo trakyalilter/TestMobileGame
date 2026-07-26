@@ -344,6 +344,51 @@ func get_ammo_damage_mult(ammo_id: String) -> float:
 func get_ammo_damage_pct(ammo_id: String) -> int:
 	return int(round((get_ammo_damage_mult(ammo_id) - 1.0) * 100.0))
 
+# ─────────────────────────────────────────────────────────────────────────────
+# v150 AMMO BANDS — the ONE band map. Owner rule:
+#   "Z1-Z2-Z3 use T1 kinetic/energy/explosive ammo. Z4-Z5-Z6 use T2.
+#    Z7-Z8-Z9-Z10 use T3. Gate the higher tiers with materials that are
+#    unobtainable at the lower zones."
+#
+# The band is enforced by MATERIAL AVAILABILITY, not by a legality wall:
+#   T2 recipes + T2 ammo plants require RimeplateScrap — sourced ONLY by Z4
+#   enemies (measured: zero gathering / processing / infrastructure / quest /
+#   research sources anywhere in the game).
+#   T3 requires VoidCrystal — earliest source Z7; its one non-combat source
+#   (void_crystallizer) is gated behind void_navigation, whose cost_items
+#   include the Zone 9 boss drop, so automation opens INSIDE the band.
+#   T4 requires PrimordialShard — earliest source Z10. T4 stays the NG+/Z11+
+#   tier and deliberately has NO ammo building on any channel.
+#
+# is_ammo_compatible() is still PREFIX-ONLY on purpose: ammo is a throttle,
+# never a wall. A player who runs dry falls back to T1 and keeps playing at
+# -35% (AMMO_TIER_MULT) instead of holding a weapon that deals ZERO damage.
+# See combat_manager `_warn_no_ammo(); return` — an unfeedable weapon does not
+# fire at all and the fight never ends, which is a softlock, not a difficulty
+# spike. Everything below is a DEFAULT/ADVISORY, and callers must never turn it
+# into a hard refusal without the save migration described in CLAUDE.md.
+const AMMO_BAND_MIN_ZONE := {"T1": 1, "T2": 4, "T3": 7, "T4": 11}
+
+## Ammo tier a given combat zone is designed around. 1-3 -> T1, 4-6 -> T2,
+## 7-10 -> T3, 11+ -> T4. Single source of truth — do NOT re-derive this map
+## anywhere else (options_page once carried a rival FOUR-band version).
+func get_ammo_band_for_zone(zone: int) -> String:
+	if zone >= 11:
+		return "T4"
+	if zone >= 7:
+		return "T3"
+	if zone >= 4:
+		return "T2"
+	return "T1"
+
+## Ammo id for a channel at a band, e.g. ("kinetic", "T3") -> "SlugT3".
+func get_band_ammo_id(channel: String, band: String) -> String:
+	match channel:
+		"kinetic": return "Slug" + band
+		"energy": return "Cell" + band
+		"explosive": return "Missile" + band
+	return ""
+
 ## Damage-channel label for an ammo id: "kinetic" / "energy" / "explosive" / "".
 func get_ammo_channel(ammo_id: String) -> String:
 	if ammo_id.begins_with("Slug") or ammo_id == "kinetic_shell":

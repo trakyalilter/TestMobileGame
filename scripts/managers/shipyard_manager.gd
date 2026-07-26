@@ -969,7 +969,14 @@ var modules: Dictionary = {
 		"name": "Seeker Torpedo",
 		"slot_type": "weapon",
 		"stats": {"atk_explosive": 211, "energy_load": 70, "atk_interval": 2.0},
-		"cost": {"credits": 58564, "Superalloy": 30, "Chip": 20},
+		# v150: TargetingChip added. Pulling it out of craft_missile_t2 (where it
+		# was an inverted gate — a lvl-25 recipe demanding a lvl-45 component) left
+		# it with ZERO consumers anywhere in the game, i.e. the exact dead-end that
+		# got craft_turret_core cut in v141c. The Seeker Torpedo is its native home:
+		# same guidance fantasy, and craft_turret_targeting's lvl 45 sits on-curve
+		# for a Zone 5 purchase. A module cost is a CHOICE, never a gate — an
+		# unaffordable module is simply not bought.
+		"cost": {"credits": 58564, "Superalloy": 30, "Chip": 20, "TargetingChip": 5},
 		"desc": "AI-guided ordnance. Never misses.",
 		"zone": 5, "research_req": "zone_5_access"
 	},
@@ -2379,16 +2386,19 @@ func equip_module(slot_idx: int, module_id: String, silent: bool = false) -> boo
 	# Auto-Equip Ammo if slot is empty (QoL Fix)
 	if mod_data["slot_type"] == "weapon" and not ammo_loadout.get(slot_idx):
 		var stats = mod_data.get("stats", {})
+		var channel := ""
 		if stats.get("atk_kinetic", 0) > 0:
-			ammo_loadout[slot_idx] = "SlugT1"
+			channel = "kinetic"
 		elif stats.get("atk_energy", 0) > 0:
-			ammo_loadout[slot_idx] = "CellT1"
+			channel = "energy"
 		# v65.0 Fix: Auto-equip for Explosive weapons mismatch
 		elif stats.get("atk_explosive", 0) > 0:
 			# v134: MissileT1 is the real recipe output (craft_missile_t1). "missile" was
 			# a phantom key the player could never craft, so the launcher auto-loaded ammo
 			# it had zero of and fired empty. Set it unconditionally like kinetic/energy.
-			ammo_loadout[slot_idx] = "MissileT1"
+			channel = "explosive"
+		if channel != "":
+			ammo_loadout[slot_idx] = _auto_ammo_for_module(mod_data, channel)
 	_autosave_active_preset()   # v134g: persist the edit to the active build slot
 	return true
 
@@ -3380,6 +3390,11 @@ func reset(decay_factor: float = 1.0) -> void:
 	unseen_modules = {}
 	loadout = {}
 	ammo_loadout = {}
+	# v150b: the runtime ammo fallback is a pure cache over live stock, but a warp
+	# or new game changes both the stock and the slot layout — drop it so nothing
+	# resolves against a pre-reset ship.
+	_ammo_fallback_cache.clear()
+	_ammo_fallback_at.clear()
 	custom_modules = {}
 	# v134g: new game / warp wipes the ship, so wipe the build slots too and start
 	# on slot 1 — otherwise a slot would still point at pre-reset (now non-existent)
@@ -3520,6 +3535,121 @@ func get_affix_scaled_range(affix_id: String, zone_difficulty: int) -> Array:
 	else:
 		# Percent affixes [3, 10] -> [0.03, 0.10]
 		return [float(r_min) / 100.0, float(r_max) / 100.0]
+
+# v150 BAND-AWARE AUTO-EQUIP. equip_module used to hardcode SlugT1/CellT1/
+# MissileT1 regardless of the weapon, which is measurably where the "T1 rounds in
+# an endgame railgun" default came from — a Z10 kinetic module auto-loaded T1 and
+# ran at 1.00x forever while the whole T2-T4 ladder sat unused (AMMO_TIER_MULT
+# tops out at 1.35x). This picks the weapon's designed band instead.
+#
+# CRITICAL — it only ever selects ammo the player ACTUALLY HOLDS, then steps DOWN
+# to T1 as the final fallback. Selecting an unheld band id would hand the player a
+# weapon with an empty stack, and combat_manager's `_warn_no_ammo(); return` means
+# such a weapon deals ZERO damage and the fight never ends. That is a softlock,
+# not a difficulty spike. Never "improve" this into an unconditional band write
+# without the ammo_loadout save migration described in CLAUDE.md.
+func _auto_ammo_for_module(mod_data: Dictionary, channel: String) -> String:
+	var zone: int = int(mod_data.get("zone", 1))
+	var band: String = ElementDB.get_ammo_band_for_zone(zone)
+	# Walk down from the weapon's own band to T1, taking the best one in stock.
+	var start: int = AMMO_DESCENT.find(band)
+	if start < 0:
+		start = AMMO_DESCENT.size() - 1
+	# Pass 1: best band the player can actually FEED a weapon with. A stock of 1
+	# is not a supply, it is a single shot — binding to it used to leave the gun
+	# dry one tick later. AUTO_AMMO_MIN_STOCK is the sane floor.
+	for i in range(start, AMMO_DESCENT.size()):
+		var candidate: String = ElementDB.get_band_ammo_id(channel, AMMO_DESCENT[i])
+		if candidate != "" and GameState.resources.get_element_amount(candidate) >= AUTO_AMMO_MIN_STOCK:
+			return candidate
+	# Pass 2: nothing meets the floor — take the best tier with ANY stock rather
+	# than binding to a rung the player holds nothing of. The runtime fallback in
+	# resolve_ammo_for_slot() catches the moment it runs out either way.
+	for i in range(start, AMMO_DESCENT.size()):
+		var candidate2: String = ElementDB.get_band_ammo_id(channel, AMMO_DESCENT[i])
+		if candidate2 != "" and GameState.resources.get_element_amount(candidate2) > 0:
+			return candidate2
+	# Nothing in stock anywhere: fall back to the T1 rung, which is research-free,
+	# craftable from Zone-0 materials and fully automated from tier 1 buildings.
+	return ElementDB.get_band_ammo_id(channel, "T1")
+
+# ─────────────────────────────────────────────────────────────────────────────
+# v150b RUNTIME AMMO FALLBACK — the fix for the zero-damage stall.
+#
+# _auto_ammo_for_module only runs at EQUIP time, so whatever it picked stayed
+# bound forever. The instant that stack hit zero the weapon was bound to an empty
+# id, and combat_manager's `_warn_no_ammo(); return` means such a weapon deals
+# ZERO damage — at every band zone Z4-Z10 the fight then never ends. An equip-time
+# stock floor alone only makes that rarer; it cannot make it impossible, because
+# any finite stack empties eventually.
+#
+# So the descent has to happen in the FIRING path: when the bound ammo is dry the
+# weapon drops to the next rung down that still has stock, all the way to T1
+# (research-free, Zone-0 craftable, automated from tier-1 buildings), and only a
+# player holding literally nothing on that channel is reported genuinely dry.
+#
+# COST: the hot path is ONE dictionary read + ONE stock read. Only when the bound
+# ammo is empty do we walk the 5-rung ladder, and that result is cached per
+# preference id, re-validated by stock every shot and re-resolved at most once per
+# AMMO_FALLBACK_REFRESH_MS (so newly crafted higher-tier rounds get picked back
+# up). The inventory is never scanned.
+#
+# The player's ammo_loadout preference is NEVER rewritten — the substitution is a
+# runtime read-through. Craft more of the preferred tier and the very next shot
+# goes back to it on its own.
+const AMMO_DESCENT := ["T4", "T3", "T2", "T1S", "T1"]
+const AUTO_AMMO_MIN_STOCK := 30
+const AMMO_FALLBACK_REFRESH_MS := 10000
+
+var _ammo_fallback_cache: Dictionary = {}   # resolve key -> substituted ammo id
+var _ammo_fallback_at: Dictionary = {}      # resolve key -> ticks_msec of resolve
+
+## The ammo this weapon slot will ACTUALLY fire right now. Returns "" only when
+## the player holds no compatible ammo at any tier (the genuinely-dry report).
+func resolve_ammo_for_slot(slot_idx: int, weapon_type: String) -> String:
+	var pref: String = String(ammo_loadout.get(slot_idx, ""))
+	if pref != "" and not is_ammo_compatible(weapon_type, pref):
+		pref = ""   # incompatible binding is treated as no binding, as before
+	# HOT PATH: the bound ammo is in stock. Two lookups, no walk, no allocation.
+	if pref != "" and GameState.resources.get_element_amount(pref) > 0:
+		return pref
+	var key: String = pref
+	if key == "":
+		key = "@" + weapon_type
+	var cached: String = String(_ammo_fallback_cache.get(key, ""))
+	if cached != "":
+		var age: int = Time.get_ticks_msec() - int(_ammo_fallback_at.get(key, 0))
+		if age < AMMO_FALLBACK_REFRESH_MS and GameState.resources.get_element_amount(cached) > 0:
+			return cached
+	var resolved: String = _descend_ammo(pref, weapon_type)
+	_ammo_fallback_cache[key] = resolved
+	_ammo_fallback_at[key] = Time.get_ticks_msec()
+	return resolved
+
+## Walk strictly DOWN the tier ladder from the preferred rung and take the first
+## one the player holds. With no preference (empty/legacy binding) start at the
+## top, so an unbound weapon fires the best ammo its owner has instead of nothing.
+func _descend_ammo(pref: String, weapon_type: String) -> String:
+	var channel: String = ""
+	if pref != "":
+		channel = ElementDB.get_ammo_channel(pref)
+	if channel == "":
+		# weapon_type and ammo channel share the same vocabulary for the three
+		# ammo-fed types; "cryo" is self-charging and never reaches this path.
+		if weapon_type == "kinetic" or weapon_type == "energy" or weapon_type == "explosive":
+			channel = weapon_type
+	if channel == "":
+		return ""
+	var start: int = 0
+	if pref != "":
+		var idx: int = AMMO_DESCENT.find(ElementDB.get_ammo_tier(pref))
+		if idx >= 0:
+			start = idx + 1   # strictly below the preference — it is already dry
+	for i in range(start, AMMO_DESCENT.size()):
+		var candidate: String = ElementDB.get_band_ammo_id(channel, AMMO_DESCENT[i])
+		if candidate != "" and GameState.resources.get_element_amount(candidate) > 0:
+			return candidate
+	return ""   # genuinely dry on this channel at every tier
 
 func is_ammo_compatible(weapon_type: String, ammo_id: String) -> bool:
 	if ammo_id == "": return true

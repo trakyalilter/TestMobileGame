@@ -750,16 +750,25 @@ var building_db: Dictionary = {
 		"research_req": "molecular_recycling",
 		"category": "industry"
 	},
+	# v150 BAND ALIGNMENT (see ElementDB.AMMO_BAND_MIN_ZONE). This was the ONLY
+	# band-honest ammo building in the game, and only by accident (its
+	# ExoticMatter input is a Z7 drop). It is now honest ON PURPOSE, and unified
+	# with its kinetic/explosive siblings: all three T3 plants share the shape
+	# {Superalloy bulk, channel payload, VoidCrystal yield/20} on zone_7_access.
+	# It previously sat on a different tech (exotic_metallurgy) with a different
+	# input shape (ExoticMatter + QuantumCore) — the same asymmetry class the
+	# owner has now hit twice. Magnitudes are scaled off heavy_ordnance_works'
+	# rung by yield ratio (0.7/0.8), so this is a shape change, not a buff pass.
 	"zero_point_cell_synthesizer": {
 		"name": "Zero-Point Cell Synthesizer",
-		"description": "+0.7 Cell T3",
+		"description": "+0.7 Cell T3 (-1.84 Superalloy, -0.7 Adv Circuit, -0.035 Void Crystal)",
 		"cost": {"credits": 1000000, "QuantumCore": 10, "ExoticMatter": 20},
 		"energy_gen": 0.0,
-		"energy_cons": 25000.0, # exotic_metallurgy
+		"energy_cons": 25000.0, # zone_7_access
 		"yield": {"CellT3": 0.7},
-		"input": {"ExoticMatter": 0.7, "QuantumCore": 0.7},
+		"input": {"Superalloy": 1.84, "AdvCircuit": 0.7, "VoidCrystal": 0.035},
 		"interval": 5.0,
-		"research_req": "exotic_metallurgy",
+		"research_req": "zone_7_access",
 		"category": "industry"
 	},
 	"void_crystallizer": {
@@ -798,40 +807,68 @@ var building_db: Dictionary = {
 		"research_req": "power_systems",
 		"category": "industry"
 	},
+	# ═══ v150 AMMO BAND ALIGNMENT — the automation layer ═══════════════════════
+	# This is where the band leaked WORST before v150, and it was measured:
+	#   advanced_ballistics_plant sat on processing_tungsten (tier 2, cost Res1 10
+	#   — Res1 drops from every ZONE 1 enemy), so a Zone 1 player could fully
+	#   automate T2 kinetic ammo. high_energy_cell_plant (advanced_batteries) and
+	#   guided_munitions_plant (advanced_rocketry) were the same story at Z2/Z3.
+	#   heavy_ordnance_works and thermobaric_warhead_works sat on
+	#   capital_ship_armament, whose cost_items include VoidArtifact — a ZONE 5
+	#   drop — landing T3 ammo automation two full bands early.
+	# Every T2/T3 plant's input list was also generic (Steel/Al/Si/Resin/U/
+	# Superalloy); not one touched a zone material. Band-gating only the RECIPES
+	# would have left automation untouched and the whole exercise decorative.
+	#
+	# TWO fixes, both required:
+	#  1. Band catalyst in the input list at the SAME 1-per-20-rounds ratio the
+	#     recipes use (input = yield / 20). This makes automation physically
+	#     incapable of running ahead of the band. Starvation is safe: _apply_
+	#     production sets can_produce = false when an input is short, so the
+	#     building produces nothing AND consumes nothing that cycle — no stall,
+	#     no crash. Sub-1.0 inputs accrue correctly through _in_carry, so a single
+	#     VoidCrystal funds ~25 cycles of heavy_ordnance_works.
+	#  2. req_tech retiered to the band's zone-access tech, so a player never sees
+	#     a plant they can build but cannot feed. The thematic techs keep their
+	#     place in the tree via `parent`; only the gate moved.
+	# Missile plants draw HALF the catalyst per second, correctly — that is the
+	# same demand-parity rule the v144 explosive ladder was tuned to.
+	# T4 has NO ammo building on ANY channel, and that is INTENTIONAL: T4 is the
+	# NG+/Z11+ hand-crafted tier. Do not "fix" the omission on one channel.
 	"advanced_ballistics_plant": {
 		"name": "Advanced Ballistics Plant",
-		"description": "+3.1 Slug T2 (-3.1 Steel, -1.3 Al)",
+		"description": "+3.1 Slug T2 (-3.1 Steel, -1.3 Al, -0.155 Rimeplate Scrap)",
 		"cost": {"credits": 125000, "Steel": 100, "Al": 50},
 		"energy_gen": 0.0,
-		"energy_cons": 2500.0, # processing_tungsten
+		"energy_cons": 2500.0, # zone_4_access
 		"yield": {"SlugT2": 3.1},
-		"input": {"Steel": 3.1, "Al": 1.3},
+		"input": {"Steel": 3.1, "Al": 1.3, "RimeplateScrap": 0.155},
 		"interval": 5.0,
-		"research_req": "processing_tungsten",
+		"research_req": "zone_4_access",
 		"category": "industry"
 	},
 	"high_energy_cell_plant": {
 		"name": "High-Energy Cell Plant",
-		"description": "+3.1 Cell T2 (-1.9 Si, -1.3 Resin)",
+		"description": "+3.1 Cell T2 (-1.9 Si, -1.3 Resin, -0.155 Rimeplate Scrap)",
 		"cost": {"credits": 125000, "Si": 100, "Resin": 50},
 		"energy_gen": 0.0,
-		"energy_cons": 2500.0, # advanced_batteries
+		"energy_cons": 2500.0, # zone_4_access
 		"yield": {"CellT2": 3.1},
-		"input": {"Si": 1.9, "Resin": 1.3},
+		"input": {"Si": 1.9, "Resin": 1.3, "RimeplateScrap": 0.155},
 		"interval": 5.0,
-		"research_req": "advanced_batteries",
+		"research_req": "zone_4_access",
 		"category": "industry"
 	},
 	"heavy_ordnance_works": {
 		"name": "Heavy Ordnance Works",
-		"description": "+0.8 Slug T3 (-0.8 U, -2.1 Superalloy)",
+		"description": "+0.8 Slug T3 (-0.8 U, -2.1 Superalloy, -0.04 Void Crystal)",
 		"cost": {"credits": 2500000, "Superalloy": 50, "U": 20},
 		"energy_gen": 0.0,
-		"energy_cons": 15000.0, # capital_ship_armament (arbitrary high tier proxy)
+		"energy_cons": 15000.0, # zone_7_access
 		"yield": {"SlugT3": 0.8},
-		"input": {"U": 0.8, "Superalloy": 2.1},
+		"input": {"U": 0.8, "Superalloy": 2.1, "VoidCrystal": 0.04},
 		"interval": 5.0,
-		"research_req": "capital_ship_armament",
+		"research_req": "zone_7_access",
 		"category": "industry"
 	},
 
@@ -864,26 +901,28 @@ var building_db: Dictionary = {
 	},
 	"guided_munitions_plant": {
 		"name": "Guided Munitions Plant",
-		"description": "+1.55 Missile T2 (-1.55 Steel, -0.65 Al)",
+		"description": "+1.55 Missile T2 (-1.55 Steel, -0.65 Al, -0.078 Rimeplate Scrap)",
 		"cost": {"credits": 125000, "Steel": 100, "Al": 50},
 		"energy_gen": 0.0,
-		"energy_cons": 2500.0, # advanced_rocketry
+		"energy_cons": 2500.0, # zone_4_access
 		"yield": {"MissileT2": 1.55},
-		"input": {"Steel": 1.55, "Al": 0.65},
+		"input": {"Steel": 1.55, "Al": 0.65, "RimeplateScrap": 0.078},
 		"interval": 5.0,
-		"research_req": "advanced_rocketry",
+		"research_req": "zone_4_access",
 		"category": "industry"
 	},
 	"thermobaric_warhead_works": {
 		"name": "Thermobaric Warhead Works",
-		"description": "+0.4 Missile T3 (-0.4 U, -1.05 Superalloy)",
+		"description": "+0.4 Missile T3 (-0.4 Structural Component, -1.05 Superalloy, -0.02 Void Crystal)",
 		"cost": {"credits": 2500000, "Superalloy": 50, "U": 20},
 		"energy_gen": 0.0,
-		"energy_cons": 15000.0, # capital_ship_armament
+		"energy_cons": 15000.0, # zone_7_access
 		"yield": {"MissileT3": 0.4},
-		"input": {"U": 0.4, "Superalloy": 1.05},
+		# v150: U -> StructuralComponent so the plant mirrors craft_missile_t3's
+		# channel payload, matching the kinetic/energy rungs' recipe-mirroring.
+		"input": {"StructuralComponent": 0.4, "Superalloy": 1.05, "VoidCrystal": 0.02},
 		"interval": 5.0,
-		"research_req": "capital_ship_armament",
+		"research_req": "zone_7_access",
 		"category": "industry"
 	},
 

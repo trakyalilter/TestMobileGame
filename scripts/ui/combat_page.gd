@@ -602,11 +602,17 @@ func update_ui():
 			pb.visible = true
 			
 			# AMMO STATUS FEEDBACK
-			var ammo_id = sm.ammo_loadout.get(w["slot_idx"])
+			# v150b: read the RESOLVED ammo, not the raw binding. A weapon whose
+			# bound tier ran dry now fires a lower tier instead of stalling, so
+			# dimming its bar on the empty binding would report a dead gun that is
+			# in fact shooting. Dimmed here means genuinely dry at every tier.
+			var ammo_id: String = ""
+			if w["slot_idx"] != -1:
+				ammo_id = sm.resolve_ammo_for_slot(int(w["slot_idx"]), String(w["type"]))
 			var has_ammo = false
-			if ammo_id and ammo_id != "":
+			if ammo_id != "":
 				has_ammo = GameState.resources.get_element_amount(ammo_id) > 0
-				
+
 			if not has_ammo:
 				pb.modulate = Color(0.5, 0.5, 0.5, 0.5) # Dimmed offline look
 				pb.value = 0 # Forced to 0 when offline
