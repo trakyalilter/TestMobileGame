@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://civfidelity01"]
+
+[ext_resource type="Script" path="res://scripts/sim/iv_fidelity.gd" id="1"]
+
+[node name="IvFidelity" type="Node"]
+script = ExtResource("1")

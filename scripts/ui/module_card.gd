@@ -661,7 +661,7 @@ func _stat_score(stats: Dictionary) -> float:
 
 func _weapon_dps(stats: Dictionary) -> float:
 	var dmg := float(stats.get("atk_kinetic", 0)) + float(stats.get("atk_energy", 0)) + float(stats.get("atk_explosive", 0)) + float(stats.get("atk_cryo", 0))
-	var interval := maxf(0.01, float(stats.get("atk_interval", 2.5)))
+	var interval := maxf(0.01, float(stats.get("atk_interval", GameState.combat_manager.DEFAULT_ATTACK_INTERVAL)))
 	return dmg / interval
 
 # Mirrors combat_manager's weapon-type rule so the compare chevron only
@@ -843,7 +843,7 @@ func _build_card_stats(slot_type: String, stats: Dictionary) -> String:
 
 	if slot_type == "weapon":
 		var dmg = stats.get("atk_kinetic", 0) + stats.get("atk_energy", 0) + stats.get("atk_explosive", 0) + stats.get("atk_cryo", 0)
-		var interval = max(0.01, float(stats.get("atk_interval", 2.5)))
+		var interval = max(0.01, float(stats.get("atk_interval", GameState.combat_manager.DEFAULT_ATTACK_INTERVAL)))
 		lines.append("DPS: %.1f" % (float(dmg) / interval))
 
 		# v87.0: Damage Type Strong/Weak (Condensed)
@@ -1234,7 +1234,7 @@ func _build_comparison_tooltip_bbcode(anchor_select: bool = false, hover_affix: 
 	var my_stats = data.get("stats", {})
 	if slot_type == "weapon":
 		var dmg = my_stats.get("atk_kinetic", 0) + my_stats.get("atk_energy", 0) + my_stats.get("atk_explosive", 0) + my_stats.get("atk_cryo", 0)
-		var interval = max(0.01, float(my_stats.get("atk_interval", 2.5)))
+		var interval = max(0.01, float(my_stats.get("atk_interval", GameState.combat_manager.DEFAULT_ATTACK_INTERVAL)))
 		var dps = float(dmg) / interval
 		tt += "[font_size=24][b]%.1f DPS[/b][/font_size]\n" % dps
 		tt += "[font_size=9][color=#7FA39C]" + (tr("%s total damage, %.2f hits/s") % [UITheme.format_num(dmg), 1.0 / interval]) + "[/color][/font_size]\n"

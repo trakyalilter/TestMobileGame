@@ -765,7 +765,7 @@ var modules: Dictionary = {
 	"z1_missile": {
 		"name": "Micro-Missile Launcher",
 		"slot_type": "weapon",
-		"stats": {"atk_explosive": 18, "energy_load": 10, "atk_interval": 4.0},
+		"stats": {"atk_explosive": 9, "energy_load": 10, "atk_interval": 2.0},
 		"cost": {"credits": 2500, "Fe": 20, "Cu": 10},
 		"desc": "Explosive payload. High armor penetration.",
 		"zone": 1
@@ -807,7 +807,7 @@ var modules: Dictionary = {
 	"z2_missile": {
 		"name": "Concussion Missile",
 		"slot_type": "weapon",
-		"stats": {"atk_explosive": 40, "energy_load": 18, "atk_interval": 4.0},
+		"stats": {"atk_explosive": 20, "energy_load": 18, "atk_interval": 2.0},
 		"cost": {"credits": 5500, "Fe": 40, "C": 30, "Hydraulics": 2},
 		"desc": "Blast warhead. Devastating hull damage.",
 		"zone": 2, "research_req": "zone_2_access"
@@ -851,7 +851,7 @@ var modules: Dictionary = {
 	"z3_missile": {
 		"name": "Heavy Torpedo",
 		"slot_type": "weapon",
-		"stats": {"atk_explosive": 87, "energy_load": 30, "atk_interval": 4.0},
+		"stats": {"atk_explosive": 43.5, "energy_load": 30, "atk_interval": 2.0},
 		"cost": {"credits": 12100, "Steel": 60, "C": 40, "Hydraulics": 3},
 		"desc": "Armor-busting ordnance.",
 		"zone": 3, "research_req": "zone_3_access"
@@ -893,7 +893,7 @@ var modules: Dictionary = {
 	"z4_missile": {
 		"name": "Cluster Warhead",
 		"slot_type": "weapon",
-		"stats": {"atk_explosive": 192, "energy_load": 45, "atk_interval": 4.0},
+		"stats": {"atk_explosive": 96, "energy_load": 45, "atk_interval": 2.0},
 		"cost": {"credits": 26620, "Steel": 100, "Chip": 18, "Hydraulics": 5},
 		"desc": "Splits into sub-munitions on impact.",
 		"zone": 4, "research_req": "zone_4_access"
@@ -935,7 +935,7 @@ var modules: Dictionary = {
 	"z5_missile": {
 		"name": "Seeker Torpedo",
 		"slot_type": "weapon",
-		"stats": {"atk_explosive": 422, "energy_load": 70, "atk_interval": 4.0},
+		"stats": {"atk_explosive": 211, "energy_load": 70, "atk_interval": 2.0},
 		"cost": {"credits": 58564, "Superalloy": 30, "Chip": 20},
 		"desc": "AI-guided ordnance. Never misses.",
 		"zone": 5, "research_req": "zone_5_access"
@@ -977,7 +977,7 @@ var modules: Dictionary = {
 	"z6_missile": {
 		"name": "Antimatter Warhead",
 		"slot_type": "weapon",
-		"stats": {"atk_explosive": 928, "energy_load": 100, "atk_interval": 4.0},
+		"stats": {"atk_explosive": 464, "energy_load": 100, "atk_interval": 2.0},
 		"cost": {"credits": 128840, "Superalloy": 60, "QuantumCore": 5},
 		"desc": "Annihilation-class ordnance.",
 		"zone": 6, "research_req": "zone_6_access"
@@ -1019,7 +1019,7 @@ var modules: Dictionary = {
 	"z7_missile": {
 		"name": "Singularity Bomb",
 		"slot_type": "weapon",
-		"stats": {"atk_explosive": 2042, "energy_load": 160, "atk_interval": 4.0},
+		"stats": {"atk_explosive": 1021, "energy_load": 160, "atk_interval": 2.0},
 		"cost": {"credits": 283448, "ExoticMatter": 15, "QuantumCore": 10, "Chip": 55},
 		"desc": "Creates micro-singularity on impact.",
 		"zone": 7, "research_req": "zone_7_access"
@@ -1061,7 +1061,7 @@ var modules: Dictionary = {
 	"z8_missile": {
 		"name": "Quantum Torpedo",
 		"slot_type": "weapon",
-		"stats": {"atk_explosive": 4493, "energy_load": 240, "atk_interval": 4.0},
+		"stats": {"atk_explosive": 2246.5, "energy_load": 240, "atk_interval": 2.0},
 		"cost": {"credits": 623585, "QuantumCore": 20, "StructuralLattice": 3, "NeutroniumPlate": 3, "Steel": 5500},
 		"desc": "Exists in superposition until detonation.",
 		"zone": 8, "research_req": "zone_8_access"
@@ -1103,7 +1103,7 @@ var modules: Dictionary = {
 	"z9_missile": {
 		"name": "Biohazard Warhead",
 		"slot_type": "weapon",
-		"stats": {"atk_explosive": 9885, "energy_load": 350, "atk_interval": 4.0},
+		"stats": {"atk_explosive": 4942.5, "energy_load": 350, "atk_interval": 2.0},
 		"cost": {"credits": 1371888, "BiohazardSample": 30, "BioReactorCore": 4, "Neutronium": 200, "Steel": 11000},
 		"desc": "Viral payload. Corrodes all matter.",
 		"zone": 9, "research_req": "zone_9_access"
@@ -1145,7 +1145,7 @@ var modules: Dictionary = {
 	"z10_missile": {
 		"name": "Void Annihilator",
 		"slot_type": "weapon",
-		"stats": {"atk_explosive": 21747, "energy_load": 500, "atk_interval": 4.0},
+		"stats": {"atk_explosive": 10873.5, "energy_load": 500, "atk_interval": 2.0},
 		"cost": {"credits": 3018153, "PrimordialShard": 8, "PrimordialMatrix": 4, "OmegaComposite": 3, "Neutronium": 220, "Steel": 15000},
 		"desc": "Erases matter from existence.",
 		"zone": 10, "research_req": "zone_10_access"
@@ -1433,7 +1433,7 @@ var modules: Dictionary = {
 	},
 	"z2_unique_missile": {
 		"name": "Monolith's Salvo", "slot_type": "weapon", "rarity": 4,
-		"stats": {"atk_explosive": 56, "energy_load": 18, "atk_interval": 4.0},
+		"stats": {"atk_explosive": 28, "energy_load": 18, "atk_interval": 2.0},
 		"cost": {}, "desc": "Unique missile-channel armament.", "zone": 2,
 		"set_id": "monoliths_bedrock", "is_unique": true
 	},
@@ -1473,7 +1473,7 @@ var modules: Dictionary = {
 	},
 	"z3_unique_missile": {
 		"name": "Warmaster's Salvo", "slot_type": "weapon", "rarity": 4,
-		"stats": {"atk_explosive": 124, "energy_load": 30, "atk_interval": 4.0},
+		"stats": {"atk_explosive": 62, "energy_load": 30, "atk_interval": 2.0},
 		"cost": {}, "desc": "Unique missile-channel armament.", "zone": 3,
 		"set_id": "warmasters_arsenal", "is_unique": true
 	},
@@ -1505,7 +1505,7 @@ var modules: Dictionary = {
 	},
 	"z4_unique_missile": {
 		"name": "Overseer's Salvo", "slot_type": "weapon", "rarity": 4,
-		"stats": {"atk_explosive": 338, "energy_load": 50, "atk_interval": 4.0},
+		"stats": {"atk_explosive": 169, "energy_load": 50, "atk_interval": 2.0},
 		"cost": {}, "desc": "Unique missile-channel armament.", "zone": 4,
 		"set_id": "overseers_command", "is_unique": true
 	},
@@ -1525,7 +1525,7 @@ var modules: Dictionary = {
 	# ── Z5: Harbinger's Wrath (+15% Missile DMG, -10% Enemy DEF) ──
 	"z5_unique_weapon": {
 		"name": "Harbinger's Fury", "slot_type": "weapon", "rarity": 4,
-		"stats": {"atk_explosive": 675, "energy_load": 90, "atk_interval": 4.0},
+		"stats": {"atk_explosive": 337.5, "energy_load": 90, "atk_interval": 2.0},
 		"cost": {}, "desc": "Xenon doomsday missile platform.", "zone": 5,
 		"set_id": "harbingers_wrath", "is_unique": true
 	},
@@ -1569,7 +1569,7 @@ var modules: Dictionary = {
 	},
 	"z6_unique_missile": {
 		"name": "Colossus Cannon Salvo", "slot_type": "weapon", "rarity": 4,
-		"stats": {"atk_explosive": 1330, "energy_load": 120, "atk_interval": 4.0},
+		"stats": {"atk_explosive": 665, "energy_load": 120, "atk_interval": 2.0},
 		"cost": {}, "desc": "Unique missile-channel armament.", "zone": 6,
 		"set_id": "colossus_dominion", "is_unique": true
 	},
@@ -1601,7 +1601,7 @@ var modules: Dictionary = {
 	},
 	"z7_unique_missile": {
 		"name": "Sovereign's Salvo", "slot_type": "weapon", "rarity": 4,
-		"stats": {"atk_explosive": 3618, "energy_load": 180, "atk_interval": 4.0},
+		"stats": {"atk_explosive": 1809, "energy_load": 180, "atk_interval": 2.0},
 		"cost": {}, "desc": "Unique missile-channel armament.", "zone": 7,
 		"set_id": "sovereigns_prism", "is_unique": true
 	},
@@ -1633,7 +1633,7 @@ var modules: Dictionary = {
 	},
 	"z8_unique_missile": {
 		"name": "Warden's Salvo", "slot_type": "weapon", "rarity": 4,
-		"stats": {"atk_explosive": 7964, "energy_load": 280, "atk_interval": 4.0},
+		"stats": {"atk_explosive": 3982, "energy_load": 280, "atk_interval": 2.0},
 		"cost": {}, "desc": "Unique missile-channel armament.", "zone": 8,
 		"set_id": "wardens_quarantine", "is_unique": true
 	},
@@ -1665,7 +1665,7 @@ var modules: Dictionary = {
 	},
 	"z9_unique_missile": {
 		"name": "Titan's Salvo", "slot_type": "weapon", "rarity": 4,
-		"stats": {"atk_explosive": 14182, "energy_load": 400, "atk_interval": 4.0},
+		"stats": {"atk_explosive": 7091, "energy_load": 400, "atk_interval": 2.0},
 		"cost": {}, "desc": "Unique missile-channel armament.", "zone": 9,
 		"set_id": "titans_legacy", "is_unique": true
 	},
@@ -1685,7 +1685,7 @@ var modules: Dictionary = {
 	# ── Z10: Leviathan's Crown (+20% All DMG, +1000 HP Regen/tick) ──
 	"z10_unique_weapon": {
 		"name": "Leviathan's Maw", "slot_type": "weapon", "rarity": 4,
-		"stats": {"atk_explosive": 34795, "energy_load": 600, "atk_interval": 4.0},
+		"stats": {"atk_explosive": 17397.5, "energy_load": 600, "atk_interval": 2.0},
 		"cost": {}, "desc": "Reality-ending void warhead.", "zone": 10,
 		"set_id": "leviathans_crown", "is_unique": true
 	},
@@ -1837,6 +1837,77 @@ func _scale_item_requirement(base_qty: int, multiplier: float) -> int:
 	if scaled <= base_qty:
 		return base_qty + 1
 	return scaled
+
+# v149 UNIFORM CADENCE MIGRATION. Every authored weapon atk_interval is now
+# CombatManager.DEFAULT_ATTACK_INTERVAL (2.0). The 19 explosive/missile modules
+# moved 4.0 -> 2.0 with their atk_explosive halved, so their DPS is unchanged.
+#
+# Saved custom drops rolled off the OLD 4.0 base keep a stored interval in
+# [2.40, 4.00] (the roll range is [base x0.6, base]), which does not overlap the
+# new missile range [1.20, 2.00] — so ">= the new base + epsilon" is an exact,
+# unambiguous test for a pre-v149 missile roll. Those items are rescaled by
+# k = new_base / old_base on BOTH the interval and every damage channel, which
+# preserves their DPS *and* their rarity roll exactly: the migrated item is
+# bit-identical to the fresh drop that same roll would produce today.
+#
+# Without this the old drops keep a 2.4-4.0s cadence forever — DPS-correct but in
+# violation of the owner's one-cadence rule, and with every per-SHOT mechanic
+# (ammo burn, heal_on_hit, vuln uptime) stuck at half rate versus a fresh drop.
+const _V149_OLD_WEAPON_BASES := [2.0, 4.0]
+const _V149_DMG_KEYS := ["atk_kinetic", "atk_energy", "atk_explosive", "atk_cryo"]
+
+func _migrate_uniform_atk_interval() -> void:
+	var moved := 0
+	for mid in custom_modules.keys():
+		var m: Dictionary = custom_modules[mid]
+		var stats: Dictionary = m.get("stats", {})
+		if not stats.has("atk_interval"):
+			continue
+		var base_id: String = m.get("base_module", "")
+		if base_id == "" or not base_id in modules:
+			continue
+		var new_base: float = float(modules[base_id].get("stats", {}).get("atk_interval", 0.0))
+		if new_base <= 0.0:
+			continue
+		var cur: float = float(stats["atk_interval"])
+		# Anything at or under the current base was rolled off it — nothing to do.
+		if cur <= new_base + 0.0001:
+			continue
+		# Infer the pre-v149 base: the smallest authored base that could have
+		# produced this stored roll (roll range is [old_base x 0.6, old_base]).
+		var old_base: float = 0.0
+		for b in _V149_OLD_WEAPON_BASES:
+			var bf: float = float(b)
+			if cur <= bf + 0.0001 and cur >= bf * 0.6 - 0.0001:
+				old_base = bf
+				break
+		if old_base <= 0.0 or is_equal_approx(old_base, new_base):
+			continue
+		var k: float = new_base / old_base
+		var new_iv := snappedf(cur * k, 0.01)
+		# Compute FIRST, assign second. `modules[mid]` is usually the very same
+		# Dictionary object as `custom_modules[mid]`, so a read-modify-write applied
+		# to both mirrors would scale the damage twice (measured: x0.25 instead of
+		# x0.5, i.e. a silent 50% DPS loss on every migrated drop). Assignment of a
+		# precomputed value is idempotent whether the two are aliases or copies.
+		var new_dmg := {}
+		for dk in _V149_DMG_KEYS:
+			if stats.has(dk):
+				new_dmg[dk] = snappedf(float(stats[dk]) * k, 0.01)
+		stats["atk_interval"] = new_iv
+		for dk in new_dmg:
+			stats[dk] = new_dmg[dk]
+		# The modules dict is a live mirror that contains custom_modules — keep them in sync.
+		if mid in modules:
+			var mm: Dictionary = modules[mid].get("stats", {})
+			mm["atk_interval"] = new_iv
+			for dk2 in new_dmg:
+				if mm.has(dk2):
+					mm[dk2] = new_dmg[dk2]
+		moved += 1
+	if moved > 0:
+		print("[Migration] Rebased %d saved weapon drop(s) onto the uniform base cadence (DPS and rarity roll preserved)." % moved)
+
 
 func _migrate_atk_interval_caps() -> void:
 	# Retroactive migration: older saves contain weapon drops where atk_interval
@@ -3012,6 +3083,7 @@ func load_save_data_manager(data: Dictionary):
 		if not (_mid in modules):
 			module_inventory.erase(_mid)
 	_migrate_module_entries_from_resources()
+	_migrate_uniform_atk_interval()
 	_migrate_atk_interval_caps()
 
 	# Convert JSON string keys for ammo_loadout back to int

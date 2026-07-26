@@ -176,6 +176,30 @@ var active_map_mods: Array = []   # ids applied to the running expedition (UI se
 const ENEMY_ENERGY_ATK_COMP = 0.75
 const ENEMY_EXPLOSIVE_ATK_COMP = 0.85
 
+# v149 UNIFORM ATTACK CADENCE (owner rule, 2026-07-26):
+#   "one base attack interval everywhere — all weapons, all enemies. If a bonus
+#    activates or an enemy skill fires it speeds up, but at DEFAULT they are the
+#    same."
+# Every authored atk_interval in enemy_db and in shipyard_manager.modules is this
+# value. Variation is allowed ONLY from bonuses: the reciprocal rarity roll
+# (shipyard_manager.generate_module_drop), affixes (servo_overclock), set
+# bonuses, atk_speed_mult, enrage, jamming, and boss skills. Never from the
+# authored base.
+#
+# WHY 2.0: it leaves 40 of 59 weapon modules untouched (every kinetic/energy/cryo
+# gun already fired at 2.0), so every per-SHOT mechanic keyed to them — ammo burn,
+# hull/shield_heal_on_hit, reactive_armor stepping, adaptive_grid ramp,
+# static_burst, vuln uptime — is bit-identical. It also gives exactly 5 enemy
+# swings per consumable_cooldown_max (10.0s) window, so the reactive auto-consume
+# threshold is always crossed with swings left to answer, and it is the SMALLEST
+# viable default, which minimises the one-shot spike risk of charge_nuke.
+#
+# INVARIANT: the deepest player stacking path is rarity-roll (x0.6) x
+# MAX_ATK_SPEED_MULT (3.0) = base x0.20. DEFAULT_ATTACK_INTERVAL * 0.20 must stay
+# ABOVE MIN_ATTACK_INTERVAL or the clamp starts binding and DPS silently caps.
+# 2.0 * 0.20 = 0.40 > 0.30. Do not lower this below 1.5 without raising the floor.
+const DEFAULT_ATTACK_INTERVAL := 2.0
+
 # v80.1: Combat Safety Caps — Anti-Exploit Hard Ceilings
 const MIN_ATTACK_INTERVAL = 0.3           # Prevents infinite DPS
 # v139d Rare gate (owner rule, 2026-07-17): sub-Rare gear must NOT beat
@@ -478,7 +502,7 @@ var enemy_db = {
 	# ═══ ZONE 1: Lunar Orbit — Reg HP~200, ATK~15, DEF~3 ═══
 	"z1_dust_mite": {
 		"name": "Space Dust Mite",
-		"stats": {"hp": 80, "atk": 8, "def": 0, "atk_interval": 3.0, "accuracy": 10},
+		"stats": {"hp": 80, "atk": 5.333333, "def": 0, "atk_interval": 2.0, "accuracy": 10},
 		"loot": [["Fe", 2, 4], ["credits", 50, 100], ["Res1", 1, 2], ["MiteChitin", 1, 3]],
 		"rare_loot": [],
 		"module_drop_chance": 0.25,
@@ -487,7 +511,7 @@ var enemy_db = {
 	},
 	"z1_lunar_drone": {
 		"name": "Lunar Drone",
-		"stats": {"hp": 120, "atk": 13, "def": 3, "atk_interval": 2.5, "accuracy": 18},
+		"stats": {"hp": 120, "atk": 10.4, "def": 3, "atk_interval": 2.0, "accuracy": 18},
 		"loot": [["Fe", 2, 5], ["Cu", 1, 3], ["Res1", 1, 2], ["MiteChitin", 1, 3]],
 		"rare_loot": [["NavData", 0.25, 1, 1]],
 		"module_drop_chance": 0.30,
@@ -496,7 +520,7 @@ var enemy_db = {
 	},
 	"z1_survey_probe": {
 		"name": "Survey Probe",
-		"stats": {"hp": 120, "max_shield": 40, "atk": 10, "def": 3, "atk_interval": 1.5, "accuracy": 22},
+		"stats": {"hp": 120, "max_shield": 40, "atk": 13.333333, "def": 3, "atk_interval": 2.0, "accuracy": 22},
 		"loot": [["credits", 80, 150], ["Si", 2, 4], ["Res1", 1, 3], ["MiteChitin", 1, 2]],
 		"rare_loot": [["NavData", 0.2, 1, 2], ["DamagedCircuitry", 0.5, 1, 2]],
 		"module_drop_chance": 0.35,
@@ -515,12 +539,12 @@ var enemy_db = {
 
 	"z1_boss_architect": {
 		"name": "Rogue Architect",
-		"stats": {"hp": 1000, "max_shield": 100, "atk": 40, "def": 10, "atk_interval": 3.0, "accuracy": 25},
+		"stats": {"hp": 1000, "max_shield": 100, "atk": 26.666667, "def": 10, "atk_interval": 2.0, "accuracy": 25},
 		# v139d P3 SOFT trait (tutorial-grade, owner rule): the FIRST boss already
 		# telegraphs — every 4th swing charges a x1.75 spike. Dents, never kills at
 		# mission-directed gear. Teaches "watch the fight"; the same telegraph
 		# returns LETHAL at Z8. Do not raise the mult without a funnel re-run.
-		"charge_nuke": {"every_n": 5, "mult": 3.0},
+		"charge_nuke": {"every_n": 8, "mult": 4.2},
 		"loot": [["credits", 5000, 10000], ["Cu", 10, 25], ["Fe", 15, 30], ["Res1", 5, 10], ["MiteChitin", 5, 12]],
 		# v143: UNIQUES REMOVED FROM THE TUTORIAL BOSS (owner call). Zone 1 is the
 		# tutorial and the easiest fight in the game, so a Unique set from it let the
@@ -543,7 +567,7 @@ var enemy_db = {
 	# ═══ ZONE 2: Asteroid Belt — Reg HP~480, ATK~33, DEF~7 ═══
 	"z2_pirate_skiff": {
 		"name": "Pirate Skiff",
-		"stats": {"hp": 380, "atk": 25, "def": 5, "atk_interval": 1.8, "accuracy": 25},
+		"stats": {"hp": 380, "atk": 27.777778, "def": 5, "atk_interval": 2.0, "accuracy": 25},
 		"loot": [["credits", 150, 300], ["Fe", 3, 8], ["Res1", 2, 4], ["PirateSalvage", 1, 3]],
 		"rare_loot": [["Cu", 0.15, 3, 6]],
 		"module_drop_chance": 0.20,   # v138c: was 0.10 — Z2 was stingier than Z1 (0.15-0.25), stretching the Monolith gear-farm days past the new Z3 first-warp cadence
@@ -552,7 +576,7 @@ var enemy_db = {
 	},
 	"z2_silicate_golem": {
 		"name": "Silicate Golem",
-		"stats": {"hp": 480, "atk": 33, "def": 7, "atk_interval": 3.0, "accuracy": 22},
+		"stats": {"hp": 480, "atk": 22, "def": 7, "atk_interval": 2.0, "accuracy": 22},
 		"loot": [["Si", 5, 15], ["Fe", 3, 8], ["Res1", 2, 4], ["PirateSalvage", 1, 3]],
 		"rare_loot": [["Ti", 0.10, 1, 3], ["DamagedCircuitry", 0.40, 1, 3]],
 		"module_drop_chance": 0.20,   # v138c: was 0.10 (see z2_pirate_skiff note)
@@ -595,7 +619,7 @@ var enemy_db = {
 		# the pending affix nerf (two verifiers caught it dying). EHP cut ~38%% to
 		# lift Common-N to ~8-9 kills. Deliberately HP/shield only: kill RATE moves,
 		# lethality does not, so carried gear that already DIES here keeps dying.
-		"stats": {"hp": 400, "max_shield": 68, "atk": 28, "def": 8, "atk_interval": 2.2, "accuracy": 28},
+		"stats": {"hp": 400, "max_shield": 68, "atk": 25.454545, "def": 8, "atk_interval": 2.0, "accuracy": 28},
 		# v142 tier-gate: Z2 is the FIRST gated zone. Claim Jumper patches its own
 		# plating — MIN-DPS check. Softer than the Z3 swarm (10%/7s vs 13%/6s).
 		"sustain": {"kind": "pulse", "every_s": 6.5, "pct": 0.09},
@@ -642,8 +666,11 @@ var enemy_db = {
 		# the pending affix nerf (two verifiers caught it dying). EHP cut ~38%% to
 		# lift Common-N to ~8-9 kills. Deliberately HP/shield only: kill RATE moves,
 		# lethality does not, so carried gear that already DIES here keeps dying.
-		"stats": {"hp": 590, "atk": 65, "def": 10, "atk_interval": 5.0, "accuracy": 20},
-		# v146: mult 2.0 -> 3.2, and atk_interval 5.0 is why it needed to be this big.
+		"stats": {"hp": 590, "atk": 26, "def": 10, "atk_interval": 2.0, "accuracy": 20},
+		# v146: mult 2.0 -> 3.2. HISTORICAL: this enemy used to swing every 5.0s, which
+		# is why the spike had to be this big to matter. v149 normalised it to the
+		# uniform 2.0s cadence at IDENTICAL dps (atk 65 -> 26) and re-derived every_n
+		# 4 -> 10 so the spike still lands on the same 20.0s TIME cadence.
 		# The owner cleared this cell carrying ZONE 1 gear on a TIER 2 hull -- the real
 		# player shape, because the mission chain hands over a frigate at m026b BEFORE
 		# tier-2 modules exist. My probe had only ever tested old gear on the OLD hull,
@@ -655,7 +682,7 @@ var enemy_db = {
 		# gates if the rate reaches ZERO; an EHP gate only gates if the spike lands.
 		# Old gear dying here is the intended rule -- only the tier-matched Common set
 		# must survive it, and that is what the funnel row "9 Common N" verifies.
-		"charge_nuke": {"every_n": 4, "mult": 3.2},
+		"charge_nuke": {"every_n": 10, "mult": 6.5},
 		"loot": [["Fe", 10, 25], ["Si", 5, 12], ["Res1", 2, 5], ["PirateSalvage", 2, 5], ["SalvageData", 1, 3]],
 		"rare_loot": [["Steel", 0.10, 1, 3], ["SalvagedAlloy", 0.40, 1, 3]],
 		"module_drop_chance": 0.20,   # v138c: was 0.10 (see z2_pirate_skiff note)
@@ -664,7 +691,7 @@ var enemy_db = {
 	},
 	"z2_boss_monolith": {
 		"name": "Silicate Monolith",
-		"stats": {"hp": 11500, "max_shield": 550, "atk": 220, "def": 39, "atk_interval": 3.5, "accuracy": 45},  # v135a: was hp 5280/shield 264/atk 132 — Uncommon beat it 5/5 (gear-check audit). Buffed ~2x so only Rare+ Zone-2 wins.
+		"stats": {"hp": 11500, "max_shield": 550, "atk": 125.714286, "def": 39, "atk_interval": 2.0, "accuracy": 45},  # v135a: was hp 5280/shield 264/atk 132 — Uncommon beat it 5/5 (gear-check audit). Buffed ~2x so only Rare+ Zone-2 wins.
 		# v139d P3 SOFT trait: the lattice re-crystallizes (+4% shield / 10s).
 		# Near-invisible at Rare-gate DPS; at Uncommon the stalling shield bar
 		# EXPLAINS the Rare wall instead of a mute number check. Intro for Z4's
@@ -681,7 +708,7 @@ var enemy_db = {
 	# ═══ ZONE 3: Mars Debris — Reg HP~1152, ATK~73, DEF~15 ═══
 	"z3_scavenger_mech": {
 		"name": "Scavenger Mech",
-		"stats": {"hp": 675, "atk": 40, "def": 12, "atk_interval": 2.5, "accuracy": 35},
+		"stats": {"hp": 675, "atk": 32, "def": 12, "atk_interval": 2.0, "accuracy": 35},
 		"loot": [["Steel", 3, 8], ["Fe", 8, 20], ["Res2", 1, 2], ["MartianRelics", 1, 3]],
 		"rare_loot": [["Circuit", 0.10, 1, 2], ["Ni", 0.10, 1, 3]],
 		"module_drop_chance": 0.20,   # v138c: was 0.10 — same Z2 rationale: gear-farm speed for the Z3 first-warp cadence (check stays uncommon+)
@@ -699,12 +726,12 @@ var enemy_db = {
 	},
 	"z3_salvage_swarm": {
 		"name": "Salvage Swarm",
-		# v148: atk 34 -> 26. At atk_interval 0.6 this is the FASTEST attacker in the
-		# game -- 56.7 dps at Z3 -- and sub-2s attackers out-tick the 10s consumable
-		# cooldown, the same lethality-spike pattern that killed tier-matched gear at
-		# z4_glacial_drone (1.8s), z5_alien_probe (1.2s) and z7_shard_swarm (0.8s).
-		# Common-Z3 was killing 9 here and still dying. Its pulse stays the gate.
-		"stats": {"hp": 800, "max_shield": 150, "atk": 26, "def": 10, "atk_interval": 0.6, "accuracy": 38},
+		# v148: dps cut ~24% (it ran 43.3 authored dps against zone peers at 16-24).
+		# HISTORICAL: it used to swing every 0.6s at atk 26 -- the fastest gun in the
+		# game. v149 normalised it to the uniform 2.0s cadence at IDENTICAL dps
+		# (atk 26 -> 86.67); the v148 cut is carried through by the rescale, not
+		# double-counted. The swarm identity now lives in its pulse, which is the gate.
+		"stats": {"hp": 800, "max_shield": 150, "atk": 86.666667, "def": 10, "atk_interval": 2.0, "accuracy": 38},
 		# v142 tier-gate flavour (owner: use a skill mechanic, not a wall): the swarm
 		# re-knits. MIN-DPS check — sub-tier damage cannot out-pace the re-form.
 		"sustain": {"kind": "pulse", "every_s": 6.0, "pct": 0.13},
@@ -721,14 +748,14 @@ var enemy_db = {
 		# the pending affix nerf (two verifiers caught it dying). EHP cut ~38%% to
 		# lift Common-N to ~8-9 kills. Deliberately HP/shield only: kill RATE moves,
 		# lethality does not, so carried gear that already DIES here keeps dying.
-		"stats": {"hp": 1240, "max_shield": 248, "atk": 82, "def": 18, "atk_interval": 4.0, "accuracy": 42},
+		"stats": {"hp": 1240, "max_shield": 248, "atk": 41, "def": 18, "atk_interval": 2.0, "accuracy": 42},
 		# v142 tier-gate flavour: derelict spinal gun charges, then fires. EHP check —
 		# telegraphed ("CHARGING MAIN CANNON"), pre-fight solvable, auto-battler clean.
 		# v142b: mult 2.2->2.0. Under honest affix rolls at 9 trials the tier-matched
 		# Common set died here on its worst roll (5 kills, then a nuke through a
 		# low shield buffer). Z3 is the first-warp gate zone — it must not be the
 		# one that breaks idle.
-		"charge_nuke": {"every_n": 4, "mult": 2.0},
+		"charge_nuke": {"every_n": 8, "mult": 3.0},
 		"loot": [["Steel", 5, 12], ["Fe", 10, 25], ["Res2", 1, 3], ["MartianRelics", 2, 4]],
 		"rare_loot": [["Ti", 0.10, 2, 5], ["Cr", 0.08, 1, 3]],
 		"module_drop_chance": 0.20,   # v138c: was 0.10 (see z3_scavenger_mech note)
@@ -739,7 +766,7 @@ var enemy_db = {
 		"name": "Martian Warmaster",
 		# v139d: hp 17424->16000 — the Rare cell averaged ~40% across 7 matrix runs
 		# (signal, not noise) and this is the FIRST-WARP boss; Rare must be reliable.
-		"stats": {"hp": 13600, "max_shield": 580, "atk": 189, "def": 87, "atk_interval": 2.5, "accuracy": 65},
+		"stats": {"hp": 13600, "max_shield": 580, "atk": 151.2, "def": 87, "atk_interval": 2.0, "accuracy": 65},
 		# v142 step-4 verification trim: hp 16000->13600 (-15%), atk 210->189 (-10%).
 		# Post-rebase this read 4/9 Rare on BOTH boss_gearcheck and the mission-hull
 		# boss_threshold (bar is >=60%), and 2 of 3 funnel seeds walled on it with
@@ -760,7 +787,7 @@ var enemy_db = {
 	# ═══ ZONE 4: Cryofield — Reg HP~2765, ATK~160, DEF~32 ═══
 	"z4_ice_wraith": {
 		"name": "Ice Wraith",
-		"stats": {"hp": 2200, "max_shield": 600, "atk": 125, "def": 25, "atk_interval": 1.5, "accuracy": 50},
+		"stats": {"hp": 2200, "max_shield": 600, "atk": 166.666667, "def": 25, "atk_interval": 2.0, "accuracy": 50},
 		"loot": [["CoolantCell", 1, 3], ["credits", 800, 1500], ["Res2", 1, 3], ["CryoEssence", 1, 3], ["RimeplateScrap", 3, 6]],  # v114: Z4 front signature raw
 		"rare_loot": [["AdvCircuit", 0.08, 1, 2]],
 		"module_drop_chance": 0.10,
@@ -769,7 +796,7 @@ var enemy_db = {
 	},
 	"z4_cryo_sentinel": {
 		"name": "Frost Sentinel",
-		"stats": {"hp": 2765, "max_shield": 800, "atk": 160, "def": 32, "atk_interval": 2.5, "accuracy": 55},
+		"stats": {"hp": 2765, "max_shield": 800, "atk": 128, "def": 32, "atk_interval": 2.0, "accuracy": 55},
 		"loot": [["Ti", 5, 12], ["credits", 1000, 2000], ["Res2", 1, 3], ["CryoEssence", 1, 3], ["RimeplateScrap", 3, 6]],  # v114: Z4 front signature raw
 		"rare_loot": [["Chip", 0.10, 1, 3]],
 		"module_drop_chance": 0.10,
@@ -795,7 +822,7 @@ var enemy_db = {
 		# Doubling atk does not move ANY row off full hull. Lethality is the wrong
 		# knob for a slow attacker; the pulse (min-DPS) is what gates this cell,
 		# and it is already doing its job.
-		"stats": {"hp": 3400, "max_shield": 1200, "atk": 138, "def": 40, "atk_interval": 4.0, "accuracy": 48},
+		"stats": {"hp": 3400, "max_shield": 1200, "atk": 69, "def": 40, "atk_interval": 2.0, "accuracy": 48},
 		# ── v142 TWO-AXIS e3/e4 GATE, Z4-Z10 ──────────────────────────────────
 		# Owner: "why don't you bring a skill mechanic to e3/e4's instead of a
 		# wall — we can fix it with flavouring." e1/e2 stay open to every config
@@ -855,13 +882,25 @@ var enemy_db = {
 		# single-type (energy), and carried Legendary rolls resist_e 0.57-0.75 as
 		# an AFFIX while a clean Common is pinned at the 0.28 baseline. Fix the
 		# affix axis, not this stat line.
-		"stats": {"hp": 2400, "max_shield": 500, "atk": 140, "def": 28, "atk_interval": 1.8, "accuracy": 58},
-		# every_n counts SWINGS, so a flat 4 makes fast attackers nuke constantly
-		# (this drone at 1.8s would spike every 7.2s; z5_alien_probe at 1.2s every
-		# 4.8s — it killed tier-matched Common outright). every_n is therefore
-		# tuned per atk_interval to land the spike on a ~12-14s TIME cadence: a
-		# telegraph the player can read, not a function of the enemy's fire rate.
-		"charge_nuke": {"every_n": 7, "mult": 2.3},
+		"stats": {"hp": 2400, "max_shield": 500, "atk": 155.555556, "def": 28, "atk_interval": 2.0, "accuracy": 58},
+		# every_n counts SWINGS. Before v149 it had to be hand-tuned per enemy fire
+		# rate to land a readable ~12-14s TIME cadence. With every enemy on
+		# DEFAULT_ATTACK_INTERVAL the field is uniform in time: period = every_n x 2.0s.
+		# This one was 7 swings @ 1.8s = 12.6s, re-derived to 6 @ 2.0s = 12.0s. Every
+		# nuke period stays ABOVE consumable_cooldown_max (10.0s), so the shield kit is
+		# guaranteed off cooldown when the telegraph fires.
+		#
+		# `mult` HAD TO MOVE WITH IT. The nuke REPLACES a swing for atk x mult, so the
+		# damage over one period is atk x (every_n - 1 + mult). Rescaling atk to hold
+		# dps while changing every_n does NOT hold that sum — leaving mult alone moved
+		# nuke-inclusive dps by up to +8% and (measured) killed tier-matched Common at
+		# Z5 e4, breaking the idle rule. The DPS-preserving re-derivation is
+		#     new_mult = 1 + (old_mult - 1) x new_every_n / old_every_n
+		# which is independent of atk and interval. Consequence to expect: the
+		# spike-to-normal RATIO rises for enemies that now swing less often and falls
+		# for those that swing more, while the ABSOLUTE spike stays ~flat. Do not
+		# 'tidy' these mults back to round numbers without redoing the funnel.
+		"charge_nuke": {"every_n": 6, "mult": 2.114286},
 		"loot": [["credits", 1200, 2500], ["Cu", 5, 12], ["Res2", 2, 4], ["CryoEssence", 2, 4]],
 		"rare_loot": [["AdvCircuit", 0.10, 1, 2]],
 		"module_drop_chance": 0.10,
@@ -870,14 +909,14 @@ var enemy_db = {
 	},
 	"z4_boss_overseer": {
 		"name": "Glacial Overseer",
-		"stats": {"hp": 25555, "max_shield": 1277, "atk": 480, "def": 191, "atk_interval": 2.5, "accuracy": 85},
+		"stats": {"hp": 25555, "max_shield": 1277, "atk": 384, "def": 191, "atk_interval": 2.0, "accuracy": 85},
 		# v139g (owner: every boss = a NEW system): pulse repeat replaced with
 		# the SIPHON debut — the cold leeches your shields into its own. Pulse's
 		# real test moved to the Z7 Prism (crystal-lattice continuity with Z2).
 		# pct TUNED 0.08 -> 0.04: at 0.08 the mission-real cruiser's small shield
 		# pool lost the theft race (all-Rare 8/9 -> 1/9, 9-trial A/B); Z7's 0.10
 		# was only survivable on late-game pools. Debut = visible lesson, not a wall.
-		"sustain": {"kind": "siphon", "pct": 0.04},
+		"sustain": {"kind": "siphon", "pct": 0.032},
 		# v142d: RimeplateScrap added. It is now the sole Z4 alloy feedstock, but only
 		# e1/e2 dropped it — so boss farming yielded ZERO alloy progress, inverting
 		# the usual "the boss is the efficient farm" expectation into a dominated choice.
@@ -892,7 +931,7 @@ var enemy_db = {
 	# ═══ ZONE 5: Sector Alpha — Reg HP~6636, ATK~352, DEF~70 ═══
 	"z5_xenon_scout": {
 		"name": "Xenon Scout",
-		"stats": {"hp": 5300, "max_shield": 1500, "atk": 275, "def": 55, "atk_interval": 1.5, "accuracy": 65},
+		"stats": {"hp": 5300, "max_shield": 1500, "atk": 366.666667, "def": 55, "atk_interval": 2.0, "accuracy": 65},
 		"loot": [["credits", 3000, 6000], ["VoidArtifact", 1, 2], ["Res2", 2, 5], ["XenoFragment", 1, 3]],
 		"rare_loot": [["QuantumCore", 0.05, 1, 1]],
 		"module_drop_chance": 0.10,
@@ -912,7 +951,7 @@ var enemy_db = {
 		"name": "Alien Frigate",
 		# v142 shape fix: e3 sat at 6 kills for Common-Z5, no margin for the gate
 		# pulse that step 2 adds here. hp 12000->8500, shield 2500->1800.
-		"stats": {"hp": 8500, "max_shield": 1800, "atk": 388, "def": 80, "atk_interval": 3.0, "accuracy": 72},
+		"stats": {"hp": 8500, "max_shield": 1800, "atk": 258.666667, "def": 80, "atk_interval": 2.0, "accuracy": 72},
 		"sustain": {"kind": "pulse", "every_s": 6.0, "pct": 0.15},
 		"loot": [["VoidArtifact", 2, 5], ["credits", 5000, 10000], ["Res2", 3, 6], ["XenoFragment", 2, 4]],
 		"rare_loot": [["QuantumCore", 0.08, 1, 1]],
@@ -922,10 +961,12 @@ var enemy_db = {
 	},
 	"z5_alien_probe": {
 		"name": "Alien Probe",
-		# v142 idle-rule fix: atk_interval 1.2 made this the zone's lethality spike
-		# — tier-matched Common DIED here (11 kills then a death). atk 313->235.
-		"stats": {"hp": 5000, "max_shield": 3000, "atk": 195, "def": 60, "atk_interval": 1.2, "accuracy": 78},
-		"charge_nuke": {"every_n": 10, "mult": 2.4},
+		# v142 idle-rule fix: dps cut ~38% (313 -> 195 at the then-1.2s cadence) —
+		# tier-matched Common DIED here (11 kills then a death). v149 normalised the
+		# cadence to the uniform 2.0s at IDENTICAL dps (atk 195 -> 325); the v142 cut
+		# is carried through by the rescale, not double-counted.
+		"stats": {"hp": 5000, "max_shield": 3000, "atk": 325, "def": 60, "atk_interval": 2.0, "accuracy": 78},
+		"charge_nuke": {"every_n": 6, "mult": 1.84},
 		"loot": [["credits", 4000, 7000], ["Circuit", 5, 10], ["Res2", 2, 5], ["XenoFragment", 1, 3]],
 		"rare_loot": [["AdvCircuit", 0.10, 2, 4]],
 		"module_drop_chance": 0.10,
@@ -937,7 +978,7 @@ var enemy_db = {
 		# v139d Rare-gate: 80000->92000 — Uncommon was STILL sneaking 2/5 (baseline
 		# matrix); the stretch pushes Uncommon DPS past its kit sustain while Rare
 		# stays in the 3-6min envelope (~190s projected).
-		"stats": {"hp": 92000, "max_shield": 2811, "atk": 760, "def": 421, "atk_interval": 2.5, "accuracy": 110},
+		"stats": {"hp": 92000, "max_shield": 2811, "atk": 608, "def": 421, "atk_interval": 2.0, "accuracy": 110},
 		# v139g (owner: every boss = a NEW system): enrage repeat replaced with
 		# the NANITE debut — below 30% HP its sheath reknits once. Burst check:
 		# out-damage the regen window or the fight stretches. Tuned 20%->12%
@@ -955,7 +996,7 @@ var enemy_db = {
 	# ═══ ZONE 6: Sector Beta — Reg HP~15926, ATK~773, DEF~155 ═══
 	"z6_defense_turret": {
 		"name": "Defense Turret",
-		"stats": {"hp": 12700, "atk": 613, "def": 125, "atk_interval": 2.5, "accuracy": 90},
+		"stats": {"hp": 12700, "atk": 490.4, "def": 125, "atk_interval": 2.0, "accuracy": 90},
 		"loot": [["ColonySalvage", 5, 12], ["Circuit", 5, 12], ["Res3", 1, 2]],
 		# v141c: ReactiveCore drop — mirrors how z5_battery's QuantumCore is sourced
 		# (recipe + zone rare_loot at 5-8%). The turret is the thematic donor: its
@@ -967,7 +1008,7 @@ var enemy_db = {
 	},
 	"z6_mining_golem": {
 		"name": "Mining Golem",
-		"stats": {"hp": 15926, "atk": 773, "def": 155, "atk_interval": 3.5, "accuracy": 85},
+		"stats": {"hp": 15926, "atk": 441.714286, "def": 155, "atk_interval": 2.0, "accuracy": 85},
 		"loot": [["Fe", 50, 100], ["Ti", 10, 25], ["Res3", 1, 2]],
 		"rare_loot": [["Superalloy", 0.10, 2, 5]],
 		"module_drop_chance": 0.10,
@@ -988,8 +1029,8 @@ var enemy_db = {
 	},
 	"z6_ore_guardian": {
 		"name": "Ore Guardian",
-		"stats": {"hp": 14000, "max_shield": 5000, "atk": 688, "def": 170, "atk_interval": 3.0, "accuracy": 88},
-		"charge_nuke": {"every_n": 4, "mult": 2.5},
+		"stats": {"hp": 14000, "max_shield": 5000, "atk": 458.666667, "def": 170, "atk_interval": 2.0, "accuracy": 88},
+		"charge_nuke": {"every_n": 6, "mult": 3.25},
 		"loot": [["Fe", 30, 70], ["Steel", 10, 25], ["Res3", 1, 3]],
 		"rare_loot": [["VoidArtifact", 0.10, 1, 3]],
 		"module_drop_chance": 0.10,
@@ -1002,7 +1043,7 @@ var enemy_db = {
 		# pointing players at the wrong sector.
 		"name": "Beta Colossus",
 		# v139d Rare-gate: 185531->200000 (Uncommon sneaking 2/5 in the baseline).
-		"stats": {"hp": 200000, "max_shield": 6184, "atk": 2100, "def": 927, "atk_interval": 2.5, "accuracy": 140},
+		"stats": {"hp": 200000, "max_shield": 6184, "atk": 1680, "def": 927, "atk_interval": 2.0, "accuracy": 140},
 		# v139d P3: Reactive Armor — the mining golem stacks plating. Punishes
 		# fast small hits; heavy slow per-hit builds break through.
 		"reactive_armor": {"per_hits": 25, "def_mult": 1.4, "cap": 2.2},
@@ -1017,10 +1058,11 @@ var enemy_db = {
 	# ═══ ZONE 7: Sector Gamma — Reg HP~38222, ATK~1700, DEF~341 ═══
 	"z7_shard_swarm": {
 		"name": "Shard Swarm",
-		# v142 idle-rule fix: atk_interval 0.8 is the fastest gun in the game and
-		# every config below Unique DIED on it, tier-matched Common included.
-		# atk 1350->1100 keeps the machine-gun identity without breaking idle.
-		"stats": {"hp": 30000, "atk": 980, "def": 270, "atk_interval": 0.8, "accuracy": 100},
+		# v142 idle-rule fix: dps cut ~27% (1350 -> 980 at the then-0.8s cadence) —
+		# every config below Unique DIED on it, tier-matched Common included. v149
+		# normalised the cadence to the uniform 2.0s at IDENTICAL dps (atk 980 ->
+		# 2450); the v142 cut is carried through by the rescale, not double-counted.
+		"stats": {"hp": 30000, "atk": 2450, "def": 270, "atk_interval": 2.0, "accuracy": 100},
 		"loot": [["ExoticMatter", 1, 3], ["VoidCrystal", 1, 2], ["Res3", 2, 4], ["ExoticIsotope", 1, 2]],
 		"rare_loot": [["Os", 0.08, 1, 2]],
 		"module_drop_chance": 0.10,
@@ -1038,7 +1080,7 @@ var enemy_db = {
 	},
 	"z7_void_hunter": {
 		"name": "Void Hunter",
-		"stats": {"hp": 32000, "max_shield": 12000, "atk": 1875, "def": 300, "atk_interval": 1.5, "accuracy": 110},
+		"stats": {"hp": 32000, "max_shield": 12000, "atk": 2500, "def": 300, "atk_interval": 2.0, "accuracy": 110},
 		"sustain": {"kind": "pulse", "every_s": 5.5, "pct": 0.17},
 		"loot": [["VoidCrystal", 2, 4], ["credits", 50000, 100000], ["Res3", 2, 5]],
 		"rare_loot": [["ExoticMatter", 0.12, 2, 4]],
@@ -1048,8 +1090,8 @@ var enemy_db = {
 	},
 	"z7_gamma_beast": {
 		"name": "Gamma Beast",
-		"stats": {"hp": 75000, "atk": 1500, "def": 380, "atk_interval": 3.5, "accuracy": 95},
-		"charge_nuke": {"every_n": 4, "mult": 2.6},
+		"stats": {"hp": 75000, "atk": 857.142857, "def": 380, "atk_interval": 2.0, "accuracy": 95},
+		"charge_nuke": {"every_n": 7, "mult": 3.8},
 		"loot": [["RadIsotope", 3, 8], ["ExoticMatter", 1, 3], ["Res3", 2, 5]],
 		"rare_loot": [["Os", 0.10, 1, 2]],
 		"module_drop_chance": 0.10,
@@ -1059,7 +1101,7 @@ var enemy_db = {
 	"z7_boss_sovereign": {
 		"name": "Sovereign Prism",
 		# v106: Late-game escalation pass — HP 952K→1.4M, ATK 10.2K→14K. Target ~8 min for tier-matched legendary clears (was ~6 min).
-		"stats": {"hp": 490000, "max_shield": 13605, "atk": 6006, "def": 2040, "atk_interval": 2.5, "accuracy": 170},
+		"stats": {"hp": 490000, "max_shield": 13605, "atk": 4804.8, "def": 2040, "atk_interval": 2.0, "accuracy": 170},
 		# v139g (owner: every boss = a NEW system): siphon moved to its Z4 debut;
 		# the Prism RE-CRYSTALLIZES — the Z2 Monolith's soft pulse lesson tested
 		# for real (lattice continuity: monolith → prism).
@@ -1075,7 +1117,7 @@ var enemy_db = {
 	# ═══ ZONE 8: Sector Delta — Reg HP~91733, ATK~3742, DEF~749 ═══
 	"z8_prism_drone": {
 		"name": "Prism Drone",
-		"stats": {"hp": 73000, "max_shield": 25000, "atk": 3000, "def": 600, "atk_interval": 1.5, "accuracy": 120},
+		"stats": {"hp": 73000, "max_shield": 25000, "atk": 4000, "def": 600, "atk_interval": 2.0, "accuracy": 120},
 		"loot": [["VoidCrystal", 3, 8], ["credits", 100000, 200000], ["Res3", 3, 6], ["ExoticIsotope", 1, 3]],
 		"rare_loot": [["Diamond", 0.05, 1, 1]],
 		"module_drop_chance": 0.10,
@@ -1084,7 +1126,7 @@ var enemy_db = {
 	},
 	"z8_crystal_golem": {
 		"name": "Crystal Golem",
-		"stats": {"hp": 91733, "atk": 3742, "def": 749, "atk_interval": 3.5, "accuracy": 115},
+		"stats": {"hp": 91733, "atk": 2138.285714, "def": 749, "atk_interval": 2.0, "accuracy": 115},
 		"loot": [["VoidCrystal", 5, 12], ["Os", 1, 3], ["Res3", 3, 6], ["AntimatterParticle", 1, 2]],
 		"rare_loot": [["Diamond", 0.08, 1, 1]],
 		"module_drop_chance": 0.10,
@@ -1103,8 +1145,8 @@ var enemy_db = {
 	},
 	"z8_nebula_phantom": {
 		"name": "Nebula Phantom",
-		"stats": {"hp": 182000, "max_shield": 40000, "atk": 3375, "def": 800, "atk_interval": 2.5, "accuracy": 118},
-		"charge_nuke": {"every_n": 5, "mult": 2.7},
+		"stats": {"hp": 182000, "max_shield": 40000, "atk": 2700, "def": 800, "atk_interval": 2.0, "accuracy": 118},
+		"charge_nuke": {"every_n": 6, "mult": 3.04},
 		"loot": [["credits", 150000, 300000], ["VoidCrystal", 3, 7], ["Res3", 3, 8]],
 		"rare_loot": [["ExoticMatter", 0.12, 2, 5]],
 		"module_drop_chance": 0.10,
@@ -1118,9 +1160,9 @@ var enemy_db = {
 		# (kits carried survival, so it was a pure DPS race Uncommon could win).
 		# The REAL gate is the Charge Nuke below — the x4 spike kills through
 		# Uncommon-grade shield buffers between kit procs; Rare EHP absorbs it.
-		"stats": {"hp": 1850000, "max_shield": 29932, "atk": 12200, "def": 4489, "atk_interval": 2.5, "accuracy": 200},
+		"stats": {"hp": 1850000, "max_shield": 29932, "atk": 9760, "def": 4489, "atk_interval": 2.0, "accuracy": 200},
 		# v139d P3: the Z1 Architect's telegraph, now LETHAL — every 4th swing x4.
-		"charge_nuke": {"every_n": 5, "mult": 4.5},
+		"charge_nuke": {"every_n": 6, "mult": 5.2},
 		"loot": [["credits", 3000000, 6000000], ["VoidCrystal", 20, 50], ["Diamond", 2, 5], ["Res3", 20, 40]],
 		"rare_loot": [["z8_unique_weapon", 0.03, 1, 1], ["z8_unique_armor", 0.03, 1, 1], ["z8_unique_shield", 0.03, 1, 1], ["z8_unique_kinetic", 0.03, 1, 1], ["z8_unique_energy", 0.03, 1, 1], ["z8_unique_missile", 0.03, 1, 1]],
 		"boss_core": "Z8_Core",
@@ -1132,7 +1174,7 @@ var enemy_db = {
 	# ═══ ZONE 9: Sector Zeta — Reg HP~220160, ATK~8230, DEF~1648 ═══
 	"z9_plague_drone": {
 		"name": "Plague Drone",
-		"stats": {"hp": 175000, "max_shield": 50000, "atk": 6500, "def": 1300, "atk_interval": 1.2, "accuracy": 140},
+		"stats": {"hp": 175000, "max_shield": 50000, "atk": 10833.333333, "def": 1300, "atk_interval": 2.0, "accuracy": 140},
 		"loot": [["BiohazardSample", 2, 5], ["credits", 300000, 600000], ["Res3", 5, 10], ["AntimatterParticle", 1, 3]],
 		"rare_loot": [["PathogenCore", 0.05, 1, 1]],
 		"module_drop_chance": 0.10,
@@ -1141,7 +1183,7 @@ var enemy_db = {
 	},
 	"z9_bio_horror": {
 		"name": "Bio-Horror",
-		"stats": {"hp": 220160, "max_shield": 70000, "atk": 8230, "def": 1648, "atk_interval": 2.5, "accuracy": 145},
+		"stats": {"hp": 220160, "max_shield": 70000, "atk": 6584, "def": 1648, "atk_interval": 2.0, "accuracy": 145},
 		"loot": [["BiohazardSample", 3, 8], ["Neutronium", 1, 2], ["Res3", 5, 10]],
 		"rare_loot": [["PathogenCore", 0.08, 1, 1]],
 		"module_drop_chance": 0.10,
@@ -1150,7 +1192,7 @@ var enemy_db = {
 	},
 	"z9_rogue_ai": {
 		"name": "Rogue AI Core",
-		"stats": {"hp": 190000, "max_shield": 90000, "atk": 9000, "def": 1400, "atk_interval": 1.5, "accuracy": 155},
+		"stats": {"hp": 190000, "max_shield": 90000, "atk": 12000, "def": 1400, "atk_interval": 2.0, "accuracy": 155},
 		"sustain": {"kind": "pulse", "every_s": 5.5, "pct": 0.19},
 		"loot": [["Chip", 10, 25], ["AdvCircuit", 5, 12], ["Res3", 5, 10]],
 		"rare_loot": [["ChronoCore", 0.05, 1, 1]],
@@ -1161,8 +1203,8 @@ var enemy_db = {
 	"z9_quarantine_mech": {
 		"name": "Quarantine Mech",
 		# v142 shape fix: only Z4-Z10 cell still under the 5-kill bar (4). 437500->320000.
-		"stats": {"hp": 320000, "atk": 7500, "def": 1800, "atk_interval": 3.5, "accuracy": 138},
-		"charge_nuke": {"every_n": 4, "mult": 2.8},
+		"stats": {"hp": 320000, "atk": 4285.714286, "def": 1800, "atk_interval": 2.0, "accuracy": 138},
+		"charge_nuke": {"every_n": 7, "mult": 4.15},
 		"loot": [["Neutronium", 1, 3], ["credits", 500000, 1000000], ["Res3", 5, 10]],
 		"rare_loot": [["PathogenCore", 0.10, 1, 2]],
 		"module_drop_chance": 0.10,
@@ -1172,7 +1214,7 @@ var enemy_db = {
 	"z9_boss_patient_zero": {
 		"name": "Patient Zero",
 		# v106: Late-game escalation pass — HP 5.93M→10M, ATK 56K→90K. Target ~12 min for tier-matched legendary, smoothing the ramp into Z10's 13 min finale.
-		"stats": {"hp": 3200000, "max_shield": 65851, "atk": 26500, "def": 9877, "atk_interval": 2.5, "accuracy": 230},  # v135a: 3.5M->3.2M so Rare+ Zone-9 clears (was Rare 1/5, gear-check).
+		"stats": {"hp": 3200000, "max_shield": 65851, "atk": 21200, "def": 9877, "atk_interval": 2.0, "accuracy": 230},  # v135a: 3.5M->3.2M so Rare+ Zone-9 clears (was Rare 1/5, gear-check).
 		# v139d P3: first COMBO — infection eats the hull (shield-bypassing DoT)
 		# while the pathogen accelerates below 40%. DoT race under pressure.
 		"corrosive_field": {"hull_dps_pct": 0.004},
@@ -1197,7 +1239,7 @@ var enemy_db = {
 	},
 	"z10_temporal_phantom": {
 		"name": "Temporal Phantom",
-		"stats": {"hp": 528384, "max_shield": 200000, "atk": 18105, "def": 3627, "atk_interval": 1.5, "accuracy": 170},
+		"stats": {"hp": 528384, "max_shield": 200000, "atk": 24140, "def": 3627, "atk_interval": 2.0, "accuracy": 170},
 		"loot": [["ChronoCore", 1, 2], ["VoidEssence", 2, 4], ["CryoCatalyst", 1, 3], ["AeonResiduum", 3, 6]],  # v114: Z10 front signature raw
 		"rare_loot": [["PrimordialShard", 0.08, 1, 2]],
 		"module_drop_chance": 0.10,
@@ -1206,7 +1248,7 @@ var enemy_db = {
 	},
 	"z10_omega_sentinel": {
 		"name": "Omega Sentinel",
-		"stats": {"hp": 600000, "max_shield": 180000, "atk": 16250, "def": 4000, "atk_interval": 2.5, "accuracy": 165},
+		"stats": {"hp": 600000, "max_shield": 180000, "atk": 13000, "def": 4000, "atk_interval": 2.0, "accuracy": 165},
 		"sustain": {"kind": "pulse", "every_s": 5.0, "pct": 0.20},
 		"loot": [["OmegaPlating", 1, 3], ["PrimordialShard", 1, 2], ["CryoCatalyst", 1, 3]],
 		"rare_loot": [["VoidEssence", 0.10, 1, 3]],
@@ -1217,8 +1259,8 @@ var enemy_db = {
 	"z10_primordial_titan": {
 		"name": "Primordial Titan",
 		# v142 shape fix: Common-Z10 sat exactly on the 5-kill bar. 1050000->880000.
-		"stats": {"hp": 880000, "atk": 20000, "def": 3400, "atk_interval": 4.0, "accuracy": 158},
-		"charge_nuke": {"every_n": 3, "mult": 2.9},
+		"stats": {"hp": 880000, "atk": 10000, "def": 3400, "atk_interval": 2.0, "accuracy": 158},
+		"charge_nuke": {"every_n": 6, "mult": 4.8},
 		"loot": [["PrimordialShard", 2, 5], ["credits", 5000000, 10000000], ["CryoCatalyst", 2, 4]],
 		"rare_loot": [["OmegaPlating", 0.08, 1, 2]],
 		"module_drop_chance": 0.10,
@@ -1239,13 +1281,17 @@ var enemy_db = {
 		# v139d Rare-gate: hp 6.2M->6.8M (Uncommon beat it 5/5 in the baseline).
 		# The REAL gate is the Volatile Core below — the death-burst denies the
 		# kill to anything without a Rare-grade EHP floor.
-		"stats": {"hp": 6800000, "max_shield": 144872, "atk": 80000, "def": 21730, "atk_interval": 3.0, "accuracy": 250},
+		"stats": {"hp": 6800000, "max_shield": 144872, "atk": 53333.333333, "def": 21730, "atk_interval": 2.0, "accuracy": 250},
 		# v139d P3 capstone combo: Adaptive Grid (MILD mono-type tax, cap 0.15 —
 		# the probe's mono-Rare loadout must still clear; hybrid is optimal play
 		# and primes Z11's "damage type is everything" break) + Volatile Core
 		# (on-death burst = 3x atk unmitigated, resolved BEFORE victory).
 		"adaptive_grid": {"per_hit_resist": 0.01, "cap": 0.15},
-		"volatile": {"mult": 3.75},
+		# v149: 3.75 -> 5.625. The death burst is atk x mult and fires per KILL, so its
+		# rate is (kills/sec x magnitude). Kill rate is unchanged by the cadence
+		# normalisation but atk was rescaled x(2.0/3.0), so mult takes the reciprocal
+		# x(3.0/2.0) to keep the burst at the same absolute 300k it was tuned to.
+		"volatile": {"mult": 5.625},
 		"loot": [["credits", 50000000, 100000000], ["PrimordialShard", 20, 50], ["ChronoCore", 5, 12], ["CryoCatalyst", 10, 25]],
 		"rare_loot": [["z10_unique_weapon", 0.03, 1, 1], ["z10_unique_armor", 0.03, 1, 1], ["z10_unique_shield", 0.03, 1, 1], ["z10_unique_kinetic", 0.03, 1, 1], ["z10_unique_energy", 0.03, 1, 1], ["z10_unique_missile", 0.03, 1, 1]],
 		"boss_core": "Z10_Core",
@@ -1271,7 +1317,7 @@ var enemy_db = {
 	},
 	"z11_phase_horror": {
 		"name": "Phase Horror",
-		"stats": {"hp": 2000000, "max_shield": 300000, "atk": 42000, "def": 8500, "atk_interval": 1.5, "accuracy": 190},
+		"stats": {"hp": 2000000, "max_shield": 300000, "atk": 56000, "def": 8500, "atk_interval": 2.0, "accuracy": 190},
 		"loot": [["ChronoCore", 2, 4], ["VoidEssence", 3, 6]],
 		"rare_loot": [["OmegaPlating", 0.08, 1, 2]],
 		"module_drop_chance": 0.15,
@@ -1280,7 +1326,7 @@ var enemy_db = {
 	},
 	"z11_null_sentinel": {
 		"name": "Null Sentinel",
-		"stats": {"hp": 2600000, "max_shield": 280000, "atk": 38000, "def": 10000, "atk_interval": 2.5, "accuracy": 185},
+		"stats": {"hp": 2600000, "max_shield": 280000, "atk": 30400, "def": 10000, "atk_interval": 2.0, "accuracy": 185},
 		"loot": [["OmegaPlating", 2, 4], ["PrimordialShard", 2, 4]],
 		"rare_loot": [["VoidEssence", 0.10, 2, 4]],
 		"module_drop_chance": 0.15,
@@ -1289,7 +1335,7 @@ var enemy_db = {
 	},
 	"z11_exotic_leviathan": {
 		"name": "Exotic Leviathan",
-		"stats": {"hp": 3200000, "atk": 50000, "def": 8000, "atk_interval": 4.0, "accuracy": 175},
+		"stats": {"hp": 3200000, "atk": 25000, "def": 8000, "atk_interval": 2.0, "accuracy": 175},
 		"loot": [["PrimordialShard", 3, 6], ["credits", 20000000, 40000000]],
 		"rare_loot": [["OmegaPlating", 0.10, 2, 3]],
 		"module_drop_chance": 0.15,
@@ -1305,7 +1351,7 @@ var enemy_db = {
 		# v139d Rare-gate matrix: Rare cryo was 0/5 (one L6% heartbreak) and even
 		# Legendary 1/5 — over the 5-10min envelope's winrate bar. hp 22M->20M,
 		# enrage 1.5->1.35.
-		"stats": {"hp": 20000000, "max_shield": 500000, "atk": 350000, "def": 52000, "atk_interval": 2.5, "accuracy": 260},
+		"stats": {"hp": 20000000, "max_shield": 500000, "atk": 280000, "def": 52000, "atk_interval": 2.0, "accuracy": 260},
 		"enrage_at": 0.5, "enrage_atk_mult": 1.35,  # v109: last-stand ATK surge below 50% HP — burst it down or out-sustain it
 		"loot": [["credits", 100000000, 200000000], ["ExoticMatter", 30, 60], ["ChronoCore", 10, 20], ["PrimordialShard", 20, 40]],
 		"rare_loot": [["cryo_lance", 1.0, 1, 1]],
@@ -1332,7 +1378,7 @@ var enemy_db = {
 	},
 	"z12_rust_horror": {
 		"name": "Rust Horror",
-		"stats": {"hp": 2400000, "max_shield": 350000, "atk": 100000, "def": 15000, "atk_interval": 1.5, "accuracy": 290},
+		"stats": {"hp": 2400000, "max_shield": 350000, "atk": 133333.333333, "def": 15000, "atk_interval": 2.0, "accuracy": 290},
 		"loot": [["ChronoCore", 3, 6], ["VoidEssence", 4, 8]],
 		"rare_loot": [["OmegaPlating", 0.10, 1, 3]],
 		"module_drop_chance": 0.12,
@@ -1341,7 +1387,7 @@ var enemy_db = {
 	},
 	"z12_corrosion_sentinel": {
 		"name": "Corrosion Sentinel",
-		"stats": {"hp": 3000000, "max_shield": 320000, "atk": 95000, "def": 18000, "atk_interval": 2.5, "accuracy": 285},
+		"stats": {"hp": 3000000, "max_shield": 320000, "atk": 76000, "def": 18000, "atk_interval": 2.0, "accuracy": 285},
 		"loot": [["OmegaPlating", 3, 6], ["PrimordialShard", 3, 6]],
 		"rare_loot": [["VoidEssence", 0.12, 2, 5]],
 		"module_drop_chance": 0.12,
@@ -1350,7 +1396,7 @@ var enemy_db = {
 	},
 	"z12_caustic_leviathan": {
 		"name": "Caustic Leviathan",
-		"stats": {"hp": 3600000, "atk": 120000, "def": 13000, "atk_interval": 4.0, "accuracy": 270},
+		"stats": {"hp": 3600000, "atk": 60000, "def": 13000, "atk_interval": 2.0, "accuracy": 270},
 		"loot": [["PrimordialShard", 4, 8], ["credits", 40000000, 80000000]],
 		"rare_loot": [["OmegaPlating", 0.12, 2, 4]],
 		"module_drop_chance": 0.12,
@@ -1375,7 +1421,7 @@ var enemy_db = {
 		# warp-aware ng_tune.gd showed the real (warp-boosted) player beat 28M/375K in only
 		# ~4.6 min at 3-4/9 — too fast + survivability-marginal (eff atk 375K×1.25 catch-up
 		# ≈ 469K, edge of survivable). 45M/320K → ~8-9 min, matching the Z13-Z15 loop.
-		"stats": {"hp": 45000000, "max_shield": 800000, "atk": 320000, "def": 70000, "atk_interval": 2.5, "accuracy": 300},
+		"stats": {"hp": 45000000, "max_shield": 800000, "atk": 256000, "def": 70000, "atk_interval": 2.0, "accuracy": 300},
 		"phases": ["cryo", "corrosion"], "phase_cut": 0.15,
 		"relic_drop": "rift_relic",  # v113 (NG+ P2): guaranteed master key on first clear
 		"enrage_at": 0.4, "enrage_atk_mult": 1.3,
@@ -1406,7 +1452,7 @@ var enemy_db = {
 	},
 	"z13_corroded_golem": {
 		"name": "Corroded Golem",
-		"stats": {"hp": 4000000, "max_shield": 450000, "atk": 145000, "def": 25000, "atk_interval": 1.5, "accuracy": 305},
+		"stats": {"hp": 4000000, "max_shield": 450000, "atk": 193333.333333, "def": 25000, "atk_interval": 2.0, "accuracy": 305},
 		"loot": [["ChronoCore", 4, 8], ["VoidEssence", 5, 10]],
 		"rare_loot": [["OmegaPlating", 0.10, 1, 3]],
 		"module_drop_chance": 0.12, "module_drop_pool": ["corrosion_blaster"],
@@ -1414,7 +1460,7 @@ var enemy_db = {
 	},
 	"z13_acid_serpent": {
 		"name": "Acid Serpent",
-		"stats": {"hp": 5000000, "max_shield": 420000, "atk": 140000, "def": 22000, "atk_interval": 2.5, "accuracy": 300},
+		"stats": {"hp": 5000000, "max_shield": 420000, "atk": 112000, "def": 22000, "atk_interval": 2.0, "accuracy": 300},
 		"loot": [["OmegaPlating", 4, 8], ["PrimordialShard", 4, 8]],
 		"rare_loot": [["VoidEssence", 0.12, 2, 5]],
 		"module_drop_chance": 0.12, "module_drop_pool": ["corrosion_blaster"],
@@ -1422,7 +1468,7 @@ var enemy_db = {
 	},
 	"z13_patina_phantom": {
 		"name": "Patina Phantom",
-		"stats": {"hp": 6000000, "atk": 160000, "def": 18000, "atk_interval": 4.0, "accuracy": 285},
+		"stats": {"hp": 6000000, "atk": 80000, "def": 18000, "atk_interval": 2.0, "accuracy": 285},
 		"loot": [["PrimordialShard", 5, 10], ["credits", 60000000, 120000000]],
 		"rare_loot": [["OmegaPlating", 0.12, 2, 4]],
 		"module_drop_chance": 0.12, "module_drop_pool": ["corrosion_blaster"],
@@ -1432,7 +1478,7 @@ var enemy_db = {
 		"name": "Verdigris Warden",
 		# 2-phase, Corrosion FIRST (mirror of the Rift Warden) — opens on the weapon you just
 		# earned, so the swap muscle-memory is Corrosion→Cryo this time.
-		"stats": {"hp": 65000000, "max_shield": 1000000, "atk": 300000, "def": 90000, "atk_interval": 2.5, "accuracy": 305},
+		"stats": {"hp": 65000000, "max_shield": 1000000, "atk": 240000, "def": 90000, "atk_interval": 2.0, "accuracy": 305},
 		"phases": ["corrosion", "cryo"], "phase_cut": 0.15,
 		"enrage_at": 0.4, "enrage_atk_mult": 1.3,
 		"loot": [["credits", 350000000, 700000000], ["ExoticMatter", 70, 140], ["ChronoCore", 30, 60], ["PrimordialShard", 60, 120]],
@@ -1452,7 +1498,7 @@ var enemy_db = {
 	},
 	"z14_caustic_golem": {
 		"name": "Caustic Golem",
-		"stats": {"hp": 7000000, "max_shield": 600000, "atk": 170000, "def": 35000, "atk_interval": 1.5, "accuracy": 315},
+		"stats": {"hp": 7000000, "max_shield": 600000, "atk": 226666.666667, "def": 35000, "atk_interval": 2.0, "accuracy": 315},
 		"loot": [["ChronoCore", 6, 12], ["OmegaPlating", 5, 10]],
 		"rare_loot": [["PrimordialShard", 0.12, 4, 8]],
 		"module_drop_chance": 0.12, "module_drop_pool": ["corrosion_blaster"],
@@ -1460,7 +1506,7 @@ var enemy_db = {
 	},
 	"z14_rot_leviathan": {
 		"name": "Rot Leviathan",
-		"stats": {"hp": 9000000, "max_shield": 580000, "atk": 165000, "def": 30000, "atk_interval": 2.5, "accuracy": 305},
+		"stats": {"hp": 9000000, "max_shield": 580000, "atk": 132000, "def": 30000, "atk_interval": 2.0, "accuracy": 305},
 		"loot": [["OmegaPlating", 6, 12], ["VoidEssence", 6, 12]],
 		"rare_loot": [["ChronoCore", 0.12, 3, 6]],
 		"module_drop_chance": 0.12, "module_drop_pool": ["corrosion_blaster"],
@@ -1468,7 +1514,7 @@ var enemy_db = {
 	},
 	"z14_toxin_sentinel": {
 		"name": "Toxin Sentinel",
-		"stats": {"hp": 10000000, "atk": 185000, "def": 40000, "atk_interval": 4.0, "accuracy": 300},
+		"stats": {"hp": 10000000, "atk": 92500, "def": 40000, "atk_interval": 2.0, "accuracy": 300},
 		"loot": [["PrimordialShard", 7, 14], ["credits", 100000000, 200000000]],
 		"rare_loot": [["OmegaPlating", 0.12, 3, 5]],
 		"module_drop_chance": 0.12, "module_drop_pool": ["corrosion_blaster"],
@@ -1478,7 +1524,7 @@ var enemy_db = {
 		"name": "Dissolution Tyrant",
 		# 3-phase: cryo → corrosion → cryo. TWO swaps — the loop's mid-point step-up in
 		# execution. Off-element ×0.15 each band; phased bosses skip zone-steepening.
-		"stats": {"hp": 68000000, "max_shield": 1200000, "atk": 230000, "def": 120000, "atk_interval": 2.5, "accuracy": 310},
+		"stats": {"hp": 68000000, "max_shield": 1200000, "atk": 184000, "def": 120000, "atk_interval": 2.0, "accuracy": 310},
 		"phases": ["cryo", "corrosion", "cryo"], "phase_cut": 0.15,
 		"enrage_at": 0.35, "enrage_atk_mult": 1.2,
 		"loot": [["credits", 600000000, 1200000000], ["ExoticMatter", 120, 240], ["ChronoCore", 50, 100], ["PrimordialShard", 100, 200]],
@@ -1498,7 +1544,7 @@ var enemy_db = {
 	},
 	"z15_meltdown_colossus": {
 		"name": "Meltdown Colossus",
-		"stats": {"hp": 12000000, "max_shield": 750000, "atk": 200000, "def": 50000, "atk_interval": 1.5, "accuracy": 325},
+		"stats": {"hp": 12000000, "max_shield": 750000, "atk": 266666.666667, "def": 50000, "atk_interval": 2.0, "accuracy": 325},
 		"loot": [["ChronoCore", 8, 16], ["OmegaPlating", 7, 14]],
 		"rare_loot": [["PrimordialShard", 0.12, 5, 10]],
 		"module_drop_chance": 0.12, "module_drop_pool": ["corrosion_blaster"],
@@ -1506,7 +1552,7 @@ var enemy_db = {
 	},
 	"z15_corrosion_behemoth": {
 		"name": "Corrosion Behemoth",
-		"stats": {"hp": 14000000, "max_shield": 720000, "atk": 195000, "def": 45000, "atk_interval": 2.5, "accuracy": 320},
+		"stats": {"hp": 14000000, "max_shield": 720000, "atk": 156000, "def": 45000, "atk_interval": 2.0, "accuracy": 320},
 		"loot": [["OmegaPlating", 8, 16], ["VoidEssence", 8, 16]],
 		"rare_loot": [["ChronoCore", 0.12, 4, 8]],
 		"module_drop_chance": 0.12, "module_drop_pool": ["corrosion_blaster"],
@@ -1514,7 +1560,7 @@ var enemy_db = {
 	},
 	"z15_blight_titan": {
 		"name": "Blight Titan",
-		"stats": {"hp": 17000000, "atk": 220000, "def": 55000, "atk_interval": 4.0, "accuracy": 310},
+		"stats": {"hp": 17000000, "atk": 110000, "def": 55000, "atk_interval": 2.0, "accuracy": 310},
 		"loot": [["PrimordialShard", 10, 20], ["credits", 150000000, 300000000]],
 		"rare_loot": [["OmegaPlating", 0.12, 4, 7]],
 		"module_drop_chance": 0.12, "module_drop_pool": ["corrosion_blaster"],
@@ -1525,7 +1571,7 @@ var enemy_db = {
 		# Corrosion-loop CAPSTONE. 3-phase corrosion → cryo → corrosion (opens+closes on the
 		# loop's own weapon). Clearing it arms the Loop-2 boundary (Plasma frontier / Fleet
 		# Siege Gate — NG+ step 4). Beefiest HP in the loop; atk stays survivability-safe.
-		"stats": {"hp": 95000000, "max_shield": 1500000, "atk": 190000, "def": 155000, "atk_interval": 2.5, "accuracy": 315},
+		"stats": {"hp": 95000000, "max_shield": 1500000, "atk": 152000, "def": 155000, "atk_interval": 2.0, "accuracy": 315},
 		"phases": ["corrosion", "cryo", "corrosion"], "phase_cut": 0.15,
 		"enrage_at": 0.35, "enrage_atk_mult": 1.2,
 		"loot": [["credits", 1000000000, 2000000000], ["ExoticMatter", 200, 400], ["ChronoCore", 90, 180], ["PrimordialShard", 180, 360]],
@@ -1544,21 +1590,21 @@ var enemy_db = {
 	},
 	"hz_emp_drone_2": {
 		"name": "Charged Golem",
-		"stats": {"hp": 800, "atk": 50, "def": 20, "atk_interval": 3.0, "accuracy": 30},
+		"stats": {"hp": 800, "atk": 33.333333, "def": 20, "atk_interval": 2.0, "accuracy": 30},
 		"loot": [["credits", 600, 1200], ["Si", 5, 10], ["Cu", 2, 5]],
 		"rare_loot": [], "xp": 45, "zone": 2,
 		"resist_k": 0.30, "resist_e": -0.15, "resist_x": -0.10, "dmg_type": "energy"
 	},
 	"hz_emp_drone_3": {
 		"name": "Pulse Skimmer",
-		"stats": {"hp": 500, "max_shield": 300, "atk": 35, "def": 10, "atk_interval": 1.5, "accuracy": 40},
+		"stats": {"hp": 500, "max_shield": 300, "atk": 46.666667, "def": 10, "atk_interval": 2.0, "accuracy": 40},
 		"loot": [["credits", 400, 800], ["Fe", 3, 8], ["Res1", 2, 4]],
 		"rare_loot": [], "xp": 35, "zone": 2,
 		"resist_k": 0.10, "resist_e": -0.25, "resist_x": 0.10, "dmg_type": "energy"
 	},
 	"hz_emp_drone_4": {
 		"name": "Static Hauler",
-		"stats": {"hp": 1000, "atk": 55, "def": 25, "atk_interval": 3.5, "accuracy": 28},
+		"stats": {"hp": 1000, "atk": 31.428571, "def": 25, "atk_interval": 2.0, "accuracy": 28},
 		"loot": [["credits", 700, 1400], ["Fe", 8, 15], ["Ti", 1, 3]],
 		"rare_loot": [], "xp": 50, "zone": 2,
 		"resist_k": 0.25, "resist_e": 0.0, "resist_x": -0.20, "dmg_type": "energy"
@@ -1572,7 +1618,7 @@ var enemy_db = {
 	},
 	"hz_emp_elite": {
 		"name": "EMP Commander",
-		"stats": {"hp": 2500, "max_shield": 600, "atk": 100, "def": 40, "atk_interval": 2.5, "accuracy": 50},
+		"stats": {"hp": 2500, "max_shield": 600, "atk": 80, "def": 40, "atk_interval": 2.0, "accuracy": 50},
 		"loot": [["credits", 3000, 6000], ["Cu", 10, 20], ["Ti", 3, 8], ["Res1", 5, 10]],
 		"rare_loot": [["Circuit", 0.30, 3, 6]],
 		"xp": 150, "zone": 2,
@@ -1838,7 +1884,7 @@ func spawn_enemy():
 		# when working. NOTE: the enemy "accuracy" copied above is a DIFFERENT,
 		# LIVE axis (it feeds the player's dodge roll in do_enemy_attack) — keep it.
 		# v62.0 Fix: Copy atk_interval so enemy attack speed is used
-		"atk_interval": e_data["stats"].get("atk_interval", 3.0),
+		"atk_interval": e_data["stats"].get("atk_interval", DEFAULT_ATTACK_INTERVAL),
 		"is_elite": false, # Default
 		"resist_k": e_data.get("resist_k", 0.0),
 		"resist_e": e_data.get("resist_e", 0.0),
@@ -2040,7 +2086,7 @@ func _rebuild_player_weapon_states() -> void:
 					# set stats.exotic_element. Only consulted for the exotic channel.
 					"exotic_type": str(m_stats.get("exotic_element", "cryo")),
 					"timer": randf_range(0.0, 0.5),
-					"interval": m_stats.get("atk_interval", 2.5),
+					"interval": m_stats.get("atk_interval", DEFAULT_ATTACK_INTERVAL),
 					# v107: Warp Mastery Tree — C2 Weapon Tuning (+10% module damage)
 					"dmg_k": m_stats.get("atk_kinetic", 0) * GameState.warp_manager.get_tree_damage_bonus(),
 					"dmg_e": m_stats.get("atk_energy", 0) * GameState.warp_manager.get_tree_damage_bonus(),
@@ -2232,7 +2278,7 @@ func process_tick(delta: float):
 	# Enemy attack timer increments slower based on jamming_strength
 	# v80.1: Clamp jamming to safety cap
 	var jamming_mult = max(1.0 - MAX_ENEMY_SLOW, 1.0 - sm.jamming_strength)
-	var e_interval = current_enemy.get("atk_interval", 3.0)
+	var e_interval = current_enemy.get("atk_interval", DEFAULT_ATTACK_INTERVAL)
 	
 	enemy_attack_timer += delta * enemy_speed_mult * jamming_mult
 	if enemy_attack_timer >= e_interval:
@@ -3994,7 +4040,7 @@ func _offline_winnable() -> bool:
 	var conv_dps := 0.0
 	var cryo_dps := 0.0
 	for w in player_weapon_states:
-		var iv: float = max(MIN_ATTACK_INTERVAL, float(w.get("interval", 2.5)))
+		var iv: float = max(MIN_ATTACK_INTERVAL, float(w.get("interval", DEFAULT_ATTACK_INTERVAL)))
 		conv_dps += (float(w.get("dmg_k", 0.0)) + float(w.get("dmg_e", 0.0)) + float(w.get("dmg_x", 0.0))) / iv
 		cryo_dps += float(w.get("dmg_cryo", 0.0)) / iv
 	# v113 (NG+ P1): multi-phase boss — must breach EVERY phase band; the worst
@@ -4039,7 +4085,7 @@ func _offline_winnable() -> bool:
 			var _regen: float = float(enemy_max_shield) * float(_sus_o.get("pct", 0.06)) / max(1.0, float(_sus_o.get("every_s", 8.0)))
 			dps -= _regen * 2.0
 		"siphon":
-			var _theft: float = GameState.shipyard_manager.max_shield * float(_sus_o.get("pct", 0.04)) / max(0.5, float(current_enemy.get("atk_interval", 3.0)))
+			var _theft: float = GameState.shipyard_manager.max_shield * float(_sus_o.get("pct", 0.04)) / max(0.5, float(current_enemy.get("atk_interval", DEFAULT_ATTACK_INTERVAL)))
 			dps -= _theft * 2.0
 		"nanite":
 			_extra_ehp += float(enemy_max_hp) * float(_sus_o.get("hull_pct_per_s", 0.04)) * float(_sus_o.get("dur", 5.0)) * 2.0

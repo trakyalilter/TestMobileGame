@@ -335,7 +335,7 @@ func _build_comparison_tooltip() -> String:
 	# 2. PRIMARY STAT
 	if slot_type == "weapon":
 		var dmg = my_stats.get("atk_kinetic", 0) + my_stats.get("atk_energy", 0) + my_stats.get("atk_explosive", 0) + my_stats.get("atk_cryo", 0)
-		var interval = max(0.01, float(my_stats.get("atk_interval", 2.5)))
+		var interval = max(0.01, float(my_stats.get("atk_interval", GameState.combat_manager.DEFAULT_ATTACK_INTERVAL)))
 		var dps = float(dmg) / interval
 		tt += "[font_size=24][b]%.1f DPS[/b][/font_size]\n" % dps
 		tt += "[font_size=9][color=#7FA39C]" + (tr("%s total damage, %.2f hits/s") % [UITheme.format_num(dmg), 1.0 / interval]) + "[/color][/font_size]\n"

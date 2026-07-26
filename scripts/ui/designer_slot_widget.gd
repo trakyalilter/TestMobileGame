@@ -802,7 +802,7 @@ func _build_card_stats(stats: Dictionary, mid: String = "") -> String:
 
 	if slot_type == "weapon":
 		var dmg = stats.get("atk_kinetic", 0) + stats.get("atk_energy", 0) + stats.get("atk_explosive", 0) + stats.get("atk_cryo", 0)
-		var interval = max(0.01, float(stats.get("atk_interval", 2.5)))
+		var interval = max(0.01, float(stats.get("atk_interval", GameState.combat_manager.DEFAULT_ATTACK_INTERVAL)))
 		lines.append("DPS %.1f" % (float(dmg) / interval))
 
 	# v110: derived power (tier-based), replacing the stale energy_load stat.
@@ -1282,7 +1282,7 @@ func _build_module_tooltip(m_data: Dictionary) -> String:
 
 	if s_type == "weapon":
 		var dmg = stats.get("atk_kinetic", 0) + stats.get("atk_energy", 0) + stats.get("atk_explosive", 0) + stats.get("atk_cryo", 0)
-		var interval = max(0.01, float(stats.get("atk_interval", 2.5)))
+		var interval = max(0.01, float(stats.get("atk_interval", GameState.combat_manager.DEFAULT_ATTACK_INTERVAL)))
 		var dps = float(dmg) / interval
 		tt += "[font_size=24][b]%.1f DPS[/b][/font_size]\n" % dps
 		tt += "[font_size=9][color=#7FA39C]" + (tr("%s total damage, %.2f hits/s") % [UITheme.format_num(dmg), 1.0 / interval]) + "[/color][/font_size]\n"

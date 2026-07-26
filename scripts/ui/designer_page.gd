@@ -1787,7 +1787,7 @@ func _calculate_total_dps() -> float:
 					energy_damage *= 2.0
 
 				var damage = stats.get("atk_kinetic", 0) + energy_damage + stats.get("atk_explosive", 0)
-				var interval = stats.get("atk_interval", 2.5)
+				var interval = stats.get("atk_interval", GameState.combat_manager.DEFAULT_ATTACK_INTERVAL)
 				if interval > 0:
 					total += float(damage) / interval
 	return total

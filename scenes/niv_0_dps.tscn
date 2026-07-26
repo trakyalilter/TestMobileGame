@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://bniv0dpsprobe1"]
+
+[ext_resource type="Script" path="res://scripts/sim/niv_0_dps.gd" id="1_niv0"]
+
+[node name="Niv0Dps" type="Node"]
+script = ExtResource("1_niv0")

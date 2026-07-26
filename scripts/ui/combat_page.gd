@@ -615,7 +615,7 @@ func update_ui():
 		
 		if manager.current_enemy:
 			e_attack_pb.visible = true
-			e_attack_pb.max_value = manager.current_enemy.get("atk_interval", 3.0)
+			e_attack_pb.max_value = manager.current_enemy.get("atk_interval", manager.DEFAULT_ATTACK_INTERVAL)
 			e_attack_pb.value = manager.enemy_attack_timer
 			
 			# v87.0: Color enemy attack bar by damage type (cached)

@@ -654,7 +654,7 @@ func _build_enemy_card(eid: String, e: Dictionary) -> Control:
 	# Compute threat color for stripe — same logic as detail panel but compressed
 	var sm = GameState.shipyard_manager
 	var atk = e["stats"].get("atk", 0)
-	var interval = e["stats"].get("atk_interval", 2.0)
+	var interval = e["stats"].get("atk_interval", GameState.combat_manager.DEFAULT_ATTACK_INTERVAL)
 	var enemy_dps = float(atk) / max(0.5, interval)
 	var enemy_ehp = e["stats"].get("hp", 0) + e["stats"].get("max_shield", 0)
 	# v116: the stripe still colour-codes danger at a glance, but the threat
@@ -859,7 +859,7 @@ func _display_enemy_details(eid):
 	var details = desc_label.get_parent()
 
 	var atk = e["stats"].get("atk", 0)
-	var interval = e["stats"].get("atk_interval", 2.0)
+	var interval = e["stats"].get("atk_interval", GameState.combat_manager.DEFAULT_ATTACK_INTERVAL)
 	var hp = e["stats"].get("hp", 0)
 	var shield = e["stats"].get("max_shield", 0)
 

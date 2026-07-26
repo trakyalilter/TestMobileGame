@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://civmigprobe1"]
+
+[ext_resource type="Script" path="res://scripts/sim/ivmig_probe.gd" id="1"]
+
+[node name="IvMigProbe" type="Node"]
+script = ExtResource("1")
