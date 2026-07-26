@@ -39,6 +39,9 @@ var kit_potency_dbg: float = 1.0  # sim-only knob: scales consumable heal_pct fo
 
 # Throttle for the "no ammo" combat warning so it doesn't spam every tick.
 var _last_ammo_warn_ms: int = 0
+# v150b: slot_idx -> ammo id currently being substituted for a dry binding, so the
+# downgrade notice prints once per transition rather than once per shot.
+var _ammo_sub_notice: Dictionary = {}
 
 signal enemy_defeated(enemy_id)
 signal combat_started() # v72.8: For Elite bounty detection
@@ -2424,15 +2427,22 @@ func _execute_player_attack(weapon_idx: int):
 	if w["type"] == "energy" and _loadout_has_module(sm, "plasma_overcharger"):
 		p_atk_e *= 2.0
 
-	var ammo_id = sm.ammo_loadout.get(w["slot_idx"])
 	# v109: Cryo weapons are Exotic-Matter self-charging — no ammo required.
 	var requires_ammo = w["slot_idx"] != -1 and w["type"] != "cryo"
-	
-	# v80.2 Fix: Enforce Ammo Type Compatibility
-	if ammo_id and ammo_id != "" and not sm.is_ammo_compatible(w["type"], ammo_id):
-		ammo_id = "" # Ignore incompatible ammo
-		
-	if ammo_id and ammo_id != "":
+
+	# v150b: ask the shipyard what this slot will ACTUALLY fire instead of reading
+	# the raw binding. resolve_ammo_for_slot returns the bound ammo while it has
+	# stock, otherwise the best lower tier the player still holds, down to T1 —
+	# so an emptied stack degrades DPS instead of zeroing the weapon out and
+	# stalling the fight forever. It also enforces type compatibility (the old
+	# v80.2 check below moved inside it), so an incompatible binding still yields
+	# "" and is handled by the requires_ammo branches exactly as before.
+	var ammo_id: String = ""
+	if requires_ammo:
+		ammo_id = sm.resolve_ammo_for_slot(int(w["slot_idx"]), String(w["type"]))
+		_note_ammo_substitution(int(w["slot_idx"]), String(sm.ammo_loadout.get(w["slot_idx"], "")), ammo_id)
+
+	if ammo_id != "":
 		if GameState.resources.get_element_amount(ammo_id) > 0:
 			# v118: Crimson ammo_eff (utility facet) — chance to not consume ammo.
 			if randf() >= sm.gem_bonuses.get("ammo_eff", 0.0):
@@ -3697,6 +3707,26 @@ func _check_auto_consume(delta: float):
 		if sh_pct <= threshold and player_max_shield > 0:
 			_trigger_consumable(sm.consumable_shield_slot, sm)
 			return
+
+# v150b: the runtime fallback silently swaps a dry stack for a lower tier, which
+# costs real DPS (AMMO_TIER_MULT tops out at 1.35x). Say so once per transition —
+# a fight-fact in the combat log, the same surface _warn_no_ammo already uses.
+# Memoised per slot so a sustained downgrade prints one line, not one per shot.
+func _note_ammo_substitution(slot_idx: int, bound_id: String, firing_id: String) -> void:
+	if firing_id == bound_id:
+		_ammo_sub_notice.erase(slot_idx)   # back on the preferred rung
+		return
+	if firing_id == "":
+		return   # genuinely dry — _warn_no_ammo owns that message
+	if String(_ammo_sub_notice.get(slot_idx, "")) == firing_id:
+		return
+	_ammo_sub_notice[slot_idx] = firing_id
+	combat_events.append({
+		"type": "status",
+		"text": "AMMO SUBSTITUTED — " + ElementDB.get_display_name(firing_id),
+		"color": Color(1.0, 0.78, 0.35),
+		"side": "player"
+	})
 
 func _warn_no_ammo():
 	# A weapon tried to fire with no ammo (it deals ZERO damage). Surface it

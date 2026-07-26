@@ -3357,6 +3357,11 @@ func reset(decay_factor: float = 1.0) -> void:
 	unseen_modules = {}
 	loadout = {}
 	ammo_loadout = {}
+	# v150b: the runtime ammo fallback is a pure cache over live stock, but a warp
+	# or new game changes both the stock and the slot layout — drop it so nothing
+	# resolves against a pre-reset ship.
+	_ammo_fallback_cache.clear()
+	_ammo_fallback_at.clear()
 	custom_modules = {}
 	# v134g: new game / warp wipes the ship, so wipe the build slots too and start
 	# on slot 1 — otherwise a slot would still point at pre-reset (now non-existent)
@@ -3514,17 +3519,104 @@ func _auto_ammo_for_module(mod_data: Dictionary, channel: String) -> String:
 	var zone: int = int(mod_data.get("zone", 1))
 	var band: String = ElementDB.get_ammo_band_for_zone(zone)
 	# Walk down from the weapon's own band to T1, taking the best one in stock.
-	var ladder := ["T4", "T3", "T2", "T1"]
-	var start: int = ladder.find(band)
+	var start: int = AMMO_DESCENT.find(band)
 	if start < 0:
-		start = ladder.size() - 1
-	for i in range(start, ladder.size()):
-		var candidate: String = ElementDB.get_band_ammo_id(channel, ladder[i])
-		if candidate != "" and GameState.resources.get_element_amount(candidate) > 0:
+		start = AMMO_DESCENT.size() - 1
+	# Pass 1: best band the player can actually FEED a weapon with. A stock of 1
+	# is not a supply, it is a single shot — binding to it used to leave the gun
+	# dry one tick later. AUTO_AMMO_MIN_STOCK is the sane floor.
+	for i in range(start, AMMO_DESCENT.size()):
+		var candidate: String = ElementDB.get_band_ammo_id(channel, AMMO_DESCENT[i])
+		if candidate != "" and GameState.resources.get_element_amount(candidate) >= AUTO_AMMO_MIN_STOCK:
 			return candidate
+	# Pass 2: nothing meets the floor — take the best tier with ANY stock rather
+	# than binding to a rung the player holds nothing of. The runtime fallback in
+	# resolve_ammo_for_slot() catches the moment it runs out either way.
+	for i in range(start, AMMO_DESCENT.size()):
+		var candidate2: String = ElementDB.get_band_ammo_id(channel, AMMO_DESCENT[i])
+		if candidate2 != "" and GameState.resources.get_element_amount(candidate2) > 0:
+			return candidate2
 	# Nothing in stock anywhere: fall back to the T1 rung, which is research-free,
 	# craftable from Zone-0 materials and fully automated from tier 1 buildings.
 	return ElementDB.get_band_ammo_id(channel, "T1")
+
+# ─────────────────────────────────────────────────────────────────────────────
+# v150b RUNTIME AMMO FALLBACK — the fix for the zero-damage stall.
+#
+# _auto_ammo_for_module only runs at EQUIP time, so whatever it picked stayed
+# bound forever. The instant that stack hit zero the weapon was bound to an empty
+# id, and combat_manager's `_warn_no_ammo(); return` means such a weapon deals
+# ZERO damage — at every band zone Z4-Z10 the fight then never ends. An equip-time
+# stock floor alone only makes that rarer; it cannot make it impossible, because
+# any finite stack empties eventually.
+#
+# So the descent has to happen in the FIRING path: when the bound ammo is dry the
+# weapon drops to the next rung down that still has stock, all the way to T1
+# (research-free, Zone-0 craftable, automated from tier-1 buildings), and only a
+# player holding literally nothing on that channel is reported genuinely dry.
+#
+# COST: the hot path is ONE dictionary read + ONE stock read. Only when the bound
+# ammo is empty do we walk the 5-rung ladder, and that result is cached per
+# preference id, re-validated by stock every shot and re-resolved at most once per
+# AMMO_FALLBACK_REFRESH_MS (so newly crafted higher-tier rounds get picked back
+# up). The inventory is never scanned.
+#
+# The player's ammo_loadout preference is NEVER rewritten — the substitution is a
+# runtime read-through. Craft more of the preferred tier and the very next shot
+# goes back to it on its own.
+const AMMO_DESCENT := ["T4", "T3", "T2", "T1S", "T1"]
+const AUTO_AMMO_MIN_STOCK := 30
+const AMMO_FALLBACK_REFRESH_MS := 10000
+
+var _ammo_fallback_cache: Dictionary = {}   # resolve key -> substituted ammo id
+var _ammo_fallback_at: Dictionary = {}      # resolve key -> ticks_msec of resolve
+
+## The ammo this weapon slot will ACTUALLY fire right now. Returns "" only when
+## the player holds no compatible ammo at any tier (the genuinely-dry report).
+func resolve_ammo_for_slot(slot_idx: int, weapon_type: String) -> String:
+	var pref: String = String(ammo_loadout.get(slot_idx, ""))
+	if pref != "" and not is_ammo_compatible(weapon_type, pref):
+		pref = ""   # incompatible binding is treated as no binding, as before
+	# HOT PATH: the bound ammo is in stock. Two lookups, no walk, no allocation.
+	if pref != "" and GameState.resources.get_element_amount(pref) > 0:
+		return pref
+	var key: String = pref
+	if key == "":
+		key = "@" + weapon_type
+	var cached: String = String(_ammo_fallback_cache.get(key, ""))
+	if cached != "":
+		var age: int = Time.get_ticks_msec() - int(_ammo_fallback_at.get(key, 0))
+		if age < AMMO_FALLBACK_REFRESH_MS and GameState.resources.get_element_amount(cached) > 0:
+			return cached
+	var resolved: String = _descend_ammo(pref, weapon_type)
+	_ammo_fallback_cache[key] = resolved
+	_ammo_fallback_at[key] = Time.get_ticks_msec()
+	return resolved
+
+## Walk strictly DOWN the tier ladder from the preferred rung and take the first
+## one the player holds. With no preference (empty/legacy binding) start at the
+## top, so an unbound weapon fires the best ammo its owner has instead of nothing.
+func _descend_ammo(pref: String, weapon_type: String) -> String:
+	var channel: String = ""
+	if pref != "":
+		channel = ElementDB.get_ammo_channel(pref)
+	if channel == "":
+		# weapon_type and ammo channel share the same vocabulary for the three
+		# ammo-fed types; "cryo" is self-charging and never reaches this path.
+		if weapon_type == "kinetic" or weapon_type == "energy" or weapon_type == "explosive":
+			channel = weapon_type
+	if channel == "":
+		return ""
+	var start: int = 0
+	if pref != "":
+		var idx: int = AMMO_DESCENT.find(ElementDB.get_ammo_tier(pref))
+		if idx >= 0:
+			start = idx + 1   # strictly below the preference — it is already dry
+	for i in range(start, AMMO_DESCENT.size()):
+		var candidate: String = ElementDB.get_band_ammo_id(channel, AMMO_DESCENT[i])
+		if candidate != "" and GameState.resources.get_element_amount(candidate) > 0:
+			return candidate
+	return ""   # genuinely dry on this channel at every tier
 
 func is_ammo_compatible(weapon_type: String, ammo_id: String) -> bool:
 	if ammo_id == "": return true
