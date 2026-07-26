@@ -428,7 +428,15 @@ var tech_tree = {
 		"tier": 6,
 		"category": "zone",
 		"cost": 1171875,
-		"cost_items": {"Z5_Core": 3, "Ti": 2000, "AdvCircuit": 600, "Superalloy": 300},
+		# v142d: reshaped bulk-shallow -> modest-deep, same as the Z4/Z5 gates. Was
+		# Ti 2000 + AdvCircuit 600 + Superalloy 300 (x2 MATERIAL_MULTIPLIER = 4000 /
+		# 1200 / 600 effective) — the same two materials the Z7-Z10 gates then ask for
+		# at 1500 -> 15000, i.e. one bulk curve wearing five hats. Keyed on
+		# XenoforgedAlloy (the Z5 rung), NEVER ColonyAlloy: ColonyAlloy's research_req
+		# IS zone_6_access, so requiring it would make the gate unbuildable.
+		# Effective bill drops from Ti 4000 / AdvCircuit 1200 / Superalloy 600 to
+		# Ti 1000 / AdvCircuit 300 + 16 alloys — strictly lighter on automation time.
+		"cost_items": {"Z5_Core": 3, "XenoforgedAlloy": 8, "Ti": 500, "AdvCircuit": 150},
 		"type": "technology",
 		"parent": "zone_5_access",
 		"effects": [],
@@ -440,7 +448,13 @@ var tech_tree = {
 		"tier": 7,
 		"category": "zone",
 		"cost": 2929687,
-		"cost_items": {"Z6_Core": 3, "AdvCircuit": 1500, "Superalloy": 900, "W": 200},
+		# v142d: reshaped bulk-shallow -> modest-deep. Keyed on ColonyAlloy (the Z6
+		# rung), NEVER GammaAlloy (its research_req IS zone_7_access = unbuildable gate).
+		# AdvCircuit 1500 -> 300 because refine_gamma_alloy already spends AdvCircuit 4
+		# per alloy: the same crafting now serves both, instead of the gate and the rung
+		# bidding against each other. Superalloy dropped (the Z5 rung owns that chain).
+		# Effective: AdvCircuit 3000 -> 600, Superalloy 1800 -> 0, W 400 -> 200, + 12 alloys.
+		"cost_items": {"Z6_Core": 3, "ColonyAlloy": 6, "AdvCircuit": 300, "W": 100},
 		"type": "technology",
 		"parent": "zone_6_access",
 		"effects": [],
@@ -452,7 +466,13 @@ var tech_tree = {
 		"tier": 8,
 		"category": "zone",
 		"cost": 7324218,
-		"cost_items": {"Z7_Core": 4, "AdvCircuit": 3000, "Superalloy": 2200, "Ir": 60},
+		# v142d: reshaped bulk-shallow -> modest-deep. Keyed on GammaAlloy (the Z7
+		# rung), NEVER PrismaticAlloy (its research_req IS zone_8_access).
+		# AdvCircuit dropped entirely here: refine_gamma_alloy spends AdvCircuit 4 per
+		# alloy, so the 10 alloys this gate wants already buy ~40 of it — the demand
+		# moved into the rung instead of sitting beside it.
+		# Effective: AdvCircuit 6000 -> 0, Superalloy 4400 -> 1400, Ir 120 -> 80, + 10 alloys.
+		"cost_items": {"Z7_Core": 4, "GammaAlloy": 5, "Superalloy": 700, "Ir": 40},
 		"type": "technology",
 		"parent": "zone_7_access",
 		"effects": [],
@@ -464,7 +484,11 @@ var tech_tree = {
 		"tier": 9,
 		"category": "zone",
 		"cost": 18310546,
-		"cost_items": {"Z8_Core": 4, "AdvCircuit": 6000, "Superalloy": 5000, "Os": 40},
+		# v142d: reshaped bulk-shallow -> modest-deep. Keyed on PrismaticAlloy (the Z8
+		# rung), NEVER BioforgedAlloy (its research_req IS zone_9_access).
+		# Effective: AdvCircuit 12000 -> 0, Superalloy 10000 -> 3000, Os 80 -> 50,
+		# + Graphite 800 (the Z8 rung's carrier) + 8 alloys.
+		"cost_items": {"Z8_Core": 4, "PrismaticAlloy": 4, "Superalloy": 1500, "Graphite": 400, "Os": 25},
 		"type": "technology",
 		"parent": "zone_8_access",
 		"effects": [],
@@ -476,7 +500,14 @@ var tech_tree = {
 		"tier": 10,
 		"category": "zone",
 		"cost": 45776367,
-		"cost_items": {"Z9_Core": 5, "AdvCircuit": 15000, "Superalloy": 12000, "ChronoCore": 10},
+		# v142d: reshaped bulk-shallow -> modest-deep, and this was the most extreme of
+		# the five — AdvCircuit 30000 + Superalloy 24000 effective is ~35 hours of a
+		# single adv_circuit_foundry, the terminal point of one bulk curve that had run
+		# unchanged since the Z5 gate. Keyed on BioforgedAlloy (the Z9 rung), NEVER
+		# AeonAlloy (its research_req IS zone_10_access).
+		# Effective: AdvCircuit 30000 -> 0, Superalloy 24000 -> 5000, ChronoCore 20 -> 12,
+		# + W 800 (the Z9 rung's carrier) + 6 alloys.
+		"cost_items": {"Z9_Core": 5, "BioforgedAlloy": 3, "Superalloy": 2500, "W": 400, "ChronoCore": 6},
 		"type": "technology",
 		"parent": "zone_9_access",
 		"effects": [],

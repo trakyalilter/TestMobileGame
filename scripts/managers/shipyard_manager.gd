@@ -615,7 +615,15 @@ var hulls: Dictionary = {
 	"capital_hull": {
 		"name": "Capital Ship",
 		"stats": {"hp": 4124, "energy_capacity": 1255},
-		"cost": {"credits": 2430000, "AdvCircuit": 1000, "VoidArtifact": 50},
+		# v142d: VoidArtifact 50 removed — VoidArtifact is a ZONE 5 combat drop (z5
+		# regulars 1-5, z5 boss 10-25, z6_ore_guardian at 10%) with no gatherable or
+		# infrastructure source, so a TIER 6 hull demanded bulk BACKWARD combat farming,
+		# which cannot be parallelised. Same defect class as cruiser_hull's AdvCircuit
+		# and battlecruiser_hull's QuantumCore. AdvCircuit 1000 also triple-booked
+		# against the zone_6 gate. Tier-N hull now keys on the zone-(N-1) alloy plus
+		# automatable stock, matching cruiser/battlecruiser. Hull costs bypass all
+		# scaling layers (construct_hull reads this dict raw), so these are FINAL.
+		"cost": {"credits": 2430000, "XenoforgedAlloy": 12, "Superalloy": 500, "Ti": 350},
 		"slots": ["weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "armor", "armor", "armor", "engine", "engine", "battery", "battery", "battery", "battery", "sensor", "sensor"], # 18
 		"research_req": "zone_6_access",
 		"visual": "res://assets/ships/5.png",
@@ -624,7 +632,12 @@ var hulls: Dictionary = {
 	"carrier_hull": {
 		"name": "Carrier",
 		"stats": {"hp": 9073, "energy_capacity": 2760},
-		"cost": {"credits": 7290000, "ExoticMatter": 100},
+		# v142d: ExoticMatter 100 was the ENTIRE material bill and ExoticMatter is a
+		# combat-only drop (Z7/Z8 regulars ~2/kill; the only recipe source,
+		# transmute_void_essence, is level 75 behind exotic_matter_analysis and so is
+		# locked when this hull unlocks). ~50 serial Zone-7 kills, unautomatable, zero
+		# depth. Now zone-(N-1) alloy + automatable stock, matching every tier below.
+		"cost": {"credits": 7290000, "ColonyAlloy": 10, "AdvCircuit": 350, "Superalloy": 700},
 		"slots": ["weapon", "weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "armor", "armor", "armor", "engine", "engine", "battery", "battery", "battery", "battery", "sensor", "sensor"], # 20
 		"research_req": "zone_7_access",
 		"visual": "res://assets/ships/5.png",
@@ -633,7 +646,15 @@ var hulls: Dictionary = {
 	"dreadnought_hull": {
 		"name": "Dreadnought",
 		"stats": {"hp": 19960, "energy_capacity": 6075},
-		"cost": {"credits": 21870000, "ExoticMatter": 200},
+		# v142d: ExoticMatter 200 — same defect as carrier_hull, doubled. Combat-only
+		# bulk (~100 serial kills) with no depth and nothing automatable. Replaced with
+		# the zone-(N-1) alloy plus the Z8 rung's own carrier, so building the hull and
+		# building the alloy pull on one supply line rather than two.
+		# GammaAlloy, NOT PrismaticAlloy: a tier-N hull keys on the zone-(N-1) rung
+		# (cruiser->Wreckforged, battlecruiser->Rime). PrismaticAlloy's research_req is
+		# zone_8_access, the same tech that unlocks this hull, so keying on it would
+		# give the player zero head start and re-create the unbuildable-on-unlock shape.
+		"cost": {"credits": 21870000, "GammaAlloy": 8, "AdvCircuit": 800, "Graphite": 400},
 		"slots": ["weapon", "weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "armor", "armor", "armor", "engine", "engine", "battery", "battery", "battery", "battery", "battery", "sensor", "sensor", "sensor"], # 22
 		"research_req": "zone_8_access",
 		"visual": "res://assets/ships/5.png",
@@ -642,7 +663,13 @@ var hulls: Dictionary = {
 	"titan_hull": {
 		"name": "Titan",
 		"stats": {"hp": 43913, "energy_capacity": 13365},
-		"cost": {"credits": 65610000, "Neutronium": 500},
+		# v142d: Neutronium 500 was effectively UNBUILDABLE ON UNLOCK. Neutronium drops
+		# from two of Zone 9's four regulars at 1-3 (~0.6/kill) — ~830 serial kills in
+		# the zone this hull is meant to help you enter. The only other source,
+		# neutronium_condenser, costs 30M credits + VoidCrystal 40 + QuantumCore 20
+		# behind neutronium_synthesis and yields 0.4/10s, so it is not available either.
+		# Keys on PrismaticAlloy (zone_8_access), one tech ahead of this hull.
+		"cost": {"credits": 65610000, "PrismaticAlloy": 6, "AdvCircuit": 1500, "W": 800},
 		"slots": ["weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "armor", "armor", "armor", "armor", "engine", "engine", "battery", "battery", "battery", "battery", "battery", "sensor", "sensor", "sensor"], # 24
 		"research_req": "zone_9_access",
 		"visual": "res://assets/ships/5.png",
@@ -651,7 +678,13 @@ var hulls: Dictionary = {
 	"leviathan_hull": {
 		"name": "Leviathan",
 		"stats": {"hp": 96609, "energy_capacity": 29400},
-		"cost": {"credits": 196830000, "PrimordialShard": 1000},
+		# v142d: PrimordialShard 1000 was the single worst hull cost in the game.
+		# PrimordialShard has NO gatherable and NO infrastructure source — every unit is
+		# a Zone-10 combat drop (~1.4/kill across the rotation), so this was ~700 serial
+		# kills of the zone the hull exists to help you fight, and primordial_extractor
+		# CONSUMES shards rather than producing them. Keys on BioforgedAlloy
+		# (zone_9_access) + the Z10 rung's own carrier.
+		"cost": {"credits": 196830000, "BioforgedAlloy": 5, "Superalloy": 3000, "Ir": 150},
 		"slots": ["weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "shield", "armor", "armor", "armor", "armor", "engine", "engine", "battery", "battery", "battery", "battery", "battery", "battery", "sensor", "sensor", "sensor"], # 26
 		"research_req": "zone_10_access",
 		"visual": "res://assets/ships/5.png",

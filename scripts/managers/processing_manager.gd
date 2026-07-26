@@ -543,32 +543,101 @@ var recipes: Dictionary = {
 	},
 	"refine_colony_alloy": {
 		"name": "Colony-Forged Alloy",
-		"description": "Recast colony reactor-salvage into a heavy mining-grade alloy.",
-		"input": {"ColonySalvage": 3, "Superalloy": 2}, "output": {"ColonyAlloy": 1},
+		"description": "Recast colony reactor-salvage around a xenoforged core into heavy mining-grade plate.",
+		# v142d ALLOY LADDER, rung Z6 — see the three-part rule on refine_chondrite_alloy.
+		#   depth: XenoforgedAlloy 1 | automatable: StructuralComponent 5 | own-zone combat: ColonySalvage 6
+		# Was ColonySalvage 3 + Superalloy 2: no depth (it did not touch the Z5 rung at
+		# all, so the ladder simply RESTARTED at Z6) and it re-used Superalloy, the
+		# carrier the Z5 rung already owns.
+		# Coefficient on the previous rung is 1, NEVER 2 — at 2 the backward cost is
+		# geometric, at 1 it stays linear. Transitive combat drops per alloy:
+		#   c(6) = c(5) + 6 = 16 + 6 = 22, of which 16 are BACKWARD (Z2-Z5) and arrive
+		#   through the single XenoforgedAlloy. Own-zone drops never count backward.
+		# StructuralComponent (recipe level 35 + structural_press building) is the
+		# carrier because it is a chain NO earlier rung uses: it is the only bulk
+		# consumer of Li (Spodumene -> Lithium Extractor / Brine Well / Refinery) and
+		# reloads Fe/Cu/Si/C alongside it. Per-zone carriers so far:
+		#   Z2 Circuit | Z3 Steel | Z4 N | Z5 Superalloy | Z6 StructuralComponent
+		"input": {"XenoforgedAlloy": 1, "StructuralComponent": 5, "ColonySalvage": 6}, "output": {"ColonyAlloy": 1},
 		"duration": 15.0, "level_req": 55, "xp": 95, "research_req": "zone_6_access", "category": "alloys"
 	},
 	"refine_gamma_alloy": {
 		"name": "Gamma Alloy",
-		"description": "Stabilize charged exotic isotopes into a radiation-tempered alloy.",
-		"input": {"ExoticIsotope": 3, "VoidCrystal": 2}, "output": {"GammaAlloy": 1},
+		"description": "Stabilize charged exotic isotopes in a colony-forged matrix, tempering the lattice against hard radiation.",
+		# v142d ALLOY LADDER, rung Z7 — see the three-part rule on refine_chondrite_alloy.
+		#   depth: ColonyAlloy 1 | automatable: AdvCircuit 4 | own-zone combat: ExoticIsotope 6
+		# Was ExoticIsotope 3 + VoidCrystal 2: no depth, and VoidCrystal is COMBAT-only
+		# at this point in the ladder (void_crystallizer needs void_navigation, several
+		# techs later), so the "automatable" slot was really a second combat tax.
+		#   c(7) = c(6) + 6 = 28, of which 22 are BACKWARD (Z2-Z6) via the one ColonyAlloy.
+		# AdvCircuit (recipe level 40 + adv_circuit_foundry building) is the carrier:
+		# it wakes Germanite->Germanium, Au (Dirt/Water electrolysis) and Ag, none of
+		# which any earlier rung touches. It is only viable HERE and not at Z5 — the
+		# note on refine_xenoforged_alloy rejected AdvCircuit at level 45 because the
+		# recipe gates at 40 and that band could not reach it; this rung gates at 65.
+		#   Z2 Circuit | Z3 Steel | Z4 N | Z5 Superalloy | Z6 StructuralComponent | Z7 AdvCircuit
+		"input": {"ColonyAlloy": 1, "AdvCircuit": 4, "ExoticIsotope": 6}, "output": {"GammaAlloy": 1},
 		"duration": 16.0, "level_req": 65, "xp": 120, "research_req": "zone_7_access", "category": "alloys"
 	},
 	"refine_prismatic_alloy": {
 		"name": "Prismatic Alloy",
-		"description": "Lattice antimatter particles into a prismatic crystalline alloy.",
-		"input": {"AntimatterParticle": 3, "VoidCrystal": 2}, "output": {"PrismaticAlloy": 1},
+		"description": "Suspend antimatter particles in a graphite lattice grown onto a gamma-tempered core, refracting the containment field into solid form.",
+		# v142d ALLOY LADDER, rung Z8 — see the three-part rule on refine_chondrite_alloy.
+		#   depth: GammaAlloy 1 | automatable: Graphite 20 | own-zone combat: AntimatterParticle 6
+		# Was AntimatterParticle 3 + VoidCrystal 2 — the SAME shape as the Z7 rung
+		# (signature raw x3 + VoidCrystal x2), so Z7 and Z8 were not a ladder at all,
+		# just two parallel recipes reading from adjacent loot tables.
+		#   c(8) = c(7) + 6 = 34, of which 28 are BACKWARD (Z2-Z7) via the one GammaAlloy.
+		# Graphite (recipe level 25 + auto_press building) is the carrier. It is 5 C
+		# each, so 20 Graphite is 100 Carbon per alloy — the first demand large enough
+		# to keep the Wood -> smelt_carbon -> Carbon Generator / Industrial Kiln line
+		# load-bearing into the endgame. Steel's C 2 never justified that chain on its
+		# own. Crystalline carbon is also the honest read of "prismatic lattice".
+		#   Z2 Circuit | Z3 Steel | Z4 N | Z5 Superalloy | Z6 StructuralComponent
+		#   Z7 AdvCircuit | Z8 Graphite
+		"input": {"GammaAlloy": 1, "Graphite": 20, "AntimatterParticle": 6}, "output": {"PrismaticAlloy": 1},
 		"duration": 16.0, "level_req": 72, "xp": 150, "research_req": "zone_8_access", "category": "alloys"
 	},
 	"refine_bioforged_alloy": {
 		"name": "Bioforged Alloy",
-		"description": "Bind biohazard residue with regenerative plating into a self-knitting bio-alloy.",
-		"input": {"BiohazardSample": 3, "RegenPlating": 1}, "output": {"BioforgedAlloy": 1},
+		"description": "Culture biohazard residue across a prismatic substrate inside a tungsten containment lattice, growing plate that knits its own fractures shut.",
+		# v142d ALLOY LADDER, rung Z9 — see the three-part rule on refine_chondrite_alloy.
+		#   depth: PrismaticAlloy 1 | automatable: W 25 | own-zone combat: BiohazardSample 6
+		# Was BiohazardSample 3 + RegenPlating 1, and RegenPlating is itself
+		# BiohazardSample 20 + IrPlate 3 + PathogenCore 1 for 2 — so the real bill was
+		# ~13 BiohazardSample + 0.5 PathogenCore (a 5-10% RARE drop) per alloy, i.e.
+		# both slots were Zone-9 combat and the rung had no depth and nothing
+		# automatable. It was the worst offender of the five for the combat asymmetry.
+		#   c(9) = c(8) + 6 = 40, of which 34 are BACKWARD (Z2-Z8) via the one PrismaticAlloy.
+		# W (gathered from level 20 + heavy_tungsten_drill at 2.0/5s) is the carrier:
+		# an EARLY, fully automatable good whose only sinks until now were ammo, so the
+		# Tungsten Vein line stops being a dead-end the moment the player leaves it.
+		#   Z2 Circuit | Z3 Steel | Z4 N | Z5 Superalloy | Z6 StructuralComponent
+		#   Z7 AdvCircuit | Z8 Graphite | Z9 W
+		"input": {"PrismaticAlloy": 1, "W": 25, "BiohazardSample": 6}, "output": {"BioforgedAlloy": 1},
 		"duration": 17.0, "level_req": 80, "xp": 190, "research_req": "zone_9_access", "category": "alloys"
 	},
 	"refine_aeon_alloy": {
 		"name": "Aeon Alloy",
-		"description": "Fuse aeon residuum with void essence into a primordial-grade alloy.",
-		"input": {"AeonResiduum": 3, "VoidEssence": 2}, "output": {"AeonAlloy": 1},
+		"description": "Seed aeon residuum into a bioforged matrix and seal it with iridium — the one metal old enough to hold the pour. Primordial-grade stock.",
+		# v142d ALLOY LADDER, rung Z10 — see the three-part rule on refine_chondrite_alloy.
+		#   depth: BioforgedAlloy 1 | automatable: Ir 10 | own-zone combat: AeonResiduum 6
+		# Was AeonResiduum 3 + VoidEssence 2: no depth, and BOTH slots were Zone-10
+		# materials, so the capstone alloy asked nothing of the nine zones beneath it —
+		# the exact opposite of the cumulative rule.
+		#   c(10) = c(9) + 6 = 46, of which 40 are BACKWARD (Z2-Z9) via the one
+		#   BioforgedAlloy. LINEAR, not geometric: with the previous rung pinned at
+		#   coefficient 1 the whole ladder is c(n) = c(n-1) + k(n), and k = 6 for
+		#   Z6-Z10 gives c(n) = 6n - 14 from n=5 up. In the c(n) = k*(n-2)+1 form that
+		#   is an effective uniform k of 5.625 at n=10 — compare coefficient 2, which
+		#   would have made this alloy cost 2^9-1 = 511 backward drops.
+		# Ir (gathered via mine_iridium + iridium_drill at 0.4/10s) is the carrier and
+		# the last unclaimed extraction chain. It is not as early as W or C, but it is
+		# long-established by this point — the zone_8 gate already bills Ir 80 — and
+		# iridium is the honest "primordial" metal (the meteoric marker layer).
+		#   Z2 Circuit | Z3 Steel | Z4 N | Z5 Superalloy | Z6 StructuralComponent
+		#   Z7 AdvCircuit | Z8 Graphite | Z9 W | Z10 Ir
+		"input": {"BioforgedAlloy": 1, "Ir": 10, "AeonResiduum": 6}, "output": {"AeonAlloy": 1},
 		"duration": 18.0, "level_req": 88, "xp": 240, "research_req": "zone_10_access", "category": "alloys"
 	},
 	# v146 dedupe: "nitrogen_coolant" (Cryo-Shield Matrix) REMOVED. It was the

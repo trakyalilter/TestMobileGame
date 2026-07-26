@@ -1040,7 +1040,12 @@ var enemy_db = {
 		"name": "Ore Guardian",
 		"stats": {"hp": 14000, "max_shield": 5000, "atk": 458.666667, "def": 170, "atk_interval": 2.0, "accuracy": 88},
 		"charge_nuke": {"every_n": 6, "mult": 3.25},
-		"loot": [["Fe", 30, 70], ["Steel", 10, 25], ["Res3", 1, 3]],
+		# v142d signature-raw breadth: ColonySalvage dropped from ONE of Zone 6's four
+		# regulars (~2.1/kill across the rotation) while refine_colony_alloy now wants
+		# 6 per alloy — ~3 kills each was fine, but a single donor makes the supply
+		# hostage to one spawn. The Ore Guardian is colony mining hardware, so it is
+		# the thematic second donor.
+		"loot": [["Fe", 30, 70], ["Steel", 10, 25], ["Res3", 1, 3], ["ColonySalvage", 4, 10]],
 		"rare_loot": [["VoidArtifact", 0.10, 1, 3]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z6_shield", "z6_armor", "z6_battery", "z6_sensor"],
@@ -1056,7 +1061,12 @@ var enemy_db = {
 		# v139d P3: Reactive Armor — the mining golem stacks plating. Punishes
 		# fast small hits; heavy slow per-hit builds break through.
 		"reactive_armor": {"per_hits": 25, "def_mult": 1.4, "cap": 2.2},
-		"loot": [["credits", 200000, 500000], ["Ir", 5, 12], ["Superalloy", 10, 25], ["Res3", 10, 20], ["ColonyDataCore", 2, 5]],
+		# v142d: the Beta Colossus did NOT drop ColonySalvage, Zone 6's signature raw.
+		# Once that raw became the sole feedstock of refine_colony_alloy, boss farming
+		# yielded ZERO alloy progress — the same dominated-choice inversion the Z4 boss
+		# had. A boss should be the EFFICIENT farm for its own zone's material, so it
+		# pays ~10 regular kills' worth.
+		"loot": [["credits", 200000, 500000], ["Ir", 5, 12], ["Superalloy", 10, 25], ["Res3", 10, 20], ["ColonyDataCore", 2, 5], ["ColonySalvage", 20, 45]],
 		"rare_loot": [["z6_unique_weapon", 0.03, 1, 1], ["z6_unique_armor", 0.03, 1, 1], ["z6_unique_shield", 0.03, 1, 1], ["z6_unique_kinetic", 0.03, 1, 1], ["z6_unique_energy", 0.03, 1, 1], ["z6_unique_missile", 0.03, 1, 1]],
 		"boss_core": "Z6_Core",
 		"module_drop_chance": 0.25,
@@ -1072,7 +1082,13 @@ var enemy_db = {
 		# normalised the cadence to the uniform 2.0s at IDENTICAL dps (atk 980 ->
 		# 2450); the v142 cut is carried through by the rescale, not double-counted.
 		"stats": {"hp": 30000, "atk": 2450, "def": 270, "atk_interval": 2.0, "accuracy": 100},
-		"loot": [["ExoticMatter", 1, 3], ["VoidCrystal", 1, 2], ["Res3", 2, 4], ["ExoticIsotope", 1, 2]],
+		# v142d signature-raw supply: ExoticIsotope dropped from ONE of Zone 7's four
+		# regulars at 1-2, i.e. ~0.375 per kill across the rotation. refine_gamma_alloy
+		# wants 6, so ONE alloy cost ~16 serial kills — combat cannot be parallelised,
+		# so that is the worst possible place to hide volume. Raised here and spread to
+		# the Wraith and the Gamma Beast (below) for ~2.5/kill => ~2.4 kills per alloy,
+		# the same feel as the shipped Z4/Z5 rungs.
+		"loot": [["ExoticMatter", 1, 3], ["VoidCrystal", 1, 2], ["Res3", 2, 4], ["ExoticIsotope", 2, 5]],
 		"rare_loot": [["Os", 0.08, 1, 2]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z7_kinetic", "z7_energy", "z7_missile", "z7_shield", "z7_armor", "z7_battery", "z7_sensor"],
@@ -1081,7 +1097,7 @@ var enemy_db = {
 	"z7_energy_wraith": {
 		"name": "Energy Wraith",
 		"stats": {"hp": 38222, "max_shield": 15000, "atk": 1700, "def": 341, "atk_interval": 2.0, "accuracy": 105},
-		"loot": [["ExoticMatter", 2, 5], ["VoidCrystal", 1, 3], ["Res3", 2, 5]],
+		"loot": [["ExoticMatter", 2, 5], ["VoidCrystal", 1, 3], ["Res3", 2, 5], ["ExoticIsotope", 2, 4]],
 		"rare_loot": [["Ir", 0.10, 1, 3]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z7_kinetic", "z7_energy", "z7_missile", "z7_shield", "z7_armor", "z7_battery", "z7_sensor"],
@@ -1101,7 +1117,9 @@ var enemy_db = {
 		"name": "Gamma Beast",
 		"stats": {"hp": 75000, "atk": 857.142857, "def": 380, "atk_interval": 2.0, "accuracy": 95},
 		"charge_nuke": {"every_n": 7, "mult": 3.8},
-		"loot": [["RadIsotope", 3, 8], ["ExoticMatter", 1, 3], ["Res3", 2, 5]],
+		# The Gamma Beast already drops RadIsotope — it is the zone's thematic isotope
+		# donor, so it carries ExoticIsotope too (see the supply note on z7_shard_swarm).
+		"loot": [["RadIsotope", 3, 8], ["ExoticMatter", 1, 3], ["Res3", 2, 5], ["ExoticIsotope", 2, 5]],
 		"rare_loot": [["Os", 0.10, 1, 2]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z7_shield", "z7_armor", "z7_battery", "z7_sensor"],
@@ -1115,7 +1133,10 @@ var enemy_db = {
 		# the Prism RE-CRYSTALLIZES — the Z2 Monolith's soft pulse lesson tested
 		# for real (lattice continuity: monolith → prism).
 		"sustain": {"kind": "pulse", "every_s": 7.0, "pct": 0.07},
-		"loot": [["credits", 1000000, 2000000], ["ExoticMatter", 15, 30], ["Os", 3, 8], ["Res3", 15, 30]],
+		# v142d: the Sovereign Prism did not drop ExoticIsotope, Zone 7's signature raw
+		# and now refine_gamma_alloy's sole feedstock — boss farming paid zero alloy
+		# progress. Same fix as the Z4 and Z6 bosses.
+		"loot": [["credits", 1000000, 2000000], ["ExoticMatter", 15, 30], ["Os", 3, 8], ["Res3", 15, 30], ["ExoticIsotope", 20, 45]],
 		"rare_loot": [["z7_unique_weapon", 0.03, 1, 1], ["z7_unique_armor", 0.03, 1, 1], ["z7_unique_shield", 0.03, 1, 1], ["z7_unique_kinetic", 0.03, 1, 1], ["z7_unique_energy", 0.03, 1, 1], ["z7_unique_missile", 0.03, 1, 1]],
 		"boss_core": "Z7_Core",
 		"module_drop_chance": 0.25,
@@ -1136,7 +1157,11 @@ var enemy_db = {
 	"z8_crystal_golem": {
 		"name": "Crystal Golem",
 		"stats": {"hp": 91733, "atk": 2138.285714, "def": 749, "atk_interval": 2.0, "accuracy": 115},
-		"loot": [["VoidCrystal", 5, 12], ["Os", 1, 3], ["Res3", 3, 6], ["AntimatterParticle", 1, 2]],
+		# v142d signature-raw supply: identical defect to Zone 7's ExoticIsotope —
+		# AntimatterParticle came from ONE of four regulars at 1-2 (~0.375/kill) while
+		# refine_prismatic_alloy wants 6. Raised here and spread to the Void Stalker and
+		# Nebula Phantom below for ~2.4/kill => ~2.5 kills per alloy.
+		"loot": [["VoidCrystal", 5, 12], ["Os", 1, 3], ["Res3", 3, 6], ["AntimatterParticle", 2, 5]],
 		"rare_loot": [["Diamond", 0.08, 1, 1]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z8_kinetic", "z8_energy", "z8_missile", "z8_shield", "z8_armor", "z8_battery", "z8_sensor"],
@@ -1146,7 +1171,7 @@ var enemy_db = {
 		"name": "Void Stalker",
 		"stats": {"hp": 80000, "max_shield": 35000, "atk": 4125, "def": 680, "atk_interval": 2.0, "accuracy": 125},
 		"sustain": {"kind": "pulse", "every_s": 5.5, "pct": 0.18},
-		"loot": [["ExoticMatter", 3, 8], ["VoidCrystal", 2, 5], ["Res3", 3, 8]],
+		"loot": [["ExoticMatter", 3, 8], ["VoidCrystal", 2, 5], ["Res3", 3, 8], ["AntimatterParticle", 2, 4]],
 		"rare_loot": [["Os", 0.10, 1, 3]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z8_kinetic", "z8_energy", "z8_missile", "z8_battery", "z8_sensor"],
@@ -1156,7 +1181,7 @@ var enemy_db = {
 		"name": "Nebula Phantom",
 		"stats": {"hp": 182000, "max_shield": 40000, "atk": 2700, "def": 800, "atk_interval": 2.0, "accuracy": 118},
 		"charge_nuke": {"every_n": 6, "mult": 3.04},
-		"loot": [["credits", 150000, 300000], ["VoidCrystal", 3, 7], ["Res3", 3, 8]],
+		"loot": [["credits", 150000, 300000], ["VoidCrystal", 3, 7], ["Res3", 3, 8], ["AntimatterParticle", 2, 4]],
 		"rare_loot": [["ExoticMatter", 0.12, 2, 5]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z8_shield", "z8_armor", "z8_battery", "z8_sensor"],
@@ -1172,7 +1197,10 @@ var enemy_db = {
 		"stats": {"hp": 1850000, "max_shield": 29932, "atk": 9760, "def": 4489, "atk_interval": 2.0, "accuracy": 200},
 		# v139d P3: the Z1 Architect's telegraph, now LETHAL — every 4th swing x4.
 		"charge_nuke": {"every_n": 6, "mult": 5.2},
-		"loot": [["credits", 3000000, 6000000], ["VoidCrystal", 20, 50], ["Diamond", 2, 5], ["Res3", 20, 40]],
+		# v142d: the Prismatic Warden did not drop AntimatterParticle, Zone 8's
+		# signature raw and refine_prismatic_alloy's sole feedstock. Same boss-farm
+		# inversion as Z4/Z6/Z7.
+		"loot": [["credits", 3000000, 6000000], ["VoidCrystal", 20, 50], ["Diamond", 2, 5], ["Res3", 20, 40], ["AntimatterParticle", 20, 45]],
 		"rare_loot": [["z8_unique_weapon", 0.03, 1, 1], ["z8_unique_armor", 0.03, 1, 1], ["z8_unique_shield", 0.03, 1, 1], ["z8_unique_kinetic", 0.03, 1, 1], ["z8_unique_energy", 0.03, 1, 1], ["z8_unique_missile", 0.03, 1, 1]],
 		"boss_core": "Z8_Core",
 		"module_drop_chance": 0.25,
@@ -1228,7 +1256,9 @@ var enemy_db = {
 		# while the pathogen accelerates below 40%. DoT race under pressure.
 		"corrosive_field": {"hull_dps_pct": 0.004},
 		"enrage_at": 0.4, "enrage_atk_mult": 1.3,
-		"loot": [["credits", 10000000, 20000000], ["Neutronium", 10, 25], ["PathogenCore", 3, 8], ["Res3", 30, 50], ["QuarantineClearance", 1, 1]],
+		# v142d: Patient Zero did not drop BiohazardSample, Zone 9's signature raw and
+		# refine_bioforged_alloy's feedstock — the plague boss dropped no plague sample.
+		"loot": [["credits", 10000000, 20000000], ["Neutronium", 10, 25], ["PathogenCore", 3, 8], ["Res3", 30, 50], ["QuarantineClearance", 1, 1], ["BiohazardSample", 25, 50]],
 		"rare_loot": [["z9_unique_weapon", 0.03, 1, 1], ["z9_unique_armor", 0.03, 1, 1], ["z9_unique_shield", 0.03, 1, 1], ["z9_unique_kinetic", 0.03, 1, 1], ["z9_unique_energy", 0.03, 1, 1], ["z9_unique_missile", 0.03, 1, 1]],
 		"boss_core": "Z9_Core",
 		"module_drop_chance": 0.25,
@@ -1301,7 +1331,10 @@ var enemy_db = {
 		# normalisation but atk was rescaled x(2.0/3.0), so mult takes the reciprocal
 		# x(3.0/2.0) to keep the burst at the same absolute 300k it was tuned to.
 		"volatile": {"mult": 5.625},
-		"loot": [["credits", 50000000, 100000000], ["PrimordialShard", 20, 50], ["ChronoCore", 5, 12], ["CryoCatalyst", 10, 25]],
+		# v142d: the Void Leviathan did not drop AeonResiduum, Zone 10's signature raw
+		# and refine_aeon_alloy's feedstock. The final boss paid zero progress toward
+		# the final alloy — the sharpest form of the dominated-choice inversion.
+		"loot": [["credits", 50000000, 100000000], ["PrimordialShard", 20, 50], ["ChronoCore", 5, 12], ["CryoCatalyst", 10, 25], ["AeonResiduum", 25, 50]],
 		"rare_loot": [["z10_unique_weapon", 0.03, 1, 1], ["z10_unique_armor", 0.03, 1, 1], ["z10_unique_shield", 0.03, 1, 1], ["z10_unique_kinetic", 0.03, 1, 1], ["z10_unique_energy", 0.03, 1, 1], ["z10_unique_missile", 0.03, 1, 1]],
 		"boss_core": "Z10_Core",
 		"module_drop_chance": 0.25,
