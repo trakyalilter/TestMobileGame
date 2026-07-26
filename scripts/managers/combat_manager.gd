@@ -569,6 +569,60 @@ var hazard_zones = {
 #    cryo/corrosion only, so K/E/X are ALWAYS x0.15. Same reasoning as Z11.
 # Their NG+ TRASH is conventional and IS triangled — it was 0/0/0 before, i.e. a
 # pure dominated choice with no reason to ever change weapon.
+#
+# ─── v151 THE e3/e4 TIER GATE, REBUILT ON THE MIN-DPS AXIS ────────────────────
+# The triangle above BROKE the gate, and the repair is not where you would guess.
+#
+# WHAT BROKE. The triangle did not only raise resists — it moved and deepened the
+# WEAK channel (z4_glacial_drone resist_k -0.05 -> -0.30; z5_alien_probe went from
+# energy-weak -0.15 to explosive-weak -0.30, i.e. onto the STRONGEST channel).
+# Every gear row equips the enemy's weakest type, so this was a uniform DPS
+# windfall — it did not change WHO beats the cell, it just multiplied everyone's
+# kill count until carried Zone N-1 gear floated over the 5-kill farm bar.
+#
+# WHY THE OBVIOUS LEVERS ARE DEAD. charge_nuke and base atk are LETHALITY levers,
+# and lethality is INVERTED here. Per-type resistance is an AFFIX: a carried
+# Legendary rolls resist_k/e/x and averages 0.60-0.75 (the cap) against the
+# enemy's single damage type, while a freshly crafted CLEAN Common tier-N has no
+# affixes and is pinned at its 0.21-0.47 module baseline. Carried gear therefore
+# takes ~2.5x LESS damage than the very row the idle rule exists to protect.
+# Measured on z4_glacial_drone, deaths per 180s window over 15 trials:
+#   nuke mult 2.11 (authored) -> Common  0/15   Legendary+T1  0/15
+#   nuke mult 4.50            -> Common  5/15   Legendary+T1  0/15
+#   nuke mult 6.00            -> Common 15/15   Legendary+T1  4/15   (inverted)
+#   nuke mult 8.00            -> Common 15/15   Legendary+T1  4/15, still 6 kills
+# and on z9_quarantine_mech at mult 9.00 (vs 4.15 authored) NOTHING died at all.
+# Tier-matched Common dies FIRST at every setting. This is the same root cause
+# the v147 z2_claim_jumper note found and it generalises to the whole table.
+#
+# WHAT ACTUALLY WORKS: the shield-repair pulse, because of `bleed_ratio` in
+# resolve_damage. While an enemy's shield fully absorbs a swing's shield damage,
+# bleed_ratio is 0 and the swing deals ZERO hull damage — the shield is a hard
+# wall, not a second HP bar. And shield damage is computed from RAW atk with no
+# armour divisor and no resist term, so stripping it is a pure weapon-tier check:
+# a Common tier-N out-strips a carried Legendary tier-(N-1) by the full 3.75x
+# tier step, uncushioned by the affixes that neuter every other lever. That is a
+# genuine min-DPS gate — the rate goes to ZERO, which is the only kind of gate an
+# idle game respects (a slow cell is still a farmable cell to an AFK player).
+#
+# HENCE THE SHAPE OF THE FIX. Every e3/e4 cell in Zones 4-10 now carries a
+# deflector sized in proportion to its hull plus a repair pulse on a uniform 6.0s
+# cadence; hull hp is scaled to land row 9 back at 6-8 kills. max_shield is NOT
+# padding — the pulse heals `enemy_max_shield * pct`, so the POOL is the pulse's
+# ceiling, which is why several cells needed the shield raised while pct went
+# DOWN, and why the four shieldless cells (z7_gamma_beast, z9_quarantine_mech,
+# z10_primordial_titan, and Z8's) had to be given one before the lever existed.
+# Note zone 9-10 enemy DEF is high enough that hull EHP is heavily mitigated
+# while shield EHP is not, so those cells are deliberately shield-heavy.
+# charge_nuke is KEPT everywhere as the telegraph/identity but it no longer
+# gates anything — do not reach for it as a lever again without re-reading above.
+# Zones 2 and 3 are untouched: both already satisfied the gate.
+#
+# STANDING LIMIT — THE REAL FIX IS THE AFFIX AXIS. Per-type resist rolls 5-20%
+# (GA 40%) on armour AND shield and aggregates to a 0.75 cap, so 3 Legendary
+# affixes beat an entire gear tier at mitigation. Until that is capped, or clean
+# Common gear carries a comparable baseline, NO lethality lever can gate anything
+# and this table has to buy its gate entirely on the min-DPS axis.
 # ──────────────────────────────────────────────────────────────────────────────
 var enemy_db = {
 	# ═══ ZONE 1: Lunar Orbit — Reg HP~200, ATK~15, DEF~3 ═══
@@ -803,10 +857,20 @@ var enemy_db = {
 		# game. v149 normalised it to the uniform 2.0s cadence at IDENTICAL dps
 		# (atk 26 -> 86.67); the v148 cut is carried through by the rescale, not
 		# double-counted. The swarm identity now lives in its pulse, which is the gate.
-		"stats": {"hp": 800, "max_shield": 150, "atk": 86.666667, "def": 10, "atk_interval": 2.0, "accuracy": 38},
+		# v151: hp 800->860, shield 150->860, pulse pct 0.13->0.15. Zone 3 e3 read as
+		# a PASS on two seeds and a clear LEAK on a third, because what was actually
+		# holding carried Legendary+T1 back was a coin-flip DEATH, not the gate:
+		# measured over 21 trials it farmed 7 kills with 0/21 deaths. A gate that
+		# depends on the enemy getting lucky is not a gate. The re-knit pulse was
+		# toothless because its heal is max_shield x pct and max_shield was 436
+		# effective — 16% of the swarm's EHP. Giving it a real pool is what turns
+		# the flavour text into the mechanic it always claimed to be.
+		# Measured (21 trials): row 9 13 -> 7 kills 0 deaths; carried
+		# Rare/Legendary/Legendary+T1 5/6/7 -> 1/2/3; Unique 20 -> 12 (still farms).
+		"stats": {"hp": 860, "max_shield": 860, "atk": 86.666667, "def": 10, "atk_interval": 2.0, "accuracy": 38},
 		# v142 tier-gate flavour (owner: use a skill mechanic, not a wall): the swarm
 		# re-knits. MIN-DPS check — sub-tier damage cannot out-pace the re-form.
-		"sustain": {"kind": "pulse", "every_s": 6.0, "pct": 0.13},
+		"sustain": {"kind": "pulse", "every_s": 6.0, "pct": 0.15},
 		"loot": [["Fe", 5, 15], ["Cu", 3, 8], ["Res2", 1, 2], ["MartianRelics", 1, 2], ["SalvageData", 2, 4]],
 		"rare_loot": [["Steel", 0.15, 2, 5], ["Sn", 0.12, 2, 4]],
 		"module_drop_chance": 0.20,   # v138c: was 0.10 (see z3_scavenger_mech note)
@@ -954,7 +1018,15 @@ var enemy_db = {
 		# single-type (energy), and carried Legendary rolls resist_e 0.57-0.75 as
 		# an AFFIX while a clean Common is pinned at the 0.28 baseline. Fix the
 		# affix axis, not this stat line.
-		"stats": {"hp": 2400, "max_shield": 500, "atk": 155.555556, "def": 28, "atk_interval": 2.0, "accuracy": 58},
+		# v151: hp 2400->4200, shield 500->875 (EHP x1.75). Two things at once: the
+		# resist triangle deepened this cell's weak channel (resist_k -0.05 -> -0.30),
+		# handing EVERY gear row the same DPS windfall and floating carried Legendary
+		# over the 5-kill bar; and Z4 e4 was SOFTER than Z4 e3 (5,888 vs 9,341
+		# effective EHP), the same "deepest cell is the gentlest" inversion v147 fixed
+		# on z2_ore_hauler. x1.75 restores the pre-triangle TTK and the e3<e4 ordering.
+		# Measured (gate_probe, 21 trials): row 9 Common-N 14 -> 8 kills, 0 deaths;
+		# carried Rare/Legendary/Legendary+T1 7/6/7 -> 4/3/2. No pulse needed here.
+		"stats": {"hp": 4200, "max_shield": 875, "atk": 155.555556, "def": 28, "atk_interval": 2.0, "accuracy": 58},
 		# every_n counts SWINGS. Before v149 it had to be hand-tuned per enemy fire
 		# rate to land a readable ~12-14s TIME cadence. With every enemy on
 		# DEFAULT_ATTACK_INTERVAL the field is uniform in time: period = every_n x 2.0s.
@@ -1027,8 +1099,13 @@ var enemy_db = {
 		"name": "Alien Frigate",
 		# v142 shape fix: e3 sat at 6 kills for Common-Z5, no margin for the gate
 		# pulse that step 2 adds here. hp 12000->8500, shield 2500->1800.
-		"stats": {"hp": 8500, "max_shield": 1800, "atk": 258.666667, "def": 80, "atk_interval": 2.0, "accuracy": 72},
-		"sustain": {"kind": "pulse", "every_s": 6.0, "pct": 0.15},
+		# v151: hp 8500->7000, shield 1800->6000, pulse pct 0.15->0.20. The shield is
+		# not padding — the pulse heals max_shield x pct, so max_shield IS the pulse's
+		# ceiling, and at 1800 it could only drain ~5% of a tier-matched Common's
+		# throughput. Measured (21 trials): row 9 10 -> 7 kills 0 deaths; carried
+		# Rare/Legendary/Legendary+T1 4/4/5 -> 1/2/3; Unique 21 -> 18 (still farms).
+		"stats": {"hp": 7000, "max_shield": 6000, "atk": 258.666667, "def": 80, "atk_interval": 2.0, "accuracy": 72},
+		"sustain": {"kind": "pulse", "every_s": 6.0, "pct": 0.20},
 		"loot": [["VoidArtifact", 2, 5], ["credits", 5000, 10000], ["Res2", 3, 6], ["XenoFragment", 2, 4]],
 		"rare_loot": [["QuantumCore", 0.08, 1, 1]],
 		"module_drop_chance": 0.10,
@@ -1041,8 +1118,15 @@ var enemy_db = {
 		# tier-matched Common DIED here (11 kills then a death). v149 normalised the
 		# cadence to the uniform 2.0s at IDENTICAL dps (atk 195 -> 325); the v142 cut
 		# is carried through by the rescale, not double-counted.
-		"stats": {"hp": 5000, "max_shield": 3000, "atk": 325, "def": 60, "atk_interval": 2.0, "accuracy": 78},
+		# v151: shield 3000->8000 + a repair pulse. hp and the nuke are UNCHANGED.
+		# The nuke stays as the telegraph identity but it can no longer gate anything
+		# (see the v151 block above enemy_db: raising a nuke kills tier-matched Common
+		# FIRST, because per-type resist is an affix). The deflector is the real gate.
+		# Measured (21 trials): row 9 13 -> 7 kills 0 deaths; carried
+		# Rare/Legendary/Legendary+T1 5/7/8 -> 1/3/4; Unique 30 -> 19 (still farms).
+		"stats": {"hp": 5000, "max_shield": 8000, "atk": 325, "def": 60, "atk_interval": 2.0, "accuracy": 78},
 		"charge_nuke": {"every_n": 6, "mult": 1.84},
+		"sustain": {"kind": "pulse", "every_s": 6.0, "pct": 0.15},
 		"loot": [["credits", 4000, 7000], ["Circuit", 5, 10], ["Res2", 2, 5], ["XenoFragment", 1, 3]],
 		"rare_loot": [["AdvCircuit", 0.10, 2, 4]],
 		"module_drop_chance": 0.10,
@@ -1100,8 +1184,11 @@ var enemy_db = {
 		"name": "Radiation Beast",
 		# v142 shape fix: authored as the zone's tank but sits in the e3 slot, so
 		# Common-Z6 scraped the 5-kill bar exactly. hp 30000->21000, shield 4000->2800.
-		"stats": {"hp": 21000, "max_shield": 2800, "atk": 850, "def": 140, "atk_interval": 2.0, "accuracy": 92},
-		"sustain": {"kind": "pulse", "every_s": 6.0, "pct": 0.16},
+		# v151: hp 21000->20270, shield 2800->20270, pct 0.16->0.15. Same story as Z5
+		# e3 — the pulse had no shield pool to work with. Measured (21 trials): row 9
+		# 8 -> 6 kills 0 deaths; carried Rare/Legendary/Legendary+T1 3/4/4 -> 2/2/3.
+		"stats": {"hp": 20270, "max_shield": 20270, "atk": 850, "def": 140, "atk_interval": 2.0, "accuracy": 92},
+		"sustain": {"kind": "pulse", "every_s": 6.0, "pct": 0.15},
 		"loot": [["RadIsotope", 1, 3], ["U", 5, 12], ["Res3", 1, 3]],
 		"rare_loot": [["Ir", 0.08, 1, 2]],
 		"module_drop_chance": 0.10,
@@ -1110,8 +1197,13 @@ var enemy_db = {
 	},
 	"z6_ore_guardian": {
 		"name": "Ore Guardian",
-		"stats": {"hp": 14000, "max_shield": 5000, "atk": 458.666667, "def": 170, "atk_interval": 2.0, "accuracy": 88},
+		# v151: hp 14000->18822, shield 5000->18822, + repair pulse. Nuke unchanged
+		# (telegraph identity only — it cannot gate; see the v151 block above enemy_db).
+		# Measured (15 trials): row 9 12 -> 7 kills 0 deaths; carried
+		# Rare/Legendary/Legendary+T1 5/6/6 -> 2/3/3; Unique 23 -> 13 (still farms).
+		"stats": {"hp": 18822, "max_shield": 18822, "atk": 458.666667, "def": 170, "atk_interval": 2.0, "accuracy": 88},
 		"charge_nuke": {"every_n": 6, "mult": 3.25},
+		"sustain": {"kind": "pulse", "every_s": 6.0, "pct": 0.15},
 		# v142d signature-raw breadth: ColonySalvage dropped from ONE of Zone 6's four
 		# regulars (~2.1/kill across the rotation) while refine_colony_alloy now wants
 		# 6 per alloy — ~3 kills each was fine, but a single donor makes the supply
@@ -1177,8 +1269,13 @@ var enemy_db = {
 	},
 	"z7_void_hunter": {
 		"name": "Void Hunter",
-		"stats": {"hp": 32000, "max_shield": 12000, "atk": 2500, "def": 300, "atk_interval": 2.0, "accuracy": 110},
-		"sustain": {"kind": "pulse", "every_s": 5.5, "pct": 0.17},
+		# v151: hp 32000->36479, shield 12000->36479, pulse 5.5s/0.17 -> 6.0s/0.15.
+		# pct went DOWN and the gate got STRONGER — the pulse heals max_shield x pct,
+		# so the shield pool, not the percentage, is what gives it teeth.
+		# Measured (21 trials): row 9 11 -> 6 kills 0 deaths; carried
+		# Rare/Legendary/Legendary+T1 4/6/7 -> 1/2/3; Unique 20 -> 11 (still farms).
+		"stats": {"hp": 36479, "max_shield": 36479, "atk": 2500, "def": 300, "atk_interval": 2.0, "accuracy": 110},
+		"sustain": {"kind": "pulse", "every_s": 6.0, "pct": 0.15},
 		"loot": [["VoidCrystal", 2, 4], ["credits", 50000, 100000], ["Res3", 2, 5]],
 		"rare_loot": [["ExoticMatter", 0.12, 2, 4]],
 		"module_drop_chance": 0.10,
@@ -1187,7 +1284,14 @@ var enemy_db = {
 	},
 	"z7_gamma_beast": {
 		"name": "Gamma Beast",
-		"stats": {"hp": 75000, "atk": 857.142857, "def": 380, "atk_interval": 2.0, "accuracy": 95},
+		# v151: hp 75000->38625 and a NEW 38625 deflector + repair pulse. This cell was
+		# SHIELDLESS, so a repair pulse here would have been a silent no-op (it heals
+		# max_shield x pct); the deflector is what makes the min-DPS gate exist at all.
+		# Hull came down to pay for it, so total EHP only moves 698,934 -> 720,180.
+		# Measured (21 trials): row 9 7 -> 6 kills 0 deaths; carried
+		# Rare/Legendary/Legendary+T1 3/4/5 -> 1/2/3; Unique 11 -> 10 (still farms).
+		"stats": {"hp": 38625, "max_shield": 38625, "atk": 857.142857, "def": 380, "atk_interval": 2.0, "accuracy": 95},
+		"sustain": {"kind": "pulse", "every_s": 6.0, "pct": 0.15},
 		"charge_nuke": {"every_n": 7, "mult": 3.8},
 		# The Gamma Beast already drops RadIsotope — it is the zone's thematic isotope
 		# donor, so it carries ExoticIsotope too (see the supply note on z7_shard_swarm).
@@ -1241,8 +1345,11 @@ var enemy_db = {
 	},
 	"z8_void_stalker": {
 		"name": "Void Stalker",
-		"stats": {"hp": 80000, "max_shield": 35000, "atk": 4125, "def": 680, "atk_interval": 2.0, "accuracy": 125},
-		"sustain": {"kind": "pulse", "every_s": 5.5, "pct": 0.18},
+		# v151: hp 80000->98974, shield 35000->123718, pulse 5.5s -> 6.0s (pct 0.18 kept).
+		# Measured (21 trials): row 9 12 -> 6 kills 0 deaths; carried
+		# Rare/Legendary/Legendary+T1 4/6/7 -> 1/2/3; Unique 31 -> 18 (still farms).
+		"stats": {"hp": 98974, "max_shield": 123718, "atk": 4125, "def": 680, "atk_interval": 2.0, "accuracy": 125},
+		"sustain": {"kind": "pulse", "every_s": 6.0, "pct": 0.18},
 		"loot": [["ExoticMatter", 3, 8], ["VoidCrystal", 2, 5], ["Res3", 3, 8], ["AntimatterParticle", 2, 4]],
 		"rare_loot": [["Os", 0.10, 1, 3]],
 		"module_drop_chance": 0.10,
@@ -1251,7 +1358,14 @@ var enemy_db = {
 	},
 	"z8_nebula_phantom": {
 		"name": "Nebula Phantom",
-		"stats": {"hp": 182000, "max_shield": 40000, "atk": 2700, "def": 800, "atk_interval": 2.0, "accuracy": 118},
+		# v151: hp 182000->107222, shield 40000->107222, + repair pulse. Nuke unchanged.
+		# This cell was NOT leaking, but row 9 sat at 5-6 kills — the "exactly on the
+		# bar is a fail" case. Trading hull for a pulsed deflector buys rule 1 nothing
+		# but costs rule 2 a lot: carried gear pays the shield tax at ~2.5x row 9's rate.
+		# Measured (15 trials): row 9 6 kills 0 deaths (unchanged); carried
+		# Rare/Legendary/Legendary+T1 3/3/4 -> 2/3/3; Unique 14 -> 18.
+		"stats": {"hp": 107222, "max_shield": 107222, "atk": 2700, "def": 800, "atk_interval": 2.0, "accuracy": 118},
+		"sustain": {"kind": "pulse", "every_s": 6.0, "pct": 0.15},
 		"charge_nuke": {"every_n": 6, "mult": 3.04},
 		"loot": [["credits", 150000, 300000], ["VoidCrystal", 3, 7], ["Res3", 3, 8], ["AntimatterParticle", 2, 4]],
 		"rare_loot": [["ExoticMatter", 0.12, 2, 5]],
@@ -1301,8 +1415,24 @@ var enemy_db = {
 	},
 	"z9_rogue_ai": {
 		"name": "Rogue AI Core",
-		"stats": {"hp": 190000, "max_shield": 90000, "atk": 12000, "def": 1400, "atk_interval": 2.0, "accuracy": 155},
-		"sustain": {"kind": "pulse", "every_s": 5.5, "pct": 0.19},
+		# v151: hp 190000->233873, shield 90000->292341, pulse 5.5s/0.19 -> 6.0s/0.40.
+		# The HARDEST cell in the table: it opened at a row-9-to-carried-Legendary+T1
+		# kill ratio of only 1.5, so EHP alone could never separate them (see the
+		# v151 block above enemy_db). Only the pulse widens the ratio, and at zone 9
+		# the enemy DEF is high enough that hull damage is heavily mitigated while
+		# SHIELD damage is not mitigated at all — hence the deliberately large pool
+		# and the 0.40 pct. Measured (21 trials): row 9 12 -> 6 kills 0 deaths;
+		# carried Rare/Legendary/Legendary+T1 5/6/8 -> 1/2/3; Unique 21 -> 12.
+		# v151b: atk 12000 -> 10500. The funnel caught row 9 (clean Common tier-9)
+		# DYING here 1 time in 9 — a rule-1 break. This is the ONE place lethality
+		# is the right lever, precisely BECAUSE it is inverted: row 9 is the only
+		# row this enemy can still kill (carried gear sits at the 0.75 resist cap),
+		# so cutting atk buys back rule 1 without handing rule 2 anything — the
+		# carried rows are held by the min-DPS pulse, not by fear of dying.
+		# Measured (gate_probe, 27 trials): row 9 deaths 1/27 -> 0/27, kills 6 either
+		# way; carried Rare/Legendary/Legendary+T1 unchanged at 1/2/3 kills.
+		"stats": {"hp": 233873, "max_shield": 292341, "atk": 10500, "def": 1400, "atk_interval": 2.0, "accuracy": 155},
+		"sustain": {"kind": "pulse", "every_s": 6.0, "pct": 0.40},
 		"loot": [["Chip", 10, 25], ["AdvCircuit", 5, 12], ["Res3", 5, 10]],
 		"rare_loot": [["ChronoCore", 0.05, 1, 1]],
 		"module_drop_chance": 0.10,
@@ -1312,7 +1442,14 @@ var enemy_db = {
 	"z9_quarantine_mech": {
 		"name": "Quarantine Mech",
 		# v142 shape fix: only Z4-Z10 cell still under the 5-kill bar (4). 437500->320000.
-		"stats": {"hp": 320000, "atk": 4285.714286, "def": 1800, "atk_interval": 2.0, "accuracy": 138},
+		# v151: hp 320000->321575 (flat) plus a NEW 233873 deflector + 0.35 repair pulse.
+		# Shieldless before, so the min-DPS lever did not exist here. Verified directly
+		# that the nuke could not do the job instead: at mult 9.0 (vs the authored 4.15)
+		# NOTHING died — row 9 and carried Legendary+T1 both farmed at 7 and 6 kills,
+		# 0/15 deaths each. Measured (21 trials): row 9 8 -> 6 kills 0 deaths; carried
+		# Rare/Legendary/Legendary+T1 3/4/6 -> 2/2/3; Unique 14 -> 10 (still farms).
+		"stats": {"hp": 321575, "max_shield": 233873, "atk": 4285.714286, "def": 1800, "atk_interval": 2.0, "accuracy": 138},
+		"sustain": {"kind": "pulse", "every_s": 6.0, "pct": 0.35},
 		"charge_nuke": {"every_n": 7, "mult": 4.15},
 		"loot": [["Neutronium", 1, 3], ["credits", 500000, 1000000], ["Res3", 5, 10]],
 		"rare_loot": [["PathogenCore", 0.10, 1, 2]],
@@ -1359,8 +1496,11 @@ var enemy_db = {
 	},
 	"z10_omega_sentinel": {
 		"name": "Omega Sentinel",
-		"stats": {"hp": 600000, "max_shield": 180000, "atk": 13000, "def": 4000, "atk_interval": 2.0, "accuracy": 165},
-		"sustain": {"kind": "pulse", "every_s": 5.0, "pct": 0.20},
+		# v151: hp 600000->531118, shield 180000->424894, pulse 5.0s/0.20 -> 6.0s/0.30.
+		# Measured (15 trials): row 9 9 -> 6 kills 0 deaths; carried
+		# Rare/Legendary/Legendary+T1 4/5/6 -> 1/2/3; Unique 18 -> 14 (still farms).
+		"stats": {"hp": 531118, "max_shield": 424894, "atk": 13000, "def": 4000, "atk_interval": 2.0, "accuracy": 165},
+		"sustain": {"kind": "pulse", "every_s": 6.0, "pct": 0.30},
 		"loot": [["OmegaPlating", 1, 3], ["PrimordialShard", 1, 2], ["CryoCatalyst", 1, 3]],
 		"rare_loot": [["VoidEssence", 0.10, 1, 3]],
 		"module_drop_chance": 0.10,
@@ -1370,7 +1510,12 @@ var enemy_db = {
 	"z10_primordial_titan": {
 		"name": "Primordial Titan",
 		# v142 shape fix: Common-Z10 sat exactly on the 5-kill bar. 1050000->880000.
-		"stats": {"hp": 880000, "atk": 10000, "def": 3400, "atk_interval": 2.0, "accuracy": 158},
+		# v151: hp 880000->637342 plus a NEW 424894 deflector + 0.30 repair pulse.
+		# Shieldless before. Nuke (6 x 4.80) unchanged — telegraph identity only.
+		# Measured (21 trials): row 9 9 -> 6 kills 0 deaths; carried
+		# Rare/Legendary/Legendary+T1 4/5/6 -> 0/2/3; Unique 16 -> 12 (still farms).
+		"stats": {"hp": 637342, "max_shield": 424894, "atk": 10000, "def": 3400, "atk_interval": 2.0, "accuracy": 158},
+		"sustain": {"kind": "pulse", "every_s": 6.0, "pct": 0.30},
 		"charge_nuke": {"every_n": 6, "mult": 4.8},
 		"loot": [["PrimordialShard", 2, 5], ["credits", 5000000, 10000000], ["CryoCatalyst", 2, 4]],
 		"rare_loot": [["OmegaPlating", 0.08, 1, 2]],
