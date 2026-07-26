@@ -136,16 +136,12 @@ var recipes: Dictionary = {
 		"xp": 22,
 		"category": "components"
 	},
-	"smelt_steel_oxygen": {
-		"name": "Oxygen-Enriched Smelting",
-		"description": "Use Oxygen to blast smelt Steel efficiently. Manganese deoxidises the melt for a higher yield.",
-		"input": {"Fe": 10, "C": 4, "O": 4, "Mn": 2},
-		"output": {"Steel": 10},
-		"duration": 5.0,
-		"level_req": 40,
-		"xp": 25,
-		"research_req": "smelting"
-	},
+	# v146 dedupe: "smelt_steel_oxygen" REMOVED. It was smelt_steel_basic scaled x2
+	# (same Fe:C:O ratio, same 5.0s duration, same "smelting" research) with a +2 Mn
+	# tax bolted on and a L40 gate — a strictly-parallel second Steel recipe, not a
+	# tier step. Steel keeps two GENUINELY different supply paths: smelt_steel_basic
+	# (raw ore chain) and reclaim_alloy (combat SalvagedAlloy). Mn is NOT orphaned —
+	# craft_mg_ion_battery + shipyard still consume it.
 	"press_graphite": {
 		"name": "Graphite Press",
 		"description": "Compress Carbon into high-density Graphite.",
@@ -575,26 +571,22 @@ var recipes: Dictionary = {
 		"input": {"AeonResiduum": 3, "VoidEssence": 2}, "output": {"AeonAlloy": 1},
 		"duration": 18.0, "level_req": 88, "xp": 240, "research_req": "zone_10_access", "category": "alloys"
 	},
-	"nitrogen_coolant": {
-		"name": "Cryo-Shield Matrix",
-		"description": "Supercools shield generators for rapid integrity restoration. Restores 35% Shield.",
-		"input": {"Circuit": 5, "AlMgAlloy": 10, "N": 250, "Li": 5},
-		"output": {"NitroCoolant": 1},
-		"duration": 15.0,
-		"level_req": 32,
-		"xp": 60,
-		"research_req": "basic_engineering",
-		"category": "consumables_shield"
-	},
-	"refine_diamond_lens": {
-		"name": "Diamond Sensor Lens",
-		"description": "Cut a flawless diamond into a precision sensor lens and decode it into exotic research data.",
-		"input": {"Diamond": 1, "AdvCircuit": 5, "Au": 2},
-		"output": {"Res3": 2},
-		"duration": 30.0,
-		"level_req": 60,
-		"xp": 150
-	},
+	# v146 dedupe: "nitrogen_coolant" (Cryo-Shield Matrix) REMOVED. It was the
+	# dominated raw-element NitroCoolant recipe — L32 + basic_engineering + 15s for
+	# Circuit 5 / AlMgAlloy 10 / N 250 / Li 5, versus craft_cryo_coolant's L20,
+	# research-free, 10s, He 15 / N 10 / Water 5. Same output, worse on every axis.
+	# NitroCoolant keeps ONE raw path (craft_cryo_coolant, He is gatherable) plus the
+	# salvage path (recharge_coolant_cell, Z4 CoolantCell drop). AlMgAlloy is NOT
+	# orphaned — craft_missile_t3 still consumes it.
+
+	# v146 dedupe: "refine_diamond_lens" REMOVED. Second Res3 producer, and the
+	# strictly dominant one: 2 Res3 / 30s with NO research gate against
+	# upgrade_exotic_artifact's 1 Res3 / 60s behind sector_alpha_decryption. Keeping
+	# the artifact recipe instead of the lens is deliberate — upgrade_exotic_artifact
+	# is the ONLY recipe sink for Res2 and one of only two for XenoFragment, so
+	# cutting it would have stranded two heavily-dropped combat materials and left
+	# sector_alpha_decryption without a payoff. Diamond is NOT orphaned —
+	# crystallize_primordial_matrix, infrastructure and shipyard still consume it.
 	"craft_zero_point": {
 		"name": "Zero-Point Injector",
 		"description": "Vacuum energy extraction. Restores 50% Shield Integrity.",
@@ -740,17 +732,17 @@ var recipes: Dictionary = {
 		"xp": 35,
 		"research_req": "basic_electronics"
 	},
-	# Audit v18.0: Industrial Path (No combat required)
-	"assemble_circuit_standard": {
-		"name": "Standard Circuit Assembly",
-		"description": "Fabricate circuits from raw conductive materials. No Drone Core required.",
-		"input": {"Cu": 2, "Si": 3,"Sn":2,"Resin": 1},
-		"output": {"Circuit": 3},
-		"duration": 6.0,
-		"level_req": 12,
-		"xp": 40,
-		"research_req": "basic_electronics"
-	},
+	# v146 dedupe: "assemble_circuit_standard" REMOVED. Same Cu/Si/Sn stream as
+	# craft_circuit with 1 Resin added, same 6.0s duration, strictly better yield —
+	# a fossil of the v18.0 "industrial path (no combat required)" split, which the
+	# v80.3 DroneCore fix already resolved by making craft_circuit itself
+	# combat-free. Circuit keeps craft_circuit (raw, L6, research-free — the
+	# tutorial points at it from main.gd) and reclaim_circuitry (combat
+	# DamagedCircuitry). Resin is NOT orphaned — craft_aluminum_wire, craft_cell_t2,
+	# craft_hydraulics, craft_sealant and infrastructure still consume it.
+	# NOTE: research node basic_electronics listed this recipe as its ONLY payload;
+	# it is repointed to a craft_circuit speed bonus in research_manager.gd so it
+	# does not become a dead node.
 
 	"craft_hydraulics": {
 		"name": "Hydraulic Servo",
@@ -775,21 +767,14 @@ var recipes: Dictionary = {
 	},
 	# Basic metallurgy moved to top
 	# Germanium / Advanced Electronics
-	"extract_germanium": {
-		"name": "Germanium Extraction",
-		# v80.4 Fix: Germanit has no source. Reworked to use Si+Cu
-		# v139c band surgery: Si 10->6, Cu 5->3. The AdvCircuit chain needs SIX
-		# parallel raw streams in a single-active-task game (can't amortize
-		# offline — multi-input chains stall), and Si was the fattest stream.
-		# Lighter quantities, same chain shape (the multi-stream teach stays).
-		"description": "Extract trace Germanium from refined Silicon.",
-		"input": {"Si": 6, "Cu": 3},
-		"output": {"Germanium": 1},
-		"duration": 8.0,
-		"level_req": 36,
-		"xp": 40,
-		"research_req": "combustion"
-	},
+	# v146 dedupe: "extract_germanium" REMOVED. It only ever existed as the v80.4
+	# workaround for "Germanit has no source" — that premise is dead: gathering
+	# action mine_germanit (Mining L35, research-free) sources the ore now, so the
+	# Si+Cu synthetic path is a redundant second Germanium recipe. No gate
+	# regression: refine_germanite is L35 + adv_materials and Germanium's only
+	# consumer (craft_semiconductor) is L38 + adv_materials, so the surviving path
+	# unlocks strictly earlier than the demand for it. Removing refine_germanite
+	# instead was not an option — it is the only recipe consumer of Germanit ore.
 	"refine_germanite": {
 		"name": "Germanite Refining",
 		"description": "Directly smelt Germanite ore for high-purity Germanium.",
@@ -820,16 +805,12 @@ var recipes: Dictionary = {
 		"xp": 30,
 		"research_req": "basic_engineering"
 	},
-	"gold_leaching": {
-		"name": "Chemical Leaching",
-		"description": "Dissolve gold from soil using chemical solvents.",
-		"input": {"Dirt": 70, "Water": 30, "H": 10},
-		"output": {"Au": 5},
-		"duration": 20.0,
-		"level_req": 48, # Increased from 15
-		"xp": 100,
-		"research_req": "industrial_electrolysis"
-	},
+	# v146 dedupe: "gold_leaching" REMOVED. Same Dirt+Water launder as refine_gold
+	# with H added, and strictly dominant (2.5 Au/craft vs 2, on half the Dirt and
+	# a third of the Water per unit) — exactly the "dominated converter" pair
+	# docs/SANITY_CHECKLIST.md flagged. Au keeps refine_gold (L20) plus combat drops.
+	# The industrial_electrolysis research node does NOT go dead: its stated payload
+	# is the Industrial Electrolysis Plant building, not this recipe.
 	"craft_adv_circuit": {
 		"name": "Advanced Circuitry",
 		"description": "High-performance integrated circuit. Silver traces and tin solder for low-loss interconnects.",
@@ -943,16 +924,11 @@ var recipes: Dictionary = {
 		"xp": 80,
 		"research_req": "advanced_batteries"
 	},
-	"electrolysis_nickel_catalyst": {
-		"name": "Nickel-Catalyzed Electrolysis",
-		"description": "Ni catalyst speeds H2 production. More efficient.",
-		"input": {"Water": 10, "Ni": 1},
-		"output": {"H": 30, "O": 20},
-		"duration": 20.0,
-		"level_req": 12,
-		"xp": 300,
-		"research_req": "catalytic_electrodes"
-	},
+	# v146 dedupe: "electrolysis_nickel_catalyst" REMOVED. Second Water -> H+O recipe,
+	# and doubly redundant: its parent research catalytic_electrodes ALREADY pays out
+	# as a +25% action_speed buff on `electrolysis` itself (see upgrades_db below), so
+	# the node kept a payload without the duplicate recipe. H and O keep electrolysis
+	# (L2) as the single split, plus the infrastructure hydro plant.
 	"craft_superalloy": {
 		"name": "Superalloy",
 		"description": "Heat-resistant alloy for engines and reactors.",
@@ -1331,7 +1307,11 @@ var recipes: Dictionary = {
 		"category": "components"
 	},
 	# v129: CoolantCell consumer (was the last sell-only combat drop) — a Z4-farm
-	# shortcut to the Cryo-Shield Matrix vs the full N-250 industrial recipe.
+	# shortcut to the Cryo-Shield Matrix.
+	# v146 dedupe: the "full N-250 industrial recipe" this used to be compared
+	# against (nitrogen_coolant) is gone; the raw-element counterpart is now
+	# craft_cryo_coolant. This stays — CoolantCell is combat-drop supply, a
+	# genuinely different input source, not a second way to spend the same inputs.
 	"recharge_coolant_cell": {
 		"name": "Recharge Coolant Cell",
 		"description": "Recharge a salvaged Glacier-Belt coolant cell into a Cryo-Shield Matrix. Restores 35% Shield.",
@@ -1376,7 +1356,11 @@ var recipes: Dictionary = {
 	"craft_cryo_coolant": {
 		"name": "Cryogenic Coolant",
 		# v80.4 Fix: CryoCell has no source. Reworked to use He+N (cryogenic materials)
-		"description": "Compress helium and nitrogen into supercooled fluid.",
+		# v146 dedupe: sole raw-element NitroCoolant path now that nitrogen_coolant
+		# is gone, so the card carries the shield-restore line it used to own.
+		# No percentage quoted on purpose — element_db heal_pct is 0.25 while the
+		# legacy recipe cards still say "35%" (stale since the v106 recalibration).
+		"description": "Compress helium and nitrogen into supercooled fluid. Restores Shield integrity.",
 		"input": {"He": 15, "N": 10, "Water": 5},
 		"output": {"NitroCoolant": 1},
 		"duration": 10.0,
@@ -1644,7 +1628,10 @@ func get_recipe_speed_multiplier(recipe_id: String) -> float:
 		],
 		"charcoal_burning": [ {"id": "pyrolysis_control", "bonus": 0.25}],
 		"smelt_steel_basic": [ {"id": "blast_furnace", "bonus": 0.25}],
-		"smelt_steel_oxygen": [ {"id": "blast_furnace", "bonus": 0.25}],
+		# v146 dedupe: smelt_steel_oxygen entry dropped with the recipe.
+		# v146 dedupe: basic_electronics repointed off the deleted
+		# assemble_circuit_standard onto craft_circuit so the node keeps a payload.
+		"craft_circuit": [ {"id": "basic_electronics", "bonus": 0.25}],
 		"press_graphite": [ {"id": "hydraulic_press", "bonus": 0.25}]
 	}
 	

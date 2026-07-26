@@ -584,8 +584,25 @@ var tech_tree = {
 		"cost_items": {"Cu": 20, "Si": 20},
 		"type": "technology",
 		"parent": "industrial_logistics",
-		"effects": [],
-		"unlocks": ["Standard Circuit Assembly"],
+		# v146 dedupe: the recipe assemble_circuit_standard (a duplicate Circuit
+		# Board craft) was removed, so it drops off this node's unlocks list.
+		# COMPENSATING CHANGE: a +25% action_speed on the surviving craft_circuit.
+		# Removing the duplicate costs a L12+ player real Circuit throughput, and
+		# this node was the thing that used to grant it — the buff keeps the node's
+		# "better electronics fab" identity at a fraction of the removed recipe's
+		# power. Revert this effects[] block plus the matching craft_circuit row in
+		# processing_manager upgrades_db to undo it in two lines.
+		"effects": [
+			{"type": "action_speed", "id": "craft_circuit", "bonus": 0.25, "stacks": false},
+		],
+		# v146: the old list said only "Standard Circuit Assembly" and under-reported
+		# badly — this node actually gates eight buildings and two recipes
+		# (research_deadnode_audit TOOLTIP GAPS). Stated truthfully now.
+		"unlocks": [
+			"Copper Mine", "Tin Mine", "Quartz Mine", "Lithium Extractor",
+			"Copper Smelter", "Tin Smelter", "Silicon Furnace", "Lithium Refinery",
+			"Aluminum Wiring", "Adv. Maintenance Kit",
+		],
 		"flavor": "",
 	},
 	# --- GATHERING UPGRADES ---
@@ -771,7 +788,10 @@ var tech_tree = {
 			{"type": "action_speed", "id": "electrolysis", "bonus": 0.25, "stacks": true,
 				"stack_chain": ["Ion-Exchange Membranes", "Resonance Splitters"]},
 		],
-		"unlocks": ["Nickel-Catalyzed Electrolysis"],  # v136: surfaced (was blank despite gating this recipe)
+		# v146 dedupe: the recipe electrolysis_nickel_catalyst was a duplicate of
+		# `electrolysis` and was removed; this node's real payload was always the
+		# +25% action_speed above, so the unlock string goes and the node lives.
+		"unlocks": [],
 		"flavor": "",
 	},
 	"pyrolysis_control": {
@@ -800,9 +820,10 @@ var tech_tree = {
 		# v110 schema audit: legacy description only mentioned "Steel Foundry"
 		# but upgrades_db gives the buff to BOTH smelt_steel_basic AND
 		# smelt_steel_oxygen. Tooltip now shows the truth.
+		# v146 dedupe: smelt_steel_oxygen deleted (duplicate Steel recipe), so its
+		# effect row goes with it. Node still pays out on smelt_steel_basic.
 		"effects": [
 			{"type": "action_speed", "id": "smelt_steel_basic", "bonus": 0.25, "stacks": false},
-			{"type": "action_speed", "id": "smelt_steel_oxygen", "bonus": 0.25, "stacks": false},
 		],
 		"unlocks": [],
 		"flavor": "",

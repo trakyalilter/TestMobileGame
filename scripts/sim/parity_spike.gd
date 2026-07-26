@@ -11,7 +11,8 @@ extends Node
 # infrastructure_focus levels. Target (sanity checklist): infra = 30-70% of
 # active. >=100% means active crafting is obsolete.
 #
-#   ACTIVE = one smelt_steel_oxygen action (the foreground choice)
+#   ACTIVE = one smelt_steel_basic action (the foreground choice)
+#          (v146 dedupe: was smelt_steel_oxygen, deleted as a duplicate Steel recipe)
 #   INFRA  = N auto_smelters running in the background
 #
 # Run: tools/run_sim.ps1 -Scene "res://scenes/parity_spike.tscn"
@@ -79,7 +80,7 @@ func _measure_active() -> float:
 	var pm = GameState.processing_manager
 	# Ensure no buildings interfere; run only the active recipe.
 	GameState.active_manager = pm
-	pm.start_action("smelt_steel_oxygen")
+	pm.start_action("smelt_steel_basic")
 	var before: float = _steel()
 	var steps: int = int(WINDOW_S / DT)
 	for _i in range(steps):
