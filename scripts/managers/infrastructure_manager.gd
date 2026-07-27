@@ -759,14 +759,20 @@ var building_db: Dictionary = {
 	# input shape (ExoticMatter + QuantumCore) — the same asymmetry class the
 	# owner has now hit twice. Magnitudes are scaled off heavy_ordnance_works'
 	# rung by yield ratio (0.7/0.8), so this is a shape change, not a buff pass.
+	# v155 CHANNEL PARITY: CellT3 0.7 -> 0.8. The energy rung matched kinetic
+	# exactly at T1 (10 = 10) and T2 (3.1 = 3.1) and then dropped 12.5% below it
+	# at T3 alone (0.7 vs heavy_ordnance_works' SlugT3 0.8) — an outlier with no
+	# recorded reason, on the tier that covers Z7-Z10. Inputs scaled by the same
+	# 0.8/0.7 so cost per round is unchanged; the scaled figures land exactly on
+	# the kinetic rung's Superalloy 2.1 / VoidCrystal 0.04 shape.
 	"zero_point_cell_synthesizer": {
 		"name": "Zero-Point Cell Synthesizer",
-		"description": "+0.7 Cell T3 (-1.84 Superalloy, -0.7 Adv Circuit, -0.035 Void Crystal)",
+		"description": "+0.8 Cell T3 (-2.1 Superalloy, -0.8 Adv Circuit, -0.04 Void Crystal)",
 		"cost": {"credits": 1000000, "QuantumCore": 10, "ExoticMatter": 20},
 		"energy_gen": 0.0,
 		"energy_cons": 25000.0, # zone_7_access
-		"yield": {"CellT3": 0.7},
-		"input": {"Superalloy": 1.84, "AdvCircuit": 0.7, "VoidCrystal": 0.035},
+		"yield": {"CellT3": 0.8},
+		"input": {"Superalloy": 2.1, "AdvCircuit": 0.8, "VoidCrystal": 0.04},
 		"interval": 5.0,
 		"research_req": "zone_7_access",
 		"category": "industry"
@@ -882,45 +888,61 @@ var building_db: Dictionary = {
 	# hand-crafted missiles forever while kinetic/energy players never paid that
 	# tax — and an empty missile stack means the weapon does not fire at all.
 	#
-	# Rates are EXACTLY HALF the kinetic rung at every tier because explosive
-	# fires at half the cadence (atk_interval 4.0s vs 2.0s). That is demand
-	# PARITY, not a buff. Cost / energy / research shape mirror the kinetic
-	# ladder rung-for-rung: T1 at a tier-1 combat tech, T2 at the tech that gates
-	# the T2 recipe, T3 at capital_ship_armament.
+	# v144 sized these at EXACTLY HALF the kinetic rung with the justification
+	# "explosive fires at half the cadence (atk_interval 4.0s vs 2.0s)". That was
+	# true when it was written and is FALSE NOW.
+	#
+	# v155 STALE-RATE CORRECTION — rates DOUBLED to match kinetic/energy.
+	# v149's UNIFORM CADENCE MIGRATION (see shipyard_manager._V149_OLD_WEAPON_BASES)
+	# moved all 19 explosive modules from 4.0s to 2.0s, halving their atk_explosive
+	# so DPS held. Its own note calls out that the point was to stop "every
+	# per-SHOT mechanic (ammo burn, heal_on_hit, vuln uptime)" running at half
+	# rate. AMMO BURN IS EXACTLY THAT — combat_manager spends one round per shot
+	# per weapon regardless of channel — so v149 doubled explosive ammo DEMAND and
+	# left this v144 supply ladder untouched.
+	# MEASURED, not inferred: every one of the 59 weapon defs in shipyard_manager
+	# carries "atk_interval": 2.0, all 19 explosive ones included; grep for an
+	# atk_interval that is not 2.0 returns only migration code. So since v149 an
+	# explosive player has needed TWO of these buildings — two lots of credits,
+	# two building slots — to sustain the fire rate one Basic Kinetic Foundry
+	# gives a kinetic player, at identical cost per building.
+	# Inputs are doubled alongside the yields, so material efficiency PER ROUND is
+	# byte-unchanged and the C payload that gives the channel its recipe identity
+	# survives. This levels throughput only.
 	"munitions_factory": {
 		"name": "Munitions Factory",
-		"description": "+5 Missile T1 (-2.5 Fe, -1 C)",
+		"description": "+10 Missile T1 (-5 Fe, -2 C)",
 		"cost": {"credits": 12500, "Fe": 100, "C": 50},
 		"energy_gen": 0.0,
 		"energy_cons": 50.0, # ordnance_101
-		"yield": {"MissileT1": 5},
-		"input": {"Fe": 2.5, "C": 1.0},
+		"yield": {"MissileT1": 10},
+		"input": {"Fe": 5.0, "C": 2.0},
 		"interval": 5.0,
 		"research_req": "ordnance_101",
 		"category": "industry"
 	},
 	"guided_munitions_plant": {
 		"name": "Guided Munitions Plant",
-		"description": "+1.55 Missile T2 (-1.55 Steel, -0.65 Al, -0.078 Rimeplate Scrap)",
+		"description": "+3.1 Missile T2 (-3.1 Steel, -1.3 Al, -0.156 Rimeplate Scrap)",
 		"cost": {"credits": 125000, "Steel": 100, "Al": 50},
 		"energy_gen": 0.0,
 		"energy_cons": 2500.0, # zone_4_access
-		"yield": {"MissileT2": 1.55},
-		"input": {"Steel": 1.55, "Al": 0.65, "RimeplateScrap": 0.078},
+		"yield": {"MissileT2": 3.1},
+		"input": {"Steel": 3.1, "Al": 1.3, "RimeplateScrap": 0.156},
 		"interval": 5.0,
 		"research_req": "zone_4_access",
 		"category": "industry"
 	},
 	"thermobaric_warhead_works": {
 		"name": "Thermobaric Warhead Works",
-		"description": "+0.4 Missile T3 (-0.4 Structural Component, -1.05 Superalloy, -0.02 Void Crystal)",
+		"description": "+0.8 Missile T3 (-0.8 Structural Component, -2.1 Superalloy, -0.04 Void Crystal)",
 		"cost": {"credits": 2500000, "Superalloy": 50, "U": 20},
 		"energy_gen": 0.0,
 		"energy_cons": 15000.0, # zone_7_access
-		"yield": {"MissileT3": 0.4},
+		"yield": {"MissileT3": 0.8},
 		# v150: U -> StructuralComponent so the plant mirrors craft_missile_t3's
 		# channel payload, matching the kinetic/energy rungs' recipe-mirroring.
-		"input": {"StructuralComponent": 0.4, "Superalloy": 1.05, "VoidCrystal": 0.02},
+		"input": {"StructuralComponent": 0.8, "Superalloy": 2.1, "VoidCrystal": 0.04},
 		"interval": 5.0,
 		"research_req": "zone_7_access",
 		"category": "industry"

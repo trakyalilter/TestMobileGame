@@ -1290,16 +1290,13 @@ func _build_module_tooltip(m_data: Dictionary) -> String:
 		# v87.0 parity: show the damage type + matchup on the EQUIPPED slot too
 		if stats.get("atk_kinetic", 0) > 0:
 			tt += "[img=15 color=#7088F2]res://assets/icons/modules/weapon_kinetic.svg[/img] [color=#7088F2][b]" + tr("KINETIC") + "[/b][/color]\n"
-			tt += "[img=11 color=#46E0A0]res://assets/icons/ui/chevron_up.svg[/img] [color=#46E0A0]" + tr("Strong: Hull (+20%)") + "[/color]\n"
-			tt += "[img=11 color=#FF6473]res://assets/icons/ui/chevron_down.svg[/img] [color=#FF6473]" + tr("Weak: Shield (-50%)") + "[/color]\n"
+			tt += "[color=#7FA39C]" + tr("Matchup is the enemy's resist to this type") + "[/color]\n"
 		if stats.get("atk_energy", 0) > 0:
 			tt += "[img=15 color=#5FE0C8]res://assets/icons/modules/weapon_energy.svg[/img] [color=#5FE0C8][b]" + tr("ENERGY") + "[/b][/color]\n"
-			tt += "[img=11 color=#46E0A0]res://assets/icons/ui/chevron_up.svg[/img] [color=#46E0A0]" + tr("Strong: Shield (+50%), Armor Bypass") + "[/color]\n"
-			tt += "[img=11 color=#FF6473]res://assets/icons/ui/chevron_down.svg[/img] [color=#FF6473]" + tr("Weak: Hull (-10%)") + "[/color]\n"
+			tt += "[color=#7FA39C]" + tr("Matchup is the enemy's resist to this type") + "[/color]\n"
 		if stats.get("atk_explosive", 0) > 0:
 			tt += "[img=15 color=#FFC24D]res://assets/icons/modules/weapon_explosive.svg[/img] [color=#FFC24D][b]" + tr("EXPLOSIVE") + "[/b][/color]\n"
-			tt += "[img=11 color=#46E0A0]res://assets/icons/ui/chevron_up.svg[/img] [color=#46E0A0]" + tr("Strong: Armor Bypass (80% pen)") + "[/color]\n"
-			tt += "[img=11 color=#FF6473]res://assets/icons/ui/chevron_down.svg[/img] [color=#FF6473]" + tr("Weak: Slower fire rate") + "[/color]\n"
+			tt += "[color=#7FA39C]" + tr("Matchup is the enemy's resist to this type") + "[/color]\n"
 		if stats.get("atk_cryo", 0) > 0:
 			tt += "[img=15 color=#39A6E0]res://assets/icons/modules/weapon_cryo.svg[/img] [color=#39A6E0][b]" + tr("CRYOGENIC") + "[/b][/color]\n"
 			tt += "[img=11 color=#46E0A0]res://assets/icons/ui/chevron_up.svg[/img] [color=#46E0A0]" + tr("Breaches Warp-Hardened hulls") + "[/color]\n"

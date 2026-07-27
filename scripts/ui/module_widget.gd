@@ -340,11 +340,11 @@ func _build_comparison_tooltip() -> String:
 		tt += "[font_size=24][b]%.1f DPS[/b][/font_size]\n" % dps
 		tt += "[font_size=9][color=#7FA39C]" + (tr("%s total damage, %.2f hits/s") % [UITheme.format_num(dmg), 1.0 / interval]) + "[/color][/font_size]\n"
 		if my_stats.get("atk_kinetic", 0) > 0:
-			tt += "[color=#7088F2][b]" + tr("KINETIC") + "[/b][/color]  [color=#7FA39C]" + tr("Strong vs Hull, weak vs Shield") + "[/color]\n"
+			tt += "[color=#7088F2][b]" + tr("KINETIC") + "[/b][/color]  [color=#7FA39C]" + tr("Matchup is the enemy's resist to this type") + "[/color]\n"
 		if my_stats.get("atk_energy", 0) > 0:
-			tt += "[color=#5FE0C8][b]" + tr("ENERGY") + "[/b][/color]  [color=#7FA39C]" + tr("Strong vs Shield, bypasses Armor") + "[/color]\n"
+			tt += "[color=#5FE0C8][b]" + tr("ENERGY") + "[/b][/color]  [color=#7FA39C]" + tr("Matchup is the enemy's resist to this type") + "[/color]\n"
 		if my_stats.get("atk_explosive", 0) > 0:
-			tt += "[color=#FFC24D][b]" + tr("EXPLOSIVE") + "[/b][/color]  [color=#7FA39C]" + tr("Ignores most Armor") + "[/color]\n"
+			tt += "[color=#FFC24D][b]" + tr("EXPLOSIVE") + "[/b][/color]  [color=#7FA39C]" + tr("Matchup is the enemy's resist to this type") + "[/color]\n"
 		if my_stats.get("atk_cryo", 0) > 0:
 			tt += "[color=#39A6E0][b]" + tr("CRYOGENIC") + "[/b][/color]  [color=#7FA39C]" + tr("Breaches Warp-Hardened, self-charging") + "[/color]\n"
 		tt += div

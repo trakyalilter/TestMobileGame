@@ -16,7 +16,10 @@ extends Node
 
 const DT := 0.1
 const MAXT := 1500.0   # v135c: was 300 — Z9/Z10 wins hit that cap and Z11 (~19min cryo kill) needs the room
-const TRIALS := 9   # v139d: 5-trial cells swing ±2 (Z3 read 5/5 then 1/5 unchanged); 9 is the z12_tune-proven minimum for win-rate reads
+# v154: TRIALS is now a var with a --trials=N CLI override. The brief-level
+# warning stands: at 9 trials this probe has shown a 41% TTK spread on IDENTICAL
+# code (Z4 all-LEGENDARY 160s vs 226s). Raise it before concluding anything.
+var TRIALS := 9   # v139d: 5-trial cells swing ±2 (Z3 read 5/5 then 1/5 unchanged); 9 is the z12_tune-proven minimum for win-rate reads
 const RN := {0: "Common", 1: "Uncmn", 2: "Rare", 3: "Legnd", 4: "Uniq"}
 const SUFFIX := {"kinetic": "kinetic", "energy": "energy", "explosive": "missile"}
 const AMMO := {"kinetic": "Slug", "energy": "Cell", "explosive": "Missile"}
@@ -26,6 +29,9 @@ func _ready() -> void:
 	var cm = GameState.combat_manager
 	var rm = GameState.research_manager
 	GameState.set_process(false)
+	for _a in OS.get_cmdline_user_args():
+		if String(_a).begins_with("--trials="):
+			TRIALS = maxi(1, int(String(_a).split("=")[1]))
 	print("[BGC] ================= BOSS GEAR-CHECK MATRIX =================")
 	print("[BGC] rule: Common+Uncommon must LOSE; Rare+ (or Zone N-1 Unique set) must WIN.")
 	print("[BGC] loadout: ALL weapon slots = weak-type Z-N weapon; Z-N armor/shield; power over-provisioned.")

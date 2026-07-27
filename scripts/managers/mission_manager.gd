@@ -283,8 +283,8 @@ func init_missions():
 		# v119: type-matching teach beat before the Z1 boss. The Architect RESISTS
 		# kinetic + energy (+0.25) but is WEAK to explosive (-0.30), so the right TYPE
 		# beats raw rarity. Combustion is already unlocked (smelting required it at m025).
-		["m026d2", "Munitions Run", "Produce 60 HE Missiles in the Engineering tab to arm a missile launcher — explosive warheads punch through armor better than anything else.", "gather", "MissileT1", 60, 8000, 800, "m026d3"],
-		["m026d3", "Explosive Payload", "Equip a RARE+ EXPLOSIVE weapon — explosive fire ignores most enemy armor, and the rare-tier punch ends fights fast.", "loadout_rare_weapon_type", "explosive", 1, 12000, 1200, "m026e"],
+		["m026d2", "Munitions Run", "Produce 60 HE Missiles in the Engineering tab to arm a missile launcher — the Architect ahead is WEAK TO EXPLOSIVE.", "gather", "MissileT1", 60, 8000, 800, "m026d3"],
+		["m026d3", "Explosive Payload", "Equip a RARE+ EXPLOSIVE weapon — the Architect is WEAK TO EXPLOSIVE, and the rare-tier punch ends fights fast.", "loadout_rare_weapon_type", "explosive", 1, 12000, 1200, "m026e"],
 		["m026e", "Final Confrontation", "Defeat the Rogue Architect boss in Lunar Orbit.", "defeat", "z1_boss_architect", 1, 25000, 2500, "m027"],
 		# P0 Fix: Progression Deadlock Re-alignment
 		["m027", "Scanning Horizon", "Research 'Asteroid Belt Authorization' in the Research tree to unlock the Asteroid Belt combat zone.", "research", "zone_2_access", 1, 5000, 500, "m027b"],

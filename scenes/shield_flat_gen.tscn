@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://bshieldflatgen01"]
+
+[ext_resource type="Script" path="res://scripts/sim/shield_flat_gen.gd" id="1"]
+
+[node name="ShieldFlatGen" type="Node"]
+script = ExtResource("1")

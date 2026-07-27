@@ -313,9 +313,38 @@ var CONSUMABLE_DATA = {
 # It is now a PERCENTAGE multiplier keyed strictly on the id tier suffix, so it
 # scales with the weapon at every zone. T1 is the free, fully-automated baseline
 # (multiplier 1.0 = no bonus); every rung above it is a real, paid upgrade.
+#
+# v155 CHANNEL FLATTEN — T1S 1.05 -> 1.00. T1S was a KINETIC-ONLY rung: SlugT1S
+# exists, CellT1S and MissileT1S do not (get_band_ammo_id would happily name
+# them, no such element is ever defined, so _descend_ammo silently skips that
+# rung on the other two channels). MEASURED LIVE, not dead content —
+# processing_manager.craft_slug_t1s is craftable from {Steel: 1} at level 24
+# with NO research gate, and SlugT1S is listed in ELEMENT_NAMES, the "ammo"
+# category, designer_page's ammo list and combat_page's ammo strip.
+#
+# It was therefore a real +5% kinetic-only damage edge, and worse, it leaked the
+# v150 BAND GATE: inside the T1 band (zones 1-3) the paid upgrade is supposed to
+# be unreachable for EVERY channel, because T2 needs RimeplateScrap and that
+# only drops in Z4. Steel does not. So a Z1-Z3 kinetic player bought +5% that no
+# energy or explosive player could buy at any price.
+#
+# LEVELLED BY FLATTENING THE RUNG, not by inventing CellT1S / MissileT1S. Adding
+# two elements + two recipes mid-flatten would be new content needing its own
+# band, level and material balance, and would re-open the very gate v150 closed.
+# Flattening is one number, has no save-shape consequence (the element, its
+# recipe and its AMMO_DESCENT rung all stay, so a stack already in someone's
+# hold still loads and still fires — now as a plain T1 round), and leaves all
+# three channels on an identical T1/T2/T3/T4 ladder.
+#
+# KNOWN CONSEQUENCE, deliberately NOT fixed here: craft_slug_t1s is now a
+# DOMINATED recipe (Steel 1 -> 20 rounds, 10s, level 24 versus craft_slug_t1's
+# Fe 1 -> 20 rounds, 5s, level 1, for identical damage). Retiring the recipe
+# needs a save migration — current_recipe_id and the per-recipe mastery XP key
+# can both hold "craft_slug_t1s" — so it is a separate change, not a silent
+# deletion here.
 const AMMO_TIER_MULT := {
 	"T1":  1.00,
-	"T1S": 1.05,
+	"T1S": 1.00,
 	"T2":  1.10,
 	"T3":  1.20,
 	"T4":  1.35,

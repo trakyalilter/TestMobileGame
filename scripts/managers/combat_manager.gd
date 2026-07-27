@@ -233,6 +233,48 @@ const DEF_K_ZONE_SCALE = 30.0             # was 100/100 → DEF was ~14% at Z3 b
 const DEF_K_ZONE_EXP = 1.3                # k(zone) = BASE + SCALE * zone^EXP. MAX_DAMAGE_REDUCTION clamp below prevents unkillable late enemies
 const ARMOR_K_FLOOR = 0.7                 # v135a: floor k at 0.7× the DEFENDER's armor. Boss DEF scales 2.2×/zone but poly-k only ~zone^1.3, so at Z6+ DEF outran k and player mitigation collapsed to the 20% floor (rare gear couldn't beat the intended gear-check). This floor keeps mitigation healthy vs heavy armor; it only binds on late-boss DEF (low zones + the player's own small armor keep the polynomial), so it aids PENETRATION of boss armor, never shields the player. See docs/audit/BOSS_GEARCHECK.md.
 
+# ─── v154: THE PLAYER'S THREE CHANNELS ARE MECHANICALLY IDENTICAL ─────────────
+# OWNER DECISION: "A type hits hull, A type hits shield, A type penetrates armor
+# — REMOVE this system. Let's just work on the damage type triangle."
+# So the ONLY thing that separates kinetic / energy / explosive is the enemy's
+# resist triangle. These three constants ARE that statement: one shield weight,
+# one armour divisor, one hull coefficient, shared by every player channel.
+#   shield weight 1.0   (landed v153)
+#   armour divisor 0.50 → arm_c = c_armor * 0.50 for k, e, x AND cryo
+#   hull coefficient 1.0 → hull_dmg_c = atk_c * 1.00 * armour_factor
+# 0.50 / 1.00 is EXACTLY cryo's existing pair, so cryo joins the symmetry by
+# standing still: Z11 warp_hardened and the four NG+ phase bosses take a d of
+# 1.0000 and need no compensation at all (measured, flat_sweep section C).
+# Armour still mitigates 41.7% at the pinned rho = 1/ARMOR_K_FLOOR = 1.429, so
+# DEF stays a real stat; an attack's number is now its number in both halves of
+# the fight and armour is the only thing separating hull from shield.
+#
+# THE MEASURED PROBLEM THIS DELETES (tri_speed, time-to-N-kills, 2 runs):
+#   intrinsic throughput with resists factored OUT, normalised KIN = 1.00 —
+#   Z2 1.00:1.02:1.05 (fair) → Z5 1.00:2.35:2.75 → Z8 1.00:2.08:2.61.
+#   Split by enemy armour: Z5 front 1.00:1.30:1.78 vs Z5 BACK 1.00:3.29:3.60.
+#   Kinetic degraded monotonically with enemy DEF because arm_k = armor while
+#   arm_x = 0.2*armor. Consequences: the owner's rule (resisted CANNOT farm,
+#   natural farms slowly, weak farms fast) failed in ALL 12 kinetic-weak cells —
+#   in 11 of them the "weak" channel was a tie or an outright trap (Z10
+#   Primordial Titan: natural NRG 10 kills vs weak KIN 5 kills). And the
+#   RESISTED channel still farmed 15 of 36 cells, every one of them
+#   EXPLOSIVE-resisted, because the 0.2 divisor punched straight through the
+#   65.9% resist wall. Both classes of failure are gone post-flatten.
+#
+# THE ENEMY SIDE KEEPS 1.0/0.7/0.2 AND 1.2/0.9/1.0 (ternary on
+# is_player_attacker, same pattern v153 used for the shield weights). MEASURED
+# REASON: the player's own armour also pins at rho = 1.429 from tier 4 up, so
+# flattening the incoming direction would move incoming damage +41.7% from
+# kinetic enemies / +16.7% energy / -25.0% explosive at EVERY tier 4-10 even
+# after folding the old coefficients into ENEMY_*_ATK_COMP (flat_sweep §7).
+# That invalidates every hand-measured lethality study — z4_glacial_drone's
+# 108-trial gate sweep, the e4 charge_nuke ladder, the idle rule. The player
+# never experiences the enemy-side asymmetry as a channel CHOICE, so there is
+# nothing to fix there. Incoming damage is bit-identical to v153.
+const CHANNEL_ARMOR_DIV := 0.50           # player-side armour divisor, all channels
+const CHANNEL_HULL_COEF := 1.00           # player-side hull coefficient, all channels
+
 # v80.1: Trinity Set Bonus Definitions — 3/3 pieces needed
 # Bonuses are substantial rewards for hunting all 3 pieces from zone bosses (3% drop each)
 var active_trinity_sets: Array = []  # Populated on stat recalc
@@ -252,9 +294,25 @@ const TRINITY_SET_BONUSES = {
 	# its name already suggests: an Overseer finds things. enemy_drop_mult is
 	# consumed at the win_fight loot site (percent -> fraction there).
 	"overseers_command":   {"name": "Overseer's Command",   "pieces": 3, "bonus": {"shield_regen_pct": 22, "enemy_drop_mult": 25}},
-	"harbingers_wrath":    {"name": "Harbinger's Wrath",    "pieces": 3, "bonus": {"missile_dmg_pct": 30, "enemy_def_reduce_pct": 20}},
+	# v155 CHANNEL FLATTEN — these two were the last per-channel damage bonuses in
+	# the game. harbingers_wrath paid missile_dmg_pct 30 and sovereigns_prism paid
+	# energy_dmg_pct 22, with NO kinetic counterpart anywhere (grep: no
+	# kinetic_dmg_pct exists). Both sets ALREADY ship a kinetic weapon variant
+	# (z5_unique_kinetic, z7_unique_kinetic), so a kinetic player could wear the
+	# full 3-piece and collect exactly half of it — a textbook dominated choice,
+	# and a channel advantage of precisely the kind the flatten exists to delete.
+	# ADDING a third kinetic_dmg_pct was rejected: it would not remove the
+	# advantage, only make it contingent on which set the loot gods handed you.
+	# Instead both are re-keyed to all_dmg_pct at UNCHANGED magnitude. Set
+	# IDENTITY is untouched because it never lived in the channel — it lives in
+	# the PAIRED stat, which still differs (Harbinger = armour shred, Sovereign =
+	# flat DEF, Colossus = evasion). all_dmg_pct is an existing key already read
+	# by trinity_atk_mult and rendered generically by designer_page, so nothing
+	# else moves. Net effect: energy/missile players see ZERO change; kinetic
+	# players stop being taxed for their channel.
+	"harbingers_wrath":    {"name": "Harbinger's Wrath",    "pieces": 3, "bonus": {"all_dmg_pct": 30, "enemy_def_reduce_pct": 20}},
 	"colossus_dominion":   {"name": "Colossus Dominion",    "pieces": 3, "bonus": {"all_dmg_pct": 22, "evasion_flat": 12}},
-	"sovereigns_prism":    {"name": "Sovereign's Prism",    "pieces": 3, "bonus": {"def_flat": 800, "energy_dmg_pct": 22}},
+	"sovereigns_prism":    {"name": "Sovereign's Prism",    "pieces": 3, "bonus": {"def_flat": 800, "all_dmg_pct": 22}},
 	"wardens_quarantine":  {"name": "Warden's Quarantine",  "pieces": 3, "bonus": {"shield_hp_pct": 35, "crit_chance": 16}},
 	"titans_legacy":       {"name": "Titan's Legacy",       "pieces": 3, "bonus": {"all_dmg_pct": 28, "def_flat": 1500}},
 	"leviathans_crown":    {"name": "Leviathan's Crown",    "pieces": 3, "bonus": {"all_dmg_pct": 35, "hp_regen_flat": 3000}}
@@ -531,29 +589,56 @@ var hazard_zones = {
 # boss_threshold both measure exactly that channel, so holding -0.40 keeps the
 # tuned axis untouched while resisted/natural get the triangle.
 #
-# WHICH CHANNEL IS RESISTED IS NOT FREE — IT IS FORCED BY THE PIPELINE.
-# The three channels are NOT equal at equal resist. From source: base module atk
-# 916 / 1131 / 1021 (kin/nrg/exp at Z7), hull multiplier 1.2 / 0.9 / 1.0, ARMOR
-# DIVISOR arm_k = armor, arm_e = 0.7*armor, arm_x = 0.2*armor, and SHIELD weight
-# 0.5 / 1.5 / 1.1. Net measured spread at identical resists is ~2-2.5x, with
-# EXPLOSIVE strongest and KINETIC weakest. That is the same order of magnitude as
-# the 3.81x the triangle itself creates, so a careless "resisted = whatever was
-# positive before" scrambles the speed ordering.
-# The rule applied here: WEAK = the zone-cycle type; RESISTED = the STRONGER of
-# the two remaining channels, so the triangle fights the asymmetry instead of
-# compounding it. That yields exactly three shapes:
-#   explosive-weak zones (Z2/Z5/Z8, Z14) -> weak EXP, natural KIN, resisted NRG
-#   energy-weak    zones (Z3/Z6/Z9, Z12/Z15, hazard) -> weak NRG, nat KIN, res EXP
-#   kinetic-weak   zones (Z4/Z7/Z10, Z13) -> weak KIN, natural NRG, resisted EXP
-# Per-cell variation of resisted-vs-natural (which the owner permits) was tried
-# and REVERTED: it inverts weak/natural in the cells where it lands on the strong
+# WHICH CHANNEL IS RESISTED IS NOT FREE.
+# The three channels are NOT equal at equal resist. The rule applied here:
+# WEAK = the zone-cycle type; RESISTED = the STRONGER of the two remaining
+# channels, so the triangle fights the residual asymmetry instead of compounding
+# it. Per-cell variation of resisted-vs-natural (which the owner permits) was
+# tried and REVERTED: it inverts weak/natural wherever it lands on the strong
 # channel. Variety here costs the rule.
 #
-# KNOWN LIMIT — KINETIC-WEAK ZONES (Z4/Z7/Z10/Z13). Even with resisted on the
-# strong channel, kinetic is structurally weak enough that -0.30 (x1.30) does not
-# always clear a natural channel at x1.00. The negative clamp (-0.40, i.e. x1.40
-# max) is the binding constraint; the fix is to normalize the per-channel
-# pipeline (armor divisor + shield weight), NOT to author deeper resists. See the
+# THE SHIPPED ASSIGNMENT, three shapes (UNCHANGED — every resist triple in this
+# file is the pre-v153 value; the v153 intra-zone weak-type variation was
+# measured unplayable and reverted wholesale):
+#   explosive-weak zones (Z2/Z5/Z8, Z14) -> weak EXP, natural KIN, resisted NRG
+#   energy-weak    zones (Z3/Z6/Z9, Z12/Z15, hazard) -> weak NRG, nat KIN, res EXP
+#   kinetic-weak   zones (Z1/Z4/Z7/Z10, Z13) -> weak KIN, natural NRG, resisted EXP
+#
+# "STRONGER" MEANT SOMETHING DIFFERENT WHEN THIS WAS AUTHORED. Pre-v154 it meant
+# EXPLOSIVE > ENERGY > KINETIC, because the armour divisor (arm_x = 0.2*armor vs
+# arm_k = armor) and the shield weight (0.5/1.5/1.1) dominated everything else.
+# The flatten deleted both. The ONLY residual asymmetry left is the module
+# base-atk ladder, 1.000 : 1.235 : 1.115 (KIN:NRG:EXP) at every tier 1-10, so the
+# strength order is now ENERGY > EXPLOSIVE > KINETIC. The assignment above was
+# NOT re-derived against that — the kinetic-weak line puts RESISTED on EXPLOSIVE
+# (the middle channel) and NATURAL on ENERGY (the strongest), which is the
+# tightest of the three shapes. Predicted throughput A_c * (1 - amp(resist_c)):
+#   weak KIN 1.3000 | natural NRG 1.2355 | resisted EXP 0.3807  ->  W/N 1.052
+# i.e. a 5.3% weak-over-natural margin on Z4/Z7/Z10/Z13.
+#
+# ***MEASURED, AND IT IS NOT ENOUGH.*** tri_speed --fine (time-to-20-kills,
+# median of 5), weak:natural per cell, THIS assignment:
+#   Z4  1.03 / 1.13 / 0.97 / 0.83     Z7  1.02 / 0.98 / 1.07 / 1.04
+#   Z10 1.01 / 1.09 / 1.05 / 1.01
+# Three of the twelve are INVERTED (Frost Hulk 0.97, Glacial Drone 0.83, Energy
+# Wraith 0.98) and the rest are inside instrument noise. For contrast, the two
+# other shapes measure 1.37-2.02 at every one of their 24 cells.
+# The alternative — swap to natural EXP / resisted NRG on all 21 kinetic-weak
+# cells — predicts W/N 1.166 and MEASURES 1.08-1.32 with ZERO inversions
+# (Z4 1.17/1.25/1.19/1.13, Z7 1.08/1.26/1.18/1.24, Z10 1.20/1.09/1.21/1.32).
+# It costs nothing structurally: FLATTEN_HP_CALIB's and FLATTEN_SHIELD_CALIB's
+# factors both depend ONLY on which channel is WEAK, and that does not move.
+# It was NOT adopted here because the v154 strip's acceptance criterion was
+# "every resist triple identical to commit 9750543". Adopt it as its own pass.
+#
+# WAS: KNOWN LIMIT — KINETIC-WEAK ZONES. The note used to say kinetic was
+# structurally weak enough that -0.30 could not clear a natural channel at x1.00,
+# and that "the fix is to normalize the per-channel pipeline (armor divisor +
+# shield weight)". v153 did the shield weight and v154 did the armour divisor +
+# hull coefficient, so the STRUCTURAL half of that limit is gone; what remains is
+# the 1.235x energy base-atk edge, a MODULE TABLE issue rather than a
+# resolve_damage one. Normalising it is a -19% NRG / -10% EXP global change that
+# would invalidate the calibration, so it is deliberately NOT done here. See the
 # measurements in scenes/tri_speed.tscn.
 #
 # ZONE WEAK-CYCLE PRESERVED — Z2/Z5/Z8 explosive, Z3/Z6/Z9 energy, Z4/Z7/Z10
@@ -1074,6 +1159,11 @@ var enemy_db = {
 		# pct TUNED 0.08 -> 0.04: at 0.08 the mission-real cruiser's small shield
 		# pool lost the theft race (all-Rare 8/9 -> 1/9, 9-trial A/B); Z7's 0.10
 		# was only survivable on late-game pools. Debut = visible lesson, not a wall.
+		# v154-strip: the v153 bump to 0.090 is REVERTED. Measured STRUCTURALLY
+		# INERT: the steal is min(player_shield, player_max_shield * pct) and is
+		# then capped at the boss's own max_shield, so once the player's shield is
+		# stripped pct stops mattering. A x2.8 on pct moved all-RARE 196s -> 197s
+		# and made all-LEGENDARY 8% FASTER. Back to the hand-tuned 0.032.
 		"sustain": {"kind": "siphon", "pct": 0.032},
 		# v142d: RimeplateScrap added. It is now the sole Z4 alloy feedstock, but only
 		# e1/e2 dropped it — so boss farming yielded ZERO alloy progress, inverting
@@ -1940,8 +2030,318 @@ const REBASE_ENEMY_STATS := ["hp", "atk", "def", "max_shield"]
 #
 # BOSSES ARE EXCLUDED — boss_gearcheck / boss_threshold already pass, so the
 # boss ladder is calibrated against real gear and must not move.
-const ZONE_TRASH_EHP_CALIB := {4: 0.41, 5: 0.69, 6: 0.48, 7: 0.38, 8: 0.58, 9: 0.48, 10: 0.31}
+#
+# ─── v155 Z7 / Z10 SPEED CORRECTION (rows 7 and 10 only) ────────────────────
+# After the v154 flatten, exactly two of 36 trash cells let the RESISTED channel
+# farm: z7_shard_swarm (EXP 6 kills/180s) and z10_void_stalker "Void Reaver"
+# (EXP 5). MEASURED root cause is NOT the resist triangle — it is raw zone
+# speed. Those two cells' WEAK channel killed in 9-11 s (17-20 kills/180s)
+# against the authored 6-9 band, roughly 2x over. Clearing "resisted < 5 kills"
+# at that speed needs weak:resisted >= 4.0x; the authored triangle only supplies
+# 1.30 / 0.3414 = 3.81x, so NO legal resist value reaches it. The fix has to be
+# speed, and it has to be at the ZONE level — a per-cell hp/max_shield row would
+# just reinstate the FAST_CELL_EHP_CALIB hand-fit that v154 correctly deleted.
+#
+# SOLVED NUMERICALLY, not guessed. Both bounds are hard and they nearly touch:
+#   lower bound  m > 6/5   = 1.20  (Z7)   so the resisted leg drops under 5 kills
+#                m > 5/5   = 1.00  (Z10)  (Z10 sits exactly ON the bar)
+#   upper bound  m < 8/5   = 1.60         so the SLOWEST weak cell (Z7 Gamma
+#                                         Beast, Z10 Primordial Titan, both
+#                                         8 kills) stays at/above the idle bar
+# Sweep, 3x tri_speed + 4x idle_single_set per point:
+#   Z7  m=1.00 (0.380): resisted 6*/6*/6*  FAIL   | idle PRIM 20/12/8/8
+#   Z7  m=1.25 (0.475): resisted 4/4/4     PASS   | idle PRIM 15-17/9-11/6/6
+#   Z10 m=1.00 (0.310): resisted 5*/5*/5*  FAIL   | idle PRIM 17/14/8/8
+#   Z10 m=1.25 (0.3875) resisted 4/4/4     PASS   | idle PRIM 13-14/11-12/6/5
+#   Z10 m=1.18 (0.366): resisted 4/4/4     PASS   | idle PRIM 16/12/6/6  <- best
+# Z10 takes the smaller step because 1.25 pinned Primordial Titan at exactly the
+# 5-kill bar (5/5/5/5 over four 9-trial runs — stable, but zero headroom);
+# 1.18 buys a full kill of margin and still kills the resisted leg.
+# SIDE EFFECT, INTENDED: the Z10 step also closes the v154 tier-gate leak. Funnel
+# row C (Legendary N-1 + T1 cores on hull N) was 5*/5* and 4/5* at 0.31; at 0.37
+# it reads 3/3, 4/3, 3/3 over three runs — fails e3 AND e4 as authored.
+const ZONE_TRASH_EHP_CALIB := {4: 0.41, 5: 0.69, 6: 0.48, 7: 0.475, 8: 0.58, 9: 0.48, 10: 0.37}
 const CALIB_EHP_STATS := ["hp", "max_shield"]
+
+# ─── v154 FLATTEN_SHIELD_CALIB — max_shield ONLY, 45 rows ──────────────────────────────
+# ZONE_TRASH_EHP_CALIB above stays PER-ZONE and is NOT touched: it corrects the
+# tier-rebase DPS deficit, a different concern.
+#
+# THIS TABLE IS THE SHIELD HALF OF THE v154 FLATTEN. It replaces v153's
+# CHANNEL_SWAP_CALIB, which conflated TWO things: (a) the player shield-weight
+# flatten 0.5/1.5/1.1 -> 1/1/1 plus the resist term on shield damage, and (b)
+# the per-cell weak-channel reassignment. (b) is REVERTED — every enemy resist
+# triple is back to its pre-v153 value — so those rows are gone. (a) is KEPT:
+# it is the shield leg of "one shield weight, one armour divisor, one hull
+# coefficient", the whole point of the flatten. Its compensation therefore has
+# to stay, regenerated against the restored resists.
+#
+# Per enemy, with w = that enemy's OWN weak channel:
+#     d_shield = (1.0 * (1 - amp(resist_w))) / SW_OLD[w]
+#     SW_OLD = {KIN 0.5, NRG 1.5, EXP 1.1}   (the pre-v153 player shield weights)
+# so the weak channel's SHIELD-phase TTK is EXACTLY unchanged from HEAD, exactly
+# as FLATTEN_HP_CALIB does for the hull phase. Together the two tables make the
+# weak channel's END-TO-END TTK identical to HEAD at every cell, and move the
+# other two channels onto the weak channel's (now shared) mechanics.
+#
+# WHY max_shield AND NOT SOME OTHER STAT. Scale max_shield by d_shield and the
+# e3/e4 repair pulse — which heals enemy_max_shield * pct — scales by d_shield
+# too, exactly matching the player's new shield DPS, so
+#   S / (D_s - heal)  ->  d*S / (d*D_s - d*heal)  =  S / (D_s - heal)
+# is unchanged and CANNOT diverge. THE e3/e4 RATE INEQUALITY IS PRESERVED BY
+# CONSTRUCTION. Dropping this table instead would multiply the player's shield
+# DPS by 2.60 on every KIN-weak cell (Z4/Z7/Z10/Z13) against an unchanged repair
+# pulse, which is precisely the gate the funnel's rows A/B/C are supposed to
+# fail on.
+#
+# KNOWN SMALL NON-INVARIANCE: enemy shield regen is min(max_shield * 0.01, 50.0)
+# — the 50/s cap does not scale. It binds only where max_shield > 5000 and is
+# then <2% of the shield phase at every affected cell. Do not "fix" it by
+# scaling the cap; it is negligible and the cap is load-bearing elsewhere.
+#
+# BOSSES GET NO ROWS, same precedent CHANNEL_SWAP_CALIB set and for the same
+# measured reason: scaling boss max_shield diluted the Z4 Overseer's siphon
+# (which steals a slice of the PLAYER's shield, not a pct of its own pool) and
+# made it 17-20% FASTER. The boss shield phase is 1-7% of boss TTK, so the
+# residual is <=4.2% and carries no trait distortion.
+#
+# ─── v155 RE-EXAMINED AND RE-CONFIRMED — DO NOT EXTEND TO BOSSES ────────────
+# The asymmetry is real and was worth checking: FLATTEN_HP_CALIB DOES include
+# bosses, this table does not, so a boss's shield phase is the one place where
+# the 1/1/1 player shield-weight flatten went uncompensated. A kinetic-weak
+# boss's shield takes 1.0/0.5 = 2.0x the old damage (2.8x once its -0.40 weak
+# resist is folded in). So it was NOT self-evidently negligible.
+#
+# EXPOSURE, measured off the authored enemy_db (hp and max_shield are rebased by
+# the same per-zone factor, so the RATIO below is exact at every tier):
+#   shield as a share of boss EHP — Z1 9.1%, Z2 4.6%, Z3 4.1%, Z4 4.8%, Z5 3.0%,
+#   Z6 3.0%, Z7 2.7%, Z8 1.6%, Z9 2.0%, Z10 2.1%. Under 5% everywhere but Z1.
+#
+# TESTED DIRECTLY rather than argued: the ten Z1-Z10 boss rows were computed
+# closed-form ((1 - amp(resist_w)) / SW_OLD[w], the same formula as the trash
+# rows: 2.8000 kinetic-weak, 1.2727 explosive-weak, 0.9333 energy-weak),
+# temporarily added here, and boss_gearcheck + boss_threshold were run at 25
+# TRIALS each in three states — as-received, v155 as shipped, and v155 with the
+# rows added.
+#   boss_gearcheck: IDENTICAL VERDICT in all three. 10 bosses honour the rule,
+#   the same 5 violate (Z10's Uncommon leak plus the Z12-Z15 NG+ element gates,
+#   all pre-existing and all reproduced on as-received code). Not one cell
+#   crossed a rarity threshold. Largest TTK move was +8% (Z2 Rare 359s -> 389s).
+# So the missing compensation DOES NOT MOVE THE BOSS RARITY GATE, and the rows
+# stay out — adding them would re-introduce the Z4-siphon dilution above for no
+# measured gate benefit.
+#
+# HONEST CAVEAT on boss_threshold, which is informational, not an assertion: its
+# two marginal under-tier-hull cells read Z3 all-RARE 6 / 10 / 16 of 25 and Z6
+# all-RARE 18 / 14 / 18 of 25 across as-received / v155 / rows-added. Those two
+# configs equip generic rarity-3 modules with no set_id, so no v155 edit can
+# reach them (no trinity set, and ZONE_TRASH_EHP_CALIB skips bosses) — the +-8/25
+# swing is this probe's noise floor near the 60% bar, not a signal, and it is
+# why the decision rests on boss_gearcheck. SEPARATE PRE-EXISTING FINDING worth
+# its own pass: Z3 all-RARE on a tier-matched destroyer is under the 60% bar in
+# EVERY state including as-received (6/25). boss_gearcheck still passes Z3
+# because its rule is "Rare WIN or Legendary WIN" and Legendary wins 22-24/25.
+#
+# Z11 warp_hardened and the four NG+ phased bosses get no rows either: their
+# K/E/X channels are gated to x0.02 / x0.15 and cryo's shield weight was already
+# 1.0, so d_shield = 1.0000 there.
+#
+# Regenerate with scenes/shield_flat_gen.tscn BEFORE applying, never after.
+const FLATTEN_SHIELD_CALIB := {
+	# Z1
+	"z1_survey_probe": {"max_shield": 0.8667},
+	# Z2
+	"z2_claim_jumper": {"max_shield": 1.1818},
+	# Z3
+	"z3_derelict_frigate": {"max_shield": 0.8667},
+	"z3_martian_sentry": {"max_shield": 0.8667},
+	"z3_salvage_swarm": {"max_shield": 0.8667},
+	# Z4
+	"z4_cryo_sentinel": {"max_shield": 2.6000},
+	"z4_frost_hulk": {"max_shield": 2.6000},
+	"z4_glacial_drone": {"max_shield": 2.6000},
+	"z4_ice_wraith": {"max_shield": 2.6000},
+	# Z5
+	"z5_alien_frigate": {"max_shield": 1.1818},
+	"z5_alien_probe": {"max_shield": 1.1818},
+	"z5_xenon_corvette": {"max_shield": 1.1818},
+	"z5_xenon_scout": {"max_shield": 1.1818},
+	# Z6
+	"z6_ore_guardian": {"max_shield": 0.8667},
+	"z6_rad_beast": {"max_shield": 0.8667},
+	# Z7
+	"z7_energy_wraith": {"max_shield": 2.6000},
+	"z7_gamma_beast": {"max_shield": 2.6000},
+	"z7_void_hunter": {"max_shield": 2.6000},
+	# Z8
+	"z8_nebula_phantom": {"max_shield": 1.1818},
+	"z8_prism_drone": {"max_shield": 1.1818},
+	"z8_void_stalker": {"max_shield": 1.1818},
+	# Z9
+	"z9_bio_horror": {"max_shield": 0.8667},
+	"z9_plague_drone": {"max_shield": 0.8667},
+	"z9_quarantine_mech": {"max_shield": 0.8667},
+	"z9_rogue_ai": {"max_shield": 0.8667},
+	# Z10
+	"z10_omega_sentinel": {"max_shield": 2.6000},
+	"z10_primordial_titan": {"max_shield": 2.6000},
+	"z10_temporal_phantom": {"max_shield": 2.6000},
+	"z10_void_stalker": {"max_shield": 2.6000},
+	# Z12
+	"z12_acid_revenant": {"max_shield": 0.8667},
+	"z12_corrosion_sentinel": {"max_shield": 0.8667},
+	"z12_rust_horror": {"max_shield": 0.8667},
+	# Z13
+	"z13_acid_serpent": {"max_shield": 2.6000},
+	"z13_blight_drone": {"max_shield": 2.6000},
+	"z13_corroded_golem": {"max_shield": 2.6000},
+	# Z14
+	"z14_caustic_golem": {"max_shield": 1.1818},
+	"z14_dissolution_wraith": {"max_shield": 1.1818},
+	"z14_rot_leviathan": {"max_shield": 1.1818},
+	# Z15
+	"z15_caustic_revenant": {"max_shield": 0.8667},
+	"z15_corrosion_behemoth": {"max_shield": 0.8667},
+	"z15_meltdown_colossus": {"max_shield": 0.8667},
+	# EMP Nexus hazard pool (synthesised difficulty 3, weak NRG)
+	"hz_emp_drone_1": {"max_shield": 0.8667},
+	"hz_emp_drone_3": {"max_shield": 0.8667},
+	"hz_emp_drone_5": {"max_shield": 0.8667},
+	"hz_emp_elite": {"max_shield": 0.8667},
+}
+
+# ─── v154 FLATTEN_HP_CALIB — hp ONLY, 73 rows ────────────────────────────────
+# Compensation for the v154 channel flatten (CHANNEL_ARMOR_DIV /
+# CHANNEL_HULL_COEF), regenerated against the RESTORED (pre-v153) resists. It is
+# the HULL half; FLATTEN_SHIELD_CALIB above is the shield half. They touch
+# different stats, so they compose without interacting.
+#
+# Per enemy, with w = that enemy's OWN weak channel:
+#     d = (CHANNEL_HULL_COEF * af(CHANNEL_ARMOR_DIV)) / (COEF[w] * af(ARMD[w]))
+#     af(f) = k / (c_armor * f + k)
+# so the weak channel's TTK is EXACTLY unchanged at every cell by construction,
+# and the other two channels move to whatever the weak channel's mechanics were
+# — which IS the flattening. Late-zone values are constant because rho pins at
+# 1/ARMOR_K_FLOOR = 1.429: KIN-weak x1.1806, NRG-weak x1.2963, EXP-weak x0.7500.
+#
+# max_shield IS NOT TOUCHED HERE. The hull term is the only place the armour
+# divisor and the hull coefficient appear, so an hp row is the exact and only
+# correction the hull flatten needs. The shield side moves for a different
+# reason (the shield-weight flatten) and is corrected separately.
+#
+# BOSSES DO GET ROWS HERE, unlike FLATTEN_SHIELD_CALIB. That table skips bosses
+# because scaling max_shield diluted the Overseer's siphon and the Leviathan's
+# pools; this table never touches max_shield, so the objection does not carry
+# over. The boss HULL phase is 96-99% of boss TTK — leaving bosses out would
+# move boss TTK -23% to +33%.
+#
+# TRAITS CHECKED for hp-absolute dependencies: enrage_at (fraction), volatile
+# 0.25 (fraction), sustain nanite hull_pct_per_s (fraction), NG+ phase bands
+# (fractions), dmg_healthy/injured (fractions). None absolute. Only the flat >=1
+# anti-stall floor is absolute and it never binds at these magnitudes.
+#
+# Z11 and the four NG+ phased bosses get NO ROWS: cryo's divisor/coefficient
+# (0.5 / 1.0) ARE the flat values, so d_cryo = 1.0000 at every gated cell.
+#
+# ONE KNOWN LEAK: _offline_winnable models DPS as raw weapon damage with armour
+# and resists deliberately ignored, so it does NOT receive the compensating
+# armour-factor gain and its modeled TTK shifts with the hp row (~+30% on
+# NRG-weak cells, ~-25% on EXP-weak). In practice a non-issue (real cells clear
+# in 10-60s against an 1800s winnable wall, and that model is already off by
+# 2-3x because it ignores 42% mitigation and 66% resists).
+#
+# Regenerate with scenes/flat_sweep.tscn BEFORE applying, never after.
+const FLATTEN_HP_CALIB := {
+	# Z1
+	"z1_dust_mite": {"hp": 0.8333},
+	"z1_lunar_drone": {"hp": 0.8508},
+	"z1_scrap_collector": {"hp": 0.9874},
+	"z1_survey_probe": {"hp": 1.1204},
+	"z1_boss_architect": {"hp": 0.9600},
+	# Z2
+	"z2_pirate_skiff": {"hp": 0.9772},
+	"z2_silicate_golem": {"hp": 0.9700},
+	"z2_claim_jumper": {"hp": 0.9653},
+	"z2_ore_hauler": {"hp": 0.9583},
+	"z2_boss_monolith": {"hp": 0.8652},
+	# Z3
+	"z3_scavenger_mech": {"hp": 1.1721},
+	"z3_martian_sentry": {"hp": 1.1851},
+	"z3_salvage_swarm": {"hp": 1.1628},
+	"z3_derelict_frigate": {"hp": 1.1960},
+	"z3_boss_warmaster": {"hp": 1.2963},
+	# Z4
+	"z4_ice_wraith": {"hp": 1.0795},
+	"z4_cryo_sentinel": {"hp": 1.1234},
+	"z4_frost_hulk": {"hp": 1.1674},
+	"z4_glacial_drone": {"hp": 1.0997},
+	"z4_boss_overseer": {"hp": 1.1806},
+	# Z5
+	"z5_xenon_scout": {"hp": 0.7500},
+	"z5_xenon_corvette": {"hp": 0.7500},
+	"z5_alien_frigate": {"hp": 0.7500},
+	"z5_alien_probe": {"hp": 0.7500},
+	"z5_boss_harbinger": {"hp": 0.7500},
+	# Z6
+	"z6_defense_turret": {"hp": 1.2963},
+	"z6_mining_golem": {"hp": 1.2963},
+	"z6_rad_beast": {"hp": 1.2963},
+	"z6_ore_guardian": {"hp": 1.2963},
+	"z6_boss_colossus": {"hp": 1.2963},
+	# Z7
+	"z7_shard_swarm": {"hp": 1.1806},
+	"z7_energy_wraith": {"hp": 1.1806},
+	"z7_void_hunter": {"hp": 1.1806},
+	"z7_gamma_beast": {"hp": 1.1806},
+	"z7_boss_sovereign": {"hp": 1.1806},
+	# Z8
+	"z8_prism_drone": {"hp": 0.7500},
+	"z8_crystal_golem": {"hp": 0.7500},
+	"z8_void_stalker": {"hp": 0.7500},
+	"z8_nebula_phantom": {"hp": 0.7500},
+	"z8_boss_warden": {"hp": 0.7500},
+	# Z9
+	"z9_plague_drone": {"hp": 1.2963},
+	"z9_bio_horror": {"hp": 1.2963},
+	"z9_rogue_ai": {"hp": 1.2963},
+	"z9_quarantine_mech": {"hp": 1.2963},
+	"z9_boss_patient_zero": {"hp": 1.2963},
+	# Z10
+	"z10_void_stalker": {"hp": 1.1806},
+	"z10_temporal_phantom": {"hp": 1.1806},
+	"z10_omega_sentinel": {"hp": 1.1806},
+	"z10_primordial_titan": {"hp": 1.1806},
+	"z10_boss_leviathan": {"hp": 1.1806},
+	# Z12
+	"z12_acid_revenant": {"hp": 1.2963},
+	"z12_rust_horror": {"hp": 1.2963},
+	"z12_corrosion_sentinel": {"hp": 1.2963},
+	"z12_caustic_leviathan": {"hp": 1.2963},
+	# Z13
+	"z13_blight_drone": {"hp": 1.1806},
+	"z13_corroded_golem": {"hp": 1.1806},
+	"z13_acid_serpent": {"hp": 1.1806},
+	"z13_patina_phantom": {"hp": 1.1806},
+	# Z14
+	"z14_dissolution_wraith": {"hp": 0.7500},
+	"z14_caustic_golem": {"hp": 0.7500},
+	"z14_rot_leviathan": {"hp": 0.7500},
+	"z14_toxin_sentinel": {"hp": 0.7500},
+	# Z15
+	"z15_caustic_revenant": {"hp": 1.2963},
+	"z15_meltdown_colossus": {"hp": 1.2963},
+	"z15_corrosion_behemoth": {"hp": 1.2963},
+	"z15_blight_titan": {"hp": 1.2963},
+	# EMP Nexus hazard pool (synthesised difficulty 3, weak NRG).
+	"hz_emp_drone_1": {"hp": 1.1567},
+	"hz_emp_drone_2": {"hp": 1.1688},
+	"hz_emp_drone_3": {"hp": 1.1420},
+	"hz_emp_drone_4": {"hp": 1.1817},
+	"hz_emp_drone_5": {"hp": 1.1470},
+	"hz_emp_elite": {"hp": 1.2133},
+	"hz_emp_overlord": {"hp": 1.2486},
+}
+
 
 # v142b: applied in spawn_enemy to e1/e2 only — see the note there. 0.70 only
 # rescued 3 of 9 zones, so this went to 0.50. That is design-consistent rather
@@ -1968,9 +2368,79 @@ func _apply_enemy_tier_rebase() -> void:
 			if st.has(k) and typeof(st[k]) in [TYPE_INT, TYPE_FLOAT]:
 				st[k] = int(round(float(st[k]) * calib))
 
+func _apply_flatten_shield_calib() -> void:
+	# v154. Runs AFTER _apply_enemy_tier_rebase so it layers on the final numbers.
+	# max_shield only — see the FLATTEN_SHIELD_CALIB note.
+	for eid in FLATTEN_SHIELD_CALIB:
+		if not enemy_db.has(eid):
+			continue
+		var st: Dictionary = enemy_db[eid].get("stats", {})
+		var m: Dictionary = FLATTEN_SHIELD_CALIB[eid]
+		for k in m:
+			if st.has(k) and typeof(st[k]) in [TYPE_INT, TYPE_FLOAT]:
+				st[k] = int(round(float(st[k]) * float(m[k])))
+
+# ─── v155: FAST_CELL_EHP_CALIB DELETED ───────────────────────────────────────
+# v154 shipped a third table here — a per-cell hp AND max_shield multiplier on
+# z7_shard_swarm (x1.40), z8_prism_drone (x1.20) and z10_void_stalker (x1.30) —
+# whose own comment admitted "NOT a transform. This is a FIT." Unlike
+# FLATTEN_SHIELD_CALIB / FLATTEN_HP_CALIB, which are closed-form compensation
+# for a pipeline change, it was a hand-picked slowdown on three cells, and it
+# MANUFACTURED part of the "0 of 36 resisted cells farm" headline: with it
+# disabled those three cells' resisted channel farmed again. A headline that
+# depends on an undeclared per-cell fit is not a measurement.
+#
+# It is gone. The resisted leg is now whatever the flatten and the triangle
+# actually produce, reported as measured — see the v155 note on the weapon
+# base-atk ladder in shipyard_manager.gd.
+#
+# WHAT THAT COSTS, MEASURED (tri_speed coarse + --fine, post-flatten, no table):
+#   z8_prism_drone     resisted ENE  43.4 s/kill -> 4 kills/180s   PASSES now
+#     (its resisted channel is ENERGY, which the base-atk flatten cut 9.7%)
+#   z7_shard_swarm     resisted EXP  31.0 s/kill -> 6 kills/180s   STILL FARMS
+#   z10_void_stalker   resisted EXP  35.0 s/kill -> 5 kills/180s   STILL FARMS
+# So the honest resisted score is 34 of 36, not 36 of 36.
+#
+# NEITHER PERMITTED LEVER REACHES THOSE TWO, and the arithmetic says why:
+#  * THE FLATTEN cannot. Both failing cells are resisted on EXPLOSIVE, and the
+#    flatten target IS the explosive value — explosive did not move, and moving
+#    it alone would re-create the per-channel asymmetry the owner asked to
+#    delete. Flattening to kinetic instead only cuts explosive 10.3%
+#    (z7_shard_swarm -> 34.6 s/kill = 5.2 kills, still farming) while breaking
+#    the idle rule in every energy-primary zone.
+#  * THE TRIANGLE cannot, inside the owner's band. Resisted needs
+#    m <= 0.3414 * 31.0 / 36.0 = 0.294, i.e. authored resist >= 0.397. The
+#    owner's 60-70% experienced band caps the authored value at 0.393
+#    (-> m 0.3005 -> 35.2 s/kill -> 5.1 kills, still farming). Only ~0.42
+#    (a 74.8% cut, outside the band) clears it, and it would deepen the
+#    resisted leg on all 36 cells and every boss to fix 2.
+#
+# THE ACTUAL DEFECT IS CELL SPEED, NOT THE TRIANGLE. Both cells' WEAK channel
+# kills in 9.0 / 10.5 s — 20 and 17 kills per 180s against a 6-9 target band.
+# Clearing "resisted under 5 kills" while weak kills in 9.0s needs a weak:
+# resisted ratio of 4.0x; the authored triangle gives 1.30 / 0.3414 = 3.81x.
+# The two cells are simply outside the calibration the bar assumes. The fix is
+# a per-zone trash EHP recalibration of the over-band e1 cells (Z7/Z10), which
+# is a zone-calibration pass, deliberately NOT done here — doing it per-cell in
+# this file is exactly the fit that was just deleted.
+
+func _apply_flatten_hp_calib() -> void:
+	# v154. Runs AFTER _apply_flatten_shield_calib so it layers on the final
+	# numbers. hp only — see the FLATTEN_HP_CALIB note.
+	for eid in FLATTEN_HP_CALIB:
+		if not enemy_db.has(eid):
+			continue
+		var st: Dictionary = enemy_db[eid].get("stats", {})
+		var m: Dictionary = FLATTEN_HP_CALIB[eid]
+		for k in m:
+			if st.has(k) and typeof(st[k]) in [TYPE_INT, TYPE_FLOAT]:
+				st[k] = int(round(float(st[k]) * float(m[k])))
+
 func _init():
 	super._init("Combat")
 	_apply_enemy_tier_rebase()
+	_apply_flatten_shield_calib()
+	_apply_flatten_hp_calib()
 
 func get_available_zones() -> Array:
 	var available = []
@@ -2674,8 +3144,14 @@ func _execute_player_attack(weapon_idx: int):
 	var p_atk_e = w["dmg_e"]
 	var p_atk_x = w["dmg_x"]
 	var p_atk_cryo = w.get("dmg_cryo", 0.0)  # v109
-	if w["type"] == "energy" and _loadout_has_module(sm, "plasma_overcharger"):
-		p_atk_e *= 2.0
+	# v155: the `plasma_overcharger` x2.0 ENERGY-ONLY branch is DELETED. VERIFIED
+	# DEAD before removal — grep over every .gd and .csv found the id in exactly
+	# two places, this test and designer_page's DPS preview; no entry named
+	# plasma_overcharger exists in shipyard_manager.modules, so
+	# _loadout_has_module could never return true and the branch never fired.
+	# Removed rather than left in place because it is a dormant x2 on ONE channel:
+	# the day anyone adds a module with that id, energy silently doubles and the
+	# whole flatten is undone by a name collision.
 
 	# v109: Cryo weapons are Exotic-Matter self-charging — no ammo required.
 	var requires_ammo = w["slot_idx"] != -1 and w["type"] != "cryo"
@@ -2749,12 +3225,14 @@ func _execute_player_attack(weapon_idx: int):
 	
 	# v80.1: Trinity Damage Multipliers
 	var trinity_atk_mult = 1.0 + (_get_set_bonus_value("atk_pct") + _get_set_bonus_value("all_dmg_pct")) / 100.0
-	var trinity_energy_mult = 1.0 + _get_set_bonus_value("energy_dmg_pct") / 100.0
-	var trinity_missile_mult = 1.0 + _get_set_bonus_value("missile_dmg_pct") / 100.0
-	
+	# v155: trinity_energy_mult / trinity_missile_mult DELETED. They were the only
+	# per-channel multipliers left on the player path; their two source stats are
+	# now all_dmg_pct and are already inside trinity_atk_mult above. All four
+	# channels take the identical multiplier chain — see the TRINITY_SET_BONUSES
+	# note. Do not reintroduce a per-channel term here.
 	p_atk_k *= skill_dmg_mult * trinity_atk_mult
-	p_atk_e *= skill_dmg_mult * trinity_atk_mult * trinity_energy_mult
-	p_atk_x *= skill_dmg_mult * trinity_atk_mult * trinity_missile_mult
+	p_atk_e *= skill_dmg_mult * trinity_atk_mult
+	p_atk_x *= skill_dmg_mult * trinity_atk_mult
 	p_atk_cryo *= skill_dmg_mult * trinity_atk_mult  # v109
 
 	# v120: tier-hardening offense floor removed — the soft numeric gate (rarity
@@ -3157,9 +3635,60 @@ func resolve_damage(atk_k, atk_e, atk_x, c_shield, c_armor, difficulty = 1, crit
 	var _f_e: float = _bf["e"]
 	var _f_x: float = _bf["x"]
 	var _f_cryo: float = _bf["cryo"]
-	var shield_dmg_pot = (atk_k * 0.5 * _f_k) + (atk_e * 1.5 * _f_e) + (atk_x * 1.1 * _f_x) + (atk_cryo * 1.0 * _f_cryo)
 	var sm = GameState.shipyard_manager
-	
+
+	# ── v153/v154: THE SHIELD HALF OF THE FIGHT JOINS THE TRIANGLE ────────────
+	# KEPT through the v154 strip. Both halves of this are load-bearing for the
+	# owner's rule; only the per-cell resist reassignment that shipped alongside
+	# them was reverted.
+	# Until v152 shield_dmg_pot had NO resist term and its OWN per-channel weights
+	# (KIN 0.5 : NRG 1.5 : EXP 1.1). That is a second, contradictory triangle: on a
+	# cell that is 40-54% shield by EHP the authored resist governed only the hull
+	# half, so the EXPERIENCED resist cut was ~35-49% instead of the authored 65.9%
+	# (owner band 60-70%), and kinetic — 3x behind on shield weight — could not be
+	# rescued by ANY resist value. MEASURED consequence: the resisted channel still
+	# farmed 15 of 36 Z2-Z10 trash cells (all EXPLOSIVE-resisted), and in the 12
+	# kinetic-weak cells "weak" was slower than "natural" in 7 and a tie in 2.
+	# TWO CHANGES, BOTH PLAYER-SIDE ONLY:
+	#   * weights 0.5/1.5/1.1 -> 1.0/1.0/1.0 for the PLAYER. The ENEMY keeps the
+	#     old weights, so every hand-measured lethality study (z4_glacial_drone's
+	#     108-trial atk/nuke sweep, the e4 charge_nuke ladder) stays valid — enemy
+	#     damage output is bit-identical.
+	#   * shield damage is multiplied by the same (1 - amped resist) as hull.
+	# Together these make the experienced cut EQUAL the authored cut no matter what
+	# fraction of the cell is shield: weak is exactly 1.30x natural and resisted is
+	# exactly 0.3414x, end to end. The EHP compensation this demands is in
+	# FLATTEN_SHIELD_CALIB (max_shield rows) — the shield and hull halves move by
+	# DIFFERENT factors, so one scalar cannot cancel both and the hull half has
+	# its own table (FLATTEN_HP_CALIB).
+	# v154 DID "finish" this on the hull side: arm_k/arm_e/arm_x and the
+	# 1.2/0.9/1.0 hull coefficients are now flat for the player too. See the
+	# CHANNEL_ARMOR_DIV / CHANNEL_HULL_COEF block near the top of this file.
+	var rk := 0.0
+	var re := 0.0
+	var rx := 0.0
+	var rc := 0.0
+	if is_player_attacker and current_enemy:
+		rk = _amp_resist(float(current_enemy.get("resist_k", 0.0)))
+		re = _amp_resist(float(current_enemy.get("resist_e", 0.0)))
+		rx = _amp_resist(float(current_enemy.get("resist_x", 0.0)))
+		# v118: Amethyst resist_pierce softens the resist gate — shave positive
+		# resistances toward 0 (capped 0.30), never flips a weakness. 0.80 -> min 0.50,
+		# so the wrong type stays a penalty and switching is still worthwhile.
+		var _rp: float = clampf(sm.gem_bonuses.get("resist_pierce", 0.0), 0.0, 0.30)
+		if _rp > 0.0:
+			if rk > 0.0: rk = maxf(rk - _rp, 0.0)
+			if re > 0.0: re = maxf(re - _rp, 0.0)
+			if rx > 0.0: rx = maxf(rx - _rp, 0.0)
+		# v109: Cryo resist (defaults 0). Z11 warp_hardened enemies set
+		# resist_cryo ~ -0.25 (weak), so Cryo over-performs against them.
+		rc = clampf(float(current_enemy.get("resist_cryo", 0.0)), -0.40, 0.50)
+
+	var _sw_k: float = 1.0 if is_player_attacker else 0.5
+	var _sw_e: float = 1.0 if is_player_attacker else 1.5
+	var _sw_x: float = 1.0 if is_player_attacker else 1.1
+	var shield_dmg_pot = (atk_k * _sw_k * _f_k * (1.0 - rk)) + (atk_e * _sw_e * _f_e * (1.0 - re)) + (atk_x * _sw_x * _f_x * (1.0 - rx)) + (atk_cryo * 1.0 * _f_cryo * (1.0 - rc))
+
 	# v85.2: Vulnerable Status (+20% damage taken)
 	if not is_player_attacker and enemy_vulnerable_timer > 0:
 		shield_dmg_pot *= 1.2
@@ -3202,11 +3731,20 @@ func resolve_damage(atk_k, atk_e, atk_x, c_shield, c_armor, difficulty = 1, crit
 	k = maxf(k, ARMOR_K_FLOOR * float(c_armor))
 
 	# Armor Penetration Logic
-	var arm_k = c_armor
-	var arm_e = c_armor * 0.7
-	var arm_x = c_armor * 0.2
-	var arm_cryo = c_armor * 0.5  # v109: Cryo penetration sits between Energy and Explosive
-	
+	# v154: PLAYER side is flat CHANNEL_ARMOR_DIV on all four channels — the
+	# per-channel divisor was the single largest source of the kinetic trap (it
+	# compounded against enemy DEF, so kinetic was fair at Z2 and 3.3x behind in
+	# the Z5 back cells). ENEMY side keeps the authored 1.0/0.7/0.2 so incoming
+	# damage — and every hand-measured lethality study — is unchanged. Cryo was
+	# already 0.5, so it does not move. See the CHANNEL_ARMOR_DIV note.
+	var _ad_k: float = CHANNEL_ARMOR_DIV if is_player_attacker else 1.0
+	var _ad_e: float = CHANNEL_ARMOR_DIV if is_player_attacker else 0.7
+	var _ad_x: float = CHANNEL_ARMOR_DIV if is_player_attacker else 0.2
+	var arm_k = c_armor * _ad_k
+	var arm_e = c_armor * _ad_e
+	var arm_x = c_armor * _ad_x
+	var arm_cryo = c_armor * 0.5  # v109/v154: cryo's divisor IS the flat value
+
 	# Reactive Armor Logic (Phase 19)
 	if has_reactive:
 		var hp_ratio = float(GameState.shipyard_manager.current_hp) / float(GameState.shipyard_manager.max_hp)
@@ -3216,24 +3754,19 @@ func resolve_damage(atk_k, atk_e, atk_x, c_shield, c_armor, difficulty = 1, crit
 	# Clamp mitigation to MAX_DAMAGE_REDUCTION so lower k can't create
 	# unkillable high-DEF enemies (≥20% of each damage type always lands).
 	var _min_factor = 1.0 - MAX_DAMAGE_REDUCTION
-	var hull_dmg_k = atk_k * 1.2 * max(_min_factor, 1.0 - arm_k / (arm_k + k))
-	var hull_dmg_e = atk_e * 0.9 * max(_min_factor, 1.0 - arm_e / (arm_e + k))
-	var hull_dmg_x = atk_x * 1.0 * max(_min_factor, 1.0 - arm_x / (arm_x + k))
-	var hull_dmg_cryo = atk_cryo * 1.0 * max(_min_factor, 1.0 - arm_cryo / (arm_cryo + k))  # v109
+	# v154: PLAYER side is flat CHANNEL_HULL_COEF on all four channels; the ENEMY
+	# side keeps 1.2/0.9/1.0. See the CHANNEL_HULL_COEF note.
+	var _hc_k: float = CHANNEL_HULL_COEF if is_player_attacker else 1.2
+	var _hc_e: float = CHANNEL_HULL_COEF if is_player_attacker else 0.9
+	var _hc_x: float = CHANNEL_HULL_COEF if is_player_attacker else 1.0
+	var hull_dmg_k = atk_k * _hc_k * max(_min_factor, 1.0 - arm_k / (arm_k + k))
+	var hull_dmg_e = atk_e * _hc_e * max(_min_factor, 1.0 - arm_e / (arm_e + k))
+	var hull_dmg_x = atk_x * _hc_x * max(_min_factor, 1.0 - arm_x / (arm_x + k))
+	var hull_dmg_cryo = atk_cryo * 1.0 * max(_min_factor, 1.0 - arm_cryo / (arm_cryo + k))  # v109/v154: cryo's coefficient IS the flat value
 	
-	# v86.0: Enemy Damage Type Resistances
+	# v86.0: Enemy Damage Type Resistances (rk/re/rx/rc computed at the top of this
+	# function since v153 — the shield term uses the same values).
 	if is_player_attacker and current_enemy:
-		var rk = _amp_resist(current_enemy.get("resist_k", 0.0))
-		var re = _amp_resist(current_enemy.get("resist_e", 0.0))
-		var rx = _amp_resist(current_enemy.get("resist_x", 0.0))
-		# v118: Amethyst resist_pierce softens the resist gate — shave positive
-		# resistances toward 0 (capped 0.30), never flips a weakness. 0.80 -> min 0.50,
-		# so the wrong type stays a penalty and switching is still worthwhile.
-		var _rp: float = clampf(sm.gem_bonuses.get("resist_pierce", 0.0), 0.0, 0.30)
-		if _rp > 0.0:
-			if rk > 0.0: rk = maxf(rk - _rp, 0.0)
-			if re > 0.0: re = maxf(re - _rp, 0.0)
-			if rx > 0.0: rx = maxf(rx - _rp, 0.0)
 		# Phase A: capture per-type pre/post-resist so we can see whether
 		# players actually adapt their damage type to the enemy.
 		GameState.note_damage(hull_dmg_k, hull_dmg_e, hull_dmg_x,
@@ -3241,9 +3774,6 @@ func resolve_damage(atk_k, atk_e, atk_x, c_shield, c_armor, difficulty = 1, crit
 		hull_dmg_k *= (1.0 - rk)
 		hull_dmg_e *= (1.0 - re)
 		hull_dmg_x *= (1.0 - rx)
-		# v109: Cryo resist (defaults 0). Z11 warp_hardened enemies set
-		# resist_cryo ~ -0.25 (weak), so Cryo over-performs against them.
-		var rc = clamp(current_enemy.get("resist_cryo", 0.0), -0.40, 0.50)
 		hull_dmg_cryo *= (1.0 - rc)
 		# v113 (NG+ P1): apply the phase-gate per-channel factors AFTER the resist
 		# clamp so the gate bypasses the 50% resist ceiling — a hard mechanical

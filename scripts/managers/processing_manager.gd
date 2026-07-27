@@ -395,7 +395,7 @@ var recipes: Dictionary = {
 	},
 	"craft_slug_t1s": {
 		"name": "Steel Slugs",
-		"description": "Armor-piercing heavy slugs.",
+		"description": "Heavy steel slugs, cast for weight rather than speed.",
 		"input": {"Steel": 1},
 		"output": {"SlugT1S": 20},
 		"duration": 10.0,

@@ -846,10 +846,12 @@ func _build_card_stats(slot_type: String, stats: Dictionary) -> String:
 		var interval = max(0.01, float(stats.get("atk_interval", GameState.combat_manager.DEFAULT_ATTACK_INTERVAL)))
 		lines.append("DPS: %.1f" % (float(dmg) / interval))
 
-		# v87.0: Damage Type Strong/Weak (Condensed)
-		if stats.get("atk_kinetic", 0) > 0: lines.append(tr("KIN - Strong vs Hull, Weak vs Shield"))
-		if stats.get("atk_energy", 0) > 0: lines.append(tr("NRG - Strong vs Shield, Bypasses Armor"))
-		if stats.get("atk_explosive", 0) > 0: lines.append(tr("EXP - Bypasses Armor, Slower Fire"))
+		# v87.0 / v154: the three channels are MECHANICALLY IDENTICAL — the enemy
+		# resist triangle is the only difference. Do not reintroduce hull/shield/
+		# armour matchup copy here; it would teach a system that no longer exists.
+		if stats.get("atk_kinetic", 0) > 0: lines.append(tr("KIN - Countered by Kinetic resist"))
+		if stats.get("atk_energy", 0) > 0: lines.append(tr("NRG - Countered by Energy resist"))
+		if stats.get("atk_explosive", 0) > 0: lines.append(tr("EXP - Countered by Explosive resist"))
 		if stats.get("atk_cryo", 0) > 0: lines.append(tr("CRY - Breaches Warp-Hardened, Weak vs Conventional"))
 
 	# v110: derived power (tier-based) — replaces the stale energy_load stat.
@@ -1242,16 +1244,13 @@ func _build_comparison_tooltip_bbcode(anchor_select: bool = false, hover_affix: 
 		# v87.0: Damage Type Strong/Weak (Rich BBCode)
 		if my_stats.get("atk_kinetic", 0) > 0:
 			tt += "[img=15 color=#7088F2]res://assets/icons/modules/weapon_kinetic.svg[/img] [color=#7088F2][b]" + tr("KINETIC") + "[/b][/color]\n"
-			tt += "[img=11 color=#46E0A0]res://assets/icons/ui/chevron_up.svg[/img] [color=#46E0A0]" + tr("Strong: Hull (+20%)") + "[/color]\n"
-			tt += "[img=11 color=#FF6473]res://assets/icons/ui/chevron_down.svg[/img] [color=#FF6473]" + tr("Weak: Shield (-50%)") + "[/color]\n"
+			tt += "[color=#7FA39C]" + tr("Matchup is the enemy's resist to this type") + "[/color]\n"
 		if my_stats.get("atk_energy", 0) > 0:
 			tt += "[img=15 color=#5FE0C8]res://assets/icons/modules/weapon_energy.svg[/img] [color=#5FE0C8][b]" + tr("ENERGY") + "[/b][/color]\n"
-			tt += "[img=11 color=#46E0A0]res://assets/icons/ui/chevron_up.svg[/img] [color=#46E0A0]" + tr("Strong: Shield (+50%), Armor Bypass") + "[/color]\n"
-			tt += "[img=11 color=#FF6473]res://assets/icons/ui/chevron_down.svg[/img] [color=#FF6473]" + tr("Weak: Hull (-10%)") + "[/color]\n"
+			tt += "[color=#7FA39C]" + tr("Matchup is the enemy's resist to this type") + "[/color]\n"
 		if my_stats.get("atk_explosive", 0) > 0:
 			tt += "[img=15 color=#FFC24D]res://assets/icons/modules/weapon_explosive.svg[/img] [color=#FFC24D][b]" + tr("EXPLOSIVE") + "[/b][/color]\n"
-			tt += "[img=11 color=#46E0A0]res://assets/icons/ui/chevron_up.svg[/img] [color=#46E0A0]" + tr("Strong: Armor Bypass (80% pen)") + "[/color]\n"
-			tt += "[img=11 color=#FF6473]res://assets/icons/ui/chevron_down.svg[/img] [color=#FF6473]" + tr("Weak: Slower fire rate") + "[/color]\n"
+			tt += "[color=#7FA39C]" + tr("Matchup is the enemy's resist to this type") + "[/color]\n"
 		if my_stats.get("atk_cryo", 0) > 0:
 			tt += "[img=15 color=#39A6E0]res://assets/icons/modules/weapon_cryo.svg[/img] [color=#39A6E0][b]" + tr("CRYOGENIC") + "[/b][/color]\n"
 			tt += "[img=11 color=#46E0A0]res://assets/icons/ui/chevron_up.svg[/img] [color=#46E0A0]" + tr("Breaches Warp-Hardened hulls") + "[/color]\n"

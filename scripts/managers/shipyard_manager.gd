@@ -700,11 +700,52 @@ func get_ship_name() -> String:
 var modules: Dictionary = {
 	# ═══════════════════════════════════════════════════════════════
 	# v80.1: Formula-Driven Modules — 10 Zones × 5 Types = 50 Base
-	# Kinetic ATK = floor(8 × 2.2^(N-1))
-	# Energy ATK  = floor(10 × 2.2^(N-1))
-	# Missile ATK = floor(18 × 2.2^(N-1)), interval 4.0s
 	# Shield HP   = floor(40 × 2.2^(N-1)), regen = floor(HP × 0.05)
 	# Armor DEF   = floor(5 × 2.2^(N-1)), HP bonus = floor(20 × 2.2^(N-1))
+	#
+	# v155 WEAPON BASE-ATK FLATTEN (owner rule: "REMOVE the a-type-hits-hull /
+	# a-type-hits-shield / a-type-penetrates-armor system; the damage-type
+	# TRIANGLE is the only difference"). The three channels used to run SEPARATE
+	# ladders — kinetic floor(8×2.2^(N-1)), energy floor(10×…), missile
+	# floor(18×…) at interval 4.0 (halved to 9/… at 2.0 in v149) — i.e. a fixed
+	# 1.000 : 1.235 : 1.115 raw-attack advantage to energy and explosive at EVERY
+	# zone. That ladder existed to pay kinetic back for being mechanically worse
+	# in the OLD pipeline (per-channel shield weight, armour divisor and hull
+	# coefficient). v154 flattened that pipeline (combat_manager
+	# CHANNEL_ARMOR_DIV / CHANNEL_HULL_COEF, player shield weights 1/1/1), so the
+	# ladder became pure unearned advantage — and it is exactly what broke the
+	# weak leg of the triangle in the 12 kinetic-weak cells:
+	#     weak kinetic   1.000 × 1.30 = 1.300
+	#     natural energy 1.235 × 1.00 = 1.235      <- a 5% margin, inside noise
+	#
+	# ONE LADDER NOW: all three channels share the zone's MISSILE value.
+	#   zone  1     2     3      4    5     6     7      8       9        10
+	#   all   9    20   43.5    96   211   464  1021  2246.5  4942.5  10873.5
+	#
+	# WHY THE MISSILE VALUE. It is the geometric mean of the three old channels
+	# to within 0.20-0.42% at every single zone (X / geomean = 1.0042, 1.0034,
+	# 1.0042, 1.0029, 1.0027, 1.0027, 1.0020, 1.0022, 1.0024, 1.0024 for Z1..Z10),
+	# so aggregate player DPS is preserved and the existing per-zone enemy
+	# calibration is disturbed as little as any single target can manage — while
+	# being an ALREADY-AUTHORED integer ladder rather than a newly invented one,
+	# which leaves one of the three channels bit-identical to HEAD. Kinetic gains
+	# ~11.5%, energy loses ~9.7%, explosive does not move.
+	#
+	# The UNIQUE (trinity-set) weapons were already flat per zone; v155 only
+	# repaired two v149 half-value rounding residues (z5_unique_weapon 337.5→338,
+	# z10_unique_weapon 17397.5→17398) so they are flat to the last digit.
+	#
+	# NOT FLATTENED, deliberately: cryo_lance / corrosion_blaster. They are the
+	# EXOTIC channel, not members of the K/E/X resist triangle — no zone has a
+	# cryo resist row outside the Z11+ gate, there is no per-zone cryo ladder to
+	# level against, and both numbers are the tuning axis of the Z11 Threshold
+	# Warden and the Z12 Rift Warden. Their pipeline (armour divisor 0.5, hull
+	# coefficient 1.0) already IS the flattened one.
+	#
+	# The per-channel energy_load literals below (5/8/10 … 400/450/500) are DEAD:
+	# draw is derived from CONSUMER_LOAD_BY_TIER by zone/power_tier
+	# (get_def_energy_load), and every UI surface skips the stat explicitly. They
+	# are left alone rather than edited so the diff stays confined to live values.
 	# ═══════════════════════════════════════════════════════════════
 
 	# ── CRYO WEAPON TIER — the 4th damage type, unlocked by the first Warp. ──
@@ -782,17 +823,17 @@ var modules: Dictionary = {
 	"z1_kinetic": {
 		"name": "Mass Driver Mk.I",
 		"slot_type": "weapon",
-		"stats": {"atk_kinetic": 8, "energy_load": 5, "atk_interval": 2.0},
+		"stats": {"atk_kinetic": 9, "energy_load": 5, "atk_interval": 2.0},
 		"cost": {"credits": 2000, "Fe": 30},
-		"desc": "Magnetic projectile cannon. Reliable hull damage.",
+		"desc": "Magnetic rail cannon. Crude, rugged, and cheap to keep loaded.",
 		"zone": 1
 	},
 	"z1_energy": {
 		"name": "Pulse Laser Mk.I",
 		"slot_type": "weapon",
-		"stats": {"atk_energy": 10, "energy_load": 8, "atk_interval": 2.0},
+		"stats": {"atk_energy": 9, "energy_load": 8, "atk_interval": 2.0},
 		"cost": {"credits": 2000, "Si": 30},
-		"desc": "Fast-firing energy beam. Strong vs shields.",
+		"desc": "Fast-cycling beam emitter. Focus crystals in, coherent light out.",
 		"zone": 1
 	},
 	"z1_missile": {
@@ -800,7 +841,7 @@ var modules: Dictionary = {
 		"slot_type": "weapon",
 		"stats": {"atk_explosive": 9, "energy_load": 10, "atk_interval": 2.0},
 		"cost": {"credits": 2500, "Fe": 20, "Cu": 10},
-		"desc": "Explosive payload. High armor penetration.",
+		"desc": "Rack-fed micro-warheads. Loud, messy, and quick to reload.",
 		"zone": 1
 	},
 	"z1_shield": {
@@ -824,17 +865,17 @@ var modules: Dictionary = {
 	"z2_kinetic": {
 		"name": "Gauss Rifle",
 		"slot_type": "weapon",
-		"stats": {"atk_kinetic": 18, "energy_load": 10, "atk_interval": 2.0},
+		"stats": {"atk_kinetic": 20, "energy_load": 10, "atk_interval": 2.0},
 		"cost": {"credits": 4400, "Fe": 60, "Cu": 20},
-		"desc": "Electromagnetic accelerator. Armor-piercing.",
+		"desc": "Electromagnetic accelerator. Throws ferrite at hypersonic muzzle speed.",
 		"zone": 2, "research_req": "zone_2_access"
 	},
 	"z2_energy": {
 		"name": "Plasma Cutter",
 		"slot_type": "weapon",
-		"stats": {"atk_energy": 22, "energy_load": 15, "atk_interval": 2.0},
+		"stats": {"atk_energy": 20, "energy_load": 15, "atk_interval": 2.0},
 		"cost": {"credits": 4400, "Si": 60, "Cu": 20},
-		"desc": "Focused plasma stream. Melts shields.",
+		"desc": "Focused plasma stream, repurposed from a shipbreaker's cutting torch.",
 		"zone": 2, "research_req": "zone_2_access"
 	},
 	"z2_missile": {
@@ -842,7 +883,7 @@ var modules: Dictionary = {
 		"slot_type": "weapon",
 		"stats": {"atk_explosive": 20, "energy_load": 18, "atk_interval": 2.0},
 		"cost": {"credits": 5500, "Fe": 40, "C": 30, "Hydraulics": 2},
-		"desc": "Blast warhead. Devastating hull damage.",
+		"desc": "Concussive warhead tuned for maximum overpressure.",
 		"zone": 2, "research_req": "zone_2_access"
 	},
 	"z2_shield": {
@@ -868,7 +909,7 @@ var modules: Dictionary = {
 	"z3_kinetic": {
 		"name": "Autocannon",
 		"slot_type": "weapon",
-		"stats": {"atk_kinetic": 39, "energy_load": 18, "atk_interval": 2.0},
+		"stats": {"atk_kinetic": 43.5, "energy_load": 18, "atk_interval": 2.0},
 		"cost": {"credits": 9680, "Steel": 40, "Ti": 15},
 		"desc": "Rapid-fire ballistic weapon.",
 		"zone": 3, "research_req": "zone_3_access"
@@ -876,9 +917,9 @@ var modules: Dictionary = {
 	"z3_energy": {
 		"name": "Cryo Beam",
 		"slot_type": "weapon",
-		"stats": {"atk_energy": 48, "energy_load": 25, "atk_interval": 2.0},
+		"stats": {"atk_energy": 43.5, "energy_load": 25, "atk_interval": 2.0},
 		"cost": {"credits": 9680, "Si": 100, "Ti": 15},
-		"desc": "Helium-cooled beam. Extreme shield damage.",
+		"desc": "Helium-cooled emitter. Holds a firing line far longer than it should.",
 		"zone": 3, "research_req": "zone_3_access"
 	},
 	"z3_missile": {
@@ -886,7 +927,7 @@ var modules: Dictionary = {
 		"slot_type": "weapon",
 		"stats": {"atk_explosive": 43.5, "energy_load": 30, "atk_interval": 2.0},
 		"cost": {"credits": 12100, "Steel": 60, "C": 40, "Hydraulics": 3},
-		"desc": "Armor-busting ordnance.",
+		"desc": "Slow, heavy ordnance. One tube, one very large warhead.",
 		"zone": 3, "research_req": "zone_3_access"
 	},
 	"z3_shield": {
@@ -910,7 +951,7 @@ var modules: Dictionary = {
 	"z4_kinetic": {
 		"name": "Railgun Mk.II",
 		"slot_type": "weapon",
-		"stats": {"atk_kinetic": 86, "energy_load": 30, "atk_interval": 2.0},
+		"stats": {"atk_kinetic": 96, "energy_load": 30, "atk_interval": 2.0},
 		"cost": {"credits": 21296, "Steel": 80, "AdvCircuit": 9},
 		"desc": "High-velocity slug launcher.",
 		"zone": 4, "research_req": "zone_4_access"
@@ -918,7 +959,7 @@ var modules: Dictionary = {
 	"z4_energy": {
 		"name": "Ion Lance",
 		"slot_type": "weapon",
-		"stats": {"atk_energy": 106, "energy_load": 40, "atk_interval": 2.0},
+		"stats": {"atk_energy": 96, "energy_load": 40, "atk_interval": 2.0},
 		"cost": {"credits": 21296, "Ti": 60, "AdvCircuit": 9, "FocusingCrystal": 2},
 		"desc": "Concentrated ion stream.",
 		"zone": 4, "research_req": "zone_4_access"
@@ -952,7 +993,7 @@ var modules: Dictionary = {
 	"z5_kinetic": {
 		"name": "Gauss Cannon",
 		"slot_type": "weapon",
-		"stats": {"atk_kinetic": 189, "energy_load": 50, "atk_interval": 2.0},
+		"stats": {"atk_kinetic": 211, "energy_load": 50, "atk_interval": 2.0},
 		"cost": {"credits": 46851, "Superalloy": 20, "QuantumCore": 2},
 		"desc": "Capital-grade magnetic accelerator.",
 		"zone": 5, "research_req": "zone_5_access"
@@ -960,9 +1001,9 @@ var modules: Dictionary = {
 	"z5_energy": {
 		"name": "Particle Beam",
 		"slot_type": "weapon",
-		"stats": {"atk_energy": 234, "energy_load": 60, "atk_interval": 2.0},
+		"stats": {"atk_energy": 211, "energy_load": 60, "atk_interval": 2.0},
 		"cost": {"credits": 46851, "Ti": 100, "QuantumCore": 2, "Au": 10, "FocusingCrystal": 3},
-		"desc": "Accelerated particles strip shields instantly.",
+		"desc": "Relativistic particle stream drawn straight off the reactor line.",
 		"zone": 5, "research_req": "zone_5_access"
 	},
 	"z5_missile": {
@@ -1001,7 +1042,7 @@ var modules: Dictionary = {
 	"z6_kinetic": {
 		"name": "Siege Cannon",
 		"slot_type": "weapon",
-		"stats": {"atk_kinetic": 416, "energy_load": 80, "atk_interval": 2.0},
+		"stats": {"atk_kinetic": 464, "energy_load": 80, "atk_interval": 2.0},
 		"cost": {"credits": 103072, "Superalloy": 50, "AdvCircuit": 30},
 		"desc": "Colony-siege grade ballistic weapon.",
 		"zone": 6, "research_req": "zone_6_access"
@@ -1009,7 +1050,7 @@ var modules: Dictionary = {
 	"z6_energy": {
 		"name": "Plasma Lancer",
 		"slot_type": "weapon",
-		"stats": {"atk_energy": 514, "energy_load": 90, "atk_interval": 2.0},
+		"stats": {"atk_energy": 464, "energy_load": 90, "atk_interval": 2.0},
 		"cost": {"credits": 103072, "QuantumCore": 5, "AdvCircuit": 30, "FocusingCrystal": 5},
 		"desc": "Sustained plasma discharge.",
 		"zone": 6, "research_req": "zone_6_access"
@@ -1043,7 +1084,7 @@ var modules: Dictionary = {
 	"z7_kinetic": {
 		"name": "Neutron Slugger",
 		"slot_type": "weapon",
-		"stats": {"atk_kinetic": 916, "energy_load": 120, "atk_interval": 2.0},
+		"stats": {"atk_kinetic": 1021, "energy_load": 120, "atk_interval": 2.0},
 		"cost": {"credits": 226758, "ExoticMatter": 10, "Ir": 10, "IrWAlloy": 5, "AdvCircuit": 40},
 		"desc": "Fires neutron-dense projectiles.",
 		"zone": 7, "research_req": "zone_7_access"
@@ -1051,7 +1092,7 @@ var modules: Dictionary = {
 	"z7_energy": {
 		"name": "Void Beam",
 		"slot_type": "weapon",
-		"stats": {"atk_energy": 1131, "energy_load": 140, "atk_interval": 2.0},
+		"stats": {"atk_energy": 1021, "energy_load": 140, "atk_interval": 2.0},
 		"cost": {"credits": 226758, "ExoticMatter": 10, "VoidCrystal": 5, "AdvCircuit": 40, "FocusingCrystal": 8},
 		"desc": "Drains energy from realspace.",
 		"zone": 7, "research_req": "zone_7_access"
@@ -1085,7 +1126,7 @@ var modules: Dictionary = {
 	"z8_kinetic": {
 		"name": "Prismatic Railgun",
 		"slot_type": "weapon",
-		"stats": {"atk_kinetic": 2015, "energy_load": 180, "atk_interval": 2.0},
+		"stats": {"atk_kinetic": 2246.5, "energy_load": 180, "atk_interval": 2.0},
 		"cost": {"credits": 498868, "VoidCrystal": 10, "StructuralLattice": 2, "NeutroniumPlate": 2, "Steel": 4500},
 		"desc": "Crystal-focused kinetic lance.",
 		"zone": 8, "research_req": "zone_8_access"
@@ -1093,7 +1134,7 @@ var modules: Dictionary = {
 	"z8_energy": {
 		"name": "Prism Annihilator",
 		"slot_type": "weapon",
-		"stats": {"atk_energy": 2489, "energy_load": 200, "atk_interval": 2.0},
+		"stats": {"atk_energy": 2246.5, "energy_load": 200, "atk_interval": 2.0},
 		"cost": {"credits": 498868, "VoidCrystal": 10, "ExoticMatter": 10, "StructuralLattice": 2, "Ti": 3500, "FocusingCrystal": 12},
 		"desc": "Refracted energy cascade.",
 		"zone": 8, "research_req": "zone_8_access"
@@ -1127,7 +1168,7 @@ var modules: Dictionary = {
 	"z9_kinetic": {
 		"name": "Pathogen Cannon",
 		"slot_type": "weapon",
-		"stats": {"atk_kinetic": 4432, "energy_load": 260, "atk_interval": 2.0},
+		"stats": {"atk_kinetic": 4942.5, "energy_load": 260, "atk_interval": 2.0},
 		"cost": {"credits": 1097510, "BiohazardSample": 20, "BioReactorCore": 3, "Neutronium": 180, "Steel": 9000},
 		"desc": "Bio-corrosive projectiles.",
 		"zone": 9, "research_req": "zone_9_access"
@@ -1135,7 +1176,7 @@ var modules: Dictionary = {
 	"z9_energy": {
 		"name": "Zero-Point Beam",
 		"slot_type": "weapon",
-		"stats": {"atk_energy": 5476, "energy_load": 300, "atk_interval": 2.0},
+		"stats": {"atk_energy": 4942.5, "energy_load": 300, "atk_interval": 2.0},
 		"cost": {"credits": 1097510, "ChronoCore": 2, "BioReactorCore": 3, "Neutronium": 180, "Ti": 8000, "FocusingCrystal": 18},
 		"desc": "Extracts energy from vacuum fluctuations.",
 		"zone": 9, "research_req": "zone_9_access"
@@ -1169,7 +1210,7 @@ var modules: Dictionary = {
 	"z10_kinetic": {
 		"name": "Omega Cannon",
 		"slot_type": "weapon",
-		"stats": {"atk_kinetic": 9751, "energy_load": 400, "atk_interval": 2.0},
+		"stats": {"atk_kinetic": 10873.5, "energy_load": 400, "atk_interval": 2.0},
 		"cost": {"credits": 2414522, "PrimordialShard": 5, "PrimordialMatrix": 3, "OmegaComposite": 2, "Neutronium": 200, "Steel": 13000},
 		"desc": "Final evolution of kinetic warfare.",
 		"zone": 10, "research_req": "zone_10_access"
@@ -1177,7 +1218,7 @@ var modules: Dictionary = {
 	"z10_energy": {
 		"name": "Chrono Disruptor",
 		"slot_type": "weapon",
-		"stats": {"atk_energy": 12047, "energy_load": 450, "atk_interval": 2.0},
+		"stats": {"atk_energy": 10873.5, "energy_load": 450, "atk_interval": 2.0},
 		"cost": {"credits": 2414522, "ChronoCore": 5, "PrimordialMatrix": 3, "OmegaComposite": 2, "Neutronium": 200, "Ti": 11000, "FocusingCrystal": 25},
 		"desc": "Tears through spacetime itself.",
 		"zone": 10, "research_req": "zone_10_access"
@@ -1562,10 +1603,13 @@ var modules: Dictionary = {
 		"set_id": "overseers_command", "is_unique": true
 	},
 
-	# ── Z5: Harbinger's Wrath (+15% Missile DMG, -10% Enemy DEF) ──
+	# ── Z5: Harbinger's Wrath (+30% All DMG, -20% Enemy DEF) ──
+	# v155: was "+15% Missile DMG" in this header and missile_dmg_pct 30 in the
+	# const — stale on both counts. The set bonus is now channel-agnostic; see the
+	# TRINITY_SET_BONUSES note in combat_manager.gd.
 	"z5_unique_weapon": {
 		"name": "Harbinger's Fury", "slot_type": "weapon", "rarity": 4,
-		"stats": {"atk_explosive": 337.5, "energy_load": 90, "atk_interval": 2.0},
+		"stats": {"atk_explosive": 338, "energy_load": 90, "atk_interval": 2.0},
 		"cost": {}, "desc": "Xenon doomsday missile platform.", "zone": 5,
 		"set_id": "harbingers_wrath", "is_unique": true
 	},
@@ -1626,7 +1670,9 @@ var modules: Dictionary = {
 		"set_id": "colossus_dominion", "is_unique": true
 	},
 
-	# ── Z7: Sovereign's Prism (+300 DEF, +10% Energy DMG) ──
+	# ── Z7: Sovereign's Prism (+800 DEF, +22% All DMG) ──
+	# v155: was "+10% Energy DMG" here and energy_dmg_pct 22 in the const — stale on
+	# both counts. Now channel-agnostic; see combat_manager.gd TRINITY_SET_BONUSES.
 	"z7_unique_weapon": {
 		"name": "Sovereign's Ray", "slot_type": "weapon", "rarity": 4,
 		"stats": {"atk_energy": 1809, "energy_load": 180, "atk_interval": 2.0},
@@ -1725,7 +1771,7 @@ var modules: Dictionary = {
 	# ── Z10: Leviathan's Crown (+20% All DMG, +1000 HP Regen/tick) ──
 	"z10_unique_weapon": {
 		"name": "Leviathan's Maw", "slot_type": "weapon", "rarity": 4,
-		"stats": {"atk_explosive": 17397.5, "energy_load": 600, "atk_interval": 2.0},
+		"stats": {"atk_explosive": 17398, "energy_load": 600, "atk_interval": 2.0},
 		"cost": {}, "desc": "Reality-ending void warhead.", "zone": 10,
 		"set_id": "leviathans_crown", "is_unique": true
 	},
@@ -2879,8 +2925,22 @@ func recalc_stats():
 	hp += affix_bonuses.get("flat_hp", 0.0)
 	shield += affix_bonuses.get("flat_shield", 0.0)
 	defe += affix_bonuses.get("flat_def", 0.0)
-	atk_k += affix_bonuses.get("flat_atk", 0.0)
-	
+	# v155: `atk_k += affix_bonuses["flat_atk"]` REMOVED. VERIFIED before removal:
+	# atk_k lands only in attack_kinetic, and attack_kinetic is read by exactly
+	# three places — mission_manager's (sum > 0) liveness test, atlas_page's DPS
+	# readout, and the `attack` display total. The COMBAT path never touches it:
+	# _rebuild_player_weapon_states builds dmg_k/dmg_e/dmg_x straight off each
+	# module's own atk_kinetic/atk_energy/atk_explosive stat. So the line moved no
+	# damage — it only made the ship sheet's KINETIC number larger, on any build,
+	# including a pure energy or missile one.
+	# That was a per-channel display lie with no mechanical backing, so it goes.
+	# SEPARATE, LARGER FINDING, deliberately NOT fixed here: the flat_atk affix
+	# ("Sharpened Edge" / "of Lethality", range 2-5, weapons only) is COMBAT-DEAD
+	# in its entirety — same class as the flat_accuracy affix v145 deleted. Wiring
+	# it into weapon_states would move every measured TTK in the game, so it needs
+	# its own pass with a full invariant re-measure; deleting it needs an affix
+	# migration for rolled items. Flagged, not silently patched.
+
 	# v85.1: Add New Affix types to global stats
 	crit += affix_bonuses.get("combat_sight", 0.0)
 	eva += affix_bonuses.get("reflexive_plating", 0.0)

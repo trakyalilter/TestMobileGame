@@ -1770,23 +1770,17 @@ func _make_stat_tile_style(accent: Color) -> StyleBoxFlat:
 func _calculate_total_dps() -> float:
 	var total = 0.0
 
-	var has_plasma_overcharger = false
-	for slot_idx in manager.loadout:
-		if manager.loadout[slot_idx] == "plasma_overcharger":
-			has_plasma_overcharger = true
-			break
-
+	# v155: the plasma_overcharger x2.0 energy branch is gone from both this
+	# preview and combat_manager.do_player_attack. No module with that id has ever
+	# existed, so the preview could only ever have disagreed with combat. All
+	# three channels now sum flat — see TRINITY_SET_BONUSES in combat_manager.gd.
 	for slot_idx in manager.loadout:
 		var module_id = manager.loadout[slot_idx]
 		if module_id and module_id in manager.modules:
 			var module_data = manager.modules[module_id]
 			if module_data.get("slot_type") == "weapon":
 				var stats = module_data.get("stats", {})
-				var energy_damage = stats.get("atk_energy", 0)
-				if has_plasma_overcharger:
-					energy_damage *= 2.0
-
-				var damage = stats.get("atk_kinetic", 0) + energy_damage + stats.get("atk_explosive", 0)
+				var damage = stats.get("atk_kinetic", 0) + stats.get("atk_energy", 0) + stats.get("atk_explosive", 0)
 				var interval = stats.get("atk_interval", GameState.combat_manager.DEFAULT_ATTACK_INTERVAL)
 				if interval > 0:
 					total += float(damage) / interval

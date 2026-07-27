@@ -14,7 +14,10 @@ extends Node
 # ============================================================================
 const DT := 0.1
 const MAXT := 300.0
-const TRIALS := 9   # v139g: was 5 — cells swung ±2 across identical code (Z4 read 3/5 then 1/5, Z3 1/5 then 5/5). 9 is the boss_gearcheck-proven minimum for win-rate reads; bar scales via the >=0.60 fraction.
+# v154: TRIALS is now a var with a --trials=N CLI override. The brief-level
+# warning stands: at 9 trials this probe has shown a 41% TTK spread on IDENTICAL
+# code (Z4 all-LEGENDARY 160s vs 226s). Raise it before concluding anything.
+var TRIALS := 9   # v139g: was 5 — cells swung ±2 across identical code (Z4 read 3/5 then 1/5, Z3 1/5 then 5/5). 9 is the boss_gearcheck-proven minimum for win-rate reads; bar scales via the >=0.60 fraction.
 const SUFFIX := {"kinetic": "kinetic", "energy": "energy", "explosive": "missile"}
 const AMMO := {"kinetic": "Slug", "energy": "Cell", "explosive": "Missile"}
 
@@ -53,6 +56,9 @@ func _ready() -> void:
 	var cm = GameState.combat_manager
 	var rm = GameState.research_manager
 	GameState.set_process(false)
+	for _a in OS.get_cmdline_user_args():
+		if String(_a).begins_with("--trials="):
+			TRIALS = maxi(1, int(String(_a).split("=")[1]))
 	print("[BTH] ===== BOSS THRESHOLD PROBE (mission-realistic mixes) =====")
 	print("[BTH] base = ALL-common weak-type loadout + repair kits; then swap in K RARE weak-type weapons.")
 	print("[BTH] min K with >=%d/%d wins (60%%) = the funnel's rare-weapon requirement for that boss." % [int(ceil(0.6 * TRIALS)), TRIALS])

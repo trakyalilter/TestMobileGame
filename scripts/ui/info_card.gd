@@ -111,17 +111,13 @@ func _setup_module(id: String):
 	# v87.0: Damage Type Strong/Weak Tooltips
 	if stats.has("atk_kinetic") and stats["atk_kinetic"] > 0:
 		final_desc += "\n" + tr("[KINETIC]")
-		final_desc += "\n" + tr("  + Strong: Hull Damage (+20%)")
-		final_desc += "\n" + tr("  - Weak: Shield Damage (-50%)")
+		final_desc += "\n" + tr("  Matchup is the enemy's resist to this type")
 	if stats.has("atk_energy") and stats["atk_energy"] > 0:
 		final_desc += "\n" + tr("[ENERGY]")
-		final_desc += "\n" + tr("  + Strong: Shield Damage (+50%)")
-		final_desc += "\n" + tr("  + Strong: Armor Bypass (70% pen)")
-		final_desc += "\n" + tr("  - Weak: Hull Damage (-10%)")
+		final_desc += "\n" + tr("  Matchup is the enemy's resist to this type")
 	if stats.has("atk_explosive") and stats["atk_explosive"] > 0:
 		final_desc += "\n" + tr("[EXPLOSIVE]")
-		final_desc += "\n" + tr("  + Strong: Armor Bypass (80% pen!)")
-		final_desc += "\n" + tr("  - Weak: Slower fire rate")
+		final_desc += "\n" + tr("  Matchup is the enemy's resist to this type")
 		
 	desc_lbl.text = final_desc
 	desc_lbl.modulate = Color(0.78, 0.88, 0.85, 1) # soft light teal-white
