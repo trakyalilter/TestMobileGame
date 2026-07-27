@@ -76,6 +76,21 @@ func resolve(m: Dictionary) -> Dictionary:
 				return {"verb": "unmapped", "why": "enemy %s in no zone roster" % target}
 			return {"verb": "combat", "zone": zid, "enemy": String(target),
 				"need": int(m.get("target_qty", 1)) - int(m.get("current_qty", 0))}
+		"defeat_retreat":
+			# v157: m017 is "kill it, THEN disengage". mission_manager banks the kill
+			# in m["_kills"] (not current_qty) and only completes the mission once
+			# combat_manager.in_combat is false, so current_qty is pinned one short
+			# and a need computed from it never reaches 0 — that is the m017 wall.
+			# Reading _kills makes need hit 0 on the kill, the policy moves to the
+			# next task, active_manager.stop_action() leaves combat, and the mission
+			# closes. No game behaviour is touched; this is sim-side routing only.
+			var zid2 := zone_of_enemy(String(target))
+			if zid2 == "":
+				return {"verb": "unmapped", "why": "enemy %s in no zone roster" % target}
+			var need2: int = int(m.get("target_qty", 1)) - int(m.get("_kills", 0))
+			if need2 <= 0:
+				return {"verb": "wait"}
+			return {"verb": "combat", "zone": zid2, "enemy": String(target), "need": need2}
 		"discover":
 			return {"verb": "discover", "zone": String(target)}
 		"drop_rarity":
@@ -506,7 +521,7 @@ func _static_check(mid: String, m: Dictionary) -> String:
 		"build":
 			if not String(target) in GameState.infrastructure_manager.building_db:
 				return "%s: build target %s not in building_db" % [mid, target]
-		"defeat":
+		"defeat", "defeat_retreat":
 			if zone_of_enemy(String(target)) == "":
 				return "%s: defeat target %s in no zone roster" % [mid, target]
 		"discover":

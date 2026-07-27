@@ -505,10 +505,23 @@ var recipes: Dictionary = {
 		# claimed 9, which only holds if k=1 — do NOT size the remaining rungs
 		# against that figure.) 25 spread over eight zones is the "modest amount"
 		# the rule asks for; what matters is that it is linear, not geometric.
-		# VOLUME SCALING IS NOT THIS RECIPE'S JOB — it belongs to
-		# shipyard_manager.MODULE_COST_ZONE_BASE (1.55^(zone-2)) and to the per-module
-		# alloy quantity, both of which scale the AUTOMATABLE side. Never buy
-		# late-game cost by nesting the chain more steeply.
+		# VOLUME SCALING IS NOT THIS RECIPE'S JOB — it belongs to the banded module
+		# cost curve in shipyard_manager (compose_module_costs), which scales the
+		# AUTOMATABLE side. Never buy late-game cost by nesting the chain more steeply.
+		#
+		# ── v156 RE-POINT: own-zone combat coefficient k 6 -> 2 on rungs Z3-Z10,
+		# automatable carrier DOUBLED on the same rungs. Measured, the k=6 ladder
+		# billed 40 units of BACKWARD combat loot per AeonAlloy, and 34,385 across a
+		# tier-matched Z10 refit — hours of serial grinding in zones the player had
+		# already left, which is the one thing the rule above forbids. The
+		# previous-rung coefficient is UNTOUCHED at 1 (it is inviolable; see the
+		# compounding note above) and no output quantity moved — the fix is
+		# re-pointing volume from combat onto the automatable carrier, exactly as the
+		# rule prescribes. c(n) = c(n-1) + 2 now: c(10) = 17, of which 15 backward.
+		# The gate the k=6 term used to provide is not lost: it moved to the MODULE,
+		# where compose_module_costs bills each zone's own signature drop on a hard
+		# 1.26^(z-2) ramp. Own-zone drops cost the player nothing extra (they are
+		# farming that zone right now) and they never propagate backward.
 		#
 		# Part 3 is capped low ON PURPOSE. Gathering and processing can be turned
 		# into a parallel machine with infrastructure; COMBAT CANNOT — you fight one
@@ -539,7 +552,7 @@ var recipes: Dictionary = {
 		# Fe/C/O chain and its buildings load-bearing all the way up.
 		#   dirt/water -> Fe -> Steel ─┐
 		#                 Cu/Si/Sn -> Circuit -> ChondriteAlloy ─┴-> WreckforgedAlloy
-		"input": {"ChondriteAlloy": 1, "Steel": 6, "MartianRelics": 3}, "output": {"WreckforgedAlloy": 1},
+		"input": {"ChondriteAlloy": 1, "Steel": 12, "MartianRelics": 2}, "output": {"WreckforgedAlloy": 1},
 		"duration": 13.0, "level_req": 25, "xp": 35, "research_req": "zone_3_access", "category": "alloys"
 	},
 	"refine_rime_alloy": {
@@ -552,7 +565,7 @@ var recipes: Dictionary = {
 		# Zone-4 recipe. That was a backward-reach inversion so severe it ran the wrong
 		# way down the ladder. N (nitrogen, from the gas line) is automatable and keeps
 		# the H/O chain load-bearing; RimeplateScrap is Z4's OWN drop so 6 is fine.
-		"input": {"WreckforgedAlloy": 1, "N": 10, "RimeplateScrap": 6}, "output": {"RimeAlloy": 1},
+		"input": {"WreckforgedAlloy": 1, "N": 20, "RimeplateScrap": 2}, "output": {"RimeAlloy": 1},
 		"duration": 14.0, "level_req": 35, "xp": 50, "research_req": "zone_4_access", "category": "alloys"
 	},
 	"refine_xenoforged_alloy": {
@@ -566,7 +579,7 @@ var recipes: Dictionary = {
 		# zone_5_access). Superalloy also pulls a DIFFERENT raw chain into permanent
 		# relevance — Fe/Al/Co/Ni/Cr/Ti — which is exactly what the cumulative rule
 		# wants: more early resources staying alive, not the same one squeezed harder.
-		"input": {"RimeAlloy": 1, "Superalloy": 4, "XenoFragment": 6}, "output": {"XenoforgedAlloy": 1},
+		"input": {"RimeAlloy": 1, "Superalloy": 8, "XenoFragment": 2}, "output": {"XenoforgedAlloy": 1},
 		"duration": 15.0, "level_req": 45, "xp": 70, "research_req": "zone_5_access", "category": "alloys"
 	},
 	"refine_colony_alloy": {
@@ -586,7 +599,7 @@ var recipes: Dictionary = {
 		# consumer of Li (Spodumene -> Lithium Extractor / Brine Well / Refinery) and
 		# reloads Fe/Cu/Si/C alongside it. Per-zone carriers so far:
 		#   Z2 Circuit | Z3 Steel | Z4 N | Z5 Superalloy | Z6 StructuralComponent
-		"input": {"XenoforgedAlloy": 1, "StructuralComponent": 5, "ColonySalvage": 6}, "output": {"ColonyAlloy": 1},
+		"input": {"XenoforgedAlloy": 1, "StructuralComponent": 10, "ColonySalvage": 2}, "output": {"ColonyAlloy": 1},
 		"duration": 15.0, "level_req": 55, "xp": 95, "research_req": "zone_6_access", "category": "alloys"
 	},
 	"refine_gamma_alloy": {
@@ -604,7 +617,7 @@ var recipes: Dictionary = {
 		# note on refine_xenoforged_alloy rejected AdvCircuit at level 45 because the
 		# recipe gates at 40 and that band could not reach it; this rung gates at 65.
 		#   Z2 Circuit | Z3 Steel | Z4 N | Z5 Superalloy | Z6 StructuralComponent | Z7 AdvCircuit
-		"input": {"ColonyAlloy": 1, "AdvCircuit": 4, "ExoticIsotope": 6}, "output": {"GammaAlloy": 1},
+		"input": {"ColonyAlloy": 1, "AdvCircuit": 8, "ExoticIsotope": 2}, "output": {"GammaAlloy": 1},
 		"duration": 16.0, "level_req": 65, "xp": 120, "research_req": "zone_7_access", "category": "alloys"
 	},
 	"refine_prismatic_alloy": {
@@ -623,7 +636,7 @@ var recipes: Dictionary = {
 		# own. Crystalline carbon is also the honest read of "prismatic lattice".
 		#   Z2 Circuit | Z3 Steel | Z4 N | Z5 Superalloy | Z6 StructuralComponent
 		#   Z7 AdvCircuit | Z8 Graphite
-		"input": {"GammaAlloy": 1, "Graphite": 20, "AntimatterParticle": 6}, "output": {"PrismaticAlloy": 1},
+		"input": {"GammaAlloy": 1, "Graphite": 40, "AntimatterParticle": 2}, "output": {"PrismaticAlloy": 1},
 		"duration": 16.0, "level_req": 72, "xp": 150, "research_req": "zone_8_access", "category": "alloys"
 	},
 	"refine_bioforged_alloy": {
@@ -642,7 +655,7 @@ var recipes: Dictionary = {
 		# Tungsten Vein line stops being a dead-end the moment the player leaves it.
 		#   Z2 Circuit | Z3 Steel | Z4 N | Z5 Superalloy | Z6 StructuralComponent
 		#   Z7 AdvCircuit | Z8 Graphite | Z9 W
-		"input": {"PrismaticAlloy": 1, "W": 25, "BiohazardSample": 6}, "output": {"BioforgedAlloy": 1},
+		"input": {"PrismaticAlloy": 1, "W": 50, "BiohazardSample": 2}, "output": {"BioforgedAlloy": 1},
 		"duration": 17.0, "level_req": 80, "xp": 190, "research_req": "zone_9_access", "category": "alloys"
 	},
 	"refine_aeon_alloy": {
@@ -665,7 +678,7 @@ var recipes: Dictionary = {
 		# iridium is the honest "primordial" metal (the meteoric marker layer).
 		#   Z2 Circuit | Z3 Steel | Z4 N | Z5 Superalloy | Z6 StructuralComponent
 		#   Z7 AdvCircuit | Z8 Graphite | Z9 W | Z10 Ir
-		"input": {"BioforgedAlloy": 1, "Ir": 10, "AeonResiduum": 6}, "output": {"AeonAlloy": 1},
+		"input": {"BioforgedAlloy": 1, "Ir": 20, "AeonResiduum": 2}, "output": {"AeonAlloy": 1},
 		"duration": 18.0, "level_req": 88, "xp": 240, "research_req": "zone_10_access", "category": "alloys"
 	},
 	# v146 dedupe: "nitrogen_coolant" (Cryo-Shield Matrix) REMOVED. It was the
@@ -1240,8 +1253,8 @@ var recipes: Dictionary = {
 	},
 	"weave_void_lattice": {
 		"name": "Void Lattice Weave",
-		"description": "Crystallize void essence around a quantum-core scaffold into a load-bearing lattice.",
-		"input": {"VoidEssence": 6, "VoidCrystal": 4, "QuantumCore": 2},
+		"description": "Crystallize void essence around an advanced-circuit scaffold into a load-bearing lattice.",
+		"input": {"VoidEssence": 8, "VoidCrystal": 6, "AdvCircuit": 24},
 		"output": {"VoidLattice": 1},
 		"duration": 35.0,
 		"level_req": 85,
@@ -1264,8 +1277,8 @@ var recipes: Dictionary = {
 	# Rung 3 intermediate (deepest Z10 root: VoidEssence->VoidCrystal->VoidLattice->PrimordialMatrix).
 	"crystallize_primordial_matrix": {
 		"name": "Primordial Crystallizer",
-		"description": "Bind a primordial shard to diamond and a void lattice into a stable matrix.",
-		"input": {"PrimordialShard": 5, "Diamond": 3, "VoidLattice": 2},
+		"description": "Bind a primordial shard into a neutronium-cased void lattice to form a stable matrix.",
+		"input": {"PrimordialShard": 5, "Neutronium": 12, "VoidLattice": 2},
 		"output": {"PrimordialMatrix": 1},
 		"duration": 90.0,
 		"level_req": 95,
@@ -1459,7 +1472,7 @@ var recipes: Dictionary = {
 		"name": "Quantum Core Synthesis",
 		# v80.4 Fix: AncientTech has no source. Reworked to use void materials
 		"description": "Compress void artifacts into quantum-entangled processing cores.",
-		"input": {"VoidArtifact": 10, "VoidCrystal": 3, "AdvCircuit": 5},
+		"input": {"VoidArtifact": 2, "VoidCrystal": 6, "AdvCircuit": 12, "Superalloy": 15},
 		"output": {"QuantumCore": 2},
 		"duration": 90.0,
 		"level_req": 70,

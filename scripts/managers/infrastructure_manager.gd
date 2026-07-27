@@ -520,12 +520,12 @@ var building_db: Dictionary = {
 	},
 	"primordial_extractor": {
 		"name": "Primordial Extractor",
-		"description": "+0.1 Primordial Matrix (-2.5 Primordial Shard, -1.5 Diamond, -1 Void Lattice)",
+		"description": "+0.1 Primordial Matrix (-2.5 Primordial Shard, -6 Neutronium, -1 Void Lattice)",
 		"cost": {"credits": 60000000, "Neutronium": 100, "PrimordialShard": 25, "OmegaComposite": 5},
 		"energy_gen": 0.0,
 		"energy_cons": 200000.0,
 		"yield": {"PrimordialMatrix": 0.1},
-		"input": {"PrimordialShard": 2.5, "Diamond": 1.5, "VoidLattice": 1},
+		"input": {"PrimordialShard": 2.5, "Neutronium": 6, "VoidLattice": 1},
 		"interval": 10.0,
 		"research_req": "primordial_engineering",
 		"category": "industry"

@@ -139,8 +139,417 @@ const LATE_MODULE_ITEM_REQ_MULT = 1.75  # v142c: superseded by MODULE_COST_ZONE_
 #
 # Liras cost is deliberately NOT scaled here — that is a separate sink, and
 # leaving it out keeps this one variable isolated for sim tuning.
+#
+# v156: SUPERSEDED by the banded curve below (compose_module_costs). The two
+# constants are kept because the sim probes in scripts/sim/ reference them by
+# name; nothing in the live cost path reads them any more.
 const MODULE_COST_ZONE_BASE := 1.55
 const MODULE_COST_FREE_ZONES := 2
+
+# ═══════════════════════════════════════════════════════════════════════════
+# v156 BANDED MODULE COST CURVE (owner, 2026-07-27)
+#
+# THE COMPLAINT: "z5 armor still wants steel of 100 — 100 steel is a few minutes
+# crafting job." And: "later in the game ships become enormous intergalactic
+# ships, so these will require toooo many factories to work to sustain them."
+#
+# THE MEASURED DIAGNOSIS (scripts/sim/nc_audit.gd on HEAD):
+#   * One blunt exponential (1.55^(zone-2)) multiplied whatever the recipe
+#     happened to mention. It landed on Steel/Ti — which infrastructure makes in
+#     PARALLEL while the player does something else — and pinned the per-zone
+#     signature alloy at a FLAT 5/6/8 from Z2 to Z10.
+#   * The result was inverted AND non-monotone. Foundation cost measured in
+#     building-minutes per module: armor 0.4, 0.6, 2.5, 7.6, 17.1, 28.9,
+#     25.0 (DOWN at Z7), 1860 (x74 at Z8), 8120, 17455. z6_shield had ZERO.
+#   * A tier-matched refit needed 0.02 buildings at Z1 and 1504 at Z10 — the
+#     first is decorative, the second is unreachable (the diminishing-returns
+#     tail caps a building type at knee+tail = 20 effective units).
+#   * Serial processing, not infrastructure, was the real hidden wall:
+#     the Z8 refit billed 87 HOURS of un-parallelisable recipe time.
+#
+# THE MODEL: a module cost is priced in TIME ON A PRODUCTION LINE, not in units.
+# Each material's neutral reference rate (qty/interval*60 for a building,
+# out/duration*60 for a recipe) converts a time budget into a quantity, so a
+# cheap bulk metal and an expensive endgame condensate cost the same factory
+# effort per line. Three bands, three different curves:
+#
+#   BAND 1 FOUNDATION — everything automatable AND AFFORDABLE AT THAT ZONE.
+#     Budgeted in BUILDING-MINUTES, split across the module's infra-produced
+#     materials plus that zone's ANCHORS (below) in proportion to INFRA DEPTH.
+#     Parallelisable, so this is where volume lives — but v157 cut its Z10
+#     budget to 0.55x because at v156 it was 70% of the felt cost of a refit
+#     while the un-parallelisable bands were 30%. Steel belongs here.
+#   BAND 1b SERIAL — materials no building produces (pure processing/gathering).
+#     Budgeted in RECIPE-MINUTES on a much shallower curve, because this time
+#     competes 1:1 with combat for the single active task.
+#   BAND 2a ZONE SIGNATURE ALLOY — the TIER_ALLOY_BY_ZONE rung. Deliberately a
+#     MILD ramp: one AeonAlloy costs 136 s of chained, un-parallelisable
+#     processing (nine rungs at coefficient 1 — inviolable, see
+#     processing_manager). Ramping it hard is a pure time tax, not pressure.
+#   BAND 2b OWN-ZONE COMBAT SIGNATURE — the zone's own signature drop. THIS is
+#     where band 2 ramps hard, because own-zone combat is what the player is
+#     already doing, and (unlike an earlier zone's drop) it never propagates
+#     backward. Rule: a zone-N recipe may demand plenty of zone N's own drops;
+#     reaching BACK into a cleared zone's combat-only loot is now ZERO, not
+#     small (v157/D4). Budgeted in KILLS against the measured per-kill drop
+#     rate, so the same budget means the same grind whichever material it hits.
+#   BAND 3 CREDITS — left at the authored ladder (measured: 55 M for a Z10 refit
+#     against 5-50 B lifetime credits — not a binding sink), but LEVELLED across
+#     the three weapon channels, which had a 1.25x explosive premium buying 0%
+#     extra damage after the v155 channel flattening.
+#
+# THE COSTS ARE BAKED INTO modules[id]["cost"] by compose_module_costs(), not
+# injected at read time. Four call sites read the raw dict (info_card.gd:171,
+# atlas_page.gd:429, resources.gd:382, get_sell_price) and the old read-time
+# alloy injection made all four under-report every Z2-Z10 weapon/armor/shield
+# and list the nine signature alloys as having zero consumers. Baking is the
+# single central fix. The composer is non-reentrant BY CONSTRUCTION: it composes
+# from an authored snapshot, so calling it twice yields the identical dict.
+# ═══════════════════════════════════════════════════════════════════════════
+const COST_CURVE_MIN_ZONE := 1
+const COST_CURVE_MAX_ZONE := 10
+const COST_FOUNDATION_FREE_ZONES := 2      # Z1-Z2 keep their authored foundation
+
+# Band 1 — building-minutes per module at Z3, geometric per zone after that.
+# Sized so a tier-matched refit needs ~1.4 buildings/line at Z3 rising to ~100
+# spread over 8+ distinct lines at Z10 (measured in nc_audit section [D]).
+#
+# v157 (D3): 24.0/1.65 measured band 1 at 69.6% of the felt cost of a Z10 refit
+# against 10.3% for own-zone combat — the exponential was landing almost
+# entirely on the one axis infrastructure parallelises. 15.0/1.63 puts the Z10
+# band-1 budget at 0.55x its v156 value (806 -> 444 building-minutes for a
+# weight-1.0 slot) while leaving Z3 near where it was after the onboarding ramp.
+const COST_BMIN_Z3 := 20.5
+const COST_BMIN_STEP := 1.63
+
+# v157 (D2): the guided Z3 chain (m030fa/fb/f1) is MANDATORY before the
+# Warmaster, and Z1-Z2 are authored-untouched at ~0.6 building-minutes. Going
+# straight to the full band-1 budget at Z3 measured a x51 cliff in the armor
+# line. This is an explicit onboarding ramp on the band-1 budget only — it does
+# NOT raise Z1/Z2 and it is gone by Z5.
+const COST_BMIN_RAMP := {3: 0.455, 4: 0.78}
+
+# v157 (D1): band 1 is split across the module's automatable materials weighted
+# by INFRA DEPTH — the length of the shortest input chain from the material back
+# to a zero-input root. A zero-input drill (uranium_centrifuge, tungsten_drill,
+# osmium_condenser, void_anchor) is depth 0: one click, no upstream factory, it
+# pulls nothing forward. At v156 those drills carried 74.8% of the Z10 refit's
+# building-equivalents, so the endgame bill got SHALLOWER as it grew. Weighting
+# the split by (1 + 0.9 * depth) makes the deep chains — AdvCircuit at depth 4
+# reaches back through Semiconductor / StructuralComponent to Fe, Si, C, Cu, Li
+# — carry the volume, which serves the cumulative rule at the same time.
+const COST_DEPTH_WEIGHT := 0.9
+
+# Band 1b — serial recipe-minutes per module. Much shallower: this is the
+# single-active-task clock, and HEAD's 87-hour Z8 refit is what happens without
+# a leash on it.
+const COST_SMIN_Z3 := 2.5
+const COST_SMIN_STEP := 1.12
+
+# Per-slot share of the zone budget. Combat gear carries the cost; utility slots
+# are deliberately lighter so a refit is not six identical bills.
+const COST_SLOT_WEIGHT := {
+	"armor": 1.30, "shield": 1.10, "weapon": 1.00,
+	"engine": 0.50, "battery": 0.50, "sensor": 0.50,
+}
+
+# Band 2a — signature alloy. Base == the shipped flat values, so Z2 is unchanged.
+const COST_ALLOY_BASE := {"armor": 8, "shield": 6, "weapon": 5}
+const COST_ALLOY_STEP := 1.05
+
+# Band 2b — the zone's own signature combat drop. Every Z2-Z10 module pays it.
+const COST_ZONE_DROP := {
+	2: "PirateSalvage", 3: "MartianRelics", 4: "RimeplateScrap", 5: "XenoFragment",
+	6: "ColonySalvage", 7: "ExoticIsotope", 8: "AntimatterParticle",
+	9: "BiohazardSample", 10: "AeonResiduum",
+}
+
+# v157 (D3): band 2b is now budgeted in KILLS, not units. The v156 split divided
+# a unit budget equally across the module's own-zone drops with no reference to
+# how often each one drops — z8_armor asked for Diamond 13 (0.73/kill = 18
+# kills) AND AntimatterParticle 13 (8.4/kill = 2 kills). Same number, nine times
+# the grind. A kill budget means the same thing whichever material it lands on.
+#
+# Each own-zone material gets the SAME kill budget rather than a share of one,
+# because own-zone drops all fall off the same enemies simultaneously: one kill
+# advances every line at once, so adding a material adds breadth at no time
+# cost. The module's real combat price is therefore K kills, not n x K.
+#
+# Base is the Z2 kill budget per module; 1.42 per zone. Measured: this leaves Z3
+# at 23 min of kills for a full destroyer refit (v156: 24) and takes Z10 from
+# 264 min to ~511 min, moving own-zone combat from 10.3% to ~25% of felt refit
+# time. It is deliberately NOT pushed to parity with band 1 — combat cannot be
+# parallelised, so every minute here is exclusive active time, and 8.5 h for a
+# full 26-slot Z10 refit is already the ceiling the dwell time can absorb.
+const COST_OWNC_KILLS := {
+	"armor": 1.6, "shield": 1.4, "weapon": 1.2, "engine": 0.8, "battery": 0.8, "sensor": 0.8,
+}
+const COST_OWNC_STEP := 1.42
+
+# v157 (D4): an EARLIER zone's combat-only drop can never appear at all. The
+# v156 clamp at 6 units still LEFT the line in place (z9_battery kept Diamond 2,
+# and Diamond drops only in Zone 8 — a titan hull's five battery slots billed
+# ~308 backward Zone-8 kills). Backward combat lines are now dropped outright
+# and their weight is carried by the zone's own drop, which is added
+# unconditionally below.
+const COST_BACK_COMBAT_DROP := true
+
+# Band 1c COMPOSITE — a material a building yields but whose production chain is
+# transitively fed by an ENEMY DROP. Measured: primordial_extractor burns 1.5
+# Diamond + 2.5 PrimordialShard per 0.1 PrimordialMatrix, and QuantumCore is
+# 5 VoidArtifact each. Those lines LOOK parallelisable and are not — you cannot
+# kill fast enough to feed fourteen of them, and pricing them by building-minutes
+# is what let HEAD bill 1,335 PrimordialMatrix and 34,385 units of backward
+# combat loot for a Z10 refit. Priced like the signature alloy instead: a fixed,
+# mildly-ramping per-slot quantity, never a bulk term.
+# Step and base are held down by MEASUREMENT, not taste: composites are made by
+# slow recipes (StructuralLattice 2/min, PrimordialMatrix 0.67/min), so their
+# count converts straight into single-active-task minutes. At base 12 / step 1.25
+# the Z8 refit measured 13.1 h of serial time; these values put it at ~4 h.
+const COST_COMPOSITE_BASE := {
+	"armor": 8, "shield": 7, "weapon": 6, "engine": 4, "battery": 4, "sensor": 4,
+}
+const COST_COMPOSITE_STEP := 1.18
+
+# Band 1 breadth anchor: the automatable materials EVERY module of a zone must
+# buy, so each zone forces production lines the previous zone did not.
+#
+# v157 (D1): the v156 anchors were Z7 Os, Z9 W, Z10 U — osmium_condenser,
+# tungsten_drill and uranium_centrifuge all have NO input key. Anchoring the
+# endgame on zero-input drills made the Z9/Z10 bill 75% depth-0: it grew without
+# ever branching. Re-pointed onto existing DEEP materials only, chosen so each
+# zone opens buildings the previous one did not AND the late zones reload an
+# earlier zone's line at a much larger scale (the cumulative rule):
+#
+#   Z3  Steel               d2  auto_smelter <- Fe, C, O
+#   Z4  Circuit             d3  electronics_assembler <- Si, Cu, Resin
+#   Z5  Superalloy          d3  superalloy_forge <- Steel, Ni, Cr, Ti
+#   Z6  AdvCircuit          d4  adv_circuit_foundry <- Semiconductor, Au, StructuralComponent
+#   Z7  Semiconductor + Graphite      d3 / d2   (new: germanium chain, auto_press)
+#   Z8  StructuralComponent + Steel   d3 / d2   (new: structural_press; reloads Z3)
+#   Z9  Chip + Superalloy             d3 / d3   (new: chip_fab, au_refinery; reloads Z5)
+#   Z10 AdvCircuit + StructuralComponent d4/d3  (reloads Z6 and Z8 at endgame scale)
+#
+# Nothing new was invented: every one of these already had a building and an
+# under-used consumer list. Re-pointing beats inventing, and element_db is
+# untouched.
+# v158 (E1): re-pointed again so EVERY anchor clears its zone's minimum direct
+# depth (COST_MIN_DIRECT_DEPTH below) and each zone opens buildings the previous
+# ones did not. Depths are the measured rule depth, not an assertion:
+#
+#   Z3  Steel                            d2   auto_smelter
+#   Z4  Circuit + StructuralComponent    d3   electronics_assembler, structural_press
+#   Z5  Superalloy + Chip                d3   superalloy_forge, chip_fab, Ni/Cr/Ti lines
+#   Z6  AdvCircuit + NanoSubstrate       d4   adv_circuit_foundry, bauxite/dolomite
+#   Z7  AdvCircuit + IrPlate + CompositeWeave  d4/d3/d3   iridium_drill, composite_loom
+#   Z8  AdvCircuit + TargetingChip + PtCatalyst d4/d5/d5  platinum_drill; RELOADS Steel+Circuit
+#   Z9  AdvCircuit + NeutroniumPlate + NanoSubstrate d4/d4/d4 neutronium_condenser,
+#                                        osmium_condenser; RELOADS Superalloy -> Steel
+#   Z10 AdvCircuit + VoidLattice + TargetingChip + NeutroniumPlate
+#                                        d4/d5/d5/d4  void_anchor, void_crystallizer
+#
+# TargetingChip (AdvCircuit 3 + Steel 20 + Circuit 10) and NeutroniumPlate
+# (Superalloy 5 -> Steel 20) are the cumulative rule made mechanical: the Z3 Steel
+# line and the Z4 Circuit line are reloaded at endgame scale WITHOUT either
+# material ever being named directly in a Z8-Z10 recipe.
+const COST_ZONE_ANCHOR := {
+	3: ["Steel"],
+	4: ["Circuit", "StructuralComponent", "Steel"],
+	5: ["Superalloy", "StructuralComponent", "Chip", "Graphite"],
+	6: ["AdvCircuit", "NanoSubstrate"],
+	7: ["AdvCircuit", "IrPlate", "CompositeWeave"],
+	8: ["AdvCircuit", "TargetingChip", "NanoSubstrate"],
+	9: ["AdvCircuit", "NeutroniumPlate", "TargetingChip"],
+	10: ["AdvCircuit", "VoidLattice", "PtCatalyst", "NeutroniumPlate"],
+}
+
+# ═══════════════════════════════════════════════════════════════════════════
+# v158 MIN-DIRECT-DEPTH RULE (owner, 2026-07-27)
+#
+# THE RULING, verbatim: "first resources must matter late means it has to be a
+# sub item of a sub item kinda thing. dont use directly dirt iron at zone 8 craft
+# recipe for example."
+#
+# So an early material must matter TRANSITIVELY — pulled in through the chain —
+# and must NOT appear as a DIRECT line in a late recipe. The measured violation
+# on v157: z8_armor named Steel 2,244, z9_armor Steel 2,518, z10_armor Steel
+# 4,188 and z10_kinetic Steel 3,222. Steel is a Zone-3-tier material at rule
+# depth 2.
+#
+# THE RULE: a zone-N module may only NAME a foundation material whose rule depth
+# is at least COST_MIN_DIRECT_DEPTH[N]. Anything shallower is re-pointed onto a
+# deeper item that consumes it (COST_DEPTH_LIFT), so the early material is still
+# bought — through the chain, in larger quantity, dragging its whole subtree.
+#
+# THE RULE ONLY GOVERNS BANDS 1 AND 1b (the bulk automatable / serial lines).
+# It cannot govern the other bands and must not:
+#   band 2a  the zone SIGNATURE alloy is the zone's own tier material;
+#   band 2b  the zone's OWN combat drop is by definition not an early material;
+#   band 1c  combat-fed composites are already priced as fixed gate quantities.
+#
+# WHY IT MAKES RULE 1 STRONGER RATHER THAN WEAKER. Band 1 is budgeted in
+# BUILDING-MINUTES, and the budget does not change. Deep items run at a similar
+# per-building rate to shallow ones but each unit carries an order of magnitude
+# more early material, so the same factory-time budget buys far MORE transitive
+# early demand. Measured, early-root units per building-minute:
+#     Steel        30/min x  1 Fe/unit  =   30 Fe per building-minute
+#     Superalloy   12/min x  4 Steel    =   48 Steel   (-> 48 Fe)
+#     StructuralComponent 12/min x 10 Fe = 120 Fe
+#     AdvCircuit 14.4/min x 20 Fe/unit  =  288 Fe per building-minute
+# Forbidding the shallow line and spending the same minutes deeper is a ~10x
+# increase in transitive Fe, not a decrease.
+#
+# THE LADDER, DERIVED FROM WHAT ACTUALLY EXISTS AT EACH DEPTH (census in
+# scripts/sim/dr_audit.gd section [1]/[1b]):
+#   d1  Fe Si C Ti Au Li O H Germanium VoidCrystal Al          (13 materials)
+#   d2  Steel Cu Ni Co Zn Sn Semiconductor Graphite Cr Resin Fiber Mg (12)
+#   d3  Circuit Superalloy StructuralComponent Chip CompositeWeave IrPlate
+#       GalvanizedSteel Hydraulics Seal StainlessSteel SuperconductingMagnet (~14)
+#   d4  AdvCircuit NanoSubstrate NeutroniumPlate  (+ combat-fed AICore/ReactiveCore)
+#   d5  TargetingChip PtCatalyst VoidLattice      (+ combat-fed OmegaComposite,
+#                                                    StructuralLattice, OsCore)
+# THE FLOOR IS CAPPED AT 3, AND THAT CAP IS A MEASUREMENT, NOT A PREFERENCE.
+#   * The CLEAN, non-combat-fed, BUILDING-produced tree tops out at AdvCircuit
+#     (d4). omega_foundry, primordial_extractor and bioreactor_vat are all
+#     combat-fed, so there is no parallelisable d5 at all. A floor of 5 would
+#     empty band 1 and dump the whole budget onto serial recipes — the 87-hour
+#     Zone-8 refit v157 had to fix.
+#   * A floor of 4 was BUILT AND MEASURED first, and it severs the Steel line.
+#     AdvCircuit is the only clean d4 building material and adv_circuit_foundry
+#     takes Semiconductor / Au / StructuralComponent — no Steel. Every d>=4 item
+#     that DOES consume Steel (TargetingChip, NeutroniumPlate) is a serial
+#     recipe, and the serial band is deliberately tiny. Measured transitive Steel
+#     per full Zone-10 refit: authored HEAD 14,920 -> floor 4: 4,748 (-68%,
+#     auto_smelter goes idle at the endgame) -> floor 3: 77,168 (+417%).
+#     Superalloy (d3, superalloy_forge <- Steel 4 at 12/min = 48 Steel per
+#     building-minute) is the only thing that keeps the Zone-3 smelter line
+#     load-bearing at Zone 10, and it is legal only at floor 3.
+# So the floor rises 1 -> 2 -> 3 and stops. The ladder keeps CLIMBING past that
+# through the per-zone ANCHORS, which are d4/d5 from Zone 6 up: measured MEAN
+# direct depth per zone is 2.0 (Z3) 2.6 (Z4) 2.9 (Z5) 3.7 (Z6) 3.3 (Z7) 4.1 (Z8)
+# 4.1 (Z9) 4.3 (Z10). Nothing raw is ever named late: Fe, Si, C, Ti, Cu, Au and
+# every zero-input drill (Mn, Os, Ir, W, U, Neutronium, VoidEssence) are illegal
+# as DIRECT lines from Zone 5 on, and Steel from Zone 7 on.
+const COST_MIN_DIRECT_DEPTH := {
+	3: 1, 4: 1, 5: 2, 6: 2, 7: 3, 8: 3, 9: 3, 10: 3,
+}
+
+# Expected processing level at each zone, taken from the SHIPPED alloy ladder
+# (refine_wreckforged_alloy lvl 25 at Z3, refine_rime_alloy 35 at Z4,
+# refine_xenoforged_alloy 45 at Z5, ...). Used only to decide whether a lift
+# target is craftable when the player arrives — rule 4, nothing may be
+# unbuildable when its zone unlocks.
+const COST_ZONE_PROC_LEVEL := {
+	1: 5, 2: 15, 3: 25, 4: 35, 5: 45, 6: 55, 7: 65, 8: 75, 9: 85, 10: 95,
+}
+
+# Shallow material -> ordered preference of DEEPER items that consume it. The
+# lift is recursive: if the first candidate is itself below the floor, the search
+# continues through that candidate's own lift list, so Fe -> Steel -> Superalloy
+# -> NeutroniumPlate all fall out of one table.
+#
+# Every pair here was checked against the live recipe/building input lists, so
+# the deep item genuinely buys the shallow one:
+#   Steel      -> superalloy_forge Steel 4 | galvanize_steel Steel 2
+#                 | craft_turret_targeting Steel 20
+#   Fe         -> auto_smelter Fe 2.5 | structural_press Fe 10 | craft_stainless_steel Fe 5
+#   Si         -> semiconductor_furnace Si 3 | structural_press Si 5 | craft_platinum_catalyst Si 50
+#   Cu         -> electronics_assembler Cu 2.5 | structural_press Cu 5 | craft_magnet Cu 10
+#   C          -> auto_press C 4.2 | auto_smelter C 1.3 | structural_press C 3
+#   Superalloy -> refine_neutronium_plate Superalloy 5
+#   Circuit    -> craft_turret_targeting Circuit 10
+#   Os         -> refine_neutronium_plate Os 2
+#   VoidCrystal-> weave_void_lattice VoidCrystal 6
+# An empty list means "no deeper consumer exists in the game" — the line is then
+# DROPPED rather than kept shallow, and its budget flows to the zone's anchors.
+const COST_DEPTH_LIFT := {
+	"Dirt": ["Fe", "C"],
+	"Water": ["Fe", "O"],
+	"Wood": ["C"],
+	"Fe": ["Steel", "StructuralComponent", "StainlessSteel", "AdvCircuit"],
+	"Si": ["Semiconductor", "Chip", "StructuralComponent", "AdvCircuit", "PtCatalyst"],
+	"C": ["Graphite", "Steel", "StructuralComponent", "AdvCircuit"],
+	"Cu": ["Circuit", "StructuralComponent", "SuperconductingMagnet", "AdvCircuit"],
+	"Ti": ["Superalloy", "IrPlate", "NeutroniumPlate"],
+	"Au": ["Chip", "AdvCircuit"],
+	"Li": ["StructuralComponent", "AdvCircuit"],
+	"O": ["Steel", "Resin"],
+	"H": ["Resin", "Circuit"],
+	"N": ["Chip", "AdvCircuit"],
+	"Al": ["Cr", "StainlessSteel", "NanoSubstrate"],
+	"Mg": ["NanoSubstrate"],
+	"Ag": ["AdvCircuit"],
+	"Sn": ["AdvCircuit", "SuperconductingMagnet"],
+	"Zn": ["GalvanizedSteel"],
+	"Cr": ["Superalloy", "StainlessSteel", "NeutroniumPlate"],
+	"Ni": ["Superalloy", "StainlessSteel", "NanoSubstrate"],
+	"Co": ["Superalloy"],
+	"Resin": ["Circuit", "Seal", "CompositeWeave"],
+	"Fiber": ["CompositeWeave"],
+	"Quartz": ["Si"],
+	"Malachite": ["Cu"],
+	"Steel": ["Superalloy", "GalvanizedSteel", "Hydraulics", "TargetingChip", "NeutroniumPlate"],
+	"Semiconductor": ["Chip", "AdvCircuit"],
+	"Graphite": ["IrPlate"],
+	"Circuit": ["TargetingChip"],
+	"Superalloy": ["NeutroniumPlate", "TargetingChip"],
+	"StructuralComponent": ["AdvCircuit", "NanoSubstrate"],
+	"Ir": ["IrPlate"],
+	"W": ["IrWAlloy"],
+	"Os": ["NeutroniumPlate", "OsCore"],
+	"Neutronium": ["NeutroniumPlate"],
+	"VoidCrystal": ["VoidLattice"],
+	"VoidEssence": ["VoidCrystal", "VoidLattice"],
+	"Pt": ["PtCatalyst"],
+	"PtOre": ["Pt"],
+	"Germanium": ["Semiconductor"],
+	"StainlessSteel": ["NanoSubstrate"],
+	"GalvanizedSteel": ["AdvCircuit"],
+	"Hydraulics": ["AdvCircuit"],
+	"IrPlate": ["AdvCircuit"],
+	"CompositeWeave": ["AdvCircuit"],
+	"Chip": ["AdvCircuit"],
+	"SuperconductingMagnet": ["AdvCircuit"],
+	"Seal": ["AdvCircuit"],
+}
+
+# v158 (E2): ONBOARDING RAMP on bands 2a / 2b / 1c at Z3-Z4. COST_BMIN_RAMP
+# already leashed band 1 there; the measured pre-Warmaster bundle was still
+# 3.86 h of TRANSITIVELY EXPANDED active time against a 1.5 h target, and 72% of
+# it was band 2a (43 WreckforgedAlloy at 2.81 min each, because one alloy carries
+# a ChondriteAlloy plus 2 MartianRelics) and band 1c (16 ReinforcedPlating at
+# 2.83 min each, because craft_reinforced_plating carries 4 SalvagedAlloy +
+# 2 DamagedCircuitry). Neither cost is visible in the recipe's own duration —
+# that is the exact mistake the v157 probe made when it reported 1.01 h.
+const COST_SMIN_RAMP := {3: 0.75, 4: 1.0}
+const COST_ONBOARD_RAMP := {3: 0.16, 4: 0.70}
+
+# v157 (D2) — AFFORDABILITY-AWARE PRICING. The composer used to price every
+# material a building CAN make at that building's neutral rate, whether or not
+# the player could own the building yet. Measured consequence: Ti at Z3 was
+# priced at titanium_refinery's 18/min, but titanium_refinery costs 850,000
+# Liras and a player at Z2 clear has 4,071 on hand — the only real Ti path is
+# refine_titanium at 7.5/min, SERIAL, sharing the single active slot with
+# gathering and combat. That mispricing alone put 1,389 Ti (~185 min of
+# processing) on a MANDATORY pre-Warmaster mission.
+#
+# A building counts as a parallel source for zone z only if its Lira cost is at
+# most COST_AFFORD_HOURS of that zone's own measured combat income. Zone income
+# is derived at boot from the zone's loot tables, so it re-tunes itself when
+# loot moves. Kill rate is held flat at 60/h: the measured values across Z3-Z10
+# (49.5 / 77.1 / 58.6 / 57.3) are all within 30% of it, and making the cost
+# curve depend on a per-zone kill-rate table would couple it to combat tuning.
+# If no affordable building exists, the material falls back to its serial
+# recipe/gather rate and is priced in band 1b instead — which is the honest
+# answer: at that point in the game it IS serial.
+# 6.0 measured: at that window Ti is still SERIAL at Z3 by a factor of 16
+# (titanium_refinery 850,000 vs a 54,000 budget — the D2 fix holds with room),
+# while every zone's own anchor building is buyable in that zone. Combat is only
+# part of a player's income (bounties, quests, module sales, infra Liras), so a
+# building costing a few hours of pure combat income is one they will own
+# several of during a normal dwell.
+const COST_AFFORD_HOURS := 6.0
+const COST_KILLS_PER_HOUR := 60.0
 
 const EARLY_MODULE_REQ_TECHS = [
 	"kinetics_101", "laser_optics", "power_systems",
@@ -502,7 +911,12 @@ const ELEMENT_RESEARCH_REQS = {
 	"ZeroPoint": "quantum_dynamics"
 }
 var custom_modules: Dictionary = {} # Feature v66.0: Random Rare Drops
-var _module_item_costs_scaled := false
+# v156: the authored cost snapshot the banded curve composes FROM. The old
+# _scale_mid_late_module_item_costs mutated modules[id].cost in place behind a
+# bool nothing ever reset — one extra call away from silently compounding every
+# mid/late recipe by 3.7x. Composing from a snapshot makes a second call a no-op
+# by construction rather than by flag discipline.
+var _authored_module_costs: Dictionary = {}
 
 # Calculated Stats
 var max_hp = 100
@@ -772,7 +1186,14 @@ var modules: Dictionary = {
 		# 2.5× under spec, making Z11 secretly harder than its ~19-min design and
 		# Z12 phase-1 an unwinnable slog. Restoring 10K repairs both.
 		"stats": {"atk_cryo": 10000, "atk_interval": 2.0},
-		"cost": {"credits": 2000000, "ExoticMatter": 15, "CryoCatalyst": 12, "Superalloy": 50, "FocusingCrystal": 20},
+		# v156: authored at the FINAL CHARGED values (previously {15,12,50,20}
+		# multiplied at boot by 1.55^9 = 51.6). The Z11 Threshold gate is tuned
+		# against these numbers, so they opt out of the zone cost curve via
+		# cost_authored — the curve would have read CryoCatalyst (a Z10 drop) as
+		# BACKWARD debt at zone 11 and clamped 620 down to 6, collapsing the gate.
+		# Baking them also fixes the Atlas / material-uses under-report.
+		"cost_authored": true,
+		"cost": {"credits": 2000000, "ExoticMatter": 775, "CryoCatalyst": 620, "Superalloy": 2582, "FocusingCrystal": 1033},
 		"desc": "Exotic-Condensate cryo lance. Self-charging, no ammo. The only thing that breaches Warp-Hardened hulls - farm The Threshold for legendary-grade rolls.",
 		"zone": 11,
 		"power_tier": 8,
@@ -792,7 +1213,12 @@ var modules: Dictionary = {
 		"slot_type": "weapon",
 		"rarity": Rarity.LEGENDARY,
 		"stats": {"atk_cryo": 12000, "atk_interval": 2.0, "exotic_element": "corrosion"},
-		"cost": {"credits": 8000000, "ExoticMatter": 30, "CryoCatalyst": 20, "Superalloy": 120, "ChronoCore": 8, "VoidCrystal": 15, "FocusingCrystal": 40},
+		# v156: authored at the FINAL CHARGED values (previously {30,20,120,8,15,40}
+		# multiplied at boot by 1.55^10 = 80.1). Same reasoning as cryo_lance — the
+		# Z12 Rift gate is tuned against these; cost_authored keeps them off the
+		# zone curve.
+		"cost_authored": true,
+		"cost": {"credits": 8000000, "ExoticMatter": 2402, "CryoCatalyst": 1601, "Superalloy": 9606, "ChronoCore": 641, "VoidCrystal": 1201, "FocusingCrystal": 3202},
 		"desc": "Acid-plasma projector. Etches through Corrosion-hardened hulls where cryogenic fire just glazes the surface.",
 		"zone": 12,
 		"power_tier": 8,
@@ -836,11 +1262,22 @@ var modules: Dictionary = {
 		"desc": "Fast-cycling beam emitter. Focus crystals in, coherent light out.",
 		"zone": 1
 	},
+	# v156 CHANNEL CREDIT PARITY: every explosive weapon's Lira cost was EXACTLY
+	# 1.25x its kinetic counterpart at every zone (2500/2000 ... 3018153/2414522).
+	# That premium used to buy explosive ~11.5% more attack; v155 flattened all
+	# three channels onto one base atk, so it bought +0% damage and made kinetic
+	# strictly the cheapest channel. Levelled DOWN to the kinetic ladder — kinetic
+	# and energy stay bit-identical, credits are not a binding sink (a Z10 refit
+	# bills 55 M against 5-50 B lifetime credits), and raising the other two
+	# instead would also have inflated their get_sell_price (25% of the credit
+	# cost). Material parity is handled by the cost composer: the foundation and
+	# serial budgets are per-SLOT, so all three weapon channels buy the same
+	# number of production-line minutes with different flavour materials.
 	"z1_missile": {
 		"name": "Micro-Missile Launcher",
 		"slot_type": "weapon",
 		"stats": {"atk_explosive": 9, "energy_load": 10, "atk_interval": 2.0},
-		"cost": {"credits": 2500, "Fe": 20, "Cu": 10},
+		"cost": {"credits": 2000, "Fe": 20, "Cu": 10},
 		"desc": "Rack-fed micro-warheads. Loud, messy, and quick to reload.",
 		"zone": 1
 	},
@@ -882,7 +1319,7 @@ var modules: Dictionary = {
 		"name": "Concussion Missile",
 		"slot_type": "weapon",
 		"stats": {"atk_explosive": 20, "energy_load": 18, "atk_interval": 2.0},
-		"cost": {"credits": 5500, "Fe": 40, "C": 30, "Hydraulics": 2},
+		"cost": {"credits": 4400, "Fe": 40, "C": 30, "Hydraulics": 2},
 		"desc": "Concussive warhead tuned for maximum overpressure.",
 		"zone": 2, "research_req": "zone_2_access"
 	},
@@ -926,7 +1363,7 @@ var modules: Dictionary = {
 		"name": "Heavy Torpedo",
 		"slot_type": "weapon",
 		"stats": {"atk_explosive": 43.5, "energy_load": 30, "atk_interval": 2.0},
-		"cost": {"credits": 12100, "Steel": 60, "C": 40, "Hydraulics": 3},
+		"cost": {"credits": 9680, "Steel": 60, "C": 40, "Hydraulics": 3},
 		"desc": "Slow, heavy ordnance. One tube, one very large warhead.",
 		"zone": 3, "research_req": "zone_3_access"
 	},
@@ -968,7 +1405,7 @@ var modules: Dictionary = {
 		"name": "Cluster Warhead",
 		"slot_type": "weapon",
 		"stats": {"atk_explosive": 96, "energy_load": 45, "atk_interval": 2.0},
-		"cost": {"credits": 26620, "Steel": 100, "Chip": 18, "Hydraulics": 5},
+		"cost": {"credits": 21296, "Steel": 100, "Chip": 18, "Hydraulics": 5},
 		"desc": "Splits into sub-munitions on impact.",
 		"zone": 4, "research_req": "zone_4_access"
 	},
@@ -1017,7 +1454,7 @@ var modules: Dictionary = {
 		# same guidance fantasy, and craft_turret_targeting's lvl 45 sits on-curve
 		# for a Zone 5 purchase. A module cost is a CHOICE, never a gate — an
 		# unaffordable module is simply not bought.
-		"cost": {"credits": 58564, "Superalloy": 30, "Chip": 20, "TargetingChip": 5},
+		"cost": {"credits": 46851, "Superalloy": 30, "Chip": 20, "TargetingChip": 5},
 		"desc": "AI-guided ordnance. Never misses.",
 		"zone": 5, "research_req": "zone_5_access"
 	},
@@ -1059,7 +1496,7 @@ var modules: Dictionary = {
 		"name": "Antimatter Warhead",
 		"slot_type": "weapon",
 		"stats": {"atk_explosive": 464, "energy_load": 100, "atk_interval": 2.0},
-		"cost": {"credits": 128840, "Superalloy": 60, "QuantumCore": 5},
+		"cost": {"credits": 103072, "Superalloy": 60, "QuantumCore": 5},
 		"desc": "Annihilation-class ordnance.",
 		"zone": 6, "research_req": "zone_6_access"
 	},
@@ -1101,7 +1538,7 @@ var modules: Dictionary = {
 		"name": "Singularity Bomb",
 		"slot_type": "weapon",
 		"stats": {"atk_explosive": 1021, "energy_load": 160, "atk_interval": 2.0},
-		"cost": {"credits": 283448, "ExoticMatter": 15, "QuantumCore": 10, "Chip": 55},
+		"cost": {"credits": 226758, "ExoticMatter": 15, "QuantumCore": 10, "Chip": 55},
 		"desc": "Creates micro-singularity on impact.",
 		"zone": 7, "research_req": "zone_7_access"
 	},
@@ -1143,7 +1580,7 @@ var modules: Dictionary = {
 		"name": "Quantum Torpedo",
 		"slot_type": "weapon",
 		"stats": {"atk_explosive": 2246.5, "energy_load": 240, "atk_interval": 2.0},
-		"cost": {"credits": 623585, "QuantumCore": 20, "StructuralLattice": 3, "NeutroniumPlate": 3, "Steel": 5500},
+		"cost": {"credits": 498868, "QuantumCore": 20, "StructuralLattice": 3, "NeutroniumPlate": 3, "Steel": 5500},
 		"desc": "Exists in superposition until detonation.",
 		"zone": 8, "research_req": "zone_8_access"
 	},
@@ -1185,7 +1622,7 @@ var modules: Dictionary = {
 		"name": "Biohazard Warhead",
 		"slot_type": "weapon",
 		"stats": {"atk_explosive": 4942.5, "energy_load": 350, "atk_interval": 2.0},
-		"cost": {"credits": 1371888, "BiohazardSample": 30, "BioReactorCore": 4, "Neutronium": 200, "Steel": 11000},
+		"cost": {"credits": 1097510, "BiohazardSample": 30, "BioReactorCore": 4, "Neutronium": 200, "Steel": 11000},
 		"desc": "Viral payload. Corrodes all matter.",
 		"zone": 9, "research_req": "zone_9_access"
 	},
@@ -1227,7 +1664,7 @@ var modules: Dictionary = {
 		"name": "Void Annihilator",
 		"slot_type": "weapon",
 		"stats": {"atk_explosive": 10873.5, "energy_load": 500, "atk_interval": 2.0},
-		"cost": {"credits": 3018153, "PrimordialShard": 8, "PrimordialMatrix": 4, "OmegaComposite": 3, "Neutronium": 220, "Steel": 15000},
+		"cost": {"credits": 2414522, "PrimordialShard": 8, "PrimordialMatrix": 4, "OmegaComposite": 3, "Neutronium": 220, "Steel": 15000},
 		"desc": "Erases matter from existence.",
 		"zone": 10, "research_req": "zone_10_access"
 	},
@@ -1406,7 +1843,12 @@ var modules: Dictionary = {
 	"z8_sensor": {
 		"name": "Omni-Scanner", "slot_type": "sensor",
 		"stats": {"enemy_drop_mult": 0.29, "module_drop_mult": 0.55},
-		"cost": {"credits": 480000, "VoidArtifact": 10, "Os": 5}, "zone": 8, "research_req": "zone_8_access"
+		# v156: VoidArtifact -> VoidCrystal. VoidArtifact only drops in Z5/Z6, so a
+		# Zone 8 module asking for it was BACKWARD combat debt — serial grind in a
+		# zone the player has left, the one thing the cost rules forbid. VoidCrystal
+		# is the Z7/Z8 equivalent and is infra-produced (void_crystallizer), so it
+		# lands in the parallel foundation band instead.
+		"cost": {"credits": 480000, "VoidCrystal": 10, "Os": 5}, "zone": 8, "research_req": "zone_8_access"
 	},
 	"z9_sensor": {
 		"name": "Temporal Tracker", "slot_type": "sensor",
@@ -1915,43 +2357,881 @@ func _apply_tier_rebase() -> void:
 
 func _init():
 	_apply_tier_rebase()
-	_scale_mid_late_module_item_costs()
 	recalc_stats()
 	_migrate_module_entries_from_resources()
+	# NOTE: compose_module_costs() is NOT called here. It needs
+	# infrastructure/processing/gathering/combat to classify each material, and
+	# GameState builds those managers after this one. GameState._ready() calls it
+	# once every manager exists, before load_game().
 
-func _scale_mid_late_module_item_costs() -> void:
-	if _module_item_costs_scaled:
+# ── v156 BANDED COST CURVE — material classification ───────────────────────
+# Costs are priced in time on a production line, so the composer needs to know,
+# for every material, whether a BUILDING makes it (parallel), a RECIPE or a
+# GATHER action makes it (serial), or only an enemy drops it (combat) — and for
+# combat, which zones. All of it is derived from the live databases at boot, so
+# the curve re-tunes itself when a building or recipe is added.
+var _cost_infra_rate := {}     # sym -> units/min for ONE building, neutral reference
+var _cost_serial_rate := {}    # sym -> units/min of the best single recipe / action
+var _cost_combat_zones := {}   # sym -> [zone, ...] it can drop in
+var _cost_index_built := false
+# v157: sym -> [[credits_cost, units_per_min], ...] for every building that
+# yields it, so the curve can ask "at zone z, which of these can the player
+# actually own?" instead of always taking the best one (D2).
+var _cost_infra_offers := {}
+var _cost_zone_income := {}    # zone difficulty -> Liras/hour from that zone's regulars
+var _cost_drop_rate := {}      # sym -> {zone: expected units per kill} (D3 weighting)
+var _cost_depth := {}          # sym -> infra depth, shortest chain to a zero-input root
+var _cost_depth_visiting := {}
+
+func _build_cost_index() -> void:
+	if _cost_index_built:
 		return
-	_module_item_costs_scaled = true
-	
-	for module_id in modules:
-		var m_data = modules[module_id]
-		if m_data.get("is_custom", false):
-			continue
-		var slot_type = str(m_data.get("slot_type", ""))
-		if slot_type == "gem" or slot_type == "gem_synth":
-			continue
-		if not m_data.has("cost"):
-			continue
-		
-		# v142c: zone-keyed curve (see MODULE_COST_ZONE_BASE). Replaces the
-		# material-list-keyed _get_module_cost_stage, which is now unused.
-		var z: int = int(m_data.get("zone", m_data.get("power_tier", 0)))
-		if z <= MODULE_COST_FREE_ZONES:
-			continue
+	_cost_index_built = true
+	var im = GameState.infrastructure_manager
+	var pm = GameState.processing_manager
+	var gm = GameState.gathering_manager
+	var cm = GameState.combat_manager
+	if im:
+		for bid in im.building_db:
+			var d: Dictionary = im.building_db[bid]
+			var iv: float = maxf(0.001, float(d.get("interval", 1.0)))
+			var bcr: float = float((d.get("cost", {}) as Dictionary).get("credits", 0))
+			for sym in d.get("yield", {}):
+				var s := String(sym)
+				var r: float = float(d["yield"][sym]) / iv * 60.0
+				_cost_infra_rate[s] = maxf(float(_cost_infra_rate.get(s, 0.0)), r)
+				if not _cost_infra_offers.has(s):
+					_cost_infra_offers[s] = []
+				(_cost_infra_offers[s] as Array).append([bcr, r])
+	if pm:
+		for rid in pm.recipes:
+			var rec: Dictionary = pm.recipes[rid]
+			var du: float = maxf(0.001, float(rec.get("duration", 1.0)))
+			for sym in rec.get("output", {}):
+				var s2 := String(sym)
+				var r2: float = float(rec["output"][sym]) / du * 60.0
+				_cost_serial_rate[s2] = maxf(float(_cost_serial_rate.get(s2, 0.0)), r2)
+	if gm:
+		for aid in gm.actions:
+			var a: Dictionary = gm.actions[aid]
+			var du2: float = maxf(0.001, float(a.get("duration", 3.0)))
+			for row in a.get("loot_table", []):
+				var s3 := String(row[0])
+				var avg: float = (float(row[2]) + float(row[3])) * 0.5 * float(row[1])
+				_cost_serial_rate[s3] = maxf(float(_cost_serial_rate.get(s3, 0.0)), avg / du2 * 60.0)
+	if cm:
+		for zid in cm.zones:
+			var z: Dictionary = cm.zones[zid]
+			var zd: int = int(z.get("difficulty", 0))
+			var elist: Array = (z.get("enemies", []) as Array).duplicate()
+			if z.has("boss"):
+				elist.append(z["boss"])
+			for eid in elist:
+				var e: Dictionary = cm.enemy_db.get(String(eid), {})
+				for tbl in ["loot", "rare_loot"]:
+					for row in e.get(tbl, []):
+						var s4 := String(row[0])
+						if not _cost_combat_zones.has(s4):
+							_cost_combat_zones[s4] = []
+						if not (zd in _cost_combat_zones[s4]):
+							(_cost_combat_zones[s4] as Array).append(zd)
+			# v157: expected units per kill and Liras per hour, from the REGULAR
+			# roster only. The boss id lives INSIDE zones[..].enemies (there is no
+			# separate "boss" key on Z1-Z10), and its loot is an order of
+			# magnitude richer, so leaving it in would price a farm rate off a
+			# once-per-clear event.
+			var regs: Array = []
+			for eid3 in (z.get("enemies", []) as Array):
+				if String(eid3).find("_boss_") == -1:
+					regs.append(eid3)
+			if regs.is_empty():
+				continue
+			var per_kill := {}
+			for eid2 in regs:
+				var e2: Dictionary = cm.enemy_db.get(String(eid2), {})
+				for row2 in e2.get("loot", []):
+					var sa := String(row2[0])
+					per_kill[sa] = float(per_kill.get(sa, 0.0)) \
+						+ (float(row2[1]) + float(row2[2])) * 0.5
+				for row3 in e2.get("rare_loot", []):
+					var sb := String(row3[0])
+					per_kill[sb] = float(per_kill.get(sb, 0.0)) \
+						+ float(row3[1]) * (float(row3[2]) + float(row3[3])) * 0.5
+			for sc in per_kill:
+				var avg2: float = float(per_kill[sc]) / float(regs.size())
+				var sk := String(sc)
+				if not _cost_drop_rate.has(sk):
+					_cost_drop_rate[sk] = {}
+				(_cost_drop_rate[sk] as Dictionary)[zd] = maxf(
+					float((_cost_drop_rate[sk] as Dictionary).get(zd, 0.0)), avg2)
+			var inc: float = float(per_kill.get("credits", 0.0)) / float(regs.size()) \
+				* COST_KILLS_PER_HOUR
+			_cost_zone_income[zd] = maxf(float(_cost_zone_income.get(zd, 0.0)), inc)
+		_cost_fill_income_gaps()
 
-		var mult: float = pow(MODULE_COST_ZONE_BASE, float(z - MODULE_COST_FREE_ZONES))
-		var cost_dict: Dictionary = m_data["cost"]
-		for res in cost_dict:
-			if res == "credits":
+# Zone 6's four regulars drop no Liras at all (measured — a pre-existing gap in
+# combat_manager's loot tables, not something the cost curve should fix). A zone
+# with no measured income would inherit the previous zone's budget and could
+# strand its own anchor, so log-interpolate any gap between the nearest measured
+# zones on either side. Purely a smoothing pass over the measurement.
+func _cost_fill_income_gaps() -> void:
+	var zs: Array = _cost_zone_income.keys()
+	zs.sort()
+	if zs.is_empty():
+		return
+	var lo: int = int(zs[0])
+	var hi: int = int(zs[zs.size() - 1])
+	for z in range(lo, hi + 1):
+		if float(_cost_zone_income.get(z, 0.0)) > 0.0:
+			continue
+		var pz := -1
+		var nz := -1
+		for a in range(z - 1, lo - 1, -1):
+			if float(_cost_zone_income.get(a, 0.0)) > 0.0:
+				pz = a
+				break
+		for b in range(z + 1, hi + 1):
+			if float(_cost_zone_income.get(b, 0.0)) > 0.0:
+				nz = b
+				break
+		if pz >= 0 and nz >= 0:
+			var t := float(z - pz) / float(nz - pz)
+			_cost_zone_income[z] = float(_cost_zone_income[pz]) \
+				* pow(float(_cost_zone_income[nz]) / float(_cost_zone_income[pz]), t)
+		elif pz >= 0:
+			_cost_zone_income[z] = float(_cost_zone_income[pz])
+
+# v157 (D2): the Lira budget a zone-z player can put into ONE building.
+# Monotone by construction — a later zone can never be poorer than an earlier
+# one, so a material never loses its parallel source as the player advances.
+func _cost_afford_at(z: int) -> float:
+	var best := 0.0
+	for zz in _cost_zone_income:
+		if int(zz) <= z:
+			best = maxf(best, float(_cost_zone_income[zz]))
+	return best * COST_AFFORD_HOURS
+
+# v157 (D2): the neutral rate of the best building for `sym` that a zone-z
+# player can actually own. 0.0 means "no parallel source yet at this zone".
+func _cost_infra_rate_at(sym: String, z: int) -> float:
+	var budget := _cost_afford_at(z)
+	var best := 0.0
+	for off in _cost_infra_offers.get(sym, []):
+		if float(off[0]) <= budget:
+			best = maxf(best, float(off[1]))
+	return best
+
+# v157 (D1): shortest input chain from `sym` back to a zero-input root, over the
+# infrastructure forest. min-over-producers, so a design can never be flattered
+# by a deep path the player would not take. A combat drop, a material with no
+# building, and a building with no input key are all depth 0.
+func _cost_depth_of(sym: String) -> int:
+	if _cost_depth.has(sym):
+		return int(_cost_depth[sym])
+	if _cost_depth_visiting.has(sym):
+		return 0
+	if float(_cost_infra_rate.get(sym, 0.0)) <= 0.0:
+		_cost_depth[sym] = 0
+		return 0
+	var im = GameState.infrastructure_manager
+	if im == null:
+		return 0
+	_cost_depth_visiting[sym] = true
+	var best := -1
+	for bid in im.building_db:
+		var d: Dictionary = im.building_db[bid]
+		if not (d.get("yield", {}) as Dictionary).has(sym):
+			continue
+		var inp: Dictionary = d.get("input", {})
+		if inp.is_empty():
+			best = 0
+			break
+		var mx := 0
+		for isym in inp:
+			mx = maxi(mx, _cost_depth_of(String(isym)))
+		if best < 0 or (1 + mx) < best:
+			best = 1 + mx
+	_cost_depth_visiting.erase(sym)
+	if best < 0:
+		best = 0
+	_cost_depth[sym] = best
+	return best
+
+# ── v158: RULE DEPTH + MIN-DIRECT-DEPTH LIFT ───────────────────────────────
+# Rule depth is the depth metric the min-direct-depth rule is measured against.
+# It is the SAME shape as _cost_depth_of — min over producers of 1 + max over
+# that producer's inputs, 0 for a producer with no inputs and 0 for a material
+# with no producer — but taken over the union of BUILDINGS AND RECIPES.
+#
+# The union matters in both directions:
+#   * _cost_depth_of alone scores every processing-only material 0, so
+#     StainlessSteel (Fe 5 + Cr 2 + Ni 1) and TargetingChip (AdvCircuit 3 +
+#     Steel 20 + Circuit 10) would have been banned from every late zone
+#     alongside the zero-input drills they are nothing like.
+#   * the recipe metric alone can be FLATTENED by a combat shortcut —
+#     process_colony_salvage turns a Zone-6 drop straight into AdvCircuit, which
+#     would score AdvCircuit 1 and make the endgame's deepest building item
+#     illegal at Z8. So the result is floored at _cost_depth_of, which only ever
+#     sees the infrastructure forest.
+# min-over-producers is kept on purpose inside each metric: the rule must not be
+# satisfiable by a deep path nobody takes.
+var _cost_rdepth := {}
+var _cost_rdepth_vis := {}
+
+func _cost_rdepth_of(sym: String) -> int:
+	if _cost_rdepth.has(sym):
+		return int(_cost_rdepth[sym])
+	if _cost_rdepth_vis.has(sym):
+		return 0
+	_cost_rdepth_vis[sym] = true
+	var im = GameState.infrastructure_manager
+	var pm = GameState.processing_manager
+	var best := -1
+	if im:
+		for bid in im.building_db:
+			var d: Dictionary = im.building_db[bid]
+			if not (d.get("yield", {}) as Dictionary).has(sym):
 				continue
-			var qty = int(cost_dict[res])
-			if qty <= 0:
+			var inp: Dictionary = d.get("input", {})
+			if inp.is_empty():
+				best = 0
+				break
+			var mx := 0
+			for i in inp:
+				mx = maxi(mx, _cost_rdepth_of(String(i)))
+			if best < 0 or (1 + mx) < best:
+				best = 1 + mx
+	if best != 0 and pm:
+		for rid in pm.recipes:
+			var r: Dictionary = pm.recipes[rid]
+			if not (r.get("output", {}) as Dictionary).has(sym):
 				continue
-			cost_dict[res] = _scale_item_requirement(qty, mult)
-		
-		m_data["cost"] = cost_dict
+			var inp2: Dictionary = r.get("input", {})
+			if inp2.is_empty():
+				best = 0
+				break
+			var mx2 := 0
+			for i2 in inp2:
+				mx2 = maxi(mx2, _cost_rdepth_of(String(i2)))
+			if best < 0 or (1 + mx2) < best:
+				best = 1 + mx2
+	_cost_rdepth_vis.erase(sym)
+	if best < 0:
+		best = 0
+	best = maxi(best, _cost_depth_of(sym))
+	_cost_rdepth[sym] = best
+	return best
+
+# Cheapest processing level_req among the recipes that make `sym`; -1 when no
+# recipe makes it. Built lazily off pm.recipes so it re-tunes with the data.
+var _cost_serial_level := {}
+
+func _cost_min_level_of(sym: String) -> int:
+	if _cost_serial_level.has(sym):
+		return int(_cost_serial_level[sym])
+	var pm = GameState.processing_manager
+	var best := -1
+	if pm:
+		for rid in pm.recipes:
+			var r: Dictionary = pm.recipes[rid]
+			if not (r.get("output", {}) as Dictionary).has(sym):
+				continue
+			var lv: int = int(r.get("level_req", 1))
+			if best < 0 or lv < best:
+				best = lv
+	_cost_serial_level[sym] = best
+	return best
+
+# The zone a research tech becomes reachable at. zone_N_access is exact; every
+# other tech is placed at its TIER, which is the same axis — zone_N_access itself
+# sits at tier N in research_manager, so tier is the game's own statement of
+# "how far in is this".
+func _cost_tech_zone(tech: String) -> int:
+	if tech == "":
+		return 0
+	if tech.begins_with("zone_") and tech.ends_with("_access"):
+		return int(tech.substr(5, tech.length() - 12))
+	var rm = GameState.research_manager
+	if rm == null:
+		return 0
+	var t: Dictionary = (rm.tech_tree as Dictionary).get(tech, {})
+	return int(t.get("tier", 0))
+
+# Rule 4, enforced instead of assumed: NOTHING MAY BE UNBUILDABLE WHEN ITS ZONE
+# UNLOCKS. A material is reachable at zone z when the player can own a building
+# for it at that zone (the affordability model band 1 already prices with),
+# gather it, kill for it in a zone already open, or CRAFT it — and "craft it" is
+# recursive: the recipe's research tier and level_req must be within the zone AND
+# every input must itself be reachable.
+#
+# The recursion is the load-bearing part. Without it the first run of this pass
+# lifted Si at Zone 3 onto PtCatalyst (craft_platinum_catalyst is level 25, so it
+# looked legal) whose Pt line needs a 2,000,000-Lira platinum_drill — 158 minutes
+# of impossible work billed to a MANDATORY tutorial-chain module. With it,
+# Superalloy is correctly unreachable at Z3 (Ni/Cr/Co are 800-900 K buildings
+# with no recipe at all) and reachable from Z5.
+var _cost_reach_cache := {}
+func _cost_reachable_at(sym: String, z: int, depth: int = 0) -> bool:
+	var key := sym + "@" + str(z)
+	if _cost_reach_cache.has(key):
+		return bool(_cost_reach_cache[key])
+	# 14, not 8: the alloy ladder alone is nine rungs deep (AeonAlloy back to
+	# ChondriteAlloy), and a cap of 8 declared the Zone-10 signature alloy
+	# unreachable purely by running out of recursion budget.
+	if depth > 14:
+		return false
+	if _cost_infra_rate_at(sym, z) > 0.0:
+		_cost_reach_cache[key] = true
+		return true
+	var gm = GameState.gathering_manager
+	if gm:
+		for aid in gm.actions:
+			for row in (gm.actions[aid] as Dictionary).get("loot_table", []):
+				if String(row[0]) == sym:
+					_cost_reach_cache[key] = true
+					return true
+	for zz in _cost_combat_zones.get(sym, []):
+		if int(zz) <= z:
+			_cost_reach_cache[key] = true
+			return true
+	_cost_reach_cache[key] = false      # cycle guard: unreachable until proven
+	var pm = GameState.processing_manager
+	var ok := false
+	if pm:
+		for rid in pm.recipes:
+			var r: Dictionary = pm.recipes[rid]
+			if not (r.get("output", {}) as Dictionary).has(sym):
+				continue
+			if int(r.get("level_req", 1)) > int(COST_ZONE_PROC_LEVEL.get(z, 99)):
+				continue
+			if _cost_tech_zone(String(r.get("research_req", ""))) > z:
+				continue
+			var all_in := true
+			for i in r.get("input", {}):
+				if not _cost_reachable_at(String(i), z, depth + 1):
+					all_in = false
+					break
+			if all_in:
+				ok = true
+				break
+	_cost_reach_cache[key] = ok
+	return ok
+
+# The deep item that replaces `sym` at zone z, or "" when the game contains no
+# deeper consumer the player can actually reach there. Recursive through
+# COST_DEPTH_LIFT so one table covers Fe -> Steel -> Superalloy -> NeutroniumPlate.
+#
+# Candidates are taken SHALLOWEST-FIRST among those that clear the floor, and
+# anything more than COST_LIFT_OVERSHOOT above the floor is refused: the ruling
+# is "one tier deeper than you were naming", not "jump to the endgame item".
+const COST_LIFT_OVERSHOOT := 1
+
+func _cost_lift(sym: String, z: int, floor_d: int, depth: int = 0) -> String:
+	if _cost_rdepth_of(sym) >= floor_d and _cost_reachable_at(sym, z):
+		return sym
+	if depth > 6:
+		return ""
+	var best := ""
+	var best_d := 99
+	for cand in COST_DEPTH_LIFT.get(sym, []):
+		var c := String(cand)
+		if c == sym:
+			continue
+		var cd := _cost_rdepth_of(c)
+		if cd < floor_d or cd > floor_d + COST_LIFT_OVERSHOOT:
+			continue
+		if not _cost_reachable_at(c, z):
+			continue
+		if cd < best_d:
+			best_d = cd
+			best = c
+	if best != "":
+		return best
+	for cand2 in COST_DEPTH_LIFT.get(sym, []):
+		var c2 := String(cand2)
+		if c2 == sym:
+			continue
+		var deeper := _cost_lift(c2, z, floor_d, depth + 1)
+		if deeper != "":
+			return deeper
+	return ""
+
+# ── v158 (E3): TRANSITIVE MINUTES PER UNIT ─────────────────────────────────
+# The single biggest measured error in v157 was pricing a material at its OWN
+# recipe's duration and ignoring the input chain: WreckforgedAlloy was billed at
+# 13 s although refine_wreckforged_alloy also needs a ChondriteAlloy, 12 Steel
+# and 2 MartianRelics. That is how a 3.9-hour pre-Warmaster bundle got reported
+# as 1.01 h.
+#
+# _cost_mpu is a fixed point over the SINGLE FOREGROUND SLOT:
+#   gather                    -> 1 / (units per minute)
+#   recipe                    -> duration/out + SUM in qty/out * mpu(in)
+#   AFFORDABLE building at z  -> SUM in qty/out * mpu(in)   (the conversion runs
+#                                in parallel with the active task, so it costs no
+#                                foreground minutes; its INPUTS still do)
+#   combat drop in a zone <= z -> (1 / drop per kill) / kills-per-hour * 60
+# The serial band (1b) is priced against this instead of against the material's
+# nominal recipe rate, so a serial budget of N minutes buys N minutes of REAL
+# work however deep the material sits. Without it the budget was fictional:
+# ReinforcedPlating was billed at its 12 s duration and actually costs 2.83 min
+# because craft_reinforced_plating carries 4 SalvagedAlloy + 2 DamagedCircuitry.
+const COST_MPU_INF := 1.0e18
+var _cost_mpu_by_zone := {}
+
+func _cost_build_mpu(z: int) -> Dictionary:
+	if _cost_mpu_by_zone.has(z):
+		return _cost_mpu_by_zone[z]
+	var im = GameState.infrastructure_manager
+	var pm = GameState.processing_manager
+	var gm = GameState.gathering_manager
+	var m := {}
+	var syms := {}
+	if pm:
+		for rid in pm.recipes:
+			for a in (pm.recipes[rid] as Dictionary).get("output", {}):
+				syms[String(a)] = true
+			for b in (pm.recipes[rid] as Dictionary).get("input", {}):
+				syms[String(b)] = true
+	if im:
+		for bid in im.building_db:
+			for c in (im.building_db[bid] as Dictionary).get("yield", {}):
+				syms[String(c)] = true
+			for d in (im.building_db[bid] as Dictionary).get("input", {}):
+				syms[String(d)] = true
+	for s in _cost_drop_rate:
+		syms[String(s)] = true
+	for s2 in syms:
+		m[String(s2)] = COST_MPU_INF
+	if gm:
+		for aid in gm.actions:
+			var act: Dictionary = gm.actions[aid]
+			var du: float = maxf(0.001, float(act.get("duration", 3.0)))
+			for row2 in act.get("loot_table", []):
+				var sg := String(row2[0])
+				var avg: float = (float(row2[2]) + float(row2[3])) * 0.5 * float(row2[1])
+				if avg <= 0.0:
+					continue
+				m[sg] = minf(float(m.get(sg, COST_MPU_INF)), 1.0 / (avg / du * 60.0))
+	for sk in _cost_drop_rate:
+		var sks := String(sk)
+		for zz2 in (_cost_drop_rate[sk] as Dictionary):
+			if int(zz2) > z:
+				continue
+			var dpk: float = float((_cost_drop_rate[sk] as Dictionary)[zz2])
+			if dpk > 0.0:
+				m[sks] = minf(float(m.get(sks, COST_MPU_INF)),
+					(1.0 / dpk) / COST_KILLS_PER_HOUR * 60.0)
+	var budget := _cost_afford_at(z)
+	for _it in range(40):
+		var changed := false
+		if pm:
+			for rid2 in pm.recipes:
+				var r2: Dictionary = pm.recipes[rid2]
+				for so in r2.get("output", {}):
+					var sos := String(so)
+					var o: float = maxf(0.0001, float(r2["output"][so]))
+					var cr: float = float(r2.get("duration", 1.0)) / 60.0 / o
+					var okr := true
+					for i2 in r2.get("input", {}):
+						var iv: float = float(m.get(String(i2), COST_MPU_INF))
+						if iv >= COST_MPU_INF:
+							okr = false
+							break
+						cr += float(r2["input"][i2]) / o * iv
+					if okr and cr < float(m.get(sos, COST_MPU_INF)) - 1e-9:
+						m[sos] = cr
+						changed = true
+		if im:
+			for bid2 in im.building_db:
+				var bd: Dictionary = im.building_db[bid2]
+				if float((bd.get("cost", {}) as Dictionary).get("credits", 0)) > budget:
+					continue
+				for sy in bd.get("yield", {}):
+					var sys2 := String(sy)
+					var o2: float = maxf(0.0001, float(bd["yield"][sy]))
+					var cb2 := 0.0
+					var okb := true
+					for i3 in bd.get("input", {}):
+						var iv2: float = float(m.get(String(i3), COST_MPU_INF))
+						if iv2 >= COST_MPU_INF:
+							okb = false
+							break
+						cb2 += float(bd["input"][i3]) / o2 * iv2
+					if okb and cb2 < float(m.get(sys2, COST_MPU_INF)) - 1e-9:
+						m[sys2] = cb2
+						changed = true
+		if not changed:
+			break
+	_cost_mpu_by_zone[z] = m
+	return m
+
+func _cost_mpu(sym: String, z: int) -> float:
+	var m := _cost_build_mpu(z)
+	var v: float = float(m.get(sym, COST_MPU_INF))
+	if v >= COST_MPU_INF or v <= 0.0:
+		# no expanded path the model can see: fall back to the nominal rate
+		# rather than pricing the line at infinity (which would zero it).
+		return 1.0 / maxf(_cost_rate_at(sym, z), 0.0001)
+	return v
+
+# v157 (D3): expected units of `sym` per kill in zone `z`, averaged over that
+# zone's regular roster. 0.0 if it does not drop there.
+func _cost_drop_per_kill(sym: String, z: int) -> float:
+	return float((_cost_drop_rate.get(sym, {}) as Dictionary).get(z, 0.0))
+
+# INFRA (a building yields it) > SERIAL (a recipe or gather action makes it) >
+# COMBAT (only an enemy drops it). Steel is both smelted and building-made, and
+# it is INFRA — the parallel source is the one that decides the band.
+func _cost_class(sym: String) -> String:
+	if float(_cost_infra_rate.get(sym, 0.0)) > 0.0:
+		return "INFRA"
+	if float(_cost_serial_rate.get(sym, 0.0)) > 0.0:
+		return "SERIAL"
+	if _cost_combat_zones.has(sym):
+		return "COMBAT"
+	return "UNKNOWN"
+
+# v157 (D2): the same decision, but asked at a zone. A material whose only
+# building the player cannot buy yet is SERIAL at that zone, not INFRA — which
+# is what the player experiences. Falls back to INFRA when there is no serial
+# path at all (U, Neutronium, VoidCrystal), because "you must save for the
+# building" is then the true answer.
+func _cost_class_at(sym: String, z: int) -> String:
+	var combat_only: bool = _cost_combat_zones.has(sym) \
+		and float(_cost_infra_rate.get(sym, 0.0)) <= 0.0 \
+		and float(_cost_serial_rate.get(sym, 0.0)) <= 0.0
+	if combat_only:
+		return "COMBAT"
+	if _cost_infra_rate_at(sym, z) > 0.0:
+		return "INFRA"
+	if float(_cost_serial_rate.get(sym, 0.0)) > 0.0:
+		return "SERIAL"
+	if float(_cost_infra_rate.get(sym, 0.0)) > 0.0:
+		return "INFRA"
+	if _cost_combat_zones.has(sym):
+		return "COMBAT"
+	return "UNKNOWN"
+
+# The rate the curve should charge at: the affordable building if there is one,
+# otherwise the serial recipe.
+func _cost_rate_at(sym: String, z: int) -> float:
+	var r := _cost_infra_rate_at(sym, z)
+	if r > 0.0:
+		return r
+	var s := float(_cost_serial_rate.get(sym, 0.0))
+	if s > 0.0:
+		return s
+	return maxf(float(_cost_infra_rate.get(sym, 0.0)), 0.0001)
+
+# Is every production path for `sym` fed, somewhere upstream, by an enemy drop?
+# Combat is the one thing infrastructure cannot parallelise (one enemy at a
+# time — the fleet system is deliberately not activated), so a material whose
+# CHEAPEST path still touches a drop cannot be treated as bulk-automatable no
+# matter how many buildings the player owns. Takes the min over every building
+# and every recipe that makes it, so one clean path is enough to stay foundation.
+var _cost_combat_fed_cache := {}
+func _cost_is_combat_fed(sym: String, depth: int = 0) -> bool:
+	if _cost_combat_fed_cache.has(sym):
+		return bool(_cost_combat_fed_cache[sym])
+	if depth > 10:
+		return false
+	if _cost_class(sym) == "COMBAT":
+		return true
+	_cost_combat_fed_cache[sym] = true          # cycle guard: assume fed until proven clean
+	var im = GameState.infrastructure_manager
+	var pm = GameState.processing_manager
+	var clean := false
+	var any_path := false
+	if im:
+		for bid in im.building_db:
+			var d: Dictionary = im.building_db[bid]
+			if not (d.get("yield", {}) as Dictionary).has(sym):
+				continue
+			any_path = true
+			var fed := false
+			for isym in d.get("input", {}):
+				if _cost_is_combat_fed(String(isym), depth + 1):
+					fed = true
+					break
+			if not fed:
+				clean = true
+				break
+	if not clean and pm:
+		for rid in pm.recipes:
+			var r: Dictionary = pm.recipes[rid]
+			if not (r.get("output", {}) as Dictionary).has(sym):
+				continue
+			any_path = true
+			var fed2 := false
+			for isym2 in r.get("input", {}):
+				if _cost_is_combat_fed(String(isym2), depth + 1):
+					fed2 = true
+					break
+			if not fed2:
+				clean = true
+				break
+	# A material with no producer at all (a raw gathered resource) is clean.
+	var res: bool = (not clean) and any_path
+	_cost_combat_fed_cache[sym] = res
+	return res
+
+# Does `sym` drop in the module's OWN zone or later? Own-zone combat is free to
+# be generous; anything that only drops behind the player is backward debt.
+func _cost_drop_is_own_zone(sym: String, z: int) -> bool:
+	for zz in _cost_combat_zones.get(sym, []):
+		if int(zz) >= z:
+			return true
+	return false
+
+func _cost_skip(m_data: Dictionary) -> bool:
+	# The shipped skip set, reproduced exactly: custom, matrix cores, no cost.
+	if m_data.get("is_custom", false):
+		return true
+	var st := String(m_data.get("slot_type", ""))
+	if st == "gem" or st == "gem_synth" or st == "relic":
+		return true
+	if not m_data.has("cost"):
+		return true
+	# The 46 Unique boss templates carry cost == {} as the documented
+	# "uncraftable" sentinel. Writing costs into them would list 46 phantom
+	# consumers in the Atlas and the material-uses panel.
+	if m_data.get("unique", false):
+		return true
+	if (m_data.get("cost", {}) as Dictionary).is_empty():
+		return true
+	# The Z11 Cryo Lance and Z12 Corrosion Blaster are the NG+ gates and are
+	# tuned against the Threshold / Rift Wardens. Their dicts are authored at
+	# their final charged values and opt out of the zone curve — they are NOT
+	# skipped for carrying a `rarity`, which is the trap that would have
+	# collapsed Superalloy 2582 -> 50 on the Z11 gate.
+	if m_data.get("cost_authored", false):
+		return true
+	var z: int = int(m_data.get("zone", 0))
+	if z < COST_CURVE_MIN_ZONE or z > COST_CURVE_MAX_ZONE:
+		return true
+	return false
+
+func compose_module_costs() -> void:
+	_build_cost_index()
+	for module_id in modules:
+		var m_data: Dictionary = modules[module_id]
+		if not _authored_module_costs.has(module_id):
+			if not m_data.has("cost"):
+				continue
+			_authored_module_costs[module_id] = (m_data["cost"] as Dictionary).duplicate(true)
+		if _cost_skip(m_data):
+			continue
+		m_data["cost"] = _compose_one_cost(String(module_id), m_data)
 		modules[module_id] = m_data
+
+func _compose_one_cost(module_id: String, m_data: Dictionary) -> Dictionary:
+	var authored: Dictionary = _authored_module_costs[module_id]
+	var z: int = int(m_data.get("zone", 0))
+	var st := String(m_data.get("slot_type", ""))
+	var w: float = float(COST_SLOT_WEIGHT.get(st, 1.0))
+	var out := {}
+	if authored.has("credits"):
+		out["credits"] = int(authored["credits"])
+
+	var infra_mats: Array = []
+	var serial_mats: Array = []
+	var composite_mats: Array = []
+	var own_combat: Array = []
+	var back_combat: Array = []
+	for sym in authored:
+		var s := String(sym)
+		if s == "credits":
+			continue
+		# v157 (D2): classified AT THIS ZONE. A material whose only building the
+		# player cannot afford yet is serial here, and gets the serial curve.
+		var cls := _cost_class_at(s, z)
+		if cls == "COMBAT":
+			if _cost_drop_is_own_zone(s, z): own_combat.append(s)
+			else: back_combat.append(s)
+		elif cls == "UNKNOWN":
+			out[s] = int(authored[sym])         # no known source: leave it alone
+		elif _cost_is_combat_fed(s):
+			composite_mats.append(s)            # looks automatable, is not
+		elif cls == "INFRA":
+			infra_mats.append(s)
+		else:
+			serial_mats.append(s)
+
+	# v158 (E2): onboarding ramp on the three non-parallel bands at Z3-Z4.
+	var oramp: float = float(COST_ONBOARD_RAMP.get(z, 1.0))
+
+	# ── BAND 2a: the zone signature alloy (weapon / armor / shield only) ──
+	var alloy := String(TIER_ALLOY_BY_ZONE.get(z, ""))
+	if alloy != "" and (st == "weapon" or st == "armor" or st == "shield") and not m_data.has("rarity"):
+		var ab: float = float(COST_ALLOY_BASE.get(st, 5))
+		out[alloy] = maxi(1, int(round(ab * pow(COST_ALLOY_STEP, float(z - 2)) * oramp)))
+		infra_mats.erase(alloy)
+		serial_mats.erase(alloy)
+		composite_mats.erase(alloy)
+
+	# ── BAND 1c: combat-fed composites — gate-priced, never bulk ──
+	if z > COST_FOUNDATION_FREE_ZONES and not composite_mats.is_empty():
+		var cb: float = float(COST_COMPOSITE_BASE.get(st, 5)) * pow(COST_COMPOSITE_STEP, float(z - 2)) * oramp
+		var cper: int = maxi(1, int(round(cb / float(composite_mats.size()))))
+		for sc in composite_mats:
+			out[String(sc)] = cper
+
+	# ── BAND 2b: own-zone combat signature, the hard ramp ──
+	# v157 (D3): budgeted in KILLS. Every own-zone material gets the SAME kill
+	# budget (drops fall off the same enemies at the same time, so the module's
+	# real price is K kills however many materials it lists), and the unit count
+	# is that budget times the material's MEASURED expected drop per kill.
+	var drop := String(COST_ZONE_DROP.get(z, ""))
+	if drop != "" and not (drop in own_combat):
+		own_combat.append(drop)
+	if not own_combat.is_empty():
+		var kills: float = float(COST_OWNC_KILLS.get(st, 0.8)) * pow(COST_OWNC_STEP, float(z - 2)) * oramp
+		for s3 in own_combat:
+			var s3s := String(s3)
+			var dpk := _cost_drop_per_kill(s3s, z)
+			if dpk <= 0.0:
+				# drops in a LATER zone only (a forward-reaching authored line):
+				# price it off the earliest zone it actually drops in.
+				for zz in _cost_combat_zones.get(s3s, []):
+					if int(zz) >= z:
+						dpk = maxf(dpk, _cost_drop_per_kill(s3s, int(zz)))
+			var qf: float = kills * maxf(dpk, 0.0)
+			if qf < 0.5 and s3s != drop:
+				# Too rare for even ONE unit to fit the kill budget (Diamond is
+				# 0.03/kill off Zone 8's regulars, so a single unit is 31 kills —
+				# 2.4x the whole module's budget). Flooring it at 1 is exactly
+				# the drop-rate-blind pricing D3 flagged, so this line is not a
+				# bulk requirement for this module at all. The zone's signature
+				# drop is never removed.
+				continue
+			out[s3s] = maxi(1, int(round(qf)))
+	# v157 (D4): backward combat is DROPPED, not clamped. The v156 clamp still
+	# left the line on the recipe; z9_battery kept Diamond 2 (Zone 8 only) and a
+	# five-battery titan hull billed ~308 backward Zone-8 kills for it.
+	if not COST_BACK_COMBAT_DROP:
+		for s4 in back_combat:
+			out[String(s4)] = int(authored[s4])
+
+	# ── BAND 1 / 1b: foundation. Z1-Z2 keep their authored quantities. ──
+	if z <= COST_FOUNDATION_FREE_ZONES:
+		for s5 in infra_mats:
+			out[String(s5)] = int(authored[s5])
+		for s6 in serial_mats:
+			out[String(s6)] = int(authored[s6])
+		for s6c in composite_mats:
+			out[String(s6c)] = int(authored[s6c])
+		return out
+
+	# ── v158: MIN-DIRECT-DEPTH LIFT (bands 1 and 1b only) ──
+	# Every foundation line shallower than this zone's floor is re-pointed onto a
+	# deeper item that consumes it. The budget is untouched: the same
+	# building-minutes are simply not allowed to be spent shallow. A material with
+	# no deeper consumer anywhere in the game is DROPPED rather than kept shallow,
+	# and its share flows to the survivors and the zone's anchors.
+	var floor_d: int = int(COST_MIN_DIRECT_DEPTH.get(z, 0))
+	if floor_d > 0:
+		var pool: Array = []
+		for si in infra_mats:
+			pool.append(String(si))
+		for ss2 in serial_mats:
+			pool.append(String(ss2))
+		infra_mats = []
+		serial_mats = []
+		for sp in pool:
+			var sps := String(sp)
+			var tgt := _cost_lift(sps, z, floor_d)
+			if tgt == "":
+				out.erase(sps)
+				continue
+			if (tgt in infra_mats) or (tgt in serial_mats) or (tgt in composite_mats):
+				out.erase(sps)
+				continue
+			if tgt != sps:
+				out.erase(sps)
+			if _cost_is_combat_fed(tgt):
+				# The only deep expression is combat-fed, so it is a band-1c gate
+				# quantity, never a bulk line. Do not silently turn a parallel
+				# budget into an un-parallelisable grind.
+				continue
+			if _cost_class_at(tgt, z) == "INFRA":
+				infra_mats.append(tgt)
+			else:
+				serial_mats.append(tgt)
+
+	# v157 (D1): anchors are a LIST per zone and must be affordable at this zone,
+	# otherwise the module would be billed at a rate no player can run.
+	for a in COST_ZONE_ANCHOR.get(z, []):
+		var anchor := String(a)
+		if anchor == "" or (anchor in infra_mats) or (anchor in serial_mats):
+			continue
+		# v158: an anchor is a DIRECT line like any other, so it obeys the floor.
+		# Belt and braces — the table above is authored to clear it already.
+		if _cost_rdepth_of(anchor) < floor_d:
+			continue
+		# v158: rule 4 again — an anchor is charged to EVERY module of the zone,
+		# so an unreachable one would make the whole zone uncraftable on unlock.
+		if not _cost_reachable_at(anchor, z):
+			continue
+		if _cost_infra_rate_at(anchor, z) > 0.0:
+			infra_mats.append(anchor)
+		elif not (anchor in serial_mats) and float(_cost_serial_rate.get(anchor, 0.0)) > 0.0:
+			serial_mats.append(anchor)
+
+	var ramp: float = float(COST_BMIN_RAMP.get(z, 1.0))
+	var bmin: float = COST_BMIN_Z3 * pow(COST_BMIN_STEP, float(z - 3)) * w * ramp
+	# v158 (E2): the onboarding ramp applies to the SERIAL band too. It is the
+	# same argument — Z1-Z2 are authored-untouched at ~0.6 building-minutes and
+	# the mandatory Z3 chain must not be a cliff — and the serial band is the one
+	# that costs exclusive foreground time.
+	var smin: float = COST_SMIN_Z3 * pow(COST_SMIN_STEP, float(z - 3)) * w * float(COST_SMIN_RAMP.get(z, 1.0))
+	# A weapon channel with no serial component must not be cheaper than one that
+	# has a FocusingCrystal line for the same damage — fold the unspent budget
+	# back into the parallel band rather than dropping it.
+	if serial_mats.is_empty():
+		bmin += smin
+		smin = 0.0
+	if infra_mats.is_empty():
+		smin += bmin
+		bmin = 0.0
+	if not infra_mats.is_empty():
+		# v157 (D1): split the building-minute budget by INFRA DEPTH, not evenly.
+		# A zero-input drill gets weight 1; a depth-4 chain like AdvCircuit gets
+		# 4.6, so the volume lands on the materials that actually pull a factory
+		# tree behind them and keep the early lines running into the endgame.
+		var wsum := 0.0
+		var dw := {}
+		for sd in infra_mats:
+			var sds := String(sd)
+			# v158 (E4): PARALLELISM DISCOUNT. Band 1 exists because its materials
+			# run in the background; the budget is building-minutes precisely
+			# because those minutes are not foreground minutes. But some
+			# "automatable" materials still drag a serial sub-chain: at Zone 3 one
+			# Circuit costs 0.309 foreground minutes even though its own building
+			# is affordable, because electronics_assembler needs Resin and nothing
+			# makes Resin but a recipe. Measured, that one line was 40 of the 108
+			# minutes on the mandatory pre-Warmaster bundle while Steel — same
+			# band, deeper root content — was 16.
+			# residue = how many foreground minutes one building-minute of this
+			# line actually costs. 1.0 means genuinely parallel (Steel: 0.0122
+			# min/unit x 30 units/min = 0.37, clamped to 1). Circuit measures 4.8,
+			# so it gets 1/4.8 of the share its depth alone would have won.
+			var residue: float = maxf(1.0, _cost_mpu(sds, z) * _cost_rate_at(sds, z))
+			var ww: float = (1.0 + COST_DEPTH_WEIGHT * float(_cost_depth_of(sds))) / residue
+			dw[sds] = ww
+			wsum += ww
+		for s7 in infra_mats:
+			var s7s := String(s7)
+			var each_b: float = bmin * float(dw[s7s]) / maxf(wsum, 0.0001)
+			out[s7s] = maxi(1, int(round(each_b * _cost_rate_at(s7s, z))))
+	if not serial_mats.is_empty():
+		var each_s: float = smin / float(serial_mats.size())
+		for s8 in serial_mats:
+			var s8s := String(s8)
+			# v158 (E3): TRANSITIVE. Was `each_s * rate`, i.e. the material's own
+			# recipe throughput with its input chain ignored — the same error the
+			# v157 probe made when it reported a 3.9 h bundle as 1.01 h.
+			out[s8s] = maxi(1, int(round(each_s / _cost_mpu(s8s, z))))
+	return out
 
 func _get_module_cost_stage(m_data: Dictionary) -> int:
 	var req = str(m_data.get("research_req", ""))
@@ -4498,23 +5778,21 @@ func get_tier_defense_factors(z: int, floor_f: float) -> Dictionary:
 		"shield": (sh_keep / sh_full) if sh_full > 0.0 else 1.0,
 	}
 
-# v114: a module's effective craft cost. Injects the zone signature alloy for Z2-Z10
-# common (no-rarity) weapon/armor/shield ONLY when the tier gate is on — so ungated /
-# pre-feature saves keep their base costs and never need an alloy they can't craft.
-# +5 weapon / +6 shield / +8 armor (Z4 reference; tune). Returns a copy (never mutates
-# the module's stored cost). Use this everywhere a common module's cost is read.
+# v156: PASSTHROUGH. This used to inject the zone signature alloy at READ time,
+# which meant the four call sites that read m_data["cost"] directly
+# (info_card.gd:171 — live, it spawns on hover from research_detail_modal —
+# atlas_page.gd:429, resources.gd:382 and get_sell_price) charged one thing and
+# displayed another: modules["z5_armor"]["cost"] carried NO XenoforgedAlloy while
+# the game billed 8, so the Atlas under-reported every Z2-Z10 weapon, armor and
+# shield by its signature alloy and reported all nine alloys as having zero
+# consumers. compose_module_costs() now bakes the charged cost into the authored
+# dict, so every reader sees the same numbers and none of them needs the
+# tier_gate_enabled flag (which stays exactly as it is — flipping it for
+# pre-v114 saves would wall zones those players already cleared).
+# Kept as a function because ~20 call sites use it and it is the honest name for
+# "the cost you will actually be charged".
 func get_effective_module_cost(m_data: Dictionary) -> Dictionary:
-	var base: Dictionary = (m_data.get("cost", {}) as Dictionary).duplicate()
-	if not bool(GameState.game_settings.get("tier_gate_enabled", false)):
-		return base
-	var z: int = int(m_data.get("zone", 0))
-	var st: String = str(m_data.get("slot_type", ""))
-	if z >= 2 and z <= 10 and (st == "weapon" or st == "armor" or st == "shield") and not m_data.has("rarity"):
-		var alloy: String = str(TIER_ALLOY_BY_ZONE.get(z, ""))
-		if alloy != "":
-			var qty: int = 8 if st == "armor" else (6 if st == "shield" else 5)
-			base[alloy] = int(base.get(alloy, 0)) + qty
-	return base
+	return (m_data.get("cost", {}) as Dictionary).duplicate()
 
 # v71.5: Check if module can be equipped (Prerequisite check)
 # Returns: {"can_equip": bool, "reason": String}

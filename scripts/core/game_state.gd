@@ -126,6 +126,13 @@ func _ready():
 	bounty_manager = load("res://scripts/managers/bounty_manager.gd").new()
 	quest_manager = load("res://scripts/managers/quest_manager.gd").new()
 
+	# v156: bake the banded module cost curve into modules[id]["cost"]. Must run
+	# AFTER every manager exists (it classifies each material against the
+	# building / recipe / gather / enemy-loot databases) and BEFORE load_game(),
+	# so nothing reads a half-composed cost. Idempotent — it composes from an
+	# authored snapshot, so a second call is a no-op.
+	shipyard_manager.compose_module_costs()
+
 	mission_manager.connect_signals()
 	bounty_manager.connect_signals()
 	quest_manager.connect_signals()
