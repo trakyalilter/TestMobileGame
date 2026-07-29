@@ -905,7 +905,7 @@ var enemy_db = {
 	},
 	"z2_boss_monolith": {
 		"name": "Silicate Monolith",
-		"stats": {"hp": 11500, "max_shield": 550, "atk": 125.714286, "def": 39, "atk_interval": 2.0, "accuracy": 45},  # v135a: was hp 5280/shield 264/atk 132 — Uncommon beat it 5/5 (gear-check audit). Buffed ~2x so only Rare+ Zone-2 wins.
+		"stats": {"hp": 8216, "max_shield": 550, "atk": 125.714286, "def": 39, "atk_interval": 2.0, "accuracy": 45},  # v135a: was hp 5280/shield 264/atk 132 — Uncommon beat it 5/5 (gear-check audit). Buffed ~2x so only Rare+ Zone-2 wins. v156: 11500 -> 8216 (x0.8652/1.2110) — cancels the FLATTEN_HP_CALIB move from the weak-channel reassignment so effective hp stays at its pre-v156 value.
 		# v139d P3 SOFT trait: the lattice re-crystallizes (+4% shield / 10s).
 		# Near-invisible at Rare-gate DPS; at Uncommon the stalling shield bar
 		# EXPLAINS the Rare wall instead of a mute number check. Intro for Z4's
@@ -916,7 +916,8 @@ var enemy_db = {
 		"boss_core": "Z2_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z2_kinetic", "z2_energy", "z2_missile", "z2_shield", "z2_armor", "z2_battery", "z2_sensor"],
-		"is_boss": true, "xp": 300, "zone": 2, "resist_k": 0.0, "resist_e": 0.37, "resist_x": -0.40, "dmg_type": "kinetic"
+		# v156 BOSS-ONLY CHANNEL VARIATION: weak NRG = Zone 3's primary. Swap for the boss.
+		"is_boss": true, "xp": 300, "zone": 2, "resist_k": 0.0, "resist_e": -0.40, "resist_x": 0.37, "dmg_type": "kinetic"
 	},
 
 	# ═══ ZONE 3: Mars Debris — Reg HP~1152, ATK~73, DEF~15 ═══
@@ -990,7 +991,7 @@ var enemy_db = {
 		"name": "Martian Warmaster",
 		# v139d: hp 17424->16000 — the Rare cell averaged ~40% across 7 matrix runs
 		# (signal, not noise) and this is the FIRST-WARP boss; Rare must be reliable.
-		"stats": {"hp": 13600, "max_shield": 580, "atk": 151.2, "def": 87, "atk_interval": 2.0, "accuracy": 65},
+		"stats": {"hp": 14933, "max_shield": 580, "atk": 151.2, "def": 87, "atk_interval": 2.0, "accuracy": 65},  # v156: 13600 -> 14933 (x1.2963/1.1806) — cancels the FLATTEN_HP_CALIB move from the weak-channel reassignment.
 		# v142 step-4 verification trim: hp 16000->13600 (-15%), atk 210->189 (-10%).
 		# Post-rebase this read 4/9 Rare on BOTH boss_gearcheck and the mission-hull
 		# boss_threshold (bar is >=60%), and 2 of 3 funnel seeds walled on it with
@@ -1005,7 +1006,8 @@ var enemy_db = {
 		"boss_core": "Z3_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z3_kinetic", "z3_energy", "z3_missile", "z3_shield", "z3_armor", "z3_battery", "z3_sensor"],
-		"is_boss": true, "xp": 800, "zone": 3, "resist_k": 0.0, "resist_e": -0.40, "resist_x": 0.37, "dmg_type": "explosive"
+		# v156 BOSS-ONLY CHANNEL VARIATION: weak KIN = Zone 4's primary. Swap for the boss.
+		"is_boss": true, "xp": 800, "zone": 3, "resist_k": -0.40, "resist_e": 0.0, "resist_x": 0.37, "dmg_type": "explosive"
 	},
 
 	# ═══ ZONE 4: Cryofield — Reg HP~2765, ATK~160, DEF~32 ═══
@@ -1152,7 +1154,7 @@ var enemy_db = {
 	},
 	"z4_boss_overseer": {
 		"name": "Glacial Overseer",
-		"stats": {"hp": 25555, "max_shield": 1277, "atk": 384, "def": 191, "atk_interval": 2.0, "accuracy": 85},
+		"stats": {"hp": 40227, "max_shield": 1277, "atk": 384, "def": 191, "atk_interval": 2.0, "accuracy": 85},  # v156: 25555 -> 40227 (x1.1806/0.7500) — cancels the FLATTEN_HP_CALIB move from the weak-channel reassignment.
 		# v139g (owner: every boss = a NEW system): pulse repeat replaced with
 		# the SIPHON debut — the cold leeches your shields into its own. Pulse's
 		# real test moved to the Z7 Prism (crystal-lattice continuity with Z2).
@@ -1173,7 +1175,8 @@ var enemy_db = {
 		"boss_core": "Z4_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z4_kinetic", "z4_energy", "z4_missile", "z4_shield", "z4_armor", "z4_battery", "z4_sensor"],
-		"is_boss": true, "xp": 2000, "zone": 4, "resist_k": -0.40, "resist_e": 0.0, "resist_x": 0.37, "dmg_type": "energy"
+		# v156 BOSS-ONLY CHANNEL VARIATION: weak EXP = Zone 5's primary. Swap for the boss.
+		"is_boss": true, "xp": 2000, "zone": 4, "resist_k": 0.0, "resist_e": 0.37, "resist_x": -0.40, "dmg_type": "energy"
 	},
 
 	# ═══ ZONE 5: Sector Alpha — Reg HP~6636, ATK~352, DEF~70 ═══
@@ -1243,7 +1246,7 @@ var enemy_db = {
 		# v139d Rare-gate: 80000->92000 — Uncommon was STILL sneaking 2/5 (baseline
 		# matrix); the stretch pushes Uncommon DPS past its kit sustain while Rare
 		# stays in the 3-6min envelope (~190s projected).
-		"stats": {"hp": 92000, "max_shield": 2811, "atk": 608, "def": 421, "atk_interval": 2.0, "accuracy": 110},
+		"stats": {"hp": 53228, "max_shield": 2811, "atk": 608, "def": 421, "atk_interval": 2.0, "accuracy": 110},  # v156: 92000 -> 53228 (x0.7500/1.2963) — cancels the FLATTEN_HP_CALIB move from the weak-channel reassignment.
 		# v139g (owner: every boss = a NEW system): enrage repeat replaced with
 		# the NANITE debut — below 30% HP its sheath reknits once. Burst check:
 		# out-damage the regen window or the fight stretches. Tuned 20%->12%
@@ -1255,7 +1258,8 @@ var enemy_db = {
 		"boss_core": "Z5_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z5_kinetic", "z5_energy", "z5_missile", "z5_shield", "z5_armor", "z5_battery", "z5_sensor"],
-		"is_boss": true, "xp": 5000, "zone": 5, "resist_k": 0.0, "resist_e": 0.37, "resist_x": -0.40, "dmg_type": "energy"
+		# v156 BOSS-ONLY CHANNEL VARIATION: weak NRG = Zone 6's primary. Swap for the boss.
+		"is_boss": true, "xp": 5000, "zone": 5, "resist_k": 0.0, "resist_e": -0.40, "resist_x": 0.37, "dmg_type": "energy"
 	},
 
 	# ═══ ZONE 6: Sector Beta — Reg HP~15926, ATK~773, DEF~155 ═══
@@ -1321,7 +1325,7 @@ var enemy_db = {
 		# pointing players at the wrong sector.
 		"name": "Beta Colossus",
 		# v139d Rare-gate: 185531->200000 (Uncommon sneaking 2/5 in the baseline).
-		"stats": {"hp": 200000, "max_shield": 6184, "atk": 1680, "def": 927, "atk_interval": 2.0, "accuracy": 140},
+		"stats": {"hp": 219600, "max_shield": 6184, "atk": 1680, "def": 927, "atk_interval": 2.0, "accuracy": 140},  # v156: 200000 -> 219600 (x1.2963/1.1806) — cancels the FLATTEN_HP_CALIB move from the weak-channel reassignment.
 		# v139d P3: Reactive Armor — the mining golem stacks plating. Punishes
 		# fast small hits; heavy slow per-hit builds break through.
 		"reactive_armor": {"per_hits": 25, "def_mult": 1.4, "cap": 2.2},
@@ -1335,7 +1339,8 @@ var enemy_db = {
 		"boss_core": "Z6_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z6_kinetic", "z6_energy", "z6_missile", "z6_shield", "z6_armor", "z6_battery", "z6_sensor"],
-		"is_boss": true, "xp": 15000, "zone": 6, "resist_k": 0.0, "resist_e": -0.40, "resist_x": 0.37, "dmg_type": "explosive"
+		# v156 BOSS-ONLY CHANNEL VARIATION: weak KIN = Zone 7's primary. Swap for the boss.
+		"is_boss": true, "xp": 15000, "zone": 6, "resist_k": -0.40, "resist_e": 0.0, "resist_x": 0.37, "dmg_type": "explosive"
 	},
 
 	# ═══ ZONE 7: Sector Gamma — Reg HP~38222, ATK~1700, DEF~341 ═══
@@ -1409,7 +1414,7 @@ var enemy_db = {
 	"z7_boss_sovereign": {
 		"name": "Sovereign Prism",
 		# v106: Late-game escalation pass — HP 952K→1.4M, ATK 10.2K→14K. Target ~8 min for tier-matched legendary clears (was ~6 min).
-		"stats": {"hp": 490000, "max_shield": 13605, "atk": 4804.8, "def": 2040, "atk_interval": 2.0, "accuracy": 170},
+		"stats": {"hp": 771325, "max_shield": 13605, "atk": 4804.8, "def": 2040, "atk_interval": 2.0, "accuracy": 170},  # v156: 490000 -> 771325 (x1.1806/0.7500) — cancels the FLATTEN_HP_CALIB move from the weak-channel reassignment.
 		# v139g (owner: every boss = a NEW system): siphon moved to its Z4 debut;
 		# the Prism RE-CRYSTALLIZES — the Z2 Monolith's soft pulse lesson tested
 		# for real (lattice continuity: monolith → prism).
@@ -1426,7 +1431,8 @@ var enemy_db = {
 		"boss_core": "Z7_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z7_kinetic", "z7_energy", "z7_missile", "z7_shield", "z7_armor", "z7_battery", "z7_sensor"],
-		"is_boss": true, "xp": 35000, "zone": 7, "resist_k": -0.40, "resist_e": 0.0, "resist_x": 0.37, "dmg_type": "energy"
+		# v156 BOSS-ONLY CHANNEL VARIATION: weak EXP = Zone 8's primary. Swap for the boss.
+		"is_boss": true, "xp": 35000, "zone": 7, "resist_k": 0.0, "resist_e": 0.37, "resist_x": -0.40, "dmg_type": "energy"
 	},
 
 	# ═══ ZONE 8: Sector Delta — Reg HP~91733, ATK~3742, DEF~749 ═══
@@ -1489,7 +1495,7 @@ var enemy_db = {
 		# (kits carried survival, so it was a pure DPS race Uncommon could win).
 		# The REAL gate is the Charge Nuke below — the x4 spike kills through
 		# Uncommon-grade shield buffers between kit procs; Rare EHP absorbs it.
-		"stats": {"hp": 1850000, "max_shield": 29932, "atk": 9760, "def": 4489, "atk_interval": 2.0, "accuracy": 200},
+		"stats": {"hp": 1070354, "max_shield": 29932, "atk": 9760, "def": 4489, "atk_interval": 2.0, "accuracy": 200},  # v156: 1850000 -> 1070354 (x0.7500/1.2963) — cancels the FLATTEN_HP_CALIB move from the weak-channel reassignment.
 		# v139d P3: the Z1 Architect's telegraph, now LETHAL — every 4th swing x4.
 		"charge_nuke": {"every_n": 6, "mult": 5.2},
 		# v142d: the Prismatic Warden did not drop AntimatterParticle, Zone 8's
@@ -1500,7 +1506,8 @@ var enemy_db = {
 		"boss_core": "Z8_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z8_kinetic", "z8_energy", "z8_missile", "z8_shield", "z8_armor", "z8_battery", "z8_sensor"],
-		"is_boss": true, "xp": 80000, "zone": 8, "resist_k": 0.0, "resist_e": 0.37, "resist_x": -0.40, "dmg_type": "kinetic"
+		# v156 BOSS-ONLY CHANNEL VARIATION: weak NRG = Zone 9's primary. Swap for the boss.
+		"is_boss": true, "xp": 80000, "zone": 8, "resist_k": 0.0, "resist_e": -0.40, "resist_x": 0.37, "dmg_type": "kinetic"
 	},
 
 	# ═══ ZONE 9: Sector Zeta — Reg HP~220160, ATK~8230, DEF~1648 ═══
@@ -1569,7 +1576,7 @@ var enemy_db = {
 	"z9_boss_patient_zero": {
 		"name": "Patient Zero",
 		# v106: Late-game escalation pass — HP 5.93M→10M, ATK 56K→90K. Target ~12 min for tier-matched legendary, smoothing the ramp into Z10's 13 min finale.
-		"stats": {"hp": 3200000, "max_shield": 65851, "atk": 21200, "def": 9877, "atk_interval": 2.0, "accuracy": 230},  # v135a: 3.5M->3.2M so Rare+ Zone-9 clears (was Rare 1/5, gear-check).
+		"stats": {"hp": 3513603, "max_shield": 65851, "atk": 21200, "def": 9877, "atk_interval": 2.0, "accuracy": 230},  # v135a: 3.5M->3.2M so Rare+ Zone-9 clears (was Rare 1/5, gear-check). v156: 3200000 -> 3513603 (x1.2963/1.1806) — cancels the FLATTEN_HP_CALIB move from the weak-channel reassignment.
 		# v139d P3: first COMBO — infection eats the hull (shield-bypassing DoT)
 		# while the pathogen accelerates below 40%. DoT race under pressure.
 		"corrosive_field": {"hull_dps_pct": 0.004},
@@ -1581,7 +1588,8 @@ var enemy_db = {
 		"boss_core": "Z9_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z9_kinetic", "z9_energy", "z9_missile", "z9_shield", "z9_armor", "z9_battery", "z9_sensor"],
-		"is_boss": true, "xp": 200000, "zone": 9, "resist_k": 0.0, "resist_e": -0.40, "resist_x": 0.37, "dmg_type": "explosive"
+		# v156 BOSS-ONLY CHANNEL VARIATION: weak KIN = Zone 10's primary. Swap for the boss.
+		"is_boss": true, "xp": 200000, "zone": 9, "resist_k": -0.40, "resist_e": 0.0, "resist_x": 0.37, "dmg_type": "explosive"
 	},
 
 	# ═══ ZONE 10: Sector Epsilon — Reg HP~528384, ATK~18105, DEF~3627 ═══
@@ -1646,7 +1654,7 @@ var enemy_db = {
 		# v139d Rare-gate: hp 6.2M->6.8M (Uncommon beat it 5/5 in the baseline).
 		# The REAL gate is the Volatile Core below — the death-burst denies the
 		# kill to anything without a Rare-grade EHP floor.
-		"stats": {"hp": 6800000, "max_shield": 144872, "atk": 53333.333333, "def": 21730, "atk_interval": 2.0, "accuracy": 250},
+		"stats": {"hp": 10704107, "max_shield": 144872, "atk": 53333.333333, "def": 21730, "atk_interval": 2.0, "accuracy": 250},  # v156: 6800000 -> 10704107 (x1.1806/0.7500) — cancels the FLATTEN_HP_CALIB move from the weak-channel reassignment.
 		# v139d P3 capstone combo: Adaptive Grid (MILD mono-type tax, cap 0.15 —
 		# the probe's mono-Rare loadout must still clear; hybrid is optimal play
 		# and primes Z11's "damage type is everything" break) + Volatile Core
@@ -1665,7 +1673,10 @@ var enemy_db = {
 		"boss_core": "Z10_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z10_kinetic", "z10_energy", "z10_missile", "z10_shield", "z10_armor", "z10_battery", "z10_sensor"],
-		"is_boss": true, "xp": 500000, "zone": 10, "resist_k": -0.40, "resist_e": 0.0, "resist_x": 0.37, "dmg_type": "energy"
+		# v156 BOSS-ONLY CHANNEL VARIATION: weak EXP. Z11 is warp_hardened and demands
+		# CRYO, which the player cannot own before warping, so Z10 continues the
+		# K/E/X cycle rather than pointing at its literal next zone.
+		"is_boss": true, "xp": 500000, "zone": 10, "resist_k": 0.0, "resist_e": 0.37, "resist_x": -0.40, "dmg_type": "energy"
 	},
 
 	# ═══ ZONE 11: The Threshold — WARP-HARDENED (Cryo-only). The Warp Gate. ═══
@@ -2263,55 +2274,55 @@ const FLATTEN_HP_CALIB := {
 	"z2_silicate_golem": {"hp": 0.9700},
 	"z2_claim_jumper": {"hp": 0.9653},
 	"z2_ore_hauler": {"hp": 0.9583},
-	"z2_boss_monolith": {"hp": 0.8652},
+	"z2_boss_monolith": {"hp": 1.2110},
 	# Z3
 	"z3_scavenger_mech": {"hp": 1.1721},
 	"z3_martian_sentry": {"hp": 1.1851},
 	"z3_salvage_swarm": {"hp": 1.1628},
 	"z3_derelict_frigate": {"hp": 1.1960},
-	"z3_boss_warmaster": {"hp": 1.2963},
+	"z3_boss_warmaster": {"hp": 1.1806},
 	# Z4
 	"z4_ice_wraith": {"hp": 1.0795},
 	"z4_cryo_sentinel": {"hp": 1.1234},
 	"z4_frost_hulk": {"hp": 1.1674},
 	"z4_glacial_drone": {"hp": 1.0997},
-	"z4_boss_overseer": {"hp": 1.1806},
+	"z4_boss_overseer": {"hp": 0.7500},
 	# Z5
 	"z5_xenon_scout": {"hp": 0.7500},
 	"z5_xenon_corvette": {"hp": 0.7500},
 	"z5_alien_frigate": {"hp": 0.7500},
 	"z5_alien_probe": {"hp": 0.7500},
-	"z5_boss_harbinger": {"hp": 0.7500},
+	"z5_boss_harbinger": {"hp": 1.2963},
 	# Z6
 	"z6_defense_turret": {"hp": 1.2963},
 	"z6_mining_golem": {"hp": 1.2963},
 	"z6_rad_beast": {"hp": 1.2963},
 	"z6_ore_guardian": {"hp": 1.2963},
-	"z6_boss_colossus": {"hp": 1.2963},
+	"z6_boss_colossus": {"hp": 1.1806},
 	# Z7
 	"z7_shard_swarm": {"hp": 1.1806},
 	"z7_energy_wraith": {"hp": 1.1806},
 	"z7_void_hunter": {"hp": 1.1806},
 	"z7_gamma_beast": {"hp": 1.1806},
-	"z7_boss_sovereign": {"hp": 1.1806},
+	"z7_boss_sovereign": {"hp": 0.7500},
 	# Z8
 	"z8_prism_drone": {"hp": 0.7500},
 	"z8_crystal_golem": {"hp": 0.7500},
 	"z8_void_stalker": {"hp": 0.7500},
 	"z8_nebula_phantom": {"hp": 0.7500},
-	"z8_boss_warden": {"hp": 0.7500},
+	"z8_boss_warden": {"hp": 1.2963},
 	# Z9
 	"z9_plague_drone": {"hp": 1.2963},
 	"z9_bio_horror": {"hp": 1.2963},
 	"z9_rogue_ai": {"hp": 1.2963},
 	"z9_quarantine_mech": {"hp": 1.2963},
-	"z9_boss_patient_zero": {"hp": 1.2963},
+	"z9_boss_patient_zero": {"hp": 1.1806},
 	# Z10
 	"z10_void_stalker": {"hp": 1.1806},
 	"z10_temporal_phantom": {"hp": 1.1806},
 	"z10_omega_sentinel": {"hp": 1.1806},
 	"z10_primordial_titan": {"hp": 1.1806},
-	"z10_boss_leviathan": {"hp": 1.1806},
+	"z10_boss_leviathan": {"hp": 0.7500},
 	# Z12
 	"z12_acid_revenant": {"hp": 1.2963},
 	"z12_rust_horror": {"hp": 1.2963},
