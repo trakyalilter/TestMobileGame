@@ -230,7 +230,9 @@ func _ready() -> void:
 			# Recompute the global multiplier for display at this warp count.
 			wm.total_warps = warps
 			wm.warp_shards = float(sp.get("shards", 0.0))
-			var gmul := wm.get_combat_multiplier()
+			# `wm` is an untyped manager ref, so `:=` can't infer a return type
+			# off it (CLAUDE.md gotcha). Declare explicitly.
+			var gmul: float = wm.get_combat_multiplier()
 			print("[Z10W]  %4d  %6.0f  %7.1fx  %-32s %s" % [
 				warps, float(sp.get("shards", 0.0)), gmul, _cell(sp), _cell(un)])
 			var b: Dictionary = sp.get("bought", {})

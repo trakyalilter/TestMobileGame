@@ -143,12 +143,15 @@ func _build_gameplay_section() -> void:
 func _build_interface_section() -> void:
 	var body := _section("Interface", FRAME_CAT)
 
-	_add_choice_row(body, "Cursor Size",
-		[["Small", CursorManager.SIZE_SMALL],
-		 ["Medium", CursorManager.SIZE_MEDIUM],
-		 ["Large", CursorManager.SIZE_LARGE]],
-		func(): return CursorManager.get_size(),
-		func(v): _on_cursor_size_pressed(v))
+	# ANDROID: no pointer, so no cursor to size. Showing a dead row is worse
+	# than showing nothing.
+	if not PlatformInfo.is_touch():
+		_add_choice_row(body, "Cursor Size",
+			[["Small", CursorManager.SIZE_SMALL],
+			 ["Medium", CursorManager.SIZE_MEDIUM],
+			 ["Large", CursorManager.SIZE_LARGE]],
+			func(): return CursorManager.get_size(),
+			func(v): _on_cursor_size_pressed(v))
 
 	_add_choice_row(body, "Card Frame",
 		[["Industrial", UITheme.CHROME_INDUSTRIAL],

@@ -5,6 +5,11 @@ var resources : Node
 
 signal game_resetted
 signal game_loaded
+## ANDROID: fired when offline progress was applied to an ALREADY-RUNNING game
+## (the app came back from the background). The boot path doesn't use it — the
+## offline modal is built after load_game and polls directly — but a resume has
+## no such build step, so the modal has to be told.
+signal offline_progress_applied
 
 # Managers
 var gathering_manager : RefCounted
@@ -105,6 +110,19 @@ const EVENT_LOG_CAP := 500
 var total_playtime: float = 0.0
 var _pt_last_msec: int = 0
 
+# ANDROID: unix time at the moment the OS suspended us, or -1 when running.
+# The engine stops iterating while an app is paused, so this is the only record
+# of how long the player was actually away. See _resume_from_background.
+var _bg_unix_time: float = -1.0
+
+# Ceiling on a single _process step, in game-seconds (scaled by game-speed
+# below). A resumed app — Android pause, laptop sleep, a debugger breakpoint —
+# hands _process a delta covering the entire gap. Managers accrue per-second
+# off that delta, so an unclamped frame would pay the whole absence out at
+# FULL ACTIVE RATES, on top of the offline payout for the same window. Any
+# real frame is orders of magnitude under this.
+const MAX_FRAME_DELTA: float = 1.0
+
 func _ready():
 	# Initialize Resources
 	var res_script = load("res://scripts/core/resources.gd")
@@ -153,6 +171,11 @@ func _on_warped(gains) -> void:
 	})
 
 func _process(delta):
+	# Clamp first — see MAX_FRAME_DELTA. Scaled by game-speed so the 16x debug
+	# setting (0.27s/frame) isn't mistaken for a stall; the gap itself is
+	# credited through the offline path (load_game / _resume_from_background).
+	delta = minf(delta, MAX_FRAME_DELTA * maxf(Engine.time_scale, 1.0))
+
 	# 0. Total play time (real clock — immune to game-speed scaling)
 	var now_ms := Time.get_ticks_msec()
 	if _pt_last_msec == 0:
@@ -186,8 +209,51 @@ func _process(delta):
 		time_since_save = 0.0
 
 func _notification(what):
-	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_WM_GO_BACK_REQUEST:
-		save_game(true)  # v135a: shutdown -> write a funnel logout snapshot
+	match what:
+		NOTIFICATION_WM_CLOSE_REQUEST, NOTIFICATION_WM_GO_BACK_REQUEST:
+			save_game(true)  # v135a: shutdown -> write a funnel logout snapshot
+		NOTIFICATION_APPLICATION_PAUSED:
+			# ANDROID: the OS can kill a backgrounded app with no further
+			# notification — CLOSE_REQUEST never arrives. This is the last
+			# guaranteed moment to write, and without it every home-button
+			# press risks losing up to PROD_SAVE_INTERVAL of progress. On
+			# mobile that is every single session.
+			_bg_unix_time = Time.get_unix_time_from_system()
+			save_game(true)
+		NOTIFICATION_APPLICATION_RESUMED:
+			_resume_from_background()
+
+# ANDROID: pay out the time the OS had us suspended.
+#
+# The boot path (load_game) credits absence by diffing last_save_time, but a
+# pause/resume never re-boots — the process is the same one, so without this
+# the player watches hours of backgrounded phone evaporate. Mirrors load_game's
+# offline block exactly: same 24h cap, same warp-tree cap multiplier, same
+# consume-the-window save (v137 FIX #34).
+func _resume_from_background() -> void:
+	if _bg_unix_time < 0.0:
+		return
+	var delta: float = Time.get_unix_time_from_system() - _bg_unix_time
+	_bg_unix_time = -1.0
+
+	# get_ticks_msec keeps counting while the app is suspended, so the very
+	# next _process would bill the whole absence as active play time. Re-anchor.
+	_pt_last_msec = Time.get_ticks_msec()
+
+	# Same threshold load_game uses — below it, offline isn't worth a modal.
+	if delta <= 10.0:
+		return
+
+	var cap_mult: float = warp_manager.get_tree_offline_cap_mult() if warp_manager else 1.0
+	var eff_cap: float = OFFLINE_DELTA_CAP_SECONDS * cap_mult
+	var capped_delta: float = minf(delta, eff_cap)
+	process_offline_progress(capped_delta)
+	offline_away_sec = capped_delta
+	offline_capped = delta > eff_cap
+	# Consume the window immediately (#34): a force-kill before the next
+	# autosave must not let the same absence be claimed twice on reboot.
+	save_game()
+	offline_progress_applied.emit()
 
 # P3.10: which mode the single active slot is occupying this frame.
 func _occupancy_key() -> String:

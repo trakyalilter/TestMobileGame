@@ -1,0 +1,217 @@
+name: Build & Release Android APK
+
+# Builds the FULL GAME Android APK and publishes it as a GitHub Release, so the
+# binary lives on Releases instead of in git history.
+#
+# WHERE THE RELEASE LANDS
+#   Primary target is trakyalilter/TestMobileGame (owner's chosen download home).
+#   That is a DIFFERENT repository, and a workflow's built-in GITHUB_TOKEN is
+#   scoped to the repo it runs in — it cannot create a release anywhere else.
+#   Cross-repo publishing therefore needs a Personal Access Token:
+#
+#     1. github.com/settings/tokens -> fine-grained token
+#        Repository access: trakyalilter/TestMobileGame
+#        Permissions: Contents = Read and write
+#     2. In THIS repo: Settings -> Secrets and variables -> Actions
+#        New repository secret, name it exactly  RELEASE_TOKEN
+#
+#   Until that secret exists the build still runs and still publishes — it just
+#   falls back to a release on THIS repo, so a downloadable APK always exists.
+#
+# NOTE on triggers: workflow_dispatch (the "Run workflow" button) only becomes
+# available once this file is on the DEFAULT branch. GitHub will not dispatch a
+# workflow that lives only on a feature branch. push has no such restriction,
+# which is what the MissionFlow filter below is for.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ['MissionFlow']
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+env:
+  GODOT_VERSION: "4.5"
+  EXPORT_NAME: horizon-idle
+  RELEASE_REPO: trakyalilter/TestMobileGame
+
+jobs:
+  android:
+    name: Export Android (debug-signed)
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install export templates
+        run: |
+          mkdir -p ~/.local/share/godot/export_templates
+          mkdir -p ~/.config
+          cp -r /root/.config/godot ~/.config/godot 2>/dev/null || true
+          cp -r /root/.local/share/godot/export_templates/* ~/.local/share/godot/export_templates/ 2>/dev/null || true
+          ls -la ~/.local/share/godot/export_templates/ || true
+
+      - name: Use the committed stable debug keystore
+        run: |
+          # A FIXED keystore (ci-debug.keystore, committed) is reused on every
+          # build so all dev APKs share one signature — Android can then install
+          # each new build as an update instead of rejecting it with "package
+          # conflicts with an existing package". Debug key: NOT for the Play
+          # Store; production must use a real release key from a secret.
+          cp "$GITHUB_WORKSPACE/ci-debug.keystore" "$GITHUB_WORKSPACE/debug.keystore"
+          keytool -list -keystore "$GITHUB_WORKSPACE/debug.keystore" -storepass android | head -n 3
+
+      - name: Configure Godot editor settings (SDK / JDK / keystore)
+        run: |
+          mkdir -p ~/.config/godot
+          CFG="$(ls ~/.config/godot/editor_settings-*.tres 2>/dev/null | head -n1)"
+          [ -z "$CFG" ] && CFG=~/.config/godot/editor_settings-4.5.tres
+          JDK="$(dirname "$(dirname "$(readlink -f "$(command -v keytool)")")")"
+          echo "Detected JDK: $JDK"; ls "$JDK/bin/java" || true
+          SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/lib/android-sdk}}"
+          {
+            echo '[gd_resource type="EditorSettings" format=3]'
+            echo ''
+            echo '[resource]'
+            echo "export/android/android_sdk_path = \"$SDK\""
+            echo "export/android/debug_keystore = \"$GITHUB_WORKSPACE/debug.keystore\""
+            echo 'export/android/debug_keystore_user = "androiddebugkey"'
+            echo 'export/android/debug_keystore_pass = "android"'
+            echo "export/android/java_sdk_path = \"$JDK\""
+          } > "$CFG"
+          echo "Wrote $CFG"; cat "$CFG"
+
+      - name: Stamp the build version into the Android preset
+        run: |
+          # Only the Android preset defines bare version/code + version/name
+          # (the Windows preset uses application/file_version), so this is safe.
+          # Bumping versionCode per run is what lets a new dev APK install OVER
+          # the previous one instead of being refused as a downgrade.
+          sed -i "s|^version/code=.*|version/code=${{ github.run_number }}|" export_presets.cfg
+          sed -i "s|^version/name=.*|version/name=\"0.1.${{ github.run_number }}\"|" export_presets.cfg
+          grep -n "^version/" export_presets.cfg
+
+      - name: Import project
+        run: |
+          godot --headless --path . --import 2>&1 | tail -n 20 || true
+          godot --headless --path . --import 2>&1 | tail -n 20 || true
+
+      # Import/export never fail the job on GDScript errors by themselves — the
+      # APK export happily packs broken scripts — so a script that cannot
+      # compile would ship a build that will not boot. Fail here instead.
+      - name: Verify scripts compile
+        run: |
+          godot --headless --path . --import 2>&1 | tee import.log || true
+          if grep -E "SCRIPT ERROR|Parse Error|Compile Error" import.log; then
+            echo "::error::GDScript compile/parse errors detected — the APK would not boot"
+            exit 1
+          fi
+
+      # `--import` only parses autoloads. main.tscn is what instantiates every
+      # page and UI tile script, which is where type errors and undeclared
+      # locals actually surface.
+      - name: Boot the full UI headless
+        run: |
+          cp project.godot project.godot.bak
+          sed -i 's|main_menu.tscn|main.tscn|' project.godot
+          godot --headless --quit-after 400 --path . 2>&1 | tee boot.log || true
+          cp project.godot.bak project.godot && rm project.godot.bak
+          if grep -E "SCRIPT ERROR|Parse Error|Cannot infer|not declared|Nonexistent" boot.log; then
+            echo "::error::the UI tree does not boot cleanly"
+            exit 1
+          fi
+
+      - name: Run probes
+        run: |
+          for probe in android_lifecycle_check; do
+            echo "=== $probe ==="
+            godot --headless --path . "res://scenes/$probe.tscn" 2>&1 | tee "$probe.log" || true
+            if grep -qE "FAIL" "$probe.log"; then
+              echo "::error::$probe reported a failure"
+              exit 1
+            fi
+          done
+
+      - name: Export debug APK
+        run: |
+          mkdir -p build
+          godot --headless --path . --export-debug "Android" "build/${EXPORT_NAME}.apk"
+          ls -la build/
+          test -f "build/${EXPORT_NAME}.apk"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.EXPORT_NAME }}-apk
+          path: build/${{ env.EXPORT_NAME }}.apk
+
+      # Presence check only — never echoes the secret itself.
+      - name: Is a cross-repo release token configured?
+        id: crt
+        run: |
+          if [ -n "${{ secrets.RELEASE_TOKEN }}" ]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+            echo "RELEASE_TOKEN present -> publishing to $RELEASE_REPO"
+          else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::RELEASE_TOKEN not set — falling back to a release on this repo. See the header of this workflow to publish to $RELEASE_REPO instead."
+          fi
+
+      - name: Publish prerelease to TestMobileGame
+        if: ${{ steps.crt.outputs.ok == 'true' && !startsWith(github.ref, 'refs/tags/') }}
+        uses: softprops/action-gh-release@v2
+        with:
+          repository: trakyalilter/TestMobileGame
+          token: ${{ secrets.RELEASE_TOKEN }}
+          tag_name: horizon-idle-dev-${{ github.run_number }}
+          name: Horizon Idle — Dev build #${{ github.run_number }}
+          prerelease: true
+          body: |
+            **Full game** (not the Zone-3 demo). Debug-signed Android build for
+            sideloading — **not** for the Play Store.
+
+            | | |
+            |---|---|
+            | Package | `com.haides.horizonidle` |
+            | Version | 0.1.${{ github.run_number }} (code ${{ github.run_number }}) |
+            | ABI | arm64-v8a |
+            | SDK | min 24 / target 35 |
+            | Orientation | sensorLandscape |
+            | Source | `${{ github.repository }}` @ `${{ github.sha }}` |
+
+            Signed with the shared CI debug key, so each build installs over the
+            last one. You will need "install from unknown sources".
+          files: build/${{ env.EXPORT_NAME }}.apk
+
+      - name: Publish prerelease here (fallback — no RELEASE_TOKEN)
+        if: ${{ steps.crt.outputs.ok != 'true' && !startsWith(github.ref, 'refs/tags/') }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: dev-build-${{ github.run_number }}
+          name: Dev build #${{ github.run_number }}
+          prerelease: true
+          target_commitish: ${{ github.sha }}
+          body: |
+            **Full game** debug-signed Android build for sideloading.
+
+            Published here rather than on `trakyalilter/TestMobileGame` because
+            the `RELEASE_TOKEN` secret is not configured — see the header of
+            `.github/workflows/android-release.yml`.
+
+            | | |
+            |---|---|
+            | Package | `com.haides.horizonidle` |
+            | Version | 0.1.${{ github.run_number }} (code ${{ github.run_number }}) |
+            | ABI | arm64-v8a |
+            | Commit | ${{ github.sha }} |
+          files: build/${{ env.EXPORT_NAME }}.apk
+
+      - name: Publish release (tag push)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/${{ env.EXPORT_NAME }}.apk

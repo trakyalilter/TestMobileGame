@@ -317,6 +317,15 @@ func _on_continue_pressed():
 	t.tween_callback(func(): visible = false; modulate.a = 1.0)
 
 
+## ANDROID: the shared dismissal contract main.gd's hardware-Back handler looks
+## for. Routed through the CONTINUE path on purpose — that's what restores
+## UITheme.gain_feed_suppressed. Never queue_free: main.gd keeps this instance
+## and re-shows it when a background resume credits offline progress.
+func close() -> void:
+	if visible:
+		_on_continue_pressed()
+
+
 # ════════════════════════════════════════════════════════════════════════════
 #  AGGREGATION
 # ════════════════════════════════════════════════════════════════════════════
