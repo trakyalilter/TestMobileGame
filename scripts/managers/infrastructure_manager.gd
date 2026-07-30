@@ -374,7 +374,12 @@ var building_db: Dictionary = {
 		"cost": {"credits": 900000, "Steel": 2000, "Superalloy": 50, "AdvCircuit": 150},
 		"energy_gen": 0.0,
 		"energy_cons": 1200.0,
-		"yield": {"Pentlandite": 0.3},
+		# v160 (ENDGAME_FACTORY_TIER F3): 0.3 -> 0.8. At 0.3 (halved by
+		# INFRA_ORE_EXTRACTION_MULT to 1.8/min, x60 primitive asymptote =
+		# 108/min ceiling FOREVER) Pentlandite was the capital chain's thinnest
+		# rung: the Ni+Co draw of one frame yard's furnaces breached the ceiling
+		# at 3 yards. 0.8 -> 288/min ceiling.
+		"yield": {"Pentlandite": 0.8},
 		"interval": 5.0,
 		"research_req": "superalloy_engineering",
 		"category": "extraction"
@@ -385,7 +390,12 @@ var building_db: Dictionary = {
 		"cost": {"credits": 1000000, "Steel": 2500, "Superalloy": 100, "AdvCircuit": 200},
 		"energy_gen": 0.0,
 		"energy_cons": 1800.0,
-		"yield": {"Chromite": 0.2},
+		# v160 (ENDGAME_FACTORY_TIER Section I Defect-2 fix, same mechanism as the
+		# nickel_mine bump above): 0.2 -> 0.5. At 0.2 (halved by
+		# INFRA_ORE_EXTRACTION_MULT to 1.2/min, x60 primitive asymptote) the type
+		# ceiling was 72/min FOREVER, and the capital chain's Cr draw (passivation
+		# furnaces + superalloy line) breached it at 3 frame yards. 0.5 -> 180/min.
+		"yield": {"Chromite": 0.5},
 		"interval": 5.0,
 		"research_req": "superalloy_engineering",
 		"category": "extraction"
@@ -407,7 +417,12 @@ var building_db: Dictionary = {
 		"cost": {"credits": 1200000, "Steel": 2000, "Ti": 150, "Chip": 100},
 		"energy_gen": 0.0,
 		"energy_cons": 120.0,
-		"yield": {"Germanit": 0.4},
+		# v160 (ENDGAME_FACTORY_TIER Section I Defect-2 fix, same mechanism as
+		# nickel_mine/chromite_excavator): 0.4 -> 0.8. The capital chain buys
+		# AdvCircuit+Chip transitively (bus assembly), and both pull Semiconductor
+		# through the Germanit wall: old ceiling 144/min vs a measured 195/min
+		# draw at 3 frame yards. 0.8 -> 288/min.
+		"yield": {"Germanit": 0.8},
 		"interval": 5.0,
 		"research_req": "adv_materials",
 		"category": "extraction"
@@ -553,8 +568,15 @@ var building_db: Dictionary = {
 		"cost": {"credits": 150000, "Steel": 300, "Hydraulics": 20},
 		"energy_gen": 0.0,
 		"energy_cons": 35.0,
-		"yield": {"C": 6.0},
-		"input": {"Wood": 1.3},
+		# v160 (ENDGAME_FACTORY_TIER Section I Defect-2 fix): 6.0 -> 9.0 with the
+		# Wood feed scaled in proportion (ratio unchanged at 0.217 Wood/C). C is
+		# the capital chain's bulk chemical (graphite, fiber, silicon, steel all
+		# eat it) and the old 1,440/min type ceiling was breached at 3 frame
+		# yards (measured 1,644/min draw). New ceiling 2,160/min. Serial
+		# press_carbon rate untouched — active processing keeps its 10x lead
+		# over a single kiln.
+		"yield": {"C": 9.0},
+		"input": {"Wood": 1.95},
 		"interval": 5.0,
 		"research_req": "combustion",
 		"category": "industry"
@@ -1040,6 +1062,234 @@ var building_db: Dictionary = {
 		"input": {"Semiconductor": 2.4, "Au": 1.2, "StructuralComponent": 2.4},
 		"interval": 5.0,
 		"research_req": "automation",
+		"category": "industry"
+	},
+
+	# ========== v160: CAPITAL FABRICATION CHAIN (ENDGAME_FACTORY_TIER.md) ==========
+	# Fourteen input-bearing factories, ZERO new drills. Nine give existing
+	# serial-only materials a parallel producer (Resin, Fiber, Al, Mg,
+	# GalvanizedSteel, StainlessSteel, NanoSubstrate, NeutroniumPlate,
+	# VoidLattice); five produce the new d3-d8 spine (SinteredCarbide,
+	# PrecisionLattice, FabricationBus, CapitalSpar, DreadnoughtFrame).
+	# Sizing rules (Section I Defect-2 fix — checked against _dr_units asymptotes,
+	# industry 20x neutral, primitive extractors 60x, ore extractors halved):
+	#   * every rate is 0.9x-1.8x its serial recipe, so one building never beats
+	#     the active slot; NONE of the 14 is in INFRA_ENG_SCALED_BUILDINGS or
+	#     PRIMITIVE_EXTRACTORS (industry DR 10/10 applies);
+	#   * input intensities are trimmed from the spec draft so the full chain at
+	#     the reference complex (ONE frame yard at 100%) clears every type
+	#     ceiling with headroom, and still clears at THREE yards. The measured
+	#     breach points that forced the trims: C (kiln 1,440/min), Graphite
+	#     (auto_press 192/min), Pentlandite/Chromite/Germanit (halved ore drills);
+	#   * void_lattice_loom is re-pointed off the recipe's AdvCircuit-24 scaffold
+	#     onto PrecisionLattice — one loom at 24 AdvC/unit would pull ~86
+	#     Semiconductor/min through the Germanit ore wall (144/min ceiling) and
+	#     could never run. The lattice scaffold keeps it runnable and gives the
+	#     mill a third sink. Rule depth of VoidLattice stays 5 (min over
+	#     producers — the weave recipe still exists).
+	# ---- LAYER 1 — CHEMICAL BASE (d2), research industrial_chemistry ----
+	"polymer_reactor": {
+		"name": "Polymer Reactor",
+		"description": "+1.5 Resin (-1.5 C, -3 H, -1.5 O) — feeds the Composite Loom and Electronics Assembler.",
+		"cost": {"credits": 350000, "Steel": 900, "Circuit": 90},
+		"energy_gen": 0.0,
+		"energy_cons": 400.0,
+		"yield": {"Resin": 1.5},
+		"input": {"C": 1.5, "H": 3.0, "O": 1.5},
+		"interval": 5.0,
+		"research_req": "industrial_chemistry",
+		"category": "industry"
+	},
+	"carbon_fiber_spinner": {
+		"name": "Carbon Fiber Spinner",
+		"description": "+3 Fiber (-9 C) — feeds the Composite Loom.",
+		"cost": {"credits": 300000, "Steel": 800, "Circuit": 80},
+		"energy_gen": 0.0,
+		"energy_cons": 350.0,
+		"yield": {"Fiber": 3.0},
+		"input": {"C": 9.0},
+		"interval": 5.0,
+		"research_req": "industrial_chemistry",
+		"category": "industry"
+	},
+	"alumina_line": {
+		"name": "Alumina Reduction Line",
+		"description": "+3 Al (-4.5 Bauxite, -3 O) — feeds the Chromium Forge and Nano-Substrate Lab.",
+		"cost": {"credits": 400000, "Steel": 1000, "Circuit": 120},
+		"energy_gen": 0.0,
+		"energy_cons": 500.0,
+		"yield": {"Al": 3.0},
+		"input": {"Bauxite": 4.5, "O": 3.0},
+		"interval": 5.0,
+		"research_req": "industrial_chemistry",
+		"category": "industry"
+	},
+	"magnesia_calciner": {
+		"name": "Magnesia Calciner",
+		"description": "+1.5 Mg (-6 Dolomite, -1.5 C) — feeds the Precision Lattice Mill and Nano-Substrate Lab.",
+		"cost": {"credits": 550000, "Steel": 1400, "AdvCircuit": 40},
+		"energy_gen": 0.0,
+		"energy_cons": 700.0,
+		"yield": {"Mg": 1.5},
+		"input": {"Dolomite": 6.0, "C": 1.5},
+		"interval": 5.0,
+		"research_req": "industrial_chemistry",
+		"category": "industry"
+	},
+	# ---- LAYER 2 — REFRACTORY (d3/d4), research refractory_metallurgy ----
+	"galvanising_line": {
+		"name": "Galvanising Line",
+		"description": "+2 Galvanized Steel (-2 Steel, -1 Zn) — feeds the Capital Spar Works.",
+		"cost": {"credits": 3500000, "Steel": 4000, "AdvCircuit": 150, "Zn": 400},
+		"energy_gen": 0.0,
+		"energy_cons": 4000.0,
+		"yield": {"GalvanizedSteel": 2.0},
+		"input": {"Steel": 2.0, "Zn": 1.0},
+		"interval": 5.0,
+		"research_req": "refractory_metallurgy",
+		"category": "industry"
+	},
+	"passivation_furnace": {
+		"name": "Passivation Furnace",
+		"description": "+2.5 Stainless Steel (-1 Cr, -3.1 Fe, -0.6 Ni) — feeds the Precision Lattice Mill.",
+		"cost": {"credits": 4200000, "Steel": 5000, "Superalloy": 200, "AdvCircuit": 180},
+		"energy_gen": 0.0,
+		"energy_cons": 5000.0,
+		"yield": {"StainlessSteel": 2.5},
+		"input": {"Cr": 1.0, "Fe": 3.125, "Ni": 0.625},
+		"interval": 5.0,
+		"research_req": "refractory_metallurgy",
+		"category": "industry"
+	},
+	"carbide_sintering_press": {
+		"name": "Carbide Sintering Press",
+		"description": "+0.8 Sintered Carbide (-1 Graphite, -1.2 W, -0.32 Co) — feeds the Precision Lattice Mill.",
+		"cost": {"credits": 6000000, "Steel": 6000, "Superalloy": 300, "W": 500},
+		"energy_gen": 0.0,
+		"energy_cons": 8000.0,
+		"yield": {"SinteredCarbide": 0.133},
+		# Graphite 1.2 -> 1.0 (v160 fixed-point pass): at 1.5/SC the 3-yard
+		# complex drew 172 Graphite/min into auto_press's 192/min type ceiling
+		# (90%) and pushed the C rung to 227% of industrial_kiln's 1,440/min.
+		# 1.25/SC clears both with measured headroom; the serial recipe still
+		# charges 3 Graphite/SC so the plant stays the efficient route.
+		"input": {"Graphite": 1.0, "W": 1.2, "Co": 0.32},
+		"interval": 5.0,
+		"research_req": "refractory_metallurgy",
+		"category": "industry"
+	},
+	"nano_substrate_lab": {
+		"name": "Nano-Substrate Lab",
+		"description": "+0.6 Nano-Substrate (-1.8 Al, -1.2 Mg, -0.6 Ni, -1.8 Structural Component) — Zone 6-9 module anchor.",
+		"cost": {"credits": 3500000, "Steel": 4500, "Superalloy": 250, "AdvCircuit": 200},
+		"energy_gen": 0.0,
+		"energy_cons": 6000.0,
+		"yield": {"NanoSubstrate": 0.6},
+		# StructuralComponent 3.0 -> 1.8 (v160 fixed-point pass): structural_press
+		# carries Cu 5/unit and copper_smelter's type ceiling is only 240/min, so
+		# at 5 SComp/NanoSubstrate the lab line alone held Cu at 90% of ceiling at
+		# the 1x reference complex. 3 SComp/NS clears the Cu rung at 3 frame
+		# yards with the restored bus-hall AdvCircuit line included.
+		"input": {"Al": 1.8, "Mg": 1.2, "Ni": 0.6, "StructuralComponent": 1.8},
+		"interval": 5.0,
+		"research_req": "refractory_metallurgy",
+		"category": "industry"
+	},
+	# ---- LAYER 3 — PRECISION (d5/d6), research precision_fabrication ----
+	"lattice_mill": {
+		"name": "Precision Lattice Mill",
+		"description": "+0.4 Precision Lattice (-1 Sintered Carbide, -1.2 Stainless Steel, -0.3 Mg) — feeds the Bus Assembly Hall and Frame Yard.",
+		"cost": {"credits": 18000000, "Steel": 9000, "Superalloy": 600, "AdvCircuit": 400, "SinteredCarbide": 200},
+		"energy_gen": 0.0,
+		"energy_cons": 30000.0,
+		"yield": {"PrecisionLattice": 0.067},
+		# Mg 0.4 -> 0.3 (v160 fixed-point pass): Mg is Dolomite 4/unit and
+		# dolomite_quarry's type ceiling is 288/min; at 1.0 Mg/PL the 3-yard
+		# complex held Dolomite at 96%. 0.75 Mg/PL -> ~80% with the calciner and
+		# titanium lines included. Serial recipe still charges 1 Mg/PL.
+		"input": {"SinteredCarbide": 1.0, "StainlessSteel": 1.2, "Mg": 0.3},
+		"interval": 5.0,
+		"research_req": "precision_fabrication",
+		"category": "industry"
+	},
+	"bus_assembly_hall": {
+		"name": "Fabrication Bus Assembly Hall",
+		"description": "+0.2 Fabrication Bus (-0.5 Precision Lattice, -0.25 Adv Circuit, -0.3 Chip) — feeds the Capital Spar Works.",
+		"cost": {"credits": 55000000, "Superalloy": 2500, "AdvCircuit": 900, "PrecisionLattice": 300},
+		"energy_gen": 0.0,
+		"energy_cons": 120000.0,
+		"yield": {"FabricationBus": 0.033},
+		# AdvCircuit 0.4 -> 0.25, Chip 0.4 -> 0.3 (v160 fixed-point pass):
+		# AdvCircuit drags StructuralComponent 2/unit -> Cu 5/unit into the
+		# 240/min copper_smelter ceiling ("converter outputs stay scarce" is a
+		# v121 design constant, not a bug), and AdvCircuit+Chip together pull
+		# Semiconductor through the Germanit ore wall. 1.25 AdvC + 1.5 Chip per
+		# FabricationBus keeps the "AdvCircuit is still bought, transitively"
+		# story (6.25 AdvC per DreadnoughtFrame via the spar line) while the
+		# 3-yard complex clears both rungs.
+		"input": {"PrecisionLattice": 0.5, "AdvCircuit": 0.25, "Chip": 0.3},
+		"interval": 10.0,
+		"research_req": "precision_fabrication",
+		"category": "industry"
+	},
+	# ---- LAYER 4 — CAPITAL (d4-d8), research capital_fabrication / dreadnought_yards ----
+	"neutronium_press": {
+		"name": "Neutronium Press",
+		"description": "+0.5 Neutronium Plate (-2 Neutronium, -1 Os, -2.5 Superalloy) — feeds the Dreadnought Frame Yard.",
+		"cost": {"credits": 40000000, "Superalloy": 2000, "AdvCircuit": 600, "Neutronium": 80},
+		"energy_gen": 0.0,
+		"energy_cons": 90000.0,
+		"yield": {"NeutroniumPlate": 0.5},
+		"input": {"Neutronium": 2.0, "Os": 1.0, "Superalloy": 2.5},
+		"interval": 10.0,
+		"research_req": "capital_fabrication",
+		"category": "industry"
+	},
+	"void_lattice_loom": {
+		"name": "Void Lattice Loom",
+		"description": "+0.3 Void Lattice (-0.6 Precision Lattice, -1.8 Void Crystal, -2.4 Void Essence) — Zone 10 module anchor.",
+		"cost": {"credits": 90000000, "Superalloy": 3000, "AdvCircuit": 1200, "VoidCrystal": 200, "QuantumCore": 40},
+		"energy_gen": 0.0,
+		"energy_cons": 160000.0,
+		"yield": {"VoidLattice": 0.3},
+		"input": {"PrecisionLattice": 0.6, "VoidCrystal": 1.8, "VoidEssence": 2.4},
+		"interval": 10.0,
+		"research_req": "capital_fabrication",
+		"category": "industry"
+	},
+	"capital_spar_works": {
+		"name": "Capital Spar Works",
+		"description": "+0.2 Capital Spar (-0.25 Fabrication Bus, -2 Galvanized Steel, -0.4 Composite Weave) — feeds the Dreadnought Frame Yard.",
+		"cost": {"credits": 160000000, "Superalloy": 5000, "AdvCircuit": 2000, "PrecisionLattice": 400, "FabricationBus": 150},
+		"energy_gen": 0.0,
+		"energy_cons": 300000.0,
+		"yield": {"CapitalSpar": 0.033},
+		# GS/FB at spec intensity (10 GalvanizedSteel + 1.25 FabricationBus per
+		# spar): GS is the spar's Steel edge (1 Steel + 0.5 Zn each) and the
+		# galvanising_line/auto_smelter rungs sit at <20% of their type ceilings
+		# even at 3 frame yards, so the intensity is free there and it is what
+		# keeps the Zone-3 smelter line load-bearing at Zone 10. CW kept at 2
+		# per spar (the C-side trim).
+		"input": {"FabricationBus": 0.25, "GalvanizedSteel": 2.0, "CompositeWeave": 0.4},
+		"interval": 10.0,
+		"research_req": "dreadnought_yards",
+		"category": "industry"
+	},
+	"frame_yard": {
+		"name": "Dreadnought Frame Yard",
+		"description": "+0.1 Dreadnought Frame (-0.4 Capital Spar, -0.3 Neutronium Plate, -0.6 Precision Lattice) — the Zone 10 module anchor.",
+		"cost": {"credits": 350000000, "Superalloy": 9000, "AdvCircuit": 4000, "CapitalSpar": 60, "NeutroniumPlate": 200, "Z9_Core": 4},
+		"energy_gen": 0.0,
+		"energy_cons": 600000.0,
+		"yield": {"DreadnoughtFrame": 0.017},
+		# CS/NP at spec intensity (4 spars + 3 plates per frame): these are the
+		# frame's Steel/Fe-carrying edges (GalvanizedSteel -> Steel, Superalloy
+		# -> Steel), kept high so the Z10 bill drags MORE early roots than the
+		# AdvCircuit monoculture it replaces. PL trimmed 1.0 -> 0.6 per frame
+		# (the C/Graphite side) for the DR fixed point — see the press comment.
+		"input": {"CapitalSpar": 0.4, "NeutroniumPlate": 0.3, "PrecisionLattice": 0.6},
+		"interval": 10.0,
+		"research_req": "dreadnought_yards",
 		"category": "industry"
 	},
 

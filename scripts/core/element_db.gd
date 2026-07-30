@@ -229,6 +229,15 @@ var ELEMENT_NAMES = {
 	"NuclearFuel": "Nuclear Fuel",
 	"AdvMaintenanceKit": "Adv. Maintenance Kit",
 
+	# v160 Capital Fabrication Chain (ENDGAME_FACTORY_TIER.md): the d3-d8 spine.
+	# Five rungs, each consuming the rung below plus mid-tier products that bottom
+	# out in Dirt/Water/Wood/ore drills transitively — never named directly.
+	"SinteredCarbide": "Sintered Carbide",
+	"PrecisionLattice": "Precision Lattice",
+	"FabricationBus": "Fabrication Bus",
+	"CapitalSpar": "Capital Spar",
+	"DreadnoughtFrame": "Dreadnought Frame",
+
 	# Boss Cores
 	"Z1_Core": "Lunar Core",
 	"Z2_Core": "Asteroid Core",
@@ -250,7 +259,8 @@ var CATEGORIES = {
 	"rare_metals": ["Au", "Ag", "Pt", "Pd", "Ir", "Os", "Rh", "U", "Germanium"],
 	"alloys": ["Steel", "Graphite", "StainlessSteel", "GalvanizedSteel", "Superalloy", "AlMgAlloy", "IrWAlloy",
 				"ChondriteAlloy", "WreckforgedAlloy", "RimeAlloy", "XenoforgedAlloy", "ColonyAlloy", "GammaAlloy", "PrismaticAlloy", "BioforgedAlloy", "AeonAlloy"],
-	"components": ["Circuit", "AdvCircuit", "Chip", "Hydraulics", "AlWire", "Resin", "Fiber", "ReinforcedPlating", "FocusingCrystal"],
+	"components": ["Circuit", "AdvCircuit", "Chip", "Hydraulics", "AlWire", "Resin", "Fiber", "ReinforcedPlating", "FocusingCrystal",
+					"SinteredCarbide", "PrecisionLattice"],  # v160: Capital Fabrication Chain rungs 1-2
 	"batteries": ["BatteryT1", "BatteryT2", "BatteryT3", "CoBattery", "MgBattery", "PdFuelCell"],
 	"consumables": ["Mesh", "Seal", "EmergencyPatch", "BasicBooster", "ChitinPatch", "NitroCoolant", "AdvMaintenanceKit", "CapacitorShard", "IonField", "ZeroPoint"],  # Audit v2.0: Early/Mid consumables
 	"ammo": ["SlugT1", "SlugT1S", "SlugT2", "SlugT3", "SlugT4", "CellT1", "CellT2", "CellT3", "CellT4", "MissileT1", "MissileT2", "MissileT3", "MissileT4"],
@@ -268,7 +278,8 @@ var CATEGORIES = {
 	# Audit v4.0: Endgame category for ultimate items
 	"endgame": ["VoidEssence", "ChronoCore", "OmegaPlating", "PrimordialShard", "CryoCatalyst",
 				"VoidBattery", "TemporalModule", "PrimordialArmor", "OmegaAccelerator",
-				"StructuralLattice", "NeutroniumPlate", "OmegaComposite", "BioReactorCore", "PrimordialMatrix", "VoidLattice"],
+				"StructuralLattice", "NeutroniumPlate", "OmegaComposite", "BioReactorCore", "PrimordialMatrix", "VoidLattice",
+				"FabricationBus", "CapitalSpar", "DreadnoughtFrame"],  # v160: Capital Fabrication Chain rungs 3-5
 	"boss_cores": ["Z1_Core", "Z2_Core", "Z3_Core", "Z4_Core", "Z5_Core", 
 					"Z6_Core", "Z7_Core", "Z8_Core", "Z9_Core", "Z10_Core"],
 	"matrix_cores": ["CrackedCrimsonCore", "StableCrimsonCore", "PristineCrimsonCore",
@@ -724,6 +735,13 @@ var MATERIAL_TINT := {
 	"BioReactorCore":    Color(0.40, 0.78, 0.45),
 	"PrimordialMatrix":  Color(0.90, 0.58, 0.28),
 	"VoidLattice":       Color(0.46, 0.30, 0.74),
+	# v160 Capital Fabrication Chain (grey-carbide -> pale-lattice -> brass-bus ->
+	# hull-blue spar -> bone-white frame; escalating brightness up the spine)
+	"SinteredCarbide":  Color(0.42, 0.40, 0.38),
+	"PrecisionLattice": Color(0.72, 0.78, 0.86),
+	"FabricationBus":   Color(0.85, 0.72, 0.35),
+	"CapitalSpar":      Color(0.62, 0.68, 0.80),
+	"DreadnoughtFrame": Color(0.90, 0.86, 0.72),
 	# Batch 12 — zone boss cores (numeral stamp, tint escalates across the zone progression)
 	"Z1_Core": Color(0.69, 0.72, 0.75),
 	"Z2_Core": Color(0.72, 0.60, 0.42),

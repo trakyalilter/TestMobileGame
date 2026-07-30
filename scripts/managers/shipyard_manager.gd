@@ -227,7 +227,14 @@ const COST_BMIN_STEP := 1.63
 # straight to the full band-1 budget at Z3 measured a x51 cliff in the armor
 # line. This is an explicit onboarding ramp on the band-1 budget only — it does
 # NOT raise Z1/Z2 and it is gone by Z5.
-const COST_BMIN_RAMP := {3: 0.455, 4: 0.78}
+const COST_BMIN_RAMP := {3: 0.455, 4: 0.78, 7: 2.4, 8: 3.0, 9: 5.5}
+# v161: Z7-Z9 lifted. The factory tier ADDED anchors at those zones, and band 1
+# splits one budget across them -- so every pre-existing anchor (AdvCircuit above
+# all, the Au->Dirt/Water and Wood->C engine) got a thinner slice and transitive
+# early-root tonnage FELL at Z7-Z9 versus the pre-tier state, which inverts the
+# owner rule that early materials must matter MORE late, not less. More anchors
+# needs a bigger budget, not a thinner split. Z10 needed no lift: its own new
+# anchors are deep enough to pull tonnage on their own.
 
 # v157 (D1): band 1 is split across the module's automatable materials weighted
 # by INFRA DEPTH — the length of the shortest input chain from the material back
@@ -352,15 +359,30 @@ const COST_COMPOSITE_STEP := 1.18
 # (Superalloy 5 -> Steel 20) are the cumulative rule made mechanical: the Z3 Steel
 # line and the Z4 Circuit line are reloaded at endgame scale WITHOUT either
 # material ever being named directly in a Z8-Z10 recipe.
+# v160 (ENDGAME_FACTORY_TIER): the Capital Fabrication Chain ends the five-zone
+# AdvCircuit monoculture. Z7-Z10 re-anchor onto the new d3-d8 spine, every rung
+# building-produced (carbide_sintering_press / lattice_mill / bus_assembly_hall /
+# capital_spar_works / frame_yard) AND recipe-backed (Section I Defect-1: each
+# new material keeps a slow escape-hatch recipe, so the serial fallback at the
+# elif below is live for all of them — acceleration, never access).
+#   Z7  AdvCircuit + CompositeWeave + SinteredCarbide   d4/d3/d3  (IrPlate -> SinteredCarbide)
+#   Z8  StainlessSteel + NanoSubstrate + TargetingChip + PrecisionLattice  d4/d4/d5/d5
+#   Z9  PrecisionLattice + FabricationBus + VoidLattice  d5/d6/d6
+#   Z10 DreadnoughtFrame + CapitalSpar + VoidLattice  d8/d7/d6
+# NeutroniumPlate (d4) left the Z9/Z10 anchor rows because the floors below rose
+# past it; it is still bought transitively (frame_yard NeutroniumPlate 3/frame)
+# and via the Superalloy -> NeutroniumPlate -> DreadnoughtFrame lift chain.
+# PtCatalyst (d5, serial) likewise left Z10: the anchor loop floor-checks every
+# anchor, so a d5 entry under a floor of 6 would be dead text, not a line.
 const COST_ZONE_ANCHOR := {
 	3: ["Steel"],
 	4: ["Circuit", "StructuralComponent", "Steel"],
 	5: ["Superalloy", "StructuralComponent", "Chip", "Graphite"],
 	6: ["AdvCircuit", "NanoSubstrate"],
-	7: ["AdvCircuit", "IrPlate", "CompositeWeave"],
-	8: ["AdvCircuit", "TargetingChip", "NanoSubstrate"],
-	9: ["AdvCircuit", "NeutroniumPlate", "TargetingChip"],
-	10: ["AdvCircuit", "VoidLattice", "PtCatalyst", "NeutroniumPlate"],
+	7: ["AdvCircuit", "CompositeWeave", "SinteredCarbide"],
+	8: ["AdvCircuit", "StainlessSteel", "NanoSubstrate", "TargetingChip", "PrecisionLattice"],
+	9: ["AdvCircuit", "TargetingChip", "PrecisionLattice", "FabricationBus", "VoidLattice"],
+	10: ["AdvCircuit", "NeutroniumPlate", "DreadnoughtFrame", "CapitalSpar", "VoidLattice"],
 }
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -430,8 +452,21 @@ const COST_ZONE_ANCHOR := {
 # 4.1 (Z9) 4.3 (Z10). Nothing raw is ever named late: Fe, Si, C, Ti, Cu, Au and
 # every zero-input drill (Mn, Os, Ir, W, U, Neutronium, VoidEssence) are illegal
 # as DIRECT lines from Zone 5 on, and Steel from Zone 7 on.
+#
+# v160 (ENDGAME_FACTORY_TIER): BOTH premises of the cap-at-3 measurement are now
+# false, so the floor finally rises at Z8-Z10 — that rise is the acceptance test
+# for the whole Capital Fabrication Chain:
+#   * "the clean building-produced tree tops out at AdvCircuit (d4)" — no longer:
+#     lattice_mill (PrecisionLattice d5), bus_assembly_hall (FabricationBus d6),
+#     capital_spar_works (CapitalSpar d7) and frame_yard (DreadnoughtFrame d8)
+#     are all non-combat-fed industry buildings with escape-hatch recipes.
+#   * "a floor of 4 severs the Steel line" — no longer: the lift chain now runs
+#     Steel -> Superalloy -> NeutroniumPlate -> DreadnoughtFrame, and the frame
+#     physically consumes Steel through GalvanizedSteel (24/frame via the spar
+#     line) and Superalloy (via neutronium_press). Measured transitive roots per
+#     Z10 refit RISE versus the floor-3 state (see the v160 measurement sweep).
 const COST_MIN_DIRECT_DEPTH := {
-	3: 1, 4: 1, 5: 2, 6: 2, 7: 3, 8: 3, 9: 3, 10: 3,
+	3: 1, 4: 1, 5: 2, 6: 2, 7: 3, 8: 4, 9: 5, 10: 6,
 }
 
 # Expected processing level at each zone, taken from the SHIPPED alloy ladder
@@ -503,14 +538,31 @@ const COST_DEPTH_LIFT := {
 	"Pt": ["PtCatalyst"],
 	"PtOre": ["Pt"],
 	"Germanium": ["Semiconductor"],
-	"StainlessSteel": ["NanoSubstrate"],
-	"GalvanizedSteel": ["AdvCircuit"],
+	"StainlessSteel": ["NanoSubstrate", "PrecisionLattice"],
+	"GalvanizedSteel": ["AdvCircuit", "CapitalSpar"],
 	"Hydraulics": ["AdvCircuit"],
 	"IrPlate": ["AdvCircuit"],
-	"CompositeWeave": ["AdvCircuit"],
+	"CompositeWeave": ["AdvCircuit", "CapitalSpar"],
 	"Chip": ["AdvCircuit"],
 	"SuperconductingMagnet": ["AdvCircuit"],
 	"Seal": ["AdvCircuit"],
+	# v160 (ENDGAME_FACTORY_TIER): the Capital Fabrication Chain extends the lift
+	# ladder past d4, so the raised Z8-Z10 floors have somewhere to send the old
+	# lines instead of dropping them. Every pair checked against the live
+	# building/recipe input lists:
+	#   AdvCircuit      -> bus_assembly_hall AdvCircuit 0.25 | craft_fabrication_bus 2
+	#   NeutroniumPlate -> frame_yard NeutroniumPlate 0.3 | craft_dreadnought_frame 2
+	#   SinteredCarbide -> lattice_mill SinteredCarbide 1 | craft_precision_lattice 3
+	#   PrecisionLattice-> bus_assembly_hall 0.5 + frame_yard 0.6 | recipes 3 / 7
+	#   FabricationBus  -> capital_spar_works FabricationBus 0.25 | craft_capital_spar 1
+	#   CapitalSpar     -> frame_yard CapitalSpar 0.4 | craft_dreadnought_frame 3
+	#   StainlessSteel / GalvanizedSteel / CompositeWeave extended above the same way.
+	"AdvCircuit": ["FabricationBus"],
+	"NeutroniumPlate": ["DreadnoughtFrame"],
+	"SinteredCarbide": ["PrecisionLattice"],
+	"PrecisionLattice": ["FabricationBus", "DreadnoughtFrame"],
+	"FabricationBus": ["CapitalSpar"],
+	"CapitalSpar": ["DreadnoughtFrame"],
 }
 
 # v158 (E2): ONBOARDING RAMP on bands 2a / 2b / 1c at Z3-Z4. COST_BMIN_RAMP

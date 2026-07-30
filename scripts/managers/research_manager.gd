@@ -1513,6 +1513,86 @@ var tech_tree = {
 		],
 		"flavor": "Bind primordial matter into stable matrices — the deepest craft in the game.",
 	},
+	# ========== v160: CAPITAL FABRICATION CHAIN (ENDGAME_FACTORY_TIER.md) ==========
+	# Five gates, one per layer of the 14-building endgame factory tier. Section I
+	# DEFECT-3: the engine multiplies authored cost_items by the stage multiplier
+	# (LATE x7.5 / ENDGAME x20, from the credit-cost gates below) and then
+	# _effective_item_requirement applies MATERIAL_MULTIPLIER x2 again at
+	# can_unlock/unlock_tech. AUTHORED NUMBERS HERE ARE THEREFORE effective/15
+	# (industrial_chemistry, LATE stage) or effective/40 (the other four, ENDGAME
+	# stage) — the EFFECTIVE cost is quoted per line. Zone boss cores never scale.
+	# Affordability, effective Liras vs the zone's measured 6h combat budget:
+	#   industrial_chemistry  250,000    vs Z4 405,000
+	#   refractory_metallurgy 1,800,000  vs Z6 3,778,393
+	#   precision_fabrication 12,000,000 vs Z8 33,750,000
+	#   capital_fabrication   60,000,000 vs Z9 108,000,000
+	#   dreadnought_yards     220,000,000 vs Z10 675,000,000
+	"industrial_chemistry": {
+		"name": "Industrial Chemistry",
+		"tier": 3,
+		"category": "infrastructure",
+		"cost": 250000,          # >= LATE_RESEARCH_COST_GATE -> stage 2, items x15 effective
+		# effective: Resin 195, Fiber 195, Circuit 75
+		"cost_items": {"Resin": 13, "Fiber": 13, "Circuit": 5},
+		"type": "technology",
+		"parent": "industrial_electrolysis",
+		"effects": [],
+		"unlocks": ["Polymer Reactor", "Carbon Fiber Spinner", "Alumina Reduction Line", "Magnesia Calciner"],
+		"flavor": "Continuous chemical lines — resin, fiber and light metals without a hand on the console.",
+	},
+	"refractory_metallurgy": {
+		"name": "Refractory Metallurgy",
+		"tier": 4,
+		"category": "infrastructure",
+		"cost": 1800000,         # >= ENDGAME_RESEARCH_COST_GATE -> stage 3, items x40 effective
+		# effective: W 320, Co 160, Graphite 240, Zn 320
+		"cost_items": {"W": 8, "Co": 4, "Graphite": 6, "Zn": 8},
+		"type": "technology",
+		"parent": "superalloy_engineering",
+		"effects": [],
+		"unlocks": ["Galvanising Line", "Passivation Furnace", "Carbide Sintering Press", "Nano-Substrate Lab"],
+		"flavor": "Plate, carbide and substrate — the refractory rung the capital chain stands on.",
+	},
+	"precision_fabrication": {
+		"name": "Precision Fabrication",
+		"tier": 6,
+		"category": "infrastructure",
+		"cost": 12000000,        # stage 3, items x40 effective
+		# effective: Z6_Core 3 (cores never scale), NanoSubstrate 80, StainlessSteel 200, SinteredCarbide 160
+		"cost_items": {"Z6_Core": 3, "NanoSubstrate": 2, "StainlessSteel": 5, "SinteredCarbide": 4},
+		"type": "technology",
+		"parent": "zone_6_access",
+		"effects": [],
+		"unlocks": ["Precision Lattice Mill", "Fabrication Bus Assembly Hall"],
+		"flavor": "The first clean parallelisable d5 and d6 in the game.",
+	},
+	"capital_fabrication": {
+		"name": "Capital Fabrication",
+		"tier": 8,
+		"category": "infrastructure",
+		"cost": 60000000,        # stage 3, items x40 effective
+		# effective: Z8_Core 3 (cores never scale), PrecisionLattice 120, VoidCrystal 80, Neutronium 40
+		"cost_items": {"Z8_Core": 3, "PrecisionLattice": 3, "VoidCrystal": 2, "Neutronium": 1},
+		"type": "technology",
+		"parent": "zone_8_access",
+		"effects": [],
+		"unlocks": ["Neutronium Press", "Void Lattice Loom"],
+		"flavor": "Neutronium plate and void lattice leave the hand bench for the factory floor.",
+	},
+	"dreadnought_yards": {
+		"name": "Dreadnought Yards",
+		"tier": 9,
+		"category": "infrastructure",
+		"cost": 220000000,       # stage 3, items x40 effective
+		# effective: Z9_Core 4 (cores never scale), FabricationBus 40, NeutroniumPlate 160, Superalloy 3000
+		# CapitalSpar deliberately absent — the material does not exist until this tech is bought.
+		"cost_items": {"Z9_Core": 4, "FabricationBus": 1, "NeutroniumPlate": 4, "Superalloy": 75},
+		"type": "technology",
+		"parent": "zone_9_access",
+		"effects": [],
+		"unlocks": ["Capital Spar Works", "Dreadnought Frame Yard"],
+		"flavor": "An orbital complex of thirty-odd plants, and every one still bottoms out in your first-hour excavators.",
+	},
 	# ENDGAME SINKS - Iteration 7
 	"void_weaponry_1": {
 		"name": "Void Weaponry Optimization",

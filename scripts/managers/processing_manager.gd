@@ -1286,6 +1286,74 @@ var recipes: Dictionary = {
 		"research_req": "primordial_engineering",
 		"category": "endgame"
 	},
+	# ========== v160: CAPITAL FABRICATION CHAIN — escape hatches ==========
+	# ENDGAME_FACTORY_TIER.md Section I DEFECT-1 fix: the module cost curve's
+	# serial fallback (_cost_serial_rate) is built ONLY from these recipes and
+	# gather actions, so a chain material WITHOUT a recipe is priced as
+	# unreachable-serial and hard-walls a player who cannot afford the plant.
+	# Every rung therefore keeps a slow, expensive hand path. Rates are set far
+	# under the plant (SinteredCarbide 0.8/min vs 9.6 neutral from one press;
+	# DreadnoughtFrame 0.1/min vs 0.6 from one yard) so the factory is always
+	# clearly better — acceleration, never access. Inputs are >= the plant's
+	# per-unit ratios for the same reason. level_req sits under
+	# COST_ZONE_PROC_LEVEL of the first zone that anchors the material
+	# (SC Z7/65, PL Z8/75, FB Z9/85, CS+DF Z10/95), so nothing is unbuildable
+	# when its zone unlocks.
+	"craft_sintered_carbide": {
+		"name": "Sintered Carbide",
+		"description": "Hot-press graphite and tungsten around a cobalt binder. The Carbide Sintering Press runs this without you.",
+		"input": {"Graphite": 18, "W": 12, "Co": 6},
+		"output": {"SinteredCarbide": 1},
+		"duration": 75.0,
+		"level_req": 62,
+		"xp": 800,
+		"research_req": "refractory_metallurgy",
+		"category": "endgame"
+	},
+	"craft_precision_lattice": {
+		"name": "Precision Lattice",
+		"description": "Machine sintered carbide and stainless steel into a micron-tolerance truss. The Precision Lattice Mill runs this without you.",
+		"input": {"SinteredCarbide": 18, "StainlessSteel": 18, "Mg": 6},
+		"output": {"PrecisionLattice": 1},
+		"duration": 120.0,
+		"level_req": 72,
+		"xp": 1600,
+		"research_req": "precision_fabrication",
+		"category": "endgame"
+	},
+	"craft_fabrication_bus": {
+		"name": "Fabrication Bus",
+		"description": "Assemble a self-routing power-and-tooling spine on a precision lattice. The Bus Assembly Hall runs this without you.",
+		"input": {"PrecisionLattice": 18, "AdvCircuit": 12, "Chip": 12},
+		"output": {"FabricationBus": 1},
+		"duration": 240.0,
+		"level_req": 80,
+		"xp": 2600,
+		"research_req": "precision_fabrication",
+		"category": "endgame"
+	},
+	"craft_capital_spar": {
+		"name": "Capital Spar",
+		"description": "Lace a fabrication bus through galvanized keel plate and composite weave. The Capital Spar Works runs this without you.",
+		"input": {"FabricationBus": 6, "GalvanizedSteel": 54, "CompositeWeave": 12},
+		"output": {"CapitalSpar": 1},
+		"duration": 300.0,
+		"level_req": 88,
+		"xp": 4200,
+		"research_req": "dreadnought_yards",
+		"category": "endgame"
+	},
+	"craft_dreadnought_frame": {
+		"name": "Dreadnought Frame",
+		"description": "Join spars, neutronium plate and precision lattice into one hull skeleton section. The Dreadnought Frame Yard runs this without you.",
+		"input": {"CapitalSpar": 18, "NeutroniumPlate": 12, "PrecisionLattice": 42},
+		"output": {"DreadnoughtFrame": 1},
+		"duration": 600.0,
+		"level_req": 92,
+		"xp": 8000,
+		"research_req": "dreadnought_yards",
+		"category": "endgame"
+	},
 	# ========== v86.0: UNIVERSAL COMPONENT CHAIN ==========
 	"craft_structural_component": {
 		"name": "Structural Component",

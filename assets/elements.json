@@ -1786,5 +1786,55 @@
 		"tier": 3,
 		"base_value": 1,
 		"description": "Captured electromagnetic pulse schematics from the EMP Nexus. First-clear reward. Can be used to craft an EMP Generator module."
+	},
+	{
+		"atomic_number": -3100,
+		"symbol": "SinteredCarbide",
+		"name": "Sintered Carbide",
+		"mass": 60.0,
+		"category": "Component",
+		"tier": 3,
+		"base_value": 1,
+		"description": "Tungsten-carbide compact bound with cobalt. Tooling grade for precision fabrication."
+	},
+	{
+		"atomic_number": -3101,
+		"symbol": "PrecisionLattice",
+		"name": "Precision Lattice",
+		"mass": 40.0,
+		"category": "Component",
+		"tier": 4,
+		"base_value": 1,
+		"description": "Machined carbide-and-stainless truss, tolerances in microns. Feeds the fabrication bus line."
+	},
+	{
+		"atomic_number": -3102,
+		"symbol": "FabricationBus",
+		"name": "Fabrication Bus",
+		"mass": 55.0,
+		"category": "Component",
+		"tier": 5,
+		"base_value": 1,
+		"description": "Self-routing assembly spine that carries power, data and tooling through a capital hull section."
+	},
+	{
+		"atomic_number": -3103,
+		"symbol": "CapitalSpar",
+		"name": "Capital Spar",
+		"mass": 200.0,
+		"category": "Component",
+		"tier": 6,
+		"base_value": 1,
+		"description": "Galvanized-composite keel member for capital ships, laced with a fabrication bus."
+	},
+	{
+		"atomic_number": -3104,
+		"symbol": "DreadnoughtFrame",
+		"name": "Dreadnought Frame",
+		"mass": 500.0,
+		"category": "Component",
+		"tier": 7,
+		"base_value": 1,
+		"description": "A complete dreadnought skeleton section: spars, plate and precision lattice, yard-assembled."
 	}
 ]
