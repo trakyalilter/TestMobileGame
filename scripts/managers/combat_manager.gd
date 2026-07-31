@@ -4880,6 +4880,18 @@ func reset(decay_factor: float = 1.0) -> void:
 		boss_kills = {}
 		hazard_clears = {}
 		total_kills = 0
+		# Loot filters are saved/loaded but were never reset, so a New Game
+		# inherited the previous run's filters — a player who had filtered out
+		# Commons (or every type but one) started fresh with drops silently
+		# discarded, which reads as "module drops are broken". Hard reset only:
+		# Warp keeps them, since the filter is a QoL preference of the same
+		# continuing player, like the rest of the settings that survive a warp.
+		for _r in loot_filter:
+			loot_filter[_r] = true
+		for _t in loot_type_filter:
+			loot_type_filter[_t] = true
+		for _w in loot_weapon_type_filter:
+			loot_weapon_type_filter[_w] = true
 
 # v52.1: Offline Combat (opt-in via game_settings)
 # Can the player actually beat the current enemy? Offline combat is a
