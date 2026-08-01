@@ -40,9 +40,6 @@ var warp_action_badge: Control = null  # v113 (NG+): "warp to breach Sector 11" 
 var _claim_badge_tick: float = 0.0
 
 func _ready():
-	# ANDROID: magnify the UI before pages build, so anything that measures
-	# itself on first layout measures against the final canvas size.
-	_apply_handheld_content_scale()
 	# v123: apply the saved UI palette BEFORE pages build so every card/button/bar
 	# is styled against the chosen colours from the first frame.
 	UITheme.apply_palette(UITheme.get_ui_palette())
@@ -90,95 +87,6 @@ func _ready():
 
 	# v145: make the level-up land (see _init_skill_level_feedback).
 	_init_skill_level_feedback()
-
-	# ANDROID: keep the shell clear of the notch / gesture bar, and re-run on
-	# rotation. No-ops entirely on desktop.
-	_apply_safe_area()
-	get_viewport().size_changed.connect(_apply_safe_area)
-
-	# ANDROID: a resume from the background credits offline progress on the
-	# LIVE scene tree — nothing rebuilds, so the modal has to be re-triggered.
-	if not GameState.offline_progress_applied.is_connected(_on_offline_progress_applied):
-		GameState.offline_progress_applied.connect(_on_offline_progress_applied)
-
-
-# ════════════════════════════════════════════════════════════════════════════
-#  ANDROID / HANDHELD SHELL
-# ════════════════════════════════════════════════════════════════════════════
-
-# The base viewport is a 1280x720 desktop layout. Rendered 1:1 on a ~6" screen
-# its body text sits at the legibility floor, so handhelds get a flat
-# magnification instead of a per-widget font pass. Desktop is untouched.
-func _apply_handheld_content_scale() -> void:
-	if not PlatformInfo.is_handheld():
-		return
-	var win := get_window()
-	if win:
-		win.content_scale_factor = PlatformInfo.HANDHELD_CONTENT_SCALE
-
-
-# Inset the whole UI shell by the device's safe-area. The Background ColorRect
-# is deliberately NOT inset — the notch region stays filled with the game's
-# backdrop rather than showing a black bar.
-func _apply_safe_area() -> void:
-	var shell := get_node_or_null("HBoxContainer") as Control
-	if shell == null:
-		return
-	var insets: Vector4 = PlatformInfo.safe_area_insets(get_viewport())
-	shell.offset_left = insets.x
-	shell.offset_top = insets.y
-	shell.offset_right = -insets.z
-	shell.offset_bottom = -insets.w
-
-
-func _on_offline_progress_applied() -> void:
-	if offline_modal and is_instance_valid(offline_modal):
-		offline_modal.check_and_show()
-
-
-# ANDROID: with `quit_on_go_back=false` (project.godot) the hardware Back
-# button/gesture arrives here instead of killing the process. Back means "undo
-# the last thing that covered the screen" — so it closes the top modal first,
-# and only quits when there is nothing left to dismiss. GameState._notification
-# writes the save on the same notification, so quitting here is always safe.
-func _notification(what: int) -> void:
-	if what != NOTIFICATION_WM_GO_BACK_REQUEST:
-		return
-	if _dismiss_top_modal():
-		return
-	get_tree().quit()
-
-
-# True if something was actually dismissed.
-#
-# The contract is deliberately narrow: a dismissible overlay is a VISIBLE
-# Control that exposes `close()`. That rules out the permanent shell furniture
-# living on ModalLayer (notification stack, coach overlay, hint arrow) without
-# having to special-case any of them by name.
-#
-# Two places get searched, newest-first, because modals are parented in two
-# ways here: ModalLayer (offline report, research detail) and the current page
-# itself (loot filter, built into combat_page).
-func _dismiss_top_modal() -> bool:
-	var roots: Array[Node] = []
-	if modal_layer and is_instance_valid(modal_layer):
-		roots.append(modal_layer)
-	var page: Node = pages.get(current_page_name)
-	if page and is_instance_valid(page):
-		roots.append(page)
-
-	for root in roots:
-		var kids := root.get_children()
-		for i in range(kids.size() - 1, -1, -1):
-			var node := kids[i] as Control
-			if node == null or not node.visible:
-				continue
-			if not node.has_method("close"):
-				continue
-			node.call("close")
-			return true
-	return false
-
 
 func _on_rift_opened_for_warp_reveal(first_reveal: bool) -> void:
 	# v138: open_rift already set warp_first_revealed; here we surface the UI.

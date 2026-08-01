@@ -46,13 +46,6 @@ var _size: int = DEFAULT_SIZE
 
 
 func _ready() -> void:
-	# ANDROID: there is no pointer to draw. Baking four cursor images and then
-	# walking the whole tree (plus every node_added for the rest of the session)
-	# to set a cursor shape nothing renders is pure boot cost on the platform
-	# that can least afford it. Bail before any of it.
-	if PlatformInfo.is_touch():
-		return
-
 	# Persisted size. GameState is declared earlier in project.godot's
 	# autoload list, so its save (and game_settings) is already loaded.
 	_bake(int(GameState.game_settings.get("cursor_size", DEFAULT_SIZE)))
@@ -70,11 +63,8 @@ func _ready() -> void:
 
 
 ## Re-bake all cursors at `px` size and register them. Call this live from
-## the Options screen; it takes effect immediately. No-op on touch platforms
-## (the Sys Config cursor row is hidden there — see options_page).
+## the Options screen; it takes effect immediately.
 func apply_size(px: int) -> void:
-	if PlatformInfo.is_touch():
-		return
 	_bake(px)
 
 

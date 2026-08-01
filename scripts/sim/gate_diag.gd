@@ -33,9 +33,7 @@ func _dump(sm, cm, rm, hull_n: int, zid: String, eid: String, maxed: bool) -> vo
 		bv = float(e_def.get("resist_e", 0.0)); weak = "energy"
 	if float(e_def.get("resist_x", 0.0)) < bv:
 		weak = "explosive"
-	# Indexing a Dictionary yields Variant, so `:=` can't infer (CLAUDE.md
-	# gotcha). Declare explicitly — this errored on every export.
-	var wsuf: String = {"kinetic": "kinetic", "energy": "energy", "explosive": "missile"}[weak]
+	var wsuf := {"kinetic": "kinetic", "energy": "energy", "explosive": "missile"}[weak]
 	var want := clampi(hull_n if maxed else zone_n, 1, 10)
 	for h in sm.hulls:
 		if int(sm.hulls[h].get("tier", 0)) == want:

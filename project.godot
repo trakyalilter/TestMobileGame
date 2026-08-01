@@ -14,10 +14,6 @@ config/name="horizonidle"
 run/main_scene="res://scenes/main_menu.tscn"
 config/features=PackedStringArray("4.5", "GL Compatibility")
 config/icon="res://icon.svg"
-; ANDROID: the hardware Back button/gesture must not hard-quit an idle game
-; mid-modal. Godot delivers NOTIFICATION_WM_GO_BACK_REQUEST instead; main.gd
-; and main_menu.gd decide (close the top modal, else save + quit).
-config/quit_on_go_back=false
 
 [autoload]
 
@@ -33,33 +29,12 @@ ClickFX="*res://scripts/core/click_fx.gd"
 window/size/viewport_width=1280
 window/size/viewport_height=720
 window/stretch/mode="canvas_items"
-; ANDROID: "expand" gives a 20:9 phone extra canvas WIDTH instead of
-; letterboxing the 16:9 desktop layout. The UI is anchor/container driven, so
-; the sidebar stays pinned left and pages take the surplus.
-window/stretch/aspect="expand"
-; ANDROID: 4 = Sensor Landscape. The layout is a landscape multi-column shell
-; (188px sidebar + content); portrait is a separate design job, not a rotation.
-window/handheld/orientation=4
 
 [gui]
 
 theme/custom="res://sci_fi_theme.tres"
 
-[input_devices]
-
-; ANDROID: load-bearing handlers across the UI (research pan, building cards,
-; module gui_input) are InputEventMouseButton-only. This is Godot's default,
-; but it is pinned here because turning it off silently kills every tap.
-pointing/emulate_mouse_from_touch=true
-; Left OFF on purpose: no handler in this codebase reads InputEventScreenTouch,
-; so mouse->touch synthesis would only ever double-fire. Flip it temporarily if
-; you add real touch handlers and want to exercise them from a desktop run.
-pointing/emulate_touch_from_mouse=false
-
 [rendering]
 
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
-; ANDROID: ETC2/ASTC is the mobile GPU texture format. Without this, VRAM
-; compressed textures import S3TC only and decompress on-device (or fail).
-textures/vram_compression/import_etc2_astc=true

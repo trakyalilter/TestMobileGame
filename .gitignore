@@ -47,16 +47,3 @@ _bot_out.txt
 _bot_a.txt
 _bot_*.txt
 sim_out/
-
-# Android exports + signing material. Binaries belong on GitHub Releases
-# (see .github/workflows/android-release.yml), never in git history.
-*.apk
-*.aab
-*.keystore
-*.jks
-# EXCEPT the CI debug keystore: deliberately committed so every dev build
-# carries the SAME signature and Android installs each one as an update rather
-# than refusing it with "package conflicts with an existing package". Throwaway
-# key, conventional `android` password. The real RELEASE key must never be
-# committed — it belongs in a repository secret.
-!ci-debug.keystore

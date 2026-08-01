@@ -453,13 +453,6 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
-## ANDROID: the shared dismissal contract main.gd's hardware-Back handler
-## looks for — "topmost visible Control that has close()". Same effect as
-## tapping the dim or hitting Escape.
-func close() -> void:
-	_close()
-
-
 func _close() -> void:
 	if _active_info_card and is_instance_valid(_active_info_card):
 		_active_info_card.queue_free()

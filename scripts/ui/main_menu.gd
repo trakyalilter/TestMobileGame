@@ -39,13 +39,6 @@ var _shoot_t := 6.0                          # seconds until next shooting star
 func _ready():
 	# Cold-launch entry scene — apply the saved palette before anything else
 	# builds, then repoint our local colour vars to the active tokens.
-	# ANDROID: match the in-game shell's magnification so the menu and the game
-	# don't visibly change scale across the transition.
-	if PlatformInfo.is_handheld():
-		var win := get_window()
-		if win:
-			win.content_scale_factor = PlatformInfo.HANDHELD_CONTENT_SCALE
-
 	UITheme.apply_palette(UITheme.get_ui_palette())
 	_apply_theme()
 	set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -730,12 +723,3 @@ func _on_offline_combat_decline() -> void:
 
 func _on_exit_pressed():
 	get_tree().quit()
-
-
-# ANDROID: `quit_on_go_back=false` (project.godot) means the engine hands us
-# the hardware Back press instead of quitting. On the title screen there is
-# nothing to back out of, so Back is Exit — matching what every Android user
-# expects from a launcher-level screen.
-func _notification(what: int) -> void:
-	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
-		get_tree().quit()
