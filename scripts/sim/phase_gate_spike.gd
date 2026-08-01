@@ -239,7 +239,7 @@ func _boot() -> void:
 	cm.spawn_enemy()
 	_eq_b("Z4 e1 front: tier_hardened 0", int(cm.current_enemy.get("tier_hardened", -1)) == 0, true)
 	_eq_b("Z4 e1 front: drops_modules false", cm.current_enemy.get("drops_modules", true) == false, true)
-	cm.target_enemy_id = "z4_frost_hulk"     # e3 → hardened back half
+	cm.target_enemy_id = "z4_glacial_drone"     # e3 → hardened back half
 	cm.spawn_enemy()
 	_eq_b("Z4 e3 back: tier_hardened 4", int(cm.current_enemy.get("tier_hardened", -1)) == 4, true)
 	_eq_b("Z4 e3 back: drops_modules true", cm.current_enemy.get("drops_modules", false) == true, true)
@@ -256,13 +256,13 @@ func _boot() -> void:
 	_eq_b("Z11 boss: tier_hardened 0 (warp gate, orthogonal)", int(cm.current_enemy.get("tier_hardened", -1)) == 0, true)
 	# enemy_is_front_salvage (drives the card's "no Module preview" for e1/e2)
 	_eq_b("front_salvage: Z4 e1 true", cm.enemy_is_front_salvage("z4_ice_wraith", "cryofield"), true)
-	_eq_b("front_salvage: Z4 e3 false", cm.enemy_is_front_salvage("z4_frost_hulk", "cryofield"), false)
+	_eq_b("front_salvage: Z4 e3 false", cm.enemy_is_front_salvage("z4_glacial_drone", "cryofield"), false)
 	_eq_b("front_salvage: Z4 boss false", cm.enemy_is_front_salvage("z4_boss_overseer", "cryofield"), false)
-	_eq_b("front_salvage: Z1 e1 false (ungated)", cm.enemy_is_front_salvage("z1_dust_mite", "lunar_orbit"), false)
+	_eq_b("front_salvage: Z1 e1 false (ungated)", cm.enemy_is_front_salvage("z1_lunar_drone", "lunar_orbit"), false)
 	# End-to-end: gate ON + sub-tier armor → defense factor floored on spawn.
 	smT.loadout = {0: "__t_arm_z2"}  # zone-2 armor, sub-tier vs Z4
 	cm.current_zone = cm.zones["cryofield"]
-	cm.target_enemy_id = "z4_frost_hulk"
+	cm.target_enemy_id = "z4_glacial_drone"
 	cm.spawn_enemy()
 	# v115: graduated penetration - z2 armor is 2 tiers under Z4 = 0.15^2 = 0.0225.
 	_eq_b("gate ON + sub-tier armor: def factor ~0.0225 (2 tiers under)", abs(cm._tier_def_factor - 0.0225) < 0.001, true)

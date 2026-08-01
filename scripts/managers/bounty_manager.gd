@@ -402,11 +402,46 @@ func load_save_data_manager(data: Dictionary):
 	refresh_timer = data.get("refresh_timer", 0.0)
 	total_completed = data.get("total_completed", 0)
 	_id_counter = data.get("id_counter", 0)
+	_purge_contracts_with_dead_targets()
 	# v139 migration: pre-zone-board saves carried one flat "available" pool —
 	# discard it (available cards are ephemeral RNG; ACTIVE contracts, including
 	# legacy deliveries, were preserved above) and seed the per-zone boards fresh.
 	if available_by_zone.is_empty():
 		call_deferred("generate_all_pools")
+
+# v147 migration: the 4->3 trash cut removed one enemy per zone, and a hunt
+# contract saved against a now-deleted enemy can NEVER be completed (its target
+# will never be defeated) — it would sit in the 3 active slots forever, silently
+# blocking the board. Drop those and let the pool regenerate.
+func _purge_contracts_with_dead_targets() -> void:
+	var cm = GameState.combat_manager
+	if cm == null:
+		return
+	# ONLY hunt contracts: a legacy delivery's "target" is a MATERIAL id, so testing
+	# it against enemy_db would discard perfectly valid (and claimable) deliveries.
+	var dropped := 0
+	var dead := func(c: Dictionary) -> bool:
+		if str(c.get("type", "")) != "hunt":
+			return false
+		var t := str(c.get("target", ""))
+		return t != "" and not cm.enemy_db.has(t)
+	var kept: Array = []
+	for c in active_contracts:
+		if dead.call(c):
+			dropped += 1
+		else:
+			kept.append(c)
+	active_contracts = kept
+	for zid in available_by_zone.keys():
+		var live: Array = []
+		for c in available_by_zone[zid]:
+			if dead.call(c):
+				dropped += 1
+			else:
+				live.append(c)
+		available_by_zone[zid] = live
+	if dropped > 0:
+		print("[bounty] purged %d contract(s) targeting removed enemies" % dropped)
 
 func _serialize_contracts(contracts: Array) -> Array:
 	var arr = []

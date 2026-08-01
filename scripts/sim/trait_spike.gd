@@ -22,7 +22,7 @@ func _ready() -> void:
 
 	# Live fight context on a real Z1 enemy.
 	cm.start_expedition("lunar_orbit")
-	cm.set_target_enemy("z1_dust_mite")
+	cm.set_target_enemy("z1_lunar_drone")
 	var have_enemy: bool = cm.current_enemy != null
 	_ok("spawn context", have_enemy)
 	if not have_enemy:

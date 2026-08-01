@@ -14,7 +14,7 @@ func _ready() -> void:
 	GameState.set_process(false)
 	var hull_n := 2
 	var zid := "mars_debris"
-	var eid := "z3_salvage_swarm"
+	var eid := "z3_derelict_frigate"
 	print("[DIAG] ===== Z2 maxed vs Z3 common, target %s =====" % eid)
 	_dump(sm, cm, rm, hull_n, zid, eid, true)
 	_dump(sm, cm, rm, hull_n, zid, eid, false)
