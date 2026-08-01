@@ -574,9 +574,15 @@ class _TooltipLock extends Control:
 
 	func _place() -> void:
 		if is_instance_valid(_btn):
-			_btn.position = _centre() - Vector2(R, R)
+			_btn.position = _btn_centre() - Vector2(R, R)
 
-	func _centre() -> Vector2:
+	# v147b: the fill meter sits BOTTOM-right and the close button TOP-right, so the
+	# two never occupy the same corner — the ring is progress, the ✕ is an action,
+	# and stacking them made the ✕ look like it was still filling.
+	func _ring_centre() -> Vector2:
+		return Vector2(size.x - PAD.x - R, size.y - PAD.y - R)
+
+	func _btn_centre() -> Vector2:
 		return Vector2(size.x - PAD.x - R, PAD.y + R)
 
 	func _process(delta: float) -> void:
@@ -592,12 +598,13 @@ class _TooltipLock extends Control:
 			locked.emit()
 
 	func _draw() -> void:
-		var c := _centre()
 		if is_locked:
-			# Locked: a quiet ring behind the ✕ so the button reads as a control.
-			draw_arc(c, R, 0.0, TAU, 28, Color(0.216, 0.788, 0.690, 0.45), 1.5, true)
+			# Locked: the meter has done its job — only a quiet ring behind the ✕
+			# (top-right) remains, so the corner reads as a button, not progress.
+			draw_arc(_btn_centre(), R, 0.0, TAU, 28, Color(0.216, 0.788, 0.690, 0.45), 1.5, true)
 			return
-		# Track + filled sweep, 12 o'clock clockwise.
+		# Filling: track + sweep in the BOTTOM-right corner, 12 o'clock clockwise.
+		var c := _ring_centre()
 		draw_arc(c, R, 0.0, TAU, 28, Color(0.216, 0.788, 0.690, 0.16), 2.0, true)
 		if progress > 0.0:
 			var a0 := -PI * 0.5
@@ -807,6 +814,87 @@ static func style_search_field(le: LineEdit) -> void:
 # v137: filter "chip" — a full-width toggle button tinted by `col` when ON (accent
 # fill + colored border + colored text) and recessed/dim when OFF. Wire .toggled to
 # the filter callback; ON draws via the pressed stylebox (toggle_mode).
+# v161: segmented Off|On pill, extracted so the MAIN MENU settings screen can
+# use the same control as the in-game Sys Config. The menu still shipped a raw
+# Godot CheckBox — a bare outlined square that matched nothing else in the game
+# and read as a web form field. Label sits left, options are segments in a
+# recessed track, active segment fills teal.
+# `opts` is [[text, value], ...]; `on_pick` receives the picked value.
+# Returns the row; call `refresh` on the returned metadata to restyle.
+static func make_segmented_pill(opts: Array, current, on_pick: Callable) -> Control:
+	var track := StyleBoxFlat.new()
+	track.bg_color = Color(0.039, 0.086, 0.078)
+	track.set_border_width_all(1)
+	track.border_color = Color(0.141, 0.251, 0.231)
+	track.set_corner_radius_all(8)
+	track.content_margin_left = 3
+	track.content_margin_right = 3
+	track.content_margin_top = 3
+	track.content_margin_bottom = 3
+
+	var pill := PanelContainer.new()
+	pill.add_theme_stylebox_override("panel", track)
+	var seg := HBoxContainer.new()
+	seg.add_theme_constant_override("separation", 3)
+	pill.add_child(seg)
+
+	var btns: Array = []
+	for o in opts:
+		var b := Button.new()
+		b.text = str(o[0])
+		b.focus_mode = Control.FOCUS_NONE
+		b.custom_minimum_size = Vector2(52, 30)
+		b.add_theme_font_size_override("font_size", 13)
+		seg.add_child(b)
+		btns.append([b, o[1]])
+
+	var restyle := func(cur):
+		for pair in btns:
+			style_pill_segment(pair[0], pair[1] == cur)
+	restyle.call(current)
+
+	for pair in btns:
+		var val = pair[1]
+		pair[0].pressed.connect(func():
+			on_pick.call(val)
+			restyle.call(val))
+	# Segments are kept on the node so callers can force the visual state later —
+	# the offline-combat consent prompt has to be able to revert a decline.
+	pill.set_meta("pill_segments", btns)
+	return pill
+
+static func set_pill_value(pill: Control, value) -> void:
+	if pill == null or not is_instance_valid(pill) or not pill.has_meta("pill_segments"):
+		return
+	for pair in (pill.get_meta("pill_segments") as Array):
+		style_pill_segment(pair[0], pair[1] == value)
+
+static func style_pill_segment(b: Button, active: bool) -> void:
+	var box := StyleBoxFlat.new()
+	box.set_corner_radius_all(5)
+	box.content_margin_left = 14
+	box.content_margin_right = 14
+	box.content_margin_top = 5
+	box.content_margin_bottom = 5
+	if active:
+		box.bg_color = Color(0.216, 0.788, 0.690)
+		b.add_theme_stylebox_override("normal", box)
+		b.add_theme_stylebox_override("hover", box)
+		b.add_theme_stylebox_override("pressed", box)
+		b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+		b.add_theme_color_override("font_color", Color(0.024, 0.137, 0.114))
+		b.add_theme_color_override("font_hover_color", Color(0.024, 0.137, 0.114))
+	else:
+		box.bg_color = Color(0, 0, 0, 0)
+		var hov := box.duplicate()
+		hov.bg_color = Color(0.216, 0.788, 0.690, 0.10)
+		b.add_theme_stylebox_override("normal", box)
+		b.add_theme_stylebox_override("hover", hov)
+		b.add_theme_stylebox_override("pressed", hov)
+		b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+		b.add_theme_color_override("font_color", Color(0.43, 0.55, 0.53))
+		b.add_theme_color_override("font_hover_color", Color(0.6, 0.72, 0.68))
+
 static func make_toggle_chip(label: String, col: Color, is_on: bool) -> Button:
 	var b := Button.new()
 	b.toggle_mode = true
