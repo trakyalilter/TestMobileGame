@@ -1600,6 +1600,22 @@ func _make_drag_preview() -> Control:
 	var root = Control.new()
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
+	# v147j: a dragged Matrix Core is JUST the crystal, at the exact size it will be
+	# once seated. It used to render the full 84px tile — socket backplate, border,
+	# shadow and a 74px crystal — so you appeared to drag a stone inside a rectangle,
+	# nearly 5x the 16px gem it becomes in the socket. Built before the backplate
+	# below so no plate is created for it at all.
+	if slot_type == "gem" or slot_type == "gem_synth":
+		var d := MatrixCoreIcon.SOCKET_D
+		var bare := MatrixCoreIcon.new()
+		bare.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		bare.position = Vector2(-d * 0.5, -d * 0.5)   # centred on the cursor
+		bare.size = Vector2(d, d)
+		bare.custom_minimum_size = Vector2(d, d)
+		bare.set_core(_get_gem_color(str(data.get("name", ""))), false, MatrixCoreIcon.tier_from_name(mid))
+		root.add_child(bare)
+		return root
+
 	var tile = Control.new()
 	tile.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tile.position = Vector2(-TS * 0.5, -TS * 0.5)
@@ -1621,16 +1637,7 @@ func _make_drag_preview() -> Control:
 	socket.add_theme_stylebox_override("panel", sock_sb)
 	tile.add_child(socket)
 
-	# Matrix Cores draw a faceted crystal; everything else uses the tile look.
-	if slot_type == "gem" or slot_type == "gem_synth":
-		var core := MatrixCoreIcon.new()
-		core.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		core.position = Vector2(5, 5)
-		core.size = Vector2(TS - 10, TS - 10)
-		core.set_core(_get_gem_color(str(data.get("name", ""))), false, MatrixCoreIcon.tier_from_name(mid))
-		tile.add_child(core)
-		return root
-
+	# (Matrix Cores returned above as a bare crystal — they never reach the tile look.)
 	var top_rarity: bool = sm != null and rarity >= sm.Rarity.LEGENDARY
 	var slot_col = _get_slot_color(slot_type)
 	if slot_type == "weapon":
