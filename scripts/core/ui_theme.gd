@@ -552,7 +552,7 @@ class _TooltipLock extends Control:
 	signal locked
 	signal close_pressed
 
-	const R := 7.0          # ring radius — sized to fit the card's 14-15px margin
+	const R := 6.0          # radius — sized to fit inside the card's 12-13px top/bottom margin
 
 	var progress: float = 0.0
 	var is_locked: bool = false
@@ -566,8 +566,19 @@ class _TooltipLock extends Control:
 		_btn.visible = false
 		_btn.focus_mode = Control.FOCUS_NONE
 		_btn.mouse_filter = Control.MOUSE_FILTER_STOP
+		# v147f: give the glyph a square box and centre it explicitly — the default
+		# button padding was offsetting the ✕ inside its rect.
 		_btn.custom_minimum_size = Vector2(R * 2.0, R * 2.0)
 		_btn.size = Vector2(R * 2.0, R * 2.0)
+		_btn.alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_btn.add_theme_constant_override("h_separation", 0)
+		for _s in ["normal", "hover", "pressed", "focus", "disabled"]:
+			var _empty := StyleBoxEmpty.new()
+			_empty.content_margin_left = 0.0
+			_empty.content_margin_right = 0.0
+			_empty.content_margin_top = 0.0
+			_empty.content_margin_bottom = 0.0
+			_btn.add_theme_stylebox_override(_s, _empty)
 		_btn.add_theme_font_size_override("font_size", 12)
 		_btn.add_theme_color_override("font_color", Color(0.62, 0.72, 0.70))
 		_btn.add_theme_color_override("font_hover_color", Color(1.0, 0.45, 0.42))
@@ -584,19 +595,17 @@ class _TooltipLock extends Control:
 	# two never occupy the same corner — the ring is progress, the ✕ is an action,
 	# and stacking them made the ✕ look like it was still filling.
 	# PanelContainer lays children out INSIDE the content margins, so this node's
-	# rect is exactly the TEXT COLUMN — `size.x - n` would sit on the text (that is
-	# what put the ✕ on the title). Controls don't clip, so we draw just PAST our
-	# own right edge, which lands in the card's existing right margin: centred at
-	# +R it spans [size.x, size.x + 2R], i.e. flush inside the card border and
-	# never over a glyph. No extra margin needed, so the card stays symmetric.
-	func _gutter_x() -> float:
-		return size.x + R
-
+	# rect is exactly the TEXT COLUMN. v147f: hugging the RIGHT margin put the
+	# widgets on the card's rounded corner, so they read as hanging outside it.
+	# They now ride the TOP and BOTTOM margin bands instead — right-aligned to the
+	# text column (so horizontally well inside the border) and vertically in the
+	# padding above/below the text, where nothing is drawn. Fully inside the card,
+	# never over a glyph, and the layout is untouched.
 	func _ring_centre() -> Vector2:
-		return Vector2(_gutter_x(), size.y - R)
+		return Vector2(size.x - R, size.y + R + 0.5)
 
 	func _btn_centre() -> Vector2:
-		return Vector2(_gutter_x(), R)
+		return Vector2(size.x - R, -(R + 0.5))
 
 	func _process(delta: float) -> void:
 		if is_locked:
@@ -612,9 +621,9 @@ class _TooltipLock extends Control:
 
 	func _draw() -> void:
 		if is_locked:
-			# Locked: the meter has done its job — only a quiet ring behind the ✕
-			# (top-right) remains, so the corner reads as a button, not progress.
-			draw_arc(_btn_centre(), R, 0.0, TAU, 28, Color(0.216, 0.788, 0.690, 0.45), 1.5, true)
+			# v147f: nothing to draw once locked. The ring behind the ✕ made the
+			# glyph look off-centre inside a circle it never actually fit; the bare
+			# ✕ reads as a button on its own.
 			return
 		# Filling: track + sweep in the BOTTOM-right corner, 12 o'clock clockwise.
 		var c := _ring_centre()
