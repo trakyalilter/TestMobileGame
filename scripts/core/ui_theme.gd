@@ -617,18 +617,24 @@ class _TooltipLock extends Control:
 	# y [-m.y, size.y + m.w]; both widgets are inset EDGE_PAD from those true edges,
 	# so they are provably inside the border (and off the rounded corners) on any
 	# card, instead of landing wherever a hand-picked offset happened to fall.
-	const EDGE_PAD := 3.0
-	# The corner brackets are drawn from (size.x + 10) outward, with 9px arms reaching
-	# back to size.x + 1. Sitting left of the text column's right edge keeps the
-	# widgets clear of them, while the taller top/bottom band keeps them off the text.
-	func _widget_x() -> float:
-		return size.x - R - EDGE_PAD
+	# v147k: pushed further off the corner decoration. The bracket's horizontal arm
+	# reaches back to size.x + 1 and its corner node sits at size.x + 10, so a widget
+	# ending at size.x - 3 was only 4px away and still read as touching it. Both
+	# widgets now clear the bracket by BRACKET_GAP, measured from the arm's inner end
+	# rather than from the card edge.
+	const BRACKET_INNER := 1.0    # local x where the bracket arm stops
+	const BRACKET_GAP := 12.0     # clear space between widget and that arm
 
+	func _widget_x() -> float:
+		return size.x + BRACKET_INNER - BRACKET_GAP - R
+
+	# Vertically, centre in the padding band so the widget is equally clear of the
+	# text above/below and of the bracket's vertical arm.
 	func _ring_centre() -> Vector2:
-		return Vector2(_widget_x(), size.y + _m.w - R - EDGE_PAD)
+		return Vector2(_widget_x(), size.y + _m.w * 0.5)
 
 	func _btn_centre() -> Vector2:
-		return Vector2(_widget_x(), -_m.y + R + EDGE_PAD)
+		return Vector2(_widget_x(), -_m.y * 0.5)
 
 	func _process(delta: float) -> void:
 		if is_locked:
