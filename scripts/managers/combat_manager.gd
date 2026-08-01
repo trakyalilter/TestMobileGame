@@ -845,7 +845,7 @@ var enemy_db = {
 		# Old gear dying here is the intended rule -- only the tier-matched Common set
 		# must survive it, and that is what the funnel row "9 Common N" verifies.
 		"charge_nuke": {"every_n": 10, "mult": 6.5},
-		"loot": [["Fe", 10, 25], ["Si", 5, 12], ["Res1", 2, 5], ["PirateSalvage", 2, 5], ["SalvageData", 1, 3], ["credits", 200, 400], ["Sn", 2, 5]],
+		"loot": [["Fe", 10, 25], ["Si", 5, 12], ["Res1", 2, 5], ["SalvageData", 1, 3], ["credits", 200, 400], ["Sn", 2, 5]],
 		"rare_loot": [["Steel", 0.10, 1, 3], ["SalvagedAlloy", 0.40, 1, 3], ["Ti", 0.12, 2, 4], ["Res2", 0.35, 1, 2]],
 		"module_drop_chance": 0.20,   # v138c: was 0.10 (see z2_pirate_skiff note)
 		"module_drop_pool": ["z2_shield", "z2_armor", "z2_battery", "z2_sensor", "z2_kinetic", "z2_energy", "z2_missile"],
@@ -903,7 +903,7 @@ var enemy_db = {
 		# one that breaks idle.
 		"charge_nuke": {"every_n": 8, "mult": 3.0},
 		"loot": [["Steel", 5, 12], ["Fe", 10, 25], ["Res2", 1, 3], ["MartianRelics", 2, 4], ["Cu", 3, 8], ["SalvageData", 2, 4]],
-		"rare_loot": [["Ti", 0.10, 2, 5], ["Cr", 0.08, 1, 3], ["Steel", 0.15, 2, 5], ["Sn", 0.12, 2, 4]],
+		"rare_loot": [["Ti", 0.10, 2, 5], ["Cr", 0.08, 1, 3], ["Sn", 0.12, 2, 4]],
 		"module_drop_chance": 0.20,   # v138c: was 0.10 (see z3_scavenger_mech note)
 		"module_drop_pool": ["z3_shield", "z3_armor", "z3_battery", "z3_sensor", "z3_kinetic", "z3_energy", "z3_missile"],
 		"xp": 70, "zone": 3, "resist_k": 0.00, "resist_e": -0.30, "resist_x": 0.37, "dmg_type": "explosive"
@@ -1232,7 +1232,7 @@ var enemy_db = {
 		# so passing the boundary required targeting one enemy — a chore, not a
 		# choice. At 4-of-5 untargeted income clears demand.
 		"loot": [["RadIsotope", 3, 8], ["ExoticMatter", 1, 3], ["Res3", 2, 5], ["ExoticIsotope", 2, 5], ["VoidCrystal", 1, 3], ["credits", 50000, 100000]],
-		"rare_loot": [["Os", 0.10, 1, 2], ["ExoticMatter", 0.12, 2, 4]],
+		"rare_loot": [["Os", 0.10, 1, 2]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z7_shield", "z7_armor", "z7_battery", "z7_sensor", "z7_kinetic", "z7_energy", "z7_missile"],
 		"xp": 1600, "zone": 7, "resist_k": -0.30, "resist_e": 0.00, "resist_x": 0.37, "dmg_type": "kinetic"
@@ -1296,7 +1296,7 @@ var enemy_db = {
 		"sustain": {"kind": "pulse", "every_s": 6.0, "pct": 0.15},
 		"charge_nuke": {"every_n": 6, "mult": 3.04},
 		"loot": [["credits", 150000, 300000], ["VoidCrystal", 3, 7], ["Res3", 3, 8], ["AntimatterParticle", 2, 4], ["ExoticMatter", 3, 8]],
-		"rare_loot": [["ExoticMatter", 0.12, 2, 5], ["Os", 0.10, 1, 3]],
+		"rare_loot": [["Os", 0.10, 1, 3]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z8_shield", "z8_armor", "z8_battery", "z8_sensor", "z8_kinetic", "z8_energy", "z8_missile"],
 		"xp": 4300, "zone": 8, "resist_k": 0.00, "resist_e": 0.37, "resist_x": -0.30, "dmg_type": "kinetic"
@@ -1409,7 +1409,7 @@ var enemy_db = {
 		"sustain": {"kind": "pulse", "every_s": 6.0, "pct": 0.30},
 		"charge_nuke": {"every_n": 6, "mult": 4.8},
 		"loot": [["PrimordialShard", 2, 5], ["credits", 5000000, 10000000], ["CryoCatalyst", 2, 4], ["OmegaPlating", 1, 3]],
-		"rare_loot": [["OmegaPlating", 0.08, 1, 2], ["VoidEssence", 0.10, 1, 3]],
+		"rare_loot": [["VoidEssence", 0.10, 1, 3]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z10_shield", "z10_armor", "z10_battery", "z10_sensor", "z10_kinetic", "z10_energy", "z10_missile"],
 		"xp": 32000, "zone": 10, "resist_k": -0.30, "resist_e": 0.00, "resist_x": 0.37, "dmg_type": "kinetic"
@@ -1542,7 +1542,7 @@ var enemy_db = {
 		"name": "Caustic Leviathan",
 		"stats": {"hp": 3600000, "atk": 60000, "def": 13000, "atk_interval": 2.0, "accuracy": 270},
 		"loot": [["PrimordialShard", 4, 8], ["credits", 40000000, 80000000], ["OmegaPlating", 3, 6]],
-		"rare_loot": [["OmegaPlating", 0.12, 2, 4], ["VoidEssence", 0.12, 2, 5]],
+		"rare_loot": [["VoidEssence", 0.12, 2, 5]],
 		"module_drop_chance": 0.12,
 		"module_drop_pool": ["corrosion_blaster"],
 		"xp": 155000, "zone": 12, "resist_k": 0.00, "resist_e": -0.30, "resist_x": 0.37, "resist_cryo": 0.0, "dmg_type": "kinetic"
@@ -1606,7 +1606,7 @@ var enemy_db = {
 		"name": "Patina Phantom",
 		"stats": {"hp": 6000000, "atk": 80000, "def": 18000, "atk_interval": 2.0, "accuracy": 285},
 		"loot": [["PrimordialShard", 5, 10], ["credits", 60000000, 120000000], ["OmegaPlating", 4, 8]],
-		"rare_loot": [["OmegaPlating", 0.12, 2, 4], ["VoidEssence", 0.12, 2, 5]],
+		"rare_loot": [["VoidEssence", 0.12, 2, 5]],
 		"module_drop_chance": 0.12, "module_drop_pool": ["corrosion_blaster"],
 		"xp": 230000, "zone": 13, "resist_k": -0.30, "resist_e": 0.00, "resist_x": 0.37, "resist_cryo": 0.0, "dmg_type": "energy"
 	},
@@ -1644,7 +1644,7 @@ var enemy_db = {
 		"name": "Toxin Sentinel",
 		"stats": {"hp": 10000000, "atk": 92500, "def": 40000, "atk_interval": 2.0, "accuracy": 300},
 		"loot": [["PrimordialShard", 7, 14], ["credits", 100000000, 200000000], ["OmegaPlating", 6, 12], ["VoidEssence", 6, 12]],
-		"rare_loot": [["OmegaPlating", 0.12, 3, 5], ["ChronoCore", 0.12, 3, 6]],
+		"rare_loot": [["ChronoCore", 0.12, 3, 6]],
 		"module_drop_chance": 0.12, "module_drop_pool": ["corrosion_blaster"],
 		"xp": 355000, "zone": 14, "resist_k": 0.00, "resist_e": 0.37, "resist_x": -0.30, "resist_cryo": 0.0, "dmg_type": "explosive"
 	},
@@ -1682,7 +1682,7 @@ var enemy_db = {
 		"name": "Blight Titan",
 		"stats": {"hp": 17000000, "atk": 110000, "def": 55000, "atk_interval": 2.0, "accuracy": 310},
 		"loot": [["PrimordialShard", 10, 20], ["credits", 150000000, 300000000], ["OmegaPlating", 8, 16], ["VoidEssence", 8, 16]],
-		"rare_loot": [["OmegaPlating", 0.12, 4, 7], ["ChronoCore", 0.12, 4, 8]],
+		"rare_loot": [["ChronoCore", 0.12, 4, 8]],
 		"module_drop_chance": 0.12, "module_drop_pool": ["corrosion_blaster"],
 		"xp": 490000, "zone": 15, "resist_k": 0.00, "resist_e": -0.30, "resist_x": 0.37, "resist_cryo": 0.0, "dmg_type": "kinetic"
 	},
