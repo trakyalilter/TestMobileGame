@@ -537,8 +537,10 @@ func _spawn_notification(text: String, color: Color):
 	panel.modulate.a = 0.0
 	var tween = panel.create_tween()
 	tween.tween_property(panel, "modulate:a", 1.0, 0.2).set_trans(Tween.TRANS_SINE)
-	tween.tween_interval(1.6)
-	tween.tween_property(panel, "modulate:a", 0.0, 0.3)
+	# Dwell scales with message length — long teaching toasts stay readable,
+	# short status pings keep the old snappy feel. See UITheme.read_dwell.
+	tween.tween_interval(UITheme.read_dwell(text))
+	tween.tween_property(panel, "modulate:a", 0.0, 0.45)
 	tween.tween_callback(panel.queue_free)
 
 # ── Cargo Manifest reward popup ──
@@ -694,8 +696,11 @@ func _reward_restart_life(key: String) -> void:
 	# on coalesce it recovers a pill that may have been mid fade-out.
 	var tw := panel.create_tween()
 	tw.tween_property(panel, "modulate:a", 1.0, 0.18)
-	tw.tween_interval(1.6)
-	tw.tween_property(panel, "modulate:a", 0.0, 0.35)
+	# Gain pills are short and glanceable, but 1.6s was still tight to read a
+	# name + delta + running total. Coalescing resets this, so a live gather
+	# keeps its pill up regardless.
+	tw.tween_interval(2.6)
+	tw.tween_property(panel, "modulate:a", 0.0, 0.5)
 	tw.tween_callback(func():
 		_reward_pills.erase(key)
 		if is_instance_valid(panel): panel.queue_free())
@@ -726,9 +731,27 @@ func _prune_feed() -> void:
 	for c in notification_container.get_children():
 		if not c.is_queued_for_deletion():
 			live.append(c)
+	# v139e: evict the oldest GAIN PILL first and only fall back to system
+	# toasts when no pill is left. Toasts now hold a length-scaled reading
+	# budget (up to ~9s for teaching text); with a blind oldest-first prune a
+	# steady loot/XP stream would evict that toast within a second — the exact
+	# "can't read it in time" failure the longer dwell exists to fix.
 	while live.size() > 5:
-		var oldest = live.pop_front()
-		oldest.queue_free()
+		var victim = null
+		for c in live:
+			if _is_reward_pill(c):
+				victim = c
+				break
+		if victim == null:
+			victim = live[0]
+		live.erase(victim)
+		victim.queue_free()
+
+func _is_reward_pill(node) -> bool:
+	for key in _reward_pills:
+		if _reward_pills[key]["panel"] == node:
+			return true
+	return false
 
 # ── Claim Badges (Mission / Quest sidebar buttons) ──
 func _init_claim_badges():

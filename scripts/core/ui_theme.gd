@@ -103,6 +103,17 @@ const LIRA_ICON_BB := "[img=14 color=#ffd14c]res://assets/icons/lira.svg[/img]"
 # the modal dismisses; the offline SUMMARY it shows is the point.
 var gain_feed_suppressed: bool = false
 
+# v139e: transient popups used a flat ~1.6s dwell no matter how much text they
+# carried, so one-line gain pills and 100-character teaching toasts ("MASTERY
+# UNLOCKED — Keep using actions for permanent speed bonuses…") got the same
+# window and the long ones were gone before they could be read. Dwell now
+# scales with length: ~15 chars/sec (≈180 wpm, a conservative glance rate the
+# player can hit while watching the game, not focused prose reading).
+const READ_CHARS_PER_SEC := 15.0
+
+func read_dwell(text: String, base: float = 1.1, min_s: float = 1.6, max_s: float = 9.0) -> float:
+	return clampf(base + float(text.length()) / READ_CHARS_PER_SEC, min_s, max_s)
+
 func show_notification(text: Variant, color: Color = Color.WHITE):
 	if gain_feed_suppressed:
 		return

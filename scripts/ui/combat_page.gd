@@ -728,10 +728,14 @@ const FLOAT_LANE_ROWS := 7        # ladder depth before wrapping — deep enough
 								  # that a full volley burst can't wrap onto a
 								  # row whose text is still alive (~0.85s life)
 const FLOAT_ROW_STEP := 22.0      # px between rows (> text height, no touch)
-const FLOAT_LANE_RESET_SEC := 1.0 # quiet time that rewinds a lane to row 0
+# Quiet time that rewinds a lane to row 0. Must exceed that lane's popup
+# lifetime, or the rewind drops a fresh popup on a row whose text is still
+# on screen. Damage numbers live ~0.85s; event banners hold a reading budget
+# (up to 5s), so their lane rewinds slower.
+const FLOAT_LANE_RESET_SEC := {"player": 1.0, "enemy": 1.0, "event": 5.2}
 
 func _float_lane_slot(lane: String) -> int:
-	if _float_clock - float(_float_lane_last[lane]) > FLOAT_LANE_RESET_SEC:
+	if _float_clock - float(_float_lane_last[lane]) > float(FLOAT_LANE_RESET_SEC[lane]):
 		_float_lane_row[lane] = 0
 	_float_lane_last[lane] = _float_clock
 	var slot: int = _float_lane_row[lane]
@@ -793,11 +797,15 @@ func _spawn_event_float(text: String, color: Color) -> void:
 	var vp: Vector2 = visualizer.size
 	lbl.position = Vector2(vp.x * 0.5 - 80.0, vp.y * 0.20 + slot * (FLOAT_ROW_STEP + 4.0))
 
+	# Event banners carry words ("ENRAGED — ATK ×1.2", drop names), not just a
+	# number, so they hold on the length-scaled reading budget before fading —
+	# the drift is slow and short so they read as a steady banner, not a streak.
+	var hold: float = UITheme.read_dwell(text, 0.9, 1.6, 5.0)
 	var tw := lbl.create_tween()
 	tw.set_parallel(true)
-	tw.tween_property(lbl, "position:y", lbl.position.y - 30.0, 1.2) \
+	tw.tween_property(lbl, "position:y", lbl.position.y - 26.0, hold) \
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tw.tween_property(lbl, "modulate:a", 0.0, 1.2).set_delay(0.5)
+	tw.tween_property(lbl, "modulate:a", 0.0, hold * 0.45).set_delay(hold * 0.55)
 	tw.chain().tween_callback(lbl.queue_free)
 
 func show_enemy_info(data):
