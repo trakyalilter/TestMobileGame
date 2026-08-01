@@ -23,6 +23,42 @@ const TIER_STABLE := 1
 const TIER_PRISTINE := 2
 const TIER_RESONANT := 3   # v135a: CMB_4 tier — renders at Pristine quality + an extra halo/glint
 
+# v147: THE socket-row geometry, shared by every surface that draws sockets
+# (equipped slot panel + armory tile). They had drifted apart — the armory drew
+# flat 45° Panel diamonds at 7px/3px in a straight line while the equipped slot
+# drew these faceted icons at 16px/12px on an arc, so the same module looked like
+# two different items. Both now read these constants and socket_offset().
+const SOCKET_D := 16.0        # icon size (px)
+const SOCKET_GAP := 12.0      # gap between sockets (px)
+const SOCKET_ARC := 8.0       # parabola depth: outer sockets ride high, centre dips
+
+# Row width for n sockets, so a caller can centre the row.
+static func socket_row_width(n: int) -> float:
+	if n <= 0:
+		return 0.0
+	return float(n) * SOCKET_D + float(n - 1) * SOCKET_GAP
+
+# Position of socket i within the row. Bowl ∪ (classic y=x²): the outer sockets
+# ride high near the icon and the centre dips, so 3 sockets cradle under it.
+# A lone socket sits flat at mid-band (a single point can't show a curve).
+static func socket_offset(i: int, n: int) -> Vector2:
+	var ci: float = float(n - 1) / 2.0
+	var t: float = 0.0 if n <= 1 else (float(i) - ci) / maxf(1.0, ci)
+	var y: float = (SOCKET_ARC * 0.5) if n <= 1 else (SOCKET_ARC * (1.0 - t * t))
+	return Vector2(float(i) * (SOCKET_D + SOCKET_GAP), y)
+
+# Single source for gem colour (was duplicated verbatim in module_card and
+# designer_slot_widget, which is how the two socket looks drifted).
+static func gem_color(gem_name: String) -> Color:
+	if "Crimson" in gem_name: return Color("#ff4444")
+	if "Cobalt" in gem_name: return Color("#44ccff")
+	if "Topaz" in gem_name: return Color("#FFC24D")
+	if "Amethyst" in gem_name: return Color("#aa44ff")
+	return Color("#b548b5") # Default purple
+
+# Colour used for an EMPTY socket (hollow recessed outline).
+const EMPTY_SOCKET_COLOR := Color(0.42, 0.47, 0.58)
+
 var core_color: Color = Color(0.45, 0.80, 1.0)
 var hollow: bool = false   # empty socket → faint recessed outline only
 var tier: int = TIER_STABLE

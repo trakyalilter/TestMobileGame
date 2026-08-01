@@ -488,9 +488,11 @@ func refresh_state():
 			# 3-socket module reads as a curved cradle under the icon. h_box is a
 			# plain Control now (manual positioning), not an HBoxContainer.
 			var n_sock: int = m_data["sockets"].size()
-			var sd := 16.0
-			var sgap := 12.0
-			var arc_depth := 8.0
+			# v147: geometry now lives on MatrixCoreIcon so the armory tile draws
+			# the identical row (they had drifted to different sizes/shapes).
+			var sd := MatrixCoreIcon.SOCKET_D
+			var sgap := MatrixCoreIcon.SOCKET_GAP
+			var arc_depth := MatrixCoreIcon.SOCKET_ARC
 			var h_box = Control.new()
 			h_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			h_box.custom_minimum_size = Vector2(
@@ -526,10 +528,7 @@ func refresh_state():
 				# at mid-band (a single point can't show a curve).
 				# Explicit float types — this codebase chokes on `:=` inference
 				# through ternaries (see CLAUDE.md gotchas).
-				var _ci: float = float(n_sock - 1) / 2.0
-				var _t: float = 0.0 if n_sock <= 1 else (float(i) - _ci) / maxf(1.0, _ci)
-				var _y: float = (arc_depth * 0.5) if n_sock <= 1 else (arc_depth * (1.0 - _t * _t))
-				sock_wrap.position = Vector2(float(i) * (sd + sgap), _y)
+				sock_wrap.position = MatrixCoreIcon.socket_offset(i, n_sock)
 
 				# v111.16: sockets are click-driven now (drag retired).
 				#   filled socket → click (or right-click) removes the core
@@ -716,11 +715,9 @@ func _get_slot_color(s_type: String) -> Color:
 		_: return Color(0.65, 0.58, 0.47)
 
 func _get_gem_color(gem_name: String) -> Color:
-	if "Crimson" in gem_name: return Color("#ff4444")
-	if "Cobalt" in gem_name: return Color("#44ccff")
-	if "Topaz" in gem_name: return Color("#FFC24D")
-	if "Amethyst" in gem_name: return Color("#aa44ff")
-	return Color("#b548b5") # Default purple
+	# v147: single source on MatrixCoreIcon — this was duplicated verbatim here
+	# and in the other socket-drawing surface, which is how the looks drifted.
+	return MatrixCoreIcon.gem_color(gem_name)
 
 func _get_rarity_background(rarity: int) -> Color:
 	if rarity == manager.Rarity.UNCOMMON: return Color(0.08, 0.11, 0.08, 0.96)

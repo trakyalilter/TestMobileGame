@@ -307,43 +307,43 @@ func _draw_tile_visual(item_name: String, slot_type: String, rarity: int, rarity
 		letter_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		icon_parent.add_child(letter_lbl)
 
-	# --- Socket pips: show matrix-core slots (filled = gem colour, empty =
-	# hollow), top-centre, mirroring the equipped-slot panel's diamonds ---
+	# --- Socket row: IDENTICAL to the equipped-slot panel. Same MatrixCoreIcon
+	# gemstone, same size/gap, same arc, same colours — all sourced from
+	# MatrixCoreIcon so the two surfaces can't drift again. (This used to draw
+	# flat 45° Panel diamonds at 7px in a straight line, so a socketed module
+	# looked like a different item in the Armory than on the ship.) ---
 	if m_data.has("sockets") and m_data["sockets"].size() > 0:
 		var socks = m_data["sockets"]
 		var n: int = socks.size()
-		var d := 7.0
-		var gap := 3.0
-		var total: float = n * d + (n - 1) * gap
+		var total: float = MatrixCoreIcon.socket_row_width(n)
 		var row = Control.new()
 		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.anchor_left = 0.5; row.anchor_right = 0.5
+		# Cradled under the centre emblem, matching the equipped panel's ordering
+		# (icon above, sockets below) rather than the old top-centre strip.
+		row.anchor_top = 0.5; row.anchor_bottom = 0.5
 		row.offset_left = -total * 0.5; row.offset_right = total * 0.5
-		row.offset_top = 3; row.offset_bottom = 3 + d
+		row.offset_top = 20.0
+		row.offset_bottom = 20.0 + MatrixCoreIcon.SOCKET_D + MatrixCoreIcon.SOCKET_ARC
 		tile_container.add_child(row)
 		for i in range(n):
-			var dia = Panel.new()
-			dia.size = Vector2(d, d)
-			dia.position = Vector2(i * (d + gap), 0)
-			dia.pivot_offset = Vector2(d * 0.5, d * 0.5)
-			dia.rotation_degrees = 45
-			# v147: a FILLED pip is clickable here so a core can be pulled back out of
-			# gear while it sits in the Armory. Previously removal existed only on the
-			# equipped-slot panel, so a core socketed into a module you then unequipped
-			# was stuck. Same gesture as that panel (click the pip). Empty pips stay
-			# click-through so they never eat a drag onto the tile.
-			dia.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			var dsb = StyleBoxFlat.new()
-			dsb.set_border_width_all(1)
 			var gem = socks[i]
+			var core := MatrixCoreIcon.new()
+			core.custom_minimum_size = Vector2(MatrixCoreIcon.SOCKET_D, MatrixCoreIcon.SOCKET_D)
+			core.size = Vector2(MatrixCoreIcon.SOCKET_D, MatrixCoreIcon.SOCKET_D)
+			core.position = MatrixCoreIcon.socket_offset(i, n)
+			core.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			if gem:
-				var gc = _get_gem_color(ElementDB.get_display_name(gem))
-				dsb.bg_color = gc
-				dsb.border_color = gc.lerp(Color.WHITE, 0.5)
-				dia.mouse_filter = Control.MOUSE_FILTER_STOP
-				dia.tooltip_text = tr("%s — click to remove this Matrix Core") % ElementDB.get_display_name(gem)
+				var gname: String = ElementDB.get_display_name(gem)
+				core.set_core(MatrixCoreIcon.gem_color(gname), false, MatrixCoreIcon.tier_from_name(gem))
+				# v147: a FILLED socket is clickable here so a core can be pulled back
+				# out of gear while it sits in the Armory. Removal used to exist ONLY on
+				# the equipped panel, so a core in a module you then unequipped was
+				# stuck. Empty sockets stay click-through so they never eat a drag.
+				core.mouse_filter = Control.MOUSE_FILTER_STOP
+				core.tooltip_text = tr("%s — click to remove this Matrix Core") % gname
 				var sock_i := i
-				dia.gui_input.connect(func(ev):
+				core.gui_input.connect(func(ev):
 					if ev is InputEventMouseButton and ev.pressed and ev.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT]:
 						var sm_g = GameState.shipyard_manager
 						# remove_gem() emits inventory_updated, which the Designer page
@@ -354,10 +354,8 @@ func _draw_tile_visual(item_name: String, slot_type: String, rarity: int, rarity
 						accept_event()
 				)
 			else:
-				dsb.bg_color = Color(0, 0, 0, 0.45)
-				dsb.border_color = Color(0.55, 0.60, 0.68, 0.85)
-			dia.add_theme_stylebox_override("panel", dsb)
-			row.add_child(dia)
+				core.set_core(MatrixCoreIcon.EMPTY_SOCKET_COLOR, true)
+			row.add_child(core)
 
 	# --- Compare chevron: upgrade/downgrade scan cue, top-right ---
 	var cmp = _compute_compare_summary()
@@ -1023,11 +1021,9 @@ func _get_slot_color(slot_type: String) -> Color:
 			return Color(0.65, 0.58, 0.47)
 
 func _get_gem_color(gem_name: String) -> Color:
-	if "Crimson" in gem_name: return Color("#ff4444")
-	if "Cobalt" in gem_name: return Color("#44ccff")
-	if "Topaz" in gem_name: return Color("#FFC24D")
-	if "Amethyst" in gem_name: return Color("#aa44ff")
-	return Color("#b548b5") # Default purple
+	# v147: single source on MatrixCoreIcon — this was duplicated verbatim here
+	# and in the other socket-drawing surface, which is how the looks drifted.
+	return MatrixCoreIcon.gem_color(gem_name)
 
 func _apply_pulse(rarity: int):
 	_stop_pulse()
