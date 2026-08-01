@@ -3167,9 +3167,20 @@ func notify_equipped() -> void:
 	rebuild_storage()
 
 func _highlight_compatible_slots() -> void:
+	# v147: a MATRIX CORE never highlights gear. The whole-tile brighten reads as
+	# "click this gear to equip it", but a core does not go into the slot — it goes
+	# into a SOCKET on the module, so the lit gear pointed at the wrong target and
+	# just added noise. Cores are placed by dragging onto the module or by clicking
+	# an individual socket pip, both of which are their own affordance.
+	if _is_matrix_core(_armed_mid):
+		_clear_slot_highlights()
+		return
 	for w in all_slot_widgets:
 		if is_instance_valid(w) and w.has_method("set_equip_highlight") and w.has_method("can_accept_module"):
 			w.set_equip_highlight(w.can_accept_module(_armed_mid))
+
+func _is_matrix_core(mid: String) -> bool:
+	return mid != "" and ElementDB.get_elements_in_category("matrix_cores").has(mid)
 
 func _clear_slot_highlights() -> void:
 	for w in all_slot_widgets:
