@@ -1021,6 +1021,12 @@ var enemy_db = {
 	"z4_ice_wraith": {
 		"name": "Ice Wraith",
 		"stats": {"hp": 2200, "max_shield": 600, "atk": 166.666667, "def": 25, "atk_interval": 2.0, "accuracy": 50},
+		# v146 Z4 signature baseline. Rimeplate/CryoEssence used to be flat-or-inverted
+		# across the zone (this 4.8k-HP enemy paid the SAME 3-6 Rimeplate as the 6.3k
+		# Sentinel and MORE than the 8k Hulk / 9.4k Drone), so the Ice Wraith was the
+		# only rational farm — 2.5x the rate of the worst. The other three are now
+		# scaled up to match this enemy's RATE (yield rises with HP); these numbers are
+		# unchanged, so the previously-optimal farm is not nerfed.
 		"loot": [["CoolantCell", 1, 3], ["credits", 800, 1500], ["Res2", 1, 3], ["CryoEssence", 1, 3], ["RimeplateScrap", 3, 6]],  # v114: Z4 front signature raw
 		"rare_loot": [["AdvCircuit", 0.08, 1, 2]],
 		"module_drop_chance": 0.10,
@@ -1030,7 +1036,12 @@ var enemy_db = {
 	"z4_cryo_sentinel": {
 		"name": "Frost Sentinel",
 		"stats": {"hp": 2765, "max_shield": 800, "atk": 128, "def": 32, "atk_interval": 2.0, "accuracy": 55},
-		"loot": [["Ti", 5, 12], ["credits", 1000, 2000], ["Res2", 1, 3], ["CryoEssence", 1, 3], ["RimeplateScrap", 3, 6]],  # v114: Z4 front signature raw
+		# v146: was CryoEssence 1-3 / Rimeplate 3-6 — byte-identical to the Ice Wraith
+		# while costing 31% more HP, so it was never the rational target. Z4 signature
+		# quantities now scale with HP (see z4_ice_wraith note): every Z4 enemy farms
+		# Rimeplate/CryoEssence at the same RATE, so the pick is driven by the other
+		# drop (Ti here) instead of one dominant target.
+		"loot": [["Ti", 5, 12], ["credits", 1000, 2000], ["Res2", 1, 3], ["CryoEssence", 2, 4], ["RimeplateScrap", 4, 8]],  # v114: Z4 front signature raw
 		"rare_loot": [["Chip", 0.10, 1, 3]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z4_kinetic", "z4_energy", "z4_missile", "z4_shield", "z4_armor", "z4_battery", "z4_sensor"],
@@ -1082,7 +1093,10 @@ var enemy_db = {
 		# drop. Untargeted expected income goes ~1.8/kill -> ~4.5/kill, which
 		# clears the Z4 demand of 4.5 crafts/min (hull tier 4 = 3 weapon slots =
 		# 90 rounds/min at 1 catalyst per 20) with 2-4x headroom on every spawn.
-		"loot": [["Steel", 8, 18], ["Fe", 15, 35], ["Res2", 1, 3], ["CryoEssence", 1, 2], ["RimeplateScrap", 2, 5]],
+		# v146: was CryoEssence 1-2 / Rimeplate 2-5 — the signature yield FELL as HP
+		# rose (this tank paid less than the Ice Wraith for 67% more HP), so the front
+		# enemy dominated the whole zone. Scaled to HP so the rate matches.
+		"loot": [["Steel", 8, 18], ["Fe", 15, 35], ["Res2", 1, 3], ["CryoEssence", 2, 5], ["RimeplateScrap", 5, 10]],
 		"rare_loot": [["Ti", 0.15, 3, 8], ["Au", 0.20, 1, 3]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z4_kinetic", "z4_energy", "z4_missile", "z4_battery", "z4_sensor"],
@@ -1149,7 +1163,9 @@ var enemy_db = {
 		"charge_nuke": {"every_n": 6, "mult": 2.114286},
 		# v150 band supply: see z4_frost_hulk — all four Z4 trash now carry the T2
 		# ammo catalyst so the band opens on the first kill, whatever spawns.
-		"loot": [["credits", 1200, 2500], ["Cu", 5, 12], ["Res2", 2, 4], ["CryoEssence", 2, 4], ["RimeplateScrap", 2, 5]],
+		# v146: was Rimeplate 2-5 (identical to the Frost Hulk, and the worst rate in
+		# the zone at nearly the highest HP). Scaled to HP like the rest of Z4.
+		"loot": [["credits", 1200, 2500], ["Cu", 5, 12], ["Res2", 2, 4], ["CryoEssence", 3, 6], ["RimeplateScrap", 6, 12]],
 		"rare_loot": [["AdvCircuit", 0.10, 1, 2]],
 		"module_drop_chance": 0.10,
 		"module_drop_pool": ["z4_shield", "z4_armor", "z4_battery", "z4_sensor"],
