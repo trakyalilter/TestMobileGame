@@ -376,10 +376,9 @@ const TOOLTIP_GRACE := 0.22
 # without it vanishing the moment the mouse drifts. A locked card owns the tooltip
 # slot until its ✕ is clicked, so no other hover can replace or hide it.
 const TOOLTIP_LOCK_SECS := 2.0
-# Right-hand gutter reserved inside a lockable card's content margin. Both widgets
-# are right-aligned (✕ top, meter bottom), so widening ONLY this margin keeps them
-# clear of the text — without it the ✕ sat on top of the title.
-const TOOLTIP_LOCK_GUTTER := 24.0
+# v147e: no reserved gutter. Widening only the RIGHT margin pushed the text column
+# off-centre — the card visibly "shifted left". The widgets are small enough to
+# live in the card's EXISTING right margin instead, so padding stays symmetric.
 var _tooltip_locked: bool = false
 var _glossary_locked: bool = false
 
@@ -406,9 +405,7 @@ func _build_tooltip_card(bbcode: String, watermark: Texture2D = null, with_lock:
 	sb.border_width_top = 3
 	sb.border_color = Color(0.216, 0.788, 0.690, 0.5)
 	sb.content_margin_left = 15
-	# v147c: reserve a right gutter on lockable cards so the ✕ / fill meter sit in
-	# empty space instead of on top of the title and stat lines.
-	sb.content_margin_right = 15.0 + (TOOLTIP_LOCK_GUTTER if with_lock else 0.0)
+	sb.content_margin_right = 15
 	sb.content_margin_top = 13
 	sb.content_margin_bottom = 13
 	sb.shadow_color = Color(0, 0, 0, 0.55)
@@ -455,6 +452,7 @@ func _build_tooltip_card(bbcode: String, watermark: Texture2D = null, with_lock:
 	# Tech corner-bracket chrome on top — drawn in the panel margin, never on text.
 	var chrome := _TooltipChrome.new()
 	chrome.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chrome.skip_top_right = with_lock   # the ✕ owns that corner
 	card.add_child(chrome)
 	return card
 
@@ -554,7 +552,7 @@ class _TooltipLock extends Control:
 	signal locked
 	signal close_pressed
 
-	const R := 8.0          # ring radius
+	const R := 7.0          # ring radius — sized to fit the card's 14-15px margin
 
 	var progress: float = 0.0
 	var is_locked: bool = false
@@ -585,13 +583,14 @@ class _TooltipLock extends Control:
 	# v147b: the fill meter sits BOTTOM-right and the close button TOP-right, so the
 	# two never occupy the same corner — the ring is progress, the ✕ is an action,
 	# and stacking them made the ✕ look like it was still filling.
-	# v147d: PanelContainer lays children out INSIDE the content margins, so this
-	# node's rect is exactly the text column — `size.x - n` was therefore ON the
-	# text, which is why the ✕ sat on the title. The reserved gutter lives just
-	# PAST our right edge, so the widgets go at size.x + gutter/2 (Controls don't
-	# clip, so drawing outside our own rect is fine and lands in the card margin).
+	# PanelContainer lays children out INSIDE the content margins, so this node's
+	# rect is exactly the TEXT COLUMN — `size.x - n` would sit on the text (that is
+	# what put the ✕ on the title). Controls don't clip, so we draw just PAST our
+	# own right edge, which lands in the card's existing right margin: centred at
+	# +R it spans [size.x, size.x + 2R], i.e. flush inside the card border and
+	# never over a glyph. No extra margin needed, so the card stays symmetric.
 	func _gutter_x() -> float:
-		return size.x + UITheme.TOOLTIP_LOCK_GUTTER * 0.5
+		return size.x + R
 
 	func _ring_centre() -> Vector2:
 		return Vector2(_gutter_x(), size.y - R)
@@ -648,6 +647,9 @@ class _TooltipWatermark extends Control:
 class _TooltipChrome extends Control:
 	var accent := Color(0.373, 0.878, 0.784, 0.85)
 	var node_col := Color(0.216, 0.788, 0.690, 0.95)
+	# v147e: lockable cards hand the TOP-RIGHT corner to the ✕ button. Drawing a
+	# bracket there too put two graphics in the same 16px and read as a collision.
+	var skip_top_right := false
 	func _ready() -> void:
 		resized.connect(queue_redraw)
 	func _draw() -> void:
@@ -666,6 +668,8 @@ class _TooltipChrome extends Control:
 		var corners := [Vector2(-ox, -oy), Vector2(w + ox, -oy), Vector2(-ox, h + oy), Vector2(w + ox, h + oy)]
 		var dirs := [Vector2(1, 1), Vector2(-1, 1), Vector2(1, -1), Vector2(-1, -1)]
 		for i in 4:
+			if i == 1 and skip_top_right:
+				continue
 			var c: Vector2 = corners[i]
 			var d: Vector2 = dirs[i]
 			draw_line(c, c + Vector2(L * d.x, 0.0), accent, t)
@@ -1290,8 +1294,7 @@ func show_info_card(anchor: Control, title: String, body: String, lockable: bool
 	sb.border_color = Color(0.216, 0.788, 0.690, 0.5)  # teal frame
 	sb.border_width_top = 3                             # lit top accent
 	sb.content_margin_left = 14
-	# v147c: reserve the same right gutter when this card carries the lock widgets.
-	sb.content_margin_right = 14.0 + (TOOLTIP_LOCK_GUTTER if lockable else 0.0)
+	sb.content_margin_right = 14
 	sb.content_margin_top = 12
 	sb.content_margin_bottom = 12
 	sb.shadow_color = Color(0, 0, 0, 0.55)
@@ -1344,6 +1347,7 @@ func show_info_card(anchor: Control, title: String, body: String, lockable: bool
 	# Same tech corner-bracket chrome as the item card, for one consistent look.
 	var chrome := _TooltipChrome.new()
 	chrome.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chrome.skip_top_right = lockable   # the ✕ owns that corner
 	card.add_child(chrome)
 
 	# v147c: glossary popups ("SEVERELY DAMAGED" et al) hold-to-lock exactly like the
