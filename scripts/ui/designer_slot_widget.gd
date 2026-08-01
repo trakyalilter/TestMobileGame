@@ -189,9 +189,8 @@ func _arrange_module_square() -> void:
 	# module has 0, 1 or 3 sockets.
 	socket_anchor.custom_minimum_size = Vector2(0, 22)
 
-	# Order: TopBalance → Icon (centre) → Sockets (arc) → Unequip (bottom).
-	var uneq = v.get_node_or_null("QuickUnequipBtn")
-	var order := [topbal, ic, socket_anchor, uneq]
+	# Order: TopBalance → Icon (centre) → Sockets (arc).
+	var order := [topbal, ic, socket_anchor]
 	var i := 0
 	for n in order:
 		if is_instance_valid(n):
@@ -320,9 +319,6 @@ func refresh_state():
 	# Clear old sockets
 	for child in socket_anchor.get_children():
 		child.queue_free()
-
-	var old_uneq = $MarginContainer/VBoxContainer.get_node_or_null("QuickUnequipBtn")
-	if is_instance_valid(old_uneq): old_uneq.free()
 
 	var old_repair = $MarginContainer/VBoxContainer.get_node_or_null("QuickRepairBtn")
 	if is_instance_valid(old_repair): old_repair.free()
@@ -455,18 +451,9 @@ func refresh_state():
 		var durability = int(m_data.get("durability", 100))
 		stats_lbl.text += "\nDUR %d%%" % durability
 
-		var uneq_btn = Button.new()
-		uneq_btn.name = "QuickUnequipBtn"
-		uneq_btn.text = tr("× Unequip")
-		uneq_btn.flat = true
-		uneq_btn.add_theme_font_size_override("font_size", 9)
-		uneq_btn.add_theme_color_override("font_color", Color(0.9, 0.4, 0.4))
-		uneq_btn.pressed.connect(func():
-			manager.unequip_slot(slot_idx)
-			if parent_ui: parent_ui.trigger_refresh()
-		)
-		$MarginContainer/VBoxContainer.add_child(uneq_btn)
-		$MarginContainer/VBoxContainer.move_child(uneq_btn, option_btn.get_index())
+			# v147: the "x Unequip" button is gone - clicking the gear itself unequips
+			# it (see _gui_input). It cost a row inside every filled slot to duplicate
+			# a gesture the slot already had on right-click.
 
 		# Per-module repair affordance (replaces global repair-mode discovery problem).
 		# Shown when the equipped module is a custom drop and below full durability.
@@ -1110,6 +1097,21 @@ func _gui_input(event):
 				else:
 					UITheme.show_notification(tr("Can't equip there."), Color(1, 0.5, 0.4))
 				return
+			# v147: left-click an OCCUPIED slot unequips it — the gear itself is the
+			# button now, replacing the "× Unequip" text button that used to sit inside
+			# every filled slot. Deliberately LAST in the chain: applying a hack card,
+			# shift-pinning a compare baseline and equipping an armed module all still
+			# take priority, so this only fires on a plain click with nothing in hand.
+			# (Right-click still unequips too, and empty slots keep focus/filter.)
+			if is_occupied:
+				if slot_type.begins_with("consumable_"):
+					var c_type_u = "hull" if slot_type == "consumable_hull" else "shield"
+					manager.unequip_consumable(c_type_u)
+				else:
+					manager.unequip_slot(slot_idx)
+				UITheme.trigger_ui_thud(self, 1.0)
+				if parent_ui: parent_ui.trigger_refresh()
+				return
 			if slot_type.begins_with("consumable_"):
 				# v111.15: no auto-filter on slot click (disorienting). Equip a
 				# consumable by clicking the consumable card to arm it, then
@@ -1128,6 +1130,12 @@ func _try_repair():
 	if not equipped_id or not equipped_id.begins_with("custom_"):
 		UITheme.show_notification(tr("Cannot repair this module"), Color.RED)
 		return
+	# v161: delegate to the page's shared, id-addressed dialog so the equipped and
+	# ARMORY hammer paths run the same code and charge the same tier-weighted cost.
+	# The inline copy below is why the armory path never existed in the first place.
+	if parent_ui and parent_ui.has_method("open_repair_dialog"):
+		parent_ui.open_repair_dialog(str(equipped_id))
+		return
 		
 	var m_data = manager.modules.get(equipped_id)
 	var cur_dur = m_data.get("durability", 100)
@@ -1140,7 +1148,7 @@ func _try_repair():
 	var rarity = manager.get_module_rarity(equipped_id)
 	
 	# v125: cost is Spare Parts only (no Liras).
-	var parts_cost = manager.RARITY_SPARE_PARTS.get(rarity, 1) * chunks
+	var parts_cost = manager.get_repair_parts_cost(str(equipped_id))
 
 	_spawn_custom_repair_modal(m_data, cur_dur, parts_cost)
 
@@ -1245,7 +1253,9 @@ func _on_slot_hover() -> void:
 		UITheme.show_compare_tooltip(self, bb_a, bb_b, a_wm, _wm)
 	else:
 		var _tt := _build_module_tooltip(m_data)
-		var _hint := tr("Shift-click: unpin  ·  Esc: clear compare") if pin_mid == eqid else tr("Shift-click to pin & compare two modules")
+		# v147: lead with the click-to-unequip gesture — it replaced the in-slot
+		# "x Unequip" button, so the tooltip is now where it is discoverable.
+		var _hint := tr("Click to unequip  ·  Shift-click: unpin  ·  Esc: clear compare") if pin_mid == eqid else tr("Click to unequip  ·  Shift-click to pin & compare")
 		_tt += "\n[color=#1E3B38]──────────────────────────────[/color]\n[font_size=9][color=#5E7C77]%s[/color][/font_size]" % _hint
 		UITheme.show_item_tooltip(self, _tt, _wm)
 
