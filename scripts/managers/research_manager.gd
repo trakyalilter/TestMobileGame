@@ -1652,8 +1652,15 @@ var tech_tree = {
 		"cost_items": {"Res1": 10},
 		"type": "technology",
 		"parent": "industrial_logistics",
+		# v146: was "+20% Combat XP gain" — a TRAP purchase. Combat leveling was
+		# removed in v120 (both milestone bonuses hard-return 0), so this node cost
+		# 1500 Liras + 10 Res1 and granted literally nothing. Repurposed onto the
+		# live `combat_damage` axis, matching its tier-1 Combat siblings (Shield
+		# Harmonics +20% regen, Carbon Hull Lattice +15% HP, Reactor Overclocking
+		# +10% attack speed) — damage was the missing fourth. Node id kept so
+		# existing saves/layout/audit references stay valid.
 		"effects": [
-			{"type": "bonus_yield", "bonus": 0.20, "what": "Combat XP gain"},
+			{"type": "bonus_yield", "bonus": 0.10, "what": "Total Ship Damage"},
 		],
 		"unlocks": [],
 		"flavor": "",
@@ -2088,8 +2095,8 @@ func get_efficiency_bonus(bonus_type: String) -> float:
 	var bonus := 0.0
 
 	match bonus_type:
-		"combat_xp":
-			if "combat_heuristics" in unlocked_techs: bonus += 0.20
+		"combat_damage":
+			if "combat_heuristics" in unlocked_techs: bonus += 0.10
 		"shield_regen":
 			if "shield_harmonics" in unlocked_techs: bonus += 0.20
 		"max_hp_mult":

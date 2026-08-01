@@ -44,7 +44,6 @@ var _tgt_hp: Label
 var _tgt_shield: Label
 var _tgt_atk: Label
 var _tgt_def: Label
-var _tgt_xp: Label
 var _tgt_resist: Label
 var _tgt_weak: Label
 var _tgt_drops: RichTextLabel     # v131: what the selected hostile drops
@@ -203,7 +202,8 @@ func _build_readout() -> void:
 	_tgt_shield = _kv_row(_tgt_box, "SHIELD", "—", C_AQUA)
 	_tgt_atk = _kv_row(_tgt_box, "ATTACK", "—", C_TEXT)
 	_tgt_def = _kv_row(_tgt_box, "DEFENSE", "—", C_TEXT)
-	_tgt_xp = _kv_row(_tgt_box, "XP REWARD", "—", C_JADE)
+	# v146: XP REWARD row removed — combat leveling was cut in v120 (milestone
+	# bonuses hard-return 0), so the row advertised a reward that pays nothing.
 	_tgt_box.add_child(_spacer(3))
 	_tgt_resist = _kv_row(_tgt_box, "RESISTS", "—", C_CORAL)
 	_tgt_weak = _kv_row(_tgt_box, "WEAK TO", "—", C_JADE)
@@ -486,7 +486,6 @@ func _show_target_detail(eid: String) -> void:
 	_tgt_shield.text = UITheme.format_num(sh)
 	_tgt_atk.text = UITheme.format_num(s.get("atk", 0))
 	_tgt_def.text = UITheme.format_num(int(s.get("def", 0)))
-	_tgt_xp.text = tr("+%s") % UITheme.format_num(int(e.get("xp", 0)))
 
 	# Resist / weakness — the actionable intel for picking a loadout before ENGAGE.
 	if e.get("warp_hardened", false):

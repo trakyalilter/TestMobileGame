@@ -4333,7 +4333,11 @@ func win_fight():
 		elif drop_chance > 0 and randf() < drop_chance:
 			_roll_one_module_drop(unlocked_pool, sm)
 
-	add_xp(int(current_enemy["xp"] * (1.0 + GameState.research_manager.get_efficiency_bonus("combat_xp"))))
+	# v146: the "combat_xp" research multiplier is gone with the Combat Heuristics
+	# repurpose — combat leveling grants nothing (v120), so scaling this XP scaled
+	# nothing. The raw add_xp stays: Skill level/XP still persists and the sim
+	# harnesses read get_level() for telemetry.
+	add_xp(int(current_enemy["xp"]))
 	# v118: Amethyst restore_on_kill (utility facet) — heal % max HP + shield per kill.
 	var _rok: float = sm.gem_bonuses.get("restore_on_kill", 0.0)
 	if _rok > 0.0:

@@ -264,7 +264,9 @@ func _build_loot_inline() -> void:
 
 # ─── Yield row: predicted XP + Lira average ─────────────────────────
 func _build_yield_row() -> void:
-	var xp := int(data.get("xp", 0))
+	# v146: XP dropped from the readout. Combat leveling was removed in v120 (its
+	# milestone bonuses hard-return 0), so "+N XP" advertised a progression axis
+	# that pays nothing. Liras are the real, spendable yield.
 	var credit_min := 0
 	var credit_max := 0
 	for entry in data.get("loot", []):
@@ -274,8 +276,6 @@ func _build_yield_row() -> void:
 			break
 
 	var parts: Array = []
-	if xp > 0:
-		parts.append("+%d XP" % xp)
 	if credit_max > 0:
 		var avg: int = int((credit_min + credit_max) / 2.0)
 		parts.append("+%d %s" % [avg, UITheme.LIRA_ICON_BB])
