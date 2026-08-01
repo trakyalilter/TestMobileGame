@@ -470,7 +470,9 @@ func refresh_state():
 			repair_btn.tooltip_text = tr("Repair this module without entering global Repair Mode.")
 			repair_btn.pressed.connect(_try_repair)
 			$MarginContainer/VBoxContainer.add_child(repair_btn)
-			$MarginContainer/VBoxContainer.move_child(repair_btn, uneq_btn.get_index() + 1)
+			# v147: was positioned after the removed "x Unequip" button; anchor to the
+			# slot dropdown instead so Repair keeps the same place in the slot.
+			$MarginContainer/VBoxContainer.move_child(repair_btn, option_btn.get_index() + 1)
 
 		_apply_card_style(rarity, rarity_color)
 		_apply_pulse(rarity)
