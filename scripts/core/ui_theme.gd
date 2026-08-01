@@ -452,7 +452,7 @@ func _build_tooltip_card(bbcode: String, watermark: Texture2D = null, with_lock:
 	# Tech corner-bracket chrome on top — drawn in the panel margin, never on text.
 	var chrome := _TooltipChrome.new()
 	chrome.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	chrome.skip_top_right = with_lock   # the ✕ owns that corner
+	chrome.skip_right_corners = with_lock   # ✕ + meter own the right corners
 	card.add_child(chrome)
 	return card
 
@@ -674,9 +674,12 @@ class _TooltipWatermark extends Control:
 class _TooltipChrome extends Control:
 	var accent := Color(0.373, 0.878, 0.784, 0.85)
 	var node_col := Color(0.216, 0.788, 0.690, 0.95)
-	# v147e: lockable cards hand the TOP-RIGHT corner to the ✕ button. Drawing a
-	# bracket there too put two graphics in the same 16px and read as a collision.
-	var skip_top_right := false
+	# v147h: lockable cards hand BOTH right corners to the lock widgets — the ✕ owns
+	# top-right, the fill meter owns bottom-right. Drawing a bracket in either put
+	# two graphics in the same ~16px and read as a collision. Both are suppressed
+	# for the card's whole life (not just while a widget is visible) so nothing
+	# pops in or out as the meter completes.
+	var skip_right_corners := false
 	func _ready() -> void:
 		resized.connect(queue_redraw)
 	func _draw() -> void:
@@ -695,7 +698,8 @@ class _TooltipChrome extends Control:
 		var corners := [Vector2(-ox, -oy), Vector2(w + ox, -oy), Vector2(-ox, h + oy), Vector2(w + ox, h + oy)]
 		var dirs := [Vector2(1, 1), Vector2(-1, 1), Vector2(1, -1), Vector2(-1, -1)]
 		for i in 4:
-			if i == 1 and skip_top_right:
+			# corners: 0 = top-left, 1 = top-right, 2 = bottom-left, 3 = bottom-right
+			if skip_right_corners and (i == 1 or i == 3):
 				continue
 			var c: Vector2 = corners[i]
 			var d: Vector2 = dirs[i]
@@ -1374,7 +1378,7 @@ func show_info_card(anchor: Control, title: String, body: String, lockable: bool
 	# Same tech corner-bracket chrome as the item card, for one consistent look.
 	var chrome := _TooltipChrome.new()
 	chrome.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	chrome.skip_top_right = lockable   # the ✕ owns that corner
+	chrome.skip_right_corners = lockable   # ✕ + meter own the right corners
 	card.add_child(chrome)
 
 	# v147c: glossary popups ("SEVERELY DAMAGED" et al) hold-to-lock exactly like the
