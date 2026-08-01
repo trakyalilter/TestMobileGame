@@ -557,8 +557,23 @@ class _TooltipLock extends Control:
 	var progress: float = 0.0
 	var is_locked: bool = false
 	var _btn: Button = null
+	# v147g: the parent card's content margins, read once. This node's rect is only
+	# the TEXT COLUMN, so without these the true card edges are unknown and any
+	# offset is guesswork — which is how the meter ended up straddling the border.
+	var _m := Vector4(15.0, 13.0, 15.0, 13.0)   # left, top, right, bottom
+
+	func _read_parent_margins() -> void:
+		var p := get_parent()
+		if p == null or not p.has_method("get_theme_stylebox"):
+			return
+		var sb: StyleBox = p.get_theme_stylebox("panel")
+		if sb == null:
+			return
+		_m = Vector4(sb.content_margin_left, sb.content_margin_top,
+			sb.content_margin_right, sb.content_margin_bottom)
 
 	func _ready() -> void:
+		_read_parent_margins()
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_btn = Button.new()
 		_btn.text = "✕"
@@ -594,18 +609,21 @@ class _TooltipLock extends Control:
 	# v147b: the fill meter sits BOTTOM-right and the close button TOP-right, so the
 	# two never occupy the same corner — the ring is progress, the ✕ is an action,
 	# and stacking them made the ✕ look like it was still filling.
-	# PanelContainer lays children out INSIDE the content margins, so this node's
-	# rect is exactly the TEXT COLUMN. v147f: hugging the RIGHT margin put the
-	# widgets on the card's rounded corner, so they read as hanging outside it.
-	# They now ride the TOP and BOTTOM margin bands instead — right-aligned to the
-	# text column (so horizontally well inside the border) and vertically in the
-	# padding above/below the text, where nothing is drawn. Fully inside the card,
-	# never over a glyph, and the layout is untouched.
+	# v147g: positions are derived from the CARD's real rect, not from this node's
+	# text-column rect. In local coords the card spans x [-m.x, size.x + m.z] and
+	# y [-m.y, size.y + m.w]; both widgets are inset EDGE_PAD from those true edges,
+	# so they are provably inside the border (and off the rounded corners) on any
+	# card, instead of landing wherever a hand-picked offset happened to fall.
+	const EDGE_PAD := 3.0
+
+	func _card_right() -> float:
+		return size.x + _m.z
+
 	func _ring_centre() -> Vector2:
-		return Vector2(size.x - R, size.y + R + 0.5)
+		return Vector2(_card_right() - R - EDGE_PAD, size.y + _m.w - R - EDGE_PAD)
 
 	func _btn_centre() -> Vector2:
-		return Vector2(size.x - R, -(R + 0.5))
+		return Vector2(_card_right() - R - EDGE_PAD, -_m.y + R + EDGE_PAD)
 
 	func _process(delta: float) -> void:
 		if is_locked:
