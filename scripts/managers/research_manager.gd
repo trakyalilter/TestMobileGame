@@ -292,7 +292,9 @@ var tech_tree = {
 		"type": "technology",
 		"parent": "zone_5_access",
 		"effects": [],
-		"unlocks": ["Sector Alpha (scan)"],
+		# v147: was ["Sector Alpha (scan)"] only — the node gates the Compile Exotic
+		# Artifact recipe, but the card never said so, reading as a 50K paywall.
+		"unlocks": ["Compile Exotic Artifact", "Sector Alpha (scan)"],
 		"flavor": "",
 	},
 	"advanced_batteries": {
@@ -1221,7 +1223,9 @@ var tech_tree = {
 		# v132: "Sector Beta (Mining Colony)" claim removed — Sector Beta is
 		# unlocked by zone_6_access (Beta Colony Charter), NOT this tech. This
 		# node is the doorway into the Exotics research branch.
-		"unlocks": ["Radiation Shielding Theory (branch)"],
+		# v147: named the real content. The "(branch)" prose described the NEXT
+		# research instead of what this node gives, so a 100K node looked empty.
+		"unlocks": ["Process Colony Salvage", "Targeting Array Fabrication"],
 		"flavor": "Charts the deep-space lanes toward exotic phenomena.",
 	},
 	"radiation_shielding": {
@@ -1235,8 +1239,10 @@ var tech_tree = {
 		"effects": [],
 		# v132: "Sector Gamma (Radioactive)" claim removed — Gamma is unlocked
 		# by zone_7_access (Gamma Sector Clearance). This gates the Exotics lane.
-		"unlocks": ["Exotic Matter Analysis (branch)"],
-		"flavor": "Gates Exotic Matter Analysis research.",
+		# v147: named the real content (a building + a recipe) instead of the next
+		# research node — a 250K card that listed only "(branch)" read as a paywall.
+		"unlocks": ["Fission Reactor", "Refine Radioactive Isotopes"],
+		"flavor": "Hardened shielding lets the refinery handle live isotopes.",
 	},
 	"exotic_matter_analysis": {
 		"name": "Exotic Matter Analysis",
@@ -1247,8 +1253,10 @@ var tech_tree = {
 		"type": "technology",
 		"parent": "radiation_shielding",
 		"effects": [],
-		"unlocks": ["Void Navigation (branch)"],
-		"flavor": "Refines exotic matter and gates the Void Navigation branch. Sector Delta is unlocked separately by Delta Sector Survey (zone_8_access).",
+		# v147: named the two recipes it actually gates. At 1M Liras this was the
+		# worst offender — the card listed only "Void Navigation (branch)".
+		"unlocks": ["Void Distillation", "Quantum Core Synthesis"],
+		"flavor": "Refines exotic matter into workable stock. Sector Delta is unlocked separately by Delta Sector Survey.",
 	},
 	# --- EFFICIENCY BRANCH (MULTIPLIED YIELDS) ---
 	"efficiency_1": {
