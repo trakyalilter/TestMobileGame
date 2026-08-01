@@ -375,8 +375,13 @@ const TOOLTIP_GRACE := 0.22
 # following the hover, so the player can read it (or reach its glossary links)
 # without it vanishing the moment the mouse drifts. A locked card owns the tooltip
 # slot until its ✕ is clicked, so no other hover can replace or hide it.
-const TOOLTIP_LOCK_SECS := 1.5
+const TOOLTIP_LOCK_SECS := 2.0
+# Right-hand gutter reserved inside a lockable card's content margin. Both widgets
+# are right-aligned (✕ top, meter bottom), so widening ONLY this margin keeps them
+# clear of the text — without it the ✕ sat on top of the title.
+const TOOLTIP_LOCK_GUTTER := 24.0
 var _tooltip_locked: bool = false
+var _glossary_locked: bool = false
 
 func is_tooltip_locked() -> bool:
 	return _tooltip_locked and is_instance_valid(_item_tooltip)
@@ -386,7 +391,7 @@ func unlock_item_tooltip() -> void:
 	_free_item_tooltip()
 
 # v136: card factory shared by the single tooltip and the side-by-side compare view.
-func _build_tooltip_card(bbcode: String, watermark: Texture2D = null) -> PanelContainer:
+func _build_tooltip_card(bbcode: String, watermark: Texture2D = null, with_lock: bool = false) -> PanelContainer:
 	var card := PanelContainer.new()
 	card.mouse_filter = Control.MOUSE_FILTER_IGNORE   # never steals the hover
 
@@ -401,7 +406,9 @@ func _build_tooltip_card(bbcode: String, watermark: Texture2D = null) -> PanelCo
 	sb.border_width_top = 3
 	sb.border_color = Color(0.216, 0.788, 0.690, 0.5)
 	sb.content_margin_left = 15
-	sb.content_margin_right = 15
+	# v147c: reserve a right gutter on lockable cards so the ✕ / fill meter sit in
+	# empty space instead of on top of the title and stat lines.
+	sb.content_margin_right = 15.0 + (TOOLTIP_LOCK_GUTTER if with_lock else 0.0)
 	sb.content_margin_top = 13
 	sb.content_margin_bottom = 13
 	sb.shadow_color = Color(0, 0, 0, 0.55)
@@ -463,7 +470,7 @@ func show_item_tooltip(anchor: Control, bbcode: String, watermark: Texture2D = n
 	if parent == null:
 		return
 
-	var card := _build_tooltip_card(bbcode, watermark)
+	var card := _build_tooltip_card(bbcode, watermark, true)
 	card.name = "ItemTooltip"
 
 	parent.add_child(card)
@@ -547,8 +554,7 @@ class _TooltipLock extends Control:
 	signal locked
 	signal close_pressed
 
-	const R := 9.0          # ring radius
-	const PAD := Vector2(15.0, 13.0)   # matches the card's content margins
+	const R := 8.0          # ring radius
 
 	var progress: float = 0.0
 	var is_locked: bool = false
@@ -579,11 +585,16 @@ class _TooltipLock extends Control:
 	# v147b: the fill meter sits BOTTOM-right and the close button TOP-right, so the
 	# two never occupy the same corner — the ring is progress, the ✕ is an action,
 	# and stacking them made the ✕ look like it was still filling.
+	# v147c: both ride the reserved right gutter (the card widens its right content
+	# margin by TOOLTIP_LOCK_GUTTER), so neither can land on the text.
+	func _gutter_x() -> float:
+		return size.x - UITheme.TOOLTIP_LOCK_GUTTER * 0.5
+
 	func _ring_centre() -> Vector2:
-		return Vector2(size.x - PAD.x - R, size.y - PAD.y - R)
+		return Vector2(_gutter_x(), size.y - R - 6.0)
 
 	func _btn_centre() -> Vector2:
-		return Vector2(size.x - PAD.x - R, PAD.y + R)
+		return Vector2(_gutter_x(), R + 6.0)
 
 	func _process(delta: float) -> void:
 		if is_locked:
@@ -720,7 +731,9 @@ func linkify_glossary(text: String) -> String:
 func hide_item_tooltip(anchor: Control = null) -> void:
 	# v147: a locked card is dismissed ONLY by its ✕ (unlock_item_tooltip), so a
 	# mouse-exit — the whole thing it exists to survive — can't take it down.
-	if is_tooltip_locked():
+	# A locked GLOSSARY card also pins its parent: the definition is drawn beside
+	# the tooltip it came from, so tearing the parent down would orphan it.
+	if is_tooltip_locked() or (_glossary_locked and is_instance_valid(_glossary_card)):
 		return
 	# Only the owner (or a forced null) may clear it.
 	if anchor != null and anchor != _item_tooltip_anchor:
@@ -766,12 +779,19 @@ func _on_tooltip_meta_hover(meta) -> void:
 	if not is_instance_valid(_item_tooltip):
 		return
 	var g: Dictionary = GLOSSARY[key]
-	_glossary_card = show_info_card(_item_tooltip, tr(str(g["title"])), tr(str(g["body"])))
+	_glossary_card = show_info_card(_item_tooltip, tr(str(g["title"])), tr(str(g["body"])), true)
 
 func _on_tooltip_meta_exit(_meta) -> void:
 	_free_glossary_card()
 
-func _free_glossary_card() -> void:
+func _free_glossary_card(force: bool = false) -> void:
+	# v147c: a LOCKED glossary card is dismissed only by its ✕ — moving off the
+	# jargon term must not close the definition the player just locked open.
+	# `force` is for teardown (the parent tooltip going away), which must never
+	# leave an orphaned card or a stuck flag behind.
+	if _glossary_locked and not force:
+		return
+	_glossary_locked = false
 	if is_instance_valid(_glossary_card):
 		_glossary_card.queue_free()
 	_glossary_card = null
@@ -782,7 +802,7 @@ func _free_item_tooltip() -> void:
 	_tooltip_locked = false
 	if _tooltip_timer and is_instance_valid(_tooltip_timer):
 		_tooltip_timer.stop()
-	_free_glossary_card()
+	_free_glossary_card(true)   # the glossary card lives INSIDE this tooltip
 	if is_instance_valid(_item_tooltip):
 		_item_tooltip.queue_free()
 	_item_tooltip = null
@@ -1244,7 +1264,7 @@ func request_atlas_from_meta(meta) -> bool:
 # popup parents itself under ModalLayer (or current_scene as fallback) and
 # positions just above the anchor. Caller owns lifecycle — queue_free on
 # mouse_exited / tree_exiting. Returns the popup Control.
-func show_info_card(anchor: Control, title: String, body: String) -> Control:
+func show_info_card(anchor: Control, title: String, body: String, lockable: bool = false) -> Control:
 	var root: Node = anchor.get_tree().current_scene
 	var modal_layer: Node = anchor.get_tree().root.find_child("ModalLayer", true, false)
 	var parent: Node = modal_layer if modal_layer else root
@@ -1258,7 +1278,8 @@ func show_info_card(anchor: Control, title: String, body: String) -> Control:
 	sb.border_color = Color(0.216, 0.788, 0.690, 0.5)  # teal frame
 	sb.border_width_top = 3                             # lit top accent
 	sb.content_margin_left = 14
-	sb.content_margin_right = 14
+	# v147c: reserve the same right gutter when this card carries the lock widgets.
+	sb.content_margin_right = 14.0 + (TOOLTIP_LOCK_GUTTER if lockable else 0.0)
 	sb.content_margin_top = 12
 	sb.content_margin_bottom = 12
 	sb.shadow_color = Color(0, 0, 0, 0.55)
@@ -1312,6 +1333,18 @@ func show_info_card(anchor: Control, title: String, body: String) -> Control:
 	var chrome := _TooltipChrome.new()
 	chrome.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	card.add_child(chrome)
+
+	# v147c: glossary popups ("SEVERELY DAMAGED" et al) hold-to-lock exactly like the
+	# item tooltip — they are definitions the player wants to read, and they used to
+	# vanish the moment the cursor left the jargon term.
+	if lockable:
+		var glock := _TooltipLock.new()
+		card.add_child(glock)
+		glock.locked.connect(func(): _glossary_locked = true)
+		glock.close_pressed.connect(func():
+			_glossary_locked = false
+			_free_glossary_card()
+		)
 
 	parent.add_child(card)
 
