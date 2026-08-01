@@ -477,6 +477,24 @@ func get_elements_in_category(category: String) -> Array:
 # inventory slot cap (boss cores gate zone research; matrix cores socket gear;
 # endgame/special are rare one-offs). Bulk basics keep the cap as a sink.
 var _slot_protected: Dictionary = {}
+# v147: gear-side stock that lives in the ARMORY, not in cargo. Consumables,
+# Matrix Cores and Hack Cards each have their own Armory tab and are equipped /
+# applied from there, but they were also stored as ordinary elements — so they
+# showed up a SECOND time on the Inventory page and, worse, each one permanently
+# ate one of the 28 base cargo slots. Cargo slots are the game's intentional
+# sink for BULK MATERIALS; gear stock should not compete for them.
+# (BoostCard is deliberately NOT here: it is installed on a building from the
+# Infrastructure page, so it is cargo, not armory stock.)
+const ARMORY_CATEGORIES := ["consumables", "matrix_cores", "hack_stones"]
+var _armory_items: Dictionary = {}
+
+func is_armory_item(symbol: String) -> bool:
+	if _armory_items.is_empty():
+		for cat in ARMORY_CATEGORIES:
+			for s in CATEGORIES.get(cat, []):
+				_armory_items[s] = true
+	return _armory_items.has(symbol)
+
 func is_slot_protected(symbol: String) -> bool:
 	if _slot_protected.is_empty():
 		for cat in ["boss_cores", "matrix_cores", "endgame", "special", "hack_stones", "boost_cards"]:

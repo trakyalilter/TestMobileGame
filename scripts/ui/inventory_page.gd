@@ -184,9 +184,13 @@ func refresh_inventory():
 	owned_elements.sort()
 	for symbol in owned_elements:
 		var amt = GameState.resources.elements.get(symbol, 0)
-		
+
 		if amt <= 0: continue
-		
+		# v147: consumables / matrix cores / hack cards are ARMORY stock — they are
+		# equipped and applied from the Armory tabs, and listing them here as well
+		# just duplicated them into the cargo hold they no longer occupy.
+		if ElementDB.is_armory_item(symbol): continue
+
 		# Find metadata in elements_db or create fallback
 		var el_meta = null
 		for e in elements_db:

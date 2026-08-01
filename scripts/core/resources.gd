@@ -70,7 +70,9 @@ func add_element(symbol: String, amount: float, force: bool = false):
 		# Progression-critical drops (boss cores, matrix cores, endgame, special)
 		# are kept over-cap rather than silently lost — dropping a Z#_Core would
 		# soft-lock zone-access research. Bulk basics still hit the cap (the sink).
-		if elements.size() >= get_max_slots() and not force and not ElementDB.is_slot_protected(symbol):
+		# v147: armory stock costs no slot at all, so it can never be capped out.
+		if get_used_slots() >= get_max_slots() and not force \
+				and not ElementDB.is_slot_protected(symbol) and not ElementDB.is_armory_item(symbol):
 			# Inventory full: this output is silently lost. Warn ONCE on the
 			# transition (the header slot meter is the persistent indicator);
 			# re-arms when a slot frees (remove_element).
@@ -85,7 +87,7 @@ func add_element(symbol: String, amount: float, force: bool = false):
 	element_added.emit(symbol, amount)
 	# Fire the warning once the LAST free slot just got used (filling up, not
 	# just a refused drop) — same one-shot guard.
-	if not _was_full and elements.size() >= get_max_slots():
+	if not _was_full and get_used_slots() >= get_max_slots():
 		_was_full = true
 		UITheme.show_notification(tr("Inventory full — new resources are being wasted. Sell or expand storage."), Color(1.0, 0.45, 0.35))
 
@@ -190,10 +192,14 @@ func cleanup_inventory():
 		elements.erase(k)
 
 func get_used_slots() -> int:
-	# Ensure accurate count by cleaning first? 
-	# Or just trust cleanup_inventory was called.
-	# Let's do a soft check or just return size
-	return elements.size()
+	# v147: Armory stock (consumables / matrix cores / hack cards) does NOT occupy
+	# a cargo slot. It is equipped from the Armory, not hauled as bulk material, so
+	# it should not compete with ores and alloys for the 28-slot sink.
+	var n := 0
+	for sym in elements:
+		if not ElementDB.is_armory_item(sym):
+			n += 1
+	return n
 
 func reset(keep_storage := false):
 	elements.clear()
