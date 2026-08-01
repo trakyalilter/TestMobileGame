@@ -370,6 +370,21 @@ var _glossary_card: Control = null
 var _tooltip_sticky: bool = false   # v140: only glossary tooltips get the grace timer
 const TOOLTIP_GRACE := 0.22
 
+# v147 "hold to inspect": keeping the cursor on a gear card fills a radial meter in
+# the tooltip's top-right corner. When it completes the card LOCKS — it stops
+# following the hover, so the player can read it (or reach its glossary links)
+# without it vanishing the moment the mouse drifts. A locked card owns the tooltip
+# slot until its ✕ is clicked, so no other hover can replace or hide it.
+const TOOLTIP_LOCK_SECS := 1.5
+var _tooltip_locked: bool = false
+
+func is_tooltip_locked() -> bool:
+	return _tooltip_locked and is_instance_valid(_item_tooltip)
+
+func unlock_item_tooltip() -> void:
+	_tooltip_locked = false
+	_free_item_tooltip()
+
 # v136: card factory shared by the single tooltip and the side-by-side compare view.
 func _build_tooltip_card(bbcode: String, watermark: Texture2D = null) -> PanelContainer:
 	var card := PanelContainer.new()
@@ -437,6 +452,9 @@ func _build_tooltip_card(bbcode: String, watermark: Texture2D = null) -> PanelCo
 	return card
 
 func show_item_tooltip(anchor: Control, bbcode: String, watermark: Texture2D = null) -> void:
+	# v147: a LOCKED card owns the slot — hovering anything else must not replace it.
+	if is_tooltip_locked():
+		return
 	_free_item_tooltip()
 	if not is_instance_valid(anchor) or not anchor.is_inside_tree() or bbcode == "":
 		return
@@ -462,6 +480,17 @@ func show_item_tooltip(anchor: Control, bbcode: String, watermark: Texture2D = n
 		py = mpos.y - est.y - 18.0
 	card.position = Vector2(maxf(8.0, px), maxf(8.0, py))
 
+	# v147: hold-to-inspect meter. Fills while the card is up; on completion the card
+	# locks in place and swaps the ring for a ✕.
+	var lock := _TooltipLock.new()
+	card.add_child(lock)
+	lock.locked.connect(func():
+		_tooltip_locked = true
+		if _tooltip_timer and is_instance_valid(_tooltip_timer):
+			_tooltip_timer.stop()   # a pending grace-hide must not kill a locked card
+	)
+	lock.close_pressed.connect(unlock_item_tooltip)
+
 	_item_tooltip = card
 	_item_tooltip_anchor = anchor
 	_tooltip_sticky = ("[url=gloss:" in bbcode)
@@ -470,6 +499,8 @@ func show_item_tooltip(anchor: Control, bbcode: String, watermark: Texture2D = n
 # the hovered module (right). Both live under one HBox held in the single _item_tooltip
 # slot, so hide_item_tooltip() tears them down together.
 func show_compare_tooltip(anchor: Control, bb_left: String, bb_right: String, wm_left: Texture2D = null, wm_right: Texture2D = null) -> void:
+	if is_tooltip_locked():
+		return   # v147: locked card owns the slot
 	_free_item_tooltip()
 	if not is_instance_valid(anchor) or not anchor.is_inside_tree():
 		return
@@ -506,6 +537,71 @@ func show_compare_tooltip(anchor: Control, bb_left: String, bb_right: String, wm
 	_item_tooltip = wrap
 	_item_tooltip_anchor = anchor
 	_tooltip_sticky = ("[url=gloss:" in bb_left) or ("[url=gloss:" in bb_right)
+
+
+# v147: the hold-to-inspect meter. Full-rect (PanelContainer stretches it) but
+# MOUSE_FILTER_IGNORE, so it never blocks drags through the card — only the small
+# ✕ Button it parents is clickable, and a plain Control does NOT stretch children,
+# so that button keeps its explicit corner rect.
+class _TooltipLock extends Control:
+	signal locked
+	signal close_pressed
+
+	const R := 9.0          # ring radius
+	const PAD := Vector2(15.0, 13.0)   # matches the card's content margins
+
+	var progress: float = 0.0
+	var is_locked: bool = false
+	var _btn: Button = null
+
+	func _ready() -> void:
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_btn = Button.new()
+		_btn.text = "✕"
+		_btn.flat = true
+		_btn.visible = false
+		_btn.focus_mode = Control.FOCUS_NONE
+		_btn.mouse_filter = Control.MOUSE_FILTER_STOP
+		_btn.custom_minimum_size = Vector2(R * 2.0, R * 2.0)
+		_btn.size = Vector2(R * 2.0, R * 2.0)
+		_btn.add_theme_font_size_override("font_size", 12)
+		_btn.add_theme_color_override("font_color", Color(0.62, 0.72, 0.70))
+		_btn.add_theme_color_override("font_hover_color", Color(1.0, 0.45, 0.42))
+		_btn.pressed.connect(func(): close_pressed.emit())
+		add_child(_btn)
+		resized.connect(_place)
+		_place()
+
+	func _place() -> void:
+		if is_instance_valid(_btn):
+			_btn.position = _centre() - Vector2(R, R)
+
+	func _centre() -> Vector2:
+		return Vector2(size.x - PAD.x - R, PAD.y + R)
+
+	func _process(delta: float) -> void:
+		if is_locked:
+			set_process(false)
+			return
+		progress = minf(1.0, progress + delta / UITheme.TOOLTIP_LOCK_SECS)
+		queue_redraw()
+		if progress >= 1.0:
+			is_locked = true
+			if is_instance_valid(_btn):
+				_btn.visible = true
+			locked.emit()
+
+	func _draw() -> void:
+		var c := _centre()
+		if is_locked:
+			# Locked: a quiet ring behind the ✕ so the button reads as a control.
+			draw_arc(c, R, 0.0, TAU, 28, Color(0.216, 0.788, 0.690, 0.45), 1.5, true)
+			return
+		# Track + filled sweep, 12 o'clock clockwise.
+		draw_arc(c, R, 0.0, TAU, 28, Color(0.216, 0.788, 0.690, 0.16), 2.0, true)
+		if progress > 0.0:
+			var a0 := -PI * 0.5
+			draw_arc(c, R, a0, a0 + TAU * progress, 28, Color(0.427, 0.941, 0.847, 0.9), 2.0, true)
 
 
 # Faint zone-emblem watermark — drawn small in the BOTTOM-RIGHT corner of the card
@@ -615,6 +711,10 @@ func linkify_glossary(text: String) -> String:
 	return out
 
 func hide_item_tooltip(anchor: Control = null) -> void:
+	# v147: a locked card is dismissed ONLY by its ✕ (unlock_item_tooltip), so a
+	# mouse-exit — the whole thing it exists to survive — can't take it down.
+	if is_tooltip_locked():
+		return
 	# Only the owner (or a forced null) may clear it.
 	if anchor != null and anchor != _item_tooltip_anchor:
 		return
@@ -670,6 +770,9 @@ func _free_glossary_card() -> void:
 	_glossary_card = null
 
 func _free_item_tooltip() -> void:
+	# v147: the lock belongs to the card being torn down — never let it outlive it,
+	# or a stale flag would block every future tooltip.
+	_tooltip_locked = false
 	if _tooltip_timer and is_instance_valid(_tooltip_timer):
 		_tooltip_timer.stop()
 	_free_glossary_card()
