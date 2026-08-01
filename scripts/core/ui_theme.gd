@@ -406,8 +406,11 @@ func _build_tooltip_card(bbcode: String, watermark: Texture2D = null, with_lock:
 	sb.border_color = Color(0.216, 0.788, 0.690, 0.5)
 	sb.content_margin_left = 15
 	sb.content_margin_right = 15
-	sb.content_margin_top = 13
-	sb.content_margin_bottom = 13
+	# v147i: lockable cards get a taller top/bottom band so the ✕ and the fill meter
+	# fit entirely within the padding. Growing top AND bottom equally keeps the card
+	# symmetric — the earlier right-only gutter is what shifted the content sideways.
+	sb.content_margin_top = 13.0 + (5.0 if with_lock else 0.0)
+	sb.content_margin_bottom = 13.0 + (5.0 if with_lock else 0.0)
 	sb.shadow_color = Color(0, 0, 0, 0.55)
 	sb.shadow_size = 14
 	sb.shadow_offset = Vector2(0, 4)
@@ -615,15 +618,17 @@ class _TooltipLock extends Control:
 	# so they are provably inside the border (and off the rounded corners) on any
 	# card, instead of landing wherever a hand-picked offset happened to fall.
 	const EDGE_PAD := 3.0
-
-	func _card_right() -> float:
-		return size.x + _m.z
+	# The corner brackets are drawn from (size.x + 10) outward, with 9px arms reaching
+	# back to size.x + 1. Sitting left of the text column's right edge keeps the
+	# widgets clear of them, while the taller top/bottom band keeps them off the text.
+	func _widget_x() -> float:
+		return size.x - R - EDGE_PAD
 
 	func _ring_centre() -> Vector2:
-		return Vector2(_card_right() - R - EDGE_PAD, size.y + _m.w - R - EDGE_PAD)
+		return Vector2(_widget_x(), size.y + _m.w - R - EDGE_PAD)
 
 	func _btn_centre() -> Vector2:
-		return Vector2(_card_right() - R - EDGE_PAD, -_m.y + R + EDGE_PAD)
+		return Vector2(_widget_x(), -_m.y + R + EDGE_PAD)
 
 	func _process(delta: float) -> void:
 		if is_locked:
@@ -674,12 +679,9 @@ class _TooltipWatermark extends Control:
 class _TooltipChrome extends Control:
 	var accent := Color(0.373, 0.878, 0.784, 0.85)
 	var node_col := Color(0.216, 0.788, 0.690, 0.95)
-	# v147h: lockable cards hand BOTH right corners to the lock widgets — the ✕ owns
-	# top-right, the fill meter owns bottom-right. Drawing a bracket in either put
-	# two graphics in the same ~16px and read as a collision. Both are suppressed
-	# for the card's whole life (not just while a widget is visible) so nothing
-	# pops in or out as the meter completes.
-	var skip_right_corners := false
+	# v147i: all four brackets always draw — suppressing the right pair left the card
+	# visibly lopsided. The lock widgets are inset clear of them instead.
+	var skip_right_corners := false   # kept for compatibility; no longer used
 	func _ready() -> void:
 		resized.connect(queue_redraw)
 	func _draw() -> void:
@@ -698,9 +700,6 @@ class _TooltipChrome extends Control:
 		var corners := [Vector2(-ox, -oy), Vector2(w + ox, -oy), Vector2(-ox, h + oy), Vector2(w + ox, h + oy)]
 		var dirs := [Vector2(1, 1), Vector2(-1, 1), Vector2(1, -1), Vector2(-1, -1)]
 		for i in 4:
-			# corners: 0 = top-left, 1 = top-right, 2 = bottom-left, 3 = bottom-right
-			if skip_right_corners and (i == 1 or i == 3):
-				continue
 			var c: Vector2 = corners[i]
 			var d: Vector2 = dirs[i]
 			draw_line(c, c + Vector2(L * d.x, 0.0), accent, t)
@@ -821,6 +820,12 @@ func _on_tooltip_meta_hover(meta) -> void:
 		return
 	var key := s.substr(6)
 	if not GLOSSARY.has(key):
+		return
+	# v147i: a LOCKED glossary card is pinned by the player and _free_glossary_card()
+	# refuses to clear it — so spawning another here overwrote _glossary_card and
+	# left the locked one orphaned on screen forever (two identical definitions,
+	# one of them unclosable). Keep the pinned card; it owns the slot until its ✕.
+	if _glossary_locked and is_instance_valid(_glossary_card):
 		return
 	_free_glossary_card()
 	if not is_instance_valid(_item_tooltip):
@@ -1326,8 +1331,8 @@ func show_info_card(anchor: Control, title: String, body: String, lockable: bool
 	sb.border_width_top = 3                             # lit top accent
 	sb.content_margin_left = 14
 	sb.content_margin_right = 14
-	sb.content_margin_top = 12
-	sb.content_margin_bottom = 12
+	sb.content_margin_top = 12.0 + (5.0 if lockable else 0.0)
+	sb.content_margin_bottom = 12.0 + (5.0 if lockable else 0.0)
 	sb.shadow_color = Color(0, 0, 0, 0.55)
 	sb.shadow_size = 14
 	sb.shadow_offset = Vector2(0, 4)
