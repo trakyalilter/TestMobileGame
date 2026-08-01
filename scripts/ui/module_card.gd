@@ -327,6 +327,11 @@ func _draw_tile_visual(item_name: String, slot_type: String, rarity: int, rarity
 			dia.position = Vector2(i * (d + gap), 0)
 			dia.pivot_offset = Vector2(d * 0.5, d * 0.5)
 			dia.rotation_degrees = 45
+			# v147: a FILLED pip is clickable here so a core can be pulled back out of
+			# gear while it sits in the Armory. Previously removal existed only on the
+			# equipped-slot panel, so a core socketed into a module you then unequipped
+			# was stuck. Same gesture as that panel (click the pip). Empty pips stay
+			# click-through so they never eat a drag onto the tile.
 			dia.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			var dsb = StyleBoxFlat.new()
 			dsb.set_border_width_all(1)
@@ -335,6 +340,19 @@ func _draw_tile_visual(item_name: String, slot_type: String, rarity: int, rarity
 				var gc = _get_gem_color(ElementDB.get_display_name(gem))
 				dsb.bg_color = gc
 				dsb.border_color = gc.lerp(Color.WHITE, 0.5)
+				dia.mouse_filter = Control.MOUSE_FILTER_STOP
+				dia.tooltip_text = tr("%s — click to remove this Matrix Core") % ElementDB.get_display_name(gem)
+				var sock_i := i
+				dia.gui_input.connect(func(ev):
+					if ev is InputEventMouseButton and ev.pressed and ev.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT]:
+						var sm_g = GameState.shipyard_manager
+						# remove_gem() emits inventory_updated, which the Designer page
+						# already rebuilds on — no page handle needed here.
+						if sm_g and sm_g.remove_gem(mid, sock_i):
+							UITheme.trigger_circuit_surge(self)
+							UITheme.show_notification(tr("Matrix Core removed"), Color(0.8, 0.5, 1.0))
+						accept_event()
+				)
 			else:
 				dsb.bg_color = Color(0, 0, 0, 0.45)
 				dsb.border_color = Color(0.55, 0.60, 0.68, 0.85)
@@ -1121,6 +1139,14 @@ func _hide_coach_arrow() -> void:
 
 func _gui_input(event):
 	if event is InputEventMouseButton:
+		# v161: the repair hammer now works on ARMORY cards, not just equipped
+		# slots. Held tool + left click = repair this stored module (same modal,
+		# same Spare-Part cost as an equipped one). Consumed before the
+		# arm/pin gestures so picking the tool up never equips by accident.
+		if event.pressed and event.button_index == MOUSE_BUTTON_LEFT and _repair_mode_active():
+			_request_repair()
+			accept_event()
+			return
 		if event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 			_show_demolish_menu()
 		elif event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
@@ -1131,6 +1157,26 @@ func _gui_input(event):
 				pin_toggled.emit(mid)
 			else:
 				clicked.emit(mid)
+
+# v161 (armory repair): find the Designer page above this card and ask whether
+# the hammer tool is currently in hand. Walks ancestors because armory cards are
+# rebuilt into scroll containers, so the page is not a fixed parent depth.
+func _repair_page():
+	var n: Node = get_parent()
+	while n != null:
+		if n.has_method("open_repair_dialog") and "is_repair_mode" in n:
+			return n
+		n = n.get_parent()
+	return null
+
+func _repair_mode_active() -> bool:
+	var p = _repair_page()
+	return p != null and bool(p.is_repair_mode)
+
+func _request_repair() -> void:
+	var p = _repair_page()
+	if p != null:
+		p.open_repair_dialog(mid)
 
 func _show_demolish_menu():
 	var sm = GameState.shipyard_manager

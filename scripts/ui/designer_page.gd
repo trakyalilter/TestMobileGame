@@ -2239,10 +2239,14 @@ func rebuild_storage():
 					"stats": {},
 					"desc": ElementDB.get_element_description(core_id)
 				}
-				# v111.16: cores are click-to-arm like modules (drag retired).
-				# Clicking arms the core → an equipped module's empty matrix socket
-				# (which glows) then accepts it on click.
-				core_card.is_draggable = false
+				# v147: drag restored. Cores are BOTH draggable and click-to-arm —
+				# dropping one on an equipped module sockets it into the first free
+				# socket (designer_slot_widget._can_drop_data/_equip_payload already
+				# route the "gem" payload), while click-to-arm still allows picking an
+				# EXACT socket via the per-socket pips. Drag was retired in v111.16
+				# when the old preview re-instantiated module_card and crashed; the
+				# v112 lightweight preview fixed that cause, so it is safe again.
+				core_card.is_draggable = true
 				core_card.is_selected = (core_id == _armed_mid)
 				core_card.clicked.connect(_on_card_clicked)
 				core_card.setup(core_id, fake_data, qty)
