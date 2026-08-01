@@ -2139,7 +2139,12 @@ func rebuild_storage():
 				# non-matching slot_type via _can_drop_data, and module cards aren't
 				# drop targets, so a drag can only land on a compatible ship slot.
 				# Click-to-arm still works alongside it.
-				item.is_selected = (module_id in selected_mids) or (module_id == _armed_mid)
+				# v147: arming a gear card no longer lights the CARD. The compatible
+				# ship slots already brighten, which says the useful thing ("it can go
+				# here"); glowing the tile as well just marked where the cursor already
+				# was. The Manage multi-select glow stays — that one is the only cue
+				# for which items a bulk action will hit.
+				item.is_selected = (module_id in selected_mids)
 				item.is_draggable = true
 				if "compare_equipped_mid" in item:
 					# v136: a live compare-pin makes the whole armory compare vs the pinned
