@@ -59,7 +59,13 @@ var _equip_focus_filter_type: String = ""
 var _equip_focus_weapon_type: String = ""
 var all_slot_widgets: Array = []
 var all_ammo_widgets: Array = []   # v134g: ammo slots, tracked so they can size-match the armory too
-var armory_sort_mode: int = 0  # 0=Power, 1=Zone, 2=Rarity
+var armory_sort_mode: int = 0  # 0=DPS, 1=Zone, 2=Rarity
+# v147: damage-type narrowing inside the WEAPONS tab ("" = all families). Only
+# meaningful while active_filter == "weapon"; reset whenever the tab changes so
+# a stale family can't hide every module on another tab.
+var armory_weapon_family: String = ""
+var _weapon_family_row: HBoxContainer = null
+var _weapon_family_buttons: Dictionary = {}
 var _sort_buttons: Array = []
 var _preset_load_buttons: Array = []
 var _preset_row: HBoxContainer = null   # v131: kept for the coach anchor
@@ -554,7 +560,7 @@ func _setup_armory_toolbar(v_box: Node, scroll_node: Node):
 
 	# Sort dropdown — consolidates the 3 sort buttons
 	armory_sort_dropdown = OptionButton.new()
-	armory_sort_dropdown.add_item(tr("Sort · Power"),  0)
+	armory_sort_dropdown.add_item(tr("Sort · DPS"),    0)
 	armory_sort_dropdown.add_item(tr("Sort · Zone"),   1)
 	armory_sort_dropdown.add_item(tr("Sort · Rarity"), 2)
 	armory_sort_dropdown.selected = armory_sort_mode
@@ -581,6 +587,58 @@ func _setup_armory_toolbar(v_box: Node, scroll_node: Node):
 
 	v_box.add_child(toolbar)
 	v_box.move_child(toolbar, scroll_node.get_index())
+	_setup_weapon_family_row(v_box, scroll_node)
+
+# v147: damage-type sub-filter for the WEAPONS tab. Weapons are the only category
+# where the player owns several mutually-exclusive kinds at once (the whole point
+# of the K/E/X triangle), so "38 WEAPONS" was an unsearchable pile. Visible only
+# while the WEAPONS tab is active; Cryo appears once it is unlocked, matching the
+# loot filter, so it never spoils the first-Warp reveal.
+func _setup_weapon_family_row(v_box: Node, scroll_node: Node) -> void:
+	_weapon_family_row = HBoxContainer.new()
+	_weapon_family_row.name = "WeaponFamilyRow"
+	_weapon_family_row.add_theme_constant_override("separation", 4)
+	var lbl := Label.new()
+	lbl.text = tr("TYPE")
+	lbl.add_theme_font_size_override("font_size", 10)
+	lbl.add_theme_color_override("font_color", UITheme.COLORS["text_dim"])
+	lbl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_weapon_family_row.add_child(lbl)
+	for entry in [["", "ALL"], ["kinetic", "KINETIC"], ["energy", "ENERGY"], ["explosive", "EXPLOSIVE"], ["cryo", "CRYO"]]:
+		var fam: String = entry[0]
+		var btn := Button.new()
+		btn.text = tr(entry[1])
+		btn.add_theme_font_size_override("font_size", 10)
+		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		btn.pressed.connect(func():
+			armory_weapon_family = fam
+			_refresh_weapon_family_row()
+			rebuild_storage())
+		_weapon_family_row.add_child(btn)
+		_weapon_family_buttons[fam] = btn
+	v_box.add_child(_weapon_family_row)
+	v_box.move_child(_weapon_family_row, scroll_node.get_index())
+	_refresh_weapon_family_row()
+
+func _refresh_weapon_family_row() -> void:
+	if not is_instance_valid(_weapon_family_row):
+		return
+	# Only the WEAPONS tab has damage types to narrow by.
+	_weapon_family_row.visible = (active_filter == "weapon")
+	var cryo_ok: bool = GameState.game_settings.get("cryo_unlocked", false)
+	for fam in _weapon_family_buttons:
+		var b: Button = _weapon_family_buttons[fam]
+		if not is_instance_valid(b):
+			continue
+		if fam == "cryo":
+			b.visible = cryo_ok
+		var col: Color = UITheme.COLORS["accent"]
+		match fam:
+			"kinetic": col = Color(0.439, 0.533, 0.949)
+			"energy": col = Color(0.373, 0.878, 0.784)
+			"explosive": col = Color(1.0, 0.761, 0.302)
+			"cryo": col = Color(0.224, 0.651, 0.878)
+		_apply_filter_button_style(b, fam == armory_weapon_family, col)
 
 # ── Toolbar styling helpers (match the parchment/brass theme used elsewhere) ──
 
@@ -1232,6 +1290,62 @@ func _on_warp_refresh(_gains):
 	trigger_refresh()
 
 const _SLOT_SCROLL_PATH := "VBoxContainer/MainLayout/LeftColumn/SchematicArea/LayoutSplit/SlotListPanel/SlotScroll"
+
+# v161 (armory repair): one repair dialog, addressed by module id, shared by the
+# equipped slots and the Armory cards. The whole repair path used to live in
+# designer_slot_widget, so stored gear was simply unrepairable — the player had
+# to equip a worn module just to service it. Cost comes from the manager
+# (get_repair_parts_cost) so both paths charge the same.
+func open_repair_dialog(module_id: String) -> void:
+	if manager == null or module_id == "":
+		return
+	var m_data: Dictionary = manager.modules.get(module_id, {})
+	if m_data.is_empty() or not module_id.begins_with("custom_"):
+		UITheme.show_notification(tr("Cannot repair this module"), UITheme.COLORS["negative"])
+		return
+	var cur_dur: int = int(m_data.get("durability", 100))
+	if cur_dur >= 100:
+		UITheme.show_notification(tr("Module is at maximum durability"), UITheme.COLORS["positive"])
+		return
+
+	var parts_cost: int = manager.get_repair_parts_cost(module_id)
+	var have: int = int(GameState.resources.get_element_amount("SparePart"))
+	var affordable: bool = have >= parts_cost
+
+	var nm: String = str(m_data.get("name", "Module")).to_upper()
+	var warn_hex: String = UITheme.COLORS["warning"].to_html(false)
+	var pos_hex: String = UITheme.COLORS["positive"].to_html(false)
+	var dim_hex: String = UITheme.COLORS["text_dim"].to_html(false)
+	var neg_hex: String = UITheme.COLORS["negative"].to_html(false)
+	var have_hex: String = pos_hex if affordable else neg_hex
+
+	var body := tr("[center]Restore  [b]%s[/b]\n") % nm
+	body += tr("from [color=#%s]%d%%[/color]   →   [color=#%s]100%%[/color] durability.\n\n") % [warn_hex, cur_dur, pos_hex]
+	body += "[color=#%s]%s[/color]     [b][color=#%s]%d[/color][/b]  %s\n" % [dim_hex, tr("COST"), warn_hex, parts_cost, tr("Spare Parts")]
+	body += "[color=#%s]%s[/color]     [b][color=#%s]%d[/color][/b]" % [dim_hex, tr("IN STOCK"), have_hex, have]
+	if not affordable:
+		body += "\n\n[color=#%s][b]%s[/b][/color]" % [neg_hex, tr("NOT ENOUGH SPARE PARTS")]
+	body += "[/center]"
+
+	var mgr = manager
+	var target_id := module_id
+	var p_cost := parts_cost
+	var on_ok := func():
+		if mgr.repair_module_by_id(target_id, p_cost):
+			UITheme.show_notification(tr("Module repaired"), UITheme.COLORS["positive"])
+			trigger_refresh()
+		else:
+			UITheme.show_notification(tr("Not enough Spare Parts"), UITheme.COLORS["negative"])
+
+	UITheme.show_confirm({
+		"title": tr("Repair Module"),
+		"body": body,
+		"confirm_text": "Repair",
+		"cancel_text": "Cancel",
+		"accent": UITheme.COLORS["warning"],
+		"confirm_disabled": not affordable,
+		"on_confirm": on_ok,
+	})
 
 func trigger_refresh():
 	# v140: keep the equipped-slot list scrolled where it was — rebuild_slots repopulates
@@ -1992,6 +2106,15 @@ func rebuild_storage():
 				var ra = data_a.get("rarity", 0)
 				var rb = data_b.get("rarity", 0)
 				if ra != rb: return ra > rb
+		# v147: mode 0 sorts by real DPS, not the old blended "power" heuristic.
+		# Power summed the raw attack channels and ignored atk_interval, so a slow
+		# heavy hitter tied a fast one that actually out-damaged it. Non-weapons have
+		# no DPS, so they keep the power score and still sort sensibly against
+		# each other under the same option.
+		var dps_a := _get_module_dps(data_a)
+		var dps_b := _get_module_dps(data_b)
+		if dps_a > 0.0 or dps_b > 0.0:
+			if dps_a != dps_b: return dps_a > dps_b
 		return _get_module_power_score(a, data_a) > _get_module_power_score(b, data_b)
 	)
 
@@ -2205,7 +2328,13 @@ func _is_module_visible_for_filter(module_data: Dictionary) -> bool:
 		"all":
 			return true
 		"weapon":
-			return module_type == "weapon"
+			if module_type != "weapon":
+				return false
+			# v147: damage-type sub-filter, shown only while the WEAPONS tab is
+			# active. "" = show every family.
+			if armory_weapon_family != "":
+				return _weapon_damage_family(module_data) == armory_weapon_family
+			return true
 		"shield":
 			return module_type == "shield"
 		"armor":
@@ -2236,6 +2365,11 @@ func rebuild_ammo_storage():
 
 func _on_filter_changed(filter_id: String):
 	active_filter = _normalize_filter_id(filter_id)
+	# v147: leaving the WEAPONS tab clears its damage-type narrowing, so a family
+	# left selected can't silently filter a tab that has no damage types.
+	if active_filter != "weapon":
+		armory_weapon_family = ""
+	_refresh_weapon_family_row()
 	_refresh_filter_button_styles()
 	_refresh_tab_labels()
 	rebuild_storage()
@@ -2348,6 +2482,17 @@ func get_module_widget(module_id: String) -> Control:
 			return child
 	return null
 
+# v147: real DPS for the armory sort — total damage across every channel divided
+# by the attack interval. Returns 0.0 for anything that deals no damage (shields,
+# armor, batteries…), which is the caller's signal to fall back to the power score.
+func _get_module_dps(data: Dictionary) -> float:
+	var s: Dictionary = data.get("stats", {})
+	var dmg := float(s.get("atk_kinetic", 0)) + float(s.get("atk_energy", 0)) \
+		+ float(s.get("atk_explosive", 0)) + float(s.get("atk_cryo", 0))
+	if dmg <= 0.0:
+		return 0.0
+	return dmg / max(0.01, float(s.get("atk_interval", 2.5)))
+
 func _get_module_power_score(id: String, data: Dictionary) -> int:
 	var score = 0
 	var stats = data.get("stats", {})
@@ -2372,6 +2517,11 @@ func _get_module_power_score(id: String, data: Dictionary) -> int:
 		score += stats["atk_energy"]
 	if stats.get("atk_explosive", 0) > 0:
 		score += stats["atk_explosive"]
+	# v147: atk_cryo was missing, so every Cryo/Corrosion weapon scored as if it
+	# dealt no damage and sank to the bottom of every power-sorted list - the exact
+	# weapons that are the ONLY way to breach Warp-Hardened and Corrosion hulls.
+	if stats.get("atk_cryo", 0) > 0:
+		score += stats["atk_cryo"]
 	if stats.get("max_shield", 0) > 0:
 		score += stats["max_shield"] / 5
 	if stats.get("hp", 0) > 0:

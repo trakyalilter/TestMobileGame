@@ -248,6 +248,10 @@ func _get_module_power_score(id: String, data: Dictionary) -> int:
 	if stats.get("atk_kinetic", 0) > 0: score += stats["atk_kinetic"]
 	if stats.get("atk_energy", 0) > 0: score += stats["atk_energy"]
 	if stats.get("atk_explosive", 0) > 0: score += stats["atk_explosive"]
+	# v147: atk_cryo was missing, so every Cryo/Corrosion weapon scored as if it
+	# dealt no damage and sorted as the WEAKEST item in the shipyard list — the
+	# exact weapons that are the only way to breach Warp-Hardened / Corrosion hulls.
+	if stats.get("atk_cryo", 0) > 0: score += stats["atk_cryo"]
 	if stats.get("max_shield", 0) > 0: score += stats["max_shield"] / 5
 	if stats.get("hp", 0) > 0: score += stats["hp"] / 10
 	if stats.get("energy_capacity", 0) > 0: score += stats["energy_capacity"]
