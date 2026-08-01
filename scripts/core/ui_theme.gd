@@ -585,16 +585,19 @@ class _TooltipLock extends Control:
 	# v147b: the fill meter sits BOTTOM-right and the close button TOP-right, so the
 	# two never occupy the same corner — the ring is progress, the ✕ is an action,
 	# and stacking them made the ✕ look like it was still filling.
-	# v147c: both ride the reserved right gutter (the card widens its right content
-	# margin by TOOLTIP_LOCK_GUTTER), so neither can land on the text.
+	# v147d: PanelContainer lays children out INSIDE the content margins, so this
+	# node's rect is exactly the text column — `size.x - n` was therefore ON the
+	# text, which is why the ✕ sat on the title. The reserved gutter lives just
+	# PAST our right edge, so the widgets go at size.x + gutter/2 (Controls don't
+	# clip, so drawing outside our own rect is fine and lands in the card margin).
 	func _gutter_x() -> float:
-		return size.x - UITheme.TOOLTIP_LOCK_GUTTER * 0.5
+		return size.x + UITheme.TOOLTIP_LOCK_GUTTER * 0.5
 
 	func _ring_centre() -> Vector2:
-		return Vector2(_gutter_x(), size.y - R - 6.0)
+		return Vector2(_gutter_x(), size.y - R)
 
 	func _btn_centre() -> Vector2:
-		return Vector2(_gutter_x(), R + 6.0)
+		return Vector2(_gutter_x(), R)
 
 	func _process(delta: float) -> void:
 		if is_locked:
@@ -754,8 +757,17 @@ func _ensure_tooltip_timer() -> void:
 		return
 	_tooltip_timer = Timer.new()
 	_tooltip_timer.one_shot = true
-	_tooltip_timer.timeout.connect(_free_item_tooltip)
+	_tooltip_timer.timeout.connect(_on_tooltip_grace_timeout)
 	add_child(_tooltip_timer)
+
+# v147d: the grace timer used to call _free_item_tooltip directly, which walked
+# straight past the lock guards in hide_item_tooltip(). That is why inspecting a
+# glossary card INSIDE a card killed the outer one: the cursor leaving the source
+# tile armed this timer, and it fired regardless of what was locked.
+func _on_tooltip_grace_timeout() -> void:
+	if is_tooltip_locked() or (_glossary_locked and is_instance_valid(_glossary_card)):
+		return
+	_free_item_tooltip()
 
 # Cursor entered the live tooltip → keep it alive (cancel the pending hide).
 func _on_tooltip_rtl_enter() -> void:
