@@ -790,8 +790,15 @@ var enemy_db = {
 	},
 	"z2_silicate_golem": {
 		"name": "Silicate Golem",
+		# Stats keep the v145 interval normalization (2.0s, atk rescaled to hold DPS).
 		"stats": {"hp": 480, "atk": 22, "def": 7, "atk_interval": 2.0, "accuracy": 22},
-		"loot": [["Si", 5, 15], ["Fe", 3, 8], ["Res1", 2, 4], ["PirateSalvage", 1, 3]],
+		# v146: PirateSalvage removed. It is the PIRATE faction's signature drop
+		# (Skiff / Claim Jumper / Ore Hauler), and a silicate rock creature carrying
+		# pirate salvage both broke that identity and made this the strictly better
+		# target: the Golem paid the SAME PirateSalvage 1-3 as the Pirate Skiff while
+		# also bundling Si 5-15 + Ti + DamagedCircuitry, so the Skiff had no reason to
+		# exist. The Golem now owns the silicate/tech package; pirates own the salvage.
+		"loot": [["Si", 5, 15], ["Fe", 3, 8], ["Res1", 2, 4]],
 		"rare_loot": [["Ti", 0.10, 1, 3], ["DamagedCircuitry", 0.40, 1, 3]],
 		"module_drop_chance": 0.20,   # v138c: was 0.10 (see z2_pirate_skiff note)
 		"module_drop_pool": ["z2_kinetic", "z2_energy", "z2_missile", "z2_shield", "z2_armor", "z2_battery", "z2_sensor"],
