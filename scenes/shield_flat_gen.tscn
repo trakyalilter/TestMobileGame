@@ -1,4 +1,4 @@
-[gd_scene load_steps=2 format=3 uid="uid://bshieldflatgen01"]
+[gd_scene load_steps=2 format=3 uid="uid://dh1vl4g2ym3ge"]
 
 [ext_resource type="Script" path="res://scripts/sim/shield_flat_gen.gd" id="1"]
 

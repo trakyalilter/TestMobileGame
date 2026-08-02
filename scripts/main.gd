@@ -1158,6 +1158,15 @@ func _process(delta):
 		_update_claim_badges()
 		_maybe_show_warp_coach()
 
+# v161: an equip step is "live" only while it is active AND unfinished. Once the
+# player equips the item the mission completes but lingers in active_missions
+# until claimed — treating that as live is what stranded the Armory dim-filter.
+func _equip_step_live(mission_id: String) -> bool:
+	var mm = GameState.mission_manager
+	if mm == null or not (mission_id in mm.active_missions):
+		return false
+	return not bool(mm.missions.get(mission_id, {}).get("completed", false))
+
 func _update_navigation_hints():
 	# A page tour owns the spotlight while it's open — don't double up.
 	if _coach_active():
@@ -2078,18 +2087,25 @@ func _update_navigation_hints():
 	# P1 Onboarding: clear the Designer's equip-mission Armory filter when
 	# no equip mission is active. set_equip_focus_filter and
 	# clear_equip_focus_filter are both idempotent so calling per-tick is cheap.
+	# v161: "active" is not the same as "still needs doing". A finished-but-unclaimed
+	# mission STAYS in active_missions, and the claim-reminder branch above wins the
+	# elif chain the moment it completes — so the branch that set the focus filter
+	# never runs again, and nothing cleared it. Result: the player equips the part,
+	# the mission goes claimable, and the Armory is left permanently dimmed to one
+	# slot type ("gear cards become dim"). Gate on _equip_step_live: active AND not
+	# completed.
 	var _any_equip_active: bool = (
-		"m005c" in mm.active_missions   # v134g: battery-equip step
-		or "m007b" in mm.active_missions
-		or "m015b" in mm.active_missions
-		or "m022b" in mm.active_missions
-		or "m024c" in mm.active_missions
-		or "m024a2" in mm.active_missions   # v140: armor-equip step (else its focus filter clears each frame → rebuild_storage thrash → armory unhoverable/undraggable)
-		or "m024b2" in mm.active_missions   # v141: consumable-equip step — same thrash guard
+		_equip_step_live("m005c")   # v134g: battery-equip step
+		or _equip_step_live("m007b")
+		or _equip_step_live("m015b")
+		or _equip_step_live("m022b")
+		or _equip_step_live("m024c")
+		or _equip_step_live("m024a2")   # v140: armor-equip step (else its focus filter clears each frame → rebuild_storage thrash → armory unhoverable/undraggable)
+		or _equip_step_live("m024b2")   # v141: consumable-equip step — same thrash guard
 		# v134b: the damage-triangle fight steps have a designer EQUIP phase —
 		# keep the weapon filter alive exactly while that phase sets it.
-		or ("m017b" in mm.active_missions and _count_weapon_type_equipped("energy") < 2)
-		or ("m017d" in mm.active_missions and _count_weapon_type_equipped("explosive") < 2)
+		or (_equip_step_live("m017b") and _count_weapon_type_equipped("energy") < 2)
+		or (_equip_step_live("m017d") and _count_weapon_type_equipped("explosive") < 2)
 	)
 	if not _any_equip_active and pages.has("designer"):
 		var _dp = pages["designer"]

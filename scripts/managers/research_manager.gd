@@ -314,7 +314,7 @@ var tech_tree = {
 	},
 	"xeno_archaeology": {
 		"name": "Xeno-Archaeology",
-		"tier": 3,
+		"tier": 5,   # v145: was 3 — parent sector_alpha_decryption is T5; a child cannot precede its prereq
 		"category": "meta",
 		"cost": 5000,
 		"cost_items": {"VoidArtifact": 1, "NavData": 5},
@@ -702,7 +702,7 @@ var tech_tree = {
 	},
 	"magnetic_funnels": {
 		"name": "Magnetic Funnels",
-		"tier": 1,
+		"tier": 2,   # v145: was 1 — parent energy_shields is T2; a child cannot precede its prereq
 		"category": "gathering",
 		"cost": 2000,
 		"type": "technology",
@@ -854,7 +854,7 @@ var tech_tree = {
 	},
 	"blast_furnace": {
 		"name": "Blast Furnace",
-		"tier": 1,
+		"tier": 2,   # v145: was 1 — parent smelting is T2; a child cannot precede its prereq
 		"category": "processing",
 		"cost": 800,
 		"cost_items": {"Res1": 10},
@@ -873,7 +873,7 @@ var tech_tree = {
 	},
 	"hydraulic_press": {
 		"name": "Hydraulic Press",
-		"tier": 1,
+		"tier": 2,   # v145: was 1 — parent adv_materials is T2; a child cannot precede its prereq
 		"category": "processing",
 		"cost": 1500,
 		"cost_items": {"Res1": 10},

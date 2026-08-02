@@ -25,10 +25,12 @@ func _apply_theme() -> void:
 var _center_panel: PanelContainer
 var _menu_root: Control
 var _options_root: Control
+var _howto_root: Control
 var btn_continue: Button
 var btn_new_game: Button
+var btn_howto: Button
 var btn_exit: Button
-var chk_offline_combat: CheckBox
+var pill_offline_combat: Control
 var has_save: bool = false
 var _stars: Array = []
 # VFX: parallax drift + occasional shooting star.
@@ -148,6 +150,7 @@ func _build_center_panel():
 	_add_sep(vbox, 22, 18)
 	_build_main_menu(vbox)
 	_build_options_menu(vbox)
+	_build_howto_screen(vbox)
 
 	# Same selectable card-soul chrome as gameplay cards (Sys Config).
 	UITheme._attach_chrome(_center_panel, ACCENT_CYAN)
@@ -219,6 +222,15 @@ func _build_main_menu(parent: VBoxContainer):
 	btn_new_game.custom_minimum_size = Vector2(0, 50)
 	vbox.add_child(btn_new_game)
 
+	# How to Play — the game teaches its systems in-run via coach marks, but a
+	# returning or curious player had nowhere to read the loop as a whole. Sits
+	# under New Game (a first-timer's natural next glance) and above the
+	# settings/exit row so it never competes with CONTINUE.
+	btn_howto = _make_btn(tr("HOW TO PLAY"), 15, "howto")
+	btn_howto.custom_minimum_size = Vector2(0, 40)
+	btn_howto.pressed.connect(_on_howto_pressed)
+	vbox.add_child(btn_howto)
+
 	_add_sep(vbox, 14, 12)
 
 	# Exit row
@@ -265,10 +277,23 @@ func _build_options_menu(parent: VBoxContainer):
 
 	_add_sep(vbox, 2, 6)
 
+	# v161: the settings list outgrew the panel once the INTERFACE group landed
+	# (title clipped off the top, last palette off the bottom). Everything below
+	# the heading scrolls; the RETURN button stays pinned outside it.
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(0, 330)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	vbox.add_child(scroll)
+	var content := VBoxContainer.new()
+	content.add_theme_constant_override("separation", 6)
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(content)
+
 	var row = HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", 14)
-	vbox.add_child(row)
+	content.add_child(row)
 
 	var lbl = Label.new()
 	lbl.text = tr("Enable Offline Combat")
@@ -276,36 +301,134 @@ func _build_options_menu(parent: VBoxContainer):
 	lbl.add_theme_color_override("font_color", TEXT_MAIN)
 	row.add_child(lbl)
 
-	chk_offline_combat = CheckBox.new()
-	chk_offline_combat.custom_minimum_size = Vector2(40, 40)
-	chk_offline_combat.toggled.connect(_on_offline_combat_toggled)
-	row.add_child(chk_offline_combat)
+	# v161: segmented Off|On pill (UITheme.make_segmented_pill) — the same control
+	# the in-game Sys Config uses. Was a raw Godot CheckBox: a bare outlined square
+	# that matched nothing else in the game and read as a web form field.
+	pill_offline_combat = UITheme.make_segmented_pill(
+		[[tr("Off"), false], [tr("On"), true]],
+		GameState.game_settings.get("offline_combat", false),
+		func(v): _on_offline_combat_toggled(bool(v)))
+	row.add_child(pill_offline_combat)
 
-	_add_sep(vbox, 8, 4)
+	_add_sep(content, 8, 4)
 
 	# Language selector (Phase-0 loc). Names shown in their own language; selecting
 	# one persists the locale and reloads the scene so every tr() re-reads under it.
 	var lang_row = HBoxContainer.new()
 	lang_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	lang_row.add_theme_constant_override("separation", 10)
-	vbox.add_child(lang_row)
+	content.add_child(lang_row)
 	var lang_lbl = Label.new()
 	lang_lbl.text = tr("Language") + ":"
 	lang_lbl.add_theme_font_size_override("font_size", 16)
 	lang_lbl.add_theme_color_override("font_color", TEXT_MAIN)
 	lang_row.add_child(lang_lbl)
-	for opt in [["English", "en"], ["Türkçe", "tr"]]:
-		var lang_btn = _make_btn(str(opt[0]), 14, "lang_" + str(opt[1]))
-		lang_btn.custom_minimum_size = Vector2(120, 40)
-		lang_btn.pressed.connect(_on_language_selected.bind(str(opt[1])))
-		lang_row.add_child(lang_btn)
+	# v161: same segmented pill as the toggle above. Two loose boxed buttons never
+	# showed WHICH language was active; the pill fills the current one.
+	lang_row.add_child(UITheme.make_segmented_pill(
+		[["English", "en"], ["Türkçe", "tr"]],
+		TranslationServer.get_locale().substr(0, 2),
+		func(v): _on_language_selected(str(v))))
 
-	_add_sep(vbox, 8, 4)
+	_add_sep(content, 10, 8)
+
+	# ── INTERFACE ──────────────────────────────────────────────────────────
+	# v161: the same look-and-feel settings the in-game Sys Config exposes.
+	# They were reachable only AFTER starting a run, so a player who wanted a
+	# bigger cursor or a different palette had to load a save to get at them.
+	var iface_title = Label.new()
+	iface_title.text = tr("INTERFACE")
+	iface_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	iface_title.add_theme_font_size_override("font_size", 11)
+	iface_title.add_theme_color_override("font_color", Color(TEXT_DIM, 0.9))
+	content.add_child(iface_title)
+
+	_add_sep(content, 6, 4)
+
+	_menu_setting_row(content, tr("Cursor Size"),
+		[[tr("Small"), CursorManager.SIZE_SMALL],
+		 [tr("Medium"), CursorManager.SIZE_MEDIUM],
+		 [tr("Large"), CursorManager.SIZE_LARGE]],
+		CursorManager.get_size(),
+		func(v):
+			GameState.game_settings["cursor_size"] = int(v)
+			CursorManager.apply_size(int(v))
+			_persist_pref())
+
+	_menu_setting_row(content, tr("Card Frame"),
+		[[tr("Industrial"), UITheme.CHROME_INDUSTRIAL],
+		 [tr("Holographic"), UITheme.CHROME_HOLOGRAPHIC],
+		 [tr("Precursor"), UITheme.CHROME_PRECURSOR]],
+		UITheme.get_card_chrome(),
+		func(v):
+			GameState.game_settings["card_chrome"] = int(v)
+			UITheme.chrome_changed.emit()
+			_persist_pref())
+
+	_add_sep(content, 6, 4)
+
+	# Palette: 7 options, too many for a pill — wrapping row of buttons each
+	# tinted with its own signature accent, matching the in-game picker.
+	var pal_lbl = Label.new()
+	pal_lbl.text = tr("Color Palette")
+	pal_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	pal_lbl.add_theme_font_size_override("font_size", 13)
+	pal_lbl.add_theme_color_override("font_color", TEXT_MAIN)
+	content.add_child(pal_lbl)
+
+	var flow = HFlowContainer.new()
+	flow.alignment = FlowContainer.ALIGNMENT_CENTER
+	flow.add_theme_constant_override("h_separation", 6)
+	flow.add_theme_constant_override("v_separation", 6)
+	content.add_child(flow)
+	var cur_pal := UITheme.get_ui_palette()
+	for id in UITheme.PALETTE_ORDER:
+		var pal: Dictionary = UITheme.UI_PALETTES[id]
+		var pb = _make_btn(str(pal["name"]), 11, "settings")
+		pb.custom_minimum_size = Vector2(126, 32)
+		pb.add_theme_color_override("font_color",
+			Color.WHITE if id == cur_pal else Color.html(str(pal["colors"]["accent"])))
+		pb.pressed.connect(_on_menu_palette_pressed.bind(str(id)))
+		flow.add_child(pb)
+
+	_add_sep(content, 8, 4)
 
 	var btn_back = _make_btn(tr("RETURN TO MENU"), 14, "settings")
 	btn_back.custom_minimum_size = Vector2(0, 46)
 	btn_back.pressed.connect(_on_back_pressed)
 	vbox.add_child(btn_back)
+
+# Label-left, segmented-pill-right settings row (menu flavour of the in-game
+# Sys Config row).
+func _menu_setting_row(parent: VBoxContainer, label_text: String, opts: Array,
+		current, on_pick: Callable) -> void:
+	var row = HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 14)
+	parent.add_child(row)
+	var l = Label.new()
+	l.text = label_text
+	l.add_theme_font_size_override("font_size", 14)
+	l.add_theme_color_override("font_color", TEXT_MAIN)
+	row.add_child(l)
+	row.add_child(UITheme.make_segmented_pill(opts, current, on_pick))
+
+# Preferences live in GameState.game_settings, which only reaches disk through
+# save_game(). Writing one from the MENU when no save exists would mint a save
+# file for a player who never started a run — Continue would light up on a fresh
+# install. So only persist over an existing save; otherwise the choice applies
+# live now and is written with the player's first real save.
+func _persist_pref() -> void:
+	if has_save:
+		GameState.save_game()
+
+func _on_menu_palette_pressed(id: String) -> void:
+	GameState.game_settings["ui_palette"] = id
+	UITheme.apply_palette(id)
+	_persist_pref()
+	# Every stylebox on this screen was built against the old tokens; rebuild
+	# the menu so the new palette actually shows.
+	get_tree().reload_current_scene()
 
 func _on_language_selected(code: String) -> void:
 	Localization.set_locale(code)
@@ -405,6 +528,103 @@ func _spawn_shooting_star() -> void:
 # ─────────────────────────────────────────────
 #  HELPERS
 # ─────────────────────────────────────────────
+# ── HOW TO PLAY ───────────────────────────────────────────────────────────
+# A briefing, not a manual: eight short sections that name the loop, the trap
+# each system hides, and where to look when stuck. Everything here is teachable
+# in one screen — the in-run coach marks handle the step-by-step.
+const HOWTO_SECTIONS := [
+	["ONE TASK AT A TIME",
+		"Mining, Engineering, Research and Combat share a single active slot — starting one pauses the last. Pick the operation worth your next hour, then walk away; it keeps running."],
+	["GATHER, REFINE, BUILD",
+		"Mine raw materials, refine them in Engineering, spend the results in the Shipyard and on Infrastructure. Later tiers do not want more raw ore — they want the things ore becomes."],
+	["RESEARCH OPENS THE GAME",
+		"The Research Lab gates actions, recipes, buildings and sectors. If something looks missing or a recipe is greyed out, it is almost always a research node — look there first."],
+	["YOUR SHIP IS YOUR BUILD",
+		"Craft modules in the Shipyard, slot them in the Ship Designer. Batteries supply power and everything else draws it, so keep the grid margin positive. Save loadouts as presets and swap them per fight."],
+	["FIGHT SMART, NOT HARD",
+		"Every enemy resists one damage type and is weak to another — matching the weakness matters more than raw numbers. Sector bosses are deliberate gear checks: if one wall you, farm its sector for drops, then return."],
+	["WEAR AND REPAIR",
+		"Losing a fight wears every equipped module to 50%, and worn gear can be destroyed outright on the next loss. Recycle surplus modules into Spare Parts and repair with the hammer tool in the Ship Designer."],
+	["INCOME THAT NEVER SLEEPS",
+		"Infrastructure buildings and Bounty contracts run in the background no matter which task is active. Missions and Quests pay you for things you were doing anyway — claim them."],
+	["YOU ARE MEANT TO LEAVE",
+		"Progress accrues while the game is closed, up to a generous cap, and a report greets you on return. Offline combat is opt-in: it earns loot but risks module durability while unattended."],
+]
+
+func _build_howto_screen(parent: VBoxContainer) -> void:
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 10)
+	vbox.visible = false
+	parent.add_child(vbox)
+	_howto_root = vbox
+
+	var title := Label.new()
+	title.text = tr("HOW TO PLAY")
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 20)
+	title.add_theme_color_override("font_color", ACCENT_CYAN)
+	vbox.add_child(title)
+
+	var sub := Label.new()
+	sub.text = tr("DEEP SPACE OPERATIONS BRIEFING")
+	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sub.add_theme_font_size_override("font_size", 9)
+	sub.add_theme_color_override("font_color", Color(TEXT_DIM, 0.85))
+	vbox.add_child(sub)
+
+	_add_sep(vbox, 12, 10)
+
+	# Scrolls: the briefing is taller than the menu panel. Height is budgeted
+	# against the 720p base viewport — the panel is centred and grows both ways,
+	# so anything over ~300 here pushes the title and BACK off screen.
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(0, 296)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	vbox.add_child(scroll)
+
+	var list := VBoxContainer.new()
+	list.add_theme_constant_override("separation", 14)
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(list)
+
+	for i in range(HOWTO_SECTIONS.size()):
+		var sec: Array = HOWTO_SECTIONS[i]
+		var row := VBoxContainer.new()
+		row.add_theme_constant_override("separation", 3)
+		row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		list.add_child(row)
+
+		var head := Label.new()
+		# Numbered so the briefing reads as an ordered path, not a pile of tips.
+		head.text = "%02d   %s" % [i + 1, tr(str(sec[0]))]
+		head.add_theme_font_size_override("font_size", 13)
+		head.add_theme_color_override("font_color", ACCENT_CYAN)
+		row.add_child(head)
+
+		var body := Label.new()
+		body.text = tr(str(sec[1]))
+		body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		body.add_theme_font_size_override("font_size", 12)
+		body.add_theme_color_override("font_color", Color(TEXT_MAIN, 0.82))
+		body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(body)
+
+	_add_sep(vbox, 12, 10)
+
+	var back := _make_btn(tr("BACK"), 14, "settings_back")
+	back.custom_minimum_size = Vector2(0, 42)
+	back.pressed.connect(_on_howto_back_pressed)
+	vbox.add_child(back)
+
+func _on_howto_pressed() -> void:
+	_menu_root.hide()
+	_howto_root.show()
+
+func _on_howto_back_pressed() -> void:
+	_howto_root.hide()
+	_menu_root.show()
+
 func _make_btn(label: String, font_size: int, style: String) -> Button:
 	var btn = Button.new()
 	btn.text = label
@@ -425,6 +645,11 @@ func _apply_btn_style(btn: Button, style_type: String):
 		"exit":
 			accent  = UITheme.COLORS["negative"]
 			bg_base = Color(0.10, 0.05, 0.05, 0.95)
+		"howto":
+			# Aqua "ops" identity — informational, distinct from the green
+			# commit action above it and the indigo settings row below.
+			accent  = UITheme.CATEGORY_COLORS["ops"]
+			bg_base = Color(0.05, 0.10, 0.10, 0.95)
 		_:  # settings / back
 			accent  = UITheme.CATEGORY_COLORS["shipyard"]
 			bg_base = Color(0.07, 0.07, 0.11, 0.95)
@@ -688,10 +913,9 @@ func _enter_finalizing() -> void:
 func _on_options_pressed():
 	_menu_root.hide()
 	_options_root.show()
-	# set_pressed_no_signal: syncing the checkbox to the saved value must NOT emit
-	# toggled(), or opening Settings spuriously fires the consent-dialog handler
-	# (matches _on_offline_combat_consent/_decline below, which already do this).
-	chk_offline_combat.set_pressed_no_signal(GameState.game_settings.get("offline_combat", false))
+	# Visual-only sync: set_pill_value restyles without invoking on_pick, so
+	# opening Settings can't spuriously fire the consent-dialog handler.
+	UITheme.set_pill_value(pill_offline_combat, bool(GameState.game_settings.get("offline_combat", false)))
 
 func _on_back_pressed():
 	_options_root.hide()
@@ -712,13 +936,13 @@ func _on_offline_combat_toggled(pressed: bool):
 func _on_offline_combat_consent() -> void:
 	GameState.game_settings["offline_combat"] = true
 	GameState.game_settings["offline_combat_warned"] = true
-	chk_offline_combat.set_pressed_no_signal(true)
+	UITheme.set_pill_value(pill_offline_combat, true)
 	GameState.save_game()
 
 
 func _on_offline_combat_decline() -> void:
 	GameState.game_settings["offline_combat"] = false
-	chk_offline_combat.set_pressed_no_signal(false)
+	UITheme.set_pill_value(pill_offline_combat, false)
 	GameState.save_game()
 
 func _on_exit_pressed():

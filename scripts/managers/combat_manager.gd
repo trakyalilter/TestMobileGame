@@ -4004,17 +4004,10 @@ func win_fight():
 		sm.current_hp = min(sm.max_hp, sm.current_hp + restore_amt)
 		combat_events.append({"type": "heal", "text": "+%d HP" % restore_amt, "color": Color.GREEN, "side": "player"})
 		
-	# v74.0: Nano-Scavenger (Loot Processed Materials)
-	var nano_chance = sm.affix_bonuses.get("nano_scavenger", 0.0)
-	if nano_chance > 0 and randf() < nano_chance:
-		var extra_materials = ["Circuit", "Chip", "AdvCircuit", "QuantumCore"]
-		var drop = extra_materials[randi() % extra_materials.size()]
-		# Scale extra loot by difficulty
-		var diff = current_zone.get("difficulty", 1)
-		var qty = randi_range(1, 1 + int(diff / 3))
-		GameState.resources.add_element(drop, qty); GameState.note_production("combat", qty)  # P3.10
-		combat_events.append({"type": "loot", "text": "SCAVENGED %s" % drop, "color": Color.AQUA, "side": "enemy"})
-		log_msg("Nano-Scavenger triggered: Found %d %s" % [qty, drop])
+	# v161: Nano-Scavenger (v74.0) REMOVED. It rolled bonus processed-material drops
+	# off affix_bonuses["nano_scavenger"], but no AFFIX_DB entry ever granted that
+	# key, so the chance was permanently 0.0 and the branch never ran. Verified by
+	# 1800 legendary rolls across every slot type (affix_gem_sanity.tscn).
 	
 	# v71.0: Module Rarity Drop System
 	# v120: front-half (e1/e2) enemies are the salvage yard — materials only, no

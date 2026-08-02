@@ -4741,9 +4741,13 @@ func _migrate_remove_architects_regalia(data: Dictionary) -> void:
 				socks[gi] = null
 
 		# Compensation, per demolish_module's payout for this rarity/zone.
+		# v161: this claimed to pay "for this rarity/zone" but used the flat
+		# rarity table, so after the tier weighting landed it refunded 1/20th of
+		# the real recycle value at Z10. Price it off the same tier weight.
 		if copies > 0:
 			copies_total += copies
-			var parts: int = int(RARITY_SPARE_PARTS.get(rarity, 1)) * copies
+			var comp_w: float = float(RECYCLE_TIER_WEIGHT.get(clampi(int(zone), 1, 10), 1.0))
+			var parts: int = maxi(1, int(round(float(RARITY_SPARE_PARTS.get(rarity, 1)) * comp_w))) * copies
 			if GameState.resources and parts > 0:
 				GameState.resources.add_element("SparePart", parts)
 			parts_total += parts
@@ -5949,10 +5953,58 @@ func get_sell_price(module_id: String) -> int:
 	var zone_f: float = maxf(0.1, float(m.get("zone", 1)) / 10.0)
 	return int(RARITY_SELL_PRICES.get(rarity, 100) * zone_f)
 
+# v161: Spare-Part yield and repair cost were BOTH flat across zones, so the
+# recycle loop read as broken past the early game:
+#   crafted gear carries no "rarity" key -> every crafted module, Z1 Iron Plate
+#   through the ~450k-credit Z10 Primordial Bulkhead, recycled for exactly 1 part;
+#   and a Z1 Legendary paid the same 25 as a Z10 Legendary. Sell price already
+#   scaled by zone (get_sell_price); parts never did.
+# Both the faucet (demolish) and the sink (repair) now take the same tier weight,
+# so the faucet:sink ratio inside a tier is UNCHANGED (a Legendary still costs ~10
+# Legendary recycles to fully repair) while the numbers grow with the rest of the
+# game — and, deliberately, scrapping a pile of low-tier junk no longer funds
+# frontier repairs at parity. ~1.26^(zone-1), rounded to readable steps.
+# The curve is deliberately SOFT (Z10 = x8, not the x20 a 1.45^ ramp gives).
+# Inside a tier the exponent cancels — faucet and sink both carry it, so
+# kills-to-fund-a-repair is identical at every base — the exponent only prices
+# CROSS-tier conversion, i.e. what a hoard of old junk buys toward frontier
+# maintenance. Measured at x20 that was 832 Z1 Legendaries per Z10 repair,
+# which retires old gear as a resource entirely; x8 puts it at ~333, steep
+# enough that farming current content is clearly better without making a
+# stockpile worthless.
+const RECYCLE_TIER_WEIGHT := {
+	1: 1.0, 2: 1.3, 3: 1.6, 4: 2.0, 5: 2.5,
+	6: 3.2, 7: 4.0, 8: 5.0, 9: 6.5, 10: 8.0,
+}
+
+func get_module_tier_weight(module_id: String) -> float:
+	var m = modules.get(module_id, {})
+	var z: int = int(m.get("zone", 0))
+	# Custom drops carry their own zone; fall back to the base module's when a
+	# roll didn't copy it (older saves).
+	if z <= 0 and m.has("base_module"):
+		z = int(modules.get(str(m["base_module"]), {}).get("zone", 0))
+	if z <= 0:
+		z = 1
+	return float(RECYCLE_TIER_WEIGHT.get(clampi(z, 1, 10), 1.0))
+
 func get_demolish_parts(module_id: String) -> int:
 	var m = modules.get(module_id, {})
 	var rarity = m.get("rarity", Rarity.COMMON)
-	return RARITY_SPARE_PARTS.get(rarity, 1)
+	var base: int = RARITY_SPARE_PARTS.get(rarity, 1)
+	return maxi(1, int(round(float(base) * get_module_tier_weight(module_id))))
+
+# Spare-Part cost to restore a module to 100%. Shared by the equipped-slot and
+# armory repair paths so both charge identically (UI used to compute this
+# inline, which is how the armory path drifted out of existence entirely).
+func get_repair_parts_cost(module_id: String) -> int:
+	var m = modules.get(module_id, {})
+	var cur_dur: int = int(m.get("durability", 100))
+	if cur_dur >= 100:
+		return 0
+	var chunks: int = ceili((100 - cur_dur) / 10.0)
+	var base: int = RARITY_SPARE_PARTS.get(get_module_rarity(module_id), 1)
+	return maxi(1, int(round(float(base * chunks) * get_module_tier_weight(module_id))))
 
 func demolish_module(module_id: String) -> bool:
 	if module_id not in module_inventory or module_inventory[module_id] <= 0:
@@ -6264,17 +6316,29 @@ func get_relic_reduction_factor(zone_id: String) -> float:
 func repair_module(slot_idx: int, cost_parts: int) -> bool:
 	# v125: repair is Spare-Parts only (no Liras). Spare Parts come from demolishing
 	# surplus modules — that's the maintenance sink that keeps worn gear alive.
-	if GameState.resources.get_element_amount("SparePart") < cost_parts: return false
-
 	var mid = loadout.get(slot_idx)
-	if not mid or not mid.begins_with("custom_"): return false
+	if not mid:
+		return false
+	return repair_module_by_id(str(mid), cost_parts)
+
+# v161: repair by module id, so ARMORY (stored) modules are repairable too. The
+# hammer tool only ever reached equipped slots — designer_slot_widget owned the
+# whole repair path — which left worn gear sitting in storage permanently broken
+# and forced a pointless equip/unequip dance to service it.
+func repair_module_by_id(module_id: String, cost_parts: int) -> bool:
+	if module_id == "" or not module_id.begins_with("custom_"):
+		return false
+	if not modules.has(module_id):
+		return false
+	if GameState.resources.get_element_amount("SparePart") < cost_parts:
+		return false
 
 	GameState.resources.remove_element("SparePart", cost_parts)
 
-	modules[mid]["durability"] = 100
-	if mid in custom_modules:
-		custom_modules[mid]["durability"] = 100
-	
+	modules[module_id]["durability"] = 100
+	if module_id in custom_modules:
+		custom_modules[module_id]["durability"] = 100
+
 	recalc_stats()
 	inventory_updated.emit()
 	return true

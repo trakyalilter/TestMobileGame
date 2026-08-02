@@ -1861,9 +1861,9 @@ func get_recipe_speed_multiplier(recipe_id: String) -> float:
 	# Audit v7.0 P1-21: Engineering Skill Bonus (+1% Speed per Level)
 	multiplier += (get_level() * 0.01)
 	
-	# v74.0: Refinery Link (Module Affix)
-	if GameState.shipyard_manager:
-		multiplier += GameState.shipyard_manager.affix_bonuses.get("refinery_link", 0.0)
+	# v161: Refinery Link (v74.0) REMOVED — added affix_bonuses["refinery_link"] to
+	# recipe speed, but no AFFIX_DB entry granted that key, so it added a permanent
+	# 0.0. Verified by roll proof in affix_gem_sanity.tscn.
 	
 	# Audit v4.0: Milestone Level 10 (+10% Speed)
 	if is_milestone_unlocked(10):

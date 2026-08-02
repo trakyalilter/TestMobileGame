@@ -30,10 +30,17 @@ var graphs = {
 			"basic_engineering", "materials_science",
 			"combustion", "pyrolysis_control", "smelting", "blast_furnace",
 			"automated_smelting", "oxygen_blast_furnace",
-			"metallurgy_advanced", "superalloy_engineering", "iridium_metallurgy", "exotic_metallurgy",
+			# v145 FIX: refractory_metallurgy + industrial_chemistry were in tech_tree
+			# but MISSING from every tab (third recurrence of the firmware_hacking bug)
+			# → never rendered → unresearchable → their 8 buildings + 1 recipe were
+			# permanently dead. Each is placed in its PARENT's tab so calculate_layout
+			# draws the prereq line (a node whose parent is in another tab is laid out
+			# as a rootless orphan — see the "not in this tab → treat as root" branch).
+			"metallurgy_advanced", "superalloy_engineering", "refractory_metallurgy",
+			"iridium_metallurgy", "exotic_metallurgy",
 			"adv_materials", "hydraulic_press", "molecular_compression", "lightweight_alloys",
 			"catalytic_electrodes", "ion_exchange", "resonance_splitters",
-			"industrial_electrolysis", "energy_metrics",
+			"industrial_electrolysis", "industrial_chemistry", "energy_metrics",
 			"cryogenic_systems", "cryogenic_storage",
 			"precious_metal_refining", "industrial_catalysis", "fuel_cell_tech",
 		],
@@ -86,8 +93,15 @@ var graphs = {
 	},
 	"Sectors": {
 		"nodes": [
-			"zone_2_access", "zone_3_access", "zone_4_access", "zone_5_access", "zone_6_access",
-			"zone_7_access", "zone_8_access", "zone_9_access", "zone_10_access",
+			# v145 FIX: the three fabrication techs hang off zone_6/8/9_access, so they
+			# live HERE beside their parents (same rule as the v137 fixes below) — that
+			# is what makes their prereq line render. They are category "infrastructure"
+			# rather than "zone", so they read as the building-unlock payoff of reaching
+			# that sector; moving them to Industry would orphan them from their gate.
+			"zone_2_access", "zone_3_access", "zone_4_access", "zone_5_access",
+			"zone_6_access", "precision_fabrication",
+			"zone_7_access", "zone_8_access", "capital_fabrication",
+			"zone_9_access", "dreadnought_yards", "zone_10_access",
 			"sector_alpha_decryption", "deep_space_nav", "radiation_shielding",
 			"exotic_matter_analysis", "void_navigation", "xeno_archaeology",
 			# v137 FIX: these two were in tech_tree but MISSING from every tab (same bug as

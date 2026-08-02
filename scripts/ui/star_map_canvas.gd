@@ -510,15 +510,47 @@ func _draw_boss(e: Dictionary, reveal: float) -> void:
 	var p := _spx(e["pos"], reveal)
 	var sel: bool = e["eid"] == selected_enemy_id
 	var hov: bool = e["eid"] == _hovered_enemy_id
-	_soft_blob(p, 52.0, C_CORAL, 0.7)
-	var pr := 28.0 + 4.0 * sin(_phase * 2.0)
-	draw_arc(p, pr, 0.0, TAU, 40, Color(C_CORAL.r, C_CORAL.g, C_CORAL.b, 0.45), 1.6, true)
-	# menacing diamond core with spikes
-	for k in range(4):
-		var a0 := _phase * 0.4 + float(k) * TAU / 4.0
-		draw_line(p + Vector2(cos(a0), sin(a0)) * 17.0, p + Vector2(cos(a0), sin(a0)) * 24.0, Color(C_CORAL.r, C_CORAL.g, C_CORAL.b, 0.7), 1.6, true)
-	draw_colored_polygon(PackedVector2Array([p + Vector2(0, -15), p + Vector2(15, 0), p + Vector2(0, 15), p + Vector2(-15, 0)]), C_CORAL)
-	draw_colored_polygon(PackedVector2Array([p + Vector2(0, -7), p + Vector2(7, 0), p + Vector2(0, 7), p + Vector2(-7, 0)]), Color(1.0, 0.78, 0.82))
+	# v161: the boss used to be a pulsing RING plus four free-floating radial
+	# ticks around a centred diamond — which is the exact vocabulary of
+	# _reticle(), the SELECTION marker. Every boss therefore read as "already
+	# targeted / locked on" while sitting idle. Rings and floating ticks are now
+	# reserved strictly for hover/selection; the boss is drawn as a HOSTILE
+	# STRUCTURE: a heavy armoured hull whose buttresses are attached to the
+	# silhouette (structure reads as a thing, detached ticks read as a crosshair),
+	# slowly rotating so it still feels alive and menacing.
+	_soft_blob(p, 52.0, C_CORAL, 0.75)
+	var spin := _phase * 0.22
+	var breathe := 1.0 + 0.035 * sin(_phase * 2.0)
+	var hull_r := 17.0 * breathe
+	# Mid-tone, not near-black: against the dark starfield an almost-black
+	# buttress reads as a smudge instead of structure.
+	var dark := Color(C_CORAL.r * 0.72, C_CORAL.g * 0.34, C_CORAL.b * 0.40, 1.0)
+
+	# Six armoured buttresses, welded to the hull edge (not floating).
+	for k in range(6):
+		var a0: float = spin + float(k) * TAU / 6.0
+		var dir := Vector2(cos(a0), sin(a0))
+		var side := Vector2(-dir.y, dir.x)
+		draw_colored_polygon(PackedVector2Array([
+			p + dir * (hull_r - 1.0) + side * 5.2,
+			p + dir * (hull_r + 8.5) + side * 2.6,
+			p + dir * (hull_r + 8.5) - side * 2.6,
+			p + dir * (hull_r - 1.0) - side * 5.2,
+		]), dark)
+
+	# Hexagonal hull + inner plating + hot core.
+	var hull := PackedVector2Array()
+	var plate := PackedVector2Array()
+	for k in range(6):
+		var a1: float = spin + float(k) * TAU / 6.0 + PI / 6.0
+		var d1 := Vector2(cos(a1), sin(a1))
+		hull.append(p + d1 * hull_r)
+		plate.append(p + d1 * (hull_r * 0.62))
+	draw_colored_polygon(hull, C_CORAL)
+	draw_colored_polygon(plate, Color(0.30, 0.09, 0.13, 1.0))
+	draw_colored_polygon(PackedVector2Array([
+		p + Vector2(0, -6.0), p + Vector2(6.0, 0), p + Vector2(0, 6.0), p + Vector2(-6.0, 0),
+	]), Color(1.0, 0.80, 0.84))
 	if sel:
 		_reticle(p, 34.0)
 	elif hov:
