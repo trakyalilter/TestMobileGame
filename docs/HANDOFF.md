@@ -1,4 +1,79 @@
-# Session Handoff — 2026-07-21
+# Session Handoff — 2026-08-02
+
+---
+
+## LATEST BLOCK (2026-08-02) — STATION PROCUREMENT S1 (v162, Demand Engine)
+
+**Spec:** `docs/design/DEMAND_ENGINE.md` · **Audit that motivated it:** `docs/audit/ECONOMY_AUDIT_2026-08-02.md`
+(headline findings: demand is refit-shaped; supply orders covered 4 goods in 15 tiers; matrix
+cores have NO faucet anywhere — separate decision, still open; sell path removal is TOTAL, owner-confirmed).
+
+**Owner decisions locked this block:** sell removal total (UI gone) · demand engine before
+Loop 2 · ENGINEER_SHARE 0.35 (sim arbitrates vs 0.30) · rewards Liras only (three-currency).
+
+### What shipped (S1 — engine + board)
+
+- **`element_db.gd` (+v162 section):** `PROCUREMENT_FAMILY_ORDER` (7 families),
+  `PROCUREMENT_FAMILIES` (eligibility = has infra producer; drills/combat-fed/zone-alloys
+  excluded, ordnance T1-T3 exception), `PROCUREMENT_UNIT_PRICE` (~40 goods, FIXED per good —
+  income scales linearly with capacity), helpers `get_procurement_family` / `get_procurement_unit_price`.
+- **`quest_manager.gd` (+v162 engine):** per-family demand pools — cap =
+  `PROC_ERA_INCOME_PER_H[frontier] × ENGINEER_SHARE / online_families × 24h`, refill
+  continuous via LAZY unix-timestamp settle (`_settle_pools`) so **offline refill is the same
+  code path, no tick anywhere**; boards `proc_boards{family:[3 cards]}`, qty = 30 min of NET
+  `get_total_resource_rates()` (feeder goods your factories eat are correctly not asked for),
+  reward = qty × unit price; `claim_procurement` = pool-gate FIRST (blocks lose nothing) →
+  v139c stock re-verify/consume → same warp/recursion payout mults as quests → pool -= BASE
+  reward → instant card replacement at current rates. Legacy `supply` actives still claim
+  (table + generator kept for that path); **new supply rolls retired** — Standing Orders is
+  stockpile-only now. Save keys `proc_boards/proc_pools/proc_pool_ts`, defensive both sides,
+  NO version bump (bounty v139 precedent). `reset()` clears all three (warp + hard reset).
+- **`quest_page.gd` (rewritten) + `quest_card.gd` (2-line patch):** programmatic tab strip
+  (bounty_page pattern) — STANDING ORDERS + 7 family tabs, dimmed dormant tabs with
+  build-a-line tooltip, pool meter (bar + "STATION DEMAND: x / y"), reroll/claim-all stay
+  legacy-tab-only, procurement cards restyle "infrastructure". Strip HIDDEN until the first
+  family is online — day-one UX unchanged. One-time reveal notification
+  (`game_settings["procurement_intro_seen"]`).
+- **Probe:** `scripts/sim/supply_board_check.gd` + `scenes/supply_board_check.tscn` —
+  8 sections: static data (producer/price/no-alloy per good), eligibility, qty/reward shape,
+  pool math (born-full + lazy 12h refill ≈ cap/2), claim tri-path, legacy claim, reset regen,
+  **ceiling-L/h price ladder print (the tuning table — retune from THIS, not vibes)**.
+- **Loc:** 13 rows appended to `localization/strings.csv` (en/tr, TR is first-pass — owner
+  should eyeball); reused existing keys `STANDING ORDERS` (MEVCUT SİPARİŞLER) + `ORDNANCE`.
+
+### Verification state — ⚠ NOT DONE YET
+
+- ✅ Isolated parse gate (Godot 4.5.1 Linux `--check-only`, autoload false-positives
+  filtered): all 5 scripts 0 errors. One real catch fixed (`:=` inference through autoload).
+- ⛔ **FULL HEADLESS BOOT not run** (needs the Windows binary on this machine):
+  `Godot_v4.5.1-stable_win64_console.exe --headless --quit-after 18 --path .` then grep
+  `SCRIPT ERROR|not declared|Nonexistent function|Cannot infer`.
+- ⛔ **Probe not run:**
+  `Godot_v4.5.1-stable_win64_console.exe --headless --path . res://scenes/supply_board_check.tscn`
+  — expect `[PROC] ALL PASS` + the ladder print.
+- ⛔ Funnel gates (before calling S1 done, spec §F): 3-seed follower re-run — engineer income
+  share ≈ 35%±5 at saturated states, **first-warp shards stay 15–17**, deserts don't regress.
+  `player_like` still has NO procurement policy (add gear-contract-style SCOPED claiming —
+  the unscoped version hijacked material farms once, HANDOFF 2026-07-21 on record).
+
+### Next steps (spec §G)
+
+S2 ordnance pass (3 T4 ammo plants + T4 rows join the family) → S3 convoys (2.5×, 8h dock,
+cooldown-not-expiry) → S4 **E5 Reclamation Foundry** (with sell gone it is the only valve for
+UNDEMANDED surplus — numbers ready in ENDGAME_FACTORY_TIER.md §H) → S5 polish (fanfare, CLAIM
+ALL on family tabs, pool meter styling — eyeball the programmatic strip in a real render,
+same caveat as the map-mod picker).
+
+### Tuning knobs (all in one place)
+
+`ENGINEER_SHARE` 0.35 · `PROC_ORDER_MINUTES` 30 · `PROC_POOL_HOURS` 24 ·
+`PROC_CARDS_PER_FAMILY` 3 · `PROC_ERA_INCOME_PER_H` (Z1-Z3 extrapolated, Z11+ ×2/sector
+placeholder — re-anchor when NG+ income is measured) · `PROCUREMENT_UNIT_PRICE` (retune from
+the probe's ladder print).
+
+---
+
+# (previous) Session Handoff — 2026-07-21
 
 ---
 

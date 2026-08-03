@@ -76,6 +76,48 @@ var _id_counter: int = 0
 # claimed quest (play to earn cheap rerolls; kills supply-order reroll-scumming).
 var _reroll_heat: int = 0
 
+# ─────────────────────────────────────────────────────────────
+# v162: STATION PROCUREMENT (Demand Engine S1 — docs/design/DEMAND_ENGINE.md).
+# Family-tabbed, never-expiring orders for factory-producible goods.
+#  - QUANTITY is rate-based: ~PROC_ORDER_MINUTES of the player's measured NET
+#    infra rate for the good (get_total_resource_rates — net, so a feeder good
+#    your own factories fully consume is correctly not asked for).
+#  - REWARD = qty x fixed unit price (ElementDB.PROCUREMENT_UNIT_PRICE): income
+#    scales LINEARLY with factory investment. The rejected alternative (flat
+#    reward per order) makes income/h flat vs investment — rubber-band feel.
+#  - GOVERNOR = per-family demand pool: a value budget refilling continuously
+#    to a 24h cap sized as ENGINEER_SHARE of era combat income split across
+#    online families. Claims decrement it; empty pool blocks claims (order and
+#    stock are NEVER lost — premium, zero FOMO; "demand met, refilling").
+#    Pools settle LAZILY from a unix timestamp: no process tick, and offline
+#    refill falls out of the same math for free.
+#  - Replaced the 4-good supply_goods roll (T5+ was literally AdvCircuit/
+#    Superalloy alternating). Legacy "supply" actives still claim via
+#    claim_quest — table + generator kept only for that path's data shape.
+# ─────────────────────────────────────────────────────────────
+
+const PROC_CARDS_PER_FAMILY := 3
+const PROC_ORDER_MINUTES := 30.0     # order ~= this many minutes of your line
+const PROC_RATE_EPS := 0.05          # units/min — below this a good is not "in production"
+const ENGINEER_SHARE := 0.35         # of era combat income, across ALL online families
+const PROC_POOL_HOURS := 24.0        # pool cap = this many hours of demand
+
+# Era combat income per hour, from the cost curve's measured 6h budgets
+# (Z4 405K/6h ... Z10 675M/6h; ENDGAME_FACTORY_TIER.md section E, verified
+# against the engine). Z1-Z3 extrapolated below the measured band; Z11+ NG+
+# placeholder doubles per sector — TUNABLE, re-anchor when NG+ income lands.
+const PROC_ERA_INCOME_PER_H := {
+	1: 1700.0, 2: 5000.0, 3: 16700.0,
+	4: 67500.0, 5: 352500.0, 6: 629700.0, 7: 1125000.0,
+	8: 5625000.0, 9: 18000000.0, 10: 112500000.0,
+	11: 225000000.0, 12: 450000000.0, 13: 900000000.0,
+	14: 1800000000.0, 15: 3600000000.0,
+}
+
+var proc_boards: Dictionary = {}   # {family: [order dicts]}
+var proc_pools: Dictionary = {}    # {family: float value} — settled lazily
+var _proc_pool_ts: float = 0.0     # unix seconds of last settle
+
 func connect_signals():
 	if GameState.resources:
 		if not GameState.resources.element_added.is_connected(_on_element_added):
@@ -93,6 +135,8 @@ func connect_signals():
 	else:
 		# Sync gather progress from inventory in case we missed elements
 		_resync_stock_quests()
+	# v162: bring procurement boards up (fills online families, settles pools).
+	ensure_procurement()
 
 func _on_element_added(_symbol, _amount):
 	# v139c: gather/supply progress is a LIVE inventory read (see
@@ -133,6 +177,17 @@ func _resync_stock_quests():
 				q["current_qty"] = new_cur
 				q["completed"] = new_done
 				changed = true
+	# v162: procurement bars are the same live-inventory read (v139c model).
+	for fam in proc_boards:
+		for q in proc_boards[fam]:
+			if q["claimed"]: continue
+			var have_p = GameState.resources.get_element_amount(q["target"])
+			var new_cur_p = min(have_p, q["target_qty"])
+			var new_done_p: bool = have_p >= q["target_qty"]
+			if new_cur_p != q["current_qty"] or new_done_p != q["completed"]:
+				q["current_qty"] = new_cur_p
+				q["completed"] = new_done_p
+				changed = true
 	if changed: quest_updated.emit()
 
 # ── Board Generation ──
@@ -172,15 +227,10 @@ func _generate_quest() -> Dictionary:
 	# future Z16+ unlock can't roll into an empty table and yield a blank quest.
 	max_diff = min(max_diff, 15)
 	var min_diff = max(1, max_diff - 1)
-	# v139: 55% stockpile, 45% supply order (hunts moved to the bounty boards).
-	if randf() < 0.55:
-		return _generate_gather_quest(min_diff, max_diff)
-	else:
-		var q = _generate_supply_quest(min_diff, max_diff)
-		# Tier bands with no crafted goods yet (T1) fall back to a stockpile.
-		if q.is_empty():
-			q = _generate_gather_quest(min_diff, max_diff)
-		return q
+	# v162: supply-order rolls RETIRED — Station Procurement (family boards)
+	# replaced the 4-good table. Standing Orders is stockpile-only now; legacy
+	# "supply" actives on old saves still track + claim via the kept paths.
+	return _generate_gather_quest(min_diff, max_diff)
 
 func _generate_gather_quest(min_diff: int, max_diff: int) -> Dictionary:
 	var tier = randi_range(min_diff, max_diff)
@@ -348,17 +398,238 @@ func reroll_board() -> bool:
 	UITheme.show_notification(tr("Standing Orders Rerolled"), Color.CYAN)
 	return true
 
+# ── v162: Station Procurement engine ──
+
+func _proc_frontier() -> int:
+	return clampi(_get_max_difficulty(), 1, 15)
+
+# A family is ONLINE when the player owns at least one building that yields
+# one of its goods. Ownership (not net rate) so a line whose output is being
+# fully consumed downstream still shows its tab — only ORDER GENERATION needs
+# positive net rate.
+func get_online_families() -> Array:
+	var online: Array = []
+	var im = GameState.infrastructure_manager
+	if not im: return online
+	for fam in ElementDB.PROCUREMENT_FAMILY_ORDER:
+		var fam_s: String = String(fam)
+		var found := false
+		for bid in im.buildings:
+			if int(im.buildings[bid]) <= 0: continue
+			var bdata = im.building_db.get(bid)
+			if bdata == null or not bdata.has("yield"): continue
+			for res in bdata["yield"]:
+				if ElementDB.get_procurement_family(String(res)) == fam_s:
+					found = true
+					break
+			if found: break
+		if found:
+			online.append(fam_s)
+	return online
+
+func is_family_online(family: String) -> bool:
+	return get_online_families().has(family)
+
+func is_procurement_unlocked() -> bool:
+	return not get_online_families().is_empty() or not proc_boards.is_empty()
+
+func get_pool_cap(family: String) -> float:
+	var online := get_online_families()
+	if not online.has(family): return 0.0
+	var era: float = float(PROC_ERA_INCOME_PER_H.get(_proc_frontier(), 1700.0))
+	return era * ENGINEER_SHARE / float(maxi(1, online.size())) * PROC_POOL_HOURS
+
+# Lazy settle: pools refill continuously toward cap; the same math IS the
+# offline path (no process tick, no calculate_offline needed).
+func _settle_pools() -> void:
+	var now: float = Time.get_unix_time_from_system()
+	if _proc_pool_ts <= 0.0:
+		_proc_pool_ts = now
+		return
+	var dt: float = maxf(0.0, now - _proc_pool_ts)
+	_proc_pool_ts = now
+	if dt == 0.0: return
+	for fam in ElementDB.PROCUREMENT_FAMILY_ORDER:
+		var fam_s: String = String(fam)
+		var cap := get_pool_cap(fam_s)
+		if cap <= 0.0: continue
+		var refill_per_sec: float = cap / (PROC_POOL_HOURS * 3600.0)
+		var cur: float = float(proc_pools.get(fam_s, cap))  # first sight = born full
+		proc_pools[fam_s] = minf(cap, cur + dt * refill_per_sec)
+
+func get_pool_value(family: String) -> float:
+	_settle_pools()
+	var cap := get_pool_cap(family)
+	if cap <= 0.0: return 0.0
+	# Clamp DOWN too: frontier/family changes can shrink the cap below a stored
+	# value — the meter must never read over 100%.
+	var v: float = minf(float(proc_pools.get(family, cap)), cap)
+	proc_pools[family] = v
+	return v
+
+# Goods of this family currently in production: {sym: net units/min}.
+func _family_rates(family: String, rates: Dictionary) -> Dictionary:
+	var out := {}
+	for sym in ElementDB.PROCUREMENT_FAMILIES.get(family, []):
+		var s: String = String(sym)
+		var r: float = float(rates.get(s, 0.0))
+		if r > PROC_RATE_EPS:
+			out[s] = r
+	return out
+
+func _generate_procurement_order(family: String, sym: String, rate_per_min: float) -> Dictionary:
+	var qty: int = _round_qty(maxi(10, int(round(rate_per_min * PROC_ORDER_MINUTES))))
+	var price: float = ElementDB.get_procurement_unit_price(sym)
+	var reward: int = maxi(1, int(round(float(qty) * price)))
+	var d_name = ElementDB.get_display_name(sym)
+	var have = GameState.resources.get_element_amount(sym) if GameState.resources else 0
+	return {
+		"id": _gen_id(),
+		"type": "procurement",
+		"family": family,
+		"title": tr("Procurement: %s") % d_name,
+		"desc": tr("Deliver %d %s. Pays %s Liras per unit. Goods are consumed when you claim.") % [qty, d_name, UITheme.format_num(price)],
+		"target": sym,
+		"target_qty": qty,
+		"current_qty": min(have, qty),
+		"unit_price": price,
+		"reward_credits": reward,
+		"difficulty": _proc_frontier(),
+		"completed": have >= qty,
+		"claimed": false
+	}
+
+# Pick the next good for a fresh card: prefer goods without a card yet, and
+# lean toward the deepest (highest-priced) line 60% of the time — depth is
+# what the factory game wants players chasing.
+func _pick_order_good(family: String, fam_rates: Dictionary) -> String:
+	if fam_rates.is_empty(): return ""
+	var taken := {}
+	for q in proc_boards.get(family, []):
+		taken[String(q["target"])] = true
+	var candidates: Array = []
+	for sym in fam_rates:
+		if not taken.has(String(sym)):
+			candidates.append(String(sym))
+	if candidates.is_empty():
+		for sym in fam_rates:
+			candidates.append(String(sym))
+	if randf() < 0.60:
+		var best := ""
+		var best_p: float = -1.0
+		for s in candidates:
+			# Explicit type: `:=` cannot infer through an autoload in isolated
+			# check mode (CLAUDE.md gotcha).
+			var p: float = ElementDB.get_procurement_unit_price(String(s))
+			if p > best_p:
+				best_p = p
+				best = String(s)
+		return best
+	return String(candidates[randi() % candidates.size()])
+
+# Fill every online family's board to PROC_CARDS_PER_FAMILY. Never expires or
+# removes existing cards — a card for a line you later dismantled still fills
+# from stock. Safe to call often (UI pulls route through here).
+func ensure_procurement() -> void:
+	_settle_pools()
+	var im = GameState.infrastructure_manager
+	if not im: return
+	var online := get_online_families()
+	if online.is_empty(): return
+	var rates: Dictionary = im.get_total_resource_rates()
+	var changed := false
+	for fam in online:
+		var fam_s: String = String(fam)
+		if not proc_boards.has(fam_s):
+			proc_boards[fam_s] = []
+		var fam_rates := _family_rates(fam_s, rates)
+		while proc_boards[fam_s].size() < PROC_CARDS_PER_FAMILY:
+			var sym := _pick_order_good(fam_s, fam_rates)
+			if sym == "": break
+			proc_boards[fam_s].append(_generate_procurement_order(fam_s, sym, float(fam_rates[sym])))
+			changed = true
+	# One-time reveal, the moment the first family comes online.
+	if not GameState.game_settings.get("procurement_intro_seen", false):
+		GameState.game_settings["procurement_intro_seen"] = true
+		UITheme.show_notification(tr("STATION PROCUREMENT ONLINE — your factory goods have a standing buyer."), Color(0.55, 0.85, 1.0))
+		changed = true
+	if changed: quest_updated.emit()
+
+func get_procurement_board(family: String) -> Array:
+	ensure_procurement()
+	return proc_boards.get(family, [])
+
+func claim_procurement(order_id: String) -> bool:
+	_settle_pools()
+	for fam in proc_boards:
+		var fam_s: String = String(fam)
+		var lst: Array = proc_boards[fam_s]
+		for i in range(lst.size()):
+			var q: Dictionary = lst[i]
+			if String(q["id"]) != order_id: continue
+			if not q["completed"] or q["claimed"]: return false
+			# Pool gate FIRST (before touching stock): empty demand blocks the
+			# claim but loses nothing — order and goods both keep.
+			var reward_base: int = int(q["reward_credits"])
+			if get_pool_value(fam_s) < float(reward_base):
+				UITheme.show_notification(tr("Station demand met — refilling. Order and goods are kept."), Color(1.0, 0.75, 0.35))
+				return false
+			# Stock re-verify + consume (v139c model, same as claim_quest).
+			var have = GameState.resources.get_element_amount(q["target"])
+			if have < q["target_qty"]:
+				q["completed"] = false
+				q["current_qty"] = have
+				quest_updated.emit()
+				UITheme.show_notification(tr("Order needs %d %s — stock ran low.") % [q["target_qty"], ElementDB.get_display_name(q["target"])], Color.RED)
+				return false
+			GameState.resources.remove_element(q["target"], q["target_qty"])
+			# Pay — same mult stack as every quest payout.
+			var cred: int = reward_base
+			if GameState.warp_manager:
+				cred = int(cred * GameState.warp_manager.get_production_multiplier())
+			if GameState.research_manager:
+				cred = int(cred * (1.0 + GameState.research_manager.get_efficiency_bonus("credit_reward_mult")))
+			GameState.resources.add_currency("credits", cred)
+			UITheme.show_notification(tr("+%s Liras") % UITheme.format_num(cred), Color(1.0, 0.85, 0.3))
+			# Pool decrements by the BASE value — era income and rewards carry
+			# the same warp mults, so the share stays a share.
+			proc_pools[fam_s] = maxf(0.0, get_pool_value(fam_s) - float(reward_base))
+			total_completed += 1
+			_reroll_heat = max(0, _reroll_heat - 1)
+			# Replace with a fresh order at CURRENT rates.
+			lst.remove_at(i)
+			var im = GameState.infrastructure_manager
+			if im:
+				var fam_rates := _family_rates(fam_s, im.get_total_resource_rates())
+				var sym := _pick_order_good(fam_s, fam_rates)
+				if sym != "":
+					lst.append(_generate_procurement_order(fam_s, sym, float(fam_rates[sym])))
+			quest_updated.emit()
+			return true
+	return false
+
 # ── Save / Load ──
 
 func get_save_data_manager() -> Dictionary:
 	var arr = []
 	for q in board:
 		arr.append(q.duplicate())
+	# v162: procurement state. Defensive on both sides — no save version bump
+	# (bounty v139 migration precedent).
+	var pb = {}
+	for fam in proc_boards:
+		var fl = []
+		for q in proc_boards[fam]:
+			fl.append(q.duplicate())
+		pb[fam] = fl
 	return {
 		"board": arr,
 		"total_completed": total_completed,
 		"id_counter": _id_counter,
-		"reroll_heat": _reroll_heat
+		"reroll_heat": _reroll_heat,
+		"proc_boards": pb,
+		"proc_pools": proc_pools.duplicate(),
+		"proc_pool_ts": _proc_pool_ts
 	}
 
 func load_save_data_manager(data: Dictionary):
@@ -369,6 +640,24 @@ func load_save_data_manager(data: Dictionary):
 	total_completed = data.get("total_completed", 0)
 	_id_counter = data.get("id_counter", 0)
 	_reroll_heat = int(data.get("reroll_heat", 0))
+	# v162: procurement — absent on pre-v162 saves; ensure_procurement() (from
+	# connect_signals) regenerates whatever is missing. The lazy pool timestamp
+	# makes the load-time settle double as the offline refill.
+	proc_boards.clear()
+	var pb = data.get("proc_boards", {})
+	if pb is Dictionary:
+		for fam in pb:
+			var fl: Array = []
+			for q in pb[fam]:
+				if q is Dictionary:
+					fl.append(q)
+			proc_boards[String(fam)] = fl
+	proc_pools.clear()
+	var pp = data.get("proc_pools", {})
+	if pp is Dictionary:
+		for fam in pp:
+			proc_pools[String(fam)] = float(pp[fam])
+	_proc_pool_ts = float(data.get("proc_pool_ts", 0.0))
 	# Existing save without quest data, or fresh install loading nothing — populate fresh.
 	if board.is_empty():
 		_fill_board()
@@ -380,6 +669,11 @@ func reset():
 	total_completed = 0
 	_id_counter = 0
 	_reroll_heat = 0
+	# v162: contracts are ephemeral RNG — boards + pools regenerate for the new
+	# run as its factories come online (warp AND hard reset; bounty precedent).
+	proc_boards.clear()
+	proc_pools.clear()
+	_proc_pool_ts = 0.0
 	# v132: refill immediately — the only other fill paths run at boot, so an
 	# in-session hard reset left the Standing Orders board empty until restart.
 	_fill_board()

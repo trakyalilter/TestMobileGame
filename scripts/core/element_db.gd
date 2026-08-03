@@ -495,6 +495,71 @@ func is_armory_item(symbol: String) -> bool:
 				_armory_items[s] = true
 	return _armory_items.has(symbol)
 
+# ─────────────────────────────────────────────────────────────
+# v162: STATION PROCUREMENT (Demand Engine S1 — docs/design/DEMAND_ENGINE.md).
+# The sector's standing demand for factory-producible goods. Eligibility rule:
+# a good is board-eligible iff it has an INFRASTRUCTURE producer (drill outputs
+# stay with Stockpile quests; combat-fed goods excluded EXCEPT ordnance; zone
+# alloys stay processing's refit identity and are never freight).
+# Unit prices are FIXED per good (income scales linearly with capacity); the
+# income governor is the per-family demand pool in quest_manager, NOT prices.
+# Prices are tuned so a good's family can be carried by a maxed line at the
+# good's home era — see supply_board_check.gd, which prints the L/h ladder.
+# ─────────────────────────────────────────────────────────────
+
+const PROCUREMENT_FAMILY_ORDER := [
+	"refining", "chemical", "structural", "electronics",
+	"ordnance", "fabrication", "capital",
+]
+
+const PROCUREMENT_FAMILIES := {
+	"refining": ["Fe", "Si", "Cu", "Sn", "Zn", "Ni", "Cr", "Co", "Mg", "Li", "Al", "Ti", "Au", "Germanium"],
+	"chemical": ["C", "H", "O", "Graphite", "Resin", "Fiber", "CompositeWeave"],
+	"structural": ["Steel", "StructuralComponent", "GalvanizedSteel", "StainlessSteel", "Superalloy"],
+	"electronics": ["Circuit", "Semiconductor", "Chip", "AdvCircuit"],
+	# T4 rows join in Demand Engine step 2 (ammo-plant pass) — no plants yet.
+	"ordnance": ["SlugT1", "SlugT2", "SlugT3", "CellT1", "CellT2", "CellT3", "MissileT1", "MissileT2", "MissileT3"],
+	"fabrication": ["NanoSubstrate", "SinteredCarbide", "PrecisionLattice", "FabricationBus"],
+	"capital": ["NeutroniumPlate", "VoidLattice", "CapitalSpar", "DreadnoughtFrame"],
+}
+
+# Liras per unit, pre warp/recursion mults. TUNABLE — the probe prints the
+# resulting ceiling-L/h per good so retunes are data-led, not vibes.
+const PROCUREMENT_UNIT_PRICE := {
+	# refining
+	"Fe": 1.0, "Si": 1.0, "Cu": 2.0, "Sn": 3.0, "Zn": 3.0, "Ni": 6.0, "Cr": 8.0,
+	"Co": 8.0, "Mg": 5.0, "Li": 5.0, "Al": 3.0, "Ti": 12.0, "Au": 25.0, "Germanium": 15.0,
+	# chemical
+	"C": 0.6, "H": 0.3, "O": 0.3, "Graphite": 4.0, "Resin": 12.0, "Fiber": 6.0, "CompositeWeave": 45.0,
+	# structural
+	"Steel": 2.0, "StructuralComponent": 25.0, "GalvanizedSteel": 40.0,
+	"StainlessSteel": 90.0, "Superalloy": 200.0,
+	# electronics
+	"Circuit": 30.0, "Semiconductor": 18.0, "Chip": 220.0, "AdvCircuit": 165.0,
+	# ordnance
+	"SlugT1": 2.0, "CellT1": 2.0, "MissileT1": 3.0,
+	"SlugT2": 25.0, "CellT2": 25.0, "MissileT2": 30.0,
+	"SlugT3": 180.0, "CellT3": 320.0, "MissileT3": 350.0,
+	# fabrication
+	"NanoSubstrate": 900.0, "SinteredCarbide": 2600.0,
+	"PrecisionLattice": 8500.0, "FabricationBus": 34000.0,
+	# capital
+	"NeutroniumPlate": 2300.0, "VoidLattice": 5200.0,
+	"CapitalSpar": 55000.0, "DreadnoughtFrame": 275000.0,
+}
+
+var _proc_family_of: Dictionary = {}
+
+func get_procurement_family(symbol: String) -> String:
+	if _proc_family_of.is_empty():
+		for fam in PROCUREMENT_FAMILIES:
+			for s in PROCUREMENT_FAMILIES[fam]:
+				_proc_family_of[s] = fam
+	return _proc_family_of.get(symbol, "")
+
+func get_procurement_unit_price(symbol: String) -> float:
+	return float(PROCUREMENT_UNIT_PRICE.get(symbol, 0.0))
+
 func is_slot_protected(symbol: String) -> bool:
 	if _slot_protected.is_empty():
 		for cat in ["boss_cores", "matrix_cores", "endgame", "special", "hack_stones", "boost_cards"]:

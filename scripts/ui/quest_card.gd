@@ -15,7 +15,11 @@ func setup(p_quest: Dictionary, p_parent: Node):
 	quest = p_quest
 	parent_ui = p_parent
 
+	# v162: procurement orders style as infrastructure — they are the factory's
+	# contracts, not mission work.
 	var category = "combat" if quest["type"] == "hunt" else "mission"
+	if quest["type"] == "procurement":
+		category = "infrastructure"
 	UITheme.apply_card_style(self, category)
 	UITheme.apply_premium_button_style(claim_btn, category)
 	UITheme.apply_progress_bar_style(progress_bar, category)
