@@ -166,7 +166,7 @@ theme_override_constants/margin_top = 3
 theme_override_constants/margin_right = 3
 theme_override_constants/margin_bottom = 3
 
-[node name="TabStrip" type="HFlowContainer" parent="VBoxContainer/MainLayout/RightPanel/Margin/VBox/TabStripFrame/TabMargin"]
+[node name="TabStrip" type="HBoxContainer" parent="VBoxContainer/MainLayout/RightPanel/Margin/VBox/TabStripFrame/TabMargin"]
 layout_mode = 2
 theme_override_constants/h_separation = 3
 theme_override_constants/v_separation = 3

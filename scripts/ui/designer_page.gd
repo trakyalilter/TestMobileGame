@@ -26,7 +26,7 @@ var _page_prev_btn: Button = null
 var _page_next_btn: Button = null
 var _page_lbl: Label = null
 @onready var tab_frame: PanelContainer = $VBoxContainer/MainLayout/RightPanel/Margin/VBox/TabStripFrame
-@onready var tab_strip: HFlowContainer = $VBoxContainer/MainLayout/RightPanel/Margin/VBox/TabStripFrame/TabMargin/TabStrip
+@onready var tab_strip: HBoxContainer = $VBoxContainer/MainLayout/RightPanel/Margin/VBox/TabStripFrame/TabMargin/TabStrip
 
 var manager: RefCounted
 var active_filter := "all"
