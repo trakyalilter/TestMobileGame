@@ -235,6 +235,7 @@ func _ready() -> void:
 	GameState.offline_ready.connect(_on_offline_ready)
 	GameState.cycle_completed.connect(_on_cycle_completed)   # idle juice: floating +N gains
 	GameState.level_up.connect(_on_level_up)
+	GameState.mastery_milestone.connect(_on_mastery_milestone)
 	GameState.feature_revealed.connect(func(title: String, msg: String) -> void:
 		_celebrate(title, msg, PURP))
 	GameState.storage_full.connect(_on_storage_full)
@@ -943,6 +944,17 @@ func _skill_label(id: String) -> String:
 	return SKILL_LABEL.get(id, id.capitalize())
 
 # Milestone celebration: a centered "LEVEL UP" badge with a scale-pop + fade.
+# Desktop v107/v110 mastery toasts: a one-time intro when mastery first unlocks,
+# then a toast at each milestone with the action's new cumulative speed bonus.
+func _on_mastery_milestone(action_id: String, level: int, intro: bool) -> void:
+	var nm: String = GameData.GATHER.get(action_id, {}).get("name",
+			GameData.CRAFT.get(action_id, {}).get("name", action_id))
+	if intro:
+		_celebrate("✦ MASTERY UNLOCKED", "Actions get faster as their mastery levels", GOLD)
+		return
+	var cut := int(round((1.0 - GameState.mastery_dur_mult(action_id)) * 100.0))
+	_celebrate("✦ MASTERY %d" % level, "%s  −%d%% duration" % [nm, cut], GOLD)
+
 func _on_level_up(skill_id: String, level: int) -> void:
 	var accent: String = DOMAIN.get({"harvesting": "gather", "fabrication": "craft", "combat": "combat", "infrastructure": "build"}.get(skill_id, ""), GOLD)
 	_celebrate("⬆  LEVEL UP", "%s  Lv %d" % [SKILL_TITLE.get(skill_id, skill_id.to_upper()), level], accent)
@@ -2447,6 +2459,9 @@ func _craft_card(id: String, r: Dictionary) -> Control:
 		var out_eff := GameState.research_efficiency_mult()
 		for osym in r.get("outputs", {}):
 			var per := float(r["outputs"][osym])
+			if osym == "credits":
+				eff_out[osym] = int(per)   # flat wallet payout — never efficiency-scaled
+				continue
 			if osym == "Steel" and GameState.is_research_unlocked("oxygen_blast_furnace"):
 				per *= 5.0
 			eff_out[osym] = maxi(1, int(round(per * out_eff)))
@@ -3614,10 +3629,11 @@ func _mission_card(mid: String) -> Control:
 	var cur := int(GameState.missions_progress.get(mid, 0))
 	var qty := int(m.get("qty", 1))
 	if mtype == "gather_multi":
-		cur = GameState.multi_have(m)
+		cur = GameState.multi_locked_have(mid, m)
 		for s in m.get("target", {}):
 			var need := int(m["target"][s])
-			var have := mini(GameState.amount(s), need)
+			# Locked-in high-water (desktop parity): spending later never regresses.
+			var have := maxi(int(GameState.missions_progress.get("%s:%s" % [mid, s], 0)), mini(GameState.amount(s), need))
 			_lbl_wrap(vb, "%s  %d / %d" % [GameData.res_name(s), have, need], 10, GREEN if have >= need else C_DIM)
 	elif mtype == "research_multi":
 		cur = GameState.research_multi_have(m)
@@ -4849,6 +4865,9 @@ func _ship_slot_tabs(v: VBoxContainer) -> void:
 	var slot_items := []
 	for st in ["weapon", "shield", "armor", "battery", "engine", "sensor", "cooling"]:
 		slot_items.append({"id": st, "label": GameData.SLOT_LABELS.get(st, st)})
+	# Gem crafting (desktop craft_module): Matrix Synthesis + 3-into-1 fusion.
+	slot_items.append({"id": "gem", "label": "Cores"})
+	slot_items.append({"id": "gem_synth", "label": "Fusion"})
 	_subtabs(v, slot_items, ship_mod_slot, CYAN, func(id: String) -> void:
 		ship_mod_slot = id
 		_refresh_current())
@@ -5238,7 +5257,12 @@ func _module_card(mid: String, m: Dictionary) -> Control:
 	if not unlocked:
 		_locked(c, m, "combat")
 		return c.get_parent()
-	_inset(c, "STATS", _module_stat_lines(m.get("stats", {})), CYAN)
+	if (m.get("stats", {}) as Dictionary).is_empty() and String(m.get("desc", "")) != "":
+		# Stat-less recipes (Matrix Synthesis / gem fusion): the description IS
+		# the payload — show what buying does instead of an empty STATS box.
+		_lbl_wrap(c, m.get("desc", ""), 10, C_DIM)
+	else:
+		_inset(c, "STATS", _module_stat_lines(m.get("stats", {})), CYAN)
 	var mfill := Control.new()
 	mfill.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	c.add_child(mfill)

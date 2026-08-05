@@ -10,6 +10,7 @@ signal action_changed
 signal missions_changed
 signal offline_ready          # emitted after a background-resume catch-up, for the UI modal
 signal level_up(skill_id: String, level: int)        # skill leveled up — celebratory popup
+signal mastery_milestone(action_id: String, level: int, intro: bool)  # v107/v110 mastery toasts
 signal feature_revealed(title: String, msg: String)  # late-game system reveal fanfare (desktop parity)
 signal storage_full          # a new material was dropped because all storage slots are full
 signal cycle_completed(type: String, id: String, gains: Dictionary)  # one gather/craft loop finished; gains = {sym/credits: +n} for UI juice
@@ -128,6 +129,7 @@ const MASTERY_MILESTONES := [10, 25, 50, 75, 100]
 const MASTERY_DURATION_BONUS_TABLE := [0.0, 0.05, 0.10, 0.20, 0.25, 0.30]
 const MASTERY_LEVEL_CAP := 100
 var mastery: Dictionary = {}  # {action_id / recipe_id: xp_total_float}
+var mastery_intro_seen := false  # one-time "MASTERY UNLOCKED" toast fired (persisted)
 
 # Single foreground task
 var active_type: String = ""            # "gather" | "craft" | "combat" | ""
@@ -760,8 +762,10 @@ func execute_warp() -> int:
 	# Cryo Shard Pistol (~Z1 power); guard on the flag so re-warps don't duplicate
 	# it (desktop warp_manager ~L106-116). Runs AFTER the world reset above so the
 	# granted weapon survives into the fresh run.
-	if not cryo_unlocked:
-		module_inventory["cryo_shard_pistol"] = int(module_inventory.get("cryo_shard_pistol", 0)) + 1
+	# Desktop grants the starter pistol on EVERY warp where none is owned (the
+	# inventory wipe above just removed it), not only the first.
+	if int(module_inventory.get("cryo_shard_pistol", 0)) <= 0:
+		module_inventory["cryo_shard_pistol"] = 1
 	cryo_unlocked = true
 	combat_hp = combat_max_hp()
 	generate_bounty_pool()
@@ -782,13 +786,21 @@ func execute_warp() -> int:
 
 func can_afford(cost: Dictionary) -> bool:
 	for sym in cost:
-		if amount(sym) < int(cost[sym]):
+		if sym == "credits":
+			# Credit costs charge the WALLET (desktop remove_currency), never a
+			# phantom "credits" storage stack.
+			if credits < int(cost[sym]):
+				return false
+		elif amount(sym) < int(cost[sym]):
 			return false
 	return true
 
 func spend(cost: Dictionary, times: int = 1) -> void:
 	for sym in cost:
-		resources[sym] = amount(sym) - int(cost[sym]) * times
+		if sym == "credits":
+			credits -= int(cost[sym]) * times
+		else:
+			resources[sym] = amount(sym) - int(cost[sym]) * times
 	resources_changed.emit()
 
 func sell_all(sym: String) -> void:
@@ -828,8 +840,7 @@ func level_of(skill_id: String) -> int:
 	return lvl
 
 func add_xp(skill_id: String, amt: int) -> void:
-	# Crew Quarters: +10% XP gain per building (desktop infrastructure xp_buff).
-	var xp_mult := warp_xp_mult() * (1.0 + building_count("crew_quarters") * 0.10)
+	var xp_mult := warp_xp_mult()
 	var before := level_of(skill_id)
 	skills[skill_id] = int(skills.get(skill_id, 0)) + int(round(amt * xp_mult))
 	skills_changed.emit()
@@ -909,7 +920,23 @@ func next_mastery_milestone(id: String) -> int:
 
 ## Credit mastery XP for `n` completed loops (online: n=1; offline: n=batch).
 func gain_mastery_xp(id: String, n: float = MASTERY_XP_PER_COMPLETION) -> void:
+	var before := mastery_level(id)
 	mastery[id] = mastery_xp(id) + n
+	if _suppress_fx:
+		if not mastery_intro_seen and mastery_level(id) >= 1:
+			mastery_intro_seen = true   # don't replay the intro after an away batch
+		return
+	var after := mastery_level(id)
+	if after <= before:
+		return
+	# Desktop v107: one-time "MASTERY UNLOCKED" intro on the first mastery level.
+	if not mastery_intro_seen and after >= 1:
+		mastery_intro_seen = true
+		mastery_milestone.emit(id, after, true)
+	# Desktop v110: a toast for every milestone crossed (10/25/50/75/100).
+	for m in MASTERY_MILESTONES:
+		if before < int(m) and after >= int(m):
+			mastery_milestone.emit(id, after, false)
 
 # ---------------- Combat stats ----------------
 ## Derived ship stats from the active hull + equipped modules.
@@ -972,6 +999,8 @@ func ship_stats() -> Dictionary:
 	s.hp *= 1.0 + gem_bonus("hp_mult")
 	s.def *= 1.0 + gem_bonus("def_mult")
 	s.shield *= 1.0 + gem_bonus("max_shield_mult")
+	if is_research_unlocked("void_shielding_1"):
+		s.shield *= 1.05                                   # Void Shielding I: +5% max shield
 	s.shield_regen *= 1.0 + gem_bonus("shield_regen_mult")
 	s.eva *= 1.0 + gem_bonus("eva_mult")
 	s.energy_cap *= 1.0 + gem_bonus("energy_capacity_mult") + research_bonus("applied_physics")
@@ -1020,6 +1049,8 @@ func ship_weapons() -> Array:
 	spd_bonus = minf(spd_bonus + trinity_bonus("atk_speed_pct") / 100.0, MAX_ATK_SPEED_MULT - 1.0)
 	var speed := (1.0 + spd_bonus) * spd_mult
 	var dmg_mult := (1.0 + level_of("combat") * 0.005) * warp_combat_mult() * (1.0 + research_bonus("combat_damage")) * tree_damage_bonus()  # CMB_2 +10% & CMB_S1 spine
+	if is_research_unlocked("void_weaponry_1"):
+		dmg_mult *= 1.05                                   # Void Weaponry I: +5% ship damage
 	# Trinity all/atk damage % applies to every type; energy/missile % stack on top.
 	var trin_all := 1.0 + (trinity_bonus("atk_pct") + trinity_bonus("all_dmg_pct")) / 100.0
 	var trin_e := 1.0 + trinity_bonus("energy_dmg_pct") / 100.0
@@ -1302,11 +1333,33 @@ func module_can_buy(mid: String) -> bool:
 func buy_module(mid: String) -> bool:
 	if not module_can_buy(mid):
 		return false
+	var slot: String = String(GameData.MODULES.get(mid, {}).get("slot", ""))
 	_pay_cost(effective_module_cost(mid))
-	module_inventory[mid] = int(module_inventory.get(mid, 0)) + 1
+	if slot == "gem":
+		# Matrix Synthesis (desktop craft_module): rolls ONE random Cracked core.
+		var cracked := ["CrackedAmethystCore", "CrackedCobaltCore", "CrackedCrimsonCore", "CrackedTopazCore"]
+		add_resource(cracked.pick_random(), 1, true)
+	elif slot == "gem_synth":
+		# Fusion: 3 identical cores (already paid above) → 1 of the next tier.
+		var fused := _gem_synth_output(mid)
+		if fused != "":
+			add_resource(fused, 1, true)
+	else:
+		module_inventory[mid] = int(module_inventory.get(mid, 0)) + 1
 	_mission_event("craft", mid, 1)
 	resources_changed.emit()
 	return true
+
+## Output gem for a fusion recipe — derived from its input core (Cracked→Stable,
+## Stable→Pristine), so recipe and payout can never drift apart.
+func _gem_synth_output(mid: String) -> String:
+	for sym in GameData.MODULES.get(mid, {}).get("cost", {}):
+		var s := String(sym)
+		if s.begins_with("Cracked"):
+			return "Stable" + s.trim_prefix("Cracked")
+		if s.begins_with("Stable"):
+			return "Pristine" + s.trim_prefix("Stable")
+	return ""
 
 var equip_notice := ""                  # last equip rejection reason (shown in UI)
 
@@ -1332,6 +1385,8 @@ func _aux_accepts(slot_type: String) -> bool:
 
 func equip_module(mid: String) -> bool:
 	if int(module_inventory.get(mid, 0)) <= 0:
+		return false
+	if _unique_already_equipped(mid):
 		return false
 	var st: String = module_def(mid).get("slot", "")
 	var slots: Array = GameData.HULLS.get(active_hull, {}).get("slots", [])
@@ -1380,6 +1435,8 @@ func unequip_slot(idx: String) -> void:
 ## rolls back cleanly on rejection so nothing is lost.
 func equip_module_to_slot(idx: int, mid: String) -> bool:
 	if int(module_inventory.get(mid, 0)) <= 0:
+		return false
+	if _unique_already_equipped(mid):
 		return false
 	var slots: Array = effective_slots()
 	if idx < 0 or idx >= slots.size():
@@ -1543,6 +1600,17 @@ func module_def(mid: String) -> Dictionary:
 	if GameData.SET_MODULES.has(mid):
 		return GameData.SET_MODULES[mid]
 	return GameData.MODULES.get(mid, {})
+
+## Desktop rule: the same UNIQUE module (rarity 4 — set pieces, faraday hull,
+## zone uniques) can never occupy two slots at once.
+func _unique_already_equipped(mid: String) -> bool:
+	var d := module_def(mid)
+	if int(d.get("rarity", 0)) < 4:
+		return false
+	if loadout_has_module(String(d.get("base", mid))):
+		equip_notice = "Only one %s can be equipped at a time." % String(d.get("name", mid))
+		return true
+	return false
 
 ## True if a module (base id) is equipped — including rolled instances of it.
 func loadout_has_module(base_id: String) -> bool:
@@ -2341,7 +2409,7 @@ const STANDING_MATERIAL_REWARDS := {
 	6: [["AdvCircuit", 150, 350], ["ColonySalvage", 100, 250], ["Superalloy", 60, 150]],
 	7: [["RadIsotope", 80, 200], ["Pt", 50, 120], ["Superalloy", 100, 250]],
 	8: [["VoidCrystal", 20, 60], ["Diamond", 15, 40], ["ExoticMatter", 10, 30]],
-	9: [["BiohazardSample", 40, 100], ["Neutronium", 25, 70], ["PathogenCore", 10, 25]],
+	9: [["BiohazardSample", 40, 100], ["MutatedTissue", 25, 70], ["PathogenCore", 10, 25]],
 	10: [["VoidEssence", 20, 50], ["ChronoCore", 10, 25], ["PrimordialShard", 5, 15]],
 }
 
@@ -3162,6 +3230,8 @@ func repair_cost() -> int:
 	return maxi(10, int(full * ratio))
 
 func repair_hull() -> bool:
+	if active_type == "combat":
+		return false                # desktop: no mid-fight repairs
 	if combat_hp >= combat_max_hp():
 		return false
 	var cost := repair_cost()
@@ -3252,8 +3322,8 @@ func _mission_repair() -> void:
 func mission_completed(mid: String) -> bool:
 	var m: Dictionary = GameData.MISSIONS.get(mid, {})
 	match m.get("type", ""):
-		"gather_multi":               # need N of each material at once (inventory-based)
-			return multi_have(m) >= int(m.get("qty", 1))
+		"gather_multi":               # need N of each material; progress locks in
+			return multi_locked_have(mid, m) >= int(m.get("qty", 1))
 		"research_multi":             # need ALL listed techs unlocked (mirrors gather_multi)
 			return research_multi_have(m) >= int(m.get("qty", 1))
 		"loadout_check":              # ship has a weapon + a shield equipped (or a named slot filled)
@@ -3499,6 +3569,22 @@ func _equip_consumables_met(m: Dictionary) -> bool:
 	return hull_ok and shield_ok
 
 ## Summed inventory progress toward a gather_multi mission's per-material goals.
+## Locked-in progress toward a gather_multi mission (desktop parity): per-material
+## HIGH-WATER marks persisted in missions_progress under "mid:sym" keys, so
+## spending the materials before claiming never regresses the mission.
+func multi_locked_have(mid: String, m: Dictionary) -> int:
+	var tgt = m.get("target", {})
+	if not (tgt is Dictionary):
+		return 0
+	var p := 0
+	for s in tgt:
+		var key := "%s:%s" % [mid, s]
+		var hw := maxi(int(missions_progress.get(key, 0)), mini(amount(s), int(tgt[s])))
+		if hw != int(missions_progress.get(key, 0)):
+			missions_progress[key] = hw
+		p += hw
+	return p
+
 func multi_have(m: Dictionary) -> int:
 	var p := 0
 	var tgt = m.get("target", {})
@@ -3618,6 +3704,8 @@ func _mission_sync() -> void:
 					nv = qty
 			"research_multi":
 				nv = maxi(cur, research_multi_have(m))
+			"gather_multi":
+				nv = maxi(cur, multi_locked_have(mid, m))
 			"gather":
 				nv = maxi(cur, mini(amount(target), qty))
 			"craft":
@@ -5190,6 +5278,11 @@ func _grant_craft_outputs(rid: String, r: Dictionary, count: int) -> void:
 	var oxy_steel: bool = is_research_unlocked("oxygen_blast_furnace")
 	var m50 := level_of("fabrication") >= 50
 	for sym in r.get("outputs", {}):
+		if sym == "credits":
+			# Desktop credits_output: a FLAT wallet payout — no efficiency scaling,
+			# no milestone doubling, and never a storage stack.
+			gain_credits(int(r["outputs"][sym]) * count)
+			continue
 		var per := float(r["outputs"][sym])
 		if sym == "Steel" and oxy_steel:
 			per *= 5.0
@@ -5231,7 +5324,8 @@ func _apply_offline(delta: float) -> void:
 
 	if active_type == "gather":
 		var a: Dictionary = GameData.GATHER[active_id]
-		var summary := _offline_loot(a.get("loot", []), yield_mult("harvesting"), reps, false, true)
+		var summary := _offline_loot(a.get("loot", []), yield_mult("harvesting"), reps, false, true,
+				int(research_bonus("gathering_yield")) + tree_gathering_flat())
 		add_xp("harvesting", int(a.get("xp", 0)) * reps)
 		gain_mastery_xp(active_id, float(reps))             # batch Mastery for offline loops
 		pending_offline = "Away for %s\n\n%s\nHarvesting XP\t+%d" % [_fmt_time(delta), summary, int(a.get("xp", 0)) * reps]
@@ -5258,7 +5352,7 @@ func _apply_offline(delta: float) -> void:
 		gain_mastery_xp(active_id, float(count))            # batch Mastery for offline loops
 		pending_offline = "Away for %s\n%s\nEngineering XP\t+%d" % [_fmt_time(delta), summary, int(r.get("xp", 0)) * count]
 
-func _offline_loot(loot: Array, mult: float, reps: int, log_session: bool = false, deterministic: bool = false) -> String:
+func _offline_loot(loot: Array, mult: float, reps: int, log_session: bool = false, deterministic: bool = false, flat: int = 0) -> String:
 	# Returns tab-delimited "Name\t+Qty" rows joined by newlines, so the report
 	# modal can render a clean two-column list instead of a run-on paragraph.
 	# When log_session is set (offline combat), also feed the SALVAGE THIS RUN
@@ -5267,7 +5361,7 @@ func _offline_loot(loot: Array, mult: float, reps: int, log_session: bool = fals
 	for row in loot:
 		# Deterministic gather: per-drop quantity is the fixed max, so expected
 		# value is max * chance (matches the closed-form desktop v0.2.1 offline).
-		var per: float = float(int(row[3])) if deterministic else (int(row[2]) + int(row[3])) / 2.0
+		var per: float = float(int(row[3]) + flat) if deterministic else (int(row[2]) + int(row[3])) / 2.0
 		var avg: float = per * float(row[1])
 		var got := int(round(avg * mult * reps))
 		if got > 0:
@@ -5325,6 +5419,7 @@ func save_game() -> void:
 		"credits_at_warp_start": credits_at_warp_start,
 		"skills": skills,
 		"mastery": mastery,
+		"mastery_intro_seen": mastery_intro_seen,
 		"research": unlocked_research.keys(),
 		"active_type": active_type,
 		"active_id": active_id,
@@ -5419,6 +5514,7 @@ func load_game() -> void:
 	if saved_mastery is Dictionary:
 		for k in saved_mastery:
 			mastery[k] = float(saved_mastery[k])
+	mastery_intro_seen = bool(data.get("mastery_intro_seen", false))
 	unlocked_research = {}
 	for r in data.get("research", []):
 		unlocked_research[r] = true

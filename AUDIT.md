@@ -93,3 +93,51 @@ desktop game (verified headless):
 5. **Atlas/Encyclopedia** — large UI feature; high effort, medium value on mobile.
 6. Combat milestones, grid-overload enforcement, building special effects — small correctness fixes.
 7. Decide on **XP curve**: match the original 99-cap table, or keep the mobile curve deliberately.
+
+---
+
+## E. 2026-08-05 four-agent parity audit vs MissionFlow refs (tools/ref_*.gd)
+
+### Fixed in this pass (version-independent bugs)
+- Craft recipes with credit costs/outputs now use the WALLET (were phantom
+  `resources["credits"]` stacks); credit outputs are flat (no efficiency/m50).
+- Offline gathering now applies flat `gathering_yield` bonuses (+research/spine).
+- `void_weaponry_1` (+5% dmg) and `void_shielding_1` (+5% shield) now consumed.
+- Removed dead crew_quarters XP term (building exists in no data source).
+- gather_multi missions lock in per-material high-water progress (desktop
+  parity; spending before claiming no longer regresses m005/m012/m024b).
+- Standing-order tier-9 material reward: Neutronium → MutatedTissue (ref).
+- Mastery toasts: one-time MASTERY UNLOCKED intro + per-milestone celebrate.
+- Unique modules (rarity 4) can no longer be equipped twice.
+- repair_hull blocked during combat (desktop rule).
+- Cryo Shard Pistol re-granted on EVERY warp when unowned (was first warp only).
+- Matrix Synthesis + gem fusion recipes now purchasable (Cores/Fusion shop
+  tabs) and actually roll/fuse gem resources (were dead data).
+
+### Open items needing MissionFlow-branch adjudication (refs are v110-111 for
+### some managers; desktop target is v135a — cannot confirm from this repo)
+- Research finite-tech material costs: ref applies ×2 MATERIAL_MULTIPLIER at
+  unlock; mobile spends raw values (half price). Repeatables match exactly.
+- Zone-gate research costs 4-10 far below ref (v109-era numbers); also
+  quantum_dynamics / perfect_automation / shipwright_2 credits 950k vs 1M.
+- Warp tree v2 divergences: E1 flat +1 vs ×1.10; E2 −15% vs −10%; C1 +15% vs
+  +10%; C3/C4 costs 5/6 vs 3/5; C5 Cryo Overcharge (+50% cryo) missing.
+- Combat economy: defeat credit tax (ref charges full repair), module
+  destruction on defeat (ref 1/6 + 10-50% durability), consumable CD 10s vs
+  1.5s, Coolant Flush + Nanite HoT consumables missing.
+- Loot: weighted base pick (battery weight 0 on desktop), rare-loot rows
+  inflated by loot multiplier, elite rarity odds 15/35 vs 4/26, extra 8%
+  set-piece roll, set pieces 3 sockets no affixes vs 4-affix uniques.
+- Mobile-only combat formula changes: resist amplification ×1.78 cap 0.80,
+  ARMOR_K_FLOOR, comp multiplier extras (fab level + attack_speed research).
+- Infra: non-passive cost curve (1.12/1.08/1.05, cap ×5) missing; buy
+  multiplier missing; grid buffer = ship energy_cap vs desktop 1M kJ; warp
+  mult applied to yield not interval; claim-all for standing orders missing.
+- Trophy buffs: all trophies inert on mobile — desktop buff keys exist
+  (mining_yield, gathering_xp, processing_xp, infrastructure_yield,
+  kinetic/energy_dmg, evasion, ship_speed, research_speed) but the
+  trophy→buff mapping lives in desktop bounty_manager (not vendored).
+- Phase-19 unique modules (reflective_sheath etc.): combat hooks live,
+  module defs absent from data — unobtainable.
+- Boss stats: VERIFIED correct vs v135a enemies.json (ref enemy_db is stale
+  v111 tuning — not a gap).
