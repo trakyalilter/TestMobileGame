@@ -3772,10 +3772,37 @@ func _warp_core(v: VBoxContainer) -> void:
 	# state on a chosen screen (no "warp now" prompt).
 	_section(v, "WARP REWARDS", PURP)
 	_lbl_wrap(v, "Warp Shards permanently raise these standing bonuses (they persist through every warp):", 10, C_DIM)
-	_clbl(v, "⚙ Production   ×%.2f" % GameState.warp_production_mult(), 11, GOLD)
-	_clbl(v, "⚔ Combat       ×%.2f" % GameState.warp_combat_mult(), 11, GOLD)
-	_clbl(v, "⛏ Gathering    ×%.2f" % GameState.warp_gathering_mult(), 11, GOLD)
-	_clbl(v, "✦ XP           ×%.2f" % GameState.warp_xp_mult(), 11, GOLD)
+	# 2x2 stat tiles — the standing multipliers read as a reward wall, not a list.
+	var rg := GridContainer.new()
+	rg.columns = 2
+	rg.add_theme_constant_override("h_separation", 8)
+	rg.add_theme_constant_override("v_separation", 8)
+	rg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	for spec in [["⚙", "Production", GameState.warp_production_mult()],
+			["⚔", "Combat", GameState.warp_combat_mult()],
+			["⛏", "Gathering", GameState.warp_gathering_mult()],
+			["✦", "XP", GameState.warp_xp_mult()]]:
+		var tile := PanelContainer.new()
+		tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		tile.add_theme_stylebox_override("panel", _bordered(INSET, _mix(PURP, LINE, 0.55), 1, 10))
+		var tv := VBoxContainer.new()
+		tv.add_theme_constant_override("separation", 1)
+		tile.add_child(tv)
+		var tl := Label.new()
+		tl.text = "%s %s" % [String(spec[0]), String(spec[1])]
+		tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		tl.add_theme_font_size_override("font_size", _fs(9))
+		tl.add_theme_color_override("font_color", Color.html(C_MUTED))
+		tv.add_child(tl)
+		var tvv := Label.new()
+		tvv.text = "×%.2f" % float(spec[2])
+		tvv.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		tvv.add_theme_font_size_override("font_size", _fs(17))
+		tvv.add_theme_color_override("font_color", Color.html(GOLD))
+		_embolden(tvv)
+		tv.add_child(tvv)
+		rg.add_child(tile)
+	v.add_child(rg)
 	if gain > 0:
 		_lbl_wrap(v, "You currently hold %s shards; warping banks +%d more." % [GameData.fmt(int(GameState.warp_shards)), gain], 10, C_DIM)
 
@@ -3836,10 +3863,13 @@ func _warp_core(v: VBoxContainer) -> void:
 # nodes persist across warps (true meta-progression).
 func _warp_mastery(v: VBoxContainer) -> void:
 	var avail := GameState.available_warp_shards()
+	# Shard wallet as a hero stat — the number the whole page spends.
+	_big_stat(v, "◈ " + GameData.fmt(int(avail)), "shards available", PURP, 26)
 	var sh := Label.new()
-	sh.text = "Available Shards: %s   ·   Spent: %s" % [GameData.fmt(int(avail)), GameData.fmt(int(GameState.warp_shards_spent))]
-	sh.add_theme_font_size_override("font_size", _fs(13))
-	sh.add_theme_color_override("font_color", Color.html(PURP))
+	sh.text = "%s spent on mastery so far" % GameData.fmt(int(GameState.warp_shards_spent))
+	sh.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sh.add_theme_font_size_override("font_size", _fs(10))
+	sh.add_theme_color_override("font_color", Color.html(C_DIM))
 	v.add_child(sh)
 	_lbl_wrap(v, "Spend Warp Shards on permanent mastery nodes. Purchases survive every Warp. Branches unlock as you Warp. Spine (◆) nodes are repeatable — each level costs a little more.", 10, C_DIM)
 	_warp_branch(v, "engineering", "ENGINEERING", GREEN)
@@ -3854,9 +3884,9 @@ func _warp_branch(v: VBoxContainer, branch: String, title: String, accent: Strin
 		_empty(v, "Warp %d time%s to reveal this branch." % [need, "s" if need != 1 else ""])
 		return
 	for nid in GameState.TREE_BRANCH_ORDER[branch]:
-		v.add_child(_warp_node_card(nid))
+		v.add_child(_warp_node_card(nid, accent))
 
-func _warp_node_card(nid: String) -> Control:
+func _warp_node_card(nid: String, accent: String = PURP) -> Control:
 	var node: Dictionary = GameState.TREE_NODES[nid]
 	var repeatable: bool = node.get("repeatable", false)
 	var level := GameState.get_node_level(nid)
@@ -3870,26 +3900,22 @@ func _warp_node_card(nid: String) -> Control:
 			prereq_ok = false
 	var cap: int = int(node.get("cap", 0))
 	var maxed := repeatable and cap > 0 and level >= cap
-	# Lit gold when a finite node is owned or a spine has levels; accent-bordered when
-	# affordable; dim otherwise.
-	var lit := owned
-	var border := GOLD if (owned and not repeatable) else (PURP if (repeatable and level > 0) else (CYAN if can else "2a3a55"))
-	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", _bordered("16243a", border, 2 if (lit or can) else 1))
-	var vb := VBoxContainer.new()
-	vb.add_theme_constant_override("separation", 3)
-	panel.add_child(vb)
-	var head := Label.new()
-	var tag := "◆ " if repeatable else ""   # spine marker
-	var check := "✔ " if (owned and not repeatable) else ""
-	var lvtxt := ("  ·  Lv %d%s" % [level, ("/%d" % cap) if cap > 0 else ""]) if (repeatable and level > 0) else ""
-	head.text = "%s%s%s%s" % [check, tag, node.get("name", nid), lvtxt]
-	head.add_theme_font_size_override("font_size", _fs(13))
-	head.add_theme_color_override("font_color", Color.html(GOLD if (owned and not repeatable) else (PURP if level > 0 else C_TEXT)))
-	vb.add_child(head)
-	_lbl_wrap(vb, node.get("desc", ""), 10, C_DIM)
+	# Card language (art-direction parity with the rest of the app): owned finite
+	# nodes radiate gold, leveled spines purple, purchasable nodes lit in their
+	# BRANCH accent; locked/unaffordable nodes stay dim surfaces.
+	var lit := owned or (repeatable and level > 0) or can
+	var col := GOLD if (owned and not repeatable) else (PURP if (repeatable and level > 0) else accent)
+	var vb := _card(col, lit)
+	var badge := ""
+	if repeatable:
+		badge = ("Lv %d%s" % [level, ("/%d" % cap) if cap > 0 else ""]) if level > 0 else "SPINE"
+	elif owned:
+		badge = "OWNED"
+	var icon := "✔" if (owned and not repeatable) else ("◆" if repeatable else "◈")
+	_card_head(vb, icon, node.get("name", nid), badge, col, lit)
+	_lbl_wrap(vb, node.get("desc", ""), 10, C_TEXT if lit else C_DIM)
 	var cl := Label.new()
-	cl.text = ("Next level: %d Shard%s" % [cost, "s" if cost != 1 else ""]) if repeatable else ("Cost: %d Shard%s" % [cost, "s" if cost != 1 else ""])
+	cl.text = ("◈ Next level: %d Shard%s" % [cost, "s" if cost != 1 else ""]) if repeatable else ("◈ %d Shard%s" % [cost, "s" if cost != 1 else ""])
 	cl.add_theme_font_size_override("font_size", _fs(10))
 	cl.add_theme_color_override("font_color", Color.html(PURP))
 	vb.add_child(cl)
@@ -3915,7 +3941,7 @@ func _warp_node_card(nid: String) -> Control:
 				GameState.purchase_tree_node(nid)
 				_refresh_current())
 		vb.add_child(b)
-	return panel
+	return vb.get_parent()
 
 func _back_header(v: VBoxContainer) -> void:
 	var b := Button.new()
@@ -4914,19 +4940,36 @@ func _unique_sets_panel(v: VBoxContainer) -> void:
 	var flow := HFlowContainer.new()
 	flow.add_theme_constant_override("h_separation", 6)
 	flow.add_theme_constant_override("v_separation", 6)
+	var done := 0
 	for sid in ids:
 		var total: int = (GameData.SETS[sid].get("pieces", []) as Array).size()
 		var have := int(counts.get(sid, 0))
-		var col: String = GOLD if (total > 0 and have >= total) else (C_TEXT if have > 0 else C_MUTED)
+		var complete := total > 0 and have >= total
+		if complete:
+			done += 1
+		var col: String = GOLD if complete else (PURP if have > 0 else C_MUTED)
 		var chip := PanelContainer.new()
-		chip.add_theme_stylebox_override("panel", _card_style(_mix(col, SURFACE, 0.85), _mix(col, LINE, 0.4), 1, false))
+		# Completed sets radiate (elevated glow); partial sets tint purple; unstarted
+		# sets stay dim. Piece pips (✦/✧) replace the raw fraction.
+		var sb := _bordered(_mix(col, SURFACE, 0.88) if have > 0 else SURFACE, _mix(col, LINE, 0.35 if complete else 0.55), 1, 9)
+		if complete:
+			var glow := Color.html(GOLD)
+			glow.a = 0.25
+			sb.shadow_color = glow
+			sb.shadow_size = 8
+		chip.add_theme_stylebox_override("panel", sb)
+		var pips := ""
+		for i in total:
+			pips += "✦" if i < have else "✧"
 		var lbl := Label.new()
-		lbl.text = "  %s  %d/%d  " % [GameData.SETS[sid].get("name", sid), have, total]
+		lbl.text = " %s  %s " % [GameData.SETS[sid].get("name", sid), pips]
 		lbl.add_theme_font_size_override("font_size", _fs(10))
 		lbl.add_theme_color_override("font_color", Color.html(col))
 		chip.add_child(lbl)
 		flow.add_child(chip)
 	v.add_child(flow)
+	if done > 0:
+		_clbl(v, "%d of %d sets complete" % [done, ids.size()], 9, GOLD)
 
 func _ship_armory(v: VBoxContainer) -> void:
 	if GameState.equip_notice != "":
@@ -5859,14 +5902,13 @@ func _material_info_body(v: VBoxContainer, _close: Callable, sym: String, info: 
 	var zone_groups := _combat_sources_by_zone(sym)
 	if not zone_groups.is_empty():
 		_section(v, "DROPPED IN COMBAT", GREEN)
+		# One inset per sector — the same inner-block chrome as STATS/COST panels,
+		# so drop locations read as structured data, not indented prose.
 		for grp in zone_groups:
-			_clbl(v, "◎ " + String(grp["zone"]), 11, CYAN)
-			var body := Label.new()
-			body.text = "      " + ", ".join(grp["enemies"])
-			body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			body.add_theme_font_size_override("font_size", _fs(10))
-			body.add_theme_color_override("font_color", Color.html(C_TEXT))
-			v.add_child(body)
+			var elines := []
+			for enm in grp["enemies"]:
+				elines.append(_line("◎ " + String(enm), C_TEXT))
+			_inset(v, String(grp["zone"]).to_upper(), elines, CYAN, true)
 	if not uses.is_empty():
 		_atlas_kv(v, "USED IN", uses, C_DIM)
 	if sources.is_empty() and uses.is_empty():
