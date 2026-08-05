@@ -2083,6 +2083,7 @@ func _clear(id: String) -> VBoxContainer:
 func _build_gather() -> void:
 	var v := _clear("gather")
 	_skill_banner(v, "PLANETARY HARVESTING", "harvesting", GOLD)
+	_page_boost_cards(v, "harvesting", GOLD)
 	_subtabs(v, GameData.GATHER_CATS, gather_cat, GOLD, func(id: String) -> void:
 		gather_cat = id
 		_refresh_current())
@@ -2196,7 +2197,7 @@ func _card_head_mat(v: VBoxContainer, sym: String, glyph: String, name: String, 
 
 # Compact yield/IO chips: one wrapping row of "icon xN" pills instead of a tall
 # titled inset table — kills ~40% of the form-bloat per card.
-func _yield_chips(v: VBoxContainer, loot: Array, accent: String) -> void:
+func _yield_chips(v: VBoxContainer, loot: Array, accent: String, mult := 1.0, flat := 0) -> void:
 	var flow := HFlowContainer.new()
 	flow.add_theme_constant_override("h_separation", 5)
 	flow.add_theme_constant_override("v_separation", 5)
@@ -2218,7 +2219,11 @@ func _yield_chips(v: VBoxContainer, loot: Array, accent: String) -> void:
 			hb.add_child(icon)
 		var lo := int(row[2])
 		var hi := int(row[3])
-		var txt := ("×%d" % hi) if lo == hi else ("×%d-%d" % [lo, hi])
+		# Gathering is deterministic since v0.2.1: every completed cycle grants the
+		# TOP of the range (+ flat bonuses) × the live yield multiplier. Show the
+		# number the player will actually receive, not the raw data range.
+		var eff_n := maxi(1, int(round((hi + flat) * mult)))
+		var txt := "×%s" % GameData.fmt(eff_n)
 		if sym == "credits":
 			txt = "₡%d-%d" % [lo, hi]
 		if float(row[1]) < 1.0:
@@ -2281,7 +2286,8 @@ func _gather_card(id: String, a: Dictionary) -> Control:
 			rl.add_theme_color_override("font_color", Color.html(GREEN))
 			_embolden(rl)
 			v.add_child(rl)
-		_yield_chips(v, a.get("loot", []), GOLD)
+		_yield_chips(v, a.get("loot", []), GOLD, GameState.yield_mult("harvesting"),
+				int(GameState.research_bonus("gathering_yield")) + GameState.tree_gathering_flat())
 		_held_chip(v, psym, active)
 		_mastery_row(v, id, GOLD, active)
 		var fill := Control.new()
@@ -2296,6 +2302,7 @@ func _gather_card(id: String, a: Dictionary) -> Control:
 func _build_craft() -> void:
 	var v := _clear("craft")
 	_skill_banner(v, "ENGINEERING", "fabrication", CYAN)
+	_page_boost_cards(v, "fabrication", CYAN)
 	# Search box: matches recipes by name OR output material across EVERY category,
 	# so you find a recipe even when you're on the wrong tab. Typing refills only the
 	# results wrapper (focus / keyboard stay put).
@@ -2434,7 +2441,16 @@ func _craft_card(id: String, r: Dictionary) -> Control:
 			rl.add_theme_color_override("font_color", Color.html(GREEN))
 			_embolden(rl)
 			v.add_child(rl)
-		_io_chips(v, eff_inputs, r.get("outputs", {}), r.get("bonus", []), CYAN)
+		# Effective outputs — the amounts a completed cycle actually grants
+		# (_grant_craft_outputs): efficiency research ×2-32, oxygen furnace ×5 Steel.
+		var eff_out := {}
+		var out_eff := GameState.research_efficiency_mult()
+		for osym in r.get("outputs", {}):
+			var per := float(r["outputs"][osym])
+			if osym == "Steel" and GameState.is_research_unlocked("oxygen_blast_furnace"):
+				per *= 5.0
+			eff_out[osym] = maxi(1, int(round(per * out_eff)))
+		_io_chips(v, eff_inputs, eff_out, r.get("bonus", []), CYAN)
 		_held_chip(v, psym, active)
 		_mastery_row(v, id, CYAN, active)
 		var fill := Control.new()
@@ -2459,6 +2475,7 @@ func _build_combat() -> void:
 
 func _build_targets(v: VBoxContainer) -> void:
 	_skill_banner(v, "BATTLE STATION", "combat", RED)
+	_page_boost_cards(v, "combat", RED)
 	# Hull status + repair (no passive regen)
 	var hp := GameState.combat_hp
 	var mhp := GameState.combat_max_hp()
@@ -6892,6 +6909,67 @@ func _skill_banner(v: VBoxContainer, title: String, skill_id: String, accent: St
 	_skill_lv_label = lv
 	_skill_medal = medal
 	_skill_banner_id = skill_id
+
+# Page-level info cards (desktop parity): LEVEL BONUS — what this page's skill
+# level currently grants and what the next milestones/unlocks are — and MASTERY —
+# a summary of the per-action mastery progression on this page.
+func _page_boost_cards(v: VBoxContainer, skill_id: String, accent: String) -> void:
+	var lvl := GameState.level_of(skill_id)
+	var lines: Array = []
+	var db: Dictionary = {}
+	match skill_id:
+		"harvesting":
+			db = GameData.GATHER
+			lines.append(_line("+%d%% yield — +1%% per level" % lvl, C_TEXT))
+			lines.append(_line("✔ +10% yield — Lv 10 milestone" if lvl >= 10 else "Lv 10 milestone: +10% yield", GREEN if lvl >= 10 else C_MUTED))
+			var eff := GameState.research_efficiency_mult()
+			if eff > 1.0:
+				lines.append(_line("×%s yield — Efficiency research" % GameData.fmt(int(eff)), CYAN))
+			var flat := int(GameState.research_bonus("gathering_yield")) + GameState.tree_gathering_flat()
+			if flat > 0:
+				lines.append(_line("+%d every cycle — research & warp tree" % flat, PURP))
+			lines.append(_line("Σ  ×%.2f yield per cycle" % GameState.yield_mult("harvesting"), GOLD))
+		"fabrication":
+			db = GameData.CRAFT
+			lines.append(_line("+%d%% craft speed — +1%% per level" % lvl, C_TEXT))
+			lines.append(_line("✔ +10% speed — Lv 10 milestone" if lvl >= 10 else "Lv 10 milestone: +10% speed", GREEN if lvl >= 10 else C_MUTED))
+			lines.append(_line("✔ +11% speed — Lv 25 milestone" if lvl >= 25 else "Lv 25 milestone: +11% speed", GREEN if lvl >= 25 else C_MUTED))
+			lines.append(_line("✔ 5% double outputs — Lv 50 milestone" if lvl >= 50 else "Lv 50 milestone: 5% double outputs", GREEN if lvl >= 50 else C_MUTED))
+			var eff2 := GameState.research_efficiency_mult()
+			if eff2 > 1.0:
+				lines.append(_line("×%s outputs — Efficiency research" % GameData.fmt(int(eff2)), CYAN))
+		"combat":
+			lines.append(_line("✔ +5% crit — Lv 10 milestone" if lvl >= 10 else "Lv 10 milestone: +5% crit", GREEN if lvl >= 10 else C_MUTED))
+			lines.append(_line("✔ +15 evasion — Lv 25 milestone" if lvl >= 25 else "Lv 25 milestone: +15 evasion", GREEN if lvl >= 25 else C_MUTED))
+			lines.append(_line("✔ Auto-consumables — Lv 50 milestone" if lvl >= 50 else "Lv 50 milestone: auto-consumables", GREEN if lvl >= 50 else C_MUTED))
+			lines.append(_line("✔ +25% heat vent — Lv 75 milestone" if lvl >= 75 else "Lv 75 milestone: +25% heat vent", GREEN if lvl >= 75 else C_MUTED))
+	# Next content unlock on this page: lowest level_req still above the level.
+	var nxt := {}
+	for id in db:
+		var lr := int(db[id].get("level_req", 1))
+		if lr > lvl and (nxt.is_empty() or lr < int(nxt["lv"])):
+			nxt = {"name": db[id].get("name", id), "lv": lr}
+	if not nxt.is_empty():
+		lines.append(_line("Next unlock: %s @ Lv %d" % [nxt["name"], int(nxt["lv"])], C_DIM))
+	_inset(v, "LEVEL BONUS  ·  Lv %d" % lvl, lines, accent, true)
+	if db.is_empty():
+		return
+	# Mastery overview for this page's actions.
+	var total := 0
+	var started := 0
+	var stones := 0
+	for id in db:
+		var ml := GameState.mastery_level(String(id))
+		if ml > 0:
+			started += 1
+		total += ml
+		stones += GameState.mastery_milestones_passed(String(id))
+	var mlines: Array = []
+	mlines.append(_line("Each action levels its own mastery while it runs. Milestones at 10 / 25 / 50 / 75 / 100 shorten its cycle — up to 30% faster.", C_DIM))
+	if started > 0:
+		mlines.append(_line("Σ %d mastery levels · %d of %d actions started · %d milestones passed" % [total, started, db.size(), stones], accent))
+	mlines.append(_line("Tap the thin bar on any card for its milestone schedule.", C_MUTED))
+	_inset(v, "✦ MASTERY", mlines, accent, false)
 
 func _section(v: VBoxContainer, text: String, accent: String) -> Label:
 	if text == "":

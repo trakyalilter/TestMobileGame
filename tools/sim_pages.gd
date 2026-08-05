@@ -168,7 +168,7 @@ func _run() -> void:
 	await process_frame
 	var wm := []
 	_collect_text(main.pages["warp"], wm)
-	if _has(wm, "ENGINEERING") and _has(wm, "COMBAT") and _has(wm, "Yield Calibration") and _has(wm, "Hull Reinforcement"):
+	if _has(wm, "ENGINEERING") and _has(wm, "COMBAT") and _has(wm, "Yield Calibration") and _has(wm, "Hardened Hull"):
 		print("PASS warp mastery: branch headers + node names present")
 	else:
 		print("FAIL warp mastery missing — got: %s" % str(wm))

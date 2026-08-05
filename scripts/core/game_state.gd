@@ -5087,13 +5087,16 @@ func rate_text(type: String, id: String) -> String:
 		if dur <= 0.0:
 			return ""
 		var ym := yield_mult("harvesting")
+		var flat := int(research_bonus("gathering_yield")) + tree_gathering_flat()
 		var best := ""
 		var bestrate := 0.0
 		for row in a.get("loot", []):
 			if row[0] == "credits":
 				continue
-			var avg := (int(row[2]) + int(row[3])) / 2.0 * float(row[1])
-			var rate := avg * ym / dur * 60.0
+			# Deterministic gather (v0.2.1): grants are top-of-range + flat, chance-
+			# weighted for sub-100% rows — same math as _roll_loot(deterministic).
+			var per := (float(row[3]) + flat) * float(row[1])
+			var rate := per * ym / dur * 60.0
 			if rate > bestrate:
 				bestrate = rate
 				best = row[0]
