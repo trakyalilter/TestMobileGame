@@ -2147,10 +2147,16 @@ func _io_chips(v: VBoxContainer, inputs: Dictionary, outputs: Dictionary, bonus:
 		_embolden(l)
 		hb.add_child(l)
 		flow.add_child(pill)
+	# Chips carry the material NAME, not just its icon — players who haven't
+	# memorized the iconography must still be able to read a recipe.
 	for sym in inputs:
 		var need: int = int(inputs[sym])
+		if sym == "credits":
+			var havec: bool = GameState.credits >= need
+			mk.call("credits", "₡%s" % GameData.fmt(need), Color.html(GREEN if havec else C_WARN), LINE)
+			continue
 		var have: bool = GameState.amount(sym) >= need
-		mk.call(String(sym), "×%d" % need, Color.html(GREEN if have else C_WARN), LINE)
+		mk.call(String(sym), "%s ×%d" % [GameData.item_name(sym), need], Color.html(GREEN if have else C_WARN), LINE)
 	var arrow := Label.new()
 	arrow.text = "→"
 	arrow.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -2158,9 +2164,12 @@ func _io_chips(v: VBoxContainer, inputs: Dictionary, outputs: Dictionary, bonus:
 	arrow.add_theme_color_override("font_color", Color.html(accent))
 	flow.add_child(arrow)
 	for sym in outputs:
-		mk.call(String(sym), "×%d" % int(outputs[sym]), Color.html(C_TEXT), _mix(accent, LINE, 0.4))
+		if sym == "credits":
+			mk.call("credits", "₡%s" % GameData.fmt(int(outputs[sym])), Color.html(GOLD), _mix(accent, LINE, 0.4))
+			continue
+		mk.call(String(sym), "%s ×%d" % [GameData.item_name(sym), int(outputs[sym])], Color.html(C_TEXT), _mix(accent, LINE, 0.4))
 	for row in bonus:
-		mk.call(String(row[0]), "+%d%%" % int(float(row[1]) * 100.0), _hex_color_safe(String(row[0])), _mix(accent, LINE, 0.4))
+		mk.call(String(row[0]), "%s +%d%%" % [GameData.item_name(String(row[0])), int(float(row[1]) * 100.0)], _hex_color_safe(String(row[0])), _mix(accent, LINE, 0.4))
 	v.add_child(flow)
 
 # Identity head with the material's own tinted icon instead of a generic glyph —
@@ -2235,7 +2244,7 @@ func _yield_chips(v: VBoxContainer, loot: Array, accent: String, mult := 1.0, fl
 		# TOP of the range (+ flat bonuses) × the live yield multiplier. Show the
 		# number the player will actually receive, not the raw data range.
 		var eff_n := maxi(1, int(round((hi + flat) * mult)))
-		var txt := "×%s" % GameData.fmt(eff_n)
+		var txt := "%s ×%s" % [GameData.item_name(sym), GameData.fmt(eff_n)]
 		if sym == "credits":
 			txt = "₡%d-%d" % [lo, hi]
 		if float(row[1]) < 1.0:
@@ -2260,7 +2269,7 @@ func _held_chip(v: VBoxContainer, sym: String, active: bool) -> void:
 	if sym == "" or sym == "credits":
 		return
 	var l := Label.new()
-	l.text = "◈ %s held" % GameData.fmt(GameState.amount(sym))
+	l.text = "◈ %s %s held" % [GameData.fmt(GameState.amount(sym)), GameData.res_name(sym)]
 	l.add_theme_font_size_override("font_size", _fs(10))
 	l.add_theme_color_override("font_color", Color.html(C_DIM))
 	v.add_child(l)
@@ -3194,7 +3203,7 @@ func _on_cycle_completed(_type: String, _id: String, gains: Dictionary) -> void:
 	# Top 3 gains by amount — enough to feel rich without spam.
 	# Live-refresh the active card's held-quantity chip (captured handle — no rebuild).
 	if is_instance_valid(_held_label) and _held_sym != "":
-		_held_label.text = "◈ %s held" % GameData.fmt(GameState.amount(_held_sym))
+		_held_label.text = "◈ %s %s held" % [GameData.fmt(GameState.amount(_held_sym)), GameData.res_name(_held_sym)]
 	var syms := gains.keys()
 	syms.sort_custom(func(a, b) -> bool: return int(gains[a]) > int(gains[b]))
 	var shown := 0
