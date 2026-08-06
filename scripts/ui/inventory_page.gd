@@ -322,20 +322,29 @@ func _style_details() -> void:
 # (preserving node names so nothing downstream breaks), builds the hero band +
 # the quantity stepper, and pins the sell deck. No .tscn edits → the four signal
 # [connection]s survive untouched.
-# v167: resource selling is no longer a Lira source, so the sell deck comes off the
-# item dossier. Hidden rather than deleted: the nodes stay in the .tscn, the four
-# [connection]s survive, and perform_sale() is left intact but unreachable -- so
-# this is one line to revert if selling ever comes back. HeroRow / FlavorLabel /
-# DetailSpacer stay, and the spacer expands to fill what the deck used to occupy.
+# v167: resource selling stopped being a Lira source, so the sell deck came off the
+# item dossier -- and with it gone the whole ITEM DETAILS column was mostly void.
+# v170 drops the column entirely (owner call) and gives the grid the full width.
+#
+# Nothing is lost. The identity, description and stats the panel showed are already
+# in the hover/lock info card, "View in Atlas" reaches the full entry, and the slot
+# counter it duplicated is in the GLOBAL HEADER (global_header.gd), which even taps
+# through to this page.
+#
+# Hidden, not deleted: every @onready in this script points into RightPanel and the
+# selection code writes to those labels on each click. Hiding keeps all of that
+# valid and inert, so this is one line to revert -- deleting the nodes would mean
+# rewriting the whole selection path for no gain.
 func _hide_sell_deck() -> void:
-	var details := get_node_or_null("HBoxContainer/RightPanel/VBoxContainer/Details")
-	if details == null:
-		return
-	for n in ["PriceLabel", "HSeparator", "Label2", "HBoxContainer", "TotalLabel",
-			  "SellBtn", "SellAllBtn"]:
-		var node := details.get_node_or_null(String(n))
-		if node != null and node is CanvasItem:
-			(node as CanvasItem).visible = false
+	var right := get_node_or_null("HBoxContainer/RightPanel")
+	if right != null and right is CanvasItem:
+		(right as CanvasItem).visible = false
+	# The grid was on a 4:1 stretch against the panel; with the panel gone it should
+	# simply take everything.
+	var left := get_node_or_null("HBoxContainer/LeftPanel") as Control
+	if left != null:
+		left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		left.size_flags_stretch_ratio = 1.0
 
 func _build_detail_panel() -> void:
 	var details := get_node_or_null("HBoxContainer/RightPanel/VBoxContainer/Details") as VBoxContainer
