@@ -2202,20 +2202,81 @@ func trigger_system_glitch(node: Control, intensity: float = 8.0):
 	tween.tween_property(node, "position", original_pos, 0.05)
 	tween.parallel().tween_property(node, "modulate", Color.WHITE, 0.05)
 
+# v169: alert dot drawn on a TabBar, styled to match the sidebar mission dots.
+# One dot node per tab index, parented to the bar and re-placed whenever the bar
+# resizes -- tab rects move when the container is resized or the tabs scroll, and a
+# drifting dot would be worse than the text marker it replaces.
+func _set_tab_alert_dot(bar: TabBar, tab_idx: int, active: bool, color: Color) -> void:
+	if bar == null or tab_idx < 0:
+		return
+	var dot_name := "TabAlertDot_%d" % tab_idx
+	var dot: Panel = bar.get_node_or_null(dot_name) as Panel
+	if not active:
+		if dot != null:
+			dot.visible = false
+		return
+	if dot == null:
+		dot = Panel.new()
+		dot.name = dot_name
+		dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		dot.custom_minimum_size = Vector2(7, 7)
+		dot.size = Vector2(7, 7)
+		var st := StyleBoxFlat.new()
+		st.bg_color = color
+		st.set_corner_radius_all(4)
+		st.shadow_color = Color(color.r, color.g, color.b, 0.40)
+		st.shadow_size = 3
+		dot.add_theme_stylebox_override("panel", st)
+		bar.add_child(dot)
+		if not bar.resized.is_connected(_replace_tab_alert_dots):
+			bar.resized.connect(_replace_tab_alert_dots.bind(bar))
+		# Tab rects also move when the selection changes (the active tab grows) and
+		# whenever the bar itself is re-laid-out inside its parent.
+		if not bar.tab_changed.is_connected(_on_tab_bar_relayout):
+			bar.tab_changed.connect(_on_tab_bar_relayout.bind(bar))
+		if not bar.item_rect_changed.is_connected(_replace_tab_alert_dots):
+			bar.item_rect_changed.connect(_replace_tab_alert_dots.bind(bar))
+	dot.visible = true
+	# Place now, and again once layout settles. A dot created before the bar has
+	# laid its tabs out lands at a stale x (measured: dot at 56 for a tab at 316),
+	# and `resized` does not necessarily fire again afterwards. Repositioning ALL
+	# dots also fixes the ones placed on earlier calls.
+	_replace_tab_alert_dots(bar)
+	_replace_tab_alert_dots.call_deferred(bar)
+
+
+func _on_tab_bar_relayout(_idx: int, bar: TabBar) -> void:
+	_replace_tab_alert_dots(bar)
+
+
+func _place_tab_alert_dot(bar: TabBar, tab_idx: int, dot: Control) -> void:
+	if bar == null or dot == null or tab_idx >= bar.tab_count:
+		return
+	var r: Rect2 = bar.get_tab_rect(tab_idx)
+	# Top-right of the tab, inset so it sits inside the tab's own border.
+	dot.position = Vector2(r.position.x + r.size.x - 12.0, r.position.y + 4.0)
+
+
+func _replace_tab_alert_dots(bar: TabBar) -> void:
+	if bar == null or not is_instance_valid(bar):
+		return
+	for c in bar.get_children():
+		if c is Panel and String(c.name).begins_with("TabAlertDot_"):
+			var idx := int(String(c.name).replace("TabAlertDot_", ""))
+			if idx < bar.tab_count:
+				_place_tab_alert_dot(bar, idx, c as Control)
+
 ## trigger_tab_alert: Rhythmic pulse + Visual marker for navigation headers
 func trigger_tab_alert(tabs: TabContainer, tab_idx: int, active: bool = true, color: Color = Color.CYAN):
 	if not tabs or tab_idx < 0 or tab_idx >= tabs.get_tab_count(): return
 	
-	var title = tabs.get_tab_title(tab_idx)
-	var marker = "(!) "
-	
-	# Handle Title Prefixing (Audit v16.4: Clean text marker)
-	if active:
-		if not title.begins_with(marker):
-			tabs.set_tab_title(tab_idx, marker + title)
-	else:
-		if title.begins_with(marker):
-			tabs.set_tab_title(tab_idx, title.replace(marker, ""))
+	# v169: was a "(!) " text prefix on the tab title. Now a drawn dot on the tab
+	# bar, matching the sidebar mission dots -- one alert language across the UI
+	# instead of two. Prefixing also mutated the TITLE, which meant the marker had
+	# to be string-stripped back off and rode along into anything reading the tab
+	# name; the dot is a sibling node and touches nothing.
+	var bar_for_dot := tabs.get_tab_bar()
+	_set_tab_alert_dot(bar_for_dot, tab_idx, active, color)
 	
 	# 1. Manage Active Alerts List
 	var active_alerts = tabs.get_meta("active_tab_alerts", [])
