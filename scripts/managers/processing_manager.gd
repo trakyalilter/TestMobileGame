@@ -1308,7 +1308,7 @@ var recipes: Dictionary = {
 	"craft_synthetic_diamond": {
 		"name": "Synthetic Diamond",
 		"description": "Crush carbon under press-forge pressure until the lattice locks. The Diamond Press runs this without you.",
-		"input": {"C": 216, "Graphite": 8},
+		"input": {"C": 60, "Graphite": 3},
 		"output": {"Diamond": 1},
 		"duration": 45.0,
 		"level_req": 58,
@@ -1341,7 +1341,7 @@ var recipes: Dictionary = {
 	"craft_sintered_carbide": {
 		"name": "Sintered Carbide",
 		"description": "Hot-press graphite and tungsten around a cobalt binder. The Carbide Sintering Press runs this without you.",
-		"input": {"Graphite": 18, "W": 12, "Co": 6},
+		"input": {"Graphite": 3, "W": 2, "Co": 1},
 		"output": {"SinteredCarbide": 1},
 		"duration": 75.0,
 		"level_req": 62,
@@ -1352,7 +1352,7 @@ var recipes: Dictionary = {
 	"craft_precision_lattice": {
 		"name": "Precision Lattice",
 		"description": "Machine sintered carbide and stainless steel into a micron-tolerance truss. The Precision Lattice Mill runs this without you.",
-		"input": {"SinteredCarbide": 18, "StainlessSteel": 18, "Mg": 6},
+		"input": {"SinteredCarbide": 3, "StainlessSteel": 3, "Mg": 1},
 		"output": {"PrecisionLattice": 1},
 		"duration": 120.0,
 		"level_req": 72,
@@ -1363,7 +1363,7 @@ var recipes: Dictionary = {
 	"craft_fabrication_bus": {
 		"name": "Fabrication Bus",
 		"description": "Assemble a self-routing power-and-tooling spine on a precision lattice. The Bus Assembly Hall runs this without you.",
-		"input": {"PrecisionLattice": 18, "AdvCircuit": 12, "Chip": 12, "DiamondWafer": 14},
+		"input": {"PrecisionLattice": 3, "AdvCircuit": 2, "Chip": 2, "DiamondWafer": 2},
 		"output": {"FabricationBus": 1},
 		"duration": 240.0,
 		"level_req": 80,
@@ -1374,7 +1374,7 @@ var recipes: Dictionary = {
 	"craft_capital_spar": {
 		"name": "Capital Spar",
 		"description": "Lace a fabrication bus through galvanized keel plate and composite weave. The Capital Spar Works runs this without you.",
-		"input": {"FabricationBus": 6, "GalvanizedSteel": 54, "CompositeWeave": 12},
+		"input": {"FabricationBus": 1, "GalvanizedSteel": 9, "CompositeWeave": 2},
 		"output": {"CapitalSpar": 1},
 		"duration": 300.0,
 		"level_req": 88,
@@ -1385,7 +1385,7 @@ var recipes: Dictionary = {
 	"craft_dreadnought_frame": {
 		"name": "Dreadnought Frame",
 		"description": "Join spars, neutronium plate and precision lattice into one hull skeleton section. The Dreadnought Frame Yard runs this without you.",
-		"input": {"CapitalSpar": 18, "NeutroniumPlate": 12, "PrecisionLattice": 42},
+		"input": {"CapitalSpar": 3, "NeutroniumPlate": 2, "PrecisionLattice": 7},
 		"output": {"DreadnoughtFrame": 1},
 		"duration": 600.0,
 		"level_req": 92,

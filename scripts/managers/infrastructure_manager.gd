@@ -575,8 +575,8 @@ var building_db: Dictionary = {
 		# yards (measured 1,644/min draw). New ceiling 2,160/min. Serial
 		# press_carbon rate untouched — active processing keeps its 10x lead
 		# over a single kiln.
-		"yield": {"C": 9.0},
-		"input": {"Wood": 1.95},
+		"yield": {"C": 26.0},
+		"input": {"Wood": 5.63},
 		"interval": 5.0,
 		"research_req": "combustion",
 		"category": "industry"
@@ -726,8 +726,8 @@ var building_db: Dictionary = {
 		"cost": {"credits": 7500, "Fe": 100, "Hydraulics": 5},
 		"energy_gen": 0.0,
 		"energy_cons": 1500.0, # molecular_compression base
-		"yield": {"Graphite": 0.8},
-		"input": {"C": 4.2},
+		"yield": {"Graphite": 2.0},
+		"input": {"C": 10.5},
 		"interval": 5.0,
 		"research_req": "molecular_compression",
 		"category": "industry"
@@ -1168,12 +1168,12 @@ var building_db: Dictionary = {
 	# without any Z8-Z10 recipe ever naming Wood.
 	"diamond_press": {
 		"name": "Diamond Press",
-		"description": "+0.5 Diamond (-72 Carbon, -3 Graphite) — synthesises stones from the carbon line.",
+		"description": "+0.5 Diamond (-20 Carbon, -1 Graphite) — synthesises stones from the carbon line.",
 		"cost": {"credits": 9000000, "Steel": 7000, "Superalloy": 400, "AdvCircuit": 250},
 		"energy_gen": 0.0,
 		"energy_cons": 24000.0,
 		"yield": {"Diamond": 0.5},
-		"input": {"C": 72.0, "Graphite": 3.0},
+		"input": {"C": 20.0, "Graphite": 1.0},
 		"interval": 5.0,
 		"research_req": "molecular_compression",
 		"category": "industry"
@@ -1208,7 +1208,7 @@ var building_db: Dictionary = {
 		"cost": {"credits": 6000000, "Steel": 6000, "Superalloy": 300, "W": 500},
 		"energy_gen": 0.0,
 		"energy_cons": 8000.0,
-		"yield": {"SinteredCarbide": 0.133},
+		"yield": {"SinteredCarbide": 0.8},
 		# Graphite 1.2 -> 1.0 (v160 fixed-point pass): at 1.5/SC the 3-yard
 		# complex drew 172 Graphite/min into auto_press's 192/min type ceiling
 		# (90%) and pushed the C rung to 227% of industrial_kiln's 1,440/min.
@@ -1243,7 +1243,7 @@ var building_db: Dictionary = {
 		"cost": {"credits": 18000000, "Steel": 9000, "Superalloy": 600, "AdvCircuit": 400, "SinteredCarbide": 200},
 		"energy_gen": 0.0,
 		"energy_cons": 30000.0,
-		"yield": {"PrecisionLattice": 0.067},
+		"yield": {"PrecisionLattice": 0.4},
 		# Mg 0.4 -> 0.3 (v160 fixed-point pass): Mg is Dolomite 4/unit and
 		# dolomite_quarry's type ceiling is 288/min; at 1.0 Mg/PL the 3-yard
 		# complex held Dolomite at 96%. 0.75 Mg/PL -> ~80% with the calciner and
@@ -1259,7 +1259,7 @@ var building_db: Dictionary = {
 		"cost": {"credits": 55000000, "Superalloy": 2500, "AdvCircuit": 900, "PrecisionLattice": 300},
 		"energy_gen": 0.0,
 		"energy_cons": 120000.0,
-		"yield": {"FabricationBus": 0.033},
+		"yield": {"FabricationBus": 0.2},
 		# AdvCircuit 0.4 -> 0.25, Chip 0.4 -> 0.3 (v160 fixed-point pass):
 		# AdvCircuit drags StructuralComponent 2/unit -> Cu 5/unit into the
 		# 240/min copper_smelter ceiling ("converter outputs stay scarce" is a
@@ -1304,7 +1304,7 @@ var building_db: Dictionary = {
 		"cost": {"credits": 160000000, "Superalloy": 5000, "AdvCircuit": 2000, "PrecisionLattice": 400, "FabricationBus": 150},
 		"energy_gen": 0.0,
 		"energy_cons": 300000.0,
-		"yield": {"CapitalSpar": 0.033},
+		"yield": {"CapitalSpar": 0.2},
 		# GS/FB at spec intensity (10 GalvanizedSteel + 1.25 FabricationBus per
 		# spar): GS is the spar's Steel edge (1 Steel + 0.5 Zn each) and the
 		# galvanising_line/auto_smelter rungs sit at <20% of their type ceilings
@@ -1322,7 +1322,7 @@ var building_db: Dictionary = {
 		"cost": {"credits": 350000000, "Superalloy": 9000, "AdvCircuit": 4000, "CapitalSpar": 60, "NeutroniumPlate": 200, "Z9_Core": 4},
 		"energy_gen": 0.0,
 		"energy_cons": 600000.0,
-		"yield": {"DreadnoughtFrame": 0.017},
+		"yield": {"DreadnoughtFrame": 0.1},
 		# CS/NP at spec intensity (4 spars + 3 plates per frame): these are the
 		# frame's Steel/Fe-carrying edges (GalvanizedSteel -> Steel, Superalloy
 		# -> Steel), kept high so the Z10 bill drags MORE early roots than the
