@@ -28,13 +28,20 @@ const TIER_RESONANT := 3   # v135a: CMB_4 tier — renders at Pristine quality +
 # flat 45° Panel diamonds at 7px/3px in a straight line while the equipped slot
 # drew these faceted icons at 16px/12px on an arc, so the same module looked like
 # two different items. Both now read these constants and socket_offset().
-const SOCKET_D := 24.0        # icon size (px)  v172: 16 -> 24, cores read too small
-const SOCKET_GAP := 10.0      # gap between sockets (px)  v172: 12 -> 10 to hold the row width
-const SOCKET_ARC := 9.0       # parabola depth: outer sockets ride high, centre dips
-# v172: a 3-socket row is now 24*3 + 10*2 = 92px (was 72) and the band it needs is
-# SOCKET_D + SOCKET_ARC = 33px (was 24). Callers must DERIVE that band, never
-# hardcode it -- designer_slot_widget had drifted to a literal 22, which was
-# already 2px short of the old geometry and would have clipped outright at this size.
+const SOCKET_D := 22.0        # icon size (px)  v172: 16 -> 22, cores read too small
+const SOCKET_GAP := 6.0       # gap between sockets (px)  v172: 12 -> 6, see the width budget below
+const SOCKET_ARC := 8.0       # parabola depth: outer sockets ride high, centre dips
+# v172 WIDTH BUDGET -- this is a hard constraint, not a preference. An equipped slot
+# card is a 106x106 SQUARE and every card must be the same size, so the socket row
+# cannot drive the card's minimum width. Measured: the card carries 28px of margin
+# around the row, leaving 106 - 28 = 78px of interior. A 3-socket row is
+# 3*SOCKET_D + 2*SOCKET_GAP, so:
+#     3*22 + 2*6 = 78   exactly fits, card stays 106x106
+# A first pass at 24/10 made the row 92px and pushed the 3-socket card to 120x106 --
+# visibly wider than its neighbours and no longer square. If SOCKET_D is ever raised
+# again, SOCKET_GAP must fall to keep 3*D + 2*GAP <= 78, or the card breaks.
+# The band height is SOCKET_D + SOCKET_ARC and callers must DERIVE it, never hardcode
+# it -- designer_slot_widget had drifted to a literal 22 and would have clipped.
 
 # Row width for n sockets, so a caller can centre the row.
 static func socket_row_width(n: int) -> float:
