@@ -232,6 +232,13 @@ var ELEMENT_NAMES = {
 	# v160 Capital Fabrication Chain (ENDGAME_FACTORY_TIER.md): the d3-d8 spine.
 	# Five rungs, each consuming the rung below plus mid-tier products that bottom
 	# out in Dirt/Water/Wood/ore drills transitively — never named directly.
+	# v163 Carbon Lattice line (owner design): Wood -> C -> Diamond -> Wafer ->
+	# Superior Circuit. Gives Diamond its first PRODUCTION path (it was a
+	# z8_boss_warden drop only) and puts the early Wood/Carbon economy back
+	# under real endgame load, transitively, without naming Wood late.
+	"DiamondWafer": "Diamond Wafer",
+	"SuperiorCircuit": "Superior Circuit",
+
 	"SinteredCarbide": "Sintered Carbide",
 	"PrecisionLattice": "Precision Lattice",
 	"FabricationBus": "Fabrication Bus",
@@ -260,7 +267,7 @@ var CATEGORIES = {
 	"alloys": ["Steel", "Graphite", "StainlessSteel", "GalvanizedSteel", "Superalloy", "AlMgAlloy", "IrWAlloy",
 				"ChondriteAlloy", "WreckforgedAlloy", "RimeAlloy", "XenoforgedAlloy", "ColonyAlloy", "GammaAlloy", "PrismaticAlloy", "BioforgedAlloy", "AeonAlloy"],
 	"components": ["Circuit", "AdvCircuit", "Chip", "Hydraulics", "AlWire", "Resin", "Fiber", "ReinforcedPlating", "FocusingCrystal",
-					"SinteredCarbide", "PrecisionLattice"],  # v160: Capital Fabrication Chain rungs 1-2
+					"SinteredCarbide", "PrecisionLattice", "DiamondWafer", "SuperiorCircuit"],  # v160 chain + v163 Carbon Lattice line
 	"batteries": ["BatteryT1", "BatteryT2", "BatteryT3", "CoBattery", "MgBattery", "PdFuelCell"],
 	"consumables": ["Mesh", "Seal", "EmergencyPatch", "BasicBooster", "ChitinPatch", "NitroCoolant", "AdvMaintenanceKit", "CapacitorShard", "IonField", "ZeroPoint"],  # Audit v2.0: Early/Mid consumables
 	"ammo": ["SlugT1", "SlugT1S", "SlugT2", "SlugT3", "SlugT4", "CellT1", "CellT2", "CellT3", "CellT4", "MissileT1", "MissileT2", "MissileT3", "MissileT4"],

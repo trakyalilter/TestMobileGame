@@ -1161,6 +1161,47 @@ var building_db: Dictionary = {
 		"research_req": "refractory_metallurgy",
 		"category": "industry"
 	},
+	# v163 CARBON LATTICE LINE — the parallel half of the three new recipes.
+	# Every rung is input-bearing (no new drills). The line's whole point is that
+	# its roots are Wood and Carbon, the early economy that had fallen out of
+	# endgame demand: a Superior Circuit transitively eats thousands of Wood
+	# without any Z8-Z10 recipe ever naming Wood.
+	"diamond_press": {
+		"name": "Diamond Press",
+		"description": "+0.5 Diamond (-72 Carbon, -3 Graphite) — synthesises stones from the carbon line.",
+		"cost": {"credits": 9000000, "Steel": 7000, "Superalloy": 400, "AdvCircuit": 250},
+		"energy_gen": 0.0,
+		"energy_cons": 24000.0,
+		"yield": {"Diamond": 0.5},
+		"input": {"C": 72.0, "Graphite": 3.0},
+		"interval": 5.0,
+		"research_req": "molecular_compression",
+		"category": "industry"
+	},
+	"wafer_lapping_line": {
+		"name": "Wafer Lapping Line",
+		"description": "+0.2 Diamond Wafer (-1.6 Diamond, -0.8 Sintered Carbide) — slices stones into substrate.",
+		"cost": {"credits": 26000000, "Superalloy": 1200, "AdvCircuit": 700, "SinteredCarbide": 150},
+		"energy_gen": 0.0,
+		"energy_cons": 70000.0,
+		"yield": {"DiamondWafer": 0.2},
+		"input": {"Diamond": 1.6, "SinteredCarbide": 0.8},
+		"interval": 10.0,
+		"research_req": "refractory_metallurgy",
+		"category": "industry"
+	},
+	"diamond_litho_hall": {
+		"name": "Diamond Lithography Hall",
+		"description": "+0.1 Superior Circuit (-2.4 Diamond Wafer, -4.8 Adv Circuit, -0.8 Precision Lattice, -2.4 Au).",
+		"cost": {"credits": 90000000, "Superalloy": 3500, "AdvCircuit": 1600, "DiamondWafer": 120, "PrecisionLattice": 200},
+		"energy_gen": 0.0,
+		"energy_cons": 200000.0,
+		"yield": {"SuperiorCircuit": 0.1},
+		"input": {"DiamondWafer": 2.4, "AdvCircuit": 4.8, "PrecisionLattice": 0.8, "Au": 2.4},
+		"interval": 10.0,
+		"research_req": "precision_fabrication",
+		"category": "industry"
+	},
 	"carbide_sintering_press": {
 		"name": "Carbide Sintering Press",
 		"description": "+0.8 Sintered Carbide (-1 Graphite, -1.2 W, -0.32 Co) — feeds the Precision Lattice Mill.",
@@ -1214,7 +1255,7 @@ var building_db: Dictionary = {
 	},
 	"bus_assembly_hall": {
 		"name": "Fabrication Bus Assembly Hall",
-		"description": "+0.2 Fabrication Bus (-0.5 Precision Lattice, -0.25 Adv Circuit, -0.3 Chip) — feeds the Capital Spar Works.",
+		"description": "+0.2 Fabrication Bus (-0.5 Precision Lattice, -0.25 Adv Circuit, -0.3 Chip, -0.45 Diamond Wafer) — feeds the Capital Spar Works.",
 		"cost": {"credits": 55000000, "Superalloy": 2500, "AdvCircuit": 900, "PrecisionLattice": 300},
 		"energy_gen": 0.0,
 		"energy_cons": 120000.0,
@@ -1227,7 +1268,7 @@ var building_db: Dictionary = {
 		# FabricationBus keeps the "AdvCircuit is still bought, transitively"
 		# story (6.25 AdvC per DreadnoughtFrame via the spar line) while the
 		# 3-yard complex clears both rungs.
-		"input": {"PrecisionLattice": 0.5, "AdvCircuit": 0.25, "Chip": 0.3},
+		"input": {"PrecisionLattice": 0.5, "AdvCircuit": 0.25, "Chip": 0.3, "DiamondWafer": 0.45},
 		"interval": 10.0,
 		"research_req": "precision_fabrication",
 		"category": "industry"

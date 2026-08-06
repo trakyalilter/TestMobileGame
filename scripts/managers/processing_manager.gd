@@ -1299,6 +1299,45 @@ var recipes: Dictionary = {
 	# COST_ZONE_PROC_LEVEL of the first zone that anchors the material
 	# (SC Z7/65, PL Z8/75, FB Z9/85, CS+DF Z10/95), so nothing is unbuildable
 	# when its zone unlocks.
+	# v163 CARBON LATTICE LINE. Diamond had NO production path at all — it dropped
+	# from z8_boss_warden and nowhere else, which also made z9_battery's "Diamond 2"
+	# a backward-combat-debt line (a Z9 module demanding a Z8 boss drop). Pressing
+	# carbon into diamond fixes both: Diamond gains a parallel source, and the
+	# Wood -> C economy is pulled back under endgame load TRANSITIVELY, so no late
+	# recipe ever names Wood directly.
+	"craft_synthetic_diamond": {
+		"name": "Synthetic Diamond",
+		"description": "Crush carbon under press-forge pressure until the lattice locks. The Diamond Press runs this without you.",
+		"input": {"C": 216, "Graphite": 8},
+		"output": {"Diamond": 1},
+		"duration": 45.0,
+		"level_req": 58,
+		"xp": 520,
+		"research_req": "molecular_compression",
+		"category": "endgame"
+	},
+	"craft_diamond_wafer": {
+		"name": "Diamond Wafer",
+		"description": "Slice and lap a synthetic stone into a substrate. The Wafer Lapping Line runs this without you.",
+		"input": {"Diamond": 4, "SinteredCarbide": 2},
+		"output": {"DiamondWafer": 1},
+		"duration": 90.0,
+		"level_req": 68,
+		"xp": 900,
+		"research_req": "refractory_metallurgy",
+		"category": "endgame"
+	},
+	"craft_superior_circuit": {
+		"name": "Superior Circuit",
+		"description": "Print logic onto a diamond substrate. The Diamond Lithography Hall runs this without you.",
+		"input": {"DiamondWafer": 6, "AdvCircuit": 12, "PrecisionLattice": 2, "Au": 6},
+		"output": {"SuperiorCircuit": 1},
+		"duration": 180.0,
+		"level_req": 78,
+		"xp": 2200,
+		"research_req": "precision_fabrication",
+		"category": "endgame"
+	},
 	"craft_sintered_carbide": {
 		"name": "Sintered Carbide",
 		"description": "Hot-press graphite and tungsten around a cobalt binder. The Carbide Sintering Press runs this without you.",
@@ -1324,7 +1363,7 @@ var recipes: Dictionary = {
 	"craft_fabrication_bus": {
 		"name": "Fabrication Bus",
 		"description": "Assemble a self-routing power-and-tooling spine on a precision lattice. The Bus Assembly Hall runs this without you.",
-		"input": {"PrecisionLattice": 18, "AdvCircuit": 12, "Chip": 12},
+		"input": {"PrecisionLattice": 18, "AdvCircuit": 12, "Chip": 12, "DiamondWafer": 14},
 		"output": {"FabricationBus": 1},
 		"duration": 240.0,
 		"level_req": 80,

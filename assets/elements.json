@@ -1,1840 +1,1860 @@
 [
-	{
-		"atomic_number": -1,
-		"symbol": "Water",
-		"name": "Water",
-		"mass": 18.015,
-		"category": "Raw Material",
-		"tier": 0,
-		"base_value": 1,
-		"description": "Essential for life and a source of Hydrogen/Oxygen."
-	},
-	{
-		"atomic_number": -99,
-		"symbol": "SparePart",
-		"name": "Spare Parts",
-		"mass": 0.5,
-		"category": "Component",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Utilized to repair degraded modules and restore durability."
-	},
-	{
-		"atomic_number": -2,
-		"symbol": "Dirt",
-		"name": "Dirt",
-		"mass": 5.0,
-		"category": "Raw Material",
-		"tier": 0,
-		"base_value": 1,
-		"description": "Common soil containing trace minerals."
-	},
-	{
-		"atomic_number": -3,
-		"symbol": "Wood",
-		"name": "Wood",
-		"mass": 50.0,
-		"category": "Raw Material",
-		"tier": 0,
-		"base_value": 1,
-		"description": "Organic matter, rich in Carbon."
-	},
-	{
-		"atomic_number": -4,
-		"symbol": "Spodumene",
-		"name": "Lithium Ore",
-		"mass": 10.0,
-		"category": "Raw Material",
-		"tier": 0,
-		"base_value": 1,
-		"description": "Lithium-rich pyroxene mineral found in pegmatites."
-	},
-	{
-		"atomic_number": -7,
-		"symbol": "Bauxite",
-		"name": "Bauxite Ore",
-		"mass": 30.0,
-		"category": "Raw Material",
-		"tier": 1,
-		"base_value": 1,
-		"description": "Aluminum ore."
-	},
-	{
-		"atomic_number": -8,
-		"symbol": "ZincOre",
-		"name": "Zinc Ore",
-		"mass": 30.0,
-		"category": "Raw Material",
-		"tier": 1,
-		"base_value": 1,
-		"description": "Sphalerite mineral."
-	},
-	{
-		"atomic_number": -9,
-		"symbol": "Cassiterite",
-		"name": "Cassiterite Ore",
-		"mass": 30.0,
-		"category": "Raw Material",
-		"tier": 1,
-		"base_value": 1,
-		"description": "Tin ore."
-	},
-	{
-		"atomic_number": -5,
-		"symbol": "Quartz",
-		"name": "Quartz Crystal",
-		"mass": 25.0,
-		"category": "Raw Material",
-		"tier": 1,
-		"base_value": 1,
-		"description": "Crystalline Silicon dioxide. Source of Silicon."
-	},
-	{
-		"atomic_number": -6,
-		"symbol": "Malachite",
-		"name": "Malachite Ore",
-		"mass": 30.0,
-		"category": "Raw Material",
-		"tier": 1,
-		"base_value": 1,
-		"description": "Copper carbonate hydroxide mineral. Source of Copper."
-	},
-	{
-		"atomic_number": 1,
-		"symbol": "H",
-		"name": "Hydrogen",
-		"mass": 1.008,
-		"category": "Nonmetal",
-		"tier": 1,
-		"base_value": 1,
-		"description": "The most abundant element in the universe. Essential fuel."
-	},
-	{
-		"atomic_number": 2,
-		"symbol": "He",
-		"name": "Helium",
-		"mass": 4.0026,
-		"category": "Noble Gas",
-		"tier": 1,
-		"base_value": 1,
-		"description": "Inert gas used for cooling and pressurization."
-	},
-	{
-		"atomic_number": 3,
-		"symbol": "Li",
-		"name": "Lithium",
-		"mass": 6.94,
-		"category": "Alkali Metal",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Lightweight metal used in advanced batteries."
-	},
-	{
-		"atomic_number": 4,
-		"symbol": "Be",
-		"name": "Beryllium",
-		"mass": 9.0122,
-		"category": "Alkaline Earth Metal",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Strong, lightweight metal used in aerospace."
-	},
-	{
-		"atomic_number": 5,
-		"symbol": "B",
-		"name": "Boron",
-		"mass": 10.81,
-		"category": "Metalloid",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Used in dopants for semiconductors."
-	},
-	{
-		"atomic_number": 6,
-		"symbol": "C",
-		"name": "Carbon",
-		"mass": 12.011,
-		"category": "Nonmetal",
-		"tier": 2,
-		"base_value": 1,
-		"description": "The basis of life and organic chemistry."
-	},
-	{
-		"atomic_number": 7,
-		"symbol": "N",
-		"name": "Nitrogen",
-		"mass": 14.007,
-		"category": "Nonmetal",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Abundant gas, essential for life support systems."
-	},
-	{
-		"atomic_number": 8,
-		"symbol": "O",
-		"name": "Oxygen",
-		"mass": 15.999,
-		"category": "Nonmetal",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Crucial for breathing and combustion."
-	},
-	{
-		"atomic_number": 14,
-		"symbol": "Si",
-		"name": "Silicon",
-		"mass": 28.085,
-		"category": "Metalloid",
-		"tier": 1,
-		"base_value": 1,
-		"description": "Used in electronics and glass making."
-	},
-	{
-		"atomic_number": 32,
-		"symbol": "Ge",
-		"name": "Germanium",
-		"mass": 72.63,
-		"category": "Metalloid",
-		"tier": 2,
-		"base_value": 1,
-		"description": " Semiconductor material used in advanced electronics."
-	},
-	{
-		"atomic_number": 26,
-		"symbol": "Fe",
-		"name": "Iron",
-		"mass": 55.845,
-		"category": "Transition Metal",
-		"tier": 1,
-		"base_value": 1,
-		"description": "Strong metal widely used in construction."
-	},
-	{
-		"atomic_number": -305,
-		"symbol": "Semiconductor",
-		"name": "Semiconductor",
-		"mass": 0.5,
-		"category": "Component",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Germanium-doped Silicon wafer for high-speed logic."
-	},
-	{
-		"atomic_number": -306,
-		"symbol": "AdvCircuit",
-		"name": "Advanced Circuit",
-		"mass": 0.2,
-		"category": "Component",
-		"tier": 3,
-		"base_value": 1,
-		"description": "High-performance integrated circuits."
-	},
-	{
-		"atomic_number": -307,
-		"symbol": "Chip",
-		"name": "Microchip",
-		"mass": 0.05,
-		"category": "Component",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Miniaturized semiconductor logic unit."
-	},
-	{
-		"atomic_number": -10,
-		"symbol": "Steel",
-		"name": "Steel",
-		"mass": 55.0,
-		"category": "Alloy",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Hardened alloy of Iron and Carbon."
-	},
-	{
-		"atomic_number": -12,
-		"symbol": "Superalloy",
-		"name": "Superalloy",
-		"mass": 45.0,
-		"category": "Alloy",
-		"tier": 3,
-		"base_value": 1,
-		"description": "Advanced Co-Ni-Cr alloy. Extreme heat resistance."
-	},
-	{
-		"atomic_number": -11,
-		"symbol": "Graphite",
-		"name": "Graphite",
-		"mass": 12.0,
-		"category": "Refined Material",
-		"tier": 3,
-		"base_value": 1,
-		"description": "Compressed carbon used in heat shields and electronics."
-	},
-	{
-		"atomic_number": 29,
-		"symbol": "Cu",
-		"name": "Copper",
-		"mass": 63.546,
-		"category": "Transition Metal",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Excellent conductor for electronics and energy weapons."
-	},
-	{
-		"atomic_number": 79,
-		"symbol": "Au",
-		"name": "Gold",
-		"mass": 196.97,
-		"category": "Transition Metal",
-		"tier": 3,
-		"base_value": 1,
-		"description": "Highly conductive precious metal used in advanced circuitry."
-	},
-	{
-		"atomic_number": 22,
-		"symbol": "Ti",
-		"name": "Titanium",
-		"mass": 47.867,
-		"category": "Transition Metal",
-		"tier": 3,
-		"base_value": 1,
-		"description": "High-strength, low-density metal for advanced hulls."
-	},
-	{
-		"atomic_number": 74,
-		"symbol": "W",
-		"name": "Tungsten",
-		"mass": 183.84,
-		"category": "Transition Metal",
-		"tier": 3,
-		"base_value": 1,
-		"description": "Extremely hard and dense metal. Ideal for armor penetration."
-	},
-	{
-		"atomic_number": -30,
-		"symbol": "NavData",
-		"name": "Navigation Data",
-		"mass": 0.0,
-		"category": "Data",
-		"tier": 5,
-		"base_value": 0,
-		"description": "Encrypted coordinates to unknown sectors."
-	},
-	{
-		"atomic_number": -36,
-		"symbol": "Hydraulics",
-		"name": "Hydraulic System",
-		"mass": 5.0,
-		"category": "Component",
-		"tier": 3,
-		"base_value": 1,
-		"description": "High-power mechanical actuators."
-	},
-	{
-		"atomic_number": -40,
-		"symbol": "Circuit",
-		"name": "Circuit Board",
-		"mass": 0.1,
-		"category": "Component",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Integrated circuits required for automation and logic."
-	},
-	{
-		"atomic_number": -50,
-		"symbol": "Mesh",
-		"name": "Nanoweave Mesh",
-		"mass": 0.5,
-		"category": "Consumable",
-		"tier": 2,
-		"base_value": 1,
-		"effect": "heal_shield",
-		"value": 50,
-		"description": "Carbon nanotube mesh. Repairs 50 Shield Integrity."
-	},
-	{
-		"atomic_number": -51,
-		"symbol": "Seal",
-		"name": "Hull Sealant",
-		"mass": 0.5,
-		"category": "Consumable",
-		"tier": 2,
-		"base_value": 1,
-		"effect": "heal_hull",
-		"value": 50,
-		"description": "Rapid-hardening polymer. Repairs 50 Hull Integrity."
-	},
-	{
-		"atomic_number": -60,
-		"symbol": "Fiber",
-		"name": "Carbon Fiber",
-		"mass": 0.1,
-		"category": "Component",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Reinforced carbon strands used in advanced fabrication."
-	},
-	{
-		"atomic_number": -61,
-		"symbol": "Resin",
-		"name": "Polymer Resin",
-		"mass": 0.2,
-		"category": "Component",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Synthetic resin base for sealants and plastics."
-	},
-	{
-		"atomic_number": -62,
-		"symbol": "CoolantCell",
-		"name": "Helium Coolant Cell",
-		"mass": 0.5,
-		"category": "Component",
-		"tier": 3,
-		"base_value": 1,
-		"description": "Pressurized helium cooling unit for high-power weapons."
-	},
-	{
-		"atomic_number": -80,
-		"symbol": "SlugT1",
-		"name": "Ferrite Rounds",
-		"mass": 0.1,
-		"category": "Ammo",
-		"tier": 1,
-		"base_value": 1,
-		"description": "Standard iron slugs. Baseline round: no damage bonus."
-	},
-	{
-		"atomic_number": -81,
-		"symbol": "SlugT2",
-		"name": "Tungsten Sabot",
-		"mass": 0.2,
-		"category": "Ammo",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Armor-piercing heavy slugs. +10% damage on its channel."
-	},
-	{
-		"atomic_number": -505,
-		"symbol": "SlugT1S",
-		"name": "Steel Slugs",
-		"mass": 0.2,
-		"category": "Ammo",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Armor-piercing heavy slugs. +5% damage on its channel."
-	},
-	{
-		"atomic_number": -82,
-		"symbol": "CellT1",
-		"name": "Focus Crystal",
-		"mass": 0.1,
-		"category": "Ammo",
-		"tier": 1,
-		"base_value": 1,
-		"description": "Lenses for beam cohesion. Baseline round: no damage bonus."
-	},
-	{
-		"atomic_number": -83,
-		"symbol": "CellT2",
-		"name": "Plasma Cell",
-		"mass": 0.2,
-		"category": "Ammo",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Superheated gas canister. +10% damage on its channel."
-	},
-	{
-		"atomic_number": 92,
-		"symbol": "U",
-		"name": "Uranium",
-		"mass": 238.03,
-		"category": "Actinide",
-		"tier": 4,
-		"base_value": 1,
-		"description": "Heavy radioactive metal. Very dense. Handle with care."
-	},
-	{
-		"atomic_number": -84,
-		"symbol": "SlugT3",
-		"name": "Depleted Uranium Round",
-		"mass": 0.5,
-		"category": "Ammo",
-		"tier": 3,
-		"base_value": 1,
-		"description": "Self-sharpening penetrator. +20% damage on its channel."
-	},
-	{
-		"atomic_number": -85,
-		"symbol": "CellT3",
-		"name": "Vaporizer Cell",
-		"mass": 0.5,
-		"category": "Ammo",
-		"tier": 3,
-		"base_value": 1,
-		"description": "Unstable singularity core. +20% damage on its channel."
-	},
-	{
-		"atomic_number": -110,
-		"symbol": "kinetic_shell",
-		"name": "Kinetic Shells",
-		"mass": 0.5,
-		"category": "Ammo",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Mass-produced kinetic ammunition. +25 Kinetic Dmg."
-	},
-	{
-		"atomic_number": -111,
-		"symbol": "energy_cell",
-		"name": "Energy Cells",
-		"mass": 0.5,
-		"category": "Ammo",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Standardized energy batteries. +25 Energy Dmg."
-	},
-	{
-		"atomic_number": -112,
-		"symbol": "missile",
-		"name": "HE Missiles",
-		"mass": 1.0,
-		"category": "Ammo",
-		"tier": 3,
-		"base_value": 1,
-		"description": "High-Explosive ordinance. +50 Kinetic / +20 Energy Dmg."
-	},
-	{
-		"atomic_number": -120,
-		"symbol": "VoidArtifact",
-		"name": "Void Artifact",
-		"mass": 5.0,
-		"category": "Artifact",
-		"tier": 4,
-		"base_value": 0,
-		"description": "Anomalous object reacting to zero-point energy. Required for Capital Ships."
-	},
-	{
-		"atomic_number": -121,
-		"symbol": "QuantumCore",
-		"name": "Quantum Core",
-		"mass": 10.0,
-		"category": "Artifact",
-		"tier": 5,
-		"base_value": 1,
-		"description": "Stable quantum singularity. The heart of a Dreadnought."
-	},
-	{
-		"atomic_number": -301,
-		"symbol": "BatteryT1",
-		"name": "Basic Battery",
-		"mass": 5.0,
-		"category": "Component",
-		"tier": 1,
-		"base_value": 1,
-		"description": "Standard energy storage unit for early ships."
-	},
-	{
-		"atomic_number": -302,
-		"symbol": "BatteryT2",
-		"name": "Improved Battery",
-		"mass": 4.0,
-		"category": "Component",
-		"tier": 2,
-		"base_value": 1,
-		"description": "High-density advanced energy storage."
-	},
-	{
-		"atomic_number": -303,
-		"symbol": "BatteryT3",
-		"name": "Zero-Point Module",
-		"mass": 3.0,
-		"category": "Component",
-		"tier": 3,
-		"base_value": 1,
-		"description": "Infinite energy extraction from the void (Sort of)."
-	},
-	{
-		"atomic_number": -400,
-		"symbol": "Res1",
-		"name": "Common Research Artifact",
-		"mass": 0.01,
-		"category": "Data",
-		"tier": 1,
-		"base_value": 1,
-		"description": "Salvaged data core containing basic engineering schematics."
-	},
-	{
-		"atomic_number": -402,
-		"symbol": "SalvageData",
-		"name": "Salvage Data",
-		"mass": 0.01,
-		"category": "Combat Data",
-		"tier": 1,
-		"base_value": 0,
-		"description": "Technical schematics recovered from derelict probes. Essential for engineering research."
-	},
-	{
-		"atomic_number": -404,
-		"symbol": "Res2",
-		"name": "Rare Research Artifact",
-		"mass": 0.01,
-		"category": "Data",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Advanced technical schematics from Martian ruins. Required for mid-game research."
-	},
-	{
-		"atomic_number": -405,
-		"symbol": "Res3",
-		"name": "Exotic Research Artifact",
-		"mass": 0.01,
-		"category": "Data",
-		"tier": 3,
-		"base_value": 1,
-		"description": "Xenon technology data cores. Essential for capital ship engineering."
-	},
-	{
-		"atomic_number": -2001,
-		"symbol": "Trophy_Lunar",
-		"name": "Lunar Command Trophy",
-		"mass": 1.0,
-		"category": "Trophy",
-		"tier": 1,
-		"base_value": 1,
-		"description": "Evidence of Lunar dominance. Level up Gathering faster while held."
-	},
-	{
-		"atomic_number": -2002,
-		"symbol": "Trophy_Belt",
-		"name": "Belt Warden Trophy",
-		"mass": 1.0,
-		"category": "Trophy",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Evidence of Belt dominance. Increases all Mining yields while held."
-	},
-	{
-		"atomic_number": -2003,
-		"symbol": "Trophy_Mars",
-		"name": "Martian Sovereign Trophy",
-		"mass": 1.0,
-		"category": "Trophy",
-		"tier": 3,
-		"base_value": 1,
-		"description": "Evidence of Martian dominance. Reduces Processing heat buildup while held."
-	},
-	{
-		"atomic_number": -2004,
-		"symbol": "Trophy_Titan",
-		"name": "Titan Overlord Trophy",
-		"mass": 1.0,
-		"category": "Trophy",
-		"tier": 4,
-		"base_value": 1,
-		"description": "Evidence of Titan dominance. Boosts Ship Speed in all sectors while held."
-	},
-	{
-		"atomic_number": -2005,
-		"symbol": "Trophy_Alpha",
-		"name": "Alpha Vanguard Trophy",
-		"mass": 1.0,
-		"category": "Trophy",
-		"tier": 5,
-		"base_value": 1,
-		"description": "Evidence of Alpha dominance. Increases Research speed while held."
-	},
-	{
-		"atomic_number": -2006,
-		"symbol": "Trophy_Beta",
-		"name": "Beta Governor Trophy",
-		"mass": 1.0,
-		"category": "Trophy",
-		"tier": 6,
-		"base_value": 1,
-		"description": "Evidence of Beta dominance. Increases Infrastructure output while held."
-	},
-	{
-		"atomic_number": -2007,
-		"symbol": "Trophy_Gamma",
-		"name": "Gamma Ravager Trophy",
-		"mass": 1.0,
-		"category": "Trophy",
-		"tier": 7,
-		"base_value": 1,
-		"description": "Evidence of Gamma dominance. Boosts Energy Weapon damage while held."
-	},
-	{
-		"atomic_number": -2008,
-		"symbol": "Trophy_Delta",
-		"name": "Delta Sentinel Trophy",
-		"mass": 1.0,
-		"category": "Trophy",
-		"tier": 8,
-		"base_value": 1,
-		"description": "Evidence of Delta dominance. Boosts Kinetic Weapon damage while held."
-	},
-	{
-		"atomic_number": -2009,
-		"symbol": "Trophy_Zeta",
-		"name": "Zeta Purifier Trophy",
-		"mass": 1.0,
-		"category": "Trophy",
-		"tier": 9,
-		"base_value": 1,
-		"description": "Evidence of Zeta dominance. Boosts Ship Evasion while held."
-	},
-	{
-		"atomic_number": -2010,
-		"symbol": "Trophy_Epsilon",
-		"name": "Void Conqueror Trophy",
-		"mass": 1.0,
-		"category": "Trophy",
-		"tier": 10,
-		"base_value": 1,
-		"description": "Evidence of Void dominance. Boosts ALL Ship Stats while held."
-	},
-	{
-		"atomic_number": -500,
-		"symbol": "ColonySalvage",
-		"name": "Colony Salvage",
-		"mass": 2.0,
-		"category": "Raw Material",
-		"tier": 3,
-		"base_value": 1,
-		"description": "Dense clusters of tech from failed colonies. High in rare metals."
-	},
-	{
-		"atomic_number": -501,
-		"symbol": "RadIsotope",
-		"name": "Radioactive Isotope",
-		"mass": 0.5,
-		"category": "Raw Material",
-		"tier": 4,
-		"base_value": 1,
-		"description": "Highly unstable isotope harvested from nebulae. Essential for gamma tech."
-	},
-	{
-		"atomic_number": -63,
-		"symbol": "NitroCoolant",
-		"name": "Cryo-Shield Matrix",
-		"mass": 0.4,
-		"category": "Component",
-		"tier": 2,
-		"base_value": 1,
-		"traits": [
-			"coolant"
-		],
-		"description": "Super-cooled nitrogen for industrial cooling systems."
-	},
-	{
-		"atomic_number": -71,
-		"symbol": "MiteChitin",
-		"name": "Mite Chitin",
-		"mass": 0.1,
-		"category": "Raw Material",
-		"tier": 1,
-		"base_value": 1,
-		"description": "Exoskeleton fragments from space mites. Used in basic repairs."
-	},
-	{
-		"atomic_number": -70,
-		"symbol": "ChitinPatch",
-		"name": "Chitin Hull Patch",
-		"mass": 0.2,
-		"category": "Consumable",
-		"tier": 1,
-		"base_value": 1,
-		"effect": "heal_hull",
-		"value": 40,
-		"description": "Organic sealant. cheaper than iron patches.",
-		"research_req": "basic_engineering"
-	},
-	{
-		"atomic_number": -308,
-		"symbol": "EmergencyPatch",
-		"name": "Emergency Patch",
-		"mass": 0.5,
-		"category": "Consumable",
-		"tier": 2,
-		"base_value": 1,
-		"effect": "heal_hull",
-		"value": 50,
-		"description": "Rapid-deployment patch. Repairs 50 Hull Integrity instantly."
-	},
-	{
-		"atomic_number": -309,
-		"symbol": "BasicBooster",
-		"name": "Shield Booster",
-		"mass": 0.5,
-		"category": "Consumable",
-		"tier": 2,
-		"base_value": 1,
-		"effect": "heal_shield",
-		"value": 30,
-		"description": "Capacitor discharge. Restores 30 Shield Integrity instantly."
-	},
-	{
-		"atomic_number": 13,
-		"symbol": "Al",
-		"name": "Aluminum",
-		"mass": 26.98,
-		"category": "Metal",
-		"tier": 1,
-		"base_value": 1,
-		"description": "Lightweight metal used in aerospace construction."
-	},
-	{
-		"atomic_number": 25,
-		"symbol": "Mn",
-		"name": "Manganese",
-		"mass": 54.93,
-		"category": "Transition Metal",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Used in steel production and alloys."
-	},
-	{
-		"atomic_number": 24,
-		"symbol": "Cr",
-		"name": "Chromium",
-		"mass": 51.99,
-		"category": "Transition Metal",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Hard metal used in stainless steel and plating."
-	},
-	{
-		"atomic_number": 28,
-		"symbol": "Ni",
-		"name": "Nickel",
-		"mass": 58.69,
-		"category": "Transition Metal",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Versatile metal used in batteries and superalloys."
-	},
-	{
-		"atomic_number": 50,
-		"symbol": "Sn",
-		"name": "Tin",
-		"mass": 118.71,
-		"category": "Post-Transition Metal",
-		"tier": 1,
-		"base_value": 1,
-		"description": "Used in soldering and bronze alloys."
-	},
-	{
-		"atomic_number": -510,
-		"symbol": "Pentlandite",
-		"name": "Pentlandite Ore",
-		"mass": 20.0,
-		"category": "Raw Material",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Iron-nickel sulfide mineral. Primary source of Nickel."
-	},
-	{
-		"atomic_number": -511,
-		"symbol": "Chromite",
-		"name": "Chromite Ore",
-		"mass": 25.0,
-		"category": "Raw Material",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Iron chromium oxide. Primary source of Chromium."
-	},
-	{
-		"atomic_number": -512,
-		"symbol": "Dolomite",
-		"name": "Dolomite",
-		"mass": 20.0,
-		"category": "Raw Material",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Magnesium-calcium carbonate. Source of Magnesium."
-	},
-	{
-		"atomic_number": -513,
-		"symbol": "Germanit",
-		"name": "Germanite Ore",
-		"mass": 25.0,
-		"category": "Raw Material",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Rare sulfide mineral. Source of Germanium."
-	},
-	{
-		"atomic_number": -514,
-		"symbol": "PtOre",
-		"name": "Platinum Ore",
-		"mass": 40.0,
-		"category": "Raw Material",
-		"tier": 3,
-		"base_value": 1,
-		"description": "Rare heavy metal ore."
-	},
-	{
-		"atomic_number": 12,
-		"symbol": "Mg",
-		"name": "Magnesium",
-		"mass": 24.305,
-		"category": "Alkaline Earth Metal",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Lightweight structural metal."
-	},
-	{
-		"atomic_number": 27,
-		"symbol": "Co",
-		"name": "Cobalt",
-		"mass": 58.93,
-		"category": "Transition Metal",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Hard ferromagnetic metal used in superalloys."
-	},
-	{
-		"atomic_number": 47,
-		"symbol": "Ag",
-		"name": "Silver",
-		"mass": 107.86,
-		"category": "Transition Metal",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Highly conductive precious metal."
-	},
-	{
-		"atomic_number": 78,
-		"symbol": "Pt",
-		"name": "Platinum",
-		"mass": 195.08,
-		"category": "Transition Metal",
-		"tier": 3,
-		"base_value": 1,
-		"description": "Dense, malleable, corrosion-resistant metal."
-	},
-	{
-		"atomic_number": 46,
-		"symbol": "Pd",
-		"name": "Palladium",
-		"mass": 106.42,
-		"category": "Transition Metal",
-		"tier": 3,
-		"base_value": 1,
-		"description": "Rare metal used in fuel cells and catalysis."
-	},
-	{
-		"atomic_number": 77,
-		"symbol": "Ir",
-		"name": "Iridium",
-		"mass": 192.21,
-		"category": "Transition Metal",
-		"tier": 4,
-		"base_value": 1,
-		"description": "Very hard, brittle, silvery-white transition metal. Extremely rare."
-	},
-	{
-		"atomic_number": 76,
-		"symbol": "Os",
-		"name": "Osmium",
-		"mass": 190.23,
-		"category": "Transition Metal",
-		"tier": 4,
-		"base_value": 1,
-		"description": "Densest naturally occurring element."
-	},
-	{
-		"atomic_number": -201,
-		"symbol": "AlMgAlloy",
-		"name": "Al-Mg Alloy",
-		"mass": 26.0,
-		"category": "Alloy",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Lightweight, high-strength aerospace alloy."
-	},
-	{
-		"atomic_number": -202,
-		"symbol": "IrWAlloy",
-		"name": "Iridium-Tungsten Alloy",
-		"mass": 190.0,
-		"category": "Alloy",
-		"tier": 4,
-		"base_value": 1,
-		"description": "Ultra-dense armor-piercing alloy."
-	},
-	{
-		"atomic_number": -900,
-		"symbol": "Neutronium",
-		"name": "Neutronium",
-		"mass": 1000.0,
-		"category": "Exotic",
-		"tier": 5,
-		"base_value": 1,
-		"description": "Matter composed entirely of neutrons. Extremely dense."
-	},
-	{
-		"atomic_number": -901,
-		"symbol": "ExoticIsotope",
-		"name": "Exotic Isotope",
-		"mass": 0.5,
-		"category": "Exotic",
-		"tier": 4,
-		"base_value": 0,
-		"description": "Unstable isotope with anomalous properties."
-	},
-	{
-		"atomic_number": -902,
-		"symbol": "AntimatterParticle",
-		"name": "Antimatter Particle",
-		"mass": 0.0,
-		"category": "Exotic",
-		"tier": 5,
-		"base_value": 1,
-		"description": "Particle of antimatter. Handle with semantic containment fields."
-	},
-	{
-		"atomic_number": -904,
-		"symbol": "VoidEssence",
-		"name": "Void Essence",
-		"mass": 0.0,
-		"category": "Exotic",
-		"tier": 5,
-		"base_value": 1,
-		"description": "Concentrated energy from the void."
-	},
-	{
-		"atomic_number": -905,
-		"symbol": "PrimordialShard",
-		"name": "Primordial Shard",
-		"mass": 10.0,
-		"category": "Exotic",
-		"tier": 6,
-		"base_value": 1,
-		"description": "Fragment of a dead titan. Radiates immense power."
-	},
-	{
-		"atomic_number": -906,
-		"symbol": "OmegaPlating",
-		"name": "Omega Plating",
-		"mass": 50.0,
-		"category": "Component",
-		"tier": 5,
-		"base_value": 1,
-		"description": "The ultimate defensive material."
-	},
-	{
-		"atomic_number": -907,
-		"symbol": "ChronoCore",
-		"name": "Chrono Core",
-		"mass": 10.0,
-		"category": "Exotic",
-		"tier": 5,
-		"base_value": 1,
-		"description": "Core capable of manipulating local time."
-	},
-	{
-		"atomic_number": -908,
-		"symbol": "AncientTech",
-		"name": "Ancient Technology",
-		"mass": 5.0,
-		"category": "Artifact",
-		"tier": 5,
-		"base_value": 0,
-		"description": "Functioning device from a precursor civilization."
-	},
-	{
-		"atomic_number": -800,
-		"symbol": "TargetingChip",
-		"name": "Targeting Chip",
-		"mass": 0.1,
-		"category": "Component",
-		"tier": 3,
-		"base_value": 1,
-		"description": "Specialized processor for weapon tracking."
-	},
-	{
-		"atomic_number": -801,
-		"symbol": "BiohazardSample",
-		"name": "Biohazard Sample",
-		"mass": 0.5,
-		"category": "Raw Material",
-		"tier": 4,
-		"base_value": 0,
-		"description": "Organic sludge containing unknown pathogens."
-	},
-	{
-		"atomic_number": -802,
-		"symbol": "PathogenCore",
-		"name": "Pathogen Core",
-		"mass": 1.0,
-		"category": "Exotic",
-		"tier": 4,
-		"base_value": 1,
-		"description": "Concentrated viral agent."
-	},
-	{
-		"atomic_number": -804,
-		"symbol": "BioWeaponCoating",
-		"name": "Bio-Weapon Coating",
-		"mass": 1.0,
-		"category": "Component",
-		"tier": 4,
-		"base_value": 1,
-		"description": "Weapon augment for biological warfare."
-	},
-	{
-		"atomic_number": -805,
-		"symbol": "AIProcessor",
-		"name": "AI Processor",
-		"mass": 5.0,
-		"category": "Component",
-		"tier": 5,
-		"base_value": 1,
-		"description": "Sentient-grade artificial intelligence unit."
-	},
-	{
-		"atomic_number": -806,
-		"symbol": "RegenPlating",
-		"name": "Regenerative Plating",
-		"mass": 20.0,
-		"category": "Component",
-		"tier": 5,
-		"base_value": 1,
-		"description": "Hull plating that repairs itself over time."
-	},
-	{
-		"atomic_number": -810,
-		"symbol": "TurretCore",
-		"name": "Turret Core",
-		"mass": 10.0,
-		"category": "Component",
-		"tier": 3,
-		"base_value": 0,
-		"description": "Central processing unit of a defense turret."
-	},
-	{
-		"atomic_number": -811,
-		"symbol": "CoBattery",
-		"name": "Cobalt Battery",
-		"mass": 4.0,
-		"category": "Component",
-		"tier": 3,
-		"base_value": 1,
-		"description": "Advanced Lithium-Cobalt energy storage."
-	},
-	{
-		"atomic_number": -812,
-		"symbol": "MgBattery",
-		"name": "Magnesium Battery",
-		"mass": 3.0,
-		"category": "Component",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Lightweight Magnesium-Ion battery."
-	},
-	{
-		"atomic_number": -813,
-		"symbol": "PdFuelCell",
-		"name": "Palladium Fuel Cell",
-		"mass": 5.0,
-		"category": "Component",
-		"tier": 4,
-		"base_value": 1,
-		"description": "High-efficiency Palladium-Hydrogen fuel cell."
-	},
-	{
-		"atomic_number": -814,
-		"symbol": "AgCatalyst",
-		"name": "Silver Catalyst",
-		"mass": 2.0,
-		"category": "Component",
-		"tier": 3,
-		"base_value": 1,
-		"description": "Industrial catalyst for chemical processing."
-	},
-	{
-		"atomic_number": -815,
-		"symbol": "PtCatalyst",
-		"name": "Platinum Catalyst",
-		"mass": 2.0,
-		"category": "Component",
-		"tier": 4,
-		"base_value": 1,
-		"description": "Advanced catalyst for rare metal refining."
-	},
-	{
-		"atomic_number": -816,
-		"symbol": "SuperconductingMagnet",
-		"name": "Superconducting Magnet",
-		"mass": 10.0,
-		"category": "Component",
-		"tier": 4,
-		"base_value": 1,
-		"description": "Powerful magnet for containment fields."
-	},
-	{
-		"atomic_number": -817,
-		"symbol": "AICore",
-		"name": "AI Core",
-		"mass": 5.0,
-		"category": "Component",
-		"tier": 4,
-		"base_value": 1,
-		"description": "Advanced artificial intelligence substrate."
-	},
-	{
-		"atomic_number": -818,
-		"symbol": "ReactiveCore",
-		"name": "Reactive Core",
-		"mass": 5.0,
-		"category": "Component",
-		"tier": 4,
-		"base_value": 1,
-		"description": "Unstable power core."
-	},
-	{
-		"atomic_number": -819,
-		"symbol": "IrPlate",
-		"name": "Iridium Plate",
-		"mass": 20.0,
-		"category": "Component",
-		"tier": 4,
-		"base_value": 1,
-		"description": "Extremely durable armor plating."
-	},
-	{
-		"atomic_number": -820,
-		"symbol": "OsCore",
-		"name": "Osmium Core",
-		"mass": 100.0,
-		"category": "Component",
-		"tier": 5,
-		"base_value": 1,
-		"description": "Dense reactor core for capital ships."
-	},
-	{
-		"atomic_number": -821,
-		"symbol": "ColonyDataCore",
-		"name": "Colony Data Core",
-		"mass": 5.0,
-		"category": "Data",
-		"tier": 3,
-		"base_value": 0,
-		"description": "Recovered colonial database."
-	},
-	{
-		"atomic_number": -822,
-		"symbol": "VoidCrystal",
-		"name": "Void Crystal",
-		"mass": 1.0,
-		"category": "Raw Material",
-		"tier": 4,
-		"base_value": 1,
-		"description": "Crystal resonating with void energy."
-	},
-	{
-		"atomic_number": -823,
-		"symbol": "Diamond",
-		"name": "Diamond",
-		"mass": 1.0,
-		"category": "Raw Material",
-		"tier": 3,
-		"base_value": 1,
-		"description": "Pure pressurized carbon lattice."
-	},
-	{
-		"atomic_number": -320,
-		"symbol": "AlWire",
-		"name": "Aluminum Wire",
-		"mass": 0.1,
-		"category": "Component",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Conductive writing for lightweight electronics."
-	},
-	{
-		"atomic_number": -910,
-		"symbol": "AdvMaintenanceKit",
-		"name": "Adv. Maintenance Kit",
-		"mass": 100.0,
-		"category": "Component",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Advanced industrial or operational component."
-	},
-	{
-		"atomic_number": -911,
-		"symbol": "CapacitorShard",
-		"name": "Capacitor Shard",
-		"mass": 100.0,
-		"category": "Component",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Advanced industrial or operational component."
-	},
-	{
-		"symbol": "CellT4",
-		"name": "Heavy Plasma Cell",
-		"mass": 0.5,
-		"category": "Ammo",
-		"tier": 4,
-		"base_value": 1,
-		"description": "Unstable fusion plasma containment. +35% damage on its channel."
-	},
-	{
-		"atomic_number": -913,
-		"symbol": "CompositeWeave",
-		"name": "Composite Weave",
-		"mass": 100.0,
-		"category": "Component",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Advanced industrial or operational component."
-	},
-	{
-		"atomic_number": -914,
-		"symbol": "ExoticMatter",
-		"name": "Exotic Matter",
-		"mass": 100.0,
-		"category": "Component",
-		"tier": 2,
-		"base_value": 0,
-		"description": "Advanced industrial or operational component."
-	},
-	{
-		"atomic_number": -915,
-		"symbol": "FertileSoil",
-		"name": "Fertile Soil",
-		"mass": 100.0,
-		"category": "Component",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Advanced industrial or operational component."
-	},
-	{
-		"atomic_number": -917,
-		"symbol": "GalvanizedSteel",
-		"name": "Galvanized Steel",
-		"mass": 100.0,
-		"category": "Component",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Advanced industrial or operational component."
-	},
-	{
-		"atomic_number": -918,
-		"symbol": "Germanium",
-		"name": "Germanium",
-		"mass": 100.0,
-		"category": "Component",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Advanced industrial or operational component."
-	},
-	{
-		"symbol": "MissileT1",
-		"name": "HE Missile",
-		"mass": 0.5,
-		"category": "Ammo",
-		"tier": 1,
-		"base_value": 1,
-		"description": "Standard high-explosive ordnance. Baseline round: no damage bonus."
-	},
-	{
-		"atomic_number": -921,
-		"symbol": "IonField",
-		"name": "Ion Field Projector",
-		"mass": 100.0,
-		"category": "Component",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Advanced industrial or operational component."
-	},
-	{
-		"atomic_number": -922,
-		"symbol": "NuclearFuel",
-		"name": "Nuclear Fuel",
-		"mass": 100.0,
-		"category": "Component",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Advanced industrial or operational component."
-	},
-	{
-		"atomic_number": -923,
-		"symbol": "OmegaAccelerator",
-		"name": "Omega Accelerator",
-		"mass": 100.0,
-		"category": "Component",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Omega-class production core. While held: +50% gathering yield and +50% infrastructure yield. Permanent passive — one is enough."
-	},
-	{
-		"symbol": "MissileT4",
-		"name": "Photon Torpedo",
-		"mass": 2.0,
-		"category": "Ammo",
-		"tier": 4,
-		"base_value": 1,
-		"description": "Capital-class antimatter buster. +35% damage on its channel."
-	},
-	{
-		"atomic_number": -925,
-		"symbol": "PrimordialArmor",
-		"name": "Primordial Armor",
-		"mass": 100.0,
-		"category": "Component",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Titan-forged plating. While held: +30% hull HP on every ship. Permanent passive — one is enough."
-	},
-	{
-		"atomic_number": -926,
-		"symbol": "PurifiedCompound",
-		"name": "Purified Compound",
-		"mass": 100.0,
-		"category": "Component",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Advanced industrial or operational component."
-	},
-	{
-		"atomic_number": -927,
-		"symbol": "QuarantineClearance",
-		"name": "Quarantine Clearance",
-		"mass": 100.0,
-		"category": "Component",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Advanced industrial or operational component."
-	},
-	{
-		"symbol": "MissileT2",
-		"name": "Seeker Missile",
-		"mass": 0.8,
-		"category": "Ammo",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Guided missile with tracking chips. +10% damage on its channel."
-	},
-	{
-		"symbol": "MissileT3",
-		"name": "Heavy Missile",
-		"mass": 1.2,
-		"category": "Ammo",
-		"tier": 3,
-		"base_value": 1,
-		"description": "High-yield thermobaric missile. +20% damage on its channel."
-	},
-	{
-		"symbol": "SlugT4",
-		"name": "Hyper-Velocity Slug",
-		"mass": 0.5,
-		"category": "Ammo",
-		"tier": 4,
-		"base_value": 1,
-		"description": "Tungsten-Superalloy sabot for railguns. +35% damage on its channel."
-	},
-	{
-		"atomic_number": -930,
-		"symbol": "StainlessSteel",
-		"name": "Stainless Steel",
-		"mass": 100.0,
-		"category": "Component",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Advanced industrial or operational component."
-	},
-	{
-		"atomic_number": -931,
-		"symbol": "TemporalModule",
-		"name": "Temporal Stabilizer",
-		"mass": 100.0,
-		"category": "Component",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Localized time-dilation field. While held: +30% ship attack speed in combat. Permanent passive — one is enough."
-	},
-	{
-		"atomic_number": -932,
-		"symbol": "VoidBattery",
-		"name": "Void Battery",
-		"mass": 100.0,
-		"category": "Component",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Void-compressed power cell. While held: +40% ship energy capacity. Permanent passive — one is enough."
-	},
-	{
-		"atomic_number": -933,
-		"symbol": "ZeroPoint",
-		"name": "Zero-Point Injector",
-		"mass": 100.0,
-		"category": "Component",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Advanced industrial or operational component."
-	},
-	{
-		"atomic_number": -934,
-		"symbol": "Zn",
-		"name": "Zinc",
-		"mass": 100.0,
-		"category": "Component",
-		"tier": 2,
-		"base_value": 1,
-		"description": "Advanced industrial or operational component."
-	},
-	{
-		"atomic_number": -1001,
-		"symbol": "CrackedCrimsonCore",
-		"name": "Cracked Crimson Core",
-		"mass": 0.5,
-		"category": "Artifact",
-		"tier": 3,
-		"base_value": 1,
-		"description": "Socket into epic modules. +2% Kinetic & Energy Offense."
-	},
-	{
-		"atomic_number": -1002,
-		"symbol": "StableCrimsonCore",
-		"name": "Stable Crimson Core",
-		"mass": 0.5,
-		"category": "Artifact",
-		"tier": 4,
-		"base_value": 1,
-		"description": "Socket into epic modules. +5% Kinetic & Energy Offense."
-	},
-	{
-		"atomic_number": -1003,
-		"symbol": "PristineCrimsonCore",
-		"name": "Pristine Crimson Core",
-		"mass": 0.5,
-		"category": "Artifact",
-		"tier": 5,
-		"base_value": 1,
-		"description": "Socket into epic modules. +10% Kinetic & Energy Offense."
-	},
-	{
-		"atomic_number": -1004,
-		"symbol": "CrackedCobaltCore",
-		"name": "Cracked Cobalt Core",
-		"mass": 0.5,
-		"category": "Artifact",
-		"tier": 3,
-		"base_value": 1,
-		"description": "Socket into epic modules. +2% Defense & Evasion."
-	},
-	{
-		"atomic_number": -1005,
-		"symbol": "StableCobaltCore",
-		"name": "Stable Cobalt Core",
-		"mass": 0.5,
-		"category": "Artifact",
-		"tier": 4,
-		"base_value": 1,
-		"description": "Socket into epic modules. +5% Defense & Evasion."
-	},
-	{
-		"atomic_number": -1006,
-		"symbol": "PristineCobaltCore",
-		"name": "Pristine Cobalt Core",
-		"mass": 0.5,
-		"category": "Artifact",
-		"tier": 5,
-		"base_value": 1,
-		"description": "Socket into epic modules. +10% Defense & Evasion."
-	},
-	{
-		"atomic_number": -1007,
-		"symbol": "CrackedTopazCore",
-		"name": "Cracked Topaz Core",
-		"mass": 0.5,
-		"category": "Artifact",
-		"tier": 3,
-		"base_value": 1,
-		"description": "Socket into epic modules. +2% Utilities."
-	},
-	{
-		"atomic_number": -1008,
-		"symbol": "StableTopazCore",
-		"name": "Stable Topaz Core",
-		"mass": 0.5,
-		"category": "Artifact",
-		"tier": 4,
-		"base_value": 1,
-		"description": "Socket into epic modules. +5% Utilities."
-	},
-	{
-		"atomic_number": -1009,
-		"symbol": "PristineTopazCore",
-		"name": "Pristine Topaz Core",
-		"mass": 0.5,
-		"category": "Artifact",
-		"tier": 5,
-		"base_value": 1,
-		"description": "Socket into epic modules. +10% Utilities."
-	},
-	{
-		"atomic_number": -1010,
-		"symbol": "CrackedAmethystCore",
-		"name": "Cracked Amethyst Core",
-		"mass": 0.5,
-		"category": "Artifact",
-		"tier": 3,
-		"base_value": 1,
-		"description": "Socket into epic modules. +2% Hull & Jamming."
-	},
-	{
-		"atomic_number": -1011,
-		"symbol": "StableAmethystCore",
-		"name": "Stable Amethyst Core",
-		"mass": 0.5,
-		"category": "Artifact",
-		"tier": 4,
-		"base_value": 1,
-		"description": "Socket into epic modules. +5% Hull & Jamming."
-	},
-	{
-		"atomic_number": -1012,
-		"symbol": "PristineAmethystCore",
-		"name": "Pristine Amethyst Core",
-		"mass": 0.5,
-		"category": "Artifact",
-		"tier": 5,
-		"base_value": 1,
-		"description": "Socket into epic modules. +10% Hull & Jamming."
-	},
-	{
-		"atomic_number": -1013,
-		"symbol": "ResonantCrimsonCore",
-		"name": "Resonant Crimson Core",
-		"mass": 0.5,
-		"category": "Artifact",
-		"tier": 6,
-		"base_value": 1,
-		"description": "Socket into epic modules. +60% Crit Dmg & +15% Crit."
-	},
-	{
-		"atomic_number": -1014,
-		"symbol": "ResonantCobaltCore",
-		"name": "Resonant Cobalt Core",
-		"mass": 0.5,
-		"category": "Artifact",
-		"tier": 6,
-		"base_value": 1,
-		"description": "Socket into epic modules. +18% Atk Speed / Shield Regen."
-	},
-	{
-		"atomic_number": -1015,
-		"symbol": "ResonantTopazCore",
-		"name": "Resonant Topaz Core",
-		"mass": 0.5,
-		"category": "Artifact",
-		"tier": 6,
-		"base_value": 1,
-		"description": "Socket into epic modules. +18% Armor Pen / Evasion."
-	},
-	{
-		"atomic_number": -1016,
-		"symbol": "ResonantAmethystCore",
-		"name": "Resonant Amethyst Core",
-		"mass": 0.5,
-		"category": "Artifact",
-		"tier": 6,
-		"base_value": 1,
-		"description": "Socket into epic modules. +18% Hull & Resist Pierce."
-	},
-	{
-		"atomic_number": -2001,
-		"symbol": "Z1_Core",
-		"name": "Lunar Core",
-		"mass": 5.0,
-		"category": "Boss Core",
-		"tier": 1,
-		"base_value": 0,
-		"description": "A crystallized energy matrix extracted from a Zone 1 boss. Used for zone-access research."
-	},
-	{
-		"atomic_number": -2002,
-		"symbol": "Z2_Core",
-		"name": "Asteroid Core",
-		"mass": 8.0,
-		"category": "Boss Core",
-		"tier": 2,
-		"base_value": 0,
-		"description": "A dense mineral core from an Asteroid Belt boss. Used for zone-access research."
-	},
-	{
-		"atomic_number": -2003,
-		"symbol": "Z3_Core",
-		"name": "Debris Core",
-		"mass": 12.0,
-		"category": "Boss Core",
-		"tier": 3,
-		"base_value": 0,
-		"description": "A superheated core from a Mars Debris boss. Used for zone-access research."
-	},
-	{
-		"atomic_number": -2004,
-		"symbol": "Z4_Core",
-		"name": "Cryofield Core",
-		"mass": 15.0,
-		"category": "Boss Core",
-		"tier": 3,
-		"base_value": 0,
-		"description": "A frozen energy lattice from a Cryofield boss. Used for zone-access research."
-	},
-	{
-		"atomic_number": -2005,
-		"symbol": "Z5_Core",
-		"name": "Alpha Core",
-		"mass": 20.0,
-		"category": "Boss Core",
-		"tier": 4,
-		"base_value": 0,
-		"description": "A xenon-infused power matrix from a Sector Alpha boss. Used for zone-access research."
-	},
-	{
-		"atomic_number": -2006,
-		"symbol": "Z6_Core",
-		"name": "Beta Core",
-		"mass": 25.0,
-		"category": "Boss Core",
-		"tier": 4,
-		"base_value": 0,
-		"description": "A radiation-hardened core from a Sector Beta boss. Used for zone-access research."
-	},
-	{
-		"atomic_number": -2007,
-		"symbol": "Z7_Core",
-		"name": "Gamma Core",
-		"mass": 30.0,
-		"category": "Boss Core",
-		"tier": 5,
-		"base_value": 0,
-		"description": "An exotic matter core from a Sector Gamma boss. Used for zone-access research."
-	},
-	{
-		"atomic_number": -2008,
-		"symbol": "Z8_Core",
-		"name": "Delta Core",
-		"mass": 40.0,
-		"category": "Boss Core",
-		"tier": 5,
-		"base_value": 0,
-		"description": "A void-charged energy core from a Sector Delta boss. Used for zone-access research."
-	},
-	{
-		"atomic_number": -2009,
-		"symbol": "Z9_Core",
-		"name": "Epsilon Core",
-		"mass": 50.0,
-		"category": "Boss Core",
-		"tier": 5,
-		"base_value": 0,
-		"description": "A neutronium-laced core from a Sector Epsilon boss. Used for zone-access research."
-	},
-	{
-		"atomic_number": -2010,
-		"symbol": "Z10_Core",
-		"name": "Omega Core",
-		"mass": 100.0,
-		"category": "Boss Core",
-		"tier": 5,
-		"base_value": 0,
-		"description": "The ultimate boss core, pulsing with primordial energy. The rarest crafting material."
-	},
-	{
-		"atomic_number": -2011,
-		"symbol": "QuarantineClearance",
-		"name": "Quarantine Clearance",
-		"mass": 0.1,
-		"category": "Data",
-		"tier": 5,
-		"base_value": 0,
-		"description": "Biometric authorization token required for FTL travel into protected sectors."
-	},
-	{
-		"atomic_number": -3001,
-		"symbol": "StructuralComponent",
-		"name": "Structural Component",
-		"mass": 5.0,
-		"category": "Component",
-		"tier": 3,
-		"base_value": 1,
-		"description": "Precision-machined structural assembly. Requires Iron, Copper, Silicon, Carbon, and Lithium. Universal building block for advanced modules."
-	},
-	{
-		"atomic_number": -3002,
-		"symbol": "NanoSubstrate",
-		"name": "Nano-Substrate",
-		"mass": 2.0,
-		"category": "Component",
-		"tier": 4,
-		"base_value": 1,
-		"description": "Molecular-scale lattice of Structural Components infused with lightweight metals. Required for capital-grade fabrication."
-	},
-	{
-		"atomic_number": -3003,
-		"symbol": "emp_generator_blueprint",
-		"name": "EMP Generator Blueprint",
-		"mass": 0.1,
-		"category": "Blueprint",
-		"tier": 3,
-		"base_value": 1,
-		"description": "Captured electromagnetic pulse schematics from the EMP Nexus. First-clear reward. Can be used to craft an EMP Generator module."
-	},
-	{
-		"atomic_number": -3100,
-		"symbol": "SinteredCarbide",
-		"name": "Sintered Carbide",
-		"mass": 60.0,
-		"category": "Component",
-		"tier": 3,
-		"base_value": 1,
-		"description": "Tungsten-carbide compact bound with cobalt. Tooling grade for precision fabrication."
-	},
-	{
-		"atomic_number": -3101,
-		"symbol": "PrecisionLattice",
-		"name": "Precision Lattice",
-		"mass": 40.0,
-		"category": "Component",
-		"tier": 4,
-		"base_value": 1,
-		"description": "Machined carbide-and-stainless truss, tolerances in microns. Feeds the fabrication bus line."
-	},
-	{
-		"atomic_number": -3102,
-		"symbol": "FabricationBus",
-		"name": "Fabrication Bus",
-		"mass": 55.0,
-		"category": "Component",
-		"tier": 5,
-		"base_value": 1,
-		"description": "Self-routing assembly spine that carries power, data and tooling through a capital hull section."
-	},
-	{
-		"atomic_number": -3103,
-		"symbol": "CapitalSpar",
-		"name": "Capital Spar",
-		"mass": 200.0,
-		"category": "Component",
-		"tier": 6,
-		"base_value": 1,
-		"description": "Galvanized-composite keel member for capital ships, laced with a fabrication bus."
-	},
-	{
-		"atomic_number": -3104,
-		"symbol": "DreadnoughtFrame",
-		"name": "Dreadnought Frame",
-		"mass": 500.0,
-		"category": "Component",
-		"tier": 7,
-		"base_value": 1,
-		"description": "A complete dreadnought skeleton section: spars, plate and precision lattice, yard-assembled."
-	}
+  {
+    "atomic_number": -1,
+    "symbol": "Water",
+    "name": "Water",
+    "mass": 18.015,
+    "category": "Raw Material",
+    "tier": 0,
+    "base_value": 1,
+    "description": "Essential for life and a source of Hydrogen/Oxygen."
+  },
+  {
+    "atomic_number": -99,
+    "symbol": "SparePart",
+    "name": "Spare Parts",
+    "mass": 0.5,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Utilized to repair degraded modules and restore durability."
+  },
+  {
+    "atomic_number": -2,
+    "symbol": "Dirt",
+    "name": "Dirt",
+    "mass": 5.0,
+    "category": "Raw Material",
+    "tier": 0,
+    "base_value": 1,
+    "description": "Common soil containing trace minerals."
+  },
+  {
+    "atomic_number": -3,
+    "symbol": "Wood",
+    "name": "Wood",
+    "mass": 50.0,
+    "category": "Raw Material",
+    "tier": 0,
+    "base_value": 1,
+    "description": "Organic matter, rich in Carbon."
+  },
+  {
+    "atomic_number": -4,
+    "symbol": "Spodumene",
+    "name": "Lithium Ore",
+    "mass": 10.0,
+    "category": "Raw Material",
+    "tier": 0,
+    "base_value": 1,
+    "description": "Lithium-rich pyroxene mineral found in pegmatites."
+  },
+  {
+    "atomic_number": -7,
+    "symbol": "Bauxite",
+    "name": "Bauxite Ore",
+    "mass": 30.0,
+    "category": "Raw Material",
+    "tier": 1,
+    "base_value": 1,
+    "description": "Aluminum ore."
+  },
+  {
+    "atomic_number": -8,
+    "symbol": "ZincOre",
+    "name": "Zinc Ore",
+    "mass": 30.0,
+    "category": "Raw Material",
+    "tier": 1,
+    "base_value": 1,
+    "description": "Sphalerite mineral."
+  },
+  {
+    "atomic_number": -9,
+    "symbol": "Cassiterite",
+    "name": "Cassiterite Ore",
+    "mass": 30.0,
+    "category": "Raw Material",
+    "tier": 1,
+    "base_value": 1,
+    "description": "Tin ore."
+  },
+  {
+    "atomic_number": -5,
+    "symbol": "Quartz",
+    "name": "Quartz Crystal",
+    "mass": 25.0,
+    "category": "Raw Material",
+    "tier": 1,
+    "base_value": 1,
+    "description": "Crystalline Silicon dioxide. Source of Silicon."
+  },
+  {
+    "atomic_number": -6,
+    "symbol": "Malachite",
+    "name": "Malachite Ore",
+    "mass": 30.0,
+    "category": "Raw Material",
+    "tier": 1,
+    "base_value": 1,
+    "description": "Copper carbonate hydroxide mineral. Source of Copper."
+  },
+  {
+    "atomic_number": 1,
+    "symbol": "H",
+    "name": "Hydrogen",
+    "mass": 1.008,
+    "category": "Nonmetal",
+    "tier": 1,
+    "base_value": 1,
+    "description": "The most abundant element in the universe. Essential fuel."
+  },
+  {
+    "atomic_number": 2,
+    "symbol": "He",
+    "name": "Helium",
+    "mass": 4.0026,
+    "category": "Noble Gas",
+    "tier": 1,
+    "base_value": 1,
+    "description": "Inert gas used for cooling and pressurization."
+  },
+  {
+    "atomic_number": 3,
+    "symbol": "Li",
+    "name": "Lithium",
+    "mass": 6.94,
+    "category": "Alkali Metal",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Lightweight metal used in advanced batteries."
+  },
+  {
+    "atomic_number": 4,
+    "symbol": "Be",
+    "name": "Beryllium",
+    "mass": 9.0122,
+    "category": "Alkaline Earth Metal",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Strong, lightweight metal used in aerospace."
+  },
+  {
+    "atomic_number": 5,
+    "symbol": "B",
+    "name": "Boron",
+    "mass": 10.81,
+    "category": "Metalloid",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Used in dopants for semiconductors."
+  },
+  {
+    "atomic_number": 6,
+    "symbol": "C",
+    "name": "Carbon",
+    "mass": 12.011,
+    "category": "Nonmetal",
+    "tier": 2,
+    "base_value": 1,
+    "description": "The basis of life and organic chemistry."
+  },
+  {
+    "atomic_number": 7,
+    "symbol": "N",
+    "name": "Nitrogen",
+    "mass": 14.007,
+    "category": "Nonmetal",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Abundant gas, essential for life support systems."
+  },
+  {
+    "atomic_number": 8,
+    "symbol": "O",
+    "name": "Oxygen",
+    "mass": 15.999,
+    "category": "Nonmetal",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Crucial for breathing and combustion."
+  },
+  {
+    "atomic_number": 14,
+    "symbol": "Si",
+    "name": "Silicon",
+    "mass": 28.085,
+    "category": "Metalloid",
+    "tier": 1,
+    "base_value": 1,
+    "description": "Used in electronics and glass making."
+  },
+  {
+    "atomic_number": 32,
+    "symbol": "Ge",
+    "name": "Germanium",
+    "mass": 72.63,
+    "category": "Metalloid",
+    "tier": 2,
+    "base_value": 1,
+    "description": " Semiconductor material used in advanced electronics."
+  },
+  {
+    "atomic_number": 26,
+    "symbol": "Fe",
+    "name": "Iron",
+    "mass": 55.845,
+    "category": "Transition Metal",
+    "tier": 1,
+    "base_value": 1,
+    "description": "Strong metal widely used in construction."
+  },
+  {
+    "atomic_number": -305,
+    "symbol": "Semiconductor",
+    "name": "Semiconductor",
+    "mass": 0.5,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Germanium-doped Silicon wafer for high-speed logic."
+  },
+  {
+    "atomic_number": -306,
+    "symbol": "AdvCircuit",
+    "name": "Advanced Circuit",
+    "mass": 0.2,
+    "category": "Component",
+    "tier": 3,
+    "base_value": 1,
+    "description": "High-performance integrated circuits."
+  },
+  {
+    "atomic_number": -307,
+    "symbol": "Chip",
+    "name": "Microchip",
+    "mass": 0.05,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Miniaturized semiconductor logic unit."
+  },
+  {
+    "atomic_number": -10,
+    "symbol": "Steel",
+    "name": "Steel",
+    "mass": 55.0,
+    "category": "Alloy",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Hardened alloy of Iron and Carbon."
+  },
+  {
+    "atomic_number": -12,
+    "symbol": "Superalloy",
+    "name": "Superalloy",
+    "mass": 45.0,
+    "category": "Alloy",
+    "tier": 3,
+    "base_value": 1,
+    "description": "Advanced Co-Ni-Cr alloy. Extreme heat resistance."
+  },
+  {
+    "atomic_number": -11,
+    "symbol": "Graphite",
+    "name": "Graphite",
+    "mass": 12.0,
+    "category": "Refined Material",
+    "tier": 3,
+    "base_value": 1,
+    "description": "Compressed carbon used in heat shields and electronics."
+  },
+  {
+    "atomic_number": 29,
+    "symbol": "Cu",
+    "name": "Copper",
+    "mass": 63.546,
+    "category": "Transition Metal",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Excellent conductor for electronics and energy weapons."
+  },
+  {
+    "atomic_number": 79,
+    "symbol": "Au",
+    "name": "Gold",
+    "mass": 196.97,
+    "category": "Transition Metal",
+    "tier": 3,
+    "base_value": 1,
+    "description": "Highly conductive precious metal used in advanced circuitry."
+  },
+  {
+    "atomic_number": 22,
+    "symbol": "Ti",
+    "name": "Titanium",
+    "mass": 47.867,
+    "category": "Transition Metal",
+    "tier": 3,
+    "base_value": 1,
+    "description": "High-strength, low-density metal for advanced hulls."
+  },
+  {
+    "atomic_number": 74,
+    "symbol": "W",
+    "name": "Tungsten",
+    "mass": 183.84,
+    "category": "Transition Metal",
+    "tier": 3,
+    "base_value": 1,
+    "description": "Extremely hard and dense metal. Ideal for armor penetration."
+  },
+  {
+    "atomic_number": -30,
+    "symbol": "NavData",
+    "name": "Navigation Data",
+    "mass": 0.0,
+    "category": "Data",
+    "tier": 5,
+    "base_value": 0,
+    "description": "Encrypted coordinates to unknown sectors."
+  },
+  {
+    "atomic_number": -36,
+    "symbol": "Hydraulics",
+    "name": "Hydraulic System",
+    "mass": 5.0,
+    "category": "Component",
+    "tier": 3,
+    "base_value": 1,
+    "description": "High-power mechanical actuators."
+  },
+  {
+    "atomic_number": -40,
+    "symbol": "Circuit",
+    "name": "Circuit Board",
+    "mass": 0.1,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Integrated circuits required for automation and logic."
+  },
+  {
+    "atomic_number": -50,
+    "symbol": "Mesh",
+    "name": "Nanoweave Mesh",
+    "mass": 0.5,
+    "category": "Consumable",
+    "tier": 2,
+    "base_value": 1,
+    "effect": "heal_shield",
+    "value": 50,
+    "description": "Carbon nanotube mesh. Repairs 50 Shield Integrity."
+  },
+  {
+    "atomic_number": -51,
+    "symbol": "Seal",
+    "name": "Hull Sealant",
+    "mass": 0.5,
+    "category": "Consumable",
+    "tier": 2,
+    "base_value": 1,
+    "effect": "heal_hull",
+    "value": 50,
+    "description": "Rapid-hardening polymer. Repairs 50 Hull Integrity."
+  },
+  {
+    "atomic_number": -60,
+    "symbol": "Fiber",
+    "name": "Carbon Fiber",
+    "mass": 0.1,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Reinforced carbon strands used in advanced fabrication."
+  },
+  {
+    "atomic_number": -61,
+    "symbol": "Resin",
+    "name": "Polymer Resin",
+    "mass": 0.2,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Synthetic resin base for sealants and plastics."
+  },
+  {
+    "atomic_number": -62,
+    "symbol": "CoolantCell",
+    "name": "Helium Coolant Cell",
+    "mass": 0.5,
+    "category": "Component",
+    "tier": 3,
+    "base_value": 1,
+    "description": "Pressurized helium cooling unit for high-power weapons."
+  },
+  {
+    "atomic_number": -80,
+    "symbol": "SlugT1",
+    "name": "Ferrite Rounds",
+    "mass": 0.1,
+    "category": "Ammo",
+    "tier": 1,
+    "base_value": 1,
+    "description": "Standard iron slugs. Baseline round: no damage bonus."
+  },
+  {
+    "atomic_number": -81,
+    "symbol": "SlugT2",
+    "name": "Tungsten Sabot",
+    "mass": 0.2,
+    "category": "Ammo",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Armor-piercing heavy slugs. +10% damage on its channel."
+  },
+  {
+    "atomic_number": -505,
+    "symbol": "SlugT1S",
+    "name": "Steel Slugs",
+    "mass": 0.2,
+    "category": "Ammo",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Armor-piercing heavy slugs. +5% damage on its channel."
+  },
+  {
+    "atomic_number": -82,
+    "symbol": "CellT1",
+    "name": "Focus Crystal",
+    "mass": 0.1,
+    "category": "Ammo",
+    "tier": 1,
+    "base_value": 1,
+    "description": "Lenses for beam cohesion. Baseline round: no damage bonus."
+  },
+  {
+    "atomic_number": -83,
+    "symbol": "CellT2",
+    "name": "Plasma Cell",
+    "mass": 0.2,
+    "category": "Ammo",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Superheated gas canister. +10% damage on its channel."
+  },
+  {
+    "atomic_number": 92,
+    "symbol": "U",
+    "name": "Uranium",
+    "mass": 238.03,
+    "category": "Actinide",
+    "tier": 4,
+    "base_value": 1,
+    "description": "Heavy radioactive metal. Very dense. Handle with care."
+  },
+  {
+    "atomic_number": -84,
+    "symbol": "SlugT3",
+    "name": "Depleted Uranium Round",
+    "mass": 0.5,
+    "category": "Ammo",
+    "tier": 3,
+    "base_value": 1,
+    "description": "Self-sharpening penetrator. +20% damage on its channel."
+  },
+  {
+    "atomic_number": -85,
+    "symbol": "CellT3",
+    "name": "Vaporizer Cell",
+    "mass": 0.5,
+    "category": "Ammo",
+    "tier": 3,
+    "base_value": 1,
+    "description": "Unstable singularity core. +20% damage on its channel."
+  },
+  {
+    "atomic_number": -110,
+    "symbol": "kinetic_shell",
+    "name": "Kinetic Shells",
+    "mass": 0.5,
+    "category": "Ammo",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Mass-produced kinetic ammunition. +25 Kinetic Dmg."
+  },
+  {
+    "atomic_number": -111,
+    "symbol": "energy_cell",
+    "name": "Energy Cells",
+    "mass": 0.5,
+    "category": "Ammo",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Standardized energy batteries. +25 Energy Dmg."
+  },
+  {
+    "atomic_number": -112,
+    "symbol": "missile",
+    "name": "HE Missiles",
+    "mass": 1.0,
+    "category": "Ammo",
+    "tier": 3,
+    "base_value": 1,
+    "description": "High-Explosive ordinance. +50 Kinetic / +20 Energy Dmg."
+  },
+  {
+    "atomic_number": -120,
+    "symbol": "VoidArtifact",
+    "name": "Void Artifact",
+    "mass": 5.0,
+    "category": "Artifact",
+    "tier": 4,
+    "base_value": 0,
+    "description": "Anomalous object reacting to zero-point energy. Required for Capital Ships."
+  },
+  {
+    "atomic_number": -121,
+    "symbol": "QuantumCore",
+    "name": "Quantum Core",
+    "mass": 10.0,
+    "category": "Artifact",
+    "tier": 5,
+    "base_value": 1,
+    "description": "Stable quantum singularity. The heart of a Dreadnought."
+  },
+  {
+    "atomic_number": -301,
+    "symbol": "BatteryT1",
+    "name": "Basic Battery",
+    "mass": 5.0,
+    "category": "Component",
+    "tier": 1,
+    "base_value": 1,
+    "description": "Standard energy storage unit for early ships."
+  },
+  {
+    "atomic_number": -302,
+    "symbol": "BatteryT2",
+    "name": "Improved Battery",
+    "mass": 4.0,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 1,
+    "description": "High-density advanced energy storage."
+  },
+  {
+    "atomic_number": -303,
+    "symbol": "BatteryT3",
+    "name": "Zero-Point Module",
+    "mass": 3.0,
+    "category": "Component",
+    "tier": 3,
+    "base_value": 1,
+    "description": "Infinite energy extraction from the void (Sort of)."
+  },
+  {
+    "atomic_number": -400,
+    "symbol": "Res1",
+    "name": "Common Research Artifact",
+    "mass": 0.01,
+    "category": "Data",
+    "tier": 1,
+    "base_value": 1,
+    "description": "Salvaged data core containing basic engineering schematics."
+  },
+  {
+    "atomic_number": -402,
+    "symbol": "SalvageData",
+    "name": "Salvage Data",
+    "mass": 0.01,
+    "category": "Combat Data",
+    "tier": 1,
+    "base_value": 0,
+    "description": "Technical schematics recovered from derelict probes. Essential for engineering research."
+  },
+  {
+    "atomic_number": -404,
+    "symbol": "Res2",
+    "name": "Rare Research Artifact",
+    "mass": 0.01,
+    "category": "Data",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Advanced technical schematics from Martian ruins. Required for mid-game research."
+  },
+  {
+    "atomic_number": -405,
+    "symbol": "Res3",
+    "name": "Exotic Research Artifact",
+    "mass": 0.01,
+    "category": "Data",
+    "tier": 3,
+    "base_value": 1,
+    "description": "Xenon technology data cores. Essential for capital ship engineering."
+  },
+  {
+    "atomic_number": -2001,
+    "symbol": "Trophy_Lunar",
+    "name": "Lunar Command Trophy",
+    "mass": 1.0,
+    "category": "Trophy",
+    "tier": 1,
+    "base_value": 1,
+    "description": "Evidence of Lunar dominance. Level up Gathering faster while held."
+  },
+  {
+    "atomic_number": -2002,
+    "symbol": "Trophy_Belt",
+    "name": "Belt Warden Trophy",
+    "mass": 1.0,
+    "category": "Trophy",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Evidence of Belt dominance. Increases all Mining yields while held."
+  },
+  {
+    "atomic_number": -2003,
+    "symbol": "Trophy_Mars",
+    "name": "Martian Sovereign Trophy",
+    "mass": 1.0,
+    "category": "Trophy",
+    "tier": 3,
+    "base_value": 1,
+    "description": "Evidence of Martian dominance. Reduces Processing heat buildup while held."
+  },
+  {
+    "atomic_number": -2004,
+    "symbol": "Trophy_Titan",
+    "name": "Titan Overlord Trophy",
+    "mass": 1.0,
+    "category": "Trophy",
+    "tier": 4,
+    "base_value": 1,
+    "description": "Evidence of Titan dominance. Boosts Ship Speed in all sectors while held."
+  },
+  {
+    "atomic_number": -2005,
+    "symbol": "Trophy_Alpha",
+    "name": "Alpha Vanguard Trophy",
+    "mass": 1.0,
+    "category": "Trophy",
+    "tier": 5,
+    "base_value": 1,
+    "description": "Evidence of Alpha dominance. Increases Research speed while held."
+  },
+  {
+    "atomic_number": -2006,
+    "symbol": "Trophy_Beta",
+    "name": "Beta Governor Trophy",
+    "mass": 1.0,
+    "category": "Trophy",
+    "tier": 6,
+    "base_value": 1,
+    "description": "Evidence of Beta dominance. Increases Infrastructure output while held."
+  },
+  {
+    "atomic_number": -2007,
+    "symbol": "Trophy_Gamma",
+    "name": "Gamma Ravager Trophy",
+    "mass": 1.0,
+    "category": "Trophy",
+    "tier": 7,
+    "base_value": 1,
+    "description": "Evidence of Gamma dominance. Boosts Energy Weapon damage while held."
+  },
+  {
+    "atomic_number": -2008,
+    "symbol": "Trophy_Delta",
+    "name": "Delta Sentinel Trophy",
+    "mass": 1.0,
+    "category": "Trophy",
+    "tier": 8,
+    "base_value": 1,
+    "description": "Evidence of Delta dominance. Boosts Kinetic Weapon damage while held."
+  },
+  {
+    "atomic_number": -2009,
+    "symbol": "Trophy_Zeta",
+    "name": "Zeta Purifier Trophy",
+    "mass": 1.0,
+    "category": "Trophy",
+    "tier": 9,
+    "base_value": 1,
+    "description": "Evidence of Zeta dominance. Boosts Ship Evasion while held."
+  },
+  {
+    "atomic_number": -2010,
+    "symbol": "Trophy_Epsilon",
+    "name": "Void Conqueror Trophy",
+    "mass": 1.0,
+    "category": "Trophy",
+    "tier": 10,
+    "base_value": 1,
+    "description": "Evidence of Void dominance. Boosts ALL Ship Stats while held."
+  },
+  {
+    "atomic_number": -500,
+    "symbol": "ColonySalvage",
+    "name": "Colony Salvage",
+    "mass": 2.0,
+    "category": "Raw Material",
+    "tier": 3,
+    "base_value": 1,
+    "description": "Dense clusters of tech from failed colonies. High in rare metals."
+  },
+  {
+    "atomic_number": -501,
+    "symbol": "RadIsotope",
+    "name": "Radioactive Isotope",
+    "mass": 0.5,
+    "category": "Raw Material",
+    "tier": 4,
+    "base_value": 1,
+    "description": "Highly unstable isotope harvested from nebulae. Essential for gamma tech."
+  },
+  {
+    "atomic_number": -63,
+    "symbol": "NitroCoolant",
+    "name": "Cryo-Shield Matrix",
+    "mass": 0.4,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 1,
+    "traits": [
+      "coolant"
+    ],
+    "description": "Super-cooled nitrogen for industrial cooling systems."
+  },
+  {
+    "atomic_number": -71,
+    "symbol": "MiteChitin",
+    "name": "Mite Chitin",
+    "mass": 0.1,
+    "category": "Raw Material",
+    "tier": 1,
+    "base_value": 1,
+    "description": "Exoskeleton fragments from space mites. Used in basic repairs."
+  },
+  {
+    "atomic_number": -70,
+    "symbol": "ChitinPatch",
+    "name": "Chitin Hull Patch",
+    "mass": 0.2,
+    "category": "Consumable",
+    "tier": 1,
+    "base_value": 1,
+    "effect": "heal_hull",
+    "value": 40,
+    "description": "Organic sealant. cheaper than iron patches.",
+    "research_req": "basic_engineering"
+  },
+  {
+    "atomic_number": -308,
+    "symbol": "EmergencyPatch",
+    "name": "Emergency Patch",
+    "mass": 0.5,
+    "category": "Consumable",
+    "tier": 2,
+    "base_value": 1,
+    "effect": "heal_hull",
+    "value": 50,
+    "description": "Rapid-deployment patch. Repairs 50 Hull Integrity instantly."
+  },
+  {
+    "atomic_number": -309,
+    "symbol": "BasicBooster",
+    "name": "Shield Booster",
+    "mass": 0.5,
+    "category": "Consumable",
+    "tier": 2,
+    "base_value": 1,
+    "effect": "heal_shield",
+    "value": 30,
+    "description": "Capacitor discharge. Restores 30 Shield Integrity instantly."
+  },
+  {
+    "atomic_number": 13,
+    "symbol": "Al",
+    "name": "Aluminum",
+    "mass": 26.98,
+    "category": "Metal",
+    "tier": 1,
+    "base_value": 1,
+    "description": "Lightweight metal used in aerospace construction."
+  },
+  {
+    "atomic_number": 25,
+    "symbol": "Mn",
+    "name": "Manganese",
+    "mass": 54.93,
+    "category": "Transition Metal",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Used in steel production and alloys."
+  },
+  {
+    "atomic_number": 24,
+    "symbol": "Cr",
+    "name": "Chromium",
+    "mass": 51.99,
+    "category": "Transition Metal",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Hard metal used in stainless steel and plating."
+  },
+  {
+    "atomic_number": 28,
+    "symbol": "Ni",
+    "name": "Nickel",
+    "mass": 58.69,
+    "category": "Transition Metal",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Versatile metal used in batteries and superalloys."
+  },
+  {
+    "atomic_number": 50,
+    "symbol": "Sn",
+    "name": "Tin",
+    "mass": 118.71,
+    "category": "Post-Transition Metal",
+    "tier": 1,
+    "base_value": 1,
+    "description": "Used in soldering and bronze alloys."
+  },
+  {
+    "atomic_number": -510,
+    "symbol": "Pentlandite",
+    "name": "Pentlandite Ore",
+    "mass": 20.0,
+    "category": "Raw Material",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Iron-nickel sulfide mineral. Primary source of Nickel."
+  },
+  {
+    "atomic_number": -511,
+    "symbol": "Chromite",
+    "name": "Chromite Ore",
+    "mass": 25.0,
+    "category": "Raw Material",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Iron chromium oxide. Primary source of Chromium."
+  },
+  {
+    "atomic_number": -512,
+    "symbol": "Dolomite",
+    "name": "Dolomite",
+    "mass": 20.0,
+    "category": "Raw Material",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Magnesium-calcium carbonate. Source of Magnesium."
+  },
+  {
+    "atomic_number": -513,
+    "symbol": "Germanit",
+    "name": "Germanite Ore",
+    "mass": 25.0,
+    "category": "Raw Material",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Rare sulfide mineral. Source of Germanium."
+  },
+  {
+    "atomic_number": -514,
+    "symbol": "PtOre",
+    "name": "Platinum Ore",
+    "mass": 40.0,
+    "category": "Raw Material",
+    "tier": 3,
+    "base_value": 1,
+    "description": "Rare heavy metal ore."
+  },
+  {
+    "atomic_number": 12,
+    "symbol": "Mg",
+    "name": "Magnesium",
+    "mass": 24.305,
+    "category": "Alkaline Earth Metal",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Lightweight structural metal."
+  },
+  {
+    "atomic_number": 27,
+    "symbol": "Co",
+    "name": "Cobalt",
+    "mass": 58.93,
+    "category": "Transition Metal",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Hard ferromagnetic metal used in superalloys."
+  },
+  {
+    "atomic_number": 47,
+    "symbol": "Ag",
+    "name": "Silver",
+    "mass": 107.86,
+    "category": "Transition Metal",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Highly conductive precious metal."
+  },
+  {
+    "atomic_number": 78,
+    "symbol": "Pt",
+    "name": "Platinum",
+    "mass": 195.08,
+    "category": "Transition Metal",
+    "tier": 3,
+    "base_value": 1,
+    "description": "Dense, malleable, corrosion-resistant metal."
+  },
+  {
+    "atomic_number": 46,
+    "symbol": "Pd",
+    "name": "Palladium",
+    "mass": 106.42,
+    "category": "Transition Metal",
+    "tier": 3,
+    "base_value": 1,
+    "description": "Rare metal used in fuel cells and catalysis."
+  },
+  {
+    "atomic_number": 77,
+    "symbol": "Ir",
+    "name": "Iridium",
+    "mass": 192.21,
+    "category": "Transition Metal",
+    "tier": 4,
+    "base_value": 1,
+    "description": "Very hard, brittle, silvery-white transition metal. Extremely rare."
+  },
+  {
+    "atomic_number": 76,
+    "symbol": "Os",
+    "name": "Osmium",
+    "mass": 190.23,
+    "category": "Transition Metal",
+    "tier": 4,
+    "base_value": 1,
+    "description": "Densest naturally occurring element."
+  },
+  {
+    "atomic_number": -201,
+    "symbol": "AlMgAlloy",
+    "name": "Al-Mg Alloy",
+    "mass": 26.0,
+    "category": "Alloy",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Lightweight, high-strength aerospace alloy."
+  },
+  {
+    "atomic_number": -202,
+    "symbol": "IrWAlloy",
+    "name": "Iridium-Tungsten Alloy",
+    "mass": 190.0,
+    "category": "Alloy",
+    "tier": 4,
+    "base_value": 1,
+    "description": "Ultra-dense armor-piercing alloy."
+  },
+  {
+    "atomic_number": -900,
+    "symbol": "Neutronium",
+    "name": "Neutronium",
+    "mass": 1000.0,
+    "category": "Exotic",
+    "tier": 5,
+    "base_value": 1,
+    "description": "Matter composed entirely of neutrons. Extremely dense."
+  },
+  {
+    "atomic_number": -901,
+    "symbol": "ExoticIsotope",
+    "name": "Exotic Isotope",
+    "mass": 0.5,
+    "category": "Exotic",
+    "tier": 4,
+    "base_value": 0,
+    "description": "Unstable isotope with anomalous properties."
+  },
+  {
+    "atomic_number": -902,
+    "symbol": "AntimatterParticle",
+    "name": "Antimatter Particle",
+    "mass": 0.0,
+    "category": "Exotic",
+    "tier": 5,
+    "base_value": 1,
+    "description": "Particle of antimatter. Handle with semantic containment fields."
+  },
+  {
+    "atomic_number": -904,
+    "symbol": "VoidEssence",
+    "name": "Void Essence",
+    "mass": 0.0,
+    "category": "Exotic",
+    "tier": 5,
+    "base_value": 1,
+    "description": "Concentrated energy from the void."
+  },
+  {
+    "atomic_number": -905,
+    "symbol": "PrimordialShard",
+    "name": "Primordial Shard",
+    "mass": 10.0,
+    "category": "Exotic",
+    "tier": 6,
+    "base_value": 1,
+    "description": "Fragment of a dead titan. Radiates immense power."
+  },
+  {
+    "atomic_number": -906,
+    "symbol": "OmegaPlating",
+    "name": "Omega Plating",
+    "mass": 50.0,
+    "category": "Component",
+    "tier": 5,
+    "base_value": 1,
+    "description": "The ultimate defensive material."
+  },
+  {
+    "atomic_number": -907,
+    "symbol": "ChronoCore",
+    "name": "Chrono Core",
+    "mass": 10.0,
+    "category": "Exotic",
+    "tier": 5,
+    "base_value": 1,
+    "description": "Core capable of manipulating local time."
+  },
+  {
+    "atomic_number": -908,
+    "symbol": "AncientTech",
+    "name": "Ancient Technology",
+    "mass": 5.0,
+    "category": "Artifact",
+    "tier": 5,
+    "base_value": 0,
+    "description": "Functioning device from a precursor civilization."
+  },
+  {
+    "atomic_number": -800,
+    "symbol": "TargetingChip",
+    "name": "Targeting Chip",
+    "mass": 0.1,
+    "category": "Component",
+    "tier": 3,
+    "base_value": 1,
+    "description": "Specialized processor for weapon tracking."
+  },
+  {
+    "atomic_number": -801,
+    "symbol": "BiohazardSample",
+    "name": "Biohazard Sample",
+    "mass": 0.5,
+    "category": "Raw Material",
+    "tier": 4,
+    "base_value": 0,
+    "description": "Organic sludge containing unknown pathogens."
+  },
+  {
+    "atomic_number": -802,
+    "symbol": "PathogenCore",
+    "name": "Pathogen Core",
+    "mass": 1.0,
+    "category": "Exotic",
+    "tier": 4,
+    "base_value": 1,
+    "description": "Concentrated viral agent."
+  },
+  {
+    "atomic_number": -804,
+    "symbol": "BioWeaponCoating",
+    "name": "Bio-Weapon Coating",
+    "mass": 1.0,
+    "category": "Component",
+    "tier": 4,
+    "base_value": 1,
+    "description": "Weapon augment for biological warfare."
+  },
+  {
+    "atomic_number": -805,
+    "symbol": "AIProcessor",
+    "name": "AI Processor",
+    "mass": 5.0,
+    "category": "Component",
+    "tier": 5,
+    "base_value": 1,
+    "description": "Sentient-grade artificial intelligence unit."
+  },
+  {
+    "atomic_number": -806,
+    "symbol": "RegenPlating",
+    "name": "Regenerative Plating",
+    "mass": 20.0,
+    "category": "Component",
+    "tier": 5,
+    "base_value": 1,
+    "description": "Hull plating that repairs itself over time."
+  },
+  {
+    "atomic_number": -810,
+    "symbol": "TurretCore",
+    "name": "Turret Core",
+    "mass": 10.0,
+    "category": "Component",
+    "tier": 3,
+    "base_value": 0,
+    "description": "Central processing unit of a defense turret."
+  },
+  {
+    "atomic_number": -811,
+    "symbol": "CoBattery",
+    "name": "Cobalt Battery",
+    "mass": 4.0,
+    "category": "Component",
+    "tier": 3,
+    "base_value": 1,
+    "description": "Advanced Lithium-Cobalt energy storage."
+  },
+  {
+    "atomic_number": -812,
+    "symbol": "MgBattery",
+    "name": "Magnesium Battery",
+    "mass": 3.0,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Lightweight Magnesium-Ion battery."
+  },
+  {
+    "atomic_number": -813,
+    "symbol": "PdFuelCell",
+    "name": "Palladium Fuel Cell",
+    "mass": 5.0,
+    "category": "Component",
+    "tier": 4,
+    "base_value": 1,
+    "description": "High-efficiency Palladium-Hydrogen fuel cell."
+  },
+  {
+    "atomic_number": -814,
+    "symbol": "AgCatalyst",
+    "name": "Silver Catalyst",
+    "mass": 2.0,
+    "category": "Component",
+    "tier": 3,
+    "base_value": 1,
+    "description": "Industrial catalyst for chemical processing."
+  },
+  {
+    "atomic_number": -815,
+    "symbol": "PtCatalyst",
+    "name": "Platinum Catalyst",
+    "mass": 2.0,
+    "category": "Component",
+    "tier": 4,
+    "base_value": 1,
+    "description": "Advanced catalyst for rare metal refining."
+  },
+  {
+    "atomic_number": -816,
+    "symbol": "SuperconductingMagnet",
+    "name": "Superconducting Magnet",
+    "mass": 10.0,
+    "category": "Component",
+    "tier": 4,
+    "base_value": 1,
+    "description": "Powerful magnet for containment fields."
+  },
+  {
+    "atomic_number": -817,
+    "symbol": "AICore",
+    "name": "AI Core",
+    "mass": 5.0,
+    "category": "Component",
+    "tier": 4,
+    "base_value": 1,
+    "description": "Advanced artificial intelligence substrate."
+  },
+  {
+    "atomic_number": -818,
+    "symbol": "ReactiveCore",
+    "name": "Reactive Core",
+    "mass": 5.0,
+    "category": "Component",
+    "tier": 4,
+    "base_value": 1,
+    "description": "Unstable power core."
+  },
+  {
+    "atomic_number": -819,
+    "symbol": "IrPlate",
+    "name": "Iridium Plate",
+    "mass": 20.0,
+    "category": "Component",
+    "tier": 4,
+    "base_value": 1,
+    "description": "Extremely durable armor plating."
+  },
+  {
+    "atomic_number": -820,
+    "symbol": "OsCore",
+    "name": "Osmium Core",
+    "mass": 100.0,
+    "category": "Component",
+    "tier": 5,
+    "base_value": 1,
+    "description": "Dense reactor core for capital ships."
+  },
+  {
+    "atomic_number": -821,
+    "symbol": "ColonyDataCore",
+    "name": "Colony Data Core",
+    "mass": 5.0,
+    "category": "Data",
+    "tier": 3,
+    "base_value": 0,
+    "description": "Recovered colonial database."
+  },
+  {
+    "atomic_number": -822,
+    "symbol": "VoidCrystal",
+    "name": "Void Crystal",
+    "mass": 1.0,
+    "category": "Raw Material",
+    "tier": 4,
+    "base_value": 1,
+    "description": "Crystal resonating with void energy."
+  },
+  {
+    "atomic_number": -823,
+    "symbol": "Diamond",
+    "name": "Diamond",
+    "mass": 1.0,
+    "category": "Raw Material",
+    "tier": 3,
+    "base_value": 1,
+    "description": "Pure pressurized carbon lattice."
+  },
+  {
+    "atomic_number": -320,
+    "symbol": "AlWire",
+    "name": "Aluminum Wire",
+    "mass": 0.1,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Conductive writing for lightweight electronics."
+  },
+  {
+    "atomic_number": -910,
+    "symbol": "AdvMaintenanceKit",
+    "name": "Adv. Maintenance Kit",
+    "mass": 100.0,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Advanced industrial or operational component."
+  },
+  {
+    "atomic_number": -911,
+    "symbol": "CapacitorShard",
+    "name": "Capacitor Shard",
+    "mass": 100.0,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Advanced industrial or operational component."
+  },
+  {
+    "symbol": "CellT4",
+    "name": "Heavy Plasma Cell",
+    "mass": 0.5,
+    "category": "Ammo",
+    "tier": 4,
+    "base_value": 1,
+    "description": "Unstable fusion plasma containment. +35% damage on its channel."
+  },
+  {
+    "atomic_number": -913,
+    "symbol": "CompositeWeave",
+    "name": "Composite Weave",
+    "mass": 100.0,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Advanced industrial or operational component."
+  },
+  {
+    "atomic_number": -914,
+    "symbol": "ExoticMatter",
+    "name": "Exotic Matter",
+    "mass": 100.0,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 0,
+    "description": "Advanced industrial or operational component."
+  },
+  {
+    "atomic_number": -915,
+    "symbol": "FertileSoil",
+    "name": "Fertile Soil",
+    "mass": 100.0,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Advanced industrial or operational component."
+  },
+  {
+    "atomic_number": -917,
+    "symbol": "GalvanizedSteel",
+    "name": "Galvanized Steel",
+    "mass": 100.0,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Advanced industrial or operational component."
+  },
+  {
+    "atomic_number": -918,
+    "symbol": "Germanium",
+    "name": "Germanium",
+    "mass": 100.0,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Advanced industrial or operational component."
+  },
+  {
+    "symbol": "MissileT1",
+    "name": "HE Missile",
+    "mass": 0.5,
+    "category": "Ammo",
+    "tier": 1,
+    "base_value": 1,
+    "description": "Standard high-explosive ordnance. Baseline round: no damage bonus."
+  },
+  {
+    "atomic_number": -921,
+    "symbol": "IonField",
+    "name": "Ion Field Projector",
+    "mass": 100.0,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Advanced industrial or operational component."
+  },
+  {
+    "atomic_number": -922,
+    "symbol": "NuclearFuel",
+    "name": "Nuclear Fuel",
+    "mass": 100.0,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Advanced industrial or operational component."
+  },
+  {
+    "atomic_number": -923,
+    "symbol": "OmegaAccelerator",
+    "name": "Omega Accelerator",
+    "mass": 100.0,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Omega-class production core. While held: +50% gathering yield and +50% infrastructure yield. Permanent passive — one is enough."
+  },
+  {
+    "symbol": "MissileT4",
+    "name": "Photon Torpedo",
+    "mass": 2.0,
+    "category": "Ammo",
+    "tier": 4,
+    "base_value": 1,
+    "description": "Capital-class antimatter buster. +35% damage on its channel."
+  },
+  {
+    "atomic_number": -925,
+    "symbol": "PrimordialArmor",
+    "name": "Primordial Armor",
+    "mass": 100.0,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Titan-forged plating. While held: +30% hull HP on every ship. Permanent passive — one is enough."
+  },
+  {
+    "atomic_number": -926,
+    "symbol": "PurifiedCompound",
+    "name": "Purified Compound",
+    "mass": 100.0,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Advanced industrial or operational component."
+  },
+  {
+    "atomic_number": -927,
+    "symbol": "QuarantineClearance",
+    "name": "Quarantine Clearance",
+    "mass": 100.0,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Advanced industrial or operational component."
+  },
+  {
+    "symbol": "MissileT2",
+    "name": "Seeker Missile",
+    "mass": 0.8,
+    "category": "Ammo",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Guided missile with tracking chips. +10% damage on its channel."
+  },
+  {
+    "symbol": "MissileT3",
+    "name": "Heavy Missile",
+    "mass": 1.2,
+    "category": "Ammo",
+    "tier": 3,
+    "base_value": 1,
+    "description": "High-yield thermobaric missile. +20% damage on its channel."
+  },
+  {
+    "symbol": "SlugT4",
+    "name": "Hyper-Velocity Slug",
+    "mass": 0.5,
+    "category": "Ammo",
+    "tier": 4,
+    "base_value": 1,
+    "description": "Tungsten-Superalloy sabot for railguns. +35% damage on its channel."
+  },
+  {
+    "atomic_number": -930,
+    "symbol": "StainlessSteel",
+    "name": "Stainless Steel",
+    "mass": 100.0,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Advanced industrial or operational component."
+  },
+  {
+    "atomic_number": -931,
+    "symbol": "TemporalModule",
+    "name": "Temporal Stabilizer",
+    "mass": 100.0,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Localized time-dilation field. While held: +30% ship attack speed in combat. Permanent passive — one is enough."
+  },
+  {
+    "atomic_number": -932,
+    "symbol": "VoidBattery",
+    "name": "Void Battery",
+    "mass": 100.0,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Void-compressed power cell. While held: +40% ship energy capacity. Permanent passive — one is enough."
+  },
+  {
+    "atomic_number": -933,
+    "symbol": "ZeroPoint",
+    "name": "Zero-Point Injector",
+    "mass": 100.0,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Advanced industrial or operational component."
+  },
+  {
+    "atomic_number": -934,
+    "symbol": "Zn",
+    "name": "Zinc",
+    "mass": 100.0,
+    "category": "Component",
+    "tier": 2,
+    "base_value": 1,
+    "description": "Advanced industrial or operational component."
+  },
+  {
+    "atomic_number": -1001,
+    "symbol": "CrackedCrimsonCore",
+    "name": "Cracked Crimson Core",
+    "mass": 0.5,
+    "category": "Artifact",
+    "tier": 3,
+    "base_value": 1,
+    "description": "Socket into epic modules. +2% Kinetic & Energy Offense."
+  },
+  {
+    "atomic_number": -1002,
+    "symbol": "StableCrimsonCore",
+    "name": "Stable Crimson Core",
+    "mass": 0.5,
+    "category": "Artifact",
+    "tier": 4,
+    "base_value": 1,
+    "description": "Socket into epic modules. +5% Kinetic & Energy Offense."
+  },
+  {
+    "atomic_number": -1003,
+    "symbol": "PristineCrimsonCore",
+    "name": "Pristine Crimson Core",
+    "mass": 0.5,
+    "category": "Artifact",
+    "tier": 5,
+    "base_value": 1,
+    "description": "Socket into epic modules. +10% Kinetic & Energy Offense."
+  },
+  {
+    "atomic_number": -1004,
+    "symbol": "CrackedCobaltCore",
+    "name": "Cracked Cobalt Core",
+    "mass": 0.5,
+    "category": "Artifact",
+    "tier": 3,
+    "base_value": 1,
+    "description": "Socket into epic modules. +2% Defense & Evasion."
+  },
+  {
+    "atomic_number": -1005,
+    "symbol": "StableCobaltCore",
+    "name": "Stable Cobalt Core",
+    "mass": 0.5,
+    "category": "Artifact",
+    "tier": 4,
+    "base_value": 1,
+    "description": "Socket into epic modules. +5% Defense & Evasion."
+  },
+  {
+    "atomic_number": -1006,
+    "symbol": "PristineCobaltCore",
+    "name": "Pristine Cobalt Core",
+    "mass": 0.5,
+    "category": "Artifact",
+    "tier": 5,
+    "base_value": 1,
+    "description": "Socket into epic modules. +10% Defense & Evasion."
+  },
+  {
+    "atomic_number": -1007,
+    "symbol": "CrackedTopazCore",
+    "name": "Cracked Topaz Core",
+    "mass": 0.5,
+    "category": "Artifact",
+    "tier": 3,
+    "base_value": 1,
+    "description": "Socket into epic modules. +2% Utilities."
+  },
+  {
+    "atomic_number": -1008,
+    "symbol": "StableTopazCore",
+    "name": "Stable Topaz Core",
+    "mass": 0.5,
+    "category": "Artifact",
+    "tier": 4,
+    "base_value": 1,
+    "description": "Socket into epic modules. +5% Utilities."
+  },
+  {
+    "atomic_number": -1009,
+    "symbol": "PristineTopazCore",
+    "name": "Pristine Topaz Core",
+    "mass": 0.5,
+    "category": "Artifact",
+    "tier": 5,
+    "base_value": 1,
+    "description": "Socket into epic modules. +10% Utilities."
+  },
+  {
+    "atomic_number": -1010,
+    "symbol": "CrackedAmethystCore",
+    "name": "Cracked Amethyst Core",
+    "mass": 0.5,
+    "category": "Artifact",
+    "tier": 3,
+    "base_value": 1,
+    "description": "Socket into epic modules. +2% Hull & Jamming."
+  },
+  {
+    "atomic_number": -1011,
+    "symbol": "StableAmethystCore",
+    "name": "Stable Amethyst Core",
+    "mass": 0.5,
+    "category": "Artifact",
+    "tier": 4,
+    "base_value": 1,
+    "description": "Socket into epic modules. +5% Hull & Jamming."
+  },
+  {
+    "atomic_number": -1012,
+    "symbol": "PristineAmethystCore",
+    "name": "Pristine Amethyst Core",
+    "mass": 0.5,
+    "category": "Artifact",
+    "tier": 5,
+    "base_value": 1,
+    "description": "Socket into epic modules. +10% Hull & Jamming."
+  },
+  {
+    "atomic_number": -1013,
+    "symbol": "ResonantCrimsonCore",
+    "name": "Resonant Crimson Core",
+    "mass": 0.5,
+    "category": "Artifact",
+    "tier": 6,
+    "base_value": 1,
+    "description": "Socket into epic modules. +60% Crit Dmg & +15% Crit."
+  },
+  {
+    "atomic_number": -1014,
+    "symbol": "ResonantCobaltCore",
+    "name": "Resonant Cobalt Core",
+    "mass": 0.5,
+    "category": "Artifact",
+    "tier": 6,
+    "base_value": 1,
+    "description": "Socket into epic modules. +18% Atk Speed / Shield Regen."
+  },
+  {
+    "atomic_number": -1015,
+    "symbol": "ResonantTopazCore",
+    "name": "Resonant Topaz Core",
+    "mass": 0.5,
+    "category": "Artifact",
+    "tier": 6,
+    "base_value": 1,
+    "description": "Socket into epic modules. +18% Armor Pen / Evasion."
+  },
+  {
+    "atomic_number": -1016,
+    "symbol": "ResonantAmethystCore",
+    "name": "Resonant Amethyst Core",
+    "mass": 0.5,
+    "category": "Artifact",
+    "tier": 6,
+    "base_value": 1,
+    "description": "Socket into epic modules. +18% Hull & Resist Pierce."
+  },
+  {
+    "atomic_number": -2001,
+    "symbol": "Z1_Core",
+    "name": "Lunar Core",
+    "mass": 5.0,
+    "category": "Boss Core",
+    "tier": 1,
+    "base_value": 0,
+    "description": "A crystallized energy matrix extracted from a Zone 1 boss. Used for zone-access research."
+  },
+  {
+    "atomic_number": -2002,
+    "symbol": "Z2_Core",
+    "name": "Asteroid Core",
+    "mass": 8.0,
+    "category": "Boss Core",
+    "tier": 2,
+    "base_value": 0,
+    "description": "A dense mineral core from an Asteroid Belt boss. Used for zone-access research."
+  },
+  {
+    "atomic_number": -2003,
+    "symbol": "Z3_Core",
+    "name": "Debris Core",
+    "mass": 12.0,
+    "category": "Boss Core",
+    "tier": 3,
+    "base_value": 0,
+    "description": "A superheated core from a Mars Debris boss. Used for zone-access research."
+  },
+  {
+    "atomic_number": -2004,
+    "symbol": "Z4_Core",
+    "name": "Cryofield Core",
+    "mass": 15.0,
+    "category": "Boss Core",
+    "tier": 3,
+    "base_value": 0,
+    "description": "A frozen energy lattice from a Cryofield boss. Used for zone-access research."
+  },
+  {
+    "atomic_number": -2005,
+    "symbol": "Z5_Core",
+    "name": "Alpha Core",
+    "mass": 20.0,
+    "category": "Boss Core",
+    "tier": 4,
+    "base_value": 0,
+    "description": "A xenon-infused power matrix from a Sector Alpha boss. Used for zone-access research."
+  },
+  {
+    "atomic_number": -2006,
+    "symbol": "Z6_Core",
+    "name": "Beta Core",
+    "mass": 25.0,
+    "category": "Boss Core",
+    "tier": 4,
+    "base_value": 0,
+    "description": "A radiation-hardened core from a Sector Beta boss. Used for zone-access research."
+  },
+  {
+    "atomic_number": -2007,
+    "symbol": "Z7_Core",
+    "name": "Gamma Core",
+    "mass": 30.0,
+    "category": "Boss Core",
+    "tier": 5,
+    "base_value": 0,
+    "description": "An exotic matter core from a Sector Gamma boss. Used for zone-access research."
+  },
+  {
+    "atomic_number": -2008,
+    "symbol": "Z8_Core",
+    "name": "Delta Core",
+    "mass": 40.0,
+    "category": "Boss Core",
+    "tier": 5,
+    "base_value": 0,
+    "description": "A void-charged energy core from a Sector Delta boss. Used for zone-access research."
+  },
+  {
+    "atomic_number": -2009,
+    "symbol": "Z9_Core",
+    "name": "Epsilon Core",
+    "mass": 50.0,
+    "category": "Boss Core",
+    "tier": 5,
+    "base_value": 0,
+    "description": "A neutronium-laced core from a Sector Epsilon boss. Used for zone-access research."
+  },
+  {
+    "atomic_number": -2010,
+    "symbol": "Z10_Core",
+    "name": "Omega Core",
+    "mass": 100.0,
+    "category": "Boss Core",
+    "tier": 5,
+    "base_value": 0,
+    "description": "The ultimate boss core, pulsing with primordial energy. The rarest crafting material."
+  },
+  {
+    "atomic_number": -2011,
+    "symbol": "QuarantineClearance",
+    "name": "Quarantine Clearance",
+    "mass": 0.1,
+    "category": "Data",
+    "tier": 5,
+    "base_value": 0,
+    "description": "Biometric authorization token required for FTL travel into protected sectors."
+  },
+  {
+    "atomic_number": -3001,
+    "symbol": "StructuralComponent",
+    "name": "Structural Component",
+    "mass": 5.0,
+    "category": "Component",
+    "tier": 3,
+    "base_value": 1,
+    "description": "Precision-machined structural assembly. Requires Iron, Copper, Silicon, Carbon, and Lithium. Universal building block for advanced modules."
+  },
+  {
+    "atomic_number": -3002,
+    "symbol": "NanoSubstrate",
+    "name": "Nano-Substrate",
+    "mass": 2.0,
+    "category": "Component",
+    "tier": 4,
+    "base_value": 1,
+    "description": "Molecular-scale lattice of Structural Components infused with lightweight metals. Required for capital-grade fabrication."
+  },
+  {
+    "atomic_number": -3003,
+    "symbol": "emp_generator_blueprint",
+    "name": "EMP Generator Blueprint",
+    "mass": 0.1,
+    "category": "Blueprint",
+    "tier": 3,
+    "base_value": 1,
+    "description": "Captured electromagnetic pulse schematics from the EMP Nexus. First-clear reward. Can be used to craft an EMP Generator module."
+  },
+  {
+    "atomic_number": -3100,
+    "symbol": "SinteredCarbide",
+    "name": "Sintered Carbide",
+    "mass": 60.0,
+    "category": "Component",
+    "tier": 3,
+    "base_value": 1,
+    "description": "Tungsten-carbide compact bound with cobalt. Tooling grade for precision fabrication."
+  },
+  {
+    "atomic_number": -3101,
+    "symbol": "PrecisionLattice",
+    "name": "Precision Lattice",
+    "mass": 40.0,
+    "category": "Component",
+    "tier": 4,
+    "base_value": 1,
+    "description": "Machined carbide-and-stainless truss, tolerances in microns. Feeds the fabrication bus line."
+  },
+  {
+    "atomic_number": -3102,
+    "symbol": "FabricationBus",
+    "name": "Fabrication Bus",
+    "mass": 55.0,
+    "category": "Component",
+    "tier": 5,
+    "base_value": 1,
+    "description": "Self-routing assembly spine that carries power, data and tooling through a capital hull section."
+  },
+  {
+    "atomic_number": -3103,
+    "symbol": "CapitalSpar",
+    "name": "Capital Spar",
+    "mass": 200.0,
+    "category": "Component",
+    "tier": 6,
+    "base_value": 1,
+    "description": "Galvanized-composite keel member for capital ships, laced with a fabrication bus."
+  },
+  {
+    "atomic_number": -3104,
+    "symbol": "DreadnoughtFrame",
+    "name": "Dreadnought Frame",
+    "mass": 500.0,
+    "category": "Component",
+    "tier": 7,
+    "base_value": 1,
+    "description": "A complete dreadnought skeleton section: spars, plate and precision lattice, yard-assembled."
+  },
+  {
+    "symbol": "DiamondWafer",
+    "name": "Diamond Wafer",
+    "mass": 60.0,
+    "category": "Component",
+    "tier": 4,
+    "base_value": 1,
+    "atomic_number": 93,
+    "description": "Synthetic diamond sliced into a thermally perfect substrate. Carries heat no silicon can."
+  },
+  {
+    "symbol": "SuperiorCircuit",
+    "name": "Superior Circuit",
+    "mass": 60.0,
+    "category": "Component",
+    "tier": 5,
+    "base_value": 1,
+    "atomic_number": 94,
+    "description": "Diamond-substrate logic. Runs at powers that would cook an ordinary wafer."
+  }
 ]

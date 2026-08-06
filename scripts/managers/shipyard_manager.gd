@@ -380,9 +380,9 @@ const COST_ZONE_ANCHOR := {
 	5: ["Superalloy", "StructuralComponent", "Chip", "Graphite"],
 	6: ["AdvCircuit", "NanoSubstrate"],
 	7: ["AdvCircuit", "CompositeWeave", "SinteredCarbide"],
-	8: ["AdvCircuit", "StainlessSteel", "NanoSubstrate", "TargetingChip", "PrecisionLattice"],
-	9: ["AdvCircuit", "TargetingChip", "PrecisionLattice", "FabricationBus", "VoidLattice"],
-	10: ["AdvCircuit", "NeutroniumPlate", "DreadnoughtFrame", "CapitalSpar", "VoidLattice"],
+	8: ["AdvCircuit", "StainlessSteel", "NanoSubstrate", "TargetingChip", "PrecisionLattice", "DiamondWafer"],
+	9: ["AdvCircuit", "TargetingChip", "PrecisionLattice", "FabricationBus", "VoidLattice", "SuperiorCircuit"],
+	10: ["AdvCircuit", "NeutroniumPlate", "DreadnoughtFrame", "CapitalSpar", "VoidLattice", "SuperiorCircuit"],
 }
 
 # ═══════════════════════════════════════════════════════════════════════════
