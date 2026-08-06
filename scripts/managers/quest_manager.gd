@@ -232,11 +232,52 @@ func _generate_quest() -> Dictionary:
 	# "supply" actives on old saves still track + claim via the kept paths.
 	return _generate_gather_quest(min_diff, max_diff)
 
+# v168: the materials already spoken for by the live board. Two Standing Orders for
+# the same good read as a bug and split the player's attention across one activity
+# instead of broadening it, which is the whole point of a six-slot board.
+func _board_targets() -> Dictionary:
+	var taken: Dictionary = {}
+	for q in board:
+		var sym := String(q.get("target", ""))
+		if sym != "":
+			taken[sym] = true
+	return taken
+
+
+# Candidate (tier, template) pairs whose material is not already on the board.
+# `lo` is widened by the caller when the natural window cannot fill a unique slot.
+func _unique_candidates(lo: int, hi: int, taken: Dictionary) -> Array:
+	var out: Array = []
+	for tier in range(lo, hi + 1):
+		for t in gather_materials.get(tier, []):
+			if not String(t[0]) in taken:
+				out.append([tier, t])
+	return out
+
+
 func _generate_gather_quest(min_diff: int, max_diff: int) -> Dictionary:
-	var tier = randi_range(min_diff, max_diff)
-	var templates = gather_materials.get(tier, [])
-	if templates.is_empty(): return {}
-	var t = templates[randi() % templates.size()]
+	# v168 UNIQUENESS, best-effort by design. BOARD_SIZE is 6 but only two tiers roll
+	# at once and a tier holds 2-3 templates, so a strictly unique board is not always
+	# reachable (tier 1 alone offers 3; tiers 10-11 offer 5). Order of preference:
+	#   1. a fresh material inside the normal difficulty window
+	#   2. a fresh material from any LOWER tier -- an easier order beats a duplicate
+	#   3. a duplicate, only once the whole pool is exhausted
+	# Step 3 exists so the board can never shrink; dropping a slot would be worse than
+	# a repeat.
+	var taken := _board_targets()
+	var pool := _unique_candidates(min_diff, max_diff, taken)
+	if pool.is_empty():
+		pool = _unique_candidates(1, max_diff, taken)
+	# No fresh material anywhere in reach: return EMPTY rather than repeat one.
+	# _fill_board stops on empty, so the board simply holds fewer orders. Early on
+	# that is the honest state -- tier 1 offers exactly three materials, so a
+	# six-slot board could only ever be filled by stocking the same good twice.
+	# The board regrows on its own as new tiers unlock.
+	if pool.is_empty():
+		return {}
+	var pick = pool[randi() % pool.size()]
+	var tier: int = int(pick[0])
+	var t = pick[1]
 	var mat_id = t[0]
 	var qty = _round_qty(randi_range(t[1], t[2]))
 	var credits = t[3]
