@@ -60,6 +60,27 @@ func _ready() -> void:
 	# set another shape (e.g. FORBIDDEN on a locked node) are left alone.
 	get_tree().node_added.connect(_apply_button_cursor)
 	_scan_existing(get_tree().root)
+	set_process(true)
+
+
+# v173: Godot's GUI drag system swaps to CURSOR_FORBIDDEN over anything whose
+# _can_drop_data says no -- which, while carrying a module, a Matrix Core or a Hack
+# Card, is MOST of the screen. The result was a "can't" cursor flickering through a
+# perfectly normal drag, reading as an error rather than as "not this target".
+# While a drag is live the forbidden shape is re-registered with the DEFAULT cursor
+# image, so the shape still changes internally but the player never sees a refusal.
+# Restored the moment the drag ends.
+var _drag_cursor_suppressed: bool = false
+
+func _process(_delta: float) -> void:
+	var vp := get_viewport()
+	if vp == null:
+		return
+	var dragging: bool = vp.gui_is_dragging()
+	if dragging == _drag_cursor_suppressed:
+		return
+	_drag_cursor_suppressed = dragging
+	_apply_cursor(Input.CURSOR_FORBIDDEN, CURSOR_DEFAULT if dragging else CURSOR_FORBIDDEN)
 
 
 ## Re-bake all cursors at `px` size and register them. Call this live from

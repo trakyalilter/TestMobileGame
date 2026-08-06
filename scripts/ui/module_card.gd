@@ -1600,13 +1600,18 @@ func _make_drag_preview() -> Control:
 	var root = Control.new()
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-	# v147j: a dragged Matrix Core is JUST the crystal, at the exact size it will be
-	# once seated. It used to render the full 84px tile — socket backplate, border,
-	# shadow and a 74px crystal — so you appeared to drag a stone inside a rectangle,
-	# nearly 5x the 16px gem it becomes in the socket. Built before the backplate
-	# below so no plate is created for it at all.
+	# v147j: a dragged Matrix Core is JUST the crystal, not the full 84px tile —
+	# socket backplate, border, shadow and a 74px crystal — which made you appear to
+	# drag a stone inside a rectangle. Built before the backplate below so no plate
+	# is created for it at all.
 	if slot_type == "gem" or slot_type == "gem_synth":
-		var d := MatrixCoreIcon.SOCKET_D
+		# v173: 2x socket size. v147j shrank the ghost from the full 84px tile down to
+		# exactly SOCKET_D so it matched the seated gem -- but you pick the core UP
+		# from an Armory tile that renders it at ~114px, so the ghost collapsing to
+		# 22px read as losing the item. Twice socket size is unmistakably the same
+		# stone, still obviously a gem rather than a tile, and DERIVED so it tracks
+		# any future SOCKET_D change.
+		var d := MatrixCoreIcon.SOCKET_D * 2.0
 		var bare := MatrixCoreIcon.new()
 		bare.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		bare.position = Vector2(-d * 0.5, -d * 0.5)   # centred on the cursor
