@@ -23,7 +23,7 @@ layout_mode = 2
 [node name="TitleLabel" type="Label" parent="Margin/VBox/HeaderHBox"]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Quest Title"
+text = "Order Title"
 theme_override_font_sizes/font_size = 13
 
 [node name="TierLabel" type="Label" parent="Margin/VBox/HeaderHBox"]
@@ -34,7 +34,7 @@ theme_override_colors/font_color = Color(0.55, 0.65, 0.85, 1)
 
 [node name="DescLabel" type="Label" parent="Margin/VBox"]
 layout_mode = 2
-text = "Quest description"
+text = "Order description"
 theme_override_font_sizes/font_size = 11
 theme_override_colors/font_color = Color(0.62, 0.66, 0.74, 1)
 autowrap_mode = 2

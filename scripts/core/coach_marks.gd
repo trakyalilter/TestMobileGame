@@ -208,13 +208,13 @@ const STEPS := {
 	"quest": [
 		{
 			"anchor": "grid",
-			"title": "Quests",
+			"title": "Orders",
 			"body": "Repeatable delivery orders — turn materials in for Liras. The bar shows how much you currently OWN of each item; claiming CONSUMES the goods, so it's a steady way to convert surplus stock into cash.",
 		},
 		{
 			"anchor": "claim_all",
-			"title": "Claiming Quests",
-			"body": "Finished quests stack up — claim them all here for their combined rewards.",
+			"title": "Claiming Orders",
+			"body": "Finished orders stack up — claim them all here for their combined rewards.",
 		},
 	],
 	"warp": [

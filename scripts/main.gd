@@ -225,7 +225,7 @@ func _apply_global_styles():
 func _apply_sidebar_icons() -> void:
 	_set_nav(mission_btn, "missions", "Missions")
 	_set_nav(bounty_btn, "bounties", "Bounties")
-	_set_nav(quest_btn, "quests", "Quests")
+	_set_nav(quest_btn, "quests", "Orders")
 	_set_nav(gathering_btn, "mine", "Mine")
 	_set_nav(processing_btn, "engineering", "Engineering")
 	_set_nav(infrastructure_btn, "infrastructure", "Infrastructure")

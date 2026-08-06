@@ -45,7 +45,7 @@ theme_override_colors/font_color = Color(0.55, 0.6, 0.72, 1)
 
 [node name="SubtitleLabel" type="Label" parent="Margin/VBox"]
 layout_mode = 2
-text = "Persistent orders from the Command Network. Quests track passively across all systems — no need to accept. Claim rewards as objectives complete. New orders are issued on each claim."
+text = "Persistent orders from the Command Network. Orders track passively across all systems — no need to accept. Claim rewards as objectives complete. New orders are issued on each claim."
 theme_override_font_sizes/font_size = 11
 theme_override_colors/font_color = Color(0.5, 0.55, 0.65, 1)
 autowrap_mode = 2
