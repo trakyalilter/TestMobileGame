@@ -44,6 +44,53 @@ func tr_upper(s: String) -> String:
 # without any per-instance styling. Runs at autoload _ready, before the UI builds.
 func _ready() -> void:
 	_install_scrollbar_theme()
+	_install_lineedit_theme()
+
+
+# v171: sci_fi_theme.tres ships NO LineEdit styling, so every search box in the game
+# fell back to Godot's stock grey field -- the Atlas box, the Engineering recipe
+# search, the Inventory search and the debug fields. Only the Armory search looked
+# right, because designer_page styled that ONE control locally.
+#
+# Styling the THEME rather than each control covers all of them at once, including
+# the .tscn-authored Atlas box and anything added later, and it is the same approach
+# _install_scrollbar_theme already uses for the same reason.
+func _install_lineedit_theme() -> void:
+	var t := load("res://sci_fi_theme.tres") as Theme
+	if t == null:
+		return
+
+	var normal := StyleBoxFlat.new()
+	normal.bg_color = Color(0.043, 0.078, 0.094, 0.98)
+	normal.set_corner_radius_all(4)
+	normal.set_border_width_all(1)
+	normal.border_color = Color(0.180, 0.310, 0.360, 0.90)
+	normal.content_margin_left = 9
+	normal.content_margin_right = 9
+	normal.content_margin_top = 5
+	normal.content_margin_bottom = 5
+
+	# Focus reads as the field "powering up": accent border, a heavier underline and
+	# a soft bloom, matching how the rest of the HUD signals an active element.
+	var focus := normal.duplicate() as StyleBoxFlat
+	focus.border_color = Color(COLORS["accent_bright"], 0.95)
+	focus.border_width_bottom = 2
+	focus.shadow_color = Color(COLORS["accent_bright"], 0.18)
+	focus.shadow_size = 4
+
+	var read_only := normal.duplicate() as StyleBoxFlat
+	read_only.bg_color = Color(0.043, 0.078, 0.094, 0.55)
+	read_only.border_color = Color(0.180, 0.310, 0.360, 0.45)
+
+	t.set_stylebox("normal", "LineEdit", normal)
+	t.set_stylebox("focus", "LineEdit", focus)
+	t.set_stylebox("read_only", "LineEdit", read_only)
+	t.set_color("font_color", "LineEdit", COLORS["text_main"])
+	t.set_color("font_placeholder_color", "LineEdit", Color(COLORS["text_dim"], 0.75))
+	t.set_color("font_uneditable_color", "LineEdit", Color(COLORS["text_dim"], 0.60))
+	t.set_color("caret_color", "LineEdit", COLORS["accent_bright"])
+	t.set_color("selection_color", "LineEdit", Color(COLORS["accent_bright"], 0.28))
+	t.set_font_size("font_size", "LineEdit", 13)
 
 func _install_scrollbar_theme() -> void:
 	var t := load("res://sci_fi_theme.tres") as Theme
