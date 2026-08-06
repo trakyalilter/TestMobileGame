@@ -47,6 +47,7 @@ func _ready():
 	_apply_global_styles()
 	_init_notifications() # Feature 66.1
 	_init_claim_badges()
+	_init_mission_dots()
 	_init_coach_overlay()
 
 	# v71.1: Connect to shipyard alerts
@@ -2146,6 +2147,8 @@ func _update_navigation_hints():
 	# a pulse but no tutorial mission is active, that pulse came from a non-tutorial
 	# branch: drop it. The claim reminder (mission_btn) is exempt — it's a "collect
 	# your reward" nudge, not a task directive, and has no page ambiguity.
+	_refresh_mission_dots(mm)
+
 	if not can_claim_tutorial and target_to_pulse != null and not _has_active_tutorial(mm):
 		target_to_pulse = null
 
@@ -2209,6 +2212,92 @@ func _has_active_tutorial(mm) -> bool:
 	return false
 
 
+# v166: which PAGE a mission does its work on. Lifted verbatim out of
+# _generic_mission_pulse so the tutorial arrow and the mission dots can never
+# disagree about where a given mission points.
+func _page_for_mission(m: Dictionary) -> String:
+	match String(m.get("type", "")):
+		"research":
+			return "research"
+		"defeat", "drop_rarity":
+			return "combat"
+		"build", "construct", "overclock_install":
+			return "infrastructure"
+		"craft", "craft_matrix":
+			return "shipyard"
+		"loadout_check", "equip_consumables", "loadout_rare_weapon", \
+		"loadout_rare_weapon_type", "hack_apply", "socket_check":
+			return "designer"
+		"warp_perform":
+			return "warp"
+		"atlas_lookup":
+			return "atlas"
+		"visit_page":
+			return String(m.get("target", ""))
+		"gather", "gather_multi":
+			return _skill_page_for_targets(m)
+	return ""
+
+
+# v166 MISSION DOTS. The hint arrow can point at only ONE page, so with several
+# missions live it chose among them arbitrarily -- and v141c fixed that by
+# suppressing it entirely once the tutorial ends. That left mid and late players,
+# who carry the MOST concurrent objectives, with no guidance at all.
+#
+# A dot per nav button answers the question this genre actually asks -- "where is
+# there work I could commit my next hour to" -- instead of "what is the one next
+# thing". It cannot point wrong, needs no arbitration, and scales to any number of
+# missions. The arrow stays TUTORIAL-ONLY, where teaching one specific step is the
+# whole point; tutorial missions are skipped here so the two never double-signal.
+var _mission_dots: Dictionary = {}
+
+func _init_mission_dots() -> void:
+	for page in ["gathering", "processing", "infrastructure", "shipyard", "research",
+				 "combat", "designer", "atlas", "warp", "bounty", "quest"]:
+		var btn := _get_btn_for_page(String(page))
+		if btn == null or not is_instance_valid(btn):
+			continue
+		var dot := Panel.new()
+		dot.name = "MissionDot"
+		dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		dot.visible = false
+		dot.set_anchors_preset(Control.PRESET_CENTER_RIGHT, true)
+		# Left of the claim badge slot (-32) so the two never overlap on the
+		# Mission and Quest buttons, which carry both.
+		dot.position = Vector2(-13, -4)
+		dot.custom_minimum_size = Vector2(8, 8)
+		dot.size = Vector2(8, 8)
+		var st := StyleBoxFlat.new()
+		st.bg_color = Color(0.45, 0.85, 0.75)
+		st.set_corner_radius_all(4)
+		st.shadow_color = Color(0.45, 0.85, 0.75, 0.40)
+		st.shadow_size = 3
+		dot.add_theme_stylebox_override("panel", st)
+		btn.add_child(dot)
+		_mission_dots[String(page)] = dot
+
+
+func _refresh_mission_dots(mm) -> void:
+	if _mission_dots.is_empty() or mm == null:
+		return
+	var wanted: Dictionary = {}
+	for mid in mm.active_missions:
+		var m: Dictionary = mm.missions.get(mid, {})
+		if m.is_empty() or bool(m.get("completed", false)):
+			continue
+		if String(m.get("tag", "")) == "[TUTORIAL]":
+			continue
+		var page := _page_for_mission(m)
+		if page != "":
+			wanted[page] = true
+	for page in _mission_dots:
+		var dot: Control = _mission_dots[page]
+		if not is_instance_valid(dot):
+			continue
+		var btn := _get_btn_for_page(String(page))
+		# Never mark a hidden (gated) page -- a dot the player cannot act on.
+		dot.visible = wanted.has(page) and btn != null and btn.visible
+
 func _generic_mission_pulse(mm) -> Control:
 	# v141d: pick the SINGLE earliest-in-chain active TUTORIAL mission (definition
 	# order — mm.missions preserves it) and route to its page. That one mission OWNS
@@ -2234,29 +2323,7 @@ func _generic_mission_pulse(mm) -> Control:
 	if chosen == "":
 		return null
 	var m: Dictionary = mm.missions[chosen]
-	var page := ""
-	match String(m.get("type", "")):
-		"research":
-			page = "research"
-		"defeat", "drop_rarity":
-			page = "combat"
-		"build", "construct":
-			page = "infrastructure"
-		"craft", "craft_matrix":
-			page = "shipyard"
-		"loadout_check", "equip_consumables", "loadout_rare_weapon", \
-		"loadout_rare_weapon_type", "hack_apply", "socket_check":
-			page = "designer"
-		"warp_perform":
-			page = "warp"
-		"overclock_install":
-			page = "infrastructure"
-		"atlas_lookup":
-			page = "atlas"
-		"visit_page":
-			page = String(m.get("target", ""))
-		"gather", "gather_multi":
-			page = _skill_page_for_targets(m)
+	var page := _page_for_mission(m)
 	# On the right page (task in progress there) or nowhere to send them → no arrow.
 	if page == "" or page == current_page_name:
 		return null
