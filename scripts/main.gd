@@ -971,6 +971,12 @@ func _on_coach_finished(page_name: String):
 func switch_to(page_name):
 	if current_page_name == page_name: return
 
+	# v165: locked tooltip/glossary cards live above the pages, so hiding a page
+	# leaves them on screen. Navigating away is an unambiguous "I am done with
+	# that card", so drop them here rather than in any one page's teardown.
+	if UITheme and UITheme.has_method("dismiss_locked_cards"):
+		UITheme.dismiss_locked_cards()
+
 	for p_name in pages:
 		pages[p_name].visible = (p_name == page_name)
 

@@ -385,6 +385,17 @@ var _glossary_locked: bool = false
 func is_tooltip_locked() -> bool:
 	return _tooltip_locked and is_instance_valid(_item_tooltip)
 
+# v165: a LOCKED card owns the tooltip slot until its X is clicked -- which is
+# correct while the player stays put, and wrong the moment they navigate. The card
+# is parented above the pages, so hiding a page does not touch it and the locked
+# module tooltip followed the player onto Gathering. Page switches call this;
+# `force` is required for the glossary because its own free() deliberately refuses
+# to close a locked card.
+func dismiss_locked_cards() -> void:
+	_free_glossary_card(true)
+	_tooltip_locked = false
+	_free_item_tooltip()
+
 func unlock_item_tooltip() -> void:
 	_tooltip_locked = false
 	_free_item_tooltip()
