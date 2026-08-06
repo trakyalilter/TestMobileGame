@@ -2202,69 +2202,47 @@ func trigger_system_glitch(node: Control, intensity: float = 8.0):
 	tween.tween_property(node, "position", original_pos, 0.05)
 	tween.parallel().tween_property(node, "modulate", Color.WHITE, 0.05)
 
-# v169: alert dot drawn on a TabBar, styled to match the sidebar mission dots.
-# One dot node per tab index, parented to the bar and re-placed whenever the bar
-# resizes -- tab rects move when the container is resized or the tabs scroll, and a
-# drifting dot would be worse than the text marker it replaces.
-func _set_tab_alert_dot(bar: TabBar, tab_idx: int, active: bool, color: Color) -> void:
-	if bar == null or tab_idx < 0:
+# v169b: the alert marker is a TAB ICON, not an overlay.
+#
+# It began as a "(!) " title prefix, which mutated the title and read as a different
+# alert language from the sidebar mission dots. Replacing it with a Panel positioned
+# over the tab traded one bug for another: an overlay has no reserved space, so the
+# dot landed ON the label ("Toplama" with a dot through the final letter) -- exactly
+# the collision that had just been fixed on the sidebar buttons.
+#
+# TabBar already solves this natively. set_tab_icon lays the icon out BESIDE the
+# title with the theme's own spacing, so it cannot overlap, cannot drift when tabs
+# resize or the selection grows a tab, and needs no repositioning code at all. The
+# texture is a small anti-aliased circle generated once and cached per colour.
+var _tab_dot_tex_cache: Dictionary = {}
+
+func _tab_dot_texture(color: Color) -> Texture2D:
+	var key := color.to_html(true)
+	if _tab_dot_tex_cache.has(key):
+		return _tab_dot_tex_cache[key]
+	var size := 10
+	var img := Image.create(size, size, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0, 0, 0, 0))
+	var c := size / 2.0
+	for y in size:
+		for x in size:
+			var d := Vector2(float(x) + 0.5 - c, float(y) + 0.5 - c).length()
+			if d <= c - 1.0:
+				img.set_pixel(x, y, color)
+			elif d <= c - 0.2:
+				# one-pixel feathered edge so it reads as a circle, not a square
+				var a: float = clampf((c - 0.2 - d) / 0.8, 0.0, 1.0)
+				img.set_pixel(x, y, Color(color.r, color.g, color.b, color.a * a))
+	var tex := ImageTexture.create_from_image(img)
+	_tab_dot_tex_cache[key] = tex
+	return tex
+
+
+func _set_tab_alert_icon(tabs: TabContainer, tab_idx: int, active: bool, color: Color) -> void:
+	if tabs == null or tab_idx < 0 or tab_idx >= tabs.get_tab_count():
 		return
-	var dot_name := "TabAlertDot_%d" % tab_idx
-	var dot: Panel = bar.get_node_or_null(dot_name) as Panel
-	if not active:
-		if dot != null:
-			dot.visible = false
-		return
-	if dot == null:
-		dot = Panel.new()
-		dot.name = dot_name
-		dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		dot.custom_minimum_size = Vector2(7, 7)
-		dot.size = Vector2(7, 7)
-		var st := StyleBoxFlat.new()
-		st.bg_color = color
-		st.set_corner_radius_all(4)
-		st.shadow_color = Color(color.r, color.g, color.b, 0.40)
-		st.shadow_size = 3
-		dot.add_theme_stylebox_override("panel", st)
-		bar.add_child(dot)
-		if not bar.resized.is_connected(_replace_tab_alert_dots):
-			bar.resized.connect(_replace_tab_alert_dots.bind(bar))
-		# Tab rects also move when the selection changes (the active tab grows) and
-		# whenever the bar itself is re-laid-out inside its parent.
-		if not bar.tab_changed.is_connected(_on_tab_bar_relayout):
-			bar.tab_changed.connect(_on_tab_bar_relayout.bind(bar))
-		if not bar.item_rect_changed.is_connected(_replace_tab_alert_dots):
-			bar.item_rect_changed.connect(_replace_tab_alert_dots.bind(bar))
-	dot.visible = true
-	# Place now, and again once layout settles. A dot created before the bar has
-	# laid its tabs out lands at a stale x (measured: dot at 56 for a tab at 316),
-	# and `resized` does not necessarily fire again afterwards. Repositioning ALL
-	# dots also fixes the ones placed on earlier calls.
-	_replace_tab_alert_dots(bar)
-	_replace_tab_alert_dots.call_deferred(bar)
+	tabs.set_tab_icon(tab_idx, _tab_dot_texture(color) if active else null)
 
-
-func _on_tab_bar_relayout(_idx: int, bar: TabBar) -> void:
-	_replace_tab_alert_dots(bar)
-
-
-func _place_tab_alert_dot(bar: TabBar, tab_idx: int, dot: Control) -> void:
-	if bar == null or dot == null or tab_idx >= bar.tab_count:
-		return
-	var r: Rect2 = bar.get_tab_rect(tab_idx)
-	# Top-right of the tab, inset so it sits inside the tab's own border.
-	dot.position = Vector2(r.position.x + r.size.x - 12.0, r.position.y + 4.0)
-
-
-func _replace_tab_alert_dots(bar: TabBar) -> void:
-	if bar == null or not is_instance_valid(bar):
-		return
-	for c in bar.get_children():
-		if c is Panel and String(c.name).begins_with("TabAlertDot_"):
-			var idx := int(String(c.name).replace("TabAlertDot_", ""))
-			if idx < bar.tab_count:
-				_place_tab_alert_dot(bar, idx, c as Control)
 
 ## trigger_tab_alert: Rhythmic pulse + Visual marker for navigation headers
 func trigger_tab_alert(tabs: TabContainer, tab_idx: int, active: bool = true, color: Color = Color.CYAN):
@@ -2275,8 +2253,7 @@ func trigger_tab_alert(tabs: TabContainer, tab_idx: int, active: bool = true, co
 	# instead of two. Prefixing also mutated the TITLE, which meant the marker had
 	# to be string-stripped back off and rode along into anything reading the tab
 	# name; the dot is a sibling node and touches nothing.
-	var bar_for_dot := tabs.get_tab_bar()
-	_set_tab_alert_dot(bar_for_dot, tab_idx, active, color)
+	_set_tab_alert_icon(tabs, tab_idx, active, color)
 	
 	# 1. Manage Active Alerts List
 	var active_alerts = tabs.get_meta("active_tab_alerts", [])
