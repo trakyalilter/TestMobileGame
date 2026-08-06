@@ -322,6 +322,21 @@ func _style_details() -> void:
 # (preserving node names so nothing downstream breaks), builds the hero band +
 # the quantity stepper, and pins the sell deck. No .tscn edits → the four signal
 # [connection]s survive untouched.
+# v167: resource selling is no longer a Lira source, so the sell deck comes off the
+# item dossier. Hidden rather than deleted: the nodes stay in the .tscn, the four
+# [connection]s survive, and perform_sale() is left intact but unreachable -- so
+# this is one line to revert if selling ever comes back. HeroRow / FlavorLabel /
+# DetailSpacer stay, and the spacer expands to fill what the deck used to occupy.
+func _hide_sell_deck() -> void:
+	var details := get_node_or_null("HBoxContainer/RightPanel/VBoxContainer/Details")
+	if details == null:
+		return
+	for n in ["PriceLabel", "HSeparator", "Label2", "HBoxContainer", "TotalLabel",
+			  "SellBtn", "SellAllBtn"]:
+		var node := details.get_node_or_null(String(n))
+		if node != null and node is CanvasItem:
+			(node as CanvasItem).visible = false
+
 func _build_detail_panel() -> void:
 	var details := get_node_or_null("HBoxContainer/RightPanel/VBoxContainer/Details") as VBoxContainer
 	if details == null:
@@ -455,6 +470,8 @@ func _build_detail_panel() -> void:
 
 # Replaces a Label with a RichTextLabel of the same name/index/parent and returns
 # the new node. expand → fill the panel width (for the dossier wrap).
+	_hide_sell_deck()
+
 func _label_to_rtl(old: Label, expand: bool) -> RichTextLabel:
 	var parent := old.get_parent()
 	var idx := old.get_index()
