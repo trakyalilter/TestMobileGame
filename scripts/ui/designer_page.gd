@@ -193,6 +193,7 @@ func _ready():
 	manager.inventory_updated.connect(_on_inventory_updated)
 
 	_apply_designer_styles()
+	_wrap_tab_strip_in_scroll()
 	_setup_filter_tabs()
 	_setup_bulk_actions()
 
@@ -407,6 +408,44 @@ func _apply_designer_styles():
 	storage_grid.add_child(_spatial)
 	_setup_page_nav()
 
+
+# v164. TabStrip holds 11 filter tabs and neither plain container works alone:
+#   HFlowContainer  -- wraps, so its MIN HEIGHT depends on its WIDTH. Inside a
+#     PanelContainer that is a feedback loop (height -> panel -> width -> re-wrap)
+#     and with 11 tabs it recursed until the native stack blew. That was the
+#     SIGSEGV on opening Ship Designer fixed in 8bcb261.
+#   HBoxContainer   -- cannot wrap, so 11 tabs demand a 943px MIN WIDTH in a
+#     1280px viewport. Measured: it forced RightPanel to 967px and blew the whole
+#     page layout out sideways.
+# A ScrollContainer breaks BOTH couplings: its own minimum size is independent of
+# its content, so the strip can be as wide as it likes without pushing the panel,
+# and the row never wraps so there is no height feedback either. The strip simply
+# scrolls horizontally when the tabs outrun the width.
+func _wrap_tab_strip_in_scroll() -> void:
+	if not is_instance_valid(tab_strip):
+		return
+	var holder := tab_strip.get_parent()
+	if holder == null or holder is ScrollContainer:
+		return
+	var idx := tab_strip.get_index()
+	var sc := ScrollContainer.new()
+	sc.name = "TabScroll"
+	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	sc.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	sc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	sc.follow_focus = true
+	holder.remove_child(tab_strip)
+	holder.add_child(sc)
+	holder.move_child(sc, idx)
+	sc.add_child(tab_strip)
+	tab_strip.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	# Pin the row height so the frame cannot be driven by the strip either.
+	var row_h := 24.0
+	if tab_strip.get_child_count() > 0 and tab_strip.get_child(0) is Control:
+		var mh: float = (tab_strip.get_child(0) as Control).get_combined_minimum_size().y
+		if mh > 1.0:
+			row_h = mh
+	sc.custom_minimum_size.y = row_h + 8.0
 
 func _setup_filter_tabs():
 	tab_buttons.clear()
