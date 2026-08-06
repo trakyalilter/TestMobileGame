@@ -1846,7 +1846,7 @@ func apply_sidebar_button_style(button: Button, is_active: bool, accent_override
 		style_n.border_width_left = 3
 		style_n.border_color = accent
 	style_n.content_margin_left   = 14
-	style_n.content_margin_right  = 8
+	style_n.content_margin_right  = 26
 	style_n.content_margin_top    = 6
 	style_n.content_margin_bottom = 6
 
@@ -1857,7 +1857,7 @@ func apply_sidebar_button_style(button: Button, is_active: bool, accent_override
 	style_h.border_width_left = 2
 	style_h.border_color = accent.darkened(0.35)
 	style_h.content_margin_left   = 14
-	style_h.content_margin_right  = 8
+	style_h.content_margin_right  = 26
 	style_h.content_margin_top    = 6
 	style_h.content_margin_bottom = 6
 

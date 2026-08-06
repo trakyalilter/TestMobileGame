@@ -2275,6 +2275,18 @@ func _init_mission_dots() -> void:
 		dot.add_theme_stylebox_override("panel", st)
 		btn.add_child(dot)
 		_mission_dots[String(page)] = dot
+		_reserve_dot_gutter(btn)
+
+
+# v168: the dot is an overlay, so without a gutter a long label runs under it --
+# "Arastirma Laboratuvari" collided in Turkish while the English "Research Lab"
+# (84px of a 197px button) never did. The GUTTER itself lives in
+# UITheme.apply_sidebar_button_style (content_margin_right 8 -> 26), because that
+# runs every second and would otherwise overwrite a local override. Here we only
+# add the clipping, which the theme does not set.
+func _reserve_dot_gutter(btn: Button) -> void:
+	btn.clip_text = true
+	btn.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 
 
 func _refresh_mission_dots(mm) -> void:
