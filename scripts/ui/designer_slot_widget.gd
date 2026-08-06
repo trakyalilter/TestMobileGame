@@ -186,8 +186,9 @@ func _arrange_module_square() -> void:
 		ic.custom_minimum_size = Vector2(0, 16)
 		ic.size_flags_vertical = Control.SIZE_EXPAND_FILL  # fills/centres the middle
 	# Reserve the socket band so the centred icon is the SAME size whether the
-	# module has 0, 1 or 3 sockets.
-	socket_anchor.custom_minimum_size = Vector2(0, 22)
+	# module has 0, 1 or 3 sockets. v172: DERIVED from the icon geometry -- this was
+	# a hardcoded 22, already 2px under what the old 16px cores needed.
+	socket_anchor.custom_minimum_size = Vector2(0, MatrixCoreIcon.SOCKET_D + MatrixCoreIcon.SOCKET_ARC)
 
 	# Order: TopBalance → Icon (centre) → Sockets (arc).
 	var order := [topbal, ic, socket_anchor]

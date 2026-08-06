@@ -28,9 +28,13 @@ const TIER_RESONANT := 3   # v135a: CMB_4 tier — renders at Pristine quality +
 # flat 45° Panel diamonds at 7px/3px in a straight line while the equipped slot
 # drew these faceted icons at 16px/12px on an arc, so the same module looked like
 # two different items. Both now read these constants and socket_offset().
-const SOCKET_D := 16.0        # icon size (px)
-const SOCKET_GAP := 12.0      # gap between sockets (px)
-const SOCKET_ARC := 8.0       # parabola depth: outer sockets ride high, centre dips
+const SOCKET_D := 24.0        # icon size (px)  v172: 16 -> 24, cores read too small
+const SOCKET_GAP := 10.0      # gap between sockets (px)  v172: 12 -> 10 to hold the row width
+const SOCKET_ARC := 9.0       # parabola depth: outer sockets ride high, centre dips
+# v172: a 3-socket row is now 24*3 + 10*2 = 92px (was 72) and the band it needs is
+# SOCKET_D + SOCKET_ARC = 33px (was 24). Callers must DERIVE that band, never
+# hardcode it -- designer_slot_widget had drifted to a literal 22, which was
+# already 2px short of the old geometry and would have clipped outright at this size.
 
 # Row width for n sockets, so a caller can centre the row.
 static func socket_row_width(n: int) -> float:
