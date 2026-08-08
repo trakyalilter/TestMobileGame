@@ -546,7 +546,7 @@ const HOWTO_SECTIONS := [
 	["WEAR AND REPAIR",
 		"Losing a fight wears every equipped module to 50%, and worn gear can be destroyed outright on the next loss. Recycle surplus modules into Spare Parts and repair with the hammer tool in the Ship Designer."],
 	["INCOME THAT NEVER SLEEPS",
-		"Infrastructure buildings and Bounty contracts run in the background no matter which task is active. Missions and Quests pay you for things you were doing anyway — claim them."],
+		"Infrastructure buildings and Bounty contracts run in the background no matter which task is active. Missions and Orders pay you for things you were doing anyway — claim them."],
 	["YOU ARE MEANT TO LEAVE",
 		"Progress accrues while the game is closed, up to a generous cap, and a report greets you on return. Offline combat is opt-in: it earns loot but risks module durability while unattended."],
 ]

@@ -205,7 +205,7 @@ func _rebuild():
 	if stats_lbl:
 		stats_lbl.text = tr("Completed: %d") % manager.total_completed
 	if reroll_btn:
-		reroll_btn.text = tr("REROLL BOARD (%s CR)") % UITheme.format_num(manager.get_reroll_cost())
+		reroll_btn.text = tr("REROLL BOARD (%s Liras)") % UITheme.format_num(manager.get_reroll_cost())
 	_refresh_pool_meter()
 
 func _refresh_pool_meter():

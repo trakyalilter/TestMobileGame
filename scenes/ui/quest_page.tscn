@@ -62,7 +62,7 @@ text = "CLAIM ALL (0)"
 
 [node name="RerollBtn" type="Button" parent="Margin/VBox/ControlsHBox"]
 layout_mode = 2
-text = "REROLL BOARD (2.5K CR)"
+text = "REROLL BOARD (2.5K Liras)"
 
 [node name="Scroll" type="ScrollContainer" parent="Margin/VBox"]
 layout_mode = 2
