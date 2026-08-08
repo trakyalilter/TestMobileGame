@@ -1440,7 +1440,22 @@ var enemy_db = {
 		# v139d Rare-gate: hp 6.2M->6.8M (Uncommon beat it 5/5 in the baseline).
 		# The REAL gate is the Volatile Core below — the death-burst denies the
 		# kill to anything without a Rare-grade EHP floor.
-		"stats": {"hp": 10704107, "max_shield": 144872, "atk": 53333.333333, "def": 21730, "atk_interval": 2.0, "accuracy": 250},  # v156: 6800000 -> 10704107 (x1.1806/0.7500) — cancels the FLATTEN_HP_CALIB move from the weak-channel reassignment.
+		# v174 gear-check ruling: ATK 53333 -> 64000 (x1.20, post-rebase 6.48M -> 7.77M).
+		# The capstone was failing its own gear rule — tier-matched UNCOMMON cleared it
+		# 9/9 at ~263s when Uncommon is required to lose. Measured (z10_gate_diag): the
+		# gate turns on SURVIVAL, not DPS. Common dies at ~180s with the boss at 40%;
+		# Uncommon took ZERO deaths in 9 trials. So HP is the wrong lever — Uncommon
+		# never dies, and enough HP to time it out (~5.7x) would drag Rare to ~1000s and
+		# Legendary to ~815s, far past the 90-300s a boss should run.
+		# ATK sweep: Rare is unmoved from x1.0 to x2.5 (176s -> 188s, noise), so the
+		# whole band is safe for it; Uncommon is a knife-edge, winning 9/9 at x1.0 in
+		# one run and 3/5 in another. x1.40 overshot — Uncommon died at 72s with 76%
+		# boss HP left, which reads as "not welcome" rather than "nearly ready".
+		# x1.20 measured clean: Common dies 105s (66% left), Uncommon dies 145s with
+		# 46% LEFT — real progress, clearly nearly possible — Rare 9/9 at 218s and
+		# Legendary 9/9 at 152s, both inside the 90-300s a boss should run. 20% margin
+		# over the x1.0 flip. HP untouched, so no other fight and no shared curve moves.
+		"stats": {"hp": 10704107, "max_shield": 144872, "atk": 64000.0, "def": 21730, "atk_interval": 2.0, "accuracy": 250},  # v156: 6800000 -> 10704107 (x1.1806/0.7500) — cancels the FLATTEN_HP_CALIB move from the weak-channel reassignment.
 		# v139d P3 capstone combo: Adaptive Grid (MILD mono-type tax, cap 0.15 —
 		# the probe's mono-Rare loadout must still clear; hybrid is optimal play
 		# and primes Z11's "damage type is everything" break) + Volatile Core
