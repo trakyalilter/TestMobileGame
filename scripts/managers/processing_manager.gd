@@ -1222,7 +1222,9 @@ var recipes: Dictionary = {
 		"input": {"QuantumCore": 1, "Os": 3, "Superalloy": 8},
 		"output": {"StructuralLattice": 1},
 		"duration": 30.0,
-		"level_req": 78,
+		"level_req": 75,  # v174 rule 4: was 78, above COST_ZONE_PROC_LEVEL[8]=75, so every
+		# Z8 module billed a material the player could not yet make. zone_8_access
+		# research still gates WHEN this appears; the level only gated it too late,
 		"xp": 1600,
 		"research_req": "zone_8_access",
 		"category": "endgame"
@@ -1436,7 +1438,9 @@ var recipes: Dictionary = {
 		"input": {"Chip": 25, "AdvCircuit": 5, "NavData": 2},
 		"output": {"AICore": 1},
 		"duration": 20.0,
-		"level_req": 50,
+		"level_req": 45,  # v174 rule 4: was 50, above COST_ZONE_PROC_LEVEL[5]=45, and
+		# z5_sensor bills AICore. The "automation" research gate is tier 2, so the
+		# level was the real gate and it was set five past the zone that needs it,
 		"xp": 150,
 		"research_req": "automation"
 	},
