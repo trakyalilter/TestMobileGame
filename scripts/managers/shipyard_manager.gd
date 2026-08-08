@@ -1277,6 +1277,122 @@ var modules: Dictionary = {
 		"research_req": "corrosion_armaments"
 	},
 
+	# ══ NG+ EXOTIC WEAPON LADDER (v174) ═══════════════════════════════════════
+	# The conventional channel gets a fresh weapon every zone — 30 modules across
+	# 10 zones. The exotic channel shipped TWO for five zones (Cryo Lance 10K at
+	# Z11, Corrosion Blaster 12K at Z12), so from Z12 on the player's exotic power
+	# was frozen at tier 11 while boss HP climbed to 40x Z11 — and on a phase boss
+	# the exotic channel is the ONLY damage that counts. Measured: all four NG+
+	# bosses lost 0/9 at every rarity with the correct mixed battery; Z15 was a
+	# seven-hour fight. See docs/RULINGS_2026-08-08.md.
+	#
+	# Values solve HP / 400s at the measured 0.575 phase-mix throughput (half your
+	# barrels sit at phase_cut 0.15 in any band). The resulting per-zone step
+	# averages x2.2 — the same ratio as the conventional ladder — which is the
+	# evidence that the HP curve was right and only these were missing.
+	#
+	# Gating mirrors conventional zones: zone N's weapon is researched off zone N's
+	# UNLOCK flag, i.e. earned from clearing N-1 and warping. You never need zone
+	# N's boss to drop the weapon that beats zone N. power_tier stays 8 like the
+	# older exotics — power is deliberately not a second gate here.
+
+	"z12_cryo_lance": {
+		"name": "Rift Lance",
+		"slot_type": "weapon",
+		"rarity": Rarity.LEGENDARY,
+		"stats": {"atk_cryo": 60000, "atk_interval": 2.0},
+		"cost_authored": true,
+		"cost": {"credits": 20000000, "ExoticMatter": 4000, "CryoEssence": 2400, "OmegaPlating": 1600, "VoidLattice": 1200},
+		"desc": "Sector 12 cryogenic armament. Breaches the Rift's cryo band; glances off corrosion phases, so pair it with an Etcher.",
+		"zone": 12,
+		"power_tier": 8,
+		"research_req": "rift_armaments"
+	},
+	"z12_corrosion_blaster": {
+		"name": "Rift Etcher",
+		"slot_type": "weapon",
+		"rarity": Rarity.LEGENDARY,
+		"stats": {"atk_cryo": 72000, "atk_interval": 2.0, "exotic_element": "corrosion"},
+		"cost_authored": true,
+		"cost": {"credits": 24000000, "ExoticMatter": 4800, "CryoEssence": 2880, "OmegaPlating": 1920, "VoidLattice": 1440},
+		"desc": "Sector 12 acid-plasma projector. Breaches the Rift's corrosion band; glances off cryo phases, so pair it with a Lance.",
+		"zone": 12,
+		"power_tier": 8,
+		"research_req": "rift_armaments"
+	},
+	"z13_cryo_lance": {
+		"name": "Verdigris Lance",
+		"slot_type": "weapon",
+		"rarity": Rarity.LEGENDARY,
+		"stats": {"atk_cryo": 70000, "atk_interval": 2.0},
+		"cost_authored": true,
+		"cost": {"credits": 45000000, "ExoticMatter": 7200, "CryoEssence": 4300, "OmegaPlating": 2900, "VoidLattice": 2200, "ChronoCore": 900},
+		"desc": "Sector 13 cryogenic armament. Breaches the Reach's cryo band; glances off corrosion phases, so pair it with an Etcher.",
+		"zone": 13,
+		"power_tier": 8,
+		"research_req": "verdigris_armaments"
+	},
+	"z13_corrosion_blaster": {
+		"name": "Verdigris Etcher",
+		"slot_type": "weapon",
+		"rarity": Rarity.LEGENDARY,
+		"stats": {"atk_cryo": 84000, "atk_interval": 2.0, "exotic_element": "corrosion"},
+		"cost_authored": true,
+		"cost": {"credits": 54000000, "ExoticMatter": 8640, "CryoEssence": 5160, "OmegaPlating": 3480, "VoidLattice": 2640, "ChronoCore": 1080},
+		"desc": "Sector 13 acid-plasma projector. Breaches the Reach's corrosion band; glances off cryo phases, so pair it with a Lance.",
+		"zone": 13,
+		"power_tier": 8,
+		"research_req": "verdigris_armaments"
+	},
+	"z14_cryo_lance": {
+		"name": "Dissolution Lance",
+		"slot_type": "weapon",
+		"rarity": Rarity.LEGENDARY,
+		"stats": {"atk_cryo": 81000, "atk_interval": 2.0},
+		"cost_authored": true,
+		"cost": {"credits": 100000000, "ExoticMatter": 13000, "CryoEssence": 7800, "OmegaPlating": 5200, "VoidLattice": 3900, "ChronoCore": 1600},
+		"desc": "Sector 14 cryogenic armament. Breaches the Tyrant's two cryo bands; glances off corrosion phases, so pair it with an Etcher.",
+		"zone": 14,
+		"power_tier": 8,
+		"research_req": "dissolution_armaments"
+	},
+	"z14_corrosion_blaster": {
+		"name": "Dissolution Etcher",
+		"slot_type": "weapon",
+		"rarity": Rarity.LEGENDARY,
+		"stats": {"atk_cryo": 97000, "atk_interval": 2.0, "exotic_element": "corrosion"},
+		"cost_authored": true,
+		"cost": {"credits": 120000000, "ExoticMatter": 15600, "CryoEssence": 9360, "OmegaPlating": 6240, "VoidLattice": 4680, "ChronoCore": 1920},
+		"desc": "Sector 14 acid-plasma projector. Breaches the Tyrant's corrosion band; glances off cryo phases, so pair it with a Lance.",
+		"zone": 14,
+		"power_tier": 8,
+		"research_req": "dissolution_armaments"
+	},
+	"z15_cryo_lance": {
+		"name": "Caustic Lance",
+		"slot_type": "weapon",
+		"rarity": Rarity.LEGENDARY,
+		"stats": {"atk_cryo": 122000, "atk_interval": 2.0},
+		"cost_authored": true,
+		"cost": {"credits": 220000000, "ExoticMatter": 23000, "CryoEssence": 14000, "OmegaPlating": 9400, "VoidLattice": 7000, "ChronoCore": 2900, "VoidEssence": 1800},
+		"desc": "Sector 15 cryogenic armament. Breaches the Sovereign's cryo band; glances off corrosion phases, so pair it with an Etcher.",
+		"zone": 15,
+		"power_tier": 8,
+		"research_req": "caustic_armaments"
+	},
+	"z15_corrosion_blaster": {
+		"name": "Caustic Etcher",
+		"slot_type": "weapon",
+		"rarity": Rarity.LEGENDARY,
+		"stats": {"atk_cryo": 146000, "atk_interval": 2.0, "exotic_element": "corrosion"},
+		"cost_authored": true,
+		"cost": {"credits": 264000000, "ExoticMatter": 27600, "CryoEssence": 16800, "OmegaPlating": 11280, "VoidLattice": 8400, "ChronoCore": 3480, "VoidEssence": 2160},
+		"desc": "Sector 15 acid-plasma projector. Breaches the Sovereign's two corrosion bands; glances off cryo phases, so pair it with a Lance.",
+		"zone": 15,
+		"power_tier": 8,
+		"research_req": "caustic_armaments"
+	},
+
 	# ── THRESHOLD RELIC (NG+ master key) — the Rift Warden's drop. ──
 	# v113 (NG+ P2): dedicated Relic slot (slot_type "relic", NOT a hull slot).
 	# While equipped IN its keyed zone, incoming damage is slashed to ~8% so the

@@ -1597,9 +1597,9 @@ var enemy_db = {
 		"relic_drop": "rift_relic",  # v113 (NG+ P2): guaranteed master key on first clear
 		"enrage_at": 0.4, "enrage_atk_mult": 1.3,
 		"loot": [["credits", 200000000, 400000000], ["ExoticMatter", 50, 100], ["ChronoCore", 20, 40], ["PrimordialShard", 40, 80]],
-		"rare_loot": [["corrosion_blaster", 1.0, 1, 1]],
+		"rare_loot": [["z12_corrosion_blaster", 1.0, 1, 1]],
 		"module_drop_chance": 0.30,
-		"module_drop_pool": ["corrosion_blaster"],
+		"module_drop_pool": ["z12_cryo_lance", "z12_corrosion_blaster"],
 		"is_boss": true, "xp": 2500000, "zone": 12, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "resist_cryo": 0.0, "dmg_type": "energy"
 	},
 
@@ -1646,7 +1646,7 @@ var enemy_db = {
 		"enrage_at": 0.4, "enrage_atk_mult": 1.3,
 		"loot": [["credits", 350000000, 700000000], ["ExoticMatter", 70, 140], ["ChronoCore", 30, 60], ["PrimordialShard", 60, 120]],
 		"rare_loot": [["OmegaPlating", 0.5, 3, 6]],
-		"module_drop_chance": 0.30, "module_drop_pool": ["corrosion_blaster"],
+		"module_drop_chance": 0.30, "module_drop_pool": ["z13_cryo_lance", "z13_corrosion_blaster"],
 		"is_boss": true, "xp": 3500000, "zone": 13, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "resist_cryo": 0.0, "dmg_type": "corrosion"
 	},
 
@@ -1684,7 +1684,7 @@ var enemy_db = {
 		"enrage_at": 0.35, "enrage_atk_mult": 1.2,
 		"loot": [["credits", 600000000, 1200000000], ["ExoticMatter", 120, 240], ["ChronoCore", 50, 100], ["PrimordialShard", 100, 200]],
 		"rare_loot": [["OmegaPlating", 0.5, 4, 8]],
-		"module_drop_chance": 0.30, "module_drop_pool": ["corrosion_blaster"],
+		"module_drop_chance": 0.30, "module_drop_pool": ["z14_cryo_lance", "z14_corrosion_blaster"],
 		"is_boss": true, "xp": 5000000, "zone": 14, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "resist_cryo": 0.0, "dmg_type": "energy"
 	},
 
@@ -1723,7 +1723,7 @@ var enemy_db = {
 		"enrage_at": 0.35, "enrage_atk_mult": 1.2,
 		"loot": [["credits", 1000000000, 2000000000], ["ExoticMatter", 200, 400], ["ChronoCore", 90, 180], ["PrimordialShard", 180, 360]],
 		"rare_loot": [["OmegaPlating", 0.5, 6, 12]],
-		"module_drop_chance": 0.30, "module_drop_pool": ["corrosion_blaster"],
+		"module_drop_chance": 0.30, "module_drop_pool": ["z15_cryo_lance", "z15_corrosion_blaster"],
 		"is_boss": true, "xp": 8000000, "zone": 15, "resist_k": 0.0, "resist_e": 0.0, "resist_x": 0.0, "resist_cryo": 0.0, "dmg_type": "corrosion"
 	},
 

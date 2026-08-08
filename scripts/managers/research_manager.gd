@@ -1062,6 +1062,84 @@ var tech_tree = {
 		],
 		"flavor": "Acid-plasma armaments — etch through Corrosion-hardened hulls in the Rift. Requires mastery of Cryogenic Armaments.",
 	},
+
+	# ══ NG+ EXOTIC ARMAMENT LADDER (v174) ═════════════════════════════════════
+	# One research per NG+ sector, each unlocking that sector's Lance/Etcher pair.
+	# Gated on the sector's UNLOCK flag rather than its CLEAR flag on purpose: you
+	# earn zone N's weapon by clearing N-1 and warping, so the weapon that beats a
+	# boss is never behind that same boss. See docs/RULINGS_2026-08-08.md.
+	"rift_armaments": {
+		"name": "Rift Armaments",
+		"tier": 5,
+		"category": "ships",
+		"cost": 1500000,
+		"cost_items": {"ExoticMatter": 60, "CryoEssence": 140, "OmegaPlating": 110, "VoidLattice": 80},
+		"type": "technology",
+		"parent": null,
+		"req_tech": "corrosion_armaments",
+		"requires_flag": "z12_unlocked",
+		"requires_warp": true,
+		"effects": [],
+		"unlocks": [
+			"Rift Lance (Weapon Craft)",
+			"Rift Etcher (Weapon Craft)",
+		],
+		"flavor": "Sector 12 exotic armaments. The Rift Warden alternates Cryo and Corrosion bands and only the matching element breaches — bring one of each. Earned from breaching the Rift, not from beating its Warden.",
+	},
+	"verdigris_armaments": {
+		"name": "Verdigris Armaments",
+		"tier": 5,
+		"category": "ships",
+		"cost": 4000000,
+		"cost_items": {"ExoticMatter": 110, "CryoEssence": 260, "OmegaPlating": 200, "VoidLattice": 150, "ChronoCore": 60},
+		"type": "technology",
+		"parent": null,
+		"req_tech": "rift_armaments",
+		"requires_flag": "z13_unlocked",
+		"requires_warp": true,
+		"effects": [],
+		"unlocks": [
+			"Verdigris Lance (Weapon Craft)",
+			"Verdigris Etcher (Weapon Craft)",
+		],
+		"flavor": "Sector 13 exotic armaments. The Verdigris Warden opens on Corrosion and closes on Cryo — the reverse of the Rift.",
+	},
+	"dissolution_armaments": {
+		"name": "Dissolution Armaments",
+		"tier": 5,
+		"category": "ships",
+		"cost": 10000000,
+		"cost_items": {"ExoticMatter": 200, "CryoEssence": 470, "OmegaPlating": 360, "VoidLattice": 270, "ChronoCore": 110},
+		"type": "technology",
+		"parent": null,
+		"req_tech": "verdigris_armaments",
+		"requires_flag": "z14_unlocked",
+		"requires_warp": true,
+		"effects": [],
+		"unlocks": [
+			"Dissolution Lance (Weapon Craft)",
+			"Dissolution Etcher (Weapon Craft)",
+		],
+		"flavor": "Sector 14 exotic armaments. The Dissolution Tyrant runs three bands — Cryo, Corrosion, Cryo — so the cryo side carries two thirds of the fight.",
+	},
+	"caustic_armaments": {
+		"name": "Caustic Armaments",
+		"tier": 5,
+		"category": "ships",
+		"cost": 25000000,
+		"cost_items": {"ExoticMatter": 360, "CryoEssence": 840, "OmegaPlating": 640, "VoidLattice": 480, "ChronoCore": 200, "VoidEssence": 120},
+		"type": "technology",
+		"parent": null,
+		"req_tech": "dissolution_armaments",
+		"requires_flag": "z15_unlocked",
+		"requires_warp": true,
+		"effects": [],
+		"unlocks": [
+			"Caustic Lance (Weapon Craft)",
+			"Caustic Etcher (Weapon Craft)",
+		],
+		"flavor": "Sector 15 exotic armaments. The corrosion-loop capstone: the Caustic Sovereign opens and closes on Corrosion with Cryo between.",
+	},
 	# --- LOGISTICS UPGRADES ---
 	# v136: automated_logistics REMOVED (collapsed) — it was a pure passive gate
 	# with no effect. Its Industrial Centrifuge now requires industrial_logistics

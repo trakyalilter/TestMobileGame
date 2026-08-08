@@ -142,8 +142,10 @@ func _fight(sm, cm, rm, b, gear_n, weak, rarity) -> Dictionary:
 		# The exotic weapons are post-warp unlocks; a phase boss is only reachable
 		# after that, so give the harness the same access the player has.
 		GameState.game_settings["cryo_unlocked"] = true
-		if not ("cryo_armaments" in rm.unlocked_techs):
-			rm.unlocked_techs.append("cryo_armaments")
+		for _t in ["cryo_armaments", "corrosion_armaments", "rift_armaments",
+				"verdigris_armaments", "dissolution_armaments", "caustic_armaments"]:
+			if not (_t in rm.unlocked_techs):
+				rm.unlocked_techs.append(_t)
 	_equip_gear(sm, int(gear_n), String(weak), int(rarity), cryo, phase_elems)
 	_ammo_kits(sm, String(weak), int(b["n"]))
 	sm.recalc_stats()
@@ -209,7 +211,9 @@ func _equip_gear(sm, gear_n, weak, rarity, cryo := false, phase_elems: Array = [
 		# loss at every rarity including Legendary. That was the harness failing to
 		# play the fight, not a gear-check violation.
 		var dnp: int = min(int(gear_n), 10)
-		_fill_mixed_exotic(sm, phase_elems, rarity, dnp)
+		# Defence still falls back to z10 (NG+ has no armor/shield of its own), but
+		# the weapon pick must use the TRUE zone or every NG+ boss gets Z10 exotics.
+		_fill_mixed_exotic(sm, phase_elems, rarity, int(gear_n))
 		_fill(sm, "armor", "z%d_armor" % dnp, rarity, dnp)
 		_fill(sm, "shield", "z%d_shield" % dnp, rarity, dnp)
 	elif cryo:
@@ -233,14 +237,28 @@ func _equip_gear(sm, gear_n, weak, rarity, cryo := false, phase_elems: Array = [
 # battery breaches every band of a multi-phase boss. Elements with no weapon
 # module yet (thermal/radiation/graviton) are skipped — that band stays cut, which
 # is the intended forward gate, not a harness gap.
-const EXOTIC_WEAPON := {"cryo": "cryo_lance", "corrosion": "corrosion_blaster"}
+# v174: the exotic ladder means "the cryo weapon" is no longer one module. Take
+# the zone-matched tier when it exists and fall back to the Z11-era pair, exactly
+# as a player would: zone N's pair is researched off zone N's unlock flag, so it
+# is in hand before that zone's boss.
+const EXOTIC_BASE := {"cryo": "cryo_lance", "corrosion": "corrosion_blaster"}
+
+func _exotic_for(sm, element: String, zone: int) -> String:
+	var key := element.to_lower()
+	if not EXOTIC_BASE.has(key):
+		return ""
+	var tiered := "z%d_%s" % [zone, "cryo_lance" if key == "cryo" else "corrosion_blaster"]
+	if tiered in sm.modules:
+		return tiered
+	var base := String(EXOTIC_BASE[key])
+	return base if base in sm.modules else ""
 
 func _fill_mixed_exotic(sm, phase_elems: Array, rarity, zone) -> void:
 	var ids: Array = []
 	for el in phase_elems:
-		var key := String(el).to_lower()
-		if EXOTIC_WEAPON.has(key) and String(EXOTIC_WEAPON[key]) in sm.modules 				and not EXOTIC_WEAPON[key] in ids:
-			ids.append(String(EXOTIC_WEAPON[key]))
+		var wid := _exotic_for(sm, String(el), int(zone))
+		if wid != "" and not wid in ids:
+			ids.append(wid)
 	if ids.is_empty():
 		return
 	var slots: Array = _slots(sm, "weapon")
