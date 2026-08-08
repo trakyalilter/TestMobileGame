@@ -413,6 +413,18 @@ func is_auto_consume_unlocked() -> bool:
 # should be its own deliberate system, not this dead clamp. (Resolves the sanity
 # checklist "Multiplier clamps actually bind" item — answer: it didn't bind.)
 
+# v113 (NG+ P3) / v137: clear->Warp->reveal flag table. Each boss kill sets its
+# `cleared` flag; the NEXT Warp reads it to reveal the following sector.
+# v174: hoisted from _on_enemy_defeated to a const so get_progression_flags()
+# below can enumerate the ladder. Adding a Loop 2 sector means adding a row HERE
+# and nowhere else — hard reset picks it up automatically.
+const NG_CLEAR_TABLE := {
+	"z11_boss_threshold_warden": ["z11_cleared", "⟨ FRONTIER BREACHED — THE RIFT BECKONS ⟩  The Threshold Warden falls. Execute a Warp Core reset to push into Sector 12 — The Rift, where the Warden hardens against Cryo, then Corrosion. Bring both, and swap loadout presets mid-fight."],
+	"z12_boss_rift_warden": ["z12_cleared", "⟨ THE RIFT YIELDS ⟩  The Rift Warden falls. Warp to breach Sector 13 — The Verdigris Reach: Corrosion first, then Cryo — swap the other way this time."],
+	"z13_boss_verdigris_warden": ["z13_cleared", "⟨ VERDIGRIS CLEARED ⟩  Warp to breach Sector 14 — The Dissolution: a THREE-phase gate (Cryo → Corrosion → Cryo), two swaps to breach."],
+	"z14_boss_dissolution_tyrant": ["z14_cleared", "⟨ DISSOLUTION ENDED ⟩  Warp to breach Sector 15 — The Caustic Core, the corrosion-loop capstone (Corrosion → Cryo → Corrosion)."],
+}
+
 # v80.1: Formula-driven zones — 10 zones with proper research gates
 var zones = {
 	"lunar_orbit": {
@@ -2160,6 +2172,36 @@ func _init():
 	_apply_flatten_shield_calib()
 	_apply_flatten_hp_calib()
 
+# v174: every game_settings key that gates sector progression, derived from the
+# tables that WRITE them rather than hand-listed. GameState.hard_reset() erases
+# this whole set to re-lock the ladder for a new playthrough.
+#
+# It used to keep its own list, and v137 added Sectors 13-15 without updating it:
+# a New Game shipped with z13/z14/z15_unlocked still set, so the Verdigris Reach,
+# the Dissolution and the Caustic Core were enterable from minute one while Z11
+# and Z12 were correctly re-locked. Deriving means a Loop 2 sector cannot repeat
+# that -- adding a zone row (unlock_flag), an NG_CLEAR_TABLE row or a relic_drop
+# is enough on its own.
+func get_progression_flags() -> Array:
+	# Z10's clear flag is set by boss_core, not by NG_CLEAR_TABLE (it carries an
+	# extra z11_unlocked guard), so it is the one entry with no table to derive from.
+	var out: Array = ["z10_cleared"]
+	for zid in zones:
+		var f: String = String(zones[zid].get("unlock_flag", ""))
+		if f != "" and not out.has(f):
+			out.append(f)
+	for eid in NG_CLEAR_TABLE:
+		var f: String = String(NG_CLEAR_TABLE[eid][0])
+		if not out.has(f):
+			out.append(f)
+	# Master-key relics are earned once and re-granted on every Warp; a new
+	# playthrough must un-earn them or the fresh ship inherits the key.
+	for eid in enemy_db:
+		var r: String = String(enemy_db[eid].get("relic_drop", ""))
+		if r != "" and not out.has(r + "_earned"):
+			out.append(r + "_earned")
+	return out
+
 func get_available_zones() -> Array:
 	var available = []
 	for zid in zones:
@@ -3839,19 +3881,11 @@ func _apply_boss_progression(eid: String) -> void:
 	if str(e.get("boss_core", "")) == "Z10_Core" and not GameState.game_settings.get("z10_cleared", false) and not GameState.game_settings.get("z11_unlocked", false):
 		GameState.game_settings["z10_cleared"] = true  # v113: Z11 unlocks on the NEXT Warp (directs the player to prestige)
 		UITheme.show_notification(tr("⟨ SECTOR 11 DETECTED — THE THRESHOLD ⟩  Hostiles are Warp-Hardened, immune to conventional armaments. Execute a Warp Core reset to unlock Cryogenic tech, then research Cryogenic Armaments and craft Cryo weapons in the Shipyard."), Color(0.55, 0.85, 1.0))
-	# v113 (NG+ P3) / v137: clear->Warp->reveal flag table. Each boss kill sets its
-	# `cleared` flag; the NEXT Warp reads it to reveal the following sector.
-	var _ng_clear := {
-		"z11_boss_threshold_warden": ["z11_cleared", "⟨ FRONTIER BREACHED — THE RIFT BECKONS ⟩  The Threshold Warden falls. Execute a Warp Core reset to push into Sector 12 — The Rift, where the Warden hardens against Cryo, then Corrosion. Bring both, and swap loadout presets mid-fight."],
-		"z12_boss_rift_warden": ["z12_cleared", "⟨ THE RIFT YIELDS ⟩  The Rift Warden falls. Warp to breach Sector 13 — The Verdigris Reach: Corrosion first, then Cryo — swap the other way this time."],
-		"z13_boss_verdigris_warden": ["z13_cleared", "⟨ VERDIGRIS CLEARED ⟩  Warp to breach Sector 14 — The Dissolution: a THREE-phase gate (Cryo → Corrosion → Cryo), two swaps to breach."],
-		"z14_boss_dissolution_tyrant": ["z14_cleared", "⟨ DISSOLUTION ENDED ⟩  Warp to breach Sector 15 — The Caustic Core, the corrosion-loop capstone (Corrosion → Cryo → Corrosion)."],
-	}
-	if _ng_clear.has(eid):
-		var _cflag: String = _ng_clear[eid][0]
+	if NG_CLEAR_TABLE.has(eid):
+		var _cflag: String = NG_CLEAR_TABLE[eid][0]
 		if not GameState.game_settings.get(_cflag, false):
 			GameState.game_settings[_cflag] = true
-			UITheme.show_notification(tr(String(_ng_clear[eid][1])), Color(0.6, 0.9, 0.7))
+			UITheme.show_notification(tr(String(NG_CLEAR_TABLE[eid][1])), Color(0.6, 0.9, 0.7))
 	# v113 (NG+ P2): first-clear master-key relic — granted exactly once, flagged
 	# earned (persists across Warp + re-grants), auto-equipped if the slot is empty.
 	var _rdrop: String = str(e.get("relic_drop", ""))

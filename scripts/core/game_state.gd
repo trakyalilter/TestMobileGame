@@ -575,15 +575,19 @@ func hard_reset():
 	game_settings.erase("recursion_revealed")
 	# v109: re-lock Cryo on a fresh game (it's a first-Warp unlock).
 	game_settings.erase("cryo_unlocked")
-	# v109: re-lock the Z11 Warp Gate on a fresh game.
-	game_settings.erase("z11_unlocked")
-	# v113 (NG+): re-lock the Z12 Rift frontier + its clear-gate flag.
-	game_settings.erase("z10_cleared")
-	game_settings.erase("z11_cleared")
-	game_settings.erase("z12_unlocked")
-	# v113 (NG+ P2): re-lock earned Threshold Relics (master keys) + empty the slot.
-	# (shipyard_manager.reset() above wiped inventory but leaves equipped_relic.)
-	game_settings.erase("rift_relic_earned")
+	# v109/v113/v137 (NG+): re-lock the whole sector ladder — every unlock flag,
+	# every clear flag, every earned master-key relic.
+	#
+	# v174: this used to be a hand-written list of five keys, and v137's Sectors
+	# 13-15 never got added to it: a New Game inherited z13/z14/z15_unlocked and
+	# those three sectors were enterable from minute one while Z11 and Z12 were
+	# correctly re-locked. The list now comes from combat_manager's own tables
+	# (see get_progression_flags), so a new sector cannot go missing from it.
+	if combat_manager:
+		for _flag in combat_manager.get_progression_flags():
+			game_settings.erase(_flag)
+	# The relic flags above un-earn the master keys; shipyard_manager.reset()
+	# wiped the module inventory but leaves the slot pointing at one.
 	if shipyard_manager: shipyard_manager.equipped_relic = ""
 	# Re-arm the one-time "enable Offline Combat" tip for the new playthrough.
 	game_settings.erase("offline_combat_nudge_seen")
