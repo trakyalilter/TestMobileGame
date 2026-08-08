@@ -27,8 +27,26 @@ var _silent_level_replay: bool = false
 
 # Recompute `level` from `xp` WITHOUT firing the player-facing beats. Any caller
 # that is restoring state rather than granting a level must use this.
+#
+# v174: `unlocked_milestones` is derived from xp exactly like `level` is (it is
+# not saved -- load_save_data rebuilds it from xp alone), so it has to be rebuilt
+# here too. _check_milestones only ever APPENDS, so leaving the old array in
+# place meant a rebuild that LOWERED the level kept every milestone above it:
+# after a warp (30% XP keep, ~12 levels down) processing kept its milestone-10
+# and -25 speed multipliers and its milestone-50 double-output roll, and
+# infrastructure kept its milestone-10 bonus, for the rest of the session. It
+# also swallowed the toast on re-crossing, since the milestone was already in
+# the array. Clearing first makes both correct, and costs one re-derive of an
+# at-most-5-entry array on the three paths that call this.
+# Both derived fields are rebuilt FROM SCRATCH here rather than trusting whatever
+# the caller left behind. check_level_up() can only ratchet upward, so a rebuild
+# that should LOWER the level (a warp, or loading a lower save over a live one)
+# needs the floor reset first -- otherwise the while loop breaks immediately, the
+# level stays where it was, and the cleared milestone array never refills.
 func rebuild_level_silently() -> void:
 	_silent_level_replay = true
+	level = 1
+	unlocked_milestones.clear()
 	check_level_up()
 	_silent_level_replay = false
 
@@ -124,8 +142,7 @@ func load_save_data(data: Dictionary):
 
 func reset(decay_factor: float = 1.0) -> void:
 	xp *= (1.0 - decay_factor)
-	# Level will be recalculated by check_level_up
-	level = 1
 	# v145: a warp re-derives the retained level from decayed XP — the player did
-	# not just re-earn every level, so the beats stay silent here too.
+	# not just re-earn every level, so the beats stay silent here too. v174: the
+	# rebuild resets the level floor and the milestone array itself.
 	rebuild_level_silently()

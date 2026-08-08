@@ -106,6 +106,7 @@ var total_playtime: float = 0.0
 var _pt_last_msec: int = 0
 
 func _ready():
+	_detect_sim_mode()
 	# Initialize Resources
 	var res_script = load("res://scripts/core/resources.gd")
 	resources = res_script.new()
@@ -267,7 +268,27 @@ func _max_unlocked_difficulty() -> int:
 			best = max(best, int(combat_manager.zones.get(String(z.get("id", "")), {}).get("difficulty", 0)))
 	return best
 
+# v174: TRUE when Godot was launched straight into a scene other than the game —
+# i.e. one of the scripts/sim check harnesses. Those drive this same autoload
+# through resets, warps and XP edits, and the 60-second autosave then wrote the
+# wreckage over the developer's real playthrough (savegame.json AND the .bak,
+# since an atomic save rotates the good copy out). Read by save_game(), which
+# refuses to touch disk in this mode.
+var sim_mode: bool = false
+
+func _detect_sim_mode() -> void:
+	var main_scene: String = String(ProjectSettings.get_setting("application/run/main_scene", ""))
+	for a in OS.get_cmdline_args():
+		var arg: String = String(a)
+		if arg.ends_with(".tscn") and arg != main_scene:
+			sim_mode = true
+			print("[SIM] sim_mode ON (launched into %s) — save_game() is disabled, user:// save is protected." % arg)
+			return
+
 func save_game(is_shutdown: bool = false):
+	# v174: never let a sim harness persist its scratch state over a real save.
+	if sim_mode:
+		return
 	# v135a (funnel): logout snapshot ONLY at shutdown — gating it here keeps the 60s
 	# autosave (and warp-triggered saves) from flooding the 500-cap event_log.
 	if is_shutdown:
@@ -626,9 +647,16 @@ func hard_reset():
 	# pre-reset save on the next boot if the player started a New Game and quit
 	# before the first autosave wrote a fresh .json. Wipe .bak/.tmp/.corrupt too so
 	# New Game is durable.
-	for p in ["user://savegame.json", "user://savegame.bak", "user://savegame.tmp", "user://savegame.corrupt.json"]:
-		if FileAccess.file_exists(p):
-			DirAccess.remove_absolute(p)
+	#
+	# v174: NOT in sim mode. A check harness that exercises hard_reset() would
+	# otherwise delete the developer's real playthrough and both its backups —
+	# which is exactly what happened while writing ngplus_reset_check. save_game()
+	# is already disabled in sim mode; this is the other half, and it is the
+	# destructive half.
+	if not sim_mode:
+		for p in ["user://savegame.json", "user://savegame.bak", "user://savegame.tmp", "user://savegame.corrupt.json"]:
+			if FileAccess.file_exists(p):
+				DirAccess.remove_absolute(p)
 
 func load_elements_db():
 	var file = FileAccess.open("res://assets/elements.json", FileAccess.READ)

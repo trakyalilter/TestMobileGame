@@ -16,6 +16,14 @@ var fails: int = 0
 
 func _ready() -> void:
 	await get_tree().process_frame
+	# This harness drives hard_reset(), which DELETES savegame.json/.bak/.tmp/
+	# .corrupt.json from user://. GameState.sim_mode suppresses that (and the
+	# autosave). If it is ever off here, bail rather than eat a real playthrough
+	# -- writing this check is how the developer's save got deleted the first time.
+	if not GameState.sim_mode:
+		print("[NG] ABORT: GameState.sim_mode is FALSE — refusing to run, hard_reset() would delete the real save.")
+		get_tree().quit(1)
+		return
 	var cm = GameState.combat_manager
 	var flags: Array = cm.get_progression_flags()
 	print("[NG] derived progression flags (%d): %s" % [flags.size(), ", ".join(flags)])

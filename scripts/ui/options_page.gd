@@ -651,8 +651,10 @@ func _dbg_set_skill_level(sk, target: int) -> void:
 	if sk == null:
 		return
 	sk.xp = float(sk.get_xp_for_level(int(clamp(target, 1, sk.max_level))))
-	sk.level = 1
 	# v145: silent — otherwise "set level 100" fires ~100 level-up toasts.
+	# v174: the rebuild resets the level floor itself, so setting a LOWER level
+	# now actually lowers it (and drops the milestones above it) instead of
+	# sticking at the previous one.
 	sk.rebuild_level_silently()
 
 
