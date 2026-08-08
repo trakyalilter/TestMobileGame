@@ -1083,6 +1083,8 @@ var tech_tree = {
 		"unlocks": [
 			"Rift Lance (Weapon Craft)",
 			"Rift Etcher (Weapon Craft)",
+			"Rift Bulwark (Armor Craft)",
+			"Rift Barrier (Shield Craft)",
 		],
 		"flavor": "Sector 12 exotic armaments. The Rift Warden alternates Cryo and Corrosion bands and only the matching element breaches — bring one of each. Earned from breaching the Rift, not from beating its Warden.",
 	},
@@ -1101,6 +1103,8 @@ var tech_tree = {
 		"unlocks": [
 			"Verdigris Lance (Weapon Craft)",
 			"Verdigris Etcher (Weapon Craft)",
+			"Verdigris Bulwark (Armor Craft)",
+			"Verdigris Barrier (Shield Craft)",
 		],
 		"flavor": "Sector 13 exotic armaments. The Verdigris Warden opens on Corrosion and closes on Cryo — the reverse of the Rift.",
 	},
@@ -1119,6 +1123,8 @@ var tech_tree = {
 		"unlocks": [
 			"Dissolution Lance (Weapon Craft)",
 			"Dissolution Etcher (Weapon Craft)",
+			"Dissolution Bulwark (Armor Craft)",
+			"Dissolution Barrier (Shield Craft)",
 		],
 		"flavor": "Sector 14 exotic armaments. The Dissolution Tyrant runs three bands — Cryo, Corrosion, Cryo — so the cryo side carries two thirds of the fight.",
 	},
@@ -1137,6 +1143,8 @@ var tech_tree = {
 		"unlocks": [
 			"Caustic Lance (Weapon Craft)",
 			"Caustic Etcher (Weapon Craft)",
+			"Caustic Bulwark (Armor Craft)",
+			"Caustic Barrier (Shield Craft)",
 		],
 		"flavor": "Sector 15 exotic armaments. The corrosion-loop capstone: the Caustic Sovereign opens and closes on Corrosion with Cryo between.",
 	},

@@ -1277,6 +1277,110 @@ var modules: Dictionary = {
 		"research_req": "corrosion_armaments"
 	},
 
+	# ══ NG+ DEFENSIVE LADDER (v174) ═══════════════════════════════════════════
+	# The weapon ladder above fixed offence and immediately exposed this: NG+ had
+	# no armour or shield of its own either, so the player's defence stayed pinned
+	# at z10_armor/z10_shield while these bosses' attack climbed four sectors past
+	# it. Measured survival on z10 defence was 13s / 7s / 8s / 5s against kills
+	# that need 267-345s — a 20-45x gap, and Z15 landed single hits larger than a
+	# fully-geared 36M hull pool.
+	#
+	# Sized against measured survival, not a formula (the weapon ladder's authored
+	# values were 3-5x off precisely because they were solved on paper — module
+	# stats get scaled by zone on top of whatever is written here). Explicit
+	# per-type resists are included because NG+ attack values are large enough that
+	# flat mitigation matters more than raw pool, and because corrosion rides the
+	# kinetic channel, so resist_k covers the Verdigris and Caustic bosses too.
+
+	"z12_armor": {
+		"name": "Rift Bulwark",
+		"slot_type": "armor",
+		"stats": {"def": 13230, "hp": 53062, "resist_k": 0.05, "resist_e": 0.05, "resist_x": 0.05},
+		"cost_authored": true,
+		"cost": {"credits": 25000000, "ExoticMatter": 3400, "OmegaPlating": 2600, "VoidLattice": 1400, "Neutronium": 9000},
+		"desc": "Sector 12 plating. Layered against the frontier's acid and cold alike.",
+		"zone": 12,
+		"power_tier": 9,
+		"research_req": "rift_armaments"
+	},
+	"z12_shield": {
+		"name": "Rift Barrier",
+		"slot_type": "shield",
+		"stats": {"max_shield": 106124, "shield_regen": 816, "resist_e": 0.05},
+		"cost_authored": true,
+		"cost": {"credits": 22500000, "ExoticMatter": 3400, "OmegaPlating": 2600, "VoidLattice": 1400, "Neutronium": 9000},
+		"desc": "Sector 12 deflector envelope. Regenerates fast enough to matter between phase swings.",
+		"zone": 12,
+		"power_tier": 9,
+		"research_req": "rift_armaments"
+	},
+	"z13_armor": {
+		"name": "Verdigris Bulwark",
+		"slot_type": "armor",
+		"stats": {"def": 16049, "hp": 64365, "resist_k": 0.06, "resist_e": 0.06, "resist_x": 0.06},
+		"cost_authored": true,
+		"cost": {"credits": 55000000, "ExoticMatter": 6100, "OmegaPlating": 4700, "VoidLattice": 2500, "ChronoCore": 800, "Neutronium": 16000},
+		"desc": "Sector 13 plating. Layered against the frontier's acid and cold alike.",
+		"zone": 13,
+		"power_tier": 9,
+		"research_req": "verdigris_armaments"
+	},
+	"z13_shield": {
+		"name": "Verdigris Barrier",
+		"slot_type": "shield",
+		"stats": {"max_shield": 128730, "shield_regen": 990, "resist_e": 0.06},
+		"cost_authored": true,
+		"cost": {"credits": 49500000, "ExoticMatter": 6100, "OmegaPlating": 4700, "VoidLattice": 2500, "ChronoCore": 800, "Neutronium": 16000},
+		"desc": "Sector 13 deflector envelope. Regenerates fast enough to matter between phase swings.",
+		"zone": 13,
+		"power_tier": 9,
+		"research_req": "verdigris_armaments"
+	},
+	"z14_armor": {
+		"name": "Dissolution Bulwark",
+		"slot_type": "armor",
+		"stats": {"def": 25834, "hp": 103612, "resist_k": 0.07, "resist_e": 0.07, "resist_x": 0.07},
+		"cost_authored": true,
+		"cost": {"credits": 120000000, "ExoticMatter": 11000, "OmegaPlating": 8400, "VoidLattice": 4500, "ChronoCore": 1500, "Neutronium": 29000},
+		"desc": "Sector 14 plating. Layered against the frontier's acid and cold alike.",
+		"zone": 14,
+		"power_tier": 9,
+		"research_req": "dissolution_armaments"
+	},
+	"z14_shield": {
+		"name": "Dissolution Barrier",
+		"slot_type": "shield",
+		"stats": {"max_shield": 207224, "shield_regen": 1594, "resist_e": 0.07},
+		"cost_authored": true,
+		"cost": {"credits": 108000000, "ExoticMatter": 11000, "OmegaPlating": 8400, "VoidLattice": 4500, "ChronoCore": 1500, "Neutronium": 29000},
+		"desc": "Sector 14 deflector envelope. Regenerates fast enough to matter between phase swings.",
+		"zone": 14,
+		"power_tier": 9,
+		"research_req": "dissolution_armaments"
+	},
+	"z15_armor": {
+		"name": "Caustic Bulwark",
+		"slot_type": "armor",
+		"stats": {"def": 24660, "hp": 98902, "resist_k": 0.08, "resist_e": 0.08, "resist_x": 0.08},
+		"cost_authored": true,
+		"cost": {"credits": 260000000, "ExoticMatter": 19500, "OmegaPlating": 15000, "VoidLattice": 8000, "ChronoCore": 2700, "VoidEssence": 1600, "Neutronium": 52000},
+		"desc": "Sector 15 plating. Layered against the frontier's acid and cold alike.",
+		"zone": 15,
+		"power_tier": 9,
+		"research_req": "caustic_armaments"
+	},
+	"z15_shield": {
+		"name": "Caustic Barrier",
+		"slot_type": "shield",
+		"stats": {"max_shield": 197804, "shield_regen": 1522, "resist_e": 0.08},
+		"cost_authored": true,
+		"cost": {"credits": 234000000, "ExoticMatter": 19500, "OmegaPlating": 15000, "VoidLattice": 8000, "ChronoCore": 2700, "VoidEssence": 1600, "Neutronium": 52000},
+		"desc": "Sector 15 deflector envelope. Regenerates fast enough to matter between phase swings.",
+		"zone": 15,
+		"power_tier": 9,
+		"research_req": "caustic_armaments"
+	},
+
 	# ══ NG+ EXOTIC WEAPON LADDER (v174) ═══════════════════════════════════════
 	# The conventional channel gets a fresh weapon every zone — 30 modules across
 	# 10 zones. The exotic channel shipped TWO for five zones (Cryo Lance 10K at

@@ -1592,7 +1592,7 @@ var enemy_db = {
 		# warp-aware ng_tune.gd showed the real (warp-boosted) player beat 28M/375K in only
 		# ~4.6 min at 3-4/9 — too fast + survivability-marginal (eff atk 375K×1.25 catch-up
 		# ≈ 469K, edge of survivable). 45M/320K → ~8-9 min, matching the Z13-Z15 loop.
-		"stats": {"hp": 45000000, "max_shield": 800000, "atk": 256000, "def": 70000, "atk_interval": 2.0, "accuracy": 300},
+		"stats": {"hp": 45000000, "max_shield": 800000, "atk": 205000, "def": 70000, "atk_interval": 2.0, "accuracy": 300},
 		"phases": ["cryo", "corrosion"], "phase_cut": 0.15,
 		"relic_drop": "rift_relic",  # v113 (NG+ P2): guaranteed master key on first clear
 		"enrage_at": 0.4, "enrage_atk_mult": 1.3,
@@ -1718,7 +1718,7 @@ var enemy_db = {
 		# Corrosion-loop CAPSTONE. 3-phase corrosion → cryo → corrosion (opens+closes on the
 		# loop's own weapon). Clearing it arms the Loop-2 boundary (Plasma frontier / Fleet
 		# Siege Gate — NG+ step 4). Beefiest HP in the loop; atk stays survivability-safe.
-		"stats": {"hp": 95000000, "max_shield": 1500000, "atk": 152000, "def": 155000, "atk_interval": 2.0, "accuracy": 315},
+		"stats": {"hp": 95000000, "max_shield": 1500000, "atk": 304000, "def": 155000, "atk_interval": 2.0, "accuracy": 315},
 		"phases": ["corrosion", "cryo", "corrosion"], "phase_cut": 0.15,
 		"enrage_at": 0.35, "enrage_atk_mult": 1.2,
 		"loot": [["credits", 1000000000, 2000000000], ["ExoticMatter", 200, 400], ["ChronoCore", 90, 180], ["PrimordialShard", 180, 360]],

@@ -119,11 +119,43 @@ func _measure(sm, cm, rm, zone_id: String, eid: String, zone: int) -> void:
 	var php: float = sm.max_hp
 	cm.start_expedition(zone_id)
 	cm.set_target_enemy(eid)
+	# Run it twice: with consumables (what a player does) and without. If survival
+	# is infinite WITH and finite WITHOUT, the pool is not the problem — the heal
+	# is percentage-based, so a bigger pool heals faster and past some size sustain
+	# simply outruns incoming damage no matter how the pool is tuned.
 	var st := 0.0
-	while st < 900.0 and cm.in_combat and sm.current_hp > 0:
+	var lo: float = sm.max_hp
+	while st < 4000.0 and cm.in_combat and sm.current_hp > 0:
 		_bgc._kit(sm, cm)
 		cm.process_tick(DT)
+		lo = minf(lo, float(sm.current_hp))
 		st += DT
+	var st_kit := st
+	# same loadout, no consumables
+	GameState.hard_reset()
+	cm.boss_kills.clear()
+	GameState.game_settings["cryo_unlocked"] = true
+	for t3 in ["cryo_armaments", "corrosion_armaments", "rift_armaments",
+			"verdigris_armaments", "dissolution_armaments", "caustic_armaments"]:
+		if not (t3 in rm.unlocked_techs):
+			rm.unlocked_techs.append(t3)
+	for f3 in ["z11_unlocked", "z12_unlocked", "z13_unlocked", "z14_unlocked", "z15_unlocked"]:
+		GameState.game_settings[f3] = true
+	_bgc._unlock_research(rm, 10)
+	_bgc._set_hull(sm, zone)
+	_bgc._equip_gear(sm, zone, "explosive", 3, bool(e.get("warp_hardened", false)), phases)
+	_bgc._ammo_kits(sm, "explosive", zone)
+	sm.consumable_hull_slot = ""
+	sm.consumable_shield_slot = ""
+	sm.recalc_stats()
+	sm.current_hp = sm.max_hp
+	cm.start_expedition(zone_id)
+	cm.set_target_enemy(eid)
+	var sn := 0.0
+	while sn < 4000.0 and cm.in_combat and sm.current_hp > 0:
+		cm.process_tick(DT)
+		sn += DT
 	var ttk: float = t
-	print("[EX]      survives %.0fs on z%d defence (hull %.0f) vs %.0fs needed -> %s" % [
-		st, min(zone, 10), php, ttk, "OK" if st >= ttk else "DEFENCE-LIMITED"])
+	print("[EX]      survives %.0fs with kits / %.0fs without (hull %.0f, floor %.0f%%) vs %.0fs needed -> %s" % [
+		st_kit, sn, php, 100.0 * lo / maxf(1.0, php), ttk,
+		"OK" if st_kit >= ttk else "DEFENCE-LIMITED"])

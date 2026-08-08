@@ -210,12 +210,13 @@ func _equip_gear(sm, gear_n, weak, rarity, cryo := false, phase_elems: Array = [
 		# at phase_cut 0.15 for the whole fight and all four bosses reported a 100%
 		# loss at every rarity including Legendary. That was the harness failing to
 		# play the fight, not a gear-check violation.
-		var dnp: int = min(int(gear_n), 10)
-		# Defence still falls back to z10 (NG+ has no armor/shield of its own), but
-		# the weapon pick must use the TRUE zone or every NG+ boss gets Z10 exotics.
-		_fill_mixed_exotic(sm, phase_elems, rarity, int(gear_n))
-		_fill(sm, "armor", "z%d_armor" % dnp, rarity, dnp)
-		_fill(sm, "shield", "z%d_shield" % dnp, rarity, dnp)
+		# v174: NG+ now has its own armour and shield, so stop clamping defence to
+		# z10 — that clamp was the whole reason these fights read as unwinnable.
+		# Falls back to the z10 kit for any zone that has not been given one yet.
+		var dnp: int = int(gear_n)
+		_fill_mixed_exotic(sm, phase_elems, rarity, dnp)
+		_fill(sm, "armor", _best_def(sm, "armor", dnp), rarity, dnp)
+		_fill(sm, "shield", _best_def(sm, "shield", dnp), rarity, dnp)
 	elif cryo:
 		# Cryo-gated boss: Cryo-Lance weapons (the only thing that breaches warp-hardened).
 		# Z11+ has no armor/shield modules of its own (only Cryo-Lance drops), so defense
@@ -266,6 +267,13 @@ func _fill_mixed_exotic(sm, phase_elems: Array, rarity, zone) -> void:
 		var cid := String(sm.generate_module_drop(ids[i % ids.size()], rarity, zone))
 		if cid != "":
 			sm.equip_module(slots[i], cid, true)
+
+# Zone-matched defence when it exists, else the deepest conventional tier.
+func _best_def(sm, stype: String, zone: int) -> String:
+	var want := "z%d_%s" % [zone, stype]
+	if want in sm.modules:
+		return want
+	return "z%d_%s" % [min(zone, 10), stype]
 
 func _fill(sm, stype, base_id, rarity, zone) -> void:
 	if not base_id in sm.modules:
