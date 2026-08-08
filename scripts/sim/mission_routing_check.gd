@@ -18,16 +18,61 @@ extends Node
 #   Godot --headless --path <root> res://scenes/mission_routing_check.tscn
 # ============================================================================
 
-# Types main.gd::_generic_mission_pulse knows how to place. Adding a mission type
-# without teaching the router about it is the failure this catches.
-const ROUTABLE_TYPES := ["research", "defeat", "drop_rarity", "build", "construct",
-	"craft", "craft_matrix", "loadout_check", "equip_consumables",
-	"loadout_rare_weapon", "loadout_rare_weapon_type", "hack_apply", "socket_check",
-	"warp_perform", "overclock_install", "visit_page", "gather", "gather_multi"]
+# v174: routability used to be a hand-copied list of _page_for_mission's match
+# arms, and it had drifted — "atlas_lookup" IS routed (main.gd returns "atlas")
+# but was missing here, and the list knew nothing about the explicit per-mission
+# elif ladder in _generic_mission_pulse, which is what actually routes m017.
+# Both were reported as routing holes that did not exist.
+#
+# Derived from main.gd's source now, so the guard cannot drift from the router
+# again: a new match arm or a new ladder entry is picked up on the next run.
+const MAIN_SRC := "res://scripts/main.gd"
 
 # "discover" completes on a world event, not by visiting anywhere — there is no
 # correct arrow target, so it is exempt rather than a routing hole.
 const UNROUTABLE_BY_DESIGN := ["discover"]
+
+var ROUTABLE_TYPES: Array = []      # match arms of _page_for_mission
+var EXPLICIT_ROUTED_IDS: Array = [] # ids hand-placed by the _generic_mission_pulse ladder
+
+func _scan_router() -> void:
+	var f := FileAccess.open(MAIN_SRC, FileAccess.READ)
+	if f == null:
+		push_error("[MROUTE] cannot read %s" % MAIN_SRC)
+		return
+	var lines: PackedStringArray = f.get_as_text().split("
+")
+	f.close()
+	var in_pfm := false
+	for raw in lines:
+		var t := String(raw).strip_edges()
+		# --- explicit ladder: elif "mNNN" in mm.active_missions ---
+		if "in mm.active_missions" in t:
+			for tok in _quoted(t):
+				if tok.begins_with("m"):
+					EXPLICIT_ROUTED_IDS.append(tok)
+		# --- _page_for_mission match arms ---
+		if t.begins_with("func _page_for_mission"):
+			in_pfm = true
+			continue
+		if in_pfm:
+			if t.begins_with("func "):
+				in_pfm = false
+				continue
+			# A match ARM ends in ":" (or "\\" when it wraps); a return does not.
+			if (t.ends_with(":") or t.ends_with("\\")) and not t.begins_with("match ") and not t.begins_with("#"):
+				ROUTABLE_TYPES.append_array(_quoted(t))
+
+func _quoted(line: String) -> Array:
+	var out: Array = []
+	var parts: PackedStringArray = line.split("\"")
+	var i := 1
+	while i < parts.size():
+		var v := String(parts[i]).strip_edges()
+		if v != "":
+			out.append(v)
+		i += 2
+	return out
 
 # Sidebar page words. Saying "<page> tab" is only a problem on a RESEARCH mission,
 # where "tab" means a category INSIDE the Research Lab — "Combat tab" then fights
@@ -84,8 +129,11 @@ func _sourced(sym: String) -> bool:
 
 func _ready() -> void:
 	GameState.hard_reset()
+	_scan_router()
 	var mm = GameState.mission_manager
 	print("[MROUTE] ============ mission routing ============")
+	print("[MROUTE] router scan: %d routable types, %d explicitly-routed ids" % [
+		ROUTABLE_TYPES.size(), EXPLICIT_ROUTED_IDS.size()])
 	print("[MROUTE] missions defined: %d" % mm.missions.size())
 
 	var bad_type := []
@@ -102,7 +150,10 @@ func _ready() -> void:
 		var is_tutorial: bool = (String(m.get("tag", "")) == "[TUTORIAL]")
 		if is_tutorial:
 			tutorial_count += 1
-			if not (mtype in ROUTABLE_TYPES) and not (mtype in UNROUTABLE_BY_DESIGN):
+			# Routed either generically (by type) or by an explicit ladder entry
+			# for this exact mission id — m017's defeat_retreat has no type arm but
+			# is hand-placed onto the Lunar Drone card.
+			if not (mtype in ROUTABLE_TYPES) 					and not (mtype in UNROUTABLE_BY_DESIGN) 					and not (String(mid) in EXPLICIT_ROUTED_IDS):
 				bad_type.append("%s:%s" % [String(mid), mtype])
 
 		if mtype == "gather":

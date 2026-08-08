@@ -851,6 +851,27 @@ func _count_socketed_matrix_cores() -> int:
 				n += 1
 	return n
 
+# v174: which TUTORIAL mission currently owns the guidance arrow — the LAST
+# (furthest-along) active, incomplete, [TUTORIAL]-tagged mission in definition
+# order. A stale early beat, e.g. an atlas_lookup that a mid-chain insert
+# re-activated on an old save, must never outrank the player's real current step.
+#
+# Lifted out of main.gd::_generic_mission_pulse. Which mission the player is on
+# is mission state, not presentation, and the UI copy could not be tested without
+# standing up the whole scene — so stale_mission_check kept its own duplicate of
+# this loop and drifted into asserting an outcome the loop cannot produce.
+# Returns "" when no tutorial mission is live.
+func get_tutorial_frontier_id() -> String:
+	var chosen := ""
+	for mid in missions:
+		if not mid in active_missions:
+			continue
+		var m: Dictionary = missions[mid]
+		if m.is_empty() or m.get("completed", false) or String(m.get("tag", "")) != "[TUTORIAL]":
+			continue
+		chosen = String(mid)
+	return chosen
+
 func sync_progress():
 	if not GameState.resources: return
 

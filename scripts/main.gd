@@ -2324,14 +2324,9 @@ func _generic_mission_pulse(mm) -> Control:
 	# A stale early beat — e.g. an atlas_lookup a mid-chain insert re-activated on an
 	# old save (auto-completed by sync now, but belt-and-braces) — must never outrank
 	# the player's real current step.
-	var chosen := ""
-	for mid in mm.missions:
-		if not mid in mm.active_missions:
-			continue
-		var cm: Dictionary = mm.missions[mid]
-		if cm.is_empty() or cm.get("completed", false) or String(cm.get("tag", "")) != "[TUTORIAL]":
-			continue
-		chosen = mid
+	# v174: the pick itself lives on mission_manager now (get_tutorial_frontier_id)
+	# so it is testable without standing up this scene.
+	var chosen: String = mm.get_tutorial_frontier_id()
 	if chosen == "":
 		return null
 	var m: Dictionary = mm.missions[chosen]

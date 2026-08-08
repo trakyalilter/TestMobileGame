@@ -984,9 +984,13 @@ static func make_segmented_pill(opts: Array, current, on_pick: Callable) -> Cont
 		seg.add_child(b)
 		btns.append([b, o[1]])
 
+	# v174: the selected value lives in the segment styleboxes and nowhere else,
+	# so nothing could READ a pill back — main_menu_ui_check was still reaching for
+	# the CheckBox this replaced. Mirrored into meta on every path that restyles.
 	var restyle := func(cur):
 		for pair in btns:
 			style_pill_segment(pair[0], pair[1] == cur)
+		pill.set_meta("pill_value", cur)
 	restyle.call(current)
 
 	for pair in btns:
@@ -1004,6 +1008,15 @@ static func set_pill_value(pill: Control, value) -> void:
 		return
 	for pair in (pill.get_meta("pill_segments") as Array):
 		style_pill_segment(pair[0], pair[1] == value)
+	pill.set_meta("pill_value", value)
+
+# v174: read a pill's displayed value. Visual-only — set_pill_value never invokes
+# on_pick, so this reports what the player SEES, which is exactly what the
+# offline-combat sync check needs to distinguish from what the setting holds.
+static func get_pill_value(pill: Control, fallback = null):
+	if pill == null or not is_instance_valid(pill):
+		return fallback
+	return pill.get_meta("pill_value", fallback)
 
 static func style_pill_segment(b: Button, active: bool) -> void:
 	var box := StyleBoxFlat.new()

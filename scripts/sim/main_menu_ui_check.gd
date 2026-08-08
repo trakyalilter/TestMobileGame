@@ -30,9 +30,31 @@ func _boot() -> void:
 	await get_tree().process_frame
 	var after: int = get_tree().get_node_count()
 
-	print("[MM] checkbox synced to: %s (expect true)" % mm.chk_offline_combat.button_pressed)
-	print("[MM] offline_combat still: %s" % GameState.game_settings.get("offline_combat"))
+	# v174: this read mm.chk_offline_combat, the CheckBox that v161 replaced with a
+	# segmented pill. The property access errored before the quit below, so the
+	# scene hung to timeout and BOTH assertions stopped being checked -- the probe
+	# looked like a failing guard while the thing it guards was fine.
+	var shown = UITheme.get_pill_value(mm.pill_offline_combat)
+	var setting: bool = bool(GameState.game_settings.get("offline_combat", false))
+	var fails: int = 0
+
+	print("[MM] pill shows: %s   setting: %s" % [str(shown), str(setting)])
+	if shown != setting:
+		print("[MM] FAIL: opening Settings left the pill out of sync with offline_combat")
+		fails += 1
+
+	# The bug this scene exists for: the sync used to invoke the toggle handler,
+	# which fired the consent dialog just for OPENING Settings. Count all nodes --
+	# the warning is a Control on ModalLayer, not a Window.
 	print("[MM] tree node count  before=%d  after=%d  (delta %d)" % [before, after, after - before])
-	print("[MM] SPURIOUS DIALOG ON OPEN: %s" % ("YES — BUG" if after > before else "no — fixed"))
-	print("[MM] done")
-	get_tree().quit(0)
+	if after > before:
+		print("[MM] FAIL: spurious dialog spawned on opening Settings (delta %d)" % (after - before))
+		fails += 1
+
+	# offline_combat_warned must still be false: nothing consented on our behalf.
+	if bool(GameState.game_settings.get("offline_combat_warned", false)):
+		print("[MM] FAIL: offline_combat_warned got set by merely opening Settings")
+		fails += 1
+
+	print("[MM] RESULT: %s (%d failure(s))" % ["PASS" if fails == 0 else "FAIL", fails])
+	get_tree().quit(0 if fails == 0 else 1)

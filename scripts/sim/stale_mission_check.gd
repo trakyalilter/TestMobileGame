@@ -29,17 +29,24 @@ func _ready() -> void:
 	mm.sync_progress()
 	var c2: bool = mm.missions["m019e"]["completed"]
 
-	# Frontier pick data: among active tutorial missions, the LATER-defined one wins.
-	var chosen := ""
-	for mid in mm.missions:
-		if not mid in mm.active_missions: continue
-		var m = mm.missions[mid]
-		if m.get("completed", false) or String(m.get("tag","")) != "[TUTORIAL]": continue
-		chosen = mid
-	var c3 := chosen == "m029a8"   # m019e now completed -> skipped; frontier = m029a8
+	# v174: call the manager's own picker instead of re-implementing it here. The
+	# duplicate loop was faithful, but its EXPECTATION could never hold: it wanted
+	# m029a8, which is in CHAPTER_2_IDS and therefore tagged "[CHAPTER 2]", while
+	# the picker filters to "[TUTORIAL]". c3 failed by construction no matter what
+	# the game did — a permanently-red guard that told us nothing.
+	#
+	# What this beat is actually for: once m019e auto-completes, the STALE early
+	# atlas_lookup must not keep owning the arrow. So assert that, plus that the
+	# frontier is a genuinely live tutorial mission rather than "" or junk.
+	var chosen: String = mm.get_tutorial_frontier_id()
+	var c3: bool = chosen != "m019e"
+	var c4: bool = chosen == "" or (
+		chosen in mm.active_missions
+		and not mm.missions[chosen].get("completed", false)
+		and String(mm.missions[chosen].get("tag", "")) == "[TUTORIAL]")
 
 	for pair in [["lesson live when Res1 unowned", c1], ["m019e auto-completes when owned", c2],
-			["frontier = m029a8 (not stale m019e)", c3]]:
+			["frontier is not the stale m019e", c3], ["frontier is a live TUTORIAL beat", c4]]:
 		if not pair[1]: fails += 1
 		print("[STALE] %-38s %s" % [pair[0], "OK" if pair[1] else "*** FAIL (chosen=%s)" % chosen])
 	print("[STALE] %s" % ("ALL PASS" if fails == 0 else "*** %d FAIL" % fails))

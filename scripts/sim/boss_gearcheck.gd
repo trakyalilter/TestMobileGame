@@ -137,7 +137,14 @@ func _fight(sm, cm, rm, b, gear_n, weak, rarity) -> Dictionary:
 			rm.unlocked_techs.append("cryo_armaments")
 	_unlock_research(rm, int(b["n"]))
 	_set_hull(sm, int(b["n"]))
-	_equip_gear(sm, int(gear_n), String(weak), int(rarity), cryo)
+	var phase_elems: Array = b["e"].get("phases", [])
+	if phase_elems.size() > 0:
+		# The exotic weapons are post-warp unlocks; a phase boss is only reachable
+		# after that, so give the harness the same access the player has.
+		GameState.game_settings["cryo_unlocked"] = true
+		if not ("cryo_armaments" in rm.unlocked_techs):
+			rm.unlocked_techs.append("cryo_armaments")
+	_equip_gear(sm, int(gear_n), String(weak), int(rarity), cryo, phase_elems)
 	_ammo_kits(sm, String(weak), int(b["n"]))
 	sm.recalc_stats()
 	sm.current_hp = sm.max_hp
@@ -186,13 +193,26 @@ func _slots(sm, stype) -> Array:
 			out.append(i)
 	return out
 
-func _equip_gear(sm, gear_n, weak, rarity, cryo := false) -> void:
+func _equip_gear(sm, gear_n, weak, rarity, cryo := false, phase_elems: Array = []) -> void:
 	# Power FIRST: equip_module's power guard blocks a weapon whose load exceeds
 	# current capacity, so batteries must be in the loadout before the weapons.
 	# Power is NOT the gear-check variable — over-provision (legendary batteries)
 	# so the only thing under test is weapon/armor/shield rarity.
 	_fill(sm, "battery", "z%d_battery" % clampi(gear_n, 1, 10), 3, gear_n)
-	if cryo:
+	if phase_elems.size() > 0:
+		# v174: MULTI-PHASE boss (z12-z15). _get_breach_factors gates per WEAPON, and
+		# combat_manager's own note says these are "solvable by pre-fight loadout only
+		# (bring every phase's element)" — so the intended answer is a MIXED battery,
+		# not one element. The harness only ever equipped conventional K/E/X here
+		# (cryo was keyed on warp_hardened, which only Z11 sets), so every channel sat
+		# at phase_cut 0.15 for the whole fight and all four bosses reported a 100%
+		# loss at every rarity including Legendary. That was the harness failing to
+		# play the fight, not a gear-check violation.
+		var dnp: int = min(int(gear_n), 10)
+		_fill_mixed_exotic(sm, phase_elems, rarity, dnp)
+		_fill(sm, "armor", "z%d_armor" % dnp, rarity, dnp)
+		_fill(sm, "shield", "z%d_shield" % dnp, rarity, dnp)
+	elif cryo:
 		# Cryo-gated boss: Cryo-Lance weapons (the only thing that breaches warp-hardened).
 		# Z11+ has no armor/shield modules of its own (only Cryo-Lance drops), so defense
 		# falls back to the highest normal tier (z10).
@@ -208,6 +228,26 @@ func _equip_gear(sm, gear_n, weak, rarity, cryo := false) -> void:
 		_fill(sm, "weapon", "z%d_%s" % [gear_n, SUFFIX[weak]], rarity, gear_n)
 		_fill(sm, "armor", "z%d_armor" % gear_n, rarity, gear_n)
 		_fill(sm, "shield", "z%d_shield" % gear_n, rarity, gear_n)
+
+# v174: one weapon per phase element, round-robin across the weapon slots, so the
+# battery breaches every band of a multi-phase boss. Elements with no weapon
+# module yet (thermal/radiation/graviton) are skipped — that band stays cut, which
+# is the intended forward gate, not a harness gap.
+const EXOTIC_WEAPON := {"cryo": "cryo_lance", "corrosion": "corrosion_blaster"}
+
+func _fill_mixed_exotic(sm, phase_elems: Array, rarity, zone) -> void:
+	var ids: Array = []
+	for el in phase_elems:
+		var key := String(el).to_lower()
+		if EXOTIC_WEAPON.has(key) and String(EXOTIC_WEAPON[key]) in sm.modules 				and not EXOTIC_WEAPON[key] in ids:
+			ids.append(String(EXOTIC_WEAPON[key]))
+	if ids.is_empty():
+		return
+	var slots: Array = _slots(sm, "weapon")
+	for i in range(slots.size()):
+		var cid := String(sm.generate_module_drop(ids[i % ids.size()], rarity, zone))
+		if cid != "":
+			sm.equip_module(slots[i], cid, true)
 
 func _fill(sm, stype, base_id, rarity, zone) -> void:
 	if not base_id in sm.modules:
