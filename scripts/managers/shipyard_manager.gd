@@ -2263,19 +2263,19 @@ var modules: Dictionary = {
 	"z2_unique_energy": {
 		"name": "Monolith's Lance", "slot_type": "weapon", "rarity": 4,
 		"stats": {"atk_energy": 28, "energy_load": 18, "atk_interval": 2.0},
-		"cost": {}, "desc": "Unique energy-channel armament.", "zone": 2,
+		"cost": {}, "desc": "Unique energy armament.", "zone": 2,
 		"set_id": "monoliths_bedrock", "is_unique": true
 	},
 	"z2_unique_kinetic": {
 		"name": "Monolith's Driver", "slot_type": "weapon", "rarity": 4,
 		"stats": {"atk_kinetic": 28, "energy_load": 18, "atk_interval": 2.0},
-		"cost": {}, "desc": "Unique kinetic-channel armament.", "zone": 2,
+		"cost": {}, "desc": "Unique kinetic armament.", "zone": 2,
 		"set_id": "monoliths_bedrock", "is_unique": true
 	},
 	"z2_unique_missile": {
 		"name": "Monolith's Salvo", "slot_type": "weapon", "rarity": 4,
 		"stats": {"atk_explosive": 28, "energy_load": 18, "atk_interval": 2.0},
-		"cost": {}, "desc": "Unique missile-channel armament.", "zone": 2,
+		"cost": {}, "desc": "Unique explosive armament.", "zone": 2,
 		"set_id": "monoliths_bedrock", "is_unique": true
 	},
 	"z2_unique_armor": {
@@ -2309,19 +2309,19 @@ var modules: Dictionary = {
 	"z3_unique_energy": {
 		"name": "Warmaster's Lance", "slot_type": "weapon", "rarity": 4,
 		"stats": {"atk_energy": 62, "energy_load": 30, "atk_interval": 2.0},
-		"cost": {}, "desc": "Unique energy-channel armament.", "zone": 3,
+		"cost": {}, "desc": "Unique energy armament.", "zone": 3,
 		"set_id": "warmasters_arsenal", "is_unique": true
 	},
 	"z3_unique_kinetic": {
 		"name": "Warmaster's Driver", "slot_type": "weapon", "rarity": 4,
 		"stats": {"atk_kinetic": 62, "energy_load": 30, "atk_interval": 2.0},
-		"cost": {}, "desc": "Unique kinetic-channel armament.", "zone": 3,
+		"cost": {}, "desc": "Unique kinetic armament.", "zone": 3,
 		"set_id": "warmasters_arsenal", "is_unique": true
 	},
 	"z3_unique_missile": {
 		"name": "Warmaster's Salvo", "slot_type": "weapon", "rarity": 4,
 		"stats": {"atk_explosive": 62, "energy_load": 30, "atk_interval": 2.0},
-		"cost": {}, "desc": "Unique missile-channel armament.", "zone": 3,
+		"cost": {}, "desc": "Unique explosive armament.", "zone": 3,
 		"set_id": "warmasters_arsenal", "is_unique": true
 	},
 	"z3_unique_armor": {
@@ -2347,19 +2347,19 @@ var modules: Dictionary = {
 	"z4_unique_kinetic": {
 		"name": "Overseer's Driver", "slot_type": "weapon", "rarity": 4,
 		"stats": {"atk_kinetic": 169, "energy_load": 50, "atk_interval": 2.0},
-		"cost": {}, "desc": "Unique kinetic-channel armament.", "zone": 4,
+		"cost": {}, "desc": "Unique kinetic armament.", "zone": 4,
 		"set_id": "overseers_command", "is_unique": true
 	},
 	"z4_unique_energy": {
 		"name": "Overseer's Beam", "slot_type": "weapon", "rarity": 4,
 		"stats": {"atk_energy": 169, "energy_load": 50, "atk_interval": 2.0},
-		"cost": {}, "desc": "Unique energy-channel armament.", "zone": 4,
+		"cost": {}, "desc": "Unique energy armament.", "zone": 4,
 		"set_id": "overseers_command", "is_unique": true
 	},
 	"z4_unique_missile": {
 		"name": "Overseer's Salvo", "slot_type": "weapon", "rarity": 4,
 		"stats": {"atk_explosive": 169, "energy_load": 50, "atk_interval": 2.0},
-		"cost": {}, "desc": "Unique missile-channel armament.", "zone": 4,
+		"cost": {}, "desc": "Unique explosive armament.", "zone": 4,
 		"set_id": "overseers_command", "is_unique": true
 	},
 	"z4_unique_armor": {
@@ -2388,19 +2388,19 @@ var modules: Dictionary = {
 	"z5_unique_kinetic": {
 		"name": "Harbinger's Driver", "slot_type": "weapon", "rarity": 4,
 		"stats": {"atk_kinetic": 338, "energy_load": 90, "atk_interval": 2.0},
-		"cost": {}, "desc": "Unique kinetic-channel armament.", "zone": 5,
+		"cost": {}, "desc": "Unique kinetic armament.", "zone": 5,
 		"set_id": "harbingers_wrath", "is_unique": true
 	},
 	"z5_unique_energy": {
 		"name": "Harbinger's Lance", "slot_type": "weapon", "rarity": 4,
 		"stats": {"atk_energy": 338, "energy_load": 90, "atk_interval": 2.0},
-		"cost": {}, "desc": "Unique energy-channel armament.", "zone": 5,
+		"cost": {}, "desc": "Unique energy armament.", "zone": 5,
 		"set_id": "harbingers_wrath", "is_unique": true
 	},
 	"z5_unique_missile": {
 		"name": "Harbinger's Salvo", "slot_type": "weapon", "rarity": 4,
 		"stats": {"atk_explosive": 338, "energy_load": 90, "atk_interval": 2.0},
-		"cost": {}, "desc": "Unique missile-channel armament.", "zone": 5,
+		"cost": {}, "desc": "Unique explosive armament.", "zone": 5,
 		"set_id": "harbingers_wrath", "is_unique": true
 	},
 	"z5_unique_armor": {
@@ -2426,19 +2426,19 @@ var modules: Dictionary = {
 	"z6_unique_energy": {
 		"name": "Colossus Cannon Lance", "slot_type": "weapon", "rarity": 4,
 		"stats": {"atk_energy": 665, "energy_load": 120, "atk_interval": 2.0},
-		"cost": {}, "desc": "Unique energy-channel armament.", "zone": 6,
+		"cost": {}, "desc": "Unique energy armament.", "zone": 6,
 		"set_id": "colossus_dominion", "is_unique": true
 	},
 	"z6_unique_kinetic": {
 		"name": "Colossus Cannon Driver", "slot_type": "weapon", "rarity": 4,
 		"stats": {"atk_kinetic": 665, "energy_load": 120, "atk_interval": 2.0},
-		"cost": {}, "desc": "Unique kinetic-channel armament.", "zone": 6,
+		"cost": {}, "desc": "Unique kinetic armament.", "zone": 6,
 		"set_id": "colossus_dominion", "is_unique": true
 	},
 	"z6_unique_missile": {
 		"name": "Colossus Cannon Salvo", "slot_type": "weapon", "rarity": 4,
 		"stats": {"atk_explosive": 665, "energy_load": 120, "atk_interval": 2.0},
-		"cost": {}, "desc": "Unique missile-channel armament.", "zone": 6,
+		"cost": {}, "desc": "Unique explosive armament.", "zone": 6,
 		"set_id": "colossus_dominion", "is_unique": true
 	},
 	"z6_unique_armor": {
@@ -2466,19 +2466,19 @@ var modules: Dictionary = {
 	"z7_unique_kinetic": {
 		"name": "Sovereign's Driver", "slot_type": "weapon", "rarity": 4,
 		"stats": {"atk_kinetic": 1809, "energy_load": 180, "atk_interval": 2.0},
-		"cost": {}, "desc": "Unique kinetic-channel armament.", "zone": 7,
+		"cost": {}, "desc": "Unique kinetic armament.", "zone": 7,
 		"set_id": "sovereigns_prism", "is_unique": true
 	},
 	"z7_unique_energy": {
 		"name": "Sovereign's Lance", "slot_type": "weapon", "rarity": 4,
 		"stats": {"atk_energy": 1809, "energy_load": 180, "atk_interval": 2.0},
-		"cost": {}, "desc": "Unique energy-channel armament.", "zone": 7,
+		"cost": {}, "desc": "Unique energy armament.", "zone": 7,
 		"set_id": "sovereigns_prism", "is_unique": true
 	},
 	"z7_unique_missile": {
 		"name": "Sovereign's Salvo", "slot_type": "weapon", "rarity": 4,
 		"stats": {"atk_explosive": 1809, "energy_load": 180, "atk_interval": 2.0},
-		"cost": {}, "desc": "Unique missile-channel armament.", "zone": 7,
+		"cost": {}, "desc": "Unique explosive armament.", "zone": 7,
 		"set_id": "sovereigns_prism", "is_unique": true
 	},
 	"z7_unique_armor": {
@@ -2504,19 +2504,19 @@ var modules: Dictionary = {
 	"z8_unique_kinetic": {
 		"name": "Warden's Driver", "slot_type": "weapon", "rarity": 4,
 		"stats": {"atk_kinetic": 3982, "energy_load": 280, "atk_interval": 2.0},
-		"cost": {}, "desc": "Unique kinetic-channel armament.", "zone": 8,
+		"cost": {}, "desc": "Unique kinetic armament.", "zone": 8,
 		"set_id": "wardens_quarantine", "is_unique": true
 	},
 	"z8_unique_energy": {
 		"name": "Warden's Lance", "slot_type": "weapon", "rarity": 4,
 		"stats": {"atk_energy": 3982, "energy_load": 280, "atk_interval": 2.0},
-		"cost": {}, "desc": "Unique energy-channel armament.", "zone": 8,
+		"cost": {}, "desc": "Unique energy armament.", "zone": 8,
 		"set_id": "wardens_quarantine", "is_unique": true
 	},
 	"z8_unique_missile": {
 		"name": "Warden's Salvo", "slot_type": "weapon", "rarity": 4,
 		"stats": {"atk_explosive": 3982, "energy_load": 280, "atk_interval": 2.0},
-		"cost": {}, "desc": "Unique missile-channel armament.", "zone": 8,
+		"cost": {}, "desc": "Unique explosive armament.", "zone": 8,
 		"set_id": "wardens_quarantine", "is_unique": true
 	},
 	"z8_unique_armor": {
@@ -2542,19 +2542,19 @@ var modules: Dictionary = {
 	"z9_unique_energy": {
 		"name": "Titan's Lance", "slot_type": "weapon", "rarity": 4,
 		"stats": {"atk_energy": 7091, "energy_load": 400, "atk_interval": 2.0},
-		"cost": {}, "desc": "Unique energy-channel armament.", "zone": 9,
+		"cost": {}, "desc": "Unique energy armament.", "zone": 9,
 		"set_id": "titans_legacy", "is_unique": true
 	},
 	"z9_unique_kinetic": {
 		"name": "Titan's Driver", "slot_type": "weapon", "rarity": 4,
 		"stats": {"atk_kinetic": 7091, "energy_load": 400, "atk_interval": 2.0},
-		"cost": {}, "desc": "Unique kinetic-channel armament.", "zone": 9,
+		"cost": {}, "desc": "Unique kinetic armament.", "zone": 9,
 		"set_id": "titans_legacy", "is_unique": true
 	},
 	"z9_unique_missile": {
 		"name": "Titan's Salvo", "slot_type": "weapon", "rarity": 4,
 		"stats": {"atk_explosive": 7091, "energy_load": 400, "atk_interval": 2.0},
-		"cost": {}, "desc": "Unique missile-channel armament.", "zone": 9,
+		"cost": {}, "desc": "Unique explosive armament.", "zone": 9,
 		"set_id": "titans_legacy", "is_unique": true
 	},
 	"z9_unique_armor": {
@@ -2580,19 +2580,19 @@ var modules: Dictionary = {
 	"z10_unique_kinetic": {
 		"name": "Leviathan's Driver", "slot_type": "weapon", "rarity": 4,
 		"stats": {"atk_kinetic": 17398, "energy_load": 600, "atk_interval": 2.0},
-		"cost": {}, "desc": "Unique kinetic-channel armament.", "zone": 10,
+		"cost": {}, "desc": "Unique kinetic armament.", "zone": 10,
 		"set_id": "leviathans_crown", "is_unique": true
 	},
 	"z10_unique_energy": {
 		"name": "Leviathan's Lance", "slot_type": "weapon", "rarity": 4,
 		"stats": {"atk_energy": 17398, "energy_load": 600, "atk_interval": 2.0},
-		"cost": {}, "desc": "Unique energy-channel armament.", "zone": 10,
+		"cost": {}, "desc": "Unique energy armament.", "zone": 10,
 		"set_id": "leviathans_crown", "is_unique": true
 	},
 	"z10_unique_missile": {
 		"name": "Leviathan's Salvo", "slot_type": "weapon", "rarity": 4,
 		"stats": {"atk_explosive": 17398, "energy_load": 600, "atk_interval": 2.0},
-		"cost": {}, "desc": "Unique missile-channel armament.", "zone": 10,
+		"cost": {}, "desc": "Unique explosive armament.", "zone": 10,
 		"set_id": "leviathans_crown", "is_unique": true
 	},
 	"z10_unique_armor": {

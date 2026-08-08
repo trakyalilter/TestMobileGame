@@ -411,7 +411,7 @@
     "category": "Ammo",
     "tier": 2,
     "base_value": 1,
-    "description": "Armor-piercing heavy slugs. +10% damage on its channel."
+    "description": "Armor-piercing heavy slugs. +10% damage with its weapon type."
   },
   {
     "atomic_number": -505,
@@ -421,7 +421,7 @@
     "category": "Ammo",
     "tier": 2,
     "base_value": 1,
-    "description": "Armor-piercing heavy slugs. +5% damage on its channel."
+    "description": "Armor-piercing heavy slugs. Denser than standard rounds, same punch."
   },
   {
     "atomic_number": -82,
@@ -441,7 +441,7 @@
     "category": "Ammo",
     "tier": 2,
     "base_value": 1,
-    "description": "Superheated gas canister. +10% damage on its channel."
+    "description": "Superheated gas canister. +10% damage with its weapon type."
   },
   {
     "atomic_number": 92,
@@ -461,7 +461,7 @@
     "category": "Ammo",
     "tier": 3,
     "base_value": 1,
-    "description": "Self-sharpening penetrator. +20% damage on its channel."
+    "description": "Self-sharpening penetrator. +20% damage with its weapon type."
   },
   {
     "atomic_number": -85,
@@ -471,7 +471,7 @@
     "category": "Ammo",
     "tier": 3,
     "base_value": 1,
-    "description": "Unstable singularity core. +20% damage on its channel."
+    "description": "Unstable singularity core. +20% damage with its weapon type."
   },
   {
     "atomic_number": -110,
@@ -1280,7 +1280,7 @@
     "category": "Ammo",
     "tier": 4,
     "base_value": 1,
-    "description": "Unstable fusion plasma containment. +35% damage on its channel."
+    "description": "Unstable fusion plasma containment. +35% damage with its weapon type."
   },
   {
     "atomic_number": -913,
@@ -1378,7 +1378,7 @@
     "category": "Ammo",
     "tier": 4,
     "base_value": 1,
-    "description": "Capital-class antimatter buster. +35% damage on its channel."
+    "description": "Capital-class antimatter buster. +35% damage with its weapon type."
   },
   {
     "atomic_number": -925,
@@ -1417,7 +1417,7 @@
     "category": "Ammo",
     "tier": 2,
     "base_value": 1,
-    "description": "Guided missile with tracking chips. +10% damage on its channel."
+    "description": "Guided missile with tracking chips. +10% damage with its weapon type."
   },
   {
     "symbol": "MissileT3",
@@ -1426,7 +1426,7 @@
     "category": "Ammo",
     "tier": 3,
     "base_value": 1,
-    "description": "High-yield thermobaric missile. +20% damage on its channel."
+    "description": "High-yield thermobaric missile. +20% damage with its weapon type."
   },
   {
     "symbol": "SlugT4",
@@ -1435,7 +1435,7 @@
     "category": "Ammo",
     "tier": 4,
     "base_value": 1,
-    "description": "Tungsten-Superalloy sabot for railguns. +35% damage on its channel."
+    "description": "Tungsten-Superalloy sabot for railguns. +35% damage with its weapon type."
   },
   {
     "atomic_number": -930,

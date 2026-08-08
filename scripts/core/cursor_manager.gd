@@ -98,6 +98,12 @@ func _bake(px: int) -> void:
 	_size = px
 	for shape in _sources:
 		_apply_cursor(shape, _sources[shape])
+	# v174: a rebake re-registers every shape from _sources, including the TRUE
+	# forbidden art — which would undo the drag suppression below and strand the
+	# "can't" cursor for the rest of that drag, because _process only re-applies on
+	# a dragging-state TRANSITION. Reachable via the Options cursor-size buttons.
+	if _drag_cursor_suppressed:
+		_apply_cursor(Input.CURSOR_FORBIDDEN, CURSOR_DEFAULT)
 
 
 # Resize `tex` to the current cursor size and register it against `shape`

@@ -2262,8 +2262,9 @@ func _init_mission_dots() -> void:
 		dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		dot.visible = false
 		dot.set_anchors_preset(Control.PRESET_CENTER_RIGHT, true)
-		# Left of the claim badge slot (-32) so the two never overlap on the
-		# Mission and Quest buttons, which carry both.
+		# Sits in the gutter reserved by UITheme.apply_sidebar_button_style. This
+		# does NOT clear the claim badge (-32, >=22px wide) -- see _refresh_mission_dots,
+		# which hides the dot outright when a badge is lit on the same button.
 		dot.position = Vector2(-13, -4)
 		dot.custom_minimum_size = Vector2(8, 8)
 		dot.size = Vector2(8, 8)
@@ -2308,7 +2309,19 @@ func _refresh_mission_dots(mm) -> void:
 			continue
 		var btn := _get_btn_for_page(String(page))
 		# Never mark a hidden (gated) page -- a dot the player cannot act on.
-		dot.visible = wanted.has(page) and btn != null and btn.visible
+		var show: bool = wanted.has(page) and btn != null and btn.visible
+		# v174: yield to the claim badge. The badge is anchored at -32 and is at
+		# least 22px wide, so its left edge reaches -10 while the 8px dot spans
+		# -13..-5 -- a guaranteed 3px overlap. They DO appear together: the Warp
+		# button lights its badge while z10_cleared && !z11_unlocked, exactly when
+		# the goal_002/goal_003 [CORE GOAL] missions keep the warp dot on. Rather
+		# than shuffle pixels into an even tighter gutter, drop the dot: a lit
+		# badge already says "there is something for you here", and says it louder.
+		if show and btn != null:
+			var badge := btn.get_node_or_null("ClaimBadge")
+			if badge != null and badge is Control and (badge as Control).visible:
+				show = false
+		dot.visible = show
 
 func _generic_mission_pulse(mm) -> Control:
 	# v141d: pick the SINGLE earliest-in-chain active TUTORIAL mission (definition

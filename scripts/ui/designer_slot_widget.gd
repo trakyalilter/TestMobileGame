@@ -1311,7 +1311,11 @@ func _build_module_tooltip(m_data: Dictionary) -> String:
 			tt += "[img=15 color=#39A6E0]res://assets/icons/modules/weapon_cryo.svg[/img] [color=#39A6E0][b]" + tr("CRYOGENIC") + "[/b][/color]\n"
 			tt += "[img=11 color=#46E0A0]res://assets/icons/ui/chevron_up.svg[/img] [color=#46E0A0]" + tr("Breaches Warp-Hardened hulls") + "[/color]\n"
 			tt += "[img=11 color=#46E0A0]res://assets/icons/ui/chevron_up.svg[/img] [color=#46E0A0]" + tr("Self-charging — no ammo") + "[/color]\n"
-			tt += "[img=11 color=#FF6473]res://assets/icons/ui/chevron_down.svg[/img] [color=#FF6473]" + tr("Weak: Conventional enemies resist") + "[/color]\n"
+			# v174: dropped a "Weak: Conventional enemies resist" line. No enemy in
+			# the game carries a positive resist_cryo (only 0.0 and Z11's -0.25), and
+			# resolve_damage applies no cryo penalty against non-hardened targets, so
+			# the tooltip was inventing a downside. Reinstate it only alongside a real
+			# positive resist_cryo somewhere.
 		tt += div
 	elif s_type == "shield":
 		var m_shield = stats.get("max_shield", 0)

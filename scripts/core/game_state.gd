@@ -285,6 +285,11 @@ func _detect_sim_mode() -> void:
 			print("[SIM] sim_mode ON (launched into %s) — save_game() is disabled, user:// save is protected." % arg)
 			return
 
+# v174: single source of truth for the save format version. save_game() writes it
+# and load_game() gates migration on it; they used to be a literal and a
+# hardcoded 3 that had already drifted apart.
+const SAVE_VERSION := 4  # v4: funnel event_log + telemetry.boss_losses (additive)
+
 func save_game(is_shutdown: bool = false):
 	# v174: never let a sim harness persist its scratch state over a real save.
 	if sim_mode:
@@ -302,7 +307,7 @@ func save_game(is_shutdown: bool = false):
 			"t": int(Time.get_unix_time_from_system()),
 		})
 	var save_data = {
-		"version": 4, # v4: funnel event_log + telemetry.boss_losses (additive)
+		"version": SAVE_VERSION,
 		"resources": resources.get_save_data(),
 		"gathering": gathering_manager.get_save_data_manager(),
 		"processing": processing_manager.get_save_data_manager(),
@@ -413,7 +418,12 @@ func load_game():
 
 		# Version Check & Migration
 		var ver = data.get("version", 0)
-		if ver < 3:
+		# v174: this read "ver < 3" while save_game wrote 4, so a v3 save on disk
+		# never ran migration at all. Harmless so far only because the v4 additions
+		# are guard-merged at load with defaults — but the next migrate_save step
+		# would have silently skipped for those saves. Compare against the constant
+		# so the gate cannot drift from the writer again.
+		if ver < SAVE_VERSION:
 			data = migrate_save(data, ver)
 			
 		resources.load_save_data(data.get("resources", {}))
@@ -614,6 +624,12 @@ func hard_reset():
 	game_settings.erase("offline_combat_nudge_seen")
 	# v125: re-arm the offline-combat durability-risk consent prompt.
 	game_settings.erase("offline_combat_warned")
+	# v174: three more one-time pointers that gameplay sets and hard reset was not
+	# clearing, so a fresh playthrough silently skipped the Mastery first-encounter
+	# intro, the Station Procurement reveal and the designer drag hint.
+	game_settings.erase("mastery_intro_seen")
+	game_settings.erase("procurement_intro_seen")
+	game_settings.erase("designer_drag_hint_seen")
 	mission_manager.reset()
 	if quest_manager: quest_manager.reset()
 	# v132: bounty was the ONLY manager missing here (it had no reset() at all) —
