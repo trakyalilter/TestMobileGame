@@ -1,8 +1,115 @@
-# Session Handoff — 2026-08-02
+# Session Handoff — 2026-08-08
 
 ---
 
-## LATEST BLOCK (2026-08-02) — STATION PROCUREMENT S1 (v162, Demand Engine)
+## LATEST BLOCK (2026-08-08) — AUDIT, SAVE GUARD, NG+ GEAR LADDER (v174)
+
+28 commits, `b900608..027a7eb`. Started as a full-build audit, turned into closing
+what it found.
+
+### Read these first
+
+- **`.claude/skills/rpg-game-design/`** — general RPG design craft, not this game's
+  rules. Load it for any balance question. Its procedure (measure → distrust the
+  instrument → classify → rule with a number → guard it) is what the rest of this
+  block was produced with.
+- **`docs/BALANCE_REFERENCE.md`** — measured curves: boss HP by zone, rarity table,
+  breach factors, depth floor, prestige formula, XP milestones. Quote from here.
+- **`docs/RULINGS_2026-08-08.md`** — the three balance rulings, each with the
+  measurement and the wrong turns. More useful than the conclusions.
+- **`docs/audit/AUDIT_2026-08-08.md`** — the 48-finding audit this all came from.
+
+### ⚠ A sim harness deleted the developer's save. It is fixed. Do not undo it.
+
+`scripts/sim/*` scenes drive the LIVE `GameState`, and `hard_reset()` ends by
+deleting `savegame.json`, `.bak`, `.tmp` AND `.corrupt.json`. Writing
+`ngplus_reset_check` destroyed a real playthrough and every backup —
+unrecoverable. `boss_gearcheck` alone calls `hard_reset()` ~540 times per run.
+
+`GameState.sim_mode` now auto-detects a launch into any `.tscn` that is not the
+project's `main_scene` and gates **both** `save_game()` and that delete loop. It
+prints `[SIM] sim_mode ON` at boot. New probes that reset or warp should assert
+it before touching state.
+
+### Shipped
+
+**Save / reset integrity**
+- `hard_reset()` was missing 6 NG+ flags, so a New Game left Sectors 13–15
+  enterable while Z11/Z12 were correctly locked. The list is now derived from
+  `combat_manager.get_progression_flags()` (zone unlock flags + clear-flag table +
+  relic `_earned` keys), so a Loop 2 sector cannot go missing from it.
+- `Skill.rebuild_level_silently()` now rebuilds level AND `unlocked_milestones`
+  from scratch. Warping kept milestone bonuses for levels you no longer had; it
+  also fixed a second bug where loading a lower save over a live skill never
+  lowered the level.
+
+**Combat feedback**
+- Exotic damage stopped calling itself kinetic: `CRY`/`COR` tags, cryo WEAK SPOT
+  via `resist_cryo`, corrosion enemies labelled `COR`, weapon battery splits the
+  two exotics (they share `atk_cryo` and both read as "cryo" before).
+
+**NG+ gear ladder — the big one**
+- Z11–Z15 each now have their own **weapon pair** (Lance/Etcher) and **armour +
+  shield**, on four new research techs, dropped by their own boss. Before this,
+  the exotic channel had two weapons for five sectors and NG+ had no defence at
+  all — so a Z15 boss one-shot a fully-geared hull, and Z15 was a seven-hour fight.
+- Boss corrections the measurements forced: Z10 ATK ×1.20, Z11 ATK 280K→105K and
+  HP 20M→15M, Z12 ATK 256K→205K and HP 45M→40M, Z15 ATK 152K→304K, `cryo_lance`
+  10K→20K. Z11 and Z15 were both **inverted** — Z11 hit harder than Z12, and the
+  Z15 capstone hit softest of the whole loop.
+- **`boss_gearcheck`: 15/15 honour the gear rule at 21 trials, 0 violations.** No
+  zone passes on borrowed gear any more.
+
+**Guards repaired** — five of six failing suite scenes were broken probes, not a
+broken game: a stale property that hung the scene to timeout, an assertion that
+could never pass, two hand-copied lists that drifted from the code they mirrored,
+and English literals compared against a Turkish build. Also new:
+`ngplus_reset_check`, `milestone_reset_check`, `damage_label_check`,
+`orders_i18n_check`.
+
+**Orders rename finished** — the whole 8-section HOW TO PLAY briefing had zero
+rows in `strings.csv` and shipped English under Turkish, and still said "Quests".
+
+### Two lessons worth more than the fixes
+
+1. **Nine trials cannot resolve a ~60% win rate.** Z11's rows swung 0/9 → 2/9 →
+   6/9 → 3/9 across *identical* settings, and a 1.3× buff appeared to make things
+   worse. Several rounds were spent tuning that noise before running `--trials=21`
+   showed the true rates. Use 21 near any threshold.
+2. **Distrust a bespoke instrument before the game.** A custom DPS probe reported
+   5.6 *billion* DPS (it counted the whole health bar when a fight ended), then
+   double-counted boss regen, then gave contradictory results between identical
+   runs. The only honest measure of time-to-kill was killing the boss and reading
+   the clock. The long-standing committed harness was right the whole time.
+
+### Next up
+
+1. **Owner ruling needed — the zone gate.** `zone_gate_check` reports 9 cells where
+   maxed zone-N gear can slow-farm zone N+1 trash (~75% slower, but it works). Read
+   as intended Melvor-style bootstrap, or should a wall exist? The probe currently
+   expects a wall and is red because of it.
+2. **Owner ruling — DECISION #30**, the NG+ loop boundary (Fleet Siege Gate vs
+   clear+Warp), then **Loop 2 — Plasma frontier Z16–Z19**.
+3. **~16 audit minors open.** Best of them: `load_game` only migrates when `ver < 3`
+   while saves write version 4 (harmless today, silently skips the next migration);
+   hard reset misses three one-time intro flags; Cryo tooltips describe a downside
+   that has no mechanical backing.
+4. **174 untracked one-shot probe files** in `scripts/sim` and `scenes` — swept for
+   references and nothing tracked cites them, but they are not in git history so
+   deleting is irreversible. Needs an explicit go-ahead.
+
+### Closed by measurement, not by fixing
+
+- **Wood tonnage gap: refuted.** All d5+ materials carry Wood; Z9/Z10 loadouts
+  demand 85K–221K of it. The long-standing concern was wrong.
+- **coach_overlay error flood: did not reproduce.** Zero occurrences all session.
+
+---
+
+
+---
+
+## 2026-08-02 — STATION PROCUREMENT S1 (v162, Demand Engine)
 
 **Spec:** `docs/design/DEMAND_ENGINE.md` · **Audit that motivated it:** `docs/audit/ECONOMY_AUDIT_2026-08-02.md`
 (headline findings: demand is refit-shaped; supply orders covered 4 goods in 15 tiers; matrix
@@ -77,7 +184,7 @@ the probe's ladder print).
 
 ---
 
-## LATEST BLOCK (2026-07-21) — Boss Systems UI + per-boss traits + BEAT 2 industrialization (v139f/g)
+## 2026-07-21 — Boss Systems UI + per-boss traits + BEAT 2 industrialization (v139f/g)
 
 **Commits:** `ebe6b95` (boss skills UI+identity) · `e65db04` (Beat 2 arc) · fidelity commit on top.
 
@@ -204,7 +311,7 @@ this file is the fast catch-up on what changed in the last work block and what's
 
 ---
 
-## LATEST BLOCK (2026-07-16) — Bounty/Quest split (v139)
+## 2026-07-16 — Bounty/Quest split (v139)
 
 **Owner decisions locked:** bounty board split **zone-by-zone as tabs** (unlocked zones only;
 paid refresh targets the ACTIVE tab) · **NO fleet dispatch** — fleet stays a passive post-first-warp
@@ -272,10 +379,22 @@ re-checked against the new cadence before trusting them.
 
 ## Sync state
 
-- **5 commits pushed this session** (HEAD → `5c8b832`, or `HANDOFF` commit on top):
+- Branch `MissionFlow`, working dir `C:\Users\gokbe\Desktop\horizonidle-godot`.
+  Local and `origin/MissionFlow` matched at `027a7eb` when this block was written.
+- **Untracked and deliberately NOT committed:**
+  - `steam/new_screenshots/` — Steam store marketing PNGs (Jun 30), unrelated to dev.
+  - **174 one-shot balance-probe files** in `scripts/sim` and `scenes` (`rft_probe*`,
+    `eft_*`, `chan_*`, `cumrule_*`, `nc_burn`, `infra_breadth_*` and similar), left over
+    from earlier balance investigations. Swept on 2026-08-08: nothing tracked cites any
+    of them. They are not in git history, so deleting is irreversible — needs an explicit
+    go-ahead rather than a tidy-up.
+  - The two probes that **are** cited by shipped code (`nc_audit`, `dr_audit`) were
+    committed in `027a7eb`, along with ten missing `.uid` twins.
+- One dead pointer remains: `shipyard_manager.gd` cites `scripts/sim/eft_verify.gd`,
+  which does not exist. The surrounding comment may still be accurate, so removing the
+  citation is a separate judgement call.
 
-  | Commit | What |
-  |---|---|
+---|---|
   | `f6efd3d` | Balance pass + game-breaker audit (economy, prestige, combat, softlocks) |
   | `1fce48d` | NG+ Loop 1: Corrosion frontier **Z13–Z15** (data + wiring + warp-aware tune) |
   | `d0fa797` | NG+ step 3: map-mod reward system (backend) |

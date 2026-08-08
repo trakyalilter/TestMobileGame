@@ -14,7 +14,7 @@ You operate as a **Senior RPG Game Designer** with 10+ years shipping idle/incre
 
 - **Core loop (skilling):** select a gathering/processing action → tick accumulates elements + skill XP → level up (RuneScape XP curve, **cap 100** [raised from 99 for a round-number capstone + dedicated milestone], table to 120, milestones at 10/25/50/75/100) → higher levels + research unlock better actions/recipes. Single active manager at a time (`GameState.set_active_manager`). Must feel worth committing to within the first action cycle (~3–4s tick).
 - **Meta loop:** processing recipes, research tech tree (gates actions/recipes/buildings), infrastructure buildings (always-on auto-production), shipyard (hulls + module loadout designer), combat zones dropping module loot, missions, bounty contracts, quests. This is where active 5–15 min sessions are spent.
-- **Prestige loop (Warp Core):** reset for **Exotic Matter / Warp Shards**. Gate: `progress_score = lifetime_credits + buildings*1000 ≥ 500k` for first shard; `shards = floor(log2(score/500k)) + 1`. Reset applies **partial XP decay (keep 30%)**, research **persists** (soft reset), grants a starter credit+resource package. Global multipliers: production/combat/gathering/xp scale with shards, ×`2^warp_tier` (tier every 5 warps).
+- **Prestige loop (Warp Core):** reset for **Exotic Matter / Warp Shards**. Gate: `progress_score = lifetime_credits + buildings*1000 ≥ 500k` for first shard; `shards = floor(log2(score/500k)) + 1`. Reset applies **partial XP decay (keep 30%)** and **RESETS research** (v140 owner call — economy spines were buffed to compensate; blueprint-cached buildings keep producing, but you cannot build more or re-equip modules until re-researched), grants a starter credit+resource package. A dead `research_manager.soft_reset()` survives from the old behaviour — do not call it. Global multipliers: production/combat/gathering/xp scale with shards, ×`2^warp_tier` (tier every 5 warps).
 - **Offline progress:** per-manager `calculate_offline(delta)`; triggers when `delta > 10s`. Offline combat is **opt-in, off by default** (`game_settings.offline_combat`). Save is versioned (v1), atomic (`.tmp`→rename, `.bak` backup), autosave every 60s.
 
 ### Resources & currencies (already established — keep identities distinct)
@@ -37,7 +37,7 @@ You operate as a **Senior RPG Game Designer** with 10+ years shipping idle/incre
 - **Single active task is a feature, not a flaw** — but it raises the bar on choice quality. Every unlocked action must be a meaningful "is this the best use of my next hour?" decision. Dead/dominated actions are the core-loop killer here.
 - **Background automation must always pay.** Infrastructure + bounty run regardless of the active task. If background yield is trivial vs. active, the parallel layer is decorative — flag it.
 - **Offline must scale and feel generous.** There is currently **no global offline cap** (logged risk in `docs/audit/AUDIT_LOG.md`). Returning to a fat offline report is the genre's dopamine hit — when a cap is added, set it long (≥ several hours) and never punish below it.
-- **Prestige cadence: first warp fast, full climb LONG.** First warp lands when the player crosses `progress_score ≥ 500K` (hours of play). The 30% XP retention + persistent research + Warp Mastery Tree carry-overs are the "each run is faster" promise — protect it. But the full prestige arc (max all Warp Mastery Tree nodes, multiple branch reveals, endgame content) is a Melvor-like **multi-day commitment** — do not propose accelerating that. Don't let any single reset feel like starting over either.
+- **Prestige cadence: first warp fast, full climb LONG.** First warp lands when the player crosses `progress_score ≥ 500K` (hours of play). The 30% XP retention + Warp Mastery Tree carry-overs + permanent sector unlocks are the "each run is faster" promise — protect it. (Research is NOT a carry-over any more; v140 made it reset and buffed the economy spines to compensate.) But the full prestige arc (max all Warp Mastery Tree nodes, multiple branch reveals, endgame content) is a Melvor-like **multi-day commitment** — do not propose accelerating that. Don't let any single reset feel like starting over either.
 - **Numbers go up.** `FormatUtils` already scales K/M/B/T/q…/d then scientific notation. Embrace big numbers as the genre's love language.
 
 ## Space Theme — already consistent, keep it tight
@@ -78,9 +78,13 @@ Sectors/zones for combat, ship **hulls** (corvette → frigate → destroyer →
 
 ## Current Work State — pick up from here
 
-> 📌 **Latest session snapshot → [`docs/HANDOFF.md`](docs/HANDOFF.md) (2026-07-14).** Read that first for what changed most recently (NG+ Loop 1 Z12–Z15 complete, map-mods, game-breaker audit) and the exact next step. The notes below remain the standing deep context.
+> **Latest session snapshot → [`docs/HANDOFF.md`](docs/HANDOFF.md) (2026-08-08).** Read that first for what changed most recently (full-build audit, save-deletion guard, NG+ weapon + defence ladders, gear-check 15/15) and the exact next step. The notes below remain the standing deep context.
+>
+> **Two reference docs worth knowing about:** [`docs/BALANCE_REFERENCE.md`](docs/BALANCE_REFERENCE.md) has the measured curves (boss HP, rarity table, breach factors, depth floor, prestige formula) — quote from there rather than reconstructing numbers. [`docs/RULINGS_2026-08-08.md`](docs/RULINGS_2026-08-08.md) records the balance rulings and, more usefully, *how they were measured and what went wrong on the way*.
+>
+> **There is a design skill at `.claude/skills/rpg-game-design/`.** Load it for any balance or design question. Its core discipline — measure before ruling, and distrust the instrument before distrusting the game — caught real errors repeatedly on 2026-08-08 and would have caught more if followed sooner.
 
-**Branch:** `MissionFlow` on `origin` (`https://github.com/trakyalilter/horizonidle-godot`). **Working dir:** `C:\Users\gokbe\Documents\horizonidle`. When resuming on a different machine, `git pull origin MissionFlow` to sync. (Branch was `TestFitTool` earlier in the build; switched to `MissionFlow`.)
+**Branch:** `MissionFlow` on `origin` (`https://github.com/trakyalilter/horizonidle-godot`). **Working dir:** `C:\Users\gokbe\Desktop\horizonidle-godot`. When resuming on a different machine, `git pull origin MissionFlow` to sync. (Branch was `TestFitTool` earlier in the build; switched to `MissionFlow`.)
 
 ### Locked design decisions (do NOT relitigate)
 
@@ -140,7 +144,7 @@ Sectors/zones for combat, ship **hulls** (corvette → frigate → destroyer →
 2b. ✅ Cryo UI — pale-ice color `(0.70,0.95,1.0)`, "CRY" tag, `_weapon_type` detects atk_cryo, loot weapon-type filter "cryo" entry.
 3. ✅ Z11 "The Threshold" — `zones["the_threshold"]` (diff 11, `unlock_flag: z11_unlocked`); 5 warp_hardened enemies (`resist_cryo -0.25`) + Threshold Warden boss (~22M base HP, guaranteed cryo_lance drop); Z10-boss kill (`core_id==Z10_Core`) sets flag + signpost; `get_available_zones` honors `unlock_flag`. **CRITICAL: `spawn_enemy` copies `resist_cryo`+`warp_hardened` into `current_enemy`** (gate was dead without it); **warp_hardened exempt from zone-steepening** (base≈effective, predictable tuning).
 4. ✅ C5 repurposed → "Cryo Overcharge: +50% Cryo damage" (`get_tree_cryo_bonus()`, implemented:true, wired into weapon_states dmg_cryo).
-5. ⏳ NG+ escalation framework (Z12+ tiers, map-mods) — large, future. Z11 flag-unlock persists through warp (only hard_reset clears `z11_unlocked`/`cryo_unlocked`).
+5. ✅ NG+ escalation framework (Z12+ tiers, map-mods) — Loop 1 shipped. Z11–Z15 each have their own weapon AND defence tier as of v174; all 15 bosses pass the gear rule at 21 trials. Sector flags persist through warp; only hard_reset clears them, and it now derives the whole list from `combat_manager.get_progression_flags()` rather than a hand-written one that went stale.
 
 **Still open on the arc:** Step 6 (P3) gives the Threshold Warden a telegraphed phase mechanic (it's a strong straight Cryo-check for now). Optional Cryo coach card.
 
@@ -177,5 +181,6 @@ Sectors/zones for combat, ship **hulls** (corvette → frigate → destroyer →
 ### Resume protocol for the other machine
 
 1. Re-read this CLAUDE.md, then **`docs/HANDOFF.md`** for the latest snapshot.
-2. **NG+ Loop 1 (Corrosion, Z12–Z15) is complete + warp-aware tuned; map-mod system + game-breaker audit shipped.** Next: resolve **DECISION #30** (NG+ loop boundary — Fleet Siege Gate vs clear+Warp), then build **Loop 2 — Plasma frontier Z16–Z19** (#28). See HANDOFF.md "Next up".
+2. **NG+ Loop 1 (Corrosion, Z12–Z15) is complete, and as of v174 it has a full gear ladder** — every sector Z11–Z15 has its own weapon and defence tier, and `boss_gearcheck` reports 15/15 honouring the gear rule at 21 trials. Two owner rulings are still open: the **zone-gate question** (`zone_gate_check` reports 9 cells where maxed zone-N gear can slow-farm zone N+1 trash — intended Melvor-style bootstrap, or a wall that should exist?) and **DECISION #30** (NG+ loop boundary — Fleet Siege Gate vs clear+Warp). Then **Loop 2 — Plasma frontier Z16–Z19** (#28).
 3. The 6 deferred Warp-tree mechanic nodes (E3/E4/E5/C3/C4/C5) can still be backfilled any time — **E5 Reclamation Foundry** (~30 min, new building entry) is the quick win.
+4. **Run the suite before trusting any balance claim**, and give it `--trials=21` near a pass threshold. Nine trials cannot resolve a ~60% win rate: on 2026-08-08 Z11's rows swung 0/9 → 6/9 → 3/9 across identical settings and several rounds of tuning were spent chasing that noise.
