@@ -125,9 +125,12 @@ func _ready() -> void:
 		_notes.clear()
 		cm._pending_death_cause = "nuke"
 		cm.lose_fight()
+		# Compare against tr() of the SAME key, not the English literal: the game
+		# runs under whatever locale is set (tr here), so "MAIN CANNON" matched
+		# nothing and this reported a defect that did not exist.
 		var got_nuke := false
 		for n in _notes:
-			if "MAIN CANNON" in n: got_nuke = true
+			if n == tr("KILLED BY MAIN CANNON SPIKE"): got_nuke = true
 		_ok("nuke death attributed", got_nuke)
 		_ok("cause resets after loss", cm._pending_death_cause == "attack")
 		_spawn(eid_any)
@@ -136,7 +139,7 @@ func _ready() -> void:
 		cm.lose_fight()
 		var got_cor := false
 		for n in _notes:
-			if "CORROSION" in n: got_cor = true
+			if n == tr("KILLED BY CORROSION"): got_cor = true
 		_ok("corrosion death attributed", got_cor)
 		_spawn(eid_any)
 		_notes.clear()

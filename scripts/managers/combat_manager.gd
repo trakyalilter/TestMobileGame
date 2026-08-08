@@ -2202,6 +2202,18 @@ func get_progression_flags() -> Array:
 			out.append(r + "_earned")
 	return out
 
+# v174: the enemy dmg_type -> floating-label tag. Extracted from the attack block
+# so it has ONE definition a guard can call directly; the previous inline match
+# was missing "corrosion" entirely, and the two NG+ bosses that attack with it
+# floated "-N KIN" — indistinguishable from a plain kinetic swing on the
+# frontier whose whole identity is corrosion.
+func damage_type_tag(dmg_type: String) -> String:
+	match dmg_type:
+		"energy": return "NRG"
+		"explosive": return "EXP"
+		"corrosion": return "COR"
+	return "KIN"
+
 func get_available_zones() -> Array:
 	var available = []
 	for zid in zones:
@@ -3008,17 +3020,33 @@ func _execute_player_attack(weapon_idx: int):
 	_check_phase_transition()  # v113 (NG+ P1): telegraph if this hit crossed an HP band
 
 	# v86.0: Typed damage labels
+	# v174: the EXOTIC channel was missing here. Cryo-Lance and Corrosion Blaster
+	# are pure atk_cryo (k = e = x = 0), so both comparisons below were false and
+	# every exotic hit fell through to the "KIN" default — at the Z11+ gate, where
+	# conventional damage is cut 98%, the game floated "-N KIN" and taught the
+	# player the exact opposite of the mechanic they had just solved. Checked
+	# FIRST and by presence rather than dominance: the exotic channel is not a
+	# member of the K/E/X triangle and its numbers are on a different scale, so
+	# "biggest wins" would be meaningless. Cryo and Corrosion are the same channel
+	# split by exotic_type, and the player must be able to tell them apart — that
+	# distinction IS the Z12-Z15 phase-swap mechanic.
 	var type_tag = "KIN"
-	if p_atk_e > p_atk_k and p_atk_e > p_atk_x: type_tag = "NRG"
+	if p_atk_cryo > 0.0:
+		type_tag = "COR" if String(w.get("exotic_type", "cryo")) == "corrosion" else "CRY"
+	elif p_atk_e > p_atk_k and p_atk_e > p_atk_x: type_tag = "NRG"
 	elif p_atk_x > p_atk_k and p_atk_x > p_atk_e: type_tag = "EXP"
-	
+
 	if res[0] > 0: combat_events.append({"type": "dmg_shield", "text": "-%d %s" % [res[0], type_tag], "color": Color.CYAN, "side": "enemy"})
 	if res[1] > 0: combat_events.append({"type": "dmg_hull", "text": "-%d %s" % [res[1], type_tag], "color": Color.RED, "side": "enemy"})
-	
+
 	# v86.0: Resistance feedback
+	# v174: exotic reads resist_cryo. Z11's five enemies are resist_k/e/x 0.0 with
+	# resist_cryo -0.25, so this block could only ever see 0.0 and WEAK SPOT never
+	# fired at the one fight built entirely around a weakness.
 	var dominant_resist = current_enemy.get("resist_k", 0.0)
 	if type_tag == "NRG": dominant_resist = current_enemy.get("resist_e", 0.0)
 	elif type_tag == "EXP": dominant_resist = current_enemy.get("resist_x", 0.0)
+	elif type_tag == "CRY" or type_tag == "COR": dominant_resist = current_enemy.get("resist_cryo", 0.0)
 	
 	if dominant_resist >= 0.20 and randf() < 0.15: # 15% chance to show feedback (anti-spam)
 		combat_events.append({"type": "resist", "text": "RESISTED", "color": Color.GRAY, "side": "enemy"})
@@ -3292,6 +3320,16 @@ func _execute_enemy_attack():
 				e_atk_e = e_atk * ENEMY_ENERGY_ATK_COMP
 			"explosive":
 				e_atk_x = e_atk * ENEMY_EXPLOSIVE_ATK_COMP
+			# v174: "corrosion" (z13 Verdigris Warden, z15 Caustic Sovereign) has no
+			# player-side resist stat of its own, so it rides the kinetic mitigation
+			# channel — armour plate against acid. That was already true via the
+			# default arm below, but only by accident; both bosses were TUNED with
+			# resist_k applying, so this stays and is now deliberate rather than a
+			# silent fallthrough. Only the label was wrong (see e_type_tag).
+			# A real resist_corrosion would be a new stat + affix + module rolls +
+			# save migration; worth doing when Loop 2 lands, not as a drive-by.
+			"corrosion":
+				e_atk_k = e_atk
 			_:
 				e_atk_k = e_atk
 		# v127: player per-type damage RESISTANCE. Only the enemy's active type
@@ -3349,10 +3387,7 @@ func _execute_enemy_attack():
 				if randf() < 0.25:
 					combat_events.append({"type": "status", "trait": "siphon", "text": "SHIELD SIPHONED -%d" % int(_steal), "color": Color(0.80, 0.50, 1.0), "side": "player"})
 		# v87.0: Typed damage labels for enemy attacks
-		var e_type_tag = "KIN"
-		match current_enemy.get("dmg_type", "kinetic"):
-			"energy": e_type_tag = "NRG"
-			"explosive": e_type_tag = "EXP"
+		var e_type_tag: String = damage_type_tag(String(current_enemy.get("dmg_type", "kinetic")))
 		if eres[0] > 0: combat_events.append({"type": "dmg_shield", "text": "-%d %s" % [eres[0], e_type_tag], "color": Color.CYAN, "side": "player"})
 		if eres[1] > 0: combat_events.append({"type": "dmg_hull", "text": "-%d %s" % [eres[1], e_type_tag], "color": Color.RED, "side": "player"})
 	if sm.current_hp <= 0: lose_fight()

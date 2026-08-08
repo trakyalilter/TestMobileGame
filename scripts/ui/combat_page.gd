@@ -1502,8 +1502,17 @@ func _rebuild_weapon_battery(w_states):
 				fill_color = Color(1.0, 0.5, 0.3) # Explosive: Orange-Red
 				type_tag = "EXP"
 			"cryo":
-				fill_color = Color(0.45, 0.95, 0.95) # Cryo: Icy Cyan
-				type_tag = "CRY"
+				# v174: Cryo and Corrosion share the atk_cryo channel and both arrive
+				# here as type "cryo", so the battery drew CRY for both. From Z12 on,
+				# knowing WHICH exotic each barrel carries is the fight — the Wardens
+				# harden against one phase at a time and the answer is swapping to the
+				# other. exotic_type is what splits them.
+				if String(w.get("exotic_type", "cryo")) == "corrosion":
+					fill_color = Color(0.70, 1.0, 0.40) # Corrosion: Acid Green
+					type_tag = "COR"
+				else:
+					fill_color = Color(0.45, 0.95, 0.95) # Cryo: Icy Cyan
+					type_tag = "CRY"
 		
 		var sb_fill = StyleBoxFlat.new()
 		sb_fill.bg_color = fill_color
