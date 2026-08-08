@@ -1531,7 +1531,7 @@ var enemy_db = {
 		# v139d Rare-gate matrix: Rare cryo was 0/5 (one L6% heartbreak) and even
 		# Legendary 1/5 — over the 5-10min envelope's winrate bar. hp 22M->20M,
 		# enrage 1.5->1.35.
-		"stats": {"hp": 20000000, "max_shield": 500000, "atk": 280000, "def": 52000, "atk_interval": 2.0, "accuracy": 260},
+		"stats": {"hp": 15000000, "max_shield": 500000, "atk": 105000, "def": 52000, "atk_interval": 2.0, "accuracy": 260},
 		"enrage_at": 0.5, "enrage_atk_mult": 1.35,  # v109: last-stand ATK surge below 50% HP — burst it down or out-sustain it
 		"loot": [["credits", 100000000, 200000000], ["ExoticMatter", 30, 60], ["ChronoCore", 10, 20], ["PrimordialShard", 20, 40]],
 		"rare_loot": [["cryo_lance", 1.0, 1, 1]],
@@ -1592,7 +1592,7 @@ var enemy_db = {
 		# warp-aware ng_tune.gd showed the real (warp-boosted) player beat 28M/375K in only
 		# ~4.6 min at 3-4/9 — too fast + survivability-marginal (eff atk 375K×1.25 catch-up
 		# ≈ 469K, edge of survivable). 45M/320K → ~8-9 min, matching the Z13-Z15 loop.
-		"stats": {"hp": 45000000, "max_shield": 800000, "atk": 205000, "def": 70000, "atk_interval": 2.0, "accuracy": 300},
+		"stats": {"hp": 40000000, "max_shield": 800000, "atk": 205000, "def": 70000, "atk_interval": 2.0, "accuracy": 300},
 		"phases": ["cryo", "corrosion"], "phase_cut": 0.15,
 		"relic_drop": "rift_relic",  # v113 (NG+ P2): guaranteed master key on first clear
 		"enrage_at": 0.4, "enrage_atk_mult": 1.3,

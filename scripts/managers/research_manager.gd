@@ -1039,6 +1039,8 @@ var tech_tree = {
 			"Cryo Repeater (Weapon Craft)",
 			"Cryo Cannon (Weapon Craft)",
 			"Cryo-Lance (Weapon Craft)",
+					"Threshold Bulwark (Armor Craft)",
+			"Threshold Barrier (Shield Craft)",
 		],
 		"flavor": "Weaponize Exotic Condensate — the only force that breaches Warp-Hardened hulls. Requires a Warp Core activation.",
 	},

@@ -1237,7 +1237,16 @@ var modules: Dictionary = {
 		# (see z11_boss_threshold_warden comment) — the module shipped at 4000,
 		# 2.5× under spec, making Z11 secretly harder than its ~19-min design and
 		# Z12 phase-1 an unwinnable slog. Restoring 10K repairs both.
-		"stats": {"atk_cryo": 10000, "atk_interval": 2.0},
+		"stats": {"atk_cryo": 20000, "atk_interval": 2.0},
+		# v174 (owner ruling: Z11 must clear on Rare gear AT that zone). Every other
+		# sector's boss is answered by that sector's own weapon tier; Z11's was the
+		# entry-level prestige unlock, and at 10K it left the zone's own Rare row at
+		# 0/9 while a CARRIED Zone-10 Unique cleared 9/9 — the gate was passing on
+		# borrowed gear. Buffing defence 1.8x moved Rare 0/9 -> 2/9 and a 25% HP cut
+		# moved it back to 0/9, i.e. the rarity roll (x1.25-1.45 on Rare) was swamping
+		# both. Doubling the weapon halves TTK instead of nudging the survival cliff,
+		# so even the worst Rare roll clears with room. Z11 and Z12 bosses were both
+		# retuned in this same pass, so nothing is still calibrated against 10K.
 		# v156: authored at the FINAL CHARGED values (previously {15,12,50,20}
 		# multiplied at boot by 1.55^9 = 51.6). The Z11 Threshold gate is tuned
 		# against these numbers, so they opt out of the zone cost curve via
@@ -1277,6 +1286,37 @@ var modules: Dictionary = {
 		"research_req": "corrosion_armaments"
 	},
 
+	# ── SECTOR 11 KIT (v174, owner ruling) ────────────────────────────────────
+	# Z11 was the one zone with no gear set of its own: the Threshold gave you the
+	# Cryo-Lance and nothing to wear, so defence fell back to z10 and the zone's own
+	# Rare and Legendary rows both read 0/9. It only "passed" through the Zone-10
+	# Unique clause — a x2.4-3.2 rarity roll on a carried weapon papering over a
+	# missing tier — and that cell swung 4/9 to 8/9 across runs, so the verdict was
+	# a coin flip. Owner ruling: Z11 must pass on Rare or better AT THAT ZONE.
+	# Values interpolate the z10 -> z12 line, which is where a Z11 tier belongs.
+	"z11_armor": {
+		"name": "Threshold Bulwark",
+		"slot_type": "armor",
+		"stats": {"def": 24000, "hp": 96000, "resist_k": 0.09, "resist_e": 0.09, "resist_x": 0.09},
+		"cost_authored": true,
+		"cost": {"credits": 9000000, "ExoticMatter": 1800, "CryoEssence": 1400, "OmegaPlating": 1100, "Neutronium": 5000},
+		"desc": "Sector 11 plating. Warp-tempered against the Threshold's cold.",
+		"zone": 11,
+		"power_tier": 9,
+		"research_req": "cryo_armaments"
+	},
+	"z11_shield": {
+		"name": "Threshold Barrier",
+		"slot_type": "shield",
+		"stats": {"max_shield": 192000, "shield_regen": 1870, "resist_e": 0.09},
+		"cost_authored": true,
+		"cost": {"credits": 8000000, "ExoticMatter": 1600, "CryoEssence": 1300, "OmegaPlating": 950, "Ti": 14000},
+		"desc": "Sector 11 deflector envelope. Holds against warp-hardened fire.",
+		"zone": 11,
+		"power_tier": 9,
+		"research_req": "cryo_armaments"
+	},
+
 	# ══ NG+ DEFENSIVE LADDER (v174) ═══════════════════════════════════════════
 	# The weapon ladder above fixed offence and immediately exposed this: NG+ had
 	# no armour or shield of its own either, so the player's defence stayed pinned
@@ -1295,7 +1335,7 @@ var modules: Dictionary = {
 	"z12_armor": {
 		"name": "Rift Bulwark",
 		"slot_type": "armor",
-		"stats": {"def": 13230, "hp": 53062, "resist_k": 0.05, "resist_e": 0.05, "resist_x": 0.05},
+		"stats": {"def": 22820, "hp": 91530, "resist_k": 0.05, "resist_e": 0.05, "resist_x": 0.05},
 		"cost_authored": true,
 		"cost": {"credits": 25000000, "ExoticMatter": 3400, "OmegaPlating": 2600, "VoidLattice": 1400, "Neutronium": 9000},
 		"desc": "Sector 12 plating. Layered against the frontier's acid and cold alike.",
@@ -1306,7 +1346,7 @@ var modules: Dictionary = {
 	"z12_shield": {
 		"name": "Rift Barrier",
 		"slot_type": "shield",
-		"stats": {"max_shield": 106124, "shield_regen": 816, "resist_e": 0.05},
+		"stats": {"max_shield": 183065, "shield_regen": 1407, "resist_e": 0.05},
 		"cost_authored": true,
 		"cost": {"credits": 22500000, "ExoticMatter": 3400, "OmegaPlating": 2600, "VoidLattice": 1400, "Neutronium": 9000},
 		"desc": "Sector 12 deflector envelope. Regenerates fast enough to matter between phase swings.",
