@@ -64,8 +64,8 @@ func update_state():
 
 # v134: claim_reward pays reward_cr x the warp production multiplier — show the
 # amount that will ACTUALLY be paid (the raw base understated it after warping).
-# reward_xp is granted too now, so surface it. format_number keeps late-game
-# rewards readable (300K, 1.2M...). Goals like THE GREAT EXPEDITION pay XP only.
+# format_number keeps late-game rewards readable (300K, 1.2M...).
+# v174: reward_xp is no longer granted or shown.
 func _reward_str() -> String:
 	var parts: Array = []
 	var cr: float = float(data["reward_cr"])
@@ -73,9 +73,8 @@ func _reward_str() -> String:
 		if GameState.warp_manager:
 			cr = cr * GameState.warp_manager.get_production_multiplier()
 		parts.append(tr("%s Liras") % FormatUtils.format_number(cr))
-	var xp: float = float(data.get("reward_xp", 0))
-	if xp > 0.0:
-		parts.append(tr("+%s XP") % FormatUtils.format_number(xp))
+	# v174: missions no longer pay skill XP, so the card no longer promises it.
+	# Leaving the line would have been a straightforward lie on every mission.
 	if parts.is_empty():
 		return tr("0 Liras")
 	return "  ".join(parts)

@@ -457,9 +457,9 @@ func init_missions():
 		# field). Legacy values (1M/250K/2M) were written when XP paid nothing — live,
 		# they'd insta-level a skill past the 30%-retention warp design. Sized as
 		# one-time "lamps": a satisfying chunk (~1-3 levels at claim era), not a skip.
-		["goal_001", "THE GREAT EXPEDITION", "Reach Sector Epsilon and discover the Primordial Core.", "discover", "sector_epsilon", 1, 0, 250000, ""],
-		["goal_002", "INTO THE VOID", "Perform your first Warp. Your Liras and materials reset, but you gain Exotic Matter Shards for permanent multipliers that make each run stronger.", "warp_perform", "warp", 1, 0, 50000, ""],
-		["goal_003", "PRESTIGE VETERAN", "Perform 5 Warps total to fully unlock Warp Tier scaling.", "warp_perform", "warp", 5, 0, 500000, ""],
+		["goal_001", "THE GREAT EXPEDITION", "Reach Sector Epsilon and discover the Primordial Core.", "discover", "sector_epsilon", 1, 250000, 0, ""],
+		["goal_002", "INTO THE VOID", "Perform your first Warp. Your Liras and materials reset, but you gain Exotic Matter Shards for permanent multipliers that make each run stronger.", "warp_perform", "warp", 1, 50000, 0, ""],
+		["goal_003", "PRESTIGE VETERAN", "Perform 5 Warps total to fully unlock Warp Tier scaling.", "warp_perform", "warp", 5, 500000, 0, ""],
 		["goal_cryo_1", "FORGE CRYOGENIC ARMS", "The Threshold (Sector 11) is warp-hardened — only Cryo weapons breach it. Research Cryogenic Armaments in the Warp Tech tab (prereqs: Energy Metrics, then Cryogenic Systems).", "research", "cryo_armaments", 1, 3000000, 0, "goal_cryo_2"],
 		["goal_cryo_2", "FORGE CRYOGENIC ARMS", "Craft a Cryo Lance in the Shipyard. It needs Cryo Catalyst - farm it from Sector 10 enemies.", "craft", "cryo_lance", 1, 6000000, 0, "goal_cryo_3"],
 		["goal_cryo_3", "BREACH THE THRESHOLD", "Destroy a Warp Revenant in The Threshold (Sector 11) with your Cryo armaments.", "defeat", "z11_warp_revenant", 1, 15000000, 0, ""],
@@ -667,12 +667,13 @@ func claim_reward(mission_id) -> bool:
 				reward = int(reward * GameState.warp_manager.get_production_multiplier())
 			GameState.resources.add_currency("credits", reward)
 
-		# v134: reward_xp existed on every mission but was NEVER granted (dead field).
-		# Wire it: the XP lands on the skill the mission actually exercised — combat
-		# for fight/loadout beats, Engineering for craft/research/industry, Mining for
-		# raw-material gathers (see _grant_reward_xp).
-		if m["reward_xp"] > 0:
-			_grant_reward_xp(m)
+		# v174 (owner): missions pay NO skill XP. v134 had wired reward_xp onto "the
+		# skill the mission exercised", but the routing sent research/craft/build beats
+		# to Engineering — so m002 "Foundational Research" handed out 200 Engineering
+		# XP and put a brand-new player at Engineering 2 having crafted nothing. Levels
+		# should come from doing the thing. Missions pay Liras; skills pay themselves.
+		# _grant_reward_xp is kept below, unreferenced, so the routing table is still
+		# readable if this is ever revisited.
 
 		# v128: bootstrap the crafting loop — finishing the awaken tutorial hands the
 		# player 2 more Splice Chips so they can keep experimenting past the mission.
