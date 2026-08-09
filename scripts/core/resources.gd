@@ -34,10 +34,12 @@ func seed_starter_kit() -> void:
 	# Shield Booster needs Engineering Lv.2; the player clears Lv.2 while doing the
 	# Si/Fe refine at m005). A little of everything, no auto-completes, no under-
 	# levelling. Dirt is left short of m001's 350 so the first gather is still taught.
+	# v174 (owner): trimmed to the four raws the opening actually uses. SlugT1
+	# dropped — m016 teaches you to make ammo, and nothing before it fights, so
+	# handing over 25 rounds only blunted that beat.
 	var kit := {
 		"Dirt": 120, "Water": 100,
 		"Fe": 25, "Si": 30,
-		"SlugT1": 25,
 	}
 	for sym in kit:
 		add_element(sym, int(kit[sym]))

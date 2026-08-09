@@ -75,24 +75,98 @@ func _ready() -> void:
 		_fail("centrifuge_dirt gates on '%s' — processing should still need the research" % cent)
 	print("[ONB] centrifuge_dirt still gates on '%s'" % cent)
 
+	_check_material_order(mm, GameState.shipyard_manager, pm)
+
 	print("[ONB] RESULT: %s (%d failure(s))" % ["PASS" if fails == 0 else "FAIL", fails])
 	get_tree().quit(0 if fails == 0 else 1)
 
 
-# ---- 5. NOT CHECKED: "no beat may need a material no earlier beat introduced"
+# ---- 5. no beat may need a material no earlier beat introduced ----------
+# The ordering rule: a beat must never demand something the chain has not yet
+# taught you to obtain. Carries a REACHABLE set seeded from the actual starter
+# kit, grown by each gather beat, and expanded to a fixed point through any
+# recipe whose inputs are already reachable.
 #
-# Attempted and removed. It could not be made to fail, through four revisions,
-# and a check that cannot fail is worse than no check — it reads as coverage.
-# The premise is broken by the game itself: the starter kit already grants C, Cu,
-# Li, Malachite, Spodumene AND Wood — every material the industrial block later
-# teaches the player to mine — so "has the chain taught you to get this yet" has
-# no clean answer. Seed the reachable set from the kit and everything is
-# reachable from beat zero; seed it empty and you are asserting a fiction, since
-# the player really does hold those materials.
-#
-# Worth revisiting only if the starter kit is trimmed to the raws the opening
-# actually uses (Dirt/Water/Fe/Si). Then the ordering rule becomes testable and
-# this is the check to write.
+# I removed this once, believing the starter kit granted the six industrial
+# materials and made everything reachable from beat zero. It does not — that was
+# the live dev save read by mistake. A fresh game starts with Dirt/Water/Fe/Si,
+# so the rule is testable after all.
+func _check_material_order(mm, sm, pm) -> void:
+	var res_script = load("res://scripts/core/resources.gd")
+	var fresh = res_script.new()
+	fresh.seed_starter_kit()
+	var have: Dictionary = {}
+	for sym in fresh.elements:
+		have[str(sym)] = true
+	var seed_list: Array = have.keys()
+	_expand(have, pm)
+
+	var cur := "m001"
+	var n := 0
+	while cur != "" and n < 45:
+		var m: Dictionary = mm.missions.get(cur, {})
+		if m.is_empty():
+			break
+		var t := str(m.get("type", ""))
+		var wants: Array = []
+		if t == "gather":
+			wants.append(str(m.get("target", "")))
+		elif t == "gather_multi":
+			for k in (m.get("target", {}) as Dictionary):
+				wants.append(str(k))
+		elif t == "craft" or t == "construct":
+			var mid := str(m.get("target", ""))
+			var cost: Dictionary = {}
+			if mid in sm.modules:
+				cost = sm.modules[mid].get("cost", {})
+			elif mid in sm.hulls:
+				cost = sm.hulls[mid].get("cost", {})
+			for k2 in cost:
+				wants.append(str(k2))
+
+		# check BEFORE teaching, or a beat validates itself
+		for w in wants:
+			if str(w) == "credits" or have.has(w):
+				continue
+			if _gatherable(w):
+				continue      # this beat legitimately teaches you to mine it
+			_fail("%s (%s) needs %s — no earlier beat provides it" % [
+				cur, str(m.get("target", "")).substr(0, 20), w])
+		for w2 in wants:
+			have[w2] = true
+		_expand(have, pm)
+		cur = str(m.get("next_mission", ""))
+		n += 1
+	print("[ONB] material order: seed %s -> %d reachable across %d beats" % [
+		str(seed_list), have.size(), n])
+
+
+func _gatherable(sym: String) -> bool:
+	for aid in GameState.gathering_manager.actions:
+		for row in GameState.gathering_manager.actions[aid].get("loot_table", []):
+			if String((row as Array)[0]) == sym:
+				return true
+	return false
+
+
+# Grow the reachable set to a fixed point.
+func _expand(have: Dictionary, pm) -> void:
+	var changed := true
+	while changed:
+		changed = false
+		for rid in pm.recipes:
+			var r: Dictionary = pm.recipes[rid]
+			var ok := true
+			for k in r.get("input", {}):
+				if not have.has(String(k)):
+					ok = false
+					break
+			if not ok:
+				continue
+			for o in r.get("output", {}):
+				if not have.has(String(o)):
+					have[String(o)] = true
+					changed = true
 
 func _fail(msg: String) -> void:
 	print("[ONB] FAIL: %s" % msg)
