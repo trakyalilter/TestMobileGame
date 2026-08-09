@@ -1028,6 +1028,8 @@ var hulls: Dictionary = {
 		"name": "Corvette",
 		"stats": {"hp": 120, "energy_capacity": 25},
 		"cost": {"credits": 0},
+		# v174: +1 WEAPON every tier; the second slot alternates defence / battery.
+		# Same total as the old table — the DISTRIBUTION changed, not the budget.
 		"slots": ["weapon", "weapon", "shield", "armor", "engine", "battery", "battery", "sensor"], # 8
 		"visual": "res://assets/ships/1.png",
 		"tier": 1
@@ -1042,7 +1044,9 @@ var hulls: Dictionary = {
 		# v139c band surgery: 4 -> 3 plating (m026b measured 0.7h active on the
 		# 1h/day pacing curve — the frigate beat targets ~0.5h).
 		"cost": {"credits": 30000, "Steel": 50, "ReinforcedPlating": 3},
-		"slots": ["weapon", "weapon", "shield", "shield","armor", "armor", "engine", "battery", "battery", "sensor"], # 10
+		# v174: +1 WEAPON every tier; the second slot alternates defence / battery.
+		# Same total as the old table — the DISTRIBUTION changed, not the budget.
+		"slots": ["weapon", "weapon", "weapon", "shield", "shield", "armor", "engine", "battery", "battery", "sensor"], # 10
 		"research_req": "shipwright_1",
 		"visual": "res://assets/ships/2.png",
 		"tier": 2
@@ -1057,7 +1061,9 @@ var hulls: Dictionary = {
 		# v139c band surgery: 5 -> 3 (m030c was the single fattest pre-warp mission
 		# at 1.55h active; the plating chain is salvage-bound, not skill-bound).
 		"cost": {"credits": 90000, "Steel": 100, "Circuit": 20, "ReinforcedPlating": 3},
-		"slots": ["weapon", "weapon", "weapon", "shield", "shield", "armor", "armor", "engine", "battery", "battery", "battery", "sensor"], # 12
+		# v174: +1 WEAPON every tier; the second slot alternates defence / battery.
+		# Same total as the old table — the DISTRIBUTION changed, not the budget.
+		"slots": ["weapon", "weapon", "weapon", "weapon", "shield", "shield", "armor", "engine", "battery", "battery", "battery", "sensor"], # 12
 		"research_req": "shipwright_2",
 		"visual": "res://assets/ships/3.png",
 		"tier": 3
@@ -1073,7 +1079,9 @@ var hulls: Dictionary = {
 		# raw — no MODULE_COST_ZONE_BASE, no TIER_ALLOY_BY_ZONE, no research mult),
 		# so these are FINAL values, not authored-then-multiplied ones.
 		"cost": {"credits": 270000, "WreckforgedAlloy": 15, "Steel": 250, "Ti": 120},
-		"slots": ["weapon", "weapon", "weapon", "shield", "shield", "shield", "armor", "armor", "engine", "battery", "battery", "battery", "sensor", "sensor"], # 14
+		# v174: +1 WEAPON every tier; the second slot alternates defence / battery.
+		# Same total as the old table — the DISTRIBUTION changed, not the budget.
+		"slots": ["weapon", "weapon", "weapon", "weapon", "weapon", "shield", "shield", "armor", "armor", "engine", "battery", "battery", "battery", "sensor"], # 14
 		"research_req": "zone_4_access",
 		"visual": "res://assets/ships/4.png",
 		"tier": 4
@@ -1087,7 +1095,9 @@ var hulls: Dictionary = {
 		# now keys on the zone-(N-1) alloy, matching cruiser_hull. Hull costs bypass
 		# all scaling layers, so these are final values.
 		"cost": {"credits": 810000, "RimeAlloy": 15, "Superalloy": 300, "Ti": 200},
-		"slots": ["weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "armor", "armor", "engine", "battery", "battery", "battery", "battery", "sensor", "sensor"], # 16
+		# v174: +1 WEAPON every tier; the second slot alternates defence / battery.
+		# Same total as the old table — the DISTRIBUTION changed, not the budget.
+		"slots": ["weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "shield", "shield", "armor", "armor", "engine", "battery", "battery", "battery", "battery", "sensor"], # 16
 		"research_req": "zone_5_access",
 		"visual": "res://assets/ships/5.png",
 		"tier": 5
@@ -1104,7 +1114,9 @@ var hulls: Dictionary = {
 		# automatable stock, matching cruiser/battlecruiser. Hull costs bypass all
 		# scaling layers (construct_hull reads this dict raw), so these are FINAL.
 		"cost": {"credits": 2430000, "XenoforgedAlloy": 12, "Superalloy": 500, "Ti": 350},
-		"slots": ["weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "armor", "armor", "armor", "engine", "engine", "battery", "battery", "battery", "battery", "sensor", "sensor"], # 18
+		# v174: +1 WEAPON every tier; the second slot alternates defence / battery.
+		# Same total as the old table — the DISTRIBUTION changed, not the budget.
+		"slots": ["weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "armor", "armor", "engine", "battery", "battery", "battery", "battery", "sensor"], # 18
 		"research_req": "zone_6_access",
 		"visual": "res://assets/ships/5.png",
 		"tier": 6
@@ -1118,7 +1130,9 @@ var hulls: Dictionary = {
 		# locked when this hull unlocks). ~50 serial Zone-7 kills, unautomatable, zero
 		# depth. Now zone-(N-1) alloy + automatable stock, matching every tier below.
 		"cost": {"credits": 7290000, "ColonyAlloy": 10, "AdvCircuit": 350, "Superalloy": 700},
-		"slots": ["weapon", "weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "armor", "armor", "armor", "engine", "engine", "battery", "battery", "battery", "battery", "sensor", "sensor"], # 20
+		# v174: +1 WEAPON every tier; the second slot alternates defence / battery.
+		# Same total as the old table — the DISTRIBUTION changed, not the budget.
+		"slots": ["weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "armor", "armor", "engine", "battery", "battery", "battery", "battery", "battery", "sensor"], # 20
 		"research_req": "zone_7_access",
 		"visual": "res://assets/ships/5.png",
 		"tier": 7
@@ -1135,7 +1149,9 @@ var hulls: Dictionary = {
 		# zone_8_access, the same tech that unlocks this hull, so keying on it would
 		# give the player zero head start and re-create the unbuildable-on-unlock shape.
 		"cost": {"credits": 21870000, "GammaAlloy": 8, "AdvCircuit": 800, "Graphite": 400},
-		"slots": ["weapon", "weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "armor", "armor", "armor", "engine", "engine", "battery", "battery", "battery", "battery", "battery", "sensor", "sensor", "sensor"], # 22
+		# v174: +1 WEAPON every tier; the second slot alternates defence / battery.
+		# Same total as the old table — the DISTRIBUTION changed, not the budget.
+		"slots": ["weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "armor", "armor", "armor", "engine", "battery", "battery", "battery", "battery", "battery", "sensor"], # 22
 		"research_req": "zone_8_access",
 		"visual": "res://assets/ships/5.png",
 		"tier": 8
@@ -1150,7 +1166,9 @@ var hulls: Dictionary = {
 		# behind neutronium_synthesis and yields 0.4/10s, so it is not available either.
 		# Keys on PrismaticAlloy (zone_8_access), one tech ahead of this hull.
 		"cost": {"credits": 65610000, "PrismaticAlloy": 6, "AdvCircuit": 1500, "W": 800},
-		"slots": ["weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "armor", "armor", "armor", "armor", "engine", "engine", "battery", "battery", "battery", "battery", "battery", "sensor", "sensor", "sensor"], # 24
+		# v174: +1 WEAPON every tier; the second slot alternates defence / battery.
+		# Same total as the old table — the DISTRIBUTION changed, not the budget.
+		"slots": ["weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "armor", "armor", "armor", "engine", "battery", "battery", "battery", "battery", "battery", "battery", "sensor"], # 24
 		"research_req": "zone_9_access",
 		"visual": "res://assets/ships/5.png",
 		"tier": 9
@@ -1165,7 +1183,9 @@ var hulls: Dictionary = {
 		# CONSUMES shards rather than producing them. Keys on BioforgedAlloy
 		# (zone_9_access) + the Z10 rung's own carrier.
 		"cost": {"credits": 196830000, "BioforgedAlloy": 5, "Superalloy": 3000, "Ir": 150},
-		"slots": ["weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "shield", "armor", "armor", "armor", "armor", "engine", "engine", "battery", "battery", "battery", "battery", "battery", "battery", "sensor", "sensor", "sensor"], # 26
+		# v174: +1 WEAPON every tier; the second slot alternates defence / battery.
+		# Same total as the old table — the DISTRIBUTION changed, not the budget.
+		"slots": ["weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "weapon", "shield", "shield", "shield", "shield", "armor", "armor", "armor", "engine", "battery", "battery", "battery", "battery", "battery", "battery", "sensor"], # 26
 		"research_req": "zone_10_access",
 		"visual": "res://assets/ships/5.png",
 		"tier": 10
