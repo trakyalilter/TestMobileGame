@@ -79,6 +79,21 @@ func _ready() -> void:
 	get_tree().quit(0 if fails == 0 else 1)
 
 
+# ---- 5. NOT CHECKED: "no beat may need a material no earlier beat introduced"
+#
+# Attempted and removed. It could not be made to fail, through four revisions,
+# and a check that cannot fail is worse than no check — it reads as coverage.
+# The premise is broken by the game itself: the starter kit already grants C, Cu,
+# Li, Malachite, Spodumene AND Wood — every material the industrial block later
+# teaches the player to mine — so "has the chain taught you to get this yet" has
+# no clean answer. Seed the reachable set from the kit and everything is
+# reachable from beat zero; seed it empty and you are asserting a fiction, since
+# the player really does hold those materials.
+#
+# Worth revisiting only if the starter kit is trimmed to the raws the opening
+# actually uses (Dirt/Water/Fe/Si). Then the ordering rule becomes testable and
+# this is the check to write.
+
 func _fail(msg: String) -> void:
 	print("[ONB] FAIL: %s" % msg)
 	fails += 1

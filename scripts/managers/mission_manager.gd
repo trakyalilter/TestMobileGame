@@ -91,7 +91,7 @@ func init_missions():
 		["m007", "Mobility Check", "Craft a 'Basic Thruster' in the Shipyard.", "craft", "z1_engine", 1, 1000, 100, "m007b"],
 		# P1 Onboarding: close the engine arc — craft → equip. Without this the
 		# Thruster sat in inventory and the player never saw its +Evasion effect.
-		["m007b", "Spacewalk Test", "Open the Ship Designer, then DRAG the Basic Thruster from your Armory (right panel) onto an empty ENGINE slot.", "loadout_check", "engine", 1, 500, 100, "m009"],
+		["m007b", "Spacewalk Test", "Open the Ship Designer, then DRAG the Basic Thruster from your Armory (right panel) onto an empty ENGINE slot.", "loadout_check", "engine", 1, 500, 100, "m015"],
 		# v145 (D): ORPHANED (m007b → m009). Materials Science costs 625 Liras, has NO
 		# cost_items, unlocks NOTHING, and its only effect is a hidden +10% ship max HP —
 		# so this beat sat between "equip your thruster" and "chop wood" and changed
@@ -120,7 +120,7 @@ func init_missions():
 		#   m013c 50 Copper    -> 2 Micro-Missile Launchers (m017c) = 20 Cu
 		#                         + 10 Circuit Boards (m019) x 3 Cu = 30 Cu. Exactly 50.
 		# So this is a pure reword — every quantity stays, each one now names its consumer.
-		["m011", "Essential Carbon", "In the Engineering page, use the Charcoal Kiln to produce 50 Carbon. Copper smelting burns one Carbon per unit, and the copper run coming up needs all 50.", "gather", "C", 50, 600, 150, "m012"],
+		["m011", "Essential Carbon", "In the Engineering page, use the Charcoal Kiln to produce 50 Carbon. Copper smelting burns one Carbon per unit, and the copper run coming up needs all 50.", "gather", "C", 50, 600, 150, "m013b"],
 		["m012", "Lithium Discovery", "In the Mine page, extract 100 Lithium Ore. It refines two-to-one, so this is the 50 Lithium your battery cells will need.", "gather", "Spodumene", 100, 800, 200, "m013"],
 		# v145 (E): retitled. "Voltaic Storage" pointed at a payoff that no longer exists —
 		# the ship's Basic Battery costs Liras + Iron and NO lithium, and both batteries
@@ -128,13 +128,13 @@ func init_missions():
 		# orphaned the old Li -> Battery Cell beat (m021) and left this mission's name
 		# aimed at nothing. Its real consumer is the Battery Cell inside the Shield
 		# Boosters at m024b, so say that instead.
-		["m013", "Battery Electrolyte", "Refine 50 Lithium in the Engineering tab. Lithium is the electrolyte in Battery Cells — the shield repair kits you craft before your first fight each need one.", "gather", "Li", 50, 1000, 250, "m013b"],
+		["m013", "Battery Electrolyte", "Refine 50 Lithium in the Engineering tab. Lithium is the electrolyte in Battery Cells — the shield repair kits you craft before your first fight each need one.", "gather", "Li", 50, 1000, 250, "m024b"],
 		["m013b", "Copper Prospecting", "Gather 100 Malachite Ore. It smelts two-to-one, one Carbon per unit — exactly the 50 Copper and the 50 Carbon you stocked.", "gather", "Malachite", 100, 1200, 300, "m013c"],
 		# v134g: batteries are now taught up front (m005b/m005c), so the old battery
 		# block (m020/m021/m022/m022b) is redundant — skip straight to the weapon
 		# arc. Those missions stay DEFINED below as orphans so in-flight saves sitting
 		# on them still complete + chain onward (the m003 pattern).
-		["m013c", "Conductivity", "Refine 50 Copper in the Engineering tab. 20 goes into the pair of Micro-Missile Launchers you will build, the other 30 into your first Circuit Boards.", "gather", "Cu", 50, 1500, 350, "m015"],
+		["m013c", "Conductivity", "Refine 50 Copper in the Engineering tab. 20 goes into the pair of Micro-Missile Launchers you will build, the other 30 into your first Circuit Boards.", "gather", "Cu", 50, 1500, 350, "m018"],
 		["m014", "Ballistics Theory", "Research 'Kinetic Weapons Theory' in the Research tree.", "research", "kinetics_101", 1, 1200, 100, "m015"],
 		# v134g: craft 2 of each weapon type — the corvette has 2 WEAPON slots, so
 		# filling both (double DPS) is the difference between comfortable and painful
@@ -152,7 +152,7 @@ func init_missions():
 		# to a wreck. The kill alone no longer completes it — they must also pull out,
 		# which teaches Retreat at the first moment it matters instead of letting a
 		# death teach it. Progress still reads as the kill; the retreat is the gate.
-		["m017", "Target Locked", "Defeat 1 Lunar Drone in Lunar Orbit, then click RETREAT to pull your ship out.", "defeat_retreat", "z1_lunar_drone", 1, 2500, 500, "m018"],
+		["m017", "Target Locked", "Defeat 1 Lunar Drone in Lunar Orbit, then click RETREAT to pull your ship out.", "defeat_retreat", "z1_lunar_drone", 1, 2500, 500, "m009"],
 		# v128: damage-triangle onboarding. The Lunar Drone (m017) taught KINETIC; this
 		# pair teaches ENERGY against the energy-weak Survey Probe (resist_e -0.30, resists
 		# kinetic +0.30). The EXPLOSIVE leg is the Scrap Collector pair (m017c/d).
@@ -219,7 +219,7 @@ func init_missions():
 		# v140: armor arc mirrors the shield arc (craft → equip). The corvette's ARMOR
 		# slot sat empty through the whole tutorial; Iron Plate needs no research gate.
 		["m024a1", "Plate the Hull", "Craft an 'Iron Plate' in the Shipyard for hull armor.", "craft", "z1_armor", 1, 2500, 200, "m024a2"],
-		["m024a2", "Bolt It On", "Open the Ship Designer, then DRAG the Iron Plate from your Armory onto the empty ARMOR slot. It cuts incoming hull damage.", "loadout_check", "armor", 1, 500, 100, "m024b"],
+		["m024a2", "Bolt It On", "Open the Ship Designer, then DRAG the Iron Plate from your Armory onto the empty ARMOR slot. It cuts incoming hull damage.", "loadout_check", "armor", 1, 500, 100, "m012"],
 		# Split for onboarding: teach what consumables are + where to make them,
 		# THEN how to equip them (was one sudden compound objective).
 		# v134: "Processing page" — no such page exists; the sidebar label is Engineering.
@@ -263,7 +263,7 @@ func init_missions():
 		#   told and still coming up 106 short — a trust breaker, not a pacing nit.
 		# Time cost is small: smelt_steel_basic is 5 Steel / 5s, so 160 Steel is ~2.7 min
 		# of processing. The work was ALWAYS required; it just wasn't directed.
-		["m025b", "Alloy Production", "Now smelt 160 Steel in the Engineering tab — the Basic-Oxygen furnace blows your Oxygen through molten Iron and Carbon. Shipwright I burns most of this stock; the Frigate frame after it takes the rest.", "gather", "Steel", 160, 5000, 500, "m026"],
+		["m025b", "Alloy Production", "Now smelt 160 Steel in the Engineering tab — the Basic-Oxygen furnace blows your Oxygen through molten Iron and Carbon. Shipwright I burns most of this stock; the Frigate frame after it takes the rest.", "gather", "Steel", 160, 5000, 500, "m026c"],
 		# v145 (F): name the FULL bill. Shipwright I costs 76 Steel, 30 Circuit Boards and
 		# 60 Common Artifacts once both cost layers apply — the Circuit and Artifact halves
 		# have no directed producer beat, so the text is the only place the player can learn
@@ -274,7 +274,7 @@ func init_missions():
 		# v145: the text said "4 Reinforced Plating"; the hull cost is 3 (v139c band surgery
 		# trimmed 4 -> 3 and never updated the mission). Same stale-number class as F/G.
 		# The 50 Steel of the hull frame itself was never named either — it is now.
-		["m026b", "Hull Modernization I", "Construct an 'Industrial Frigate' in the Shipyard. Its frame needs 50 Steel and 3 Reinforced Plating — craft the plating in Engineering from Salvaged Alloy + Damaged Circuitry (Lunar Orbit drops, or the Steel/Circuit reclaim recipes).", "construct", "frigate_hull", 1, 10000, 1000, "m026c"],
+		["m026b", "Hull Modernization I", "Construct an 'Industrial Frigate' in the Shipyard. Its frame needs 50 Steel and 3 Reinforced Plating — craft the plating in Engineering from Salvaged Alloy + Damaged Circuitry (Lunar Orbit drops, or the Steel/Circuit reclaim recipes).", "construct", "frigate_hull", 1, 10000, 1000, "m027"],
 		["m026c", "Elite Salvage", "Defeated enemies drop gear of varying rarity. Farm Lunar Orbit until you get a RARE (blue) module drop.", "drop_rarity", "2", 1, 5000, 500, "m026d"],
 		# v131: Architect resists zeroed — chain goes straight to the boss fight; any
 		# RARE+ weapon type works. m026d2/d3 (the old explosive-forcing pair) stay
@@ -285,7 +285,7 @@ func init_missions():
 		# beats raw rarity. Combustion is already unlocked (smelting required it at m025).
 		["m026d2", "Munitions Run", "Produce 60 HE Missiles in the Engineering tab to arm a missile launcher — the Architect ahead is WEAK TO EXPLOSIVE.", "gather", "MissileT1", 60, 8000, 800, "m026d3"],
 		["m026d3", "Explosive Payload", "Equip a RARE+ EXPLOSIVE weapon — the Architect is WEAK TO EXPLOSIVE, and the rare-tier punch ends fights fast.", "loadout_rare_weapon_type", "explosive", 1, 12000, 1200, "m026e"],
-		["m026e", "Final Confrontation", "Defeat the Rogue Architect boss in Lunar Orbit.", "defeat", "z1_boss_architect", 1, 25000, 2500, "m027"],
+		["m026e", "Final Confrontation", "Defeat the Rogue Architect boss in Lunar Orbit.", "defeat", "z1_boss_architect", 1, 25000, 2500, "m026"],
 		# P0 Fix: Progression Deadlock Re-alignment
 		["m027", "Scanning Horizon", "Research 'Asteroid Belt Authorization' in the Research tree to unlock the Asteroid Belt combat zone.", "research", "zone_2_access", 1, 5000, 500, "m017a"],
 		# P-onboard: introduce the Bounty Board the moment it unlocks (Asteroid Belt).
