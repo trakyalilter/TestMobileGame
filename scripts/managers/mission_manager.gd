@@ -1192,7 +1192,10 @@ func get_active_defeat_targets() -> Array:
 		var m = missions.get(mid)
 		if m == null or m.get("completed", false) or m.get("claimed", false):
 			continue
-		if str(m.get("type", "")) == "defeat":
+		# v174: was "defeat" only, so it missed defeat_retreat — which is the type of
+		# m017, the FIRST kill the tutorial ever asks for. The Lunar Drone sat on the
+		# sector map with no objective marker during the one mission that names it.
+		if str(m.get("type", "")) in ["defeat", "defeat_retreat"]:
 			var t := str(m.get("target", ""))
 			if t != "" and not out.has(t):
 				out.append(t)

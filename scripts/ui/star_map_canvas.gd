@@ -375,7 +375,11 @@ func _draw_node(m: Dictionary) -> void:
 	if st == "current":
 		_ctext(Vector2(p.x, p.y + label_y + 11.0), tr("YOU ARE HERE"), Color(C_AQUA.r, C_AQUA.g, C_AQUA.b, 0.85), 8)
 	elif m["id"] == selected_id and st == "available":
-		_ctext(Vector2(p.x, p.y + label_y + 11.0), tr("READY TO WARP"), C_TEAL, 8)
+		# v174: was "READY TO WARP". On this map "warp" meant TRAVEL to the sector,
+		# but Warp is the prestige reset everywhere else in the game — so Zone 1 read
+		# as "you can prestige now" to a player twenty minutes in. Same collision as
+		# the two Basic Batteries: one word, two mechanics.
+		_ctext(Vector2(p.x, p.y + label_y + 11.0), tr("SET COURSE"), C_TEAL, 8)
 	elif st == "locked" and m["id"] == selected_id:
 		_ctext(Vector2(p.x, p.y + label_y + 11.0), tr("LOCKED"), C_CORAL, 8)
 
