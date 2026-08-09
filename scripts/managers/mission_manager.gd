@@ -152,27 +152,27 @@ func init_missions():
 		# to a wreck. The kill alone no longer completes it — they must also pull out,
 		# which teaches Retreat at the first moment it matters instead of letting a
 		# death teach it. Progress still reads as the kill; the retreat is the gate.
-		["m017", "Target Locked", "Defeat 1 Lunar Drone in Lunar Orbit, then click RETREAT to pull your ship out.", "defeat_retreat", "z1_lunar_drone", 1, 2500, 500, "m017a"],
+		["m017", "Target Locked", "Defeat 1 Lunar Drone in Lunar Orbit, then click RETREAT to pull your ship out.", "defeat_retreat", "z1_lunar_drone", 1, 2500, 500, "m018"],
 		# v128: damage-triangle onboarding. The Lunar Drone (m017) taught KINETIC; this
 		# pair teaches ENERGY against the energy-weak Survey Probe (resist_e -0.30, resists
 		# kinetic +0.30). The EXPLOSIVE leg is the Scrap Collector pair (m017c/d).
 		# (v131: the Rogue Architect boss has NO resists — pure rarity check.)
-		["m017a", "Energy Doctrine", "Not every hostile falls to slugs. The Survey Probe RESISTS kinetic fire but is WEAK TO ENERGY. In the Shipyard, craft 2 'Pulse Laser Mk.I'", "craft", "z1_energy", 2, 1500, 200, "m017a2"],
+		["m017a", "Energy Doctrine", "Not every hostile falls to slugs. The Silicate Golem in the Asteroid Belt RESISTS kinetic fire but is WEAK TO ENERGY. In the Shipyard, craft 2 'Pulse Laser Mk.I'", "craft", "z1_energy", 2, 1500, 200, "m017a2"],
 		# v134: energy leg now mirrors the kinetic leg (craft -> produce ammo -> equip & fight).
 		# It used to jump from craft straight to "destroy with Focus Crystals loaded" with NO
 		# step that made the player PRODUCE the ammo — so a correctly-built laser fought empty.
 		["m017a2", "Charge the Crystals", "The Pulse Laser runs on Focus Crystals. In the Engineering tab, produce 60 Focus Crystals", "gather", "CellT1", 60, 1500, 200, "m017b"],
-		["m017b", "Pulse Fire", "Keep builds in separate slots: click LOADOUT 2, equip BOTH Pulse Lasers there, then destroy a Survey Probe in Lunar Orbit.", "defeat", "z1_survey_probe", 1, 3000, 500, "m017c"],
+		["m017b", "Pulse Fire", "Keep builds in separate slots: click LOADOUT 2, equip BOTH Pulse Lasers there, then destroy a Silicate Golem in the Asteroid Belt.", "defeat", "z2_silicate_golem", 1, 3000, 500, "m027b"],
 		# v128: EXPLOSIVE leg — the Scrap Collector is now armored vs kinetic + energy and
 		# WEAK to explosive (resist_x -0.30), so all three types are taught against regular
 		# Lunar Orbit enemies. v129: T1 missiles + the launcher no longer require combustion
 		# (research gate removed), so they craft here freely; combustion is first taught at m025.
-		["m017c", "Explosive Doctrine", "The Scrap Collector is armored against kinetic AND energy but blows apart under EXPLOSIVE ordnance. In the Shipyard, craft 2 'Micro-Missile Launcher'", "craft", "z1_missile", 2, 1800, 250, "m017c2"],
+		["m017c", "Explosive Doctrine", "The Scavenger Mech in Mars Debris is armored against kinetic but blows apart under EXPLOSIVE ordnance. In the Shipyard, craft 2 'Micro-Missile Launcher'", "craft", "z1_missile", 2, 1800, 250, "m017c2"],
 		# v134: explosive leg scaffolds ammo like the others. It used to go craft ->
 		# "destroy with HE Missiles loaded" with NO produce-ammo step (and equip_module
 		# auto-loaded a phantom "missile" ammo id instead of MissileT1 — both now fixed).
 		["m017c2", "Stock the Warheads", "The launcher fires Missiles. In the Engineering tab, produce 60 HE Missiles.", "gather", "MissileT1", 60, 1800, 250, "m017d"],
-		["m017d", "Warhead", "Click LOADOUT 3, equip BOTH Micro-Missile Launchers there, then destroy a Scrap Collector in Lunar Orbit. Kinetic / Energy / Explosive now live in Loadouts 1 / 2 / 3 — before a fight, one click swaps your WHOLE ship modules.", "defeat", "z1_scrap_collector", 1, 3500, 600, "m018"],
+		["m017d", "Warhead", "Click LOADOUT 3, equip BOTH Micro-Missile Launchers there, then destroy a Scavenger Mech in Mars Debris. Kinetic / Energy / Explosive now live in Loadouts 1 / 2 / 3 — before a fight, one click swaps your WHOLE ship modules.", "defeat", "z3_scavenger_mech", 1, 3500, 600, "m030f"],
 		["m018", "Industrial Logistics", "Research the 'Industrial Logistics' hub.", "research", "industrial_logistics", 1, 500, 100, "m018t1"],
 		# v136: automated_logistics tech removed (collapsed). This already-orphaned beat
 		# retargets to industrial_logistics so any in-flight save on it auto-completes.
@@ -287,7 +287,7 @@ func init_missions():
 		["m026d3", "Explosive Payload", "Equip a RARE+ EXPLOSIVE weapon — the Architect is WEAK TO EXPLOSIVE, and the rare-tier punch ends fights fast.", "loadout_rare_weapon_type", "explosive", 1, 12000, 1200, "m026e"],
 		["m026e", "Final Confrontation", "Defeat the Rogue Architect boss in Lunar Orbit.", "defeat", "z1_boss_architect", 1, 25000, 2500, "m027"],
 		# P0 Fix: Progression Deadlock Re-alignment
-		["m027", "Scanning Horizon", "Research 'Asteroid Belt Authorization' in the Research tree to unlock the Asteroid Belt combat zone.", "research", "zone_2_access", 1, 5000, 500, "m027b"],
+		["m027", "Scanning Horizon", "Research 'Asteroid Belt Authorization' in the Research tree to unlock the Asteroid Belt combat zone.", "research", "zone_2_access", 1, 5000, 500, "m017a"],
 		# P-onboard: introduce the Bounty Board the moment it unlocks (Asteroid Belt).
 		# visit_page → auto-completes on navigation, can never soft-lock.
 		["m027b", "Open Contracts", "Open Bounties (left sidebar — it just unlocked). Each sector runs its own combat contract board: accept one, and kills in that sector count toward it automatically. Pays Liras + a ship module.", "visit_page", "bounty", 1, 6000, 500, "m028"],
@@ -414,7 +414,7 @@ func init_missions():
 		# told the player to farm. Insert an explicit boss-farm beat (mirrors m030i/m032a).
 		["m030d", "Belt Overseer", "Defeat the Silicate Monolith (Asteroid Belt boss) to salvage a Z2 Sector Core for the Mars Debris charter. Bosses demand a full RARE loadout — Common and Uncommon gear will not cut through. Work the Asteroid Belt BOUNTY BOARD: hunt contracts pay a GUARANTEED Rare module on claim. ENERGY hits it hardest — swap loadouts before the fight.", "defeat", "z2_boss_monolith", 1, 50000, 6000, "m030e"],
 		# Mission bridge from Asteroid Belt to Sector Alpha (zones 3-4 introduction)
-		["m030e", "Mars Beachhead", "Research 'Mars Debris Clearance' (spends the Monolith core you just salvaged) to unlock the Mars Debris zone.", "research", "zone_3_access", 1, 40000, 5000, "m030f"],
+		["m030e", "Mars Beachhead", "Research 'Mars Debris Clearance' (spends the Monolith core you just salvaged) to unlock the Mars Debris zone.", "research", "zone_3_access", 1, 40000, 5000, "m017c"],
 		["m030f", "Salvage Operations", "Defeat 3 Scavenger Mechs in the Mars Debris zone.", "defeat", "z3_scavenger_mech", 3, 60000, 8000, "m030fa"],
 		# v135a: full Zone-3 refit before the Warmaster (17k-hull boss, atk 210) — the SAME gap the
 		# Z2 boss had, but the boss out-DPSes a Z2-geared hull in ~15s, so the refit must cover

@@ -1586,7 +1586,7 @@ var modules: Dictionary = {
 		"stats": {"atk_energy": 9, "energy_load": 8, "atk_interval": 2.0},
 		"cost": {"credits": 2000, "Si": 30},
 		"desc": "Fast-cycling beam emitter. Focus crystals in, coherent light out.",
-		"zone": 1
+		"zone": 1, "research_req": "zone_2_access"
 	},
 	# v156 CHANNEL CREDIT PARITY: every explosive weapon's Lira cost was EXACTLY
 	# 1.25x its kinetic counterpart at every zone (2500/2000 ... 3018153/2414522).
@@ -1605,7 +1605,7 @@ var modules: Dictionary = {
 		"stats": {"atk_explosive": 9, "energy_load": 10, "atk_interval": 2.0},
 		"cost": {"credits": 2000, "Fe": 20, "Cu": 10},
 		"desc": "Rack-fed micro-warheads. Loud, messy, and quick to reload.",
-		"zone": 1
+		"zone": 1, "research_req": "zone_3_access"
 	},
 	"z1_shield": {
 		"name": "Basic Shield",
@@ -1647,7 +1647,7 @@ var modules: Dictionary = {
 		"stats": {"atk_explosive": 20, "energy_load": 18, "atk_interval": 2.0},
 		"cost": {"credits": 4400, "Fe": 40, "C": 30, "Hydraulics": 2},
 		"desc": "Concussive warhead tuned for maximum overpressure.",
-		"zone": 2, "research_req": "zone_2_access"
+		"zone": 2, "research_req": "zone_3_access"
 	},
 	"z2_shield": {
 		"name": "Deflector Shield",

@@ -387,7 +387,8 @@ var recipes: Dictionary = {
 		"input": {"Si": 1},
 		"output": {"CellT1": 20},
 		"duration": 5.0,
-		"level_req": 2, # Increased from 1
+		"level_req": 2,
+		"research_req": "zone_2_access", # Increased from 1
 		"xp": 7 # Reduced from 10
 	},
 	"craft_slug_t2": {
@@ -777,6 +778,7 @@ var recipes: Dictionary = {
 		"output": {"MissileT1": 20},
 		"duration": 5.0,
 		"level_req": 5,
+		"research_req": "zone_3_access",
 		"xp": 20,
 		# v129: research gate removed — T1 ammo is part of the starter combat kit
 		# (the damage-triangle tutorial needs missiles pre-research). combustion

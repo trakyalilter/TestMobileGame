@@ -431,13 +431,13 @@ var zones = {
 		"name": "Lunar Orbit",
 		"desc": "Low threat sector populated by rogue mining drones.",
 		"difficulty": 1,
-		"enemies": ["z1_lunar_drone", "z1_scrap_collector", "z1_survey_probe", "z1_boss_architect"]
+		"enemies": ["z1_lunar_drone", "z1_boss_architect"]
 	},
 	"asteroid_belt": {
 		"name": "Asteroid Belt",
 		"desc": "Dense asteroid field. Pirates and territorial fauna.",
 		"difficulty": 2,
-		"enemies": ["z2_pirate_skiff", "z2_silicate_golem", "z2_ore_hauler", "z2_boss_monolith"],
+		"enemies": ["z2_pirate_skiff", "z2_silicate_golem", "z2_boss_monolith"],
 		"research_req": "zone_2_access"
 	},
 	"mars_debris": {
@@ -732,27 +732,11 @@ var enemy_db = {
 		"loot": [["Fe", 2, 5], ["Cu", 1, 3], ["Res1", 1, 2], ["MiteChitin", 1, 3]],
 		"rare_loot": [["NavData", 0.25, 1, 1]],
 		"module_drop_chance": 0.30,
-		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_missile", "z1_shield", "z1_armor", "z1_battery"],
-		"xp": 8, "zone": 1, "resist_k": -0.30, "resist_e": 0.0, "resist_x": 0.37, "dmg_type": "kinetic"
+		"module_drop_pool": ["z1_kinetic", "z1_shield", "z1_armor", "z1_battery"],
+		"xp": 8, "zone": 1, "resist_k": -0.30, "resist_e": 0.0, "resist_x": 0.0, "dmg_type": "kinetic"
 	},
-	"z1_survey_probe": {
-		"name": "Survey Probe",
-		"stats": {"hp": 120, "max_shield": 40, "atk": 13.333333, "def": 3, "atk_interval": 2.0, "accuracy": 22},
-		"loot": [["credits", 80, 150], ["Si", 2, 4], ["Res1", 1, 3], ["MiteChitin", 1, 2]],
-		"rare_loot": [["NavData", 0.2, 1, 2], ["DamagedCircuitry", 0.5, 1, 2]],
-		"module_drop_chance": 0.35,
-		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_shield", "z1_armor", "z1_sensor"],
-		"xp": 12, "zone": 1, "resist_k": 0.0, "resist_e": -0.30, "resist_x": 0.37, "dmg_type": "energy"
-	},
-	"z1_scrap_collector": {
-		"name": "Scrap Collector",
-		"stats": {"hp": 150, "atk": 15, "def": 3, "atk_interval": 2.0, "accuracy": 20},
-		"loot": [["Fe", 3, 6], ["Si", 1, 3], ["Res1", 1, 3], ["MiteChitin", 2, 4]],
-		"rare_loot": [["Cu", 0.15, 2, 4], ["SalvagedAlloy", 0.35, 1, 2]],
-		"module_drop_chance": 0.40,
-		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_missile", "z1_shield", "z1_armor", "z1_engine"],
-		"xp": 10, "zone": 1, "resist_k": 0.0, "resist_e": 0.37, "resist_x": -0.30, "dmg_type": "kinetic"
-	},
+
+
 
 	"z1_boss_architect": {
 		"name": "Rogue Architect",
@@ -774,11 +758,11 @@ var enemy_db = {
 		"rare_loot": [["SalvagedAlloy", 0.90, 2, 4], ["DamagedCircuitry", 0.90, 2, 4]],
 		"boss_core": "Z1_Core", "boss_core_qty": 2,
 		"module_drop_chance": 0.40,  # v143: 0.20 -> 0.40, replacing the removed unique chase with a real regular-module chase
-		"module_drop_pool": ["z1_kinetic", "z1_energy", "z1_missile", "z1_shield", "z1_armor", "z1_engine", "z1_battery", "z1_sensor"],
+		"module_drop_pool": ["z1_kinetic", "z1_shield", "z1_armor", "z1_engine", "z1_battery", "z1_sensor"],
 		# v131: resists ZEROED by design — the first boss is a pure rarity/tier check
 		# (any RARE+ weapon type kills it). Type-matching is taught earlier on the
 		# regular enemies (m017a-d); the boss shouldn't wall players on weapon type.
-		"is_boss": true, "xp": 100, "zone": 1, "resist_k": 0.0, "resist_e": 0.37, "resist_x": -0.40, "dmg_type": "kinetic"
+		"is_boss": true, "xp": 100, "zone": 1, "resist_k": -0.30, "resist_e": 0.0, "resist_x": 0.0, "dmg_type": "kinetic"
 	},
 
 	# ═══ ZONE 2: Asteroid Belt — Reg HP~480, ATK~33, DEF~7 ═══
@@ -788,8 +772,8 @@ var enemy_db = {
 		"loot": [["credits", 150, 300], ["Fe", 3, 8], ["Res1", 2, 4], ["PirateSalvage", 1, 3]],
 		"rare_loot": [["Cu", 0.15, 3, 6]],
 		"module_drop_chance": 0.20,   # v138c: was 0.10 — Z2 was stingier than Z1 (0.15-0.25), stretching the Monolith gear-farm days past the new Z3 first-warp cadence
-		"module_drop_pool": ["z2_kinetic", "z2_energy", "z2_missile", "z2_shield", "z2_armor", "z2_battery", "z2_sensor"],
-		"xp": 20, "zone": 2, "resist_k": -0.30, "resist_e": 0.00, "resist_x": 0.37, "dmg_type": "kinetic"
+		"module_drop_pool": ["z2_kinetic", "z2_energy", "z2_shield", "z2_armor", "z2_battery", "z2_sensor"],
+		"xp": 20, "zone": 2, "resist_k": -0.30, "resist_e": 0.00, "resist_x": 0.00, "dmg_type": "kinetic"
 	},
 	"z2_silicate_golem": {
 		"name": "Silicate Golem",
@@ -804,65 +788,10 @@ var enemy_db = {
 		"loot": [["Si", 5, 15], ["Fe", 3, 8], ["Res1", 2, 4]],
 		"rare_loot": [["Ti", 0.10, 1, 3], ["DamagedCircuitry", 0.40, 1, 3]],
 		"module_drop_chance": 0.20,   # v138c: was 0.10 (see z2_pirate_skiff note)
-		"module_drop_pool": ["z2_kinetic", "z2_energy", "z2_missile", "z2_shield", "z2_armor", "z2_battery", "z2_sensor"],
+		"module_drop_pool": ["z2_kinetic", "z2_energy", "z2_shield", "z2_armor", "z2_battery", "z2_sensor"],
 		"xp": 25, "zone": 2, "resist_k": 0.37, "resist_e": -0.30, "resist_x": 0.00, "dmg_type": "kinetic"
 	},
-	"z2_ore_hauler": {
-		"name": "Ore Hauler",
-		# v147 e4 TIER GATE — atk 28 -> 65. The nuke multiplier was the wrong lever
-		# (rejected at x4.4: carried gear still never died while Common-Z2 started
-		# dying on e3) because the BASE was too low to threaten a tier-2 chassis at
-		# all. Look at the zone's DPS profile and the miss is obvious:
-		#
-		#   e1 skiff        25 / 1.8s = 13.9 dps   (x0.50 front-cell calib -> 6.9)
-		#   e2 golem        33 / 3.0s = 11.0 dps   (x0.50 front-cell calib -> 5.5)
-		#   e3 claim jumper 28 / 2.2s = 12.7 dps
-		#   e4 ore hauler   28 / 5.0s =  5.6 dps   <- the DEEPEST cell was the
-		#                                             GENTLEST in the whole zone,
-		#                                             softer even than a front cell
-		#                                             before its calib halved it.
-		#
-		# 65 / 5.0s = 13.0 dps puts e4 level with e3 while KEEPING its identity: one
-		# slow, heavy swing plus the x3.2 charge nuke, rather than a fast chipper.
-		# Measured (leth_probe, 108 trials/cell, deaths per 180s window):
-		#   atk 28 -> Common 0/108   A  0/108   B  0/108   (no gate at all)
-		#   atk 62 -> Common 0/108   A 33/108   B  7/108
-		#   atk 65 -> Common 0/108   A 29/108   B 10/108   <- CHOSEN
-		#   atk 68 -> Common 1/108   A 49/108   B 11/108   (Common starts to bleed)
-		#   atk 72 -> Common 2/108   A 49/108   B 20/108
-		# 65 is the LAST value where tier-matched Common is perfectly clean
-		# (0/108, and 0/54 twice more), so the idle rule holds with zero margin
-		# spent, while carried gear takes a ~9-27% death chance PER 180s window —
-		# i.e. near-certain death across an idle hour. Do not push past 65 without
-		# re-measuring Common: the cliff is at 68.
-				# v148 HEADROOM: Common-N sat at EXACTLY 5 kills here -- a pass with zero
-		# margin, so one unlucky affix roll made it a fail, and it could not absorb
-		# the pending affix nerf (two verifiers caught it dying). EHP cut ~38%% to
-		# lift Common-N to ~8-9 kills. Deliberately HP/shield only: kill RATE moves,
-		# lethality does not, so carried gear that already DIES here keeps dying.
-		"stats": {"hp": 590, "atk": 26, "def": 10, "atk_interval": 2.0, "accuracy": 20},
-		# v146: mult 2.0 -> 3.2. HISTORICAL: this enemy used to swing every 5.0s, which
-		# is why the spike had to be this big to matter. v149 normalised it to the
-		# uniform 2.0s cadence at IDENTICAL dps (atk 65 -> 26) and re-derived every_n
-		# 4 -> 10 so the spike still lands on the same 20.0s TIME cadence.
-		# The owner cleared this cell carrying ZONE 1 gear on a TIER 2 hull -- the real
-		# player shape, because the mission chain hands over a frigate at m026b BEFORE
-		# tier-2 modules exist. My probe had only ever tested old gear on the OLD hull,
-		# so it never saw this. At 2.0 the spike could not reach through a T2 hull's HP
-		# pool and e4 stopped gating: carried gear simply farmed it slowly.
-		#
-		# THE LESSON: in an IDLE game "slow" is not a gate. The player is AFK anyway,
-		# so 2 kills per 3 minutes is perfectly good farming. A min-DPS stall only
-		# gates if the rate reaches ZERO; an EHP gate only gates if the spike lands.
-		# Old gear dying here is the intended rule -- only the tier-matched Common set
-		# must survive it, and that is what the funnel row "9 Common N" verifies.
-		"charge_nuke": {"every_n": 10, "mult": 6.5},
-		"loot": [["Fe", 10, 25], ["Si", 5, 12], ["Res1", 2, 5], ["SalvageData", 1, 3], ["credits", 200, 400], ["Sn", 2, 5]],
-		"rare_loot": [["Steel", 0.10, 1, 3], ["SalvagedAlloy", 0.40, 1, 3], ["Ti", 0.12, 2, 4], ["Res2", 0.35, 1, 2]],
-		"module_drop_chance": 0.20,   # v138c: was 0.10 (see z2_pirate_skiff note)
-		"module_drop_pool": ["z2_shield", "z2_armor", "z2_battery", "z2_sensor", "z2_kinetic", "z2_energy", "z2_missile"],
-		"xp": 22, "zone": 2, "resist_k": 0.00, "resist_e": 0.37, "resist_x": -0.30, "dmg_type": "kinetic"
-	},
+
 	"z2_boss_monolith": {
 		"name": "Silicate Monolith",
 		"stats": {"hp": 8216, "max_shield": 550, "atk": 125.714286, "def": 39, "atk_interval": 2.0, "accuracy": 45},  # v135a: was hp 5280/shield 264/atk 132 — Uncommon beat it 5/5 (gear-check audit). Buffed ~2x so only Rare+ Zone-2 wins. v156: 11500 -> 8216 (x0.8652/1.2110) — cancels the FLATTEN_HP_CALIB move from the weak-channel reassignment so effective hp stays at its pre-v156 value.
@@ -875,9 +804,9 @@ var enemy_db = {
 		"rare_loot": [["z2_unique_weapon", 0.03, 1, 1], ["z2_unique_armor", 0.03, 1, 1], ["z2_unique_shield", 0.03, 1, 1], ["faraday_hull", 0.03, 1, 1], ["SalvagedAlloy", 0.90, 3, 6], ["DamagedCircuitry", 0.90, 3, 6], ["z2_unique_kinetic", 0.03, 1, 1], ["z2_unique_energy", 0.03, 1, 1], ["z2_unique_missile", 0.03, 1, 1]],
 		"boss_core": "Z2_Core",
 		"module_drop_chance": 0.25,
-		"module_drop_pool": ["z2_kinetic", "z2_energy", "z2_missile", "z2_shield", "z2_armor", "z2_battery", "z2_sensor"],
+		"module_drop_pool": ["z2_kinetic", "z2_energy", "z2_shield", "z2_armor", "z2_battery", "z2_sensor"],
 		# v156 BOSS-ONLY CHANNEL VARIATION: weak NRG = Zone 3's primary. Swap for the boss.
-		"is_boss": true, "xp": 300, "zone": 2, "resist_k": 0.0, "resist_e": -0.40, "resist_x": 0.37, "dmg_type": "kinetic"
+		"is_boss": true, "xp": 300, "zone": 2, "resist_k": 0.0, "resist_e": -0.40, "resist_x": 0.0, "dmg_type": "kinetic"
 	},
 
 	# ═══ ZONE 3: Mars Debris — Reg HP~1152, ATK~73, DEF~15 ═══
@@ -2346,8 +2275,20 @@ func enemy_is_front_salvage(eid: String, zone_id_override: String = "") -> bool:
 	var zdiff: int = int(zone.get("difficulty", 1))
 	if zdiff < 2 or zdiff > 10:
 		return false
-	var idx: int = (zone.get("enemies", []) as Array).find(eid)
-	return idx >= 0 and idx < 2 and not bool(enemy_db.get(eid, {}).get("is_boss", false))
+	var roster: Array = zone.get("enemies", [])
+	var idx: int = roster.find(eid)
+	if idx < 0 or bool(enemy_db.get(eid, {}).get("is_boss", false)):
+		return false
+	# v174: was a flat "idx < 2", which assumed every zone has three trash. Zone 2
+	# now has two (staged damage-type introduction), and a flat 2 made BOTH of them
+	# front salvage — the zone lost its tier gate entirely. The rule is really
+	# "everything except the LAST trash is front salvage", which is identical to
+	# idx < 2 on a three-trash zone and correct on a two-trash one.
+	var trash := 0
+	for e in roster:
+		if not bool(enemy_db.get(String(e), {}).get("is_boss", false)):
+			trash += 1
+	return idx < maxi(1, trash - 1)
 
 func set_target_enemy(enemy_id):
 	# v62.0 Fix: Prevent crash if current_zone is null
@@ -4626,6 +4567,16 @@ func load_save_data_manager(data: Dictionary):
 		# until the player re-engaged. (Also fixes the star map's "current" pin.)
 		current_zone_id = zid
 		var eid = data.get("current_enemy_id")
+		# v174: an enemy id can be RETIRED between builds — the staged damage-type
+		# pass deleted z1_scrap_collector, z1_survey_probe and z2_ore_hauler. A save
+		# parked mid-fight against one of those would hand spawn_enemy() a dead id and
+		# leave exactly the ghost fight the hazard note below describes: in_combat
+		# true, no enemy, never ticks, blocks repairs. Eject cleanly instead.
+		if eid and not enemy_db.has(String(eid)):
+			log_msg("Contact lost — that hostile class is no longer in service.")
+			eid = null
+			in_combat = false
+			current_enemy = null
 		if eid:
 			target_enemy_id = eid
 			spawn_enemy() # This will reset weapons/timers but keep flow
