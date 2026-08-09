@@ -2076,7 +2076,12 @@ var modules: Dictionary = {
 	# ── POWER SYSTEMS (10 Zones) ──
 	"z1_battery": {
 		"name": "Basic Battery", "slot_type": "battery", "stats": {"energy_capacity": 50},
-		"cost": {"credits": 1000,"Fe":10}, "zone": 1
+		# v174: Li added. A "Basic Battery" made of nothing but iron is not a battery,
+		# and the game already treats lithium as THE battery material (lithium_refinery,
+		# craft_battery_t1, craft_cobalt_battery). This is also what lets the Spodumene
+		# -> Lithium beats move to where they read correctly: BEFORE you build the
+		# thing they feed, instead of eleven beats after you equipped it.
+		"cost": {"credits": 1000, "Fe": 10, "Li": 4}, "zone": 1
 	},
 	"z2_battery": {
 		"name": "Improved Battery", "slot_type": "battery", "stats": {"energy_capacity": 110},

@@ -526,7 +526,7 @@
   {
     "atomic_number": -301,
     "symbol": "BatteryT1",
-    "name": "Basic Battery",
+    "name": "Battery Cell",
     "mass": 5.0,
     "category": "Component",
     "tier": 1,

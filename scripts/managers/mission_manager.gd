@@ -76,7 +76,7 @@ func init_missions():
 		["m002b", "Foundational Research", "Unlock Basic Engineering in the Research tab.", "research", "basic_engineering", 1, 300, 100, "m003"],
 		["m003", "Pump Master", "Unlock Basic Engineering in the Research tab.", "research", "basic_engineering", 1, 300, 50, "m004"],
 		["m004", "Hydration", "Gather 350 units of Water.", "gather", "Water", 350, 500, 100, "m002"],
-		["m005", "Mineral Washing", "Open the Engineering page and process Dirt to extract 100 Silicon and 80 Iron.", "gather_multi", {"Si": 100, "Fe": 80}, 180, 1000, 200, "m005b"],
+		["m005", "Mineral Washing", "Open the Engineering page and process Dirt to extract 100 Silicon and 80 Iron.", "gather_multi", {"Si": 100, "Fe": 80}, 180, 1000, 200, "m012"],
 
 		# v134g: POWER-FIRST onboarding. The battery-only model means every module
 		# draws power, so the FIRST loadout lesson is batteries — craft + equip 2
@@ -84,7 +84,7 @@ func init_missions():
 		# first, powered by invisible starter batteries; the old battery-equip step
 		# m022b auto-completed because those starter batteries pre-filled the slots).
 		# New games start UNPOWERED (see shipyard reset); warps keep starter batteries.
-		["m005b", "Power Cells", "Your corvette is UNPOWERED — every module you equip draws power, and batteries supply it. In the Shipyard, craft 2 'Basic Battery' modules.", "craft", "z1_battery", 2, 1500, 200, "m005c"],
+		["m005b", "Power Cells", "You have the iron and the lithium. In the Shipyard, craft 2 'Basic Battery' modules — every module you equip draws power, and these are what supply it.", "craft", "z1_battery", 2, 1500, 200, "m005c"],
 		["m005c", "Power Online", "Open the Ship Designer and equip BOTH Basic Batteries into the ship's BATTERY slots. Watch the GRID fill — now the ship can run modules.", "loadout_check", "battery", 2, 800, 150, "m007"],
 
 		# m006 Removed (Moved to m002b)
@@ -121,14 +121,14 @@ func init_missions():
 		#                         + 10 Circuit Boards (m019) x 3 Cu = 30 Cu. Exactly 50.
 		# So this is a pure reword — every quantity stays, each one now names its consumer.
 		["m011", "Essential Carbon", "In the Engineering page, use the Charcoal Kiln to produce 50 Carbon. Copper smelting burns one Carbon per unit, and the copper run coming up needs all 50.", "gather", "C", 50, 600, 150, "m013b"],
-		["m012", "Lithium Discovery", "In the Mine page, extract 100 Lithium Ore. It refines two-to-one, so this is the 50 Lithium your battery cells will need.", "gather", "Spodumene", 100, 800, 200, "m013"],
-		# v145 (E): retitled. "Voltaic Storage" pointed at a payoff that no longer exists —
-		# the ship's Basic Battery costs Liras + Iron and NO lithium, and both batteries
-		# were already built and equipped at m005b/m005c. The v134g power-first reorder
-		# orphaned the old Li -> Battery Cell beat (m021) and left this mission's name
-		# aimed at nothing. Its real consumer is the Battery Cell inside the Shield
-		# Boosters at m024b, so say that instead.
-		["m013", "Battery Electrolyte", "Refine 50 Lithium in the Engineering tab. Lithium is the electrolyte in Battery Cells — the shield repair kits you craft before your first fight each need one.", "gather", "Li", 50, 1000, 250, "m024b"],
+		["m012", "Lithium Discovery", "Your corvette is UNPOWERED and batteries need an electrolyte. In the Mine page, extract 100 Lithium Ore — it refines two-to-one, so this is the 50 Lithium your batteries will need.", "gather", "Spodumene", 100, 800, 200, "m013"],
+		# v145 (E) retitled this away from batteries because "the ship's Basic Battery
+		# costs Liras + Iron and NO lithium, and both batteries were already built and
+		# equipped at m005b/m005c" — a rewrite of the SYMPTOM. v174 fixed the cause:
+		# z1_battery now takes Li 4, and this beat runs immediately BEFORE m005b, so
+		# the name points at its payoff again. It still feeds the Battery Cells inside
+		# the Shield Boosters later; it just no longer arrives eleven beats too late.
+		["m013", "Battery Electrolyte", "Refine 50 Lithium in the Engineering tab. Lithium is the electrolyte your ship's batteries run on — and the Battery Cells inside the shield repair kits later.", "gather", "Li", 50, 1000, 250, "m005b"],
 		["m013b", "Copper Prospecting", "Gather 100 Malachite Ore. It smelts two-to-one, one Carbon per unit — exactly the 50 Copper and the 50 Carbon you stocked.", "gather", "Malachite", 100, 1200, 300, "m013c"],
 		# v134g: batteries are now taught up front (m005b/m005c), so the old battery
 		# block (m020/m021/m022/m022b) is redundant — skip straight to the weapon
@@ -219,7 +219,7 @@ func init_missions():
 		# v140: armor arc mirrors the shield arc (craft → equip). The corvette's ARMOR
 		# slot sat empty through the whole tutorial; Iron Plate needs no research gate.
 		["m024a1", "Plate the Hull", "Craft an 'Iron Plate' in the Shipyard for hull armor.", "craft", "z1_armor", 1, 2500, 200, "m024a2"],
-		["m024a2", "Bolt It On", "Open the Ship Designer, then DRAG the Iron Plate from your Armory onto the empty ARMOR slot. It cuts incoming hull damage.", "loadout_check", "armor", 1, 500, 100, "m012"],
+		["m024a2", "Bolt It On", "Open the Ship Designer, then DRAG the Iron Plate from your Armory onto the empty ARMOR slot. It cuts incoming hull damage.", "loadout_check", "armor", 1, 500, 100, "m024b"],
 		# Split for onboarding: teach what consumables are + where to make them,
 		# THEN how to equip them (was one sudden compound objective).
 		# v134: "Processing page" — no such page exists; the sidebar label is Engineering.
