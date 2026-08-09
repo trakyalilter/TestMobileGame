@@ -58,7 +58,11 @@ var actions: Dictionary = {
 		"loot_table": [["Water", 1.0, 8, 20]],
 		"xp": 15,
 		"level_req": 2,
-		"research_req": "basic_engineering",
+		# v174: research gate REMOVED. The onboarding order is now gather the raws,
+		# THEN research what to do with them — so the water mission runs before Basic
+		# Engineering and cannot be gated behind it. Dirt was already ungated; Water is
+		# the other primordial raw and now matches. Processing water still needs the
+		# research: centrifuge_dirt and Water Electrolysis are unchanged.
 		"category": "terrestrial"
 	},
 	"mine_cassiterite": {

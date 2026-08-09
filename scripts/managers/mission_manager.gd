@@ -66,16 +66,16 @@ func init_missions():
 	# Structure: [id, name, description, type, target, target_qty, reward_cr, reward_xp, next_mission_id]
 	var m_list = [
 		# ID, Name, Desc, Type, Target, TargetQty, RewardCr, RewardXP, NextID
-		["m001", "Stranded in Orbit", "Gather 350 Dirt.", "gather", "Dirt", 350, 600, 50, "m002"],
+		["m001", "Stranded in Orbit", "Gather 350 Dirt.", "gather", "Dirt", 350, 600, 50, "m004"],
 		# P-onboard: a single foundational research. Applied Physics + Fluid Dynamics were
 		# folded into Basic Engineering, so one research opens refining, water, and the
 		# ship/combat screens. m002b/m003 below are re-pointed to basic_engineering so any
 		# in-flight save mid-chain auto-completes.
-		["m002", "Foundational Research", "Open the Research tab and unlock Basic Engineering.", "research", "basic_engineering", 1, 900, 200, "m004"],
+		["m002", "Foundational Research", "You have raw Dirt and Water and nothing to do with them. Open the Research tab and unlock Basic Engineering.", "research", "basic_engineering", 1, 900, 200, "m005"],
 		# P0-30: Physics Paradox Fix - Applied Physics moved here
 		["m002b", "Foundational Research", "Unlock Basic Engineering in the Research tab.", "research", "basic_engineering", 1, 300, 100, "m003"],
 		["m003", "Pump Master", "Unlock Basic Engineering in the Research tab.", "research", "basic_engineering", 1, 300, 50, "m004"],
-		["m004", "Hydration", "Gather 350 units of Water.", "gather", "Water", 350, 500, 100, "m005"],
+		["m004", "Hydration", "Gather 350 units of Water.", "gather", "Water", 350, 500, 100, "m002"],
 		["m005", "Mineral Washing", "Open the Engineering page and process Dirt to extract 100 Silicon and 80 Iron.", "gather_multi", {"Si": 100, "Fe": 80}, 180, 1000, 200, "m005b"],
 
 		# v134g: POWER-FIRST onboarding. The battery-only model means every module
