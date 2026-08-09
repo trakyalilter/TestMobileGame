@@ -80,10 +80,10 @@ var tech_tree = {
 		"cost": 125,
 		"type": "technology",
 		"parent": null,
-		# Absorbs the deleted Applied Physics hub bonus (+10% Ship Energy Capacity).
-		"effects": [
-			{"type": "bonus_yield", "bonus": 0.10, "what": "Ship Energy Capacity"},
-		],
+		# v174: no effects. The +10% Ship Energy Capacity it used to advertise is
+		# removed; this tech is now purely an unlock node. NOTE the effects array is
+		# read ONLY by research_detail_modal — the bonus itself lived hardcoded in
+		# shipyard_manager, so a line here is a claim, not a mechanic.
 		# The single foundational unlock — opens refining, water, and the ship/combat
 		# branches that Applied Physics + Fluid Dynamics used to gate.
 		"unlocks": ["Mineral Washing", "Refine Lithium", "Water Electrolysis"],
@@ -2214,8 +2214,12 @@ func get_efficiency_bonus(bonus_type: String) -> float:
 			if "perfect_automation" in unlocked_techs: bonus += 0.30
 
 	# Hub Node Passive Bonuses (Audit v8.0 P1-25)
-	if bonus_type == "basic_engineering" and is_tech_unlocked("basic_engineering"):
-		bonus += 0.10 # +10% Energy Capacity (absorbed from the deleted Applied Physics hub)
+	# v174 (owner call): the +10% Ship Energy Capacity hub bonus is GONE. Measured
+	# before removing — battery capacity runs ~2x consumer draw at every hull tier
+	# (Z1 88 vs 40, Z10 14850 vs 7500), so dropping 10% leaves ~1.8x and nothing
+	# goes unpowered. Capacity is tier-derived (BATTERY_CAP_BY_TIER), not
+	# rarity-rolled, so that margin holds for every player regardless of drops.
+	# Guarded by scenes/energy_margin_check.tscn.
 	if bonus_type == "materials_science" and is_tech_unlocked("materials_science"):
 		bonus += 0.10 # +10% Max Hull HP
 	if bonus_type == "industrial_logistics" and is_tech_unlocked("industrial_logistics"):

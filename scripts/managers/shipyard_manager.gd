@@ -4031,12 +4031,12 @@ func equip_module(slot_idx: int, module_id: String, silent: bool = false) -> boo
 	# an anti-softlock exception: always allow an equip that improves the net
 	# power margin, so an overloaded ship can always be repaired step by step.
 	# v119: Engineering skill no longer scales energy capacity (removed from
-	# recalc_stats too — keep this guard consistent). applied_physics research stays.
-	var rm = GameState.research_manager
-	var phys_mult = 1.0
-	if rm:
-		phys_mult = 1.0 + rm.get_efficiency_bonus("basic_engineering")
-	var cap_mult = phys_mult
+	# recalc_stats too — keep this guard consistent).
+	# v174: the basic_engineering +10% is gone as well, so the guard's multiplier is
+	# now a plain 1.0. Kept as a named local because this MUST stay identical to the
+	# capacity maths in recalc_stats — if a capacity multiplier ever returns, it goes
+	# in both or the equip guard and the combat gate disagree about what fits.
+	var cap_mult = 1.0
 
 	var old_load := 0.0
 	var old_cap := 0.0
@@ -4696,9 +4696,8 @@ func recalc_stats():
 		max_shield *= 1.05
 	# v118: evasion / energy / etc. gem bonuses now apply in combat (Phase 2).
 	
-	# Audit v8.0 P1-25: Applied Physics Hub Bonus (+10% Energy Capacity)
-	if rm:
-		e_cap *= (1.0 + rm.get_efficiency_bonus("basic_engineering"))
+	# v174: the Applied Physics / basic_engineering +10% Energy Capacity hub bonus
+	# was removed here and in the equip guard above. See research_manager.
 
 	# v110 Phase 1: ship energy capacity now lives on its own field. All ship
 	# combat/equip/UI reads use sm.energy_capacity. resources.max_energy is
