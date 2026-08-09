@@ -483,6 +483,48 @@ re-checked against the new cadence before trusting them.
 
 ---
 
+## v175 — guidance follows the chain, not the source file
+
+Reordering the Zone 1 chain (boss before the industrial arc) did not move the gold arrow.
+A 175-minute save was still steered to research **Shipwright I** and craft the frigate
+*before* the boss, because guidance was answered in three places by three different proxies
+for "where is the player", none of which was the chain:
+
+| Place | Old authority |
+|---|---|
+| `mission_manager.get_tutorial_frontier_id` | LAST active beat in **definition** order |
+| `research_page.on_page_enter` | FIRST active research beat in **definition** order |
+| `main.gd::_update_navigation_hints` | an `elif` cascade — **source-file** order |
+
+All three agree with the chain until the chain is reordered, then they silently keep pointing
+at the old shape. `m026` (Shipwright I) was written ~280 lines above `m026c` (the boss ramp),
+so it won.
+
+**The fork itself is not a bug.** `_rescue_orphan_chains` opens the successor of every claimed
+beat, so a save that ran the arc under the old order legitimately has *two* fronts open —
+`m026c` (after the claimed `m017`) and `m026` (after the claimed `m025b`). The question was only
+which one owns the arrow.
+
+**Fix:** one authority — `mission_manager.get_chain_index()`, a Kahn topological order over the
+`next_mission` edges (seeded in definition order so merges like `m016b`/`m016c` → `m017` stay
+deterministic), and `get_chain_frontier_id()` = the earliest active, incomplete, non-goal beat.
+All 87 ladder branches were re-keyed from `"mNNN" in mm.active_missions` to `front == "mNNN"`,
+which makes the cascade's order irrelevant. **No save surgery** — existing saves resolve to the
+right beat on load and keep their progress.
+
+**Guard:** `guidance_order_check` reproduces the reported save exactly (36 claimed beats, both
+fronts open) and asserts the frontier is `m026c`; it also asserts the index respects every
+`next_mission` edge, that no ladder branch has drifted back to membership testing, and that no
+reachable beat is left with neither a branch nor a routable type.
+
+Two guards had encoded the old shape and were repaired, not relaxed: `mission_routing_check`
+scraped main.gd for the literal string `in mm.active_missions` (it found zero routed ids after
+the conversion and blamed `m017`), and `stale_mission_check` was reading the **developer's live
+save** on boot, so its answer depended on whatever that save happened to hold — it now clears
+`active_missions` before installing its fixture.
+
+---
+
 ## Verification tooling (scripts/sim/)
 
 `ng_tune.gd` (warp-aware boss tune — **use this for Z11+**), `z12_tune.gd` (no-warp floor only),

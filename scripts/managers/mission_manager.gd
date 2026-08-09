@@ -61,7 +61,8 @@ func connect_signals():
 func init_missions():
 	missions.clear()
 	active_missions.clear()
-	
+	_chain_index.clear()   # rebuilt lazily; the table below defines its edges
+
 	# Tutorial Missions Sequence
 	# Structure: [id, name, description, type, target, target_qty, reward_cr, reward_xp, next_mission_id]
 	var m_list = [
@@ -854,25 +855,78 @@ func _count_socketed_matrix_cores() -> int:
 				n += 1
 	return n
 
-# v174: which TUTORIAL mission currently owns the guidance arrow — the LAST
-# (furthest-along) active, incomplete, [TUTORIAL]-tagged mission in definition
-# order. A stale early beat, e.g. an atlas_lookup that a mid-chain insert
-# re-activated on an old save, must never outrank the player's real current step.
+# v175: a total order over the missions that RESPECTS next_mission.
 #
-# Lifted out of main.gd::_generic_mission_pulse. Which mission the player is on
-# is mission state, not presentation, and the UI copy could not be tested without
-# standing up the whole scene — so stale_mission_check kept its own duplicate of
-# this loop and drifted into asserting an outcome the loop cannot produce.
-# Returns "" when no tutorial mission is live.
-func get_tutorial_frontier_id() -> String:
-	var chosen := ""
+# Guidance used to be steered by three separate proxies for "where is the player":
+# the frontier picker took the LAST active beat in DEFINITION order, research_page
+# took the FIRST in definition order, and main.gd's hint ladder was a hand-written
+# elif cascade whose priority was literally SOURCE-FILE order. All three agree with
+# the chain right up until the chain is reordered — and then they silently keep
+# pointing at the old shape. Moving the Zone 1 boss ahead of the industrial arc did
+# exactly that: the gold arrow kept aiming at Shipwright I because its branch was
+# written 280 lines above the boss branch.
+#
+# Kahn's algorithm over the next_mission edges, seeded in definition order so that
+# merges (m016b and m016c both feed m017) and side legs stay deterministic. A node
+# is only ever numbered after every predecessor, which is the whole guarantee the
+# callers need. Cycles cannot happen today; if one ever does, its members park at
+# the end rather than vanishing.
+var _chain_index: Dictionary = {}
+
+func get_chain_index() -> Dictionary:
+	if not _chain_index.is_empty():
+		return _chain_index
+	var indeg: Dictionary = {}
 	for mid in missions:
-		if not mid in active_missions:
+		indeg[mid] = 0
+	for mid in missions:
+		var nxt := String(missions[mid].get("next_mission", ""))
+		if nxt != "" and indeg.has(nxt):
+			indeg[nxt] = int(indeg[nxt]) + 1
+	var queue: Array = []
+	for mid in missions:
+		if int(indeg[mid]) == 0:
+			queue.append(mid)
+	var n := 0
+	while queue.size() > 0:
+		var cur := String(queue.pop_front())
+		_chain_index[cur] = n
+		n += 1
+		var nxt2 := String(missions[cur].get("next_mission", ""))
+		if nxt2 != "" and indeg.has(nxt2):
+			indeg[nxt2] = int(indeg[nxt2]) - 1
+			if int(indeg[nxt2]) == 0:
+				queue.append(nxt2)
+	for mid in missions:
+		if not _chain_index.has(mid):
+			_chain_index[mid] = n
+			n += 1
+	return _chain_index
+
+
+# Which beat the player is actually on: the EARLIEST active, incomplete chain
+# mission. Two beats can legitimately be open at once — a save that reaches a
+# reordered chain from the old direction opens both fronts — and when they are,
+# the one the chain puts first is the one to guide at.
+#
+# [CORE GOAL]s are excluded: they are standing objectives (warp, sector clears),
+# not a step, and must never outrank the step. A completed-but-unclaimed beat is
+# excluded too; the claim reminder at the top of the hint ladder owns that state.
+# Returns "" when no chain mission is live.
+func get_chain_frontier_id() -> String:
+	var order: Dictionary = get_chain_index()
+	var chosen := ""
+	var best: int = 1 << 30
+	for mid in active_missions:
+		var m: Dictionary = missions.get(mid, {})
+		if m.is_empty() or m.get("completed", false) or m.get("claimed", false):
 			continue
-		var m: Dictionary = missions[mid]
-		if m.is_empty() or m.get("completed", false) or String(m.get("tag", "")) != "[TUTORIAL]":
+		if String(m.get("tag", "")) == "[CORE GOAL]":
 			continue
-		chosen = String(mid)
+		var idx: int = int(order.get(mid, 1 << 29))
+		if idx < best:
+			best = idx
+			chosen = String(mid)
 	return chosen
 
 func sync_progress():

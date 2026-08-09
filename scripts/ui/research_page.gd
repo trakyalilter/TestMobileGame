@@ -209,22 +209,31 @@ func on_page_enter():
 	# mission chain (tutorial/chapter before side goals), NOT whichever mission activated
 	# first. active_missions is APPEND order, so the old code focused whatever revealed
 	# first (e.g. a Combat-tab firmware GOAL), sending a player following the Industry-tab
-	# metallurgy CHAPTER beat to the wrong tab. Iterating missions in DEFINITION order
-	# matches the arrow (which also skips branch-less goals): the primary chain beat wins
-	# its tab; co-active side goals keep their per-tab alert dots (_update_tab_alerts).
-	# (Supersedes the v139g "skip when ambiguous" guard, which stopped switching at all.)
+	# metallurgy CHAPTER beat to the wrong tab.
+	#
+	# v175: "earliest in the chain" was implemented as DEFINITION order, which is only
+	# the same thing until beats get reordered. Once the Zone 1 boss moved ahead of the
+	# industrial arc, a save with both fronts open still centred Shipwright I — defined
+	# earlier in the table — so the page itself pointed past the boss. Sort the active
+	# research beats by the real chain order and take the first.
+	# Co-active side goals keep their per-tab alert dots (_update_tab_alerts).
 	var mm = GameState.mission_manager
 	if not mm: return
 
 	_update_tab_alerts()
 
-	for mid in mm.missions:                        # definition order: m0xx before goal_*
-		if not mid in mm.active_missions:
+	var order: Dictionary = mm.get_chain_index()
+	var candidates: Array = []
+	for mid in mm.active_missions:
+		var m: Dictionary = mm.missions.get(mid, {})
+		if m.is_empty() or m.get("completed", false) or m.get("type", "") != "research":
 			continue
-		var m = mm.missions[mid]
-		if m.get("completed", false) or m["type"] != "research":
-			continue
-		var tech_id = str(m["target"])
+		candidates.append([int(order.get(mid, 1 << 29)), str(mid)])
+	candidates.sort_custom(func(a, b): return int(a[0]) < int(b[0]))
+
+	for pair in candidates:
+		var m2: Dictionary = mm.missions[str(pair[1])]
+		var tech_id := str(m2["target"])
 		for tab_name in graphs:
 			if tech_id in graphs[tab_name]["nodes"]:
 				focus_on_tech(tech_id)

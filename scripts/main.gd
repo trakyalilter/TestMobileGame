@@ -1193,6 +1193,15 @@ func _update_navigation_hints():
 	# already-researched node; observed live on m025 -> Efficient Smelting).
 	mm.purge_claimed_actives()
 
+	# v175: the ladder below tests the CHAIN FRONTIER, not "is this id anywhere in
+	# active_missions". Those read the same while exactly one beat is open, and
+	# diverge the moment two are — at which point the old form handed the arrow to
+	# whichever branch happened to be written higher up this file. A save that
+	# reached the reordered Zone 1 from the old direction has both the boss ramp
+	# (m026c) and Shipwright I (m026) open, and source order picked Shipwright,
+	# sending the player to build the frigate before the boss it comes after.
+	var front: String = mm.get_chain_frontier_id()
+
 	var target_to_pulse: Control = null
 
 	# 1. Claim Reminder (Top Priority)
@@ -1207,7 +1216,7 @@ func _update_navigation_hints():
 			target_to_pulse = mission_btn
 	
 	# 2. Contextual Guidance based on Active Mission
-	elif "m001" in mm.active_missions:
+	elif front == "m001":
 		# Gather Dirt
 		if current_page_name != "gathering": target_to_pulse = gathering_btn
 		else:
@@ -1216,7 +1225,7 @@ func _update_navigation_hints():
 			if widget and not (GameState.gathering_manager.is_active and GameState.gathering_manager.current_action_id == "gather_dirt"):
 				target_to_pulse = widget.btn
 				
-	elif "m002" in mm.active_missions:
+	elif front == "m002":
 		# Foundational Research: a single research now — Applied Physics + Fluid Dynamics
 		# were folded into Basic Engineering. Pulse the Basic Engineering node.
 		if current_page_name != "research": target_to_pulse = research_btn
@@ -1224,14 +1233,14 @@ func _update_navigation_hints():
 			var widget = pages["research"].get_node_widget("basic_engineering")
 			if widget: target_to_pulse = widget
 			
-	elif "m003" in mm.active_missions:
+	elif front == "m003":
 		# Orphan (in-flight saves): re-pointed to Basic Engineering.
 		if current_page_name != "research": target_to_pulse = research_btn
 		else:
 			var widget = pages["research"].get_node_widget("basic_engineering")
 			if widget: target_to_pulse = widget
 			
-	elif "m004" in mm.active_missions:
+	elif front == "m004":
 		# Gather Water
 		if current_page_name != "gathering": target_to_pulse = gathering_btn
 		else:
@@ -1240,7 +1249,7 @@ func _update_navigation_hints():
 			if widget and not (GameState.gathering_manager.is_active and GameState.gathering_manager.current_action_id == "collect_water"):
 				target_to_pulse = widget.btn
 				
-	elif "m005" in mm.active_missions:
+	elif front == "m005":
 		# Processing: Si, Fe (Mineral Washing)
 		if current_page_name != "processing": target_to_pulse = processing_btn
 		else:
@@ -1251,7 +1260,7 @@ func _update_navigation_hints():
 			if widget and not (pm.is_active and pm.current_recipe_id == "centrifuge_dirt"):
 				target_to_pulse = widget.btn
 			
-	elif "m005b" in mm.active_missions:
+	elif front == "m005b":
 		# v134g: Shipyard — craft the Basic Battery (power-first onboarding)
 		if current_page_name != "shipyard": target_to_pulse = shipyard_btn
 		else:
@@ -1259,7 +1268,7 @@ func _update_navigation_hints():
 			page.focus_module_tab("z1_battery")
 			target_to_pulse = page.get_module_widget("z1_battery")
 
-	elif "m005c" in mm.active_missions:
+	elif front == "m005c":
 		# v134g: Designer — equip the batteries (pulse the empty battery slot,
 		# dim non-battery armory modules so the batteries pop).
 		if current_page_name != "designer": target_to_pulse = designer_btn
@@ -1271,7 +1280,7 @@ func _update_navigation_hints():
 				dp.focus_slot("battery")
 				target_to_pulse = dp.get_slot_widget("battery")
 
-	elif "m007" in mm.active_missions:
+	elif front == "m007":
 		# Shipyard: Ion Thrusters
 		if current_page_name != "shipyard": target_to_pulse = shipyard_btn
 		else:
@@ -1279,7 +1288,7 @@ func _update_navigation_hints():
 			page.focus_module_tab("z1_engine")
 			target_to_pulse = page.get_module_widget("z1_engine")
 
-	elif "m007b" in mm.active_missions:
+	elif front == "m007b":
 		# Designer: pulse the empty engine slot so the just-crafted Thruster
 		# closes its arc with a visible "equip me" target. Also dim non-engine
 		# modules in the Armory so the Thruster pops visually.
@@ -1294,14 +1303,14 @@ func _update_navigation_hints():
 			elif dp.has_method("get_coach_anchor"):
 				target_to_pulse = dp.get_coach_anchor("schematic")
 
-	elif "m008" in mm.active_missions:
+	elif front == "m008":
 		# Research: Materials Science Hub
 		if current_page_name != "research": target_to_pulse = research_btn
 		else:
 			var widget = pages["research"].get_node_widget("materials_science")
 			if widget: target_to_pulse = widget
 
-	elif "m009" in mm.active_missions:
+	elif front == "m009":
 		# Gather Wood
 		if current_page_name != "gathering": target_to_pulse = gathering_btn
 		else:
@@ -1310,14 +1319,14 @@ func _update_navigation_hints():
 			if widget and not (GameState.gathering_manager.is_active and GameState.gathering_manager.current_action_id == "gather_wood"):
 				target_to_pulse = widget.btn
 
-	elif "m010" in mm.active_missions:
+	elif front == "m010":
 		# Research: Combustion
 		if current_page_name != "research": target_to_pulse = research_btn
 		else:
 			var widget = pages["research"].get_node_widget("combustion")
 			if widget: target_to_pulse = widget
 			
-	elif "m011" in mm.active_missions:
+	elif front == "m011":
 		# Processing: Carbon (Kiln)
 		if current_page_name != "processing": target_to_pulse = processing_btn
 		else:
@@ -1328,7 +1337,7 @@ func _update_navigation_hints():
 			if widget and not (pm.is_active and pm.current_recipe_id == "charcoal_burning"):
 				target_to_pulse = widget.btn
 				
-	elif "m012" in mm.active_missions:
+	elif front == "m012":
 		# Gather Spodumene
 		if current_page_name != "gathering": target_to_pulse = gathering_btn
 		else:
@@ -1337,7 +1346,7 @@ func _update_navigation_hints():
 			if widget and not (GameState.gathering_manager.is_active and GameState.gathering_manager.current_action_id == "extract_salts"):
 				target_to_pulse = widget.btn
 				
-	elif "m013" in mm.active_missions:
+	elif front == "m013":
 		# Processing: Refine Lithium
 		if current_page_name != "processing": target_to_pulse = processing_btn
 		else:
@@ -1348,14 +1357,14 @@ func _update_navigation_hints():
 			if widget and not (pm.is_active and pm.current_recipe_id == "refine_lithium"):
 				target_to_pulse = widget.btn
 
-	elif "m014" in mm.active_missions:
+	elif front == "m014":
 		# Research: Kinetics 101
 		if current_page_name != "research": target_to_pulse = research_btn
 		else:
 			var widget = pages["research"].get_node_widget("kinetics_101")
 			if widget: target_to_pulse = widget
 				
-	elif "m015" in mm.active_missions:
+	elif front == "m015":
 		# Shipyard: Mass Driver
 		if current_page_name != "shipyard": target_to_pulse = shipyard_btn
 		else:
@@ -1363,7 +1372,7 @@ func _update_navigation_hints():
 			page.focus_module_tab("z1_kinetic")
 			target_to_pulse = page.get_module_widget("z1_kinetic")
 
-	elif "m015b" in mm.active_missions:
+	elif front == "m015b":
 		# Designer: pulse the empty weapon slot + highlight only KINETIC weapons.
 		if current_page_name != "designer": target_to_pulse = designer_btn
 		else:
@@ -1376,7 +1385,7 @@ func _update_navigation_hints():
 			elif dp.has_method("get_coach_anchor"):
 				target_to_pulse = dp.get_coach_anchor("schematic")
 
-	elif "m016" in mm.active_missions:
+	elif front == "m016":
 		# Processing: Ferrite Rounds
 		if current_page_name != "processing": target_to_pulse = processing_btn
 		else:
@@ -1387,7 +1396,7 @@ func _update_navigation_hints():
 			if widget and not (pm.is_active and pm.current_recipe_id == "craft_slug_t1"):
 				target_to_pulse = widget.btn
 				
-	elif "m017" in mm.active_missions:
+	elif front == "m017":
 		# Combat: Lunar Orbit Target
 		if current_page_name != "combat": target_to_pulse = combat_btn
 		else:
@@ -1396,7 +1405,7 @@ func _update_navigation_hints():
 			target_to_pulse = page.get_enemy_card("z1_lunar_drone")
 
 	# v128: damage-triangle arcs — same routing as m015 (shipyard craft) / m017 (combat kill).
-	elif "m017a" in mm.active_missions:
+	elif front == "m017a":
 		# Shipyard: Pulse Laser Mk.I (energy leg)
 		if current_page_name != "shipyard": target_to_pulse = shipyard_btn
 		else:
@@ -1404,7 +1413,7 @@ func _update_navigation_hints():
 			page.focus_module_tab("z1_energy")
 			target_to_pulse = page.get_module_widget("z1_energy")
 
-	elif "m017a2" in mm.active_missions:
+	elif front == "m017a2":
 		# v134: Processing — produce Focus Crystals (the energy leg's ammo step)
 		if current_page_name != "processing": target_to_pulse = processing_btn
 		else:
@@ -1415,7 +1424,7 @@ func _update_navigation_hints():
 			if widget and not (pm.is_active and pm.current_recipe_id == "craft_cell_t1"):
 				target_to_pulse = widget.btn
 
-	elif "m017b" in mm.active_missions:
+	elif front == "m017b":
 		# v134b: the mission is EQUIP the Pulse Laser, THEN fight. Pulsing Combat
 		# while no energy weapon was equipped herded the player into the probe's
 		# kinetic-resist wall with the wrong gun. Phase 1: Ship Designer until an
@@ -1448,7 +1457,7 @@ func _update_navigation_hints():
 			page.focus_zone("lunar_orbit")
 			target_to_pulse = page.get_enemy_card("z1_survey_probe")
 
-	elif "m017c" in mm.active_missions:
+	elif front == "m017c":
 		# Shipyard: Micro-Missile Launcher (explosive leg)
 		if current_page_name != "shipyard": target_to_pulse = shipyard_btn
 		else:
@@ -1456,7 +1465,7 @@ func _update_navigation_hints():
 			page.focus_module_tab("z1_missile")
 			target_to_pulse = page.get_module_widget("z1_missile")
 
-	elif "m017c2" in mm.active_missions:
+	elif front == "m017c2":
 		# v134: Processing — produce HE Missiles (the explosive leg's ammo step)
 		if current_page_name != "processing": target_to_pulse = processing_btn
 		else:
@@ -1467,7 +1476,7 @@ func _update_navigation_hints():
 			if widget and not (pm.is_active and pm.current_recipe_id == "craft_missile_t1"):
 				target_to_pulse = widget.btn
 
-	elif "m017d" in mm.active_missions:
+	elif front == "m017d":
 		# v134b: two-phase like m017b — Ship Designer until an explosive weapon
 		# is equipped, then Combat for the explosive-weak Scrap Collector.
 		# v134g: equip BOTH launchers — direct to the weapon slot until TWO are in.
@@ -1496,21 +1505,21 @@ func _update_navigation_hints():
 			page.focus_zone("lunar_orbit")
 			target_to_pulse = page.get_enemy_card("z1_scrap_collector")
 
-	elif "m018" in mm.active_missions:
+	elif front == "m018":
 		# Research: Industrial Logistics Hub
 		if current_page_name != "research": target_to_pulse = research_btn
 		else:
 			var widget = pages["research"].get_node_widget("industrial_logistics")
 			if widget: target_to_pulse = widget
 
-	elif "m018b" in mm.active_missions:
+	elif front == "m018b":
 		# v136: automated_logistics removed; orphan beat retargets to industrial_logistics.
 		if current_page_name != "research": target_to_pulse = research_btn
 		else:
 			var widget = pages["research"].get_node_widget("industrial_logistics")
 			if widget: target_to_pulse = widget
 			
-	elif "m018t1" in mm.active_missions:
+	elif front == "m018t1":
 		# Gather Cassiterite (tin ore) — pulse the mining action.
 		if current_page_name != "gathering": target_to_pulse = gathering_btn
 		else:
@@ -1519,7 +1528,7 @@ func _update_navigation_hints():
 			if w and not (GameState.gathering_manager.is_active and GameState.gathering_manager.current_action_id == "mine_cassiterite"):
 				target_to_pulse = w.btn
 
-	elif "m018t2" in mm.active_missions:
+	elif front == "m018t2":
 		# Smelt Cassiterite -> Tin — pulse the Tin Smelting recipe.
 		if current_page_name != "processing": target_to_pulse = processing_btn
 		else:
@@ -1530,7 +1539,7 @@ func _update_navigation_hints():
 			if w and not (pm.is_active and pm.current_recipe_id == "refine_cassiterite"):
 				target_to_pulse = w.btn
 
-	elif "m019" in mm.active_missions:
+	elif front == "m019":
 		# v134g: the Circuit recipe needs Tin (Sn) — a two-hop the earlier chain never
 		# delivered. Route the intermediate need-aware (mirrors m024b): mine Cassiterite →
 		# smelt Tin → then craft the Circuit, whichever the player currently lacks.
@@ -1565,14 +1574,14 @@ func _update_navigation_hints():
 				if widget and not (pm.is_active and pm.current_recipe_id == "craft_circuit"):
 					target_to_pulse = widget.btn
 
-	elif "m020" in mm.active_missions:
+	elif front == "m020":
 		# Research: Power Systems
 		if current_page_name != "research": target_to_pulse = research_btn
 		else:
 			var widget = pages["research"].get_node_widget("power_systems")
 			if widget: target_to_pulse = widget
 				
-	elif "m021" in mm.active_missions:
+	elif front == "m021":
 		# Processing: Batteries
 		if current_page_name != "processing": target_to_pulse = processing_btn
 		else:
@@ -1583,7 +1592,7 @@ func _update_navigation_hints():
 			if widget and not (pm.is_active and pm.current_recipe_id == "craft_battery_t1"):
 				target_to_pulse = widget.btn
 				
-	elif "m022" in mm.active_missions:
+	elif front == "m022":
 		# Shipyard: Battery Module
 		if current_page_name != "shipyard": target_to_pulse = shipyard_btn
 		else:
@@ -1591,7 +1600,7 @@ func _update_navigation_hints():
 			page.focus_module_tab("z1_battery")
 			target_to_pulse = page.get_module_widget("z1_battery")
 
-	elif "m022b" in mm.active_missions:
+	elif front == "m022b":
 		# Designer: pulse the empty battery slot + dim non-battery Armory cards.
 		if current_page_name != "designer": target_to_pulse = designer_btn
 		else:
@@ -1604,14 +1613,14 @@ func _update_navigation_hints():
 			elif dp.has_method("get_coach_anchor"):
 				target_to_pulse = dp.get_coach_anchor("schematic")
 
-	elif "m023" in mm.active_missions:
+	elif front == "m023":
 		# Research: Energy Shields
 		if current_page_name != "research": target_to_pulse = research_btn
 		else:
 			var widget = pages["research"].get_node_widget("energy_shields")
 			if widget: target_to_pulse = widget
 			
-	elif "m024" in mm.active_missions:
+	elif front == "m024":
 		# Shipyard: Deflector Shield
 		if current_page_name != "shipyard": target_to_pulse = shipyard_btn
 		else:
@@ -1619,7 +1628,7 @@ func _update_navigation_hints():
 			page.focus_module_tab("z1_shield")
 			target_to_pulse = page.get_module_widget("z1_shield")
 
-	elif "m024c" in mm.active_missions:
+	elif front == "m024c":
 		# Designer: pulse the empty shield slot + dim non-shield Armory cards.
 		if current_page_name != "designer": target_to_pulse = designer_btn
 		else:
@@ -1632,7 +1641,7 @@ func _update_navigation_hints():
 			elif dp.has_method("get_coach_anchor"):
 				target_to_pulse = dp.get_coach_anchor("schematic")
 
-	elif "m024a1" in mm.active_missions:
+	elif front == "m024a1":
 		# Shipyard: Iron Plate (armor).
 		if current_page_name != "shipyard": target_to_pulse = shipyard_btn
 		else:
@@ -1640,7 +1649,7 @@ func _update_navigation_hints():
 			page.focus_module_tab("z1_armor")
 			target_to_pulse = page.get_module_widget("z1_armor")
 
-	elif "m024a2" in mm.active_missions:
+	elif front == "m024a2":
 		# Designer: pulse the empty armor slot + dim non-armor Armory cards.
 		if current_page_name != "designer": target_to_pulse = designer_btn
 		else:
@@ -1653,13 +1662,13 @@ func _update_navigation_hints():
 			elif dp.has_method("get_coach_anchor"):
 				target_to_pulse = dp.get_coach_anchor("schematic")
 
-	elif "m016c" in mm.active_missions:
+	elif front == "m016c":
 		# Combat orientation — pulse the Combat tab until the player visits;
 		# the visit_page hook in switch_to() auto-completes the mission.
 		if current_page_name != "combat":
 			target_to_pulse = combat_btn
 
-	elif "m025" in mm.active_missions:
+	elif front == "m025":
 		# Research: Efficient Smelting — but its PARENT Organic Combustion is un-owned on
 		# the live path (m010 is orphaned), so smelting is greyed and clicking it is inert.
 		# v134h: need-aware — pulse combustion first, then smelting once it's owned (mirrors
@@ -1671,7 +1680,7 @@ func _update_navigation_hints():
 			var widget = pages["research"].get_node_widget(_node)
 			if widget: target_to_pulse = widget
 
-	elif "m025a" in mm.active_missions:
+	elif front == "m025a":
 		# v134: Processing — Water Electrolysis (stock Oxygen for the BOF steel step)
 		if current_page_name != "processing": target_to_pulse = processing_btn
 		else:
@@ -1682,21 +1691,21 @@ func _update_navigation_hints():
 			if widget and not (pm.is_active and pm.current_recipe_id == "electrolysis"):
 				target_to_pulse = widget.btn
 
-	elif "m026" in mm.active_missions:
+	elif front == "m026":
 		# Research: Shipwright I
 		if current_page_name != "research": target_to_pulse = research_btn
 		else:
 			var widget = pages["research"].get_node_widget("shipwright_1")
 			if widget: target_to_pulse = widget
 
-	elif "m027" in mm.active_missions:
+	elif front == "m027":
 		# Research: Asteroid Belt Authorization (zone_2_access)
 		if current_page_name != "research": target_to_pulse = research_btn
 		else:
 			var widget = pages["research"].get_node_widget("zone_2_access")
 			if widget: target_to_pulse = widget
 
-	elif "m028" in mm.active_missions:
+	elif front == "m028":
 		# v145: m028 now asks for smelted TIN, not raw Cassiterite (the ore had no
 		# consumer for ~8 missions). Route need-aware, exactly like m019: no ore -> mine,
 		# ore in hand -> pulse the Tin Smelting recipe.
@@ -1718,7 +1727,7 @@ func _update_navigation_hints():
 				if w and not (pm.is_active and pm.current_recipe_id == "refine_cassiterite"):
 					target_to_pulse = w.btn
 
-	elif "m029" in mm.active_missions:
+	elif front == "m029":
 		# Shipyard: Zone 2 Armor (Carbon Fiber Plate)
 		if current_page_name != "shipyard": target_to_pulse = shipyard_btn
 		else:
@@ -1726,49 +1735,49 @@ func _update_navigation_hints():
 			page.focus_module_tab("z2_armor")
 			target_to_pulse = page.get_module_widget("z2_armor")
 
-	elif "m030" in mm.active_missions:
+	elif front == "m030":
 		# Research: Shipwright II (Audit v15.0)
 		if current_page_name != "research": target_to_pulse = research_btn
 		else:
 			var widget = pages["research"].get_node_widget("shipwright_2")
 			if widget: target_to_pulse = widget
 			
-	elif "m030c" in mm.active_missions:
+	elif front == "m030c":
 		# Shipyard: Escort Destroyer
 		if current_page_name != "shipyard": target_to_pulse = shipyard_btn
 		else:
 			pages["shipyard"].focus_hull_tab("destroyer_hull")
 			target_to_pulse = pages["shipyard"].get_hull_widget("destroyer_hull")
 
-	elif "m032b" in mm.active_missions:
+	elif front == "m032b":
 		# Research: Beta Colony Charter (Sector Beta door) — v132 retarget
 		if current_page_name != "research": target_to_pulse = research_btn
 		else:
 			var widget = pages["research"].get_node_widget("zone_6_access")
 			if widget: target_to_pulse = widget
 			
-	elif "m032c" in mm.active_missions:
+	elif front == "m032c":
 		# Shipyard: Battlecruiser
 		if current_page_name != "shipyard": target_to_pulse = shipyard_btn
 		else:
 			pages["shipyard"].focus_hull_tab("battlecruiser_hull")
 			target_to_pulse = pages["shipyard"].get_hull_widget("battlecruiser_hull")
 			
-	elif "m033b" in mm.active_missions:
+	elif front == "m033b":
 		# Research: Gamma Sector Clearance (Sector Gamma door) — v132 retarget
 		if current_page_name != "research": target_to_pulse = research_btn
 		else:
 			var widget = pages["research"].get_node_widget("zone_7_access")
 			if widget: target_to_pulse = widget
 			
-	elif "m033c" in mm.active_missions:
+	elif front == "m033c":
 		# Shipyard: Dreadnought
 		if current_page_name != "shipyard": target_to_pulse = shipyard_btn
 		else:
 			pages["shipyard"].focus_hull_tab("dreadnought_hull")
 			target_to_pulse = pages["shipyard"].get_hull_widget("dreadnought_hull")
 
-	elif "m030d" in mm.active_missions:
+	elif front == "m030d":
 		# v134h: Combat — Z2 boss farm for the zone_3_access core (Silicate Monolith).
 		if current_page_name != "combat": target_to_pulse = combat_btn
 		else:
@@ -1776,7 +1785,7 @@ func _update_navigation_hints():
 			page.focus_zone("asteroid_belt")
 			target_to_pulse = page.get_enemy_card("z2_boss_monolith")
 
-	elif "m030f2" in mm.active_missions:
+	elif front == "m030f2":
 		# v134h: Combat — Z3 boss farm for the zone_4_access cores (Martian Warmaster).
 		if current_page_name != "combat": target_to_pulse = combat_btn
 		else:
@@ -1784,7 +1793,7 @@ func _update_navigation_hints():
 			page.focus_zone("mars_debris")
 			target_to_pulse = page.get_enemy_card("z3_boss_warmaster")
 
-	elif "m030i" in mm.active_missions:
+	elif front == "m030i":
 		# Combat: Overseer's Core (Z4 boss farm for zone_5_access cores) — v132
 		if current_page_name != "combat": target_to_pulse = combat_btn
 		else:
@@ -1792,14 +1801,14 @@ func _update_navigation_hints():
 			page.focus_zone("cryofield")   # Glacier Belt's zone id
 			target_to_pulse = page.get_enemy_card("z4_boss_overseer")
 
-	elif "m031" in mm.active_missions:
+	elif front == "m031":
 		# Research: Sector Alpha Decryption (the actual zone door) — v132 retarget
 		if current_page_name != "research": target_to_pulse = research_btn
 		else:
 			var widget = pages["research"].get_node_widget("zone_5_access")
 			if widget: target_to_pulse = widget
 
-	elif "m032" in mm.active_missions:
+	elif front == "m032":
 		# Combat: Alpha Sector Dominance (Alien Frigate)
 		if current_page_name != "combat": target_to_pulse = combat_btn
 		else:
@@ -1807,7 +1816,7 @@ func _update_navigation_hints():
 			page.focus_zone("sector_alpha")
 			target_to_pulse = page.get_enemy_card("z5_alien_frigate")
 
-	elif "m032a" in mm.active_missions:
+	elif front == "m032a":
 		# Combat: Harbinger Hunt (Z5 boss farm for zone_6_access cores) — v132
 		if current_page_name != "combat": target_to_pulse = combat_btn
 		else:
@@ -1815,7 +1824,7 @@ func _update_navigation_hints():
 			page.focus_zone("sector_alpha")
 			target_to_pulse = page.get_enemy_card("z5_boss_harbinger")
 
-	elif "m033" in mm.active_missions:
+	elif front == "m033":
 		# Combat: Beta Sector Expansion (Ore Guardian)
 		if current_page_name != "combat": target_to_pulse = combat_btn
 		else:
@@ -1823,7 +1832,7 @@ func _update_navigation_hints():
 			page.focus_zone("sector_beta")
 			target_to_pulse = page.get_enemy_card("z6_ore_guardian")
 
-	elif "m034" in mm.active_missions:
+	elif front == "m034":
 		# Combat: Break the Blockade (Beta Colossus farm for zone_7_access cores)
 		# v132: the boss lives in Sector BETA — the old entry focused Gamma, a
 		# zone the player can't even have unlocked yet, and found no enemy card.
@@ -1835,17 +1844,17 @@ func _update_navigation_hints():
 
 	# P-onboard: new teaching steps — pulse the nav button until the player visits
 	# (visit_page auto-completes on navigation; both pages are always reachable).
-	elif "m019b" in mm.active_missions:
+	elif front == "m019b":
 		if current_page_name != "inventory": target_to_pulse = inventory_btn
-	elif "m019c" in mm.active_missions:
+	elif front == "m019c":
 		if current_page_name != "infrastructure": target_to_pulse = infrastructure_btn
-	elif "m019d" in mm.active_missions:
+	elif front == "m019d":
 		# v135: first directed building — pulse the page, then the first build card.
 		if current_page_name != "infrastructure": target_to_pulse = infrastructure_btn
 		else:
 			var w_b = pages["infrastructure"].get_building_widget("solar_panel")
 			if w_b: target_to_pulse = w_b
-	elif "m027b" in mm.active_missions:
+	elif front == "m027b":
 		if current_page_name != "bounty": target_to_pulse = bounty_btn
 
 	# ── Previously-undirected tutorial steps ──
@@ -1853,14 +1862,14 @@ func _update_navigation_hints():
 	# reveals in PARALLEL with the linear chain — so any active endgame chain mission
 	# won the elif ladder and the Warp pulse went dark. It now lives in a post-chain
 	# fallback (below), guarded by target_to_pulse == null. v134g.
-	elif "m002b" in mm.active_missions:
+	elif front == "m002b":
 		# Orphan (in-flight saves): re-pointed to Basic Engineering.
 		if current_page_name != "research": target_to_pulse = research_btn
 		else:
 			var widget = pages["research"].get_node_widget("basic_engineering")
 			if widget: target_to_pulse = widget
 
-	elif "m013b" in mm.active_missions:
+	elif front == "m013b":
 		# Gathering: Malachite Ore
 		if current_page_name != "gathering": target_to_pulse = gathering_btn
 		else:
@@ -1869,7 +1878,7 @@ func _update_navigation_hints():
 			if widget and not (GameState.gathering_manager.is_active and GameState.gathering_manager.current_action_id == "mine_malachite"):
 				target_to_pulse = widget.btn
 
-	elif "m013c" in mm.active_missions:
+	elif front == "m013c":
 		# Processing: Refine Copper
 		if current_page_name != "processing": target_to_pulse = processing_btn
 		else:
@@ -1880,7 +1889,7 @@ func _update_navigation_hints():
 			if widget and not (pm.is_active and pm.current_recipe_id == "smelt_copper"):
 				target_to_pulse = widget.btn
 
-	elif "m016b" in mm.active_missions:
+	elif front == "m016b":
 		# Designer: pulse the exact empty slot to fill next (weapon, then shield)
 		if current_page_name != "designer": target_to_pulse = designer_btn
 		else:
@@ -1900,7 +1909,7 @@ func _update_navigation_hints():
 			elif dp.has_method("get_coach_anchor"):
 				target_to_pulse = dp.get_coach_anchor("schematic")
 
-	elif "m024b" in mm.active_missions:
+	elif front == "m024b":
 		# Processing: craft repair kits. Hull patches first; then Shield Boosters —
 		# but the Booster recipe eats a Battery Cell (BatteryT1) each, and the
 		# power-first reorder no longer teaches that on the main path. Route to the
@@ -1925,7 +1934,7 @@ func _update_navigation_hints():
 			if widget and not (pm.is_active and pm.current_recipe_id == rid):
 				target_to_pulse = widget.btn
 
-	elif "m024b2" in mm.active_missions:
+	elif front == "m024b2":
 		# Designer: pulse the exact empty consumable slot (hull, then shield)
 		if current_page_name != "designer": target_to_pulse = designer_btn
 		else:
@@ -1944,7 +1953,7 @@ func _update_navigation_hints():
 			elif dp.has_method("get_coach_anchor"):
 				target_to_pulse = dp.get_coach_anchor("consumables")
 
-	elif "m025b" in mm.active_missions:
+	elif front == "m025b":
 		# Processing: Smelt Steel
 		if current_page_name != "processing": target_to_pulse = processing_btn
 		else:
@@ -1955,14 +1964,14 @@ func _update_navigation_hints():
 			if widget and not (pm.is_active and pm.current_recipe_id == "smelt_steel_basic"):
 				target_to_pulse = widget.btn
 
-	elif "m026b" in mm.active_missions:
+	elif front == "m026b":
 		# Shipyard: Construct Industrial Frigate
 		if current_page_name != "shipyard": target_to_pulse = shipyard_btn
 		else:
 			pages["shipyard"].focus_hull_tab("frigate_hull")
 			target_to_pulse = pages["shipyard"].get_hull_widget("frigate_hull")
 
-	elif "m026c" in mm.active_missions:
+	elif front == "m026c":
 		# Combat: Farm a RARE drop in Lunar Orbit
 		if current_page_name != "combat": target_to_pulse = combat_btn
 		else:
@@ -1970,7 +1979,7 @@ func _update_navigation_hints():
 			page.focus_zone("lunar_orbit")
 			target_to_pulse = page.get_enemy_card("z1_lunar_drone")
 
-	elif "m026d" in mm.active_missions:
+	elif front == "m026d":
 		# Designer: pulse the weapon slot to swap in a RARE+ weapon
 		if current_page_name != "designer": target_to_pulse = designer_btn
 		else:
@@ -1981,7 +1990,7 @@ func _update_navigation_hints():
 			elif dp.has_method("get_coach_anchor"):
 				target_to_pulse = dp.get_coach_anchor("schematic")
 
-	elif "m026e" in mm.active_missions:
+	elif front == "m026e":
 		# Combat: Defeat Rogue Architect (Lunar Orbit boss)
 		if current_page_name != "combat": target_to_pulse = combat_btn
 		else:
@@ -1991,19 +2000,19 @@ func _update_navigation_hints():
 
 	# v134: the v107 AdvCircuit discovery beats (m029a1..a5) never had pulses —
 	# every OTHER tutorial research/craft step glows its target. Complete the set.
-	elif "m029a1" in mm.active_missions:
+	elif front == "m029a1":
 		if current_page_name != "research": target_to_pulse = research_btn
 		else:
 			var widget = pages["research"].get_node_widget("adv_materials")
 			if widget: target_to_pulse = widget
 
-	elif "m029a2" in mm.active_missions:
+	elif front == "m029a2":
 		if current_page_name != "research": target_to_pulse = research_btn
 		else:
 			var widget = pages["research"].get_node_widget("metallurgy_advanced")
 			if widget: target_to_pulse = widget
 
-	elif "m029a3" in mm.active_missions:
+	elif front == "m029a3":
 		# Processing: Structural Components
 		if current_page_name != "processing": target_to_pulse = processing_btn
 		else:
@@ -2014,7 +2023,7 @@ func _update_navigation_hints():
 			if widget and not (pm.is_active and pm.current_recipe_id == "craft_structural_component"):
 				target_to_pulse = widget.btn
 
-	elif "m029a5" in mm.active_missions:
+	elif front == "m029a5":
 		if current_page_name != "research": target_to_pulse = research_btn
 		else:
 			var widget = pages["research"].get_node_widget("automation")
@@ -2023,7 +2032,7 @@ func _update_navigation_hints():
 	# v145 (H): the titanium beat. Both mine_dolomite and refine_titanium unlocked at
 	# m029a1 and were never taught, so route the two hops need-aware (mirrors m019/m028):
 	# no ore -> quarry Dolomite, ore in hand -> pulse Titanium Reduction.
-	elif "m029a6t" in mm.active_missions:
+	elif front == "m029a6t":
 		var _dol: float = GameState.resources.get_element_amount("Dolomite")
 		if _dol < 2:
 			if current_page_name != "gathering": target_to_pulse = gathering_btn
@@ -2042,7 +2051,7 @@ func _update_navigation_hints():
 				if w and not (pm.is_active and pm.current_recipe_id == "refine_titanium"):
 					target_to_pulse = w.btn
 
-	elif "m029b" in mm.active_missions:
+	elif front == "m029b":
 		# Processing: Advanced Circuitry
 		if current_page_name != "processing": target_to_pulse = processing_btn
 		else:
@@ -2053,14 +2062,14 @@ func _update_navigation_hints():
 			if widget and not (pm.is_active and pm.current_recipe_id == "craft_adv_circuit"):
 				target_to_pulse = widget.btn
 
-	elif "m030e" in mm.active_missions:
+	elif front == "m030e":
 		# Research: Mars Debris Clearance (zone_3_access)
 		if current_page_name != "research": target_to_pulse = research_btn
 		else:
 			var widget = pages["research"].get_node_widget("zone_3_access")
 			if widget: target_to_pulse = widget
 
-	elif "m030f" in mm.active_missions:
+	elif front == "m030f":
 		# Combat: Scavenger Mechs (Mars Debris)
 		if current_page_name != "combat": target_to_pulse = combat_btn
 		else:
@@ -2068,14 +2077,14 @@ func _update_navigation_hints():
 			page.focus_zone("mars_debris")
 			target_to_pulse = page.get_enemy_card("z3_scavenger_mech")
 
-	elif "m030g" in mm.active_missions:
+	elif front == "m030g":
 		# Research: Glacier Belt Expedition (zone_4_access)
 		if current_page_name != "research": target_to_pulse = research_btn
 		else:
 			var widget = pages["research"].get_node_widget("zone_4_access")
 			if widget: target_to_pulse = widget
 
-	elif "m030h" in mm.active_missions:
+	elif front == "m030h":
 		# Combat: Ice Wraiths (Cryofield)
 		if current_page_name != "combat": target_to_pulse = combat_btn
 		else:
@@ -2083,7 +2092,7 @@ func _update_navigation_hints():
 			page.focus_zone("cryofield")
 			target_to_pulse = page.get_enemy_card("z4_ice_wraith")
 
-	elif "m032d" in mm.active_missions:
+	elif front == "m032d":
 		# Combat: Void Artifacts from Sector Alpha ships
 		if current_page_name != "combat": target_to_pulse = combat_btn
 		else:
@@ -2331,15 +2340,14 @@ func _generic_mission_pulse(mm) -> Control:
 	#     box, atlas glow/coach card, slot pulse) takes over. DON'T advance to a
 	#     different tutorial mission (that made the arrow flip atlas <-> combat).
 	#   • Unrouted type (discover) or a hidden target page? return null too.
-	# The tutorial is meant to be a single linear chain; if two are somehow active,
-	# the earliest deterministically wins instead of the arrow jumping every frame.
-	# Frontier = the LAST (furthest-along) active tutorial mission in definition order.
-	# A stale early beat — e.g. an atlas_lookup a mid-chain insert re-activated on an
-	# old save (auto-completed by sync now, but belt-and-braces) — must never outrank
-	# the player's real current step.
-	# v174: the pick itself lives on mission_manager now (get_tutorial_frontier_id)
-	# so it is testable without standing up this scene.
-	var chosen: String = mm.get_tutorial_frontier_id()
+	# The chain is meant to be linear; when two beats are somehow open at once, the
+	# one the CHAIN puts first wins, deterministically, instead of the arrow jumping
+	# every frame. v175: that pick is a topological order over next_mission now —
+	# definition order was a proxy for it that went stale on the first reorder.
+	# A stale early beat (an atlas_lookup a mid-chain insert re-activated on an old
+	# save) is excluded by being completed, not by being early.
+	# The pick lives on mission_manager so it is testable without this scene.
+	var chosen: String = mm.get_chain_frontier_id()
 	if chosen == "":
 		return null
 	var m: Dictionary = mm.missions[chosen]

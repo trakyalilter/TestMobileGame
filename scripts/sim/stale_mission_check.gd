@@ -7,6 +7,15 @@ func _ready() -> void:
 	var mm = GameState.mission_manager
 	var res = GameState.resources
 
+	# v175: the frontier is now the EARLIEST open beat, which makes this probe's
+	# fixture matter. Two things contaminated it: m001 is active straight out of
+	# init_missions, and GameState LOADS THE REAL SAVE on boot — so the developer's
+	# own open beats were competing with the two this probe sets up, and the answer
+	# changed with whatever the save happened to hold. Start from a blank slate.
+	for mid0 in mm.missions:
+		mm.missions[mid0]["active"] = false
+	mm.active_missions.clear()
+
 	# Simulate the reported save: m019e active+incomplete, m029a8 active (real current).
 	for mid in ["m019e", "m029a8"]:
 		if mid in mm.missions:
@@ -32,21 +41,18 @@ func _ready() -> void:
 	# v174: call the manager's own picker instead of re-implementing it here. The
 	# duplicate loop was faithful, but its EXPECTATION could never hold: it wanted
 	# m029a8, which is in CHAPTER_2_IDS and therefore tagged "[CHAPTER 2]", while
-	# the picker filters to "[TUTORIAL]". c3 failed by construction no matter what
+	# the picker filtered to "[TUTORIAL]". c3 failed by construction no matter what
 	# the game did — a permanently-red guard that told us nothing.
 	#
-	# What this beat is actually for: once m019e auto-completes, the STALE early
-	# atlas_lookup must not keep owning the arrow. So assert that, plus that the
-	# frontier is a genuinely live tutorial mission rather than "" or junk.
-	var chosen: String = mm.get_tutorial_frontier_id()
+	# v175: the picker now spans the whole chain (goals excluded) and orders by the
+	# real next_mission topology, so the expectation this probe always wanted is
+	# finally the correct one — the frontier IS m029a8, the player's real step.
+	var chosen: String = mm.get_chain_frontier_id()
 	var c3: bool = chosen != "m019e"
-	var c4: bool = chosen == "" or (
-		chosen in mm.active_missions
-		and not mm.missions[chosen].get("completed", false)
-		and String(mm.missions[chosen].get("tag", "")) == "[TUTORIAL]")
+	var c4: bool = chosen == "m029a8"
 
 	for pair in [["lesson live when Res1 unowned", c1], ["m019e auto-completes when owned", c2],
-			["frontier is not the stale m019e", c3], ["frontier is a live TUTORIAL beat", c4]]:
+			["frontier is not the stale m019e", c3], ["frontier is the real current beat", c4]]:
 		if not pair[1]: fails += 1
 		print("[STALE] %-38s %s" % [pair[0], "OK" if pair[1] else "*** FAIL (chosen=%s)" % chosen])
 	print("[STALE] %s" % ("ALL PASS" if fails == 0 else "*** %d FAIL" % fails))

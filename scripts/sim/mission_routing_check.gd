@@ -46,8 +46,12 @@ func _scan_router() -> void:
 	var in_pfm := false
 	for raw in lines:
 		var t := String(raw).strip_edges()
-		# --- explicit ladder: elif "mNNN" in mm.active_missions ---
-		if "in mm.active_missions" in t:
+		# --- explicit ladder: elif front == "mNNN" ---
+		# v175: the ladder was re-keyed off active_missions membership onto the chain
+		# frontier, so scraping only the old form found ZERO explicitly-routed ids and
+		# this guard reported m017 (defeat_retreat, no type arm) as unroutable. Both
+		# forms are accepted so the scan cannot be fooled by either spelling.
+		if "in mm.active_missions" in t or "front == \"" in t:
 			for tok in _quoted(t):
 				if tok.begins_with("m"):
 					EXPLICIT_ROUTED_IDS.append(tok)
