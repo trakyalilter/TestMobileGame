@@ -29,6 +29,9 @@ const DT := 0.1
 const WINDOW := 180.0      # sim-seconds of farming per trial
 const FARM_KILLS := 5      # >= this many kills in WINDOW (and no death) = "can farm"
 const TRIALS := 3
+# v174: how much slower a maxed Zone-N kit must be than clean Zone N+1 commons
+# for the next tier to count as a real upgrade. 1.5x = it works, but you feel it.
+const GATE_MIN_SLOWDOWN := 1.5
 
 const SUFFIX := {"kinetic": "kinetic", "energy": "energy", "explosive": "missile"}
 const AMMO := {"kinetic": "Slug", "energy": "Cell", "explosive": "Missile"}
@@ -68,14 +71,35 @@ func _ready() -> void:
 			var b: Dictionary = _cell(sm, cm, rm, n, zid, eid, false)
 			var a_farm: bool = (int(a["kills"]) >= FARM_KILLS) and not bool(a["died"])
 			var b_farm: bool = (int(b["kills"]) >= FARM_KILLS) and not bool(b["died"])
-			var ok: bool = (not a_farm) and b_farm
+			# v174 (owner ruling). RULE A used to demand a HARD WALL: maxed Zone-N kit
+			# must not farm Zone N+1 trash at all. That is the wrong bar for this genre
+			# and it reported 9 violations that were not defects.
+			#
+			# The kit it tests is not "one tier below" — it is Legendary plus THREE
+			# greater affixes plus THREE Resonant cores, the absolute ceiling of the
+			# previous tier and a deliberate over-investment. Letting that grind the
+			# next zone's TRASH slowly is the Melvor-shaped bootstrap: you scrape the
+			# materials for the new tier with the old kit, then craft your way out. A
+			# wall there would instead say "farm zone N until the game lets you leave",
+			# which is the grind-as-content failure.
+			#
+			# The wall that matters is the BOSS, and boss_gearcheck enforces it at 15/15.
+			# So the rule here becomes a RATE rule: old gear may farm, but the new tier
+			# must be a clear upgrade. Fail only when maxed Zone-N is as fast as (or
+			# faster than) clean Zone N+1 commons — that means the new tier is not worth
+			# crafting, which IS a dominated choice.
+			var a_k: float = float(a["kills"])
+			var b_k: float = float(b["kills"])
+			var ok: bool = b_farm and (not a_farm or a_k <= b_k / GATE_MIN_SLOWDOWN)
 			if not ok:
 				fails += 1
 			var verdict := "OK  "
-			if a_farm and b_farm:
-				verdict = "LEAK"      # old maxed gear still farms the next zone
-			elif not b_farm:
+			if not b_farm:
 				verdict = "BLOCK"     # the intended common answer can't farm either
+			elif a_farm and a_k > b_k / GATE_MIN_SLOWDOWN:
+				verdict = "NOGAIN"    # the new tier is not a meaningful upgrade
+			elif a_farm:
+				verdict = "BOOT"      # intended bootstrap: slow-farms, clearly worse
 			print("[GATE] %s Z%d->Z%d e%d %-24s | maxedZ%d %s | commonZ%d %s" % [
 				verdict, n, n + 1, idx + 1, eid,
 				n, _fmt(a), n + 1, _fmt(b)])

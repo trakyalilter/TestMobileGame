@@ -227,7 +227,7 @@ const COST_BMIN_STEP := 1.63
 # straight to the full band-1 budget at Z3 measured a x51 cliff in the armor
 # line. This is an explicit onboarding ramp on the band-1 budget only — it does
 # NOT raise Z1/Z2 and it is gone by Z5.
-const COST_BMIN_RAMP := {3: 0.455, 4: 0.78, 7: 2.4, 8: 3.0, 9: 5.5}
+const COST_BMIN_RAMP := {3: 0.455, 4: 0.78, 7: 2.4, 8: 3.0, 9: 5.5, 10: 3.2}
 # v161: Z7-Z9 lifted. The factory tier ADDED anchors at those zones, and band 1
 # splits one budget across them -- so every pre-existing anchor (AdvCircuit above
 # all, the Au->Dirt/Water and Wood->C engine) got a thinner slice and transitive
@@ -522,6 +522,12 @@ const COST_DEPTH_LIFT := {
 	"Resin": ["Circuit", "Seal", "CompositeWeave"],
 	"Fiber": ["CompositeWeave"],
 	"Quartz": ["Si"],
+	# v174: the optics rung. FocusingCrystal is depth 1, below every Z5+ floor, and
+	# had no lift entry — so the drop-when-no-target branch erased it from z5-z10
+	# energy and z5/z6 sensor, contradicting the authored "every mid+ energy beam
+	# weapon needs it". craft_turret_targeting now consumes it, so TargetingChip
+	# (depth 5) is a legitimate target and the line survives to Z9.
+	"FocusingCrystal": ["TargetingChip"],
 	"Malachite": ["Cu"],
 	"Steel": ["Superalloy", "GalvanizedSteel", "Hydraulics", "TargetingChip", "NeutroniumPlate"],
 	"Semiconductor": ["Chip", "AdvCircuit"],

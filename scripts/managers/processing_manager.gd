@@ -125,7 +125,14 @@ var recipes: Dictionary = {
 		"research_req": "metallurgy_advanced"
 	},
 	# v131: Quartz's second purpose — polished into a Focusing Crystal, the optics
-	# core every mid+ energy & cryo beam weapon needs (see shipyard weapon costs).
+	# core mid-tier energy & cryo beam weapons need.
+	# v174: that claim was false for six years of zones. FocusingCrystal is depth 1
+	# and had no consumer, so COST_DEPTH_LIFT dropped it from every Z5+ bill rather
+	# than lifting it. It now feeds craft_turret_targeting, which makes TargetingChip
+	# (depth 5) a legitimate lift target — the line reaches z4-z9 energy and sensor.
+	# Z10 energy is the one exception and correctly so: Z10's COST_MIN_DIRECT_DEPTH
+	# floor is 6, above TargetingChip, so the endgame bill names the deeper chain
+	# instead. That is the cumulative rule working, not a hole.
 	"cut_focusing_crystal": {
 		"name": "Cut Focusing Crystal",
 		"description": "Polish Quartz into a Focusing Crystal — optics for energy & cryo weapons.",
@@ -1619,7 +1626,11 @@ var recipes: Dictionary = {
 		"name": "Targeting Array Fabrication",
 		# v80.4 Fix: TurretCore has no source. Reworked to use AdvCircuit+Steel
 		"description": "Assemble a precision targeting computer from advanced circuits.",
-		"input": {"AdvCircuit": 3, "Steel": 20, "Circuit": 10},
+		# v174: FocusingCrystal added. It had NO consumer anywhere — no recipe, no
+		# building — so COST_DEPTH_LIFT had nowhere to send it and silently dropped
+		# it from 8 of the 10 modules that name it. A targeting array wanting optics
+		# is the rung the authored intent always implied and never had.
+		"input": {"AdvCircuit": 3, "Steel": 20, "Circuit": 10, "FocusingCrystal": 4},
 		"output": {"TargetingChip": 1},
 		"duration": 20.0,
 		"level_req": 45,
