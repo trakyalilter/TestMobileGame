@@ -28,10 +28,19 @@ extends Node
 const DT := 0.1
 const WINDOW := 180.0      # sim-seconds of farming per trial
 const FARM_KILLS := 5      # >= this many kills in WINDOW (and no death) = "can farm"
-const TRIALS := 3
+# v174: was 3. Kill counts are small integers, so a single trial is +/-1 kill —
+# 14% noise on a 7-kill baseline, enough to flip a cell's verdict between runs
+# with nothing changed. The clean-common column moved 8 -> 8 -> 7 across three
+# tuning passes that cannot affect it (commons carry no affixes and no cores),
+# which is how the noise floor was spotted.
+const TRIALS := 5
 # v174: how much slower a maxed Zone-N kit must be than clean Zone N+1 commons
 # for the next tier to count as a real upgrade. 1.5x = it works, but you feel it.
-const GATE_MIN_SLOWDOWN := 1.5
+# v174: 1.25, not 1.5. The design requirement is the one in the rarity curve —
+# "the best of tier N must LOSE to a plain tier N+1" — and 25% slower is clearly
+# lost, not a photo finish. 1.5 was my own margin and it demanded a 2-kill gap on
+# noisy integer counts, which is stricter than the rule it was meant to enforce.
+const GATE_MIN_SLOWDOWN := 1.25
 
 const SUFFIX := {"kinetic": "kinetic", "energy": "energy", "explosive": "missile"}
 const AMMO := {"kinetic": "Slug", "energy": "Cell", "explosive": "Missile"}

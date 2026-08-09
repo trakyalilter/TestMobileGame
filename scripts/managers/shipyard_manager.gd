@@ -659,7 +659,8 @@ const AFFIX_DB = {
 	# / void_strike / servo_overclock / combat_sight, so the weapon pool is still 8 deep.
 	"servo_overclock": {
 		"name": "Servo Overclock", "type": "tactical", "scaling": "percent",
-		"range": [5, 12], "limit_to": ["weapon"],
+		# v174: was [5, 12], i.e. +18% on a GREATER roll (range[1] x GA_MULT 1.5).
+		"range": [4, 8], "limit_to": ["weapon"],
 		"desc": "+%d%% Attack Speed."
 	},
 
@@ -766,7 +767,10 @@ const AFFIX_DB = {
 	},
 	"dmg_injured": {
 		"name": "Structural Exploitation", "type": "tactical", "scaling": "percent",
-		"range": [15, 30], "limit_to": ["weapon"],
+		# v174: was [15, 30]. A GREATER roll takes range[1] x GA_MULT, so this alone
+		# was +45% damage — the single largest term keeping last tier's maxed gear
+		# ahead of this tier's fresh gear.
+		"range": [5, 9], "limit_to": ["weapon"],
 		"desc": "+%d%% damage against Severely Damaged enemies."
 	},
 	"vuln_on_hit": {
@@ -851,13 +855,17 @@ const GEM_FACET_CAPS := {
 	# v142 tier-gate: OFFENSIVE facets trimmed ~2x. With the 3.75x tier step doing
 	# most of the work, this is the smaller half of the fix — the 2.2x-step version
 	# would have needed a 3-4x gut. Defensive facets + affixes left intact.
-	"crit_chance": 0.20, "crit_damage": 0.75, "attack_speed": 0.20,
+	# v174 tier-step fix: trimmed again. v142 halved these and said so — "the smaller
+	# half of the fix ... the 2.2x-step version would have needed a 3-4x gut". The
+	# 2.2x step is what shipped and the gut never happened, so a maxed Zone-N kit
+	# stayed FASTER than fresh Zone N+1 commons at 8 of 9 tier steps.
+	"crit_chance": 0.10, "crit_damage": 0.20, "attack_speed": 0.08,
 	"shield_regen_mult": 1.20, "max_hull_mult": 0.40,
 	# v145: accuracy_flat cap dropped with the stat. module_drop_mult inherits the
 	# Topaz utility slot; 0.60 keeps the "~5 Pristine reach the cap" shape above.
 	"evasion_flat": 50.0, "module_drop_mult": 0.60,
 	"ammo_eff": 0.40, "energy_eff": 0.30, "restore_on_kill": 0.25,
-	"damage_reduction": 0.30, "armor_pen": 0.20, "resist_pierce": 0.30,
+	"damage_reduction": 0.30, "armor_pen": 0.10, "resist_pierce": 0.15,
 }
 
 var affix_bonuses = {
