@@ -152,7 +152,7 @@ func init_missions():
 		# to a wreck. The kill alone no longer completes it — they must also pull out,
 		# which teaches Retreat at the first moment it matters instead of letting a
 		# death teach it. Progress still reads as the kill; the retreat is the gate.
-		["m017", "Target Locked", "Defeat 1 Lunar Drone in Lunar Orbit, then click RETREAT to pull your ship out.", "defeat_retreat", "z1_lunar_drone", 1, 2500, 500, "m009"],
+		["m017", "Target Locked", "Defeat 1 Lunar Drone in Lunar Orbit, then click RETREAT to pull your ship out.", "defeat_retreat", "z1_lunar_drone", 1, 2500, 500, "m026c"],
 		# v128: damage-triangle onboarding. The Lunar Drone (m017) taught KINETIC; this
 		# pair teaches ENERGY against the energy-weak Survey Probe (resist_e -0.30, resists
 		# kinetic +0.30). The EXPLOSIVE leg is the Scrap Collector pair (m017c/d).
@@ -263,7 +263,7 @@ func init_missions():
 		#   told and still coming up 106 short — a trust breaker, not a pacing nit.
 		# Time cost is small: smelt_steel_basic is 5 Steel / 5s, so 160 Steel is ~2.7 min
 		# of processing. The work was ALWAYS required; it just wasn't directed.
-		["m025b", "Alloy Production", "Now smelt 160 Steel in the Engineering tab — the Basic-Oxygen furnace blows your Oxygen through molten Iron and Carbon. Shipwright I burns most of this stock; the Frigate frame after it takes the rest.", "gather", "Steel", 160, 5000, 500, "m026c"],
+		["m025b", "Alloy Production", "Now smelt 160 Steel in the Engineering tab — the Basic-Oxygen furnace blows your Oxygen through molten Iron and Carbon. Shipwright I burns most of this stock; the Frigate frame after it takes the rest.", "gather", "Steel", 160, 5000, 500, "m026"],
 		# v145 (F): name the FULL bill. Shipwright I costs 76 Steel, 30 Circuit Boards and
 		# 60 Common Artifacts once both cost layers apply — the Circuit and Artifact halves
 		# have no directed producer beat, so the text is the only place the player can learn
@@ -280,12 +280,14 @@ func init_missions():
 		# RARE+ weapon type works. m026d2/d3 (the old explosive-forcing pair) stay
 		# DEFINED below for saves mid-arc, but no fresh game routes into them.
 		["m026d", "Combat Overhaul", "Equip at least 1 RARE+ Weapon.", "loadout_rare_weapon", "2", 1, 10000, 1000, "m026e"],
-		# v119: type-matching teach beat before the Z1 boss. The Architect RESISTS
-		# kinetic + energy (+0.25) but is WEAK to explosive (-0.30), so the right TYPE
-		# beats raw rarity. Combustion is already unlocked (smelting required it at m025).
-		["m026d2", "Munitions Run", "Produce 60 HE Missiles in the Engineering tab to arm a missile launcher — the Architect ahead is WEAK TO EXPLOSIVE.", "gather", "MissileT1", 60, 8000, 800, "m026d3"],
-		["m026d3", "Explosive Payload", "Equip a RARE+ EXPLOSIVE weapon — the Architect is WEAK TO EXPLOSIVE, and the rare-tier punch ends fights fast.", "loadout_rare_weapon_type", "explosive", 1, 12000, 1200, "m026e"],
-		["m026e", "Final Confrontation", "Defeat the Rogue Architect boss in Lunar Orbit.", "defeat", "z1_boss_architect", 1, 25000, 2500, "m026"],
+		# v174: m026d2 "Munitions Run" and m026d3 "Explosive Payload" DELETED. They were
+		# a v119 type-matching lesson built on "the Architect is WEAK TO EXPLOSIVE" —
+		# both premises are now false. The staged damage-type pass made the Z1 boss
+		# kinetic-weak with resist_e/resist_x at 0, and explosive does not unlock until
+		# Zone 3, so their MissileT1 demand was unbuildable at Zone 1. Both were already
+		# unreferenced (m026d points straight at m026e), so this deletes dead text
+		# rather than a live beat — but re-linking either would have softlocked the run.
+		["m026e", "Final Confrontation", "Defeat the Rogue Architect boss in Lunar Orbit.", "defeat", "z1_boss_architect", 1, 25000, 2500, "m009"],
 		# P0 Fix: Progression Deadlock Re-alignment
 		["m027", "Scanning Horizon", "Research 'Asteroid Belt Authorization' in the Research tree to unlock the Asteroid Belt combat zone.", "research", "zone_2_access", 1, 5000, 500, "m017a"],
 		# P-onboard: introduce the Bounty Board the moment it unlocks (Asteroid Belt).

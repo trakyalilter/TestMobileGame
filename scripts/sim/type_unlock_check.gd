@@ -98,6 +98,38 @@ func _ready() -> void:
 		if tgt != "" and not cm.enemy_db.has(tgt):
 			_fail("mission %s targets %s, which no longer exists" % [mid2, tgt])
 
+	# ---- 5: no mission may demand a material gated past its own zone --------
+	# m026d2 asked for 60 MissileT1 before the Zone 1 boss. Once explosive moved to
+	# zone_3_access that became unbuildable, i.e. a softlock for anyone standing on
+	# it. Walk the chain, track the zone the player is in, and check every material
+	# a beat demands against the research that gates it.
+	var mm3 = GameState.mission_manager
+	var pm3 = GameState.processing_manager
+	var zone_now := 1
+	var cur := "m001"
+	var steps := 0
+	while cur != "" and steps < 60:
+		var m: Dictionary = mm3.missions.get(cur, {})
+		if m.is_empty():
+			break
+		var tgt := str(m.get("target", ""))
+		if str(m.get("type", "")) == "research" and tgt.begins_with("zone_") and tgt.ends_with("_access"):
+			zone_now = maxi(zone_now, _gate_zone(tgt))
+		var wants: Array = []
+		if str(m.get("type", "")) == "gather":
+			wants.append(tgt)
+		elif str(m.get("type", "")) == "gather_multi":
+			for k in (m.get("target", {}) as Dictionary):
+				wants.append(str(k))
+		for w in wants:
+			var need := _gate_zone(_ammo_gate(str(w)))
+			if need > zone_now:
+				_fail("%s demands %s at zone %d, but it gates on zone %d" % [
+					cur, w, zone_now, need])
+		cur = str(m.get("next_mission", ""))
+		steps += 1
+	print("[TYPE] gated-material walk: %d beats, player reaches zone %d" % [steps, zone_now])
+
 	print("[TYPE] RESULT: %s (%d failure(s))" % ["PASS" if fails == 0 else "FAIL", fails])
 	get_tree().quit(0 if fails == 0 else 1)
 
