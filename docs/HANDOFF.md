@@ -483,6 +483,57 @@ re-checked against the new cadence before trusting them.
 
 ---
 
+## v175 — 27 mission strings shipped in English inside the Turkish build (audit MAJOR, fixed)
+
+Localization is ENGLISH-AS-KEY with an English fallback, which is the right runtime behaviour and a
+terrible authoring signal: a missing row is not an error, not a warning, not a visible placeholder.
+It is just English text sitting in a Turkish UI, and nothing reported it. `mission_widget` renders
+BOTH the name and the description through `tr()`, so each gap was a whole English paragraph on the
+objective card.
+
+**Measured:** 27 strings (3 names, 24 descriptions) across 25 of the 111 beats, with the **first gap
+at chain position 2** (`m002`, the third thing a new player reads). Concentrated exactly where the
+game is most instructional — the steel/Shipwright/Frigate run, the damage-doctrine legs, and the
+`m029a2 -> m030c` industrial spine.
+
+**Fix:** 27 `en,tr` rows appended to `localization/strings.csv`, plus 2 element rows
+(`Pentlandite` -> `Pentlandit`, `Resin` -> `Reçine`) that the new prose references — element display
+names go through `tr()` too, so without them the instruction would point at a word the inventory
+does not show. No code change; the loader keys on the exact English string.
+
+Terminology was taken from the shipped glossary rather than invented. Worth knowing, because the
+obvious guess was wrong: **Loadout is "Dizilim"** in this game (`"LOADOUTS","DİZİLİMLER"`), not
+"Donanım". Likewise Liras -> "Lira" (no plural after a numeral), Common Artifact -> "Sıradan Eser",
+Shipwright I -> "Gemi Üretimi I", Destroyer -> "Muhrip", Scavenger Mech -> "Toplayıcı Mekanik".
+
+### Guard
+
+`scenes/mission_i18n_check.tscn` — sets locale to `tr`, walks the chain in play order, and fails on
+any mission name or description where `TranslationServer.translate()` hands back the key unchanged.
+`--dump` prints the offenders as ready-to-translate CSV rows.
+
+It opens with a **canary**: a string known to be translated (`CONTINUE` -> `DEVAM ET`) must come back
+different, or the probe aborts without reporting counts. Without that, a CSV that failed to load
+would make every string look untranslated and the guard would report a catastrophe that is really a
+loader problem.
+
+Negative-controlled by setting one row's Turkish equal to its English — the exact silent-fallback
+shape — confirming it goes red naming the beat (`m019e name`), then restored.
+
+`font_turkish_check` re-run: 0 of 12 Turkish glyphs missing. File verified as clean UTF-8 (ı `U+0131`,
+ş `U+015F`, ç `U+00E7` present, zero `U+FFFD`); the `?` characters in a Windows console are the
+terminal's codepage, not the file.
+
+### One thing to expect
+
+The keys ARE the English text, so **correcting an English string orphans its Turkish row** and the
+beat silently reverts to English. Three strings translated here are already flagged for correction
+by the 2026-08-11 audit — `m029a8` (omits 40 Circuit Boards), `m030c` (bill wrong, "same recipe as
+the Frigate" is false), `m030fa`. When those are fixed, re-run this guard and re-add the rows; it
+will name them.
+
+---
+
 ## v175 — ten processing-speed techs did nothing (audit MAJOR, fixed)
 
 `processing_manager.get_recipe_speed_multiplier()` built a 6-recipe `upgrades_db` table on every
