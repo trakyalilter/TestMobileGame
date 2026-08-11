@@ -483,6 +483,76 @@ re-checked against the new cadence before trusting them.
 
 ---
 
+## v175 — m029a8's Zone-3 material stall (audit MAJOR, fixed — after one wrong fix)
+
+`m029a8` commissions the Electronics Assembler at chain step 56. That building costs
+`{credits 25000, Ti 50, Circuit 40, SalvageData 12}`, and **SalvageData's only faucet in the game was
+`z3_derelict_frigate`** — Zone 3, which the chain does not open until `m030e` at step 63.
+
+### The first fix was wrong, and adversarial verification caught it
+
+I put the faucet on the **Zone-2 boss** (Silicate Monolith), reasoning that a boss is slower to farm
+than trash so Zone 3 would stay the real source. Five skeptics measured it and three returned
+PROBLEMATIC. The killing measurement, 21 trials per cell:
+
+    step56 literal: frigate + Z1 KINETIC Common     0/21   best loss left 100% of boss HP
+    step56 best   : frigate + Z1 ENERGY  Common     0/21   best loss left 100% of boss HP
+    step56 dream  : frigate + Z1 ENERGY  Legendary  0/21   best loss left  72% of boss HP
+    step62 kit    : destroyer + Z2 ENERGY Rare     19/21   median 135s
+
+**The step-56 player cannot damage that boss at all** — "100% of boss HP left" is literal; Z1 guns
+never outpace the Monolith's +5%-shield-per-8s sustain. And the gear that beats it (destroyer,
+Z2 batteries, Z2 energy guns) arrives at steps **60, 61, 62** — all *behind* the beat it was meant to
+unblock. The fix moved the wall instead of removing it, and made the mission text confidently wrong:
+it now pointed a player at a fight they lose in 8 seconds.
+
+### The actual fix
+
+`z2_pirate_skiff` (Zone-2 **trash**, 633 EHP, already farmed by `m029`/`m030c2`/`m030c3`) gains
+`rare_loot ["SalvageData", 0.5, 1, 2]` — 0.75/kill, so 12 units is **~16 kills**, inside the chain's
+own ceiling. The Z3 frigate keeps 2-4 guaranteed, **4x better per kill**, so Zone 3 is still the farm
+once it opens.
+
+Mission text now names a reachable enemy and completes the enumeration — it was still omitting the
+**25,000 Liras**, the largest line, after the first edit added the 40 Circuit Boards. Turkish moved
+with the key again, and dropped a calque: `çalıştır` means *operate a machine* (`Su Elektrolizi
+çalıştır`) and read as "start the boss up" when applied to an enemy.
+
+**`firmware_hacking` now becomes affordable a zone earlier — and that is the intent, not a side
+effect.** Its own v137 comment calls it "a goal that REVEALS at the Zone-2 gate"; SalvageData was the
+last Zone-3 lock holding affordability out of step with the reveal.
+
+### The guard had certified the bad fix. Four defects, all now closed
+
+`chain_supply_check` passed the boss version and reported "~4 kills, matches the norm". It was wrong
+four ways:
+
+1. **It never inspected `gather` beats** — 24 of 85 beats, the most literal form of "this beat demands
+   N of a material", walked past unchecked. It did not close the class it was written for.
+2. **It priced a boss identically to trash.** It picked the *highest per-kill yield* source, so a
+   17,897-EHP capstone and a 633-EHP trash mob both printed "~4 kills". It now picks the **cheapest
+   by EHP** and prints the effort.
+3. **It never asserted the kill count** it computed — any nonzero faucet produced the same green.
+   Now fails past a ceiling.
+4. **It had no boss gate.** Now fails when a demand's only source is a boss the chain has not yet
+   sent the player at, comparing against a pre-pass of every scheduled fight.
+
+Negative-controlled by restoring the bad fix: the repaired guard fails with
+*"m029a8 (step 56) can only source SalvageData from BOSS z2_boss_monolith, which the chain does not
+send the player at until step 63"*, while the six legitimate boss demands (`m027`, `m030e`, `m030g`,
+`m031`, `m032b`, `m033b`) still pass.
+
+**Correction to the previous session note:** the chain's combat-drop norm is **up to 20 kills**
+(`m026` asks 30 Res1 = 20 drone kills), not the "1-4 kills" recorded earlier. That figure came from
+the broken highest-yield selection and should not be quoted.
+
+### Still open on this guard
+
+Transitive recipe inputs are unmodeled: anything a recipe *outputs* is treated as reachable without
+asking whether that recipe's own inputs are. A material buried one recipe deep still slips through.
+
+---
+
 ## v175 — banked bounties bought a free second warp (audit MAJOR, fixed)
 
 `execute_warp()` reset seven managers and never `bounty_manager` — `reset()` had exactly one caller,

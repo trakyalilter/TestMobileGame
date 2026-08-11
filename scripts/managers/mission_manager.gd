@@ -365,7 +365,7 @@ func init_missions():
 		# v145 (H): name the two silent inputs — 50 Titanium (from the beat above) and 12
 		# Salvage Data, a combat drop with no craft recipe. Power line now reads honestly:
 		# the two plants from m029a6 cover this draw with room to spare.
-		["m029a8", "The Assembly Line", "Commission an Electronics Assembler. It costs 50 Titanium and 12 Salvage Data — Salvage Data drops from wrecked hostiles, so run a sector if you are short. It draws 1,500 kW, which your two Biomass Plants cover. It consumes Silicon, Copper and Resin from storage.", "build", "electronics_assembler", 1, 20000, 2500, "m029a9"],
+		["m029a8", "The Assembly Line", "Commission an Electronics Assembler. It costs 25,000 Liras, 50 Titanium, 40 Circuit Boards and 12 Salvage Data — Pirate Skiffs in the Asteroid Belt sometimes carry Salvage Data, so clear Belt hostiles if you are short. It draws 1,500 kW, which your two Biomass Plants cover. It consumes Silicon, Copper and Resin from storage.", "build", "electronics_assembler", 1, 20000, 2500, "m029a9"],
 		# v139g funnel tune 2: 250 -> 100 Circuits. The hidden bill of 250 was the
 		# upstream Resin chain (~1 Resin per Circuit) — walled 2/3 follower seeds
 		# 55h active on m029a9. 100 keeps the watch-the-line-fill teaching beat;

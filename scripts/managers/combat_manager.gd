@@ -789,7 +789,17 @@ var enemy_db = {
 		"name": "Pirate Skiff",
 		"stats": {"hp": 380, "atk": 27.777778, "def": 5, "atk_interval": 2.0, "accuracy": 25},
 		"loot": [["credits", 150, 300], ["Fe", 3, 8], ["Res1", 2, 4], ["PirateSalvage", 1, 3]],
-		"rare_loot": [["Cu", 0.15, 3, 6]],
+		# v175: SalvageData was Zone-3 ONLY (z3_derelict_frigate) while m029a8 spends 12 of
+		# it at chain step 56, eight beats before the chain opens Zone 3.
+		# It was first put on the Zone-2 BOSS and that was wrong: measured 0/21 for every
+		# plausible step-56 loadout, including Legendary Z1 energy. The gear that beats the
+		# Monolith arrives at steps 60-62, AFTER the beat it was meant to unblock, so the
+		# faucet just moved the wall. It belongs on trash the chain already sends the player
+		# at (m029/m030c2/m030c3 all farm this skiff) -- 633 EHP, not the boss's 17,897.
+		# 0.5 x 1-2 = 0.75/kill, so 12 units is ~16 kills, inside the chain's own ceiling
+		# (m026 asks 30 Res1 = 20 drone kills). The Z3 frigate stays 4x better PER KILL at
+		# 2-4 guaranteed, so Zone 3 remains the real farm once it opens.
+		"rare_loot": [["Cu", 0.15, 3, 6], ["SalvageData", 0.5, 1, 2]],
 		"module_drop_chance": 0.20,   # v138c: was 0.10 — Z2 was stingier than Z1 (0.15-0.25), stretching the Monolith gear-farm days past the new Z3 first-warp cadence
 		"module_drop_pool": ["z2_kinetic", "z2_energy", "z2_shield", "z2_armor", "z2_battery", "z2_sensor"],
 		"xp": 20, "zone": 2, "resist_k": -0.30, "resist_e": 0.00, "resist_x": 0.00, "dmg_type": "kinetic"
