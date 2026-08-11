@@ -483,6 +483,55 @@ re-checked against the new cadence before trusting them.
 
 ---
 
+## v175 — three refit beats quoted a slot table that had moved (audit MAJOR, fixed)
+
+Commit `ca26034` redistributed the hull slot tables (+1 weapon every tier, second slot alternating
+defence/battery) without revisiting the missions that quote them. The Destroyer is
+**4 weapon / 2 shield / 1 armor / 3 battery**:
+
+| beat | claim | asked | slots | |
+|---|---|---|---|---|
+| `m030c2` | one per battery slot | 3 | 3 | control, untouched by ca26034 |
+| `m030c3` | one per weapon slot | 3 | **4** | fixed -> 4 |
+| `m030fa` | one per armor slot | 2 | **1** | fixed -> 1 |
+| `m030fb` | one per shield slot | 2 | 2 | control, untouched by ca26034 |
+| `m030f1` | one per weapon slot | 3 | **4** | fixed -> 4 |
+
+The two beats that were already right are on exactly the slot types `ca26034` left alone — that is
+the control that identifies the cause rather than just the symptom.
+
+`m030fa`'s second Composite Plate was **unequippable**: a Destroyer has one armour slot, so the
+player paid 7,260 Liras + 30 Steel + 10 Ti + 5 Reinforced Plating for an item that could never go on
+the ship.
+
+**Net economy effect** of all three: **+6,820 Liras**, +10 Steel, +5 Ti, +60 Si, +20 Cu,
+**-5 Reinforced Plating** — against beats that pay 30,000-50,000 each, so immaterial. Raising the
+weapon beats to 4 also aligns the chain with what `boss_gearcheck` already assumes (it fills every
+weapon slot), so the fights these beats prepare for are now the fights being tested.
+
+`m017a` was NOT changed. The audit flagged it as a fourth case, but its text makes no per-slot claim
+("craft 2 'Pulse Laser Mk.I'", partner beat says "equip BOTH") and says nothing untrue. Raising it
+to 3 is a defensible balance idea for the frigate's third weapon slot, but it is a balance argument,
+not a text correction, and does not belong in a desync fix.
+
+### Guard
+
+`scenes/slot_claim_check.tscn` keys on the **claim, not the quantity**: only beats whose description
+contains "per <slot> slot" are judged, and they are judged against the hull the chain has actually
+put the player in (derived by walking the chain and remembering the last `construct` of a hull, so
+it survives reordering). Asserting `target_qty == slot_count` on every craft beat instead is what
+produced the audit's false positive on `m017a`. It also fails if **zero** claims match, so a
+rephrase cannot silently reduce coverage to nothing.
+
+### The i18n coupling, exactly as predicted one commit earlier
+
+All three descriptions name their quantity in prose, and the English text IS the localization key —
+so editing the number orphans the Turkish row and the beat reverts to English. The key and the
+number inside the Turkish value were moved **in the same pass** (`3 adet 'Plazma Kesici'` ->
+`4 adet`, etc.), and `mission_i18n_check` re-run clean at 0 untranslated confirms nothing dropped.
+
+---
+
 ## v175 — 27 mission strings shipped in English inside the Turkish build (audit MAJOR, fixed)
 
 Localization is ENGLISH-AS-KEY with an English fallback, which is the right runtime behaviour and a

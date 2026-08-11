@@ -412,7 +412,7 @@ func init_missions():
 		#      So this beat crafts z2_energy — the chain arms the swap the whole
 		#      boss ladder now runs on.
 		["m030c2", "Power Refit", "A Destroyer draws more power than your Zone-1 batteries supply. Fabricate 3 'Improved Battery' (Z2) and equip one per battery slot — you'll need the headroom for Zone-2 weapons.", "craft", "z2_battery", 3, 30000, 3000, "m030c3"],
-		["m030c3", "Heavier Ordnance", "Your Zone-1 guns barely dent Zone-2 armor. And the boss breaks the Belt's pattern: the Silicate Monolith shrugs off explosive and is WEAK TO ENERGY. Fabricate 3 'Plasma Cutter' (Z2 ENERGY) and equip one per weapon slot before the fight.", "craft", "z2_energy", 3, 30000, 3000, "m030d"],
+		["m030c3", "Heavier Ordnance", "Your Zone-1 guns barely dent Zone-2 armor. And the boss breaks the Belt's pattern: the Silicate Monolith shrugs off explosive and is WEAK TO ENERGY. Fabricate 4 'Plasma Cutter' (Z2 ENERGY) and equip one per weapon slot before the fight.", "craft", "z2_energy", 4, 30000, 3000, "m030d"],
 		# v134h: zone_3_access (Mars Debris Clearance) COSTS a Z2 boss core the chain never
 		# told the player to farm. Insert an explicit boss-farm beat (mirrors m030i/m032a).
 		["m030d", "Belt Overseer", "Defeat the Silicate Monolith (Asteroid Belt boss) to salvage a Z2 Sector Core for the Mars Debris charter. Bosses demand a full RARE loadout — Common and Uncommon gear will not cut through. Work the Asteroid Belt BOUNTY BOARD: hunt contracts pay a GUARANTEED Rare module on claim. ENERGY hits it hardest — swap loadouts before the fight.", "defeat", "z2_boss_monolith", 1, 50000, 6000, "m030e"],
@@ -423,12 +423,12 @@ func init_missions():
 		# Z2 boss had, but the boss out-DPSes a Z2-geared hull in ~15s, so the refit must cover
 		# SURVIVAL (Z3 armor + shield) as well as ordnance. Regular Z3 enemies fall to Z2 gear; the
 		# BOSS needs the tier. Three beats: plating -> shielding -> ordnance, then the fight.
-		["m030fa", "Zone-3 Plating", "The Warmaster will shred Zone-2 armor. Fabricate 2 'Composite Plate' (Z3 armor) and equip one per armor slot.", "craft", "z3_armor", 2, 40000, 5000, "m030fb"],
+		["m030fa", "Zone-3 Plating", "The Warmaster will shred Zone-2 armor. Fabricate 1 'Composite Plate' (Z3 armor) and equip one per armor slot.", "craft", "z3_armor", 1, 40000, 5000, "m030fb"],
 		["m030fb", "Zone-3 Shielding", "Reinforce your deflectors too. Fabricate 2 'Hardened Shield' (Z3) and equip one per shield slot before the Warmaster.", "craft", "z3_shield", 2, 40000, 5000, "m030f1"],
 		# v156: the Warmaster now resists explosive, is neutral to energy (the zone's
 		# own farming channel) and is WEAK TO KINETIC — this beat crafts z3_kinetic
 		# and repeats the swap lesson m030c3 opened (mirrors the m030c3 beat).
-		["m030f1", "Zone-3 Ordnance", "The Warmaster breaks the zone's pattern too: it is WEAK TO KINETIC, not energy. Fabricate 3 'Autocannon' (Z3 KINETIC) and equip one per weapon slot — swap before the fight.", "craft", "z3_kinetic", 3, 50000, 6000, "m030f2"],
+		["m030f1", "Zone-3 Ordnance", "The Warmaster breaks the zone's pattern too: it is WEAK TO KINETIC, not energy. Fabricate 4 'Autocannon' (Z3 KINETIC) and equip one per weapon slot — swap before the fight.", "craft", "z3_kinetic", 4, 50000, 6000, "m030f2"],
 		# v134h: zone_4_access COSTS 2 Z3 boss cores the chain never directed. Explicit
 		# boss-farm beat before the research (m030f only killed regular Scavenger Mechs).
 		["m030f2", "Warmaster's Core", "Defeat the Martian Warmaster (Mars Debris boss) — its core decrypts the Glacier Belt charter.", "defeat", "z3_boss_warmaster", 1, 90000, 12000, "m030g"],
