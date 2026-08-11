@@ -1891,7 +1891,19 @@ func get_recipe_speed_multiplier(recipe_id: String) -> float:
 		"craft_circuit": [ {"id": "basic_electronics", "bonus": 0.25}],
 		"press_graphite": [ {"id": "hydraulic_press", "bonus": 0.25}]
 	}
-	
+
+	# v175: THIS LOOP WAS MISSING. upgrades_db above was built on every call and never
+	# read, so all ten per-recipe speed techs (fast_centrifuges, maglev_bearings,
+	# quantum_separators, catalytic_electrodes, ion_exchange, resonance_splitters,
+	# pyrolysis_control, blast_furnace, basic_electronics, hydraulic_press) were sold,
+	# bought, and paid exactly +0.000 — measured, not inferred. The gathering twin has
+	# had this loop all along (gathering_manager.gd, same shape); the processing copy
+	# was written without it. Guarded by recipe_speed_check.
+	if recipe_id in upgrades_db:
+		for upgrade in upgrades_db[recipe_id]:
+			if GameState.research_manager and GameState.research_manager.is_tech_unlocked(upgrade["id"]):
+				multiplier += upgrade["bonus"]
+
 	# Global Speed Bonus (Nano-Fabrication)
 	if GameState.research_manager:
 		multiplier += GameState.research_manager.get_efficiency_bonus("processing_speed")

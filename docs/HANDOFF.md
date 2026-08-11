@@ -483,6 +483,59 @@ re-checked against the new cadence before trusting them.
 
 ---
 
+## v175 — ten processing-speed techs did nothing (audit MAJOR, fixed)
+
+`processing_manager.get_recipe_speed_multiplier()` built a 6-recipe `upgrades_db` table on every
+call and **never iterated it**. The gathering twin has had the apply loop all along; the processing
+copy was written without it. Ten research nodes were sold, bought, and paid exactly **+0.000**:
+`fast_centrifuges`, `maglev_bearings`, `quantum_separators`, `catalytic_electrodes`, `ion_exchange`,
+`resonance_splitters`, `pyrolysis_control`, `blast_furnace`, `basic_electronics`, `hydraulic_press`.
+
+**Fix:** the four-line apply loop, mirroring `gathering_manager`.
+
+**Measured before → after** (`recipe_speed_check`, 60 s of ticks at 60 fps):
+
+| recipe | crafts before | crafts after | |
+|---|---|---|---|
+| `centrifuge_dirt` | 32 | **70** | x2.19 |
+| `electrolysis` | 51 | **109** | x2.14 |
+
+### Is that a balance event? Less than it looks
+
+The doubling needs the **whole** ladder, and the ladder is staged across three tiers:
+
+| | tier | cost |
+|---|---|---|
+| `fast_centrifuges` / `catalytic_electrodes` | 1 | 200 / 300 Liras, no items |
+| `maglev_bearings` / `ion_exchange` | 2 | 1,000 / 1,500 + Res2 15 |
+| `quantum_separators` / `resonance_splitters` | 3 | 5,000 / 7,500 + Res3 10 + AdvCircuit 10 |
+
+The tier-1 node alone is +0.305 on a 1.648 base (x1.19) for 200 Liras — a cheap, correct early win.
+The full x2.19 is gated behind Res3 and AdvCircuit, i.e. mid-game. So this is the intended upgrade
+ladder starting to work, delivered in three earned stages, not a cliff dropped on the early economy.
+
+### Guard
+
+`scenes/recipe_speed_check.tscn` — every tech named in `upgrades_db` exists in the tree; each one
+moves its OWN recipe's multiplier and no other (a wildcard apply would satisfy the first check while
+silently buffing everything); and the multiplier survives into **real counted output**, since
+`process_tick()` completes at most one craft per tick and `complete_process()` discards the overflow.
+
+### Two things the probe got wrong first, both recorded so the next one does not
+
+**The authored bonus is not the observed delta.** A +0.25 tech measures as **+0.305**, because the
+bonus is added into `multiplier` and then scaled by the multiplicative tail of the same function
+(x1.10 x 1.11 = **x1.221** from two building buffs, plus the warp tree). Asserting the raw authored
+number fails on a *working* game — this probe did exactly that on its first run after the fix. It now
+derives the scale from the first live measurement instead of hardcoding 1.221, which would rot the
+moment a building or the warp tree moves.
+
+**A bare `after > before` is not enough on throughput.** With the techs dead, `electrolysis` measured
+51 -> 52 crafts — one craft of boundary rounding, which passes a greater-than and hides the bug. The
+assertion is a ratio floor (x1.5 against a theoretical x1.9), not an inequality.
+
+---
+
 ## v175 — the NG+ gear ladder was unreachable (audit CRITICAL, fixed)
 
 `rift_armaments`, `verdigris_armaments`, `dissolution_armaments` and `caustic_armaments` were
