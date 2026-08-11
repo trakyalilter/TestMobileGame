@@ -14,6 +14,35 @@ extends Node
 #
 # Deterministic (no RNG): asserts the gate logic directly, not via sampled DPS.
 # Run: tools/run_sim.ps1 -Scene "res://scenes/phase_gate_spike.tscn"
+#
+# ---------------------------------------------------------------------------
+# v175 REPAIR. This probe had been failing 17 assertions and EXITING 0, so it was
+# red for months without anyone noticing, and by the time it was read nobody
+# trusted it. Every one of the 17 was stale or a probe bug -- ZERO were real
+# regressions:
+#
+#   5  v119 explosive-teach block. m026d2/m026d3 were deleted in v174 and the
+#      staged damage-type ruling took explosive out of Zone 1, zeroing the Rogue
+#      Architect's resist_x. Could not pass however the game behaved. Deleted.
+#   7  v114 alloy-injection block. tier_gate_enabled no longer injects a
+#      signature alloy into module costs; compose_module_costs() bakes the
+#      charged cost into the authored dict and get_effective_module_cost() is a
+#      plain duplicate(). Replaced with the invariant that actually mattered:
+#      charged cost == displayed cost.
+#   2  Spawn-time armour floor. REMOVED in v120 -- combat_manager sets
+#      _tier_def_factor = 1.0 under a comment saying so, and nothing else writes
+#      it. Now pins the no-op so re-wiring it is visible.
+#   2  can_swap_loadout_in_combat. The rule was deliberately broadened (see
+#      combat_page.gd: "swapping in any fight is now allowed"). Expectation
+#      updated to the shipped contract.
+#   2  Display names via ElementDB.get_display_name(), which calls tr(). Those
+#      compared English against whatever locale user://locale.cfg holds. This
+#      machine persists "tr", so they failed here and would have passed on an
+#      English box -- a verdict that depended on the developer, not the build.
+#      Now read ELEMENT_NAMES directly.
+#
+# The exit code is fixed too: quit(1) on failure. A guard CI cannot see is not a
+# guard. If this file goes red again, read it -- it means something.
 # ============================================================================
 
 var _fails := 0
@@ -91,13 +120,19 @@ func _boot() -> void:
 	cm.in_combat = false
 	cm.current_enemy = {"phases": ["cryo", "corrosion"]}
 	_eq_b("not in combat", cm.can_swap_loadout_in_combat(), false)
+	# v175: these two asserted swap was BLOCKED unless the enemy was multi-phase. The
+	# rule was deliberately broadened -- combat_page.gd:1940 says "swapping in any fight
+	# is now allowed; see can_swap_loadout_in_combat" -- and the function is simply
+	# `in_combat and current_enemy != null`. The probe was testing a superseded contract.
+	# What is still worth pinning is the OUT-of-combat block, which the phase gate relies
+	# on, and that a live enemy of any shape permits the swap.
 	cm.in_combat = true
-	cm.current_enemy = {}
-	_eq_b("in combat, no phases", cm.can_swap_loadout_in_combat(), false)
+	cm.current_enemy = null   # null, not {} -- an empty Dictionary is not null in GDScript
+	_eq_b("in combat, no enemy -> blocked", cm.can_swap_loadout_in_combat(), false)
 	cm.current_enemy = {"phases": ["cryo"]}
-	_eq_b("in combat, single phase", cm.can_swap_loadout_in_combat(), false)
+	_eq_b("in combat, single phase -> allowed (v175 rule)", cm.can_swap_loadout_in_combat(), true)
 	cm.current_enemy = {"phases": ["cryo", "corrosion"]}
-	_eq_b("in combat, multi phase", cm.can_swap_loadout_in_combat(), true)
+	_eq_b("in combat, multi phase -> allowed", cm.can_swap_loadout_in_combat(), true)
 	cm.in_combat = false
 
 	print("[PHASE] ---- _rebuild_player_weapon_states (runtime, no crash) ----")
@@ -166,8 +201,8 @@ func _boot() -> void:
 	print("[PHASE] ---- v113 Cryo/Z4/Z11 cleanup ----")
 	_eq_b("Z11 zone = 'The Threshold'", str(cm.zones.get("the_threshold", {}).get("name", "")) == "The Threshold", true)
 	_eq_b("Z4 zone = 'Glacier Belt'", str(cm.zones.get("cryofield", {}).get("name", "")) == "Glacier Belt", true)
-	_eq_b("CryoCatalyst display exists", ElementDB.get_display_name("CryoCatalyst") == "Cryo Catalyst", true)
-	_eq_b("CryoEssence -> 'Glacial Essence'", ElementDB.get_display_name("CryoEssence") == "Glacial Essence", true)
+	_eq_b("CryoCatalyst display exists", _raw_name("CryoCatalyst") == "Cryo Catalyst", true)
+	_eq_b("CryoEssence -> 'Glacial Essence'", _raw_name("CryoEssence") == "Glacial Essence", true)
 	var rep_cost: Dictionary = sm3.modules.get("cryo_lance", {}).get("cost", {})
 	_eq_b("cryo_lance uses CryoCatalyst not CryoEssence", rep_cost.has("CryoCatalyst") and not rep_cost.has("CryoEssence"), true)
 	var z10_loot: Array = cm.enemy_db.get("z10_boss_leviathan", {}).get("loot", [])
@@ -185,12 +220,12 @@ func _boot() -> void:
 	_eq_b("goal_cryo_2 = craft cryo_lance", str(mm.missions.get("goal_cryo_2", {}).get("target", "")) == "cryo_lance", true)
 	_eq_b("goal_cryo_3 = defeat z11_warp_revenant", str(mm.missions.get("goal_cryo_3", {}).get("target", "")) == "z11_warp_revenant", true)
 
-	print("[PHASE] ---- v119 Z1 explosive teach beat (m026d2/d3) ----")
-	_eq_b("m026d -> m026d2 (rerouted)", str(mm.missions.get("m026d", {}).get("next_mission", "")) == "m026d2", true)
-	_eq_b("m026d2 = gather MissileT1 (HE Missiles)", str(mm.missions.get("m026d2", {}).get("type", "")) == "gather" and str(mm.missions.get("m026d2", {}).get("target", "")) == "MissileT1", true)
-	_eq_b("m026d3 = loadout_rare_weapon_type explosive x1", str(mm.missions.get("m026d3", {}).get("type", "")) == "loadout_rare_weapon_type" and str(mm.missions.get("m026d3", {}).get("target", "")) == "explosive" and int(mm.missions.get("m026d3", {}).get("target_qty", 0)) == 1, true)
-	_eq_b("m026d3 -> m026e (boss)", str(mm.missions.get("m026d3", {}).get("next_mission", "")) == "m026e", true)
-	_eq_b("Z1 boss weak to explosive (resist_x<0)", float(cm.enemy_db.get("z1_boss_architect", {}).get("resist_x", 0.0)) < 0.0, true)
+	# v175: the "v119 Z1 explosive teach beat" block was DELETED here. It asserted
+	# m026d -> m026d2 -> m026d3 -> m026e and that the Z1 boss was weak to explosive.
+	# m026d2/m026d3 were removed in v174 (mission_manager.gd records it), and the staged
+	# damage-type ruling took explosive out of Zone 1 altogether, zeroing resist_x on the
+	# Rogue Architect. Five assertions that could not pass however the game behaved --
+	# the single biggest reason this probe sat red and stopped being read.
 
 	print("[PHASE] ---- Corrosion research tier-gated to Z12 ----")
 	_eq_b("corrosion_armaments requires_flag=z12_unlocked", str(GameState.research_manager.tech_tree.get("corrosion_armaments", {}).get("requires_flag", "")) == "z12_unlocked", true)
@@ -259,38 +294,43 @@ func _boot() -> void:
 	_eq_b("front_salvage: Z4 e3 false", cm.enemy_is_front_salvage("z4_glacial_drone", "cryofield"), false)
 	_eq_b("front_salvage: Z4 boss false", cm.enemy_is_front_salvage("z4_boss_overseer", "cryofield"), false)
 	_eq_b("front_salvage: Z1 e1 false (ungated)", cm.enemy_is_front_salvage("z1_lunar_drone", "lunar_orbit"), false)
-	# End-to-end: gate ON + sub-tier armor → defense factor floored on spawn.
+	# v175: this used to assert the spawn-time armour floor (0.0225 for two tiers under).
+	# v120 REMOVED that feature -- combat_manager.gd sets `_tier_def_factor = 1.0` under
+	# the comment "tier-hardening defense floor removed -- no sub-tier armor/shield
+	# collapse", and nothing else ever writes the var. The old assertion could not pass.
+	# Pin the no-op instead: if someone re-wires the floor, this says so on purpose
+	# rather than a fight quietly getting harder.
 	smT.loadout = {0: "__t_arm_z2"}  # zone-2 armor, sub-tier vs Z4
 	cm.current_zone = cm.zones["cryofield"]
 	cm.target_enemy_id = "z4_glacial_drone"
 	cm.spawn_enemy()
-	# v115: graduated penetration - z2 armor is 2 tiers under Z4 = 0.15^2 = 0.0225.
-	_eq_b("gate ON + sub-tier armor: def factor ~0.0225 (2 tiers under)", abs(cm._tier_def_factor - 0.0225) < 0.001, true)
-	# Gate OFF → no flooring even against a hardened-band enemy.
-	GameState.game_settings["tier_gate_enabled"] = false
-	cm.spawn_enemy()
-	_eq_b("gate OFF: def factor 1.0 (no flooring)", abs(cm._tier_def_factor - 1.0) < 0.001, true)
-	GameState.game_settings["tier_gate_enabled"] = true
+	_eq_b("v120: def factor stays 1.0 even sub-tier vs a hardened band", abs(cm._tier_def_factor - 1.0) < 0.001, true)
+	_eq_b("v120: shield factor stays 1.0 too", abs(cm._tier_shield_factor - 1.0) < 0.001, true)
 	smT.loadout = _saved_loadout
 
 	print("[PHASE] ---- v114 content: alloys, refines, re-pointed costs ----")
-	GameState.game_settings["tier_gate_enabled"] = true
-	var z4arm = smT.get_effective_module_cost(smT.modules.get("z4_armor", {}))
-	_eq_b("gate ON: z4_armor needs RimeAlloy 8", int(z4arm.get("RimeAlloy", 0)) == 8, true)
-	var z4wpn = smT.get_effective_module_cost(smT.modules.get("z4_kinetic", {}))
-	_eq_b("gate ON: z4_kinetic needs RimeAlloy 5", int(z4wpn.get("RimeAlloy", 0)) == 5, true)
-	var z4shl = smT.get_effective_module_cost(smT.modules.get("z4_shield", {}))
-	_eq_b("gate ON: z4_shield needs RimeAlloy 6", int(z4shl.get("RimeAlloy", 0)) == 6, true)
-	var z7wpn = smT.get_effective_module_cost(smT.modules.get("z7_kinetic", {}))
-	_eq_b("gate ON: z7_kinetic needs GammaAlloy 5", int(z7wpn.get("GammaAlloy", 0)) == 5, true)
-	GameState.game_settings["tier_gate_enabled"] = false
-	var z4arm_off = smT.get_effective_module_cost(smT.modules.get("z4_armor", {}))
-	_eq_b("gate OFF: z4_armor has NO alloy (base cost)", not z4arm_off.has("RimeAlloy"), true)
-	GameState.game_settings["tier_gate_enabled"] = true
+	# v175: this block asserted the v114 mechanism where tier_gate_enabled INJECTED a
+	# signature alloy into each module's cost (z4_armor RimeAlloy 8, z7_kinetic GammaAlloy
+	# 5, and no alloy with the gate off). That mechanism no longer exists.
+	# compose_module_costs() bakes the charged cost straight into the authored dict, and
+	# get_effective_module_cost() is now a plain duplicate() -- shipyard_manager's own note
+	# says "none of them needs the tier_gate_enabled flag". Seven assertions against a
+	# removed system, and the flag flips were mutating live game_settings to do it.
+	#
+	# The invariant that survives, and is the one that mattered: what the game CHARGES and
+	# what the Atlas DISPLAYS must be the same dict. That is the bug v114 was fixed for.
+	for _mid in ["z4_armor", "z4_kinetic", "z4_shield", "z7_kinetic", "z10_armor"]:
+		var _md: Dictionary = smT.modules.get(_mid, {})
+		var _eff: Dictionary = smT.get_effective_module_cost(_md)
+		var _authored: Dictionary = _md.get("cost", {})
+		_eq_b("%s: charged cost == displayed cost" % _mid, _eff == _authored, true)
+		_eq_b("%s: composed cost is not empty" % _mid, _eff.size() > 0, true)
 	var clance = smT.get_effective_module_cost(smT.modules.get("cryo_lance", {}))
 	_eq_b("cryo_lance (RARE/z11) gets NO alloy", not clance.has("RimeAlloy") and not clance.has("AeonAlloy"), true)
-	_eq_b("RimeAlloy display name", ElementDB.get_display_name("RimeAlloy") == "Rime Alloy", true)
-	_eq_b("RimeplateScrap display name", ElementDB.get_display_name("RimeplateScrap") == "Rimeplate Scrap", true)
+	# Raw table, not get_display_name(): that calls tr() and would compare against the
+	# developer machine's locale rather than the build.
+	_eq_b("RimeAlloy display name", _raw_name("RimeAlloy") == "Rime Alloy", true)
+	_eq_b("RimeplateScrap display name", _raw_name("RimeplateScrap") == "Rimeplate Scrap", true)
 	_eq_b("refine_rime_alloy recipe exists", "refine_rime_alloy" in GameState.processing_manager.recipes, true)
 	_eq_b("refine_prismatic_alloy recipe exists", "refine_prismatic_alloy" in GameState.processing_manager.recipes, true)
 	var iw_has_scrap := false
@@ -306,7 +346,7 @@ func _boot() -> void:
 		print("[PHASE] ALL PASS")
 	else:
 		print("[PHASE] *** %d FAILURE(S)" % _fails)
-	get_tree().quit(0)
+	get_tree().quit(0 if _fails == 0 else 1)
 
 func _pi(cm, hp: int, n: int) -> int:
 	cm.enemy_hp = hp
@@ -329,6 +369,14 @@ func _eq_b(label: String, got: bool, want: bool) -> void:
 	var ok: bool = got == want
 	if not ok: _fails += 1
 	print("[PHASE]   %-32s got=%s want=%s  %s" % [label, str(got), str(want), "OK" if ok else "*** FAIL"])
+
+# ELEMENT_NAMES straight off the table. ElementDB.get_display_name() wraps it in tr(),
+# so asserting on it compares against whatever locale user://locale.cfg holds -- this
+# machine persists "tr", so two English assertions failed here and would have passed on
+# an English box. A guard's verdict must not depend on whose machine it runs on.
+func _raw_name(sym: String) -> String:
+	return str(ElementDB.ELEMENT_NAMES.get(sym, ""))
+
 
 func _has_zone(zlist: Array, zid: String) -> bool:
 	for z in zlist:

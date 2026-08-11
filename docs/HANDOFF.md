@@ -483,6 +483,35 @@ re-checked against the new cadence before trusting them.
 
 ---
 
+## v175 — phase_gate_spike repaired (17 red assertions, 0 real regressions)
+
+It had been failing **17** assertions **and exiting 0**, so nothing surfaced it and by the time it
+was read nobody trusted it. Every one of the 17 was stale or a probe bug. **No real regressions.**
+
+| n | cluster | why it was red |
+|---|---|---|
+| 5 | v119 explosive-teach | `m026d2`/`m026d3` deleted in v174; staged damage-types took explosive out of Zone 1 and zeroed the boss's `resist_x`. Could not pass however the game behaved. **Deleted.** |
+| 7 | v114 alloy injection | `tier_gate_enabled` no longer injects a signature alloy. `compose_module_costs()` bakes the charged cost into the authored dict and `get_effective_module_cost()` is a plain `duplicate()`. **Replaced** with the invariant that mattered: charged cost == displayed cost. |
+| 2 | spawn-time armour floor | **Removed in v120** — `combat_manager` sets `_tier_def_factor = 1.0` under a comment saying exactly that, and nothing else writes it. Now pins the no-op so re-wiring is visible. |
+| 2 | `can_swap_loadout_in_combat` | Rule deliberately broadened; `combat_page.gd` says "swapping in any fight is now allowed". Expectation updated to the shipped contract. |
+| 2 | display names | `ElementDB.get_display_name()` calls `tr()`, so these compared English against `user://locale.cfg`. **This machine persists "tr"** — they failed here and would have passed on an English box. Now read `ELEMENT_NAMES` directly. |
+
+**The exit code is fixed.** It was `get_tree().quit(0)` unconditionally — a guard CI cannot see is not
+a guard, and that single line is why 17 failures survived this long.
+
+Negative-controlled by breaking `can_swap_loadout_in_combat` to `return false`: 3 assertions go red
+and the process exits **1**; restoring gives ALL PASS and exit 0.
+
+### Two things this turned up, not fixed here
+
+- **`shipyard_manager.get_tier_defense_factors()` has no production caller.** v120 removed the
+  feature it served; the helper survived. Dead code, cleanup candidate.
+- The locale-dependence class is worth a sweep: any probe asserting on a `tr()`-wrapped value has a
+  verdict that depends on whose machine it runs on. `stale_mission_check` had the save-state version
+  of the same disease earlier in v175.
+
+---
+
 ## v175 — m029a8's Zone-3 material stall (audit MAJOR, fixed — after one wrong fix)
 
 `m029a8` commissions the Electronics Assembler at chain step 56. That building costs
