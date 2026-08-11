@@ -483,6 +483,60 @@ re-checked against the new cadence before trusting them.
 
 ---
 
+## v175 — the NG+ gear ladder was unreachable (audit CRITICAL, fixed)
+
+`rift_armaments`, `verdigris_armaments`, `dissolution_armaments` and `caustic_armaments` were
+authored in `research_manager.tech_tree`, wired into the Z12-Z15 gear gate, and **never added to a
+research tab**. `research_page.graphs` is a second, hand-maintained list of which node ids each tab
+renders; a tech in the tree but absent from that list is fully functional and completely
+unclickable. **All 16 Z12-Z15 modules were uncraftable.**
+
+`boss_gearcheck` never caught it because it grants research through the manager
+(`_unlock_research`), not through the UI — so its "15/15" for the NG+ bosses was measured with the
+four techs force-granted. The harness was testing a game the player could not reach.
+
+**Fix, two parts:**
+
+1. The four ids appended to the `"Warp Tech"` tab in `research_page.gd`. Each keeps its own
+   `requires_flag` (`z12..z15_unlocked`), so they reveal one sector at a time rather than all at
+   once — verified, not assumed (see the leak guard below).
+2. `parent` set on the five ladder links (`corrosion -> rift -> verdigris -> dissolution ->
+   caustic`), which were all `parent: null`. `can_unlock()` checks `parent` and `req_tech`
+   identically against `unlocked_techs`, so setting `parent := req_tech` leaves gating
+   **bit-identical** and only adds the connecting line — the tab rendered as six floating roots
+   before. `cryo_armaments` keeps `parent: null` because its prereq lives in another tab, and
+   `research_page`'s own v145 note records that a cross-tab parent cannot draw a line.
+
+**Measured after the fix** (`tech_reachable_check`): 109/109 techs reachable, and the ladder walks
+end to end — each tech unlocks when its flag lands, and 3/1/4/4/4/4 = **20 gated modules become
+craftable**, the 16 stranded ones among them.
+
+### Guard
+
+`scenes/tech_reachable_check.tscn` reconciles the two lists that drifted, in both directions:
+every `tech_tree` id appears in exactly one tab; every tab id exists in the tree; nothing is listed
+twice; and the ladder is walked as a player would — grant the sector flag, unlock, confirm the
+gated modules flip to craftable. It also asserts each rung stays **locked while its flag is false**,
+so the fix cannot leak the NG+ ladder into a pre-warp game.
+
+Both halves were negative-controlled: the reachability check was seen red on the real bug before
+the fix, and the leak guard was deliberately broken (flag forced true during the must-be-locked
+phase), seen red for the stated reason on all six rungs, and restored.
+
+Cross-tab `parent` values are reported but **do not fail** the guard — ten pre-existing cases exist
+(`industrial_logistics`/`basic_engineering`, `energy_shields`/`basic_engineering`, ...) and they are
+cosmetic: the node is still clickable, it just draws no line. Failing on them would hand the repo
+another permanently-red guard, which is exactly how `phase_gate_spike` stopped being read.
+
+### Note for whoever builds the next probe
+
+`can_unlock()` checks **affordability before it checks any gate**, so an unfunded probe gets `false`
+for every tech and reads it as "locked". The first version of this walk reported all six rungs
+broken, including the two that already shipped working. The probe now bankrolls itself, verifies the
+funding landed, and on failure names which of the seven conditions actually bit.
+
+---
+
 ## v175 — Zone 1 boss retuned for the corvette (owner ruling)
 
 **Ruling:** soften the boss; the frigate stays after it.

@@ -1054,7 +1054,7 @@ var tech_tree = {
 		"cost": 500000,
 		"cost_items": {"ExoticMatter": 15, "CryoEssence": 40, "OmegaPlating": 30},
 		"type": "technology",
-		"parent": null,
+		"parent": "cryo_armaments",   # v175: was null -> no prereq line. Same gate as req_tech
 		"req_tech": "cryo_armaments",
 		"requires_flag": "z12_unlocked",
 		"requires_warp": true,
@@ -1077,7 +1077,7 @@ var tech_tree = {
 		"cost": 1500000,
 		"cost_items": {"ExoticMatter": 60, "CryoEssence": 140, "OmegaPlating": 110, "VoidLattice": 80},
 		"type": "technology",
-		"parent": null,
+		"parent": "corrosion_armaments",   # v175: was null -> no prereq line. Same gate as req_tech
 		"req_tech": "corrosion_armaments",
 		"requires_flag": "z12_unlocked",
 		"requires_warp": true,
@@ -1097,7 +1097,7 @@ var tech_tree = {
 		"cost": 4000000,
 		"cost_items": {"ExoticMatter": 110, "CryoEssence": 260, "OmegaPlating": 200, "VoidLattice": 150, "ChronoCore": 60},
 		"type": "technology",
-		"parent": null,
+		"parent": "rift_armaments",   # v175: was null -> no prereq line. Same gate as req_tech
 		"req_tech": "rift_armaments",
 		"requires_flag": "z13_unlocked",
 		"requires_warp": true,
@@ -1117,7 +1117,7 @@ var tech_tree = {
 		"cost": 10000000,
 		"cost_items": {"ExoticMatter": 200, "CryoEssence": 470, "OmegaPlating": 360, "VoidLattice": 270, "ChronoCore": 110},
 		"type": "technology",
-		"parent": null,
+		"parent": "verdigris_armaments",   # v175: was null -> no prereq line. Same gate as req_tech
 		"req_tech": "verdigris_armaments",
 		"requires_flag": "z14_unlocked",
 		"requires_warp": true,
@@ -1137,7 +1137,7 @@ var tech_tree = {
 		"cost": 25000000,
 		"cost_items": {"ExoticMatter": 360, "CryoEssence": 840, "OmegaPlating": 640, "VoidLattice": 480, "ChronoCore": 200, "VoidEssence": 120},
 		"type": "technology",
-		"parent": null,
+		"parent": "dissolution_armaments",   # v175: was null -> no prereq line. Same gate as req_tech
 		"req_tech": "dissolution_armaments",
 		"requires_flag": "z15_unlocked",
 		"requires_warp": true,

@@ -87,7 +87,16 @@ var graphs = {
 	},
 	"Warp Tech": {
 		"nodes": [
+			# v175: the NG+ ladder above corrosion was authored, wired into the Z12-Z15
+			# gear gate, and never listed here — so no widget was ever built for it and
+			# all 16 Z12-Z15 modules were uncraftable. tech_tree is the source of truth
+			# for what EXISTS; this list decides what the player can CLICK, and nothing
+			# reconciled the two. tech_reachable_check does now.
+			# Each one is hidden behind its own requires_flag (z12..z15_unlocked), so
+			# they reveal one sector at a time rather than all appearing at once.
 			"cryo_armaments", "corrosion_armaments",
+			"rift_armaments", "verdigris_armaments",
+			"dissolution_armaments", "caustic_armaments",
 		],
 		"container": null
 	},
