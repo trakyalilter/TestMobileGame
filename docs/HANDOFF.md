@@ -483,6 +483,66 @@ re-checked against the new cadence before trusting them.
 
 ---
 
+## v175 — banked bounties bought a free second warp (audit MAJOR, fixed)
+
+`execute_warp()` reset seven managers and never `bounty_manager` — `reset()` had exactly one caller,
+`hard_reset`. A completed-but-unclaimed contract survived the warp, and claiming it afterwards
+landed in `lifetime_credits` **after** the `credits_at_warp_start` snapshot, so it read as post-warp
+progress and re-armed the shard gate.
+
+**Measured** (`bounty_warp_check`, banking the 3-contract cap from the run's own boards):
+
+| zone | free extra shards |
+|---|---|
+| Z3 | **0** |
+| Z5 | +3 |
+| Z6 | +5 |
+| Z8 | +8 |
+| Z10 | **+11** |
+
+Roughly doubling a run's prestige yield by delaying one button press. **Z3 — the earliest warp the
+game offers — gives 0**, which is why this is a mid-game exploit and not the tutorial bug the audit
+originally described.
+
+**Fix:** settle completed contracts (pay their Liras), then `bounty_manager.reset()`. The position
+is load-bearing in **both** directions:
+
+- **After** `research_manager.reset()` — that reset ends in `generate_all_pools()`, which calls
+  `get_unlocked_zones()`; settling earlier would seed the new run's boards at the OLD research tier.
+- **Before** the `credits_at_warp_start` snapshot — which is what makes the payout deliberately
+  value-lossy. The player keeps the Liras as starting capital and the snapshot zeroes them for shard
+  purposes, so banking pays money but never shards. The incentive is "claim before you warp", and a
+  notification says so.
+
+**The player is not robbed.** A/B at Z8: the banked run leaves the warp with **+90.87M Liras**, exactly
+the banked face value. Legitimate warp gains are untouched (Z10 still 0 -> 8 shards).
+
+### Guard
+
+`scenes/bounty_warp_check.tscn` — per zone: bank the cap, warp, assert nothing survived and
+`calculate_warp_gains()` is 0, then A/B the settlement to prove the money was paid rather than
+deleted. Negative-controlled by removing `bounty_manager.reset()` and watching Z5/Z6/Z8/Z10 go red.
+
+### The probe lied twice before it told the truth
+
+**It reported "no exploit" at every zone while banking nothing.** `get_unlocked_zones()` returns
+`{id, name, difficulty}` **dictionaries**, not ids; `str()` over them built a board for a zone key
+that does not exist. Five clean green rows from a probe that never ran the scenario. There is now a
+**tripwire**: banking zero contracts is itself a failure, so this cannot pass vacuously again.
+
+**Then it understated the exploit to zero.** `get_unlocked_zones()` sorts **ascending** by
+difficulty, so taking the first three banked Zone-1 trash contracts inside a Zone-10 run — 12.8K
+Liras against a 500K threshold. A player banking before a warp banks their *most valuable*
+contracts. Ranking by reward across the run's own zones is what produced the +3/+5/+8/+11 above.
+
+### Pre-existing, NOT caused by this change
+
+`bounty_check` fails 2 assertions (`comp(2+1+1)=false`, `all-regen=false`). Verified identical on a
+`git stash` of this work — it was already red before. Another guard in the state `phase_gate_spike`
+is in: failing for an unrelated historical reason and therefore no longer read. Worth a session.
+
+---
+
 ## v175 — three refit beats quoted a slot table that had moved (audit MAJOR, fixed)
 
 Commit `ca26034` redistributed the hull slot tables (+1 weapon every tier, second slot alternating

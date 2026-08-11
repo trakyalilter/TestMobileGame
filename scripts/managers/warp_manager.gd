@@ -200,6 +200,37 @@ func execute_warp():
 	GameState.research_manager.reset(decay)
 	GameState.combat_manager.reset(decay)
 	GameState.shipyard_manager.reset(decay)
+
+	# v175: SETTLE AND CLEAR THE BOUNTY BOARD. Until now execute_warp reset seven
+	# managers and never bounty_manager -- reset() had exactly one caller, hard_reset.
+	# A completed-but-unclaimed contract survived the warp, and claiming it afterwards
+	# landed in lifetime_credits AFTER the credits_at_warp_start snapshot below, so it
+	# read as post-warp progress and re-armed the shard gate. Measured by
+	# bounty_warp_check, banking the 3-contract cap: Z5 +3 free shards, Z6 +5, Z8 +8,
+	# Z10 +11 -- roughly doubling a run's prestige yield by delaying one button press.
+	# Z3, the earliest warp the game offers, gave 0, which is why this is a mid-game
+	# exploit and not a tutorial bug.
+	#
+	# THE POSITION IS LOAD-BEARING IN BOTH DIRECTIONS:
+	#   * AFTER research_manager.reset() -- that reset ends in generate_all_pools(),
+	#     which calls get_unlocked_zones(); settling any earlier would seed the NEW
+	#     run's boards at the OLD research tier.
+	#   * BEFORE the credits_at_warp_start snapshot -- which is what makes the payout
+	#     deliberately value-lossy. The player keeps the Liras as starting capital and
+	#     the snapshot immediately below zeroes them for shard purposes, so banking
+	#     contracts pays money but never shards. The incentive is "claim before you warp".
+	var _settled := 0
+	var _settled_value := 0.0
+	if GameState.bounty_manager:
+		for _c in GameState.bounty_manager.active_contracts:
+			if bool((_c as Dictionary).get("completed", false)):
+				_settled += 1
+				_settled_value += float((_c as Dictionary).get("reward_credits", 0))
+		if _settled_value > 0.0:
+			GameState.resources.add_currency("credits", _settled_value)
+		GameState.bounty_manager.reset()
+		if _settled > 0:
+			UITheme.show_notification(tr("Warp settled %d unclaimed contract(s) for %s Liras. Contracts do not carry across a Warp - claim them before warping.") % [_settled, UITheme.format_num(_settled_value)], Color.GOLD)
 	
 	# Audit v2.0 P1-5: Improved Starting Bonus (5x credits + resource package)
 	var starter_mult := get_tree_starter_mult()  # v122 REC_5 Catch-Up Cache (~1.8x)
