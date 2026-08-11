@@ -93,12 +93,30 @@ func _test(sm, cm, rm, b) -> bool:
 	var rare_win: bool = float(cells[2]["w"]) >= 0.60 * float(TRIALS)
 	var leg_win: bool = float(cells[3]["w"]) >= 0.60 * float(TRIALS)
 	var uni_win: bool = not uni.is_empty() and float(uni["w"]) >= 0.60 * float(TRIALS)
-	var ok: bool = c_ok and u_ok and (rare_win or leg_win or uni_win)
+	# v175 — ZONE 1 IS A NAMED EXCEPTION TO THE UNCOMMON HALF OF THE RULE.
+	# The 2026-08-09 reorder made the Rogue Architect the only mandatory fight in the
+	# game on the STARTING CORVETTE, and the owner ruled the boss should be softened
+	# rather than the frigate moved back. The loadout the mission chain actually hands
+	# the player at that beat is Common armour/shield plus ONE Rare weapon in one of the
+	# corvette's two weapon slots. Measured at 51 trials (z1_boss_tune): that kit clears
+	# 69% [55,80] and a full Uncommon set clears 63% [49,75] — the same power class,
+	# intervals almost entirely overlapping. So "the chain kit must clear its own
+	# capstone" ENTAILS "Uncommon clears it too". A 27-cell hp x atk grid confirmed no
+	# boss stat separates them: the chain kit never exceeded 38% in any cell where
+	# Uncommon still lost.
+	# Common losing (0/51) is the gate that carries Zone 1's lesson, and it still holds.
+	# This exception is Z1-only and must NOT be widened — every later zone has a real
+	# gear ladder and a hull sized for its boss.
+	var u_exempt: bool = (n == 1)
+	var ok: bool = c_ok and (u_ok or u_exempt) and (rare_win or leg_win or uni_win)
 	var flag := "OK  " if ok else "FAIL"
-	print("[BGC] %s Z%-2d %-22s w:%-9s hp:%-8.0f | C %-8s U %-8s R %-8s L %-8s | N-1uniq %-8s" % [
+	var note := ""
+	if u_exempt and not u_ok:
+		note = "  [Z1: Uncommon WIN allowed by v175 ruling — same power class as the chain kit]"
+	print("[BGC] %s Z%-2d %-22s w:%-9s hp:%-8.0f | C %-8s U %-8s R %-8s L %-8s | N-1uniq %-8s%s" % [
 		flag, n, String(b["eid"]), weak, hp,
 		_cell(cells[0]), _cell(cells[1]), _cell(cells[2]), _cell(cells[3]),
-		(_cell(uni) if not uni.is_empty() else "n/a")])
+		(_cell(uni) if not uni.is_empty() else "n/a"), note])
 	return ok
 
 func _trials(sm, cm, rm, b, gear_n, weak, rarity) -> Dictionary:

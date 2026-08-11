@@ -483,6 +483,70 @@ re-checked against the new cadence before trusting them.
 
 ---
 
+## v175 — Zone 1 boss retuned for the corvette (owner ruling)
+
+**Ruling:** soften the boss; the frigate stays after it.
+
+The 2026-08-09 reorder (`4562435`) moved the Rogue Architect ahead of the frigate, making it the
+only mandatory fight in the game on the **starting corvette**. Nothing was retuned to match. It was
+not a hard fight — it was the wrong fight.
+
+Measured (`scripts/sim/z1_boss_tune.gd`, the loadout the mission chain actually hands the player:
+Common shield/armour/engine/batteries + 2 crafted Mass Drivers, one swapped for the m026d Rare):
+
+| | before | after (51 trials) |
+|---|---|---|
+| CHAIN kit, corvette | **0/21** | **35/51 — 69% [55, 80]** |
+| CHAIN kit, frigate | 21/21 | 51/51 |
+| Common, corvette | 0/21 | **0/51** — the gate holds |
+| Rare, corvette | 11/21 (52%) | 50/51 (98%) |
+
+**Changes**, all local to `z1_boss_architect`:
+
+- `hp` 1000 → **900** (960 → 864 after the 0.96 rebase)
+- `atk` 26.667 → **16.0**
+- `charge_nuke.mult` 4.2 → **2.5**
+
+The mult was a **defect, not a tuning call**. The comment above it describes "every 4th swing,
+x1.75"; when `every_n` moved 4 → 8 the mult should have been re-derived by this file's own
+DPS-preserving rule (documented on `z4_frost_hulk`): `new_mult = 1 + (old_mult - 1) x new/old`
+`= 1 + 0.75 x 2 = 2.5`. Shipped 4.2 was 68% above that — a 112-damage telegraph into a corvette
+with ~155 max HP, a near-one-shot rather than the documented "dent".
+
+### What the measurement refuted
+
+The audit named `charge_nuke` as the lever. **It is not.** At mult 2.0 (a 53-damage spike) the chain
+kit still cleared only 1/21. The player was dying to the sustained trade, not the telegraph —
+21/21 deaths, zero timeouts. Cutting the spike alone would have changed nothing.
+
+### The Uncommon exception (Z1 only)
+
+`boss_gearcheck` applies a blanket "Common AND Uncommon must both lose" to every boss. **At Zone 1
+that rule is not satisfiable alongside the mission chain**, and this is a measured fact rather than
+a judgement call: the chain kit is Common gear plus ONE Rare weapon in one of the corvette's two
+weapon slots, and it measures 69% [55, 80] against full Uncommon's 63% [49, 75] — the same power
+class, intervals almost entirely overlapping. A 27-cell `hp x atk` grid confirmed no boss stat
+separates them: **the chain kit never exceeded 38% in any cell where Uncommon still lost.**
+
+So the owner's ruling ("the chain kit must clear its own capstone") entails Uncommon clearing it
+too. That is also the better tutorial lesson — Zone 1 teaches *"crafted gear is not enough, go get
+a drop"*, not *"get Rare specifically"*. **Common still loses 0/51**, which is the gate that
+carries the lesson.
+
+`boss_gearcheck` now encodes this as a **named, Z1-only exemption** that prints on the Z1 row
+itself, so it cannot be mistaken for a silent pass. It reports 15/15 again. **Do not widen it** —
+every later zone has a real gear ladder and a hull sized for its boss.
+
+### Guard
+
+`scenes/z1_boss_tune.tscn` — measures the chain-produced loadout directly (the question
+`boss_gearcheck` structurally cannot ask, since it only builds tier-matched sets), on both hulls,
+and fails if Common ever clears the boss or the chain kit drops below 60%. Prints Wilson intervals
+so the noise is visible. Default 21 trials; use `--trials=51` near a threshold. `--sweep` and
+`--grid` re-run the lever searches above.
+
+---
+
 ## v175 — guidance follows the chain, not the source file
 
 Reordering the Zone 1 chain (boss before the industrial arc) did not move the gold arrow.

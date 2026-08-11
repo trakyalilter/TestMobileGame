@@ -740,12 +740,31 @@ var enemy_db = {
 
 	"z1_boss_architect": {
 		"name": "Rogue Architect",
-		"stats": {"hp": 1000, "max_shield": 100, "atk": 26.666667, "def": 10, "atk_interval": 2.0, "accuracy": 25},
+		# v175 CORVETTE RETUNE (owner ruling: soften the boss, frigate stays after it).
+		# This fight was tuned when it came AFTER the frigate. The 2026-08-09 reorder
+		# (4562435) put it before, making it the only mandatory fight in the game on the
+		# starting corvette, and nothing was retuned to match. Measured, 21 trials each:
+		# the loadout the chain actually hands the player cleared 0/21 on the corvette
+		# and 21/21 on the frigate. It was not hard, it was the wrong fight.
+		#   hp  1000 -> 900   (960 -> 864 after the 0.96 rebase)
+		#   atk 26.667 -> 16.0
+		# Result at 51 trials: Common 0%, CHAIN kit 76%, Rare 100%. See z1_boss_tune.
+		"stats": {"hp": 900, "max_shield": 100, "atk": 16.0, "def": 10, "atk_interval": 2.0, "accuracy": 25},
 		# v139d P3 SOFT trait (tutorial-grade, owner rule): the FIRST boss already
-		# telegraphs — every 4th swing charges a x1.75 spike. Dents, never kills at
+		# telegraphs — every 4th swing charges a spike. Dents, never kills at
 		# mission-directed gear. Teaches "watch the fight"; the same telegraph
 		# returns LETHAL at Z8. Do not raise the mult without a funnel re-run.
-		"charge_nuke": {"every_n": 8, "mult": 4.2},
+		#
+		# v175: mult was 4.2 and did not match its own documentation. The comment above
+		# describes "every 4th swing, x1.75"; when every_n moved 4 -> 8 the mult should
+		# have been re-derived by this file's own DPS-preserving rule (see z4_frost_hulk,
+		# ~line 958): new_mult = 1 + (old_mult - 1) x new_every_n / old_every_n
+		#              = 1 + 0.75 x 2 = 2.5
+		# 4.2 was 68% above that, making the telegraph a 112-damage hit into a corvette
+		# with ~155 max HP — a near-one-shot, not a dent. Restored to the derivation.
+		# (Measured separately: the spike was NOT what made the fight unwinnable. At
+		# mult 2.0 the chain kit still cleared only 1/21. The sustained trade was.)
+		"charge_nuke": {"every_n": 8, "mult": 2.5},
 		"loot": [["credits", 5000, 10000], ["Cu", 10, 25], ["Fe", 15, 30], ["Res1", 5, 10], ["MiteChitin", 5, 12]],
 		# v143: UNIQUES REMOVED FROM THE TUTORIAL BOSS (owner call). Zone 1 is the
 		# tutorial and the easiest fight in the game, so a Unique set from it let the
