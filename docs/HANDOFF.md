@@ -546,10 +546,33 @@ send the player at until step 63"*, while the six legitimate boss demands (`m027
 (`m026` asks 30 Res1 = 20 drone kills), not the "1-4 kills" recorded earlier. That figure came from
 the broken highest-yield selection and should not be quoted.
 
-### Still open on this guard
+### Transitive recipe inputs — closed
 
-Transitive recipe inputs are unmodeled: anything a recipe *outputs* is treated as reachable without
-asking whether that recipe's own inputs are. A material buried one recipe deep still slips through.
+The last hole: anything a recipe *output* was treated as reachable without asking whether that
+recipe's own **inputs** were. One level of indirection defeated the whole check.
+
+Replaced with a real resolver. `req[sym]` = the shallowest zone that can produce sym — gathered is
+0, dropped is that enemy's zone, a recipe costs **MAX over its inputs**, a building costs MAX over
+its inputs **and its construction cost** — then MIN across every path. Relaxed to a fixed point
+rather than recursed, so production cycles never lower a value and resolve to unreachable on their
+own instead of needing a visited-set.
+
+It runs **twice**, and that split is the part worth remembering. Seeding drops into the same pass
+that decides "can this be made" conflates farming with refining, and the first attempt promptly
+demanded the player kill 67 Scavenger Mechs for Steel they smelt. So:
+
+- **pass A** seeds gathering only -> `craftable`, i.e. obtainable with no fighting at all, inputs
+  verified transitively. This is what the old naive `non_combat` claimed to be and was not: it
+  counted **139** materials, the honest resolver counts **90**. It was over-claiming 49.
+- **pass B** seeds gathering + drops -> `req`, the true earliest zone by any path.
+
+Kill maths and the boss gate now apply only when a material is NOT in `craftable` — combat has to be
+mandatory before the guard prices it in kills.
+
+Negative-controlled by breaking a single input of `smelt_steel_basic` to something nothing produces:
+`craftable` drops **90 -> 81** (Steel plus eight downstream materials fall out together, which is
+transitivity doing its job), the Steel beats fall back to the drop path and fail the kill ceiling,
+and restoring returns 90 and PASS.
 
 ---
 

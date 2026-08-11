@@ -53,20 +53,53 @@ func _ready() -> void:
 		if core != "":
 			_note(drop_zone, core, z)
 
-	# Everything obtainable WITHOUT fighting: gathered, refined, or produced.
-	var non_combat: Dictionary = {}
+	# THE EARLIEST ZONE AT WHICH EACH MATERIAL BECOMES OBTAINABLE, BY ANY PATH.
+	#
+	# The first version marked a symbol "obtainable without fighting" if ANY recipe merely
+	# OUTPUT it, then skipped the beat -- never asking whether that recipe's own INPUTS were
+	# reachable. One level of indirection defeated the whole check: bury an unreachable
+	# material one recipe deep and the guard waved it through while still printing its own
+	# headline message about materials nothing produces.
+	#
+	# Proper resolver. req[sym] = the shallowest zone that can produce sym:
+	#   * gathered            -> 0 (no zone needed)
+	#   * dropped by an enemy -> that enemy's zone
+	#   * made by a recipe    -> MAX over its inputs (you need all of them)
+	#   * made by a building  -> MAX over its inputs AND its construction cost
+	# then MIN across every path. Relaxed to a fixed point rather than recursed, so
+	# production cycles simply never lower a value and resolve to unreachable on their own
+	# instead of needing a visited-set.
+	var req: Dictionary = {}
 	for aid in gm.actions:
 		for row3 in gm.actions[aid].get("loot_table", []):
-			non_combat[str((row3 as Array)[0])] = true
-	for rid in pm.recipes:
-		for o in (pm.recipes[rid].get("output", {}) as Dictionary):
-			non_combat[str(o)] = true
-	for bid in im.building_db:
-		for o2 in (im.building_db[bid].get("output", {}) as Dictionary):
-			non_combat[str(o2)] = true
+			_note(req, str((row3 as Array)[0]), 0)
+	for sym0 in drop_zone:
+		_note(req, str(sym0), int(drop_zone[sym0]))
 
-	print("[SUPPLY] %d combat-drop material(s), %d obtainable without fighting" % [
-		drop_zone.size(), non_combat.size()])
+	var producers: Array = []
+	for rid in pm.recipes:
+		var rc: Dictionary = pm.recipes[rid]
+		producers.append({"out": (rc.get("output", {}) as Dictionary).keys(),
+			"needs": (rc.get("input", {}) as Dictionary).keys()})
+	for bid in im.building_db:
+		var bd: Dictionary = im.building_db[bid]
+		var needs: Array = (bd.get("input", {}) as Dictionary).keys()
+		for ci in (bd.get("cost", {}) as Dictionary):
+			if str(ci) != "credits":
+				needs.append(ci)
+		producers.append({"out": (bd.get("output", {}) as Dictionary).keys(), "needs": needs})
+
+	var gathered: Dictionary = {}
+	for aid2 in gm.actions:
+		for row4 in gm.actions[aid2].get("loot_table", []):
+			_note(gathered, str((row4 as Array)[0]), 0)
+
+	# CRAFTABLE = reachable with no fighting at all, inputs verified transitively. This is
+	# what the original naive `non_combat` claimed to be and was not.
+	var craftable: Dictionary = _relax(gathered.duplicate(), producers)
+	req = _relax(req, producers)
+	print("[SUPPLY] %d combat-drop material(s); %d craftable without fighting; %d reachable by any path" % [
+		drop_zone.size(), craftable.size(), req.size()])
 
 	# PRE-PASS: the step at which the chain first tells the player to fight each enemy.
 	# That is what makes "is this boss a usable faucet yet" answerable -- a boss the chain
@@ -126,11 +159,21 @@ func _ready() -> void:
 
 		for item in cost:
 			var sym := str(item)
-			if sym == "credits" or non_combat.has(sym):
-				continue                       # mineable / craftable / produced
-			if not drop_zone.has(sym):
+			if sym == "credits":
+				continue
+			if not req.has(sym):
 				_fail("%s needs %s, which nothing in the game produces or drops" % [cur, sym])
 				continue
+			var need_zone: int = int(req[sym])
+			if need_zone > zone_now:
+				var indirect: bool = not (drop_zone.has(sym) and int(drop_zone[sym]) == need_zone)
+				_fail("%s (step %d) needs %d %s, whose shallowest production path needs Zone %d but the chain has opened Zone %d%s" % [
+					cur, steps, int(cost[item]), sym, need_zone, zone_now,
+					"  (via an intermediate, not a direct drop)" if indirect else ""])
+			if craftable.has(sym):
+				continue          # refined or mined; nobody farms 80 Fe off drones
+			if not drop_zone.has(sym) or int(drop_zone[sym]) > zone_now:
+				continue          # not obtainable by fighting here -- kill maths is moot
 			checked += 1
 			# Reachable is necessary but not sufficient — a faucet that yields 0.02 per
 			# kill is technically a source and practically a wall. Report the best rate
@@ -159,10 +202,6 @@ func _ready() -> void:
 				if kills > MAX_KILLS:
 					_fail("%s needs %d %s = ~%d kills of %s; the chain's norm is <= %d" % [
 						cur, int(cost[item]), sym, kills, str(src.get("eid", "?")), MAX_KILLS])
-			var need_z: int = int(drop_zone[sym])
-			if need_z > zone_now:
-				_fail("%s (chain step %d) needs %d %s, but its only faucet is Zone %d and the chain has opened Zone %d" % [
-					cur, steps, int(cost[item]), sym, need_z, zone_now])
 		cur = str(m.get("next_mission", ""))
 
 	print("[SUPPLY] walked %d beats, checked %d combat-drop demand(s), player reaches Zone %d" % [
@@ -211,6 +250,32 @@ func _cheapest_source(cm, sym: String, max_zone: int, first_fight: Dictionary) -
 				"boss": bool(str(e.get("boss_core", "")) != "" or str(eid).find("_boss_") >= 0),
 				"first_fight_step": int(first_fight.get(str(eid), 9999))}
 	return best
+
+
+# Relax `seed` through every producer until nothing improves. Cycles never lower a value,
+# so they resolve to unreachable without a visited-set.
+func _relax(seed: Dictionary, producers: Array) -> Dictionary:
+	var out: Dictionary = seed
+	var changed := true
+	var passes := 0
+	while changed and passes < 64:
+		changed = false
+		passes += 1
+		for prod in producers:
+			var worst := 0
+			var reachable := true
+			for need in (prod["needs"] as Array):
+				if not out.has(str(need)):
+					reachable = false
+					break
+				worst = maxi(worst, int(out[str(need)]))
+			if not reachable:
+				continue
+			for outp in (prod["out"] as Array):
+				if not out.has(str(outp)) or int(out[str(outp)]) > worst:
+					out[str(outp)] = worst
+					changed = true
+	return out
 
 
 func _note(d: Dictionary, sym: String, z: int) -> void:
