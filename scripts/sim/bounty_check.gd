@@ -65,11 +65,24 @@ func _ready() -> void:
 				hunts += 1
 				if tgt_boss: comp_ok = false
 				if not (c["target"] in z_hunters): hunters_only = false
-		if hunts != 2 or bosses != 1 or elites != 1:
+		# v175: was a flat `hunts != 2`. _generate_zone_pool emits ONE hunt per
+		# module-hunter, and hunters = the last two trash, so a zone with fewer than two
+		# trash enemies legitimately ships a smaller board. Zone 1 was cut to a single
+		# trash enemy by the staged damage-type ruling and has offered 1 hunt ever since;
+		# this assertion has been red for that reason alone, on a board that is correct.
+		# Derive the expectation from the roster the generator actually reads.
+		var want_hunts: int = z_hunters.size()
+		var want_elites: int = 1 if z_hunters.size() > 0 else 0
+		var want_boss: int = 0
+		for eid2 in cm.zones[z["id"]].get("enemies", []):
+			if cm.enemy_db.get(eid2, {}).get("is_boss", false):
+				want_boss = 1
+		if hunts != want_hunts or bosses != want_boss or elites != want_elites:
 			comp_ok = false
-			print("[BOUNTY]   composition off in %s: hunts=%d boss=%d elite=%d" % [z["id"], hunts, bosses, elites])
+			print("[BOUNTY]   composition off in %s: hunts=%d/%d boss=%d/%d elite=%d/%d (trash=%d)" % [
+				z["id"], hunts, want_hunts, bosses, want_boss, elites, want_elites, z_trash.size()])
 	fails += 0 if (ok_zones and comp_ok and zone_lock_ok and not elite_hit_boss and hunters_only) else 1
-	print("[BOUNTY] 1) zones=%d comp(2+1+1)=%s zone-lock=%s elite-no-boss=%s e3/e4-only=%s %s" % [
+	print("[BOUNTY] 1) zones=%d comp(roster-derived)=%s zone-lock=%s elite-no-boss=%s e3/e4-only=%s %s" % [
 		zones.size(), comp_ok, zone_lock_ok, not elite_hit_boss, hunters_only,
 		"OK" if (ok_zones and comp_ok and zone_lock_ok and not elite_hit_boss and hunters_only) else "*** FAIL"])
 
@@ -91,10 +104,23 @@ func _ready() -> void:
 	bm.process_tick(0.02)
 	var after_nat: int = bm.get_refresh_cost(zid)
 	var nat_ok: bool = (after_nat == c0) and (bm.refresh_timer > 28000.0)
+	# v175: was `size() != 4`. Same stale premise as test 1 -- Zone 1 ships 3 cards
+	# (1 hunt + boss + elite) because it has one trash enemy. Assert every board came
+	# back NON-EMPTY and matching its roster, which is what "regenerated" means.
 	var all_regen: bool = true
 	for z in zones:
-		if bm.get_zone_contracts(z["id"]).size() != 4:
+		var pool2: Array = bm.get_zone_contracts(z["id"])
+		var trash2 := 0
+		var boss2 := 0
+		for eid3 in cm.zones[z["id"]].get("enemies", []):
+			if cm.enemy_db.get(eid3, {}).get("is_boss", false):
+				boss2 = 1
+			else:
+				trash2 += 1
+		var want_size: int = mini(2, trash2) + boss2 + (1 if trash2 > 0 else 0)
+		if pool2.size() != want_size:
 			all_regen = false
+			print("[BOUNTY]   regen off in %s: %d cards, roster wants %d" % [z["id"], pool2.size(), want_size])
 	fails += 0 if (esc_base_ok and esc_ok and other_cold and nat_ok and all_regen) else 1
 	print("[BOUNTY] 2) refresh cost %d→%d→%d (base=%s esc=%s other-zone-cold=%s) natural-reset=%s all-regen=%s %s" % [
 		c0, c1, c2, esc_base_ok, esc_ok, other_cold, nat_ok, all_regen,

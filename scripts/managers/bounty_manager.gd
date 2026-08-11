@@ -12,7 +12,6 @@ extends RefCounted
 signal bounty_updated()
 
 const MAX_ACTIVE = 3
-const CARDS_PER_ZONE = 4
 const REFRESH_INTERVAL = 28800.0 # 8 hours in seconds
 const REFRESH_BASE_COST = 5000   # × zone difficulty × 2^rerolls-this-window
 const MAX_REROLL_HEAT = 12       # price cap ×4096 — a deterrent, not a hard wall
@@ -147,8 +146,11 @@ func _generate_zone_pool(zone_id: String) -> Array:
 			trash.append(eid)
 	# v139b: bounties target only the MODULE-HUNTER enemies — the back-half trash
 	# (e3 = weapons pool, e4 = shield/armor pool) + the boss. The front-half (e1/e2)
-	# is the material-farm lane and never gets a contract. Every zone ships 4 trash
-	# + boss, so "last two" = e3/e4 universally (defensive slice for odd rosters).
+	# is the material-farm lane and never gets a contract.
+	# v175: the old note here claimed "every zone ships 4 trash + boss, so last-two =
+	# e3/e4 universally". That stopped being true when the staged damage-type ruling cut
+	# Zone 1 to ONE trash enemy and Zone 2 to two. The slice is load-bearing now, not
+	# defensive: Zone 1 legitimately offers a 3-card board (1 hunt + boss + elite).
 	var hunters: Array = trash.slice(maxi(0, trash.size() - 2)) if trash.size() > 0 else []
 	var pool: Array = []
 	# One hunt per module-hunter, deterministic — the board always offers both the

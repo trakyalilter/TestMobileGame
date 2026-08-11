@@ -483,6 +483,45 @@ re-checked against the new cadence before trusting them.
 
 ---
 
+## v175 — bounty_check repaired (2 red assertions, 1 root cause, 0 real regressions)
+
+Both failures were the same stale premise: **a bounty board is not always 4 cards.**
+
+`_generate_zone_pool` emits **one hunt per module-hunter**, and hunters = the last two trash
+enemies. The staged damage-type ruling cut Zone 1 to a **single** trash enemy, so it has offered a
+correct 3-card board (1 hunt + boss + elite) ever since — while the probe hardcoded `hunts != 2`
+(test 1) and `size() != 4` (test 2).
+
+| zone | trash | board |
+|---|---|---|
+| Z1 Lunar Orbit | **1** | **3** |
+| Z2 Asteroid Belt | 2 | 4 |
+| Z3+ | 3–4 | 4 |
+
+**Fix:** both expectations are derived from the roster the generator actually reads, and the failure
+line now prints got/want per zone (`hunts=1/2 ... (trash=2)`) instead of a bare false.
+
+Two matching falsehoods in the source were corrected at the same time:
+
+- `_generate_zone_pool`'s comment claimed *"Every zone ships 4 trash + boss, so last-two = e3/e4
+  universally (defensive slice for odd rosters)"*. That slice is **load-bearing** now, not defensive.
+- **`CARDS_PER_ZONE = 4` was declared and referenced nowhere** — a dead const asserting the same
+  dead invariant. Removed; grep confirms no dangling references.
+
+### Guard
+
+Negative-controlled by breaking the generator to emit one hunt per board: both tests go red naming
+every affected zone, and the process exits 1. **Zone 1 is correctly NOT flagged** — one trash
+legitimately wants one hunt — which is what shows the derivation is roster-aware rather than
+self-validating. Restoring gives ALL PASS and exit 0.
+
+That self-validation risk is the real hazard when a guard computes its own expectation, and it is
+the same trap the material-order guard fell into earlier in v175 (it marked its targets reachable
+before testing them). Any "derive the expected value" assertion needs a control that moves the
+PRODUCER and not the data both sides read.
+
+---
+
 ## v175 — phase_gate_spike repaired (17 red assertions, 0 real regressions)
 
 It had been failing **17** assertions **and exiting 0**, so nothing surfaced it and by the time it
