@@ -153,8 +153,9 @@ Loop 2 · ENGINEER_SHARE 0.35 (sim arbitrates vs 0.30) · rewards Liras only (th
 - ✅ Isolated parse gate (Godot 4.5.1 Linux `--check-only`, autoload false-positives
   filtered): all 5 scripts 0 errors. One real catch fixed (`:=` inference through autoload).
 - ⛔ **FULL HEADLESS BOOT not run** (needs the Windows binary on this machine):
-  `Godot_v4.5.1-stable_win64_console.exe --headless --quit-after 18 --path .` then grep
-  `SCRIPT ERROR|not declared|Nonexistent function|Cannot infer`.
+  `powershell -NoProfile -File tools/boot_check.ps1`. (v175: was a hand-typed grep for
+  `SCRIPT ERROR|not declared|Nonexistent function|Cannot infer`, which is blind to
+  `ERROR:` / `Failed to load` and so missed resource-load failures entirely.)
 - ⛔ **Probe not run:**
   `Godot_v4.5.1-stable_win64_console.exe --headless --path . res://scenes/supply_board_check.tscn`
   — expect `[PROC] ALL PASS` + the ladder print.
@@ -519,6 +520,54 @@ That self-validation risk is the real hazard when a guard computes its own expec
 the same trap the material-order guard fell into earlier in v175 (it marked its targets reachable
 before testing them). Any "derive the expected value" assertion needs a control that moves the
 PRODUCER and not the data both sides read.
+
+---
+
+## v175 — the boot check was blind to half of Godot's errors
+
+The project's standing smoke test was a hand-typed grep, repeated in four docs:
+
+    SCRIPT ERROR|not declared|Nonexistent function|Cannot infer
+
+**The last three are all `SCRIPT ERROR` substrings**, so the whole pattern only ever caught GDScript
+runtime faults. It matched none of `ERROR:` (engine errors, *including every resource-load
+failure*), `Failed to load` / `instantiate` / `open`, `USER ERROR:` (our own `push_error`), or
+`Invalid call` / `Invalid access` / `Attempt to call`. **A broken scene reference booted "clean."**
+
+That is how the invalid-UID warnings in `atlas_page.tscn` and `warp_page.tscn` went unnoticed — they
+only surfaced when a probe that instantiates `main.tscn` happened to print them.
+
+**Now a script:** `powershell -NoProfile -File tools/boot_check.ps1` (`-Scene res://…` to boot-check
+a probe, `-Seconds N` to change the window). Exit 1 on error, 0 on pass.
+
+**Warnings print but never fail.** A `WARNING` is Godot saying it recovered — the UID fallbacks
+resolve by text path and load fine. Failing on them would hand the repo another permanently-red
+check, which is exactly how `phase_gate_spike` and `bounty_check` stopped being read.
+
+### Measured, not assumed
+
+A temporary probe that loads a nonexistent resource — `ERROR:` lines only, no `SCRIPT ERROR`
+anywhere, which is the precise shape the old pattern could not see:
+
+| | result |
+|---|---|
+| old grep pattern | **0 lines matched** |
+| `tools/boot_check.ps1` | **3 ERROR lines, FAIL, exit 1** |
+
+Control files deleted after use. Plain boot re-runs PASS at 0 errors / 0 warnings; the page-walking
+scene reports the 2 UID warnings and still passes.
+
+### Known gap, stated in the script
+
+The boot instantiates the main scene and what it pulls in. Pages loaded **lazily on first visit**
+(atlas, warp) are not touched, so a broken page scene still passes here — `i18n_overflow_check`
+walks every page and is what covers those.
+
+### Also worth cleaning
+
+`atlas_page.tscn` and `warp_page.tscn` carry invalid UIDs (`uid://atlas_page_script`,
+`uid://d3vk6u6u6u6u6`). Harmless — Godot falls back to the text path — but they are the only two
+warnings in the build.
 
 ---
 

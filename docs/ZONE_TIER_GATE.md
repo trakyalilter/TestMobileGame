@@ -164,7 +164,7 @@ The audit (verified against `combat_manager` enemy defs, all module/processing/r
 - [ ] `game_state`: `tier_gate_enabled` flag (new game = true), save/migrate, hard-reset behaviour.
 - [ ] UI: e3/e4 pre-fight **lock badge** + combat-log floored-hit message (`combat_page`).
 - [ ] **Naming cleanup** (related confusion the user already flagged): `z3_energy` "Cryo Beam", `z4_shield` "Cryo Shield", `z4_engine` "Cryo-Pulse Drive" still carry "Cryo" — collides with the *actual* Cryo (warp-breach) damage type **and** the Z4→Glacier/Frost re-theme. Rename to Frost/Rime/Glacial.
-- [ ] **Verify via FULL HEADLESS BOOT** (`Godot_console.exe --headless --quit-after 18`), not `--check-only` (syntax-only). Grep `SCRIPT ERROR|not declared|Nonexistent function|Cannot infer`.
+- [ ] **Verify via FULL HEADLESS BOOT** — `powershell -NoProfile -File tools/boot_check.ps1` — not `--check-only` (syntax-only). Do not hand-grep; the old `SCRIPT ERROR|not declared|Nonexistent function|Cannot infer` pattern is blind to `ERROR:` and `Failed to load`.
 - [ ] Extend `scripts/sim/phase_gate_spike.gd` (MissionFlow) with tier-gate asserts: floor applies sub-tier, common pierces, Unique-Z−1 pierces / Z−2 floors, front-half drops no modules, `spawn_enemy` copies the flag.
 
 ---

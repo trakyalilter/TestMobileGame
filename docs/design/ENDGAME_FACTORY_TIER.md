@@ -907,9 +907,10 @@ ships, not after.
 
 ## H. SEQUENCED BUILD PLAN
 
-Every step ends with a **full headless boot** (`--headless --quit-after 18`, grep
-`SCRIPT ERROR|not declared|Nonexistent function|Cannot infer`) — the `--check-only` path is
-syntax-only and has let real errors through in this project before. Every step also ends with
+Every step ends with a **full headless boot** — `powershell -NoProfile -File tools/boot_check.ps1`
+— the `--check-only` path is syntax-only and has let real errors through in this project before.
+(v175: that step used to be a hand-typed grep for `SCRIPT ERROR|not declared|Nonexistent function|
+Cannot infer`, which matches no `ERROR:` line and therefore never saw a resource-load failure.) Every step also ends with
 a **census re-run**: distinct FACTORY types per zone chain, and the serial-minutes-per-refit
 table from A4.
 
