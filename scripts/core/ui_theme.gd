@@ -2485,6 +2485,32 @@ func _update_locked_message(lbl: RichTextLabel, message: String, tech_id: String
 ## inject_activity_header: one compact command row -- [icon | name | Lv badge]
 ## -- replacing the name + separate centred level line. Reparents the
 ## existing NameLabel + LevelLabel so update_state() keeps driving them.
+# Activity-card header title sizing. Translated names run noticeably longer
+# than the English source (Turkish ~15-20%), which overflowed the fixed-width
+# card header and got hard-clipped mid-word — "Batarya Hücresi Monta[jı]".
+# Step the font down until the drawn string fits, with an ellipsis left as the
+# backstop for pathological lengths.
+const HEADER_FONT_MAX := 13
+const HEADER_FONT_MIN := 10
+
+func fit_label_to_width(lbl: Label, max_size: int = HEADER_FONT_MAX, min_size: int = HEADER_FONT_MIN) -> void:
+	if not is_instance_valid(lbl): return
+	var avail: float = lbl.size.x
+	if avail <= 1.0: return   # pre-layout; the resized hook re-runs this
+	var font: Font = lbl.get_theme_font("font")
+	if font == null: return
+	# Controls auto-translate at draw time, so `text` is still the English key.
+	# Measure what is actually drawn, not the source string.
+	var shown: String = TranslationServer.translate(lbl.text)
+	var sz: int = max_size
+	while sz > min_size and font.get_string_size(shown, HORIZONTAL_ALIGNMENT_LEFT, -1, sz).x > avail:
+		sz -= 1
+	# Only write on change: the override alters the label's minimum size, and an
+	# unconditional set can bounce resized -> fit -> resized forever.
+	if lbl.get_theme_font_size("font_size") != sz:
+		lbl.add_theme_font_size_override("font_size", sz)
+
+
 func inject_activity_header(card: PanelContainer, category: String, icon_tex: Texture2D) -> PanelContainer:
 	var margin_cont = card.get_node_or_null("MarginContainer")
 	if not margin_cont: return null
@@ -2540,8 +2566,12 @@ func inject_activity_header(card: PanelContainer, category: String, icon_tex: Te
 	name_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	name_lbl.autowrap_mode = TextServer.AUTOWRAP_OFF
 	name_lbl.clip_text = true
+	name_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	name_lbl.add_theme_color_override("font_color", Color.WHITE)
-	name_lbl.add_theme_font_size_override("font_size", 13)
+	name_lbl.add_theme_font_size_override("font_size", HEADER_FONT_MAX)
+	# Fit once the row has a real width, and again whenever it changes.
+	name_lbl.resized.connect(fit_label_to_width.bind(name_lbl, HEADER_FONT_MAX, HEADER_FONT_MIN))
+	fit_label_to_width.call_deferred(name_lbl, HEADER_FONT_MAX, HEADER_FONT_MIN)
 
 	if lvl_lbl:
 		lvl_lbl.get_parent().remove_child(lvl_lbl)
