@@ -77,7 +77,7 @@ var actions: Dictionary = {
 		"name": "Deforest Zone",
 		"loot_table": [["Wood", 1.0, 8, 10]],
 		"xp": 10,
-		"level_req": 4,
+		"level_req": 6,
 		"category": "terrestrial"
 	},
 	"mine_dolomite": {
@@ -118,7 +118,7 @@ var actions: Dictionary = {
 		"name": "Mine Lithium Ore",
 		"loot_table": [["Spodumene", 1.0, 1, 3]],
 		"xp": 10,
-		"level_req": 6,
+		"level_req": 4,
 		"research_req": "basic_engineering",
 		"category": "terrestrial"
 	},
