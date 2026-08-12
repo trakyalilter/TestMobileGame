@@ -237,7 +237,7 @@ func _apply_sidebar_icons() -> void:
 	_set_nav(fleet_btn, "fleet", "Fleet")
 	_set_nav(inventory_btn, "inventory", "Inventory")
 	_set_nav(atlas_btn, "atlas", "Atlas")
-	_set_nav(options_btn, "config", "Sys Config")
+	_set_nav(options_btn, "config", "Settings")
 	_set_nav(menu_btn, "menu", "Main Menu")
 	# Menu button isn't restyled per-page, so give its icon a fixed dim tint.
 	if is_instance_valid(menu_btn):

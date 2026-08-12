@@ -156,7 +156,7 @@ layout_mode = 2
 
 [node name="OptionsBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
 layout_mode = 2
-text = "  Sys Config"
+text = "  Settings"
 alignment = 0
 
 [node name="MenuBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]

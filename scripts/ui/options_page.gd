@@ -1,6 +1,6 @@
 extends Control
 
-# Sys Config — rebuilt as a scrollable, sectioned settings screen.
+# Settings — a scrollable, sectioned settings screen.
 # The whole page is constructed in code so the layout isn't path-fragile and
 # every section panel flows through UITheme.apply_card_style(), so it inherits
 # the player's chosen card-frame "soul" just like every gameplay card.
@@ -78,7 +78,12 @@ func _build_ui() -> void:
 	_build_save_section()
 	_build_gameplay_section()
 	_build_interface_section()
-	_build_testing_section()
+	# Debug tooling is DEV-ONLY. It hands out levels, credits, warps, mission
+	# state and free gear, so it must never render in a shipped build -- this
+	# page is player-facing. Editor and debug exports still get it; a release
+	# export has neither feature, so the section simply does not exist there.
+	if OS.has_feature("editor") or OS.has_feature("debug"):
+		_build_testing_section()
 
 	var foot := Label.new()
 	foot.text = tr("Horizon Idle · prototype build · changes save automatically")
@@ -94,7 +99,7 @@ func _build_ui() -> void:
 # Sections
 # --------------------------------------------------------------------------
 func _build_header() -> void:
-	var body := _section("System Config", HEADER_CAT)
+	var body := _section("Settings", HEADER_CAT)
 	var sub := Label.new()
 	sub.text = tr("Save, gameplay and interface options.")
 	sub.add_theme_font_size_override("font_size", 12)
