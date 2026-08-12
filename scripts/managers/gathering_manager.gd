@@ -92,7 +92,7 @@ var actions: Dictionary = {
 		"name": "Strip Mine Bauxite",
 		"loot_table": [["Bauxite", 1.0, 1, 2]],
 		"xp": 11,
-		"level_req": 12,
+		"level_req": 25,
 		"research_req": "lightweight_alloys",
 		"category": "terrestrial"
 	},
@@ -101,7 +101,7 @@ var actions: Dictionary = {
 		"name": "Extract Pentlandite",
 		"loot_table": [["Pentlandite", 1.0, 1, 2]],
 		"xp": 25,
-		"level_req": 25,
+		"level_req": 12,
 		"research_req": "adv_materials",
 		"category": "terrestrial"
 	},
