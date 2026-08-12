@@ -971,7 +971,31 @@ var enemy_db = {
 		# on z2_ore_hauler. x1.75 restores the pre-triangle TTK and the e3<e4 ordering.
 		# Measured (gate_probe, 21 trials): row 9 Common-N 14 -> 8 kills, 0 deaths;
 		# carried Rare/Legendary/Legendary+T1 7/6/7 -> 4/3/2. No pulse needed here.
-		"stats": {"hp": 4200, "max_shield": 875, "atk": 155.555556, "def": 28, "atk_interval": 2.0, "accuracy": 58},
+		#
+		# ─── v175: atk 155.555556 -> 103.0 (owner call). THE MEASUREMENTS ABOVE HAVE
+		# DRIFTED AND MUST NOT BE TRUSTED AS-IS. ──────────────────────────────────────
+		# zone_gate_check reports BLOCK on Z3->Z4: the clean Zone-4 COMMON set dies, which
+		# breaks Rule B ("the intended answer must be able to farm the zone"). The v147
+		# block above says the Common death rate here is 1-3 per 108 windows and v151 says
+		# 0 per 21 — so the first thing checked was whether the BLOCK was just the
+		# TRIALS=5 boolean catching a rare event.
+		# It is not. Re-measured at this stat line, 21 windows, clean Common Z4:
+		#     DEATHS 9/21 = 42.9%   Wilson95 [24%, 63%]   median 15 kills
+		# A 43% per-window death rate makes a 5-trial cell report BLOCK 94% of runs. The
+		# rate has moved ~20x since v151 and nothing in this comment block explains it —
+		# whatever drifted (Common kit power, the resist triangle, the x1.75 EHP raise
+		# lengthening exposure) happened elsewhere and was never re-measured here.
+		#
+		# atk is the lever, and its size is set by the CURVE rather than by taste. Spawned
+		# e3 attack by zone was 119 / 770 / 2184 / 6600 for Z3-Z6: a 6.47x step into Z4
+		# against a ~3x norm either side. 103.0 authored x tier_rebase(4) 4.952 = 510
+		# spawned, the geometric mean of Z3 and Z5, which makes both steps 4.28x. Cutting
+		# further does NOT help — it just moves the cliff onto Z4->Z5 (at x0.45 that step
+		# becomes 6.30x, worse than the one being fixed).
+		# NOTE the v147 warning still stands on its own terms: the deep cause here is the
+		# AFFIX axis (carried Legendary rolls resist_e 0.57-0.75, clean Common is pinned
+		# at 0.28). This restores Rule B; it does not fix that.
+		"stats": {"hp": 4200, "max_shield": 875, "atk": 103.0, "def": 28, "atk_interval": 2.0, "accuracy": 58},
 		# every_n counts SWINGS. Before v149 it had to be hand-tuned per enemy fire
 		# rate to land a readable ~12-14s TIME cadence. With every enemy on
 		# DEFAULT_ATTACK_INTERVAL the field is uniform in time: period = every_n x 2.0s.

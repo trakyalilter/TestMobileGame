@@ -522,7 +522,63 @@ PRODUCER and not the data both sides read.
 
 ---
 
-## v175 — phase_gate_spike repaired (17 red assertions, 0 real regressions)
+## v175 — Z3→Z4 BLOCK fixed: the Zone-4 e3 attack was a 6.5x step on a 3x curve
+
+`zone_gate_check` reported **BLOCK** on Z3→Z4 — the clean Zone-4 COMMON set died to
+`z4_glacial_drone`, breaking Rule B ("the intended answer must be able to farm the zone"). It was
+the only BLOCK in the table.
+
+### It nearly went unfixed for a good reason, and nearly got fixed for a bad one
+
+`z4_glacial_drone` carries a **108-trials-per-cell** sweep in its comment block (v147) reporting the
+clean-Common death rate at **1–3 per 108 windows**, concluding the discrimination ratio is maximal
+at the shipped value, and saying in as many words *"Fix the affix axis, not this stat line."* v151
+then raised its EHP ×1.75 and measured **0 deaths in 21 trials**.
+
+Against that, one 5-trial `DIED` is weak evidence — `zone_gate_check` sets `died_any` if **any** of
+its 5 windows ends in a death, so a 3% rate flips the cell ~14% of runs. So the rate was measured
+before anything was touched:
+
+| | deaths / 21 windows | | |
+|---|---|---|---|
+| shipped (atk 770 spawned) | **9/21 = 42.9%** | Wilson95 [24%, 63%] | median 15 kills |
+| after (atk 510 spawned) | **0/21 = 0.0%** | Wilson95 [0%, 15%] | median 16 kills |
+
+**The wall was real** — and the v147/v151 numbers have drifted ~20× without anyone re-measuring.
+Nothing in that comment block explains it; whatever moved (Common kit power, the resist triangle,
+the ×1.75 EHP raise lengthening exposure) happened elsewhere. **Do not quote those figures again
+without re-running.**
+
+### Why 510 and not lower
+
+The size came from the curve, not from taste. Spawned e3 attack by zone was **119 / 770 / 2184 /
+6600** for Z3–Z6: a **6.47×** step into Z4 against ~3× either side. 510 is the geometric mean of Z3
+and Z5, making both steps **4.28×**. Cutting further does not help — it *moves* the cliff onto
+Z4→Z5 (at ×0.45 that step becomes 6.30×, worse than the one being fixed).
+
+`atk 155.555556 → 103.0` authored; ×`tier_rebase(4)` 4.952 = 510 spawned.
+
+**Result:** Z3→Z4 now reports `BOOT` (maxedZ3 9 kills vs commonZ4 16) — Rule B satisfied, Rule A
+satisfied at 9 ≤ 16/1.25. Violations 5 → 4; the remaining four are the untouched NOGAIN cells.
+`boss_gearcheck` still 15/15, boot clean.
+
+The v147 warning still stands on its own terms: the deep cause is the **affix axis** (carried
+Legendary rolls `resist_e` 0.57–0.75, clean Common pinned at 0.28). This restores Rule B; it does
+not fix that.
+
+### Two instrument notes
+
+- **`zone_gate_check`'s death test is a boolean over 5 trials.** It gave the right answer here (43%
+  is unmissable), but at a few percent it would false-BLOCK ~14% of runs. It should be a rate with a
+  threshold. Not changed — flagging it.
+- **`scripts/sim/z4_block_diag.gd`** (kept, diagnostic) measures that rate. Its first version
+  hand-rolled the window loop and called `_kit()`, which lives on `boss_gearcheck`, not
+  `zone_gate_check` — so it threw *"Nonexistent function '_kit'"* on every one of 1,800 ticks per
+  window and ran for an hour without finishing. It calls `zone_gate_check._run()` now, which is both
+  correct and fast (it early-exits on death). A probe that "runs long" is a parse/lookup error until
+  proven otherwise.
+
+
 
 It had been failing **17** assertions **and exiting 0**, so nothing surfaced it and by the time it
 was read nobody trusted it. Every one of the 17 was stale or a probe bug. **No real regressions.**
