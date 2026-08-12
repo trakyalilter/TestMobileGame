@@ -99,19 +99,44 @@ func _ready() -> void:
 			# crafting, which IS a dominated choice.
 			var a_k: float = float(a["kills"])
 			var b_k: float = float(b["kills"])
-			var ok: bool = b_farm and (not a_farm or a_k <= b_k / GATE_MIN_SLOWDOWN)
+			# v175: NOGAIN NOW COMPARES LIKE WITH LIKE.
+			#
+			# It used to fail when a MAXED Zone-N kit matched a CLEAN Zone-(N+1) COMMON
+			# one, reading that as "the new tier is not worth crafting". Those are two
+			# different states of INVESTMENT, not two tiers: Legendary + 3 greater affixes
+			# + 3 Resonant cores against bare commons with none of it. Measured
+			# (nogain_diag, 7-13 trials/cell), that stack alone is worth x1.9-2.7, while a
+			# BARE Legendary Zone-N sits at 0.38-0.56 of the new tier's commons -- the gear
+			# ladder was never the problem.
+			#
+			# Compared like for like, the tier is a huge upgrade:
+			#     maxedZ6 10.7 -> maxedZ7 52.7   x4.92
+			#     maxedZ7 16.4 -> maxedZ8 73.7   x4.49
+			#     maxedZ8 13.9 -> maxedZ9 59.4   x4.29
+			#     maxedZ9 18.4 -> maxedZ10 84.3  x4.57
+			# so the four cells this reported were an artifact of the comparison. Acting on
+			# them meant cutting affix power ~30-40% GLOBALLY, which would have risked
+			# boss_gearcheck's 15/15 and gutted the best drop outcome in the game, to fix
+			# something that was not happening.
+			#
+			# The honest question is: equally invested, does the next tier clearly win? The
+			# bar is unchanged (GATE_MIN_SLOWDOWN); only what it compares has moved.
+			var c: Dictionary = _cell(sm, cm, rm, n + 1, zid, eid, true)
+			var c_k: float = float(c["kills"])
+			var tier_gain_ok: bool = c_k >= a_k * GATE_MIN_SLOWDOWN
+			var ok: bool = b_farm and tier_gain_ok
 			if not ok:
 				fails += 1
 			var verdict := "OK  "
 			if not b_farm:
 				verdict = "BLOCK"     # the intended common answer can't farm either
-			elif a_farm and a_k > b_k / GATE_MIN_SLOWDOWN:
-				verdict = "NOGAIN"    # the new tier is not a meaningful upgrade
+			elif not tier_gain_ok:
+				verdict = "NOGAIN"    # equally invested, the next tier is NOT an upgrade
 			elif a_farm:
-				verdict = "BOOT"      # intended bootstrap: slow-farms, clearly worse
-			print("[GATE] %s Z%d->Z%d e%d %-24s | maxedZ%d %s | commonZ%d %s" % [
+				verdict = "BOOT"      # intended bootstrap: old gear slow-farms the new zone
+			print("[GATE] %s Z%d->Z%d e%d %-24s | maxedZ%d %s | commonZ%d %s | maxedZ%d %s (tier x%.1f)" % [
 				verdict, n, n + 1, idx + 1, eid,
-				n, _fmt(a), n + 1, _fmt(b)])
+				n, _fmt(a), n + 1, _fmt(b), n + 1, _fmt(c), c_k / maxf(0.1, a_k)])
 	print("[GATE] --------------------------------------------------------------------")
 	print("[GATE] ===== %s =====" % ("ALL GATES HONOR THE RULE" if fails == 0 else "%d CELL(S) VIOLATE" % fails))
 	get_tree().quit(1 if fails > 0 else 0)
