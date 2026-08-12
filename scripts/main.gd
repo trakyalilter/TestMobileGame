@@ -2168,37 +2168,12 @@ func _update_navigation_hints():
 	if target_to_pulse == null:
 		target_to_pulse = _generic_mission_pulse(mm)
 
-	# P1 Onboarding — Repair routing.
-	# v125: repair moved OFF the Shipyard (its repair button was removed in v124) —
-	# it's now the Combat-HUD HULL consumable button, which works out of combat too
-	# (no cooldown when not fighting). So when no mission demands a pulse and the
-	# hull is damaged, route to the COMBAT tab — but only if a hull repair kit is
-	# actually equipped + stocked (otherwise there's nothing to tap there, so we
-	# don't nudge to a dead end). Once on Combat, the page's own low-hull alarm
-	# pulses the HULL kit. Mission pulses always win — this is a pure fallback.
-	if target_to_pulse == null:
-		var sm_ref = GameState.shipyard_manager
-		var cm_ref = GameState.combat_manager
-		# v134g: don't fire the repair nudge while the player is actively gathering
-		# or crafting. An active skilling mission (e.g. m019 "craft 10 Circuits")
-		# returns a NULL pulse mid-craft — pulsing the button they're already using
-		# is pointless — but that null let this fallback hijack it and pulse COMBAT,
-		# reading as "the mission wants combat" during a crafting step. The player is
-		# busy on the right task; repair can wait until they're idle.
-		var _busy_skilling: bool = (GameState.gathering_manager and GameState.gathering_manager.is_active) \
-			or (GameState.processing_manager and GameState.processing_manager.is_active)
-		# v141d: never fire the repair nudge while a TUTORIAL mission is active. The
-		# generic pulse returns null when the player is already ON the active mission's
-		# page (task in progress) — that null must NOT unleash a Combat repair nudge,
-		# or a single atlas_lookup step ping-pongs atlas <-> combat. Repair only nudges
-		# once onboarding is idle.
-		if sm_ref and not _busy_skilling and not _has_active_tutorial(mm) \
-				and sm_ref.current_hp < sm_ref.max_hp \
-				and sm_ref.consumable_hull_slot != "" \
-				and GameState.resources.get_element_amount(sm_ref.consumable_hull_slot) >= 1 \
-				and current_page_name != "combat" \
-				and not (cm_ref and cm_ref.in_combat):
-			target_to_pulse = combat_btn
+	# P1 Onboarding — Repair routing: REMOVED.
+	# A dented hull used to fall through to pulsing the COMBAT nav button. It fired
+	# on the navigation menu every idle moment after any fight, which reads as
+	# nagging rather than guidance — the player already knows the ship is hurt.
+	# Repair guidance still exists where it is actionable: once the player is ON
+	# the Combat page, its own low-hull alarm pulses the HULL kit button.
 
 	# Apply final decision
 	if target_to_pulse:
