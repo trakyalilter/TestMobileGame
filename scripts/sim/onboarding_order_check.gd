@@ -99,7 +99,18 @@ func _check_material_order(mm, sm, pm) -> void:
 	for sym in fresh.elements:
 		have[str(sym)] = true
 	var seed_list: Array = have.keys()
+	# Seed COMBAT DROPS before closing over recipes. Skipping a dropped symbol at the
+	# assertion site is not enough: the beat that failed here wanted ReinforcedPlating,
+	# which is not itself a drop — it is CRAFTED from SalvagedAlloy + DamagedCircuitry,
+	# which are. Unless the drops are in the set, _expand() can never close over that
+	# recipe and the crafted output looks unreachable.
+	var dropped := 0
+	for sym2 in _all_droppable():
+		if not have.has(sym2):
+			have[sym2] = true
+			dropped += 1
 	_expand(have, pm)
+	print("[ONB] seeded %d combat-drop material(s) before recipe closure" % dropped)
 
 	var cur := "m001"
 	var n := 0
@@ -130,6 +141,8 @@ func _check_material_order(mm, sm, pm) -> void:
 				continue
 			if _gatherable(w):
 				continue      # this beat legitimately teaches you to mine it
+			if _droppable(w):
+				continue      # combat drop; see the note on _droppable
 			_fail("%s (%s) needs %s — no earlier beat provides it" % [
 				cur, str(m.get("target", "")).substr(0, 20), w])
 		for w2 in wants:
@@ -139,6 +152,39 @@ func _check_material_order(mm, sm, pm) -> void:
 		n += 1
 	print("[ONB] material order: seed %s -> %d reachable across %d beats" % [
 		str(seed_list), have.size(), n])
+
+
+# Combat drops count as obtainable. This model only ever knew the starter kit, gather
+# actions and recipe closure — never loot — and it got away with it because the two
+# "(Fallback)" recipes minted SalvagedAlloy from Steel and DamagedCircuitry from Circuit,
+# which put ReinforcedPlating inside the pure-crafting closure. Those were deleted as
+# free-material printers, and this guard immediately reported m026b (the frigate) as
+# unbuildable. It is not: both inputs are Z1-Z2 rare_loot at 0.90 for 2-4 and 3-6 a kill,
+# and the chain kills the Zone-1 boss at m026e before asking for the frigate at m026b.
+#
+# ZONE-CORRECTNESS IS NOT CHECKED HERE. "Is this drop farmable YET, in a zone the chain
+# has actually opened" is chain_supply_check's job, and it does it properly with a
+# transitive producer resolver. Duplicating a weaker copy here would just be a second
+# thing to keep in sync.
+func _all_droppable() -> Dictionary:
+	var out: Dictionary = {}
+	var cm = GameState.combat_manager
+	if cm == null:
+		return out
+	for eid in cm.enemy_db:
+		var e: Dictionary = cm.enemy_db[eid]
+		for row in e.get("loot", []):
+			out[String((row as Array)[0])] = true
+		for row2 in e.get("rare_loot", []):
+			out[String((row2 as Array)[0])] = true
+		var core := String(e.get("boss_core", ""))
+		if core != "":
+			out[core] = true
+	return out
+
+
+func _droppable(sym: String) -> bool:
+	return _all_droppable().has(sym)
 
 
 func _gatherable(sym: String) -> bool:
