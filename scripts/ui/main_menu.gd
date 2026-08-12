@@ -442,7 +442,10 @@ func _build_footer():
 	var vp = get_viewport().get_visible_rect().size
 
 	var ver = Label.new()
-	ver.text = tr("HORIZON IDLE  ·  DEMO")
+	# The DEMO label belongs to the demo build only. 046790d set it here back when
+	# main WAS the demo build; the demo has had its own repo since, where the footer
+	# is DemoGate-driven, so main labelling itself DEMO is now simply wrong.
+	ver.text = tr("HORIZON IDLE  ·  PROTOTYPE")
 	ver.position = Vector2(24, vp.y - 34)
 	ver.add_theme_font_size_override("font_size", 10)
 	ver.add_theme_color_override("font_color", Color(UITheme.COLORS["text_dim"], 0.75))
