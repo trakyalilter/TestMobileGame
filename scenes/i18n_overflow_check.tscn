@@ -1,0 +1,4 @@
+[gd_scene load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/sim/i18n_overflow_check.gd" id="1"]
+[node name="I18nOverflowCheck" type="Node"]
+script = ExtResource("1")

@@ -62,6 +62,9 @@ func setup(p_bid: String, p_data: Dictionary, p_manager, p_parent):
 		_oc_btn.text = tr("INSTALL BOOST CARD")
 		_oc_btn.custom_minimum_size = Vector2(0, 28)
 		_oc_btn.clip_text = true  # v131: never let a long label widen the card
+		# ...and cut with an ellipsis rather than mid-word: the Turkish label
+		# ("GUCLENDIRME KARTI KUR") is far longer than the English source.
+		_oc_btn.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		_oc_btn.add_theme_font_size_override("font_size", 10)
 		UITheme.apply_premium_button_style(_oc_btn, "infrastructure")
 		# v130: the Boost Card material icon, tinted its signature amber (same

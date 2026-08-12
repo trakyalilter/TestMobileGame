@@ -2491,7 +2491,7 @@ func _update_locked_message(lbl: RichTextLabel, message: String, tech_id: String
 # Step the font down until the drawn string fits, with an ellipsis left as the
 # backstop for pathological lengths.
 const HEADER_FONT_MAX := 13
-const HEADER_FONT_MIN := 10
+const HEADER_FONT_MIN := 9
 
 func fit_label_to_width(lbl: Label, max_size: int = HEADER_FONT_MAX, min_size: int = HEADER_FONT_MIN) -> void:
 	if not is_instance_valid(lbl): return
