@@ -1648,8 +1648,15 @@ var recipes: Dictionary = {
 
 	# ── Tier 1 Combat-Materials (Phase 1) ──────────────────────────────
 	# Mandatory consumer: the intended path is farming Z1-2 Heavy/Tech
-	# enemies for the inputs. Below it, two deliberately punitive fallback
-	# recipes guarantee no progression deadlock (anti-deadlock Law 3).
+	# enemies for the inputs -- SalvagedAlloy and DamagedCircuitry are now
+	# combat-only (Z1-2 rare_loot at 0.90, 2-4 and 3-6 per kill).
+	#
+	# The two "(Fallback)" recipes that used to sit here (Steel -> SalvagedAlloy,
+	# Circuit -> DamagedCircuitry) are GONE. Each closed a conversion loop with
+	# its reclaim partner, and because the skill yield flat is ADDITIVE per cycle
+	# it eventually outgrew any ratio: the circuitry loop turned a profit from
+	# Engineering 10 (x44 per cycle at 100), the alloy loop from 30 (x7.33).
+	# scripts/sim/loop_exploit_check.gd guards against a new one appearing.
 	"craft_reinforced_plating": {
 		"name": "Reinforced Plating",
 		"description": "Forge salvaged combat alloy and scavenged circuitry into a Tier-1 reinforced hull plate — the cornerstone of early ship-frame upgrades.",
@@ -1658,26 +1665,6 @@ var recipes: Dictionary = {
 		"duration": 12.0,
 		"level_req": 8,
 		"xp": 60,
-		"category": "components"
-	},
-	"reclaim_salvaged_alloy": {
-		"name": "Improvised Alloy (Fallback)",
-		"description": "Crudely re-smelt bulk Steel into a Salvaged Alloy substitute. Wildly inefficient (8:1) — farming Heavy enemies is far better — but it guarantees you can never hard-lock.",
-		"input": {"Steel": 8},
-		"output": {"SalvagedAlloy": 1},
-		"duration": 15.0,
-		"level_req": 8,
-		"xp": 10,
-		"category": "components"
-	},
-	"reclaim_damaged_circuitry": {
-		"name": "Stripped Circuitry (Fallback)",
-		"description": "Cannibalise finished Circuits into a Damaged Circuitry substitute. Lossy (6:1) — Tech enemies drop it far faster — but this is the deadlock safety net.",
-		"input": {"Circuit": 1},
-		"output": {"DamagedCircuitry": 1},
-		"duration": 15.0,
-		"level_req": 8,
-		"xp": 10,
 		"category": "components"
 	},
 }
