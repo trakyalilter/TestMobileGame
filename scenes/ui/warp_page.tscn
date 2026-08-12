@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://cx6g0e2r5k2u5"]
 
-[ext_resource type="Script" uid="uid://d3vk6u6u6u6u6" path="res://scripts/ui/warp_page.gd" id="1_warp"]
+[ext_resource type="Script" uid="uid://61hm386h74ws" path="res://scripts/ui/warp_page.gd" id="1_warp"]
 
 [node name="WarpPage" type="Control"]
 layout_mode = 3
