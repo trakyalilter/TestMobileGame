@@ -26,7 +26,13 @@ const CHROME_HOLOGRAPHIC := 1
 const CHROME_PRECURSOR := 2
 
 func get_card_chrome() -> int:
-	return int(GameState.game_settings.get("card_chrome", CHROME_INDUSTRIAL))
+	var v := int(GameState.game_settings.get("card_chrome", CHROME_INDUSTRIAL))
+	# HOLOGRAPHIC was retired from the Settings picker. A save that still holds it
+	# would keep rendering a frame with no button to show it is active and no way
+	# back, so fold it to the default.
+	if v == CHROME_HOLOGRAPHIC:
+		return CHROME_INDUSTRIAL
+	return v
 
 # Turkish-aware uppercase. Godot's String.to_upper() is NOT locale-tailored, so it
 # maps 'i' -> 'I' (English) when Turkish needs 'i' -> 'İ'. Pre-substitute the dotted

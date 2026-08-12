@@ -131,7 +131,6 @@ func _build_interface_section() -> void:
 
 	_add_choice_row(body, "Card Frame",
 		[["Industrial", UITheme.CHROME_INDUSTRIAL],
-		 ["Holographic", UITheme.CHROME_HOLOGRAPHIC],
 		 ["Precursor", UITheme.CHROME_PRECURSOR]],
 		func(): return UITheme.get_card_chrome(),
 		func(v): _on_card_frame_pressed(v))

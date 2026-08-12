@@ -357,7 +357,6 @@ func _build_options_menu(parent: VBoxContainer):
 
 	_menu_setting_row(content, tr("Card Frame"),
 		[[tr("Industrial"), UITheme.CHROME_INDUSTRIAL],
-		 [tr("Holographic"), UITheme.CHROME_HOLOGRAPHIC],
 		 [tr("Precursor"), UITheme.CHROME_PRECURSOR]],
 		UITheme.get_card_chrome(),
 		func(v):
