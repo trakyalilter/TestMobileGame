@@ -27,13 +27,25 @@ extends Node
 
 const DT := 0.1
 const WINDOW := 180.0      # sim-seconds of farming per trial
-const FARM_KILLS := 5      # >= this many kills in WINDOW (and no death) = "can farm"
+const FARM_KILLS := 5      # >= this many kills in WINDOW = "can farm"
+# Fraction of windows that may end in death and still count as farmable. See the note at
+# the a_farm/b_farm computation: the old rule was "not a single death in TRIALS", which
+# turned a few percent of background lethality into a coin-flip verdict.
+const DEATH_RATE_MAX := 0.25
 # v174: was 3. Kill counts are small integers, so a single trial is +/-1 kill —
 # 14% noise on a 7-kill baseline, enough to flip a cell's verdict between runs
 # with nothing changed. The clean-common column moved 8 -> 8 -> 7 across three
 # tuning passes that cannot affect it (commons carry no affixes and no cores),
 # which is how the noise floor was spotted.
-const TRIALS := 5
+# v175: was 5. A 5-sample MEDIAN is not stable enough to sit against a hard >= 5 kill
+# bar — commonZ13 and commonZ14 printed 4 on one run and 6 on the next with no code
+# change, so the verdict flapped even after the death-rate fix below removed the other
+# source of noise. 9 samples settle the median; the cost is bounded by TIER_TRIALS.
+const TRIALS := 9
+# The third cell (maxed at N+1) only feeds the tier-gain ratio, which clears its 1.25 bar
+# by 40-500%. It does not need the same resolution as the two cells that decide BLOCK, and
+# giving it full trials would put this check past the shell's timeout for no information.
+const TIER_TRIALS := 3
 # v174: how much slower a maxed Zone-N kit must be than clean Zone N+1 commons
 # for the next tier to count as a real upgrade. 1.5x = it works, but you feel it.
 # v174: 1.25, not 1.5. The design requirement is the one in the rarity curve —
@@ -79,8 +91,20 @@ func _ready() -> void:
 				continue
 			var a: Dictionary = _cell(sm, cm, rm, n, zid, eid, true)
 			var b: Dictionary = _cell(sm, cm, rm, n, zid, eid, false)
-			var a_farm: bool = (int(a["kills"]) >= FARM_KILLS) and not bool(a["died"])
-			var b_farm: bool = (int(b["kills"]) >= FARM_KILLS) and not bool(b["died"])
+			# v175: "farms" used to mean `kills >= FARM_KILLS and NOT died_any`, where
+			# died_any tripped on ONE death in TRIALS windows. That is a cliff, not a
+			# threshold, and it made this whole check unreliable: measured with
+			# ng_hp_sweep, z14_toxin_sentinel had a 13% per-window death rate, and
+			# 1-(0.87^5) means died_any fires on 51% of runs. Two SIMULTANEOUS runs of
+			# identical code printed "3 CELL(S) VIOLATE" and "ALL GATES HONOR THE RULE",
+			# and one of the flapping cells was Z2->Z3 — a conventional zone nobody had
+			# touched in months. Numbers were being tuned against a coin flip.
+			# A death rate is the honest reading of "can this kit farm here": an idle
+			# player who dies once in a couple of hours is farming; one who dies in most
+			# windows is not. DEATH_RATE_MAX is generous on purpose — a genuinely
+			# unsurvivable cell measures 60-100%, nowhere near the line.
+			var a_farm: bool = (float(a["kills"]) >= float(FARM_KILLS)) and _survives(a)
+			var b_farm: bool = (float(b["kills"]) >= float(FARM_KILLS)) and _survives(b)
 			# v174 (owner ruling). RULE A used to demand a HARD WALL: maxed Zone-N kit
 			# must not farm Zone N+1 trash at all. That is the wrong bar for this genre
 			# and it reported 9 violations that were not defects.
@@ -122,7 +146,7 @@ func _ready() -> void:
 			#
 			# The honest question is: equally invested, does the next tier clearly win? The
 			# bar is unchanged (GATE_MIN_SLOWDOWN); only what it compares has moved.
-			var c: Dictionary = _cell(sm, cm, rm, n + 1, zid, eid, true)
+			var c: Dictionary = _cell(sm, cm, rm, n + 1, zid, eid, true, TIER_TRIALS)
 			var c_k: float = float(c["kills"])
 			var tier_gain_ok: bool = c_k >= a_k * GATE_MIN_SLOWDOWN
 			var ok: bool = b_farm and tier_gain_ok
@@ -145,21 +169,42 @@ func _ready() -> void:
 func _fmt(r: Dictionary) -> String:
 	if bool(r.get("unpowered", false)):
 		return "UNPWR"
-	return "%dk%s" % [int(r["kills"]), ("/DIED" if bool(r["died"]) else "")]
+	var d: String = ""
+	if int(r.get("deaths", 0)) > 0:
+		d = "/%dd" % int(r["deaths"])
+	return "%.1fk%s" % [float(r["kills"]), d]
 
-func _cell(sm, cm, rm, hull_n: int, zid: String, eid: String, maxed: bool) -> Dictionary:
+func _survives(r: Dictionary) -> bool:
+	var n: int = int(r.get("trials", TRIALS))
+	if n <= 0:
+		return true
+	return float(r.get("deaths", 0)) / float(n) <= DEATH_RATE_MAX
+
+
+func _cell(sm, cm, rm, hull_n: int, zid: String, eid: String, maxed: bool, n_trials: int = -1) -> Dictionary:
+	var runs: int = TRIALS if n_trials <= 0 else n_trials
 	var ks: Array = []
 	var died_any := false
+	var deaths := 0
 	var unpwr := false
-	for _t in range(TRIALS):
+	for _t in range(runs):
 		var r: Dictionary = _run(sm, cm, rm, hull_n, zid, eid, maxed)
 		if bool(r.get("unpowered", false)):
 			unpwr = true
 		ks.append(int(r.get("kills", 0)))
 		if bool(r.get("died", false)):
 			died_any = true
+			deaths += 1
 	ks.sort()
-	return {"kills": ks[ks.size() / 2], "died": died_any, "unpowered": unpwr}
+	# v175: MEAN, not median. Per-window kill counts here run 4-7, and the median of a
+	# small discrete sample like that jumps a whole unit on one sample moving — commonZ13
+	# printed 4 on one run and 6 on the next with nothing changed, straddling the >= 5
+	# bar. The mean uses every sample instead of the middle one and settles.
+	var tot := 0.0
+	for k in ks:
+		tot += float(k)
+	return {"kills": tot / float(maxi(1, ks.size())), "died": died_any, "deaths": deaths,
+		"trials": runs, "unpowered": unpwr}
 
 func _run(sm, cm, rm, hull_n: int, zid: String, eid: String, maxed: bool) -> Dictionary:
 	GameState.hard_reset()

@@ -80,7 +80,12 @@ func _ready() -> void:
 				st["atk"] = base_atk * am
 				st["hp"] = base_hp * hm
 				var r: Dictionary = _cellof(sm, cm, rm, zn - 1, zid, EID, false)
-				row += " %2d%-5s |" % [int(r["k"]), ("/DIED" if bool(r["d"]) else "")]
+				# Death COUNT, not a boolean. zone_gate_check's died_any flips on a single
+				# death in 5 trials, so a cell with a ~15% true death rate passes about
+				# half the time and flaps between runs — which is exactly what Z13->Z14
+				# did after being tuned against a clean 7-sample. A rate is the only way
+				# to aim at margin instead of luck.
+				row += " %2dk %2d/%-2dd |" % [int(r["k"]), int(r["nd"]), TRIALS]
 			print(row)
 		st["atk"] = base_atk
 		st["hp"] = base_hp
@@ -111,10 +116,12 @@ func _ready() -> void:
 func _cellof(sm, cm, rm, hull_n: int, zid: String, eid: String, maxed: bool) -> Dictionary:
 	var ks: Array = []
 	var died := false
+	var nd := 0
 	for _i in range(TRIALS):
 		var r: Dictionary = _z._run(sm, cm, rm, hull_n, zid, eid, maxed)
 		ks.append(int(r.get("kills", 0)))
 		if bool(r.get("died", false)):
 			died = true
+			nd += 1
 	ks.sort()
-	return {"k": ks[ks.size() / 2], "d": died}
+	return {"k": ks[ks.size() / 2], "d": died, "nd": nd}

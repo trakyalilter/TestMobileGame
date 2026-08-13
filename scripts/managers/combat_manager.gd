@@ -1497,7 +1497,12 @@ var enemy_db = {
 	},
 	"z11_exotic_leviathan": {
 		"name": "Exotic Leviathan",
-		"stats": {"hp": 3200000, "atk": 25000, "def": 8000, "atk_interval": 2.0, "accuracy": 175},
+		# v175: hp 3200000 -> 2400000 (x0.75). Z10->Z11 e4 sat just under Rule B's 5-kill
+		# bar at a clean-COMMON mean of 4.7-4.9 across three runs. It only became visible
+		# once the check switched from a 5-sample MEDIAN (which rounded 4.8 up to 5 about
+		# half the time and flapped) to a 9-sample MEAN. Matches the x0.75 that put Z13 at
+		# 5.7; the Z11 boss is untouched and boss_gearcheck stays 15/15.
+		"stats": {"hp": 2400000, "atk": 25000, "def": 8000, "atk_interval": 2.0, "accuracy": 175},
 		"loot": [["PrimordialShard", 3, 6], ["credits", 20000000, 40000000]],
 		"rare_loot": [["OmegaPlating", 0.10, 2, 3]],
 		"module_drop_chance": 0.15,
@@ -1549,7 +1554,10 @@ var enemy_db = {
 	},
 	"z12_caustic_leviathan": {
 		"name": "Caustic Leviathan",
-		"stats": {"hp": 3600000, "atk": 60000, "def": 13000, "atk_interval": 2.0, "accuracy": 270},
+		# v175: hp 3600000 -> 2700000 (x0.75). Same story as z11_exotic_leviathan — a clean
+		# COMMON Z12 set averaged 4.3-4.9 kills against the >= 5 bar, consistently under it
+		# on every run once the statistic stopped rounding. Trash only.
+		"stats": {"hp": 2700000, "atk": 60000, "def": 13000, "atk_interval": 2.0, "accuracy": 270},
 		"loot": [["PrimordialShard", 4, 8], ["credits", 40000000, 80000000], ["OmegaPlating", 3, 6]],
 		"rare_loot": [["VoidEssence", 0.12, 2, 5]],
 		"module_drop_chance": 0.12,
@@ -1673,7 +1681,18 @@ var enemy_db = {
 		# Attack is what stops the dying and HP is what buys the kills; neither alone
 		# clears the bar, which is why this rung took three edits (z14_armor, z14_shield
 		# and this line) plus the boss compensation next door.
-		"stats": {"hp": 8000000, "atk": 64750, "def": 40000, "atk_interval": 2.0, "accuracy": 300},
+		#
+		# v175 SECOND PASS: atk 64750 -> 48560 (a further x0.75). The first pass tuned
+		# against a clean 7-trial sample and landed ON the cliff — zone_gate_check then
+		# printed ALL GATES HONOR THE RULE, then 3 VIOLATE, then 1 VIOLATE across three
+		# runs of IDENTICAL code. Measured as a death RATE rather than a boolean:
+		#     atk x1.00 (64750)  6 kills, 2/15 deaths = 13%
+		#     atk x0.85           6 kills, 0/15
+		#     atk x0.75           6 kills, 0/15   <- taken, same kills, real margin
+		# A 13% per-window death rate makes died_any over FIVE trials fail 51% of runs,
+		# which is precisely the flapping that was observed. Kills are identical at 0.85
+		# and 0.75, so the deeper cut costs nothing and buys distance from the edge.
+		"stats": {"hp": 8000000, "atk": 48560, "def": 40000, "atk_interval": 2.0, "accuracy": 300},
 		"loot": [["PrimordialShard", 7, 14], ["credits", 100000000, 200000000], ["OmegaPlating", 6, 12], ["VoidEssence", 6, 12]],
 		"rare_loot": [["ChronoCore", 0.12, 3, 6]],
 		"module_drop_chance": 0.12, "module_drop_pool": ["corrosion_blaster"],
