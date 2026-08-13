@@ -1689,7 +1689,21 @@ var enemy_db = {
 	},
 	"z15_blight_titan": {
 		"name": "Blight Titan",
-		"stats": {"hp": 17000000, "atk": 110000, "def": 55000, "atk_interval": 2.0, "accuracy": 310},
+		# v175 (owner call: cut z15 enemy HP). This was the single worst number in the NG+
+		# loop. Spawned trash HP ran 1.647B -> 4.261B -> 7.691B -> 38.5B for Z12-Z15, i.e.
+		# steps of x2.59, x1.80 and then x5.01 -- Z15 alone was more than double the
+		# steepest rung before it, and it is why a clean COMMON Z15 set managed 2 kills in
+		# a 180s window against the >= 5 Rule B needs.
+		# hp 17000000 -> 6800000 (x0.40), measured with ng_hp_sweep at 7 trials:
+		#     x1.00  2 kills   x0.60  4 kills   x0.45  5 kills   x0.35  7 kills
+		# x0.45 is ladder-perfect but lands EXACTLY on the 5-kill bar, and a value sitting
+		# on a threshold is the thing this project keeps re-measuring. x0.35 clears it with
+		# room but makes Z14->Z15 the GENTLEST step in the loop (x1.75 against 1.80/2.59),
+		# recreating the "deepest cell is the gentlest" inversion v151 called out on Z4.
+		# x0.40 gives a x2.00 step -- between its two neighbours -- with a kill to spare.
+		# Only the trash moved; z15_boss_caustic_sovereign is untouched and boss_gearcheck
+		# stays 15/15.
+		"stats": {"hp": 6800000, "atk": 110000, "def": 55000, "atk_interval": 2.0, "accuracy": 310},
 		"loot": [["PrimordialShard", 10, 20], ["credits", 150000000, 300000000], ["OmegaPlating", 8, 16], ["VoidEssence", 8, 16]],
 		"rare_loot": [["ChronoCore", 0.12, 4, 8]],
 		"module_drop_chance": 0.12, "module_drop_pool": ["corrosion_blaster"],
