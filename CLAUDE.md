@@ -121,10 +121,31 @@ Sectors/zones for combat, ship **hulls** (corvette → frigate → destroyer →
 | 3 — P0 Prestige Discovery Fanfare | ✅ done | `main.gd::_on_currency_added_for_warp_reveal` + `_fire_warp_reveal_fanfare`. Warp tab gated on `game_settings["warp_first_revealed"]`. Backward compat for existing saves preserved. |
 | 4 — P1 Mastery layer + gold-card cosmetic at lvl 100 | ✅ done | Per-action XP in gathering/processing managers; milestones 10/25/50/75/100 (−5%/milestone duration, cap −25%; alt-recipe flag @50; gold @100). UX shipped (see Recent balance). |
 | 5 — P5 Unique-tier non-weapon modules | pending | Add `z*_unique_engine/sensor/missile/battery` to each zone boss `rare_loot` (3% each). Build-altering affixes. |
-| 6 — P3 Per-boss encounter mechanics | pending | Z3 turret deploys / Z5 enrage at 50% / Z7 alternating damage type / Z9 biohazard adds / Z10 3-phase. Pre-fight loadout solvable only — no new in-fight inputs. |
+| 6 — P3 Per-boss encounter mechanics | **Z1–Z6 DONE (v139d), Z7–Z10 pending** | ⚠ This row read "pending" until 2026-08-13 and was WRONG — it cost a session recommending work that already existed. Shipped Z1–Z6: Z1 `charge_nuke` every 8th ×2.5 · Z2 `pulse` +5% shield/8s · Z3 `enrage_at 0.35` ×1.2 · Z4 `siphon` 3.2% · Z5 `nanite` re-knit below 30% · Z6 `reactive_armor` +40% def/25 hits cap 2.2. All in `combat_manager.gd` enemy defs, all tagged v139d. Z7–Z10 is the real remaining work. Pre-fight loadout solvable only — no new in-fight inputs. |
 | 7 — P4 Anomaly Contracts | pending | Random-rotating combat objectives. Gate via new research tech `anomaly_network`. NO FOMO — never-expiring rewards (premium game). |
 | 8 — P2 Sector Map mode | pending | 3–5 encounter expedition with route choice. Gate via new research tech `expeditionary_protocols`. Optional alt-path — zone select still works alongside. |
+| 9 — Salvage Vault (v176) | ✅ done | Prestige-loop gear carry-over. Spec: [`docs/design/SALVAGE_VAULT.md`](docs/design/SALVAGE_VAULT.md). Nominate up to `K = clampi(2 + total_warps, 3, 8)` modules at the warp confirm; they survive and land UNEQUIPPED. Built as the fleet's REC_1 — snapshot before `shipyard_manager.reset()`, restore after; `reset()` deliberately NOT special-cased (it is also the new-game path). Guarded by `vault_carry_check`. |
 | (deferred) Warp tree mechanic nodes | pending | Order: E5 Reclamation Foundry (~30 min, new building entry) → C3 aux slot → C4 Resonant tier → E4 overclock → E3 alt-recipe (largest). **C5 repurposed** — see Z11 spec below. |
+
+### ⚠ THE CHAIN MUST HAND OVER WHAT THE GUARDS ASSUME (v176 — read before touching gear pacing)
+
+`boss_gearcheck` certifies every boss at `_set_hull(n)` (hull tier == zone) and
+`energy_margin_check` equips TIER-MATCHED batteries. **Neither reads the mission table**, so for
+a long time the chain shipped players into Z4/Z5 bosses two hull tiers under-shipped on Zone-2
+cells. Measured (`hull_gate_diag`, identical kit, only the hull varying, 21 trials): in a
+Destroyer a full RARE Zone-N set wins **10–19%** against Z4/Z5; in the tier-matched hull,
+**81–100%**. Fixed by `m030h1`/`m030h2`, moving `m032c` ahead of `m032a` + `m032c2`, and
+`m033a1`/`m033a2`. **`chain_readiness_check` now enforces the invariant** — it walks the chain
+tracking what has been GIVEN and asserts hull tier ≥ boss zone and that every consumer slot can
+actually be mounted. It measures power by EQUIPPING, because `equip_module` refuses an over-draw,
+so an unaffordable ship reads as low-draw and a draw-vs-cap comparison would call it a PASS.
+
+**Still open — the 470-kill hunt.** A weak-type Rare is ~0.2%/kill (`drop_chance` × 11.5% rarity
+× ~1-of-7 pool weight). The chain's supposed deterministic bridge is not one:
+`bounty_manager.gd:305` picks `pool[randi() % pool.size()]` — guaranteed on RARITY, random on
+TYPE — while `_roll_one_module_drop` already honours `loot_weapon_type_filter`. Making the bounty
+reward respect that filter is the obvious fix and has NOT been done. The chain fixes above did
+**not** improve funnel depth (mean 78.3 before and after); this is why.
 
 ### 🔒 ENDGAME — Z11 Warp Gate + Cryo + NG+ (CORE COMPLETE; NG+ future)
 
@@ -152,6 +173,31 @@ Sectors/zones for combat, ship **hulls** (corvette → frigate → destroyer →
 
 - **NO EMOJIS/PICTOGRAPHS in player-facing text (owner rule, 2026-07-16).** No colored emoji (📦🚀🔬…) and no symbol-icons (⚔☠★♥⛨⚠⚡⚙✨❄✦✓…) in any string a player sees — plain text labels instead ("BOSS BOUNTY:", "HP/ATK/DEF", "HAZARD:"). ALLOWED functional typography: `→ ← ↔` (recipe/flow), `▲▼▸▾▶◀` (sort/delta/expand indicators), `✕` (close button), `◆◇` (socket pips), `◈` (shard currency symbol), `₺ × —`. Sim console output (`scripts/sim/*`) is exempt (funnel_report.py parses those markers).
 
+- **⚠ SIM FLAGS NEED A `--` SEPARATOR (v176).** Every `scripts/sim/*` probe reads its flags via
+  `OS.get_cmdline_user_args()`, which returns only what follows `--`. Without it the run silently
+  uses DEFAULTS and prints them back at you — `player_bot` defaults to `follower`, **seed 11**,
+  14 days, so a whole afternoon of "per-seed" comparisons can be the same run three times.
+  Correct form:
+  `godot --headless --path . res://scenes/player_bot.tscn -- --seed=27 --days=2 --out=t.jsonl`
+  (`--trials=21` on `boss_gearcheck` / `hull_gate_diag` needs it too.)
+
+- **⚠ `boot_check.ps1` does NOT cover lazily-loaded pages.** It boots the main scene and what
+  that pulls in; the atlas and **warp** pages load on first visit. A parse error in
+  `warp_page.gd` booted **clean** and only `warp_layout_check` went red. After touching any page
+  script, run that page's own check — `i18n_overflow_check` walks every page.
+
+- **⚠ 21 TRIALS DOES NOT RESOLVE A MID-RANGE CELL.** In `hull_gate_diag` the *same* Z3 destroyer
+  configuration read **6/21 and 13/21 within a single run** — Rare stat rolls plus 2 affixes swing
+  kit power that far. Only large gaps (10% vs 85%) survive. Do not tune against a cell near 50%.
+
+- **`const` Dictionaries are READ-ONLY.** `for c in CONST_ARRAY: c["k"] = v` throws
+  *"Dictionary is in read-only state"* at runtime, not parse time.
+
+- **A probe with a wrong zone id looks exactly like a catastrophic game finding.** Hardcoding
+  `wreckage_field` (Z3 is `mars_debris`) made every Z3 cell read 0/21 L100% on all three hulls —
+  wrong zone → wrong difficulty → the tier-penetration gate zeroes damage. Derive zone from
+  `cm.zones`, never hardcode it.
+
 - **⚠ SIM HARNESSES CAN DELETE THE REAL SAVE (v174, fixed — do not undo the guard).** `scripts/sim/*` check scenes drive the LIVE `GameState` autoload, and `hard_reset()` ends by `DirAccess.remove_absolute`-ing `savegame.json`, `.bak`, `.tmp` AND `.corrupt.json`. A harness that exercises reset therefore wipes the developer's playthrough and every backup — this happened while writing `ngplus_reset_check`. **Guard:** `GameState.sim_mode` auto-detects a launch into any `.tscn` that isn't `application/run/main_scene`, and gates BOTH `save_game()` (early return) and that delete loop. Any new probe that resets/warps should assert `GameState.sim_mode` before touching state. A plain boot check (`--headless --quit-after 18`, no scene arg) runs the game normally and DOES save — that's correct and harmless.
 
 - **`:=` cannot infer from `Variant`.** Iterating a Dictionary (`for x in some_dict:`) gives Variant keys; `var is_x := key == "literal"` fails to parse ("Cannot infer the type of …"). Use explicit `var is_x: bool = (key == "literal")` instead. Same for ternaries between mixed types.
@@ -173,6 +219,7 @@ Sectors/zones for combat, ship **hulls** (corvette → frigate → destroyer →
 ### Where to look in code
 
 - **Warp Mastery Tree spec + purchase logic:** `scripts/managers/warp_manager.gd` — `TREE_NODES` const, `BRANCH_REVEAL_WARP`, `purchase_node`, `is_node_purchased`, `is_node_implemented`, `can_purchase_node`, `get_available_shards`, `get_tree_gathering_bonus`/`processing_speed_bonus`/`hull_bonus`/`damage_bonus`.
+- **Salvage Vault (v176):** `warp_manager.gd` — `VAULT_CAP_MAX`/`VAULT_CAP_BASE`, `get_vault_capacity`/`_next`, `set_vault_selection`, `autofill_vault_selection`, `get_vault_summary`, `_vault_snapshot`/`_vault_restore` (called either side of `shipyard_manager.reset()` inside `execute_warp`). UI: `warp_page.gd::_build_vault_section`/`_refresh_vault`/`_open_vault_picker` (one rail row + a modal, because the rail runs to a measured height budget); the point-of-no-return disclosure is in `star_map_overlay.gd::_confirm_rift_entry`.
 - **Tree UI:** `scripts/ui/warp_page.gd` — `_build_tree_section`, `_build_branch_column`, `_build_node_card`, `_refresh_tree`, `_refresh_node`, `_shard_label` (singular/plural helper).
 - **Stat-bonus hooks (where tree buffs land):** `gathering_manager.gd::get_yield_multiplier()`, `processing_manager.gd::get_recipe_speed_multiplier()`, `shipyard_manager.gd::recalc_stats()` (just after `gem_totals` apply), `combat_manager.gd` weapon_states construction (`dmg_k`/`dmg_e`/`dmg_x` × `get_tree_damage_bonus()`).
 - **P0 fanfare:** `scripts/main.gd::_on_currency_added_for_warp_reveal`, `_fire_warp_reveal_fanfare`, gate logic in `_update_sidebar_styling()`.
@@ -185,4 +232,11 @@ Sectors/zones for combat, ship **hulls** (corvette → frigate → destroyer →
 clear+Warp boundaries; siege gates CUT, fleet ships soft-role only). It was listed as open here
 for weeks and repeated as an open item during the v175 session before the handoff was checked. Then **Loop 2 — Plasma frontier Z16–Z19** (#28).
 3. The 6 deferred Warp-tree mechanic nodes (E3/E4/E5/C3/C4/C5) can still be backfilled any time — **E5 Reclamation Foundry** (~30 min, new building entry) is the quick win.
-4. **Run the suite before trusting any balance claim**, and give it `--trials=21` near a pass threshold. Nine trials cannot resolve a ~60% win rate: on 2026-08-08 Z11's rows swung 0/9 → 6/9 → 3/9 across identical settings and several rounds of tuning were spent chasing that noise.
+4. **Run the suite before trusting any balance claim**, and give it `--trials=21` near a pass threshold. Nine trials cannot resolve a ~60% win rate: on 2026-08-08 Z11's rows swung 0/9 → 6/9 → 3/9 across identical settings and several rounds of tuning were spent chasing that noise. **v176 raises the bar again: 21 is not enough either for a mid-range cell** — see the trials gotcha above.
+5. **OWNER DIRECTION (2026-08-13): features and gameplay, not QoL or balance tuning.** The v176
+   session was told to stop mid-flow on exactly that basis. Prestige cadence framing from the
+   owner: players should perform **several warps before mid/endgame**, AdVenture Capitalist
+   angel-reset style — early warps are meant to be frequent, and each run visibly faster. That
+   framing is what produced the Salvage Vault; hold it when weighing any prestige-loop proposal.
+   Live queue: **bounty weapon-type filter** (the only change that attacks the 470-kill hunt) →
+   **P3 for Z7–Z10** → P5 unique non-weapon modules → P4 Anomaly Contracts → P2 Sector Map.

@@ -2,7 +2,156 @@
 
 ---
 
-## LATEST BLOCK (2026-08-13) — v175: AUDIT CLOSE-OUT + NG+ FARMABILITY
+## LATEST BLOCK (2026-08-13) — v176: CHAIN GEAR LADDERS + SALVAGE VAULT
+
+Started as "fix the m032a wall", became a structural finding about the mission chain, and
+ended on the first feature of the new **features-and-gameplay** direction (owner call: stop
+QoL/balance work).
+
+### State right now
+
+| | |
+|---|---|
+| `tools/boot_check.ps1` | **0 errors, 0 warnings** |
+| new guards | `chain_readiness_check` **PASS (6 boss beats)**, `vault_carry_check` **PASS (6 assertions)** |
+| `chain_supply_check` | **PASS** — now prices recipe paths, not just direct drops |
+| `warp_layout_check` · `i18n_overflow_check` · `mission_i18n_check` | **PASS** |
+| funnel depth | **UNCHANGED vs baseline** (mean 78.3 both) — see the honest result below |
+
+### The finding: the chain hands over gear the guards assume it already gave
+
+Two guards certify boss fights and **both assume equipment the mission chain never provides**:
+`boss_gearcheck` fights every boss from `_set_hull(n)` (hull tier == zone), and
+`energy_margin_check` equips tier-matched batteries. Neither reads the mission table. So:
+
+- **The hull ladder skipped tier 4 entirely** — Frigate(2) → Destroyer(3) → **Battlecruiser(5)
+  at m032c**, which landed *after* both the Z4 boss farm (m030i) and the Z5 boss farm (m032a).
+  `cruiser_hull` had no construct mission at all.
+- **The battery ladder ended at Zone 2** (`m030c2`) and was never revisited. Players flew
+  Belt-era cells through Zones 3, 4, 5+. That is the bot's `power_wall: cannot fit <type>
+  counter` — it owns the counter and physically cannot mount it.
+
+New probe **`hull_gate_diag`** holds the kit fixed (full Rare Zone-N weak-type, power
+over-provisioned) and varies ONLY the hull, 21 trials:
+
+| boss | destroyer(3) | cruiser(4) | battlecruiser(5) |
+|---|---|---|---|
+| Z4 Overseer (m030i) | 2–6/21 | 17–18/21 | 19–21/21 |
+| Z5 Harbinger (m032a) | 4–10/21 | 14–18/21 | 18–21/21 |
+
+**In a Destroyer a full RARE Zone-N set wins 10–19%. The hull is the ceiling and no amount of
+extra Rares lifts it.**
+
+### What shipped in the chain
+
+`m030h1` Heavy Cruiser + `m030h2` Power Refit II (Z4 cells) before m030i · `m032c`
+Battlecruiser **moved ahead of m032a** + `m032c2` Power Refit III · `m033a1` Capital Ship +
+`m033a2` Power Refit IV before m034. Rewired: `m032 → m032c → m032c2 → m032a → m032b → m032d
+→ m033`. Existing saves are safe — `sync_progress:1020` already completes a construct beat
+when `current_tier >= target_tier`, so a player already in a bigger hull is not sent backwards.
+
+New guard **`chain_readiness_check`** encodes the invariant so this cannot recur: walk the
+chain in topological order tracking what it has GIVEN, and assert at every boss beat that the
+hull is tier ≥ zone and the batteries can fill every consumer slot. It measures power by
+**equipping**, not by comparing draw to capacity — `equip_module` REFUSES an over-draw, so a
+ship that cannot afford its guns never mounts them and reads as low-draw. A draw-vs-cap
+comparison calls that a PASS.
+
+### ⚠ THE HONEST RESULT: this did not fix the funnel
+
+**The livelocks are not gone.** m030i still walls at 48h on seed 4; m030f2 still walls on
+seed 27. Dwell for m030i, baseline → after chain fixes → after the bot-bar cap:
+
+| seed | baseline | chain fixes | + cap |
+|---|---|---|---|
+| 4 | 7.7h | 127.6h | 103.7h |
+| 11 | 39.8h | 71.8h | 40.1h |
+| 27 | 39.8h | 32.2h | 32.0h |
+
+Mean depth is **78.3 in both baseline and final** — the fixes bought nothing measurable inside
+a 14-day cap, because they add five build beats that cost time.
+
+`m030f2` is the control that makes this trustworthy: it sits upstream of every change and its
+dwell is **byte-identical across all three runs** (47.6 / 31.7 / 95.9h), so the seeds are
+deterministic and diverge only after the first inserted beat.
+
+**Why the middle column is worse than baseline:** `_boss_gear_ready` required EVERY weapon slot
+to hold a Rare weak-type Zone-N gun, so the bar scaled with the hull — the tier-4 cruiser's 5
+mounts demanded 25% more farming than the destroyer's 4. **A better ship raised the gear bar.**
+Now capped: `mini(weapon_slots, 4)`, frozen at the destroyer-era requirement, so hull upgrades
+add capacity but never move the gate. (A MAJORITY-of-slots variant was tried and rejected: seed
+4 went #74→#84 but seed 11 threw 24 walls losing to Zone-5 *trash*.)
+
+**The real remaining cause is acquisition rate**, unfixed: a weak-type Rare is
+`drop_chance × 11.5% rarity × ~1-of-7 pool weight` ≈ **0.2%/kill ≈ 470 kills**, and the chain's
+supposed deterministic bridge is not one — `bounty_manager.gd:305` picks
+`pool[randi() % pool.size()]`, guaranteed on *rarity* but random on *type*, while
+`_roll_one_module_drop` already honours the player's `loot_weapon_type_filter`. Making the
+bounty reward respect that filter is the obvious next move and was **not** taken (owner
+redirect to features).
+
+### `chain_supply_check` priced the wrong path
+
+It failed `m033a2` at "8 ReactiveCore = ~100 kills". Mis-pricing: its `craftable` set means
+"reachable with NO fighting at all", so a combat-fed recipe never enters it and the item gets
+billed at its rare_loot rate. Real path: 8 cores = 4 crafts = 24 ColonySalvage, and the same
+turret drops 5–12 a kill → **~3 kills**. Now prices the cheapest **path** via `_effort_at()`
+(fixed-point relaxation over quantified recipes, cached per zone), asserting
+`effort > MAX_KILLS × ehp`. Algebraically identical on the direct path — every other row still
+prints its old kill count. Note the direction: where a recipe is cheaper the guard is strictly
+**more permissive**, never stricter.
+
+### v176 feature: the Salvage Vault
+
+Spec: [`docs/design/SALVAGE_VAULT.md`](design/SALVAGE_VAULT.md). Owner framing — players should
+warp several times before mid/endgame, AdVenture Capitalist angel-reset style. That exposed
+the blocker: `shipyard_manager.reset()` wipes `module_inventory` + `loadout` +
+`custom_modules` on every warp, so the ~470-kill hunt repeats **in full every run**. No
+drop-rate number fixes that; it is a design gap, not balance.
+
+**Mechanic:** nominate up to K modules at the warp confirm; they survive and land *unequipped*.
+`K = clampi(2 + total_warps, 3, 8)` — automatic and permanent, not a purchase. Implemented as
+the fleet's REC_1: snapshot before `shipyard_manager.reset()`, restore after. **`reset()` is
+deliberately not special-cased** — it is also the new-game path.
+
+**The anti-power-creep guard already existed and needed nothing new:** `can_equip_module`
+enforces `research_req` and, for `custom_*` drops, the BASE module's requirement too
+(`shipyard_manager.gd:6192`); `generate_module_drop` copies `research_req` onto every roll.
+Warp resets research, so a vaulted Z6 gun waits until Z6 is re-researched. The vault removes
+re-farming, **not** progression. The interesting decision is therefore *tier* — carry high and
+the run starts slow and ends strong.
+
+`vault_carry_check` asserts all six spec claims against the real `execute_warp()`. Broken on
+purpose to confirm it bites; it also caught an unanticipated knock-on — a stripped def loses
+`research_req`, so a bad restore defeats the power-creep gate too.
+
+### Gotchas learned this block
+
+- **`player_bot` reads flags via `OS.get_cmdline_user_args()` — they need a `--` separator.**
+  Without it every run silently uses defaults (`follower`, seed 11, 14 days). Per-seed numbers
+  reported earlier in the session were invalid for this reason. Correct form:
+  `godot --headless --path . res://scenes/player_bot.tscn -- --seed=27 --days=2 --out=t.jsonl`
+- **`boot_check.ps1` does NOT cover the warp page** (lazily loaded). A parse error in
+  `warp_page.gd` booted clean and only `warp_layout_check` went red.
+- **`hull_gate_diag` / `boss_gearcheck` cells are noisier than 21 trials can resolve.** The
+  same Z3 destroyer configuration read **6/21 and 13/21 within a single run** — Rare stat rolls
+  plus 2 affixes swing kit power that much. Only large gaps are trustworthy.
+- **`const` Dictionaries are read-only**; `c["zone"] = x` on a const entry throws at runtime.
+- A probe hardcoding the wrong zone id (`wreckage_field`; Z3 is `mars_debris`) made every Z3
+  cell read 0/21 L100% on all hulls — wrong zone → wrong difficulty → the tier-penetration gate
+  zeroes damage. Looked exactly like a catastrophic game finding. `hull_gate_diag` now derives
+  zone from `cm.zones`.
+
+### Next
+
+1. **Bounty weapon-type filter** — the one change that actually attacks the 470-kill hunt.
+2. **P3 for Z7–Z10** (Z1–Z6 already shipped in v139d, see the CLAUDE.md correction below).
+3. Live playtest of the Vault — the guard covers mechanics, not feel. Cap 8 is the number most
+   likely to be wrong; it decides whether run 2's early zones stay interesting.
+
+---
+
+## PREVIOUS BLOCK (2026-08-13) — v175: AUDIT CLOSE-OUT + NG+ FARMABILITY
 
 `e7bd4e5..b5cc8c1`. Started from a 12-agent measured audit of the mission chain and research
 tree, ended in the NG+ loop. **Every audit finding is closed and the guard suite is green.**

@@ -1749,6 +1749,20 @@ func _update_navigation_hints():
 			pages["shipyard"].focus_hull_tab("destroyer_hull")
 			target_to_pulse = pages["shipyard"].get_hull_widget("destroyer_hull")
 
+	elif front == "m030h1":
+		# Shipyard: Heavy Cruiser — v175 missing tier-4 rung before the Z4 boss farm
+		if current_page_name != "shipyard": target_to_pulse = shipyard_btn
+		else:
+			pages["shipyard"].focus_hull_tab("cruiser_hull")
+			target_to_pulse = pages["shipyard"].get_hull_widget("cruiser_hull")
+
+	elif front == "m033a1":
+		# Shipyard: Capital Ship — v175 missing tier-6 rung before the Z6 boss farm
+		if current_page_name != "shipyard": target_to_pulse = shipyard_btn
+		else:
+			pages["shipyard"].focus_hull_tab("capital_hull")
+			target_to_pulse = pages["shipyard"].get_hull_widget("capital_hull")
+
 	elif front == "m032b":
 		# Research: Beta Colony Charter (Sector Beta door) — v132 retarget
 		if current_page_name != "research": target_to_pulse = research_btn
@@ -2203,7 +2217,7 @@ func _page_for_mission(m: Dictionary) -> String:
 	match String(m.get("type", "")):
 		"research":
 			return "research"
-		"defeat", "drop_rarity":
+		"defeat", "drop_rarity", "drop_rarity_weapon":
 			return "combat"
 		"build", "construct", "overclock_install":
 			return "infrastructure"

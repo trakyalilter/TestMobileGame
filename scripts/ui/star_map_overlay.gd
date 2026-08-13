@@ -750,6 +750,14 @@ func _confirm_rift_entry() -> void:
 	# list is now stated accurately at the point of no return.
 	body += tr("[color=#f06b6b]RESET[/color]    Research · Ships & modules · Liras · Buildings · Resources · Skill levels  [color=#8b8f9c](keep %d%% XP)[/color]\n") % keep_pct
 	body += tr("[color=#73e88c]KEEP[/color]     Exotic Matter · Warp Mastery purchases · Action Mastery · Storage upgrades\n\n")
+	# v176 Salvage Vault: state exactly what is leaving with you, at the point of no
+	# return. Autofill first so a player who never opened the picker still carries
+	# their best equipped kit instead of silently losing all of it.
+	wm.autofill_vault_selection()
+	var carried := str(wm.get_vault_summary())
+	if carried != "":
+		body += tr("[color=#73e88c]SALVAGE VAULT[/color]  %d/%d — %s\n\n") % [
+			wm.vault_selection.size(), wm.get_vault_capacity_next(), carried]
 	body += tr("[color=#ffb454][b]This cannot be undone.[/b][/color]")
 	UITheme.show_confirm({
 		"title": tr("Enter the Singularity"),

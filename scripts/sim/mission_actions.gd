@@ -95,6 +95,8 @@ func resolve(m: Dictionary) -> Dictionary:
 			return {"verb": "discover", "zone": String(target)}
 		"drop_rarity":
 			return {"verb": "farm_rarity", "rarity": int(str(target))}
+		"drop_rarity_weapon":
+			return {"verb": "farm_rarity", "rarity": int(str(target)), "slot": "weapon"}
 		"loadout_rare_weapon":
 			return {"verb": "equip_rare_weapon", "rarity": int(str(target))}
 		"loadout_rare_weapon_type":
@@ -533,7 +535,8 @@ func _static_check(mid: String, m: Dictionary) -> String:
 		"loadout_check":
 			if not String(target) in ["weapon", "shield", "engine", "battery", "armor", "sensor", "combat_ready"]:
 				return "%s: loadout_check target %s unknown" % [mid, target]
-		"equip_consumables", "drop_rarity", "loadout_rare_weapon", "warp_perform", "overclock_install":
+		"equip_consumables", "drop_rarity", "drop_rarity_weapon", "loadout_rare_weapon", \
+		"warp_perform", "overclock_install":
 			pass
 		"loadout_rare_weapon_type":
 			if not String(target) in ["kinetic", "energy", "explosive", "cryo"]:

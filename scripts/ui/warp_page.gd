@@ -63,6 +63,11 @@ var _feed_preview: Label
 var _feed_btn: Button
 var _feed_syms: Array = []   # picker index -> material symbol
 
+# v176: Salvage Vault — one compact rail row; the picker itself is a modal.
+var _vault_panel: PanelContainer
+var _vault_lbl: Label
+var _vault_btn: Button
+
 # Buttons
 var _rift_status_lbl: Label   # v138: passive Singularity state (replaces the execute button)
 var _back_btn: Button
@@ -143,6 +148,7 @@ func _build_ui():
 	_build_gains_preview()  # v135a: lead with the reward (shards + bonuses + starter), not the loss
 	_build_first_warp_block()
 	_build_feed_core_section()  # v134h: manual "Feed the Core" charge sink
+	_build_vault_section()      # v176: Salvage Vault — one compact row, picker is a modal
 	_build_tree_section()    # the dominant zone — full-height right column
 
 
@@ -630,8 +636,233 @@ func _update_all():
 	_refresh_readiness()
 	_refresh_gains_preview()
 	_refresh_tree()
+	_refresh_vault()
 	if _feed_picker != null:
 		_populate_feed_picker()   # v134h: refresh feedable-material owned counts
+
+
+# ─── v176 Salvage Vault ───────────────────────────────────────────────────
+# docs/design/SALVAGE_VAULT.md. Deliberately ONE ROW in the rail: the rail runs
+# to a measured height budget (warp_layout_check guards it — Turkish already
+# tipped 695px against 688 once), and the picker itself is a modal, so this
+# costs the layout a single line no matter how many modules the player owns.
+func _build_vault_section() -> void:
+	_vault_panel = PanelContainer.new()
+	_vault_panel.size_flags_horizontal = Control.SIZE_FILL
+	_apply_flat_panel(_vault_panel, COLOR_KEEPS)
+	_col.add_child(_vault_panel)
+
+	var pad := MarginContainer.new()
+	for s in ["left", "right"]:
+		pad.add_theme_constant_override("margin_" + s, 9)
+	for s2 in ["top", "bottom"]:
+		pad.add_theme_constant_override("margin_" + s2, 6)
+	_vault_panel.add_child(pad)
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	pad.add_child(row)
+
+	_vault_lbl = Label.new()
+	_vault_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_vault_lbl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_vault_lbl.add_theme_font_size_override("font_size", 12)
+	_vault_lbl.add_theme_color_override("font_color", COLOR_DIM)
+	row.add_child(_vault_lbl)
+
+	_vault_btn = Button.new()
+	_vault_btn.text = tr("CHOOSE")
+	_vault_btn.focus_mode = Control.FOCUS_NONE
+	_vault_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_vault_btn.add_theme_font_size_override("font_size", 11)
+	_style_pill_button(_vault_btn, COLOR_KEEPS)
+	_vault_btn.pressed.connect(_open_vault_picker)
+	row.add_child(_vault_btn)
+
+
+func _refresh_vault() -> void:
+	if _vault_lbl == null:
+		return
+	var cap: int = int(_wm.get_vault_capacity_next())
+	var n: int = _wm.vault_selection.size()
+	_vault_lbl.text = tr("SALVAGE VAULT   %d/%d carried through the Warp") % [n, cap]
+	_vault_lbl.add_theme_color_override("font_color", COLOR_KEEPS if n > 0 else COLOR_DIM)
+
+
+# Modal picker. Built into ModalLayer the same way UITheme.show_confirm does, so
+# it dims and swallows clicks behind it and owns no rail height.
+func _open_vault_picker() -> void:
+	var tree := get_tree()
+	if not tree:
+		return
+	var modal_layer: Node = tree.root.find_child("ModalLayer", true, false)
+	var parent: Node = modal_layer if modal_layer else tree.current_scene
+	if not parent:
+		return
+
+	var overlay := Control.new()
+	overlay.name = "VaultPicker"
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0, 0.62)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.add_child(dim)
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overlay.add_child(center)
+
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(520, 0)
+	_apply_flat_panel(panel, COLOR_KEEPS)
+	center.add_child(panel)
+
+	var pad := MarginContainer.new()
+	for s in ["left", "right", "top", "bottom"]:
+		pad.add_theme_constant_override("margin_" + s, 14)
+	panel.add_child(pad)
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 8)
+	pad.add_child(vb)
+
+	var title := Label.new()
+	title.text = tr("SALVAGE VAULT")
+	title.add_theme_font_size_override("font_size", 16)
+	title.add_theme_color_override("font_color", COLOR_KEEPS)
+	vb.add_child(title)
+
+	var cap: int = int(_wm.get_vault_capacity_next())
+	var blurb := Label.new()
+	blurb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	blurb.custom_minimum_size = Vector2(490, 0)
+	blurb.add_theme_font_size_override("font_size", 12)
+	blurb.add_theme_color_override("font_color", COLOR_DIM)
+	# The real decision, stated plainly: how far ahead do you bet? A deep-zone
+	# module is stronger but sits unusable until you re-research its tier.
+	blurb.text = tr("These survive the Warp. Everything else in the hangar is lost. Deeper-zone modules hit harder but cannot be equipped until you have re-researched their sector — carry high and the run starts slow, carry mid and it starts fast.")
+	vb.add_child(blurb)
+
+	var count_lbl := Label.new()
+	count_lbl.add_theme_font_size_override("font_size", 13)
+	vb.add_child(count_lbl)
+
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(490, 320)
+	vb.add_child(scroll)
+	var list := VBoxContainer.new()
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	list.add_theme_constant_override("separation", 3)
+	scroll.add_child(list)
+
+	var sm = GameState.shipyard_manager
+	var picked: Dictionary = {}
+	for mid in _wm.vault_selection:
+		picked[str(mid)] = true
+
+	# Every module the player holds — inventory plus what is currently equipped.
+	var owned: Array = []
+	var seen: Dictionary = {}
+	for inv_mid in sm.module_inventory:
+		if int(sm.module_inventory[inv_mid]) > 0 and not seen.has(str(inv_mid)):
+			seen[str(inv_mid)] = true
+			owned.append(str(inv_mid))
+	for i in sm.loadout:
+		var eq = sm.loadout[i]
+		if eq and not seen.has(str(eq)):
+			seen[str(eq)] = true
+			owned.append(str(eq))
+	# Strongest first, so the interesting picks are at the top of the list.
+	owned.sort_custom(func(a, b):
+		var da: Dictionary = sm.modules.get(str(a), {})
+		var db: Dictionary = sm.modules.get(str(b), {})
+		var za: int = int(da.get("zone", da.get("power_tier", 0))) * 10 + int(sm.get_module_rarity(str(a)))
+		var zb: int = int(db.get("zone", db.get("power_tier", 0))) * 10 + int(sm.get_module_rarity(str(b)))
+		return za > zb)
+
+	var rows: Array = []
+	var refresh_count := func():
+		count_lbl.text = tr("%d / %d selected") % [picked.size(), cap]
+		count_lbl.add_theme_color_override("font_color",
+			COLOR_KEEPS if picked.size() > 0 else COLOR_DIM)
+		for r in rows:
+			var rd: Dictionary = r
+			var on: bool = picked.has(str(rd["id"]))
+			var full: bool = picked.size() >= cap and not on
+			var b: Button = rd["btn"]
+			b.text = tr("CARRY") if not on else tr("✕")
+			b.disabled = full
+			var nm_col: Color = COLOR_KEEPS if on else (COLOR_LOCKED if full else Color.WHITE)
+			(rd["name"] as Label).add_theme_color_override("font_color", nm_col)
+
+	for mid2 in owned:
+		var d: Dictionary = sm.modules.get(mid2, {})
+		if str(d.get("slot_type", "")) == "battery":
+			continue    # re-granted free every warp; carrying one is a wasted slot
+		var r := HBoxContainer.new()
+		r.add_theme_constant_override("separation", 8)
+		list.add_child(r)
+		var nm := Label.new()
+		nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		nm.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		nm.add_theme_font_size_override("font_size", 12)
+		var zn: int = int(d.get("zone", d.get("power_tier", 0)))
+		nm.text = "%s   [Z%d %s]" % [str(d.get("name", mid2)), zn,
+			str(sm.RARITY_LABELS.get(int(sm.get_module_rarity(mid2)), "Common"))]
+		r.add_child(nm)
+		var btn := Button.new()
+		btn.focus_mode = Control.FOCUS_NONE
+		btn.custom_minimum_size = Vector2(64, 0)
+		btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		btn.add_theme_font_size_override("font_size", 11)
+		_style_pill_button(btn, COLOR_KEEPS)
+		r.add_child(btn)
+		var this_id := str(mid2)
+		btn.pressed.connect(func():
+			if picked.has(this_id):
+				picked.erase(this_id)
+			elif picked.size() < cap:
+				picked[this_id] = true
+			refresh_count.call())
+		rows.append({"id": this_id, "btn": btn, "name": nm})
+
+	if rows.is_empty():
+		var empty := Label.new()
+		empty.text = tr("No modules in the hangar yet.")
+		empty.add_theme_color_override("font_color", COLOR_DIM)
+		list.add_child(empty)
+
+	var actions := HBoxContainer.new()
+	actions.alignment = BoxContainer.ALIGNMENT_END
+	actions.add_theme_constant_override("separation", 8)
+	vb.add_child(actions)
+	var auto_btn := Button.new()
+	auto_btn.text = tr("BEST EQUIPPED")
+	auto_btn.focus_mode = Control.FOCUS_NONE
+	auto_btn.add_theme_font_size_override("font_size", 11)
+	_style_pill_button(auto_btn, COLOR_DIM)
+	actions.add_child(auto_btn)
+	var done_btn := Button.new()
+	done_btn.text = tr("DONE")
+	done_btn.focus_mode = Control.FOCUS_NONE
+	done_btn.add_theme_font_size_override("font_size", 12)
+	_style_pill_button(done_btn, COLOR_KEEPS)
+	actions.add_child(done_btn)
+
+	auto_btn.pressed.connect(func():
+		_wm.vault_selection = []
+		_wm.autofill_vault_selection()
+		picked.clear()
+		for m in _wm.vault_selection:
+			picked[str(m)] = true
+		refresh_count.call())
+	done_btn.pressed.connect(func():
+		_wm.set_vault_selection(picked.keys())
+		_refresh_vault()
+		overlay.queue_free())
+
+	refresh_count.call()
+	parent.add_child(overlay)
 
 
 func _refresh_header():

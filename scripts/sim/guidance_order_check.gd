@@ -111,7 +111,8 @@ func _ready() -> void:
 	# routes by mission TYPE. A type it cannot route AND no branch = a dark arrow.
 	var routable := ["gather", "gather_multi", "research", "craft", "construct",
 		"defeat", "defeat_retreat", "sell", "visit_page", "loadout_check",
-		"loadout_rare_weapon", "drop_rarity", "build", "atlas_lookup", "hack_apply"]
+		"loadout_rare_weapon", "drop_rarity", "drop_rarity_weapon", "build", "atlas_lookup",
+		"hack_apply"]
 	var dark: Array = []
 	var cur := "m001"
 	var steps := 0

@@ -9,8 +9,8 @@ const DEBUG_LOG := false
 # rendered as [TUTORIAL], which read as the game mislabeling its own acts.
 const CHAPTER_2_IDS = ["m027", "m027b", "m028", "m029",
 	"m029a1", "m029a2", "m029a3", "m029a4", "m029a5", "m029a6", "m029a6t", "m029a7", "m029a8", "m029a9", "m029b", "m030", "m030c",
-	"m030c2", "m030c3", "m030d", "m030e", "m030f", "m030fa", "m030fb", "m030f1", "m030f2", "m030g", "m030h", "m030i",
-	"m031", "m032", "m032a", "m032b", "m032d", "m032c", "m033"]
+	"m030c2", "m030c3", "m030d", "m030e", "m030f", "m030fa", "m030fb", "m030f1", "m030f2", "m030g", "m030h", "m030h1", "m030h2", "m030i",
+	"m031", "m032", "m032a", "m032b", "m032d", "m032c", "m032c2", "m033", "m033a1", "m033a2"]
 # v134g: the reordered tail runs m034 → m033b → m033c, so the [ENDGAME] tag must
 # cover all three — otherwise the badge reads [ENDGAME] then two [CHAPTER 2] after it.
 const ENDGAME_IDS = ["m034", "m033b", "m033c"]
@@ -276,7 +276,19 @@ func init_missions():
 		# trimmed 4 -> 3 and never updated the mission). Same stale-number class as F/G.
 		# The 50 Steel of the hull frame itself was never named either — it is now.
 		["m026b", "Hull Modernization I", "Construct an 'Industrial Frigate' in the Shipyard. Its frame needs 50 Steel and 3 Reinforced Plating — craft the plating in Engineering from Salvaged Alloy + Damaged Circuitry (Lunar Orbit drops, or the Steel/Circuit reclaim recipes).", "construct", "frigate_hull", 1, 10000, 1000, "m027"],
-		["m026c", "Elite Salvage", "Defeated enemies drop gear of varying rarity. Farm Lunar Orbit until you get a RARE (blue) module drop.", "drop_rarity", "2", 1, 5000, 500, "m026d"],
+		# v175: was type "drop_rarity" (ANY Rare module) with text promising only "a RARE
+		# module drop". Its successor m026d demands a RARE WEAPON, so a Rare armour, shield,
+		# engine or sensor completed this beat, told the player "Elite Salvage — complete!",
+		# and then silently sent them back to the same trash with no text explaining why.
+		#
+		# player_bot, seeds 4/11/27 at --days=2, m026c -> m026d dwell (active + offline):
+		#   before   m026c 0.08 / 0.04 / 0.04 h   then m026d 7.89 / 7.94 / 0.25 h
+		#   after    m026c 7.98 / 7.98 / 0.08 h   then m026d 0.00 / 0.00 / 0.00 h
+		# Total arc time is unchanged on the slow seeds and shorter on the fast one — this
+		# is not a grind cut, it is the grind moving onto the beat that honestly describes
+		# it. The hunt costs 4.5-17 min ACTIVE; the ~7.9h is one offline block the player
+		# sleeps through mid-hunt (offline combat is off by default, so it yields nothing).
+		["m026c", "Elite Salvage", "Defeated enemies drop gear of varying rarity. Farm Lunar Orbit until a RARE (blue) WEAPON drops — armor and shields will drop too, but the next refit needs a gun.", "drop_rarity_weapon", "2", 1, 5000, 500, "m026d"],
 		# v131: Architect resists zeroed — chain goes straight to the boss fight; any
 		# RARE+ weapon type works. m026d2/d3 (the old explosive-forcing pair) stay
 		# DEFINED below for saves mid-arc, but no fresh game routes into them.
@@ -433,7 +445,42 @@ func init_missions():
 		# boss-farm beat before the research (m030f only killed regular Scavenger Mechs).
 		["m030f2", "Warmaster's Core", "Defeat the Martian Warmaster (Mars Debris boss) — its core decrypts the Glacier Belt charter.", "defeat", "z3_boss_warmaster", 1, 90000, 12000, "m030g"],
 		["m030g", "Glacier Belt Survey", "Research 'Glacier Belt Expedition' (spends the Warmaster core) to unlock the Glacier Belt zone.", "research", "zone_4_access", 1, 80000, 10000, "m030h"],
-		["m030h", "Frozen Frontier", "Defeat 3 Ice Wraiths in the Glacier Belt.", "defeat", "z4_ice_wraith", 3, 100000, 12000, "m030i"],
+		["m030h", "Frozen Frontier", "Defeat 3 Ice Wraiths in the Glacier Belt.", "defeat", "z4_ice_wraith", 3, 100000, 12000, "m030h1"],
+		# v175: THE MISSING TIER-4 RUNG. The hull ladder the chain actually builds was
+		#   m026b Frigate(2) -> m030c Destroyer(3) -> m032c Battlecruiser(5)
+		# so cruiser_hull (tier 4) had NO construct mission and the Battlecruiser landed
+		# at m032c — AFTER the Z4 boss farm (m030i) AND after the Z5 boss farm (m032a).
+		# The player fought two bosses two hull tiers under-shipped.
+		#
+		# boss_gearcheck never caught it because it fights every boss from _set_hull(n)
+		# — hull tier == zone — so it certifies a ship the chain has not handed over.
+		# hull_gate_diag holds the kit fixed (full Rare Zone-N weak-type + Zone-N
+		# armor/shield, power over-provisioned) and varies ONLY the hull, 21 trials:
+		#     z4_boss_overseer  destroyer 2/21   cruiser 17/21   battlecruiser 21/21
+		#     z5_boss_harbinger destroyer 4/21   cruiser 17/21   battlecruiser 21/21
+		# In a Destroyer a full RARE Zone-N set wins 10-19%: the hull is the ceiling and
+		# no amount of extra Rares lifts it. That is why player_bot livelocked here —
+		# it lost, concluded "gear not ready", farmed, and farmed, and farmed (seed 11,
+		# m032a active 48h+ without completing).
+		#
+		# One beat fixes both bosses. Placed after the Glacier Belt trash beat so the
+		# player has seen the zone before being asked for a 270k-Lira hull.
+		["m030h1", "Hull Modernization III", "Construct a 'Heavy Cruiser' in the Shipyard. A Destroyer frame cannot carry you through the Glacial Overseer no matter how good its modules are — the tier-4 hull more than doubles your integrity and power capacity, and adds a weapon and an armor slot. Its frame needs 15 Wreckforged Alloy: refine it in Engineering from Chondrite Alloy, Steel and Martian Relics.", "construct", "cruiser_hull", 1, 110000, 13000, "m030h2"],
+		# v175: THE MISSING POWER RUNG. The chain's battery ladder was
+		#   m005b z1 x2 -> m022 z1 x1 -> m030c2 z2 x3 -> (nothing, ever again)
+		# so the player flew Zone-2 cells through Zones 3, 4, 5 and beyond. That is
+		# why player_bot reports "power_wall: cannot fit <weak-type> counter" — it
+		# owns the right weapon and physically cannot mount it. Pre-existing: seed 4
+		# hit it on a DESTROYER at m031 before the cruiser beat above existed.
+		#
+		# energy_margin_check passes every tier (Z4 cruiser 360 draw / 600 cap, 1.67x)
+		# because it equips TIER-MATCHED batteries — the same blind spot boss_gearcheck
+		# has with hulls. The guard measures the ship the player should have; the chain
+		# decides the ship they do have, and nothing was checking the two agree.
+		#
+		# Placed straight after the hull so the refit reads as one move: bigger frame,
+		# power to run it. Mirrors m030c -> m030c2 exactly one tier up.
+		["m030h2", "Power Refit II", "A Heavy Cruiser carries five weapon mounts and two armor plates, and your Zone-2 cells cannot feed them — you have been running Belt-era power since the Destroyer refit. Fabricate 3 'Mg-Ion Cell' (Z4) and equip one per battery slot.", "craft", "z4_battery", 3, 115000, 14000, "m030i"],
 
 		# v132 funnel repair (m030i..m034): the tail directed the WRONG techs.
 		# The real sector doors are zone_5/6/7_access and each costs BOSS CORES
@@ -445,14 +492,43 @@ func init_missions():
 		# reordered m033 → m034 (Beta boss farm) → m033b (Gamma door) → m033c.
 		["m030i", "Overseer's Core", "Decrypting the Sector Alpha charter takes two Glacial Overseer cores — defeat the Glacier Belt boss twice.", "defeat", "z4_boss_overseer", 2, 120000, 15000, "m031"],
 		["m031", "Alpha Decryption", "Research 'Sector Alpha Decryption' (consumes the Overseer cores + a stock of Superalloy — craft it in Engineering) to breach Sector Alpha.", "research", "zone_5_access", 1, 50000, 10000, "m032"],
-		["m032", "Alpha Sector Dominance", "Defeat 3 Alien Frigates in Sector Alpha.", "defeat", "z5_alien_frigate", 3, 75000, 15000, "m032a"],
+		["m032", "Alpha Sector Dominance", "Defeat 3 Alien Frigates in Sector Alpha.", "defeat", "z5_alien_frigate", 3, 75000, 15000, "m032c"],
+		# v175 REORDER: m032c (Battlecruiser) used to sit AFTER m032a/m032b/m032d, so the
+		# chain sent the player at the Zone-5 boss in a tier-4 hull and only then handed
+		# them the tier-5 ship that fight is certified against. chain_readiness_check
+		# reports the old order as "m032a ... chain has only built cruiser_hull (tier 4)"
+		# plus a power miss (Z4 cells fill 10 of 11 consumer slots with Z5 gear).
+		# Order is now hull -> power -> fight, matching m030c/c2 and m030h1/h2.
+		# Rewired: m032 -> m032c -> m032c2 -> m032a -> m032b -> m032d -> m033.
+		["m032c", "Capital Doctrine", "Construct a 'Battlecruiser' in the Shipyard. The Xenon Harbinger is a tier-5 fight and a Heavy Cruiser cannot carry it — the capital frame adds a sixth weapon mount, a second armor plate and a fourth battery bay.", "construct", "battlecruiser_hull", 1, 250000, 25000, "m032c2"],
+		["m032c2", "Power Refit III", "A Battlecruiser's fourth battery bay is empty and your Glacier-era cells cannot feed six weapon mounts. Fabricate 4 'Mg-Ion Cell' (Z4) and equip one per battery slot.", "craft", "z4_battery", 4, 200000, 20000, "m032a"],
 		["m032a", "Harbinger Hunt", "The Beta Colony Charter demands three XENON HARBINGER cores. Defeat the Sector Alpha boss three times.", "defeat", "z5_boss_harbinger", 3, 150000, 20000, "m032b"],
 		["m032b", "Beta Colony Charter", "Research 'Beta Colony Charter' (consumes the Harbinger cores + a large Superalloy + Titanium stock) to unlock Sector Beta.", "research", "zone_6_access", 1, 50000, 5000, "m032d"],
-		["m032d", "Void Research", "Void Artifacts drop from Sector Alpha ships — defeat them in Combat until you collect 5.", "gather", "VoidArtifact", 5, 100000, 10000, "m032c"],
-		# P0-28: Construct Battlecruiser
-		["m032c", "Capital Doctrine", "Construct a 'Battlecruiser' in the Shipyard.", "construct", "battlecruiser_hull", 1, 250000, 25000, "m033"],
+		# v175: was the tail's last beat before m033; m032c moved UP to before m032a
+		# (see the reorder note above), so this now links straight to m033.
+		["m032d", "Void Research", "Void Artifacts drop from Sector Alpha ships — defeat them in Combat until you collect 5.", "gather", "VoidArtifact", 5, 100000, 10000, "m033"],
 
-		["m033", "Beta Sector Expansion", "Defeat 5 Ore Guardians in Sector Beta.", "defeat", "z6_ore_guardian", 5, 150000, 25000, "m034"],
+		["m033", "Beta Sector Expansion", "Defeat 5 Ore Guardians in Sector Beta.", "defeat", "z6_ore_guardian", 5, 150000, 25000, "m033a1"],
+		# v175: the tier-6 rung. capital_hull had no construct beat either, so m034 sent
+		# the player at the Zone-6 Colossus in the tier-5 Battlecruiser on Zone-4 cells —
+		# chain_readiness_check measured 8 of 12 consumer slots mountable. Same hull ->
+		# power -> fight shape as m030h1/h2 and m032c/c2. capital_hull and z6_battery
+		# both key on zone_6_access, which m032b researches two beats earlier.
+		["m033a1", "Hull Modernization IV", "Construct a 'Capital Ship' in the Shipyard. The Beta Colossus is a tier-6 fight — the capital frame carries a seventh weapon mount and a third deflector. Its keel needs 12 Xenoforged Alloy, refined in Engineering.", "construct", "capital_hull", 1, 300000, 30000, "m033a2"],
+		# Must be z6, not z5: chain_readiness_check measures a capital_hull on Z5 cells at
+		# 9 of 14 consumer slots. The Z6 cell is the only thing that fills the frame.
+		#
+		# chain_supply_check FAILS this beat ("8 ReactiveCore = ~100 kills of
+		# z6_defense_turret, norm <= 20") and that verdict is a MIS-PRICING, not a content
+		# problem. It prices the direct 0.08 rare_loot drop because its `craftable` set
+		# means "reachable with NO fighting at all" (line 173), and craft_reactive_core
+		# takes ColonySalvage — a Z6 drop — so ReactiveCore never enters that set. The
+		# recipe path it cannot see: 8 cores = 4 crafts = 24 ColonySalvage, and the same
+		# turret drops 5-12 ColonySalvage a kill, i.e. ~3 kills, plus Superalloy/AdvCircuit
+		# the player already stocks. Left as-is deliberately; the guard wants a recipe-path
+		# pricing pass for combat-fed craftables, and degrading this beat to satisfy a bad
+		# number would be tuning to the instrument.
+		["m033a2", "Power Refit IV", "Four empty bays and seven weapon mounts to feed. Fabricate 4 'Reactive Core' (Z6) and equip one per battery slot — assemble them in Engineering from Sector Beta colony salvage.", "craft", "z6_battery", 4, 300000, 30000, "m034"],
 		["m034", "Break the Blockade", "Defeat the BETA COLOSSUS 3 times — its cores are the key to Gamma Sector Clearance.", "defeat", "z6_boss_colossus", 3, 300000, 50000, "m033b"],
 		["m033b", "Gamma Clearance", "Research 'Gamma Sector Clearance' (consumes the Colossus cores + a heavy Superalloy + Tungsten stock) to unlock Sector Gamma.", "research", "zone_7_access", 1, 100000, 10000, "m033c"],
 		["m033c", "Titan Construction", "Construct a 'Dreadnought' in the Shipyard. Its blueprints sit behind 'Delta Sector Survey' research — four Sector Gamma boss cores.", "construct", "dreadnought_hull", 1, 1000000, 50000, ""],
@@ -742,9 +818,9 @@ func _grant_reward_xp(m: Dictionary) -> void:
 		return
 	var skill = null
 	match str(m["type"]):
-		"defeat", "discover", "drop_rarity", "loadout_check", "loadout_rare_weapon", \
-		"loadout_rare_weapon_type", "equip_consumables", "warp_perform", "hack_apply", \
-		"defeat_retreat":
+		"defeat", "discover", "drop_rarity", "drop_rarity_weapon", "loadout_check", \
+		"loadout_rare_weapon", "loadout_rare_weapon_type", "equip_consumables", \
+		"warp_perform", "hack_apply", "defeat_retreat":
 			skill = GameState.combat_manager
 		"gather", "gather_multi":
 			# crafted → Engineering; minable → Mining; neither (combat loot
@@ -1063,19 +1139,32 @@ func sync_progress():
 			var socketed := _count_socketed_matrix_cores()
 			m["current_qty"] = max(m["current_qty"], min(socketed, m["target_qty"]))
 
-		elif m["type"] == "drop_rarity":
+		elif m["type"] == "drop_rarity" or m["type"] == "drop_rarity_weapon":
+			# v175: drop_rarity_weapon is drop_rarity narrowed to the WEAPON slot.
+			# m026c ("farm until a RARE drops") accepted ANY module and its successor
+			# m026d demands a RARE WEAPON, so a player whose Rare was armour, a shield, an
+			# engine or a sensor got told "Elite Salvage — complete!" and was then sent
+			# silently back to farm. Playtested: the same chain took 15 minutes on one seed
+			# and 7.9 HOURS on another, purely on which slot the drop rolled.
 			var target_rarity = int(m["target"])
+			var weapon_only: bool = (str(m["type"]) == "drop_rarity_weapon")
 			var has_rarity = false
 			var sm = GameState.shipyard_manager
 			for inv_mid in sm.module_inventory:
-				if sm.get_module_rarity(inv_mid) >= target_rarity:
-					has_rarity = true
-					break
+				if sm.get_module_rarity(inv_mid) < target_rarity:
+					continue
+				if weapon_only and str((sm.modules.get(inv_mid, {}) as Dictionary).get("slot_type", "")) != "weapon":
+					continue
+				has_rarity = true
+				break
 			if not has_rarity:
 				for equipped_mid in sm.loadout.values():
-					if equipped_mid and sm.get_module_rarity(equipped_mid) >= target_rarity:
-						has_rarity = true
-						break
+					if not equipped_mid or sm.get_module_rarity(equipped_mid) < target_rarity:
+						continue
+					if weapon_only and str((sm.modules.get(equipped_mid, {}) as Dictionary).get("slot_type", "")) != "weapon":
+						continue
+					has_rarity = true
+					break
 			if has_rarity:
 				m["current_qty"] = 1
 

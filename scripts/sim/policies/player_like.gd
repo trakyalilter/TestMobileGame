@@ -756,7 +756,24 @@ func _boss_gear_ready(eid: String, min_rarity: int = 1) -> bool:
 	# slots a tier behind still work if the weapon out-damages fast enough, so zone-
 	# gating them too was over-strict (it demanded a full boss-zone set no follower
 	# farms in 14 days, when 2/3 beat the Monolith with a mixed loadout).
-	if _count_owned("weapon", weak, min_rarity, bz) < _slot_indices("weapon").size():
+	# v175: the requirement is CAPPED, and the cap is the whole point. This used to read
+	# `< _slot_indices("weapon").size()` — every mount had to hold a Rare weak-type
+	# Zone-N gun — so the bar scaled with the HULL and a BIGGER SHIP DEMANDED MORE
+	# FARMING. Giving the bot the tier-4 cruiser (5 mounts vs the destroyer's 4) raised
+	# the bar 25% and made m030i dwell go 39.8h -> 71.8h on seed 11, with every wall
+	# reading "farming rare+ explosive gear" while chain_readiness_check showed power
+	# fine at 11/11. A rule that punishes an upgrade cannot measure hull changes, and
+	# this file is the instrument behind every balance claim in the repo.
+	#
+	# WEAPON_BAR is the destroyer-era requirement, frozen. Hull upgrades now only ever
+	# add capacity the bot can fill opportunistically; they never move the gate.
+	# (An earlier attempt used a MAJORITY of slots instead. Rejected: seed 4 went #74 ->
+	# #84 but seed 11 threw 24 walls, losing to Zone-5 TRASH because the earlier boss
+	# retry pushed it into content it could not sustain. A cap keeps the absolute bar
+	# the chain was tuned against instead of scaling it down as ships grow.)
+	const WEAPON_BAR := 4
+	var need_w: int = mini(_slot_indices("weapon").size(), WEAPON_BAR)
+	if _count_owned("weapon", weak, min_rarity, bz) < need_w:
 		return false
 	if _slot_indices("armor").size() > 0 and _count_owned("armor", "", min_rarity) < 1:
 		return false

@@ -99,6 +99,134 @@ var warp_charge: float = 0.0
 var rift_open: bool = false
 var _rift_key_missing: bool = false   # save predates v138 → game_state derives once
 
+# v176 SALVAGE VAULT (docs/design/SALVAGE_VAULT.md) — the fleet's REC_1.
+# shipyard_manager.reset() wipes module_inventory + loadout + custom_modules on
+# every warp, and re-acquiring a weak-type Rare set is the single most expensive
+# activity in the mid-game (measured v175: ~0.2%/kill => ~470 kills per weapon;
+# 1.3-4.6h of gear detour on a single boss beat). With the intended cadence being
+# several warps before mid/endgame, that grind was being multiplied by the number
+# of warps — the opposite of "each run is faster".
+#
+# The player nominates up to get_vault_capacity() modules at the warp confirm;
+# they survive the wipe and land UNEQUIPPED in the hangar. Progression is not
+# skipped: can_equip_module() enforces research_req (and for custom drops, the
+# BASE module's research_req too), and warp resets research — so a vaulted Z6 gun
+# waits until Z6 is re-researched. That gate already existed; do not add another.
+#
+# `vault_selection` is the player's pick, set from the warp page before
+# execute_warp and consumed by it. `vault` is what actually survived, restored
+# into the shipyard after the reset.
+const VAULT_CAP_MAX := 8      # < the Battlecruiser's 6 weapon slots + defence — a maxed
+                              # vault still cannot field a complete end-tier ship on run 2
+const VAULT_CAP_BASE := 2     # +1 per warp: first warp yields 3
+var vault_selection: Array = []   # [module_id] chosen for the NEXT warp
+var vault: Array = []             # [module_id] currently held (post-warp, pre-claim)
+var vault_defs: Dictionary = {}   # {module_id: custom_modules entry} — a rolled drop is
+                                  # meaningless without its stats/affixes
+
+# Capacity is AUTOMATIC and permanent — not a tree purchase. The angel-reset feel
+# is that every reset makes you stronger for existing, not for shopping. Called
+# AFTER total_warps is incremented, so the first warp reads 3.
+func get_vault_capacity() -> int:
+	return clampi(VAULT_CAP_BASE + total_warps, 3, VAULT_CAP_MAX)
+
+# What the player may pick RIGHT NOW (before the warp increments total_warps).
+func get_vault_capacity_next() -> int:
+	return clampi(VAULT_CAP_BASE + total_warps + 1, 3, VAULT_CAP_MAX)
+
+func set_vault_selection(ids: Array) -> void:
+	var cap := get_vault_capacity_next()
+	var out: Array = []
+	var sm = GameState.shipyard_manager
+	for mid in ids:
+		var s := str(mid)
+		if out.size() >= cap or s in out:
+			continue
+		# Must be a module the player actually holds — inventory or equipped.
+		if int(sm.module_inventory.get(s, 0)) > 0 or s in sm.loadout.values():
+			out.append(s)
+	vault_selection = out
+
+# Default pick, so confirming the warp without ever opening the picker is a
+# reasonable outcome rather than a silent loss of everything. Highest-value
+# EQUIPPED module per slot type, weapons first — weapons are the DPS driver and
+# by far the most expensive thing to re-farm (~470 kills for a weak-type Rare).
+# Only fills empty space; an explicit player choice is never overwritten.
+func autofill_vault_selection() -> void:
+	var cap := get_vault_capacity_next()
+	if vault_selection.size() >= cap:
+		return
+	var sm = GameState.shipyard_manager
+	var by_slot: Dictionary = {}
+	for i in sm.loadout:
+		var mid = sm.loadout[i]
+		if not mid:
+			continue
+		var s := str(mid)
+		var d: Dictionary = sm.modules.get(s, {})
+		var st := str(d.get("slot_type", ""))
+		if st == "" or st == "battery":
+			continue    # batteries are re-granted free on every warp
+		var score := float(int(d.get("zone", d.get("power_tier", 0))) * 10 + int(sm.get_module_rarity(s)))
+		if not by_slot.has(st) or float((by_slot[st] as Dictionary)["score"]) < score:
+			by_slot[st] = {"id": s, "score": score}
+	var order := ["weapon", "armor", "shield", "sensor", "engine"]
+	var picks: Array = vault_selection.duplicate()
+	for st2 in order:
+		if picks.size() >= cap:
+			break
+		if by_slot.has(st2):
+			var pid := str((by_slot[st2] as Dictionary)["id"])
+			if not pid in picks:
+				picks.append(pid)
+	set_vault_selection(picks)
+
+# One line for the point-of-no-return modal: what is actually leaving with you.
+func get_vault_summary() -> String:
+	var sm = GameState.shipyard_manager
+	if vault_selection.is_empty():
+		return ""
+	var names: Array = []
+	for mid in vault_selection:
+		names.append(str((sm.modules.get(str(mid), {}) as Dictionary).get("name", str(mid))))
+	return ", ".join(names)
+
+# Snapshot BEFORE shipyard_manager.reset(). Mirrors REC_1's blueprint snapshot:
+# read it while it still exists, restore it after the wipe.
+func _vault_snapshot() -> void:
+	var sm = GameState.shipyard_manager
+	vault = []
+	vault_defs = {}
+	for mid in vault_selection:
+		var s := str(mid)
+		if not s in sm.modules:
+			continue
+		vault.append(s)
+		# Only custom_* instances carry rolled stats; base ids re-resolve from the
+		# static module table and need no snapshot.
+		if sm.custom_modules.has(s):
+			vault_defs[s] = (sm.custom_modules[s] as Dictionary).duplicate(true)
+	vault_selection = []
+
+# Restore AFTER the reset. Inventory only — never the loadout. Equipping is what
+# surfaces the research gate, and re-equipping by hand is what makes the "how far
+# ahead do I bet" decision legible.
+func _vault_restore() -> void:
+	if vault.is_empty():
+		return
+	var sm = GameState.shipyard_manager
+	for mid in vault:
+		var s := str(mid)
+		if vault_defs.has(s):
+			sm.modules[s] = (vault_defs[s] as Dictionary).duplicate(true)
+			sm.custom_modules[s] = sm.modules[s]
+		elif not s in sm.modules:
+			continue    # base module that no longer exists (renamed/removed) — drop it
+		sm.module_inventory[s] = int(sm.module_inventory.get(s, 0)) + 1
+		sm.unseen_modules[s] = true
+	sm.new_drops_alert = true
+	sm.inventory_updated.emit()
+
 # Open the rift (idempotent). Also flips warp_first_revealed — the prestige system
 # reveals WITH the first singularity, not at a research milestone (was zone_6).
 func open_rift() -> void:
@@ -199,7 +327,13 @@ func execute_warp():
 	#     deadlock behind the very prestige that opens it.
 	GameState.research_manager.reset(decay)
 	GameState.combat_manager.reset(decay)
+	# v176 Salvage Vault: read the nominated modules while they still exist, let the
+	# wipe happen untouched, then put them back. shipyard_manager.reset() is NOT
+	# special-cased on purpose — it is also the NEW GAME path, and a new game must
+	# still start with nothing.
+	_vault_snapshot()
 	GameState.shipyard_manager.reset(decay)
+	_vault_restore()
 
 	# v175: SETTLE AND CLEAR THE BOUNTY BOARD. Until now execute_warp reset seven
 	# managers and never bounty_manager -- reset() had exactly one caller, hard_reset.
@@ -570,6 +704,12 @@ func get_save_data_manager() -> Dictionary:
 	data["warp_shards_spent"] = warp_shards_spent
 	data["warp_charge"] = warp_charge          # v121: Warp-Core Charge
 	data["rift_open"] = rift_open              # v138: per-run Singularity state
+	# v176 Salvage Vault. vault_defs carries the ROLLED stats/affixes of custom
+	# instances — persisting the ids alone would silently downgrade a god-rolled
+	# drop to base stats on the next load.
+	data["vault"] = vault
+	data["vault_defs"] = vault_defs
+	data["vault_selection"] = vault_selection
 	return data
 
 func load_save_data_manager(data: Dictionary):
@@ -583,6 +723,12 @@ func load_save_data_manager(data: Dictionary):
 	warp_shards_spent = float(data.get("warp_shards_spent", 0.0))
 	warp_charge = float(data.get("warp_charge", 0.0))   # v121: defaults 0 on old saves
 	rift_open = bool(data.get("rift_open", false))      # v138
+	# v176 migration: pre-vault saves lack these keys entirely. An empty vault plus
+	# the capacity their total_warps already earns is the correct load state —
+	# nothing to back-fill, because they never got to nominate anything.
+	vault = data.get("vault", [])
+	vault_defs = data.get("vault_defs", {})
+	vault_selection = data.get("vault_selection", [])
 	# v138 migration marker: pre-Singularity saves lack the key — game_state derives
 	# the rift once from boss_kills after ALL managers load (combat isn't loaded yet here).
 	_rift_key_missing = not data.has("rift_open")
@@ -603,3 +749,9 @@ func reset(decay_factor: float = 1.0) -> void:
 	credits_at_warp_start = 0.0
 	warp_charge = 0.0   # v121: Warp-Core Charge cleared on hard reset
 	rift_open = false   # v138: Singularity cleared on hard reset
+	# v176: MUST clear, or "New Game" starts holding an endgame rifle. Hard reset and
+	# warp reset are different paths and the matrix already logs hard reset missing
+	# prestige state — this is exactly that class of bug.
+	vault = []
+	vault_defs = {}
+	vault_selection = []

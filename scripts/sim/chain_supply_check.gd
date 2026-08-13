@@ -94,6 +94,20 @@ func _ready() -> void:
 		for row4 in gm.actions[aid2].get("loot_table", []):
 			_note(gathered, str((row4 as Array)[0]), 0)
 
+	# QUANTIFIED producers, for the effort maths below. `producers` above keeps only
+	# KEYS because reachability does not care how many; effort does. Buildings
+	# contribute their ongoing input -> output conversion only: the one-off
+	# construction cost is not a per-unit price, and reachability already accounts
+	# for it via `producers`.
+	var qprod: Array = []
+	for rid2 in pm.recipes:
+		var rc2: Dictionary = pm.recipes[rid2]
+		qprod.append({"inp": rc2.get("input", {}), "out": rc2.get("output", {})})
+	for bid2 in im.building_db:
+		var bd2: Dictionary = im.building_db[bid2]
+		if not (bd2.get("output", {}) as Dictionary).is_empty():
+			qprod.append({"inp": bd2.get("input", {}), "out": bd2.get("output", {})})
+
 	# CRAFTABLE = reachable with no fighting at all, inputs verified transitively. This is
 	# what the original naive `non_combat` claimed to be and was not.
 	var craftable: Dictionary = _relax(gathered.duplicate(), producers)
@@ -182,26 +196,54 @@ func _ready() -> void:
 			var src: Dictionary = _cheapest_source(cm, sym, zone_now, first_fight)
 			var best: float = float(src.get("rate", 0.0))
 			if best > 0.0:
-				var kills: int = int(ceil(float(cost[item]) / best))
+				var qty: float = float(cost[item])
+				var ehp_ref: float = maxf(1.0, float(src.get("ehp", 0.0)))
+				var direct_unit: float = ehp_ref / best
+				# v175: price the cheapest PATH, not just the cheapest direct drop. The
+				# guard used to read only the loot tables, so an item with a cheap RECIPE
+				# whose inputs happen to be combat-fed was billed at its rare_loot rate.
+				# Live case: m033a2 needs 8 ReactiveCore. Direct drop is 0.08/kill off
+				# z6_defense_turret = ~100 kills, and the guard failed the beat. But
+				# craft_reactive_core turns 6 ColonySalvage into 2 cores, and the SAME
+				# turret drops 5-12 ColonySalvage a kill — the real bill is ~3 kills.
+				# It could not see that because `craftable` (line ~173) means "reachable
+				# with NO fighting at all", which a combat-fed recipe never satisfies.
+				var unit: float = float(_effort_at(cm, gm, qprod, zone_now).get(sym, direct_unit))
+				var via_recipe: bool = unit < direct_unit * 0.999
+				# Budget stated in EHP so both paths are judged on one scale. When the
+				# direct drop IS the cheapest path this is algebraically the old test:
+				# effort = qty*ehp/rate = kills*ehp, budget = MAX_KILLS*ehp, so
+				# effort > budget <=> kills > MAX_KILLS — verdict and printed kill count
+				# both unchanged (verified: every row of this chain except ReactiveCore
+				# still prints its old number). Where a recipe IS cheaper the guard gets
+				# strictly more permissive, never stricter, because `unit` is a minimum
+				# over paths. That is the intended direction: a path the player can
+				# actually take is not a wall just because the loot table is stingy.
+				var effort: float = qty * unit
+				var budget: float = float(MAX_KILLS) * ehp_ref
+				var kills: int = int(ceil(effort / ehp_ref))
 				var is_boss: bool = bool(src.get("boss", false))
-				print("[SUPPLY]   %-9s needs %3d %-16s %.2f/kill from %-22s ~%2d kill(s)  %d EHP%s" % [
-					cur, int(cost[item]), sym, best, str(src.get("eid", "?")), kills,
-					int(float(src.get("ehp", 0.0)) * float(kills)),
-					"  [BOSS]" if is_boss else ""])
+				print("[SUPPLY]   %-9s needs %3d %-16s %.2f/kill from %-22s ~%2d kill(s)  %d EHP%s%s" % [
+					cur, int(qty), sym, best, str(src.get("eid", "?")), kills,
+					int(effort), "  [BOSS]" if is_boss and not via_recipe else "",
+					"  [via recipe]" if via_recipe else ""])
 				# A boss the chain has not yet told the player to fight is not a faucet.
 				# The v175 SalvageData fix put a demand at step 56 behind a boss whose
 				# gear arrives at steps 60-62; every plausible step-56 loadout lost 0/21.
 				# The guard called it "~4 kills, matches the norm" because it priced a
 				# capstone identically to a trash mob.
-				if is_boss and int(src.get("first_fight_step", 9999)) > steps:
+				# Skipped when a recipe path is cheaper — then the boss is not the only
+				# source and "can only source from BOSS" would be a false statement.
+				if is_boss and not via_recipe and int(src.get("first_fight_step", 9999)) > steps:
 					_fail("%s (step %d) can only source %s from BOSS %s, which the chain does not send the player at until step %d" % [
 						cur, steps, sym, str(src.get("eid", "?")), int(src.get("first_fight_step", 9999))])
 				# The kill count was printed and never asserted, so any nonzero faucet
 				# produced the same green. The chain's own observed maximum is 4 kills;
 				# allow headroom, but not a grind wall wearing a faucet's clothes.
-				if kills > MAX_KILLS:
-					_fail("%s needs %d %s = ~%d kills of %s; the chain's norm is <= %d" % [
-						cur, int(cost[item]), sym, kills, str(src.get("eid", "?")), MAX_KILLS])
+				if effort > budget:
+					_fail("%s needs %d %s = ~%d kills of %s%s; the chain's norm is <= %d" % [
+						cur, int(qty), sym, kills, str(src.get("eid", "?")),
+						" even via its cheapest recipe path" if via_recipe else "", MAX_KILLS])
 		cur = str(m.get("next_mission", ""))
 
 	print("[SUPPLY] walked %d beats, checked %d combat-drop demand(s), player reaches Zone %d" % [
@@ -250,6 +292,91 @@ func _cheapest_source(cm, sym: String, max_zone: int, first_fight: Dictionary) -
 				"boss": bool(str(e.get("boss_core", "")) != "" or str(eid).find("_boss_") >= 0),
 				"first_fight_step": int(first_fight.get(str(eid), 9999))}
 	return best
+
+
+# EHP cost of ONE unit of each material, by the cheapest path available to a player
+# who can enter zones 1..max_zone. Free things (gathered, or refined from gathered)
+# cost 0. Everything else is priced in the only currency a combat demand really has:
+# enemy effective HP that must be chewed through.
+#
+# Cached per zone — the chain walk only ever sees ten distinct zone values, and
+# rebuilding this for all 85 beats would be pure waste.
+var _effort_cache: Dictionary = {}
+
+func _effort_at(cm, gm, qprod: Array, max_zone: int) -> Dictionary:
+	if _effort_cache.has(max_zone):
+		return _effort_cache[max_zone]
+
+	var eff: Dictionary = {}
+	# Gathered materials are free: a mining action costs time, not fights, and the
+	# guard's whole subject is combat demands.
+	for aid in gm.actions:
+		for row in gm.actions[aid].get("loot_table", []):
+			eff[str((row as Array)[0])] = 0.0
+	# Seed every combat drop reachable in these zones at its best EHP-per-unit.
+	for eid in cm.enemy_db:
+		var e: Dictionary = cm.enemy_db[eid]
+		var z: int = int(e.get("zone", 0))
+		if z <= 0 or z > max_zone:
+			continue
+		var st: Dictionary = e.get("stats", {})
+		var ehp: float = maxf(1.0, float(st.get("hp", 1)) + float(st.get("max_shield", 0)))
+		var rates: Dictionary = {}
+		for row2 in e.get("loot", []):
+			var r: Array = row2
+			rates[str(r[0])] = maxf(float(rates.get(str(r[0]), 0.0)), (float(r[1]) + float(r[2])) / 2.0)
+		for row3 in e.get("rare_loot", []):
+			var r3: Array = row3
+			rates[str(r3[0])] = maxf(float(rates.get(str(r3[0]), 0.0)),
+				float(r3[1]) * (float(r3[2]) + float(r3[3])) / 2.0)
+		var core := str(e.get("boss_core", ""))
+		if core != "":
+			rates[core] = maxf(float(rates.get(core, 0.0)), float(e.get("boss_core_qty", 1)))
+		for sym in rates:
+			var rate: float = float(rates[sym])
+			if rate <= 0.0:
+				continue
+			var per_unit: float = ehp / rate
+			if not eff.has(str(sym)) or float(eff[str(sym)]) > per_unit:
+				eff[str(sym)] = per_unit
+
+	# Relax through quantified recipes to a fixed point, exactly as _relax does for
+	# reachability: a candidate price only ever LOWERS an entry, so a production cycle
+	# can never talk itself cheaper and simply never converges downward.
+	var changed := true
+	var passes := 0
+	while changed and passes < 64:
+		changed = false
+		passes += 1
+		for prod in qprod:
+			var inp: Dictionary = prod["inp"]
+			var outp: Dictionary = prod["out"]
+			var total := 0.0
+			var ok := true
+			for i_sym in inp:
+				if str(i_sym) == "credits":
+					continue
+				if not eff.has(str(i_sym)):
+					ok = false
+					break
+				total += float(inp[i_sym]) * float(eff[str(i_sym)])
+			if not ok:
+				continue
+			var out_qty := 0.0
+			for o_sym in outp:
+				out_qty += float(outp[o_sym])
+			if out_qty <= 0.0:
+				continue
+			# Joint products share the bill by unit count. Crude, but it never prices a
+			# by-product ABOVE making it alone, which is the direction that matters.
+			var per: float = total / out_qty
+			for o_sym2 in outp:
+				if not eff.has(str(o_sym2)) or float(eff[str(o_sym2)]) > per:
+					eff[str(o_sym2)] = per
+					changed = true
+
+	_effort_cache[max_zone] = eff
+	return eff
 
 
 # Relax `seed` through every producer until nothing improves. Cycles never lower a value,
