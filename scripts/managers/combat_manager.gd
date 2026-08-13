@@ -1627,12 +1627,18 @@ var enemy_db = {
 		# was repaired). Measured with ng_hp_sweep at 9 trials:
 		#     x1.00  4 kills   x0.85  5 kills   x0.75  6 kills   x0.65  6 kills
 		# x0.85 makes the HP ladder marginally prettier (2.20/2.12 against 1.94/2.40) but
-		# lands EXACTLY on the bar, and zone_gate_check reads a 5-trial MEDIAN -- a cell
-		# that truly sits at 5 will print 4 about half the time and flap. x0.75 buys a
-		# whole kill of margin and still leaves every step in the loop near x2
-		# (Z12->Z13 1.94, Z13->Z14 2.40, Z14->Z15 2.00).
+		# lands EXACTLY on the bar.
+		#
+		# v175 THIRD PASS: 4500000 -> 3400000 (a further x0.75, x0.57 overall). Even after
+		# the statistic moved to a 9-sample MEAN, this cell measured 5.0-5.7 against a 5.0
+		# bar and failed 1 run in 5. The mean of 9 carries about +/-0.5 standard error, so
+		# anything sitting inside half a kill of the bar flaps no matter how the verdict is
+		# computed, and more trials cannot buy that back cheaply (halving the error needs
+		# 36 trials, quadrupling a check that already takes ten minutes). The fix is
+		# MARGIN, not resolution: this and z14_toxin_sentinel are moved clear of the line
+		# rather than balanced on it.
 		# Trash only; z13_boss_verdigris_warden is untouched and boss_gearcheck stays 15/15.
-		"stats": {"hp": 4500000, "atk": 80000, "def": 18000, "atk_interval": 2.0, "accuracy": 285},
+		"stats": {"hp": 3400000, "atk": 80000, "def": 18000, "atk_interval": 2.0, "accuracy": 285},
 		"loot": [["PrimordialShard", 5, 10], ["credits", 60000000, 120000000], ["OmegaPlating", 4, 8]],
 		"rare_loot": [["VoidEssence", 0.12, 2, 5]],
 		"module_drop_chance": 0.12, "module_drop_pool": ["corrosion_blaster"],
@@ -1692,7 +1698,11 @@ var enemy_db = {
 		# A 13% per-window death rate makes died_any over FIVE trials fail 51% of runs,
 		# which is precisely the flapping that was observed. Kills are identical at 0.85
 		# and 0.75, so the deeper cut costs nothing and buys distance from the edge.
-		"stats": {"hp": 8000000, "atk": 48560, "def": 40000, "atk_interval": 2.0, "accuracy": 300},
+		# v175 THIRD PASS: hp 8000000 -> 6000000 (a further x0.75, x0.60 overall). Same
+		# reason as z13_patina_phantom above — it measured 4.6-5.6 against a 5.0 bar and
+		# was the one cell still failing 1 run in 5. Moved clear of the line rather than
+		# balanced on it.
+		"stats": {"hp": 6000000, "atk": 48560, "def": 40000, "atk_interval": 2.0, "accuracy": 300},
 		"loot": [["PrimordialShard", 7, 14], ["credits", 100000000, 200000000], ["OmegaPlating", 6, 12], ["VoidEssence", 6, 12]],
 		"rare_loot": [["ChronoCore", 0.12, 3, 6]],
 		"module_drop_chance": 0.12, "module_drop_pool": ["corrosion_blaster"],
