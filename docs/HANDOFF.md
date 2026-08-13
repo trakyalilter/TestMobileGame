@@ -1,4 +1,102 @@
-# Session Handoff — 2026-08-08
+# Session Handoff — 2026-08-13
+
+---
+
+## LATEST BLOCK (2026-08-13) — v175: AUDIT CLOSE-OUT + NG+ FARMABILITY
+
+`e7bd4e5..b5cc8c1`. Started from a 12-agent measured audit of the mission chain and research
+tree, ended in the NG+ loop. **Every audit finding is closed and the guard suite is green.**
+
+### State right now
+
+| | |
+|---|---|
+| guards | **50 run, 50 pass** |
+| `boss_gearcheck` | **15/15 honour the rule** |
+| `zone_gate_check` | **ALL GATES HONOR THE RULE**, now covering **Z1→Z2 … Z14→Z15** |
+| `tools/boot_check.ps1` | **0 errors, 0 warnings** |
+| branch | `MissionFlow`, HEAD = origin, tree clean |
+
+### The audit
+
+61 findings raised → 42 escalated to 14 adversarial verifiers → **12 survived** (2 critical,
+10 major). **Two thirds of the audit's own severity ratings did not survive a second
+measurement** — that ratio is the most useful number it produced. Full record with every
+verifier's raw output: [`docs/audit/AUDIT_2026-08-11_MISSION_RESEARCH.md`](audit/AUDIT_2026-08-11_MISSION_RESEARCH.md).
+
+All 12 fixed, each with a guard that was watched going red for the stated reason and back:
+NG+ techs unreachable (16 modules uncraftable) · 10 dead processing-speed techs ·
+`m029a8`'s Zone-3 stall · 27 untranslated mission strings · the bounty-across-warp exploit ·
+three wrong refit slot counts · the Zone-1 corvette boss · guidance following source order.
+
+### NG+ farmability (the second half of the session)
+
+`zone_gate_check` skipped every warp-hardened zone, so **Z11–Z15 had no farmability check at
+all**. Extending it needed exotic-weapon kits, per-zone armour, and the NG+ flags — and it
+immediately found three real BLOCKs. The **Z10→Z11 warp gate is perfect**: a maxed Z10 kit
+scores literally **0 kills** against warp-hardened Z11.
+
+What moved, all measured with `ng_hp_sweep` / `nogain_diag` / `z14_boss_sweep`:
+
+- **NG+ defence ladder was non-monotonic** — authored def ran 22820 → **16049** → 25834 →
+  **24660** for Z12–Z15 while e3 attack *doubled* every zone. Z13 ×1.89, Z14 ×1.36, Z15 ×1.70.
+- **Z14 needed three levers plus a boss compensation.** Defence alone still died; attack alone
+  still died even at ×0.55. Final: armour ×1.36, trash hp ×0.60 / atk ×0.53, and
+  `z14_boss_dissolution_tyrant` atk ×1.25 — because the shared armour made that boss lose to
+  **Uncommon 8/9**, which the gear rule forbids.
+- **Trash HP cuts** on `z11_exotic_leviathan` ×0.75, `z12_caustic_leviathan` ×0.75,
+  `z13_patina_phantom` ×0.57 overall, `z15_blight_titan` ×0.40.
+
+### `zone_gate_check` was flapping, and numbers had been tuned against it
+
+Two **simultaneous** runs of identical code printed `ALL GATES HONOR THE RULE` and
+`3 CELL(S) VIOLATE`, one of the flapping cells being Z2→Z3 — untouched in months. Two
+independent causes, both fixed in the check:
+
+- **death was a boolean** (`not died_any` over 5 windows). A 13% per-window death rate fails
+  `1−0.87⁵` = **51% of runs**. Now a rate against `DEATH_RATE_MAX = 0.25`.
+- **kills were a 5-sample median**, which jumps a whole unit on one sample. Now the **mean of
+  9** (`TRIALS 5→9`, `TIER_TRIALS 3` for the cheap tier cell).
+
+Statistics alone were not enough — cells within ±0.5 of the bar still flapped, so Z13 and Z14
+were moved *clear* of the line rather than balanced on it. Verified by running the check
+**five times before and three times after**, not once.
+
+> **If you change an NG+ number, re-run `zone_gate_check` at least twice.** A single green run
+> is what misled this session twice.
+
+### Also landed
+
+- **`tools/boot_check.ps1`** replaces the hand-typed boot grep. The old pattern
+  (`SCRIPT ERROR|not declared|Nonexistent function|Cannot infer`) was blind to `ERROR:` and
+  `Failed to load` — the last three terms are all `SCRIPT ERROR` substrings — so **a broken
+  scene reference booted "clean"**. Proved: old pattern 0 matches on a run producing 3 `ERROR:`
+  lines. Warnings print but never fail.
+- **`atlas_page.tscn` / `warp_page.tscn` invalid UIDs fixed** — the build now has zero warnings.
+- **Two guards repaired, not relaxed:** `phase_gate_spike` (17 stale assertions, and it exited
+  **0** the whole time) and `bounty_check` (a bounty board is not always 4 cards).
+- **`NOGAIN` now compares like with like.** It was pitting an *optimised* Zone-N kit against
+  *fresh* Zone-(N+1) commons. Measured like-for-like, every tier is worth **×4.3–4.9** — acting
+  on the old verdict would have meant a ~30–40% global affix nerf to fix a non-problem.
+
+### Gotchas earned the hard way today
+
+- **PowerShell `-Encoding utf8` writes a BOM.** It broke a `.tscn` (Godot: *"Expected '['"*) and
+  left an invisible BOM in commit `b5cc8c1`'s subject. Use the editor for files Godot or git reads.
+- **`sm.attack` excludes** affix/core multipliers *and* `atk_cryo`. It reads **0** for every NG+
+  kit. Do not use it to compare gear power.
+- **`_kit` lives on `boss_gearcheck`; `zone_gate_check` calls it `_use_kits`.** Mixing them throws
+  on every one of 1,800 ticks per window — a probe that "runs long" is a lookup error first.
+- **Phases are on BOSSES only.** A `grep -A` over a trash enemy spills into the boss below it.
+
+### Next
+
+1. **Playtest Zone 1** — it changed a lot (staged damage types, kit trim, mission XP removal,
+   boss-before-industry, corvette retune).
+2. **#28 Loop 2 — Plasma frontier Z16–Z19** (see the older *Next up* section below).
+3. Optional cleanups the audit surfaced but nobody ruled on: `get_tier_defense_factors()` has no
+   production caller (v120 left it behind); `chain_supply_check`'s cross-tab-parent list; the
+   locale-dependence sweep for probes asserting on `tr()`-wrapped values.
 
 ---
 
@@ -1128,6 +1226,15 @@ save** on boot, so its answer depended on whatever that save happened to hold �
 `ng_loop_check.gd` (zone/phase/flag wiring), `map_mod_check.gd`, `research_costcheck.gd`,
 `hackfarm_check.gd`, `warploop_check.gd`, `module_sell_check.gd`.
 Run: `Godot_v4.5.1-stable_win64_console.exe --headless --path . res://scenes/<probe>.tscn`.
+
+**Added v175.** Boot: `powershell -NoProfile -File tools/boot_check.ps1` (never hand-grep).
+Guards: `chain_supply_check` (a beat may not demand a drop you cannot farm yet — transitive
+producer resolver), `tech_reachable_check` (every tech clickable in a tab), `recipe_speed_check`,
+`bounty_warp_check`, `slot_claim_check`, `mission_i18n_check` (locale-tr sweep with a canary),
+`guidance_order_check`, `z1_boss_tune`.
+Tuning probes, all reusable: `ng_hp_sweep` (`--eid= --trials= --mults= --amults=`, 1D or 2D
+atk×hp grid, reports death RATE), `nogain_diag` (affix/core decomposition), `z14_boss_sweep`,
+`ngplus_gate_diag` (dumps a built NG+ kit), `z4_block_diag` (death rate for a clean common set).
 
 ## Standing constraints (still in force)
 Internal `"credits"` key never renamed (Liras = display only) · commit/push only when asked ·
