@@ -1613,7 +1613,18 @@ var enemy_db = {
 	},
 	"z13_patina_phantom": {
 		"name": "Patina Phantom",
-		"stats": {"hp": 6000000, "atk": 80000, "def": 18000, "atk_interval": 2.0, "accuracy": 285},
+		# v175: hp 6000000 -> 4500000 (x0.75). A clean COMMON Z13 set managed 4 kills in a
+		# 180s window against the >= 5 Rule B needs -- one short, and the only NG+ cell
+		# that was failing on kill rate alone (it stopped dying once the z13 defence ladder
+		# was repaired). Measured with ng_hp_sweep at 9 trials:
+		#     x1.00  4 kills   x0.85  5 kills   x0.75  6 kills   x0.65  6 kills
+		# x0.85 makes the HP ladder marginally prettier (2.20/2.12 against 1.94/2.40) but
+		# lands EXACTLY on the bar, and zone_gate_check reads a 5-trial MEDIAN -- a cell
+		# that truly sits at 5 will print 4 about half the time and flap. x0.75 buys a
+		# whole kill of margin and still leaves every step in the loop near x2
+		# (Z12->Z13 1.94, Z13->Z14 2.40, Z14->Z15 2.00).
+		# Trash only; z13_boss_verdigris_warden is untouched and boss_gearcheck stays 15/15.
+		"stats": {"hp": 4500000, "atk": 80000, "def": 18000, "atk_interval": 2.0, "accuracy": 285},
 		"loot": [["PrimordialShard", 5, 10], ["credits", 60000000, 120000000], ["OmegaPlating", 4, 8]],
 		"rare_loot": [["VoidEssence", 0.12, 2, 5]],
 		"module_drop_chance": 0.12, "module_drop_pool": ["corrosion_blaster"],

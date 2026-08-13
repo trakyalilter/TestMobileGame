@@ -19,6 +19,9 @@ const ZGC := preload("res://scripts/sim/zone_gate_check.gd")
 
 var TRIALS := 7
 var EID := "z15_blight_titan"
+# Coarse by default. A cell that is only one kill short needs finer steps than this, so
+# the list is settable: --mults=1.0,0.85,0.75,0.65
+var MULTS: Array = [1.0, 0.6, 0.45, 0.35, 0.25]
 var _z
 
 func _ready() -> void:
@@ -33,6 +36,10 @@ func _ready() -> void:
 			TRIALS = maxi(1, int(s.split("=")[1]))
 		elif s.begins_with("--eid="):
 			EID = s.split("=")[1]
+		elif s.begins_with("--mults="):
+			MULTS = []
+			for part in s.split("=")[1].split(","):
+				MULTS.append(float(part))
 	GameState.set_process(false)
 	_z = ZGC.new()
 	var sm = GameState.shipyard_manager
@@ -53,7 +60,7 @@ func _ready() -> void:
 	print("[HPS] %-7s %14s | %-18s | %-14s | %-14s | %s" % [
 		"hp x", "hp", "commonZ" + str(zn), "maxedZ" + str(zn - 1), "maxedZ" + str(zn), "verdict"])
 
-	for m in [1.0, 0.6, 0.45, 0.35, 0.25]:
+	for m in MULTS:
 		st["hp"] = base_hp * m
 		var b: Dictionary = _cellof(sm, cm, rm, zn - 1, zid, EID, false)
 		var a2: Dictionary = _cellof(sm, cm, rm, zn - 1, zid, EID, true)
