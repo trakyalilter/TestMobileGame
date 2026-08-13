@@ -65,7 +65,8 @@ func _ready() -> void:
 	print("[GATE] farm = >=%d kills in %ds with no death; hull = tier N for BOTH kits." % [FARM_KILLS, int(WINDOW)])
 	print("[GATE] maxed = Legendary + 3 GREATER affixes + 3 Resonant cores/module + kits.")
 	print("[GATE] --------------------------------------------------------------------")
-	for n in range(1, 10):
+	# v175: was range(1, 10), i.e. Z1->Z2 .. Z9->Z10. Z10->Z11 .. Z14->Z15 are covered now.
+	for n in range(1, 15):
 		var zid := _zone_with_diff(cm, n + 1)
 		if zid == "":
 			continue
@@ -165,6 +166,14 @@ func _run(sm, cm, rm, hull_n: int, zid: String, eid: String, maxed: bool) -> Dic
 	cm.total_kills = 0
 	var zone_n: int = hull_n + 1
 	_unlock_research(rm, zone_n)
+	# v175: NG+ sectors are flag-gated, not research-gated, and Cryo access comes from the
+	# warp act rather than a tech. Without these, start_expedition refuses Z11+ and
+	# can_equip_module blocks every exotic, so the cells would report NOENT/UNPWR rather
+	# than a verdict. hard_reset clears them, so they are re-set every run.
+	if zone_n >= 11:
+		GameState.game_settings["cryo_unlocked"] = true
+		for z in range(11, 16):
+			GameState.game_settings["z%d_unlocked" % z] = true
 	# v142: the owner rule pins the OLD kit to the Tier-N hull ("a Tier N hull
 	# equipped with rare/legendary gear set of Zone N"). It says nothing about
 	# the Common N+1 kit's hull — and a player who has just unlocked Zone N+1
@@ -177,7 +186,7 @@ func _run(sm, cm, rm, hull_n: int, zid: String, eid: String, maxed: bool) -> Dic
 	if maxed:
 		_equip_maxed(sm, hull_n, weak, e)
 	else:
-		_equip_common(sm, zone_n, weak)
+		_equip_common(sm, zone_n, weak, e)
 	_ammo_kits(sm, weak, zone_n)
 	sm.recalc_stats()
 	sm.current_hp = sm.max_hp
@@ -207,8 +216,8 @@ func _equip_maxed(sm, zone_n: int, weak: String, e: Dictionary) -> void:
 	# sockets (generate_module_drop only grants them at Legendary+), so they can
 	# hold no matrix cores either. Testing them as maxed Legendary measured a kit
 	# no player can ever field and overstated the leak.
-	_fill(sm, "battery", "z%d_battery" % zone_n, zone_n, 0, [], [])
-	_fill(sm, "weapon", "z%d_%s" % [zone_n, SUFFIX[weak]], zone_n, 3, BEST_WEAPON, WEAPON_GEMS)
+	_fill(sm, "battery", "z%d_battery" % clampi(zone_n, 1, 10), zone_n, 0, [], [])
+	_fill_weapons(sm, zone_n, weak, e, 3, BEST_WEAPON, WEAPON_GEMS)
 	var res_aff: String = String(RESIST_FOR.get(String(e.get("dmg_type", "kinetic")), "resist_k"))
 	_fill(sm, "armor", "z%d_armor" % zone_n, zone_n, 3, [res_aff, "flat_hp", "hull_heal_on_hit"], DEF_GEMS)
 	_fill(sm, "shield", "z%d_shield" % zone_n, zone_n, 3, BEST_SHIELD, DEF_GEMS)
@@ -221,13 +230,35 @@ func _equip_maxed(sm, zone_n: int, weak: String, e: Dictionary) -> void:
 	_fill(sm, "engine", "z%d_engine" % zone_n, zone_n, 0, [], [])
 	_fill(sm, "sensor", "z%d_sensor" % zone_n, zone_n, 0, [], [])
 
-func _equip_common(sm, zone_n: int, weak: String) -> void:
-	_fill(sm, "battery", "z%d_battery" % zone_n, zone_n, 0, [], [])
-	_fill(sm, "weapon", "z%d_%s" % [zone_n, SUFFIX[weak]], zone_n, 0, [], [])
+func _equip_common(sm, zone_n: int, weak: String, e: Dictionary = {}) -> void:
+	# Batteries/engines/sensors exist only up to z10; Z11+ reuses the deepest tier.
+	var util: int = clampi(zone_n, 1, 10)
+	_fill(sm, "battery", "z%d_battery" % util, zone_n, 0, [], [])
+	_fill_weapons(sm, zone_n, weak, e, 0, [], [])
 	_fill(sm, "armor", "z%d_armor" % zone_n, zone_n, 0, [], [])
 	_fill(sm, "shield", "z%d_shield" % zone_n, zone_n, 0, [], [])
-	_fill(sm, "engine", "z%d_engine" % zone_n, zone_n, 0, [], [])
-	_fill(sm, "sensor", "z%d_sensor" % zone_n, zone_n, 0, [], [])
+	_fill(sm, "engine", "z%d_engine" % util, zone_n, 0, [], [])
+	_fill(sm, "sensor", "z%d_sensor" % util, zone_n, 0, [], [])
+
+
+# One weapon per slot, cycling the ids _weapons_for returned. For an unphased enemy that
+# is the same id in every slot (identical to the old behaviour); for a phased one it
+# spreads the elements so every band can be breached.
+func _fill_weapons(sm, zone_n: int, weak: String, e: Dictionary, rarity: int, affixes: Array, gems: Array) -> void:
+	var ids: Array = _weapons_for(sm, zone_n, weak, e)
+	if ids.is_empty():
+		return
+	var slots: Array = _slots(sm, "weapon")
+	for i in range(slots.size()):
+		var base := String(ids[i % ids.size()])
+		var cid := String(sm.generate_module_drop(base, rarity, zone_n))
+		if cid == "":
+			continue
+		if not affixes.is_empty():
+			_max_affixes(sm, cid, "weapon", affixes, zone_n)
+		if not gems.is_empty():
+			_max_sockets(sm, cid, gems)
+		sm.equip_module(slots[i], cid, true)
 
 func _fill(sm, stype: String, base_id: String, zone: int, rarity: int, affixes: Array, gems: Array) -> void:
 	if not base_id in sm.modules:
@@ -288,12 +319,58 @@ func _zone_with_diff(cm, d: int) -> String:
 		var z: Dictionary = cm.zones[zid]
 		if int(z.get("difficulty", 0)) != d:
 			continue
-		# Z11+ is the Cryo/warp gate — orthogonal to the tier wall, skip here.
-		var roster: Array = z.get("enemies", [])
-		if roster.size() > 0 and bool(cm.enemy_db.get(String(roster[0]), {}).get("warp_hardened", false)):
-			return ""
+		# v175: this used to return "" for any warp-hardened zone, on the grounds that
+		# "Z11+ is the Cryo/warp gate — orthogonal to the tier wall". That skipped Z11-Z15
+		# entirely, so five sectors of NG+ content had no farmability check at all. The
+		# Cryo gate IS orthogonal, but Rule B is not: a clean COMMON set of a zone's OWN
+		# gear still has to be able to farm that zone, and Z11-Z15 each ship their own
+		# weapon and defence tier now (v174). Those cells are tested; see _weapons_for.
 		return String(zid)
 	return ""
+
+
+# Which weapon ids a kit should carry to fight `e` in `zone`. Returns a list so a phased
+# enemy gets one weapon per element round-robin across the slots.
+#
+#   Z1-Z10   conventional, keyed on the enemy's weak channel
+#   Z11      warp_hardened: ONLY Cryo breaches (non-Cryo is cut ~98%), and Z11 ships no
+#            z11_ weapon of its own — cryo_lance IS the tier
+#   Z12-Z15  no conventional weapons exist at all; each zone has its own cryo lance and
+#            corrosion blaster.
+#
+# The phase branch below is CURRENTLY UNEXERCISED and is here for when it is not. Phases
+# live on the BOSSES only (z12_boss_rift_warden, z13_boss_verdigris_warden, ...), and this
+# probe tests roster idx 2/3 while skipping bosses, so every cell it runs is unphased —
+# verified at runtime, where these enemies report phases=[] and phase_cut=1.00. Do not
+# trust a source grep here: an -A context window over z13_patina_phantom spills straight
+# into the warden below it and makes the trash look phased when it is not.
+func _weapons_for(sm, zone: int, weak: String, e: Dictionary) -> Array:
+	if zone <= 10:
+		return ["z%d_%s" % [zone, SUFFIX[weak]]]
+	var phases: Array = e.get("phases", [])
+	var out: Array = []
+	if phases.size() > 0:
+		for el in phases:
+			var wid := _exotic_id(sm, String(el), zone)
+			if wid != "" and not (wid in out):
+				out.append(wid)
+		if not out.is_empty():
+			return out
+	# Unphased Z11+ — Cryo is the universal answer (Z11 is hardened against everything
+	# else, and Z12+ carry resist_cryo 0.0 on the unphased rosters).
+	var c := _exotic_id(sm, "cryo", zone)
+	return [c] if c != "" else []
+
+
+# Zone-matched exotic where it exists, else the Z11-era base. Mirrors boss_gearcheck's
+# rule: zone N's pair is researched off zone N's unlock flag, so it is in hand for that
+# zone's content.
+func _exotic_id(sm, element: String, zone: int) -> String:
+	var base := "cryo_lance" if element.to_lower() == "cryo" else "corrosion_blaster"
+	var zoned := "z%d_%s" % [zone, base]
+	if sm.modules.has(zoned):
+		return zoned
+	return base if sm.modules.has(base) else ""
 
 func _unlock_research(rm, n: int) -> void:
 	for tid in rm.tech_tree:
