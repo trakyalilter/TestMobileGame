@@ -1662,7 +1662,18 @@ var enemy_db = {
 	},
 	"z14_toxin_sentinel": {
 		"name": "Toxin Sentinel",
-		"stats": {"hp": 10000000, "atk": 92500, "def": 40000, "atk_interval": 2.0, "accuracy": 300},
+		# v175: hp 10000000 -> 8000000 (x0.80), atk 92500 -> 64750 (x0.70). The last NG+
+		# cell failing Rule B, and the only one that needed more than one lever. Measured
+		# as a 2D grid (ng_hp_sweep --amults=), COMMON kit, 7 trials:
+		#   with the ORIGINAL z14 armour:  atk x0.55 hp x0.60 still DIED (7 kills)
+		#   with the REPAIRED z14 armour:  atk x1.00 hp x1.00      DIED (3 kills)
+		#                                  atk x0.85 hp x0.80      DIED (6 kills)
+		#                                  atk x0.70 hp x1.00   survives (4 kills)
+		#                                  atk x0.70 hp x0.80   survives (6 kills)  <- taken
+		# Attack is what stops the dying and HP is what buys the kills; neither alone
+		# clears the bar, which is why this rung took three edits (z14_armor, z14_shield
+		# and this line) plus the boss compensation next door.
+		"stats": {"hp": 8000000, "atk": 64750, "def": 40000, "atk_interval": 2.0, "accuracy": 300},
 		"loot": [["PrimordialShard", 7, 14], ["credits", 100000000, 200000000], ["OmegaPlating", 6, 12], ["VoidEssence", 6, 12]],
 		"rare_loot": [["ChronoCore", 0.12, 3, 6]],
 		"module_drop_chance": 0.12, "module_drop_pool": ["corrosion_blaster"],
@@ -1672,7 +1683,19 @@ var enemy_db = {
 		"name": "Dissolution Tyrant",
 		# 3-phase: cryo → corrosion → cryo. TWO swaps — the loop's mid-point step-up in
 		# execution. Off-element ×0.15 each band; phased bosses skip zone-steepening.
-		"stats": {"hp": 68000000, "max_shield": 1200000, "atk": 184000, "def": 120000, "atk_interval": 2.0, "accuracy": 310},
+		# v175: atk 184000 -> 230000 (x1.25). COMPENSATION, not a difficulty raise. Repairing
+		# the Z14 defence ladder (z14_armor/shield x1.36, needed so a clean COMMON set can
+		# farm z14_toxin_sentinel at all) hands this boss's challengers the same armour, and
+		# it immediately started losing to UNCOMMON 8-9/9 — which the gear rule forbids.
+		# Swept with z14_boss_sweep at 9 trials:
+		#   x1.00  C 0/9   U 8/9 W276   R 9/9 W188   L 9/9 W149   Uncommon still wins
+		#   x1.25  C 0/9   U 0/9 L20%   R 9/9 W184   L 9/9 W144   <- taken
+		#   x1.45  C 0/9   U 0/9 L36%   R 8/9 W183   L 9/9 W160
+		#   x1.65  C 0/9   U 0/9 L50%   R 5/9 W192   L 9/9 W158   Rare falling through
+		# x1.25 is the smallest step that puts Uncommon back under the line, and Rare and
+		# Legendary land where they were before the armour moved (9/9 at ~184s / ~144s), so
+		# the intended answer is unchanged. x1.65 would start pricing Rare out.
+		"stats": {"hp": 68000000, "max_shield": 1200000, "atk": 230000, "def": 120000, "atk_interval": 2.0, "accuracy": 310},
 		"phases": ["cryo", "corrosion", "cryo"], "phase_cut": 0.15,
 		"enrage_at": 0.35, "enrage_atk_mult": 1.2,
 		"loot": [["credits", 600000000, 1200000000], ["ExoticMatter", 120, 240], ["ChronoCore", 50, 100], ["PrimordialShard", 100, 200]],

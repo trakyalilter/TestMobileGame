@@ -1423,14 +1423,17 @@ var modules: Dictionary = {
 	"z14_armor": {
 		"name": "Dissolution Bulwark",
 		"slot_type": "armor",
-		# v175: Z14 was buffed with Z13/Z15 (def 25834 -> 35140) and REVERTED. It is the one
-		# rung where defence cannot solve it: x1.36 was still not enough for the clean
-		# common set to survive z14_toxin_sentinel (3 kills, died at 78s), and it was
-		# already too much for the boss — boss_gearcheck went 15/15 -> 14/15 with
-		# z14_boss_dissolution_tyrant losing to UNCOMMON 8/9, which the gear rule forbids.
-		# Trash wants more defence here, the boss wants less, so the lever has to be one of
-		# those two enemies rather than this stat line.
-		"stats": {"def": 25834, "hp": 103612, "resist_k": 0.07, "resist_e": 0.07, "resist_x": 0.07},
+		# v175: def 25834 -> 35140 (x1.36), completing the NG+ defence ladder repair that
+		# Z13 and Z15 got. This was reverted once when it alone broke boss_gearcheck
+		# (z14_boss_dissolution_tyrant lost to UNCOMMON 8/9), and is restored here as one
+		# leg of a THREE-part change, because measurement showed no single lever works:
+		#   * defence alone       -> commons still die (3 kills, dead at 78s)
+		#   * trash attack alone  -> still dies even at x0.55, near Z13's attack, because
+		#                            the armour behind it is a tier short
+		#   * defence + atk x0.70 + hp x0.80 -> 6 kills, NO death   <- Rule B cleared
+		# The boss compensation that keeps Uncommon losing lives on
+		# z14_boss_dissolution_tyrant; see the note there.
+		"stats": {"def": 35140, "hp": 140900, "resist_k": 0.07, "resist_e": 0.07, "resist_x": 0.07},
 		"cost_authored": true,
 		"cost": {"credits": 120000000, "ExoticMatter": 11000, "OmegaPlating": 8400, "VoidLattice": 4500, "ChronoCore": 1500, "Neutronium": 29000},
 		"desc": "Sector 14 plating. Layered against the frontier's acid and cold alike.",
@@ -1441,7 +1444,7 @@ var modules: Dictionary = {
 	"z14_shield": {
 		"name": "Dissolution Barrier",
 		"slot_type": "shield",
-		"stats": {"max_shield": 207224, "shield_regen": 1594, "resist_e": 0.07},
+		"stats": {"max_shield": 281800, "shield_regen": 2168, "resist_e": 0.07},
 		"cost_authored": true,
 		"cost": {"credits": 108000000, "ExoticMatter": 11000, "OmegaPlating": 8400, "VoidLattice": 4500, "ChronoCore": 1500, "Neutronium": 29000},
 		"desc": "Sector 14 deflector envelope. Regenerates fast enough to matter between phase swings.",

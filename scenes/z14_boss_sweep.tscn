@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/sim/z14_boss_sweep.gd" id="1_z14b"]
+
+[node name="Z14BossSweep" type="Node"]
+script = ExtResource("1_z14b")

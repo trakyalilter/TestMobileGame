@@ -22,6 +22,11 @@ var EID := "z15_blight_titan"
 # Coarse by default. A cell that is only one kill short needs finer steps than this, so
 # the list is settable: --mults=1.0,0.85,0.75,0.65
 var MULTS: Array = [1.0, 0.6, 0.45, 0.35, 0.25]
+# Supplying --amults= switches to a 2D atk x hp GRID and reports the COMMON kit only.
+# Z14 needs that: an HP cut alone cannot stop it dying, and its defence cannot be raised
+# because z14_armor is shared with the boss (Uncommon starts beating the Dissolution
+# Tyrant), so survivability has to come out of the enemy's attack instead.
+var AMULTS: Array = []
 var _z
 
 func _ready() -> void:
@@ -40,6 +45,10 @@ func _ready() -> void:
 			MULTS = []
 			for part in s.split("=")[1].split(","):
 				MULTS.append(float(part))
+		elif s.begins_with("--amults="):
+			AMULTS = []
+			for part2 in s.split("=")[1].split(","):
+				AMULTS.append(float(part2))
 	GameState.set_process(false)
 	_z = ZGC.new()
 	var sm = GameState.shipyard_manager
@@ -59,6 +68,24 @@ func _ready() -> void:
 		EID, zn, zid, base_hp])
 	print("[HPS] %-7s %14s | %-18s | %-14s | %-14s | %s" % [
 		"hp x", "hp", "commonZ" + str(zn), "maxedZ" + str(zn - 1), "maxedZ" + str(zn), "verdict"])
+
+	if not AMULTS.is_empty():
+		var base_atk: float = float(st.get("atk", 0))
+		print("[HPS] 2D GRID: atk x hp, COMMON kit only (kills / died). Need >= 5 and no death.")
+		print("[HPS] spawned atk %.0f | %s" % [base_atk,
+			"columns are hp x " + str(MULTS)])
+		for am in AMULTS:
+			var row := "[HPS] atk x%-5.2f (%12.0f) |" % [am, base_atk * am]
+			for hm in MULTS:
+				st["atk"] = base_atk * am
+				st["hp"] = base_hp * hm
+				var r: Dictionary = _cellof(sm, cm, rm, zn - 1, zid, EID, false)
+				row += " %2d%-5s |" % [int(r["k"]), ("/DIED" if bool(r["d"]) else "")]
+			print(row)
+		st["atk"] = base_atk
+		st["hp"] = base_hp
+		get_tree().quit(0)
+		return
 
 	for m in MULTS:
 		st["hp"] = base_hp * m
