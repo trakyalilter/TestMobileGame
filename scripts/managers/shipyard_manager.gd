@@ -1391,7 +1391,17 @@ var modules: Dictionary = {
 	"z13_armor": {
 		"name": "Verdigris Bulwark",
 		"slot_type": "armor",
-		"stats": {"def": 16049, "hp": 64365, "resist_k": 0.06, "resist_e": 0.06, "resist_x": 0.06},
+		# v175 NG+ DEFENCE LADDER REPAIR (owner call: buff the commons' defence).
+		# zone_gate_check, extended to Z11-Z15, reported BLOCK on Z12->Z13, Z13->Z14 and
+		# Z14->Z15: a clean COMMON set of each zone's OWN gear DIES to that zone's e3
+		# (at 176s, 78s and 166s of a 180s window). The cause is in these six stat lines,
+		# not in the enemies. Authored defence ran 22820 -> 16049 -> 25834 -> 24660 for
+		# Z12-Z15: DOWN 30% into Z13 and down again into Z15, while the e3 attack ladder
+		# doubles every zone (21.2M -> 48.1M -> 94.9M -> 192.3M post-rebase).
+		# tier_rebase supplies x1.7045/zone, so authored has to climb ~1.19x/zone just to
+		# hold station. Re-derived so effective defence tracks the enemy ladder:
+		#   z13 x1.89, z14 x1.36, z15 x1.70   (hp/shield/regen scaled with def)
+		"stats": {"def": 30400, "hp": 121900, "resist_k": 0.06, "resist_e": 0.06, "resist_x": 0.06},
 		"cost_authored": true,
 		"cost": {"credits": 55000000, "ExoticMatter": 6100, "OmegaPlating": 4700, "VoidLattice": 2500, "ChronoCore": 800, "Neutronium": 16000},
 		"desc": "Sector 13 plating. Layered against the frontier's acid and cold alike.",
@@ -1402,7 +1412,7 @@ var modules: Dictionary = {
 	"z13_shield": {
 		"name": "Verdigris Barrier",
 		"slot_type": "shield",
-		"stats": {"max_shield": 128730, "shield_regen": 990, "resist_e": 0.06},
+		"stats": {"max_shield": 243800, "shield_regen": 1875, "resist_e": 0.06},
 		"cost_authored": true,
 		"cost": {"credits": 49500000, "ExoticMatter": 6100, "OmegaPlating": 4700, "VoidLattice": 2500, "ChronoCore": 800, "Neutronium": 16000},
 		"desc": "Sector 13 deflector envelope. Regenerates fast enough to matter between phase swings.",
@@ -1413,6 +1423,13 @@ var modules: Dictionary = {
 	"z14_armor": {
 		"name": "Dissolution Bulwark",
 		"slot_type": "armor",
+		# v175: Z14 was buffed with Z13/Z15 (def 25834 -> 35140) and REVERTED. It is the one
+		# rung where defence cannot solve it: x1.36 was still not enough for the clean
+		# common set to survive z14_toxin_sentinel (3 kills, died at 78s), and it was
+		# already too much for the boss — boss_gearcheck went 15/15 -> 14/15 with
+		# z14_boss_dissolution_tyrant losing to UNCOMMON 8/9, which the gear rule forbids.
+		# Trash wants more defence here, the boss wants less, so the lever has to be one of
+		# those two enemies rather than this stat line.
 		"stats": {"def": 25834, "hp": 103612, "resist_k": 0.07, "resist_e": 0.07, "resist_x": 0.07},
 		"cost_authored": true,
 		"cost": {"credits": 120000000, "ExoticMatter": 11000, "OmegaPlating": 8400, "VoidLattice": 4500, "ChronoCore": 1500, "Neutronium": 29000},
@@ -1435,7 +1452,7 @@ var modules: Dictionary = {
 	"z15_armor": {
 		"name": "Caustic Bulwark",
 		"slot_type": "armor",
-		"stats": {"def": 24660, "hp": 98902, "resist_k": 0.08, "resist_e": 0.08, "resist_x": 0.08},
+		"stats": {"def": 41850, "hp": 167850, "resist_k": 0.08, "resist_e": 0.08, "resist_x": 0.08},
 		"cost_authored": true,
 		"cost": {"credits": 260000000, "ExoticMatter": 19500, "OmegaPlating": 15000, "VoidLattice": 8000, "ChronoCore": 2700, "VoidEssence": 1600, "Neutronium": 52000},
 		"desc": "Sector 15 plating. Layered against the frontier's acid and cold alike.",
@@ -1446,7 +1463,7 @@ var modules: Dictionary = {
 	"z15_shield": {
 		"name": "Caustic Barrier",
 		"slot_type": "shield",
-		"stats": {"max_shield": 197804, "shield_regen": 1522, "resist_e": 0.08},
+		"stats": {"max_shield": 335700, "shield_regen": 2583, "resist_e": 0.08},
 		"cost_authored": true,
 		"cost": {"credits": 234000000, "ExoticMatter": 19500, "OmegaPlating": 15000, "VoidLattice": 8000, "ChronoCore": 2700, "VoidEssence": 1600, "Neutronium": 52000},
 		"desc": "Sector 15 deflector envelope. Regenerates fast enough to matter between phase swings.",
