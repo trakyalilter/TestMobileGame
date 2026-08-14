@@ -1453,9 +1453,15 @@ func _update_navigation_hints():
 		elif current_page_name != "combat":
 			target_to_pulse = combat_btn
 		else:
+			# v176: was lunar_orbit / z1_survey_probe. The v174 staged damage-type pass
+			# RETIRED z1_survey_probe (and z1_scrap_collector, z2_ore_hauler) and moved
+			# this beat's target to the Silicate Golem in the Asteroid Belt, but the
+			# coach was never repointed — it opened the wrong zone and asked for a card
+			# that no longer exists, so the arrow simply died on the last step of the
+			# energy leg. Caught by mission_coach_audit.
 			var page = pages["combat"]
-			page.focus_zone("lunar_orbit")
-			target_to_pulse = page.get_enemy_card("z1_survey_probe")
+			page.focus_zone("asteroid_belt")
+			target_to_pulse = page.get_enemy_card("z2_silicate_golem")
 
 	elif front == "m017c":
 		# Shipyard: Micro-Missile Launcher (explosive leg)
@@ -1478,7 +1484,9 @@ func _update_navigation_hints():
 
 	elif front == "m017d":
 		# v134b: two-phase like m017b — Ship Designer until an explosive weapon
-		# is equipped, then Combat for the explosive-weak Scrap Collector.
+		# is equipped, then Combat for the explosive-weak target.
+		# v176: that target is the Scavenger Mech in MARS DEBRIS, not the retired
+		# Scrap Collector in Lunar Orbit (see the m017b note above).
 		# v134g: equip BOTH launchers — direct to the weapon slot until TWO are in.
 		if _count_weapon_type_equipped("explosive") < 2:
 			if current_page_name != "designer": target_to_pulse = designer_btn
@@ -1502,8 +1510,8 @@ func _update_navigation_hints():
 			target_to_pulse = combat_btn
 		else:
 			var page = pages["combat"]
-			page.focus_zone("lunar_orbit")
-			target_to_pulse = page.get_enemy_card("z1_scrap_collector")
+			page.focus_zone("mars_debris")
+			target_to_pulse = page.get_enemy_card("z3_scavenger_mech")
 
 	elif front == "m018":
 		# Research: Industrial Logistics Hub
