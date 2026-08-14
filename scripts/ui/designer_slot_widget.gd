@@ -175,15 +175,19 @@ func _arrange_module_square() -> void:
 		topbal.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		v.add_child(topbal)
 	topbal.visible = true
-	topbal.custom_minimum_size = Vector2(0, 32)
+	# v163: the balancer must equal the socket band it balances, or the icon is pushed
+	# off-centre and squeezed. It was a hardcoded 32 against a 30px band.
+	topbal.custom_minimum_size = Vector2(0, MatrixCoreIcon.SOCKET_D + MatrixCoreIcon.SOCKET_ARC)
 
 	var ic = v.get_node_or_null("TypeIcon")
 	if ic:
 		ic.visible = true
-		# Small min so the fixed 140px slot height always binds (occupied content min
-		# stays UNDER it instead of overflowing); EXPAND_FILL then grows the icon back
-		# to fill the centre. This is what locks every equipped slot to one size.
-		ic.custom_minimum_size = Vector2(0, 16)
+		# v163: real floor, not 16. EXPAND_FILL alone left the equipped icon at ~30px in
+		# a 124px bay (owner: gear cards mis-sized) because the slack landed in the
+		# container, not the TextureRect — KEEP_ASPECT_CENTERED then drew to the short
+		# axis. Budget is exact: 12 margin + 30 balancer + 52 icon + 30 sockets = 124,
+		# so the floor binds and any extra height still expands the icon.
+		ic.custom_minimum_size = Vector2(0, 52)
 		ic.size_flags_vertical = Control.SIZE_EXPAND_FILL  # fills/centres the middle
 	# Reserve the socket band so the centred icon is the SAME size whether the
 	# module has 0, 1 or 3 sockets. v172: DERIVED from the icon geometry -- this was

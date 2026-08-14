@@ -69,11 +69,15 @@ var recipes: Dictionary = {
 	"smelt_copper": {
 		"name": "Copper Smelting",
 		"description": "Refine Malachite ore into pure Copper.",
-		"input": {"Malachite": 2, "C": 1},
-		"output": {"Cu": 1},
+		# v163: BATCHED x5, same reasoning as refine_lithium -- m013c ("refine 50 Copper")
+		# was the identical 250s wall one beat later. Ratio (2 Malachite + 1 C : 1 Cu),
+		# totals and XP unchanged; m013b's 100 Malachite + m011's 50 Carbon still come
+		# out to exactly 50 Copper, as the mission text promises.
+		"input": {"Malachite": 10, "C": 5},
+		"output": {"Cu": 5},
 		"duration": 5.0,
 		"level_req": 5,
-		"xp": 15,
+		"xp": 75,
 		"research_req": "basic_engineering"
 	},
 	"smelt_zinc": {
@@ -900,11 +904,16 @@ var recipes: Dictionary = {
 	"refine_lithium": {
 		"name": "Refine Lithium",
 		"description": "Extract Lithium from raw Lithium Ore.",
-		"input": {"Spodumene": 2},
-		"output": {"Li": 1},
+		# v163: BATCHED x5. Ratio (2 ore : 1 Li), total ore and total XP are unchanged --
+		# only the granularity. At 1 Li per 5s, m013's "refine 50 Lithium" was 250s of
+		# crafting on top of ~150s mining, right after m011 (50 Carbon) takes ~16s
+		# because charcoal batches 16 per craft. That 20x throughput gap between
+		# neighbouring beats is the early-chain wall. 50 Li is now 10 crafts, not 50.
+		"input": {"Spodumene": 10},
+		"output": {"Li": 5},
 		"duration": 5.0,
-		"level_req": 3,
-		"xp": 7,
+		"level_req": 2,
+		"xp": 35,
 		"research_req": "basic_engineering"
 	},
 	# Basic metallurgy moved to top

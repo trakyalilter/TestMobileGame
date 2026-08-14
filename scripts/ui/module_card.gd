@@ -260,14 +260,16 @@ func _draw_tile_visual(item_name: String, slot_type: String, rarity: int, rarity
 	# now lands as a 2x2 spatial item (~216-270px via _keep_square), and the old fixed
 	# TS*0.58 = 37px chip rendered as a tiny speck lost in the socket slab — the whole
 	# armory read as empty brown boxes (first real render after the SIGSEGV era; the
-	# redesign shipped headless-verified only). 58% of the tile at ANY size restores
-	# the designed icon-forward proportion on both the armory grid and shipyard lists.
+	# redesign shipped headless-verified only). Proportional at ANY tile size.
+	# v163b: 58% -> 46% (owner: the chip read too heavy once it scaled) — the emblem
+	# is a type chip behind the glyph, not the card's whole face; the rarity frame and
+	# the sector stamp need breathing room around it.
 	var is_stone: bool = (slot_type == "hack_stone")
 	var icon_parent: Control = tile_container
 	if not is_stone:
 		var emblem = Panel.new()
-		emblem.anchor_left = 0.21; emblem.anchor_right = 0.79
-		emblem.anchor_top = 0.21; emblem.anchor_bottom = 0.79
+		emblem.anchor_left = 0.27; emblem.anchor_right = 0.73
+		emblem.anchor_top = 0.27; emblem.anchor_bottom = 0.73
 		emblem.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var esb = StyleBoxFlat.new()
 		# Chip fill is near-neutral so RARITY (the frame) and SLOT (icon + chip rim)

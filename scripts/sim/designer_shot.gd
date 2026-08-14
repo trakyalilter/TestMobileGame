@@ -13,8 +13,16 @@ func _ready() -> void:
 	var cs: Dictionary = GameState.game_settings.get("coach_seen", {})
 	cs["designer"] = true
 	GameState.game_settings["coach_seen"] = cs
+	# The offline "welcome back" modal covers the whole screen on any run whose save
+	# has elapsed time — dismiss it or the shot photographs the modal, not the page.
+	if "offline_modal" in m and m.offline_modal != null and is_instance_valid(m.offline_modal):
+		m.offline_modal.visible = false
 	m.switch_to("designer")
 	for _i in range(90):
+		await get_tree().process_frame
+	if "offline_modal" in m and m.offline_modal != null and is_instance_valid(m.offline_modal):
+		m.offline_modal.visible = false
+	for _i in range(20):
 		await get_tree().process_frame
 	var img: Image = get_viewport().get_texture().get_image()
 	var out := OS.get_environment("DSHOT_OUT")
