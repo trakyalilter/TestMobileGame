@@ -505,6 +505,14 @@ func _do_combat(mid: String, zid: String, eid: String) -> Dictionary:
 		if _bl >= 2 and not _boss_gear_ready(eid, _bar):
 			var reg := _regular_enemy_in_zone(zid)
 			if reg != "" and reg != eid:
+				# v176: a real player hunting a weak-type Rare sets the LOOT FILTER to
+				# that damage type — the game concentrates the drop pool on it
+				# (_focused_drop_pool) and, since v176, the bounty board's guaranteed
+				# Rare honours it too. The bot knew the weak type here all along (it
+				# prints it in `status`) and never told the game, so it farmed an
+				# unfiltered pool and then walled on not finding the one type it
+				# needed. Modelling the filter is what makes the board the
+				# deterministic bridge m030d's text promises.
 				status = "farming %s+ %s gear for %s" % [
 					("rare" if _bar >= 2 else "uncommon"), _enemy_weak_type(eid), eid]
 				return _do_combat_farm(mid, zid, reg, "detour", true)
@@ -600,6 +608,21 @@ func _prep_for_fight(mid: String, eid: String) -> Dictionary:
 			return kd
 	return {}
 
+# v176 NOTE — the bot deliberately does NOT set loot_weapon_type_filter.
+# Tried: set the filter to the boss's weak type when entering the gear-farm branch
+# (the bot already computes that type there and prints it in `status`). It looks
+# like a strictly more faithful player model, and it measured WORSE. Seeds 4/11/27
+# at 14 days, all three configs sharing the same chain and the same bot otherwise:
+#   before both changes            #78 / #77 / #80   mean 78.3   walls 2/2/2
+#   v176 bounty fix + this filter  #70 / #70 / #80   mean 73.3   walls 2/2/2
+#   v176 bounty fix alone          #80 / #80 / #85   mean 81.7   walls 1/2/1
+# So the game-side bounty fix is the best result measured this session, and adding
+# the bot filter gave back more than the bounty fix won. The likely mechanism: the
+# filter PERSISTS, and the bot only re-points it after losing to a new boss twice,
+# so most of its farming runs biased toward the PREVIOUS boss's channel — it
+# starves itself of the breadth _boss_gear_ready also needs (armor, shield, and
+# the next zone's weak type). Any retry needs to clear the focus the moment the
+# objective changes, and must be re-measured across more than three seeds.
 func _do_farm_rarity(mid: String, _rarity: int) -> Dictionary:
 	# "Farm Lunar Orbit until a RARE drops" — farm the best unlocked zone's
 	# trash with full combat discipline; sync completes the mission.

@@ -140,12 +140,21 @@ tracking what has been GIVEN and asserts hull tier ≥ boss zone and that every 
 actually be mounted. It measures power by EQUIPPING, because `equip_module` refuses an over-draw,
 so an unaffordable ship reads as low-draw and a draw-vs-cap comparison would call it a PASS.
 
-**Still open — the 470-kill hunt.** A weak-type Rare is ~0.2%/kill (`drop_chance` × 11.5% rarity
-× ~1-of-7 pool weight). The chain's supposed deterministic bridge is not one:
-`bounty_manager.gd:305` picks `pool[randi() % pool.size()]` — guaranteed on RARITY, random on
-TYPE — while `_roll_one_module_drop` already honours `loot_weapon_type_filter`. Making the bounty
-reward respect that filter is the obvious fix and has NOT been done. The chain fixes above did
-**not** improve funnel depth (mean 78.3 before and after); this is why.
+**The 470-kill hunt — FIXED in v176, and it is what actually moved the funnel.** A weak-type
+Rare is ~0.2%/kill (`drop_chance` × 11.5% rarity × ~1-of-7 pool weight). The board was the
+stated bridge over that (m030d's text) but was guaranteed on RARITY only — `bounty_manager`
+picked `pool[randi() % pool.size()]`, ignoring the loot filters that ordinary drops have
+honoured since v135a. It now awards through **`combat_manager.pick_drop_like_module()`**
+(research gate + slot filter + weapon-type filter + over-narrow fallback + MODULE_DROP_WEIGHTS,
+so batteries are excluded as in live drops); the Rare+ floor is untouched. Guarded by
+`bounty_filter_check`, which measured the old behaviour wasting 14/20 weapons off-type, 34/60
+awards off-slot and 8 batteries. **Funnel: mean 78.3 → 81.7, deepest run `m033a1` (#85)** — the
+chain gear ladders above moved it *zero*; this moved it. Effect is understated because
+`player_like` never sets loot filters.
+
+**Do NOT teach the bot to set `loot_weapon_type_filter`** — tried in v176 and measured WORSE
+(81.7 → 73.3, seed 4 gained a 55h wall on the *Zone 1* boss). Full three-config table and the
+suspected mechanism are in `player_like.gd::_do_farm_rarity`'s note.
 
 ### 🔒 ENDGAME — Z11 Warp Gate + Cryo + NG+ (CORE COMPLETE; NG+ future)
 
@@ -238,5 +247,5 @@ for weeks and repeated as an open item during the v175 session before the handof
    owner: players should perform **several warps before mid/endgame**, AdVenture Capitalist
    angel-reset style — early warps are meant to be frequent, and each run visibly faster. That
    framing is what produced the Salvage Vault; hold it when weighing any prestige-loop proposal.
-   Live queue: **bounty weapon-type filter** (the only change that attacks the 470-kill hunt) →
-   **P3 for Z7–Z10** → P5 unique non-weapon modules → P4 Anomaly Contracts → P2 Sector Map.
+   Live queue: **P3 for Z7–Z10** → P5 unique non-weapon modules → P4 Anomaly Contracts →
+   P2 Sector Map. (The bounty weapon-type filter is DONE — v176, see above.)

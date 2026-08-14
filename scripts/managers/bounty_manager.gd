@@ -302,7 +302,31 @@ func claim_contract(contract_id: String) -> bool:
 	var sm = GameState.shipyard_manager
 	var pool = contract["reward_module_pool"]
 	if pool.size() > 0:
-		var base_id = pool[randi() % pool.size()]
+		# v176: the board is the game's DETERMINISTIC BRIDGE over drop RNG — m030d
+		# teaches it in so many words ("hunt contracts pay a GUARANTEED Rare module
+		# on claim"). It was only deterministic on RARITY. The base module was
+		# `pool[randi() % pool.size()]`: a uniform pick that ignored the player's
+		# loot filters entirely, while ordinary drops have honoured them since v135a.
+		# So the one system meant to break a gear wall handed you a random slot and a
+		# random damage type, and the wall it was supposed to bridge is exactly a
+		# TYPE wall — a Zone-N boss wants a weak-type Rare, and farming one is
+		# ~0.2%/kill, about 470 kills (measured v175). A board that ignores your
+		# filter is not a bridge, it is another lottery ticket.
+		#
+		# Routed through combat_manager.pick_drop_like_module(), which applies the
+		# research gate, the slot filter, the weapon-damage-type filter, the
+		# over-narrow fallback (so a claim NEVER pays nothing) and
+		# MODULE_DROP_WEIGHTS (which excludes batteries at weight 0). Shared, not
+		# copied: shipyard's v141 note records an inline duplicate of
+		# _legal_affix_pool silently diverging from the real rule. The Rare+ floor
+		# below is untouched, so a bounty is now precisely "a drop whose shape you
+		# chose, with the rarity guaranteed".
+		var cm = GameState.combat_manager
+		var base_id := ""
+		if cm:
+			base_id = str(cm.pick_drop_like_module(pool, sm))
+		if base_id == "":
+			base_id = str(pool[randi() % pool.size()])
 
 		# v74.0: Bounty High-Tier Rarity Floor (Rare+)
 		var is_boss = contract["difficulty"] >= 8

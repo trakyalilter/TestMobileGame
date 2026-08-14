@@ -3815,6 +3815,18 @@ func _focused_drop_pool(enemy_data: Dictionary, sm) -> Array:
 		focused.append(mod_id)
 	return focused if focused.size() > 0 else unlocked
 
+# v176: PUBLIC entry point for "pick a module the way a live drop would" — the
+# research gate, the slot filter, the weapon-damage-type filter, the over-narrow
+# fallback, and MODULE_DROP_WEIGHTS (which excludes batteries at weight 0), in one
+# call. Exists so the bounty board can award through the SAME rules as combat
+# without bounty_manager reaching into _focused_drop_pool/_pick_weighted_base or,
+# worse, growing its own copy of them — shipyard's v141 note records exactly that
+# copy silently diverging from the real rule. Returns "" if nothing is eligible.
+func pick_drop_like_module(pool: Array, sm) -> String:
+	if pool.is_empty():
+		return ""
+	return _pick_weighted_base(_focused_drop_pool({"module_drop_pool": pool}, sm), sm)
+
 # Weighted pick over a drop pool using MODULE_DROP_WEIGHTS by slot type.
 # Entries whose slot type has weight <= 0 (e.g. battery) can never drop,
 # even if present in an enemy's pool. Returns "" if nothing is eligible.

@@ -13,10 +13,10 @@ QoL/balance work).
 | | |
 |---|---|
 | `tools/boot_check.ps1` | **0 errors, 0 warnings** |
-| new guards | `chain_readiness_check` **PASS (6 boss beats)**, `vault_carry_check` **PASS (6 assertions)** |
+| new guards | `chain_readiness_check` **PASS (6 boss beats)**, `vault_carry_check` **PASS (6 assertions)**, `bounty_filter_check` **PASS (5 cases)** |
 | `chain_supply_check` | **PASS** — now prices recipe paths, not just direct drops |
 | `warp_layout_check` · `i18n_overflow_check` · `mission_i18n_check` | **PASS** |
-| funnel depth | **UNCHANGED vs baseline** (mean 78.3 both) — see the honest result below |
+| funnel depth | chain work moved it **not at all** (78.3 both). The **bounty filter fix took it to 81.7**, deepest single run `m033a1` (#85) — the only change all session that measurably moved the funnel |
 
 ### The finding: the chain hands over gear the guards assume it already gave
 
@@ -82,13 +82,10 @@ Now capped: `mini(weapon_slots, 4)`, frozen at the destroyer-era requirement, so
 add capacity but never move the gate. (A MAJORITY-of-slots variant was tried and rejected: seed
 4 went #74→#84 but seed 11 threw 24 walls losing to Zone-5 *trash*.)
 
-**The real remaining cause is acquisition rate**, unfixed: a weak-type Rare is
+**The real remaining cause was acquisition rate** — a weak-type Rare is
 `drop_chance × 11.5% rarity × ~1-of-7 pool weight` ≈ **0.2%/kill ≈ 470 kills**, and the chain's
-supposed deterministic bridge is not one — `bounty_manager.gd:305` picks
-`pool[randi() % pool.size()]`, guaranteed on *rarity* but random on *type*, while
-`_roll_one_module_drop` already honours the player's `loot_weapon_type_filter`. Making the
-bounty reward respect that filter is the obvious next move and was **not** taken (owner
-redirect to features).
+supposed deterministic bridge was not one. **Fixed below**, and that is what finally moved the
+funnel; the chain ladders did not.
 
 ### `chain_supply_check` priced the wrong path
 
@@ -100,6 +97,57 @@ turret drops 5–12 a kill → **~3 kills**. Now prices the cheapest **path** vi
 `effort > MAX_KILLS × ehp`. Algebraically identical on the direct path — every other row still
 prints its old kill count. Note the direction: where a recipe is cheaper the guard is strictly
 **more permissive**, never stricter.
+
+### The bounty board is finally the bridge it claimed to be — and it is what moved the funnel
+
+`m030d`'s mission text has always told the player the board is the deterministic way out of a
+gear wall: *"hunt contracts pay a GUARANTEED Rare module on claim."* It was guaranteed on
+**rarity only**. The base module came from `pool[randi() % pool.size()]` — a uniform pick that
+ignored the player's loot filters entirely, while ordinary drops have honoured them since
+v135a. The wall the board exists to bridge is a **type** wall, so a board that ignores the
+filter is not a bridge, it is another lottery ticket.
+
+`bounty_manager` now awards through a new public
+`combat_manager.pick_drop_like_module(pool, sm)`, which applies the research gate, the slot
+filter, the weapon-damage-type filter, the over-narrow fallback (a claim NEVER pays nothing)
+and `MODULE_DROP_WEIGHTS`. The Rare+ floor is untouched, so a bounty is now precisely "a drop
+whose shape you chose, with the rarity guaranteed". Shared, not copied — shipyard's v141 note
+records an inline duplicate of `_legal_affix_pool` silently diverging from the real rule.
+
+`bounty_filter_check` claims 60 real contracts per case through `claim_contract()`. Run against
+the OLD code it quantifies what was being wasted:
+
+| | before | after |
+|---|---|---|
+| weapons off-type (energy filter set) | 14 of 20 | **0** |
+| awards off-slot (weapon filter set) | 34 of 60 | **0** |
+| batteries awarded | 8 | **0** |
+
+Those batteries are the tell: live drops exclude them at weight 0, so the board was handing out
+rewards the drop system considers impossible.
+
+**Funnel effect, seeds 4/11/27 at 14 days** — and note this is UNDERSTATED, because
+`player_like` never sets loot filters at all, so the bot only benefits from the slot/battery
+half of the fix. A real player who filters gets the full effect.
+
+| config | s4 | s11 | s27 | mean | walls |
+|---|---|---|---|---|---|
+| before | #78 | #77 | #80 | 78.3 | 2/2/2 |
+| **bounty fix** | **#80** | **#80** | **#85** | **81.7** | **1/2/1** |
+
+### ⚠ REJECTED: teaching the bot to set the loot filter
+
+Making `player_like` point `loot_weapon_type_filter` at the boss's weak type when it enters the
+gear-farm branch looks strictly more faithful — the bot already computes that type there and
+prints it in `status`. **It measured worse and was removed**: mean **81.7 → 73.3**, seeds 4 and
+11 both #80 → #70, and seed 4 gained a new 55h wall on the *Zone 1* boss.
+
+Attribution required running the two changes SEPARATELY; the first run had both and was
+unreadable. Likely mechanism (inference, not measured): the filter persists and the bot only
+re-points it after losing to a new boss twice, so most farming runs biased toward the PREVIOUS
+boss's channel, starving the breadth `_boss_gear_ready` also needs. A retry must clear the focus
+when the objective changes, and be measured over more than three seeds. The table lives in
+`player_like.gd::_do_farm_rarity`'s note so the next person to have this idea sees it first.
 
 ### v176 feature: the Salvage Vault
 
@@ -144,10 +192,12 @@ purpose to confirm it bites; it also caught an unanticipated knock-on — a stri
 
 ### Next
 
-1. **Bounty weapon-type filter** — the one change that actually attacks the 470-kill hunt.
-2. **P3 for Z7–Z10** (Z1–Z6 already shipped in v139d, see the CLAUDE.md correction below).
-3. Live playtest of the Vault — the guard covers mechanics, not feel. Cap 8 is the number most
+1. **P3 for Z7–Z10** (Z1–Z6 already shipped in v139d, see the CLAUDE.md correction below).
+2. Live playtest of the Vault — the guard covers mechanics, not feel. Cap 8 is the number most
    likely to be wrong; it decides whether run 2's early zones stay interesting.
+3. The remaining walls are `m030f2` (Z3) and `m030i` (Z4), both still 30–100h dwell dominated by
+   offline blocks plus a multi-hour gear detour. The bounty fix helped but did not close them,
+   and `m030f2` sits upstream of every chain change made this session.
 
 ---
 
