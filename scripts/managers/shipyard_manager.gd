@@ -2665,6 +2665,192 @@ var modules: Dictionary = {
 		"stats": {"max_shield": 77286, "shield_regen": 3864},
 		"cost": {}, "desc": "Void-sovereign barrier field.", "zone": 10,
 		"set_id": "leviathans_crown", "is_unique": true
+	},
+
+	# ═══ v176 P5 — UTILITY UNIQUES (docs/design/UTILITY_UNIQUES.md) ═══════════
+	# Engine, sensor and battery were the only slots with no unique tier, and the
+	# reason is that each is a single scalar with one right answer: a unique
+	# battery that merely holds MORE is a dominated pickup the moment your power
+	# fits. So these grant MECHANICS, not magnitudes — one axis per slot, and the
+	# unique is the only source of it.
+	#
+	# NO set_id, deliberately. Every trinity set triggers at 3 pieces, so adding
+	# three more collectible pieces per zone would make nine tuned set bonuses
+	# easier to complete — power creep wearing a content-addition costume.
+	#
+	# PHASE DRIVE (engine) — the only item supplying enough evasion to move the
+	# dodge formula. The base ladder (eva 4->15) is worth a flat ~2.8% at EVERY
+	# tier because it rises exactly as fast as boss accuracy. eva sized for ~20%
+	# dodge against its own zone's boss: 0.25 x 150 x (1 + acc/100). Beats big
+	# slow hits (charge_nuke, volatile), loses to chip damage (corrosive_field) —
+	# a counter-pick, not an upgrade.
+	"z2_unique_engine": {
+		"name": "Monolith's Phase Drive", "slot_type": "engine", "rarity": 4,
+		"stats": {"eva": 54}, "cost": {}, "zone": 2, "is_unique": true,
+		"desc": "Lattice-slip drive. Evasion becomes a real defence."
+	},
+	"z3_unique_engine": {
+		"name": "Warmaster's Phase Drive", "slot_type": "engine", "rarity": 4,
+		"stats": {"eva": 62}, "cost": {}, "zone": 3, "is_unique": true,
+		"desc": "Martian slipstream vanes. Evasion becomes a real defence."
+	},
+	"z4_unique_engine": {
+		"name": "Overseer's Phase Drive", "slot_type": "engine", "rarity": 4,
+		"stats": {"eva": 69}, "cost": {}, "zone": 4, "is_unique": true,
+		"desc": "Cryo-glide thrusters. Evasion becomes a real defence."
+	},
+	"z5_unique_engine": {
+		"name": "Harbinger's Phase Drive", "slot_type": "engine", "rarity": 4,
+		"stats": {"eva": 79}, "cost": {}, "zone": 5, "is_unique": true,
+		"desc": "Xenon phase coils. Evasion becomes a real defence."
+	},
+	"z6_unique_engine": {
+		"name": "Colossus Phase Drive", "slot_type": "engine", "rarity": 4,
+		"stats": {"eva": 90}, "cost": {}, "zone": 6, "is_unique": true,
+		"desc": "Colony-forged displacement drive."
+	},
+	"z7_unique_engine": {
+		"name": "Sovereign's Phase Drive", "slot_type": "engine", "rarity": 4,
+		"stats": {"eva": 101}, "cost": {}, "zone": 7, "is_unique": true,
+		"desc": "Prismatic refraction drive — the ship is never quite where it looks."
+	},
+	"z8_unique_engine": {
+		"name": "Warden's Phase Drive", "slot_type": "engine", "rarity": 4,
+		"stats": {"eva": 113}, "cost": {}, "zone": 8, "is_unique": true,
+		"desc": "Crystal-lattice blink drive."
+	},
+	"z9_unique_engine": {
+		"name": "Titan's Phase Drive", "slot_type": "engine", "rarity": 4,
+		"stats": {"eva": 124}, "cost": {}, "zone": 9, "is_unique": true,
+		"desc": "Neutronium-braced evasion rig."
+	},
+	"z10_unique_engine": {
+		"name": "Leviathan's Phase Drive", "slot_type": "engine", "rarity": 4,
+		"stats": {"eva": 131}, "cost": {}, "zone": 10, "is_unique": true,
+		"desc": "Primordial fold-drive. You are not there."
+	},
+
+	# PREDICTIVE ARRAY (sensor) — a PITY TIMER. After `pity_kills` kills with no
+	# Rare+ module, the next module drop is floored to Rare. The counter resets on
+	# any Rare+ from any source, so it is a FLOOR and never a bonus. This is the
+	# itemization answer to the measured acquisition problem: a weak-type Rare is
+	# ~0.2%/kill, about 470 kills (v175). Turning a lottery into a schedule is the
+	# trade idle games actually run on. Base loot stats are 1.5x the tier's normal
+	# sensor so it is not a raw downgrade.
+	"z2_unique_sensor": {
+		"name": "Monolith's Augur", "slot_type": "sensor", "rarity": 4,
+		"stats": {"enemy_drop_mult": 0.17, "module_drop_mult": 0.38},
+		"pity_kills": 40, "cost": {}, "zone": 2, "is_unique": true,
+		"desc": "Reads the lattice. Salvage stops being luck."
+	},
+	"z3_unique_sensor": {
+		"name": "Warmaster's Augur", "slot_type": "sensor", "rarity": 4,
+		"stats": {"enemy_drop_mult": 0.21, "module_drop_mult": 0.45},
+		"pity_kills": 40, "cost": {}, "zone": 3, "is_unique": true,
+		"desc": "Battlefield salvage predictor."
+	},
+	"z4_unique_sensor": {
+		"name": "Overseer's Augur", "slot_type": "sensor", "rarity": 4,
+		"stats": {"enemy_drop_mult": 0.26, "module_drop_mult": 0.53},
+		"pity_kills": 40, "cost": {}, "zone": 4, "is_unique": true,
+		"desc": "Sees the wreck before it breaks."
+	},
+	"z5_unique_sensor": {
+		"name": "Harbinger's Augur", "slot_type": "sensor", "rarity": 4,
+		"stats": {"enemy_drop_mult": 0.30, "module_drop_mult": 0.60},
+		"pity_kills": 30, "cost": {}, "zone": 5, "is_unique": true,
+		"desc": "Xenon foresight lattice."
+	},
+	"z6_unique_sensor": {
+		"name": "Colossus Augur", "slot_type": "sensor", "rarity": 4,
+		"stats": {"enemy_drop_mult": 0.35, "module_drop_mult": 0.68},
+		"pity_kills": 30, "cost": {}, "zone": 6, "is_unique": true,
+		"desc": "Colony survey oracle."
+	},
+	"z7_unique_sensor": {
+		"name": "Sovereign's Augur", "slot_type": "sensor", "rarity": 4,
+		"stats": {"enemy_drop_mult": 0.39, "module_drop_mult": 0.75},
+		"pity_kills": 30, "cost": {}, "zone": 7, "is_unique": true,
+		"desc": "Prismatic probability lens."
+	},
+	"z8_unique_sensor": {
+		"name": "Warden's Augur", "slot_type": "sensor", "rarity": 4,
+		"stats": {"enemy_drop_mult": 0.44, "module_drop_mult": 0.83},
+		"pity_kills": 20, "cost": {}, "zone": 8, "is_unique": true,
+		"desc": "Quarantine-grade deep scanner."
+	},
+	"z9_unique_sensor": {
+		"name": "Titan's Augur", "slot_type": "sensor", "rarity": 4,
+		"stats": {"enemy_drop_mult": 0.48, "module_drop_mult": 0.90},
+		"pity_kills": 20, "cost": {}, "zone": 9, "is_unique": true,
+		"desc": "Chronometric salvage forecast."
+	},
+	"z10_unique_sensor": {
+		"name": "Leviathan's Augur", "slot_type": "sensor", "rarity": 4,
+		"stats": {"enemy_drop_mult": 0.53, "module_drop_mult": 0.98},
+		"pity_kills": 20, "cost": {}, "zone": 10, "is_unique": true,
+		"desc": "Primordial certainty. The void owes you, and it pays."
+	},
+
+	# OVERCHARGE CELL (battery) — unspent power becomes damage: +1% weapon damage
+	# per 5% of capacity left UNSPENT, capped by tier. Gives the v110 battery-only
+	# energy model a second dimension: power stops being pass/fail and becomes a
+	# dial (over-provision and run lighter ordnance, or fill the ship and take
+	# none). ONLY pays while every consumer slot is filled — otherwise it would
+	# reward flying half-equipped, which is a degenerate loop, not a build.
+	"z2_unique_battery": {
+		"name": "Monolith's Overcharge", "slot_type": "battery", "rarity": 4,
+		"stats": {"energy_capacity": 165}, "overcharge_cap": 0.10,
+		"cost": {}, "zone": 2, "is_unique": true,
+		"desc": "Spare capacity bleeds into the guns."
+	},
+	"z3_unique_battery": {
+		"name": "Warmaster's Overcharge", "slot_type": "battery", "rarity": 4,
+		"stats": {"energy_capacity": 363}, "overcharge_cap": 0.10,
+		"cost": {}, "zone": 3, "is_unique": true,
+		"desc": "Surplus routed to the firing coils."
+	},
+	"z4_unique_battery": {
+		"name": "Overseer's Overcharge", "slot_type": "battery", "rarity": 4,
+		"stats": {"energy_capacity": 798}, "overcharge_cap": 0.10,
+		"cost": {}, "zone": 4, "is_unique": true,
+		"desc": "Cryo-cooled surplus bus."
+	},
+	"z5_unique_battery": {
+		"name": "Harbinger's Overcharge", "slot_type": "battery", "rarity": 4,
+		"stats": {"energy_capacity": 1757}, "overcharge_cap": 0.18,
+		"cost": {}, "zone": 5, "is_unique": true,
+		"desc": "Xenon capacitor cascade."
+	},
+	"z6_unique_battery": {
+		"name": "Colossus Overcharge", "slot_type": "battery", "rarity": 4,
+		"stats": {"energy_capacity": 3866}, "overcharge_cap": 0.18,
+		"cost": {}, "zone": 6, "is_unique": true,
+		"desc": "Colony reactor tap."
+	},
+	"z7_unique_battery": {
+		"name": "Sovereign's Overcharge", "slot_type": "battery", "rarity": 4,
+		"stats": {"energy_capacity": 8504}, "overcharge_cap": 0.18,
+		"cost": {}, "zone": 7, "is_unique": true,
+		"desc": "Exotic-matter surplus loop."
+	},
+	"z8_unique_battery": {
+		"name": "Warden's Overcharge", "slot_type": "battery", "rarity": 4,
+		"stats": {"energy_capacity": 18710}, "overcharge_cap": 0.25,
+		"cost": {}, "zone": 8, "is_unique": true,
+		"desc": "Void-tapped power lattice."
+	},
+	"z9_unique_battery": {
+		"name": "Titan's Overcharge", "slot_type": "battery", "rarity": 4,
+		"stats": {"energy_capacity": 41160}, "overcharge_cap": 0.25,
+		"cost": {}, "zone": 9, "is_unique": true,
+		"desc": "Neutronium surplus reservoir."
+	},
+	"z10_unique_battery": {
+		"name": "Leviathan's Overcharge", "slot_type": "battery", "rarity": 4,
+		"stats": {"energy_capacity": 90554}, "overcharge_cap": 0.25,
+		"cost": {}, "zone": 10, "is_unique": true,
+		"desc": "Primordial reactor. Every spare watt is a wound."
 	}
 }
 
@@ -5726,6 +5912,54 @@ func _tally_set_piece(by_set: Dictionary, mid: String) -> void:
 	var d: Dictionary = by_set.get(sid, {})
 	d[st] = true
 	by_set[sid] = d
+
+# ═══ v176 P5 — Utility Unique accessors (docs/design/UTILITY_UNIQUES.md) ═════
+
+# Kills-without-a-Rare before the next module drop is floored to Rare, from the
+# best equipped Predictive Array. 0 = no pity timer. Lowest wins if somehow two
+# are equipped (an aux slot can hold a second sensor).
+func get_pity_kills() -> int:
+	var best := 0
+	for i in loadout:
+		var mid = loadout[i]
+		if not mid:
+			continue
+		var n := int((modules.get(str(mid), {}) as Dictionary).get("pity_kills", 0))
+		if n > 0 and (best == 0 or n < best):
+			best = n
+	return best
+
+# Overcharge Cell: +1% weapon damage per 5% of battery capacity left UNSPENT,
+# capped by the best equipped cell. Returns a multiplier (1.0 = no bonus).
+#
+# THE GATE IS THE DESIGN. Empty slots draw no power, so a naive "unspent
+# capacity" reading pays the player for flying half-equipped — strip the armour,
+# gain damage. That is a degenerate loop, not a build. The bonus therefore pays
+# NOTHING unless every consumer slot on the hull is filled, which makes it
+# measure genuine over-provisioning (more or better batteries) instead of
+# absence. See the failure-mode section of the spec.
+func get_overcharge_mult() -> float:
+	var cap := 0.0
+	for i in loadout:
+		var mid = loadout[i]
+		if not mid:
+			continue
+		cap = maxf(cap, float((modules.get(str(mid), {}) as Dictionary).get("overcharge_cap", 0.0)))
+	if cap <= 0.0:
+		return 1.0
+	var slots: Array = get_effective_slots()
+	for idx in range(slots.size()):
+		if not (str(slots[idx]) in CONSUMER_SLOT_TYPES):
+			continue
+		if not loadout.get(idx, null):
+			return 1.0     # a consumer bay is empty — no reward for an unfinished ship
+	if energy_capacity <= 0:
+		return 1.0
+	# +1% damage per 5% unspent => bonus fraction = unspent x (1/5) x ... i.e. x0.20.
+	# Written as the rule reads; do not "simplify" it into a chain of constants.
+	var unspent: float = clampf(float(energy_capacity - energy_used) / float(energy_capacity), 0.0, 1.0)
+	var bonus: float = minf(unspent * 0.20, cap)
+	return 1.0 + bonus
 
 func get_module_rarity(module_id: String) -> int:
 	var m = modules.get(module_id, {})

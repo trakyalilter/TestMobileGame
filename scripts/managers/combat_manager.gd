@@ -146,6 +146,11 @@ var hazard_state = {
 	"max_waves": 7,
 	"completed": false
 }
+# v176 P5: kills since the last Rare+ module reached the player. Drives the
+# Predictive Array pity timer (docs/design/UTILITY_UNIQUES.md). Per-RUN state,
+# not saved — a pity counter that persisted across a reload would let a player
+# bank kills by quitting, and it is cheap to re-earn.
+var pity_counter: int = 0
 var boss_kills: Dictionary = {} # {enemy_id: kill_count}
 var total_kills: int = 0 # all enemies defeated (active + offline) — telemetry + the offline-combat nudge
 var hazard_clears: Dictionary = {} # {hazard_zone_id: true}
@@ -213,7 +218,18 @@ const MIN_ATTACK_INTERVAL = 0.3           # Prevents infinite DPS
 # carries NO affixes (shipyard generate_module_drop) — so the best possible
 # Uncommon set sits below the worst Rare set by construction.
 const MAX_ATK_SPEED_MULT = 3.0            # Max 3x base fire rate
-const MAX_EVASION = 75                    # Enemies always ≥25% hit chance
+# v176 (P5 Utility Uniques): 75 -> 200. The stated guarantee — "enemies always
+# >=25% hit chance" — is enforced by the 0.75 clamp INSIDE the dodge formula
+# (do_enemy_attack), not by this stat cap, and 75 eva can never reach 0.75 dodge
+# anyway (75/(75+150) = 33% against a zero-accuracy enemy that does not exist).
+# So this constant was not defending its own comment; it was capping the ladder.
+# It mattered because the Phase Drive is the only item that supplies enough
+# evasion to move the formula at all — the base engine ladder is worth a flat
+# ~2.8% dodge at EVERY tier (4->15 eva rises exactly as fast as boss accuracy),
+# and at 75 the Z5-Z10 Phase Drives would all clip to the same value, making six
+# tiers of them identical. Guarded by utility_unique_check, which asserts the
+# 0.75 clamp still holds and reports any change to non-unique evasion builds.
+const MAX_EVASION = 200                   # Dodge itself is clamped at 0.75 in do_enemy_attack
 const MAX_CRIT_CHANCE = 0.50              # No guaranteed crit loops
 const MAX_CRIT_DAMAGE = 3.0               # Caps burst spikes
 const MAX_DAMAGE_REDUCTION = 0.80         # Explicit DEF ceiling
@@ -844,7 +860,7 @@ var enemy_db = {
 		# harder pulse. Soft-tier acceptance: must not change win rates at Rare.
 		"sustain": {"kind": "pulse", "every_s": 8.0, "pct": 0.05},
 		"loot": [["credits", 2000, 5000], ["Ti", 5, 12], ["Fe", 20, 40], ["Res1", 10, 20], ["Res2", 3, 6], ["PirateSalvage", 5, 12]],
-		"rare_loot": [["z2_unique_weapon", 0.03, 1, 1], ["z2_unique_armor", 0.03, 1, 1], ["z2_unique_shield", 0.03, 1, 1], ["faraday_hull", 0.03, 1, 1], ["SalvagedAlloy", 0.90, 3, 6], ["DamagedCircuitry", 0.90, 3, 6], ["z2_unique_kinetic", 0.03, 1, 1], ["z2_unique_energy", 0.03, 1, 1], ["z2_unique_missile", 0.03, 1, 1]],
+		"rare_loot": [["z2_unique_weapon", 0.03, 1, 1], ["z2_unique_armor", 0.03, 1, 1], ["z2_unique_shield", 0.03, 1, 1], ["faraday_hull", 0.03, 1, 1], ["SalvagedAlloy", 0.90, 3, 6], ["DamagedCircuitry", 0.90, 3, 6], ["z2_unique_kinetic", 0.03, 1, 1], ["z2_unique_energy", 0.03, 1, 1], ["z2_unique_missile", 0.03, 1, 1], ["z2_unique_engine", 0.03, 1, 1], ["z2_unique_sensor", 0.03, 1, 1], ["z2_unique_battery", 0.03, 1, 1]],
 		"boss_core": "Z2_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z2_kinetic", "z2_energy", "z2_shield", "z2_armor", "z2_battery", "z2_sensor"],
@@ -907,7 +923,7 @@ var enemy_db = {
 		# timing after any change here).
 		"enrage_at": 0.35, "enrage_atk_mult": 1.2,
 		"loot": [["credits", 5000, 10000], ["Steel", 20, 40], ["Ti", 10, 25], ["Res2", 5, 10], ["MartianRelics", 5, 12]],
-		"rare_loot": [["z3_unique_weapon", 0.03, 1, 1], ["z3_unique_armor", 0.03, 1, 1], ["z3_unique_shield", 0.03, 1, 1], ["z3_unique_kinetic", 0.03, 1, 1], ["z3_unique_energy", 0.03, 1, 1], ["z3_unique_missile", 0.03, 1, 1]],
+		"rare_loot": [["z3_unique_weapon", 0.03, 1, 1], ["z3_unique_armor", 0.03, 1, 1], ["z3_unique_shield", 0.03, 1, 1], ["z3_unique_kinetic", 0.03, 1, 1], ["z3_unique_energy", 0.03, 1, 1], ["z3_unique_missile", 0.03, 1, 1], ["z3_unique_engine", 0.03, 1, 1], ["z3_unique_sensor", 0.03, 1, 1], ["z3_unique_battery", 0.03, 1, 1]],
 		"boss_core": "Z3_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z3_kinetic", "z3_energy", "z3_missile", "z3_shield", "z3_armor", "z3_battery", "z3_sensor"],
@@ -1061,7 +1077,7 @@ var enemy_db = {
 		# e1/e2 dropped it — so boss farming yielded ZERO alloy progress, inverting
 		# the usual "the boss is the efficient farm" expectation into a dominated choice.
 		"loot": [["credits", 15000, 30000], ["Ti", 30, 60], ["AdvCircuit", 5, 12], ["Res2", 10, 20], ["CryoEssence", 5, 12], ["RimeplateScrap", 10, 20]],
-		"rare_loot": [["z4_unique_weapon", 0.03, 1, 1], ["z4_unique_armor", 0.03, 1, 1], ["z4_unique_shield", 0.03, 1, 1], ["z4_unique_kinetic", 0.03, 1, 1], ["z4_unique_energy", 0.03, 1, 1], ["z4_unique_missile", 0.03, 1, 1]],
+		"rare_loot": [["z4_unique_weapon", 0.03, 1, 1], ["z4_unique_armor", 0.03, 1, 1], ["z4_unique_shield", 0.03, 1, 1], ["z4_unique_kinetic", 0.03, 1, 1], ["z4_unique_energy", 0.03, 1, 1], ["z4_unique_missile", 0.03, 1, 1], ["z4_unique_engine", 0.03, 1, 1], ["z4_unique_sensor", 0.03, 1, 1], ["z4_unique_battery", 0.03, 1, 1]],
 		"boss_core": "Z4_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z4_kinetic", "z4_energy", "z4_missile", "z4_shield", "z4_armor", "z4_battery", "z4_sensor"],
@@ -1118,7 +1134,7 @@ var enemy_db = {
 		# (3/9 vs 4/9 mission-real — the band's softness predates the trait).
 		"sustain": {"kind": "nanite", "below": 0.30, "dur": 4.0, "hull_pct_per_s": 0.03},
 		"loot": [["credits", 50000, 100000], ["VoidArtifact", 10, 25], ["QuantumCore", 2, 5], ["Res2", 15, 30], ["XenoFragment", 5, 12]],
-		"rare_loot": [["z5_unique_weapon", 0.03, 1, 1], ["z5_unique_armor", 0.03, 1, 1], ["z5_unique_shield", 0.03, 1, 1], ["z5_unique_kinetic", 0.03, 1, 1], ["z5_unique_energy", 0.03, 1, 1], ["z5_unique_missile", 0.03, 1, 1]],
+		"rare_loot": [["z5_unique_weapon", 0.03, 1, 1], ["z5_unique_armor", 0.03, 1, 1], ["z5_unique_shield", 0.03, 1, 1], ["z5_unique_kinetic", 0.03, 1, 1], ["z5_unique_energy", 0.03, 1, 1], ["z5_unique_missile", 0.03, 1, 1], ["z5_unique_engine", 0.03, 1, 1], ["z5_unique_sensor", 0.03, 1, 1], ["z5_unique_battery", 0.03, 1, 1]],
 		"boss_core": "Z5_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z5_kinetic", "z5_energy", "z5_missile", "z5_shield", "z5_armor", "z5_battery", "z5_sensor"],
@@ -1184,7 +1200,7 @@ var enemy_db = {
 		# had. A boss should be the EFFICIENT farm for its own zone's material, so it
 		# pays ~10 regular kills' worth.
 		"loot": [["credits", 200000, 500000], ["Ir", 5, 12], ["Superalloy", 10, 25], ["Res3", 10, 20], ["ColonyDataCore", 2, 5], ["ColonySalvage", 20, 45]],
-		"rare_loot": [["z6_unique_weapon", 0.03, 1, 1], ["z6_unique_armor", 0.03, 1, 1], ["z6_unique_shield", 0.03, 1, 1], ["z6_unique_kinetic", 0.03, 1, 1], ["z6_unique_energy", 0.03, 1, 1], ["z6_unique_missile", 0.03, 1, 1]],
+		"rare_loot": [["z6_unique_weapon", 0.03, 1, 1], ["z6_unique_armor", 0.03, 1, 1], ["z6_unique_shield", 0.03, 1, 1], ["z6_unique_kinetic", 0.03, 1, 1], ["z6_unique_energy", 0.03, 1, 1], ["z6_unique_missile", 0.03, 1, 1], ["z6_unique_engine", 0.03, 1, 1], ["z6_unique_sensor", 0.03, 1, 1], ["z6_unique_battery", 0.03, 1, 1]],
 		"boss_core": "Z6_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z6_kinetic", "z6_energy", "z6_missile", "z6_shield", "z6_armor", "z6_battery", "z6_sensor"],
@@ -1261,7 +1277,7 @@ var enemy_db = {
 		# band-OPENING boss paid nothing toward the band it opens. A first-kill
 		# catalyst payout is the standard "you may now upgrade" beat.
 		"loot": [["credits", 1000000, 2000000], ["ExoticMatter", 15, 30], ["Os", 3, 8], ["Res3", 15, 30], ["ExoticIsotope", 20, 45], ["VoidCrystal", 20, 40]],
-		"rare_loot": [["z7_unique_weapon", 0.03, 1, 1], ["z7_unique_armor", 0.03, 1, 1], ["z7_unique_shield", 0.03, 1, 1], ["z7_unique_kinetic", 0.03, 1, 1], ["z7_unique_energy", 0.03, 1, 1], ["z7_unique_missile", 0.03, 1, 1]],
+		"rare_loot": [["z7_unique_weapon", 0.03, 1, 1], ["z7_unique_armor", 0.03, 1, 1], ["z7_unique_shield", 0.03, 1, 1], ["z7_unique_kinetic", 0.03, 1, 1], ["z7_unique_energy", 0.03, 1, 1], ["z7_unique_missile", 0.03, 1, 1], ["z7_unique_engine", 0.03, 1, 1], ["z7_unique_sensor", 0.03, 1, 1], ["z7_unique_battery", 0.03, 1, 1]],
 		"boss_core": "Z7_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z7_kinetic", "z7_energy", "z7_missile", "z7_shield", "z7_armor", "z7_battery", "z7_sensor"],
@@ -1323,7 +1339,7 @@ var enemy_db = {
 		# signature raw and refine_prismatic_alloy's sole feedstock. Same boss-farm
 		# inversion as Z4/Z6/Z7.
 		"loot": [["credits", 3000000, 6000000], ["VoidCrystal", 20, 50], ["Diamond", 2, 5], ["Res3", 20, 40], ["AntimatterParticle", 20, 45]],
-		"rare_loot": [["z8_unique_weapon", 0.03, 1, 1], ["z8_unique_armor", 0.03, 1, 1], ["z8_unique_shield", 0.03, 1, 1], ["z8_unique_kinetic", 0.03, 1, 1], ["z8_unique_energy", 0.03, 1, 1], ["z8_unique_missile", 0.03, 1, 1]],
+		"rare_loot": [["z8_unique_weapon", 0.03, 1, 1], ["z8_unique_armor", 0.03, 1, 1], ["z8_unique_shield", 0.03, 1, 1], ["z8_unique_kinetic", 0.03, 1, 1], ["z8_unique_energy", 0.03, 1, 1], ["z8_unique_missile", 0.03, 1, 1], ["z8_unique_engine", 0.03, 1, 1], ["z8_unique_sensor", 0.03, 1, 1], ["z8_unique_battery", 0.03, 1, 1]],
 		"boss_core": "Z8_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z8_kinetic", "z8_energy", "z8_missile", "z8_shield", "z8_armor", "z8_battery", "z8_sensor"],
@@ -1379,7 +1395,7 @@ var enemy_db = {
 		# v142d: Patient Zero did not drop BiohazardSample, Zone 9's signature raw and
 		# refine_bioforged_alloy's feedstock — the plague boss dropped no plague sample.
 		"loot": [["credits", 10000000, 20000000], ["Neutronium", 10, 25], ["PathogenCore", 3, 8], ["Res3", 30, 50], ["QuarantineClearance", 1, 1], ["BiohazardSample", 25, 50]],
-		"rare_loot": [["z9_unique_weapon", 0.03, 1, 1], ["z9_unique_armor", 0.03, 1, 1], ["z9_unique_shield", 0.03, 1, 1], ["z9_unique_kinetic", 0.03, 1, 1], ["z9_unique_energy", 0.03, 1, 1], ["z9_unique_missile", 0.03, 1, 1]],
+		"rare_loot": [["z9_unique_weapon", 0.03, 1, 1], ["z9_unique_armor", 0.03, 1, 1], ["z9_unique_shield", 0.03, 1, 1], ["z9_unique_kinetic", 0.03, 1, 1], ["z9_unique_energy", 0.03, 1, 1], ["z9_unique_missile", 0.03, 1, 1], ["z9_unique_engine", 0.03, 1, 1], ["z9_unique_sensor", 0.03, 1, 1], ["z9_unique_battery", 0.03, 1, 1]],
 		"boss_core": "Z9_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z9_kinetic", "z9_energy", "z9_missile", "z9_shield", "z9_armor", "z9_battery", "z9_sensor"],
@@ -1466,7 +1482,7 @@ var enemy_db = {
 		# and refine_aeon_alloy's feedstock. The final boss paid zero progress toward
 		# the final alloy — the sharpest form of the dominated-choice inversion.
 		"loot": [["credits", 50000000, 100000000], ["PrimordialShard", 20, 50], ["ChronoCore", 5, 12], ["CryoCatalyst", 10, 25], ["AeonResiduum", 25, 50]],
-		"rare_loot": [["z10_unique_weapon", 0.03, 1, 1], ["z10_unique_armor", 0.03, 1, 1], ["z10_unique_shield", 0.03, 1, 1], ["z10_unique_kinetic", 0.03, 1, 1], ["z10_unique_energy", 0.03, 1, 1], ["z10_unique_missile", 0.03, 1, 1]],
+		"rare_loot": [["z10_unique_weapon", 0.03, 1, 1], ["z10_unique_armor", 0.03, 1, 1], ["z10_unique_shield", 0.03, 1, 1], ["z10_unique_kinetic", 0.03, 1, 1], ["z10_unique_energy", 0.03, 1, 1], ["z10_unique_missile", 0.03, 1, 1], ["z10_unique_engine", 0.03, 1, 1], ["z10_unique_sensor", 0.03, 1, 1], ["z10_unique_battery", 0.03, 1, 1]],
 		"boss_core": "Z10_Core",
 		"module_drop_chance": 0.25,
 		"module_drop_pool": ["z10_kinetic", "z10_energy", "z10_missile", "z10_shield", "z10_armor", "z10_battery", "z10_sensor"],
@@ -2687,6 +2703,11 @@ func _rebuild_player_weapon_states() -> void:
 	# v119: Engineering skill no longer buffs weapon damage — combat damage is
 	# loadout/warp/research-driven (matches the balance model the sims use).
 
+	# v176 P5: Overcharge Cell — unspent power becomes damage. Computed once per
+	# fight setup rather than per weapon; sm owns the gate (all consumer slots
+	# filled) so a half-equipped ship earns nothing.
+	var _oc: float = sm.get_overcharge_mult()
+
 	for s_idx in sm.loadout:
 		var mid = sm.loadout[s_idx]
 		if mid and mid in sm.modules:
@@ -2712,10 +2733,14 @@ func _rebuild_player_weapon_states() -> void:
 					"timer": randf_range(0.0, 0.5),
 					"interval": m_stats.get("atk_interval", DEFAULT_ATTACK_INTERVAL),
 					# v107: Warp Mastery Tree — C2 Weapon Tuning (+10% module damage)
-					"dmg_k": m_stats.get("atk_kinetic", 0) * GameState.warp_manager.get_tree_damage_bonus(),
-					"dmg_e": m_stats.get("atk_energy", 0) * GameState.warp_manager.get_tree_damage_bonus(),
-					"dmg_x": m_stats.get("atk_explosive", 0) * GameState.warp_manager.get_tree_damage_bonus(),
-					"dmg_cryo": m_stats.get("atk_cryo", 0) * GameState.warp_manager.get_tree_damage_bonus() * (0.75 if has_map_mod("exotic_dampening") else 1.0),  # NG+ step 3: Exotic Dampening map-mod cuts the exotic channel
+					# v176 P5: x the Overcharge Cell bonus (unspent power -> damage).
+					# Applied HERE, beside the tree bonus, because this is where every
+					# weapon's damage is finalised for the fight — putting it in
+					# recalc_stats would miss, since sm.attack is not what resolve reads.
+					"dmg_k": m_stats.get("atk_kinetic", 0) * GameState.warp_manager.get_tree_damage_bonus() * _oc,
+					"dmg_e": m_stats.get("atk_energy", 0) * GameState.warp_manager.get_tree_damage_bonus() * _oc,
+					"dmg_x": m_stats.get("atk_explosive", 0) * GameState.warp_manager.get_tree_damage_bonus() * _oc,
+					"dmg_cryo": m_stats.get("atk_cryo", 0) * GameState.warp_manager.get_tree_damage_bonus() * _oc * (0.75 if has_map_mod("exotic_dampening") else 1.0),  # NG+ step 3: Exotic Dampening map-mod cuts the exotic channel
 					"slot_idx": int(s_idx),
 					"energy_load": m_stats.get("energy_load", 0)
 				})
@@ -3860,6 +3885,15 @@ func pick_drop_like_module(pool: Array, sm, weight_overrides: Dictionary = {}) -
 func _roll_one_module_drop(unlocked_pool: Array, sm) -> void:
 	var is_boss = current_enemy.get("is_boss", false)
 	var rarity = sm.roll_rarity(is_boss)
+	# v176 P5: PREDICTIVE ARRAY pity timer. After `pity_kills` kills with no Rare+,
+	# floor this roll to Rare. A FLOOR, never a bonus — pity_counter resets below on
+	# ANY Rare+ regardless of source, so a lucky streak does not bank credit toward
+	# the next guarantee. Sits here because this is the one function every module
+	# drop (online and offline) already routes through.
+	var _pity := int(sm.get_pity_kills())
+	if _pity > 0 and pity_counter >= _pity and rarity < sm.Rarity.RARE:
+		rarity = sm.Rarity.RARE
+		log_msg("PREDICTIVE ARRAY: salvage forecast met — Rare component recovered.")
 	# v136: Common = the "empty" roll (trash only — bosses never roll Common).
 	# Nothing drops; Common modules stay crafting-only. Makes real trash drops
 	# rarer without ever putting junk in the inventory.
@@ -3887,6 +3921,10 @@ func _roll_one_module_drop(unlocked_pool: Array, sm) -> void:
 		var zone_difficulty = int(current_zone.get("difficulty", 1))
 		var custom_id = sm.generate_module_drop(base_id, rarity, zone_difficulty)
 		if custom_id != "":
+			# v176 P5: any Rare+ that actually reaches the player resets the pity
+			# timer, whether it came from the guarantee or from luck.
+			if rarity >= sm.Rarity.RARE:
+				pity_counter = 0
 			var w_name = sm.modules[custom_id]["name"]
 			var rarity_color = sm.RARITY_COLORS[rarity]
 			var rarity_label = sm.RARITY_LABELS.get(rarity, "")
@@ -4251,6 +4289,9 @@ func win_fight():
 		session_loot[_ss] = session_loot.get(_ss, 0) + _salv[_ss]
 	enemy_defeated.emit(current_enemy["id"])
 	total_kills += 1
+	# v176 P5: counted AFTER the drop roll above, so the kill that pays out does
+	# not also advance the counter it just reset.
+	pity_counter += 1
 	_maybe_offline_combat_nudge()
 
 	# v86.0: Track boss kills for hazard zone unlocks
@@ -4786,6 +4827,7 @@ func reset(decay_factor: float = 1.0) -> void:
 		boss_kills = {}
 		hazard_clears = {}
 		total_kills = 0
+		pity_counter = 0   # v176 P5: per-run, cleared with the rest of the kill state
 		# Loot filters are saved/loaded but were never reset, so a New Game
 		# inherited the previous run's filters — a player who had filtered out
 		# Commons (or every type but one) started fresh with drops silently
