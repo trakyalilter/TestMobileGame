@@ -256,15 +256,18 @@ func _draw_tile_visual(item_name: String, slot_type: String, rarity: int, rarity
 	# v127: Hack Stones skip the chip entirely — the big hexagon shard IS the visual.
 	# v131c: chip 0.5 -> 0.58 of the tile — paired with the de-watermarked module
 	# glyphs (fill 0.16->0.34, strokes 0.55->0.92) so the icon is the scan cue again.
-	var em := TS * 0.58
+	# v163: emblem is PROPORTIONAL to the tile (anchors, not fixed offsets). The card
+	# now lands as a 2x2 spatial item (~216-270px via _keep_square), and the old fixed
+	# TS*0.58 = 37px chip rendered as a tiny speck lost in the socket slab — the whole
+	# armory read as empty brown boxes (first real render after the SIGSEGV era; the
+	# redesign shipped headless-verified only). 58% of the tile at ANY size restores
+	# the designed icon-forward proportion on both the armory grid and shipyard lists.
 	var is_stone: bool = (slot_type == "hack_stone")
 	var icon_parent: Control = tile_container
 	if not is_stone:
 		var emblem = Panel.new()
-		emblem.anchor_left = 0.5; emblem.anchor_right = 0.5
-		emblem.anchor_top = 0.5; emblem.anchor_bottom = 0.5
-		emblem.offset_left = -em * 0.5; emblem.offset_right = em * 0.5
-		emblem.offset_top = -em * 0.5 - 1.0; emblem.offset_bottom = em * 0.5 - 1.0
+		emblem.anchor_left = 0.21; emblem.anchor_right = 0.79
+		emblem.anchor_top = 0.21; emblem.anchor_bottom = 0.79
 		emblem.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var esb = StyleBoxFlat.new()
 		# Chip fill is near-neutral so RARITY (the frame) and SLOT (icon + chip rim)

@@ -2217,7 +2217,10 @@ func _page_for_mission(m: Dictionary) -> String:
 	match String(m.get("type", "")):
 		"research":
 			return "research"
-		"defeat", "drop_rarity", "drop_rarity_weapon":
+		# defeat_retreat (v143 m017 kill-then-disengage) is a combat ask like defeat —
+		# m017 has a bespoke ladder entry; this is the generic net for any future
+		# retreat-type beat added without one (dead-arrow guard).
+		"defeat", "drop_rarity", "drop_rarity_weapon", "defeat_retreat":
 			return "combat"
 		"build", "construct", "overclock_install":
 			return "infrastructure"

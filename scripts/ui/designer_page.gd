@@ -1422,10 +1422,15 @@ func _sync_slot_dimensions() -> void:
 	var cell: float = _spatial._cell_size()
 	if cell <= 8.0:
 		return   # grid not laid out yet — the resized signal will re-fire when it is
-	var s: float = 2.0 * cell + _spatial.GAP   # one 2x2 module footprint
+	# v163: CAP the bay at the classic 124px square (v131b). The v134g "bay == armory
+	# card footprint" parity made every equipped bay 2x cell ≈ 216px+ — rendered for
+	# the first time after the SIGSEGV era, the schematic read as vast empty boxes
+	# (owner: "what happened to the design"). The slot/ammo widget content (46px icons,
+	# labels) was authored for ~124px; keep the 2x2-footprint rule only as a FLOOR
+	# collapse guard on narrow grids.
+	var s: float = clampf(2.0 * cell + _spatial.GAP, 96.0, 124.0)
 	var sz := Vector2(s, s)
-	# module slots + ammo slots + both consumable slots — every equipped bay reads
-	# as the same square as an armory card.
+	# module slots + ammo slots + both consumable slots — uniform square bays.
 	for w in all_slot_widgets:
 		if is_instance_valid(w):
 			w.custom_minimum_size = sz
