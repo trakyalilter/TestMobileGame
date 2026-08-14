@@ -288,7 +288,11 @@ func init_missions():
 		# is not a grind cut, it is the grind moving onto the beat that honestly describes
 		# it. The hunt costs 4.5-17 min ACTIVE; the ~7.9h is one offline block the player
 		# sleeps through mid-hunt (offline combat is off by default, so it yields nothing).
-		["m026c", "Elite Salvage", "Defeated enemies drop gear of varying rarity. Farm Lunar Orbit until a RARE (blue) WEAPON drops — armor and shields will drop too, but the next refit needs a gun.", "drop_rarity_weapon", "2", 1, 5000, 500, "m026d"],
+		# v163: was drop_rarity_weapon (owner). A RARE specifically-a-weapon is the drop
+		# rate divided by the weapon share of the pool, so this beat was several times
+		# longer than the "get a rare drop" lesson it is actually teaching. Any Rare
+		# module now satisfies it; m026d still asks for a rare WEAPON to be equipped.
+		["m026c", "Elite Salvage", "Defeated enemies drop gear of varying rarity. Farm Lunar Orbit until a RARE (blue) module drops — a weapon, armor or shield all count.", "drop_rarity", "2", 1, 5000, 500, "m026d"],
 		# v131: Architect resists zeroed — chain goes straight to the boss fight; any
 		# RARE+ weapon type works. m026d2/d3 (the old explosive-forcing pair) stay
 		# DEFINED below for saves mid-arc, but no fresh game routes into them.

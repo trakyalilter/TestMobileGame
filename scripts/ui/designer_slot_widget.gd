@@ -177,22 +177,31 @@ func _arrange_module_square() -> void:
 	topbal.visible = true
 	# v163: the balancer must equal the socket band it balances, or the icon is pushed
 	# off-centre and squeezed. It was a hardcoded 32 against a 30px band.
-	topbal.custom_minimum_size = Vector2(0, MatrixCoreIcon.SOCKET_D + MatrixCoreIcon.SOCKET_ARC)
+	# v163b: THE BAY MUST STAY SQUARE. A PanelContainer grows past custom_minimum_size
+	# when its content's minimum exceeds it, and only on the axis that overflows — so
+	# any fixed icon floor that overran the vertical budget turned the 124 square into
+	# a 124-wide rectangle (owner: "why are these not square"). The vertical budget is
+	# stylebox 12 + margins 8 + separations 4 = 24 of overhead before any content, so
+	# the two 30px bands plus a 52px icon came to 136 and the bay stretched 12px.
+	#
+	# Fix: the socket band is reserved only when the module HAS sockets, and the top
+	# balancer always matches it so the icon stays optically centred. The icon keeps a
+	# SMALL floor and EXPAND_FILL, so it takes whatever is left instead of dictating
+	# the height — the bay can never overflow, and a socketless module (every early
+	# module) now spends that 60px on the icon rather than on empty balance bands.
+	var _sock_n := 0
+	var _mid_now = manager.loadout.get(slot_idx) if manager else null
+	if _mid_now != null and String(_mid_now) != "" and String(_mid_now) in manager.modules:
+		_sock_n = (manager.modules[String(_mid_now)].get("sockets", []) as Array).size()
+	var band: float = (MatrixCoreIcon.SOCKET_D + MatrixCoreIcon.SOCKET_ARC) if _sock_n > 0 else 0.0
+	topbal.custom_minimum_size = Vector2(0, band)
 
 	var ic = v.get_node_or_null("TypeIcon")
 	if ic:
 		ic.visible = true
-		# v163: real floor, not 16. EXPAND_FILL alone left the equipped icon at ~30px in
-		# a 124px bay (owner: gear cards mis-sized) because the slack landed in the
-		# container, not the TextureRect — KEEP_ASPECT_CENTERED then drew to the short
-		# axis. Budget is exact: 12 margin + 30 balancer + 52 icon + 30 sockets = 124,
-		# so the floor binds and any extra height still expands the icon.
-		ic.custom_minimum_size = Vector2(0, 52)
+		ic.custom_minimum_size = Vector2(0, 16)
 		ic.size_flags_vertical = Control.SIZE_EXPAND_FILL  # fills/centres the middle
-	# Reserve the socket band so the centred icon is the SAME size whether the
-	# module has 0, 1 or 3 sockets. v172: DERIVED from the icon geometry -- this was
-	# a hardcoded 22, already 2px under what the old 16px cores needed.
-	socket_anchor.custom_minimum_size = Vector2(0, MatrixCoreIcon.SOCKET_D + MatrixCoreIcon.SOCKET_ARC)
+	socket_anchor.custom_minimum_size = Vector2(0, band)
 
 	# Order: TopBalance → Icon (centre) → Sockets (arc).
 	var order := [topbal, ic, socket_anchor]

@@ -731,8 +731,19 @@ var enemy_db = {
 		"stats": {"hp": 120, "atk": 10.4, "def": 3, "atk_interval": 2.0, "accuracy": 18},
 		"loot": [["Fe", 2, 5], ["Cu", 1, 3], ["Res1", 1, 2], ["MiteChitin", 1, 3]],
 		"rare_loot": [["NavData", 0.25, 1, 1]],
-		"module_drop_chance": 0.30,
+		# v163: 0.30 -> 0.65 (owner: Lunar Orbit is the INTRODUCTION zone — reaching Rare
+		# gear should be fast here). Trash rolls Common ~50% of the time and Common is
+		# the EMPTY roll, so 0.30 meant only 15% of kills dropped anything and a Rare
+		# (8.5% of rolls) averaged ~39 kills — with m026c gated on exactly that drop.
+		# At 0.65 a module lands on ~1 kill in 3 and a Rare averages ~18.
+		"module_drop_chance": 0.65,
 		"module_drop_pool": ["z1_kinetic", "z1_shield", "z1_armor", "z1_battery"],
+		# v163: battery is weight 0 globally, so this pool is really 3 entries at 10
+		# each — a weapon was only 1/3 of drops, and m026d wants a RARE WEAPON, which
+		# put that beat at ~54 kills even after the drop-chance pass. Weapon 20 makes
+		# it half of all drops (~36 kills) without starving the shield/armor the
+		# combat-ready beats need. Intro-zone only: no other enemy sets this.
+		"module_drop_weights": {"weapon": 20},
 		"xp": 8, "zone": 1, "resist_k": -0.30, "resist_e": 0.0, "resist_x": 0.0, "dmg_type": "kinetic"
 	},
 
@@ -776,7 +787,10 @@ var enemy_db = {
 		# and a raised regular module chance below.
 		"rare_loot": [["SalvagedAlloy", 0.90, 2, 4], ["DamagedCircuitry", 0.90, 2, 4]],
 		"boss_core": "Z1_Core", "boss_core_qty": 2,
-		"module_drop_chance": 0.40,  # v143: 0.20 -> 0.40, replacing the removed unique chase with a real regular-module chase
+		# v143: 0.20 -> 0.40, replacing the removed unique chase with a real regular-module
+		# chase. v163: -> 0.60, matching the intro-zone drop pass on the Lunar Drone; the
+		# boss has no Common floor, so this is a straight 60% per roll.
+		"module_drop_chance": 0.60,
 		"module_drop_pool": ["z1_kinetic", "z1_shield", "z1_armor", "z1_engine", "z1_battery", "z1_sensor"],
 		# v131: resists ZEROED by design — the first boss is a pure rarity/tier check
 		# (any RARE+ weapon type kills it). Type-matching is taught earlier on the
@@ -2470,6 +2484,10 @@ func spawn_enemy():
 		"rare_loot": e_data.get("rare_loot", []),
 		"module_drop_chance": e_data.get("module_drop_chance", 0.0),
 		"module_drop_pool": e_data.get("module_drop_pool", []),
+		# v163: per-enemy slot-weight override, read by _pick_weighted_base. MUST be
+		# copied here — see the boss_core_qty and resist_cryo notes below; the fight
+		# logic reads current_enemy, never the def.
+		"module_drop_weights": e_data.get("module_drop_weights", {}),
 		"is_boss": e_data.get("is_boss", false),
 		"boss_core": e_data.get("boss_core", ""),
 		# v143: boss_core_qty was declared on z1_boss_architect (qty 2) but never
@@ -3843,7 +3861,7 @@ func _roll_one_module_drop(unlocked_pool: Array, sm) -> void:
 	# rarer without ever putting junk in the inventory.
 	if rarity == sm.Rarity.COMMON:
 		return
-	var base_id = _pick_weighted_base(unlocked_pool, sm)
+	var base_id = _pick_weighted_base(unlocked_pool, sm, current_enemy.get("module_drop_weights", {}))
 	if base_id == "":
 		return
 	var m_data = sm.modules.get(base_id, {})
@@ -3876,12 +3894,15 @@ func _roll_one_module_drop(unlocked_pool: Array, sm) -> void:
 	else:
 		log_msg("Filtered out %s (%s) module drop." % [sm.RARITY_LABELS.get(rarity, "Common"), slot_type.capitalize()])
 
-func _pick_weighted_base(pool: Array, sm: Object) -> String:
+func _pick_weighted_base(pool: Array, sm: Object, weight_overrides: Dictionary = {}) -> String:
 	var total := 0.0
 	var weighted := []
 	for mid in pool:
 		var st = sm.modules.get(mid, {}).get("slot_type", "weapon")
-		var w = float(MODULE_DROP_WEIGHTS.get(st, 10))
+		# v163: an enemy may override the global slot weights via "module_drop_weights"
+		# (see z1_lunar_drone). Per-slot, so an override for one type leaves the rest on
+		# the shared table. The bounty picker passes nothing and is unaffected.
+		var w = float(weight_overrides.get(st, MODULE_DROP_WEIGHTS.get(st, 10)))
 		if w <= 0.0:
 			continue
 		weighted.append([mid, w])

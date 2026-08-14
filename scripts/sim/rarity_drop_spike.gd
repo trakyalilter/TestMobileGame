@@ -26,6 +26,10 @@ func _boot() -> void:
 	_measure(sm, true,  "BOSS ")
 
 	print("[RD] === expected KILLS to first drop of each tier (trash) ===")
+	# v163: Lunar Orbit intro-zone pass — the drone's before/after, so the change is
+	# auditable here instead of only in a commit message.
+	_kills(sm, 0.30, "Z1 drone WAS dc=0.30 ")
+	_kills(sm, 0.65, "Z1 drone NOW dc=0.65 ")
 	_kills(sm, 0.10, "e3/e4  dc=0.10       ")
 	_kills(sm, 0.25, "e5     dc=0.25       ")
 	_kills(sm, 0.3125, "e5+Xeno dc=0.31      ")
