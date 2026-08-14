@@ -324,7 +324,11 @@ func claim_contract(contract_id: String) -> bool:
 		var cm = GameState.combat_manager
 		var base_id := ""
 		if cm:
-			base_id = str(cm.pick_drop_like_module(pool, sm))
+			# v163 merge: hand over the contract target's own slot-weight override, so a
+			# hunt contract rewards with the same slot mix that enemy's kills do (the
+			# Lunar Drone doubles weapon weight for intro-zone pacing).
+			var w_over: Dictionary = cm.enemy_db.get(str(contract.get("target", "")), {}).get("module_drop_weights", {})
+			base_id = str(cm.pick_drop_like_module(pool, sm, w_over))
 		if base_id == "":
 			base_id = str(pool[randi() % pool.size()])
 

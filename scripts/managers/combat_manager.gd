@@ -3840,10 +3840,14 @@ func _focused_drop_pool(enemy_data: Dictionary, sm) -> Array:
 # without bounty_manager reaching into _focused_drop_pool/_pick_weighted_base or,
 # worse, growing its own copy of them — shipyard's v141 note records exactly that
 # copy silently diverging from the real rule. Returns "" if nothing is eligible.
-func pick_drop_like_module(pool: Array, sm) -> String:
+# v163 merge: takes the same per-enemy `module_drop_weights` override _roll_one_module_drop
+# passes, so a hunt contract for an enemy rewards with THAT enemy's slot mix. Without it a
+# Zone-1 bounty would pay weapons at the global 1-in-3 while an actual Lunar Drone kill pays
+# 1-in-2, and the v163 intro-zone pacing pass would stop at the board's edge.
+func pick_drop_like_module(pool: Array, sm, weight_overrides: Dictionary = {}) -> String:
 	if pool.is_empty():
 		return ""
-	return _pick_weighted_base(_focused_drop_pool({"module_drop_pool": pool}, sm), sm)
+	return _pick_weighted_base(_focused_drop_pool({"module_drop_pool": pool}, sm), sm, weight_overrides)
 
 # Weighted pick over a drop pool using MODULE_DROP_WEIGHTS by slot type.
 # Entries whose slot type has weight <= 0 (e.g. battery) can never drop,
