@@ -197,3 +197,27 @@ bucket and were left untouched rather than reverted on stale evidence.
 `tools/sim_combat_math.gd` asserted a pre-v116 resist clamp of 0.50 and had
 been failing before this session's changes; it now asserts against the live
 `RESIST_MAX` / `_amp_resist` contract.
+
+### Provenance re-check (user directive: MissionFlow only)
+
+Every change in section F was re-traced to the MissionFlow-vendored sources in
+`tools/` (added by commits c258837 / 8fdfd5b, "Add MissionFlow reference
+managers" and "Add MissionFlow data export"):
+
+| Change | MissionFlow evidence |
+|---|---|
+| Research ×2 | `ref_research_manager.gd:21` `const MATERIAL_MULTIPLIER = 2.0` (+ the two-layer doc at L17, L27) |
+| CMB_5 Cryo Overcharge | `ref_warp_manager.gd:34` (cost 8, implemented) + `get_tree_cryo_bonus()` L195 = 1.50 |
+| Hunt payout | `ref_quest_manager.gd:161,169` — `pow(difficulty, 1.4)`, `× 10.0` |
+| Trophy buffs | consumed at `ref_combat_manager.gd:290-291`, `ref_gathering_manager.gd:314,462,489`, `ref_infrastructure_manager.gd:1445`, `ref_processing_manager.gd:1472,1547`, `ref_shipyard_manager.gd:1997,1998,2005,2012` |
+
+Removed as a result: the **research_speed** trophy buff. No MissionFlow manager
+ever calls `get_trophy_buff("research_speed")`, so it was dropped from
+`TROPHY_BUFFS` instead of being surfaced as a bonus that does nothing; the
+Trophies panel now states plainly that the Alpha Vanguard Trophy is a
+collectible with no active bonus.
+
+Caveat that remains: the trophy PERCENTAGES come from `bounty_manager`, which
+was never vendored — they were read off the desktop repo's indexed branch. The
+buff types and every consumer are MissionFlow-confirmed; only the numeric
+values rest on the sibling branch.

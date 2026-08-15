@@ -6957,7 +6957,7 @@ func _trophy_status(v: VBoxContainer) -> void:
 	var labels := {
 		"gathering_xp": "Gathering XP", "mining_yield": "Gathering yield",
 		"processing_xp": "Engineering XP", "ship_speed": "Ship attack speed",
-		"research_speed": "Research speed", "infrastructure_yield": "Building yield",
+		"infrastructure_yield": "Building yield",
 		"energy_dmg": "Energy damage", "kinetic_dmg": "Kinetic damage",
 		"evasion": "Evasion",
 	}
@@ -6976,6 +6976,9 @@ func _trophy_status(v: VBoxContainer) -> void:
 			GameData.res_name("Trophy_Epsilon")], GOLD if epsilon else C_MUTED, "Trophy_Epsilon"))
 	_inset(v, "TROPHY PASSIVES  ·  %d of %d held" % [owned + (1 if epsilon else 0), lines.size()], lines, GOLD, owned > 0)
 	_lbl_wrap(v, "Trophies are never consumed — crafting one and keeping it in storage is all that's needed.", 10, C_DIM)
+	# Alpha is craftable but no system reads its bonus (same as desktop), so say
+	# so rather than let it look like a missing passive.
+	_lbl_wrap(v, "%s is a collectible — it carries no active bonus." % GameData.res_name("Trophy_Alpha"), 10, C_MUTED)
 
 func _page_boost_cards(v: VBoxContainer, skill_id: String, accent: String) -> void:
 	var lvl := GameState.level_of(skill_id)

@@ -857,12 +857,14 @@ func add_xp(skill_id: String, amt: int) -> void:
 # Owning a trophy grants a standing passive; the Void Conqueror Trophy adds a
 # global +5% on top of EVERY buff type. Trophies are crafted, never consumed —
 # holding one is the whole requirement.
+# Only the buff types the desktop managers actually CONSUME are listed. Desktop
+# also defines a "research_speed" trophy (Alpha), but no manager ever queries
+# it, so it is deliberately absent here rather than faked into a bonus.
 const TROPHY_BUFFS := {
 	"gathering_xp": ["Trophy_Lunar", 0.25],
 	"mining_yield": ["Trophy_Belt", 0.20],
 	"processing_xp": ["Trophy_Mars", 0.25],
 	"ship_speed": ["Trophy_Titan", 0.10],
-	"research_speed": ["Trophy_Alpha", 0.15],
 	"infrastructure_yield": ["Trophy_Beta", 0.20],
 	"energy_dmg": ["Trophy_Gamma", 0.15],
 	"kinetic_dmg": ["Trophy_Delta", 0.15],
