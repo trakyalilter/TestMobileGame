@@ -61,6 +61,11 @@ const TREE_NODES := {
 		"desc": "Adds one extra module slot that accepts ANY module type (weapon, shield, armor, battery…).", "implemented": true, "prereq": ["CMB_2"]},
 	"CMB_4": {"branch": "combat", "cost": 6, "name": "Matrix Core IV",
 		"desc": "Unlocks the Resonant matrix-core tier (2x Pristine) — drops in the endgame zones.", "implemented": true, "prereq": ["CMB_3"]},
+	# Desktop C5 (warp_manager v109): the Cryo amplifier. Cryo weapons themselves
+	# unlock on the first Warp; this overcharges them for the Z11 Warp-Hardened
+	# gate. Stacks on top of CMB_2's general damage bonus.
+	"CMB_5": {"branch": "combat", "cost": 8, "name": "Cryo Overcharge",
+		"desc": "+50% Cryo damage. (Cryo weapons unlock on your first Warp — this overcharges them.)", "implemented": true, "prereq": ["CMB_4"]},
 	"CMB_S1": {"branch": "combat", "cost": 2, "step": 1, "repeatable": true, "name": "Arsenal Doctrine",
 		"desc": "+6% module damage per level.", "implemented": true, "prereq": ["CMB_1"]},
 	# ===== RECURSION (revealed at warp #2) — each warp is faster, cheaper, pays more =====
@@ -86,7 +91,7 @@ const BRANCH_REVEAL_WARP := {"engineering": 1, "combat": 2, "recursion": 2}
 # Display order per branch (prereqs listed before their dependents).
 const TREE_BRANCH_ORDER := {
 	"engineering": ["ENG_1", "ENG_S1", "ENG_2", "ENG_S2", "ENG_3", "ENG_4", "ENG_5", "ENG_6"],
-	"combat": ["CMB_1", "CMB_S1", "CMB_2", "CMB_3", "CMB_4"],
+	"combat": ["CMB_1", "CMB_S1", "CMB_2", "CMB_3", "CMB_4", "CMB_5"],
 	"recursion": ["REC_1", "REC_S1", "REC_S2", "REC_S3", "REC_2", "REC_6", "REC_4"],
 }
 # v121/v134h: Warp-Core Charge — the player manually feeds surplus base materials
@@ -634,7 +639,7 @@ func tree_damage_bonus() -> float:
 	m *= 1.0 + 0.06 * float(get_node_level("CMB_S1"))            # CMB_S1 spine
 	return m
 func tree_cryo_bonus() -> float:
-	return 1.0   # C5 Cryo Overcharge removed in tree v2 — no-op keeps combat math intact
+	return 1.50 if is_node_purchased("CMB_5") else 1.0   # desktop C5 Cryo Overcharge
 func tree_card_drop_bonus() -> float:
 	return minf(0.08 * float(get_node_level("REC_S3")), 0.80)  # REC_S3 (future Hack Cards)
 func tree_shard_score_mult() -> float:
@@ -848,6 +853,31 @@ func add_xp(skill_id: String, amt: int) -> void:
 	if after > before and not _suppress_fx:
 		level_up.emit(skill_id, after)   # not while applying offline — the report covers it
 
+# ---------------- Trophy buffs (desktop bounty_manager.get_trophy_buff) ------
+# Owning a trophy grants a standing passive; the Void Conqueror Trophy adds a
+# global +5% on top of EVERY buff type. Trophies are crafted, never consumed —
+# holding one is the whole requirement.
+const TROPHY_BUFFS := {
+	"gathering_xp": ["Trophy_Lunar", 0.25],
+	"mining_yield": ["Trophy_Belt", 0.20],
+	"processing_xp": ["Trophy_Mars", 0.25],
+	"ship_speed": ["Trophy_Titan", 0.10],
+	"research_speed": ["Trophy_Alpha", 0.15],
+	"infrastructure_yield": ["Trophy_Beta", 0.20],
+	"energy_dmg": ["Trophy_Gamma", 0.15],
+	"kinetic_dmg": ["Trophy_Delta", 0.15],
+	"evasion": ["Trophy_Zeta", 0.10],
+}
+
+func trophy_buff(kind: String) -> float:
+	var mult := 1.0
+	var row: Array = TROPHY_BUFFS.get(kind, [])
+	if row.size() == 2 and amount(String(row[0])) > 0:
+		mult += float(row[1])
+	if amount("Trophy_Epsilon") > 0:
+		mult += 0.05                                       # Void Conqueror: global
+	return mult
+
 func yield_mult(skill_id: String) -> float:
 	if skill_id != "harvesting":
 		return 1.0 + level_of(skill_id) * 0.01
@@ -858,6 +888,7 @@ func yield_mult(skill_id: String) -> float:
 	m *= 1.0 + affix_total("extractor_efficiency")
 	m *= 1.0 + research_bonus("gathering_yield_mult")      # Recursion: gathering_focus
 	m *= tree_gathering_bonus()                            # ENG_S1 Resource Surge spine (+6%/L)
+	m *= trophy_buff("mining_yield")                       # Belt Warden Trophy +20%
 	# NB: warp prestige boosts gathering via SPEED (see gather_speed_mult), not yield.
 	return m
 
@@ -985,6 +1016,7 @@ func ship_stats() -> Dictionary:
 	s.acc += affix_total("flat_accuracy")
 	s.crit += affix_total("combat_sight")
 	s.eva += affix_total("reflexive_plating")
+	s.eva *= trophy_buff("evasion")            # Zeta Purifier Trophy +10%
 	dps += affix_total("flat_atk")
 	s.atk = dps * (1.0 + spd_bonus) * spd_mult + float(h.get("atk", 0))
 	s["atk_speed_bonus"] = spd_bonus
@@ -1047,7 +1079,7 @@ func ship_weapons() -> Array:
 			spd_mult *= float(st["atk_speed_mult"])
 	# v80.1 Trinity: atk-speed boost (capped), and damage multipliers.
 	spd_bonus = minf(spd_bonus + trinity_bonus("atk_speed_pct") / 100.0, MAX_ATK_SPEED_MULT - 1.0)
-	var speed := (1.0 + spd_bonus) * spd_mult
+	var speed := (1.0 + spd_bonus) * spd_mult * trophy_buff("ship_speed")   # Titan Overlord Trophy +10%
 	var dmg_mult := (1.0 + level_of("combat") * 0.005) * warp_combat_mult() * (1.0 + research_bonus("combat_damage")) * tree_damage_bonus()  # CMB_2 +10% & CMB_S1 spine
 	if is_research_unlocked("void_weaponry_1"):
 		dmg_mult *= 1.05                                   # Void Weaponry I: +5% ship damage
@@ -1072,6 +1104,8 @@ func ship_weapons() -> Array:
 		elif kx > 0: type = "explosive"
 		var gk := 1.0 + gem_bonus("atk_kinetic_mult")
 		var ge := 1.0 + gem_bonus("atk_energy_mult")
+		gk *= trophy_buff("kinetic_dmg")      # Delta Sentinel Trophy +15%
+		ge *= trophy_buff("energy_dmg")       # Gamma Ravager Trophy +15%
 		out.append({"name": m.get("name", "Weapon"), "type": type, "slot": str(k), "mid": String(loadout[k]),
 			"dmg_k": kk * eng_mult * dmg_mult * gk * trin_all,
 			"dmg_e": ke * eng_mult * dmg_mult * ge * trin_all * trin_e,
@@ -2289,7 +2323,11 @@ func _gen_hunt(mind: int, maxd: int, elite: bool) -> Dictionary:
 	var diff := int(z.get("difficulty", 1))
 	var base_xp := float(e.get("xp", 10))
 	var qty := 1 if elite else randi_range(5, 20)
-	var reward := int(base_xp * 300.0 * pow(diff, 1.5)) if elite else int(base_xp * qty * 5.0 * pow(diff, 1.8))
+	# Desktop v107 sweep payout: base_xp × qty × 10.0 × difficulty^1.4. The old
+	# mobile constant (5.0, ^1.8) underpaid low-tier combat contracts badly —
+	# a Z1 sweep earned a fraction of an idle gather order per minute, quietly
+	# teaching new players to skip combat. Elite is a mobile-only tier, untouched.
+	var reward := int(base_xp * 300.0 * pow(diff, 1.5)) if elite else int(base_xp * qty * 10.0 * pow(diff, 1.4))
 	var title := ("★ ELITE: %s" % e["name"]) if elite else ("Hunt: %s" % e["name"])
 	var desc := "Destroy %s%d %s in %s." % ["the ELITE " if elite else "", qty, e["name"], z.get("name", "")]
 	return {"id": _gen_bid(), "type": "hunt", "title": title, "desc": desc,
@@ -3018,7 +3056,7 @@ func _produce_batch(bid: String, count: int, d: Dictionary, gyb: Dictionary) -> 
 	var ore := _ore_throttle(bid)           # P1.4 ore tier handed to gathering
 	var mastery_m := building_mastery_mult(bid)   # Building Mastery output bonus (constant this cycle)
 	for res in d.get("yield", {}):
-		var qty := float(d["yield"][res]) * units * eng * ore * (1.0 + float(gyb.get(res, 0.0))) * warp_production_mult() * net_mult * tree_infra_bonus() * mastery_m
+		var qty := float(d["yield"][res]) * units * eng * ore * (1.0 + float(gyb.get(res, 0.0))) * warp_production_mult() * net_mult * tree_infra_bonus() * mastery_m * trophy_buff("infrastructure_yield")
 		_build_frac[res] = float(_build_frac.get(res, 0.0)) + qty
 		var whole := int(_build_frac[res])
 		if whole > 0:
@@ -3821,14 +3859,30 @@ func research_available(rid: String) -> bool:
 	# old total_warps>0 check but the flag is the real semantic gate.
 	if bool(t.get("requires_warp", false)) and not cryo_unlocked:
 		return false
-	return credits >= int(t.get("credits", 0)) and can_afford(t.get("items", {}))
+	return credits >= int(t.get("credits", 0)) and can_afford(research_items(rid))
+
+## Desktop research_manager applies MATERIAL_MULTIPLIER (2.0) to a tech's item
+## costs at spend/display time — tech_tree's authored quantities are HALF the
+## intended curve on purpose, and the ×2 compounds them back up. Our data export
+## carries those pre-×2 quantities verbatim, so the multiplier lives here, in one
+## place, exactly like desktop ("keep these two layers the only sources of
+## truth"). Credits are NOT multiplied. Revert by setting this to 1.0.
+const RESEARCH_MATERIAL_MULT := 2.0
+
+## A tech's EFFECTIVE item costs (post-multiplier) — the numbers the player pays
+## and the UI must show.
+func research_items(rid: String) -> Dictionary:
+	var out := {}
+	for sym in GameData.RESEARCH.get(rid, {}).get("items", {}):
+		out[sym] = int(ceil(float(GameData.RESEARCH[rid]["items"][sym]) * RESEARCH_MATERIAL_MULT))
+	return out
 
 func unlock_research(rid: String) -> bool:
 	if not research_available(rid):
 		return false
 	var t: Dictionary = GameData.RESEARCH[rid]
 	credits -= int(t.get("credits", 0))
-	spend(t.get("items", {}))
+	spend(research_items(rid))
 	unlocked_research[rid] = true
 	# A research_multi mission bundles several techs but only pays out on claim —
 	# which left players unable to afford the LATER techs in the bundle (the old
@@ -5242,7 +5296,7 @@ func _complete_active() -> void:
 	if active_type == "gather":
 		var a: Dictionary = GameData.GATHER[active_id]
 		_roll_loot(a.get("loot", []), yield_mult("harvesting"), int(research_bonus("gathering_yield")) + tree_gathering_flat(), false, true)
-		add_xp("harvesting", int(a.get("xp", 0)))
+		add_xp("harvesting", int(int(a.get("xp", 0)) * trophy_buff("gathering_xp")))
 		gain_mastery_xp(active_id)                          # per-action Mastery: +1 per loop
 	elif active_type == "craft":
 		var r: Dictionary = GameData.CRAFT[active_id]
@@ -5252,7 +5306,7 @@ func _complete_active() -> void:
 			return
 		spend(eff_in)
 		_grant_craft_outputs(active_id, r, 1)
-		add_xp("fabrication", int(r.get("xp", 0)))
+		add_xp("fabrication", int(int(r.get("xp", 0)) * trophy_buff("processing_xp")))
 		gain_mastery_xp(active_id)                          # per-recipe Mastery: +1 per loop
 	else:
 		return
@@ -5326,7 +5380,7 @@ func _apply_offline(delta: float) -> void:
 		var a: Dictionary = GameData.GATHER[active_id]
 		var summary := _offline_loot(a.get("loot", []), yield_mult("harvesting"), reps, false, true,
 				int(research_bonus("gathering_yield")) + tree_gathering_flat())
-		add_xp("harvesting", int(a.get("xp", 0)) * reps)
+		add_xp("harvesting", int(int(a.get("xp", 0)) * reps * trophy_buff("gathering_xp")))
 		gain_mastery_xp(active_id, float(reps))             # batch Mastery for offline loops
 		pending_offline = "Away for %s\n\n%s\nHarvesting XP\t+%d" % [_fmt_time(delta), summary, int(a.get("xp", 0)) * reps]
 	elif active_type == "craft":
@@ -5348,7 +5402,7 @@ func _apply_offline(delta: float) -> void:
 			var made := amount(sym) - int(before[sym])
 			rows.append("%s\t+%s" % [GameData.res_name(sym), GameData.fmt(made)])
 		var summary := "\n".join(rows)
-		add_xp("fabrication", int(r.get("xp", 0)) * count)
+		add_xp("fabrication", int(int(r.get("xp", 0)) * count * trophy_buff("processing_xp")))
 		gain_mastery_xp(active_id, float(count))            # batch Mastery for offline loops
 		pending_offline = "Away for %s\n%s\nEngineering XP\t+%d" % [_fmt_time(delta), summary, int(r.get("xp", 0)) * count]
 

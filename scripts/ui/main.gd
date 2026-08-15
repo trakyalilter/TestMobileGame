@@ -2342,6 +2342,10 @@ func _build_craft() -> void:
 		_subtabs(v, GameData.CRAFT_CATS, craft_cat, CYAN, func(id: String) -> void:
 			craft_cat = id
 			_refresh_current())
+		# Trophies are passives, not materials — holding one grants a standing
+		# bonus forever, so the page states which are active and what each grants.
+		if craft_cat == "trophies":
+			_trophy_status(v)
 		# Munitions mixes three ammo damage types (Slugs=kinetic, Cells=energy,
 		# Missiles=explosive); a second-level filter jumps to the matching type.
 		if craft_cat == "munitions":
@@ -5678,8 +5682,9 @@ func _research_detail_body(v: VBoxContainer, close: Callable, id: String) -> voi
 	var lines := []
 	var cred := int(t.get("credits", 0))
 	lines.append(_line("₡ Credits   %s / %s" % [GameData.fmt(GameState.credits), GameData.fmt(cred)], GREEN if GameState.credits >= cred else C_WARN))
-	for sym in t.get("items", {}):
-		var need := int(t["items"][sym])
+	var eff_items := GameState.research_items(id)   # post ×2 material multiplier
+	for sym in eff_items:
+		var need := int(eff_items[sym])
 		var have := GameState.amount(sym)
 		lines.append(_line("%s   %s / %d" % [GameData.res_name(sym), GameData.fmt(have), need], GREEN if have >= need else C_WARN, sym))
 	_inset(v, "REQUIREMENTS", lines, PURP)
@@ -6946,6 +6951,32 @@ func _skill_banner(v: VBoxContainer, title: String, skill_id: String, accent: St
 # Page-level info cards (desktop parity): LEVEL BONUS — what this page's skill
 # level currently grants and what the next milestones/unlocks are — and MASTERY —
 # a summary of the per-action mastery progression on this page.
+# Trophy passives: owning the trophy IS the requirement — it is never consumed.
+# Lists every trophy buff with its owned/missing state.
+func _trophy_status(v: VBoxContainer) -> void:
+	var labels := {
+		"gathering_xp": "Gathering XP", "mining_yield": "Gathering yield",
+		"processing_xp": "Engineering XP", "ship_speed": "Ship attack speed",
+		"research_speed": "Research speed", "infrastructure_yield": "Building yield",
+		"energy_dmg": "Energy damage", "kinetic_dmg": "Kinetic damage",
+		"evasion": "Evasion",
+	}
+	var lines: Array = []
+	var owned := 0
+	for kind in GameState.TROPHY_BUFFS:
+		var row: Array = GameState.TROPHY_BUFFS[kind]
+		var sym := String(row[0])
+		var has := GameState.amount(sym) > 0
+		if has:
+			owned += 1
+		lines.append(_line("%s %s  +%d%%  ·  %s" % ["✔" if has else "·", labels.get(kind, kind),
+				int(float(row[1]) * 100.0), GameData.res_name(sym)], GOLD if has else C_MUTED, sym))
+	var epsilon := GameState.amount("Trophy_Epsilon") > 0
+	lines.append(_line("%s Every bonus above  +5%%  ·  %s" % ["✔" if epsilon else "·",
+			GameData.res_name("Trophy_Epsilon")], GOLD if epsilon else C_MUTED, "Trophy_Epsilon"))
+	_inset(v, "TROPHY PASSIVES  ·  %d of %d held" % [owned + (1 if epsilon else 0), lines.size()], lines, GOLD, owned > 0)
+	_lbl_wrap(v, "Trophies are never consumed — crafting one and keeping it in storage is all that's needed.", 10, C_DIM)
+
 func _page_boost_cards(v: VBoxContainer, skill_id: String, accent: String) -> void:
 	var lvl := GameState.level_of(skill_id)
 	var lines: Array = []

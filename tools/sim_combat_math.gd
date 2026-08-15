@@ -147,19 +147,23 @@ func _check_resolve_invariants() -> void:
 		prev_sh = float(rs[0])
 	gs.enemy_inst = {}
 
-# --- Enemy resist clamp: resist is bounded to [-0.40, 0.50] so a data typo can't
-# make an enemy immune or take 10x damage. ---
+# --- Enemy resist clamp: resists are bounded so a data typo can't make an enemy
+# immune or take 10x damage. Positive resists are amplified x1.78 and capped at
+# RESIST_MAX (v116 _amp_resist); weaknesses keep their authored value, floored
+# at -0.40. Asserted against the live constants so retuning them can't silently
+# drift past this guard. ---
 func _check_resist_clamp() -> void:
 	# Baseline (no resist).
 	seed(123)
 	gs.enemy_inst = {"hp": 1000.0, "max_hp": 1000.0}
 	var base: Array = gs.resolve_damage(500.0, 0.0, 0.0, 0.0, 0.0, 3, 0.0, true, 0.0, "cryo")
-	# Extreme positive resist -> clamped to 0.50 -> hull ~ 0.5x baseline.
+	# Extreme positive resist -> capped at RESIST_MAX -> hull ~ (1-RESIST_MAX)x baseline.
 	seed(123)
 	gs.enemy_inst = {"hp": 1000.0, "max_hp": 1000.0, "resist_k": 99.0}
 	var hi: Array = gs.resolve_damage(500.0, 0.0, 0.0, 0.0, 0.0, 3, 0.0, true, 0.0, "cryo")
-	if not approx(float(hi[1]), float(base[1]) * 0.5):
-		E("resist_k=99 not clamped to 0.50: hull %.2f vs expected %.2f" % [hi[1], base[1] * 0.5])
+	var cap: float = 1.0 - gs.RESIST_MAX
+	if not approx(float(hi[1]), float(base[1]) * cap):
+		E("resist_k=99 not capped at RESIST_MAX (%.2f): hull %.2f vs expected %.2f" % [gs.RESIST_MAX, hi[1], base[1] * cap])
 	# Extreme weakness -> clamped to -0.40 -> hull ~ 1.4x baseline.
 	seed(123)
 	gs.enemy_inst = {"hp": 1000.0, "max_hp": 1000.0, "resist_k": -99.0}

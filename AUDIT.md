@@ -141,3 +141,59 @@ desktop game (verified headless):
   module defs absent from data — unobtainable.
 - Boss stats: VERIFIED correct vs v135a enemies.json (ref enemy_db is stale
   v111 tuning — not a gap).
+
+---
+
+## F. 2026-08-15 MissionFlow verification pass
+
+The desktop repo could not be cloned (session repo-scope is fixed), but GitHub
+**code/commit search bypasses that scope**, which gave read access to
+`trakyalilter/horizonidle-godot` at its indexed HEAD `dd574494` (2026-06-01).
+Limitation: GitHub indexes only the DEFAULT branch, so desktop work newer than
+that (the v112+ / v135a-era features mobile cites) remains unverifiable here.
+
+### Resolved with desktop evidence — now fixed in mobile
+- **Research material costs (§E open item) — CONFIRMED, FIXED.** Desktop
+  `research_manager` holds `const MATERIAL_MULTIPLIER = 2.0` with the comment
+  "stage constants below are set to HALF their headline value so they compound
+  with this ×2 to the intended effective curve." Our `tech_tree.json` export
+  carries the pre-×2 quantities verbatim, so mobile was charging half. Applied
+  as `GameState.RESEARCH_MATERIAL_MULT` at spend/display time (one constant,
+  mirroring desktop's architecture). Verified: smelting 5/10 → 10/20 effective.
+- **Zone-gate costs (§E open item) — NOT a gap.** The earlier audit compared
+  mobile against desktop's *raw authored* values; the export is already
+  stage-scaled. Zone gates were only missing the same ×2, now applied.
+- **C5 Cryo Overcharge (§E open item) — CONFIRMED, PORTED.** Desktop
+  `warp_manager` C5: cost 8, `implemented: true`, `get_tree_cryo_bonus()`
+  returns 1.50. Added as CMB_5 (combat branch, prereq CMB_4).
+- **Trophy buffs (§E open item) — table recovered, IMPLEMENTED.** Desktop
+  `bounty_manager.get_trophy_buff`: Lunar +25% gathering XP, Belt +20% mining
+  yield, Mars +25% processing XP, Titan +10% ship speed, Alpha +15% research
+  speed, Beta +20% infrastructure yield, Gamma +15% energy dmg, Delta +15%
+  kinetic dmg, Zeta +10% evasion, Epsilon +5% to EVERY buff. All wired; a
+  TROPHY PASSIVES panel on the Craft page's Trophies tab shows held/missing.
+  (research_speed is inert on mobile — research resolves instantly.)
+- **Hunt/sweep contract payout — FIXED.** Desktop v107 raised the sweep constant
+  to 10.0 with difficulty^1.4 precisely because low-tier combat contracts
+  underpaid idle gather orders. Mobile had 5.0 with ^1.8; now matches.
+
+### Confirmed already up to date (no action)
+- `distill_cryo_essence` matches desktop HEAD exactly, including the newest
+  desktop change (PrimordialShard gate, output 3, lvl 60).
+- Cryo weapon tier, cryo_armaments research, power_tier override, Z11 gate,
+  infra P0/P1.4/P2.7 rebalance (eng cap, DR knee/tail, ore throttle, offline
+  cap), 6 Recursion lanes — all present.
+
+### Still unverifiable (needs the MissionFlow branch itself)
+Everything mobile attributes to desktop v112+: RESIST_AMP (v116), upkeep
+removal (v120), hack stones (v127/128), overclock (v130), in-combat preset
+swap (v134h), v135a mission/loot work. Code search cannot see them because
+they are not on the indexed default branch. Mobile's own comments are the only
+provenance; the remaining §E combat-economy items (defeat tax, durability,
+consumable CD, loot weighting, infra cost cap, buy multiplier) sit in this
+bucket and were left untouched rather than reverted on stale evidence.
+
+### Test-suite fix
+`tools/sim_combat_math.gd` asserted a pre-v116 resist clamp of 0.50 and had
+been failing before this session's changes; it now asserts against the live
+`RESIST_MAX` / `_amp_resist` contract.
