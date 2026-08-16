@@ -778,6 +778,8 @@ func execute_warp() -> int:
 	if int(module_inventory.get("cryo_shard_pistol", 0)) <= 0:
 		module_inventory["cryo_shard_pistol"] = 1
 	cryo_unlocked = true
+	# v113/v137: the Warp is what opens the next NG+ frontier sector.
+	_reveal_ng_sectors()
 	combat_hp = combat_max_hp()
 	generate_bounty_pool()
 	# Standing Orders are zone-tiered + track inventory — regenerate against the
@@ -3874,12 +3876,24 @@ func research_available(rid: String) -> bool:
 ## truth"). Credits are NOT multiplied. Revert by setting this to 1.0.
 const RESEARCH_MATERIAL_MULT := 2.0
 
-## A tech's EFFECTIVE item costs (post-multiplier) — the numbers the player pays
-## and the UI must show.
+## v104/v135b: drop-gated tokens and zone boss cores are EXEMPT. Multiplying them
+## silently turned "Z2_Core: 1" into "kill the gate boss twice" — an untelegraphed
+## tax that contradicts the mission text handing you the core you just salvaged.
+const RESEARCH_NON_SCALING := ["NavData", "SalvageData", "VoidArtifact", "ColonyDataCore",
+	"QuarantineClearance", "BiohazardSample", "AncientTech", "ExoticMatter"]
+
+func _research_item_scalable(sym: String) -> bool:
+	if sym in RESEARCH_NON_SCALING:
+		return false
+	return not sym.ends_with("_Core")               # Z1_Core .. Z10_Core
+
+## A tech's EFFECTIVE item costs — the numbers the player pays and the UI must
+## show. ONE helper so the affordability CHECK and the PAYMENT can never disagree.
 func research_items(rid: String) -> Dictionary:
 	var out := {}
 	for sym in GameData.RESEARCH.get(rid, {}).get("items", {}):
-		out[sym] = int(ceil(float(GameData.RESEARCH[rid]["items"][sym]) * RESEARCH_MATERIAL_MULT))
+		var q := int(GameData.RESEARCH[rid]["items"][sym])
+		out[sym] = int(q * RESEARCH_MATERIAL_MULT) if _research_item_scalable(String(sym)) else q
 	return out
 
 func unlock_research(rid: String) -> bool:
@@ -4083,6 +4097,29 @@ func _event(text: String, color: String, side: String) -> void:
 	_event_seq += 1
 	while combat_events.size() > 14:
 		combat_events.pop_front()
+
+# v113/v137 NG+ clear table: frontier boss -> the flag its death sets, plus the
+# signpost telling the player a Warp is what opens the next sector.
+const NG_CLEAR_TABLE := {
+	"z11_boss_threshold_warden": ["z11_cleared", "FRONTIER BREACHED — Warp to push into Sector 12, The Rift."],
+	"z12_boss_rift_warden": ["z12_cleared", "THE RIFT YIELDS — Warp to breach Sector 13, The Verdigris Reach."],
+	"z13_boss_verdigris_warden": ["z13_cleared", "VERDIGRIS CLEARED — Warp to breach Sector 14, The Dissolution."],
+	"z14_boss_dissolution_tyrant": ["z14_cleared", "DISSOLUTION ENDED — Warp to breach Sector 15, The Caustic Core."],
+}
+# Each entry: cleared-flag -> unlocked-flag + the reveal message.
+const NG_REVEAL := [
+	["z11_cleared", "z12_unlocked", "SECTOR 12 UNLOCKED — THE RIFT. Cryo then Corrosion phases; swap presets mid-fight."],
+	["z12_cleared", "z13_unlocked", "SECTOR 13 UNLOCKED — THE VERDIGRIS REACH. Corrosion then Cryo — swap the other way."],
+	["z13_cleared", "z14_unlocked", "SECTOR 14 UNLOCKED — THE DISSOLUTION. Three phases: Cryo → Corrosion → Cryo."],
+	["z14_cleared", "z15_unlocked", "SECTOR 15 UNLOCKED — THE CAUSTIC CORE. Corrosion → Cryo → Corrosion."],
+]
+
+## Warp-time frontier reveal: every cleared sector opens the next one.
+func _reveal_ng_sectors() -> void:
+	for r in NG_REVEAL:
+		if game_flags.get(String(r[0]), false) and not game_flags.get(String(r[1]), false):
+			game_flags[String(r[1])] = true
+			_event(String(r[2]), "8fdcff", "player")
 
 func _tick_combat(delta: float) -> void:
 	if enemy_inst.is_empty():
@@ -4692,10 +4729,14 @@ func _win_combat() -> void:
 	if killed_id == "z10_boss_leviathan" and not game_flags.get("z11_unlocked", false):
 		game_flags["z11_unlocked"] = true
 		_event("SECTOR 11 DETECTED", "8cd9ff", "player")
-	# v0.2.1 NG+ P3: clearing the Z11 Threshold Warden reveals Zone 12 "The Rift".
-	if killed_id == "z11_boss_threshold_warden" and not game_flags.get("z12_unlocked", false):
-		game_flags["z12_unlocked"] = true
-		_event("SECTOR 12 — THE RIFT DETECTED", "8fdcff", "player")
+	# v113/v137 NG+ ladder: a frontier boss kill only marks its sector CLEARED —
+	# the next sector opens on your next Warp (see _reveal_ng_sectors). One table
+	# drives Z12-Z15; flags persist through Warp and clear only on hard reset.
+	if NG_CLEAR_TABLE.has(killed_id):
+		var cf: String = String(NG_CLEAR_TABLE[killed_id][0])
+		if not game_flags.get(cf, false):
+			game_flags[cf] = true
+			_event(String(NG_CLEAR_TABLE[killed_id][1]), "8fdcff", "player")
 	# v86.0 Hazard gauntlet progression: advance the wave instead of re-engaging.
 	if hazard_state.get("active", false):
 		hazard_state["wave"] = int(hazard_state["wave"]) + 1

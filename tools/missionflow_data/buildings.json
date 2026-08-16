@@ -7,17 +7,17 @@
       "Superalloy": 120,
       "credits": 2000000
     },
-    "description": "+1.2 AdvCircuit (-5 Circuit, -4 Si, -2 Germanium)",
+    "description": "+1.2 AdvCircuit (-2.4 Semiconductor, -1.2 Au, -2.4 StructuralComponent)",
     "energy_cons": 3500.0,
     "energy_gen": 0.0,
     "input": {
-      "Circuit": 5,
-      "Germanium": 2,
-      "Si": 4
+      "Au": 1.2,
+      "Semiconductor": 2.4,
+      "StructuralComponent": 2.4
     },
     "interval": 5.0,
     "name": "Advanced Circuit Foundry",
-    "research_req": "nano_fabrication",
+    "research_req": "automation",
     "yield": {
       "AdvCircuit": 1.2
     }
@@ -46,26 +46,48 @@
       "Steel": 100,
       "credits": 125000
     },
-    "description": "+3.1 Slug T2 (-3.1 Steel, -1.3 Al)",
+    "description": "+3.1 Slug T2 (-3.1 Steel, -1.3 Al, -0.155 Rimeplate Scrap)",
     "energy_cons": 2500.0,
     "energy_gen": 0.0,
     "input": {
       "Al": 1.3,
+      "RimeplateScrap": 0.155,
       "Steel": 3.1
     },
     "interval": 5.0,
     "name": "Advanced Ballistics Plant",
-    "research_req": "processing_tungsten",
+    "research_req": "zone_4_access",
     "yield": {
       "SlugT2": 3.1
+    }
+  },
+  "alumina_line": {
+    "category": "industry",
+    "cost": {
+      "Circuit": 120,
+      "Steel": 1000,
+      "credits": 400000
+    },
+    "description": "+3 Al (-4.5 Bauxite, -3 O) — feeds the Chromium Forge and Nano-Substrate Lab.",
+    "energy_cons": 500.0,
+    "energy_gen": 0.0,
+    "input": {
+      "Bauxite": 4.5,
+      "O": 3.0
+    },
+    "interval": 5.0,
+    "name": "Alumina Reduction Line",
+    "research_req": "industrial_chemistry",
+    "yield": {
+      "Al": 3.0
     }
   },
   "antimatter_generator": {
     "category": "power",
     "cost": {
-      "QuantumCore": 10,
-      "VoidArtifact": 50,
-      "credits": 25000000
+      "QuantumCore": 25,
+      "VoidArtifact": 100,
+      "credits": 80000000
     },
     "description": "+16000000.0 kW (-1 Quantum Core)",
     "energy_cons": 0.0,
@@ -77,12 +99,34 @@
     "name": "Antimatter Generator",
     "research_req": "quantum_dynamics"
   },
+  "au_refinery": {
+    "category": "industry",
+    "cost": {
+      "Circuit": 80,
+      "Steel": 1200,
+      "credits": 700000
+    },
+    "description": "+1.5 Au (-40 Dirt, -40 Water)",
+    "energy_cons": 1000.0,
+    "energy_gen": 0.0,
+    "input": {
+      "Dirt": 40,
+      "Water": 40
+    },
+    "interval": 5.0,
+    "name": "Gold Refinery",
+    "research_req": "industrial_electrolysis",
+    "yield": {
+      "Au": 1.5
+    }
+  },
   "auto_excavator": {
     "category": "extraction",
     "cost": {
       "Fe": 2000,
-      "Si": 5000,
-      "credits": 250000
+      "Si": 1200,
+      "Z1_Core": 2,
+      "credits": 12000
     },
     "description": "+10 Dirt",
     "energy_cons": 15.0,
@@ -104,13 +148,13 @@
     "energy_cons": 1500.0,
     "energy_gen": 0.0,
     "input": {
-      "C": 4.2
+      "C": 10.5
     },
     "interval": 5.0,
     "name": "Automated Carbon Press",
     "research_req": "molecular_compression",
     "yield": {
-      "Graphite": 0.8
+      "Graphite": 2.0
     }
   },
   "auto_smelter": {
@@ -195,9 +239,9 @@
   "bauxite_miner": {
     "category": "extraction",
     "cost": {
-      "Superalloy": 100,
-      "Ti": 500,
-      "credits": 1000000
+      "AdvCircuit": 130,
+      "Ti": 450,
+      "credits": 2200000
     },
     "description": "+2.5 Bauxite (Industrial)",
     "energy_cons": 4500.0,
@@ -212,9 +256,10 @@
   "bio_harvester": {
     "category": "extraction",
     "cost": {
-      "Circuit": 50,
-      "Steel": 500,
-      "credits": 250000
+      "Circuit": 60,
+      "Steel": 900,
+      "Z2_Core": 2,
+      "credits": 45000
     },
     "description": "Automated wood collection.",
     "energy_cons": 40.0,
@@ -231,7 +276,7 @@
     "cost": {
       "Circuit": 20,
       "Steel": 200,
-      "credits": 150000
+      "credits": 35000
     },
     "description": "+1000.0 kW (-5 Wood)",
     "energy_cons": 0.0,
@@ -243,37 +288,135 @@
     "name": "Biomass Plant",
     "research_req": "combustion"
   },
-  "biosphere_dome": {
-    "category": "logistics",
+  "bioreactor_vat": {
+    "category": "industry",
     "cost": {
-      "FertileSoil": 10,
-      "Si": 50,
-      "Steel": 150,
-      "credits": 30000
+      "Neutronium": 30,
+      "QuantumCore": 25,
+      "Superalloy": 1200,
+      "credits": 35000000
     },
-    "description": "+5% Gather Speed",
-    "energy_cons": 50.0,
+    "description": "+0.2 Bio-Reactor Core (-6 Biohazard Sample, -0.5 Pathogen Core, -1 Quantum Core)",
+    "energy_cons": 160000.0,
     "energy_gen": 0.0,
-    "max": 5,
-    "name": "Biosphere Dome",
-    "research_req": "industrial_logistics",
-    "special": "gather_speed_buff"
+    "input": {
+      "BiohazardSample": 6,
+      "PathogenCore": 0.5,
+      "QuantumCore": 1
+    },
+    "interval": 10.0,
+    "name": "Bio-Reactor Vat",
+    "research_req": "neutronium_synthesis",
+    "yield": {
+      "BioReactorCore": 0.2
+    }
   },
   "brine_extractor": {
     "category": "extraction",
     "cost": {
-      "Superalloy": 100,
-      "Ti": 500,
-      "credits": 1000000
+      "AdvCircuit": 120,
+      "Steel": 1800,
+      "credits": 1500000
     },
-    "description": "+1.7 Spodumene (Efficient)",
-    "energy_cons": 120.0,
+    "description": "+1.7 Lithium Ore (Efficient)",
+    "energy_cons": 300.0,
     "energy_gen": 0.0,
     "interval": 5.0,
     "name": "Lithium Brine Well",
-    "research_req": "basic_engineering",
+    "research_req": "metallurgy_advanced",
     "yield": {
       "Spodumene": 1.7
+    }
+  },
+  "bus_assembly_hall": {
+    "category": "industry",
+    "cost": {
+      "AdvCircuit": 900,
+      "PrecisionLattice": 300,
+      "Superalloy": 2500,
+      "credits": 55000000
+    },
+    "description": "+0.2 Fabrication Bus (-0.5 Precision Lattice, -0.25 Adv Circuit, -0.3 Chip, -0.45 Diamond Wafer) — feeds the Capital Spar Works.",
+    "energy_cons": 120000.0,
+    "energy_gen": 0.0,
+    "input": {
+      "AdvCircuit": 0.25,
+      "Chip": 0.3,
+      "DiamondWafer": 0.45,
+      "PrecisionLattice": 0.5
+    },
+    "interval": 10.0,
+    "name": "Fabrication Bus Assembly Hall",
+    "research_req": "precision_fabrication",
+    "yield": {
+      "FabricationBus": 0.2
+    }
+  },
+  "capital_spar_works": {
+    "category": "industry",
+    "cost": {
+      "AdvCircuit": 2000,
+      "FabricationBus": 150,
+      "PrecisionLattice": 400,
+      "Superalloy": 5000,
+      "credits": 160000000
+    },
+    "description": "+0.2 Capital Spar (-0.25 Fabrication Bus, -2 Galvanized Steel, -0.4 Composite Weave) — feeds the Dreadnought Frame Yard.",
+    "energy_cons": 300000.0,
+    "energy_gen": 0.0,
+    "input": {
+      "CompositeWeave": 0.4,
+      "FabricationBus": 0.25,
+      "GalvanizedSteel": 2.0
+    },
+    "interval": 10.0,
+    "name": "Capital Spar Works",
+    "research_req": "dreadnought_yards",
+    "yield": {
+      "CapitalSpar": 0.2
+    }
+  },
+  "carbide_sintering_press": {
+    "category": "industry",
+    "cost": {
+      "Steel": 6000,
+      "Superalloy": 300,
+      "W": 500,
+      "credits": 6000000
+    },
+    "description": "+0.8 Sintered Carbide (-1 Graphite, -1.2 W, -0.32 Co) — feeds the Precision Lattice Mill.",
+    "energy_cons": 8000.0,
+    "energy_gen": 0.0,
+    "input": {
+      "Co": 0.32,
+      "Graphite": 1.0,
+      "W": 1.2
+    },
+    "interval": 5.0,
+    "name": "Carbide Sintering Press",
+    "research_req": "refractory_metallurgy",
+    "yield": {
+      "SinteredCarbide": 0.8
+    }
+  },
+  "carbon_fiber_spinner": {
+    "category": "industry",
+    "cost": {
+      "Circuit": 80,
+      "Steel": 800,
+      "credits": 300000
+    },
+    "description": "+3 Fiber (-9 C) — feeds the Composite Loom.",
+    "energy_cons": 350.0,
+    "energy_gen": 0.0,
+    "input": {
+      "C": 9.0
+    },
+    "interval": 5.0,
+    "name": "Carbon Fiber Spinner",
+    "research_req": "industrial_chemistry",
+    "yield": {
+      "Fiber": 3.0
     }
   },
   "catalyst_chamber": {
@@ -292,6 +435,29 @@
     "research_req": "industrial_catalysis",
     "special": "global_catalyst"
   },
+  "chip_fab": {
+    "category": "industry",
+    "cost": {
+      "Circuit": 150,
+      "Steel": 2500,
+      "Superalloy": 100,
+      "credits": 1500000
+    },
+    "description": "+0.8 Chip (-1.6 Semiconductor, -0.8 Au, -4 N)",
+    "energy_cons": 2400.0,
+    "energy_gen": 0.0,
+    "input": {
+      "Au": 0.8,
+      "N": 4,
+      "Semiconductor": 1.6
+    },
+    "interval": 5.0,
+    "name": "Chip Fabrication Line",
+    "research_req": "automation",
+    "yield": {
+      "Chip": 0.8
+    }
+  },
   "chromite_excavator": {
     "category": "extraction",
     "cost": {
@@ -307,7 +473,7 @@
     "name": "Chromite Excavator",
     "research_req": "superalloy_engineering",
     "yield": {
-      "Chromite": 0.2
+      "Chromite": 0.5
     }
   },
   "chromium_forge": {
@@ -364,6 +530,27 @@
     "interval": 10.0,
     "name": "Carbon Generator",
     "research_req": "combustion"
+  },
+  "cobalt_refinery": {
+    "category": "industry",
+    "cost": {
+      "AdvCircuit": 150,
+      "Steel": 2000,
+      "credits": 850000
+    },
+    "description": "Extracts cobalt from pentlandite sulfide — the co-metal to nickel, essential for superalloys.",
+    "energy_cons": 1500.0,
+    "energy_gen": 0.0,
+    "input": {
+      "C": 0.8,
+      "Pentlandite": 2.5
+    },
+    "interval": 5.0,
+    "name": "Cobalt Refinery",
+    "research_req": "superalloy_engineering",
+    "yield": {
+      "Co": 1.5
+    }
   },
   "composite_loom": {
     "category": "industry",
@@ -427,18 +614,65 @@
   "deep_crust_drill": {
     "category": "extraction",
     "cost": {
-      "Superalloy": 100,
-      "Ti": 500,
-      "credits": 1000000
+      "AdvCircuit": 100,
+      "Steel": 1600,
+      "credits": 1400000
     },
     "description": "+1.7 Malachite (Heavy)",
-    "energy_cons": 120.0,
+    "energy_cons": 300.0,
     "energy_gen": 0.0,
     "interval": 5.0,
     "name": "Deep-Crust Drill",
-    "research_req": "basic_engineering",
+    "research_req": "metallurgy_advanced",
     "yield": {
       "Malachite": 1.7
+    }
+  },
+  "diamond_litho_hall": {
+    "category": "industry",
+    "cost": {
+      "AdvCircuit": 1600,
+      "DiamondWafer": 120,
+      "PrecisionLattice": 200,
+      "Superalloy": 3500,
+      "credits": 90000000
+    },
+    "description": "+0.1 Superior Circuit (-2.4 Diamond Wafer, -4.8 Adv Circuit, -0.8 Precision Lattice, -2.4 Au).",
+    "energy_cons": 200000.0,
+    "energy_gen": 0.0,
+    "input": {
+      "AdvCircuit": 4.8,
+      "Au": 2.4,
+      "DiamondWafer": 2.4,
+      "PrecisionLattice": 0.8
+    },
+    "interval": 10.0,
+    "name": "Diamond Lithography Hall",
+    "research_req": "precision_fabrication",
+    "yield": {
+      "SuperiorCircuit": 0.1
+    }
+  },
+  "diamond_press": {
+    "category": "industry",
+    "cost": {
+      "AdvCircuit": 250,
+      "Steel": 7000,
+      "Superalloy": 400,
+      "credits": 9000000
+    },
+    "description": "+0.5 Diamond (-20 Carbon, -1 Graphite) — synthesises stones from the carbon line.",
+    "energy_cons": 24000.0,
+    "energy_gen": 0.0,
+    "input": {
+      "C": 20.0,
+      "Graphite": 1.0
+    },
+    "interval": 5.0,
+    "name": "Diamond Press",
+    "research_req": "molecular_compression",
+    "yield": {
+      "Diamond": 0.5
     }
   },
   "dolomite_quarry": {
@@ -458,26 +692,11 @@
       "Dolomite": 0.8
     }
   },
-  "drone_bay": {
-    "category": "logistics",
-    "cost": {
-      "Circuit": 10,
-      "Ti": 20,
-      "credits": 5000
-    },
-    "description": "+Scrap (Zone Scavenging)",
-    "energy_cons": 150.0,
-    "energy_gen": 0.0,
-    "max": 1,
-    "name": "Drone Recovery Bay",
-    "research_req": "automated_logistics",
-    "special": "passive_gather"
-  },
   "electronics_assembler": {
     "category": "industry",
     "cost": {
-      "Circuit": 100,
-      "SalvageData": 20,
+      "Circuit": 40,
+      "SalvageData": 12,
       "Ti": 50,
       "credits": 25000
     },
@@ -529,6 +748,31 @@
     "name": "Fission Reactor",
     "research_req": "radiation_shielding"
   },
+  "frame_yard": {
+    "category": "industry",
+    "cost": {
+      "AdvCircuit": 4000,
+      "CapitalSpar": 60,
+      "NeutroniumPlate": 200,
+      "Superalloy": 9000,
+      "Z9_Core": 4,
+      "credits": 350000000
+    },
+    "description": "+0.1 Dreadnought Frame (-0.4 Capital Spar, -0.3 Neutronium Plate, -0.6 Precision Lattice) — the Zone 10 module anchor.",
+    "energy_cons": 600000.0,
+    "energy_gen": 0.0,
+    "input": {
+      "CapitalSpar": 0.4,
+      "NeutroniumPlate": 0.3,
+      "PrecisionLattice": 0.6
+    },
+    "interval": 10.0,
+    "name": "Dreadnought Frame Yard",
+    "research_req": "dreadnought_yards",
+    "yield": {
+      "DreadnoughtFrame": 0.1
+    }
+  },
   "fusion_reactor": {
     "category": "power",
     "cost": {
@@ -543,18 +787,40 @@
     "name": "Fusion Core",
     "research_req": "quantum_dynamics"
   },
+  "galvanising_line": {
+    "category": "industry",
+    "cost": {
+      "AdvCircuit": 150,
+      "Steel": 4000,
+      "Zn": 400,
+      "credits": 3500000
+    },
+    "description": "+2 Galvanized Steel (-2 Steel, -1 Zn) — feeds the Capital Spar Works.",
+    "energy_cons": 4000.0,
+    "energy_gen": 0.0,
+    "input": {
+      "Steel": 2.0,
+      "Zn": 1.0
+    },
+    "interval": 5.0,
+    "name": "Galvanising Line",
+    "research_req": "refractory_metallurgy",
+    "yield": {
+      "GalvanizedSteel": 2.0
+    }
+  },
   "geothermal_well": {
     "category": "power",
     "cost": {
-      "Hydraulics": 50,
-      "Ti": 100,
-      "credits": 400000
+      "Hydraulics": 10,
+      "Steel": 100,
+      "credits": 15000
     },
     "description": "+250.0 kW (Stable)",
     "energy_cons": 0.0,
     "energy_gen": 250.0,
     "name": "Geothermal Well",
-    "research_req": "fluid_dynamics"
+    "research_req": "basic_engineering"
   },
   "germanite_excavator": {
     "category": "extraction",
@@ -569,9 +835,9 @@
     "energy_gen": 0.0,
     "interval": 5.0,
     "name": "Germanite Excavator",
-    "research_req": "basic_electronics",
+    "research_req": "adv_materials",
     "yield": {
-      "Germanit": 0.4
+      "Germanit": 0.8
     }
   },
   "germanium_smelter": {
@@ -590,9 +856,31 @@
     },
     "interval": 5.0,
     "name": "Germanium Smelter",
-    "research_req": "basic_electronics",
+    "research_req": "adv_materials",
     "yield": {
       "Germanium": 0.6
+    }
+  },
+  "guided_munitions_plant": {
+    "category": "industry",
+    "cost": {
+      "Al": 50,
+      "Steel": 100,
+      "credits": 125000
+    },
+    "description": "+3.1 Missile T2 (-3.1 Steel, -1.3 Al, -0.156 Rimeplate Scrap)",
+    "energy_cons": 2500.0,
+    "energy_gen": 0.0,
+    "input": {
+      "Al": 1.3,
+      "RimeplateScrap": 0.156,
+      "Steel": 3.1
+    },
+    "interval": 5.0,
+    "name": "Guided Munitions Plant",
+    "research_req": "zone_4_access",
+    "yield": {
+      "MissileT2": 3.1
     }
   },
   "heavy_ordnance_works": {
@@ -602,16 +890,17 @@
       "U": 20,
       "credits": 2500000
     },
-    "description": "+0.8 Slug T3 (-0.8 U, -2.1 Superalloy)",
+    "description": "+0.8 Slug T3 (-0.8 U, -2.1 Superalloy, -0.04 Void Crystal)",
     "energy_cons": 15000.0,
     "energy_gen": 0.0,
     "input": {
       "Superalloy": 2.1,
-      "U": 0.8
+      "U": 0.8,
+      "VoidCrystal": 0.04
     },
     "interval": 5.0,
     "name": "Heavy Ordnance Works",
-    "research_req": "capital_ship_armament",
+    "research_req": "zone_7_access",
     "yield": {
       "SlugT3": 0.8
     }
@@ -623,16 +912,17 @@
       "Si": 100,
       "credits": 125000
     },
-    "description": "+3.1 Cell T2 (-1.9 Si, -1.3 Resin)",
+    "description": "+3.1 Cell T2 (-1.9 Si, -1.3 Resin, -0.155 Rimeplate Scrap)",
     "energy_cons": 2500.0,
     "energy_gen": 0.0,
     "input": {
       "Resin": 1.3,
+      "RimeplateScrap": 0.155,
       "Si": 1.9
     },
     "interval": 5.0,
     "name": "High-Energy Cell Plant",
-    "research_req": "advanced_batteries",
+    "research_req": "zone_4_access",
     "yield": {
       "CellT2": 3.1
     }
@@ -693,7 +983,7 @@
     },
     "interval": 5.0,
     "name": "Industrial Centrifuge",
-    "research_req": "automated_logistics",
+    "research_req": "industrial_logistics",
     "yield": {
       "Fe": 5,
       "Si": 1.7
@@ -710,21 +1000,22 @@
     "energy_cons": 35.0,
     "energy_gen": 0.0,
     "input": {
-      "Wood": 1.3
+      "Wood": 5.63
     },
     "interval": 5.0,
     "name": "Industrial Kiln",
     "research_req": "combustion",
     "yield": {
-      "C": 6.0
+      "C": 26.0
     }
   },
   "industrial_pump": {
     "category": "extraction",
     "cost": {
       "Fe": 2000,
-      "Si": 5000,
-      "credits": 250000
+      "Si": 1200,
+      "Z1_Core": 2,
+      "credits": 12000
     },
     "description": "+10 Water",
     "energy_cons": 25.0,
@@ -751,6 +1042,30 @@
     "research_req": "iridium_metallurgy",
     "yield": {
       "Ir": 0.4
+    }
+  },
+  "lattice_mill": {
+    "category": "industry",
+    "cost": {
+      "AdvCircuit": 400,
+      "SinteredCarbide": 200,
+      "Steel": 9000,
+      "Superalloy": 600,
+      "credits": 18000000
+    },
+    "description": "+0.4 Precision Lattice (-1 Sintered Carbide, -1.2 Stainless Steel, -0.3 Mg) — feeds the Bus Assembly Hall and Frame Yard.",
+    "energy_cons": 30000.0,
+    "energy_gen": 0.0,
+    "input": {
+      "Mg": 0.3,
+      "SinteredCarbide": 1.0,
+      "StainlessSteel": 1.2
+    },
+    "interval": 5.0,
+    "name": "Precision Lattice Mill",
+    "research_req": "precision_fabrication",
+    "yield": {
+      "PrecisionLattice": 0.4
     }
   },
   "lithium_extractor": {
@@ -788,6 +1103,27 @@
     "research_req": "basic_electronics",
     "yield": {
       "Li": 1
+    }
+  },
+  "magnesia_calciner": {
+    "category": "industry",
+    "cost": {
+      "AdvCircuit": 40,
+      "Steel": 1400,
+      "credits": 550000
+    },
+    "description": "+1.5 Mg (-6 Dolomite, -1.5 C) — feeds the Precision Lattice Mill and Nano-Substrate Lab.",
+    "energy_cons": 700.0,
+    "energy_gen": 0.0,
+    "input": {
+      "C": 1.5,
+      "Dolomite": 6.0
+    },
+    "interval": 5.0,
+    "name": "Magnesia Calciner",
+    "research_req": "industrial_chemistry",
+    "yield": {
+      "Mg": 1.5
     }
   },
   "manganese_dredge": {
@@ -828,6 +1164,92 @@
       "Superalloy": 0.1
     }
   },
+  "munitions_factory": {
+    "category": "industry",
+    "cost": {
+      "C": 50,
+      "Fe": 100,
+      "credits": 12500
+    },
+    "description": "+10 Missile T1 (-5 Fe, -2 C)",
+    "energy_cons": 50.0,
+    "energy_gen": 0.0,
+    "input": {
+      "C": 2.0,
+      "Fe": 5.0
+    },
+    "interval": 5.0,
+    "name": "Munitions Factory",
+    "research_req": "ordnance_101",
+    "yield": {
+      "MissileT1": 10
+    }
+  },
+  "nano_substrate_lab": {
+    "category": "industry",
+    "cost": {
+      "AdvCircuit": 200,
+      "Steel": 4500,
+      "Superalloy": 250,
+      "credits": 3500000
+    },
+    "description": "+0.6 Nano-Substrate (-1.8 Al, -1.2 Mg, -0.6 Ni, -1.8 Structural Component) — Zone 6-9 module anchor.",
+    "energy_cons": 6000.0,
+    "energy_gen": 0.0,
+    "input": {
+      "Al": 1.8,
+      "Mg": 1.2,
+      "Ni": 0.6,
+      "StructuralComponent": 1.8
+    },
+    "interval": 5.0,
+    "name": "Nano-Substrate Lab",
+    "research_req": "refractory_metallurgy",
+    "yield": {
+      "NanoSubstrate": 0.6
+    }
+  },
+  "neutronium_condenser": {
+    "category": "extraction",
+    "cost": {
+      "QuantumCore": 20,
+      "Superalloy": 1500,
+      "VoidCrystal": 40,
+      "credits": 30000000
+    },
+    "description": "+0.4 Neutronium",
+    "energy_cons": 150000.0,
+    "energy_gen": 0.0,
+    "interval": 10.0,
+    "name": "Neutronium Condenser",
+    "research_req": "neutronium_synthesis",
+    "yield": {
+      "Neutronium": 0.4
+    }
+  },
+  "neutronium_press": {
+    "category": "industry",
+    "cost": {
+      "AdvCircuit": 600,
+      "Neutronium": 80,
+      "Superalloy": 2000,
+      "credits": 40000000
+    },
+    "description": "+0.5 Neutronium Plate (-2 Neutronium, -1 Os, -2.5 Superalloy) — feeds the Dreadnought Frame Yard.",
+    "energy_cons": 90000.0,
+    "energy_gen": 0.0,
+    "input": {
+      "Neutronium": 2.0,
+      "Os": 1.0,
+      "Superalloy": 2.5
+    },
+    "interval": 10.0,
+    "name": "Neutronium Press",
+    "research_req": "capital_fabrication",
+    "yield": {
+      "NeutroniumPlate": 0.5
+    }
+  },
   "nickel_mine": {
     "category": "extraction",
     "cost": {
@@ -843,7 +1265,7 @@
     "name": "Nickel Mine",
     "research_req": "superalloy_engineering",
     "yield": {
-      "Pentlandite": 0.3
+      "Pentlandite": 0.8
     }
   },
   "nickel_refinery": {
@@ -884,12 +1306,35 @@
       "N": 0.1
     }
   },
+  "omega_foundry": {
+    "category": "industry",
+    "cost": {
+      "AdvCircuit": 200,
+      "Neutronium": 60,
+      "OmegaPlating": 30,
+      "credits": 45000000
+    },
+    "description": "+0.15 Omega Composite (-3 Omega Plating, -1 Neutronium Plate, -15 Adv Circuit)",
+    "energy_cons": 180000.0,
+    "energy_gen": 0.0,
+    "input": {
+      "AdvCircuit": 15,
+      "NeutroniumPlate": 1,
+      "OmegaPlating": 3
+    },
+    "interval": 10.0,
+    "name": "Omega Foundry",
+    "research_req": "primordial_engineering",
+    "yield": {
+      "OmegaComposite": 0.15
+    }
+  },
   "orbital_siphon": {
     "category": "extraction",
     "cost": {
-      "Superalloy": 100,
-      "Ti": 500,
-      "credits": 1000000
+      "AdvCircuit": 90,
+      "Ti": 350,
+      "credits": 1600000
     },
     "description": "+4 H, +2 He, +2 N",
     "energy_cons": 750.0,
@@ -914,7 +1359,7 @@
     "energy_cons": 0.0,
     "energy_gen": 1000000.0,
     "name": "Orbital Solar Relay",
-    "research_req": "energy_metrics"
+    "research_req": "quantum_dynamics"
   },
   "osmium_condenser": {
     "category": "extraction",
@@ -952,6 +1397,29 @@
     "name": "Palladium Fuel Cell Generator",
     "research_req": "fuel_cell_tech"
   },
+  "passivation_furnace": {
+    "category": "industry",
+    "cost": {
+      "AdvCircuit": 180,
+      "Steel": 5000,
+      "Superalloy": 200,
+      "credits": 4200000
+    },
+    "description": "+2.5 Stainless Steel (-1 Cr, -3.1 Fe, -0.6 Ni) — feeds the Precision Lattice Mill.",
+    "energy_cons": 5000.0,
+    "energy_gen": 0.0,
+    "input": {
+      "Cr": 1.0,
+      "Fe": 3.125,
+      "Ni": 0.625
+    },
+    "interval": 5.0,
+    "name": "Passivation Furnace",
+    "research_req": "refractory_metallurgy",
+    "yield": {
+      "StainlessSteel": 2.5
+    }
+  },
   "platinum_drill": {
     "category": "extraction",
     "cost": {
@@ -970,13 +1438,35 @@
       "PtOre": 1.0
     }
   },
+  "polymer_reactor": {
+    "category": "industry",
+    "cost": {
+      "Circuit": 90,
+      "Steel": 900,
+      "credits": 350000
+    },
+    "description": "+1.5 Resin (-1.5 C, -3 H, -1.5 O) — feeds the Composite Loom and Electronics Assembler.",
+    "energy_cons": 400.0,
+    "energy_gen": 0.0,
+    "input": {
+      "C": 1.5,
+      "H": 3.0,
+      "O": 1.5
+    },
+    "interval": 5.0,
+    "name": "Polymer Reactor",
+    "research_req": "industrial_chemistry",
+    "yield": {
+      "Resin": 1.5
+    }
+  },
   "precious_dredge": {
     "category": "extraction",
     "cost": {
+      "AdvCircuit": 180,
       "QuantumCore": 10,
-      "Superalloy": 100,
-      "Ti": 500,
-      "credits": 1000000
+      "Ti": 600,
+      "credits": 3500000
     },
     "description": "+2 Pt, +1 Ir",
     "energy_cons": 12000.0,
@@ -989,12 +1479,35 @@
       "PtOre": 2
     }
   },
+  "primordial_extractor": {
+    "category": "industry",
+    "cost": {
+      "Neutronium": 100,
+      "OmegaComposite": 5,
+      "PrimordialShard": 25,
+      "credits": 60000000
+    },
+    "description": "+0.1 Primordial Matrix (-2.5 Primordial Shard, -6 Neutronium, -1 Void Lattice)",
+    "energy_cons": 200000.0,
+    "energy_gen": 0.0,
+    "input": {
+      "Neutronium": 6,
+      "PrimordialShard": 2.5,
+      "VoidLattice": 1
+    },
+    "interval": 10.0,
+    "name": "Primordial Extractor",
+    "research_req": "primordial_engineering",
+    "yield": {
+      "PrimordialMatrix": 0.1
+    }
+  },
   "quartz_excavator": {
     "category": "extraction",
     "cost": {
-      "Superalloy": 100,
+      "AdvCircuit": 150,
       "Ti": 500,
-      "credits": 1000000
+      "credits": 2200000
     },
     "description": "+2.5 Quartz (High Speed)",
     "energy_cons": 4500.0,
@@ -1022,6 +1535,27 @@
     "research_req": "basic_electronics",
     "yield": {
       "Quartz": 0.3
+    }
+  },
+  "semiconductor_furnace": {
+    "category": "industry",
+    "cost": {
+      "Circuit": 120,
+      "Steel": 1500,
+      "credits": 950000
+    },
+    "description": "+1.5 Semiconductor (-3 Si, -1.5 Germanium)",
+    "energy_cons": 1400.0,
+    "energy_gen": 0.0,
+    "input": {
+      "Germanium": 1.5,
+      "Si": 3
+    },
+    "interval": 5.0,
+    "name": "Semiconductor Furnace",
+    "research_req": "automation",
+    "yield": {
+      "Semiconductor": 1.5
     }
   },
   "silicon_furnace": {
@@ -1072,6 +1606,31 @@
     "energy_gen": 15.0,
     "name": "Solar Array"
   },
+  "structural_press": {
+    "category": "industry",
+    "cost": {
+      "Circuit": 120,
+      "Steel": 2200,
+      "Ti": 150,
+      "credits": 1100000
+    },
+    "description": "+1.0 StructuralComponent (-10 Fe, -5 Cu, -5 Si, -3 C, -2 Li)",
+    "energy_cons": 1600.0,
+    "energy_gen": 0.0,
+    "input": {
+      "C": 3,
+      "Cu": 5,
+      "Fe": 10,
+      "Li": 2,
+      "Si": 5
+    },
+    "interval": 5.0,
+    "name": "Structural Press",
+    "research_req": "metallurgy_advanced",
+    "yield": {
+      "StructuralComponent": 1.0
+    }
+  },
   "superalloy_forge": {
     "category": "industry",
     "cost": {
@@ -1096,25 +1655,26 @@
       "Superalloy": 1.0
     }
   },
-  "terraforming_processor": {
-    "category": "logistics",
+  "thermobaric_warhead_works": {
+    "category": "industry",
     "cost": {
-      "Circuit": 20,
-      "Steel": 100,
-      "credits": 20000
+      "Superalloy": 50,
+      "U": 20,
+      "credits": 2500000
     },
-    "description": "+1 Fertile Soil (+5% Gather Speed)",
-    "energy_cons": 50.0,
+    "description": "+0.8 Missile T3 (-0.8 Structural Component, -2.1 Superalloy, -0.04 Void Crystal)",
+    "energy_cons": 15000.0,
     "energy_gen": 0.0,
     "input": {
-      "Dirt": 25,
-      "Water": 5
+      "StructuralComponent": 0.8,
+      "Superalloy": 2.1,
+      "VoidCrystal": 0.04
     },
-    "interval": 10.0,
-    "name": "Terraforming Processor",
-    "research_req": "industrial_logistics",
+    "interval": 5.0,
+    "name": "Thermobaric Warhead Works",
+    "research_req": "zone_7_access",
     "yield": {
-      "FertileSoil": 1
+      "MissileT3": 0.8
     }
   },
   "tin_mine": {
@@ -1250,6 +1810,52 @@
       "VoidCrystal": 1
     }
   },
+  "void_lattice_loom": {
+    "category": "industry",
+    "cost": {
+      "AdvCircuit": 1200,
+      "QuantumCore": 40,
+      "Superalloy": 3000,
+      "VoidCrystal": 200,
+      "credits": 90000000
+    },
+    "description": "+0.3 Void Lattice (-0.6 Precision Lattice, -1.8 Void Crystal, -2.4 Void Essence) — Zone 10 module anchor.",
+    "energy_cons": 160000.0,
+    "energy_gen": 0.0,
+    "input": {
+      "PrecisionLattice": 0.6,
+      "VoidCrystal": 1.8,
+      "VoidEssence": 2.4
+    },
+    "interval": 10.0,
+    "name": "Void Lattice Loom",
+    "research_req": "capital_fabrication",
+    "yield": {
+      "VoidLattice": 0.3
+    }
+  },
+  "wafer_lapping_line": {
+    "category": "industry",
+    "cost": {
+      "AdvCircuit": 700,
+      "SinteredCarbide": 150,
+      "Superalloy": 1200,
+      "credits": 26000000
+    },
+    "description": "+0.2 Diamond Wafer (-1.6 Diamond, -0.8 Sintered Carbide) — slices stones into substrate.",
+    "energy_cons": 70000.0,
+    "energy_gen": 0.0,
+    "input": {
+      "Diamond": 1.6,
+      "SinteredCarbide": 0.8
+    },
+    "interval": 10.0,
+    "name": "Wafer Lapping Line",
+    "research_req": "refractory_metallurgy",
+    "yield": {
+      "DiamondWafer": 0.2
+    }
+  },
   "zero_point_cell_synthesizer": {
     "category": "industry",
     "cost": {
@@ -1257,18 +1863,19 @@
       "QuantumCore": 10,
       "credits": 1000000
     },
-    "description": "+0.7 Cell T3",
+    "description": "+0.8 Cell T3 (-2.1 Superalloy, -0.8 Adv Circuit, -0.04 Void Crystal)",
     "energy_cons": 25000.0,
     "energy_gen": 0.0,
     "input": {
-      "ExoticMatter": 0.7,
-      "QuantumCore": 0.7
+      "AdvCircuit": 0.8,
+      "Superalloy": 2.1,
+      "VoidCrystal": 0.04
     },
     "interval": 5.0,
     "name": "Zero-Point Cell Synthesizer",
-    "research_req": "exotic_metallurgy",
+    "research_req": "zone_7_access",
     "yield": {
-      "CellT3": 0.7
+      "CellT3": 0.8
     }
   },
   "zinc_mine": {

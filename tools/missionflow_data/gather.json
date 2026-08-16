@@ -1,18 +1,17 @@
 {
   "collect_water": {
     "category": "terrestrial",
-    "level_req": 3,
+    "level_req": 2,
     "loot_table": [
       [
         "Water",
         1.0,
         8,
-        10
+        20
       ]
     ],
     "name": "Pump Water",
-    "research_req": "fluid_dynamics",
-    "xp": 12
+    "xp": 15
   },
   "extract_chromite": {
     "category": "terrestrial",
@@ -21,12 +20,6 @@
       [
         "Chromite",
         1.0,
-        1,
-        2
-      ],
-      [
-        "Fe",
-        0.5,
         1,
         2
       ]
@@ -65,12 +58,6 @@
         1.0,
         1,
         2
-      ],
-      [
-        "Fe",
-        0.5,
-        1,
-        2
       ]
     ],
     "name": "Extract Manganese",
@@ -79,17 +66,11 @@
   },
   "extract_pentlandite": {
     "category": "terrestrial",
-    "level_req": 25,
+    "level_req": 12,
     "loot_table": [
       [
         "Pentlandite",
         1.0,
-        1,
-        2
-      ],
-      [
-        "Fe",
-        0.5,
         1,
         2
       ]
@@ -121,7 +102,7 @@
   },
   "extract_salts": {
     "category": "terrestrial",
-    "level_req": 6,
+    "level_req": 4,
     "loot_table": [
       [
         "Spodumene",
@@ -130,7 +111,7 @@
         3
       ]
     ],
-    "name": "Extract Lithium Salt",
+    "name": "Mine Lithium Ore",
     "research_req": "basic_engineering",
     "xp": 10
   },
@@ -143,15 +124,15 @@
         "Dirt",
         1.0,
         8,
-        10
+        20
       ]
     ],
     "name": "Excavate Soil",
-    "xp": 8
+    "xp": 12
   },
   "gather_wood": {
     "category": "terrestrial",
-    "level_req": 4,
+    "level_req": 6,
     "loot_table": [
       [
         "Wood",
@@ -222,7 +203,7 @@
   },
   "mine_bauxite": {
     "category": "terrestrial",
-    "level_req": 12,
+    "level_req": 25,
     "loot_table": [
       [
         "Bauxite",
@@ -259,12 +240,6 @@
         1.0,
         1,
         3
-      ],
-      [
-        "Dirt",
-        0.5,
-        1,
-        2
       ]
     ],
     "name": "Quarry Dolomite",
@@ -308,7 +283,7 @@
   },
   "mine_malachite": {
     "category": "terrestrial",
-    "level_req": 10,
+    "level_req": 7,
     "loot_table": [
       [
         "Malachite",
@@ -345,12 +320,6 @@
         1.0,
         1,
         2
-      ],
-      [
-        "Fe",
-        0.3,
-        1,
-        2
       ]
     ],
     "name": "Tungsten Vein Mining",
@@ -366,12 +335,6 @@
         1.0,
         1,
         3
-      ],
-      [
-        "Si",
-        0.4,
-        1,
-        1
       ]
     ],
     "name": "Extract Zinc Ore",

@@ -11,9 +11,15 @@ var gs
 var errors: Array = []
 var warns: Array = []
 
-# Flags the engine sets in code to gate the post-research zones (z11 on the Z10
-# boss kill, z12 on the Z11 boss kill). Zone unlock_flags must be one of these.
-const ENGINE_SET_FLAGS := {"z11_unlocked": true, "z12_unlocked": true}
+# Flags the engine sets in code to gate the post-research sectors. DERIVED from
+# the engine's own NG_REVEAL table rather than hand-listed — desktop v174 moved
+# to deriving after a hand-kept list silently shipped Sectors 13-15 unlocked.
+# z11 is the one entry with no table row (set directly on the Z10 boss kill).
+func _engine_set_flags(gs) -> Dictionary:
+	var out := {"z11_unlocked": true}
+	for r in gs.NG_REVEAL:
+		out[String(r[1])] = true
+	return out
 
 func _init() -> void:
 	process_frame.connect(_run, CONNECT_ONE_SHOT)
@@ -123,7 +129,7 @@ func _check_zone_gating() -> void:
 			E("ZONE %s (diff %d) has no gate (free access past zone 1)" % [z.get("name", ""), d])
 		if req != "" and not gd.RESEARCH.has(req):
 			E("ZONE %s research_req '%s' is not a real tech" % [z.get("name", ""), req])
-		if flag != "" and not ENGINE_SET_FLAGS.has(flag):
+		if flag != "" and not _engine_set_flags(gs).has(flag):
 			E("ZONE %s unlock_flag '%s' is never set by the engine (unopenable)" % [z.get("name", ""), flag])
 	# Difficulties must be contiguous 1..max so progression has no gap.
 	var mx := 0

@@ -3,7 +3,7 @@
     "category": "processing",
     "cost": 5000,
     "cost_items": {
-      "Res2": 13
+      "Res1": 5
     },
     "effects": [],
     "flavor": "Gates the Factory Automation and Hydraulic Press branches.",
@@ -71,17 +71,6 @@
     "unlocks": [
       "Seeker Missile"
     ]
-  },
-  "applied_physics": {
-    "category": "meta",
-    "cost": 625,
-    "effects": [],
-    "flavor": "Gates the Energy Fields and Reactor Overclocking branches.",
-    "name": "Applied Physics",
-    "parent": "basic_engineering",
-    "tier": 1,
-    "type": "technology",
-    "unlocks": []
   },
   "auto_repair_20": {
     "category": "combat",
@@ -168,24 +157,6 @@
     "type": "technology",
     "unlocks": []
   },
-  "automated_logistics": {
-    "category": "infrastructure",
-    "cost": 3000,
-    "cost_items": {
-      "Cu": 25,
-      "Fe": 50,
-      "Res1": 25
-    },
-    "effects": [],
-    "flavor": "",
-    "name": "Automated Logistics",
-    "parent": "industrial_logistics",
-    "tier": 2,
-    "type": "technology",
-    "unlocks": [
-      "Drone Recovery Bay"
-    ]
-  },
   "automated_smelting": {
     "category": "infrastructure",
     "cost": 2500,
@@ -206,8 +177,8 @@
     "category": "processing",
     "cost": 12500,
     "cost_items": {
-      "Circuit": 50,
-      "Res2": 63
+      "Circuit": 20,
+      "Res1": 25
     },
     "effects": [],
     "flavor": "Gates Advanced Rocketry research.",
@@ -216,7 +187,10 @@
     "tier": 2,
     "type": "technology",
     "unlocks": [
-      "Advanced Circuit"
+      "Advanced Circuit",
+      "Semiconductor Furnace",
+      "Chip Fabrication Line",
+      "Advanced Circuit Foundry"
     ]
   },
   "ballistics_optimization": {
@@ -243,28 +217,44 @@
       "Cu": 20,
       "Si": 20
     },
-    "effects": [],
+    "effects": [
+      {
+        "bonus": 0.25,
+        "id": "craft_circuit",
+        "stacks": false,
+        "type": "action_speed"
+      }
+    ],
     "flavor": "",
     "name": "Basic Electronics",
     "parent": "industrial_logistics",
     "tier": 1,
     "type": "technology",
     "unlocks": [
-      "Standard Circuit Assembly"
+      "Copper Mine",
+      "Tin Mine",
+      "Quartz Mine",
+      "Lithium Extractor",
+      "Copper Smelter",
+      "Tin Smelter",
+      "Silicon Furnace",
+      "Lithium Refinery",
+      "Aluminum Wiring",
+      "Adv. Maintenance Kit"
     ]
   },
   "basic_engineering": {
     "category": "processing",
     "cost": 125,
-    "effects": [],
-    "flavor": "",
+    "flavor": "The foundation of everything — opens your refinery, water and ship systems.",
     "name": "Basic Engineering",
     "parent": null,
     "tier": 1,
     "type": "technology",
     "unlocks": [
       "Mineral Washing",
-      "Refine Lithium"
+      "Refine Lithium",
+      "Water Electrolysis"
     ]
   },
   "blast_furnace": {
@@ -279,20 +269,34 @@
         "id": "smelt_steel_basic",
         "stacks": false,
         "type": "action_speed"
-      },
-      {
-        "bonus": 0.25,
-        "id": "smelt_steel_oxygen",
-        "stacks": false,
-        "type": "action_speed"
       }
     ],
     "flavor": "",
     "name": "Blast Furnace",
     "parent": "smelting",
-    "tier": 1,
+    "tier": 2,
     "type": "technology",
     "unlocks": []
+  },
+  "capital_fabrication": {
+    "category": "infrastructure",
+    "cost": 60000000,
+    "cost_items": {
+      "Neutronium": 20,
+      "PrecisionLattice": 60,
+      "VoidCrystal": 40,
+      "Z8_Core": 3
+    },
+    "effects": [],
+    "flavor": "Neutronium plate and void lattice leave the hand bench for the factory floor.",
+    "name": "Capital Fabrication",
+    "parent": "zone_8_access",
+    "tier": 8,
+    "type": "technology",
+    "unlocks": [
+      "Neutronium Press",
+      "Void Lattice Loom"
+    ]
   },
   "capital_ship_armament": {
     "category": "combat",
@@ -305,28 +309,12 @@
     "effects": [],
     "flavor": "",
     "name": "Capital Ship Armament",
-    "parent": "capital_ship_engineering",
+    "parent": "shipwright_2",
     "tier": 4,
     "type": "technology",
     "unlocks": [
       "Photon Torpedo (T4 Ammo)"
     ]
-  },
-  "capital_ship_engineering": {
-    "category": "ships",
-    "cost": 500000,
-    "cost_items": {
-      "NavData": 75,
-      "Res3": 563,
-      "VoidArtifact": 20
-    },
-    "effects": [],
-    "flavor": "Gate for Capital Ship Armament. Battlecruiser hull + capital modules unlock via Zone Access tech.",
-    "name": "Capital Ship Doctrine",
-    "parent": "shipwright_2",
-    "tier": 4,
-    "type": "technology",
-    "unlocks": []
   },
   "catalytic_electrodes": {
     "category": "processing",
@@ -345,10 +333,37 @@
     ],
     "flavor": "",
     "name": "Catalytic Electrodes",
-    "parent": "fluid_dynamics",
+    "parent": "basic_engineering",
     "tier": 1,
     "type": "technology",
     "unlocks": []
+  },
+  "caustic_armaments": {
+    "category": "ships",
+    "cost": 25000000,
+    "cost_items": {
+      "ChronoCore": 4000,
+      "CryoEssence": 16800,
+      "ExoticMatter": 360,
+      "OmegaPlating": 12800,
+      "VoidEssence": 2400,
+      "VoidLattice": 9600
+    },
+    "effects": [],
+    "flavor": "Sector 15 exotic armaments. The corrosion-loop capstone: the Caustic Sovereign opens and closes on Corrosion with Cryo between.",
+    "name": "Caustic Armaments",
+    "parent": "dissolution_armaments",
+    "req_tech": "dissolution_armaments",
+    "requires_flag": "z15_unlocked",
+    "requires_warp": true,
+    "tier": 5,
+    "type": "technology",
+    "unlocks": [
+      "Caustic Lance (Weapon Craft)",
+      "Caustic Etcher (Weapon Craft)",
+      "Caustic Bulwark (Armor Craft)",
+      "Caustic Barrier (Shield Craft)"
+    ]
   },
   "colony_automation": {
     "category": "meta",
@@ -381,9 +396,9 @@
     },
     "effects": [
       {
-        "bonus": 0.2,
+        "bonus": 0.1,
         "type": "bonus_yield",
-        "what": "Combat XP gain"
+        "what": "Total Ship Damage"
       }
     ],
     "flavor": "",
@@ -403,9 +418,9 @@
     "tier": 1,
     "type": "technology",
     "unlocks": [
-      "Charcoal Kiln",
-      "HE Missile",
-      "Micro-Missile Launcher"
+      "Industrial Kiln",
+      "Carbon Fiber",
+      "Carbon Generator"
     ]
   },
   "core_overclocking": {
@@ -423,10 +438,31 @@
     ],
     "flavor": "",
     "name": "Reactor Overclocking",
-    "parent": "applied_physics",
+    "parent": "basic_engineering",
     "tier": 2,
     "type": "technology",
     "unlocks": []
+  },
+  "corrosion_armaments": {
+    "category": "ships",
+    "cost": 500000,
+    "cost_items": {
+      "CryoEssence": 800,
+      "ExoticMatter": 15,
+      "OmegaPlating": 600
+    },
+    "effects": [],
+    "flavor": "Acid-plasma armaments — etch through Corrosion-hardened hulls in the Rift. Requires mastery of Cryogenic Armaments.",
+    "name": "Corrosion Armaments",
+    "parent": "cryo_armaments",
+    "req_tech": "cryo_armaments",
+    "requires_flag": "z12_unlocked",
+    "requires_warp": true,
+    "tier": 5,
+    "type": "technology",
+    "unlocks": [
+      "Corrosion Blaster (Weapon Craft)"
+    ]
   },
   "cryo_armaments": {
     "category": "ships",
@@ -437,17 +473,20 @@
       "ExoticMatter": 5
     },
     "effects": [],
-    "flavor": "Weaponize Exotic Matter \u2014 the only force that breaches Warp-Hardened hulls. Requires a Warp Core activation.",
+    "flavor": "Weaponize Exotic Condensate — the only force that breaches Warp-Hardened hulls. Requires a Warp Core activation.",
     "name": "Cryogenic Armaments",
     "parent": null,
     "req_tech": "cryogenic_systems",
+    "requires_flag": "cryo_unlocked",
     "requires_warp": true,
     "tier": 4,
     "type": "technology",
     "unlocks": [
       "Cryo Repeater (Weapon Craft)",
       "Cryo Cannon (Weapon Craft)",
-      "Cryo-Lance (Weapon Craft)"
+      "Cryo-Lance (Weapon Craft)",
+      "Threshold Bulwark (Armor Craft)",
+      "Threshold Barrier (Shield Craft)"
     ]
   },
   "cryogenic_storage": {
@@ -509,18 +548,19 @@
     "cost": 100000,
     "cost_items": {
       "NavData": 25,
-      "Res3": 25,
-      "Ti": 375
+      "Res3": 10,
+      "Ti": 150
     },
     "effects": [],
-    "flavor": "",
+    "flavor": "Charts the deep-space lanes toward exotic phenomena.",
     "name": "Deep Space Navigation",
     "parent": null,
     "req_tech": "warp_drive",
     "tier": 3,
     "type": "technology",
     "unlocks": [
-      "Sector Beta (Mining Colony)"
+      "Process Colony Salvage",
+      "Targeting Array Fabrication"
     ]
   },
   "diamond_drills": {
@@ -548,6 +588,52 @@
     "tier": 1,
     "type": "technology",
     "unlocks": []
+  },
+  "dissolution_armaments": {
+    "category": "ships",
+    "cost": 10000000,
+    "cost_items": {
+      "ChronoCore": 2200,
+      "CryoEssence": 9400,
+      "ExoticMatter": 200,
+      "OmegaPlating": 7200,
+      "VoidLattice": 5400
+    },
+    "effects": [],
+    "flavor": "Sector 14 exotic armaments. The Dissolution Tyrant runs three bands — Cryo, Corrosion, Cryo — so the cryo side carries two thirds of the fight.",
+    "name": "Dissolution Armaments",
+    "parent": "verdigris_armaments",
+    "req_tech": "verdigris_armaments",
+    "requires_flag": "z14_unlocked",
+    "requires_warp": true,
+    "tier": 5,
+    "type": "technology",
+    "unlocks": [
+      "Dissolution Lance (Weapon Craft)",
+      "Dissolution Etcher (Weapon Craft)",
+      "Dissolution Bulwark (Armor Craft)",
+      "Dissolution Barrier (Shield Craft)"
+    ]
+  },
+  "dreadnought_yards": {
+    "category": "infrastructure",
+    "cost": 220000000,
+    "cost_items": {
+      "FabricationBus": 20,
+      "NeutroniumPlate": 80,
+      "Superalloy": 1500,
+      "Z9_Core": 4
+    },
+    "effects": [],
+    "flavor": "An orbital complex of thirty-odd plants, and every one still bottoms out in your first-hour excavators.",
+    "name": "Dreadnought Yards",
+    "parent": "zone_9_access",
+    "tier": 9,
+    "type": "technology",
+    "unlocks": [
+      "Capital Spar Works",
+      "Dreadnought Frame Yard"
+    ]
   },
   "efficiency_1": {
     "category": "meta",
@@ -582,7 +668,7 @@
     },
     "effects": [
       {
-        "factor": 4.0,
+        "factor": 3.0,
         "type": "yield_multiplier",
         "what": "Output (Gathering & Processing)"
       }
@@ -604,7 +690,7 @@
     },
     "effects": [
       {
-        "factor": 8.0,
+        "factor": 4.0,
         "type": "yield_multiplier",
         "what": "Output (Gathering & Processing)"
       }
@@ -626,7 +712,7 @@
     },
     "effects": [
       {
-        "factor": 16.0,
+        "factor": 5.0,
         "type": "yield_multiplier",
         "what": "Output (Gathering & Processing)"
       }
@@ -648,7 +734,7 @@
     },
     "effects": [
       {
-        "factor": 32.0,
+        "factor": 10.0,
         "type": "yield_multiplier",
         "what": "Output (Gathering & Processing)"
       }
@@ -670,7 +756,7 @@
     "effects": [],
     "flavor": "",
     "name": "Energy Metrics",
-    "parent": "fluid_dynamics",
+    "parent": "basic_engineering",
     "tier": 2,
     "type": "technology",
     "unlocks": [
@@ -686,27 +772,30 @@
     "effects": [],
     "flavor": "Gates Shield Harmonics and Magnetic Funnels research.",
     "name": "Energy Fields",
-    "parent": "applied_physics",
+    "parent": "basic_engineering",
     "tier": 2,
     "type": "technology",
-    "unlocks": []
+    "unlocks": [
+      "Shield Booster"
+    ]
   },
   "exotic_matter_analysis": {
     "category": "zone",
     "cost": 1000000,
     "cost_items": {
-      "Pt": 400,
-      "QuantumCore": 60,
-      "RadIsotope": 1000
+      "Pt": 20,
+      "QuantumCore": 3,
+      "RadIsotope": 50
     },
     "effects": [],
-    "flavor": "",
+    "flavor": "Refines exotic matter into workable stock. Sector Delta is unlocked separately by Delta Sector Survey.",
     "name": "Exotic Matter Analysis",
     "parent": "radiation_shielding",
     "tier": 4,
     "type": "technology",
     "unlocks": [
-      "Sector Delta (Crystalline)"
+      "Void Distillation",
+      "Quantum Core Synthesis"
     ]
   },
   "exotic_metallurgy": {
@@ -764,17 +853,22 @@
       "Ion Field"
     ]
   },
-  "fluid_dynamics": {
-    "category": "processing",
-    "cost": 125,
+  "firmware_hacking": {
+    "category": "combat",
+    "cost": 1500,
+    "cost_items": {
+      "AdvCircuit": 10,
+      "SalvageData": 10
+    },
     "effects": [],
-    "flavor": "",
-    "name": "Fluid Dynamics",
-    "parent": "applied_physics",
-    "tier": 1,
+    "flavor": "Reverse-engineer salvaged module firmware to rewrite affixes — unlocks Hack Card drops in combat and crafting in the Ship Designer.",
+    "name": "Firmware Hacking",
+    "parent": "kinetics_101",
+    "req_tech": "kinetics_101",
+    "tier": 3,
     "type": "technology",
     "unlocks": [
-      "Water Electrolysis"
+      "Hack Cards (module affix crafting)"
     ]
   },
   "fuel_cell_tech": {
@@ -786,12 +880,14 @@
       "Pd": 225
     },
     "effects": [],
-    "flavor": "Hydrogen-fuel research path \u2014 implementation TBD.",
+    "flavor": "",
     "name": "Fuel Cell Technology",
     "parent": "precious_metal_refining",
     "tier": 3,
     "type": "technology",
-    "unlocks": []
+    "unlocks": [
+      "Palladium Fuel Cell"
+    ]
   },
   "high_flow_pumps": {
     "category": "gathering",
@@ -814,7 +910,7 @@
     "flavor": "",
     "name": "High-Flow Pumps",
     "parent": null,
-    "req_tech": "fluid_dynamics",
+    "req_tech": "basic_engineering",
     "tier": 1,
     "type": "technology",
     "unlocks": []
@@ -858,7 +954,7 @@
     "flavor": "",
     "name": "Hydraulic Press",
     "parent": "adv_materials",
-    "tier": 1,
+    "tier": 2,
     "type": "technology",
     "unlocks": []
   },
@@ -890,10 +986,10 @@
   },
   "industrial_automation": {
     "category": "infrastructure",
-    "cost": 15000,
+    "cost": 9000,
     "cost_items": {
-      "Circuit": 125,
-      "Steel": 500
+      "Circuit": 25,
+      "Steel": 80
     },
     "effects": [],
     "flavor": "",
@@ -932,6 +1028,27 @@
       "Silver Catalyst Bay"
     ]
   },
+  "industrial_chemistry": {
+    "category": "infrastructure",
+    "cost": 250000,
+    "cost_items": {
+      "Circuit": 38,
+      "Fiber": 98,
+      "Resin": 98
+    },
+    "effects": [],
+    "flavor": "Continuous chemical lines — resin, fiber and light metals without a hand on the console.",
+    "name": "Industrial Chemistry",
+    "parent": "industrial_electrolysis",
+    "tier": 3,
+    "type": "technology",
+    "unlocks": [
+      "Polymer Reactor",
+      "Carbon Fiber Spinner",
+      "Alumina Reduction Line",
+      "Magnesia Calciner"
+    ]
+  },
   "industrial_electrolysis": {
     "category": "infrastructure",
     "cost": 2500,
@@ -951,13 +1068,22 @@
   "industrial_logistics": {
     "category": "meta",
     "cost": 625,
-    "effects": [],
+    "effects": [
+      {
+        "bonus": 0.1,
+        "type": "bonus_yield",
+        "what": "Global Production Speed"
+      }
+    ],
     "flavor": "Gates the Advanced Technologies branch.",
     "name": "Industrial Logistics",
     "parent": "basic_engineering",
     "tier": 1,
     "type": "technology",
-    "unlocks": []
+    "unlocks": [
+      "Hydraulic Servo",
+      "Industrial Centrifuge"
+    ]
   },
   "ion_exchange": {
     "category": "processing",
@@ -1009,7 +1135,7 @@
     "flavor": "",
     "name": "Kinetic Weapons Theory",
     "parent": null,
-    "req_tech": "applied_physics",
+    "req_tech": "basic_engineering",
     "tier": 1,
     "type": "technology",
     "unlocks": [
@@ -1040,7 +1166,9 @@
     "req_tech": "combustion",
     "tier": 1,
     "type": "technology",
-    "unlocks": []
+    "unlocks": [
+      "Bio-Harvester"
+    ]
   },
   "laser_optics": {
     "category": "combat",
@@ -1052,7 +1180,7 @@
     "flavor": "",
     "name": "Laser Optics",
     "parent": "power_systems",
-    "req_tech": "fluid_dynamics",
+    "req_tech": "basic_engineering",
     "tier": 1,
     "type": "technology",
     "unlocks": [
@@ -1114,21 +1242,6 @@
     "flavor": "",
     "name": "Magnetic Funnels",
     "parent": "energy_shields",
-    "tier": 1,
-    "type": "technology",
-    "unlocks": []
-  },
-  "mass_production_tactics": {
-    "category": "infrastructure",
-    "cost": 5000,
-    "cost_items": {
-      "Circuit": 20,
-      "Steel": 20
-    },
-    "effects": [],
-    "flavor": "Industrial tactics \u2014 buildings TBD.",
-    "name": "Mass Production Tactics",
-    "parent": "automated_logistics",
     "tier": 2,
     "type": "technology",
     "unlocks": []
@@ -1136,7 +1249,13 @@
   "materials_science": {
     "category": "meta",
     "cost": 625,
-    "effects": [],
+    "effects": [
+      {
+        "bonus": 0.1,
+        "type": "bonus_yield",
+        "what": "Ship Max HP"
+      }
+    ],
     "flavor": "Gates the Advanced Technologies branch.",
     "name": "Materials Science",
     "parent": "basic_engineering",
@@ -1261,25 +1380,41 @@
     "type": "technology",
     "unlocks": []
   },
-  "nano_fabrication": {
+  "neutronium_synthesis": {
     "category": "processing",
-    "cost": 5000,
+    "cost": 75000000,
     "cost_items": {
-      "Res2": 25
+      "Neutronium": 60,
+      "QuantumCore": 600,
+      "VoidEssence": 100,
+      "Z9_Core": 2
     },
-    "effects": [
-      {
-        "bonus": -0.15,
-        "type": "bonus_yield",
-        "what": "Processing duration"
-      }
-    ],
-    "flavor": "",
-    "name": "Nano-Fabrication",
-    "parent": "automation",
-    "tier": 2,
+    "effects": [],
+    "flavor": "Compress neutron-star matter into workable plate — the spine of capital fabrication.",
+    "name": "Neutronium Synthesis",
+    "parent": "void_navigation",
+    "tier": 5,
     "type": "technology",
-    "unlocks": []
+    "unlocks": [
+      "Bio-Reactor Synthesis",
+      "Void Lattice Weave",
+      "Neutronium Condenser",
+      "Bio-Reactor Vat"
+    ]
+  },
+  "ordnance_101": {
+    "category": "combat",
+    "cost": 300,
+    "effects": [],
+    "flavor": "",
+    "name": "Explosive Ordnance Theory",
+    "parent": "kinetics_101",
+    "req_tech": "basic_engineering",
+    "tier": 1,
+    "type": "technology",
+    "unlocks": [
+      "Munitions Factory"
+    ]
   },
   "oxygen_blast_furnace": {
     "category": "processing",
@@ -1289,7 +1424,7 @@
       "Steel": 100
     },
     "effects": [],
-    "flavor": "Steel yield: 1 \u2192 5 per Foundry cycle.",
+    "flavor": "Steel yield: 1 → 5 per Foundry cycle.",
     "name": "Oxygen-Blast Furnaces",
     "parent": "blast_furnace",
     "tier": 2,
@@ -1300,9 +1435,9 @@
     "category": "processing",
     "cost": 10000000,
     "cost_items": {
-      "AICore": 25,
-      "AIProcessor": 25,
-      "AdvCircuit": 2000,
+      "AICore": 100,
+      "AIProcessor": 100,
+      "AdvCircuit": 4000,
       "AncientTech": 5
     },
     "effects": [
@@ -1351,12 +1486,11 @@
     "flavor": "",
     "name": "Power Systems",
     "parent": "kinetics_101",
-    "req_tech": "applied_physics",
+    "req_tech": "basic_engineering",
     "tier": 1,
     "type": "technology",
     "unlocks": [
-      "Basic Cell Factory",
-      "Basic Battery"
+      "Basic Cell Factory"
     ]
   },
   "precious_metal_refining": {
@@ -1376,6 +1510,48 @@
     "unlocks": [
       "Platinum Extraction",
       "Precious Metal Dredge"
+    ]
+  },
+  "precision_fabrication": {
+    "category": "infrastructure",
+    "cost": 12000000,
+    "cost_items": {
+      "NanoSubstrate": 40,
+      "SinteredCarbide": 80,
+      "StainlessSteel": 100,
+      "Z6_Core": 3
+    },
+    "effects": [],
+    "flavor": "The first clean parallelisable d5 and d6 in the game.",
+    "name": "Precision Fabrication",
+    "parent": "zone_6_access",
+    "tier": 6,
+    "type": "technology",
+    "unlocks": [
+      "Precision Lattice Mill",
+      "Fabrication Bus Assembly Hall"
+    ]
+  },
+  "primordial_engineering": {
+    "category": "processing",
+    "cost": 150000000,
+    "cost_items": {
+      "ChronoCore": 100,
+      "OmegaPlating": 80,
+      "PrimordialShard": 80,
+      "Z10_Core": 2
+    },
+    "effects": [],
+    "flavor": "Bind primordial matter into stable matrices — the deepest craft in the game.",
+    "name": "Primordial Engineering",
+    "parent": "neutronium_synthesis",
+    "tier": 5,
+    "type": "technology",
+    "unlocks": [
+      "Omega Forge",
+      "Primordial Crystallizer",
+      "Omega Foundry",
+      "Primordial Extractor"
     ]
   },
   "processing_tungsten": {
@@ -1423,13 +1599,13 @@
       "ExoticIsotope": 400,
       "QuantumCore": 400,
       "RadIsotope": 20000,
-      "Res3": 3500,
+      "Res3": 10000,
       "VoidArtifact": 50
     },
     "effects": [],
     "flavor": "",
     "name": "Quantum Dynamics",
-    "parent": "capital_ship_engineering",
+    "parent": "shipwright_2",
     "tier": 4,
     "type": "technology",
     "unlocks": [
@@ -1468,19 +1644,42 @@
     "category": "zone",
     "cost": 250000,
     "cost_items": {
-      "AdvCircuit": 113,
-      "Al": 750,
-      "Co": 375,
-      "Superalloy": 188
+      "AdvCircuit": 15,
+      "Al": 100,
+      "Co": 50,
+      "Superalloy": 25
     },
     "effects": [],
-    "flavor": "Gates Exotic Matter Analysis research.",
+    "flavor": "Hardened shielding lets the refinery handle live isotopes.",
     "name": "Radiation Shielding Theory",
     "parent": "deep_space_nav",
     "tier": 4,
     "type": "technology",
     "unlocks": [
-      "Sector Gamma (Radioactive)"
+      "Fission Reactor",
+      "Refine Radioactive Isotopes"
+    ]
+  },
+  "refractory_metallurgy": {
+    "category": "infrastructure",
+    "cost": 1800000,
+    "cost_items": {
+      "Co": 80,
+      "Graphite": 120,
+      "W": 160,
+      "Zn": 160
+    },
+    "effects": [],
+    "flavor": "Plate, carbide and substrate — the refractory rung the capital chain stands on.",
+    "name": "Refractory Metallurgy",
+    "parent": "superalloy_engineering",
+    "tier": 4,
+    "type": "technology",
+    "unlocks": [
+      "Galvanising Line",
+      "Passivation Furnace",
+      "Carbide Sintering Press",
+      "Nano-Substrate Lab"
     ]
   },
   "resonance_splitters": {
@@ -1509,12 +1708,37 @@
     "type": "technology",
     "unlocks": []
   },
+  "rift_armaments": {
+    "category": "ships",
+    "cost": 1500000,
+    "cost_items": {
+      "CryoEssence": 2800,
+      "ExoticMatter": 60,
+      "OmegaPlating": 2200,
+      "VoidLattice": 1600
+    },
+    "effects": [],
+    "flavor": "Sector 12 exotic armaments. The Rift Warden alternates Cryo and Corrosion bands and only the matching element breaches — bring one of each. Earned from breaching the Rift, not from beating its Warden.",
+    "name": "Rift Armaments",
+    "parent": "corrosion_armaments",
+    "req_tech": "corrosion_armaments",
+    "requires_flag": "z12_unlocked",
+    "requires_warp": true,
+    "tier": 5,
+    "type": "technology",
+    "unlocks": [
+      "Rift Lance (Weapon Craft)",
+      "Rift Etcher (Weapon Craft)",
+      "Rift Bulwark (Armor Craft)",
+      "Rift Barrier (Shield Craft)"
+    ]
+  },
   "sector_alpha_decryption": {
     "category": "zone",
     "cost": 50000,
     "cost_items": {
       "NavData": 15,
-      "Res1": 125
+      "Res1": 50
     },
     "effects": [],
     "flavor": "",
@@ -1523,6 +1747,7 @@
     "tier": 5,
     "type": "technology",
     "unlocks": [
+      "Compile Exotic Artifact",
       "Sector Alpha (scan)"
     ]
   },
@@ -1550,15 +1775,13 @@
     "category": "ships",
     "cost": 50000,
     "cost_items": {
-      "Circuit": 25,
-      "Res1": 50,
-      "Steel": 50
+      "Circuit": 15,
+      "Res1": 30,
+      "Steel": 38
     },
     "effects": [],
     "flavor": "",
     "name": "Shipwright I",
-    "parent": "power_systems",
-    "req_tech": "smelting",
     "tier": 2,
     "type": "technology",
     "unlocks": [
@@ -1567,9 +1790,10 @@
   },
   "shipwright_2": {
     "category": "ships",
-    "cost": 950000,
+    "cost": 120000,
     "cost_items": {
-      "Res2": 500
+      "AdvCircuit": 3,
+      "Steel": 63
     },
     "effects": [],
     "flavor": "",
@@ -1668,6 +1892,32 @@
     "type": "technology",
     "unlocks": []
   },
+  "verdigris_armaments": {
+    "category": "ships",
+    "cost": 4000000,
+    "cost_items": {
+      "ChronoCore": 1200,
+      "CryoEssence": 5200,
+      "ExoticMatter": 110,
+      "OmegaPlating": 4000,
+      "VoidLattice": 3000
+    },
+    "effects": [],
+    "flavor": "Sector 13 exotic armaments. The Verdigris Warden opens on Corrosion and closes on Cryo — the reverse of the Rift.",
+    "name": "Verdigris Armaments",
+    "parent": "rift_armaments",
+    "req_tech": "rift_armaments",
+    "requires_flag": "z13_unlocked",
+    "requires_warp": true,
+    "tier": 5,
+    "type": "technology",
+    "unlocks": [
+      "Verdigris Lance (Weapon Craft)",
+      "Verdigris Etcher (Weapon Craft)",
+      "Verdigris Bulwark (Armor Craft)",
+      "Verdigris Barrier (Shield Craft)"
+    ]
+  },
   "void_navigation": {
     "category": "zone",
     "cost": 50000000,
@@ -1675,37 +1925,20 @@
       "AncientTech": 5,
       "BiohazardSample": 20,
       "ExoticMatter": 20,
-      "QuantumCore": 600,
+      "QuantumCore": 30,
       "QuarantineClearance": 1,
-      "VoidCrystal": 1000
+      "VoidCrystal": 50
     },
     "effects": [],
     "flavor": "",
     "name": "Void Navigation",
-    "parent": "void_physics",
-    "tier": 4,
-    "type": "technology",
-    "unlocks": [
-      "Sector Epsilon \u2014 The Void",
-      "Void Rift Anchor",
-      "Chrono-Siphon"
-    ]
-  },
-  "void_physics": {
-    "category": "meta",
-    "cost": 5000000,
-    "cost_items": {
-      "AntimatterParticle": 100,
-      "QuantumCore": 200,
-      "VoidCrystal": 400
-    },
-    "effects": [],
-    "flavor": "Gates Void Navigation research.",
-    "name": "Extreme Void Physics",
     "parent": "exotic_matter_analysis",
     "tier": 4,
     "type": "technology",
-    "unlocks": []
+    "unlocks": [
+      "Void Rift Anchor",
+      "Chrono-Siphon"
+    ]
   },
   "void_shielding_1": {
     "category": "combat",
@@ -1787,7 +2020,7 @@
     "flavor": "",
     "name": "Xeno-Archaeology",
     "parent": "sector_alpha_decryption",
-    "tier": 3,
+    "tier": 5,
     "type": "technology",
     "unlocks": [
       "Analyze Void Artifact"
@@ -1800,10 +2033,16 @@
       "Circuit": 50,
       "SalvageData": 10
     },
-    "effects": [],
-    "flavor": "Xeno-research path \u2014 content TBD.",
+    "effects": [
+      {
+        "bonus": 0.25,
+        "type": "bonus_yield",
+        "what": "Rare Loot / Module Drop Chance"
+      }
+    ],
+    "flavor": "Boosts rare loot & module-drop chance by 25% (read by combat loot rolls).",
     "name": "Xeno-Engineering",
-    "parent": "automated_logistics",
+    "parent": "industrial_logistics",
     "tier": 3,
     "type": "technology",
     "unlocks": []
@@ -1812,14 +2051,15 @@
     "category": "zone",
     "cost": 45776367,
     "cost_items": {
-      "AdvCircuit": 6500,
-      "ChronoCore": 2000,
-      "Superalloy": 2800,
+      "BioforgedAlloy": 3,
+      "ChronoCore": 6,
+      "Superalloy": 2500,
+      "W": 400,
       "Z9_Core": 5
     },
     "effects": [],
     "flavor": "End-game industrial empire.",
-    "name": "Void Navigation",
+    "name": "Epsilon Frontier Charter",
     "parent": "zone_9_access",
     "tier": 10,
     "type": "technology",
@@ -1833,9 +2073,9 @@
     "category": "zone",
     "cost": 30000,
     "cost_items": {
-      "Cu": 120,
-      "Fe": 200,
-      "Z1_Core": 1
+      "Cu": 20,
+      "Fe": 40,
+      "Z1_Core": 2
     },
     "effects": [],
     "flavor": "",
@@ -1853,12 +2093,12 @@
     "category": "zone",
     "cost": 75000,
     "cost_items": {
-      "Circuit": 150,
-      "Steel": 500,
+      "Circuit": 15,
+      "Steel": 80,
       "Z2_Core": 1
     },
     "effects": [],
-    "flavor": "Bulk refined materials \u2014 start automating.",
+    "flavor": "Bulk refined materials — start automating.",
     "name": "Mars Debris Clearance",
     "parent": "zone_2_access",
     "tier": 3,
@@ -1872,30 +2112,33 @@
     "category": "zone",
     "cost": 187500,
     "cost_items": {
-      "Circuit": 200,
-      "Steel": 1000,
-      "Ti": 150,
-      "Z3_Core": 2
+      "Steel": 120,
+      "Ti": 50,
+      "WreckforgedAlloy": 10,
+      "Z3_Core": 1
     },
     "effects": [],
-    "flavor": "Hand-supply is impractical here \u2014 build extraction.",
-    "name": "Cryofield Expedition",
+    "flavor": "Hand-supply is impractical here — build extraction.",
+    "name": "Glacier Belt Expedition",
     "parent": "zone_3_access",
     "tier": 4,
     "type": "technology",
     "unlocks": [
-      "Cryofield zone",
+      "Glacier Belt zone",
       "Zone 4 modules",
-      "Heavy Cruiser"
+      "Heavy Cruiser",
+      "Advanced Ballistics Plant",
+      "High-Energy Cell Plant",
+      "Guided Munitions Plant"
     ]
   },
   "zone_5_access": {
     "category": "zone",
     "cost": 468750,
     "cost_items": {
-      "AdvCircuit": 200,
-      "Steel": 1500,
-      "Superalloy": 40,
+      "RimeAlloy": 10,
+      "Steel": 400,
+      "Superalloy": 60,
       "Z4_Core": 2
     },
     "effects": [],
@@ -1914,14 +2157,14 @@
     "category": "zone",
     "cost": 1171875,
     "cost_items": {
-      "AdvCircuit": 400,
-      "Superalloy": 120,
-      "Ti": 400,
+      "AdvCircuit": 150,
+      "Ti": 500,
+      "XenoforgedAlloy": 8,
       "Z5_Core": 3
     },
     "effects": [],
     "flavor": "Mature industrial base required.",
-    "name": "Deep Space Navigation",
+    "name": "Beta Colony Charter",
     "parent": "zone_5_access",
     "tier": 6,
     "type": "technology",
@@ -1935,35 +2178,38 @@
     "category": "zone",
     "cost": 2929687,
     "cost_items": {
-      "AdvCircuit": 800,
-      "Superalloy": 300,
-      "W": 2000,
+      "AdvCircuit": 300,
+      "ColonyAlloy": 6,
+      "W": 100,
       "Z6_Core": 3
     },
     "effects": [],
     "flavor": "Heavy automation + Tungsten extraction.",
-    "name": "Radiation Shielding",
+    "name": "Gamma Sector Clearance",
     "parent": "zone_6_access",
     "tier": 7,
     "type": "technology",
     "unlocks": [
       "Sector Gamma",
       "Zone 7 modules",
-      "Carrier"
+      "Carrier",
+      "Heavy Ordnance Works",
+      "Zero-Point Cell Synthesizer",
+      "Thermobaric Warhead Works"
     ]
   },
   "zone_8_access": {
     "category": "zone",
     "cost": 7324218,
     "cost_items": {
-      "AdvCircuit": 1600,
-      "Ir": 1500,
+      "GammaAlloy": 5,
+      "Ir": 40,
       "Superalloy": 700,
       "Z7_Core": 4
     },
     "effects": [],
     "flavor": "Full-scale industrial economy.",
-    "name": "Exotic Matter Analysis",
+    "name": "Delta Sector Survey",
     "parent": "zone_7_access",
     "tier": 8,
     "type": "technology",
@@ -1977,9 +2223,10 @@
     "category": "zone",
     "cost": 18310546,
     "cost_items": {
-      "AdvCircuit": 3200,
-      "Os": 1500,
-      "Superalloy": 1400,
+      "Graphite": 400,
+      "Os": 25,
+      "PrismaticAlloy": 4,
+      "Superalloy": 1500,
       "Z8_Core": 4
     },
     "effects": [],
@@ -1993,42 +2240,5 @@
       "Zone 9 modules",
       "Titan"
     ]
-  },
-  "corrosion_armaments": {
-    "name": "Corrosion Armaments",
-    "category": "ships",
-    "cost": 500000,
-    "cost_items": {
-      "ExoticMatter": 15,
-      "CryoEssence": 40,
-      "OmegaPlating": 30
-    },
-    "effects": [],
-    "flavor": "Corrosion-channel armaments \u2014 breach the Rift Warden's second phase.",
-    "parent": "cryo_armaments",
-    "req_tech": "cryo_armaments",
-    "requires_warp": true,
-    "tier": 5,
-    "type": "technology",
-    "unlocks": [
-      "Corrosion Blaster"
-    ]
-  },
-  "firmware_hacking": {
-    "name": "Firmware Hacking",
-    "tier": 3,
-    "category": "combat",
-    "cost": 1500,
-    "type": "technology",
-    "parent": "kinetics_101",
-    "cost_items": {
-      "SalvageData": 10,
-      "AdvCircuit": 20
-    },
-    "effects": [],
-    "unlocks": [
-      "Hack Cards (module affix crafting)"
-    ],
-    "flavor": "Reverse-engineer salvaged module firmware to rewrite affixes \u2014 unlocks Hack Card drops in combat and crafting in the Ship Designer."
   }
 }

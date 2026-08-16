@@ -1,12 +1,4 @@
 {
-  "architects_regalia": {
-    "bonus": {
-      "atk_speed_pct": 25,
-      "hp_regen_flat": 20
-    },
-    "name": "Architect's Regalia",
-    "pieces": 3
-  },
   "colossus_dominion": {
     "bonus": {
       "all_dmg_pct": 22,
@@ -17,8 +9,8 @@
   },
   "harbingers_wrath": {
     "bonus": {
-      "enemy_def_reduce_pct": 20,
-      "missile_dmg_pct": 30
+      "all_dmg_pct": 30,
+      "enemy_def_reduce_pct": 20
     },
     "name": "Harbinger's Wrath",
     "pieces": 3
@@ -41,7 +33,7 @@
   },
   "overseers_command": {
     "bonus": {
-      "accuracy_flat": 120,
+      "enemy_drop_mult": 25,
       "shield_regen_pct": 22
     },
     "name": "Overseer's Command",
@@ -49,8 +41,8 @@
   },
   "sovereigns_prism": {
     "bonus": {
-      "def_flat": 800,
-      "energy_dmg_pct": 22
+      "all_dmg_pct": 22,
+      "def_flat": 800
     },
     "name": "Sovereign's Prism",
     "pieces": 3
