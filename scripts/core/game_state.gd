@@ -2317,16 +2317,20 @@ func generate_bounty_pool() -> void:
 		attempts += 1
 		var c := {}
 		var roll := randf()
-		if roll < 0.4:
+		if roll < 0.35:
 			c = _gen_hunt(mind, maxd, false)
-		elif roll < 0.7:
+		elif roll < 0.60:
 			c = _gen_delivery(mind, maxd)
+		elif roll < 0.80:
+			# v138b/v139: BOSS BOUNTY — offline-completable by design, since a boss
+			# kill while away applies the same world state as an online one.
+			c = _gen_hunt(maxd, maxd, false, true)
 		else:
 			c = _gen_hunt(maxd, maxd, true)
 		if not c.is_empty():
 			var dup := false
 			for e in bounty_available:
-				if e["target"] == c["target"] and e["type"] == c["type"] and e.get("is_elite", false) == c.get("is_elite", false):
+				if e["target"] == c["target"] and e["type"] == c["type"] and e.get("is_elite", false) == c.get("is_elite", false) and e.get("is_boss_hunt", false) == c.get("is_boss_hunt", false):
 					dup = true
 					break
 			if not dup:
@@ -2348,7 +2352,7 @@ const HUNT_DIFF_EXP := 1.6
 const ELITE_CREDIT_CONST := 300.0
 const ELITE_DIFF_EXP := 1.5
 
-func _gen_hunt(mind: int, maxd: int, elite: bool) -> Dictionary:
+func _gen_hunt(mind: int, maxd: int, elite: bool, boss_hunt: bool = false) -> Dictionary:
 	var zs := _zones_in_range(mind, maxd)
 	if zs.is_empty():
 		return {}
@@ -2356,25 +2360,45 @@ func _gen_hunt(mind: int, maxd: int, elite: bool) -> Dictionary:
 	var ens: Array = z.get("enemies", [])
 	if ens.is_empty():
 		return {}
-	var eid: String = ens[randi() % ens.size()]
+	# v139b: contracts target only the MODULE-HUNTER enemies — the back-half trash
+	# (weapons pool + shield/armor pool). The front-half is the material-farm lane
+	# and never gets a contract. v175: the slice is load-bearing, not defensive —
+	# Zone 1 ships a single trash enemy, so it legitimately offers a smaller board.
+	var trash: Array = []
+	var boss_id := ""
+	for cand in ens:
+		if GameData.ENEMIES.get(cand, {}).get("is_boss", false):
+			boss_id = String(cand)
+		else:
+			trash.append(cand)
+	var hunters: Array = trash.slice(maxi(0, trash.size() - 2)) if trash.size() > 0 else []
+	# Boss bounties roll the boss; elite duels roll module-hunter variants only
+	# (an elite-multiplied PHASED warden is untuned content).
+	var eid := ""
+	if boss_hunt:
+		eid = boss_id
+	elif hunters.size() > 0:
+		eid = String(hunters[randi() % hunters.size()])
+	if eid == "":
+		return {}
 	var e: Dictionary = GameData.ENEMIES.get(eid, {})
 	if e.is_empty():
 		return {}
 	var diff := int(z.get("difficulty", 1))
 	var base_xp := float(e.get("xp", 10))
-	var qty := 1 if elite else randi_range(5, 20)
+	var qty := 1 if elite else (randi_range(1, 2) if boss_hunt else randi_range(5, 20))
 	# v139 bounty payouts (desktop bounty_manager HUNT_/ELITE_ constants). The
 	# quest board's "Sweep" contracts were retired and their income role moved
 	# here: the x10 constant matches the old sweep at Z1 while the 1.6 exponent
 	# preserves the bounty top-end. Elite keeps its own v73 jackpot curve.
 	var reward := int(base_xp * ELITE_CREDIT_CONST * pow(diff, ELITE_DIFF_EXP)) if elite \
 			else int(base_xp * qty * HUNT_CREDIT_CONST * pow(diff, HUNT_DIFF_EXP))
-	var title := ("★ ELITE: %s" % e["name"]) if elite else ("Hunt: %s" % e["name"])
+	var title := ("★ ELITE: %s" % e["name"]) if elite else (("◈ BOSS BOUNTY: %s" % e["name"]) if boss_hunt else ("Hunt: %s" % e["name"]))
 	var desc := "Destroy %s%d %s in %s." % ["the ELITE " if elite else "", qty, e["name"], z.get("name", "")]
 	return {"id": _gen_bid(), "type": "hunt", "title": title, "desc": desc,
 		"target": eid, "target_qty": qty, "current_qty": 0, "reward_credits": reward,
 		"reward_pool": _zone_module_pool(z),
-		"zone_id": z.get("id", ""), "difficulty": diff, "completed": false, "is_elite": elite}
+		"zone_id": z.get("id", ""), "difficulty": diff, "completed": false, "is_elite": elite, "is_boss_hunt": boss_hunt}
 
 func _gen_delivery(mind: int, maxd: int) -> Dictionary:
 	var tier := randi_range(mind, maxd)
