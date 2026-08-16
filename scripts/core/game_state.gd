@@ -61,11 +61,6 @@ const TREE_NODES := {
 		"desc": "Adds one extra module slot that accepts ANY module type (weapon, shield, armor, battery…).", "implemented": true, "prereq": ["CMB_2"]},
 	"CMB_4": {"branch": "combat", "cost": 6, "name": "Matrix Core IV",
 		"desc": "Unlocks the Resonant matrix-core tier (2x Pristine) — drops in the endgame zones.", "implemented": true, "prereq": ["CMB_3"]},
-	# Desktop C5 (warp_manager v109): the Cryo amplifier. Cryo weapons themselves
-	# unlock on the first Warp; this overcharges them for the Z11 Warp-Hardened
-	# gate. Stacks on top of CMB_2's general damage bonus.
-	"CMB_5": {"branch": "combat", "cost": 8, "name": "Cryo Overcharge",
-		"desc": "+50% Cryo damage. (Cryo weapons unlock on your first Warp — this overcharges them.)", "implemented": true, "prereq": ["CMB_4"]},
 	"CMB_S1": {"branch": "combat", "cost": 2, "step": 1, "repeatable": true, "name": "Arsenal Doctrine",
 		"desc": "+6% module damage per level.", "implemented": true, "prereq": ["CMB_1"]},
 	# ===== RECURSION (revealed at warp #2) — each warp is faster, cheaper, pays more =====
@@ -91,7 +86,7 @@ const BRANCH_REVEAL_WARP := {"engineering": 1, "combat": 2, "recursion": 2}
 # Display order per branch (prereqs listed before their dependents).
 const TREE_BRANCH_ORDER := {
 	"engineering": ["ENG_1", "ENG_S1", "ENG_2", "ENG_S2", "ENG_3", "ENG_4", "ENG_5", "ENG_6"],
-	"combat": ["CMB_1", "CMB_S1", "CMB_2", "CMB_3", "CMB_4", "CMB_5"],
+	"combat": ["CMB_1", "CMB_S1", "CMB_2", "CMB_3", "CMB_4"],
 	"recursion": ["REC_1", "REC_S1", "REC_S2", "REC_S3", "REC_2", "REC_6", "REC_4"],
 }
 # v121/v134h: Warp-Core Charge — the player manually feeds surplus base materials
@@ -599,6 +594,15 @@ func purchase_tree_node(node_id: String) -> bool:
 	resources_changed.emit()
 	return true
 
+# Two dev builds briefly shipped a CMB_5 "Cryo Overcharge" node that desktop had
+# already retired. Refund anyone who bought it so their shards are not stranded
+# in a node that no longer exists.
+func _refund_retired_nodes() -> void:
+	if purchased_nodes.has("CMB_5"):
+		purchased_nodes.erase("CMB_5")
+		warp_shards_spent = maxf(0.0, warp_shards_spent - 8.0)
+	node_levels.erase("CMB_5")
+
 # v122: remap v1 node ids (E1->ENG_1 …) on load so old saves keep their purchases.
 func _migrate_v1_node_ids() -> void:
 	for old_id in V1_NODE_REMAP:
@@ -639,7 +643,9 @@ func tree_damage_bonus() -> float:
 	m *= 1.0 + 0.06 * float(get_node_level("CMB_S1"))            # CMB_S1 spine
 	return m
 func tree_cryo_bonus() -> float:
-	return 1.50 if is_node_purchased("CMB_5") else 1.0   # desktop C5 Cryo Overcharge
+	# Desktop retired the Cryo Overcharge node with the v2 tree — no cryo
+	# amplifier exists there, so this stays a no-op that keeps combat math intact.
+	return 1.0
 func tree_card_drop_bonus() -> float:
 	return minf(0.08 * float(get_node_level("REC_S3")), 0.80)  # REC_S3 (future Hack Cards)
 func tree_shard_score_mult() -> float:
@@ -853,32 +859,24 @@ func add_xp(skill_id: String, amt: int) -> void:
 	if after > before and not _suppress_fx:
 		level_up.emit(skill_id, after)   # not while applying offline — the report covers it
 
-# ---------------- Trophy buffs (desktop bounty_manager.get_trophy_buff) ------
-# Owning a trophy grants a standing passive; the Void Conqueror Trophy adds a
-# global +5% on top of EVERY buff type. Trophies are crafted, never consumed —
-# holding one is the whole requirement.
-# Only the buff types the desktop managers actually CONSUME are listed. Desktop
-# also defines a "research_speed" trophy (Alpha), but no manager ever queries
-# it, so it is deliberately absent here rather than faked into a bonus.
-const TROPHY_BUFFS := {
-	"gathering_xp": ["Trophy_Lunar", 0.25],
-	"mining_yield": ["Trophy_Belt", 0.20],
-	"processing_xp": ["Trophy_Mars", 0.25],
-	"ship_speed": ["Trophy_Titan", 0.10],
-	"infrastructure_yield": ["Trophy_Beta", 0.20],
-	"energy_dmg": ["Trophy_Gamma", 0.15],
-	"kinetic_dmg": ["Trophy_Delta", 0.15],
-	"evasion": ["Trophy_Zeta", 0.10],
+# ---------------- Capstone buffs (desktop bounty_manager.get_trophy_buff) ----
+# v131 RETIRED the zone trophies; the standing passives they used to grant now
+# come from three endgame capstone crafts. Keeping the desktop function name so
+# the call sites line up with the reference managers.
+#   Omega Accelerator  -> +50% gathering yield AND +50% building yield
+#   Temporal Stabilizer -> +30% ship attack speed
+#   Primordial Forge   -> +30% hull HP (applied in ship_stats, desktop parity)
+const CAPSTONE_BUFFS := {
+	"mining_yield": ["OmegaAccelerator", 0.50],
+	"infrastructure_yield": ["OmegaAccelerator", 0.50],
+	"ship_speed": ["TemporalModule", 0.30],
 }
 
 func trophy_buff(kind: String) -> float:
-	var mult := 1.0
-	var row: Array = TROPHY_BUFFS.get(kind, [])
+	var row: Array = CAPSTONE_BUFFS.get(kind, [])
 	if row.size() == 2 and amount(String(row[0])) > 0:
-		mult += float(row[1])
-	if amount("Trophy_Epsilon") > 0:
-		mult += 0.05                                       # Void Conqueror: global
-	return mult
+		return 1.0 + float(row[1])
+	return 1.0
 
 func yield_mult(skill_id: String) -> float:
 	if skill_id != "harvesting":
@@ -890,7 +888,7 @@ func yield_mult(skill_id: String) -> float:
 	m *= 1.0 + affix_total("extractor_efficiency")
 	m *= 1.0 + research_bonus("gathering_yield_mult")      # Recursion: gathering_focus
 	m *= tree_gathering_bonus()                            # ENG_S1 Resource Surge spine (+6%/L)
-	m *= trophy_buff("mining_yield")                       # Belt Warden Trophy +20%
+	m *= trophy_buff("mining_yield")                       # Omega Accelerator +50%
 	# NB: warp prestige boosts gathering via SPEED (see gather_speed_mult), not yield.
 	return m
 
@@ -1018,7 +1016,6 @@ func ship_stats() -> Dictionary:
 	s.acc += affix_total("flat_accuracy")
 	s.crit += affix_total("combat_sight")
 	s.eva += affix_total("reflexive_plating")
-	s.eva *= trophy_buff("evasion")            # Zeta Purifier Trophy +10%
 	dps += affix_total("flat_atk")
 	s.atk = dps * (1.0 + spd_bonus) * spd_mult + float(h.get("atk", 0))
 	s["atk_speed_bonus"] = spd_bonus
@@ -1031,6 +1028,8 @@ func ship_stats() -> Dictionary:
 	# Gem core global multipliers
 	s.crit += gem_bonus("crit_chance")
 	s.hp *= 1.0 + gem_bonus("hp_mult")
+	if amount("PrimordialArmor") > 0:
+		s.hp = maxf(10.0, s.hp * 1.30)              # Primordial Forge capstone
 	s.def *= 1.0 + gem_bonus("def_mult")
 	s.shield *= 1.0 + gem_bonus("max_shield_mult")
 	if is_research_unlocked("void_shielding_1"):
@@ -1081,7 +1080,7 @@ func ship_weapons() -> Array:
 			spd_mult *= float(st["atk_speed_mult"])
 	# v80.1 Trinity: atk-speed boost (capped), and damage multipliers.
 	spd_bonus = minf(spd_bonus + trinity_bonus("atk_speed_pct") / 100.0, MAX_ATK_SPEED_MULT - 1.0)
-	var speed := (1.0 + spd_bonus) * spd_mult * trophy_buff("ship_speed")   # Titan Overlord Trophy +10%
+	var speed := (1.0 + spd_bonus) * spd_mult * trophy_buff("ship_speed")   # Temporal Stabilizer +30%
 	var dmg_mult := (1.0 + level_of("combat") * 0.005) * warp_combat_mult() * (1.0 + research_bonus("combat_damage")) * tree_damage_bonus()  # CMB_2 +10% & CMB_S1 spine
 	if is_research_unlocked("void_weaponry_1"):
 		dmg_mult *= 1.05                                   # Void Weaponry I: +5% ship damage
@@ -1106,8 +1105,6 @@ func ship_weapons() -> Array:
 		elif kx > 0: type = "explosive"
 		var gk := 1.0 + gem_bonus("atk_kinetic_mult")
 		var ge := 1.0 + gem_bonus("atk_energy_mult")
-		gk *= trophy_buff("kinetic_dmg")      # Delta Sentinel Trophy +15%
-		ge *= trophy_buff("energy_dmg")       # Gamma Ravager Trophy +15%
 		out.append({"name": m.get("name", "Weapon"), "type": type, "slot": str(k), "mid": String(loadout[k]),
 			"dmg_k": kk * eng_mult * dmg_mult * gk * trin_all,
 			"dmg_e": ke * eng_mult * dmg_mult * ge * trin_all * trin_e,
@@ -2310,6 +2307,11 @@ func _zone_module_pool(z: Dictionary) -> Array:
 				pool.append(mid)
 	return pool
 
+const HUNT_CREDIT_CONST := 10.0
+const HUNT_DIFF_EXP := 1.6
+const ELITE_CREDIT_CONST := 300.0
+const ELITE_DIFF_EXP := 1.5
+
 func _gen_hunt(mind: int, maxd: int, elite: bool) -> Dictionary:
 	var zs := _zones_in_range(mind, maxd)
 	if zs.is_empty():
@@ -2325,11 +2327,12 @@ func _gen_hunt(mind: int, maxd: int, elite: bool) -> Dictionary:
 	var diff := int(z.get("difficulty", 1))
 	var base_xp := float(e.get("xp", 10))
 	var qty := 1 if elite else randi_range(5, 20)
-	# Desktop v107 sweep payout: base_xp × qty × 10.0 × difficulty^1.4. The old
-	# mobile constant (5.0, ^1.8) underpaid low-tier combat contracts badly —
-	# a Z1 sweep earned a fraction of an idle gather order per minute, quietly
-	# teaching new players to skip combat. Elite is a mobile-only tier, untouched.
-	var reward := int(base_xp * 300.0 * pow(diff, 1.5)) if elite else int(base_xp * qty * 10.0 * pow(diff, 1.4))
+	# v139 bounty payouts (desktop bounty_manager HUNT_/ELITE_ constants). The
+	# quest board's "Sweep" contracts were retired and their income role moved
+	# here: the x10 constant matches the old sweep at Z1 while the 1.6 exponent
+	# preserves the bounty top-end. Elite keeps its own v73 jackpot curve.
+	var reward := int(base_xp * ELITE_CREDIT_CONST * pow(diff, ELITE_DIFF_EXP)) if elite \
+			else int(base_xp * qty * HUNT_CREDIT_CONST * pow(diff, HUNT_DIFF_EXP))
 	var title := ("★ ELITE: %s" % e["name"]) if elite else ("Hunt: %s" % e["name"])
 	var desc := "Destroy %s%d %s in %s." % ["the ELITE " if elite else "", qty, e["name"], z.get("name", "")]
 	return {"id": _gen_bid(), "type": "hunt", "title": title, "desc": desc,
@@ -5298,7 +5301,7 @@ func _complete_active() -> void:
 	if active_type == "gather":
 		var a: Dictionary = GameData.GATHER[active_id]
 		_roll_loot(a.get("loot", []), yield_mult("harvesting"), int(research_bonus("gathering_yield")) + tree_gathering_flat(), false, true)
-		add_xp("harvesting", int(int(a.get("xp", 0)) * trophy_buff("gathering_xp")))
+		add_xp("harvesting", int(a.get("xp", 0)))
 		gain_mastery_xp(active_id)                          # per-action Mastery: +1 per loop
 	elif active_type == "craft":
 		var r: Dictionary = GameData.CRAFT[active_id]
@@ -5308,7 +5311,7 @@ func _complete_active() -> void:
 			return
 		spend(eff_in)
 		_grant_craft_outputs(active_id, r, 1)
-		add_xp("fabrication", int(int(r.get("xp", 0)) * trophy_buff("processing_xp")))
+		add_xp("fabrication", int(r.get("xp", 0)))
 		gain_mastery_xp(active_id)                          # per-recipe Mastery: +1 per loop
 	else:
 		return
@@ -5382,7 +5385,7 @@ func _apply_offline(delta: float) -> void:
 		var a: Dictionary = GameData.GATHER[active_id]
 		var summary := _offline_loot(a.get("loot", []), yield_mult("harvesting"), reps, false, true,
 				int(research_bonus("gathering_yield")) + tree_gathering_flat())
-		add_xp("harvesting", int(int(a.get("xp", 0)) * reps * trophy_buff("gathering_xp")))
+		add_xp("harvesting", int(a.get("xp", 0)) * reps)
 		gain_mastery_xp(active_id, float(reps))             # batch Mastery for offline loops
 		pending_offline = "Away for %s\n\n%s\nHarvesting XP\t+%d" % [_fmt_time(delta), summary, int(a.get("xp", 0)) * reps]
 	elif active_type == "craft":
@@ -5404,7 +5407,7 @@ func _apply_offline(delta: float) -> void:
 			var made := amount(sym) - int(before[sym])
 			rows.append("%s\t+%s" % [GameData.res_name(sym), GameData.fmt(made)])
 		var summary := "\n".join(rows)
-		add_xp("fabrication", int(int(r.get("xp", 0)) * count * trophy_buff("processing_xp")))
+		add_xp("fabrication", int(r.get("xp", 0)) * count)
 		gain_mastery_xp(active_id, float(count))            # batch Mastery for offline loops
 		pending_offline = "Away for %s\n%s\nEngineering XP\t+%d" % [_fmt_time(delta), summary, int(r.get("xp", 0)) * count]
 
@@ -5558,6 +5561,7 @@ func load_game() -> void:
 	purchased_nodes = data.get("purchased_nodes", {})
 	node_levels = data.get("node_levels", {})           # v122: repeatable spines (defaults {} on old saves)
 	_migrate_v1_node_ids()                              # v122: E1->ENG_1 … remap for old saves
+	_refund_retired_nodes()                             # refund the briefly-shipped CMB_5
 	warp_shards_spent = float(data.get("warp_shards_spent", 0.0))
 	warp_charge = float(data.get("warp_charge", 0.0))   # v121: defaults 0 on old saves
 	# Back-compat: pre-v111 saves with warps predate the flag — infer it.

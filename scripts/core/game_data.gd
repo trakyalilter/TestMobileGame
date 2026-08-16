@@ -306,7 +306,6 @@ const CRAFT_CATS := [
 	{"id": "research", "label": "Research & Artifacts"},
 	{"id": "salvage", "label": "Salvage"},
 	{"id": "endgame", "label": "Exotic Fabrication"},
-	{"id": "trophies", "label": "Trophies"},
 ]
 const CRAFT := {
 	"analyze_artifact": {"name": "Analyze Void Artifact", "inputs": {"VoidArtifact": 1}, "outputs": {}, "bonus": [["Cu", 1.0, 10, 20], ["Chip", 0.3, 1, 2], ["NavData", 0.2, 1, 2], ["AncientTech", 0.05, 1, 1]], "xp": 200, "level_req": 50, "duration": 10.0, "category": "research", "research_req": "xeno_archaeology"},
@@ -368,12 +367,6 @@ const CRAFT := {
 	"craft_structural_component": {"name": "Structural Component", "inputs": {"C": 3, "Cu": 5, "Fe": 10, "Li": 2, "Si": 5}, "outputs": {"StructuralComponent": 1}, "bonus": [], "xp": 80, "level_req": 10, "duration": 8.0, "category": "materials", "research_req": "metallurgy_advanced"},
 	"craft_superalloy": {"name": "Superalloy", "inputs": {"Al": 2, "Co": 2, "Cr": 1, "Fe": 2, "Ni": 2, "Ti": 1}, "outputs": {"Superalloy": 1}, "bonus": [], "xp": 200, "level_req": 18, "duration": 10.0, "category": "alloys", "research_req": "superalloy_engineering"},
 	"craft_temporal_module": {"name": "Temporal Stabilizer", "inputs": {"AdvCircuit": 20, "ChronoCore": 5, "NanoSubstrate": 5, "QuantumCore": 10}, "outputs": {"TemporalModule": 1}, "bonus": [], "xp": 3000, "level_req": 85, "duration": 90.0, "category": "endgame", "research_req": "exotic_metallurgy"},
-	"craft_trophy_alpha": {"name": "Sector Alpha Trophy", "inputs": {"AdvCircuit": 10, "Superalloy": 5, "XenoFragment": 25}, "outputs": {"Trophy_Alpha": 1}, "bonus": [], "xp": 600, "level_req": 50, "duration": 90.0, "category": "trophies", "research_req": "zone_5_access"},
-	"craft_trophy_belt": {"name": "Asteroid Belt Trophy", "inputs": {"Cu": 20, "PirateSalvage": 50, "Steel": 30}, "outputs": {"Trophy_Belt": 1}, "bonus": [], "xp": 150, "level_req": 20, "duration": 45.0, "category": "trophies", "research_req": "zone_2_access"},
-	"craft_trophy_delta": {"name": "Delta Sector Trophy", "inputs": {"ExoticMatter": 5, "Neutronium": 20, "Superalloy": 10}, "outputs": {"Trophy_Delta": 1}, "bonus": [], "xp": 1200, "level_req": 70, "duration": 120.0, "category": "trophies", "research_req": "zone_8_access"},
-	"craft_trophy_lunar": {"name": "Lunar Conquest Trophy", "inputs": {"Circuit": 10, "Cu": 20, "MiteChitin": 50}, "outputs": {"Trophy_Lunar": 1}, "bonus": [], "xp": 80, "level_req": 10, "duration": 30.0, "category": "trophies", "research_req": "kinetics_101"},
-	"craft_trophy_mars": {"name": "Martian Relic Trophy", "inputs": {"AdvCircuit": 5, "MartianRelics": 40, "Steel": 40}, "outputs": {"Trophy_Mars": 1}, "bonus": [], "xp": 250, "level_req": 30, "duration": 60.0, "category": "trophies", "research_req": "zone_3_access"},
-	"craft_trophy_titan": {"name": "Titan Cryofield Trophy", "inputs": {"CryoEssence": 30, "Superalloy": 5, "Ti": 50}, "outputs": {"Trophy_Titan": 1}, "bonus": [], "xp": 400, "level_req": 40, "duration": 75.0, "category": "trophies", "research_req": "zone_4_access"},
 	"craft_turret_core": {"name": "Turret Core", "inputs": {"AdvCircuit": 5, "Circuit": 20, "StainlessSteel": 10, "Steel": 30}, "outputs": {"TurretCore": 1}, "bonus": [], "xp": 90, "level_req": 35, "duration": 25.0, "category": "materials"},
 	"craft_turret_targeting": {"name": "Targeting Array Fabrication", "inputs": {"AdvCircuit": 3, "Circuit": 10, "Steel": 20}, "outputs": {"TargetingChip": 1}, "bonus": [], "xp": 100, "level_req": 45, "duration": 20.0, "category": "salvage", "research_req": "deep_space_nav"},
 	"craft_void_battery": {"name": "Void Battery", "inputs": {"ExoticMatter": 5, "NuclearFuel": 5, "QuantumCore": 2, "VoidEssence": 10}, "outputs": {"VoidBattery": 1}, "bonus": [], "xp": 2000, "level_req": 80, "duration": 60.0, "category": "endgame", "research_req": "exotic_metallurgy"},

@@ -2342,10 +2342,10 @@ func _build_craft() -> void:
 		_subtabs(v, GameData.CRAFT_CATS, craft_cat, CYAN, func(id: String) -> void:
 			craft_cat = id
 			_refresh_current())
-		# Trophies are passives, not materials — holding one grants a standing
+		# Capstones are passives, not materials — holding one grants a standing
 		# bonus forever, so the page states which are active and what each grants.
-		if craft_cat == "trophies":
-			_trophy_status(v)
+		if craft_cat == "endgame":
+			_capstone_status(v)
 		# Munitions mixes three ammo damage types (Slugs=kinetic, Cells=energy,
 		# Missiles=explosive); a second-level filter jumps to the matching type.
 		if craft_cat == "munitions":
@@ -6951,34 +6951,34 @@ func _skill_banner(v: VBoxContainer, title: String, skill_id: String, accent: St
 # Page-level info cards (desktop parity): LEVEL BONUS — what this page's skill
 # level currently grants and what the next milestones/unlocks are — and MASTERY —
 # a summary of the per-action mastery progression on this page.
-# Trophy passives: owning the trophy IS the requirement — it is never consumed.
-# Lists every trophy buff with its owned/missing state.
-func _trophy_status(v: VBoxContainer) -> void:
+# Capstone passives (desktop v131): the endgame crafts grant standing bonuses
+# just by being held — they are never consumed. Shown on the Exotic Fabrication
+# tab so the payoff for a 95-level craft is visible before you commit to it.
+func _capstone_status(v: VBoxContainer) -> void:
 	var labels := {
-		"gathering_xp": "Gathering XP", "mining_yield": "Gathering yield",
-		"processing_xp": "Engineering XP", "ship_speed": "Ship attack speed",
+		"mining_yield": "Gathering yield",
 		"infrastructure_yield": "Building yield",
-		"energy_dmg": "Energy damage", "kinetic_dmg": "Kinetic damage",
-		"evasion": "Evasion",
+		"ship_speed": "Ship attack speed",
 	}
 	var lines: Array = []
-	var owned := 0
-	for kind in GameState.TROPHY_BUFFS:
-		var row: Array = GameState.TROPHY_BUFFS[kind]
+	var held := {}
+	for kind in GameState.CAPSTONE_BUFFS:
+		var row: Array = GameState.CAPSTONE_BUFFS[kind]
 		var sym := String(row[0])
 		var has := GameState.amount(sym) > 0
-		if has:
-			owned += 1
+		held[sym] = has
 		lines.append(_line("%s %s  +%d%%  ·  %s" % ["✔" if has else "·", labels.get(kind, kind),
 				int(float(row[1]) * 100.0), GameData.res_name(sym)], GOLD if has else C_MUTED, sym))
-	var epsilon := GameState.amount("Trophy_Epsilon") > 0
-	lines.append(_line("%s Every bonus above  +5%%  ·  %s" % ["✔" if epsilon else "·",
-			GameData.res_name("Trophy_Epsilon")], GOLD if epsilon else C_MUTED, "Trophy_Epsilon"))
-	_inset(v, "TROPHY PASSIVES  ·  %d of %d held" % [owned + (1 if epsilon else 0), lines.size()], lines, GOLD, owned > 0)
-	_lbl_wrap(v, "Trophies are never consumed — crafting one and keeping it in storage is all that's needed.", 10, C_DIM)
-	# Alpha is craftable but no system reads its bonus (same as desktop), so say
-	# so rather than let it look like a missing passive.
-	_lbl_wrap(v, "%s is a collectible — it carries no active bonus." % GameData.res_name("Trophy_Alpha"), 10, C_MUTED)
+	var armor := GameState.amount("PrimordialArmor") > 0
+	held["PrimordialArmor"] = armor
+	lines.append(_line("%s Hull HP  +30%%  ·  %s" % ["✔" if armor else "·",
+			GameData.res_name("PrimordialArmor")], GOLD if armor else C_MUTED, "PrimordialArmor"))
+	var n := 0
+	for k in held:
+		if held[k]:
+			n += 1
+	_inset(v, "CAPSTONE PASSIVES  ·  %d of %d held" % [n, held.size()], lines, GOLD, n > 0)
+	_lbl_wrap(v, "Capstones are never consumed — crafting one and keeping it in storage is all that's needed.", 10, C_DIM)
 
 func _page_boost_cards(v: VBoxContainer, skill_id: String, accent: String) -> void:
 	var lvl := GameState.level_of(skill_id)
