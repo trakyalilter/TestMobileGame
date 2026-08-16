@@ -1029,16 +1029,14 @@ func ship_stats() -> Dictionary:
 		s["hp_regen"] += float(jst.get("hp_regen", 0)) * eng
 	# Gem core global multipliers
 	s.crit += gem_bonus("crit_chance")
-	s.hp *= 1.0 + gem_bonus("hp_mult")
+	s.hp *= 1.0 + gem_bonus("max_hull_mult")
 	if amount("PrimordialArmor") > 0:
 		s.hp = maxf(10.0, s.hp * 1.30)              # Primordial Forge capstone
-	s.def *= 1.0 + gem_bonus("def_mult")
-	s.shield *= 1.0 + gem_bonus("max_shield_mult")
 	if is_research_unlocked("void_shielding_1"):
 		s.shield *= 1.05                                   # Void Shielding I: +5% max shield
 	s.shield_regen *= 1.0 + gem_bonus("shield_regen_mult")
-	s.eva *= 1.0 + gem_bonus("eva_mult")
-	s.energy_cap *= 1.0 + gem_bonus("energy_capacity_mult") + research_bonus("applied_physics")
+	s.eva += gem_bonus("evasion_flat")
+	s.energy_cap *= 1.0 + gem_bonus("energy_eff") + research_bonus("applied_physics")
 	# Combat skill milestones (desktop Phase 21): +5% crit @ L10, +15 eva @ L25.
 	if level_of("combat") >= 10:
 		s.crit += 0.05
@@ -1082,7 +1080,7 @@ func ship_weapons() -> Array:
 			spd_mult *= float(st["atk_speed_mult"])
 	# v80.1 Trinity: atk-speed boost (capped), and damage multipliers.
 	spd_bonus = minf(spd_bonus + trinity_bonus("atk_speed_pct") / 100.0, MAX_ATK_SPEED_MULT - 1.0)
-	var speed := (1.0 + spd_bonus) * spd_mult * trophy_buff("ship_speed")   # Temporal Stabilizer +30%
+	var speed := (1.0 + spd_bonus + gem_bonus("attack_speed")) * spd_mult * trophy_buff("ship_speed")   # Cobalt facet + Temporal Stabilizer
 	var dmg_mult := (1.0 + level_of("combat") * 0.005) * warp_combat_mult() * (1.0 + research_bonus("combat_damage")) * tree_damage_bonus()  # CMB_2 +10% & CMB_S1 spine
 	if is_research_unlocked("void_weaponry_1"):
 		dmg_mult *= 1.05                                   # Void Weaponry I: +5% ship damage
@@ -1105,8 +1103,8 @@ func ship_weapons() -> Array:
 		if kc > 0: type = "cryo"
 		elif ke > 0: type = "energy"
 		elif kx > 0: type = "explosive"
-		var gk := 1.0 + gem_bonus("atk_kinetic_mult")
-		var ge := 1.0 + gem_bonus("atk_energy_mult")
+		var gk := 1.0
+		var ge := 1.0
 		out.append({"name": m.get("name", "Weapon"), "type": type, "slot": str(k), "mid": String(loadout[k]),
 			"dmg_k": kk * eng_mult * dmg_mult * gk * trin_all,
 			"dmg_e": ke * eng_mult * dmg_mult * ge * trin_all * trin_e,
@@ -1760,12 +1758,65 @@ func trinity_bonus(key: String) -> float:
 	return total
 
 ## Sum of a gem effect across gems socketed into equipped modules.
+# ---------------- Matrix-core FACETS (desktop v118 redesign) -----------------
+# PoE-style type matching: a core's effect depends on its HOST module's slot
+# category — weapon = offense, armor/shield = defense, everything else = utility.
+# The same core is a different bonus depending on where you socket it.
+const GEM_FACETS := {
+	# CRIMSON (Wrath) — crit / damage reduction / ammo efficiency
+	"CrackedCrimsonCore":   {"weapon": {"crit_chance": 0.02, "crit_damage": 0.06}, "defense": {"damage_reduction": 0.015}, "utility": {"ammo_eff": 0.04}},
+	"StableCrimsonCore":    {"weapon": {"crit_chance": 0.04, "crit_damage": 0.15}, "defense": {"damage_reduction": 0.03}, "utility": {"ammo_eff": 0.10}},
+	"PristineCrimsonCore":  {"weapon": {"crit_chance": 0.08, "crit_damage": 0.30}, "defense": {"damage_reduction": 0.06}, "utility": {"ammo_eff": 0.20}},
+	"ResonantCrimsonCore":  {"weapon": {"crit_chance": 0.15, "crit_damage": 0.60}, "defense": {"damage_reduction": 0.12}, "utility": {"ammo_eff": 0.35}},
+	# COBALT (Surge) — attack speed / shield regen / energy efficiency
+	"CrackedCobaltCore":    {"weapon": {"attack_speed": 0.02}, "defense": {"shield_regen_mult": 0.06}, "utility": {"energy_eff": 0.02}},
+	"StableCobaltCore":     {"weapon": {"attack_speed": 0.05}, "defense": {"shield_regen_mult": 0.15}, "utility": {"energy_eff": 0.05}},
+	"PristineCobaltCore":   {"weapon": {"attack_speed": 0.10}, "defense": {"shield_regen_mult": 0.30}, "utility": {"energy_eff": 0.10}},
+	"ResonantCobaltCore":   {"weapon": {"attack_speed": 0.18}, "defense": {"shield_regen_mult": 0.55}, "utility": {"energy_eff": 0.18}},
+	# TOPAZ (Focus) — armor penetration / evasion / salvage find
+	"CrackedTopazCore":     {"weapon": {"armor_pen": 0.03}, "defense": {"evasion_flat": 2.0}, "utility": {"module_drop_mult": 0.03}},
+	"StableTopazCore":      {"weapon": {"armor_pen": 0.07}, "defense": {"evasion_flat": 5.0}, "utility": {"module_drop_mult": 0.06}},
+	"PristineTopazCore":    {"weapon": {"armor_pen": 0.12}, "defense": {"evasion_flat": 10.0}, "utility": {"module_drop_mult": 0.12}},
+	"ResonantTopazCore":    {"weapon": {"armor_pen": 0.18}, "defense": {"evasion_flat": 18.0}, "utility": {"module_drop_mult": 0.20}},
+	# AMETHYST (Harmonics) — resist pierce / max hull / restore-on-kill
+	"CrackedAmethystCore":  {"weapon": {"resist_pierce": 0.03}, "defense": {"max_hull_mult": 0.02}, "utility": {"restore_on_kill": 0.02}},
+	"StableAmethystCore":   {"weapon": {"resist_pierce": 0.06}, "defense": {"max_hull_mult": 0.05}, "utility": {"restore_on_kill": 0.04}},
+	"PristineAmethystCore": {"weapon": {"resist_pierce": 0.12}, "defense": {"max_hull_mult": 0.10}, "utility": {"restore_on_kill": 0.08}},
+	"ResonantAmethystCore": {"weapon": {"resist_pierce": 0.18}, "defense": {"max_hull_mult": 0.18}, "utility": {"restore_on_kill": 0.15}},
+}
+
+# v118/v142/v174: aggregate caps per facet — the most ANY number of sockets can
+# grant. Sized so ~4-5 cores reach the cap, which pushes a diverse matrix instead
+# of stacking one colour, and keeps energy_eff/ammo_eff strictly below 1.0.
+const GEM_FACET_CAPS := {
+	"crit_chance": 0.10, "crit_damage": 0.20, "attack_speed": 0.08,
+	"shield_regen_mult": 1.20, "max_hull_mult": 0.40,
+	"evasion_flat": 50.0, "module_drop_mult": 0.60,
+	"ammo_eff": 0.40, "energy_eff": 0.30, "restore_on_kill": 0.25,
+	"damage_reduction": 0.30, "armor_pen": 0.10, "resist_pierce": 0.15,
+}
+
+## Which facet a host slot reads: weapon / defense / utility.
+func gem_slot_category(slot_type: String) -> String:
+	if slot_type == "weapon":
+		return "weapon"
+	if slot_type == "armor" or slot_type == "shield":
+		return "defense"
+	return "utility"
+
+## Total value of a facet across every socketed core, slot-matched and capped.
 func gem_bonus(key: String) -> float:
 	var s := 0.0
 	for mid in loadout.values():
-		for gid in module_def(mid).get("sockets", []):
-			if gid != null and gid != "" and GameData.GEMS.has(gid):
-				s += float(GameData.GEMS[gid]["effects"].get(key, 0.0))
+		var d := module_def(mid)
+		var cat := gem_slot_category(String(d.get("slot", "")))
+		for gid in d.get("sockets", []):
+			if gid == null or gid == "":
+				continue
+			var facet: Dictionary = GEM_FACETS.get(String(gid), {}).get(cat, {})
+			s += float(facet.get(key, 0.0))
+	if GEM_FACET_CAPS.has(key):
+		s = minf(s, float(GEM_FACET_CAPS[key]))
 	return s
 
 ## Insert a gem (from inventory) into the first empty socket of a custom module.
@@ -4383,7 +4434,9 @@ func _player_fire(w: Dictionary, ss: Dictionary) -> void:
 	var ammo: String = resolve_ammo_for_slot(String(w.get("slot", "")), wtype)
 	var ammo_ok: bool = ammo != "" and amount(ammo) > 0
 	if ammo_ok:
-		resources[ammo] = amount(ammo) - 1
+		# Crimson utility facet: chance the round is not consumed.
+		if randf() >= gem_bonus("ammo_eff"):
+			resources[ammo] = amount(ammo) - 1
 		var am := ammo_damage_mult(ammo)
 		match ammo_channel(ammo):
 			"k": dk *= am
@@ -4484,7 +4537,8 @@ func _enemy_fire(ss: Dictionary) -> void:
 				_win_combat()
 				return
 	player_shield = maxf(0.0, player_shield - res[0])
-	combat_hp -= res[1]
+	# Crimson defense facet: flat reduction on incoming hull damage.
+	combat_hp -= res[1] * (1.0 - gem_bonus("damage_reduction"))
 	# v109 typed enemy-damage readout: tag hull damage with the enemy's dmg_type
 	# (KIN/NRG/EXP) so the popup tells the player what's hurting them.
 	var dtag: String = {"energy": "NRG", "explosive": "EXP"}.get(String(enemy_inst.get("dmg_type", "kinetic")), "KIN")
@@ -4620,6 +4674,8 @@ func resolve_damage(atk_k: float, atk_e: float, atk_x: float, c_shield: float, c
 	# heavy armor (late bosses); the player's own small armor never trips it, so it
 	# aids PENETRATION of boss armor without shielding the player.
 	k = maxf(k, GameData.ARMOR_K_FLOOR * c_armor)
+	if is_player_attacker:
+		c_armor *= 1.0 - gem_bonus("armor_pen")   # Topaz weapon facet
 	# Reactive Armor: low HP effectively raises k (better mitigation) on the player.
 	if not is_player_attacker and loadout_has_module("reactive_armor"):
 		var hp_ratio := combat_hp / maxf(1.0, combat_max_hp())
@@ -4645,7 +4701,7 @@ func resolve_damage(atk_k: float, atk_e: float, atk_x: float, c_shield: float, c
 		var rc := _amp_resist(float(enemy_inst.get("resist_cryo", 0.0)))
 		# v118 Amethyst resist_pierce: shave POSITIVE resists only (cap 0.30) —
 		# softens the gate without turning weaknesses into super-weaknesses.
-		var rp := clampf(gem_bonus("resist_pierce"), 0.0, 0.30)
+		var rp := gem_bonus("resist_pierce")   # already capped by GEM_FACET_CAPS
 		if rp > 0.0:
 			if rk > 0.0: rk = maxf(rk - rp, 0.0)
 			if re > 0.0: re = maxf(re - rp, 0.0)
@@ -4677,11 +4733,16 @@ func resolve_damage(atk_k: float, atk_e: float, atk_x: float, c_shield: float, c
 	var is_crit := randf() < crit_chance
 	# v80.1 Crit damage cap (variance multiplier ceiling).
 	if is_crit:
-		variance *= minf(1.5, MAX_CRIT_DAMAGE)
+		# Crimson weapon facet raises the crit multiplier above the 1.5 base.
+		variance *= minf(1.5 + gem_bonus("crit_damage"), MAX_CRIT_DAMAGE)
 	var minhull := 1.0 if (atk_k + atk_e + atk_x + atk_cryo) > 0.0 else 0.0
 	return [dmg_shield * variance, maxf(minhull, hull * variance), is_crit]
 
 func _win_combat() -> void:
+	# Amethyst utility facet: restore a fraction of max hull on every kill.
+	var rok := gem_bonus("restore_on_kill")
+	if rok > 0.0:
+		combat_hp = minf(combat_max_hp(), combat_hp + combat_max_hp() * rok)
 	# Offline-combat nudge (desktop v?): after enough manual kills, point the
 	# player at the away-combat option once. total_kills is saved.
 	total_kills += 1
@@ -4735,7 +4796,7 @@ func _win_combat() -> void:
 			for _i in randi_range(4, 10):
 				_roll_one_module_drop(pool)
 		else:
-			var dc: float = float(enemy_inst.get("drop_chance", 0.0)) * (1.0 + research_bonus("xeno_engineering")) * (1.0 + affix_total("module_drop_mult"))
+			var dc: float = float(enemy_inst.get("drop_chance", 0.0)) * (1.0 + research_bonus("xeno_engineering")) * (1.0 + affix_total("module_drop_mult") + gem_bonus("module_drop_mult"))
 			if enemy_inst.get("elite", false):
 				dc = minf(1.0, dc * 3.0)
 			if dc > 0.0 and randf() < dc:

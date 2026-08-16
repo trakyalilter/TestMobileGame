@@ -4690,7 +4690,8 @@ func _module_detail_body(v: VBoxContainer, close: Callable, mid: String) -> void
 			if has_empty:
 				for gem in GameData.GEMS:
 					if GameState.amount(gem) > 0:
-						var gb := _card_button("Socket %s x%d" % [GameData.GEMS[gem]["name"], GameState.amount(gem)], "3a9fff", true)
+						var gb: Button = _card_button("Socket %s x%d\n%s" % [GameData.GEMS[gem]["name"], GameState.amount(gem),
+								_gem_facet_text(String(gem), String(GameState.module_def(mid).get("slot", "")))], "3a9fff", true)
 						gb.add_theme_font_size_override("font_size", _fs(11))
 						gb.pressed.connect(_socket_and_reopen.bind(mid, gem, close))
 						v.add_child(gb)
@@ -4793,6 +4794,31 @@ func _open_equip_slot_picker(mid: String, idxs: Array) -> void:
 			n += 1
 		v.add_child(note)
 	_modal("EQUIP TO SLOT", CYAN, body, "⬡")
+
+# v118 Matrix-core facets: the SAME core grants a different bonus depending on
+# the host module's slot (weapon = offense, armor/shield = defense, everything
+# else = utility). The socket UI must say which, or the system is invisible.
+const GEM_FACET_LABELS := {
+	"crit_chance": "crit chance", "crit_damage": "crit damage",
+	"attack_speed": "attack speed", "armor_pen": "armor pen",
+	"resist_pierce": "resist pierce", "damage_reduction": "damage reduction",
+	"shield_regen_mult": "shield regen", "max_hull_mult": "max hull",
+	"evasion_flat": "evasion", "module_drop_mult": "module drops",
+	"ammo_eff": "ammo saved", "energy_eff": "energy cap",
+	"restore_on_kill": "hull on kill",
+}
+
+## What `gem` will actually grant when socketed into a module of `slot_type`.
+func _gem_facet_text(gem: String, slot_type: String) -> String:
+	var cat := GameState.gem_slot_category(slot_type)
+	var facet: Dictionary = GameState.GEM_FACETS.get(gem, {}).get(cat, {})
+	var parts := []
+	for k in facet:
+		var v := float(facet[k])
+		var label: String = GEM_FACET_LABELS.get(k, String(k))
+		parts.append(("+%d %s" % [int(v), label]) if k == "evasion_flat" \
+				else ("+%d%% %s" % [int(round(v * 100.0)), label]))
+	return ", ".join(parts)
 
 func _socket_and_reopen(mid: String, gem: String, close: Callable) -> void:
 	GameState.socket_gem(mid, gem)
@@ -5230,7 +5256,8 @@ func _custom_module_card(cid: String) -> Control:
 		if has_empty:
 			for gem in GameData.GEMS:
 				if GameState.amount(gem) > 0:
-					var gb := _card_button("Socket %s x%d" % [GameData.GEMS[gem]["name"], GameState.amount(gem)], "3a9fff", true)
+					var gb: Button = _card_button("Socket %s x%d\n%s" % [GameData.GEMS[gem]["name"], GameState.amount(gem),
+							_gem_facet_text(String(gem), String(GameState.module_def(cid).get("slot", "")))], "3a9fff", true)
 					gb.add_theme_font_size_override("font_size", _fs(11))
 					gb.pressed.connect(func() -> void: GameState.socket_gem(cid, gem))
 					c.add_child(gb)
