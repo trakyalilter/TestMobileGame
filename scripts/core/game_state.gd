@@ -2336,6 +2336,14 @@ const DELIVERY_MATERIALS := {
 	8: [["VoidCrystal", 50, 150, 5000000], ["Diamond", 30, 80, 4000000], ["ExoticMatter", 20, 50, 6000000]],
 	9: [["BiohazardSample", 100, 250, 7500000], ["Neutronium", 50, 150, 9000000], ["PathogenCore", 20, 50, 10000000]],
 	10: [["VoidEssence", 50, 100, 25000000], ["ChronoCore", 20, 50, 37500000], ["PrimordialShard", 10, 30, 50000000]],
+	# v139 NG+ rows: the corrosion-loop sectors need their own stockpile tiers, or
+	# a Z11+ player forever draws tier-10 orders. Mobile scales these the same way
+	# it scales the tier 1-10 rows (~5x the desktop credit figure, ~1.7x quantity).
+	11: [["ExoticMatter", 70, 140, 40000000], ["VoidEssence", 85, 170, 44000000]],
+	12: [["PrimordialShard", 50, 100, 70000000], ["OmegaPlating", 35, 85, 80000000]],
+	13: [["ChronoCore", 70, 150, 120000000], ["VoidEssence", 135, 270, 130000000]],
+	14: [["ExoticMatter", 200, 400, 210000000], ["ChronoCore", 100, 200, 220000000]],
+	15: [["PrimordialShard", 200, 400, 350000000], ["OmegaPlating", 100, 200, 370000000]],
 }
 
 var bounty_available: Array = []
@@ -2604,12 +2612,14 @@ func _standing_fill() -> void:
 	standing_orders_changed.emit()
 
 func _gen_standing_order() -> Dictionary:
-	var maxd := standing_max_diff()
+	# v139 clamps the reward tables at 15 so a future Z16 unlock cannot roll into
+	# an empty tier and hand back a blank order.
+	var maxd := mini(standing_max_diff(), 15)
 	var mind := maxi(1, maxd - 1)
-	# 55% gather, 45% hunt (non-boss).
-	if randf() < 0.55:
-		return _gen_standing_gather(mind, maxd)
-	return _gen_standing_hunt(mind, maxd)
+	# v162: Standing Orders are STOCKPILE-ONLY. Kill contracts moved to the
+	# per-zone bounty boards, so rolling hunts here splits one activity across
+	# two boards instead of broadening what the player is asked to do.
+	return _gen_standing_gather(mind, maxd)
 
 ## Retry wrapper for single-slot replacement: a lone empty roll (e.g. a tier with
 ## no delivery-material template, or no valid hunt zone) must never shrink the
@@ -2621,14 +2631,33 @@ func _gen_standing_order_retry() -> Dictionary:
 			return q
 	return {}
 
+## (tier, template) pairs whose material is not already spoken for by the board.
+func _standing_candidates(lo: int, hi: int, taken: Dictionary) -> Array:
+	var out: Array = []
+	for tier in range(lo, hi + 1):
+		for t in DELIVERY_MATERIALS.get(tier, []):
+			if not taken.has(String(t[0])):
+				out.append([tier, t])
+	return out
+
 func _gen_standing_gather(mind: int, maxd: int) -> Dictionary:
 	# DELIVERY_MATERIALS tops out at tier 10; clamp so high-zone (Z11) players
 	# still draw gather orders instead of always rolling empty at tier 11.
-	var tier := mini(randi_range(mind, maxd), 10)
-	var tmpl: Array = DELIVERY_MATERIALS.get(tier, [])
-	if tmpl.is_empty():
+	# v168: never offer two orders for the same good — duplicates read as a bug
+	# and split attention across one activity instead of broadening the board.
+	var taken := {}
+	for q in standing_board:
+		taken[String(q.get("target", ""))] = true
+	var cands := _standing_candidates(mind, maxd, taken)
+	if cands.is_empty():
+		cands = _standing_candidates(1, maxd, taken)   # widen before giving up
+	# No fresh material anywhere in reach: hold FEWER orders rather than repeat
+	# one. Early on that is the honest state — tier 1 offers three materials.
+	if cands.is_empty():
 		return {}
-	var t: Array = tmpl[randi() % tmpl.size()]
+	var pick: Array = cands[randi() % cands.size()]
+	var tier := int(pick[0])
+	var t: Array = pick[1]
 	var mat_id: String = t[0]
 	# Orders demand smaller quantities than bounties (they aren't consumed).
 	# Floor at 1 so a small material range can never produce a 0/0 auto-complete.
@@ -2639,41 +2668,10 @@ func _gen_standing_gather(mind: int, maxd: int) -> Dictionary:
 		"id": _gen_sid(), "type": "gather",
 		"title": "Stockpile: %s" % dn,
 		"desc": "Acquire %d units of %s." % [qty, dn],
-		"target": mat_id, "target_qty": qty, "current_qty": 0,
+		# v139c: born reflecting current inventory, never 0/N when already held.
+		"target": mat_id, "target_qty": qty, "current_qty": mini(amount(mat_id), qty),
 		"reward_credits": credits_r, "reward_material": _roll_standing_material(tier),
 		"difficulty": tier, "completed": false, "claimed": false,
-	}
-
-func _gen_standing_hunt(mind: int, maxd: int) -> Dictionary:
-	var valid := _zones_in_range(mind, maxd)
-	if valid.is_empty():
-		return {}
-	var z: Dictionary = valid[randi() % valid.size()]
-	var diff := int(z.get("difficulty", 1))
-	# Prefer non-boss for orders; bosses are bounty territory.
-	var non_boss := []
-	for eid in z.get("enemies", []):
-		if not GameData.ENEMIES.get(eid, {}).get("is_boss", false):
-			non_boss.append(eid)
-	if non_boss.is_empty():
-		non_boss = z.get("enemies", [])
-	if non_boss.is_empty():
-		return {}
-	var enemy_id: String = non_boss[randi() % non_boss.size()]
-	var e: Dictionary = GameData.ENEMIES.get(enemy_id, {})
-	if e.is_empty():
-		return {}
-	var qty := randi_range(8, 20)
-	var base_xp := float(e.get("xp", 10))
-	var diff_mult := pow(float(diff), 1.4)
-	var credit_reward := int(base_xp * qty * 10.0 * diff_mult)
-	return {
-		"id": _gen_sid(), "type": "hunt",
-		"title": "Sweep: %s" % e.get("name", enemy_id),
-		"desc": "Destroy %d %s in %s." % [qty, e.get("name", enemy_id), z.get("name", "")],
-		"target": enemy_id, "target_qty": qty, "current_qty": 0,
-		"reward_credits": credit_reward, "reward_material": _roll_standing_material(diff),
-		"difficulty": diff, "completed": false, "claimed": false,
 	}
 
 func _roll_standing_material(tier: int) -> Dictionary:
@@ -2718,7 +2716,10 @@ func sync_standing_gather() -> void:
 	if changed:
 		standing_orders_changed.emit()
 
-## Hunt progress on enemy kill (called from _win_combat).
+## Hunt progress on enemy kill (called from _win_combat). v162 retired hunt
+## GENERATION from this board (kill contracts live on the per-zone bounty
+## boards now), but the tracker stays: saves written before that change can
+## still hold an active hunt order, and it must remain completable.
 func standing_on_kill(eid: String) -> void:
 	var changed := false
 	for q in standing_board:
