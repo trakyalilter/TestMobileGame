@@ -2424,9 +2424,14 @@ func _craft_matches(r: Dictionary, q: String) -> bool:
 
 # Ammo damage type of a munitions recipe, from its output symbol (Slug=kinetic,
 # Cell=energy, Missile/Torpedo=explosive). "" if the recipe isn't ammo.
+# v144 ammo ladder as a display label: "+10%" for T2, "baseline" for T1.
+func _ammo_pct(sym: String) -> String:
+	var pct := int(round((GameState.ammo_damage_mult(sym) - 1.0) * 100.0))
+	return "baseline" if pct == 0 else ("+%d%% dmg" % pct)
+
 func _ammo_type_of(r: Dictionary) -> String:
 	for sym in r.get("outputs", {}):
-		match String(GameState.ammo_bonus(sym)[0]):
+		match GameState.ammo_channel(String(sym)):
 			"k": return "kinetic"
 			"e": return "energy"
 			"x": return "explosive"
@@ -4129,13 +4134,12 @@ func _ammo_picker(v: VBoxContainer, slot: String, m: Dictionary) -> void:
 	_card_head(c, "◆", m.get("name", "Weapon"), "", CYAN, true)
 	_pick_button(c, current == "", "No Ammo (base damage)", current == "", func() -> void: GameState.set_ammo(slot, ""))
 	for sym in GameData.RESOURCES:
-		var ab := GameState.ammo_bonus(sym)
-		if ab[0] != letter:
+		if GameState.ammo_channel(String(sym)) != letter:
 			continue
 		var owned := GameState.amount(sym)
 		if owned <= 0 and sym != current:
 			continue
-		_pick_button(c, sym == current, "%s  x%s  (+%d dmg)" % [GameData.res_name(sym), GameData.fmt(owned), int(ab[1])], sym == current, func() -> void: GameState.set_ammo(slot, sym))
+		_pick_button(c, sym == current, "%s  x%s  (%s)" % [GameData.res_name(sym), GameData.fmt(owned), _ammo_pct(String(sym))], sym == current, func() -> void: GameState.set_ammo(slot, sym))
 	v.add_child(c.get_parent())
 
 func _pick_button(parent: VBoxContainer, _ignored: bool, label: String, active: bool, cb: Callable) -> void:
@@ -4352,13 +4356,12 @@ func _open_ammo_picker(slot: String, m: Dictionary) -> void:
 		var cur: String = GameState.ammo_loadout.get(slot, "")
 		_fit_pick(v, "No Ammo (base damage)", cur == "", func() -> void: GameState.set_ammo(slot, ""), close)
 		for sym in GameData.RESOURCES:
-			var ab := GameState.ammo_bonus(sym)
-			if ab[0] != letter:
+			if GameState.ammo_channel(String(sym)) != letter:
 				continue
 			var owned := GameState.amount(sym)
 			if owned <= 0 and sym != cur:
 				continue
-			_fit_pick(v, "%s  x%s  (+%d dmg)" % [GameData.res_name(sym), GameData.fmt(owned), int(ab[1])], sym == cur, func() -> void: GameState.set_ammo(slot, sym), close)
+			_fit_pick(v, "%s  x%s  (%s)" % [GameData.res_name(sym), GameData.fmt(owned), _ammo_pct(String(sym))], sym == cur, func() -> void: GameState.set_ammo(slot, sym), close)
 	_modal("Ammo · " + String(m.get("name", "Weapon")), CYAN, body, "▣")
 
 # Auto-assign equip (Shipyard shop / quick-equip buttons): equip into the first
@@ -4405,7 +4408,7 @@ func _prompt_ammo_if_needed(idx: int) -> void:
 	# Only prompt if there's ammo of this type to choose; otherwise skip silently.
 	var has_ammo := false
 	for sym in GameData.RESOURCES:
-		if String(GameState.ammo_bonus(sym)[0]) == letter and GameState.amount(sym) > 0:
+		if GameState.ammo_channel(String(sym)) == letter and GameState.amount(sym) > 0:
 			has_ammo = true
 			break
 	if not has_ammo:

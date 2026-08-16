@@ -1124,26 +1124,60 @@ func ship_weapons() -> Array:
 	return out
 
 ## Flat ammo damage bonus by item id (faithful tiers), and which damage type it feeds.
-func ammo_bonus(ammo_id: String) -> Array:
+# v144: ammo is a PERCENTAGE multiplier on the weapon's own damage channel,
+# keyed strictly on the id's tier suffix. The old model added a FLAT +5..+60,
+# which is +750% at Z1 and rounding error at Z10 — and its explosive branch
+# keyed on display names ("Seeker"/"Torpedo") that no ammo id carries, so
+# MissileT1..T4 were all identical.
+const AMMO_TIER_MULT := {"T1": 1.00, "T1S": 1.00, "T2": 1.10, "T3": 1.20, "T4": 1.35}
+
+## Tier suffix of an ammo id ("SlugT1S" -> "T1S"). "" for legacy/placeholder ids.
+func ammo_tier(ammo_id: String) -> String:
+	if ammo_id == "":
+		return ""
+	for suffix in ["T1S", "T4", "T3", "T2", "T1"]:   # longest first: T1S != T1
+		if ammo_id.ends_with(suffix):
+			return suffix
+	return ""
+
+## Damage multiplier this ammo applies to its channel. 1.0 for unknown ids, so a
+## missing entry can never zero a weapon out.
+func ammo_damage_mult(ammo_id: String) -> float:
+	return float(AMMO_TIER_MULT.get(ammo_tier(ammo_id), 1.0))
+
+## Damage channel an ammo id feeds: "k" | "e" | "x" | "" (prefix-only, as desktop).
+func ammo_channel(ammo_id: String) -> String:
 	if ammo_id.begins_with("Slug"):
-		var b := 5.0
-		if "T1S" in ammo_id: b = 10.0
-		elif "T2" in ammo_id: b = 15.0
-		elif "T3" in ammo_id: b = 30.0
-		elif "T4" in ammo_id: b = 60.0
-		return ["k", b]
-	elif ammo_id.begins_with("Cell"):
-		var b := 5.0
-		if "T2" in ammo_id: b = 15.0
-		elif "T3" in ammo_id: b = 30.0
-		elif "T4" in ammo_id: b = 60.0
-		return ["e", b]
-	elif "issile" in ammo_id or "orpedo" in ammo_id or "eeker" in ammo_id:
-		var b := 10.0
-		if "Seeker" in ammo_id: b = 25.0
-		elif "orpedo" in ammo_id: b = 60.0
-		return ["x", b]
-	return ["", 0.0]
+		return "k"
+	if ammo_id.begins_with("Cell"):
+		return "e"
+	if ammo_id.begins_with("Missile"):
+		return "x"
+	return ""
+
+## v150b: what a slot will ACTUALLY fire. Returns the bound ammo while it has
+## stock, else the best lower tier still held, down to T1 — an emptied stack
+## degrades DPS instead of zeroing the weapon and stalling the fight forever.
+func resolve_ammo_for_slot(slot_key: String, wtype: String) -> String:
+	var bound: String = String(ammo_loadout.get(slot_key, ""))
+	var want: String = {"kinetic": "k", "energy": "e", "explosive": "x"}.get(wtype, "")
+	if want == "":
+		return ""
+	if bound != "" and ammo_channel(bound) == want and amount(bound) > 0:
+		return bound
+	# Fall back down the ladder within the same channel.
+	var prefix: String = {"k": "Slug", "e": "Cell", "x": "Missile"}[want]
+	var best := ""
+	var best_mult := 0.0
+	for sym in resources:
+		var sid := String(sym)
+		if not sid.begins_with(prefix) or amount(sid) <= 0:
+			continue
+		var m := ammo_damage_mult(sid)
+		if m > best_mult:
+			best_mult = m
+			best = sid
+	return best
 
 func combat_max_hp() -> float:
 	var s := ship_stats()
@@ -4317,21 +4351,20 @@ func _player_fire(w: Dictionary, ss: Dictionary) -> void:
 	var dx := float(w["dmg_x"])
 	var dc := float(w.get("dmg_cryo", 0.0))
 	var wtype := String(w.get("type", "kinetic"))
-	if wtype == "energy" and loadout_has_module("plasma_overcharger"):
-		de *= 2.0   # Plasma Overcharger
+	# v155: the plasma_overcharger x2.0 energy-only branch is DELETED. No module
+	# with that id exists, so it never fired — but a dormant x2 on one channel
+	# silently undoes the balance the day anything reuses the name.
 	var requires_ammo := String(w.get("slot", "")) != "" and wtype != "cryo"
-	var ammo: String = ammo_loadout.get(w.get("slot", ""), "")
-	var ab: Array = ammo_bonus(ammo) if ammo != "" else ["", 0.0]
-	var ammo_ok: bool = ammo != "" and amount(ammo) > 0 \
-		and ((wtype == "kinetic" and ab[0] == "k") \
-			or (wtype == "energy" and ab[0] == "e") \
-			or (wtype == "explosive" and ab[0] == "x"))
+	# v150b: ask what the slot will actually fire, not the raw binding.
+	var ammo: String = resolve_ammo_for_slot(String(w.get("slot", "")), wtype)
+	var ammo_ok: bool = ammo != "" and amount(ammo) > 0
 	if ammo_ok:
 		resources[ammo] = amount(ammo) - 1
-		match ab[0]:
-			"k": dk += ab[1]
-			"e": de += ab[1]
-			"x": dx += ab[1]
+		var am := ammo_damage_mult(ammo)
+		match ammo_channel(ammo):
+			"k": dk *= am
+			"e": de *= am
+			"x": dx *= am
 	elif requires_ammo:
 		# No compatible ammo loaded — the weapon can't fire (desktop parity).
 		if randf() < 0.12:
