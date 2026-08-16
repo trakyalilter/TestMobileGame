@@ -205,7 +205,7 @@ func _build_ui():
 				top_amt = float(e["amt"])
 				top_key = str(e.get("res", k))
 		if top_key != "":
-			stats.add_child(_mk_stat(_disp_name(top_key).to_upper(), top_amt, _key_color(top_key), "+"))
+			stats.add_child(_mk_stat(UITheme.tr_upper(_disp_name(top_key)), top_amt, _key_color(top_key), "+"))
 		else:
 			stats.add_child(_mk_stat("LIRAS", 0.0, GOLD, "+"))
 	stats.add_child(_mk_stat("XP ACCRUED", float(agg["xp"]), Color.WHITE, "+"))
@@ -307,7 +307,10 @@ func _play_boot_sequence():
 
 
 func _blog(msg: String):
-	_boot_log.text += (msg if _boot_log.text == "" else "\n" + msg)
+	# Translate per LINE. The label accumulates the boot lines into one blob, and
+	# a concatenated blob matches no CSV key, so auto-translate cannot reach them.
+	var line := tr(msg)
+	_boot_log.text += (line if _boot_log.text == "" else "\n" + line)
 	UITheme.trigger_ui_thud(_boot_log, 1.0)
 
 
@@ -415,7 +418,9 @@ func _mk_channel(b: Dictionary) -> Control:
 	dot.glow = active
 	row.add_child(dot)
 
-	var title := _mk_mono(str(b.get("title", "")).to_upper(), 11, TEXT if active else FAINT)
+	# Translate first, then uppercase: the CSV keys are the natural-case titles,
+	# and tr_upper is the Turkish-aware casing (i -> İ, not i -> I).
+	var title := _mk_mono(UITheme.tr_upper(tr(str(b.get("title", "")))), 11, TEXT if active else FAINT)
 	title.custom_minimum_size = Vector2(156, 0)
 	row.add_child(title)
 
@@ -493,7 +498,7 @@ func _mk_ledger_row(r: Dictionary) -> Control:
 	# row has no icon (e.g. Liras/credits) so every name column stays aligned.
 	hb.add_child(_mk_ledger_icon(r["key"], r["drain"]))
 
-	var sym := _mk_mono(_disp_name(r["key"]).to_upper(), 11, RED if r["drain"] else TEXT)
+	var sym := _mk_mono(UITheme.tr_upper(_disp_name(r["key"])), 11, RED if r["drain"] else TEXT)
 	sym.custom_minimum_size = Vector2(112, 0)
 	hb.add_child(sym)
 
