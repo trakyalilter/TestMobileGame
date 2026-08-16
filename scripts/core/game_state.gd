@@ -820,11 +820,20 @@ func sell_all(sym: String) -> void:
 	sell_resource(sym, amount(sym))
 
 # Sell a chosen quantity of a resource (clamped to what's owned).
+## v132: never destroy an item for nothing. Zero-value goods (progression
+## tokens like Quarantine Clearance, crafting cards) are craft-only, not
+## sellable — the old maxi(1, ...) floor quietly let them go for 1 Lira each.
+func can_sell(sym: String) -> bool:
+	return GameData.value_of(sym) > 0
+
 func sell_resource(sym: String, qty: int) -> void:
 	qty = clampi(qty, 0, amount(sym))
 	if qty <= 0:
 		return
-	gain_credits(qty * maxi(1, GameData.value_of(sym)))
+	if not can_sell(sym):
+		sell_notice = "%s has no market value — it's used in crafting." % GameData.res_name(sym)
+		return
+	gain_credits(qty * GameData.value_of(sym))
 	resources[sym] = amount(sym) - qty
 	resources_changed.emit()
 
@@ -1429,6 +1438,7 @@ func _gem_synth_output(mid: String) -> String:
 	return ""
 
 var equip_notice := ""                  # last equip rejection reason (shown in UI)
+var sell_notice := ""                   # last sell rejection reason (shown in UI)
 
 # ---------------- Auxiliary slot (CMB_3 warp node) ----------------
 # The CMB_3 node grants ONE extra "aux" slot that accepts any standard module

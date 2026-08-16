@@ -6474,14 +6474,20 @@ func _open_sell_picker(sym: String) -> void:
 			b.pressed.connect(func() -> void: set_qty.call(q))
 			row2.add_child(b)
 		v.add_child(row2)
-		var sell := _card_button("Sell", GOLD, true)
+		# v132: zero-value goods are craft-only. Say so on the card instead of
+		# offering a Sell button that would destroy them for nothing.
+		var sellable := GameState.can_sell(sym)
+		var sell := _card_button("Sell" if sellable else "No market value", GOLD, sellable)
 		sell.custom_minimum_size = Vector2(0, 44)
-		sell.pressed.connect(func() -> void:
-			GameState.sell_resource(sym, int(state["qty"]))
-			_fly_to_credits(sell, sym)
-			close.call()
-			_refresh_current())
+		if sellable:
+			sell.pressed.connect(func() -> void:
+				GameState.sell_resource(sym, int(state["qty"]))
+				_fly_to_credits(sell, sym)
+				close.call()
+				_refresh_current())
 		v.add_child(sell)
+		if not sellable:
+			_lbl_wrap(v, "%s is used in crafting and has no market value." % GameData.res_name(sym), 10, C_DIM)
 		sync.call())
 
 func _storage_slot_empty() -> Control:
