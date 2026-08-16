@@ -97,7 +97,18 @@ func _run() -> void:
 	# ===== TASK 2: Standing Orders board =====
 	gs.hard_reset()
 	var board: Array = gs.standing_orders()
-	_ck("board has 6 orders", board.size() == 6, "size=%d" % board.size())
+	# v168: one order per GOOD. A fresh game only has three tier-1 materials, so
+	# the board legitimately opens short — desktop holds fewer orders rather than
+	# offering the same good twice. Assert the real contract: never over the cap,
+	# never empty, never a duplicate.
+	_ck("board within cap", board.size() <= 6 and board.size() > 0, "size=%d" % board.size())
+	var seen_targets := {}
+	var dupes := false
+	for q in board:
+		if seen_targets.has(q["target"]):
+			dupes = true
+		seen_targets[q["target"]] = true
+	_ck("board goods are unique", not dupes, "size=%d unique=%d" % [board.size(), seen_targets.size()])
 	# Reroll cost = 2500 × max_diff.
 	var maxd: int = gs.standing_max_diff()
 	_ck("reroll cost = 2500 x max_diff", gs.standing_reroll_cost() == 2500 * maxd,
@@ -125,7 +136,7 @@ func _run() -> void:
 	_ck("claim succeeds when complete", ok_claim)
 	_ck("claim grants material reward", gs.amount("Cu") == cu_before + 50, "Cu %d -> %d" % [cu_before, gs.amount("Cu")])
 	_ck("claim grants credits", gs.credits > cred_before)
-	_ck("board auto-replaced to 6", gs.standing_orders().size() == 6)
+	_ck("board refills after claim", gs.standing_orders().size() > 0 and gs.standing_orders().size() <= 6)
 	_ck("claimed order removed (slot 0 differs)", gs.standing_board[0].get("id", "") != "test_gather")
 	# Hunt progress on kill.
 	var hunt := {
@@ -144,7 +155,7 @@ func _run() -> void:
 	var ok_reroll: bool = gs.reroll_standing_orders()
 	_ck("reroll succeeds with credits", ok_reroll)
 	_ck("reroll charges cost", gs.credits == cr_before - rcost, "%d - %d = %d" % [cr_before, rcost, gs.credits])
-	_ck("reroll refills to 6", gs.standing_orders().size() == 6)
+	_ck("reroll refills the board", gs.standing_orders().size() > 0 and gs.standing_orders().size() <= 6)
 
 	# Persistence: standing board survives a save/load round-trip.
 	gs.save_game()
