@@ -21,7 +21,11 @@ func setup(p_mid: String, p_data: Dictionary, p_manager, p_parent):
 		name_lbl.text = "%s %s" % [tr(data["tag"]), tr(data["name"])]
 	else:
 		name_lbl.text = tr(data["name"])
-	name_lbl.add_theme_color_override("font_color", UITheme.CATEGORY_COLORS["mission"])
+	# v177: name line carries the CATEGORY identity color (same mapping the
+	# sidebar mission dots use), so a colored dot on a nav button can be traced
+	# to its mission here. Tutorials resolve to the old jade — no visual change
+	# for the bulk of the early game.
+	name_lbl.add_theme_color_override("font_color", UITheme.mission_tag_color(str(data.get("tag", ""))))
 	desc_lbl.text = tr(data["description"])
 	progress_bar.max_value = data["target_qty"]
 	

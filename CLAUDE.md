@@ -218,7 +218,26 @@ suspected mechanism are in `player_like.gd::_do_farm_rarity`'s note.
 - **Numbers are raw `float`** (no BigNumber). `2^53` is the precision ceiling. Flag designs that push damage/credits past quadrillions and recommend a BigNumber adoption plan BEFORE it bites.
 - **Godot 4.5.1** is the engine version verified for this project. Extracted binary lives at `$TEMP/godot_check/Godot_v4.5.1-stable_win64_console.exe` (extracted from `~/Downloads/Godot_v4.5.1-stable_win64.exe.zip`). Use `--headless --quit-after N` for boot checks and `--check-only --script res://path.gd` for isolated parse checks (ignore false-positive "Identifier not found" for autoloads in isolated mode).
 
-### Debug tools (Options page → "Warp Mastery Tree (debug)" section)
+### Debug tools (Settings page → "Testing" section — NOT IN THE BRANCH)
+
+> ⚠ **Status as of 2026-08-16: this section does NOT exist in `MissionFlow`.**
+> Do not go looking for `_build_testing_section` in `options_page.gd` — it is not
+> there, and its absence is deliberate, not rot.
+>
+> History, so nobody chases a ghost again: the section was gated behind
+> `OS.has_feature("editor") or OS.has_feature("debug")` on 2026-08-12 (`8add756`),
+> then DELETED outright the same day (`4c581e2`, −1023 lines, 47 debug functions).
+> It was rebuilt in the GATED form on 2026-08-15, but the owner ruled on
+> 2026-08-16 that it stays OUT of the branch, so that work was held back at commit
+> time and never pushed. It holds far more than the four bullets below (test
+> fitter, hull/module granter, zone unlocker, skill+research setters, mission
+> control, Game Speed, balance telemetry).
+>
+> The rebuilt file is preserved OUTSIDE the repo at
+> `…/scratchpad/options_page.WITH_TESTING.gd` (1,421 lines) — a session scratchpad,
+> so treat it as expendable. To resurrect it properly, prefer
+> `git log -S _build_testing_section` over any doc, including this one. **The
+> bullets below therefore describe tooling you do not currently have.**
 
 - `+1M LIRAS` — bumps `lifetime_credits` past 500K threshold so a real warp/fanfare can trigger naturally.
 - `FORCE WARP +1 (no reset)` — bypasses gain calc, bumps `total_warps` + grants 1 shard, no world reset. Sidebar auto-refresh. Suppresses fanfare for tree-iteration testing.

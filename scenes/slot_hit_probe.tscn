@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/sim/slot_hit_probe.gd" id="1_shp"]
+
+[node name="SlotHitProbe" type="Node"]
+script = ExtResource("1_shp")

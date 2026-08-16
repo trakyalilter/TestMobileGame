@@ -158,22 +158,36 @@ func init_missions():
 		# pair teaches ENERGY against the energy-weak Survey Probe (resist_e -0.30, resists
 		# kinetic +0.30). The EXPLOSIVE leg is the Scrap Collector pair (m017c/d).
 		# (v131: the Rogue Architect boss has NO resists — pure rarity check.)
-		["m017a", "Energy Doctrine", "Not every hostile falls to slugs. The Silicate Golem in the Asteroid Belt RESISTS kinetic fire but is WEAK TO ENERGY. In the Shipyard, craft 2 'Pulse Laser Mk.I'", "craft", "z1_energy", 2, 1500, 200, "m017a2"],
+		# v177 (owner): 2 -> 3 lasers. These beats were written for the pre-v174 hulls;
+		# v174's "+1 weapon per tier" gave the Frigate a THIRD weapon mount, and the
+		# player reaches this leg ON the frigate (m026b builds it, m027 leads here), so
+		# "craft 2, equip BOTH" left one mount empty at the exact beat teaching full
+		# refits. Power check (derived tables, not stats): 3 z1 lasers + shield + armor
+		# + engine = 6 consumers x 10 = 60 draw vs 2 z1 batteries = 60 cap — EXACT fit;
+		# the equip guard blocks only strictly-over. A looted sensor tips it over, and
+		# the guard's own message then points at the z2 battery m027's research just
+		# unlocked. Ammo 60 -> 90 is one batch per gun; total burn-to-kill is gun-count
+		# independent (more guns = shorter fight), so this is stock comfort, not need.
+		["m017a", "Energy Doctrine", "Not every hostile falls to slugs. The Silicate Golem in the Asteroid Belt RESISTS kinetic fire but is WEAK TO ENERGY. In the Shipyard, craft 3 'Pulse Laser Mk.I' — your Frigate carries three weapon mounts.", "craft", "z1_energy", 3, 1500, 200, "m017a2"],
 		# v134: energy leg now mirrors the kinetic leg (craft -> produce ammo -> equip & fight).
 		# It used to jump from craft straight to "destroy with Focus Crystals loaded" with NO
 		# step that made the player PRODUCE the ammo — so a correctly-built laser fought empty.
-		["m017a2", "Charge the Crystals", "The Pulse Laser runs on Focus Crystals. In the Engineering tab, produce 60 Focus Crystals", "gather", "CellT1", 60, 1500, 200, "m017b"],
-		["m017b", "Pulse Fire", "Keep builds in separate slots: click LOADOUT 2, equip BOTH Pulse Lasers there, then destroy a Silicate Golem in the Asteroid Belt.", "defeat", "z2_silicate_golem", 1, 3000, 500, "m027b"],
+		["m017a2", "Charge the Crystals", "The Pulse Laser runs on Focus Crystals. In the Engineering tab, produce 90 Focus Crystals", "gather", "CellT1", 90, 1500, 200, "m017b"],
+		["m017b", "Pulse Fire", "Keep builds in separate slots: click LOADOUT 2, equip all THREE Pulse Lasers there, then destroy a Silicate Golem in the Asteroid Belt.", "defeat", "z2_silicate_golem", 1, 3000, 500, "m027b"],
 		# v128: EXPLOSIVE leg — the Scrap Collector is now armored vs kinetic + energy and
 		# WEAK to explosive (resist_x -0.30), so all three types are taught against regular
 		# Lunar Orbit enemies. v129: T1 missiles + the launcher no longer require combustion
 		# (research gate removed), so they craft here freely; combustion is first taught at m025.
-		["m017c", "Explosive Doctrine", "The Scavenger Mech in Mars Debris is armored against kinetic but blows apart under EXPLOSIVE ordnance. In the Shipyard, craft 2 'Micro-Missile Launcher'", "craft", "z1_missile", 2, 1800, 250, "m017c2"],
+		# v177 (owner): 2 -> 4 launchers, same v174 slot-drift as the energy leg one
+		# hull later — this leg sits after m030c/m030e, so the player flies the
+		# DESTROYER and its FOUR weapon mounts. Power is comfortable here: m030c2's
+		# three z2 batteries (180 cap) carry 4 z1 launchers + defensives with margin.
+		["m017c", "Explosive Doctrine", "The Scavenger Mech in Mars Debris is armored against kinetic but blows apart under EXPLOSIVE ordnance. In the Shipyard, craft 4 'Micro-Missile Launcher' — one for each of the Destroyer's four weapon mounts.", "craft", "z1_missile", 4, 1800, 250, "m017c2"],
 		# v134: explosive leg scaffolds ammo like the others. It used to go craft ->
 		# "destroy with HE Missiles loaded" with NO produce-ammo step (and equip_module
 		# auto-loaded a phantom "missile" ammo id instead of MissileT1 — both now fixed).
-		["m017c2", "Stock the Warheads", "The launcher fires Missiles. In the Engineering tab, produce 60 HE Missiles.", "gather", "MissileT1", 60, 1800, 250, "m017d"],
-		["m017d", "Warhead", "Click LOADOUT 3, equip BOTH Micro-Missile Launchers there, then destroy a Scavenger Mech in Mars Debris. Kinetic / Energy / Explosive now live in Loadouts 1 / 2 / 3 — before a fight, one click swaps your WHOLE ship modules.", "defeat", "z3_scavenger_mech", 1, 3500, 600, "m030f"],
+		["m017c2", "Stock the Warheads", "The launcher fires Missiles. In the Engineering tab, produce 120 HE Missiles.", "gather", "MissileT1", 120, 1800, 250, "m017d"],
+		["m017d", "Warhead", "Click LOADOUT 3, equip all FOUR Micro-Missile Launchers there, then destroy a Scavenger Mech in Mars Debris. Kinetic / Energy / Explosive now live in Loadouts 1 / 2 / 3 — before a fight, one click swaps your WHOLE ship modules.", "defeat", "z3_scavenger_mech", 1, 3500, 600, "m030f"],
 		["m018", "Industrial Logistics", "Research the 'Industrial Logistics' hub.", "research", "industrial_logistics", 1, 500, 100, "m018t1"],
 		# v136: automated_logistics tech removed (collapsed). This already-orphaned beat
 		# retargets to industrial_logistics so any in-flight save on it auto-completes.

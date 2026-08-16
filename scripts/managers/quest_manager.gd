@@ -101,6 +101,10 @@ const PROC_ORDER_MINUTES := 30.0     # order ~= this many minutes of your line
 const PROC_RATE_EPS := 0.05          # units/min — below this a good is not "in production"
 const ENGINEER_SHARE := 0.35         # of era combat income, across ALL online families
 const PROC_POOL_HOURS := 24.0        # pool cap = this many hours of demand
+# v177: an order may never be worth more than this share of its family's pool cap.
+# Below 1.0 by construction, so no generated card can ever be unclaimable; 0.5
+# leaves room to claim a second order off a full pool.
+const PROC_ORDER_MAX_POOL_FRAC := 0.5
 
 # Era combat income per hour, from the cost curve's measured 6h budgets
 # (Z4 405K/6h ... Z10 675M/6h; ENDGAME_FACTORY_TIER.md section E, verified
@@ -519,8 +523,24 @@ func _family_rates(family: String, rates: Dictionary) -> Dictionary:
 	return out
 
 func _generate_procurement_order(family: String, sym: String, rate_per_min: float) -> Dictionary:
-	var qty: int = _round_qty(maxi(10, int(round(rate_per_min * PROC_ORDER_MINUTES))))
 	var price: float = ElementDB.get_procurement_unit_price(sym)
+	var qty: int = _round_qty(maxi(10, int(round(rate_per_min * PROC_ORDER_MINUTES))))
+	# v177: size the ask to what the station can actually PAY for.
+	#
+	# claim_procurement blocks outright when the pool holds less than the order's
+	# value, and the card never resizes — so an order worth more than the pool CAP
+	# is not a slow card, it is a permanently dead one. Order value scales with the
+	# player's line rate while the cap scales with combat frontier, so the player
+	# who over-invests in infrastructure relative to their zone — precisely the
+	# engineer this system exists for — was the one who got locked out.
+	# proc_price_check measured 45 of 47 goods able to generate a dead card.
+	var cap: float = get_pool_cap(family)
+	if cap > 0.0 and price > 0.0:
+		var max_qty: int = int(floor(cap * PROC_ORDER_MAX_POOL_FRAC / price))
+		if qty > max_qty:
+			# 1-unit floor, not the 10 above: at capital prices a three-frame
+			# order is legitimate, and rounding could push it back over the cap.
+			qty = maxi(1, mini(_round_qty(maxi(1, max_qty)), max_qty))
 	var reward: int = maxi(1, int(round(float(qty) * price)))
 	var d_name = ElementDB.get_display_name(sym)
 	var have = GameState.resources.get_element_amount(sym) if GameState.resources else 0
@@ -690,8 +710,18 @@ func load_save_data_manager(data: Dictionary):
 		for fam in pb:
 			var fl: Array = []
 			for q in pb[fam]:
-				if q is Dictionary:
-					fl.append(q)
+				if not (q is Dictionary): continue
+				# v177: an order bakes in the unit price it was generated at, so a
+				# retune of PROCUREMENT_UNIT_PRICE would leave the player staring at
+				# stale cards until they happened to claim them. Drop any card whose
+				# price no longer matches the table and let ensure_procurement()
+				# refill it at current rates — self-healing for every future retune.
+				# No save-shape change, so no migration: a dropped card is
+				# regenerated on the same tick, never lost.
+				var want: float = ElementDB.get_procurement_unit_price(String(q.get("target", "")))
+				if not is_equal_approx(float(q.get("unit_price", 0.0)), want):
+					continue
+				fl.append(q)
 			proc_boards[String(fam)] = fl
 	proc_pools.clear()
 	var pp = data.get("proc_pools", {})

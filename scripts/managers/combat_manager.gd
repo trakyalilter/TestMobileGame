@@ -151,6 +151,72 @@ var hazard_state = {
 # not saved — a pity counter that persisted across a reload would let a player
 # bank kills by quitting, and it is cheap to re-earn.
 var pity_counter: int = 0
+
+# ═══ v177 HUNT LOG (owner feature) ═══════════════════════════════════════════
+# Per-enemy lifetime kill tally -> a 5-star rank -> +10% damage PER STAR against
+# THAT enemy only. Surfaced on the Hunt Log page (scripts/ui/hunt_page.gd).
+#
+# Why a per-ENEMY multiplier does not break the gear-check curve the whole
+# balance model rests on: it can only ever apply to something you have already
+# killed dozens of times, so it never inflates your power against NEW content.
+# Bosses are the case to watch and they are self-limiting — the chain asks for
+# 1-3 boss kills, so a boss sits at 0 stars through normal play and its
+# gear-check is untouched; a player who farms one 25+ times has already proven
+# they can beat it. On trash it does exactly what is wanted: the 25-kill first
+# star lands early in a farm and takes the edge off the weak-type Rare hunt
+# (~470 kills, measured v175).
+#
+# PERSISTS THROUGH WARP, clears on hard reset — same rule as boss_kills below.
+# It is a hunting record, and "each run is faster" is the stated prestige
+# cadence; a fresh run re-clears Zone 1 with the marks it already earned.
+const HUNT_STAR_THRESHOLDS := [25, 100, 250, 500, 1000]
+# v177 (owner): TOTAL bonus at each rank, not a per-star increment — a BACK-LOADED
+# ladder rather than the flat +10%/star it shipped with. 1000 kills is a long
+# commitment and it should read as the payoff; a flat curve gave over a third of
+# the total value away at the 25-kill mark. Index 0 = 1 star.
+#   1*  +2.5%   2*  +5%   3*  +10%   4*  +15%   5*  +25%
+# Max is now +25% (was +50%), which also halves this system's pressure on the
+# boss gear-checks it deliberately tries not to disturb.
+const HUNT_STAR_BONUS := [0.025, 0.05, 0.10, 0.15, 0.25]
+var enemy_kills: Dictionary = {}   # {enemy_id: lifetime kill count}
+
+func get_enemy_kills(eid: String) -> int:
+	return int(enemy_kills.get(eid, 0))
+
+func get_hunt_stars(eid: String) -> int:
+	var k := get_enemy_kills(eid)
+	var s := 0
+	for t in HUNT_STAR_THRESHOLDS:
+		if k >= int(t):
+			s += 1
+	return s
+
+# Kills still needed for the next star, and that star's threshold. Returns
+# {"stars": n, "next": threshold, "remaining": n} with next == 0 at max rank.
+func get_hunt_progress(eid: String) -> Dictionary:
+	var k := get_enemy_kills(eid)
+	var s := get_hunt_stars(eid)
+	if s >= HUNT_STAR_THRESHOLDS.size():
+		return {"stars": s, "next": 0, "remaining": 0, "kills": k}
+	var nxt := int(HUNT_STAR_THRESHOLDS[s])
+	return {"stars": s, "next": nxt, "remaining": maxi(0, nxt - k), "kills": k}
+
+# Damage multiplier vs this enemy. 1.0 at 0 stars, 1.25 at 5.
+func get_hunt_damage_mult(eid: String) -> float:
+	var s := get_hunt_stars(eid)
+	if s <= 0:
+		return 1.0
+	return 1.0 + float(HUNT_STAR_BONUS[mini(s, HUNT_STAR_BONUS.size()) - 1])
+
+# The bonus a given rank pays, as a FRACTION (0.025 = +2.5%). rank is 1-based;
+# out of range returns 0.0. Deliberately not pre-rounded to an int percent: the
+# first rank is 2.5%, and int(round(...)) rendered it on the card as "+2%" —
+# understating a bonus the player can verify. The UI formats it.
+func get_hunt_star_bonus(rank: int) -> float:
+	if rank < 1 or rank > HUNT_STAR_BONUS.size():
+		return 0.0
+	return float(HUNT_STAR_BONUS[rank - 1])
+
 var boss_kills: Dictionary = {} # {enemy_id: kill_count}
 var total_kills: int = 0 # all enemies defeated (active + offline) — telemetry + the offline-combat nudge
 var hazard_clears: Dictionary = {} # {hazard_zone_id: true}
@@ -776,7 +842,27 @@ var enemy_db = {
 		#   hp  1000 -> 900   (960 -> 864 after the 0.96 rebase)
 		#   atk 26.667 -> 16.0
 		# Result at 51 trials: Common 0%, CHAIN kit 76%, Rare 100%. See z1_boss_tune.
-		"stats": {"hp": 900, "max_shield": 100, "atk": 16.0, "def": 10, "atk_interval": 2.0, "accuracy": 25},
+		#
+		# v177 (owner ruling 2026-08-15: "beatable with 1 Rare weapon + Commons"):
+		#   hp 900 -> 854 (effective 864 -> 820 after the 0.96 rebase). ATK STAYS 16.
+		# The chain kit measured 35/51 = 68.6% — one attempt in three DIED holding
+		# exactly the loadout the chain hands over, which reads as "unbeatable" after
+		# two bad rolls. The corridor was mapped at 51 trials per point, and it is
+		# NARROW, because the chain kit and full Common share IDENTICAL defenses —
+		# the only separator is ~4 DPS from the one Rare weapon:
+		#   * ANY atk cut leaks Common through (16 -> 14.4 flips full Common from
+		#     0/21 to 20/21 — their failure mode is death, not DPS; soften the swings
+		#     and the crafted kit survives its own slow fight, deleting the
+		#     "go get a drop" lesson).
+		#   * boss HP is the separating axis (fight LENGTH is what pays the Rare):
+		#       effective 864  CHAIN 68.6%  Common 0/51   (the v175 tune)
+		#       effective 820  CHAIN 74.5%  Common 0/51   <- SHIPPED
+		#       effective 778  CHAIN 80.4%  Common 2/51   <- REJECTED: Common leaks,
+		#         and at a ~4% true rate boss_gearcheck's 9-trial Common cell goes
+		#         red ~30% of runs. 820 is the stable frontier, not a waypoint.
+		# Pushing CHAIN past ~80% is NOT reachable with boss stats — it requires
+		# widening the KIT gap (the chain handing over a second drop), owner's call.
+		"stats": {"hp": 854, "max_shield": 100, "atk": 16.0, "def": 10, "atk_interval": 2.0, "accuracy": 25},
 		# v139d P3 SOFT trait (tutorial-grade, owner rule): the FIRST boss already
 		# telegraphs — every 4th swing charges a spike. Dents, never kills at
 		# mission-directed gear. Teaches "watch the fight"; the same telegraph
@@ -3120,9 +3206,13 @@ func _execute_player_attack(weapon_idx: int):
 	var fleet_dmg_mult := 1.0
 	if GameState.fleet_manager:
 		fleet_dmg_mult = GameState.fleet_manager.get_combat_dps_mult()
+	# v177 Hunt Log: +10% per star against THIS enemy specifically. Folded into
+	# skill_dmg_mult so it rides the same chain every damage channel already
+	# takes — no per-channel term (see the v155 flatten note below).
+	var hunt_mult := get_hunt_damage_mult(str(current_enemy.get("id", "")))
 	# v120: combat leveling removed — the (1.0 + level*0.005) term is gone. Player
 	# combat power now comes from gear + warp + research, never from a combat XP bar.
-	var skill_dmg_mult = GameState.warp_manager.get_combat_multiplier() * (1.0 + combat_dmg_bonus) * (1.0 + void_weap_bonus) * fleet_dmg_mult
+	var skill_dmg_mult = GameState.warp_manager.get_combat_multiplier() * (1.0 + combat_dmg_bonus) * (1.0 + void_weap_bonus) * fleet_dmg_mult * hunt_mult
 	
 	# v80.1: Trinity Damage Multipliers
 	var trinity_atk_mult = 1.0 + (_get_set_bonus_value("atk_pct") + _get_set_bonus_value("all_dmg_pct")) / 100.0
@@ -4292,6 +4382,12 @@ func win_fight():
 	# v176 P5: counted AFTER the drop roll above, so the kill that pays out does
 	# not also advance the counter it just reset.
 	pity_counter += 1
+	# v177 Hunt Log: per-enemy lifetime tally. Counted here (the single online
+	# kill site) alongside total_kills; offline combat folds its kills in via
+	# add_hunt_kills() so an unattended farm earns stars too.
+	var _hid := str(current_enemy.get("id", ""))
+	if _hid != "":
+		enemy_kills[_hid] = int(enemy_kills.get(_hid, 0)) + 1
 	_maybe_offline_combat_nudge()
 
 	# v86.0: Track boss kills for hazard zone unlocks
@@ -4738,6 +4834,7 @@ func get_save_data_manager() -> Dictionary:
 	data["boss_kills"] = boss_kills
 	data["hazard_clears"] = hazard_clears
 	data["total_kills"] = total_kills  # v132: was never saved — the offline-combat nudge re-armed every session
+	data["enemy_kills"] = enemy_kills  # v177 Hunt Log: per-enemy star ranks
 	return data
 
 func load_save_data_manager(data: Dictionary):
@@ -4808,6 +4905,10 @@ func load_save_data_manager(data: Dictionary):
 	boss_kills = data.get("boss_kills", {})
 	hazard_clears = data.get("hazard_clears", {})
 	total_kills = int(data.get("total_kills", 0))  # v132: persist lifetime kills (nudge threshold)
+	# v177 Hunt Log migration: pre-v177 saves have no key. An empty log is the
+	# correct load state — the tally is lifetime-forward, and back-filling it
+	# from total_kills would hand out stars for enemies never fought.
+	enemy_kills = data.get("enemy_kills", {})
 func reset(decay_factor: float = 1.0) -> void:
 	super.reset(decay_factor)
 	retreat()
@@ -4828,6 +4929,8 @@ func reset(decay_factor: float = 1.0) -> void:
 		hazard_clears = {}
 		total_kills = 0
 		pity_counter = 0   # v176 P5: per-run, cleared with the rest of the kill state
+		enemy_kills = {}   # v177 Hunt Log: star ranks are lifetime — a NEW GAME must
+						   # not start holding +50% damage against Zone 1.
 		# Loot filters are saved/loaded but were never reset, so a New Game
 		# inherited the previous run's filters — a player who had filtered out
 		# Commons (or every type but one) started fresh with drops silently
@@ -4886,6 +4989,10 @@ func _offline_winnable() -> bool:
 	if hardened and cryo_dps <= 0.0:
 		return false
 	var dps: float = cryo_dps + (conv_dps * (0.02 if hardened else 1.0))
+	# v177 Hunt Log: the same per-enemy star bonus the online path applies. Left
+	# out, an unattended farm would be priced weaker than the identical attended
+	# one — the exact defect the v177 fleet audit found for the fleet multiplier.
+	dps *= get_hunt_damage_mult(str(current_enemy.get("id", "")))
 
 	# v139d P3 traits — CONSERVATIVE offline pricing (spec rule: offline may
 	# refuse fights online could win, never the reverse; an unattended park must
@@ -5039,6 +5146,13 @@ func calculate_offline(delta: float):
 
 	add_xp(total_xp)
 	total_kills += num_kills   # count offline kills
+	# v177 Hunt Log: offline kills earn stars too. An idle game whose progress
+	# bar only moves while you watch it is the wrong shape — and the fleet audit
+	# found exactly that omission for the fleet damage bonus, so this path gets
+	# wired at the same time it is written rather than being fixed later.
+	var _hid_o := str(current_enemy.get("id", ""))
+	if _hid_o != "":
+		enemy_kills[_hid_o] = int(enemy_kills.get(_hid_o, 0)) + num_kills
 
 	# v138b (owner decision): bosses ARE killable offline. _offline_winnable already
 	# prices the fight honestly (worst-phase-band no-swap DPS model + TTK <= 30 min —

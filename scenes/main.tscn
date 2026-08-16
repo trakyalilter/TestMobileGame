@@ -129,6 +129,11 @@ layout_mode = 2
 text = "  Fleet"
 alignment = 0
 
+[node name="HuntBtn" type="Button" parent="HBoxContainer/Sidebar/VBoxContainer"]
+layout_mode = 2
+text = "  Hunt Log"
+alignment = 0
+
 [node name="SectionRefTop" type="Control" parent="HBoxContainer/Sidebar/VBoxContainer"]
 custom_minimum_size = Vector2(0, 4)
 layout_mode = 2
@@ -187,6 +192,7 @@ mouse_filter = 2
 [connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/CombatBtn" to="." method="_on_combat_btn_pressed"]
 [connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/WarpBtn" to="." method="_on_warp_btn_pressed"]
 [connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/FleetBtn" to="." method="_on_fleet_btn_pressed"]
+[connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/HuntBtn" to="." method="_on_hunt_btn_pressed"]
 [connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/InventoryBtn" to="." method="_on_inventory_btn_pressed"]
 [connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/AtlasBtn" to="." method="_on_atlas_btn_pressed"]
 [connection signal="pressed" from="HBoxContainer/Sidebar/VBoxContainer/OptionsBtn" to="." method="_on_options_btn_pressed"]

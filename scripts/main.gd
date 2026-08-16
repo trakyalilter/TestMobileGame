@@ -18,6 +18,7 @@ extends Control
 @onready var quest_btn = $HBoxContainer/Sidebar/VBoxContainer/QuestBtn
 @onready var warp_btn = $HBoxContainer/Sidebar/VBoxContainer/WarpBtn
 @onready var fleet_btn = $HBoxContainer/Sidebar/VBoxContainer/FleetBtn
+@onready var hunt_btn = $HBoxContainer/Sidebar/VBoxContainer/HuntBtn
 @onready var sidebar_list = $HBoxContainer/Sidebar/VBoxContainer
 @onready var sidebar_panel = $HBoxContainer/Sidebar
 
@@ -235,6 +236,15 @@ func _apply_sidebar_icons() -> void:
 	_set_nav(combat_btn, "combat", "Combat")
 	_set_nav(warp_btn, "warp", "Warp Core")
 	_set_nav(fleet_btn, "fleet", "Fleet")
+	# v177 Hunt Log: its OWN glyph — a star, matching the page's rank pips.
+	# It briefly borrowed combat.svg, which made two sidebar rows identical.
+	# Drawn procedurally rather than shipped as assets/icons/nav/hunt.svg: a new
+	# SVG needs an import pass to produce its .ctex, .godot/ is gitignored, and
+	# CLAUDE.md forbids `--import` (it rewrites tracked .import files). A
+	# generated texture needs no import, renders immediately on any machine, and
+	# cannot drift from the star the Hunt Log itself draws.
+	_set_nav(hunt_btn, "combat", "Hunt Log")
+	hunt_btn.icon = _make_star_icon(32, Color.WHITE)
 	_set_nav(inventory_btn, "inventory", "Inventory")
 	_set_nav(atlas_btn, "atlas", "Atlas")
 	_set_nav(options_btn, "config", "Settings")
@@ -253,6 +263,31 @@ func _set_nav(btn: Button, icon_name: String, label: String) -> void:
 	btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	btn.add_theme_constant_override("icon_max_width", 18)
 	btn.add_theme_constant_override("h_separation", 10)
+
+# v177: a five-point star as an ImageTexture, for the Hunt Log nav button.
+# Rasterised by point-in-polygon at 4x and downsampled, which is what gives the
+# diagonal edges their antialiasing — a 1:1 fill would show hard stair-steps at
+# 18px. Runs once at startup; the cost is a 128x128 scan.
+func _make_star_icon(px: int, col: Color) -> ImageTexture:
+	var ss := 4
+	var n := px * ss
+	var img := Image.create(n, n, false, Image.FORMAT_RGBA8)
+	img.fill(Color(col.r, col.g, col.b, 0.0))
+	var c := Vector2(n, n) * 0.5
+	var outer := float(n) * 0.48
+	var inner := outer * 0.42
+	var poly := PackedVector2Array()
+	for i in range(10):
+		var ang := -PI * 0.5 + PI * float(i) / 5.0
+		var rad: float = outer if (i % 2 == 0) else inner
+		poly.append(c + Vector2(cos(ang), sin(ang)) * rad)
+	for y in range(n):
+		for x in range(n):
+			if Geometry2D.is_point_in_polygon(Vector2(float(x) + 0.5, float(y) + 0.5), poly):
+				img.set_pixel(x, y, col)
+	img.resize(px, px, Image.INTERPOLATE_LANCZOS)
+	return ImageTexture.create_from_image(img)
+
 
 func _style_sidebar_panel():
 	var style := StyleBoxFlat.new()
@@ -346,6 +381,14 @@ func _init_pages():
 	page_container.add_child(p_fleet)
 	p_fleet.visible = false
 	pages["fleet"] = p_fleet
+
+	# v177 Hunt Log — same code-built pattern as the Fleet page above (no .tscn,
+	# for the same uid reason documented there).
+	var p_hunt = load("res://scripts/ui/hunt_page.gd").new()
+	p_hunt.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	page_container.add_child(p_hunt)
+	p_hunt.visible = false
+	pages["hunt"] = p_hunt
 
 	if modal_layer:
 		offline_modal = preload("res://scenes/ui/offline_boot_modal.tscn").instantiate()
@@ -1043,10 +1086,14 @@ func _get_btn_for_page(page_name: String) -> Button:
 		"quest": return quest_btn
 		"warp": return warp_btn
 		"fleet": return fleet_btn
+		"hunt": return hunt_btn
 	return null
 
 func _on_fleet_btn_pressed():
 	switch_to("fleet")
+
+func _on_hunt_btn_pressed():
+	switch_to("hunt")
 
 func _on_shipyard_alert_changed(state: bool):
 	if state and current_page_name != "designer":
@@ -1074,6 +1121,8 @@ func _update_sidebar_styling():
 	UITheme.apply_sidebar_button_style(bounty_btn, current_page_name == "bounty")
 	UITheme.apply_sidebar_button_style(quest_btn, current_page_name == "quest")
 	UITheme.apply_sidebar_button_style(fleet_btn, current_page_name == "fleet")
+	if is_instance_valid(hunt_btn):
+		UITheme.apply_sidebar_button_style(hunt_btn, current_page_name == "hunt")
 	# Warp Core — the prestige marquee. Same sidebar rhythm as every other nav
 	# button, distinguished by a purple identity accent (replaces the old default-
 	# themed boxed button that clashed with the flat sidebar).
@@ -1087,6 +1136,11 @@ func _update_sidebar_styling():
 	shipyard_btn.visible = has_basic_eng
 	designer_btn.visible = has_basic_eng
 	combat_btn.visible = has_basic_eng
+	# v177 Hunt Log: a per-enemy kill record is meaningless before the player can
+	# fight, so it rides Combat's own disclosure gate rather than appearing in a
+	# sidebar that has no combat in it yet.
+	if is_instance_valid(hunt_btn):
+		hunt_btn.visible = has_basic_eng
 
 	
 	# v72.0: Bounty Board unlocks at the first real combat sector (Asteroid Belt).
@@ -1429,9 +1483,10 @@ func _update_navigation_hints():
 		# while no energy weapon was equipped herded the player into the probe's
 		# kinetic-resist wall with the wrong gun. Phase 1: Ship Designer until an
 		# energy weapon is on the ship. Phase 2: Combat, Survey Probe.
-		# v134g: the mission says equip BOTH Pulse Lasers — keep directing to the
-		# weapon slot until TWO energy weapons are in, not stop at one (half DPS).
-		if _count_weapon_type_equipped("energy") < 2:
+		# v134g: the mission says equip the Pulse Lasers — keep directing to the
+		# weapon slot until they are ALL in, not stop at one (a third of the DPS).
+		# v177: 2 -> 3, tracking m017a's craft count (the frigate's three mounts).
+		if _count_weapon_type_equipped("energy") < 3:
 			if current_page_name != "designer": target_to_pulse = designer_btn
 			else:
 				var dp = pages["designer"]
@@ -1487,8 +1542,9 @@ func _update_navigation_hints():
 		# is equipped, then Combat for the explosive-weak target.
 		# v176: that target is the Scavenger Mech in MARS DEBRIS, not the retired
 		# Scrap Collector in Lunar Orbit (see the m017b note above).
-		# v134g: equip BOTH launchers — direct to the weapon slot until TWO are in.
-		if _count_weapon_type_equipped("explosive") < 2:
+		# v134g: equip the launchers — direct to the weapon slot until ALL are in.
+		# v177: 2 -> 4, tracking m017c's craft count (the destroyer's four mounts).
+		if _count_weapon_type_equipped("explosive") < 4:
 			if current_page_name != "designer": target_to_pulse = designer_btn
 			else:
 				var dp = pages["designer"]
@@ -2142,8 +2198,8 @@ func _update_navigation_hints():
 		or _equip_step_live("m024b2")   # v141: consumable-equip step — same thrash guard
 		# v134b: the damage-triangle fight steps have a designer EQUIP phase —
 		# keep the weapon filter alive exactly while that phase sets it.
-		or (_equip_step_live("m017b") and _count_weapon_type_equipped("energy") < 2)
-		or (_equip_step_live("m017d") and _count_weapon_type_equipped("explosive") < 2)
+		or (_equip_step_live("m017b") and _count_weapon_type_equipped("energy") < 3)
+		or (_equip_step_live("m017d") and _count_weapon_type_equipped("explosive") < 4)
 	)
 	if not _any_equip_active and pages.has("designer"):
 		var _dp = pages["designer"]
@@ -2299,19 +2355,36 @@ func _reserve_dot_gutter(btn: Button) -> void:
 	btn.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 
 
+# v177: dot PRIORITY when several categories want the same page. Lower index
+# wins. Nearest actionable work owns the pixel: a chapter beat is the thing the
+# player can go do right now; the endgame arc next; a [CORE GOAL] is a standing
+# objective that may sit lit for days and should not mask fresher work.
+const _DOT_TAG_PRIORITY := ["[CHAPTER 2]", "[ENDGAME]", "[CORE GOAL]"]
+
 func _refresh_mission_dots(mm) -> void:
 	if _mission_dots.is_empty() or mm == null:
 		return
+	# v177 (owner: "orbs are all blue — color code them to match the mission").
+	# wanted[page] now carries the best CATEGORY TAG wanting that page, not a
+	# boolean, and the dot is tinted below via UITheme.mission_tag_color — the
+	# same mapping the mission cards' name line uses, so dot color can be read
+	# off the Görevler page.
 	var wanted: Dictionary = {}
 	for mid in mm.active_missions:
 		var m: Dictionary = mm.missions.get(mid, {})
 		if m.is_empty() or bool(m.get("completed", false)):
 			continue
-		if String(m.get("tag", "")) == "[TUTORIAL]":
+		var tag := String(m.get("tag", ""))
+		if tag == "[TUTORIAL]":
 			continue
 		var page := _page_for_mission(m)
-		if page != "":
-			wanted[page] = true
+		if page == "":
+			continue
+		var pri: int = _DOT_TAG_PRIORITY.find(tag)
+		if pri < 0:
+			pri = _DOT_TAG_PRIORITY.size()   # unknown tag: lowest priority, still shown
+		if not wanted.has(page) or pri < int((wanted[page] as Dictionary)["pri"]):
+			wanted[page] = {"pri": pri, "tag": tag}
 	for page in _mission_dots:
 		var dot: Control = _mission_dots[page]
 		if not is_instance_valid(dot):
@@ -2331,6 +2404,15 @@ func _refresh_mission_dots(mm) -> void:
 			if badge != null and badge is Control and (badge as Control).visible:
 				show = false
 		dot.visible = show
+		# v177: tint to the winning mission's category. Each dot owns its own
+		# StyleBoxFlat instance (created per-dot in _init_mission_dots), so
+		# mutating it here cannot bleed into another button's dot.
+		if show:
+			var col: Color = UITheme.mission_tag_color(str((wanted[page] as Dictionary)["tag"]))
+			var sb := dot.get_theme_stylebox("panel") as StyleBoxFlat
+			if sb:
+				sb.bg_color = col
+				sb.shadow_color = Color(col.r, col.g, col.b, 0.40)
 
 func _generic_mission_pulse(mm) -> Control:
 	# v141d: pick the SINGLE earliest-in-chain active TUTORIAL mission (definition

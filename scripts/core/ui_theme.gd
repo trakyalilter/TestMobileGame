@@ -263,6 +263,28 @@ var CATEGORY_COLORS := {
 	"mission": Color(0.075, 0.627, 0.455)       # #13A074 deep jade
 }
 
+# v177 (owner): mission-category identity colors — ONE mapping shared by the
+# sidebar mission dots (main.gd) and the mission cards' name line
+# (mission_widget.gd), so a dot's color can be read off the Görevler page.
+# Each color is an ALREADY-ESTABLISHED identity, not a new invention:
+#   [CHAPTER 2]  Lira gold      — chapter beats are the paying main-arc work
+#   [CORE GOAL]  warp purple    — goals reveal with the prestige system (C_WARP)
+#   [ENDGAME]    cryo pale-ice  — the Threshold/NG+ arc's own visual language
+#   [TUTORIAL]   mission jade   — unchanged (tutorial dots never render; the
+#                                 gold coach arrow owns tutorial guidance)
+# Deliberately NOT per-palette: these are cross-page identity stamps, and
+# letting a UI palette remap them would break the dot <-> card association
+# the feature exists to create.
+func mission_tag_color(tag: String) -> Color:
+	var t := str(tag)
+	if t.begins_with("[CHAPTER"):
+		return Color(1.0, 0.82, 0.30)
+	if t == "[CORE GOAL]":
+		return Color(0.78, 0.55, 1.0)
+	if t == "[ENDGAME]":
+		return Color(0.70, 0.95, 1.0)
+	return CATEGORY_COLORS["mission"]
+
 # v123: selectable sci-fi UI palettes (Sys Config). Each fills the same token
 # set as COLORS + CATEGORY_COLORS above. "default" == the current Precursor Bloom.
 # Order here drives the picker order. Hex strings → parsed via Color.html().
@@ -428,7 +450,10 @@ const TOOLTIP_GRACE := 0.22
 # following the hover, so the player can read it (or reach its glossary links)
 # without it vanishing the moment the mouse drifts. A locked card owns the tooltip
 # slot until its ✕ is clicked, so no other hover can replace or hide it.
-const TOOLTIP_LOCK_SECS := 2.0
+# v177 (owner): 2.0 -> 4.0. Two seconds locked the card while the player was
+# still just scanning a row of tiles, so ordinary browsing kept producing cards
+# that had to be dismissed with the ✕. Four seconds reads as a deliberate hold.
+const TOOLTIP_LOCK_SECS := 4.0
 # v147e: no reserved gutter. Widening only the RIGHT margin pushed the text column
 # off-centre — the card visibly "shifted left". The widgets are small enough to
 # live in the card's EXISTING right margin instead, so padding stays symmetric.

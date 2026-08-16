@@ -97,12 +97,18 @@ func _ready() -> void:
 		var base_hp: float = float(st.get("hp", 960))
 		var base_atk: float = float(st.get("atk", 26.667))
 		cn["mult"] = 2.5   # the documented derivation, applied for the whole grid
-		print("[Z1T] grid at nuke mult 2.5 (the DPS-preserving re-derivation of the")
-		print("[Z1T] documented 'every 4th swing, x1.75' intent). Want: Common LOSES, CHAIN >=60%.")
+		# v177: the sweep axes are HP-heavy at (near-)unchanged ATK. The old v175 axes
+		# (atk x0.72..0.60) are MEASURED dead ends: at every one of them full COMMON
+		# won 18-21/21, because Common's failure mode at atk 16 is DEATH, not DPS —
+		# soften the swings and the crafted kit survives its own slow fight, which
+		# deletes the "go get a drop" lesson. The chain kit differs from Common ONLY
+		# in DPS (one Rare weapon), so fight LENGTH (boss hp) is the separating axis:
+		# a shorter fight pays the higher-DPS kit first.
+		print("[Z1T] grid at nuke mult 2.5. Want: Common LOSES, CHAIN wins reliably.")
 		print("[Z1T] %-7s %-7s %7s %7s %9s %9s %9s %9s" % [
 			"hp x", "atk x", "hp", "atk", "Common", "Uncmn", "CHAIN", "Rare"])
-		for hm in [1.00, 0.90, 0.80]:
-			for am in [0.72, 0.66, 0.60]:
+		for hm in [0.90, 0.85, 0.80, 0.75, 0.70]:
+			for am in [1.00, 0.90]:
 				st["hp"] = base_hp * hm
 				st["atk"] = base_atk * am
 				var c3: Dictionary = _cell(1, "r0")

@@ -121,6 +121,39 @@ row keeps its job for 200 hours.
 were rejected — that's the classic idle-game inflation bug; it deletes any reason to build
 new factory types, which is the opposite of the tier's fantasy.
 
+### C4b. v177 retune — the whole table ×10 (income-neutral, measured)
+
+The prices above were authored against the ceiling-line rule **in isolation** and never
+checked against the other board the same materials sit on. `scripts/sim/proc_price_check`
+(the probe this section's own code comment promised, finally written) measured the gap:
+
+| good | procurement L/u (old) | Stockpile L/u | ratio |
+|---|---|---|---|
+| Fe | 1 | 9.8 | 9.8× |
+| Si | 1 | 12 | 11.7× |
+| Circuit | 30 | 292 | 9.7× |
+| Superalloy | 200 | 2.1K | 10.5× |
+| AdvCircuit | 165 | 1.3K | 7.9× |
+| Ti | 12 | 198 | 16.5× |
+
+Procurement was a **strictly dominated** place to send any material, and a 4,400-unit iron
+order headlined "Pays 1 Liras per unit" — which is what a player actually reacted to. The
+median ratio is ~10, so the table is **×10 uniformly**: it fixes the floor, keeps the
+internal depth ladder (which measured well-formed), and lands Fe/Circuit/Superalloy at
+cross-board parity.
+
+**This is a regrain, not a buff — verified, not assumed.** §D of the probe measured the
+family demand pool binding by **100–1000×** at 3, 10 and 30 buildings per producer across
+all seven families (refining at Z2: 493K/h nominal vs an 875 L/h refill). Income is
+governed by `get_pool_cap`, so unit price sets the *grain* of a claim — chunkier, rarer —
+and never the rate. Keep future retunes uniform for the same reason.
+
+**Residue, deliberate:** Steel (20 vs 92) and Graphite (40 vs 203) still trail the
+Stockpile board. Per-unit parity is *not* a valid invariant for bulk rows — the two boards
+ask quantities that differ ~20× (a ceiling Steel order is ~40K units against the
+stockpile's 2.5K), so equalising L/unit would put a Steel card in the millions. The probe
+reports these as a note, never a failure.
+
 ### C5. Order generation
 
 Per family tab: **3 order cards**, drawn from goods with player rate > 0 (weighted toward
@@ -128,6 +161,15 @@ the family's deepest online good — depth is what we want factories to chase):
 
 - `qty = round_qty(ORDER_MINUTES × rate_trailing_24h(good))`, `ORDER_MINUTES = 30`,
   floor 10 min of a single neutral building (so a 1-building line still gets orders).
+- **v177 — the ask is clamped to what the station can PAY for**
+  (`PROC_ORDER_MAX_POOL_FRAC = 0.5` of the family pool cap). Without this,
+  `claim_procurement`'s pool gate blocks any order worth more than the cap and the card
+  *never resizes*, so it is **permanently dead**, not merely slow. Order value scales with
+  line rate while the cap scales with combat frontier, so the victim was precisely the
+  engineer who over-invests in infrastructure relative to their zone — the player this
+  whole system exists for. The probe measured **45 of 47 goods** able to generate a dead
+  card before the clamp, **0 of 47** after. The clamp floors at 1 unit rather than 10:
+  at capital prices a three-frame order is legitimate.
 - `reward = qty × unit_price` — shown as both total and L/unit (legibility beats mystery).
 - Claim: consumed-at-claim, stock re-verified, live "own N" bar — **all shipped v139c
   mechanics, reused verbatim.**
@@ -183,7 +225,16 @@ reason a returning session opens the board first. Expected value: ~+6–8% on to
 
 ## F. NUMBERS THAT MUST SURVIVE CONTACT (verification plan)
 
-`scripts/sim/supply_board_check.gd` (mirror `bounty_check.gd`): eligibility (no drill/
+**Shipped v177: `scripts/sim/proc_price_check.gd`** (`scenes/proc_price_check.tscn`) —
+covers the pricing half. Two HARD assertions (exit 1 on either): no order can be generated
+above its family's pool cap, and no good is priced under a 3 L/unit legibility floor. Plus
+three measured reports: ceiling-L/h per good, the cross-board comparison, and the
+does-the-pool-bind table. It drives the **real** `_generate_procurement_order` rather than
+re-implementing the sizing, and unlocks zone research per family so it tests reachable
+states — an earlier pass "found" 5 dead capital goods that were only an artifact of giving
+a Z1 player a dreadnought yard.
+
+Still to write — `scripts/sim/supply_board_check.gd` (mirror `bounty_check.gd`): eligibility (no drill/
 combat-fed/alloy goods; no zero-rate orders), pool decrement/refill math incl. offline
 tick, claim-consumes-and-reverifies, legacy supply-order claim path, reroll heat, warp
 regeneration. Then the real gates:

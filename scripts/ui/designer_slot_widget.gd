@@ -124,7 +124,7 @@ func _ensure_type_icon() -> TextureRect:
 	return ic
 
 # Draws the sector emblem BIG in the top-right corner — clear of the centred icon
-# and the lower matrix-core sockets — on a faint plate so it reads on any rarity bg.
+# and the lower matrix-core sockets.
 class _ZoneBadge extends Control:
 	var tex: Texture2D = null
 	var tint: Color = Color(1, 1, 1, 1)
@@ -133,7 +133,24 @@ class _ZoneBadge extends Control:
 			return
 		var s := 30.0
 		var pad := 4.0
-		var r := Rect2(Vector2(size.x - s - pad, pad), Vector2(s, s))
+		# v177 (owner): flush to the WIDGET's corner, matching the armory tiles.
+		# This control is a child of the root PanelContainer, so the container fits
+		# it to the CONTENT rect — inset by the active stylebox's margins (base
+		# style: right 8, top 6). The old draw added pad inside that, landing the
+		# stamp ~12px off the true corner while module_card anchors its stamp 4px
+		# off the tile edge. Compensate with the LIVE margins (rarity/focus frames
+		# carry their own), so both surfaces read pad-from-corner identically.
+		# Root clip_contents=true bounds us to the widget rect — the compensated
+		# rect stays inside it, nothing is clipped.
+		var mr := 0.0
+		var mt := 0.0
+		var p := get_parent()
+		if p is PanelContainer:
+			var psb: StyleBox = (p as PanelContainer).get_theme_stylebox("panel")
+			if psb:
+				mr = psb.get_content_margin(SIDE_RIGHT)
+				mt = psb.get_content_margin(SIDE_TOP)
+		var r := Rect2(Vector2(size.x + mr - s - pad, -mt + pad), Vector2(s, s))
 		draw_texture_rect(tex, r, false, tint)
 
 # Corner zone-provenance badge node (created once, kept on top so it reads as a
@@ -184,16 +201,16 @@ func _arrange_module_square() -> void:
 	# stylebox 12 + margins 8 + separations 4 = 24 of overhead before any content, so
 	# the two 30px bands plus a 52px icon came to 136 and the bay stretched 12px.
 	#
-	# Fix: the socket band is reserved only when the module HAS sockets, and the top
-	# balancer always matches it so the icon stays optically centred. The icon keeps a
-	# SMALL floor and EXPAND_FILL, so it takes whatever is left instead of dictating
-	# the height — the bay can never overflow, and a socketless module (every early
-	# module) now spends that 60px on the icon rather than on empty balance bands.
-	var _sock_n := 0
-	var _mid_now = manager.loadout.get(slot_idx) if manager else null
-	if _mid_now != null and String(_mid_now) != "" and String(_mid_now) in manager.modules:
-		_sock_n = (manager.modules[String(_mid_now)].get("sockets", []) as Array).size()
-	var band: float = (MatrixCoreIcon.SOCKET_D + MatrixCoreIcon.SOCKET_ARC) if _sock_n > 0 else 0.0
+	# v163b reserved the socket band only when the module HAS sockets, so a
+	# socketless module spent that 60px on a bigger icon. v177 (owner, with the
+	# two side by side on screen): the SOCKETED proportion — small centred icon
+	# with breathing room — is the intended look, and the socketless tiles'
+	# wall-to-wall icon reads as the odd one out. The band is now reserved
+	# UNCONDITIONALLY, so every rarity shares the Legendary's face. Square-ness
+	# is safe inside v163b's own budget: icon floor 16 + bands 60 + overhead 24
+	# = 100 <= the 124 bay — the overflow that forced v163b was the 52px icon
+	# FLOOR, which stays gone.
+	var band: float = MatrixCoreIcon.SOCKET_D + MatrixCoreIcon.SOCKET_ARC
 	topbal.custom_minimum_size = Vector2(0, band)
 
 	var ic = v.get_node_or_null("TypeIcon")
@@ -210,6 +227,7 @@ func _arrange_module_square() -> void:
 		if is_instance_valid(n):
 			v.move_child(n, i)
 			i += 1
+
 
 func set_focus_highlight(on: bool):
 	_is_focused = on
@@ -547,7 +565,23 @@ func refresh_state():
 				# v111.16: sockets are click-driven now (drag retired).
 				#   filled socket → click (or right-click) removes the core
 				#   empty socket  → click sockets the Matrix Core armed in the armory
-				sock_wrap.mouse_filter = Control.MOUSE_FILTER_STOP
+				#
+				# v177 DRAG-DROP FIX — STOP -> PASS (owner: "I have to bring the core
+				# to the bottom-right corner of the slot to make it attach").
+				# Godot resolves a drop by finding the topmost control under the cursor
+				# and walking UP the parent chain, STOPPING at the first
+				# MOUSE_FILTER_STOP node. This wrapper is STOP and has no
+				# _can_drop_data, so a core dropped ON a socket was swallowed and never
+				# reached the slot's handler. The dead zone was the socket pip itself —
+				# the one place a player actually aims a Matrix Core — which is why it
+				# only landed when nudged off into free tile space.
+				# Measured with scenes/slot_hit_probe.tscn: the 7x7 hit map over a
+				# socketed slot showed exactly two dead cells, both pips, everything
+				# else resolving to the slot.
+				# PASS still delivers mouse_entered/exited and gui_input here, so the
+				# hover gem-card and click-to-socket/remove below are unaffected; it
+				# only stops this node from ending the drop walk.
+				sock_wrap.mouse_filter = Control.MOUSE_FILTER_PASS
 				var sock_i := i
 				if gem:
 					# v137: the styled info-card (spawned on hover below) already shows the

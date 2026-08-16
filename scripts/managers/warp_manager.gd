@@ -117,12 +117,12 @@ var _rift_key_missing: bool = false   # save predates v138 → game_state derive
 # execute_warp and consumed by it. `vault` is what actually survived, restored
 # into the shipyard after the reset.
 const VAULT_CAP_MAX := 8      # < the Battlecruiser's 6 weapon slots + defence — a maxed
-                              # vault still cannot field a complete end-tier ship on run 2
+							  # vault still cannot field a complete end-tier ship on run 2
 const VAULT_CAP_BASE := 2     # +1 per warp: first warp yields 3
 var vault_selection: Array = []   # [module_id] chosen for the NEXT warp
 var vault: Array = []             # [module_id] currently held (post-warp, pre-claim)
 var vault_defs: Dictionary = {}   # {module_id: custom_modules entry} — a rolled drop is
-                                  # meaningless without its stats/affixes
+								  # meaningless without its stats/affixes
 
 # Capacity is AUTOMATIC and permanent — not a tree purchase. The angel-reset feel
 # is that every reset makes you stronger for existing, not for shopping. Called

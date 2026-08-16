@@ -530,29 +530,45 @@ const PROCUREMENT_FAMILIES := {
 	"capital": ["NeutroniumPlate", "VoidLattice", "CapitalSpar", "DreadnoughtFrame"],
 }
 
-# Liras per unit, pre warp/recursion mults. TUNABLE — the probe prints the
-# resulting ceiling-L/h per good so retunes are data-led, not vibes.
+# Liras per unit, pre warp/recursion mults. TUNABLE — scripts/sim/proc_price_check
+# prints ceiling-L/h, dead-card risk and the cross-board comparison, so retunes are
+# data-led, not vibes.
+#
+# v177: whole table x10. The original values were authored against the §C4
+# ceiling-line rule in isolation and never checked against the OTHER board the
+# same materials sit on. Measured (proc_price_check §B): every shared good paid
+# 2.9x-50.8x more per unit as a Stockpile quest — median ~10x (Fe 9.8, Si 11.7,
+# Circuit 9.7, Superalloy 10.5, AdvCircuit 7.9). Procurement was a strictly
+# dominated place to send any material, and "Pays 1 Liras per unit" for a 4,400-unit
+# iron order read as contempt.
+#
+# The x10 is INCOME-NEUTRAL, not a buff — verified, not assumed. Family income is
+# governed by the demand pool (quest_manager::get_pool_cap), and §D measured that
+# pool binding by 100-1000x at 3, 10 and 30 buildings per producer across all seven
+# families. Raising the price changes the GRAIN of a claim (chunkier, rarer), never
+# the rate. Keep any future retune uniform for the same reason: the internal ladder
+# encodes production depth and is well-formed.
 const PROCUREMENT_UNIT_PRICE := {
 	# refining
-	"Fe": 1.0, "Si": 1.0, "Cu": 2.0, "Sn": 3.0, "Zn": 3.0, "Ni": 6.0, "Cr": 8.0,
-	"Co": 8.0, "Mg": 5.0, "Li": 5.0, "Al": 3.0, "Ti": 12.0, "Au": 25.0, "Germanium": 15.0,
+	"Fe": 10.0, "Si": 10.0, "Cu": 20.0, "Sn": 30.0, "Zn": 30.0, "Ni": 60.0, "Cr": 80.0,
+	"Co": 80.0, "Mg": 50.0, "Li": 50.0, "Al": 30.0, "Ti": 120.0, "Au": 250.0, "Germanium": 150.0,
 	# chemical
-	"C": 0.6, "H": 0.3, "O": 0.3, "Graphite": 4.0, "Resin": 12.0, "Fiber": 6.0, "CompositeWeave": 45.0,
+	"C": 6.0, "H": 3.0, "O": 3.0, "Graphite": 40.0, "Resin": 120.0, "Fiber": 60.0, "CompositeWeave": 450.0,
 	# structural
-	"Steel": 2.0, "StructuralComponent": 25.0, "GalvanizedSteel": 40.0,
-	"StainlessSteel": 90.0, "Superalloy": 200.0,
+	"Steel": 20.0, "StructuralComponent": 250.0, "GalvanizedSteel": 400.0,
+	"StainlessSteel": 900.0, "Superalloy": 2000.0,
 	# electronics
-	"Circuit": 30.0, "Semiconductor": 18.0, "Chip": 220.0, "AdvCircuit": 165.0,
+	"Circuit": 300.0, "Semiconductor": 180.0, "Chip": 2200.0, "AdvCircuit": 1650.0,
 	# ordnance
-	"SlugT1": 2.0, "CellT1": 2.0, "MissileT1": 3.0,
-	"SlugT2": 25.0, "CellT2": 25.0, "MissileT2": 30.0,
-	"SlugT3": 180.0, "CellT3": 320.0, "MissileT3": 350.0,
+	"SlugT1": 20.0, "CellT1": 20.0, "MissileT1": 30.0,
+	"SlugT2": 250.0, "CellT2": 250.0, "MissileT2": 300.0,
+	"SlugT3": 1800.0, "CellT3": 3200.0, "MissileT3": 3500.0,
 	# fabrication
-	"NanoSubstrate": 900.0, "SinteredCarbide": 2600.0,
-	"PrecisionLattice": 8500.0, "FabricationBus": 34000.0,
+	"NanoSubstrate": 9000.0, "SinteredCarbide": 26000.0,
+	"PrecisionLattice": 85000.0, "FabricationBus": 340000.0,
 	# capital
-	"NeutroniumPlate": 2300.0, "VoidLattice": 5200.0,
-	"CapitalSpar": 55000.0, "DreadnoughtFrame": 275000.0,
+	"NeutroniumPlate": 23000.0, "VoidLattice": 52000.0,
+	"CapitalSpar": 550000.0, "DreadnoughtFrame": 2750000.0,
 }
 
 var _proc_family_of: Dictionary = {}

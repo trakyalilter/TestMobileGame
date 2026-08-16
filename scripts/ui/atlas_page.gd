@@ -1302,7 +1302,16 @@ func _add_loot_row(parent, item_id: String, qty_str: String, name_color: Color, 
 	rtl.scroll_active = false
 	rtl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	var icon: String = ElementDB.material_icon_bbcode(item_id, 16)
-	rtl.text = tr("%s[color=#%s]%s%s[/color]  [color=#%s]%s[/color]") % [icon, name_color.to_html(false), prefix, ElementDB.get_display_name(item_id), UITheme.COLORS["text_dim"].to_html(false), qty_str]
+	# v177 (owner): rare_loot rows can carry MODULE ids (z2_unique_weapon,
+	# faraday_hull, the P5 utility uniques...), and ElementDB only names
+	# elements — so every module drop rendered as its raw id in the enemy
+	# panel while the materials around it localized. Resolve through the
+	# module table when the element table misses; module names are CSV keys,
+	# so tr() localizes them the same way.
+	var disp: String = ElementDB.get_display_name(item_id)
+	if disp == item_id and GameState.shipyard_manager and item_id in GameState.shipyard_manager.modules:
+		disp = tr(str(GameState.shipyard_manager.modules[item_id].get("name", item_id)))
+	rtl.text = tr("%s[color=#%s]%s%s[/color]  [color=#%s]%s[/color]") % [icon, name_color.to_html(false), prefix, disp, UITheme.COLORS["text_dim"].to_html(false), qty_str]
 	parent.add_child(rtl)
 
 func _on_search_changed(_text):
