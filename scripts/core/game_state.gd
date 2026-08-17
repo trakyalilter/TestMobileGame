@@ -5589,7 +5589,9 @@ func gather_speed_mult(id: String) -> float:
 	for row in GATHER_SPEED_TECH.get(id, []):
 		if is_research_unlocked(row[0]):
 			m += float(row[1])
-	m += building_count("biosphere_dome") * 0.05           # Biosphere Dome: +5% gather speed/bldg
+	# Biosphere Dome was removed upstream along with crew_quarters and the drone
+	# bay; its +5%/building gather-speed term referenced a building that no
+	# longer exists in any data source, so it could never apply.
 	m *= 1.0 / mastery_dur_mult(id)                        # per-action Mastery: faster as it levels
 	return m * warp_gathering_mult()                       # prestige boosts gather via speed
 
