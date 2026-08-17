@@ -4920,7 +4920,7 @@ const GEM_FACET_LABELS := {
 ## What `gem` will actually grant when socketed into a module of `slot_type`.
 func _gem_facet_text(gem: String, slot_type: String) -> String:
 	var cat := GameState.gem_slot_category(slot_type)
-	var facet: Dictionary = GameState.GEM_FACETS.get(gem, {}).get(cat, {})
+	var facet: Dictionary = GameData.GEMS.get(gem, {}).get("facets", {}).get(cat, {})
 	var parts := []
 	for k in facet:
 		var v := float(facet[k])

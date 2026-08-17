@@ -31,6 +31,7 @@ buildings = load("buildings.json")
 hulls = load("hulls.json")
 modules = load("modules.json")
 gems = load("gems.json")
+gem_facet_caps = load("gem_facet_caps.json")
 trinity_sets = load("trinity_sets.json")
 consumables = load("consumables.json")
 missions = load("missions.json")
@@ -669,13 +670,25 @@ for sid, sdef in trinity_sets.items():
     lines.append(f"\t{g(sid)}: {g(d)},")
 lines.append("}")
 
-# GEMS (GEM_GLOBAL_EFFECTS)
+# GEMS — v118 Matrix-core FACETS. A core's effect depends on its HOST module's
+# slot category (weapon / defense / utility), so the payload is a facet map, not
+# a flat effect list. The pre-facet "effects" key is gone: nothing read it after
+# the facet port, and leaving it would let the data contradict the engine.
 GEM_NAMES = {"Crimson": "Crimson Core", "Cobalt": "Cobalt Core", "Topaz": "Topaz Core", "Amethyst": "Amethyst Core"}
 lines.append("const GEMS := {")
-for gid, eff in gems.items():
+for gid, fac in gems.items():
     tier = next((t for t in ("Cracked", "Stable", "Pristine", "Resonant") if gid.startswith(t)), "Pristine")
     color = gid.replace(tier, "").replace("Core", "")
-    lines.append(f'\t{g(gid)}: {{"name": {g(tier + " " + GEM_NAMES.get(color, color))}, "effects": {g(eff)}}},')
+    lines.append(f'\t{g(gid)}: {{"name": {g(tier + " " + GEM_NAMES.get(color, color))}, "facets": {g(fac)}}},')
+lines.append("}")
+lines.append("")
+
+# Aggregate ceiling per facet — the most any number of sockets can grant. Sized
+# so ~4-5 cores reach the cap, which pushes a diverse matrix instead of stacking
+# one colour, and keeps ammo_eff / energy_eff strictly below 1.0.
+lines.append("const GEM_FACET_CAPS := {")
+for k, v in gem_facet_caps.items():
+    lines.append(f"\t{g(k)}: {g(v)},")
 lines.append("}")
 lines.append("")
 

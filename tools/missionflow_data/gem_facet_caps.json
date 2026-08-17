@@ -1,0 +1,15 @@
+{
+  "ammo_eff": 0.4,
+  "armor_pen": 0.1,
+  "attack_speed": 0.08,
+  "crit_chance": 0.1,
+  "crit_damage": 0.2,
+  "damage_reduction": 0.3,
+  "energy_eff": 0.3,
+  "evasion_flat": 50.0,
+  "max_hull_mult": 0.4,
+  "module_drop_mult": 0.6,
+  "resist_pierce": 0.15,
+  "restore_on_kill": 0.25,
+  "shield_regen_mult": 1.2
+}

@@ -25,7 +25,10 @@ func _run() -> void:
 	_w("modules.json", sm.modules)
 	_w("hulls.json", sm.hulls)
 	_w("missions.json", gs.mission_manager.missions)
-	if "GEM_EFFECTS" in sm: _w("gems.json", sm.GEM_EFFECTS)
+	# v118 facets + their aggregate caps — consts, so accessed directly (an `in`
+	# check does not see consts on an instance).
+	_w("gems.json", sm.GEM_FACETS)
+	_w("gem_facet_caps.json", sm.GEM_FACET_CAPS)
 	if "repeatable_tech_db" in rm and rm.repeatable_tech_db.size() > 0:
 		_w("repeatable_tech.json", rm.repeatable_tech_db)
 	var consts := {}

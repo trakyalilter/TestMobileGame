@@ -1,74 +1,182 @@
 {
   "CrackedAmethystCore": {
-    "def_mult": 0.02,
-    "hp_mult": 0.02,
-    "resist_pierce": 0.03
+    "defense": {
+      "max_hull_mult": 0.02
+    },
+    "utility": {
+      "restore_on_kill": 0.02
+    },
+    "weapon": {
+      "resist_pierce": 0.03
+    }
   },
   "CrackedCobaltCore": {
-    "eva_mult": 0.02,
-    "max_shield_mult": 0.02,
-    "shield_regen_mult": 0.02
+    "defense": {
+      "shield_regen_mult": 0.06
+    },
+    "utility": {
+      "energy_eff": 0.02
+    },
+    "weapon": {
+      "attack_speed": 0.02
+    }
   },
   "CrackedCrimsonCore": {
-    "atk_energy_mult": 0.02,
-    "atk_kinetic_mult": 0.02,
-    "crit_chance": 0.02
+    "defense": {
+      "damage_reduction": 0.015
+    },
+    "utility": {
+      "ammo_eff": 0.04
+    },
+    "weapon": {
+      "crit_chance": 0.02,
+      "crit_damage": 0.06
+    }
   },
   "CrackedTopazCore": {
-    "energy_capacity_mult": 0.02
+    "defense": {
+      "evasion_flat": 2.0
+    },
+    "utility": {
+      "module_drop_mult": 0.03
+    },
+    "weapon": {
+      "armor_pen": 0.03
+    }
   },
   "PristineAmethystCore": {
-    "def_mult": 0.1,
-    "hp_mult": 0.1,
-    "resist_pierce": 0.12
+    "defense": {
+      "max_hull_mult": 0.1
+    },
+    "utility": {
+      "restore_on_kill": 0.08
+    },
+    "weapon": {
+      "resist_pierce": 0.12
+    }
   },
   "PristineCobaltCore": {
-    "eva_mult": 0.1,
-    "max_shield_mult": 0.1,
-    "shield_regen_mult": 0.1
+    "defense": {
+      "shield_regen_mult": 0.3
+    },
+    "utility": {
+      "energy_eff": 0.1
+    },
+    "weapon": {
+      "attack_speed": 0.1
+    }
   },
   "PristineCrimsonCore": {
-    "atk_energy_mult": 0.1,
-    "atk_kinetic_mult": 0.1,
-    "crit_chance": 0.1
+    "defense": {
+      "damage_reduction": 0.06
+    },
+    "utility": {
+      "ammo_eff": 0.2
+    },
+    "weapon": {
+      "crit_chance": 0.08,
+      "crit_damage": 0.3
+    }
   },
   "PristineTopazCore": {
-    "energy_capacity_mult": 0.1
-  },
-  "StableAmethystCore": {
-    "def_mult": 0.05,
-    "hp_mult": 0.05,
-    "resist_pierce": 0.06
-  },
-  "StableCobaltCore": {
-    "eva_mult": 0.05,
-    "max_shield_mult": 0.05,
-    "shield_regen_mult": 0.05
-  },
-  "StableCrimsonCore": {
-    "atk_energy_mult": 0.05,
-    "atk_kinetic_mult": 0.05,
-    "crit_chance": 0.05
-  },
-  "StableTopazCore": {
-    "energy_capacity_mult": 0.05
+    "defense": {
+      "evasion_flat": 10.0
+    },
+    "utility": {
+      "module_drop_mult": 0.12
+    },
+    "weapon": {
+      "armor_pen": 0.12
+    }
   },
   "ResonantAmethystCore": {
-    "def_mult": 0.2,
-    "hp_mult": 0.2,
-    "resist_pierce": 0.24
+    "defense": {
+      "max_hull_mult": 0.18
+    },
+    "utility": {
+      "restore_on_kill": 0.15
+    },
+    "weapon": {
+      "resist_pierce": 0.18
+    }
   },
   "ResonantCobaltCore": {
-    "eva_mult": 0.2,
-    "max_shield_mult": 0.2,
-    "shield_regen_mult": 0.2
+    "defense": {
+      "shield_regen_mult": 0.55
+    },
+    "utility": {
+      "energy_eff": 0.18
+    },
+    "weapon": {
+      "attack_speed": 0.18
+    }
   },
   "ResonantCrimsonCore": {
-    "atk_energy_mult": 0.2,
-    "atk_kinetic_mult": 0.2,
-    "crit_chance": 0.2
+    "defense": {
+      "damage_reduction": 0.12
+    },
+    "utility": {
+      "ammo_eff": 0.35
+    },
+    "weapon": {
+      "crit_chance": 0.15,
+      "crit_damage": 0.6
+    }
   },
   "ResonantTopazCore": {
-    "energy_capacity_mult": 0.2
+    "defense": {
+      "evasion_flat": 18.0
+    },
+    "utility": {
+      "module_drop_mult": 0.2
+    },
+    "weapon": {
+      "armor_pen": 0.18
+    }
+  },
+  "StableAmethystCore": {
+    "defense": {
+      "max_hull_mult": 0.05
+    },
+    "utility": {
+      "restore_on_kill": 0.04
+    },
+    "weapon": {
+      "resist_pierce": 0.06
+    }
+  },
+  "StableCobaltCore": {
+    "defense": {
+      "shield_regen_mult": 0.15
+    },
+    "utility": {
+      "energy_eff": 0.05
+    },
+    "weapon": {
+      "attack_speed": 0.05
+    }
+  },
+  "StableCrimsonCore": {
+    "defense": {
+      "damage_reduction": 0.03
+    },
+    "utility": {
+      "ammo_eff": 0.1
+    },
+    "weapon": {
+      "crit_chance": 0.04,
+      "crit_damage": 0.15
+    }
+  },
+  "StableTopazCore": {
+    "defense": {
+      "evasion_flat": 5.0
+    },
+    "utility": {
+      "module_drop_mult": 0.06
+    },
+    "weapon": {
+      "armor_pen": 0.07
+    }
   }
 }

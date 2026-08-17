@@ -1783,40 +1783,9 @@ func trinity_bonus(key: String) -> float:
 # ---------------- Matrix-core FACETS (desktop v118 redesign) -----------------
 # PoE-style type matching: a core's effect depends on its HOST module's slot
 # category — weapon = offense, armor/shield = defense, everything else = utility.
-# The same core is a different bonus depending on where you socket it.
-const GEM_FACETS := {
-	# CRIMSON (Wrath) — crit / damage reduction / ammo efficiency
-	"CrackedCrimsonCore":   {"weapon": {"crit_chance": 0.02, "crit_damage": 0.06}, "defense": {"damage_reduction": 0.015}, "utility": {"ammo_eff": 0.04}},
-	"StableCrimsonCore":    {"weapon": {"crit_chance": 0.04, "crit_damage": 0.15}, "defense": {"damage_reduction": 0.03}, "utility": {"ammo_eff": 0.10}},
-	"PristineCrimsonCore":  {"weapon": {"crit_chance": 0.08, "crit_damage": 0.30}, "defense": {"damage_reduction": 0.06}, "utility": {"ammo_eff": 0.20}},
-	"ResonantCrimsonCore":  {"weapon": {"crit_chance": 0.15, "crit_damage": 0.60}, "defense": {"damage_reduction": 0.12}, "utility": {"ammo_eff": 0.35}},
-	# COBALT (Surge) — attack speed / shield regen / energy efficiency
-	"CrackedCobaltCore":    {"weapon": {"attack_speed": 0.02}, "defense": {"shield_regen_mult": 0.06}, "utility": {"energy_eff": 0.02}},
-	"StableCobaltCore":     {"weapon": {"attack_speed": 0.05}, "defense": {"shield_regen_mult": 0.15}, "utility": {"energy_eff": 0.05}},
-	"PristineCobaltCore":   {"weapon": {"attack_speed": 0.10}, "defense": {"shield_regen_mult": 0.30}, "utility": {"energy_eff": 0.10}},
-	"ResonantCobaltCore":   {"weapon": {"attack_speed": 0.18}, "defense": {"shield_regen_mult": 0.55}, "utility": {"energy_eff": 0.18}},
-	# TOPAZ (Focus) — armor penetration / evasion / salvage find
-	"CrackedTopazCore":     {"weapon": {"armor_pen": 0.03}, "defense": {"evasion_flat": 2.0}, "utility": {"module_drop_mult": 0.03}},
-	"StableTopazCore":      {"weapon": {"armor_pen": 0.07}, "defense": {"evasion_flat": 5.0}, "utility": {"module_drop_mult": 0.06}},
-	"PristineTopazCore":    {"weapon": {"armor_pen": 0.12}, "defense": {"evasion_flat": 10.0}, "utility": {"module_drop_mult": 0.12}},
-	"ResonantTopazCore":    {"weapon": {"armor_pen": 0.18}, "defense": {"evasion_flat": 18.0}, "utility": {"module_drop_mult": 0.20}},
-	# AMETHYST (Harmonics) — resist pierce / max hull / restore-on-kill
-	"CrackedAmethystCore":  {"weapon": {"resist_pierce": 0.03}, "defense": {"max_hull_mult": 0.02}, "utility": {"restore_on_kill": 0.02}},
-	"StableAmethystCore":   {"weapon": {"resist_pierce": 0.06}, "defense": {"max_hull_mult": 0.05}, "utility": {"restore_on_kill": 0.04}},
-	"PristineAmethystCore": {"weapon": {"resist_pierce": 0.12}, "defense": {"max_hull_mult": 0.10}, "utility": {"restore_on_kill": 0.08}},
-	"ResonantAmethystCore": {"weapon": {"resist_pierce": 0.18}, "defense": {"max_hull_mult": 0.18}, "utility": {"restore_on_kill": 0.15}},
-}
-
-# v118/v142/v174: aggregate caps per facet — the most ANY number of sockets can
-# grant. Sized so ~4-5 cores reach the cap, which pushes a diverse matrix instead
-# of stacking one colour, and keeps energy_eff/ammo_eff strictly below 1.0.
-const GEM_FACET_CAPS := {
-	"crit_chance": 0.10, "crit_damage": 0.20, "attack_speed": 0.08,
-	"shield_regen_mult": 1.20, "max_hull_mult": 0.40,
-	"evasion_flat": 50.0, "module_drop_mult": 0.60,
-	"ammo_eff": 0.40, "energy_eff": 0.30, "restore_on_kill": 0.25,
-	"damage_reduction": 0.30, "armor_pen": 0.10, "resist_pierce": 0.15,
-}
+# The table and its per-facet caps live in GameData (regenerated from desktop by
+# tools/gen_data.py), so a data refresh carries a facet retune with it instead of
+# leaving a stale copy here to drift.
 
 ## Which facet a host slot reads: weapon / defense / utility.
 func gem_slot_category(slot_type: String) -> String:
@@ -1835,10 +1804,10 @@ func gem_bonus(key: String) -> float:
 		for gid in d.get("sockets", []):
 			if gid == null or gid == "":
 				continue
-			var facet: Dictionary = GEM_FACETS.get(String(gid), {}).get(cat, {})
+			var facet: Dictionary = GameData.GEMS.get(String(gid), {}).get("facets", {}).get(cat, {})
 			s += float(facet.get(key, 0.0))
-	if GEM_FACET_CAPS.has(key):
-		s = minf(s, float(GEM_FACET_CAPS[key]))
+	if GameData.GEM_FACET_CAPS.has(key):
+		s = minf(s, float(GameData.GEM_FACET_CAPS[key]))
 	return s
 
 ## Insert a gem (from inventory) into the first empty socket of a custom module.
