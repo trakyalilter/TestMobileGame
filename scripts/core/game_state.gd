@@ -1057,7 +1057,7 @@ func ship_stats() -> Dictionary:
 		s.shield *= 1.05                                   # Void Shielding I: +5% max shield
 	s.shield_regen *= 1.0 + gem_bonus("shield_regen_mult")
 	s.eva += gem_bonus("evasion_flat")
-	s.energy_cap *= 1.0 + gem_bonus("energy_eff") + research_bonus("applied_physics")
+	s.energy_cap *= 1.0 + gem_bonus("energy_eff") + research_bonus("basic_engineering")
 	# Combat skill milestones (desktop Phase 21): +5% crit @ L10, +15 eva @ L25.
 	if level_of("combat") >= 10:
 		s.crit += 0.05
@@ -3643,7 +3643,9 @@ func research_bonus(key: String) -> float:
 		"research_speed":
 			if is_research_unlocked("perfect_automation"): bonus += 0.30
 	# Hub node passive bonuses (desktop Audit v8.0 P1-25).
-	if key == "applied_physics" and is_research_unlocked("applied_physics"): bonus += 0.10
+	# v136: applied_physics was deleted upstream and its +10% energy-capacity hub
+	# bonus folded into basic_engineering along with the rest of the node.
+	if key == "basic_engineering" and is_research_unlocked("basic_engineering"): bonus += 0.10
 	if key == "materials_science" and is_research_unlocked("materials_science"): bonus += 0.10
 	if key == "industrial_logistics" and is_research_unlocked("industrial_logistics"): bonus += 0.10
 	if key == "xeno_engineering" and is_research_unlocked("xeno_engineering"): bonus += 0.25

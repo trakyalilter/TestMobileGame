@@ -401,9 +401,9 @@ TAB_NODES = {
         "zone_10_access",
     ],
     "Engineering": [
-        "basic_engineering", "applied_physics", "materials_science", "industrial_logistics",
+        "basic_engineering", "materials_science", "industrial_logistics",
         # Fluids & Electro
-        "fluid_dynamics", "catalytic_electrodes", "ion_exchange", "resonance_splitters",
+        "catalytic_electrodes", "ion_exchange", "resonance_splitters",
         "industrial_electrolysis", "energy_metrics", "cryogenic_systems", "cryogenic_storage",
         # Combustion & Smelting
         "combustion", "pyrolysis_control", "smelting", "blast_furnace", "automated_smelting",
@@ -414,7 +414,7 @@ TAB_NODES = {
         "kinetics_101", "laser_optics", "power_systems", "lightweight_alloys",
         # High Tech & Automation
         "fast_centrifuges", "maglev_bearings", "quantum_separators", "advanced_mineralogy",
-        "automation", "automated_logistics", "industrial_automation", "molecular_recycling",
+        "automation", "industrial_automation", "molecular_recycling",
         "xeno_engineering", "mass_production_tactics", "nano_fabrication", "data_clustering",
         "precious_metal_refining", "industrial_catalysis", "fuel_cell_tech",
         "colony_automation", "perfect_automation",
@@ -833,13 +833,17 @@ def _merge(mid, name, mtype, target, qty, desc, src, tag="[TUTORIAL]"):
 CURATED_CHAIN = [
     # --- Engine boot: arrive, learn the foundational sciences, refine first metals.
     _m("m001"),                                  # gather Dirt
-    _merge("m002", "Foundational Research", "research_multi",
-           ["basic_engineering", "applied_physics", "fluid_dynamics"], 3,
-           "On the Research tab, unlock the three foundational techs: Basic "
-           "Engineering, Applied Physics and Fluid Dynamics. They open refining, "
-           "energy fields and water collection.",
+    # v136: applied_physics and fluid_dynamics were DELETED upstream and folded
+    # into basic_engineering ("the player does a single foundational research"),
+    # taking Applied Physics' +10% energy-capacity hub bonus with them. Asking for
+    # the collapsed ids left this tutorial mission permanently uncompletable.
+    _merge("m002", "Foundational Research", "research",
+           "basic_engineering", 1,
+           "On the Research tab, unlock Basic Engineering — the single "
+           "foundational tech. It opens your refinery, water collection and the "
+           "ship systems everything else is built on.",
            ["m002", "m002b", "m003"]),
-    _m("m004"),                                  # gather Water (needs fluid_dynamics)
+    _m("m004"),                                  # gather Water (now ungated)
     _m("m005"),                                  # gather_multi {Fe, Si} (Mineral Washing)
     # --- Power FIRST: hulls give no energy on mobile, so a battery must be seated
     #     before any consumer equips. kinetics_101 leads because power_systems'
@@ -877,10 +881,12 @@ CURATED_CHAIN = [
     _m("m016c"),                                 # visit Combat page
     _m("m017"),                                  # defeat z1_lunar_drone
     # --- Logistics & circuitry (research run merged).
-    _merge("m018", "Logistics Network", "research_multi",
-           ["industrial_logistics", "automated_logistics"], 2,
-           "On the Research tab, unlock Industrial Logistics and then Automated "
-           "Logistics — the backbone for circuitry and drones.",
+    # v136: automated_logistics REMOVED (a pure passive gate); its dependents and
+    # the Industrial Centrifuge were re-parented onto industrial_logistics.
+    _merge("m018", "Logistics Network", "research",
+           "industrial_logistics", 1,
+           "On the Research tab, unlock Industrial Logistics — the backbone for "
+           "circuitry and drones.",
            ["m018", "m018b"]),
     _m("m019"),                                  # craft Circuit
     _m("m019d"),                                 # v135: first Foundation (build a Solar Panel)
