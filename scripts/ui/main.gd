@@ -10,7 +10,7 @@ const BOTTOM := [
 	{"id": "research", "label": "Research"},
 	{"id": "more",     "label": "More"},
 ]
-const PAGE_IDS := ["gather", "craft", "combat", "research", "more", "build", "shipyard", "ship", "bounty", "standing", "warp", "fleet", "missions", "atlas", "stats", "hazard", "settings"]
+const PAGE_IDS := ["gather", "craft", "combat", "research", "more", "build", "shipyard", "ship", "bounty", "standing", "procurement", "warp", "fleet", "missions", "atlas", "stats", "hazard", "settings"]
 const MORE_MENU := [
 	{"id": "missions", "label": "✦  Missions"},
 	{"id": "build",  "label": "⌂  Infrastructure"},
@@ -18,6 +18,7 @@ const MORE_MENU := [
 	{"id": "ship",   "label": "⛭  Ship Designer"},
 	{"id": "bounty", "label": "◆  Bounty Board"},
 	{"id": "standing", "label": "▤  Standing Orders"},
+	{"id": "procurement", "label": "⚗  Station Procurement"},
 	{"id": "hazard", "label": "☢  Hazard Zones"},
 	{"id": "warp",   "label": "✦  Warp Core"},
 	{"id": "fleet",  "label": "❖  Fleet Command"},
@@ -60,6 +61,7 @@ const NAV_ALL := [
 	{"id": "ship",     "label": "Ship Designer",  "icon": "⛭"},
 	{"id": "bounty",   "label": "Bounty Board",   "icon": "◆"},
 	{"id": "standing", "label": "Standing Orders", "icon": "▤"},
+	{"id": "procurement", "label": "Station Procurement", "icon": "⚗"},
 	{"id": "hazard",   "label": "Hazard Zones",   "icon": "☢"},
 	{"id": "warp",     "label": "Warp Core",      "icon": "✦"},
 	{"id": "fleet",    "label": "Fleet Command",  "icon": "❖"},
@@ -1314,7 +1316,7 @@ func _process(_delta: float) -> void:
 # the early-return in _on_resources/_on_tick). Live combat/progress bars animate in
 # _process, independent of rebuilds.
 const NO_TICK_REFRESH := ["research", "atlas", "ship", "shipyard", "combat",
-	"more", "bounty", "standing", "warp", "fleet", "missions", "stats", "hazard", "settings"]
+	"more", "bounty", "standing", "procurement", "warp", "fleet", "missions", "stats", "hazard", "settings"]
 # Idle-loop pages: while an action is actively looping, every completion fires
 # resources_changed + skills_changed. A full grid rebuild on each one destroys
 # and recreates every card (and the progress-bar node), which reads as a freeze
@@ -1873,6 +1875,7 @@ func _refresh_current(preserve_scroll: bool = false) -> void:
 		"ship":     _build_ship()
 		"bounty":   _build_bounty()
 		"standing": _build_standing()
+		"procurement": _build_procurement()
 		"warp":     _build_warp()
 		"fleet":    _build_fleet()
 		"missions": _build_missions()
@@ -3572,6 +3575,112 @@ func _build_standing() -> void:
 		_empty(v, "Board is empty.")
 	for i in GameState.standing_orders().size():
 		v.add_child(_standing_card(i, GameState.standing_orders()[i]))
+
+
+# ============================================================ STATION PROCUREMENT
+# Family-tabbed standing buyer for factory goods. The pool meter is the whole
+# story of the system, so it is the first thing on the page: orders pay per unit,
+# claims draw from a demand budget, and an empty pool blocks a claim WITHOUT
+# consuming the order or the goods.
+var proc_family := ""
+
+func _build_procurement() -> void:
+	var v := _clear("procurement")
+	_back_header(v)
+	var t := Label.new()
+	t.text = "⚗ STATION PROCUREMENT"
+	t.add_theme_font_size_override("font_size", _fs(16))
+	t.add_theme_color_override("font_color", Color.html(BUILD))
+	v.add_child(t)
+	if not GameState.procurement_unlocked():
+		_lbl_wrap(v, "No production lines online yet. Build a factory that yields a tradeable good and the station opens a buying desk for it.", 10, C_DIM)
+		return
+	_lbl_wrap(v, "A standing buyer for what your factories make. Orders are sized to about half an hour of your line's NET output and pay per unit, so income scales with the factory you actually built. Goods are consumed when you claim.", 10, C_DIM)
+	GameState.ensure_procurement()
+	GameState.sync_procurement()
+	if GameState.proc_notice != "":
+		_lbl_wrap(v, "⚠ " + GameState.proc_notice, 11, C_WARN)
+	var fams := GameState.proc_online_families()
+	if fams.is_empty():
+		_empty(v, "No family online.")
+		return
+	if proc_family == "" or not fams.has(proc_family):
+		proc_family = String(fams[0])
+	var items := []
+	for f in fams:
+		items.append({"id": String(f), "label": GameState.PROC_FAMILY_LABEL.get(String(f), String(f))})
+	_subtabs(v, items, proc_family, BUILD, func(id: String) -> void:
+		proc_family = id
+		_refresh_current())
+	# Demand pool meter.
+	var cap := GameState.proc_pool_cap(proc_family)
+	var val := GameState.proc_pool_value(proc_family)
+	var pool_lines := [
+		_line("₡%s of ₡%s demand remaining" % [GameData.fmt(int(val)), GameData.fmt(int(cap))], GOLD if val > 0.0 else C_WARN),
+		_line("Refills continuously — a full pool takes %d hours." % int(GameState.PROC_POOL_HOURS), C_DIM),
+	]
+	_inset(v, "DEMAND POOL", pool_lines, BUILD, val > 0.0)
+	var bar := ProgressBar.new()
+	bar.custom_minimum_size = Vector2(0, 8)
+	bar.show_percentage = false
+	bar.max_value = maxf(1.0, cap)
+	bar.value = val
+	_style_bar(bar, GOLD if val > 0.0 else RED)
+	v.add_child(bar)
+	var board := GameState.procurement_board(proc_family)
+	_section(v, "ORDERS  (%d)" % board.size(), BUILD)
+	if board.is_empty():
+		_empty(v, "Nothing in production for this family — a good needs positive NET output (what your own lines don't consume) before the station will order it.")
+	for q in board:
+		v.add_child(_procurement_card(q))
+
+func _procurement_card(q: Dictionary) -> Control:
+	var complete: bool = q.get("completed", false)
+	var sym := String(q.get("target", ""))
+	var val := float(q.get("reward_credits", 0))
+	var pool_ok: bool = GameState.proc_pool_value(String(q.get("family", ""))) >= val
+	var c := _card(BUILD, complete)
+	_card_head_mat(c, sym, "⚗", "Procurement: %s" % GameData.res_name(sym),
+			"READY" if complete else "", BUILD, complete)
+	var price := Label.new()
+	price.text = "₡%s per unit  ·  consumed on claim" % GameData.fmt(int(q.get("unit_price", 0)))
+	price.add_theme_font_size_override("font_size", _fs(10))
+	price.add_theme_color_override("font_color", Color.html(C_DIM))
+	c.add_child(price)
+	var reward := Label.new()
+	reward.text = "Pays ₡%s" % GameData.fmt(int(val))
+	reward.add_theme_font_size_override("font_size", _fs(13))
+	reward.add_theme_color_override("font_color", Color.html(GOLD))
+	_embolden(reward)
+	c.add_child(reward)
+	var cur := int(q.get("current_qty", 0))
+	var tgt := maxi(1, int(q.get("target_qty", 1)))
+	var pg := Label.new()
+	pg.text = "Deliver %s / %s %s" % [GameData.fmt(cur), GameData.fmt(tgt), GameData.res_name(sym)]
+	pg.add_theme_font_size_override("font_size", _fs(11))
+	pg.add_theme_color_override("font_color", Color.html(GREEN if complete else C_DIM))
+	c.add_child(pg)
+	var bar := ProgressBar.new()
+	bar.custom_minimum_size = Vector2(0, 8)
+	bar.show_percentage = false
+	bar.max_value = tgt
+	bar.value = cur
+	_style_bar(bar, GREEN if complete else BUILD)
+	c.add_child(bar)
+	if complete:
+		# The pool gate is not a failure state — say what is happening, and keep
+		# the order and the goods.
+		var b := _card_button("Claim" if pool_ok else "Demand met — refilling", GREEN if pool_ok else C_MUTED, pool_ok)
+		if pool_ok:
+			var oid := String(q.get("id", ""))
+			b.pressed.connect(func() -> void:
+				GameState.claim_procurement(oid)
+				_fly_to_credits(b, "credits")
+				_refresh_current())
+		c.add_child(b)
+		if not pool_ok:
+			_lbl_wrap(c, "This family's demand pool is short of the order's value. Nothing is lost — the order and your goods keep until it refills.", 10, C_DIM)
+	return c.get_parent()
 
 func _standing_card(idx: int, q: Dictionary) -> Control:
 	var complete: bool = q.get("completed", false)

@@ -2597,6 +2597,344 @@ signal standing_orders_changed
 const STANDING_BOARD_SIZE := 6
 const STANDING_REROLL_BASE := 2500
 # Per-tier material reward pool: [material_id, min_qty, max_qty] (ref ~L13-24).
+
+# ============================================================ STATION PROCUREMENT
+# Desktop v162 Demand Engine. Family-tabbed, never-expiring orders for goods your
+# FACTORIES produce. Three ideas make it work:
+#   * QUANTITY is rate-based — an order is ~PROC_ORDER_MINUTES of your measured
+#     NET infra rate for that good, so a feeder your own lines fully consume is
+#     correctly never asked for.
+#   * REWARD is qty x a fixed unit price, so income scales LINEARLY with factory
+#     investment (a flat per-order reward would rubber-band against investment).
+#   * A per-family demand POOL governs it: a value budget refilling continuously
+#     to a 24h cap. Claims decrement it; an empty pool BLOCKS the claim but never
+#     destroys the order or the goods — "demand met, refilling", zero FOMO.
+# Pools settle lazily from a timestamp, so offline refill falls out of the same
+# math with no tick.
+const PROC_CARDS_PER_FAMILY := 3
+const PROC_ORDER_MINUTES := 30.0        # order ~= this many minutes of your line
+const PROC_RATE_EPS := 0.05             # units/min below this = "not in production"
+const PROC_ENGINEER_SHARE := 0.35       # of era combat income, across ALL online families
+const PROC_POOL_HOURS := 24.0           # pool cap = this many hours of demand
+# v177: an order may never be worth more than this share of its family's pool cap,
+# so no generated card can be permanently unclaimable. 0.5 leaves room to claim a
+# second order off a full pool.
+const PROC_ORDER_MAX_POOL_FRAC := 0.5
+const PROC_ERA_INCOME_PER_H := {
+	1: 1700.0, 2: 5000.0, 3: 16700.0,
+	4: 67500.0, 5: 352500.0, 6: 629700.0, 7: 1125000.0,
+	8: 5625000.0, 9: 18000000.0, 10: 112500000.0,
+	11: 225000000.0, 12: 450000000.0, 13: 900000000.0,
+	14: 1800000000.0, 15: 3600000000.0,
+}
+const PROC_FAMILY_ORDER := ["refining", "chemical", "structural", "electronics",
+	"ordnance", "fabrication", "capital"]
+const PROC_FAMILY_LABEL := {
+	"refining": "Refining", "chemical": "Chemical", "structural": "Structural",
+	"electronics": "Electronics", "ordnance": "Ordnance",
+	"fabrication": "Fabrication", "capital": "Capital",
+}
+const PROC_FAMILIES := {
+	"refining": ["Fe", "Si", "Cu", "Sn", "Zn", "Ni", "Cr", "Co", "Mg", "Li", "Al", "Ti", "Au", "Germanium"],
+	"chemical": ["C", "H", "O", "Graphite", "Resin", "Fiber", "CompositeWeave"],
+	"structural": ["Steel", "StructuralComponent", "GalvanizedSteel", "StainlessSteel", "Superalloy"],
+	"electronics": ["Circuit", "Semiconductor", "Chip", "AdvCircuit"],
+	"ordnance": ["SlugT1", "SlugT2", "SlugT3", "CellT1", "CellT2", "CellT3", "MissileT1", "MissileT2", "MissileT3"],
+	"fabrication": ["NanoSubstrate", "SinteredCarbide", "PrecisionLattice", "FabricationBus"],
+	"capital": ["NeutroniumPlate", "VoidLattice", "CapitalSpar", "DreadnoughtFrame"],
+}
+# Liras per unit, pre warp/recursion mults. v177 scaled the whole table x10 after
+# measuring that every shared good paid ~10x more as a Stockpile order — keep any
+# retune UNIFORM: the internal ladder encodes production depth.
+const PROC_UNIT_PRICE := {
+	"Fe": 10.0, "Si": 10.0, "Cu": 20.0, "Sn": 30.0, "Zn": 30.0, "Ni": 60.0, "Cr": 80.0,
+	"Co": 80.0, "Mg": 50.0, "Li": 50.0, "Al": 30.0, "Ti": 120.0, "Au": 250.0, "Germanium": 150.0,
+	"C": 6.0, "H": 3.0, "O": 3.0, "Graphite": 40.0, "Resin": 120.0, "Fiber": 60.0, "CompositeWeave": 450.0,
+	"Steel": 20.0, "StructuralComponent": 250.0, "GalvanizedSteel": 400.0,
+	"StainlessSteel": 900.0, "Superalloy": 2000.0,
+	"Circuit": 300.0, "Semiconductor": 180.0, "Chip": 2200.0, "AdvCircuit": 1650.0,
+	"SlugT1": 20.0, "CellT1": 20.0, "MissileT1": 30.0,
+	"SlugT2": 250.0, "CellT2": 250.0, "MissileT2": 300.0,
+	"SlugT3": 1800.0, "CellT3": 3200.0, "MissileT3": 3500.0,
+	"NanoSubstrate": 9000.0, "SinteredCarbide": 26000.0,
+	"PrecisionLattice": 85000.0, "FabricationBus": 340000.0,
+	"NeutroniumPlate": 23000.0, "VoidLattice": 52000.0,
+	"CapitalSpar": 550000.0, "DreadnoughtFrame": 2750000.0,
+}
+
+var proc_boards: Dictionary = {}     # {family: [order dicts]}
+var proc_pools: Dictionary = {}      # {family: float} — settled lazily
+var _proc_pool_ts: float = 0.0       # unix seconds of the last settle
+var _proc_family_of: Dictionary = {}
+signal procurement_changed
+
+func proc_family_of(sym: String) -> String:
+	if _proc_family_of.is_empty():
+		for fam in PROC_FAMILIES:
+			for s in PROC_FAMILIES[fam]:
+				_proc_family_of[String(s)] = String(fam)
+	return String(_proc_family_of.get(sym, ""))
+
+func proc_unit_price(sym: String) -> float:
+	return float(PROC_UNIT_PRICE.get(sym, 0.0))
+
+## NET units/min each resource gains from infrastructure: every producer's yield
+## minus every consumer's input, on the same interval/skill-speed model the live
+## tick uses. Net matters — a feeder your own lines eat is not surplus to sell.
+func infra_net_rates() -> Dictionary:
+	var out := {}
+	if buildings.is_empty():
+		return out
+	var skill_speed := _infra_skill_speed()
+	var gyb := _global_yield_bonus()
+	for bid in buildings:
+		var count: int = int(buildings[bid])
+		if count <= 0:
+			continue
+		var d: Dictionary = GameData.BUILDINGS.get(bid, {})
+		if not _is_production_building(d):
+			continue
+		var interval: float = maxf(0.05, float(d.get("interval", 1.0)) / skill_speed)
+		var per_min: float = 60.0 / interval
+		var units := _dr_units(count)
+		var eng := _eng_scale(bid)
+		var ore := _ore_throttle(bid)
+		var mastery_m := building_mastery_mult(bid)
+		var oc_in := _overclock_input_mult(bid)
+		for res in d.get("yield", {}):
+			var q: float = float(d["yield"][res]) * units * eng * ore \
+				* (1.0 + float(gyb.get(res, 0.0))) * warp_production_mult() \
+				* (1.0 + research_bonus("building_yield_mult")) * tree_infra_bonus() \
+				* mastery_m * trophy_buff("infrastructure_yield")
+			out[String(res)] = float(out.get(String(res), 0.0)) + q * per_min
+		for res in d.get("input", {}):
+			var c: float = float(d["input"][res]) * units * oc_in
+			out[String(res)] = float(out.get(String(res), 0.0)) - c * per_min
+	return out
+
+## A family is ONLINE when you own a building that yields one of its goods.
+## Ownership, not net rate — a line fully consumed downstream still shows its tab;
+## only ORDER GENERATION needs a positive net rate.
+func proc_online_families() -> Array:
+	var online: Array = []
+	for fam in PROC_FAMILY_ORDER:
+		var fam_s := String(fam)
+		var found := false
+		for bid in buildings:
+			if int(buildings[bid]) <= 0:
+				continue
+			for res in GameData.BUILDINGS.get(bid, {}).get("yield", {}):
+				if proc_family_of(String(res)) == fam_s:
+					found = true
+					break
+			if found:
+				break
+		if found:
+			online.append(fam_s)
+	return online
+
+func procurement_unlocked() -> bool:
+	return not proc_online_families().is_empty() or not proc_boards.is_empty()
+
+func proc_frontier() -> int:
+	return clampi(bounty_max_diff(), 1, 15)
+
+func proc_pool_cap(family: String) -> float:
+	var online := proc_online_families()
+	if not online.has(family):
+		return 0.0
+	var era: float = float(PROC_ERA_INCOME_PER_H.get(proc_frontier(), 1700.0))
+	return era * PROC_ENGINEER_SHARE / float(maxi(1, online.size())) * PROC_POOL_HOURS
+
+## Lazy settle: pools refill continuously toward cap. This same math IS the
+## offline path — no tick, no catch-up pass.
+func _settle_proc_pools() -> void:
+	var now := Time.get_unix_time_from_system()
+	if _proc_pool_ts <= 0.0:
+		_proc_pool_ts = now
+		return
+	var dt: float = maxf(0.0, now - _proc_pool_ts)
+	_proc_pool_ts = now
+	if dt == 0.0:
+		return
+	for fam in PROC_FAMILY_ORDER:
+		var fam_s := String(fam)
+		var cap := proc_pool_cap(fam_s)
+		if cap <= 0.0:
+			continue
+		var cur: float = float(proc_pools.get(fam_s, cap))   # first sight = born full
+		proc_pools[fam_s] = minf(cap, cur + dt * (cap / (PROC_POOL_HOURS * 3600.0)))
+
+func proc_pool_value(family: String) -> float:
+	_settle_proc_pools()
+	var cap := proc_pool_cap(family)
+	if cap <= 0.0:
+		return 0.0
+	# Clamp DOWN too: a frontier or family change can shrink the cap below a
+	# stored value, and the meter must never read over 100%.
+	var v: float = minf(float(proc_pools.get(family, cap)), cap)
+	proc_pools[family] = v
+	return v
+
+func _proc_family_rates(family: String, rates: Dictionary) -> Dictionary:
+	var out := {}
+	for sym in PROC_FAMILIES.get(family, []):
+		var r: float = float(rates.get(String(sym), 0.0))
+		if r > PROC_RATE_EPS:
+			out[String(sym)] = r
+	return out
+
+func _proc_round_qty(n: int) -> int:
+	if n < 100:
+		return maxi(10, int(round(n / 10.0)) * 10)
+	if n < 1000:
+		return int(round(n / 10.0)) * 10
+	if n < 10000:
+		return int(round(n / 100.0)) * 100
+	return int(round(n / 1000.0)) * 1000
+
+func _gen_proc_order(family: String, sym: String, rate_per_min: float) -> Dictionary:
+	var price := proc_unit_price(sym)
+	var qty: int = _proc_round_qty(maxi(10, int(round(rate_per_min * PROC_ORDER_MINUTES))))
+	# v177: an order worth more than the pool CAP is not a slow card, it is a
+	# permanently dead one — claims are blocked outright when the pool holds less
+	# than the order's value, and the card never resizes. Order value scales with
+	# your line rate while the cap scales with combat frontier, so the player who
+	# over-invests in infrastructure relative to their zone — precisely the
+	# engineer this system exists for — was the one who got locked out.
+	var cap := proc_pool_cap(family)
+	if cap > 0.0 and price > 0.0:
+		var max_qty: int = int(floor(cap * PROC_ORDER_MAX_POOL_FRAC / price))
+		if qty > max_qty:
+			qty = maxi(1, mini(_proc_round_qty(maxi(1, max_qty)), max_qty))
+	var have := amount(sym)
+	return {
+		"id": _gen_sid(), "family": family, "target": sym, "target_qty": qty,
+		"current_qty": mini(have, qty), "unit_price": price,
+		"reward_credits": maxi(1, int(round(float(qty) * price))),
+		"completed": have >= qty, "claimed": false,
+	}
+
+## Prefer a good with no card yet, and lean toward the deepest (highest-priced)
+## line 60% of the time — depth is what the factory game wants players chasing.
+func _pick_proc_good(family: String, fam_rates: Dictionary) -> String:
+	if fam_rates.is_empty():
+		return ""
+	var taken := {}
+	for q in proc_boards.get(family, []):
+		taken[String(q["target"])] = true
+	var cands: Array = []
+	for sym in fam_rates:
+		if not taken.has(String(sym)):
+			cands.append(String(sym))
+	if cands.is_empty():
+		for sym in fam_rates:
+			cands.append(String(sym))
+	if randf() < 0.60:
+		var best := ""
+		var best_p := -1.0
+		for c in cands:
+			var pr := proc_unit_price(String(c))
+			if pr > best_p:
+				best_p = pr
+				best = String(c)
+		return best
+	return String(cands[randi() % cands.size()])
+
+## Fill every online family's board. Never expires or removes a card — an order
+## for a line you later dismantled still fills from stock.
+func ensure_procurement() -> void:
+	_settle_proc_pools()
+	var online := proc_online_families()
+	if online.is_empty():
+		return
+	var rates := infra_net_rates()
+	var changed := false
+	for fam in online:
+		var fam_s := String(fam)
+		if not proc_boards.has(fam_s):
+			proc_boards[fam_s] = []
+		var fam_rates := _proc_family_rates(fam_s, rates)
+		while (proc_boards[fam_s] as Array).size() < PROC_CARDS_PER_FAMILY:
+			var sym := _pick_proc_good(fam_s, fam_rates)
+			if sym == "":
+				break
+			(proc_boards[fam_s] as Array).append(_gen_proc_order(fam_s, sym, float(fam_rates[sym])))
+			changed = true
+	if not game_flags.get("procurement_intro_seen", false):
+		game_flags["procurement_intro_seen"] = true
+		feature_revealed.emit("⟨ STATION PROCUREMENT ONLINE ⟩",
+			"Your factory goods have a standing buyer. Orders pay per unit and are consumed on claim.")
+		changed = true
+	if changed:
+		procurement_changed.emit()
+
+func procurement_board(family: String) -> Array:
+	ensure_procurement()
+	return proc_boards.get(family, [])
+
+## Pull live inventory into every order (same model as Standing Orders).
+func sync_procurement() -> void:
+	var changed := false
+	for fam in proc_boards:
+		for q in proc_boards[fam]:
+			if q.get("claimed", false):
+				continue
+			var have := amount(String(q["target"]))
+			var cur := mini(have, int(q["target_qty"]))
+			if cur != int(q["current_qty"]):
+				q["current_qty"] = cur
+				q["completed"] = have >= int(q["target_qty"])
+				changed = true
+	if changed:
+		procurement_changed.emit()
+
+var proc_notice := ""   # last claim rejection reason (shown in UI)
+
+func claim_procurement(order_id: String) -> bool:
+	_settle_proc_pools()
+	for fam in proc_boards:
+		var fam_s := String(fam)
+		var lst: Array = proc_boards[fam_s]
+		for i in lst.size():
+			var q: Dictionary = lst[i]
+			if String(q["id"]) != order_id:
+				continue
+			if not q.get("completed", false) or q.get("claimed", false):
+				return false
+			var base: int = int(q["reward_credits"])
+			# Pool gate FIRST, before touching stock: empty demand blocks the
+			# claim but loses nothing — order AND goods are both kept.
+			if proc_pool_value(fam_s) < float(base):
+				proc_notice = "Station demand met — refilling. Order and goods are kept."
+				return false
+			var have := amount(String(q["target"]))
+			if have < int(q["target_qty"]):
+				q["completed"] = false
+				q["current_qty"] = have
+				proc_notice = "Order needs %s %s — stock ran low." % [GameData.fmt(int(q["target_qty"])), GameData.res_name(String(q["target"]))]
+				procurement_changed.emit()
+				return false
+			resources[String(q["target"])] = have - int(q["target_qty"])
+			# Same multiplier stack as every other payout.
+			var cred := int(base * warp_production_mult() * credit_reward_mult())
+			gain_credits(cred)
+			# The pool decrements by the BASE value: era income and rewards carry
+			# the same warp mults, so the share stays a share.
+			proc_pools[fam_s] = maxf(0.0, proc_pool_value(fam_s) - float(base))
+			lst.remove_at(i)
+			# Replace with a fresh order at CURRENT rates.
+			var fr := _proc_family_rates(fam_s, infra_net_rates())
+			var nsym := _pick_proc_good(fam_s, fr)
+			if nsym != "":
+				lst.append(_gen_proc_order(fam_s, nsym, float(fr[nsym])))
+			proc_notice = ""
+			resources_changed.emit()
+			procurement_changed.emit()
+			return true
+	return false
+
+
 const STANDING_MATERIAL_REWARDS := {
 	1: [["Cu", 100, 250], ["Fe", 80, 180], ["Si", 50, 150]],
 	2: [["Steel", 40, 100], ["Cu", 200, 500], ["Circuit", 25, 60]],
@@ -5730,6 +6068,11 @@ func save_game() -> void:
 		"bounty_total": bounty_total,
 		"bounty_id": _bounty_id,
 		"standing_board": standing_board,
+		# Procurement: the pool TIMESTAMP is load-bearing — offline refill is
+		# derived from it, so losing it would silently reset every family's demand.
+		"proc_boards": proc_boards,
+		"proc_pools": proc_pools,
+		"proc_pool_ts": _proc_pool_ts,
 		"standing_total": standing_total,
 		"standing_id": _standing_id,
 		"missions_active": missions_active.keys(),
@@ -5862,6 +6205,13 @@ func load_game() -> void:
 	bounty_total = int(data.get("bounty_total", 0))
 	_bounty_id = int(data.get("bounty_id", 0))
 	standing_board = data.get("standing_board", [])
+	proc_boards = data.get("proc_boards", {})
+	proc_pools = {}
+	for k in data.get("proc_pools", {}):
+		proc_pools[String(k)] = float(data["proc_pools"][k])
+	# Absent timestamp (old save / first run) means "settle from now", which makes
+	# pools start full rather than retroactively crediting time never played.
+	_proc_pool_ts = float(data.get("proc_pool_ts", 0.0))
 	standing_total = int(data.get("standing_total", 0))
 	_standing_id = int(data.get("standing_id", 0))
 	ensure_standing_board()   # populate fresh saves / sync gather progress on load
