@@ -4193,10 +4193,58 @@ func _build_ship() -> void:
 		if id != "armory":
 			ship_target_slot = -1     # leaving the slot-first flow
 		_refresh_current())
+	# v113 NG+ P2: the Relic slot is NOT a hull slot — it sits above the loadout
+	# so a master key is always visible, and only appears once one is earned.
+	_relic_slot(v)
 	match ship_view:
 		"loadout": _ship_loadout(v, h)
 		"armory": _ship_armory(v)
 		"fittings": _ship_fittings(v, h)
+
+
+# The Threshold Relic slot. A master key only works inside the sector it is cut
+# for, so the card names that sector and its reduction rather than a bare stat —
+# an item that does nothing in 14 of 15 sectors has to explain itself.
+func _relic_slot(v: VBoxContainer) -> void:
+	var owned := GameState.owned_relics()
+	if owned.is_empty() and GameState.equipped_relic == "":
+		return      # nothing earned yet — no empty slot to explain
+	_section(v, "◈ RELIC SLOT", PURP)
+	var eq := GameState.equipped_relic
+	if eq != "":
+		var r: Dictionary = GameData.MODULES.get(eq, {})
+		var zone_id := String(r.get("relic_zone", ""))
+		var zone_name := zone_id
+		for z in GameData.ZONES:
+			if String(z.get("id", "")) == zone_id:
+				zone_name = String(z.get("name", zone_id))
+		var cut := int(round(float(r.get("relic_reduction", 0.0)) * 100.0))
+		var c := _card(PURP, true)
+		_card_head(c, "◈", String(r.get("name", eq)), "EQUIPPED", PURP, true)
+		_lbl_wrap(c, String(r.get("desc", "")), 10, C_DIM)
+		_inset(c, "EFFECT", [
+			_line("−%d%% incoming damage" % cut, GOLD),
+			_line("only in %s" % zone_name, C_DIM),
+		], PURP, true)
+		var un := _card_button("Unequip", C_MUTED, true)
+		un.pressed.connect(func() -> void:
+			GameState.unequip_relic()
+			_refresh_current())
+		c.add_child(un)
+		v.add_child(c.get_parent())
+	for mid in owned:
+		if mid == eq:
+			continue
+		var rm: Dictionary = GameData.MODULES.get(mid, {})
+		var c2 := _card(PURP, false)
+		_card_head(c2, "◈", String(rm.get("name", mid)), "", PURP, false)
+		var b := _card_button("Equip", PURP, true)
+		var this_id := String(mid)
+		b.pressed.connect(func() -> void:
+			GameState.equip_relic(this_id)
+			_refresh_current())
+		c2.add_child(b)
+		v.add_child(c2.get_parent())
 
 func _ship_fittings(v: VBoxContainer, h: Dictionary) -> void:
 	_section(v, "Auto-Consumables  (trigger at 50%)", CYAN)

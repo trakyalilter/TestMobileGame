@@ -789,6 +789,19 @@ func execute_warp() -> int:
 	# upstream, which wrote an inventory entry with no definition — a nameless,
 	# slotless item that could never be equipped. The flag alone is the unlock.
 	cryo_unlocked = true
+	# v113 (NG+ P2): master-key relics PERSIST across Warp. The reset above wiped
+	# module_inventory, so re-grant and re-equip every relic the player has
+	# earned. Without this the key is lost on the first Warp and the earned flag
+	# guarantees it never drops again — the boss would become unfarmable for good.
+	for mid in GameData.MODULES:
+		if String((GameData.MODULES[mid] as Dictionary).get("slot", "")) != "relic":
+			continue
+		if not game_flags.get(String(mid) + "_earned", false):
+			continue
+		if int(module_inventory.get(mid, 0)) <= 0:
+			module_inventory[mid] = 1
+		if equipped_relic == "":
+			equipped_relic = String(mid)
 	# v113/v137: the Warp is what opens the next NG+ frontier sector.
 	_reveal_ng_sectors()
 	combat_hp = combat_max_hp()
@@ -1449,6 +1462,44 @@ func _gem_synth_output(mid: String) -> String:
 	return ""
 
 var equip_notice := ""                  # last equip rejection reason (shown in UI)
+
+# ---------------- Threshold Relic (v113 NG+ P2) ------------------------------
+# A master key dropped by an NG+ gate boss on its FIRST clear. It sits in its own
+# dedicated slot — not a hull slot — and only works inside the sector it is cut
+# for, where it slashes incoming damage so the gate boss becomes survivable
+# enough to idle-farm. That zone lock is what stops it becoming a god item:
+# "clear the gate once by hand, then farm it".
+var equipped_relic := ""
+
+## Incoming-damage multiplier from the equipped relic in `zone_id`. 1.0 when no
+## relic is held, or when it is keyed to a different sector.
+func relic_reduction_factor(zone_id: String) -> float:
+	if equipped_relic == "" or not GameData.MODULES.has(equipped_relic):
+		return 1.0
+	var r: Dictionary = GameData.MODULES[equipped_relic]
+	if String(r.get("relic_zone", "")) != zone_id:
+		return 1.0
+	return 1.0 - clampf(float(r.get("relic_reduction", 0.0)), 0.0, 0.99)
+
+## Every relic the player owns (relics never stack; one per id).
+func owned_relics() -> Array:
+	var out: Array = []
+	for mid in module_inventory:
+		if int(module_inventory[mid]) > 0 and String(module_def(String(mid)).get("slot", "")) == "relic":
+			out.append(String(mid))
+	return out
+
+func equip_relic(mid: String) -> bool:
+	if String(module_def(mid).get("slot", "")) != "relic" or int(module_inventory.get(mid, 0)) <= 0:
+		return false
+	equipped_relic = mid
+	resources_changed.emit()
+	return true
+
+func unequip_relic() -> void:
+	equipped_relic = ""
+	resources_changed.emit()
+
 var sell_notice := ""                   # last sell rejection reason (shown in UI)
 
 # ---------------- Auxiliary slot (CMB_3 warp node) ----------------
@@ -4880,14 +4931,19 @@ func _enemy_fire(ss: Dictionary) -> void:
 			if enemy_inst["hp"] <= 0.0:
 				_win_combat()
 				return
-	player_shield = maxf(0.0, player_shield - res[0])
+	# v113: the Threshold Relic, in its keyed sector, cuts the whole incoming
+	# swing — shield and hull alike — before anything else applies.
+	var relic_f := relic_reduction_factor(_current_zone_id())
+	var in_shield: float = float(res[0]) * relic_f
+	var in_hull: float = float(res[1]) * relic_f
+	player_shield = maxf(0.0, player_shield - in_shield)
 	# Crimson defense facet: flat reduction on incoming hull damage.
-	combat_hp -= res[1] * (1.0 - gem_bonus("damage_reduction"))
+	combat_hp -= in_hull * (1.0 - gem_bonus("damage_reduction"))
 	# v109 typed enemy-damage readout: tag hull damage with the enemy's dmg_type
 	# (KIN/NRG/EXP) so the popup tells the player what's hurting them.
 	var dtag: String = {"energy": "NRG", "explosive": "EXP"}.get(String(enemy_inst.get("dmg_type", "kinetic")), "KIN")
-	if res[0] > 0:
-		_event("-%d %s" % [int(res[0]), dtag], "55d3e6", "player")
+	if in_shield > 0:
+		_event("-%d %s" % [int(in_shield), dtag], "55d3e6", "player")
 	if res[1] > 0:
 		_event("-%d %s" % [int(res[1]), dtag], "ef6a52", "player")
 	if combat_hp <= 0.0:
@@ -5198,6 +5254,20 @@ func _win_combat() -> void:
 	if killed_id == "z10_boss_leviathan" and not game_flags.get("z11_unlocked", false):
 		game_flags["z11_unlocked"] = true
 		_event("SECTOR 11 DETECTED", "8cd9ff", "player")
+	# v113 (NG+ P2): first-clear master-key relic. Granted exactly ONCE — the
+	# earned flag survives Warp (which wipes module_inventory), so a re-warped
+	# player keeps the key without farming it again, and hard_reset clears the
+	# flag along with the rest of game_flags to re-lock a fresh playthrough.
+	var relic_id := String(GameData.ENEMIES.get(killed_id, {}).get("relic_drop", ""))
+	if relic_id != "" and not game_flags.get(relic_id + "_earned", false):
+		module_inventory[relic_id] = int(module_inventory.get(relic_id, 0)) + 1
+		game_flags[relic_id + "_earned"] = true
+		if equipped_relic == "":
+			equipped_relic = relic_id            # auto-equip into an empty slot
+		_event("MASTER KEY: %s" % GameData.MODULES.get(relic_id, {}).get("name", "Relic"), "e6c44a", "player")
+		feature_revealed.emit("⟨ MASTER KEY EARNED ⟩",
+			"%s is equipped to your Relic slot. Its sector's onslaught barely scratches you now — farm it at will."
+				% GameData.MODULES.get(relic_id, {}).get("name", "The relic"))
 	# v113/v137 NG+ ladder: a frontier boss kill only marks its sector CLEARED —
 	# the next sector opens on your next Warp (see _reveal_ng_sectors). One table
 	# drives Z12-Z15; flags persist through Warp and clear only on hard reset.
@@ -6042,6 +6112,7 @@ func save_game() -> void:
 		"standing_board": standing_board,
 		# Procurement: the pool TIMESTAMP is load-bearing — offline refill is
 		# derived from it, so losing it would silently reset every family's demand.
+		"equipped_relic": equipped_relic,
 		"proc_boards": proc_boards,
 		"proc_pools": proc_pools,
 		"proc_pool_ts": _proc_pool_ts,
@@ -6177,6 +6248,7 @@ func load_game() -> void:
 	bounty_total = int(data.get("bounty_total", 0))
 	_bounty_id = int(data.get("bounty_id", 0))
 	standing_board = data.get("standing_board", [])
+	equipped_relic = String(data.get("equipped_relic", ""))
 	proc_boards = data.get("proc_boards", {})
 	proc_pools = {}
 	for k in data.get("proc_pools", {}):

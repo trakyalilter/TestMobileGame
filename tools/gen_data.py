@@ -338,6 +338,8 @@ for eid, en in enemies.items():
         # v80.1 boss-core drop: zone bosses grant their ZN_Core on kill (gates
         # zone_N_access research). Empty string for non-boss / coreless enemies.
         "boss_core": en.get("boss_core") or "",
+        # v113 (NG+ P2): guaranteed master-key relic on the first clear.
+        "relic_drop": en.get("relic_drop") or "",
         "drop_chance": en.get("module_drop_chance", 0.0),
         "drop_pool": en.get("module_drop_pool", []),
         "loot": loot,
@@ -631,6 +633,12 @@ for mid, mo in modules.items():
     if mo.get("power_tier"): d["power_tier"] = int(mo["power_tier"])
     if mo.get("rarity") is not None: d["rarity"] = mo["rarity"]
     if mo.get("research_req"): d["research_req"] = mo["research_req"]
+    # v113 (NG+ P2) Threshold Relic: which sector the key is cut for, how much
+    # incoming damage it slashes there, and the boss that drops it. Without
+    # these the relic is an inert item with no effect.
+    if mo.get("relic_zone"): d["relic_zone"] = mo["relic_zone"]
+    if mo.get("relic_reduction") is not None: d["relic_reduction"] = float(mo["relic_reduction"])
+    if mo.get("relic_for"): d["relic_for"] = mo["relic_for"]
     lines.append(f"\t{g(mid)}: {g(d)},")
 lines.append("}")
 lines.append("")
