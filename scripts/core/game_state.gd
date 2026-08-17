@@ -169,7 +169,10 @@ var loadout_presets: Dictionary = {
 }
 const MAX_LEVEL := 99                  # skill level cap (matches desktop)
 var _xp_table: Array = []              # lazily built cumulative XP-to-level table
-const CONSUME_CD := 1.5
+# Desktop consumable_cooldown_max: long enough that spam can no longer carry a
+# fight regardless of gear. Paired with the ~35% top-tier heal values and the
+# per-hull kit factor, both of which mobile already matches.
+const CONSUME_CD := 10.0
 const CONSUME_THRESHOLD := 0.5         # auto-trigger at 50% hull/shield
 const MAX_HEAT := 100.0
 const VENT_RATE := 8.0
@@ -182,7 +185,16 @@ const ENEMY_EXPLOSIVE_ATK_COMP := 0.85
 
 # v80.1 Combat safety caps — anti-exploit hard ceilings (desktop apply_safety_caps).
 const MAX_ATK_SPEED_MULT := 3.0          # Max 3x base fire rate (+200%)
-const MAX_EVASION := 75.0                # Enemies always >=25% hit chance
+# v176: 75 -> 200. The "enemies always >=25% hit chance" guarantee is enforced by
+# the 0.75 clamp INSIDE the dodge formula, not by this cap — and 75 eva can never
+# reach 0.75 dodge anyway. At 75 the Z5-Z10 Phase Drives all clipped to the same
+# value, making six tiers of them identical.
+const MAX_EVASION := 200.0
+const MIN_INCOMING_FRAC := 0.10          # v137 #33: mitigation floor on incoming hull damage
+# v136: boss module-drop burst. Nerfed 4-10 -> 2-4 so boss loot reads as a
+# reward, not a firehose. Every roll is already guaranteed >=Uncommon.
+const BOSS_MODULE_ROLL_MIN := 2
+const BOSS_MODULE_ROLL_MAX := 4
 const MAX_CRIT_CHANCE := 0.50            # No guaranteed-crit loops
 const MAX_CRIT_DAMAGE := 3.0             # Caps burst spikes (crit variance mult)
 const MAX_SHIELD_REGEN_PERCENT := 5.0    # % of max shield per second
@@ -4746,7 +4758,14 @@ func resolve_damage(atk_k: float, atk_e: float, atk_x: float, c_shield: float, c
 	if is_crit:
 		# Crimson weapon facet raises the crit multiplier above the 1.5 base.
 		variance *= minf(1.5 + gem_bonus("crit_damage"), MAX_CRIT_DAMAGE)
-	var minhull := 1.0 if (atk_k + atk_e + atk_x + atk_cryo) > 0.0 else 0.0
+	var has_atk := (atk_k + atk_e + atk_x + atk_cryo) > 0.0
+	var minhull := 1.0 if has_atk else 0.0
+	# v137 #33: incoming hull damage can't be reduced below MIN_INCOMING_FRAC of
+	# the raw hull-bound attack, so no defensive stack (armor cap x resist 0.80 x
+	# Crimson damage_reduction) can make the ship unkillable against hp regen.
+	# Only bites >90%-mitigation builds; player attacks keep the flat >=1 floor.
+	if not is_player_attacker and has_atk:
+		minhull = maxf(minhull, (atk_k + atk_e + atk_x + atk_cryo) * bleed * MIN_INCOMING_FRAC)
 	return [dmg_shield * variance, maxf(minhull, hull * variance), is_crit]
 
 func _win_combat() -> void:
@@ -4804,7 +4823,7 @@ func _win_combat() -> void:
 	if not pool.is_empty():
 		var is_boss: bool = bool(enemy_inst.get("is_boss", false))
 		if is_boss:
-			for _i in randi_range(4, 10):
+			for _i in randi_range(BOSS_MODULE_ROLL_MIN, BOSS_MODULE_ROLL_MAX):
 				_roll_one_module_drop(pool)
 		else:
 			var dc: float = float(enemy_inst.get("drop_chance", 0.0)) * (1.0 + research_bonus("xeno_engineering")) * (1.0 + affix_total("module_drop_mult") + gem_bonus("module_drop_mult"))
