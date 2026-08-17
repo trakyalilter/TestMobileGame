@@ -1906,18 +1906,31 @@ func _scale_module_stats(base_stats: Dictionary, rarity: int, zone_diff: int) ->
 			stats[sk] = bv
 	return stats
 
+## v136 rarity rebalance (replaces v82.0's flat 4/26 trash · 15/35 boss). Two
+## goals: make Rare genuinely rare, and make UNIQUE a boss-only jackpot — the old
+## table capped at Legendary, so Unique never dropped from anything.
 func roll_rarity(is_boss: bool) -> int:
-	# Desktop v82.0 "Restricted Rarity": enemies drop Uncommon+ only — Common is
-	# crafting-only and never dropped (this was the source of the inventory flood).
-	# Weights match desktop roll_rarity: Legendary 4%/15%, Rare 26%/35%, else Uncommon.
 	var r := randf()
-	var leg := 0.15 if is_boss else 0.04
-	var rare := 0.35 if is_boss else 0.26
-	if r < leg:
+	if is_boss:
+		# The reward moment: no junk floor, and the ONLY source of Unique.
+		# Unique 3% / Legendary 15% / Rare 30% / Uncommon 52%.
+		if r < 0.03:
+			return 4
+		elif r < 0.18:
+			return 3
+		elif r < 0.48:
+			return 2
+		return 1
+	# Trash: Common is the ~50% "EMPTY" roll — _roll_one_module_drop skips it, so
+	# nothing drops. That halves effective drop frequency AND makes Rare+ earned.
+	# Legendary 3% / Rare 8.5% / Uncommon 38.5% / Common(empty) 50%. Never Unique.
+	if r < 0.03:
 		return 3
-	elif r < leg + rare:
+	elif r < 0.115:
 		return 2
-	return 1
+	elif r < 0.50:
+		return 1
+	return 0
 
 ## Desktop module zone-scaling curve (ref get_module_zone_multiplier ~L2286): early
 ## steps x1.34, then x1.28 from zone 7 on. Replaces mobile's flat pow(1.30, …).
@@ -4898,11 +4911,33 @@ func _win_combat() -> void:
 
 # v109 single rarity-rolled module drop from the unlocked pool (ref _roll_one_module_drop
 # ~L1892). Bosses call this 4-10x; regulars once behind the drop_chance gate.
+# v136 MODULE_DROP_WEIGHTS: batteries are weight 0 and never drop as loot (they
+# are a crafted purchase), and sensors/engines are rarer than the combat trio.
+# A uniform pick over the pool over-supplied both.
+const MODULE_DROP_WEIGHTS := {"weapon": 10, "shield": 10, "armor": 10, "sensor": 4, "engine": 4, "battery": 0}
+
+func _pick_weighted_base(pool: Array) -> String:
+	var total := 0
+	for bid in pool:
+		total += int(MODULE_DROP_WEIGHTS.get(String(module_def(String(bid)).get("slot", "")), 4))
+	if total <= 0:
+		return ""
+	var roll := randi() % total
+	for bid in pool:
+		roll -= int(MODULE_DROP_WEIGHTS.get(String(module_def(String(bid)).get("slot", "")), 4))
+		if roll < 0:
+			return String(bid)
+	return ""
+
 func _roll_one_module_drop(pool: Array) -> void:
 	if pool.is_empty():
 		return
-	var base_id: String = pool[randi() % pool.size()]
+	var base_id: String = _pick_weighted_base(pool)
+	if base_id == "":
+		return
 	var rarity := roll_rarity(bool(enemy_inst.get("is_boss", false)) or enemy_inst.get("elite", false))
+	if rarity <= 0:
+		return   # v136: Common is the empty roll — nothing drops at all
 	if not loot_drop_kept(base_id, rarity):
 		return   # filtered out — skipped entirely (desktop "only loot you keep is rolled")
 	var cid := generate_module(base_id, rarity, _combat_difficulty())

@@ -101,12 +101,17 @@ func _verify_boss_core(gs) -> void:
 	for rt in t2.get("req_tech", []):
 		gs.unlocked_research[String(rt)] = true
 	gs.credits = int(t2.get("credits", 0)) + 10
-	for item in t2.get("items", {}):
+	# Ask the ENGINE for the effective costs — never re-derive them here. Raw data
+	# quantities are pre-MATERIAL_MULTIPLIER, and a local copy of that formula is
+	# exactly the drift desktop's v141 fix warns about (its research modal showed
+	# double the real requirement for every zone gate).
+	var eff2: Dictionary = gs.research_items("zone_2_access")
+	for item in eff2:
 		if item != "Z1_Core":
-			gs.add_resource(item, int(t2["items"][item]))
+			gs.add_resource(item, int(eff2[item]))
 	var avail_without: bool = gs.research_available("zone_2_access")
 	_chk("zone_2_access NOT researchable without Z1_Core", not avail_without)
-	gs.add_resource("Z1_Core", int(t2["items"].get("Z1_Core", 1)))
+	gs.add_resource("Z1_Core", int(eff2.get("Z1_Core", 1)))
 	var avail_with: bool = gs.research_available("zone_2_access")
 	_chk("zone_2_access researchable once Z1_Core met", avail_with)
 
