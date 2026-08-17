@@ -37,6 +37,37 @@ consumables = load("consumables.json")
 missions = load("missions.json")
 combat_consts = load("combat_consts.json")
 
+# ---------------------------------------------------------------------------
+# DELIBERATE MOBILE OVERRIDES — applied after loading the desktop export, so a
+# data refresh cannot silently undo them. Each one needs a reason; "faithful to
+# desktop" is the default and these are the documented exceptions.
+# ---------------------------------------------------------------------------
+# craft_coolant_cell consumed NitroCoolant to make CoolantCell, while
+# recharge_coolant_cell consumed CoolantCell to make NitroCoolant — a two-step
+# cycle between materials that reference ONLY each other. Both outputs are
+# multiplied by research_efficiency_mult, so the round trip carries that
+# multiplier twice and the cycle turns net-positive at efficiency x3.2: from
+# Efficiency II onward it prints a 35-Lira sellable consumable out of nitrogen.
+#
+# It cannot be closed by tuning. Making it lossy at the x32 cap needs
+# cost/gain > 1024 — roughly 200x the current inputs, which would break the
+# recipe as a recipe. Deleting a side is desktop's usual remedy, but here
+# NitroCoolant has NO other source (CoolantCell drops from z4_ice_wraith;
+# NitroCoolant drops from nothing), so removing either side would either strand
+# the consumable or the cell.
+#
+# So the CYCLE is broken instead of the recipes: the cell is manufactured from
+# raw stock, and the matrix is charged from cells. Both keep their role and
+# their gate; the edge that closed the loop is gone.
+#   craft_coolant_cell    : raw materials      -> CoolantCell   (a craft path
+#                           alongside the Z4 drop)
+#   recharge_coolant_cell : CoolantCell + N    -> NitroCoolant  (unchanged)
+# Verified by tools/sim_craft_mission_audit.gd, which reports zero cycles after
+# this override and will flag any new one.
+if "craft_coolant_cell" in recipes:
+    recipes["craft_coolant_cell"].get("input", {}).pop("NitroCoolant", None)
+
+
 # ---- colors by element category ----
 CAT_COLOR = {
     "Raw Material": "b0895a", "Commodity": "b0895a", "Noble Gas": "7fd0e0",
