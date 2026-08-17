@@ -780,15 +780,14 @@ func execute_warp() -> int:
 	# REC_1 Blueprint Cache: free-rebuild the snapshotted buildings after the wipe.
 	for bid in blueprint_snapshot:
 		buildings[bid] = int(buildings.get(bid, 0)) + int(blueprint_snapshot[bid])
-	# v111: Cryo unlock — Warping permanently grants Cryogenic armaments, the only
-	# weapons that bite Z11 Warp-Hardened hulls. The FIRST Warp grants a starter
-	# Cryo Shard Pistol (~Z1 power); guard on the flag so re-warps don't duplicate
-	# it (desktop warp_manager ~L106-116). Runs AFTER the world reset above so the
-	# granted weapon survives into the fresh run.
-	# Desktop grants the starter pistol on EVERY warp where none is owned (the
-	# inventory wipe above just removed it), not only the first.
-	if int(module_inventory.get("cryo_shard_pistol", 0)) <= 0:
-		module_inventory["cryo_shard_pistol"] = 1
+	# v111/v113: Warping unlocks Cryogenic armaments — the only weapons that bite
+	# Z11 Warp-Hardened hulls. NO free weapon is granted: v113 removed the starter
+	# Cryo Shard Pistol and every Cryo weapon is CRAFTED from Cryo Catalyst plus
+	# the cryo_armaments research this flag opens.
+	#
+	# Mobile kept granting that pistol after the module itself was deleted
+	# upstream, which wrote an inventory entry with no definition — a nameless,
+	# slotless item that could never be equipped. The flag alone is the unlock.
 	cryo_unlocked = true
 	# v113/v137: the Warp is what opens the next NG+ frontier sector.
 	_reveal_ng_sectors()
