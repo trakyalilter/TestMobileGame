@@ -4482,6 +4482,16 @@ func start_task(type: String, id: String) -> void:
 	action_changed.emit()
 
 func stop_task() -> void:
+	# A hazard gauntlet is a second state machine riding on the active task, and
+	# nothing but the fight itself keeps it alive. Every way a fight ends — manual
+	# retreat, a warp, a hard reset, a craft running dry — lands here, so the run
+	# is torn down here too. Left active it hijacks the NEXT engagement: the kill
+	# advances a wave nobody is in and spawns a gauntlet enemy in a sector fight.
+	# (_lose_combat and _complete_hazard_zone reset it first and then call this,
+	# so they keep their own eject/clear messaging.)
+	if hazard_state.get("active", false):
+		_event("HAZARD ABANDONED", "ef6a52", "player")
+		_reset_hazard_state()
 	active_type = ""
 	active_id = ""
 	progress = 0.0
@@ -5171,9 +5181,14 @@ func _win_combat() -> void:
 			"Your ship can keep fighting while you're away — enable Offline Combat in Settings.")
 	_roll_loot(enemy_inst["loot"], get_combat_loot_multiplier() * (1.0 + affix_total("enemy_drop_mult")), 0, true)
 	add_xp("combat", int(enemy_inst["xp"] * (1.0 + research_bonus("combat_xp"))))
-	bounty_on_kill(active_id)
-	standing_on_kill(active_id)
-	_mission_event("defeat", active_id, 1)
+	# Credit what actually died, not the active task id. In a hazard gauntlet the
+	# task id is the ZONE, so reading active_id here attributed every wave kill to
+	# an id no bounty, contract or mission can ever match (desktop signals the live
+	# enemy id). Identical to active_id in every normal fight.
+	var live_id: String = String(enemy_inst.get("id", active_id))
+	bounty_on_kill(live_id)
+	standing_on_kill(live_id)
+	_mission_event("defeat", live_id, 1)
 	_event("DESTROYED", "5fd585", "enemy")
 	# On-kill affixes
 	var cap := minf(affix_total("capacitor_pulse"), 0.30)
@@ -5204,7 +5219,7 @@ func _win_combat() -> void:
 	# drop_chance-gated roll. v114: front-half salvage-yard enemies (e1/e2 of
 	# Z2-Z10) drop materials ONLY — their module ladder lives in the back half.
 	var pool := []
-	if not enemy_front_salvage(active_id):
+	if not enemy_front_salvage(live_id):
 		for mid in enemy_inst.get("drop_pool", []):
 			if GameData.MODULES.has(mid) and module_unlocked(mid):
 				pool.append(mid)
@@ -5227,7 +5242,7 @@ func _win_combat() -> void:
 	# Set-piece drop: bosses drop their themed set pieces (8% chance).
 	for sn in GameData.SETS:
 		var sd: Dictionary = GameData.SETS[sn]
-		if sd.get("boss", "") == active_id and randf() < 0.08:
+		if sd.get("boss", "") == live_id and randf() < 0.08:
 			var pieces: Array = sd.get("pieces", [])
 			if not pieces.is_empty():
 				var scid := _grant_set_piece(pieces[randi() % pieces.size()])
@@ -5250,9 +5265,9 @@ func _win_combat() -> void:
 			add_resource(gid, 1)
 			_log_session_loot(gid, 1)
 			_event("GEM: " + GameData.GEMS[gid]["name"], "3a9fff", "enemy")
-	# v86.0 Track boss kills (hazard unlocks + Z11 flag). Use the live enemy id
-	# (hazard waves override active_id with their pool enemy).
-	var killed_id: String = String(enemy_inst.get("id", active_id))
+	# v86.0 Track boss kills (hazard unlocks + Z11 flag) — live_id again, since
+	# hazard waves override active_id with their pool enemy.
+	var killed_id: String = live_id
 	if bool(enemy_inst.get("is_boss", false)) or GameData.ENEMIES.get(killed_id, {}).get("is_boss", false):
 		boss_kills[killed_id] = int(boss_kills.get(killed_id, 0)) + 1
 		# v80.1 Boss Core drop: zone bosses grant their ZN_Core, which gates the
@@ -5513,6 +5528,15 @@ func start_hazard(zone_id: String) -> bool:
 		return false
 	if active_hull == "":
 		return false
+	# Same v134 entry gate as start_task: a hazard is the other door into the same
+	# combat loop, and an overloaded grid means dead weapons behind either one.
+	var ss0 := ship_stats()
+	if float(ss0.get("energy_load", 0.0)) > float(ss0.get("energy_cap", 0.0)):
+		if not _ensure_powered_from_inventory():
+			equip_notice = "⚡ SHIP UNPOWERED — equip a Battery before engaging."
+			_event("SHIP UNPOWERED", "ef6a52", "player")
+			resources_changed.emit()
+			return false
 	hazard_state = {"active": true, "zone_id": zone_id, "wave": 0, "max_waves": int(hz.get("max_waves", 7))}
 	active_type = "combat"
 	active_id = zone_id
@@ -6188,6 +6212,10 @@ func load_game() -> void:
 		push_error("Save slot %d could not be read from either the file or its backup." % current_slot)
 		return
 	load_failed = false
+	# A gauntlet run is live-only state (desktop doesn't persist it either), so the
+	# save being loaded can never own one. Clearing it here stops a run started in
+	# the previous character from following the player into this one.
+	_reset_hazard_state()
 	resources = data.get("resources", {})
 	credits = int(data.get("credits", 0))
 	lifetime_credits = int(data.get("lifetime_credits", credits))
