@@ -69,7 +69,7 @@ func _run() -> void:
 
 	# ============================================================ TASK 1: COACH
 	# (2) Resolution for EVERY mission in MISSION_ORDER (+ the core goals).
-	var card_types := ["gather", "gather_multi", "research", "craft", "construct", "build", "defeat"]
+	var card_types := ["gather", "gather_multi", "research", "craft", "construct", "build", "defeat", "defeat_retreat"]
 	var unresolved := []
 	var all_ids: Array = GameData.MISSION_ORDER.duplicate()
 	for gid in GameData.MISSION_GOALS:
@@ -85,7 +85,9 @@ func _run() -> void:
 			continue
 		# Card-targeted types must resolve a node once we navigate to the page.
 		var mtype: String = m.get("type", "")
-		if mtype in card_types:
+		# A resolver may legitimately return card "" for a step with nothing to ring
+		# (a faucet drop, say); the pointer-lifecycle checks below cover those.
+		if mtype in card_types and card != "":
 			# Drive the coach so _show applies sub-tab/zone selection, then navigate.
 			gs.missions_active = {mid: true}
 			main._show(page)

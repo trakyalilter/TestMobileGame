@@ -21,7 +21,7 @@ func _run() -> void:
 	# Fresh game: no warps → engineering branch hidden, combat branch hidden.
 	_ck("E-branch hidden at 0 warps", not gs.is_branch_revealed("engineering"))
 	_ck("C-branch hidden at 0 warps", not gs.is_branch_revealed("combat"))
-	_ck("combat node locked at 0 warps", not gs.can_purchase_node("C1"))
+	_ck("combat node locked at 0 warps", not gs.can_purchase_node("CMB_1"))
 
 	# Give the player warps + shards directly (isolate the tree from prestige math).
 	gs.total_warps = 1
@@ -29,32 +29,52 @@ func _run() -> void:
 	gs.warp_shards_spent = 0.0
 	_ck("E-branch revealed at warp 1", gs.is_branch_revealed("engineering"))
 	_ck("C-branch STILL hidden at warp 1", not gs.is_branch_revealed("combat"))
-	_ck("C1 locked until 2 warps", not gs.can_purchase_node("C1"))
+	_ck("CMB_1 locked until 2 warps", not gs.can_purchase_node("CMB_1"))
 	_ck("available shards = earned - spent", gs.available_warp_shards() == 10.0)
 
-	# Purchase E1 (Yield Calibration, +10% gather yield, cost 1).
-	var yield_before: float = gs.yield_mult("harvesting")
-	_ck("E1 purchasable at warp 1", gs.can_purchase_node("E1"))
-	var bought: bool = gs.purchase_tree_node("E1")
-	_ck("E1 purchase succeeds", bought)
-	_ck("E1 marked purchased", gs.is_node_purchased("E1"))
+	# Purchase ENG_1 (Yield Calibration, cost 1). v122 turned it from a +10%
+	# multiplier into a FLAT +1 per gather, so it no longer moves yield_mult.
+	var flat_before: int = gs.tree_gathering_flat()
+	_ck("ENG_1 purchasable at warp 1", gs.can_purchase_node("ENG_1"))
+	var bought: bool = gs.purchase_tree_node("ENG_1")
+	_ck("ENG_1 purchase succeeds", bought)
+	_ck("ENG_1 marked purchased", gs.is_node_purchased("ENG_1"))
 	_ck("shards spent += cost", gs.warp_shards_spent == 1.0, "spent=%.0f" % gs.warp_shards_spent)
 	_ck("available shards drop", gs.available_warp_shards() == 9.0)
-	var yield_after: float = gs.yield_mult("harvesting")
-	_ck("E1 raises gather yield +10%%", abs(yield_after - yield_before * 1.10) < 0.0001,
-		"%.4f -> %.4f" % [yield_before, yield_after])
-	_ck("cannot re-buy E1", not gs.can_purchase_node("E1"))
+	var flat_after: int = gs.tree_gathering_flat()
+	_ck("ENG_1 grants a flat +1 gathering yield", flat_before == 0 and flat_after == 1,
+		"%d -> %d" % [flat_before, flat_after])
+	_ck("cannot re-buy ENG_1", not gs.can_purchase_node("ENG_1"))
 
 	# Nodes are INDEPENDENT (no in-branch prereq chain — faithful to the ref).
 	# E2 is buyable without owning E1 first; verify its processing-speed effect.
-	_ck("E2 purchasable (no chain gate)", gs.can_purchase_node("E2"))
+	_ck("ENG_2 purchasable (no chain gate)", gs.can_purchase_node("ENG_2"))
 	var proc_before: float = gs.recipe_speed_mult("smelt_steel_basic")
-	gs.purchase_tree_node("E2")
+	gs.purchase_tree_node("ENG_2")
 	var proc_after: float = gs.recipe_speed_mult("smelt_steel_basic")
-	_ck("E2 raises processing speed", proc_after > proc_before + 0.001,
+	_ck("ENG_2 raises processing speed", proc_after > proc_before + 0.001,
 		"%.4f -> %.4f" % [proc_before, proc_after])
-	# E3 is unimplemented — refuses purchase regardless of shards.
-	_ck("E3 (unimplemented) refuses purchase", not gs.can_purchase_node("E3"))
+	# ENG_3 is implemented now (-1 input material per craft). The
+	# unimplemented-refuses-purchase rule is checked against a node that really is
+	# unimplemented, and ENG_3 is checked for its actual effect instead.
+	var unimplemented := ""
+	for nid in gs.TREE_NODES:
+		if not bool((gs.TREE_NODES[nid] as Dictionary).get("implemented", true)):
+			unimplemented = String(nid)
+			break
+	if unimplemented == "":
+		_ck("an unimplemented node exists to check the refusal rule", false)
+	else:
+		_ck("%s (unimplemented) refuses purchase" % unimplemented,
+			not gs.can_purchase_node(unimplemented))
+	var inputs_before: Dictionary = gs.effective_craft_inputs({"Fe": 5, "Si": 3})
+	gs.purchase_tree_node("ENG_3")
+	var inputs_after: Dictionary = gs.effective_craft_inputs({"Fe": 5, "Si": 3})
+	_ck("ENG_3 cuts one of each craft input",
+		int(inputs_after["Fe"]) == int(inputs_before["Fe"]) - 1
+		and int(inputs_after["Si"]) == int(inputs_before["Si"]) - 1,
+		"Fe %d->%d, Si %d->%d" % [int(inputs_before["Fe"]), int(inputs_after["Fe"]),
+			int(inputs_before["Si"]), int(inputs_after["Si"])])
 
 	# Combat branch at 2 warps: HP + damage + cryo nodes fold into stats.
 	gs.total_warps = 2
@@ -68,26 +88,37 @@ func _run() -> void:
 	gs.equip_module("z1_kinetic")
 	var hp_before: float = gs.combat_max_hp()
 	var dps_before: float = gs.avg_player_dps()
-	gs.purchase_tree_node("C1")   # +10% hull HP
-	gs.purchase_tree_node("C2")   # +10% module damage
+	gs.purchase_tree_node("CMB_1")   # +10% hull HP
+	gs.purchase_tree_node("CMB_2")   # +10% module damage
 	var hp_after: float = gs.combat_max_hp()
 	var dps_after: float = gs.avg_player_dps()
-	_ck("C1 raises hull HP", hp_after > hp_before + 0.5, "%.1f -> %.1f" % [hp_before, hp_after])
-	_ck("C2 raises weapon DPS", dps_after > dps_before + 0.001, "%.2f -> %.2f" % [dps_before, dps_after])
-	# C5 Cryo Overcharge is implemented + must be reachable even though C3/C4 are
-	# unimplemented (nodes are independent, not a chain). Regression guard: a chain
-	# gate would strand C5 behind C4 forever.
-	_ck("C5 (implemented) purchasable despite unimplemented C3/C4", gs.can_purchase_node("C5"))
-	_ck("C5 cryo bonus inactive before purchase", gs.tree_cryo_bonus() == 1.0)
-	gs.purchase_tree_node("C5")
-	_ck("C5 purchased", gs.is_node_purchased("C5"))
-	_ck("C5 grants +50%% cryo damage", abs(gs.tree_cryo_bonus() - 1.50) < 0.0001, "%.3f" % gs.tree_cryo_bonus())
+	_ck("CMB_1 raises hull HP", hp_after > hp_before + 0.5, "%.1f -> %.1f" % [hp_before, hp_after])
+	_ck("CMB_2 raises weapon DPS", dps_after > dps_before + 0.001, "%.2f -> %.2f" % [dps_before, dps_after])
+	# CMB_5 "Cryo Overcharge" was briefly shipped and then retired — desktop's v2
+	# tree has no cryo amplifier. It must be absent from the tree, refunded out of
+	# old saves, and its bonus must stay neutral. This block used to buy it.
+	_ck("the retired cryo node is gone from the tree", not gs.TREE_NODES.has("CMB_5"))
+	_ck("the retired cryo node cannot be bought", not gs.can_purchase_node("CMB_5"))
+	_ck("cryo damage carries no tree amplifier", gs.tree_cryo_bonus() == 1.0,
+		"%.3f" % gs.tree_cryo_bonus())
+	# A save that still holds it is cleaned up and refunded on load.
+	gs.purchased_nodes["CMB_5"] = true
+	var spent_before_refund: float = gs.warp_shards_spent
+	gs._refund_retired_nodes()
+	_ck("an old save's retired node is removed", not gs.purchased_nodes.has("CMB_5"))
+	_ck("and its shards are refunded", gs.warp_shards_spent < spent_before_refund,
+		"%.0f -> %.0f" % [spent_before_refund, gs.warp_shards_spent])
+	# The v1 ids still migrate, so a pre-v122 save keeps what it bought.
+	gs.purchased_nodes["E1"] = true
+	gs._migrate_v1_node_ids()
+	_ck("pre-v122 node ids migrate (E1 -> ENG_1)",
+		gs.is_node_purchased("ENG_1") and not gs.purchased_nodes.has("E1"))
 
 	# Persistence across warp: purchased nodes survive execute_warp.
 	gs.lifetime_credits = 600000000
 	var warps_before: int = gs.total_warps
 	gs.execute_warp()
-	_ck("tree purchases persist across warp", gs.is_node_purchased("E1") and gs.is_node_purchased("C1"))
+	_ck("tree purchases persist across warp", gs.is_node_purchased("ENG_1") and gs.is_node_purchased("CMB_1"))
 	_ck("warp increments total_warps", gs.total_warps == warps_before + 1)
 	# Hard reset clears the tree.
 	gs.hard_reset()
@@ -171,15 +202,17 @@ func _run() -> void:
 	gs.equip_module("z1_battery")
 	var eq_ok: bool = gs.equip_module("z1_armor")
 	_ck("test module equips", eq_ok and not gs.loadout.is_empty())
-	_ck("preset slot 1 empty initially", gs.is_loadout_preset_empty(1))
-	gs.save_loadout_preset(1)
-	_ck("preset slot 1 filled after save", not gs.is_loadout_preset_empty(1))
+	# Slot 2, not slot 1: under v134g the active slot mirrors live edits, so it is
+	# already filled by the equips above — "empty initially" could never hold.
+	_ck("preset slot 2 empty initially", gs.is_loadout_preset_empty(2))
+	gs.save_loadout_preset(2)
+	_ck("preset slot 2 filled after save", not gs.is_loadout_preset_empty(2))
 	if not gs.loadout.is_empty():
 		gs.unequip_slot(gs.loadout.keys()[0])
-	var res = gs.load_loadout_preset(1)
+	var res = gs.load_loadout_preset(2)
 	_ck("load_loadout_preset restores a module", int(res.get("loaded", 0)) >= 1)
-	gs.clear_loadout_preset(1)
-	_ck("clear_loadout_preset empties slot", gs.is_loadout_preset_empty(1))
+	gs.clear_loadout_preset(2)
+	_ck("clear_loadout_preset empties slot", gs.is_loadout_preset_empty(2))
 
 	print("\nPhase 8: %d passed, %d failed" % [_pass, _fail])
 	if _fail > 0:

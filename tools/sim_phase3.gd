@@ -122,9 +122,21 @@ func _run() -> void:
 	gs.unlocked_research.clear()
 	gs._mission_init()
 
-	# Goal missions surfaced (always active)
-	var goals_active = gs.missions_active.has("goal_001") and gs.missions_active.has("goal_002") and gs.missions_active.has("goal_003")
-	p("(4a) goal_* missions active on init", goals_active)
+	# Core goals exist as content but stay HIDDEN until the tutorial ends — a fresh
+	# player should not be shown "reach Sector Epsilon" at 0%. This used to assert
+	# they were active on init, which is the pre-_surface_core_goals behaviour.
+	p("(4a-i) core goals exist in the data", not GameData.MISSION_GOALS.is_empty(),
+		"%d goals" % GameData.MISSION_GOALS.size())
+	var goals_hidden = not gs.missions_active.has("goal_001")
+	p("(4a-ii) core goals hidden while the tutorial runs", goals_hidden)
+	var claimed_backup = gs.missions_claimed.duplicate()
+	for mid in GameData.MISSION_ORDER:
+		gs.missions_claimed[mid] = true
+	gs._surface_core_goals()
+	p("(4a-iii) core goals surface once the tutorial is claimed",
+		gs.missions_active.has("goal_001"))
+	gs.missions_claimed = claimed_backup
+	gs._surface_core_goals()
 
 	# Tutorial m001: gather 350 Dirt
 	gs.add_resource("Dirt", 400)
@@ -136,18 +148,25 @@ func _run() -> void:
 
 	# m002: merged research_multi (Foundational Research) — needs ALL 3 techs, then
 	# advances to m004 (the curated chain dropped the separate m002b/m003 steps).
-	gs.credits = 999999999   # afford all three foundational unlocks
-	gs.unlock_research("basic_engineering")
-	var m002_partial = not gs.mission_completed("m002")   # 1/3 — still incomplete
-	gs.unlock_research("applied_physics")
-	gs.unlock_research("fluid_dynamics")
+	# m002 was a three-tech research_multi until the research audit re-flowed it:
+	# two of those techs were deleted upstream, leaving a step no player could
+	# finish. It is a single-tech `research` mission now, so the chain check reads
+	# its real target and its real successor instead of hard-coding either.
+	gs.credits = 999999999
+	var m002d: Dictionary = GameData.MISSIONS["m002"]
+	var m002_target: String = String(m002d.get("target", ""))
+	var m002_next: String = String(m002d.get("next", ""))
+	var m002_before = not gs.mission_completed("m002")
+	gs.unlock_research(m002_target)
 	var m002_done = gs.mission_completed("m002")
 	gs.claim_mission("m002")
-	p("(4c) m002 research_multi completes after all 3 techs + advances to m004",
-		m002_partial and m002_done and gs.missions_claimed.has("m002") and gs.missions_active.has("m004"))
+	p("(4c) m002 completes on its research target and advances the chain",
+		m002_before and m002_done and gs.missions_claimed.has("m002") and gs.missions_active.has(m002_next),
+		"target=%s next=%s" % [m002_target, m002_next])
 
 	# NEW TYPE: warp_perform (goal_002 needs 1 warp)
 	var warps_before = gs.total_warps
+	gs.missions_active["goal_002"] = true          # goals surface post-tutorial (4a)
 	gs._mission_event("warp_perform", "warp", 1)   # simulate the event hook
 	gs.total_warps = warps_before + 1
 	gs._mission_sync()
@@ -166,13 +185,17 @@ func _run() -> void:
 	# sector_epsilon's gating research is zone_10_access. Pre-unlock the parent
 	# chain and grant resources so the real unlock_research path runs (and fires
 	# the discover hook), rather than poking unlocked_research directly.
+	gs.missions_active["goal_001"] = true           # goals surface post-tutorial (4a)
 	var disc0 = gs.mission_completed("goal_001")
 	for parent in ["zone_2_access","zone_3_access","zone_4_access","zone_5_access","zone_6_access","zone_7_access","zone_8_access","zone_9_access"]:
 		gs.unlocked_research[parent] = true
 	gs.credits = 999999999999
-	var z10 = GameData.RESEARCH.get("zone_10_access", {})
-	for it in z10.get("items", {}):
-		gs.resources[it] = int(z10["items"][it]) + 10
+	# Grant the LIVE material cost: RESEARCH_MATERIAL_MULT doubles most research
+	# items, so stocking the raw table amount no longer affords the unlock and the
+	# discover hook never fired.
+	var z10_items: Dictionary = gs.research_items("zone_10_access")
+	for it in z10_items:
+		gs.resources[it] = int(z10_items[it]) + 10
 	var unlocked_ok = gs.unlock_research("zone_10_access")
 	var disc1 = gs.mission_completed("goal_001")
 	p("(4f) NEW discover goal_001 on zone_10_access unlock", unlocked_ok and (not disc0) and disc1)
@@ -186,19 +209,28 @@ func _run() -> void:
 	# NEW TYPE: drop_rarity / loadout_rare_weapon (rarity-2 weapon)
 	gs.loadout.clear()
 	gs.module_inventory.clear()
+	# v134: the hull supplies no power, so a weapon cannot be fitted until a
+	# battery is in the grid. Without one the equip silently failed here.
+	gs.module_inventory["z1_battery"] = 1
+	var powered = gs.equip_module("z1_battery")
 	var rare_w = gs.generate_module("z1_kinetic", 2, 1)   # rarity 2 = Rare
 	var dr_met = gs._has_module_rarity(2)
-	gs.equip_module(rare_w)
+	var equipped = gs.equip_module(rare_w)
 	var lrw_met = gs._has_rare_weapon_equipped(2)
-	p("(4h) NEW drop_rarity + loadout_rare_weapon (rarity>=2)", dr_met and lrw_met)
+	p("(4h) NEW drop_rarity + loadout_rare_weapon (rarity>=2)", dr_met and lrw_met,
+		"battery=%s weapon=%s" % [powered, equipped])
 
 	# ============ 5. BUILDING / GATHER / PROCESS BONUS ============
-	# 5a. biosphere_dome grants +5% gather speed per building
+	# 5a. biosphere_dome's +5% gather speed was removed by the infrastructure audit:
+	# desktop grants it no such bonus, and mobile's copy read a field the building
+	# does not have, so it never applied anyway. Pinned as "grants nothing" so the
+	# phantom bonus cannot quietly come back.
 	gs.buildings.clear()
 	var gsp0 = gs.gather_speed_mult("gather_dirt")
 	gs.buildings["biosphere_dome"] = 1
 	var gsp1 = gs.gather_speed_mult("gather_dirt")
-	p("(5a) biosphere_dome +5% gather speed", abs(gsp1 - gsp0 - 0.05) < 0.001, "%.3f -> %.3f" % [gsp0, gsp1])
+	p("(5a) biosphere_dome grants no gather-speed bonus", abs(gsp1 - gsp0) < 0.001,
+		"%.3f -> %.3f" % [gsp0, gsp1])
 
 	# 5b. per-action gather speed tech (diamond_drills +0.50 on gather_dirt)
 	gs.buildings.clear()
@@ -242,10 +274,9 @@ func _run() -> void:
 	# m001 gather Dirt 350
 	gs.add_resource("Dirt", 400); gs._mission_sync()
 	walk_ok = walk_ok and gs.claim_mission("m001"); trace.append("m001" if gs.missions_claimed.has("m001") else "m001!")
-	# m002 merged research_multi (basic_engineering + applied_physics + fluid_dynamics)
-	gs.unlock_research("basic_engineering")
-	gs.unlock_research("applied_physics")
-	gs.unlock_research("fluid_dynamics")
+	# m002 is a single-tech research step since the audit re-flow (the other two
+	# techs it used to bundle were deleted upstream).
+	gs.unlock_research(String((GameData.MISSIONS["m002"] as Dictionary).get("target", "")))
 	walk_ok = walk_ok and gs.claim_mission("m002"); trace.append("m002" if gs.missions_claimed.has("m002") else "m002!")
 	# m004 gather Water 350
 	gs.add_resource("Water", 400); gs._mission_sync()
@@ -259,7 +290,12 @@ func _run() -> void:
 	# m020 research power_systems (parent prerequisite kinetics_101 now met)
 	gs.unlock_research("power_systems")
 	walk_ok = walk_ok and gs.claim_mission("m020"); trace.append("m020" if gs.missions_claimed.has("m020") else "m020!")
-	p("(6) curated chain m001->m020 advances via mixed events (incl. research_multi)",
+	# m012 Lithium Discovery now sits between the power research and the battery
+	# build: a Battery Cell costs 5 Lithium, so the chain teaches the electrolyte
+	# before asking for the cells.
+	gs.add_resource("Li", 60); gs._mission_sync()
+	walk_ok = walk_ok and gs.claim_mission("m012"); trace.append("m012" if gs.missions_claimed.has("m012") else "m012!")
+	p("(6) curated chain m001->m012 advances via mixed events (incl. research_multi)",
 		walk_ok and gs.missions_active.has("m021"), " ".join(trace))
 
 	print("===== END PHASE 3 =====")

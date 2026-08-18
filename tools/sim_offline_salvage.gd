@@ -43,14 +43,24 @@ func _run() -> void:
 		print("FAIL non-combat offline loot polluted the tally: %s" % str(gs.session_loot))
 		fail = true
 
-	# (B2) The offline report must show module display names, not raw ids.
-	var report: String = gs._offline_loot([["z1_unique_weapon", 1.0, 1, 1]], 1.0, 1)
-	print("set-module report row: %s" % report.replace("\t", " "))
-	if "Architect's Beam" in report and not ("z1_unique_weapon" in report):
-		print("PASS offline report resolves set-module display name")
+	# (B2) The offline report must show module display names, not raw ids. The id
+	# is taken from the data — this used to name z1_unique_weapon, a set piece the
+	# MissionFlow port removed, so the report was correctly printing an unknown id.
+	var piece := ""
+	for sm in GameData.SET_MODULES:
+		piece = String(sm)
+		break
+	if piece == "":
+		print("NOTE no set modules in the data — display-name check skipped")
 	else:
-		print("FAIL offline report shows raw module id")
-		fail = true
+		var piece_name: String = String((GameData.SET_MODULES[piece] as Dictionary).get("name", ""))
+		var report: String = gs._offline_loot([[piece, 1.0, 1, 1]], 1.0, 1)
+		print("set-module report row: %s" % report.replace("\t", " "))
+		if piece_name in report and not (piece in report):
+			print("PASS offline report resolves set-module display name (%s)" % piece_name)
+		else:
+			print("FAIL offline report shows raw module id instead of '%s'" % piece_name)
+			fail = true
 
 	# (C) Integrated: if the drone is farmable, offline combat logs salvage too.
 	for mid in ["z1_kinetic", "z1_energy", "z1_shield"]:
@@ -85,6 +95,7 @@ func _run() -> void:
 	if fail:
 		print("OFFLINE_SALVAGE: FAIL")
 		quit(1)
+		return
 	print("OFFLINE_SALVAGE: PASS")
 	quit()
 

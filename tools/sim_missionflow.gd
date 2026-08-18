@@ -138,20 +138,36 @@ func _run() -> void:
 		new_violations.is_empty(), "new=%s  (pre-existing kept: %d)" % [str(new_violations), violations.size() - new_violations.size()])
 
 	# ---- 4. research_multi behavior + coach ----
-	# m002 is the merged Foundational Research (3 techs).
+	# The subject is discovered from the data. This used to be m002 with three
+	# techs; the research audit re-flowed m002 to a single tech (two of the three
+	# were deleted upstream), so it stopped being a research_multi at all.
+	var rm_id := ""
+	for mid in GameData.MISSION_ORDER:
+		if String((GameData.MISSIONS[mid] as Dictionary).get("type", "")) == "research_multi":
+			rm_id = String(mid)
+			break
+	if rm_id == "":
+		p("(4) a research_multi mission exists to exercise", false, "none in MISSION_ORDER")
+		print("MISSIONFLOW: FAIL"); quit(1); return
+	var m002: Dictionary = GameData.MISSIONS[rm_id]
+	var techs: Array = m002.get("target", [])
 	gs.missions_active.clear(); gs.missions_progress.clear(); gs.missions_claimed.clear()
 	gs._mission_completed_seen.clear(); gs.unlocked_research.clear()
 	gs.credits = 999999999
-	gs.missions_active["m002"] = true
-	var m002: Dictionary = GameData.MISSIONS["m002"]
-	gs.unlocked_research["basic_engineering"] = true; gs._mission_sync()
-	var inc1: bool = not gs.mission_completed("m002")
-	gs.unlocked_research["applied_physics"] = true; gs._mission_sync()
-	var inc2: bool = not gs.mission_completed("m002")
-	gs.unlocked_research["fluid_dynamics"] = true; gs._mission_sync()
-	var done3: bool = gs.mission_completed("m002")
+	gs.missions_active[rm_id] = true
+	# Unlock all but the last: still incomplete at every step.
+	var incomplete_throughout := true
+	for i in techs.size() - 1:
+		gs.unlocked_research[String(techs[i])] = true
+		gs._mission_sync()
+		if gs.mission_completed(rm_id):
+			incomplete_throughout = false
+	gs.unlocked_research[String(techs[techs.size() - 1])] = true
+	gs._mission_sync()
+	var done3: bool = gs.mission_completed(rm_id)
 	p("(4a) research_multi incomplete until ALL techs unlocked, then completes",
-		inc1 and inc2 and done3, "have=%d/%d" % [gs.research_multi_have(m002), int(m002.get("qty",0))])
+		incomplete_throughout and done3,
+		"%s %s have=%d/%d" % [rm_id, str(techs), gs.research_multi_have(m002), int(m002.get("qty", 0))])
 
 	# Coach resolution: research page + a REAL node (first not-yet-unlocked).
 	gs.unlocked_research.clear()
@@ -170,20 +186,20 @@ func _run() -> void:
 	var rc: Dictionary = main._coach_resolve(m002)
 	var first_locked: String = gs.research_multi_first_locked(m002)
 	p("(4b) coach research_multi -> Research page + first locked node",
-		rc["page"] == "research" and rc["card"] == "basic_engineering" and first_locked == "basic_engineering",
-		"page=%s card=%s" % [rc["page"], rc["card"]])
+		rc["page"] == "research" and rc["card"] == String(techs[0]) and first_locked == String(techs[0]),
+		"page=%s card=%s (expected %s)" % [rc["page"], rc["card"], techs[0]])
 	# Navigate and find the real node card.
-	gs.missions_active = {"m002": true}
+	gs.missions_active = {rm_id: true}
 	main._show("research")
 	await process_frame
 	await process_frame
 	var node = main._coach_find_card(rc["card"])
 	p("(4c) coach research_multi node card present on Research page", node != null)
 	# After unlocking the first, coach advances to the next locked tech.
-	gs.unlocked_research["basic_engineering"] = true
+	gs.unlocked_research[String(techs[0])] = true
 	var rc2: Dictionary = main._coach_resolve(m002)
 	p("(4d) coach advances to next locked tech after first unlock",
-		rc2["card"] == "applied_physics", "card=%s" % rc2["card"])
+		rc2["card"] == String(techs[1]), "card=%s (expected %s)" % [rc2["card"], techs[1]])
 
 	# ---- 5. TUTORIAL GATE ----
 	gs.missions_active.clear(); gs.missions_progress.clear(); gs.missions_claimed.clear()
@@ -210,7 +226,7 @@ func _run() -> void:
 
 	print("===== END MISSIONFLOW =====")
 	if fail:
-		print("MISSIONFLOW: FAIL"); quit(1)
+		print("MISSIONFLOW: FAIL"); quit(1); return
 	print("MISSIONFLOW: PASS"); quit()
 
 # Research req to obtain `sym` GIVEN the already-unlocked set: a material is

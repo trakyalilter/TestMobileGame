@@ -758,10 +758,6 @@ MOBILE_MISSION_DESC = {
     "m007": "In the Shipyard, build a Basic Thruster (Ion Thrusters).",
     "m007b": "In the Ship Designer, tap your Basic Thruster to equip it into an ENGINE slot. Evasion rises the moment it's seated.",
     "m011": "On the Craft tab, produce 50 Carbon (Charcoal Kiln recipe).",
-    "m012": "On the Gather tab, extract 100 Spodumene (the lithium-bearing ore).",
-    "m013": "On the Craft tab, refine 50 Lithium.",
-    "m013b": "On the Gather tab, extract 100 Malachite (copper ore).",
-    "m013c": "On the Craft tab, refine 50 Copper.",
     "m015": "In the Shipyard, build a Mass Driver Mk.I.",
     "m015b": "In the Ship Designer, tap your Mass Driver to equip it into a WEAPON slot. Your ship can finally deal damage.",
     "m016": "On the Craft tab, produce 100 Ferrite Rounds (SlugT1), then load them into your weapon's ammo slot in the Ship Designer.",
@@ -889,6 +885,16 @@ CURATED_CHAIN = [
     #     parent IS kinetics_101 (desktop ordered it the other way — a softlock).
     _m("m014"),                                  # research kinetics_101
     _m("m020"),                                  # research power_systems (parent now met)
+    # Lithium BEFORE the battery beat. A Battery Cell costs Li 5, so asking for 5
+    # of them (m021) with no lithium step in front of it left the player staring
+    # at a recipe for a material the chain had never mentioned — desktop runs
+    # Spodumene -> Li -> batteries in exactly this order.
+    _merge("m012", "Lithium Discovery", "gather",
+           "Li", 50,
+           "Your corvette is UNPOWERED, and batteries need an electrolyte. Mine "
+           "Spodumene on the Gather tab, then refine it into 50 Lithium on the "
+           "Craft tab.",
+           ["m012", "m013"]),
     _m("m021"),                                  # craft BatteryT1 cells
     _m("m022"),                                  # build battery module
     _m("m022b"),                                 # equip battery (grid now has capacity)
@@ -904,12 +910,14 @@ CURATED_CHAIN = [
     _m("m009"),                                  # gather Wood
     _m("m010"),                                  # research combustion (kiln)
     _m("m011"),                                  # craft Carbon
-    # --- Refining run merged: mine + refine Lithium and Copper into one goal.
-    _merge("m012", "Lithium & Copper Refining", "gather_multi",
-           {"Li": 50, "Cu": 50}, 100,
-           "Mine Spodumene and Malachite on the Gather tab, then refine them on "
-           "the Craft tab into 50 Lithium and 50 Copper.",
-           ["m012", "m013", "m013b", "m013c"]),
+    # --- Copper: mine + refine, kept here because smelting Malachite spends the
+    #     Carbon the previous beat just taught (desktop pairs them the same way).
+    _merge("m013b", "Copper Refining", "gather",
+           "Cu", 50,
+           "Mine Malachite on the Gather tab, then smelt it into 50 Copper on "
+           "the Craft tab — it takes one Carbon per unit, which is what the kiln "
+           "was for.",
+           ["m013b", "m013c"]),
     # --- Shields & field kits.
     _m("m023"),                                  # research energy_shields
     _m("m024"),                                  # build shield
@@ -1020,8 +1028,12 @@ lines.append('const MISSION_ORDER := %s' % g(order))
 # MISSION_GOALS — standalone "core goal" missions that are always active (no
 # `next` chain pointer). Desktop's mission_manager activates these on init
 # alongside the tutorial head; mobile surfaces them the same way.
+# Selected by the [CORE GOAL] tag, NOT by the dump's `active` flag: the export is
+# a snapshot of a fresh game where nothing is active yet, so keying off `active`
+# silently emitted an EMPTY list and mobile shipped with no core goals at all.
 goals = [mid for mid, m in missions.items()
-         if m.get("active", False) and mid not in curated_set and mid not in consumed]
+         if str(m.get("tag", "")).upper().find("CORE GOAL") >= 0
+         and mid not in curated_set and mid not in consumed]
 lines.append('const MISSION_GOALS := %s' % g(goals))
 lines.append("")
 

@@ -62,15 +62,37 @@ func _run() -> void:
 		fail = true
 	card.queue_free()
 
-	main._show_enemy_intel("z1_lunar_drone")
-	await process_frame
-	var it := []
-	_collect_text(main, it)
-	if _has(it, "WEAK") and _has(it, "RESIST"):
-		print("PASS intel modal: WEAK + RESIST present")
-	else:
-		print("FAIL intel modal missing WEAK/RESIST — got: %s" % str(it))
+	# The modal only prints a RESIST chip for an enemy that actually resists
+	# something, so the subject has to be one that both resists and is weak. The
+	# Lunar Drone named here has a weakness and no resistances, so this asserted a
+	# chip the data can never produce.
+	var both := ""
+	for cand in GameData.ENEMIES:
+		var ed: Dictionary = GameData.ENEMIES[cand]
+		var has_res := false
+		var has_weak := false
+		for key in ["resist_k", "resist_e", "resist_x", "resist_cryo"]:
+			var rv := float(ed.get(key, 0.0))
+			if rv >= 0.20:
+				has_res = true
+			if rv <= -0.20:
+				has_weak = true
+		if has_res and has_weak:
+			both = String(cand)
+			break
+	if both == "":
+		print("FAIL no enemy both resists and is weak — the intel chip check has no subject")
 		fail = true
+	else:
+		main._show_enemy_intel(both)
+		await process_frame
+		var it := []
+		_collect_text(main, it)
+		if _has(it, "WEAK") and _has(it, "RESIST"):
+			print("PASS intel modal: WEAK + RESIST present (%s)" % both)
+		else:
+			print("FAIL intel modal missing WEAK/RESIST for %s — got: %s" % [both, str(it)])
+			fail = true
 
 	# --- Task 3: hazard view (locked + a hazard name present).
 	main._show("hazard")
@@ -86,24 +108,50 @@ func _run() -> void:
 	# --- Task 4: trinity view on the ship loadout. The trinity panel now only
 	# surfaces sets the player has a piece equipped for, so fit one Architect's
 	# Regalia module first.
-	gs.module_inventory["z1_unique_armor"] = 1
-	gs.equip_module("z1_unique_armor")
-	main.ship_view = "loadout"
-	main._show("ship")
-	await process_frame
-	var tv := []
-	_collect_text(main.pages["ship"], tv)
-	if _has(tv, "TRINITY SET BONUSES") and _has(tv, "Architect's Regalia"):
-		print("PASS trinity view: header + set name present")
-	else:
-		print("FAIL trinity view missing — got: %s" % str(tv))
+	# The piece is taken from the data: this used to fit z1_unique_armor, an
+	# Architect's Regalia piece the MissionFlow port removed, so nothing was
+	# equipped and the panel correctly stayed hidden.
+	var piece := ""
+	var piece_set := ""
+	for sm in GameData.SET_MODULES:
+		var sd: Dictionary = GameData.SET_MODULES[sm]
+		if String(sd.get("slot", "")) == "armor":
+			piece = String(sm)
+			piece_set = String(sd.get("set", ""))
+			break
+	var set_name: String = String((GameData.SETS.get(piece_set, {}) as Dictionary).get("name", ""))
+	var other_set := ""
+	for sn in GameData.SETS:
+		if String(sn) != piece_set:
+			other_set = String((GameData.SETS[sn] as Dictionary).get("name", ""))
+			break
+	if piece == "" or set_name == "":
+		print("FAIL no set armour piece in the data — the trinity check has no subject")
 		fail = true
-	# And it must NOT list a set the player has zero pieces of (Leviathan's Crown).
-	if _has(tv, "Leviathan's Crown"):
-		print("FAIL trinity view shows an un-owned set (Leviathan's Crown)")
-		fail = true
 	else:
-		print("PASS trinity view: un-owned sets hidden")
+		# Placed straight into the armour slot: the panel keys off the loadout, and
+		# an endgame set piece would otherwise be refused by the energy grid.
+		var slots: Array = gs.effective_slots()
+		for i in slots.size():
+			if String(slots[i]) == "armor":
+				gs.loadout[str(i)] = piece
+				break
+		main.ship_view = "loadout"
+		main._show("ship")
+		await process_frame
+		var tv := []
+		_collect_text(main.pages["ship"], tv)
+		if _has(tv, "TRINITY SET BONUSES") and _has(tv, set_name):
+			print("PASS trinity view: header + set name present (%s)" % set_name)
+		else:
+			print("FAIL trinity view missing %s — got: %s" % [set_name, str(tv)])
+			fail = true
+		# And it must NOT list a set the player has zero pieces of.
+		if other_set != "" and _has(tv, other_set):
+			print("FAIL trinity view shows an un-owned set (%s)" % other_set)
+			fail = true
+		else:
+			print("PASS trinity view: un-owned sets hidden")
 
 	# --- Task 2: battle view with a hazard-style enemy; affinity + wave readout.
 	gs.start_task("combat", "z1_lunar_drone")

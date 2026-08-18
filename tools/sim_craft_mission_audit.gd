@@ -37,6 +37,28 @@ func _base_sources(gd) -> Dictionary:
 			out[String(sym)] = true
 	return out
 
+## The later objective that introduces `sym`, or "" if the chain never does.
+## Only objectives AFTER `after_id` count — the caller already knows it is not
+## taught before that point.
+func _taught_at(gd, sym: String, after_id: String) -> String:
+	var seen_self := false
+	for mid in gd.MISSION_ORDER:
+		if String(mid) == after_id:
+			seen_self = true
+			continue
+		if not seen_self:
+			continue
+		var m: Dictionary = gd.MISSIONS[mid]
+		var t = m.get("target", "")
+		if t is Dictionary:
+			if (t as Dictionary).has(sym):
+				return String(mid)
+		elif t is Array:
+			continue                    # research_multi lists techs, not materials
+		elif t is String and String(t) == sym:
+			return String(mid)
+	return ""
+
 func _run() -> void:
 	var gs = root.get_node("GameState")
 	var gd = root.get_node("GameData")
@@ -207,6 +229,74 @@ func _run() -> void:
 				if req != "" and not unlocked.has(req):
 					W("mission '%s' asks to craft '%s' but its tech '%s' is not a chain objective yet" % [cur, rid, req])
 		cur = String(m.get("next", ""))
+
+	# ---- the chain must TEACH a material before it demands one made of it ----
+	# Reachability is NOT the test here. Lithium was always reachable — mine
+	# Spodumene, refine it — but no mission mentioned either, so "craft 5 Battery
+	# Cells" (5 Li each) landed on a player who had never seen the ore. Raw drops
+	# are found on the Gather page unaided; anything that has to be REFINED must be
+	# introduced by an earlier objective first.
+	# NOT _base_sources here: that counts building yields, and a Lithium Refinery
+	# costs 500 Steel and 450k credits — nothing a tutorial player can reach. It is
+	# why the first version of this check passed on the broken chain. Only what a
+	# player can pick up unaided counts: gather actions and combat drops.
+	var raw := {}
+	for gid in gd.GATHER:
+		for row in (gd.GATHER[gid] as Dictionary).get("loot", []):
+			raw[String(row[0])] = true
+	for eid in gd.ENEMIES:
+		for key in ["loot", "rare_loot"]:
+			for row in (gd.ENEMIES[eid] as Dictionary).get(key, []):
+				raw[String(row[0])] = true
+	var taught := {}
+	for mid in gd.MISSION_ORDER:
+		var m3: Dictionary = gd.MISSIONS[mid]
+		var ty3 := String(m3.get("type", ""))
+		var tgt3 = m3.get("target", "")
+		# What this objective forces the player to produce.
+		var wanted: Array = []
+		if ty3 == "gather":
+			wanted.append(String(tgt3))
+		elif ty3 == "gather_multi" and tgt3 is Dictionary:
+			for sym in tgt3:
+				wanted.append(String(sym))
+		elif ty3 == "craft":
+			wanted.append(String(tgt3))
+		for w2 in wanted:
+			# The inputs the player must already command to make this.
+			var inputs := {}
+			if gd.MODULES.has(w2):
+				for c in (gd.MODULES[w2] as Dictionary).get("cost", {}):
+					if String(c) != "credits":
+						inputs[String(c)] = true
+			else:
+				for rid in gd.CRAFT:
+					if not (gd.CRAFT[rid] as Dictionary).get("outputs", {}).has(w2):
+						continue
+					for i in (gd.CRAFT[rid] as Dictionary).get("inputs", {}):
+						inputs[String(i)] = true
+					break
+			for i in inputs:
+				var sym2 := String(i)
+				if raw.has(sym2) or taught.has(sym2) or sym2 == "credits":
+					continue
+				# Taught LATER is an ordering bug — the chain knows the material
+				# matters and introduces it in the wrong place. Taught nowhere is
+				# an inherited gap: desktop's own chain never covers these either,
+				# so it is flagged for a content call rather than failed on.
+				var later := _taught_at(gd, sym2, mid)
+				if later != "":
+					E("mission '%s' (%s) needs %s to make %s, but the chain does not introduce %s until '%s'"
+						% [mid, String(m3.get("name", "")), gd.res_name(sym2), gd.res_name(w2),
+							gd.res_name(sym2), later])
+				else:
+					W("mission '%s' needs %s to make %s and nothing in the chain introduces it (inherited from desktop)"
+						% [mid, gd.res_name(sym2), gd.res_name(w2)])
+			taught[w2] = true
+		# A research objective teaches whatever its recipes unlock by name only —
+		# not a material — so nothing is marked here.
+	print("chain material flow: %d objectives walked, %d materials introduced"
+		% [gd.MISSION_ORDER.size(), taught.size()])
 
 	# ---- report ----
 	print("")

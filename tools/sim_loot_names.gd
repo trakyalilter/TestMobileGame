@@ -1,6 +1,6 @@
 extends SceneTree
 ## Verifies the enemy SALVAGE list shows module display names + rarity, not raw
-## ids like "z1_unique_weapon".
+## ids like "z2_unique_weapon". The subject enemy is discovered from the data.
 
 func _init() -> void:
 	process_frame.connect(_run, CONNECT_ONE_SHOT)
@@ -34,8 +34,35 @@ func _run() -> void:
 	await process_frame
 
 	var fail := false
-	# The Rogue Architect drops the unique set pieces directly in its loot table.
-	var eid := "z1_boss_architect"
+	# Pick the subject from the data instead of naming one. The Rogue Architect
+	# used to drop the z1_unique_* set pieces and this file hard-coded them; the
+	# MissionFlow port removed those rows, so the check was asserting names for
+	# loot that no longer exists anywhere.
+	var eid := ""
+	var pieces: Array = []
+	for cand in GameData.ENEMIES:
+		var rows: Array = (GameData.ENEMIES[cand] as Dictionary).get("loot", [])
+		var found: Array = []
+		for row in rows:
+			var sym := String((row as Array)[0])
+			if GameData.SET_MODULES.has(sym) or GameData.MODULES.has(sym):
+				found.append(sym)
+		if not found.is_empty():
+			eid = String(cand)
+			pieces = found
+			break
+	if eid == "":
+		print("FAIL no enemy drops a module — the display-name check has no subject")
+		fail = true
+		print("LOOT_NAMES: FAIL")
+		quit(1)
+		return
+	var names: Array = []
+	for sym in pieces:
+		var d: Dictionary = GameData.SET_MODULES.get(sym, GameData.MODULES.get(sym, {}))
+		names.append(String(d.get("name", "")))
+	print("subject: %s drops %s -> %s" % [eid, str(pieces), str(names)])
+
 	var card = main._enemy_card(eid, GameData.ENEMIES[eid])
 	root.add_child(card)
 	await process_frame
@@ -43,12 +70,12 @@ func _run() -> void:
 	_collect_text(card, ct)
 
 	# Raw ids must NOT appear; display names MUST.
-	for raw in ["z1_unique_weapon", "z1_unique_armor", "z1_unique_shield"]:
-		if _has(ct, raw):
+	for raw in pieces:
+		if _has(ct, String(raw)):
 			print("FAIL raw id leaked into SALVAGE: %s" % raw)
 			fail = true
-	for nm in ["Architect's Beam", "Architect's Plating", "Architect's Ward"]:
-		if _has(ct, nm):
+	for nm in names:
+		if String(nm) != "" and _has(ct, String(nm)):
 			print("PASS SALVAGE shows display name: %s" % nm)
 		else:
 			print("FAIL SALVAGE missing display name: %s" % nm)
@@ -60,18 +87,19 @@ func _run() -> void:
 	await process_frame
 	var it := []
 	_collect_text(main, it)
-	for raw in ["z1_unique_weapon", "z1_unique_armor", "z1_unique_shield"]:
-		if _has(it, raw):
+	for raw in pieces:
+		if _has(it, String(raw)):
 			print("FAIL raw id leaked into Intel modal: %s" % raw)
 			fail = true
-	if _has(it, "Architect's Beam"):
+	if _has(it, String(names[0])):
 		print("PASS Intel modal shows display names")
 	else:
-		print("FAIL Intel modal missing display name")
+		print("FAIL Intel modal missing display name: %s" % names[0])
 		fail = true
 
 	if fail:
 		print("LOOT_NAMES: FAIL")
 		quit(1)
+		return
 	print("LOOT_NAMES: PASS")
 	quit()

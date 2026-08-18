@@ -257,7 +257,7 @@ func _ready() -> void:
 # Base page per mission type. NOTE: "gather" is resolved dynamically (gather vs
 # craft) by _coach_resolve, since several "gather" missions target crafted materials
 # (the desc says "On the Craft tab"). visit_page routes to its own target page.
-const COACH_PAGE := {"gather": "gather", "gather_multi": "craft", "research": "research", "research_multi": "research", "craft": "shipyard", "construct": "shipyard", "build": "build", "defeat": "combat", "loadout_check": "ship", "loadout_rare_weapon": "ship", "equip_consumables": "ship", "drop_rarity": "combat", "warp_perform": "warp", "discover": "research", "hack_apply": "ship", "overclock_install": "build"}
+const COACH_PAGE := {"gather": "gather", "gather_multi": "craft", "research": "research", "research_multi": "research", "craft": "shipyard", "construct": "shipyard", "build": "build", "defeat": "combat", "loadout_check": "ship", "loadout_rare_weapon": "ship", "equip_consumables": "ship", "drop_rarity": "combat", "warp_perform": "warp", "discover": "research", "hack_apply": "ship", "overclock_install": "build", "defeat_retreat": "combat", "craft_matrix": "shipyard", "socket_check": "ship", "atlas_lookup": "atlas"}
 
 func _page_label(id: String) -> String:
 	for t in NAV_ALL:
@@ -305,8 +305,14 @@ func _craft_recipe_for(sym: String) -> String:
 	# then level met) over a lower-level recipe gated behind research they lack —
 	# e.g. Advanced Circuit's recipe (research: Automation, unlocked) over Process
 	# Colony Salvage (lower level but research: Deep Space Nav, not yet unlocked).
+	# v129 added a reclaim_* salvage recipe for many materials, ungated and a few
+	# levels cheaper than the canonical one — enough to win the level tie-break and
+	# send the coach to "Rebuild Advanced Circuitry" while the mission text walks
+	# through the Advanced Circuitry ingredients. Recycling is a side path, so it
+	# only wins when nothing else makes the material.
 	var best := ""
 	var best_score := -1
+	var best_salvage := true
 	var best_lvl := 99999
 	var lv := GameState.level_of("fabrication")
 	for cid in GameData.CRAFT:
@@ -317,8 +323,18 @@ func _craft_recipe_for(sym: String) -> String:
 		var rr: String = r.get("research_req", "")
 		var research_ok: bool = rr == "" or GameState.is_research_unlocked(rr)
 		var score := (2 if (research_ok and lv >= lvl) else (1 if research_ok else 0))
-		if score > best_score or (score == best_score and lvl < best_lvl):
+		var salvage: bool = String(r.get("category", "")) == "salvage"
+		var better := false
+		if score > best_score:
+			better = true
+		elif score == best_score:
+			if best_salvage and not salvage:
+				better = true
+			elif salvage == best_salvage and lvl < best_lvl:
+				better = true
+		if better:
 			best_score = score
+			best_salvage = salvage
 			best_lvl = lvl
 			best = cid
 	return best
@@ -390,6 +406,11 @@ func _coach_resolve(m: Dictionary) -> Dictionary:
 		var ed := _enemy_dropping(sym)
 		if ed != "":
 			return {"page": "combat", "card": ed}    # combat-drop material → enemy card
+		# Hack Cards have no loot-table row: they come from a global on-kill faucet
+		# (_roll_hack_stone_drops), so there is no enemy card to ring. Point at
+		# Combat anyway — the gather page has nothing to do with them.
+		if GameState.HACK_STONE_IDS.has(sym):
+			return {"page": "combat", "card": ""}
 		return {"page": "gather", "card": ""}
 	if type == "gather_multi":
 		return {"page": "craft", "card": _craft_recipe_for_multi(tgt if tgt is Dictionary else {})}
@@ -411,7 +432,8 @@ func _coach_resolve(m: Dictionary) -> Dictionary:
 	var page: String = COACH_PAGE.get(type, "")
 	var card: String = tgt if tgt is String else ""
 	# Navigate-only steps point at a page, not a card.
-	if type in ["loadout_check", "loadout_rare_weapon", "equip_consumables", "warp_perform", "drop_rarity"]:
+	if type in ["loadout_check", "loadout_rare_weapon", "equip_consumables", "warp_perform",
+			"drop_rarity", "craft_matrix", "socket_check", "atlas_lookup"]:
 		card = ""
 	return {"page": page, "card": card}
 
