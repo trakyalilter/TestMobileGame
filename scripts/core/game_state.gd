@@ -333,6 +333,12 @@ var current_slot := 0                    # 0 = no slot active (character-select 
 var character_name := "Commander"        # active character's display name
 var _created_at := 0.0                   # unix time this character was created (slot metadata)
 const AUTOSAVE_INTERVAL := 15.0
+# P2.7: global offline cap. Generous but finite — gathering, processing and
+# infrastructure accrual was unbounded, which is both an economy exploit (leave
+# the game for a month, come back to a month of production) and a startup-stall
+# risk, since every offline path loops over the elapsed window.
+const OFFLINE_DELTA_CAP_SECONDS := 86400.0
+var offline_capped := false   # the away window hit OFFLINE_DELTA_CAP_SECONDS
 var _save_accum := 0.0
 
 func slot_path(n: int) -> String:
@@ -430,6 +436,8 @@ func _notification(what: int) -> void:
 func _catch_up_offline(delta: float) -> void:
 	if delta < 5.0:
 		return
+	offline_capped = delta > OFFLINE_DELTA_CAP_SECONDS
+	delta = minf(delta, OFFLINE_DELTA_CAP_SECONDS)
 	pending_offline = ""
 	_offline_lost = {}
 	_suppress_fx = true
@@ -6289,6 +6297,8 @@ func load_game() -> void:
 	_mission_sync()   # reconcile active missions with already-satisfied state on load
 	var last := float(data.get("time", Time.get_unix_time_from_system()))
 	var away := Time.get_unix_time_from_system() - last
+	offline_capped = away > OFFLINE_DELTA_CAP_SECONDS
+	away = minf(away, OFFLINE_DELTA_CAP_SECONDS)
 	_offline_lost = {}
 	_suppress_fx = true
 	_apply_offline(away)
@@ -6307,6 +6317,13 @@ func load_game() -> void:
 		else:
 			active_type = ""
 			active_id = ""
+	# v137 #34: consume the offline window immediately by writing a fresh
+	# timestamp. Offline is applied on load but the save only happens on the next
+	# autosave — a kill inside that window re-applied the SAME delta on the next
+	# boot, double-dipping the whole away period. Everything is loaded and
+	# offline-applied by this point, so this persists complete state.
+	if current_slot != 0:
+		save_game()
 	resources_changed.emit()
 	skills_changed.emit()
 	research_changed.emit()
