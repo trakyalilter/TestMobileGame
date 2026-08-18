@@ -1673,9 +1673,10 @@ func _ensure_powered_from_inventory() -> bool:
 			best = String(mid)
 	if best == "":
 		return false
+	var was_suppressed := _suppress_preset_autosave
 	_suppress_preset_autosave = true
 	var ok := equip_module(best)
-	_suppress_preset_autosave = false
+	_suppress_preset_autosave = was_suppressed
 	if not ok:
 		return false
 	var ss2 := ship_stats()
@@ -1701,6 +1702,13 @@ func load_loadout_preset(idx: int) -> Dictionary:
 	var preset: Dictionary = loadout_presets[idx]
 	if _preset_has_no_modules(preset):
 		return {"loaded": 0, "skipped": 0}
+	# The v134g autosave mirrors every live loadout edit into the ACTIVE preset
+	# slot. Stripping the ship below IS a live edit, so without this guard loading
+	# a preset wrote the empty loadout straight over a saved build — over the one
+	# being loaded when it was the active slot, leaving nothing to restore, and
+	# over whatever was in slot 1 when loading any other. Both were silent.
+	var was_suppressed := _suppress_preset_autosave
+	_suppress_preset_autosave = true
 	# Step 1: return every currently-equipped module to inventory.
 	for slot in loadout.keys().duplicate():
 		unequip_slot(slot)
@@ -1726,6 +1734,7 @@ func load_loadout_preset(idx: int) -> Dictionary:
 	var shield_c: String = preset.get("consumable_shield", "")
 	consumable_shield_slot = shield_c if shield_c != "" and amount(shield_c) > 0 else ""
 	active_preset_idx = idx           # v134g: this slot now mirrors live edits
+	_suppress_preset_autosave = was_suppressed
 	_ensure_powered_from_inventory()  # v134: auto-equip the best owned battery if overloaded
 	_mission_sync()
 	resources_changed.emit()

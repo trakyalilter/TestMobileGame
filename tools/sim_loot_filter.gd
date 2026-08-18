@@ -50,12 +50,17 @@ func _run() -> void:
 		print("FAIL rarity filter wrong")
 		fail = true
 	gs.loot_filter[2] = true
-	# Turn off armor slot → armor drops filtered, weapon kept.
+	# v135a moved the slot and weapon-type axes OFF the post-roll gate and onto
+	# pool concentration: _focused_drop_pool strips unwanted types before the roll,
+	# so every drop is a kept type instead of a roll thrown away. loot_drop_kept is
+	# rarity-only now — asserting slot filtering through it is what used to fail.
 	gs.loot_type_filter["armor"] = false
-	if not gs.loot_drop_kept(armor_base, 3) and gs.loot_drop_kept(weapon_base, 3):
-		print("PASS slot filter skips armor")
+	var mixed: Array = [weapon_base, armor_base]
+	var focused: Array = gs._focused_drop_pool(mixed)
+	if focused.has(weapon_base) and not focused.has(armor_base):
+		print("PASS slot filter concentrates armor out of the drop pool")
 	else:
-		print("FAIL slot filter wrong")
+		print("FAIL slot filter wrong — pool=%s" % str(focused))
 		fail = true
 	gs.loot_type_filter["armor"] = true
 	# Weapon damage-type filter: determine the weapon's type, disable it.
@@ -65,12 +70,31 @@ func _run() -> void:
 	elif float(st.get("atk_energy", 0)) > 0: wtype = "energy"
 	elif float(st.get("atk_explosive", 0)) > 0: wtype = "explosive"
 	gs.loot_weapon_type_filter[wtype] = false
-	if not gs.loot_drop_kept(weapon_base, 3):
-		print("PASS weapon-type filter skips %s weapons" % wtype)
+	var focused2: Array = gs._focused_drop_pool(mixed)
+	if focused2.has(armor_base) and not focused2.has(weapon_base):
+		print("PASS weapon-type filter concentrates %s weapons out of the pool" % wtype)
 	else:
-		print("FAIL weapon-type filter wrong")
+		print("FAIL weapon-type filter wrong — pool=%s" % str(focused2))
 		fail = true
+	# Filtering everything out must fall back to the full pool rather than
+	# silently ending all module drops.
+	gs.loot_type_filter["armor"] = false
+	var empty_case: Array = gs._focused_drop_pool(mixed)
+	if empty_case.size() == mixed.size():
+		print("PASS a filter that excludes everything falls back to the full pool")
+	else:
+		print("FAIL over-filtered pool did not fall back — pool=%s" % str(empty_case))
+		fail = true
+	gs.loot_type_filter["armor"] = true
 	gs.loot_weapon_type_filter[wtype] = true
+	# The rarity axis still gates at roll time, for every base id.
+	gs.loot_filter[3] = false
+	if not gs.loot_drop_kept(weapon_base, 3) and not gs.loot_drop_kept(armor_base, 3):
+		print("PASS the rarity gate applies regardless of base id")
+	else:
+		print("FAIL rarity gate leaked a filtered rarity")
+		fail = true
+	gs.loot_filter[3] = true
 
 	# --- Persistence: filter survives save/load round-trip.
 	gs.loot_filter[0] = false
@@ -119,5 +143,6 @@ func _run() -> void:
 	if fail:
 		print("LOOT_FILTER: FAIL")
 		quit(1)
+		return
 	print("LOOT_FILTER: PASS")
 	quit()

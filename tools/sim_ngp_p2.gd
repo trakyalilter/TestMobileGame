@@ -27,14 +27,17 @@ func _run() -> void:
 		print("FAIL swap allowed out of combat")
 		fail = true
 
-	# Single-phase enemy -> no swap.
+	# v134h parity: the swap is no longer gated to phase bosses. Desktop's
+	# load_loadout_preset has no combat gate at all, so any live fight can swap;
+	# only the PHASE-GATE PANEL stays boss-only. This used to assert the old
+	# multi-phase-only rule.
 	gs.active_type = "combat"
 	gs.active_id = "z1_lunar_drone"
 	gs._spawn_enemy_inst("z1_lunar_drone")
-	if not gs.can_swap_loadout_in_combat():
-		print("PASS swap disabled vs single-phase enemy")
+	if gs.can_swap_loadout_in_combat():
+		print("PASS swap available in an ordinary fight (v134h)")
 	else:
-		print("FAIL swap allowed vs single-phase")
+		print("FAIL swap refused in an ordinary fight")
 		fail = true
 
 	# Multi-phase boss -> swap available.
@@ -100,6 +103,7 @@ func _run() -> void:
 	if fail:
 		print("NGP_P2: FAIL")
 		quit(1)
+		return
 	print("NGP_P2: PASS")
 	quit()
 

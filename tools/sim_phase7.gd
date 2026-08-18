@@ -21,12 +21,17 @@ func _run() -> void:
 	_ck("cryo locked at start", not gs.cryo_unlocked)
 	# Give the player enough to warp (score gate is earned credits + buildings).
 	gs.lifetime_credits = 600000000   # plenty of warp shards
-	var before_cryo: int = int(gs.module_inventory.get("cryo_shard_pistol", 0))
 	var g1: int = gs.execute_warp()
 	_ck("warp grants shards", g1 > 0, "gains=%d" % g1)
 	_ck("warp sets cryo_unlocked", gs.cryo_unlocked)
-	var after1: int = int(gs.module_inventory.get("cryo_shard_pistol", 0))
-	_ck("first warp grants 1 cryo pistol", after1 == before_cryo + 1, "have %d" % after1)
+	# v113 deleted the Cryo Shard Pistol and its first-warp grant. The warp reward
+	# is the cryo ARMAMENTS research line (asserted below), not a free weapon —
+	# this used to assert the grant, which is why a correct engine read as broken.
+	_ck("the retired cryo pistol is gone from the module table",
+		not (root.get_node("GameData")).MODULES.has("cryo_shard_pistol"))
+	_ck("warping grants no phantom pistol",
+		int(gs.module_inventory.get("cryo_shard_pistol", 0)) == 0,
+		"have %d" % int(gs.module_inventory.get("cryo_shard_pistol", 0)))
 	# requires_warp tech now available (find one).
 	var rw_tech := ""
 	for tid in (root.get_node("GameData")).RESEARCH:
@@ -49,11 +54,12 @@ func _run() -> void:
 		gs.cryo_unlocked = false
 		_ck("requires_warp tech locked when cryo locked", not gs.research_available(rw_tech))
 		gs.cryo_unlocked = saved_flag
-	# Second warp must NOT duplicate the pistol.
+	# A second warp must not conjure one either, and must keep the unlock.
 	gs.lifetime_credits = 600000000
 	gs.execute_warp()
-	var after2: int = int(gs.module_inventory.get("cryo_shard_pistol", 0))
-	_ck("re-warp does not duplicate pistol", after2 == 1, "have %d" % after2)
+	_ck("re-warping still grants no pistol",
+		int(gs.module_inventory.get("cryo_shard_pistol", 0)) == 0)
+	_ck("cryo stays unlocked across warps", gs.cryo_unlocked)
 
 	# ===== Gate 4a: Infra eng-scale clamp =====
 	gs.hard_reset()
@@ -77,22 +83,46 @@ func _run() -> void:
 	_ck("ore extractor throttled 0.5", abs(gs._ore_throttle("copper_mine") - 0.5) < 0.001)
 	_ck("non-ore building not throttled", abs(gs._ore_throttle("auto_smelter") - 1.0) < 0.001)
 
-	# ===== Gate 4d: Upkeep drains Water/Dirt =====
+	# ===== Gate 4d: no material upkeep — the grid is the only throttle =====
+	# v120 (desktop parity) deleted building upkeep outright. This gate used to
+	# call _apply_upkeep and assert Water/Dirt drained; the function no longer
+	# exists, so the whole gate errored. The contract now is the inverse: idle
+	# stores must NOT be touched, and production must throttle on energy alone.
 	gs.hard_reset()
 	gs.buildings = {"solar_panel": 5}
 	gs.add_resource("Water", 1000)
 	gs.add_resource("Dirt", 1000)
 	var w0: float = gs.amount("Water")
 	var d0: float = gs.amount("Dirt")
-	var consumed: Dictionary = gs._apply_upkeep(1)
-	_ck("upkeep drains Water", gs.amount("Water") < w0 and consumed.has("Water"),
-		"-%.1f" % (w0 - gs.amount("Water")))
-	_ck("upkeep drains Dirt", gs.amount("Dirt") < d0 and consumed.has("Dirt"),
-		"-%.1f" % (d0 - gs.amount("Dirt")))
-	# Upkeep never goes negative when short.
-	gs.resources["Water"] = 1.0
-	gs._apply_upkeep(100)
-	_ck("upkeep never negative", gs.amount("Water") >= 0.0, "Water=%.2f" % gs.amount("Water"))
+	gs._tick_infra(60.0)
+	_ck("generators drain no upkeep materials",
+		gs.amount("Water") == w0 and gs.amount("Dirt") == d0,
+		"Water %.0f->%.0f, Dirt %.0f->%.0f" % [w0, gs.amount("Water"), d0, gs.amount("Dirt")])
+	_ck("the upkeep path is gone from the engine", not gs.has_method("_apply_upkeep"))
+	# A consumer with no generator behind it runs at reduced efficiency; adding
+	# generation restores it. That is the only throttle left.
+	gs.hard_reset()
+	var consumer := ""
+	for bid in (root.get_node("GameData")).BUILDINGS:
+		var bd: Dictionary = (root.get_node("GameData")).BUILDINGS[bid]
+		if float(bd.get("energy_cons", 0.0)) > 0.0 and not bd.get("yield", {}).is_empty():
+			consumer = String(bid)
+			break
+	if consumer == "":
+		_ck("an energy-consuming producer exists to test the grid throttle", false)
+	else:
+		var cons_each: float = float(((root.get_node("GameData")).BUILDINGS[consumer] as Dictionary).get("energy_cons", 0.0))
+		var gen_each: float = float(((root.get_node("GameData")).BUILDINGS["solar_panel"] as Dictionary).get("energy_gen", 1.0))
+		gs.buildings = {consumer: 5}
+		gs.infra_energy = 0.0
+		var starved: float = gs._infra_energy_step(1.0)
+		# Size the array to the load rather than guessing a count — the heaviest
+		# consumers draw thousands of kW each.
+		gs.buildings["solar_panel"] = int(ceil(cons_each * 5.0 / gen_each)) + 10
+		gs.infra_energy = 0.0
+		var fed: float = gs._infra_energy_step(1.0)
+		_ck("a starved grid throttles production", starved < 1.0, "eff=%.2f" % starved)
+		_ck("a fed grid runs at full rate", fed >= 0.999, "eff=%.2f with %d panels" % [fed, int(gs.buildings["solar_panel"])])
 
 	# ===== Gate 4e: production halved by DR/ore vs old (eng-scale nerf) =====
 	# An ore extractor producing N effective units yields half of raw.
@@ -154,14 +184,27 @@ func _run() -> void:
 			gs.set_ammo(str(k), "SlugT1")
 	var saved_loadout: Dictionary = gs.loadout.duplicate(true)
 	var saved_ammo: Dictionary = gs.ammo_loadout.duplicate(true)
-	_ck("save preset slot 1", gs.save_loadout_preset(1))
+	# Slot 2, not slot 1: under v134g the ACTIVE slot (1 by default) mirrors every
+	# live edit, so stripping the ship legitimately rewrites it. A round-trip has
+	# to be tested on a slot that is not the mirror — which is what this gate used
+	# to get wrong.
+	_ck("save preset slot 2", gs.save_loadout_preset(2))
 	# Change loadout: strip everything.
 	for slot in gs.loadout.keys().duplicate():
 		gs.unequip_slot(slot)
 	_ck("loadout cleared", gs.loadout.is_empty())
-	var res: Dictionary = gs.load_loadout_preset(1)
+	_ck("the active slot mirrored the strip (v134g)", gs.is_loadout_preset_empty(1))
+	_ck("a non-active preset is untouched by live edits",
+		not gs.is_loadout_preset_empty(2))
+	var res: Dictionary = gs.load_loadout_preset(2)
 	_ck("load preset restores modules", int(res.get("loaded", 0)) == saved_loadout.size(),
 		"loaded %d/%d" % [int(res.get("loaded", 0)), saved_loadout.size()])
+	_ck("the loaded preset survives its own load", not gs.is_loadout_preset_empty(2))
+	# Loading ANOTHER preset must not wipe the one that was active.
+	gs.save_loadout_preset(3)
+	gs.load_loadout_preset(3)
+	_ck("loading a different preset leaves the previous one intact",
+		not gs.is_loadout_preset_empty(2))
 	# Same module set -> same slot keys; loadout should match.
 	var match_ok: bool = gs.loadout.size() == saved_loadout.size()
 	for k in saved_loadout:
@@ -173,7 +216,7 @@ func _run() -> void:
 		if gs.ammo_loadout.get(k, "") != saved_ammo[k]:
 			ammo_ok = false
 	_ck("restored ammo matches saved", ammo_ok and not saved_ammo.is_empty())
-	_ck("clear preset slot 1", gs.clear_loadout_preset(1) and gs.is_loadout_preset_empty(1))
+	_ck("clear preset slot 2", gs.clear_loadout_preset(2) and gs.is_loadout_preset_empty(2))
 
 	print("\n=== Phase 7: %d PASS, %d FAIL ===" % [_pass, _fail])
 	quit(1 if _fail > 0 else 0)

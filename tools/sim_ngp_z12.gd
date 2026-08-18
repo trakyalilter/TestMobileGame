@@ -1,7 +1,7 @@
 extends SceneTree
 ## Verifies v0.2.1 NG+ P3 (Z12 The Rift): data present, corrosion weapon exotic
 ## type, Rift Warden 2-phase gate breached only by the matching armament, and the
-## Z11-boss-clear -> z12_unlocked wiring + zone gate.
+## Z11-boss-clear -> warp reveal -> z12_unlocked wiring + zone gate.
 
 func _init() -> void:
 	process_frame.connect(_run, CONNECT_ONE_SHOT)
@@ -75,20 +75,47 @@ func _run() -> void:
 		print("FAIL phase-1 exotic gate wrong")
 		fail = true
 
-	# Z11-boss clear unlocks Z12 (the_rift gated by z12_unlocked flag).
+	# v137 frontier ladder: a boss kill only marks its sector CLEARED. The next
+	# sector opens on the following Warp (_reveal_ng_sectors), so the two flags are
+	# deliberately separate — this used to assert the kill unlocked Z12 directly.
+	gs.game_flags.erase("z11_cleared")
 	gs.game_flags.erase("z12_unlocked")
 	gs.active_id = "z11_boss_threshold_warden"
 	gs._spawn_enemy_inst("z11_boss_threshold_warden")
 	gs.enemy_inst["hp"] = 0.0
 	gs._win_combat()
-	if gs.game_flags.get("z12_unlocked", false):
-		print("PASS clearing Z11 boss unlocks Sector 12")
+	if gs.game_flags.get("z11_cleared", false):
+		print("PASS clearing the Z11 boss marks the sector cleared")
 	else:
-		print("FAIL z12_unlocked not set on Z11 boss kill")
+		print("FAIL z11_cleared not set on Z11 boss kill")
 		fail = true
+	if gs.game_flags.get("z12_unlocked", false):
+		print("FAIL Z12 unlocked on the kill — it must wait for the Warp")
+		fail = true
+	else:
+		print("PASS Sector 12 stays shut until the next Warp")
+	gs._reveal_ng_sectors()
+	if gs.game_flags.get("z12_unlocked", false):
+		print("PASS warping opens Sector 12 for a cleared frontier")
+	else:
+		print("FAIL z12_unlocked not set by the warp-time reveal")
+		fail = true
+	# Every cleared-flag the kill table can set needs a reveal row, or that sector
+	# is cleared and then never opens.
+	for kid in gs.NG_CLEAR_TABLE:
+		var cf: String = String((gs.NG_CLEAR_TABLE[kid] as Array)[0])
+		var revealed := false
+		for r in gs.NG_REVEAL:
+			if String((r as Array)[0]) == cf:
+				revealed = true
+		if not revealed:
+			print("FAIL '%s' is set by a kill but no warp reveal consumes it" % cf)
+			fail = true
+	print("frontier ladder: %d clear flags, %d reveal rows" % [gs.NG_CLEAR_TABLE.size(), gs.NG_REVEAL.size()])
 
 	if fail:
 		print("NGP_Z12: FAIL")
 		quit(1)
+		return
 	print("NGP_Z12: PASS")
 	quit()
