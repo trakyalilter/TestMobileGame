@@ -1,0 +1,202 @@
+name: Build Play bundle (AAB)
+
+# Google Play will not take the artifact the other workflow produces. That one
+# builds a DEBUG-signed APK for sideloading; Play needs a release-signed Android
+# App Bundle:
+#   * .aab, not .apk — every app created after Aug 2021 must ship a bundle, and
+#     the upload box literally says "app bundle"
+#   * signed with a private release key, not the committed debug keystore
+#   * built with --export-release, so it is not marked debuggable
+#
+# An AAB can only come out of Godot's Gradle build, so this job installs the
+# Android build template and exports through it.
+#
+# Run it from Actions → "Build Play bundle (AAB)" → Run workflow.
+#   mode=release  → signs with the keystore in repo secrets (the Play artifact)
+#   mode=dry-run  → signs with the committed debug key, to prove the pipeline
+#                   works before any secret exists. NOT uploadable to Play.
+#
+# Secrets required for mode=release (see docs/PLAY_RELEASE.md):
+#   ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD,
+#   ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
+#
+# Once those secrets exist, add a tag trigger here if you want every v* tag to
+# produce a bundle:  push: { tags: ['v*'] }
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "release (real key) or dry-run (debug key, not for Play)"
+        type: choice
+        options: [release, dry-run]
+        default: release
+      version_name:
+        description: "Version shown to players, e.g. 0.2.0"
+        type: string
+        default: "0.1.0"
+      version_code:
+        description: "Play version code — MUST be higher than every code already uploaded"
+        type: string
+        default: "1"
+
+permissions:
+  contents: write
+
+env:
+  EXPORT_NAME: StellarForge
+
+jobs:
+  bundle:
+    name: Export Android App Bundle
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install export templates
+        run: |
+          mkdir -p ~/.local/share/godot/export_templates
+          mkdir -p ~/.config
+          cp -r /root/.config/godot ~/.config/godot 2>/dev/null || true
+          cp -r /root/.local/share/godot/export_templates/* ~/.local/share/godot/export_templates/ 2>/dev/null || true
+          ls -la ~/.local/share/godot/export_templates/ || true
+
+      - name: Resolve the signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -e
+          if [ "${{ inputs.mode }}" = "dry-run" ]; then
+            echo "::warning::dry-run — signing with the COMMITTED debug key. Play will reject this bundle."
+            cp "$GITHUB_WORKSPACE/ci-debug.keystore" "$GITHUB_WORKSPACE/release.keystore"
+            echo "KS_PASS=android"          >> $GITHUB_ENV
+            echo "KS_ALIAS=androiddebugkey" >> $GITHUB_ENV
+            echo "KS_KEYPASS=android"       >> $GITHUB_ENV
+          else
+            missing=""
+            [ -z "$KEYSTORE_B64" ]  && missing="$missing ANDROID_KEYSTORE_BASE64"
+            [ -z "$KEYSTORE_PASS" ] && missing="$missing ANDROID_KEYSTORE_PASSWORD"
+            [ -z "$KEY_ALIAS" ]     && missing="$missing ANDROID_KEY_ALIAS"
+            [ -z "$KEY_PASS" ]      && missing="$missing ANDROID_KEY_PASSWORD"
+            if [ -n "$missing" ]; then
+              echo "::error::Missing repo secret(s):$missing — create the keystore and add them (docs/PLAY_RELEASE.md), or run this workflow with mode=dry-run."
+              exit 1
+            fi
+            echo "$KEYSTORE_B64" | base64 -d > "$GITHUB_WORKSPACE/release.keystore"
+            echo "KS_PASS=$KEYSTORE_PASS"  >> $GITHUB_ENV
+            echo "KS_ALIAS=$KEY_ALIAS"     >> $GITHUB_ENV
+            echo "KS_KEYPASS=$KEY_PASS"    >> $GITHUB_ENV
+          fi
+
+      - name: Verify the keystore opens
+        run: |
+          # Fail here with a clear message rather than deep inside Gradle.
+          keytool -list -keystore "$GITHUB_WORKSPACE/release.keystore" \
+            -storepass "$KS_PASS" -alias "$KS_ALIAS" \
+            || { echo "::error::The keystore, its password or the alias is wrong."; exit 1; }
+
+      - name: Configure Godot editor settings (SDK / JDK)
+        run: |
+          mkdir -p ~/.config/godot
+          CFG="$(ls ~/.config/godot/editor_settings-*.tres 2>/dev/null | head -n1)"
+          [ -z "$CFG" ] && CFG=~/.config/godot/editor_settings-4.5.tres
+          JDK="$(dirname "$(dirname "$(readlink -f "$(command -v keytool)")")")"
+          SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/lib/android-sdk}}"
+          echo "JDK=$JDK  SDK=$SDK"
+          {
+            echo '[gd_resource type="EditorSettings" format=3]'
+            echo ''
+            echo '[resource]'
+            echo "export/android/android_sdk_path = \"$SDK\""
+            echo "export/android/java_sdk_path = \"$JDK\""
+            # The Gradle build still reads the DEBUG keystore settings even for a
+            # release export, so point them at the same file to keep it quiet.
+            echo "export/android/debug_keystore = \"$GITHUB_WORKSPACE/release.keystore\""
+            echo "export/android/debug_keystore_user = \"$KS_ALIAS\""
+            echo "export/android/debug_keystore_pass = \"$KS_PASS\""
+          } > "$CFG"
+          cat "$CFG"
+
+      - name: Write export preset
+        run: |
+          cat > export_presets.cfg <<EOF
+          [preset.0]
+          name="Android"
+          platform="Android"
+          runnable=true
+          export_filter="all_resources"
+          export_path="build/${EXPORT_NAME}.aab"
+          script_export_mode=2
+
+          [preset.0.options]
+          custom_template/debug=""
+          custom_template/release=""
+          gradle_build/use_gradle_build=true
+          gradle_build/export_format=1
+          gradle_build/min_sdk=""
+          gradle_build/target_sdk=""
+          architectures/armeabi-v7a=true
+          architectures/arm64-v8a=true
+          architectures/x86=false
+          architectures/x86_64=false
+          version/code=${{ inputs.version_code }}
+          version/name="${{ inputs.version_name }}"
+          package/unique_name="com.stellarforge.game"
+          package/name="Stellar Forge"
+          package/signed=true
+          screen/immersive_mode=true
+          user_data_backup/allow=false
+          permissions/internet=true
+          keystore/debug="$GITHUB_WORKSPACE/release.keystore"
+          keystore/debug_user="$KS_ALIAS"
+          keystore/debug_password="$KS_PASS"
+          keystore/release="$GITHUB_WORKSPACE/release.keystore"
+          keystore/release_user="$KS_ALIAS"
+          keystore/release_password="$KS_KEYPASS"
+          EOF
+          # Echo it with the passwords blanked.
+          sed -E 's/(password=|_pass=).*/\1"***"/' export_presets.cfg
+
+      - name: Import project
+        run: |
+          godot --headless --path . --import 2>&1 | tail -n 20 || true
+          godot --headless --path . --import 2>&1 | tail -n 20 || true
+
+      - name: Verify scripts compile
+        run: |
+          godot --headless --path . --import 2>&1 | tee import.log || true
+          if grep -E "SCRIPT ERROR|Parse Error|Compile Error" import.log; then
+            echo "::error::GDScript compile/parse errors detected — the bundle would not boot"
+            exit 1
+          fi
+
+      - name: Export release AAB (installs the Android build template)
+        run: |
+          mkdir -p build
+          godot --headless --path . --install-android-build-template \
+            --export-release "Android" "build/${EXPORT_NAME}.aab" 2>&1 | tail -n 60
+          ls -la build/
+          test -f "build/${EXPORT_NAME}.aab"
+
+      - name: Report what was built
+        run: |
+          F="build/${EXPORT_NAME}.aab"
+          echo "size: $(du -h "$F" | cut -f1)"
+          # An AAB is a zip; these entries are what Play checks first.
+          unzip -l "$F" | head -n 25
+          if [ "${{ inputs.mode }}" = "dry-run" ]; then
+            echo "::warning::This bundle is debug-key signed. Play WILL reject it. Re-run with mode=release once the secrets are set."
+          fi
+
+      - name: Upload bundle artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.EXPORT_NAME }}-${{ inputs.version_name }}-aab
+          path: build/${{ env.EXPORT_NAME }}.aab
+          retention-days: 30
