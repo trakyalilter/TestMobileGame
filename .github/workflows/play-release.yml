@@ -184,12 +184,45 @@ jobs:
           ls -la build/
           test -f "build/${EXPORT_NAME}.aab"
 
-      - name: Report what was built
+      - name: Verify the bundle against Play's hard gates
         run: |
+          set -e
           F="build/${EXPORT_NAME}.aab"
           echo "size: $(du -h "$F" | cut -f1)"
+
+          # 1. It must really be a bundle, not an APK with the wrong extension.
+          #    BundleConfig.pb only exists in bundletool output.
+          if unzip -l "$F" | grep -q "BundleConfig.pb"; then
+            echo "OK  bundle format (BundleConfig.pb present)"
+          else
+            echo "::error::Not a real AAB — BundleConfig.pb is missing. Play would reject it."
+            exit 1
+          fi
+
+          # 2. targetSdk. Play enforces a floor and raises it every year, and the
+          #    export log warns that the container's build-tools do not match the
+          #    target — so read what was actually compiled rather than assuming.
+          CFG=android/build/config.gradle
+          if [ -f "$CFG" ]; then
+            echo "--- $CFG ---"; grep -E "SdkVersion|Sdk " "$CFG" || cat "$CFG"
+          fi
+          MAN="$(find android/build -name AndroidManifest.xml -path "*merged*" 2>/dev/null | head -n1)"
+          [ -z "$MAN" ] && MAN="$(find android/build -name AndroidManifest.xml 2>/dev/null | head -n1)"
+          if [ -n "$MAN" ]; then
+            echo "--- $MAN ---"
+            grep -oE "(minSdkVersion|targetSdkVersion|debuggable)=\"[^\"]*\"" "$MAN" || true
+            # 3. A debuggable release is an automatic Play rejection.
+            if grep -q 'android:debuggable="true"' "$MAN"; then
+              echo "::error::The manifest is marked debuggable — Play rejects debuggable uploads."
+              exit 1
+            fi
+            echo "OK  not marked debuggable"
+          else
+            echo "::warning::No merged manifest found to inspect — targetSdk unverified."
+          fi
+
           # An AAB is a zip; these entries are what Play checks first.
-          unzip -l "$F" | head -n 25
+          unzip -l "$F" | head -n 12
           if [ "${{ inputs.mode }}" = "dry-run" ]; then
             echo "::warning::This bundle is debug-key signed. Play WILL reject it. Re-run with mode=release once the secrets are set."
           fi
