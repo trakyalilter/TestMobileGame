@@ -338,6 +338,10 @@ const AUTOSAVE_INTERVAL := 15.0
 # the game for a month, come back to a month of production) and a startup-stall
 # risk, since every offline path loops over the elapsed window.
 const OFFLINE_DELTA_CAP_SECONDS := 86400.0
+# Set when a slot exists on disk but could not be read. While true, saving is
+# REFUSED: the alternative is autosaving default state over a file we failed to
+# parse, which turns one transient read error into permanent save loss.
+var load_failed := false
 var offline_capped := false   # the away window hit OFFLINE_DELTA_CAP_SECONDS
 var _save_accum := 0.0
 
@@ -6139,6 +6143,10 @@ func save_game() -> void:
 	}
 	if current_slot == 0:        # no active slot — nothing to write to
 		return
+	if load_failed:
+		# The slot exists but did not parse. Writing now would replace the
+		# player's real save with whatever default state we booted into.
+		return
 	var path := slot_path(current_slot)
 	var tmp := path + ".tmp"
 	var f := FileAccess.open(tmp, FileAccess.WRITE)
@@ -6154,15 +6162,32 @@ func load_game() -> void:
 	var path := slot_path(current_slot) if current_slot != 0 else SAVE_PATH
 	if not FileAccess.file_exists(path):
 		return
-	var f := FileAccess.open(path, FileAccess.READ)
-	if f == null:
+	# Try the live file, then the .bak the atomic writer leaves behind. Without
+	# this fallback the backup is pure cost: written on every save, read never.
+	var data := {}
+	var ok := false
+	for candidate in [path, path + ".bak"]:
+		if not FileAccess.file_exists(candidate):
+			continue
+		var cf := FileAccess.open(candidate, FileAccess.READ)
+		if cf == null:
+			continue
+		var txt := cf.get_as_text()
+		cf.close()
+		var json := JSON.new()
+		if json.parse(txt) == OK and typeof(json.data) == TYPE_DICTIONARY:
+			data = json.data
+			ok = true
+			if candidate != path:
+				push_warning("Primary save unreadable; recovered from backup.")
+			break
+	if not ok:
+		# Do NOT fall through into a default state that the next autosave would
+		# write over the unreadable file.
+		load_failed = true
+		push_error("Save slot %d could not be read from either the file or its backup." % current_slot)
 		return
-	var txt := f.get_as_text()
-	f.close()
-	var json := JSON.new()
-	if json.parse(txt) != OK or typeof(json.data) != TYPE_DICTIONARY:
-		return
-	var data: Dictionary = json.data
+	load_failed = false
 	resources = data.get("resources", {})
 	credits = int(data.get("credits", 0))
 	lifetime_credits = int(data.get("lifetime_credits", credits))
@@ -6498,6 +6523,9 @@ func select_slot(n: int) -> void:
 ## sibling slot file), stamps the name, runs post-load init, and writes the slot file.
 func new_character(n: int, name: String) -> void:
 	hard_reset()   # sets tier_gate_enabled — the v114 gate is on for every new game
+	# Starting a fresh character is a DELIBERATE overwrite, so lift the guard that
+	# an unreadable previous save would otherwise leave in place.
+	load_failed = false
 	current_slot = n
 	character_name = name if name.strip_edges() != "" else "Commander"
 	_created_at = Time.get_unix_time_from_system()
@@ -6506,6 +6534,8 @@ func new_character(n: int, name: String) -> void:
 
 ## Delete slot n's save (and its .bak). Clears current_slot if it was active.
 func delete_slot(n: int) -> void:
+	if n == current_slot:
+		load_failed = false     # the unreadable file is going away
 	var path := slot_path(n)
 	if FileAccess.file_exists(path):
 		DirAccess.remove_absolute(path)
