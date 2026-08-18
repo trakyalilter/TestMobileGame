@@ -84,10 +84,16 @@ Download it, and upload the `.aab` to the internal testing track.
 
 ## What Play checks after upload
 
-- **Target SDK.** Play enforces a recent `targetSdkVersion`. Godot 4.5's default
-  is current as of writing; if Play complains, set `gradle_build/target_sdk` in
-  the workflow's export preset.
+- **Target SDK.** Play enforces a recent `targetSdkVersion`. The build verifies
+  this itself and prints what Gradle actually compiled — the last dry-run
+  reported `minSdkVersion="24"`, `targetSdkVersion="35"` from the merged release
+  manifest, which meets the current requirement. If a future Play deadline
+  raises it, set `gradle_build/target_sdk` in the workflow's export preset.
+  (The export log's "Could not find version of build tools that matches Target
+  SDK, using 33.0.2" is unrelated — build-tools version is not targetSdk, and
+  the compiled manifest is what counts.)
 - **64-bit.** Required. `arm64-v8a` is on.
+- **Debuggable.** Checked by the build; the job fails rather than shipping one.
 - **Package name.** `com.stellarforge.game`, set in the preset. It is permanent
   once published — a different package name is a different app.
 - **Data safety / content rating / privacy policy.** Console forms, not build
