@@ -146,6 +146,53 @@ func _run() -> void:
 		E("the warp tree does not render every revealed branch")
 	print("conditional panels: relic, capstones, procurement, warp tree all rendered")
 
+	# ---------- D2. a locked tech must say what is blocking it ----------
+	# The research modal listed the parent edge but not req_tech, so a tech gated
+	# on another tech showed every cost green with a dead Research button and
+	# nothing naming what it was waiting for. Asserted on a FRESH save, since the
+	# late-game state above has everything unlocked.
+	var blocked := ""
+	var blocker := ""
+	gs.hard_reset()
+	for tid in gd.RESEARCH:
+		var t: Dictionary = gd.RESEARCH[tid]
+		for rt in t.get("req_tech", []):
+			if String(rt) != "" and String(rt) != String(t.get("parent", "")):
+				blocked = String(tid)
+				blocker = String(rt)
+				break
+		if blocked != "":
+			break
+	if blocked == "":
+		W("no tech is gated on a req_tech — the prerequisite-visibility check did not run")
+	else:
+		gs.credits = 1_000_000_000
+		for sym in gd.RESOURCES:
+			gs.resources[sym] = 1_000_000
+		main._show_research_detail(blocked)
+		await process_frame
+		# Read the MODAL, not the whole screen: the research page behind it lists
+		# every tech name, so a screen-wide search passes on a modal that says
+		# nothing — which is exactly how the first version of this check missed
+		# the bug it was written for.
+		var modal: Node = main._modal_stack.back() if not main._modal_stack.is_empty() else null
+		var rt_txt := _collect(modal) if modal != null else ""
+		var blocker_name := String((gd.RESEARCH[blocker] as Dictionary).get("name", blocker))
+		if modal == null:
+			E("the research detail modal did not open — its contents went unchecked")
+		elif gs.research_available(blocked):
+			E("'%s' should still be gated on '%s' — the check lost its subject" % [blocked, blocker])
+		elif rt_txt.find("⊘ First research: " + blocker_name) < 0:
+			E("the research modal does not name '%s', the tech blocking '%s' — the player sees every cost met and a dead button"
+				% [blocker_name, blocked])
+		else:
+			print("locked tech '%s' names its blocker in the modal: %s" % [blocked, blocker_name])
+		# Close the modal so it cannot leak into the rebuild checks below.
+		for o in main._modal_stack.duplicate():
+			if is_instance_valid(o):
+				o.queue_free()
+		await process_frame
+
 	# ---------- E. rebuilding a page must not grow it ----------
 	# Every page is rebuilt on refresh; a builder that appends instead of
 	# clearing leaks children on every tick and eventually chokes the scroll.

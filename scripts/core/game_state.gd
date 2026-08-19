@@ -1439,7 +1439,20 @@ func effective_module_cost(mid: String) -> Dictionary:
 		cost[alloy] = int(cost.get(alloy, 0)) + int(TIER_ALLOY_QTY[slot])
 	return cost
 
+## Drop-only gear: a UNIQUE (boss set piece, relic, counter module) or anything
+## with no cost at all is loot, not merchandise. Both shipped buyable in the
+## Module Shop — and with an empty cost, "buyable" meant FREE, so Leviathan's
+## Overcharge (1700 energy cap) was one tap away in Lunar Orbit. Desktop's
+## shipyard skips is_custom / is_unique and empty-cost modules for this reason.
+func module_is_drop_only(mid: String) -> bool:
+	var m: Dictionary = GameData.MODULES.get(mid, {})
+	if bool(m.get("is_unique", false)):
+		return true
+	return (m.get("cost", {}) as Dictionary).is_empty()
+
 func module_can_buy(mid: String) -> bool:
+	if module_is_drop_only(mid):
+		return false
 	return module_unlocked(mid) and _afford_cost(effective_module_cost(mid))
 
 func buy_module(mid: String) -> bool:
@@ -3904,6 +3917,14 @@ func mission_completed(mid: String) -> bool:
 			return _has_module_rarity(int(m.get("target", "0")))
 		"loadout_rare_weapon":        # equipped weapon of rarity >= target
 			return _has_rare_weapon_equipped(int(m.get("target", "0")))
+		"defeat_retreat":             # the kill counts, but only once the ship is OUT
+			# v143 (desktop): the kill alone must not finish it — the point of the
+			# beat is to teach Retreat at the first moment it matters, instead of
+			# letting a death teach it. Progress reads as the kill; disengaging is
+			# the gate. Nothing credited this type at all before, so m017 sat at
+			# 0/1 through any number of kills and the tutorial dead-ended there.
+			return int(missions_progress.get(mid, 0)) >= int(m.get("qty", 1)) \
+				and active_type != "combat"
 	return int(missions_progress.get(mid, 0)) >= int(m.get("qty", 1))
 
 ## Per-slot loadout check (desktop): "combat_ready" needs weapon+shield; a named
@@ -4505,6 +4526,7 @@ func stop_task() -> void:
 	active_id = ""
 	progress = 0.0
 	enemy_inst = {}
+	_mission_sync()        # disengaging is itself the objective for defeat_retreat
 	action_changed.emit()
 
 # ---------------- Real-time combat ----------------
@@ -5198,6 +5220,7 @@ func _win_combat() -> void:
 	bounty_on_kill(live_id)
 	standing_on_kill(live_id)
 	_mission_event("defeat", live_id, 1)
+	_mission_event("defeat_retreat", live_id, 1)   # banks the kill; the retreat releases it
 	_event("DESTROYED", "5fd585", "enemy")
 	# On-kill affixes
 	var cap := minf(affix_total("capacitor_pulse"), 0.30)

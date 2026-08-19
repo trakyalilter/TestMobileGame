@@ -5399,6 +5399,10 @@ func _shipyard_modules(v: VBoxContainer) -> void:
 		var m: Dictionary = GameData.MODULES[mid]
 		if m.get("slot", "") != ship_mod_slot:
 			continue
+		# Boss set pieces, relics and other drop-only gear are LOOT — they have no
+		# cost, so listing them here offered them free.
+		if GameState.module_is_drop_only(String(mid)):
+			continue
 		if shipyard_zone != 0 and _module_zone(mid) != shipyard_zone:
 			continue
 		any = true
@@ -5897,9 +5901,18 @@ func _research_detail_body(v: VBoxContainer, close: Callable, id: String) -> voi
 		var have := GameState.amount(sym)
 		lines.append(_line("%s   %s / %d" % [GameData.res_name(sym), GameData.fmt(have), need], GREEN if have >= need else C_WARN, sym))
 	_inset(v, "REQUIREMENTS", lines, PURP)
+	# Every gate that can hold this tech back, not just the parent edge. A tech
+	# gated on req_tech showed all its costs green with a dead Research button and
+	# nothing on screen naming the tech it was actually waiting for.
 	var par: String = t.get("parent", "")
 	if par != "" and not GameState.is_research_unlocked(par):
 		_clbl(v, "⊘ First research: " + GameData.RESEARCH.get(par, {}).get("name", par), 11, C_WARN)
+	for rt in t.get("req_tech", []):
+		var rts := String(rt)
+		if rts != "" and rts != par and not GameState.is_research_unlocked(rts):
+			_clbl(v, "⊘ First research: " + GameData.RESEARCH.get(rts, {}).get("name", rts), 11, C_WARN)
+	if bool(t.get("requires_warp", false)) and not GameState.cryo_unlocked:
+		_clbl(v, "⊘ Unlocks after your first Warp", 11, C_WARN)
 	if researched:
 		var done := Label.new()
 		done.text = "✓ Researched"

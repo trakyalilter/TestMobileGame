@@ -633,6 +633,12 @@ for mid, mo in modules.items():
     if mo.get("power_tier"): d["power_tier"] = int(mo["power_tier"])
     if mo.get("rarity") is not None: d["rarity"] = mo["rarity"]
     if mo.get("research_req"): d["research_req"] = mo["research_req"]
+    # Drop-only marker. The split above only moves SET pieces (set_id) into
+    # SET_MODULES, so unique gear without a set — the Overcharge batteries, the
+    # Faraday Hull, relics — stayed in MODULES and lost the flag that says it is
+    # loot. The shop then listed it, and since such modules carry no cost, it
+    # was free. Desktop's shipyard skips is_unique for exactly this reason.
+    if mo.get("is_unique"): d["is_unique"] = True
     # v113 (NG+ P2) Threshold Relic: which sector the key is cut for, how much
     # incoming damage it slashes there, and the boss that drops it. Without
     # these the relic is an inert item with no effect.

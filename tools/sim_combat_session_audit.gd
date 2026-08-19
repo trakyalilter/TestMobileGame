@@ -484,6 +484,38 @@ func _run() -> void:
 		"the run is either intact or fully torn down after an away window")
 	gs.stop_task()
 
+	# ---------- M. the kill-then-retreat beat ----------
+	# m017 teaches Retreat: the kill alone must not finish it, disengaging must.
+	# Nothing credited the defeat_retreat type at all, so the objective sat at 0/1
+	# through any number of kills and the tutorial dead-ended on it.
+	var dr_id := ""
+	for mid in gd.MISSION_ORDER:
+		if String((gd.MISSIONS[mid] as Dictionary).get("type", "")) == "defeat_retreat":
+			dr_id = String(mid)
+			break
+	if dr_id == "":
+		W("no defeat_retreat mission in the chain — the kill-then-retreat check did not run")
+	else:
+		var dm: Dictionary = gd.MISSIONS[dr_id]
+		var prey := String(dm.get("target", ""))
+		gs.hard_reset()
+		gs.missions_active = {dr_id: true}
+		gs.missions_progress.erase(dr_id)
+		gs._mission_completed_seen.erase(dr_id)
+		_chk(not gs.mission_completed(dr_id), "the beat starts incomplete")
+		gs.start_task("combat", prey)
+		_kill(gs)
+		_chk(int(gs.missions_progress.get(dr_id, 0)) >= int(dm.get("qty", 1)),
+			"the kill is credited as progress",
+			"%d/%d" % [int(gs.missions_progress.get(dr_id, 0)), int(dm.get("qty", 1))])
+		_chk(not gs.mission_completed(dr_id),
+			"the kill ALONE does not complete it — the retreat is the gate")
+		gs.stop_task()
+		_chk(gs.mission_completed(dr_id),
+			"disengaging completes it")
+		_chk(gs.claim_mission(dr_id), "and it can then be claimed")
+		print("kill-then-retreat: %s completes on disengage, not on the kill" % dr_id)
+
 	gs._suppress_fx = false
 	_report()
 

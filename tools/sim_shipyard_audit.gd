@@ -195,6 +195,39 @@ func _run() -> void:
 		prev_slots = slots2
 	print("hull tiers: %s" % str(tiers))
 
+	# ---------- drop-only gear is not merchandise ----------
+	# Every UNIQUE module and everything with no cost is loot: boss set pieces,
+	# relics, the Faraday Hull. They shipped listed in the Module Shop, and a
+	# module with an empty cost is FREE — Leviathan's Overcharge (1700 energy cap)
+	# was one tap away in Lunar Orbit, which is the whole progression curve gone.
+	gs.hard_reset()
+	gs.credits = 1_000_000_000
+	for sym in gd.RESOURCES:
+		gs.resources[sym] = 100000
+	for rid in gd.RESEARCH:
+		gs.unlocked_research[rid] = true
+	var drop_only := 0
+	var sellable := 0
+	for mid in gd.MODULES:
+		var m: Dictionary = gd.MODULES[mid]
+		if gs.module_is_drop_only(String(mid)):
+			drop_only += 1
+			if gs.module_can_buy(String(mid)):
+				E("drop-only module '%s' (%s) is purchasable in the shop"
+					% [mid, m.get("name", mid)])
+			var before: int = int(gs.module_inventory.get(mid, 0))
+			gs.buy_module(String(mid))
+			if int(gs.module_inventory.get(mid, 0)) != before:
+				E("buying drop-only '%s' granted it anyway — the engine gate is missing" % mid)
+		else:
+			sellable += 1
+			if (m.get("cost", {}) as Dictionary).is_empty():
+				E("shop module '%s' has no cost — it would be free" % mid)
+	print("modules: %d sold in the shop, %d drop-only (unique or costless)"
+		% [sellable, drop_only])
+	if drop_only == 0:
+		E("no drop-only modules found — this check has no subjects and proves nothing")
+
 	# ---------- report ----------
 	print("")
 	if errs.is_empty():
