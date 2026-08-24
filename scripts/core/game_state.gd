@@ -6413,7 +6413,28 @@ func load_game() -> void:
 	_bounty_id = int(data.get("bounty_id", 0))
 	standing_board = data.get("standing_board", [])
 	equipped_relic = String(data.get("equipped_relic", ""))
-	proc_boards = data.get("proc_boards", {})
+	# v177 self-healing boards: an order bakes in the unit price it was generated
+	# at, so a retune of PROC_UNIT_PRICE would leave the player staring at stale
+	# cards until they happened to claim them — a 4,400-unit iron order still
+	# headlined "Pays 1 Lira per unit" long after the table said 10. Any card whose
+	# price no longer matches the table is dropped here and refilled by
+	# ensure_procurement() on the same tick, so no migration is needed and nothing
+	# is lost.
+	proc_boards = {}
+	var _proc_dropped := 0
+	for fam in data.get("proc_boards", {}):
+		var kept: Array = []
+		for q in data["proc_boards"][fam]:
+			if not (q is Dictionary):
+				continue
+			var want := proc_unit_price(String((q as Dictionary).get("target", "")))
+			if not is_equal_approx(float((q as Dictionary).get("unit_price", 0.0)), want):
+				_proc_dropped += 1
+				continue
+			kept.append(q)
+		proc_boards[String(fam)] = kept
+	if _proc_dropped > 0:
+		print("procurement: dropped %d card(s) priced at a stale rate" % _proc_dropped)
 	proc_pools = {}
 	for k in data.get("proc_pools", {}):
 		proc_pools[String(k)] = float(data["proc_pools"][k])

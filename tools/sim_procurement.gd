@@ -133,5 +133,65 @@ func _run() -> void:
 	gs.proc_pools["refining"] = cap * 10.0
 	_ok(gs.proc_pool_value("refining") <= cap, "pool value is clamped DOWN to the cap")
 
+	# ---- no generated order can be a dead card ----
+	# A claim is blocked outright when the pool holds less than the order's value
+	# and the card never resizes, so an order worth more than the CAP is
+	# permanently unclaimable. Order value follows the player's line rate while
+	# the cap follows their combat frontier, so an engineer who over-invests in
+	# factories for their zone was the one locked out.
+	var dead := 0
+	var checked := 0
+	for fam2 in gs.PROC_FAMILIES:
+		var fam2_s := String(fam2)
+		var cap2: float = gs.proc_pool_cap(fam2_s)
+		if cap2 <= 0.0:
+			continue
+		for good in gs.PROC_FAMILIES[fam2_s]:
+			# Generate at a deliberately over-scaled line rate — the exact case
+			# that produced dead cards before the clamp.
+			var o3: Dictionary = gs._gen_proc_order(fam2_s, String(good), 1_000_000.0)
+			checked += 1
+			if float(o3.get("reward_credits", 0.0)) > cap2:
+				dead += 1
+	_ok(dead == 0, "no over-scaled line can generate an unclaimable order",
+		"%d of %d goods produced a card worth more than its pool cap" % [dead, checked])
+	print("order sizing: %d goods generated at an absurd line rate, %d dead cards" % [checked, dead])
+
+	# ---- stale cards self-heal ----
+	# An order bakes in the unit price it was generated at. After a retune, a card
+	# priced at the old rate must be dropped and refilled rather than sitting on
+	# the board advertising a number the table no longer honours.
+	gs.current_slot = 1
+	gs.load_failed = false
+	var fam3 := _bring_family_online(gs, gd, "refining")
+	gs.ensure_procurement()
+	var board3: Array = gs.proc_boards.get("refining", [])
+	if board3.is_empty():
+		_ok(false, "the refining board has a card to stale out")
+	else:
+		var victim: Dictionary = board3[0]
+		var real_price: float = float(victim["unit_price"])
+		victim["unit_price"] = real_price / 10.0        # a pre-retune card
+		var stale_id := String(victim["id"])
+		gs.save_game()
+		gs.hard_reset()
+		gs.current_slot = 1
+		gs.load_game()
+		var survived := false
+		for q3 in gs.proc_boards.get("refining", []):
+			if String((q3 as Dictionary)["id"]) == stale_id:
+				survived = true
+		_ok(not survived, "a card priced at a stale rate is dropped on load")
+		# And the board refills, so the player never loses a slot to the heal.
+		var after: Array = gs.procurement_board("refining")
+		_ok(after.size() == gs.PROC_CARDS_PER_FAMILY,
+			"the board refills to full on the same tick",
+			"%d of %d cards" % [after.size(), gs.PROC_CARDS_PER_FAMILY])
+		for q4 in after:
+			var want4: float = gs.proc_unit_price(String((q4 as Dictionary)["target"]))
+			_ok(is_equal_approx(float((q4 as Dictionary)["unit_price"]), want4),
+				"every card on the healed board is priced at the current table")
+	gs.delete_slot(1)
+
 	print("PROCUREMENT: %s" % ("FAIL" if _fail else "PASS"))
 	quit()
