@@ -10,7 +10,7 @@ const BOTTOM := [
 	{"id": "research", "label": "Research"},
 	{"id": "more",     "label": "More"},
 ]
-const PAGE_IDS := ["gather", "craft", "combat", "research", "more", "build", "shipyard", "ship", "bounty", "standing", "procurement", "warp", "fleet", "missions", "atlas", "stats", "hazard", "settings"]
+const PAGE_IDS := ["gather", "craft", "combat", "research", "more", "build", "shipyard", "ship", "bounty", "standing", "procurement", "hunt", "warp", "fleet", "missions", "atlas", "stats", "hazard", "settings"]
 const MORE_MENU := [
 	{"id": "missions", "label": "✦  Missions"},
 	{"id": "build",  "label": "⌂  Infrastructure"},
@@ -19,6 +19,7 @@ const MORE_MENU := [
 	{"id": "bounty", "label": "◆  Bounty Board"},
 	{"id": "standing", "label": "▤  Standing Orders"},
 	{"id": "procurement", "label": "⚗  Station Procurement"},
+	{"id": "hunt",   "label": "✵  Hunt Log"},
 	{"id": "hazard", "label": "☢  Hazard Zones"},
 	{"id": "warp",   "label": "✦  Warp Core"},
 	{"id": "fleet",  "label": "❖  Fleet Command"},
@@ -62,6 +63,7 @@ const NAV_ALL := [
 	{"id": "bounty",   "label": "Bounty Board",   "icon": "◆"},
 	{"id": "standing", "label": "Standing Orders", "icon": "▤"},
 	{"id": "procurement", "label": "Station Procurement", "icon": "⚗"},
+	{"id": "hunt",     "label": "Hunt Log",       "icon": "✵"},
 	{"id": "hazard",   "label": "Hazard Zones",   "icon": "☢"},
 	{"id": "warp",     "label": "Warp Core",      "icon": "✦"},
 	{"id": "fleet",    "label": "Fleet Command",  "icon": "❖"},
@@ -211,6 +213,7 @@ var _enemy_anchor: Control = null
 var _player_anchor: Control = null
 var _enrage_chip: Control = null      # live ENRAGED indicator in the battle view
 var _wave_label: Label = null         # live hazard "WAVE x/y" counter
+var hunt_zone := 1                    # Hunt Log zone tab (sector difficulty)
 var _enemy_atk_bar: ProgressBar = null  # enemy attack-timer bar (live)
 var _weapon_rows: Array = []          # per-weapon {bar, ammo, slot, needs_ammo} — live fire/ammo readout
 # Live "SALVAGE THIS RUN" panel — the session-loot container + the snapshot used
@@ -1905,6 +1908,7 @@ func _refresh_current(preserve_scroll: bool = false) -> void:
 		"research": _build_research()
 		"more":     _build_more()
 		"stats":    _build_stats()
+		"hunt":     _build_hunt()
 		"hazard":   _build_hazard()
 		"settings": _build_settings()
 	# Let touch drags fall through cards to the page's ScrollContainer so the
@@ -6238,6 +6242,91 @@ func _atlas_kv(parent: VBoxContainer, label_text: String, items: Array, color: S
 	body.add_theme_font_size_override("font_size", _fs(11))
 	body.add_theme_color_override("font_color", Color.html(color))
 	parent.add_child(body)
+
+# ============================================================ HUNT LOG
+# v177: a per-enemy kill record. 25/100/250/500/1000 kills earn five stars, and
+# each rank adds damage against THAT enemy only (+2.5/5/10/15/25%). Zone-tabbed
+# like the Bounty board, unlocked sectors only, so it never spoils what is ahead.
+func _build_hunt() -> void:
+	var v := _clear("hunt")
+	_back_header(v)
+	var eyebrow := Label.new()
+	eyebrow.text = "✵ HUNT LOG"
+	eyebrow.add_theme_font_size_override("font_size", _fs(16))
+	eyebrow.add_theme_color_override("font_color", Color.html(GOLD))
+	v.add_child(eyebrow)
+	_section(v, "Every kill is recorded. Earned stars add damage against that enemy alone — they survive Warp, and only a new game clears them.", GOLD)
+
+	# Zone tabs: unlocked sectors only.
+	var zones := []
+	for z in GameData.ZONES:
+		if _zone_unlocked(z):
+			zones.append(z)
+	if zones.is_empty():
+		_empty(v, "No sectors surveyed yet.")
+		return
+	var ids := []
+	for z in zones:
+		ids.append({"id": str(int(z.get("difficulty", 0))), "label": String(z.get("name", "Sector"))})
+	var cur := str(hunt_zone)
+	var found := false
+	for it in ids:
+		if String((it as Dictionary)["id"]) == cur:
+			found = true
+	if not found:
+		hunt_zone = int(ids[0]["id"])
+		cur = str(hunt_zone)
+	_subtabs(v, ids, cur, GOLD, func(id: String) -> void:
+		hunt_zone = int(id)
+		_refresh_current())
+
+	var zone := {}
+	for z in zones:
+		if int(z.get("difficulty", 0)) == hunt_zone:
+			zone = z
+	var roster: Array = zone.get("enemies", [])
+	if roster.is_empty():
+		_empty(v, "Nothing catalogued in this sector.")
+		return
+	var g := _grid(v)
+	for eid in roster:
+		var e: Dictionary = GameData.ENEMIES.get(String(eid), {})
+		if e.is_empty():
+			continue
+		g.add_child(_hunt_card(String(eid), e))
+
+## One enemy: its stars, the kill tally, and what the rank is paying.
+func _hunt_card(eid: String, e: Dictionary) -> Control:
+	var p: Dictionary = GameState.get_hunt_progress(eid)
+	var stars := int(p["stars"])
+	var lit := stars > 0
+	var c := _card(GOLD, lit)
+	c.get_parent().size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var star_row := ""
+	for i in GameState.HUNT_STAR_THRESHOLDS.size():
+		star_row += "★" if i < stars else "☆"
+	_card_head(c, "◎" if not e.get("is_boss", false) else "☠", String(e.get("name", eid)), star_row, GOLD, lit)
+	var lines := []
+	lines.append(_line("Kills   %s" % GameData.fmt(int(p["kills"])), C_TEXT))
+	var mult := GameState.get_hunt_damage_mult(eid)
+	if stars > 0:
+		lines.append(_line("Damage vs this enemy   +%s%%" % _pct1((mult - 1.0) * 100.0), GREEN))
+	else:
+		lines.append(_line("No rank yet — 25 kills earns the first star", C_MUTED))
+	if int(p["next"]) > 0:
+		lines.append(_line("Next star at %s   (%s to go, +%s%%)" % [
+			GameData.fmt(int(p["next"])), GameData.fmt(int(p["remaining"])),
+			_pct1(GameState.get_hunt_star_bonus(stars + 1) * 100.0)], C_DIM))
+	else:
+		lines.append(_line("Fully ranked", GOLD))
+	_inset(c, "RECORD", lines, GOLD, lit)
+	return c.get_parent()
+
+## One decimal, trimmed: the first rank pays 2.5% and rounding it to "+2%"
+## understates a bonus the player can count.
+func _pct1(v: float) -> String:
+	var t := "%.1f" % v
+	return t.trim_suffix(".0")
 
 # ============================================================ HAZARD ZONES
 # Gauntlet runs (GameData.HAZARD_ZONES): locked until the unlock boss falls,

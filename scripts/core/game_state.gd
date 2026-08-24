@@ -205,6 +205,66 @@ const MAX_REFLECT_PERCENT := 0.10        # Reflect capped
 # v86.0 Hazard-zone (gauntlet) runtime state. zone_id "" means no hazard active.
 var hazard_state: Dictionary = {"active": false, "zone_id": "", "wave": 0, "max_waves": 7}
 var boss_kills: Dictionary = {}          # enemy_id -> kill count (hazard unlocks, z11 flag)
+
+# ═══ v177 HUNT LOG ═══════════════════════════════════════════════════════════
+# Per-enemy lifetime kill tally -> a 5-star rank -> bonus damage against THAT
+# enemy only. Surfaced on the Hunt page.
+#
+# Why a per-ENEMY multiplier does not break the gear-check curve: it can only
+# apply to something you have already killed dozens of times, so it never
+# inflates your power against NEW content. Bosses are self-limiting — the chain
+# asks for 1-3 boss kills, so a boss sits at 0 stars through normal play; a
+# player who farms one 25+ times has already proven they can beat it.
+#
+# PERSISTS THROUGH WARP, clears on hard reset — the same rule as boss_kills. It
+# is a hunting record, and "each run is faster" is the prestige cadence.
+const HUNT_STAR_THRESHOLDS := [25, 100, 250, 500, 1000]
+# TOTAL bonus at each rank, not a per-star increment — a BACK-LOADED ladder.
+# 1000 kills is a long commitment and should read as the payoff; a flat curve
+# gave over a third of the value away at the 25-kill mark. Index 0 = 1 star.
+const HUNT_STAR_BONUS := [0.025, 0.05, 0.10, 0.15, 0.25]
+var enemy_kills: Dictionary = {}         # enemy_id -> lifetime kills (Hunt Log)
+
+func get_enemy_kills(eid: String) -> int:
+	return int(enemy_kills.get(eid, 0))
+
+func get_hunt_stars(eid: String) -> int:
+	var k := get_enemy_kills(eid)
+	var st := 0
+	for t in HUNT_STAR_THRESHOLDS:
+		if k >= int(t):
+			st += 1
+	return st
+
+## {stars, next, remaining, kills} — next == 0 at max rank.
+func get_hunt_progress(eid: String) -> Dictionary:
+	var k := get_enemy_kills(eid)
+	var st := get_hunt_stars(eid)
+	if st >= HUNT_STAR_THRESHOLDS.size():
+		return {"stars": st, "next": 0, "remaining": 0, "kills": k}
+	var nxt := int(HUNT_STAR_THRESHOLDS[st])
+	return {"stars": st, "next": nxt, "remaining": maxi(0, nxt - k), "kills": k}
+
+## Damage multiplier vs this enemy. 1.0 at 0 stars, 1.25 at 5.
+func get_hunt_damage_mult(eid: String) -> float:
+	var st := get_hunt_stars(eid)
+	if st <= 0:
+		return 1.0
+	return 1.0 + float(HUNT_STAR_BONUS[mini(st, HUNT_STAR_BONUS.size()) - 1])
+
+## What a given rank pays, as a FRACTION (0.025 = +2.5%). 1-based; out of range
+## returns 0.0. Not pre-rounded — the first rank is 2.5%, and rounding rendered
+## it as "+2%" on the card, understating a bonus the player can verify.
+func get_hunt_star_bonus(rank: int) -> float:
+	if rank < 1 or rank > HUNT_STAR_BONUS.size():
+		return 0.0
+	return float(HUNT_STAR_BONUS[rank - 1])
+
+## Credit kills to the log (online and offline share this).
+func add_hunt_kills(eid: String, n: int = 1) -> void:
+	if eid == "" or n <= 0:
+		return
+	enemy_kills[eid] = int(enemy_kills.get(eid, 0)) + n
 var hazard_clears: Dictionary = {}       # hazard_zone_id -> true (first-clear reward gate)
 var game_flags: Dictionary = {}          # persistent unlock flags (e.g. z11_unlocked)
 var _enemy_enraged: bool = false         # v109 per-fight enrage state (reset on spawn)
@@ -4906,6 +4966,9 @@ func _player_fire(w: Dictionary, ss: Dictionary) -> void:
 	# v0.2.1 Fleet (soft role): escort ships add a fraction of the main ship's
 	# damage, folded into every weapon's output.
 	var fmult := fleet_combat_mult()
+	# v177 Hunt Log: the per-enemy star bonus rides the same chain as the fleet
+	# contribution, so it applies once to every damage channel.
+	fmult *= get_hunt_damage_mult(String(enemy_inst.get("id", "")))
 	# v114 Zone Tier-Gate: this weapon's graduated penetration vs a hardened
 	# enemy (1.0 when ungated / tier-matched / Unique one below).
 	fmult *= module_tier_penetration(String(w.get("mid", "")), int(enemy_inst.get("tier_hardened", 0)))
@@ -5217,6 +5280,7 @@ func _win_combat() -> void:
 	# an id no bounty, contract or mission can ever match (desktop signals the live
 	# enemy id). Identical to active_id in every normal fight.
 	var live_id: String = String(enemy_inst.get("id", active_id))
+	add_hunt_kills(live_id)          # v177 Hunt Log: per-enemy lifetime tally
 	bounty_on_kill(live_id)
 	standing_on_kill(live_id)
 	_mission_event("defeat", live_id, 1)
@@ -5635,6 +5699,11 @@ func _offline_combat(delta: float) -> void:
 	# the player against enemy damage).
 	var pk := maxf(k, GameData.ARMOR_K_FLOOR * float(e.get("def", 0)))
 	var pdps := avg_player_dps() * (1.0 - float(e.get("def", 0)) / (float(e.get("def", 0)) + pk)) * tier_pen_avg(active_id)   # tier gate applies offline too
+	# v177 Hunt Log: the same per-enemy star bonus the online path applies. Left
+	# out, an unattended farm would be priced weaker than the identical attended
+	# one — and an idle game whose progress only moves while you watch it is the
+	# wrong shape.
+	pdps *= get_hunt_damage_mult(active_id)
 	pdps = maxf(1.0, pdps)
 	var ehp := float(e.get("hp", 10)) + float(e.get("max_shield", 0))
 	var kill_time := ehp / pdps
@@ -5659,6 +5728,7 @@ func _offline_combat(delta: float) -> void:
 	# else: out-sustains the enemy outright — always survives.
 	# v101 offline parity: loot scales by the same combat multiplier as online, and
 	# each kill rolls module drops (ref calculate_offline ~L2449-2511).
+	add_hunt_kills(active_id, reps)   # v177 Hunt Log: offline kills earn stars too
 	var summary := _offline_loot(e.get("loot", []), get_combat_loot_multiplier(), reps, true)
 	# Boss-core parity: online every boss kill grants its ZN_Core (ref _win_combat
 	# ~L3517). The core isn't in the loot array, so mirror it here — otherwise
@@ -6191,6 +6261,7 @@ func save_game() -> void:
 		"rm_paid": _rm_paid,
 		"missions_claimed": missions_claimed.keys(),
 		"boss_kills": boss_kills,
+		"enemy_kills": enemy_kills,          # v177 Hunt Log: per-enemy star ranks
 		"hazard_clears": hazard_clears,
 		"game_flags": game_flags,
 		"character_name": character_name,
@@ -6368,6 +6439,10 @@ func load_game() -> void:
 	# older saves that surfaced them during the tutorial).
 	_surface_core_goals()
 	boss_kills = data.get("boss_kills", {})
+	# Pre-v177 saves have no key. An empty log is the correct load state — the
+	# tally is lifetime-forward, and back-filling it from total_kills would hand
+	# out stars for enemies never fought.
+	enemy_kills = data.get("enemy_kills", {})
 	for k in boss_kills:
 		boss_kills[k] = int(boss_kills[k])
 	hazard_clears = data.get("hazard_clears", {})
@@ -6466,6 +6541,8 @@ func hard_reset() -> void:
 	game_flags = {"tier_gate_enabled": true}
 	boss_kills = {}
 	total_kills = 0
+	enemy_kills = {}        # v177 Hunt Log: star ranks are lifetime, but a NEW
+							# GAME must not start holding +25% damage against Zone 1
 	hazard_clears = {}
 	missions_active = {}
 	missions_progress = {}
