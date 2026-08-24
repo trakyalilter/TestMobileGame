@@ -1187,6 +1187,7 @@ func ship_weapons() -> Array:
 	spd_bonus = minf(spd_bonus + trinity_bonus("atk_speed_pct") / 100.0, MAX_ATK_SPEED_MULT - 1.0)
 	var speed := (1.0 + spd_bonus + gem_bonus("attack_speed")) * spd_mult * trophy_buff("ship_speed")   # Cobalt facet + Temporal Stabilizer
 	var dmg_mult := (1.0 + level_of("combat") * 0.005) * warp_combat_mult() * (1.0 + research_bonus("combat_damage")) * tree_damage_bonus()  # CMB_2 +10% & CMB_S1 spine
+	dmg_mult *= overcharge_mult()          # P5: unspent battery capacity, if a cell is fitted
 	if is_research_unlocked("void_weaponry_1"):
 		dmg_mult *= 1.05                                   # Void Weaponry I: +5% ship damage
 	# Trinity all/atk damage % applies to every type; energy/missile % stack on top.
@@ -1844,6 +1845,62 @@ func _unique_already_equipped(mid: String) -> bool:
 		equip_notice = "Only one %s can be equipped at a time." % String(d.get("name", mid))
 		return true
 	return false
+
+# ═══ P5 UTILITY UNIQUES ══════════════════════════════════════════════════════
+# Engine, sensor and battery were the only slots with no unique tier, because
+# each is a single scalar with one right answer: a unique battery that merely
+# holds MORE is a dominated pickup the moment your power fits. So the unique
+# tier grants MECHANICS instead of magnitudes — the engine gets evasion large
+# enough to actually move the dodge formula (a plain stat), and these two carry
+# the rules.
+
+## Consumer bays — the slots that draw power. A hull's battery bays do not.
+const CONSUMER_SLOT_TYPES := ["weapon", "shield", "armor", "engine", "sensor"]
+
+## Overcharge Cell: +1% weapon damage per 5% of battery capacity left UNSPENT,
+## ceilinged by the best equipped cell. Returns a multiplier (1.0 = none).
+##
+## THE GATE IS THE DESIGN. Empty slots draw no power, so a naive "unspent
+## capacity" reading pays the player for flying half-equipped — strip the armour,
+## gain damage. That is a degenerate loop, not a build. The bonus therefore pays
+## nothing unless every consumer bay is filled, so it measures genuine
+## over-provisioning (more or better batteries) rather than absence.
+func overcharge_mult() -> float:
+	var cap := 0.0
+	for k in loadout:
+		cap = maxf(cap, float(module_def(String(loadout[k])).get("overcharge_cap", 0.0)))
+	if cap <= 0.0:
+		return 1.0
+	var slots: Array = effective_slots()
+	for idx in slots.size():
+		if not (String(slots[idx]) in CONSUMER_SLOT_TYPES):
+			continue
+		if not loadout.has(str(idx)) or String(loadout[str(idx)]) == "":
+			return 1.0     # a consumer bay is empty — no reward for an unfinished ship
+	var ss := ship_stats()
+	var energy_cap := float(ss.get("energy_cap", 0.0))
+	if energy_cap <= 0.0:
+		return 1.0
+	# +1% damage per 5% unspent => bonus fraction = unspent x (1/5), i.e. x0.20.
+	# Written as the rule reads; do not "simplify" it into a chain of constants.
+	var unspent := clampf((energy_cap - float(ss.get("energy_load", 0.0))) / energy_cap, 0.0, 1.0)
+	return 1.0 + minf(unspent * 0.20, cap)
+
+## Predictive Array: kills-without-a-Rare before the next module drop is floored
+## to Rare, from the best equipped array. 0 = no pity timer. Lowest wins if two
+## are somehow equipped (the aux bay can hold a second sensor).
+func pity_kills() -> int:
+	var best := 0
+	for k in loadout:
+		var n := int(module_def(String(loadout[k])).get("pity_kills", 0))
+		if n > 0 and (best == 0 or n < best):
+			best = n
+	return best
+
+# Kills since the last Rare+ module. NOT saved: a pity counter that persisted
+# across a reload would let a player bank kills by quitting, and it is cheap to
+# re-earn. Cleared with the rest of the kill state on a hard reset.
+var pity_counter: int = 0
 
 ## True if a module (base id) is equipped — including rolled instances of it.
 func loadout_has_module(base_id: String) -> bool:
@@ -5334,6 +5391,9 @@ func _win_combat() -> void:
 	# Hack Card drops (desktop v128 faucet — replaces the old ad-hoc chip roll):
 	# gated on Firmware Hacking research; sensor + warp-tree bonuses scale the
 	# random rolls, boss guarantees bypass them.
+	# P5 Predictive Array: counted AFTER the drop roll above, so the kill that
+	# pays out does not also advance the counter it just reset.
+	pity_counter += 1
 	_roll_hack_stone_drops(_combat_difficulty(), bool(enemy_inst.get("is_boss", false)), bool(enemy_inst.get("elite", false)))
 	# Set-piece drop: bosses drop their themed set pieces (8% chance).
 	for sn in GameData.SETS:
@@ -5437,11 +5497,20 @@ func _roll_one_module_drop(pool: Array) -> void:
 	if base_id == "":
 		return
 	var rarity := roll_rarity(bool(enemy_inst.get("is_boss", false)) or enemy_inst.get("elite", false))
+	# P5 Predictive Array: after `pity_kills` kills with nothing Rare or better,
+	# the next drop is floored to Rare. Counted per run and never saved, so the
+	# timer cannot be banked by quitting.
+	var pity := pity_kills()
+	if pity > 0 and pity_counter >= pity and rarity < 2:
+		rarity = 2
+		_event("PREDICTIVE ARRAY", "3a9fff", "player")
 	if rarity <= 0:
 		return   # v136: Common is the empty roll — nothing drops at all
 	if not loot_drop_kept(base_id, rarity):
 		return   # filtered out — skipped entirely (desktop "only loot you keep is rolled")
 	var cid := generate_module(base_id, rarity, _combat_difficulty())
+	if cid != "" and rarity >= 2:
+		pity_counter = 0          # the forecast paid out — start the next window
 	if cid != "":
 		_log_session_loot(cid, 1)
 		_event("%s DROP" % (RARITY_LABEL[rarity] if rarity > 0 else "MODULE").to_upper(), RARITY_COLOR.get(rarity, "b78ae8"), "enemy")
@@ -6562,6 +6631,7 @@ func hard_reset() -> void:
 	game_flags = {"tier_gate_enabled": true}
 	boss_kills = {}
 	total_kills = 0
+	pity_counter = 0        # P5: per-run, cleared with the rest of the kill state
 	enemy_kills = {}        # v177 Hunt Log: star ranks are lifetime, but a NEW
 							# GAME must not start holding +25% damage against Zone 1
 	hazard_clears = {}

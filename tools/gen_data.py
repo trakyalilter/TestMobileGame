@@ -639,6 +639,13 @@ for mid, mo in modules.items():
     # loot. The shop then listed it, and since such modules carry no cost, it
     # was free. Desktop's shipyard skips is_unique for exactly this reason.
     if mo.get("is_unique"): d["is_unique"] = True
+    # P5 utility uniques: the engine slot is a plain evasion stat, but the
+    # battery and sensor tiers carry MECHANICS, and those live in fields the
+    # emitter used to drop — leaving 18 modules that looked unique and did
+    # nothing. overcharge_cap ceilings the unspent-power damage bonus;
+    # pity_kills is the kills-without-a-Rare floor.
+    if mo.get("overcharge_cap") is not None: d["overcharge_cap"] = float(mo["overcharge_cap"])
+    if mo.get("pity_kills") is not None: d["pity_kills"] = int(mo["pity_kills"])
     # v113 (NG+ P2) Threshold Relic: which sector the key is cut for, how much
     # incoming damage it slashes there, and the boss that drops it. Without
     # these the relic is an inert item with no effect.
