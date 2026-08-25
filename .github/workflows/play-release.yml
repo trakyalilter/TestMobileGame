@@ -220,6 +220,17 @@ jobs:
               exit 1
             fi
             echo "OK  not marked debuggable"
+            # 4. The package name is the ONE value that can never be corrected
+            #    after the first upload — a different package is a different app.
+            #    This build already shipped a typo'"'"'d one (com.horizon.dile) in the
+            #    working tree, so it is asserted rather than eyeballed.
+            PKG="$(grep -oE 'package="[^"]*"' "$MAN" | head -n1 | cut -d'"' -f2)"
+            echo "package: $PKG"
+            if [ "$PKG" != "com.horizon.idle" ]; then
+              echo "::error::package is '$PKG', expected com.horizon.idle — this is permanent once published"
+              exit 1
+            fi
+            echo "OK  package identity"
           else
             echo "::warning::No merged manifest found to inspect — targetSdk unverified."
           fi
