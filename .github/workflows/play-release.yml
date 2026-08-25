@@ -275,6 +275,28 @@ jobs:
             exit 1
           fi
 
+          # 5. WHO SIGNED IT. mode=dry-run deliberately signs with the committed
+          #    debug key, and the two modes otherwise produce byte-similar
+          #    bundles — so nothing but the certificate distinguishes an
+          #    uploadable build from one Play will bounce. Read it rather than
+          #    trusting the mode input.
+          echo "--- signer certificate ---"
+          CERT="$(keytool -printcert -jarfile "$F" 2>/dev/null || true)"
+          if [ -z "$CERT" ]; then
+            echo "::error::the bundle carries no signature block at all — Play requires a signed upload."
+            exit 1
+          fi
+          echo "$CERT" | grep -E "Owner:|Valid from:|SHA256:" | head -n 4 || true
+          if echo "$CERT" | grep -q "CN=Android Debug"; then
+            if [ "${{ inputs.mode }}" = "release" ]; then
+              echo "::error::signed with the ANDROID DEBUG certificate despite mode=release — the release keystore is not reaching Gradle. Play rejects debug-signed uploads."
+              exit 1
+            fi
+            echo "::warning::debug-signed (dry-run). Not uploadable to Play."
+          else
+            echo "OK  signed with a non-debug certificate"
+          fi
+
       - name: Upload bundle artifact
         uses: actions/upload-artifact@v4
         with:
