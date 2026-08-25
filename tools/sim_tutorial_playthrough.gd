@@ -18,6 +18,7 @@ var errs: Array = []
 var warns: Array = []
 var gs
 var gd
+var main
 
 func _init() -> void:
 	process_frame.connect(_run, CONNECT_ONE_SHOT)
@@ -333,12 +334,20 @@ func _fit_slot(slot: String) -> String:
 	return ""
 
 func _run() -> void:
+	var scene: PackedScene = load("res://scenes/main.tscn")
+	main = scene.instantiate()
+	root.add_child(main)
+	await process_frame
+	await process_frame
 	gs = root.get_node("GameState")
 	gd = root.get_node("GameData")
 	gs._suppress_fx = true
 	for n in range(1, gs.SLOT_COUNT + 1):
 		gs.delete_slot(n)
 	gs.new_character(1, "Playthrough")
+	if is_instance_valid(main._char_select):
+		main._char_select.queue_free()
+		main._char_select = null
 	# The 28-slot hold is real pressure in play, but here it just silently drops
 	# granted materials and makes a harness shortfall look like a dead chain.
 	# Storage capacity is not what this sim is testing.
@@ -355,6 +364,15 @@ func _run() -> void:
 			E("beat '%s' (%s) never became active — the chain stops before it" % [mid, m.get("name", mid)])
 			stopped_at = mid
 			break
+		# Where the coach sends the player, judged in the state they are ACTUALLY
+		# in at this beat. A page that is still hidden in the menu makes the hint
+		# "tap ☰ → Warp Core" a dead end, and a static check cannot see it because
+		# nav visibility depends on how far the run has got.
+		var route: Dictionary = main._coach_resolve(m)
+		var rpage := String(route.get("page", ""))
+		if rpage != "" and main.pages.has(rpage) and not main._nav_visible(rpage):
+			E("beat '%s' (%s) points at '%s', which is not in the menu yet at this point in the run"
+				% [mid, m.get("name", mid), rpage])
 		var why := _perform(mid)
 		if why == "SKIP":
 			skipped += 1
