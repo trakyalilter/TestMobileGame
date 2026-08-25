@@ -90,6 +90,54 @@ func _run() -> void:
 			fail = true
 		main._close_drawer()
 
+	# ---- mission guidance can be switched off ----
+	# "The tutorial is there constantly" was desktop's first demo complaint. Off
+	# must silence the POINTER without hiding what you are working towards, and
+	# missions must still run and pay — a toggle that quietly stops progress
+	# would be worse than the nagging.
+	gs.missions_active = {"m001": true}
+	gs.missions_progress.erase("m001")
+	main._show("gather")
+	await process_frame
+	gs.mission_guidance = true
+	main._update_coach()
+	await process_frame
+	var guided_visible: bool = main._coach_banner.visible
+	var guided_hint: String = main._coach_hint.text
+	gs.mission_guidance = false
+	main._update_coach()
+	await process_frame
+	if main._coach_banner.visible and guided_visible:
+		print("PASS the objective banner stays with guidance off")
+	else:
+		print("FAIL guidance off hid the objective entirely")
+		fail = true
+	if main._coach_hint.text != guided_hint:
+		print("PASS the step-by-step directive is silenced")
+	else:
+		print("FAIL the directive text is unchanged with guidance off")
+		fail = true
+	# Missions keep working regardless of the toggle.
+	gs.add_resource("Dirt", 100000, true)
+	gs._mission_sync()
+	if gs.mission_completed("m001"):
+		print("PASS missions still progress with guidance off")
+	else:
+		print("FAIL guidance off stopped mission progress")
+		fail = true
+	# ---- and the banner claims in place ----
+	var claimed_before: bool = gs.missions_claimed.has("m001")
+	main._update_coach()
+	await process_frame
+	main._coach_tapped()
+	await process_frame
+	if not claimed_before and gs.missions_claimed.has("m001"):
+		print("PASS tapping the banner claims the reward in place")
+	else:
+		print("FAIL banner tap did not claim (claimed=%s)" % str(gs.missions_claimed.has("m001")))
+		fail = true
+	gs.mission_guidance = true
+
 	if fail:
 		print("COACH_NAV: FAIL")
 		quit(1)

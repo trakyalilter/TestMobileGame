@@ -58,7 +58,10 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 	_ck(not is_instance_valid(main._char_select), "Play removes the select overlay")
-	_ck(gs.current_slot == 1 and gs.credits == 5400 and gs.character_name == "Nova", "Play loaded Nova's save")
+	# A fresh character opens with STARTING_CREDITS, so Nova's balance is that
+	# budget plus what the test granted her.
+	_ck(gs.current_slot == 1 and gs.credits == gs.STARTING_CREDITS + 5400 and gs.character_name == "Nova",
+		"Play loaded Nova's save (credits=%d)" % gs.credits)
 	var any_page := false
 	for pid in main.PAGE_IDS:
 		if main.pages.has(pid) and main.pages[pid].visible:

@@ -24,6 +24,7 @@ var _rm_paid: Dictionary = {}            # research_multi mid -> credits already
 var _mission_completed_seen: Dictionary = {}  # mid -> true (live-eval completion edge, UI-refresh only)
 
 var resources: Dictionary = {}          # symbol -> int
+const STARTING_CREDITS := 10000         # opening budget for a fresh character
 var credits: int = 0                    # research currency (earned by selling)
 var lifetime_credits: int = 0           # total credits ever earned (for prestige)
 # Warp / prestige
@@ -383,6 +384,12 @@ var pending_offline: String = ""
 var _offline_lost := {}         # distinct material types dropped (storage full) during the away window
 var _bg_time := 0.0             # wall-clock when the app was backgrounded (0 = foreground)
 var offline_combat := true              # v135a: ON by default for NEW games — it's winnability-gated AND rolls the full module pool (gear farms while away, amortizing the gear-check grind). Existing saves keep their stored value on load (no surprise durability-loss consent); saves predating the key stay off.
+# MISSION GUIDANCE (default on). OFF silences the directive pointer and the
+# coach's instructions; the objective line, the mission list and the claim
+# badges stay — they inform without pointing. Missions run and pay either way.
+# The first demo feedback was "the tutorial is there constantly", and a player
+# who wants to explore should not have to finish onboarding to be left alone.
+var mission_guidance := true
 var total_kills := 0                    # lifetime manual kills (offline-combat nudge trigger)
 
 # Legacy single-save path (pre-slots). Kept only for the one-time migration below.
@@ -6455,6 +6462,7 @@ func save_game() -> void:
 		"storage_upgrades": storage_upgrades,
 		"repeatable_research": repeatable_research,
 		"offline_combat": offline_combat,
+		"mission_guidance": mission_guidance,
 		"total_kills": total_kills,
 		"active_preset_idx": active_preset_idx,
 		"warp_shards": warp_shards,
@@ -6575,6 +6583,7 @@ func load_game() -> void:
 	storage_upgrades = int(data.get("storage_upgrades", 0))
 	repeatable_research = data.get("repeatable_research", {})
 	offline_combat = bool(data.get("offline_combat", false))
+	mission_guidance = bool(data.get("mission_guidance", true))   # pre-v180 saves keep guidance on
 	total_kills = int(data.get("total_kills", 0))
 	active_preset_idx = int(data.get("active_preset_idx", 1))
 	for k in repeatable_research:
@@ -6946,6 +6955,11 @@ func new_character(n: int, name: String) -> void:
 	# an unreadable previous save would otherwise leave in place.
 	load_failed = false
 	current_slot = n
+	# With guidance optional the mission board stops being a guaranteed early
+	# credit faucet, so a player who ignores it still needs storage, buildings and
+	# supply sinks to be reachable. Negligible against the 500k warp gate; anyone
+	# who follows the chain still out-earns it comfortably.
+	credits = STARTING_CREDITS
 	character_name = name if name.strip_edges() != "" else "Commander"
 	_created_at = Time.get_unix_time_from_system()
 	enter_slot()

@@ -40,7 +40,12 @@ func _run() -> void:
 	var s3 = gs.slot_summary(3)
 	_ck(s2.get("exists", false) and s3.get("exists", false), "both slots exist after creation")
 	_ck(s2.get("name", "") == "A" and s3.get("name", "") == "B", "names don't bleed (A/B)")
-	_ck(s2.get("credits", 0) == 1234 and s3.get("credits", 0) == 9876, "credits isolated per slot")
+	# A fresh character now opens with STARTING_CREDITS, so the assertion is
+	# relative to that budget rather than to zero.
+	_ck(s2.get("credits", 0) == gs.STARTING_CREDITS + 1234
+		and s3.get("credits", 0) == gs.STARTING_CREDITS + 9876,
+		"credits isolated per slot (slot2=%d slot3=%d, start=%d)"
+			% [int(s2.get("credits", 0)), int(s3.get("credits", 0)), gs.STARTING_CREDITS])
 	_ck(s2.get("combat_level", 0) == 12, "slot 2 combat level 12 (got %d)" % int(s2.get("combat_level", -1)))
 	_ck(s3.get("combat_level", 0) == 5, "slot 3 combat level 5 (got %d)" % int(s3.get("combat_level", -1)))
 	_ck(s2.get("sector", "") == "Asteroid Belt", "slot 2 sector = Asteroid Belt (got %s)" % str(s2.get("sector", "")))
@@ -49,9 +54,9 @@ func _run() -> void:
 
 	# --- select_slot loads the right state.
 	gs.select_slot(2)
-	_ck(gs.current_slot == 2 and gs.credits == 1234 and gs.character_name == "A", "select_slot(2) loads A")
+	_ck(gs.current_slot == 2 and gs.credits == gs.STARTING_CREDITS + 1234 and gs.character_name == "A", "select_slot(2) loads A")
 	gs.select_slot(3)
-	_ck(gs.current_slot == 3 and gs.credits == 9876 and gs.character_name == "B", "select_slot(3) loads B")
+	_ck(gs.current_slot == 3 and gs.credits == gs.STARTING_CREDITS + 9876 and gs.character_name == "B", "select_slot(3) loads B")
 
 	# --- Empty slot summary.
 	var s4 = gs.slot_summary(4)

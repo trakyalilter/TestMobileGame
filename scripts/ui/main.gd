@@ -440,6 +440,24 @@ func _coach_resolve(m: Dictionary) -> Dictionary:
 		card = ""
 	return {"page": page, "card": card}
 
+## Banner tap: claim what is ready, else go where the objective points.
+func _coach_tapped() -> void:
+	var mid := _coach_active_mission()
+	if mid == "" or not GameData.MISSIONS.has(mid):
+		return
+	if GameState.mission_completed(mid) and not GameState.missions_claimed.has(mid):
+		if GameState.claim_mission(mid):
+			_update_coach()
+			_update_badges()
+			_refresh_current()
+		return
+	var res := _coach_resolve(GameData.MISSIONS[mid])
+	var page: String = res.get("page", "")
+	if page != "" and pages.has(page) and page != current:
+		if drawer_open:
+			_toggle_drawer()
+		_show(page)
+
 func _update_coach() -> void:
 	if _coach_banner == null:
 		return
@@ -465,7 +483,7 @@ func _update_coach() -> void:
 	var card: String = res["card"]
 	var pulse: Control = null
 	if claim:
-		_coach_hint.text = "✓ Reward ready — open ☰ → Missions, then tap Claim."
+		_coach_hint.text = "✓ Reward ready — tap here to claim."
 		if current != "missions":
 			pulse = _ham_btn
 		if drawer_open and nav_items.has("missions"):
@@ -509,6 +527,14 @@ func _update_coach() -> void:
 	# Past onboarding the banner still says what to do; it just stops pointing.
 	if not guided and not claim:
 		pulse = null
+	# Guidance off: no highlight, and the hint drops to the bare objective. The
+	# banner itself stays — knowing what you are working towards is information,
+	# not instruction — and a ready reward still says so, because that is a
+	# "your move" prompt rather than a lesson.
+	if not GameState.mission_guidance:
+		pulse = null
+		if not claim:
+			_coach_hint.text = m.get("desc", "")
 	_pulse_start(pulse)
 
 # True when the active task IS the coach's highlighted card (the player has started
@@ -1573,6 +1599,19 @@ func _build() -> void:
 	_coach_hint.add_theme_font_size_override("font_size", _fs(11))
 	_coach_hint.add_theme_color_override("font_color", Color.html(CYAN))
 	cv.add_child(_coach_hint)
+	# Tapping the banner CLAIMS in place when a reward is ready. It used to be a
+	# label that only told you to go elsewhere, forcing a do-task -> swap page ->
+	# claim -> swap back loop on every step; desktop's demo feedback called that
+	# out directly ("swapping back and forth between tabs to claim a step reward
+	# doesn't feel good"). With nothing to claim it opens the page the objective
+	# points at, so the tap always does something.
+	var coach_tap := Button.new()
+	coach_tap.flat = true
+	coach_tap.focus_mode = Control.FOCUS_NONE
+	coach_tap.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	coach_tap.mouse_filter = Control.MOUSE_FILTER_PASS
+	coach_tap.pressed.connect(_coach_tapped)
+	_coach_banner.add_child(coach_tap)
 	topv.add_child(_coach_banner)
 
 	# ---- Content ----
@@ -6700,6 +6739,20 @@ func _build_settings() -> void:
 	var v := _clear("settings")
 	_back_header(v)
 	_clbl(v, "SETTINGS", 16, CYAN)
+	_section(v, "Gameplay", CYAN)
+	# Mission guidance (on by default). The first demo feedback on desktop was
+	# "the tutorial is there constantly" — a player who would rather explore
+	# should be able to say so without finishing onboarding first.
+	var mg := GameState.mission_guidance
+	var mg_btn := _card_button("Mission Guidance: %s" % ("ON" if mg else "OFF"), GREEN if mg else C_MUTED, true)
+	mg_btn.custom_minimum_size = Vector2(0, 44)
+	mg_btn.pressed.connect(func() -> void:
+		GameState.mission_guidance = not GameState.mission_guidance
+		_update_coach()
+		_refresh_current())
+	v.add_child(mg_btn)
+	_lbl_wrap(v, "✦ Off hides the pointing highlight and the step-by-step directions. Your objective, the mission list and the claim badges stay — missions still run and still pay.", 9, C_MUTED)
+
 	_section(v, "System", CYAN)
 	# Offline-combat toggle (off by default, like desktop).
 	var oc := GameState.offline_combat
