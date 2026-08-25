@@ -23,11 +23,35 @@ Run this on your own machine, not in CI. Keep the file and the passwords: with
 Play App Signing you can ask Google to reset a lost upload key, but without it
 you would lose the ability to update the app at all.
 
+`keytool` ships inside a JDK — it is not on PATH by default on Windows, and
+`\` line-continuations are bash, so the command below must be one line in
+PowerShell (or use a backtick).
+
+**macOS / Linux**
+
 ```bash
 keytool -genkeypair -v \
   -keystore stellarforge-upload.keystore \
   -alias stellarforge \
   -keyalg RSA -keysize 2048 -validity 10000
+```
+
+**Windows (PowerShell)** — find a JDK you already have:
+
+```powershell
+@("C:\Program Files\Android\Android Studio\jbr\bin\keytool.exe",
+  "C:\Program Files\Java\*\bin\keytool.exe",
+  "C:\Program Files\Eclipse Adoptium\*\bin\keytool.exe",
+  "C:\Program Files\Microsoft\jdk-*\bin\keytool.exe") |
+  ForEach-Object { Get-Item $_ -ErrorAction SilentlyContinue } | Select-Object -Expand FullName
+```
+
+Android Studio bundles one at the first path. If none exists,
+`winget install Microsoft.OpenJDK.21`, then open a new shell so PATH refreshes.
+Then, on one line:
+
+```powershell
+& "C:\Program Files\Android\Android Studio\jbr\bin\keytool.exe" -genkeypair -v -keystore stellarforge-upload.keystore -alias stellarforge -keyalg RSA -keysize 2048 -validity 10000
 ```
 
 It asks for a keystore password, then your name/organisation (any answer is
@@ -39,8 +63,19 @@ before your last update is a dead end.
 
 ### 2. Put it in repo secrets
 
+**macOS / Linux**
+
 ```bash
 base64 -w0 stellarforge-upload.keystore > keystore.b64   # macOS: base64 -i ... -o ...
+```
+
+**Windows (PowerShell).** Use this, not `Set-Content` or `certutil`: Windows
+PowerShell writes a UTF-8 BOM and a trailing newline, and the workflow decodes
+the secret with `base64 -d`, which chokes on both. `WriteAllText` emits exactly
+the base64 and nothing else.
+
+```powershell
+[IO.File]::WriteAllText("$PWD\keystore.b64", [Convert]::ToBase64String([IO.File]::ReadAllBytes("$PWD\stellarforge-upload.keystore")))
 ```
 
 Then in GitHub → Settings → Secrets and variables → Actions → New repository
@@ -53,7 +88,15 @@ secret, add four:
 | `ANDROID_KEY_ALIAS` | `stellarforge` (the `-alias` above) |
 | `ANDROID_KEY_PASSWORD` | the key password |
 
-Delete `keystore.b64` afterwards. Never commit the keystore itself.
+Delete `keystore.b64` afterwards. Never commit the keystore itself — back it up
+somewhere you will still have in a year instead.
+
+Sanity-check what you made before trusting it. The alias it prints must match
+`ANDROID_KEY_ALIAS` exactly, or the build fails at `keytool -list` in CI:
+
+```
+keytool -list -v -keystore stellarforge-upload.keystore
+```
 
 ### 3. Enrol in Play App Signing
 
