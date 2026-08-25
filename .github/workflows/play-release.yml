@@ -224,13 +224,26 @@ jobs:
             #    after the first upload — a different package is a different app.
             #    This build already shipped a typo'"'"'d one (com.horizon.dile) in the
             #    working tree, so it is asserted rather than eyeballed.
-            PKG="$(grep -oE 'package="[^"]*"' "$MAN" | head -n1 | cut -d'"' -f2)"
-            echo "package: $PKG"
-            if [ "$PKG" != "com.horizon.idle" ]; then
-              echo "::error::package is '$PKG', expected com.horizon.idle — this is permanent once published"
-              exit 1
-            fi
-            echo "OK  package identity"
+            echo "merged-manifest package attribute: $(grep -oE 'package="[^"]*"' "$MAN" | head -n1)"
+          fi
+
+          # 4. THE PACKAGE NAME, read out of the BUNDLE itself — the value Play
+          #    reads, and the one string that can never be corrected after the
+          #    first upload. Diagnostics first: with the Gradle build the merged
+          #    manifest's package attribute is the template NAMESPACE, not the
+          #    applicationId, so the two legitimately differ and only the bundle
+          #    is authoritative.
+          echo "--- gradle build files naming the app ---"
+          grep -rl "com.horizon.idle" android/build --include=*.gradle --include=*.xml --include=*.properties 2>/dev/null | head -5 || true
+          echo "--- candidate ids inside the bundle manifest ---"
+          unzip -p "$F" base/manifest/AndroidManifest.xml | strings \
+            | grep -E "^(com|org)\.[A-Za-z0-9_]+(\.[A-Za-z0-9_]+)+$" | sort -u | head -10 || true
+          if unzip -p "$F" base/manifest/AndroidManifest.xml | strings | grep -qx "com.horizon.idle"; then
+            echo "OK  package identity (com.horizon.idle is in the bundle manifest)"
+          else
+            echo "::error::com.horizon.idle is NOT in the bundle manifest — the export preset is not reaching the build, and the package name is permanent once published"
+            exit 1
+          fi
           else
             echo "::warning::No merged manifest found to inspect — targetSdk unverified."
           fi
