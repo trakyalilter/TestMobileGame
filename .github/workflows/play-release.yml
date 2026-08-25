@@ -233,23 +233,21 @@ jobs:
           #    manifest's package attribute is the template NAMESPACE, not the
           #    applicationId, so the two legitimately differ and only the bundle
           #    is authoritative.
-          echo "--- gradle build files naming the app ---"
-          grep -rl "com.horizon.idle" android/build --include=*.gradle --include=*.xml --include=*.properties 2>/dev/null | head -5 || true
-          # The bundle manifest is protobuf, so pull printable runs out of it with
-          # tr — `strings` is binutils and this image does not carry it. A check
-          # that cannot tell "wrong value" from "could not look" is worse than no
-          # check, so a failed extraction warns and a missing id fails.
+          # THE PACKAGE NAME, read from the bundle Play will read. The protobuf
+          # manifest stores strings next to other bytes, so match anywhere on the
+          # line rather than anchoring it — an over-strict pattern finds nothing
+          # and then looks exactly like a missing value.
           unzip -p "$F" base/manifest/AndroidManifest.xml > /tmp/base_manifest.pb 2>/dev/null || true
           if [ ! -s /tmp/base_manifest.pb ]; then
             echo "::warning::could not read base/manifest/AndroidManifest.xml — package identity UNVERIFIED"
           else
-            echo "--- candidate ids inside the bundle manifest ---"
-            tr -c '[:print:]' '\n' < /tmp/base_manifest.pb \
-              | grep -E "^(com|org)\.[A-Za-z0-9_]+(\.[A-Za-z0-9_]+)+$" | sort -u | head -10 || true
-            if tr -c '[:print:]' '\n' < /tmp/base_manifest.pb | grep -qx "com.horizon.idle"; then
-              echo "OK  package identity (com.horizon.idle is in the bundle manifest)"
+            echo "--- every com.* / org.* id inside the bundle manifest ---"
+            grep -a -o -E "(com|org)\.[A-Za-z0-9_]+(\.[A-Za-z0-9_]+)+" /tmp/base_manifest.pb \
+              | sort -u | head -20 || true
+            if grep -a -q "com\.horizon\.idle" /tmp/base_manifest.pb; then
+              echo "OK  package identity (com.horizon.idle is in the bundle)"
             else
-              echo "::error::com.horizon.idle is NOT in the bundle manifest — the package name is permanent once published, so this build must not be uploaded"
+              echo "::error::com.horizon.idle is NOT in the bundle — the export preset is not reaching the Gradle build. The package name is permanent once published, so this build must not be uploaded."
               exit 1
             fi
           fi
