@@ -87,7 +87,10 @@ jobs:
           architectures/x86_64=false
           version/code=${{ github.run_number }}
           version/name="0.1.${{ github.run_number }}"
-          package/unique_name="com.stellarforge.game"
+          # Same identity as the Play build (com.horizon.idle). NOTE: changing this
+          # makes a sideloaded APK a DIFFERENT app — it installs alongside the old
+          # one rather than over it, with its own empty save.
+          package/unique_name="com.horizon.idle"
           package/name="Stellar Forge"
           package/signed=true
           screen/immersive_mode=true

@@ -147,7 +147,10 @@ jobs:
           architectures/x86_64=false
           version/code=${{ inputs.version_code }}
           version/name="${{ inputs.version_name }}"
-          package/unique_name="com.stellarforge.game"
+          # The Play identity. PERMANENT from the first upload: a different package
+          # is a different app, with no migration path for anyone who installed
+          # the old one.
+          package/unique_name="com.horizon.idle"
           package/name="Stellar Forge"
           package/signed=true
           screen/immersive_mode=true

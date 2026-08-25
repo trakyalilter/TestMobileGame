@@ -94,7 +94,7 @@ Download it, and upload the `.aab` to the internal testing track.
   the compiled manifest is what counts.)
 - **64-bit.** Required. `arm64-v8a` is on.
 - **Debuggable.** Checked by the build; the job fails rather than shipping one.
-- **Package name.** `com.stellarforge.game`, set in the preset. It is permanent
+- **Package name.** `com.horizon.idle`, set in the preset. It is permanent
   once published — a different package name is a different app.
 - **Data safety / content rating / privacy policy.** Console forms, not build
   output. Internal testing still requires them before the track goes live.
