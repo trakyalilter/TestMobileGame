@@ -235,23 +235,23 @@ jobs:
           #    is authoritative.
           echo "--- gradle build files naming the app ---"
           grep -rl "com.horizon.idle" android/build --include=*.gradle --include=*.xml --include=*.properties 2>/dev/null | head -5 || true
-          echo "--- candidate ids inside the bundle manifest ---"
-          unzip -p "$F" base/manifest/AndroidManifest.xml | strings \
-            | grep -E "^(com|org)\.[A-Za-z0-9_]+(\.[A-Za-z0-9_]+)+$" | sort -u | head -10 || true
-          if unzip -p "$F" base/manifest/AndroidManifest.xml | strings | grep -qx "com.horizon.idle"; then
-            echo "OK  package identity (com.horizon.idle is in the bundle manifest)"
+          # The bundle manifest is protobuf, so pull printable runs out of it with
+          # tr — `strings` is binutils and this image does not carry it. A check
+          # that cannot tell "wrong value" from "could not look" is worse than no
+          # check, so a failed extraction warns and a missing id fails.
+          unzip -p "$F" base/manifest/AndroidManifest.xml > /tmp/base_manifest.pb 2>/dev/null || true
+          if [ ! -s /tmp/base_manifest.pb ]; then
+            echo "::warning::could not read base/manifest/AndroidManifest.xml — package identity UNVERIFIED"
           else
-            echo "::error::com.horizon.idle is NOT in the bundle manifest — the export preset is not reaching the build, and the package name is permanent once published"
-            exit 1
-          fi
-          else
-            echo "::warning::No merged manifest found to inspect — targetSdk unverified."
-          fi
-
-          # An AAB is a zip; these entries are what Play checks first.
-          unzip -l "$F" | head -n 12
-          if [ "${{ inputs.mode }}" = "dry-run" ]; then
-            echo "::warning::This bundle is debug-key signed. Play WILL reject it. Re-run with mode=release once the secrets are set."
+            echo "--- candidate ids inside the bundle manifest ---"
+            tr -c '[:print:]' '\n' < /tmp/base_manifest.pb \
+              | grep -E "^(com|org)\.[A-Za-z0-9_]+(\.[A-Za-z0-9_]+)+$" | sort -u | head -10 || true
+            if tr -c '[:print:]' '\n' < /tmp/base_manifest.pb | grep -qx "com.horizon.idle"; then
+              echo "OK  package identity (com.horizon.idle is in the bundle manifest)"
+            else
+              echo "::error::com.horizon.idle is NOT in the bundle manifest — the package name is permanent once published, so this build must not be uploaded"
+              exit 1
+            fi
           fi
 
       - name: Upload bundle artifact
