@@ -3130,11 +3130,51 @@ func _filter_toggle(parent: Node, dict: Dictionary, key, label: String, accent: 
 		b.modulate.a = 1.0 if nv else 0.38)
 	parent.add_child(b)
 
+# A volley is ONE number. A multi-weapon ship lands its whole salvo in a single
+# tick, and one float per weapon means six numbers spawning together, laddering
+# down the lane, each too small to read. The new events are drained into buckets
+# by (side, colour) — colour is what separates shield from hull from crit — and
+# each bucket spawns one summed float: "-171" instead of -63/-55/-53. The sum
+# also lands higher on the impact-size curve, so a full volley POPS the way it
+# should. Aggregation is per DRAIN only, so a fast ship still reads as a fast
+# stream; it just never shows six at once. Banners, misses and the trait callouts
+# stay per-event, because those are words rather than quantities.
 func _drain_combat_events() -> void:
+	var order: Array = []
+	var buckets := {}
 	for ev in GameState.combat_events:
-		if int(ev.get("seq", -1)) >= _seen_events:
-			_seen_events = int(ev["seq"]) + 1
-			_spawn_popup(ev)
+		if int(ev.get("seq", -1)) < _seen_events:
+			continue
+		_seen_events = int(ev["seq"]) + 1
+		var amount := _popup_damage(String(ev.get("text", "")))
+		if amount <= 0:
+			_spawn_popup(ev)          # not a quantity — show it as it came
+			continue
+		var key := "%s|%s" % [String(ev.get("side", "")), String(ev.get("color", ""))]
+		if not buckets.has(key):
+			buckets[key] = {"sum": 0, "crit": false, "ev": ev}
+			order.append(key)
+		buckets[key]["sum"] = int(buckets[key]["sum"]) + amount
+		if String(ev.get("text", "")).begins_with("CRIT"):
+			buckets[key]["crit"] = true
+	for key in order:
+		var b: Dictionary = buckets[key]
+		var src: Dictionary = b["ev"]
+		var merged := src.duplicate()
+		merged["text"] = ("CRIT %d" % int(b["sum"])) if bool(b["crit"]) else ("-%d" % int(b["sum"]))
+		_spawn_popup(merged)
+
+## The number inside a damage float ("-63" / "CRIT 63"), or 0 if the text is not
+## a quantity at all.
+func _popup_damage(text: String) -> int:
+	var digits := text
+	if digits.begins_with("CRIT "):
+		digits = digits.substr(5)
+	elif digits.begins_with("-"):
+		digits = digits.substr(1)
+	else:
+		return 0
+	return int(digits) if digits.is_valid_int() else 0
 
 func _spawn_popup(ev: Dictionary) -> void:
 	var anchor: Control = _enemy_anchor if ev.get("side", "enemy") == "enemy" else _player_anchor
@@ -4184,7 +4224,7 @@ func _build_shipyard() -> void:
 	sub.add_theme_font_size_override("font_size", _fs(12))
 	sub.add_theme_color_override("font_color", Color.html(C_DIM))
 	v.add_child(sub)
-	_subtabs(v, [{"id": "modules", "label": "Modules"}, {"id": "hulls", "label": "Hulls"}], shipyard_view, CYAN, func(id: String) -> void:
+	_subtabs(v, [{"id": "modules", "label": "Modules"}, {"id": "hulls", "label": "Ships"}], shipyard_view, CYAN, func(id: String) -> void:
 		shipyard_view = id
 		_refresh_current())
 	match shipyard_view:

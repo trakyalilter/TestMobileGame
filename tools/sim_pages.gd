@@ -163,6 +163,52 @@ func _run() -> void:
 		else:
 			print("PASS trinity view: un-owned sets hidden")
 
+	# --- A volley is ONE number ---
+	# Six weapons landing in one tick used to spawn six floats, each too small to
+	# read. Same-tick damage of the same kind now sums into a single float.
+	# The trinity check above fitted a Z10 set piece straight into the loadout,
+	# which overloads a corvette's grid — and the v134 entry gate refuses combat
+	# on an overloaded grid, so the battle view (and its float anchor) never gets
+	# built. Fly clean for this one.
+	gs.loadout.clear()
+	gs.start_task("combat", "z1_lunar_drone")
+	# Force a real rebuild: _show is a no-op when the page is already current, and
+	# the float anchor only exists on a freshly built battle view.
+	main._show("stats")
+	await process_frame
+	main._show("combat")
+	await process_frame
+	if not is_instance_valid(main._enemy_anchor):
+		print("FAIL battle view has no float anchor")
+		fail = true
+	main._seen_events = 0
+	gs.combat_events.clear()
+	gs._event("-63", "ef6a52", "enemy")
+	gs._event("-55", "ef6a52", "enemy")
+	gs._event("-53", "ef6a52", "enemy")
+	gs._event("MISS", "9aa7c2", "enemy")
+	var before_floats := 0
+	if is_instance_valid(main._enemy_anchor):
+		before_floats = main._enemy_anchor.get_child_count()
+	main._drain_combat_events()
+	await process_frame
+	var after: Array = []
+	if is_instance_valid(main._enemy_anchor):
+		for c in main._enemy_anchor.get_children():
+			if c is Label:
+				after.append(String((c as Label).text))
+	if after.has("-171"):
+		print("PASS a same-tick volley spawns ONE summed float (-171)")
+	else:
+		print("FAIL volley not aggregated — floats: %s" % str(after))
+		fail = true
+	if after.has("MISS"):
+		print("PASS words (MISS) still show per event")
+	else:
+		print("FAIL the MISS callout was swallowed by aggregation")
+		fail = true
+	gs.stop_task()
+
 	# --- Task 2: battle view with a hazard-style enemy; affinity + wave readout.
 	gs.start_task("combat", "z1_lunar_drone")
 	main._show("combat")
