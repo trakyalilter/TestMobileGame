@@ -66,6 +66,17 @@ jobs:
           } > "$CFG"
           echo "Wrote $CFG"; cat "$CFG"
 
+      # This preset is DELIBERATELY a different app id from the Play build
+      # (com.horizon.idle). These APKs are signed with the committed debug key, so
+      # sharing the Play id would make the eventual Play install fail with a
+      # signature mismatch — and the only cure is uninstalling, which takes the
+      # player's save with it. Separate ids let a dev build and the store build
+      # coexist on one phone. com.stellarforge.game is also the id every APK so
+      # far has carried, so changing it would orphan existing saves.
+      #
+      # NOTHING inside the heredoc may start with '#'. Godot's ConfigFile takes
+      # ';' as its comment character; a '#' line stops the parse and every key
+      # after it is silently dropped, falling back to com.example.$genname.
       - name: Write export preset
         run: |
           cat > export_presets.cfg <<EOF
@@ -87,10 +98,7 @@ jobs:
           architectures/x86_64=false
           version/code=${{ github.run_number }}
           version/name="0.1.${{ github.run_number }}"
-          # Same identity as the Play build (com.horizon.idle). NOTE: changing this
-          # makes a sideloaded APK a DIFFERENT app — it installs alongside the old
-          # one rather than over it, with its own empty save.
-          package/unique_name="com.horizon.idle"
+          package/unique_name="com.stellarforge.game"
           package/name="Stellar Forge"
           package/signed=true
           screen/immersive_mode=true
@@ -118,6 +126,15 @@ jobs:
             echo "::error::GDScript compile/parse errors detected — the APK would not boot"
             exit 1
           fi
+
+      # The app id decides whether a new build updates the one on your phone or
+      # installs beside it with an empty save, so assert what Godot actually
+      # parsed rather than what the heredoc above appears to say.
+      - name: Verify Godot reads the preset we wrote
+        env:
+          EXPECT_PACKAGE: com.stellarforge.game
+          REQUIRE_KEYS: "keystore/debug,keystore/debug_user,package/signed"
+        run: godot --headless --path . --script tools/check_export_preset.gd
 
       - name: Export debug APK
         run: |

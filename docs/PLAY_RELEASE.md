@@ -94,10 +94,48 @@ Download it, and upload the `.aab` to the internal testing track.
   the compiled manifest is what counts.)
 - **64-bit.** Required. `arm64-v8a` is on.
 - **Debuggable.** Checked by the build; the job fails rather than shipping one.
-- **Package name.** `com.horizon.idle`, set in the preset. It is permanent
-  once published — a different package name is a different app.
+- **Package name.** `com.horizon.idle`, set once as `PACKAGE_ID` in
+  `play-release.yml` and asserted twice: against the preset Godot actually
+  parses, and against the bundle itself. It is permanent once published — a
+  different package name is a different app, and there is no migration path for
+  anyone who installed the old one. See *Two app ids* below.
 - **Data safety / content rating / privacy policy.** Console forms, not build
   output. Internal testing still requires them before the track goes live.
+
+## Two app ids, on purpose
+
+| Build | App id | Signed with |
+| --- | --- | --- |
+| Play bundle (`play-release.yml`) | `com.horizon.idle` | your private upload key |
+| Dev APK (`release.yml`) | `com.stellarforge.game` | the committed debug key |
+
+They must not be the same. Android refuses to install an app over one with the
+same id but a different signature, so if the sideloaded dev APK claimed
+`com.horizon.idle`, installing the store version later would fail outright and
+the only fix would be uninstalling — which deletes the save with it. Different
+ids let a dev build and the store build sit on one phone at once.
+
+`com.stellarforge.game` is also the id every dev APK has carried so far, so it
+stays as it is: changing it would strand the save on your phone.
+
+### The `#` trap
+
+Both workflows generate `export_presets.cfg` from a heredoc. **No line inside
+those heredocs may start with `#`.** Godot's `ConfigFile` uses `;` as its comment
+character, so a `#` line ends the parse: every key after it is dropped and the
+export silently falls back to defaults — `com.example.$genname` for the package,
+nothing for the keystores.
+
+That is not theoretical. A comment added above `package/unique_name` produced a
+perfectly valid, correctly-sized, non-debuggable 52 MB bundle whose applicationId
+was `com.example.stellarforge`. Every check downstream of the export passed. Had
+it been uploaded, the store listing would have been bound to that id forever.
+
+`tools/check_export_preset.gd` now runs between writing the preset and building:
+it loads the file with the same parser the exporter uses, prints every key that
+survived, and fails if the package name or the required keystore keys are not
+what the workflow intended. A parse that stops early shows up as a key list that
+simply ends at the offending line.
 
 ## If a build fails
 

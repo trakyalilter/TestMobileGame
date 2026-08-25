@@ -45,6 +45,12 @@ permissions:
 
 env:
   EXPORT_NAME: StellarForge
+  # The Play identity. PERMANENT from the first upload: a different applicationId
+  # is a different app, with no migration path for anyone who installed the old
+  # one. Defined once here and used three times below — written into the preset,
+  # asserted against what Godot parses, and asserted again inside the bundle — so
+  # a typo cannot survive in one place while looking right in another.
+  PACKAGE_ID: com.horizon.idle
 
 jobs:
   bundle:
@@ -123,6 +129,12 @@ jobs:
           } > "$CFG"
           cat "$CFG"
 
+      # NOTHING inside the heredoc may start with '#'. Godot's ConfigFile takes
+      # ';' as its comment character, so a '#' line stops the parse dead: every
+      # key after it is silently lost and the export quietly uses defaults. That
+      # is exactly how a bundle got built with com.example.stellarforge while the
+      # preset in this file plainly said com.horizon.idle. Explanations live out
+      # here, in YAML, where they cost nothing.
       - name: Write export preset
         run: |
           cat > export_presets.cfg <<EOF
@@ -147,10 +159,7 @@ jobs:
           architectures/x86_64=false
           version/code=${{ inputs.version_code }}
           version/name="${{ inputs.version_name }}"
-          # The Play identity. PERMANENT from the first upload: a different package
-          # is a different app, with no migration path for anyone who installed
-          # the old one.
-          package/unique_name="com.horizon.idle"
+          package/unique_name="${PACKAGE_ID}"
           package/name="Stellar Forge"
           package/signed=true
           screen/immersive_mode=true
@@ -178,6 +187,16 @@ jobs:
             echo "::error::GDScript compile/parse errors detected — the bundle would not boot"
             exit 1
           fi
+
+      # Assert the identity on the PARSED preset, not the file we wrote. The two
+      # are not the same thing — see the note above the heredoc — and this is the
+      # cheap place to find out, before Gradle spends six minutes building the
+      # wrong app.
+      - name: Verify Godot reads the preset we wrote
+        env:
+          EXPECT_PACKAGE: ${{ env.PACKAGE_ID }}
+          REQUIRE_KEYS: "keystore/release,keystore/release_user,package/signed"
+        run: godot --headless --path . --script tools/check_export_preset.gd
 
       - name: Export release AAB (installs the Android build template)
         run: |
@@ -220,36 +239,36 @@ jobs:
               exit 1
             fi
             echo "OK  not marked debuggable"
-            # 4. The package name is the ONE value that can never be corrected
-            #    after the first upload — a different package is a different app.
-            #    This build already shipped a typo'"'"'d one (com.horizon.dile) in the
-            #    working tree, so it is asserted rather than eyeballed.
             echo "merged-manifest package attribute: $(grep -oE 'package="[^"]*"' "$MAN" | head -n1)"
           fi
 
-          # 4. THE PACKAGE NAME, read out of the BUNDLE itself — the value Play
-          #    reads, and the one string that can never be corrected after the
-          #    first upload. Diagnostics first: with the Gradle build the merged
-          #    manifest's package attribute is the template NAMESPACE, not the
-          #    applicationId, so the two legitimately differ and only the bundle
-          #    is authoritative.
-          # THE PACKAGE NAME, read from the bundle Play will read. The protobuf
-          # manifest stores strings next to other bytes, so match anywhere on the
-          # line rather than anchoring it — an over-strict pattern finds nothing
-          # and then looks exactly like a missing value.
+          # 4. THE PACKAGE NAME, read out of the BUNDLE Play will read. It is the
+          #    one value that can never be corrected after the first upload: Play
+          #    binds the listing to the applicationId, so a different id is a
+          #    different app with no path for anyone who already installed it.
+          #
+          #    Read it unanchored. The protobuf manifest packs strings up against
+          #    other bytes, so a line-anchored pattern matches nothing and then
+          #    looks identical to a missing value. Everything found is printed
+          #    before anything is concluded, so a failure here shows its evidence.
+          #
+          #    Expect three families in a correct bundle: the applicationId (and
+          #    its .androidx / .fileprovider children), com.godot.game.GodotApp —
+          #    the build template's namespace, which is NOT the applicationId and
+          #    legitimately differs from it — and org.godotengine.* engine ids.
           unzip -p "$F" base/manifest/AndroidManifest.xml > /tmp/base_manifest.pb 2>/dev/null || true
           if [ ! -s /tmp/base_manifest.pb ]; then
-            echo "::warning::could not read base/manifest/AndroidManifest.xml — package identity UNVERIFIED"
+            echo "::error::could not read base/manifest/AndroidManifest.xml out of the bundle — the package identity is UNVERIFIED, and an unverified identity is not shippable."
+            exit 1
+          fi
+          echo "--- every com.* / org.* id inside the bundle manifest ---"
+          grep -a -o -E "(com|org)\.[A-Za-z0-9_]+(\.[A-Za-z0-9_]+)+" /tmp/base_manifest.pb \
+            | sort -u | head -20 || true
+          if grep -a -F -q "$PACKAGE_ID" /tmp/base_manifest.pb; then
+            echo "OK  package identity ($PACKAGE_ID is in the bundle)"
           else
-            echo "--- every com.* / org.* id inside the bundle manifest ---"
-            grep -a -o -E "(com|org)\.[A-Za-z0-9_]+(\.[A-Za-z0-9_]+)+" /tmp/base_manifest.pb \
-              | sort -u | head -20 || true
-            if grep -a -q "com\.horizon\.idle" /tmp/base_manifest.pb; then
-              echo "OK  package identity (com.horizon.idle is in the bundle)"
-            else
-              echo "::error::com.horizon.idle is NOT in the bundle — the export preset is not reaching the Gradle build. The package name is permanent once published, so this build must not be uploaded."
-              exit 1
-            fi
+            echo "::error::$PACKAGE_ID is NOT in the bundle — see the ids listed above for what shipped instead. The package name is permanent once published, so this build must not be uploaded."
+            exit 1
           fi
 
       - name: Upload bundle artifact
