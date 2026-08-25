@@ -75,8 +75,9 @@ jobs:
       # far has carried, so changing it would orphan existing saves.
       #
       # NOTHING inside the heredoc may start with '#'. Godot's ConfigFile takes
-      # ';' as its comment character; a '#' line stops the parse and every key
-      # after it is silently dropped, falling back to com.example.$genname.
+      # ';' as its comment character; '#' does not error, it welds the comment
+      # text onto the NEXT key's name, so that key silently vanishes and its
+      # value falls back to the default.
       - name: Write export preset
         run: |
           cat > export_presets.cfg <<EOF
@@ -134,7 +135,9 @@ jobs:
         env:
           EXPECT_PACKAGE: com.stellarforge.game
           REQUIRE_KEYS: "keystore/debug,keystore/debug_user,package/signed"
-        run: godot --headless --path . --script tools/check_export_preset.gd
+        # Bounded: a runtime error in _init aborts before quit(), which hangs the
+        # process rather than failing it.
+        run: timeout 300 godot --headless --path . --script tools/check_export_preset.gd
 
       - name: Export debug APK
         run: |

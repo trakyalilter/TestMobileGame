@@ -122,14 +122,34 @@ stays as it is: changing it would strand the save on your phone.
 
 Both workflows generate `export_presets.cfg` from a heredoc. **No line inside
 those heredocs may start with `#`.** Godot's `ConfigFile` uses `;` as its comment
-character, so a `#` line ends the parse: every key after it is dropped and the
-export silently falls back to defaults — `com.example.$genname` for the package,
-nothing for the keystores.
+character, and `#` is not a comment at all.
 
-That is not theoretical. A comment added above `package/unique_name` produced a
-perfectly valid, correctly-sized, non-debuggable 52 MB bundle whose applicationId
-was `com.example.stellarforge`. Every check downstream of the export passed. Had
-it been uploaded, the store listing would have been bound to that id forever.
+It does not produce an error — that is what makes it dangerous. The comment text
+is welded onto the front of the *next* key's name, whitespace stripped:
+
+```
+# The Play identity. PERMANENT from the first upload.
+package/unique_name="com.horizon.idle"
+```
+
+loads with error code `OK` as the single key
+
+```
+#ThePlayidentity.PERMANENTfromthefirstupload.package/unique_name
+```
+
+So exactly one key is destroyed — the first after the comment — and everything
+after it parses normally. Here that key was `package/unique_name`, so signing,
+versions and architectures all applied while the package silently fell back to
+Godot's default `com.example.$genname`.
+
+The result was a valid, correctly-sized, non-debuggable 52 MB bundle whose
+applicationId was `com.example.stellarforge`. Every check downstream of the
+export passed. Had it been uploaded, the listing would have been bound to that
+id forever.
+
+Verified directly against Godot 4.3's `ConfigFile`, not inferred from the
+symptom.
 
 `tools/check_export_preset.gd` now runs between writing the preset and building:
 it loads the file with the same parser the exporter uses, prints every key that

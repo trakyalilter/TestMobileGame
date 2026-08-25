@@ -130,11 +130,12 @@ jobs:
           cat "$CFG"
 
       # NOTHING inside the heredoc may start with '#'. Godot's ConfigFile takes
-      # ';' as its comment character, so a '#' line stops the parse dead: every
-      # key after it is silently lost and the export quietly uses defaults. That
-      # is exactly how a bundle got built with com.example.stellarforge while the
-      # preset in this file plainly said com.horizon.idle. Explanations live out
-      # here, in YAML, where they cost nothing.
+      # ';' as its comment character; '#' is not a comment and does not error —
+      # the comment text is welded onto the front of the NEXT key's name, so that
+      # one key vanishes while everything else parses normally. That is exactly
+      # how a bundle got built as com.example.stellarforge while the preset in
+      # this file plainly said com.horizon.idle. Explanations live out here, in
+      # YAML, where they cost nothing.
       - name: Write export preset
         run: |
           cat > export_presets.cfg <<EOF
@@ -196,7 +197,10 @@ jobs:
         env:
           EXPECT_PACKAGE: ${{ env.PACKAGE_ID }}
           REQUIRE_KEYS: "keystore/release,keystore/release_user,package/signed"
-        run: godot --headless --path . --script tools/check_export_preset.gd
+        # A GDScript runtime error inside _init aborts before quit() runs, so the
+        # process hangs instead of failing — an unbounded wedge on a six-hour job
+        # timeout. Bound it: a guard that cannot answer must fail, not stall.
+        run: timeout 300 godot --headless --path . --script tools/check_export_preset.gd
 
       - name: Export release AAB (installs the Android build template)
         run: |

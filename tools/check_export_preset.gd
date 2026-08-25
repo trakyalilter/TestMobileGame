@@ -8,10 +8,22 @@ extends SceneTree
 ## anyone who already installed it.
 ##
 ## The failure it caught: the generated preset carried `#` comment lines. Godot's
-## ConfigFile takes `;` as its comment character, so the export silently fell back
-## to the default `com.example.$genname` for every key that followed the comment —
-## package name, app name and both keystores — while still producing a perfectly
-## valid-looking 52 MB bundle. Nothing downstream of the export noticed.
+## ConfigFile takes `;` as its comment character, and `#` is not a comment at all —
+## the parse does NOT fail, which is what made this so quiet. Instead the comment
+## text is folded into the name of the key that follows it, whitespace and all:
+##
+##     # The Play identity. PERMANENT from the first upload.
+##     package/unique_name="com.horizon.idle"
+##
+## loads, with error code OK, as the single key
+##
+##     #ThePlayidentity.PERMANENTfromthefirstupload.package/unique_name
+##
+## So exactly one key is destroyed — the first one after the comment — and every
+## key after that survives. Here that key was package/unique_name, so the export
+## fell back to the default com.example.$genname while signing, versions and
+## architectures all applied normally and a perfectly valid 52 MB bundle came out.
+## Nothing downstream of the export noticed.
 ##
 ## So the assert happens here, on the parsed preset, before the build: a run that
 ## would ship the wrong identity dies in seconds instead of after Gradle.
@@ -20,10 +32,13 @@ extends SceneTree
 ##   EXPECT_PACKAGE  the applicationId the workflow intends to ship (required)
 ##   PRESET_NAME     preset section to read, default "preset.0"
 ##   REQUIRE_KEYS    comma-separated option keys that must be non-empty. The
-##                   release pipeline passes its keystore keys here: they sit
-##                   after the package name in the generated file, so they are the
-##                   next casualty of a parse that stops early, and an unsigned
-##                   release is a Play rejection rather than a silent one.
+##                   release pipeline passes its keystore keys here, since an
+##                   unsigned or wrongly-signed release is a Play rejection.
+##                   Values may be of any type — read them with str(), never
+##                   String(), which has no constructor for a bool and throws.
+##                   A throw inside _init aborts before quit() runs, and the
+##                   process then hangs rather than failing; the workflow wraps
+##                   this call in `timeout` so that can never wedge a job.
 
 func _init() -> void:
 	var expect := OS.get_environment("EXPECT_PACKAGE")
@@ -46,16 +61,17 @@ func _init() -> void:
 		quit(1)
 		return
 
-	# Print every key that survived the parse. When the parser stops early, this
-	# list simply ends at the last key it read, which names the offending line.
+	# Print every key as Godot named it. A '#' line shows up here as a mangled key
+	# with the comment text welded to its front, which points straight at the
+	# offending line instead of leaving a value mysteriously absent.
 	print("--- options Godot parsed out of [%s] ---" % opts)
 	for k in cf.get_section_keys(opts):
 		var v = cf.get_value(opts, k)
-		if String(k).find("pass") >= 0:
+		if str(k).find("pass") >= 0:
 			v = "***"
 		print("  %s = %s" % [k, v])
 
-	var got := String(cf.get_value(opts, "package/unique_name", ""))
+	var got := str(cf.get_value(opts, "package/unique_name", ""))
 	print("")
 	print("package/unique_name as parsed: '%s'" % got)
 
@@ -74,10 +90,10 @@ func _init() -> void:
 		return
 
 	for key in OS.get_environment("REQUIRE_KEYS").split(",", false):
-		var k := String(key).strip_edges()
+		var k := str(key).strip_edges()
 		if k == "":
 			continue
-		if String(cf.get_value(opts, k, "")) == "":
+		if str(cf.get_value(opts, k, "")) == "":
 			printerr("::error::%s is empty in the parsed preset — a key the build depends on did not survive the parse." % k)
 			quit(1)
 			return
