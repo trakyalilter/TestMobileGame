@@ -42,6 +42,39 @@ func _run() -> void:
 		print("FAIL scrap count wrong")
 		fail = true
 
+	# ---- a module a SAVED BUILD names is not scrap ----
+	# equip_module decrements module_inventory, so gear belonging to any preset
+	# other than the live one sits in the armory looking exactly like junk. Both
+	# bulk paths used to protect only the active loadout, so scrapping emptied the
+	# other build slots — real data loss that reads as the presets breaking.
+	gs.custom_modules["c_preset"] = {"name": "Build 2 Gun", "slot": "weapon", "rarity": 1, "stats": {}, "affixes": {}}
+	gs.module_inventory["c_preset"] = 1
+	gs.loadout_presets[2] = {"name": "Build 2", "loadout": {"0": "c_preset"},
+		"ammo_loadout": {}, "consumable_hull": "", "consumable_shield": ""}
+	if gs.preset_referenced_ids().has("c_preset"):
+		print("PASS a saved Build's gear is in the protected set")
+	else:
+		print("FAIL preset gear is not protected")
+		fail = true
+	var cnt_p: int = gs.count_bulk_sell(1)
+	if cnt_p == 3:
+		print("PASS the bulk count skips preset-held gear (still %d)" % cnt_p)
+	else:
+		print("FAIL bulk count included preset gear (%d)" % cnt_p)
+		fail = true
+	if gs.sell_module("c_preset"):
+		print("FAIL a preset-held module was scrapped one at a time")
+		fail = true
+	else:
+		print("PASS scrapping it singly is REFUSED (notice: %s)" % gs.equip_notice)
+	# Releasing it from the build makes it scrap again — a refusal, not a life sentence.
+	gs.loadout_presets[2]["loadout"] = {}
+	if gs.sell_module("c_preset"):
+		print("PASS once released from the build it scraps normally")
+	else:
+		print("FAIL released module still refused")
+		fail = true
+
 	var cr0: int = gs.credits
 	var sold: int = gs.bulk_sell_by_rarity(1)
 	print("sold = %d, credits +%d" % [sold, gs.credits - cr0])

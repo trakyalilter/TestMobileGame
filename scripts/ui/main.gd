@@ -3571,7 +3571,10 @@ func _build_standing() -> void:
 	t.add_theme_font_size_override("font_size", _fs(16))
 	t.add_theme_color_override("font_color", Color.html(CYAN))
 	v.add_child(t)
-	_lbl_wrap(v, "Passive jobs tracked automatically — gather orders sync from your inventory, sweep orders count kills. Claim grants credits + a material bonus and auto-replaces the slot.", 10, C_DIM)
+	_lbl_wrap(v, "Passive jobs tracked automatically — gather orders sync from your inventory, sweep orders count kills. Claim grants credits + a material bonus and auto-replaces the slot. Deliver the same material repeatedly and the station pays a supplier premium.", 10, C_DIM)
+	if GameState.standing_notice != "":
+		_lbl_wrap(v, "✦ " + GameState.standing_notice, 11, GOLD)
+		GameState.standing_notice = ""
 
 	var rr := HBoxContainer.new()
 	rr.add_theme_constant_override("separation", 6)
@@ -3723,6 +3726,11 @@ func _standing_card(idx: int, q: Dictionary) -> Control:
 	var mat: Dictionary = q.get("reward_material", {})
 	if not mat.is_empty():
 		rtxt += "  +%d %s" % [int(mat["qty"]), GameData.res_name(mat["id"])]
+	# Supplier ladder: repeat deliveries of the same material pay more, so the
+	# card has to say so — an invisible bonus teaches nothing.
+	var sup := GameState.supplier_pct(String(q.get("target", "")))
+	if sup > 0:
+		rtxt += "   SUPPLIER +%d%%" % sup
 	var reward := Label.new()
 	reward.text = rtxt
 	reward.add_theme_font_size_override("font_size", _fs(11))

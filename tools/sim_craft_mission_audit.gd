@@ -298,6 +298,33 @@ func _run() -> void:
 	print("chain material flow: %d objectives walked, %d materials introduced"
 		% [gd.MISSION_ORDER.size(), taught.size()])
 
+	# ---- a late-activated kill mission counts what you already killed ----
+	# "defeat" progress is event-counted, so kills made before the mission was
+	# handed to you used to vanish: turn guidance off, farm Lunar Drones for an
+	# hour, turn it back on, and the game still asks for one more. enemy_kills is
+	# a lifetime ledger, so the reconcile floors progress at it.
+	var kill_mid := ""
+	for mid2 in gd.MISSION_ORDER:
+		if String((gd.MISSIONS[mid2] as Dictionary).get("type", "")) == "defeat":
+			kill_mid = String(mid2)
+			break
+	if kill_mid == "":
+		W("no plain defeat mission in the chain — the catch-up check did not run")
+	else:
+		var km: Dictionary = gd.MISSIONS[kill_mid]
+		var prey := String(km.get("target", ""))
+		gs.hard_reset()
+		gs.enemy_kills[prey] = int(km.get("qty", 1)) + 5   # farmed long before being asked
+		gs.missions_active = {kill_mid: true}
+		gs.missions_progress.erase(kill_mid)
+		gs._mission_completed_seen.erase(kill_mid)
+		gs._mission_sync()
+		if gs.mission_completed(kill_mid):
+			print("defeat catch-up: '%s' completes from the lifetime ledger" % kill_mid)
+		else:
+			E("mission '%s' ignores kills banked before it was activated (%d/%d)"
+				% [kill_mid, int(gs.missions_progress.get(kill_mid, 0)), int(km.get("qty", 1))])
+
 	# ---- report ----
 	print("")
 	if errs.is_empty():

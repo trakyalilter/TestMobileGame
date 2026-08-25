@@ -923,6 +923,7 @@ func execute_warp() -> int:
 	# Standing Orders are zone-tiered + track inventory — regenerate against the
 	# fresh post-warp world (mirrors the bounty pool refresh above).
 	standing_board = []
+	supplier_deliveries = {}   # run-scoped: the ladder never compounds across a prestige
 	_standing_fill()
 	# Warp goal missions (goal_002/goal_003) track total_warps.
 	_mission_event("warp_perform", "warp", 1)
@@ -2544,8 +2545,36 @@ func affix_total(key: String) -> float:
 			s += float(custom_modules[mid].get("affixes", {}).get(key, 0.0))
 	return s
 
-func sell_module(mid: String) -> bool:
+## Every module id the live ship OR a saved Build still names.
+##
+## equip_module DECREMENTS module_inventory (erasing at 0), so a module sits in
+## the armory precisely when it is NOT on the live ship — which is exactly the
+## state of every other build slot's gear. Protecting only the active loadout
+## therefore let a bulk scrap delete ids the other presets still named, and those
+## builds came up empty on the next switch. Real data loss, and it looks like the
+## presets broke themselves.
+func preset_referenced_ids() -> Dictionary:
+	var refs := {}
+	for mid in loadout.values():
+		if String(mid) != "":
+			refs[String(mid)] = true
+	for idx in loadout_presets:
+		var pl: Dictionary = (loadout_presets[idx] as Dictionary).get("loadout", {})
+		for k in pl:
+			if String(pl[k]) != "":
+				refs[String(pl[k])] = true
+	return refs
+
+## `force` exists for internal teardown paths that reconcile presets themselves;
+## nothing player-facing passes it.
+func sell_module(mid: String, force := false) -> bool:
 	if int(module_inventory.get(mid, 0)) <= 0:
+		return false
+	if not force and preset_referenced_ids().has(mid):
+		# A refusal, not a silent skip: releasing it from that build makes it
+		# scrappable again, and a no-op button reads as broken.
+		equip_notice = "Still equipped in a saved Build — clear it there first."
+		resources_changed.emit()
 		return false
 	var rarity := module_rarity(mid)
 	var price := _module_sell_price(mid, rarity)
@@ -3166,6 +3195,54 @@ const STANDING_MATERIAL_REWARDS := {
 }
 
 var standing_board: Array = []
+# v179 SUPPLIER LADDER: each claimed delivery of a material adds +5% to that
+# material's payout, capped at +25% (five deliveries). Run-scoped — cleared on
+# warp and hard reset, so it cannot compound across prestiges into the
+# lifetime_credits warp gate.
+const SUPPLIER_STEP := 0.05
+const SUPPLIER_MAX_STEPS := 5
+var supplier_deliveries: Dictionary = {}   # material -> claimed count (this run)
+var standing_notice: String = ""           # one-line board announcement for the page
+# The reachable band the board was last rolled at, so a zone unlock can refresh
+# stale cards exactly once rather than on every check.
+var last_max_diff: int = 0
+
+## Payout multiplier for repeat deliveries of `sym` (1.0 .. 1.25).
+func supplier_mult(sym: String) -> float:
+	return 1.0 + SUPPLIER_STEP * float(mini(int(supplier_deliveries.get(sym, 0)), SUPPLIER_MAX_STEPS))
+
+## Whole percent for the card ("SUPPLIER +15%"); 0 when the ladder is untouched.
+func supplier_pct(sym: String) -> int:
+	return int(round((supplier_mult(sym) - 1.0) * 100.0))
+
+## A new sector opened: reroll the cards that have not been earned or seriously
+## stocked, so the board follows the frontier instead of freezing at the band it
+## was first rolled in. Near-done and completed cards survive — vaporising an
+## almost-claim is worse than a stale one.
+func refresh_standing_for_unlock() -> bool:
+	var md := standing_max_diff()
+	if md <= last_max_diff:
+		return false
+	last_max_diff = md
+	var stale := 0
+	var kept: Array = []
+	for q in standing_board:
+		var qd: Dictionary = q
+		var done: bool = bool(qd.get("completed", false)) and not bool(qd.get("claimed", false))
+		var target := int(qd.get("target_qty", 1))
+		var have := int(qd.get("current_qty", 0))
+		var stocked: bool = target > 0 and float(have) / float(target) >= 0.5
+		if done or stocked:
+			kept.append(qd)
+		else:
+			stale += 1
+	if stale <= 0:
+		return false
+	standing_board = kept
+	_standing_fill()
+	standing_notice = "STATION ORDERS UPDATED — new sector, new demand."
+	standing_orders_changed.emit()
+	return true
 var standing_total: int = 0
 var _standing_id := 0
 
@@ -3336,9 +3413,14 @@ func claim_standing_order(i: int) -> bool:
 	var q = _find_standing(i)
 	if q == null or not q.get("completed", false) or q.get("claimed", false):
 		return false
-	var cred := int(float(q["reward_credits"]) * warp_production_mult() * credit_reward_mult())
+	# The supplier ladder rides OVER the warp/recursion multipliers: it rewards
+	# repeat trade in one material, not a second prestige track.
+	var sym := String(q.get("target", ""))
+	var cred := int(float(q["reward_credits"]) * warp_production_mult() * credit_reward_mult() * supplier_mult(sym))
 	var mat: Dictionary = q.get("reward_material", {})
 	q["claimed"] = true
+	if sym != "":
+		supplier_deliveries[sym] = int(supplier_deliveries.get(sym, 0)) + 1
 	standing_total += 1
 	standing_board.remove_at(i)
 	# Replace first so the board is whole before reward side effects fire.
@@ -4256,10 +4338,7 @@ func tier_pen_avg(eid: String) -> float:
 # a SINGLE signal emission — selling thousands of stacked commons no longer fires
 # thousands of UI rebuilds (which froze/crashed the game).
 func bulk_sell_by_rarity(max_rarity: int) -> int:
-	var equipped := {}
-	for mid in loadout.values():
-		if mid != "":
-			equipped[mid] = true
+	var equipped := preset_referenced_ids()
 	var total_credits := 0
 	var total_parts := 0
 	var sold := 0
@@ -4288,10 +4367,7 @@ func bulk_sell_by_rarity(max_rarity: int) -> int:
 
 # How many non-equipped modules a bulk sell at max_rarity would scrap.
 func count_bulk_sell(max_rarity: int) -> int:
-	var equipped := {}
-	for mid in loadout.values():
-		if mid != "":
-			equipped[mid] = true
+	var equipped := preset_referenced_ids()
 	var n := 0
 	for mid in module_inventory.keys():
 		if equipped.has(mid):
@@ -4478,6 +4554,15 @@ func _mission_sync() -> void:
 					nv = qty
 			"warp_perform":
 				nv = maxi(cur, mini(total_warps, qty))
+			"defeat", "defeat_retreat":
+				# Kills are event-counted, so a mission activated LATE used to
+				# ignore everything already killed — a player who had farmed Lunar
+				# Drones for an hour was still told to kill one more. enemy_kills is
+				# a persisted lifetime ledger (the Hunt Log's data), so floor the
+				# progress at it: the same ratchet the gather branch gets from
+				# inventory. defeat_retreat still needs the retreat itself, which
+				# mission_completed checks separately.
+				nv = maxi(cur, mini(get_enemy_kills(String(target)), qty))
 			# "defeat", "discover", "visit_page" are event-only (no persistent
 			# state to reconcile). equip_consumables / drop_rarity /
 			# loadout_rare_weapon / loadout_check are evaluated live in
@@ -4642,6 +4727,10 @@ func unlock_research(rid: String) -> bool:
 	for z in GameData.ZONES:
 		if z.get("research_req", "") == rid:
 			_mission_event("discover", z.get("id", ""), 1)
+	# A new sector opening is the moment the order board should follow the
+	# frontier. It used to react only as orders happened to be claimed, so the
+	# unlock itself changed nothing and the list stayed frozen at the old band.
+	refresh_standing_for_unlock()
 	research_changed.emit()
 	return true
 
@@ -6387,6 +6476,8 @@ func save_game() -> void:
 		"missions_progress": missions_progress,
 		"rm_paid": _rm_paid,
 		"missions_claimed": missions_claimed.keys(),
+		"supplier_deliveries": supplier_deliveries,
+		"last_max_diff": last_max_diff,
 		"boss_kills": boss_kills,
 		"enemy_kills": enemy_kills,          # v177 Hunt Log: per-enemy star ranks
 		"hazard_clears": hazard_clears,
@@ -6586,6 +6677,13 @@ func load_game() -> void:
 	# Core goals stay hidden until the tutorial is done (also strips them from
 	# older saves that surfaced them during the tutorial).
 	_surface_core_goals()
+	# Additive keys with defensive defaults: a pre-v179 save loads unchanged, and
+	# the band tracker re-derives below so an old save cannot fire a spurious
+	# "new sector" refresh the moment it opens.
+	supplier_deliveries = data.get("supplier_deliveries", {})
+	last_max_diff = int(data.get("last_max_diff", 0))
+	if last_max_diff <= 0:
+		last_max_diff = standing_max_diff()
 	boss_kills = data.get("boss_kills", {})
 	_purge_retired_modules()
 	# Pre-v177 saves have no key. An empty log is the correct load state — the
@@ -6679,7 +6777,9 @@ func hard_reset() -> void:
 	bounty_refresh_timer = 0.0
 	bounty_total = 0
 	standing_board = []
+	supplier_deliveries = {}   # run-scoped: the ladder never compounds across a prestige
 	standing_total = 0
+	last_max_diff = 0
 	_standing_id = 0
 	# Pre-existing gap: these persistent-unlock dicts survived a hard reset, so a
 	# settings "Reset Game" leaked z11_unlocked / reveal flags / boss kills into
