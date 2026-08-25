@@ -4083,6 +4083,21 @@ func _mission_init() -> void:
 ## chain, then reveal them once the tutorial is finished (desktop shows them, but
 ## on mobile the early screen is busy enough). Removing them while the tutorial
 ## runs also cleans up older saves that surfaced them too early.
+## A mission's chapter tag. The data carries it now; the name prefix is only a
+## fallback for anything generated without one.
+func mission_tag(mid: String) -> String:
+	var m: Dictionary = GameData.MISSIONS.get(mid, {})
+	var t := String(m.get("tag", ""))
+	if t != "":
+		return t
+	var nm := String(m.get("name", ""))
+	if nm.begins_with("["):
+		return nm.substr(0, nm.find("]") + 1)
+	return ""
+
+func is_tutorial_mission(mid: String) -> bool:
+	return mission_tag(mid) == "[TUTORIAL]"
+
 func _tutorial_done() -> bool:
 	# Walk the real next-chain from the first mission and find the LAST
 	# [TUTORIAL]-tagged mission actually on it; the tutorial is over once that's
@@ -4095,7 +4110,7 @@ func _tutorial_done() -> bool:
 	while cur != "" and not seen.has(cur) and guard < 500:
 		guard += 1
 		seen[cur] = true
-		if String(GameData.MISSIONS.get(cur, {}).get("name", "")).begins_with("[TUTORIAL]"):
+		if is_tutorial_mission(cur):
 			last_tut = cur
 		cur = GameData.MISSIONS.get(cur, {}).get("next", "")
 	return last_tut == "" or missions_claimed.has(last_tut)
@@ -4498,6 +4513,23 @@ func get_active_defeat_targets() -> Array:
 			if t != "" and not out.has(t):
 				out.append(t)
 	return out
+
+## A finished bounty contract used to show nothing on the nav, so hunt payouts
+## sat unclaimed until the player happened to open the page.
+func has_claimable_bounty() -> bool:
+	for b in bounty_active:
+		var bd: Dictionary = b
+		if bool(bd.get("completed", false)) and not bool(bd.get("claimed", false)):
+			return true
+	return false
+
+## Same for the stockpile board.
+func has_claimable_standing() -> bool:
+	for q in standing_board:
+		var qd: Dictionary = q
+		if bool(qd.get("completed", false)) and not bool(qd.get("claimed", false)):
+			return true
+	return false
 
 ## True when at least one active mission is finished and waiting to be claimed.
 func has_claimable_mission() -> bool:

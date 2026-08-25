@@ -275,7 +275,7 @@ func _coach_active_mission() -> String:
 	# show in the Missions list; they just don't hijack the pointer.
 	# v133 ranking: claimable > tutorial (non-goal) > goals — via the shared helper.
 	var picked := GameState.get_active_objective()
-	if picked != "" and not String(GameData.MISSIONS.get(picked, {}).get("name", "")).begins_with("[CORE GOAL]"):
+	if picked != "" and GameState.mission_tag(picked) != "[CORE GOAL]":
 		return picked
 	# Goals never hijack the pointer while any tutorial step is active.
 	var first := picked
@@ -283,7 +283,7 @@ func _coach_active_mission() -> String:
 	for mid in GameState.missions_active:
 		if first == "":
 			first = mid
-		if actionable == "" and not String(GameData.MISSIONS.get(mid, {}).get("name", "")).begins_with("[CORE GOAL]"):
+		if actionable == "" and GameState.mission_tag(String(mid)) != "[CORE GOAL]":
 			actionable = mid
 	return actionable if actionable != "" else first
 
@@ -451,6 +451,14 @@ func _update_coach() -> void:
 	var m: Dictionary = GameData.MISSIONS[mid]
 	_coach_banner.visible = true
 	_coach_obj.text = "◆  OBJECTIVE: " + m.get("name", mid)
+	# The POINTER is licensed only while an onboarding step is live. Desktop's
+	# first demo feedback was "the tutorial is there constantly" — the tag used to
+	# cover most of the chain, so the pointing finger ran for hours. The tag now
+	# ends at the first kill, and the pointer goes quiet with it: the objective
+	# banner stays, so the player still knows what is next without being led by
+	# the hand through the whole game. A claimable reward still pulses, since that
+	# is a "your move" prompt rather than instruction.
+	var guided := GameState.is_tutorial_mission(mid)
 	var claim := GameState.mission_completed(mid)
 	var res := _coach_resolve(m)
 	var page: String = res["page"]
@@ -498,6 +506,9 @@ func _update_coach() -> void:
 			_coach_hint.text = m.get("desc", "")
 	else:
 		_coach_hint.text = m.get("desc", "")
+	# Past onboarding the banner still says what to do; it just stops pointing.
+	if not guided and not claim:
+		pulse = null
 	_pulse_start(pulse)
 
 # True when the active task IS the coach's highlighted card (the player has started
@@ -1443,11 +1454,20 @@ func _on_action_changed() -> void:
 # Notification beads: a claimable mission lights the ☰ button and the Missions row.
 func _update_badges() -> void:
 	var claim := GameState.has_claimable_mission()
+	var bounty := GameState.has_claimable_bounty()
+	var standing := GameState.has_claimable_standing()
+	# The hamburger carries the OR: whatever is waiting, the menu says so.
 	if is_instance_valid(_ham_badge):
-		_ham_badge.visible = claim
-	var mi = nav_items.get("missions")
-	if mi != null and is_instance_valid(mi.get("badge")):
-		mi["badge"].visible = claim
+		_ham_badge.visible = claim or bounty or standing
+	# Each board pips its own row. Gated on the row being visible — a badge
+	# floating on a hidden button reads as a ghost notification.
+	for pair in [["missions", claim], ["bounty", bounty], ["standing", standing]]:
+		var it = nav_items.get(String(pair[0]))
+		if it == null or not is_instance_valid(it.get("badge")):
+			continue
+		var btn = it.get("btn")
+		var shown: bool = bool(pair[1]) and (btn == null or not is_instance_valid(btn) or btn.visible)
+		it["badge"].visible = shown
 
 # ============================================================ SHELL
 func _build() -> void:

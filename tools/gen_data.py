@@ -847,6 +847,12 @@ def mission_dict(m):
         "cr": int(m.get("reward_cr", 0)),
         "xp": int(m.get("reward_xp", 0)),
         "next": m.get("next_mission", "") or "",
+        # The chapter tag, carried straight through. Mobile used to infer the
+        # tutorial from a "[TUTORIAL]" prefix on the NAME, which only the merged
+        # missions carry — so desktop's retag (the onboarding DAG that converges
+        # on the first kill, everything after it a plain mission) never reached
+        # mobile and the coaching arrow ran for hours.
+        "tag": m.get("tag", "") or "",
     }
 
 # ---------------------------------------------------------------------------
@@ -875,7 +881,7 @@ MERGE = "MERGE"
 def _m(mid):
     return {"src": [mid]}
 def _merge(mid, name, mtype, target, qty, desc, src, tag="[TUTORIAL]"):
-    return {MERGE: True, "id": mid, "name": "%s %s" % (tag, name),
+    return {MERGE: True, "id": mid, "name": "%s %s" % (tag, name), "tag": tag,
             "type": mtype, "target": target, "qty": qty, "desc": desc, "src": src}
 
 CURATED_CHAIN = [
@@ -1002,6 +1008,8 @@ def _build_curated():
                 "target": entry["target"],
                 "qty": int(entry["qty"]),
                 "cr": cr, "xp": xp, "next": "",
+                # A merged beat inherits the tag of the run it fused.
+                "tag": entry.get("tag", srcs[0].get("tag", "")),
             }
             out.append((entry["id"], d))
         else:

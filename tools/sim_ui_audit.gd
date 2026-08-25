@@ -193,6 +193,48 @@ func _run() -> void:
 				o.queue_free()
 		await process_frame
 
+	# ---------- D3. every board pips its own nav row ----------
+	# A finished contract that shows nothing on the nav is a payout the player
+	# never collects: they only find it by wandering onto the page.
+	gs.bounty_active = [{"completed": true, "claimed": false, "title": "T"}]
+	gs.standing_board = [{"completed": true, "claimed": false, "target": "Fe", "id": "s1"}]
+	gs.missions_active = {}
+	main._update_badges()
+	await process_frame
+	for pair in [["bounty", "a finished bounty"], ["standing", "a finished standing order"]]:
+		var row = main.nav_items.get(String(pair[0]))
+		if row == null or not is_instance_valid(row.get("badge")):
+			E("nav row '%s' has no badge node" % pair[0])
+		elif not row["badge"].visible:
+			E("%s does not pip its nav row — the payout is invisible until you wander in" % pair[1])
+	gs.bounty_active = []
+	gs.standing_board = []
+	main._update_badges()
+	await process_frame
+	for pid in ["bounty", "standing"]:
+		var row2 = main.nav_items.get(pid)
+		if row2 != null and is_instance_valid(row2.get("badge")) and row2["badge"].visible:
+			E("nav row '%s' still pips with nothing to claim" % pid)
+
+	# ---------- D4. the tutorial tag ends at the first kill ----------
+	# The pointing finger is licensed by the [TUTORIAL] tag. Desktop retagged so
+	# onboarding converges on the first kill; if mobile ever loses the tag from
+	# the data it falls back to a name prefix and the arrow runs for hours again.
+	var tut := 0
+	var tagged := 0
+	for mid2 in gd.MISSION_ORDER:
+		if gs.mission_tag(String(mid2)) != "":
+			tagged += 1
+		if gs.is_tutorial_mission(String(mid2)):
+			tut += 1
+	print("chain tags: %d of %d beats tagged, %d of them [TUTORIAL]"
+		% [tagged, gd.MISSION_ORDER.size(), tut])
+	if tagged < gd.MISSION_ORDER.size():
+		E("%d chain beats carry no chapter tag — the coach cannot tell onboarding from the rest"
+			% (gd.MISSION_ORDER.size() - tagged))
+	if tut >= gd.MISSION_ORDER.size():
+		E("every beat is tagged [TUTORIAL] — the pointer would never go quiet")
+
 	# ---------- E. rebuilding a page must not grow it ----------
 	# Every page is rebuilt on refresh; a builder that appends instead of
 	# clearing leaks children on every tick and eventually chokes the scroll.
