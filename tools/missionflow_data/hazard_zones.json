@@ -1,21 +1,3 @@
 {
-  "emp_nexus": {
-    "boss_enemy": "hz_emp_overlord",
-    "counter_module": "faraday_hull",
-    "desc": "Electromagnetic death-field. Weapons jam constantly without shielding.",
-    "elite_enemy": "hz_emp_elite",
-    "enemy_pool": [
-      "hz_emp_drone_1",
-      "hz_emp_drone_2",
-      "hz_emp_drone_3",
-      "hz_emp_drone_4",
-      "hz_emp_drone_5"
-    ],
-    "first_clear_reward": "emp_generator_blueprint",
-    "hazard_type": "emp_storm",
-    "max_waves": 7,
-    "name": "EMP Nexus",
-    "unlock_boss": "z2_boss_monolith",
-    "zone_difficulty": 3
-  }
+
 }

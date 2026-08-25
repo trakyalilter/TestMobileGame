@@ -19,6 +19,7 @@
     "category": "processing",
     "cost": 7500,
     "cost_items": {
+      "BatteryT1": 20,
       "Co": 25,
       "Li": 25,
       "Mg": 25
@@ -38,7 +39,7 @@
     "category": "processing",
     "cost": 5000,
     "cost_items": {
-      "Fe": 100,
+      "AlWire": 20,
       "Si": 100
     },
     "effects": [
@@ -59,6 +60,7 @@
     "category": "combat",
     "cost": 37500,
     "cost_items": {
+      "AlMgAlloy": 50,
       "Circuit": 125,
       "Steel": 250
     },
@@ -161,6 +163,7 @@
     "category": "infrastructure",
     "cost": 2500,
     "cost_items": {
+      "Hydraulics": 8,
       "Ti": 20
     },
     "effects": [],
@@ -493,7 +496,7 @@
     "category": "infrastructure",
     "cost": 30000,
     "cost_items": {
-      "Si": 500,
+      "Mesh": 63,
       "Ti": 250
     },
     "effects": [],
@@ -511,6 +514,7 @@
     "cost": 25000,
     "cost_items": {
       "He": 125,
+      "Mesh": 50,
       "Ti": 75
     },
     "effects": [],
@@ -803,6 +807,7 @@
     "cost": 2000000,
     "cost_items": {
       "Ir": 2000,
+      "IrPlate": 80,
       "Res3": 1000
     },
     "effects": [],
@@ -989,6 +994,7 @@
     "cost": 9000,
     "cost_items": {
       "Circuit": 25,
+      "Hydraulics": 12,
       "Steel": 80
     },
     "effects": [],
@@ -1034,7 +1040,8 @@
     "cost_items": {
       "Circuit": 38,
       "Fiber": 98,
-      "Resin": 98
+      "Resin": 98,
+      "Seal": 150
     },
     "effects": [],
     "flavor": "Continuous chemical lines — resin, fiber and light metals without a hand on the console.",
@@ -1053,6 +1060,7 @@
     "category": "infrastructure",
     "cost": 2500,
     "cost_items": {
+      "AlWire": 15,
       "Si": 50
     },
     "effects": [],
@@ -1267,6 +1275,7 @@
     "category": "processing",
     "cost": 5000,
     "cost_items": {
+      "Hydraulics": 10,
       "Ni": 100
     },
     "effects": [],
@@ -1283,7 +1292,7 @@
     "category": "infrastructure",
     "cost": 3000,
     "cost_items": {
-      "Fe": 100
+      "Hydraulics": 10
     },
     "effects": [],
     "flavor": "",
@@ -1326,7 +1335,8 @@
     "cost": 5000,
     "cost_items": {
       "Circuit": 50,
-      "Fiber": 20
+      "Fiber": 20,
+      "Mesh": 10
     },
     "effects": [],
     "flavor": "",
@@ -1420,6 +1430,7 @@
     "category": "processing",
     "cost": 5000,
     "cost_items": {
+      "Hydraulics": 10,
       "O": 200,
       "Steel": 100
     },
@@ -1647,6 +1658,7 @@
       "AdvCircuit": 15,
       "Al": 100,
       "Co": 50,
+      "IrPlate": 8,
       "Superalloy": 25
     },
     "effects": [],
@@ -1666,6 +1678,7 @@
     "cost_items": {
       "Co": 80,
       "Graphite": 120,
+      "IrWAlloy": 400,
       "W": 160,
       "Zn": 160
     },
@@ -1793,6 +1806,7 @@
     "cost": 120000,
     "cost_items": {
       "AdvCircuit": 3,
+      "ReinforcedPlating": 63,
       "Steel": 63
     },
     "effects": [],
@@ -1827,6 +1841,7 @@
     "category": "processing",
     "cost": 100000,
     "cost_items": {
+      "AlMgAlloy": 63,
       "Co": 250,
       "Cr": 125,
       "Ni": 250,
@@ -2073,8 +2088,7 @@
     "category": "zone",
     "cost": 30000,
     "cost_items": {
-      "Cu": 20,
-      "Fe": 40,
+      "BatteryT1": 6,
       "Z1_Core": 2
     },
     "effects": [],

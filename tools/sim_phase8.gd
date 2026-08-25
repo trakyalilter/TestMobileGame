@@ -32,18 +32,25 @@ func _run() -> void:
 	_ck("CMB_1 locked until 2 warps", not gs.can_purchase_node("CMB_1"))
 	_ck("available shards = earned - spent", gs.available_warp_shards() == 10.0)
 
-	# Purchase ENG_1 (Yield Calibration, cost 1). v122 turned it from a +10%
-	# multiplier into a FLAT +1 per gather, so it no longer moves yield_mult.
-	var flat_before: int = gs.tree_gathering_flat()
+	# Purchase ENG_1 (Yield Calibration, cost 1). It is a MULTIPLIER again: the
+	# flat +1 it briefly granted had been outgrown by the skill yield flat, so by
+	# Gathering 60+ a prestige purchase was worth less than one level-up.
+	var yield_before: float = gs.yield_mult("harvesting")
 	_ck("ENG_1 purchasable at warp 1", gs.can_purchase_node("ENG_1"))
 	var bought: bool = gs.purchase_tree_node("ENG_1")
 	_ck("ENG_1 purchase succeeds", bought)
 	_ck("ENG_1 marked purchased", gs.is_node_purchased("ENG_1"))
 	_ck("shards spent += cost", gs.warp_shards_spent == 1.0, "spent=%.0f" % gs.warp_shards_spent)
 	_ck("available shards drop", gs.available_warp_shards() == 9.0)
-	var flat_after: int = gs.tree_gathering_flat()
-	_ck("ENG_1 grants a flat +1 gathering yield", flat_before == 0 and flat_after == 1,
-		"%d -> %d" % [flat_before, flat_after])
+	var yield_after: float = gs.yield_mult("harvesting")
+	_ck("ENG_1 raises gathering yield by %d%%" % int(gs.ENG1_YIELD_BONUS * 100.0),
+		abs(yield_after - yield_before * (1.0 + gs.ENG1_YIELD_BONUS)) < 0.0001,
+		"%.4f -> %.4f" % [yield_before, yield_after])
+	# It is gathering-only: the ENG_S1 spine must stay equal to the infra bonus,
+	# which is what warp_research_reset asserts upstream.
+	_ck("ENG_1 does not touch infrastructure",
+		abs(gs.tree_gathering_bonus() - gs.tree_infra_bonus()) < 0.0001,
+		"gather=%.3f infra=%.3f" % [gs.tree_gathering_bonus(), gs.tree_infra_bonus()])
 	_ck("cannot re-buy ENG_1", not gs.can_purchase_node("ENG_1"))
 
 	# Nodes are INDEPENDENT (no in-branch prereq chain — faithful to the ref).

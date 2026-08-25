@@ -83,16 +83,16 @@ func _run() -> void:
 		gs.unlocked_research[r] = true
 	gs.active_hull = "corvette_hull"
 	gs.owned_hulls = {"corvette_hull": true, "frigate_hull": true}
-	gs.module_inventory = {"cryo_shard_pistol": 2, "faraday_hull": 1}
+	gs.module_inventory = {"z1_kinetic": 2, "z1_armor": 1}   # live ids: retired gear is purged on load
 	gs.custom_modules = {"cm_test_1": {"name": "Test Blaster", "slot": "weapon", "rarity": 3,
 		"stats": {"atk_kinetic": 250, "atk_interval": 2.0}, "base": "rail_cannon"}}
-	gs.loadout = {"weapon": "cryo_shard_pistol", "armor": "faraday_hull"}
+	gs.loadout = {"weapon": "z1_kinetic", "armor": "z1_armor"}
 	gs.ammo_loadout = {"weapon": "SlugT2"}
 	gs.consumable_hull_slot = "RepairKitT1"
 	gs.consumable_shield_slot = "ShieldCellT1"
 	gs.loot_filter = {0: false, 1: true, 2: true, 3: true, 4: true}
 	gs.loadout_presets = {
-		1: {"name": "Cryo", "loadout": {"weapon": "cryo_shard_pistol"}, "ammo_loadout": {}, "consumable_hull": "", "consumable_shield": ""},
+		1: {"name": "Cryo", "loadout": {"weapon": "z1_kinetic"}, "ammo_loadout": {}, "consumable_hull": "", "consumable_shield": ""},
 		2: {"name": "Corrosion", "loadout": {"weapon": "corrosion_blaster"}, "ammo_loadout": {}, "consumable_hull": "", "consumable_shield": ""},
 		3: {"name": "", "loadout": {}, "ammo_loadout": {}, "consumable_hull": "", "consumable_shield": ""},
 	}

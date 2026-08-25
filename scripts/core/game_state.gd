@@ -37,7 +37,7 @@ var credits_at_warp_start: int = 0
 const TREE_NODES := {
 	# ===== ENGINEERING (revealed at warp #1) — rebuild faster & bigger =====
 	"ENG_1": {"branch": "engineering", "cost": 1, "name": "Yield Calibration",
-		"desc": "+1 gathering yield (flat, per gather).", "implemented": true},
+		"desc": "+50% gathering yield.", "implemented": true},
 	"ENG_2": {"branch": "engineering", "cost": 2, "name": "Recipe Efficiency",
 		"desc": "-15% processing action duration.", "implemented": true, "prereq": ["ENG_1"]},
 	"ENG_3": {"branch": "engineering", "cost": 3, "name": "Efficient Recipe",
@@ -590,8 +590,16 @@ func gain_credits(n: int) -> void:
 	lifetime_credits += n   # lifetime total drives prestige gains
 
 # ---------------- Warp / prestige multipliers ----------------
+# Every global multiplier carries 2^warp_tier with no ceiling of its own. At
+# warp 215 (tier 43) that term alone crosses float64's exact-integer limit
+# (2^53) and the economy silently corrupts. Capping the LADDER at 20 keeps the
+# fantasy — x1,048,576 production at 100 warps — while sitting about nine orders
+# of magnitude clear of the cliff. Past the cap the per-shard standing bonuses
+# (+1.5-3% per shard, linear and uncapped) keep every further warp paying.
+const WARP_TIER_CAP := 20
+
 func warp_tier() -> int:
-	return total_warps / warps_per_tier()
+	return mini(total_warps / warps_per_tier(), WARP_TIER_CAP)
 
 func warp_gathering_mult() -> float:
 	return (1.0 + warp_shards * 0.015) * pow(2.0, warp_tier())
@@ -681,6 +689,27 @@ func purchase_tree_node(node_id: String) -> bool:
 # Two dev builds briefly shipped a CMB_5 "Cryo Overcharge" node that desktop had
 # already retired. Refund anyone who bought it so their shards are not stranded
 # in a node that no longer exists.
+## Drop inventory entries whose BASE definition no longer exists — content can
+## retire (the Faraday Hull went with the EMP Nexus), and a save holding one
+## would otherwise show a blank Armory card that cannot be equipped or scrapped.
+## Rolled instances carry their own stats and are left alone.
+func _purge_retired_modules() -> void:
+	var gone: Array = []
+	for mid in module_inventory.keys():
+		var m := String(mid)
+		if custom_modules.has(m) or GameData.MODULES.has(m) or GameData.SET_MODULES.has(m):
+			continue
+		gone.append(m)
+	for m in gone:
+		module_inventory.erase(m)
+		for k in loadout.keys():
+			if String(loadout[k]) == m:
+				loadout.erase(k)
+		if equipped_relic == m:
+			equipped_relic = ""
+	if not gone.is_empty():
+		print("armory: dropped %d retired module(s): %s" % [gone.size(), str(gone)])
+
 func _refund_retired_nodes() -> void:
 	if purchased_nodes.has("CMB_5"):
 		purchased_nodes.erase("CMB_5")
@@ -697,8 +726,21 @@ func _migrate_v1_node_ids() -> void:
 # ---- Effect queries — folded into the matching stat getters (1.0 = not bought) ----
 func tree_gathering_bonus() -> float:
 	return 1.0 + 0.06 * float(get_node_level("ENG_S1"))       # ENG_S1 spine
+# ENG_1 Yield Calibration. The flat +1 it used to grant had been outgrown by the
+# skill yield flat (+1 per 10 levels), so by Gathering 60+ a prestige purchase
+# was worth less than a single level-up. It is a MULTIPLIER now, so it scales
+# with the run and — going through yield_mult — reaches offline gathering and
+# every drop, rather than only the first loot row online.
+#
+# Deliberately NOT folded into tree_gathering_bonus(): that is the ENG_S1 spine
+# and must stay equal to tree_infra_bonus(), since ENG_1 is gathering-only.
+const ENG1_YIELD_BONUS := 0.50
+
+func tree_gathering_yield_mult() -> float:
+	return 1.0 + ENG1_YIELD_BONUS if is_node_purchased("ENG_1") else 1.0
+
 func tree_gathering_flat() -> int:
-	return 1 if is_node_purchased("ENG_1") else 0             # ENG_1 flat +1/gather
+	return 0                                                  # kept: callers add it to the research flat
 func tree_infra_bonus() -> float:
 	return 1.0 + 0.06 * float(get_node_level("ENG_S1"))       # ENG_S1 also buffs infra
 func tree_recipe_material_reduction() -> int:
@@ -995,6 +1037,7 @@ func yield_mult(skill_id: String) -> float:
 	m *= 1.0 + affix_total("extractor_efficiency")
 	m *= 1.0 + research_bonus("gathering_yield_mult")      # Recursion: gathering_focus
 	m *= tree_gathering_bonus()                            # ENG_S1 Resource Surge spine (+6%/L)
+	m *= tree_gathering_yield_mult()                       # ENG_1 Yield Calibration +50%
 	m *= trophy_buff("mining_yield")                       # Omega Accelerator +50%
 	# NB: warp prestige boosts gathering via SPEED (see gather_speed_mult), not yield.
 	return m
@@ -1097,6 +1140,8 @@ func ship_stats() -> Dictionary:
 	var eng := 1.0 + level_of("fabrication") * 0.01
 	s["regen_bonus"] = 0.0
 	for k in loadout:
+		if module_is_wrecked(String(loadout[k])):
+			continue        # wrecked: contributes nothing, and draws nothing either
 		var m: Dictionary = module_def(loadout[k])
 		var st: Dictionary = m.get("stats", {})
 		s.hp += float(st.get("hp", 0)) * eng
@@ -1179,6 +1224,8 @@ func ship_weapons() -> Array:
 	var spd_bonus := 0.0
 	var spd_mult := 1.0
 	for k in loadout:
+		if module_is_wrecked(String(loadout[k])):
+			continue
 		var st: Dictionary = module_def(loadout[k]).get("stats", {})
 		spd_bonus += float(st.get("atk_speed_bonus", 0))
 		if st.has("atk_speed_mult"):
@@ -4958,12 +5005,10 @@ func _player_fire(w: Dictionary, ss: Dictionary) -> void:
 		_overheat_lock = 1.0
 		_event("OVERHEAT", "ef9a54", "player")
 		return
-	# v86.0 EMP Storm hazard: weapons jam (40% without the Faraday counter, 10% with).
-	if hazard_state.get("active", false) and _active_hazard_type() == "emp_storm":
-		var jam_chance := 0.10 if loadout_has_module("faraday_hull") else 0.40
-		if randf() < jam_chance:
-			_event("EMP JAM", "ecb44a", "enemy")
-			return
+	# The EMP-storm weapon jam went with the EMP Nexus: the zone, its seven
+	# hz_emp_* enemies and the Faraday Hull whose whole identity was EMP immunity
+	# were removed upstream. The hazard FRAMEWORK stays — it costs nothing while
+	# empty, and a future gauntlet needs only a new dict entry.
 	var acc := float(ss.get("acc", 100.0))
 	var hit := clampf(acc / (acc + float(enemy_inst["eva"])), 0.2, 1.0)
 	if randf() > hit:
@@ -5550,8 +5595,10 @@ func loot_drop_kept(_base_id: String, rarity: int) -> bool:
 
 # ---------------- Module durability (desktop v100/v124/v125) ----------------
 # ONLINE defeat is non-destructive: equipped modules floor to 50% durability
-# (never lower, never destroyed). At <=50% a module is "destroyable", but that
-# loss only happens during OFFLINE combat (opt-in). Repairing costs Spare Parts.
+# (never lower). At <=50% a module can be WRECKED — durability 0 and inert until
+# repaired — but only during OFFLINE combat (opt-in). Nothing is ever deleted;
+# a wreck keeps its slot, sockets, presets and ownership, and Spare Parts bring
+# it back.
 func get_module_durability(mid: String) -> int:
 	if custom_modules.has(mid):
 		return int(custom_modules[mid].get("durability", 100))
@@ -5609,30 +5656,41 @@ func handle_module_defeat() -> void:
 		if not game_flags.get("durability_coach_seen", false):
 			game_flags["durability_coach_seen"] = true
 			feature_revealed.emit("⟨ MODULE WEAR ⟩",
-				"Defeat wears equipped modules to 50% durability. Worn modules risk destruction in OFFLINE combat — repair them with Spare Parts (Ship Designer).")
+				"Defeat wears equipped modules to 50% durability. A worn module can be WRECKED in OFFLINE combat — inert until repaired, never lost — so keep Spare Parts handy (Ship Designer).")
 
-# OFFLINE loss risk (the consent is the offline-combat toggle): only modules
-# ALREADY <=50% can be destroyed; ~5%/hr, capped 35% per worn module. Returns
-# destroyed display names so the Welcome Back report is never silent about it.
+# OFFLINE wreck risk (the consent is the offline-combat toggle): only modules
+# ALREADY <=50% can be wrecked; ~5%/hr, capped 35% per worn module. Returns the
+# wrecked display names so the Welcome Back report is never silent about it.
 func _apply_offline_durability_risk(delta: float) -> Array:
-	var destroyed: Array = []
+	var wrecked: Array = []
 	var p: float = clampf(0.05 * (delta / 3600.0), 0.0, 0.35)
 	if p <= 0.0:
-		return destroyed
-	var to_clear := []
+		return wrecked
 	for k in loadout.keys():
 		var mid: String = loadout[k]
 		if mid == "" or not custom_modules.has(mid):
 			continue
-		if int(custom_modules[mid].get("durability", 100)) <= 50 and randf() < p:
-			destroyed.append(String(custom_modules[mid].get("name", mid)))
-			to_clear.append(k)
-	for k in to_clear:
-		var mid: String = loadout[k]
-		custom_modules.erase(mid)
-		module_inventory.erase(mid)
-		loadout[k] = ""
-	return destroyed
+		var dur := int(custom_modules[mid].get("durability", 100))
+		if dur > 50 or dur <= 0:
+			continue          # unworn, or already wrecked — out of the pool
+		if randf() < p:
+			# Strike two WRECKS: durability 0 and inert until repaired. It keeps
+			# its slot, sockets, presets and ownership. Nothing is deleted, online
+			# or offline — two lost fights permanently destroying equipped gear was
+			# the top rage-quit candidate from the demo's first player feedback,
+			# and in an idle game the second loss lands while nobody is watching.
+			# The wreck is ONE durability write, so there is no partial-teardown
+			# state to corrupt.
+			custom_modules[mid]["durability"] = 0
+			wrecked.append(String(custom_modules[mid].get("name", mid)))
+	return wrecked
+
+## A wrecked module is owned and still slotted, but contributes nothing until
+## it is repaired.
+func module_is_wrecked(mid: String) -> bool:
+	if mid == "" or not custom_modules.has(mid):
+		return false
+	return int(custom_modules[mid].get("durability", 100)) <= 0
 
 func _lose_combat() -> void:
 	# v124 (desktop parity): the credit "repair fee" death tax is gone —
@@ -6182,7 +6240,7 @@ func _apply_offline(delta: float) -> void:
 			_offline_combat(delta)
 			var lost := _apply_offline_durability_risk(delta)
 			if not lost.is_empty():
-				var note := "☠ Destroyed while away (worn modules): " + ", ".join(lost)
+				var note := "⚠ Wrecked while away (repair with Spare Parts): " + ", ".join(lost)
 				pending_offline = (pending_offline + "\n\n" + note) if pending_offline != "" else note
 		return
 	var dur := current_duration()
@@ -6529,6 +6587,7 @@ func load_game() -> void:
 	# older saves that surfaced them during the tutorial).
 	_surface_core_goals()
 	boss_kills = data.get("boss_kills", {})
+	_purge_retired_modules()
 	# Pre-v177 saves have no key. An empty log is the correct load state — the
 	# tally is lifetime-forward, and back-filling it from total_kills would hand
 	# out stars for enemies never fought.

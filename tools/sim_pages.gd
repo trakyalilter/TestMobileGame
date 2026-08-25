@@ -99,7 +99,17 @@ func _run() -> void:
 	await process_frame
 	var hz := []
 	_collect_text(main.pages["hazard"], hz)
-	if _has(hz, "EMP Nexus") and _has(hz, "Waves"):
+	# The EMP Nexus was removed upstream and no hazard has replaced it yet. The
+	# FRAMEWORK is kept deliberately (a future gauntlet is one dict entry), so the
+	# page must still build — it just has nothing to list, and the nav entry hides
+	# itself until a hazard is unlocked.
+	if GameData.HAZARD_ZONES.is_empty():
+		if _has(hz, "HAZARD"):
+			print("PASS hazard view builds with no zones in the data")
+		else:
+			print("FAIL hazard view did not build — got: %s" % str(hz))
+			fail = true
+	elif _has(hz, "Waves"):
 		print("PASS hazard view: zone name + wave info present")
 	else:
 		print("FAIL hazard view missing — got: %s" % str(hz))

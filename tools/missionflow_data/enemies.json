@@ -1,278 +1,4 @@
 {
-  "hz_emp_drone_1": {
-    "dmg_type": "energy",
-    "loot": [
-      [
-        "credits",
-        500,
-        1000
-      ],
-      [
-        "Fe",
-        5,
-        10
-      ],
-      [
-        "Cu",
-        3,
-        6
-      ]
-    ],
-    "name": "EMP Assault Drone",
-    "rare_loot": [],
-    "resist_e": -0.3,
-    "resist_k": 0.0,
-    "resist_x": 0.37,
-    "stats": {
-      "accuracy": 35,
-      "atk": 68,
-      "atk_interval": 2.0,
-      "def": 26,
-      "hp": 1183,
-      "max_shield": 222
-    },
-    "xp": 40,
-    "zone": 2
-  },
-  "hz_emp_drone_2": {
-    "dmg_type": "energy",
-    "loot": [
-      [
-        "credits",
-        600,
-        1200
-      ],
-      [
-        "Si",
-        5,
-        10
-      ],
-      [
-        "Cu",
-        2,
-        5
-      ]
-    ],
-    "name": "Charged Golem",
-    "rare_loot": [],
-    "resist_e": -0.3,
-    "resist_k": 0.0,
-    "resist_x": 0.37,
-    "stats": {
-      "accuracy": 30,
-      "atk": 57,
-      "atk_interval": 2.0,
-      "def": 34,
-      "hp": 1594
-    },
-    "xp": 45,
-    "zone": 2
-  },
-  "hz_emp_drone_3": {
-    "dmg_type": "energy",
-    "loot": [
-      [
-        "credits",
-        400,
-        800
-      ],
-      [
-        "Fe",
-        3,
-        8
-      ],
-      [
-        "Res1",
-        2,
-        4
-      ]
-    ],
-    "name": "Pulse Skimmer",
-    "rare_loot": [],
-    "resist_e": -0.3,
-    "resist_k": 0.0,
-    "resist_x": 0.37,
-    "stats": {
-      "accuracy": 40,
-      "atk": 80,
-      "atk_interval": 2.0,
-      "def": 17,
-      "hp": 973,
-      "max_shield": 443
-    },
-    "xp": 35,
-    "zone": 2
-  },
-  "hz_emp_drone_4": {
-    "dmg_type": "energy",
-    "loot": [
-      [
-        "credits",
-        700,
-        1400
-      ],
-      [
-        "Fe",
-        8,
-        15
-      ],
-      [
-        "Ti",
-        1,
-        3
-      ]
-    ],
-    "name": "Static Hauler",
-    "rare_loot": [],
-    "resist_e": -0.3,
-    "resist_k": 0.0,
-    "resist_x": 0.37,
-    "stats": {
-      "accuracy": 28,
-      "atk": 54,
-      "atk_interval": 2.0,
-      "def": 43,
-      "hp": 2015
-    },
-    "xp": 50,
-    "zone": 2
-  },
-  "hz_emp_drone_5": {
-    "dmg_type": "energy",
-    "loot": [
-      [
-        "credits",
-        500,
-        1000
-      ],
-      [
-        "Cu",
-        5,
-        10
-      ],
-      [
-        "Si",
-        3,
-        6
-      ]
-    ],
-    "name": "Ion Disruptor",
-    "rare_loot": [],
-    "resist_e": -0.3,
-    "resist_k": 0.0,
-    "resist_x": 0.37,
-    "stats": {
-      "accuracy": 38,
-      "atk": 77,
-      "atk_interval": 2.0,
-      "def": 20,
-      "hp": 1368,
-      "max_shield": 296
-    },
-    "xp": 42,
-    "zone": 2
-  },
-  "hz_emp_elite": {
-    "dmg_type": "energy",
-    "loot": [
-      [
-        "credits",
-        3000,
-        6000
-      ],
-      [
-        "Cu",
-        10,
-        20
-      ],
-      [
-        "Ti",
-        3,
-        8
-      ],
-      [
-        "Res1",
-        5,
-        10
-      ]
-    ],
-    "name": "EMP Commander",
-    "rare_loot": [
-      [
-        "Circuit",
-        0.3,
-        3,
-        6
-      ]
-    ],
-    "resist_e": -0.3,
-    "resist_k": 0.0,
-    "resist_x": 0.37,
-    "stats": {
-      "accuracy": 50,
-      "atk": 136,
-      "atk_interval": 2.0,
-      "def": 68,
-      "hp": 5170,
-      "max_shield": 887
-    },
-    "xp": 150,
-    "zone": 2
-  },
-  "hz_emp_overlord": {
-    "dmg_type": "energy",
-    "is_boss": true,
-    "loot": [
-      [
-        "credits",
-        10000,
-        20000
-      ],
-      [
-        "Cu",
-        20,
-        40
-      ],
-      [
-        "Ti",
-        8,
-        15
-      ],
-      [
-        "Res1",
-        10,
-        20
-      ]
-    ],
-    "name": "EMP Overlord",
-    "rare_loot": [
-      [
-        "AdvCircuit",
-        0.25,
-        2,
-        4
-      ],
-      [
-        "NavData",
-        0.4,
-        1,
-        3
-      ]
-    ],
-    "resist_e": -0.4,
-    "resist_k": 0.0,
-    "resist_x": 0.37,
-    "stats": {
-      "accuracy": 65,
-      "atk": 341,
-      "atk_interval": 2.0,
-      "def": 102,
-      "hp": 17026,
-      "max_shield": 2557
-    },
-    "xp": 500,
-    "zone": 2
-  },
   "z10_boss_leviathan": {
     "adaptive_grid": {
       "cap": 0.15,
@@ -1772,12 +1498,6 @@
         1
       ],
       [
-        "faraday_hull",
-        0.03,
-        1,
-        1
-      ],
-      [
         "SalvagedAlloy",
         0.9,
         3,
@@ -2062,9 +1782,9 @@
         1
       ]
     ],
-    "resist_e": 0.0,
-    "resist_k": -0.4,
-    "resist_x": 0.37,
+    "resist_e": 0.37,
+    "resist_k": 0.0,
+    "resist_x": -0.4,
     "stats": {
       "accuracy": 65,
       "atk": 439,
@@ -2145,9 +1865,9 @@
         4
       ]
     ],
-    "resist_e": -0.3,
-    "resist_k": 0.0,
-    "resist_x": 0.37,
+    "resist_e": 0.0,
+    "resist_k": 0.37,
+    "resist_x": -0.3,
     "stats": {
       "accuracy": 42,
       "atk": 119,
@@ -2265,9 +1985,9 @@
         3
       ]
     ],
-    "resist_e": 0.0,
-    "resist_k": 0.37,
-    "resist_x": -0.3,
+    "resist_e": -0.3,
+    "resist_k": 0.0,
+    "resist_x": 0.37,
     "stats": {
       "accuracy": 35,
       "atk": 93,

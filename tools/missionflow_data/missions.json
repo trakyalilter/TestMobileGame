@@ -453,7 +453,7 @@
     "next_mission": "m009",
     "reward_cr": 465,
     "reward_xp": 100,
-    "tag": "[TUTORIAL]",
+    "tag": "[MISSION]",
     "target": "materials_science",
     "target_qty": 1,
     "type": "research"
@@ -472,7 +472,7 @@
     "next_mission": "m011",
     "reward_cr": 800,
     "reward_xp": 100,
-    "tag": "[TUTORIAL]",
+    "tag": "[MISSION]",
     "target": "Wood",
     "target_qty": 100,
     "type": "gather"
@@ -491,7 +491,7 @@
     "next_mission": "m011",
     "reward_cr": 825,
     "reward_xp": 150,
-    "tag": "[TUTORIAL]",
+    "tag": "[MISSION]",
     "target": "combustion",
     "target_qty": 1,
     "type": "research"
@@ -510,7 +510,7 @@
     "next_mission": "m013b",
     "reward_cr": 1020,
     "reward_xp": 150,
-    "tag": "[TUTORIAL]",
+    "tag": "[MISSION]",
     "target": "C",
     "target_qty": 50,
     "type": "gather"
@@ -567,7 +567,7 @@
     "next_mission": "m013c",
     "reward_cr": 2220,
     "reward_xp": 300,
-    "tag": "[TUTORIAL]",
+    "tag": "[MISSION]",
     "target": "Malachite",
     "target_qty": 100,
     "type": "gather"
@@ -586,7 +586,7 @@
     "next_mission": "m018",
     "reward_cr": 2850,
     "reward_xp": 350,
-    "tag": "[TUTORIAL]",
+    "tag": "[MISSION]",
     "target": "Cu",
     "target_qty": 50,
     "type": "gather"
@@ -738,7 +738,7 @@
     "next_mission": "m017a2",
     "reward_cr": 3375,
     "reward_xp": 200,
-    "tag": "[TUTORIAL]",
+    "tag": "[MISSION]",
     "target": "z1_energy",
     "target_qty": 3,
     "type": "craft"
@@ -757,7 +757,7 @@
     "next_mission": "m017b",
     "reward_cr": 3449,
     "reward_xp": 200,
-    "tag": "[TUTORIAL]",
+    "tag": "[MISSION]",
     "target": "CellT1",
     "target_qty": 90,
     "type": "gather"
@@ -776,7 +776,7 @@
     "next_mission": "m027b",
     "reward_cr": 7050,
     "reward_xp": 500,
-    "tag": "[TUTORIAL]",
+    "tag": "[MISSION]",
     "target": "z2_silicate_golem",
     "target_qty": 1,
     "type": "defeat"
@@ -786,7 +786,7 @@
     "claimed": false,
     "completed": false,
     "current_qty": 0.0,
-    "description": "The Scavenger Mech in Mars Debris is armored against kinetic but blows apart under EXPLOSIVE ordnance. In the Shipyard, craft 4 'Micro-Missile Launcher' — one for each of the Destroyer's four weapon mounts.",
+    "description": "The Derelict Frigate in Mars Debris is armored against kinetic but blows apart under EXPLOSIVE ordnance. In the Shipyard, craft 4 'Micro-Missile Launcher' — one for each of the Destroyer's four weapon mounts.",
     "id": "m017c",
     "multi_progress": {
 
@@ -795,7 +795,7 @@
     "next_mission": "m017c2",
     "reward_cr": 4320,
     "reward_xp": 250,
-    "tag": "[TUTORIAL]",
+    "tag": "[MISSION]",
     "target": "z1_missile",
     "target_qty": 4,
     "type": "craft"
@@ -814,7 +814,7 @@
     "next_mission": "m017d",
     "reward_cr": 4410,
     "reward_xp": 250,
-    "tag": "[TUTORIAL]",
+    "tag": "[MISSION]",
     "target": "MissileT1",
     "target_qty": 120,
     "type": "gather"
@@ -824,7 +824,7 @@
     "claimed": false,
     "completed": false,
     "current_qty": 0.0,
-    "description": "Click LOADOUT 3, equip all FOUR Micro-Missile Launchers there, then destroy a Scavenger Mech in Mars Debris. Kinetic / Energy / Explosive now live in Loadouts 1 / 2 / 3 — before a fight, one click swaps your WHOLE ship modules.",
+    "description": "Click LOADOUT 3, equip all FOUR Micro-Missile Launchers there, then destroy a Derelict Frigate in Mars Debris. Kinetic / Energy / Explosive now live in Loadouts 1 / 2 / 3 — before a fight, one click swaps your WHOLE ship modules.",
     "id": "m017d",
     "multi_progress": {
 
@@ -833,8 +833,8 @@
     "next_mission": "m030f",
     "reward_cr": 8750,
     "reward_xp": 600,
-    "tag": "[TUTORIAL]",
-    "target": "z3_scavenger_mech",
+    "tag": "[MISSION]",
+    "target": "z3_derelict_frigate",
     "target_qty": 1,
     "type": "defeat"
   },
@@ -852,7 +852,7 @@
     "next_mission": "m018t1",
     "reward_cr": 1275,
     "reward_xp": 100,
-    "tag": "[TUTORIAL]",
+    "tag": "[MISSION]",
     "target": "industrial_logistics",
     "target_qty": 1,
     "type": "research"
@@ -871,7 +871,7 @@
     "next_mission": "m018t1",
     "reward_cr": 2600,
     "reward_xp": 200,
-    "tag": "[TUTORIAL]",
+    "tag": "[MISSION]",
     "target": "industrial_logistics",
     "target_qty": 1,
     "type": "research"
@@ -890,7 +890,7 @@
     "next_mission": "m018t2",
     "reward_cr": 3975,
     "reward_xp": 200,
-    "tag": "[TUTORIAL]",
+    "tag": "[MISSION]",
     "target": "Cassiterite",
     "target_qty": 40,
     "type": "gather"
@@ -909,7 +909,7 @@
     "next_mission": "m019",
     "reward_cr": 4050,
     "reward_xp": 200,
-    "tag": "[TUTORIAL]",
+    "tag": "[MISSION]",
     "target": "Sn",
     "target_qty": 24,
     "type": "gather"
@@ -928,7 +928,7 @@
     "next_mission": "m019b",
     "reward_cr": 5500,
     "reward_xp": 300,
-    "tag": "[TUTORIAL]",
+    "tag": "[MISSION]",
     "target": "Circuit",
     "target_qty": 10,
     "type": "gather"
@@ -947,7 +947,7 @@
     "next_mission": "m019c",
     "reward_cr": 5600,
     "reward_xp": 200,
-    "tag": "[TUTORIAL]",
+    "tag": "[MISSION]",
     "target": "inventory",
     "target_qty": 1,
     "type": "visit_page"
@@ -966,7 +966,7 @@
     "next_mission": "m019d",
     "reward_cr": 5700,
     "reward_xp": 200,
-    "tag": "[TUTORIAL]",
+    "tag": "[MISSION]",
     "target": "infrastructure",
     "target_qty": 1,
     "type": "visit_page"
@@ -985,7 +985,7 @@
     "next_mission": "m019e",
     "reward_cr": 7250,
     "reward_xp": 200,
-    "tag": "[TUTORIAL]",
+    "tag": "[MISSION]",
     "target": "solar_panel",
     "target_qty": 1,
     "type": "build"
@@ -1004,7 +1004,7 @@
     "next_mission": "m025",
     "reward_cr": 5900,
     "reward_xp": 150,
-    "tag": "[TUTORIAL]",
+    "tag": "[MISSION]",
     "target": "Res1",
     "target_qty": 1,
     "type": "atlas_lookup"
@@ -1235,7 +1235,7 @@
     "next_mission": "m025a",
     "reward_cr": 54000,
     "reward_xp": 500,
-    "tag": "[TUTORIAL]",
+    "tag": "[MISSION]",
     "target": "smelting",
     "target_qty": 1,
     "type": "research"
@@ -1254,7 +1254,7 @@
     "next_mission": "m025b",
     "reward_cr": 10950,
     "reward_xp": 300,
-    "tag": "[TUTORIAL]",
+    "tag": "[MISSION]",
     "target": "O",
     "target_qty": 70,
     "type": "gather"
@@ -1273,7 +1273,7 @@
     "next_mission": "m026",
     "reward_cr": 18500,
     "reward_xp": 500,
-    "tag": "[TUTORIAL]",
+    "tag": "[MISSION]",
     "target": "Steel",
     "target_qty": 160,
     "type": "gather"
@@ -1292,7 +1292,7 @@
     "next_mission": "m026b",
     "reward_cr": 18750,
     "reward_xp": 500,
-    "tag": "[TUTORIAL]",
+    "tag": "[MISSION]",
     "target": "shipwright_1",
     "target_qty": 1,
     "type": "research"
@@ -1311,7 +1311,7 @@
     "next_mission": "m027",
     "reward_cr": 38000,
     "reward_xp": 1000,
-    "tag": "[TUTORIAL]",
+    "tag": "[MISSION]",
     "target": "frigate_hull",
     "target_qty": 1,
     "type": "construct"
@@ -1330,7 +1330,7 @@
     "next_mission": "m026d",
     "reward_cr": 19250,
     "reward_xp": 500,
-    "tag": "[TUTORIAL]",
+    "tag": "[MISSION]",
     "target": "2",
     "target_qty": 1,
     "type": "drop_rarity"
@@ -1349,7 +1349,7 @@
     "next_mission": "m026e",
     "reward_cr": 39000,
     "reward_xp": 1000,
-    "tag": "[TUTORIAL]",
+    "tag": "[MISSION]",
     "target": "2",
     "target_qty": 1,
     "type": "loadout_rare_weapon"
@@ -1368,7 +1368,7 @@
     "next_mission": "m009",
     "reward_cr": 98750,
     "reward_xp": 2500,
-    "tag": "[TUTORIAL]",
+    "tag": "[MISSION]",
     "target": "z1_boss_architect",
     "target_qty": 1,
     "type": "defeat"

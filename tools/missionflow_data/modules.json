@@ -97,22 +97,6 @@
     },
     "zone": 11
   },
-  "faraday_hull": {
-    "cost": {
-
-    },
-    "desc": "EMP-shielded armor plating with integrated electromagnetic dampeners. Grants immunity to weapon jamming in the EMP Nexus.",
-    "is_unique": true,
-    "name": "Faraday Hull",
-    "rarity": 4,
-    "slot_type": "armor",
-    "special": "emp_immunity",
-    "stats": {
-      "def": 34,
-      "hp": 136
-    },
-    "zone": 2
-  },
   "matrix_synthesis": {
     "cost": {
       "NavData": 10,
@@ -255,13 +239,11 @@
   },
   "z10_armor": {
     "cost": {
-      "AeonAlloy": 12,
-      "AeonResiduum": 79,
+      "AeonAlloy": 52,
       "CapitalSpar": 809,
       "DreadnoughtFrame": 455,
       "OmegaComposite": 15,
       "PrimordialMatrix": 15,
-      "PrimordialShard": 50,
       "SuperiorCircuit": 355,
       "VoidLattice": 1064,
       "credits": 1810891
@@ -297,8 +279,7 @@
   },
   "z10_energy": {
     "cost": {
-      "AeonAlloy": 7,
-      "AeonResiduum": 60,
+      "AeonAlloy": 37,
       "CapitalSpar": 622,
       "DreadnoughtFrame": 350,
       "OmegaComposite": 11,
@@ -339,13 +320,11 @@
   },
   "z10_kinetic": {
     "cost": {
-      "AeonAlloy": 7,
-      "AeonResiduum": 60,
+      "AeonAlloy": 37,
       "CapitalSpar": 622,
       "DreadnoughtFrame": 350,
       "OmegaComposite": 11,
       "PrimordialMatrix": 11,
-      "PrimordialShard": 37,
       "SuperiorCircuit": 273,
       "VoidLattice": 819,
       "credits": 2414522
@@ -363,13 +342,11 @@
   },
   "z10_missile": {
     "cost": {
-      "AeonAlloy": 7,
-      "AeonResiduum": 60,
+      "AeonAlloy": 37,
       "CapitalSpar": 622,
       "DreadnoughtFrame": 350,
       "OmegaComposite": 11,
       "PrimordialMatrix": 11,
-      "PrimordialShard": 37,
       "SuperiorCircuit": 273,
       "VoidLattice": 819,
       "credits": 2414522
@@ -407,12 +384,12 @@
   },
   "z10_shield": {
     "cost": {
-      "AeonAlloy": 9,
-      "AeonResiduum": 69,
+      "AeonAlloy": 44,
       "CapitalSpar": 685,
       "DreadnoughtFrame": 385,
-      "OmegaComposite": 13,
-      "PrimordialMatrix": 13,
+      "OmegaComposite": 9,
+      "PrimordialMatrix": 9,
+      "PurifiedCompound": 9,
       "SuperiorCircuit": 300,
       "VoidLattice": 900,
       "credits": 1810891
@@ -1097,9 +1074,8 @@
   "z2_armor": {
     "cost": {
       "C": 20,
-      "ChondriteAlloy": 8,
+      "ChondriteAlloy": 10,
       "Fe": 20,
-      "PirateSalvage": 2,
       "ReinforcedPlating": 2,
       "credits": 3300
     },
@@ -1115,6 +1091,7 @@
   },
   "z2_battery": {
     "cost": {
+      "BatteryT1": 4,
       "Cu": 25,
       "PirateSalvage": 1,
       "Si": 10,
@@ -1130,9 +1107,9 @@
   },
   "z2_energy": {
     "cost": {
-      "ChondriteAlloy": 5,
+      "AlWire": 6,
+      "ChondriteAlloy": 6,
       "Cu": 20,
-      "PirateSalvage": 1,
       "Si": 60,
       "credits": 4400
     },
@@ -1150,6 +1127,7 @@
   "z2_engine": {
     "cost": {
       "Cu": 30,
+      "Hydraulics": 3,
       "PirateSalvage": 1,
       "Si": 15,
       "credits": 2800
@@ -1164,10 +1142,10 @@
   },
   "z2_kinetic": {
     "cost": {
-      "ChondriteAlloy": 5,
+      "AlWire": 6,
+      "ChondriteAlloy": 6,
       "Cu": 20,
       "Fe": 60,
-      "PirateSalvage": 1,
       "credits": 4400
     },
     "desc": "Electromagnetic accelerator. Throws ferrite at hypersonic muzzle speed.",
@@ -1184,10 +1162,9 @@
   "z2_missile": {
     "cost": {
       "C": 30,
-      "ChondriteAlloy": 5,
+      "ChondriteAlloy": 6,
       "Fe": 40,
       "Hydraulics": 2,
-      "PirateSalvage": 1,
       "credits": 4400
     },
     "desc": "Concussive warhead tuned for maximum overpressure.",
@@ -1220,9 +1197,9 @@
   },
   "z2_shield": {
     "cost": {
-      "ChondriteAlloy": 6,
+      "ChondriteAlloy": 7,
       "Cu": 40,
-      "PirateSalvage": 1,
+      "MgBattery": 3,
       "Si": 20,
       "credits": 3300
     },
@@ -1383,7 +1360,6 @@
   },
   "z3_armor": {
     "cost": {
-      "MartianRelics": 1,
       "ReinforcedPlating": 2,
       "Steel": 364,
       "Ti": 15,
@@ -1417,10 +1393,10 @@
   },
   "z3_energy": {
     "cost": {
-      "MartianRelics": 1,
-      "Si": 56,
+      "FocusingCrystal": 3,
+      "Si": 38,
       "Steel": 280,
-      "Ti": 6,
+      "Ti": 4,
       "WreckforgedAlloy": 1,
       "credits": 9680
     },
@@ -1453,9 +1429,9 @@
   },
   "z3_kinetic": {
     "cost": {
-      "MartianRelics": 1,
+      "FocusingCrystal": 4,
       "Steel": 280,
-      "Ti": 11,
+      "Ti": 6,
       "WreckforgedAlloy": 1,
       "credits": 9680
     },
@@ -1474,7 +1450,6 @@
     "cost": {
       "C": 225,
       "Hydraulics": 3,
-      "MartianRelics": 1,
       "Steel": 280,
       "WreckforgedAlloy": 1,
       "credits": 9680
@@ -1511,9 +1486,9 @@
   "z3_shield": {
     "cost": {
       "Circuit": 51,
-      "MartianRelics": 1,
+      "Mesh": 1,
       "Steel": 210,
-      "Ti": 12,
+      "Ti": 6,
       "WreckforgedAlloy": 1,
       "credits": 7260
     },
@@ -1677,8 +1652,7 @@
       "Circuit": 301,
       "GalvanizedSteel": 18,
       "ReinforcedPlating": 8,
-      "RimeAlloy": 6,
-      "RimeplateScrap": 15,
+      "RimeAlloy": 13,
       "Steel": 438,
       "StructuralComponent": 9,
       "Ti": 7,
@@ -1698,10 +1672,11 @@
     "cost": {
       "AdvCircuit": 1,
       "Circuit": 116,
+      "CoBattery": 1,
       "Mg": 2,
       "RimeplateScrap": 7,
       "Steel": 168,
-      "StructuralComponent": 4,
+      "StructuralComponent": 3,
       "credits": 14000
     },
     "name": "Mg-Ion Cell",
@@ -1717,8 +1692,7 @@
       "AdvCircuit": 1,
       "Circuit": 231,
       "FocusingCrystal": 3,
-      "RimeAlloy": 4,
-      "RimeplateScrap": 11,
+      "RimeAlloy": 10,
       "Steel": 337,
       "StructuralComponent": 5,
       "Ti": 4,
@@ -1756,12 +1730,12 @@
   },
   "z4_kinetic": {
     "cost": {
-      "AdvCircuit": 2,
+      "AdvCircuit": 1,
+      "AlMgAlloy": 4,
       "Circuit": 231,
-      "RimeAlloy": 4,
-      "RimeplateScrap": 11,
+      "RimeAlloy": 10,
       "Steel": 337,
-      "StructuralComponent": 11,
+      "StructuralComponent": 7,
       "credits": 21296
     },
     "desc": "High-velocity slug launcher.",
@@ -1780,8 +1754,7 @@
       "Chip": 1,
       "Circuit": 231,
       "Hydraulics": 6,
-      "RimeAlloy": 4,
-      "RimeplateScrap": 11,
+      "RimeAlloy": 10,
       "Steel": 337,
       "StructuralComponent": 7,
       "credits": 21296
@@ -1822,11 +1795,11 @@
     "cost": {
       "AdvCircuit": 1,
       "Circuit": 255,
-      "RimeAlloy": 5,
-      "RimeplateScrap": 13,
+      "IonField": 1,
+      "RimeAlloy": 11,
       "Steel": 371,
-      "StructuralComponent": 8,
-      "Ti": 6,
+      "StructuralComponent": 6,
+      "Ti": 5,
       "credits": 15972
     },
     "desc": "Supercooled barrier matrix.",
@@ -1986,14 +1959,14 @@
   },
   "z5_armor": {
     "cost": {
+      "AlMgAlloy": 49,
       "Chip": 151,
       "Graphite": 285,
-      "StainlessSteel": 122,
+      "StainlessSteel": 61,
       "Steel": 356,
       "StructuralComponent": 188,
       "Superalloy": 188,
-      "XenoFragment": 11,
-      "XenoforgedAlloy": 9,
+      "XenoforgedAlloy": 14,
       "credits": 35138
     },
     "desc": "Dense metamaterial hull plating.",
@@ -2033,8 +2006,7 @@
       "StructuralComponent": 174,
       "Superalloy": 174,
       "TargetingChip": 5,
-      "XenoFragment": 8,
-      "XenoforgedAlloy": 6,
+      "XenoforgedAlloy": 10,
       "credits": 46851
     },
     "desc": "Relativistic particle stream drawn straight off the reactor line.",
@@ -2073,8 +2045,7 @@
       "QuantumCore": 10,
       "StructuralComponent": 184,
       "Superalloy": 184,
-      "XenoFragment": 8,
-      "XenoforgedAlloy": 6,
+      "XenoforgedAlloy": 10,
       "credits": 46851
     },
     "desc": "Capital-grade magnetic accelerator.",
@@ -2095,8 +2066,7 @@
       "StructuralComponent": 174,
       "Superalloy": 174,
       "TargetingChip": 5,
-      "XenoFragment": 8,
-      "XenoforgedAlloy": 6,
+      "XenoforgedAlloy": 10,
       "credits": 46851
     },
     "desc": "AI-guided ordnance. Never misses.",
@@ -2139,8 +2109,7 @@
       "StructuralComponent": 144,
       "Superalloy": 144,
       "VoidArtifact": 7,
-      "XenoFragment": 9,
-      "XenoforgedAlloy": 7,
+      "XenoforgedAlloy": 12,
       "credits": 35138
     },
     "desc": "Reverse-engineered alien shielding.",
@@ -2301,9 +2270,9 @@
   "z6_armor": {
     "cost": {
       "AdvCircuit": 593,
-      "ColonyAlloy": 10,
-      "ColonySalvage": 34,
-      "IrPlate": 55,
+      "AlMgAlloy": 55,
+      "ColonyAlloy": 27,
+      "IrPlate": 27,
       "NanoSubstrate": 296,
       "Superalloy": 397,
       "credits": 77304
@@ -2321,9 +2290,8 @@
   "z6_battery": {
     "cost": {
       "AdvCircuit": 332,
-      "ColonySalvage": 17,
       "NanoSubstrate": 166,
-      "ReactiveCore": 8,
+      "ReactiveCore": 10,
       "credits": 75000
     },
     "name": "Reactive Core",
@@ -2337,8 +2305,7 @@
   "z6_energy": {
     "cost": {
       "AdvCircuit": 639,
-      "ColonyAlloy": 6,
-      "ColonySalvage": 25,
+      "ColonyAlloy": 19,
       "NanoSubstrate": 320,
       "QuantumCore": 12,
       "TargetingChip": 5,
@@ -2358,10 +2325,9 @@
   "z6_engine": {
     "cost": {
       "AdvCircuit": 228,
-      "ColonySalvage": 17,
       "Hydraulics": 11,
       "NanoSubstrate": 114,
-      "QuantumCore": 8,
+      "QuantumCore": 9,
       "Superalloy": 153,
       "credits": 80000
     },
@@ -2376,8 +2342,7 @@
   "z6_kinetic": {
     "cost": {
       "AdvCircuit": 474,
-      "ColonyAlloy": 6,
-      "ColonySalvage": 25,
+      "ColonyAlloy": 19,
       "NanoSubstrate": 237,
       "Superalloy": 318,
       "credits": 103072
@@ -2396,8 +2361,7 @@
   "z6_missile": {
     "cost": {
       "AdvCircuit": 474,
-      "ColonyAlloy": 6,
-      "ColonySalvage": 25,
+      "ColonyAlloy": 19,
       "NanoSubstrate": 237,
       "QuantumCore": 12,
       "Superalloy": 318,
@@ -2417,9 +2381,8 @@
   "z6_sensor": {
     "cost": {
       "AdvCircuit": 320,
-      "ColonySalvage": 17,
       "NanoSubstrate": 160,
-      "QuantumCore": 8,
+      "QuantumCore": 9,
       "TargetingChip": 3,
       "credits": 95000
     },
@@ -2435,8 +2398,7 @@
   "z6_shield": {
     "cost": {
       "AdvCircuit": 731,
-      "ColonyAlloy": 7,
-      "ColonySalvage": 29,
+      "ColonyAlloy": 22,
       "NanoSubstrate": 365,
       "QuantumCore": 14,
       "credits": 77304
@@ -2600,8 +2562,7 @@
     "cost": {
       "AdvCircuit": 2521,
       "CompositeWeave": 1014,
-      "ExoticIsotope": 31,
-      "GammaAlloy": 10,
+      "GammaAlloy": 25,
       "SinteredCarbide": 1352,
       "credits": 170069
     },
@@ -2635,8 +2596,7 @@
     "cost": {
       "AdvCircuit": 1917,
       "CompositeWeave": 771,
-      "ExoticIsotope": 23,
-      "GammaAlloy": 6,
+      "GammaAlloy": 18,
       "SinteredCarbide": 1028,
       "TargetingChip": 6,
       "credits": 226758
@@ -2673,8 +2633,7 @@
     "cost": {
       "AdvCircuit": 1917,
       "CompositeWeave": 771,
-      "ExoticIsotope": 23,
-      "GammaAlloy": 6,
+      "GammaAlloy": 18,
       "IrPlate": 47,
       "SinteredCarbide": 1028,
       "credits": 226758
@@ -2695,8 +2654,7 @@
       "AdvCircuit": 1482,
       "Chip": 795,
       "CompositeWeave": 596,
-      "ExoticIsotope": 23,
-      "GammaAlloy": 6,
+      "GammaAlloy": 18,
       "QuantumCore": 14,
       "SinteredCarbide": 795,
       "credits": 226758
@@ -2733,8 +2691,7 @@
     "cost": {
       "AdvCircuit": 2133,
       "CompositeWeave": 858,
-      "ExoticIsotope": 27,
-      "GammaAlloy": 8,
+      "GammaAlloy": 21,
       "SinteredCarbide": 1144,
       "credits": 170069
     },
@@ -2896,12 +2853,11 @@
   "z8_armor": {
     "cost": {
       "AdvCircuit": 2138,
-      "AntimatterParticle": 28,
       "DiamondWafer": 178,
       "NanoSubstrate": 1069,
       "NeutroniumPlate": 445,
       "PrecisionLattice": 852,
-      "PrismaticAlloy": 11,
+      "PrismaticAlloy": 25,
       "StainlessSteel": 4454,
       "StructuralLattice": 22,
       "TargetingChip": 9,
@@ -2940,12 +2896,11 @@
   "z8_energy": {
     "cost": {
       "AdvCircuit": 1645,
-      "AntimatterParticle": 21,
       "DiamondWafer": 137,
       "NanoSubstrate": 822,
       "NeutroniumPlate": 343,
       "PrecisionLattice": 655,
-      "PrismaticAlloy": 7,
+      "PrismaticAlloy": 18,
       "StainlessSteel": 3426,
       "StructuralLattice": 16,
       "TargetingChip": 7,
@@ -2985,12 +2940,11 @@
   "z8_kinetic": {
     "cost": {
       "AdvCircuit": 1645,
-      "AntimatterParticle": 21,
       "DiamondWafer": 137,
       "NanoSubstrate": 822,
       "NeutroniumPlate": 343,
       "PrecisionLattice": 655,
-      "PrismaticAlloy": 7,
+      "PrismaticAlloy": 18,
       "StainlessSteel": 3426,
       "StructuralLattice": 16,
       "TargetingChip": 7,
@@ -3010,15 +2964,13 @@
   "z8_missile": {
     "cost": {
       "AdvCircuit": 1645,
-      "AntimatterParticle": 21,
       "DiamondWafer": 137,
       "NanoSubstrate": 822,
       "NeutroniumPlate": 343,
       "PrecisionLattice": 655,
-      "PrismaticAlloy": 7,
-      "QuantumCore": 8,
+      "PrismaticAlloy": 18,
       "StainlessSteel": 3426,
-      "StructuralLattice": 8,
+      "StructuralLattice": 16,
       "TargetingChip": 7,
       "credits": 498868
     },
@@ -3057,12 +3009,11 @@
   "z8_shield": {
     "cost": {
       "AdvCircuit": 1809,
-      "AntimatterParticle": 25,
       "DiamondWafer": 151,
       "NanoSubstrate": 905,
       "NeutroniumPlate": 377,
       "PrecisionLattice": 721,
-      "PrismaticAlloy": 8,
+      "PrismaticAlloy": 20,
       "StainlessSteel": 3769,
       "StructuralLattice": 19,
       "TargetingChip": 7,
@@ -3225,10 +3176,10 @@
   },
   "z9_armor": {
     "cost": {
-      "BioforgedAlloy": 11,
-      "BiohazardSample": 56,
+      "BioforgedAlloy": 39,
       "FabricationBus": 855,
       "PrecisionLattice": 2938,
+      "RegenPlating": 25,
       "SuperiorCircuit": 427,
       "TargetingChip": 10,
       "VoidLattice": 1282,
@@ -3251,6 +3202,7 @@
       "PrecisionLattice": 1130,
       "SuperiorCircuit": 164,
       "TargetingChip": 4,
+      "VoidBattery": 13,
       "VoidLattice": 493,
       "credits": 900000
     },
@@ -3265,8 +3217,7 @@
   "z9_energy": {
     "cost": {
       "BioReactorCore": 19,
-      "BioforgedAlloy": 7,
-      "BiohazardSample": 42,
+      "BioforgedAlloy": 28,
       "FabricationBus": 658,
       "PrecisionLattice": 2260,
       "SuperiorCircuit": 329,
@@ -3289,6 +3240,7 @@
     "cost": {
       "BiohazardSample": 28,
       "FabricationBus": 329,
+      "OsCore": 13,
       "PrecisionLattice": 1130,
       "SuperiorCircuit": 164,
       "TargetingChip": 4,
@@ -3306,8 +3258,7 @@
   "z9_kinetic": {
     "cost": {
       "BioReactorCore": 19,
-      "BioforgedAlloy": 7,
-      "BiohazardSample": 42,
+      "BioforgedAlloy": 28,
       "FabricationBus": 658,
       "PrecisionLattice": 2260,
       "SuperiorCircuit": 329,
@@ -3329,8 +3280,7 @@
   "z9_missile": {
     "cost": {
       "BioReactorCore": 19,
-      "BioforgedAlloy": 7,
-      "BiohazardSample": 42,
+      "BioforgedAlloy": 28,
       "FabricationBus": 658,
       "PrecisionLattice": 2260,
       "SuperiorCircuit": 329,
@@ -3371,10 +3321,8 @@
   "z9_shield": {
     "cost": {
       "BioReactorCore": 22,
-      "BioforgedAlloy": 8,
-      "BiohazardSample": 49,
+      "BioforgedAlloy": 32,
       "FabricationBus": 723,
-      "PathogenCore": 2,
       "PrecisionLattice": 2486,
       "SuperiorCircuit": 362,
       "TargetingChip": 8,

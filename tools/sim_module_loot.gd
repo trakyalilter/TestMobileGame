@@ -29,7 +29,7 @@ func _run() -> void:
 	var fail := false
 
 	# (A) Loot rolling: a set-module + a counter module land as gear, not resources.
-	gs._roll_loot([["z2_unique_weapon", 1.0, 1, 1], ["faraday_hull", 1.0, 1, 1], ["Fe", 1.0, 5, 5]], 1.0, 0, false)
+	gs._roll_loot([["z2_unique_weapon", 1.0, 1, 1], ["z2_unique_battery", 1.0, 1, 1], ["Fe", 1.0, 5, 5]], 1.0, 0, false)
 	if gs.amount("z2_unique_weapon") == 0 and _count_set_pieces(gs, "z2_unique_weapon") == 1:
 		print("PASS set-piece loot granted as Armory gear (not a resource)")
 	else:
@@ -49,10 +49,10 @@ func _run() -> void:
 	else:
 		print("FAIL set piece not scaled (%.1f < %.0f)" % [piece_atk, base_atk * 3.0])
 		fail = true
-	if gs.amount("faraday_hull") == 0 and int(gs.module_inventory.get("faraday_hull", 0)) == 1:
-		print("PASS counter-module loot granted to inventory")
+	if gs.amount("z2_unique_battery") == 0 and int(gs.module_inventory.get("z2_unique_battery", 0)) == 1:
+		print("PASS unique-module loot granted to inventory")
 	else:
-		print("FAIL counter-module loot wrong")
+		print("FAIL unique-module loot wrong")
 		fail = true
 	if gs.amount("Fe") == 5:
 		print("PASS real resources still go to storage")
@@ -62,7 +62,7 @@ func _run() -> void:
 
 	# (B) Migration: gear already sitting in resources moves to the Armory.
 	gs.resources["z2_unique_armor"] = 2
-	gs.resources["faraday_hull"] = 3
+	gs.resources["z2_unique_battery"] = 3
 	gs.resources["Cu"] = 10
 	gs._migrate_module_resources()
 	if not gs.resources.has("z2_unique_armor") and _count_set_pieces(gs, "z2_unique_armor") == 2:
@@ -70,10 +70,10 @@ func _run() -> void:
 	else:
 		print("FAIL set-piece migration wrong")
 		fail = true
-	if not gs.resources.has("faraday_hull") and int(gs.module_inventory.get("faraday_hull", 0)) == 4:
+	if not gs.resources.has("z2_unique_battery") and int(gs.module_inventory.get("z2_unique_battery", 0)) == 4:
 		print("PASS stored counter modules migrated (1 + 3)")
 	else:
-		print("FAIL counter-module migration wrong (inv=%d)" % int(gs.module_inventory.get("faraday_hull", 0)))
+		print("FAIL unique-module migration wrong (inv=%d)" % int(gs.module_inventory.get("z2_unique_battery", 0)))
 		fail = true
 	if gs.resources.get("Cu", 0) == 10:
 		print("PASS real resources untouched by migration")

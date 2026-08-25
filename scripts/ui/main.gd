@@ -6641,7 +6641,7 @@ func _build_settings() -> void:
 		GameState.offline_combat = not GameState.offline_combat
 		_refresh_current())
 	v.add_child(oc_btn)
-	_lbl_wrap(v, "⛨ Away combat carries the durability risk: modules already worn to 50% can be destroyed while you're gone (~5%/hr each, capped 35%). Repair before logging off for zero risk.", 9, C_MUTED)
+	_lbl_wrap(v, "⛨ Away combat carries the durability risk: modules already worn to 50% can be WRECKED while you're gone (~5%/hr each, capped 35%) — inert until repaired, never lost. Repair before logging off for zero risk.", 9, C_MUTED)
 	_clbl(v, "Progress saves automatically.", 10, C_DIM)
 	var reset_btn := _card_button("⚠ Tap again to wipe save" if _reset_armed else "Reset Game", RED, true)
 	reset_btn.custom_minimum_size = Vector2(0, 44)

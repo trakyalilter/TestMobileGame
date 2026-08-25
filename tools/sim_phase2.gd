@@ -122,28 +122,35 @@ func _run() -> void:
 		if m2.get("slot", "") == "weapon" and float(m2.get("stats", {}).get("atk_kinetic", 0)) > 0:
 			gs.ammo_loadout[k] = "SlugT1"
 	gs.resources["SlugT1"] = 1000000
-	gs.boss_kills.erase("z2_boss_monolith")
-	var locked = gs.start_hazard("emp_nexus")
-	p("(f1) hazard gated until unlock boss killed", not locked, "start returned %s while locked" % str(locked))
-	gs.boss_kills["z2_boss_monolith"] = 1
-	var opened = gs.start_hazard("emp_nexus")
-	# verify wave scaling: wave 0 vs simulated wave 2 multiplier
-	var w0_hp = float(gs.enemy_inst["max_hp"])
-	# force-complete by killing each wave
-	var cleared := false
-	var guard := 0
-	gs.combat_hp = 999999.0
-	while gs.hazard_state.get("active", false) and guard < 2000:
-		guard += 1
-		gs.enemy_inst["hp"] = 0.0
-		gs._win_combat()
+	# The EMP Nexus was removed upstream; the hazard FRAMEWORK is kept, so these
+	# checks stand ready for whatever gauntlet lands next. Without the skip,
+	# start_hazard returns false and the first read of enemy_inst aborts the whole
+	# sim mid-run — which is why this looked like a hang rather than a failure.
+	if GameData.HAZARD_ZONES.is_empty():
+		print("(f) hazard checks skipped: no zones in the data")
+	else:
+		gs.boss_kills.erase("z2_boss_monolith")
+		var locked = gs.start_hazard("emp_nexus")
+		p("(f1) hazard gated until unlock boss killed", not locked, "start returned %s while locked" % str(locked))
+		gs.boss_kills["z2_boss_monolith"] = 1
+		var opened = gs.start_hazard("emp_nexus")
+		# verify wave scaling: wave 0 vs simulated wave 2 multiplier
+		var w0_hp = float(gs.enemy_inst["max_hp"])
+		# force-complete by killing each wave
+		var cleared := false
+		var guard := 0
 		gs.combat_hp = 999999.0
-		if not gs.hazard_state.get("active", false):
-			cleared = true
-			break
-	var got_reward = gs.amount("emp_generator_blueprint") >= 1
-	p("(f2) hazard opens after unlock + runs waves + completes", opened and cleared, "first_wave_hp=%.0f reward=%s" % [w0_hp, str(got_reward)])
-	p("(f3) hazard first-clear reward granted", got_reward, "emp_generator_blueprint x%d" % gs.amount("emp_generator_blueprint"))
+		while gs.hazard_state.get("active", false) and guard < 2000:
+			guard += 1
+			gs.enemy_inst["hp"] = 0.0
+			gs._win_combat()
+			gs.combat_hp = 999999.0
+			if not gs.hazard_state.get("active", false):
+				cleared = true
+				break
+		var got_reward = gs.amount("emp_generator_blueprint") >= 1
+		p("(f2) hazard opens after unlock + runs waves + completes", opened and cleared, "first_wave_hp=%.0f reward=%s" % [w0_hp, str(got_reward)])
+		p("(f3) hazard first-clear reward granted", got_reward, "emp_generator_blueprint x%d" % gs.amount("emp_generator_blueprint"))
 
 	# ===== (g) Safety caps =====
 	gs.stop_task()
